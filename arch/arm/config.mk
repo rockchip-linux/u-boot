@@ -21,6 +21,15 @@
 # MA 02111-1307 USA
 #
 
+ifneq ($(wildcard ../toolchain/arm-eabi-4.4.0),)
+CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.4.0/bin/arm-eabi-
+endif
+ifneq ($(wildcard ../android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.0),)
+CROSS_COMPILE   ?= $(shell pwd)/../android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.0/bin/arm-eabi-
+endif
+ifneq ($(wildcard ../android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3),)
+CROSS_COMPILE   ?= $(shell pwd)/../android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
+endif
 CROSS_COMPILE ?= arm-linux-
 
 ifndef CONFIG_STANDALONE_LOAD_ADDR

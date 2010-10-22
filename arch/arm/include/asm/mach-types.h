@@ -1107,7 +1107,9 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_OMAP5_SEVM           3777
 #define MACH_TYPE_ARMADILLO_800EVA     3863
 #define MACH_TYPE_KZM9G                4140
-
+#define	MACH_TYPE_RK28SDK              9001
+#define MACH_TYPE_RK2900               9002
+#define MACH_TYPE_RK30SDK              9003
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type
 #  undef machine_arch_type
