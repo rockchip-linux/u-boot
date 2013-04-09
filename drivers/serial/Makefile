@@ -55,7 +55,7 @@ COBJS-$(CONFIG_SCIF_CONSOLE) += serial_sh.o
 COBJS-$(CONFIG_ZYNQ_SERIAL) += serial_zynq.o
 COBJS-$(CONFIG_RK28_UART) += rk28_uart.o
 COBJS-$(CONFIG_RK29_UART) += rk29_uart.o
-COBJS-$(CONFIG_RK30_UART) += rk30_uart.o
+COBJS-$(CONFIG_RK30_UART) += serial_rk30.o
 ifndef CONFIG_SPL_BUILD
 COBJS-$(CONFIG_USB_TTY) += usbtty.o
 endif
