@@ -32,8 +32,7 @@ COBJS-y	:= rk30sdk.o
 #SOBJS	:= lowlevel_init.o
 
 COBJS-y += getmtdpart.o
-COBJS-y += ldcrc.o
-COBJS-y += ldcrctable.o
+COBJS-y += crc.o
 COBJS-y += maptable.o
 COBJS-y += parameter.o
 
