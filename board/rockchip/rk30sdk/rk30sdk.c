@@ -31,7 +31,7 @@ int board_init(void)
 {
 	/* Set Initial global variables */
 
-	gd->bd->bi_arch_number = MACH_TYPE_RK2900;
+	gd->bd->bi_arch_number = MACH_TYPE_RK30;
 	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x88000;
 
 	return 0;
@@ -48,7 +48,7 @@ int dram_init(void)
 #ifdef CONFIG_DISPLAY_BOARDINFO
 int checkboard(void)
 {
-	puts("Board:\tRK29SDK Board\n");
+	puts("Board:\tRK30SDK Board\n");
 	return 0;
 }
 #endif
