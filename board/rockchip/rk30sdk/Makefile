@@ -31,6 +31,12 @@ LIB	= $(obj)lib$(BOARD).o
 COBJS-y	:= rk30sdk.o
 #SOBJS	:= lowlevel_init.o
 
+COBJS-y += getmtdpart.o
+COBJS-y += ldcrc.o
+COBJS-y += ldcrctable.o
+COBJS-y += maptable.o
+COBJS-y += parameter.o
+
 SRCS    := $(SOBJS:.o=.S) $(COBJS-y:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS-y))
 SOBJS	:= $(addprefix $(obj),$(SOBJS))
