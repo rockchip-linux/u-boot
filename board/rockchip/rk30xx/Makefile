@@ -27,6 +27,12 @@ LIB	= $(obj)lib$(BOARD).o
 
 COBJS   := $(BOARD).o
 
+COBJS-y += getmtdpart.o
+COBJS-y += crc.o
+COBJS-y += maptable.o
+COBJS-y += parameter.o
+
+
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))
 SOBJS	:= $(addprefix $(obj),$(SOBJS))
