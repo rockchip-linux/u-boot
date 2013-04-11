@@ -1,9 +1,6 @@
 #
-# (C) Copyright 2000-2003
-# Wolfgang Denk, DENX Software Engineering, wd@denx.de.
-#
-# (C) Copyright 2008
-# Guennadi Liakhovetki, DENX Software Engineering, <lg@denx.de>
+# (C) Copyright 2013
+# peter, Software Engineering, <superpeter.cai@gmail.com>.
 #
 # See file CREDITS for list of people who contributed to this
 # project.
@@ -28,12 +25,10 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)lib$(SOC).o
 
-SOBJS	= cache.o
-
-COBJS	+= timer.o
 COBJS	+= cpu_info.o
-COBJS	+= clock.o
+COBJS	+= timer.o
 COBJS	+= reset.o
+COBJS	+= interrupts.o
 
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))

@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2010 Samsung Electronics
-# Kyungmin Park <kyungmin.park@samsung.com>
+# Copyright (C) 2013 Rockchip Electronics
+# peter, Software Engineering, <superpeter.cai@gmail.com>.
 #
 # See file CREDITS for list of people who contributed to this
 # project.
@@ -20,15 +20,15 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA 02111-1307 USA
 #
-
-# On S5PC100 we use the 128 MiB OneDRAM bank at
 #
-# 0x30000000 to 0x35000000 (80MiB)
-# 0x38000000 to 0x40000000 (128MiB)
+# Innovator has 1 bank of 256 MB SDRAM
+# Physical Address:
+# 6000'0000 to 7000'0000
 #
-# On S5PC110 we use the 128 MiB OneDRAM bank at
 #
-# 0x30000000 to 0x35000000 (80MiB)
-# 0x40000000 to 0x50000000 (256MiB)
+# Linux-Kernel is expected to be at 6000'8000, entry 6000'8000
+# (mem base + reserved)
 #
-TEXT_BASE = 0x61000000
+#
+# For use with external or internal boots.
+CONFIG_SYS_TEXT_BASE = 0x60000000

@@ -1,32 +1,45 @@
-/******************************************************************/
-/*	Copyright (C)  ROCK-CHIPS FUZHOU . All Rights Reserved.  	  */
-/*******************************************************************
-File    :   driver.h
-Author  :   rk30 driver
-Date    :   2008-11-18
-Notes   :   
-
-********************************************************************/
+/*
+ * (C) Copyright 2013
+ * peter, Software Engineering, <superpeter.cai@gmail.com>.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #ifndef _RK30_DRIVERS_H
 #define _RK30_DRIVERS_H
 
-/********************************************************************
-以下定是是模块开关使能, 有定义使能相应模块
-********************************************************************/
 
-//#define     DRIVERS_TIMER       //定义定时器模块使能
-//#define     DRIVERS_SCU         //定义SCU模块使能, 主要是时钟域和电源域的管理
-//#define     DRIVERS_GPIO        //定义GPIO模块使能
-//#define     DRIVERS_SPI         //定义SPI模块使能, 包括主从模式
-//#define     DRIVERS_I2C         //定义I2C模块使能, 包括主从模式
-//#define     DRIVERS_GRF         //定义通用寄存器文件(General Register File)模块使能, 主要是IOMUX和IO配置
-//#define     DRIVERS_ADC        // 定义ADC 模块使能
+/********************************************************************
+**                  drivers module define                           *
+********************************************************************/
+#define     DRIVERS_TIMER
+#define     DRIVERS_UART
+
 /********************************************************************
 **                 common head files                                *
 ********************************************************************/
-#include    "rk30_debug.h"
 #include    "rk30_typedef.h"
-#include    "rk30_memmap.h"
-#include    "rk30_drivers_delay.h"
+#include    "rk30_io.h"
+
+
+/********************************************************************
+**                  drivers head files                              *
+********************************************************************/
+#include    "rk30_uart.h"
 
 #endif   /* _RK30_DRIVERS_H */
