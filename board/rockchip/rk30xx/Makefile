@@ -25,16 +25,15 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)lib$(BOARD).o
 
-COBJS   := $(BOARD).o
+COBJS-y := $(BOARD).o
 
-COBJS-y += getmtdpart.o
+COBJS-y += mtdpart.o
 COBJS-y += crc.o
-COBJS-y += maptable.o
 COBJS-y += parameter.o
 
 
-SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
-OBJS	:= $(addprefix $(obj),$(COBJS))
+SRCS	:= $(SOBJS:.o=.S) $(COBJS-y:.o=.c)
+OBJS	:= $(addprefix $(obj),$(COBJS-y))
 SOBJS	:= $(addprefix $(obj),$(SOBJS))
 
 $(LIB):	$(obj).depend $(OBJS) $(SOBJS)
