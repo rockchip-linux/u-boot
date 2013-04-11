@@ -25,8 +25,11 @@ int board_init(void)
  **********************************************/
 int dram_init(void)
 {
-	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+	//gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
+	//gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+	gd->ram_size = get_ram_size(
+			(void *)CONFIG_SYS_SDRAM_BASE,
+			CONFIG_SYS_SDRAM_SIZE);
 
 	return 0;
 }

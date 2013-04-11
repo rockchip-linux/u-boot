@@ -1,7 +1,6 @@
 
 #ifndef __CONFIG_H
 #define __CONFIG_H
-
 /*
  * High Level Configuration Options
  */
@@ -22,6 +21,8 @@
 #define CONFIG_CMDLINE_EDITING		/* add command line history	*/
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
 #define CONFIG_SKIP_LOWLEVEL_INIT
+#define CONFIG_SYS_ICACHE_OFF
+#define CONFIG_SYS_DCACHE_OFF
 /*
  * Enabling relocation of u-boot by default
  * Relocation can be skipped if u-boot is copied to the TEXT_BASE
@@ -139,7 +140,7 @@
 #define CONFIG_NR_DRAM_BANKS	1
 #define PHYS_SDRAM_1		CONFIG_SYS_SDRAM_BASE	/* OneDRAM Bank #0 */
 #define PHYS_SDRAM_1_SIZE	(128 << 20)		/* 128 MB in Bank #0 */
-
+#define CONFIG_SYS_SDRAM_SIZE PHYS_SDRAM_1_SIZE
 
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
