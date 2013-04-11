@@ -692,7 +692,8 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_RDSTOR               3063
 #define MACH_TYPE_USDLOADER            3064
 #define MACH_TYPE_TSOPLOADER           3065
-#define MACH_TYPE_KRONOS               3066
+//#define MACH_TYPE_KRONOS               3066
+#define MACH_TYPE_RK30XX               3066
 #define MACH_TYPE_FFCORE               3067
 #define MACH_TYPE_MONE                 3068
 #define MACH_TYPE_UNIT2S               3069
@@ -1107,9 +1108,7 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_OMAP5_SEVM           3777
 #define MACH_TYPE_ARMADILLO_800EVA     3863
 #define MACH_TYPE_KZM9G                4140
-#define	MACH_TYPE_RK28SDK              9001
-#define MACH_TYPE_RK2900               9002
-#define MACH_TYPE_RK30                 9003
+
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type
 #  undef machine_arch_type

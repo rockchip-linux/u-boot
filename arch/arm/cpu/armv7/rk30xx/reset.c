@@ -1,7 +1,6 @@
 /*
- * (C) Copyright 2007-2008
- * Stelian Pop <stelian.pop@leadtechdesign.com>
- * Lead Tech Design <www.leadtechdesign.com>
+ * (C) Copyright 2013
+ * peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -22,19 +21,13 @@
  * MA 02111-1307 USA
  */
 
-#include <common.h>
-#include 	<asm/arch/rk30_drivers.h>	
-#include 	<asm/io.h>
+#include <common.h>	
+#include <asm/io.h>
 
 /*
  * Reset the cpu by setting up the watchdog timer and let him time out.
  */
 void reset_cpu(ulong ignored)
 {
-	#if 0
-    pFunc fp;
 
-    fp=0x60000000;
-    fp();
- #endif
 }

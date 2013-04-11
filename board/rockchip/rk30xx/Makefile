@@ -1,9 +1,6 @@
 #
-# (C) Copyright 2000-2003
-# Wolfgang Denk, DENX Software Engineering, wd@denx.de.
-#
-# (C) Copyright 2008
-# Guennadi Liakhovetki, DENX Software Engineering, <lg@denx.de>
+# (C) Copyright 2013
+# peter, Software Engineering, <superpeter.cai@gmail.com>.
 #
 # See file CREDITS for list of people who contributed to this
 # project.
@@ -26,22 +23,28 @@
 
 include $(TOPDIR)/config.mk
 
-LIB	= $(obj)lib$(SOC).o
+LIB	= $(obj)lib$(BOARD).o
 
-SOBJS	= cache.o
+COBJS   := $(BOARD).o
 
-COBJS	+= timer.o
-COBJS	+= cpu_info.o
-COBJS	+= clock.o
-COBJS	+= reset.o
+COBJS-y += getmtdpart.o
+COBJS-y += crc.o
+COBJS-y += maptable.o
+COBJS-y += parameter.o
+
 
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
-OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))
+OBJS	:= $(addprefix $(obj),$(COBJS))
+SOBJS	:= $(addprefix $(obj),$(SOBJS))
 
-all:	 $(obj).depend $(LIB)
+$(LIB):	$(obj).depend $(OBJS) $(SOBJS)
+	$(call cmd_link_o_target, $(OBJS) $(SOBJS))
 
-$(LIB):	$(OBJS)
-	$(call cmd_link_o_target, $(OBJS))
+clean:
+	rm -f $(SOBJS) $(OBJS)
+
+distclean:	clean
+	rm -f $(LIB) core *.bak $(obj).depend
 
 #########################################################################
 
