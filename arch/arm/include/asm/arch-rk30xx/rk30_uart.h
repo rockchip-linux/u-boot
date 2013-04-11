@@ -1,29 +1,30 @@
-/*
- * (C) Copyright 2013
- * peter, Software Engineering, <superpeter.cai@gmail.com>.
- *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
- */
-#ifdef DRIVERS_UART
+/******************************************************************/
+/*   Copyright (C) 2008 ROCK-CHIPS FUZHOU . All Rights Reserved.  */
+/*******************************************************************
+File    :  uart.h
+Desc    :  定义UART的寄存器结构体\寄存器位的宏定义\接口函数
 
-#ifndef _RK30_UART_H_
-#define _RK30_UART_H_
+Author  : lhh
+Date    : 2008-10-29
+Modified:
+Revision:           1.00
+$Log: uart.h,v $
+Revision 1.1  2010/12/06 02:43:52  Administrator
+*** empty log message ***
+
+Revision 1.1.2.1  2010/05/19 09:37:27  Administrator
+*** empty log message ***
+
+Revision 1.1  2009/08/07 09:52:54  Administrator
+*** empty log message ***
+
+Revision 1.1  2009/03/16 07:37:15  Administrator
+*** empty log message ***
+
+*********************************************************************/
+
+#ifndef _DRIVER_UART_H_
+#define _DRIVER_UART_H_
 
 
 ///UART_IER
@@ -33,9 +34,9 @@
 #define   DISABLE_MODEM_STATUS_INT           (0)
 #define   ENABLE_RECEIVER_LINE_STATUS_INT   (1<<2)
 #define   DISABLE_RECEIVER_LINE_STATUS_INT   (0)
-#define   ENABLE_TRANSMIT_HOLDING_EM_INT    (1<<1) //Enable Transmit Holding Register Empty Interrupt.
+#define   ENABLE_TRANSMIT_HOLDING_EM_INT    (1<<1) ///Enable Transmit Holding Register Empty Interrupt.
 #define   DISABLE_TRANSMIT_HOLDING_EM_INT    (0)
-#define   ENABLE_RECEIVER_DATA_INT           (1)   //Enable Received Data Available Interrupt.
+#define   ENABLE_RECEIVER_DATA_INT           (1)   ////Enable Received Data Available Interrupt.
 #define   DISABLE_RECEIVER_DATA_INT          (0)
 
 ///UART_IIR
@@ -98,8 +99,12 @@
 #define  XMIT_FIFO_RESET                    (1<<2)
 
 
+
+
+
 //UART Registers
-typedef volatile struct tagUART_STRUCT {
+typedef volatile struct tagUART_STRUCT
+{
     uint32 UART_RBR;
     uint32 UART_DLH;
     uint32 UART_IIR;
@@ -131,52 +136,49 @@ typedef volatile struct tagUART_STRUCT {
     uint32 UART_CTR;
 } UART_REG, *pUART_REG;
 
-
 #define UART_THR UART_RBR
 #define UART_DLL UART_RBR
 #define UART_IER UART_DLH
 #define UART_FCR UART_IIR
 #define UART_STHR[(0x6c-0x30)/4]  UART_SRBR[(0x6c-0x30)/4]
 
-#define MODE_X_DIV              16
+#define MODE_X_DIV            16
 
 
-#define UART_BIT5 5
-#define UART_BIT6 6
-#define UART_BIT7 7
-#define UART_BIT8 8
+#undef  EXT
+#ifdef  IN_DRIVER_UART
+#define EXT
+uint32 uartWorkStatus0=0;
+uint32 uartWorkStatus1=0;
+#else
+#define EXT     extern
+extern uint32 uartWorkStatus0;
+extern uint32 uartWorkStatus1;
+#endif
 
-#define UART_BYTE_TIME_OUT_CNT  0xff
-
-///uartWorkStatusFlag
-#define   UART0_TX_WORK                     (1)
-#define   UART0_RX_WORK                     (1<<1)
-#define   UART1_TX_WORK                     (1<<2)
-#define   UART1_RX_WORK                     (1<<3)
-#define   UART_ERR_RX                       (1<<4)
-
-
-typedef enum UART_ch {
-    UART_CH0,
-    UART_CH1
-}eUART_ch_t;
-
-
-#define UART0_BASE_ADDR		RK30_UART0_PHYS
-#define UART1_BASE_ADDR		RK30_UART1_PHYS
-
-#endif /* _RK30_UART_H_ */
-
-#endif /* DRIVERS_UART */
+EXT uint8 receBuff0[32];
+EXT uint8 receBuff1[32];
+EXT uint8 receBuffCnt0;
+EXT uint8 receBuffCnt1;
+EXT volatile uint8 *puart0ReadCnt;
+EXT volatile uint8 *puart0WriteCnt;
+EXT volatile uint8 *puart1ReadCnt;
+EXT volatile uint8 *puart1WriteCnt;
+EXT volatile uint32 g_uart0ReadLength;
+EXT volatile uint32 g_uart0WriteLength;
+EXT volatile uint32 g_uart1ReadLength;
+EXT volatile uint32 g_uart1WriteLength;
 
 
+/********************************************************************/
 
+void UartInit(void);
+void UartWriteChar(char c);
 
+#endif /* _UART_H */
 
-
-
-
-
-
+/*********************************************************************
+ END OF FILE
+*********************************************************************/
 
 

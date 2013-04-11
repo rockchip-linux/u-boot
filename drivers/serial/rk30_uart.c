@@ -1,30 +1,10 @@
-/*
- * (C) Copyright 2013
- * peter, Software Engineering, <superpeter.cai@gmail.com>.
- *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
- */
 #include <common.h>
 #include <serial.h>
-#include  <asm/arch/rk30_drivers.h>
-
+#include <asm/arch/rk30_drivers.h>
+#include <asm/arch/Reg.h>
+#include <asm/arch/rk30_memmap.h>
 #ifdef DRIVERS_UART
+#if 0
 
 static uint32 uartWorkStatus0 = 0;
 static uint32 uartWorkStatus1 = 0;
@@ -139,7 +119,6 @@ void UARTRest(pUART_REG phead)
 	phwHead->UART_IER = 0;
 }
 
-
 int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 {
 	volatile unsigned int * pGRF_GPIO2L_IOMUX = (volatile unsigned int *)(RK30_GRF_PHYS+0x58);
@@ -196,7 +175,6 @@ int32 UARTWriteByte(eUART_ch_t uartCh, uint8 byte)
 	return (0);
 }
 
-
 uint8 UARTReadByte(eUART_ch_t uartCh)
 {
 	pUART_REG puartRegStart;
@@ -213,16 +191,50 @@ uint8 UARTReadByte(eUART_ch_t uartCh)
 	pdata = (uint8 )puartRegStart->UART_RBR;
     	return (pdata);
 }
+#endif
 
+pUART_REG pUartReg = (pUART_REG)UART2_BASE_ADDR;
+#define ReadReg32(addr)                     (*(volatile uint32 *)(addr))
+#define WriteReg32(addr, data)              (*(volatile uint32 *)(addr) = data)
 
-static int rk30_serial_init(void)
+int rk30_serial_init(void)
 {
-	return(UARTInit(CONFIG_UART_NUM, CONFIG_BAUDRATE));
+    uint32  uartTemp;
+    //uint32 lcr;
+    volatile uint32 *pRegAddr;
+    //clk
+    //pRegAddr = (volatile uint32*)0x1801801C;
+    //*pRegAddr &= ~(0x03<<18);	//open uart 0 and 1 clk
+        g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
+    //iomux
+    //pRegAddr = (volatile uint32*)0x18019020;
+    //*pRegAddr &= ~0xf00f000;	//open uart 0 and 1 iomux
+    //*pRegAddr |= 0x5005000;    
+  
+    //Reset
+    pUartReg->UART_SRR = UART_RESET | RCVR_FIFO_REST | XMIT_FIFO_RESET;
+    pUartReg->UART_IER = 0;
+    
+    //uart mode
+    pUartReg->UART_MCR = IRDA_SIR_DISABLED;
+
+    //BaudRate
+    pUartReg->UART_LCR = LCR_DLA_EN | PARITY_DISABLED | ONE_STOP_BIT | LCR_WLS_8;
+    uartTemp = (1000 * 24000) / MODE_X_DIV / 115200;
+
+    pUartReg->UART_DLL = uartTemp & 0xff;
+    pUartReg->UART_DLH = (uartTemp>>8) & 0xff;
+    pUartReg->UART_LCR = PARITY_DISABLED | ONE_STOP_BIT | LCR_WLS_8;
+
+    pUartReg->UART_SFE = SHADOW_FIFI_ENABLED;
+    pUartReg->UART_SRT = RCVR_TRIGGER_TWO_LESS_FIFO;
+    pUartReg->UART_STET = TX_TRIGGER_TWO_IN_FIFO;
+	return 0;
 }
 
-static void rk30_serial_setbrg(void)
+void rk30_serial_setbrg(void)
 {
-	pUART_REG puartRegStart = NULL;
+/*	pUART_REG puartRegStart = NULL;
 
 	if(CONFIG_UART_NUM == UART_CH0) {
 		puartRegStart = (pUART_REG)UART0_BASE_ADDR;
@@ -230,18 +242,30 @@ static void rk30_serial_setbrg(void)
 		puartRegStart = (pUART_REG)UART1_BASE_ADDR;
 	}
 
-	UARTSetBaudRate(puartRegStart, CONFIG_BAUDRATE);
+	UARTSetBaudRate(puartRegStart, CONFIG_BAUDRATE);*/
 }
 
-
-/*-----------------------------------------------------------------------
- * UART CONSOLE
- *---------------------------------------------------------------------*/
-static void rk30_serial_putc(char c)
+void rk30_serial_putc(char c)
 {
+    uint32 uartTimeOut;
+    pUART_REG puartRegStart;  
 	if (c == '\n')
 		serial_putc('\r');
-	UARTWriteByte(CONFIG_UART_NUM, c);
+
+    if(!pUartReg) return;
+    
+    puartRegStart = (pUART_REG)pUartReg;
+    
+    uartTimeOut = 0xFFFF;
+    while((puartRegStart->UART_USR & UART_TRANSMIT_FIFO_NOT_FULL) != UART_TRANSMIT_FIFO_NOT_FULL)
+    {
+        if(uartTimeOut == 0)
+        {
+            return ;
+        }
+        uartTimeOut--;
+    }
+    puartRegStart->UART_THR = c;
 }
 
 
@@ -253,11 +277,11 @@ void rk30_serial_puts(const char *s)
 }
 
 
-static int rk30_serial_getc(void)
+int rk30_serial_getc(void)
 {
 	char a = 0;
 
-	a = UARTReadByte(CONFIG_UART_NUM);
+	//a = UARTReadByte(CONFIG_UART_NUM);
 	if(0 == a)
 		a='\0';
 
@@ -265,8 +289,9 @@ static int rk30_serial_getc(void)
 }
 
 
-static int rk30_serial_tstc(void)
+int rk30_serial_tstc(void)
 {
+#if 0
 	if( CONFIG_UART_NUM == UART_CH0) {
 		pUART_REG puartRegStart=(pUART_REG)UART0_BASE_ADDR;
         	return((puartRegStart->UART_USR & UART_RECEIVE_FIFO_NOT_EMPTY) == UART_RECEIVE_FIFO_NOT_EMPTY);
@@ -274,6 +299,7 @@ static int rk30_serial_tstc(void)
 		pUART_REG puartRegStart=(pUART_REG)UART1_BASE_ADDR;
         	return((puartRegStart->UART_USR & UART_RECEIVE_FIFO_NOT_EMPTY) == UART_RECEIVE_FIFO_NOT_EMPTY);
 	}
+#endif
 }
 
 

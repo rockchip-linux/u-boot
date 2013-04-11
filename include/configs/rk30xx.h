@@ -1,27 +1,3 @@
-/*
- * (C) Copyright 2013-2013
- * peter <superpeter.cai@gmail.com>
- *
- * Configuation settings for the rk30xx board.
- *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
- */
 
 #ifndef __CONFIG_H
 #define __CONFIG_H
@@ -94,7 +70,6 @@
 #undef CONFIG_CMD_NET
 #undef CONFIG_CMD_NFS
 #undef CONFIG_CMD_XIMG
-#undef CONFIG_CMD_SAVEENV
 
 /* Enabled commands */
 #define CONFIG_CMD_CACHE	/* icache, dcache		 */
@@ -134,7 +109,7 @@
  */
 /* DRAM Base */
 #define CONFIG_SYS_SDRAM_BASE		0x60000000		/* Physical start address of SDRAM. */
-#define CONFIG_SYS_INIT_SP_ADDR 	(0x60400000 - 0x8000)	
+#define CONFIG_SYS_INIT_SP_ADDR 	0x60008000	
 
 #define CONFIG_SYS_MEMTEST_START	CONFIG_SYS_SDRAM_BASE
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_SDRAM_BASE + 0x1000000)
@@ -177,16 +152,9 @@
 							/* be same as the text base address CONFIG_SYS_TEXT_BASE */
 #define CONFIG_SYS_MONITOR_LEN		(256 << 10)	/* 256 KiB */
 
-#ifndef CONFIG_SYS_RAMBOOT
-#  define CONFIG_ENV_IS_IN_FLASH	1
-#    define CONFIG_ENV_ADDR		0x280000	/* Offset of Environment Sector */
-#    define CONFIG_ENV_SECT_SIZE	(512 << 10)	/* 512 KiB, 0x80000 */
-#    define CONFIG_ENV_SIZE		CONFIG_ENV_SECT_SIZE
-#else
-#  define CONFIG_ENV_IS_IN_NVRAM	1
-#  define CONFIG_ENV_ADDR		CONFIG_SYS_MONITOR_BASE
-#  define CONFIG_ENV_SIZE		0x200
-#endif /* CONFIG_SYS_RAMBOOT */
+#define CONFIG_ENV_IS_NOWHERE		1
+#define CONFIG_ENV_SIZE			(256 << 10)	/* 256 KiB, 0x40000 */
+#define CONFIG_ENV_ADDR			(1 << 20)	/* 1 MB, 0x100000 */
 
 
 /* MTD Support (mtdparts command, UBI support) */
