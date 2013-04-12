@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2013
- * peter, Software Engineering, <superpeter.cai@gmail.com>.
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -158,12 +158,9 @@ typedef volatile struct tagUART_STRUCT {
 
 typedef enum UART_ch {
     UART_CH0,
-    UART_CH1
+    UART_CH1,
+    UART_CH2
 }eUART_ch_t;
-
-
-#define UART0_BASE_ADDR		RK30_UART0_PHYS
-#define UART1_BASE_ADDR		RK30_UART1_PHYS
 
 #endif /* _RK30_UART_H_ */
 

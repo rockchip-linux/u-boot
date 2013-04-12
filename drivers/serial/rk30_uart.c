@@ -26,9 +26,6 @@
 
 #ifdef DRIVERS_UART
 
-static uint32 uartWorkStatus0 = 0;
-static uint32 uartWorkStatus1 = 0;
-
 /*------------------------------------------------------------------
  * UART the serial port
  *-----------------------------------------------------------------*/
@@ -140,56 +137,62 @@ void UARTRest(pUART_REG phead)
 }
 
 
+inline pUART_REG UARTGetRegBase(eUART_ch_t uartCh)
+{    
+	if(uartCh == UART_CH0) {
+		return (pUART_REG)RK30_UART0_PHYS;
+	} else if (uartCh == UART_CH1) {
+		return (pUART_REG)RK30_UART1_PHYS;
+	} else if (uartCh == UART_CH2) {
+		return (pUART_REG)RK30_UART2_PHYS;
+	} else {
+		return NULL;
+	}
+}
+
+ 
 int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 {
-	volatile unsigned int * pGRF_GPIO2L_IOMUX = (volatile unsigned int *)(RK30_GRF_PHYS+0x58);
-	pUART_REG puartreg = NULL;
+	pUART_REG pUartReg = NULL;
 	int32 val = -1;
     
 	if(uartCh == UART_CH0) { 
-		puartreg = (pUART_REG)UART0_BASE_ADDR;
-		if(uartWorkStatus0 == 1)
-			return (-1);
-
-		uartWorkStatus0 = 1;
-	} else {
+		// iomux to uart 0
+		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
+		pUartReg = (pUART_REG)RK30_UART0_PHYS;
+	} else if (uartCh == UART_CH1) {
 		// iomux to uart 1
-		*pGRF_GPIO2L_IOMUX |= (1<<8)|(1<<10);
-		puartreg = (pUART_REG)UART1_BASE_ADDR;
-		if(uartWorkStatus1 == 1)
-			return (-1);
-
-		uartWorkStatus1 = 1;
+		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);   // sin,sout
+		pUartReg = (pUART_REG)RK30_UART1_PHYS;
+	} else if (uartCh == UART_CH2) {
+		// iomux to uart 2
+		g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
+		pUartReg = (pUART_REG)RK30_UART2_PHYS;
 	}
 
-	UARTRest(puartreg);  
-	val = UARTSetIOP(puartreg, IRDA_SIR_DISABLED);
+	UARTRest(pUartReg);
+
+	val = UARTSetIOP(pUartReg, IRDA_SIR_DISABLED);
 	if(val == -1)
 		return (-1);
 
-	val = UARTSetLcrReg(puartreg, UART_BIT8, PARITY_DISABLED, ONE_STOP_BIT);
+	val = UARTSetLcrReg(pUartReg, UART_BIT8, PARITY_DISABLED, ONE_STOP_BIT);
 	if(val == -1)
 		return (-1);
 
-	val = UARTSetBaudRate(puartreg, baudRate);
+	val = UARTSetBaudRate(pUartReg, baudRate);
 	if(val == -1)
 		return (-1);
 
-	UARTSetFifoEnabledNumb(puartreg);
+	UARTSetFifoEnabledNumb(pUartReg);
 	return (0);
 }
 
 
 int32 UARTWriteByte(eUART_ch_t uartCh, uint8 byte)
 {
-	pUART_REG puartRegStart;  
+	pUART_REG puartRegStart = UARTGetRegBase(uartCh);  
     
-	if(uartCh == UART_CH0) {
-		puartRegStart = (pUART_REG)UART0_BASE_ADDR;
-	} else {
-		puartRegStart = (pUART_REG)UART1_BASE_ADDR;
-	}
-
 	while((puartRegStart->UART_USR & UART_TRANSMIT_FIFO_NOT_FULL) == 0);
 
 	puartRegStart->UART_THR = byte;
@@ -199,14 +202,8 @@ int32 UARTWriteByte(eUART_ch_t uartCh, uint8 byte)
 
 uint8 UARTReadByte(eUART_ch_t uartCh)
 {
-	pUART_REG puartRegStart;
+	pUART_REG puartRegStart = UARTGetRegBase(uartCh); 
 	uint8 pdata;
-
-	if(uartCh == UART_CH0) {
-		puartRegStart = (pUART_REG)UART0_BASE_ADDR;
-	} else {
-		puartRegStart = (pUART_REG)UART1_BASE_ADDR;
-	}
 
 	while((puartRegStart->UART_USR & UART_RECEIVE_FIFO_NOT_EMPTY) == 0);
  
@@ -217,18 +214,12 @@ uint8 UARTReadByte(eUART_ch_t uartCh)
 
 static int rk30_serial_init(void)
 {
-	return(UARTInit(CONFIG_UART_NUM, CONFIG_BAUDRATE));
+	return (UARTInit(CONFIG_UART_NUM, CONFIG_BAUDRATE));
 }
 
 static void rk30_serial_setbrg(void)
 {
-	pUART_REG puartRegStart = NULL;
-
-	if(CONFIG_UART_NUM == UART_CH0) {
-		puartRegStart = (pUART_REG)UART0_BASE_ADDR;
-	} else {
-		puartRegStart = (pUART_REG)UART1_BASE_ADDR;
-	}
+	pUART_REG puartRegStart = UARTGetRegBase(CONFIG_UART_NUM); 
 
 	UARTSetBaudRate(puartRegStart, CONFIG_BAUDRATE);
 }
@@ -267,13 +258,9 @@ static int rk30_serial_getc(void)
 
 static int rk30_serial_tstc(void)
 {
-	if( CONFIG_UART_NUM == UART_CH0) {
-		pUART_REG puartRegStart=(pUART_REG)UART0_BASE_ADDR;
-        	return((puartRegStart->UART_USR & UART_RECEIVE_FIFO_NOT_EMPTY) == UART_RECEIVE_FIFO_NOT_EMPTY);
-	} else {
-		pUART_REG puartRegStart=(pUART_REG)UART1_BASE_ADDR;
-        	return((puartRegStart->UART_USR & UART_RECEIVE_FIFO_NOT_EMPTY) == UART_RECEIVE_FIFO_NOT_EMPTY);
-	}
+        pUART_REG puartRegStart = UARTGetRegBase(CONFIG_UART_NUM);
+
+        return((puartRegStart->UART_USR & UART_RECEIVE_FIFO_NOT_EMPTY) == UART_RECEIVE_FIFO_NOT_EMPTY);
 }
 
 

@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2013
- * peter, Software Engineering, <superpeter.cai@gmail.com>.
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * See file CREDITS for list of people who contributed to this
  * project.

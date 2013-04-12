@@ -25,6 +25,7 @@
 
 #ifndef __CONFIG_H
 #define __CONFIG_H
+
 /*
  * High Level Configuration Options
  */
@@ -45,8 +46,6 @@
 #define CONFIG_CMDLINE_EDITING		/* add command line history	*/
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
 #define CONFIG_SKIP_LOWLEVEL_INIT
-#define CONFIG_SYS_ICACHE_OFF
-#define CONFIG_SYS_DCACHE_OFF
 /*
  * Enabling relocation of u-boot by default
  * Relocation can be skipped if u-boot is copied to the TEXT_BASE
@@ -76,7 +75,7 @@
 
 /* uart config */
 #define	CONFIG_RK30_UART
-#define CONFIG_UART_NUM   		UART_CH1
+#define CONFIG_UART_NUM   		UART_CH2
 
 /* input clock of PLL: has 24MHz input clock at rk30xx */
 #define CONFIG_SYS_CLK_FREQ_CRYSTAL	24000000
@@ -95,7 +94,6 @@
 #undef CONFIG_CMD_NET
 #undef CONFIG_CMD_NFS
 #undef CONFIG_CMD_XIMG
-#undef CONFIG_CMD_SAVEENV
 
 /* Enabled commands */
 #define CONFIG_CMD_CACHE	/* icache, dcache		 */
@@ -129,6 +127,7 @@
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 
 #define CONFIG_USE_IRQ
+#define CONFIG_SYS_RAMBOOT
 
 /*
  * memtest setup
@@ -178,13 +177,14 @@
 							/* be same as the text base address CONFIG_SYS_TEXT_BASE */
 #define CONFIG_SYS_MONITOR_LEN		(256 << 10)	/* 256 KiB */
 
+
 #ifndef CONFIG_SYS_RAMBOOT
 #  define CONFIG_ENV_IS_IN_FLASH	1
 #    define CONFIG_ENV_ADDR		0x280000	/* Offset of Environment Sector */
 #    define CONFIG_ENV_SECT_SIZE	(512 << 10)	/* 512 KiB, 0x80000 */
 #    define CONFIG_ENV_SIZE		CONFIG_ENV_SECT_SIZE
 #else
-#  define CONFIG_ENV_IS_IN_NVRAM	1
+#define CONFIG_ENV_IS_NOWHERE		1		/* Store ENV in memory only */
 #  define CONFIG_ENV_ADDR		CONFIG_SYS_MONITOR_BASE
 #  define CONFIG_ENV_SIZE		0x200
 #endif /* CONFIG_SYS_RAMBOOT */
