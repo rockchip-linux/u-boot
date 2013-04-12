@@ -312,6 +312,7 @@ LIBS-y += arch/powerpc/cpu/mpc8xxx/ddr/libddr.o
 LIBS-y += arch/powerpc/cpu/mpc8xxx/lib8xxx.o
 endif
 LIBS-y += drivers/rtc/librtc.o
+LIBS-y += drivers/fastboot/libfastboot.o
 LIBS-y += drivers/serial/libserial.o
 LIBS-y += drivers/sound/libsound.o
 LIBS-$(CONFIG_GENERIC_LPC_TPM) += drivers/tpm/libtpm.o
@@ -744,6 +745,13 @@ $(TIMESTAMP_FILE):
 		@LC_ALL=C date +'#define U_BOOT_DATE "%b %d %C%y"' > $@.tmp
 		@LC_ALL=C date +'#define U_BOOT_TIME "%T"' >> $@.tmp
 		@cmp -s $@ $@.tmp && rm -f $@.tmp || mv -f $@.tmp $@
+ifeq ($(CONFIG_CMD_FASTBOOT),y)
+		@eval `date +'BYR=%Y BMON=%-m BDOM=%-d BHR=%-H BMIN=%-M'`; \
+			chr () { printf \\$$(($$1/64*100+$$1%64/8*10+$$1%8)); }; \
+			b36 () { if [ $$1 -le 9 ]; then echo $$1; else chr $$((0x41 + $$1 - 10)); fi }; \
+			printf '#define FASTBOOT_TIMESTAMP "%c%c%c%c%c"\n' `chr $$((0x41 + $$BYR - 2011))` `b36 $$BMON` `b36 $$BDOM` `b36 $$BHR` `b36 $$(($$BMIN/2))` >> $@
+endif
+
 
 easylogo env gdb:
 	$(MAKE) -C tools/$@ all MTD_VERSION=${MTD_VERSION}

@@ -195,4 +195,48 @@
 #define CONFIG_MTD_PARTITIONS		/* Needed for UBI support. */
 
 
+/* for fastboot */
+
+#define CONFIG_USBD_VENDORID        0x18d1
+#define CONFIG_USBD_PRODUCTID       0x2c10
+#define CONFIG_USBD_MANUFACTURER    "Rockchip"
+#define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
+
+/* Another macro may also be used or instead used to take care of the case
+ * where fastboot is started at boot (to be incorporated) based on key press
+ */
+#define CONFIG_CMD_FASTBOOT
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER     (0)
+//TODO: mod addr of buffer.
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE    (SZ_512M - SZ_16M)
+/* Fastboot product name */
+#define FASTBOOT_PRODUCT_NAME   "fastboot"
+/* Address of the kernel's ramconsole so we can dump it.  This is
+ * used by the 'fastboot oem kmsg' command.  It needs to be done
+ * early in fastboot (before large amount of transfer buffer is used,
+ * since they overlap).
+ */
+#define CONFIG_FASTBOOT_RAMCONSOLE_START (0)
+//TODO: mod addr to dump kmsg.
+
+#ifdef CONFIG_CMD_FASTBOOT
+//just for combile*************
+#define CONFIG_SYS_FIFO_BASE 0
+#define CONFIG_SYS_USBD_BASE 0
+#define CONFIG_SYS_PLUG_BASE 0
+#define CONFIG_DW_UDC
+#define CONFIG_MUSB_GADGET
+#define MUSB_BASE 0
+#define CONFIG_USB_OMAP3
+#define CONFIG_MUSB_PIO_ONLY
+//TODO:need implete low level usb & otg.
+//just for combile*************
+//
+#define CONFIG_USB_DEVICE
+#undef CONFIG_CMD_SAVEENV
+//TODO:need implete
+#define  EP0_MAX_PACKET_SIZE     64
+//TODO:move to otg(udc)'s header
+#endif //CONFIG_CMD_FASTBOOT
+
 #endif /* __CONFIG_H */

@@ -104,19 +104,6 @@
 #define FASTBOOT_FLAG_RESPONSE  0x1
 #define FASTBOOT_FLAG_HAS_RUN   0x2
 
-#define FASTBOOT_MAX_INFO_NAMELEN    32
-#define FASTBOOT_MAX_NUM_DEVICE_INFO 32
-
-struct device_info {
-	char *name;
-	char *value;
-};
-
-struct info_partition_header {
-	u32 magic;
-	u32 num_values;
-};
-
 struct cmd_fastboot_interface {
 
 	/* A getvar string for the serial number
@@ -181,9 +168,12 @@ struct cmd_fastboot_interface {
 	unsigned long unlock_pending_start_time;
 
 	/* device specific info */
+    /*
 	unsigned int dev_info_uninitialized;
 	unsigned int num_device_info;
 	struct device_info dev_info[FASTBOOT_MAX_NUM_DEVICE_INFO];
+    */
+    //TODO:maybe we need device info?
 };
 
 /* Status values */
@@ -202,7 +192,7 @@ struct cmd_fastboot_interface {
 /* in a board specific file */
 struct fbt_partition {
     const char *name;
-    const char *type;
+    unsigned offset;
     unsigned size_kb;
 };
 
@@ -229,37 +219,6 @@ struct fastboot_boot_img_hdr {
 	unsigned id[8]; /* timestamp / checksum / sha1 / etc */
 };
 
-typedef struct sparse_header {
-  __le32	magic;		/* 0xed26ff3a */
-  __le16	major_version;	/* (0x1) - reject images with higher major versions */
-  __le16	minor_version;	/* (0x0) - allow images with higer minor versions */
-  __le16	file_hdr_sz;	/* 28 bytes for first revision of the file format */
-  __le16	chunk_hdr_sz;	/* 12 bytes for first revision of the file format */
-  __le32	blk_sz;		/* block size in bytes, must be a multiple of 4 (4096) */
-  __le32	total_blks;	/* total blocks in the non-sparse output image */
-  __le32	total_chunks;	/* total chunks in the sparse input image */
-  __le32	image_checksum; /* CRC32 checksum of the original data, counting "don't care" */
-				/* as 0. Standard 802.3 polynomial, use a Public Domain */
-				/* table implementation */
-} sparse_header_t;
-
-#define SPARSE_HEADER_MAGIC	0xed26ff3a
-
-#define CHUNK_TYPE_RAW		0xCAC1
-#define CHUNK_TYPE_FILL		0xCAC2
-#define CHUNK_TYPE_DONT_CARE	0xCAC3
-
-typedef struct chunk_header {
-  __le16	chunk_type;	/* 0xCAC1 -> raw; 0xCAC2 -> fill; 0xCAC3 -> don't care */
-  __le16	reserved1;
-  __le32	chunk_sz;	/* in blocks in output image */
-  __le32	total_sz;	/* in bytes of chunk input file including chunk header and data */
-} chunk_header_t;
-
-/* Following a Raw or Fill chunk is data.  For a Raw chunk, it's the data in chunk_sz * blk_sz.
- *  For a Fill chunk, it's 4 bytes of the fill data.
- */
-
 #ifdef	CONFIG_CMD_FASTBOOT
 enum fbt_reboot_type {
 	FASTBOOT_REBOOT_UNKNOWN, /* typically for a cold boot */
@@ -270,8 +229,6 @@ enum fbt_reboot_type {
 	FASTBOOT_REBOOT_RECOVERY_WIPE_DATA,
 };
 extern void fbt_preboot(void);
-extern void fbt_reset_ptn(void);
-extern void fbt_add_ptn(disk_partition_t *ptn);
 extern int fbt_send_info(const char *info);
 
 int board_fbt_oem(const char *cmdbuf);
@@ -280,13 +237,9 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt);
 enum fbt_reboot_type board_fbt_get_reboot_type(void);
 int board_fbt_key_pressed(void);
 enum fbt_reboot_type board_fbt_key_command(void);
-int board_fbt_load_ptbl(void);
-void board_fbt_start(void);
-void board_fbt_end(void);
 void board_fbt_finalize_bootargs(char* args, size_t buf_sz);
 int board_fbt_handle_flash(disk_partition_t *ptn,
 			   struct cmd_fastboot_interface *priv);
-const char *board_fbt_get_partition_type(const char *partition_name);
 
-#endif /* CONFIG_FASTBOOT */
+#endif /* CONFIG_CMD_FASTBOOT */
 #endif /* FASTBOOT_H */
