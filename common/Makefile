@@ -187,6 +187,8 @@ COBJS-$(CONFIG_CMD_SPL) += cmd_spl.o
 COBJS-$(CONFIG_CMD_ZIP) += cmd_zip.o
 COBJS-$(CONFIG_CMD_ZFS) += cmd_zfs.o
 
+COBJS-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
+
 # others
 ifdef CONFIG_DDR_SPD
 SPD := y
