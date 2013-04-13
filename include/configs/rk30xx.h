@@ -32,7 +32,7 @@
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 #define CONFIG_RK30XX		1	/* which is in a RK30XX Family */
-
+#define HAVE_VENDOR_COMMON_LIB y
 /* Get CPU defs */
 #include <asm/arch/cpu.h>		/* get chip and board defs */
 
