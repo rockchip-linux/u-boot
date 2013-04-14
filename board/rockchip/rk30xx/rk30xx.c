@@ -357,7 +357,7 @@ int board_fbt_handle_flash(disk_partition_t *ptn,
 	return 0;
 }
 #endif
-
+#ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
 #if 0
@@ -380,3 +380,6 @@ int board_late_init(void)
     //TODO:generate serial no, call fbt_preboot
 	return 0;
 }
+#endif
+
+

@@ -46,6 +46,8 @@
 #define CONFIG_CMDLINE_EDITING		/* add command line history	*/
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
 #define CONFIG_SKIP_LOWLEVEL_INIT
+#define CONFIG_BOARD_LATE_INIT
+
 /*
  * Enabling relocation of u-boot by default
  * Relocation can be skipped if u-boot is copied to the TEXT_BASE
