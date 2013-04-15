@@ -45,7 +45,6 @@
 #define CONFIG_CMDLINE_TAG		/* enable passing of ATAGs	*/
 #define CONFIG_CMDLINE_EDITING		/* add command line history	*/
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
-#define CONFIG_SKIP_LOWLEVEL_INIT
 #define CONFIG_BOARD_LATE_INIT
 
 /*

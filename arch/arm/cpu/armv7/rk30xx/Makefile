@@ -31,6 +31,8 @@ COBJS	+= reset.o
 COBJS	+= interrupts.o
 COBJS	+= intc.o
 
+SOBJS	+= lowlevel_init.o
+
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))
 

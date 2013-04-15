@@ -1,7 +1,8 @@
 /*
- *  Copyright (C) 2008-2009 Samsung Electronics
- *  Minkyu Kang <mk7.kang@samsung.com>
- *  Kyungmin Park <kyungmin.park@samsung.com>
+ * (C) Copyright 2013-2013
+ * Peter <superpeter.cai@gmail.com>
+ *
+ * Configuation settings for the rk30xx board.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -72,6 +73,15 @@ int checkboard(void)
 	return 0;
 }
 #endif
+
+#ifndef CONFIG_SYS_DCACHE_OFF
+void enable_caches(void)
+{
+	/* Enable D-cache. I-cache is already enabled in start.S */
+	dcache_enable();
+}
+#endif
+
 
 int board_fbt_key_pressed(void)
 {
