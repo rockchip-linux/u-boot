@@ -1,38 +1,84 @@
-/*
- * (C) Copyright 2013-2013
- * peter <superpeter.cai@gmail.com>
- *
- * Configuation settings for the rk30xx board.
- *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
- */
 #include <common.h>
+#include <asm/arch/rk30_drivers.h>
 
 #ifdef CONFIG_USE_IRQ
+extern ulong _start;
+extern ulong _end_vect;
+extern void int_test(void);
+
+extern void UsbIsr(void);
+
+struct rk30_irq_map
+{
+	eINT_NUM	int_num;
+	pFunc		func;
+	int			enable_flag;
+};
+
+struct rk30_irq_map irq_init_reg[] = 
+{
+	//{INT_USB_OTG0 ,UsbIsr,0},
+	{INT_MAXNUM,0,0}
+	
+};
+
+void int_test(void)
+{
+	int i;
+	i++;
+	return ;
+}
+
+void copy_vect(void)
+{
+	unsigned int *det = 0;
+	int i = 0;
+	__asm__ __volatile__("": : :"memory");
+	unsigned int *src = (unsigned int *)((unsigned int)_start + 4);
+	//unsigned int *src = 0x61000004;
+	__asm__ __volatile__("": : :"memory");
+	unsigned int size = (unsigned int *)((unsigned int)_end_vect - (unsigned int)_start);
+	__asm__ __volatile__("": : :"memory");
+
+	for(i = 0; i < size; i++){
+		*det++ = *src++;
+	}
+	
+	return;
+}
+
+void init_vect_addr (void)
+{
+	*(unsigned long volatile *)(0x15000000)   = 0x2;
+	*(unsigned long volatile *)(0x10000000)   = 0x2;
+	*(unsigned long volatile *)(0x200080c0)   = 0x00300000;
+	return ;
+}
+
+int rk30_reg_irq(struct rk30_irq_map *imp)
+{
+	int ret = 0;
+
+	while(imp->int_num < INT_MAXNUM){
+		ret = IRQRegISR(imp->int_num,imp->func,0,0);
+		if(imp->enable_flag == 1)
+			IntEnableIntSrc(imp->int_num);
+		imp++;
+	}
+	
+	return ret;
+}
+
 void do_irq (struct pt_regs *pt_regs)
 {
-
+	IRQHandler();
 }
 
 int arch_interrupt_init (void)
 {
 
+	INTCInit();
+	rk30_reg_irq(irq_init_reg);
 	return 0;
 }
 #endif /* CONFIG_USE_IRQ */

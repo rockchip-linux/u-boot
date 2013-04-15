@@ -53,7 +53,7 @@ void DisableIRQ(void)
     
 #endif
 }
-
+#if 0
 uint32 IRQEnable(eINT_NUM intNum)
 {
 	uint32 M,N;
@@ -82,7 +82,7 @@ uint32 IRQDisable(eINT_NUM intNum)
     g_gicdReg->ICDICER[M]=(0x1<<(N));
     return(0);
 }
-
+#endif
 
 
 /***************************************************************************

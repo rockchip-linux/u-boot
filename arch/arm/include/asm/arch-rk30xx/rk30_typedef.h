@@ -51,6 +51,7 @@ typedef     signed long long        int64;
 #ifndef		ERROR
 #  define	ERROR	!0
 #endif
+typedef 	void (*pFunc)(void);
 
 #endif /* _DRIVER_TYPEDEF_H */
 

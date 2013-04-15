@@ -29,6 +29,7 @@ COBJS	+= cpu_info.o
 COBJS	+= timer.o
 COBJS	+= reset.o
 COBJS	+= interrupts.o
+COBJS	+= intc.o
 
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))
