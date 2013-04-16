@@ -87,7 +87,7 @@ int board_fbt_key_pressed(void)
 {
     int boot_loader = 0, boot_recovery = 0; 
     enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
-    int recovery_key = checkKey(&boot_loader, &boot_recovery);
+    int recovery_key ;//= checkKey(&boot_loader, &boot_recovery);
 
     if (recovery_key) {
         printf("\n%s: recovery_key=%d.\n",

@@ -106,15 +106,15 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
             frt = FASTBOOT_REBOOT_UNKNOWN;
             break;
     }
-    ISetLoaderFlag(frt);
+    //ISetLoaderFlag(frt);
 }
 
 enum fbt_reboot_type board_fbt_get_reboot_type(void)
 {
-    enum fbt_reboot_type frt = IReadLoaderFlag();
+    enum fbt_reboot_type frt = 0;//IReadLoaderFlag();
 
     /* clear before next boot */
-    ISetLoaderFlag(FASTBOOT_REBOOT_UNKNOWN);
+    //ISetLoaderFlag(FASTBOOT_REBOOT_UNKNOWN);
 
     switch(frt) {
     case FASTBOOT_REBOOT_NORMAL:
