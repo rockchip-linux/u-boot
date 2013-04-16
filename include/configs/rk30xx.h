@@ -105,11 +105,10 @@
 /*
  * Environment setup
  */
-#define CONFIG_BOOTDELAY		3	/* autoboot after 3 seconds */
-#define CONFIG_ZERO_BOOTDELAY_CHECK
-
-#define CONFIG_BOOTCOMMAND "print;bootm 0x60407FC0"
-#define CONFIG_BOOTARGS "console=ttyFIQ0 androidboot.console=ttyFIQ0 init=/init"
+#define CONFIG_BOOTDELAY    0
+/* use preboot to detect key press for fastboot */
+#define CONFIG_PREBOOT
+#define CONFIG_BOOTCOMMAND "booti"
 
 #define CONFIG_EXTRA_ENV_SETTINGS  "verify=n\0"
 

@@ -385,9 +385,9 @@ int board_late_init(void)
 	set_default_mac_env_vars();
 #endif
 
-	fbt_preboot();
 #endif
     //TODO:generate serial no, call fbt_preboot
+	fbt_preboot();
 	return 0;
 }
 #endif
