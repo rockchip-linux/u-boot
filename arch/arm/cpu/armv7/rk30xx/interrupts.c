@@ -1,7 +1,7 @@
 #include <common.h>
 #include <asm/arch/rk30_drivers.h>
 
-#ifdef CONFIG_USE_IRQ
+#ifdef CONFIG_USE_RK30IRQ
 extern ulong _start;
 extern ulong _end_vect;
 extern void int_test(void);

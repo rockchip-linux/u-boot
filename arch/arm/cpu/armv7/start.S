@@ -132,6 +132,33 @@ reset:
 	bic	r0, r0, #0x1f
 	orr	r0, r0, #0xd3
 	msr	cpsr,r0
+#ifdef CONFIG_USE_RK30IRQ
+	/*;chip detect RK30 or RK3066B
+	;set remap bit in grf enabled, remap 0x0000 to imem, 
+	;*(unsigned long volatile *)(GRF_BASE + GRF_SOC_CON0) 0x20008150  = 0x10001000; 30
+	;*(unsigned long volatile *)(GRF_BASE + GRF_SOC_CON0) 0x200080A0  = 0x10001000; 3066B 3168 3188
+	*/
+	
+	LDR R0,=0x101027FC
+	LDR R2,=0x56313031
+	LDR R1,[R0]
+	CMP R1,R2
+	LDREQ R0,=0x20008150 ;//rk30
+	LDRNE R0,=0x200080A0 ;//rk3066B 3168 3188
+	LDR R1,=0x10001000
+	STR R1,[R0]
+
+
+	adr r0, _start
+	adr r1, _end_vect
+	
+	sub r2, r1, r0
+	mov r1, #0
+1:	ldr r3, [r0], #4
+	str r3, [r1], #4 
+	cmp r1, r2
+	bne 1b
+#endif
 
 /*
  * Setup vector:
