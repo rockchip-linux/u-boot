@@ -33,23 +33,23 @@ enum rk_plls_id {
 
 /*****cru reg offset*****/
 
-#define CRU_MODE_CON		0x40
-#define CRU_CLKSEL_CON		0x44
+#define CRU_MODE_CON_		0x40
+#define CRU_CLKSEL_CON_		0x44
 #define CRU_CLKGATE_CON		0xd0
 #define CRU_GLB_SRST_FST	0x100
 #define CRU_GLB_SRST_SND	0x104
-#define CRU_SOFTRST_CON		0x110
+#define CRU_SOFTRST_CON_		0x110
 
 #define PLL_CONS(id, i)		((id) * 0x10 + ((i) * 4))
 
 #define CRU_CLKSELS_CON_CNT	(35)
-#define CRU_CLKSELS_CON(i)	(CRU_CLKSEL_CON + ((i) * 4))
+#define CRU_CLKSELS_CON(i)	(CRU_CLKSEL_CON_ + ((i) * 4))
 
 #define CRU_CLKGATES_CON_CNT	(10)
 #define CRU_CLKGATES_CON(i)	(CRU_CLKGATE_CON + ((i) * 4))
 
 #define CRU_SOFTRSTS_CON_CNT	(9)
-#define CRU_SOFTRSTS_CON(i)	(CRU_SOFTRST_CON + ((i) * 4))
+#define CRU_SOFTRSTS_CON(i)	(CRU_SOFTRST_CON_ + ((i) * 4))
 
 #define CRU_MISC_CON		(0x134)
 #define CRU_GLB_CNT_TH		(0x140)

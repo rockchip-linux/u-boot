@@ -25,6 +25,7 @@
 
 #include <common.h>
 #include <fastboot.h>
+#include "parameter.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -81,7 +82,6 @@ void enable_caches(void)
 	dcache_enable();
 }
 #endif
-
 
 int board_fbt_key_pressed(void)
 {
@@ -256,9 +256,24 @@ int board_late_init(void)
 
 #endif
     //TODO:generate serial no, call fbt_preboot
+    recoveryKeyInit(&key_recover);
 	fbt_preboot();
 	return 0;
 }
 #endif
+
+#define LOADER_FLAG_REG         ((REG32*)(PMU_BASE_ADDR+0x40)) //PMU_OS_REG0
+
+uint32 IReadLoaderFlag(void)
+{
+    return (*LOADER_FLAG_REG);
+}
+
+void ISetLoaderFlag(uint32 flag)
+{
+    if(*LOADER_FLAG_REG == flag)
+        return;
+    *LOADER_FLAG_REG = flag;
+}
 
 

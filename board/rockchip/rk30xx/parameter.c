@@ -13,12 +13,10 @@ uint32 krnl_load_addr;
 extern uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize );
 
 //uint8 g_mtdBuffer[sizeof(cmdline_mtd_partition)];
-/*
 int KeyCombinationNum;
 key_config		key_recover;
 key_config		key_powerHold;
 key_config		key_combination[MAX_COMBINATION_KEY];
-*/
 
 //uint8 gParamBuffer[MAX_LOADER_PARAM];	// 限制最大的Parameters的字节数为:32*512
 //suint8 *gParamBuffer;	// 限制最大的Parameters的字节数为:32*512

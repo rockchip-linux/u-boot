@@ -62,6 +62,7 @@ typedef volatile struct tagCRU_REG
     uint32 CRU_GLB_CNT_TH;
 } CRU_REG, *pCRU_REG;
 
+#define g_cruReg ((pCRU_REG)CRU_BASE_ADDR)
 
 typedef struct tagGPIO_LH
 {

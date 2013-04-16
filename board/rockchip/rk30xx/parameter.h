@@ -1,7 +1,9 @@
 #ifndef _PARAMETER_H_
 #define _PARAMETER_H_
 
+#include <asm/arch/rk30_drivers.h>
 #include "mtdpart.h"
+#include "gpio_oper.h"
 
 #define PARAMETER_NUM		8			    // parameter文件的备份个数
 #define MAX_LINE_CHAR		(1024*64)	        // Parameters有多个Line组成，限制每个Line最大占1024 Bytes
@@ -54,13 +56,11 @@ extern BootInfo			gBootInfo;
 //extern uint8			gParamBuffer[];
 extern uint32			parameter_lba;
 
-/*
-extern key_config		key_recover;
 extern int KeyCombinationNum;
 extern key_config		key_recover;
 extern key_config       key_powerHold;
+#define     MAX_COMBINATION_KEY     6
 extern key_config		key_combination[MAX_COMBINATION_KEY];
-*/
 
 extern int32 rk30_getParameter(void);
 extern int32 rk30_bootParameter(void);
