@@ -85,157 +85,26 @@ void enable_caches(void)
 
 int board_fbt_key_pressed(void)
 {
-#if 0
-	int is_pressed = 0;
-	u8 key_code;
-	unsigned long start_time = get_timer(0);
+    int boot_loader = 0, boot_recovery = 0; 
+    enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
+    int recovery_key = checkKey(&boot_loader, &boot_recovery);
 
-#define DETECT_AVR_DELAY_MSEC 2000 /* 2 seconds */
+    if (recovery_key) {
+        printf("\n%s: recovery_key=%d.\n",
+                __func__, recovery_key);
+    }
 
-	/* If we power up with USB cable connected, the ROM bootloader
-	 * delays the OMAP boot long enough (as it checks for peripheral
-	 * boot) that the AVR will be ready at this point for us to
-	 * query.  If we power up with no USB cable, we will most likely
-	 * be here before the AVR is ready.  If we don't detect
-	 * the AVR right away, sleep a few seconds and try again.
-	 * We don't just poll until the AVR can respond because even
-	 * after we detect the AVR, it might not quite be ready to
-	 * do key detection so need to wait a bit more.
-	 */
-	avr_detected = !detect_avr();
-	if (!avr_detected) {
-		printf("\tavr not detected\n");
-		printf("\tdelaying %d milliseconds until we try again\n",
-			DETECT_AVR_DELAY_MSEC);
-		while((get_timer(0) - start_time) < DETECT_AVR_DELAY_MSEC)
-			; /* spin on purpose */
-		avr_detected = !detect_avr();
-	}
-	if (!avr_detected) {
-		/* always start fastboot if we're forcing it, even
-		 * if we can't show we're in fastboot mode with the LEDs
-		 */
-		if (force_fastboot) {
-			printf("Forcing fastboot even with no avr\n");
-			return 1;
-		}
+    if(boot_recovery) {
+        printf("\n%s: recovery key pressed.\n",
+                __func__);
+        frt = FASTBOOT_REBOOT_RECOVERY;
+    } else if (boot_loader) {
+        printf("\n%s: loader key pressed.\n",
+                __func__);
+        frt = FASTBOOT_REBOOT_BOOTLOADER;
+    }
 
-		/* This might happen if avr_updater got interrupted
-		 * while an avr firmware update was in progress.
-		 * It's better to allow regular booting instead of
-		 * stopping in fastboot mode because the OS might
-		 * be able to recovery it by doing the update again.
-		 * It's also not good to stop in fastboot because we
-		 * can't use the LEDs to indicate to the user we're
-		 * in this state.
-		 */
-		printf("%s: avr not detected, returning false\n", __func__);
-		return 0;
-	}
-
-	/* If we got here from a warm reset, AVR could be in some
-	 * other state than host mode so just make sure it is
-	 * in host mode.
-	 */
-	avr_led_set_mode(AVR_LED_MODE_HOST_AUTO_COMMIT);
-
-	if (force_fastboot) {
-		printf("Forcing fastboot\n");
-		return 1;
-	}
-
-	/* check for the mute key to be pressed as an indicator
-	 * to enter fastboot mode in preboot mode.  since the
-	 * AVR sends an initial boot indication key, we have to
-	 * filter that out first.  we also filter out and volume
-	 * up/down keys and don't care if we spin until those
-	 * stop (it's almost impossible to make the volume
-	 * up/down key events repeat indefinitely since they
-	 * involve actually rotating the top of the sphere
-	 * without pause).
-	 */
-	while (1) {
-		if (avr_get_key(&key_code))
-			break;
-		if (key_code == AVR_KEY_EVENT_EMPTY)
-			break;
-		if (key_code == (AVR_KEY_MUTE | AVR_KEY_EVENT_DOWN)) {
-			avr_led_set_all(&red);
-			avr_led_set_mute(&red);
-			is_pressed = 1;
-			key_pressed_start_time = get_timer(0);
-			/* don't wait for key release */
-			break;
-		}
-	}
-
-	/* All black to indicate we've made our decision to boot. */
-	if (!is_pressed) {
-		serial_printf("\tsetting to black\n");
-		avr_led_set_all(&black);
-		avr_led_set_mute(&black);
-	}
-
-	printf("Returning key pressed %s\n", is_pressed ? "true" : "false");
-	return is_pressed;
-#endif
-    return 0;
-}
-
-/* we only check for a long press of mute as an indicator to
- * go into recovery.  due to i2c errors if we poll too fast,
- * we only poll every 100ms right now.
- */
-enum fbt_reboot_type board_fbt_key_command(void)
-{
-#if 0
-	unsigned long time_elapsed;
-
-	if (!avr_detected)
-		return FASTBOOT_REBOOT_NONE;
-
-	time_elapsed = get_timer(last_time);
-	if (time_elapsed > KEY_CHECK_POLLING_INTERVAL_MS) {
-		u8 key_code;
-
-		last_time = get_timer(0);
-
-		if (avr_get_key(&key_code))
-			return FASTBOOT_REBOOT_NONE;
-
-		if (key_code == (AVR_KEY_MUTE | AVR_KEY_EVENT_DOWN)) {
-			/* key down start */
-			key_pressed_start_time = last_time;
-			printf("%s: mute key down starting at time %lu\n",
-			       __func__, key_pressed_start_time);
-		} else if (key_code == AVR_KEY_MUTE) {
-			/* key down end, before hold time satisfied */
-			printf("%s: mute key released within %lu ms\n",
-			       __func__, last_time - key_pressed_start_time);
-			key_pressed_start_time = 0;
-			avr_led_set_all(&red);
-		} else if (key_pressed_start_time) {
-			unsigned long time_down;
-			time_down = last_time - key_pressed_start_time;
-
-			if (time_down > (RECOVERY_KEY_HOLD_TIME_SECS * 1000)) {
-				printf("%s: mute key down more than %u seconds,"
-				       " starting recovery\n",
-				       __func__, RECOVERY_KEY_HOLD_TIME_SECS);
-				return FASTBOOT_REBOOT_RECOVERY_WIPE_DATA;
-			}
-			printf("%s: mute key still down after %lu ms\n",
-			       __func__, time_down);
-			/* toggle led ring red and black while down
-			   to give user some feedback */
-			if ((time_down / KEY_CHECK_POLLING_INTERVAL_MS) & 1)
-				avr_led_set_all(&red);
-			else
-				avr_led_set_all(&black);
-		}
-	}
-#endif
-	return FASTBOOT_REBOOT_NONE;
+    return frt;
 }
 
 void board_fbt_start(void)

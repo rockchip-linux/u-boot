@@ -1693,12 +1693,16 @@ static enum fbt_reboot_type __def_fbt_get_reboot_type(void)
 }
 static int __def_fbt_key_pressed(void)
 {
-	return 0;
+	return FASTBOOT_REBOOT_NONE;
 }
+
+#ifdef CONFIG_FASTBOOT_KEY_CMD
 static enum fbt_reboot_type __def_fbt_key_command(void)
 {
 	return FASTBOOT_REBOOT_NONE;
 }
+#endif //CONFIG_FASTBOOT_KEY_CMD
+
 static void __def_fbt_start(void)
 {
 }
@@ -1718,8 +1722,10 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	__attribute__((weak, alias("__def_fbt_get_reboot_type")));
 int board_fbt_key_pressed(void)
 	__attribute__((weak, alias("__def_fbt_key_pressed")));
+#ifdef CONFIG_FASTBOOT_KEY_CMD
 enum fbt_reboot_type board_fbt_key_command(void)
 	__attribute__((weak, alias("__def_fbt_key_command")));
+#endif //CONFIG_FASTBOOT_KEY_CMD
 void board_fbt_start(void)
 	__attribute__((weak, alias("__def_fbt_start")));
 void board_fbt_end(void)
@@ -1789,6 +1795,7 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 			FBTINFO("fastboot end\n");
 			break;
 		}
+#ifdef CONFIG_FASTBOOT_KEY_CMD
 		switch(board_fbt_key_command()) {
 		case FASTBOOT_REBOOT_NORMAL:
 			printf("rebooting due to key\n");
@@ -1810,6 +1817,7 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 		default:
 			break;
 		}
+#endif //CONFIG_FASTBOOT_KEY_CMD
 	}
 
 out:
@@ -2087,12 +2095,14 @@ void fbt_preboot(void)
 	/* need to init this ASAP so we know the unlocked state */
 	fbt_fastboot_init();
 
-	if (board_fbt_key_pressed()) {
-		fbt_request_start_fastboot();
-		return;
-	}
+    frt = board_fbt_key_pressed();
 
-	frt = board_fbt_get_reboot_type();
+    if (frt == FASTBOOT_REBOOT_NONE) {
+	    frt = board_fbt_get_reboot_type();
+		printf("\n%s: no spec key pressed, read reboot type.\n",
+		       __func__);
+    }
+
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
 		printf("\n%s: starting recovery img because of reboot flag\n",
 		       __func__);
