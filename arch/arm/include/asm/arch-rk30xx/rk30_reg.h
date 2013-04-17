@@ -101,6 +101,15 @@ typedef volatile struct tagGRF_REG
 } GRF_REG, *pGRF_REG;
 
 
+/* TIMER Registers */
+typedef volatile struct tagTIMER_REG
+{
+	uint32 TIMER_LOAD_COUNT;
+	uint32 TIMER_CURR_VALUE;
+	uint32 TIMER_CTRL_REG;
+	uint32 TIMER_EOI;
+	uint32 TIMER_INT_STATUS;
+} TIMER_REG, *pTIMER_REG;
 #define g_grfReg 		((pGRF_REG)RK30_GRF_PHYS)
 
 #endif /* __RK30_REG_H */
