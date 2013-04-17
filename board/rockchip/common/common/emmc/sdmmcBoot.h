@@ -12,6 +12,7 @@ Revision:   1.00
 ********************************************************************************/
 #ifndef _SDMMC_BOOT_H
 #define _SDMMC_BOOT_H
+#include    "../typedef.h"
 
 extern uint32 SdmmcInit(uint32 sdcId);
 extern void SdmmcReadID(uint8 chip, void *buf);
