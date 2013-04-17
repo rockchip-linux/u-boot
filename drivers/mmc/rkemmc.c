@@ -99,15 +99,15 @@ mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
 	struct mmc *mmc = find_mmc_device(dev_num);
 	if (!mmc)
 		return 0;
-	//SdmmcBootWriteLBA(uint8 ChipSel, uint32 LBA, void * pbuf, uint16 nSec, uint16 mode)
-	return blkcnt;
+	
+	return SdmmcBootWriteLBA(2, start, src, blkcnt, 0);
 }
 
 static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 {
 	lbaint_t cur, blocks_todo = blkcnt;
-	//SdmmcBootReadLBA(uint8 ChipSel, uint32 LBA, void * pbuf, uint16 nSec)
-	return blkcnt;
+	
+	return SdmmcBootReadLBA(2, start, dst, blkcnt);
 }
 
 int mmc_register(struct mmc *mmc)
