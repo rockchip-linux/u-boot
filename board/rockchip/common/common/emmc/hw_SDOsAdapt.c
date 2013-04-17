@@ -117,7 +117,8 @@ void SDOAM_Delay(uint32 us)
 #if (eMMC_PROJECT_LINUX) 
     udelay(us);
 #else
-    DRVDelayUs(us);
+    //DRVDelayUs(us);
+	__udelay(us);
 #endif	
 }
 #ifndef MALLOC_DISABLE

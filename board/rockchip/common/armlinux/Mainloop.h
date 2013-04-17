@@ -43,7 +43,7 @@ extern uint32 SecureBootCheckOK;
 extern uint32 g_BootRockusb;
 extern uint32  SecureBootLock;
 
-extern void serial_init (void);
+//extern void serial_init (void);
 extern int BootSnapshot(PBootInfo pboot_info);
 
 #endif

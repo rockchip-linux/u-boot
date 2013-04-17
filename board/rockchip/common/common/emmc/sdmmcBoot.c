@@ -11,6 +11,11 @@ Revision:   1.00
 ********************************************************************************
 ********************************************************************************/
 #include	"sdmmc_config.h"
+uint32 gSysData[512];
+uint32 gIdDataBuf[512];
+__attribute__ ((aligned(64))) uint32 		 Data[(1024*8*4/4)];
+__attribute__ ((aligned(64))) uint32 		 SpareBuf[(32*8*4/4)];
+__attribute__ ((aligned(64))) uint32			usbXferBuf[2*USB_XFER_BUF_SIZE];
 
 #ifdef  DRIVERS_SDMMC
 uint32 gUseEmmc;
@@ -154,10 +159,12 @@ uint32 SdmmcDeInit(void)
 #if(PALTFORM==RK29XX)
         DRVDelayMs(50);
 #else
-	    DRVDelayMs(5);
+	    //DRVDelayMs(5);
+		__udelay(5000);
 #endif		
         EmmcPowerEn(1);
-        DRVDelayMs(1);
+        //DRVDelayMs(1);
+		__udelay(1000);
     }
     return ret;
 }

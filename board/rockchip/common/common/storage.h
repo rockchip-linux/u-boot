@@ -37,8 +37,6 @@ Revision:   1.00
 #define     DATA_LEN            (1024*8*2/4)              //数据块单位word
 #define     SPARE_LEN           (32*8*2/4)               //校验数据长度
 #define     PAGE_LEN            (DATA_LEN+SPARE_LEN)    //每个数据单位的长度
-#define     MIN(x,y) ((x) < (y) ? (x) : (y))
-#define     MAX(x,y) ((x) > (y) ? (x) : (y))
 
 
 extern uint32 gUseEmmc;

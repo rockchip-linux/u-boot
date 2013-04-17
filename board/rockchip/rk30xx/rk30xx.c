@@ -262,18 +262,6 @@ int board_late_init(void)
 }
 #endif
 
-#define LOADER_FLAG_REG         ((REG32*)(PMU_BASE_ADDR+0x40)) //PMU_OS_REG0
 
-uint32 IReadLoaderFlag(void)
-{
-    return (*LOADER_FLAG_REG);
-}
-
-void ISetLoaderFlag(uint32 flag)
-{
-    if(*LOADER_FLAG_REG == flag)
-        return;
-    *LOADER_FLAG_REG = flag;
-}
 
 

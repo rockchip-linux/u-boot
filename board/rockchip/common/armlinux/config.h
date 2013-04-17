@@ -42,8 +42,8 @@ Revision:		1.00
 #define 	RK28_FPGA		0
 #define     RK_SDMMC_BOOT_EN
 #define     L2CACHE_ENABLE
-#define __align(a)
-#define __packed
+#define __packed __attribute__((packed))
+#define __align(x) __attribute__ ((aligned(x)))
 #define DISABLE_ARM_ASM
 //ƒ£øÈ≈‰÷√
 #ifdef RK_SPI_BOOT_EN
