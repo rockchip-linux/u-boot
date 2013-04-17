@@ -110,8 +110,8 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 
 #define	ERR
 #define	WARN
-#undef	INFO
-#undef	DEBUG
+#define	INFO
+#define	DEBUG
 
 #ifndef CONFIG_FASTBOOT_LOG_SIZE
 #define CONFIG_FASTBOOT_LOG_SIZE 4000
@@ -119,6 +119,7 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 static char log_buffer[CONFIG_FASTBOOT_LOG_SIZE];
 static uint32_t log_position;
 
+#define DEBUG
 #ifdef DEBUG
 #define FBTDBG(fmt, args...)\
 	printf("DEBUG: [%s]: %d:\n"fmt, __func__, __LINE__, ##args)
@@ -2096,6 +2097,7 @@ void fbt_preboot(void)
 	fbt_fastboot_init();
 
     frt = board_fbt_key_pressed();
+    FBTDBG("board_fbt_key_pressed return boot type:%d", frt);
 
     if (frt == FASTBOOT_REBOOT_NONE) {
 	    frt = board_fbt_get_reboot_type();
