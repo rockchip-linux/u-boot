@@ -46,6 +46,8 @@
 #define CONFIG_CMDLINE_EDITING		/* add command line history	*/
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
 #define CONFIG_BOARD_LATE_INIT
+#define CONFIG_BOARD_POSTCLK_INIT	/* have board_postclk_init() function */
+
 #define CONFIG_USE_RK30IRQ
 /*
  * Enabling relocation of u-boot by default

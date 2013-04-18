@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2009 Samsung Electronics
- * peter, Software Engineering, <superpeter.cai@gmail.com>.
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
