@@ -9,7 +9,7 @@
 //#define DRIVERS_EFUSE
 #define SDMMC_SDC_ID   2
 #define EMMC_BOOT_ENABLE  1
-#define L2CACHE_ENABLE
+//#define L2CACHE_ENABLE
 
 //RK292X实测是 一个循环是17ns @ 600Mhz 2级优化
 #define     CPU_DELAY_US(n)  volatile  uint32 i = n>>4;while (i--);

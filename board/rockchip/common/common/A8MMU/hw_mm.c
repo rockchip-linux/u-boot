@@ -22,6 +22,7 @@ $Log     :  Revision 1.00  2009/02/14   nizy
 */
 void MMUCreateTlb(INT32U * TlbAddr)
 {
+#ifdef DRIVERS_MMU
     int i;
 //#if(PALTFORM==RK29XX)
     *TlbAddr++ = 0x00000c0E; // i == 0
@@ -46,6 +47,7 @@ void MMUCreateTlb(INT32U * TlbAddr)
             *TlbAddr++ = 0x00000c12+0x00100000*i; //c12
     }
 #endif*/
+#endif
 }
 /*----------------------------------------------------------------------
 Name   : MMUInit
@@ -56,6 +58,7 @@ Notes  :
 ----------------------------------------------------------------------*/
 void MMUInit(uint32 adr)
 {
+#ifdef DRIVERS_MMU
     MMUDisable();              /*关闭MMU*/
     CacheDisableBoth();        /*关闭所有cache*/
     MMUSetTTB((uint32*)adr);            /*设置页表在内存的首地址*/
@@ -69,23 +72,28 @@ void MMUInit(uint32 adr)
     //L2x0Deinit();
     L2x0Init();
 #endif
+#endif
 }
 
 void MMUDeinit(uint32 adr)
 {
+#ifdef DRIVERS_MMU
 #ifdef L2CACHE_ENABLE    
     L2x0Deinit();
 #endif
     CacheFlushBoth();
     MMUDisable();              /*关闭MMU*/
     CacheDisableBoth();        /*关闭所有cache*/
+#endif
 }
 
 uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 {
+#ifdef DRIVERS_MMU
     __CacheFlushDRegion(adr,size);
 #ifdef L2CACHE_ENABLE    
     l2x0_flush_range(adr, adr+size);
+#endif
 #endif
 }
 

@@ -41,7 +41,8 @@ Revision:		1.00
 #define     DRIVERS_NAND   
 #define 	RK28_FPGA		0
 #define     RK_SDMMC_BOOT_EN
-#define     L2CACHE_ENABLE
+//#define     L2CACHE_ENABLE
+//define		DRIVERS_MMU
 #define __packed __attribute__((packed))
 #define __align(x) __attribute__ ((aligned(x)))
 

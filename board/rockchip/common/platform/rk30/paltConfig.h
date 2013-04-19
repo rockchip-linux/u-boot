@@ -9,7 +9,7 @@
 //#define   DRIVERS_EFUSE
 #define     SDMMC_SDC_ID        2
 #define     EMMC_BOOT_ENABLE    1
-#define     L2CACHE_ENABLE
+//#define     L2CACHE_ENABLE
 
 #define     RK_MODIFY_USB_VIDPID_EN     1 
 
