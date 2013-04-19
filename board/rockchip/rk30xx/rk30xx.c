@@ -101,6 +101,14 @@ int board_fbt_key_pressed(void)
     } else if (boot_loader) {
         printf("\n%s: loader key pressed.\n",
                 __func__);
+		#if 0
+		g_BootRockusb = 1;
+		FW_SDRAM_ExcuteAddr = 0;
+		g_BootRockusb = 0;
+		UsbBoot();
+		RkPrintf("UsbHook,%d\n" , RkldTimerGetTick());
+		UsbHook();
+		#endif
         frt = FASTBOOT_REBOOT_BOOTLOADER;
     }
 
