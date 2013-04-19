@@ -4,7 +4,7 @@
 #define     DELAY_ARM_FREQ      50
 #define     ASM_LOOP_INSTRUCTION_NUM     4
 #define     ASM_LOOP_PER_US    (DELAY_ARM_FREQ/ASM_LOOP_INSTRUCTION_NUM) //
-#if 0
+ 
 /***************************************************************************
 函数描述:延时
 入口参数:us数
@@ -28,7 +28,6 @@ void DRVDelayUs(uint32 count)
             break;
     }
 }
-#endif
 /***************************************************************************
 函数描述:延时
 入口参数:
@@ -43,7 +42,7 @@ void Delay100cyc(uint16 count)
         for (i=0; i<8; i++);
 }
 
-#if 0
+
 /***************************************************************************
 函数描述:延时
 入口参数:ms数
@@ -68,7 +67,7 @@ void DRVDelayS(uint32 count)
     while (count--)
         DRVDelayMs(1000);
 }
-#endif
+
 uint8  ChipType;
 uint32 Rk30ChipVerInfo[4];  
 void ChipTypeCheck(void)
@@ -272,8 +271,7 @@ static void Set_PLL(PLL_ID pll_id, uint32 MHz, pFunc cb)
         g_cruReg->CRU_PLL_CON[pll_id][0] = NR(nr) | NO(no);
         g_cruReg->CRU_PLL_CON[pll_id][1] = NF(MHz);
         g_cruReg->CRU_PLL_CON[pll_id][2] = NB(MHz);
-        //sDRVDelayUs(1);
-        __udelay(1);
+        DRVDelayUs(1);
         g_cruReg->CRU_PLL_CON[pll_id][3] = PLL_DE_RESET;
     }
     else
@@ -311,13 +309,11 @@ static void Set_PLL(PLL_ID pll_id, uint32 MHz, pFunc cb)
         g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x1<<1));
         g_cruReg->CRU_PLL_CON[pll_id][0] = NR(nr) | NO(no);
         g_cruReg->CRU_PLL_CON[pll_id][1] = NF(nf);
-        //DRVDelayUs(1);
-        __udelay(1);
+        DRVDelayUs(1);
         g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
     }
 
-    //DRVDelayUs(1000); // 1ms，
-	__udelay(1000);
+    DRVDelayUs(1000); // 1ms，
     if(cb)
     {
         cb();
@@ -398,8 +394,7 @@ void uart2UsbEn(uint8 en)
     {
         if((!(g_3066B_grfReg->GRF_SOC_STATUS0) & (1<<10)) && (g_BootRockusb == 0))
         {
-            //DRVDelayUs(1);
-			__udelay(1);
+            DRVDelayUs(1);
             if(!(g_3066B_grfReg->GRF_SOC_STATUS0) & (1<<10))
             {
                  //g_3066B_grfReg->GRF_UOC0_CON[2] = ((0x01 << 2) | ((0x01 << 2) << 16));  //software control usb phy enable
@@ -425,8 +420,7 @@ bool UsbPhyReset(void)
     if(ChipType == CHIP_RK3188)
     {
         uart2UsbEn(0);
-        //DRVDelayUs(1100); //1.1ms
-        __udelay(1100);
+        DRVDelayUs(1100); //1.1ms
         //g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
         //g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
         //3188 配置为software control usb phy，usb没有接的时候访问DiEpDma和DopDma会死机
@@ -436,11 +430,9 @@ bool UsbPhyReset(void)
        // g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
     }
     g_cruReg->CRU_SOFTRST_CON[4] = ((7ul<<5)<<16)|(7<<5);
-    //DRVDelayUs(10*100);    //delay 10ms
-	__udelay(10*100);
+    DRVDelayUs(10*100);    //delay 10ms
     g_cruReg->CRU_SOFTRST_CON[4] = (uint32)((7ul<<5)<<16)|(0<<5);
-    //DRVDelayUs(1*100);     //delay 1ms
-	__udelay(10*100);
+    DRVDelayUs(1*100);     //delay 1ms
     return (TRUE);
 }
 
@@ -523,7 +515,7 @@ void FW_NandDeInit(void)
 #endif
 }
 
-#if 0
+
 /***************************************************************************
 函数描述:系统复位
 入口参数:无
@@ -588,7 +580,7 @@ void SoftReset(void)
     while(1);
 #endif
 }
-#endif
+
 void EmmcPowerEn(uint8 En)
 {
 // TODO: EMMC 电源控制
@@ -609,12 +601,10 @@ void SDCReset(uint32 sdmmcId)
     uint32 data = g_cruReg->CRU_SOFTRST_CON[5];
     data = ((1<<16)|(1))<<(sdmmcId + 1);
     g_cruReg->CRU_SOFTRST_CON[5] = data;
-    //DRVDelayUs(100);
-	__udelay(100);
+    DRVDelayUs(100);
     data = ((1<<16)|(0))<<(sdmmcId + 1);
     g_cruReg->CRU_SOFTRST_CON[5] = data;
-    //DRVDelayUs(200);
-	__udelay(200);
+    DRVDelayUs(200);
     EmmcPowerEn(1);
 }
 

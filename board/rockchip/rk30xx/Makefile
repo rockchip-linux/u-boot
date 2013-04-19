@@ -26,10 +26,10 @@ include $(TOPDIR)/config.mk
 LIB	= $(obj)lib$(BOARD).o
 
 COBJS-y := $(BOARD).o
-COBJS-y += mtdpart.o
+#COBJS-y += mtdpart.o
 COBJS-y += crc.o
-COBJS-y += parameter.o
-COBJS-y += gpio_oper.o
+#COBJS-y += parameter.o
+#COBJS-y += gpio_oper.o
 
 SRCS	:= $(SOBJS:.o=.S) $(COBJS-y:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS-y))

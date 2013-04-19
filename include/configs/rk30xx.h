@@ -87,9 +87,9 @@
 
 /* Declare no flash (NOR/SPI) */
 #define CONFIG_SYS_NO_FLASH		1       /* It should define before config_cmd_default.h */
-//#define CONFIG_GENERIC_MMC
-//#define CONFIG_MMC
-//#define CONFIG_RKEMMC
+#define CONFIG_GENERIC_MMC
+#define CONFIG_MMC
+#define CONFIG_RKEMMC
 /* Command definition */
 #include <config_cmd_default.h>
 

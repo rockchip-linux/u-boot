@@ -44,7 +44,7 @@ Revision:		1.00
 #define     L2CACHE_ENABLE
 #define __packed __attribute__((packed))
 #define __align(x) __attribute__ ((aligned(x)))
-#define DISABLE_ARM_ASM
+
 //ƒ£øÈ≈‰÷√
 #ifdef RK_SPI_BOOT_EN
 #define DRIVERS_SPI

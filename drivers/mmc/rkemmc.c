@@ -31,6 +31,7 @@
 #include <malloc.h>
 #include <linux/list.h>
 #include <div64.h>
+#include "../../board/rockchip/common/common/typedef.h"
 #include "../../board/rockchip/common/common/emmc/sdmmcBoot.h"
 /* Set block count limit because of 16 bit register limit on some hardware*/
 #ifndef CONFIG_SYS_MMC_MAX_BLK_COUNT
@@ -72,6 +73,7 @@ struct mmc *find_mmc_device(int dev_num)
 {
 	struct mmc *m;
 	struct list_head *entry;
+	printf("RKEMMC find_mmc_device,dev = %d\n", dev_num);
 
 	list_for_each(entry, &mmc_devices) {
 		m = list_entry(entry, struct mmc, link);
@@ -88,6 +90,7 @@ struct mmc *find_mmc_device(int dev_num)
 static unsigned long
 mmc_berase(int dev_num, unsigned long start, lbaint_t blkcnt)
 {
+	printf("RKEMMC mmc_berase\n");
 	return 0;
 }
 
@@ -95,6 +98,7 @@ static ulong
 mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
 {
 	lbaint_t cur, blocks_todo = blkcnt;
+	printf("RKEMMC mmc_bwrite:start = %x, blkcnt = %x\n, src = %x", start, blkcnt, src);
 
 	struct mmc *mmc = find_mmc_device(dev_num);
 	if (!mmc)
@@ -107,6 +111,7 @@ static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 {
 	lbaint_t cur, blocks_todo = blkcnt;
 	
+	printf("RKEMMC mmc_bread:start = %x, blkcnt = %x\n, dst = %x", start, blkcnt, dst);
 	return SdmmcBootReadLBA(2, start, dst, blkcnt);
 }
 
@@ -133,6 +138,7 @@ int mmc_register(struct mmc *mmc)
 block_dev_desc_t *mmc_get_dev(int dev)
 {
 	struct mmc *mmc = find_mmc_device(dev);
+	printf("RKEMMC mmc_get_dev:dev = %d\n", dev);
 	if (!mmc || mmc_init(mmc))
 		return NULL;
 
@@ -180,16 +186,49 @@ int get_mmc_num(void)
 {
 	return cur_dev_num;
 }
+typedef struct tagLoaderParam
+{
+	uint32	tag;
+	uint32	length;
+	char	parameter[1];
+//	char*	parameter;
+	uint32	crc;
+}LoaderParam, *PLoaderParam;
 
 int mmc_initialize(bd_t *bis)
 {
+	printf("rkemmc_initialize\n");
 	INIT_LIST_HEAD (&mmc_devices);
 	cur_dev_num = 0;
+	 /* set up exceptions */
+	interrupt_init();
+	/* enable exceptions */
+	enable_interrupts();
 
-	if (board_mmc_init(bis) < 0)
-		cpu_mmc_init(bis);
+	SdmmcInit(2);
+	printf("rkemmc SdmmcInit\n");
 
 	print_mmc_devices(',');
+	struct mmc *mmc = malloc(sizeof(struct mmc));
 
+	if (!mmc)
+		return -1;
+	strcpy(mmc->name, "rkemmc");
+	mmc_register(mmc);
+	char *dst = malloc(2048);
+	memset(dst, 0, 2048);
+	printf("rkemmc_read parameter\n");
+	int i, ret;
+	for(i=0; i<8; i++)
+	{
+	ret = SdmmcBootReadLBA(2, i*1024, dst, 128);
+	int iResult = CheckParam((PLoaderParam)dst);
+	PLoaderParam pa = (PLoaderParam)dst;
+		if(iResult < 0)
+			printf("Invalid parameter, i = %d, ret = %d, tag = %x, len = %d, crc = %x, data:%s\n",i, ret, pa->tag, pa->length, pa->crc, pa->parameter+4);
+		else
+			printf("get parameter success,%s \n", dst+sizeof(LoaderParam));
+	}
+	
 	return 0;
 }

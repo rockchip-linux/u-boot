@@ -21,15 +21,13 @@ uint32 RockusbEn = 1;
 ***************************************************************************/
 void EnableIRQ(void)
 {
-    uint32 tmp;
-	#ifndef DISABLE_ARM_ASM
-    __asm
-    {
-        MRS tmp, CPSR
-        BIC tmp, tmp, #0x80
-        MSR CPSR_cxsf, tmp
-    }
-    #endif
+	unsigned long temp;
+	__asm__ __volatile__("mrs %0, cpsr\n"
+			     "bic %0, %0, #0x80\n"
+			     "msr cpsr_c, %0"
+			     : "=r" (temp)
+			     :
+			     : "memory");
 }
 
 
@@ -41,19 +39,16 @@ void EnableIRQ(void)
 ***************************************************************************/
 void DisableIRQ(void)
 {
-    uint32 tmp;
-#ifndef DISABLE_ARM_ASM
-
-    __asm
-    {
-        MRS tmp, CPSR
-        ORR tmp, tmp, #0x80
-        MSR CPSR_cxsf, tmp
-    }
-    
-#endif
+	unsigned long old,temp;
+	__asm__ __volatile__("mrs %0, cpsr\n"
+			     "orr %1, %0, #0xc0\n"
+			     "msr cpsr_c, %1"
+			     : "=r" (old), "=r" (temp)
+			     :
+			     : "memory");
+	return (old & 0x80) == 0;
 }
-#if 0
+
 uint32 IRQEnable(eINT_NUM intNum)
 {
 	uint32 M,N;
@@ -82,7 +77,7 @@ uint32 IRQDisable(eINT_NUM intNum)
     g_gicdReg->ICDICER[M]=(0x1<<(N));
     return(0);
 }
-#endif
+
 
 
 /***************************************************************************

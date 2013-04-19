@@ -30,7 +30,7 @@ COBJS	+= timer.o
 COBJS	+= clock.o
 COBJS	+= reset.o
 COBJS	+= interrupts.o
-COBJS	+= intc.o
+#COBJS	+= intc.o
 
 SOBJS	+= lowlevel_init.o
 
