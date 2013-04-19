@@ -99,12 +99,8 @@ mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
 {
 	lbaint_t cur, blocks_todo = blkcnt;
 	printf("RKEMMC mmc_bwrite:start = %x, blkcnt = %x\n, src = %x", start, blkcnt, src);
-
-	struct mmc *mmc = find_mmc_device(dev_num);
-	if (!mmc)
-		return 0;
 	
-	return SdmmcBootWriteLBA(2, start, src, blkcnt, 0);
+	return StorageWriteLba(start, src, blkcnt, 0);
 }
 
 static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
@@ -112,7 +108,7 @@ static ulong mmc_bread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 	lbaint_t cur, blocks_todo = blkcnt;
 	
 	printf("RKEMMC mmc_bread:start = %x, blkcnt = %x\n, dst = %x", start, blkcnt, dst);
-	return SdmmcBootReadLBA(2, start, dst, blkcnt);
+	return StorageReadLba(start, dst, blkcnt);
 }
 
 int mmc_register(struct mmc *mmc)
@@ -186,49 +182,27 @@ int get_mmc_num(void)
 {
 	return cur_dev_num;
 }
-typedef struct tagLoaderParam
-{
-	uint32	tag;
-	uint32	length;
-	char	parameter[1];
-//	char*	parameter;
-	uint32	crc;
-}LoaderParam, *PLoaderParam;
 
 int mmc_initialize(bd_t *bis)
 {
-	printf("rkemmc_initialize\n");
+	printf("emmc_initialize\n");
 	INIT_LIST_HEAD (&mmc_devices);
 	cur_dev_num = 0;
-	 /* set up exceptions */
-	interrupt_init();
-	/* enable exceptions */
-	enable_interrupts();
-
-	SdmmcInit(2);
-	printf("rkemmc SdmmcInit\n");
-
-	print_mmc_devices(',');
 	struct mmc *mmc = malloc(sizeof(struct mmc));
 
 	if (!mmc)
 		return -1;
 	strcpy(mmc->name, "rkemmc");
 	mmc_register(mmc);
-	char *dst = malloc(2048);
-	memset(dst, 0, 2048);
-	printf("rkemmc_read parameter\n");
-	int i, ret;
-	for(i=0; i<8; i++)
-	{
-	ret = SdmmcBootReadLBA(2, i*1024, dst, 128);
-	int iResult = CheckParam((PLoaderParam)dst);
-	PLoaderParam pa = (PLoaderParam)dst;
-		if(iResult < 0)
-			printf("Invalid parameter, i = %d, ret = %d, tag = %x, len = %d, crc = %x, data:%s\n",i, ret, pa->tag, pa->length, pa->crc, pa->parameter+4);
-		else
-			printf("get parameter success,%s \n", dst+sizeof(LoaderParam));
-	}
-	
+	print_mmc_devices(',');
+	 /* set up exceptions */
+	interrupt_init();
+	/* enable exceptions */
+	enable_interrupts();
+	//SdmmcInit(2);
+	if( StorageInit() == 0)
+		printf("emmc init OK!\n");
+	else
+		printf("Fail!\n");
 	return 0;
 }

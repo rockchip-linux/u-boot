@@ -382,6 +382,7 @@ int32 GetParam(uint32 param_addr, void *buf)
 	int i=0;
 	int iRet = 0;
 	int read_sec = MAX_LOADER_PARAM>>9;
+	RkPrintf("GetParam\n","");
 
 	for(i=0; i<PARAMETER_NUM; i++)
 	{
@@ -390,6 +391,7 @@ int32 GetParam(uint32 param_addr, void *buf)
 			iResult = CheckParam(param);
 			if(iResult >= 0)
 			{
+				RkPrintf("check parameter success\n","");
 				return 0;
 			}
 			else
@@ -400,6 +402,7 @@ int32 GetParam(uint32 param_addr, void *buf)
 		}
 		else
 		{
+			RkPrintf("read parameter fail\n","");
 			iRet = -2;
 		}
 	}

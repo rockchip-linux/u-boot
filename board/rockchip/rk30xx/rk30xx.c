@@ -25,7 +25,7 @@
 
 #include <common.h>
 #include <fastboot.h>
-#include "parameter.h"
+#include "../common/armlinux/config.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -239,6 +239,40 @@ int board_fbt_handle_flash(disk_partition_t *ptn,
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
+	BootInfo gBootInfo;
+	int boot_rockusb = 0, boot_recovery = 0;
+	char *dst = malloc(1025);
+	memset(dst, 0, 1025);
+	printf("board_late_init\n");
+    recoveryKeyInit(&key_recover);
+	GetParam(0, dst);
+	ParseParam( &gBootInfo, ((PLoaderParam)dst)->parameter, ((PLoaderParam)dst)->length );
+	int recovery_key = checkKey(&boot_rockusb, &boot_recovery);
+	//printf("parameter:%s\n%s\n", dst+8);
+	if(boot_rockusb)
+	{
+		printf("start rockusb\n");
+		FW_SDRAM_ExcuteAddr = 0;
+		g_BootRockusb = 0;
+		UsbBoot();
+		UsbHook();
+	}
+	#if 0
+	int i, ret;
+	for(i=0; i<8; i++)
+	{
+	ret = SdmmcBootReadLBA(2, i*1024, dst, 128);
+	int iResult = CheckParam((PLoaderParam)dst);
+	PLoaderParam pa = (PLoaderParam)dst;
+		if(iResult < 0)
+		{
+			printf("Invalid parameter, i = %d, ret = %d, tag = %x, len = %d, crc = %x, data:\n%s\n",i, ret, pa->tag, pa->length, pa->crc, pa->parameter);
+			}
+		else
+			//printf("get parameter success,\n%s \n", pa->parameter);
+			printf("get parameter success\n");
+	}
+	#endif
 #if 0
 	char tmp_buf[17];
 	u64 id_64;
@@ -256,7 +290,6 @@ int board_late_init(void)
 
 #endif
     //TODO:generate serial no, call fbt_preboot
-    recoveryKeyInit(&key_recover);
 	fbt_preboot();
 	return 0;
 }
