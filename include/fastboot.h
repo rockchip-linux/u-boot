@@ -196,6 +196,8 @@ struct fbt_partition {
     unsigned size_kb;
 };
 
+#define FBT_PARTITION_MAX_NUM 16
+
 struct fastboot_boot_img_hdr {
 	unsigned char magic[FASTBOOT_BOOT_MAGIC_SIZE];
 
@@ -236,10 +238,7 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt);
 /* gets the reboot type, automatically clearing it for next boot */
 enum fbt_reboot_type board_fbt_get_reboot_type(void);
 int board_fbt_key_pressed(void);
-enum fbt_reboot_type board_fbt_key_command(void);
 void board_fbt_finalize_bootargs(char* args, size_t buf_sz);
-int board_fbt_handle_flash(disk_partition_t *ptn,
-			   struct cmd_fastboot_interface *priv);
 
 #endif /* CONFIG_CMD_FASTBOOT */
 #endif /* FASTBOOT_H */

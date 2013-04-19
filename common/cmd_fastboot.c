@@ -591,14 +591,6 @@ static void create_serial_number(void)
 	}
 }
 
-static int fbt_load_partition_table(void)
-{
-    //TODO:load partition info from parameter, load device info, setup serial_number
-	if (priv.serial_no == NULL)
-		create_serial_number();
-	return 0;
-}
-
 static void fbt_set_unlocked(int unlocked)
 {
 	char *unlocked_string;
@@ -654,12 +646,12 @@ static void fbt_fastboot_init(void)
 	else
 		printf("Device is locked\n");
 
-	/*
-	 * We need to be able to run fastboot even if there isn't a partition
-	 * table (so we can use "oem format") and fbt_load_partition_table
-	 * already printed an error, so just ignore the error return.
-	 */
-	(void)fbt_load_partition_table();
+    //TODO:check parameter, if no parameter, set flag to let some fbt cmds failed.
+
+    //TODO:load device info, setup serial_number
+    if (priv.serial_no == NULL)
+        create_serial_number();
+
 }
 
 static int fbt_handle_erase(char *cmdbuf)
@@ -840,11 +832,6 @@ static const char *getvar_version(const char *unused)
 	return version_string;
 }
 
-static const char *getvar_version_baseband(const char *unused)
-{
-	return "n/a";
-}
-
 static const char *getvar_version_bootloader(const char *unused)
 {
 	return CONFIG_FASTBOOT_VERSION_BOOTLOADER;
@@ -860,24 +847,6 @@ static const char *getvar_secure(const char *unused)
 	/* we use the inverse meaning of unlocked */
 	return (priv.unlocked ? "no" : "yes");
 }
-
-#if defined (CONFIG_OMAP)
-static const char *getvar_device_type(const char *unused)
-{
-	switch(get_device_type()) {
-	case TST_DEVICE:
-		return "TST";
-	case EMU_DEVICE:
-		return "EMU";
-	case HS_DEVICE:
-		return "HS";
-	case GP_DEVICE:
-		return "GP";
-	default:
-		return "unknown";
-	}
-}
-#endif
 
 static const char *getvar_product(const char *unused)
 {
@@ -920,7 +889,6 @@ static const char *getvar_partition_size(const char *args)
 
 static const struct getvar_entry getvar_table[] = {
 	{"version", 1, getvar_version},
-	{"version-baseband", 1, getvar_version_baseband},
 	{"version-bootloader", 1, getvar_version_bootloader},
 	{"unlocked", 1, getvar_unlocked},
 	{"secure", 1, getvar_secure},
@@ -1026,8 +994,6 @@ static void fbt_handle_reboot(const char *cmdbuf)
 	priv.flag |= FASTBOOT_FLAG_RESPONSE;
 	fbt_handle_response();
 	udelay(1000000); /* 1 sec */
-
-	board_fbt_end();
 
 	do_reset(NULL, 0, 0, NULL);
 }
@@ -1399,8 +1365,6 @@ static void fbt_handle_boot(const char *cmdbuf)
 		struct fastboot_boot_img_hdr *fb_hdr =
 			(struct fastboot_boot_img_hdr *) priv.transfer_buffer;
 
-		board_fbt_end();
-
 		sprintf(start, "%p", fb_hdr);
 
 		/* Execution should jump to kernel so send the response
@@ -1418,7 +1382,6 @@ static void fbt_handle_boot(const char *cmdbuf)
 		do_go(NULL, 0, ARRAY_SIZE(go), go);
 
 		FBTERR("booting failed, reset the board\n");
-		board_fbt_start();
 	}
 	sprintf(priv.response, "FAILinvalid boot image");
 }
@@ -1624,8 +1587,6 @@ static void fbt_clear_recovery_flag(void)
 
 static void fbt_run_recovery(int do_saveenv)
 {
-	board_fbt_end();
-
 	/* to make recovery (which processes OTAs) more failsafe,
 	 * we save the fact that we were asked to boot into
 	 * recovery.  if power is pulled and then restored, we
@@ -1643,7 +1604,6 @@ static void fbt_run_recovery(int do_saveenv)
 	do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
 
 	/* returns if recovery.img is bad */
-	board_fbt_start();
 	printf("\nfastboot: Error: Invalid recovery img\n");
 
 	/* Always clear so we don't wind up rebooting again into
@@ -1696,20 +1656,6 @@ static int __def_fbt_key_pressed(void)
 {
 	return FASTBOOT_REBOOT_NONE;
 }
-
-#ifdef CONFIG_FASTBOOT_KEY_CMD
-static enum fbt_reboot_type __def_fbt_key_command(void)
-{
-	return FASTBOOT_REBOOT_NONE;
-}
-#endif //CONFIG_FASTBOOT_KEY_CMD
-
-static void __def_fbt_start(void)
-{
-}
-static void __def_fbt_end(void)
-{
-}
 static void __def_board_fbt_finalize_bootargs(char* args, size_t buf_sz)
 {
 	return;
@@ -1723,14 +1669,6 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	__attribute__((weak, alias("__def_fbt_get_reboot_type")));
 int board_fbt_key_pressed(void)
 	__attribute__((weak, alias("__def_fbt_key_pressed")));
-#ifdef CONFIG_FASTBOOT_KEY_CMD
-enum fbt_reboot_type board_fbt_key_command(void)
-	__attribute__((weak, alias("__def_fbt_key_command")));
-#endif //CONFIG_FASTBOOT_KEY_CMD
-void board_fbt_start(void)
-	__attribute__((weak, alias("__def_fbt_start")));
-void board_fbt_end(void)
-	__attribute__((weak, alias("__def_fbt_end")));
 void board_fbt_finalize_bootargs(char* args, size_t buf_sz)
 	__attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
 
@@ -1759,8 +1697,6 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	priv.flag |= FASTBOOT_FLAG_HAS_RUN;
 
 	printf("Starting fastboot protocol\n");
-
-	board_fbt_start();
 
 	fbt_init_endpoint_ptrs();
 
@@ -1822,7 +1758,6 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	}
 
 out:
-	board_fbt_end();
 	return ret;
 }
 
