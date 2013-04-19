@@ -81,7 +81,7 @@ local void make_crc_table()
  * Table of CRC-32's of all single-byte values (made by make_crc_table)
  */
 
-#if 0//mod by cjf
+#ifndef CONFIG_RK30XX
 local const uint32_t crc_table[256] = {
 tole(0x00000000L), tole(0x77073096L), tole(0xee0e612cL), tole(0x990951baL),
 tole(0x076dc419L), tole(0x706af48fL), tole(0xe963a535L), tole(0x9e6495a3L),
@@ -232,11 +232,15 @@ const uint32_t * ZEXPORT get_crc_table()
 #endif
 
 /* ========================================================================= */
+#ifndef CONFIG_RK30XX
 # if __BYTE_ORDER == __LITTLE_ENDIAN
 #  define DO_CRC(x) crc = tab[(crc ^ (x)) & 255] ^ (crc >> 8)
 # else
 #  define DO_CRC(x) crc = tab[((crc >> 24) ^ (x)) & 255] ^ (crc << 8)
 # endif
+#else
+#  define DO_CRC(x) crc = tab[((crc >> 24) ^ (x)) & 255] ^ (crc << 8)
+#endif
 
 /* ========================================================================= */
 
