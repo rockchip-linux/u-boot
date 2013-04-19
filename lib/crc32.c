@@ -232,15 +232,11 @@ const uint32_t * ZEXPORT get_crc_table()
 #endif
 
 /* ========================================================================= */
-#ifndef CONFIG_RK30XX
 # if __BYTE_ORDER == __LITTLE_ENDIAN
 #  define DO_CRC(x) crc = tab[(crc ^ (x)) & 255] ^ (crc >> 8)
 # else
 #  define DO_CRC(x) crc = tab[((crc >> 24) ^ (x)) & 255] ^ (crc << 8)
 # endif
-#else
-#  define DO_CRC(x) crc = tab[((crc >> 24) ^ (x)) & 255] ^ (crc << 8)
-#endif
 
 /* ========================================================================= */
 
@@ -291,6 +287,16 @@ uint32_t ZEXPORT crc32_no_comp(uint32_t crc, const Bytef *buf, uInt len)
 
 uint32_t ZEXPORT crc32 (uint32_t crc, const Bytef *p, uInt len)
 {
+#ifdef CONFIG_RK30XX
+#define DO_CRC(x) crc = tab[((crc >> 24) ^ (x)) & 255] ^ (crc << 8)
+    crc = cpu_to_le32(crc);
+    const uint32_t *tab = crc_table;
+	 do {
+	      DO_CRC(*p++);
+	 } while (--len);
+    return le32_to_cpu(crc);
+#undef DO_CRC
+#endif
      return crc32_no_comp(crc ^ 0xffffffffL, p, len) ^ 0xffffffffL;
 }
 
