@@ -201,6 +201,7 @@ struct _fbt_config_desc {
 };
 
 static void fbt_handle_response(void);
+static fbt_partition_t *fastboot_find_ptn(const char *name);
 static void fbt_run_recovery_wipe_data(void);
 static void fbt_run_recovery(int do_saveenv);
 
@@ -589,6 +590,26 @@ static void create_serial_number(void)
 		printf("Setting serial number from unique id\n");
 		set_serial_number(dieid);
 	}
+}
+
+static fbt_partition_t *fastboot_find_ptn(const char *name)
+{
+    unsigned int i;
+
+    for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
+        if (!fbt_partitions[i].name)
+            break;
+        if (!strcmp((char *)fbt_partitions[i].name, name))
+            return fbt_partitions + i;
+    }
+
+    printf("partition(%s) not found, aborting\ntable:\n", name);
+    for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
+        if (!fbt_partitions[i].name)
+            break;
+        printf("partition(%s)\n", fbt_partitions[i].name);
+    }
+    return NULL;
 }
 
 static void fbt_set_unlocked(int unlocked)
@@ -1797,43 +1818,26 @@ static void bootimg_print_image_hdr(struct fastboot_boot_img_hdr *hdr)
 /* booti [ <addr> | <partition> ] */
 static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-#if 0
 	char *boot_source = "boot";
-	block_dev_desc_t *blkdev = priv.dev_desc;
-	disk_partition_t *ptn;
+    fbt_partition_t *ptn;
 	struct fastboot_boot_img_hdr *hdr = NULL;
 	bootm_headers_t images;
-	int need_post_ran = 0;
 
 	if (argc >= 2)
 		boot_source = argv[1];
 
-	if (!blkdev) {
-		printf("fastboot was not successfully initialized\n");
-		return -1;
-	}
-
-	ptn = fastboot_flash_find_ptn(boot_source);
+	ptn = fastboot_find_ptn(boot_source);
 	if (ptn) {
-		unsigned long blksz;
-		unsigned sector;
-		unsigned blocks;
-
-		if (partition_read_pre(ptn)) {
-			printf("pre-read commands for partition '%s' failed\n",
-								ptn->name);
-			goto fail;
-		}
-		need_post_ran = 1;
-
-		blksz = blkdev->blksz;
-		hdr = malloc(blksz);
+#define RK_BLK_SIZE 512
+        unsigned long blksz = RK_BLK_SIZE;
+        unsigned sector;
+        unsigned blocks;
+        hdr = malloc(blksz);
 		if (hdr == NULL) {
 			printf("error allocating blksz(%lu) buffer\n", blksz);
 			goto fail;
 		}
-		if (blkdev->block_read(blkdev->dev, ptn->start,
-					      1, (void *) hdr) != 1) {
+        if (StorageReadLba(ptn->offset, (void *) hdr, 1) != 0) {
 			printf("booti: failed to read bootimg header\n");
 			goto fail;
 		}
@@ -1845,84 +1849,32 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		bootimg_print_image_hdr(hdr);
 
-		sector = ptn->start + (hdr->page_size / blksz);
+		sector = ptn->offset + (hdr->page_size / blksz);
 		blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
-		if (blkdev->block_read(blkdev->dev, sector, blocks,
-					      (void *) hdr->kernel_addr) !=
-		    blocks) {
+        if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
+                   blocks) != 0) {
 			printf("booti: failed to read kernel\n");
 			goto fail;
 		}
 
 		sector += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
 		blocks = DIV_ROUND_UP(hdr->ramdisk_size, blksz);
-		if (blkdev->block_read(blkdev->dev, sector, blocks,
-					      (void *) hdr->ramdisk_addr) !=
-		    blocks) {
+        if (StorageReadLba(sector, (void *) hdr->ramdisk_addr, \
+                    blocks) != 0) {
 			printf("booti: failed to read ramdisk\n");
 			goto fail;
 		}
-		if (need_post_ran) {
-			need_post_ran = 0;
-			if (partition_read_post(ptn)) {
-				printf("post-read commands for partition '%s' "
-							"failed\n", ptn->name);
-				goto fail;
-			}
-		}
-	} else {
-		unsigned addr;
-		void *kaddr, *raddr;
-		char *ep;
-
-		addr = simple_strtoul(boot_source, &ep, 16);
-		if (ep == boot_source || *ep != '\0') {
-			printf("'%s' does not seem to be a partition nor "
-						"an address\n", boot_source);
-			/* this is most likely due to having no
-			 * partition table in factory case, or could
-			 * be argument is wrong.  in either case, start
-			 * fastboot mode.
-			 */
-			goto fail;
-		}
-
-		hdr = malloc(sizeof(*hdr));
-		if (hdr == NULL) {
-			printf("error allocating buffer\n");
-			goto fail;
-		}
-
-		/* set this aside somewhere safe */
-		memcpy(hdr, (void *) addr, sizeof(*hdr));
-
-		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-			   FASTBOOT_BOOT_MAGIC_SIZE)) {
-			printf("booti: bad boot image magic\n");
-			goto fail;
-		}
-
-		bootimg_print_image_hdr(hdr);
-
-		kaddr = (void *)(addr + hdr->page_size);
-		raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
-					       hdr->page_size));
-		memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
-		memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
-	}
+    }
 
 	printf("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
 	printf("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
 
 #ifdef CONFIG_CMDLINE_TAG
-
-#ifdef CONFIG_FASTBOOT_PRESERVE_BOOTARGS
-	setenv("hdr_cmdline", (char *)hdr->cmdline);
-#else
 	{
 		/* static just to be safe when it comes to the stack */
 		static char command_line[1024];
 		int i, amt;
+        board_fbt_finalize_bootargs(command_line, sizeof(command_line));
 
 		/* Use the command line in the bootimg header instead of
 		 * any hardcoded into u-boot.  Also, Android wants the
@@ -1935,10 +1887,11 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		 */
 		amt = snprintf(command_line,
 				sizeof(command_line),
-				"%s androidboot.bootloader=%s",
-				hdr->cmdline,
+				"%s androidboot.bootloader=%s\n",
+				command_line,
 				CONFIG_FASTBOOT_VERSION_BOOTLOADER);
-
+        
+#if 0
 		for (i = 0; i < priv.num_device_info; i++) {
 			/* Append device specific information like
 			 * MAC addresses and serialno
@@ -1949,7 +1902,9 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 					priv.dev_info[i].name,
 					priv.dev_info[i].value);
 		}
-
+#endif
+//TODO:add some dev info to cmdline?
+//
 		/* append serial number if it wasn't in device_info already */
 		if (!strstr(command_line, FASTBOOT_SERIALNO_BOOTARG)) {
 			snprintf(command_line + amt, sizeof(command_line) - amt,
@@ -1958,11 +1913,9 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 
 		command_line[sizeof(command_line) - 1] = 0;
-		board_fbt_finalize_bootargs(command_line, sizeof(command_line));
 
 		setenv("bootargs", command_line);
 	}
-#endif /* CONFIG_FASTBOOT_PRESERVE_BOOTARGS */
 #endif /* CONFIG_CMDLINE_TAG */
 
 	memset(&images, 0, sizeof(images));
@@ -1970,6 +1923,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	images.rd_start = hdr->ramdisk_addr;
 	images.rd_end = hdr->ramdisk_addr + hdr->ramdisk_size;
 	free(hdr);
+	puts("booti: do_bootm_linux...\n");
 	do_bootm_linux(0, 0, NULL, &images);
 
 	puts("booti: Control returned to monitor - resetting...\n");
@@ -1977,15 +1931,9 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return 1;
 
 fail:
-	if (need_post_ran && partition_read_post(ptn))
-		printf("post-read commands for partition '%s' failed\n",
-								ptn->name);
 	/* if booti fails, always start fastboot */
 	free(hdr); /* hdr may be NULL, but that's ok. */
 	return do_fastboot(NULL, 0, 0, NULL);
-#endif
-    //TODO:do with boot.img kernel.img
-    return 1;
 }
 
 U_BOOT_CMD(
@@ -2032,7 +1980,6 @@ void fbt_preboot(void)
 	fbt_fastboot_init();
 
     frt = board_fbt_key_pressed();
-    FBTDBG("board_fbt_key_pressed return boot type:%d", frt);
 
     if (frt == FASTBOOT_REBOOT_NONE) {
 	    frt = board_fbt_get_reboot_type();

@@ -190,11 +190,13 @@ struct cmd_fastboot_interface {
 
 
 /* in a board specific file */
-struct fbt_partition {
+typedef struct fbt_partition {
     const char *name;
     unsigned offset;
     unsigned size_kb;
-};
+} fbt_partition_t;
+
+extern struct fbt_partition fbt_partitions[];
 
 #define FBT_PARTITION_MAX_NUM 16
 

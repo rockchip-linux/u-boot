@@ -115,23 +115,34 @@ int board_fbt_key_pressed(void)
 }
 
 struct fbt_partition fbt_partitions[FBT_PARTITION_MAX_NUM];
-//TODO:use empty table, then fill with parameter.
 
 void board_fbt_finalize_bootargs(char* args, size_t buf_sz) {
-//TODO:use parameter's cmdline? or setup serial_no/device_id/mac here?
+    snprintf(args, buf_sz, "%s\n", gBootInfo.cmd_line);
+//TODO:setup serial_no/device_id/mac here?
 }
 
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
-	BootInfo gBootInfo;
-	char *dst = malloc(1025);
-	memset(dst, 0, 1025);
 	printf("board_late_init\n");
+    int i = 0;
+    cmdline_mtd_partition cmd_mtd;
     recoveryKeyInit(&key_recover);
-	if (!GetParam(0, dst)) {
-	    ParseParam( &gBootInfo, ((PLoaderParam)dst)->parameter, ((PLoaderParam)dst)->length );
-        //TODO:setup partitions base on ParseParam result.
+    if (!GetParam(0, DataBuf)) {
+	    ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, ((PLoaderParam)DataBuf)->length );
+        cmd_mtd = gBootInfo.cmd_mtd;
+        for(i = 0;i < cmd_mtd.num_parts;i++) {
+            fbt_partitions[i].name = cmd_mtd.parts[i].name;
+            fbt_partitions[i].offset = cmd_mtd.parts[i].offset;
+            if (cmd_mtd.parts[i].size == SIZE_REMAINING) {
+                fbt_partitions[i].size_kb = SIZE_REMAINING;
+            } else {
+                fbt_partitions[i].size_kb = cmd_mtd.parts[i].size >> 1;
+            }
+            printf("partition(%s): offset=0x%08X, size=%dM\n", \
+                    fbt_partitions[i].name, fbt_partitions[i].offset, \
+                    fbt_partitions[i].size_kb >> 10);
+        }
     }
 #if 0
 	char tmp_buf[17];
