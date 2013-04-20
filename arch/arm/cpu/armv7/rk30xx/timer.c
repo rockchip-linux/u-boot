@@ -57,12 +57,12 @@ int timer_init(void)
 	pTIMER_REG ptimerReg = (pTIMER_REG)(RK30_TIMER0_PHYS);
 
 	/* set count value */
-	ptimerReg->TIMER_LOAD_COUNT = 0;
+	ptimerReg->TIMER_LOAD_COUNT = TIMER_LOAD_VAL;
 
 	/* auto reload & enable the timer */
-	ptimerReg->TIMER_CTRL_REG = 1;    
+	ptimerReg->TIMER_CTRL_REG |= 0x03;    
 
-	//reset_timer_masked();
+	reset_timer_masked();
 	
 	return 0;
 }
@@ -84,9 +84,9 @@ void reset_timer_masked(void)
 unsigned long get_timer(unsigned long base)
 {
 	if (base == 0)
-		return 1;
-	
-	return base - get_timer_masked ();
+		return get_timer_masked();
+	else
+		return (base - get_timer_masked());
 }
 
 /* delay x useconds */
