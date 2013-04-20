@@ -14,6 +14,7 @@
 extern uint32 Timer0Get100ns( void );
 void DRVDelayUs(uint32 count)
 {
+#if 0
     uint32 tmp;
     uint32 TimerEnd = Timer0Get100ns() + count * 13;
     tmp =  ASM_LOOP_PER_US;//15;
@@ -27,6 +28,9 @@ void DRVDelayUs(uint32 count)
         if(Timer0Get100ns() > TimerEnd)
             break;
     }
+#else
+	__udelay(count);
+#endif
 }
 /***************************************************************************
 ∫Ø ˝√Ë ˆ:—” ±
@@ -51,8 +55,7 @@ void Delay100cyc(uint16 count)
 ***************************************************************************/
 void DRVDelayMs(uint32 count)
 {
-    while (count--)
-        DRVDelayUs(1000);
+    DRVDelayUs(1000*count);
 }
 
 
