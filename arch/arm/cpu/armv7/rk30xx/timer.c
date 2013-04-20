@@ -57,10 +57,10 @@ int timer_init(void)
 	pTIMER_REG ptimerReg = (pTIMER_REG)(RK30_TIMER0_PHYS);
 
 	/* set count value */
-	ptimerReg->TIMER_LOAD_COUNT = TIMER_LOAD_VAL;
+	ptimerReg->TIMER_LOAD_COUNT = 0;
 
 	/* auto reload & enable the timer */
-	ptimerReg->TIMER_CTRL_REG |= 0x03;    
+	ptimerReg->TIMER_CTRL_REG = 1;
 
 	reset_timer_masked();
 	
