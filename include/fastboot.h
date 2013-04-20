@@ -190,8 +190,9 @@ struct cmd_fastboot_interface {
 
 
 /* in a board specific file */
+#define FBT_PARTITION_MAX_NAME 16
 typedef struct fbt_partition {
-    const char *name;
+    const char name[FBT_PARTITION_MAX_NAME];
     unsigned offset;
     unsigned size_kb;
 } fbt_partition_t;
@@ -199,6 +200,8 @@ typedef struct fbt_partition {
 extern struct fbt_partition fbt_partitions[];
 
 #define FBT_PARTITION_MAX_NUM 16
+
+#define RK_BLK_SIZE 512
 
 struct fastboot_boot_img_hdr {
 	unsigned char magic[FASTBOOT_BOOT_MAGIC_SIZE];
@@ -240,7 +243,7 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt);
 /* gets the reboot type, automatically clearing it for next boot */
 enum fbt_reboot_type board_fbt_get_reboot_type(void);
 int board_fbt_key_pressed(void);
-void board_fbt_finalize_bootargs(char* args, size_t buf_sz);
+void board_fbt_finalize_bootargs(char* args, size_t buf_sz, size_t ramdisk_sz);
 
 #endif /* CONFIG_CMD_FASTBOOT */
 #endif /* FASTBOOT_H */

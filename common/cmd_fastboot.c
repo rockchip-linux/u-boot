@@ -201,7 +201,6 @@ struct _fbt_config_desc {
 };
 
 static void fbt_handle_response(void);
-static fbt_partition_t *fastboot_find_ptn(const char *name);
 static void fbt_run_recovery_wipe_data(void);
 static void fbt_run_recovery(int do_saveenv);
 
@@ -592,7 +591,7 @@ static void create_serial_number(void)
 	}
 }
 
-static fbt_partition_t *fastboot_find_ptn(const char *name)
+fbt_partition_t *fastboot_find_ptn(const char *name)
 {
     unsigned int i;
 
@@ -1677,7 +1676,7 @@ static int __def_fbt_key_pressed(void)
 {
 	return FASTBOOT_REBOOT_NONE;
 }
-static void __def_board_fbt_finalize_bootargs(char* args, size_t buf_sz)
+static void __def_board_fbt_finalize_bootargs(char* args, size_t buf_sz, size_t ramdisk_sz)
 {
 	return;
 }
@@ -1690,7 +1689,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	__attribute__((weak, alias("__def_fbt_get_reboot_type")));
 int board_fbt_key_pressed(void)
 	__attribute__((weak, alias("__def_fbt_key_pressed")));
-void board_fbt_finalize_bootargs(char* args, size_t buf_sz)
+void board_fbt_finalize_bootargs(char* args, size_t buf_sz, size_t ramdisk_sz)
 	__attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
 
 /* command */
@@ -1815,6 +1814,10 @@ static void bootimg_print_image_hdr(struct fastboot_boot_img_hdr *hdr)
 #endif
 }
 
+#ifdef CONFIG_RK30XX
+extern int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, fbt_partition_t *kernel_ptn);
+#endif
+
 /* booti [ <addr> | <partition> ] */
 static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -1828,7 +1831,6 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	ptn = fastboot_find_ptn(boot_source);
 	if (ptn) {
-#define RK_BLK_SIZE 512
         unsigned long blksz = RK_BLK_SIZE;
         unsigned sector;
         unsigned blocks;
@@ -1843,27 +1845,38 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
 			   FASTBOOT_BOOT_MAGIC_SIZE)) {
-			printf("booti: bad boot image magic\n");
-			goto fail;
-		}
+#ifdef CONFIG_RK30XX
+            if (loadRkImage(hdr, ptn, fastboot_find_ptn("kernel")) != 0) {
+                printf("booti: bad boot or kernel image\n");
+                goto fail;
+            }
+#else
+            printf("booti: bad boot image magic\n");
+            goto fail;
+#endif
+        } else {
+            sector = ptn->offset + (hdr->page_size / blksz);
+            blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
+            if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
+                        blocks) != 0) {
+                printf("booti: failed to read kernel\n");
+                goto fail;
+            }
 
-		bootimg_print_image_hdr(hdr);
+            sector += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
+            blocks = DIV_ROUND_UP(hdr->ramdisk_size, blksz);
+            if (StorageReadLba(sector, (void *) hdr->ramdisk_addr, \
+                        blocks) != 0) {
+                printf("booti: failed to read ramdisk\n");
+                goto fail;
+            }
 
-		sector = ptn->offset + (hdr->page_size / blksz);
-		blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
-        if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
-                   blocks) != 0) {
-			printf("booti: failed to read kernel\n");
-			goto fail;
-		}
+        }
 
-		sector += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
-		blocks = DIV_ROUND_UP(hdr->ramdisk_size, blksz);
-        if (StorageReadLba(sector, (void *) hdr->ramdisk_addr, \
-                    blocks) != 0) {
-			printf("booti: failed to read ramdisk\n");
-			goto fail;
-		}
+        bootimg_print_image_hdr(hdr);
+    } else {
+        printf("booti: load boot image error\n");
+        goto fail;
     }
 
 	printf("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
@@ -1874,7 +1887,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		/* static just to be safe when it comes to the stack */
 		static char command_line[1024];
 		int i, amt;
-        board_fbt_finalize_bootargs(command_line, sizeof(command_line));
+        board_fbt_finalize_bootargs(command_line, sizeof(command_line), hdr->ramdisk_size);
 
 		/* Use the command line in the bootimg header instead of
 		 * any hardcoded into u-boot.  Also, Android wants the
@@ -1887,7 +1900,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		 */
 		amt = snprintf(command_line,
 				sizeof(command_line),
-				"%s androidboot.bootloader=%s\n",
+				"%s androidboot.bootloader=%s",
 				command_line,
 				CONFIG_FASTBOOT_VERSION_BOOTLOADER);
         

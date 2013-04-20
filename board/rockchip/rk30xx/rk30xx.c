@@ -116,7 +116,8 @@ int board_fbt_key_pressed(void)
 
 struct fbt_partition fbt_partitions[FBT_PARTITION_MAX_NUM];
 
-void board_fbt_finalize_bootargs(char* args, size_t buf_sz) {
+void board_fbt_finalize_bootargs(char* args, size_t buf_sz, size_t ramdisk_sz) {
+    ReSizeRamdisk(&gBootInfo, ramdisk_sz);
     snprintf(args, buf_sz, "%s\n", gBootInfo.cmd_line);
 //TODO:setup serial_no/device_id/mac here?
 }
@@ -129,10 +130,12 @@ int board_late_init(void)
     cmdline_mtd_partition cmd_mtd;
     recoveryKeyInit(&key_recover);
     if (!GetParam(0, DataBuf)) {
-	    ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, ((PLoaderParam)DataBuf)->length );
+	    ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, \
+                ((PLoaderParam)DataBuf)->length );
         cmd_mtd = gBootInfo.cmd_mtd;
         for(i = 0;i < cmd_mtd.num_parts;i++) {
-            fbt_partitions[i].name = cmd_mtd.parts[i].name;
+            strncpy(fbt_partitions[i].name, cmd_mtd.parts[i].name, \
+                    FBT_PARTITION_MAX_NAME);
             fbt_partitions[i].offset = cmd_mtd.parts[i].offset;
             if (cmd_mtd.parts[i].size == SIZE_REMAINING) {
                 fbt_partitions[i].size_kb = SIZE_REMAINING;
