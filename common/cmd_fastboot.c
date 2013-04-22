@@ -1261,9 +1261,6 @@ static void fbt_handle_oem(char *cmdbuf)
 		}
 		priv.unlock_pending_start_time = 0;
 		printf("Erasing userdata partition\n");
-        /*err = partition_erase_blks(priv.dev_desc,
-					fastboot_flash_find_ptn("userdata"),
-					NULL);*/
         err = fbt_handle_erase("erase userdata");
 
 		if (err) {
@@ -1682,12 +1679,6 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 							char * const argv[])
 {
 	int ret;
-
-	if (!priv.dev_desc) {
-		printf("fastboot was not successfully initialized\n");
-		return -1;
-	}
-
 	/* currently we don't allow restarting fastboot if you've run
 	 * it before and exited to u-boot prompt.  it's possible to
 	 * support, but there's are edge cases that we're not

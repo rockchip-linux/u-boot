@@ -112,8 +112,6 @@ struct cmd_fastboot_interface {
 	   Set by board */
 	char *serial_no;
 
-	block_dev_desc_t *dev_desc;
-
 	/* Transfer buffer, for handling flash updates
 	   Should be multiple of the block size
 	   Care should be take so it does not overrun bootloader memory
