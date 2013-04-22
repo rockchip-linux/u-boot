@@ -28,6 +28,7 @@ LIB	= $(obj)lib$(BOARD).o
 COBJS-y := $(BOARD).o
 COBJS-y += crc.o
 COBJS-y += rkimage.o
+COBJS-y += rkloader.o
 
 SRCS	:= $(SOBJS:.o=.S) $(COBJS-y:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS-y))

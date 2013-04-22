@@ -116,10 +116,25 @@ int board_fbt_key_pressed(void)
 
 struct fbt_partition fbt_partitions[FBT_PARTITION_MAX_NUM];
 
-void board_fbt_finalize_bootargs(char* args, size_t buf_sz, size_t ramdisk_sz) {
+void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
+        size_t ramdisk_sz, int recovery)
+{
+    char recv_cmd[2]={0};
     ReSizeRamdisk(&gBootInfo, ramdisk_sz);
-    snprintf(args, buf_sz, "%s\n", gBootInfo.cmd_line);
+    if (recovery) {
+        change_cmd_for_recovery(&gBootInfo, recv_cmd);
+    }
+    snprintf(args, buf_sz, "%s", gBootInfo.cmd_line);
 //TODO:setup serial_no/device_id/mac here?
+}
+int board_fbt_check_misc()
+{
+    //return true if we got recovery cmd from misc.
+    return checkMisc();
+}
+void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
+{
+    setBootloaderMsg(bmsg);
 }
 
 #ifdef CONFIG_BOARD_LATE_INIT
@@ -127,24 +142,23 @@ int board_late_init(void)
 {
 	printf("board_late_init\n");
     int i = 0;
-    cmdline_mtd_partition cmd_mtd;
+    cmdline_mtd_partition *cmd_mtd;
     recoveryKeyInit(&key_recover);
     if (!GetParam(0, DataBuf)) {
 	    ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, \
                 ((PLoaderParam)DataBuf)->length );
-        cmd_mtd = gBootInfo.cmd_mtd;
-        for(i = 0;i < cmd_mtd.num_parts;i++) {
-            strncpy(fbt_partitions[i].name, cmd_mtd.parts[i].name, \
-                    FBT_PARTITION_MAX_NAME);
-            fbt_partitions[i].offset = cmd_mtd.parts[i].offset;
-            if (cmd_mtd.parts[i].size == SIZE_REMAINING) {
+        cmd_mtd = &(gBootInfo.cmd_mtd);
+        for(i = 0;i < cmd_mtd->num_parts;i++) {
+            fbt_partitions[i].name = cmd_mtd->parts[i].name;
+            fbt_partitions[i].offset = cmd_mtd->parts[i].offset;
+            if (cmd_mtd->parts[i].size == SIZE_REMAINING) {
                 fbt_partitions[i].size_kb = SIZE_REMAINING;
             } else {
-                fbt_partitions[i].size_kb = cmd_mtd.parts[i].size >> 1;
+                fbt_partitions[i].size_kb = cmd_mtd->parts[i].size >> 1;
             }
-            printf("partition(%s): offset=0x%08X, size=%dM\n", \
-                    fbt_partitions[i].name, fbt_partitions[i].offset, \
-                    fbt_partitions[i].size_kb >> 10);
+            printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
+                    cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
+                    cmd_mtd->parts[i].size);
         }
     }
 #if 0

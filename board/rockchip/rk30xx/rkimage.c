@@ -16,7 +16,7 @@ typedef struct tagKernelImg
 
 static int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
-    unsigned char buf[RK_BLK_SIZE * 4];
+    unsigned char buf[RK_BLK_SIZE];
     unsigned blocks;
     KernelImg *image = (KernelImg*)buf;
     unsigned head_offset = 8;//tagKernelImg's tag & size
@@ -51,8 +51,7 @@ int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, \
     if(!boot_ptn || !kernel_ptn) {
         return -1;
     }
-    memset(hdr, 0, RK_BLK_SIZE);
-    snprintf(hdr->magic, FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", FASTBOOT_BOOT_MAGIC);
+    snprintf(hdr->magic, FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
 
     hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
     if (loadImage(boot_ptn->offset, (unsigned char *)hdr->ramdisk_addr, \
@@ -71,4 +70,3 @@ int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, \
     hdr->kernel_size = image_size;
     return 0;
 }
-
