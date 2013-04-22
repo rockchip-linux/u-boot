@@ -35,8 +35,27 @@
 #include <asm/system.h>
 #include <linux/linkage.h>
 
+
+#ifdef CONFIG_ROCKCHIP
+.globl _start
+_start: msr cpsr_c,#0xd3 
+        b _vector
+.global RSA_KEY_TAG
+		.word 0x4B415352
+.global RSA_KEY_LENGTH
+		.word 0x200-0x08
+.global RSA_KEY_DATA
+		.space 0x200-0x08
+.global loader_tag_check
+		.word 0x4B415351
+.global RSA_PAD
+		.space 20
+.globl _vector
+_vector: b	reset
+#else
 .globl _start
 _start: b	reset
+#endif
 	ldr	pc, _undefined_instruction
 	ldr	pc, _software_interrupt
 	ldr	pc, _prefetch_abort
@@ -147,9 +166,9 @@ reset:
 	LDRNE R0,=0x200080A0 ;//rk3066B 3168 3188
 	LDR R1,=0x10001000
 	STR R1,[R0]
+#if 0
 
-
-	adr r0, _start
+	adr r0, _vector
 	adr r1, _end_vect
 	
 	sub r2, r1, r0
@@ -158,6 +177,7 @@ reset:
 	str r3, [r1], #4 
 	cmp r1, r2
 	bne 1b
+#endif
 #endif
 
 /*
@@ -172,7 +192,7 @@ reset:
 	mcr	p15, 0, r0, c1, c0, 0	@ Write CP15 SCTRL Register
 
 	/* Set vector address in CP15 VBAR register */
-	ldr	r0, =_start
+	ldr	r0, =_vector
 	mcr	p15, 0, r0, c12, c0, 0	@Set VBAR
 #endif
 
@@ -280,7 +300,7 @@ ENTRY(c_runtime_cpu_setup)
  */
 #if !defined(CONFIG_TEGRA)
 	/* Set vector address in CP15 VBAR register */
-	ldr     r0, =_start
+	ldr     r0, =_vector
 	mcr     p15, 0, r0, c12, c0, 0  @Set VBAR
 #endif /* !Tegra */
 
