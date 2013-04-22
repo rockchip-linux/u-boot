@@ -93,41 +93,77 @@ int board_fbt_oem(const char *cmdbuf)
 }
 #endif /* !CONFIG_FASTBOOT_NO_FORMAT */
 
+#define SYS_LOADER_REBOOT_FLAG   0x5242C300 
+#define SYS_KERNRL_REBOOT_FLAG   0xC3524200
+
+enum {
+    BOOT_NORMAL=                  0,
+    BOOT_LOADER,     /* enter loader rockusb mode */
+    BOOT_MASKROM,    /* enter maskrom rockusb mode*/
+    BOOT_RECOVER,    /* enter recover */
+    BOOT_NORECOVER,  /* do not enter recover */
+    BOOT_WINCE,      /* FOR OTHER SYSTEM */
+    BOOT_WIPEDATA,   /* enter recover and wipe data. */
+    BOOT_WIPEALL,    /* enter recover and wipe all data. */
+    BOOT_CHECKIMG,   /* check firmware img with backup part(in loader mode)*/
+    BOOT_FASTBOOT,
+    BOOT_SECUREBOOT_DISABLE,
+    BOOT_MAX         /* MAX VALID BOOT TYPE.*/
+};
+
+
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 {
+    int boot = BOOT_NORMAL;
     switch(frt) {
-        case FASTBOOT_REBOOT_NORMAL:
         case FASTBOOT_REBOOT_BOOTLOADER:
+            boot = BOOT_LOADER;
+            break;
         case FASTBOOT_REBOOT_RECOVERY:
+            boot = BOOT_RECOVER;
+            break;
         case FASTBOOT_REBOOT_RECOVERY_WIPE_DATA:
+            boot = BOOT_WIPEDATA;
             break;
         default:
             printf("unknown reboot type %d\n", frt);
-            frt = FASTBOOT_REBOOT_UNKNOWN;
+            frt = BOOT_NORMAL;
             break;
     }
-    ISetLoaderFlag(frt);
+    ISetLoaderFlag(SYS_LOADER_REBOOT_FLAG|boot);
 }
 
 enum fbt_reboot_type board_fbt_get_reboot_type(void)
 {
-    enum fbt_reboot_type frt = IReadLoaderFlag();
+    enum fbt_reboot_type frt = FASTBOOT_REBOOT_UNKNOWN;
 
-    /* clear before next boot */
-    ISetLoaderFlag(FASTBOOT_REBOOT_UNKNOWN);
+    uint32_t loader_flag = IReadLoaderFlag();
+    int boot = BOOT_NORMAL;
+    if((loader_flag&0xFFFFFF00) == SYS_LOADER_REBOOT_FLAG)
+    {
+        boot = loader_flag&0xFF;
 
-    switch(frt) {
-    case FASTBOOT_REBOOT_NORMAL:
-    case FASTBOOT_REBOOT_BOOTLOADER:
-    case FASTBOOT_REBOOT_RECOVERY:
-    case FASTBOOT_REBOOT_RECOVERY_WIPE_DATA:
-      break;
-    default:
-      printf("unknown reboot type %d\n", frt);
-      frt = FASTBOOT_REBOOT_UNKNOWN;
-      break;
+        switch(boot) {
+            case BOOT_NORMAL:
+                frt = FASTBOOT_REBOOT_NORMAL;
+                break;
+            case BOOT_LOADER:
+                frt = FASTBOOT_REBOOT_BOOTLOADER;
+                break;
+            case BOOT_RECOVER:
+                frt = FASTBOOT_REBOOT_RECOVERY;
+                break;
+            case BOOT_WIPEDATA:
+            case BOOT_WIPEALL:
+                frt = FASTBOOT_REBOOT_RECOVERY_WIPE_DATA;
+                break;
+            default:
+                printf("unsupport rk boot type %d\n", boot);
+                break;
+        }
     }
 
+    ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|boot);
     return frt;
 }
 

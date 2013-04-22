@@ -202,7 +202,7 @@ struct _fbt_config_desc {
 
 static void fbt_handle_response(void);
 static void fbt_run_recovery_wipe_data(void);
-static void fbt_run_recovery(int do_saveenv);
+static void fbt_run_recovery();
 
 /* defined and used by gadget/ep0.c */
 extern struct usb_string_descriptor **usb_strings;
@@ -880,30 +880,30 @@ static const char *getvar_serialno(const char *unused)
 
 static const char *getvar_partition_size(const char *args)
 {
-#if 0
 	const char *partition_name;
-	disk_partition_t *ptn;
+	fbt_partition_t *ptn;
 
 	if (!strcmp(args, "all")) {
 		int i;
-		for (i = 0; i < pcount; i++) {
-			printf("partition \"%s\" has size 0x%016llx bytes\n",
-			       ptable[i].name,
-			       (uint64_t)ptable[i].size * ptable[i].blksz);
+		for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
+            if (!fbt_partitions[i].name)
+                break;
+            printf("partition \"%s\" has size 0x%016llx kb\n",
+			       fbt_partitions[i].name,
+			       (uint64_t)fbt_partitions[i].size_kb);
 		}
 		return NULL;
 	}
 
 	partition_name = args + sizeof("partition-size:") - 1;
-	ptn = fastboot_flash_find_ptn(partition_name);
+	ptn = fastboot_find_ptn(partition_name);
 	if (ptn) {
 		snprintf(priv.response, sizeof(priv.response),
-			 "OKAY0x%016llx", (uint64_t)ptn->size * ptn->blksz);
+			 "OKAY0x%016llx kb", (uint64_t)ptn->size_kb);
 	} else {
 		snprintf(priv.response, sizeof(priv.response),
 			 "FAILunknown partition %s\n", partition_name);
 	}
-#endif
 	return NULL;
 }
 
@@ -1595,67 +1595,34 @@ static void fbt_handle_response(void)
 	}
 }
 
-static void fbt_clear_recovery_flag(void)
+static void fbt_run_recovery()
 {
-	if (getenv(FASTBOOT_RUN_RECOVERY_ENV_NAME)) {
-		setenv(FASTBOOT_RUN_RECOVERY_ENV_NAME, NULL);
-#if defined(CONFIG_CMD_SAVEENV)
-		saveenv();
-#endif
-	}
-}
-
-static void fbt_run_recovery(int do_saveenv)
-{
-	/* to make recovery (which processes OTAs) more failsafe,
-	 * we save the fact that we were asked to boot into
-	 * recovery.  if power is pulled and then restored, we
-	 * will use that info to rerun recovery again and try
-	 * to complete the OTA installation.
-	 */
-	if (do_saveenv) {
-		setenv(FASTBOOT_RUN_RECOVERY_ENV_NAME, "1");
-#ifdef CONFIG_CMD_SAVEENV
-		saveenv();
-#endif
-	}
-
 	char *const boot_recovery_cmd[] = {"booti", "recovery"};
 	do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
 
 	/* returns if recovery.img is bad */
 	printf("\nfastboot: Error: Invalid recovery img\n");
-
-	/* Always clear so we don't wind up rebooting again into
-	 * bad recovery img.
-	 */
-	fbt_clear_recovery_flag();
 }
 
 struct bootloader_message {
-	char command[32];
-	char status[32];
-	char recovery[1024];
+    char command[32];
+    char status[32];
+    char recovery[1024];
 };
 
 static void fbt_run_recovery_wipe_data(void)
 {
-	struct bootloader_message *bmsg;
+	struct bootloader_message bmsg;
 
 	printf("Rebooting into recovery to do wipe_data\n");
 
-	bmsg = (struct bootloader_message*)priv.transfer_buffer;
-	memset(bmsg, 0, sizeof(*bmsg));
-	bmsg->command[0] = 0;
-	bmsg->status[0] = 0;
-	strcpy(bmsg->recovery, "recovery\n--wipe_data");
-	priv.d_bytes = sizeof(*bmsg);
-
-	/* write this structure to the "misc" partition, no unlock check */
-	fbt_handle_flash("flash:misc", 0);
+	strcpy(bmsg.command, "boot-recovery");
+	bmsg.status[0] = 0;
+	strcpy(bmsg.recovery, "recovery\n--wipe_data");
+    board_fbt_set_bootloader_msg(bmsg);
 
 	/* now reboot to recovery */
-	fbt_run_recovery(1);
+	fbt_run_recovery();
 }
 
 /*
@@ -1676,9 +1643,22 @@ static int __def_fbt_key_pressed(void)
 {
 	return FASTBOOT_REBOOT_NONE;
 }
-static void __def_board_fbt_finalize_bootargs(char* args, size_t buf_sz, size_t ramdisk_sz)
+static void __def_board_fbt_finalize_bootargs(char* args, size_t buf_sz,
+       size_t ramdisk_sz, int recovery)
 {
 	return;
+}
+static int __def_board_fbt_check_misc()
+{
+    return 0;
+}
+static void __def_board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
+{
+    memcpy(priv.transfer_buffer, &bmsg, sizeof(bmsg));
+    priv.d_bytes = sizeof(bmsg);
+
+    /* write this structure to the "misc" partition, no unlock check */
+    fbt_handle_flash("flash:misc", 0);
 }
 
 int board_fbt_oem(const char *cmdbuf)
@@ -1689,8 +1669,13 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	__attribute__((weak, alias("__def_fbt_get_reboot_type")));
 int board_fbt_key_pressed(void)
 	__attribute__((weak, alias("__def_fbt_key_pressed")));
-void board_fbt_finalize_bootargs(char* args, size_t buf_sz, size_t ramdisk_sz)
+void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
+        size_t ramdisk_sz, int recovery)
 	__attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
+int board_fbt_check_misc()
+    __attribute__((weak, alias("__def_board_fbt_check_misc")));
+void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
+    __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
 
 /* command */
 static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -1767,7 +1752,7 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 			break;
 		case FASTBOOT_REBOOT_RECOVERY:
 			printf("starting recovery due to key\n");
-			fbt_run_recovery(1);
+			fbt_run_recovery();
 			break;
 		case FASTBOOT_REBOOT_UNKNOWN:
 		case FASTBOOT_REBOOT_NONE:
@@ -1846,7 +1831,8 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
 			   FASTBOOT_BOOT_MAGIC_SIZE)) {
 #ifdef CONFIG_RK30XX
-            if (loadRkImage(hdr, ptn, fastboot_find_ptn("kernel")) != 0) {
+            memset(hdr, 0, blksz);
+            if (loadRkImage(hdr, ptn, fastboot_find_ptn(KERNEL_NAME)) != 0) {
                 printf("booti: bad boot or kernel image\n");
                 goto fail;
             }
@@ -1887,9 +1873,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		/* static just to be safe when it comes to the stack */
 		static char command_line[1024];
 		int i, amt;
-        board_fbt_finalize_bootargs(command_line, sizeof(command_line), hdr->ramdisk_size);
-
-		/* Use the command line in the bootimg header instead of
+		/* Use the cmdline from board_fbt_finalize_bootargs instead of
 		 * any hardcoded into u-boot.  Also, Android wants the
 		 * serial number on the command line instead of via
 		 * tags so append the serial number to the bootimg header
@@ -1898,6 +1882,8 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		 * to pass it to the kernel.  Add the bootloader
 		 * version too.
 		 */
+        board_fbt_finalize_bootargs(command_line, sizeof(command_line),
+                hdr->ramdisk_size, !strcmp(boot_source, RECOVERY_NAME));
 		amt = snprintf(command_line,
 				sizeof(command_line),
 				"%s androidboot.bootloader=%s",
@@ -1927,6 +1913,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		command_line[sizeof(command_line) - 1] = 0;
 
+        //printf("booti:cmdline:%s\n", command_line);
 		setenv("bootargs", command_line);
 	}
 #endif /* CONFIG_CMDLINE_TAG */
@@ -1965,8 +1952,6 @@ static void fbt_request_start_fastboot(void)
 	char *old_preboot = getenv("preboot");
 	printf("old preboot env = %s\n", old_preboot);
 
-	fbt_clear_recovery_flag();
-
 	if (old_preboot) {
 		snprintf(buf, sizeof(buf),
 			 "setenv preboot %s; fastboot", old_preboot);
@@ -1983,7 +1968,7 @@ static void fbt_request_start_fastboot(void)
  *
  * This is also where we initialize fbt private data.  Even if we
  * don't enter fastboot mode, we need our environment setup for
- * things like unlock state, clearing reboot to recovery flag, etc.
+ * things like unlock state, etc.
  */
 void fbt_preboot(void)
 {
@@ -1995,16 +1980,16 @@ void fbt_preboot(void)
     frt = board_fbt_key_pressed();
 
     if (frt == FASTBOOT_REBOOT_NONE) {
+        printf("\n%s: no spec key pressed, get requested reboot type.\n",
+               __func__);
 	    frt = board_fbt_get_reboot_type();
-		printf("\n%s: no spec key pressed, read reboot type.\n",
-		       __func__);
     }
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
 		printf("\n%s: starting recovery img because of reboot flag\n",
 		       __func__);
 
-		return fbt_run_recovery(1);
+		return fbt_run_recovery();
 	} else if (frt == FASTBOOT_REBOOT_RECOVERY_WIPE_DATA) {
 		printf("\n%s: starting recovery img to wipe data "
 		       "because of reboot flag\n",
@@ -2026,18 +2011,16 @@ void fbt_preboot(void)
 		/* explicit request for a regular reboot */
 		printf("\n%s: request for a normal boot\n",
 		       __func__);
-		fbt_clear_recovery_flag();
 	} else {
+        printf("\n%s: check misc command.\n", __func__);
 		/* unknown reboot cause (typically because of a cold boot).
-		 * check if we had flag set to boot recovery and it
-		 * was never cleared properly (i.e. recovery didn't finish).
-		 * if so, jump to recovery again.
+		 * check if we had misc command to boot recovery.
 		 */
-		char *run_recovery = getenv(FASTBOOT_RUN_RECOVERY_ENV_NAME);
+		int run_recovery = board_fbt_check_misc();
 		if (run_recovery) {
-			printf("\n%s: starting recovery because of "
-			       "saved reboot flag\n", __func__);
-			return fbt_run_recovery(0);
+			printf("\n%s: starting recovery because of misc command\n", 
+                    __func__);
+			return fbt_run_recovery();
 		}
 		printf("\n%s: no special reboot flags, doing normal boot\n",
 		       __func__);
