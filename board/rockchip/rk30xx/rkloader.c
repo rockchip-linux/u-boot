@@ -5,7 +5,7 @@
 #define MISC_COMMAND_PAGE   1
 #define PAGE_SIZE           (16 * 1024)//16K
 #define MISC_SIZE           (MISC_PAGES * PAGE_SIZE)//48K
-#define MISC_COMMAND_OFFSET (MISC_SIZE / RK_BLK_SIZE)//32
+#define MISC_COMMAND_OFFSET (MISC_COMMAND_PAGE * PAGE_SIZE / RK_BLK_SIZE)//32
 
 int checkMisc() {
     struct bootloader_message *bmsg = NULL;

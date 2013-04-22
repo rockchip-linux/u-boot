@@ -1884,6 +1884,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		 */
         board_fbt_finalize_bootargs(command_line, sizeof(command_line),
                 hdr->ramdisk_size, !strcmp(boot_source, RECOVERY_NAME));
+        //printf("board cmdline:\n%s\n", command_line);
 		amt = snprintf(command_line,
 				sizeof(command_line),
 				"%s androidboot.bootloader=%s",
@@ -1913,7 +1914,6 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		command_line[sizeof(command_line) - 1] = 0;
 
-        //printf("booti:cmdline:%s\n", command_line);
 		setenv("bootargs", command_line);
 	}
 #endif /* CONFIG_CMDLINE_TAG */
