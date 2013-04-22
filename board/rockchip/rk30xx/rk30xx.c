@@ -165,6 +165,10 @@ int board_late_init(void)
                     cmd_mtd->parts[i].size);
         }
     }
+
+    //TODO:set those buffers in a better way, and use malloc?
+    setup_space(gBootInfo.kernel_load_addr);
+
 #if 0
 	char tmp_buf[17];
 	u64 id_64;
