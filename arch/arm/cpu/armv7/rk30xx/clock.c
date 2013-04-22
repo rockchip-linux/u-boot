@@ -32,11 +32,37 @@ typedef void (*callback_f)(void);
 #define RK30_APLL_FREQ		600
 #define RK30_GPLL_FREQ		300
 
+#define PLL_RESET  	(((0x1<<5)<<16) | (0x1<<5))
+#define PLL_DE_RESET  	(((0x1<<5)<<16) | (0x0<<5))
 
 #define NR(n)      ((0x3F<<(8+16)) | ((n-1)<<8))
 #define NO(n)      ((0x3F<<16) | (n-1))
 #define NF(n)      ((0xFFFF<<16) | (n-1))
 #define NB(n)      ((0xFFF<<16) | (n-1))
+
+
+/****************************************************************************
+us delay function
+Cpu highest frequency is 1 GHz
+1 cycle = 1/1 ns
+1 us = 1000 ns = 1000 * 1 cycles = 1000 cycles
+*****************************************************************************/
+static volatile uint32_t loops_per_us;
+
+#define LPJ_100MHZ  1000UL
+
+static void clk_delayus(uint32_t us)
+{
+	do
+	{
+		unsigned int i = (loops_per_us*us);
+
+		if (i < 7) i = 7;
+		barrier();
+		asm volatile(".align 4; 1: subs %0, %0, #1; bne 1b;" : "+r" (i));
+	} while (0);
+}
+
 
 static void rk30_apll_cb(void)
 {
@@ -71,56 +97,56 @@ static void rk30_dpll_cb(void)
 }
 
 
-static int rk30_pll_clk_set_rate(rk_plls_id pll_id, uint32 MHz, callback_f cb)
+static void rk30_pll_clk_set_rate(rk_plls_id pll_id, uint32 MHz, callback_f cb)
 {
 	uint32 nr, no, nf;
+	uint32 delay;
 
 	MHz += (MHz & 0x1);
-        if (MHz >= 600) {
-            nr = 1;
-            no = 2;
-            nf = MHz *2 / 24;
-        } else if (MHz >= 400) {
-            nr = 1;
-            no = 3;
-            nf = MHz * 3 / 24;
-        } else if (MHz >= 250) {
-            nr = 1;
-            no = 5;
-            nf = MHz * 5 / 24;
-        } else if (MHz >= 140) {
-            nr = 1;
-            no = 8;
-            nf = MHz * 8 / 24;
-        } else {
-            nr = 1;
-            no = 12;
-            nf = MHz * 12 / 24;
-        }
-
+	if(MHz > 500) {
+		nr = 24;
+		no = 1;
+	} else if(MHz > 250) {
+		nr = 12;
+		no = 2;
+	} else if(MHz > 150) {
+		nr = 6;
+		no = 4;
+	} else if(MHz > 100) {
+		nr = 4;
+		no = 6;
+	} else {
+		nr = 3;
+		no = 8;
+	}
 	//enter slowmode
 	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) +  16)) | (0x0<<(pll_id*4));            //PLL slow-mode
 	//enter rest
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x1<<1));
+        g_cruReg->CRU_PLL_CON[pll_id][3] = PLL_RESET;
         g_cruReg->CRU_PLL_CON[pll_id][0] = NR(nr) | NO(no);
-        g_cruReg->CRU_PLL_CON[pll_id][1] = NF(nf);
-	__udelay(1);
-	//return form rest
-	g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
+        g_cruReg->CRU_PLL_CON[pll_id][1] = NF(MHz);
+        g_cruReg->CRU_PLL_CON[pll_id][2] = NB(MHz);
+        udelay(1);
+        g_cruReg->CRU_PLL_CON[pll_id][3] = PLL_DE_RESET;
 
-	__udelay(1000);
+	delay = 1000;
+        while (delay > 0) {
+    	    udelay(1);
+            if (g_grfReg->GRF_SOC_STATUS0 & (0x1<<4))
+            	break;
+            delay--;
+    	 }
+
 	if (cb != NULL)
 		cb();
 
-	return 0;
+	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) +  16))  | (0x1<<(pll_id*4));            //PLL normal
 }
 
 
-#ifdef CONFIG_BOARD_POSTCLK_INIT
-int board_postclk_init(void)
+void rk_set_pll(void)
 {
 	rk30_pll_clk_set_rate(APLL_ID, RK30_APLL_FREQ, rk30_apll_cb);
 	rk30_pll_clk_set_rate(GPLL_ID, RK30_GPLL_FREQ, rk30_gpll_cb);
 }
-#endif
 

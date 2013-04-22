@@ -140,9 +140,12 @@ void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
-	printf("board_late_init\n");
     int i = 0;
     cmdline_mtd_partition *cmd_mtd;
+
+    printf("board_late_init\n");
+    rk_set_pll();
+
     recoveryKeyInit(&key_recover);
     if (!GetParam(0, DataBuf)) {
 	    ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, \
