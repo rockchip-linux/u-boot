@@ -50,6 +50,8 @@ _start: msr cpsr_c,#0xd3
 		.word 0x4B415351
 .global RSA_PAD
 		.space 20
+
+	.align	5
 .globl _vector
 _vector: b	reset
 #else
