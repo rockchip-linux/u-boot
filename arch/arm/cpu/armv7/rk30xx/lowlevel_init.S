@@ -26,6 +26,7 @@
 
 #include <linux/linkage.h>
 
+	.align 5
 ENTRY(lowlevel_init)
 
 ENDPROC(lowlevel_init)
