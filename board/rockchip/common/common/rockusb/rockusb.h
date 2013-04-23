@@ -184,14 +184,14 @@ typedef volatile struct _USB_XFER
 		#define	EXT		extern
 #endif		
 
-	EXT		uint8 			FWCmdPhase;			//ÃüÁî½×¶Î×´Ì¬×Ö
-	EXT     uint8           FWLowFormatEn;
-	EXT     uint8           FWSetResetFlag;
+	EXT		ALIGN(4) uint8 	FWCmdPhase;			//ÃüÁî½×¶Î×´Ì¬×Ö
+	EXT     ALIGN(4) uint8  FWLowFormatEn;
+	EXT     ALIGN(4) uint8  FWSetResetFlag;
 	EXT		uint32 			FW_DataLenCnt;
 	EXT		uint32 			FW_Write10PBA;
     EXT		int32           dCSWDataResidueVal;
     
-	EXT		uint16 			FWLBA_DataLenCnt;
+	EXT		ALIGN(4) uint16 FWLBA_DataLenCnt;
 	EXT		uint32 			FWLBA_Write10PBA;
     EXT		uint32 			FW_SDRAM_Parameter;
     EXT		uint32 			FW_SDRAM_ExcuteAddr;    
