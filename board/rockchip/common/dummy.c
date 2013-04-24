@@ -49,9 +49,6 @@ void CacheInvBoth(void)
 {
 }
 #endif
-void ResetCpu(unsigned long remap_addr)
-{
-}
 
 //uint8 ReadSecs(uint8 LUN, uint32 Index, void *buf, uint32 nSec)
 //{
