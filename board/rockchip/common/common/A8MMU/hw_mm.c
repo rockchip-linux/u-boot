@@ -77,6 +77,8 @@ void MMUInit(uint32 adr)
 
 void MMUDeinit(uint32 adr)
 {
+#if 0
+
 #ifdef DRIVERS_MMU
 #ifdef L2CACHE_ENABLE    
     L2x0Deinit();
@@ -85,15 +87,46 @@ void MMUDeinit(uint32 adr)
     MMUDisable();              /*关闭MMU*/
     CacheDisableBoth();        /*关闭所有cache*/
 #endif
+
+#else
+
+#ifndef CONFIG_SYS_L2CACHE_OFF
+	v7_outer_cache_disable();
+#endif
+#ifndef CONFIG_SYS_DCACHE_OFF
+	flush_dcache_all();
+#endif
+#ifndef CONFIG_SYS_ICACHE_OFF
+	invalidate_icache_all();
+#endif
+	MMUDisable();
+#ifndef CONFIG_SYS_DCACHE_OFF
+	dcache_disable();
+#endif
+
+#ifndef CONFIG_SYS_ICACHE_OFF
+	icache_disable();
+#endif
+
+#endif
 }
 
 uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 {
+#if 0
+
 #ifdef DRIVERS_MMU
     __CacheFlushDRegion(adr,size);
 #ifdef L2CACHE_ENABLE    
     l2x0_flush_range(adr, adr+size);
 #endif
+#endif
+
+#else
+#ifndef CONFIG_SYS_DCACHE_OFF
+	flush_cache(adr, size);
+#endif
+
 #endif
 }
 
