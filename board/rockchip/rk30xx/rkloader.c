@@ -50,3 +50,41 @@ void setBootloaderMsg(struct bootloader_message bmsg)
     StorageWriteLba(ptn->offset + MISC_COMMAND_OFFSET, buf, 1, 0);
 }
 
+#define IDBLOCK_SN          3//the sector 3
+#define IDBLOCK_SECTORS     1024
+#define IDBLOCK_NUM         4
+#define IDBLOCK_SIZE        512
+#define SECTOR_OFFSET       528
+
+extern uint16 g_IDBlockOffset[];
+int getSn(char* buf)
+{
+    int i, size;
+    Sector3Info *pSec3;
+    int idbCount = FindAllIDB();
+    if (idbCount <= 0) {
+        printf("id block not found.\n");
+        return false;
+    }
+
+    memset((void*)g_pIDBlock, 0, SECTOR_OFFSET * IDBLOCK_NUM);
+
+    if (StorageReadPba(g_IDBlockOffset[0] * IDBLOCK_SECTORS, 
+                (void*)g_pIDBlock, IDBLOCK_NUM) != ERR_SUCCESS) {
+        printf("read id block error.\n");
+        return false;
+    }
+
+    pSec3 = (Sector3Info *)(g_pIDBlock + SECTOR_OFFSET * IDBLOCK_SN);
+    P_RC4((void *)pSec3, IDBLOCK_SIZE);
+
+    size = pSec3->snSize;
+    if (size <= 0 || size > SN_MAX_SIZE) {
+        printf("empty serial no.\n");
+        return false;
+    }
+    strncpy(buf, pSec3->sn, size);
+    buf[size] = '\0';
+    printf("sn:%s\n", buf);
+    return true;
+}

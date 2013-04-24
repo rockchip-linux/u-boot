@@ -577,17 +577,14 @@ static void set_serial_number(const char *serial_no)
 
 static void create_serial_number(void)
 {
-	char *dieid = getenv("fbt_id#");
+	char *sn = getenv("fbt_sn#");
 
-	if (dieid == NULL)
-		dieid = getenv("dieid#");
-
-	if (dieid == NULL) {
+	if (sn == NULL) {
 		printf("Setting serial number from constant (no dieid info)\n");
 		set_serial_number("0123456789ABCDE");
 	} else {
 		printf("Setting serial number from unique id\n");
-		set_serial_number(dieid);
+		set_serial_number(sn);
 	}
 }
 

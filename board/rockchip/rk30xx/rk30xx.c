@@ -169,21 +169,12 @@ int board_late_init(void)
     //TODO:set those buffers in a better way, and use malloc?
     setup_space(gBootInfo.kernel_load_addr);
 
-#if 0
-	char tmp_buf[17];
-	u64 id_64;
-
-	dieid_num_r();
-
-	generate_default_64bit_id(serial_no_salt, &id_64);
-	snprintf(tmp_buf, sizeof(tmp_buf), "%016llx", id_64);
-	tmp_buf[sizeof(tmp_buf)-1] = 0;
-	setenv("fbt_id#", tmp_buf);
-
-#endif
-
-    //TODO:generate serial no
-	fbt_preboot();
+    char tmp_buf[30];
+    if (getSn(tmp_buf)) {
+        tmp_buf[sizeof(tmp_buf)-1] = 0;
+        setenv("fbt_sn#", tmp_buf);
+    }
+    fbt_preboot();
 	return 0;
 }
 #endif
