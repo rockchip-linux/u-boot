@@ -27,6 +27,7 @@
 #ifdef CONFIG_ARCH_CPU_INIT
 int arch_cpu_init(void)
 {
+	ChipTypeCheck();
 	return 0;
 }
 #endif

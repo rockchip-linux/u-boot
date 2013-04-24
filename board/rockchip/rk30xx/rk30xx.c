@@ -101,10 +101,9 @@ int board_fbt_key_pressed(void)
     } else if (boot_loader) {
         printf("\n%s: loader key pressed.\n",
                 __func__);
-		#if 0
-		g_BootRockusb = 1;
+		#if 1
 		FW_SDRAM_ExcuteAddr = 0;
-		g_BootRockusb = 0;
+		g_BootRockusb = 1;
 		UsbBoot();
 		RkPrintf("UsbHook,%d\n" , RkldTimerGetTick());
 		UsbHook();
@@ -145,6 +144,7 @@ int board_late_init(void)
     cmdline_mtd_partition *cmd_mtd;
 
     printf("board_late_init\n");
+	ChipTypeCheck();
     rk_set_pll();
 
     recoveryKeyInit(&key_recover);
