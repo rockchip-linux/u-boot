@@ -30,17 +30,3 @@
 ENTRY(lowlevel_init)
 	bl rk_set_pll
 ENDPROC(lowlevel_init)
-
-
-ENTRY(ResetCpu)
-	LDR	R2, =0x20020004
-	LDR	R1, =0x00000003
- 	STR	R1, [R2,#0]
- 	LDR     R1, =0xeca8
-	LDR     R2, =0x20000104
-	LDR     R3, =0x10000000
- 	STR	R3, [R0,#0]  ;// remap
- 	STR	R1, [R2,#0]
-ResetCpu_loop:
-     	B  	ResetCpu_loop
-ENDPROC(ResetCpu)
