@@ -32,6 +32,7 @@ COBJS	+= reset.o
 COBJS	+= interrupts.o
 #COBJS	+= intc.o
 
+SOBJS	+= cache.o
 SOBJS	+= lowlevel_init.o
 
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
