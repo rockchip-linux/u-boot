@@ -40,15 +40,20 @@
 .globl _start
 _start: msr cpsr_c,#0xd3 
         b _vector
-.global RSA_KEY_TAG
+.globl RSA_KEY_TAG
+RSA_KEY_TAG:
 		.word 0x4B415352
-.global RSA_KEY_LENGTH
+.globl RSA_KEY_LENGTH
+RSA_KEY_LENGTH:
 		.word 0x200-0x08
-.global RSA_KEY_DATA
+.globl RSA_KEY_DATA
+RSA_KEY_DATA:
 		.space 0x200-0x08
-.global loader_tag_check
+.globl loader_tag_check
+loader_tag_check:
 		.word 0x4B415351
-.global RSA_PAD
+.globl RSA_PAD
+RSA_PAD:
 		.space 20
 
 	.align	5

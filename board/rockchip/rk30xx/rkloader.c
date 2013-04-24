@@ -1,5 +1,6 @@
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
+#include "rkloader.h"
 
 #define MISC_PAGES          3
 #define MISC_COMMAND_PAGE   1
@@ -88,3 +89,36 @@ int getSn(char* buf)
     printf("sn:%s\n", buf);
     return true;
 }
+
+
+void checkBoot(struct fastboot_boot_img_hdr *hdr)
+{
+    rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)hdr;
+    SecureBootCheckOK = 0;
+
+    if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
+                           FASTBOOT_BOOT_MAGIC_SIZE)) {
+        goto end;
+    }
+    if(SecureBootEn && boothdr->signTag == SECURE_BOOT_SIGN_TAG)
+    {
+        if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
+                    boothdr->signlen) == FTL_OK)
+        {
+            SecureBootCheckOK = 1;
+        }
+    }
+
+end:
+    if(SecureBootCheckOK == 0)
+    {
+        SecureBootDisable();
+    }
+
+#ifdef SECURE_BOOT_TEST
+    SetSysData2Kernel(1);
+#else
+    SetSysData2Kernel(SecureBootCheckOK);
+#endif
+}
+

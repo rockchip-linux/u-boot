@@ -137,6 +137,10 @@ void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
 {
     setBootloaderMsg(bmsg);
 }
+void board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
+{
+    checkBoot(hdr);
+}
 
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
@@ -146,6 +150,8 @@ int board_late_init(void)
 
     printf("board_late_init\n");
 	ChipTypeCheck();
+
+    SecureBootCheck();
 
     recoveryKeyInit(&key_recover);
     if (!GetParam(0, DataBuf)) {

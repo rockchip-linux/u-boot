@@ -2,7 +2,6 @@
 
 #include "armlinux/config.h"
 
-char RSA_KEY_DATA[];
 #ifdef DRIVERS_MMU
 uint32 __CacheFlushDRegion(uint32 *adr, uint32 size)
 {

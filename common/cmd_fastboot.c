@@ -1654,6 +1654,10 @@ static void __def_board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
     /* write this structure to the "misc" partition, no unlock check */
     fbt_handle_flash("flash:misc", 0);
 }
+static void __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
+{
+    return;
+}
 
 int board_fbt_oem(const char *cmdbuf)
 	__attribute__((weak, alias("__def_fbt_oem")));
@@ -1670,6 +1674,8 @@ int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
 void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
     __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
+void board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
+    __attribute__((weak, alias("__def_board_fbt_boot_check")));
 
 /* command */
 static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -1844,9 +1850,9 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
                 printf("booti: failed to read ramdisk\n");
                 goto fail;
             }
-
         }
 
+        board_fbt_boot_check(hdr);
         bootimg_print_image_hdr(hdr);
     } else {
         printf("booti: load boot image error\n");
@@ -1873,6 +1879,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         board_fbt_finalize_bootargs(command_line, sizeof(command_line),
                 hdr->ramdisk_size, !strcmp(boot_source, RECOVERY_NAME));
         //printf("board cmdline:\n%s\n", command_line);
+#if 0
 		amt = snprintf(command_line,
 				sizeof(command_line),
 				"%s androidboot.bootloader=%s",
@@ -1900,6 +1907,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				 priv.serial_no);
 		}
 
+#endif
 		command_line[sizeof(command_line) - 1] = 0;
 
 		setenv("bootargs", command_line);
