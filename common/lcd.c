@@ -598,7 +598,7 @@ static inline ushort *configuration_get_cmap(void)
 	return (ushort *)&(cp->lcd_cmap[255 * sizeof(ushort)]);
 #elif defined(CONFIG_ATMEL_LCD)
 	return (ushort *)(panel_info.mmio + ATMEL_LCDC_LUT(0));
-#elif !defined(CONFIG_ATMEL_HLCD) && !defined(CONFIG_EXYNOS_FB)
+#elif !defined(CONFIG_ATMEL_HLCD) && !defined(CONFIG_EXYNOS_FB) && !defined(CONFIG_RK_FB)
 	return panel_info.cmap;
 #elif defined(CONFIG_LCD_LOGO)
 	return bmp_logo_palette;
@@ -1118,7 +1118,8 @@ static void *lcd_logo(void)
 	}
 #endif /* CONFIG_SPLASH_SCREEN */
 
-	bitmap_plot(0, 0);
+	bitmap_plot((panel_info.vl_col - BMP_LOGO_WIDTH)/2, (panel_info.vl_row - BMP_LOGO_HEIGHT)/2);
+    //bitmap_plot(0,0);
 
 #ifdef CONFIG_LCD_INFO
 	console_col = LCD_INFO_X / VIDEO_FONT_WIDTH;

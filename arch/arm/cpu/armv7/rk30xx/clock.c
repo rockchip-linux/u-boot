@@ -135,16 +135,33 @@ void rk30_pll_clk_set_rate(rk_plls_id pll_id, uint32 MHz, callback_f cb)
             delay--;
     	 }
 
+
 	if (cb != NULL)
 		cb();
 
 	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) +  16))  | (0x1<<(pll_id*4));            //PLL normal
 }
 
+void lcdc_clk_enable(void)
+{
+    //rk30_pll_clk_set_rate(GPLL_ID, RK30_GPLL_FREQ, rk30_gpll_cb);
+
+    g_cruReg->CRU_CLKSEL_CON[31] = (1<<23) | (0x1f<<16) | (1<<7);//  aclk = GPLL
+
+}
+
+void set_lcdc_dclk(int clk)
+{
+    int *addr = 0;
+    int div = RK30_GPLL_FREQ/clk -1;
+    
+    g_cruReg->CRU_CLKSEL_CON[27] = (1<<16) | (1<<20) | (0xff<<24) | (div<<8) | 0x1;//
+}
 
 void rk_set_pll(void)
 {
 	rk30_pll_clk_set_rate(APLL_ID, RK30_APLL_FREQ, rk30_apll_cb);
 	rk30_pll_clk_set_rate(GPLL_ID, RK30_GPLL_FREQ, rk30_gpll_cb);
+    printf("%s [%d]\n",__FUNCTION__,__LINE__);
 }
 

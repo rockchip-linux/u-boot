@@ -262,6 +262,85 @@ typedef struct vidinfo {
 
 void init_panel_info(vidinfo_t *vid);
 
+#elif defined(CONFIG_RK_FB)
+
+enum exynos_fb_rgb_mode_t {
+	OUT_P888 = 0,
+	OUT_P666 = 1,
+	OUT_P565 = 2,
+	OUT_S888x = 4,
+	OUT_CCIR656 = 6,
+	OUT_S888 = 8,
+	OUT_S888DUMY = 12,
+	OUT_P16BPP4 = 24,
+	OUT_D888_P666 = 0x21,
+	OUT_D888_P565 = 0x22,
+};
+
+
+typedef struct vidinfo {
+    u_char lcd_face;    /* lcd rgb tye (i.e. RGB888) */
+	ushort vl_col;		/* Number of columns (i.e. 640) */
+	ushort vl_row;		/* Number of rows (i.e. 480) */
+	ushort vl_width;	/* Width of display area in millimeters */
+	ushort vl_height;	/* Height of display area in millimeters */
+
+	/* LCD configuration register */
+	u_char vl_freq;		/* Frequency */
+	u_char vl_clkp;		/* Clock polarity */
+    u_char vl_oep;		/* Output Enable polarity */
+	u_char vl_hsp;		/* Horizontal Sync polarity */
+	u_char vl_vsp;		/* Vertical Sync polarity */
+	u_char vl_bpix;		/* Bits per pixel */
+
+	/* Horizontal control register. Timing from data sheet */
+	ushort vl_hspw;		/* Horz sync pulse width */
+	ushort vl_hfpd;		/* Wait before of line */
+	ushort vl_hbpd;		/* Wait end of line */
+
+	/* Vertical control register. */
+	ushort	vl_vspw;	/* Vertical sync pulse width */
+	ushort	vl_vfpd;	/* Wait before of frame */
+	ushort	vl_vbpd;	/* Wait end of frame */
+    u_char  vl_swap_rb;
+    
+	void (*backlight_on)(unsigned int onoff);
+	void (*lcd_power_on)(void);
+	void (*enable_ldo)(unsigned int onoff);
+	void (*mipi_power)(void);
+
+	unsigned int win_id;
+	unsigned int init_delay;
+	unsigned int power_on_delay;
+	unsigned int reset_delay;
+	unsigned int interface_mode;
+	unsigned int mipi_enabled;
+	unsigned int dp_enabled;
+	unsigned int cs_setup;
+	unsigned int wr_setup;
+	unsigned int logo_on;
+	unsigned int logo_width;
+	unsigned int logo_height;
+	unsigned long logo_addr;
+    unsigned int logo_rgb_mode;
+	unsigned int resolution;
+
+	/* parent clock name(MPLL, EPLL or VPLL) */
+	unsigned int pclk_name;
+	/* ratio value for source clock from parent clock. */
+	unsigned int sclk_div;
+
+	unsigned int dual_lcd_enabled;
+} vidinfo_t;
+
+void init_panel_info(vidinfo_t *vid);
+void rk30_lcdc_set_par(void * addr, vidinfo_t *vid);
+int rk30_load_screen(vidinfo_t *vid);
+int rk30_lcdc_init();
+void get_rk_logo_info(vidinfo_t *vid);
+
+
+
 #else
 
 typedef struct vidinfo {
@@ -410,8 +489,8 @@ int lcd_get_size(int *line_length);
 /*
  * 16bpp color definitions
  */
-# define CONSOLE_COLOR_BLACK	0x0000
-# define CONSOLE_COLOR_WHITE	0xffff	/* Must remain last / highest	*/
+#define CONSOLE_COLOR_BLACK	0x0000
+#define CONSOLE_COLOR_WHITE	0xffff	/* Must remain last / highest	*/
 
 #endif /* color definitions */
 

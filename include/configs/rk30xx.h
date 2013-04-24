@@ -243,4 +243,17 @@
 //TODO:move to otg(udc)'s header
 #endif //CONFIG_CMD_FASTBOOT
 
+/* LCDC console */
+#define CONFIG_LCD
+#define CONFIG_RK_FB
+#define CONFIG_LCD_LOGO
+//#define CONFIG_CMD_BMP
+#define CONFIG_BMP_16BPP
+#define CONFIG_SYS_WHITE_ON_BLACK
+#define LCD_BPP			LCD_COLOR16
+#define CONFIG_T7H
+#define CONFIG_FB_ADDR      0x91000000
+#define CONFIG_SYS_CONSOLE_IS_IN_ENV
+
+
 #endif /* __CONFIG_H */

@@ -26,6 +26,7 @@
 #include <common.h>
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
+#include <lcd.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -178,6 +179,68 @@ int board_late_init(void)
 }
 #endif
 
+#ifdef CONFIG_RK_FB
 
+void rk_backlight_ctrl(unsigned int onoff)
+{
+    #ifdef CONFIG_T7H
+    SetPortOutput(0,30,0);   //gpio0_d6 0
+    SetPortOutput(6,11,1);   //gpio6_b3 1
+    #endif
+}
 
+void rk_fb_init(unsigned int onoff)
+{
+    #ifdef CONFIG_T7H
+    SetPortOutput(4,26,1);   //gpio4_d2 1
+     
+    SetPortOutput(0,26,0);   //gpio0_d2 0
+    SetPortOutput(6,12,0);   //gpio6_b4 0
+    DRVDelayMs(25);
+    SetPortOutput(4,23,1);   //gpio4_c7 1
+    SetPortOutput(0,29,1);   //gpio0_d5 1
+    SetPortOutput(4,30,1);   //gpio4_d6 1
+    SetPortOutput(4,31,1);   //gpio4_d7 1
+    #endif
+}
+
+vidinfo_t panel_info = {
+    .lcd_face    = OUT_P888,
+	.vl_freq	= 48,  
+	.vl_col		= 1024,
+	.vl_row		= 600,
+	.vl_width	= 1024,
+	.vl_height	= 600,
+	.vl_clkp	= 0,
+	.vl_hsp		= 0,
+	.vl_vsp		= 0,
+	.vl_bpix	= 4,	/* Bits per pixel, 2^5 = 32 */
+    .vl_swap_rb = 0,
+
+	/* Panel infomation */
+	.vl_hspw	= 10,
+	.vl_hbpd	= 300,
+	.vl_hfpd	= 20,
+
+	.vl_vspw	= 2,
+	.vl_vbpd	= 25,
+	.vl_vfpd	= 10,
+
+	.lcd_power_on = NULL,
+	.mipi_power = NULL,
+
+	.init_delay	= 0,
+	.power_on_delay = 0,
+	.reset_delay	= 0,
+};
+
+void init_panel_info(vidinfo_t *vid)
+{
+	vid->logo_on	= 1;
+    vid->enable_ldo = rk_fb_init;
+    vid->backlight_on = rk_backlight_ctrl;
+    vid->logo_rgb_mode = 2;
+}
+
+#endif
 

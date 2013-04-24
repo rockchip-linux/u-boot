@@ -44,6 +44,8 @@ typedef volatile struct tagPMU_REG
     uint32 PMU_PMU_SYS_REG[4];
 } PMU_REG, *pPMU_REG;
 
+#define g_pmuReg ((pPMU_REG)PMU_BASE_ADDR)
+
 
 /* CRU Registers */
 typedef volatile struct tagCRU_REG

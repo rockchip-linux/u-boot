@@ -129,6 +129,20 @@ int GetPortState(key_config *key)
 #endif
 }
 
+int SetPortOutput(int group, int index, int level)
+{
+    gpio_conf key_gpio;
+    key_gpio.group = group;
+    setup_gpio(&key_gpio);
+    key_gpio.index = index;
+
+    write_XDATA32( key_gpio.io_dir_conf, (read_XDATA32(key_gpio.io_dir_conf)|(1ul<<key_gpio.index)));
+    if(level)
+        write_XDATA32( key_gpio.io_write, (read_XDATA32(key_gpio.io_write)|(1ul<<key_gpio.index)));
+    else write_XDATA32( key_gpio.io_write, (read_XDATA32(key_gpio.io_write)&(~(1ul<<key_gpio.index))));
+    return 0 ;
+}
+
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery)
 {
     int i;
