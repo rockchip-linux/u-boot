@@ -49,18 +49,16 @@ Cpu highest frequency is 1 GHz
 *****************************************************************************/
 static volatile uint32_t loops_per_us;
 
-#define LPJ_100MHZ  1000UL
+#define LPJ_100MHZ  1UL
 
-static void clk_delayus(uint32_t us)
+void clk_delayus(uint32_t us)
 {
-	do
-	{
-		unsigned int i = (loops_per_us*us);
+	volatile int i;
 
-		if (i < 7) i = 7;
-		barrier();
-		asm volatile(".align 4; 1: subs %0, %0, #1; bne 1b;" : "+r" (i));
-	} while (0);
+	/* copro seems to need some delay between reading and writing */
+	for (i = 0; i < 100; i++)
+		nop();
+	asm volatile("" : : : "memory");
 }
 
 
@@ -97,7 +95,7 @@ static void rk30_dpll_cb(void)
 }
 
 
-static void rk30_pll_clk_set_rate(rk_plls_id pll_id, uint32 MHz, callback_f cb)
+void rk30_pll_clk_set_rate(rk_plls_id pll_id, uint32 MHz, callback_f cb)
 {
 	uint32 nr, no, nf;
 	uint32 delay;
@@ -126,12 +124,12 @@ static void rk30_pll_clk_set_rate(rk_plls_id pll_id, uint32 MHz, callback_f cb)
         g_cruReg->CRU_PLL_CON[pll_id][0] = NR(nr) | NO(no);
         g_cruReg->CRU_PLL_CON[pll_id][1] = NF(MHz);
         g_cruReg->CRU_PLL_CON[pll_id][2] = NB(MHz);
-        udelay(1);
+        clk_delayus(1);
         g_cruReg->CRU_PLL_CON[pll_id][3] = PLL_DE_RESET;
 
 	delay = 1000;
         while (delay > 0) {
-    	    udelay(1);
+    	    clk_delayus(1);
             if (g_grfReg->GRF_SOC_STATUS0 & (0x1<<4))
             	break;
             delay--;

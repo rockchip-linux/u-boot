@@ -145,7 +145,6 @@ int board_late_init(void)
 
     printf("board_late_init\n");
 	ChipTypeCheck();
-    rk_set_pll();
 
     recoveryKeyInit(&key_recover);
     if (!GetParam(0, DataBuf)) {

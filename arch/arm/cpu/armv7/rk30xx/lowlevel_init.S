@@ -28,7 +28,7 @@
 
 	.align 5
 ENTRY(lowlevel_init)
-
+	bl rk_set_pll
 ENDPROC(lowlevel_init)
 
 
