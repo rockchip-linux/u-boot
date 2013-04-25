@@ -845,7 +845,7 @@ clean:
 	@rm -f $(obj)$(CPUDIR)/$(SOC)/asm-offsets.s
 	@rm -f $(TIMESTAMP_FILE) $(VERSION_FILE)
 	@$(MAKE) -s -C doc/DocBook/ cleandocs
-	@find $(OBJTREE) -path "$(OBJTREE)/Tools/*" -prune -o -type f \
+	@find $(OBJTREE) -path "$(OBJTREE)/tools/rk_tools/*" -prune -o -type f \
 		\( -name 'core' -o -name '*.bak' -o -name '*~' -o -name '*.su' \
 		-o -name '*.o'	-o -name '*.a' -o -name '*.exe' \
 		-o -name '*.cfgtmp' \) -print \
@@ -856,7 +856,7 @@ tidy:	clean
 	@find $(OBJTREE) -type f \( -name '*.depend*' \) -print | xargs rm -f
 
 clobber:	tidy
-	@find $(OBJTREE) -path "$(OBJTREE)/Tools/*" -prune -o -type f \( -name '*.srec' \
+	@find $(OBJTREE) -path "$(OBJTREE)/tools/rk_tools/*" -prune -o -type f \( -name '*.srec' \
 		-o -name '*.bin' -o -name u-boot.img \) \
 		-print0 | xargs -0 rm -f
 	@rm -f $(OBJS) $(obj)*.bak $(obj)ctags $(obj)etags $(obj)TAGS \
