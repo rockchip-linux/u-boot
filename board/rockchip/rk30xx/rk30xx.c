@@ -27,6 +27,7 @@
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
 #include <lcd.h>
+#include <asm/arch/rk30_io.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -191,12 +192,28 @@ int board_late_init(void)
 #endif
 
 #ifdef CONFIG_RK_FB
+#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(RK30_PWM01_PHYS+(id>>1)*0x20000)+id*0x10)=val)
 
 void rk_backlight_ctrl(unsigned int onoff)
 {
     #ifdef CONFIG_T7H
-    SetPortOutput(0,30,0);   //gpio0_d6 0
-    SetPortOutput(6,11,1);   //gpio6_b3 1
+    int id =2;
+    int total = 0x4b0;
+    int pwm = total/2;
+    int *addr =0;
+
+    if(ChipType == CHIP_RK3066)
+    {
+        g_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm2
+    }
+    //SetPortOutput(0,30,0);   //gpio0_d6 0
+    write_pwm_reg(id, 0x0c, 0x80);
+    write_pwm_reg(id, 0x08, total);
+    write_pwm_reg(id, 0x04, pwm);
+    write_pwm_reg(id, 0x00, 0);
+    write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN
+
+    SetPortOutput(6,11,1);   //gpio6_b3 1 ,backlight enable
     #endif
 }
 
