@@ -141,6 +141,7 @@ void board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
 {
     checkBoot(hdr);
 }
+extern char bootloader_ver[];
 
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
@@ -152,6 +153,10 @@ int board_late_init(void)
 	ChipTypeCheck();
 
     SecureBootCheck();
+	get_bootloader_ver(NULL);
+	printf("#######################################################################################################\n");
+	printf("\n#Boot ver: %s\n\n", bootloader_ver);
+	printf("#######################################################################################################\n");
 
     recoveryKeyInit(&key_recover);
     if (!GetParam(0, DataBuf)) {
