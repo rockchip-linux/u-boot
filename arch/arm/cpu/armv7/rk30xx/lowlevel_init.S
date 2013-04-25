@@ -28,5 +28,34 @@
 
 	.align 5
 ENTRY(lowlevel_init)
+	/*
+	 * Setup a temporary stack
+	 */
+	ldr	sp, =CONFIG_SYS_INIT_SP_ADDR
+	bic	sp, sp, #7 /* 8-byte alignment for ABI compliance */
+
+	/*
+	 * Save the old lr(passed in ip) and the current lr to stack
+	 */
+	push	{ip, lr}
+
 	bl rk_set_pll
+
+	pop	{ip, pc}
 ENDPROC(lowlevel_init)
+
+
+
+ENTRY(ResetCpu)
+	LDR 	R2, =0x20020004
+	LDR 	R1, =0x00000003
+	STR 	R1, [R2,#0]
+	LDR 	R1, =0xeca8
+	LDR 	R2, =0x20000104
+	LDR 	R3, =0x10000000
+	STR 	R3, [R0,#0]
+	STR 	R1, [R2,#0]
+ResetCpu_loop:
+	 B	ResetCpu_loop
+ENDPROC(ResetCpu)
+

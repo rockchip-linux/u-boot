@@ -162,6 +162,5 @@ void rk_set_pll(void)
 {
 	rk30_pll_clk_set_rate(APLL_ID, RK30_APLL_FREQ, rk30_apll_cb);
 	rk30_pll_clk_set_rate(GPLL_ID, RK30_GPLL_FREQ, rk30_gpll_cb);
-    printf("%s [%d]\n",__FUNCTION__,__LINE__);
 }
 
