@@ -99,7 +99,7 @@ void MMUDeinit(uint32 adr)
 #ifndef CONFIG_SYS_ICACHE_OFF
 	invalidate_icache_all();
 #endif
-	MMUDisable();
+
 #ifndef CONFIG_SYS_DCACHE_OFF
 	dcache_disable();
 #endif
