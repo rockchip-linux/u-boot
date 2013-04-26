@@ -27,7 +27,6 @@
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
 #include <lcd.h>
-#include <asm/arch/rk30_io.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -192,7 +191,7 @@ int board_late_init(void)
 #endif
 
 #ifdef CONFIG_RK_FB
-#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(RK30_PWM01_PHYS+(id>>1)*0x20000)+id*0x10)=val)
+#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
 
 void rk_backlight_ctrl(unsigned int onoff)
 {
