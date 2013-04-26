@@ -34,10 +34,9 @@
 **                 common head files                                *
 ********************************************************************/
 #include    "rk30_typedef.h"
-#include    "rk30_io.h"
+#include    "rk30_memap.h"
 #include    "rk30_reg.h"
 #include    "rk30_cru.h"
-#include    "rk30_memap.h"
 
 
 /********************************************************************

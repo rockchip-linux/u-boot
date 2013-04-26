@@ -112,7 +112,7 @@ typedef volatile struct tagTIMER_REG
 	uint32 TIMER_EOI;
 	uint32 TIMER_INT_STATUS;
 } TIMER_REG, *pTIMER_REG;
-#define g_grfReg 		((pGRF_REG)RK30_GRF_PHYS)
+#define g_grfReg 		((pGRF_REG)REG_FILE_BASE_ADDR)
 
 #endif /* __RK30_REG_H */
 

@@ -54,7 +54,7 @@ static inline unsigned long long usec_to_tick(unsigned long long usec)
 
 int timer_init(void)
 {
-	pTIMER_REG ptimerReg = (pTIMER_REG)(RK30_TIMER0_PHYS);
+	pTIMER_REG ptimerReg = (pTIMER_REG)(TIMER0_BASE_ADDR);
 
 	/* set count value */
 	ptimerReg->TIMER_LOAD_COUNT = TIMER_LOAD_VAL;
@@ -70,7 +70,7 @@ int timer_init(void)
 
 void reset_timer_masked(void)
 {
-	pTIMER_REG ptimerReg = (pTIMER_REG)(RK30_TIMER0_PHYS);
+	pTIMER_REG ptimerReg = (pTIMER_REG)(TIMER0_BASE_ADDR);
 
 	/* reset time */
 	gd->arch.lastinc = ptimerReg->TIMER_CURR_VALUE;	/* Monotonic incrementing timer */
@@ -110,7 +110,7 @@ unsigned long get_timer_masked(void)
 
 static unsigned long get_current_tick(void)
 {
-	pTIMER_REG ptimerReg = (pTIMER_REG)(RK30_TIMER0_PHYS);
+	pTIMER_REG ptimerReg = (pTIMER_REG)(TIMER0_BASE_ADDR);
 	unsigned long now = ptimerReg->TIMER_CURR_VALUE;
 
 	if (gd->arch.lastinc >= now)

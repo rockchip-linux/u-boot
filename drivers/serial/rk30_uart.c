@@ -140,11 +140,11 @@ void UARTRest(pUART_REG phead)
 inline pUART_REG UARTGetRegBase(eUART_ch_t uartCh)
 {    
 	if(uartCh == UART_CH0) {
-		return (pUART_REG)RK30_UART0_PHYS;
+		return (pUART_REG)UART0_BASE_ADDR;
 	} else if (uartCh == UART_CH1) {
-		return (pUART_REG)RK30_UART1_PHYS;
+		return (pUART_REG)UART1_BASE_ADDR;
 	} else if (uartCh == UART_CH2) {
-		return (pUART_REG)RK30_UART2_PHYS;
+		return (pUART_REG)UART2_BASE_ADDR;
 	} else {
 		return NULL;
 	}
@@ -159,15 +159,15 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 	if(uartCh == UART_CH0) { 
 		// iomux to uart 0
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
-		pUartReg = (pUART_REG)RK30_UART0_PHYS;
+		pUartReg = (pUART_REG)UART0_BASE_ADDR;
 	} else if (uartCh == UART_CH1) {
 		// iomux to uart 1
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);   // sin,sout
-		pUartReg = (pUART_REG)RK30_UART1_PHYS;
+		pUartReg = (pUART_REG)UART1_BASE_ADDR;
 	} else if (uartCh == UART_CH2) {
 		// iomux to uart 2
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
-		pUartReg = (pUART_REG)RK30_UART2_PHYS;
+		pUartReg = (pUART_REG)UART2_BASE_ADDR;
 	}
 
 	UARTRest(pUartReg);
