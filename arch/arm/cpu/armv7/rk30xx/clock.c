@@ -25,6 +25,14 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+typedef enum rk_plls_id {
+	APLL_ID = 0,
+	DPLL_ID,
+	CPLL_ID,
+	GPLL_ID,
+	END_PLL_ID,
+} rk_plls_id;
+
 /* pll callback function */
 typedef void (*callback_f)(void);
 
