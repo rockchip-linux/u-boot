@@ -165,6 +165,8 @@ static uint32_t log_position;
 #include <usb/pxa27x_udc.h>
 #elif defined(CONFIG_SPEAR3XX) || defined(CONFIG_SPEAR600)
 #include <usb/spr_udc.h>
+#elif defined(CONFIG_RK_UDC)
+#include <usb/dwc_otg_udc.h>
 #endif
 
 #if defined (CONFIG_OMAP)
@@ -191,8 +193,8 @@ static uint32_t log_position;
 #define	NUM_INTERFACES	1
 #define	NUM_ENDPOINTS	2
 
-#define	RX_EP_INDEX	1
-#define	TX_EP_INDEX	2
+#define	RX_EP_INDEX	2
+#define	TX_EP_INDEX	1
 
 struct _fbt_config_desc {
 	struct usb_configuration_descriptor configuration_desc;
@@ -204,6 +206,7 @@ static void fbt_handle_response(void);
 static void fbt_run_recovery_wipe_data(void);
 static void fbt_run_recovery();
 
+static u8 fastboot_name[] = "rk_fastboot";
 /* defined and used by gadget/ep0.c */
 extern struct usb_string_descriptor **usb_strings;
 
@@ -395,6 +398,7 @@ static void fbt_init_instances(void)
 
 	/* initialize device instance */
 	memset(device_instance, 0, sizeof(struct usb_device_instance));
+	device_instance->name = fastboot_name;
 	device_instance->device_state = STATE_INIT;
 	device_instance->device_descriptor = &device_descriptor;
 	device_instance->event = fbt_event_handler;
@@ -442,7 +446,7 @@ static void fbt_init_instances(void)
 	endpoint_instance[0].tx_attributes = USB_ENDPOINT_XFER_CONTROL;
 	/* XXX: following statement to done along with other endpoints
 		at another place ? */
-	udc_setup_ep(device_instance, 0, &endpoint_instance[0]);
+	//udc_setup_ep(device_instance, 0, &endpoint_instance[0]);//setup ep0 reg in UdcInit()
 
 	for (i = 1; i <= NUM_ENDPOINTS; i++) {
 		endpoint_instance[i].endpoint_address =
@@ -498,27 +502,23 @@ static void fbt_init_endpoints(void)
 	for (i = 1; i <= NUM_ENDPOINTS; i++) {
 
 		/* configure packetsize based on HS negotiation status */
-#if 0
-		if (device_instance->speed == USB_SPEED_FULL) {
-			FBTINFO("setting up FS USB device ep%x\n",
-				endpoint_instance[i].endpoint_address);
-			ep_descriptor_ptrs[i - 1]->wMaxPacketSize =
-				CONFIG_USBD_FASTBOOT_BULK_PKTSIZE_FS;
-		} else if (device_instance->speed == USB_SPEED_HIGH) {
+		if (is_usbd_high_speed()) {
 			FBTINFO("setting up HS USB device ep%x\n",
 				endpoint_instance[i].endpoint_address);
 			ep_descriptor_ptrs[i - 1]->wMaxPacketSize =
 				CONFIG_USBD_FASTBOOT_BULK_PKTSIZE_HS;
-		}
-
-		endpoint_instance[i].tx_packetSize =
-			le16_to_cpu(ep_descriptor_ptrs[i - 1]->wMaxPacketSize);
-		endpoint_instance[i].rcv_packetSize =
-			le16_to_cpu(ep_descriptor_ptrs[i - 1]->wMaxPacketSize);
-
-		udc_setup_ep(device_instance, i, &endpoint_instance[i]);
-#endif
-        //TODO:config with our otg(udc?).
+			} else {
+				FBTINFO("setting up FS USB device ep%x\n",
+					endpoint_instance[i].endpoint_address);
+				ep_descriptor_ptrs[i - 1]->wMaxPacketSize =
+					CONFIG_USBD_FASTBOOT_BULK_PKTSIZE_FS;
+			}
+			
+			 endpoint_instance[i].tx_packetSize =
+				 le16_to_cpu(ep_descriptor_ptrs[i - 1]->wMaxPacketSize);
+			 endpoint_instance[i].rcv_packetSize =
+				 le16_to_cpu(ep_descriptor_ptrs[i - 1]->wMaxPacketSize);
+			 //udc_setup_ep(device_instance, i, &endpoint_instance[i]);//setup epi reg in UdcInit()
 	}
 }
 
@@ -1714,7 +1714,6 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	FBTINFO("fastboot initialized\n");
 
 	while (1) {
-		udc_irq();
 		if (priv.configured) {
 			fbt_handle_rx();
 			if (priv.unlock_pending_start_time) {

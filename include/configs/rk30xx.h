@@ -225,23 +225,13 @@
 //TODO: mod addr to dump kmsg.
 
 #ifdef CONFIG_CMD_FASTBOOT
-//just for combile*************
-#define CONFIG_SYS_FIFO_BASE 0
-#define CONFIG_SYS_USBD_BASE 0
-#define CONFIG_SYS_PLUG_BASE 0
-#define CONFIG_DW_UDC
-#define CONFIG_MUSB_GADGET
-#define MUSB_BASE 0
-#define CONFIG_USB_OMAP3
-#define CONFIG_MUSB_PIO_ONLY
+#define CONFIG_RK_UDC
 //TODO:need implete low level usb & otg.
 //just for combile*************
 //
 #define CONFIG_USB_DEVICE
 #undef CONFIG_CMD_SAVEENV
-//TODO:need implete
-#define  EP0_MAX_PACKET_SIZE     64
-//TODO:move to otg(udc)'s header
+
 #endif //CONFIG_CMD_FASTBOOT
 
 /* LCDC console */

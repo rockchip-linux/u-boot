@@ -144,7 +144,9 @@ void IrqHandler(void)
     if (intSrc == USB_OTG_INT_CH)
     {
         if(RockusbEn)
-            UsbIsr(); 
+            UsbIsr();
+        else if(RockusbEn == 0)
+            udc_irq();
 #ifdef DRIVERS_USB_APP
         else
             MscUsbIsr();

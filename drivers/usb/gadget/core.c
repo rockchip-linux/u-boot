@@ -670,7 +670,7 @@ void usbd_device_event_irq (struct usb_device_instance *device, usb_device_event
 		usbdbg("event %d - not handled",event);
 		break;
 	}
-	debug("%s event: %d oldstate: %d newstate: %d status: %d address: %d",
+	debug("%s event: %d oldstate: %d newstate: %d status: %d address: %d \n",
 		device->name, event, state,
 		device->device_state, device->status, device->address);
 
