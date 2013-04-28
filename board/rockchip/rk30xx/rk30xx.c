@@ -86,29 +86,26 @@ void enable_caches(void)
 
 int board_fbt_key_pressed(void)
 {
-    int boot_loader = 0, boot_recovery = 0; 
+    int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
     enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
-    int recovery_key = checkKey(&boot_loader, &boot_recovery);
+    int recovery_key = checkKey(&boot_rockusb, &boot_recovery, &boot_fastboot);
 
     if (recovery_key) {
-        printf("\n%s: recovery_key=%d.\n",
-                __func__, recovery_key);
+        printf("%s: recovery_key=%d.\n", __func__, recovery_key);
     }
 
     if(boot_recovery) {
-        printf("\n%s: recovery key pressed.\n",
-                __func__);
+        printf("%s: recovery key pressed.\n",__func__);
         frt = FASTBOOT_REBOOT_RECOVERY;
-    } else if (boot_loader) {
-        printf("\n%s: loader key pressed.\n",
-                __func__);
-		#if 1
+    } else if (boot_rockusb) {
+        printf("%s: rockusb key pressed.\n",__func__);
 		FW_SDRAM_ExcuteAddr = 0;
 		g_BootRockusb = 1;
 		UsbBoot();
-		RkPrintf("UsbHook,%d\n" , RkldTimerGetTick());
+		printf("UsbHook,%d\n" , RkldTimerGetTick());
 		UsbHook();
-		#endif
+    } else if(boot_fastboot){
+        printf("%s: fastboot key pressed.\n",__func__);
         frt = FASTBOOT_REBOOT_BOOTLOADER;
     }
 
@@ -154,11 +151,13 @@ int board_late_init(void)
 
     SecureBootCheck();
 	get_bootloader_ver(NULL);
-	printf("#######################################################################################################\n");
+	printf("##################################################\n");
 	printf("\n#Boot ver: %s\n\n", bootloader_ver);
-	printf("#######################################################################################################\n");
+	printf("##################################################\n");
 
-    recoveryKeyInit(&key_recover);
+    RockusbKeyInit(&key_rockusb);
+    FastbootKeyInit(&key_fastboot);
+	PowerHoldKeyInit();
     if (!GetParam(0, DataBuf)) {
 	    ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, \
                 ((PLoaderParam)DataBuf)->length );

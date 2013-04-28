@@ -5,7 +5,8 @@ extern uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize );
 
 //uint8 g_mtdBuffer[sizeof(cmdline_mtd_partition)];
 int KeyCombinationNum;
-key_config		key_recover;
+key_config		key_rockusb;
+key_config		key_fastboot;
 key_config		key_powerHold;
 key_config		key_combination[MAX_COMBINATION_KEY];
 
@@ -252,7 +253,7 @@ void ParseLine(PBootInfo pboot_info, char *line)
 	{//  RECOVER_KEY: 0,4,A,2,0  ==> GPIO4 PA2 低有效
     	line += strlen("RECOVER_KEY:");
     	EATCHAR(line, ' ');
-        setup_key(line, &key_recover);
+        setup_key(line, &key_rockusb);
 	}
 	else if( !memcmp(line, "PWR_HLD:", strlen("PWR_HLD:")) )
 	{//  RECOVER_KEY: 0,4,A,2,0  ==> GPIO4 PA2 低有效

@@ -227,7 +227,7 @@ int Main(void)
 
     SetARMPLL(640);
     InterruptInit();
-    recoveryKeyInit(&key_recover);
+    RockusbKeyInit(&key_rockusb);
 	//RkPrintf("PMU_PWRDN_CON = %x\n",read_XDATA32(PMU_BASE_ADDR+0x8));
 	if(SYS_LOADER_ERR_FLAG == IReadLoaderFlag() )
 	{
@@ -296,7 +296,7 @@ int Main(void)
 	{
         // 获取参数
         uint8 *paramBuffer = (uint8*)DataBuf;
-   	    /*if( GetPortState(&key_recover)) //检查默认recover按键
+   	    /*if( GetPortState(&key_rockusb)) //检查默认recover按键
 	    {
             //RkPrintf("default RECOVERY key is pressed\n","");
             g_BootRockusb = 1;

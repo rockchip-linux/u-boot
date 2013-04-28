@@ -158,7 +158,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery)
     return value;
 }*/
 
-void recoveryKeyInit(key_config *key)
+void RockusbKeyInit(key_config *key)
 {
     key->type = KEY_AD;
     key->key.adc.index = 1;

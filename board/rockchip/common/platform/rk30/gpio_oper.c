@@ -143,14 +143,18 @@ int SetPortOutput(int group, int index, int level)
     return 0 ;
 }
 
-int checkKey(uint32* boot_rockusb, uint32* boot_recovery)
+int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {
     int i;
     int recovery_key = 0;
-	if( GetPortState(&key_recover) )// 按下Recover键
-	{
-        *boot_rockusb = 1;// 进入rockusb
-	    PRINT_E("RECOVERY key is pressed\n");
+	if(GetPortState(&key_rockusb)){
+        *boot_rockusb = 1;
+        *boot_fastboot = 0;
+	    printf("rockusb key is pressed\n");
+	}else if(GetPortState(&key_fastboot)){
+        *boot_rockusb = 0;
+        *boot_fastboot = 1;
+	    printf("fastboot key is pressed\n");
 	}
 	//else
 	{
@@ -162,8 +166,9 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery)
     			if(GetPortState(&key_combination[i]))// 按下组合键
     			{
     			    PRINT_E("COMBINATION key is pressed\n");
-    				*boot_recovery = TRUE;// 进入Recovery 系统
-                    *boot_rockusb = 0;// 进入rockusb
+    				*boot_recovery = 1;
+					*boot_rockusb = 0;
+					*boot_fastboot = 0;
                     if(key_combination[i].type == KEY_GPIO) // TODO:按键值需要修改
                         recovery_key = key_combination[i].key.gpio.group*32+key_combination[i].key.gpio.index;
     				break; 
@@ -197,7 +202,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery)
 }*/
 
 
-void recoveryKeyInit(key_config *key)
+void RockusbKeyInit(key_config *key)
 {
     key->type = KEY_AD;
     key->key.adc.index = 1;
@@ -206,13 +211,20 @@ void recoveryKeyInit(key_config *key)
     key->key.adc.data = SARADC_BASE;
     key->key.adc.stas = SARADC_BASE+4;
     key->key.adc.ctrl = SARADC_BASE+8;
-    /*g_Rk30xxChip = RKGetChipTag();
-    if(g_Rk30xxChip != RK3066_CHIP_TAG && g_Rk30xxChip != RK3000_CHIP_TAG
-    &&g_Rk30xxChip != RK3068_POP_CHIP_TAG && g_Rk30xxChip != RK3068_CHIP_TAG) //只支持3066
-    {
-        key->key.adc.keyValueLow = 0;
-        key->key.adc.keyValueHigh= 1023;
-    }*/
+}
+
+
+void FastbootKeyInit(key_config *key)
+{
+    key->type = KEY_GPIO;
+    key->key.gpio.valid = 0; 
+	key->key.gpio.group = 4;
+	key->key.gpio.index = 21;// gpio4C5
+    setup_gpio(&key->key.gpio);
+}
+
+void PowerHoldKeyInit()
+{
     key_powerHold.type = KEY_GPIO;
     key_powerHold.key.gpio.valid = 1; 
     if(ChipType == CHIP_RK3066)

@@ -360,7 +360,7 @@ void UsbHook(void)
         }
         else if(UsbConnected==0)
         {
-    	    if((((RkldTimerGetTick() - TimeOutBase > (1500*1000)) || (GetVbus() == 0 && (RkldTimerGetTick() - TimeOutBase > (300*1000))))&&GetPortState(&key_recover))
+    	    if((((RkldTimerGetTick() - TimeOutBase > (1500*1000)) || (GetVbus() == 0 && (RkldTimerGetTick() - TimeOutBase > (300*1000))))&&GetPortState(&key_rockusb))
     	    ||(RkldTimerGetTick() - TimeOutBase > (10*1000*1000)))// 2s
             {
                 char    recv_cmd[2];
