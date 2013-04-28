@@ -150,11 +150,6 @@ int board_late_init(void)
 
     printf("board_late_init\n");
 	ChipTypeCheck();
-	if( StorageInit() == 0)
-		printf("StorageInit OK!\n");
-	else
-		printf("Fail!\n");
-
     SecureBootCheck();
 	get_bootloader_ver(NULL);
 	printf("##################################################\n");

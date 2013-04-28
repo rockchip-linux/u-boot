@@ -105,6 +105,12 @@ static inline int read_env(unsigned long size,
 void env_relocate_spec(void)
 {
 #if !defined(ENV_IS_EMBEDDED)
+	interrupt_init();
+	enable_interrupts();
+	if( StorageInit() == 0)
+		printf("emmc init OK!\n");
+	else
+		printf("Fail!\n");
 	if (!read_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, env_buf)) {
 	    env_import(env_buf, 1);
 	} else {
