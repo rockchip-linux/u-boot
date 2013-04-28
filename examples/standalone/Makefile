@@ -20,7 +20,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA 02111-1307 USA
 #
-
+#
 include $(TOPDIR)/config.mk
 
 ELF-$(ARCH)  :=
@@ -88,7 +88,8 @@ endif
 CFLAGS_NTR := $(call cc-option,-fno-toplevel-reorder)
 CFLAGS += $(CFLAGS_NTR)
 
-all:	$(obj).depend $(OBJS) $(LIB) $(SREC) $(BIN) $(ELF)
+all:	$(obj).depend
+	#$(OBJS) $(LIB) $(SREC) $(BIN) $(ELF)
 
 #########################################################################
 $(LIB):	$(obj).depend $(LIBOBJS)

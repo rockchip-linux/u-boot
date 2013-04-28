@@ -31,7 +31,7 @@ ifdef CONFIG_PS2KBD
 COBJS-y += keyboard.o pc_keyb.o
 COBJS-$(CONFIG_PS2MULT) += ps2mult.o ps2ser.o
 endif
-COBJS-y += input.o
+#COBJS-y += input.o
 COBJS-$(CONFIG_OF_CONTROL) += key_matrix.o
 
 COBJS	:= $(COBJS-y)

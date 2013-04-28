@@ -26,7 +26,7 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)libfs.o
 
-COBJS-y				+= fs.o
+#COBJS-y				+= fs.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

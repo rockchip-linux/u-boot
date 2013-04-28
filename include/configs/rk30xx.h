@@ -107,8 +107,8 @@
 /*
  * Miscellaneous configurable options
  */
-#define CONFIG_SYS_LONGHELP		/* undef to save memory */
-#define CONFIG_SYS_HUSH_PARSER		/* use "hush" command parser	*/
+#undef CONFIG_SYS_LONGHELP		/* undef to save memory */
+#undef CONFIG_SYS_HUSH_PARSER		/* use "hush" command parser	*/
 #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 #define CONFIG_SYS_PROMPT	"rk30boot # "
 #define CONFIG_SYS_CBSIZE	256	/* Console I/O Buffer Size */
@@ -234,5 +234,21 @@
 #define         CHIP_RK3066B    1
 #define         CHIP_RK3168     2
 #define         CHIP_RK3188     3
+
+#undef CONFIG_GZIP
+#undef CONFIG_ZLIB
+#undef CONFIG_CMD_BOOTM
+#undef CONFIG_CMD_BOOTD
+#undef CONFIG_CMD_ITEST
+#undef CONFIG_SOURCE
+#undef CONFIG_CMD_SOURCE
+#undef CONFIG_CMD_BDI
+#undef CONFIG_CMD_CONSOLE
+#undef CONFIG_CMD_CACHE
+#undef CONFIG_CMD_MEMORY
+#undef CONFIG_PARTITIONS
+#undef CONFIG_CMD_ECHO
+#undef CONFIG_CMD_REGINFO
+
 
 #endif /* __CONFIG_H */

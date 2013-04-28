@@ -35,7 +35,7 @@ COBJS-$(CONFIG_BZIP2) += bzlib_decompress.o
 COBJS-$(CONFIG_BZIP2) += bzlib_randtable.o
 COBJS-$(CONFIG_BZIP2) += bzlib_huffman.o
 COBJS-$(CONFIG_USB_TTY) += circbuf.o
-COBJS-y += crc7.o
+#COBJS-y += crc7.o
 COBJS-y += crc16.o
 COBJS-y += display_options.o
 COBJS-y += errno.o
@@ -48,12 +48,12 @@ COBJS-y += initcall.o
 COBJS-$(CONFIG_LMB) += lmb.o
 COBJS-y += ldiv.o
 COBJS-$(CONFIG_MD5) += md5.o
-COBJS-y += net_utils.o
+#COBJS-y += net_utils.o
 COBJS-$(CONFIG_PHYSMEM) += physmem.o
 COBJS-y += qsort.o
 COBJS-$(CONFIG_SHA1) += sha1.o
 COBJS-$(CONFIG_SHA256) += sha256.o
-COBJS-y	+= strmhz.o
+#COBJS-y	+= strmhz.o
 COBJS-$(CONFIG_RBTREE)	+= rbtree.o
 endif
 

@@ -32,9 +32,9 @@ COBJS-y += command.o
 COBJS-y += exports.o
 COBJS-y += hash.o
 COBJS-$(CONFIG_SYS_HUSH_PARSER) += hush.o
-COBJS-y += s_record.o
-COBJS-y += xyzModem.o
-COBJS-y += cmd_disk.o
+#COBJS-y += s_record.o
+#COBJS-y += xyzModem.o
+#COBJS-y += cmd_disk.o
 
 # boards
 COBJS-$(CONFIG_SYS_GENERIC_BOARD) += board_f.o
@@ -43,7 +43,7 @@ COBJS-$(CONFIG_SYS_GENERIC_BOARD) += board_r.o
 # core command
 COBJS-y += cmd_boot.o
 COBJS-$(CONFIG_CMD_BOOTM) += cmd_bootm.o
-COBJS-y += cmd_help.o
+#COBJS-y += cmd_help.o
 COBJS-y += cmd_nvedit.o
 COBJS-y += cmd_version.o
 
@@ -125,7 +125,7 @@ COBJS-$(CONFIG_CMD_CRAMFS) += cmd_cramfs.o
 COBJS-$(CONFIG_CMD_LDRINFO) += cmd_ldrinfo.o
 COBJS-$(CONFIG_CMD_LED) += cmd_led.o
 COBJS-$(CONFIG_CMD_LICENSE) += cmd_license.o
-COBJS-y += cmd_load.o
+#COBJS-y += cmd_load.o
 COBJS-$(CONFIG_LOGBUFFER) += cmd_log.o
 COBJS-$(CONFIG_ID_EEPROM) += cmd_mac.o
 COBJS-$(CONFIG_CMD_MD5SUM) += cmd_md5sum.o
@@ -152,7 +152,7 @@ COBJS-$(CONFIG_CMD_PART) += cmd_part.o
 ifdef CONFIG_PCI
 COBJS-$(CONFIG_CMD_PCI) += cmd_pci.o
 endif
-COBJS-y += cmd_pcmcia.o
+#COBJS-y += cmd_pcmcia.o
 COBJS-$(CONFIG_CMD_PORTIO) += cmd_portio.o
 COBJS-$(CONFIG_CMD_PXE) += cmd_pxe.o
 COBJS-$(CONFIG_CMD_READ) += cmd_read.o
@@ -201,7 +201,7 @@ COBJS-$(SPD) += ddr_spd.o
 COBJS-$(CONFIG_HWCONFIG) += hwconfig.o
 COBJS-$(CONFIG_BOOTSTAGE) += bootstage.o
 COBJS-$(CONFIG_CONSOLE_MUX) += iomux.o
-COBJS-y += flash.o
+#COBJS-y += flash.o
 COBJS-$(CONFIG_CMD_KGDB) += kgdb.o kgdb_stubs.o
 COBJS-$(CONFIG_I2C_EDID) += edid.o
 COBJS-$(CONFIG_KALLSYMS) += kallsyms.o
