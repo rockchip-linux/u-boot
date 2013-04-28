@@ -247,4 +247,9 @@
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
 
+#define         CHIP_RK3066     0
+#define         CHIP_RK3066B    1
+#define         CHIP_RK3168     2
+#define         CHIP_RK3188     3
+
 #endif /* __CONFIG_H */
