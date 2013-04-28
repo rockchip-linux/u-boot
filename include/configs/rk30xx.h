@@ -86,20 +86,8 @@
 
 /* Declare no flash (NOR/SPI) */
 #define CONFIG_SYS_NO_FLASH		1       /* It should define before config_cmd_default.h */
-//#define CONFIG_GENERIC_MMC
-//#define CONFIG_MMC
-//#define CONFIG_RKEMMC
-/* Command definition */
-#include <config_cmd_default.h>
 
-/* Disabled commands */
-#undef CONFIG_CMD_FPGA          /* FPGA configuration Support   */
-#undef CONFIG_CMD_MISC
-#undef CONFIG_CMD_NET
-#undef CONFIG_CMD_NFS
-#undef CONFIG_CMD_XIMG
 
-/* Enabled commands */
 #define CONFIG_CMD_CACHE	/* icache, dcache		 */
 #define CONFIG_CMD_REGINFO	/* Register dump		 */
 //#define CONFIG_CMD_MTDPARTS	/* mtdparts command line support */
@@ -183,12 +171,7 @@
 #define CONFIG_SYS_MONITOR_LEN		(256 << 10)	/* 256 KiB */
 
 
-#ifndef CONFIG_SYS_RAMBOOT
-#  define CONFIG_ENV_IS_IN_FLASH	1
-#    define CONFIG_ENV_ADDR		0x280000	/* Offset of Environment Sector */
-#    define CONFIG_ENV_SECT_SIZE	(512 << 10)	/* 512 KiB, 0x80000 */
-#    define CONFIG_ENV_SIZE		CONFIG_ENV_SECT_SIZE
-#else
+
 #define CONFIG_ENV_IS_IN_RK_EMMC	1		/* Store ENV in emmc only */
 #define CONFIG_ENV_ADDR		CONFIG_SYS_MONITOR_BASE
 
@@ -198,15 +181,8 @@
 #define CONFIG_ENV_SIZE	        0x200
 #undef  CONFIG_CMD_SAVEENV
 #define CONFIG_CMD_SAVEENV      1
-#endif /* CONFIG_SYS_RAMBOOT */
 
 #define RK_BLK_SIZE             512
-
-
-/* MTD Support (mtdparts command, UBI support) */
-//#define CONFIG_MTD_DEVICE
-//#define CONFIG_MTD_PARTITIONS		/* Needed for UBI support. */
-
 
 /* for fastboot */
 
