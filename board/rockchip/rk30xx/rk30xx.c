@@ -101,6 +101,8 @@ int board_fbt_key_pressed(void)
         printf("%s: rockusb key pressed.\n",__func__);
 		FW_SDRAM_ExcuteAddr = 0;
 		g_BootRockusb = 1;
+		FWSetResetFlag = 0;
+        FWLowFormatEn = 0;
 		UsbBoot();
 		printf("UsbHook,%d\n" , RkldTimerGetTick());
 		UsbHook();
@@ -148,6 +150,10 @@ int board_late_init(void)
 
     printf("board_late_init\n");
 	ChipTypeCheck();
+	if( StorageInit() == 0)
+		printf("StorageInit OK!\n");
+	else
+		printf("Fail!\n");
 
     SecureBootCheck();
 	get_bootloader_ver(NULL);

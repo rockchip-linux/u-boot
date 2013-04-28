@@ -86,9 +86,9 @@
 
 /* Declare no flash (NOR/SPI) */
 #define CONFIG_SYS_NO_FLASH		1       /* It should define before config_cmd_default.h */
-#define CONFIG_GENERIC_MMC
-#define CONFIG_MMC
-#define CONFIG_RKEMMC
+//#define CONFIG_GENERIC_MMC
+//#define CONFIG_MMC
+//#define CONFIG_RKEMMC
 /* Command definition */
 #include <config_cmd_default.h>
 
@@ -102,7 +102,7 @@
 /* Enabled commands */
 #define CONFIG_CMD_CACHE	/* icache, dcache		 */
 #define CONFIG_CMD_REGINFO	/* Register dump		 */
-#define CONFIG_CMD_MTDPARTS	/* mtdparts command line support */
+//#define CONFIG_CMD_MTDPARTS	/* mtdparts command line support */
 
 
 /*
@@ -196,8 +196,8 @@
 
 
 /* MTD Support (mtdparts command, UBI support) */
-#define CONFIG_MTD_DEVICE
-#define CONFIG_MTD_PARTITIONS		/* Needed for UBI support. */
+//#define CONFIG_MTD_DEVICE
+//#define CONFIG_MTD_PARTITIONS		/* Needed for UBI support. */
 
 
 /* for fastboot */
