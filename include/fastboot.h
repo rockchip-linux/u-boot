@@ -198,8 +198,6 @@ extern struct fbt_partition fbt_partitions[];
 
 #define FBT_PARTITION_MAX_NUM 16
 
-#define RK_BLK_SIZE 512
-
 #define MISC_NAME       "misc"
 #define KERNEL_NAME     "kernel"
 #define BOOT_NAME       "boot"

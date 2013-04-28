@@ -189,10 +189,18 @@
 #    define CONFIG_ENV_SECT_SIZE	(512 << 10)	/* 512 KiB, 0x80000 */
 #    define CONFIG_ENV_SIZE		CONFIG_ENV_SECT_SIZE
 #else
-#define CONFIG_ENV_IS_NOWHERE		1		/* Store ENV in memory only */
-#  define CONFIG_ENV_ADDR		CONFIG_SYS_MONITOR_BASE
-#  define CONFIG_ENV_SIZE		0x200
+#define CONFIG_ENV_IS_IN_RK_EMMC	1		/* Store ENV in emmc only */
+#define CONFIG_ENV_ADDR		CONFIG_SYS_MONITOR_BASE
+
+/* sys data(blk 8064), 0-2 was used in boot.c, so we use blk 3.*/
+#define CONFIG_ENV_OFFSET       (3 << 9)
+
+#define CONFIG_ENV_SIZE	        0x200
+#undef  CONFIG_CMD_SAVEENV
+#define CONFIG_CMD_SAVEENV      1
 #endif /* CONFIG_SYS_RAMBOOT */
+
+#define RK_BLK_SIZE             512
 
 
 /* MTD Support (mtdparts command, UBI support) */
@@ -230,7 +238,6 @@
 //just for combile*************
 //
 #define CONFIG_USB_DEVICE
-#undef CONFIG_CMD_SAVEENV
 
 #endif //CONFIG_CMD_FASTBOOT
 
