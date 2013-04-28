@@ -83,7 +83,8 @@ static void dwc_otg_epn_rx(uint32);
 static void dwc_otg_epn_tx(void);
 
 extern uint32 RockusbEn;
-ALIGN(8) uint8 FbtBuf[64];
+ALIGN(8) uint8 FbtBulkInBuf[512];
+ALIGN(8) uint8 FbtBulkOutBuf[512];
 /*
  * udc_state_transition - Write the next packet to TxFIFO.
  * @initial:	Initial state.
@@ -186,7 +187,6 @@ static void udc_state_transition(usb_device_state_t initial,
 
 void ControlInPacket(void)
 {
-	uint16 byte;
 	uint16 length = ControlData.wLength;
 	if(STAGE_DATA == ControlStage)
 	{
@@ -205,6 +205,18 @@ static dwc_otg_epn_in_ack(void)
 {
 	WriteBulkEndpoint(0, NULL);
 }
+
+/* Flow control */
+void udc_set_nak(int epid)
+{
+	/* noop */
+}
+
+void udc_unset_nak(int epid)
+{
+	/* noop */
+}
+
 
 static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 {
@@ -242,7 +254,7 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 					udc_state_transition(udc_device->device_state, STATE_ADDRESSED);
 					break;
 				case 9:
-					DWC_DBG("set configuration");
+					DWC_DBG("set configuration\n");
 					udc_state_transition(udc_device->device_state,STATE_CONFIGURED);
 					set_configuration();
 					break;
@@ -298,7 +310,7 @@ static void dwc_otg_enum_done_intr(void)
 	OtgReg->Device.dctl |= 1<<8;               //clear global IN NAK
 	ReadEndpoint0(Ep0PktSize, Ep0Buf);
 	//ReadBulkEndpoint(31, (uint8*)&gCBW);
-	ReadBulkEndpoint(FASTBOOT_COMMAND_SIZE, FbtBuf);
+	ReadBulkEndpoint(FASTBOOT_COMMAND_SIZE, FbtBulkOutBuf);
 	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1ul<<28) | (1<<15)|(2<<18)|(BULK_IN_EP<<22);
 }
 
@@ -412,10 +424,32 @@ static void udc_stall_ep(uint32 ep_num)
 	OtgReg->Device.InEp[ep_num].DiEpCtl |= 1<<21;   //send IN0 stall handshack	
 }
 
-/*
- * Start of public functions.
- */
+static void dwc_otg_write_data(struct usb_endpoint_instance *endpoint)
+{
+	struct urb *urb = endpoint->tx_urb;
 
+	if(urb){
+		uint32 last;
+
+		DWC_DBG("urb->buffer %p, buffer_length %d, actual_length %d \n",
+			urb->buffer, urb->buffer_length, urb->actual_length);
+
+		last = MIN(urb->actual_length - endpoint->sent,
+			    endpoint->tx_packetSize);
+
+		if(last){
+			uint8 *cp = urb->buffer + endpoint->sent;
+
+			DWC_DBG("endpoint->sent %d, tx_packetSize %d, last %d \n",
+				endpoint->sent, endpoint->tx_packetSize, last);
+
+			ftl_memcpy(FbtBulkOutBuf, cp, last);
+			WriteBulkEndpoint(last, FbtBulkOutBuf);
+		}
+		endpoint->last = last;
+	}
+
+}
 /* Called to start packet transmission. */
 int udc_endpoint_write(struct usb_endpoint_instance *endpoint)
 {
@@ -433,11 +467,11 @@ static void dwc_otg_epn_rx(uint32 len)
 		urb = endpoint->rcv_urb;
 		if(urb){
 			uint8 *cp = urb->buffer + urb->actual_length;
-			ftl_memcpy(cp, FbtBuf, len);
+			ftl_memcpy(cp, FbtBulkOutBuf, len);
 			usbd_rcv_complete(endpoint, len, 0);
 		}
 	}
-
+	ReadBulkEndpoint(endpoint->rcv_packetSize, FbtBulkOutBuf);
 }
 
 static void dwc_otg_epn_tx(void)
@@ -471,7 +505,7 @@ static void dwc_otg_epn_tx(void)
 		 */
 		if (endpoint->tx_urb && endpoint->tx_urb->actual_length) {
 			/* write data */
-
+			dwc_otg_write_data(endpoint);
 
 		} else if (endpoint->tx_urb
 			   && (endpoint->tx_urb->actual_length == 0)) {
@@ -639,13 +673,3 @@ void udc_irq(void)
 	}
 }
 
-/* Flow control */
-void udc_set_nak(int epid)
-{
-	/* noop */
-}
-
-void udc_unset_nak(int epid)
-{
-	/* noop */
-}

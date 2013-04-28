@@ -581,7 +581,7 @@ static void create_serial_number(void)
 
 	if (sn == NULL) {
 		printf("Setting serial number from constant (no dieid info)\n");
-		set_serial_number("0123456789ABCDE");
+		set_serial_number("0123456789");
 	} else {
 		printf("Setting serial number from unique id\n");
 		set_serial_number(sn);
@@ -1423,7 +1423,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		priv.flag |= FASTBOOT_FLAG_RESPONSE;
 
 		/* restore default buffer in urb */
-		ep = &endpoint_instance[RX_EP_INDEX];
+		ep = &endpoint_instance[1];
 		ep->rcv_urb->buffer = (u8 *)ep->rcv_urb->buffer_data;
 		ep->rcv_urb->buffer_length = sizeof(ep->rcv_urb->buffer_data);
 
@@ -1514,7 +1514,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 			 * urb->buffer and urb->buffer_length with our
 			 * own so we don't have to do extra copy.
 			 */
-			ep = &endpoint_instance[RX_EP_INDEX];
+			ep = &endpoint_instance[1];
 			ep->rcv_urb->buffer = priv.transfer_buffer;
 			ep->rcv_urb->buffer_length = priv.d_size;
 			ep->rcv_urb->actual_length = 0;
@@ -1533,7 +1533,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 
 static void fbt_handle_rx(void)
 {
-	struct usb_endpoint_instance *ep = &endpoint_instance[RX_EP_INDEX];
+	struct usb_endpoint_instance *ep = &endpoint_instance[1];
 
 	/* XXX: Or update status field, if so,
 		"usbd_rcv_complete" [gadget/core.c] also need to be modified */
@@ -1557,7 +1557,7 @@ static void fbt_handle_rx(void)
 
 static void fbt_response_process(void)
 {
-	struct usb_endpoint_instance *ep = &endpoint_instance[TX_EP_INDEX];
+	struct usb_endpoint_instance *ep = &endpoint_instance[2];
 	struct urb *current_urb = NULL;
 	unsigned char *dest = NULL;
 	int n;
