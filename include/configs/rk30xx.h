@@ -200,13 +200,6 @@
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE    (SZ_512M - SZ_16M)
 /* Fastboot product name */
 #define FASTBOOT_PRODUCT_NAME   "fastboot"
-/* Address of the kernel's ramconsole so we can dump it.  This is
- * used by the 'fastboot oem kmsg' command.  It needs to be done
- * early in fastboot (before large amount of transfer buffer is used,
- * since they overlap).
- */
-#define CONFIG_FASTBOOT_RAMCONSOLE_START (0)
-//TODO: mod addr to dump kmsg.
 
 #ifdef CONFIG_CMD_FASTBOOT
 #define CONFIG_RK_UDC

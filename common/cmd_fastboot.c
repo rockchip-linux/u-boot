@@ -1163,39 +1163,6 @@ static void fbt_dump_log(char *buf, uint32_t buf_size)
 	}
 }
 
-struct ram_console_buffer {
-	uint32_t sig;
-	uint32_t start;
-	uint32_t size;
-	uint8_t  data[0];
-};
-#define RAM_CONSOLE_SIG (0x43474244) /* 'DBGC' */
-
-static void fbt_dump_kmsg(void)
-{
-	/* the kmsg log is similar to the log we keep in the bootloader
-	 * except that it has a header, is at an address fixed for
-	 * each board, and starts with a ram_console_buffer structure.
-	 */
-	struct ram_console_buffer *buf;
-#ifndef CONFIG_FASTBOOT_RAMCONSOLE_START
-	printf("No ram console start address defined\n");
-	strcpy(priv.response, "FAILNo ram console start address defined");
-	return;
-#else
-	buf = (struct ram_console_buffer *)CONFIG_FASTBOOT_RAMCONSOLE_START;
-#endif
-	if (buf->sig != RAM_CONSOLE_SIG) {
-		printf("Ram console signature not found\n");
-		strcpy(priv.response, "FAILRam console signature not found\n");
-		return;
-	}
-	printf("Ram console found (size %d, start %d):\n",
-	       buf->size, buf->start);
-	fbt_dump_log((char *)&buf->data[0], buf->start);
-	strcpy(priv.response, "OKAY");
-}
-
 static void fbt_handle_oem(char *cmdbuf)
 {
 	cmdbuf += 4;
@@ -1205,13 +1172,6 @@ static void fbt_handle_oem(char *cmdbuf)
 		FBTDBG("oem %s\n", cmdbuf);
 		fbt_dump_log(log_buffer, log_position);
 		strcpy(priv.response, "OKAY");
-		return;
-	}
-
-	/* %fastboot oem kmsg */
-	if (strcmp(cmdbuf, "kmsg") == 0) {
-		FBTDBG("oem %s\n", cmdbuf);
-		fbt_dump_kmsg();
 		return;
 	}
 
@@ -1730,29 +1690,6 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 			FBTINFO("fastboot end\n");
 			break;
 		}
-#ifdef CONFIG_FASTBOOT_KEY_CMD
-		switch(board_fbt_key_command()) {
-		case FASTBOOT_REBOOT_NORMAL:
-			printf("rebooting due to key\n");
-			fbt_handle_reboot("reboot");
-			break;
-		case FASTBOOT_REBOOT_BOOTLOADER:
-			printf("rebooting to bootloader due to key\n");
-			fbt_handle_reboot("reboot-bootloader");
-			break;
-		case FASTBOOT_REBOOT_RECOVERY_WIPE_DATA:
-			fbt_run_recovery_wipe_data();
-			break;
-		case FASTBOOT_REBOOT_RECOVERY:
-			printf("starting recovery due to key\n");
-			fbt_run_recovery();
-			break;
-		case FASTBOOT_REBOOT_UNKNOWN:
-		case FASTBOOT_REBOOT_NONE:
-		default:
-			break;
-		}
-#endif //CONFIG_FASTBOOT_KEY_CMD
 	}
 
 out:
@@ -1878,7 +1815,6 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         board_fbt_finalize_bootargs(command_line, sizeof(command_line),
                 hdr->ramdisk_size, !strcmp(boot_source, RECOVERY_NAME));
         //printf("board cmdline:\n%s\n", command_line);
-#if 0
 		amt = snprintf(command_line,
 				sizeof(command_line),
 				"%s androidboot.bootloader=%s",
@@ -1906,7 +1842,6 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				 priv.serial_no);
 		}
 
-#endif
 		command_line[sizeof(command_line) - 1] = 0;
 
 		setenv("bootargs", command_line);
