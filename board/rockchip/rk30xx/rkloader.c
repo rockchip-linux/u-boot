@@ -1,6 +1,7 @@
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
 #include "rkloader.h"
+#include "sha.h"
 
 //from MainLoop.c
 uint32 g_bootRecovery;
@@ -103,6 +104,160 @@ void SysLowFormatCheck(void)
     }
 }
 
+#define MaxFlashReadSize  16384  //8MB
+int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
+{
+    uint8 * pSdram = (uint8*)dest_addr;
+    uint16 sec = 0;
+    uint32 LBA = src_addr;
+    uint32 remain_sec = total_sec;
+
+//  RkPrintf("Enter >> src_addr=0x%08X, dest_addr=0x%08X, total_sec=%d\n", src_addr, dest_addr, total_sec);
+
+//  RkPrintf("(0x%X->0x%X)  size: %d\n", src_addr, dest_addr, total_sec);
+
+    while(remain_sec > 0)
+    {
+        sec = (remain_sec > MaxFlashReadSize) ? MaxFlashReadSize : remain_sec;
+        if(StorageReadLba(LBA,(uint8*)pSdram, sec) != 0)
+        {
+            return -1;
+        }
+        remain_sec -= sec;
+        LBA += sec;
+        pSdram += sec*512;
+    }
+
+//  RkPrintf("Leave\n");
+    return 0;
+}
+
+int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
+{
+    uint16 sec = 0;
+    uint32 remain_sec = sectors;
+
+    while(remain_sec > 0)
+    {
+        sec = (remain_sec>32)?32:remain_sec;
+
+        if(StorageWriteLba(dest_offset, src_addr, sec, 0) != 0)
+        {
+            return -2;
+        }
+
+        remain_sec -= sec;
+        src_addr += sec*512;
+        dest_offset += sec;
+    }
+
+    return 0;
+}
+
+void ReSizeRamdisk(PBootInfo pboot_info,uint32 ImageSize)
+{
+    char* sSize = NULL;
+    int len = 0;
+    char* s = NULL;
+    char szFind[20]="";
+     //ÅÐ¶ÏImageSize ºÏ·¨
+    ImageSize = (ImageSize + 0x3FFFF)&0xFFFF0000;//64KB ¶ÔÆë
+    //ÐÞ¸Äramdisk´óÐ¡
+    sprintf(szFind, "initrd=0x");
+    sSize = strstr(pboot_info->cmd_line, szFind);
+    if( sSize != NULL )
+    {
+        sSize+=18;
+        s = strstr(sSize, " ");
+        len = s - sSize;
+        if(sSize[0]=='0' && sSize[1]=='x' && len <= 10 && len >= 8)
+        {
+            //sprintf(szFind, "0x000000");
+            //replace_fore_string(sSize,8, szFind);
+            sprintf(szFind, "%08X",ImageSize);
+            replace_fore_string(sSize+2,6+(len-8), szFind+(10-len));
+        }
+    }
+}
+
+static int rk29_check_bootimg_sha (const struct fastboot_boot_img_hdr *hdr)
+{
+    SHA_CTX ctx;
+    uint8_t* sha;
+    unsigned  sha_id[8]={0,};
+    int i;
+    uint32_t second_data=0x0;
+
+    SHA_init(&ctx);
+    SHA_update(&ctx, (void *)hdr->kernel_addr, hdr->kernel_size);
+    SHA_update(&ctx, &hdr->kernel_size, sizeof(hdr->kernel_size));
+    SHA_update(&ctx, (void *)hdr->ramdisk_addr, hdr->ramdisk_size);
+    SHA_update(&ctx, &hdr->ramdisk_size, sizeof(hdr->ramdisk_size));
+    SHA_update(&ctx, (void *)second_data, hdr->second_size);
+    SHA_update(&ctx, &hdr->second_size, sizeof(hdr->second_size));
+    SHA_update(&ctx, &hdr->tags_addr, sizeof(hdr->tags_addr));
+    SHA_update(&ctx, &hdr->page_size, sizeof(hdr->page_size));
+    SHA_update(&ctx, &hdr->unused, sizeof(hdr->unused));
+    SHA_update(&ctx, &hdr->name, sizeof(hdr->name));
+    SHA_update(&ctx, &hdr->cmdline, sizeof(hdr->cmdline));
+    sha = SHA_final(&ctx);
+    ftl_memcpy(sha_id, sha,SHA_DIGEST_SIZE > sizeof(hdr->id) ? sizeof(hdr->id) : SHA_DIGEST_SIZE);
+
+    for(i=0;i<8;i++)
+    {
+        if (hdr->id[i] !=sha_id[i])
+            return 0;
+    }
+
+    return 1;
+}
+
+static int32 checkboothdr(struct fastboot_boot_img_hdr * boothdr)
+{
+    if((boothdr->kernel_addr > 0x60E00000 && boothdr->kernel_addr < 0x61000000) ||(boothdr->ramdisk_addr > 0x60E00000 && boothdr->ramdisk_addr < 0x61000000)
+    || boothdr->kernel_addr > 0xA0000000 || boothdr->ramdisk_addr > 0xA0000000
+    || boothdr->kernel_addr < 0x60000000 || boothdr->ramdisk_addr < 0x60000000)
+    {
+        PRINT_E("kernel=%x,ramdisk=%x\n", boothdr->kernel_addr , boothdr->ramdisk_addr);
+        return -1;
+    }
+    return 0;
+}
+
+int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
+{
+    char* cmd = cmdlist;
+
+    *reboot = FALSE;
+    while(*cmdlist)
+    {
+        if(*cmdlist=='\n') *cmdlist='\0';
+        ++cmdlist;
+    }
+
+    while(*cmd)
+    {
+        PRINT_I("bootloader cmd: %s\n", cmd);
+
+        if( !strcmp(cmd, "update-bootloader") )// Éý¼¶ bootloader
+        {
+            PRINT_I("--- update bootloader ---\n");
+            if( update_loader()==0 )
+            {// cmy: Éý¼¶Íê³ÉºóÖØÆô
+                *reboot = TRUE;
+            }
+            else
+            {// cmy: Éý¼¶Ê§°Ü
+                return -1;
+            }
+        }
+        else
+            PRINT_I("Unsupport cmd: %s\n", cmd);
+
+        cmd += strlen(cmd)+1;
+    }
+    return 0;
+}
 
 #define MISC_PAGES          3
 #define MISC_COMMAND_PAGE   1
@@ -193,15 +348,23 @@ int getSn(char* buf)
 }
 
 
-void checkBoot(struct fastboot_boot_img_hdr *hdr)
+int checkBoot(struct fastboot_boot_img_hdr *hdr)
 {
     rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)hdr;
+
     SecureBootCheckOK = 0;
 
     if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
                            FASTBOOT_BOOT_MAGIC_SIZE)) {
         goto end;
     }
+
+    if (checkboothdr(hdr) || !rk29_check_bootimg_sha(hdr))
+    {
+        printf("checkBoot failed!\n");
+        return -1;
+    }
+
     if(SecureBootEn && boothdr->signTag == SECURE_BOOT_SIGN_TAG)
     {
         if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
@@ -222,5 +385,6 @@ end:
 #else
     SetSysData2Kernel(SecureBootCheckOK);
 #endif
+    return 0;
 }
 

@@ -27,7 +27,7 @@ Revision:		1.00
 
 #include    "../platform/rk30/paltConfig.h" 
 
-#define     LINUX_LOADER
+//#define     LINUX_LOADER
 #define     SECURE_BOOT_ENABLE
 #define     SECURE_BOOT_ENABLE_ALWAY
 //#define     SECURE_BOOT_LOCK

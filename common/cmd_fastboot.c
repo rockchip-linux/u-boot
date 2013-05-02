@@ -673,48 +673,22 @@ static void fbt_fastboot_init(void)
 
 static int fbt_handle_erase(char *cmdbuf)
 {
-#if 0
-	disk_partition_t *ptn;
+	fbt_partition_t *ptn;
 	int err;
 	char *partition_name = cmdbuf + 6;
-	char *num_blocks_str;
-	lbaint_t num_blocks;
-	lbaint_t *num_blocks_p = NULL;
-
-	/* see if there is an optional num_blocks after the partition name */
-	num_blocks_str = strchr(partition_name, ' ');
-	if (num_blocks_str) {
-		/* null terminate the partition name */
-		*num_blocks_str = 0;
-		num_blocks_str++;
-		num_blocks = simple_strtoull(num_blocks_str, NULL, 10);
-		num_blocks_p = &num_blocks;
-	}
-
-	ptn = fastboot_flash_find_ptn(partition_name);
+	ptn = fastboot_find_ptn(partition_name);
 	if (ptn == 0) {
 		printf("Partition %s does not exist\n", partition_name);
 		sprintf(priv.response, "FAILpartition does not exist");
-		return;
+		return -1;
 	}
-
-#ifndef CONFIG_MFG
-	/* don't allow erasing environment partition or a valid
-	 * device info partition in a production u-boot */
-	if (is_env_partition(ptn) ||
-	    (is_info_partition(ptn) && (!priv.dev_info_uninitialized))) {
-		printf("Not allowed to erase %s partition\n", ptn->name);
-		strcpy(priv.response, "FAILnot allowed to erase partition");
-		return;
-	}
-#endif
 
 	printf("Erasing partition '%s':\n", ptn->name);
 
-	printf("\tstart blk %lu, blk_cnt %lu of %lu\n", ptn->start,
-			num_blocks_p ? num_blocks : ptn->size, ptn->size);
+	printf("\tstart blk %lu, blk_cnt %lu\n", ptn->offset,
+			ptn->size_kb);
 
-	err = partition_erase_blks(priv.dev_desc, ptn, num_blocks_p);
+	err = handleErase(ptn);
 	if (err) {
 		printf("Erasing '%s' FAILED! error=%d\n", ptn->name, err);
 		sprintf(priv.response,
@@ -723,15 +697,12 @@ static int fbt_handle_erase(char *cmdbuf)
 		printf("partition '%s' erased\n", ptn->name);
 		sprintf(priv.response, "OKAY");
 	}
-#endif
-    //TODO:erase partition.
-    return 0;
+    return err;
 }
 
 static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 {
-#if 0
-	disk_partition_t *ptn;
+	fbt_partition_t *ptn;
 
 	if (check_unlock && !priv.unlocked) {
 		printf("%s: failed, device is locked\n", __func__);
@@ -745,7 +716,7 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 		return;
 	}
 
-	ptn = fastboot_flash_find_ptn(cmdbuf + 6);
+	ptn = fastboot_find_ptn(cmdbuf + 6);
 	if (ptn == 0) {
 		printf("%s: failed, partition %s does not exist\n",
 		       __func__, cmdbuf + 6);
@@ -753,89 +724,25 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 		return;
 	}
 
-	/* do board/cpu specific special handling if needed.  this
-	 * can include modifying priv.image_start_ptr to flash from
-	 * an address other than the start of the transfer buffer.
-	 */
 	priv.image_start_ptr = priv.transfer_buffer;
-	if (board_fbt_handle_flash(ptn, &priv)) {
-		/* error case, return.  expect priv.response to be
-		 * set by the board specific handler.
-		 */
-		printf("%s: failed, board_fbt_handle_flash() error\n",
-		       __func__);
-		return;
-	}
 
-	/* Prevent using flash command to write to device_info partition */
-	if (is_info_partition(ptn)) {
-		printf("%s: failed, partition not writable"
-		       " using flash command\n",
-		       __func__);
-		sprintf(priv.response,
-			"FAILpartition not writable using flash command");
-		return;
-	}
+    /* Normal case */
+    printf("writing to partition '%s'\n", ptn->name);
 
-	/* Check if this is not really a flash write but rather a saveenv */
-	if (is_env_partition(ptn)) {
-		if (!himport_r(&env_htab,
-			       (const char *)priv.image_start_ptr,
-			       priv.d_bytes, '\n', H_NOCLEAR)) {
-			FBTINFO("Import '%s' FAILED!\n", ptn->name);
-			sprintf(priv.response, "FAIL: Import environment");
-			return;
-		}
+    int err;
 
-#if defined(CONFIG_CMD_SAVEENV)
-		if (saveenv()) {
-			printf("Writing '%s' FAILED!\n", ptn->name);
-			sprintf(priv.response, "FAIL: Write partition");
-			return;
-		}
-		printf("saveenv to '%s' DONE!\n", ptn->name);
-#endif
-		sprintf(priv.response, "OKAY");
-	} else {
-		/* Normal case */
-		printf("writing to partition '%s'\n", ptn->name);
-
-		/* Check if we have sparse compressed image */
-		if (((sparse_header_t *)priv.image_start_ptr)->magic
-		    == SPARSE_HEADER_MAGIC) {
-			printf("fastboot: %s is in sparse format\n", ptn->name);
-			if (!do_unsparse(ptn, priv.image_start_ptr,
-					 ptn->start, ptn->size)) {
-				printf("Writing sparsed: '%s' DONE!\n",
-				       ptn->name);
-				sprintf(priv.response, "OKAY");
-			} else {
-				printf("Writing sparsed '%s' FAILED!\n",
-				       ptn->name);
-				sprintf(priv.response, "FAIL: Sparsed Write");
-			}
-		} else {
-			/* Normal image: no sparse */
-			int err;
-			loff_t num_bytes = priv.d_bytes;
-
-			printf("Writing %llu bytes to '%s'\n",
-						num_bytes, ptn->name);
-			err = partition_write_bytes(priv.dev_desc, ptn,
-				&num_bytes, priv.image_start_ptr);
-			if (err) {
-				printf("Writing '%s' FAILED! error=%d\n",
-							ptn->name, err);
-				sprintf(priv.response,
-					"FAILWrite partition, error=%d", err);
-			} else {
-				printf("Writing '%s' DONE!\n", ptn->name);
-				sprintf(priv.response, "OKAY");
-			}
-		}
-	} /* Normal Case */
-#endif
-    //TODO:erase & flash partition
+    printf("Writing %llu bytes to '%s'\n",
+            priv.d_bytes, ptn->name);
+    err = handleFlash(ptn, priv.image_start_ptr, priv.d_bytes);
+    if (err) {
+        printf("Writing '%s' FAILED! error=%d\n",
+                ptn->name, err);
+        sprintf(priv.response,
+                "FAILWrite partition, error=%d", err);
+    } else {
+        printf("Writing '%s' DONE!\n", ptn->name);
+        sprintf(priv.response, "OKAY");
+    }
 }
 
 struct getvar_entry {
@@ -875,6 +782,36 @@ static const char *getvar_serialno(const char *unused)
 	return priv.serial_no;
 }
 
+static const char *getvar_partition_type(const char *args)
+{
+    const char *partition_name;
+	fbt_partition_t *ptn;
+    /**
+     * we cannot get partition type right now, so just return raw,
+     * and skip format command.
+     */
+    const char *type = "raw";
+
+    if (!strcmp(args, "all")) {
+        int i;
+        for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
+            if (!fbt_partitions[i].name)
+                break;
+            printf("partition \"%s\" has type \"%s\"\n",
+                   fbt_partitions[i].name, type);
+        }
+        return NULL;
+    }
+    partition_name = args + sizeof("partition-type:") - 1;
+    ptn = fastboot_find_ptn(partition_name);
+    if (ptn) {
+        return type;
+    }
+    snprintf(priv.response, sizeof(priv.response),
+         "FAILunknown partition %s\n", partition_name);
+    return NULL;
+}
+
 static const char *getvar_partition_size(const char *args)
 {
 	const char *partition_name;
@@ -911,6 +848,7 @@ static const struct getvar_entry getvar_table[] = {
 	{"secure", 1, getvar_secure},
 	{"product", 1, getvar_product},
 	{"serialno", 1, getvar_serialno},
+    {"partition-type:", 0, getvar_partition_type},
 	{"partition-size:", 0, getvar_partition_size}
 };
 
@@ -1614,9 +1552,9 @@ static void __def_board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
     /* write this structure to the "misc" partition, no unlock check */
     fbt_handle_flash("flash:misc", 0);
 }
-static void __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
+static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
 {
-    return;
+    return 0;
 }
 
 int board_fbt_oem(const char *cmdbuf)
@@ -1634,7 +1572,7 @@ int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
 void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
     __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
-void board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
+int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
     __attribute__((weak, alias("__def_board_fbt_boot_check")));
 
 /* command */
@@ -1788,8 +1726,11 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             }
         }
 
-        board_fbt_boot_check(hdr);
         bootimg_print_image_hdr(hdr);
+        if (board_fbt_boot_check(hdr)) {
+            printf("booti: board check boot image error\n");
+            goto fail;
+        }
     } else {
         printf("booti: load boot image error\n");
         goto fail;

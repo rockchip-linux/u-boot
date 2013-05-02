@@ -27,6 +27,8 @@
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
 #include <lcd.h>
+#include "rkimage.h"
+#include "rkloader.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -136,9 +138,9 @@ void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
 {
     setBootloaderMsg(bmsg);
 }
-void board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
+int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
 {
-    checkBoot(hdr);
+    return checkBoot(hdr);
 }
 extern char bootloader_ver[];
 

@@ -26,7 +26,7 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)librockchip.o
 
-COBJS-y += armlinux/armlinux.o
+#COBJS-y += armlinux/armlinux.o
 COBJS-y += armlinux/bootloader.o
 COBJS-y += armlinux/enter_recovery.o
 #COBJS-y += armlinux/Mainloop.o

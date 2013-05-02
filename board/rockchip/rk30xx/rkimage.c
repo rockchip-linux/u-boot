@@ -1,4 +1,5 @@
 #include "rkimage.h"
+#include "rkloader.h"
 
 static int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
@@ -20,9 +21,8 @@ static int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size
 
     //read the rest blks.
     blocks = DIV_ROUND_UP(*image_size, RK_BLK_SIZE);
-    if (StorageReadLba(offset + 1, (void *) load_addr + \
-                RK_BLK_SIZE - head_offset, \
-                blocks - 1) != 0) {
+    if (CopyFlash2Memory((void *) load_addr + RK_BLK_SIZE - head_offset, 
+                offset + 1, blocks - 1) != 0) {
         printf("failed to read image\n");
         return -1;
     }
@@ -57,4 +57,20 @@ int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, \
     return 0;
 }
 
+int handleFlash(fbt_partition_t *ptn, void *image_start_ptr, loff_t d_bytes)
+{
+    unsigned blocks;
+    if (!ptn) return -1;
+    if (!image_start_ptr)
+        return handleErase(ptn);
+    blocks = DIV_ROUND_UP(d_bytes, RK_BLK_SIZE);
+    return CopyMemory2Flash(image_start_ptr, ptn->offset, blocks);
+}
 
+int handleErase(fbt_partition_t *ptn)
+{
+    unsigned blocks;
+    if (!ptn) return -1;
+    blocks = DIV_ROUND_UP(ptn->size_kb << 10, RK_BLK_SIZE);
+    return StorageEraseBlock(ptn->offset, blocks, 1);
+}
