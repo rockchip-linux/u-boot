@@ -110,6 +110,16 @@ void enable_caches(void)
 }
 #endif
 
+void startRockusb()
+{
+    FW_SDRAM_ExcuteAddr = 0;
+    g_BootRockusb = 1;
+    FWSetResetFlag = 0;
+    FWLowFormatEn = 0;
+    UsbBoot();
+    printf("UsbHook,%d\n" , RkldTimerGetTick());
+    UsbHook();
+}
 int board_fbt_key_pressed(void)
 {
     int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
@@ -125,13 +135,7 @@ int board_fbt_key_pressed(void)
         frt = FASTBOOT_REBOOT_RECOVERY;
     } else if (boot_rockusb) {
         printf("%s: rockusb key pressed.\n",__func__);
-		FW_SDRAM_ExcuteAddr = 0;
-		g_BootRockusb = 1;
-		FWSetResetFlag = 0;
-        FWLowFormatEn = 0;
-		UsbBoot();
-		printf("UsbHook,%d\n" , RkldTimerGetTick());
-		UsbHook();
+        startRockusb();
     } else if(boot_fastboot){
         printf("%s: fastboot key pressed.\n",__func__);
         frt = FASTBOOT_REBOOT_BOOTLOADER;
@@ -171,6 +175,12 @@ int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
 {
     return checkBoot(hdr);
 }
+void board_fbt_boot_failed()
+{
+    printf("Unable to boot, start rockusb.\n");
+    startRockusb();
+}
+
 extern char bootloader_ver[];
 
 #ifdef CONFIG_BOARD_LATE_INIT

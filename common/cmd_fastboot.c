@@ -1566,6 +1566,9 @@ static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
 {
     return 0;
 }
+static int __def_board_fbt_boot_failed()
+{
+}
 
 int board_fbt_oem(const char *cmdbuf)
 	__attribute__((weak, alias("__def_fbt_oem")));
@@ -1587,6 +1590,8 @@ void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
     __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
     __attribute__((weak, alias("__def_board_fbt_boot_check")));
+int board_fbt_boot_failed()
+    __attribute__((weak, alias("__def_board_fbt_boot_failed")));
 
 /* command */
 static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
@@ -1817,6 +1822,9 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 fail:
 	/* if booti fails, always start fastboot */
 	free(hdr); /* hdr may be NULL, but that's ok. */
+
+    board_fbt_boot_failed();
+
 	return do_fastboot(NULL, 0, 0, NULL);
 }
 
