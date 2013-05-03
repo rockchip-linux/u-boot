@@ -74,3 +74,57 @@ int handleErase(fbt_partition_t *ptn)
     blocks = DIV_ROUND_UP(ptn->size_kb << 10, RK_BLK_SIZE);
     return StorageEraseBlock(ptn->offset, blocks, 1);
 }
+
+#define PARAMETER_HEAD_OFFSET   8
+int buildParameter(unsigned char *parameter, int len)
+{
+    int i;
+    uint32 crc = crc32(0, parameter, len);
+    for(i=0; i<4; i++)
+    {
+        parameter[len + i] = crc&0xFF;
+        crc >>= 8;
+    }
+
+    memmove(parameter + PARAMETER_HEAD_OFFSET, parameter, len + 4);
+    PLoaderParam param = (PLoaderParam)
+        (parameter);
+
+    param->tag = PARM_TAG;
+    param->length = len;
+    return len + PARAMETER_HEAD_OFFSET;
+}
+
+int handleRkFlash(char *name,
+        struct cmd_fastboot_interface *priv)
+{
+    if (!strcmp(PARAMETER_NAME, name))
+    {
+        int i, ret = -1, len = 0;
+        PLoaderParam param = (PLoaderParam) 
+            (priv->transfer_buffer + priv->d_bytes);
+
+        len = buildParameter(priv->transfer_buffer, priv->d_bytes);
+        
+        printf("Write parameter\n");
+        for(i=0; i<PARAMETER_NUM; i++)
+        {
+            if (!StorageWriteLba(i*PARAMETER_OFFSET, priv->transfer_buffer, 
+                    DIV_ROUND_UP(len, RK_BLK_SIZE), 0))
+            {
+                ret = 0;
+            }
+        }
+        if (!ret)
+        {
+            sprintf(priv->response, "OKAY");
+        } else
+        {
+            sprintf(priv->response,
+                    "FAILWrite partition");
+        }
+        return 1;
+    }
+    return 0;
+}
+

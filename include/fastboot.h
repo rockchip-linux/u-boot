@@ -120,13 +120,6 @@ struct cmd_fastboot_interface {
 	   Set by board */
 	u8 *transfer_buffer;
 
-	/* Pointer to the part of the transfer_buffer to use for
-	   flashing.  Typically it's equal to transfer_buffer, but for
-	   special cases, it might be some offset into the buffer (e.g.
-	   for a multi-image binary).
-	*/
-	u8 *image_start_ptr;
-
 	/* How big is the transfer buffer
 	   Controlled by the configure variable
 	   CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE
@@ -198,6 +191,7 @@ extern struct fbt_partition fbt_partitions[];
 
 #define FBT_PARTITION_MAX_NUM 16
 
+#define PARAMETER_NAME  "parameter"
 #define MISC_NAME       "misc"
 #define KERNEL_NAME     "kernel"
 #define BOOT_NAME       "boot"
@@ -248,6 +242,8 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void);
 int board_fbt_key_pressed(void);
 void board_fbt_finalize_bootargs(char* args, size_t buf_sz, 
         size_t ramdisk_sz, int recovery);
+int board_fbt_handle_flash(char *name,
+        struct cmd_fastboot_interface *priv);
 int board_fbt_check_misc();
 void board_fbt_set_bootloader_msg(struct bootloader_message bmsg);
 struct fbt_partition *fastboot_find_ptn(const char *name);

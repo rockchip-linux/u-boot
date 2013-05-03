@@ -1,7 +1,6 @@
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
 #include "rkloader.h"
-#include "sha.h"
 
 //from MainLoop.c
 uint32 g_bootRecovery;

@@ -702,6 +702,7 @@ static int fbt_handle_erase(char *cmdbuf)
 static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 {
 	fbt_partition_t *ptn;
+    const char *name = cmdbuf + 6;
 
 	if (check_unlock && !priv.unlocked) {
 		FBTERR("%s: failed, device is locked\n", __func__);
@@ -715,15 +716,20 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 		return;
 	}
 
-	ptn = fastboot_find_ptn(cmdbuf + 6);
+    if (board_fbt_handle_flash(name, &priv)) {
+        //handled by board side.
+        FBTDBG("flash '%s' DONE!\n", name);
+        sprintf(priv.response, "OKAY");
+        return;
+    }
+
+	ptn = fastboot_find_ptn(name);
 	if (ptn == 0) {
 	    FBTERR("%s: failed, partition %s does not exist\n",
 		       __func__, cmdbuf + 6);
 		sprintf(priv.response, "FAILpartition does not exist");
 		return;
 	}
-
-	priv.image_start_ptr = priv.transfer_buffer;
 
     /* Normal case */
     FBTDBG("writing to partition '%s'\n", ptn->name);
@@ -732,7 +738,7 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 
     FBTDBG("Writing %llu bytes to '%s'\n",
             priv.d_bytes, ptn->name);
-    err = handleFlash(ptn, priv.image_start_ptr, priv.d_bytes);
+    err = handleFlash(ptn, priv.transfer_buffer, priv.d_bytes);
     if (err) {
         FBTERR("Writing '%s' FAILED! error=%d\n",
                 ptn->name, err);
@@ -1539,6 +1545,11 @@ static void __def_board_fbt_finalize_bootargs(char* args, size_t buf_sz,
 {
 	return;
 }
+static int __def_board_fbt_handle_flash(char *name,
+                            struct cmd_fastboot_interface *priv)
+{
+        return 0;
+}
 static int __def_board_fbt_check_misc()
 {
     return 0;
@@ -1567,6 +1578,9 @@ int board_fbt_key_pressed(void)
 void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
         size_t ramdisk_sz, int recovery)
 	__attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
+int board_fbt_handle_flash(char *name,
+               struct cmd_fastboot_interface *priv)
+    __attribute__((weak, alias("__def_board_fbt_handle_flash")));
 int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
 void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)

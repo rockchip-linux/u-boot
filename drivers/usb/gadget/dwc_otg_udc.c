@@ -41,9 +41,9 @@
 #define FBT_BULK_OUT_EP             1
 
 #define DWCERR
-#define DWCWARN
-#define DWCINFO
-#define DWCDEBUG
+#undef DWCWARN
+#undef DWCINFO
+#undef DWCDEBUG
 
 /* Some kind of debugging output... */
 #ifdef DWCERR

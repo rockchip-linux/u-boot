@@ -153,6 +153,11 @@ void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
     snprintf(args, buf_sz, "%s", gBootInfo.cmd_line);
 //TODO:setup serial_no/device_id/mac here?
 }
+int board_fbt_handle_flash(char *name,
+        struct cmd_fastboot_interface *priv)
+{
+    return handleRkFlash(name, priv);
+}
 int board_fbt_check_misc()
 {
     //return true if we got recovery cmd from misc.
