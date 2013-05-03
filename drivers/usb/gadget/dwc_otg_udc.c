@@ -80,7 +80,7 @@ static pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)USB_OTG_BASE_ADDR;
 
 static void udc_stall_ep(uint32 ep_num);
 static void dwc_otg_epn_rx(uint32);
-static void dwc_otg_epn_tx(void);
+static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint);
 
 extern uint32 RockusbEn;
 ALIGN(8) uint8 FbtBulkInBuf[512];
@@ -221,7 +221,6 @@ void udc_unset_nak(int epid)
 static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 {
 	DWC_DBG("-> Entering device setup\n");
-	CacheFlushDRegion((uint32)Ep0Buf,(uint32)64);
 	ftl_memcpy(&ep0_urb->device_request, Ep0Buf, 8);
 	ftl_memcpy(&ControlData.DeviceRequest, Ep0Buf, 8);
 
@@ -277,7 +276,6 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 		DWC_DBG("urb->buffer %p, buffer_length %d, actual_length %d\n",
 			ep0_urb->buffer,ep0_urb->buffer_length, ep0_urb->actual_length);
 		ftl_memcpy(Ep0Buf, ep0_urb->buffer, ep0_urb->actual_length);
-		CacheFlushDRegion((uint32)Ep0Buf,(uint32)64);
 		
 		//WriteEndpoint0(ep0_urb->actual_length, Ep0Buf);
 		ControlData.pData=(uint8*)&Ep0Buf[0];
@@ -334,7 +332,10 @@ static void dwc_otg_in_intr(void)
 					ControlInPacket();
 				else
 				{
-					dwc_otg_epn_tx();
+					struct usb_endpoint_instance *endpoint;
+					endpoint = &udc_device->bus->endpoint_array[2];
+
+					dwc_otg_epn_tx(endpoint);
 				}
 			}
 			if ((event & 0x02) != 0)        //Endpoint disable
@@ -453,6 +454,7 @@ static void dwc_otg_write_data(struct usb_endpoint_instance *endpoint)
 /* Called to start packet transmission. */
 int udc_endpoint_write(struct usb_endpoint_instance *endpoint)
 {
+	dwc_otg_epn_tx(endpoint);
 	return 0;
 }
 
@@ -474,15 +476,8 @@ static void dwc_otg_epn_rx(uint32 len)
 	ReadBulkEndpoint(endpoint->rcv_packetSize, FbtBulkOutBuf);
 }
 
-static void dwc_otg_epn_tx(void)
+static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint)
 {
-	struct usb_endpoint_instance *endpoint;
-	
-	endpoint = &udc_device->bus->endpoint_array[2];
-
-	if (!endpoint)
-		return;
-
 	/*
 	 * We need to transmit a terminating zero-length packet now if
 	 * we have sent all of the data in this URB and the transfer
