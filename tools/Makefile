@@ -129,7 +129,7 @@ LOGO-$(CONFIG_VIDEO_LOGO) += $(LOGO_H)
 LOGO-$(CONFIG_VIDEO_LOGO) += $(LOGO_DATA_H)
 
 ifeq ($(LOGO_BMP),)
-LOGO_BMP= logos/rk_logo.bmp
+LOGO_BMP= logos/denx.bmp
 endif
 ifeq ($(VENDOR),atmel)
 LOGO_BMP= logos/atmel.bmp
