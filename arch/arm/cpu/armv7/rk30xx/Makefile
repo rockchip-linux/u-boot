@@ -25,10 +25,10 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)lib$(SOC).o
 
-COBJS	+= cpu_info.o
+#COBJS	+= cpu_info.o
 COBJS	+= timer.o
 COBJS	+= clock.o
-COBJS	+= reset.o
+#COBJS	+= reset.o
 COBJS	+= interrupts.o
 #COBJS	+= intc.o
 

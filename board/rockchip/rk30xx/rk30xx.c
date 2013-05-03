@@ -33,6 +33,30 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 
+void reset_cpu(ulong ignored)
+{
+	SoftReset();
+}
+
+
+#ifdef CONFIG_ARCH_CPU_INIT
+int arch_cpu_init(void)
+{
+	ChipTypeCheck();
+	return 0;
+}
+#endif
+
+
+#ifdef CONFIG_DISPLAY_CPUINFO
+int print_cpuinfo(void)
+{
+     printf("CPU:\tRK30XX\n");
+
+     return 0;
+}
+#endif
+
 /*****************************************
  * Routine: board_init
  * Description: Early hardware init.

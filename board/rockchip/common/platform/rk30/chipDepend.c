@@ -553,6 +553,7 @@ void SoftReset(void)
     fp=0x00;
     fp();
 #else
+	printf("SoftReset");
     pFunc fp;
     pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG0_BASE_ADDR ;//USB_OTG_BASE_ADDR
