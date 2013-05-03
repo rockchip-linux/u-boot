@@ -104,6 +104,7 @@ void ReadEndpoint0(uint16 len, void *buf)
 {
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
 
+    CacheFlushDRegion((uint32)buf,(uint32)len);
     OtgReg->Device.OutEp[0].DoEpDma=(uint32)buf;
     OtgReg->Device.OutEp[0].DoEpTSiz=Ep0PktSize | (1<<19);
     OtgReg->Device.OutEp[0].DoEpCtl = (1ul<<15) | (1ul<<26) | (1ul<<31);     //Active ep, Clr Nak, endpoint enable
@@ -132,6 +133,8 @@ void ReadBulkEndpoint(uint32 len, void *buf)
 {
     uint32 regBak;
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
+    
+    CacheFlushDRegion((uint32)buf,(uint32)len);
     //RkPrintf("ReadBulkEndpoint %d\n",len);
     OtgReg->Device.OutEp[BULK_OUT_EP].DoEpDma=(uint32)buf;
    // OtgReg->Device.OutEp[BULK_OUT_EP].DoEpTSiz=BulkEpSize | (1<<19);
