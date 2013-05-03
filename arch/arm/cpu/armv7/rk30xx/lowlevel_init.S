@@ -49,7 +49,8 @@ ENDPROC(lowlevel_init)
 ENTRY(ResetCpu)
 	LDR 	R2, =0x20020004
 	LDR 	R1, =0x00000003
-	STR 	R1, [R2,#0]
+#	STR 	R1, [R2,#0]
+	
 	LDR 	R1, =0xeca8
 	LDR 	R2, =0x20000104
 	LDR 	R3, =0x10000000
