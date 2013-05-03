@@ -65,35 +65,6 @@ void setup_space(uint32 begin_addr)
     next += 2048;
 }
 
-void Switch2MSC(void)
-{
-#ifdef DRIVERS_USB_APP
-    uint8 *paramBuffer = (uint8*)DataBuf;
-    if( 0 == GetParam(parameter_lba, (void*)paramBuffer) )
-    {
-        int UserPartIndex;
-        memset(&gBootInfo, 0, sizeof(gBootInfo));
-        ParseParam( &gBootInfo, ((PLoaderParam)paramBuffer)->parameter, ((PLoaderParam)paramBuffer)->length );
-        UserPartIndex = find_mtd_part(&gBootInfo.cmd_mtd, "user");
-        if(UserPartIndex > 0)
-        {
-            extern uint32 UserPartOffset;
-            UserPartOffset = gBootInfo.cmd_mtd.parts[UserPartIndex].offset;
-ReConnectUsbBoot:
-            RkPrintf("UserPartOffset = 0x%x\n",UserPartOffset);
-            FW_ReIntForUpdate();
-            MscInit();
-        }
-    }
-    else
-    {
-        //RkPrintf("no  parameter\n");
-        UserPartOffset = 0;
-        goto ReConnectUsbBoot;
-    }
-#endif
-}
-
 void SysLowFormatCheck(void)
 {
     if(FWLowFormatEn)
@@ -178,38 +149,6 @@ void ReSizeRamdisk(PBootInfo pboot_info,uint32 ImageSize)
             replace_fore_string(sSize+2,6+(len-8), szFind+(10-len));
         }
     }
-}
-
-static int rk29_check_bootimg_sha (const struct fastboot_boot_img_hdr *hdr)
-{
-    SHA_CTX ctx;
-    uint8_t* sha;
-    unsigned  sha_id[8]={0,};
-    int i;
-    uint32_t second_data=0x0;
-
-    SHA_init(&ctx);
-    SHA_update(&ctx, (void *)hdr->kernel_addr, hdr->kernel_size);
-    SHA_update(&ctx, &hdr->kernel_size, sizeof(hdr->kernel_size));
-    SHA_update(&ctx, (void *)hdr->ramdisk_addr, hdr->ramdisk_size);
-    SHA_update(&ctx, &hdr->ramdisk_size, sizeof(hdr->ramdisk_size));
-    SHA_update(&ctx, (void *)second_data, hdr->second_size);
-    SHA_update(&ctx, &hdr->second_size, sizeof(hdr->second_size));
-    SHA_update(&ctx, &hdr->tags_addr, sizeof(hdr->tags_addr));
-    SHA_update(&ctx, &hdr->page_size, sizeof(hdr->page_size));
-    SHA_update(&ctx, &hdr->unused, sizeof(hdr->unused));
-    SHA_update(&ctx, &hdr->name, sizeof(hdr->name));
-    SHA_update(&ctx, &hdr->cmdline, sizeof(hdr->cmdline));
-    sha = SHA_final(&ctx);
-    ftl_memcpy(sha_id, sha,SHA_DIGEST_SIZE > sizeof(hdr->id) ? sizeof(hdr->id) : SHA_DIGEST_SIZE);
-
-    for(i=0;i<8;i++)
-    {
-        if (hdr->id[i] !=sha_id[i])
-            return 0;
-    }
-
-    return 1;
 }
 
 static int32 checkboothdr(struct fastboot_boot_img_hdr * boothdr)
@@ -359,7 +298,7 @@ int checkBoot(struct fastboot_boot_img_hdr *hdr)
         goto end;
     }
 
-    if (checkboothdr(hdr) || !rk29_check_bootimg_sha(hdr))
+    if (checkboothdr(hdr))
     {
         printf("checkBoot failed!\n");
         return -1;

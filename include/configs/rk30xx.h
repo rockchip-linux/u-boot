@@ -203,9 +203,6 @@
 
 #ifdef CONFIG_CMD_FASTBOOT
 #define CONFIG_RK_UDC
-//TODO:need implete low level usb & otg.
-//just for combile*************
-//
 #define CONFIG_USB_DEVICE
 
 #endif //CONFIG_CMD_FASTBOOT

@@ -425,7 +425,7 @@ void ParseParam(PBootInfo pboot_info, char *param, uint32 len)
 {
 // 一行最多1024Bytes
 	char *prev_param=NULL;
-	char line[MAX_LINE_CHAR] = "\0";
+	char line[MAX_LINE_CHAR];
 	int32 remain_len = (int32)len;
 	
 //	RkPrintf("Enter\n");

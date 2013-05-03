@@ -109,9 +109,9 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 #define FASTBOOT_UNLOCK_TIMEOUT_SECS 5
 
 #define	ERR
-#define	WARN
-#define	INFO
-#define	DEBUG
+#undef	WARN
+#undef	INFO
+#undef	DEBUG
 
 #ifndef CONFIG_FASTBOOT_LOG_SIZE
 #define CONFIG_FASTBOOT_LOG_SIZE 4000
@@ -119,7 +119,6 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 static char log_buffer[CONFIG_FASTBOOT_LOG_SIZE];
 static uint32_t log_position;
 
-#define DEBUG
 #ifdef DEBUG
 #define FBTDBG(fmt, args...)\
 	printf("DEBUG: [%s]: %d:\n"fmt, __func__, __LINE__, ##args)
@@ -572,7 +571,7 @@ static void set_serial_number(const char *serial_no)
 	strncpy(serial_number, serial_no, sizeof(serial_number));
 	serial_number[sizeof(serial_number) - 1] = '\0';
 	priv.serial_no = serial_number;
-	printf("fastboot serial_number = %s\n", serial_number);
+	FBTDBG("fastboot serial_number = %s\n", serial_number);
 }
 
 static void create_serial_number(void)
@@ -580,10 +579,10 @@ static void create_serial_number(void)
 	char *sn = getenv("fbt_sn#");
 
 	if (sn == NULL) {
-		printf("Setting serial number from constant (no dieid info)\n");
+		FBTDBG("Setting serial number from constant (no dieid info)\n");
 		set_serial_number("0123456789");
 	} else {
-		printf("Setting serial number from unique id\n");
+		FBTDBG("Setting serial number from unique id\n");
 		set_serial_number(sn);
 	}
 }
@@ -599,11 +598,11 @@ fbt_partition_t *fastboot_find_ptn(const char *name)
             return fbt_partitions + i;
     }
 
-    printf("partition(%s) not found, aborting\ntable:\n", name);
+    FBTERR("partition(%s) not found, aborting\ntable:\n", name);
     for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
         if (!fbt_partitions[i].name)
             break;
-        printf("partition(%s)\n", fbt_partitions[i].name);
+        FBTDBG("partition(%s)\n", fbt_partitions[i].name);
     }
     return NULL;
 }
@@ -612,7 +611,7 @@ static void fbt_set_unlocked(int unlocked)
 {
 	char *unlocked_string;
 
-	printf("Setting device to %s\n",
+	FBTDBG("Setting device to %s\n",
 	       unlocked ? "unlocked" : "locked");
 	priv.unlocked = unlocked;
 	if (unlocked)
@@ -646,22 +645,22 @@ static void fbt_fastboot_init(void)
 			else
 				priv.unlocked = 0;
 		} else {
-			printf("bad env setting %s of %s,"
+			FBTERR("bad env setting %s of %s,"
 			       " initializing to locked\n",
 			       fastboot_unlocked_env,
 			       FASTBOOT_UNLOCKED_ENV_NAME);
 			fbt_set_unlocked(0);
 		}
 	} else {
-		printf("no existing env setting for %s\n",
+		FBTDBG("no existing env setting for %s\n",
 		       FASTBOOT_UNLOCKED_ENV_NAME);
-		printf("creating one set to false\n");
+		FBTDBG("creating one set to false\n");
 		fbt_set_unlocked(0);
 	}
 	if (priv.unlocked)
-		printf("Device is unlocked\n");
+		FBTDBG("Device is unlocked\n");
 	else
-		printf("Device is locked\n");
+		FBTDBG("Device is locked\n");
 
     //TODO:check parameter, if no parameter, set flag to let some fbt cmds failed.
 
@@ -678,23 +677,23 @@ static int fbt_handle_erase(char *cmdbuf)
 	char *partition_name = cmdbuf + 6;
 	ptn = fastboot_find_ptn(partition_name);
 	if (ptn == 0) {
-		printf("Partition %s does not exist\n", partition_name);
+	    FBTERR("Partition %s does not exist\n", partition_name);
 		sprintf(priv.response, "FAILpartition does not exist");
 		return -1;
 	}
 
-	printf("Erasing partition '%s':\n", ptn->name);
+	FBTDBG("Erasing partition '%s':\n", ptn->name);
 
-	printf("\tstart blk %lu, blk_cnt %lu\n", ptn->offset,
+	FBTDBG("\tstart blk %lu, blk_cnt %lu\n", ptn->offset,
 			ptn->size_kb);
 
 	err = handleErase(ptn);
 	if (err) {
-		printf("Erasing '%s' FAILED! error=%d\n", ptn->name, err);
+		FBTERR("Erasing '%s' FAILED! error=%d\n", ptn->name, err);
 		sprintf(priv.response,
 				"FAILfailed to erase partition (%d)", err);
 	} else {
-		printf("partition '%s' erased\n", ptn->name);
+		FBTDBG("partition '%s' erased\n", ptn->name);
 		sprintf(priv.response, "OKAY");
 	}
     return err;
@@ -705,20 +704,20 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 	fbt_partition_t *ptn;
 
 	if (check_unlock && !priv.unlocked) {
-		printf("%s: failed, device is locked\n", __func__);
+		FBTERR("%s: failed, device is locked\n", __func__);
 		sprintf(priv.response, "FAILdevice is locked");
 		return;
 	}
 
 	if (!priv.d_bytes) {
-		printf("%s: failed, no image downloaded\n", __func__);
+		FBTERR("%s: failed, no image downloaded\n", __func__);
 		sprintf(priv.response, "FAILno image downloaded");
 		return;
 	}
 
 	ptn = fastboot_find_ptn(cmdbuf + 6);
 	if (ptn == 0) {
-		printf("%s: failed, partition %s does not exist\n",
+	    FBTERR("%s: failed, partition %s does not exist\n",
 		       __func__, cmdbuf + 6);
 		sprintf(priv.response, "FAILpartition does not exist");
 		return;
@@ -727,20 +726,20 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 	priv.image_start_ptr = priv.transfer_buffer;
 
     /* Normal case */
-    printf("writing to partition '%s'\n", ptn->name);
+    FBTDBG("writing to partition '%s'\n", ptn->name);
 
     int err;
 
-    printf("Writing %llu bytes to '%s'\n",
+    FBTDBG("Writing %llu bytes to '%s'\n",
             priv.d_bytes, ptn->name);
     err = handleFlash(ptn, priv.image_start_ptr, priv.d_bytes);
     if (err) {
-        printf("Writing '%s' FAILED! error=%d\n",
+        FBTERR("Writing '%s' FAILED! error=%d\n",
                 ptn->name, err);
         sprintf(priv.response,
                 "FAILWrite partition, error=%d", err);
     } else {
-        printf("Writing '%s' DONE!\n", ptn->name);
+        FBTDBG("Writing '%s' DONE!\n", ptn->name);
         sprintf(priv.response, "OKAY");
     }
 }
@@ -797,7 +796,7 @@ static const char *getvar_partition_type(const char *args)
         for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
             if (!fbt_partitions[i].name)
                 break;
-            printf("partition \"%s\" has type \"%s\"\n",
+            FBTDBG("partition \"%s\" has type \"%s\"\n",
                    fbt_partitions[i].name, type);
         }
         return NULL;
@@ -822,7 +821,7 @@ static const char *getvar_partition_size(const char *args)
 		for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
             if (!fbt_partitions[i].name)
                 break;
-            printf("partition \"%s\" has size 0x%016llx kb\n",
+            FBTDBG("partition \"%s\" has size 0x%016llx kb\n",
 			       fbt_partitions[i].name,
 			       (uint64_t)fbt_partitions[i].size_kb);
 		}
@@ -867,7 +866,7 @@ static void fbt_handle_getvar(char *cmdbuf)
 		for (i = 0; i < ARRAY_SIZE(getvar_table); i++) {
 			value = (getvar_table[i].getvar_func)(subcmd);
 			if (value ) {
-				printf("%s: %s\n",
+				FBTDBG("%s: %s\n",
 				       getvar_table[i].variable_name, value);
 			}
 		}
@@ -1081,7 +1080,7 @@ static void fbt_dump_log(char *buf, uint32_t buf_size)
 	char *line_start = buf;
 
 	if (buf_size == 0) {
-		printf("%s: unexpected buf size of 0\n", __func__);
+		FBTERR("%s: unexpected buf size of 0\n", __func__);
 		return;
 	}
 
@@ -1131,15 +1130,15 @@ static void fbt_handle_oem(char *cmdbuf)
 	if (strcmp(cmdbuf, "unlock") == 0) {
 		FBTDBG("oem unlock\n");
 		if (priv.unlocked) {
-			printf("oem unlock ignored, device already unlocked\n");
+			FBTDBG("oem unlock ignored, device already unlocked\n");
 			strcpy(priv.response, "FAILalready unlocked");
 			return;
 		}
-		printf("oem unlock requested:\n");
-		printf("\tUnlocking forces a factory reset and could\n");
-		printf("\topen your device up to a world of hurt.  If you\n");
-		printf("\tare sure you know what you're doing, then accept\n");
-		printf("\tin %d seconds via 'fastboot oem unlock_accept'.\n",
+		FBTDBG("oem unlock requested:\n");
+		FBTDBG("\tUnlocking forces a factory reset and could\n");
+		FBTDBG("\topen your device up to a world of hurt.  If you\n");
+		FBTDBG("\tare sure you know what you're doing, then accept\n");
+		FBTDBG("\tin %d seconds via 'fastboot oem unlock_accept'.\n",
 		       FASTBOOT_UNLOCK_TIMEOUT_SECS);
 		priv.unlock_pending_start_time = get_timer(0);
 		strcpy(priv.response, "OKAY");
@@ -1150,20 +1149,20 @@ static void fbt_handle_oem(char *cmdbuf)
 		int err;
 		FBTDBG("oem unlock_accept\n");
 		if (!priv.unlock_pending_start_time) {
-			printf("oem unlock_accept ignored, not pending\n");
+			FBTERR("oem unlock_accept ignored, not pending\n");
 			strcpy(priv.response, "FAILoem unlock not requested");
 			return;
 		}
 		priv.unlock_pending_start_time = 0;
-		printf("Erasing userdata partition\n");
+		FBTDBG("Erasing userdata partition\n");
         err = fbt_handle_erase("erase userdata");
 
 		if (err) {
-			printf("Erase failed with error %d\n", err);
+			FBTERR("Erase failed with error %d\n", err);
 			strcpy(priv.response, "FAILErasing userdata failed");
 			return;
 		}
-		printf("Erasing succeeded\n");
+		FBTDBG("Erasing succeeded\n");
 		fbt_set_unlocked(1);
 		strcpy(priv.response, "OKAY");
 		priv.flag |= FASTBOOT_FLAG_RESPONSE;
@@ -1179,7 +1178,7 @@ static void fbt_handle_oem(char *cmdbuf)
 	if (strcmp(cmdbuf, "lock") == 0) {
 		FBTDBG("oem lock\n");
 		if (!priv.unlocked) {
-			printf("oem lock ignored, already locked\n");
+			FBTERR("oem lock ignored, already locked\n");
 			strcpy(priv.response, "FAILalready locked");
 			return;
 		}
@@ -1253,7 +1252,7 @@ static void fbt_handle_oem(char *cmdbuf)
 		return;
 	}
 
-	printf("\nfastboot: unsupported oem command %s\n", cmdbuf);
+	FBTDBG("\nfastboot: unsupported oem command %s\n", cmdbuf);
 	strcpy(priv.response, "FAILinvalid command");
 }
 
@@ -1288,7 +1287,7 @@ static void fbt_handle_boot(const char *cmdbuf)
 
 		do_booti(NULL, 0, ARRAY_SIZE(booti), booti);
 
-		printf("do_booti() returned, trying go..\n");
+		FBTERR("do_booti() returned, trying go..\n");
 
 		FBTINFO("Booting raw image..\n");
 		do_go(NULL, 0, ARRAY_SIZE(go), go);
@@ -1340,7 +1339,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 
 	FBTDBG("command\n");
 
-	printf("cmdbuf = (%s)\n", cmdbuf);
+	FBTDBG("cmdbuf = (%s)\n", cmdbuf);
 	priv.executing_command = 1;
 
 	/* %fastboot getvar: <var_name> */
@@ -1493,7 +1492,7 @@ static void fbt_run_recovery()
 	do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
 
 	/* returns if recovery.img is bad */
-	printf("\nfastboot: Error: Invalid recovery img\n");
+	FBTERR("\nfastboot: Error: Invalid recovery img\n");
 }
 
 struct bootloader_message {
@@ -1506,7 +1505,7 @@ static void fbt_run_recovery_wipe_data(void)
 {
 	struct bootloader_message bmsg;
 
-	printf("Rebooting into recovery to do wipe_data\n");
+	FBTDBG("Rebooting into recovery to do wipe_data\n");
 
 	strcpy(bmsg.command, "boot-recovery");
 	bmsg.status[0] = 0;
@@ -1588,12 +1587,12 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	 * just saying no for now.
 	 */
 	if (priv.flag & FASTBOOT_FLAG_HAS_RUN) {
-		printf("fastboot can't be restarted\n");
+		FBTERR("fastboot can't be restarted\n");
 		return -1;
 	}
 	priv.flag |= FASTBOOT_FLAG_HAS_RUN;
 
-	printf("Starting fastboot protocol\n");
+	FBTDBG("Starting fastboot protocol\n");
 
 	fbt_init_endpoint_ptrs();
 
@@ -1618,7 +1617,7 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 				/* check if unlock pending should expire */
 				if (get_timer(priv.unlock_pending_start_time) >
 				    (FASTBOOT_UNLOCK_TIMEOUT_SECS * 1000)) {
-					printf("unlock pending expired\n");
+					FBTDBG("unlock pending expired\n");
 					priv.unlock_pending_start_time = 0;
 				}
 			}
@@ -1689,11 +1688,11 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         unsigned blocks;
         hdr = malloc(blksz);
 		if (hdr == NULL) {
-			printf("error allocating blksz(%lu) buffer\n", blksz);
+		    FBTERR("error allocating blksz(%lu) buffer\n", blksz);
 			goto fail;
 		}
         if (StorageReadLba(ptn->offset, (void *) hdr, 1) != 0) {
-			printf("booti: failed to read bootimg header\n");
+			FBTERR("booti: failed to read bootimg header\n");
 			goto fail;
 		}
 		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
@@ -1701,11 +1700,11 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #ifdef CONFIG_RK30XX
             memset(hdr, 0, blksz);
             if (loadRkImage(hdr, ptn, fastboot_find_ptn(KERNEL_NAME)) != 0) {
-                printf("booti: bad boot or kernel image\n");
+                FBTERR("booti: bad boot or kernel image\n");
                 goto fail;
             }
 #else
-            printf("booti: bad boot image magic\n");
+            FBTERR("booti: bad boot image magic\n");
             goto fail;
 #endif
         } else {
@@ -1713,7 +1712,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
             if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
                         blocks) != 0) {
-                printf("booti: failed to read kernel\n");
+                FBTERR("booti: failed to read kernel\n");
                 goto fail;
             }
 
@@ -1721,23 +1720,23 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             blocks = DIV_ROUND_UP(hdr->ramdisk_size, blksz);
             if (StorageReadLba(sector, (void *) hdr->ramdisk_addr, \
                         blocks) != 0) {
-                printf("booti: failed to read ramdisk\n");
+                FBTERR("booti: failed to read ramdisk\n");
                 goto fail;
             }
         }
 
         bootimg_print_image_hdr(hdr);
         if (board_fbt_boot_check(hdr)) {
-            printf("booti: board check boot image error\n");
+            FBTERR("booti: board check boot image error\n");
             goto fail;
         }
     } else {
-        printf("booti: load boot image error\n");
+        FBTERR("booti: load boot image error\n");
         goto fail;
     }
 
-	printf("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
-	printf("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
+	FBTDBG("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
+	FBTDBG("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
 
 #ifdef CONFIG_CMDLINE_TAG
 	{
@@ -1821,7 +1820,7 @@ static void fbt_request_start_fastboot(void)
 {
 	char buf[512];
 	char *old_preboot = getenv("preboot");
-	printf("old preboot env = %s\n", old_preboot);
+	FBTDBG("old preboot env = %s\n", old_preboot);
 
 	if (old_preboot) {
 		snprintf(buf, sizeof(buf),
@@ -1830,7 +1829,7 @@ static void fbt_request_start_fastboot(void)
 	} else
 		setenv("preboot", "setenv preboot; fastboot");
 
-	printf("%s: setting preboot env to %s\n", __func__, getenv("preboot"));
+	FBTDBG("%s: setting preboot env to %s\n", __func__, getenv("preboot"));
 }
 
 /*
@@ -1851,18 +1850,18 @@ void fbt_preboot(void)
     frt = board_fbt_key_pressed();
 
     if (frt == FASTBOOT_REBOOT_NONE) {
-        printf("\n%s: no spec key pressed, get requested reboot type.\n",
+        FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n",
                __func__);
 	    frt = board_fbt_get_reboot_type();
     }
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
-		printf("\n%s: starting recovery img because of reboot flag\n",
+		FBTDBG("\n%s: starting recovery img because of reboot flag\n",
 		       __func__);
 
 		return fbt_run_recovery();
 	} else if (frt == FASTBOOT_REBOOT_RECOVERY_WIPE_DATA) {
-		printf("\n%s: starting recovery img to wipe data "
+		FBTDBG("\n%s: starting recovery img to wipe data "
 		       "because of reboot flag\n",
 		       __func__);
 		/* we've not initialized most of our state so don't
@@ -1875,25 +1874,25 @@ void fbt_preboot(void)
 		 * Case: %adb reboot bootloader
 		 * Case: %adb reboot-bootloader
 		 */
-		printf("\n%s: starting fastboot because of reboot flag\n",
+		FBTDBG("\n%s: starting fastboot because of reboot flag\n",
 		       __func__);
 		fbt_request_start_fastboot();
 	} else if (frt == FASTBOOT_REBOOT_NORMAL) {
 		/* explicit request for a regular reboot */
-		printf("\n%s: request for a normal boot\n",
+		FBTDBG("\n%s: request for a normal boot\n",
 		       __func__);
 	} else {
-        printf("\n%s: check misc command.\n", __func__);
+        FBTDBG("\n%s: check misc command.\n", __func__);
 		/* unknown reboot cause (typically because of a cold boot).
 		 * check if we had misc command to boot recovery.
 		 */
 		int run_recovery = board_fbt_check_misc();
 		if (run_recovery) {
-			printf("\n%s: starting recovery because of misc command\n", 
+			FBTDBG("\n%s: starting recovery because of misc command\n", 
                     __func__);
 			return fbt_run_recovery();
 		}
-		printf("\n%s: no special reboot flags, doing normal boot\n",
+		FBTDBG("\n%s: no special reboot flags, doing normal boot\n",
 		       __func__);
 	}
 }
