@@ -221,15 +221,15 @@ int board_late_init(void)
 
 void rk_backlight_ctrl(unsigned int onoff)
 {
-    #ifdef CONFIG_T7H
-    int id =2;
+    #ifdef CONFIG_SDK
+    int id =0;
     int total = 0x4b0;
     int pwm = total/2;
     int *addr =0;
 
     if(ChipType == CHIP_RK3066)
     {
-        g_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm2
+        g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX |= ((1<<6)<<16)|(1<<6);   // pwm0, gpio0_a3
     }
     //SetPortOutput(0,30,0);   //gpio0_d6 0
     write_pwm_reg(id, 0x0c, 0x80);
@@ -244,26 +244,19 @@ void rk_backlight_ctrl(unsigned int onoff)
 
 void rk_fb_init(unsigned int onoff)
 {
-    #ifdef CONFIG_T7H
-    SetPortOutput(4,26,1);   //gpio4_d2 1
-     
-    SetPortOutput(0,26,0);   //gpio0_d2 0
-    SetPortOutput(6,12,0);   //gpio6_b4 0
-    DRVDelayMs(25);
-    SetPortOutput(4,23,1);   //gpio4_c7 1
-    SetPortOutput(0,29,1);   //gpio0_d5 1
-    SetPortOutput(4,30,1);   //gpio4_d6 1
-    SetPortOutput(4,31,1);   //gpio4_d7 1
+    #ifdef CONFIG_SDK
+    SetPortOutput(4,23,1);   //gpio4_c7 1 cs 1
+    SetPortOutput(6,12,0);   //gpio6_b4 0 en 0
     #endif
 }
 
 vidinfo_t panel_info = {
-    .lcd_face    = OUT_P888,
+    .lcd_face    = OUT_D888_P666,
 	.vl_freq	= 48,  
-	.vl_col		= 1024,
-	.vl_row		= 600,
-	.vl_width	= 1024,
-	.vl_height	= 600,
+	.vl_col		= 1280,
+	.vl_row		= 800,
+	.vl_width	= 1280,
+	.vl_height	= 800,
 	.vl_clkp	= 0,
 	.vl_hsp		= 0,
 	.vl_vsp		= 0,
@@ -272,12 +265,12 @@ vidinfo_t panel_info = {
 
 	/* Panel infomation */
 	.vl_hspw	= 10,
-	.vl_hbpd	= 300,
-	.vl_hfpd	= 20,
+	.vl_hbpd	= 100,
+	.vl_hfpd	= 210,
 
-	.vl_vspw	= 2,
-	.vl_vbpd	= 25,
-	.vl_vfpd	= 10,
+	.vl_vspw	= 10,
+	.vl_vbpd	= 10,
+	.vl_vfpd	= 18,
 
 	.lcd_power_on = NULL,
 	.mipi_power = NULL,
