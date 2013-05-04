@@ -76,12 +76,12 @@ uint32 Rk30ChipVerInfo[4];
 void ChipTypeCheck(void)
 {
     Rk30ChipVerInfo[0] = 0;
+#if(CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+    ftl_memcpy(Rk30ChipVerInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR + 0x20000), 16);
+#else
     ftl_memcpy(Rk30ChipVerInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR), 16);
-    ChipType = CHIP_RK3188;
-    if(Rk30ChipVerInfo[0] == 0)// 3188 data abort
-    {
-        ftl_memcpy(Rk30ChipVerInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR + 0x20000), 16);
-    }
+#endif
+    
     ChipType = CHIP_RK3066;
     if(Rk30ChipVerInfo[0]== 0x33303042&&Rk30ChipVerInfo[3] == 0x56313030) 
     {
