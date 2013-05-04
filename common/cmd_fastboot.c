@@ -1647,7 +1647,7 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 			break;
 		}
 	}
-	//do_reset(NULL, 0, 0, NULL);
+	do_reset(NULL, 0, 0, NULL);
 out:
 	return ret;
 }
