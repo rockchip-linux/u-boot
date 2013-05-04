@@ -52,6 +52,7 @@ extern BootInfo			gBootInfo;
 //extern uint32			gLoaderTlb[];
 //extern uint8			gParamBuffer[];
 extern uint32			parameter_lba;
+extern key_config		key_recovery;
 extern key_config		key_rockusb;
 extern key_config		key_fastboot;
 extern int KeyCombinationNum;

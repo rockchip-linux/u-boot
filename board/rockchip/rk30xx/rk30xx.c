@@ -32,6 +32,81 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
+{
+    int i;
+    int recovery_key = 0;
+	*boot_rockusb = 0;
+	*boot_recovery = 0;
+	*boot_fastboot = 0;
+	if(GetPortState(&key_rockusb))
+	{
+        *boot_rockusb = 1;
+	    //printf("rockusb key is pressed\n");
+	}
+	if(GetPortState(&key_recovery))
+	{
+        *boot_recovery = 1;
+	    //printf("recovery key is pressed\n");
+	}
+	if(GetPortState(&key_fastboot))
+	{
+		*boot_fastboot = 1;
+		//printf("fastboot key is pressed\n");
+	}
+	return 0;
+}
+
+void RockusbKeyInit(key_config *key)
+{
+    key->type = KEY_AD;
+    key->key.adc.index = 1;
+    key->key.adc.keyValueLow = 0;
+    key->key.adc.keyValueHigh= 30;
+    key->key.adc.data = SARADC_BASE;
+    key->key.adc.stas = SARADC_BASE+4;
+    key->key.adc.ctrl = SARADC_BASE+8;
+}
+
+void RecoveryKeyInit(key_config *key)
+{
+    key->type = KEY_AD;
+    key->key.adc.index = 1;
+    key->key.adc.keyValueLow = 0;
+    key->key.adc.keyValueHigh= 30;
+    key->key.adc.data = SARADC_BASE;
+    key->key.adc.stas = SARADC_BASE+4;
+    key->key.adc.ctrl = SARADC_BASE+8;
+}
+
+
+void FastbootKeyInit(key_config *key)
+{
+    key->type = KEY_GPIO;
+    key->key.gpio.valid = 0; 
+	key->key.gpio.group = 4;
+	key->key.gpio.index = 21;// gpio4C5
+    setup_gpio(&key->key.gpio);
+}
+
+void PowerHoldKeyInit()
+{
+    key_powerHold.type = KEY_GPIO;
+    key_powerHold.key.gpio.valid = 1; 
+    if(ChipType == CHIP_RK3066)
+    {
+        key_powerHold.key.gpio.group = 6;
+        key_powerHold.key.gpio.index = 8; // gpio6B0
+    }
+    else
+    {
+        key_powerHold.key.gpio.group = 0;
+        key_powerHold.key.gpio.index = 0; // gpio0A0
+        //rknand_print_hex("grf:", g_3066B_grfReg,1,512);
+    }
+
+    setup_gpio(&key_powerHold.key.gpio);
+}
 
 void reset_cpu(ulong ignored)
 {
@@ -124,19 +199,16 @@ int board_fbt_key_pressed(void)
 {
     int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
     enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
-    int recovery_key = checkKey(&boot_rockusb, &boot_recovery, &boot_fastboot);
-
-    if (recovery_key) {
-        printf("%s: recovery_key=%d.\n", __func__, recovery_key);
-    }
-
-    if(boot_recovery) {
+	int vbus = GetVbus();
+    checkKey(&boot_rockusb, &boot_recovery, &boot_fastboot);
+	printf("vbus = %d\n", vbus);
+    if(boot_recovery && (vbus==0)) {
         printf("%s: recovery key pressed.\n",__func__);
         frt = FASTBOOT_REBOOT_RECOVERY;
-    } else if (boot_rockusb) {
+    } else if (boot_rockusb && (vbus!=0)) {
         printf("%s: rockusb key pressed.\n",__func__);
         startRockusb();
-    } else if(boot_fastboot){
+    } else if(boot_fastboot && (vbus!=0)){
         printf("%s: fastboot key pressed.\n",__func__);
         frt = FASTBOOT_REBOOT_BOOTLOADER;
     }
@@ -199,6 +271,7 @@ int board_late_init(void)
 
     RockusbKeyInit(&key_rockusb);
     FastbootKeyInit(&key_fastboot);
+    RecoveryKeyInit(&key_recovery);
 	PowerHoldKeyInit();
     if (!GetParam(0, DataBuf)) {
 	    ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, \

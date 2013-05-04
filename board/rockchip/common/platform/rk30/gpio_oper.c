@@ -142,22 +142,31 @@ int SetPortOutput(int group, int index, int level)
     else write_XDATA32( key_gpio.io_write, (read_XDATA32(key_gpio.io_write)&(~(1ul<<key_gpio.index))));
     return 0 ;
 }
-
+#if 0
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {
     int i;
     int recovery_key = 0;
-	if(GetPortState(&key_rockusb)){
-        *boot_rockusb = 1;
-        *boot_fastboot = 0;
-	    printf("rockusb key is pressed\n");
-	}else if(GetPortState(&key_fastboot)){
-        *boot_rockusb = 0;
-        *boot_fastboot = 1;
-	    printf("fastboot key is pressed\n");
-	}
-	//else
+	*boot_rockusb = 0;
+	*boot_recovery = 0;
+	*boot_fastboot = 0;
+	if(GetPortState(&key_rockusb))
 	{
+        *boot_rockusb = 1;
+	    //printf("rockusb key is pressed\n");
+	}
+	if(GetPortState(&key_recovery))
+	{
+        *boot_recovery = 1;
+	    //printf("recovery key is pressed\n");
+	}
+	if(GetPortState(&key_fastboot))
+	{
+		*boot_fastboot = 1;
+		//printf("fastboot key is pressed\n");
+	}
+#if 0
+{
         for(i=0;i<KeyCombinationNum;i++)
         {
     		//if(key_combination[i].type)
@@ -176,7 +185,8 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
     		}
 	    }
 	}
-	return recovery_key;
+#endif
+	return 0;
 }
 
 /*static int RKGetChipTag(void)
@@ -203,6 +213,17 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 
 
 void RockusbKeyInit(key_config *key)
+{
+    key->type = KEY_AD;
+    key->key.adc.index = 1;
+    key->key.adc.keyValueLow = 0;
+    key->key.adc.keyValueHigh= 30;
+    key->key.adc.data = SARADC_BASE;
+    key->key.adc.stas = SARADC_BASE+4;
+    key->key.adc.ctrl = SARADC_BASE+8;
+}
+
+void RecoveryKeyInit(key_config *key)
 {
     key->type = KEY_AD;
     key->key.adc.index = 1;
@@ -242,7 +263,6 @@ void PowerHoldKeyInit()
     setup_gpio(&key_powerHold.key.gpio);
 }
 
-#if 0
 void test_port()
 {
     key_config key;
