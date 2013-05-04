@@ -102,6 +102,32 @@ static inline int read_env(unsigned long size,
     return 0;
 }
 
+//base on env_import
+static int env_append(const char *buf, int check)
+{
+    env_t *ep = (env_t *)buf;
+
+    if (check) {
+        uint32_t crc;
+
+        memcpy(&crc, &ep->crc, sizeof(crc));
+
+        if (crc32(0, ep->data, ENV_SIZE) != crc) {
+            return 0;
+        }
+    }
+
+    if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', H_NOCLEAR,
+            0, NULL)) {
+        gd->flags |= GD_FLG_ENV_READY;
+        return 1;
+    }
+
+    printf("Cannot import environment: errno = %d\n", errno);
+
+    return 0;
+}
+
 void env_relocate_spec(void)
 {
 #if !defined(ENV_IS_EMBEDDED)
@@ -111,10 +137,13 @@ void env_relocate_spec(void)
 		printf("emmc init OK!\n");
 	else
 		printf("Fail!\n");
-	if (!read_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, env_buf)) {
-	    env_import(env_buf, 1);
-	} else {
-		set_default_env(NULL);
+
+    //setup default env.
+    set_default_env(NULL);
+
+    //override with saved env.
+    if (!read_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, env_buf)) {
+        env_append(env_buf, 1);
     }
 #endif
 }
