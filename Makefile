@@ -312,7 +312,6 @@ LIBS-y += arch/powerpc/cpu/mpc8xxx/ddr/libddr.o
 LIBS-y += arch/powerpc/cpu/mpc8xxx/lib8xxx.o
 endif
 LIBS-y += drivers/rtc/librtc.o
-LIBS-y += drivers/fastboot/libfastboot.o
 LIBS-y += drivers/serial/libserial.o
 LIBS-y += drivers/sound/libsound.o
 LIBS-$(CONFIG_GENERIC_LPC_TPM) += drivers/tpm/libtpm.o
