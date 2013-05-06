@@ -118,6 +118,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
     {
         boot = loader_flag&0xFF;
 
+        ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|boot);
         switch(boot) {
             case BOOT_NORMAL:
                 frt = FASTBOOT_REBOOT_NORMAL;
@@ -141,7 +142,6 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
         }
     }
 
-    ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|boot);
     return frt;
 }
 
