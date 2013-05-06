@@ -126,8 +126,9 @@ int arch_cpu_init(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
+#ifdef CONFIG_RK30XX
      printf("CPU:\tRK30XX\n");
-
+#endif
      return 0;
 }
 #endif
@@ -140,7 +141,9 @@ int board_init(void)
 {
 	/* Set Initial global variables */
 
+#ifdef CONFIG_RK30XX
 	gd->bd->bi_arch_number = MACH_TYPE_RK30XX;
+#endif
 	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x88000;
 
 	return 0;
