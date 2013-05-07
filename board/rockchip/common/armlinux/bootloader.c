@@ -239,21 +239,24 @@ bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 	return TRUE;
 }
 
-int get_rk28boot(uint8 * pLoader)
+int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 {
     mtd_partition *misc_part = gBootInfo.cmd_mtd.parts+gBootInfo.index_misc;
     RK28BOOT_HEAD* hdr = (RK28BOOT_HEAD*)pLoader;
     int nBootSize = 0;
 
-	if(StorageReadLba(misc_part->offset+96, (void*)pLoader,4)!=0 )
-	{
-	    //PRINT_E("ERROR: StorageRead(%d, %d, %d, 0x%p) Failed!\n", 0, misc_part->offset+96, 4, pLoader);
-	    return -1;
-	}
+    if (!dataLoaded)
+    {
+        if(StorageReadLba(misc_part->offset+96, (void*)pLoader,4)!=0 )
+        {
+            //PRINT_E("ERROR: StorageRead(%d, %d, %d, 0x%p) Failed!\n", 0, misc_part->offset+96, 4, pLoader);
+            return -1;
+        }
+    }
 
-	if(strcmp(BOOTSIGN, hdr->szSign) )
-	{
-		return -2;
+    if(strcmp(BOOTSIGN, hdr->szSign) )
+    {
+        return -2;
 	}
 
 	nBootSize = HEADINFO_SIZE
@@ -262,9 +265,12 @@ int get_rk28boot(uint8 * pLoader)
 				+ hdr->uiFlashDataLen
 				+ hdr->uiFlashBootLen;
 
-    if( CopyFlash2Memory( (int32)pLoader, misc_part->offset+96, BYTE2SECTOR(nBootSize)) )
-        return -3;
-        
+    if (!dataLoaded)
+    {
+        if( CopyFlash2Memory( (int32)pLoader, misc_part->offset+96, BYTE2SECTOR(nBootSize)) )
+            return -3;
+    }
+
     update_boot_bloader_ver = (INT2BCD(hdr->uiMajorVersion)<<8)|INT2BCD(hdr->uiMinorVersion);
     return 0;
 }
@@ -360,7 +366,7 @@ bool WriteXIDBlock(USHORT *pSysBlockAddr, int iIDBCount, UCHAR *idBlockData, UIN
 }
 
 // cmy: 升级loader
-int update_loader()
+int update_loader(bool dataLoaded)
 {
 	int iRet=0,iResult;
 	int i=0;
@@ -372,7 +378,7 @@ int update_loader()
     
 // 从MISC分区中取出rk28loader(L).bin的内容，存放在g_pLoader
     PRINT_I("get loader\n");
-    iResult = get_rk28boot(g_pLoader);
+    iResult = get_rk28boot(g_pLoader, dataLoaded);
     if( iResult )
 	{
 		PRINT_E("rk28boot Err:%d\n", iResult);

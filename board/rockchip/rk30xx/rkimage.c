@@ -76,7 +76,7 @@ int handleErase(fbt_partition_t *ptn)
 }
 
 #define PARAMETER_HEAD_OFFSET   8
-int buildParameter(unsigned char *parameter, int len)
+static int buildParameter(unsigned char *parameter, int len)
 {
     int i;
     uint32 crc = crc32(0, parameter, len);
@@ -93,6 +93,58 @@ int buildParameter(unsigned char *parameter, int len)
     param->tag = PARM_TAG;
     param->length = len;
     return len + PARAMETER_HEAD_OFFSET;
+}
+
+static int make_loader_data(const char* old_loader, char* new_loader, int *new_loader_size)//path, RKIMAGE_HDR *hdr)
+{
+    int i,j;
+    PSTRUCT_RKBOOT_ENTRY pFlashDataEntry = NULL;
+    PSTRUCT_RKBOOT_ENTRY pFlashBootEntry = NULL;
+    STRUCT_RKBOOT_HEAD *boot_hdr = NULL;
+    RK28BOOT_HEAD *new_hdr = NULL;
+
+    boot_hdr = (STRUCT_RKBOOT_HEAD*)old_loader;
+
+// µÃµ½FlashData/FlashBootÊý¾Ý¿éµÄÐÅÏ¢
+    for (i=0;i<boot_hdr->ucLoaderEntryCount;i++)
+    {
+        PSTRUCT_RKBOOT_ENTRY pEntry;
+        pEntry = (PSTRUCT_RKBOOT_ENTRY)(old_loader+boot_hdr->dwLoaderEntryOffset+(boot_hdr->ucLoaderEntrySize*i));
+        char name[10] = "";
+        for(j=0; j<20 && pEntry->szName[j]; j+=2)
+            name[j/2] = pEntry->szName[j];
+        if( !strcmp( name, "FlashData" ) )
+            pFlashDataEntry = pEntry;
+        else if( !strcmp( name, "FlashBoot" ) )
+            pFlashBootEntry = pEntry;
+    }
+    if(pFlashDataEntry == NULL || pFlashBootEntry == NULL)
+        return -1;
+
+// ¹¹ÔìÐÂµÄLoaderÊý¾Ý£¬ÒÔ´«¸øLoader½øÐÐ±¾µØÉý¼¶
+    new_hdr = (RK28BOOT_HEAD*)new_loader;
+    memset(new_hdr, 0, HEADINFO_SIZE);
+    strcpy(new_hdr->szSign, BOOTSIGN);
+    new_hdr->tmCreateTime.usYear = boot_hdr->stReleaseTime.usYear;
+    new_hdr->tmCreateTime.usMonth= boot_hdr->stReleaseTime.ucMonth;
+    new_hdr->tmCreateTime.usDate= boot_hdr->stReleaseTime.ucDay;
+    new_hdr->tmCreateTime.usHour = boot_hdr->stReleaseTime.ucHour;
+    new_hdr->tmCreateTime.usMinute = boot_hdr->stReleaseTime.ucMinute;
+    new_hdr->tmCreateTime.usSecond = boot_hdr->stReleaseTime.ucSecond;
+    new_hdr->uiMajorVersion = (boot_hdr->dwVersion&0x0000FF00)>>8;
+    new_hdr->uiMajorVersion = BCD2INT(new_hdr->uiMajorVersion);
+    new_hdr->uiMinorVersion = boot_hdr->dwVersion&0x000000FF;
+    new_hdr->uiMinorVersion = BCD2INT(new_hdr->uiMinorVersion);
+    new_hdr->uiFlashDataOffset = HEADINFO_SIZE;
+    new_hdr->uiFlashDataLen = pFlashDataEntry->dwDataSize;
+    new_hdr->uiFlashBootOffset = new_hdr->uiFlashDataOffset+new_hdr->uiFlashDataLen;
+    new_hdr->uiFlashBootLen = pFlashBootEntry->dwDataSize;
+    memcpy(new_loader+new_hdr->uiFlashDataOffset, old_loader+pFlashDataEntry->dwDataOffset, pFlashDataEntry->dwDataSize);
+    memcpy(new_loader+new_hdr->uiFlashBootOffset, old_loader+pFlashBootEntry->dwDataOffset, pFlashBootEntry->dwDataSize);
+    *new_loader_size = new_hdr->uiFlashBootOffset+new_hdr->uiFlashBootLen;
+//    dump_data(new_loader, HEADINFO_SIZE);
+
+    return 0;
 }
 
 int handleRkFlash(char *name,
@@ -117,14 +169,37 @@ int handleRkFlash(char *name,
         }
         if (!ret)
         {
-            sprintf(priv->response, "OKAY");
+            goto ok;
         } else
         {
-            sprintf(priv->response,
-                    "FAILWrite partition");
+            goto fail;
         }
         return 1;
     }
+    if (!strcmp(LOADER_NAME, name))
+    {
+        int size = 0, ret = -1;
+        if (make_loader_data(priv->transfer_buffer, g_pLoader, &size))
+        {
+            printf("err! make_loader_data failed\n");
+            goto fail;
+        }
+        if (update_loader(true))
+        {
+            printf("err! update_loader failed\n");
+            goto fail;
+        }
+        goto ok;
+    }
     return 0;
+ok:
+    sprintf(priv->response, "OKAY");
+    return 1;
+fail:
+    sprintf(priv->response,
+            "FAILWrite partition");
+    return -1;
+
+
 }
 

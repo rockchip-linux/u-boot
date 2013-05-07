@@ -246,7 +246,7 @@ struct bootloader_message {
     char recovery[1024];
 };
 
-int update_loader(void);
+int update_loader(bool dataLoaded);
 //int dispose_bootloader_cmd(struct bootloader_message *msg, mtd_partition *misc_part);
 
 #endif

@@ -192,6 +192,7 @@ extern struct fbt_partition fbt_partitions[];
 #define FBT_PARTITION_MAX_NUM 16
 
 #define PARAMETER_NAME  "parameter"
+#define LOADER_NAME     "loader"
 #define MISC_NAME       "misc"
 #define KERNEL_NAME     "kernel"
 #define BOOT_NAME       "boot"

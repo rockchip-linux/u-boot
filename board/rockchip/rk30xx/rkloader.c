@@ -180,7 +180,7 @@ int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
         if( !strcmp(cmd, "update-bootloader") )// Éý¼¶ bootloader
         {
             PRINT_I("--- update bootloader ---\n");
-            if( update_loader()==0 )
+            if( update_loader(false)==0 )
             {// cmy: Éý¼¶Íê³ÉºóÖØÆô
                 *reboot = TRUE;
             }
