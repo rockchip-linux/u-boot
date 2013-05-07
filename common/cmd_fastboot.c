@@ -755,10 +755,12 @@ struct getvar_entry {
 	int exact_match;
 	const char *(*getvar_func)(const char *arg);
 };
+extern char bootloader_ver[];
 
 static const char *getvar_version(const char *unused)
 {
-	return version_string;
+	//return version_string;
+	return bootloader_ver;
 }
 
 static const char *getvar_version_bootloader(const char *unused)
