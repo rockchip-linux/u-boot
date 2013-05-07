@@ -118,7 +118,7 @@ typedef volatile unsigned char	vu_char;
 #include <image.h>
 
 /* Peter: enable debug information */
-#define DEBUG	
+//#define DEBUG	
 
 #ifdef DEBUG
 #define _DEBUG	1
