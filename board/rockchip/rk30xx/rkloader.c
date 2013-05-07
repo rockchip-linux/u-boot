@@ -228,22 +228,14 @@ int checkMisc() {
 }
 void setBootloaderMsg(struct bootloader_message bmsg)
 {
-    int i;
-    unsigned char buf[RK_BLK_SIZE];
     fbt_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
     if (!ptn) {
         printf("misc partition not found!\n");
         return;
     }
 
-    //erase misc, should use fastboot's interface?
-    memset(buf, 0, sizeof(buf));
-    for (i = 0;i < (MISC_SIZE/RK_BLK_SIZE);i++) {
-        StorageWriteLba(ptn->offset + i, buf, 1, 0);
-    }
-
-    memcpy(buf, &bmsg, sizeof(bmsg));
-    StorageWriteLba(ptn->offset + MISC_COMMAND_OFFSET, buf, 1, 0);
+    CopyMemory2Flash(&bmsg, ptn->offset + MISC_COMMAND_OFFSET,
+            DIV_ROUND_UP(sizeof(bmsg), RK_BLK_SIZE));
 }
 
 #define IDBLOCK_SN          3//the sector 3
