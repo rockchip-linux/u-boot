@@ -158,6 +158,13 @@ reset:
 	bic	r0, r0, #0x1f
 	orr	r0, r0, #0xd3
 	msr	cpsr,r0
+
+#ifdef CONFIG_ROCKCHIP
+        ldr 	r1, =0x20004000             /* cpu 1 2 3 power down */
+        mov 	r0, #0x0E
+        str	r0, [r1,#8]
+#endif
+
 #ifdef CONFIG_USE_RK30IRQ
 	/*;chip detect RK30 or RK3066B
 	;set remap bit in grf enabled, remap 0x0000 to imem, 
