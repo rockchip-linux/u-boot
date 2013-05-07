@@ -70,6 +70,7 @@ int board_fbt_oem(const char *cmdbuf)
 
 #define SYS_LOADER_REBOOT_FLAG   0x5242C300 
 #define SYS_KERNRL_REBOOT_FLAG   0xC3524200
+#define SYS_LOADER_ERR_FLAG      0X1888AAFF
 
 enum {
     BOOT_NORMAL=                  0,
@@ -114,6 +115,13 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 
     uint32_t loader_flag = IReadLoaderFlag();
     int boot = BOOT_NORMAL;
+
+    if(SYS_LOADER_ERR_FLAG == loader_flag)
+    {
+        printf("reboot to rockusb.\n");
+        loader_flag = SYS_LOADER_REBOOT_FLAG | BOOT_LOADER;
+    }
+
     if((loader_flag&0xFFFFFF00) == SYS_LOADER_REBOOT_FLAG)
     {
         boot = loader_flag&0xFF;
