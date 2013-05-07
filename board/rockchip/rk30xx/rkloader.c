@@ -289,6 +289,19 @@ int checkBoot(struct fastboot_boot_img_hdr *hdr)
         goto end;
     }
 
+
+    hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
+    hdr->kernel_addr = gBootInfo.kernel_load_addr;
+
+    if (!hdr->kernel_addr)
+    {
+        hdr->kernel_addr = 0x60408000;
+    }
+    if (!hdr->ramdisk_addr)
+    {
+        hdr->ramdisk_addr = 0x62000000;
+    }
+
     if (checkboothdr(hdr))
     {
         printf("checkBoot failed!\n");

@@ -1745,22 +1745,61 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
                 goto fail;
             }
         }
-
-        bootimg_print_image_hdr(hdr);
+        
         if (board_fbt_boot_check(hdr)) {
             FBTERR("booti: board check boot image error\n");
             goto fail;
         }
     } else {
-        FBTERR("booti: load boot image error\n");
-        goto fail;
-    }
+        unsigned addr;
+        void *kaddr, *raddr;
+        char *ep;
 
-	FBTDBG("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
-	FBTDBG("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
+        addr = simple_strtoul(boot_source, &ep, 16);
+        if (ep == boot_source || *ep != '\0') {
+            printf("'%s' does not seem to be a partition nor "
+                        "an address\n", boot_source);
+            /* this is most likely due to having no
+             * partition table in factory case, or could
+             * be argument is wrong.  in either case, start
+             * fastboot mode.
+             */
+            goto fail;
+        }
+
+        hdr = malloc(sizeof(*hdr));
+        if (hdr == NULL) {
+            printf("error allocating buffer\n");
+            goto fail;
+        }
+
+        /* set this aside somewhere safe */
+        memcpy(hdr, (void *) addr, sizeof(*hdr));
+
+        if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
+               FASTBOOT_BOOT_MAGIC_SIZE)) {
+            printf("booti: bad boot image magic\n");
+            goto fail;
+        }
+        
+        if (board_fbt_boot_check(hdr)) {
+            FBTERR("booti: board check boot image error\n");
+            goto fail;
+        }
+
+        kaddr = (void *)(addr + hdr->page_size);
+        raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
+                           hdr->page_size));
+        memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
+        memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
+    }
+    bootimg_print_image_hdr(hdr);
+
+    FBTDBG("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
+    FBTDBG("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
 
 #ifdef CONFIG_CMDLINE_TAG
-	{
+    {
 		/* static just to be safe when it comes to the stack */
 		static char command_line[1024];
 		int i, amt;
