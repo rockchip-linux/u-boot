@@ -190,12 +190,12 @@ void enable_caches(void)
 
 void startRockusb()
 {
+    printf("startRockusb,%d\n" , RkldTimerGetTick());
     FW_SDRAM_ExcuteAddr = 0;
     g_BootRockusb = 1;
     FWSetResetFlag = 0;
     FWLowFormatEn = 0;
     UsbBoot();
-    printf("UsbHook,%d\n" , RkldTimerGetTick());
     UsbHook();
 }
 int board_fbt_key_pressed(void)
