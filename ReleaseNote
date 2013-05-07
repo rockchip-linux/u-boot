@@ -1,0 +1,25 @@
+2013.4.8
+initial version checkout from uboot v2013.04-rc2
+
+2013.5.7
+Alpha version
+
+Feature
+Support Rockusb, Fastboot.
+Support Display Logo in Uboot.Now can display logo with 2s in RK3066 with 8bpp@160*96 logo.
+Support Volume+ + Power + USB plugin enter Rockusb.
+Support Volume- + Power + USB plugin enter Fastboot.
+Support Volume+ + Power enter android recovery.
+Support upgrade loader,parameter,kernel.img,boot.img,recovery.img,system.img,misc.img through Rockusb.
+Support upgrade parameter,kernel.img,boot.img,recovery.img,system.img,misc.img through Fastboot.
+Support load boot.img,recovery.img and kernel.img.
+Support upgrade bootloader and parameter from Android OTA.
+Support "adb reboot loader", "adb reboot bootloader", "adb reboot-bootloader" enter Rockusb mode.
+Support "adb reboot recovery" enter android recovery.
+
+Useage
+compile:make rk30xx. 
+use UBOOT_ROOT/tools/rk_tools/BootMerger.exe to merge the real bootloader.
+modify UBOOT_ROOT/tools/rk_tools/ROBOOT.ini to select chipset. 
+RK30xx use CHIP=RK30
+RK3188 use CHIP=RK3188
