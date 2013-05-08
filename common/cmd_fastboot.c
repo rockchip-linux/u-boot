@@ -211,12 +211,12 @@ extern struct usb_string_descriptor **usb_strings;
 
 /* USB Descriptor Strings */
 static char serial_number[33]; /* what should be the length ?, 33 ? */
-static u8 wstr_lang[4] = {4, USB_DT_STRING, 0x9, 0x4};
-static u8 wstr_manufacturer[2 + 2*(sizeof(CONFIG_USBD_MANUFACTURER)-1)];
-static u8 wstr_product[2 + 2*(sizeof(CONFIG_USBD_PRODUCT_NAME)-1)];
-static u8 wstr_serial[2 + 2*(sizeof(serial_number) - 1)];
-static u8 wstr_configuration[2 + 2*(sizeof(CONFIG_USBD_CONFIGURATION_STR)-1)];
-static u8 wstr_interface[2 + 2*(sizeof(CONFIG_USBD_INTERFACE_STR)-1)];
+static __attribute__ ((aligned(4))) u8 wstr_lang[4] = {4, USB_DT_STRING, 0x9, 0x4};
+static __attribute__ ((aligned(4))) u8 wstr_manufacturer[2 + 2*(sizeof(CONFIG_USBD_MANUFACTURER)-1)];
+static __attribute__ ((aligned(4))) u8 wstr_product[2 + 2*(sizeof(CONFIG_USBD_PRODUCT_NAME)-1)];
+static __attribute__ ((aligned(4))) u8 wstr_serial[2 + 2*(sizeof(serial_number) - 1)];
+static __attribute__ ((aligned(4))) u8 wstr_configuration[2 + 2*(sizeof(CONFIG_USBD_CONFIGURATION_STR)-1)];
+static __attribute__ ((aligned(4))) u8 wstr_interface[2 + 2*(sizeof(CONFIG_USBD_INTERFACE_STR)-1)];
 
 /* USB descriptors */
 static struct usb_device_descriptor device_descriptor = {
