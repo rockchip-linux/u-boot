@@ -763,6 +763,11 @@ static const char *getvar_version(const char *unused)
 	return bootloader_ver;
 }
 
+static const char *getvar_version_baseband(const char *unused)
+{
+    return "n/a";
+}
+
 static const char *getvar_version_bootloader(const char *unused)
 {
 	return CONFIG_FASTBOOT_VERSION_BOOTLOADER;
@@ -850,6 +855,7 @@ static const char *getvar_partition_size(const char *args)
 
 static const struct getvar_entry getvar_table[] = {
 	{"version", 1, getvar_version},
+    {"version-baseband", 1, getvar_version_baseband},
 	{"version-bootloader", 1, getvar_version_bootloader},
 	{"unlocked", 1, getvar_unlocked},
 	{"secure", 1, getvar_secure},
