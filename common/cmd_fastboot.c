@@ -1570,7 +1570,7 @@ static void __def_board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
     /* write this structure to the "misc" partition, no unlock check */
     fbt_handle_flash("flash:misc", 0);
 }
-static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
+static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
 {
     return 0;
 }
@@ -1596,7 +1596,7 @@ int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
 void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
     __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
-int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr)
+int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
     __attribute__((weak, alias("__def_board_fbt_boot_check")));
 int board_fbt_boot_failed()
     __attribute__((weak, alias("__def_board_fbt_boot_failed")));
@@ -1752,7 +1752,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             }
         }
         
-        if (board_fbt_boot_check(hdr)) {
+        if (board_fbt_boot_check(hdr, priv.unlocked)) {
             FBTERR("booti: board check boot image error\n");
             goto fail;
         }
@@ -1788,7 +1788,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             goto fail;
         }
         
-        if (board_fbt_boot_check(hdr)) {
+        if (board_fbt_boot_check(hdr, priv.unlocked)) {
             FBTERR("booti: board check boot image error\n");
             goto fail;
         }

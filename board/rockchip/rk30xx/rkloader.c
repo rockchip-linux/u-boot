@@ -278,7 +278,7 @@ int getSn(char* buf)
 }
 
 
-int checkBoot(struct fastboot_boot_img_hdr *hdr)
+int checkBoot(struct fastboot_boot_img_hdr *hdr, int unlocked)
 {
     rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)hdr;
 
@@ -308,7 +308,8 @@ int checkBoot(struct fastboot_boot_img_hdr *hdr)
         return -1;
     }
 
-    if(SecureBootEn && boothdr->signTag == SECURE_BOOT_SIGN_TAG)
+    if(!unlocked && SecureBootEn &&
+           boothdr->signTag == SECURE_BOOT_SIGN_TAG)
     {
         if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
                     boothdr->signlen) == FTL_OK)
