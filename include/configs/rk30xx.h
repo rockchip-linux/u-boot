@@ -191,13 +191,8 @@
 #define RK_BLK_SIZE             512
 
 /* for fastboot */
-#if(CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 #define CONFIG_USBD_VENDORID        0x2207
-#define CONFIG_USBD_PRODUCTID       0x310B
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-#define CONFIG_USBD_VENDORID        0x2207
-#define CONFIG_USBD_PRODUCTID       0x300a
-#endif
+#define CONFIG_USBD_PRODUCTID       0x0006
 #define CONFIG_USBD_MANUFACTURER    "Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
 
