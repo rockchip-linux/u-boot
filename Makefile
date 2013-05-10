@@ -450,6 +450,11 @@ $(obj)u-boot.ldr.hex:	$(obj)u-boot.ldr
 $(obj)u-boot.ldr.srec:	$(obj)u-boot.ldr
 		$(OBJCOPY) ${OBJCFLAGS} -O srec $< $@ -I binary
 
+ifneq ($(CONFIG_ROCKCHIP),)
+$(obj)RK30xxLoader_uboot.bin: $(obj)u-boot.bin
+	cd $(obj)tools/rk_tools/ && ./boot_merger RKBOOT/RK30.ini
+endif
+
 #
 # U-Boot entry point, needed for booting of full-blown U-Boot
 # from the SPL U-Boot version.

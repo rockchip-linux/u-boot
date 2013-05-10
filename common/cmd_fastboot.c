@@ -1693,7 +1693,7 @@ static void bootimg_print_image_hdr(struct fastboot_boot_img_hdr *hdr)
 #endif
 }
 
-#ifdef CONFIG_RK30XX
+#ifdef CONFIG_ROCKCHIP
 extern int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, fbt_partition_t *kernel_ptn);
 #endif
 
@@ -1724,7 +1724,7 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
 			   FASTBOOT_BOOT_MAGIC_SIZE)) {
-#ifdef CONFIG_RK30XX
+#ifdef CONFIG_ROCKCHIP
             memset(hdr, 0, blksz);
             if (loadRkImage(hdr, ptn, fastboot_find_ptn(KERNEL_NAME)) != 0) {
                 FBTERR("booti: bad boot or kernel image\n");
