@@ -1937,12 +1937,7 @@ void fbt_preboot(void)
 		 * save env in this case
 		 */
 		return fbt_run_recovery_wipe_data();
-	} else if (frt == FASTBOOT_REBOOT_BOOTLOADER) {
-
-		/* Case: %fastboot reboot-bootloader
-		 * Case: %adb reboot bootloader
-		 * Case: %adb reboot-bootloader
-		 */
+	} else if (frt == FASTBOOT_REBOOT_FASTBOOT) {
 		FBTDBG("\n%s: starting fastboot because of reboot flag\n",
 		       __func__);
 		fbt_request_start_fastboot();

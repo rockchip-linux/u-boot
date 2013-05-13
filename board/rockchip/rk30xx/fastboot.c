@@ -95,6 +95,9 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
         case FASTBOOT_REBOOT_BOOTLOADER:
             boot = BOOT_LOADER;
             break;
+        case FASTBOOT_REBOOT_FASTBOOT:
+            boot = BOOT_FASTBOOT;
+            break;
         case FASTBOOT_REBOOT_RECOVERY:
             boot = BOOT_RECOVER;
             break;
@@ -135,7 +138,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
                 startRockusb();
                 break;
             case BOOT_FASTBOOT:
-                frt = FASTBOOT_REBOOT_BOOTLOADER;
+                frt = FASTBOOT_REBOOT_FASTBOOT;
                 break;
             case BOOT_RECOVER:
                 frt = FASTBOOT_REBOOT_RECOVERY;

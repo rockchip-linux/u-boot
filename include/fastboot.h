@@ -228,10 +228,11 @@ struct bootloader_message;
 enum fbt_reboot_type {
 	FASTBOOT_REBOOT_UNKNOWN, /* typically for a cold boot */
 	FASTBOOT_REBOOT_NORMAL,
-	FASTBOOT_REBOOT_BOOTLOADER,
+	FASTBOOT_REBOOT_BOOTLOADER, //rockusb
 	FASTBOOT_REBOOT_RECOVERY,
 	FASTBOOT_REBOOT_NONE,
 	FASTBOOT_REBOOT_RECOVERY_WIPE_DATA,
+	FASTBOOT_REBOOT_FASTBOOT,
 };
 extern void fbt_preboot(void);
 extern int fbt_send_info(const char *info);
