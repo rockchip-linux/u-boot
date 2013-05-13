@@ -213,7 +213,7 @@ int board_fbt_key_pressed(void)
         startRockusb();
     } else if(boot_fastboot && (vbus!=0)){
         printf("%s: fastboot key pressed.\n",__func__);
-        frt = FASTBOOT_REBOOT_BOOTLOADER;
+        frt = FASTBOOT_REBOOT_FASTBOOT;
     }
 
     return frt;
