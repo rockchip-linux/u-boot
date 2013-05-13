@@ -75,7 +75,7 @@ void reset_timer_masked(void)
 {
 	/* reset time */
 	if (ChipType == CHIP_RK3188) {
-		gd->arch.lastinc = g_rk3188Time0Reg->TIMER_LOAD_COUNT0;	/* Monotonic incrementing timer */
+		gd->arch.lastinc = g_rk3188Time0Reg->TIMER_CURR_VALUE0;	/* Monotonic incrementing timer */
 	} else {
 		gd->arch.lastinc = g_rk30Time0Reg->TIMER_CURR_VALUE;	/* Monotonic incrementing timer */
 	}
@@ -118,7 +118,7 @@ static unsigned long get_current_tick(void)
 	unsigned long now;
 
 	if (ChipType == CHIP_RK3188) {
-		now = g_rk3188Time0Reg->TIMER_LOAD_COUNT0;
+		now = g_rk3188Time0Reg->TIMER_CURR_VALUE0;
 	} else {
 		now = g_rk30Time0Reg->TIMER_CURR_VALUE;
 	}
