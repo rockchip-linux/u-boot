@@ -16,6 +16,15 @@ Revision:       1.00
 #include 	"USB20.h"		//USB部分总头文件
 #define     ENUM_EN
 
+volatile uint8           UsbConnected;
+volatile uint8           UsbBusReset;
+volatile uint8           ControlStage;
+volatile uint8           Ep0PktSize;
+volatile uint16          BulkEpSize;
+
+CONTROL_XFER    ControlData;
+ALIGN(8)        uint8 Ep0Buf[64];
+
 /**************************************************************************
 函数描述:获取VBUS状态
 入口参数:

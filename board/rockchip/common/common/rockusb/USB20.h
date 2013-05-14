@@ -405,22 +405,15 @@ typedef struct _TWAIN_FILEINFO
 
 
 
-//1全局变量
-#undef	EXT
-#ifdef	IN_ROCKUSB
-		#define	EXT
-#else
-		#define	EXT		extern
-#endif		
-		
-EXT		CONTROL_XFER 	ControlData;
-EXT     uint8           UsbBootFlag;
-EXT     uint8           UsbConnected;
-EXT     uint8           UsbBusReset;
-EXT		uint8 			ControlStage;
-EXT		uint8 			Ep0PktSize;
-EXT		uint16 			BulkEpSize;
-EXT		ALIGN(8) uint8 Ep0Buf[64];
+extern volatile uint8           UsbBootFlag;
+extern volatile uint8           UsbConnected;
+extern volatile uint8           UsbBusReset;
+extern volatile uint8           ControlStage;
+extern volatile uint8           Ep0PktSize;
+extern volatile uint16          BulkEpSize;
+
+extern CONTROL_XFER    ControlData;
+extern ALIGN(8)        uint8 Ep0Buf[64];
 
 
 
