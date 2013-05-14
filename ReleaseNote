@@ -37,7 +37,7 @@ Support fastboot reboot
 Support fastboot reboot-bootloader
 Support fastboot continue
 Support fastboot boot <kernel> [ <ramdisk> ]
-Support fastboot update <filename>
+Support fastboot update <filename> (this file should use make updatepackage in android root directory to generate it)
 Support fastboot flashall
 
 Useage
