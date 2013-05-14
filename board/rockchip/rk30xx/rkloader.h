@@ -18,7 +18,7 @@ typedef struct tag_rk_boot_img_hdr {
 #define SECURE_BOOT_SIGN_TAG    0x4E474953
 
 int checkBoot(struct fastboot_boot_img_hdr *hdr, int unlocked);
-void setBootloaderMsg(struct bootloader_message bmsg);
+void setBootloaderMsg(struct bootloader_message* bmsg);
 int checkMisc();
 void ReSizeRamdisk(PBootInfo pboot_info,uint32 ImageSize);
 int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors);

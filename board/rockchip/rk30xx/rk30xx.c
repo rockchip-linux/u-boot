@@ -242,7 +242,7 @@ int board_fbt_check_misc()
     //return true if we got recovery cmd from misc.
     return checkMisc();
 }
-void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
+void board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
 {
     setBootloaderMsg(bmsg);
 }

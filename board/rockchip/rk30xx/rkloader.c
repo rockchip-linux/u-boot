@@ -205,14 +205,16 @@ int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
 
 int checkMisc() {
     struct bootloader_message *bmsg = NULL;
-    unsigned char buf[RK_BLK_SIZE];
+    unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
+            RK_BLK_SIZE) * RK_BLK_SIZE];
     fbt_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
     if (!ptn) {
         printf("misc partition not found!\n");
         return false;
     }
     bmsg = (struct bootloader_message *)buf;
-    if (StorageReadLba(ptn->offset + MISC_COMMAND_OFFSET, (void *) bmsg, 1) != 0) {
+    if (StorageReadLba(ptn->offset + MISC_COMMAND_OFFSET, buf, DIV_ROUND_UP(
+                    sizeof(struct bootloader_message), RK_BLK_SIZE)) != 0) {
         printf("failed to read misc\n");
         return false;
     }
@@ -226,16 +228,19 @@ int checkMisc() {
     }
     return false;
 }
-void setBootloaderMsg(struct bootloader_message bmsg)
+void setBootloaderMsg(struct bootloader_message* bmsg)
 {
+    unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
+            RK_BLK_SIZE) * RK_BLK_SIZE];
+    memcpy(buf, bmsg, sizeof(struct bootloader_message));
     fbt_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
     if (!ptn) {
         printf("misc partition not found!\n");
         return;
     }
 
-    CopyMemory2Flash(&bmsg, ptn->offset + MISC_COMMAND_OFFSET,
-            DIV_ROUND_UP(sizeof(bmsg), RK_BLK_SIZE));
+    CopyMemory2Flash(&buf, ptn->offset + MISC_COMMAND_OFFSET,
+            DIV_ROUND_UP(sizeof(struct bootloader_message), RK_BLK_SIZE));
 }
 
 #define IDBLOCK_SN          3//the sector 3

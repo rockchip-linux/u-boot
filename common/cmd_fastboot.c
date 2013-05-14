@@ -1524,7 +1524,7 @@ static void fbt_run_recovery_wipe_data(void)
 	strcpy(bmsg.command, "boot-recovery");
 	bmsg.status[0] = 0;
 	strcpy(bmsg.recovery, "recovery\n--wipe_data");
-    board_fbt_set_bootloader_msg(bmsg);
+    board_fbt_set_bootloader_msg(&bmsg);
 
 	/* now reboot to recovery */
 	fbt_run_recovery();
@@ -1562,10 +1562,10 @@ static int __def_board_fbt_check_misc()
 {
     return 0;
 }
-static void __def_board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
+static void __def_board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
 {
-    memcpy(priv.transfer_buffer, &bmsg, sizeof(bmsg));
-    priv.d_bytes = sizeof(bmsg);
+    memcpy(priv.transfer_buffer, bmsg, sizeof(struct bootloader_message));
+    priv.d_bytes = sizeof(struct bootloader_message);
 
     /* write this structure to the "misc" partition, no unlock check */
     fbt_handle_flash("flash:misc", 0);
@@ -1594,7 +1594,7 @@ int board_fbt_handle_flash(char *name,
     __attribute__((weak, alias("__def_board_fbt_handle_flash")));
 int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
-void board_fbt_set_bootloader_msg(struct bootloader_message bmsg)
+void board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
     __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
     __attribute__((weak, alias("__def_board_fbt_boot_check")));

@@ -247,7 +247,7 @@ void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
 int board_fbt_handle_flash(char *name,
         struct cmd_fastboot_interface *priv);
 int board_fbt_check_misc();
-void board_fbt_set_bootloader_msg(struct bootloader_message bmsg);
+void board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
 struct fbt_partition *fastboot_find_ptn(const char *name);
 
 #endif /* CONFIG_CMD_FASTBOOT */
