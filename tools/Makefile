@@ -173,6 +173,9 @@ HOSTCPPFLAGS =	-idirafter $(SRCTREE)/include \
 		-DUSE_HOSTCC \
 		-D__KERNEL_STRICT_NAMES
 
+ifneq ($(CONFIG_COMPRESS_RLE_LOGO),)
+HOSTCFLAGS += -DCOMPRESS_RLE
+endif
 
 all:	$(obj).depend $(BINS) $(LOGO-y) subdirs
 
