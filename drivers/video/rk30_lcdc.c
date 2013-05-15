@@ -1,8 +1,13 @@
-/*
- * (C) Copyright 2013
- * Texas Instruments, <www.rock-chips.com>
- * Chris.Zhong <zyw@rock-chips.com>
- */
+/********************************************************************************
+		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
+			--  ALL RIGHTS RESERVED  --
+File Name:	
+Author:         
+Created:        
+Modified:
+Revision:       1.00
+********************************************************************************/
+
 
 #include <common.h>
 #include <asm/arch/rk30_memap.h>

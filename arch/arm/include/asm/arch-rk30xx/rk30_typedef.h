@@ -1,4 +1,12 @@
-
+/********************************************************************************
+		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
+			--  ALL RIGHTS RESERVED  --
+File Name:	
+Author:         
+Created:        
+Modified:
+Revision:       1.00
+********************************************************************************/
 #ifndef	_DRIVER_TYPEDEF_H
 #define _DRIVER_TYPEDEF_H
 

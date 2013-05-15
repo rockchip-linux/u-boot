@@ -1,3 +1,12 @@
+/********************************************************************************
+		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
+			--  ALL RIGHTS RESERVED  --
+File Name:	
+Author:         
+Created:        
+Modified:
+Revision:       1.00
+********************************************************************************/
 #ifndef RKIMAGE_H
 #define RKIMAGE_H
 
