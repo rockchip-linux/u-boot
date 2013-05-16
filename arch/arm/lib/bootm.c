@@ -53,6 +53,7 @@ static ulong get_sp(void)
 	return ret;
 }
 
+#ifdef CONFIG_LMB
 void arch_lmb_reserve(struct lmb *lmb)
 {
 	ulong sp;
@@ -74,6 +75,7 @@ void arch_lmb_reserve(struct lmb *lmb)
 	lmb_reserve(lmb, sp,
 		    gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size - sp);
 }
+#endif //CONFIG_LMB
 
 #ifdef CONFIG_OF_LIBFDT
 static int fixup_memory_node(void *blob)

@@ -86,7 +86,6 @@ Revision:       1.00
 /*
  * Environment setup
  */
-#define CONFIG_BOOTDELAY    0
 /* use preboot to detect key press for fastboot */
 #define CONFIG_PREBOOT
 #define CONFIG_BOOTCOMMAND "booti"
@@ -230,6 +229,6 @@ Revision:       1.00
 #undef CONFIG_PARTITIONS
 #undef CONFIG_CMD_ECHO
 #undef CONFIG_CMD_REGINFO
-
+#undef CONFIG_CMDLINE_EDITING
 
 #endif /* __CONFIG_H */

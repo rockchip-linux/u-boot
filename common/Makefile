@@ -231,7 +231,7 @@ endif
 COBJS-$(CONFIG_BOUNCE_BUFFER) += bouncebuf.o
 COBJS-y += console.o
 COBJS-y += dlmalloc.o
-COBJS-y += image.o
+#COBJS-y += image.o
 COBJS-y += memsize.o
 COBJS-y += stdio.o
 
