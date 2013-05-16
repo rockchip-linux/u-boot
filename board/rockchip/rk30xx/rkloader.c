@@ -291,19 +291,8 @@ int getSn(char* buf)
     return true;
 }
 
-
-int checkBoot(struct fastboot_boot_img_hdr *hdr, int unlocked)
+int fixHdr(struct fastboot_boot_img_hdr *hdr)
 {
-    rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)hdr;
-
-    SecureBootCheckOK = 0;
-
-    if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-                           FASTBOOT_BOOT_MAGIC_SIZE)) {
-        goto end;
-    }
-
-
     hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
     hdr->kernel_addr = gBootInfo.kernel_load_addr;
 
@@ -320,6 +309,19 @@ int checkBoot(struct fastboot_boot_img_hdr *hdr, int unlocked)
     {
         printf("checkBoot failed!\n");
         return -1;
+    }
+    return 0;
+}
+
+int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked)
+{
+    rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)hdr;
+
+    SecureBootCheckOK = 0;
+
+    if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
+                           FASTBOOT_BOOT_MAGIC_SIZE)) {
+        goto end;
     }
 
     if(!unlocked && SecureBootEn &&

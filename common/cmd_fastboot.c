@@ -1735,6 +1735,11 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             goto fail;
 #endif
         } else {
+#ifdef CONFIG_ROCKCHIP
+            if (fixHdr(hdr) < 0) {
+                goto fail;
+            }
+#endif
             sector = ptn->offset + (hdr->page_size / blksz);
             blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
             if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
@@ -1750,11 +1755,6 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
                 FBTERR("booti: failed to read ramdisk\n");
                 goto fail;
             }
-        }
-        
-        if (board_fbt_boot_check(hdr, priv.unlocked)) {
-            FBTERR("booti: board check boot image error\n");
-            goto fail;
         }
     } else {
         unsigned addr;
@@ -1782,14 +1782,15 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         /* set this aside somewhere safe */
         memcpy(hdr, (void *) addr, sizeof(*hdr));
 
+#ifdef CONFIG_ROCKCHIP
+        if (fixHdr(hdr) < 0) {
+            goto fail;
+        }
+#endif
+
         if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
                FASTBOOT_BOOT_MAGIC_SIZE)) {
             printf("booti: bad boot image magic\n");
-            goto fail;
-        }
-        
-        if (board_fbt_boot_check(hdr, priv.unlocked)) {
-            FBTERR("booti: board check boot image error\n");
             goto fail;
         }
 
@@ -1799,6 +1800,12 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
         memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
     }
+
+    if (board_fbt_boot_check(hdr, priv.unlocked)) {
+        FBTERR("booti: board check boot image error\n");
+        goto fail;
+    }
+
     bootimg_print_image_hdr(hdr);
 
     FBTDBG("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
@@ -1861,6 +1868,9 @@ static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	free(hdr);
 	puts("booti: do_bootm_linux...\n");
 	do_bootm_linux(0, 0, NULL, &images);
+
+    //Should not reach here.
+    goto fail;
 
 	puts("booti: Control returned to monitor - resetting...\n");
 	do_reset(cmdtp, flag, argc, argv);

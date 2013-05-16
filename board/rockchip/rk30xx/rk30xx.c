@@ -254,7 +254,7 @@ void board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
 }
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
 {
-    return checkBoot(hdr, unlocked);
+    return secureCheck(hdr, unlocked);
 }
 void board_fbt_boot_failed()
 {
