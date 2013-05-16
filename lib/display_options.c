@@ -154,8 +154,10 @@ int print_buffer(ulong addr, const void *data, uint width, uint count,
 		addr += thislinelen * width;
 		count -= thislinelen;
 
+#ifdef CONFIG_CTRLC
 		if (ctrlc())
 			return -1;
+#endif //CONFIG_CTRLC
 	}
 
 	return 0;

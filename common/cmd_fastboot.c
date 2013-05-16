@@ -113,11 +113,13 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 #undef	INFO
 #undef	DEBUG
 
+#ifdef CONFIG_FASTBOOT_LOG
 #ifndef CONFIG_FASTBOOT_LOG_SIZE
 #define CONFIG_FASTBOOT_LOG_SIZE 4000
 #endif
 static char log_buffer[CONFIG_FASTBOOT_LOG_SIZE];
 static uint32_t log_position;
+#endif
 
 #ifdef DEBUG
 #define FBTDBG(fmt, args...)\
@@ -966,75 +968,6 @@ static void fbt_handle_reboot(const char *cmdbuf)
 	do_reset(NULL, 0, 0, NULL);
 }
 
-static char tmp_buf[CONFIG_SYS_CBSIZE]; /* copy of fastboot cmdbuf */
-
-static void fbt_handle_oem_setinfo(const char *cmdbuf)
-{
-#if 0
-	char *name, *value;
-	struct device_info *di;
-
-	FBTDBG("oem setinfo\n");
-
-	/* this is only allowed if the device info isn't already
-	 * initlialized in flash
-	 */
-	if (!priv.dev_info_uninitialized) {
-		printf("Not allowed to change device info already in flash\n");
-		strcpy(priv.response, "FAILnot allowed to change"
-		       " device info already in flash");
-		return;
-	}
-
-	if (priv.num_device_info == FASTBOOT_MAX_NUM_DEVICE_INFO) {
-		printf("Already at maximum number of device info (%d),"
-		       " no more allowed\n", FASTBOOT_MAX_NUM_DEVICE_INFO);
-		strcpy(priv.response, "FAILmax device info reached");
-		return;
-	}
-
-	/* copy to tmp_buf which will be modified by str_tok() */
-	strcpy(tmp_buf, cmdbuf);
-
-	name = strtok(tmp_buf, "=");
-	value = strtok(NULL, "\n");
-	if (!name || !value) {
-		printf("Invalid format for setinfo.\n");
-		printf("Syntax is "
-		       "'fastboot oem setinfo <info_name>=<info_value>\n");
-		strcpy(priv.response, "FAILinvalid device info");
-		return;
-	}
-
-	/* we enter new value at end so last slot should be free.
-	 * we don't currently allow changing a value already set.
-	 */
-	di = &priv.dev_info[priv.num_device_info];
-	if (di->name || di->value) {
-		printf("Error, device info entry not free as expected\n");
-		strcpy(priv.response, "FAILinternal error");
-		return;
-	}
-
-	di->name = strdup(name);
-	di->value = strdup(value);
-	if ((di->name == NULL) || (di->value == NULL)) {
-		printf("strdup() failed, unable to set info\n");
-		strcpy(priv.response, "FAILstrdup() failure\n");
-		free(di->name);
-		free(di->value);
-		return;
-	}
-
-	printf("Set device info %s=%s\n", di->name, di->value);
-	if (!strcmp(di->name, FASTBOOT_SERIALNO_BOOTARG))
-		set_serial_number(di->value);
-	priv.num_device_info++;
-
-	strcpy(priv.response, "OKAY");
-#endif
-}
-
 static int fbt_send_raw_info(const char *info, int bytes_left)
 {
 	int response_max;
@@ -1082,6 +1015,7 @@ static int fbt_send_raw_info(const char *info, int bytes_left)
 	return 0;
 }
 
+#ifdef CONFIG_FASTBOOT_LOG
 static void fbt_dump_log(char *buf, uint32_t buf_size)
 {
 	/* the log consists of a bunch of printf output, with
@@ -1113,11 +1047,13 @@ static void fbt_dump_log(char *buf, uint32_t buf_size)
 		}
 	}
 }
+#endif //CONFIG_FASTBOOT_LOG
 
 static void fbt_handle_oem(char *cmdbuf)
 {
 	cmdbuf += 4;
 
+#ifdef CONFIG_FASTBOOT_LOG
 	/* %fastboot oem log */
 	if (strcmp(cmdbuf, "log") == 0) {
 		FBTDBG("oem %s\n", cmdbuf);
@@ -1125,6 +1061,7 @@ static void fbt_handle_oem(char *cmdbuf)
 		strcpy(priv.response, "OKAY");
 		return;
 	}
+#endif //CONFIG_FASTBOOT_LOG
 
 	/* %fastboot oem recovery */
 	if (strcmp(cmdbuf, "recovery") == 0) {
@@ -1217,35 +1154,6 @@ static void fbt_handle_oem(char *cmdbuf)
 		sprintf(priv.response, "FAILdevice is locked");
 		return;
 	}
-
-	/* %fastboot oem setinfo <info_name>=<info_value> */
-	if (strncmp(cmdbuf, "setinfo ", 8) == 0) {
-		cmdbuf += 8;
-		fbt_handle_oem_setinfo(cmdbuf);
-		return;
-	}
-#if 0
-	/* %fastboot oem saveinfo */
-	if (strcmp(cmdbuf, "saveinfo") == 0) {
-		disk_partition_t *info_ptn;
-		info_ptn = fastboot_flash_find_ptn(CONFIG_INFO_PARTITION);
-
-		if (info_ptn == NULL) {
-			sprintf(priv.response, "FAILpartition does not exist");
-			return;
-		}
-		if (fbt_save_info(info_ptn)) {
-			printf("Writing '%s' FAILED!\n", info_ptn->name);
-			sprintf(priv.response, "FAIL: Write partition");
-		} else {
-			printf("Device info saved to partition '%s'\n",
-			       info_ptn->name);
-			sprintf(priv.response, "OKAY");
-		}
-		return;
-	}
-#endif
-    //TODO:maybe we need save some device info?
 
 	/* %fastboot oem ucmd ... */
 	if (strncmp(cmdbuf, "ucmd ", 5) == 0) {
@@ -1649,7 +1557,9 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 				}
 			}
 		}
+#ifdef CONFIG_CTRLC
 		priv.exit |= ctrlc();
+#endif //CONFIG_CTRLC
 		if (priv.exit) {
 			FBTINFO("fastboot end\n");
 			break;
@@ -1888,11 +1798,15 @@ fail:
 U_BOOT_CMD(
 	booti,	2,	1,	do_booti,
 	"boot android bootimg",
+#ifdef DEBUG
 	"[ <addr> | <partition> ]\n    - boot application image\n"
 	"\t'addr' should be the address of the boot image which is\n"
 	"\tzImage+ramdisk.img if in memory.  'partition' is the name\n"
 	"\tof the partition to boot from.  The default is to boot\n"
 	"\tfrom the 'boot' partition.\n"
+#else
+    "\n"
+#endif
 );
 
 static void fbt_request_start_fastboot(void)
@@ -1971,6 +1885,7 @@ void fbt_preboot(void)
 	}
 }
 
+#ifdef CONFIG_FASTBOOT_LOG
 int fbt_send_info(const char *info)
 {
 	int len;
@@ -1994,3 +1909,4 @@ int fbt_send_info(const char *info)
 
 	return fbt_send_raw_info(info, len);
 }
+#endif //CONFIG_FASTBOOT_LOG

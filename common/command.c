@@ -29,6 +29,7 @@
 #include <command.h>
 #include <linux/ctype.h>
 
+#ifndef CONFIG_ROCKCHIP
 /*
  * Use puts() instead of printf() to avoid printf buffer overflow
  * for long help messages
@@ -71,9 +72,11 @@ int _do_help (cmd_tbl_t *cmd_start, int cmd_items, cmd_tbl_t * cmdtp, int
 		for (i = 0; i < cmd_items; i++) {
 			const char *usage = cmd_array[i]->usage;
 
+#ifdef CONFIG_CTRLC
 			/* allow user abort */
 			if (ctrlc ())
 				return 1;
+#endif //CONFIG_CTRLC
 			if (usage == NULL)
 				continue;
 			printf("%-*s- %s\n", CONFIG_SYS_HELP_CMD_WIDTH,
@@ -97,6 +100,7 @@ int _do_help (cmd_tbl_t *cmd_start, int cmd_items, cmd_tbl_t * cmdtp, int
 	}
 	return rcode;
 }
+#endif //CONFIG_ROCKCHIP
 
 /***************************************************************************
  * find command table entry for a command

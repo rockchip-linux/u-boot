@@ -40,6 +40,7 @@ unsigned int digits;
 	return (0);
 }
 
+#if 0
 /* Returns nonzero iff a is zero. */
 
 int NN_Zero (a, digits)
@@ -55,6 +56,7 @@ unsigned int digits;
 
 	return (1);
 }
+#endif
 
 /* Assigns a = b. */
 
@@ -90,6 +92,7 @@ unsigned int digits;
 	return(digits);
 }
 
+#if 0
 /* Computes a = b + c. Returns carry.
 
 	 Lengths: a[digits], b[digits], c[digits].
@@ -116,6 +119,7 @@ unsigned int digits;
 
 	return (carry);
 }
+#endif
 
 /* Returns the significant length of a in bits, where a is a digit. */
 
@@ -132,6 +136,7 @@ NN_DIGIT a;
 }
 
 
+#if 0
 /* Returns the significant length of a in bits.
 
 	 Lengths: a[digits]. */
@@ -145,6 +150,7 @@ unsigned int digits;
 
 	return ((digits - 1) * NN_DIGIT_BITS + NN_DigitBits (a[digits-1]));
 }
+#endif
 
 /* Computes a * b, result stored in high and low. */
  
@@ -195,6 +201,7 @@ unsigned int digits;
 	}
 }
 
+#if 0
 /* Assigns a = 2^b.
 
    Lengths: a[digits].
@@ -211,6 +218,7 @@ unsigned int b, digits;
 
   a[b / NN_DIGIT_BITS] = (NN_DIGIT)1 << (b % NN_DIGIT_BITS);
 }
+#endif
 
 /* Computes a = b - c. Returns borrow.
 
@@ -542,6 +550,7 @@ unsigned int cDigits, dDigits;
 	NN_Assign (a, t, dDigits);
 }
 
+#if 0
 /* Compute a = 1/b mod c, assuming inverse exists.
    
    Lengths: a[digits], b[digits], c[digits].
@@ -611,7 +620,7 @@ unsigned int digits;
 
 	NN_Assign(a , g(iminus1), digits);
 }
-
+#endif
 
 
 /* Decodes character string b into a, where character string is ordered
