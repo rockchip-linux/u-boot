@@ -632,21 +632,15 @@ void bitmap_plot(int x, int y)
 	bmap = &bmp_logo_bitmap[0];
 	fb   = (uchar *)(lcd_base + y * lcd_line_length + x * bpix / 8);
 
-#ifdef CONFIG_COMPRESS_RLE_LOGO
-    unsigned n;
-    unsigned max = BMP_LOGO_WIDTH * BMP_LOGO_HEIGHT;
-    for(i=0; i<(sizeof(bmp_logo_rle) - 1);)
+#if (defined CONFIG_COMPRESS_LOGO_RLE8) || (defined CONFIG_COMPRESS_LOGO_RLE16)
+    unsigned n, index;
+    index = 0;
+    for(i=0; i<(sizeof(bmp_logo_rle)/sizeof(bmp_logo_rle[0]) - 1);)
     {
         n = bmp_logo_rle[i++];
-        if (n > max) {
-            error("Logo: data error\n");
-            break;
-        }
-        memset(bmap, bmp_logo_rle[i++], n);
-        bmap += n;
-        max -= n;
+        memset(bmap + index, (uint8_t)bmp_logo_rle[i++], n);
+        index += n;
     }
-	bmap = &bmp_logo_bitmap[0];
 #endif
 
 	if (bpix < 12) {
