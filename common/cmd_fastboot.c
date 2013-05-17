@@ -1106,8 +1106,11 @@ static void fbt_handle_oem(char *cmdbuf)
 		}
 		priv.unlock_pending_start_time = 0;
 		FBTDBG("Erasing userdata partition\n");
-        err = fbt_handle_erase("erase userdata");
-
+        fbt_partition_t* ptn;
+        ptn = fastboot_find_ptn("userdata");
+        if (ptn) {
+            err = handleErase(ptn);
+        }
 		if (err) {
 			FBTERR("Erase failed with error %d\n", err);
 			strcpy(priv.response, "FAILErasing userdata failed");
