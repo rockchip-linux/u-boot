@@ -26,7 +26,6 @@ Support fastboot getvar product
 Support fastboot getvar serialno
 Support fastboot getvar partition-type:<partition_name>
 Support fastboot getvar partition-size:<partition_name>
-Support fastboot oem log
 Support fastboot oem recovery
 Support fastboot oem recovery:wipe_data
 Support fastboot oem unlock
