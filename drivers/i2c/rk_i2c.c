@@ -374,7 +374,6 @@ static int rk_i2c_write(struct rk30_i2c *i2c, uchar chip, uint reg, uint r_len, 
 
 	rk_i2c_write_prepare(i2c, chip, reg, r_len, buf, b_len);
 	rk_i2c_get_ipd_event(i2c, I2C_MBTFIPD);
-rk30_show_regs(i2c);
 	
 	rk_i2c_send_stop(i2c);
 	rk_i2c_get_ipd_event(i2c, I2C_STOPIPD);
