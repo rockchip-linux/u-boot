@@ -231,4 +231,7 @@ Revision:       1.00
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
 
+#define CONFIG_RK_I2C
+#define CONFIG_I2C_MULTI_BUS
+
 #endif /* __CONFIG_H */
