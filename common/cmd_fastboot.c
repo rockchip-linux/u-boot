@@ -108,47 +108,6 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 #define FASTBOOT_UNLOCKED_ENV_NAME "fastboot_unlocked"
 #define FASTBOOT_UNLOCK_TIMEOUT_SECS 5
 
-#define	ERR
-#undef	WARN
-#undef	INFO
-#undef	DEBUG
-
-#ifdef CONFIG_FASTBOOT_LOG
-#ifndef CONFIG_FASTBOOT_LOG_SIZE
-#define CONFIG_FASTBOOT_LOG_SIZE 4000
-#endif
-static char log_buffer[CONFIG_FASTBOOT_LOG_SIZE];
-static uint32_t log_position;
-#endif
-
-#ifdef DEBUG
-#define FBTDBG(fmt, args...)\
-	printf("DEBUG: [%s]: %d:\n"fmt, __func__, __LINE__, ##args)
-#else
-#define FBTDBG(fmt, args...) do {} while (0)
-#endif
-
-#ifdef INFO
-#define FBTINFO(fmt, args...)\
-	printf("INFO: [%s]: "fmt, __func__, ##args)
-#else
-#define FBTINFO(fmt, args...) do {} while (0)
-#endif
-
-#ifdef WARN
-#define FBTWARN(fmt, args...)\
-	printf("WARNING: [%s]: "fmt, __func__, ##args)
-#else
-#define FBTWARN(fmt, args...) do {} while (0)
-#endif
-
-#ifdef ERR
-#define FBTERR(fmt, args...)\
-	printf("ERROR: [%s]: "fmt, __func__, ##args)
-#else
-#define FBTERR(fmt, args...) do {} while (0)
-#endif
-
 #include <exports.h>
 #include <environment.h>
 

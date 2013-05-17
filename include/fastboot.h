@@ -224,6 +224,37 @@ struct fastboot_boot_img_hdr {
 
 struct bootloader_message;
 
+typedef struct sparse_header {
+  __le32    magic;      /* 0xed26ff3a */
+  __le16    major_version;  /* (0x1) - reject images with higher major versions */
+  __le16    minor_version;  /* (0x0) - allow images with higer minor versions */
+  __le16    file_hdr_sz;    /* 28 bytes for first revision of the file format */
+  __le16    chunk_hdr_sz;   /* 12 bytes for first revision of the file format */
+  __le32    blk_sz;     /* block size in bytes, must be a multiple of 4 (4096) */
+  __le32    total_blks; /* total blocks in the non-sparse output image */
+  __le32    total_chunks;   /* total chunks in the sparse input image */
+  __le32    image_checksum; /* CRC32 checksum of the original data, counting "don't care" */
+                /* as 0. Standard 802.3 polynomial, use a Public Domain */
+                /* table implementation */
+} sparse_header_t;
+
+#define SPARSE_HEADER_MAGIC 0xed26ff3a
+
+#define CHUNK_TYPE_RAW      0xCAC1
+#define CHUNK_TYPE_FILL     0xCAC2
+#define CHUNK_TYPE_DONT_CARE    0xCAC3
+
+typedef struct chunk_header {
+  __le16    chunk_type; /* 0xCAC1 -> raw; 0xCAC2 -> fill; 0xCAC3 -> don't care */
+  __le16    reserved1;
+  __le32    chunk_sz;   /* in blocks in output image */
+  __le32    total_sz;   /* in bytes of chunk input file including chunk header and data */
+} chunk_header_t;
+
+/* Following a Raw or Fill chunk is data.  For a Raw chunk, it's the data in chunk_sz * blk_sz.
+ *  For a Fill chunk, it's 4 bytes of the fill data.
+ */
+
 #ifdef	CONFIG_CMD_FASTBOOT
 enum fbt_reboot_type {
 	FASTBOOT_REBOOT_UNKNOWN, /* typically for a cold boot */
@@ -249,6 +280,40 @@ int board_fbt_handle_flash(char *name,
 int board_fbt_check_misc();
 void board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
 struct fbt_partition *fastboot_find_ptn(const char *name);
+
+#define FBT_ERR
+#undef  FBT_WARN
+#undef  FBT_INFO
+#undef  FBT_DEBUG
+
+#ifdef FBT_DEBUG
+#define FBTDBG(fmt, args...)\
+    printf("DEBUG: [%s]: %d:\n"fmt, __func__, __LINE__, ##args)
+#else
+#define FBTDBG(fmt, args...) do {} while (0)
+#endif
+
+#ifdef FBT_INFO
+#define FBTINFO(fmt, args...)\
+    printf("INFO: [%s]: "fmt, __func__, ##args)
+#else
+#define FBTINFO(fmt, args...) do {} while (0)
+#endif
+
+#ifdef FBT_WARN
+#define FBTWARN(fmt, args...)\
+    printf("WARNING: [%s]: "fmt, __func__, ##args)
+#else
+#define FBTWARN(fmt, args...) do {} while (0)
+#endif
+
+#ifdef FBT_ERR
+#define FBTERR(fmt, args...)\
+    printf("ERROR: [%s]: "fmt, __func__, ##args)
+#else
+#define FBTERR(fmt, args...) do {} while (0)
+#endif
+
 
 #endif /* CONFIG_CMD_FASTBOOT */
 #endif /* FASTBOOT_H */

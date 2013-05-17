@@ -54,6 +54,7 @@
 #include <post.h>
 #include <logbuff.h>
 #include <asm/sections.h>
+#include <asm/sizes.h>
 
 #ifdef CONFIG_BITBANGMII
 #include <miiphy.h>

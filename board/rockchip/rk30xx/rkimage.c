@@ -66,12 +66,143 @@ int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, \
     return 0;
 }
 
+//base on ti's common/cmd_fastboot.c
+#define SPARSE_HEADER_MAJOR_VER 1
+
+static int unsparse(unsigned char *source,
+                    lbaint_t sector, lbaint_t size_kb)
+{
+    sparse_header_t *header = (void *) source;
+    u32 i;
+    unsigned long blksz = RK_BLK_SIZE;
+    u64 section_size = (u64)size_kb << 10;
+    u64 outlen = 0;
+
+    FBTDBG("sparse_header:\n");
+    FBTDBG("\t         magic=0x%08X\n", header->magic);
+    FBTDBG("\t       version=%u.%u\n", header->major_version,
+                        header->minor_version);
+    FBTDBG("\t file_hdr_size=%u\n", header->file_hdr_sz);
+    FBTDBG("\tchunk_hdr_size=%u\n", header->chunk_hdr_sz);
+    FBTDBG("\t        blk_sz=%u\n", header->blk_sz);
+    FBTDBG("\t    total_blks=%u\n", header->total_blks);
+    FBTDBG("\t  total_chunks=%u\n", header->total_chunks);
+    FBTDBG("\timage_checksum=%u\n", header->image_checksum);
+
+    if (header->magic != SPARSE_HEADER_MAGIC) {
+        printf("sparse: bad magic\n");
+        return 1;
+    }
+
+    if (((u64)header->total_blks * header->blk_sz) > section_size) {
+        printf("sparse: section size %llu MB limit: exceeded\n",
+                section_size/(1024*1024));
+        return 1;
+    }
+
+    if ((header->major_version != SPARSE_HEADER_MAJOR_VER) ||
+        (header->file_hdr_sz != sizeof(sparse_header_t)) ||
+        (header->chunk_hdr_sz != sizeof(chunk_header_t))) {
+        printf("sparse: incompatible format\n");
+        return 1;
+    }
+    /* Skip the header now */
+    source += header->file_hdr_sz;
+
+    for (i = 0; i < header->total_chunks; i++) {
+        u64 clen = 0;
+        lbaint_t blkcnt;
+        chunk_header_t *chunk = (void *) source;
+
+        FBTDBG("chunk_header:\n");
+        FBTDBG("\t    chunk_type=%u\n", chunk->chunk_type);
+        FBTDBG("\t      chunk_sz=%u\n", chunk->chunk_sz);
+        FBTDBG("\t      total_sz=%u\n", chunk->total_sz);
+        /* move to next chunk */
+        source += sizeof(chunk_header_t);
+
+        switch (chunk->chunk_type) {
+        case CHUNK_TYPE_RAW:
+            clen = (u64)chunk->chunk_sz * header->blk_sz;
+            FBTDBG("sparse: RAW blk=%d bsz=%d:"
+                   " write(sector=%lu,clen=%llu)\n",
+                   chunk->chunk_sz, header->blk_sz, sector, clen);
+
+            if (chunk->total_sz != (clen + sizeof(chunk_header_t))) {
+                printf("sparse: bad chunk size for"
+                       " chunk %d, type Raw\n", i);
+                return 1;
+            }
+
+            outlen += clen;
+            if (outlen > section_size) {
+                printf("sparse: section size %llu MB limit:"
+                       " exceeded\n", section_size/(1024*1024));
+                return 1;
+            }
+            blkcnt = clen / blksz;
+            FBTDBG("sparse: RAW blk=%d bsz=%d:"
+                   " write(sector=%lu,clen=%llu)\n",
+                   chunk->chunk_sz, header->blk_sz, sector, clen);
+
+            if (CopyMemory2Flash(source, sector, blkcnt)) {
+                printf("sparse: block write to sector %lu"
+                    " of %llu bytes (%ld blkcnt) failed\n",
+                    sector, clen, blkcnt);
+                return 1;
+            }
+
+            sector += (clen / blksz);
+            source += clen;
+            break;
+
+        case CHUNK_TYPE_DONT_CARE:
+            if (chunk->total_sz != sizeof(chunk_header_t)) {
+                printf("sparse: bogus DONT CARE chunk\n");
+                return 1;
+            }
+            clen = (u64)chunk->chunk_sz * header->blk_sz;
+            FBTDBG("sparse: DONT_CARE blk=%d bsz=%d:"
+                   " skip(sector=%lu,clen=%llu)\n",
+                   chunk->chunk_sz, header->blk_sz, sector, clen);
+
+            outlen += clen;
+            if (outlen > section_size) {
+                printf("sparse: section size %llu MB limit:"
+                       " exceeded\n", section_size/(1024*1024));
+                return 1;
+            }
+            sector += (clen / blksz);
+            break;
+
+        default:
+            printf("sparse: unknown chunk ID %04x\n",
+                   chunk->chunk_type);
+            return 1;
+        }
+    }
+
+    printf("sparse: out-length %llu MB\n", outlen/(1024*1024));
+    return 0;
+}
+
+
 int handleFlash(fbt_partition_t *ptn, void *image_start_ptr, loff_t d_bytes)
 {
     unsigned blocks;
     if (!ptn) return -1;
     if (!image_start_ptr)
         return handleErase(ptn);
+
+
+    //base on ti's common/cmd_fastboot.c
+    if (((sparse_header_t *)image_start_ptr)->magic
+            == SPARSE_HEADER_MAGIC) {
+        FBTDBG("fastboot: %s is in sparse format\n", ptn->name);
+        return unsparse(image_start_ptr,
+                    ptn->offset, ptn->size_kb);
+    }
+
     blocks = DIV_ROUND_UP(d_bytes, RK_BLK_SIZE);
     return CopyMemory2Flash(image_start_ptr, ptn->offset, blocks);
 }
