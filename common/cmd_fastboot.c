@@ -720,8 +720,6 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 
     if (board_fbt_handle_flash(name, &priv)) {
         //handled by board side.
-        FBTDBG("flash '%s' DONE!\n", name);
-        sprintf(priv.response, "OKAY");
         return;
     }
 

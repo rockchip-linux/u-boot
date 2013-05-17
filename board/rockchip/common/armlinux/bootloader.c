@@ -436,6 +436,7 @@ int update_loader(bool dataLoaded)
 	else
 	{
         PRINT_E("skip\n");
+        iRet = -7;
 	}
 Exit_update:
     PRINT_I(">>> LEVEL update(%d)\n", iRet);
