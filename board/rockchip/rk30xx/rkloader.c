@@ -237,7 +237,7 @@ int checkMisc() {
     }
     return false;
 }
-void setBootloaderMsg(struct bootloader_message* bmsg)
+int setBootloaderMsg(struct bootloader_message* bmsg)
 {
     unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
             RK_BLK_SIZE) * RK_BLK_SIZE];
@@ -245,11 +245,33 @@ void setBootloaderMsg(struct bootloader_message* bmsg)
     fbt_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
     if (!ptn) {
         printf("misc partition not found!\n");
-        return;
+        return -1;
     }
 
-    CopyMemory2Flash(&buf, ptn->offset + MISC_COMMAND_OFFSET,
+    return CopyMemory2Flash(&buf, ptn->offset + MISC_COMMAND_OFFSET,
             DIV_ROUND_UP(sizeof(struct bootloader_message), RK_BLK_SIZE));
+}
+
+void getParameter() {
+    int i = 0;
+    cmdline_mtd_partition *cmd_mtd;
+    if (!GetParam(0, DataBuf)) {
+        ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, \
+                ((PLoaderParam)DataBuf)->length );
+        cmd_mtd = &(gBootInfo.cmd_mtd);
+        for(i = 0;i < cmd_mtd->num_parts;i++) {
+            fbt_partitions[i].name = cmd_mtd->parts[i].name;
+            fbt_partitions[i].offset = cmd_mtd->parts[i].offset;
+            if (cmd_mtd->parts[i].size == SIZE_REMAINING) {
+                fbt_partitions[i].size_kb = SIZE_REMAINING;
+            } else {
+                fbt_partitions[i].size_kb = cmd_mtd->parts[i].size >> 1;
+            }
+            printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
+                    cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
+                    cmd_mtd->parts[i].size);
+        }
+    }
 }
 
 #define IDBLOCK_SN          3//the sector 3

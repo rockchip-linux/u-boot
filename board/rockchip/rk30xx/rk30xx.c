@@ -248,9 +248,9 @@ int board_fbt_check_misc()
     //return true if we got recovery cmd from misc.
     return checkMisc();
 }
-void board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
+int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
 {
-    setBootloaderMsg(bmsg);
+    return setBootloaderMsg(bmsg);
 }
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
 {
@@ -267,9 +267,6 @@ extern char bootloader_ver[];
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
-    int i = 0;
-    cmdline_mtd_partition *cmd_mtd;
-
     printf("board_late_init\n");
 	ChipTypeCheck();
     SecureBootCheck();
@@ -282,23 +279,8 @@ int board_late_init(void)
     FastbootKeyInit(&key_fastboot);
     RecoveryKeyInit(&key_recovery);
 	PowerHoldKeyInit();
-    if (!GetParam(0, DataBuf)) {
-	    ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, \
-                ((PLoaderParam)DataBuf)->length );
-        cmd_mtd = &(gBootInfo.cmd_mtd);
-        for(i = 0;i < cmd_mtd->num_parts;i++) {
-            fbt_partitions[i].name = cmd_mtd->parts[i].name;
-            fbt_partitions[i].offset = cmd_mtd->parts[i].offset;
-            if (cmd_mtd->parts[i].size == SIZE_REMAINING) {
-                fbt_partitions[i].size_kb = SIZE_REMAINING;
-            } else {
-                fbt_partitions[i].size_kb = cmd_mtd->parts[i].size >> 1;
-            }
-            printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
-                    cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
-                    cmd_mtd->parts[i].size);
-        }
-    }
+
+    getParameter();
 
     //TODO:set those buffers in a better way, and use malloc?
     setup_space(gBootInfo.kernel_load_addr);

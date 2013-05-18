@@ -660,7 +660,7 @@ static int fbt_handle_erase(char *cmdbuf)
     return err;
 }
 
-static void fbt_handle_flash(char *cmdbuf, int check_unlock)
+static int fbt_handle_flash(char *cmdbuf, int check_unlock)
 {
 	fbt_partition_t *ptn;
     const char *name = cmdbuf + 6;
@@ -668,18 +668,18 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 	if (check_unlock && !priv.unlocked) {
 		FBTERR("%s: failed, device is locked\n", __func__);
 		sprintf(priv.response, "FAILdevice is locked");
-		return;
+		return -1;
 	}
 
 	if (!priv.d_bytes) {
 		FBTERR("%s: failed, no image downloaded\n", __func__);
 		sprintf(priv.response, "FAILno image downloaded");
-		return;
+		return -1;
 	}
 
     if (board_fbt_handle_flash(name, &priv)) {
         //handled by board side.
-        return;
+        return 0;//return val may not right.
     }
 
 	ptn = fastboot_find_ptn(name);
@@ -687,7 +687,7 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
 	    FBTERR("%s: failed, partition %s does not exist\n",
 		       __func__, cmdbuf + 6);
 		sprintf(priv.response, "FAILpartition does not exist");
-		return;
+		return -1;
 	}
 
     /* Normal case */
@@ -703,9 +703,11 @@ static void fbt_handle_flash(char *cmdbuf, int check_unlock)
                 ptn->name, err);
         sprintf(priv.response,
                 "FAILWrite partition, error=%d", err);
+        return -1;
     } else {
         FBTDBG("Writing '%s' DONE!\n", ptn->name);
         sprintf(priv.response, "OKAY");
+        return 0;
     }
 }
 
@@ -1389,13 +1391,21 @@ static void fbt_run_recovery_wipe_data(void)
 
 	FBTDBG("Rebooting into recovery to do wipe_data\n");
 
-	strcpy(bmsg.command, "boot-recovery");
-	bmsg.status[0] = 0;
-	strcpy(bmsg.recovery, "recovery\n--wipe_data");
-    board_fbt_set_bootloader_msg(&bmsg);
-
-	/* now reboot to recovery */
-	fbt_run_recovery();
+    if (!fastboot_find_ptn("misc"))
+    {
+        FBTERR("not found misc partition, just run recovery.\n");
+        fbt_run_recovery();
+    }
+    strcpy(bmsg.command, "boot-recovery");
+    bmsg.status[0] = 0;
+    strcpy(bmsg.recovery, "recovery\n--wipe_data");
+    if (board_fbt_set_bootloader_msg(&bmsg))
+    {
+        FBTERR("set bootloader msg failed, retry!\n");
+        fbt_handle_reboot("reboot-recovery:wipe_data");
+    }
+    /* now reboot to recovery */
+    fbt_run_recovery();
 }
 
 /*
@@ -1430,13 +1440,13 @@ static int __def_board_fbt_check_misc()
 {
     return 0;
 }
-static void __def_board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
+static int __def_board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
 {
     memcpy(priv.transfer_buffer, bmsg, sizeof(struct bootloader_message));
     priv.d_bytes = sizeof(struct bootloader_message);
 
     /* write this structure to the "misc" partition, no unlock check */
-    fbt_handle_flash("flash:misc", 0);
+    return fbt_handle_flash("flash:misc", 0);
 }
 static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
 {
@@ -1462,7 +1472,7 @@ int board_fbt_handle_flash(char *name,
     __attribute__((weak, alias("__def_board_fbt_handle_flash")));
 int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
-void board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
+int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
     __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
     __attribute__((weak, alias("__def_board_fbt_boot_check")));

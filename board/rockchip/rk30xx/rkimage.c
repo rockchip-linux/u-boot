@@ -309,12 +309,10 @@ int handleRkFlash(char *name,
         }
         if (!ret)
         {
+            getParameter();
             goto ok;
-        } else
-        {
-            goto fail;
         }
-        return 1;
+        goto fail;
     }
     if (!strcmp(LOADER_NAME, name))
     {
