@@ -190,14 +190,8 @@ void rk30_pll_clk_set_rate(rk_plls_id pll_id, uint32 MHz, callback_f cb)
         clk_delayus(1);
         g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
 #endif
-	delay = 1000;
-	while (delay > 0) {
-	    clk_delayus(1);
-	    if (g_grfReg->GRF_SOC_STATUS0 & (0x1<<4))
-	    	break;
-	    delay--;
-	 }
 
+	clk_delayus(1000);
 
 	if (cb != NULL)
 		cb();
