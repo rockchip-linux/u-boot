@@ -25,9 +25,13 @@
 
 #include <common.h>
 #include <i2c.h>
+#include <asm/io.h>
 #include <asm/sizes.h>
 #include <asm/arch/rk30_drivers.h>
 #include <asm/arch/rk_i2c.h>
+
+#define i2c_writel		writel
+#define i2c_readl		readl
 
 #define rk_ceil(x, y) \
 	({ unsigned long __x = (x), __y = (y); (__x + __y - 1) / __y; })

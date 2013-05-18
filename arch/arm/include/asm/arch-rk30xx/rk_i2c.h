@@ -23,11 +23,6 @@
 #ifndef _RK_I2C_H_
 #define _RK_I2C_H_
 
-#include <asm/io.h>
-
-#define i2c_writel		writel
-#define i2c_readl		readl
-
 typedef enum rk_i2c_bus_ch {
 	I2C_BUS_CH0,
 	I2C_BUS_CH1,
