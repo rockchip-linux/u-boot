@@ -94,7 +94,6 @@ void __udelay(unsigned long usec)
 	if (tmp < tmo) {
 		reset_timer_masked();
 		tmp = get_current_tick();
-		printf("Timer reset.\n", tmp);
 	}
 	tmp = tmp - tmo;
 
