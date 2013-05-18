@@ -88,7 +88,15 @@ void __udelay(unsigned long usec)
 	unsigned long long tmo;
 
 	tmo = usec_to_tick(usec);
-	tmp = get_current_tick() - tmo;	/* get current timestamp */
+
+	/* get current timestamp */
+	tmp = get_current_tick();
+	if (tmp < tmo) {
+		reset_timer_masked();
+		tmp = get_current_tick();
+		printf("Timer reset.\n", tmp);
+	}
+	tmp = tmp - tmo;
 
 	while (get_current_tick() > tmp);	/* loop till event */
 }
