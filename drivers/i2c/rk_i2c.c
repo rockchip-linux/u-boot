@@ -140,7 +140,11 @@ static void *get_base(void)
 
 static void i2c_adap_sel(int nr)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
         g_grfReg->GRF_SOC_CON[1] = (1 << I2C_ADAP_SEL_BIT(nr)) | (1 << I2C_ADAP_SEL_MASK(nr));
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+	g_3066B_grfReg->GRF_SOC_CON[1] = (1 << I2C_ADAP_SEL_BIT(nr)) | (1 << I2C_ADAP_SEL_MASK(nr));
+#endif
 }
 
 static void rk30_show_regs(struct rk30_i2c *i2c)
