@@ -212,7 +212,7 @@ void set_lcdc_dclk(int clk)
     int *addr = 0;
     int div = RK30_GPLL_FREQ/clk -1;
     
-    g_cruReg->CRU_CLKSEL_CON[27] = (1<<16) | (1<<20) | (0xff<<24) | (div<<8) | 0x1;//
+    g_cruReg->CRU_CLKSEL_CON[27] = (1<<16) | (0xff<<24) | (div<<8) | 0x1;//
 }
 
 void rk_set_pll(void)

@@ -25,7 +25,8 @@ uint32 RK3188GpioBaseAddr[7] =
 void setup_gpio(gpio_conf *key_gpio)
 {
     uint32 base_addr = 0;
-    
+    ChipTypeCheck();
+
     if (ChipType == CHIP_RK3066)
     {
         if(key_gpio->group >= 7)

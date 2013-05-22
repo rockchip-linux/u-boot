@@ -98,6 +98,9 @@ void ChipTypeCheck(void)
     {
         ChipType = CHIP_RK3188;
     }
+#if(CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+    ChipType = CHIP_RK3188;
+#endif
 }
 
 #include "../../common/rockusb/USB20.h"
