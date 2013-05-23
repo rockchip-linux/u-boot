@@ -55,12 +55,9 @@ COBJS-$(CONFIG_VIDEO_SM501) += sm501.o
 COBJS-$(CONFIG_VIDEO_SMI_LYNXEM) += smiLynxEM.o videomodes.o
 COBJS-$(CONFIG_VIDEO_TEGRA) += tegra.o
 COBJS-$(CONFIG_VIDEO_VCXK) += bus_vcxk.o
+COBJS-$(CONFIG_RK_3066_FB) += rk_fb.o rk30_lcdc.o
+COBJS-$(CONFIG_RK_3188_FB) += rk_fb.o rk3188_lcdc.o
 
-ifeq ($(CONFIG_RKCHIPTYPE),CONFIG_RK3066)
-COBJS-$(CONFIG_RK_FB) += rk_fb.o rk30_lcdc.o
-else
-COBJS-$(CONFIG_RK_FB) += rk_fb.o rk3188_lcdc.o
-endif
 COBJS	:= $(sort $(COBJS-y))
 SRCS	:= $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))
