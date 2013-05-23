@@ -45,3 +45,5 @@ use UBOOT_ROOT/tools/rk_tools/BootMerger.exe to merge the real bootloader.
 modify UBOOT_ROOT/tools/rk_tools/ROBOOT.ini to select chipset. 
 RK30xx use CHIP=RK30
 RK3188 use CHIP=RK3188
+
+modify parameter, add entry "PRODUCT:your product" to define product val returned in "fastboot getvar product".

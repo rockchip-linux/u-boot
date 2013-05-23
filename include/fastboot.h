@@ -314,6 +314,7 @@ struct fbt_partition *fastboot_find_ptn(const char *name);
 #define FBTERR(fmt, args...) do {} while (0)
 #endif
 
+extern char PRODUCT_NAME[20];
 
 #endif /* CONFIG_CMD_FASTBOOT */
 #endif /* FASTBOOT_H */

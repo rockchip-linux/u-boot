@@ -17,6 +17,8 @@ Revision:       1.00
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
 
+extern char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
+
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {
     int i;

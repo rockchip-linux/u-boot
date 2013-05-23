@@ -747,6 +747,10 @@ static const char *getvar_secure(const char *unused)
 
 static const char *getvar_product(const char *unused)
 {
+#ifdef CONFIG_ROCKCHIP
+    if (PRODUCT_NAME && PRODUCT_NAME[0])
+        return PRODUCT_NAME;
+#endif
 	return FASTBOOT_PRODUCT_NAME;
 }
 

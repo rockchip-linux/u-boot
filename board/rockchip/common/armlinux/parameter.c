@@ -232,6 +232,8 @@ int setup_key(char* line, key_config* key)
     return 0;
 }
 
+extern char PRODUCT_NAME[20];
+
 void ParseLine(PBootInfo pboot_info, char *line)
 {
 	if( !memcmp(line, "MAGIC:", strlen("MAGIC:")) )
@@ -256,6 +258,12 @@ void ParseLine(PBootInfo pboot_info, char *line)
     	EATCHAR(line, ' ');
         setup_key(line, &key_rockusb);
 	}
+    else if( !memcmp(line, "PRODUCT:", strlen("PRODUCT:")))
+    {
+        line += strlen("PRODUCT:");
+        EATCHAR(line, ' ');
+        strncpy(PRODUCT_NAME, line ,sizeof(PRODUCT_NAME));
+    }
 	else if( !memcmp(line, "PWR_HLD:", strlen("PWR_HLD:")) )
 	{//  RECOVER_KEY: 0,4,A,2,0  ==> GPIO4 PA2 µÕ”––ß
     	line += strlen("PWR_HLD:");
