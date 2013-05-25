@@ -183,6 +183,7 @@ Revision:       1.00
  * where fastboot is started at boot (to be incorporated) based on key press
  */
 #define CONFIG_CMD_FASTBOOT
+#define CONFIG_FASTBOOT_LOG
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER     0x68000000 //128M
 //TODO: mod addr of buffer.
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE    (SZ_512M + SZ_128M)

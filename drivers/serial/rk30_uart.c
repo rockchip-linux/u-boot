@@ -184,6 +184,10 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 
 int32 UARTWriteByte(eUART_ch_t uartCh, uint8 byte)
 {
+
+#ifdef CONFIG_FASTBOOT_LOG
+    fbt_log(&byte, 1, false);
+#endif
 	pUART_REG puartRegStart = UARTGetRegBase(uartCh);  
     
 	while((puartRegStart->UART_USR & UART_TRANSMIT_FIFO_NOT_FULL) == 0);

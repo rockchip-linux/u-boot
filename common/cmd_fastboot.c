@@ -108,6 +108,14 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 #define FASTBOOT_UNLOCKED_ENV_NAME "fastboot_unlocked"
 #define FASTBOOT_UNLOCK_TIMEOUT_SECS 5
 
+#ifdef CONFIG_FASTBOOT_LOG
+#ifndef CONFIG_FASTBOOT_LOG_SIZE
+#define CONFIG_FASTBOOT_LOG_SIZE 4000
+#endif
+static char log_buffer[CONFIG_FASTBOOT_LOG_SIZE];
+static uint32_t log_position;
+#endif
+
 #include <exports.h>
 #include <environment.h>
 
@@ -1860,27 +1868,31 @@ void fbt_preboot(void)
 }
 
 #ifdef CONFIG_FASTBOOT_LOG
+int fbt_log(const char *info, const int len, bool send)
+{
+    unsigned long space_in_log = CONFIG_FASTBOOT_LOG_SIZE - log_position;
+    unsigned long bytes_to_log;
+
+    /* check if relocation is done before we can use globals */
+    if (gd->flags & GD_FLG_RELOC) {
+        if (len > space_in_log)
+            bytes_to_log = space_in_log;
+        else
+            bytes_to_log = len;
+
+        if (bytes_to_log) {
+            strncpy(&log_buffer[log_position], info, bytes_to_log);
+            log_position += bytes_to_log;
+        }
+    }
+
+    if (!send)
+        return 0;
+    return fbt_send_raw_info(info, len);
+}
+
 int fbt_send_info(const char *info)
 {
-	int len;
-	unsigned long space_in_log = CONFIG_FASTBOOT_LOG_SIZE - log_position;
-	unsigned long bytes_to_log;
-
-	len = strlen(info);
-
-	/* check if relocation is done before we can use globals */
-	if (gd->flags & GD_FLG_RELOC) {
-		if (len > space_in_log)
-			bytes_to_log = space_in_log;
-		else
-			bytes_to_log = len;
-
-		if (bytes_to_log) {
-			strncpy(&log_buffer[log_position], info, bytes_to_log);
-			log_position += bytes_to_log;
-		}
-	}
-
-	return fbt_send_raw_info(info, len);
+    return fbt_log(info, strlen(info), true);
 }
 #endif //CONFIG_FASTBOOT_LOG

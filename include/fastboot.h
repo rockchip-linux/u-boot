@@ -266,7 +266,11 @@ enum fbt_reboot_type {
 	FASTBOOT_REBOOT_FASTBOOT,
 };
 extern void fbt_preboot(void);
+
+#ifdef CONFIG_FASTBOOT_LOG
 extern int fbt_send_info(const char *info);
+extern int fbt_log(const char *str, const int len, bool send);
+#endif
 
 int board_fbt_oem(const char *cmdbuf);
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt);
