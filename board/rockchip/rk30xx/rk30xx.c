@@ -258,9 +258,20 @@ int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
 {
     return secureCheck(hdr, unlocked);
 }
-void board_fbt_boot_failed()
+void board_fbt_boot_failed(const char* boot)
 {
-    printf("Unable to boot, start rockusb.\n");
+    printf("Unable to boot:%s\n", boot);
+
+    if (!memcmp(BOOT_NAME, boot, sizeof(BOOT_NAME))) {
+        printf("try to start recovery\n");
+        char *const boot_cmd[] = {"booti", RECOVERY_NAME};
+        do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+    } else if (!memcmp(RECOVERY_NAME, boot, sizeof(RECOVERY_NAME))) {
+        printf("try to start backup\n");
+        char *const boot_cmd[] = {"booti", BACKUP_NAME};
+        do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+    }
+    printf("try to start rockusb\n");
     startRockusb();
 }
 

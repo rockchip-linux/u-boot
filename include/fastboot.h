@@ -198,6 +198,7 @@ extern struct fbt_partition fbt_partitions[];
 #define BOOT_NAME       "boot"
 #define RECOVERY_NAME   "recovery"
 #define SYSTEM_NAME     "system"
+#define BACKUP_NAME     "backup"
 
 struct fastboot_boot_img_hdr {
 	unsigned char magic[FASTBOOT_BOOT_MAGIC_SIZE];

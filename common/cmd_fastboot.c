@@ -271,7 +271,7 @@ static struct cmd_fastboot_interface priv = {
 };
 
 static void fbt_init_endpoints(void);
-static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
+int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
 
 extern int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
 /* Use do_bootm_linux and do_go for fastboot's 'boot' command */
@@ -1464,7 +1464,7 @@ static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unl
 {
     return 0;
 }
-static int __def_board_fbt_boot_failed()
+static int __def_board_fbt_boot_failed(const char* boot)
 {
 }
 
@@ -1488,7 +1488,7 @@ int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
     __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
     __attribute__((weak, alias("__def_board_fbt_boot_check")));
-int board_fbt_boot_failed()
+int board_fbt_boot_failed(const char* boot)
     __attribute__((weak, alias("__def_board_fbt_boot_failed")));
 
 /* command */
@@ -1590,7 +1590,7 @@ extern int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_
 #endif
 
 /* booti [ <addr> | <partition> ] */
-static int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	char *boot_source = "boot";
     fbt_partition_t *ptn;
@@ -1772,7 +1772,7 @@ fail:
 	/* if booti fails, always start fastboot */
 	free(hdr); /* hdr may be NULL, but that's ok. */
 
-    board_fbt_boot_failed();
+    board_fbt_boot_failed(boot_source);
 
 	return do_fastboot(NULL, 0, 0, NULL);
 }
