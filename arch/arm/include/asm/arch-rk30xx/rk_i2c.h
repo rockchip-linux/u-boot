@@ -1,3 +1,12 @@
+/********************************************************************************
+		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
+			--  ALL RIGHTS RESERVED  --
+File Name:	
+Author:         
+Created:        
+Modified:
+Revision:       1.00
+********************************************************************************/
 /*
  * (C) Copyright 2013
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
