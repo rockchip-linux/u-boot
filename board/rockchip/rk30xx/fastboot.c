@@ -64,7 +64,7 @@ static int do_format(void)
 	fbt_reset_ptn();
 #endif
     //TODO:lowlevel format
-	return 0;
+	return -1;
 }
 
 int board_fbt_oem(const char *cmdbuf)
@@ -73,6 +73,8 @@ int board_fbt_oem(const char *cmdbuf)
 		return do_format();
     else if (!strcmp(cmdbuf,"rockusb"))
         return startRockusb();
+    else if (!strcmp(cmdbuf,"erasekey"))
+        return eraseDrmKey();
 	return -1;
 }
 #endif /* !CONFIG_FASTBOOT_NO_FORMAT */

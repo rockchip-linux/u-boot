@@ -370,3 +370,9 @@ end:
     return 0;
 }
 
+int eraseDrmKey() {
+    char buf[RK_BLK_SIZE];
+    memset(buf, 0, RK_BLK_SIZE);
+    StorageSysDataStore(1, buf);
+    return 0;
+}
