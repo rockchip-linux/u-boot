@@ -353,10 +353,13 @@ int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked)
                     boothdr->signlen) == FTL_OK)
         {
             SecureBootCheckOK = 1;
+        } else {
+            printf("SecureBootSignCheck failed\n");
         }
     }
 
 end:
+    printf("SecureBootCheckOK:%d\n", SecureBootCheckOK);
     if(SecureBootCheckOK == 0)
     {
         SecureBootDisable();

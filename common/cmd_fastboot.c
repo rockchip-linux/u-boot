@@ -1605,12 +1605,12 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         unsigned long blksz = RK_BLK_SIZE;
         unsigned sector;
         unsigned blocks;
-        hdr = malloc(blksz);
+        hdr = malloc(blksz << 2);
 		if (hdr == NULL) {
 		    FBTERR("error allocating blksz(%lu) buffer\n", blksz);
 			goto fail;
 		}
-        if (StorageReadLba(ptn->offset, (void *) hdr, 1) != 0) {
+        if (StorageReadLba(ptn->offset, (void *) hdr, 1 << 2) != 0) {
 			FBTERR("booti: failed to read bootimg header\n");
 			goto fail;
 		}

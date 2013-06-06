@@ -71,8 +71,6 @@ int board_fbt_oem(const char *cmdbuf)
 {
 	if (!strcmp(cmdbuf,"format"))
 		return do_format();
-    else if (!strcmp(cmdbuf,"rockusb"))
-        return startRockusb();
     else if (!strcmp(cmdbuf,"erasekey"))
         return eraseDrmKey();
 	return -1;
