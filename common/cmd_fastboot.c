@@ -1829,7 +1829,9 @@ void fbt_preboot(void)
                __func__);
 	    frt = board_fbt_get_reboot_type();
     }
-
+    
+    rk_backlight_ctrl(1);
+    
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
 		FBTDBG("\n%s: starting recovery img because of reboot flag\n",
 		       __func__);
