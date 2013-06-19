@@ -331,6 +331,25 @@ void rk_backlight_ctrl(unsigned int onoff)
     write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN
 
     SetPortOutput(6,11,1);   //gpio6_b3 1 ,backlight enable
+    #elif CONFIG_RK3188
+    int id =3;
+    int total = 0x4b0;
+    int pwm = total/2;
+    int *addr =0;
+
+    if(ChipType == CHIP_RK3188)
+    {
+        g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm0, gpio0_a3
+    }
+    //SetPortOutput(3,30,0);   //gpio3_d6 0
+    write_pwm_reg(id, 0x0c, 0x80);
+    write_pwm_reg(id, 0x08, total);
+    write_pwm_reg(id, 0x04, pwm);
+    write_pwm_reg(id, 0x00, 0);
+    write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN   
+
+    SetPortOutput(0,2,1);   //gpio0_A2 BL ENABLE 1
+    
     #endif
 }
 
@@ -339,6 +358,8 @@ void rk_fb_init(unsigned int onoff)
     #ifdef CONFIG_SDK
     SetPortOutput(4,23,1);   //gpio4_c7 1 cs 1
     SetPortOutput(6,12,0);   //gpio6_b4 0 en 0
+    #elif CONFIG_RK3188
+    SetPortOutput(0,8,1);   //gpio0_b0 cs 1
     #endif
 }
 
