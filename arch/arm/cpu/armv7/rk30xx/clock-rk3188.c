@@ -317,7 +317,7 @@ static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 	/* delay for pll lock */
 	while (delay > 0) {
 		clk_delayus(1);
-		if (g_grfReg->GRF_SOC_STATUS0 & bit)
+		if (g_3066B_grfReg->GRF_SOC_STATUS0 & bit)
 			break;
 		delay--;
 	}
