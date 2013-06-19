@@ -451,9 +451,20 @@ $(obj)u-boot.ldr.srec:	$(obj)u-boot.ldr
 		$(OBJCOPY) ${OBJCFLAGS} -O srec $< $@ -I binary
 
 ifneq ($(CONFIG_ROCKCHIP),)
-$(obj)RK30xxLoader_uboot.bin: $(obj)u-boot.bin
+
+ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3066")
+RKCHIP ?= RK30
+endif
+
+ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3188")
+RKCHIP ?= RK310B
+endif
+
+RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
+
+$(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
 	cd $(obj)tools/rk_tools/ && \
-		./boot_merger RKBOOT/`sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`.ini
+		./boot_merger RKBOOT/$(RKCHIP).ini
 endif
 
 #
