@@ -313,7 +313,7 @@ int board_late_init(void)
 
 void rk_backlight_ctrl(unsigned int onoff)
 {
-    #ifdef CONFIG_SDK
+    #ifdef CONFIG_RK3066SDK
     int id =0;
     int total = 0x4b0;
     int pwm = total/2;
@@ -331,7 +331,7 @@ void rk_backlight_ctrl(unsigned int onoff)
     write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN
 
     SetPortOutput(6,11,1);   //gpio6_b3 1 ,backlight enable
-    #elif CONFIG_RK3188
+    #elif CONFIG_RK3188SDK
     int id =3;
     int total = 0x4b0;
     int pwm = total/2;
@@ -355,10 +355,10 @@ void rk_backlight_ctrl(unsigned int onoff)
 
 void rk_fb_init(unsigned int onoff)
 {
-    #ifdef CONFIG_SDK
+    #ifdef CONFIG_RK3066SDK
     SetPortOutput(4,23,1);   //gpio4_c7 1 cs 1
     SetPortOutput(6,12,0);   //gpio6_b4 0 en 0
-    #elif CONFIG_RK3188
+    #elif CONFIG_RK3188SDK
     SetPortOutput(0,8,1);   //gpio0_b0 cs 1
     #endif
 }
