@@ -387,8 +387,6 @@ int update_loader(bool dataLoaded)
 	}
 
     PRINT_E("ver %x %x\n",internal_boot_bloader_ver,update_boot_bloader_ver);
-    if(internal_boot_bloader_ver < update_boot_bloader_ver)
-    {
     	PRINT_I("SecPerBlock=%d\n", g_id_block_size);
     	//**************1.´´½¨×´Ì¬±í******************
     	PRINT_I("create flash block map\n");
@@ -432,12 +430,6 @@ int update_loader(bool dataLoaded)
     	PRINT_I("write id block\n");
     	if( !WriteXIDBlock(g_IDBlockOffset, iIDBCount, g_pIDBlock, uiNeedIdSectorNum) )
     	    iRet = -5;
-	}
-	else
-	{
-        PRINT_E("skip\n");
-        iRet = -7;
-	}
 Exit_update:
     PRINT_I(">>> LEVEL update(%d)\n", iRet);
 	return iRet;    
