@@ -205,6 +205,17 @@ static dwc_otg_epn_in_ack(void)
 	WriteBulkEndpoint(0, NULL);
 }
 
+volatile int suspend = 0;
+void suspend_usb() {
+    suspend = true;
+}
+void resume_usb() {
+    if (suspend) {
+        suspend = false;
+        ReadBulkEndpoint(512, FbtBulkInBuf);
+    }
+}
+
 /* Flow control */
 void udc_set_nak(int epid)
 {
@@ -307,7 +318,7 @@ static void dwc_otg_enum_done_intr(void)
 	OtgReg->Device.dctl |= 1<<8;               //clear global IN NAK
 	ReadEndpoint0(Ep0PktSize, Ep0Buf);
 	//ReadBulkEndpoint(31, (uint8*)&gCBW);
-	ReadBulkEndpoint(FASTBOOT_COMMAND_SIZE, FbtBulkOutBuf);
+	ReadBulkEndpoint(FASTBOOT_COMMAND_SIZE, FbtBulkInBuf);
 	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1ul<<28) | (1<<15)|(2<<18)|(BULK_IN_EP<<22);
 }
 
@@ -465,14 +476,19 @@ static void dwc_otg_epn_rx(uint32 len)
 	endpoint = &udc_device->bus->endpoint_array[1];
 
 	if(endpoint){
-		urb = endpoint->rcv_urb;
-		if(urb){
-			uint8 *cp = urb->buffer + urb->actual_length;
-			ftl_memcpy(cp, FbtBulkOutBuf, len);
-			usbd_rcv_complete(endpoint, len, 0);
-		}
-	}
-	ReadBulkEndpoint(endpoint->rcv_packetSize, FbtBulkOutBuf);
+        urb = endpoint->rcv_urb;
+        if (urb) {
+            uint8 *cp = urb->buffer + urb->actual_length;
+            ftl_memcpy(cp, FbtBulkInBuf, len);
+            if ((urb->buffer_length - urb->actual_length) <= 512) {
+                usbd_rcv_complete(endpoint, len, 0);
+                suspend_usb();
+                return;
+            }
+        }
+        usbd_rcv_complete(endpoint, len, 0);
+    }
+    ReadBulkEndpoint(endpoint->rcv_packetSize, FbtBulkInBuf);
 }
 
 static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint)

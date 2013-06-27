@@ -104,6 +104,41 @@
 #define FASTBOOT_FLAG_RESPONSE  0x1
 #define FASTBOOT_FLAG_HAS_RUN   0x2
 
+/* sparse things */
+typedef struct sparse_header {
+  __le32    magic;      /* 0xed26ff3a */
+  __le16    major_version;  /* (0x1) - reject images with higher major versions */
+  __le16    minor_version;  /* (0x0) - allow images with higer minor versions */
+  __le16    file_hdr_sz;    /* 28 bytes for first revision of the file format */
+  __le16    chunk_hdr_sz;   /* 12 bytes for first revision of the file format */
+  __le32    blk_sz;     /* block size in bytes, must be a multiple of 4 (4096) */
+  __le32    total_blks; /* total blocks in the non-sparse output image */
+  __le32    total_chunks;   /* total chunks in the sparse input image */
+  __le32    image_checksum; /* CRC32 checksum of the original data, counting "don't care" */
+                /* as 0. Standard 802.3 polynomial, use a Public Domain */
+                /* table implementation */
+} sparse_header_t;
+
+#define SPARSE_HEADER_MAGIC 0xed26ff3a
+
+#define CHUNK_TYPE_RAW      0xCAC1
+#define CHUNK_TYPE_FILL     0xCAC2
+#define CHUNK_TYPE_DONT_CARE    0xCAC3
+
+typedef struct chunk_header {
+  __le16    chunk_type; /* 0xCAC1 -> raw; 0xCAC2 -> fill; 0xCAC3 -> don't care */
+  __le16    reserved1;
+  __le32    chunk_sz;   /* in blocks in output image */
+  __le32    total_sz;   /* in bytes of chunk input file including chunk header and data */
+} chunk_header_t;
+
+#define SPARSE_HEADER_MAJOR_VER 1
+
+/* Following a Raw or Fill chunk is data.  For a Raw chunk, it's the data in chunk_sz * blk_sz.
+ *  For a Fill chunk, it's 4 bytes of the fill data.
+ */
+/* end sparse things */
+
 struct cmd_fastboot_interface {
 
 	/* A getvar string for the serial number
@@ -133,6 +168,17 @@ struct cmd_fastboot_interface {
 
 	/* Data downloaded so far */
 	u64 d_bytes;
+
+    /* Download status, < 0 when error, > 0 when complete */
+    int d_status;
+
+    /* Download size, copy downloaded data to storage */ 
+    u64 d_direct_size;
+
+    /* Offset of storage, will download 'd_direct_size' data to this offset */
+    u64 d_direct_offset;
+
+    u64 d_buffer_pos;
 
 	/* Upload size, if download has to be done */
 	u64 u_size;
@@ -165,6 +211,11 @@ struct cmd_fastboot_interface {
 	struct device_info dev_info[FASTBOOT_MAX_NUM_DEVICE_INFO];
     */
     //TODO:maybe we need device info?
+    
+    /* sparse things */
+    int flag_sparse;
+    sparse_header_t sparse_header;
+    int sparse_cur_chunk;
 };
 
 /* Status values */
@@ -225,37 +276,6 @@ struct fastboot_boot_img_hdr {
 
 struct bootloader_message;
 
-typedef struct sparse_header {
-  __le32    magic;      /* 0xed26ff3a */
-  __le16    major_version;  /* (0x1) - reject images with higher major versions */
-  __le16    minor_version;  /* (0x0) - allow images with higer minor versions */
-  __le16    file_hdr_sz;    /* 28 bytes for first revision of the file format */
-  __le16    chunk_hdr_sz;   /* 12 bytes for first revision of the file format */
-  __le32    blk_sz;     /* block size in bytes, must be a multiple of 4 (4096) */
-  __le32    total_blks; /* total blocks in the non-sparse output image */
-  __le32    total_chunks;   /* total chunks in the sparse input image */
-  __le32    image_checksum; /* CRC32 checksum of the original data, counting "don't care" */
-                /* as 0. Standard 802.3 polynomial, use a Public Domain */
-                /* table implementation */
-} sparse_header_t;
-
-#define SPARSE_HEADER_MAGIC 0xed26ff3a
-
-#define CHUNK_TYPE_RAW      0xCAC1
-#define CHUNK_TYPE_FILL     0xCAC2
-#define CHUNK_TYPE_DONT_CARE    0xCAC3
-
-typedef struct chunk_header {
-  __le16    chunk_type; /* 0xCAC1 -> raw; 0xCAC2 -> fill; 0xCAC3 -> don't care */
-  __le16    reserved1;
-  __le32    chunk_sz;   /* in blocks in output image */
-  __le32    total_sz;   /* in bytes of chunk input file including chunk header and data */
-} chunk_header_t;
-
-/* Following a Raw or Fill chunk is data.  For a Raw chunk, it's the data in chunk_sz * blk_sz.
- *  For a Fill chunk, it's 4 bytes of the fill data.
- */
-
 #ifdef	CONFIG_CMD_FASTBOOT
 enum fbt_reboot_type {
 	FASTBOOT_REBOOT_UNKNOWN, /* typically for a cold boot */
@@ -282,6 +302,8 @@ void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
         size_t ramdisk_sz, int recovery);
 int board_fbt_handle_flash(char *name,
         struct cmd_fastboot_interface *priv);
+int board_fbt_handle_download(unsigned char *buffer,
+        int* length, struct cmd_fastboot_interface *priv);
 int board_fbt_check_misc();
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
 struct fbt_partition *fastboot_find_ptn(const char *name);

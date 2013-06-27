@@ -110,7 +110,7 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 
 #ifdef CONFIG_FASTBOOT_LOG
 #ifndef CONFIG_FASTBOOT_LOG_SIZE
-#define CONFIG_FASTBOOT_LOG_SIZE 4000
+#define CONFIG_FASTBOOT_LOG_SIZE (16*1024*1024)
 #endif
 static char log_buffer[CONFIG_FASTBOOT_LOG_SIZE];
 static uint32_t log_position;
@@ -1194,14 +1194,20 @@ static void fbt_handle_boot(const char *cmdbuf)
 }
 
 /* XXX: Replace magic number & strings with macros */
-static int fbt_rx_process(unsigned char *buffer, int length)
+static int fbt_rx_process(unsigned char *buffer, int* length)
 {
 	struct usb_endpoint_instance *ep;
 	char *cmdbuf;
 	int clear_cmd_buf;
 
 	if (priv.d_size) {
-		if (length < priv.d_size) {
+
+        //board handle this
+        if (board_fbt_handle_download(buffer, length, &priv)) {
+            return 0;
+        }
+
+		if (*length < priv.d_size && !priv.d_status) {
 			/* don't clear cmd buf because we've replaced it
 			 * with our transfer buffer.  we'll clear it at
 			 * the end of the download.
@@ -1209,11 +1215,18 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 			return 0;
 		}
 
-		/* transfer complete */
-		priv.d_bytes = priv.d_size;
-		priv.d_size = 0;
-		strcpy(priv.response, "OKAY");
-		priv.flag |= FASTBOOT_FLAG_RESPONSE;
+        if (priv.d_status < 0) {
+            /* transfer error */
+            //TODO: maybe use some error str(convert from d_status)
+            strcpy(priv.response, "FAILDownload error");
+        } else {
+            /* transfer complete */
+            strcpy(priv.response, "OKAY");
+        }
+        priv.d_status = 0;
+        priv.d_bytes = priv.d_size;
+        priv.d_size = 0;
+        priv.flag |= FASTBOOT_FLAG_RESPONSE;
 
 		/* restore default buffer in urb */
 		ep = &endpoint_instance[1];
@@ -1293,13 +1306,17 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		/* XXX: need any check for size & bytes ? */
 		priv.d_size = simple_strtoul (cmdbuf + 9, NULL, 16);
 		priv.d_bytes = 0;
+        priv.d_status = 0;
 
 		FBTINFO("starting download of %llu bytes\n", priv.d_size);
 		if (priv.d_size == 0) {
 			strcpy(priv.response, "FAILdata invalid size");
+
+        /* maybe board side can handle this.
 		} else if (priv.d_size > priv.transfer_buffer_size) {
 			priv.d_size = 0;
 			strcpy(priv.response, "FAILdata too large");
+            */
 		} else {
 			sprintf(priv.response, "DATA%08llx", priv.d_size);
 
@@ -1309,7 +1326,9 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 			 */
 			ep = &endpoint_instance[1];
 			ep->rcv_urb->buffer = priv.transfer_buffer;
-			ep->rcv_urb->buffer_length = priv.d_size;
+			ep->rcv_urb->buffer_length = 
+                priv.transfer_buffer_size > priv.d_size? priv.d_size: 
+                priv.transfer_buffer_size;
 			ep->rcv_urb->actual_length = 0;
 
 			/* don't poison the cmd buffer because
@@ -1333,7 +1352,7 @@ static void fbt_handle_rx(void)
 	if (ep->rcv_urb->actual_length) {
 		FBTDBG("rx length: %u\n", ep->rcv_urb->actual_length);
 		if (fbt_rx_process(ep->rcv_urb->buffer,
-				   ep->rcv_urb->actual_length)) {
+				   &ep->rcv_urb->actual_length)) {
 			/* Poison the command buffer so there's no confusion
 			 * when we receive the next one.  fastboot commands
 			 * are sent w/o NULL termination so we don't want
@@ -1345,6 +1364,7 @@ static void fbt_handle_rx(void)
 			ep->rcv_urb->actual_length = 0;
 		}
 		fbt_handle_response();
+        resume_usb();
 	}
 }
 
@@ -1448,6 +1468,15 @@ static int __def_board_fbt_handle_flash(char *name,
 {
         return 0;
 }
+static int __def_board_fbt_handle_download(unsigned char *buffer,
+        int* length, struct cmd_fastboot_interface *priv)
+{
+    if (priv->d_size > priv->transfer_buffer_size)
+    {
+        priv->d_status = -1;
+    }
+    return 0;
+}
 static int __def_board_fbt_check_misc()
 {
     return 0;
@@ -1482,6 +1511,9 @@ void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
 int board_fbt_handle_flash(char *name,
                struct cmd_fastboot_interface *priv)
     __attribute__((weak, alias("__def_board_fbt_handle_flash")));
+int board_fbt_handle_download(unsigned char *buffer,
+        int* length, struct cmd_fastboot_interface *priv)
+    __attribute__((weak, alias("__def_board_fbt_handle_download")));
 int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
