@@ -35,6 +35,10 @@ ENTRY(ResetCpu_asm)
 	#LDR 	R2, =0x20020004
 	#LDR 	R1, =0x00000003
 	STR 	R1, [R2,#0]
+    ;//cruReg->CRU_MODE_CON = 0x33330000;    //cpu enter slow mode
+	    #LDR		R8, =0x20000040
+	    #LDR		R9, =0x33330000
+	    STR	R9, [R8,#0]
 	
 	#LDR 	R1, =0xeca8
 	#LDR 	R2, =0x20000104
@@ -77,6 +81,14 @@ reset_copy_loop:
      LDR 	R3, =0xeca8
      LDR 	R4, =0x20000104
      LDR 	R5, =0x10000000
+     
+    ;//cruReg->CRU_MODE_CON = 0x33330000;    //cpu enter slow mode
+    LDR		R8, =0x20000040
+    LDR		R9, =0x33330000
+    #STR	R9, [R8,#0]
+
+     
+     
      #STR 	R5, [R7,#0]
      #STR 	R3, [R4,#0]
 
