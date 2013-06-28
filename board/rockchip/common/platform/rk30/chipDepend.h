@@ -14,6 +14,7 @@
 #define         CHIP_RK3066B    1
 #define         CHIP_RK3168     2
 #define         CHIP_RK3188     3
+#define         CHIP_RK3188B    4
 
 
 extern uint8    ChipType;

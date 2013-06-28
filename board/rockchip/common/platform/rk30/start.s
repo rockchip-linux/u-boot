@@ -156,10 +156,25 @@ ResetCpu
 	LDR		R1, =0x00000003
  	STR		R1, [R2,#0]
 
+	LDR		R1, =0x00001000
+ResetCpuDelay0
+    SUBS	R1, R1, #1
+	BGE     ResetCpuDelay0
+	
+    ;//cruReg->CRU_MODE_CON = 0x33330000;    //cpu enter slow mode
+	LDR		R2, =0x20000040
+	LDR		R1, =0x33330000
+ 	STR		R1, [R2,#0]
+ 	
+	LDR		R1, =0x00001000
+ResetCpuDelay1
+    SUBS	R1, R1, #1
+	BGE     ResetCpuDelay1
+
  	LDR     R1, =0xeca8
 	LDR     R2, =0x20000104
-	LDR     R3, =0x10000000
-
+	LDR     R3, =0x10000000	
+	
  	STR		R3, [R0,#0]  ;// remap
  	STR		R1, [R2,#0]
 

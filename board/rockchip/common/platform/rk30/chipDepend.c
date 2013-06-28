@@ -100,6 +100,12 @@ void ChipTypeCheck(void)
     }
 #if(CONFIG_RKCHIPTYPE == CONFIG_RK3188)
     ChipType = CHIP_RK3188;
+
+    if(Rk30ChipVerInfo[0]== 0x33313042&& Rk30ChipVerInfo[3] == 0x56313031) 
+    {
+        ChipType = CHIP_RK3188B;
+    }
+	
 #endif
 }
 
@@ -116,7 +122,7 @@ void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
         pDeviceDescr->idProduct = 0x300B;
         pDeviceDescr->idVendor  = 0x2207;
     }
-    else if (ChipType == CHIP_RK3188)
+    else if (ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
     {
         pDeviceDescr->idProduct = 0x310B;
         pDeviceDescr->idVendor  = 0x2207;
@@ -137,13 +143,6 @@ void ISetLoaderFlag(uint32 flag)
         return;
     *LOADER_FLAG_REG = flag;
 }
-
-uint32 cpuFreq;
-void SetFreqFlag(uint32 freq)
-{
-    cpuFreq = freq;
-}
-
 
 typedef enum PLL_ID_Tag
 {
@@ -174,7 +173,7 @@ static void APLL_cb(void)
                                                       | (0x1<<14)    //hclk_cpu:pclken_ahb2apb = 2:1 = 150MHz : 75MHz
                                                       | (0x1<<12)    //aclk_cpu:pclk_cpu = 2:1 = 150MHz : 75MHz
                                                       | (0x0<<8)     //aclk_cpu:hclk_cpu = 1:1 = 150MHz : 150MHz
-                                                      | 2;           //clk_core:aclk_cpu = 4:1 = 600MHz : 150MHz
+                                                      | 3;           //clk_core:aclk_cpu = 4:1 = 600MHz : 150MHz
     }
     else
     {
@@ -183,12 +182,12 @@ static void APLL_cb(void)
                                                       | (0x0<<8)     //core_clk_src = APLL = 600MHz
                                                       | (0x1<<6)     //clk_cpu:clk_core_periph = 4:1 = 600MHz : 150MHz
                                                       | (0x0<<5)     //clk_cpu_src = APLL = 600MHz
-                                                      | 1;           //clk_cpu = core_clk_src/2 = 300MHz
+                                                      | 1;           //aclk_cpu = core_clk_src/2 = 300MHz
         g_cruReg->CRU_CLKSEL_CON[1] = (((0x3<<14) | (0x3<<12) | (0x3<<8) | (0x7<<3)| 0x7)<<16)     //clk_core:aclk_cpu = 1:1 = 192MHz : 192 MHz
                                                       | (0x1<<14)    //hclk_cpu:pclken_ahb2apb = 2:1 = 150MHz : 75MHz
-                                                      | (0x2<<12)    //aclk_cpu:pclk_cpu = 2:1 = 300MHz : 150MHz
+                                                      | (0x2<<12)    //aclk_cpu:pclk_cpu = 4:1 = 300MHz : 750MHz
                                                       | (0x1<<8)     //aclk_cpu:hclk_cpu = 2:1 = 300MHz : 150MHz
-                                                      | (1<<3)       //clk_core:aclk_core = 2:1 = 300MHz : 300MHz
+                                                      | (1<<3)       //clk_core:aclk_core = 2:1 = 600MHz : 300MHz
                                                       | 1;           //clk_cpu:aclk_cpu = 1:1 = 300MHz : 300MHz
     }
 }
@@ -220,13 +219,6 @@ static void GPLL_cb(void)
                                                     | (0x1<<8)      //aclk_periph:hclk_periph = 2:1 = 300MHz : 150MHz
                                                     | 0x0;          //aclk_periph=periph_clk_src/1 = 300Mhz
 	}
-}
-
-static void DPLL_cb(void)
-{
-    g_cruReg->CRU_CLKSEL_CON[26] = ((0x3 | (0x1<<8))<<16)
-                                                  | (0x0<<8)     //clk_ddr_src = DDR PLL
-                                                  | 0;           //clk_ddr_src:clk_ddrphy = 1:1
 }
 
 /*****************************************
@@ -329,29 +321,12 @@ static void Set_PLL(PLL_ID pll_id, uint32 MHz, pFunc cb)
 
 void SetARMPLL(uint16 nMhz)
 {
-    //if(ChipType == CHIP_RK3066)
+    if(ChipType != CHIP_RK3188 && ChipType != CHIP_RK3188B)
     {
         Set_PLL(APLL, 600, APLL_cb);
-        Set_PLL(GPLL, 300, GPLL_cb);
+        Set_PLL(GPLL, 300, GPLL_cb); // 3188有些坏片，可能使用GPLL当作DPLL使用
     }
 }
-
-/*uint32 GetARMCLK(void)
-{
-    uint32 NR,NF,NO;
-    uint32 ArmPll;
-    uint32 AhbClk;
-    pCRU_REG ScuReg=(pCRU_REG)CRU_BASE_ADDR;
-
-    ArmPll =  ScuReg->CRU_PLL_CON[0][0];
-    NO = (ArmPll&0xFul) + 1;
-    NR = ((ArmPll >> 8)&0x1Ful) + 1;
-    ArmPll =  ScuReg->CRU_PLL_CON[0][1];
-    NF = (ArmPll&0x1FFFul) + 1;
-    
-    ArmPll = 24*NF/(NR*NO);
-    return ArmPll;
-}*/
 
 uint32 GetGPLLCLK(void)
 {
@@ -423,10 +398,9 @@ USB PHY RESET
 ***************************************************************************/
 bool UsbPhyReset(void)
 {
-    if(ChipType == CHIP_RK3188)
+    if(ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
     {
         uart2UsbEn(0);
-        DRVDelayUs(1100); //1.1ms
         //g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
         //g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
         //3188 配置为software control usb phy，usb没有接的时候访问DiEpDma和DopDma会死机
@@ -435,6 +409,17 @@ bool UsbPhyReset(void)
        // g_3066B_grfReg->GRF_UOC0_CON[3] = (0x2A | (0x3F << 16));  //usb phy enter suspend
        // g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
     }
+    
+    if(ChipType == CHIP_RK3066)
+    {
+        g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
+    }
+    else
+    {
+        g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
+    }
+
+    DRVDelayUs(1100); //1.1ms
     g_cruReg->CRU_SOFTRST_CON[4] = ((7ul<<5)<<16)|(7<<5);
     DRVDelayUs(10*100);    //delay 10ms
     g_cruReg->CRU_SOFTRST_CON[4] = (uint32)((7ul<<5)<<16)|(0<<5);
@@ -485,7 +470,7 @@ void sdmmcGpioInit(uint32 ChipSel)
         g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00F3)<<16)|0x00A2;      // clk cmd rstn 
         g_3066B_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x1<<11);                 // emmc data0-7,wp
         g_3066B_grfReg->GRF_IO_CON[4] = 0x08000800;  // vccio0 1.8V 3188这个地方有问题?????
-        g_3066B_grfReg->GRF_IO_CON[0] = 0x000C000C;  // drive_strength_ctrl_0  4ma
+        g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0004;  // drive_strength_ctrl_0  4ma
     }
 }
 
@@ -532,44 +517,18 @@ extern void ResetCpu(unsigned long remap_addr);
 
 void SoftReset(void)
 {
-#if 0
     pFunc fp;
     pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG0_BASE_ADDR ;//USB_OTG_BASE_ADDR
-    
-    OtgReg->Device.dctl |= 0x02;          //soft disconnect
+
     DisableIRQ();
     UsbPhyReset();
-    FW_NandDeInit();
-    
-    CacheFlushBoth();          /*清除所有cache内所有内容*/
-    MMUDisable();              /*关闭MMU*/
-    CacheDisableBoth();        /*关闭所有cache*/
-    
-    cruReg->CRU_MODE_CON &= ~(3<<0);    //cpu enter slow mode
-    //ARMPllReset();
-    Delay100cyc(10);
-    DisableRemap();
-    //DisableTcm();
-    g_giccReg->ICCEOIR=USB_OTG_INT_CH;
-    Delay100cyc(10);
-    fp=0x00;
-    fp();
-#else
-    pFunc fp;
-    pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
-    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG0_BASE_ADDR ;//USB_OTG_BASE_ADDR
     OtgReg->Device.dctl |= 0x02;          //soft disconnect
-    DisableIRQ();
-    UsbPhyReset();
     FW_NandDeInit();
+
     MMUDeinit();              /*关闭MMU*/
-#if(PALTFORM==RK29XX)
-    cruReg->CRU_MODE_CON &= ~(3<<0);    //cpu enter slow mode
-#else    
-    cruReg->CRU_MODE_CON = 0x33030000;    //cpu enter slow mode
-#endif    
-    Delay100cyc(10);
+    //cruReg->CRU_MODE_CON = 0x33030000;    //cpu enter slow mode
+    //Delay100cyc(10);
     g_giccReg->ICCEOIR=USB_OTG_INT_CH;
     //DisableRemap();
     if(ChipType == CHIP_RK3066)
@@ -584,12 +543,12 @@ void SoftReset(void)
     cruReg->CRU_GLB_SRST_SND_VALUE = 0xeca8; //soft reset
     Delay100cyc(10);
     while(1);
-#endif
 }
 
 void EmmcPowerEn(uint8 En)
 {
 // TODO: EMMC 电源控制
+
     if(En)
     {
         g_EMMCReg->SDMMC_PWREN = 1;  // power enable
