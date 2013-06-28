@@ -256,11 +256,17 @@ static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
 
     //先保证SDMMC控制器工作cclk_in不超过52MHz，否则后面设置寄存器会跑飞掉
     suitMmcClkDiv = ahbFreq/MMCHS_52_FPP_FREQ + ( ((ahbFreq%MMCHS_52_FPP_FREQ)>0) ? 1: 0 );
-    if(suitMmcClkDiv > 0x3f)
+    if(freqKHz < 12000) //低频下, 外面供给的clk就不能太高,不然cmd和数据的hold time不够
     {
-        suitMmcClkDiv = 0x3f;
-    }  
-
+        suitMmcClkDiv = ahbFreq/freqKHz;
+        suitMmcClkDiv &= 0xFE;//偶数分频
+    }
+    
+    if(suitMmcClkDiv > 0x3e)
+    {
+        suitMmcClkDiv = 0x3e;
+    }
+    
     secondFreq = ahbFreq/suitMmcClkDiv;
     suitCclkInDiv = (secondFreq/freqKHz) + ( ((secondFreq%freqKHz)>0)?1:0 );
     if (((suitCclkInDiv & 0x1) == 1) && (suitCclkInDiv != 1))
@@ -1381,6 +1387,7 @@ int32 SDC_SetHostBusWidth(int32 cardId, HOST_BUS_WIDTH_E width)
 int  eMMC_Switch_ToMaskRom(void)
 {
     uint32       value = 0;
+    _Identify_SendCmd(2, (SD_GO_IDLE_STATE | SD_NODATA_OP | SD_RSP_NONE | NO_WAIT_PREV | SEND_INIT), 0xF0F0F0F0, NULL, 0, 0, NULL);
     value = BUS_1_BIT;
     pSDCReg(2)->SDMMC_CTYPE = value;
     pSDCReg(2)->SDMMC_BLKSIZ = 0x200;
@@ -1841,7 +1848,7 @@ int32 SDC_BusRequest(int32 cardId,
     #else
     
     //eMMC_printk(5, "SDC_BusRequest 444-2  ------  %s  %d\n", __FILE__,__LINE__);
-    timeOut = 60000;
+    timeOut = 250000; // 250ms
     while (!((value = pReg->SDMMC_RINISTS) & CD_INT) && (timeOut > 0))
     {
         SDOAM_Delay(1);
@@ -1919,7 +1926,7 @@ int32 SDC_BusRequest(int32 cardId,
         SDOAM_GetEvent(gSDCInfo[nSDCPort].event, DTO_EVENT);
         #else
        // uint8 *tempbuf = (uint8 *)pDataBuf;
-        timeOut = 10 * dataLen; // 1ms read 20 sector, 1 sector timeout set 5ms
+        timeOut = 100 * dataLen + 250000; // 1ms read 20 sector, 1 sector timeout set 50ms + 250ms
         while (!((value = pReg->SDMMC_RINISTS) & (DTO_INT | SBE_INT)) &&  timeOut)
         {
             SDOAM_Delay(1);
@@ -1985,7 +1992,7 @@ int32 SDC_BusRequest(int32 cardId,
                     uint32 stopCmd = 0;
                 	stopCmd = (SD_STOP_TRANSMISSION | SD_NODATA_OP | SD_RSP_R1 | STOP_CMD | NO_WAIT_PREV);
                     SDC_Start(pReg, ((stopCmd & (~(RSP_BUSY))) | START_CMD));
-                    timeOut = 1000;
+                    timeOut = 10000;
                     while (((value = pReg->SDMMC_CMD) & START_CMD) && (timeOut > 0))
                     {
                         SDOAM_Delay(1);

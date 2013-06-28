@@ -353,7 +353,7 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
         else
         {
             uint32 PreDefined = 0;
-            if(gSDMDriver[cardId].cardInfo.type & eMMC2G)
+            if(gSDMDriver[cardId].cardInfo.type & eMMC2G && gSDMDriver[cardId].cardInfo.bootSize)
             {
                 ret = SDC_BusRequest(cardId, (SD_SET_BLOCK_COUNT | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), blockCount, &status, 0, 0, NULL);
                 if (ret == SDC_SUCCESS)
@@ -1411,7 +1411,7 @@ static int32 _IdentifyCard(int32 cardId)
     {
         _RegisterFunction(&cardInfo);
         _RegisterCard(&cardInfo);
-#if 0        
+#ifdef RK_SD_BOOT
         PRINTF("MSG:Card Identify SUCCESS\n");
         if (cardInfo.type & SDIO)
         {
@@ -1595,18 +1595,18 @@ void SDM_Init(uint32 CardId)
     uint32 i;
     uint8  name[3][5] = {"SDC0", "SDC1", "SDC2"};
 
-    for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
+    //for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
     {
         //mutex的创建过程已经在RockCreateSems函数中做了
-        gSDMDriver[i].mutex  = SDOAM_CreateMutex(name[i]);
-        Assert((gSDMDriver[i].mutex != NULL), "SDM_Init:Create mutex failed\n", i);
-        if(gSDMDriver[i].mutex == NULL)
-        {
-            continue;
-        }
-        gSDMDriver[i].bOpen  = FALSE;
-        SDOAM_Memset(&gSDMDriver[i].cardInfo, 0x00, sizeof(SDM_CARD_INFO_T));
-        gSDMDriver[i].cardInfo.cardId = SDM_INVALID_CARDID;
+        gSDMDriver[CardId].mutex  = SDOAM_CreateMutex(name[i]);
+        //Assert((gSDMDriver[i].mutex != NULL), "SDM_Init:Create mutex failed\n", i);
+        //if(gSDMDriver[i].mutex == NULL)
+        //{
+        //    continue;
+        //}
+        gSDMDriver[CardId].bOpen  = FALSE;
+        SDOAM_Memset(&gSDMDriver[CardId].cardInfo, 0x00, sizeof(SDM_CARD_INFO_T));
+        gSDMDriver[CardId].cardInfo.cardId = SDM_INVALID_CARDID;
     }
     SDC_Init(CardId);
 }

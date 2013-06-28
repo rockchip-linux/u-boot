@@ -191,6 +191,7 @@ static void _MMC_DecodeCSD(uint32 *pCSD, pSDM_CARD_INFO_T pCard)
 //зЂвт:
 /****************************************************************/
 #if(eMMC_PROJECT_LINUX == 0)
+#ifdef RK_SD_BOOT
 static int32 _SetBootSize(int32 cardId, uint32 boot_size)
 {
     int32            ret = SDM_FALSE;
@@ -223,6 +224,7 @@ static int32 _SetBootSize(int32 cardId, uint32 boot_size)
 	return SDC_WaitCardBusy(cardId);
 
 }
+#endif
 #endif
 static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
 {
@@ -282,21 +284,28 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
 */
         pCard->bootSize = pDataBuf[226]*256;  // *128K
         // printk("\n%s  %d   After Ext_csd,2222222222222222 ret=%x , pCard_addr=%x \n",__FILE__,__LINE__, ret, pCard);
-        if(pCard->bootSize == 0)
+#ifdef RK_SD_BOOT
+		if(pCard->bootSize == 0)
         {
             _SetBootSize(pCard->cardId, 1);
+            pCard->bootSize = 1024;
         }
-
+#endif
         value = ((pDataBuf[215] << 24) | (pDataBuf[214] << 16) | (pDataBuf[213] << 8) | pDataBuf[212]);//[215--212]  sector count
         if(value)
         {
             pCard->capability = value;
         }
         gEmmcBootPart = (pDataBuf[179]>>3)&0x3;
-        #if 0
-        printk(5, "%s  %d   After Ext_csd, ret=%x ,\n pDataBuf[226]=%x, bootSize=%x, \n \
-                pDataBuf[215]=%x, pDataBuf[214]=%x, pDataBuf[213]=%x, pDataBuf[212]=%x,capability=%x \n",\
-                __FILE__,__LINE__, ret, pDataBuf[226], pCard->bootSize, \
+        if(gEmmcBootPart == 0)
+        {
+            gEmmcBootPart = 1;
+        }   
+		
+		#ifdef RK_SD_BOOT
+        printf("mmc Ext_csd, ret=%x ,\n Ext[226]=%x, bootSize=%x, \n \
+                Ext[215]=%x, Ext[214]=%x, Ext[213]=%x, Ext[212]=%x,cap =%x \n",\
+                ret, pDataBuf[226], pCard->bootSize, \
                 pDataBuf[215],pDataBuf[214],pDataBuf[213],pDataBuf[212], value);
         #endif
         
@@ -510,6 +519,12 @@ int32  MMC_AccessBootPartition(void *pCardInfo, uint32 partition)
     {
         ret = SDM_FALSE;
     }
+#ifdef RK_SD_BOOT
+    SDC_SendCommand(pCard->cardId, \
+                         (MMC4_SWITCH_FUNC | SD_NODATA_OP | SD_RSP_R1B | WAIT_PREV), \
+                         ((0x3 << 24) | (162 << 16) | (1 << 8)), \
+                         &status);
+#endif
     return ret;
 }
 

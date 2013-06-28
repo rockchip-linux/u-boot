@@ -46,19 +46,31 @@ void SdmmcSDMInit()
     ftl_memset(gSdCardInfoTbl,0,sizeof(gSdCardInfoTbl));
 }
 
+void emmc_dev_reset(void)
+{
+    EmmcPowerEn(0);
+#if(PALTFORM==RK29XX)
+    DRVDelayMs(50);
+#else
+    DRVDelayMs(5);
+#endif		
+    EmmcPowerEn(1);
+    DRVDelayMs(1);
+}
+
+
 uint32 SdmmcReinit(uint32 ChipSel)
 {
     int32  ret1 = SDM_SUCCESS;
     uint32 ioctlParam[5] = {0,0,0,0,0};
     uint32 retry = 2;
-    
-    sdmmcGpioInit(ChipSel);
     if(ChipSel == 2)
     {
         eMMC_changemode(0);
         EmmcPowerEn(1);
     }
     SDM_Init(ChipSel);
+    sdmmcGpioInit(ChipSel);   //放在sdm init之后，避免rst输出低电平
 EMMC_INIT_retry:    
     eMMC_SetDataHigh();
     ioctlParam[0] = ChipSel;
@@ -66,6 +78,11 @@ EMMC_INIT_retry:
     if(ret1 != SDM_SUCCESS && retry > 0)
     {
         retry--; 
+        if(ChipSel == 2)
+        {
+            PRINT_E("emmc reset for reinit\n");
+            emmc_dev_reset();
+        }
         goto EMMC_INIT_retry;
     }
     PRINT_E("SdmmcInit=%x %x\n",ChipSel,ret1);
@@ -121,7 +138,9 @@ uint32 SdmmcInit(uint32 ChipSel)
         else
         {
         	ret1 = SDM_Read(ChipSel,SD_CARD_BOOT_PART_OFFSET,4,gIdDataBuf); // id blk data
+        	#ifdef RK_SD_BOOT
             PRINT_E("gIdDataBuf[0]=%lx ret1 = %x\n", gIdDataBuf[0],ret1);
+            #endif
             if(gIdDataBuf[0] == 0xFCDC8C3B )
                 gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET; 
             //check sd0 boot
@@ -150,14 +169,7 @@ uint32 SdmmcDeInit(void)
         ioctlParam[1] = EMMC_BOOT_PART;
         SDM_IOCtrl(SDM_IOCTR_ACCESS_BOOT_PARTITION, ioctlParam);
         eMMC_Switch_ToMaskRom();
-        EmmcPowerEn(0);
-#if(PALTFORM==RK29XX)
-        DRVDelayMs(50);
-#else
-	    DRVDelayMs(5);
-#endif		
-        EmmcPowerEn(1);
-        DRVDelayMs(1);
+        emmc_dev_reset();
     }
     return ret;
 }
