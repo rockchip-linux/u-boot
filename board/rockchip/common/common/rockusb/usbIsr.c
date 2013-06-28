@@ -86,7 +86,7 @@ void UsbIsr(void)
 void BusReset(void)
 {
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
-
+    SecureBootLock = SecureBootLock_backup; //»Ö¸´lock
     UsbBusReset++;
     OtgReg->Device.dcfg &= ~0x07f0;                 //reset device addr
     ControlStage=STAGE_IDLE;

@@ -12,6 +12,7 @@ unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input,unsigned
 uint32  SecureBootEn;
 uint32  SecureBootCheckOK;
 uint32  SecureBootLock;
+uint32  SecureBootLock_backup;
 
 #define RKNAND_SYS_STORGAE_DATA_LEN 504
 typedef struct tagRKNAND_SYS_STORGAE
@@ -57,7 +58,8 @@ typedef struct tagDRM_KEY_INFO
     uint32 drmKeyLen;        //0 disable , 1~N : part 1~N
     uint32 publicKeyLen;     //0 disable , 1:enable
     uint32 secureBootLock;   //0 disable , 1:lock
-    uint32 reserved0[(0x40-0x18)/4];
+    uint32 secureBootLockKey;//加解密是使用
+    uint32 reserved0[(0x40-0x1C)/4];
     uint8  drmKey[0x80];      // key data
     uint32 reserved2[(0xFC-0xC0)/4];
     uint8  publicKey[0x104];      // key data
@@ -98,8 +100,11 @@ uint32 SecureBootCheck(void)
     if(StorageSysDataLoad(1,&gDrmKeyInfo) == FTL_OK)
     {
         updataFlag = 0;
-        if(SecureBootEn)
-            SecureBootLock = gDrmKeyInfo.secureBootLock;
+        //if(SecureBootEn)
+        SecureBootLock = gDrmKeyInfo.secureBootLock;
+        if(SecureBootLock != 1)
+           SecureBootLock = 0;
+
         if(gDrmKeyInfo.drmtag != 0x4B4D5244)
         {
             gDrmKeyInfo.drmtag = 0x4B4D5244;
@@ -108,11 +113,20 @@ uint32 SecureBootCheck(void)
             gDrmKeyInfo.drmKeyLen = 0;
             gDrmKeyInfo.publicKeyLen = 0;
             gDrmKeyInfo.secureBootLock = 0;
+            gDrmKeyInfo.secureBootLockKey = 0;
             updataFlag = 1;
         }
         
         if((RSK_KEY[0] == 0X400))
         {
+#ifdef SECURE_BOOT_SET_LOCK_ALWAY
+            if( gDrmKeyInfo.secureBootLock == 0)
+            {
+                gDrmKeyInfo.secureBootLock = 1;
+                gDrmKeyInfo.secureBootLockKey = 0;
+                updataFlag = 1;
+            }
+#endif
             if(gDrmKeyInfo.publicKeyLen==0)
             {//没有公钥，是第一次才开启keyBoxEnable,
                 gDrmKeyInfo.publicKeyLen = 0x100;
@@ -120,14 +134,15 @@ uint32 SecureBootCheck(void)
                 updataFlag = 1;
                 gDrmKeyInfo.drmKeyLen = 0;
                 gDrmKeyInfo.keyBoxEnable = 1;
+                gDrmKeyInfo.secureBootLockKey = 0;
                 memset( gDrmKeyInfo.drmKey , 0 , 0x80);
 #ifdef SECURE_BOOT_LOCK
                 gDrmKeyInfo.secureBootLock = 1;
 #endif
             }
             else if(memcmp(gDrmKeyInfo.publicKey,RSK_KEY,0x100)!=0)
-            {//如果已经存在公钥，并且公钥被替换了，那么关闭
-                if(memcmp(gDrmKeyInfo.publicKey + 4,RSK_KEY,0x100)!=0)
+            {   //如果已经存在公钥，并且公钥被替换了，那么关闭
+                if(memcmp(gDrmKeyInfo.publicKey + 4,RSK_KEY,0x100)==0)
                 {
                     ftl_memcpy(gDrmKeyInfo.publicKey,RSK_KEY,0x104);
                     updataFlag = 1;
@@ -140,10 +155,11 @@ uint32 SecureBootCheck(void)
                 }
             }
         }
-        else
+        /*else  //这种情况应该不发生，没有记录public key的情况下，不应该lock住
         {
-            SecureBootLock = 0;
-        }
+            if(gDrmKeyInfo.publicKeyLen==0)
+                SecureBootLock = 0;
+        }*/
         
         if(updataFlag)
         {
@@ -189,7 +205,8 @@ uint32 SecureBootCheck(void)
         RkPrintf("no sys part.\n","");
         SecureBootEn = 0;
     }
-    RkPrintf("SecureBootEn = %X\n",SecureBootEn);
+    RkPrintf("SecureBootEn = %d %d\n",SecureBootEn,SecureBootLock);
+    SecureBootLock_backup = SecureBootLock;
     return ret;
 }
 
@@ -197,8 +214,9 @@ uint32 SecureBootCheck(void)
 uint8 g_secureBootCheckBuf[512];
 void SecureBootUnlock(uint8 *pKey)
 {
-    ftl_memset(g_secureBootCheckBuf, 0, 512);
-    if(rsaCheckMD5(pKey, pKey+256, (uint8*)RSK_KEY , 128) == 0)
+    g_secureBootCheckBuf[0] = 0;
+    g_secureBootCheckBuf[256] = 0xFF;
+    if(rsaCheckMD5(pKey, pKey+256, (uint8*)gDrmKeyInfo.publicKey , 128) == 0)
     {
         ftl_memcpy(g_secureBootCheckBuf,pKey,512);
         SecureBootLock = 0;
@@ -297,15 +315,12 @@ uint32 SetSysData2Kernel(uint32 SecureBootFlag)
 {
     uint8 tmp_buf[512];
     gBootConfig.secureBootEn = SecureBootFlag;
-    #ifdef RK_SD_BOOT
-    gBootConfig.sdPartOffset = 0;//gSdmmcFwPartOffset;
-    gBootConfig.bootMedia = 0;//(uint32)gBootMedia;
-    gBootConfig.sdSysPartOffset = 0;//gSdmmcSysPartOffset;
-    #else
     gBootConfig.sdPartOffset = StorageGetSDFwOffset();//gSdmmcFwPartOffset;
     gBootConfig.bootMedia = StorageGetBootMedia();//(uint32)gBootMedia;
     gBootConfig.sdSysPartOffset =  StorageGetSDSysOffset();//gSdmmcSysPartOffset;
-    #endif
+#ifdef RK_SD_BOOT
+    PRINT_E("sdpart %x %x %x\n",gBootConfig.sdPartOffset,gBootConfig.bootMedia,gBootConfig.sdSysPartOffset); 
+#endif
     gBootConfig.hash = JSHash((uint8*)&gBootConfig,508);
     //printf("gBootMedia = %x\n",gBootMedia);
     //printf("gSdmmcFwPartOffset = %x\n",gSdmmcFwPartOffset);

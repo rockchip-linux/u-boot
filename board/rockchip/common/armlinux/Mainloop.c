@@ -344,7 +344,7 @@ ReParseParam:
                 goto ReParseParam;
 			}
 		    RkPrintf("!!!No parameter\n");
-			g_BootRockusb = 1;
+			g_BootRockusb = 2;
 			SecureBootEn = FALSE;
 		}
 	}
@@ -410,7 +410,7 @@ BOOT_RKUSB:
 // 进入USB 升级模式
 	RkPrintf("UsbBoot,%d\n" , RkldTimerGetTick());
     FW_SDRAM_ExcuteAddr = 0;
-    g_BootRockusb = 0;
+//    g_BootRockusb = 0;
 ReConnectUsbBoot:
     UsbBoot();
 	RkPrintf("UsbHook,%d\n" , RkldTimerGetTick());

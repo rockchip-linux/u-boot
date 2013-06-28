@@ -675,7 +675,14 @@ int32 bootKernelInBootImg(PBootInfo pboot_info,boot_img_hdr * boothdr,uint32 off
        PRINT_E("SHA ERROR!\n");
        return -4;
     }
-
+    
+	//机器已经lock，固件就要签名
+    if(SecureBootLock_backup && SecureBootCheckOK == 0)
+    {
+        PRINT_E("FW unsigned!\n");
+        return -5;
+    }
+    
     //PRINT_E("CMDLINE: %s\n", pboot_info->cmd_line);
     powerOn();
     bootm_linux(boothdr->kernel_addr,
@@ -715,9 +722,9 @@ int32 kernel_load_check(PBootInfo pboot_info, uint32 load_addr, uint32 offset , 
             }
             
             #ifdef LOAD_OEM_DATA
-            if(pboot_info->index_kernel && SecureBootCheckOK==0) //load oem data
+            if(pboot_info->index_kernel) //load oem data
             {
-                LoadOemImage(pboot_info->index_kernel,1);
+                LoadOemImage(pboot_info->index_kernel,SecureBootCheckOK?0:1); //secure boot时不执行第三方代码
             }
             #endif
             
@@ -787,9 +794,13 @@ int32 kernel_load_check(PBootInfo pboot_info, uint32 load_addr, uint32 offset , 
         #endif
 		{
             PRINT_E("E:Invaid tag(0x%08X)!\n", kImage->tag);
-            return -2;
+            return -5;
 		}
 	}
+    else if(SecureBootLock_backup)
+    {
+        return -8;
+    }
 
 	image_size = kImage->size;
     *pImageSize = image_size;

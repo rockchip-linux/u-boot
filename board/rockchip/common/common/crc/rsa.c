@@ -754,14 +754,14 @@ unsigned long rsaCheckMD5(unsigned char *input,unsigned char *rawData,unsigned c
     unsigned long outputlen;
     unsigned long startTime;
     unsigned long endTime;
-    unsigned long rst;
     unsigned long i;
     memset(outputdata,0,128);
-    rst = rsapublicfunc(outputdata,&outputlen,input,128,(R_RSA_PUBLIC_KEY *)publicKey);
+    rsapublicfunc(outputdata,&outputlen,input,128,(R_RSA_PUBLIC_KEY *)publicKey);
     if(ftl_memcmp(rawData,outputdata + outputlen-32,32) == 0)
     {
         ftl_memcpy(input,rawData,256);
+        return 0;
     }
-    return rst;
+    return -1;
 }
 

@@ -369,18 +369,32 @@ void UsbHook(void)
         }
         else if(UsbConnected==0)
         {
-    	    if((((RkldTimerGetTick() - TimeOutBase > (1500*1000)) || (GetVbus() == 0 && (RkldTimerGetTick() - TimeOutBase > (300*1000))))&&GetPortState(&key_rockusb))
-    	    ||(RkldTimerGetTick() - TimeOutBase > (10*1000*1000)))// 2s
+            if(g_BootRockusb != 2)
             {
-                char    recv_cmd[2];
-                recv_cmd[0]=0;
-                g_bootRecovery = TRUE;
-                //powerOn();
-                change_cmd_for_recovery(&gBootInfo , recv_cmd);  
-                RkPrintf (" %d %d\n",TimeOutBase, RkldTimerGetTick());
-                start_linux(&gBootInfo);
-                //如果引导失败，只能通过usb 修复，把UsbConnected标记置1
-                UsbConnected = 1;
+        	    if(((GetVbus() == 0)&&(((RkldTimerGetTick() - TimeOutBase > (1500*1000)))))
+        	    ||  ((GetVbus() == 1)&&((RkldTimerGetTick() - TimeOutBase > (10*1000*1000))))     )
+                {
+                    char    recv_cmd[2];
+                    recv_cmd[0]=0;
+                    g_bootRecovery = TRUE;
+    				g_BootRockusb = 0;
+                    //powerOn();
+                    change_cmd_for_recovery(&gBootInfo , recv_cmd);  
+                    RkPrintf (" %d %d\n",TimeOutBase, RkldTimerGetTick());
+                    start_linux(&gBootInfo);
+                    //如果引导失败，只能通过usb 修复，把UsbConnected标记置1
+                    UsbConnected = 1;
+                }
+            }
+            else
+            {
+                if((RkldTimerGetTick() - TimeOutBase > (3*1000*1000)))
+                {
+                    TimeOutBase = RkldTimerGetTick(); 
+                    PRINT_E("Usb re Boot. %d\n",RkldTimerGetTick());
+                    UsbBoot();
+                    power_on_timeout++;
+                }
             }
         }
         else if(UsbConnected == 1)//&& power_on == 1
@@ -392,31 +406,18 @@ void UsbHook(void)
         }
         else if(power_on >= 1)
         {
-    	    if((RkldTimerGetTick() - TimeOutBase > (1000*1000)))
+    	    if((RkldTimerGetTick() - TimeOutBase > (3000*1000)))
     	    {
-                //pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
     	        TimeOutBase=RkldTimerGetTick();
                 power_on_timeout++;
-                //RkPrintf ("power_on_timeout %d  FWCmdPhase=%d INDiEpCtl = %x OUTDiEpCtl = %x\n", power_on_timeout , FWCmdPhase , OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl,OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl);
-                #if(0) // 先不处理
-                if(GetVbus()==0)
-                {
-                    UsbConnected=0;
-                    TimeOutBase = 0xFFFFFFFF;
-                    power_on = 0;
-                    powerOff();
-                    UsbBoot();
-                }
-                #endif
-                //break;
     	    }
-
-            if(power_on_timeout > 200) // 200s 超时 断电
-            {
-                power_on = 0;
-                powerOff();
-                //RkPrintf (" %d power off\n", RkldTimerGetTick());
-            }
+        }
+        
+        if(power_on_timeout > 40) // 12s 超时 断电
+        {
+            power_on_timeout = 0;
+            powerOff();
+            RkPrintf ("power off\n");
         }
         
         if(UsbConnected && UsbBusReset > 5)
@@ -440,6 +441,12 @@ void UsbHook(void)
         {
             ISetLoaderFlag(0xEF08A53C);
             FWSetResetFlag = 0;
+            SoftReset();
+        }
+        else if(FWSetResetFlag==4) //reboot 2 maskrom
+        {
+            FWSetResetFlag = 0;
+            while(GetVbus());
             SoftReset();
         }
         else if(FWSetResetFlag==0xFF)
