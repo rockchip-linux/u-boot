@@ -230,6 +230,7 @@ Revision:       1.00
 #define         CHIP_RK3066B    1
 #define         CHIP_RK3168     2
 #define         CHIP_RK3188     3
+#define         CHIP_RK3188B    4
 
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB

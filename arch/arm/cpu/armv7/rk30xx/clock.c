@@ -109,7 +109,7 @@ void rkclk_set_pll(void)
 {
 	rkclk_pll_clk_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
 	rkclk_pll_clk_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
-	//rkclk_pll_clk_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
+	rkclk_pll_clk_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
 }
 
 

@@ -31,6 +31,8 @@ enum rk_plls_id {
 	END_PLL_ID,
 };
 
+extern uint8  ChipType;
+
 #define CRU_GET_REG_BITS_VAL(reg,bits_shift, msk)	(((reg) >> (bits_shift))&(msk))
 #define CRU_W_MSK(bits_shift, msk)	((msk) << ((bits_shift) + 16))
 #define CRU_SET_BITS(val,bits_shift, msk)	(((val)&(msk)) << (bits_shift))
@@ -200,9 +202,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 struct pll_clk_set {
 	unsigned long	rate;
-	u8	no;
-	u8	nr;
-	u16	nf;
+	u32	pllcon0;
+	u32	pllcon1;
+	u32	pllcon2;
 	u32	rst_dly; //us
 	u8	core_div;
 	u8	periph_div;
@@ -213,12 +215,12 @@ struct pll_clk_set {
 	u8	ahb2apb_div;
 };
 
-#define _APLL_SET_CLKS(_khz, _nr, _nf, _no, _core_div, _periph_div, _axi_core_div, _axi_div, _ahb_div, _apb_div, _ahb2apb) \
+#define _APLL_SET_CLKS(khz, nr, nf, no, _core_div, _periph_div, _axi_core_div, _axi_div, _ahb_div, _apb_div, _ahb2apb) \
 { \
-	.rate	= _khz * KHZ, \
-	.nr	= _nr, \
-	.nf	= _nf, \
-	.no	= _no, \
+	.rate		= khz * KHZ, \
+	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
+	.pllcon1	= PLL_CLKF_SET(nf), \
+	.pllcon2	= PLL_CLK_BWADJ_SET(nf>>1), \
 	.core_div	= CLK_DIV_##_core_div, \
 	.periph_div	= CLK_DIV_##_periph_div, \
 	.axi_core_div	= CLK_DIV_##_axi_core_div, \
@@ -226,39 +228,39 @@ struct pll_clk_set {
 	.hclk_div	= CLK_DIV_##_ahb_div, \
 	.pclk_div	= CLK_DIV_##_apb_div, \
 	.ahb2apb_div	= CLK_DIV_##_ahb2apb, \
-	.rst_dly = ((_nr*500)/24+1), \
+	.rst_dly	= ((nr*500)/24+1), \
 }
 
-#define _GPLL_SET_CLKS(_khz, _nr, _nf, _no, _axi_div, _ahb_div, _apb_div) \
+#define _GPLL_SET_CLKS(khz, nr, nf, no, _axi_div, _ahb_div, _apb_div) \
 { \
-	.rate	= _khz * KHZ, \
-	.nr	= _nr, \
-	.nf	= _nf, \
-	.no	= _no, \
+	.rate		= khz * KHZ, \
+	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
+	.pllcon1	= PLL_CLKF_SET(nf), \
+	.pllcon2	= PLL_CLK_BWADJ_SET(nf >> 1), \
 	.aclk_div	= CLK_DIV_##_axi_div, \
 	.hclk_div	= CLK_DIV_##_ahb_div, \
 	.pclk_div	= CLK_DIV_##_apb_div, \
-	.rst_dly = ((_nr*500)/24+1), \
+	.rst_dly	= ((nr*500)/24+1), \
 }
 
-#define _DPLL_SET_CLKS(_khz, _nr, _nf, _no, _ddr_div) \
+#define _DPLL_SET_CLKS(khz, nr, nf, no, _ddr_div) \
 { \
-	.rate	= _khz * KHZ, \
-	.nr	= _nr, \
-	.nf	= _nf, \
-	.no	= _no, \
+	.rate		= khz * KHZ, \
+	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
+	.pllcon1	= PLL_CLKF_SET(nf), \
+	.pllcon2	= PLL_CLK_BWADJ_SET(nf/2-1), \
 	.core_div	= CLK_DIV_##_ddr_div, \
-	.rst_dly = ((_nr*500)/24+1), \
+	.rst_dly	= ((nr*500)/24+1), \
 }
 
 
-#define _CPLL_SET_CLKS(_khz, _nr, _nf, _no) \
+#define _CPLL_SET_CLKS(khz, nr, nf, no) \
 { \
-	.rate	= _khz * KHZ, \
-	.nr	= _nr, \
-	.nf	= _nf, \
-	.no	= _no, \
-	.rst_dly = ((_nr*500)/24+1), \
+	.rate		= khz * KHZ, \
+	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
+	.pllcon1	= PLL_CLKF_SET(nf), \
+	.pllcon2	= PLL_CLK_BWADJ_SET(nf/2-1), \
+	.rst_dly	= ((nr*500)/24+1), \
 }
 
 struct pll_data {
@@ -287,15 +289,15 @@ static const struct pll_clk_set apll_clks[] = {
 static const struct pll_clk_set gpll_clks[] = {
 	//rate, nr, nf, no,	axi_div, hclk_div, pclk_div
 	_GPLL_SET_CLKS(768000, 1, 64, 2,    4, 2, 4),
-	_GPLL_SET_CLKS(594000, 2,198, 4,    4, 2, 4),
-	_GPLL_SET_CLKS(300000, 1, 50, 4,    2, 1, 2),
-	_GPLL_SET_CLKS(297000, 2,198, 8,    2, 1, 2),
+	_GPLL_SET_CLKS(594000, 2, 99, 2,    4, 2, 4),
+	_GPLL_SET_CLKS(300000, 1, 25, 2,    2, 1, 2),
+	_GPLL_SET_CLKS(297000, 2, 99, 4,    2, 1, 2),
 };
 
 
 /* cpll clock table, should be from high to low */
 static const struct pll_clk_set cpll_clks[] = {
-	_CPLL_SET_CLKS(798000, 2, 133, 2),
+	_CPLL_SET_CLKS(798000, 4, 133, 1),
 	_CPLL_SET_CLKS(594000, 2, 198, 4),
 };
 
@@ -333,7 +335,6 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 	struct pll_data *pll = NULL;
 	struct pll_clk_set *clkset = NULL;
 	unsigned long rate = mHz * MHZ;
-	uint32 nr, no, nf;
 
 	int i = 0;
 
@@ -359,18 +360,14 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 		return -1;
 	}
 
-	no = clkset->no;
-	nr = clkset->nr;
-	nf = clkset->nf;
-
 	/* PLL enter slow-mode */
 	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) + 16)) | (0x0<<(pll_id*4));
 	/* enter rest */
         g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x1<<5));
 
-        g_cruReg->CRU_PLL_CON[pll_id][0] = PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no);
-        g_cruReg->CRU_PLL_CON[pll_id][1] = PLL_CLKF_SET(nf);
-        g_cruReg->CRU_PLL_CON[pll_id][2] = PLL_CLK_BWADJ_SET(nf >> 1);
+        g_cruReg->CRU_PLL_CON[pll_id][0] = clkset->pllcon0;
+        g_cruReg->CRU_PLL_CON[pll_id][1] = clkset->pllcon1;
+        g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
 
         clk_delayus(5);
         g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x0<<5));
@@ -403,12 +400,19 @@ static uint32 rkclk_pll_clk_get_rate(enum rk_plls_id pll_id)
 		return (24 * MHZ);
 	} else if (con == 1) {
 		/* normal mode */
-		con = g_cruReg->CRU_PLL_CON[pll_id][0];
-		no = PLL_NO(con);
-		nr = PLL_NR(con);
-		con = g_cruReg->CRU_PLL_CON[pll_id][1];
-		nf = PLL_NF(con);
-
+		if (ChipType == CHIP_RK3188B) {
+			con = g_cruReg->CRU_PLL_CON[pll_id][0];
+			no = PLUS_PLL_NO(con);
+			nr = PLUS_PLL_NR(con);
+			con = g_cruReg->CRU_PLL_CON[pll_id][1];
+			nf = PLUS_PLL_NF(con);
+		} else {
+			con = g_cruReg->CRU_PLL_CON[pll_id][0];
+			no = PLL_NO(con);
+			nr = PLL_NR(con);
+			con = g_cruReg->CRU_PLL_CON[pll_id][1];
+			nf = PLL_NF(con);
+		}
 		return (24 * nf / (nr * no)) * MHZ;
 	} else {
 		/* deep slow mode */
