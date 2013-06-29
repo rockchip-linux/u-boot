@@ -29,7 +29,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		768 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		300 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
 
 /* define clock sourc div */
