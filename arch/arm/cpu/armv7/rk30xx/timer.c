@@ -12,7 +12,6 @@ Revision:       1.00
 #include <div64.h>
 #include <asm/arch/rk30_drivers.h>
 
-extern uint8    ChipType;
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -43,15 +42,16 @@ static inline unsigned long long usec_to_tick(unsigned long long usec)
 
 int timer_init(void)
 {
-	if (ChipType == CHIP_RK3188) {
-		g_rk3188Time0Reg->TIMER_LOAD_COUNT0 = TIMER_LOAD_VAL;
-		g_rk3188Time0Reg->TIMER_CTRL_REG = 0x01;
-	} else {
-		/* set count value */
-		g_rk30Time0Reg->TIMER_LOAD_COUNT = TIMER_LOAD_VAL;
-		/* auto reload & enable the timer */
-		g_rk30Time0Reg->TIMER_CTRL_REG |= 0x03;    
-	}
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+	/* set count value */
+	g_rk30Time0Reg->TIMER_LOAD_COUNT = TIMER_LOAD_VAL;
+	/* auto reload & enable the timer */
+	g_rk30Time0Reg->TIMER_CTRL_REG |= 0x03;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+	g_rk3188Time0Reg->TIMER_LOAD_COUNT0 = TIMER_LOAD_VAL;
+	g_rk3188Time0Reg->TIMER_CTRL_REG = 0x01;
+#endif 
+
 	reset_timer_masked();
 	
 	return 0;
@@ -60,12 +60,12 @@ int timer_init(void)
 
 void reset_timer_masked(void)
 {
-	/* reset time */
-	if (ChipType == CHIP_RK3188) {
-		gd->arch.lastinc = g_rk3188Time0Reg->TIMER_CURR_VALUE0;	/* Monotonic incrementing timer */
-	} else {
-		gd->arch.lastinc = g_rk30Time0Reg->TIMER_CURR_VALUE;	/* Monotonic incrementing timer */
-	}
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+	gd->arch.lastinc = g_rk30Time0Reg->TIMER_CURR_VALUE;	/* Monotonic incrementing timer */
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+	gd->arch.lastinc = g_rk3188Time0Reg->TIMER_CURR_VALUE0;	/* Monotonic incrementing timer */
+#endif
+
 	gd->arch.tbl = 0;				/* Last decremneter snapshot */
 }
 
@@ -111,11 +111,12 @@ static unsigned long get_current_tick(void)
 {
 	unsigned long now;
 
-	if (ChipType == CHIP_RK3188) {
-		now = g_rk3188Time0Reg->TIMER_CURR_VALUE0;
-	} else {
-		now = g_rk30Time0Reg->TIMER_CURR_VALUE;
-	}
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+	now = g_rk30Time0Reg->TIMER_CURR_VALUE;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+	now = g_rk3188Time0Reg->TIMER_CURR_VALUE0;
+#endif
+
 	if (gd->arch.lastinc >= now)
 		gd->arch.tbl -= (gd->arch.lastinc - now);
 	else
