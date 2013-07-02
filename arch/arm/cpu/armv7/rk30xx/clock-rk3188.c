@@ -215,12 +215,13 @@ struct pll_clk_set {
 	u8	ahb2apb_div;
 };
 
+
 #define _APLL_SET_CLKS(khz, nr, nf, no, _core_div, _periph_div, _axi_core_div, _axi_div, _ahb_div, _apb_div, _ahb2apb) \
 { \
 	.rate		= khz * KHZ, \
 	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
 	.pllcon1	= PLL_CLKF_SET(nf), \
-	.pllcon2	= PLL_CLK_BWADJ_SET(nf>>1), \
+	.pllcon2	= PLL_CLK_BWADJ_SET(nf >> 1), \
 	.core_div	= CLK_DIV_##_core_div, \
 	.periph_div	= CLK_DIV_##_periph_div, \
 	.axi_core_div	= CLK_DIV_##_axi_core_div, \
@@ -248,7 +249,7 @@ struct pll_clk_set {
 	.rate		= khz * KHZ, \
 	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
 	.pllcon1	= PLL_CLKF_SET(nf), \
-	.pllcon2	= PLL_CLK_BWADJ_SET(nf/2-1), \
+	.pllcon2	= PLL_CLK_BWADJ_SET(nf >> 1), \
 	.core_div	= CLK_DIV_##_ddr_div, \
 	.rst_dly	= ((nr*500)/24+1), \
 }
@@ -259,7 +260,7 @@ struct pll_clk_set {
 	.rate		= khz * KHZ, \
 	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
 	.pllcon1	= PLL_CLKF_SET(nf), \
-	.pllcon2	= PLL_CLK_BWADJ_SET(nf/2-1), \
+	.pllcon2	= PLL_CLK_BWADJ_SET(nf >> 1), \
 	.rst_dly	= ((nr*500)/24+1), \
 }
 
@@ -429,7 +430,7 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 {
 	uint32 pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
-	/* periph clock source select: 0: general pll, 1: codec pll */
+	/* periph clock source select: 1: general pll, 0: codec pll */
 	pll_src &= 0x01;
 	if(pll_src == 0) {
 		pll_sel = 0;

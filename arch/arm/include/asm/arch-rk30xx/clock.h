@@ -24,6 +24,7 @@
 #ifndef _RKXX_CLOCK_H
 #define _RKXX_CLOCK_H
 
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 
 /* Cpu clock source select */
 #define CPU_SRC_ARM_PLL			0
@@ -36,6 +37,23 @@
 /* DDR clock source select */
 #define DDR_SRC_DDR_PLL			0
 #define DDR_SRC_GENERAL_PLL		1
+
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+
+/* Cpu clock source select */
+#define CPU_SRC_ARM_PLL			0
+#define CPU_SRC_GENERAL_PLL		1
+
+/* Periph clock source select */
+#define PERIPH_SRC_GENERAL_PLL		1
+#define PERIPH_SRC_CODEC_PLL		0
+
+/* DDR clock source select */
+#define DDR_SRC_DDR_PLL			0
+#define DDR_SRC_GENERAL_PLL		1
+
+#endif
+
 
 
 /* config cpu and general clock in MHZ */
