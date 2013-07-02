@@ -46,7 +46,7 @@ int timer_init(void)
 	/* set count value */
 	g_rk30Time0Reg->TIMER_LOAD_COUNT = TIMER_LOAD_VAL;
 	/* auto reload & enable the timer */
-	g_rk30Time0Reg->TIMER_CTRL_REG |= 0x03;
+	g_rk30Time0Reg->TIMER_CTRL_REG = 0x01;
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 	g_rk3188Time0Reg->TIMER_LOAD_COUNT0 = TIMER_LOAD_VAL;
 	g_rk3188Time0Reg->TIMER_CTRL_REG = 0x01;
