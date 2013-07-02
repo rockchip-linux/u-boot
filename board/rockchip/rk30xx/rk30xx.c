@@ -343,7 +343,7 @@ void rk_backlight_ctrl(unsigned int onoff)
     int pwm = total/2;
     int *addr =0;
 
-    if(ChipType == CHIP_RK3188)
+    if(ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
     {
         g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm0, gpio0_a3
     }

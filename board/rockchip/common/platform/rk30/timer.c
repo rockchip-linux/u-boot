@@ -7,15 +7,15 @@
  */
 void RkldTimePowerOnInit( void )
 {
-    if (ChipType == CHIP_RK3188)
-    {
-        g_rk3188Time0Reg->TIMER_LOAD_COUNT0 = 0xFFFFFFFF;
-        g_rk3188Time0Reg->TIMER_CTRL_REG = 0x01;
-     }
-    else
+    if (ChipType == CHIP_RK3066)
     {
         g_rk30Time0Reg->TIMER_LOAD_COUNT = 0;
         g_rk30Time0Reg->TIMER_CTRL_REG = 0x01;
+     }
+    else
+    {
+        g_rk3188Time0Reg->TIMER_LOAD_COUNT0 = 0xFFFFFFFF;
+        g_rk3188Time0Reg->TIMER_CTRL_REG = 0x01;
     }
 }
 /**
@@ -24,13 +24,13 @@ void RkldTimePowerOnInit( void )
 uint32 RkldTimerGetCount( void )
 {
     uint32 value;
-    if (ChipType == CHIP_RK3188)
+    if (ChipType == CHIP_RK3066)
     {
-        value = g_rk3188Time0Reg->TIMER_CURR_VALUE0;
+	value = g_rk30Time0Reg->TIMER_CURR_VALUE;
     }
     else
     {
-        value = g_rk30Time0Reg->TIMER_CURR_VALUE;
+        value = g_rk3188Time0Reg->TIMER_CURR_VALUE0;
     }
     return (~value);
 }
