@@ -114,6 +114,7 @@ typedef volatile struct tagRK3066B_GRF_REG
 } RK3066B_GRF_REG, *pRK3066B_GRF_REG;
    
 #define g_3066B_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
+#define g_3188_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
 
 /* TIMER Registers */
 typedef volatile struct tagTIMER_REG

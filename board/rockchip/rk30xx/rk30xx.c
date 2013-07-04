@@ -89,7 +89,7 @@ void PowerHoldKeyInit()
     {
         key_powerHold.key.gpio.group = 0;
         key_powerHold.key.gpio.index = 0; // gpio0A0
-        //rknand_print_hex("grf:", g_3066B_grfReg,1,512);
+        //rknand_print_hex("grf:", g_3188_grfReg,1,512);
     }
 
     setup_gpio(&key_powerHold.key.gpio);
