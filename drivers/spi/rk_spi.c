@@ -122,7 +122,7 @@ static void rkspi_iomux_init(unsigned int bus, unsigned int cs)
 			g_grfReg->GRF_GPIO_IOMUX[4].GPIOB_IOMUX = ((0x1<<14)<<16)|(0x1<<14);
 		}
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-		g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x3<<12)|(0x3<<10)|(0x3<<8))<<16)|(0x2<<12)|(0x2<<10)|(0x2<<8);
+		g_3188_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x3<<12)|(0x3<<10)|(0x3<<8))<<16)|(0x2<<12)|(0x2<<10)|(0x2<<8);
 		if (cs == 0) {
 			g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = ((0x3<<14)<<16)|(0x2<<14);
 		} else {
@@ -139,7 +139,7 @@ static void rkspi_iomux_init(unsigned int bus, unsigned int cs)
 			g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX = ((0x3<<14)<<16)|(0x2<<14);
 		}
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-		g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = (((0x1<<12)|(0x1<<10)|(0x1<<8))<<16)|(0x1<<12)|(0x1<<10)|(0x1<<8);
+		g_3188_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = (((0x1<<12)|(0x1<<10)|(0x1<<8))<<16)|(0x1<<12)|(0x1<<10)|(0x1<<8);
 		if (cs == 0) {
 			g_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x1<<14)<<16)|(0x1<<14);
 		} else {
