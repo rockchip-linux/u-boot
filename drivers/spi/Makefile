@@ -26,7 +26,7 @@ include $(TOPDIR)/config.mk
 LIB	:= $(obj)libspi.o
 
 # There are many options which enable SPI, so make this library available
-#COBJS-y += spi.o
+COBJS-y += spi.o
 
 COBJS-$(CONFIG_ALTERA_SPI) += altera_spi.o
 COBJS-$(CONFIG_ANDES_SPI) += andes_spi.o
@@ -55,6 +55,7 @@ COBJS-$(CONFIG_TEGRA20_SFLASH) += tegra20_sflash.o
 COBJS-$(CONFIG_TEGRA20_SLINK) += tegra20_slink.o
 COBJS-$(CONFIG_TEGRA114_SPI) += tegra114_spi.o
 COBJS-$(CONFIG_XILINX_SPI) += xilinx_spi.o
+COBJS-$(CONFIG_RK_SPI) += rk_spi.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

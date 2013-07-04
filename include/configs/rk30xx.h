@@ -196,6 +196,9 @@ Revision:       1.00
 
 #endif //CONFIG_CMD_FASTBOOT
 
+/* SPI */
+//#define CONFIG_RK_SPI
+
 /* LCDC console */
 #define CONFIG_LCD
 #define CONFIG_RK_FB
