@@ -29,7 +29,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		300 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		768 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
 
 /* define clock sourc div */
@@ -115,14 +115,20 @@ void rkclk_set_pll(void)
 
 void lcdc_clk_enable(void)
 {
-    g_cruReg->CRU_CLKSEL_CON[31] = (1<<23) | (0x1f<<16) | (1<<7);//  aclk = GPLL
+    g_cruReg->CRU_CLKSEL_CON[31] = (1<<23) | (0x1f<<16) | (0<<7) | 1;//  aclk = CPLL/2
 }
 
 void set_lcdc_dclk(int clk)
 {
-    uint32 div = CONFIG_RKCLK_GPLL_FREQ/clk - 1;
-    
-    printf("set_lcdc_dclk: CONFIG_RKCLK_GPLL_FREQ = %d, clk = %d, div = %d\n", CONFIG_RKCLK_GPLL_FREQ, clk, div);
-    g_cruReg->CRU_CLKSEL_CON[27] = (1<<16) | (0xff<<24) | (div<<8) | 0x1;//
+    uint32 div = 0;
+    uint32 div1 = (CONFIG_RKCLK_GPLL_FREQ-1)/clk;          //general clk for source
+    uint32 div2 = (CONFIG_RKCLK_CPLL_FREQ-1)/clk;         //codec clk for source
+    if((div1+1)%2)div1+=1;
+    if((div2+1)%2)div2+=1;
+    div = ((CONFIG_RKCLK_GPLL_FREQ/(div1+1)) > (CONFIG_RKCLK_CPLL_FREQ/(div2+1))) ? div1 : div2;
+
+    printf("set_lcdc_dclk: lcdc_source_clk = %d, clk = %d, div = %d\n", (div==div1)?CONFIG_RKCLK_GPLL_FREQ:CONFIG_RKCLK_CPLL_FREQ, clk, div);
+    g_cruReg->CRU_CLKSEL_CON[27] = (1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0);
 }
+
 

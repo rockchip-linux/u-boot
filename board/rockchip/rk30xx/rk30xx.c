@@ -345,7 +345,7 @@ void rk_backlight_ctrl(unsigned int onoff)
 
     if(ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
     {
-        g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm0, gpio0_a3
+        g_3188_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
     }
     //SetPortOutput(3,30,0);   //gpio3_d6 0
     write_pwm_reg(id, 0x0c, 0x80);
@@ -372,7 +372,7 @@ void rk_fb_init(unsigned int onoff)
 
 vidinfo_t panel_info = {
     .lcd_face    = OUT_D888_P666,
-	.vl_freq	= 48,  
+	.vl_freq	= 71,  
 	.vl_col		= 1280,
 	.vl_row		= 800,
 	.vl_width	= 1280,
@@ -386,11 +386,11 @@ vidinfo_t panel_info = {
 	/* Panel infomation */
 	.vl_hspw	= 10,
 	.vl_hbpd	= 100,
-	.vl_hfpd	= 210,
+	.vl_hfpd	= 18,
 
-	.vl_vspw	= 10,
-	.vl_vbpd	= 10,
-	.vl_vfpd	= 18,
+	.vl_vspw	= 2,
+	.vl_vbpd	= 8,
+	.vl_vfpd	= 6,
 
 	.lcd_power_on = NULL,
 	.mipi_power = NULL,

@@ -269,7 +269,7 @@ Revision:		1.00
     } RK3066B_GRF_REG, *pRK3066B_GRF_REG;
    
     #define g_3066B_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
-    
+    #define g_3188_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
     //SDMMC0
 typedef enum
 {
