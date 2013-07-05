@@ -155,10 +155,12 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 		// iomux to uart 2
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
+#elif  (CONFIG_RKCHIPTYPE == CONFIG_RK3168)		
+		g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-			g_3188_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout
-			g_3188_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
-			g_3188_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
+			g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout
+			g_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
+			g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
 #endif
 		pUartReg = (pUART_REG)UART2_BASE_ADDR;
 	}

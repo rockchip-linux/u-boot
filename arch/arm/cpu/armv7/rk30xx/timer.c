@@ -42,7 +42,7 @@ static inline unsigned long long usec_to_tick(unsigned long long usec)
 
 int timer_init(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 	/* set count value */
 	g_rk30Time0Reg->TIMER_LOAD_COUNT = TIMER_LOAD_VAL;
 	/* auto reload & enable the timer */
@@ -60,7 +60,7 @@ int timer_init(void)
 
 void reset_timer_masked(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 	gd->arch.lastinc = g_rk30Time0Reg->TIMER_CURR_VALUE;	/* Monotonic incrementing timer */
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 	gd->arch.lastinc = g_rk3188Time0Reg->TIMER_CURR_VALUE0;	/* Monotonic incrementing timer */
@@ -111,7 +111,7 @@ static unsigned long get_current_tick(void)
 {
 	unsigned long now;
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 	now = g_rk30Time0Reg->TIMER_CURR_VALUE;
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 	now = g_rk3188Time0Reg->TIMER_CURR_VALUE0;

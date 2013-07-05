@@ -24,7 +24,7 @@
 #ifndef _RKXX_CLOCK_H
 #define _RKXX_CLOCK_H
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 
 /* Cpu clock source select */
 #define CPU_SRC_ARM_PLL			0

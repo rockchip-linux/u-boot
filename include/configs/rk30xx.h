@@ -21,6 +21,7 @@ Revision:       1.00
 
 #define CONFIG_RK3066		1
 #define CONFIG_RK3188		2
+#define CONFIG_RK3168		3
 
 #define CONFIG_RKCHIPTYPE	CONFIG_RK3188
 

@@ -324,10 +324,9 @@ void rk_backlight_ctrl(unsigned int onoff)
     int pwm = total/2;
     int *addr =0;
 
-    if(ChipType == CHIP_RK3066)
-    {
+ 
         g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX |= ((1<<6)<<16)|(1<<6);   // pwm0, gpio0_a3
-    }
+    
     //SetPortOutput(0,30,0);   //gpio0_d6 0
     write_pwm_reg(id, 0x0c, 0x80);
     write_pwm_reg(id, 0x08, total);
@@ -343,10 +342,9 @@ void rk_backlight_ctrl(unsigned int onoff)
     int pwm = total/2;
     int *addr =0;
 
-    if(ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
-    {
-        g_3188_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
-    }
+
+    g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
+
     //SetPortOutput(3,30,0);   //gpio3_d6 0
     write_pwm_reg(id, 0x0c, 0x80);
     write_pwm_reg(id, 0x08, total);

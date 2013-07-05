@@ -125,11 +125,7 @@ static void *get_base(void)
 
 static void i2c_adap_sel(int nr)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-        g_grfReg->GRF_SOC_CON[1] = (1 << I2C_ADAP_SEL_BIT(nr)) | (1 << I2C_ADAP_SEL_MASK(nr));
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-	g_3188_grfReg->GRF_SOC_CON[1] = (1 << I2C_ADAP_SEL_BIT(nr)) | (1 << I2C_ADAP_SEL_MASK(nr));
-#endif
+    g_grfReg->GRF_SOC_CON[1] = (1 << I2C_ADAP_SEL_BIT(nr)) | (1 << I2C_ADAP_SEL_MASK(nr));
 }
 
 static void rk30_show_regs(struct rk30_i2c *i2c)
@@ -392,29 +388,29 @@ static void rk_i2c_init(int speed)
 		i2c_adap_sel(I2C_BUS_CH0);
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 		g_grfReg->GRF_GPIO_IOMUX[2].GPIOD_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-		g_3188_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
 #endif
 	} else if (gcurrent_bus == I2C_BUS_CH1) {
 		i2c_adap_sel(I2C_BUS_CH1);
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 		g_grfReg->GRF_GPIO_IOMUX[2].GPIOD_IOMUX = (((0x1<<14)|(0x1<<12))<<16)|(0x1<<14)|(0x1<<12);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-		g_3188_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
 #endif
 	} else if (gcurrent_bus == I2C_BUS_CH2) {
 		i2c_adap_sel(I2C_BUS_CH2);
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 		g_grfReg->GRF_GPIO_IOMUX[3].GPIOA_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-		g_3188_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);
 #endif
 	} else if (gcurrent_bus == I2C_BUS_CH3) {
 		i2c_adap_sel(I2C_BUS_CH3);
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 		g_grfReg->GRF_GPIO_IOMUX[3].GPIOA_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-		g_3188_grfReg->GRF_GPIO_IOMUX[3].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12))<<16)|(0x2<<14)|(0x2<<12);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+		g_grfReg->GRF_GPIO_IOMUX[3].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12))<<16)|(0x2<<14)|(0x2<<12);
 #endif
 	} else {
 		printf("gcurrent_bus is error!\n");
