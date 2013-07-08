@@ -373,21 +373,21 @@ void uart2UsbEn(uint8 en)
 {
     if(en)
     {
-        if((!(g_grfReg->GRF_SOC_STATUS0) & (1<<10)) && (g_BootRockusb == 0))
+        if((!(g_3066B_grfReg->GRF_SOC_STATUS0) & (1<<10)) && (g_BootRockusb == 0))
         {
             DRVDelayUs(1);
-            if(!(g_grfReg->GRF_SOC_STATUS0) & (1<<10))
+            if(!(g_3066B_grfReg->GRF_SOC_STATUS0) & (1<<10))
             {
-                 //g_grfReg->GRF_UOC0_CON[2] = ((0x01 << 2) | ((0x01 << 2) << 16));  //software control usb phy enable
-                 //g_grfReg->GRF_UOC0_CON[3] = (0x2A | (0x3F << 16));  //usb phy enter suspend
-                 g_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
+                 //g_3066B_grfReg->GRF_UOC0_CON[2] = ((0x01 << 2) | ((0x01 << 2) << 16));  //software control usb phy enable
+                 //g_3066B_grfReg->GRF_UOC0_CON[3] = (0x2A | (0x3F << 16));  //usb phy enter suspend
+                 g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
             }
         }
     }
     else
     {
-        g_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
-        g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
+        g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
+        g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
     }
 }
 
@@ -401,13 +401,13 @@ bool UsbPhyReset(void)
     if(ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
     {
         uart2UsbEn(0);
-        //g_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
-        //g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
+        //g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
+        //g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
         //3188 配置为software control usb phy，usb没有接的时候访问DiEpDma和DopDma会死机
        // ddr 初始化时会配置下面三行代码
-       // g_grfReg->GRF_UOC0_CON[2] = ((0x01 << 2) | ((0x01 << 2) << 16));  //software control usb phy enable
-       // g_grfReg->GRF_UOC0_CON[3] = (0x2A | (0x3F << 16));  //usb phy enter suspend
-       // g_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
+       // g_3066B_grfReg->GRF_UOC0_CON[2] = ((0x01 << 2) | ((0x01 << 2) << 16));  //software control usb phy enable
+       // g_3066B_grfReg->GRF_UOC0_CON[3] = (0x2A | (0x3F << 16));  //usb phy enter suspend
+       // g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
     }
     
     if(ChipType == CHIP_RK3066)
@@ -416,7 +416,7 @@ bool UsbPhyReset(void)
     }
     else
     {
-        g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
+        g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
     }
 
     DRVDelayUs(1100); //1.1ms
@@ -441,11 +441,11 @@ void FlashCsInit(void)
     }
     else
     {
-        //g_grfReg->GRF_GPIO_IOMUX[0].GPIOC_IOMUX = ((0xFFFF)<<16)|0x5555;      // data8-15
-        g_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00FF)<<16)|0x0055;      //dqs cs1-cs3 
-        g_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x0<<11);                 // flash data0-7,wp
-        g_grfReg->GRF_IO_CON[4] = 0x08000000;  // vcc flash 3.3V 
-        g_grfReg->GRF_IO_CON[0] = 0x000C0008;  // drive_strength_ctrl_0  4ma
+        //g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOC_IOMUX = ((0xFFFF)<<16)|0x5555;      // data8-15
+        g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00FF)<<16)|0x0055;      //dqs cs1-cs3 
+        g_3066B_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x0<<11);                 // flash data0-7,wp
+        g_3066B_grfReg->GRF_IO_CON[4] = 0x08000000;  // vcc flash 3.3V 
+        g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0008;  // drive_strength_ctrl_0  4ma
     }
 }
 
@@ -467,10 +467,10 @@ void sdmmcGpioInit(uint32 ChipSel)
     }
     else
     {
-        g_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00F3)<<16)|0x00A2;      // clk cmd rstn 
-        g_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x1<<11);                 // emmc data0-7,wp
-        g_grfReg->GRF_IO_CON[4] = 0x08000800;  // vccio0 1.8V 3188这个地方有问题?????
-        g_grfReg->GRF_IO_CON[0] = 0x000C0004;  // drive_strength_ctrl_0  4ma
+        g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00F3)<<16)|0x00A2;      // clk cmd rstn 
+        g_3066B_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x1<<11);                 // emmc data0-7,wp
+        g_3066B_grfReg->GRF_IO_CON[4] = 0x08000800;  // vccio0 1.8V 3188这个地方有问题?????
+        g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0004;  // drive_strength_ctrl_0  4ma
     }
 }
 

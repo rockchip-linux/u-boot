@@ -223,9 +223,7 @@ Revision:		1.00
         uint32 GPIOD_IOMUX;
     }GPIO_IOMUX_T;
 
-    /* REG FILE registers */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-   
+    //REG FILE registers
     typedef volatile struct tagGRF_REG
     {
         GPIO_LH_T GRF_GPIO_DIR[7];
@@ -244,9 +242,9 @@ Revision:		1.00
         uint32 reserved[(0x1c8-0x1a0)/4];
         uint32 GRF_OS_REG[4];
     } GRF_REG, *pGRF_REG;
-    
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-    typedef volatile struct tagGRF_REG
+    #define g_grfReg ((pGRF_REG)GRF_BASE)
+
+    typedef volatile struct tagRK3066B_GRF_REG
     {
         GPIO_LH_T GRF_GPIO_DIR[4];
         GPIO_LH_T GRF_GPIO_DO[4];
@@ -264,15 +262,14 @@ Revision:		1.00
         uint32 reserved0;
         uint32 GRF_UOC0_CON[4];
         uint32 GRF_UOC1_CON[4];
-        uint32 GRF_UOC2_CON[3];  //reserved in rk3168
-        uint32 GRF_UOC3_CON[2];  //reserved in rk3168
-        uint32 GRF_HSIC_STAT;    //reserved in rk3168
+        uint32 GRF_UOC2_CON[3];
+        uint32 GRF_UOC3_CON[2];
+        uint32 GRF_HSIC_STAT;
         uint32 GRF_OS_REG[8];
-    } GRF_REG, *pGRF_REG;
-#endif
-
-#define g_grfReg ((pGRF_REG)GRF_BASE)
-
+    } RK3066B_GRF_REG, *pRK3066B_GRF_REG;
+   
+    #define g_3066B_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
+    #define g_3188_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
     //SDMMC0
 typedef enum
 {
