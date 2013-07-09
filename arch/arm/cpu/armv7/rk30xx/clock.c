@@ -95,8 +95,10 @@ static void clk_delayus(uint32_t us)
 }
 
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 	#include "clock-rk3066.c"
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+	#include "clock-rk3168.c"
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 	#include "clock-rk3188.c"
 #endif
