@@ -464,6 +464,9 @@ ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3188")
 RKCHIP ?= RK310B
 endif
 
+ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3168")
+RKCHIP ?= RK3168
+endif
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 
 $(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
