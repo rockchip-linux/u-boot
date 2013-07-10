@@ -280,9 +280,9 @@ struct pll_data {
 
 /* apll clock table, should be from high to low */
 static const struct pll_clk_set apll_clks[] = {
-	//rate, nr, nf, no,	core_div, peri_div, axi_core_div, axi_div, hclk_div, pclk_div, ahb2apb_div
-	_APLL_SET_CLKS(816000, 1, 34, 1,    1, 8, 4, 3, 2, 4, 2),
-	_APLL_SET_CLKS(600000, 1, 25, 1,    1, 4, 4, 3, 2, 4, 2),
+	//rate, nr, nf, no,	core_div, core_periph_div, core_axi_div,	axi_div, hclk_div, pclk_div, ahb2apb_div
+	_APLL_SET_CLKS(816000, 1, 34, 1,	1, 8, 4,			3, 2, 4, 2),
+	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 4, 4,			3, 2, 4, 2),
 };
 
 
@@ -291,15 +291,16 @@ static const struct pll_clk_set gpll_clks[] = {
 	//rate, nr, nf, no,	axi_div, hclk_div, pclk_div
 	_GPLL_SET_CLKS(768000, 1, 64, 2,    4, 2, 4),
 	_GPLL_SET_CLKS(594000, 2, 99, 2,    4, 2, 4),
-	_GPLL_SET_CLKS(300000, 1, 25, 2,    2, 1, 2),
+	_GPLL_SET_CLKS(300000, 1, 50, 4,    2, 1, 2),
 	_GPLL_SET_CLKS(297000, 2, 99, 4,    2, 1, 2),
 };
 
 
 /* cpll clock table, should be from high to low */
 static const struct pll_clk_set cpll_clks[] = {
-	_CPLL_SET_CLKS(798000, 4, 133, 1),
-	_CPLL_SET_CLKS(594000, 2, 198, 4),
+	//rate, nr, nf, no
+	_CPLL_SET_CLKS(798000, 2, 133, 2),
+	_CPLL_SET_CLKS(594000, 2, 99, 2),
 };
 
 
