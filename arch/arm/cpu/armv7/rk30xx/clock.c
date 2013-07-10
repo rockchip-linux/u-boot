@@ -82,16 +82,16 @@ Cpu highest frequency is 1.6 GHz
 1 cycle = 1/1.6 ns
 1 us = 1000 ns = 1000 * 1.6 cycles = 1600 cycles
 *****************************************************************************/
-#define LPJ_24MHZ  500UL
+#define LPJ_24MHZ  100UL
 
-static void clk_delayus(uint32_t us)
+static void clk_slowmode_delayus(uint32_t us)
 {   
 	volatile uint32_t i;
 
 	/* copro seems to need some delay between reading and writing */
-	for (i = 0; i < LPJ_24MHZ * us; i++)
+	for (i = 0; i < LPJ_24MHZ * us; i++) {
 		nop();
-	asm volatile("" : : : "memory");
+	}
 }
 
 

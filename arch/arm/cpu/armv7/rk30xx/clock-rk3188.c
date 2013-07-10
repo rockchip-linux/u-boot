@@ -316,13 +316,13 @@ static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
 	uint32 pll_state[4] = {1, 0, 2, 3};
 	uint32 bit = (0x20u << pll_state[pll_id]);
-	uint32 delay = 1000;
+	uint32 delay = 10000;
 
 	/* delay for pll lock */
 	while (delay > 0) {
-		clk_delayus(1);
 		if (g_grfReg->GRF_SOC_STATUS0 & bit)
 			break;
+		clk_slowmode_delayus(1);
 		delay--;
 	}
 
@@ -369,12 +369,14 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 
         g_cruReg->CRU_PLL_CON[pll_id][0] = clkset->pllcon0;
         g_cruReg->CRU_PLL_CON[pll_id][1] = clkset->pllcon1;
-        g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
+		if (ChipType == CHIP_RK3188B) {
+        	g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
+		}
 
-        clk_delayus(5);
+	clk_slowmode_delayus(5);
         g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x0<<5));
 
-	clk_delayus(clkset->rst_dly);
+	clk_slowmode_delayus(clkset->rst_dly);
 	/* delay for pll setup */
 	rkclk_pll_wait_lock(pll_id);
 
@@ -431,7 +433,7 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 {
 	uint32 pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
-	/* periph clock source select: 1: general pll, 0: codec pll */
+	/* periph clock source select: 0: codec pll, 1: general pll */
 	pll_src &= 0x01;
 	if(pll_src == 0) {
 		pll_sel = 0;
