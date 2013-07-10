@@ -23,16 +23,6 @@ Revision:       1.00
 #define LcdMskReg(addr, msk, val)  (regbak.addr)&=~(msk);   preg->addr=(regbak.addr|=(val))
 #define LCDC_REG_CFG_DONE()		LcdWrReg(REG_CFG_DONE, 0x01); 
 
-//display data format
-enum data_format{
-	ARGB888 = 0,
-	RGB888,
-	RGB565,
-	YUV420 = 4,
-	YUV422,
-	YUV444,
-};
-
 /********************************************************************
 **                          结构定义                                *
 ********************************************************************/

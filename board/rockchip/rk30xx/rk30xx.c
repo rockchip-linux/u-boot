@@ -403,7 +403,7 @@ void init_panel_info(vidinfo_t *vid)
 	vid->logo_on	= 1;
     vid->enable_ldo = rk_fb_init;
     vid->backlight_on = NULL;//rk_backlight_ctrl;   //move backlight enable to fbt_preboot, for don't show logo in rockusb
-    vid->logo_rgb_mode = 2;
+    vid->logo_rgb_mode = RGB565;
 }
 
 #endif

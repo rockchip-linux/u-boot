@@ -24,15 +24,6 @@ Revision:       1.00
 #define LcdMskReg(addr, msk, val)  (regbak.addr)&=~(msk);   preg->addr=(regbak.addr|=(val))
 #define LCDC_REG_CFG_DONE()		LcdWrReg(REG_CFG_DONE, 0x01); 
 
-//display data format
-enum data_format{
-	ARGB888 = 0,
-	RGB888,
-	RGB565,
-	YUV420 = 4,
-	YUV422,
-	YUV444,
-};
 
 /********************************************************************
 **                          结构定义                                *
@@ -402,9 +393,9 @@ int rk30_load_screen(vidinfo_t *vid)
 
 	//use default overlay,set vsyn hsync den dclk polarity
 	LcdMskReg(DSP_CTRL0,m_DSP_OUT_FORMAT | m_HSYNC_POL | m_VSYNC_POL |
-     		m_DEN_POL |m_DEN_POL,v_DSP_OUT_FORMAT(face) | 
+     		m_DEN_POL |m_DCLK_POL,v_DSP_OUT_FORMAT(face) | 
      		v_HSYNC_POL(vid->vl_hsp) | v_VSYNC_POL(vid->vl_vsp) |
-        	v_DEN_POL(vid->vl_oep) | v_DEN_POL(vid->vl_clkp));
+        	v_DEN_POL(vid->vl_oep) | v_DCLK_POL(vid->vl_clkp));
 
 	//set background color to black,set swap according to the screen panel,disable blank mode
 	LcdMskReg(DSP_CTRL1, m_BG_COLOR | m_DSP_RB_SWAP | m_DSP_RG_SWAP | m_DSP_DELTA_SWAP | 

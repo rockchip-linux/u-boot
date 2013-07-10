@@ -276,7 +276,26 @@ enum exynos_fb_rgb_mode_t {
 	OUT_D888_P666 = 0x21,
 	OUT_D888_P565 = 0x22,
 };
+#ifdef CONFIG_RK_3168_FB
+enum exynos_fb_data_format_t {
+	RGB888 = 0,
+	RGB565 = 1,
+	YUV422 = 2,
+	YUV420 = 3,
+	YUV444 = 5,
+	AYUV = 6,
+};
+#else
+enum exynos_fb_data_format_t {
+	ARGB888 = 0,
+	RGB888 = 1,
+	RGB565 = 2,
+	YUV420 = 4,
+	YUV422 = 5,
+	YUV444 = 6,
+};
 
+#endif
 
 typedef struct vidinfo {
     u_char lcd_face;    /* lcd rgb tye (i.e. RGB888) */

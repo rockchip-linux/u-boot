@@ -218,9 +218,11 @@ Revision:       1.00
 #ifdef CONFIG_RK_FB
 #if  (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 #define CONFIG_RK_3066_FB
-#else
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 #define CONFIG_RK_3188_FB
-#define CONFIG_VCC_LCDC_1_8   //vcc lcdc switch to 1.8v
+//#define CONFIG_VCC_LCDC_1_8   //vcc lcdc switch to 1.8v
+#else
+#define CONFIG_RK_3168_FB
 #endif
 #endif
 #define CONFIG_RK_I2C
