@@ -230,7 +230,7 @@ Revision:       1.00
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
 #define CONFIG_SYS_I2C_SLAVE 0x32
-
+//#define CONFIG_CHARGE_CHECK   //open it if check charging in uboot
 
 #define         CHIP_RK3066     0
 #define         CHIP_RK3066B    1

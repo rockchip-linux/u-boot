@@ -1778,6 +1778,12 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				 " %s=%s", FASTBOOT_SERIALNO_BOOTARG,
 				 priv.serial_no);
 		}
+#ifdef CONFIG_CHARGE_CHECK
+
+        if(check_charge())
+            snprintf(command_line, sizeof(command_line),
+				"%s %s",command_line," androidboot.mode=charger");
+#endif //CONFIG_CHARGE_CHECK
 
 		command_line[sizeof(command_line) - 1] = 0;
 
@@ -1861,8 +1867,6 @@ void fbt_preboot(void)
                __func__);
 	    frt = board_fbt_get_reboot_type();
     }
-    
-    rk_backlight_ctrl(1);
     
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
 		FBTDBG("\n%s: starting recovery img because of reboot flag\n",

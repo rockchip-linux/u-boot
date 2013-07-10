@@ -313,6 +313,30 @@ int board_late_init(void)
 }
 #endif
 
+#ifdef CONFIG_CHARGE_CHECK
+int check_charge(void)
+{
+    int reg=0;
+    int ret = 0;
+    if(board_fbt_check_in_charging())
+    {
+        printf("reboot in charging! \n");
+        ret = 1;
+    } else if(IReadLoaderFlag() == 0) {
+        //i2c_set_bus_num(1);
+        //i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+        //i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
+        //reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);
+       // printf("%s power on history %x\n",__func__,reg);
+        //if(reg == 0x04)
+       // {
+       //     printf("In charging! \n");
+       //     ret = 1;
+       // }
+    }
+    return ret;
+}
+#endif
 #ifdef CONFIG_RK_FB
 #define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
 
@@ -402,7 +426,7 @@ void init_panel_info(vidinfo_t *vid)
 {
 	vid->logo_on	= 1;
     vid->enable_ldo = rk_fb_init;
-    vid->backlight_on = NULL;//rk_backlight_ctrl;   //move backlight enable to fbt_preboot, for don't show logo in rockusb
+    vid->backlight_on = rk_backlight_ctrl;   //move backlight enable to fbt_preboot, for don't show logo in rockusb
     vid->logo_rgb_mode = RGB565;
 }
 

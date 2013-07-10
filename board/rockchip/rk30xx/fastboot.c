@@ -93,10 +93,17 @@ enum {
     BOOT_CHECKIMG,   /* check firmware img with backup part(in loader mode)*/
     BOOT_FASTBOOT,
     BOOT_SECUREBOOT_DISABLE,
+    BOOT_CHARGING,
     BOOT_MAX         /* MAX VALID BOOT TYPE.*/
 };
 
-
+int board_fbt_check_in_charging(void)
+{
+    uint32_t loader_flag = IReadLoaderFlag();
+    if((loader_flag&0xff) == BOOT_CHARGING)
+        return 1;
+    return 0;
+}
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 {
     int boot = BOOT_NORMAL;
