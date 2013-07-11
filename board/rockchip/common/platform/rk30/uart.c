@@ -36,7 +36,7 @@ void UartInit(void)
     }
     else
     {
-        g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout uart2
+        g_3188_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout uart2
         if(ChipType == CHIP_RK3188)
             uart2UsbEn(0);
     }

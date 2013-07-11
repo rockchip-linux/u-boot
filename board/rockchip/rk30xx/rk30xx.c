@@ -367,7 +367,7 @@ void rk_backlight_ctrl(unsigned int onoff)
     int *addr =0;
 
 
-    g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
+    g_3188_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
 
     //SetPortOutput(3,30,0);   //gpio3_d6 0
     write_pwm_reg(id, 0x0c, 0x80);
