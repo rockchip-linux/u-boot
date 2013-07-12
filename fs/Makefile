@@ -26,7 +26,9 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)libfs.o
 
+ifndef CONFIG_ROCKCHIP
 COBJS-y				+= fs.o
+endif
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

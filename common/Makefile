@@ -30,11 +30,15 @@ ifndef CONFIG_SPL_BUILD
 COBJS-y += main.o
 COBJS-y += command.o
 COBJS-y += exports.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += hash.o
+endif
 COBJS-$(CONFIG_SYS_HUSH_PARSER) += hush.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += s_record.o
 COBJS-y += xyzModem.o
 COBJS-y += cmd_disk.o
+endif
 
 # boards
 COBJS-$(CONFIG_SYS_GENERIC_BOARD) += board_f.o
@@ -43,7 +47,10 @@ COBJS-$(CONFIG_SYS_GENERIC_BOARD) += board_r.o
 # core command
 COBJS-y += cmd_boot.o
 COBJS-$(CONFIG_CMD_BOOTM) += cmd_bootm.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += cmd_help.o
+endif
+COBJS-y += cmd_nvedit.o
 COBJS-y += cmd_version.o
 
 # environment
@@ -58,6 +65,7 @@ XCOBJS-$(CONFIG_ENV_IS_IN_FLASH) += env_embedded.o
 COBJS-$(CONFIG_ENV_IS_IN_NVRAM) += env_embedded.o
 COBJS-$(CONFIG_ENV_IS_IN_FLASH) += env_flash.o
 COBJS-$(CONFIG_ENV_IS_IN_MMC) += env_mmc.o
+COBJS-$(CONFIG_ENV_IS_IN_RK_EMMC) += env_rk_emmc.o
 COBJS-$(CONFIG_ENV_IS_IN_FAT) += env_fat.o
 COBJS-$(CONFIG_ENV_IS_IN_NAND) += env_nand.o
 COBJS-$(CONFIG_ENV_IS_IN_NVRAM) += env_nvram.o
@@ -124,7 +132,9 @@ COBJS-$(CONFIG_CMD_CRAMFS) += cmd_cramfs.o
 COBJS-$(CONFIG_CMD_LDRINFO) += cmd_ldrinfo.o
 COBJS-$(CONFIG_CMD_LED) += cmd_led.o
 COBJS-$(CONFIG_CMD_LICENSE) += cmd_license.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += cmd_load.o
+endif
 COBJS-$(CONFIG_LOGBUFFER) += cmd_log.o
 COBJS-$(CONFIG_ID_EEPROM) += cmd_mac.o
 COBJS-$(CONFIG_CMD_MD5SUM) += cmd_md5sum.o
@@ -151,7 +161,9 @@ COBJS-$(CONFIG_CMD_PART) += cmd_part.o
 ifdef CONFIG_PCI
 COBJS-$(CONFIG_CMD_PCI) += cmd_pci.o
 endif
+ifndef CONFIG_ROCKCHIP
 COBJS-y += cmd_pcmcia.o
+endif
 COBJS-$(CONFIG_CMD_PORTIO) += cmd_portio.o
 COBJS-$(CONFIG_CMD_PXE) += cmd_pxe.o
 COBJS-$(CONFIG_CMD_READ) += cmd_read.o
@@ -189,10 +201,14 @@ COBJS-$(CONFIG_CMD_SPL) += cmd_spl.o
 COBJS-$(CONFIG_CMD_ZIP) += cmd_zip.o
 COBJS-$(CONFIG_CMD_ZFS) += cmd_zfs.o
 
+COBJS-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
+
 # others
 COBJS-$(CONFIG_BOOTSTAGE) += bootstage.o
 COBJS-$(CONFIG_CONSOLE_MUX) += iomux.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += flash.o
+endif
 COBJS-$(CONFIG_CMD_KGDB) += kgdb.o kgdb_stubs.o
 COBJS-$(CONFIG_I2C_EDID) += edid.o
 COBJS-$(CONFIG_KALLSYMS) += kallsyms.o
@@ -240,7 +256,9 @@ COBJS-$(CONFIG_HWCONFIG) += hwconfig.o
 COBJS-$(CONFIG_BOUNCE_BUFFER) += bouncebuf.o
 COBJS-y += console.o
 COBJS-y += dlmalloc.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += image.o
+endif
 COBJS-$(CONFIG_OF_LIBFDT) += image-fdt.o
 COBJS-$(CONFIG_FIT) += image-fit.o
 COBJS-$(CONFIG_FIT_SIGNATURE) += image-sig.o

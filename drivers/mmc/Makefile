@@ -30,7 +30,11 @@ COBJS-$(CONFIG_BFIN_SDH) += bfin_sdh.o
 COBJS-$(CONFIG_DAVINCI_MMC) += davinci_mmc.o
 COBJS-$(CONFIG_FSL_ESDHC) += fsl_esdhc.o
 COBJS-$(CONFIG_FTSDC010) += ftsdc010_mci.o
+ifdef CONFIG_ROCKCHIP
+COBJS-$(CONFIG_GENERIC_MMC) += rkemmc.o
+else
 COBJS-$(CONFIG_GENERIC_MMC) += mmc.o
+endif
 COBJS-$(CONFIG_GENERIC_ATMEL_MCI) += gen_atmel_mci.o
 COBJS-$(CONFIG_MMC_SPI) += mmc_spi.o
 COBJS-$(CONFIG_ARM_PL180_MMCI) += arm_pl180_mmci.o

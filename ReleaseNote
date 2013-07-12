@@ -1,0 +1,57 @@
+2013.4.8
+initial version checkout from uboot v2013.04-rc2
+
+2013.5.7
+Alpha version
+
+Feature
+Support RK3066,RK3188
+Support Rockusb, Fastboot.
+Support Display Logo in Uboot.Now can display logo with 2s in RK3066 with 8bpp@160*96 logo.
+Support Volume+ + Power + USB plugin enter Rockusb.
+Support Volume- + Power + USB plugin enter Fastboot.
+Support Volume+ + Power enter android recovery.
+Support upgrade loader,parameter,kernel.img,boot.img,recovery.img,system.img,misc.img through Rockusb.
+Support upgrade loader,parameter,kernel.img,boot.img,recovery.img,system.img,misc.img through Fastboot.
+Support load boot.img,recovery.img and kernel.img.
+Support upgrade bootloader and parameter from Android OTA.
+Support "adb reboot loader", "adb reboot bootloader", "adb reboot-bootloader" enter Rockusb mode.
+Support "adb reboot recovery" enter android recovery.
+Support Secure boot.
+Support fastboot getvar version
+Support fastboot getvar version-bootloader
+Support fastboot getvar unlocked
+Support fastboot getvar secure
+Support fastboot getvar product
+Support fastboot getvar serialno
+Support fastboot getvar partition-type:<partition_name>
+Support fastboot getvar partition-size:<partition_name>
+Support fastboot oem recovery
+Support fastboot oem recovery:wipe_data
+Support fastboot oem unlock
+Support fastboot oem unlock_accept
+Support fastboot oem lock
+Support fastboot flash <partition_name> [ <filename> ]
+Support fastboot reboot
+Support fastboot reboot-bootloader
+Support fastboot continue
+Support fastboot boot <kernel> [ <ramdisk> ]
+Support fastboot update <filename> (this file should use make updatepackage in android root directory to generate it)
+Support fastboot flashall
+use the same vid, pid as rockchip adb. so we can use rockchip adb window driver for window version fastboot.
+Useage
+compile:make rk30xx. 
+bootloader will general in the root directory of uboot.
+
+
+2013.5.23
+Beta version
+add bootmerger,so we can auto merge RK3188Loader_uboot.bin
+modify parameter, add entry "PRODUCT:your product" to define product val returned in "fastboot getvar product".
+add compressed logo support.
+support i2c in uboot
+support sparse image
+support rk3188 lcdc
+start backup when boot recovery fail
+
+

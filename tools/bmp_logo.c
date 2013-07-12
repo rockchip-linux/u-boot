@@ -176,10 +176,12 @@ int main (int argc, char *argv[])
 	printf ("\n");
 	printf ("};\n");
 	printf ("\n");
+
+#if (!defined COMPRESS_RLE8) && (!defined COMPRESS_RLE16)
 	printf("unsigned char bmp_logo_bitmap[] = {\n");
 	for (i=(b->height-1)*b->width; i>=0; i-=b->width) {
 		for (x = 0; x < b->width; x++) {
-			b->data[(uint16_t) i + x] = (uint8_t) fgetc (fp) \
+			b->data[i + x] = (uint8_t) fgetc (fp) \
 						+ DEFAULT_CMAP_SIZE;
 		}
 	}
@@ -192,6 +194,66 @@ int main (int argc, char *argv[])
 			((i%8) == 7) ? '\n' : ' '
 		);
 	}
+
+#else //COMPRESS_RLE8 || COMPRESS_RLE16
+    printf("unsigned char bmp_logo_bitmap[%d * %d];\n", b->width, b->height);
+
+#ifdef COMPRESS_RLE16
+#define DATA_TYPE uint16_t
+	printf("unsigned short bmp_logo_rle[] = {\n");
+#else
+#define DATA_TYPE uint8_t
+	printf("unsigned char bmp_logo_rle[] = {\n");
+#endif
+    for (i=(b->height-1)*b->width; i>=0; i-=b->width) {
+        for (x = 0; x < b->width; x++) {
+            b->data[i + x] = (uint8_t) fgetc (fp) \
+                        + DEFAULT_CMAP_SIZE;
+        }
+    }
+
+    //add by cjf, base on android:build/tools/rgb2565/to565.c
+    DATA_TYPE* data;
+    if ((data = (DATA_TYPE*)malloc(b->width * b->height
+                    << 1 * sizeof(DATA_TYPE))) == NULL)
+        error ("Error allocating memory for file", fp);
+    DATA_TYPE last, color, count;
+
+    int j = 0;
+    count = 0;
+    for (i=0; i<(b->height*b->width); ++i) {
+        color = b->data[i];
+        if (count) {
+            if ((color == last) && (count != (DATA_TYPE)-1)) {
+                count++;
+                continue;
+            } else {
+                data[j++] = count;
+                data[j++] = last;
+            }
+        }
+        last = color;
+        count = 1;
+    }
+    if (count) {
+        data[j++] = count;
+        data[j++] = last;
+    }
+
+    for (i=0; i<j; ++i) {
+        if ((i%8) == 0)
+            putchar ('\t');
+#ifdef COMPRESS_RLE16
+        printf ("0x%04X,%c",
+#else
+        printf ("0x%02X,%c",
+#endif
+            data[i],
+            ((i%8) == 7) ? '\n' : ' '
+        );
+    }
+
+#endif //COMPRESS_RLE8 || COMPRESS_RLE16
 	printf ("\n"
 		"};\n\n"
 		"#endif /* __BMP_LOGO_DATA_H__ */\n"

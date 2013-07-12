@@ -35,8 +35,34 @@
 #include <asm/system.h>
 #include <linux/linkage.h>
 
+
+#ifdef CONFIG_ROCKCHIP
+.globl _start
+_start: msr cpsr_c,#0xd3 
+        b _vector
+.globl RSA_KEY_TAG
+RSA_KEY_TAG:
+		.word 0x4B415352
+.globl RSA_KEY_LENGTH
+RSA_KEY_LENGTH:
+		.word 0x200-0x08
+.globl RSA_KEY_DATA
+RSA_KEY_DATA:
+		.space 0x200-0x08
+.globl loader_tag_check
+loader_tag_check:
+		.word 0x4B415351
+.globl RSA_PAD
+RSA_PAD:
+		.space 20
+
+	.align	5
+.globl _vector
+_vector: b	reset
+#else
 .globl _start
 _start: b	reset
+#endif
 	ldr	pc, _undefined_instruction
 	ldr	pc, _software_interrupt
 	ldr	pc, _prefetch_abort
@@ -137,6 +163,41 @@ reset:
 	orr	r0, r0, #0xc0		@ disable FIQ and IRQ
 	msr	cpsr,r0
 
+#ifdef CONFIG_ROCKCHIP
+        ldr 	r1, =0x20004000             /* cpu 1 2 3 power down */
+        mov 	r0, #0x0E
+        str	r0, [r1,#8]
+#endif
+
+#ifdef CONFIG_USE_RK30IRQ
+	/*;chip detect RK30 or RK3066B
+	;set remap bit in grf enabled, remap 0x0000 to imem, 
+	;*(unsigned long volatile *)(GRF_BASE + GRF_SOC_CON0) 0x20008150  = 0x10001000; 30
+	;*(unsigned long volatile *)(GRF_BASE + GRF_SOC_CON0) 0x200080A0  = 0x10001000; 3066B 3168 3188
+	*/
+	
+	LDR R0,=0x101027FC
+	LDR R2,=0x56313031
+	LDR R1,[R0]
+	CMP R1,R2
+	LDREQ R0,=0x20008150 ;//rk30
+	LDRNE R0,=0x200080A0 ;//rk3066B 3168 3188
+	LDR R1,=0x10001000
+	STR R1,[R0]
+#if 0
+
+	adr r0, _vector
+	adr r1, _end_vect
+	
+	sub r2, r1, r0
+	mov r1, #0
+1:	ldr r3, [r0], #4
+	str r3, [r1], #4 
+	cmp r1, r2
+	bne 1b
+#endif
+#endif
+
 /*
  * Setup vector:
  * (OMAP4 spl TEXT_BASE is not 32 byte aligned.
@@ -149,7 +210,7 @@ reset:
 	mcr	p15, 0, r0, c1, c0, 0	@ Write CP15 SCTRL Register
 
 	/* Set vector address in CP15 VBAR register */
-	ldr	r0, =_start
+	ldr	r0, =_vector
 	mcr	p15, 0, r0, c12, c0, 0	@Set VBAR
 #endif
 
@@ -176,7 +237,7 @@ ENTRY(c_runtime_cpu_setup)
  * Move vector table
  */
 	/* Set vector address in CP15 VBAR register */
-	ldr     r0, =_start
+	ldr     r0, =_vector
 	mcr     p15, 0, r0, c12, c0, 0  @Set VBAR
 
 	bx	lr

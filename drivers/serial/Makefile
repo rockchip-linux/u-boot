@@ -27,6 +27,7 @@ LIB	:= $(obj)libserial.o
 
 COBJS-y += serial.o
 
+COBJS-$(CONFIG_RK30_UART) += rk30_uart.o
 COBJS-$(CONFIG_ALTERA_UART) += altera_uart.o
 COBJS-$(CONFIG_ALTERA_JTAG_UART) += altera_jtag_uart.o
 COBJS-$(CONFIG_ARM_DCC) += arm_dcc.o

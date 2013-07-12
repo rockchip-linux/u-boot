@@ -29,7 +29,9 @@ LIB	= $(obj)librtc.o
 
 COBJS-$(CONFIG_RTC_AT91SAM9_RTT) += at91sam9_rtt.o
 COBJS-$(CONFIG_RTC_BFIN) += bfin_rtc.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += date.o
+endif
 COBJS-$(CONFIG_RTC_DAVINCI) += davinci.o
 COBJS-$(CONFIG_RTC_DS12887) += ds12887.o
 COBJS-$(CONFIG_RTC_DS1302) += ds1302.o

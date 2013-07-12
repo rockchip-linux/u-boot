@@ -33,22 +33,30 @@ COBJS-$(CONFIG_BZIP2) += bzlib_decompress.o
 COBJS-$(CONFIG_BZIP2) += bzlib_randtable.o
 COBJS-$(CONFIG_BZIP2) += bzlib_huffman.o
 COBJS-$(CONFIG_USB_TTY) += circbuf.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += crc7.o
 COBJS-y += crc16.o
+endif
 COBJS-$(CONFIG_OF_CONTROL) += fdtdec.o
 COBJS-$(CONFIG_TEST_FDTDEC) += fdtdec_test.o
 COBJS-$(CONFIG_GZIP) += gunzip.o
 COBJS-$(CONFIG_GZIP_COMPRESSED) += gzip.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += initcall.o
+endif
 COBJS-$(CONFIG_LMB) += lmb.o
 COBJS-y += ldiv.o
 COBJS-$(CONFIG_MD5) += md5.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y += net_utils.o
+endif
 COBJS-$(CONFIG_PHYSMEM) += physmem.o
 COBJS-y += qsort.o
 COBJS-$(CONFIG_SHA1) += sha1.o
 COBJS-$(CONFIG_SHA256) += sha256.o
+ifndef CONFIG_ROCKCHIP
 COBJS-y	+= strmhz.o
+endif
 COBJS-$(CONFIG_TPM) += tpm.o
 COBJS-$(CONFIG_RBTREE)	+= rbtree.o
 COBJS-$(CONFIG_BITREVERSE) += bitrev.o

@@ -214,7 +214,9 @@ int stdio_init (void)
 	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 #endif
 #ifdef CONFIG_LCD
+#ifndef CONFIG_ROCKCHIP   //move backlight enable to board_init_r, for don't show logo in rockusb
 	drv_lcd_init ();
+#endif
 #endif
 #if defined(CONFIG_VIDEO) || defined(CONFIG_CFB_CONSOLE)
 	drv_video_init ();

@@ -457,6 +457,30 @@ $(obj)u-boot.ldr.hex:	$(obj)u-boot.ldr
 $(obj)u-boot.ldr.srec:	$(obj)u-boot.ldr
 		$(OBJCOPY) ${OBJCFLAGS} -O srec $< $@ -I binary
 
+ifneq ($(CONFIG_ROCKCHIP),)
+
+ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3066")
+RKCHIP ?= RK30
+endif
+
+ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3168")
+RKCHIP ?= RK30B
+endif
+
+ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3188")
+RKCHIP ?= RK310B
+endif
+
+ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3168")
+RKCHIP ?= RK3168
+endif
+RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
+
+$(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
+	cd $(obj)tools/rk_tools/ && \
+		./boot_merger RKBOOT/$(RKCHIP).ini
+endif
+
 #
 # U-Boot entry point, needed for booting of full-blown U-Boot
 # from the SPL U-Boot version.
@@ -770,6 +794,13 @@ $(TIMESTAMP_FILE):
 		@LC_ALL=C date +'#define U_BOOT_DATE "%b %d %C%y"' > $@.tmp
 		@LC_ALL=C date +'#define U_BOOT_TIME "%T"' >> $@.tmp
 		@cmp -s $@ $@.tmp && rm -f $@.tmp || mv -f $@.tmp $@
+ifeq ($(CONFIG_CMD_FASTBOOT),y)
+		@eval `date +'BYR=%Y BMON=%-m BDOM=%-d BHR=%-H BMIN=%-M'`; \
+			chr () { printf \\$$(($$1/64*100+$$1%64/8*10+$$1%8)); }; \
+			b36 () { if [ $$1 -le 9 ]; then echo $$1; else chr $$((0x41 + $$1 - 10)); fi }; \
+			printf '#define FASTBOOT_TIMESTAMP "%c%c%c%c%c"\n' `chr $$((0x41 + $$BYR - 2011))` `b36 $$BMON` `b36 $$BDOM` `b36 $$BHR` `b36 $$(($$BMIN/2))` >> $@
+endif
+
 
 easylogo env gdb:
 	$(MAKE) -C tools/$@ all MTD_VERSION=${MTD_VERSION}
@@ -847,7 +878,7 @@ clean:
 	@rm -f $(obj)$(CPUDIR)/$(SOC)/asm-offsets.s
 	@rm -f $(TIMESTAMP_FILE) $(VERSION_FILE)
 	@$(MAKE) -s -C doc/DocBook/ cleandocs
-	@find $(OBJTREE) -type f \
+	@find $(OBJTREE) -path "$(OBJTREE)/tools/rk_tools/*" -prune -o -type f \
 		\( -name 'core' -o -name '*.bak' -o -name '*~' -o -name '*.su' \
 		-o -name '*.o'	-o -name '*.a' -o -name '*.exe' \
 		-o -name '*.cfgtmp' \) -print \
@@ -858,7 +889,7 @@ tidy:	clean
 	@find $(OBJTREE) -type f \( -name '*.depend*' \) -print | xargs rm -f
 
 clobber:	tidy
-	@find $(OBJTREE) -type f \( -name '*.srec' \
+	@find $(OBJTREE) -path "$(OBJTREE)/tools/rk_tools/*" -prune -o -type f \( -name '*.srec' \
 		-o -name '*.bin' -o -name u-boot.img \) \
 		-print0 | xargs -0 rm -f
 	@rm -f $(OBJS) $(obj)*.bak $(obj)ctags $(obj)etags $(obj)TAGS \

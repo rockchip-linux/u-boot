@@ -48,6 +48,8 @@ COBJS-$(CONFIG_SH_I2C) += sh_i2c.o
 COBJS-$(CONFIG_SH_SH7734_I2C) += sh_sh7734_i2c.o
 COBJS-$(CONFIG_ZYNQ_I2C) += zynq_i2c.o
 
+COBJS-$(CONFIG_RK_I2C) += rk_i2c.o
+
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))

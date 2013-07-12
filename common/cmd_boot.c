@@ -38,7 +38,7 @@ unsigned long do_go_exec(ulong (*entry)(int, char * const []), int argc,
 	return entry (argc, argv);
 }
 
-static int do_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	ulong	addr, rc;
 	int     rcode = 0;

@@ -181,6 +181,13 @@ HOSTCPPFLAGS =	-include $(SRCTREE)/include/libfdt_env.h \
 		-DUSE_HOSTCC \
 		-D__KERNEL_STRICT_NAMES
 
+ifneq ($(CONFIG_COMPRESS_LOGO_RLE16),)
+HOSTCFLAGS += -DCOMPRESS_RLE16
+else
+ifneq ($(CONFIG_COMPRESS_LOGO_RLE8),)
+HOSTCFLAGS += -DCOMPRESS_RLE8
+endif
+endif
 
 all:	$(obj).depend $(BINS) $(LOGO-y) subdirs
 

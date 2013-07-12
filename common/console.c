@@ -31,6 +31,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifndef CONFIG_ROCKCHIP
 static int on_console(const char *name, const char *value, enum env_op op,
 	int flags)
 {
@@ -72,6 +73,7 @@ static int on_console(const char *name, const char *value, enum env_op op,
 	}
 }
 U_BOOT_ENV_CALLBACK(console, on_console);
+#endif //CONFIG_ROCKCHIP
 
 #ifdef CONFIG_SILENT_CONSOLE
 static int on_silent(const char *name, const char *value, enum env_op op,
@@ -255,6 +257,7 @@ static inline void console_puts(int file, const char *s)
 	stdio_devices[file]->puts(s);
 }
 
+#ifdef CONFIG_ROCKCHIP
 static inline void console_printdevs(int file)
 {
 	printf("%s\n", stdio_devices[file]->name);
@@ -264,6 +267,7 @@ static inline void console_doenv(int file, struct stdio_dev *dev)
 {
 	console_setfile(file, dev);
 }
+#endif
 #endif /* defined(CONFIG_CONSOLE_MUX) */
 
 /** U-Boot INITIAL CONSOLE-NOT COMPATIBLE FUNCTIONS *************************/
@@ -521,6 +525,7 @@ int vprintf(const char *fmt, va_list args)
 	return i;
 }
 
+#ifdef CONFIG_CTRLC
 /* test if ctrl-c was pressed */
 static int ctrlc_disabled = 0;	/* see disable_ctrl() */
 static int ctrlc_was_pressed = 0;
@@ -560,6 +565,7 @@ void clear_ctrlc(void)
 {
 	ctrlc_was_pressed = 0;
 }
+#endif
 
 #ifdef CONFIG_MODEM_SUPPORT_DEBUG
 char	screen[1024];
