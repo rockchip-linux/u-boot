@@ -91,7 +91,7 @@ void __udelay(unsigned long usec)
 
 	/* get current timestamp */
 	tmp = get_current_tick();
-	if (tmp < tmo) {
+	if (tmp < tmo + 10000) {
 		reset_timer_masked();
 		tmp = get_current_tick();
 	}
