@@ -439,8 +439,9 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
  * @param fit_unamep	On entry this is the requested image name
  *			(e.g. "kernel@1") or NULL to use the default. On exit
  *			points to the selected image name
- * @param fit_uname_config	Requested configuration name, or NULL for the
- *			default
+ * @param fit_uname_configp	On entry this is the requested configuration
+ *			name (e.g. "conf@1") or NULL to use the default. On
+ *			exit points to the selected configuration name.
  * @param arch		Expected architecture (IH_ARCH_...)
  * @param image_type	Required image type (IH_TYPE_...). If this is
  *			IH_TYPE_KERNEL then we allow IH_TYPE_KERNEL_NOLOAD
@@ -453,7 +454,7 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
  * @param lenp		Returns length of loaded image
  */
 int fit_image_load(bootm_headers_t *images, const char *prop_name, ulong addr,
-		   const char **fit_unamep, const char *fit_uname_config,
+		   const char **fit_unamep, const char **fit_uname_configp,
 		   int arch, int image_type, int bootstage_id,
 		   enum fit_load_op load_op, ulong *datap, ulong *lenp);
 
@@ -661,6 +662,17 @@ int image_setup_libfdt(bootm_headers_t *images, void *blob,
  * @return 0 if ok, <0 on failure
  */
 int image_setup_linux(bootm_headers_t *images);
+
+/**
+ * bootz_setup() - Extract stat and size of a Linux xImage
+ *
+ * @image: Address of image
+ * @start: Returns start address of image
+ * @end : Returns end address of image
+ * @return 0 if OK, 1 if the image was not recognised
+ */
+int bootz_setup(ulong image, ulong *start, ulong *end);
+
 
 /*******************************************************************/
 /* New uImage format specific code (prefixed with fit_) */
