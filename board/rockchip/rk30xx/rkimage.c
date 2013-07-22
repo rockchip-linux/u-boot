@@ -331,7 +331,7 @@ int handleRkFlash(char *name,
     }
 
     if (priv->d_bytes > priv->transfer_buffer_size) {
-        if (!strcmp(SYSTEM_NAME, name))
+        if (!strcmp(SYSTEM_NAME, name) && priv->d_status > 0)
             goto ok;
         goto fail;
     }
@@ -352,10 +352,10 @@ static inline int getSystemOffset()
 }
 
 int handleDirectDownload(unsigned char *buffer, 
-       int* length, struct cmd_fastboot_interface *priv)
+       int length, struct cmd_fastboot_interface *priv)
 {
     int size = priv->d_direct_size;
-    int avail_len = *length - priv->d_buffer_pos;
+    int avail_len = length - priv->transfer_buffer_pos;
     int write_len = 0;
     if (avail_len >= size) {
         write_len = size;
@@ -366,29 +366,27 @@ int handleDirectDownload(unsigned char *buffer,
 
     FBTDBG("direct download, size:%d, offset:%lld, rest:%d\n",
             size, priv->d_direct_offset, priv->d_direct_size - write_len);
-    if(CopyMemory2Flash(buffer + priv->d_buffer_pos,
+    if(CopyMemory2Flash(buffer + priv->transfer_buffer_pos,
                 priv->d_direct_offset + getSystemOffset(), blocks)) {
         return -1;
     }
     priv->d_direct_offset += blocks;
     priv->d_direct_size -= write_len;
-    priv->d_buffer_pos += write_len;
+    priv->transfer_buffer_pos += write_len;
     return priv->d_direct_size;
 }
 
 void noBuffer(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
-    int rest = *length - priv->d_buffer_pos;
-    FBTDBG("memmove rest:%d, len:%d\n", rest, *length);
-    if (rest)
-        memmove(buffer, buffer + priv->d_buffer_pos, rest);
-    *length = rest;
-    priv->d_bytes += priv->d_buffer_pos;
+    int rest = length - priv->transfer_buffer_pos;
+    priv->d_bytes += priv->transfer_buffer_pos;
+    priv->transfer_buffer_pos = RK_BLK_SIZE - rest;
+    FBTDBG("rest:%d, len:%d, new pos:%lld\n", rest, length, priv->transfer_buffer_pos);
 }
 
 int handleExtDownload(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     if (!priv->d_direct_size) {
         return 0;
@@ -407,7 +405,7 @@ int handleExtDownload(unsigned char *buffer,
 }
 
 int handleSparseDownload(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     int ret;
     if (priv->d_direct_size) {
@@ -426,14 +424,14 @@ int handleSparseDownload(unsigned char *buffer,
     u64 clen = 0;
     lbaint_t blkcnt;
     while (priv->sparse_cur_chunk < header->total_chunks) {
-        ret = *length - priv->d_buffer_pos;
+        ret = length - priv->transfer_buffer_pos;
         if (ret < sizeof(chunk_header_t)) {
             noBuffer(buffer, length, priv);
             return 1;
         }
         priv->sparse_cur_chunk++;
-        memcpy(chunk, buffer + priv->d_buffer_pos, sizeof(chunk_header_t));
-        priv->d_buffer_pos += sizeof(chunk_header_t);
+        memcpy(chunk, buffer + priv->transfer_buffer_pos, sizeof(chunk_header_t));
+        priv->transfer_buffer_pos += sizeof(chunk_header_t);
 
         switch (chunk->chunk_type) {
             case CHUNK_TYPE_RAW:
@@ -489,14 +487,14 @@ failed:
 }
 
 int startDownload(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     priv->d_status = 0;
-    priv->d_buffer_pos = 0;
     priv->flag_sparse = false;
     priv->d_direct_size = 0;
     priv->d_direct_offset = 0;
     priv->sparse_cur_chunk = 0;
+    priv->transfer_buffer_pos = 0;
 
     //check ext image
     filesystem* fs = (filesystem*) buffer;
@@ -515,7 +513,7 @@ int startDownload(unsigned char *buffer,
             (header->file_hdr_sz == sizeof(sparse_header_t)) &&
             (header->chunk_hdr_sz == sizeof(chunk_header_t))) {
         priv->flag_sparse = true;
-        priv->d_buffer_pos = sizeof(sparse_header_t);
+        priv->transfer_buffer_pos += sizeof(sparse_header_t);
         FBTDBG("found sparse image\n");
         return handleSparseDownload(buffer, length, priv);
     }
@@ -524,7 +522,7 @@ int startDownload(unsigned char *buffer,
 }
 
 int handleDownload(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     if (priv->d_status || priv->d_size <= priv->transfer_buffer_size) {
         //nothing to do with these.
@@ -537,18 +535,22 @@ int handleDownload(unsigned char *buffer,
         return 0;
     }
 
-    if (*length + priv->d_bytes < priv->d_size &&
-            *length < priv->transfer_buffer_size) {
+    if (length + priv->d_bytes < priv->d_size &&
+            length < priv->transfer_buffer_size) {
         //keep downloading, util buffer is full or end of download.
         return 1;
     }
 
-    priv->d_buffer_pos = 0;
     if (!priv->d_bytes) {
-        FBTDBG("start download, length:%d\n", *length);
+        FBTDBG("start download, length:%d\n", length);
         return startDownload(buffer, length, priv);
     }
-    FBTDBG("continue download, length:%d\n", *length);
+
+    buffer += priv->transfer_buffer_pos;
+    length -= priv->transfer_buffer_pos;
+    priv->transfer_buffer_pos = 0;
+
+    FBTDBG("continue download, length:%d\n", length);
     if (priv->flag_sparse) {
         return handleSparseDownload(buffer, length, priv);
     } else {

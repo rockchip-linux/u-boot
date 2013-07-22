@@ -266,8 +266,10 @@ static struct usb_endpoint_instance endpoint_instance[NUM_ENDPOINTS + 1];
 extern char version_string[];
 
 static struct cmd_fastboot_interface priv = {
-	.transfer_buffer       = (u8 *)CONFIG_FASTBOOT_TRANSFER_BUFFER,
-	.transfer_buffer_size  = CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE,
+    .buffer[0]             = (u8 *)CONFIG_FASTBOOT_TRANSFER_BUFFER,
+    .buffer[1]             = (u8 *)CONFIG_FASTBOOT_TRANSFER_BUFFER + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
+    .transfer_buffer       = (u8 *)CONFIG_FASTBOOT_TRANSFER_BUFFER,
+    .transfer_buffer_size  = CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
 };
 
 static void fbt_init_endpoints(void);
@@ -1194,20 +1196,31 @@ static void fbt_handle_boot(const char *cmdbuf)
 }
 
 /* XXX: Replace magic number & strings with macros */
-static int fbt_rx_process(unsigned char *buffer, int* length)
+static int fbt_rx_process(unsigned char *buffer, int length)
 {
 	struct usb_endpoint_instance *ep;
 	char *cmdbuf;
 	int clear_cmd_buf;
 
-	if (priv.d_size) {
+    if (priv.d_size) {
+        ep = &endpoint_instance[1];
+        if (length == priv.transfer_buffer_size) {
+            //switch buffer, and resume transfer.
+            ep->rcv_urb->buffer = (u8 *)priv.buffer[buffer == priv.transfer_buffer];
+            ep->rcv_urb->buffer_length = priv.transfer_buffer_size;
+            ep->rcv_urb->actual_length = RK_BLK_SIZE;
+            memcpy(ep->rcv_urb->buffer, buffer + length - RK_BLK_SIZE, RK_BLK_SIZE);
+            FBTDBG("switch transfer buffer:%x -> %x len:%ld\n", buffer, ep->rcv_urb->buffer,
+                   ep->rcv_urb->buffer_length);
+            resume_usb();
+        }
 
         //board handle this
         if (board_fbt_handle_download(buffer, length, &priv)) {
             return 0;
         }
 
-		if (*length < priv.d_size && !priv.d_status) {
+		if (length < priv.d_size && !priv.d_status) {
 			/* don't clear cmd buf because we've replaced it
 			 * with our transfer buffer.  we'll clear it at
 			 * the end of the download.
@@ -1223,17 +1236,15 @@ static int fbt_rx_process(unsigned char *buffer, int* length)
             /* transfer complete */
             strcpy(priv.response, "OKAY");
         }
-        priv.d_status = 0;
         priv.d_bytes = priv.d_size;
         priv.d_size = 0;
         priv.flag |= FASTBOOT_FLAG_RESPONSE;
 
 		/* restore default buffer in urb */
-		ep = &endpoint_instance[1];
 		ep->rcv_urb->buffer = (u8 *)ep->rcv_urb->buffer_data;
 		ep->rcv_urb->buffer_length = sizeof(ep->rcv_urb->buffer_data);
 
-		FBTINFO("downloaded %llu bytes\n", priv.d_bytes);
+        FBTINFO("downloaded %llu bytes\n", priv.d_bytes);
 
 		/* clear the cmd buf from last time */
 		return 1;
@@ -1248,6 +1259,7 @@ static int fbt_rx_process(unsigned char *buffer, int* length)
 
 	FBTDBG("command\n");
 
+    cmdbuf[FASTBOOT_COMMAND_SIZE - 1] = 0;
 	FBTDBG("cmdbuf = (%s)\n", cmdbuf);
 	priv.executing_command = 1;
 
@@ -1352,7 +1364,7 @@ static void fbt_handle_rx(void)
 	if (ep->rcv_urb->actual_length) {
 		FBTDBG("rx length: %u\n", ep->rcv_urb->actual_length);
 		if (fbt_rx_process(ep->rcv_urb->buffer,
-				   &ep->rcv_urb->actual_length)) {
+				   ep->rcv_urb->actual_length)) {
 			/* Poison the command buffer so there's no confusion
 			 * when we receive the next one.  fastboot commands
 			 * are sent w/o NULL termination so we don't want
@@ -1362,10 +1374,10 @@ static void fbt_handle_rx(void)
 			*/
 			memset(ep->rcv_urb->buffer, 0, FASTBOOT_COMMAND_SIZE);
 			ep->rcv_urb->actual_length = 0;
-		}
-		fbt_handle_response();
-        resume_usb();
-	}
+            resume_usb();
+        }
+        fbt_handle_response();
+    }
 }
 
 static void fbt_response_process(void)
@@ -1469,7 +1481,7 @@ static int __def_board_fbt_handle_flash(char *name,
         return 0;
 }
 static int __def_board_fbt_handle_download(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     if (priv->d_size > priv->transfer_buffer_size)
     {
@@ -1512,7 +1524,7 @@ int board_fbt_handle_flash(char *name,
                struct cmd_fastboot_interface *priv)
     __attribute__((weak, alias("__def_board_fbt_handle_flash")));
 int board_fbt_handle_download(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
     __attribute__((weak, alias("__def_board_fbt_handle_download")));
 int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
@@ -1866,6 +1878,9 @@ void fbt_preboot(void)
         FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n",
                __func__);
 	    frt = board_fbt_get_reboot_type();
+    } else {
+        //clear reboot type when key pressed.
+        board_fbt_set_reboot_type(FASTBOOT_REBOOT_NONE);
     }
     
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {

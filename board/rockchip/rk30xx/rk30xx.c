@@ -246,7 +246,7 @@ int board_fbt_handle_flash(char *name,
     return handleRkFlash(name, priv);
 }
 int board_fbt_handle_download(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     return handleDownload(buffer, length, priv);
 }

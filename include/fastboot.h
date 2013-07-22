@@ -153,7 +153,10 @@ struct cmd_fastboot_interface {
 	   Controlled by the configure variable CONFIG_FASTBOOT_TRANSFER_BUFFER
 
 	   Set by board */
+    u8 *buffer[2];
 	u8 *transfer_buffer;
+
+    u64 transfer_buffer_pos;
 
 	/* How big is the transfer buffer
 	   Controlled by the configure variable
@@ -177,8 +180,6 @@ struct cmd_fastboot_interface {
 
     /* Offset of storage, will download 'd_direct_size' data to this offset */
     u64 d_direct_offset;
-
-    u64 d_buffer_pos;
 
 	/* Upload size, if download has to be done */
 	u64 u_size;
@@ -303,7 +304,7 @@ void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
 int board_fbt_handle_flash(char *name,
         struct cmd_fastboot_interface *priv);
 int board_fbt_handle_download(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv);
+        int length, struct cmd_fastboot_interface *priv);
 int board_fbt_check_misc();
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
 struct fbt_partition *fastboot_find_ptn(const char *name);
