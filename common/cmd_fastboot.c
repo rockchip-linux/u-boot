@@ -1006,7 +1006,7 @@ static void fbt_dump_log(char *buf, uint32_t buf_size)
 	}
 
 	/* guarantee null termination for strchr/strlen */
-	buf[buf_size - 1] = 0;
+	buf[buf_size] = 0;
 	while (buf_size) {
 		char *next_line  = strchr(line_start, '\n');
 		if (next_line) {
@@ -1923,7 +1923,7 @@ void fbt_preboot(void)
 #ifdef CONFIG_FASTBOOT_LOG
 int fbt_log(const char *info, const int len, bool send)
 {
-    unsigned long space_in_log = CONFIG_FASTBOOT_LOG_SIZE - log_position;
+    unsigned long space_in_log = CONFIG_FASTBOOT_LOG_SIZE - log_position - 1;
     unsigned long bytes_to_log;
 
     /* check if relocation is done before we can use globals */
