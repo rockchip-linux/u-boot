@@ -118,7 +118,7 @@ void rkclk_set_pll(void)
 void lcdc_clk_enable(void)
 {
     int clk = 300;
-    uint32 div = (CONFIG_RKCLK_CPLL_FREQ-1)/clk;
+    uint32 div = (CONFIG_RKCLK_GPLL_FREQ-1)/clk;
     if(div>0x1f)div = 0x1f;
     g_cruReg->CRU_CLKSEL_CON[31] = (1<<31) | (0x1f<<24) | (1<<23) | (0x1f<<16) | (1<<15) | (div<<8) | (1<<7) | div;//  aclk0 = aclk1 = GPLL/(div+1)
 }
