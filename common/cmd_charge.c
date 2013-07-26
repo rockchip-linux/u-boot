@@ -180,8 +180,9 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         }
         update_lcd = 0;
     }
-
 boot:
+    rk_backlight_ctrl(0);
+    lcd_standby(1);
     printf("booting...\n");
     return 1;
 shutdown:
