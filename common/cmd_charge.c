@@ -139,7 +139,7 @@ static inline int get_delay() {
     return sleep? DELAY << 1: DELAY;
 }
 
-#define POWER_LONG_PRESS_TIMEOUT 2000 //ms
+#define POWER_LONG_PRESS_TIMEOUT 1500 //ms
 int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
     uint32_t addr = 0;
@@ -154,7 +154,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             get_power_bat_status(&batt_status);
             count = 0;
         }
-        if (!batt_status.state_of_chrg)
+        if (!is_charging())
             goto shutdown;
         power_pressed = power_hold();
         //FBTDBG("pressd:%x, hold:%d\n", power_pressed, power_hold_time);

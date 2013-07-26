@@ -447,3 +447,22 @@ void shut_down()
     i2c_reg_write(CONFIG_SYS_I2C_SLAVE, 0x0f, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x0f) & 0xfe);   
     i2c_reg_write(CONFIG_SYS_I2C_SLAVE, 0x0e, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x0e) | 0x01);  
 }
+
+
+static key_config charger_state;
+void ChargerStateInit()
+{
+    charger_state.type = KEY_GPIO;
+    charger_state.key.gpio.valid = 1;
+    charger_state.key.gpio.group = 0;
+    charger_state.key.gpio.index = 10;
+
+    setup_gpio(&charger_state.key.gpio);
+}
+
+int is_charging()
+{
+    return !GetPortState(&charger_state);  //gpio0_b2, charger in status
+}
+
+

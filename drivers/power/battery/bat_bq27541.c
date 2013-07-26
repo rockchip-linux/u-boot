@@ -26,18 +26,6 @@
 #include <power/battery.h>
 #include <power/max8997_pmic.h>
 #include <errno.h>
-#include "../../../board/rockchip/common/armlinux/config.h"
-
-static key_config charger_state;
-void ChargerStateInit()
-{
-    charger_state.type = KEY_GPIO;
-    charger_state.key.gpio.valid = 1;
-    charger_state.key.gpio.group = 0;
-    charger_state.key.gpio.index = 10;
-
-    setup_gpio(&charger_state.key.gpio);
-}
 
 int get_power_bat_status(struct battery *batt_status)
 {
@@ -62,7 +50,7 @@ int get_power_bat_status(struct battery *batt_status)
     else if(read_buffer>=2) batt_status->capacity = (read_buffer-2)*100/98;
     else batt_status->capacity = 0;
     
-    batt_status->state_of_chrg = !GetPortState(&charger_state);  //gpio0_b2, charger in status
+    //batt_status->state_of_chrg = !GetPortState(&charger_state);  //gpio0_b2, charger in status
 
 	return 0;
 }
