@@ -1799,7 +1799,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				 " %s=%s", FASTBOOT_SERIALNO_BOOTARG,
 				 priv.serial_no);
 		}
-#ifdef CONFIG_CHARGE_CHECK
+#if 0//def CONFIG_CHARGE_CHECK
 
         if(check_charge())
             snprintf(command_line, sizeof(command_line),
