@@ -323,7 +323,7 @@ typedef struct vidinfo {
 	ushort	vl_vbpd;	/* Wait end of frame */
     u_char  vl_swap_rb;
     
-	void (*backlight_on)(unsigned int onoff);
+	void (*backlight_on)(int brightness);
 	void (*lcd_power_on)(void);
 	void (*enable_ldo)(unsigned int onoff);
 	void (*mipi_power)(void);

@@ -204,6 +204,7 @@ void enable_caches(void)
 void startRockusb()
 {
     printf("startRockusb,%d\n" , RkldTimerGetTick());
+    rk_backlight_ctrl(0);
     FW_SDRAM_ExcuteAddr = 0;
     g_BootRockusb = 1;
     FWSetResetFlag = 0;
@@ -324,21 +325,17 @@ int check_charge(void)
 {
     int reg=0;
     int ret = 0;
-    if(board_fbt_check_in_charging())
-    {
-        printf("reboot in charging! \n");
-        ret = 1;
-    } else if(IReadLoaderFlag() == 0) {
-        //i2c_set_bus_num(1);
-        //i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-        //i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-        //reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);
-       // printf("%s power on history %x\n",__func__,reg);
-        //if(reg == 0x04)
-       // {
-       //     printf("In charging! \n");
-       //     ret = 1;
-       // }
+    if(IReadLoaderFlag() == 0) {
+        i2c_set_bus_num(1);
+        i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+        i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
+        reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);// ldo5 output 1.8v for VCC18_LCD
+        printf("%s power on history %x\n",__func__,reg);
+        if(reg == 0x04)
+        {
+            printf("In charging! \n");
+            ret = 1;
+        }
     }
     return ret;
 }
@@ -346,13 +343,14 @@ int check_charge(void)
 #ifdef CONFIG_RK_FB
 #define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
 
-void rk_backlight_ctrl(unsigned int onoff)
+void rk_backlight_ctrl(int brightness)
 {
     #ifdef CONFIG_RK3066SDK
     int id =0;
     int total = 0x4b0;
-    int pwm = total/2;
+    int pwm = total * (100 - brightness) / 100;
     int *addr =0;
+    printf("backlight --- brightness:%d\n", brightness);
 
  
         g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX |= ((1<<6)<<16)|(1<<6);   // pwm0, gpio0_a3
@@ -364,12 +362,12 @@ void rk_backlight_ctrl(unsigned int onoff)
     write_pwm_reg(id, 0x00, 0);
     write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN
 
-    SetPortOutput(6,11,1);   //gpio6_b3 1 ,backlight enable
+    SetPortOutput(6,11, pwm != total);   //gpio6_b3 1 ,backlight enable
     #endif
     #ifdef CONFIG_RK3188SDK
     int id =3;
     int total = 0x4b0;
-    int pwm = total/2;
+    int pwm = total * (100 - brightness) / 100;
     int *addr =0;
 
 
@@ -382,7 +380,7 @@ void rk_backlight_ctrl(unsigned int onoff)
     write_pwm_reg(id, 0x00, 0);
     write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN   
 
-    SetPortOutput(0,2,1);   //gpio0_A2 BL ENABLE 1
+    SetPortOutput(0,2, pwm != total);   //gpio0_a2 1 ,backlight enable
     
     #endif
 }

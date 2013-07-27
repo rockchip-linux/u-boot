@@ -29,7 +29,7 @@ static void lcd_panel_on(vidinfo_t *vid)
         vid->mipi_power();
     
     if (vid->backlight_on)
-        vid->backlight_on(1);
+        vid->backlight_on(50);
 
 }
 

@@ -1799,12 +1799,6 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				 " %s=%s", FASTBOOT_SERIALNO_BOOTARG,
 				 priv.serial_no);
 		}
-#if 0//def CONFIG_CHARGE_CHECK
-
-        if(check_charge())
-            snprintf(command_line, sizeof(command_line),
-				"%s %s",command_line," androidboot.mode=charger");
-#endif //CONFIG_CHARGE_CHECK
 
 		command_line[sizeof(command_line) - 1] = 0;
 
@@ -1883,14 +1877,6 @@ void fbt_preboot(void)
 
     frt = board_fbt_key_pressed();
 
-    if(check_charge()) {
-        char *charge[] = { "charge" };
-        if (do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
-            //boot from charge animation.
-            frt = FASTBOOT_REBOOT_NONE;
-        }
-    }
-
     if (frt == FASTBOOT_REBOOT_NONE) {
         FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n",
                 __func__);
@@ -1899,7 +1885,23 @@ void fbt_preboot(void)
         //clear reboot type when key pressed.
         board_fbt_set_reboot_type(FASTBOOT_REBOOT_NONE);
     }
+
+#ifdef CONFIG_ROCKCHIP
+#ifdef CONFIG_LCD
+    drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb                                         
+#endif
+#endif// CONFIG_ROCKCHIP
     
+    //check charge mode when no key pressed.
+    if(check_charge() || frt == FASTBOOT_REBOOT_CHARGE) {
+        char *charge[] = { "charge" };
+        if (do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
+            //boot from charge animation.
+            frt = FASTBOOT_REBOOT_NONE;
+        }
+    }
+
+
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
 		FBTDBG("\n%s: starting recovery img because of reboot flag\n",
 		       __func__);

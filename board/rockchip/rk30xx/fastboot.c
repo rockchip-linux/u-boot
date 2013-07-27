@@ -97,13 +97,6 @@ enum {
     BOOT_MAX         /* MAX VALID BOOT TYPE.*/
 };
 
-int board_fbt_check_in_charging(void)
-{
-    uint32_t loader_flag = IReadLoaderFlag();
-    if((loader_flag&0xff) == BOOT_CHARGING)
-        return 1;
-    return 0;
-}
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 {
     int boot = BOOT_NORMAL;
@@ -162,6 +155,9 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
             case BOOT_WIPEDATA:
             case BOOT_WIPEALL:
                 frt = FASTBOOT_REBOOT_RECOVERY_WIPE_DATA;
+                break;
+            case BOOT_CHARGING:
+                frt = FASTBOOT_REBOOT_CHARGE;
                 break;
             default:
                 printf("unsupport rk boot type %d\n", boot);

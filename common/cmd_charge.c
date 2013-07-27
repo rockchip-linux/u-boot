@@ -133,13 +133,26 @@ static uint32_t get_next_image() {
 
 static int sleep = 0;
 static long long power_hold_time = 0; // hold 178s may overflow...
+static long long screen_on_time = 0; // 178s may overflow...
 
 #define DELAY 80000 //us
 static inline int get_delay() {
     return sleep? DELAY << 1: DELAY;
 }
 
-#define POWER_LONG_PRESS_TIMEOUT 1500 //ms
+static inline unsigned int get_fix_duration(unsigned int base) {
+    unsigned int max = 0xFFFFFFFF / 24;
+    unsigned int now = get_timer(0);
+    return base > now? base - now : max + (base - now) + 1;
+}
+
+#define POWER_LONG_PRESS_TIMEOUT    1500 //ms
+#define SCREEN_DIM_TIMEOUT          60000 //ms
+#define SCREEN_OFF_TIMEOUT          120000 //ms
+#define BRIGHT_ON                   48
+#define BRIGHT_DIM                  12
+#define BRIGHT_OFF                  0
+
 int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
     uint32_t addr = 0;
@@ -148,6 +161,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
     int count = 0;
 #define CHECK_POWER_DELAY 1000000
     get_power_bat_status(&batt_status);
+    screen_on_time = get_timer(0);
     while (1) {
         udelay(get_delay());
         if (++count > (CHECK_POWER_DELAY / get_delay())) {
@@ -161,13 +175,24 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         if (power_pressed) {
             if (!power_hold_time) //pressed power key
                 power_hold_time = get_timer(0);
-            else if (get_timer(power_hold_time) >= POWER_LONG_PRESS_TIMEOUT)
+            else if (get_fix_duration(power_hold_time)
+                    >= POWER_LONG_PRESS_TIMEOUT)
                 //long pressed key
                 goto boot;
         } else if (power_hold_time) { //released power key
             power_hold_time = 0;
             sleep = !sleep;
             update_lcd = 1;
+        } else {
+            if (!sleep && get_fix_duration(screen_on_time)
+                    >= SCREEN_DIM_TIMEOUT)
+                rk_backlight_ctrl(BRIGHT_DIM);
+            if (!sleep && get_fix_duration(screen_on_time)
+                    >= SCREEN_OFF_TIMEOUT) {
+                power_hold_time = 0;
+                sleep = !sleep;
+                update_lcd = 1;
+            }
         }
 
         //FBTDBG("sleep:%d, update_lcd:%d\n", sleep, update_lcd);
@@ -175,8 +200,10 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             lcd_display_bitmap_center(get_next_image());
 
         if (update_lcd) {
-            rk_backlight_ctrl(!sleep);
+            rk_backlight_ctrl(sleep ? BRIGHT_OFF : BRIGHT_ON);
             lcd_standby(sleep);
+            if (!sleep)
+                screen_on_time = get_timer(0);
         }
         update_lcd = 0;
     }
