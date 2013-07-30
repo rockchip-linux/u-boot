@@ -238,6 +238,7 @@ Revision:       1.00
 
 #define CONFIG_CHARGE_CHECK    //open it if check charging in uboot
 #define CONFIG_BATTERY_BQ27541 //
+#define CONFIG_POWER_RICOH619
 
 #define         CHIP_RK3066     0
 #define         CHIP_RK3066B    1

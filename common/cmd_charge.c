@@ -32,6 +32,7 @@
 #include <bmp_image.h>
 #include <bmp_image_data.h>
 #include <fastboot.h>
+#include <power/pmic.h>
 
 #define IMAGES_NUM (sizeof(bmp_images) / sizeof(bmp_image_t))
 
@@ -161,6 +162,9 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
     int count = 0;
 #define CHECK_POWER_DELAY 1000000
     get_power_bat_status(&batt_status);
+    if(batt_status.state_of_chrg == 2)
+        pmic_charger_setting(2);
+    else pmic_charger_setting(1);
     screen_on_time = get_timer(0);
     while (1) {
         udelay(get_delay());
@@ -170,6 +174,11 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         }
         if (!is_charging())
             goto shutdown;
+        if(!batt_status.state_of_chrg)
+        {
+            pmic_charger_setting(0);
+            goto shutdown;
+        }
         power_pressed = power_hold();
         //FBTDBG("pressd:%x, hold:%d\n", power_pressed, power_hold_time);
         if (power_pressed) {

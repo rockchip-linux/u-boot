@@ -15,6 +15,8 @@ Revision:       1.00
 #include "rkimage.h"
 #include "rkloader.h"
 #include "i2c.h"
+#include <power/pmic.h>
+
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -320,26 +322,6 @@ int board_late_init(void)
 }
 #endif
 
-#ifdef CONFIG_CHARGE_CHECK
-int check_charge(void)
-{
-    int reg=0;
-    int ret = 0;
-    if(IReadLoaderFlag() == 0) {
-        i2c_set_bus_num(1);
-        i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-        i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-        reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);// ldo5 output 1.8v for VCC18_LCD
-        printf("%s power on history %x\n",__func__,reg);
-        if(reg == 0x04)
-        {
-            printf("In charging! \n");
-            ret = 1;
-        }
-    }
-    return ret;
-}
-#endif
 #ifdef CONFIG_RK_FB
 #define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
 
@@ -361,6 +343,7 @@ void rk_backlight_ctrl(int brightness)
     write_pwm_reg(id, 0x04, pwm);
     write_pwm_reg(id, 0x00, 0);
     write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN
+    g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
 
     SetPortOutput(6,11, pwm != total);   //gpio6_b3 1 ,backlight enable
     #endif
@@ -379,6 +362,7 @@ void rk_backlight_ctrl(int brightness)
     write_pwm_reg(id, 0x04, pwm);
     write_pwm_reg(id, 0x00, 0);
     write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN   
+    g_3188_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
 
     SetPortOutput(0,2, pwm != total);   //gpio0_a2 1 ,backlight enable
     
@@ -387,6 +371,8 @@ void rk_backlight_ctrl(int brightness)
 
 void rk_fb_init(unsigned int onoff)
 {
+    printf("i2c init OVER in board! \n");
+    pmic_init(0);  //enable lcdc power
     #ifdef CONFIG_RK3066SDK
     SetPortOutput(4,23,1);   //gpio4_c7 1 cs 1
     SetPortOutput(6,12,0);   //gpio6_b4 0 en 0
@@ -435,16 +421,6 @@ void init_panel_info(vidinfo_t *vid)
 }
 
 #endif
-
-void shut_down()
-{
-    i2c_set_bus_num(1);
-    i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-    i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-    i2c_reg_write(CONFIG_SYS_I2C_SLAVE, 0xe0, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0xe0) & 0xfe);
-    i2c_reg_write(CONFIG_SYS_I2C_SLAVE, 0x0f, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x0f) & 0xfe);   
-    i2c_reg_write(CONFIG_SYS_I2C_SLAVE, 0x0e, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x0e) | 0x01);  
-}
 
 
 static key_config charger_state;
