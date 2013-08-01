@@ -114,11 +114,9 @@ static int get_next_image_index() {
             bmp_images[start_index].level != bmp_images[current_index].level)
         return start_index; //level changed
 
-    if (current_index == IMAGES_NUM - 1)
-        return current_index; //full level
-
     current_index++;
-    if (bmp_images[start_index].level != bmp_images[current_index].level)
+    if (current_index == IMAGES_NUM
+            || bmp_images[start_index].level != bmp_images[current_index].level)
         return start_index; //loop again
     return current_index; //step forward
 }
