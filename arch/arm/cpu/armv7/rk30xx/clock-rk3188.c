@@ -281,6 +281,7 @@ struct pll_data {
 /* apll clock table, should be from high to low */
 static const struct pll_clk_set apll_clks[] = {
 	//rate, nr, nf, no,	core_div, core_periph_div, core_axi_div,	axi_div, hclk_div, pclk_div, ahb2apb_div
+	_APLL_SET_CLKS(1008000, 1, 84, 2,	1, 8, 4,			3, 2, 4, 2),
 	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 8, 4,			3, 2, 4, 2),
 	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 4, 4,			3, 2, 4, 2),
 };
