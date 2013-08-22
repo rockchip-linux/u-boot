@@ -130,7 +130,7 @@ static uint32_t get_next_image() {
     return addr;
 }
 
-static int sleep = 0;
+static int sleep = false;
 static long long power_hold_time = 0; // hold 178s may overflow...
 static long long screen_on_time = 0; // 178s may overflow...
 
@@ -140,7 +140,7 @@ static inline int get_delay() {
 }
 
 static inline unsigned int get_fix_duration(unsigned int base) {
-    unsigned int max = 0xFFFFFFFF / 24;
+    unsigned int max = 0xFFFFFFFF / 24000;
     unsigned int now = get_timer(0);
     return base > now? base - now : max + (base - now) + 1;
 }
@@ -152,18 +152,42 @@ static inline unsigned int get_fix_duration(unsigned int base) {
 #define BRIGHT_DIM                  12
 #define BRIGHT_OFF                  0
 
+static inline void set_screen_state(int brightness, int force) {
+    //FBTDBG("set_screen_state:%d\n", brightness);
+    int was_sleep = sleep;
+
+    rk_backlight_ctrl(brightness);
+    switch(brightness) {
+        case BRIGHT_ON:
+        case BRIGHT_DIM:
+            sleep = false;
+            break;
+        case BRIGHT_OFF:
+            sleep = true;
+            break;
+    }
+
+    if (was_sleep != sleep || force) { //switch state.
+        //FBTDBG("screen state changed:%d -> %d\n", was_sleep, sleep);
+        lcd_standby(sleep);
+        screen_on_time = get_timer(0);
+    }
+}
+
 int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-    uint32_t addr = 0;
     int power_pressed = 0;
-    int update_lcd = 1;
     int count = 0;
 #define CHECK_POWER_DELAY 1000000
     get_power_bat_status(&batt_status);
+
+//init status
     if(batt_status.state_of_chrg == 2)
         pmic_charger_setting(2);
     else pmic_charger_setting(1);
-    screen_on_time = get_timer(0);
+
+    set_screen_state(BRIGHT_ON, true);
+
     while (1) {
         udelay(get_delay());
         if (++count > (CHECK_POWER_DELAY / get_delay())) {
@@ -177,50 +201,44 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             pmic_charger_setting(0);
             goto shutdown;
         }
+
         power_pressed = power_hold();
-        //FBTDBG("pressd:%x, hold:%d\n", power_pressed, power_hold_time);
-        if (power_pressed) {
-            if (!power_hold_time) //pressed power key
+        //FBTDBG("pressd:%x, hold:%lld\n", power_pressed, power_hold_time);
+        if (power_pressed) { //power key pressed
+            if (!power_hold_time) //power key down
                 power_hold_time = get_timer(0);
+
             else if (get_fix_duration(power_hold_time)
                     >= POWER_LONG_PRESS_TIMEOUT)
-                //long pressed key
+                //long pressed key, continue bootting.
                 goto boot;
-        } else if (power_hold_time) { //released power key
+        
+        } else if (power_hold_time) { //power key up
             power_hold_time = 0;
-            sleep = !sleep;
-            update_lcd = 1;
-        } else {
-            if (!sleep && get_fix_duration(screen_on_time)
-                    >= SCREEN_DIM_TIMEOUT)
-                rk_backlight_ctrl(BRIGHT_DIM);
-            if (!sleep && get_fix_duration(screen_on_time)
-                    >= SCREEN_OFF_TIMEOUT) {
-                power_hold_time = 0;
-                sleep = !sleep;
-                update_lcd = 1;
+            set_screen_state(sleep? BRIGHT_ON : BRIGHT_OFF, false);//switch screen state.
+        
+        } else if (!sleep) { //screen on and device idle
+            unsigned int idle_time = get_fix_duration(screen_on_time);
+            //FBTDBG("idle_time:%ld\n", idle_time);
+            if (idle_time > SCREEN_OFF_TIMEOUT) {
+                //idle screen off timeout
+                set_screen_state(BRIGHT_OFF, false);
+            } else if (idle_time >= SCREEN_DIM_TIMEOUT) {
+                //idle dim timeout
+                set_screen_state(BRIGHT_DIM, false);
             }
         }
 
-        //FBTDBG("sleep:%d, update_lcd:%d\n", sleep, update_lcd);
         if (!sleep)
             lcd_display_bitmap_center(get_next_image());
-
-        if (update_lcd) {
-            rk_backlight_ctrl(sleep ? BRIGHT_OFF : BRIGHT_ON);
-            lcd_standby(sleep);
-            if (!sleep)
-                screen_on_time = get_timer(0);
-        }
-        update_lcd = 0;
     }
 boot:
-    rk_backlight_ctrl(0);
-    lcd_standby(1);
+    set_screen_state(BRIGHT_OFF, false);
     printf("booting...\n");
     return 1;
 shutdown:
     printf("shutting down...\n");
+    set_screen_state(BRIGHT_OFF, false);
     shut_down();
     printf("not reach here.\n");
 	return 0;
