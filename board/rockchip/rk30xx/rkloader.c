@@ -66,7 +66,7 @@ void setup_space(uint32 begin_addr)
     g_pIDBlock = (uint8*)begin_addr;
     next = begin_addr + 2048*528;
     g_pLoader = (uint8*)next;
-    next += 192*1024;
+    next += 1024*1024;
     g_pReadBuf = (uint8*)next;
     next += MAX_WRITE_SECTOR*528;
     g_pFlashInfoData = (uint8*)next;
