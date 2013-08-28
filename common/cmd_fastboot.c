@@ -1900,10 +1900,6 @@ void fbt_preboot(void)
 		FBTDBG("\n%s: starting fastboot because of reboot flag\n",
 		       __func__);
 		fbt_request_start_fastboot();
-	} else if (frt == FASTBOOT_REBOOT_NORMAL) {
-		/* explicit request for a regular reboot */
-		FBTDBG("\n%s: request for a normal boot\n",
-		       __func__);
 	} else {
         FBTDBG("\n%s: check misc command.\n", __func__);
 		/* unknown reboot cause (typically because of a cold boot).
