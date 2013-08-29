@@ -74,6 +74,7 @@ BIN_FILES-$(CONFIG_MX28) += mxsboot$(SFX)
 BIN_FILES-$(CONFIG_NETCONSOLE) += ncb$(SFX)
 BIN_FILES-$(CONFIG_SHA1_CHECK_UB_IMG) += ubsha1$(SFX)
 BIN_FILES-$(CONFIG_KIRKWOOD) += kwboot$(SFX)
+BIN_FILES-y += loaderimage$(SFX)
 
 # Source files which exist outside the tools directory
 EXT_OBJ_FILES-$(CONFIG_BUILD_ENVCRC) += common/env_embedded.o
@@ -106,6 +107,7 @@ NOPED_OBJ_FILES-y += os_support.o
 OBJ_FILES-$(CONFIG_SHA1_CHECK_UB_IMG) += ubsha1.o
 NOPED_OBJ_FILES-y += ublimage.o
 OBJ_FILES-$(CONFIG_KIRKWOOD) += kwboot.o
+NOPED_OBJ_FILES-y += loaderimage.o
 
 # Don't build by default
 #ifeq ($(ARCH),ppc)
@@ -261,6 +263,10 @@ $(obj)%.o: $(SRCTREE)/lib/%.c
 
 $(obj)%.o: $(SRCTREE)/lib/libfdt/%.c
 	$(HOSTCC) -g $(HOSTCFLAGS_NOPED) -c -o $@ $<
+
+$(obj)loaderimage$(SFX):	$(obj)loaderimage.o
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
+	$(HOSTSTRIP) $@
 
 subdirs:
 ifeq ($(TOOLSUBDIRS),)
