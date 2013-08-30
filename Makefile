@@ -470,7 +470,8 @@ endif
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 
 $(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
-	cd $(obj)tools/rk_tools/ && ./boot_merger RKBOOT/$(RKCHIP).ini && cd ../.. &&\
+	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP).ini && \
+	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINI.ini && \
 	./tools/loaderimage  --pack u-boot.bin loader.img
 		
 

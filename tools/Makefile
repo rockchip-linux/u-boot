@@ -75,6 +75,7 @@ BIN_FILES-$(CONFIG_NETCONSOLE) += ncb$(SFX)
 BIN_FILES-$(CONFIG_SHA1_CHECK_UB_IMG) += ubsha1$(SFX)
 BIN_FILES-$(CONFIG_KIRKWOOD) += kwboot$(SFX)
 BIN_FILES-y += loaderimage$(SFX)
+BIN_FILES-y += boot_merger$(SFX)
 
 # Source files which exist outside the tools directory
 EXT_OBJ_FILES-$(CONFIG_BUILD_ENVCRC) += common/env_embedded.o
@@ -108,6 +109,7 @@ OBJ_FILES-$(CONFIG_SHA1_CHECK_UB_IMG) += ubsha1.o
 NOPED_OBJ_FILES-y += ublimage.o
 OBJ_FILES-$(CONFIG_KIRKWOOD) += kwboot.o
 NOPED_OBJ_FILES-y += loaderimage.o
+NOPED_OBJ_FILES-y += boot_merger.o
 
 # Don't build by default
 #ifeq ($(ARCH),ppc)
@@ -265,6 +267,10 @@ $(obj)%.o: $(SRCTREE)/lib/libfdt/%.c
 	$(HOSTCC) -g $(HOSTCFLAGS_NOPED) -c -o $@ $<
 
 $(obj)loaderimage$(SFX):	$(obj)loaderimage.o
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
+	$(HOSTSTRIP) $@
+
+$(obj)boot_merger$(SFX):	$(obj)boot_merger.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
