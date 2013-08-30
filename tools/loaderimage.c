@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include <version.h>
 
 
 
@@ -9,6 +10,8 @@
 #define MODE_UNPACK           1
 #define UBOOT_NUM             4
 #define UBOOT_MAX_SIZE        1024*1024
+#define U_BOOT_VERSION_STRING U_BOOT_VERSION " (" U_BOOT_DATE " - " \
+	U_BOOT_TIME ")" CONFIG_IDENT_STRING
 typedef struct tag_second_loader_hdr
 {
     unsigned char magic[LOADER_MAGIC_SIZE];  // "LOADER  "
@@ -159,13 +162,14 @@ int main (int argc, char *argv[])
 			exit (EXIT_FAILURE);
 		}
 		memset(&hdr, 0, sizeof(second_loader_hdr));
-		strcpy(hdr.magic,"LOADER");
+		strcpy(hdr.magic,"LOADER:U-Boot");
 		hdr.loader_load_addr = 0x60000000;
 		hdr.loader_load_size = size;
-		memcpy(buf, &hdr, sizeof(second_loader_hdr));
 		fread(buf + sizeof(second_loader_hdr), size, 1, fi);
 		hdr.crc32 = crc32(buf + sizeof(second_loader_hdr), size);
 		printf("crc = 0x%08x\n", hdr.crc32);
+		printf("uboot version:%s\n",U_BOOT_VERSION_STRING);
+		memcpy(buf, &hdr, sizeof(second_loader_hdr));
 		for(i=0; i<UBOOT_NUM; i++){
 			fwrite(buf, UBOOT_MAX_SIZE, 1, fo);
 		}
