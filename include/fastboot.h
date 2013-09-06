@@ -147,6 +147,9 @@ struct cmd_fastboot_interface {
 	   Set by board */
 	char *serial_no;
 
+    //fastboot likely to query partition-type before do flash.
+    struct fbt_partition *pending_ptn;
+
 	/* Transfer buffer, for handling flash updates
 	   Should be multiple of the block size
 	   Care should be take so it does not overrun bootloader memory

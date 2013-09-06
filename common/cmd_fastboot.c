@@ -789,9 +789,14 @@ static const char *getvar_partition_type(const char *args)
         }
         return NULL;
     }
+
+    priv.pending_ptn = NULL;
+
     partition_name = args + sizeof("partition-type:") - 1;
     ptn = fastboot_find_ptn(partition_name);
     if (ptn) {
+        FBTDBG("fastboot pending_ptn:%s\n", ptn->name);
+        priv.pending_ptn = ptn;
         return type;
     }
     snprintf(priv.response, sizeof(priv.response),
@@ -1257,7 +1262,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 	/* Generic failed response */
 	strcpy(priv.response, "FAIL");
 
-	FBTDBG("command\n");
+	FBTDBG("command:%s\n", cmdbuf);
 
     cmdbuf[FASTBOOT_COMMAND_SIZE - 1] = 0;
 	FBTDBG("cmdbuf = (%s)\n", cmdbuf);
@@ -1285,6 +1290,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 	else if (memcmp(cmdbuf, "flash:", 6) == 0) {
 		FBTDBG("flash\n");
 		fbt_handle_flash(cmdbuf, 1);
+        priv.pending_ptn = NULL;
 	}
 
 	/* %fastboot reboot
@@ -1362,7 +1368,7 @@ static void fbt_handle_rx(void)
 	/* XXX: Or update status field, if so,
 		"usbd_rcv_complete" [gadget/core.c] also need to be modified */
 	if (ep->rcv_urb->actual_length) {
-		FBTDBG("rx length: %u\n", ep->rcv_urb->actual_length);
+		//FBTDBG("rx length: %u\n", ep->rcv_urb->actual_length);
 		if (fbt_rx_process(ep->rcv_urb->buffer,
 				   ep->rcv_urb->actual_length)) {
 			/* Poison the command buffer so there's no confusion
@@ -1570,6 +1576,8 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	udc_connect();
 
 	FBTINFO("fastboot initialized\n");
+
+    priv.pending_ptn = NULL;
 
 	while (1) {
 		if (priv.configured) {

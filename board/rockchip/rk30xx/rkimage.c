@@ -331,7 +331,11 @@ int handleRkFlash(char *name,
     }
 
     if (priv->d_bytes > priv->transfer_buffer_size) {
-        if (!strcmp(SYSTEM_NAME, name) && priv->d_status > 0)
+        if (!priv->pending_ptn) {
+            goto fail;
+        }
+        FBTDBG("download large file, ptn:%s, target:%s\n", priv->pending_ptn->name, name);
+        if (!strcmp(priv->pending_ptn->name, name) && priv->d_status > 0)
             goto ok;
         goto fail;
     }
@@ -344,11 +348,6 @@ fail:
     sprintf(priv->response,
             "FAILWrite partition");
     return -1;
-}
-
-static inline int getSystemOffset()
-{
-    return gBootInfo.cmd_mtd.parts[gBootInfo.index_system].offset;
 }
 
 int handleDirectDownload(unsigned char *buffer, 
@@ -367,7 +366,8 @@ int handleDirectDownload(unsigned char *buffer,
     FBTDBG("direct download, size:%d, offset:%lld, rest:%d\n",
             size, priv->d_direct_offset, priv->d_direct_size - write_len);
     if(CopyMemory2Flash(buffer + priv->transfer_buffer_pos,
-                priv->d_direct_offset + getSystemOffset(), blocks)) {
+                priv->d_direct_offset + priv->pending_ptn->offset, blocks)) {
+        FBTDBG("handleDirectDownload failed\n");
         return -1;
     }
     priv->d_direct_offset += blocks;
@@ -385,7 +385,7 @@ void noBuffer(unsigned char *buffer,
     FBTDBG("rest:%d, len:%d, new pos:%lld\n", rest, length, priv->transfer_buffer_pos);
 }
 
-int handleExtDownload(unsigned char *buffer,
+int handleImageDownload(unsigned char *buffer,
         int length, struct cmd_fastboot_interface *priv)
 {
     if (!priv->d_direct_size) {
@@ -399,7 +399,7 @@ int handleExtDownload(unsigned char *buffer,
         noBuffer(buffer, length, priv);
         return 1;
     }
-    FBTDBG("ext image download compelete\n");
+    FBTDBG("image download compelete\n");
     priv->d_status = 1;
     return 0;
 }
@@ -496,15 +496,6 @@ int startDownload(unsigned char *buffer,
     priv->sparse_cur_chunk = 0;
     priv->transfer_buffer_pos = 0;
 
-    //check ext image
-    filesystem* fs = (filesystem*) buffer;
-    if (fs->sb.s_magic == EXT2_MAGIC_NUMBER ||
-            fs->sb.s_magic == EXT3_MAGIC_NUMBER) {
-        priv->d_direct_size = priv->d_size;
-        FBTDBG("found ext image\n");
-        return handleExtDownload(buffer, length, priv);
-    }
-
     //check sparse image
     sparse_header_t* header = &priv->sparse_header;
     memcpy(header, buffer, sizeof(sparse_header_t));
@@ -517,8 +508,23 @@ int startDownload(unsigned char *buffer,
         FBTDBG("found sparse image\n");
         return handleSparseDownload(buffer, length, priv);
     }
+
+#if 1
+    priv->d_direct_size = priv->d_size;
+    return handleImageDownload(buffer, length, priv);
+#else //only support ext image
+    //check ext image
+    filesystem* fs = (filesystem*) buffer;
+    if (fs->sb.s_magic == EXT2_MAGIC_NUMBER ||
+            fs->sb.s_magic == EXT3_MAGIC_NUMBER) {
+        priv->d_direct_size = priv->d_size;
+        FBTDBG("found ext image\n");
+        return handleImageDownload(buffer, length, priv);
+    }
+
     priv->d_status = -1;
     return 0;
+#endif
 }
 
 int handleDownload(unsigned char *buffer,
@@ -529,8 +535,13 @@ int handleDownload(unsigned char *buffer,
         return 0;
     }
 
-    if (!getSystemOffset()) {
-        //no parameter?
+    if (!priv->pending_ptn || !priv->pending_ptn->offset) {
+        //fastboot flash with "-u" opt? or no parameter?
+        if (!priv->pending_ptn) {
+            FBTDBG("no pending_ptn\n");
+        } else {
+            FBTDBG("pending ptn(%s) offset:%x\n", priv->pending_ptn->name, priv->pending_ptn->offset);
+        }
         priv->d_status = -1;
         return 0;
     }
@@ -554,6 +565,6 @@ int handleDownload(unsigned char *buffer,
     if (priv->flag_sparse) {
         return handleSparseDownload(buffer, length, priv);
     } else {
-        return handleExtDownload(buffer, length, priv);
+        return handleImageDownload(buffer, length, priv);
     }
 }
