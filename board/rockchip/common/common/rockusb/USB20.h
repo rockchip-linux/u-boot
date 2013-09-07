@@ -159,6 +159,31 @@ typedef PACKED1 struct _HS_DEVICE_QUALIFIER
 	uint8	Reserved;			//Reserved
 }PACKED2 HS_DEVICE_QUALIFIER;
 
+//BOS: group of device-level capabilities 
+typedef PACKED1 struct _USB_BOS_DESCRIPTOR
+{
+    uint8   bLength;
+    uint8   bDescriptorType;
+    uint16  wTotalLength;
+    uint8   bNumDeviceCaps;
+}PACKED2 USB_BOS_DESCRIPTOR;
+
+//Capability header descriptor 
+typedef PACKED1 struct _USB_DEVICE_CAP_HEADER
+{
+    uint8   bLength;
+    uint8   bDescriptorType;
+    uint8   bDevCapabilityType;
+} PACKED2 USB_DEVICE_CAP_HEADER;
+
+//BOS描述符集合描述符结构
+typedef PACKED1 struct _USB_BOS_ALL_DESCRIPTORS
+{
+    USB_BOS_DESCRIPTOR  BosDescriptor;
+    USB_DEVICE_CAP_HEADER  CapHeaderDescriptor;
+}PACKED2 USB_BOS_ALL_DESCRIPTORS;
+
+
 //电源描述符结构
 typedef struct _USB_POWER_DESCRIPTOR
 {
@@ -248,11 +273,16 @@ typedef struct _TWAIN_FILEINFO
 #define 		TRUE    			(!FALSE)
 #endif
 
+#define			USB_CAP_HEADER_SIZE             3
+#define			USB_DEVICE_CAPABILITY           0x10
+
 
 #define 		NUM_ENDPOINTS		2		//端点数除0外
 #define 		CONFIG_DESCRIPTOR_LENGTH    sizeof(USB_CONFIGURATION_DESCRIPTOR) \
 											+ sizeof(USB_INTERFACE_DESCRIPTOR) \
 											+ (NUM_ENDPOINTS * sizeof(USB_ENDPOINT_DESCRIPTOR))
+#define			BOS_DESCRIPTOR_LENGTH       sizeof(USB_BOS_DESCRIPTOR) \
+											+ USB_CAP_HEADER_SIZE
 
 #define 		MAX_ENDPOINTS      			(uint8)0x3
 #define 		EP0_TX_FIFO_SIZE   			64
@@ -315,6 +345,7 @@ typedef struct _TWAIN_FILEINFO
 #define 		USB_OTG_DESCRIPTOR_TYPE 				0x09
 #define 		USB_DEBUG_DESCRIPTOR_TYPE 				0x0A
 #define 		USB_IF_ASSOCIATION_DESCRIPTOR_TYPE 		0x0B
+#define			USB_BOS_DESCRIPTOR_TYPE                 0x0F
 
 // Values for bmAttributes field of an
 // endpoint descriptor
@@ -505,6 +536,18 @@ const USB_CONFIGS_DESCRIPTOR HSConfigDescr =
 	USB_ENDPOINT_TYPE_BULK,
 	HS_BULK_TX_SIZE,
 	0		//bulk trans invailed
+};
+
+const USB_BOS_ALL_DESCRIPTORS HSBosDescr =
+{
+    sizeof(USB_BOS_DESCRIPTOR),                 //Size of descriptor 0x05(1B)
+    USB_BOS_DESCRIPTOR_TYPE,                    //BOS descriptor type 0x0F(1B)
+    BOS_DESCRIPTOR_LENGTH,                      //Length of this descriptor and all of its sub descriptor
+    0x01,                                       //the number of separate device capability descriptors in the BOS
+                                                //First device capability
+    USB_CAP_HEADER_SIZE,                        //Length of cap header
+    USB_DEVICE_CAPABILITY,                      //Device Capability type
+    0                                           //DevCapability Type,reserved
 };
 
 #else

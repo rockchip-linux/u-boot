@@ -72,6 +72,13 @@ void get_descriptor(void)
                 *p = 0;
             }
             break;
+        case USB_BOS_DESCRIPTOR_TYPE:                  //»ñÈ¡BOSÃèÊö·û
+            length=BOS_DESCRIPTOR_LENGTH;
+            if (length >= ControlData.DeviceRequest.wLength)
+                length = ControlData.DeviceRequest.wLength;
+
+            ftl_memcpy(Ep0Buf, (uint8*)&HSBosDescr, length);
+            break;
         #if 0
         case USB_STRING_DESCRIPTOR_TYPE: 				//»ñÈ¡×Ö·û´®ÃèÊö·û
             switch (ControlData.DeviceRequest.wValue & 0x00ff)
