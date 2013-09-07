@@ -471,10 +471,16 @@ void lcd_clear(void)
 		lcd_line_length * panel_info.vl_row);
 #endif
 	/* Paint the logo and retrieve LCD base address */
-	debug("[LCD] Drawing the logo...\n");
-	lcd_console_address = lcd_logo();
+    
+//#ifdef CONFIG_CHARGE_CHECK
+//    if(check_charge() == 0)
+//#endif
+//    {
+//        debug("[LCD] Drawing the logo...\n");
+//	    lcd_console_address = lcd_logo();
+//    }
 
-	console_col = 0;
+    console_col = 0;
 	console_row = 0;
 	lcd_sync();
 }
@@ -903,10 +909,38 @@ static inline void fb_put_word(uchar **fb, uchar **from)
 #endif
 #endif /* CONFIG_BMP_16BPP */
 
+int lcd_display_bitmap_center(ulong bmp_image)
+{
+    bmp_image_t *bmp=(bmp_image_t *)bmp_image;
+    unsigned long width, height;
+
+    if (!bmp || !(bmp->header.signature[0] == 'B' &&
+        bmp->header.signature[1] == 'M')) {
+        printf("Error: no valid bmp image at %lx, sign:%c %c\n", bmp_image, bmp->header.signature[0], bmp->header.signature[1]);                                       
+
+        return 1;
+    }
+
+    width = le32_to_cpu(bmp->header.width);
+    height = le32_to_cpu(bmp->header.height);
+
+   // memset((char *)lcd_base,
+   //         COLOR_MASK(lcd_getbgcolor()),
+   //         lcd_line_length * panel_info.vl_row);
+
+    lcd_display_bitmap(bmp_image, (panel_info.vl_col - width)/2, (panel_info.vl_row - height)/2);
+}
+
 int lcd_display_bitmap(ulong bmp_image, int x, int y)
 {
 #if !defined(CONFIG_MCC200)
-	ushort *cmap = NULL;
+    
+#ifndef CONFIG_RK_FB
+	 ushort *cmap =   configuration_get_cmap();
+#else
+     ushort tmpmap[256];  /* sizeof(ushort) * 256 */
+     ushort *cmap = tmpmap;
+#endif
 #endif
 	ushort *cmap_base = NULL;
 	ushort i, j;
@@ -917,10 +951,9 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	unsigned long width, height, byte_width;
 	unsigned long pwidth = panel_info.vl_col;
 	unsigned colors, bpix, bmp_bpix;
-
 	if (!bmp || !(bmp->header.signature[0] == 'B' &&
 		bmp->header.signature[1] == 'M')) {
-		printf("Error: no valid bmp image at %lx\n", bmp_image);
+		printf("Error: no valid bmp image at %lx, sign:%s\n", bmp_image, bmp->header.signature);
 
 		return 1;
 	}
@@ -951,10 +984,10 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	debug("Display-bmp: %d x %d  with %d colors\n",
 		(int)width, (int)height, (int)colors);
 
+
 #if !defined(CONFIG_MCC200)
 	/* MCC200 LCD doesn't need CMAP, supports 1bpp b&w only */
 	if (bmp_bpix == 8) {
-		cmap = configuration_get_cmap();
 		cmap_base = cmap;
 
 		/* Set color map */
@@ -981,6 +1014,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		}
 	}
 #endif
+  
 
 	/*
 	 *  BMP format for Monochrome assumes that the state of a
@@ -1013,6 +1047,15 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		height = panel_info.vl_row - y;
 
 	bmap = (uchar *) bmp + le32_to_cpu(bmp->header.data_offset);
+    
+#if defined(CONFIG_RK_FB)
+    if(lcd_base == gd->fb_base)
+        lcd_base += panel_info.vl_col*panel_info.vl_row*2; 
+    else lcd_base = gd->fb_base; 
+    memset(lcd_base,0,panel_info.vl_col*panel_info.vl_row*2);
+
+#endif
+
 	fb   = (uchar *) (lcd_base +
 		(y + height - 1) * lcd_line_length + x * bpix / 8);
 
@@ -1030,6 +1073,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 			break;
 		}
 #endif
+       
 
 		if (bpix != 16)
 			byte_width = width;
@@ -1080,6 +1124,10 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	default:
 		break;
 	};
+
+#if defined(CONFIG_RK_FB)
+    lcd_pandispaly(lcd_base);
+#endif
 
 	lcd_sync();
 	return 0;

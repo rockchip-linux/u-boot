@@ -180,14 +180,17 @@ Revision:       1.00
 #define CONFIG_USBD_MANUFACTURER    "Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
 
+#define CONFIG_BMP_IMAGES_BUFFER     0x68000000 //128M
+#define CONFIG_BMP_IMAGES_SIZE       SZ_16M
+
 /* Another macro may also be used or instead used to take care of the case
  * where fastboot is started at boot (to be incorporated) based on key press
  */
 #define CONFIG_CMD_FASTBOOT
 #define CONFIG_FASTBOOT_LOG
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER             0x68000000 //128M
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (SZ_256M)
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH   (SZ_64M)
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER             (CONFIG_BMP_IMAGES_BUFFER + CONFIG_BMP_IMAGES_SIZE)
 /* Fastboot product name */
 #define FASTBOOT_PRODUCT_NAME   "fastboot"
 
@@ -230,7 +233,11 @@ Revision:       1.00
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
 #define CONFIG_SYS_I2C_SLAVE 0x32
-//#define CONFIG_CHARGE_CHECK   //open it if check charging in uboot
+
+#define CONFIG_BQ27541_I2C_ADDR  0x55
+
+#define CONFIG_CHARGE_CHECK    //open it if check charging in uboot
+#define CONFIG_BATTERY_BQ27541 //
 
 #define         CHIP_RK3066     0
 #define         CHIP_RK3066B    1
@@ -253,6 +260,10 @@ Revision:       1.00
 #undef CONFIG_CMD_ECHO
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
+
+#define CONFIG_CMD_BMP
+#define CONFIG_CMD_CHARGE_ANIM
+#define CONFIG_LCD_BMP_RLE8
 
 #define CONFIG_RK_I2C
 #define CONFIG_I2C_MULTI_BUS

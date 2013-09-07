@@ -4,5 +4,6 @@
 /asm
 /bmp_logo.h
 /bmp_logo_data.h
+/bmp_image_data.h
 /config.h
 /config.mk

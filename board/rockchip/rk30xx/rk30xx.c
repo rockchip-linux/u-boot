@@ -14,6 +14,7 @@ Revision:       1.00
 #include <lcd.h>
 #include "rkimage.h"
 #include "rkloader.h"
+#include "i2c.h"
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -55,6 +56,10 @@ void RockusbKeyInit(key_config *key)
     key->key.adc.ctrl = SARADC_BASE+8;
 }
 
+int power_hold() {
+    return GetPortState(&key_powerHold);
+}
+
 void RecoveryKeyInit(key_config *key)
 {
     key->type = KEY_AD;
@@ -79,7 +84,7 @@ void FastbootKeyInit(key_config *key)
 void PowerHoldKeyInit()
 {
     key_powerHold.type = KEY_GPIO;
-    key_powerHold.key.gpio.valid = 1; 
+    key_powerHold.key.gpio.valid = 0; 
     if(ChipType == CHIP_RK3066)
     {
         key_powerHold.key.gpio.group = 6;
@@ -88,7 +93,7 @@ void PowerHoldKeyInit()
     else
     {
         key_powerHold.key.gpio.group = 0;
-        key_powerHold.key.gpio.index = 0; // gpio0A0
+        key_powerHold.key.gpio.index = 4; // gpio0A4
         //rknand_print_hex("grf:", g_3188_grfReg,1,512);
     }
 
@@ -297,6 +302,7 @@ int board_late_init(void)
     FastbootKeyInit(&key_fastboot);
     RecoveryKeyInit(&key_recovery);
 	PowerHoldKeyInit();
+    ChargerStateInit();
 
     getParameter();
 
@@ -432,3 +438,12 @@ void init_panel_info(vidinfo_t *vid)
 
 #endif
 
+void shut_down()
+{
+    i2c_set_bus_num(1);
+    i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+    i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
+    i2c_reg_write(CONFIG_SYS_I2C_SLAVE, 0xe0, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0xe0) & 0xfe);
+    i2c_reg_write(CONFIG_SYS_I2C_SLAVE, 0x0f, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x0f) & 0xfe);   
+    i2c_reg_write(CONFIG_SYS_I2C_SLAVE, 0x0e, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x0e) | 0x01);  
+}

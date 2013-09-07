@@ -56,8 +56,20 @@ void lcd_enable(void)
     if (panel_info.logo_on) {
         rk30_lcdc_set_par(g_lcdbase, &panel_info);
     }
-  
+
     lcd_panel_on(&panel_info);
+}
+
+void lcd_pandispaly(void *lcdbase)
+{
+    if (panel_info.logo_on) {
+        rk30_lcdc_set_par(lcdbase, &panel_info);
+    }
+}
+
+void lcd_standby(int enable)
+{
+    rk30_lcdc_standby(enable);
 }
 
 /* dummy function */

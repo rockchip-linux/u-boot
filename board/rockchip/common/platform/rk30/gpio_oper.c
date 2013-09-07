@@ -143,6 +143,20 @@ int SetPortOutput(int group, int index, int level)
     else write_XDATA32( key_gpio.io_write, (read_XDATA32(key_gpio.io_write)&(~(1ul<<key_gpio.index))));
     return 0 ;
 }
+
+int GetPortInput(int group, int index)
+{
+    gpio_conf key_gpio;
+    key_gpio.group = group;
+    setup_gpio(&key_gpio);
+    key_gpio.index = index;
+
+    // set direction as input 
+
+    write_XDATA32( key_gpio.io_dir_conf, (read_XDATA32(key_gpio.io_dir_conf)&(~(1ul<<key_gpio.index))));
+    return read_XDATA32(key_gpio.io_read);
+}
+
 #if 0
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {

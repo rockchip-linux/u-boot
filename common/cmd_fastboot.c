@@ -275,6 +275,7 @@ static struct cmd_fastboot_interface priv = {
 static void fbt_init_endpoints(void);
 int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
 
+extern int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
 extern int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
 /* Use do_bootm_linux and do_go for fastboot's 'boot' command */
 extern int do_go(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
@@ -1645,9 +1646,9 @@ extern int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_
 int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	char *boot_source = "boot";
-    fbt_partition_t *ptn;
 	struct fastboot_boot_img_hdr *hdr = NULL;
-	bootm_headers_t images;
+    fbt_partition_t* ptn;
+    bootm_headers_t images;
 
 	if (argc >= 2)
 		boot_source = argv[1];
@@ -1882,9 +1883,17 @@ void fbt_preboot(void)
 
     frt = board_fbt_key_pressed();
 
+    if(check_charge()) {
+        char *charge[] = { "charge" };
+        if (do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
+            //boot from charge animation.
+            frt = FASTBOOT_REBOOT_NONE;
+        }
+    }
+
     if (frt == FASTBOOT_REBOOT_NONE) {
         FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n",
-               __func__);
+                __func__);
 	    frt = board_fbt_get_reboot_type();
     } else {
         //clear reboot type when key pressed.
