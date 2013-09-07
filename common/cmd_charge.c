@@ -110,14 +110,23 @@ static int get_next_image_index() {
     if (!start_index)
         return 0; //low power
 
-    if (bmp_images[current_index].level < level ||
-            bmp_images[start_index].level != bmp_images[current_index].level)
-        return start_index; //level changed
-
     current_index++;
+
+#define LOOP_FROM_LEVEL0 1
+#if LOOP_FROM_LEVEL0
     if (current_index == IMAGES_NUM
-            || bmp_images[start_index].level != bmp_images[current_index].level)
+            || bmp_images[start_index].level < bmp_images[current_index].level
+            //level overflow
+            || bmp_images[start_index].level > bmp_images[current_index].level)
+            //level changed
         return start_index; //loop again
+#else
+    if (current_index == IMAGES_NUM
+            || bmp_images[start_index].level < bmp_images[current_index].level)
+            //level overflow
+        return 0;//loop again.
+#endif//LOOP_FROM_LEVEL0
+
     return current_index; //step forward
 }
 
