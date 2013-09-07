@@ -1328,6 +1328,17 @@ static int fbt_rx_process(unsigned char *buffer, int length)
         priv.d_status = 0;
 
 		FBTINFO("starting download of %llu bytes\n", priv.d_size);
+
+        if (!priv.unlocked) {
+            FBTERR("download: failed, device is locked\n");
+            sprintf(priv.response, "FAILdevice is locked");
+        } else if (priv.d_size > priv.transfer_buffer_size
+                && !priv.pending_ptn) {
+            FBTERR("download large image with \"-u\" option\n");
+            sprintf(priv.response, "FAILnot support \"-u\" option");
+            //what if they use "fastboot getvar partition-type" before flash?
+        }
+
 		if (priv.d_size == 0) {
 			strcpy(priv.response, "FAILdata invalid size");
 
