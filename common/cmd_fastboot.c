@@ -1949,6 +1949,12 @@ void fbt_preboot(void)
         return fbt_run_charge();
 #endif
     }
+#ifdef CONFIG_ROCKCHIP
+#ifdef CONFIG_LCD
+    lcd_enable_logo(true);
+    rk_backlight_ctrl(48);
+#endif
+#endif// CONFIG_ROCKCHIP
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
 		FBTDBG("\n%s: starting recovery img because of reboot flag\n",

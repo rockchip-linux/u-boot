@@ -133,6 +133,7 @@ static int lcd_color_bg;
 int lcd_line_length;
 
 char lcd_is_enabled = 0;
+char lcd_show_logo = 0;
 
 static short console_col;
 static short console_row;
@@ -408,6 +409,13 @@ int lcd_get_size(int *line_length)
 	return *line_length * panel_info.vl_row;
 }
 
+int lcd_enable_logo(bool enable)
+{
+    lcd_show_logo = enable;
+    if (lcd_show_logo)
+        lcd_clear();
+}
+
 int drv_lcd_init(void)
 {
 	struct stdio_dev lcddev;
@@ -472,13 +480,11 @@ void lcd_clear(void)
 #endif
 	/* Paint the logo and retrieve LCD base address */
     
-//#ifdef CONFIG_CHARGE_CHECK
-//    if(check_charge() == 0)
-//#endif
-//    {
-//        debug("[LCD] Drawing the logo...\n");
-//	    lcd_console_address = lcd_logo();
-//    }
+    if (lcd_show_logo)
+    {
+        debug("[LCD] Drawing the logo...\n");
+	    lcd_console_address = lcd_logo();
+    }
 
     console_col = 0;
 	console_row = 0;
