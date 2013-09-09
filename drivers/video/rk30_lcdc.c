@@ -582,6 +582,12 @@ void rk30_lcdc_enable(void)
 
 }
 
+
+void rk30_lcdc_standby(enable)
+{
+}
+
+
 int rk30_lcdc_init()
 {
     lcdc_clk_enable();
