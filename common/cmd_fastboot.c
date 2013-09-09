@@ -1323,43 +1323,42 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		FBTDBG("download\n");
 
 		/* XXX: need any check for size & bytes ? */
-		priv.d_size = simple_strtoul (cmdbuf + 9, NULL, 16);
+        int d_size = simple_strtoul (cmdbuf + 9, NULL, 16);
 		priv.d_bytes = 0;
         priv.d_status = 0;
 
-		FBTINFO("starting download of %llu bytes\n", priv.d_size);
+		FBTINFO("starting download of %llu bytes\n", d_size);
 
         if (!priv.unlocked) {
             FBTERR("download: failed, device is locked\n");
             sprintf(priv.response, "FAILdevice is locked");
-        } else if (priv.d_size > priv.transfer_buffer_size
+        } else if (d_size > priv.transfer_buffer_size
                 && !priv.pending_ptn) {
             FBTERR("download large image with \"-u\" option\n");
             sprintf(priv.response, "FAILnot support \"-u\" option");
             //what if they use "fastboot getvar partition-type" before flash?
-        }
-
-		if (priv.d_size == 0) {
-			strcpy(priv.response, "FAILdata invalid size");
+        } else if (d_size == 0) {
+            strcpy(priv.response, "FAILdata invalid size");
 
         /* maybe board side can handle this.
-		} else if (priv.d_size > priv.transfer_buffer_size) {
-			priv.d_size = 0;
+		} else if (d_size > priv.transfer_buffer_size) {
+			d_size = 0;
 			strcpy(priv.response, "FAILdata too large");
             */
 		} else {
-			sprintf(priv.response, "DATA%08llx", priv.d_size);
+            priv.d_size = d_size;
+            sprintf(priv.response, "DATA%08llx", priv.d_size);
 
-			/* as an optimization, replace the builtin
-			 * urb->buffer and urb->buffer_length with our
-			 * own so we don't have to do extra copy.
-			 */
-			ep = &endpoint_instance[1];
-			ep->rcv_urb->buffer = priv.transfer_buffer;
-			ep->rcv_urb->buffer_length = 
+            /* as an optimization, replace the builtin
+             * urb->buffer and urb->buffer_length with our
+             * own so we don't have to do extra copy.
+             */
+            ep = &endpoint_instance[1];
+            ep->rcv_urb->buffer = priv.transfer_buffer;
+            ep->rcv_urb->buffer_length = 
                 priv.transfer_buffer_size > priv.d_size? priv.d_size: 
                 priv.transfer_buffer_size;
-			ep->rcv_urb->actual_length = 0;
+            ep->rcv_urb->actual_length = 0;
 
 			/* don't poison the cmd buffer because
 			 * we've replaced it with our
