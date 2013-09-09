@@ -1,0 +1,76 @@
+/*
+ *  Copyright (C) 2012 rockchips
+ *  zyw < zyw@rock-chips.com >
+ *  for sample
+ */
+
+#include <common.h>
+#include <power/pmic.h>
+#include <i2c.h>
+#include <errno.h>
+
+/*
+for chack charger status in boot
+return 0, no charger
+return 1, charging
+*/
+int check_charge(void)
+{
+    int reg=0;
+    int ret = 0;
+    if(IReadLoaderFlag() == 0) {       //reboot charge
+        //i2c_set_bus_num(1);
+       // i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+        //i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
+       // reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);// read power on history
+       // printf("%s power on history %x\n",__func__,reg);
+       // if(reg == 0x04)
+        {
+            printf("In charging! \n");
+            ret = 1;
+        }
+    }
+    
+    return ret;
+}
+
+
+/*
+set charge current
+0. disable charging  
+1. usb charging, 500mA
+2. ac adapter charging, 1.5A
+*/
+int pmic_charger_setting(int current)
+{
+
+    printf("%s %d\n",__func__,current);
+    switch (current){
+    case 0:
+        //disable charging
+        break;
+    case 1:
+        //set charger current to 500ma
+        break;
+    case 2:
+         //set charger current to 1.5A
+        break;
+    default:
+        break;
+    }
+    return 0;
+}
+
+int pmic_init(unsigned char bus)
+{
+    //enable lcdc power ldo, and enable other ldo   
+
+	return 0;
+}
+
+void shut_down(void)
+{
+    //shut down pmic or pull down power_hold pin
+
+}
+
