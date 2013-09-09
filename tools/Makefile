@@ -161,7 +161,7 @@ endif
 # Generated bmp image
 BMP_IMAGE_DATA_H = $(OBJTREE)/include/bmp_image_data.h
 LOGO-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_DATA_H)
-BMP_IMAGE_IMG= ../images.img
+BMP_IMAGE_IMG= ../charge.img
 LOGO-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_IMG)
 
 # now $(obj) is defined
