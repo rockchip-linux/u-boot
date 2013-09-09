@@ -16,23 +16,15 @@ return 1, charging
 */
 int check_charge(void)
 {
-    int reg=0;
     int ret = 0;
-    if(IReadLoaderFlag() == 0) {       //reboot charge
-        //i2c_set_bus_num(1);
-       // i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-        //i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-       // reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);// read power on history
-       // printf("%s power on history %x\n",__func__,reg);
-       // if(reg == 0x04)
-        {
-            printf("In charging! \n");
-            ret = 1;
-        }
+    if(GetVbus()) {       //reboot charge
+    	printf("In charging! \n");
+    	ret = 1;
     }
     
     return ret;
 }
+
 
 
 /*
