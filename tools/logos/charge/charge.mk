@@ -24,7 +24,7 @@ LEVEL_3_IMAGES := \
 LEVEL_4_IMAGES := \
 	$(LOCAL_PATH)/images/battery_4.bmp
 
-LEVEL_4_IMAGES := \
+LEVEL_5_IMAGES := \
 	$(LOCAL_PATH)/images/battery_5.bmp
 
 LEVEL_0 := 19 #max value to match this level.
