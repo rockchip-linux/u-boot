@@ -585,6 +585,8 @@ void rk30_lcdc_enable(void)
 
 void rk30_lcdc_standby(enable)
 {
+    LcdMskReg(SYS_CTRL1, m_W1_EN, v_W1_EN(enable?0:1));
+    LCDC_REG_CFG_DONE();
 }
 
 
