@@ -229,11 +229,12 @@ Revision:       1.00
 #endif
 #endif
 #define CONFIG_RK_I2C
+#ifdef CONFIG_RK_I2C
 #define CONFIG_HARD_I2C
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
 #define CONFIG_SYS_I2C_SLAVE 0x32
-
+#endif
 //#define CONFIG_BQ27541_I2C_ADDR  0x55
 //#define CONFIG_BATTERY_BQ27541
 //#define CONFIG_POWER_RICOH619
