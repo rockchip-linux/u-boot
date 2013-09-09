@@ -31,7 +31,13 @@ int state_of_chrg = 0;
 #define TEMP_K              2731
 #define MIN_CHARGE_TEMPERATURE       0
 #define MAX_CHARGE_TEMPERATURE       450
-
+/*
+get battery status, contain capacity, voltage, status
+struct battery *batt_status:
+voltage_uV. battery voltage
+capacity.   battery capacity
+state_of_chrg: 0. no charger; 1. usb charging; 2. AC charging
+*/
 int get_power_bat_status(struct battery *batt_status)
 {
     int i2c_buf[2];

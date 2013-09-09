@@ -434,6 +434,10 @@ void ChargerStateInit()
     setup_gpio(&charger_state.key.gpio);
 }
 
+/*
+return 0: no charger
+return 1: charging
+*/
 int is_charging()
 {
     return !GetPortState(&charger_state);  //gpio0_b2, charger in status

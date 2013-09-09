@@ -26,7 +26,11 @@
 #include <i2c.h>
 #include <errno.h>
 
-
+/*
+for chack charger status in boot
+return 0, no charger
+return 1, charging
+*/
 int check_charge(void)
 {
     int reg=0;
@@ -52,6 +56,12 @@ static int pmic_charger_state(struct pmic *p, int state, int current)
     return 0;
 }
 
+/*
+set charge current
+0. disable charging  
+1. usb charging, 500mA
+2. ac adapter charging, 1.5A
+*/
 int pmic_charger_setting(int current)
 {
     i2c_set_bus_num(1);
@@ -59,26 +69,30 @@ int pmic_charger_setting(int current)
     i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
 
     i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0x0d, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x0d)|0x20);
-    i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb8,0x8e);	 /* ICHG	1500ma,	= 0x0-0x1D (100mA - 3000mA) */
-                                                     /* ICCHG   150ma   = 0x0-3 (50mA 100mA 150mA 200mA)*/
+    
     i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xbb, 0x23);  /* VFCHG	4.15v,	= 0x0-0x4 (4.05v 4.10v 4.15v 4.20v 4.35v)   */                                             
                                                      /* VRCHG   4.00,	= 0x0-0x4 (3.85v 3.90v 3.95v 4.00v 4.10v) */
     printf("%s %d\n",__func__,current);
-    if(current == 0)
-    {
-        i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb3, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0xb3)&~0x03);      //enable charging    
-    }
-    else if(current == 1)
-    {
+    switch (current){
+    case 0:
+        i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb3, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0xb3)&~0x03);      //disable charging    
+        break;
+    case 1:
+        i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb8,0x4f);	 /* ICHG	1600ma,	= 0x0-0x1D (100mA - 3000mA) */
+                                                         /* ICCHG   100ma   = 0x0-3 (50mA 100mA 150mA 200mA)*/
         i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb3, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0xb3)|0x03);      //enable charging    
         i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb6,0x7);  /* ILIM_ADP 0x11= 0x0-0x1D (100mA - 3000mA) */
         i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb7,(i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0xb7)&0xe0)|0x07);/* ILIM_USB 0x07,= 0x0-0x1D (100mA - 3000mA) */
-    }
-    else if(current == 2)
-    {
+        break;
+    case 2:
+        i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb8,0x4f);	 /* ICHG	1600ma,	= 0x0-0x1D (100mA - 3000mA) */
+                                                         /* ICCHG   100ma   = 0x0-3 (50mA 100mA 150mA 200mA)*/
         i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb3, i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0xb3)|0x03);      //enable charging 
         i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb6,0x10);	/* ILIM_ADP	0x11= 0x0-0x1D (100mA - 3000mA) */
         i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0xb7,(i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0xb7)&0xe0)|0x10);/* ILIM_USB 0x07,= 0x0-0x1D (100mA - 3000mA) */
+        break;
+    default:
+        break;
     }
     return 0;
 }
