@@ -1432,6 +1432,15 @@ static void fbt_handle_response(void)
 	}
 }
 
+static void fbt_run_charge()
+{
+    char *const boot_charge_cmd[] = {"booti", "charge"};
+    do_booti(NULL, 0, ARRAY_SIZE(boot_charge_cmd), boot_charge_cmd);
+
+    /* returns if boot.img is bad */
+    FBTERR("\nfastboot: Error: Invalid boot img\n");
+}
+
 static void fbt_run_recovery()
 {
 	char *const boot_recovery_cmd[] = {"booti", "recovery"};
@@ -1661,8 +1670,14 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
     fbt_partition_t* ptn;
     bootm_headers_t images;
 
-	if (argc >= 2)
-		boot_source = argv[1];
+    bool charge = false;
+	if (argc >= 2) {
+        if (!strcmp(argv[1], "charge")) {
+            charge = true;
+        } else {
+            boot_source = argv[1];
+        }
+    }
 
 	ptn = fastboot_find_ptn(boot_source);
 	if (ptn) {
@@ -1804,6 +1819,10 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif
 //TODO:add some dev info to cmdline?
 //
+        if (charge)
+            snprintf(command_line, sizeof(command_line),
+                "%s %s",command_line," androidboot.mode=charger");
+
 		/* append serial number if it wasn't in device_info already */
 		if (!strstr(command_line, FASTBOOT_SERIALNO_BOOTARG)) {
 			snprintf(command_line + amt, sizeof(command_line) - amt,
@@ -1905,13 +1924,16 @@ void fbt_preboot(void)
     
     //check charge mode when no key pressed.
     if(check_charge() || frt == FASTBOOT_REBOOT_CHARGE) {
+#ifdef CONFIG_CMD_CHARGE_ANIM
         char *charge[] = { "charge" };
         if (do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
             //boot from charge animation.
             frt = FASTBOOT_REBOOT_NONE;
         }
+#else
+        return fbt_run_charge();
+#endif
     }
-
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
 		FBTDBG("\n%s: starting recovery img because of reboot flag\n",

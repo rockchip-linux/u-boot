@@ -236,7 +236,6 @@ Revision:       1.00
 
 #define CONFIG_BQ27541_I2C_ADDR  0x55
 
-#define CONFIG_CHARGE_CHECK    //open it if check charging in uboot
 #define CONFIG_BATTERY_BQ27541 //
 #define CONFIG_POWER_RICOH619
 
@@ -263,7 +262,7 @@ Revision:       1.00
 #undef CONFIG_CMDLINE_EDITING
 
 #define CONFIG_CMD_BMP
-#define CONFIG_CMD_CHARGE_ANIM
+//#define CONFIG_CMD_CHARGE_ANIM
 #define CONFIG_LCD_BMP_RLE8
 
 #define CONFIG_RK_I2C
