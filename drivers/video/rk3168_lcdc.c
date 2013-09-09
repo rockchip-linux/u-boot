@@ -565,6 +565,10 @@ void rk30_lcdc_enable(void)
     //LcdMskReg(DSP_CTRL1,m_BLANK_MODE ,v_BLANK_MODE(1));
 }
 
+void rk30_lcdc_standby(enable)
+{
+}
+
 int rk30_lcdc_init()
 {
     lcdc_clk_enable();

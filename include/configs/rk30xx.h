@@ -224,7 +224,7 @@ Revision:       1.00
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 #define CONFIG_RK_3188_FB
 //#define CONFIG_VCC_LCDC_1_8   //vcc lcdc switch to 1.8v
-#else
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 #define CONFIG_RK_3168_FB
 #endif
 #endif
