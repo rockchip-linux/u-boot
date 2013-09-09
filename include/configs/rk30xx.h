@@ -228,7 +228,7 @@ Revision:       1.00
 #define CONFIG_RK_3168_FB
 #endif
 #endif
-#define CONFIG_RK_I2C
+//#define CONFIG_RK_I2C
 #ifdef CONFIG_RK_I2C
 #define CONFIG_HARD_I2C
 #define CONFIG_I2C_MULTI_BUS
