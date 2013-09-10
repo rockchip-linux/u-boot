@@ -143,7 +143,7 @@ static int sleep = false;
 static long long power_hold_time = 0; // hold 178s may overflow...
 static long long screen_on_time = 0; // 178s may overflow...
 
-#define DELAY 80000 //us
+#define DELAY 900000 //us
 static inline int get_delay() {
     return sleep? DELAY << 1: DELAY;
 }
