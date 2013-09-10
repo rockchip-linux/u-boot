@@ -244,10 +244,16 @@ Revision:       1.00
 #define CONFIG_SYS_I2C_SLAVE 0x32
 #endif
 //#define CONFIG_BQ27541_I2C_ADDR  0x55
-//#define CONFIG_BATTERY_BQ27541
+
+/********************************** charger and pmic driver ********************************/
 //#define CONFIG_POWER_RICOH619
+#define CONFIG_POWER_RK_SAMPLE
+
+/********************************** battery driver ********************************/
+//#define CONFIG_BATTERY_BQ27541
+//#define CONFIG_BATTERY_RICOH619
 #define CONFIG_BATTERY_RK_SAMPLE  //battery driver
-#define CONFIG_POWER_RK_SAMPLE    //charger and pmic driver
+
 
 #define         CHIP_RK3066     0
 #define         CHIP_RK3066B    1
