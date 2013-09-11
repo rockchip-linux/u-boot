@@ -29,6 +29,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 	*boot_rockusb = 0;
 	*boot_recovery = 0;
 	*boot_fastboot = 0;
+	printf("checkKey\n");
 	if(GetPortState(&key_rockusb))
 	{
         *boot_rockusb = 1;
@@ -76,11 +77,13 @@ void RecoveryKeyInit(key_config *key)
 
 void FastbootKeyInit(key_config *key)
 {
-    key->type = KEY_GPIO;
-    key->key.gpio.valid = 0; 
-	key->key.gpio.group = 4;
-	key->key.gpio.index = 21;// gpio4C5
-    setup_gpio(&key->key.gpio);
+    key->type = KEY_AD;
+    key->key.adc.index = 1;
+    key->key.adc.keyValueLow = 950;
+    key->key.adc.keyValueHigh= 960;
+    key->key.adc.data = SARADC_BASE;
+    key->key.adc.stas = SARADC_BASE+4;
+    key->key.adc.ctrl = SARADC_BASE+8;
 }
 
 void PowerHoldKeyInit()
