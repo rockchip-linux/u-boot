@@ -365,11 +365,17 @@ int handleDirectDownload(unsigned char *buffer,
 
     FBTDBG("direct download, size:%d, offset:%lld, rest:%d\n",
             size, priv->d_direct_offset, priv->d_direct_size - write_len);
+
+	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->offset, buffer + priv->transfer_buffer_pos, blocks, 0)) {
+        FBTDBG("handleDirectDownload failed\n");
+        return -1;
+    }
+/*
     if(CopyMemory2Flash(buffer + priv->transfer_buffer_pos,
                 priv->d_direct_offset + priv->pending_ptn->offset, blocks)) {
         FBTDBG("handleDirectDownload failed\n");
         return -1;
-    }
+    }*/
     priv->d_direct_offset += blocks;
     priv->d_direct_size -= write_len;
     priv->transfer_buffer_pos += write_len;
