@@ -30,7 +30,7 @@ Revision:		1.00
 //#define     LINUX_LOADER
 #define     SECURE_BOOT_ENABLE
 #define     SECURE_BOOT_ENABLE_ALWAY
-//#define     SECURE_BOOT_LOCK
+#define     SECURE_BOOT_LOCK
 //#define     ERASE_DRM_KEY_EN
 //#define   SECURE_BOOT_TEST
 #define     MALLOC_DISABLE
