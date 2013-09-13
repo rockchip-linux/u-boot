@@ -1210,15 +1210,33 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 
     if (priv.d_size) {
         ep = &endpoint_instance[1];
+        if (length > priv.transfer_buffer_size) {
+            FBTERR("buffer overflow when do receive\n");
+            length = priv.transfer_buffer_size;
+        }
         if (length == priv.transfer_buffer_size) {
             //switch buffer, and resume transfer.
+
+            //compute new buffer_length
+            int buffer_length = priv.d_size - priv.d_bytes -//bytes to rcv seens last time.
+                (length - priv.transfer_buffer_pos);//bytes we rcved this time.
+            
+            //keep last 512 to next time(for storage write align)
+            buffer_length += RK_BLK_SIZE;
+
+            if (buffer_length > priv.transfer_buffer_size)
+                buffer_length = priv.transfer_buffer_size;
+
             ep->rcv_urb->buffer = (u8 *)priv.buffer[buffer == priv.transfer_buffer];
-            ep->rcv_urb->buffer_length = priv.transfer_buffer_size;
+            
+            //keep last 512 to next time(for storage write align)
+            ep->rcv_urb->buffer_length = buffer_length;
             ep->rcv_urb->actual_length = RK_BLK_SIZE;
             memcpy(ep->rcv_urb->buffer, buffer + length - RK_BLK_SIZE, RK_BLK_SIZE);
+
             FBTDBG("switch transfer buffer:%x -> %x len:%ld\n", buffer, ep->rcv_urb->buffer,
                    ep->rcv_urb->buffer_length);
-            resume_usb();
+            resume_usb(ep, 0);
         }
 
         //board handle this
@@ -1262,8 +1280,6 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 
 	/* Generic failed response */
 	strcpy(priv.response, "FAIL");
-
-	FBTDBG("command:%s\n", cmdbuf);
 
     cmdbuf[FASTBOOT_COMMAND_SIZE - 1] = 0;
 	FBTDBG("cmdbuf = (%s)\n", cmdbuf);
@@ -1360,10 +1376,10 @@ static int fbt_rx_process(unsigned char *buffer, int length)
                 priv.transfer_buffer_size;
             ep->rcv_urb->actual_length = 0;
 
-			/* don't poison the cmd buffer because
-			 * we've replaced it with our
-			 * transfer buffer for the download.
-			 */
+            /* don't poison the cmd buffer because
+             * we've replaced it with our
+             * transfer buffer for the download.
+             */
 			clear_cmd_buf = 0;
 		}
 	}
@@ -1391,7 +1407,7 @@ static void fbt_handle_rx(void)
 			*/
 			memset(ep->rcv_urb->buffer, 0, FASTBOOT_COMMAND_SIZE);
 			ep->rcv_urb->actual_length = 0;
-            resume_usb();
+            resume_usb(ep, FASTBOOT_COMMAND_SIZE);
         }
         fbt_handle_response();
     }

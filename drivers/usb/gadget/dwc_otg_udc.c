@@ -38,6 +38,8 @@
 #define UDC_INIT_MDELAY		80	/* Device settle delay */
 #define FBT_BULK_IN_EP              2
 #define FBT_BULK_OUT_EP             1
+#define FBT_USB_XFER_BUF_SIZE       (1024*512)
+#define FBT_USB_XFER_MAX_SIZE       (0x80*512)
 
 #define DWCERR
 #undef DWCWARN
@@ -84,6 +86,7 @@ static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint);
 extern uint32 RockusbEn;
 ALIGN(8) uint8 FbtBulkInBuf[512];
 ALIGN(8) uint8 FbtBulkOutBuf[512];
+ALIGN(64) uint32 FbtXferBuf[FBT_USB_XFER_BUF_SIZE];
 /*
  * udc_state_transition - Write the next packet to TxFIFO.
  * @initial:	Initial state.
@@ -209,10 +212,24 @@ volatile int suspend = 0;
 void suspend_usb() {
     suspend = true;
 }
-void resume_usb() {
+void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {
     if (suspend) {
         suspend = false;
-        ReadBulkEndpoint(512, FbtBulkInBuf);
+        if (endpoint && endpoint->rcv_urb) {
+            struct urb* urb = endpoint->rcv_urb;
+            //get available size for next xfer.
+            int remaining_space = urb->buffer_length - urb->actual_length;
+            if (remaining_space > 0) {
+                remaining_space = remaining_space > FBT_USB_XFER_MAX_SIZE? FBT_USB_XFER_MAX_SIZE : remaining_space;
+
+                if (max_size && remaining_space > max_size)
+                    remaining_space = max_size;
+
+                usbdbg("next request:%d\n", remaining_space);
+                //schedule next xfer.
+                ReadBulkEndpoint(remaining_space, FbtXferBuf);
+            }
+        }
     }
 }
 
@@ -318,7 +335,7 @@ static void dwc_otg_enum_done_intr(void)
 	OtgReg->Device.dctl |= 1<<8;               //clear global IN NAK
 	ReadEndpoint0(Ep0PktSize, Ep0Buf);
 	//ReadBulkEndpoint(31, (uint8*)&gCBW);
-	ReadBulkEndpoint(FASTBOOT_COMMAND_SIZE, FbtBulkInBuf);
+    ReadBulkEndpoint(FASTBOOT_COMMAND_SIZE, FbtXferBuf);
 	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1ul<<28) | (1<<15)|(2<<18)|(BULK_IN_EP<<22);
 }
 
@@ -472,23 +489,35 @@ static void dwc_otg_epn_rx(uint32 len)
 {
 	struct urb *urb;
 	struct usb_endpoint_instance *endpoint;
+    int remaining_space = 0;
 
 	endpoint = &udc_device->bus->endpoint_array[1];
 
 	if(endpoint){
         urb = endpoint->rcv_urb;
+        remaining_space = FBT_USB_XFER_MAX_SIZE;
         if (urb) {
             uint8 *cp = urb->buffer + urb->actual_length;
-            ftl_memcpy(cp, FbtBulkInBuf, len);
-            if ((urb->buffer_length - urb->actual_length) <= 512) {
-                usbd_rcv_complete(endpoint, len, 0);
-                suspend_usb();
-                return;
-            }
+
+            //get available size for next xfer.
+            remaining_space = urb->buffer_length - urb->actual_length;
+            usbdbg("buffer_length:%d, actual_length:%d, len:%d\n", urb->buffer_length, urb->actual_length, len);
+            len = len <= remaining_space ? len : remaining_space;
+            if (len > 0)
+                ftl_memcpy(cp, FbtXferBuf, len);
         }
         usbd_rcv_complete(endpoint, len, 0);
+        remaining_space -= len;
+        if (remaining_space <= 0) {
+            //buffer is full, so we not do another xfer here. 
+            suspend_usb();
+        } else {
+            //schedule next xfer.
+            remaining_space = remaining_space > FBT_USB_XFER_MAX_SIZE? FBT_USB_XFER_MAX_SIZE : remaining_space;
+            usbdbg("next request:%d\n", remaining_space);
+            ReadBulkEndpoint(remaining_space, FbtXferBuf);
+        }
     }
-    ReadBulkEndpoint(endpoint->rcv_packetSize, FbtBulkInBuf);
 }
 
 static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint)
