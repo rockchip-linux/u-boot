@@ -74,6 +74,7 @@ extern void dataflash_print_info(void);
 #include <i2c.h>
 #endif
 
+extern void DMADeInit(void);
 /************************************************************************
  * Coloured LED functionality
  ************************************************************************
@@ -595,7 +596,6 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	puts("NAND:  ");
 	nand_init();		/* go init the NAND */
 #endif
-
 #if defined(CONFIG_CMD_ONENAND)
 	onenand_init();
 #endif
@@ -609,7 +609,13 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	AT91F_DataflashInit();
 	dataflash_print_info();
 #endif
-
+	/* set up exceptions */
+	interrupt_init();
+	/* enable exceptions */
+	enable_interrupts();
+#ifdef CONFIG_PL330_DMA
+	DMAInit();
+#endif
 	/* initialize environment */
 	if (should_load_env())
 		env_relocate();
@@ -649,11 +655,7 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	misc_init_r();
 #endif
 
-	 /* set up exceptions */
-	interrupt_init();
-	/* enable exceptions */
-	enable_interrupts();
-
+	
 #ifndef CONFIG_ROCKCHIP
 	/* Initialize from environment */
 	load_addr = getenv_ulong("loadaddr", 16, load_addr);

@@ -95,6 +95,10 @@ Revision:		1.00
 #include    "../common/spi/SpiBoot.h"
 #endif
 
+#ifdef CONFIG_PL330_DMA
+#include    <api_pl330.h>
+#endif
+
 
 #define	BOOT_ONLY           //定义只生成中间件引导代码, 不定义是完整可测试的文件系统
 #define DEBUG				// 定义DEBUG模式，将打印信息输出到串口

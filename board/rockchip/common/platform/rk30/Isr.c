@@ -158,6 +158,12 @@ void IrqHandler(void)
         _SDC2IST();
     }
 #endif    
+#ifdef CONFIG_PL330_DMA
+    else if(intSrc >= 32 && intSrc<=35)
+    {
+	    pl330_irq_handler(intSrc);
+    }
+#endif
     g_giccReg->ICCEOIR=intSrc;
 }
 
