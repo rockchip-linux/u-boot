@@ -75,8 +75,6 @@ int pmu_i2c_init()
 	pmu_i2c_set(PMU_I2C_ADDRESS, 0x89, 0x00);
 	pmu_i2c_set(PMU_I2C_ADDRESS, 0x66, 0x20);
 
-    if(0x10 != (i2c_reg_read(PMU_I2C_ADDRESS,FG_CTRL_REG)&0x10))
-	    pmu_i2c_set(PMU_I2C_ADDRESS, FG_CTRL_REG, 0x51);
 	return 1;
 }
 
@@ -164,7 +162,7 @@ static int calc_capacity()
 	int temp;
 	int ret = 0;
 	int nt;
-	int temperature;
+	int temperature=0,vol=0;
 
 	temperature = get_battery_temp() / 10; /* unit 0.1 degree -> 1 degree */
 
@@ -182,8 +180,35 @@ static int calc_capacity()
 		printf("Error in reading the control register\n");
 		return ret;
 	}
-
 	temp = capacity * 100 * 100 / (10000 - nt);
+	
+	if(capacity == 0)
+	{
+        vol = pmu_get_voltage();
+        if(vol < 3597)
+            capacity = 9;
+        else if(vol < 3625)
+            capacity = 19;
+        else if(vol < 3654)
+            capacity = 29;    
+        else if(vol < 3695)
+            capacity = 39;
+        else if(vol < 3750)
+            capacity = 49;
+        else if(vol < 3818)
+            capacity = 59;
+        else if(vol < 3906)
+            capacity = 69;
+        else if(vol < 3992)
+            capacity = 79;
+        else if(vol < 4089)
+            capacity = 89;
+        else if(vol < 4197)
+            capacity = 99;
+        else capacity = 100;
+        printf("capacity reg is 0, capacity calc from vol = %d, vol = %d \n",capacity,vol);
+    }
+
 	if(temp >= 2)temp = (temp-2)*100/98;
     else temp=1;
 	return temp;		/* Unit is 1% */
