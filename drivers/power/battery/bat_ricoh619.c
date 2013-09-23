@@ -180,33 +180,35 @@ static int calc_capacity()
 		printf("Error in reading the control register\n");
 		return ret;
 	}
-	temp = capacity * 100 * 100 / (10000 - nt);
+	
 	
 	if(capacity == 0)
 	{
         vol = pmu_get_voltage();
         if(vol < 3597)
-            capacity = 9;
+            temp = 9;
         else if(vol < 3625)
-            capacity = 19;
+            temp = 19;
         else if(vol < 3654)
-            capacity = 29;    
+            temp = 29;    
         else if(vol < 3695)
-            capacity = 39;
+            temp = 39;
         else if(vol < 3750)
-            capacity = 49;
+            temp = 49;
         else if(vol < 3818)
-            capacity = 59;
+            temp = 59;
         else if(vol < 3906)
-            capacity = 69;
+            temp = 69;
         else if(vol < 3992)
-            capacity = 79;
+            temp = 79;
         else if(vol < 4089)
-            capacity = 89;
+            temp = 89;
         else if(vol < 4197)
-            capacity = 99;
-        else capacity = 100;
-        printf("capacity reg is 0, capacity calc from vol = %d, vol = %d \n",capacity,vol);
+            temp = 99;
+        else temp = 100;
+        printf("capacity reg is 0, capacity calc from vol = %d, vol = %d \n",temp,vol);
+    }else{
+        temp = capacity * 100 * 100 / (10000 - nt);
     }
 
 	if(temp >= 2)temp = (temp-2)*100/98;
