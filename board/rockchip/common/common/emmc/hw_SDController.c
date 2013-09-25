@@ -1181,6 +1181,7 @@ void SDC_Init(uint32 CardId)
             /* config interrupt */
             pReg->SDMMC_RINISTS = 0xFFFFFFFF;
             pReg->SDMMC_CTRL = 0;  //interrupt disable
+            pReg->SDMMC_UHS_REG =  (pReg->SDMMC_UHS_REG & (~(1<<16))) | (0 << 16); //sdr mode
             _ControlClock(nSDCPort, FALSE);
             SDPAM_SDCClkEnable(nSDCPort, FALSE);
         }
@@ -1683,6 +1684,13 @@ int32 SDC_WaitCardBusy(int32 cardId)
 
     return _WaitCardBusy(nSDCPort);
 }
+
+int32 SDC_SetBusMode(int32 cardId,int32 mode)
+{
+    pSDC_REG_T      pReg = pSDCReg(cardId);
+    pReg->SDMMC_UHS_REG =  (pReg->SDMMC_UHS_REG & (~(1<<16))) | (mode << 16);
+}
+
 
 /****************************************************************/
 //º¯ÊýÃû:SDC_BusRequest

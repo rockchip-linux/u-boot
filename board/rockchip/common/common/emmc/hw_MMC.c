@@ -323,7 +323,17 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
                 ret = SDC_SendCommand(pCard->cardId, (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 | NO_WAIT_PREV), (pCard->rca << 16), &status);
                 if ((SDC_SUCCESS == ret) && ((status & (0x1 << 7)) == 0x0))
                 {
-                    if (pDataBuf[196] & 0x2) // 52M
+                    //printk("pDataBuf[196] = %x\n",pDataBuf[196] );
+                    if((pDataBuf[196] & 0x4 )) //  ddr mode
+                    {
+                        ret = SDC_UpdateCardFreq(pCard->cardId, 30000); //ddr ģʽ 30Mhz
+                        if (SDC_SUCCESS == ret)
+                        {
+                            pCard->tran_speed = MMCHS_52_FPP_FREQ;
+                            pCard->workMode |= SDM_HIGH_SPEED_MODE;
+                        }
+                    }
+                    else if (pDataBuf[196] & 0x2) // 52M
                     {
                         ret = SDC_UpdateCardFreq(pCard->cardId, MMCHS_52_FPP_FREQ);
                         if (SDC_SUCCESS == ret)
@@ -460,15 +470,32 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
         {
             break;
         }
-        
-        ret = SDC_SendCommand(pCard->cardId, \
-                             (MMC4_SWITCH_FUNC | SD_NODATA_OP | SD_RSP_R1B | WAIT_PREV), \
-                             ((0x3 << 24) | (183 << 16) | (value << 8)), \
-                             &status);
-        if ((SDC_SUCCESS != ret) || (status & (0x1 << 7)))
+
+        if(pDataBuf[196] & 0x4) //  ddr mode
         {
-            break;
+            value = value  | 0x4;
+            ret = SDC_SendCommand(pCard->cardId, \
+                                 (MMC4_SWITCH_FUNC | SD_NODATA_OP | SD_RSP_R1B | WAIT_PREV), \
+                                 ((0x3 << 24) | (183 << 16) | (value << 8)), \
+                                 &status);
+            if ((SDC_SUCCESS != ret) || (status & (0x1 << 7)))
+            {
+                break;
+            }
+            SDC_SetBusMode(pCard->cardId , 1); // ddr            
         }
+        else
+        {
+            ret = SDC_SendCommand(pCard->cardId, \
+                                 (MMC4_SWITCH_FUNC | SD_NODATA_OP | SD_RSP_R1B | WAIT_PREV), \
+                                 ((0x3 << 24) | (183 << 16) | (value << 8)), \
+                                 &status);
+            if ((SDC_SUCCESS != ret) || (status & (0x1 << 7)))
+            {
+                break;
+            }
+        } 
+        
         ret = SDC_SendCommand(pCard->cardId, (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 | NO_WAIT_PREV), (pCard->rca << 16), &status);
         if ((SDC_SUCCESS != ret) || (status & (0x1 << 7)))
         {

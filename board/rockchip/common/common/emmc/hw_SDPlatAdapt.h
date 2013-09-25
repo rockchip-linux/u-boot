@@ -46,7 +46,7 @@ void   SDPAM_CleanCache(void *adr, uint32 size);
 uint32 SDPAM_GetAHBFreq(void);
 void   SDPAM_SDCClkEnable(SDMMC_PORT_E nSDCPort, bool enable);
 void   SDPAM_SDCReset(SDMMC_PORT_E nSDCPort);
-void   SDPAM_SetMmcClkDiv(SDMMC_PORT_E nSDCPort, uint32 div);
+void   SDPAM_SetMmcClkDiv(SDMMC_PORT_E nSDCPort, uint32 kHz);
 bool   SDPAM_DMAStart(SDMMC_PORT_E nSDCPort, uint32 dstAddr, uint32 srcAddr, uint32 size, bool rw, pFunc CallBack);
 bool   SDPAM_DMAStop(SDMMC_PORT_E nSDCPort, bool rw);
 bool   SDPAM_INTCRegISR(SDMMC_PORT_E nSDCPort, pFunc Routine);

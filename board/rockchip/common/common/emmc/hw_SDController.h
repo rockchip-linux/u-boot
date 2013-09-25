@@ -40,6 +40,8 @@ Revision 1.1  2011/01/07 11:55:39  Administrator
 #define SDC1_FIFO_ADDR    (SDC1_ADDR + SD_FIFO_OFFSET)
 #define SDC2_FIFO_ADDR    (EMMC_BASE_ADDR+ SD_FIFO_OFFSET)
 
+#define FIFO_DEPTH        (SD_FIFO_DEPTH)       //FIFO depth = 32 word
+
 /***************************************************************/
 //可配置的参数
 /***************************************************************/
@@ -198,17 +200,14 @@ typedef volatile struct TagSDC_REG
     volatile uint32 SDMMC_TCBCNT;      //Transferred CIU card byte count
     volatile uint32 SDMMC_TBBCNT;      //Transferred host/DMA to/from BIU_FIFO byte count
     volatile uint32 SDMMC_DEBNCE;      //Card detect debounce register
-    
-/*
     //eMMC Controller   
-    volatile uint32 SDMMC_USRID;        //User ID register; base+0x68
-    volatile uint32 EMMC_CTRL;          //eMMC Ctrl register; base+0x1000
-    volatile uint32 EMMC_STS;           //eMMC Status register; base+0x1004
-    volatile uint32 EMMC_CNT;           //eMMC data conunter=N*128Kbyte; base+0x1008
-    volatile uint32 EMMC_TBCNT;         //data conunt transfered to bus; base+0x100c
-    volatile uint32 EMMC_TCCNT;         //data conunt transefered from emmc; base+0x1010
-    volatile uint32 EMMC_DATA;          //data fifo read; base+0x1110
-  */  
+    volatile uint32 SDMMC_USRID;        //User ID register        
+    volatile uint32 SDMMC_VERID;        //Synopsys version ID register
+    volatile uint32 SDMMC_HCON;         //Hardware configuration register          
+    volatile uint32 SDMMC_UHS_REG;      //UHS-1 register  
+    volatile uint32 SDMMC_RST_n;        //Hardware reset register
+    //volatile uint32 SDMMC_CARDTHRCTL;   //Card Read Threshold Enable
+    //volatile uint32 SDMMC_BACK_END_POWER; //Back-end Power
 }SDC_REG_T,*pSDC_REG_T;
 
 /* Interrupt Information */
@@ -234,6 +233,7 @@ typedef struct TagSDC_INFO
     bool              updateCardFreq; //表示是否需要更新卡的频率，用于由于AHB频率改变而导致需要更新卡的频率,TRUE:要更新，FALSE:不用更新
     bool              bSdioEn;        //是否使能SDIO中断,TRUE:使能，FALSE:禁止中断
     pFunc             pSdioCb;        //SDIO中断的回调函数
+    int               wait_ready;
 }SDC_INFO_T;
 
 #undef EXT
