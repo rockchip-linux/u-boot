@@ -11,6 +11,7 @@ Revision:       1.00
 #include <common.h>
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
+#include <asm/io.h>
 #include <lcd.h>
 #include "rkimage.h"
 #include "rkloader.h"
@@ -19,8 +20,32 @@ Revision:       1.00
 
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
-
 extern char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
+
+void wait_for_interrupt()
+{
+	uint8 ret,i;
+	u32 pllcon0[4], pllcon1[4], pllcon2[4];
+
+	/* PLL enter slow-mode */
+	g_cruReg->CRU_MODE_CON = (0x3<<((2*4) + 16)) | (0x0<<(2*4));
+	g_cruReg->CRU_MODE_CON = (0x3<<((3*4) + 16)) | (0x0<<(3*4));
+	g_cruReg->CRU_MODE_CON = (0x3<<((0*4) + 16)) | (0x0<<(0*4));
+
+	printf("PLL close over! \n");
+	wfi();
+	printf("PLL open begin! \n");
+
+
+	/* PLL enter normal-mode */
+	g_cruReg->CRU_MODE_CON = (0x3<<((0*4) + 16)) | (0x1<<(0*4));
+	g_cruReg->CRU_MODE_CON = (0x3<<((3*4) + 16)) | (0x1<<(3*4));
+	g_cruReg->CRU_MODE_CON = (0x3<<((2*4) + 16)) | (0x1<<(2*4));
+
+
+	printf("PLL open end! \n");
+}
+
 
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {
@@ -59,10 +84,6 @@ void RockusbKeyInit(key_config *key)
     key->key.adc.ctrl = SARADC_BASE+8;
 }
 
-int power_hold() {
-    return GetPortState(&key_powerHold);
-}
-
 void RecoveryKeyInit(key_config *key)
 {
     key->type = KEY_AD;
@@ -88,6 +109,7 @@ void FastbootKeyInit(key_config *key)
 
 void PowerHoldKeyInit()
 {
+#if 0
     key_powerHold.type = KEY_GPIO;
     key_powerHold.key.gpio.valid = 0; 
     if(ChipType == CHIP_RK3066)
@@ -103,6 +125,30 @@ void PowerHoldKeyInit()
     }
 
     setup_gpio(&key_powerHold.key.gpio);
+    if(key_powerHold.key.gpio.valid)
+        powerOn();
+#else
+    key_powerHold.type = KEY_INT;
+    key_powerHold.key.ioint.valid = 0; 
+    if(ChipType == CHIP_RK3066)
+    {
+        key_powerHold.key.ioint.group = 6;
+        key_powerHold.key.ioint.index = 8; // gpio6B0
+    }
+    else
+    {
+        key_powerHold.key.ioint.group = 0;
+        key_powerHold.key.ioint.index = 4; // gpio0A4
+    }
+	printf("setup gpio int\n");
+    setup_int(&key_powerHold.key.ioint);
+	IRQEnable(INT_GPIO0);
+#endif
+
+}
+
+int power_hold() {
+    return GetPortState(&key_powerHold);
 }
 
 void reset_cpu(ulong ignored)

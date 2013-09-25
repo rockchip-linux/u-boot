@@ -140,7 +140,8 @@ void IrqHandler(void)
 
 	intSrc=g_giccReg->ICCIAR&0x3ff;     //IntGetIntID
 	//g_giccReg->ICCEOIR=intSrc;
-	//RkPrintf("Irq: %x\n", intSrc);
+	//if((intSrc != USB_OTG_INT_CH) && (intSrc != INT_eMMC))
+		//serial_printf("Irq: %d\n", intSrc);
     if (intSrc == USB_OTG_INT_CH)
     {
         if(RockusbEn)
@@ -159,11 +160,15 @@ void IrqHandler(void)
     }
 #endif    
 #ifdef CONFIG_PL330_DMA
-    else if(intSrc >= 32 && intSrc<=35)
+    else if(intSrc >= INT_DMAC1_0 && intSrc<=INT_DMAC2_1)
     {
 	    pl330_irq_handler(intSrc);
     }
 #endif
+    else if(intSrc >= INT_GPIO0 && intSrc <= INT_GPIO3)
+    {
+		gpio_isr();
+    }
     g_giccReg->ICCEOIR=intSrc;
 }
 

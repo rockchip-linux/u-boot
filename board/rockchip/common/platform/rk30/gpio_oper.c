@@ -22,6 +22,7 @@ uint32 RK3188GpioBaseAddr[7] =
     0x2003E000, //GPIO2
     0x20080000, //GPIO3
 };
+#define LONE_PRESS_TIME		1500//ms
 void setup_gpio(gpio_conf *key_gpio)
 {
     uint32 base_addr = 0;
@@ -59,6 +60,77 @@ void setup_adckey(adc_conf *key_adc)
     //PRINT_E("keyValueLow: %d\n", key_adc->keyValueLow );
     //PRINT_E("keyValueHigh: %d\n", key_adc->keyValueHigh);
 }
+
+void setup_int(int_conf *key_int)
+{
+    uint32 base_addr = 0;
+
+    if (ChipType == CHIP_RK3066)
+    {
+        if(key_int->group >= 7)
+            return;
+        base_addr = RK3066GpioBaseAddr[key_int->group];
+    }
+    else
+    {
+        if(key_int->group >= 4)
+            return;
+        base_addr = RK3188GpioBaseAddr[key_int->group];
+    }
+
+	key_int->int_en = base_addr+0x30;
+	key_int->int_mask = base_addr+0x34;
+	key_int->int_level = base_addr+0x38;
+	key_int->int_polarity = base_addr+0x3c;
+	key_int->int_status = base_addr+0x40;
+	key_int->int_eoi = base_addr+0x4c;
+	key_int->io_read = base_addr+0x50;
+	key_int->io_dir_conf = base_addr+0x4;
+	key_int->io_debounce = base_addr+0x48;
+	key_int->pressed = 0;
+	key_int->time = 0;
+	write_XDATA32(key_int->int_en, read_XDATA32(key_int->int_en)|(1ul<<key_int->index));
+	write_XDATA32(key_int->int_mask, read_XDATA32(key_int->int_mask)&(~(1ul<<key_int->index)));
+	write_XDATA32(key_int->int_level, read_XDATA32(key_int->int_level)|(1ul<<key_int->index));//use edge sensitive
+	write_XDATA32(key_int->io_debounce, (read_XDATA32(key_int->io_debounce)|((1ul<<key_int->index))));
+	printf("valid = %d\n", key_int->valid);
+	if(key_int->valid)
+		write_XDATA32(key_int->int_polarity, read_XDATA32(key_int->int_polarity)|(1ul<<key_int->index));
+	else
+		write_XDATA32(key_int->int_polarity, read_XDATA32(key_int->int_polarity)&(~(1ul<<key_int->index)));
+	printf("polarity:%x\n", read_XDATA32(key_int->int_polarity));
+}
+
+void gpio_isr()
+{
+	if(key_powerHold.type==KEY_INT)
+	{
+		int_conf* ioint = &key_powerHold.key.ioint; 
+		if(read_XDATA32(ioint->int_en)&(1ul<<ioint->index))
+		{
+			//serial_printf("gpio isr\n");
+			write_XDATA32( ioint->int_eoi, (read_XDATA32(ioint->int_eoi)|(1ul<<ioint->index)));
+			if(ioint->pressed)
+			{
+				int cur = get_timer(0);
+				serial_printf("released, %d - %d = %d\n", ioint->time, cur, ioint->time - cur);
+				ioint->pressed = 0;
+				ioint->time = 0;
+			}
+			else
+			{
+				ioint->pressed = 1;
+				ioint->time = get_timer(0);
+				serial_printf("pressed time:%d\n", ioint->time);
+			}
+			if(read_XDATA32(ioint->int_polarity)&(1ul<<ioint->index))
+				write_XDATA32(ioint->int_polarity, read_XDATA32(ioint->int_polarity)&(~(1ul<<ioint->index)));
+			else
+				write_XDATA32(ioint->int_polarity, read_XDATA32(ioint->int_polarity)|(1ul<<ioint->index));
+		}
+	}
+}
+
 #if 0
 void dump_gpio(gpio_conf* gpio)
 {
@@ -81,6 +153,7 @@ int GetPortState(key_config *key)
     uint32 hCnt = 0;
     gpio_conf* gpio = &key->key.gpio;
     adc_conf* adc = &key->key.adc; 
+    int_conf* ioint = &key->key.ioint; 
     if(key->type == KEY_GPIO)
     {
         // TODO: 按键没有处理
@@ -100,7 +173,7 @@ int GetPortState(key_config *key)
         return (hCnt>80);
         #endif
     }
-    else
+    else if(key->type == KEY_AD)
     {
         // TODO: clk没有配置
     	for(tt = 0; tt < 10; tt++)
@@ -125,6 +198,30 @@ int GetPortState(key_config *key)
         write_XDATA32( adc->ctrl, 0);
         return (hCnt>8);
     }
+    else if(key->type == KEY_INT)
+	{
+		if(read_XDATA32(ioint->int_en)&(1ul<<ioint->index))
+		{
+			if(ioint->pressed)
+			{
+				int cur = get_timer(0);
+				if(ioint->time - cur > LONE_PRESS_TIME)
+				{
+					printf("long press\n");
+					return -1;
+				}
+				else
+				{
+					printf("press\n");
+					return 1;
+				}
+			}
+			else
+			{
+				return 0;
+			}
+		}
+	}
 #else
     return 0;
 #endif
