@@ -1,7 +1,9 @@
 #ifndef __GPIO_OPER_H__
 #define __GPIO_OPER_H__
-
-#define LONG_PRESS		-1
+#define LONE_PRESS_TIME		1500//ms
+#define KEY_LONG_PRESS			-1
+#define KEY_SHORT_PRESS			1
+#define KEY_ARRAY_SIZE   		10
 typedef enum{
     KEY_GPIO = 0,   // IO°´¼ü
     KEY_AD,      // AD°´¼ü
@@ -47,6 +49,7 @@ typedef struct
 	uint32  io_debounce;
 	uint32  pressed;
 	uint32  time;
+	char    array[10];
 }int_conf;
 
 typedef struct {

@@ -22,7 +22,13 @@ uint32 RK3188GpioBaseAddr[7] =
     0x2003E000, //GPIO2
     0x20080000, //GPIO3
 };
-#define LONE_PRESS_TIME		1500//ms
+
+static inline unsigned int get_duration(unsigned int base) {
+    unsigned int max = 0xFFFFFFFF / 24000;
+    unsigned int now = get_timer(0);
+    return base > now? base - now : max + (base - now) + 1;
+}
+
 void setup_gpio(gpio_conf *key_gpio)
 {
     uint32 base_addr = 0;
@@ -93,12 +99,15 @@ void setup_int(int_conf *key_int)
 	write_XDATA32(key_int->int_mask, read_XDATA32(key_int->int_mask)&(~(1ul<<key_int->index)));
 	write_XDATA32(key_int->int_level, read_XDATA32(key_int->int_level)|(1ul<<key_int->index));//use edge sensitive
 	write_XDATA32(key_int->io_debounce, (read_XDATA32(key_int->io_debounce)|((1ul<<key_int->index))));
-	printf("valid = %d\n", key_int->valid);
+	//printf("valid = %d\n", key_int->valid);
 	if(key_int->valid)
 		write_XDATA32(key_int->int_polarity, read_XDATA32(key_int->int_polarity)|(1ul<<key_int->index));
 	else
 		write_XDATA32(key_int->int_polarity, read_XDATA32(key_int->int_polarity)&(~(1ul<<key_int->index)));
-	printf("polarity:%x\n", read_XDATA32(key_int->int_polarity));
+	//printf("polarity:%x\n", read_XDATA32(key_int->int_polarity));
+	memset(key_int->array, 0, KEY_ARRAY_SIZE);
+	char *array = key_int->array;
+	//printf("key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
 }
 
 void gpio_isr()
@@ -106,14 +115,31 @@ void gpio_isr()
 	if(key_powerHold.type==KEY_INT)
 	{
 		int_conf* ioint = &key_powerHold.key.ioint; 
+		int i;
 		if(read_XDATA32(ioint->int_en)&(1ul<<ioint->index))
 		{
 			//serial_printf("gpio isr\n");
 			write_XDATA32( ioint->int_eoi, (read_XDATA32(ioint->int_eoi)|(1ul<<ioint->index)));
+			if(get_wfi_status())
+			{
+				serial_printf("gpio isr in wfi\n");
+				return;
+			}
 			if(ioint->pressed)
 			{
-				int cur = get_timer(0);
-				serial_printf("released, %d - %d = %d\n", ioint->time, cur, ioint->time - cur);
+				char *array = ioint->array;
+				//serial_printf("before released, key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
+				for(i=0;i<KEY_ARRAY_SIZE;i++)
+				{
+					if(!array[i])
+					{
+						array[i] = (get_duration(ioint->time)>LONE_PRESS_TIME) ? KEY_LONG_PRESS:KEY_SHORT_PRESS;
+						break;
+					}
+				}
+				if(i>=KEY_ARRAY_SIZE)
+					serial_printf("key array full\n");
+				//serial_printf("released, key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
 				ioint->pressed = 0;
 				ioint->time = 0;
 			}
@@ -121,8 +147,10 @@ void gpio_isr()
 			{
 				ioint->pressed = 1;
 				ioint->time = get_timer(0);
-				serial_printf("pressed time:%d\n", ioint->time);
+				//serial_printf("pressed time:%d\n", ioint->time);
 			}
+			
+			//serial_printf("switch polarity\n");
 			if(read_XDATA32(ioint->int_polarity)&(1ul<<ioint->index))
 				write_XDATA32(ioint->int_polarity, read_XDATA32(ioint->int_polarity)&(~(1ul<<ioint->index)));
 			else
@@ -202,24 +230,20 @@ int GetPortState(key_config *key)
 	{
 		if(read_XDATA32(ioint->int_en)&(1ul<<ioint->index))
 		{
-			if(ioint->pressed)
+			char *array = ioint->array;
+			int i, type;
+			
+			if(array[0])
 			{
-				int cur = get_timer(0);
-				if(ioint->time - cur > LONE_PRESS_TIME)
-				{
-					printf("long press\n");
-					return -1;
-				}
-				else
-				{
-					printf("press\n");
-					return 1;
-				}
-			}
-			else
+				type = array[0];
+				memcpy(array, array+1, KEY_ARRAY_SIZE-1);
+				return type;
+			}else if(ioint->pressed)
 			{
-				return 0;
+				if(get_duration(ioint->time)>LONE_PRESS_TIME)
+					return KEY_LONG_PRESS;
 			}
+			return 0;
 		}
 	}
 #else
