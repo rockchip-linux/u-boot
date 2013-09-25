@@ -143,7 +143,7 @@ static int sleep = false;
 static long long power_hold_time = 0; // hold 178s may overflow...
 static long long screen_on_time = 0; // 178s may overflow...
 
-#define DELAY 900000 //us
+#define DELAY 50000 //us
 static inline int get_delay() {
     return sleep? DELAY << 1: DELAY;
 }
@@ -183,26 +183,29 @@ static inline void set_screen_state(int brightness, int force) {
     }
 }
 
+void do_sleep()
+{
+	set_screen_state(BRIGHT_OFF, false);
+	wait_for_interrupt();
+	set_screen_state(BRIGHT_ON, false);
+}
+
+
 int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
     int power_pressed = 0;
     int count = 0;
-#define CHECK_POWER_DELAY 1000000
-    get_power_bat_status(&batt_status);
 
+    get_power_bat_status(&batt_status);
 //init status
     if(batt_status.state_of_chrg == 2)
         pmic_charger_setting(2);
-    else pmic_charger_setting(1);
-
+    else 
+		pmic_charger_setting(1);
     set_screen_state(BRIGHT_ON, true);
 
     while (1) {
-        udelay(get_delay());
-        if (++count > (CHECK_POWER_DELAY / get_delay())) {
-            get_power_bat_status(&batt_status);
-            count = 0;
-        }
+		get_power_bat_status(&batt_status);
         if (!is_charging())
             goto shutdown;
         if(!batt_status.state_of_chrg)
@@ -212,32 +215,27 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         }
 
         power_pressed = power_hold();
-        //FBTDBG("pressd:%x, hold:%lld\n", power_pressed, power_hold_time);
-        if (power_pressed) { //power key pressed
-            if (!power_hold_time) //power key down
-                power_hold_time = get_timer(0);
-
-            else if (get_fix_duration(power_hold_time)
-                    >= POWER_LONG_PRESS_TIMEOUT)
-                //long pressed key, continue bootting.
-                goto boot;
-        
-        } else if (power_hold_time) { //power key up
-            power_hold_time = 0;
-            set_screen_state(sleep? BRIGHT_ON : BRIGHT_OFF, false);//switch screen state.
-        
-        } else if (!sleep) { //screen on and device idle
-            unsigned int idle_time = get_fix_duration(screen_on_time);
-            //FBTDBG("idle_time:%ld\n", idle_time);
-            if (idle_time > SCREEN_OFF_TIMEOUT) {
-                //idle screen off timeout
-                set_screen_state(BRIGHT_OFF, false);
-            } else if (idle_time >= SCREEN_DIM_TIMEOUT) {
-                //idle dim timeout
-                set_screen_state(BRIGHT_DIM, false);
-            }
-        }
-
+        //printf("pressed:%x, hold:%lld\n", power_pressed, power_hold_time);
+		if(power_pressed>0){
+			do_sleep();
+			//printf("sleep end\n");
+		}else if(power_pressed<0){
+			//long pressed key, continue bootting.
+			goto boot;
+		}
+        udelay(get_delay());
+		if (!sleep) { //screen on and device idle
+			unsigned int idle_time = get_fix_duration(screen_on_time);
+			//printf("idle_time:%ld\n", idle_time);
+			if (idle_time > SCREEN_OFF_TIMEOUT) {
+				//printf("idle time out sleep\n");
+				do_sleep();
+			} else if (idle_time >= SCREEN_DIM_TIMEOUT) {
+				//idle dim timeout
+				//FBTDBG("dim\n");
+				set_screen_state(BRIGHT_DIM, false);
+			}
+		}
         if (!sleep)
             lcd_display_bitmap_center(get_next_image());
     }

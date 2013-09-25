@@ -21,7 +21,7 @@ Revision:       1.00
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
 extern char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
-
+int wfi_status = 0;
 void wait_for_interrupt()
 {
 	uint8 ret,i;
@@ -32,8 +32,10 @@ void wait_for_interrupt()
 	g_cruReg->CRU_MODE_CON = (0x3<<((3*4) + 16)) | (0x0<<(3*4));
 	g_cruReg->CRU_MODE_CON = (0x3<<((0*4) + 16)) | (0x0<<(0*4));
 
-	printf("PLL close over! \n");
+	printf("PLL close over! \n\n\n");
+	wfi_status = 1;
 	wfi();
+	wfi_status = 0;
 	printf("PLL open begin! \n");
 
 
@@ -46,6 +48,10 @@ void wait_for_interrupt()
 	printf("PLL open end! \n");
 }
 
+int get_wfi_status()
+{
+	return wfi_status;
+}
 
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {
