@@ -1,7 +1,5 @@
 LOCAL_PATH := logos/charge
 
-#convert inputfile -colors 256 -compress rle output.bmp
-
 define all-images-under
 $(shell find $(LOCAL_PATH)/$(1) -name "*.bmp" \
 	-or -name "*.png" -and -not -name ".*"|sort)
@@ -60,25 +58,17 @@ BMP_IMAGES := \
     $(LEVEL_4_IMAGES) \
     $(LEVEL_5_IMAGES) \
 
-.PHONY : \
-$(LEVEL_OPT)$(LEVEL_0) \
-$(LEVEL_OPT)$(LEVEL_1) \
-$(LEVEL_OPT)$(LEVEL_2) \
-$(LEVEL_OPT)$(LEVEL_3) \
-$(LEVEL_OPT)$(LEVEL_4) \
-$(LEVEL_OPT)$(LEVEL_5) \
-
 # Generated bmp image
 BMP_IMAGE_DATA_H = $(OBJTREE)/include/bmp_image_data.h
 LOGO-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_DATA_H)
-BMP_IMAGE_IMG= $(OBJTREE)/charge.img
-LOGO-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_IMG)
 
 $(obj)bmp_image$(SFX):   $(obj)bmp_image.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
-$(BMP_IMAGE_IMG): $(BMP_IMAGE_DATA_H) $(OBJTREE)/u-boot.bin
+BMP_IMAGE_IMG= $(OBJTREE)/charge.img
+ALL-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_IMG)
+$(BMP_IMAGE_IMG): $(BMP_IMAGE_DATA_H)
 
 $(foreach v, $(BMP_IMAGES), \
 	$(eval src_image := $(v)) \
@@ -89,7 +79,6 @@ $(foreach v, $(BMP_IMAGES), \
 $(BMP_IMAGE_DATA_H): \
 	$(obj)bmp_image \
 	$(SRCTREE)/tools/logos/charge/charge.mk \
-	$(BMP_IMAGES) \
 	$(call convert-image-path, $(BMP_IMAGES))
 	$(obj)./bmp_image $(BMP_IMAGE_IMG) $(BMP_IMAGE_OPT) > $@
 
