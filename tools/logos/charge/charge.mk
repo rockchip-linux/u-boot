@@ -3,9 +3,8 @@ LOCAL_PATH := logos/charge
 #convert inputfile -colors 256 -compress rle output.bmp
 
 define all-images-under
-    $(call convert-image, \
-        $(shell find $(LOCAL_PATH)/$(1) -name "*.bmp" \
-            -or -name "*.png" -and -not -name ".*"|sort))
+$(shell find $(LOCAL_PATH)/$(1) -name "*.bmp" \
+	-or -name "*.png" -and -not -name ".*"|sort)
 endef
 
 FAIL_IMAGE := \
@@ -37,22 +36,29 @@ LEVEL_4 := 99
 LEVEL_5 := 100
 
 LEVEL_OPT := -level=
-BMP_IMAGES := \
-	$(call convert-image, $(FAIL_IMAGE)) \
+BMP_IMAGE_OPT := \
+	$(call convert-image-path, $(FAIL_IMAGE)) \
 	$(LEVEL_OPT)$(LEVEL_0) \
-	$(call convert-image, $(LEVEL_0_IMAGES)) \
+	$(call convert-image-path, $(LEVEL_0_IMAGES)) \
 	$(LEVEL_OPT)$(LEVEL_1) \
-	$(call convert-image, $(LEVEL_1_IMAGES)) \
+	$(call convert-image-path, $(LEVEL_1_IMAGES)) \
 	$(LEVEL_OPT)$(LEVEL_2) \
-	$(call convert-image, $(LEVEL_2_IMAGES)) \
+	$(call convert-image-path, $(LEVEL_2_IMAGES)) \
 	$(LEVEL_OPT)$(LEVEL_3) \
-	$(call convert-image, $(LEVEL_3_IMAGES)) \
+	$(call convert-image-path, $(LEVEL_3_IMAGES)) \
 	$(LEVEL_OPT)$(LEVEL_4) \
-	$(call convert-image, $(LEVEL_4_IMAGES)) \
+	$(call convert-image-path, $(LEVEL_4_IMAGES)) \
 	$(LEVEL_OPT)$(LEVEL_5) \
-	$(call convert-image, $(LEVEL_5_IMAGES)) \
+	$(call convert-image-path, $(LEVEL_5_IMAGES)) \
 
-$(warning $(BMP_IMAGES))
+BMP_IMAGES := \
+    $(FAIL_IMAGE) \
+    $(LEVEL_0_IMAGES) \
+    $(LEVEL_1_IMAGES) \
+    $(LEVEL_2_IMAGES) \
+    $(LEVEL_3_IMAGES) \
+    $(LEVEL_4_IMAGES) \
+    $(LEVEL_5_IMAGES) \
 
 .PHONY : \
 $(LEVEL_OPT)$(LEVEL_0) \
@@ -61,3 +67,29 @@ $(LEVEL_OPT)$(LEVEL_2) \
 $(LEVEL_OPT)$(LEVEL_3) \
 $(LEVEL_OPT)$(LEVEL_4) \
 $(LEVEL_OPT)$(LEVEL_5) \
+
+# Generated bmp image
+BMP_IMAGE_DATA_H = $(OBJTREE)/include/bmp_image_data.h
+LOGO-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_DATA_H)
+BMP_IMAGE_IMG= $(OBJTREE)/charge.img
+LOGO-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_IMG)
+
+$(obj)bmp_image$(SFX):   $(obj)bmp_image.o
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
+	$(HOSTSTRIP) $@
+
+$(BMP_IMAGE_IMG): $(BMP_IMAGE_DATA_H) $(OBJTREE)/u-boot.bin
+
+$(foreach v, $(BMP_IMAGES), \
+	$(eval src_image := $(v)) \
+	$(eval dst_image := $(call convert-one-image-path, $(v))) \
+	$(eval include $(SRCTREE)/tools/logos/charge/build_image.mk) \
+)
+
+$(BMP_IMAGE_DATA_H): \
+	$(obj)bmp_image \
+	$(SRCTREE)/tools/logos/charge/charge.mk \
+	$(BMP_IMAGES) \
+	$(call convert-image-path, $(BMP_IMAGES))
+	$(obj)./bmp_image $(BMP_IMAGE_IMG) $(BMP_IMAGE_OPT) > $@
+
