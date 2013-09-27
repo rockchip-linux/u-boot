@@ -79,8 +79,6 @@ int32 SDC_BusRequest(int32 cardId,
                              uint32  blockSize,
                              uint32  dataLen,
                              void   *pDataBuf);
-int32 SDC_SetBusMode(int32 cardId,int32 mode);
-                             
 #define SDC_SendCommand(cardId, cmd, cmdArg, responseBuf)  \
                    SDC_BusRequest(cardId, cmd, cmdArg, responseBuf, 0, 0, NULL);
 #define SDC_ReadBlockData(cardId, cmd, cmdArg, responseBuf, dataLen, pDataBuf)  \
