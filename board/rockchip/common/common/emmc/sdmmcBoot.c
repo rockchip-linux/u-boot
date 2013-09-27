@@ -66,11 +66,15 @@ uint32 SdmmcReinit(uint32 ChipSel)
     uint32 retry = 2;
     if(ChipSel == 2)
     {
-        eMMC_changemode(0);
-        EmmcPowerEn(1);
+        SDM_Init(ChipSel);
+        sdmmcGpioInit(ChipSel);   //放在sdm init之后，避免rst输出低电平
+        emmc_dev_reset();
     }
-    SDM_Init(ChipSel);
-    sdmmcGpioInit(ChipSel);   //放在sdm init之后，避免rst输出低电平
+    else
+    {
+        sdmmcGpioInit(ChipSel);   //放在sdm init之后，避免rst输出低电平
+        SDM_Init(ChipSel);
+    }
 EMMC_INIT_retry:    
     eMMC_SetDataHigh();
     ioctlParam[0] = ChipSel;

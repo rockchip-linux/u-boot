@@ -51,6 +51,7 @@ void   SDOAM_RequestMutex(pMUTEX handle);
 void   SDOAM_ReleaseMutex(pMUTEX handle);
 pEVENT SDOAM_CreateEvent(uint8 *name);
 void   SDOAM_SetEvent(pEVENT handle, uint32 event);
+uint32 SDOAM_GetEvent_TimeOut(pEVENT handle, uint32 event); //返回 0表示超时了，返回1表示正常
 void   SDOAM_GetEvent(pEVENT handle, uint32 event);
 void   SDOAM_Delay(uint32 us);
 void  *SDOAM_Memcpy(void *dest, void *src, uint32 count);

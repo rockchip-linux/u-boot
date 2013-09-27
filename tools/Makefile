@@ -29,6 +29,19 @@ TOOLSUBDIRS = kernel-doc
 #
 include $(TOPDIR)/config.mk
 
+define convert-one-image
+	$(warning convert-one-image:$(1) -> $(2)) \
+    $(shell mkdir -p $(dir $(2)) && \
+        convert $(1) -colors 256 -compress rle $(2) && \
+        echo $(2))
+endef
+
+define convert-image
+$(foreach v, $(1), \
+    $(call convert-one-image, $(v), /tmp/$(basename $(v)).bmp) \
+)
+endef
+
 include $(TOPDIR)/tools/logos/charge/charge.mk
 
 #
@@ -300,11 +313,13 @@ else
 	done
 endif
 
-$(LOGO_H):	$(obj)bmp_logo $(LOGO_BMP)
-	$(obj)./bmp_logo --gen-info $(LOGO_BMP) > $@
+LOGO_IMAGE = $(call convert-image, $(LOGO_BMP))
 
-$(LOGO_DATA_H):	$(obj)bmp_logo $(LOGO_BMP)
-	$(obj)./bmp_logo --gen-data $(LOGO_BMP) > $@
+$(LOGO_H):	$(obj)bmp_logo $(LOGO_IMAGE)
+	$(obj)./bmp_logo --gen-info $(LOGO_IMAGE) > $@
+
+$(LOGO_DATA_H):	$(obj)bmp_logo $(LOGO_IMAGE)
+	$(obj)./bmp_logo --gen-data $(LOGO_IMAGE) > $@
 
 $(BMP_IMAGE_IMG): $(BMP_IMAGE_DATA_H)
 

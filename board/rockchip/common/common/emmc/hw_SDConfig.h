@@ -67,7 +67,12 @@ no message
 #define SDMMC2_BUS_WIDTH      (8)       //硬件布板为SDMMC1控制器留的数据线宽度，1:一根数据线，4:四根数据线，其他值不支持，SDMMC1控制器不支持8根数据线
 #define SDMMC2_DET_MODE       SD_ALWAYS_PRESENT  //卡检测方式选择，从SD_CONTROLLER_DET、SD_GPIO_DET、SD_ALWAYS_PRESENT中选择
 #define SDMMC2_EN_POWER_CTL   (0)      //是否对SD卡电源进行控制，1:要控制SD卡电源，0:不对SD卡电源进行控制
-
+#define SD_FIFO_DEPTH 	      (0x100)
+#if(SD_FIFO_DEPTH >= 0x100)
+#define EN_SD_CACHE_READ      (1)       //FIFO >= 0x100 可以开此开关
+#else
+#define EN_SD_CACHE_READ      (0)       //FIFO >= 0x100 可以开此开关
+#endif
 #ifdef SDMMC_USE_DMA
 #define EN_SD_DMA             (1)      //是否用DMA来进行数据传输，1:DMA方式，0:中断方式
 #else
@@ -82,10 +87,11 @@ no message
 #define FOD_FREQ              (200)    //卡识别阶段使用的频率,单位KHz,协议规定最大400KHz
 //卡正常工作的最低频率为FREQ_HCLK_MAX/8
 #define SD_FPP_FREQ           (24000)  //标准SD卡正常工作频率，单位KHz，协议规定最大25MHz
-#define SDHC_FPP_FREQ         (40000)  //SDHC卡在高速模式下的工作频率，单位KHz，协议规定最大50MHz
+#define SDHC_FPP_FREQ         (48000)  //SDHC卡在高速模式下的工作频率，单位KHz，协议规定最大50MHz
 #define MMC_FPP_FREQ          (18000)  //标准MMC卡正常工作频率，单位KHz，协议规定最大20MHz
 #define MMCHS_26_FPP_FREQ     (25000)  //高速模式只支持最大26M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大26MHz
-#define MMCHS_52_FPP_FREQ     (40000)  //高速模式能支持最大52M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大52MHz
+#define MMCHS_52_FPP_FREQ     (50000)  //高速模式能支持最大52M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大52MHz
+#define MMCHS_100_FPP_FREQ    (100000)  //高速模式能支持最大52M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大52MHz
 
 #if(!EN_SD_PRINTF)
 #define SDOAM_Printf(...)
