@@ -180,17 +180,20 @@ Revision:       1.00
 #define CONFIG_USBD_MANUFACTURER    "Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
 
-#define CONFIG_BMP_IMAGES_BUFFER     0x68000000 //128M
-#define CONFIG_BMP_IMAGES_SIZE       SZ_16M
 
 /* Another macro may also be used or instead used to take care of the case
  * where fastboot is started at boot (to be incorporated) based on key press
  */
 #define CONFIG_CMD_FASTBOOT
 #define CONFIG_FASTBOOT_LOG
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (SZ_256M)
+#define CONFIG_BMP_IMAGES_BUFFER     				0x68000000 //128M
+#define CONFIG_BMP_IMAGES_SIZE       				SZ_16M
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH   (SZ_16M)
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH*2)
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER             (CONFIG_BMP_IMAGES_BUFFER + CONFIG_BMP_IMAGES_SIZE)
+#define CONFIG_FB_ADDR 								CONFIG_FASTBOOT_TRANSFER_BUFFER+CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE//0x91800000    //kernel reserve memory behind fb0 buf
+
+
 /* Fastboot product name */
 #define FASTBOOT_PRODUCT_NAME   "fastboot"
 
@@ -220,8 +223,7 @@ Revision:       1.00
 #define CONFIG_SYS_WHITE_ON_BLACK
 #define LCD_BPP			LCD_COLOR16
 //#define CONFIG_RK3066SDK
-#define CONFIG_RK3188SDK
-#define CONFIG_FB_ADDR 0x91800000    //kernel reserve memory behind fb0 buf
+//#define CONFIG_RK3188SDK
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #ifdef CONFIG_RK_FB
