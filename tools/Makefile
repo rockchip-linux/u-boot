@@ -32,7 +32,7 @@ include $(TOPDIR)/config.mk
 define convert-one-image
 	$(warning convert-one-image:$(1) -> $(2)) \
     $(shell mkdir -p $(dir $(2)) && \
-        convert $(1) -colors 256 $(2) && \
+        convert $(1) -colors 256 -compress rle $(2) && \
         echo $(2))
 endef
 
