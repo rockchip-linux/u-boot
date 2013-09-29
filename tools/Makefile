@@ -52,6 +52,10 @@ $(foreach v, $(1), \
 )
 endef
 
+define convert-logo
+    $(shell convert $(1) -colors 256 $(2))
+endef
+
 include $(TOPDIR)/tools/logos/charge/charge.mk
 
 #
@@ -313,13 +317,18 @@ else
 	done
 endif
 
-LOGO_IMAGE = $(call convert-image, $(LOGO_BMP))
+ifneq ($(LOGO_IMAGE),)
+LOGO_BMP = /tmp/logo.bmp
 
-$(LOGO_H):	$(obj)bmp_logo $(LOGO_IMAGE)
-	$(obj)./bmp_logo --gen-info $(LOGO_IMAGE) > $@
+$(LOGO_BMP) : $(LOGO_IMAGE)
+	$(call convert-logo, $(LOGO_IMAGE), $(LOGO_BMP))
+endif
 
-$(LOGO_DATA_H):	$(obj)bmp_logo $(LOGO_IMAGE)
-	$(obj)./bmp_logo --gen-data $(LOGO_IMAGE) > $@
+$(LOGO_H):	$(obj)bmp_logo $(LOGO_BMP)
+	$(obj)./bmp_logo --gen-info $(LOGO_BMP) > $@
+
+$(LOGO_DATA_H):	$(obj)bmp_logo $(LOGO_BMP)
+	$(obj)./bmp_logo --gen-data $(LOGO_BMP) > $@
 
 #########################################################################
 
