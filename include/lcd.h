@@ -297,32 +297,6 @@ enum exynos_fb_data_format_t {
 
 #endif
 
-enum lay_id {
-	WIN0 = 0,
-	WIN1,
-	NUM_LAYERS,
-};
-
-struct fb_dsp_info{
-	enum lay_id layer_id;
-	enum exynos_fb_data_format_t format;
-	u32 yaddr;
-	u32 cbraddr;  // Cbr memory start address
-	u32 xpos;         //start point in panel  --->LCDC_WINx_DSP_ST
-	u32 ypos;
-	u16 xsize;        // display window width/height  -->LCDC_WINx_DSP_INFO
-	u16 ysize;          
-	u16 xact;        //origin display window size -->LCDC_WINx_ACT_INFO
-	u16 yact;
-	u16 xvir;       //virtual width/height     -->LCDC_WINx_VIR
-	u16 yvir;
-};
-struct layer_par {
-	int id;
-	bool state; 	//on or off
-	struct fb_dsp_info fb_info;
-	u8 fmt_cfg;
-};
 typedef struct vidinfo {
     u_char lcd_face;    /* lcd rgb tye (i.e. RGB888) */
 	ushort vl_col;		/* Number of columns (i.e. 640) */
@@ -347,9 +321,8 @@ typedef struct vidinfo {
 	ushort	vl_vspw;	/* Vertical sync pulse width */
 	ushort	vl_vfpd;	/* Wait before of frame */
 	ushort	vl_vbpd;	/* Wait end of frame */
-	u_char  vl_swap_rb;
-	struct layer_par par[NUM_LAYERS];
-
+    u_char  vl_swap_rb;
+    
 	void (*backlight_on)(int brightness);
 	void (*lcd_power_on)(void);
 	void (*enable_ldo)(unsigned int onoff);
@@ -368,7 +341,7 @@ typedef struct vidinfo {
 	unsigned int logo_width;
 	unsigned int logo_height;
 	unsigned long logo_addr;
-	unsigned int logo_rgb_mode;
+    unsigned int logo_rgb_mode;
 	unsigned int resolution;
 
 	/* parent clock name(MPLL, EPLL or VPLL) */
@@ -380,7 +353,7 @@ typedef struct vidinfo {
 } vidinfo_t;
 
 void init_panel_info(vidinfo_t *vid);
-void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid);
+void rk30_lcdc_set_par(void * addr, vidinfo_t *vid);
 int rk30_load_screen(vidinfo_t *vid);
 int rk30_lcdc_init();
 void get_rk_logo_info(vidinfo_t *vid);
