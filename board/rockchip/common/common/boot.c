@@ -76,6 +76,16 @@ uint32 SecureBootCheck(void)
     SecureBootEn = 1;
     SecureBootCheckOK = 0;
     RSK_KEY = (uint16*)&RSA_KEY_DATA;
+	#if 0
+	{
+			int i;
+			char *p = RSK_KEY;
+			printf("RSA_KEY_DATA============================================\n");
+			for(i=0;i<32;i++)
+			printf("%x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n",*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++,*p++);
+			printf("RSA_KEY_DATA============================================\n");
+	}
+	#endif
     if((RSK_KEY[0] != 0X400))
     {
         SecureBootEn = 0; 
