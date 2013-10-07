@@ -53,7 +53,7 @@ $(foreach v, $(1), \
 endef
 
 define convert-logo
-    $(shell convert $(1) -colors 256 $(2))
+    $(shell convert $(1) -colors 256 -compress none $(2))
 endef
 
 include $(TOPDIR)/tools/logos/charge/charge.mk
