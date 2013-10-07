@@ -56,7 +56,6 @@
 #if defined(CONFIG_ATMEL_LCD)
 #include <atmel_lcdc.h>
 #endif
-
 /************************************************************************/
 /* ** FONT DATA								*/
 /************************************************************************/
@@ -649,7 +648,11 @@ void bitmap_plot(int x, int y)
 		ARRAY_SIZE(bmp_logo_palette));
 
 	bmap = &bmp_logo_bitmap[0];
+#ifdef CONFIG_RK_FB
+	fb   = (uchar *)(lcd_base);
+#else
 	fb   = (uchar *)(lcd_base + y * lcd_line_length + x * bpix / 8);
+#endif
 
 #if (defined CONFIG_COMPRESS_LOGO_RLE8) || (defined CONFIG_COMPRESS_LOGO_RLE16)
     unsigned n, index;
@@ -705,11 +708,15 @@ void bitmap_plot(int x, int y)
 
 		WATCHDOG_RESET();
 
+#ifdef CONFIG_RK_FB
+			memcpy(fb, bmap, BMP_LOGO_WIDTH*BMP_LOGO_HEIGHT);
+#else
 		for (i = 0; i < BMP_LOGO_HEIGHT; ++i) {
 			memcpy(fb, bmap, BMP_LOGO_WIDTH);
 			bmap += BMP_LOGO_WIDTH;
 			fb += panel_info.vl_col;
 		}
+#endif
 	}
 	else { /* true color mode */
 		u16 col16;
@@ -723,11 +730,32 @@ void bitmap_plot(int x, int y)
 					((col16 & 0x0F00) << 4);
 				}
 			bmap += BMP_LOGO_WIDTH;
+#ifdef CONFIG_RK_FB
+			fb16 += BMP_LOGO_WIDTH;
+#else
 			fb16 += panel_info.vl_col;
+#endif
 		}
 	}
 
 	WATCHDOG_RESET();
+#if defined(CONFIG_RK_FB)
+	{
+		struct fb_dsp_info fb_info;
+		fb_info.xpos = x;
+		fb_info.ypos = y;
+		fb_info.xact = BMP_LOGO_WIDTH;
+		fb_info.yact = BMP_LOGO_HEIGHT;
+		fb_info.xsize = fb_info.xact;
+		fb_info.ysize = fb_info.yact;
+		fb_info.xvir = fb_info.xact;
+		fb_info.layer_id = WIN0;
+		fb_info.format = RGB565;
+		fb_info.yaddr = lcd_base;
+		lcd_pandispaly(&fb_info);
+	}
+#endif
+
 	lcd_sync();
 }
 #else
@@ -942,10 +970,12 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 #if !defined(CONFIG_MCC200)
     
 #ifndef CONFIG_RK_FB
-	 ushort *cmap =   configuration_get_cmap();
+	ushort *cmap =   configuration_get_cmap();
+
 #else
-     ushort tmpmap[256];  /* sizeof(ushort) * 256 */
-     ushort *cmap = tmpmap;
+	ushort tmpmap[256];  /* sizeof(ushort) * 256 */
+	ushort *cmap = tmpmap;
+	struct fb_dsp_info fb_info;
 #endif
 #endif
 	ushort *cmap_base = NULL;
@@ -1055,15 +1085,18 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	bmap = (uchar *) bmp + le32_to_cpu(bmp->header.data_offset);
     
 #if defined(CONFIG_RK_FB)
-    if(lcd_base == gd->fb_base)
-        lcd_base += panel_info.vl_col*panel_info.vl_row*2; 
-    else lcd_base = gd->fb_base; 
-    memset(lcd_base,0,panel_info.vl_col*panel_info.vl_row*2);
 
-#endif
+	if(lcd_base == gd->fb_base)
+		lcd_base += width*height*2; 
+	else lcd_base = gd->fb_base; 
 
+	lcd_line_length = (width * NBITS(panel_info.vl_bpix)) / 8;
+	fb = (uchar *) (lcd_base +
+			( height - 1) * lcd_line_length);
+#else
 	fb   = (uchar *) (lcd_base +
-		(y + height - 1) * lcd_line_length + x * bpix / 8);
+			(y + height - 1) * lcd_line_length + x * bpix / 8);
+#endif
 
 	switch (bmp_bpix) {
 	case 1: /* pass through */
@@ -1079,8 +1112,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 			break;
 		}
 #endif
-       
-
 		if (bpix != 16)
 			byte_width = width;
 		else
@@ -1130,9 +1161,18 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	default:
 		break;
 	};
-
 #if defined(CONFIG_RK_FB)
-    lcd_pandispaly(lcd_base);
+	fb_info.xpos = x;
+	fb_info.ypos = y;
+	fb_info.xact = width;
+	fb_info.yact = height;
+	fb_info.xsize = fb_info.xact;
+	fb_info.ysize = fb_info.yact;
+	fb_info.xvir = fb_info.xact;
+	fb_info.layer_id = WIN0;
+	fb_info.format = RGB565;
+	fb_info.yaddr = lcd_base;
+	lcd_pandispaly(&fb_info);
 #endif
 
 	lcd_sync();
