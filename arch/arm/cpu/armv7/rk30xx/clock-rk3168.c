@@ -310,7 +310,8 @@ static const struct pll_clk_set apll_clks[] = {
 static const struct pll_clk_set gpll_clks[] = {
 	//rate, nr, nf, no,	axi_div, hclk_div, pclk_div
 	_GPLL_SET_CLKS(768000, 1,  64, 2,    4, 2, 4),
-	_GPLL_SET_CLKS(594000, 2, 198, 4,    4, 2, 4),
+	_GPLL_SET_CLKS(594000, 2, 198, 4,    4, 1, 2),
+	_GPLL_SET_CLKS(384000, 2, 128, 4,    2, 2, 4),
 	_GPLL_SET_CLKS(300000, 1,  50, 4,    2, 1, 2),
 	_GPLL_SET_CLKS(297000, 2, 198, 8,    2, 1, 2),
 };

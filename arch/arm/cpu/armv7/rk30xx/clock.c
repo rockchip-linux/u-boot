@@ -29,7 +29,11 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
+#if (CONFIG_RKPLATFORM == CONFIG_RK3168)
+#define CONFIG_RKCLK_GPLL_FREQ		384 /* MHZ */
+#else
 #define CONFIG_RKCLK_GPLL_FREQ		768 /* MHZ */
+#endif
 #define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
 
 /* define clock sourc div */
