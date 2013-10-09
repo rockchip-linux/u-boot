@@ -1262,6 +1262,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
         }
         priv.d_bytes = priv.d_size;
         priv.d_size = 0;
+        priv.transfer_buffer_pos = 0;
         priv.flag |= FASTBOOT_FLAG_RESPONSE;
 
 		/* restore default buffer in urb */
