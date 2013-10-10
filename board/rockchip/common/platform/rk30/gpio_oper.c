@@ -24,9 +24,9 @@ uint32 RK3188GpioBaseAddr[7] =
 };
 
 static inline unsigned int get_duration(unsigned int base) {
-    unsigned int max = 0xFFFFFFFF / 24000;
+    unsigned int max = 0xFFFFFFFF;
     unsigned int now = get_timer(0);
-    return base > now? base - now : max + (base - now) + 1;
+    return base > now? base - now : max - (base - now) + 1;
 }
 
 void setup_gpio(gpio_conf *key_gpio)
