@@ -25,8 +25,9 @@ uint32 RK3188GpioBaseAddr[7] =
 
 static inline unsigned int get_duration(unsigned int base) {
     unsigned int max = 0xFFFFFFFF;
-    unsigned int now = get_timer(0);
-    return base > now? base - now : max - (base - now) + 1;
+    unsigned int now = get_rk_current_tick();
+	unsigned int tick_duration = base >= now? base - now : max - (base - now) + 1;
+	return tick_to_time(tick_duration);
 }
 
 void setup_gpio(gpio_conf *key_gpio)
@@ -146,7 +147,7 @@ void gpio_isr()
 			else
 			{
 				ioint->pressed = 1;
-				ioint->time = get_timer(0);
+				ioint->time = get_rk_current_tick();
 				//serial_printf("pressed time:%d\n", ioint->time);
 			}
 			
