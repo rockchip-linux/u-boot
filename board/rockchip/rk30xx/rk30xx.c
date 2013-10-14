@@ -147,6 +147,7 @@ void PowerHoldKeyInit()
         key_powerHold.key.ioint.index = 4; // gpio0A4
     }
 	printf("setup gpio int\n");
+	clr_all_gpio_int();
     setup_int(&key_powerHold.key.ioint);
 	IRQEnable(INT_GPIO0);
 #endif

@@ -68,6 +68,32 @@ void setup_adckey(adc_conf *key_adc)
     //PRINT_E("keyValueHigh: %d\n", key_adc->keyValueHigh);
 }
 
+void clr_all_gpio_int(void)
+{
+    uint32 base_addr,int_en,int_mask,int_eoi;
+    int group = 0;
+    
+    for(group=0; group<7; group++)
+    {
+        if (ChipType == CHIP_RK3066)
+        {
+            if(group >= 7)
+                return;
+            base_addr = RK3066GpioBaseAddr[group];
+        }
+        else
+        {
+            if(group >= 4)
+                return;
+            base_addr = RK3188GpioBaseAddr[group];
+        }
+
+    	int_en = base_addr+0x30;
+    	write_XDATA32(int_en, 0);
+    }
+}
+
+
 void setup_int(int_conf *key_int)
 {
     uint32 base_addr = 0;
@@ -96,7 +122,8 @@ void setup_int(int_conf *key_int)
 	key_int->io_debounce = base_addr+0x48;
 	key_int->pressed = 0;
 	key_int->time = 0;
-	write_XDATA32(key_int->int_en, read_XDATA32(key_int->int_en)|(1ul<<key_int->index));
+	//write_XDATA32(key_int->io_dir_conf, read_XDATA32(key_int->int_mask)&(~(1ul<<key_int->index)));
+	//write_XDATA32(key_int->int_eoi, (read_XDATA32(key_int->int_eoi)|(1ul<<key_int->index)));
 	write_XDATA32(key_int->int_mask, read_XDATA32(key_int->int_mask)&(~(1ul<<key_int->index)));
 	write_XDATA32(key_int->int_level, read_XDATA32(key_int->int_level)|(1ul<<key_int->index));//use edge sensitive
 	write_XDATA32(key_int->io_debounce, (read_XDATA32(key_int->io_debounce)|((1ul<<key_int->index))));
@@ -106,18 +133,37 @@ void setup_int(int_conf *key_int)
 	else
 		write_XDATA32(key_int->int_polarity, read_XDATA32(key_int->int_polarity)&(~(1ul<<key_int->index)));
 	//printf("polarity:%x\n", read_XDATA32(key_int->int_polarity));
+	write_XDATA32(key_int->int_en, read_XDATA32(key_int->int_en)|(1ul<<key_int->index));
 	memset(key_int->array, 0, KEY_ARRAY_SIZE);
 	char *array = key_int->array;
 	//printf("key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
 }
 
-void gpio_isr()
+void gpio_isr(int gpio_group)
 {
+   uint32 base_addr = 0;
+   uint32  int_eoi;
+
+   if (ChipType == CHIP_RK3066)
+   {
+       if(gpio_group >= 7)
+            return;
+       base_addr = RK3066GpioBaseAddr[gpio_group];
+   }
+   else
+   {
+        if(gpio_group >= 4)
+            return;
+       base_addr = RK3188GpioBaseAddr[gpio_group];
+   }
+   int_eoi = base_addr+0x4c;
+
 	if(key_powerHold.type==KEY_INT)
 	{
 		int_conf* ioint = &key_powerHold.key.ioint; 
 		int i;
-		if(read_XDATA32(ioint->int_en)&(1ul<<ioint->index))
+		serial_printf("gpio_group = %d, int_status = %x \n ",gpio_group,read_XDATA32(ioint->int_status));
+		if(read_XDATA32(ioint->int_status)&(1ul<<ioint->index))
 		{
 			//serial_printf("gpio isr\n");
 			write_XDATA32( ioint->int_eoi, (read_XDATA32(ioint->int_eoi)|(1ul<<ioint->index)));
@@ -151,13 +197,16 @@ void gpio_isr()
 				//serial_printf("pressed time:%d\n", ioint->time);
 			}
 			
-			//serial_printf("switch polarity\n");
+			serial_printf("switch polarity\n");
 			if(read_XDATA32(ioint->int_polarity)&(1ul<<ioint->index))
 				write_XDATA32(ioint->int_polarity, read_XDATA32(ioint->int_polarity)&(~(1ul<<ioint->index)));
 			else
 				write_XDATA32(ioint->int_polarity, read_XDATA32(ioint->int_polarity)|(1ul<<ioint->index));
 		}
 	}
+
+	write_XDATA32(int_eoi, 0xffffffff);   //clr all gpio int
+	
 }
 
 #if 0

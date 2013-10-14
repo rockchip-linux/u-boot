@@ -141,7 +141,7 @@ void IrqHandler(void)
 	intSrc=g_giccReg->ICCIAR&0x3ff;     //IntGetIntID
 	//g_giccReg->ICCEOIR=intSrc;
 	//if((intSrc != USB_OTG_INT_CH) && (intSrc != INT_eMMC))
-		//serial_printf("Irq: %d\n", intSrc);
+	//	serial_printf("Irq: %d\n", intSrc);
     if (intSrc == USB_OTG_INT_CH)
     {
         if(RockusbEn)
@@ -167,7 +167,7 @@ void IrqHandler(void)
 #endif
     else if(intSrc >= INT_GPIO0 && intSrc <= INT_GPIO3)
     {
-		gpio_isr();
+		gpio_isr(intSrc-INT_GPIO0);
     }
     g_giccReg->ICCEOIR=intSrc;
 }
