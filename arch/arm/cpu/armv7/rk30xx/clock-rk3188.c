@@ -317,19 +317,12 @@ static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
 	uint32 pll_state[4] = {1, 0, 2, 3};
 	uint32 bit = (0x20u << pll_state[pll_id]);
-	uint32 delay = 10000;
 
 	/* delay for pll lock */
-	while (delay > 0) {
+	while(1) {
 		if (g_grfReg->GRF_SOC_STATUS0 & bit)
 			break;
 		clk_slowmode_delayus(1);
-		delay--;
-	}
-
-	/* wait pll bit time out! */
-	if (delay <= 0) {
-		while(1);
 	}
 }
 

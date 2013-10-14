@@ -86,7 +86,7 @@ Cpu highest frequency is 1.6 GHz
 1 cycle = 1/1.6 ns
 1 us = 1000 ns = 1000 * 1.6 cycles = 1600 cycles
 *****************************************************************************/
-#define LPJ_24MHZ  100UL
+#define LPJ_24MHZ  1000UL
 
 static void clk_slowmode_delayus(uint32_t us)
 {   
