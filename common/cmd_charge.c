@@ -165,7 +165,6 @@ static inline void set_screen_state(int brightness, int force) {
     //FBTDBG("set_screen_state:%d\n", brightness);
     int was_sleep = sleep;
 
-    rk_backlight_ctrl(brightness);
     switch(brightness) {
         case BRIGHT_ON:
         case BRIGHT_DIM:
@@ -175,11 +174,19 @@ static inline void set_screen_state(int brightness, int force) {
             sleep = true;
             break;
     }
-
     if (was_sleep != sleep || force) { //switch state.
         //FBTDBG("screen state changed:%d -> %d\n", was_sleep, sleep);
-        lcd_standby(sleep);
+	if(sleep == true){
+	    rk_backlight_ctrl(brightness);
+	    lcd_standby(sleep);
+	}else{
+		lcd_standby(sleep);
+		mdelay(100);
+		rk_backlight_ctrl(brightness);
+	}
         screen_on_time = get_timer(0);
+    }else{
+	    rk_backlight_ctrl(brightness);
     }
 }
 
