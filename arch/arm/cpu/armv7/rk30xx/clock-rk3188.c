@@ -322,7 +322,7 @@ static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 	while(1) {
 		if (g_grfReg->GRF_SOC_STATUS0 & bit)
 			break;
-		clk_slowmode_delayus(1);
+		clk_loop_delayus(1);
 	}
 }
 
@@ -367,10 +367,10 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
         	g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
 		}
 
-	clk_slowmode_delayus(5);
+	clk_loop_delayus(5);
         g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x0<<5));
 
-	clk_slowmode_delayus(clkset->rst_dly);
+	clk_loop_delayus(clkset->rst_dly);
 	/* delay for pll setup */
 	rkclk_pll_wait_lock(pll_id);
 

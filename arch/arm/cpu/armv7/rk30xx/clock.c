@@ -82,18 +82,18 @@ typedef void (*pll_callback_f)(struct pll_clk_set *clkset);
 
 /****************************************************************************
 Internal sram us delay function
-Cpu highest frequency is 1.6 GHz
-1 cycle = 1/1.6 ns
-1 us = 1000 ns = 1000 * 1.6 cycles = 1600 cycles
+Cpu highest frequency is 1 GHz
+1 cycle = 1/1 ns
+1 us = 1000 ns = 1000 * 1 cycles = 1000 cycles
 *****************************************************************************/
-#define LPJ_24MHZ  1000UL
+#define LPJ_1000MHZ  100UL
 
-static void clk_slowmode_delayus(uint32_t us)
+static void clk_loop_delayus(uint32_t us)
 {   
 	volatile uint32_t i;
 
 	/* copro seems to need some delay between reading and writing */
-	for (i = 0; i < LPJ_24MHZ * us; i++) {
+	for (i = 0; i < LPJ_1000MHZ * us; i++) {
 		nop();
 	}
 }
