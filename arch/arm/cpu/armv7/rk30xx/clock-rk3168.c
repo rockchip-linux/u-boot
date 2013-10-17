@@ -379,14 +379,14 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 	/* PLL enter slow-mode */
 	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) + 16)) | (0x0<<(pll_id*4));
 	/* enter rest */
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x1<<5));
+        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x1<<1));
 
         g_cruReg->CRU_PLL_CON[pll_id][0] = clkset->pllcon0;
         g_cruReg->CRU_PLL_CON[pll_id][1] = clkset->pllcon1;
         g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
 
         clk_loop_delayus(5);
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x0<<5));
+        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
 
 	clk_loop_delayus(clkset->rst_dly);
 	/* delay for pll setup */
