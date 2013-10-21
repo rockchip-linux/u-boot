@@ -17,6 +17,7 @@ Revision:       1.00
 #include "rkloader.h"
 #include "i2c.h"
 #include <power/pmic.h>
+#include <version.h>
 
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
@@ -350,10 +351,11 @@ extern char bootloader_ver[];
 int board_late_init(void)
 {
     printf("board_late_init\n");
-	ChipTypeCheck();
+
     SecureBootCheck();
 	get_bootloader_ver(NULL);
 	printf("##################################################\n");
+	printf("uboot version: %s\n",U_BOOT_VERSION_STRING);
 	printf("\n#Boot ver: %s\n\n", bootloader_ver);
 	printf("##################################################\n");
 
