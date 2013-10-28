@@ -43,18 +43,18 @@ int dwc_otg_check_dpdm(void)
     g_cruReg->CRU_CLKGATE_CON[5] = ((1<<13)<<16);   // otg0 hclk clkgate
     g_cruReg->CRU_CLKGATE_CON[4] = ((3<<5)<<16);    // hclk usb clkgate
 
-    if(ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
+    if(ChipType == CHIP_RK3066)
     {
-        g_3188_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
-        mdelay(105);
-       // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
-       //     OtgReg, *(OtgReg), &g_3188_grfReg->GRF_UOC0_CON[2], g_3188_grfReg->GRF_UOC0_CON[2]);
-    }else{
         g_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
         mdelay(105);
-       // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
-      //      OtgReg, *(OtgReg), &g_grfReg->GRF_UOC0_CON[2], g_grfReg->GRF_UOC0_CON[2]);
-    }
+        // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
+        //      OtgReg, *(OtgReg), &g_grfReg->GRF_UOC0_CON[2], g_grfReg->GRF_UOC0_CON[2]); 
+    }else{
+        g_3188_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
+        mdelay(105);
+        // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
+        //     OtgReg, *(OtgReg), &g_3188_grfReg->GRF_UOC0_CON[2], g_3188_grfReg->GRF_UOC0_CON[2]);
+     }
 
     otg_dctl = (unsigned int * )(OtgReg+0x804);
 

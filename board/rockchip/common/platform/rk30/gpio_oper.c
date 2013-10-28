@@ -22,6 +22,14 @@ uint32 RK3188GpioBaseAddr[7] =
     0x2003E000, //GPIO2
     0x20080000, //GPIO3
 };
+
+static inline unsigned int get_duration(unsigned int base) {
+    unsigned int max = 0xFFFFFFFF;
+    unsigned int now = get_rk_current_tick();
+	unsigned int tick_duration = base >= now? base - now : max - (base - now) + 1;
+	return tick_duration/(CONFIG_SYS_CLK_FREQ/CONFIG_SYS_HZ);//tick_to_time(tick_duration);
+}
+
 void setup_gpio(gpio_conf *key_gpio)
 {
     uint32 base_addr = 0;
@@ -59,6 +67,148 @@ void setup_adckey(adc_conf *key_adc)
     //PRINT_E("keyValueLow: %d\n", key_adc->keyValueLow );
     //PRINT_E("keyValueHigh: %d\n", key_adc->keyValueHigh);
 }
+
+void clr_all_gpio_int(void)
+{
+    uint32 base_addr,int_en,int_mask,int_eoi;
+    int group = 0;
+    
+    for(group=0; group<7; group++)
+    {
+        if (ChipType == CHIP_RK3066)
+        {
+            if(group >= 7)
+                return;
+            base_addr = RK3066GpioBaseAddr[group];
+        }
+        else
+        {
+            if(group >= 4)
+                return;
+            base_addr = RK3188GpioBaseAddr[group];
+        }
+
+    	int_en = base_addr+0x30;
+    	write_XDATA32(int_en, 0);
+    }
+}
+
+
+void setup_int(int_conf *key_int)
+{
+    uint32 base_addr = 0;
+
+    if (ChipType == CHIP_RK3066)
+    {
+        if(key_int->group >= 7)
+            return;
+        base_addr = RK3066GpioBaseAddr[key_int->group];
+    }
+    else
+    {
+        if(key_int->group >= 4)
+            return;
+        base_addr = RK3188GpioBaseAddr[key_int->group];
+    }
+
+	key_int->int_en = base_addr+0x30;
+	key_int->int_mask = base_addr+0x34;
+	key_int->int_level = base_addr+0x38;
+	key_int->int_polarity = base_addr+0x3c;
+	key_int->int_status = base_addr+0x40;
+	key_int->int_eoi = base_addr+0x4c;
+	key_int->io_read = base_addr+0x50;
+	key_int->io_dir_conf = base_addr+0x4;
+	key_int->io_debounce = base_addr+0x48;
+	key_int->pressed = 0;
+	key_int->time = 0;
+	//write_XDATA32(key_int->io_dir_conf, read_XDATA32(key_int->int_mask)&(~(1ul<<key_int->index)));
+	//write_XDATA32(key_int->int_eoi, (read_XDATA32(key_int->int_eoi)|(1ul<<key_int->index)));
+	write_XDATA32(key_int->int_mask, read_XDATA32(key_int->int_mask)&(~(1ul<<key_int->index)));
+	write_XDATA32(key_int->int_level, read_XDATA32(key_int->int_level)|(1ul<<key_int->index));//use edge sensitive
+	write_XDATA32(key_int->io_debounce, (read_XDATA32(key_int->io_debounce)|((1ul<<key_int->index))));
+	//printf("valid = %d\n", key_int->valid);
+	if(key_int->valid)
+		write_XDATA32(key_int->int_polarity, read_XDATA32(key_int->int_polarity)|(1ul<<key_int->index));
+	else
+		write_XDATA32(key_int->int_polarity, read_XDATA32(key_int->int_polarity)&(~(1ul<<key_int->index)));
+	//printf("polarity:%x\n", read_XDATA32(key_int->int_polarity));
+	write_XDATA32(key_int->int_en, read_XDATA32(key_int->int_en)|(1ul<<key_int->index));
+	memset(key_int->array, 0, KEY_ARRAY_SIZE);
+	char *array = key_int->array;
+	//printf("key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
+}
+
+void gpio_isr(int gpio_group)
+{
+   uint32 base_addr = 0;
+   uint32  int_eoi;
+
+   if (ChipType == CHIP_RK3066)
+   {
+       if(gpio_group >= 7)
+            return;
+       base_addr = RK3066GpioBaseAddr[gpio_group];
+   }
+   else
+   {
+        if(gpio_group >= 4)
+            return;
+       base_addr = RK3188GpioBaseAddr[gpio_group];
+   }
+   int_eoi = base_addr+0x4c;
+
+	if(key_powerHold.type==KEY_INT)
+	{
+		int_conf* ioint = &key_powerHold.key.ioint; 
+		int i;
+		serial_printf("gpio_group = %d, int_status = %x \n ",gpio_group,read_XDATA32(ioint->int_status));
+		if(read_XDATA32(ioint->int_status)&(1ul<<ioint->index))
+		{
+			//serial_printf("gpio isr\n");
+			write_XDATA32( ioint->int_eoi, (read_XDATA32(ioint->int_eoi)|(1ul<<ioint->index)));
+			if(get_wfi_status())
+			{
+				serial_printf("gpio isr in wfi\n");
+				return;
+			}
+			if(ioint->pressed)
+			{
+				char *array = ioint->array;
+				//serial_printf("before released, key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
+				for(i=0;i<KEY_ARRAY_SIZE;i++)
+				{
+					if(!array[i])
+					{
+						array[i] = (get_duration(ioint->time)>LONE_PRESS_TIME) ? KEY_LONG_PRESS:KEY_SHORT_PRESS;
+						break;
+					}
+				}
+				if(i>=KEY_ARRAY_SIZE)
+					serial_printf("key array full\n");
+				//serial_printf("released, key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
+				ioint->pressed = 0;
+				ioint->time = 0;
+			}
+			else
+			{
+				ioint->pressed = 1;
+				ioint->time = get_rk_current_tick();
+				//serial_printf("pressed time:%d\n", ioint->time);
+			}
+			
+			serial_printf("switch polarity\n");
+			if(read_XDATA32(ioint->int_polarity)&(1ul<<ioint->index))
+				write_XDATA32(ioint->int_polarity, read_XDATA32(ioint->int_polarity)&(~(1ul<<ioint->index)));
+			else
+				write_XDATA32(ioint->int_polarity, read_XDATA32(ioint->int_polarity)|(1ul<<ioint->index));
+		}
+	}
+
+	write_XDATA32(int_eoi, 0xffffffff);   //clr all gpio int
+	
+}
+
 #if 0
 void dump_gpio(gpio_conf* gpio)
 {
@@ -81,6 +231,7 @@ int GetPortState(key_config *key)
     uint32 hCnt = 0;
     gpio_conf* gpio = &key->key.gpio;
     adc_conf* adc = &key->key.adc; 
+    int_conf* ioint = &key->key.ioint; 
     if(key->type == KEY_GPIO)
     {
         // TODO: 按键没有处理
@@ -100,7 +251,7 @@ int GetPortState(key_config *key)
         return (hCnt>80);
         #endif
     }
-    else
+    else if(key->type == KEY_AD)
     {
         // TODO: clk没有配置
     	for(tt = 0; tt < 10; tt++)
@@ -125,6 +276,26 @@ int GetPortState(key_config *key)
         write_XDATA32( adc->ctrl, 0);
         return (hCnt>8);
     }
+    else if(key->type == KEY_INT)
+	{
+		if(read_XDATA32(ioint->int_en)&(1ul<<ioint->index))
+		{
+			char *array = ioint->array;
+			int i, type;
+			
+			if(array[0])
+			{
+				type = array[0];
+				memcpy(array, array+1, KEY_ARRAY_SIZE-1);
+				return type;
+			}else if(ioint->pressed)
+			{
+				if(get_duration(ioint->time)>LONE_PRESS_TIME)
+					return KEY_LONG_PRESS;
+			}
+			return 0;
+		}
+	}
 #else
     return 0;
 #endif

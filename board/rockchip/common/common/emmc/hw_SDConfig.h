@@ -68,8 +68,14 @@ no message
 #define SDMMC2_DET_MODE       SD_ALWAYS_PRESENT  //卡检测方式选择，从SD_CONTROLLER_DET、SD_GPIO_DET、SD_ALWAYS_PRESENT中选择
 #define SDMMC2_EN_POWER_CTL   (0)      //是否对SD卡电源进行控制，1:要控制SD卡电源，0:不对SD卡电源进行控制
 
-#define EN_SD_DMA             (0)      //是否用DMA来进行数据传输，1:DMA方式，0:中断方式
+#ifdef SDMMC_USE_DMA
+#define EN_SD_DMA             (1)      //是否用DMA来进行数据传输，1:DMA方式，0:中断方式
+#else
+#define EN_SD_DMA             (0)
+#endif
+
 #define EN_SD_INT             (0)      //是否采用中断发生来查询一些SDMMC控制器的重要位，1:用中断方式，0:用轮询方式，目前就算用轮询方式，卡检测还是设成中断的
+
 #define EN_SD_PRINTF          (0)      //是否允许SD驱动内部调试信息打印，1:开启打印，0:关闭打印
 #define DEBOUNCE_TIME         (25)     //卡拔插的消抖动时间,单位ms
 

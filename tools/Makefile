@@ -29,6 +29,33 @@ TOOLSUBDIRS = kernel-doc
 #
 include $(TOPDIR)/config.mk
 
+define convert-one-image-path
+	/tmp/$(basename $(1)).bmp
+endef
+
+define convert-image-path
+$(foreach v, $(1), \
+    $(call convert-one-image-path, $(v)) \
+)
+endef
+
+define convert-one-image
+	$(warning convert-one-image:$(1) -> $(2)) \
+    $(shell mkdir -p $(dir $(2)) && \
+        convert $(1) -depth 8 -compress rle $(2) && \
+        echo $(2))
+endef
+
+define convert-image
+$(foreach v, $(1), \
+    $(call convert-one-image, $(v), $(call convert-one-image-path, $(v))) \
+)
+endef
+
+define convert-logo
+    $(shell convert $(1) -depth 8 -compress none $(2))
+endef
+
 include $(TOPDIR)/tools/logos/charge/charge.mk
 
 #
@@ -158,12 +185,6 @@ ifeq ($(VENDOR),intercontrol)
 LOGO_BMP= logos/intercontrol.bmp
 endif
 
-# Generated bmp image
-BMP_IMAGE_DATA_H = $(OBJTREE)/include/bmp_image_data.h
-LOGO-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_DATA_H)
-BMP_IMAGE_IMG= ../charge.img
-LOGO-$(CONFIG_CMD_CHARGE_ANIM) += $(BMP_IMAGE_IMG)
-
 # now $(obj) is defined
 HOSTSRCS += $(addprefix $(SRCTREE)/,$(EXT_OBJ_FILES-y:.o=.c))
 HOSTSRCS += $(addprefix $(SRCTREE)/tools/,$(OBJ_FILES-y:.o=.c))
@@ -202,10 +223,6 @@ $(obj)bin2header$(SFX): $(obj)bin2header.o
 	$(HOSTSTRIP) $@
 
 $(obj)bmp_logo$(SFX):	$(obj)bmp_logo.o
-	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
-	$(HOSTSTRIP) $@
-
-$(obj)bmp_image$(SFX):   $(obj)bmp_image.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
@@ -300,16 +317,18 @@ else
 	done
 endif
 
+ifneq ($(LOGO_IMAGE),)
+LOGO_BMP = /tmp/logo.bmp
+
+$(LOGO_BMP) : $(LOGO_IMAGE)
+	$(call convert-logo, $(LOGO_IMAGE), $(LOGO_BMP))
+endif
+
 $(LOGO_H):	$(obj)bmp_logo $(LOGO_BMP)
 	$(obj)./bmp_logo --gen-info $(LOGO_BMP) > $@
 
 $(LOGO_DATA_H):	$(obj)bmp_logo $(LOGO_BMP)
 	$(obj)./bmp_logo --gen-data $(LOGO_BMP) > $@
-
-$(BMP_IMAGE_IMG): $(BMP_IMAGE_DATA_H)
-
-$(BMP_IMAGE_DATA_H): $(obj)bmp_image $(SRCTREE)/tools/Makefile
-	$(obj)./bmp_image $(BMP_IMAGE_IMG) $(BMP_IMAGES) > $@
 
 #########################################################################
 

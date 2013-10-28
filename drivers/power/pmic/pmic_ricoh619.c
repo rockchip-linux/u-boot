@@ -1,7 +1,24 @@
 /*
- *  Copyright (C) 2012 rockchips
- *  zyw < zyw@rock-chips.com >
+ *  Copyright (C) 2012 Samsung Electronics
+ *  Lukasz Majewski <l.majewski@samsung.com>
  *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
  */
 
 #include <common.h>
@@ -9,22 +26,18 @@
 #include <i2c.h>
 #include <errno.h>
 
-/*
-for chack charger status in boot
-return 0, no charger
-return 1, charging
-*/
+
 int check_charge(void)
 {
     int reg=0;
     int ret = 0;
-    if(IReadLoaderFlag() == 0) {
+    if(0==IReadLoaderFlag()) {
         i2c_set_bus_num(1);
         i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
         i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-        reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);// read power on history
-        printf("%s power on history %x\n",__func__,reg);
-        if(reg == 0x04)
+        reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);//
+        printf("%s power on history %x \n",__func__,reg);
+        if((reg & 0x04) || ((reg & 0x02)&& is_charging()))
         {
             printf("In charging! \n");
             ret = 1;
@@ -39,11 +52,11 @@ static int pmic_charger_state(struct pmic *p, int state, int current)
     return 0;
 }
 
+
 /*
-set charge current
 0. disable charging  
-1. usb charging, 500mA
-2. ac adapter charging, 1.5A
+1. usb charging
+2. ac adapter charging
 */
 int pmic_charger_setting(int current)
 {
@@ -86,6 +99,8 @@ int pmic_init(unsigned char bus)
     i2c_set_bus_num(1);
     i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
     i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
+    i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0x10,0x4c);// DIS_OFF_PWRON_TIM bit 0; OFF_PRESS_PWRON 6s; OFF_JUDGE_PWRON bit 1; ON_PRESS_PWRON bit 2s
+    i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0x39,0xc8);// dcdc4 output 3.1v for vccio
     i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0x50,0x30);// ldo5 output 1.8v for VCC18_LCD
     i2c_reg_write(CONFIG_SYS_I2C_SLAVE,0x44,i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x44)|(1<<4));//ldo5 enable
 

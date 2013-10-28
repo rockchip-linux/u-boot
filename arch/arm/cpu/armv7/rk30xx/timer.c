@@ -23,7 +23,7 @@ DECLARE_GLOBAL_DATA_PTR;
 static unsigned long get_current_tick(void);
 
 
-static inline unsigned long long tick_to_time(unsigned long long tick)
+inline unsigned long long tick_to_time(unsigned long long tick)
 {
 	tick *= CONFIG_SYS_HZ;
 	do_div(tick, TIMER_FREQ);
@@ -57,7 +57,7 @@ int timer_init(void)
 	return 0;
 }
 
-static inline unsigned long get_rk_current_tick()
+inline unsigned long get_rk_current_tick()
 {
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
     return g_rk30Time0Reg->TIMER_CURR_VALUE;
