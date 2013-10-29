@@ -1615,6 +1615,8 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	FBTINFO("fastboot initialized\n");
 
     priv.pending_ptn = NULL;
+    //load key here.
+    SecureBootCheck();
 
 	while (1) {
 		if (priv.configured) {

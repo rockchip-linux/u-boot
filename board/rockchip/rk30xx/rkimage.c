@@ -284,7 +284,30 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
     *new_loader_size = new_hdr->uiFlashBootOffset+new_hdr->uiFlashBootLen;
 //    dump_data(new_loader, HEADINFO_SIZE);
 
-    return 0;
+#define RSA_KEY_OFFSET 0x10//according to dumped data, the key is here.
+#define RSA_KEY_LEN    0x102//258, public key's length
+    char buf[RK_BLK_SIZE];
+    memcpy(buf, new_loader + new_hdr->uiFlashBootOffset, RK_BLK_SIZE);
+    P_RC4(buf, RK_BLK_SIZE);
+
+    if (buf[RSA_KEY_OFFSET] != 0 || buf[RSA_KEY_OFFSET + 1] != 4) {
+        FBTDBG("try to flash unsigned loader\n");
+    }
+    if (gDrmKeyInfo.publicKeyLen == 0) {
+        FBTERR("current loader unsigned, allow flash loader anyway\n");
+        return 0;
+    }
+
+#ifdef FBT_DEBUG
+    printf("dump new loader's key:\n");
+    for (i = 0;i < 32;i++) {
+        for (j = 0;j < 16;j++) {
+            printf("%02x", buf[RSA_KEY_OFFSET + i * 16 + j]);
+        }
+        printf("\n");
+    }
+#endif
+    return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
 }
 
 int handleRkFlash(char *name,
@@ -292,6 +315,7 @@ int handleRkFlash(char *name,
 {
     if (!strcmp(PARAMETER_NAME, name))
     {
+        //flash parameter.
         int i, ret = -1, len = 0;
         PLoaderParam param = (PLoaderParam) 
             (priv->transfer_buffer + priv->d_bytes);
@@ -313,13 +337,13 @@ int handleRkFlash(char *name,
             goto ok;
         }
         goto fail;
-    }
-    if (!strcmp(LOADER_NAME, name))
+    } else if (!strcmp(LOADER_NAME, name))
     {
+        //flash loader.
         int size = 0, ret = -1;
         if (make_loader_data(priv->transfer_buffer, g_pLoader, &size))
         {
-            printf("err! make_loader_data failed\n");
+            printf("err! make_loader_data failed(loader's key not match)\n");
             goto fail;
         }
         if (update_loader(true))
@@ -328,15 +352,34 @@ int handleRkFlash(char *name,
             goto fail;
         }
         goto ok;
-    }
-
-    if (priv->d_bytes > priv->transfer_buffer_size) {
+    } else if (priv->d_bytes > priv->transfer_buffer_size) {
+        //flash large image with dma.
         if (!priv->pending_ptn) {
             goto fail;
         }
         FBTDBG("download large file, ptn:%s, target:%s\n", priv->pending_ptn->name, name);
         if (!strcmp(priv->pending_ptn->name, name) && priv->d_status > 0)
             goto ok;
+        goto fail;
+    } else if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
+            !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
+        //flash boot/recovery.
+        rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)priv->transfer_buffer;
+        if (!memcmp(boothdr->hdr.magic, FASTBOOT_BOOT_MAGIC, FASTBOOT_BOOT_MAGIC_SIZE)) {
+            if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
+                //signed image, check with signature.
+                if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
+                            boothdr->signlen) ==  FTL_OK) {
+                    return 0;
+                } else {
+                    FBTERR("signature mismatch!\n");
+                }
+            } else {
+                FBTERR("unsigned image!\n");
+            }
+        } else {
+            FBTERR("unrecognized image format!\n");
+        }
         goto fail;
     }
 
@@ -548,6 +591,16 @@ int handleDownload(unsigned char *buffer,
         } else {
             FBTDBG("pending ptn(%s) offset:%x\n", priv->pending_ptn->name, priv->pending_ptn->offset);
         }
+        priv->d_status = -1;
+        return 0;
+    }
+
+    //we limit boot/recovery image size here, to check with secure signature.
+    if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
+            !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
+        FBTERR("ptn(%s) should be less then:%lldm(for check sign), but is:%lldm\n ",
+                priv->pending_ptn->name,
+                priv->transfer_buffer_size/1024/1024, priv->d_size/1024/1024);
         priv->d_status = -1;
         return 0;
     }
