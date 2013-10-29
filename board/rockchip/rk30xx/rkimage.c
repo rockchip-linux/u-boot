@@ -364,6 +364,10 @@ int handleRkFlash(char *name,
     } else if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
             !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
         //flash boot/recovery.
+        if (gDrmKeyInfo.publicKeyLen == 0) {
+            FBTERR("current loader unsigned, allow flash anyway\n");
+            return 0;
+        }
         rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)priv->transfer_buffer;
         if (!memcmp(boothdr->hdr.magic, FASTBOOT_BOOT_MAGIC, FASTBOOT_BOOT_MAGIC_SIZE)) {
             if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
