@@ -469,8 +469,8 @@ void sdmmcGpioInit(uint32 ChipSel)
     {
         g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00F3)<<16)|0x00A2;      // clk cmd rstn 
         g_3066B_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x1<<11);                 // emmc data0-7,wp
-        g_3066B_grfReg->GRF_IO_CON[4] = 0x08000800;  // vccio0 1.8V 3188这个地方有问题?????
-        g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0004;  // drive_strength_ctrl_0  4ma
+        //g_3066B_grfReg->GRF_IO_CON[4] = 0x08000800;  // vccio0 1.8V 3188这个地方有问题?????
+        //g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0004;  // drive_strength_ctrl_0  4ma
     }
 }
 
