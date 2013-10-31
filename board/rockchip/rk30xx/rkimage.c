@@ -310,6 +310,31 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
     return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
 }
 
+bool checkImageSign(rk_boot_img_hdr* boothdr)
+{
+    //flash boot/recovery.
+    if (gDrmKeyInfo.publicKeyLen == 0) {
+        FBTERR("current loader unsigned, allow flash anyway\n");
+        return true;
+    }
+    if (!memcmp(boothdr->hdr.magic, FASTBOOT_BOOT_MAGIC, FASTBOOT_BOOT_MAGIC_SIZE)) {
+        if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
+            //signed image, check with signature.
+            if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
+                        boothdr->signlen) ==  FTL_OK) {
+                return true;
+            } else {
+                FBTERR("signature mismatch!\n");
+            }
+        } else {
+            FBTERR("unsigned image!\n");
+        }
+    } else {
+        FBTERR("unrecognized image format!\n");
+    }
+    return false;
+}
+
 int handleRkFlash(char *name,
         struct cmd_fastboot_interface *priv)
 {
@@ -364,27 +389,9 @@ int handleRkFlash(char *name,
     } else if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
             !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
         //flash boot/recovery.
-        if (gDrmKeyInfo.publicKeyLen == 0) {
-            FBTERR("current loader unsigned, allow flash anyway\n");
-            return 0;
-        }
-        rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)priv->transfer_buffer;
-        if (!memcmp(boothdr->hdr.magic, FASTBOOT_BOOT_MAGIC, FASTBOOT_BOOT_MAGIC_SIZE)) {
-            if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
-                //signed image, check with signature.
-                if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
-                            boothdr->signlen) ==  FTL_OK) {
-                    return 0;
-                } else {
-                    FBTERR("signature mismatch!\n");
-                }
-            } else {
-                FBTERR("unsigned image!\n");
-            }
-        } else {
-            FBTERR("unrecognized image format!\n");
-        }
-        goto fail;
+        if (!checkImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
+            goto fail;
+        }   
     }
 
     return 0;
@@ -549,6 +556,15 @@ int startDownload(unsigned char *buffer,
     priv->sparse_cur_chunk = 0;
     priv->transfer_buffer_pos = 0;
 
+    //check sign before flash large boot/recovery.
+    if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
+            !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
+        if (!checkImageSign((rk_boot_img_hdr *)buffer)) {
+            priv->d_status = -1;
+            return 0;
+        }
+    }
+
     //check sparse image
     sparse_header_t* header = &priv->sparse_header;
     memcpy(header, buffer, sizeof(sparse_header_t));
@@ -595,16 +611,6 @@ int handleDownload(unsigned char *buffer,
         } else {
             FBTDBG("pending ptn(%s) offset:%x\n", priv->pending_ptn->name, priv->pending_ptn->offset);
         }
-        priv->d_status = -1;
-        return 0;
-    }
-
-    //we limit boot/recovery image size here, to check with secure signature.
-    if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
-            !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
-        FBTERR("ptn(%s) should be less then:%lldm(for check sign), but is:%lldm\n ",
-                priv->pending_ptn->name,
-                priv->transfer_buffer_size/1024/1024, priv->d_size/1024/1024);
         priv->d_status = -1;
         return 0;
     }
