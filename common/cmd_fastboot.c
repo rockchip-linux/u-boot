@@ -1252,6 +1252,18 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 			return 0;
 		}
 
+        if (priv.d_status < 0 && priv.d_bytes < priv.d_size) {
+            FBTDBG("Failed to download, d_bytes:%lld d_size:%lld, length:%d\n",
+                    priv.d_bytes, priv.d_size, length);
+            //ignore transfer_buffer_pos, consider we ate it up.
+            priv.transfer_buffer_pos = 0;
+            priv.d_bytes += length;
+
+            //fix 512 bytes we kept for next download.
+            if (priv.d_bytes < priv.d_size)
+                priv.d_bytes -= RK_BLK_SIZE;
+            return 0;
+        }
         if (priv.d_status < 0) {
             /* transfer error */
             //TODO: maybe use some error str(convert from d_status)
@@ -1269,7 +1281,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		ep->rcv_urb->buffer = (u8 *)ep->rcv_urb->buffer_data;
 		ep->rcv_urb->buffer_length = sizeof(ep->rcv_urb->buffer_data);
 
-        FBTINFO("downloaded %llu bytes\n", priv.d_bytes);
+        FBTDBG("downloaded %llu bytes\n", priv.d_bytes);
 
 		/* clear the cmd buf from last time */
 		return 1;

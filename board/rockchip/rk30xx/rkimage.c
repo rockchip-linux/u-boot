@@ -599,7 +599,7 @@ int startDownload(unsigned char *buffer,
 int handleDownload(unsigned char *buffer,
         int length, struct cmd_fastboot_interface *priv)
 {
-    if (priv->d_status || priv->d_size <= priv->transfer_buffer_size) {
+    if (priv->d_size <= priv->transfer_buffer_size) {
         //nothing to do with these.
         return 0;
     }
@@ -619,6 +619,11 @@ int handleDownload(unsigned char *buffer,
             length < priv->transfer_buffer_size) {
         //keep downloading, util buffer is full or end of download.
         return 1;
+    }
+
+    if (priv->d_status) {
+        //nothing to do with these.
+        return 0;
     }
 
     if (!priv->d_bytes) {
