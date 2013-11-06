@@ -10,6 +10,12 @@ Revision:       1.00
 #include "rkimage.h"
 #include "rkloader.h"
 #include "ext_fs.h"
+#include "sha.h"
+
+#undef ALIGN
+
+#define ALIGN(x,a)      __ALIGN_MASK((x),(typeof(x))(a)-1)
+#define __ALIGN_MASK(x,mask)    (((x)+(mask))&~(mask))
 
 static int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
@@ -310,6 +316,54 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
     return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
 }
 
+bool checkImageSha(rk_boot_img_hdr* boothdr)
+{
+    uint8_t* sha;
+    SHA_CTX ctx;
+    int size = SHA_DIGEST_SIZE > sizeof(boothdr->hdr.id) ? sizeof(boothdr->hdr.id) : SHA_DIGEST_SIZE;
+   
+    void *kernel_data = (void*)boothdr + boothdr->hdr.page_size;
+    void *ramdisk_data = kernel_data + ALIGN(boothdr->hdr.kernel_size, boothdr->hdr.page_size);
+    void *second_data = 0;
+    if (boothdr->hdr.second_size) {
+        second_data = kernel_data + ALIGN(boothdr->hdr.ramdisk_size, boothdr->hdr.page_size);
+    }
+
+    FBTDBG("compute real sha\n");
+
+    SHA_init(&ctx);
+    SHA_update(&ctx, kernel_data, boothdr->hdr.kernel_size);
+    SHA_update(&ctx, &boothdr->hdr.kernel_size, sizeof(boothdr->hdr.kernel_size));
+    SHA_update(&ctx, ramdisk_data, boothdr->hdr.ramdisk_size);
+    SHA_update(&ctx, &boothdr->hdr.ramdisk_size, sizeof(boothdr->hdr.ramdisk_size));
+    SHA_update(&ctx, second_data, boothdr->hdr.second_size);
+    SHA_update(&ctx, &boothdr->hdr.second_size, sizeof(boothdr->hdr.second_size));
+
+    //only rockchip's image do these.
+    SHA_update(&ctx, &boothdr->hdr.tags_addr, sizeof(boothdr->hdr.tags_addr));
+    SHA_update(&ctx, &boothdr->hdr.page_size, sizeof(boothdr->hdr.page_size));
+    SHA_update(&ctx, &boothdr->hdr.unused, sizeof(boothdr->hdr.unused));
+    SHA_update(&ctx, &boothdr->hdr.name, sizeof(boothdr->hdr.name));
+    SHA_update(&ctx, &boothdr->hdr.cmdline, sizeof(boothdr->hdr.cmdline));
+
+    sha = SHA_final(&ctx);
+
+#ifdef FBT_DEBUG
+    int i = 0;
+    printf("\nreal sha:\n");
+    for (i = 0;i < size;i++) {
+        printf("%02x", (uint8_t*)sha[i]);
+    }
+    printf("\nsha from image header:\n");
+    for (i = 0;i < size;i++) {
+        printf("%02x", (uint8_t*)boothdr->hdr.id[i]);
+    }
+    printf("\n");
+#endif
+
+    return !memcmp(boothdr->hdr.id, sha, size);
+}
+
 bool checkImageSign(rk_boot_img_hdr* boothdr)
 {
     //flash boot/recovery.
@@ -320,18 +374,28 @@ bool checkImageSign(rk_boot_img_hdr* boothdr)
     if (!memcmp(boothdr->hdr.magic, FASTBOOT_BOOT_MAGIC, FASTBOOT_BOOT_MAGIC_SIZE)) {
         if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
             //signed image, check with signature.
+            //check sha here.
+            if (!checkImageSha(boothdr)) {
+                FBTERR("sha mismatch!\n");
+                goto fail;
+            }
+            //check rsa sign here.
             if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
                         boothdr->signlen) ==  FTL_OK) {
                 return true;
             } else {
                 FBTERR("signature mismatch!\n");
+                goto fail;
             }
         } else {
             FBTERR("unsigned image!\n");
+            goto fail;
         }
     } else {
         FBTERR("unrecognized image format!\n");
+        goto fail;
     }
+fail:
     return false;
 }
 
@@ -391,7 +455,7 @@ int handleRkFlash(char *name,
         //flash boot/recovery.
         if (!checkImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
             goto fail;
-        }   
+        }
     }
 
     return 0;
@@ -559,10 +623,15 @@ int startDownload(unsigned char *buffer,
     //check sign before flash large boot/recovery.
     if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
             !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
+        /*
         if (!checkImageSign((rk_boot_img_hdr *)buffer)) {
             priv->d_status = -1;
             return 0;
-        }
+        }*/
+        //should not reach here, check size before.
+        FBTERR("boot/recovery image should not be so large.\n");
+        priv->d_status = -1;
+        return 0;
     }
 
     //check sparse image

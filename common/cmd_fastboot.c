@@ -1358,14 +1358,25 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 
 		FBTINFO("starting download of %llu bytes\n", d_size);
 
+        bool bootOrRecovery = 
+            (!strcmp(priv.pending_ptn->name, RECOVERY_NAME) ||
+             !strcmp(priv.pending_ptn->name, BOOT_NAME));
+
         if (!priv.unlocked) {
             FBTERR("download: failed, device is locked\n");
             sprintf(priv.response, "FAILdevice is locked");
-        } else if (d_size > priv.transfer_buffer_size
+        } else if (d_size > CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH
                 && !priv.pending_ptn) {
+            //flash loader would not set pending_ptn,
+            //because there is not a partition for loader.
             FBTERR("download large image with \"-u\" option\n");
             sprintf(priv.response, "FAILnot support \"-u\" option");
             //what if they use "fastboot getvar partition-type" before flash?
+        } else if (d_size > CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE &&
+                bootOrRecovery) {
+            //boot/recovery size too large for sign check.
+            FBTERR("%s image too large\n", priv.pending_ptn->name);
+            sprintf(priv.response, "FAILdata too large");
         } else if (d_size == 0) {
             strcpy(priv.response, "FAILdata invalid size");
 
@@ -1377,6 +1388,11 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		} else {
             priv.d_size = d_size;
             sprintf(priv.response, "DATA%08llx", priv.d_size);
+
+            //we will check boot/recovery's sha, so need a big buffer to recv whole image.
+            priv.transfer_buffer_size = 
+                bootOrRecovery? CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE :
+                CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
 
             /* as an optimization, replace the builtin
              * urb->buffer and urb->buffer_length with our
