@@ -380,6 +380,10 @@ bool checkImageSign(rk_boot_img_hdr* boothdr)
                 FBTERR("sha mismatch!\n");
                 goto fail;
             }
+            if (!SecureBootEn) {
+                FBTERR("loader sign mismatch, not allowed to flash!\n");
+                goto fail;
+            }
             //check rsa sign here.
             if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
                         boothdr->signlen) ==  FTL_OK) {
