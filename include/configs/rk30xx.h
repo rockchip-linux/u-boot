@@ -263,7 +263,6 @@ Revision:       1.00
 #define         CHIP_RK3188     3
 #define         CHIP_RK3188B    4
 
-#define CONFIG_SHA
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB
 #undef CONFIG_CMD_BOOTM

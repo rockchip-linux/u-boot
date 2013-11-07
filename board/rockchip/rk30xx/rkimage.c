@@ -10,7 +10,7 @@ Revision:       1.00
 #include "rkimage.h"
 #include "rkloader.h"
 #include "ext_fs.h"
-#include "sha.h"
+#include "../common/common/crc/sha.h"
 
 #undef ALIGN
 
@@ -321,7 +321,7 @@ bool checkImageSha(rk_boot_img_hdr* boothdr)
     uint8_t* sha;
     SHA_CTX ctx;
     int size = SHA_DIGEST_SIZE > sizeof(boothdr->hdr.id) ? sizeof(boothdr->hdr.id) : SHA_DIGEST_SIZE;
-   
+
     void *kernel_data = (void*)boothdr + boothdr->hdr.page_size;
     void *ramdisk_data = kernel_data + ALIGN(boothdr->hdr.kernel_size, boothdr->hdr.page_size);
     void *second_data = 0;
@@ -348,15 +348,16 @@ bool checkImageSha(rk_boot_img_hdr* boothdr)
 
     sha = SHA_final(&ctx);
 
+
 #ifdef FBT_DEBUG
     int i = 0;
     printf("\nreal sha:\n");
     for (i = 0;i < size;i++) {
-        printf("%02x", (uint8_t*)sha[i]);
+        printf("%02x", (char)sha[i]);
     }
     printf("\nsha from image header:\n");
     for (i = 0;i < size;i++) {
-        printf("%02x", (uint8_t*)boothdr->hdr.id[i]);
+        printf("%02x", ((char*)boothdr->hdr.id)[i]);
     }
     printf("\n");
 #endif

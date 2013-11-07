@@ -51,7 +51,6 @@ COBJS-$(CONFIG_MD5) += md5.o
 #COBJS-y += net_utils.o
 COBJS-$(CONFIG_PHYSMEM) += physmem.o
 COBJS-y += qsort.o
-COBJS-$(CONFIG_SHA) += sha.o
 COBJS-$(CONFIG_SHA1) += sha1.o
 COBJS-$(CONFIG_SHA256) += sha256.o
 #COBJS-y	+= strmhz.o
