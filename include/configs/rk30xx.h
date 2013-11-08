@@ -286,4 +286,7 @@ Revision:       1.00
 #define CONFIG_RK_I2C
 #define CONFIG_I2C_MULTI_BUS
 
+//allow to flash loader when check sign failed. should undef this in release version.
+#define CONFIG_ENABLE_ERASEKEY
+
 #endif /* __CONFIG_H */

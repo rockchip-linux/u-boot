@@ -71,8 +71,10 @@ int board_fbt_oem(const char *cmdbuf)
 {
 	if (!strcmp(cmdbuf,"format"))
 		return do_format();
+#ifdef ENABLE_ERASEKEY
     else if (!strcmp(cmdbuf,"erasekey"))
         return eraseDrmKey();
+#endif
 	return -1;
 }
 #endif /* !CONFIG_FASTBOOT_NO_FORMAT */

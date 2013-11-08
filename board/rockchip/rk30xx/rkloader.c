@@ -10,6 +10,7 @@ Revision:       1.00
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
 #include "rkloader.h"
+#include "rkimage.h"
 
 //from MainLoop.c
 uint32 g_bootRecovery;
@@ -377,5 +378,6 @@ int eraseDrmKey() {
     char buf[RK_BLK_SIZE];
     memset(buf, 0, RK_BLK_SIZE);
     StorageSysDataStore(1, buf);
+    gDrmKeyInfo.publicKeyLen = 0;
     return 0;
 }
