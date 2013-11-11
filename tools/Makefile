@@ -113,6 +113,7 @@ EXT_OBJ_FILES-y += common/image.o
 EXT_OBJ_FILES-y += lib/crc32.o
 EXT_OBJ_FILES-y += lib/md5.o
 EXT_OBJ_FILES-y += lib/sha1.o
+EXT_OBJ_FILES-y += lib/sha.o
 
 # Source files located in the tools directory
 OBJ_FILES-$(CONFIG_CMD_CHARGE_ANIM) += bmp_image.o
@@ -297,7 +298,7 @@ $(obj)%.o: $(SRCTREE)/lib/%.c
 $(obj)%.o: $(SRCTREE)/lib/libfdt/%.c
 	$(HOSTCC) -g $(HOSTCFLAGS_NOPED) -c -o $@ $<
 
-$(obj)loaderimage$(SFX):	$(obj)loaderimage.o
+$(obj)loaderimage$(SFX):	$(obj)loaderimage.o $(obj)sha.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 

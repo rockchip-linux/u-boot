@@ -248,6 +248,7 @@ extern struct fbt_partition fbt_partitions[];
 
 #define PARAMETER_NAME  "parameter"
 #define LOADER_NAME     "loader"
+#define UBOOT_NAME      "uboot"
 #define MISC_NAME       "misc"
 #define KERNEL_NAME     "kernel"
 #define BOOT_NAME       "boot"

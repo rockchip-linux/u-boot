@@ -102,4 +102,26 @@ typedef struct
 int handleRkFlash(char *name,
         struct cmd_fastboot_interface *priv);
 
+#define LOADER_MAGIC_SIZE     16
+#define LOADER_HASH_SIZE      32
+#define RK_UBOOT_MAGIC        "LOADER  "
+#define RK_UBOOT_SIGN_TAG     0x4E474953
+#define RK_UBOOT_SIGN_LEN     128
+typedef struct tag_second_loader_hdr
+{
+    uint8_t magic[LOADER_MAGIC_SIZE];  // "LOADER  "
+
+    uint32_t loader_load_addr;           /* physical load addr ,default is 0x60000000*/
+    uint32_t loader_load_size;           /* size in bytes */
+    uint32_t crc32;                      /* crc32 */
+    uint32_t hash_len;                   /* 20 or 32 , 0 is no hash*/
+    uint8_t hash[LOADER_HASH_SIZE];     /* sha */
+
+    uint8_t reserved[1024-32-32];
+    uint32_t signTag; //0x4E474953
+    uint32_t signlen; //128
+    uint8_t rsaHash[256];
+    uint8_t reserved2[2048-1024-256-8];
+}second_loader_hdr;
+
 #endif /* RKIMAGE_H */

@@ -316,7 +316,7 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
     return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
 }
 
-bool checkImageSha(rk_boot_img_hdr* boothdr)
+bool checkBootImageSha(rk_boot_img_hdr* boothdr)
 {
     uint8_t* sha;
     SHA_CTX ctx;
@@ -365,7 +365,7 @@ bool checkImageSha(rk_boot_img_hdr* boothdr)
     return !memcmp(boothdr->hdr.id, sha, size);
 }
 
-bool checkImageSign(rk_boot_img_hdr* boothdr)
+bool checkBootImageSign(rk_boot_img_hdr* boothdr)
 {
     //flash boot/recovery.
     if (gDrmKeyInfo.publicKeyLen == 0) {
@@ -376,7 +376,7 @@ bool checkImageSign(rk_boot_img_hdr* boothdr)
         if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
             //signed image, check with signature.
             //check sha here.
-            if (!checkImageSha(boothdr)) {
+            if (!checkBootImageSha(boothdr)) {
                 FBTERR("sha mismatch!\n");
                 goto fail;
             }
@@ -387,6 +387,77 @@ bool checkImageSign(rk_boot_img_hdr* boothdr)
             //check rsa sign here.
             if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
                         boothdr->signlen) ==  FTL_OK) {
+                return true;
+            } else {
+                FBTERR("signature mismatch!\n");
+                goto fail;
+            }
+        } else {
+            FBTERR("unsigned image!\n");
+            goto fail;
+        }
+    } else {
+        FBTERR("unrecognized image format!\n");
+        goto fail;
+    }
+fail:
+    return false;
+}
+
+bool checkUbootImageSha(second_loader_hdr* hdr)
+{
+    uint8_t* sha;
+    SHA_CTX ctx;
+    int size = SHA_DIGEST_SIZE > hdr->hash_len ? hdr->hash_len : SHA_DIGEST_SIZE;
+
+    FBTDBG("compute real sha\n");
+
+    SHA_init(&ctx);
+    SHA_update(&ctx, (void*)hdr + sizeof(second_loader_hdr), hdr->loader_load_size);
+    SHA_update(&ctx, &hdr->loader_load_addr, sizeof(hdr->loader_load_addr));
+    SHA_update(&ctx, &hdr->loader_load_size, sizeof(hdr->loader_load_size));
+    SHA_update(&ctx, &hdr->hash_len, sizeof(hdr->hash_len));
+    sha = SHA_final(&ctx);
+
+#ifdef FBT_DEBUG
+    int i = 0;
+    printf("\nreal sha:\n");
+    for (i = 0;i < size;i++) {
+        printf("%02x", (char)sha[i]);
+    }
+    printf("\nsha from image header:\n");
+    for (i = 0;i < size;i++) {
+        printf("%02x", ((char*)hdr->hash)[i]);
+    }
+    printf("\n");
+#endif
+
+    return !memcmp(hdr->hash, sha, size);
+}
+
+
+bool checkUbootImageSign(second_loader_hdr* hdr)
+{
+    //flash uboot.
+    if (gDrmKeyInfo.publicKeyLen == 0) {
+        FBTERR("current loader unsigned, allow flash anyway\n");
+        return true;
+    }
+    if (!memcmp(hdr->magic, RK_UBOOT_MAGIC, sizeof(RK_UBOOT_MAGIC))) {
+        if (hdr->signTag == RK_UBOOT_SIGN_TAG) {
+            //signed image, check with signature.
+            //check sha here.
+            if (!checkUbootImageSha(hdr)) {
+                FBTERR("sha mismatch!\n");
+                goto fail;
+            }
+            if (!SecureBootEn) {
+                FBTERR("loader sign mismatch, not allowed to flash!\n");
+                goto fail;
+            }
+            //check rsa sign here.
+            if(SecureBootSignCheck(hdr->rsaHash, hdr->hash,
+                        hdr->signlen) ==  FTL_OK) {
                 return true;
             } else {
                 FBTERR("signature mismatch!\n");
@@ -458,7 +529,12 @@ int handleRkFlash(char *name,
     } else if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
             !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
         //flash boot/recovery.
-        if (!checkImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
+        if (!checkBootImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
+            goto fail;
+        }
+    } else if (!strcmp(priv->pending_ptn->name, UBOOT_NAME)) {
+        //flash uboot
+        if (!checkUbootImageSign((second_loader_hdr *)priv->transfer_buffer)) {
             goto fail;
         }
     }
