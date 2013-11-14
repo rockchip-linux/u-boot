@@ -560,6 +560,9 @@ ulong lcd_setmem(ulong addr)
 		panel_info.vl_row, NBITS(panel_info.vl_bpix));
 
 	size = lcd_get_size(&line_length);
+#ifdef CONFIG_ROCKCHIP
+    size <<= 1;//double fb buffer.
+#endif
 
 	/* Round up to nearest full page, or MMU section if defined */
 	size = ALIGN(size, CONFIG_LCD_ALIGNMENT);

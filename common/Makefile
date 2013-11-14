@@ -189,7 +189,10 @@ COBJS-$(CONFIG_CMD_ZIP) += cmd_zip.o
 COBJS-$(CONFIG_CMD_ZFS) += cmd_zfs.o
 
 COBJS-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
+
+ifdef CONFIG_CMD_FASTBOOT
 COBJS-$(CONFIG_CMD_CHARGE_ANIM) += cmd_charge.o
+endif
 
 # others
 ifdef CONFIG_DDR_SPD

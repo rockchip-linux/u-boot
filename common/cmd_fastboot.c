@@ -108,14 +108,6 @@ print "%04d/%02d/%02d %02d:%02d\n" % (int(foo[0], 36) + 2001,
 #define FASTBOOT_UNLOCKED_ENV_NAME "fastboot_unlocked"
 #define FASTBOOT_UNLOCK_TIMEOUT_SECS 5
 
-#ifdef CONFIG_FASTBOOT_LOG
-#ifndef CONFIG_FASTBOOT_LOG_SIZE
-#define CONFIG_FASTBOOT_LOG_SIZE (16*1024*1024)
-#endif
-static char log_buffer[CONFIG_FASTBOOT_LOG_SIZE];
-static uint32_t log_position;
-#endif
-
 #include <exports.h>
 #include <environment.h>
 
@@ -265,12 +257,12 @@ static struct usb_endpoint_instance endpoint_instance[NUM_ENDPOINTS + 1];
 /* U-boot version */
 extern char version_string[];
 
-static struct cmd_fastboot_interface priv = {
-    .buffer[0]             = (u8 *)CONFIG_FASTBOOT_TRANSFER_BUFFER,
-    .buffer[1]             = (u8 *)CONFIG_FASTBOOT_TRANSFER_BUFFER + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
-    .transfer_buffer       = (u8 *)CONFIG_FASTBOOT_TRANSFER_BUFFER,
-    .transfer_buffer_size  = CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
-};
+static struct cmd_fastboot_interface priv;
+
+#ifdef CONFIG_FASTBOOT_LOG
+static char* log_buffer;
+static uint32_t log_position;
+#endif
 
 static void fbt_init_endpoints(void);
 int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
@@ -608,6 +600,15 @@ static void fbt_fastboot_init(void)
 	priv.unlock_pending_start_time = 0;
 
 	priv.unlocked = 1;
+
+    priv.transfer_buffer = priv.buffer[0] = (u8 *)gd->arch.fastboot_buf_addr;
+    priv.buffer[1] = priv.buffer[0] + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
+    priv.transfer_buffer_size  = CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
+
+#ifdef CONFIG_FASTBOOT_LOG
+    log_buffer = (char*)(priv.transfer_buffer + priv.transfer_buffer_size);
+#endif
+
 	fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);
 	if (fastboot_unlocked_env) {
 		unsigned long unlocked;
@@ -1373,7 +1374,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
             FBTERR("download large image with \"-u\" option\n");
             sprintf(priv.response, "FAILnot support \"-u\" option");
             //what if they use "fastboot getvar partition-type" before flash?
-        } else if (d_size > CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE &&
+        } else if (d_size >= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE &&
                 needCheck) {
             //image size too large for sign check.
             FBTERR("%s image too large\n", priv.pending_ptn->name);
@@ -1848,9 +1849,9 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         //printf("board cmdline:\n%s\n", command_line);
 		amt = snprintf(command_line,
 				sizeof(command_line),
-				"%s androidboot.bootloader=%s",
+				"%s androidboot.bootloader=%s fb.addr=0x%08lx",
 				command_line,
-				CONFIG_FASTBOOT_VERSION_BOOTLOADER);
+				CONFIG_FASTBOOT_VERSION_BOOTLOADER, gd->fb_base);
         
 #if 0
 		for (i = 0; i < priv.num_device_info; i++) {

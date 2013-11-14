@@ -368,7 +368,7 @@ int board_late_init(void)
     getParameter();
 
     //TODO:set those buffers in a better way, and use malloc?
-    setup_space(gBootInfo.kernel_load_addr);
+    setup_space(gd->arch.rk_extra_buf_addr);
 
     char tmp_buf[30];
     if (getSn(tmp_buf)) {

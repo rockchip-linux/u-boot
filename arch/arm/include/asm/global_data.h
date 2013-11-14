@@ -51,6 +51,12 @@ struct arch_global_data {
 	unsigned long tlb_addr;
 	unsigned long tlb_size;
 #endif
+#ifdef CONFIG_ROCKCHIP
+    unsigned long rk_extra_buf_addr;
+#endif
+#ifdef CONFIG_CMD_FASTBOOT
+    unsigned long fastboot_buf_addr;
+#endif
 };
 
 #include <asm-generic/global_data.h>

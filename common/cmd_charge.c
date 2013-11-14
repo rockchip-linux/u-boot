@@ -39,19 +39,21 @@
 static int current_index = 0;
 static struct battery batt_status;
 
+DECLARE_GLOBAL_DATA_PTR;
+
 static void load_image(int index)
 {
     if (bmp_images[index].loaded)
         return;
-#ifndef CONFIG_BMP_IMAGES_BUFFER
+#ifndef CONFIG_CMD_FASTBOOT
     return;
-#endif
+#else
     if (((bmp_images[index].offset + bmp_images[index].size) * RK_BLK_SIZE)
-            > CONFIG_BMP_IMAGES_SIZE) {
+            > CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE) {
         FBTDBG("size overflow!\n");
         return;
     }
-    uint32_t addr = CONFIG_BMP_IMAGES_BUFFER + bmp_images[index].offset * RK_BLK_SIZE;
+    uint32_t addr = gd->arch.fastboot_buf_addr + bmp_images[index].offset * RK_BLK_SIZE;
     fbt_partition_t *ptn = fastboot_find_ptn("charge");
     if (!ptn) {
         FBTDBG("partition not found!\n");
@@ -70,8 +72,8 @@ static void load_image(int index)
     }
 
     bmp_images[index].offset = addr + RK_BLK_SIZE;
-    //FBTDBG("load image(%d), offset:%x, start:%x\n", index, addr + RK_BLK_SIZE, CONFIG_BMP_IMAGES_BUFFER);
     bmp_images[index].loaded = 1;
+#endif
 }
 
 static uint32_t get_image(int index)

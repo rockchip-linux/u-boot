@@ -50,8 +50,6 @@ Revision:       1.00
  * 1MB = 0x100000, 0x100000 = 1024 * 1024
  */
 #define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 20))
-#define CONFIG_SYS_GBL_DATA_SIZE	128	/* size in bytes for */
-						/* initial data */
 
 /*
  * select serial console configuration
@@ -62,9 +60,9 @@ Revision:       1.00
 /*
  * Hardware drivers
  */
-/* used for MMU */
+/* base definition of ram addr & size */
 #define RAM_PHY_START			0x60000000
-#define RAM_PHY_END			0x68000000
+#define RAM_PHY_END			    0x68000000
 
 /* uart config */
 #define	CONFIG_RK30_UART
@@ -110,18 +108,11 @@ Revision:       1.00
 #define CONFIG_USE_IRQ
 #define CONFIG_SYS_RAMBOOT
 
-/*
- * memtest setup
- */
 /* DRAM Base */
-#define CONFIG_SYS_SDRAM_BASE		0x60000000		/* Physical start address of SDRAM. */
-#define CONFIG_SYS_INIT_SP_ADDR 	(0x60400000 - 0x8000)	
+#define CONFIG_SYS_SDRAM_BASE		RAM_PHY_START		/* Physical start address of SDRAM. */
 
-#define CONFIG_SYS_MEMTEST_START	CONFIG_SYS_SDRAM_BASE
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_SDRAM_BASE + 0x1000000)
-
-/* Default load address */
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_SYS_SDRAM_BASE
+//sp addr before relocate.
+#define CONFIG_SYS_INIT_SP_ADDR     RAM_PHY_END
 
 //#define CONFIG_SYS_ICACHE_OFF
 //#define CONFIG_SYS_DCACHE_OFF
@@ -132,7 +123,6 @@ Revision:       1.00
  *
  * The stack sizes are set up in start.S using the settings below
  */
-#define CONFIG_STACKSIZE	(256 << 10)	/* 256 KiB */
 #ifdef CONFIG_USE_IRQ
 #  define CONFIG_STACKSIZE_IRQ	0x10000
 #  define CONFIG_STACKSIZE_FIQ	0x1000
@@ -145,32 +135,20 @@ Revision:       1.00
  * is mapped to one contiguous block
  */
 #define CONFIG_NR_DRAM_BANKS	1
-#define PHYS_SDRAM_1		CONFIG_SYS_SDRAM_BASE	/* OneDRAM Bank #0 */
-#define PHYS_SDRAM_1_SIZE	(128 << 20)		/* 128 MB in Bank #0 */
-#define CONFIG_SYS_SDRAM_SIZE PHYS_SDRAM_1_SIZE
+#define PHYS_SDRAM_1            CONFIG_SYS_SDRAM_BASE /* OneDRAM Bank #0 */
+#define PHYS_SDRAM_1_SIZE       (RAM_PHY_END - RAM_PHY_START) /* 128 MB in Bank #0 */
+#define CONFIG_SYS_SDRAM_SIZE   PHYS_SDRAM_1_SIZE
 
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
-
-/*
- * Monitor config
- */
-#define CONFIG_SYS_MONITOR_BASE		0x60000000	/* Physical start address of boot monitor code */
-							/* be same as the text base address CONFIG_SYS_TEXT_BASE */
-#define CONFIG_SYS_MONITOR_LEN		(256 << 10)	/* 256 KiB */
-
-
-
 #define CONFIG_ENV_IS_IN_RK_EMMC	1		/* Store ENV in emmc only */
-#define CONFIG_ENV_ADDR		CONFIG_SYS_MONITOR_BASE
 
 /* sys data(blk 8064), 0-2 was used in boot.c, so we use blk 3.*/
 #define CONFIG_ENV_OFFSET       (3 << 9)
 
 #define CONFIG_ENV_SIZE	        0x200
-#undef  CONFIG_CMD_SAVEENV
-#define CONFIG_CMD_SAVEENV      1
+#define CONFIG_CMD_SAVEENV
 
 #define RK_BLK_SIZE             512
 
@@ -186,15 +164,14 @@ Revision:       1.00
  */
 #define CONFIG_CMD_FASTBOOT
 #define CONFIG_FASTBOOT_LOG
-#define CONFIG_BMP_IMAGES_BUFFER     				0x68000000 //128M
-#define CONFIG_BMP_IMAGES_SIZE       				SZ_16M
+#define CONFIG_FASTBOOT_LOG_SIZE                    (SZ_2M)
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH   (SZ_16M)
 //CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE should be at least 2*CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
 //and larger than our boot/recovery image size.
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (3*CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH)
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER             (CONFIG_BMP_IMAGES_BUFFER + CONFIG_BMP_IMAGES_SIZE)
-#define CONFIG_FB_ADDR 								CONFIG_FASTBOOT_TRANSFER_BUFFER+CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE//0x91800000    //kernel reserve memory behind fb0 buf
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH << 1)
 
+//for board/rockchip/rk30xx/rkloader.c setup_space.
+#define CONFIG_RK_EXTRA_BUFFER_SIZE                 (SZ_4M)
 
 /* Fastboot product name */
 #define FASTBOOT_PRODUCT_NAME   "fastboot"
