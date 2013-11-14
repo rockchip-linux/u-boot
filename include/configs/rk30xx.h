@@ -65,6 +65,8 @@ Revision:       1.00
 #define RAM_PHY_START			CONFIG_SYS_TEXT_BASE
 #define RAM_PHY_END			    0x68000000
 
+#define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 4)
+
 /* uart config */
 #define	CONFIG_RK30_UART
 #define CONFIG_UART_NUM   		UART_CH2

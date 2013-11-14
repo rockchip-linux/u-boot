@@ -19,6 +19,137 @@ Revision:   1.00
 extern void FtlReIntForUpdate(void);
 extern uint32 FTLLowFormat(void);
 
+#define rknand_print_hex(...)
+pLOADER_MEM_API_T gp_loader_api = NULL;
+uint32 gMedia = 0;
+int LMemApiReadId(uint32 chipSel , void *pbuf)
+{
+    int ret = FTL_ERROR;
+    if(gp_loader_api->ReadId)
+    {
+        gp_loader_api->ReadId(chipSel, pbuf);
+        ret = FTL_OK;
+    }
+    return ret;
+}
+
+int LMemApiFlashInfo( void *pbuf)
+{
+    int ret = FTL_ERROR;
+    if(gp_loader_api->ReadInfo)
+    {
+       gp_loader_api->ReadInfo(pbuf);
+       ret = FTL_OK;
+    }
+    return ret;
+}
+
+int LMemApiReadPba(uint32 PBA , void *pbuf, uint16 nSec )
+{
+    int ret = FTL_ERROR;
+    if(gp_loader_api->ReadPba)
+       ret = gp_loader_api->ReadPba(0, PBA, pbuf, nSec );
+    return ret;
+}
+
+int LMemApiWritePba(uint32 PBA , void *pbuf, uint16 nSec )
+{
+    int ret = FTL_ERROR;
+    if(gp_loader_api->WritePba)
+       ret = gp_loader_api->WritePba(0, PBA , pbuf, nSec);
+    return ret;
+}
+
+int LMemApiReadLba( uint32 LBA ,void *pbuf  , uint16 nSec)
+{
+    int ret = FTL_ERROR;
+    if(gp_loader_api->ReadLba)
+       ret = gp_loader_api->ReadLba(0, LBA , pbuf, nSec );
+    return ret;
+}
+
+int LMemApiWriteLba( uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode)
+{
+    int ret = FTL_ERROR;
+    if(gp_loader_api->WriteLba)
+       ret = gp_loader_api->WriteLba(0, LBA , pbuf, nSec,mode);
+    return ret;
+}
+
+uint32 LMemApiGetCapacity(void)
+{
+    uint32 ret = FTL_ERROR;
+    if(gp_loader_api->GetCapacity)
+       ret = gp_loader_api->GetCapacity(gpMemFun->id);
+    return ret;
+}
+
+
+uint32 LMemApiSysDataLoad(uint32 Index,void *Buf)
+{
+    uint32 ret = FTL_ERROR;
+    ftl_memset(Buf,0,512);
+    if(gp_loader_api->SysDataLoad)
+       ret = gp_loader_api->SysDataLoad(gpMemFun->id, Index,Buf);
+    return ret;
+}
+
+uint32 LMemApiSysDataStore(uint32 Index,void *Buf)
+{
+    uint32 ret = FTL_ERROR;
+    if(gp_loader_api->SysDataStore)
+       ret = gp_loader_api->SysDataStore(gpMemFun->id, Index,Buf);
+    return ret;
+}
+
+uint32 lMemApiInit(void)
+{
+    gp_loader_api = (pLOADER_MEM_API_T)(*((uint32*)CONFIG_RKNAND_API_ADDR)); // get api table
+    if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000)
+    {
+        if(gp_loader_api->id==1)
+        {
+            return 1; //nand
+        }
+        else if(gp_loader_api->id==2)
+        {
+            return 2; // emmc
+        }
+        else
+        {
+            return -1;
+        }        
+    }
+    else
+    {
+        return -1;
+        //error   
+    }
+}
+
+uint8 testbuf[1024];
+uint32 loaderapitest(void)
+{
+    gMedia = lMemApiInit();
+    if(gMedia == 1) // nand flash
+    {
+        uint32 i,blksize;
+        FLASH_INFO flashInfo;
+        LMemApiFlashInfo(&flashInfo);
+        blksize = flashInfo.BlockSize;
+        //test
+        LMemApiReadId(0,testbuf);
+        rknand_print_hex("id",testbuf,1, 16);
+        for(i=0;i<20;i++)
+        {
+            PRINT_E("read idb = %x\n",i);
+            LMemApiReadPba(i*blksize,testbuf,1);
+            rknand_print_hex("idb",testbuf,1, 16);
+        }
+    }
+    return 0;
+}
+
 #ifdef RK_FLASH_BOOT_EN
 MEM_FUN_T NandFunOp = 
 {
