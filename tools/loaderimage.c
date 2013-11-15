@@ -167,7 +167,7 @@ int main (int argc, char *argv[])
         }
         memset(&hdr, 0, sizeof(second_loader_hdr));
         strcpy(hdr.magic, RK_UBOOT_MAGIC);
-        hdr.loader_load_addr = 0x60000000;
+        hdr.loader_load_addr = CONFIG_SYS_TEXT_BASE;
         hdr.loader_load_size = size;
         fread(buf + sizeof(second_loader_hdr), size, 1, fi);
         hdr.crc32 = crc32(buf + sizeof(second_loader_hdr), size);
