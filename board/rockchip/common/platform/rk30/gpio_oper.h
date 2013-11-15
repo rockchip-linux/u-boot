@@ -3,7 +3,6 @@
 #define LONE_PRESS_TIME		1500//ms
 #define KEY_LONG_PRESS			-1
 #define KEY_SHORT_PRESS			1
-#define KEY_ARRAY_SIZE   		10
 typedef enum{
     KEY_GPIO = 0,   // IO°´¼ü
     KEY_AD,      // AD°´¼ü
@@ -47,9 +46,8 @@ typedef struct
 	uint32	io_read;
 	uint32	io_dir_conf;
 	uint32  io_debounce;
-	uint32  pressed;
-	uint32  time;
-	char    array[10];
+	volatile uint32  pressed_state;
+	volatile uint32  press_time;
 }int_conf;
 
 typedef struct {

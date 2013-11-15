@@ -120,8 +120,8 @@ void setup_int(int_conf *key_int)
 	key_int->io_read = base_addr+0x50;
 	key_int->io_dir_conf = base_addr+0x4;
 	key_int->io_debounce = base_addr+0x48;
-	key_int->pressed = 0;
-	key_int->time = 0;
+	key_int->pressed_state = 0;
+	key_int->press_time = 0;
 	//write_XDATA32(key_int->io_dir_conf, read_XDATA32(key_int->int_mask)&(~(1ul<<key_int->index)));
 	//write_XDATA32(key_int->int_eoi, (read_XDATA32(key_int->int_eoi)|(1ul<<key_int->index)));
 	write_XDATA32(key_int->int_mask, read_XDATA32(key_int->int_mask)&(~(1ul<<key_int->index)));
@@ -134,9 +134,6 @@ void setup_int(int_conf *key_int)
 		write_XDATA32(key_int->int_polarity, read_XDATA32(key_int->int_polarity)&(~(1ul<<key_int->index)));
 	//printf("polarity:%x\n", read_XDATA32(key_int->int_polarity));
 	write_XDATA32(key_int->int_en, read_XDATA32(key_int->int_en)|(1ul<<key_int->index));
-	memset(key_int->array, 0, KEY_ARRAY_SIZE);
-	char *array = key_int->array;
-	//printf("key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
 }
 
 void gpio_isr(int gpio_group)
@@ -172,29 +169,36 @@ void gpio_isr(int gpio_group)
 				serial_printf("gpio isr in wfi\n");
 				return;
 			}
-			if(ioint->pressed)
+			if(ioint->press_time)
 			{
-				char *array = ioint->array;
-				//serial_printf("before released, key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
-				for(i=0;i<KEY_ARRAY_SIZE;i++)
-				{
-					if(!array[i])
-					{
-						array[i] = (get_duration(ioint->time)>LONE_PRESS_TIME) ? KEY_LONG_PRESS:KEY_SHORT_PRESS;
-						break;
-					}
-				}
-				if(i>=KEY_ARRAY_SIZE)
-					serial_printf("key array full\n");
-				//serial_printf("released, key:%x %x %x %x %x %x %x %x \n", array[0], array[1], array[2], array[3], array[4], array[5], array[6], array[7]);
-				ioint->pressed = 0;
-				ioint->time = 0;
+                //it's key up.
+                int type = (get_duration(ioint->press_time)>LONE_PRESS_TIME) ? KEY_LONG_PRESS:KEY_SHORT_PRESS;
+				ioint->press_time = 0;
+
+                //we should make sure long press event will pass to user.
+                //we should ignore double short press.
+                switch (ioint->pressed_state) {
+                    case KEY_LONG_PRESS:
+                        //still have a long pressed to be process.
+                        //do nothing here, should not skip this long press event.
+                        break;
+                    case KEY_SHORT_PRESS:
+                        if (type == KEY_LONG_PRESS)
+                            //new long press, ignore old short press event.
+                            ioint->pressed_state = type;
+                        else
+                            //ignore double press.
+                            ioint->pressed_state = 0;
+                        break;
+                    default:
+                        //new press event.
+                        ioint->pressed_state = type;
+                        break;
+                }
 			}
 			else
 			{
-				ioint->pressed = 1;
-				ioint->time = get_rk_current_tick();
-				//serial_printf("pressed time:%d\n", ioint->time);
+				ioint->press_time = get_rk_current_tick();
 			}
 			
 			serial_printf("switch polarity\n");
@@ -280,20 +284,18 @@ int GetPortState(key_config *key)
 	{
 		if(read_XDATA32(ioint->int_en)&(1ul<<ioint->index))
 		{
-			char *array = ioint->array;
-			int i, type;
-			
-			if(array[0])
+			if(ioint->press_time)
 			{
-				type = array[0];
-				memcpy(array, array+1, KEY_ARRAY_SIZE-1);
-				return type;
-			}else if(ioint->pressed)
-			{
-				if(get_duration(ioint->time)>LONE_PRESS_TIME)
-					return KEY_LONG_PRESS;
+                //still pressed
+				if(get_duration(ioint->press_time)>LONE_PRESS_TIME) {
+                    //update state, if it's a long press.
+                    ioint->pressed_state = KEY_LONG_PRESS;
+                }
 			}
-			return 0;
+            //return and reset state.
+            int type = ioint->pressed_state;
+            ioint->pressed_state = 0;
+            return type;
 		}
 	}
 #else

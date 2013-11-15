@@ -142,7 +142,6 @@ static uint32_t get_next_image() {
 }
 
 static int sleep = false;
-static long long power_hold_time = 0; // hold 178s may overflow...
 static long long screen_on_time = 0; // 178s may overflow...
 
 #define DELAY 50000 //us
@@ -202,7 +201,7 @@ void do_sleep()
 
 int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-    int power_pressed = 0;
+    int power_pressed_state = 0;
     int count = 0;
 
     get_power_bat_status(&batt_status);
@@ -223,12 +222,12 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             goto shutdown;
         }
 
-        power_pressed = power_hold();
-        //printf("pressed:%x, hold:%lld\n", power_pressed, power_hold_time);
-		if(power_pressed>0){
+        power_pressed_state = power_hold();
+        //printf("pressed state:%x\n", power_pressed_state);
+		if(power_pressed_state > 0) {
 			do_sleep();
 			//printf("sleep end\n");
-		}else if(power_pressed<0){
+		} else if(power_pressed_state <0){
 			//long pressed key, continue bootting.
 			goto boot;
 		}
