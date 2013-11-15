@@ -8,7 +8,8 @@ int KeyCombinationNum;
 key_config		key_rockusb;
 key_config		key_recovery;
 key_config		key_fastboot;
-key_config		key_powerHold;
+key_config		pin_powerHold;
+key_config      key_power;
 key_config		key_combination[MAX_COMBINATION_KEY];
 
 //uint8 gParamBuffer[MAX_LOADER_PARAM];	// 限制最大的Parameters的字节数为:32*512
@@ -269,8 +270,8 @@ void ParseLine(PBootInfo pboot_info, char *line)
 	{//  RECOVER_KEY: 0,4,A,2,0  ==> GPIO4 PA2 低有效
     	line += strlen("PWR_HLD:");
     	EATCHAR(line, ' ');
-        setup_key(line, &key_powerHold);
-        if(key_powerHold.key.gpio.valid)
+        setup_key(line, &pin_powerHold);
+        if(pin_powerHold.key.gpio.valid)
             powerOn();
 	}
 	else if( !memcmp(line, "COMBINATION_KEY:", strlen("COMBINATION_KEY:")) )

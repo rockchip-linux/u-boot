@@ -1983,6 +1983,7 @@ void fbt_preboot(void)
 #endif
     }
 #ifdef CONFIG_ROCKCHIP
+PowerHoldPinInit();
 #ifdef CONFIG_LCD
     lcd_enable_logo(true);
     rk_backlight_ctrl(48);

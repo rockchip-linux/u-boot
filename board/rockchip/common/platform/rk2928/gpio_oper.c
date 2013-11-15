@@ -175,18 +175,18 @@ void RockusbKeyInit(key_config *key)
         key->key.adc.keyValueLow = 0;
         key->key.adc.keyValueHigh= 1023;
     }*/
-    key_powerHold.type = KEY_GPIO;
-    key_powerHold.key.gpio.group = 1;
-    key_powerHold.key.gpio.valid = 1; 
+    key_power.type = KEY_GPIO;
+    key_power.key.gpio.group = 1;
+    key_power.key.gpio.valid = 1; 
     if(g_Rk2928xxChip == RK2928G_CHIP_TAG)
     {
-    	key_powerHold.key.gpio.index = 1; 
+    	key_power.key.gpio.index = 1; 
     }
     else if(g_Rk2928xxChip == RK2926_CHIP_TAG)
     {
-    	key_powerHold.key.gpio.index = 2; 
+    	key_power.key.gpio.index = 2; 
     }
-    setup_gpio(&key_powerHold.key.gpio);
+    setup_gpio(&key_power.key.gpio);
 }
 
 #if 0

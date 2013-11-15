@@ -114,49 +114,60 @@ void FastbootKeyInit(key_config *key)
     key->key.adc.ctrl = SARADC_BASE+8;
 }
 
-void PowerHoldKeyInit()
+void PowerHoldPinInit()
+{
+   // pin_powerHold.type = KEY_GPIO;
+   // pin_powerHold.key.gpio.valid = 1; 
+
+  //  pin_powerHold.key.gpio.group = 0;
+  //  pin_powerHold.key.gpio.index = 0; // gpio0A0
+  //  setup_gpio(&pin_powerHold.key.gpio);
+  //  if(pin_powerHold.key.gpio.valid)
+  //      powerOn();
+}
+void PowerKeyInit()
 {
 #if 0
-    key_powerHold.type = KEY_GPIO;
-    key_powerHold.key.gpio.valid = 0; 
+    key_power.type = KEY_GPIO;
+    key_power.key.gpio.valid = 0; 
     if(ChipType == CHIP_RK3066)
     {
-        key_powerHold.key.gpio.group = 6;
-        key_powerHold.key.gpio.index = 8; // gpio6B0
+        key_power.key.gpio.group = 6;
+        key_power.key.gpio.index = 8; // gpio6B0
     }
     else
     {
-        key_powerHold.key.gpio.group = 0;
-        key_powerHold.key.gpio.index = 4; // gpio0A4
+        key_power.key.gpio.group = 0;
+        key_power.key.gpio.index = 4; // gpio0A4
         //rknand_print_hex("grf:", g_3188_grfReg,1,512);
     }
 
-    setup_gpio(&key_powerHold.key.gpio);
-    if(key_powerHold.key.gpio.valid)
+    setup_gpio(&key_power.key.gpio);
+    if(key_power.key.gpio.valid)
         powerOn();
 #else
-    key_powerHold.type = KEY_INT;
-    key_powerHold.key.ioint.valid = 0; 
+    key_power.type = KEY_INT;
+    key_power.key.ioint.valid = 0; 
     if(ChipType == CHIP_RK3066)
     {
-        key_powerHold.key.ioint.group = 6;
-        key_powerHold.key.ioint.index = 8; // gpio6B0
+        key_power.key.ioint.group = 6;
+        key_power.key.ioint.index = 8; // gpio6B0
     }
     else
     {
-        key_powerHold.key.ioint.group = 0;
-        key_powerHold.key.ioint.index = 4; // gpio0A4
+        key_power.key.ioint.group = 0;
+        key_power.key.ioint.index = 4; // gpio0A4
     }
 	printf("setup gpio int\n");
 	clr_all_gpio_int();
-    setup_int(&key_powerHold.key.ioint);
+    setup_int(&key_power.key.ioint);
 	IRQEnable(INT_GPIO0);
 #endif
 
 }
 
 int power_hold() {
-    return GetPortState(&key_powerHold);
+    return GetPortState(&key_power);
 }
 
 void reset_cpu(ulong ignored)
@@ -362,7 +373,7 @@ int board_late_init(void)
     RockusbKeyInit(&key_rockusb);
     FastbootKeyInit(&key_fastboot);
     RecoveryKeyInit(&key_recovery);
-	PowerHoldKeyInit();
+	PowerKeyInit();
     ChargerStateInit();
 
     getParameter();

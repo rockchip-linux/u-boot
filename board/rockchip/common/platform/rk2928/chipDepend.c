@@ -529,7 +529,7 @@ void powerOff(void)
 
 void power_io_ctrl(uint8 mode)
 {
-    gpio_conf *key_gpio = &key_powerHold.key.gpio;
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
     if(mode)         // 输出高电平
     {
         write_XDATA32((key_gpio->io_write), ReadReg32((key_gpio->io_write))|((1ul<<key_gpio->index))); //out put high
@@ -544,13 +544,13 @@ void power_io_ctrl(uint8 mode)
 
 void powerOn(void)
 {
-    gpio_conf *key_gpio = &key_powerHold.key.gpio;
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
     power_io_ctrl((key_gpio->valid)&0x01);
 }
 
 void powerOff(void)
 {
-    gpio_conf *key_gpio = &key_powerHold.key.gpio;
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
     power_io_ctrl((key_gpio->valid&0x01)==0);
 }
 

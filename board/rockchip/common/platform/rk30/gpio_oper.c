@@ -158,9 +158,9 @@ void gpio_isr(int gpio_group)
    }
    int_eoi = base_addr+0x4c;
 
-	if(key_powerHold.type==KEY_INT)
+	if(key_power.type==KEY_INT)
 	{
-		int_conf* ioint = &key_powerHold.key.ioint; 
+		int_conf* ioint = &key_power.key.ioint; 
 		int i;
 		serial_printf("gpio_group = %d, int_status = %x \n ",gpio_group,read_XDATA32(ioint->int_status));
 		if(read_XDATA32(ioint->int_status)&(1ul<<ioint->index))
@@ -432,21 +432,21 @@ void FastbootKeyInit(key_config *key)
 
 void PowerHoldKeyInit()
 {
-    key_powerHold.type = KEY_GPIO;
-    key_powerHold.key.gpio.valid = 1; 
+    key_power.type = KEY_GPIO;
+    key_power.key.gpio.valid = 1; 
     if(ChipType == CHIP_RK3066)
     {
-        key_powerHold.key.gpio.group = 6;
-        key_powerHold.key.gpio.index = 8; // gpio6B0
+        key_power.key.gpio.group = 6;
+        key_power.key.gpio.index = 8; // gpio6B0
     }
     else
     {
-        key_powerHold.key.gpio.group = 0;
-        key_powerHold.key.gpio.index = 0; // gpio0A0
+        key_power.key.gpio.group = 0;
+        key_power.key.gpio.index = 0; // gpio0A0
         //rknand_print_hex("grf:", g_3066B_grfReg,1,512);
     }
 
-    setup_gpio(&key_powerHold.key.gpio);
+    setup_gpio(&key_power.key.gpio);
 }
 
 void test_port()
