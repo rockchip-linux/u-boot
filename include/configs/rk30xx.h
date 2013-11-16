@@ -24,6 +24,7 @@ Revision:       1.00
 #define CONFIG_RK3168		3
 
 #define CONFIG_RKCHIPTYPE	CONFIG_RK3188
+//#define SECOND_LEVEL_BOOTLOADER
 
 #define HAVE_VENDOR_COMMON_LIB y
 
@@ -58,7 +59,7 @@ Revision:       1.00
 #define CONFIG_BAUDRATE			115200
 
 //define uboot loader addr.
-#if 0
+#ifdef SECOND_LEVEL_BOOTLOADER
 //2m offset for packed nand bin.
 #define CONFIG_SYS_TEXT_BASE    0x60200000
 #else
