@@ -57,18 +57,21 @@ Revision:       1.00
 #define CONFIG_SERIAL2			1	/* use SERIAL2 */
 #define CONFIG_BAUDRATE			115200
 
+//define uboot loader addr.
+#if 0
+//2m offset for packed nand bin.
+#define CONFIG_SYS_TEXT_BASE    0x60200000
+#else
+#define CONFIG_SYS_TEXT_BASE    0x60000000
+#endif
+
 /*
  * Hardware drivers
  */
 /* base definition of ram addr & size */
-#if 0
-#define CONFIG_SYS_TEXT_BASE    0x60200000//with 2m offset.
-#else
-#define CONFIG_SYS_TEXT_BASE    0x60000000
-#endif
 //size should be 2^x.(like 64m/128m/256m/512m...)
 #define RAM_PHY_SIZE            0x04000000
-#define RAM_PHY_START           CONFIG_SYS_TEXT_BASE
+#define RAM_PHY_START           0x60000000
 #define RAM_PHY_END             (RAM_PHY_START + RAM_PHY_SIZE)
 
 #define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 4)
