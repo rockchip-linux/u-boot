@@ -5,7 +5,7 @@
 #define     RK_USB_EN
 //#define     RK_FLASH_BOOT_EN
 //#define   RK_SPI_BOOT_EN
-#define     RK_SDMMC_BOOT_EN
+//#define     RK_SDMMC_BOOT_EN
 //#define   DRIVERS_EFUSE
 #define     SDMMC_SDC_ID        2
 #define     EMMC_BOOT_ENABLE    1

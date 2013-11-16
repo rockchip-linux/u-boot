@@ -78,12 +78,14 @@ Revision:		1.00
 #include    "parameter.h"
 
 
+#if 0
 #ifdef  DRIVERS_FLASH
 #include    "FlashBoot.h"
 #include 	"flash.h"	//FLASH头文件
 #include 	"ftl.h"	//FTL头文件
 #include    "LoaderFlash.h"
 #include    "FTL_OSDepend.h"
+#endif
 #endif
 
 #ifdef  DRIVERS_SDMMC

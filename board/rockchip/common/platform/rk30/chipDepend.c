@@ -498,8 +498,8 @@ void DisableRemap(void)
 void FW_NandDeInit(void)
 {
 #ifdef RK_FLASH_BOOT_EN 
-    FlashDeInit();
-    FlashTimingCfg(150*1000);
+    //FlashDeInit();
+    //FlashTimingCfg(150*1000);
 #endif
 #ifdef RK_SDMMC_BOOT_EN
     SdmmcDeInit();

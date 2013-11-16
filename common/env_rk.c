@@ -21,7 +21,7 @@ DEFINE_CACHE_ALIGN_BUFFER(char, env_buf, CONFIG_ENV_SIZE);
 DECLARE_GLOBAL_DATA_PTR;
 
 #if !defined(CONFIG_ENV_OFFSET)
-#define CONFIG_ENV_OFFSET (3 << 9) //0-2 used in board/rockchip/common/common/boot.c
+#define CONFIG_ENV_OFFSET           0
 #endif
 extern uint32_t StorageSysDataStore(uint32_t Index,void *Buf);
 extern uint32_t StorageSysDataLoad(uint32_t Index,void *Buf);
@@ -45,10 +45,10 @@ static inline int write_env(unsigned long size,
 
     for (i = 0;i < blk_cnt;i++)
     {
-        if(StorageSysDataStore(blk_start + i,
+        if(StorageUbootDataStore(blk_start + i,
                     buffer + i * RK_BLK_SIZE))
         {
-            printf("write_env StorageSysDataStore failed at %d\n",
+            printf("write_env StorageUbootDataStore failed at %d\n",
                     blk_start + i);
             return -1;
         }
@@ -91,10 +91,10 @@ static inline int read_env(unsigned long size,
 
     for (i = 0;i < blk_cnt;i++)
     {
-        if(StorageSysDataLoad(blk_start + i, 
+        if(StorageUbootDataLoad(blk_start + i, 
                     buffer + i * RK_BLK_SIZE))
         {
-            printf("read_env StorageSysDataLoad failed at %d\n",
+            printf("read_env StorageUbootDataLoad failed at %d\n",
                     blk_start + i);
             return -1;
         }

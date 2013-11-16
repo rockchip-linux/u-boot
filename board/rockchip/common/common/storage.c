@@ -19,7 +19,9 @@ Revision:   1.00
 extern void FtlReIntForUpdate(void);
 extern uint32 FTLLowFormat(void);
 
-#define rknand_print_hex(...)
+#ifdef RK_FLASH_BOOT_EN
+
+#define LMemApiFlashInfo        ReadFlashInfo
 pLOADER_MEM_API_T gp_loader_api = NULL;
 uint32 gMedia = 0;
 int LMemApiReadId(uint32 chipSel , void *pbuf)
@@ -44,7 +46,30 @@ int LMemApiFlashInfo( void *pbuf)
     return ret;
 }
 
-int LMemApiReadPba(uint32 PBA , void *pbuf, uint16 nSec )
+int LMemApiLowFormat()
+{
+    int ret = FTL_ERROR;
+    if(gp_loader_api->LowFormat)
+    {
+       gp_loader_api->LowFormat();
+       ret = FTL_OK;
+    }
+    return ret;
+}
+
+int LMemApiErase(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod)
+{
+    int ret = FTL_ERROR;
+    if(gp_loader_api->Erase)
+    {
+       gp_loader_api->Erase(ChipSel, blkIndex, nblk, mod);
+       ret = FTL_OK;
+    }
+    return ret;
+}
+
+//int LMemApiReadPba(uint32 PBA , void *pbuf, uint16 nSec )
+int LMemApiReadPba(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec )
 {
     int ret = FTL_ERROR;
     if(gp_loader_api->ReadPba)
@@ -52,7 +77,8 @@ int LMemApiReadPba(uint32 PBA , void *pbuf, uint16 nSec )
     return ret;
 }
 
-int LMemApiWritePba(uint32 PBA , void *pbuf, uint16 nSec )
+//int LMemApiWritePba(uint32 PBA , void *pbuf, uint16 nSec )
+int LMemApiWritePba(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec )
 {
     int ret = FTL_ERROR;
     if(gp_loader_api->WritePba)
@@ -60,23 +86,28 @@ int LMemApiWritePba(uint32 PBA , void *pbuf, uint16 nSec )
     return ret;
 }
 
-int LMemApiReadLba( uint32 LBA ,void *pbuf  , uint16 nSec)
+//int LMemApiReadLba( uint32 LBA ,void *pbuf  , uint16 nSec)
+int LMemApiReadLba(uint8 ChipSel, uint32 LBA ,void *pbuf  , uint16 nSec)
 {
     int ret = FTL_ERROR;
-    if(gp_loader_api->ReadLba)
-       ret = gp_loader_api->ReadLba(0, LBA , pbuf, nSec );
+    if(gp_loader_api->ReadLba) {
+       ret = gp_loader_api->ReadLba(0, LBA , nSec, pbuf);
+        printf("LMemApiReadLba:%d\n", ret);
+    }
     return ret;
 }
 
-int LMemApiWriteLba( uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode)
+//int LMemApiWriteLba( uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode)
+int LMemApiWriteLba(uint8 ChipSel, uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode)
 {
     int ret = FTL_ERROR;
     if(gp_loader_api->WriteLba)
-       ret = gp_loader_api->WriteLba(0, LBA , pbuf, nSec,mode);
+       ret = gp_loader_api->WriteLba(0, LBA , nSec, pbuf);
     return ret;
 }
 
-uint32 LMemApiGetCapacity(void)
+//uint32 LMemApiGetCapacity(void)
+uint32 LMemApiGetCapacity(uint8 ChipSel)
 {
     uint32 ret = FTL_ERROR;
     if(gp_loader_api->GetCapacity)
@@ -85,7 +116,8 @@ uint32 LMemApiGetCapacity(void)
 }
 
 
-uint32 LMemApiSysDataLoad(uint32 Index,void *Buf)
+//uint32 LMemApiSysDataLoad(uint32 Index,void *Buf)
+uint32 LMemApiSysDataLoad(uint8 ChipSel, uint32 Index,void *Buf)
 {
     uint32 ret = FTL_ERROR;
     ftl_memset(Buf,0,512);
@@ -94,7 +126,8 @@ uint32 LMemApiSysDataLoad(uint32 Index,void *Buf)
     return ret;
 }
 
-uint32 LMemApiSysDataStore(uint32 Index,void *Buf)
+//uint32 LMemApiSysDataStore(uint32 Index,void *Buf)
+uint32 LMemApiSysDataStore(uint8 ChipSel, uint32 Index,void *Buf)
 {
     uint32 ret = FTL_ERROR;
     if(gp_loader_api->SysDataStore)
@@ -102,7 +135,8 @@ uint32 LMemApiSysDataStore(uint32 Index,void *Buf)
     return ret;
 }
 
-uint32 lMemApiInit(void)
+//uint32 lMemApiInit(void)
+uint32 lMemApiInit(uint32 BaseAddr)
 {
     gp_loader_api = (pLOADER_MEM_API_T)(*((uint32*)CONFIG_RKNAND_API_ADDR)); // get api table
     if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000)
@@ -127,10 +161,21 @@ uint32 lMemApiInit(void)
     }
 }
 
+void rknand_print_hex(char* prefix, char* buf, int count, int size) {
+    printf("%s:\n", prefix);
+    int i, j;
+    for (i = 0;i < count;i++) {
+        for (j = 0;j < size;j++) {
+            printf("%02x", buf[i * size + j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
 uint8 testbuf[1024];
 uint32 loaderapitest(void)
 {
-    gMedia = lMemApiInit();
+    gMedia = lMemApiInit(0);
     if(gMedia == 1) // nand flash
     {
         uint32 i,blksize;
@@ -142,15 +187,31 @@ uint32 loaderapitest(void)
         rknand_print_hex("id",testbuf,1, 16);
         for(i=0;i<20;i++)
         {
-            PRINT_E("read idb = %x\n",i);
-            LMemApiReadPba(i*blksize,testbuf,1);
+            printf("read idb = %x\n",i);
+            LMemApiReadPba(0, i*blksize,testbuf,1);
             rknand_print_hex("idb",testbuf,1, 16);
         }
     }
     return 0;
 }
 
-#ifdef RK_FLASH_BOOT_EN
+#define FTLInit                 lMemApiInit
+#define FlashReadID             LMemApiReadId
+#define FlashBootReadPBA        LMemApiReadPba
+#define FlashBootWritePBA       LMemApiWritePba
+#define FlashBootReadLBA        LMemApiReadLba
+#define FlashBootWriteLBA       LMemApiWriteLba
+//#define ReadFlashInfo           LMemApiFlashInfo
+#define FlashBootGetCapacity    LMemApiGetCapacity
+#define FlashBootSysDataLoad    LMemApiSysDataLoad
+#define FlashBootSysDataStore   LMemApiSysDataStore
+#define FlashBootErase          LMemApiErase
+#define FTLLowFormat            LMemApiLowFormat
+
+#define FtlReIntForUpdate       NULL
+#define FtlGetCurEraseBlock     NULL
+#define FtlGetAllBlockNum       NULL
+
 MEM_FUN_T NandFunOp = 
 {
     0,
@@ -292,7 +353,6 @@ int32 StorageInit(void)
         return 0;
     }
 #endif
-
 #ifdef RK_SDMMC_BOOT_EN
     gpMemFun = &emmcFunOp;
     if(gpMemFun->Init(gpMemFun->id) == 0)
@@ -327,6 +387,12 @@ MEM_FUN_T *memFunTab[] =
 
 int32 StorageInit(void)
 {
+#if 0
+    printf("before test\n");
+    loaderapitest();
+    printf("end test\n");
+#endif
+
     uint32 memdev;
     
     SdmmcSDMInit();
@@ -442,7 +508,6 @@ uint32 StorageGetCapacity(void)
     return ret;
 }
 
-
 uint32 StorageSysDataLoad(uint32 Index,void *Buf)
 {
     uint32 ret = FTL_ERROR;
@@ -458,6 +523,15 @@ uint32 StorageSysDataStore(uint32 Index,void *Buf)
     if(gpMemFun->SysDataStore)
        ret = gpMemFun->SysDataStore(gpMemFun->id, Index,Buf);
     return ret;
+}
+
+#define UBOOT_SYS_DATA_OFFSET 64
+uint32 StorageUbootDataLoad(uint32 Index,void *Buf) {
+    StorageSysDataLoad(Index + UBOOT_SYS_DATA_OFFSET, Buf);
+}
+
+uint32 StorageUbootDataStore(uint32 Index,void *Buf) {
+    StorageSysDataStore(Index + UBOOT_SYS_DATA_OFFSET, Buf);
 }
 
 uint32 UsbStorageSysDataLoad(uint32 offset,uint32 len,uint32 *Buf)

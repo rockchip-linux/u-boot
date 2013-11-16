@@ -62,8 +62,10 @@ Revision:       1.00
 #ifdef SECOND_LEVEL_BOOTLOADER
 //2m offset for packed nand bin.
 #define CONFIG_SYS_TEXT_BASE    0x60200000
+#define RK_FLASH_BOOT_EN
 #else
 #define CONFIG_SYS_TEXT_BASE    0x60000000
+#define RK_SDMMC_BOOT_EN
 #endif
 
 /*
