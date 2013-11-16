@@ -8,7 +8,7 @@
 #include <search.h>
 #include <errno.h>
 
-char *env_name_spec = "RK EMMC";
+char *env_name_spec = "RK STORAGE";
 
 #ifdef ENV_IS_EMBEDDED
 env_t *env_ptr = &environment;
@@ -71,7 +71,7 @@ int saveenv(void)
 	}
 
 	env_new->crc = crc32(0, env_new->data, ENV_SIZE);
-	printf("Writing env to EMMC... \n");
+	printf("Writing env to storage... \n");
 	if (write_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, (u_char *)env_new)) {
 		puts("failed\n");
         return -1;
@@ -134,7 +134,7 @@ void env_relocate_spec(void)
 	interrupt_init();
 	enable_interrupts();
 	if( StorageInit() == 0)
-		printf("emmc init OK!\n");
+		printf("storage init OK!\n");
 	else
 		printf("Fail!\n");
 

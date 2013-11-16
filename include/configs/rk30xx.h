@@ -155,7 +155,7 @@ Revision:       1.00
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
-#define CONFIG_ENV_IS_IN_RK_EMMC	1		/* Store ENV in emmc only */
+#define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
 
 /* sys data(blk 8064), 0-2 was used in boot.c, so we use blk 3.*/
 #define CONFIG_ENV_OFFSET       (3 << 9)
