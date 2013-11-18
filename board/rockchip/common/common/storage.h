@@ -118,6 +118,8 @@ typedef uint32 (*Memory_GetBlkSize)(void);
 
 typedef uint32 (*Memory_FlashReadLba)(uint8 ChipSel, uint32 LBA , uint16 nSec, void *pbuf);
 typedef uint32 (*Memory_FlashWriteLba)(uint8 ChipSel, uint32 LBA , uint16 nSec, void *pbuf);
+typedef uint32 (*Memory_ftl_deinit)(void);
+typedef uint32 (*Memory_flash_deinit)(void);
 
 typedef void   (*uart_Trace)(const char* Format , ...);
 typedef struct LOADER_MEM_API_Tag
@@ -137,8 +139,8 @@ typedef struct LOADER_MEM_API_Tag
     Memory_ReadInfo ReadInfo;
     Memory_GetBlkSize getBlkSize;
     Memory_LowFormat LowFormat;
-    uint32 reversdfun1;
-    uint32 reversdfun2;
+    Memory_ftl_deinit ftl_deinit;
+    Memory_flash_deinit flash_deinit;
     Memory_GetCapacity GetCapacity;    //get capacity
     Memory_SysDataLoad SysDataLoad;    //vendor part,1MB
     Memory_SysDataStore SysDataStore;  //vendor part,1MB
