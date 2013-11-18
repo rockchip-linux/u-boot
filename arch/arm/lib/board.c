@@ -74,6 +74,7 @@ extern void dataflash_print_info(void);
 #include <i2c.h>
 #endif
 
+extern void DMADeInit(void);
 /************************************************************************
  * Coloured LED functionality
  ************************************************************************
@@ -376,10 +377,39 @@ void board_init_f(ulong bootflag)
 	gd->fb_base = CONFIG_FB_ADDR;
 #else
 	/* reserve memory for LCD display (always full pages) */
-	addr = lcd_setmem(addr);
-	gd->fb_base = addr;
+	gd->fb_base = lcd_setmem(addr);
+	debug("Reserving %ldk for fb buffers at %08lx\n", (addr - gd->fb_base) >> 10, gd->fb_base);
+	addr = gd->fb_base;
 #endif /* CONFIG_FB_ADDR */
 #endif /* CONFIG_LCD */
+
+#ifdef CONFIG_ROCKCHIP
+#ifndef CONFIG_RK_EXTRA_BUFFER_SIZE
+#define CONFIG_RK_EXTRA_BUFFER_SIZE (SZ_4M)
+#endif
+    /* reserve rk global buffers */
+    addr -= CONFIG_RK_EXTRA_BUFFER_SIZE;
+
+    gd->arch.rk_extra_buf_addr = addr;
+	debug("Reserving %ldk for rk global buffers at %08lx\n", CONFIG_RK_EXTRA_BUFFER_SIZE >> 10, addr);
+#endif
+
+#ifdef CONFIG_CMD_FASTBOOT
+#ifndef CONFIG_FASTBOOT_LOG_SIZE
+#define CONFIG_FASTBOOT_LOG_SIZE (SZ_2M)
+#endif
+    /* reserve fastboot log buffer */
+    addr -= CONFIG_FASTBOOT_LOG_SIZE;
+	debug("Reserving %ldk for fastboot log buffer at %08lx\n", CONFIG_FASTBOOT_LOG_SIZE >> 10, addr);
+#ifndef CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_32M)
+#endif
+    /* reserve fastboot transfer buffer(also use in fastboot charge animation. */
+    addr -= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE;
+
+    gd->arch.fastboot_buf_addr = addr;
+	debug("Reserving %ldk for fastboot transfer buffer at %08lx\n", CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 10, addr);
+#endif
 
 	/*
 	 * reserve memory for U-Boot code, data & bss
@@ -450,6 +480,7 @@ void board_init_f(ulong bootflag)
 #endif
 
 	debug("New Stack Pointer is: %08lx\n", addr_sp);
+    printf("total reserving memory(except stack) is :%dm\n", ((CONFIG_SYS_SDRAM_BASE + gd->ram_size - addr_sp) >> 20) + 1);
 
 #ifdef CONFIG_POST
 	post_bootmode_init();
@@ -595,7 +626,6 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	puts("NAND:  ");
 	nand_init();		/* go init the NAND */
 #endif
-
 #if defined(CONFIG_CMD_ONENAND)
 	onenand_init();
 #endif
@@ -609,7 +639,13 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	AT91F_DataflashInit();
 	dataflash_print_info();
 #endif
-
+	/* set up exceptions */
+	interrupt_init();
+	/* enable exceptions */
+	enable_interrupts();
+#ifdef CONFIG_PL330_DMA
+	DMAInit();
+#endif
 	/* initialize environment */
 	if (should_load_env())
 		env_relocate();
@@ -649,11 +685,7 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	misc_init_r();
 #endif
 
-	 /* set up exceptions */
-	interrupt_init();
-	/* enable exceptions */
-	enable_interrupts();
-
+	
 #ifndef CONFIG_ROCKCHIP
 	/* Initialize from environment */
 	load_addr = getenv_ulong("loadaddr", 16, load_addr);
@@ -662,8 +694,6 @@ void board_init_r(gd_t *id, ulong dest_addr)
 #ifdef CONFIG_BOARD_LATE_INIT
 	board_late_init();
 #endif
-
-    drv_lcd_init();
 
 #ifdef CONFIG_BITBANGMII
 	bb_miiphy_init();

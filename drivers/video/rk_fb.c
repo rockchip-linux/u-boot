@@ -29,7 +29,7 @@ static void lcd_panel_on(vidinfo_t *vid)
         vid->mipi_power();
     
     if (vid->backlight_on)
-        vid->backlight_on(1);
+        vid->backlight_on(50);
 
 }
 
@@ -54,10 +54,22 @@ void lcd_enable(void)
 {
     printf("%s [%d]\n",__FUNCTION__,__LINE__);
     if (panel_info.logo_on) {
-        rk30_lcdc_set_par(g_lcdbase, &panel_info);
+        rk30_lcdc_set_par(&panel_info.par[0].fb_info, &panel_info);
     }
-  
+
     lcd_panel_on(&panel_info);
+}
+
+void lcd_pandispaly(struct fb_dsp_info *info)
+{
+    if (panel_info.logo_on) {
+        rk30_lcdc_set_par(info, &panel_info);
+    }
+}
+
+void lcd_standby(int enable)
+{
+    rk30_lcdc_standby(enable);
 }
 
 /* dummy function */

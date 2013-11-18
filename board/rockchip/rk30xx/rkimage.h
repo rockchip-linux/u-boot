@@ -13,6 +13,26 @@ Revision:       1.00
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
 
+//from boot.c
+typedef struct tagDRM_KEY_INFO
+{
+    uint32 drmtag;           // "DRMK" 0x4B4D5244
+    uint32 drmLen;           // 504
+    uint32 keyBoxEnable;     // 0:flash 1:emmc 2:sdcard1 3:sdcard2
+    uint32 drmKeyLen;        //0 disable , 1~N : part 1~N
+    uint32 publicKeyLen;     //0 disable , 1:enable
+    uint32 secureBootLock;   //0 disable , 1:lock
+    uint32 secureBootLockKey;//¼Ó½âÃÜÊÇÊ¹ÓÃ
+    uint32 reserved0[(0x40-0x1C)/4];
+    uint8  drmKey[0x80];      // key data
+    uint32 reserved2[(0xFC-0xC0)/4];
+    uint8  publicKey[0x104];      // key data
+}DRM_KEY_INFO,*pDRM_KEY_INFO;
+
+extern DRM_KEY_INFO gDrmKeyInfo;
+
+
+
 #define TAG_KERNEL          0x4C4E524B
 
 typedef struct tagKernelImg {
@@ -81,5 +101,27 @@ typedef struct
 
 int handleRkFlash(char *name,
         struct cmd_fastboot_interface *priv);
+
+#define LOADER_MAGIC_SIZE     16
+#define LOADER_HASH_SIZE      32
+#define RK_UBOOT_MAGIC        "LOADER  "
+#define RK_UBOOT_SIGN_TAG     0x4E474953
+#define RK_UBOOT_SIGN_LEN     128
+typedef struct tag_second_loader_hdr
+{
+    uint8_t magic[LOADER_MAGIC_SIZE];  // "LOADER  "
+
+    uint32_t loader_load_addr;           /* physical load addr ,default is 0x60000000*/
+    uint32_t loader_load_size;           /* size in bytes */
+    uint32_t crc32;                      /* crc32 */
+    uint32_t hash_len;                   /* 20 or 32 , 0 is no hash*/
+    uint8_t hash[LOADER_HASH_SIZE];     /* sha */
+
+    uint8_t reserved[1024-32-32];
+    uint32_t signTag; //0x4E474953
+    uint32_t signlen; //128
+    uint8_t rsaHash[256];
+    uint8_t reserved2[2048-1024-256-8];
+}second_loader_hdr;
 
 #endif /* RKIMAGE_H */

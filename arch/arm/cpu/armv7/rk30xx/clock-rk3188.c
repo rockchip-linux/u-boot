@@ -281,6 +281,7 @@ struct pll_data {
 /* apll clock table, should be from high to low */
 static const struct pll_clk_set apll_clks[] = {
 	//rate, nr, nf, no,	core_div, core_periph_div, core_axi_div,	axi_div, hclk_div, pclk_div, ahb2apb_div
+	_APLL_SET_CLKS(1008000, 1, 84, 2,	1, 8, 4,			3, 2, 4, 2),
 	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 8, 4,			3, 2, 4, 2),
 	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 4, 4,			3, 2, 4, 2),
 };
@@ -290,7 +291,7 @@ static const struct pll_clk_set apll_clks[] = {
 static const struct pll_clk_set gpll_clks[] = {
 	//rate, nr, nf, no,	axi_div, hclk_div, pclk_div
 	_GPLL_SET_CLKS(768000, 1,  64, 2,    4, 2, 4),
-	_GPLL_SET_CLKS(594000, 2, 198, 4,    4, 2, 4),
+	_GPLL_SET_CLKS(594000, 2, 198, 4,    4, 1, 2),
 	_GPLL_SET_CLKS(300000, 1,  50, 4,    2, 1, 2),
 	_GPLL_SET_CLKS(297000, 2, 198, 8,    2, 1, 2),
 	_GPLL_SET_CLKS(148500, 2,  99, 8,    2, 1, 2),
@@ -316,19 +317,12 @@ static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
 	uint32 pll_state[4] = {1, 0, 2, 3};
 	uint32 bit = (0x20u << pll_state[pll_id]);
-	uint32 delay = 10000;
 
 	/* delay for pll lock */
-	while (delay > 0) {
+	while(1) {
 		if (g_grfReg->GRF_SOC_STATUS0 & bit)
 			break;
-		clk_slowmode_delayus(1);
-		delay--;
-	}
-
-	/* wait pll bit time out! */
-	if (delay <= 0) {
-		while(1);
+		clk_loop_delayus(1);
 	}
 }
 
@@ -364,19 +358,26 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 
 	/* PLL enter slow-mode */
 	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) + 16)) | (0x0<<(pll_id*4));
-	/* enter rest */
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x1<<5));
-
+	if (ChipType == CHIP_RK3188B) {
+		/* enter rest */
+		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x1<<5));
+	} else {
+		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x1<<1));
+	}
         g_cruReg->CRU_PLL_CON[pll_id][0] = clkset->pllcon0;
         g_cruReg->CRU_PLL_CON[pll_id][1] = clkset->pllcon1;
-		if (ChipType == CHIP_RK3188B) {
+	if (ChipType == CHIP_RK3188B) {
         	g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
-		}
+	}
 
-	clk_slowmode_delayus(5);
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x0<<5));
+	clk_loop_delayus(5);
+	if (ChipType == CHIP_RK3188B) {
+		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x0<<5));
+	} else {
+		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
+	}
 
-	clk_slowmode_delayus(clkset->rst_dly);
+	clk_loop_delayus(clkset->rst_dly);
 	/* delay for pll setup */
 	rkclk_pll_wait_lock(pll_id);
 

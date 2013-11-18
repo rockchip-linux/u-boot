@@ -97,6 +97,7 @@ Revision 1.2  2009/03/05 12:37:16  hxy
 void   SDPAM_FlushCache(void *adr, uint32 size)
 {
     //MMFlushCache(BOTHCACHE, CACREGION, adr, size);
+	flush_cache(adr,size);
 }
 
 /****************************************************************/
@@ -388,8 +389,8 @@ bool   SDPAM_DMAStart(SDMMC_PORT_E nSDCPort, uint32 dstAddr, uint32 srcAddr, uin
             mode = DMA_PERI_EMMC_RX;
         }
     }
-
-    if(DMAOK == DMAStart(dstAddr, srcAddr, size, mode, CallBack))
+//传入的dma size是以word为单位的，需要将其转为bytes为单位的长度
+    if(DMAOK == DMAStart(dstAddr, srcAddr, size<<2, mode, CallBack))
     {
         return TRUE;
     }
@@ -513,7 +514,6 @@ bool   SDPAM_DMAStop(SDMMC_PORT_E nSDCPort, bool rw)
             mode = DMA_PERI_EMMC_RX;
         }
     }
-
 #endif
 
     return TRUE;

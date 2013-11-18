@@ -29,7 +29,8 @@ COBJS-$(CONFIG_POWER_MAX8998) += pmic_max8998.o
 COBJS-$(CONFIG_POWER_MAX8997) += pmic_max8997.o
 COBJS-$(CONFIG_POWER_MUIC_MAX8997) += muic_max8997.o
 COBJS-$(CONFIG_POWER_MAX77686) += pmic_max77686.o
-
+COBJS-$(CONFIG_POWER_RICOH619) += pmic_ricoh619.o
+COBJS-$(CONFIG_POWER_RK_SAMPLE) += pmic_rk_sample.o
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))

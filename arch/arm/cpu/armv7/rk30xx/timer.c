@@ -23,7 +23,7 @@ DECLARE_GLOBAL_DATA_PTR;
 static unsigned long get_current_tick(void);
 
 
-static inline unsigned long long tick_to_time(unsigned long long tick)
+inline unsigned long long tick_to_time(unsigned long long tick)
 {
 	tick *= CONFIG_SYS_HZ;
 	do_div(tick, TIMER_FREQ);
@@ -57,15 +57,18 @@ int timer_init(void)
 	return 0;
 }
 
+inline unsigned long get_rk_current_tick()
+{
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+    return g_rk30Time0Reg->TIMER_CURR_VALUE;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+    return g_rk3188Time0Reg->TIMER_CURR_VALUE0;
+#endif
+}
 
 void reset_timer_masked(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-	gd->arch.lastinc = g_rk30Time0Reg->TIMER_CURR_VALUE;	/* Monotonic incrementing timer */
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-	gd->arch.lastinc = g_rk3188Time0Reg->TIMER_CURR_VALUE0;	/* Monotonic incrementing timer */
-#endif
-
+	gd->arch.lastinc = get_rk_current_tick();	/* Monotonic incrementing timer */
 	gd->arch.tbl = 0;				/* Last decremneter snapshot */
 }
 
@@ -84,20 +87,23 @@ unsigned long get_timer(unsigned long base)
 /* delay x useconds */
 void __udelay(unsigned long usec)
 {
-	unsigned long long tmp;
-	unsigned long long tmo;
+    long long tmo;
+    long long now, last;
 
-	tmo = usec_to_tick(usec);
+    tmo = usec_to_tick(usec);
 
-	/* get current timestamp */
-	tmp = get_current_tick();
-	if (tmp < tmo + 10000) {
-		reset_timer_masked();
-		tmp = get_current_tick();
-	}
-	tmp = tmp - tmo;
-
-	while (get_current_tick() > tmp);	/* loop till event */
+    /* get current timestamp */
+    last = get_rk_current_tick();
+    while (tmo > 0)	/* loop till event */
+    {
+        now = get_rk_current_tick();
+        if (last >= now) {
+            tmo -= last - now;
+        } else {
+            tmo -= 0xFFFFFFFF + last - now;
+        }
+        last = now;
+    }
 }
 
 
@@ -111,11 +117,7 @@ static unsigned long get_current_tick(void)
 {
 	unsigned long now;
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-	now = g_rk30Time0Reg->TIMER_CURR_VALUE;
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-	now = g_rk3188Time0Reg->TIMER_CURR_VALUE0;
-#endif
+    now = get_rk_current_tick();
 
 	if (gd->arch.lastinc >= now)
 		gd->arch.tbl -= (gd->arch.lastinc - now);

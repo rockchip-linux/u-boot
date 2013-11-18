@@ -424,7 +424,7 @@ Revision:       1.00
 typedef volatile struct tagLCDC_REG
 {
     /* offset 0x00~0xc0 */
-    unsigned int SYS_CFG;              //0x00 SYSTEM configure register
+    unsigned int SYS_CTRL;              //0x00 SYSTEM configure register
     unsigned int SWAP_CTRL;               //0x04 Data SWAP control
     unsigned int MCU_CTRL;         //0x08 MCU TIMING control register
     unsigned int BLEND_CTRL;              //0x0c Blending control register
@@ -479,21 +479,37 @@ typedef volatile struct tagLCDC_REG
 LCDC_REG regbak;
 
 /* Configure VENC for a given Mode (NTSC / PAL) */
-void rk30_lcdc_set_par(void * addr, vidinfo_t *vid)
+void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 {
-    LcdWrReg(WIN0_SCL_FACTOR_YRGB, v_X_SCL_FACTOR(0x1000) | v_Y_SCL_FACTOR(0x1000));
-	LcdWrReg(WIN0_SCL_FACTOR_CBR,v_X_SCL_FACTOR(0x1000)| v_Y_SCL_FACTOR(0x1000));
-	LcdMskReg(SYS_CFG, m_W0_FORMAT | m_W0_EN, v_W0_FORMAT(vid->logo_rgb_mode) | v_W0_EN(1));	      //zyw
-	LcdWrReg(WIN0_ACT_INFO,v_ACT_WIDTH(vid->vl_col) | v_ACT_HEIGHT(vid->vl_row));
-	LcdWrReg(WIN0_DSP_ST, v_DSP_STX(vid->vl_hspw + vid->vl_hbpd) | v_DSP_STY(vid->vl_vspw + vid->vl_vbpd));
-	LcdWrReg(WIN0_DSP_INFO, v_DSP_WIDTH(vid->vl_col)| v_DSP_HEIGHT(vid->vl_row));
-	LcdMskReg(WIN0_COLOR_KEY_CTRL, m_COLORKEY_EN | m_KEYCOLOR,
-			v_COLORKEY_EN(1) | v_KEYCOLOR(0));
+	struct layer_par *par = &vid->par[fb_info->layer_id];
+	if(par == NULL){
+		printf("%s lay_par==NULL,id=%d\n",fb_info->layer_id);
+	}
+	if(fb_info != &par->fb_info)
+		memcpy(&par->fb_info,fb_info,sizeof(struct fb_dsp_info *));
 
-	LcdWrReg(WIN0_VIR,v_VIRWIDTH(vid->vl_col));  //zyw
-		
-    LcdWrReg(WIN0_YRGB_MST, addr);
-    LCDC_REG_CFG_DONE();
+	switch(fb_info->layer_id){
+		case WIN0:
+			LcdWrReg(WIN0_SCL_FACTOR_YRGB, v_X_SCL_FACTOR(0x1000) | v_Y_SCL_FACTOR(0x1000));
+			LcdWrReg(WIN0_SCL_FACTOR_CBR,v_X_SCL_FACTOR(0x1000)| v_Y_SCL_FACTOR(0x1000));
+			LcdMskReg(SYS_CTRL,m_W0_FORMAT | m_W0_EN, v_W0_FORMAT(vid->logo_rgb_mode)| v_W0_EN(1));		//(inf->video_mode==0)
+			LcdWrReg(WIN0_ACT_INFO,v_ACT_WIDTH(fb_info->xact) | v_ACT_HEIGHT(fb_info->yact));
+			LcdWrReg( WIN0_DSP_ST, v_DSP_STX(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) | v_DSP_STY(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd));
+			LcdWrReg( WIN0_DSP_INFO, v_DSP_WIDTH(fb_info->xsize)| v_DSP_HEIGHT(fb_info->ysize));
+			LcdMskReg( WIN0_COLOR_KEY_CTRL, m_COLORKEY_EN | m_KEYCOLOR,
+					v_COLORKEY_EN(0) | v_KEYCOLOR(0));
+			LcdWrReg(WIN0_VIR,v_VIRWIDTH(fb_info->xvir));
+
+			LcdWrReg(WIN0_YRGB_MST, fb_info->yaddr);
+			break;
+		case WIN1:
+			printf("%s --->WIN1 not support \n");
+			break;
+		default:
+			printf("%s --->unknow lay_id \n");
+			break;
+	}
+       LCDC_REG_CFG_DONE();
 }
 
 int rk30_load_screen(vidinfo_t *vid)
@@ -565,13 +581,19 @@ void rk30_lcdc_enable(void)
     //LcdMskReg(DSP_CTRL1,m_BLANK_MODE ,v_BLANK_MODE(1));
 }
 
+void rk30_lcdc_standby(enable)
+{
+    LcdMskReg(SYS_CTRL, m_W0_EN, v_W0_EN(enable?0:1));
+    LCDC_REG_CFG_DONE();
+}
+
 int rk30_lcdc_init()
 {
     lcdc_clk_enable();
     #ifdef CONFIG_VCC_LCDC_1_8
         g_grfReg->GRF_IO_CON[4] = 0x40004000;
     #endif
-	LcdMskReg(SYS_CFG, m_LCDC_AXICLK_AUTO_ENABLE | m_W0_EN, v_LCDC_AXICLK_AUTO_ENABLE(1)|v_W0_EN(1));	      //zyw
+	LcdMskReg(SYS_CTRL, m_LCDC_AXICLK_AUTO_ENABLE | m_W0_EN, v_LCDC_AXICLK_AUTO_ENABLE(1)|v_W0_EN(1));	      //zyw
 //	LcdMskReg(INT_STATUS, m_FS_INT_EN, v_FS_INT_EN(1));  
 	LCDC_REG_CFG_DONE();  // write any value to  REG_CFG_DONE let config become effective
 	return 0;

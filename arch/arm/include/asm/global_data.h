@@ -59,6 +59,12 @@ struct arch_global_data {
 #ifdef CONFIG_OMAP
 	struct omap_boot_parameters omap_boot_params;
 #endif
+#ifdef CONFIG_ROCKCHIP
+    unsigned long rk_extra_buf_addr;
+#endif
+#ifdef CONFIG_CMD_FASTBOOT
+    unsigned long fastboot_buf_addr;
+#endif
 };
 
 #include <asm-generic/global_data.h>

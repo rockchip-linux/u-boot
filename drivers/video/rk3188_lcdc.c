@@ -323,37 +323,54 @@ typedef volatile struct tagLCDC_REG
 LCDC_REG regbak;
 
 /* Configure VENC for a given Mode (NTSC / PAL) */
-void rk30_lcdc_set_par(void * addr, vidinfo_t *vid)
+void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 {
-    LcdWrReg(WIN0_SCL_FACTOR_YRGB, v_X_SCL_FACTOR(0x1000) | v_Y_SCL_FACTOR(0x1000));
-	LcdWrReg(WIN0_SCL_FACTOR_CBR,v_X_SCL_FACTOR(0x1000)| v_Y_SCL_FACTOR(0x1000));
-	LcdMskReg(SYS_CTRL, m_WIN0_FORMAT | m_WIN0_EN, v_WIN0_FORMAT(vid->logo_rgb_mode) | v_WIN0_EN(1) );	      //zyw
-	LcdWrReg(WIN0_ACT_INFO,v_ACT_WIDTH(vid->vl_col) | v_ACT_HEIGHT(vid->vl_row));
-	LcdWrReg(WIN0_DSP_ST, v_DSP_STX(vid->vl_hspw + vid->vl_hbpd) | v_DSP_STY(vid->vl_vspw + vid->vl_vbpd));
-	LcdWrReg(WIN0_DSP_INFO, v_DSP_WIDTH(vid->vl_col)| v_DSP_HEIGHT(vid->vl_row));
-	LcdMskReg(WIN0_COLOR_KEY_CTRL, m_COLOR_KEY_EN | m_COLOR_KEY_VAL,
-			v_COLOR_KEY_EN(1) | v_COLOR_KEY_VAL(0));
-    switch(vid->logo_rgb_mode) 
-	{
-		case ARGB888:
-			LcdWrReg(WIN0_VIR,v_ARGB888_VIRWIDTH(vid->vl_col));  //zyw
+	struct layer_par *par = &vid->par[fb_info->layer_id];
+	if(par == NULL){
+		printf("%s lay_par==NULL,id=%d\n",fb_info->layer_id);
+	}
+	if(fb_info != &par->fb_info)
+		memcpy(&par->fb_info,fb_info,sizeof(struct fb_dsp_info *));
+
+	switch(fb_info->layer_id){
+		case WIN0:
+			LcdWrReg(WIN0_SCL_FACTOR_YRGB, v_X_SCL_FACTOR(0x1000) | v_Y_SCL_FACTOR(0x1000));
+			LcdWrReg(WIN0_SCL_FACTOR_CBR,v_X_SCL_FACTOR(0x1000)| v_Y_SCL_FACTOR(0x1000));
+			LcdMskReg(SYS_CTRL, m_WIN0_FORMAT | m_WIN0_EN, v_WIN0_FORMAT(vid->logo_rgb_mode) | v_WIN0_EN(1) );	      //zyw
+			LcdWrReg(WIN0_ACT_INFO,v_ACT_WIDTH(fb_info->xact) | v_ACT_HEIGHT(fb_info->yact));
+			LcdWrReg(WIN0_DSP_ST, v_DSP_STX(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) | v_DSP_STY(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd));
+			LcdWrReg(WIN0_DSP_INFO, v_DSP_WIDTH(fb_info->xsize)| v_DSP_HEIGHT(fb_info->ysize));
+			LcdMskReg(WIN0_COLOR_KEY_CTRL, m_COLOR_KEY_EN | m_COLOR_KEY_VAL,
+					v_COLOR_KEY_EN(1) | v_COLOR_KEY_VAL(0));
+			switch(vid->logo_rgb_mode) 
+			{
+				case ARGB888:
+					LcdWrReg(WIN0_VIR,v_ARGB888_VIRWIDTH(fb_info->xvir));  //zyw
+					break;
+				case RGB888:  //rgb888
+					LcdWrReg(WIN0_VIR,v_RGB888_VIRWIDTH(fb_info->xvir));
+					break;
+				case RGB565:  //rgb565
+					LcdWrReg(WIN0_VIR,v_RGB565_VIRWIDTH(fb_info->xvir));
+					break;
+				case YUV422:
+				case YUV420:   
+					LcdWrReg(WIN0_VIR,v_YUV_VIRWIDTH(fb_info->xvir));
+					break;
+				default:
+					LcdWrReg(WIN0_VIR,v_RGB888_VIRWIDTH(fb_info->xvir));
+					break;
+			}
+			LcdWrReg(WIN0_YRGB_MST0, fb_info->yaddr);
 			break;
-		case RGB888:  //rgb888
-			LcdWrReg(WIN0_VIR,v_RGB888_VIRWIDTH(vid->vl_col));
-			break;
-		case RGB565:  //rgb565
-			LcdWrReg(WIN0_VIR,v_RGB565_VIRWIDTH(vid->vl_col));
-			break;
-		case YUV422:
-		case YUV420:   
-			LcdWrReg(WIN0_VIR,v_YUV_VIRWIDTH(vid->vl_col));
+		case WIN1:
+			printf("%s --->WIN1 not support \n");
 			break;
 		default:
-			LcdWrReg(WIN0_VIR,v_RGB888_VIRWIDTH(vid->vl_col));
+			printf("%s --->unknow lay_id \n");
 			break;
 	}
-		
-    LcdWrReg(WIN0_YRGB_MST0, addr);
+
     LCDC_REG_CFG_DONE();
 }
 
@@ -428,6 +445,14 @@ void rk30_lcdc_enable(void)
     //LcdMskReg(DSP_CTRL1,m_BLANK_MODE ,v_BLANK_MODE(1));
 
 }
+
+/* Enable LCD and DIGITAL OUT in DSS */
+void rk30_lcdc_standby(enable)
+{
+    LcdMskReg(SYS_CTRL, m_WIN0_EN, v_WIN0_EN(enable?0:1));
+    LCDC_REG_CFG_DONE();  
+}
+
 
 int rk30_lcdc_init()
 {

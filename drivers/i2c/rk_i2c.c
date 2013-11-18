@@ -98,7 +98,7 @@ struct rk30_i2c {
 };
 
 #ifdef CONFIG_I2C_MULTI_BUS
-static struct rk30_i2c rki2c_base[I2C_BUS_MAX] = {
+ struct rk30_i2c rki2c_base[I2C_BUS_MAX] = {
 	{ .regs = I2C0_BASE_ADDR + SZ_4K, 0 },
 	{ .regs = I2C1_BASE_ADDR + SZ_4K, 0 },
 	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },

@@ -16,7 +16,7 @@
 *.patch
 *.bin
 *.cfgtmp
-
+*.img
 # Build tree
 /build-*
 

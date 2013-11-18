@@ -167,11 +167,10 @@ static inline u8 i2c_reg_read(u8 addr, u8 reg)
 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 #endif
 
-#ifdef DEBUG
-	printf("%s: addr=0x%02x, reg=0x%02x\n", __func__, addr, reg);
-#endif
-
 	i2c_read(addr, reg, 1, &buf, 1);
+#ifdef DEBUG
+        printf("%s: addr=0x%02x, reg=0x%02x, buf=0x%02x\n", __func__, addr, reg, buf);
+#endif
 
 	return buf;
 }

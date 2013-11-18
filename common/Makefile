@@ -65,7 +65,7 @@ XCOBJS-$(CONFIG_ENV_IS_IN_FLASH) += env_embedded.o
 COBJS-$(CONFIG_ENV_IS_IN_NVRAM) += env_embedded.o
 COBJS-$(CONFIG_ENV_IS_IN_FLASH) += env_flash.o
 COBJS-$(CONFIG_ENV_IS_IN_MMC) += env_mmc.o
-COBJS-$(CONFIG_ENV_IS_IN_RK_EMMC) += env_rk_emmc.o
+COBJS-$(CONFIG_ENV_IS_IN_RK_STORAGE) += env_rk.o
 COBJS-$(CONFIG_ENV_IS_IN_FAT) += env_fat.o
 COBJS-$(CONFIG_ENV_IS_IN_NAND) += env_nand.o
 COBJS-$(CONFIG_ENV_IS_IN_NVRAM) += env_nvram.o
@@ -202,6 +202,10 @@ COBJS-$(CONFIG_CMD_ZIP) += cmd_zip.o
 COBJS-$(CONFIG_CMD_ZFS) += cmd_zfs.o
 
 COBJS-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
+
+ifdef CONFIG_CMD_FASTBOOT
+COBJS-$(CONFIG_CMD_CHARGE_ANIM) += cmd_charge.o
+endif
 
 # others
 COBJS-$(CONFIG_BOOTSTAGE) += bootstage.o

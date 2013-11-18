@@ -469,8 +469,8 @@ void sdmmcGpioInit(uint32 ChipSel)
     {
         g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00F3)<<16)|0x00A2;      // clk cmd rstn 
         g_3066B_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x1<<11);                 // emmc data0-7,wp
-        g_3066B_grfReg->GRF_IO_CON[4] = 0x08000800;  // vccio0 1.8V 3188这个地方有问题?????
-        g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0004;  // drive_strength_ctrl_0  4ma
+        //g_3066B_grfReg->GRF_IO_CON[4] = 0x08000800;  // vccio0 1.8V 3188这个地方有问题?????
+        //g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0004;  // drive_strength_ctrl_0  4ma
     }
 }
 
@@ -498,8 +498,8 @@ void DisableRemap(void)
 void FW_NandDeInit(void)
 {
 #ifdef RK_FLASH_BOOT_EN 
-    FlashDeInit();
-    FlashTimingCfg(150*1000);
+    //FlashDeInit();
+    //FlashTimingCfg(150*1000);
 #endif
 #ifdef RK_SDMMC_BOOT_EN
     SdmmcDeInit();
@@ -620,7 +620,7 @@ void IOMUXSetSDMMC(uint32 sdmmcId,uint32 Bits)
 
 void power_io_ctrl(uint8 mode)
 {
-    gpio_conf *key_gpio = &key_powerHold.key.gpio;
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
     if(mode)         // 输出高电平
     {
         write_XDATA32((key_gpio->io_write), ReadReg32((key_gpio->io_write))|((1ul<<key_gpio->index))); //out put high
@@ -635,13 +635,13 @@ void power_io_ctrl(uint8 mode)
 
 void powerOn(void)
 {
-    gpio_conf *key_gpio = &key_powerHold.key.gpio;
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
     power_io_ctrl((key_gpio->valid)&0x01);
 }
 
 void powerOff(void)
 {
-    gpio_conf *key_gpio = &key_powerHold.key.gpio;
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
     power_io_ctrl((key_gpio->valid&0x01)==0);
 }
 

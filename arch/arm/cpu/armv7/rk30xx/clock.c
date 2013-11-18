@@ -29,7 +29,11 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+#define CONFIG_RKCLK_GPLL_FREQ		384 /* MHZ */
+#else
 #define CONFIG_RKCLK_GPLL_FREQ		768 /* MHZ */
+#endif
 #define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
 
 /* define clock sourc div */
@@ -78,18 +82,18 @@ typedef void (*pll_callback_f)(struct pll_clk_set *clkset);
 
 /****************************************************************************
 Internal sram us delay function
-Cpu highest frequency is 1.6 GHz
-1 cycle = 1/1.6 ns
-1 us = 1000 ns = 1000 * 1.6 cycles = 1600 cycles
+Cpu highest frequency is 1 GHz
+1 cycle = 1/1 ns
+1 us = 1000 ns = 1000 * 1 cycles = 1000 cycles
 *****************************************************************************/
-#define LPJ_24MHZ  100UL
+#define LPJ_1000MHZ  100UL
 
-static void clk_slowmode_delayus(uint32_t us)
+static void clk_loop_delayus(uint32_t us)
 {   
 	volatile uint32_t i;
 
 	/* copro seems to need some delay between reading and writing */
-	for (i = 0; i < LPJ_24MHZ * us; i++) {
+	for (i = 0; i < LPJ_1000MHZ * us; i++) {
 		nop();
 	}
 }
@@ -117,7 +121,10 @@ void rkclk_set_pll(void)
 
 void lcdc_clk_enable(void)
 {
-    g_cruReg->CRU_CLKSEL_CON[31] = (1<<23) | (0x1f<<16) | (0<<7) | 1;//  aclk = CPLL/2
+    int clk = 300;
+    uint32 div = (CONFIG_RKCLK_GPLL_FREQ-1)/clk;
+    if(div>0x1f)div = 0x1f;
+    g_cruReg->CRU_CLKSEL_CON[31] = (1<<31) | (0x1f<<24) | (1<<23) | (0x1f<<16) | (1<<15) | (div<<8) | (1<<7) | div;//  aclk0 = aclk1 = GPLL/(div+1)
 }
 
 void set_lcdc_dclk(int clk)
@@ -130,7 +137,8 @@ void set_lcdc_dclk(int clk)
     div = ((CONFIG_RKCLK_GPLL_FREQ/(div1+1)) > (CONFIG_RKCLK_CPLL_FREQ/(div2+1))) ? div1 : div2;
 
     printf("set_lcdc_dclk: lcdc_source_clk = %d, clk = %d, div = %d\n", (div==div1)?CONFIG_RKCLK_GPLL_FREQ:CONFIG_RKCLK_CPLL_FREQ, clk, div);
-    g_cruReg->CRU_CLKSEL_CON[27] = (1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0);
+    g_cruReg->CRU_CLKSEL_CON[27] = (1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0);     //lcdc0_dclk
+    g_cruReg->CRU_CLKSEL_CON[20] = (1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0);     //lcdc1_dclk
 }
 
 

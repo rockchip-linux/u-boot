@@ -10,6 +10,12 @@ Revision:       1.00
 #include "rkimage.h"
 #include "rkloader.h"
 #include "ext_fs.h"
+#include "../common/common/crc/sha.h"
+
+#undef ALIGN
+
+#define ALIGN(x,a)      __ALIGN_MASK((x),(typeof(x))(a)-1)
+#define __ALIGN_MASK(x,mask)    (((x)+(mask))&~(mask))
 
 static int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
@@ -284,7 +290,189 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
     *new_loader_size = new_hdr->uiFlashBootOffset+new_hdr->uiFlashBootLen;
 //    dump_data(new_loader, HEADINFO_SIZE);
 
-    return 0;
+#define RSA_KEY_OFFSET 0x10//according to dumped data, the key is here.
+#define RSA_KEY_LEN    0x102//258, public key's length
+    char buf[RK_BLK_SIZE];
+    memcpy(buf, new_loader + new_hdr->uiFlashBootOffset, RK_BLK_SIZE);
+    P_RC4(buf, RK_BLK_SIZE);
+
+    if (buf[RSA_KEY_OFFSET] != 0 || buf[RSA_KEY_OFFSET + 1] != 4) {
+        FBTDBG("try to flash unsigned loader\n");
+    }
+    if (gDrmKeyInfo.publicKeyLen == 0) {
+        FBTERR("current loader unsigned, allow flash loader anyway\n");
+        return 0;
+    }
+
+#ifdef FBT_DEBUG
+    printf("dump new loader's key:\n");
+    for (i = 0;i < 32;i++) {
+        for (j = 0;j < 16;j++) {
+            printf("%02x", buf[RSA_KEY_OFFSET + i * 16 + j]);
+        }
+        printf("\n");
+    }
+#endif
+    return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
+}
+
+bool checkBootImageSha(rk_boot_img_hdr* boothdr)
+{
+    uint8_t* sha;
+    SHA_CTX ctx;
+    int size = SHA_DIGEST_SIZE > sizeof(boothdr->hdr.id) ? sizeof(boothdr->hdr.id) : SHA_DIGEST_SIZE;
+
+    void *kernel_data = (void*)boothdr + boothdr->hdr.page_size;
+    void *ramdisk_data = kernel_data + ALIGN(boothdr->hdr.kernel_size, boothdr->hdr.page_size);
+    void *second_data = 0;
+    if (boothdr->hdr.second_size) {
+        second_data = kernel_data + ALIGN(boothdr->hdr.ramdisk_size, boothdr->hdr.page_size);
+    }
+
+    FBTDBG("compute real sha\n");
+
+    SHA_init(&ctx);
+    SHA_update(&ctx, kernel_data, boothdr->hdr.kernel_size);
+    SHA_update(&ctx, &boothdr->hdr.kernel_size, sizeof(boothdr->hdr.kernel_size));
+    SHA_update(&ctx, ramdisk_data, boothdr->hdr.ramdisk_size);
+    SHA_update(&ctx, &boothdr->hdr.ramdisk_size, sizeof(boothdr->hdr.ramdisk_size));
+    SHA_update(&ctx, second_data, boothdr->hdr.second_size);
+    SHA_update(&ctx, &boothdr->hdr.second_size, sizeof(boothdr->hdr.second_size));
+
+    //only rockchip's image do these.
+    SHA_update(&ctx, &boothdr->hdr.tags_addr, sizeof(boothdr->hdr.tags_addr));
+    SHA_update(&ctx, &boothdr->hdr.page_size, sizeof(boothdr->hdr.page_size));
+    SHA_update(&ctx, &boothdr->hdr.unused, sizeof(boothdr->hdr.unused));
+    SHA_update(&ctx, &boothdr->hdr.name, sizeof(boothdr->hdr.name));
+    SHA_update(&ctx, &boothdr->hdr.cmdline, sizeof(boothdr->hdr.cmdline));
+
+    sha = SHA_final(&ctx);
+
+
+#ifdef FBT_DEBUG
+    int i = 0;
+    printf("\nreal sha:\n");
+    for (i = 0;i < size;i++) {
+        printf("%02x", (char)sha[i]);
+    }
+    printf("\nsha from image header:\n");
+    for (i = 0;i < size;i++) {
+        printf("%02x", ((char*)boothdr->hdr.id)[i]);
+    }
+    printf("\n");
+#endif
+
+    return !memcmp(boothdr->hdr.id, sha, size);
+}
+
+bool checkBootImageSign(rk_boot_img_hdr* boothdr)
+{
+    //flash boot/recovery.
+    if (gDrmKeyInfo.publicKeyLen == 0) {
+        FBTERR("current loader unsigned, allow flash anyway\n");
+        return true;
+    }
+    if (!memcmp(boothdr->hdr.magic, FASTBOOT_BOOT_MAGIC, FASTBOOT_BOOT_MAGIC_SIZE)) {
+        if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
+            //signed image, check with signature.
+            //check sha here.
+            if (!checkBootImageSha(boothdr)) {
+                FBTERR("sha mismatch!\n");
+                goto fail;
+            }
+            if (!SecureBootEn) {
+                FBTERR("loader sign mismatch, not allowed to flash!\n");
+                goto fail;
+            }
+            //check rsa sign here.
+            if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
+                        boothdr->signlen) ==  FTL_OK) {
+                return true;
+            } else {
+                FBTERR("signature mismatch!\n");
+                goto fail;
+            }
+        } else {
+            FBTERR("unsigned image!\n");
+            goto fail;
+        }
+    } else {
+        FBTERR("unrecognized image format!\n");
+        goto fail;
+    }
+fail:
+    return false;
+}
+
+bool checkUbootImageSha(second_loader_hdr* hdr)
+{
+    uint8_t* sha;
+    SHA_CTX ctx;
+    int size = SHA_DIGEST_SIZE > hdr->hash_len ? hdr->hash_len : SHA_DIGEST_SIZE;
+
+    FBTDBG("compute real sha\n");
+
+    SHA_init(&ctx);
+    SHA_update(&ctx, (void*)hdr + sizeof(second_loader_hdr), hdr->loader_load_size);
+    SHA_update(&ctx, &hdr->loader_load_addr, sizeof(hdr->loader_load_addr));
+    SHA_update(&ctx, &hdr->loader_load_size, sizeof(hdr->loader_load_size));
+    SHA_update(&ctx, &hdr->hash_len, sizeof(hdr->hash_len));
+    sha = SHA_final(&ctx);
+
+#ifdef FBT_DEBUG
+    int i = 0;
+    printf("\nreal sha:\n");
+    for (i = 0;i < size;i++) {
+        printf("%02x", (char)sha[i]);
+    }
+    printf("\nsha from image header:\n");
+    for (i = 0;i < size;i++) {
+        printf("%02x", ((char*)hdr->hash)[i]);
+    }
+    printf("\n");
+#endif
+
+    return !memcmp(hdr->hash, sha, size);
+}
+
+
+bool checkUbootImageSign(second_loader_hdr* hdr)
+{
+    //flash uboot.
+    if (gDrmKeyInfo.publicKeyLen == 0) {
+        FBTERR("current loader unsigned, allow flash anyway\n");
+        return true;
+    }
+    if (!memcmp(hdr->magic, RK_UBOOT_MAGIC, sizeof(RK_UBOOT_MAGIC))) {
+        if (hdr->signTag == RK_UBOOT_SIGN_TAG) {
+            //signed image, check with signature.
+            //check sha here.
+            if (!checkUbootImageSha(hdr)) {
+                FBTERR("sha mismatch!\n");
+                goto fail;
+            }
+            if (!SecureBootEn) {
+                FBTERR("loader sign mismatch, not allowed to flash!\n");
+                goto fail;
+            }
+            //check rsa sign here.
+            if(SecureBootSignCheck(hdr->rsaHash, hdr->hash,
+                        hdr->signlen) ==  FTL_OK) {
+                return true;
+            } else {
+                FBTERR("signature mismatch!\n");
+                goto fail;
+            }
+        } else {
+            FBTERR("unsigned image!\n");
+            goto fail;
+        }
+    } else {
+        FBTERR("unrecognized image format!\n");
+        goto fail;
+    }
+fail:
+    return false;
 }
 
 int handleRkFlash(char *name,
@@ -292,6 +480,7 @@ int handleRkFlash(char *name,
 {
     if (!strcmp(PARAMETER_NAME, name))
     {
+        //flash parameter.
         int i, ret = -1, len = 0;
         PLoaderParam param = (PLoaderParam) 
             (priv->transfer_buffer + priv->d_bytes);
@@ -313,13 +502,13 @@ int handleRkFlash(char *name,
             goto ok;
         }
         goto fail;
-    }
-    if (!strcmp(LOADER_NAME, name))
+    } else if (!strcmp(LOADER_NAME, name))
     {
+        //flash loader.
         int size = 0, ret = -1;
         if (make_loader_data(priv->transfer_buffer, g_pLoader, &size))
         {
-            printf("err! make_loader_data failed\n");
+            printf("err! make_loader_data failed(loader's key not match)\n");
             goto fail;
         }
         if (update_loader(true))
@@ -328,12 +517,26 @@ int handleRkFlash(char *name,
             goto fail;
         }
         goto ok;
-    }
-
-    if (priv->d_bytes > priv->transfer_buffer_size) {
-        if (!strcmp(SYSTEM_NAME, name))
+    } else if (priv->d_bytes > priv->transfer_buffer_size) {
+        //flash large image with dma.
+        if (!priv->pending_ptn) {
+            goto fail;
+        }
+        FBTDBG("download large file, ptn:%s, target:%s\n", priv->pending_ptn->name, name);
+        if (!strcmp(priv->pending_ptn->name, name) && priv->d_status > 0)
             goto ok;
         goto fail;
+    } else if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
+            !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
+        //flash boot/recovery.
+        if (!checkBootImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
+            goto fail;
+        }
+    } else if (!strcmp(priv->pending_ptn->name, UBOOT_NAME)) {
+        //flash uboot
+        if (!checkUbootImageSign((second_loader_hdr *)priv->transfer_buffer)) {
+            goto fail;
+        }
     }
 
     return 0;
@@ -346,16 +549,11 @@ fail:
     return -1;
 }
 
-static inline int getSystemOffset()
-{
-    return gBootInfo.cmd_mtd.parts[gBootInfo.index_system].offset;
-}
-
 int handleDirectDownload(unsigned char *buffer, 
-       int* length, struct cmd_fastboot_interface *priv)
+       int length, struct cmd_fastboot_interface *priv)
 {
     int size = priv->d_direct_size;
-    int avail_len = *length - priv->d_buffer_pos;
+    int avail_len = length - priv->transfer_buffer_pos;
     int write_len = 0;
     if (avail_len >= size) {
         write_len = size;
@@ -366,29 +564,34 @@ int handleDirectDownload(unsigned char *buffer,
 
     FBTDBG("direct download, size:%d, offset:%lld, rest:%d\n",
             size, priv->d_direct_offset, priv->d_direct_size - write_len);
-    if(CopyMemory2Flash(buffer + priv->d_buffer_pos,
-                priv->d_direct_offset + getSystemOffset(), blocks)) {
+
+	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->offset, buffer + priv->transfer_buffer_pos, blocks, 0)) {
+        FBTDBG("handleDirectDownload failed\n");
         return -1;
     }
+/*
+    if(CopyMemory2Flash(buffer + priv->transfer_buffer_pos,
+                priv->d_direct_offset + priv->pending_ptn->offset, blocks)) {
+        FBTDBG("handleDirectDownload failed\n");
+        return -1;
+    }*/
     priv->d_direct_offset += blocks;
     priv->d_direct_size -= write_len;
-    priv->d_buffer_pos += write_len;
+    priv->transfer_buffer_pos += write_len;
     return priv->d_direct_size;
 }
 
 void noBuffer(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
-    int rest = *length - priv->d_buffer_pos;
-    FBTDBG("memmove rest:%d, len:%d\n", rest, *length);
-    if (rest)
-        memmove(buffer, buffer + priv->d_buffer_pos, rest);
-    *length = rest;
-    priv->d_bytes += priv->d_buffer_pos;
+    int rest = length - priv->transfer_buffer_pos;
+    priv->d_bytes += priv->transfer_buffer_pos;
+    priv->transfer_buffer_pos = RK_BLK_SIZE - rest;
+    FBTDBG("rest:%d, len:%d, new pos:%lld\n", rest, length, priv->transfer_buffer_pos);
 }
 
-int handleExtDownload(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+int handleImageDownload(unsigned char *buffer,
+        int length, struct cmd_fastboot_interface *priv)
 {
     if (!priv->d_direct_size) {
         return 0;
@@ -401,13 +604,13 @@ int handleExtDownload(unsigned char *buffer,
         noBuffer(buffer, length, priv);
         return 1;
     }
-    FBTDBG("ext image download compelete\n");
+    FBTDBG("image download compelete\n");
     priv->d_status = 1;
     return 0;
 }
 
 int handleSparseDownload(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     int ret;
     if (priv->d_direct_size) {
@@ -426,14 +629,14 @@ int handleSparseDownload(unsigned char *buffer,
     u64 clen = 0;
     lbaint_t blkcnt;
     while (priv->sparse_cur_chunk < header->total_chunks) {
-        ret = *length - priv->d_buffer_pos;
+        ret = length - priv->transfer_buffer_pos;
         if (ret < sizeof(chunk_header_t)) {
             noBuffer(buffer, length, priv);
             return 1;
         }
         priv->sparse_cur_chunk++;
-        memcpy(chunk, buffer + priv->d_buffer_pos, sizeof(chunk_header_t));
-        priv->d_buffer_pos += sizeof(chunk_header_t);
+        memcpy(chunk, buffer + priv->transfer_buffer_pos, sizeof(chunk_header_t));
+        priv->transfer_buffer_pos += sizeof(chunk_header_t);
 
         switch (chunk->chunk_type) {
             case CHUNK_TYPE_RAW:
@@ -489,22 +692,27 @@ failed:
 }
 
 int startDownload(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     priv->d_status = 0;
-    priv->d_buffer_pos = 0;
     priv->flag_sparse = false;
     priv->d_direct_size = 0;
     priv->d_direct_offset = 0;
     priv->sparse_cur_chunk = 0;
+    priv->transfer_buffer_pos = 0;
 
-    //check ext image
-    filesystem* fs = (filesystem*) buffer;
-    if (fs->sb.s_magic == EXT2_MAGIC_NUMBER ||
-            fs->sb.s_magic == EXT3_MAGIC_NUMBER) {
-        priv->d_direct_size = priv->d_size;
-        FBTDBG("found ext image\n");
-        return handleExtDownload(buffer, length, priv);
+    //check sign before flash large boot/recovery.
+    if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
+            !strcmp(priv->pending_ptn->name, BOOT_NAME)) {
+        /*
+        if (!checkImageSign((rk_boot_img_hdr *)buffer)) {
+            priv->d_status = -1;
+            return 0;
+        }*/
+        //should not reach here, check size before.
+        FBTERR("boot/recovery image should not be so large.\n");
+        priv->d_status = -1;
+        return 0;
     }
 
     //check sparse image
@@ -515,43 +723,72 @@ int startDownload(unsigned char *buffer,
             (header->file_hdr_sz == sizeof(sparse_header_t)) &&
             (header->chunk_hdr_sz == sizeof(chunk_header_t))) {
         priv->flag_sparse = true;
-        priv->d_buffer_pos = sizeof(sparse_header_t);
+        priv->transfer_buffer_pos += sizeof(sparse_header_t);
         FBTDBG("found sparse image\n");
         return handleSparseDownload(buffer, length, priv);
     }
+
+#if 1
+    priv->d_direct_size = priv->d_size;
+    return handleImageDownload(buffer, length, priv);
+#else //only support ext image
+    //check ext image
+    filesystem* fs = (filesystem*) buffer;
+    if (fs->sb.s_magic == EXT2_MAGIC_NUMBER ||
+            fs->sb.s_magic == EXT3_MAGIC_NUMBER) {
+        priv->d_direct_size = priv->d_size;
+        FBTDBG("found ext image\n");
+        return handleImageDownload(buffer, length, priv);
+    }
+
     priv->d_status = -1;
     return 0;
+#endif
 }
 
 int handleDownload(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
-    if (priv->d_status || priv->d_size <= priv->transfer_buffer_size) {
+    if (priv->d_size <= priv->transfer_buffer_size) {
         //nothing to do with these.
         return 0;
     }
 
-    if (!getSystemOffset()) {
-        //no parameter?
+    if (!priv->pending_ptn || !priv->pending_ptn->offset) {
+        //fastboot flash with "-u" opt? or no parameter?
+        if (!priv->pending_ptn) {
+            FBTDBG("no pending_ptn\n");
+        } else {
+            FBTDBG("pending ptn(%s) offset:%x\n", priv->pending_ptn->name, priv->pending_ptn->offset);
+        }
         priv->d_status = -1;
         return 0;
     }
 
-    if (*length + priv->d_bytes < priv->d_size &&
-            *length < priv->transfer_buffer_size) {
+    if (length + priv->d_bytes < priv->d_size &&
+            length < priv->transfer_buffer_size) {
         //keep downloading, util buffer is full or end of download.
         return 1;
     }
 
-    priv->d_buffer_pos = 0;
+    if (priv->d_status) {
+        //nothing to do with these.
+        return 0;
+    }
+
     if (!priv->d_bytes) {
-        FBTDBG("start download, length:%d\n", *length);
+        FBTDBG("start download, length:%d\n", length);
         return startDownload(buffer, length, priv);
     }
-    FBTDBG("continue download, length:%d\n", *length);
+
+    buffer += priv->transfer_buffer_pos;
+    length -= priv->transfer_buffer_pos;
+    priv->transfer_buffer_pos = 0;
+
+    FBTDBG("continue download, length:%d\n", length);
     if (priv->flag_sparse) {
         return handleSparseDownload(buffer, length, priv);
     } else {
-        return handleExtDownload(buffer, length, priv);
+        return handleImageDownload(buffer, length, priv);
     }
 }

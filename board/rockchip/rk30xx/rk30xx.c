@@ -11,13 +11,48 @@ Revision:       1.00
 #include <common.h>
 #include <fastboot.h>
 #include "../common/armlinux/config.h"
+#include <asm/io.h>
 #include <lcd.h>
 #include "rkimage.h"
 #include "rkloader.h"
+#include "i2c.h"
+#include <power/pmic.h>
+#include <version.h>
+
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
-
 extern char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
+int wfi_status = 0;
+void wait_for_interrupt()
+{
+	uint8 ret,i;
+	u32 pllcon0[4], pllcon1[4], pllcon2[4];
+
+	/* PLL enter slow-mode */
+	g_cruReg->CRU_MODE_CON = (0x3<<((2*4) + 16)) | (0x0<<(2*4));
+	g_cruReg->CRU_MODE_CON = (0x3<<((3*4) + 16)) | (0x0<<(3*4));
+	g_cruReg->CRU_MODE_CON = (0x3<<((0*4) + 16)) | (0x0<<(0*4));
+
+	printf("PLL close over! \n\n\n");
+	wfi_status = 1;
+	wfi();
+	wfi_status = 0;
+	printf("PLL open begin! \n");
+
+
+	/* PLL enter normal-mode */
+	g_cruReg->CRU_MODE_CON = (0x3<<((0*4) + 16)) | (0x1<<(0*4));
+	g_cruReg->CRU_MODE_CON = (0x3<<((3*4) + 16)) | (0x1<<(3*4));
+	g_cruReg->CRU_MODE_CON = (0x3<<((2*4) + 16)) | (0x1<<(2*4));
+
+
+	printf("PLL open end! \n");
+}
+
+int get_wfi_status()
+{
+	return wfi_status;
+}
 
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {
@@ -26,6 +61,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 	*boot_rockusb = 0;
 	*boot_recovery = 0;
 	*boot_fastboot = 0;
+	printf("checkKey\n");
 	if(GetPortState(&key_rockusb))
 	{
         *boot_rockusb = 1;
@@ -69,30 +105,69 @@ void RecoveryKeyInit(key_config *key)
 
 void FastbootKeyInit(key_config *key)
 {
-    key->type = KEY_GPIO;
-    key->key.gpio.valid = 0; 
-	key->key.gpio.group = 4;
-	key->key.gpio.index = 21;// gpio4C5
-    setup_gpio(&key->key.gpio);
+    key->type = KEY_AD;
+    key->key.adc.index = 1;
+    key->key.adc.keyValueLow = 950;
+    key->key.adc.keyValueHigh= 960;
+    key->key.adc.data = SARADC_BASE;
+    key->key.adc.stas = SARADC_BASE+4;
+    key->key.adc.ctrl = SARADC_BASE+8;
 }
 
-void PowerHoldKeyInit()
+void PowerHoldPinInit()
 {
-    key_powerHold.type = KEY_GPIO;
-    key_powerHold.key.gpio.valid = 1; 
+   // pin_powerHold.type = KEY_GPIO;
+   // pin_powerHold.key.gpio.valid = 1; 
+
+  //  pin_powerHold.key.gpio.group = 0;
+  //  pin_powerHold.key.gpio.index = 0; // gpio0A0
+  //  setup_gpio(&pin_powerHold.key.gpio);
+  //  if(pin_powerHold.key.gpio.valid)
+  //      powerOn();
+}
+void PowerKeyInit()
+{
+#if 0
+    key_power.type = KEY_GPIO;
+    key_power.key.gpio.valid = 0; 
     if(ChipType == CHIP_RK3066)
     {
-        key_powerHold.key.gpio.group = 6;
-        key_powerHold.key.gpio.index = 8; // gpio6B0
+        key_power.key.gpio.group = 6;
+        key_power.key.gpio.index = 8; // gpio6B0
     }
     else
     {
-        key_powerHold.key.gpio.group = 0;
-        key_powerHold.key.gpio.index = 0; // gpio0A0
+        key_power.key.gpio.group = 0;
+        key_power.key.gpio.index = 4; // gpio0A4
         //rknand_print_hex("grf:", g_3188_grfReg,1,512);
     }
 
-    setup_gpio(&key_powerHold.key.gpio);
+    setup_gpio(&key_power.key.gpio);
+    if(key_power.key.gpio.valid)
+        powerOn();
+#else
+    key_power.type = KEY_INT;
+    key_power.key.ioint.valid = 0; 
+    if(ChipType == CHIP_RK3066)
+    {
+        key_power.key.ioint.group = 6;
+        key_power.key.ioint.index = 8; // gpio6B0
+    }
+    else
+    {
+        key_power.key.ioint.group = 0;
+        key_power.key.ioint.index = 4; // gpio0A4
+    }
+	printf("setup gpio int\n");
+	clr_all_gpio_int();
+    setup_int(&key_power.key.ioint);
+	IRQEnable(INT_GPIO0);
+#endif
+
+}
+
+int power_hold() {
+    return GetPortState(&key_power);
 }
 
 void reset_cpu(ulong ignored)
@@ -199,6 +274,7 @@ void enable_caches(void)
 void startRockusb()
 {
     printf("startRockusb,%d\n" , RkldTimerGetTick());
+    rk_backlight_ctrl(0);
     FW_SDRAM_ExcuteAddr = 0;
     g_BootRockusb = 1;
     FWSetResetFlag = 0;
@@ -246,7 +322,7 @@ int board_fbt_handle_flash(char *name,
     return handleRkFlash(name, priv);
 }
 int board_fbt_handle_download(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv)
+        int length, struct cmd_fastboot_interface *priv)
 {
     return handleDownload(buffer, length, priv);
 }
@@ -286,22 +362,24 @@ extern char bootloader_ver[];
 int board_late_init(void)
 {
     printf("board_late_init\n");
-	ChipTypeCheck();
+
     SecureBootCheck();
 	get_bootloader_ver(NULL);
 	printf("##################################################\n");
+	printf("uboot version: %s\n",U_BOOT_VERSION_STRING);
 	printf("\n#Boot ver: %s\n\n", bootloader_ver);
 	printf("##################################################\n");
 
     RockusbKeyInit(&key_rockusb);
     FastbootKeyInit(&key_fastboot);
     RecoveryKeyInit(&key_recovery);
-	PowerHoldKeyInit();
+	PowerKeyInit();
+    ChargerStateInit();
 
     getParameter();
 
     //TODO:set those buffers in a better way, and use malloc?
-    setup_space(gBootInfo.kernel_load_addr);
+    setup_space(gd->arch.rk_extra_buf_addr);
 
     char tmp_buf[30];
     if (getSn(tmp_buf)) {
@@ -313,40 +391,17 @@ int board_late_init(void)
 }
 #endif
 
-#ifdef CONFIG_CHARGE_CHECK
-int check_charge(void)
-{
-    int reg=0;
-    int ret = 0;
-    if(board_fbt_check_in_charging())
-    {
-        printf("reboot in charging! \n");
-        ret = 1;
-    } else if(IReadLoaderFlag() == 0) {
-        //i2c_set_bus_num(1);
-        //i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-        //i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-        //reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);
-       // printf("%s power on history %x\n",__func__,reg);
-        //if(reg == 0x04)
-       // {
-       //     printf("In charging! \n");
-       //     ret = 1;
-       // }
-    }
-    return ret;
-}
-#endif
 #ifdef CONFIG_RK_FB
 #define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
 
-void rk_backlight_ctrl(unsigned int onoff)
+void rk_backlight_ctrl(int brightness)
 {
     #ifdef CONFIG_RK3066SDK
     int id =0;
     int total = 0x4b0;
-    int pwm = total/2;
+    int pwm = total * (100 - brightness) / 100;
     int *addr =0;
+    printf("backlight --- brightness:%d\n", brightness);
 
  
         g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX |= ((1<<6)<<16)|(1<<6);   // pwm0, gpio0_a3
@@ -357,13 +412,14 @@ void rk_backlight_ctrl(unsigned int onoff)
     write_pwm_reg(id, 0x04, pwm);
     write_pwm_reg(id, 0x00, 0);
     write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN
+    g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
 
-    SetPortOutput(6,11,1);   //gpio6_b3 1 ,backlight enable
+    SetPortOutput(6,11, pwm != total);   //gpio6_b3 1 ,backlight enable
     #endif
     #ifdef CONFIG_RK3188SDK
     int id =3;
     int total = 0x4b0;
-    int pwm = total/2;
+    int pwm = total * (100 - brightness) / 100;
     int *addr =0;
 
 
@@ -375,14 +431,17 @@ void rk_backlight_ctrl(unsigned int onoff)
     write_pwm_reg(id, 0x04, pwm);
     write_pwm_reg(id, 0x00, 0);
     write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN   
+    g_3188_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
 
-    SetPortOutput(0,2,1);   //gpio0_A2 BL ENABLE 1
+    SetPortOutput(0,2, pwm != total);   //gpio0_a2 1 ,backlight enable
     
     #endif
 }
 
 void rk_fb_init(unsigned int onoff)
 {
+    printf("i2c init OVER in board! \n");
+    pmic_init(0);  //enable lcdc power
     #ifdef CONFIG_RK3066SDK
     SetPortOutput(4,23,1);   //gpio4_c7 1 cs 1
     SetPortOutput(6,12,0);   //gpio6_b4 0 en 0
@@ -431,4 +490,26 @@ void init_panel_info(vidinfo_t *vid)
 }
 
 #endif
+
+
+static key_config charger_state;
+void ChargerStateInit()
+{
+    charger_state.type = KEY_GPIO;
+    charger_state.key.gpio.valid = 1;
+    charger_state.key.gpio.group = 0;
+    charger_state.key.gpio.index = 10;
+
+    setup_gpio(&charger_state.key.gpio);
+}
+
+/*
+return 0: no charger
+return 1: charging
+*/
+int is_charging()
+{
+    return !GetPortState(&charger_state);  //gpio0_b2, charger in status
+}
+
 

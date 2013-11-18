@@ -24,6 +24,7 @@ Revision:       1.00
 #define CONFIG_RK3168		3
 
 #define CONFIG_RKCHIPTYPE	CONFIG_RK3188
+#define SECOND_LEVEL_BOOTLOADER
 
 #define HAVE_VENDOR_COMMON_LIB y
 
@@ -50,8 +51,6 @@ Revision:       1.00
  * 1MB = 0x100000, 0x100000 = 1024 * 1024
  */
 #define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 20))
-#define CONFIG_SYS_GBL_DATA_SIZE	128	/* size in bytes for */
-						/* initial data */
 
 /*
  * select serial console configuration
@@ -59,12 +58,26 @@ Revision:       1.00
 #define CONFIG_SERIAL2			1	/* use SERIAL2 */
 #define CONFIG_BAUDRATE			115200
 
+//define uboot loader addr.
+#ifdef SECOND_LEVEL_BOOTLOADER
+//2m offset for packed nand bin.
+#define CONFIG_SYS_TEXT_BASE    0x60200000
+#define RK_FLASH_BOOT_EN
+#else
+#define CONFIG_SYS_TEXT_BASE    0x60000000
+#define RK_SDMMC_BOOT_EN
+#endif
+
 /*
  * Hardware drivers
  */
-/* used for MMU */
-#define RAM_PHY_START			0x60000000
-#define RAM_PHY_END			0x68000000
+/* base definition of ram addr & size */
+//size should be 2^x.(like 64m/128m/256m/512m...)
+#define RAM_PHY_SIZE            0x04000000
+#define RAM_PHY_START           0x60000000
+#define RAM_PHY_END             (RAM_PHY_START + RAM_PHY_SIZE)
+
+#define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 4)
 
 /* uart config */
 #define	CONFIG_RK30_UART
@@ -110,18 +123,11 @@ Revision:       1.00
 #define CONFIG_USE_IRQ
 #define CONFIG_SYS_RAMBOOT
 
-/*
- * memtest setup
- */
 /* DRAM Base */
-#define CONFIG_SYS_SDRAM_BASE		0x60000000		/* Physical start address of SDRAM. */
-#define CONFIG_SYS_INIT_SP_ADDR 	(0x60400000 - 0x8000)	
+#define CONFIG_SYS_SDRAM_BASE		RAM_PHY_START		/* Physical start address of SDRAM. */
 
-#define CONFIG_SYS_MEMTEST_START	CONFIG_SYS_SDRAM_BASE
-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_SDRAM_BASE + 0x1000000)
-
-/* Default load address */
-#define CONFIG_SYS_LOAD_ADDR		CONFIG_SYS_SDRAM_BASE
+//sp addr before relocate.
+#define CONFIG_SYS_INIT_SP_ADDR     RAM_PHY_END
 
 //#define CONFIG_SYS_ICACHE_OFF
 //#define CONFIG_SYS_DCACHE_OFF
@@ -132,7 +138,6 @@ Revision:       1.00
  *
  * The stack sizes are set up in start.S using the settings below
  */
-#define CONFIG_STACKSIZE	(256 << 10)	/* 256 KiB */
 #ifdef CONFIG_USE_IRQ
 #  define CONFIG_STACKSIZE_IRQ	0x10000
 #  define CONFIG_STACKSIZE_FIQ	0x1000
@@ -145,32 +150,20 @@ Revision:       1.00
  * is mapped to one contiguous block
  */
 #define CONFIG_NR_DRAM_BANKS	1
-#define PHYS_SDRAM_1		CONFIG_SYS_SDRAM_BASE	/* OneDRAM Bank #0 */
-#define PHYS_SDRAM_1_SIZE	(128 << 20)		/* 128 MB in Bank #0 */
-#define CONFIG_SYS_SDRAM_SIZE PHYS_SDRAM_1_SIZE
+#define PHYS_SDRAM_1            CONFIG_SYS_SDRAM_BASE /* OneDRAM Bank #0 */
+#define PHYS_SDRAM_1_SIZE       (RAM_PHY_END - RAM_PHY_START) /* 128 MB in Bank #0 */
+#define CONFIG_SYS_SDRAM_SIZE   PHYS_SDRAM_1_SIZE
 
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
-
-/*
- * Monitor config
- */
-#define CONFIG_SYS_MONITOR_BASE		0x60000000	/* Physical start address of boot monitor code */
-							/* be same as the text base address CONFIG_SYS_TEXT_BASE */
-#define CONFIG_SYS_MONITOR_LEN		(256 << 10)	/* 256 KiB */
-
-
-
-#define CONFIG_ENV_IS_IN_RK_EMMC	1		/* Store ENV in emmc only */
-#define CONFIG_ENV_ADDR		CONFIG_SYS_MONITOR_BASE
+#define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
 
 /* sys data(blk 8064), 0-2 was used in boot.c, so we use blk 3.*/
 #define CONFIG_ENV_OFFSET       (3 << 9)
 
 #define CONFIG_ENV_SIZE	        0x200
-#undef  CONFIG_CMD_SAVEENV
-#define CONFIG_CMD_SAVEENV      1
+#define CONFIG_CMD_SAVEENV
 
 #define RK_BLK_SIZE             512
 
@@ -180,14 +173,21 @@ Revision:       1.00
 #define CONFIG_USBD_MANUFACTURER    "Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
 
+
 /* Another macro may also be used or instead used to take care of the case
  * where fastboot is started at boot (to be incorporated) based on key press
  */
 #define CONFIG_CMD_FASTBOOT
 #define CONFIG_FASTBOOT_LOG
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER     0x68000000 //128M
-//TODO: mod addr of buffer.
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE    (SZ_512M + SZ_128M)
+#define CONFIG_FASTBOOT_LOG_SIZE                    (SZ_2M)
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH   (SZ_16M)
+//CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE should be at least 2*CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
+//and larger than our boot/recovery image size.
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH << 1)
+
+//for board/rockchip/rk30xx/rkloader.c setup_space.
+#define CONFIG_RK_EXTRA_BUFFER_SIZE                 (SZ_4M)
+
 /* Fastboot product name */
 #define FASTBOOT_PRODUCT_NAME   "fastboot"
 
@@ -197,6 +197,12 @@ Revision:       1.00
 
 #endif //CONFIG_CMD_FASTBOOT
 
+/* PL330 DMA */
+#define CONFIG_PL330_DMA //enable pl330 dma
+
+#ifdef CONFIG_PL330_DMA   
+#define SDMMC_USE_DMA  //for emmc use dma trans
+#endif
 /* SPI */
 //#define CONFIG_RK_SPI
 
@@ -211,8 +217,7 @@ Revision:       1.00
 #define CONFIG_SYS_WHITE_ON_BLACK
 #define LCD_BPP			LCD_COLOR16
 //#define CONFIG_RK3066SDK
-#define CONFIG_RK3188SDK
-#define CONFIG_FB_ADDR 0x91800000    //kernel reserve memory behind fb0 buf
+//#define CONFIG_RK3188SDK
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #ifdef CONFIG_RK_FB
@@ -221,16 +226,28 @@ Revision:       1.00
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 #define CONFIG_RK_3188_FB
 //#define CONFIG_VCC_LCDC_1_8   //vcc lcdc switch to 1.8v
-#else
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 #define CONFIG_RK_3168_FB
 #endif
 #endif
-#define CONFIG_RK_I2C
+//#define CONFIG_RK_I2C
+#ifdef CONFIG_RK_I2C
 #define CONFIG_HARD_I2C
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
 #define CONFIG_SYS_I2C_SLAVE 0x32
-//#define CONFIG_CHARGE_CHECK   //open it if check charging in uboot
+#endif
+//#define CONFIG_BQ27541_I2C_ADDR  0x55
+
+/********************************** charger and pmic driver ********************************/
+//#define CONFIG_POWER_RICOH619
+#define CONFIG_POWER_RK_SAMPLE
+
+/********************************** battery driver ********************************/
+//#define CONFIG_BATTERY_BQ27541
+//#define CONFIG_BATTERY_RICOH619
+#define CONFIG_BATTERY_RK_SAMPLE  //battery driver
+
 
 #define         CHIP_RK3066     0
 #define         CHIP_RK3066B    1
@@ -254,7 +271,14 @@ Revision:       1.00
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
 
+#define CONFIG_CMD_BMP
+//#define CONFIG_CMD_CHARGE_ANIM
+#define CONFIG_LCD_BMP_RLE8
+
 #define CONFIG_RK_I2C
 #define CONFIG_I2C_MULTI_BUS
+
+//allow to flash loader when check sign failed. should undef this in release version.
+#define CONFIG_ENABLE_ERASEKEY
 
 #endif /* __CONFIG_H */

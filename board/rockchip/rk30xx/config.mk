@@ -19,7 +19,6 @@
 #
 #
 # For use with external or internal boots.
-CONFIG_SYS_TEXT_BASE = 0x60000000
 
 ALL-y += $(obj)RKLoader_uboot.bin
 

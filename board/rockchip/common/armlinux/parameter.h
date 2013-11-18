@@ -57,7 +57,8 @@ extern key_config		key_rockusb;
 extern key_config		key_fastboot;
 extern int KeyCombinationNum;
 extern key_config		key_recover;
-extern key_config       key_powerHold;
+extern key_config       pin_powerHold;
+extern key_config       key_power;
 extern key_config		key_combination[MAX_COMBINATION_KEY];
 
 extern void ParseParam(PBootInfo pboot_info, char *param, uint32 len);

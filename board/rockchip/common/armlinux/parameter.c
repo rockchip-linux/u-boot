@@ -8,7 +8,8 @@ int KeyCombinationNum;
 key_config		key_rockusb;
 key_config		key_recovery;
 key_config		key_fastboot;
-key_config		key_powerHold;
+key_config		pin_powerHold;
+key_config      key_power;
 key_config		key_combination[MAX_COMBINATION_KEY];
 
 //uint8 gParamBuffer[MAX_LOADER_PARAM];	// 限制最大的Parameters的字节数为:32*512
@@ -175,7 +176,7 @@ int ParseAtoi( const char * line )
     }
     return v;
 }
-
+#if 0
 /*  从输入的line中获取到按键的信息
     返回值:
         0   - 正常返回
@@ -231,7 +232,7 @@ int setup_key(char* line, key_config* key)
     }
     return 0;
 }
-
+#endif
 extern char PRODUCT_NAME[20];
 
 void ParseLine(PBootInfo pboot_info, char *line)
@@ -252,6 +253,7 @@ void ParseLine(PBootInfo pboot_info, char *line)
 	    pboot_info->recovery_offset = ParseAtoi(line+strlen("RECOVERY_IMG:"));
 	else if( !memcmp(line, "MISC_IMG:", strlen("MISC_IMG:")) )
 	    pboot_info->misc_offset = ParseAtoi(line+strlen("MISC_IMG:"));
+#if 0
 	else if( !memcmp(line, "RECOVER_KEY:", strlen("RECOVER_KEY:")) )
 	{//  RECOVER_KEY: 0,4,A,2,0  ==> GPIO4 PA2 低有效
     	line += strlen("RECOVER_KEY:");
@@ -268,8 +270,8 @@ void ParseLine(PBootInfo pboot_info, char *line)
 	{//  RECOVER_KEY: 0,4,A,2,0  ==> GPIO4 PA2 低有效
     	line += strlen("PWR_HLD:");
     	EATCHAR(line, ' ');
-        setup_key(line, &key_powerHold);
-        if(key_powerHold.key.gpio.valid)
+        setup_key(line, &pin_powerHold);
+        if(pin_powerHold.key.gpio.valid)
             powerOn();
 	}
 	else if( !memcmp(line, "COMBINATION_KEY:", strlen("COMBINATION_KEY:")) )
@@ -279,6 +281,7 @@ void ParseLine(PBootInfo pboot_info, char *line)
         setup_key(line, &key_combination[KeyCombinationNum]);
         KeyCombinationNum++;
 	}
+#endif
 #ifdef OTP_DATA_ENABLE
 	else if( !memcmp(line, "WAV_ADDR:", strlen("WAV_ADDR:")) )
 	{

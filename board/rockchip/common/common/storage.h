@@ -113,6 +113,37 @@ typedef PACKED1  struct  _FLASH_INFO//ÐèÒª¼Ó__packed»ò×ÅÉùÃ÷Ê±4¶ÔÆë²»È»³ÌÐò¿ÉÄÜÔ
     uint8   FlashMask;          // Ã¿Ò»bit´ú±íÄÇ¸öÆ¬Ñ¡ÊÇ·ñÓÐFLASH
 }PACKED2 FLASH_INFO, *pFLASH_INFO;
 
+//for nand
+typedef uint32 (*Memory_GetBlkSize)(void);
+
+typedef uint32 (*Memory_FlashReadLba)(uint8 ChipSel, uint32 LBA , uint16 nSec, void *pbuf);
+typedef uint32 (*Memory_FlashWriteLba)(uint8 ChipSel, uint32 LBA , uint16 nSec, void *pbuf);
+
+typedef void   (*uart_Trace)(const char* Format , ...);
+typedef struct LOADER_MEM_API_Tag
+{
+    uint32 tag;                       //0x4e460001 
+    uint32 id;                        //0 nand,1 emmc ,2 spi
+    uint32 reversd0;                  //do not used
+    uint32 reversd1;                  //do not used
+    uart_Trace Trace;
+    Memory_Init Init;
+    Memory_ReadID ReadId;
+    Memory_ReadPba ReadPba;
+    Memory_WritePba WritePba;
+    Memory_FlashReadLba ReadLba;
+    Memory_FlashWriteLba WriteLba;         
+    Memory_Erase Erase;
+    Memory_ReadInfo ReadInfo;
+    Memory_GetBlkSize getBlkSize;
+    Memory_LowFormat LowFormat;
+    uint32 reversdfun1;
+    uint32 reversdfun2;
+    Memory_GetCapacity GetCapacity;    //get capacity
+    Memory_SysDataLoad SysDataLoad;    //vendor part,1MB
+    Memory_SysDataStore SysDataStore;  //vendor part,1MB
+}LOADER_MEM_API_T,*pLOADER_MEM_API_T;
+
 //1È«¾Ö±äÁ¿
 #undef	EXT
 #ifdef	IN_STORAGE

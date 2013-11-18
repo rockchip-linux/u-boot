@@ -29,6 +29,35 @@ TOOLSUBDIRS = kernel-doc
 #
 include $(TOPDIR)/config.mk
 
+define convert-one-image-path
+	/tmp/$(basename $(1)).bmp
+endef
+
+define convert-image-path
+$(foreach v, $(1), \
+    $(call convert-one-image-path, $(v)) \
+)
+endef
+
+define convert-one-image
+	$(warning convert-one-image:$(1) -> $(2)) \
+    $(shell mkdir -p $(dir $(2)) && \
+        convert $(1) -depth 8 -compress rle $(2) && \
+        echo $(2))
+endef
+
+define convert-image
+$(foreach v, $(1), \
+    $(call convert-one-image, $(v), $(call convert-one-image-path, $(v))) \
+)
+endef
+
+define convert-logo
+    $(shell convert $(1) -depth 8 -compress none $(2))
+endef
+
+include $(TOPDIR)/tools/logos/charge/charge.mk
+
 #
 # toolchains targeting win32 generate .exe files
 #
@@ -60,6 +89,7 @@ ENVCRC-$(CONFIG_ENV_IS_IN_SPI_FLASH) = y
 CONFIG_BUILD_ENVCRC ?= $(ENVCRC-y)
 
 # Generated executable files
+BIN_FILES-$(CONFIG_CMD_CHARGE_ANIM) += bmp_image$(SFX)
 BIN_FILES-$(CONFIG_LCD_LOGO) += bmp_logo$(SFX)
 BIN_FILES-$(CONFIG_VIDEO_LOGO) += bmp_logo$(SFX)
 BIN_FILES-$(CONFIG_BUILD_ENVCRC) += envcrc$(SFX)
@@ -75,6 +105,8 @@ BIN_FILES-$(CONFIG_NETCONSOLE) += ncb$(SFX)
 BIN_FILES-$(CONFIG_SHA1_CHECK_UB_IMG) += ubsha1$(SFX)
 BIN_FILES-$(CONFIG_KIRKWOOD) += kwboot$(SFX)
 BIN_FILES-y += proftool(SFX)
+BIN_FILES-y += loaderimage$(SFX)
+BIN_FILES-y += boot_merger$(SFX)
 
 # Source files which exist outside the tools directory
 EXT_OBJ_FILES-$(CONFIG_BUILD_ENVCRC) += common/env_embedded.o
@@ -84,8 +116,10 @@ EXT_OBJ_FILES-y += common/image-sig.o
 EXT_OBJ_FILES-y += lib/crc32.o
 EXT_OBJ_FILES-y += lib/md5.o
 EXT_OBJ_FILES-y += lib/sha1.o
+EXT_OBJ_FILES-y += lib/sha.o
 
 # Source files located in the tools directory
+OBJ_FILES-$(CONFIG_CMD_CHARGE_ANIM) += bmp_image.o
 OBJ_FILES-$(CONFIG_LCD_LOGO) += bmp_logo.o
 OBJ_FILES-$(CONFIG_VIDEO_LOGO) += bmp_logo.o
 NOPED_OBJ_FILES-y += default_image.o
@@ -111,6 +145,8 @@ NOPED_OBJ_FILES-y += os_support.o
 OBJ_FILES-$(CONFIG_SHA1_CHECK_UB_IMG) += ubsha1.o
 NOPED_OBJ_FILES-y += ublimage.o
 OBJ_FILES-$(CONFIG_KIRKWOOD) += kwboot.o
+NOPED_OBJ_FILES-y += loaderimage.o
+NOPED_OBJ_FILES-y += boot_merger.o
 
 # Don't build by default
 #ifeq ($(ARCH),ppc)
@@ -280,6 +316,13 @@ $(obj)%.o: $(SRCTREE)/lib/libfdt/%.c
 
 $(obj)%.o: $(SRCTREE)/lib/rsa/%.c
 	$(HOSTCC) -g $(HOSTCFLAGS_NOPED) -c -o $@ $<
+$(obj)loaderimage$(SFX):	$(obj)loaderimage.o $(obj)sha.o
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
+	$(HOSTSTRIP) $@
+
+$(obj)boot_merger$(SFX):	$(obj)boot_merger.o
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
+	$(HOSTSTRIP) $@
 
 subdirs:
 ifeq ($(TOOLSUBDIRS),)
@@ -291,6 +334,13 @@ else
 		HOSTARCH=$(HOSTARCH) \
 		-C $$dir || exit 1 ; \
 	done
+endif
+
+ifneq ($(LOGO_IMAGE),)
+LOGO_BMP = /tmp/logo.bmp
+
+$(LOGO_BMP) : $(LOGO_IMAGE)
+	$(call convert-logo, $(LOGO_IMAGE), $(LOGO_BMP))
 endif
 
 $(LOGO_H):	$(obj)bmp_logo $(LOGO_BMP)

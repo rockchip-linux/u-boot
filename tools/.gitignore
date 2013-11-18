@@ -1,3 +1,4 @@
+/bmp_image
 /bmp_logo
 /envcrc
 /gen_eth_addr
@@ -19,3 +20,5 @@
 /gdb/gdbcont
 /gdb/gdbsend
 /kernel-doc/docproc
+/loaderimage
+/boot_merger

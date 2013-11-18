@@ -92,7 +92,132 @@ EMMC_INIT_retry:
     }
     return ret1;
 }
+//#define FTL_DEBUG
+#ifdef FTL_DEBUG
+uint16 pwrite[32768];
+uint16 pread[32768];
+#define TestFileLen  1024*1024*1024 //1GB
+#define TestSector   64 
+#define TestStartSector   0x200000 //1GB
+void FTLTest(uint8 ChipSel)
+{
+	uint16 i,j, loop = 0;
+	uint32 block;
+    uint32 TestEndLBA;
+    uint32 TestLBA = 0;
+    uint16 TestSecCount = 1;
+    uint16 printFlag;
+    uint32 start,end;
+    uint32 TestCountNUM=0;
 
+    TestEndLBA = TestStartSector + 2048*32;
+    for (i=0; i<32768; i++)
+        pwrite[i]=i;
+    if(gSdCardInfoTbl[ChipSel].BootCapSize > 0)
+        EmmcSetBootPart(ChipSel,EMMC_BOOT_PART,EMMC_DATA_PART);
+
+    start=get_timer(0);
+    TestCountNUM=TestStartSector;
+    for(i=0;i<=TestFileLen/512/64;i++ ){
+        pwrite[0]=i;
+    	SDM_Write(ChipSel,TestCountNUM,64,pwrite);
+	TestCountNUM+=64;
+    }
+    end=get_timer(0);
+    printf("----->write start=%x end=%x time=%d",start,end,start>end?start-end:end-start);
+    start=get_timer(0);
+    TestCountNUM=TestStartSector;
+    for(i=0;i<=TestFileLen/512/64;i++ ){
+    	SDM_Read(ChipSel,TestCountNUM,64,pread);
+	TestCountNUM+=64;
+    }
+    end=get_timer(0);
+    printf("----->read start=%x end=%x time=%d",start,end,start>end?start-end:end-start);
+#if 0
+    TestCountNUM=TestStartSector;
+    for(i=0;i<=TestFileLen/512/64;i++ ){
+    	SDM_Read(ChipSel,TestCountNUM,64,pread);
+	TestCountNUM+=64;
+	for (j=0; j<64*256; j++)
+	{
+		if(j==0){
+			if (pread[0] != i)
+			{
+				PRINT_E("write not match:row=%x, num=%x, write=%x, read=%x\n", TestCountNUM, j,i, pread[0]);
+				break;
+			}
+		}else if (pwrite[j] != pread[j])
+		{
+			PRINT_E("write not match:row=%x, num=%x, write=%x, read=%x\n", TestLBA, j, pwrite[j], pread[j]);
+			break;
+		}
+	}
+    }
+#endif
+    PRINT_E("--------trans end---------\n", TestLBA, j, pwrite[j], pread[j]);
+
+
+
+#if 0
+    for(loop = 0;loop<10;loop ++)
+    {
+        PRINT_E("---------Test loop = %d---------\n",loop);
+        PRINT_E("---------Test ftl write---------\n");
+        TestSecCount = 1;
+        PRINT_E("TestEndLBA = %x\n",TestEndLBA);
+        PRINT_E("TestLBA = %x\n",TestLBA);
+    	for (TestLBA=TestStartSector + loop; (TestLBA + TestSecCount) <TestEndLBA;)//SysAreaBlock
+    	{
+            PRINT_E("SDM_Write = %x\n",TestLBA);
+            SDM_Write(ChipSel,TestLBA,TestSecCount,pwrite);
+            PRINT_E("SDM_Read = %x\n",TestLBA);
+            SDM_Read(ChipSel,TestLBA,TestSecCount,pread);
+            printFlag = TestLBA&0x7FF;
+            if(printFlag < TestSecCount)
+            PRINT_E("TestLBA = %x\n",TestLBA);
+           
+            for (j=0; j<TestSecCount*256; j++)
+            {
+                if (pwrite[j] != pread[j])
+                {
+                    PRINT_E("write not match:row=%x, num=%x, write=%x, read=%x\n", TestLBA, j, pwrite[j], pread[j]);
+                    break;
+                }
+            }
+            TestLBA+=TestSecCount;
+            TestSecCount++;
+            if(TestSecCount > TestSector)
+                TestSecCount = 1;
+    	}
+        PRINT_E("---------Test ftl check---------\n");
+
+        TestSecCount = 1;
+    	for (TestLBA=TestStartSector + loop; (TestLBA + TestSecCount) <TestEndLBA;)//SysAreaBlock
+    	{
+            SDM_Read(ChipSel,TestLBA,TestSecCount,pread);
+            printFlag = TestLBA&0x7FF;
+            if(printFlag < TestSecCount)
+                PRINT_E("TestLBA = %x\n",TestLBA);
+           
+
+            for (j=0; j<TestSecCount*256; j++)
+            {
+                if (pwrite[j] != pread[j])
+                {
+                    PRINT_E("check not match:row=%x, num=%x, write=%x, read=%x\n", TestLBA, j, pwrite[j], pread[j]);
+                    break;
+                }
+            }
+            TestLBA+=TestSecCount;
+            TestSecCount++;
+            if(TestSecCount > TestSector)
+                TestSecCount = 1;
+    	}
+    }
+    PRINT_E("---------Test end---------\n");
+#endif
+}
+#endif
 uint32 emmcdebug_on = 1;
 
 uint32 SdmmcInit(uint32 ChipSel)
@@ -151,7 +276,10 @@ uint32 SdmmcInit(uint32 ChipSel)
         if( gSdCardInfoTbl[ChipSel].FwPartOffset == SD_CARD_FW_PART_OFFSET)
         {
             SDM_Read(ChipSel,SD_CARD_SYS_PART_OFFSET,4,gSysData );
-        }        
+        }      
+#ifdef FTL_DEBUG
+        FTLTest(ChipSel);
+#endif
         return OK;
     }
     return ERROR;

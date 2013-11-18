@@ -26,7 +26,9 @@ include $(TOPDIR)/config.mk
 LIB	:= $(obj)libbattery.o
 
 COBJS-$(CONFIG_POWER_BATTERY_TRATS) += bat_trats.o
-
+COBJS-$(CONFIG_BATTERY_BQ27541)+= bat_bq27541.o
+COBJS-$(CONFIG_BATTERY_RK_SAMPLE)+= bat_rk_sample.o
+COBJS-$(CONFIG_BATTERY_RICOH619) += bat_ricoh619.o
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(COBJS))

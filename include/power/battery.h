@@ -35,4 +35,6 @@ struct battery {
 };
 
 int power_bat_init(unsigned char bus);
+int get_power_bat_status(struct battery *batt_status);
+
 #endif /* __POWER_BATTERY_H_ */

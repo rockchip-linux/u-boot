@@ -30,7 +30,7 @@ Revision:		1.00
 //#define     LINUX_LOADER
 #define     SECURE_BOOT_ENABLE
 #define     SECURE_BOOT_ENABLE_ALWAY
-//#define     SECURE_BOOT_LOCK
+#define     SECURE_BOOT_LOCK
 //#define     ERASE_DRM_KEY_EN
 //#define   SECURE_BOOT_TEST
 #define     MALLOC_DISABLE
@@ -78,12 +78,14 @@ Revision:		1.00
 #include    "parameter.h"
 
 
+#if 0
 #ifdef  DRIVERS_FLASH
 #include    "FlashBoot.h"
 #include 	"flash.h"	//FLASH头文件
 #include 	"ftl.h"	//FTL头文件
 #include    "LoaderFlash.h"
 #include    "FTL_OSDepend.h"
+#endif
 #endif
 
 #ifdef  DRIVERS_SDMMC
@@ -93,6 +95,10 @@ Revision:		1.00
 #ifdef  DRIVERS_SPI
 #include    "../common/spi/SpiFlash.h"
 #include    "../common/spi/SpiBoot.h"
+#endif
+
+#ifdef CONFIG_PL330_DMA
+#include    <api_pl330.h>
 #endif
 
 

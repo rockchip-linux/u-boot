@@ -459,26 +459,30 @@ $(obj)u-boot.ldr.srec:	$(obj)u-boot.ldr
 
 ifneq ($(CONFIG_ROCKCHIP),)
 
-ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3066")
+ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3066))
 RKCHIP ?= RK30
 endif
 
-ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3168")
+ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3168))
 RKCHIP ?= RK30B
 endif
 
-ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3188")
+ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3188))
 RKCHIP ?= RK310B
 endif
 
-ifeq ($(CONFIG_RKCHIPTYPE),"CONFIG_RK3168")
+ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3168))
 RKCHIP ?= RK3168
 endif
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 
 $(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
-	cd $(obj)tools/rk_tools/ && \
-		./boot_merger RKBOOT/$(RKCHIP).ini
+	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP).ini && \
+	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINI.ini && \
+	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini && \
+	./tools/loaderimage  --pack u-boot.bin uboot.img
+		
+
 endif
 
 #
@@ -873,6 +877,8 @@ clean:
 	       $(obj)arch/blackfin/cpu/init.{lds,elf}
 	@rm -f $(obj)include/bmp_logo.h
 	@rm -f $(obj)include/bmp_logo_data.h
+	@rm -f $(obj)include/bmp_image_data.h
+	@rm -f $(obj)charge.img
 	@rm -f $(obj)lib/asm-offsets.s
 	@rm -f $(obj)include/generated/asm-offsets.h
 	@rm -f $(obj)$(CPUDIR)/$(SOC)/asm-offsets.s

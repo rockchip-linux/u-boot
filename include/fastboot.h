@@ -147,13 +147,19 @@ struct cmd_fastboot_interface {
 	   Set by board */
 	char *serial_no;
 
+    //fastboot likely to query partition-type before do flash.
+    struct fbt_partition *pending_ptn;
+
 	/* Transfer buffer, for handling flash updates
 	   Should be multiple of the block size
 	   Care should be take so it does not overrun bootloader memory
 	   Controlled by the configure variable CONFIG_FASTBOOT_TRANSFER_BUFFER
 
 	   Set by board */
+    u8 *buffer[2];
 	u8 *transfer_buffer;
+
+    u64 transfer_buffer_pos;
 
 	/* How big is the transfer buffer
 	   Controlled by the configure variable
@@ -177,8 +183,6 @@ struct cmd_fastboot_interface {
 
     /* Offset of storage, will download 'd_direct_size' data to this offset */
     u64 d_direct_offset;
-
-    u64 d_buffer_pos;
 
 	/* Upload size, if download has to be done */
 	u64 u_size;
@@ -244,6 +248,7 @@ extern struct fbt_partition fbt_partitions[];
 
 #define PARAMETER_NAME  "parameter"
 #define LOADER_NAME     "loader"
+#define UBOOT_NAME      "uboot"
 #define MISC_NAME       "misc"
 #define KERNEL_NAME     "kernel"
 #define BOOT_NAME       "boot"
@@ -285,6 +290,7 @@ enum fbt_reboot_type {
 	FASTBOOT_REBOOT_NONE,
 	FASTBOOT_REBOOT_RECOVERY_WIPE_DATA,
 	FASTBOOT_REBOOT_FASTBOOT,
+	FASTBOOT_REBOOT_CHARGE,
 };
 extern void fbt_preboot(void);
 
@@ -303,7 +309,7 @@ void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
 int board_fbt_handle_flash(char *name,
         struct cmd_fastboot_interface *priv);
 int board_fbt_handle_download(unsigned char *buffer,
-        int* length, struct cmd_fastboot_interface *priv);
+        int length, struct cmd_fastboot_interface *priv);
 int board_fbt_check_misc();
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
 struct fbt_partition *fastboot_find_ptn(const char *name);
