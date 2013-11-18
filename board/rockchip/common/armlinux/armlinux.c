@@ -1127,7 +1127,7 @@ void start_linux(PBootInfo pboot_info)
 	//RkPrintf("END ===== %d\n", RkldTimerGetTick());
 	//PRINT_E("CMDLINE: %s\n", pboot_info->cmd_line);
     powerOn();
-    //FlashDeInit();
+    FlashDeInit();
 #ifdef RK_LOADER_FOR_FT
     pboot_info->cmd_line[0] = 0; //FT 测试loader，不能用在android上
 #endif

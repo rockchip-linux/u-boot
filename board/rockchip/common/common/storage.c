@@ -106,6 +106,22 @@ int LMemApiWriteLba(uint8 ChipSel, uint32 LBA, void *pbuf  , uint16 nSec  ,uint1
     return ret;
 }
 
+uint32 FtlDeInit()
+{
+    uint32 ret = FTL_ERROR;
+    if(gp_loader_api->ftl_deinit)
+       ret = gp_loader_api->ftl_deinit();
+    return ret;
+}
+
+uint32 FlashDeInit()
+{
+    uint32 ret = FTL_ERROR;
+    if(gp_loader_api->flash_deinit)
+       ret = gp_loader_api->flash_deinit();
+    return ret;
+}
+
 //uint32 LMemApiGetCapacity(void)
 uint32 LMemApiGetCapacity(uint8 ChipSel)
 {
@@ -114,7 +130,6 @@ uint32 LMemApiGetCapacity(uint8 ChipSel)
        ret = gp_loader_api->GetCapacity(gpMemFun->id);
     return ret;
 }
-
 
 //uint32 LMemApiSysDataLoad(uint32 Index,void *Buf)
 uint32 LMemApiSysDataLoad(uint8 ChipSel, uint32 Index,void *Buf)
@@ -143,7 +158,7 @@ uint32 lMemApiInit(uint32 BaseAddr)
     {
         if(gp_loader_api->id==1)
         {
-            return 1; //nand
+            return 0; //nand
         }
         else if(gp_loader_api->id==2)
         {
