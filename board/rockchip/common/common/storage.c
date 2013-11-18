@@ -158,7 +158,7 @@ uint32 lMemApiInit(uint32 BaseAddr)
     {
         if(gp_loader_api->id==1)
         {
-            return 1; //nand
+            return 0; //nand
         }
         else if(gp_loader_api->id==2)
         {
