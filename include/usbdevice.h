@@ -487,9 +487,9 @@ struct urb {
 
 	struct urb_link link;	/* embedded struct for circular doubly linked list of urbs */
 
-	u8* buffer;
-	unsigned int buffer_length;
-	unsigned int actual_length;
+	volatile u8* buffer;
+	volatile unsigned int buffer_length;
+	volatile unsigned int actual_length;
 
 	urb_send_status_t status;
 	int data;

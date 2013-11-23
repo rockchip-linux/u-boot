@@ -562,19 +562,13 @@ int handleDirectDownload(unsigned char *buffer,
     }
     int blocks = DIV_ROUND_UP(write_len, RK_BLK_SIZE);
 
-    FBTDBG("direct download, size:%d, offset:%lld, rest:%d\n",
+    FBTDBG("direct download, size:%d, offset:%lld, rest:%lld\n",
             size, priv->d_direct_offset, priv->d_direct_size - write_len);
 
 	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->offset, buffer + priv->transfer_buffer_pos, blocks, 0)) {
         FBTDBG("handleDirectDownload failed\n");
         return -1;
     }
-/*
-    if(CopyMemory2Flash(buffer + priv->transfer_buffer_pos,
-                priv->d_direct_offset + priv->pending_ptn->offset, blocks)) {
-        FBTDBG("handleDirectDownload failed\n");
-        return -1;
-    }*/
     priv->d_direct_offset += blocks;
     priv->d_direct_size -= write_len;
     priv->transfer_buffer_pos += write_len;
@@ -765,7 +759,8 @@ int handleDownload(unsigned char *buffer,
         return 0;
     }
 
-    if (length + priv->d_bytes < priv->d_size &&
+    if ((length - priv->transfer_buffer_pos)/*rcved data len*/
+            + priv->d_bytes < priv->d_size &&
             length < priv->transfer_buffer_size) {
         //keep downloading, util buffer is full or end of download.
         return 1;
