@@ -834,7 +834,7 @@ static const char *getvar_checksum(const char *args)
     //may overflow?
     uint16_t buf_blocks = priv.transfer_buffer_size / RK_BLK_SIZE; 
 
-    ulong* crc_array = (ulong*) priv.buffer[1];
+    uint32_t* crc_array = (uint32_t*) priv.buffer[1];
     uint16_t crc_counts = 0;
     while (blocks > 0) {
         uint16_t read_blocks = blocks > buf_blocks? buf_blocks : blocks;
@@ -847,7 +847,7 @@ static const char *getvar_checksum(const char *args)
             return NULL;
         }
         crc_array[crc_counts] = crc32(0, buf, read_blocks * RK_BLK_SIZE);
-        FBTDBG("offset:0x%08lx, blocks:0x%08x, crc:0x%04lx",
+        FBTDBG("offset:0x%08x, blocks:0x%08x, crc:0x%08lx\n",
                 offset, read_blocks, crc_array[crc_counts]);
         offset += read_blocks;
         blocks -= read_blocks;
@@ -855,9 +855,9 @@ static const char *getvar_checksum(const char *args)
     }
     
     //3:compute whole checksum
-    ulong checksum = (crc_counts == 1)? crc_array[0] :
-        crc32(0, (unsigned char*)crc_array, sizeof(ulong) * crc_counts);
-    FBTDBG("whole checksum:0x%08lx", checksum);
+    uint32_t checksum = (crc_counts == 1)? crc_array[0] :
+        crc32(0, (unsigned char*)crc_array, sizeof(uint32_t) * crc_counts);
+    FBTDBG("whole checksum:0x%08lx\n", checksum);
 
     snprintf(priv.response, sizeof(priv.response),
             "OKAY0x%08lx\n", checksum);

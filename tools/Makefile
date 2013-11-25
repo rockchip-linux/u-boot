@@ -107,6 +107,7 @@ BIN_FILES-$(CONFIG_KIRKWOOD) += kwboot$(SFX)
 BIN_FILES-y += proftool(SFX)
 BIN_FILES-y += loaderimage$(SFX)
 BIN_FILES-y += boot_merger$(SFX)
+BIN_FILES-y += checksum$(SFX)
 
 # Source files which exist outside the tools directory
 EXT_OBJ_FILES-$(CONFIG_BUILD_ENVCRC) += common/env_embedded.o
@@ -147,6 +148,7 @@ NOPED_OBJ_FILES-y += ublimage.o
 OBJ_FILES-$(CONFIG_KIRKWOOD) += kwboot.o
 NOPED_OBJ_FILES-y += loaderimage.o
 NOPED_OBJ_FILES-y += boot_merger.o
+NOPED_OBJ_FILES-y += checksum.o
 
 # Don't build by default
 #ifeq ($(ARCH),ppc)
@@ -225,6 +227,10 @@ HOSTCFLAGS += -DCOMPRESS_RLE8
 endif
 endif
 
+ifneq ($(CONFIG_ROCKCHIP),)
+HOSTCFLAGS += -DCONFIG_ROCKCHIP	
+endif
+
 all:	$(obj).depend $(BINS) $(LOGO-y) subdirs
 
 $(obj)bin2header$(SFX): $(obj)bin2header.o
@@ -258,6 +264,10 @@ $(obj)mkenvimage$(SFX):	$(obj)crc32.o $(obj)mkenvimage.o \
 	$(obj)os_support.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
+
+$(obj)checksum$(SFX): \
+			$(obj)crc32.o \
+			$(obj)checksum.o \
 
 $(obj)mkimage$(SFX):	$(obj)aisimage.o \
 			$(obj)crc32.o \
@@ -321,6 +331,10 @@ $(obj)loaderimage$(SFX):	$(obj)loaderimage.o $(obj)sha.o
 	$(HOSTSTRIP) $@
 
 $(obj)boot_merger$(SFX):	$(obj)boot_merger.o
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
+	$(HOSTSTRIP) $@
+
+$(obj)checksum$(SFX):	$(obj)checksum.o
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $^
 	$(HOSTSTRIP) $@
 
