@@ -806,6 +806,95 @@ static const char *getvar_partition_type(const char *args)
     return NULL;
 }
 
+static const char *getvar_checksum(const char *args)
+{
+#ifndef CONFIG_ROCKCHIP
+    return NULL;
+#else
+    //1:parse params.
+    uint32_t offset = 0;
+    uint32_t blocks = 0;
+    char* buf = args + sizeof("checksum:") - 1;
+    offset = simple_strtoull(buf, &buf, 0);
+    //skip a space char.
+    buf++;
+    blocks = simple_strtoull(buf, &buf, 0);
+
+    if (offset < 0 || blocks <= 0) {
+        snprintf(priv.response, sizeof(priv.response),
+                "FAILinvalidate params!\n");
+        return NULL;
+    }
+    FBTDBG("try to get checksum, offset:0x%08lx, blocks:0x%08x\n",
+            offset, blocks);
+
+    //2:get checksum for each parts
+    buf = priv.buffer[0];
+
+    //may overflow?
+    uint16_t buf_blocks = priv.transfer_buffer_size / RK_BLK_SIZE; 
+
+    ulong* crc_array = (ulong*) priv.buffer[1];
+    uint16_t crc_counts = 0;
+    while (blocks > 0) {
+        uint16_t read_blocks = blocks > buf_blocks? buf_blocks : blocks;
+        
+        if (StorageReadLba(offset, buf, read_blocks) != 0) {
+            FBTERR("read failed, offset:0x%08lx, blocks:0x%08x\n",
+                    offset, read_blocks);
+            snprintf(priv.response, sizeof(priv.response),
+                    "FAILread 0x%08lx failed!\n", offset);
+            return NULL;
+        }
+        crc_array[crc_counts] = crc32(0, buf, read_blocks * RK_BLK_SIZE);
+        FBTDBG("offset:0x%08lx, blocks:0x%08x, crc:0x%04lx",
+                offset, read_blocks, crc_array[crc_counts]);
+        offset += read_blocks;
+        blocks -= read_blocks;
+        crc_counts++;
+    }
+    
+    //3:compute whole checksum
+    ulong checksum = (crc_counts == 1)? crc_array[0] :
+        crc32(0, (unsigned char*)crc_array, sizeof(ulong) * crc_counts);
+    FBTDBG("whole checksum:0x%08lx", checksum);
+
+    snprintf(priv.response, sizeof(priv.response),
+            "OKAY0x%08lx\n", checksum);
+    return NULL;
+#endif
+}
+
+static const char *getvar_partition_offset(const char *args)
+{
+	const char *partition_name;
+	fbt_partition_t *ptn;
+
+	if (!strcmp(args, "all")) {
+		int i;
+		for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
+            if (!fbt_partitions[i].name)
+                break;
+            FBTDBG("partition \"%s\" offset 0x%08llx\n",
+			       fbt_partitions[i].name,
+			       (uint64_t)fbt_partitions[i].offset);
+		}
+		return NULL;
+	}
+
+	partition_name = args + sizeof("partition-offset:") - 1;
+	ptn = fastboot_find_ptn(partition_name);
+	if (ptn) {
+		snprintf(priv.response, sizeof(priv.response),
+			 "OKAY0x%08llx", (uint64_t)ptn->offset);
+	} else {
+		snprintf(priv.response, sizeof(priv.response),
+			 "FAILunknown partition %s\n", partition_name);
+	}
+	return NULL;
+}
+
+
 static const char *getvar_partition_size(const char *args)
 {
 	const char *partition_name;
@@ -844,7 +933,9 @@ static const struct getvar_entry getvar_table[] = {
 	{"product", 1, getvar_product},
 	{"serialno", 1, getvar_serialno},
     {"partition-type:", 0, getvar_partition_type},
-	{"partition-size:", 0, getvar_partition_size}
+    {"partition-size:", 0, getvar_partition_size},
+    {"partition-offset:", 0, getvar_partition_offset},
+    {"checksum:", 0, getvar_checksum}
 };
 
 static void fbt_handle_getvar(char *cmdbuf)
