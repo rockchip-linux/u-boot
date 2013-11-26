@@ -317,7 +317,7 @@ struct fbt_partition *fastboot_find_ptn(const char *name);
 #define FBT_ERR
 #undef  FBT_WARN
 #undef  FBT_INFO
-#define  FBT_DEBUG
+#undef  FBT_DEBUG
 
 #ifdef FBT_DEBUG
 #define FBTDBG(fmt, args...)\
