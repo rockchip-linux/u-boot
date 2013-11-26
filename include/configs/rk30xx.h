@@ -274,6 +274,8 @@ Revision:       1.00
 //#define CONFIG_CMD_CHARGE_ANIM
 #define CONFIG_LCD_BMP_RLE8
 
+#define CONFIG_QUICK_CHECKSUM
+
 #define CONFIG_RK_I2C
 #define CONFIG_I2C_MULTI_BUS
 

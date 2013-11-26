@@ -832,10 +832,16 @@ static const char *getvar_checksum(const char *args)
     buf = priv.buffer[0];
 
     //may overflow?
-    uint16_t buf_blocks = priv.transfer_buffer_size / RK_BLK_SIZE; 
+    uint16_t buf_blocks = priv.transfer_buffer_size / RK_BLK_SIZE;
 
+#ifndef CONFIG_QUICK_CHECKSUM
     uint32_t* crc_array = (uint32_t*) priv.buffer[1];
     uint16_t crc_counts = 0;
+    uint32_t checksum = 0;
+#else
+    uint64_t checksum = 0;
+#endif
+
     while (blocks > 0) {
         uint16_t read_blocks = blocks > buf_blocks? buf_blocks : blocks;
         
@@ -846,21 +852,39 @@ static const char *getvar_checksum(const char *args)
                     "FAILread 0x%08lx failed!\n", offset);
             return NULL;
         }
+        offset += read_blocks;
+        blocks -= read_blocks;
+#ifndef CONFIG_QUICK_CHECKSUM
         crc_array[crc_counts] = crc32(0, buf, read_blocks * RK_BLK_SIZE);
         FBTDBG("offset:0x%08x, blocks:0x%08x, crc:0x%08lx\n",
                 offset, read_blocks, crc_array[crc_counts]);
-        offset += read_blocks;
-        blocks -= read_blocks;
         crc_counts++;
+#else
+        int i = 0;
+        uint32_t* data = (uint32_t*) buf;
+        for (i = 0;i < read_blocks * RK_BLK_SIZE >> 2;i++)
+            checksum += data[i];
+        FBTDBG("offset:0x%08x, blocks:0x%08x, checksum:0x%016llx\n",
+                offset, read_blocks, checksum);
+#endif
     }
-    
+
+#ifndef CONFIG_QUICK_CHECKSUM
     //3:compute whole checksum
-    uint32_t checksum = (crc_counts == 1)? crc_array[0] :
+    checksum = (crc_counts == 1)? crc_array[0] :
         crc32(0, (unsigned char*)crc_array, sizeof(uint32_t) * crc_counts);
     FBTDBG("whole checksum:0x%08lx\n", checksum);
+#else
+    FBTDBG("whole checksum:0x%016llx\n", checksum);
+#endif
 
+#ifndef CONFIG_QUICK_CHECKSUM
     snprintf(priv.response, sizeof(priv.response),
             "OKAY0x%08lx\n", checksum);
+#else
+    snprintf(priv.response, sizeof(priv.response),
+            "OKAY0x%016llx\n", checksum);
+#endif
     return NULL;
 #endif
 }
@@ -2060,7 +2084,7 @@ void fbt_preboot(void)
     drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb                                         
 #endif
 #endif// CONFIG_ROCKCHIP
-    
+    /*
     //check charge mode when no key pressed.
     if(check_charge() || frt == FASTBOOT_REBOOT_CHARGE) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
@@ -2073,6 +2097,8 @@ void fbt_preboot(void)
         return fbt_run_charge();
 #endif
     }
+    */
+    frt = FASTBOOT_REBOOT_FASTBOOT;
 #ifdef CONFIG_ROCKCHIP
 PowerHoldPinInit();
 #ifdef CONFIG_LCD

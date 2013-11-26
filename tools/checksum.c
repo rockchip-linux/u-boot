@@ -56,9 +56,13 @@ int main (int argc, char *argv[])
     void* buf = malloc(buf_size);
     uint16_t buf_blocks = buf_size / RK_BLK_SIZE;
     uint32_t offset = 0;
-
+#ifndef CONFIG_QUICK_CHECKSUM
     uint32_t* crc_array = (uint32_t*) malloc(buf_size);
     uint16_t crc_counts = 0;
+	uint32_t checksum = 0;
+#else
+    uint64_t checksum = 0;
+#endif
     while (blocks > 0) {
         uint16_t read_blocks = blocks > buf_blocks? buf_blocks : blocks;
 
@@ -67,21 +71,33 @@ int main (int argc, char *argv[])
                     offset, read_blocks);
             return -1;
         }
+        offset += read_blocks;
+        blocks -= read_blocks;
+#ifndef CONFIG_QUICK_CHECKSUM
         crc_array[crc_counts] = crc32(0, buf, read_blocks * RK_BLK_SIZE);
         printf("offset:0x%08x, blocks:0x%08x, crc:0x%08lx\n",
                 offset, read_blocks, crc_array[crc_counts]);
-        offset += read_blocks;
-        blocks -= read_blocks;
         crc_counts++;
+#else
+        int i = 0;
+        uint32_t* data = (uint32_t*) buf;
+        for (i = 0;i < read_blocks * RK_BLK_SIZE >> 2;i++)
+            checksum += le_uint32(data[i]);
+        printf("offset:0x%08x, blocks:0x%08x, checksum:0x%016llx\n",
+                offset, read_blocks, checksum);
+#endif
     }
 
+#ifndef CONFIG_QUICK_CHECKSUM
     //3:compute whole checksum
-    uint32_t checksum = (crc_counts == 1)? crc_array[0] :
+    checksum = (crc_counts == 1)? crc_array[0] :
         crc32(0, (unsigned char*)crc_array, sizeof(uint32_t) * crc_counts);
     printf("whole checksum:0x%08lx\n", checksum);
-    
-    free(buf);
     free(crc_array);
+#else
+    printf("whole checksum:0x%016llx\n", checksum);
+#endif
+    free(buf);
 
     fclose (fp);
     return 0;
