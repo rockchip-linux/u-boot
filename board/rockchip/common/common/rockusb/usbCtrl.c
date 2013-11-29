@@ -70,6 +70,7 @@ int dwc_otg_check_dpdm(void)
         printf("%s otg_dctl=0x%x,otg_hprt0 = 0x%x\n",__func__,*otg_dctl,*otg_hprt0);
         if((*otg_hprt0 & 0xc00)==0xc00)
             bus_status = 2;
+	*otg_dctl |= 2;
     }
    // printf("%s %d \n",__func__,bus_status);
 
