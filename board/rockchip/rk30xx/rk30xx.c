@@ -18,6 +18,7 @@ Revision:       1.00
 #include "i2c.h"
 #include <power/pmic.h>
 #include <version.h>
+#include <asm/arch/rk_i2c.h>
 
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
@@ -363,6 +364,10 @@ int board_late_init(void)
 {
     printf("board_late_init\n");
 
+#ifdef CONFIG_RK_I2C 
+	rk_i2c_init();
+#endif
+
     SecureBootCheck();
 	get_bootloader_ver(NULL);
 	printf("##################################################\n");
@@ -479,6 +484,14 @@ vidinfo_t panel_info = {
 	.init_delay	= 0,
 	.power_on_delay = 0,
 	.reset_delay	= 0,
+
+#ifdef CONFIG_RK616
+	.screen_type  = SCREEN_LVDS,
+#ifdef CONFIG_RK616_LVDS
+	.lvds_format  = LVDS_8BIT_2,
+	.lvds_ch_nr = 1,
+#endif
+#endif
 };
 
 void init_panel_info(vidinfo_t *vid)
@@ -489,8 +502,24 @@ void init_panel_info(vidinfo_t *vid)
     vid->logo_rgb_mode = RGB565;
 }
 
+#ifdef CONFIG_RK616
+int rk616_power_on()
+{	
+	return 0;
+}
 #endif
 
+#endif
+
+#ifdef CONFIG_RK_I2C 
+void rk_i2c_init()
+{
+#ifdef CONFIG_RK616
+	i2c_set_bus_num(I2C_BUS_CH4);
+	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+#endif 
+}
+#endif
 
 static key_config charger_state;
 void ChargerStateInit()
@@ -511,5 +540,4 @@ int is_charging()
 {
     return !GetPortState(&charger_state);  //gpio0_b2, charger in status
 }
-
 

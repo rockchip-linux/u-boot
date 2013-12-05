@@ -228,7 +228,14 @@ Revision:       1.00
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 #define CONFIG_RK_3168_FB
 #endif
-#endif
+
+/*rk616 config*/
+//#define CONFIG_RK616
+#ifdef CONFIG_RK616
+#define CONFIG_RK616_LVDS //lvds or mipi
+#define CONFIG_RK616_LCD_CHN 0
+#endif /*CONFIG_RK616*/ 
+#endif /*CONFIG_RK_FB*/
 //#define CONFIG_RK_I2C
 #ifdef CONFIG_RK_I2C
 #define CONFIG_HARD_I2C

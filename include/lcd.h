@@ -294,6 +294,16 @@ enum lay_id {
 	NUM_LAYERS,
 };
 
+enum screen_tpye {
+	SCREEN_NULL = 0,
+	SCREEN_RGB  = 1,
+	SCREEN_LVDS = 2,
+	SCREEN_MCU  = 3,
+	SCREEN_TVOUT = 4,
+	SCREEN_HDMI  = 5,
+	SCREEN_MIPI  = 6,
+};
+
 struct fb_dsp_info{
 	enum lay_id layer_id;
 	enum exynos_fb_data_format_t format;
@@ -368,6 +378,14 @@ typedef struct vidinfo {
 	unsigned int sclk_div;
 
 	unsigned int dual_lcd_enabled;
+		
+#ifdef CONFIG_RK616
+    	u_char screen_type;
+#ifdef CONFIG_RK616_LVDS
+    	u_char lvds_format;
+    	u_char lvds_ch_nr;
+#endif
+#endif
 } vidinfo_t;
 
 void init_panel_info(vidinfo_t *vid);
@@ -376,7 +394,14 @@ int rk30_load_screen(vidinfo_t *vid);
 int rk30_lcdc_init();
 void get_rk_logo_info(vidinfo_t *vid);
 
+#ifdef CONFIG_RK616
+#define LVDS_8BIT_1     0
+#define LVDS_8BIT_2     1
+#define LVDS_8BIT_3     2
+#define LVDS_6BIT       3
 
+int rk616_power_on(void);
+#endif /*CONFIG_RK616*/
 
 #else
 

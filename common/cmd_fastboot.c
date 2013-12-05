@@ -2083,6 +2083,10 @@ void fbt_preboot(void)
 #ifdef CONFIG_LCD
     drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb                                         
 #endif
+#ifdef CONFIG_RK616
+	rk616_init(CONFIG_RK616_LCD_CHN);
+#endif
+
 #endif// CONFIG_ROCKCHIP
     //check charge mode when no key pressed.
     if(check_charge() || frt == FASTBOOT_REBOOT_CHARGE) {
