@@ -37,6 +37,7 @@ typedef enum rk_i2c_bus_ch {
 	I2C_BUS_CH1,
 	I2C_BUS_CH2,
 	I2C_BUS_CH3,
+	I2C_BUS_CH4,
 	I2C_BUS_MAX
 } rk_i2c_bus_ch_t;
 

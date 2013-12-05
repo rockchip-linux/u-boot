@@ -102,7 +102,8 @@ struct rk30_i2c {
 	{ .regs = I2C0_BASE_ADDR + SZ_4K, 0 },
 	{ .regs = I2C1_BASE_ADDR + SZ_4K, 0 },
 	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },
-	{ .regs = I2C3_BASE_ADDR + SZ_8K, 0 }
+	{ .regs = I2C3_BASE_ADDR + SZ_8K, 0 },
+	{ .regs = I2C4_BASE + SZ_8K, 0 }
 };
 
 static unsigned int gcurrent_bus = I2C_BUS_MAX;
@@ -412,7 +413,13 @@ static void rk_i2c_init(int speed)
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 		g_grfReg->GRF_GPIO_IOMUX[3].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12))<<16)|(0x2<<14)|(0x2<<12);
 #endif
-	} else {
+	}else if(gcurrent_bus == I2C_BUS_CH4){
+		i2c_adap_sel(I2C_BUS_CH4);
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<14)|(0x1<<12))<<16)|(0x1<<14)|(0x1<<12);
+#endif
+	} 
+	else {
 		printf("gcurrent_bus is error!\n");
 	}
 
