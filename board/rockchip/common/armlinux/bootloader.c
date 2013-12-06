@@ -172,7 +172,7 @@ bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
         if(i != 1)
 			P_RC4(pIDBlockData+SECTOR_OFFSET*i, 512);
     }
-
+    memset(pIDBlockData+SECTOR_OFFSET*2, 0, SECTOR_OFFSET ); //真 chip info,真真真真sn
 	PRINT_I("OK\n");
 
 	pSec0 = (Sector0Info *)(pIDBlockData);
