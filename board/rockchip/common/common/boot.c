@@ -68,6 +68,19 @@ typedef struct tagDRM_KEY_INFO
 BOOT_CONFIG_INFO gBootConfig;
 DRM_KEY_INFO gDrmKeyInfo;
 
+void RKLockLoader(void)
+{
+    if((RSK_KEY[0] == 0X400))
+    {
+        if( gDrmKeyInfo.secureBootLock == 0)
+        {
+            gDrmKeyInfo.secureBootLock = 1;
+            gDrmKeyInfo.secureBootLockKey = 0;
+            StorageSysDataStore(1, &gDrmKeyInfo);
+        }
+    }
+}
+
 uint32 SecureBootCheck(void)
 {
     uint32 ret  = FTL_OK;

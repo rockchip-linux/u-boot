@@ -506,6 +506,11 @@ void UsbHook(void)
             FWSetResetFlag = 0;
             SoftReset();
         }
+        else if(FWSetResetFlag == 0x10)
+        {
+            FWSetResetFlag = 0;
+            RKLockLoader();
+        }
 #else
         if(FWSetResetFlag==0xFF)
         {
