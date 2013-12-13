@@ -31,7 +31,7 @@ int check_charge(void)
 {
     int reg=0;
     int ret = 0;
-    if(0==IReadLoaderFlag()) {
+    if(0==IReadLoaderFlag() && 0==IReadLoaderMode()) {
         i2c_set_bus_num(1);
         i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
         i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);

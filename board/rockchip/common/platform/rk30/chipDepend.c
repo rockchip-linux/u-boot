@@ -144,6 +144,11 @@ void ISetLoaderFlag(uint32 flag)
     *LOADER_FLAG_REG = flag;
 }
 
+uint32 IReadLoaderMode(void)
+{
+    return (*LOADER_MODE_REG);
+}
+
 typedef enum PLL_ID_Tag
 {
     APLL=0,

@@ -18,7 +18,7 @@ int check_charge(void)
 {
     int reg=0;
     int ret = 0;
-    if(IReadLoaderFlag() == 0) {
+    if(IReadLoaderFlag() == 0 && 0==IReadLoaderMode()) {
 		if(GetVbus()) { 	  //reboot charge
 			printf("In charging! \n");
 			ret = 1;
