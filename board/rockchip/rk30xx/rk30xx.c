@@ -368,6 +368,10 @@ int board_late_init(void)
 	rk_i2c_init();
 #endif
 
+#ifdef CONFIG_POWER_ACT8846
+	pmic_init(0);
+#endif
+
     SecureBootCheck();
 	get_bootloader_ver(NULL);
 	printf("##################################################\n");
@@ -514,6 +518,12 @@ int rk616_power_on()
 #ifdef CONFIG_RK_I2C 
 void rk_i2c_init()
 {
+
+#ifdef CONFIG_POWER_ACT8846
+	i2c_set_bus_num(I2C_BUS_CH1);
+	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+#endif
+
 #ifdef CONFIG_RK616
 	i2c_set_bus_num(I2C_BUS_CH4);
 	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
@@ -540,4 +550,35 @@ int is_charging()
 {
     return !GetPortState(&charger_state);  //gpio0_b2, charger in status
 }
+
+#ifdef CONFIG_POWER_ACT8846
+struct pmic_voltage pmic_vol[] = {
+	{"act_dcdc1",1200000},
+	{"vdd_core" ,1000000},
+	{"vdd_cpu"  ,1000000},
+	{"act_dcdc4",3000000},
+	{"act_ldo1" ,1000000},
+	{"act_ldo2" ,1200000},
+	{"act_ldo3" ,1800000},
+	{"act_ldo4" ,3300000},
+	{"act_ldo5" ,3300000}, 
+	{"act_ldo6" ,3300000},
+	{"act_ldo7" ,1800000},
+	{"act_ldo8" ,2800000},
+};
+
+int pmic_get_vol(char *name)
+{
+	int i =0 ,vol = 0;
+	for(i=0;i<ARRAY_SIZE(pmic_vol);i++){
+	if(strcmp(pmic_vol[i].name,name)==0){
+			vol = pmic_vol[i].vol;
+			break;
+		}
+	}
+	return vol;
+}
+#endif
+
+
 

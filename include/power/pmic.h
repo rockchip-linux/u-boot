@@ -90,6 +90,11 @@ struct pmic {
 	struct list_head list;
 };
 
+struct  pmic_voltage{
+        char            *name;
+        int             vol;
+};
+
 int pmic_init(unsigned char bus);
 int pmic_dialog_init(unsigned char bus);
 int check_reg(struct pmic *p, u32 reg);
@@ -99,6 +104,8 @@ int pmic_probe(struct pmic *p);
 int pmic_reg_read(struct pmic *p, u32 reg, u32 *val);
 int pmic_reg_write(struct pmic *p, u32 reg, u32 val);
 int pmic_set_output(struct pmic *p, u32 reg, int ldo, int on);
+int pmic_get_vol(char *name);
+
 
 #define pmic_i2c_addr (p->hw.i2c.addr)
 #define pmic_i2c_tx_num (p->hw.i2c.tx_num)
