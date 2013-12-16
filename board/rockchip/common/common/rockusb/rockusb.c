@@ -320,6 +320,16 @@ void FW_TestUnitReady(void)
         //gCSW.Status=CSW_FAIL;
         FWLowFormatEn = 1;
     }
+    else if(gCBW.Reseved0 == 0xFA)
+    {
+        CSWHandler(CSW_GOOD,0);
+        FWSetResetFlag = 0x10;;
+    }
+    else if(gCBW.Reseved0 == 0xF9)
+    {
+        CSWHandler(CSW_GOOD,0);
+        gCSW.Residue = Swap32(StorageGetCapacity());
+    }
     else if(SecureBootLock)
     {
         CSWHandler(CSW_FAIL,0);
