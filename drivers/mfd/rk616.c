@@ -8,7 +8,14 @@
 #include "rk616.h"
 #include "transmitter/rk616_lvds.h"
 
+#if  (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+#define GRF_IOMUX_CONFIG_I2S (1<<0 | 1<<2 | 1<<4 | 1<<6 | 1<<8 | 1<<10 | 1<<12 | 1<<14|(0xffff0000))
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 #define GRF_IOMUX_CONFIG_I2S (1<<0 | 1<<2 | 1<<4 | 1<<6 | 1<<8 | 1<<10 |(0xffff0000))
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+#define GRF_IOMUX_CONFIG_I2S (1<<0 | 1<<2 | 1<<4 | 1<<6 | 1<<8 | 1<<10 |(0xffff0000))
+#endif
+
 #define CRU_I2S_CLK_24M ((0x2<<8)|(0x2<<8)<<16)	
 //#define RK616_TEST
 
@@ -99,7 +106,13 @@ static int rk616_set_reg(int channel)
 static int rk616_common_config()
 {
 	//12m i2s clk input -- grf io mux
+#if  (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+	g_grfReg->GRF_GPIO_IOMUX[0].GPIOB_IOMUX = GRF_IOMUX_CONFIG_I2S;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 	g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = GRF_IOMUX_CONFIG_I2S;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+	g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = GRF_IOMUX_CONFIG_I2S;
+#endif
 
 	//12m i2s clk input -- cru config
 	g_cruReg->CRU_CLKSEL_CON[3] = CRU_I2S_CLK_24M;	
@@ -133,7 +146,7 @@ int rk616_init(int lcdc_chn)
 	//init rk616 reg
 	rk616_set_reg(lcdc_chn);
 
-	//lvds  or mipi 
+	//lvds  or mipi
 	if(panel_info.screen_type == SCREEN_LVDS){
 #ifdef CONFIG_RK616_LVDS
 		set_lvds_reg(1);
