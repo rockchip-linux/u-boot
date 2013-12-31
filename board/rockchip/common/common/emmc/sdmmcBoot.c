@@ -514,17 +514,14 @@ uint32 SdmmcSysDataLoad(uint8 ChipSel, uint32 Index,void *Buf)
 {
     uint32 ret = FTL_ERROR;
 #if(PALTFORM!=RK28XX)
-    if(gSdCardInfoTbl[ChipSel].FwPartOffset == SD_CARD_FW_PART_OFFSET)
+    if(gSdCardInfoTbl[ChipSel].FwPartOffset == SD_CARD_FW_PART_OFFSET && Index <= 3)
     {
-        int32_t tmpBuf[512 / sizeof(int32_t)];
         if(gSdCardInfoTbl[ChipSel].BootCapSize > 0)
         {
             EmmcSetBootPart(ChipSel,EMMC_BOOT_PART,EMMC_DATA_PART);
         }
-        ret = SDM_Read(ChipSel,SD_CARD_SYS_PART_OFFSET + Index,1,&tmpBuf);
-        ftl_memcpy(Buf, &tmpBuf, 512);
-        if (Index <= 3)
-            ftl_memcpy(&gSysData[Index*128], &tmpBuf, 512);
+        ret = SDM_Read(ChipSel,SD_CARD_SYS_PART_OFFSET + Index,1,&gSysData[Index*128]);
+        ftl_memcpy(Buf, &gSysData[Index*128], 512);
         //PRINT_E("SdmmcSysDataLoad , %x, %x ret=%x\n",ChipSel,Index,ret);
     }
 #endif
@@ -535,18 +532,15 @@ uint32 SdmmcSysDataStore(uint8 ChipSel, uint32 Index,void *Buf)
 {
     uint32 ret = FTL_ERROR;
 #if(PALTFORM!=RK28XX)
-    if(gSdCardInfoTbl[ChipSel].FwPartOffset == SD_CARD_FW_PART_OFFSET)
+    if(gSdCardInfoTbl[ChipSel].FwPartOffset == SD_CARD_FW_PART_OFFSET && Index <= 3)
     {
-        int32_t tmpBuf[512 / sizeof(int32_t)];
         if(gSdCardInfoTbl[ChipSel].BootCapSize > 0)
         {
             EmmcSetBootPart(ChipSel,EMMC_BOOT_PART,EMMC_DATA_PART);
         }
-        ftl_memcpy(&tmpBuf,Buf, 512);
-        ret = SDM_Write(ChipSel,SD_CARD_SYS_PART_OFFSET  + Index,1,&tmpBuf);
+        ftl_memcpy(&gSysData[Index*128],Buf, 512);
+        ret = SDM_Write(ChipSel,SD_CARD_SYS_PART_OFFSET  + Index,1,&gSysData[Index*128]);
         //PRINT_E("SdmmcSysDataStore , %x, %x ret=%x\n",ChipSel,Index,ret);
-        if (Index <= 3)
-            ftl_memcpy(&gSysData[Index*128],&tmpBuf, 512);
     }
 #endif
     return ret;
