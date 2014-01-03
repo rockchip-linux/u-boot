@@ -602,11 +602,11 @@ static void fbt_fastboot_init(void)
 	priv.unlocked = 1;
 
     priv.transfer_buffer = priv.buffer[0] = (u8 *)gd->arch.fastboot_buf_addr;
-    priv.buffer[1] = priv.buffer[0] + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
-    priv.transfer_buffer_size  = CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
+    priv.buffer[1] = priv.buffer[0] + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
+    priv.transfer_buffer_size  = CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
 
 #ifdef CONFIG_FASTBOOT_LOG
-    log_buffer = (char*)(priv.transfer_buffer + priv.transfer_buffer_size);
+    log_buffer = (char*)(priv.transfer_buffer + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE);
 #endif
 
 	fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);

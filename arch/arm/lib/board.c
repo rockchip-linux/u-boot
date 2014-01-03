@@ -37,6 +37,7 @@
  * IRQ Stack: 00ebff7c
  * FIQ Stack: 00ebef7c
  */
+#define DEBUG
 
 #include <common.h>
 #include <command.h>
@@ -395,12 +396,6 @@ void board_init_f(ulong bootflag)
 #endif
 
 #ifdef CONFIG_CMD_FASTBOOT
-#ifndef CONFIG_FASTBOOT_LOG_SIZE
-#define CONFIG_FASTBOOT_LOG_SIZE (SZ_2M)
-#endif
-    /* reserve fastboot log buffer */
-    addr -= CONFIG_FASTBOOT_LOG_SIZE;
-	debug("Reserving %ldk for fastboot log buffer at %08lx\n", CONFIG_FASTBOOT_LOG_SIZE >> 10, addr);
 #ifndef CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_32M)
 #endif
@@ -409,7 +404,14 @@ void board_init_f(ulong bootflag)
 
     gd->arch.fastboot_buf_addr = addr;
 	debug("Reserving %ldk for fastboot transfer buffer at %08lx\n", CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 10, addr);
+
+#ifndef CONFIG_FASTBOOT_LOG_SIZE
+#define CONFIG_FASTBOOT_LOG_SIZE (SZ_2M)
 #endif
+    /* reserve fastboot log buffer */
+    addr -= CONFIG_FASTBOOT_LOG_SIZE;
+    debug("Reserving %ldk for fastboot log buffer at %08lx\n", CONFIG_FASTBOOT_LOG_SIZE >> 10, addr);
+#endif //CONFIG_CMD_FASTBOOT
 
 	/*
 	 * reserve memory for U-Boot code, data & bss
