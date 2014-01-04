@@ -64,6 +64,7 @@ struct arch_global_data {
 #endif
 #ifdef CONFIG_CMD_FASTBOOT
     unsigned long fastboot_buf_addr;
+    unsigned long fastboot_log_buf_addr;
 #endif
 };
 

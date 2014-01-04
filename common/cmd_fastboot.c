@@ -606,7 +606,7 @@ static void fbt_fastboot_init(void)
     priv.transfer_buffer_size  = CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
 
 #ifdef CONFIG_FASTBOOT_LOG
-    log_buffer = (char*)(priv.transfer_buffer + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE);
+    log_buffer = (char*)gd->arch.fastboot_log_buf_addr;
 #endif
 
 	fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);

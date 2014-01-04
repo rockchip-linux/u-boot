@@ -410,6 +410,7 @@ void board_init_f(ulong bootflag)
 #endif
     /* reserve fastboot log buffer */
     addr -= CONFIG_FASTBOOT_LOG_SIZE;
+    gd->arch.fastboot_log_buf_addr = addr;
     debug("Reserving %ldk for fastboot log buffer at %08lx\n", CONFIG_FASTBOOT_LOG_SIZE >> 10, addr);
 #endif //CONFIG_CMD_FASTBOOT
 
