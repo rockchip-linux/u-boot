@@ -60,6 +60,7 @@ COBJS-$(CONFIG_RK_FB) += rk_fb.o
 COBJS-$(CONFIG_RK_3066_FB) +=  rk30_lcdc.o
 COBJS-$(CONFIG_RK_3188_FB) +=  rk3188_lcdc.o
 COBJS-$(CONFIG_RK_3168_FB) +=  rk3168_lcdc.o
+COBJS-$(CONFIG_RK_3026_FB) +=  rk3026_lcdc.o
 
 COBJS	:= $(sort $(COBJS-y))
 SRCS	:= $(COBJS:.o=.c)

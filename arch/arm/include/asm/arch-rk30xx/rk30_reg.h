@@ -114,6 +114,31 @@ typedef volatile struct tagGRF_REG
     uint32 GRF_HSIC_STAT;    //reserved in rk3168
     uint32 GRF_OS_REG[8];
 } GRF_REG, *pGRF_REG;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+
+typedef volatile struct tagGRF_REG
+{
+    GPIO_LH_T GRF_GPIO_DIR[4];
+    GPIO_LH_T GRF_GPIO_DO[4];
+    GPIO_LH_T GRF_GPIO_EN[4];
+    GPIO_IOMUX_T GRF_GPIO_IOMUX[4];
+    uint32 GRF_SOC_CON[3];
+    uint32 GRF_SOC_STATUS0;
+    uint32 GRF_DMAC1_CON[3];
+    uint32 GRF_DMAC2_CON[4];
+    uint32 GRF_CPU_CON[6]; //  no use
+    uint32 GRF_CPU_STAT[2]; //  no use
+    uint32 GRF_DDRC_CON0;
+    uint32 GRF_DDRC_STAT;
+    uint32 GRF_IO_CON[5];
+    uint32 reserved0;
+    uint32 GRF_UOC0_CON[4];
+    uint32 GRF_UOC1_CON[4];
+    uint32 GRF_UOC2_CON[3];  //reserved in rk3168
+    uint32 GRF_UOC3_CON[2];  //reserved in rk3168
+    uint32 GRF_HSIC_STAT;    //reserved in rk3168
+    uint32 GRF_OS_REG[8];
+} GRF_REG, *pGRF_REG;
 #endif
 
 /* TIMER Registers */

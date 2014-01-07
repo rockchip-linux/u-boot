@@ -107,6 +107,10 @@ void ChipTypeCheck(void)
     }
 	
 #endif
+#if(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+    ChipType = CHIP_RK3026;
+	
+#endif
 }
 
 #include "../../common/rockusb/USB20.h"

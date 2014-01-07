@@ -22,6 +22,7 @@ Revision:       1.00
 #define CONFIG_RK3066		1
 #define CONFIG_RK3188		2
 #define CONFIG_RK3168		3
+#define CONFIG_RK3026           4
 
 #define CONFIG_RKCHIPTYPE	CONFIG_RK3188
 #define SECOND_LEVEL_BOOTLOADER
@@ -227,6 +228,8 @@ Revision:       1.00
 //#define CONFIG_VCC_LCDC_1_8   //vcc lcdc switch to 1.8v
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 #define CONFIG_RK_3168_FB
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+#define CONFIG_RK_3026_FB
 #endif
 
 /*rk616 config*/
@@ -260,6 +263,7 @@ Revision:       1.00
 #define         CHIP_RK3168     2
 #define         CHIP_RK3188     3
 #define         CHIP_RK3188B    4
+#define         CHIP_RK3026     5
 
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB
