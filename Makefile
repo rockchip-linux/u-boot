@@ -473,10 +473,6 @@ ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3188))
 RKCHIP ?= RK310B
 endif
 
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3168))
-RKCHIP ?= RK3168
-endif
-
 ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3026))
 RKCHIP ?= RK302A
 endif
@@ -485,7 +481,9 @@ RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 $(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP).ini && \
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINI.ini && \
+	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIdebug.ini && \
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini && \
+	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALLdebug.ini && \
 	./tools/loaderimage  --pack u-boot.bin uboot.img
 		
 
