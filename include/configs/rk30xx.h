@@ -11,26 +11,12 @@ Revision:       1.00
 
 #ifndef __CONFIG_H
 #define __CONFIG_H
-
+#include "rkchip.h"
 /*
  * High Level Configuration Options
  */
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
-#define CONFIG_RK30XX		1	/* which is in a RK30XX Family */
-
-#define CONFIG_RK3066		1
-#define CONFIG_RK3188		2
-#define CONFIG_RK3168		3
-#define CONFIG_RK3026           4
-
-#define CONFIG_RKCHIPTYPE	CONFIG_RK3188
-
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-#define CONFIG_RK_3026_CHIP
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188 || CONFIG_RKCHIPTYPE == CONFIG_RK3066 || CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-#define CONFIG_RK_30XX_CHIP
-#endif
 
 #define SECOND_LEVEL_BOOTLOADER
 
@@ -265,13 +251,6 @@ Revision:       1.00
 #define CONFIG_BATTERY_RK_SAMPLE  //battery driver
 
 
-#define         CHIP_RK3066     0
-#define         CHIP_RK3066B    1
-#define         CHIP_RK3168     2
-#define         CHIP_RK3188     3
-#define         CHIP_RK3188B    4
-#define         CHIP_RK2928     5
-#define         CHIP_RK3026    6 //292C
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB
 #undef CONFIG_CMD_BOOTM

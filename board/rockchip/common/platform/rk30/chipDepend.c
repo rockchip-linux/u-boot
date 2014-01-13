@@ -82,33 +82,33 @@ void ChipTypeCheck(void)
     ftl_memcpy(Rk30ChipVerInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR), 16);
 #endif
     
-    ChipType = CHIP_RK3066;
+    ChipType = CONFIG_RK3066;
     if(Rk30ChipVerInfo[0]== 0x33303042&&Rk30ChipVerInfo[3] == 0x56313030) 
     {
-        ChipType = CHIP_RK3168;
+        ChipType = CONFIG_RK3168;
     }
     
     if(Rk30ChipVerInfo[0]== 0x33303041&& Rk30ChipVerInfo[3] == 0x56313030) 
     {
-        ChipType = CHIP_RK3066B;
+        ChipType = CONFIG_RK3066B;
         Rk30ChipVerInfo[0] =  0x33313041; // "310A"
     }
 
     if(Rk30ChipVerInfo[0]== 0x33313042&& Rk30ChipVerInfo[3] == 0x56313030) 
     {
-        ChipType = CHIP_RK3188;
+        ChipType = CONFIG_RK3188;
     }
 #if(CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-    ChipType = CHIP_RK3188;
+    ChipType = CONFIG_RK3188;
 
     if(Rk30ChipVerInfo[0]== 0x33313042&& Rk30ChipVerInfo[3] == 0x56313031) 
     {
-        ChipType = CHIP_RK3188B;
+        ChipType = CONFIG_RK3188B;
     }
 	
 #endif
 #if(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-    ChipType = CHIP_RK3026;
+    ChipType = CONFIG_RK3026;
 	
 #endif
 }
@@ -116,17 +116,17 @@ void ChipTypeCheck(void)
 #include "../../common/rockusb/USB20.h"
 void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
 {
-    if(ChipType == CHIP_RK3066B) 
+    if(ChipType == CONFIG_RK3066B) 
     {
         pDeviceDescr->idProduct = 0x310A;
         pDeviceDescr->idVendor  = 0x2207;
     }
-    else if (ChipType == CHIP_RK3168)
+    else if (ChipType == CONFIG_RK3168)
     {
         pDeviceDescr->idProduct = 0x300B;
         pDeviceDescr->idVendor  = 0x2207;
     }
-    else if (ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
+    else if (ChipType == CONFIG_RK3188 || ChipType == CONFIG_RK3188B)
     {
         pDeviceDescr->idProduct = 0x310B;
         pDeviceDescr->idVendor  = 0x2207;
@@ -172,7 +172,7 @@ typedef enum PLL_ID_Tag
 
 static void APLL_cb(void)
 {
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         g_cruReg->CRU_CLKSEL_CON[0] = ((0x1F | (0x3<<6) | (0x1<<8))<<16)
                                                       | (0x0<<8)     //core_clk_src = ARM PLL = 600MHz
@@ -203,7 +203,7 @@ static void APLL_cb(void)
 
 static void GPLL_cb(void)
 {
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
     	g_cruReg->CRU_CLKSEL_CON[10] = (((0x1<<15)|(0x3<<12)|(0x3<<8)|0x1F)<<16) 
                                                     | (0x0<<15)     //aclk_periph = GPLL/1 = 144MHz
@@ -212,7 +212,7 @@ static void GPLL_cb(void)
                                                     | 0x0;   
 	
     }
-    else if(ChipType == CHIP_RK3188)
+    else if(ChipType == CONFIG_RK3188)
 	{
     	g_cruReg->CRU_CLKSEL_CON[10] = (((0x1<<15)|(0x3<<12)|(0x3<<8)|0x1F)<<16) 
                                                     | (0x1<<15)     //periph_clk_src = GPLL = 300MHz
@@ -246,7 +246,7 @@ static void Set_PLL(PLL_ID pll_id, uint32 MHz, pFunc cb)
     MHz += (MHz & 0x1);   //change to even, for NB setting
     g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) +  16)) | (0x0<<(pll_id*4));            //PLL slow-mode
 
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         if(MHz > 500)
         {
@@ -330,7 +330,7 @@ static void Set_PLL(PLL_ID pll_id, uint32 MHz, pFunc cb)
 
 void SetARMPLL(uint16 nMhz)
 {
-    if(ChipType != CHIP_RK3188 && ChipType != CHIP_RK3188B)
+    if(ChipType != CONFIG_RK3188 && ChipType != CONFIG_RK3188B)
     {
         Set_PLL(APLL, 600, APLL_cb);
         Set_PLL(GPLL, 300, GPLL_cb); // 3188有些坏片，可能使用GPLL当作DPLL使用
@@ -407,7 +407,7 @@ USB PHY RESET
 ***************************************************************************/
 bool UsbPhyReset(void)
 {
-    if(ChipType == CHIP_RK3188 || ChipType == CHIP_RK3188B)
+    if(ChipType == CONFIG_RK3188 || ChipType == CONFIG_RK3188B)
     {
         uart2UsbEn(0);
         //g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
@@ -419,7 +419,7 @@ bool UsbPhyReset(void)
        // g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
     }
     
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
     }
@@ -441,7 +441,7 @@ USB PHY RESET
 ***************************************************************************/
 void FlashCsInit(void)
 {
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX = ((0x3<<14)<<16)|(0x1<<14);  // dqs
         g_grfReg->GRF_GPIO_IOMUX[4].GPIOA_IOMUX = ((0xFFFF)<<16)|0x5555;      // data8-15
@@ -468,7 +468,7 @@ void SpiGpioInit(void)
 
 void sdmmcGpioInit(uint32 ChipSel)
 {
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX = ((0x3<<14)<<16)|(0x2<<14);  // dqs
         g_grfReg->GRF_GPIO_IOMUX[4].GPIOB_IOMUX = ((0xf<<2)<<16)|(0xa<<2);   // cmd,rstn
@@ -493,7 +493,7 @@ void DisableRemap(void)
 {
 // TODO: Disable Remap
     //clean remap bit in grf enabled, remap 0x0000 to rom, 
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         *(unsigned long volatile *)(GRF_BASE + 0x150) = 0x10000000;
     }
@@ -541,7 +541,7 @@ void SoftReset(void)
     //Delay100cyc(10);
     g_giccReg->ICCEOIR=USB_OTG_INT_CH;
     //DisableRemap();
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         ResetCpu((GRF_BASE + 0x150));
     }

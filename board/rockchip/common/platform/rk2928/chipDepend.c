@@ -92,13 +92,13 @@ void ChipTypeCheck(void)
 	//if(Rk30ChipVerInfo[0]== 0x32393243)//&& Rk30ChipVerInfo[3] == 0x56313030) //292C
 	//{
 	
-		ChipType = CHIP_RK3026;
+		ChipType = CONFIG_RK3026;
 		Rk30ChipVerInfo[0] = 0x33303241;//"302A"
 	//}
 
 	//if(Rk30ChipVerInfo[0]== 0x32393241)//&& Rk30ChipVerInfo[3] == 0x56333030)  // 292A
 	//{
-	//	ChipType = CHIP_RK2928;
+	//	ChipType = CONFIG_RK2928;
 	//	Rk30ChipVerInfo[0] = 0x32393258; // "292X"
 	//}
 	
@@ -106,12 +106,12 @@ void ChipTypeCheck(void)
 #include "../../common/rockusb/USB20.h"
 void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
 {
-	if(ChipType == CHIP_RK3026)
+	if(ChipType == CONFIG_RK3026)
 	{
 		pDeviceDescr->idProduct = 0x292c;
 		pDeviceDescr->idVendor  = 0x2207;
 	}
-	else if (ChipType == CHIP_RK2928)
+	else if (ChipType == CONFIG_RK2928)
 	{
 		pDeviceDescr->idProduct = 0x292A;
 		pDeviceDescr->idVendor  = 0x2207;
@@ -124,7 +124,7 @@ void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
 uint32 IReadLoaderFlag(void)
 {
     uint32 reg;
-    if (ChipType == CHIP_RK2928)
+    if (ChipType == CONFIG_RK2928)
     {
         reg = ((*LOADER_FLAG_REG_L) & 0xFFFFuL) | (((*LOADER_FLAG_REG_H) & 0xFFFFuL)<<16);
     }
@@ -140,7 +140,7 @@ uint32 IReadLoaderFlag(void)
 void ISetLoaderFlag(uint32 flag)
 {
     uint32 reg;
-    if (ChipType == CHIP_RK2928)
+    if (ChipType == CONFIG_RK2928)
     {
         reg = ((*LOADER_FLAG_REG_L) & 0xFFFFuL) | (((*LOADER_FLAG_REG_H) & 0xFFFFuL)<<16);
         if(reg == flag)
@@ -330,7 +330,7 @@ uint32 GetAHBCLK(void)
     uint32 Div1,Div2;
     uint32 ArmPll;
     uint32 AhbClk;
-    if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+    if (ChipType == CONFIG_RK2928 || ChipType == CONFIG_RK3026)
     	 ArmPll = GetPLLCLK(3);
     else
         ArmPll = GetGPLLCLK();
@@ -346,7 +346,7 @@ uint32 GetAHBCLK(void)
 uint32 GetMmcCLK(void)
 {
     uint32 ArmPll;
-    if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+    if (ChipType == CONFIG_RK2928 || ChipType == CONFIG_RK3026)
     	ArmPll = GetPLLCLK(3)  * 1000;
 	else
         ArmPll = GetAHBCLK();
@@ -391,11 +391,11 @@ USB PHY RESET
 ***************************************************************************/
 bool UsbPhyReset(void)
 {
-    if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026) 
+    if (ChipType == CONFIG_RK2928 || ChipType == CONFIG_RK3026) 
     {
         *(uint32*)0x20008190 = 0x34000000; 
     }
-    else if(ChipType == CHIP_RK3026)
+    else if(ChipType == CONFIG_RK3026)
     {
         *(uint32*)0x20008190 = 0x34000000; 
     }
@@ -412,7 +412,7 @@ USB PHY RESET
 ***************************************************************************/
 void FlashCsInit(void)
 { 
-    if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+    if (ChipType == CONFIG_RK2928 || ChipType == CONFIG_RK3026)
     {
         g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (0xFFFFuL<<16)|0x5555;   // nand d0-d7
         g_grfReg->GRF_GPIO_PULL[1].GPIOH = 0xFF00FF00;                     //disable pull up d0~d7
@@ -432,7 +432,7 @@ void sdmmcGpioInit(uint32 ChipSel)
 {
     if(ChipSel == 2)
     {
-        if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+        if (ChipType == CONFIG_RK2928 || ChipType == CONFIG_RK3026)
         {
             g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = ((0xFuL<<12)<<16)|(0xA<<12);        // emmc rstn,cmd
             g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (0xFFFFuL<<16)|0xAAAA;              // emmc d0-d7
@@ -444,7 +444,7 @@ void sdmmcGpioInit(uint32 ChipSel)
 #ifdef RK_SDCARD_BOOT_EN
     else if(ChipSel == 0)
     {
-        if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+        if (ChipType == CONFIG_RK2928 || ChipType == CONFIG_RK3026)
         {
             g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<14)|(0x1<<12))<<16)|(0x1<<14)|(0x1<<12);  // mmc0_cmd mmc0_pwren
             g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = (((0x1<<10)|(0x1<<8)|(0x1<<6)|(0x1<<4)|(0x1<<0))<<16)
@@ -512,11 +512,11 @@ void SoftReset(void)
     //Delay100cyc(10);
    // DisableRemap();
     g_giccReg->ICCEOIR=USB_OTG_INT_CH;
-     if (ChipType == CHIP_RK2928)
+     if (ChipType == CONFIG_RK2928)
     {
         ResetCpu_3026(0x20008140);
     }
-    else if(ChipType == CHIP_RK3026)
+    else if(ChipType == CONFIG_RK3026)
     {
     	ResetCpu_3026(0x20008140);
     	#if 0

@@ -30,14 +30,14 @@ void UartInit(void)
     //clk
     //pRegAddr = (volatile uint32*)0x1801801C;
     //*pRegAddr &= ~(0x03<<18);	//open uart 0 and 1 clk
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
     }
     else
     {
         g_3188_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout uart2
-        if(ChipType == CHIP_RK3188)
+        if(ChipType == CONFIG_RK3188)
             uart2UsbEn(0);
     }
     //iomux

@@ -84,7 +84,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 void RockusbKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    if(ChipType = CHIP_RK3026)
+    if(ChipType = CONFIG_RK3026)
     	key->key.adc.index = 3;
     else
 	key->key.adc.index = 1;	
@@ -98,7 +98,7 @@ void RockusbKeyInit(key_config *key)
 void RecoveryKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    if(ChipType = CHIP_RK3026)
+    if(ChipType = CONFIG_RK3026)
     	key->key.adc.index = 3;
     else
 	key->key.adc.index = 1;	
@@ -113,7 +113,7 @@ void RecoveryKeyInit(key_config *key)
 void FastbootKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    if(ChipType = CHIP_RK3026)
+    if(ChipType = CONFIG_RK3026)
     	key->key.adc.index = 3;
     else
 	key->key.adc.index = 1;	
@@ -140,7 +140,7 @@ void PowerKeyInit()
 #if 0
     key_power.type = KEY_GPIO;
     key_power.key.gpio.valid = 0; 
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         key_power.key.gpio.group = 6;
         key_power.key.gpio.index = 8; // gpio6B0
@@ -158,7 +158,7 @@ void PowerKeyInit()
 #else
     key_power.type = KEY_INT;
     key_power.key.ioint.valid = 0; 
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         key_power.key.ioint.group = 6;
         key_power.key.ioint.index = 8; // gpio6B0
@@ -219,8 +219,20 @@ int arch_cpu_init(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
-#ifdef CONFIG_RK30XX
-     printf("CPU:\tRK30XX\n");
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+	printf("CPU:\tRK3066\n");
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3066B)
+     printf("CPU:\tRK3066B\n");
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+     printf("CPU:\tRK3168\n");
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+     printf("CPU:\tRK3188\n");
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188B)
+     printf("CPU:\tRK3188B\n");
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188T)
+     printf("CPU:\tRK3188T\n");
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+     printf("CPU:\tRK3026\n");
 #endif
      return 0;
 }
@@ -234,9 +246,7 @@ int board_init(void)
 {
 	/* Set Initial global variables */
 
-#ifdef CONFIG_RK30XX
 	gd->bd->bi_arch_number = MACH_TYPE_RK30XX;
-#endif
 	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x88000;
 
 	return 0;

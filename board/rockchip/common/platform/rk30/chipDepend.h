@@ -4,18 +4,12 @@
 #define _CHIP_DEPEND_H
 
 #include "gpio_oper.h"
-
+#include "configs/rkchip.h"
 #define     RK3068_POP_CHIP_TAG      0xF
 #define     RK3068_CHIP_TAG          0x5
 #define     RK3066_CHIP_TAG          0x0
 #define     RK3000_CHIP_TAG          0xC
 
-#define         CHIP_RK3066     0
-#define         CHIP_RK3066B    1
-#define         CHIP_RK3168     2
-#define         CHIP_RK3188     3
-#define         CHIP_RK3188B    4
-#define         CHIP_RK3026     5
 
 extern uint8    ChipType;
 

@@ -2,15 +2,8 @@
 
 #ifndef _CHIP_DEPEND_H
 #define _CHIP_DEPEND_H
-
+#include "configs/rkchip.h"
 #include "gpio_oper.h"
-#define         CHIP_RK3066     0
-#define         CHIP_RK3066B    1
-#define         CHIP_RK3168     2
-#define         CHIP_RK3188     3
-#define         CHIP_RK3188B    4
-#define         CHIP_RK2928     5
-#define         CHIP_RK3026    6 //292C
 #define RK2928G_CHIP_TAG 0x1
 #define RK2928L_CHIP_TAG 0x2
 #define RK2926_CHIP_TAG  0x0

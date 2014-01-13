@@ -358,7 +358,7 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 
 	/* PLL enter slow-mode */
 	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) + 16)) | (0x0<<(pll_id*4));
-	if (ChipType == CHIP_RK3188B) {
+	if (ChipType == CONFIG_RK3188B) {
 		/* enter rest */
 		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x1<<5));
 	} else {
@@ -366,12 +366,12 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 	}
         g_cruReg->CRU_PLL_CON[pll_id][0] = clkset->pllcon0;
         g_cruReg->CRU_PLL_CON[pll_id][1] = clkset->pllcon1;
-	if (ChipType == CHIP_RK3188B) {
+	if (ChipType == CONFIG_RK3188B) {
         	g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
 	}
 
 	clk_loop_delayus(5);
-	if (ChipType == CHIP_RK3188B) {
+	if (ChipType == CONFIG_RK3188B) {
 		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x0<<5));
 	} else {
 		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
@@ -405,7 +405,7 @@ static uint32 rkclk_pll_clk_get_rate(enum rk_plls_id pll_id)
 		return (24 * MHZ);
 	} else if (con == 1) {
 		/* normal mode */
-		if (ChipType == CHIP_RK3188B) {
+		if (ChipType == CONFIG_RK3188B) {
 			con = g_cruReg->CRU_PLL_CON[pll_id][0];
 			no = PLUS_PLL_NO(con);
 			nr = PLUS_PLL_NR(con);

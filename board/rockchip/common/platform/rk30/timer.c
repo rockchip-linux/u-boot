@@ -7,7 +7,7 @@
  */
 void RkldTimePowerOnInit( void )
 {
-    if (ChipType == CHIP_RK3066)
+    if (ChipType == CONFIG_RK3066)
     {
         g_rk30Time0Reg->TIMER_LOAD_COUNT = 0;
         g_rk30Time0Reg->TIMER_CTRL_REG = 0x01;
@@ -24,7 +24,7 @@ void RkldTimePowerOnInit( void )
 uint32 RkldTimerGetCount( void )
 {
     uint32 value;
-    if (ChipType == CHIP_RK3066)
+    if (ChipType == CONFIG_RK3066)
     {
 	value = g_rk30Time0Reg->TIMER_CURR_VALUE;
     }

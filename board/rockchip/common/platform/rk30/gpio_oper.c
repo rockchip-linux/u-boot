@@ -41,13 +41,13 @@ void setup_gpio(gpio_conf *key_gpio)
     uint32 base_addr = 0;
     ChipTypeCheck();
 
-    if (ChipType == CHIP_RK3066)
+    if (ChipType == CONFIG_RK3066)
     {
         if(key_gpio->group >= 7)
             return;
         base_addr = RK3066GpioBaseAddr[key_gpio->group];
     }
-    else if(ChipType == CHIP_RK3026)
+    else if(ChipType == CONFIG_RK3026)
    {
 	 if(key_gpio->group >= 4)
             return;
@@ -87,13 +87,13 @@ void clr_all_gpio_int(void)
     
     for(group=0; group<7; group++)
     {
-        if (ChipType == CHIP_RK3066)
+        if (ChipType == CONFIG_RK3066)
         {
             if(group >= 7)
                 return;
             base_addr = RK3066GpioBaseAddr[group];
         }
-	else if(ChipType == CHIP_RK3026)
+	else if(ChipType == CONFIG_RK3026)
 	 {
 	    if(group >= 4)
 	            return;
@@ -116,13 +116,13 @@ void setup_int(int_conf *key_int)
 {
     uint32 base_addr = 0;
 
-    if (ChipType == CHIP_RK3066)
+    if (ChipType == CONFIG_RK3066)
     {
         if(key_int->group >= 7)
             return;
         base_addr = RK3066GpioBaseAddr[key_int->group];
     }
-    else if(ChipType == CHIP_RK3026)
+    else if(ChipType == CONFIG_RK3026)
    {
 	  if(key_int->group >= 4)
 	       return;
@@ -165,13 +165,13 @@ void gpio_isr(int gpio_group)
    uint32 base_addr = 0;
    uint32  int_eoi;
 
-   if (ChipType == CHIP_RK3066)
+   if (ChipType == CONFIG_RK3066)
    {
        if(gpio_group >= 7)
             return;
        base_addr = RK3066GpioBaseAddr[gpio_group];
    }
-   else if(ChipType == CHIP_RK3026)
+   else if(ChipType == CONFIG_RK3026)
    {
 	  if(gpio_group >= 4)
 	       return;
@@ -466,7 +466,7 @@ void PowerHoldKeyInit()
 {
     key_power.type = KEY_GPIO;
     key_power.key.gpio.valid = 1; 
-    if(ChipType == CHIP_RK3066)
+    if(ChipType == CONFIG_RK3066)
     {
         key_power.key.gpio.group = 6;
         key_power.key.gpio.index = 8; // gpio6B0
