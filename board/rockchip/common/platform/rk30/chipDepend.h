@@ -15,8 +15,7 @@
 #define         CHIP_RK3168     2
 #define         CHIP_RK3188     3
 #define         CHIP_RK3188B    4
-#define         CHIP_RK2928     5
-#define         CHIP_RK3026    6 //292C
+#define         CHIP_RK3026     5
 
 extern uint8    ChipType;
 
@@ -27,16 +26,11 @@ extern uint8    ChipType;
 #define RKLD_HWTM1_LR           ((REG32*)(APB0_TIMER_BASE+0X0000)) // 初始计数 寄存器.
 #define RKLD_HWTM1_CVR          ((REG32*)(APB0_TIMER_BASE+0X0004)) // 初始计数 寄存器.
 #define KRTIMELoaderCount       (uint32)RKLD_APB_FREQ*80*1000      /* 0xee6b2800 */
-#if(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-#define LOADER_FLAG_REG_L          ((REG32*)(GRF_BASE+0x1D8)) // IMEM 最后面4个byte
-#define LOADER_FLAG_REG_H         ((REG32*)(GRF_BASE+0x1DC)) // IMEM 最后面4个byte
-#define LOADER_FLAG_REG           ((REG32*)(0x20004000+0x40)) //PMU_OS_REG0
-#define LOADER_MODE_REG         ((REG32*)(0x20004000+0x44)) //PMU_OS_REG4
-#else
+
 //#define LOADER_FLAG_REG         ((REG32*)(GRF_BASE+0x1C8)) //GRF_OS_REG0
 #define LOADER_FLAG_REG         ((REG32*)(PMU_BASE_ADDR+0x40)) //PMU_OS_REG0
 #define LOADER_MODE_REG         ((REG32*)(PMU_BASE_ADDR+0x44)) //PMU_OS_REG4
-#endif
+
 //定义Loader启动异常类型
 #define SYS_LOADER_ERR_FLAG      0X1888AAFF 
 
