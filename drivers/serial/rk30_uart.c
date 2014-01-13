@@ -161,6 +161,19 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 			g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout
 			g_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
 			g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)	
+			g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX = ((0xf<<12)<<16)|(0xf<<12);;   // sin,sout
+			#if 1
+			if(g_grfReg->GRF_SOC_STATUS0&(1<<10)){
+				if(!(g_grfReg->GRF_SOC_STATUS0&(1<<7))){
+					g_grfReg->GRF_UOC0_CON0 = 0x007f0055;
+					g_grfReg->GRF_UOC1_CON0 = 0x34003000;
+				}
+				else
+					g_grfReg->GRF_UOC1_CON0 = 0x34000000;
+			}
+			#endif
+
 #endif
 		pUartReg = (pUART_REG)UART2_BASE_ADDR;
 	}
@@ -198,7 +211,47 @@ int32 UARTWriteByte(eUART_ch_t uartCh, uint8 byte)
 	return (0);
 }
 
+#define  UART_LSR_TEMT                0x40 /* Transmitter empty */
 
+uint32 uart_init()
+{
+    pUART_REG puartRegStart = UART2_BASE_ADDR; 
+     //BaudRate
+    puartRegStart->UART_LCR = 0x83;
+    puartRegStart->UART_RBR = 0xD;   //²¨ÌØÂÊ:115200
+    puartRegStart->UART_LCR = 0x03;
+}
+uint32 uart_wrtie_byte(uint8 byte)
+{
+    pUART_REG puartRegStart = UART2_BASE_ADDR; 
+    puartRegStart->UART_RBR = byte;
+    while(!(puartRegStart->UART_LSR & UART_LSR_TEMT));
+    return (0);
+}
+
+void print(char *s)
+{
+	while (*s) 
+	{
+		if (*s == '\n')
+		{
+		    uart_wrtie_byte('\r');
+		}
+	    uart_wrtie_byte(*s);
+	    s++;
+	}
+}
+void _print_hex (uint32 hex)
+{
+    int i = 8;
+	uart_wrtie_byte('0');
+	uart_wrtie_byte('x');
+	while (i--) {
+		unsigned char c = (hex & 0xF0000000) >> 28;
+		uart_wrtie_byte(c < 0xa ? c + '0' : c - 0xa + 'a');
+		hex <<= 4;
+	}
+}
 uint8 UARTReadByte(eUART_ch_t uartCh)
 {
 	pUART_REG puartRegStart = UARTGetRegBase(uartCh); 
@@ -211,7 +264,7 @@ uint8 UARTReadByte(eUART_ch_t uartCh)
 }
 
 
-static int rk30_serial_init(void)
+ int rk30_serial_init(void)
 {
 	return (UARTInit(CONFIG_UART_NUM, CONFIG_BAUDRATE));
 }

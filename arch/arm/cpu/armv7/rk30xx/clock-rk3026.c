@@ -22,7 +22,7 @@
  */
 #include <common.h>
 #include <asm/io.h>
-
+#include <div64.h>
 enum rk_plls_id {
 	APLL_ID = 0,
 	DPLL_ID,
@@ -30,7 +30,7 @@ enum rk_plls_id {
 	GPLL_ID,
 	END_PLL_ID,
 };
-
+#if 1
 #define CRU_GET_REG_BITS_VAL(reg,bits_shift, msk)	(((reg) >> (bits_shift))&(msk))
 #define CRU_W_MSK(bits_shift, msk)	((msk) << ((bits_shift) + 16))
 #define CRU_SET_BITS(val,bits_shift, msk)	(((val)&(msk)) << (bits_shift))
@@ -84,14 +84,7 @@ enum rk_plls_id {
 #define PLL_RESET		(1 << 5)
 #define PLL_RESET_RESUME	(0 << 5)
 
-#define PLL_BYPASS_MSK		(1 << 0)
-#define PLL_BYPASS		(1 << 0)
-#define PLL_NO_BYPASS		(0 << 0)
 
-#define PLL_PWR_DN_MSK		(1 << 1)
-#define PLL_PWR_DN_W_MSK	(PLL_PWR_DN_MSK << 16)
-#define PLL_PWR_DN		(1 << 1)
-#define PLL_PWR_ON		(0 << 1)
 
 #define PLL_STANDBY_MSK		(1 << 2)
 #define PLL_STANDBY		(1 << 2)
@@ -105,14 +98,14 @@ enum rk_plls_id {
 #define CORE_PERIPH_8		(2 << 6)
 #define CORE_PERIPH_16		(3 << 6)
 //arm clk pll sel
-#define CORE_SEL_PLL_MSK	(1 << 8)
-#define CORE_SEL_PLL_W_MSK	(1 << 24)
-#define CORE_SEL_APLL		(0 << 8)
-#define CORE_SEL_GPLL		(1 << 8)
+#define CORE_SEL_PLL_MSK	(1 << 7)
+#define CORE_SEL_PLL_W_MSK	(1 << 23)
+#define CORE_SEL_APLL		(0 << 7)
+#define CORE_SEL_GPLL		(1 << 7)
 
-#define CORE_CLK_DIV_W_MSK	(0x1F << 25)
-#define CORE_CLK_DIV_MSK	(0x1F << 9)
-#define CORE_CLK_DIV(i)		((((i) - 1) & 0x1F) << 9)
+#define CORE_CLK_DIV_W_MSK	(0x1F << 24)
+#define CORE_CLK_DIV_MSK	(0x1F << 8)
+#define CORE_CLK_DIV(i)		((((i) - 1) & 0x1F) << 8)
 
 #define CPU_SEL_PLL_MSK		(1 << 5)
 #define CPU_SEL_PLL_W_MSK	(1 << 21)
@@ -206,7 +199,7 @@ DECLARE_GLOBAL_DATA_PTR;
 /* DDR clock source select */
 #define DDR_SRC_DDR_PLL			0
 #define DDR_SRC_GENERAL_PLL		1
-
+#endif
 
 struct pll_clk_set {
 	unsigned long	rate;
@@ -221,25 +214,14 @@ struct pll_clk_set {
 	u8	hclk_div;
 	u8	pclk_div;
 	u8	ahb2apb_div;
+	u32	clksel0;
+	u32	clksel1;	
+	unsigned long lpj;	//loop per jeffise
 };
 
 
-#define _APLL_SET_CLKS(khz, nr, nf, no, _core_div, _core_periph_div, _core_axi_div, \
-					_cpu_axi_div, _cpu_ahb_div, _cpu_apb_div, _cpu_ahb2apb) \
-{ \
-	.rate		= khz * KHZ, \
-	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
-	.pllcon1	= PLL_CLKF_SET(nf), \
-	.core_div		= CLK_DIV_##_core_div, \
-	.core_aclk_div		= CLK_DIV_##_core_axi_div, \
-	.core_periph_div	= CLK_DIV_##_core_periph_div, \
-	.aclk_div		= CLK_DIV_##_cpu_axi_div, \
-	.hclk_div		= CLK_DIV_##_cpu_ahb_div, \
-	.pclk_div		= CLK_DIV_##_cpu_apb_div, \
-	.ahb2apb_div		= CLK_DIV_##_cpu_ahb2apb, \
-	.rst_dly	= ((nr*500)/24+1), \
-}
 
+#if 0
 #define _GPLL_SET_CLKS(khz, nr, nf, no, _axi_div, _ahb_div, _apb_div) \
 { \
 	.rate		= khz * KHZ, \
@@ -268,7 +250,7 @@ struct pll_clk_set {
 	.pllcon1	= PLL_CLKF_SET(nf), \
 	.rst_dly	= ((nr*500)/24+1), \
 }
-
+#endif
 struct pll_data {
 	u32 id;
 	u32 size;
@@ -281,31 +263,193 @@ struct pll_data {
 	.size = (_size), \
 	.clkset = (_table), \
 }
+//#define CRU_MODE_CON		0x40
+//#define CRU_CLKSEL_CON		0x44
+//#define CRU_CLKGATE_CON		0xd0
+#define CRU_GLB_SRST_FST	0x100
+#define CRU_GLB_SRST_SND	0x104
+#define CRU_SOFTRST_CON		0x110
+
+#define PLL_CONS(id, i)		((id) * 0x10 + ((i) * 4))
+
+#define CRU_CLKSELS_CON_CNT	(35)
+#define CRU_CLKSELS_CON(i)	(CRU_CLKSEL_CON + ((i) * 4))
+
+#define CRU_CLKGATES_CON_CNT	(10)
+//#define CRU_CLKGATES_CON(i)	(CRU_CLKGATE_CON + ((i) * 4))
+
+#define CRU_SOFTRSTS_CON_CNT	(9)
+#define CRU_SOFTRSTS_CON(i)	(CRU_SOFTRST_CON + ((i) * 4))
+
+#define CRU_MISC_CON		(0x134)
+#define CRU_GLB_CNT_TH		(0x140)
+
+/*PLL_CON 0,1,2*/
+#define PLL_PWR_ON			(0)
+#define PLL_PWR_DN			(1)
+#define PLL_BYPASS			(1 << 15)
+#define PLL_NO_BYPASS			(0 << 15)
+//con0
+#define PLL_BYPASS_SHIFT		(15)
+
+#define PLL_POSTDIV1_MASK		(0x7)
+#define PLL_POSTDIV1_SHIFT		(12)
+#define PLL_FBDIV_MASK			(0xfff)
+#define PLL_FBDIV_SHIFT			(0)
+
+//con1
+#define PLL_RSTMODE_SHIFT		(15)
+#define PLL_RST_SHIFT			(14)
+#define PLL_PWR_DN_SHIFT		(13)
+#define PLL_DSMPD_SHIFT			(12)
+#define PLL_LOCK_SHIFT			(10)
+
+#define PLL_POSTDIV2_MASK		(0x7)
+#define PLL_POSTDIV2_SHIFT		(6)
+#define PLL_REFDIV_MASK			(0x3f)
+#define PLL_REFDIV_SHIFT		(0)
+
+//con2
+#define PLL_FOUT4PHASE_PWR_DN_SHIFT	(27)
+#define PLL_FOUTVCO_PWR_DN_SHIFT	(26)
+#define PLL_FOUTPOSTDIV_PWR_DN_SHIFT	(25)
+#define PLL_DAC_PWR_DN_SHIFT		(24)
+
+#define PLL_FRAC_MASK			(0xffffff)
+#define PLL_FRAC_SHIFT			(0)
+
+/********************************************************************/
+#define CRU_GET_REG_BIT_VAL(reg, bits_shift)		(((reg) >> (bits_shift)) & (0x1))
+#define CRU_GET_REG_BITS_VAL(reg, bits_shift, msk)	(((reg) >> (bits_shift)) & (msk))
+#define CRU_SET_BIT(val, bits_shift) 			(((val) & (0x1)) << (bits_shift))
+
+
+#define CRU_W_MSK_SETBITS(val, bits_shift, msk) 	(CRU_W_MSK(bits_shift, msk)	\
+							| CRU_SET_BITS(val, bits_shift, msk))
+#define CRU_W_MSK_SETBIT(val, bits_shift) 		(CRU_W_MSK(bits_shift, 0x1)	\
+							| CRU_SET_BIT(val, bits_shift))
+
+#define PLL_SET_REFDIV(val)				CRU_W_MSK_SETBITS(val, PLL_REFDIV_SHIFT, PLL_REFDIV_MASK)
+#define PLL_SET_FBDIV(val)				CRU_W_MSK_SETBITS(val, PLL_FBDIV_SHIFT, PLL_FBDIV_MASK)
+#define PLL_SET_POSTDIV1(val)				CRU_W_MSK_SETBITS(val, PLL_POSTDIV1_SHIFT, PLL_POSTDIV1_MASK)
+#define PLL_SET_POSTDIV2(val)				CRU_W_MSK_SETBITS(val, PLL_POSTDIV2_SHIFT, PLL_POSTDIV2_MASK)
+#define PLL_SET_FRAC(val)				CRU_SET_BITS(val, PLL_FRAC_SHIFT, PLL_FRAC_MASK)
+
+#define PLL_GET_REFDIV(reg)				CRU_GET_REG_BITS_VAL(reg, PLL_REFDIV_SHIFT, PLL_REFDIV_MASK)
+#define PLL_GET_FBDIV(reg)				CRU_GET_REG_BITS_VAL(reg, PLL_FBDIV_SHIFT, PLL_FBDIV_MASK)
+#define PLL_GET_POSTDIV1(reg)				CRU_GET_REG_BITS_VAL(reg, PLL_POSTDIV1_SHIFT, PLL_POSTDIV1_MASK)
+#define PLL_GET_POSTDIV2(reg)				CRU_GET_REG_BITS_VAL(reg, PLL_POSTDIV2_SHIFT, PLL_POSTDIV2_MASK)
+#define PLL_GET_FRAC(reg)				CRU_GET_REG_BITS_VAL(reg, PLL_FRAC_SHIFT, PLL_FRAC_MASK)
+
+//#define APLL_SET_BYPASS(val)				CRU_SET_BIT(val, PLL_BYPASS_SHIFT)
+#define PLL_SET_DSMPD(val)				CRU_W_MSK_SETBIT(val, PLL_DSMPD_SHIFT)
+#define PLL_GET_DSMPD(reg)				CRU_GET_REG_BIT_VAL(reg, PLL_DSMPD_SHIFT)
+/*******************MODE BITS***************************/
+#define PLL_MODE_MSK(id)		(0x1 << ((id) * 4))
+#define PLL_MODE_SHIFT(id)		((id) * 4)
+#define PLL_MODE_SLOW(id)		(CRU_W_MSK_SETBIT(0x0, PLL_MODE_SHIFT(id)))
+#define PLL_MODE_NORM(id)		(CRU_W_MSK_SETBIT(0x1, PLL_MODE_SHIFT(id)))
+/*******************CLKSEL0 BITS***************************/
+#define CLK_SET_DIV_CON_SUB1(val, bits_shift, msk)	CRU_W_MSK_SETBITS((val - 1), bits_shift, msk)
+
+#define CPU_CLK_PLL_SEL_SHIFT		(13)
+#define CORE_CLK_PLL_SEL_SHIFT		(7)
+#define SEL_APLL			(0)
+#define SEL_GPLL			(1)
+#define CPU_SEL_PLL(plls)		CRU_W_MSK_SETBIT(plls, CPU_CLK_PLL_SEL_SHIFT)
+#define CORE_SEL_PLL(plls)		CRU_W_MSK_SETBIT(plls, CORE_CLK_PLL_SEL_SHIFT)
+
+#define ACLK_CPU_DIV_MASK		(0x1f)
+#define ACLK_CPU_DIV_SHIFT		(8)
+#define A9_CORE_DIV_MASK		(0x1f)
+#define A9_CORE_DIV_SHIFT		(0)
+
+#define RATIO_11		(1)
+#define RATIO_21		(2)
+#define RATIO_41		(4)
+#define RATIO_81		(8)
+
+#define ACLK_CPU_DIV(val)		CLK_SET_DIV_CON_SUB1(val, ACLK_CPU_DIV_SHIFT, ACLK_CPU_DIV_MASK)
+#define CLK_CORE_DIV(val)		CLK_SET_DIV_CON_SUB1(val, A9_CORE_DIV_SHIFT, A9_CORE_DIV_MASK)	
+/*******************CLKSEL1 BITS***************************/
+#define PCLK_CPU_DIV_MASK		(0x7)
+#define PCLK_CPU_DIV_SHIFT		(12)
+#define HCLK_CPU_DIV_MASK		(0x3)
+#define HCLK_CPU_DIV_SHIFT		(8)
+#define ACLK_CORE_DIV_MASK		(0x7)
+#define ACLK_CORE_DIV_SHIFT		(4)
+#define CORE_PERIPH_DIV_MASK		(0xf)
+#define CORE_PERIPH_DIV_SHIFT		(0)
+
+#define PCLK_CPU_DIV(val)		CLK_SET_DIV_CON_SUB1(val, PCLK_CPU_DIV_SHIFT, PCLK_CPU_DIV_MASK)
+#define HCLK_CPU_DIV(val)		CLK_SET_DIV_CON_SUB1(val, HCLK_CPU_DIV_SHIFT, HCLK_CPU_DIV_MASK)
+#define ACLK_CORE_DIV(val)		CLK_SET_DIV_CON_SUB1(val, ACLK_CORE_DIV_SHIFT, ACLK_CORE_DIV_MASK)
+#define CLK_CORE_PERI_DIV(val)		CLK_SET_DIV_CON_SUB1(val, CORE_PERIPH_DIV_SHIFT, CORE_PERIPH_DIV_MASK)	
+
+/*******************clksel10***************************/
+#define PERI_PLL_SEL_SHIFT	15
+#define PERI_PCLK_DIV_MASK	(0x3)
+#define PERI_PCLK_DIV_SHIFT	(12)
+#define PERI_HCLK_DIV_MASK	(0x3)
+#define PERI_HCLK_DIV_SHIFT	(8)
+#define PERI_ACLK_DIV_MASK	(0x1f)
+#define PERI_ACLK_DIV_SHIFT	(0)
+
+#define SEL_2PLL_GPLL		(0)
+#define SEL_2PLL_CPLL		(1)
+
+#define PERI_CLK_SEL_PLL(plls)	CRU_W_MSK_SETBIT(plls, PERI_PLL_SEL_SHIFT)
+#define PERI_SET_ACLK_DIV(val)		CLK_SET_DIV_CON_SUB1(val, PERI_ACLK_DIV_SHIFT, PERI_ACLK_DIV_MASK)
+
+#define CLK_LOOPS_JIFFY_REF 11996091ULL
+#define CLK_LOOPS_RATE_REF (1200) //Mhz
+
+#define _APLL_SET_CLKS(_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, \
+		_periph_div, _aclk_core_div, _axi_div, _apb_div, _ahb_div) \
+{ \
+	.rate	= (_mhz) * MHZ,	\
+	.pllcon0 = PLL_SET_POSTDIV1(_postdiv1) | PLL_SET_FBDIV(_fbdiv),	\
+	.pllcon1 = PLL_SET_DSMPD(_dsmpd) | PLL_SET_POSTDIV2(_postdiv2) | PLL_SET_REFDIV(_refdiv),	\
+	.pllcon2 = PLL_SET_FRAC(_frac),	\
+	.clksel1 = ACLK_CORE_DIV(RATIO_##_aclk_core_div) | CLK_CORE_PERI_DIV(RATIO_##_periph_div),	\
+	.lpj	= (CLK_LOOPS_JIFFY_REF * _mhz) / CLK_LOOPS_RATE_REF,	\
+	.rst_dly = 0,\
+}
 
 
 
-/* 	rk3168 pll notice 	*/
-/* 
- * Fref = Fin / nr
- * Fvco = Fin * nf / nr
- * Fout = Fvco / no
- *
- * Fin value range requirement:		32KHz ~ 2200MHz
- * Fref value range requirement:	32KHz ~ 50MHz
- * Fvco value range requirement:	1100MHz ~ 2200MHz
- * Fout value range requirement:	30MHz ~ 2200MHz
- *
- * if Fin = 24MHz, Fref range is: 24MHz ~ 50MHz, Fvco range is: 
- */
-
-/* apll clock table, should be from high to low */
+#define _GPLL_SET_CLKS(_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, _aclk_div, _hclk_div, _pclk_div) \  
+{ \
+	.rate	= (_mhz) * KHZ, \
+	.pllcon0 = PLL_SET_POSTDIV1(_postdiv1) | PLL_SET_FBDIV(_fbdiv),	\
+	.pllcon1 = PLL_SET_DSMPD(_dsmpd) | PLL_SET_POSTDIV2(_postdiv2) | PLL_SET_REFDIV(_refdiv),	\
+	.pllcon2 = PLL_SET_FRAC(_frac),	\
+	.aclk_div	= CLK_DIV_##_aclk_div, \
+	.hclk_div	= CLK_DIV_##_hclk_div, \
+	.pclk_div	= CLK_DIV_##_pclk_div, \
+}
+#define _PLL_SET_CLKS(_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac) \
+{ \
+	.rate	= (_mhz) * KHZ, \
+	.pllcon0 = PLL_SET_POSTDIV1(_postdiv1) | PLL_SET_FBDIV(_fbdiv),	\
+	.pllcon1 = PLL_SET_DSMPD(_dsmpd) | PLL_SET_POSTDIV2(_postdiv2) | PLL_SET_REFDIV(_refdiv),	\
+	.pllcon2 = PLL_SET_FRAC(_frac),	\
+}
 static const struct pll_clk_set apll_clks[] = {
-	//rate, nr, nf, no,	core_div, core_periph_div, core_axi_div,	axi_div, hclk_div, pclk_div, ahb2apb_div
-	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 8, 4,			3, 2, 4, 2),
-	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 4, 4,			3, 2, 4, 2),
+	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, 
+	//	_periph_div, _aclk_core_div, _axi_div, _apb_div, _ahb_div
+	_APLL_SET_CLKS( 816, 1, 34, 1, 1, 1, 0, 41, 21, 41, 21, 21),
+	_APLL_SET_CLKS( 600, 1, 25, 1, 1, 1, 0, 41, 21, 41, 21, 21),
 };
 
+//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,  aclk_div, hclk_div, pclk_div
 
+static const struct pll_clk_set gpll_clks[] = {
+	_GPLL_SET_CLKS(768000, 1, 32, 1, 1, 1, 0, 4,2,4),
+	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0, 2,1,2),
+};
+
+#if 0
 /* gpll clock table, should be from high to low */
 static const struct pll_clk_set gpll_clks[] = {
 	//rate, nr, nf, no,	axi_div, hclk_div, pclk_div
@@ -315,15 +459,19 @@ static const struct pll_clk_set gpll_clks[] = {
 	_GPLL_SET_CLKS(300000, 1,  50, 4,    2, 1, 2),
 	_GPLL_SET_CLKS(297000, 2, 198, 8,    2, 1, 2),
 };
-
-
+#endif
+static const struct pll_clk_set cpll_clks[] = {
+	_PLL_SET_CLKS(798000, 4, 133, 1, 1, 1, 0),
+	_PLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0),
+};
+#if 0
 /* cpll clock table, should be from high to low */
 static const struct pll_clk_set cpll_clks[] = {
 	//rate, nr, nf, no
 	_CPLL_SET_CLKS(798000, 2, 133, 2),
 	_CPLL_SET_CLKS(594000, 2, 198, 4),
 };
-
+#endif
 
 struct pll_data rkpll_data[END_PLL_ID] = {
 	SET_PLL_DATA(APLL_ID, apll_clks, ARRAY_SIZE(apll_clks)),
@@ -335,15 +483,52 @@ struct pll_data rkpll_data[END_PLL_ID] = {
 
 static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
-	uint32 pll_state[4] = {1, 0, 2, 3};
-	uint32 bit = (0x20u << pll_state[pll_id]);
-
-	/* delay for pll lock */
-	while (1) {
-		if (g_grfReg->GRF_SOC_STATUS0 & bit)
+	uint32 delay = 50000000;//24000000;
+	while (delay > 0) {
+		if ((g_cruReg->CRU_PLL_CON[pll_id][1]  & (0x1 << PLL_LOCK_SHIFT))) {
 			break;
-		clk_loop_delayus(1);
+		}
+		delay--;
 	}
+	if (delay == 0) {
+		while(1);
+	}
+}
+
+#define FRAC_MODE	0
+static unsigned long pll_clk_recalc(u8 pll_id, unsigned long parent_rate)
+{
+	unsigned long rate;
+	unsigned int dsmp = 0;
+	u64 rate64 = 0, frac_rate64 = 0;
+	uint32 con;
+	//dsmp = PLL_GET_DSMPD(cru_readl(PLL_CONS(pll_id, 1)));
+	dsmp = PLL_GET_DSMPD(g_cruReg->CRU_PLL_CON[pll_id][1]);
+	con = g_cruReg->CRU_MODE_CON;
+	con = con & PLL_MODE_MSK(pll_id);
+	con = con >> (pll_id*4);
+	if (con) {
+		u32 pll_con0 = g_cruReg->CRU_PLL_CON[pll_id][0];//cru_readl(PLL_CONS(pll_id, 0));
+		u32 pll_con1 = g_cruReg->CRU_PLL_CON[pll_id][1];//cru_readl(PLL_CONS(pll_id, 1));
+		u32 pll_con2 = g_cruReg->CRU_PLL_CON[pll_id][2];//cru_readl(PLL_CONS(pll_id, 2));
+		//integer mode
+		rate64 = (u64)parent_rate * PLL_GET_FBDIV(pll_con0);
+		do_div(rate64, PLL_GET_REFDIV(pll_con1));
+
+		if (FRAC_MODE == dsmp) {
+			//fractional mode
+			frac_rate64 = (u64)parent_rate * PLL_GET_FRAC(pll_con2);
+			do_div(frac_rate64, PLL_GET_REFDIV(pll_con1));
+			rate64 += frac_rate64 >> 24;
+		}
+		do_div(rate64, PLL_GET_POSTDIV1(pll_con0));
+		do_div(rate64, PLL_GET_POSTDIV2(pll_con1));
+
+		rate = rate64;
+	} else {
+		rate = parent_rate;
+	}
+	return rate;
 }
 
 static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f cb_f)
@@ -351,16 +536,13 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 	struct pll_data *pll = NULL;
 	struct pll_clk_set *clkset = NULL;
 	unsigned long rate = mHz * MHZ;
-
 	int i = 0;
-
 	for(i=0; i<END_PLL_ID; i++) {
 		if(rkpll_data[i].id == pll_id) {
 			pll = &rkpll_data[i];
 			break;
 		}
 	}
-
 	if((pll == NULL) || (pll->clkset == NULL)) {
 		return -1;
 	}
@@ -371,27 +553,19 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 			break;
 		}
 	}
-
 	if(clkset == NULL) {
 		return -1;
 	}
-
 	/* PLL enter slow-mode */
-	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) + 16)) | (0x0<<(pll_id*4));
+	 g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) + 16)) | (0x0<<(pll_id*4));
 	/* enter rest */
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x1<<1));
-
         g_cruReg->CRU_PLL_CON[pll_id][0] = clkset->pllcon0;
         g_cruReg->CRU_PLL_CON[pll_id][1] = clkset->pllcon1;
         g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
-
-        clk_loop_delayus(5);
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
-
-	clk_loop_delayus(clkset->rst_dly);
+	//clk_loop_delayus(clkset->rst_dly);
+	clk_loop_delayus(500);
 	/* delay for pll setup */
 	rkclk_pll_wait_lock(pll_id);
-
 	if (cb_f != NULL) {
 		cb_f(clkset);
 	}
@@ -542,7 +716,6 @@ static void rkclk_cpu_coreclk_set(uint32 pll_src, uint32 core_div, uint32 core_p
 	}
 
 	g_cruReg->CRU_CLKSEL_CON[0] = (CORE_SEL_PLL_W_MSK | (CORE_SEL_PLL_MSK & pll_sel))
-				| (CORE_PERIPH_W_MSK | (CORE_PERIPH_MSK & p_div))
 				| (CORE_CLK_DIV_W_MSK | (CORE_CLK_DIV_MSK & c_div));
 
 
@@ -686,8 +859,9 @@ static void rkclk_ddr_clk_set(uint32 pll_src, uint32 ddr_div)
 
 static void rkclk_apll_cb(struct pll_clk_set *clkset)
 {
-	rkclk_cpu_coreclk_set(CPU_SRC_ARM_PLL, clkset->core_div, clkset->core_periph_div, clkset->core_aclk_div);
-	rkclk_cpu_ahpclk_set(clkset->aclk_div, clkset->hclk_div, clkset->pclk_div, clkset->ahb2apb_div);
+	//rkclk_cpu_coreclk_set(CPU_SRC_ARM_PLL, clkset->core_div, clkset->core_periph_div, clkset->core_aclk_div);
+	//rkclk_cpu_ahpclk_set(clkset->aclk_div, clkset->hclk_div, clkset->pclk_div, clkset->ahb2apb_div);
+	  g_cruReg->CRU_CLKSEL_CON[1] = clkset->clksel1;
 }
 
 

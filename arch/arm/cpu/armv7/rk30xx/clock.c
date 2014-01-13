@@ -109,7 +109,6 @@ static void clk_loop_delayus(uint32_t us)
 	#include "clock-rk3026.c"
 #endif
 
-
 /*
  * rkplat clock set for arm and general pll
  */

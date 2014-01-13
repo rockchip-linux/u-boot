@@ -34,7 +34,6 @@ typedef volatile struct tagPMU_REG
 #define g_pmuReg ((pPMU_REG)PMU_BASE_ADDR)
 
 
-/* CRU Registers */
 typedef volatile struct tagCRU_REG
 {
     uint32 CRU_PLL_CON[4][4];
@@ -118,25 +117,32 @@ typedef volatile struct tagGRF_REG
 
 typedef volatile struct tagGRF_REG
 {
-    GPIO_LH_T GRF_GPIO_DIR[4];
-    GPIO_LH_T GRF_GPIO_DO[4];
-    GPIO_LH_T GRF_GPIO_EN[4];
-    GPIO_IOMUX_T GRF_GPIO_IOMUX[4];
-    uint32 GRF_SOC_CON[3];
+    //GPIO_LH_T GRF_GPIO_DIR[4];
+   // GPIO_LH_T GRF_GPIO_DO[4];
+   // GPIO_LH_T GRF_GPIO_EN[4];
+    uint32 reserved0[0xa8/4];
+    GPIO_IOMUX_T GRF_GPIO_IOMUX[4]; //0xa8
+    uint32 reserved1[(0x100-0xe8)/4];
+    uint32 GRF_GPIO_DS;	
+    uint32 reserved2[(0x118-0x104)/4];
+    GPIO_LH_T GRF_GPIO_PULL[4];     // 0x118
+    uint32 reserved3[(0x140-0x138)/4];
+    uint32 GRF_SOC_CON[3];   
     uint32 GRF_SOC_STATUS0;
-    uint32 GRF_DMAC1_CON[3];
-    uint32 GRF_DMAC2_CON[4];
-    uint32 GRF_CPU_CON[6]; //  no use
+    uint32 GRF_LVDS_CON0;
+    uint32 reserved4[(0x15c-0x154)/4];
+    uint32 GRF_DMAC_CON[3];
+    uint32 reserved5[(0x17c-0x168)/4];
+    uint32 GRF_UOC0_CON0;
+    uint32 reserved6[(0x190-0x180)/4];
+    uint32 GRF_UOC1_CON0;	
+    uint32 GRF_UOC1_CON1;
+    uint32 reserved7[(0x19c-0x198)/4];
+    uint32 GRF_DDRC_STAT;	
+    uint32 GRF_UOC_CON; 	
+    uint32 reserved8[(0x1a8-0x1a4)/4];
+    uint32 GRF_CPU_CON[6]; 
     uint32 GRF_CPU_STAT[2]; //  no use
-    uint32 GRF_DDRC_CON0;
-    uint32 GRF_DDRC_STAT;
-    uint32 GRF_IO_CON[5];
-    uint32 reserved0;
-    uint32 GRF_UOC0_CON[4];
-    uint32 GRF_UOC1_CON[4];
-    uint32 GRF_UOC2_CON[3];  //reserved in rk3168
-    uint32 GRF_UOC3_CON[2];  //reserved in rk3168
-    uint32 GRF_HSIC_STAT;    //reserved in rk3168
     uint32 GRF_OS_REG[8];
 } GRF_REG, *pGRF_REG;
 #endif

@@ -84,7 +84,10 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 void RockusbKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    key->key.adc.index = 1;
+    if(ChipType = CHIP_RK3026)
+    	key->key.adc.index = 3;
+    else
+	key->key.adc.index = 1;	
     key->key.adc.keyValueLow = 0;
     key->key.adc.keyValueHigh= 30;
     key->key.adc.data = SARADC_BASE;
@@ -95,7 +98,10 @@ void RockusbKeyInit(key_config *key)
 void RecoveryKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    key->key.adc.index = 1;
+    if(ChipType = CHIP_RK3026)
+    	key->key.adc.index = 3;
+    else
+	key->key.adc.index = 1;	
     key->key.adc.keyValueLow = 0;
     key->key.adc.keyValueHigh= 30;
     key->key.adc.data = SARADC_BASE;
@@ -107,7 +113,10 @@ void RecoveryKeyInit(key_config *key)
 void FastbootKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    key->key.adc.index = 1;
+    if(ChipType = CHIP_RK3026)
+    	key->key.adc.index = 3;
+    else
+	key->key.adc.index = 1;	
     key->key.adc.keyValueLow = 950;
     key->key.adc.keyValueHigh= 960;
     key->key.adc.data = SARADC_BASE;
@@ -352,7 +361,7 @@ void board_fbt_boot_failed(const char* boot)
         printf("try to start backup\n");
         char *const boot_cmd[] = {"booti", BACKUP_NAME};
         do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
-    }
+    }  
     printf("try to start rockusb\n");
     startRockusb();
 }

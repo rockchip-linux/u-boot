@@ -1,9 +1,12 @@
 #ifndef __GPIO_OPER_H__
 #define __GPIO_OPER_H__
-
+#define LONE_PRESS_TIME		1500//ms
+#define KEY_LONG_PRESS			-1
+#define KEY_SHORT_PRESS			1
 typedef enum{
     KEY_GPIO = 0,   // IO按键
     KEY_AD,      // AD按键
+    KEY_INT,
 }KEY_TYPE;
 
 typedef struct
@@ -29,11 +32,30 @@ typedef struct
 	uint32	ctrl;
 }adc_conf;
 
+typedef struct
+{
+    int     group;
+    int     index;
+    int     valid;
+	uint32  int_en;
+	uint32  int_mask;
+	uint32  int_level;
+	uint32  int_polarity;
+	uint32  int_status;
+	uint32  int_eoi;
+	uint32	io_read;
+	uint32	io_dir_conf;
+	uint32  io_debounce;
+	volatile uint32  pressed_state;
+	volatile uint32  press_time;
+}int_conf;
+
 typedef struct {
     KEY_TYPE type;
     union{
-        gpio_conf   gpio;   // IO按键
-        adc_conf    adc;    // AD按键
+        gpio_conf   gpio;   
+        adc_conf    adc;    
+        int_conf    ioint;    
     }key;
 }key_config;
 

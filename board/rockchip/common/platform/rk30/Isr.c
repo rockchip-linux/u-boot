@@ -160,10 +160,18 @@ void IrqHandler(void)
     }
 #endif    
 #ifdef CONFIG_PL330_DMA
+    #if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+    else if(intSrc >= INT_DMAC2_0 && intSrc<=INT_DMAC2_0)
+    {
+	    pl330_irq_handler(intSrc);
+    }
+    #else	
     else if(intSrc >= INT_DMAC1_0 && intSrc<=INT_DMAC2_1)
     {
 	    pl330_irq_handler(intSrc);
     }
+    #endif	
+	
 #endif
     else if(intSrc >= INT_GPIO0 && intSrc <= INT_GPIO3)
     {

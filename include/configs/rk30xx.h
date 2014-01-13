@@ -24,7 +24,14 @@ Revision:       1.00
 #define CONFIG_RK3168		3
 #define CONFIG_RK3026           4
 
-#define CONFIG_RKCHIPTYPE	CONFIG_RK3188
+#define CONFIG_RKCHIPTYPE	CONFIG_RK3026//CONFIG_RK3188
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+#define CONFIG_RK_3026_CHIP
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+#define CONFIG_RK_30XX_CHIP
+#endif
+
 #define SECOND_LEVEL_BOOTLOADER
 
 #define HAVE_VENDOR_COMMON_LIB y
@@ -263,8 +270,8 @@ Revision:       1.00
 #define         CHIP_RK3168     2
 #define         CHIP_RK3188     3
 #define         CHIP_RK3188B    4
-#define         CHIP_RK3026     5
-
+#define         CHIP_RK2928     5
+#define         CHIP_RK3026    6 //292C
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB
 #undef CONFIG_CMD_BOOTM

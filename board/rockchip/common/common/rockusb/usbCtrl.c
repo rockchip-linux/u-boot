@@ -42,20 +42,24 @@ int dwc_otg_check_dpdm(void)
     g_cruReg->CRU_CLKGATE_CON[1] = ((1<<5)<<16);    // otg0 phy clkgate
     g_cruReg->CRU_CLKGATE_CON[5] = ((1<<13)<<16);   // otg0 hclk clkgate
     g_cruReg->CRU_CLKGATE_CON[4] = ((3<<5)<<16);    // hclk usb clkgate
-
+   #if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+   if(ChipType == CHIP_RK3026){
+        g_grfReg->GRF_UOC0_CON0 = ((0x01<<0)<<16);
+    }
+   #else
     if(ChipType == CHIP_RK3066)
     {
         g_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
         mdelay(105);
         // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
         //      OtgReg, *(OtgReg), &g_grfReg->GRF_UOC0_CON[2], g_grfReg->GRF_UOC0_CON[2]); 
-    }else{
+    }else {
         g_3188_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
         mdelay(105);
         // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
         //     OtgReg, *(OtgReg), &g_3188_grfReg->GRF_UOC0_CON[2], g_3188_grfReg->GRF_UOC0_CON[2]);
      }
-
+   #endif
     otg_dctl = (unsigned int * )(OtgReg+0x804);
 
     otg_gotgctl = (unsigned int * )(OtgReg);
@@ -553,7 +557,6 @@ void UsbBoot(void)
     usbCmd.preLBA = 0;
     usbCmd.preBuf = 0;
     usbCmd.pppBufId = 0;
-    
 #ifdef ENUM_EN
     //UsbPhyReset();
     UsbPhyReset();

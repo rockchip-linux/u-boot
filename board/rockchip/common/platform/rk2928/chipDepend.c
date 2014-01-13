@@ -1,6 +1,6 @@
 
-#include    "config.h"
-
+//#include    "config.h"
+#include    "../../armlinux/config.h"
 #define     DELAY_ARM_FREQ      50
 #define     ASM_LOOP_INSTRUCTION_NUM     4
 #define     ASM_LOOP_PER_US    (DELAY_ARM_FREQ/ASM_LOOP_INSTRUCTION_NUM) //
@@ -81,26 +81,84 @@ void DRVDelayS(uint32 count)
         DRVDelayMs(1000);
 }
 
+
+uint8  ChipType;
+uint32 Rk30ChipVerInfo[4];  
+
+void ChipTypeCheck(void)
+{ 
+	//Rk30ChipVerInfo[0] = 0;
+	//ftl_memcpy(Rk30ChipVerInfo, (uint8*)(0x10100000 + 0x27f0 ), 16);   
+	//if(Rk30ChipVerInfo[0]== 0x32393243)//&& Rk30ChipVerInfo[3] == 0x56313030) //292C
+	//{
+	
+		ChipType = CHIP_RK3026;
+		Rk30ChipVerInfo[0] = 0x33303241;//"302A"
+	//}
+
+	//if(Rk30ChipVerInfo[0]== 0x32393241)//&& Rk30ChipVerInfo[3] == 0x56333030)  // 292A
+	//{
+	//	ChipType = CHIP_RK2928;
+	//	Rk30ChipVerInfo[0] = 0x32393258; // "292X"
+	//}
+	
+}
+#include "../../common/rockusb/USB20.h"
+void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
+{
+	if(ChipType == CHIP_RK3026)
+	{
+		pDeviceDescr->idProduct = 0x292c;
+		pDeviceDescr->idVendor  = 0x2207;
+	}
+	else if (ChipType == CHIP_RK2928)
+	{
+		pDeviceDescr->idProduct = 0x292A;
+		pDeviceDescr->idVendor  = 0x2207;
+	}
+}
+
 //定义Loader启动异常类型
 //系统中设置指定的sdram值为该标志，重启即可进入rockusb
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
     uint32 reg;
-    reg = ((*LOADER_FLAG_REG_L) & 0xFFFFuL) | (((*LOADER_FLAG_REG_H) & 0xFFFFuL)<<16);
+    if (ChipType == CHIP_RK2928)
+    {
+        reg = ((*LOADER_FLAG_REG_L) & 0xFFFFuL) | (((*LOADER_FLAG_REG_H) & 0xFFFFuL)<<16);
+    }
+    else
+    {
+        reg = ((*LOADER_FLAG_REG_L));
+    }
+
     return (reg);
+	
 }
 
 void ISetLoaderFlag(uint32 flag)
 {
     uint32 reg;
-    reg = ((*LOADER_FLAG_REG_L) & 0xFFFFuL) | (((*LOADER_FLAG_REG_H) & 0xFFFFuL)<<16);
-    if(reg == flag)
-        return;
-    (*LOADER_FLAG_REG_L) = 0xFFFF0000 | (flag & 0xFFFFuL);
-    (*LOADER_FLAG_REG_H) = 0xFFFF0000 | ((flag >>16) & 0xFFFFuL);
+    if (ChipType == CHIP_RK2928)
+    {
+        reg = ((*LOADER_FLAG_REG_L) & 0xFFFFuL) | (((*LOADER_FLAG_REG_H) & 0xFFFFuL)<<16);
+        if(reg == flag)
+            return;
+        (*LOADER_FLAG_REG_L) = 0xFFFF0000 | (flag & 0xFFFFuL);
+        (*LOADER_FLAG_REG_H) = 0xFFFF0000 | ((flag >>16) & 0xFFFFuL);
+    }
+    else
+    {
+        if(*LOADER_FLAG_REG_L == flag)
+            return;
+        *LOADER_FLAG_REG_L = flag;
+    }
 }
-
+uint32 IReadLoaderMode(void)
+{
+    return (*LOADER_FLAG_REG_L);
+}
 uint32 cpuFreq;
 void SetFreqFlag(uint32 freq)
 {
@@ -228,14 +286,13 @@ static void Set_PLL(PLL_ID pll_id, uint32 MHz, pFunc cb)
 void SetARMPLL(uint16 nMhz)
 {
     //Set_PLL(APLL, 600, APLL_cb);
-    Set_PLL(GPLL, 300, GPLL_cb);
+    //Set_PLL(GPLL, 300, GPLL_cb);
 }
 
-uint32 GetPLLCLK(PLL_ID pll_id)
+uint32 GetPLLCLK(uint8 pll_id)
 {
     uint32 refdiv,postdiv1,fbdiv,postdiv2; 
     uint32 ArmPll;
-    uint32 AhbClk; 
     ArmPll =  g_cruReg->CRU_PLL_CON[pll_id][0];
     fbdiv = (ArmPll&0xFFFul) ;
     postdiv1 = ((ArmPll >> 12)&0x7ul) ;
@@ -248,46 +305,83 @@ uint32 GetPLLCLK(PLL_ID pll_id)
     return ArmPll;
 }
 
+uint32 GetGPLLCLK(void)
+{
+    uint32 NR,NF,NO;
+    uint32 ArmPll;
+    pCRU_REG ScuReg=(pCRU_REG)CRU_BASE_ADDR;
+
+    ArmPll =  ScuReg->CRU_PLL_CON[3][0];
+    //printf("GetGPLLCLK0 = %x\n",ArmPll);
+    NO = (ArmPll&0x3Ful) + 1;
+    NR = ((ArmPll >> 8)&0x3Ful) + 1;
+    ArmPll =  ScuReg->CRU_PLL_CON[3][1];
+    //printf("GetGPLLCLK1 = %x\n",ArmPll);
+    NF = (ArmPll&0x1FFFul) + 1;
+    //printf("GetGPLLCLK3 = %x\n",ArmPll);
+    //ArmPll =  ScuReg->CRU_PLL_CON[3][2];
+    ArmPll = 24*NF/(NR*NO);
+    //printf("ArmPll = %d\n",ArmPll);
+    return ArmPll;
+}
+
 uint32 GetAHBCLK(void)
 {
     uint32 Div1,Div2;
     uint32 ArmPll;
     uint32 AhbClk;
-    
-    ArmPll = GetPLLCLK(GPLL);
+    if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+    	 ArmPll = GetPLLCLK(3);
+    else
+        ArmPll = GetGPLLCLK();
+	
     AhbClk = g_cruReg->CRU_CLKSEL_CON[10];
     Div1 = (AhbClk&0x1F) + 1;
     Div2 = 1<<((AhbClk>>8)&0x3);
     AhbClk = ArmPll/(Div1*Div2);
-    //printf("AhbClk  = %d\n",AhbClk);
+    //printf("AhbClk = %d\n",AhbClk);
     return AhbClk*1000;
 }
 
 uint32 GetMmcCLK(void)
 {
-    return (GetPLLCLK(GPLL) * 1000);
+    uint32 ArmPll;
+    if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+    	ArmPll = GetPLLCLK(3)  * 1000;
+	else
+        ArmPll = GetAHBCLK();
+    return (ArmPll );
 }
 
 void uart2UsbEn(uint8 en)
-{
+{    
     if(en)
     {
+        g_grfReg->GRF_UOC1_CON0 = 0x34000000;	
         if((!(g_grfReg->GRF_SOC_STATUS0) & (1<<7)) && (g_BootRockusb == 0))
         {
             DRVDelayUs(1);
             if(!(g_grfReg->GRF_SOC_STATUS0) & (1<<7))
             {
+            	  #if 0
                 g_grfReg->GRF_UOC0_CON[0] = 0x10001000;
                 //g_grfReg->GRF_UOC0_CON[4] = 0x007f0055;
                 g_grfReg->GRF_UOC1_CON[4] = 0x34003000;
+		  #endif
+		g_grfReg->GRF_UOC0_CON0 = 0x007f0055;
+		g_grfReg->GRF_UOC1_CON0 = 0x34003000;		
             }
+		
         }
     }
     else
     {
+    	#if 0
         g_grfReg->GRF_UOC1_CON[4] = 0x34000000; 
         //g_grfReg->GRF_UOC0_CON[4] = 0x00010000;
         g_grfReg->GRF_UOC0_CON[0] = 0x10000000;
+	#endif
+	g_grfReg->GRF_UOC1_CON0 = 0x34000000;	
     }
 }
 
@@ -297,18 +391,19 @@ USB PHY RESET
 ***************************************************************************/
 bool UsbPhyReset(void)
 {
-#ifndef FPGA_EMU 
-    uart2UsbEn(0);
-    DRVDelayUs(1100);    //delay 1.1ms
-    if (1)
+    if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026) 
     {
-        g_cruReg->CRU_SOFTRST_CON[4] = ((0x7ul << 5)<<16)|(0x7 << 5);
-        DRVDelayUs(10*100);    //delay 1ms
-        g_cruReg->CRU_SOFTRST_CON[4] = ((0x7ul << 5)<<16)|(0x0 << 5);
-        DRVDelayUs(1*100);     //delay 1ms
-        //g_grfReg->GRF_UOC0_CON[0] = 0x07E02B59 ; //0x00F02C59 
+        *(uint32*)0x20008190 = 0x34000000; 
     }
-#endif
+    else if(ChipType == CHIP_RK3026)
+    {
+        *(uint32*)0x20008190 = 0x34000000; 
+    }
+    DRVDelayUs(1100); //1.1ms
+    g_cruReg->CRU_SOFTRST_CON[4] = ((7ul<<5)<<16)|(7<<5);
+    DRVDelayUs(10*100);    //delay 10ms
+    g_cruReg->CRU_SOFTRST_CON[4] = (uint32)((7ul<<5)<<16)|(0<<5);
+    DRVDelayUs(1*100);     //delay 1ms
     return (TRUE);
 }
 
@@ -317,11 +412,12 @@ USB PHY RESET
 ***************************************************************************/
 void FlashCsInit(void)
 { 
-    g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (0xFFFFuL<<16)|0x5555;   // nand d0-d7
-    g_grfReg->GRF_GPIO_PULL[1].GPIOH = 0xFF00FF00;                     //disable pull up d0~d7
-    g_grfReg->GRF_GPIO_IOMUX[2].GPIOA_IOMUX = (0xFFFFuL<<16)|0x5555;   // nand dqs,cs0,wp,rdy,rdn,wrn,cle,ale 
-    g_grfReg->GRF_GPIO_IOMUX[0].GPIOC_IOMUX = ((0x3uL<<14)<<16)|(0x1uL<<14);   // nand cs1
-    g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = ((0xFuL<<12)<<16)|(0x5uL<<12);   // nand cs2 cs3
+    if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+    {
+        g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (0xFFFFuL<<16)|0x5555;   // nand d0-d7
+        g_grfReg->GRF_GPIO_PULL[1].GPIOH = 0xFF00FF00;                     //disable pull up d0~d7
+        g_grfReg->GRF_GPIO_IOMUX[2].GPIOA_IOMUX = (0xFFFFuL<<16)|0x5555;   // nand dqs,cs0,wp,rdy,rdn,wrn,cle,ale 
+    }
 }
 
 /**************************************************************************
@@ -336,18 +432,26 @@ void sdmmcGpioInit(uint32 ChipSel)
 {
     if(ChipSel == 2)
     {
-        g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = ((0xFuL<<12)<<16)|(0xA<<12);        // emmc rstn,cmd
-        g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (0xFFFFuL<<16)|0xAAAA;              // emmc d0-d7
-        g_grfReg->GRF_GPIO_IOMUX[2].GPIOA_IOMUX = (((0x3uL<<14)|(0x3<<10))<<16) 
-                                                  |(0x2uL<<14)|(0x2<<10);             // emmc_clk,pwren
-        g_grfReg->GRF_GPIO_PULL[1].GPIOH = 0xFF000000;                                // pull up d0~d7
+        if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+        {
+            g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = ((0xFuL<<12)<<16)|(0xA<<12);        // emmc rstn,cmd
+            g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (0xFFFFuL<<16)|0xAAAA;              // emmc d0-d7
+            g_grfReg->GRF_GPIO_IOMUX[2].GPIOA_IOMUX = (((0x3uL<<14)|(0x3<<10))<<16) 
+                                                      |(0x2uL<<14)|(0x2<<10);             // emmc_clk,pwren
+            g_grfReg->GRF_GPIO_PULL[1].GPIOH = 0xFF000000;                                // pull up d0~d7
+        }
     }
+#ifdef RK_SDCARD_BOOT_EN
     else if(ChipSel == 0)
     {
-        g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<14)|(0x1<<12))<<16)|(0x1<<14)|(0x1<<12);  // mmc0_cmd mmc0_pwren
-        g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = (((0x1<<10)|(0x1<<8)|(0x1<<6)|(0x1<<4)|(0x1<<0))<<16)
-                                                |(0x1<<10)|(0x1<<8)|(0x1<<6)|(0x1<<4)|(0x1<<0); //mmc0_clkout d0-d3
+        if (ChipType == CHIP_RK2928 || ChipType == CHIP_RK3026)
+        {
+            g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<14)|(0x1<<12))<<16)|(0x1<<14)|(0x1<<12);  // mmc0_cmd mmc0_pwren
+            g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = (((0x1<<10)|(0x1<<8)|(0x1<<6)|(0x1<<4)|(0x1<<0))<<16)
+                                                    |(0x1<<10)|(0x1<<8)|(0x1<<6)|(0x1<<4)|(0x1<<0); //mmc0_clkout d0-d3
+        }
     }
+#endif    
 }
 
 /***************************************************************************
@@ -367,10 +471,20 @@ void DisableRemap(void)
 
 void FW_NandDeInit(void)
 {
+#if 0
 #ifdef RK_FLASH_BOOT_EN 
     FlashDeInit();
     FlashTimingCfg(150*1000);
 #endif
+#endif
+#ifdef RK_FLASH_BOOT_EN
+    if(gpMemFun->flag == BOOT_FROM_FLASH)
+    {
+        FtlDeInit();
+        FlashDeInit();
+    }
+#endif
+
 #ifdef RK_SDMMC_BOOT_EN
     SdmmcDeInit();
 #endif
@@ -385,23 +499,38 @@ void FW_NandDeInit(void)
 ***************************************************************************/
 void SoftReset(void)
 {
-#if 0
+#if 1
     pFunc fp;
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG0_BASE_ADDR ;//USB_OTG_BASE_ADDR
     
-    OtgReg->Device.dctl |= 0x02;          //soft disconnect
-    DisableIRQ();
+     DisableIRQ();
     UsbPhyReset();
+    OtgReg->Device.dctl |= 0x02;          //soft disconnect  
     FW_NandDeInit();
     MMUDeinit();              /*关闭MMU*/
-    g_cruReg->CRU_MODE_CON = (0x1uL << 16) | (0); //arm enter slow mode 
-    
-    Delay100cyc(10);
-    DisableRemap();
+    //g_cruReg->CRU_MODE_CON = (0x1uL << 16) | (0); //arm enter slow mode 
+    //Delay100cyc(10);
+   // DisableRemap();
     g_giccReg->ICCEOIR=USB_OTG_INT_CH;
-    Delay100cyc(10);
-    fp=0x00;
-    fp();
+     if (ChipType == CHIP_RK2928)
+    {
+        ResetCpu_3026(0x20008140);
+    }
+    else if(ChipType == CHIP_RK3026)
+    {
+    	ResetCpu_3026(0x20008140);
+    	#if 0
+        g_cruReg->CRU_MODE_CON = 0x33030000;
+        DRVDelayUs(10);
+        WriteReg32(0x20008140,0x10000000);
+        DRVDelayUs(10);
+        fp=0x00;
+        fp();
+	#endif
+    }	
+    g_cruReg->CRU_GLB_SRST_SND_VALUE = 0xeca8; //soft reset
+     Delay100cyc(10);
+    while(1);
 #else
     pFunc fp;
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG0_BASE_ADDR ;//USB_OTG_BASE_ADDR

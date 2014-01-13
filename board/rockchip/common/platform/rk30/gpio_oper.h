@@ -61,5 +61,6 @@ typedef struct {
 
 void boot_gpio_set(void);
 int GetPortState(key_config* gpio);
+int SetPortOutput(int group, int index, int level);
 #endif
 

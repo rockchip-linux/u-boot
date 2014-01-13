@@ -78,15 +78,19 @@ COBJS-y += common/GetIdBlockInfo.o
 COBJS-y += common/std_commod.o
 COBJS-y += common/storage.o
 #COBJS-y += platform/platform.o
-COBJS-y += platform/rk30/chipDepend.o
+
+
+COBJS-$(CONFIG_RK_3026_CHIP) += platform/rk2928/chipDepend.o
+COBJS-$(CONFIG_RK_30XX_CHIP) += platform/rk30/chipDepend.o
+
 COBJS-y += platform/rk30/gpio_oper.o
 COBJS-y += platform/rk30/Isr.o
-#COBJS-y += platform/rk30/regdump.o
-#SOBJS-y += platform/rk30/romloader.o
-#SOBJS-y += platform/rk30/start.o
+##COBJS-y += platform/rk30/regdump.o
+##SOBJS-y += platform/rk30/romloader.o
+##SOBJS-y += platform/rk30/start.o
 COBJS-y += platform/rk30/timer.o
-#COBJS-y += platform/rk30/uart.o
-#COBJS-y += dummy.o
+##COBJS-y += platform/rk30/uart.o
+##COBJS-y += dummy.o
 
 
 COBJS	:= $(COBJS-y)

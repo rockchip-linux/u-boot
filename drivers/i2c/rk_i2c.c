@@ -103,7 +103,9 @@ struct rk30_i2c {
 	{ .regs = I2C1_BASE_ADDR + SZ_4K, 0 },
 	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },
 	{ .regs = I2C3_BASE_ADDR + SZ_8K, 0 },
+	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066 || CONFIG_RKCHIPTYPE == CONFIG_RK3168 ||CONFIG_RKCHIPTYPE == CONFIG_RK3188 )
 	{ .regs = I2C4_BASE + SZ_8K, 0 }
+	#endif
 };
 
 static unsigned int gcurrent_bus = I2C_BUS_MAX;

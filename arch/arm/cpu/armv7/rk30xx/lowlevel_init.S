@@ -95,3 +95,44 @@ reset_copy_loop:
      bx r6
 ENDPROC(ResetCpu)
 
+
+
+
+ENTRY(ResetCpu_3026)
+     #mov r1,#0
+stop_loop_3026:
+     mov r7,r0
+     mov r6, #0x30  /* save addr of destination */
+
+     adr r0, ResetCpu_asm
+     mov r1, r6          /* r1 <- scratch for copy_loop */
+     adr r2, ResetCpu_3026    /* r2 <- source end address     */
+
+reset_copy_loop_3026:
+     ldmia   r0!, {r9-r10}       /* copy from source address [r0]    */
+     stmia   r1!, {r9-r10}       /* copy to   target address [r1]    */
+     cmp r0, r2          /* until source end address [r2]    */
+     blo reset_copy_loop_3026
+
+     #LDR 	R2, =0x20020004
+     LDR 	R2, =0x20004004
+     LDR 	R1, =0x00000003
+     #STR 	R1, [R2,#0]
+	
+     LDR 	R3, =0xeca8
+     LDR 	R4, =0x20000104
+     LDR 	R5, =0x10000000
+     
+    ;//cruReg->CRU_MODE_CON = 0x33330000;    //cpu enter slow mode
+    LDR		R8, =0x20000040
+    LDR		R9, =0x33330000
+    #STR	R9, [R8,#0]
+
+     
+     
+     #STR 	R5, [R7,#0]
+     #STR 	R3, [R4,#0]
+
+     bx r6
+ENDPROC(ResetCpu_3026)
+

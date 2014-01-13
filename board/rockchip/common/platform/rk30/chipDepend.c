@@ -81,7 +81,6 @@ void ChipTypeCheck(void)
 #else
     ftl_memcpy(Rk30ChipVerInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR), 16);
 #endif
-    
     ChipType = CHIP_RK3066;
     if(Rk30ChipVerInfo[0]== 0x33303042&&Rk30ChipVerInfo[3] == 0x56313030) 
     {
@@ -109,7 +108,6 @@ void ChipTypeCheck(void)
 #endif
 #if(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
     ChipType = CHIP_RK3026;
-	
 #endif
 }
 
@@ -131,6 +129,11 @@ void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
         pDeviceDescr->idProduct = 0x310B;
         pDeviceDescr->idVendor  = 0x2207;
     }
+    else if(ChipType == CHIP_RK3026)
+    {
+    	  pDeviceDescr->idProduct = 0x292c;
+        pDeviceDescr->idVendor  = 0x2207;
+    }
 }
 
 //定义Loader启动异常类型
@@ -138,14 +141,53 @@ void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-    return (*LOADER_FLAG_REG);
+    //return (*LOADER_FLAG_REG);
+    uint32 reg;
+    if (ChipType == CHIP_RK2928)
+    {
+        reg = ((*LOADER_FLAG_REG_L) & 0xFFFFuL) | (((*LOADER_FLAG_REG_H) & 0xFFFFuL)<<16);
+    }
+    else if(ChipType == CHIP_RK3026)
+    {
+        reg = ((*LOADER_FLAG_REG_L));
+    }
+    else
+    {
+        reg = (*LOADER_FLAG_REG);
+    }
+    return (reg);
+
 }
 
 void ISetLoaderFlag(uint32 flag)
 {
+	uint32 reg;
+    if (ChipType == CHIP_RK2928)
+    {
+        reg = ((*LOADER_FLAG_REG_L) & 0xFFFFuL) | (((*LOADER_FLAG_REG_H) & 0xFFFFuL)<<16);
+        if(reg == flag)
+            return;
+        (*LOADER_FLAG_REG_L) = 0xFFFF0000 | (flag & 0xFFFFuL);
+        (*LOADER_FLAG_REG_H) = 0xFFFF0000 | ((flag >>16) & 0xFFFFuL);
+    }
+    else if(ChipType == CHIP_RK3026)
+    {
+        if(*LOADER_FLAG_REG_L == flag)
+            return;
+        *LOADER_FLAG_REG_L = flag;
+    }
+    else
+    {
+        if(*LOADER_FLAG_REG == flag)
+            return;
+        *LOADER_FLAG_REG = flag;
+    }
+
+   #if 0
     if(*LOADER_FLAG_REG == flag)
         return;
     *LOADER_FLAG_REG = flag;
+   #endif
 }
 
 uint32 IReadLoaderMode(void)

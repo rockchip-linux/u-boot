@@ -1,7 +1,10 @@
 
-#include "config.h"
+//#include "config.h"
+#include    "../../armlinux/config.h"
 uint32 g_Rk2928xxChip;
-
+#define RK2928G_CHIP_TAG 0x1
+#define RK2928L_CHIP_TAG 0x2
+#define RK2926_CHIP_TAG  0x0
 extern void DRVDelayUs(uint32 us);
 
 void setup_gpio(gpio_conf *key_gpio)

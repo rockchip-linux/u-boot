@@ -190,21 +190,22 @@ Revision:		1.00
     }GICC_REG, *pGICC_REG;
     
     //CRU Registers
-    typedef volatile struct tagCRU_STRUCT 
-    {
-        uint32 CRU_PLL_CON[4][4]; 
-        uint32 CRU_MODE_CON;
-        uint32 CRU_CLKSEL_CON[35];
-        uint32 CRU_CLKGATE_CON[10];
-        uint32 reserved1[2];
-        uint32 CRU_GLB_SRST_FST_VALUE;
-        uint32 CRU_GLB_SRST_SND_VALUE;
-        uint32 reserved2[2];
-        uint32 CRU_SOFTRST_CON[9];
-        uint32 CRU_MISC_CON;
-        uint32 reserved3[2];
-        uint32 CRU_GLB_CNT_TH;
-    } CRU_REG, *pCRU_REG;
+    
+typedef volatile struct tagCRU_STRUCT 
+{
+    uint32 CRU_PLL_CON[4][4]; 
+    uint32 CRU_MODE_CON;
+    uint32 CRU_CLKSEL_CON[35];
+    uint32 CRU_CLKGATE_CON[10];
+    uint32 reserved1[2];
+    uint32 CRU_GLB_SRST_FST_VALUE;
+    uint32 CRU_GLB_SRST_SND_VALUE;
+    uint32 reserved2[2];
+    uint32 CRU_SOFTRST_CON[9];
+    uint32 CRU_MISC_CON;
+    uint32 reserved3[2];
+    uint32 CRU_GLB_CNT_TH;
+} CRU_REG, *pCRU_REG;
 
 #define g_cruReg ((pCRU_REG)CRU_BASE_ADDR)
 
@@ -223,6 +224,39 @@ Revision:		1.00
     }GPIO_IOMUX_T;
 
     //REG FILE registers
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+typedef volatile struct tagGRF_REG
+{
+    //GPIO_LH_T GRF_GPIO_DIR[4];
+   // GPIO_LH_T GRF_GPIO_DO[4];
+   // GPIO_LH_T GRF_GPIO_EN[4];
+    uint32 reserved0[0xa8/4];
+    GPIO_IOMUX_T GRF_GPIO_IOMUX[4]; //0xa8
+    uint32 reserved1[(0x100-0xe8)/4];
+    uint32 GRF_GPIO_DS;	
+    uint32 reserved2[(0x118-0x104)/4];
+    GPIO_LH_T GRF_GPIO_PULL[4];     // 0x118
+    uint32 reserved3[(0x140-0x138)/4];
+    uint32 GRF_SOC_CON[3];   
+    uint32 GRF_SOC_STATUS0;
+    uint32 GRF_LVDS_CON0;
+    uint32 reserved4[(0x15c-0x154)/4];
+    uint32 GRF_DMAC_CON[3];
+    uint32 reserved5[(0x17c-0x168)/4];
+    uint32 GRF_UOC0_CON0;
+    uint32 reserved6[(0x190-0x180)/4];
+    uint32 GRF_UOC1_CON0;	
+    uint32 GRF_UOC1_CON1;
+    uint32 reserved7[(0x19c-0x198)/4];
+    uint32 GRF_DDRC_STAT;	
+    uint32 GRF_UOC_CON; 	
+    uint32 reserved8[(0x1a8-0x1a4)/4];
+    uint32 GRF_CPU_CON[6]; 
+    uint32 GRF_CPU_STAT[2]; //  no use
+    uint32 GRF_OS_REG[8];
+} GRF_REG, *pGRF_REG;
+#else	
     typedef volatile struct tagGRF_REG
     {
         GPIO_LH_T GRF_GPIO_DIR[7];
@@ -245,6 +279,8 @@ Revision:		1.00
         uint32 reserved[(0x1c8-0x1a0)/4];
         uint32 GRF_OS_REG[4];
     } GRF_REG, *pGRF_REG;
+#endif
+
     #define g_grfReg ((pGRF_REG)GRF_BASE )
     
     //SDMMC0
@@ -332,6 +368,9 @@ Revision:		1.00
         INT_OTG_BVALID  ,
         INT_GPIO0       ,
         INT_GPIO1       , //69 
+		INT_GPIO2       , 
+        INT_GPIO3       , 
+		INT_EBC = 81 ,
         INT_MAXNUM      
     }eINT_NUM;
 
@@ -469,7 +508,21 @@ Revision:		1.00
         uint32 TIMER_EOI;
         uint32 TIMER_INT_STATUS;
     }TIMER_REG,*pTIMER_REG;
-    
+
+    typedef volatile struct tagRK3188TIMER_STRUCT
+    {
+        uint32 TIMER_LOAD_COUNT0;
+        uint32 TIMER_LOAD_COUNT1;
+        uint32 TIMER_CURR_VALUE0;
+        uint32 TIMER_CURR_VALUE1;
+        uint32 TIMER_CTRL_REG;
+        uint32 TIMER_INT_STATUS;
+    }RK3188TIMER_REG,*pRK3188TIMER_REG;
+
+#define g_rk30Time0Reg ((pTIMER_REG)TIMER0_BASE_ADDR)
+#define g_rk3188Time0Reg ((pRK3188TIMER_REG)TIMER0_BASE_ADDR)
+
+	
     typedef volatile struct tagPMU_REG
     {
         uint32 PMU_WAKEUP_EN0;
