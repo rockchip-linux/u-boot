@@ -5,13 +5,15 @@ Build
 make rk30xx                            use this command to build uboot,it will generate all the image and bin below
 make distclean                         use this command to clean uboot
 charge.img                             image which cantain charge animation
-uboot.img                              uboot image can only act as second level bootloader
+uboot.img                              uboot image can only act as second level loader and it should be flashed to specific partition which define in parameter
 RKxxxxLoader_miniall.bin               rkloader with nand driver in it. it can only act as first level bootloader
+RKxxxxLoader_miniall_debug.bin         RKxxxxLoader_miniall loader with debug message
 RKxxxxLoader_mini.bin                  rkloader with emmc driver only in it. it can only act as first level bootloader
+RK3188Loader_mini_debug.bin            RKxxxxLoader_mini loader with debug message
 RKxxxxLoader_uboot.bin                 uboot image can act as first level bootloader or second level bootloader. 
 
 Chipset
-support RK3066,RK3188,RK3168
+support RK3066,RK3188,RK3168,RK3026
 
 Storage
 support emmc and nand flash. 
@@ -80,6 +82,8 @@ fastboot boot <kernel> [ <ramdisk> ]
 fastboot update <filename> (this file should use make updatepackage in android root directory to generate it)
 fastboot flashall
 
+tool
+please use git clone ssh://git@git.rockchip.com.cn:2222/repo/tools  to get tool repository. flash tool is in AndroidTool directory. parameter is in parameter directory.this parameter has uboot partition defined. uboot.img should be flash to uboot partition.
 
 
 
