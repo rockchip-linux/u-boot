@@ -99,11 +99,16 @@ struct rk30_i2c {
 
 #ifdef CONFIG_I2C_MULTI_BUS
  struct rk30_i2c rki2c_base[I2C_BUS_MAX] = {
+ #if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+ 	{ .regs = I2C0_BASE_ADDR + SZ_8K, 0 },
+	{ .regs = I2C1_BASE_ADDR + SZ_8K, 0 },
+	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },
+	{ .regs = I2C3_BASE_ADDR + SZ_8K, 0 },
+ #else
 	{ .regs = I2C0_BASE_ADDR + SZ_4K, 0 },
 	{ .regs = I2C1_BASE_ADDR + SZ_4K, 0 },
 	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },
 	{ .regs = I2C3_BASE_ADDR + SZ_8K, 0 },
-	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066 || CONFIG_RKCHIPTYPE == CONFIG_RK3168 ||CONFIG_RKCHIPTYPE == CONFIG_RK3188 )
 	{ .regs = I2C4_BASE + SZ_8K, 0 }
 	#endif
 };
@@ -253,19 +258,17 @@ static void rk_i2c_set_clk(struct rk30_i2c *i2c, unsigned long scl_rate)
 	if (i2c->speed == scl_rate)
 		return ;
 
-	if (gcurrent_bus < I2C_BUS_CH2)
+	if (gcurrent_bus < I2C_BUS_CH3)
 		i2c_rate = 100*1000*1000;
 	else
 		i2c_rate = 375*100*1000;
-
         div = rk_ceil(i2c_rate, scl_rate * 8);
         divh = divl = rk_ceil(div, 2);
-	printf("set i2c clk div = %d, divh = %d, divl = %d\n", div, divh, divl);
         i2c_writel(I2C_CLKDIV_VAL(divl, divh), i2c->regs + I2C_CLKDIV);
 
 	i2c->speed = scl_rate;
-
-        printf("set clk(I2C_CLKDIV: 0x%08x)\n", i2c_readl(i2c->regs + I2C_CLKDIV));
+       printf("i2c->regs_addr = %x,set clk(I2C_CLKDIV: 0x%08x)\n",i2c->regs,i2c_readl(i2c->regs + I2C_CLKDIV));
+		
 }
 
 
@@ -337,7 +340,6 @@ static int rk_i2c_read(struct rk30_i2c *i2c, uchar chip, uint reg, uint r_len, u
 	if (b_len > 32) {
 		return -1;
 	}
-	//printf("rk_i2c_read: chip = %d, reg = %d, r_len = %d, b_len = %d\n", chip, reg, r_len, b_len);
 	rk30_i2c_enable(i2c, 1, 1);
 	rk_i2c_get_ipd_event(i2c, I2C_STARTIPD);
 	rk_i2c_clean_start(i2c);
@@ -359,7 +361,6 @@ static int rk_i2c_write(struct rk30_i2c *i2c, uchar chip, uint reg, uint r_len, 
 	if (r_len + b_len + 1 > 32) {
 		return -1;
 	}
-	//printf("rk_i2c_write: chip = %d, reg = %d, r_len = %d, b_len = %d\n", chip, reg, r_len, b_len);
 	rk30_i2c_enable(i2c, 0, 1);
 	rk_i2c_get_ipd_event(i2c, I2C_STARTIPD);
 	rk_i2c_clean_start(i2c);
@@ -379,20 +380,21 @@ static int rk_i2c_write(struct rk30_i2c *i2c, uchar chip, uint reg, uint r_len, 
 static void rk_i2c_init(int speed)
 {
 	struct rk30_i2c *i2c = (struct rk30_i2c *)get_base();
-
 	if (i2c == NULL) {
 		printf("rk_i2c_init error: i2c = NULL\n");
 		return ;
 	}
 
-	printf("rk_i2c_init: I2C bus = %d\n", gcurrent_bus);
-
+	//printf("rk_i2c_init: I2C bus = %d\n", gcurrent_bus);
+#if 1
 	if (gcurrent_bus == I2C_BUS_CH0) {
 		i2c_adap_sel(I2C_BUS_CH0);
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 		g_grfReg->GRF_GPIO_IOMUX[2].GPIOD_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
+#elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+		g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
 #endif
 	} else if (gcurrent_bus == I2C_BUS_CH1) {
 		i2c_adap_sel(I2C_BUS_CH1);
@@ -400,6 +402,8 @@ static void rk_i2c_init(int speed)
 		g_grfReg->GRF_GPIO_IOMUX[2].GPIOD_IOMUX = (((0x1<<14)|(0x1<<12))<<16)|(0x1<<14)|(0x1<<12);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
+#elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+		g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
 #endif
 	} else if (gcurrent_bus == I2C_BUS_CH2) {
 		i2c_adap_sel(I2C_BUS_CH2);
@@ -407,6 +411,8 @@ static void rk_i2c_init(int speed)
 		g_grfReg->GRF_GPIO_IOMUX[3].GPIOA_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);
+#elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+		g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX = (((0x3<<10)|(0x3<<8))<<16)|(0x3<<10)|(0x3<<8);
 #endif
 	} else if (gcurrent_bus == I2C_BUS_CH3) {
 		i2c_adap_sel(I2C_BUS_CH3);
@@ -414,6 +420,8 @@ static void rk_i2c_init(int speed)
 		g_grfReg->GRF_GPIO_IOMUX[3].GPIOA_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 		g_grfReg->GRF_GPIO_IOMUX[3].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12))<<16)|(0x2<<14)|(0x2<<12);
+#elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+		g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x3<<14)|(0x3<<12))<<16)|(0x1<<14)|(0x1<<12);
 #endif
 	}else if(gcurrent_bus == I2C_BUS_CH4){
 		i2c_adap_sel(I2C_BUS_CH4);
@@ -424,7 +432,7 @@ static void rk_i2c_init(int speed)
 	else {
 		printf("gcurrent_bus is error!\n");
 	}
-
+#endif
 	rk_i2c_set_clk(i2c, speed);
 }
 
