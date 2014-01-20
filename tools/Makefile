@@ -42,7 +42,7 @@ endef
 define convert-one-image
 	$(warning convert-one-image:$(1) -> $(2)) \
     $(shell mkdir -p $(dir $(2)) && \
-        convert $(1) -depth 8 -compress rle $(2) && \
+        convert $(1) -colors 256 -compress rle $(2) && \
         echo $(2))
 endef
 
@@ -53,7 +53,7 @@ $(foreach v, $(1), \
 endef
 
 define convert-logo
-    $(shell convert $(1) -depth 8 -compress none $(2))
+    $(shell convert $(1) -colors 256 -compress none $(2))
 endef
 
 include $(TOPDIR)/tools/logos/charge/charge.mk
