@@ -1779,7 +1779,7 @@ void pl330_release_channel(void *ch_id)
 
 	if (!thrd || thrd->free)
 		return;
-    		printf("pl330_release_channel DMA id = %d!\n", thrd->id);
+//    		printf("pl330_release_channel DMA id = %d!\n", thrd->id);
 
 	_stop(thrd);
 
