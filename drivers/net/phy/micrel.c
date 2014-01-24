@@ -1,25 +1,11 @@
 /*
  * Micrel PHY drivers
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  *
  * Copyright 2010-2011 Freescale Semiconductor, Inc.
  * author Andy Fleming
  * (C) 2012 NetModule AG, David Andrey, added KSZ9031
- *
  */
 #include <config.h>
 #include <common.h>
@@ -114,6 +100,19 @@ int ksz9021_phy_extended_read(struct phy_device *phydev, int regnum)
 	return phy_read(phydev, MDIO_DEVAD_NONE, MII_KSZ9021_EXTENDED_DATAR);
 }
 
+
+static int ksz9021_phy_extread(struct phy_device *phydev, int addr, int devaddr,
+			      int regnum)
+{
+	return ksz9021_phy_extended_read(phydev, regnum);
+}
+
+static int ksz9021_phy_extwrite(struct phy_device *phydev, int addr,
+			       int devaddr, int regnum, u16 val)
+{
+	return ksz9021_phy_extended_write(phydev, regnum, val);
+}
+
 /* Micrel ksz9021 */
 static int ksz9021_config(struct phy_device *phydev)
 {
@@ -145,6 +144,8 @@ static struct phy_driver ksz9021_driver = {
 	.config = &ksz9021_config,
 	.startup = &ksz90xx_startup,
 	.shutdown = &genphy_shutdown,
+	.writeext = &ksz9021_phy_extwrite,
+	.readext = &ksz9021_phy_extread,
 };
 #endif
 
@@ -185,14 +186,31 @@ int ksz9031_phy_extended_read(struct phy_device *phydev, int devaddr,
 	return phy_read(phydev, MDIO_DEVAD_NONE, MII_KSZ9031_MMD_REG_DATA);
 }
 
+static int ksz9031_phy_extread(struct phy_device *phydev, int addr, int devaddr,
+			       int regnum)
+{
+	return ksz9031_phy_extended_read(phydev, devaddr, regnum,
+					 MII_KSZ9031_MOD_DATA_NO_POST_INC);
+};
+
+static int ksz9031_phy_extwrite(struct phy_device *phydev, int addr,
+				int devaddr, int regnum, u16 val)
+{
+	return ksz9031_phy_extended_write(phydev, devaddr, regnum,
+					 MII_KSZ9031_MOD_DATA_POST_INC_RW, val);
+};
+
+
 static struct phy_driver ksz9031_driver = {
 	.name = "Micrel ksz9031",
 	.uid  = 0x221620,
-	.mask = 0xfffffe,
+	.mask = 0xfffff0,
 	.features = PHY_GBIT_FEATURES,
 	.config   = &genphy_config,
 	.startup  = &ksz90xx_startup,
 	.shutdown = &genphy_shutdown,
+	.writeext = &ksz9031_phy_extwrite,
+	.readext = &ksz9031_phy_extread,
 };
 
 int phy_micrel_init(void)

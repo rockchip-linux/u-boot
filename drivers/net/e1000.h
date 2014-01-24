@@ -4,22 +4,7 @@
   Copyright(c) 1999 - 2002 Intel Corporation. All rights reserved.
   Copyright 2011 Freescale Semiconductor, Inc.
 
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the Free
-  Software Foundation; either version 2 of the License, or (at your option)
-  any later version.
-
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
-
-  You should have received a copy of the GNU General Public License along with
-  this program; if not, write to the Free Software Foundation, Inc., 59
-  Temple Place - Suite 330, Boston, MA	02111-1307, USA.
-
-  The full GNU General Public License is included in this distribution in the
-  file called LICENSE.
+ * SPDX-License-Identifier:	GPL-2.0+
 
   Contact Information:
   Linux NICS <linux.nics@intel.com>
@@ -78,11 +63,14 @@ struct e1000_hw_stats;
 
 /* Internal E1000 helper functions */
 struct e1000_hw *e1000_find_card(unsigned int cardnum);
+
+#ifndef CONFIG_E1000_NO_NVM
 int32_t e1000_acquire_eeprom(struct e1000_hw *hw);
 void e1000_standby_eeprom(struct e1000_hw *hw);
 void e1000_release_eeprom(struct e1000_hw *hw);
 void e1000_raise_ee_clk(struct e1000_hw *hw, uint32_t *eecd);
 void e1000_lower_ee_clk(struct e1000_hw *hw, uint32_t *eecd);
+#endif
 
 #ifdef CONFIG_E1000_SPI
 int do_e1000_spi(cmd_tbl_t *cmdtp, struct e1000_hw *hw,
@@ -1034,6 +1022,7 @@ struct e1000_hw_stats {
 	uint64_t tsctfc;
 };
 
+#ifndef CONFIG_E1000_NO_NVM
 struct e1000_eeprom_info {
 e1000_eeprom_type type;
 	uint16_t word_size;
@@ -1044,6 +1033,7 @@ e1000_eeprom_type type;
 	bool use_eerd;
 	bool use_eewr;
 };
+#endif
 
 typedef enum {
     e1000_smart_speed_default = 0,
@@ -1096,10 +1086,14 @@ struct e1000_hw {
 	uint32_t io_base;
 #endif
 	uint32_t		asf_firmware_present;
+#ifndef CONFIG_E1000_NO_NVM
 	uint32_t		eeprom_semaphore_present;
+#endif
 	uint32_t		swfw_sync_present;
 	uint32_t		swfwhw_semaphore_present;
+#ifndef CONFIG_E1000_NO_NVM
 	struct e1000_eeprom_info eeprom;
+#endif
 	e1000_ms_type		master_slave;
 	e1000_ms_type		original_master_slave;
 	e1000_ffe_config	ffe_config_state;

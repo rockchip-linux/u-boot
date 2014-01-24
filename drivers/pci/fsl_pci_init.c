@@ -1,20 +1,7 @@
 /*
  * Copyright 2007-2012 Freescale Semiconductor, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 2 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -40,12 +27,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #include <pci.h>
 #include <asm/io.h>
 #include <asm/fsl_pci.h>
-
-/* Freescale-specific PCI config registers */
-#define FSL_PCI_PBFR		0x44
-#define FSL_PCIE_CAP_ID		0x4c
-#define FSL_PCIE_CFG_RDY	0x4b0
-#define FSL_PROG_IF_AGENT	0x1
 
 #ifndef CONFIG_SYS_PCI_MEMORY_BUS
 #define CONFIG_SYS_PCI_MEMORY_BUS 0
@@ -314,6 +295,15 @@ void fsl_pci_init(struct pci_controller *hose, struct fsl_pci_info *pci_info)
 	int enabled, r, inbound = 0;
 	u16 ltssm;
 	u8 temp8, pcie_cap;
+	int pcie_cap_pos;
+	int pci_dcr;
+	int pci_dsr;
+	int pci_lsr;
+
+#if defined(CONFIG_FSL_PCIE_DISABLE_ASPM)
+	int pci_lcr;
+#endif
+
 	volatile ccsr_fsl_pci_t *pci = (ccsr_fsl_pci_t *)cfg_addr;
 	struct pci_region *reg = hose->regions + hose->region_count;
 	pci_dev_t dev = PCI_BDF(hose->first_busno, 0, 0);
@@ -386,7 +376,12 @@ void fsl_pci_init(struct pci_controller *hose, struct fsl_pci_info *pci_info)
 	hose->region_count++;
 
 	/* see if we are a PCIe or PCI controller */
-	pci_hose_read_config_byte(hose, dev, FSL_PCIE_CAP_ID, &pcie_cap);
+	pcie_cap_pos = pci_hose_find_capability(hose, dev, PCI_CAP_ID_EXP);
+	pci_dcr = pcie_cap_pos + 0x08;
+	pci_dsr = pcie_cap_pos + 0x0a;
+	pci_lsr = pcie_cap_pos + 0x12;
+
+	pci_hose_read_config_byte(hose, dev, pcie_cap_pos, &pcie_cap);
 
 #ifdef CONFIG_SRIO_PCIE_BOOT_MASTER
 	/* boot from PCIE --master */
@@ -425,18 +420,28 @@ void fsl_pci_init(struct pci_controller *hose, struct fsl_pci_info *pci_info)
 					 * - Master PERR (pci)
 					 * - ICCA (PCIe)
 					 */
-	pci_hose_read_config_dword(hose, dev, PCI_DCR, &temp32);
+	pci_hose_read_config_dword(hose, dev, pci_dcr, &temp32);
 	temp32 |= 0xf000e;		/* set URR, FER, NFER (but not CER) */
-	pci_hose_write_config_dword(hose, dev, PCI_DCR, temp32);
+	pci_hose_write_config_dword(hose, dev, pci_dcr, temp32);
 
 #if defined(CONFIG_FSL_PCIE_DISABLE_ASPM)
+	pci_lcr = pcie_cap_pos + 0x10;
 	temp32 = 0;
-	pci_hose_read_config_dword(hose, dev, PCI_LCR, &temp32);
+	pci_hose_read_config_dword(hose, dev, pci_lcr, &temp32);
 	temp32 &= ~0x03;		/* Disable ASPM  */
-	pci_hose_write_config_dword(hose, dev, PCI_LCR, temp32);
+	pci_hose_write_config_dword(hose, dev, pci_lcr, temp32);
 	udelay(1);
 #endif
 	if (pcie_cap == PCI_CAP_ID_EXP) {
+		if (block_rev >= PEX_IP_BLK_REV_3_0) {
+#define PEX_CSR0_LTSSM_MASK	0xFC
+#define PEX_CSR0_LTSSM_SHIFT	2
+			ltssm = (in_be32(&pci->pex_csr0)
+				& PEX_CSR0_LTSSM_MASK) >> PEX_CSR0_LTSSM_SHIFT;
+			enabled = (ltssm == 0x11) ? 1 : 0;
+		} else {
+		/* pci_hose_read_config_word(hose, dev, PCI_LTSSM, &ltssm); */
+		/* enabled = ltssm >= PCI_LTSSM_L0; */
 		pci_hose_read_config_word(hose, dev, PCI_LTSSM, &ltssm);
 		enabled = ltssm >= PCI_LTSSM_L0;
 
@@ -469,6 +474,7 @@ void fsl_pci_init(struct pci_controller *hose, struct fsl_pci_info *pci_info)
 					PCI_BASE_ADDRESS_0, pcicsrbar);
 		}
 #endif
+	}
 
 #ifdef CONFIG_SYS_P4080_ERRATUM_PCIE_A003
 		if (enabled == 0) {
@@ -503,7 +509,7 @@ void fsl_pci_init(struct pci_controller *hose, struct fsl_pci_info *pci_info)
 		out_be32(&pci->pme_msg_int_en, 0xffffffff);
 
 		/* Print the negotiated PCIe link width */
-		pci_hose_read_config_word(hose, dev, PCI_LSR, &temp16);
+		pci_hose_read_config_word(hose, dev, pci_lsr, &temp16);
 		printf("x%d, regs @ 0x%lx\n", (temp16 & 0x3f0 ) >> 4,
 			pci_info->regs);
 
@@ -550,9 +556,9 @@ void fsl_pci_init(struct pci_controller *hose, struct fsl_pci_info *pci_info)
 		out_be32(&pci->pme_msg_det, 0xffffffff);
 	out_be32(&pci->pedr, 0xffffffff);
 
-	pci_hose_read_config_word (hose, dev, PCI_DSR, &temp16);
+	pci_hose_read_config_word(hose, dev, pci_dsr, &temp16);
 	if (temp16) {
-		pci_hose_write_config_word(hose, dev, PCI_DSR, 0xffff);
+		pci_hose_write_config_word(hose, dev, pci_dsr, 0xffff);
 	}
 
 	pci_hose_read_config_word (hose, dev, PCI_SEC_STATUS, &temp16);
@@ -563,10 +569,12 @@ void fsl_pci_init(struct pci_controller *hose, struct fsl_pci_info *pci_info)
 
 int fsl_is_pci_agent(struct pci_controller *hose)
 {
+	int pcie_cap_pos;
 	u8 pcie_cap;
 	pci_dev_t dev = PCI_BDF(hose->first_busno, 0, 0);
 
-	pci_hose_read_config_byte(hose, dev, FSL_PCIE_CAP_ID, &pcie_cap);
+	pcie_cap_pos = pci_hose_find_capability(hose, dev, PCI_CAP_ID_EXP);
+	pci_hose_read_config_byte(hose, dev, pcie_cap_pos, &pcie_cap);
 	if (pcie_cap == PCI_CAP_ID_EXP) {
 		u8 header_type;
 
@@ -577,6 +585,10 @@ int fsl_is_pci_agent(struct pci_controller *hose)
 		u8 prog_if;
 
 		pci_hose_read_config_byte(hose, dev, PCI_CLASS_PROG, &prog_if);
+		/* Programming Interface (PCI_CLASS_PROG)
+		 * 0 == pci host or pcie root-complex,
+		 * 1 == pci agent or pcie end-point
+		 */
 		return (prog_if == FSL_PROG_IF_AGENT);
 	}
 }
@@ -587,6 +599,7 @@ int fsl_pci_init_port(struct fsl_pci_info *pci_info,
 	volatile ccsr_fsl_pci_t *pci;
 	struct pci_region *r;
 	pci_dev_t dev = PCI_BDF(busno,0,0);
+	int pcie_cap_pos;
 	u8 pcie_cap;
 
 	pci = (ccsr_fsl_pci_t *) pci_info->regs;
@@ -636,11 +649,11 @@ int fsl_pci_init_port(struct fsl_pci_info *pci_info,
 #endif
 	}
 
-	pci_hose_read_config_byte(hose, dev, FSL_PCIE_CAP_ID, &pcie_cap);
+	pcie_cap_pos = pci_hose_find_capability(hose, dev, PCI_CAP_ID_EXP);
+	pci_hose_read_config_byte(hose, dev, pcie_cap_pos, &pcie_cap);
 	printf("PCI%s%x: Bus %02x - %02x\n", pcie_cap == PCI_CAP_ID_EXP ?
 		"e" : "", pci_info->pci_num,
 		hose->first_busno, hose->last_busno);
-
 	return(hose->last_busno + 1);
 }
 
@@ -648,13 +661,15 @@ int fsl_pci_init_port(struct fsl_pci_info *pci_info,
 void fsl_pci_config_unlock(struct pci_controller *hose)
 {
 	pci_dev_t dev = PCI_BDF(hose->first_busno,0,0);
+	int pcie_cap_pos;
 	u8 pcie_cap;
 	u16 pbfr;
 
 	if (!fsl_is_pci_agent(hose))
 		return;
 
-	pci_hose_read_config_byte(hose, dev, FSL_PCIE_CAP_ID, &pcie_cap);
+	pcie_cap_pos = pci_hose_find_capability(hose, dev, PCI_CAP_ID_EXP);
+	pci_hose_read_config_byte(hose, dev, pcie_cap_pos, &pcie_cap);
 	if (pcie_cap != 0x0) {
 		/* PCIe - set CFG_READY bit of Configuration Ready Register */
 		pci_hose_write_config_byte(hose, dev, FSL_PCIE_CFG_RDY, 0x1);

@@ -15,20 +15,7 @@
  * Marek Szyprowski <m.szyprowski@samsung.com>
  * Lukasz Majewski <l.majewski@samsumg.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #undef DEBUG
 #include <common.h>
@@ -180,8 +167,13 @@ void otg_phy_init(struct s3c_udc *dev)
 		writel((readl(&phy->phypwr) &~(OTG_DISABLE_0 | ANALOG_PWRDOWN)
 			&~FORCE_SUSPEND_0), &phy->phypwr);
 
-	writel((readl(&phy->phyclk) &~(ID_PULLUP0 | COMMON_ON_N0)) |
-	       CLK_SEL_24MHZ, &phy->phyclk); /* PLL 24Mhz */
+	if (s5p_cpu_id == 0x4412)
+		writel((readl(&phy->phyclk) & ~(EXYNOS4X12_ID_PULLUP0 |
+			EXYNOS4X12_COMMON_ON_N0)) | EXYNOS4X12_CLK_SEL_24MHZ,
+		       &phy->phyclk); /* PLL 24Mhz */
+	else
+		writel((readl(&phy->phyclk) & ~(ID_PULLUP0 | COMMON_ON_N0)) |
+		       CLK_SEL_24MHZ, &phy->phyclk); /* PLL 24Mhz */
 
 	writel((readl(&phy->rstcon) &~(LINK_SW_RST | PHYLNK_SW_RST))
 	       | PHY_SW_RST0, &phy->rstcon);

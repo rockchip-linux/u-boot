@@ -2,23 +2,7 @@
  * Copyright 2009-2011 Freescale Semiconductor, Inc.
  * Author: Timur Tabi <timur@freescale.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 /*
@@ -91,6 +75,8 @@
 #define BRDCFG1_EMI2_SEL_SLOT2	0x02
 
 #define BRDCFG2_REG_GPIO_SEL	0x20
+
+#define PHY_BASE_ADDR		0x00
 
 /*
  * BRDCFG1 mask and value for each MAC
@@ -381,6 +367,7 @@ int board_eth_init(bd_t *bis)
 	struct tgec_mdio_info tgec_mdio_info;
 	unsigned int i, slot;
 	int lane;
+	struct mii_dev *bus;
 
 	printf("Initializing Fman\n");
 
@@ -485,6 +472,9 @@ int board_eth_init(bd_t *bis)
 			break;
 		}
 	}
+
+	bus = miiphy_get_dev_by_name("HYDRA_SGMII_MDIO");
+	set_sgmii_phy(bus, FM1_DTSEC1, CONFIG_SYS_NUM_FM1_DTSEC, PHY_BASE_ADDR);
 
 	/*
 	 * For 10G, we only support one XAUI card per Fman.  If present, then we

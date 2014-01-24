@@ -2,34 +2,18 @@
  * (C) Copyright 2011 DENX Software Engineering GmbH
  * Heiko Schocher <hs@denx.de>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
 #include <command.h>
 #include <rtc.h>
 #include <asm/io.h>
-#include <asm/arch/hardware.h>
+#include <asm/davinci_rtc.h>
 
 #if defined(CONFIG_CMD_DATE)
 int rtc_get(struct rtc_time *tmp)
 {
-	struct davinci_rtc *rtc = davinci_rtc_base;
+	struct davinci_rtc *rtc = (struct davinci_rtc *)DAVINCI_RTC_BASE;
 	unsigned long sec, min, hour, mday, wday, mon_cent, year;
 	unsigned long status;
 
@@ -73,7 +57,7 @@ int rtc_get(struct rtc_time *tmp)
 
 int rtc_set(struct rtc_time *tmp)
 {
-	struct davinci_rtc *rtc = davinci_rtc_base;
+	struct davinci_rtc *rtc = (struct davinci_rtc *)DAVINCI_RTC_BASE;
 
 	debug("Set DATE: %4d-%02d-%02d (wday=%d)  TIME: %2d:%02d:%02d\n",
 		tmp->tm_year, tmp->tm_mon, tmp->tm_mday, tmp->tm_wday,
@@ -91,7 +75,7 @@ int rtc_set(struct rtc_time *tmp)
 
 void rtc_reset(void)
 {
-	struct davinci_rtc *rtc = davinci_rtc_base;
+	struct davinci_rtc *rtc = (struct davinci_rtc *)DAVINCI_RTC_BASE;
 
 	/* run RTC counter */
 	writel(0x01, &rtc->ctrl);

@@ -3,31 +3,13 @@
  *
  * Copyright (C) 2012 Renesas Solutions Corp.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __SH7752EVB_H
 #define __SH7752EVB_H
 
 #undef DEBUG
-#define CONFIG_SH		1
-#define CONFIG_SH4A		1
 #define CONFIG_SH_32BIT		1
 #define CONFIG_CPU_SH7752	1
 #define CONFIG_SH7752EVB	1
@@ -67,7 +49,6 @@
 #define SH7752EVB_SDRAM_SIZE		(512 * 1024 * 1024)
 
 #define CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_PROMPT		"=> "
 #define CONFIG_SYS_CBSIZE		256
 #define CONFIG_SYS_PBSIZE		256
 #define CONFIG_SYS_MAXARGS		16
@@ -148,6 +129,7 @@
 
 /* Board Clock */
 #define CONFIG_SYS_CLK_FREQ	48000000
+#define CONFIG_SH_TMU_CLK_FREQ CONFIG_SYS_CLK_FREQ
+#define CONFIG_SH_SCIF_CLK_FREQ CONFIG_SYS_CLK_FREQ
 #define CONFIG_SYS_TMU_CLK_DIV	4
-#define CONFIG_SYS_HZ		1000
 #endif	/* __SH7752EVB_H */

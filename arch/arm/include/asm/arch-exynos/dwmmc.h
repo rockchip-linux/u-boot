@@ -2,30 +2,26 @@
  * (C) Copyright 2012 SAMSUNG Electronics
  * Jaehoon Chung <jh80.chung@samsung.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #define DWMCI_CLKSEL		0x09C
-#define DWMCI_SHIFT_0		0x0
-#define DWMCI_SHIFT_1		0x1
-#define DWMCI_SHIFT_2		0x2
-#define DWMCI_SHIFT_3		0x3
 #define DWMCI_SET_SAMPLE_CLK(x)	(x)
 #define DWMCI_SET_DRV_CLK(x)	((x) << 16)
 #define DWMCI_SET_DIV_RATIO(x)	((x) << 24)
+
+#define EMMCP_MPSBEGIN0		0x1200
+#define EMMCP_SEND0		0x1204
+#define EMMCP_CTRL0		0x120C
+
+#define MPSCTRL_SECURE_READ_BIT		(0x1<<7)
+#define MPSCTRL_SECURE_WRITE_BIT	(0x1<<6)
+#define MPSCTRL_NON_SECURE_READ_BIT	(0x1<<5)
+#define MPSCTRL_NON_SECURE_WRITE_BIT	(0x1<<4)
+#define MPSCTRL_USE_FUSE_KEY		(0x1<<3)
+#define MPSCTRL_ECB_MODE		(0x1<<2)
+#define MPSCTRL_ENCRYPTION		(0x1<<1)
+#define MPSCTRL_VALID			(0x1<<0)
 
 #ifdef CONFIG_OF_CONTROL
 int exynos_dwmmc_init(const void *blob);

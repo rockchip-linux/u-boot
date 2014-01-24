@@ -2,20 +2,7 @@
  * (C) Copyright 2012 SAMSUNG Electronics
  * Jaehoon Chung <jh80.chung@samsung.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,  MA 02111-1307 USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __DWMMC_HW_H
@@ -136,6 +123,9 @@
 #define DWMCI_BMOD_IDMAC_FB	(1 << 1)
 #define DWMCI_BMOD_IDMAC_EN	(1 << 7)
 
+/* quirks */
+#define DWMCI_QUIRK_DISABLE_SMU		(1 << 0)
+
 struct dwmci_host {
 	char *name;
 	void *ioaddr;
@@ -151,7 +141,8 @@ struct dwmci_host {
 	struct mmc *mmc;
 
 	void (*clksel)(struct dwmci_host *host);
-	unsigned int (*mmc_clk)(int dev_index);
+	void (*board_init)(struct dwmci_host *host);
+	unsigned int (*get_mmc_clk)(int dev_index);
 };
 
 struct dwmci_idmac {

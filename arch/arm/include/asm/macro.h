@@ -3,23 +3,7 @@
  *
  * Copyright (C) 2009 Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __ASM_ARM_MACRO_H__
@@ -69,6 +53,59 @@
 	subs	r4, r4, #1
 	bcs	1b
 .endm
+
+#ifdef CONFIG_ARM64
+/*
+ * Register aliases.
+ */
+lr	.req	x30
+
+/*
+ * Branch according to exception level
+ */
+.macro	switch_el, xreg, el3_label, el2_label, el1_label
+	mrs	\xreg, CurrentEL
+	cmp	\xreg, 0xc
+	b.eq	\el3_label
+	cmp	\xreg, 0x8
+	b.eq	\el2_label
+	cmp	\xreg, 0x4
+	b.eq	\el1_label
+.endm
+
+/*
+ * Branch if current processor is a slave,
+ * choose processor with all zero affinity value as the master.
+ */
+.macro	branch_if_slave, xreg, slave_label
+	mrs	\xreg, mpidr_el1
+	tst	\xreg, #0xff		/* Test Affinity 0 */
+	b.ne	\slave_label
+	lsr	\xreg, \xreg, #8
+	tst	\xreg, #0xff		/* Test Affinity 1 */
+	b.ne	\slave_label
+	lsr	\xreg, \xreg, #8
+	tst	\xreg, #0xff		/* Test Affinity 2 */
+	b.ne	\slave_label
+	lsr	\xreg, \xreg, #16
+	tst	\xreg, #0xff		/* Test Affinity 3 */
+	b.ne	\slave_label
+.endm
+
+/*
+ * Branch if current processor is a master,
+ * choose processor with all zero affinity value as the master.
+ */
+.macro	branch_if_master, xreg1, xreg2, master_label
+	mrs	\xreg1, mpidr_el1
+	lsr	\xreg2, \xreg1, #32
+	lsl	\xreg1, \xreg1, #40
+	lsr	\xreg1, \xreg1, #40
+	orr	\xreg1, \xreg1, \xreg2
+	cbz	\xreg1, \master_label
+.endm
+
+#endif /* CONFIG_ARM64 */
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ASM_ARM_MACRO_H__ */

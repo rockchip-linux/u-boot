@@ -2,23 +2,7 @@
  * Copyright (C) 2012 Michal Simek <monstr@monstr.eu>
  * Copyright (C) 2011-2012 Xilinx, Inc. All rights reserved.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -36,10 +20,6 @@
 #define ZYNQ_UART_CR_RXRST	0x00000001 /* RX logic reset */
 
 #define ZYNQ_UART_MR_PARITY_NONE	0x00000020  /* No parity mode */
-
-/* Some clock/baud constants */
-#define ZYNQ_UART_BDIV	15 /* Default/reset BDIV value */
-#define ZYNQ_UART_BASECLK	3125000L /* master / (bdiv + 1) */
 
 struct uart_zynq {
 	u32 control; /* Control Register [8:0] */

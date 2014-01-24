@@ -8,19 +8,7 @@
  * Copyright (C) 2010
  * Texas Instruments Incorporated - http://www.ti.com/
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -34,6 +22,7 @@
 #include <asm/arch/musb.h>
 #include <asm/mach-types.h>
 #include <asm/errno.h>
+#include <asm/gpio.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 #include <linux/usb/musb.h>
@@ -42,6 +31,9 @@
 #include "am3517evm.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#define AM3517_IP_SW_RESET	0x48002598
+#define CPGMACSS_SW_RST		(1 << 1)
 
 /*
  * Routine: board_init
@@ -110,13 +102,41 @@ static void am3517_evm_musb_init(void)
  */
 int misc_init_r(void)
 {
-#ifdef CONFIG_DRIVER_OMAP34XX_I2C
-	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+	volatile unsigned int ctr;
+	u32 reset;
+
+#ifdef CONFIG_SYS_I2C_OMAP34XX
+	i2c_init(CONFIG_SYS_OMAP24_I2C_SPEED, CONFIG_SYS_OMAP24_I2C_SLAVE);
 #endif
 
 	dieid_num_r();
 
 	am3517_evm_musb_init();
+
+	/* activate PHY reset */
+	gpio_direction_output(30, 0);
+	gpio_set_value(30, 0);
+
+	ctr  = 0;
+	do {
+		udelay(1000);
+		ctr++;
+	} while (ctr < 300);
+
+	/* deactivate PHY reset */
+	gpio_set_value(30, 1);
+
+	/* allow the PHY to stabilize and settle down */
+	ctr = 0;
+	do {
+		udelay(1000);
+		ctr++;
+	} while (ctr < 300);
+
+	/* ensure that the module is out of reset */
+	reset = readl(AM3517_IP_SW_RESET);
+	reset &= (~CPGMACSS_SW_RST);
+	writel(reset,AM3517_IP_SW_RESET);
 
 	return 0;
 }
@@ -155,4 +175,3 @@ int board_eth_init(bd_t *bis)
 	return n;
 }
 #endif
-

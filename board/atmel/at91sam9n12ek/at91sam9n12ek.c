@@ -2,23 +2,7 @@
  * (C) Copyright 2013 Atmel Corporation
  * Josh Wu <josh.wu@atmel.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -59,7 +43,7 @@ static void at91sam9n12ek_nand_hw_init(void)
 	/* Configure databus */
 	csa &= ~AT91_MATRIX_NFD0_ON_D16; /* nandflash connect to D0~D15 */
 	/* Configure IO drive */
-	csa &= ~AT91_MATRIX_EBI_EBI_IOSR_NORMAL;
+	csa |= AT91_MATRIX_EBI_EBI_IOSR_NORMAL;
 
 	writel(csa, &matrix->ebicsa);
 
@@ -215,6 +199,13 @@ void at91sam9n12ek_ks8851_hw_init(void)
 }
 #endif
 
+#ifdef CONFIG_USB_ATMEL
+void at91sam9n12ek_usb_hw_init(void)
+{
+	at91_set_pio_output(AT91_PIO_PORTB, 7, 0);
+}
+#endif
+
 int board_early_init_f(void)
 {
 	/* Enable clocks for all PIOs */
@@ -244,6 +235,10 @@ int board_init(void)
 
 #ifdef CONFIG_KS8851_MLL
 	at91sam9n12ek_ks8851_hw_init();
+#endif
+
+#ifdef CONFIG_USB_ATMEL
+	at91sam9n12ek_usb_hw_init();
 #endif
 
 	return 0;

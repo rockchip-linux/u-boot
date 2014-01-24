@@ -5,19 +5,7 @@
  * Authors: Nick Spence <nick.spence@freescale.com>,
  *          Scott Wood <scottwood@freescale.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -771,8 +759,12 @@ static int fsl_elbc_chip_init(int devnum, u8 *addr)
 		nand->ecc.steps = 1;
 		nand->ecc.strength = 1;
 	} else {
-		/* otherwise fall back to default software ECC */
+		/* otherwise fall back to software ECC */
+#if defined(CONFIG_NAND_ECC_BCH)
+		nand->ecc.mode = NAND_ECC_SOFT_BCH;
+#else
 		nand->ecc.mode = NAND_ECC_SOFT;
+#endif
 	}
 
 	ret = nand_scan_ident(mtd, 1, NULL);

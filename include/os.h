@@ -5,27 +5,13 @@
  * They are kept in a separate file so we can include system headers.
  *
  * Copyright (c) 2011 The Chromium OS Authors.
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __OS_H__
 #define __OS_H__
+
+#include <linux/types.h>
 
 struct sandbox_state;
 
@@ -121,6 +107,35 @@ void os_tty_raw(int fd);
 void *os_malloc(size_t length);
 
 /**
+ * Free memory previous allocated with os_malloc()/os_realloc()
+ *
+ * This returns the memory to the OS.
+ *
+ * \param ptr		Pointer to memory block to free
+ */
+void *os_free(void *ptr);
+
+/**
+ * Reallocate previously-allocated memory to increase/decrease space
+ *
+ * This works in a similar way to the C library realloc() function. If
+ * length is 0, then ptr is freed. Otherwise the space used by ptr is
+ * expanded or reduced depending on whether length is larger or smaller
+ * than before.
+ *
+ * If ptr is NULL, then this is similar to calling os_malloc().
+ *
+ * This function may need to move the memory block to make room for any
+ * extra space, in which case the new pointer is returned.
+ *
+ * \param ptr		Pointer to memory block to reallocate
+ * \param length	New length for memory block
+ * \return pointer to new memory block, or NULL on failure or if length
+ *	is 0.
+ */
+void *os_realloc(void *ptr, size_t length);
+
+/**
  * Access to the usleep function of the os
  *
  * \param usec Time to sleep in micro seconds
@@ -132,7 +147,7 @@ void os_usleep(unsigned long usec);
  *
  * \return A monotonic increasing time scaled in nano seconds
  */
-u64 os_get_nsec(void);
+uint64_t os_get_nsec(void);
 
 /**
  * Parse arguments and update sandbox state.
@@ -193,5 +208,41 @@ const char *os_dirent_get_typename(enum os_dirent_t type);
  * @return size of file, or -1 if an error ocurred
  */
 ssize_t os_get_filesize(const char *fname);
+
+/**
+ * Write a character to the controlling OS terminal
+ *
+ * This bypasses the U-Boot console support and writes directly to the OS
+ * stdout file descriptor.
+ *
+ * @param ch	Character to write
+ */
+void os_putc(int ch);
+
+/**
+ * Write a string to the controlling OS terminal
+ *
+ * This bypasses the U-Boot console support and writes directly to the OS
+ * stdout file descriptor.
+ *
+ * @param str	String to write (note that \n is not appended)
+ */
+void os_puts(const char *str);
+
+/**
+ * Write the sandbox RAM buffer to a existing file
+ *
+ * @param fname		Filename to write memory to (simple binary format)
+ * @return 0 if OK, -ve on error
+ */
+int os_write_ram_buf(const char *fname);
+
+/**
+ * Read the sandbox RAM buffer from an existing file
+ *
+ * @param fname		Filename containing memory (simple binary format)
+ * @return 0 if OK, -ve on error
+ */
+int os_read_ram_buf(const char *fname);
 
 #endif

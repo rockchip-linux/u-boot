@@ -4,23 +4,7 @@
  *
  * (C) Copyright 2013 Andreas Bießmann <andreas.devel@googlemail.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #ifndef __ASM_OMAP_GPMC_H
 #define __ASM_OMAP_GPMC_H
@@ -83,5 +67,21 @@
 		 .length = 11 } } \
 }
 #endif
+
+enum omap_ecc {
+	/* 1-bit  ECC calculation by Software, Error detection by Software */
+	OMAP_ECC_HAM1_CODE_SW = 1, /* avoid un-initialized int can be 0x0 */
+	/* 1-bit  ECC calculation by GPMC, Error detection by Software */
+	/* ECC layout compatible to legacy ROMCODE. */
+	OMAP_ECC_HAM1_CODE_HW,
+	/* 4-bit  ECC calculation by GPMC, Error detection by Software */
+	OMAP_ECC_BCH4_CODE_HW_DETECTION_SW,
+	/* 4-bit  ECC calculation by GPMC, Error detection by ELM */
+	OMAP_ECC_BCH4_CODE_HW,
+	/* 8-bit  ECC calculation by GPMC, Error detection by Software */
+	OMAP_ECC_BCH8_CODE_HW_DETECTION_SW,
+	/* 8-bit  ECC calculation by GPMC, Error detection by ELM */
+	OMAP_ECC_BCH8_CODE_HW,
+};
 
 #endif /* __ASM_OMAP_GPMC_H */

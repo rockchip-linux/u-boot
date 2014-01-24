@@ -4,23 +4,7 @@
  * (C) Copyright 2000-2006
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 
@@ -48,6 +32,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern ulong get_effective_memsize(void);
 static ulong get_sp (void);
+extern void ft_fixup_num_cores(void *blob);
 static void set_clocks_in_mhz (bd_t *kbd);
 
 #ifndef CONFIG_SYS_LINUX_LOWMEM_MAX_SIZE
@@ -293,3 +278,58 @@ static void set_clocks_in_mhz (bd_t *kbd)
 #endif /* CONFIG_MPC5xxx */
 	}
 }
+
+#if defined(CONFIG_BOOTM_VXWORKS)
+void boot_prep_vxworks(bootm_headers_t *images)
+{
+#if defined(CONFIG_OF_LIBFDT)
+	int off;
+	u64 base, size;
+
+	if (!images->ft_addr)
+		return;
+
+	base = (u64)gd->bd->bi_memstart;
+	size = (u64)gd->bd->bi_memsize;
+
+	off = fdt_path_offset(images->ft_addr, "/memory");
+	if (off < 0)
+		fdt_fixup_memory(images->ft_addr, base, size);
+
+#if defined(CONFIG_MP)
+#if defined(CONFIG_MPC85xx)
+	ft_fixup_cpu(images->ft_addr, base + size);
+	ft_fixup_num_cores(images->ft_addr);
+#elif defined(CONFIG_MPC86xx)
+	off = fdt_add_mem_rsv(images->ft_addr,
+			determine_mp_bootpg(NULL), (u64)4096);
+	if (off < 0)
+		printf("## WARNING %s: %s\n", __func__, fdt_strerror(off));
+	ft_fixup_num_cores(images->ft_addr);
+#endif
+	flush_cache((unsigned long)images->ft_addr, images->ft_len);
+#endif
+#endif
+}
+
+void boot_jump_vxworks(bootm_headers_t *images)
+{
+	/* PowerPC VxWorks boot interface conforms to the ePAPR standard
+	 * general purpuse registers:
+	 *
+	 *	r3: Effective address of the device tree image
+	 *	r4: 0
+	 *	r5: 0
+	 *	r6: ePAPR magic value
+	 *	r7: shall be the size of the boot IMA in bytes
+	 *	r8: 0
+	 *	r9: 0
+	 *	TCR: WRC = 0, no watchdog timer reset will occur
+	 */
+	WATCHDOG_RESET();
+
+	((void (*)(void *, ulong, ulong, ulong,
+		ulong, ulong, ulong))images->ep)(images->ft_addr,
+		0, 0, EPAPR_MAGIC, getenv_bootm_mapsize(), 0, 0);
+}
+#endif

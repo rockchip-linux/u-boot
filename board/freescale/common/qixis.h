@@ -2,10 +2,7 @@
  * Copyright 2011 Freescale Semiconductor
  * Author: Shengzhou Liu <Shengzhou.Liu@freescale.com>
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 2 of the License, or (at your option)
- * any later version.
+ * SPDX-License-Identifier:	GPL-2.0+
  *
  * This file provides support for the QIXIS of some Freescale reference boards.
  */
@@ -82,7 +79,9 @@ struct qixis {
 	u8 clk_freq[6];	/* Clock Measurement Registers */
 	u8 res_c6[8];
 	u8 clk_base[2];	/* Clock Frequency Base Reg */
-	u8 res_d0[16];
+	u8 res_d0[8];
+	u8 cms[2];	/* Core Management Space Address Register, 0xD8 */
+	u8 res_c0[6];
 	u8 aux2[4];	/* Auxiliary Registers,0xE0 */
 	u8 res14[10];
 	u8 aux_ad;

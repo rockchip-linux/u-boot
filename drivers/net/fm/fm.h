@@ -1,20 +1,7 @@
 /*
  * Copyright 2009-2011 Freescale Semiconductor, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __FM_H__
@@ -31,9 +18,12 @@
 #define RX_PORT_1G_BASE		0x08
 #define MAX_NUM_RX_PORT_1G	CONFIG_SYS_NUM_FM1_DTSEC
 #define RX_PORT_10G_BASE	0x10
+#define RX_PORT_10G_BASE2	0x08
 #define TX_PORT_1G_BASE		0x28
 #define MAX_NUM_TX_PORT_1G	CONFIG_SYS_NUM_FM1_DTSEC
 #define TX_PORT_10G_BASE	0x30
+#define TX_PORT_10G_BASE2	0x28
+#define MIIM_TIMEOUT    0xFFFF
 
 struct fm_muram {
 	u32 base;
@@ -111,6 +101,7 @@ int fm_init_common(int index, struct ccsr_fman *reg);
 int fm_eth_initialize(struct ccsr_fman *reg, struct fm_eth_info *info);
 phy_interface_t fman_port_enet_if(enum fm_port port);
 void fman_disable_port(enum fm_port port);
+void fman_enable_port(enum fm_port port);
 
 struct fsl_enet_mac {
 	void *base; /* MAC controller registers base address */

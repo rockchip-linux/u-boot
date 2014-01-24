@@ -4,23 +4,7 @@
  *
  * Copyright 2010-2011 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -36,6 +20,34 @@
  * Global data (for the gd->bd)
  */
 DECLARE_GLOBAL_DATA_PTR;
+
+/*
+ * Get cells len in bytes
+ *     if #NNNN-cells property is 2 then len is 8
+ *     otherwise len is 4
+ */
+static int get_cells_len(void *blob, char *nr_cells_name)
+{
+	const fdt32_t *cell;
+
+	cell = fdt_getprop(blob, 0, nr_cells_name, NULL);
+	if (cell && fdt32_to_cpu(*cell) == 2)
+		return 8;
+
+	return 4;
+}
+
+/*
+ * Write a 4 or 8 byte big endian cell
+ */
+static void write_cell(u8 *addr, u64 val, int size)
+{
+	int shift = (size - 1) * 8;
+	while (size-- > 0) {
+		*addr++ = (val >> shift) & 0xff;
+		shift -= 8;
+	}
+}
 
 /**
  * fdt_getprop_u32_default - Find a node and return it's property or a default
@@ -147,9 +159,9 @@ static int fdt_fixup_stdout(void *fdt, int chosenoff)
 
 int fdt_initrd(void *fdt, ulong initrd_start, ulong initrd_end, int force)
 {
-	int   nodeoffset;
+	int   nodeoffset, addr_cell_len;
 	int   err, j, total;
-	fdt32_t  tmp;
+	fdt64_t  tmp;
 	const char *path;
 	uint64_t addr, size;
 
@@ -186,20 +198,22 @@ int fdt_initrd(void *fdt, ulong initrd_start, ulong initrd_end, int force)
 		return err;
 	}
 
+	addr_cell_len = get_cells_len(fdt, "#address-cells");
+
 	path = fdt_getprop(fdt, nodeoffset, "linux,initrd-start", NULL);
 	if ((path == NULL) || force) {
-		tmp = cpu_to_fdt32(initrd_start);
+		write_cell((u8 *)&tmp, initrd_start, addr_cell_len);
 		err = fdt_setprop(fdt, nodeoffset,
-			"linux,initrd-start", &tmp, sizeof(tmp));
+			"linux,initrd-start", &tmp, addr_cell_len);
 		if (err < 0) {
 			printf("WARNING: "
 				"could not set linux,initrd-start %s.\n",
 				fdt_strerror(err));
 			return err;
 		}
-		tmp = cpu_to_fdt32(initrd_end);
+		write_cell((u8 *)&tmp, initrd_end, addr_cell_len);
 		err = fdt_setprop(fdt, nodeoffset,
-			"linux,initrd-end", &tmp, sizeof(tmp));
+			"linux,initrd-end", &tmp, addr_cell_len);
 		if (err < 0) {
 			printf("WARNING: could not set linux,initrd-end %s.\n",
 				fdt_strerror(err));
@@ -359,34 +373,6 @@ void do_fixup_by_compat_u32(void *fdt, const char *compat,
 	do_fixup_by_compat(fdt, compat, prop, &tmp, 4, create);
 }
 
-/*
- * Get cells len in bytes
- *     if #NNNN-cells property is 2 then len is 8
- *     otherwise len is 4
- */
-static int get_cells_len(void *blob, char *nr_cells_name)
-{
-	const fdt32_t *cell;
-
-	cell = fdt_getprop(blob, 0, nr_cells_name, NULL);
-	if (cell && fdt32_to_cpu(*cell) == 2)
-		return 8;
-
-	return 4;
-}
-
-/*
- * Write a 4 or 8 byte big endian cell
- */
-static void write_cell(u8 *addr, u64 val, int size)
-{
-	int shift = (size - 1) * 8;
-	while (size-- > 0) {
-		*addr++ = (val >> shift) & 0xff;
-		shift -= 8;
-	}
-}
-
 #ifdef CONFIG_NR_DRAM_BANKS
 #define MEMORY_BANKS_MAX CONFIG_NR_DRAM_BANKS
 #else
@@ -416,10 +402,11 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 	nodeoffset = fdt_path_offset(blob, "/memory");
 	if (nodeoffset < 0) {
 		nodeoffset = fdt_add_subnode(blob, 0, "memory");
-		if (nodeoffset < 0)
+		if (nodeoffset < 0) {
 			printf("WARNING: could not create /memory: %s.\n",
 					fdt_strerror(nodeoffset));
-		return nodeoffset;
+			return nodeoffset;
+		}
 	}
 	err = fdt_setprop(blob, nodeoffset, "device_type", "memory",
 			sizeof("memory"));
@@ -782,11 +769,11 @@ int fdt_node_set_part_info(void *blob, int parent_offset,
 
 		part = list_entry(pentry, struct part_info, link);
 
-		debug("%2d: %-20s0x%08x\t0x%08x\t%d\n",
+		debug("%2d: %-20s0x%08llx\t0x%08llx\t%d\n",
 			part_num, part->name, part->size,
 			part->offset, part->mask_flags);
 
-		sprintf(buf, "partition@%x", part->offset);
+		sprintf(buf, "partition@%llx", part->offset);
 add_sub:
 		ret = fdt_add_subnode(blob, parent_offset, buf);
 		if (ret == -FDT_ERR_NOSPACE) {

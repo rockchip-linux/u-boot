@@ -1,29 +1,7 @@
 #
 # (C) Copyright 2013 Freescale Semiconductor, Inc.
 #
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2 of
-# the License, or (at your option) any later version.
+# SPDX-License-Identifier:	GPL-2.0+
 #
 
-include $(TOPDIR)/config.mk
-
-LIB    = $(obj)lib$(BOARD).o
-
-COBJS  := wandboard.o
-
-SRCS   := $(COBJS:.o=.c)
-OBJS   := $(addprefix $(obj),$(COBJS))
-
-$(LIB):        $(obj).depend $(OBJS)
-	$(call cmd_link_o_target, $(OBJS))
-
-#########################################################################
-
-# defines $(obj).depend target
-include $(SRCTREE)/rules.mk
-
-sinclude $(obj).depend
-
-#########################################################################
+obj-y  := wandboard.o

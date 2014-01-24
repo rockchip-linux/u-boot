@@ -4,20 +4,7 @@
  * Copyright (C) 2012 Samsung Electronics Co.Ltd
  *	Vivek Gautam <gautam.vivek@samsung.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02110-1301 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __ASM_ARM_ARCH_EHCI_H__
@@ -41,6 +28,20 @@
 #define EHCICTRL_ENAINCR4			(1 << 28)
 #define EHCICTRL_ENAINCR8			(1 << 27)
 #define EHCICTRL_ENAINCR16			(1 << 26)
+
+#define HSIC_CTRL_REFCLKSEL                     (0x2)
+#define HSIC_CTRL_REFCLKSEL_MASK                (0x3)
+#define HSIC_CTRL_REFCLKSEL_SHIFT               (23)
+
+#define HSIC_CTRL_REFCLKDIV_12                  (0x24)
+#define HSIC_CTRL_REFCLKDIV_MASK                (0x7f)
+#define HSIC_CTRL_REFCLKDIV_SHIFT               (16)
+
+#define HSIC_CTRL_SIDDQ                         (0x1 << 6)
+#define HSIC_CTRL_FORCESLEEP                    (0x1 << 5)
+#define HSIC_CTRL_FORCESUSPEND                  (0x1 << 4)
+#define HSIC_CTRL_UTMISWRST                     (0x1 << 2)
+#define HSIC_CTRL_PHYSWRST                      (0x1 << 0)
 
 /* Register map for PHY control */
 struct exynos_usb_phy {

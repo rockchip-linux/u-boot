@@ -2,23 +2,7 @@
  * (C) Copyright 2012-2013
  * Texas Instruments, <www.ti.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <config.h>
 #include <palmas.h>
@@ -140,6 +124,21 @@ int twl603x_audio_power(u8 on)
 		printf("twl603x: could not turn CLK32KGAUDIO %s: err = %d\n",
 		       c32k ? "on" : "off", err);
 	return err;
+}
+#endif
+
+#ifdef CONFIG_PALMAS_USB_SS_PWR
+/**
+ * @brief palmas_enable_ss_ldo - Configure EVM board specific configurations
+ * for the USB Super speed SMPS10 regulator.
+ *
+ * @return 0
+ */
+int palmas_enable_ss_ldo(void)
+{
+	/* Enable smps10 regulator  */
+	return palmas_i2c_write_u8(TWL603X_CHIP_P1, SMPS10_CTRL,
+				SMPS10_MODE_ACTIVE_D);
 }
 #endif
 

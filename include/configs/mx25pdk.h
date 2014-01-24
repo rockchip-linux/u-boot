@@ -1,15 +1,7 @@
 /*
  * (C) Copyright 2011 Freescale Semiconductor, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -20,9 +12,12 @@
 /* High Level Configuration Options */
 
 #define CONFIG_MX25
-#define CONFIG_SYS_HZ			1000
 #define CONFIG_SYS_TEXT_BASE		0x81200000
 #define CONFIG_MXC_GPIO
+
+#define CONFIG_SYS_TIMER_RATE		32768
+#define CONFIG_SYS_TIMER_COUNTER	\
+	(&((struct gpt_regs *)IMX_GPT1_BASE)->counter)
 
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO
@@ -73,7 +68,6 @@
 #define CONFIG_SYS_MMC_ENV_DEV 0
 
 /* U-Boot general configuration */
-#define CONFIG_SYS_PROMPT	"MX25PDK U-Boot > "
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_SYS_CBSIZE	256	/* Console I/O Buffer Size  */
 /* Print buffer sz */
@@ -119,10 +113,8 @@
 
 /* I2C Configs */
 #define CONFIG_CMD_I2C
-#define CONFIG_HARD_I2C
-#define CONFIG_I2C_MXC
-#define CONFIG_SYS_I2C_BASE		IMX_I2C_BASE
-#define CONFIG_SYS_I2C_SPEED		100000
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_MXC
 
 /* RTC */
 #define CONFIG_RTC_IMXDI

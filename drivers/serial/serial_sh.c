@@ -1,21 +1,10 @@
 /*
  * SuperH SCIF device driver.
+ * Copyright (C) 2013  Renesas Electronics Corporation
  * Copyright (C) 2007,2008,2010 Nobuhiro Iwamatsu
  * Copyright (C) 2002 - 2008  Paul Mundt
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -60,7 +49,9 @@ static struct uart_port sh_sci = {
 static void sh_serial_setbrg(void)
 {
 	DECLARE_GLOBAL_DATA_PTR;
-	sci_out(&sh_sci, SCBRR, SCBRR_VALUE(gd->baudrate, CONFIG_SYS_CLK_FREQ));
+
+	sci_out(&sh_sci, SCBRR,
+		SCBRR_VALUE(gd->baudrate, CONFIG_SH_SCIF_CLK_FREQ));
 }
 
 static int sh_serial_init(void)

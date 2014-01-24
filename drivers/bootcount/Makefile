@@ -1,45 +1,11 @@
 #
-# See file CREDITS for list of people who contributed to this
-# project.
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2 of
-# the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307 USA
+# SPDX-License-Identifier:	GPL-2.0+
 #
 
-include $(TOPDIR)/config.mk
-
-LIB 	:= $(obj)libbootcount.o
-
-COBJS-y				+= bootcount.o
-COBJS-$(CONFIG_AT91SAM9XE)	+= bootcount_at91.o
-COBJS-$(CONFIG_BLACKFIN)	+= bootcount_blackfin.o
-COBJS-$(CONFIG_SOC_DA8XX)	+= bootcount_davinci.o
-COBJS-$(CONFIG_BOOTCOUNT_RAM)	+= bootcount_ram.o
-
-COBJS	:= $(COBJS-y)
-SRCS 	:= $(COBJS:.o=.c)
-OBJS 	:= $(addprefix $(obj),$(COBJS))
-
-$(LIB):	$(obj).depend $(OBJS)
-	$(call cmd_link_o_target, $(OBJS))
-
-#########################################################################
-
-# defines $(obj).depend target
-include $(SRCTREE)/rules.mk
-
-sinclude $(obj).depend
-
-########################################################################
+obj-y				+= bootcount.o
+obj-$(CONFIG_AT91SAM9XE)	+= bootcount_at91.o
+obj-$(CONFIG_BLACKFIN)		+= bootcount_blackfin.o
+obj-$(CONFIG_SOC_DA8XX)		+= bootcount_davinci.o
+obj-$(CONFIG_BOOTCOUNT_AM33XX)	+= bootcount_davinci.o
+obj-$(CONFIG_BOOTCOUNT_RAM)	+= bootcount_ram.o
+obj-$(CONFIG_BOOTCOUNT_ENV)	+= bootcount_env.o

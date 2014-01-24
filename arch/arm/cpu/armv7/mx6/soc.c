@@ -4,23 +4,7 @@
  *
  * (C) Copyright 2009 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -32,6 +16,14 @@
 #include <asm/imx-common/boot_mode.h>
 #include <asm/imx-common/dma.h>
 #include <stdbool.h>
+#include <asm/arch/mxc_hdmi.h>
+#include <asm/arch/crm_regs.h>
+
+enum ldo_reg {
+	LDO_ARM,
+	LDO_SOC,
+	LDO_PU,
+};
 
 struct scu_regs {
 	u32	ctrl;
@@ -107,6 +99,20 @@ void init_aips(void)
 	writel(0x00000000, &aips2->opacr4);
 }
 
+static void clear_ldo_ramp(void)
+{
+	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
+	int reg;
+
+	/* ROM may modify LDO ramp up time according to fuse setting, so in
+	 * order to be in the safe side we neeed to reset these settings to
+	 * match the reset value: 0'b00
+	 */
+	reg = readl(&anatop->ana_misc2);
+	reg &= ~(0x3f << 24);
+	writel(reg, &anatop->ana_misc2);
+}
+
 /*
  * Set the VDDSOC
  *
@@ -115,10 +121,11 @@ void init_aips(void)
  * Possible values are from 0.725V to 1.450V in steps of
  * 0.025V (25mV).
  */
-void set_vddsoc(u32 mv)
+static int set_ldo_voltage(enum ldo_reg ldo, u32 mv)
 {
 	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
-	u32 val, reg = readl(&anatop->reg_core);
+	u32 val, step, old, reg = readl(&anatop->reg_core);
+	u8 shift;
 
 	if (mv < 725)
 		val = 0x00;	/* Power gated off */
@@ -127,12 +134,37 @@ void set_vddsoc(u32 mv)
 	else
 		val = (mv - 700) / 25;
 
-	/*
-	 * Mask out the REG_CORE[22:18] bits (REG2_TRIG)
-	 * and set them to the calculated value (0.7V + val * 0.25V)
-	 */
-	reg = (reg & ~(0x1F << 18)) | (val << 18);
+	clear_ldo_ramp();
+
+	switch (ldo) {
+	case LDO_SOC:
+		shift = 18;
+		break;
+	case LDO_PU:
+		shift = 9;
+		break;
+	case LDO_ARM:
+		shift = 0;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	old = (reg & (0x1F << shift)) >> shift;
+	step = abs(val - old);
+	if (step == 0)
+		return 0;
+
+	reg = (reg & ~(0x1F << shift)) | (val << shift);
 	writel(reg, &anatop->reg_core);
+
+	/*
+	 * The LDO ramp-up is based on 64 clock cycles of 24 MHz = 2.6 us per
+	 * step
+	 */
+	udelay(3 * step);
+
+	return 0;
 }
 
 static void imx_set_wdog_powerdown(bool enable)
@@ -149,8 +181,6 @@ int arch_cpu_init(void)
 {
 	init_aips();
 
-	set_vddsoc(1200);	/* Set VDDSOC to 1.2V */
-
 	imx_set_wdog_powerdown(false); /* Disable PDE bit of WMCR register */
 
 #ifdef CONFIG_APBH_DMA
@@ -161,9 +191,18 @@ int arch_cpu_init(void)
 	return 0;
 }
 
+int board_postclk_init(void)
+{
+	set_ldo_voltage(LDO_SOC, 1175);	/* Set VDDSOC to 1.175V */
+
+	return 0;
+}
+
 #ifndef CONFIG_SYS_DCACHE_OFF
 void enable_caches(void)
 {
+	/* Avoid random hang when download by usb */
+	invalidate_dcache_all();
 	/* Enable D-cache. I-cache is already enabled in start.S */
 	dcache_enable();
 }
@@ -227,4 +266,73 @@ const struct boot_mode soc_boot_modes[] = {
 
 void s_init(void)
 {
+	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
+	int is_6q = is_cpu_type(MXC_CPU_MX6Q);
+	u32 mask480;
+	u32 mask528;
+
+	/* Due to hardware limitation, on MX6Q we need to gate/ungate all PFDs
+	 * to make sure PFD is working right, otherwise, PFDs may
+	 * not output clock after reset, MX6DL and MX6SL have added 396M pfd
+	 * workaround in ROM code, as bus clock need it
+	 */
+
+	mask480 = ANATOP_PFD_CLKGATE_MASK(0) |
+		ANATOP_PFD_CLKGATE_MASK(1) |
+		ANATOP_PFD_CLKGATE_MASK(2) |
+		ANATOP_PFD_CLKGATE_MASK(3);
+	mask528 = ANATOP_PFD_CLKGATE_MASK(0) |
+		ANATOP_PFD_CLKGATE_MASK(1) |
+		ANATOP_PFD_CLKGATE_MASK(3);
+
+	/*
+	 * Don't reset PFD2 on DL/S
+	 */
+	if (is_6q)
+		mask528 |= ANATOP_PFD_CLKGATE_MASK(2);
+	writel(mask480, &anatop->pfd_480_set);
+	writel(mask528, &anatop->pfd_528_set);
+	writel(mask480, &anatop->pfd_480_clr);
+	writel(mask528, &anatop->pfd_528_clr);
 }
+
+#ifdef CONFIG_IMX_HDMI
+void imx_enable_hdmi_phy(void)
+{
+	struct hdmi_regs *hdmi = (struct hdmi_regs *)HDMI_ARB_BASE_ADDR;
+	u8 reg;
+	reg = readb(&hdmi->phy_conf0);
+	reg |= HDMI_PHY_CONF0_PDZ_MASK;
+	writeb(reg, &hdmi->phy_conf0);
+	udelay(3000);
+	reg |= HDMI_PHY_CONF0_ENTMDS_MASK;
+	writeb(reg, &hdmi->phy_conf0);
+	udelay(3000);
+	reg |= HDMI_PHY_CONF0_GEN2_TXPWRON_MASK;
+	writeb(reg, &hdmi->phy_conf0);
+	writeb(HDMI_MC_PHYRSTZ_ASSERT, &hdmi->mc_phyrstz);
+}
+
+void imx_setup_hdmi(void)
+{
+	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
+	struct hdmi_regs *hdmi  = (struct hdmi_regs *)HDMI_ARB_BASE_ADDR;
+	int reg;
+
+	/* Turn on HDMI PHY clock */
+	reg = readl(&mxc_ccm->CCGR2);
+	reg |=  MXC_CCM_CCGR2_HDMI_TX_IAHBCLK_MASK|
+		 MXC_CCM_CCGR2_HDMI_TX_ISFRCLK_MASK;
+	writel(reg, &mxc_ccm->CCGR2);
+	writeb(HDMI_MC_PHYRSTZ_DEASSERT, &hdmi->mc_phyrstz);
+	reg = readl(&mxc_ccm->chsccdr);
+	reg &= ~(MXC_CCM_CHSCCDR_IPU1_DI0_PRE_CLK_SEL_MASK|
+		 MXC_CCM_CHSCCDR_IPU1_DI0_PODF_MASK|
+		 MXC_CCM_CHSCCDR_IPU1_DI0_CLK_SEL_MASK);
+	reg |= (CHSCCDR_PODF_DIVIDE_BY_3
+		 << MXC_CCM_CHSCCDR_IPU1_DI0_PODF_OFFSET)
+		 |(CHSCCDR_IPU_PRE_CLK_540M_PFD
+		 << MXC_CCM_CHSCCDR_IPU1_DI0_PRE_CLK_SEL_OFFSET);
+	writel(reg, &mxc_ccm->chsccdr);
+}
+#endif

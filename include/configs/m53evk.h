@@ -2,20 +2,7 @@
  * DENX M53 configuration
  * Copyright (C) 2012-2013 Marek Vasut <marex@denx.de>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __M53EVK_CONFIG_H__
@@ -23,7 +10,6 @@
 
 #define CONFIG_MX53
 #define CONFIG_MXC_GPIO
-#define CONFIG_SYS_HZ		1000
 
 #include <asm/arch/imx-regs.h>
 
@@ -51,6 +37,7 @@
 #define CONFIG_CMD_PING
 #define CONFIG_CMD_SATA
 #define CONFIG_CMD_USB
+#define CONFIG_VIDEO
 
 /*
  * Memory configurations
@@ -80,7 +67,6 @@
  * U-Boot general configurations
  */
 #define CONFIG_SYS_LONGHELP
-#define CONFIG_SYS_PROMPT	"=> "
 #define CONFIG_SYS_CBSIZE	1024		/* Console I/O buffer size */
 #define CONFIG_SYS_PBSIZE	\
 	(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
@@ -174,10 +160,9 @@
  * I2C
  */
 #ifdef CONFIG_CMD_I2C
-#define CONFIG_HARD_I2C
-#define CONFIG_I2C_MXC
-#define CONFIG_SYS_I2C_BASE		I2C2_BASE_ADDR
-#define CONFIG_SYS_I2C_SPEED		100000
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_MXC
+#define CONFIG_SYS_SPD_BUS_NUM		1 /* I2C2 */
 #endif
 
 /*
@@ -214,6 +199,21 @@
 #define CONFIG_DWC_AHSATA_BASE_ADDR	SATA_BASE_ADDR
 #define CONFIG_LBA48
 #define CONFIG_LIBATA
+#endif
+
+/*
+ * LCD
+ */
+#ifdef CONFIG_VIDEO
+#define CONFIG_VIDEO_IPUV3
+#define CONFIG_CFB_CONSOLE
+#define CONFIG_VGA_AS_SINGLE_DEVICE
+#define CONFIG_SYS_CONSOLE_IS_IN_ENV
+#define CONFIG_VIDEO_BMP_RLE8
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_BMP_16BPP
+#define CONFIG_VIDEO_LOGO
+#define CONFIG_IPUV3_CLK	200000000
 #endif
 
 /*

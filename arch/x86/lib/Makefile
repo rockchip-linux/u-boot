@@ -2,60 +2,26 @@
 # (C) Copyright 2002-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 #
-# See file CREDITS for list of people who contributed to this
-# project.
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2 of
-# the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307 USA
+# SPDX-License-Identifier:	GPL-2.0+
 #
 
-include $(TOPDIR)/config.mk
+obj-$(CONFIG_CMD_BOOTM) += bootm.o
+obj-y	+= cmd_boot.o
+obj-y	+= gcc.o
+obj-y	+= init_helpers.o
+obj-y	+= interrupts.o
+obj-$(CONFIG_SYS_PCAT_INTERRUPTS) += pcat_interrupts.o
+obj-$(CONFIG_SYS_PCAT_TIMER) += pcat_timer.o
+obj-$(CONFIG_PCI) += pci_type1.o
+obj-y	+= relocate.o
+obj-y += physmem.o
+obj-y	+= string.o
+obj-$(CONFIG_SYS_X86_TSC_TIMER)	+= tsc_timer.o
+obj-$(CONFIG_VIDEO_VGA)	+= video.o
+obj-$(CONFIG_CMD_ZBOOT)	+= zimage.o
 
-LIB	= $(obj)lib$(ARCH).o
+LIBGCC := $(notdir $(NORMAL_LIBGCC))
+extra-y := $(LIBGCC)
 
-COBJS-y	+= bootm.o
-COBJS-y	+= cmd_boot.o
-COBJS-y	+= gcc.o
-COBJS-y	+= init_helpers.o
-COBJS-y	+= interrupts.o
-COBJS-$(CONFIG_SYS_PCAT_INTERRUPTS) += pcat_interrupts.o
-COBJS-$(CONFIG_SYS_PCAT_TIMER) += pcat_timer.o
-COBJS-$(CONFIG_PCI) += pci_type1.o
-COBJS-y	+= relocate.o
-COBJS-y += physmem.o
-COBJS-y	+= string.o
-COBJS-$(CONFIG_SYS_X86_TSC_TIMER)	+= tsc_timer.o
-COBJS-$(CONFIG_VIDEO_VGA)	+= video.o
-COBJS-$(CONFIG_CMD_ZBOOT)	+= zimage.o
-
-SRCS	:= $(SOBJS-y:.o=.S) $(COBJS-y:.o=.c)
-OBJS	:= $(addprefix $(obj),$(SOBJS-y) $(COBJS-y))
-
-$(LIB):	$(obj).depend $(OBJS)
-	$(call cmd_link_o_target, $(OBJS))
-
-$(PREFIXED_LIBGCC): $(NORMAL_LIBGCC)
+$(obj)$(LIBGCC): $(NORMAL_LIBGCC)
 	$(OBJCOPY) $< $@ --prefix-symbols=__normal_
-
-$(LIB): $(PREFIXED_LIBGCC)
-
-#########################################################################
-
-# defines $(obj).depend target
-include $(SRCTREE)/rules.mk
-
-sinclude $(obj).depend
-
-#########################################################################

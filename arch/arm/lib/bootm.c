@@ -9,19 +9,7 @@
  *
  * Copyright (C) 2001  Erik Mouw (J.A.K.Mouw@its.tudelft.nl)
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307	 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -33,6 +21,10 @@
 #include <fdt_support.h>
 #include <asm/bootm.h>
 #include <linux/compiler.h>
+
+#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV7_VIRT)
+#include <asm/armv7.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -195,6 +187,27 @@ static void setup_end_tag(bd_t *bd)
 
 __weak void setup_board_tags(struct tag **in_params) {}
 
+static void do_nonsec_virt_switch(void)
+{
+#if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_ARMV7_VIRT)
+	if (armv7_switch_nonsec() == 0)
+#ifdef CONFIG_ARMV7_VIRT
+		if (armv7_switch_hyp() == 0)
+			debug("entered HYP mode\n");
+#else
+		debug("entered non-secure state\n");
+#endif
+#endif
+
+#ifdef CONFIG_ARM64
+	smp_kick_all_cpus();
+	armv8_switch_to_el2();
+#ifdef CONFIG_ARMV8_SWITCH_TO_EL1
+	armv8_switch_to_el1();
+#endif
+#endif
+}
+
 /* Subcommand: PREP */
 static void boot_prep_linux(bootm_headers_t *images)
 {
@@ -231,11 +244,27 @@ static void boot_prep_linux(bootm_headers_t *images)
 		printf("FDT and ATAGS support not compiled in - hanging\n");
 		hang();
 	}
+	do_nonsec_virt_switch();
 }
 
 /* Subcommand: GO */
 static void boot_jump_linux(bootm_headers_t *images, int flag)
 {
+#ifdef CONFIG_ARM64
+	void (*kernel_entry)(void *fdt_addr);
+	int fake = (flag & BOOTM_STATE_OS_FAKE_GO);
+
+	kernel_entry = (void (*)(void *fdt_addr))images->ep;
+
+	debug("## Transferring control to Linux (at address %lx)...\n",
+		(ulong) kernel_entry);
+	bootstage_mark(BOOTSTAGE_ID_RUN_OS);
+
+	announce_and_cleanup(fake);
+
+	if (!fake)
+		kernel_entry(images->ft_addr);
+#else
 	unsigned long machid = gd->bd->bi_arch_number;
 	char *s;
 	void (*kernel_entry)(int zero, int arch, uint params);
@@ -262,6 +291,7 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 
 	if (!fake)
 		kernel_entry(0, machid, r2);
+#endif
 }
 
 /* Main Entry point for arm bootm implementation
@@ -322,3 +352,26 @@ int bootz_setup(ulong image, ulong *start, ulong *end)
 }
 
 #endif	/* CONFIG_CMD_BOOTZ */
+
+#if defined(CONFIG_BOOTM_VXWORKS)
+void boot_prep_vxworks(bootm_headers_t *images)
+{
+#if defined(CONFIG_OF_LIBFDT)
+	int off;
+
+	if (images->ft_addr) {
+		off = fdt_path_offset(images->ft_addr, "/memory");
+		if (off < 0) {
+			if (arch_fixup_memory_node(images->ft_addr))
+				puts("## WARNING: fixup memory failed!\n");
+		}
+	}
+#endif
+	cleanup_before_linux();
+}
+void boot_jump_vxworks(bootm_headers_t *images)
+{
+	/* ARM VxWorks requires device tree physical address to be passed */
+	((void (*)(void *))images->ep)(images->ft_addr);
+}
+#endif

@@ -177,6 +177,7 @@
 #define CONFIG_BAUDRATE		57600
 #define CONFIG_LOADS_ECHO	1
 #define CONFIG_UART_CONSOLE	0
+#define CONFIG_BFIN_SERIAL
 
 /*
  * U-Boot environment variables. Use "printenv" to examine.
@@ -224,7 +225,7 @@
  * Soft I2C settings (BF561 does not have hard I2C)
  * PF12,13 on SPI connector 0.
  */
-#ifdef CONFIG_SOFT_I2C
+#ifdef CONFIG_SYS_I2C_SOFT
 # define CONFIG_CMD_I2C
 # define CONFIG_SOFT_I2C_GPIO_SCL	GPIO_PF12
 # define CONFIG_SOFT_I2C_GPIO_SDA	GPIO_PF13

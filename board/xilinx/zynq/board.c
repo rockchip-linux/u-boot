@@ -1,23 +1,7 @@
 /*
  * (C) Copyright 2012 Michal Simek <monstr@monstr.eu>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -28,6 +12,12 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+/* Bootmode setting values */
+#define ZYNQ_BM_MASK		0x0F
+#define ZYNQ_BM_NOR		0x02
+#define ZYNQ_BM_SD		0x05
+#define ZYNQ_BM_JTAG		0x0
+
 #ifdef CONFIG_FPGA
 Xilinx_desc fpga;
 
@@ -36,6 +26,7 @@ Xilinx_desc fpga010 = XILINX_XC7Z010_DESC(0x10);
 Xilinx_desc fpga020 = XILINX_XC7Z020_DESC(0x20);
 Xilinx_desc fpga030 = XILINX_XC7Z030_DESC(0x30);
 Xilinx_desc fpga045 = XILINX_XC7Z045_DESC(0x45);
+Xilinx_desc fpga100 = XILINX_XC7Z100_DESC(0x100);
 #endif
 
 int board_init(void)
@@ -58,6 +49,9 @@ int board_init(void)
 	case XILINX_ZYNQ_7045:
 		fpga = fpga045;
 		break;
+	case XILINX_ZYNQ_7100:
+		fpga = fpga100;
+		break;
 	}
 #endif
 
@@ -71,11 +65,47 @@ int board_init(void)
 	return 0;
 }
 
+int board_late_init(void)
+{
+	switch ((zynq_slcr_get_boot_mode()) & ZYNQ_BM_MASK) {
+	case ZYNQ_BM_NOR:
+		setenv("modeboot", "norboot");
+		break;
+	case ZYNQ_BM_SD:
+		setenv("modeboot", "sdboot");
+		break;
+	case ZYNQ_BM_JTAG:
+		setenv("modeboot", "jtagboot");
+		break;
+	default:
+		setenv("modeboot", "");
+		break;
+	}
+
+	return 0;
+}
 
 #ifdef CONFIG_CMD_NET
 int board_eth_init(bd_t *bis)
 {
 	u32 ret = 0;
+
+#ifdef CONFIG_XILINX_AXIEMAC
+	ret |= xilinx_axiemac_initialize(bis, XILINX_AXIEMAC_BASEADDR,
+						XILINX_AXIDMA_BASEADDR);
+#endif
+#ifdef CONFIG_XILINX_EMACLITE
+	u32 txpp = 0;
+	u32 rxpp = 0;
+# ifdef CONFIG_XILINX_EMACLITE_TX_PING_PONG
+	txpp = 1;
+# endif
+# ifdef CONFIG_XILINX_EMACLITE_RX_PING_PONG
+	rxpp = 1;
+# endif
+	ret |= xilinx_emaclite_initialize(bis, XILINX_EMACLITE_BASEADDR,
+			txpp, rxpp);
+#endif
 
 #if defined(CONFIG_ZYNQ_GEM)
 # if defined(CONFIG_ZYNQ_GEM0)
@@ -111,6 +141,8 @@ int board_mmc_init(bd_t *bd)
 int dram_init(void)
 {
 	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
+
+	zynq_ddrc_init();
 
 	return 0;
 }

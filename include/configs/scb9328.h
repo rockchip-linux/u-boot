@@ -1,21 +1,7 @@
 /*
  * Copyright (C) 2003 ETC s.r.o.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  * Written by Peter Figuli <peposh@etc.sk>, 2003.
  *
  * 2003/13/06 Initial MP10 Support copied from wepep250
@@ -83,7 +69,7 @@
 #define CONFIG_SYS_MEMTEST_START	0x08100000	      /* memtest test area   */
 #define CONFIG_SYS_MEMTEST_END		0x08F00000
 
-#define CONFIG_SYS_HZ			3686400	     /* incrementer freq: 3.6864 MHz */
+#define CONFIG_SYS_HZ			1000
 #define CONFIG_SYS_CPUSPEED		0x141	     /* core clock - register value  */
 
 #define CONFIG_BAUDRATE 115200
@@ -157,8 +143,8 @@
    now.*/
 #undef	CONFIG_SYS_FLASH_CFI
 
-#define CONFIG_SYS_FLASH_ERASE_TOUT	(2*CONFIG_SYS_HZ)    /* timeout for Erase operation */
-#define CONFIG_SYS_FLASH_WRITE_TOUT	(2*CONFIG_SYS_HZ)    /* timeout for Write operation */
+#define CONFIG_SYS_FLASH_ERASE_TOUT	240000    /* timeout for Erase operation */
+#define CONFIG_SYS_FLASH_WRITE_TOUT	240000    /* timeout for Write operation */
 
 #define CONFIG_SYS_FLASH_BASE		SCB9328_FLASH_BASE
 

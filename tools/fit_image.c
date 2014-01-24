@@ -11,22 +11,10 @@
  *
  * All rights reserved.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include "imagetool.h"
 #include "mkimage.h"
 #include <image.h>
 #include <u-boot/crc.h>
@@ -34,9 +22,9 @@
 static image_header_t header;
 
 static int fit_verify_header (unsigned char *ptr, int image_size,
-			struct mkimage_params *params)
+			struct image_tool_params *params)
 {
-	return fdt_check_header ((void *)ptr);
+	return fdt_check_header(ptr);
 }
 
 static int fit_check_image_types (uint8_t type)
@@ -47,7 +35,7 @@ static int fit_check_image_types (uint8_t type)
 		return EXIT_FAILURE;
 }
 
-int mmap_fdt(struct mkimage_params *params, const char *fname, void **blobp,
+int mmap_fdt(struct image_tool_params *params, const char *fname, void **blobp,
 		struct stat *sbuf)
 {
 	void *ptr;
@@ -101,7 +89,7 @@ int mmap_fdt(struct mkimage_params *params, const char *fname, void **blobp,
  * returns:
  *     only on success, otherwise calls exit (EXIT_FAILURE);
  */
-static int fit_handle_file (struct mkimage_params *params)
+static int fit_handle_file(struct image_tool_params *params)
 {
 	char tmpfile[MKIMAGE_MAX_TMPFILE_LEN];
 	char cmd[MKIMAGE_MAX_DTC_CMDLINE_LEN];
@@ -197,7 +185,7 @@ err_system:
 	return -1;
 }
 
-static int fit_check_params (struct mkimage_params *params)
+static int fit_check_params(struct image_tool_params *params)
 {
 	return	((params->dflag && (params->fflag || params->lflag)) ||
 		(params->fflag && (params->dflag || params->lflag)) ||
@@ -218,5 +206,5 @@ static struct image_type_params fitimage_params = {
 
 void init_fit_image_type (void)
 {
-	mkimage_register (&fitimage_params);
+	register_image_type(&fitimage_params);
 }

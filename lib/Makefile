@@ -2,105 +2,77 @@
 # (C) Copyright 2000-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 #
-# See file CREDITS for list of people who contributed to this
-# project.
+# SPDX-License-Identifier:	GPL-2.0+
 #
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2 of
-# the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307 USA
-#
-
-include $(TOPDIR)/config.mk
-
-LIB	= $(obj)libgeneric.o
 
 ifndef CONFIG_SPL_BUILD
-COBJS-$(CONFIG_AES) += aes.o
-COBJS-$(CONFIG_BZIP2) += bzlib.o
-COBJS-$(CONFIG_BZIP2) += bzlib_crctable.o
-COBJS-$(CONFIG_BZIP2) += bzlib_decompress.o
-COBJS-$(CONFIG_BZIP2) += bzlib_randtable.o
-COBJS-$(CONFIG_BZIP2) += bzlib_huffman.o
-COBJS-$(CONFIG_USB_TTY) += circbuf.o
+
+obj-$(CONFIG_RSA) += rsa/
+obj-$(CONFIG_LZMA) += lzma/
+obj-$(CONFIG_LZO) += lzo/
+obj-$(CONFIG_ZLIB) += zlib/
+obj-$(CONFIG_TIZEN) += tizen/
+
+obj-$(CONFIG_AES) += aes.o
+obj-$(CONFIG_BZIP2) += bzlib.o
+obj-$(CONFIG_BZIP2) += bzlib_crctable.o
+obj-$(CONFIG_BZIP2) += bzlib_decompress.o
+obj-$(CONFIG_BZIP2) += bzlib_randtable.o
+obj-$(CONFIG_BZIP2) += bzlib_huffman.o
+obj-$(CONFIG_USB_TTY) += circbuf.o
 ifndef CONFIG_ROCKCHIP
-COBJS-y += crc7.o
-COBJS-y += crc16.o
+obj-y += crc7.o
+obj-y += crc8.o
+obj-y += crc16.o
 endif
-COBJS-$(CONFIG_OF_CONTROL) += fdtdec.o
-COBJS-$(CONFIG_TEST_FDTDEC) += fdtdec_test.o
-COBJS-$(CONFIG_GZIP) += gunzip.o
-COBJS-$(CONFIG_GZIP_COMPRESSED) += gzip.o
+obj-$(CONFIG_OF_CONTROL) += fdtdec.o
+obj-$(CONFIG_TEST_FDTDEC) += fdtdec_test.o
+obj-$(CONFIG_GZIP) += gunzip.o
+obj-$(CONFIG_GZIP_COMPRESSED) += gzip.o
 ifndef CONFIG_ROCKCHIP
-COBJS-y += initcall.o
+obj-y += initcall.o
 endif
-COBJS-$(CONFIG_LMB) += lmb.o
-COBJS-y += ldiv.o
-COBJS-$(CONFIG_MD5) += md5.o
+obj-$(CONFIG_LMB) += lmb.o
+obj-y += ldiv.o
+obj-$(CONFIG_MD5) += md5.o
 ifndef CONFIG_ROCKCHIP
-COBJS-y += net_utils.o
+obj-y += net_utils.o
 endif
-COBJS-$(CONFIG_PHYSMEM) += physmem.o
-COBJS-y += qsort.o
-COBJS-$(CONFIG_SHA1) += sha1.o
-COBJS-$(CONFIG_SHA256) += sha256.o
+obj-$(CONFIG_PHYSMEM) += physmem.o
+obj-y += qsort.o
+obj-$(CONFIG_SHA1) += sha1.o
+obj-$(CONFIG_SHA256) += sha256.o
 ifndef CONFIG_ROCKCHIP
-COBJS-y	+= strmhz.o
+obj-y	+= strmhz.o
 endif
-COBJS-$(CONFIG_TPM) += tpm.o
-COBJS-$(CONFIG_RBTREE)	+= rbtree.o
-COBJS-$(CONFIG_BITREVERSE) += bitrev.o
+obj-$(CONFIG_TPM) += tpm.o
+obj-$(CONFIG_RBTREE)	+= rbtree.o
+obj-$(CONFIG_BITREVERSE) += bitrev.o
 endif
 
 ifdef CONFIG_SPL_BUILD
-COBJS-$(CONFIG_SPL_YMODEM_SUPPORT) += crc16.o
-COBJS-$(CONFIG_SPL_NET_SUPPORT) += net_utils.o
+obj-$(CONFIG_SPL_YMODEM_SUPPORT) += crc16.o
+obj-$(CONFIG_SPL_NET_SUPPORT) += net_utils.o
 endif
-COBJS-$(CONFIG_ADDR_MAP) += addr_map.o
-COBJS-y += hashtable.o
-COBJS-y += errno.o
-COBJS-y += display_options.o
-COBJS-$(CONFIG_BCH) += bch.o
-COBJS-y += crc32.o
-COBJS-y += ctype.o
-COBJS-y += div64.o
-COBJS-y += hang.o
-COBJS-y += linux_string.o
-COBJS-$(CONFIG_REGEX) += slre.o
-COBJS-y += string.o
-COBJS-y += time.o
-COBJS-$(CONFIG_TRACE) += trace.o
-COBJS-$(CONFIG_BOOTP_PXE) += uuid.o
-COBJS-y += vsprintf.o
-COBJS-$(CONFIG_RANDOM_MACADDR) += rand.o
-COBJS-$(CONFIG_BOOTP_RANDOM_DELAY) += rand.o
-COBJS-$(CONFIG_CMD_LINK_LOCAL) += rand.o
-
-COBJS	:= $(sort $(COBJS-y))
-SRCS	:= $(COBJS:.o=.c)
-OBJS	:= $(addprefix $(obj),$(COBJS))
-
-$(LIB):	$(obj).depend $(OBJS)
-	$(call cmd_link_o_target, $(OBJS))
+obj-$(CONFIG_ADDR_MAP) += addr_map.o
+obj-y += hashtable.o
+obj-y += errno.o
+obj-y += display_options.o
+obj-$(CONFIG_BCH) += bch.o
+obj-y += crc32.o
+obj-y += ctype.o
+obj-y += div64.o
+obj-y += hang.o
+obj-y += linux_string.o
+obj-$(CONFIG_REGEX) += slre.o
+obj-y += string.o
+obj-y += time.o
+obj-$(CONFIG_TRACE) += trace.o
+obj-$(CONFIG_BOOTP_PXE) += uuid.o
+obj-y += vsprintf.o
+obj-$(CONFIG_RANDOM_MACADDR) += rand.o
+obj-$(CONFIG_BOOTP_RANDOM_DELAY) += rand.o
+obj-$(CONFIG_CMD_LINK_LOCAL) += rand.o
 
 # SEE README.arm-unaligned-accesses
 $(obj)bzlib.o: CFLAGS += $(PLATFORM_NO_UNALIGNED)
-
-#########################################################################
-
-# defines $(obj).depend target
-include $(SRCTREE)/rules.mk
-
-sinclude $(obj).depend
-
-#########################################################################

@@ -14,20 +14,7 @@
  * (C) Copyright 2003 - 2004
  * Sysgo AG, <www.elinos.com>, Pavel Bartusek <pba@sysgo.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 /*
@@ -42,7 +29,7 @@
 #include <ext_common.h>
 #include "ext4_common.h"
 
-unsigned long part_offset;
+lbaint_t part_offset;
 
 static block_dev_desc_t *ext4fs_block_dev_desc;
 static disk_partition_t *part_info;
@@ -54,11 +41,11 @@ void ext4fs_set_blk_dev(block_dev_desc_t *rbdd, disk_partition_t *info)
 	get_fs()->dev_desc = rbdd;
 	part_info = info;
 	part_offset = info->start;
-	get_fs()->total_sect = (info->size * info->blksz) >>
+	get_fs()->total_sect = ((uint64_t)info->size * info->blksz) >>
 		get_fs()->dev_desc->log2blksz;
 }
 
-int ext4fs_devread(int sector, int byte_offset, int byte_len, char *buf)
+int ext4fs_devread(lbaint_t sector, int byte_offset, int byte_len, char *buf)
 {
 	unsigned block_len;
 	int log2blksz = ext4fs_block_dev_desc->log2blksz;
@@ -74,7 +61,8 @@ int ext4fs_devread(int sector, int byte_offset, int byte_len, char *buf)
 	if ((sector < 0) ||
 	    ((sector + ((byte_offset + byte_len - 1) >> log2blksz))
 	     >= part_info->size)) {
-		printf("%s read outside partition %d\n", __func__, sector);
+		printf("%s read outside partition " LBAFU "\n", __func__,
+		       sector);
 		return 0;
 	}
 
@@ -82,7 +70,7 @@ int ext4fs_devread(int sector, int byte_offset, int byte_len, char *buf)
 	sector += byte_offset >> log2blksz;
 	byte_offset &= ext4fs_block_dev_desc->blksz - 1;
 
-	debug(" <%d, %d, %d>\n", sector, byte_offset, byte_len);
+	debug(" <" LBAFU ", %d, %d>\n", sector, byte_offset, byte_len);
 
 	if (byte_offset != 0) {
 		/* read first part which isn't aligned with start of sector */

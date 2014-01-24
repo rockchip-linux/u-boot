@@ -9,23 +9,7 @@
  *
  * Configuation settings for the esd OTC570 board.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -55,7 +39,6 @@
 /* ARM asynchronous clock */
 #define CONFIG_SYS_AT91_SLOW_CLOCK	32768	/* 32.768 kHz crystal */
 #define CONFIG_SYS_AT91_MAIN_CLOCK	16000000/* 16.0 MHz crystal */
-#define CONFIG_SYS_HZ			1000	/* decrementer freq */
 
 /* Misc CPU related */
 #define CONFIG_SKIP_LOWLEVEL_INIT
@@ -115,14 +98,13 @@
 /* RTC and I2C stuff */
 #define CONFIG_RTC_DS1338
 #define CONFIG_SYS_I2C_RTC_ADDR		0x68
-#undef CONFIG_HARD_I2C
-#define CONFIG_SOFT_I2C
-#define CONFIG_SYS_I2C_SPEED		100000
-#define CONFIG_SYS_I2C_SLAVE		0x7F
 
-#ifdef CONFIG_SOFT_I2C
-# define CONFIG_I2C_CMD_TREE
-# define CONFIG_I2C_MULTI_BUS
+#define CONFIG_SYS_I2C
+#define	CONFIG_SYS_I2C_SOFT	/* I2C bit-banged	*/
+#ifdef CONFIG_SYS_I2C_SOFT
+#define CONFIG_SYS_I2C_SOFT_SPEED	100000
+#define CONFIG_SYS_I2C_SOFT_SLAVE	0x7F
+
 /* Configure data and clock pins for pio */
 # define I2C_INIT { \
 	at91_set_pio_output(AT91_PIO_PORTB, 4, 0); \
@@ -140,7 +122,7 @@
 /* Set clock pin */
 # define I2C_SCL(bit)		at91_set_pio_value(AT91_PIO_PORTB, 5, bit)
 # define I2C_DELAY		udelay(2) /* 1/4 I2C clock duration */
-#endif /* CONFIG_SOFT_I2C */
+#endif /* CONFIG_SYS_I2C_SOFT */
 
 /*
  * BOOTP options
@@ -211,8 +193,8 @@
 # define CONFIG_SYS_NAND_DBW_8
 # define CONFIG_SYS_NAND_MASK_ALE		(1 << 21)
 # define CONFIG_SYS_NAND_MASK_CLE		(1 << 22)
-# define CONFIG_SYS_NAND_ENABLE_PIN		AT91_PIO_PORTD, 15
-# define CONFIG_SYS_NAND_READY_PIN		AT91_PIO_PORTA, 22
+# define CONFIG_SYS_NAND_ENABLE_PIN		GPIO_PIN_PD(15)
+# define CONFIG_SYS_NAND_READY_PIN		GPIO_PIN_PA(22)
 #endif
 
 /* Ethernet */
@@ -224,6 +206,7 @@
 
 /* USB */
 #define CONFIG_USB_ATMEL
+#define CONFIG_USB_ATMEL_CLK_SEL_PLLB
 #define CONFIG_USB_OHCI_NEW
 #define CONFIG_DOS_PARTITION
 #define CONFIG_SYS_USB_OHCI_CPU_INIT
@@ -259,7 +242,6 @@
 
 #endif
 
-#define CONFIG_SYS_PROMPT		"=> "
 #define CONFIG_SYS_CBSIZE		512
 #define CONFIG_SYS_MAXARGS		16
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \

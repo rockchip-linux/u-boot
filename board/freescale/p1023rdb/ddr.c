@@ -1,31 +1,15 @@
 /*
  * Copyright 2013 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
 #include <asm/mmu.h>
 #include <asm/immap_85xx.h>
 #include <asm/processor.h>
-#include <asm/fsl_ddr_sdram.h>
-#include <asm/fsl_ddr_dimm_params.h>
+#include <fsl_ddr_sdram.h>
+#include <fsl_ddr_dimm_params.h>
 #include <asm/io.h>
 #include <asm/fsl_law.h>
 
@@ -49,20 +33,20 @@ dimm_params_t ddr_raw_timing = {
 	.edc_config = 0,
 	.burst_lengths_bitmask = 0x0c,
 
-	.tCKmin_X_ps = 1875,
-	.caslat_X = 0x1e << 4,	/* 5,6,7,8 */
-	.tAA_ps = 13125,
-	.tWR_ps = 18000,
-	.tRCD_ps = 13125,
-	.tRRD_ps = 7500,
-	.tRP_ps = 13125,
-	.tRAS_ps = 37500,
-	.tRC_ps = 50625,
-	.tRFC_ps = 160000,
-	.tWTR_ps = 7500,
-	.tRTP_ps = 7500,
+	.tckmin_x_ps = 1875,
+	.caslat_x = 0x1e << 4,	/* 5,6,7,8 */
+	.taa_ps = 13125,
+	.twr_ps = 18000,
+	.trcd_ps = 13125,
+	.trrd_ps = 7500,
+	.trp_ps = 13125,
+	.tras_ps = 37500,
+	.trc_ps = 50625,
+	.trfc_ps = 160000,
+	.twtr_ps = 7500,
+	.trtp_ps = 7500,
 	.refresh_rate_ps = 7800000,
-	.tFAW_ps = 37500,
+	.tfaw_ps = 37500,
 };
 
 int fsl_ddr_get_dimm_params(dimm_params_t *pdimm,
@@ -102,4 +86,3 @@ void fsl_ddr_board_options(memctl_options_t *popts,
 		popts->cs_local_opts[i].odt_wr_cfg = FSL_DDR_ODT_CS;
 	}
 }
-

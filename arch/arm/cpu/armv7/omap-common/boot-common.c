@@ -5,15 +5,7 @@
  *
  * Copyright (C) 2011, Texas Instruments, Incorporated - http://www.ti.com/
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR /PURPOSE.  See the
- * GNU General Public License for more details.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -22,6 +14,7 @@
 #include <asm/arch/omap.h>
 #include <asm/arch/mmc_host_def.h>
 #include <asm/arch/sys_proto.h>
+#include <watchdog.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -48,7 +41,8 @@ void save_omap_boot_params(void)
 
 	if ((boot_device >= MMC_BOOT_DEVICES_START) &&
 	    (boot_device <= MMC_BOOT_DEVICES_END)) {
-#if !defined(CONFIG_AM33XX) && !defined(CONFIG_TI81XX)
+#if !defined(CONFIG_AM33XX) && !defined(CONFIG_TI81XX) && \
+	!defined(CONFIG_AM43XX)
 		if ((omap_hw_init_context() ==
 				      OMAP_INIT_CONTEXT_UBOOT_AFTER_SPL)) {
 			gd->arch.omap_boot_params.omap_bootmode =
@@ -82,6 +76,12 @@ void spl_board_init(void)
 #endif
 #if defined(CONFIG_AM33XX) && defined(CONFIG_SPL_MUSB_NEW_SUPPORT)
 	arch_misc_init();
+#endif
+#if defined(CONFIG_HW_WATCHDOG)
+	hw_watchdog_init();
+#endif
+#ifdef CONFIG_AM33XX
+	am33xx_spl_board_init();
 #endif
 }
 

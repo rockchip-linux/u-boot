@@ -5,23 +5,7 @@
  *	Aneesh V <aneesh@ti.com>
  *	Sricharan R <r.sricharan@ti.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #ifndef _CLOCKS_OMAP5_H_
 #define _CLOCKS_OMAP5_H_
@@ -153,6 +137,9 @@
 #define HSMMC_CLKCTRL_CLKSEL_MASK		(1 << 24)
 #define HSMMC_CLKCTRL_CLKSEL_DIV_MASK		(1 << 25)
 
+/* CM_L3INIT_SATA_CLKCTRL */
+#define SATA_CLKCTRL_OPTFCLKEN_MASK		(1 << 8)
+
 /* CM_WKUP_GPTIMER1_CLKCTRL */
 #define GPTIMER1_CLKCTRL_CLKSEL_MASK		(1 << 24)
 
@@ -164,6 +151,33 @@
 
 /* CM_L3INIT_USBPHY_CLKCTRL */
 #define USBPHY_CLKCTRL_OPTFCLKEN_PHY_48M_MASK	8
+
+/* CM_L3INIT_USB_HOST_HS_CLKCTRL */
+#define OPTFCLKEN_FUNC48M_CLK			(1 << 15)
+#define OPTFCLKEN_HSIC480M_P2_CLK		(1 << 14)
+#define OPTFCLKEN_HSIC480M_P1_CLK		(1 << 13)
+#define OPTFCLKEN_HSIC60M_P2_CLK		(1 << 12)
+#define OPTFCLKEN_HSIC60M_P1_CLK		(1 << 11)
+#define OPTFCLKEN_UTMI_P3_CLK			(1 << 10)
+#define OPTFCLKEN_UTMI_P2_CLK			(1 << 9)
+#define OPTFCLKEN_UTMI_P1_CLK			(1 << 8)
+#define OPTFCLKEN_HSIC480M_P3_CLK		(1 << 7)
+#define OPTFCLKEN_HSIC60M_P3_CLK		(1 << 6)
+
+/* CM_L3INIT_USB_TLL_HS_CLKCTRL */
+#define OPTFCLKEN_USB_CH0_CLK_ENABLE	(1 << 8)
+#define OPTFCLKEN_USB_CH1_CLK_ENABLE	(1 << 9)
+#define OPTFCLKEN_USB_CH2_CLK_ENABLE	(1 << 10)
+
+/* CM_COREAON_USB_PHY_CORE_CLKCTRL */
+#define USBPHY_CORE_CLKCTRL_OPTFCLKEN_CLK32K	(1 << 8)
+
+/* CM_L3INIT_USB_OTG_SS_CLKCTRL */
+#define OTG_SS_CLKCTRL_MODULEMODE_HW	(1 << 0)
+#define OPTFCLKEN_REFCLK960M			(1 << 8)
+
+/* CM_L3INIT_OCP2SCP1_CLKCTRL */
+#define OCP2SCP1_CLKCTRL_MODULEMODE_HW	(1 << 0)
 
 /* CM_MPU_MPU_CLKCTRL */
 #define MPU_CLKCTRL_CLKSEL_EMIF_DIV_MODE_SHIFT	24
@@ -190,6 +204,10 @@
 
 /* PRM_VC_VAL_BYPASS */
 #define PRM_VC_I2C_CHANNEL_FREQ_KHZ	400
+
+/* CTRL_CORE_SRCOMP_NORTH_SIDE */
+#define USB2PHY_DISCHGDET	(1 << 29)
+#define USB2PHY_AUTORESUME_EN (1 << 30)
 
 /* SMPS */
 #define SMPS_I2C_SLAVE_ADDR	0x12

@@ -2,24 +2,7 @@
  * (C) Copyright 2006
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -29,8 +12,8 @@
 #include <i2c.h>
 #include <spi.h>
 #include <miiphy.h>
-#ifdef CONFIG_FSL_DDR2
-#include <asm/fsl_ddr_sdram.h>
+#ifdef CONFIG_SYS_FSL_DDR2
+#include <fsl_ddr_sdram.h>
 #else
 #include <spd_sdram.h>
 #endif
@@ -74,7 +57,7 @@ phys_size_t initdram (int board_type)
 	/* DDR SDRAM - Main SODIMM */
 	im->sysconf.ddrlaw[0].bar = CONFIG_SYS_DDR_BASE & LAWBAR_BAR;
 #if defined(CONFIG_SPD_EEPROM)
-#ifndef CONFIG_FSL_DDR2
+#ifndef CONFIG_SYS_FSL_DDR2
 	msize = spd_sdram() * 1024 * 1024;
 #if defined(CONFIG_DDR_ECC) && !defined(CONFIG_ECC_INIT_VIA_DDRCONTROLLER)
 	ddr_enable_ecc(msize);

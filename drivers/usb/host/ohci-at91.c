@@ -2,23 +2,7 @@
  * (C) Copyright 2006
  * DENX Software Engineering <mk@denx.de>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -34,15 +18,15 @@ int usb_cpu_init(void)
 {
 	at91_pmc_t *pmc	= (at91_pmc_t *)ATMEL_BASE_PMC;
 
-#if defined(CONFIG_AT91CAP9) || defined(CONFIG_AT91SAM9260) || \
-    defined(CONFIG_AT91SAM9263) || defined(CONFIG_AT91SAM9G20) || \
-    defined(CONFIG_AT91SAM9261)
+#ifdef CONFIG_USB_ATMEL_CLK_SEL_PLLB
 	/* Enable PLLB */
 	writel(get_pllb_init(), &pmc->pllbr);
 	while ((readl(&pmc->sr) & AT91_PMC_LOCKB) != AT91_PMC_LOCKB)
 		;
-#elif defined(CONFIG_AT91SAM9G45) || defined(CONFIG_AT91SAM9M10G45) || \
-	defined(CONFIG_AT91SAM9X5) || defined(CONFIG_SAMA5D3)
+#ifdef CONFIG_AT91SAM9N12
+	writel(AT91_PMC_USBS_USB_PLLB | AT91_PMC_USB_DIV_2, &pmc->usb);
+#endif
+#elif defined(CONFIG_USB_ATMEL_CLK_SEL_UPLL)
 	/* Enable UPLL */
 	writel(readl(&pmc->uckr) | AT91_PMC_UPLLEN | AT91_PMC_BIASEN,
 		&pmc->uckr);
@@ -86,14 +70,15 @@ int usb_cpu_stop(void)
 	writel(ATMEL_PMC_UHP, &pmc->scdr);
 #endif
 
-#if defined(CONFIG_AT91CAP9) || defined(CONFIG_AT91SAM9260) || \
-    defined(CONFIG_AT91SAM9263) || defined(CONFIG_AT91SAM9G20)
+#ifdef CONFIG_USB_ATMEL_CLK_SEL_PLLB
+#ifdef CONFIG_AT91SAM9N12
+	writel(0, &pmc->usb);
+#endif
 	/* Disable PLLB */
 	writel(0, &pmc->pllbr);
 	while ((readl(&pmc->sr) & AT91_PMC_LOCKB) != 0)
 		;
-#elif defined(CONFIG_AT91SAM9G45) || defined(CONFIG_AT91SAM9M10G45) || \
-	defined(CONFIG_AT91SAM9X5) || defined(CONFIG_SAMA5D3)
+#elif defined(CONFIG_USB_ATMEL_CLK_SEL_UPLL)
 	/* Disable UPLL */
 	writel(readl(&pmc->uckr) & (~AT91_PMC_UPLLEN), &pmc->uckr);
 	while ((readl(&pmc->sr) & AT91_PMC_LOCKU) == AT91_PMC_LOCKU)

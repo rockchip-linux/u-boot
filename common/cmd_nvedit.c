@@ -7,23 +7,7 @@
  *
  * Copyright 2011 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 /*
@@ -175,10 +159,8 @@ static int do_env_grep(cmd_tbl_t *cmdtp, int flag,
 	grep_how  = H_MATCH_SUBSTR;	/* default: substring search	*/
 	grep_what = H_MATCH_BOTH;	/* default: grep names and values */
 
-	while (argc > 1 && **(argv + 1) == '-') {
-		char *arg = *++argv;
-
-		--argc;
+	while (--argc > 0 && **++argv == '-') {
+		char *arg = *argv;
 		while (*++arg) {
 			switch (*arg) {
 #ifdef CONFIG_REGEX
@@ -1078,6 +1060,23 @@ sep_err:
 }
 #endif
 
+#if defined(CONFIG_CMD_ENV_EXISTS)
+static int do_env_exists(cmd_tbl_t *cmdtp, int flag, int argc,
+		       char * const argv[])
+{
+	ENTRY e, *ep;
+
+	if (argc < 2)
+		return CMD_RET_USAGE;
+
+	e.key = argv[1];
+	e.data = NULL;
+	hsearch_r(e, FIND, &ep, &env_htab, 0);
+
+	return (ep == NULL) ? 1 : 0;
+}
+#endif
+
 /*
  * New command line interface: "env" command with subcommands
  */
@@ -1115,6 +1114,9 @@ static cmd_tbl_t cmd_env_sub[] = {
 	U_BOOT_CMD_MKENT(save, 1, 0, do_env_save, "", ""),
 #endif
 	U_BOOT_CMD_MKENT(set, CONFIG_SYS_MAXARGS, 0, do_env_set, "", ""),
+#if defined(CONFIG_CMD_ENV_EXISTS)
+	U_BOOT_CMD_MKENT(exists, 2, 0, do_env_exists, "", ""),
+#endif
 };
 
 #if defined(CONFIG_NEEDS_MANUAL_RELOC)
@@ -1156,6 +1158,9 @@ static char env_help_text[] =
 	"env delete [-f] var [...] - [forcibly] delete variable(s)\n"
 #if defined(CONFIG_CMD_EDITENV)
 	"env edit name - edit environment variable\n"
+#endif
+#if defined(CONFIG_CMD_ENV_EXISTS)
+	"env exists name - tests for existence of variable\n"
 #endif
 #if defined(CONFIG_CMD_EXPORTENV)
 	"env export [-t | -b | -c] [-s size] addr [var ...] - export environment\n"

@@ -2,23 +2,7 @@
  * (C) Copyright 2000
  * Rob Taylor. Flying Pig Systems. robt@flyingpig.com.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -68,7 +52,7 @@ cpu_init_f (void)
     CONFIG_WRITE_HALFWORD(PCICR, 0x06); /* Bus Master, respond to PCI memory space acesses*/
 /*    CONFIG_WRITE_HALFWORD(PCISR, 0xffff); */ /*reset PCISR*/
 
-#if defined(CONFIG_MUSENKI) || defined(CONFIG_PN62)
+#if defined(CONFIG_MUSENKI)
 /* Why is this here, you ask?  Try, just try setting 0x8000
  * in PCIACR with CONFIG_WRITE_HALFWORD()
  * this one was a stumper, and we are annoyed
@@ -158,9 +142,7 @@ cpu_init_f (void)
 
 	CONFIG_READ_WORD(PICR2, val);
 	val= val & ~ (PICR2_CF_SNOOP_WS_MASK | PICR2_CF_APHASE_WS_MASK); /*mask off waitstate bits*/
-#ifndef CONFIG_PN62
 	val |= PICR2_CF_SNOOP_WS_1WS | PICR2_CF_APHASE_WS_1WS; /*1 wait state*/
-#endif
 	CONFIG_WRITE_WORD(PICR2, val);
 
 	CONFIG_WRITE_WORD(EUMBBAR, CONFIG_SYS_EUMB_ADDR);
@@ -202,7 +184,7 @@ cpu_init_f (void)
  *  should define CONFIG_SYS_ACTORW to 0 if they don't want to set it, or even, if
  *  its not set, we define it to zero in this file
  */
-#if defined(CONFIG_CU824) || defined(CONFIG_PN62)
+#if defined(CONFIG_CU824)
 	CONFIG_WRITE_WORD(MCCR4,
 	(CONFIG_SYS_PRETOACT << MCCR4_PRETOACT_SHIFT) |
 	(CONFIG_SYS_ACTTOPRE << MCCR4_ACTTOPRE_SHIFT) |

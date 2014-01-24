@@ -39,7 +39,7 @@ typedef struct ddr1_spd_eeprom_s {
 	unsigned char dev_attr;    /* 22 SDRAM Device Attributes */
 	unsigned char clk_cycle2;  /* 23 Min SDRAM Cycle time @ CL=X-0.5 */
 	unsigned char clk_access2; /* 24 SDRAM Access from
-				         Clk @ CL=X-0.5 (tAC) */
+					 Clk @ CL=X-0.5 (tAC) */
 	unsigned char clk_cycle3;  /* 25 Min SDRAM Cycle time @ CL=X-1 */
 	unsigned char clk_access3; /* 26 Max Access from Clk @ CL=X-1 (tAC) */
 	unsigned char trp;         /* 27 Min Row Precharge Time (tRP)*/
@@ -112,9 +112,9 @@ typedef struct ddr2_spd_eeprom_s {
 	unsigned char ca_setup;    /* 32 Addr+Cmd Setup Time Before Clk (tIS) */
 	unsigned char ca_hold;     /* 33 Addr+Cmd Hold Time After Clk (tIH) */
 	unsigned char data_setup;  /* 34 Data Input Setup Time
-				         Before Strobe (tDS) */
+					 Before Strobe (tDS) */
 	unsigned char data_hold;   /* 35 Data Input Hold Time
-				         After Strobe (tDH) */
+					 After Strobe (tDH) */
 	unsigned char twr;         /* 36 Write Recovery time tWR */
 	unsigned char twtr;        /* 37 Int write to read delay tWTR */
 	unsigned char trtp;        /* 38 Int read to precharge delay tRTP */
@@ -126,42 +126,42 @@ typedef struct ddr2_spd_eeprom_s {
 	unsigned char tdqsq;       /* 44 Max DQS to DQ skew (tDQSQ max) */
 	unsigned char tqhs;        /* 45 Max Read DataHold skew (tQHS) */
 	unsigned char pll_relock;  /* 46 PLL Relock time */
-	unsigned char Tcasemax;    /* 47 Tcasemax */
-	unsigned char psiTAdram;   /* 48 Thermal Resistance of DRAM Package from
-				         Top (Case) to Ambient (Psi T-A DRAM) */
+	unsigned char t_casemax;    /* 47 Tcasemax */
+	unsigned char psi_ta_dram;  /* 48 Thermal Resistance of DRAM Package from
+					 Top (Case) to Ambient (Psi T-A DRAM) */
 	unsigned char dt0_mode;    /* 49 DRAM Case Temperature Rise from Ambient
-				         due to Activate-Precharge/Mode Bits
+					 due to Activate-Precharge/Mode Bits
 					 (DT0/Mode Bits) */
 	unsigned char dt2n_dt2q;   /* 50 DRAM Case Temperature Rise from Ambient
-				         due to Precharge/Quiet Standby
+					 due to Precharge/Quiet Standby
 					 (DT2N/DT2Q) */
 	unsigned char dt2p;        /* 51 DRAM Case Temperature Rise from Ambient
-				         due to Precharge Power-Down (DT2P) */
+					 due to Precharge Power-Down (DT2P) */
 	unsigned char dt3n;        /* 52 DRAM Case Temperature Rise from Ambient
-				         due to Active Standby (DT3N) */
+					 due to Active Standby (DT3N) */
 	unsigned char dt3pfast;    /* 53 DRAM Case Temperature Rise from Ambient
-				         due to Active Power-Down with
+					 due to Active Power-Down with
 					 Fast PDN Exit (DT3Pfast) */
 	unsigned char dt3pslow;    /* 54 DRAM Case Temperature Rise from Ambient
-				         due to Active Power-Down with Slow
+					 due to Active Power-Down with Slow
 					 PDN Exit (DT3Pslow) */
 	unsigned char dt4r_dt4r4w; /* 55 DRAM Case Temperature Rise from Ambient
-				         due to Page Open Burst Read/DT4R4W
+					 due to Page Open Burst Read/DT4R4W
 					 Mode Bit (DT4R/DT4R4W Mode Bit) */
 	unsigned char dt5b;        /* 56 DRAM Case Temperature Rise from Ambient
-				         due to Burst Refresh (DT5B) */
+					 due to Burst Refresh (DT5B) */
 	unsigned char dt7;         /* 57 DRAM Case Temperature Rise from Ambient
-				         due to Bank Interleave Reads with
+					 due to Bank Interleave Reads with
 					 Auto-Precharge (DT7) */
-	unsigned char psiTApll;    /* 58 Thermal Resistance of PLL Package form
-				         Top (Case) to Ambient (Psi T-A PLL) */
-	unsigned char psiTAreg;    /* 59 Thermal Reisitance of Register Package
-				         from Top (Case) to Ambient
+	unsigned char psi_ta_pll;  /* 58 Thermal Resistance of PLL Package form
+					 Top (Case) to Ambient (Psi T-A PLL) */
+	unsigned char psi_ta_reg;    /* 59 Thermal Reisitance of Register Package
+					 from Top (Case) to Ambient
 					 (Psi T-A Register) */
 	unsigned char dtpllactive; /* 60 PLL Case Temperature Rise from Ambient
-				         due to PLL Active (DT PLL Active) */
+					 due to PLL Active (DT PLL Active) */
 	unsigned char dtregact;    /* 61 Register Case Temperature Rise from
-				         Ambient due to Register Active/Mode Bit
+					 Ambient due to Register Active/Mode Bit
 					 (DT Register Active/Mode Bit) */
 	unsigned char spd_rev;     /* 62 SPD Data Revision Code */
 	unsigned char cksum;       /* 63 Checksum for bytes 0-62 */
@@ -191,41 +191,41 @@ typedef struct ddr3_spd_eeprom_s {
 					     Dividend / Divisor */
 	unsigned char mtb_dividend;    /* 10 Medium Timebase (MTB) Dividend */
 	unsigned char mtb_divisor;     /* 11 Medium Timebase (MTB) Divisor */
-	unsigned char tCK_min;         /* 12 SDRAM Minimum Cycle Time */
+	unsigned char tck_min;         /* 12 SDRAM Minimum Cycle Time */
 	unsigned char res_13;          /* 13 Reserved */
 	unsigned char caslat_lsb;      /* 14 CAS Latencies Supported,
 					     Least Significant Byte */
 	unsigned char caslat_msb;      /* 15 CAS Latencies Supported,
 					     Most Significant Byte */
-	unsigned char tAA_min;         /* 16 Min CAS Latency Time */
-	unsigned char tWR_min;         /* 17 Min Write REcovery Time */
-	unsigned char tRCD_min;        /* 18 Min RAS# to CAS# Delay Time */
-	unsigned char tRRD_min;        /* 19 Min Row Active to
+	unsigned char taa_min;         /* 16 Min CAS Latency Time */
+	unsigned char twr_min;         /* 17 Min Write REcovery Time */
+	unsigned char trcd_min;        /* 18 Min RAS# to CAS# Delay Time */
+	unsigned char trrd_min;        /* 19 Min Row Active to
 					     Row Active Delay Time */
-	unsigned char tRP_min;         /* 20 Min Row Precharge Delay Time */
-	unsigned char tRAS_tRC_ext;    /* 21 Upper Nibbles for tRAS and tRC */
-	unsigned char tRAS_min_lsb;    /* 22 Min Active to Precharge
+	unsigned char trp_min;         /* 20 Min Row Precharge Delay Time */
+	unsigned char tras_trc_ext;    /* 21 Upper Nibbles for tRAS and tRC */
+	unsigned char tras_min_lsb;    /* 22 Min Active to Precharge
 					     Delay Time */
-	unsigned char tRC_min_lsb;     /* 23 Min Active to Active/Refresh
+	unsigned char trc_min_lsb;     /* 23 Min Active to Active/Refresh
 					     Delay Time, LSB */
-	unsigned char tRFC_min_lsb;    /* 24 Min Refresh Recovery Delay Time */
-	unsigned char tRFC_min_msb;    /* 25 Min Refresh Recovery Delay Time */
-	unsigned char tWTR_min;        /* 26 Min Internal Write to
+	unsigned char trfc_min_lsb;    /* 24 Min Refresh Recovery Delay Time */
+	unsigned char trfc_min_msb;    /* 25 Min Refresh Recovery Delay Time */
+	unsigned char twtr_min;        /* 26 Min Internal Write to
 					     Read Command Delay Time */
-	unsigned char tRTP_min;        /* 27 Min Internal Read to Precharge
+	unsigned char trtp_min;        /* 27 Min Internal Read to Precharge
 					     Command Delay Time */
-	unsigned char tFAW_msb;        /* 28 Upper Nibble for tFAW */
-	unsigned char tFAW_min;        /* 29 Min Four Activate Window
+	unsigned char tfaw_msb;        /* 28 Upper Nibble for tFAW */
+	unsigned char tfaw_min;        /* 29 Min Four Activate Window
 					     Delay Time*/
 	unsigned char opt_features;    /* 30 SDRAM Optional Features */
 	unsigned char therm_ref_opt;   /* 31 SDRAM Thermal and Refresh Opts */
 	unsigned char therm_sensor;    /* 32 Module Thermal Sensor */
 	unsigned char device_type;     /* 33 SDRAM device type */
-	int8_t fine_tCK_min;	       /* 34 Fine offset for tCKmin */
-	int8_t fine_tAA_min;	       /* 35 Fine offset for tAAmin */
-	int8_t fine_tRCD_min;	       /* 36 Fine offset for tRCDmin */
-	int8_t fine_tRP_min;	       /* 37 Fine offset for tRPmin */
-	int8_t fine_tRC_min;	       /* 38 Fine offset for tRCmin */
+	int8_t fine_tck_min;	       /* 34 Fine offset for tCKmin */
+	int8_t fine_taa_min;	       /* 35 Fine offset for tAAmin */
+	int8_t fine_trcd_min;	       /* 36 Fine offset for tRCDmin */
+	int8_t fine_trp_min;	       /* 37 Fine offset for tRPmin */
+	int8_t fine_trc_min;	       /* 38 Fine offset for tRCmin */
 	unsigned char res_39_59[21];   /* 39-59 Reserved, General Section */
 
 	/* Module-Specific Section: Bytes 60-116 */

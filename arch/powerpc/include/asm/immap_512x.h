@@ -3,20 +3,7 @@
  *
  * MPC512x Internal Memory Map
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  *
  * Based on the MPC83xx header.
  */
@@ -292,8 +279,8 @@ typedef struct ddr512x {
 	u32 self_refresh_cmd_5;	/* Enter/Exit Self Refresh Registers */
 	u32 self_refresh_cmd_6;	/* Enter/Exit Self Refresh Registers */
 	u32 self_refresh_cmd_7;	/* Enter/Exit Self Refresh Registers */
-	u32 DQS_config_offset_count;	/* DQS Config Offset Count */
-	u32 DQS_config_offset_time;	/* DQS Config Offset Time */
+	u32 dqs_config_offset_count;	/* DQS Config Offset Count */
+	u32 dqs_config_offset_time;	/* DQS Config Offset Time */
 	u32 DQS_delay_status;	/* DQS Delay Status */
 	u32 res0[0xF];
 	u32 prioman_config1;	/* Priority Manager Configuration */
@@ -1268,9 +1255,9 @@ static inline u32 get_pata_base (void)
 }
 #endif	/* __ASSEMBLY__ */
 
-#define CONFIG_SYS_MPC512x_USB_OFFSET   0x4000
-#define CONFIG_SYS_MPC512x_USB_ADDR \
-			(CONFIG_SYS_IMMR + CONFIG_SYS_MPC512x_USB_OFFSET)
+#define CONFIG_SYS_MPC512x_USB1_OFFSET   0x4000
+#define CONFIG_SYS_MPC512x_USB1_ADDR \
+			(CONFIG_SYS_IMMR + CONFIG_SYS_MPC512x_USB1_OFFSET)
 
 #define IIM_BASE_ADDR	(CONFIG_SYS_IMMR + offsetof(immap_t, iim))
 

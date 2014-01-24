@@ -5,23 +5,7 @@
  * (C) Copyright 2002
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * aloong with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef _PCI_H
@@ -426,16 +410,14 @@
 #define PCI_MAX_PCI_DEVICES	32
 #define PCI_MAX_PCI_FUNCTIONS	8
 
-#define PCI_DCR		0x54    /* PCIe Device Control Register */
-#define PCI_DSR		0x56    /* PCIe Device Status Register */
-#define PCI_LSR		0x5e    /* PCIe Link Status Register */
-#define PCI_LCR		0x5c    /* PCIe Link Control Register */
-#define PCI_LTSSM	0x404   /* PCIe Link Training, Status State Machine */
-#define  PCI_LTSSM_L0	0x16    /* L0 state */
+#define PCI_FIND_CAP_TTL 0x48
+#define CAP_START_POS 0x40
 
 /* Include the ID list */
 
 #include <pci_ids.h>
+
+#ifndef __ASSEMBLY__
 
 #ifdef CONFIG_SYS_PCI_64BIT
 typedef u64 pci_addr_t;
@@ -670,6 +652,13 @@ extern int pci_hose_config_device(struct pci_controller *hose,
 				  pci_addr_t mem,
 				  unsigned long command);
 
+extern int pci_hose_find_capability(struct pci_controller *hose, pci_dev_t dev,
+				    int cap);
+extern int pci_hose_find_cap_start(struct pci_controller *hose, pci_dev_t dev,
+				   u8 hdr_type);
+extern int pci_find_cap(struct pci_controller *hose, pci_dev_t dev, int pos,
+			int cap);
+
 const char * pci_class_str(u8 class);
 int pci_last_busno(void);
 
@@ -680,4 +669,6 @@ extern void pci_mpc824x_init (struct pci_controller *hose);
 #ifdef CONFIG_MPC85xx
 extern void pci_mpc85xx_init (struct pci_controller *hose);
 #endif
-#endif	/* _PCI_H */
+
+#endif /* __ASSEMBLY__ */
+#endif /* _PCI_H */

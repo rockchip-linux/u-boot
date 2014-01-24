@@ -1,25 +1,14 @@
 /*
  * (C) Copyright 2012 Stephen Warren
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
 #include <asm/io.h>
 #include <asm/arch/mbox.h>
 
-#define TIMEOUT (100 * 1000) /* 100mS in uS */
+#define TIMEOUT 1000 /* ms */
 
 int bcm2835_mbox_call_raw(u32 chan, u32 send, u32 *recv)
 {

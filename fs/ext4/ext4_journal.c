@@ -10,23 +10,7 @@
  * Written by Stephen C. Tweedie <sct@redhat.com>
  *
  * Copyright 1998-2000 Red Hat, Inc --- All Rights Reserved
- * This file is part of the Linux kernel and is made available under
- * the terms of the GNU General Public License, version 2, or at your
- * option, any later version, incorporated herein by reference.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -360,7 +344,8 @@ void recover_transaction(int prev_desc_logical_no)
 			  (struct ext2_inode *)&inode_journal);
 	blknr = read_allocated_block((struct ext2_inode *)
 				     &inode_journal, i);
-	ext4fs_devread(blknr * fs->sect_perblk, 0, fs->blksz, temp_buff);
+	ext4fs_devread((lbaint_t)blknr * fs->sect_perblk, 0, fs->blksz,
+		       temp_buff);
 	p_jdb = (char *)temp_buff;
 	jdb = (struct journal_header_t *) temp_buff;
 	ofs = sizeof(struct journal_header_t);
@@ -384,9 +369,9 @@ void recover_transaction(int prev_desc_logical_no)
 				continue;
 		}
 		blknr = read_allocated_block(&inode_journal, i);
-		ext4fs_devread(blknr * fs->sect_perblk, 0,
+		ext4fs_devread((lbaint_t)blknr * fs->sect_perblk, 0,
 			       fs->blksz, metadata_buff);
-		put_ext4((uint64_t)(be32_to_cpu(tag->block) * fs->blksz),
+		put_ext4((uint64_t)((uint64_t)be32_to_cpu(tag->block) * (uint64_t)fs->blksz),
 			 metadata_buff, (uint32_t) fs->blksz);
 	} while (!(flags & EXT3_JOURNAL_FLAG_LAST_TAG));
 fail:
@@ -431,7 +416,8 @@ int ext4fs_check_journal_state(int recovery_flag)
 
 	ext4fs_read_inode(ext4fs_root, EXT2_JOURNAL_INO, &inode_journal);
 	blknr = read_allocated_block(&inode_journal, EXT2_JOURNAL_SUPERBLOCK);
-	ext4fs_devread(blknr * fs->sect_perblk, 0, fs->blksz, temp_buff);
+	ext4fs_devread((lbaint_t)blknr * fs->sect_perblk, 0, fs->blksz,
+		       temp_buff);
 	jsb = (struct journal_superblock_t *) temp_buff;
 
 	if (fs->sb->feature_incompat & EXT3_FEATURE_INCOMPAT_RECOVER) {
@@ -455,7 +441,7 @@ int ext4fs_check_journal_state(int recovery_flag)
 	while (1) {
 		blknr = read_allocated_block(&inode_journal, i);
 		memset(temp_buff1, '\0', fs->blksz);
-		ext4fs_devread(blknr * fs->sect_perblk,
+		ext4fs_devread((lbaint_t)blknr * fs->sect_perblk,
 			       0, fs->blksz, temp_buff1);
 		jdb = (struct journal_header_t *) temp_buff1;
 
@@ -545,7 +531,7 @@ end:
 
 		blknr = read_allocated_block(&inode_journal,
 					 EXT2_JOURNAL_SUPERBLOCK);
-		put_ext4((uint64_t) (blknr * fs->blksz),
+		put_ext4((uint64_t) ((uint64_t)blknr * (uint64_t)fs->blksz),
 			 (struct journal_superblock_t *)temp_buff,
 			 (uint32_t) fs->blksz);
 		ext4fs_free_revoke_blks();
@@ -574,7 +560,8 @@ static void update_descriptor_block(long int blknr)
 	ext4fs_read_inode(ext4fs_root, EXT2_JOURNAL_INO, &inode_journal);
 	jsb_blknr = read_allocated_block(&inode_journal,
 					 EXT2_JOURNAL_SUPERBLOCK);
-	ext4fs_devread(jsb_blknr * fs->sect_perblk, 0, fs->blksz, temp_buff);
+	ext4fs_devread((lbaint_t)jsb_blknr * fs->sect_perblk, 0, fs->blksz,
+		       temp_buff);
 	jsb = (struct journal_superblock_t *) temp_buff;
 
 	jdb.h_blocktype = cpu_to_be32(EXT3_JOURNAL_DESCRIPTOR_BLOCK);
@@ -603,7 +590,7 @@ static void update_descriptor_block(long int blknr)
 	tag.flags = cpu_to_be32(EXT3_JOURNAL_FLAG_LAST_TAG);
 	memcpy(temp - sizeof(struct ext3_journal_block_tag), &tag,
 	       sizeof(struct ext3_journal_block_tag));
-	put_ext4((uint64_t) (blknr * fs->blksz), buf, (uint32_t) fs->blksz);
+	put_ext4((uint64_t) ((uint64_t)blknr * (uint64_t)fs->blksz), buf, (uint32_t) fs->blksz);
 
 	free(temp_buff);
 	free(buf);
@@ -621,10 +608,12 @@ static void update_commit_block(long int blknr)
 	if (!temp_buff)
 		return;
 
-	ext4fs_read_inode(ext4fs_root, EXT2_JOURNAL_INO, &inode_journal);
+	ext4fs_read_inode(ext4fs_root, EXT2_JOURNAL_INO,
+			  &inode_journal);
 	jsb_blknr = read_allocated_block(&inode_journal,
 					 EXT2_JOURNAL_SUPERBLOCK);
-	ext4fs_devread(jsb_blknr * fs->sect_perblk, 0, fs->blksz, temp_buff);
+	ext4fs_devread((lbaint_t)jsb_blknr * fs->sect_perblk, 0, fs->blksz,
+		       temp_buff);
 	jsb = (struct journal_superblock_t *) temp_buff;
 
 	jdb.h_blocktype = cpu_to_be32(EXT3_JOURNAL_COMMIT_BLOCK);
@@ -636,7 +625,7 @@ static void update_commit_block(long int blknr)
 		return;
 	}
 	memcpy(buf, &jdb, sizeof(struct journal_header_t));
-	put_ext4((uint64_t) (blknr * fs->blksz), buf, (uint32_t) fs->blksz);
+	put_ext4((uint64_t) ((uint64_t)blknr * (uint64_t)fs->blksz), buf, (uint32_t) fs->blksz);
 
 	free(temp_buff);
 	free(buf);

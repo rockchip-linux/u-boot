@@ -2,23 +2,7 @@
  * (C) Copyright 2009
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __ASM_ARCH_CLOCK_H
@@ -58,6 +42,13 @@ enum mxc_clock {
 	MXC_I2C_CLK,
 };
 
+enum enet_freq {
+	ENET_25MHz,
+	ENET_50MHz,
+	ENET_100MHz,
+	ENET_125MHz,
+};
+
 u32 imx_get_uartclk(void);
 u32 imx_get_fecclk(void);
 unsigned int mxc_get_clock(enum mxc_clock clk);
@@ -65,5 +56,6 @@ void enable_ocotp_clk(unsigned char enable);
 void enable_usboh3_clk(unsigned char enable);
 int enable_sata_clock(void);
 int enable_i2c_clk(unsigned char enable, unsigned i2c_num);
-
+void enable_ipu_clock(void);
+int enable_fec_anatop_clock(enum enet_freq freq);
 #endif /* __ASM_ARCH_CLOCK_H */

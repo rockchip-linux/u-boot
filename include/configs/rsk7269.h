@@ -4,16 +4,13 @@
  * Copyright (C) 2012 Renesas Electronics Europe Ltd.
  * Copyright (C) 2012 Phil Edworthy
  *
- * This file is released under the terms of GPL v2 and any later version.
- * See the file COPYING in the root directory of the source tree for details.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __RSK7269_H
 #define __RSK7269_H
 
 #undef DEBUG
-#define CONFIG_SH		1
-#define CONFIG_SH2		1
 #define CONFIG_SH2A		1
 #define CONFIG_CPU_SH7269	1
 #define CONFIG_RSK7269		1
@@ -28,7 +25,6 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{ CONFIG_BAUDRATE }
 
 #define CONFIG_SYS_LONGHELP		/* undef to save memory	*/
-#define CONFIG_SYS_PROMPT	"=> "	/* Monitor Command Prompt */
 #define CONFIG_SYS_CBSIZE	256	/* Boot Argument Buffer Size */
 #define CONFIG_SYS_PBSIZE	256	/* Print Buffer Size */
 #define CONFIG_SYS_MAXARGS	16	/* max number of command args */
@@ -65,8 +61,10 @@
 
 /* Board Clock */
 #define CONFIG_SYS_CLK_FREQ	66125000
+#define CONFIG_SH_TMU_CLK_FREQ CONFIG_SYS_CLK_FREQ
+#define CONFIG_SH_SCIF_CLK_FREQ CONFIG_SYS_CLK_FREQ
 #define CMT_CLK_DIVIDER		32	/* 8 (default), 32, 128 or 512 */
-#define CONFIG_SYS_HZ		(CONFIG_SYS_CLK_FREQ / CMT_CLK_DIVIDER)
+#define CONFIG_SH_CMT_CLK_FREQ (CONFIG_SYS_CLK_FREQ / CMT_CLK_DIVIDER)
 
 /* Network interface */
 #define CONFIG_SMC911X

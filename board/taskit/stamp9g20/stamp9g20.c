@@ -10,23 +10,7 @@
  * Markus Hubig <mhubig@imko.de>
  * IMKO GmbH <www.imko.de>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -35,7 +19,6 @@
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_common.h>
 #include <asm/arch/at91_pmc.h>
-#include <asm/arch/at91_rstc.h>
 #include <asm/arch/gpio.h>
 #include <watchdog.h>
 
@@ -83,8 +66,6 @@ static void stamp9G20_nand_hw_init(void)
 static void stamp9G20_macb_hw_init(void)
 {
 	struct at91_port *pioa = (struct at91_port *)ATMEL_BASE_PIOA;
-	struct at91_rstc *rstc = (struct at91_rstc *)ATMEL_BASE_RSTC;
-	unsigned long erstl;
 
 	/* Enable the PHY Chip via PA26 on the Stamp 2 Adaptor */
 	at91_set_gpio_output(AT91_PIN_PA26, 0);
@@ -107,33 +88,7 @@ static void stamp9G20_macb_hw_init(void)
 		pin_to_mask(AT91_PIN_PA28),
 		&pioa->pudr);
 
-	erstl = readl(&rstc->mr) & AT91_RSTC_MR_ERSTL_MASK;
-
-	/* Need to reset PHY -> 500ms reset */
-	writel(AT91_RSTC_KEY | (AT91_RSTC_MR_ERSTL(13) &
-				~AT91_RSTC_MR_URSTEN), &rstc->mr);
-	writel(AT91_RSTC_KEY | AT91_RSTC_CR_EXTRST, &rstc->cr);
-
-	/* Wait for end of hardware reset */
-	unsigned long start = get_timer(0);
-	unsigned long timeout = 1000; /* 1000ms */
-
-	while (!(readl(&rstc->sr) & AT91_RSTC_SR_NRSTL)) {
-
-		/* avoid shutdown by watchdog */
-		WATCHDOG_RESET();
-		mdelay(10);
-
-		/* timeout for not getting stuck in an endless loop */
-		if (get_timer(start) >= timeout) {
-			puts("*** ERROR: Timeout waiting for PHY reset!\n");
-			break;
-		};
-	};
-
-	/* Restore NRST value */
-	writel(AT91_RSTC_KEY | erstl | AT91_RSTC_MR_URSTEN,
-		&rstc->mr);
+	at91_phy_reset();
 
 	/* Re-enable pull-up */
 	writel(pin_to_mask(AT91_PIN_PA14) |

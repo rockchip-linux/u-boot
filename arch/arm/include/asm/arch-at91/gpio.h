@@ -3,11 +3,7 @@
  *
  *  Copyright (C) 2005 HP Labs
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __ASM_ARCH_AT91_GPIO_H
@@ -20,7 +16,7 @@
 
 #ifdef CONFIG_ATMEL_LEGACY
 
-#define PIN_BASE		32
+#define PIN_BASE		0
 
 #define MAX_GPIO_BANKS		5
 
@@ -235,4 +231,26 @@ static inline unsigned pin_to_mask(unsigned pin)
 #define at91_set_gpio_value(x, y)	at91_set_pio_value(x, y)
 #define at91_get_gpio_value(x)		at91_get_pio_value(x)
 #endif
-#endif
+
+#define GPIO_PIOA_BASE  (0)
+#define GPIO_PIOB_BASE  (GPIO_PIOA_BASE + 32)
+#define GPIO_PIOC_BASE  (GPIO_PIOB_BASE + 32)
+#define GPIO_PIOD_BASE  (GPIO_PIOC_BASE + 32)
+#define GPIO_PIOE_BASE  (GPIO_PIOD_BASE + 32)
+#define GPIO_PIN_PA(x)  (GPIO_PIOA_BASE + (x))
+#define GPIO_PIN_PB(x)  (GPIO_PIOB_BASE + (x))
+#define GPIO_PIN_PC(x)  (GPIO_PIOC_BASE + (x))
+#define GPIO_PIN_PD(x)  (GPIO_PIOD_BASE + (x))
+#define GPIO_PIN_PE(x)  (GPIO_PIOE_BASE + (x))
+
+static inline unsigned at91_gpio_to_port(unsigned gpio)
+{
+	return gpio / 32;
+}
+
+static inline unsigned at91_gpio_to_pin(unsigned gpio)
+{
+	return gpio % 32;
+}
+
+#endif /* __ASM_ARCH_AT91_GPIO_H */

@@ -2,23 +2,7 @@
  * (C) Copyright 2012
  * Joe Hershberger, National Instruments, joe.hershberger@ni.com
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <linux/string.h>
@@ -411,6 +395,9 @@ static int env_parse_flags_to_bin(const char *flags)
 	return binflags;
 }
 
+static int first_call = 1;
+static const char *flags_list;
+
 /*
  * Look for possible flags for a newly added variable
  * This is called specifically when the variable did not exist in the hash
@@ -419,10 +406,13 @@ static int env_parse_flags_to_bin(const char *flags)
 void env_flags_init(ENTRY *var_entry)
 {
 	const char *var_name = var_entry->key;
-	const char *flags_list = getenv(ENV_FLAGS_VAR);
 	char flags[ENV_FLAGS_ATTR_MAX_LEN + 1] = "";
 	int ret = 1;
 
+	if (first_call) {
+		flags_list = getenv(ENV_FLAGS_VAR);
+		first_call = 0;
+	}
 	/* look in the ".flags" and static for a reference to this variable */
 	ret = env_flags_lookup(flags_list, var_name, flags);
 

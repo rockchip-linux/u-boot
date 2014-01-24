@@ -1,22 +1,7 @@
 /*
  * Copyright (c) 2011 The Chromium OS Authors.
- * See file CREDITS for list of people who contributed to this
- * project.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 /* Tegra clock control functions */
@@ -128,9 +113,9 @@ void reset_set_enable(enum periph_id periph_id, int enable);
 enum crc_reset_id {
 	/* Things we can hold in reset for each CPU */
 	crc_rst_cpu = 1,
-	crc_rst_de = 1 << 2,	/* What is de? */
-	crc_rst_watchdog = 1 << 3,
-	crc_rst_debug = 1 << 4,
+	crc_rst_de = 1 << 4,	/* What is de? */
+	crc_rst_watchdog = 1 << 8,
+	crc_rst_debug = 1 << 12,
 };
 
 /**

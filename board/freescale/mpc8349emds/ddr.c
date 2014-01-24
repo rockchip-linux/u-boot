@@ -1,29 +1,13 @@
 /*
  * Copyright 2011 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 2 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
 
-#include <asm/fsl_ddr_sdram.h>
-#include <asm/fsl_ddr_dimm_params.h>
+#include <fsl_ddr_sdram.h>
+#include <fsl_ddr_dimm_params.h>
 
 struct board_specific_parameters {
 	u32 n_ranks;
@@ -31,7 +15,7 @@ struct board_specific_parameters {
 	u32 clk_adjust;
 	u32 cpo;
 	u32 write_data_delay;
-	u32 force_2T;
+	u32 force_2t;
 };
 
 /*
@@ -86,7 +70,7 @@ void fsl_ddr_board_options(memctl_options_t *popts,
 				popts->cpo_override = pbsp->cpo;
 				popts->write_data_delay =
 					pbsp->write_data_delay;
-				popts->twoT_en = pbsp->force_2T;
+				popts->twot_en = pbsp->force_2t;
 				goto found;
 			}
 			pbsp_highest = pbsp;
@@ -102,7 +86,7 @@ void fsl_ddr_board_options(memctl_options_t *popts,
 		popts->clk_adjust = pbsp_highest->clk_adjust;
 		popts->cpo_override = pbsp_highest->cpo;
 		popts->write_data_delay = pbsp_highest->write_data_delay;
-		popts->twoT_en = pbsp_highest->force_2T;
+		popts->twot_en = pbsp_highest->force_2t;
 	} else {
 		panic("DIMM is not supported by this board");
 	}
@@ -113,5 +97,5 @@ found:
 	 *	- number of DIMMs installed
 	 */
 	popts->half_strength_driver_enable = 0;
-	popts->DQS_config = 0;	/* only true DQS signal is used on board */
+	popts->dqs_config = 0;	/* only true DQS signal is used on board */
 }

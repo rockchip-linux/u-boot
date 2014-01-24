@@ -2,23 +2,7 @@
  * (C) Copyright 2003
  * Kyle Harris, kharris@nexus-tech.net
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -276,7 +260,7 @@ static int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				if (!ret)
 					mmc->part_num = part;
 
-				printf("switch to partions #%d, %s\n",
+				printf("switch to partitions #%d, %s\n",
 						part, (!ret) ? "OK" : "ERROR");
 			}
 		}
@@ -356,6 +340,28 @@ static int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 #endif /* CONFIG_SUPPORT_EMMC_BOOT */
 	}
+
+	else if (argc == 3 && strcmp(argv[1], "setdsr") == 0) {
+		struct mmc *mmc = find_mmc_device(curr_device);
+		u32 val = simple_strtoul(argv[2], NULL, 16);
+		int ret;
+
+		if (!mmc) {
+			printf("no mmc device at slot %x\n", curr_device);
+			return 1;
+		}
+		ret = mmc_set_dsr(mmc, val);
+		printf("set dsr %s\n", (!ret) ? "OK, force rescan" : "ERROR");
+		if (!ret) {
+			mmc->has_init = 0;
+			if (mmc_init(mmc))
+				return 1;
+			else
+				return 0;
+		}
+		return ret;
+	}
+
 	state = MMC_INVALID;
 	if (argc == 5 && strcmp(argv[1], "read") == 0)
 		state = MMC_READ;
@@ -437,7 +443,8 @@ U_BOOT_CMD(
 	"mmc close <dev> <boot_partition>\n"
 	" - Enable boot_part for booting and disable access to boot_part\n"
 	"mmc bootpart <device num> <boot part size MB> <RPMB part size MB>\n"
-	" - change sizes of boot and RPMB partions of specified device\n"
+	" - change sizes of boot and RPMB partitions of specified device\n"
 #endif
+	"mmc setdsr - set DSR register value\n"
 	);
 #endif /* !CONFIG_GENERIC_MMC */

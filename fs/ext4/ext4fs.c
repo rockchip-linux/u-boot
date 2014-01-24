@@ -18,19 +18,7 @@
  *
  * ext4write : Based on generic ext4 protocol.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -62,16 +50,16 @@ int ext4fs_read_file(struct ext2fs_node *node, int pos,
 {
 	struct ext_filesystem *fs = get_fs();
 	int i;
-	int blockcnt;
+	lbaint_t blockcnt;
 	int log2blksz = fs->dev_desc->log2blksz;
 	int log2_fs_blocksize = LOG2_BLOCK_SIZE(node->data) - log2blksz;
 	int blocksize = (1 << (log2_fs_blocksize + log2blksz));
 	unsigned int filesize = __le32_to_cpu(node->inode.size);
-	int previous_block_number = -1;
-	int delayed_start = 0;
-	int delayed_extent = 0;
-	int delayed_skipfirst = 0;
-	int delayed_next = 0;
+	lbaint_t previous_block_number = -1;
+	lbaint_t delayed_start = 0;
+	lbaint_t delayed_extent = 0;
+	lbaint_t delayed_skipfirst = 0;
+	lbaint_t delayed_next = 0;
 	char *delayed_buf = NULL;
 	short status;
 
@@ -82,7 +70,7 @@ int ext4fs_read_file(struct ext2fs_node *node, int pos,
 	blockcnt = ((len + pos) + blocksize - 1) / blocksize;
 
 	for (i = pos / blocksize; i < blockcnt; i++) {
-		int blknr;
+		lbaint_t blknr;
 		int blockoff = pos % blocksize;
 		int blockend = blocksize;
 		int skipfirst = 0;

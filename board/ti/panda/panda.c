@@ -3,23 +3,7 @@
  * Texas Instruments Incorporated, <www.ti.com>
  * Steve Sakoman  <steve@sakoman.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
 #include <asm/arch/sys_proto.h>
@@ -139,6 +123,66 @@ int get_board_revision(void)
 }
 
 /**
+ * is_panda_es_rev_b3() - Detect if we are running on rev B3 of panda board ES
+ *
+ *
+ * Detect if we are running on B3 version of ES panda board,
+ * This can be done by reading the level of GPIO 171 and checking the
+ * processor revisions.
+ * GPIO171: 1 => Panda ES Rev B3
+ *
+ * Return : return 1 if Panda ES Rev B3 , else return 0
+ */
+u8 is_panda_es_rev_b3(void)
+{
+        int processor_rev = omap_revision();
+        int ret = 0;
+
+        if ((processor_rev >= OMAP4460_ES1_0 &&
+             processor_rev <= OMAP4460_ES1_1)) {
+
+                /* Setup the mux for the common board ID pins (gpio 171) */
+                writew((IEN | M3),
+			(*ctrl)->control_padconf_core_base + UNIPRO_TX0);
+
+                /* if processor_rev is panda ES and GPIO171 is 1,it is rev b3 */
+                ret = gpio_get_value(PANDA_BOARD_ID_2_GPIO);
+        }
+        return ret;
+}
+
+#ifdef CONFIG_SYS_EMIF_PRECALCULATED_TIMING_REGS
+/*
+ * emif_get_reg_dump() - emif_get_reg_dump strong function
+ *
+ * @emif_nr - emif base
+ * @regs - reg dump of timing values
+ *
+ * Strong function to override emif_get_reg_dump weak function in sdram_elpida.c
+ */
+void emif_get_reg_dump(u32 emif_nr, const struct emif_regs **regs)
+{
+	u32 omap4_rev = omap_revision();
+
+	/* Same devices and geometry on both EMIFs */
+	if (omap4_rev == OMAP4430_ES1_0)
+		*regs = &emif_regs_elpida_380_mhz_1cs;
+	else if (omap4_rev == OMAP4430_ES2_0)
+		*regs = &emif_regs_elpida_200_mhz_2cs;
+	else if (omap4_rev == OMAP4430_ES2_3)
+		*regs = &emif_regs_elpida_400_mhz_1cs;
+	else if (omap4_rev < OMAP4470_ES1_0) {
+		if(is_panda_es_rev_b3())
+			*regs = &emif_regs_elpida_400_mhz_1cs;
+		else
+			*regs = &emif_regs_elpida_400_mhz_2cs;
+	}
+	else
+		*regs = &emif_regs_elpida_400_mhz_1cs;
+}
+#endif
+
+/**
  * @brief misc_init_r - Configure Panda board specific configurations
  * such as power configurations, ethernet initialization as phase2 of
  * boot sequence
@@ -149,6 +193,7 @@ int misc_init_r(void)
 {
 	int phy_type;
 	u32 auxclk, altclksrc;
+	uint8_t device_mac[6];
 
 	/* EHCI is not supported on ES1.0 */
 	if (omap_revision() == OMAP4430_ES1_0)
@@ -201,6 +246,21 @@ int misc_init_r(void)
 	altclksrc |= ALTCLKSRC_ENABLE_INT_MASK | ALTCLKSRC_ENABLE_EXT_MASK;
 
 	writel(altclksrc, &scrm->altclksrc);
+
+	if (!getenv("usbethaddr")) {
+		/*
+		 * create a fake MAC address from the processor ID code.
+		 * first byte is 0x02 to signify locally administered.
+		 */
+		device_mac[0] = 0x02;
+		device_mac[1] = readl(STD_FUSE_DIE_ID_3) & 0xff;
+		device_mac[2] = readl(STD_FUSE_DIE_ID_2) & 0xff;
+		device_mac[3] = readl(STD_FUSE_DIE_ID_1) & 0xff;
+		device_mac[4] = readl(STD_FUSE_DIE_ID_0) & 0xff;
+		device_mac[5] = (readl(STD_FUSE_DIE_ID_0) >> 8) & 0xff;
+
+		eth_setenv_enetaddr("usbethaddr", device_mac);
+	}
 
 	return 0;
 }
@@ -269,7 +329,8 @@ static struct omap_usbhs_board_data usbhs_bdata = {
 	.port_mode[2] = OMAP_USBHS_PORT_MODE_UNUSED,
 };
 
-int ehci_hcd_init(int index, struct ehci_hccr **hccr, struct ehci_hcor **hcor)
+int ehci_hcd_init(int index, enum usb_init_type init,
+		struct ehci_hccr **hccr, struct ehci_hcor **hcor)
 {
 	int ret;
 	unsigned int utmi_clk;
@@ -279,7 +340,7 @@ int ehci_hcd_init(int index, struct ehci_hccr **hccr, struct ehci_hcor **hcor)
 	utmi_clk |= HSUSBHOST_CLKCTRL_CLKSEL_UTMI_P1_MASK;
 	sr32((void *)CM_L3INIT_HSUSBHOST_CLKCTRL, 0, 32, utmi_clk);
 
-	ret = omap_ehci_hcd_init(&usbhs_bdata, hccr, hcor);
+	ret = omap_ehci_hcd_init(index, &usbhs_bdata, hccr, hcor);
 	if (ret < 0)
 		return ret;
 

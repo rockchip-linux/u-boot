@@ -9,23 +9,7 @@
  *
  * Configuration settings for the Eukrea CPU9260 board.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -36,7 +20,6 @@
 #define AT91_DBGU	(0xfffff200 - AT91_BASE_SYS)
 
 #define CONFIG_SYS_AT91_MAIN_CLOCK	18432000
-#define CONFIG_SYS_HZ		1000
 #define CONFIG_SYS_AT91_SLOW_CLOCK	32768
 
 #if defined(CONFIG_CPU9G20)
@@ -297,8 +280,8 @@
 #define CONFIG_SYS_MAX_NAND_DEVICE		1
 #define CONFIG_SYS_NAND_BASE			0x40000000
 #define CONFIG_SYS_NAND_DBW_8			1
-#define CONFIG_SYS_NAND_READY_PIN		AT91_PIO_PORTC, 13
-#define CONFIG_SYS_NAND_ENABLE_PIN		AT91_PIO_PORTC, 14
+#define CONFIG_SYS_NAND_READY_PIN		GPIO_PIN_PC(13)
+#define CONFIG_SYS_NAND_ENABLE_PIN		GPIO_PIN_PC(14)
 #define CONFIG_SYS_NAND_MASK_ALE		(1 << 21)
 #define CONFIG_SYS_NAND_MASK_CLE		(1 << 22)
 
@@ -327,6 +310,7 @@
 #define CONFIG_RMII
 #define CONFIG_NET_RETRY_COUNT			20
 #define CONFIG_MACB_SEARCH_PHY
+#define CONFIG_AT91_WANTS_COMMON_PHY
 
 /* LEDS */
 /* Status LED */
@@ -362,6 +346,7 @@
 
 /* USB */
 #define CONFIG_USB_ATMEL
+#define CONFIG_USB_ATMEL_CLK_SEL_PLLB
 #define CONFIG_USB_OHCI_NEW
 #define CONFIG_DOS_PARTITION
 #define CONFIG_SYS_USB_OHCI_CPU_INIT

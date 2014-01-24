@@ -1,20 +1,7 @@
 /*
  * Copyright 2011 Freescale Semiconductor, Inc. All Rights Reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __ARCH_ARM_MACH_MX6_CCM_REGS_H__
@@ -902,16 +889,5 @@ struct mxc_ccm_reg {
 #define BM_ANADIG_PFD_528_PFD0_FRAC 0x0000003F
 #define BF_ANADIG_PFD_528_PFD0_FRAC(v)  \
 	(((v) << 0) & BM_ANADIG_PFD_528_PFD0_FRAC)
-
-#define PLL2_PFD0_FREQ		352000000
-#define PLL2_PFD1_FREQ		594000000
-#define PLL2_PFD2_FREQ		400000000
-#define PLL2_PFD2_DIV_FREQ	200000000
-#define PLL3_PFD0_FREQ		720000000
-#define PLL3_PFD1_FREQ		540000000
-#define PLL3_PFD2_FREQ		508200000
-#define PLL3_PFD3_FREQ		454700000
-#define PLL3_80M		80000000
-#define PLL3_60M		60000000
 
 #endif /*__ARCH_ARM_MACH_MX6_CCM_REGS_H__ */

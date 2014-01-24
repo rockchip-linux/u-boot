@@ -2,20 +2,7 @@
  * Copyright (C) 2012 Nobuhiro Iwamatsu <nobuhiro.iwamatsu.yj@renesas.com>
  * Copyright (C) 2012 Renesas Solutions Corp.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __KZM9G_H
@@ -35,7 +22,6 @@
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO
 #define CONFIG_BOARD_EARLY_INIT_F
-#define CONFIG_L2_OFF
 #define CONFIG_OF_LIBFDT
 
 #include <config_cmd_default.h>
@@ -138,9 +124,8 @@
 #define CONFIG_GLOBAL_TIMER
 #define CONFIG_SYS_CLK_FREQ	(48000000)
 #define CONFIG_SYS_CPU_CLK	(1196000000)
+#define CONFIG_SH_SCIF_CLK_FREQ CONFIG_SYS_CLK_FREQ
 #define TMU_CLK_DIVIDER		(4)	/* 4 (default), 16, 64, 256 or 1024 */
-#define CFG_HZ              (1000)
-#define CONFIG_SYS_HZ		CFG_HZ
 
 /* Ether */
 #define CONFIG_NET_MULTI
@@ -153,21 +138,22 @@
 
 /* I2C */
 #define CONFIG_CMD_I2C
-#define CONFIG_SH_I2C 1
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_SH
+#define CONFIG_SYS_I2C_SH_NUM_CONTROLLERS 5
+#define CONFIG_SYS_I2C_SH_BASE0	0xE6820000
+#define CONFIG_SYS_I2C_SH_SPEED0	100000
+#define CONFIG_SYS_I2C_SH_BASE1	0xE6822000
+#define CONFIG_SYS_I2C_SH_SPEED1	100000
+#define CONFIG_SYS_I2C_SH_BASE2	0xE6824000
+#define CONFIG_SYS_I2C_SH_SPEED2	100000
+#define CONFIG_SYS_I2C_SH_BASE3	0xE6826000
+#define CONFIG_SYS_I2C_SH_SPEED3	100000
+#define CONFIG_SYS_I2C_SH_BASE4	0xE6828000
+#define CONFIG_SYS_I2C_SH_SPEED4	100000
 #define CONFIG_SH_I2C_8BIT
-#define CONFIG_HARD_I2C
-#define CONFIG_I2C_MULTI_BUS
-#define CONFIG_SYS_MAX_I2C_BUS  (5)
-#define CONFIG_SYS_I2C_MODULE
-#define CONFIG_SYS_I2C_SPEED    (100000) /* 100 kHz */
-#define CONFIG_SYS_I2C_SLAVE    (0x7F)
-#define CONFIG_SH_I2C_DATA_HIGH (4)
-#define CONFIG_SH_I2C_DATA_LOW  (5)
-#define CONFIG_SH_I2C_CLOCK     (104000000) /* 104 MHz */
-#define CONFIG_SH_I2C_BASE0     (0xE6820000)
-#define CONFIG_SH_I2C_BASE1     (0xE6822000)
-#define CONFIG_SH_I2C_BASE2     (0xE6824000)
-#define CONFIG_SH_I2C_BASE3     (0xE6826000)
-#define CONFIG_SH_I2C_BASE4     (0xE6828000)
+#define CONFIG_SH_I2C_DATA_HIGH 4
+#define CONFIG_SH_I2C_DATA_LOW  5
+#define CONFIG_SH_I2C_CLOCK     104000000 /* 104 MHz */
 
 #endif /* __KZM9G_H */

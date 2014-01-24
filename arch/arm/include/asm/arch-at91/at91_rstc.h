@@ -7,10 +7,7 @@
  * Reset Controller (RSTC) - System peripherals regsters.
  * Based on AT91SAM9261 datasheet revision D.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef AT91_RSTC_H
@@ -40,5 +37,12 @@ typedef struct at91_rstc {
 #define AT91_RSTC_MR_ERSTL_MASK	0x0000FF00
 
 #define AT91_RSTC_SR_NRSTL	0x00010000
+
+#define AT91_RSTC_RSTTYP		(7 << 8)	/* Reset Type */
+#define AT91_RSTC_RSTTYP_GENERAL	(0 << 8)
+#define AT91_RSTC_RSTTYP_WAKEUP	(1 << 8)
+#define AT91_RSTC_RSTTYP_WATCHDOG	(2 << 8)
+#define AT91_RSTC_RSTTYP_SOFTWARE	(3 << 8)
+#define AT91_RSTC_RSTTYP_USER		(4 << 8)
 
 #endif

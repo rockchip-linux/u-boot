@@ -3,27 +3,14 @@
  * Jaehoon Chung <jh80.chung@samsung.com>
  * Rajeshawari Shinde <rajeshwari.s@samsung.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,  MA 02111-1307 USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <bouncebuf.h>
 #include <common.h>
 #include <malloc.h>
 #include <mmc.h>
 #include <dwmmc.h>
-#include <asm/arch/clk.h>
 #include <asm-generic/errno.h>
 
 #define PAGE_SIZE 4096
@@ -55,12 +42,13 @@ static void dwmci_set_idma_desc(struct dwmci_idmac *idmac,
 }
 
 static void dwmci_prepare_data(struct dwmci_host *host,
-		struct mmc_data *data)
+			       struct mmc_data *data,
+			       struct dwmci_idmac *cur_idmac,
+			       void *bounce_buffer)
 {
 	unsigned long ctrl;
 	unsigned int i = 0, flags, cnt, blk_cnt;
-	ulong data_start, data_end, start_addr;
-	ALLOC_CACHE_ALIGN_BUFFER(struct dwmci_idmac, cur_idmac, data->blocks);
+	ulong data_start, data_end;
 
 
 	blk_cnt = data->blocks;
@@ -69,11 +57,6 @@ static void dwmci_prepare_data(struct dwmci_host *host,
 
 	data_start = (ulong)cur_idmac;
 	dwmci_writel(host, DWMCI_DBADDR, (unsigned int)cur_idmac);
-
-	if (data->flags == MMC_DATA_READ)
-		start_addr = (unsigned int)data->dest;
-	else
-		start_addr = (unsigned int)data->src;
 
 	do {
 		flags = DWMCI_IDMAC_OWN | DWMCI_IDMAC_CH ;
@@ -85,9 +68,9 @@ static void dwmci_prepare_data(struct dwmci_host *host,
 			cnt = data->blocksize * 8;
 
 		dwmci_set_idma_desc(cur_idmac, flags, cnt,
-				start_addr + (i * PAGE_SIZE));
+				    (u32)bounce_buffer + (i * PAGE_SIZE));
 
-		if(blk_cnt < 8)
+		if (blk_cnt <= 8)
 			break;
 		blk_cnt -= 8;
 		cur_idmac++;
@@ -125,11 +108,14 @@ static int dwmci_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		struct mmc_data *data)
 {
 	struct dwmci_host *host = (struct dwmci_host *)mmc->priv;
+	ALLOC_CACHE_ALIGN_BUFFER(struct dwmci_idmac, cur_idmac,
+				 data ? DIV_ROUND_UP(data->blocks, 8) : 0);
 	int flags = 0, i;
 	unsigned int timeout = 100000;
 	u32 retry = 10000;
 	u32 mask, ctrl;
 	ulong start = get_timer(0);
+	struct bounce_buffer bbstate;
 
 	while (dwmci_readl(host, DWMCI_STATUS) & DWMCI_BUSY) {
 		if (get_timer(start) > timeout) {
@@ -140,8 +126,19 @@ static int dwmci_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 
 	dwmci_writel(host, DWMCI_RINTSTS, DWMCI_INTMSK_ALL);
 
-	if (data)
-		dwmci_prepare_data(host, data);
+	if (data) {
+		if (data->flags == MMC_DATA_READ) {
+			bounce_buffer_start(&bbstate, (void*)data->dest,
+					    data->blocksize *
+					    data->blocks, GEN_BB_WRITE);
+		} else {
+			bounce_buffer_start(&bbstate, (void*)data->src,
+					    data->blocksize *
+					    data->blocks, GEN_BB_READ);
+		}
+		dwmci_prepare_data(host, data, cur_idmac,
+				   bbstate.bounce_buffer);
+	}
 
 	dwmci_writel(host, DWMCI_CMDARG, cmd->cmdarg);
 
@@ -217,6 +214,8 @@ static int dwmci_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd,
 		ctrl = dwmci_readl(host, DWMCI_CTRL);
 		ctrl &= ~(DWMCI_DMA_EN);
 		dwmci_writel(host, DWMCI_CTRL, ctrl);
+
+		bounce_buffer_stop(&bbstate);
 	}
 
 	udelay(100);
@@ -233,12 +232,12 @@ static int dwmci_setup_bus(struct dwmci_host *host, u32 freq)
 	if ((freq == host->clock) || (freq == 0))
 		return 0;
 	/*
-	 * If host->mmc_clk didn't define,
+	 * If host->get_mmc_clk didn't define,
 	 * then assume that host->bus_hz is source clock value.
 	 * host->bus_hz should be set from user.
 	 */
-	if (host->mmc_clk)
-		sclk = host->mmc_clk(host->dev_index);
+	if (host->get_mmc_clk)
+		sclk = host->get_mmc_clk(host->dev_index);
 	else if (host->bus_hz)
 		sclk = host->bus_hz;
 	else {
@@ -312,7 +311,9 @@ static void dwmci_set_ios(struct mmc *mmc)
 static int dwmci_init(struct mmc *mmc)
 {
 	struct dwmci_host *host = (struct dwmci_host *)mmc->priv;
-	u32 fifo_size;
+
+	if (host->board_init)
+		host->board_init(host);
 
 	dwmci_writel(host, DWMCI_PWREN, 1);
 
@@ -332,13 +333,9 @@ static int dwmci_init(struct mmc *mmc)
 	dwmci_writel(host, DWMCI_IDINTEN, 0);
 	dwmci_writel(host, DWMCI_BMOD, 1);
 
-	if (!host->fifoth_val) {
-		fifo_size = dwmci_readl(host, DWMCI_FIFOTH);
-		fifo_size = ((fifo_size & RX_WMARK_MASK) >> RX_WMARK_SHIFT) + 1;
-		host->fifoth_val = MSIZE(0x2) | RX_WMARK(fifo_size / 2 - 1) |
-			TX_WMARK(fifo_size / 2);
+	if (host->fifoth_val) {
+		dwmci_writel(host, DWMCI_FIFOTH, host->fifoth_val);
 	}
-	dwmci_writel(host, DWMCI_FIFOTH, host->fifoth_val);
 
 	dwmci_writel(host, DWMCI_CLKENA, 0);
 	dwmci_writel(host, DWMCI_CLKSRC, 0);
@@ -351,9 +348,9 @@ int add_dwmci(struct dwmci_host *host, u32 max_clk, u32 min_clk)
 	struct mmc *mmc;
 	int err = 0;
 
-	mmc = malloc(sizeof(struct mmc));
+	mmc = calloc(sizeof(struct mmc), 1);
 	if (!mmc) {
-		printf("mmc malloc fail!\n");
+		printf("mmc calloc fail!\n");
 		return -1;
 	}
 

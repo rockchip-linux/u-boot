@@ -2,23 +2,7 @@
  * (C) Copyright 2000-2009
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 
@@ -38,6 +22,11 @@
 #include <asm/byteorder.h>
 #include <asm/io.h>
 #include <linux/compiler.h>
+
+#if defined(CONFIG_BOOTM_VXWORKS) && \
+	(defined(CONFIG_PPC) || defined(CONFIG_ARM))
+#include <vxworks.h>
+#endif
 
 #if defined(CONFIG_CMD_USB)
 #include <usb.h>
@@ -93,6 +82,9 @@ static int do_imls(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 static void fixup_silent_linux(void);
 #endif
 
+static int do_bootm_standalone(int flag, int argc, char * const argv[],
+			       bootm_headers_t *images);
+
 static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 				char * const argv[], bootm_headers_t *images,
 				ulong *os_data, ulong *os_len);
@@ -136,8 +128,11 @@ static boot_os_fn do_bootm_ose;
 #if defined(CONFIG_BOOTM_PLAN9)
 static boot_os_fn do_bootm_plan9;
 #endif
-#if defined(CONFIG_CMD_ELF)
+#if defined(CONFIG_BOOTM_VXWORKS) && \
+	(defined(CONFIG_PPC) || defined(CONFIG_ARM))
 static boot_os_fn do_bootm_vxworks;
+#endif
+#if defined(CONFIG_CMD_ELF)
 static boot_os_fn do_bootm_qnxelf;
 int do_bootvx(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 int do_bootelf(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -147,6 +142,7 @@ static boot_os_fn do_bootm_integrity;
 #endif
 
 static boot_os_fn *boot_os[] = {
+	[IH_OS_U_BOOT] = do_bootm_standalone,
 #ifdef CONFIG_BOOTM_LINUX
 	[IH_OS_LINUX] = do_bootm_linux,
 #endif
@@ -165,8 +161,11 @@ static boot_os_fn *boot_os[] = {
 #if defined(CONFIG_BOOTM_PLAN9)
 	[IH_OS_PLAN9] = do_bootm_plan9,
 #endif
-#if defined(CONFIG_CMD_ELF)
+#if defined(CONFIG_BOOTM_VXWORKS) && \
+	(defined(CONFIG_PPC) || defined(CONFIG_ARM))
 	[IH_OS_VXWORKS] = do_bootm_vxworks,
+#endif
+#if defined(CONFIG_CMD_ELF)
 	[IH_OS_QNX] = do_bootm_qnxelf,
 #endif
 #ifdef CONFIG_INTEGRITY
@@ -349,7 +348,8 @@ static int bootm_find_other(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (((images.os.type == IH_TYPE_KERNEL) ||
 	     (images.os.type == IH_TYPE_KERNEL_NOLOAD) ||
 	     (images.os.type == IH_TYPE_MULTI)) &&
-	    (images.os.os == IH_OS_LINUX)) {
+	    (images.os.os == IH_OS_LINUX ||
+		 images.os.os == IH_OS_VXWORKS)) {
 		if (bootm_find_ramdisk(flag, argc, argv))
 			return 1;
 
@@ -384,7 +384,7 @@ static int bootm_load_os(bootm_headers_t *images, unsigned long *load_end,
 
 	const char *type_name = genimg_get_type_name(os.type);
 
-	load_buf = map_sysmem(load, image_len);
+	load_buf = map_sysmem(load, unc_len);
 	image_buf = map_sysmem(image_start, image_len);
 	switch (comp) {
 	case IH_COMP_NONE:
@@ -452,11 +452,12 @@ static int bootm_load_os(bootm_headers_t *images, unsigned long *load_end,
 	}
 #endif /* CONFIG_LZMA */
 #ifdef CONFIG_LZO
-	case IH_COMP_LZO:
+	case IH_COMP_LZO: {
+		size_t size;
+
 		printf("   Uncompressing %s ... ", type_name);
 
-		ret = lzop_decompress(image_buf, image_len, load_buf,
-				      &unc_len);
+		ret = lzop_decompress(image_buf, image_len, load_buf, &size);
 		if (ret != LZO_E_OK) {
 			printf("LZO: uncompress or overwrite error %d "
 			      "- must RESET board to recover\n", ret);
@@ -465,8 +466,9 @@ static int bootm_load_os(bootm_headers_t *images, unsigned long *load_end,
 			return BOOTM_ERR_RESET;
 		}
 
-		*load_end = load + unc_len;
+		*load_end = load + size;
 		break;
+	}
 #endif /* CONFIG_LZO */
 	default:
 		printf("Unimplemented compression type %d\n", comp);
@@ -501,17 +503,18 @@ static int bootm_load_os(bootm_headers_t *images, unsigned long *load_end,
 	return 0;
 }
 
-static int bootm_start_standalone(int argc, char * const argv[])
+static int do_bootm_standalone(int flag, int argc, char * const argv[],
+			       bootm_headers_t *images)
 {
 	char  *s;
 	int   (*appl)(int, char * const []);
 
 	/* Don't start if "autostart" is set to "no" */
 	if (((s = getenv("autostart")) != NULL) && (strcmp(s, "no") == 0)) {
-		setenv_hex("filesize", images.os.image_len);
+		setenv_hex("filesize", images->os.image_len);
 		return 0;
 	}
-	appl = (int (*)(int, char * const []))(ulong)ntohl(images.ep);
+	appl = (int (*)(int, char * const []))(ulong)ntohl(images->ep);
 	(*appl)(argc, argv);
 	return 0;
 }
@@ -537,18 +540,12 @@ static cmd_tbl_t cmd_bootm_sub[] = {
 static int boot_selected_os(int argc, char * const argv[], int state,
 		bootm_headers_t *images, boot_os_fn *boot_fn)
 {
-	if (images->os.type == IH_TYPE_STANDALONE) {
-		/* This may return when 'autostart' is 'no' */
-		bootm_start_standalone(argc, argv);
-		return 0;
-	}
-#ifdef CONFIG_SILENT_CONSOLE
-	if (images->os.os == IH_OS_LINUX)
-		fixup_silent_linux();
-#endif
 	arch_preboot_os();
 	boot_fn(state, argc, argv, images);
-	if (state == BOOTM_STATE_OS_FAKE_GO) /* We expect to return */
+
+	/* Stand-alone may return when 'autostart' is 'no' */
+	if (images->os.type == IH_TYPE_STANDALONE ||
+	    state == BOOTM_STATE_OS_FAKE_GO) /* We expect to return */
 		return 0;
 	bootstage_error(BOOTSTAGE_ID_BOOT_OS_RETURNED);
 #ifdef DEBUG
@@ -576,6 +573,7 @@ static ulong bootm_disable_interrupts(void)
 #ifdef CONFIG_NETCONSOLE
 	/* Stop the ethernet stack if NetConsole could have left it up */
 	eth_halt();
+	eth_unregister(eth_get_dev());
 #endif
 
 #if defined(CONFIG_CMD_USB)
@@ -656,6 +654,10 @@ static int do_bootm_states(cmd_tbl_t *cmdtp, int flag, int argc,
 			goto err;
 		else if (ret == BOOTM_ERR_OVERLAP)
 			ret = 0;
+#if defined(CONFIG_SILENT_CONSOLE) && !defined(CONFIG_SILENT_U_BOOT_ONLY)
+		if (images->os.os == IH_OS_LINUX)
+			fixup_silent_linux();
+#endif
 	}
 
 	/* Relocate the ramdisk */
@@ -813,8 +815,12 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	return do_bootm_states(cmdtp, flag, argc, argv, BOOTM_STATE_START |
 		BOOTM_STATE_FINDOS | BOOTM_STATE_FINDOTHER |
-		BOOTM_STATE_LOADOS | BOOTM_STATE_OS_PREP |
-		BOOTM_STATE_OS_FAKE_GO | BOOTM_STATE_OS_GO, &images, 1);
+		BOOTM_STATE_LOADOS |
+#if defined(CONFIG_PPC) || defined(CONFIG_MIPS)
+		BOOTM_STATE_OS_CMDLINE |
+#endif
+		BOOTM_STATE_OS_PREP | BOOTM_STATE_OS_FAKE_GO |
+		BOOTM_STATE_OS_GO, &images, 1);
 }
 
 int bootm_maybe_autostart(cmd_tbl_t *cmdtp, const char *cmd)
@@ -1400,9 +1406,19 @@ static void fixup_silent_linux(void)
 	char *buf;
 	const char *env_val;
 	char *cmdline = getenv("bootargs");
+	int want_silent;
 
-	/* Only fix cmdline when requested */
-	if (!(gd->flags & GD_FLG_SILENT))
+	/*
+	 * Only fix cmdline when requested. The environment variable can be:
+	 *
+	 *	no - we never fixup
+	 *	yes - we always fixup
+	 *	unset - we rely on the console silent flag
+	 */
+	want_silent = getenv_yesno("silent_linux");
+	if (want_silent == 0)
+		return;
+	else if (want_silent == -1 && !(gd->flags & GD_FLG_SILENT))
 		return;
 
 	debug("before silent fix-up: %s\n", cmdline);
@@ -1468,10 +1484,8 @@ static int do_bootm_netbsd(int flag, int argc, char * const argv[],
 	char *consdev;
 	char *cmdline;
 
-	if (flag & BOOTM_STATE_OS_PREP)
+	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
-		return 1;
 
 #if defined(CONFIG_FIT)
 	if (!images->legacy_hdr_valid) {
@@ -1532,10 +1546,10 @@ static int do_bootm_netbsd(int flag, int argc, char * const argv[],
 
 	/*
 	 * NetBSD Stage-2 Loader Parameters:
-	 *   r3: ptr to board info data
-	 *   r4: image address
-	 *   r5: console device
-	 *   r6: boot args string
+	 *   arg[0]: pointer to board info data
+	 *   arg[1]: image load address
+	 *   arg[2]: char pointer to the console device to use
+	 *   arg[3]: char pointer to the boot arguments
 	 */
 	(*loader)(gd->bd, os_hdr, consdev, cmdline);
 
@@ -1549,10 +1563,8 @@ static int do_bootm_lynxkdi(int flag, int argc, char * const argv[],
 {
 	image_header_t *hdr = &images->legacy_hdr_os_copy;
 
-	if (flag & BOOTM_STATE_OS_PREP)
+	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
-		return 1;
 
 #if defined(CONFIG_FIT)
 	if (!images->legacy_hdr_valid) {
@@ -1573,10 +1585,8 @@ static int do_bootm_rtems(int flag, int argc, char * const argv[],
 {
 	void (*entry_point)(bd_t *);
 
-	if (flag & BOOTM_STATE_OS_PREP)
+	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
-		return 1;
 
 #if defined(CONFIG_FIT)
 	if (!images->legacy_hdr_valid) {
@@ -1608,10 +1618,8 @@ static int do_bootm_ose(int flag, int argc, char * const argv[],
 {
 	void (*entry_point)(void);
 
-	if (flag & BOOTM_STATE_OS_PREP)
+	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
-		return 1;
 
 #if defined(CONFIG_FIT)
 	if (!images->legacy_hdr_valid) {
@@ -1644,10 +1652,8 @@ static int do_bootm_plan9(int flag, int argc, char * const argv[],
 	void (*entry_point)(void);
 	char *s;
 
-	if (flag & BOOTM_STATE_OS_PREP)
+	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
-		return 1;
 
 #if defined(CONFIG_FIT)
 	if (!images->legacy_hdr_valid) {
@@ -1687,16 +1693,68 @@ static int do_bootm_plan9(int flag, int argc, char * const argv[],
 }
 #endif /* CONFIG_BOOTM_PLAN9 */
 
-#if defined(CONFIG_CMD_ELF)
+#if defined(CONFIG_BOOTM_VXWORKS) && \
+	(defined(CONFIG_PPC) || defined(CONFIG_ARM))
+
+void do_bootvx_fdt(bootm_headers_t *images)
+{
+#if defined(CONFIG_OF_LIBFDT)
+	int ret;
+	char *bootline;
+	ulong of_size = images->ft_len;
+	char **of_flat_tree = &images->ft_addr;
+	struct lmb *lmb = &images->lmb;
+
+	if (*of_flat_tree) {
+		boot_fdt_add_mem_rsv_regions(lmb, *of_flat_tree);
+
+		ret = boot_relocate_fdt(lmb, of_flat_tree, &of_size);
+		if (ret)
+			return;
+
+		ret = fdt_add_subnode(*of_flat_tree, 0, "chosen");
+		if ((ret >= 0 || ret == -FDT_ERR_EXISTS)) {
+			bootline = getenv("bootargs");
+			if (bootline) {
+				ret = fdt_find_and_setprop(*of_flat_tree,
+						"/chosen", "bootargs",
+						bootline,
+						strlen(bootline) + 1, 1);
+				if (ret < 0) {
+					printf("## ERROR: %s : %s\n", __func__,
+					       fdt_strerror(ret));
+					return;
+				}
+			}
+		} else {
+			printf("## ERROR: %s : %s\n", __func__,
+			       fdt_strerror(ret));
+			return;
+		}
+	}
+#endif
+
+	boot_prep_vxworks(images);
+
+	bootstage_mark(BOOTSTAGE_ID_RUN_OS);
+
+#if defined(CONFIG_OF_LIBFDT)
+	printf("## Starting vxWorks at 0x%08lx, device tree at 0x%08lx ...\n",
+	       (ulong)images->ep, (ulong)*of_flat_tree);
+#else
+	printf("## Starting vxWorks at 0x%08lx\n", (ulong)images->ep);
+#endif
+
+	boot_jump_vxworks(images);
+
+	puts("## vxWorks terminated\n");
+}
+
 static int do_bootm_vxworks(int flag, int argc, char * const argv[],
 			     bootm_headers_t *images)
 {
-	char str[80];
-
-	if (flag & BOOTM_STATE_OS_PREP)
+	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
-		return 1;
 
 #if defined(CONFIG_FIT)
 	if (!images->legacy_hdr_valid) {
@@ -1705,23 +1763,21 @@ static int do_bootm_vxworks(int flag, int argc, char * const argv[],
 	}
 #endif
 
-	sprintf(str, "%lx", images->ep); /* write entry-point into string */
-	setenv("loadaddr", str);
-	do_bootvx(NULL, 0, 0, NULL);
+	do_bootvx_fdt(images);
 
 	return 1;
 }
+#endif
 
+#if defined(CONFIG_CMD_ELF)
 static int do_bootm_qnxelf(int flag, int argc, char * const argv[],
 			    bootm_headers_t *images)
 {
 	char *local_args[2];
 	char str[16];
 
-	if (flag & BOOTM_STATE_OS_PREP)
+	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
-		return 1;
 
 #if defined(CONFIG_FIT)
 	if (!images->legacy_hdr_valid) {
@@ -1745,10 +1801,8 @@ static int do_bootm_integrity(int flag, int argc, char * const argv[],
 {
 	void (*entry_point)(void);
 
-	if (flag & BOOTM_STATE_OS_PREP)
+	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-	if ((flag != 0) && (flag != BOOTM_STATE_OS_GO))
-		return 1;
 
 #if defined(CONFIG_FIT)
 	if (!images->legacy_hdr_valid) {

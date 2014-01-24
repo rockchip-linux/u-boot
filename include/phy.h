@@ -2,20 +2,7 @@
  * Copyright 2011 Freescale Semiconductor, Inc.
  *	Andy Fleming <afleming@freescale.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  *
  * This file pretty much stolen from Linux's mii.h/ethtool.h/phy.h
  */
@@ -138,6 +125,9 @@ struct phy_driver {
 	/* Called when bringing down the controller */
 	int (*shutdown)(struct phy_device *phydev);
 
+	int (*readext)(struct phy_device *phydev, int addr, int devad, int reg);
+	int (*writeext)(struct phy_device *phydev, int addr, int devad, int reg,
+			u16 val);
 	struct list_head list;
 };
 
@@ -171,6 +161,14 @@ struct phy_device {
 	int asym_pause;
 	u32 phy_id;
 	u32 flags;
+};
+
+struct fixed_link {
+	int phy_id;
+	int duplex;
+	int link_speed;
+	int pause;
+	int asym_pause;
 };
 
 static inline int phy_read(struct phy_device *phydev, int devad, int regnum)

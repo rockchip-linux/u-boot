@@ -4,20 +4,7 @@
  * Copyright (C) 2011 Marek Vasut <marek.vasut@gmail.com>
  * on behalf of DENX Software Engineering GmbH
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __SYS_PROTO_H__
@@ -41,8 +28,9 @@ int mxsmmc_initialize(bd_t *bis, int id, int (*wp)(int), int (*cd)(int));
 #include <asm/arch/iomux-mx28.h>
 #endif
 
-void mxs_common_spl_init(const iomux_cfg_t *iomux_setup,
-			const unsigned int iomux_size);
+void mxs_common_spl_init(const uint32_t arg, const uint32_t *resptr,
+			 const iomux_cfg_t *iomux_setup,
+			 const unsigned int iomux_size);
 #endif
 
 struct mxs_pair {
@@ -58,6 +46,7 @@ static const struct mxs_pair mxs_boot_modes[] = {
 	{ 0x02, 0x1f, "SSP SPI #1, master, NOR" },
 	{ 0x03, 0x1f, "SSP SPI #2, master, NOR" },
 	{ 0x04, 0x1f, "NAND" },
+	{ 0x06, 0x1f, "JTAG" },
 	{ 0x08, 0x1f, "SSP SPI #3, master, EEPROM" },
 	{ 0x09, 0x1f, "SSP SD/MMC #0" },
 	{ 0x0a, 0x1f, "SSP SD/MMC #1" },
@@ -72,6 +61,7 @@ static const struct mxs_pair mxs_boot_modes[] = {
 	{ 0x13, 0x1f, "SSP SPI #3, master, 1V8 NOR" },
 	{ 0x04, 0x1f, "NAND, 3V3" },
 	{ 0x14, 0x1f, "NAND, 1V8" },
+	{ 0x06, 0x1f, "JTAG" },
 	{ 0x08, 0x1f, "SSP SPI #3, master, 3V3 EEPROM" },
 	{ 0x18, 0x1f, "SSP SPI #3, master, 1V8 EEPROM" },
 	{ 0x09, 0x1f, "SSP SD/MMC #0, 3V3" },

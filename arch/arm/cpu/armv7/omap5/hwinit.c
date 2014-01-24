@@ -10,23 +10,7 @@
  *	Steve Sakoman	<steve@sakoman.com>
  *	Sricharan	<r.sricharan@ti.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
 #include <asm/armv7.h>
@@ -184,12 +168,6 @@ void do_io_settings(void)
 		io_settings_lpddr2();
 	else
 		io_settings_ddr3();
-
-	/* Efuse settings */
-	writel(EFUSE_1, (*ctrl)->control_efuse_1);
-	writel(EFUSE_2, (*ctrl)->control_efuse_2);
-	writel(EFUSE_3, (*ctrl)->control_efuse_3);
-	writel(EFUSE_4, (*ctrl)->control_efuse_4);
 }
 
 static const struct srcomp_params srcomp_parameters[NUM_SYS_CLKS] = {
@@ -313,13 +291,17 @@ void srcomp_enable(void)
 
 void config_data_eye_leveling_samples(u32 emif_base)
 {
+	const struct ctrl_ioregs *ioregs;
+
+	get_ioregs(&ioregs);
+
 	/*EMIF_SDRAM_CONFIG_EXT-Read data eye leveling no of samples =4*/
 	if (emif_base == EMIF1_BASE)
-		writel(SDRAM_CONFIG_EXT_RD_LVL_4_SAMPLES,
-			(*ctrl)->control_emif1_sdram_config_ext);
+		writel(ioregs->ctrl_emif_sdram_config_ext_final,
+		       (*ctrl)->control_emif1_sdram_config_ext);
 	else if (emif_base == EMIF2_BASE)
-		writel(SDRAM_CONFIG_EXT_RD_LVL_4_SAMPLES,
-			(*ctrl)->control_emif2_sdram_config_ext);
+		writel(ioregs->ctrl_emif_sdram_config_ext_final,
+		       (*ctrl)->control_emif2_sdram_config_ext);
 }
 
 void init_omap_revision(void)

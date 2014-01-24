@@ -1,23 +1,7 @@
 /*
  * Copyright 2009-2011 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -28,7 +12,7 @@
 #include <asm/cache.h>
 #include <asm/immap_85xx.h>
 #include <asm/fsl_law.h>
-#include <asm/fsl_ddr_sdram.h>
+#include <fsl_ddr_sdram.h>
 #include <asm/fsl_serdes.h>
 #include <asm/fsl_portals.h>
 #include <asm/fsl_liodn.h>
@@ -52,6 +36,9 @@
 #define EMI2_SLOT5	0x30000000	/* bank3 ABCD */
 #define EMI1_MASK	0xc0000000
 #define EMI2_MASK	0x30000000
+
+#define PHY_BASE_ADDR	0x00
+#define PHY_BASE_ADDR_SLOT5	0x10
 
 static int mdio_mux[NUM_FM_PORTS];
 
@@ -306,6 +293,7 @@ int board_eth_init(bd_t *bis)
 	int i;
 	struct fsl_pq_mdio_info dtsec_mdio_info;
 	struct tgec_mdio_info tgec_mdio_info;
+	struct mii_dev *bus;
 
 	/* Initialize the mdio_mux array so we can recognize empty elements */
 	for (i = 0; i < NUM_FM_PORTS; i++)
@@ -386,6 +374,9 @@ int board_eth_init(bd_t *bis)
 			break;
 		}
 	}
+	bus = mii_dev_for_muxval(EMI1_SLOT5);
+	set_sgmii_phy(bus, FM1_DTSEC1,
+		      CONFIG_SYS_NUM_FM1_DTSEC, PHY_BASE_ADDR_SLOT5);
 
 	for (i = FM1_10GEC1; i < FM1_10GEC1 + CONFIG_SYS_NUM_FM1_10GEC; i++) {
 		int idx = i - FM1_10GEC1, lane, slot;
@@ -450,6 +441,11 @@ int board_eth_init(bd_t *bis)
 			break;
 		}
 	}
+
+	bus = mii_dev_for_muxval(EMI1_SLOT3);
+	set_sgmii_phy(bus, FM2_DTSEC1, CONFIG_SYS_NUM_FM2_DTSEC, PHY_BASE_ADDR);
+	bus = mii_dev_for_muxval(EMI1_SLOT4);
+	set_sgmii_phy(bus, FM2_DTSEC1, CONFIG_SYS_NUM_FM2_DTSEC, PHY_BASE_ADDR);
 
 	for (i = FM2_10GEC1; i < FM2_10GEC1 + CONFIG_SYS_NUM_FM2_10GEC; i++) {
 		int idx = i - FM2_10GEC1, lane, slot;

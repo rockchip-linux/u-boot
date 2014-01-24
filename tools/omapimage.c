@@ -11,29 +11,10 @@
  * Marvell Semiconductor <www.marvell.com>
  * Written-by: Prafulla Wadaskar <prafulla@marvell.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
-/* Required to obtain the getline prototype from stdio.h */
-#define _GNU_SOURCE
-
-#include "mkimage.h"
+#include "imagetool.h"
 #include <image.h>
 #include "omapimage.h"
 
@@ -88,7 +69,7 @@ static int valid_gph_load_addr(uint32_t load_addr)
 }
 
 static int omapimage_verify_header(unsigned char *ptr, int image_size,
-			struct mkimage_params *params)
+			struct image_tool_params *params)
 {
 	struct ch_toc *toc = (struct ch_toc *)ptr;
 	struct gp_header *gph = (struct gp_header *)(ptr+OMAP_CH_HDR_SIZE);
@@ -207,7 +188,7 @@ static int toc_offset(void *hdr, void *member)
 }
 
 static void omapimage_set_header(void *ptr, struct stat *sbuf, int ifd,
-				struct mkimage_params *params)
+				struct image_tool_params *params)
 {
 	struct ch_toc *toc = (struct ch_toc *)ptr;
 	struct ch_settings *chs = (struct ch_settings *)
@@ -243,7 +224,7 @@ static void omapimage_set_header(void *ptr, struct stat *sbuf, int ifd,
 	}
 }
 
-int omapimage_check_params(struct mkimage_params *params)
+int omapimage_check_params(struct image_tool_params *params)
 {
 	return	(params->dflag && (params->fflag || params->lflag)) ||
 		(params->fflag && (params->dflag || params->lflag)) ||
@@ -266,5 +247,5 @@ static struct image_type_params omapimage_params = {
 
 void init_omap_image_type(void)
 {
-	mkimage_register(&omapimage_params);
+	register_image_type(&omapimage_params);
 }

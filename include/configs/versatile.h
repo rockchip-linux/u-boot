@@ -9,23 +9,7 @@
  * Philippe Robin, <philippe.robin@arm.com>
  * Configuration for Versatile PB.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -41,12 +25,11 @@
 
 #define CONFIG_SYS_MEMTEST_START	0x100000
 #define CONFIG_SYS_MEMTEST_END		0x10000000
-#define CONFIG_SYS_HZ			(1000000 / 256)
-#define CONFIG_SYS_TIMERBASE		0x101E2000	/* Timer 0 and 1 base */
 
-#define CONFIG_SYS_TIMER_INTERVAL	10000
-#define CONFIG_SYS_TIMER_RELOAD		(CONFIG_SYS_TIMER_INTERVAL >> 4)
-#define CONFIG_SYS_TIMER_CTRL		0x84		/* Enable, Clock / 16 */
+#define CONFIG_SYS_TIMERBASE		0x101E2000	/* Timer 0 and 1 base */
+#define CONFIG_SYS_TIMER_RATE		(1000000 / 256)
+#define CONFIG_SYS_TIMER_COUNTER	(CONFIG_SYS_TIMERBASE + 0x4)
+#define CONFIG_SYS_TIMER_COUNTS_DOWN
 
 /*
  * control registers

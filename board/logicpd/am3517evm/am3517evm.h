@@ -8,19 +8,7 @@
  * Copyright (C) 2010
  * Texas Instruments Incorporated - http://www.ti.com/
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef _AM3517EVM_H_
@@ -327,7 +315,7 @@ const omap3_sysinfo sysinfo = {
 	MUX_VAL(CP(SYS_CLKREQ),		(IEN  | PTD | DIS | M0)) \
 	MUX_VAL(CP(SYS_NIRQ),		(IEN  | PTU | EN  | M0)) \
 	/*SYS_nRESWARM */\
-	MUX_VAL(CP(SYS_NRESWARM),     	(IDIS | PTU | DIS | M4)) \
+	MUX_VAL(CP(SYS_NRESWARM),     	(IDIS | PTU | EN | M4)) \
 							/* - GPIO30 */\
 	MUX_VAL(CP(SYS_BOOT0),		(IEN  | PTD | DIS | M4)) /*GPIO_2*/\
 							 /* - PEN_IRQ */\

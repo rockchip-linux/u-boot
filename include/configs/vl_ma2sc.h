@@ -5,23 +5,7 @@
  *
  * Configuation settings for the VL_MA2SC board.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -132,6 +116,7 @@
 
 /* USB */
 #define CONFIG_USB_ATMEL
+#define CONFIG_USB_ATMEL_CLK_SEL_PLLB
 #define CONFIG_USB_OHCI_NEW
 #define CONFIG_DOS_PARTITION
 #define CONFIG_SYS_USB_OHCI_CPU_INIT
@@ -147,10 +132,12 @@
 #define CONFIG_SYS_I2C_SLAVE			0		/* not used */
 
 #ifndef CONFIG_HARD_I2C
-#define CONFIG_SOFT_I2C
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_SOFT			/* I2C bit-banged */
+#define CONFIG_SYS_I2C_SOFT_SPEED	CONFIG_SYS_I2C_SPEED
+#define CONFIG_SYS_I2C_SOFT_SLAVE	CONFIG_SYS_I2C_SLAVE
 
 /* Software  I2C driver configuration */
-
 #define I2C_DELAY	udelay(2500000/CONFIG_SYS_I2C_SPEED)
 
 #define AT91_PIN_SDA	(1<<4)		/* AT91C_PIO_PB4 */
@@ -212,7 +199,6 @@
 
 /* clocks */
 
-#define CONFIG_SYS_HZ			1000
 #define CONFIG_SYS_AT91_SLOW_CLOCK	32768		/* slow clock */
 
 #define MHZ180
@@ -334,8 +320,8 @@
 #define CONFIG_SYS_NAND_DBW_8		1
 #define CONFIG_SYS_NAND_MASK_ALE	(1 << 21)	/* our ALE is AD21 */
 #define CONFIG_SYS_NAND_MASK_CLE	(1 << 22)	/* our CLE is AD22 */
-#define CONFIG_SYS_NAND_ENABLE_PIN	AT91_PIO_PORTD, 15
-#define CONFIG_SYS_NAND_READY_PIN	AT91_PIO_PORTB, 0
+#define CONFIG_SYS_NAND_ENABLE_PIN	GPIO_PIN_PD(15)
+#define CONFIG_SYS_NAND_READY_PIN	GPIO_PIN_PB(0)
 #define CONFIG_SYS_64BIT_VSPRINTF	/* needed for nand_util.c */
 #endif
 
@@ -344,6 +330,7 @@
 #define CONFIG_RMII
 #define CONFIG_NET_MULTI
 #define CONFIG_NET_RETRY_COUNT		5
+#define CONFIG_AT91_WANTS_COMMON_PHY
 
 #define CONFIG_OVERWRITE_ETHADDR_ONCE
 

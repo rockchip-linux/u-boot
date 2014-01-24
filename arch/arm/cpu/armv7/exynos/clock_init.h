@@ -3,30 +3,18 @@
  *
  * Copyright (c) 2011 The Chromium OS Authors.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __EXYNOS_CLOCK_INIT_H
 #define __EXYNOS_CLOCK_INIT_H
 
 enum {
+#ifdef CONFIG_EXYNOS5420
+	MEM_TIMINGS_MSR_COUNT	= 5,
+#else
 	MEM_TIMINGS_MSR_COUNT	= 4,
+#endif
 };
 
 /* These are the ratio's for configuring ARM clock */
@@ -75,6 +63,18 @@ struct mem_timings {
 	unsigned bpll_mdiv;
 	unsigned bpll_pdiv;
 	unsigned bpll_sdiv;
+	unsigned kpll_mdiv;
+	unsigned kpll_pdiv;
+	unsigned kpll_sdiv;
+	unsigned dpll_mdiv;
+	unsigned dpll_pdiv;
+	unsigned dpll_sdiv;
+	unsigned ipll_mdiv;
+	unsigned ipll_pdiv;
+	unsigned ipll_sdiv;
+	unsigned spll_mdiv;
+	unsigned spll_pdiv;
+	unsigned spll_sdiv;
 	unsigned pclk_cdrex_ratio;
 	unsigned direct_cmd_msr[MEM_TIMINGS_MSR_COUNT];
 
@@ -131,6 +131,7 @@ struct mem_timings {
 	uint8_t send_zq_init;		/* 1 to send this command */
 	unsigned impedance;		/* drive strength impedeance */
 	uint8_t gate_leveling_enable;	/* check gate leveling is enabled */
+	uint8_t read_leveling_enable;	/* check h/w read leveling is enabled */
 };
 
 /**

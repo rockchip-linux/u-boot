@@ -2,23 +2,7 @@
  * (C) Copyright 2005-2009
  * Jens Scharsig @ BuS Elektronik GmbH & Co. KG, <esw@bus-elektronik.de>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -36,7 +20,6 @@ vu_long  *vcxk_bws_long = ((vu_long *) (CONFIG_SYS_VCXK_BASE));
 	#ifndef VCBITMASK
 		#define VCBITMASK(bitno)	(0x0001 << (bitno % 16))
 	#endif
-#ifndef CONFIG_AT91_LEGACY
 at91_pio_t *pio = (at91_pio_t *) AT91_PIO_BASE;
 #define VCXK_INIT_PIN(PORT, PIN, DDR, I0O1) \
 	do { \
@@ -53,20 +36,6 @@ at91_pio_t *pio = (at91_pio_t *) AT91_PIO_BASE;
 #define VCXK_ACKNOWLEDGE	\
 	(!(readl(&pio->CONFIG_SYS_VCXK_ACKNOWLEDGE_PORT.pdsr) & \
 			CONFIG_SYS_VCXK_ACKNOWLEDGE_PIN))
-#else
-	#define VCXK_INIT_PIN(PORT, PIN, DDR, I0O1) \
-		((AT91PS_PIO) PORT)->PIO_PER = PIN; \
-		((AT91PS_PIO) PORT)->DDR = PIN; \
-		((AT91PS_PIO) PORT)->PIO_MDDR = PIN; \
-		if (!I0O1) ((AT91PS_PIO) PORT)->PIO_PPUER = PIN;
-
-	#define VCXK_SET_PIN(PORT, PIN)	((AT91PS_PIO) PORT)->PIO_SODR  = PIN;
-	#define VCXK_CLR_PIN(PORT, PIN)	((AT91PS_PIO) PORT)->PIO_CODR  = PIN;
-
-	#define VCXK_ACKNOWLEDGE	\
-		(!(((AT91PS_PIO) CONFIG_SYS_VCXK_ACKNOWLEDGE_PORT)->\
-			PIO_PDSR & CONFIG_SYS_VCXK_ACKNOWLEDGE_PIN))
-#endif
 #elif defined(CONFIG_MCF52x2)
 	#include <asm/m5282.h>
 	#ifndef VCBITMASK

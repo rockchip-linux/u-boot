@@ -4,25 +4,12 @@
  * Copyright 2011 Freescale Semiconductor, Inc.
  * Author: Dipen Dudhat <dipen.dudhat@freescale.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/fsl_ifc.h>
+#include <fsl_ifc.h>
 #include <linux/mtd/nand.h>
 
 static inline int is_blank(uchar *addr, int page_size)
@@ -101,7 +88,11 @@ static inline int bad_block(uchar *marker, int port_size)
 		return __raw_readw((u16 *)marker) != 0xffff;
 }
 
-static void nand_load(unsigned int offs, int uboot_size, uchar *dst)
+#ifdef CONFIG_TPL_BUILD
+int nand_spl_load_image(uint32_t offs, unsigned int uboot_size, void *vdst)
+#else
+static int nand_load(uint32_t offs, unsigned int uboot_size, void *vdst)
+#endif
 {
 	struct fsl_ifc *ifc = IFC_BASE_ADDR;
 	uchar *buf = (uchar *)CONFIG_SYS_NAND_BASE;
@@ -118,6 +109,7 @@ static void nand_load(unsigned int offs, int uboot_size, uchar *dst)
 
 	int sram_addr;
 	int pg_no;
+	uchar *dst = vdst;
 
 	/* Get NAND Flash configuration */
 	csor = CONFIG_SYS_NAND_CSOR;
@@ -125,10 +117,13 @@ static void nand_load(unsigned int offs, int uboot_size, uchar *dst)
 
 	port_size = (cspr & CSPR_PORT_SIZE_16) ? 16 : 8;
 
-	if (csor & CSOR_NAND_PGS_4K) {
+	if ((csor & CSOR_NAND_PGS_MASK) == CSOR_NAND_PGS_8K) {
+		page_size = 8192;
+		bufnum_mask = 0x0;
+	} else if ((csor & CSOR_NAND_PGS_MASK) == CSOR_NAND_PGS_4K) {
 		page_size = 4096;
 		bufnum_mask = 0x1;
-	} else if (csor & CSOR_NAND_PGS_2K) {
+	} else if ((csor & CSOR_NAND_PGS_MASK) == CSOR_NAND_PGS_2K) {
 		page_size = 2048;
 		bufnum_mask = 0x3;
 	} else {
@@ -218,7 +213,18 @@ static void nand_load(unsigned int offs, int uboot_size, uchar *dst)
 			offs += page_size;
 		} while ((offs & (blk_size - 1)) && (pos < uboot_size));
 	}
+
+	return 0;
 }
+
+/*
+ * Defines a static function nand_load_image() here, because non-static makes
+ * the code too large for certain SPLs(minimal SPL, maximum size <= 4Kbytes)
+ */
+#ifndef CONFIG_TPL_BUILD
+#define nand_spl_load_image(offs, uboot_size, vdst) \
+	nand_load(offs, uboot_size, vdst)
+#endif
 
 /*
  * Main entrypoint for NAND Boot. It's necessary that SDRAM is already
@@ -231,16 +237,17 @@ void nand_boot(void)
 	/*
 	 * Load U-Boot image from NAND into RAM
 	 */
-	nand_load(CONFIG_SYS_NAND_U_BOOT_OFFS, CONFIG_SYS_NAND_U_BOOT_SIZE,
-		  (uchar *)CONFIG_SYS_NAND_U_BOOT_DST);
+	nand_spl_load_image(CONFIG_SYS_NAND_U_BOOT_OFFS,
+			    CONFIG_SYS_NAND_U_BOOT_SIZE,
+			    (uchar *)CONFIG_SYS_NAND_U_BOOT_DST);
 
 #ifdef CONFIG_NAND_ENV_DST
-	nand_load(CONFIG_ENV_OFFSET, CONFIG_ENV_SIZE,
-		  (uchar *)CONFIG_NAND_ENV_DST);
+	nand_spl_load_image(CONFIG_ENV_OFFSET, CONFIG_ENV_SIZE,
+			    (uchar *)CONFIG_NAND_ENV_DST);
 
 #ifdef CONFIG_ENV_OFFSET_REDUND
-	nand_load(CONFIG_ENV_OFFSET_REDUND, CONFIG_ENV_SIZE,
-		  (uchar *)CONFIG_NAND_ENV_DST + CONFIG_ENV_SIZE);
+	nand_spl_load_image(CONFIG_ENV_OFFSET_REDUND, CONFIG_ENV_SIZE,
+			    (uchar *)CONFIG_NAND_ENV_DST + CONFIG_ENV_SIZE);
 #endif
 #endif
 	/*

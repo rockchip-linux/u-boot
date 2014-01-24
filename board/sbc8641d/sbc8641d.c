@@ -9,23 +9,7 @@
  *
  * (C) Copyright 2002 Scott McNutt <smcnutt@artesyncp.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -34,7 +18,7 @@
 #include <asm/processor.h>
 #include <asm/immap_86xx.h>
 #include <asm/fsl_pci.h>
-#include <asm/fsl_ddr_sdram.h>
+#include <fsl_ddr_sdram.h>
 #include <asm/fsl_serdes.h>
 #include <libfdt.h>
 #include <fdt_support.h>
@@ -109,7 +93,7 @@ long int fixed_sdram (void)
 {
 #if !defined(CONFIG_SYS_RAMBOOT)
 	volatile immap_t *immap = (immap_t *) CONFIG_SYS_IMMR;
-	volatile ccsr_ddr_t *ddr = &immap->im_ddr1;
+	volatile struct ccsr_ddr *ddr = &immap->im_ddr1;
 
 	ddr->cs0_bnds = CONFIG_SYS_DDR_CS0_BNDS;
 	ddr->cs1_bnds = CONFIG_SYS_DDR_CS1_BNDS;
@@ -127,7 +111,7 @@ long int fixed_sdram (void)
 	ddr->sdram_cfg_2 = CONFIG_SYS_DDR_CFG_2;
 	ddr->sdram_mode = CONFIG_SYS_DDR_MODE_1;
 	ddr->sdram_mode_2 = CONFIG_SYS_DDR_MODE_2;
-	ddr->sdram_mode_cntl = CONFIG_SYS_DDR_MODE_CTL;
+	ddr->sdram_md_cntl = CONFIG_SYS_DDR_MODE_CTL;
 	ddr->sdram_interval = CONFIG_SYS_DDR_INTERVAL;
 	ddr->sdram_data_init = CONFIG_SYS_DDR_DATA_INIT;
 	ddr->sdram_clk_cntl = CONFIG_SYS_DDR_CLK_CTRL;
@@ -158,7 +142,7 @@ long int fixed_sdram (void)
 	ddr->sdram_cfg_2 = CONFIG_SYS_DDR2_CFG_2;
 	ddr->sdram_mode = CONFIG_SYS_DDR2_MODE_1;
 	ddr->sdram_mode_2 = CONFIG_SYS_DDR2_MODE_2;
-	ddr->sdram_mode_cntl = CONFIG_SYS_DDR2_MODE_CTL;
+	ddr->sdram_md_cntl = CONFIG_SYS_DDR2_MODE_CTL;
 	ddr->sdram_interval = CONFIG_SYS_DDR2_INTERVAL;
 	ddr->sdram_data_init = CONFIG_SYS_DDR2_DATA_INIT;
 	ddr->sdram_clk_cntl = CONFIG_SYS_DDR2_CLK_CTRL;

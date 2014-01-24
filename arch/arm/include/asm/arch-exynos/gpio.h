@@ -2,20 +2,7 @@
  * (C) Copyright 2010 Samsung Electronics
  * Minkyu Kang <mk7.kang@samsung.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __ASM_ARCH_GPIO_H
@@ -138,6 +125,58 @@ struct exynos4x12_gpio_part4 {
 	struct s5p_gpio_bank v3;
 	struct s5p_gpio_bank res2[0x1];
 	struct s5p_gpio_bank v4;
+};
+
+struct exynos5420_gpio_part1 {
+	struct s5p_gpio_bank a0;
+	struct s5p_gpio_bank a1;
+	struct s5p_gpio_bank a2;
+	struct s5p_gpio_bank b0;
+	struct s5p_gpio_bank b1;
+	struct s5p_gpio_bank b2;
+	struct s5p_gpio_bank b3;
+	struct s5p_gpio_bank b4;
+	struct s5p_gpio_bank h0;
+};
+
+struct exynos5420_gpio_part2 {
+	struct s5p_gpio_bank y7; /* 0x1340_0000 */
+	struct s5p_gpio_bank res[0x5f]; /*  */
+	struct s5p_gpio_bank x0; /* 0x1340_0C00 */
+	struct s5p_gpio_bank x1; /* 0x1340_0C20 */
+	struct s5p_gpio_bank x2; /* 0x1340_0C40 */
+	struct s5p_gpio_bank x3; /* 0x1340_0C60 */
+};
+
+struct exynos5420_gpio_part3 {
+	struct s5p_gpio_bank c0;
+	struct s5p_gpio_bank c1;
+	struct s5p_gpio_bank c2;
+	struct s5p_gpio_bank c3;
+	struct s5p_gpio_bank c4;
+	struct s5p_gpio_bank d1;
+	struct s5p_gpio_bank y0;
+	struct s5p_gpio_bank y1;
+	struct s5p_gpio_bank y2;
+	struct s5p_gpio_bank y3;
+	struct s5p_gpio_bank y4;
+	struct s5p_gpio_bank y5;
+	struct s5p_gpio_bank y6;
+};
+
+struct exynos5420_gpio_part4 {
+	struct s5p_gpio_bank e0; /* 0x1400_0000 */
+	struct s5p_gpio_bank e1; /* 0x1400_0020 */
+	struct s5p_gpio_bank f0; /* 0x1400_0040 */
+	struct s5p_gpio_bank f1; /* 0x1400_0060 */
+	struct s5p_gpio_bank g0; /* 0x1400_0080 */
+	struct s5p_gpio_bank g1; /* 0x1400_00A0 */
+	struct s5p_gpio_bank g2; /* 0x1400_00C0 */
+	struct s5p_gpio_bank j4; /* 0x1400_00E0 */
+};
+
+struct exynos5420_gpio_part5 {
+	struct s5p_gpio_bank z0; /* 0x0386_0000 */
 };
 
 struct exynos5_gpio_part1 {
@@ -272,16 +311,67 @@ void s5p_gpio_set_rate(struct s5p_gpio_bank *bank, int gpio, int mode);
 	    - EXYNOS5_GPIO_PART3_BASE) / sizeof(struct s5p_gpio_bank)) \
 	  * GPIO_PER_BANK) + pin) + EXYNOS5_GPIO_PART2_MAX)
 
+
+/* EXYNOS5420 */
+#define exynos5420_gpio_part1_get_nr(bank, pin) \
+	((((((unsigned int) &(((struct exynos5420_gpio_part1 *)\
+			       EXYNOS5420_GPIO_PART1_BASE)->bank)) \
+	    - EXYNOS5420_GPIO_PART1_BASE) / sizeof(struct s5p_gpio_bank)) \
+	  * GPIO_PER_BANK) + pin)
+
+#define EXYNOS5420_GPIO_PART1_MAX ((sizeof(struct exynos5420_gpio_part1) \
+			    / sizeof(struct s5p_gpio_bank)) * GPIO_PER_BANK)
+
+#define exynos5420_gpio_part2_get_nr(bank, pin) \
+	(((((((unsigned int) &(((struct exynos5420_gpio_part2 *)\
+				EXYNOS5420_GPIO_PART2_BASE)->bank)) \
+	    - EXYNOS5420_GPIO_PART2_BASE) / sizeof(struct s5p_gpio_bank)) \
+	  * GPIO_PER_BANK) + pin) + EXYNOS5420_GPIO_PART1_MAX)
+
+#define EXYNOS5420_GPIO_PART2_MAX ((sizeof(struct exynos5420_gpio_part2) \
+			    / sizeof(struct s5p_gpio_bank)) * GPIO_PER_BANK)
+
+#define exynos5420_gpio_part3_get_nr(bank, pin) \
+	(((((((unsigned int) &(((struct exynos5420_gpio_part3 *)\
+				EXYNOS5420_GPIO_PART3_BASE)->bank)) \
+	    - EXYNOS5420_GPIO_PART3_BASE) / sizeof(struct s5p_gpio_bank)) \
+	  * GPIO_PER_BANK) + pin) + EXYNOS5420_GPIO_PART2_MAX)
+
+#define EXYNOS5420_GPIO_PART3_MAX ((sizeof(struct exynos5420_gpio_part3) \
+			    / sizeof(struct s5p_gpio_bank)) * GPIO_PER_BANK)
+
+#define exynos5420_gpio_part4_get_nr(bank, pin) \
+	(((((((unsigned int) &(((struct exynos5420_gpio_part4 *)\
+				EXYNOS5420_GPIO_PART4_BASE)->bank)) \
+	    - EXYNOS5420_GPIO_PART4_BASE) / sizeof(struct s5p_gpio_bank)) \
+	  * GPIO_PER_BANK) + pin) + EXYNOS5420_GPIO_PART3_MAX)
+
+#define EXYNOS5420_GPIO_PART4_MAX ((sizeof(struct exynos5420_gpio_part4) \
+			    / sizeof(struct s5p_gpio_bank)) * GPIO_PER_BANK)
+
+#define EXYNOS5420_GPIO_PART5_MAX ((sizeof(struct exynos5420_gpio_part5) \
+			    / sizeof(struct s5p_gpio_bank)) * GPIO_PER_BANK)
+
 static inline unsigned int s5p_gpio_base(int nr)
 {
 	if (cpu_is_exynos5()) {
-		if (nr < EXYNOS5_GPIO_PART1_MAX)
-			return EXYNOS5_GPIO_PART1_BASE;
-		else if (nr < EXYNOS5_GPIO_PART2_MAX)
-			return EXYNOS5_GPIO_PART2_BASE;
-		else
-			return EXYNOS5_GPIO_PART3_BASE;
-
+		if (proid_is_exynos5420()) {
+			if (nr < EXYNOS5420_GPIO_PART1_MAX)
+				return EXYNOS5420_GPIO_PART1_BASE;
+			else if (nr < EXYNOS5420_GPIO_PART2_MAX)
+				return EXYNOS5420_GPIO_PART2_BASE;
+			else if (nr < EXYNOS5420_GPIO_PART3_MAX)
+				return EXYNOS5420_GPIO_PART3_BASE;
+			else
+				return EXYNOS5420_GPIO_PART4_BASE;
+		} else {
+			if (nr < EXYNOS5_GPIO_PART1_MAX)
+				return EXYNOS5_GPIO_PART1_BASE;
+			else if (nr < EXYNOS5_GPIO_PART2_MAX)
+				return EXYNOS5_GPIO_PART2_BASE;
+			else
+				return EXYNOS5_GPIO_PART3_BASE;
+		}
 	} else if (cpu_is_exynos4()) {
 		if (nr < EXYNOS4_GPIO_PART1_MAX)
 			return EXYNOS4_GPIO_PART1_BASE;
@@ -295,18 +385,39 @@ static inline unsigned int s5p_gpio_base(int nr)
 static inline unsigned int s5p_gpio_part_max(int nr)
 {
 	if (cpu_is_exynos5()) {
-		if (nr < EXYNOS5_GPIO_PART1_MAX)
-			return 0;
-		else if (nr < EXYNOS5_GPIO_PART2_MAX)
-			return EXYNOS5_GPIO_PART1_MAX;
-		else
-			return EXYNOS5_GPIO_PART2_MAX;
-
+		if (proid_is_exynos5420()) {
+			if (nr < EXYNOS5420_GPIO_PART1_MAX)
+				return 0;
+			else if (nr < EXYNOS5420_GPIO_PART2_MAX)
+				return EXYNOS5420_GPIO_PART1_MAX;
+			else if (nr < EXYNOS5420_GPIO_PART3_MAX)
+				return EXYNOS5420_GPIO_PART2_MAX;
+			else if (nr < EXYNOS5420_GPIO_PART4_MAX)
+				return EXYNOS5420_GPIO_PART3_MAX;
+			else
+				return EXYNOS5420_GPIO_PART4_MAX;
+		} else {
+			if (nr < EXYNOS5_GPIO_PART1_MAX)
+				return 0;
+			else if (nr < EXYNOS5_GPIO_PART2_MAX)
+				return EXYNOS5_GPIO_PART1_MAX;
+			else
+				return EXYNOS5_GPIO_PART2_MAX;
+		}
 	} else if (cpu_is_exynos4()) {
-		if (nr < EXYNOS4_GPIO_PART1_MAX)
-			return 0;
-		else
-			return EXYNOS4_GPIO_PART1_MAX;
+		if (proid_is_exynos4412()) {
+			if (nr < EXYNOS4X12_GPIO_PART1_MAX)
+				return 0;
+			else if (nr < EXYNOS4X12_GPIO_PART2_MAX)
+				return EXYNOS4X12_GPIO_PART1_MAX;
+			else
+				return EXYNOS4X12_GPIO_PART2_MAX;
+		} else {
+			if (nr < EXYNOS4_GPIO_PART1_MAX)
+				return 0;
+			else
+				return EXYNOS4_GPIO_PART1_MAX;
+		}
 	}
 
 	return 0;

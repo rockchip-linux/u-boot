@@ -2,23 +2,7 @@
  * (C) Copyright 2001
  * Denis Peter, MPL AG Switzerland, d.peter@mpl.ch.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -249,8 +233,8 @@ void print_part_iso(block_dev_desc_t * dev_desc)
 	printf("Part   Start     Sect x Size Type\n");
 	i=0;
 	do {
-		printf (" %2d %8ld %8ld %6ld %.32s\n",
-			i, info.start, info.size, info.blksz, info.type);
+		printf(" %2d " LBAFU " " LBAFU " %6ld %.32s\n",
+		       i, info.start, info.size, info.blksz, info.type);
 		i++;
 	} while (get_partition_info_iso_verb(dev_desc,i,&info,0)!=-1);
 }

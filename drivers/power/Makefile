@@ -2,57 +2,18 @@
 # Copyright (c) 2009 Wind River Systems, Inc.
 # Tom Rix <Tom.Rix at windriver.com>
 #
-# See file CREDITS for list of people who contributed to this
-# project.
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2 of
-# the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307 USA
+# SPDX-License-Identifier:	GPL-2.0+
 #
 
-include $(TOPDIR)/config.mk
+obj-$(CONFIG_EXYNOS_TMU)	+= exynos-tmu.o
+obj-$(CONFIG_FTPMU010_POWER)	+= ftpmu010.o
+obj-$(CONFIG_TPS6586X_POWER)	+= tps6586x.o
+obj-$(CONFIG_TWL4030_POWER)	+= twl4030.o
+obj-$(CONFIG_TWL6030_POWER)	+= twl6030.o
+obj-$(CONFIG_PALMAS_POWER)	+= palmas.o
 
-LIB	:= $(obj)libpower.o
-
-COBJS-$(CONFIG_EXYNOS_TMU)	+= exynos-tmu.o
-COBJS-$(CONFIG_FTPMU010_POWER)	+= ftpmu010.o
-COBJS-$(CONFIG_TPS6586X_POWER)	+= tps6586x.o
-COBJS-$(CONFIG_TWL4030_POWER)	+= twl4030.o
-COBJS-$(CONFIG_TWL6030_POWER)	+= twl6030.o
-COBJS-$(CONFIG_PALMAS_POWER)	+= palmas.o
-
-COBJS-$(CONFIG_POWER) += power_core.o
-COBJS-$(CONFIG_DIALOG_POWER) += power_dialog.o
-COBJS-$(CONFIG_POWER_FSL) += power_fsl.o
-COBJS-$(CONFIG_POWER_I2C) += power_i2c.o
-COBJS-$(CONFIG_POWER_SPI) += power_spi.o
-
-COBJS	:= $(COBJS-y)
-SRCS	:= $(COBJS:.o=.c)
-OBJS	:= $(addprefix $(obj),$(COBJS))
-
-all:	$(LIB)
-
-$(LIB):	$(obj).depend $(OBJS)
-	$(call cmd_link_o_target, $(OBJS))
-
-
-#########################################################################
-
-# defines $(obj).depend target
-include $(SRCTREE)/rules.mk
-
-sinclude $(obj).depend
-
-########################################################################
+obj-$(CONFIG_POWER) += power_core.o
+obj-$(CONFIG_DIALOG_POWER) += power_dialog.o
+obj-$(CONFIG_POWER_FSL) += power_fsl.o
+obj-$(CONFIG_POWER_I2C) += power_i2c.o
+obj-$(CONFIG_POWER_SPI) += power_spi.o

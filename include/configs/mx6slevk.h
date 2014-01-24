@@ -3,10 +3,7 @@
  *
  * Configuration settings for the Freescale i.MX6SL EVK board.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -14,6 +11,7 @@
 
 #include <asm/arch/imx-regs.h>
 #include <asm/sizes.h>
+#include "mx6_common.h"
 
 #define CONFIG_MX6
 #define CONFIG_DISPLAY_CPUINFO
@@ -46,6 +44,20 @@
 #define CONFIG_GENERIC_MMC
 #define CONFIG_CMD_FAT
 #define CONFIG_DOS_PARTITION
+
+#define CONFIG_CMD_PING
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_NET
+#define CONFIG_FEC_MXC
+#define CONFIG_MII
+#define IMX_FEC_BASE			ENET_BASE_ADDR
+#define CONFIG_FEC_XCV_TYPE		RMII
+#define CONFIG_ETHPRIME			"FEC"
+#define CONFIG_FEC_MXC_PHYADDR		0
+
+#define CONFIG_PHYLIB
+#define CONFIG_PHY_SMSC
 
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
@@ -139,7 +151,6 @@
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_SYS_HUSH_PARSER
-#define CONFIG_SYS_PROMPT		"=> "
 #define CONFIG_AUTO_COMPLETE
 #define CONFIG_SYS_CBSIZE		256
 
@@ -152,7 +163,6 @@
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + SZ_512M)
 
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
-#define CONFIG_SYS_HZ			1000
 
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_STACKSIZE		SZ_128K

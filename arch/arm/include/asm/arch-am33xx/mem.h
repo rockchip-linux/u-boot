@@ -8,23 +8,7 @@
  * Initial Code from:
  *		Richard Woodruff <r-woodruff2@ti.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef _MEM_H_
@@ -46,6 +30,7 @@
  *
  * Currently valid part Names are (PART):
  * M_NAND - Micron NAND
+ * STNOR - STMicrolelctronics M29W128GL
  */
 #define GPMC_SIZE_256M		0x0
 #define GPMC_SIZE_128M		0x8
@@ -61,6 +46,14 @@
 #define M_NAND_GPMC_CONFIG6	0x16000f80
 #define M_NAND_GPMC_CONFIG7	0x00000008
 
+#define STNOR_GPMC_CONFIG1	0x00001200
+#define STNOR_GPMC_CONFIG2	0x00101000
+#define STNOR_GPMC_CONFIG3	0x00030301
+#define STNOR_GPMC_CONFIG4	0x10041004
+#define STNOR_GPMC_CONFIG5	0x000C1010
+#define STNOR_GPMC_CONFIG6	0x08070280
+#define STNOR_GPMC_CONFIG7	0x00000F48
+
 /* max number of GPMC Chip Selects */
 #define GPMC_MAX_CS		8
 /* max number of GPMC regs */
@@ -74,10 +67,5 @@
 #define DBG_MPDB		6
 #define PISMO2_NAND_CS0		7
 #define PISMO2_NAND_CS1		8
-
-/* make it readable for the gpmc_init */
-#define PISMO1_NOR_BASE	FLASH_BASE
-#define PISMO1_NAND_BASE	CONFIG_SYS_NAND_BASE
-#define PISMO1_NAND_SIZE	GPMC_SIZE_256M
 
 #endif /* endif _MEM_H_ */

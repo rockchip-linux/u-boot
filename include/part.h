@@ -2,23 +2,7 @@
  * (C) Copyright 2000-2004
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #ifndef _PART_H
 #define _PART_H
@@ -74,6 +58,8 @@ typedef struct block_dev_desc {
 #define IF_TYPE_MMC		6
 #define IF_TYPE_SD		7
 #define IF_TYPE_SATA		8
+#define IF_TYPE_HOST		9
+#define IF_TYPE_MAX		10	/* Max number of IF_TYPE_* supported */
 
 /* Part types */
 #define PART_TYPE_UNKNOWN	0x00
@@ -97,8 +83,8 @@ typedef struct block_dev_desc {
 #define DEV_TYPE_OPDISK		0x07	/* optical disk */
 
 typedef struct disk_partition {
-	ulong	start;		/* # of first block in partition	*/
-	ulong	size;		/* number of blocks in partition	*/
+	lbaint_t	start;	/* # of first block in partition	*/
+	lbaint_t	size;	/* number of blocks in partition	*/
 	ulong	blksz;		/* block size in bytes			*/
 	uchar	name[32];	/* partition name			*/
 	uchar	type[32];	/* string type description		*/
@@ -118,6 +104,8 @@ block_dev_desc_t* usb_stor_get_dev(int dev);
 block_dev_desc_t* mmc_get_dev(int dev);
 block_dev_desc_t* systemace_get_dev(int dev);
 block_dev_desc_t* mg_disk_get_dev(int dev);
+block_dev_desc_t *host_get_dev(int dev);
+int host_get_dev_err(int dev, block_dev_desc_t **blk_devp);
 
 /* disk/part.c */
 int get_partition_info (block_dev_desc_t * dev_desc, int part, disk_partition_t *info);
@@ -139,6 +127,7 @@ static inline block_dev_desc_t* usb_stor_get_dev(int dev) { return NULL; }
 static inline block_dev_desc_t* mmc_get_dev(int dev) { return NULL; }
 static inline block_dev_desc_t* systemace_get_dev(int dev) { return NULL; }
 static inline block_dev_desc_t* mg_disk_get_dev(int dev) { return NULL; }
+static inline block_dev_desc_t *host_get_dev(int dev) { return NULL; }
 
 static inline int get_partition_info (block_dev_desc_t * dev_desc, int part,
 	disk_partition_t *info) { return -1; }

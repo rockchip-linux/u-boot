@@ -7,10 +7,7 @@
  * Definitions for the SoC:
  * SAMA5D3
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef SAMA5D3_H
@@ -82,6 +79,7 @@
 #define ARCH_EXID_SAMA5D33	0x00414300
 #define ARCH_EXID_SAMA5D34	0x00414301
 #define ARCH_EXID_SAMA5D35	0x00584300
+#define ARCH_EXID_SAMA5D36	0x00004301
 
 #define cpu_is_sama5d3()	(get_chip_id() == ARCH_ID_SAMA5D3)
 #define cpu_is_sama5d31()	(cpu_is_sama5d3() && \
@@ -92,6 +90,8 @@
 		(get_extension_chip_id() == ARCH_EXID_SAMA5D34))
 #define cpu_is_sama5d35()	(cpu_is_sama5d3() && \
 		(get_extension_chip_id() == ARCH_EXID_SAMA5D35))
+#define cpu_is_sama5d36()	(cpu_is_sama5d3() && \
+		(get_extension_chip_id() == ARCH_EXID_SAMA5D36))
 
 /*
  * User Peripherals physical base addresses.
@@ -123,7 +123,7 @@
 #define ATMEL_BASE_USART3	0xf8024000
 #define ATMEL_BASE_UART1	0xf8028000
 #define ATMEL_BASE_EMAC		0xf802c000
-#define ATMEL_BASE_UDHPS	0xf8030000
+#define ATMEL_BASE_UDPHS	0xf8030000
 #define ATMEL_BASE_SHA		0xf8034000
 #define ATMEL_BASE_AES		0xf8038000
 #define ATMEL_BASE_TDES		0xf803c000
@@ -194,8 +194,6 @@
  */
 #define ATMEL_PMECC_INDEX_OFFSET_512	0x10000
 #define ATMEL_PMECC_INDEX_OFFSET_1024	0x18000
-#define ATMEL_PMECC_ALPHA_OFFSET_512	0x10000
-#define ATMEL_PMECC_ALPHA_OFFSET_1024	0x18000
 
 /*
  * SAMA5D3 specific prototypes

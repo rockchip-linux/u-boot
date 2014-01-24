@@ -4,23 +4,7 @@
  *
  * Configuation settings for the SAMSUNG TRATS (EXYNOS4210) board.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -32,6 +16,7 @@
  */
 #define CONFIG_SAMSUNG		/* in a SAMSUNG core */
 #define CONFIG_S5P		/* which is in a S5P Family */
+#define CONFIG_EXYNOS4		/* which is in a EXYNOS4XXX */
 #define CONFIG_EXYNOS4210	/* which is in a EXYNOS4210 */
 #define CONFIG_TRATS		/* working with TRATS */
 #define CONFIG_TIZEN		/* TIZEN lib */
@@ -42,6 +27,7 @@
 #define CONFIG_DISPLAY_CPUINFO
 #define CONFIG_DISPLAY_BOARDINFO
 
+#define CONFIG_SYS_L2CACHE_OFF
 #ifndef CONFIG_SYS_L2CACHE_OFF
 #define CONFIG_SYS_L2_PL310
 #define CONFIG_SYS_PL310_BASE	0x10502000
@@ -65,8 +51,9 @@
 #define MACH_TYPE_TRATS			3928
 #define CONFIG_MACH_TYPE		MACH_TYPE_TRATS
 
+#include <asm/sizes.h>
 /* Size of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (16 << 20))
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (80 * SZ_1M))
 
 /* select serial console configuration */
 #define CONFIG_SERIAL2			/* use SERIAL 2 */
@@ -107,12 +94,21 @@
 
 /* USB Composite download gadget - g_dnl */
 #define CONFIG_USBDOWNLOAD_GADGET
+
+/* TIZEN THOR downloader support */
+#define CONFIG_CMD_THOR_DOWNLOAD
+#define CONFIG_THOR_FUNCTION
+
+#define CONFIG_SYS_DFU_DATA_BUF_SIZE SZ_32M
+#define DFU_DEFAULT_POLL_TIMEOUT 300
 #define CONFIG_DFU_FUNCTION
 #define CONFIG_DFU_MMC
 
 /* USB Samsung's IDs */
 #define CONFIG_G_DNL_VENDOR_NUM 0x04E8
 #define CONFIG_G_DNL_PRODUCT_NUM 0x6601
+#define CONFIG_G_DNL_THOR_VENDOR_NUM CONFIG_G_DNL_VENDOR_NUM
+#define CONFIG_G_DNL_THOR_PRODUCT_NUM 0x685D
 #define CONFIG_G_DNL_MANUFACTURER "Samsung"
 
 #define CONFIG_BOOTDELAY		1
@@ -147,7 +143,11 @@
 #define CONFIG_DFU_ALT \
 	"u-boot mmc 80 400;" \
 	"uImage ext4 0 2;" \
-	"exynos4210-trats.dtb ext4 0 2\0"
+	"exynos4210-trats.dtb ext4 0 2;" \
+	""PARTS_BOOT" part 0 2;" \
+	""PARTS_ROOT" part 0 5;" \
+	""PARTS_DATA" part 0 6;" \
+	""PARTS_UMS" part 0 7\0"
 
 #define CONFIG_ENV_OVERWRITE
 #define CONFIG_SYS_CONSOLE_INFO_QUIET
@@ -189,7 +189,7 @@
 	"nfsroot=/nfsroot/arm\0" \
 	"bootblock=" CONFIG_BOOTBLOCK "\0" \
 	"loaduimage=ext4load mmc ${mmcdev}:${mmcbootpart} 0x40007FC0 uImage\0" \
-	"loaddtb=ext4load mmc ${mmcdev}:${mmcbootpart} ${fdtaddr}" \
+	"loaddtb=ext4load mmc ${mmcdev}:${mmcbootpart} ${fdtaddr} " \
 		"${fdtfile}\0" \
 	"mmcdev=0\0" \
 	"mmcbootpart=2\0" \
@@ -234,8 +234,6 @@
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_SDRAM_BASE + 0x5000000)
 #define CONFIG_SYS_LOAD_ADDR		(CONFIG_SYS_SDRAM_BASE + 0x4800000)
 
-#define CONFIG_SYS_HZ			1000
-
 /* TRATS has 4 banks of DRAM */
 #define CONFIG_NR_DRAM_BANKS	4
 #define SDRAM_BANK_SIZE		(256UL << 20UL)	/* 256 MB */
@@ -275,27 +273,22 @@
 #define CONFIG_SYS_INIT_SP_ADDR	(CONFIG_SYS_LOAD_ADDR - GENERATED_GBL_DATA_SIZE)
 #define CONFIG_SYS_CACHELINE_SIZE       32
 
-#define CONFIG_SOFT_I2C
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_S3C24X0
+#define CONFIG_SYS_I2C_S3C24X0_SPEED	100000
+#define CONFIG_SYS_I2C_S3C24X0_SLAVE	0xFE
+#define CONFIG_MAX_I2C_NUM		8
+#define CONFIG_SYS_I2C_SOFT		/* I2C bit-banged */
+#define CONFIG_SYS_I2C_SOFT_SPEED	50000
+#define CONFIG_SYS_I2C_SOFT_SLAVE	0x7F
 #define CONFIG_SOFT_I2C_READ_REPEATED_START
 #define CONFIG_SYS_I2C_INIT_BOARD
-#define CONFIG_SYS_I2C_SPEED	50000
-#define CONFIG_I2C_MULTI_BUS
-#define CONFIG_SOFT_I2C_MULTI_BUS
-#define CONFIG_SYS_MAX_I2C_BUS	15
 
 #include <asm/arch/gpio.h>
 
-/* I2C PMIC */
-#define CONFIG_SOFT_I2C_I2C5_SCL exynos4_gpio_part1_get_nr(b, 7)
-#define CONFIG_SOFT_I2C_I2C5_SDA exynos4_gpio_part1_get_nr(b, 6)
-
 /* I2C FG */
-#define CONFIG_SOFT_I2C_I2C9_SCL exynos4_gpio_part2_get_nr(y4, 1)
-#define CONFIG_SOFT_I2C_I2C9_SDA exynos4_gpio_part2_get_nr(y4, 0)
-
-#define CONFIG_SOFT_I2C_GPIO_SCL get_multi_scl_pin()
-#define CONFIG_SOFT_I2C_GPIO_SDA get_multi_sda_pin()
-#define I2C_INIT multi_i2c_init()
+#define CONFIG_SOFT_I2C_GPIO_SCL exynos4_gpio_part2_get_nr(y4, 1)
+#define CONFIG_SOFT_I2C_GPIO_SDA exynos4_gpio_part2_get_nr(y4, 0)
 
 #define CONFIG_POWER
 #define CONFIG_POWER_I2C
@@ -311,6 +304,7 @@
 #define CONFIG_USB_GADGET_S3C_UDC_OTG
 #define CONFIG_USB_GADGET_DUALSPEED
 #define CONFIG_USB_GADGET_VBUS_DRAW	2
+#define CONFIG_USB_CABLE_CHECK
 
 /* LCD */
 #define CONFIG_EXYNOS_FB
@@ -324,9 +318,7 @@
 #define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE ((500 * 120 * 4) + (1 << 12))
 
 #define CONFIG_CMD_USB_MASS_STORAGE
-#if defined(CONFIG_CMD_USB_MASS_STORAGE)
 #define CONFIG_USB_GADGET_MASS_STORAGE
-#endif
 
 /* Pass open firmware flat tree */
 #define CONFIG_OF_LIBFDT    1

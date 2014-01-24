@@ -4,23 +4,7 @@
  * (C) Copyright 2001-2002
  * Wolfgang Denk, DENX Software Engineering -- wd@denx.de
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 /************************************************************************/
@@ -70,6 +54,7 @@
 #include <video_font.h>		/* Get font data, width and height	*/
 #include <video_font_data.h>
 #endif //CONFIG_LCD_FONT
+
 /************************************************************************/
 /* ** LOGO DATA								*/
 /************************************************************************/
@@ -408,8 +393,13 @@ static void test_pattern(void)
 /************************************************************************/
 /* ** GENERIC Initialization Routines					*/
 /************************************************************************/
-
-int lcd_get_size(int *line_length)
+/*
+ * With most lcd drivers the line length is set up
+ * by calculating it from panel_info parameters. Some
+ * drivers need to calculate the line length differently,
+ * so make the function weak to allow overriding it.
+ */
+__weak int lcd_get_size(int *line_length)
 {
 	*line_length = (panel_info.vl_col * NBITS(panel_info.vl_bpix)) / 8;
 	return *line_length * panel_info.vl_row;
@@ -531,7 +521,6 @@ static int lcd_init(void *lcdbase)
 	debug("[LCD] Using LCD frambuffer at %p\n", lcd_base);
 
 	lcd_get_size(&lcd_line_length);
-	lcd_line_length = (panel_info.vl_col * NBITS(panel_info.vl_bpix)) / 8;
 	lcd_is_enabled = 1;
 	lcd_clear();
 	lcd_enable();

@@ -43,9 +43,10 @@ struct cramfs_super super;
  * device address space offset, so we need to shift it by a device start address. */
 #if !defined(CONFIG_SYS_NO_FLASH)
 extern flash_info_t flash_info[];
-#define PART_OFFSET(x)	(x->offset + flash_info[x->dev->id->num].start[0])
+#define PART_OFFSET(x)	((ulong)x->offset + \
+			 flash_info[x->dev->id->num].start[0])
 #else
-#define PART_OFFSET(x)	(x->offset)
+#define PART_OFFSET(x)	((ulong)x->offset)
 #endif
 
 static int cramfs_read_super (struct part_info *info)
@@ -126,7 +127,8 @@ static unsigned long cramfs_resolve (unsigned long begin, unsigned long offset,
 			namelen--;
 		}
 
-		if (!strncmp (filename, name, namelen)) {
+		if (!strncmp(filename, name, namelen) &&
+		    (namelen == strlen(filename))) {
 			char *p = strtok (NULL, "/");
 
 			if (raw && (p == NULL || *p == '\0'))

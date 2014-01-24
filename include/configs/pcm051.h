@@ -21,11 +21,9 @@
 
 #define CONFIG_AM33XX
 #define CONFIG_OMAP
+#define CONFIG_OMAP_COMMON
 
 #include <asm/arch/omap.h>
-
-#define CONFIG_DMA_COHERENT
-#define CONFIG_DMA_COHERENT_SIZE	(1 << 20)
 
 #define CONFIG_ENV_SIZE			(128 << 10)	/* 128 KiB */
 #define CONFIG_SYS_MALLOC_LEN		(1024 << 10)
@@ -125,7 +123,7 @@
  * memtest works on 8 MB in DRAM after skipping 32MB from
  * start addr of ram disk
  */
-#define CONFIG_SYS_MEMTEST_START	(PHYS_DRAM_1 + (64 * 1024 * 1024))
+#define CONFIG_SYS_MEMTEST_START	(CONFIG_SYS_SDRAM_BASE + (64 << 20))
 #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START \
 					+ (8 * 1024 * 1024))
 
@@ -149,16 +147,14 @@
 
  /* Physical Memory Map */
 #define CONFIG_NR_DRAM_BANKS		1		/*  1 bank of DRAM */
-#define PHYS_DRAM_1			0x80000000	/* DRAM Bank #1 */
 #define CONFIG_MAX_RAM_BANK_SIZE	(1024 << 19)	/* 512MiB */
 
-#define CONFIG_SYS_SDRAM_BASE		PHYS_DRAM_1
+#define CONFIG_SYS_SDRAM_BASE		0x80000000
 #define CONFIG_SYS_INIT_SP_ADDR         (NON_SECURE_SRAM_END - \
 						GENERATED_GBL_DATA_SIZE)
  /* Platform/Board specific defs */
 #define CONFIG_SYS_TIMERBASE		0x48040000	/* Use Timer2 */
 #define CONFIG_SYS_PTV			2	/* Divisor: 2^(PTV+1) => 8 */
-#define CONFIG_SYS_HZ			1000	/* 1ms clock */
 
 #define CONFIG_CONS_INDEX		1
 /* NS16550 Configuration */
@@ -176,11 +172,10 @@
 /* I2C Configuration */
 #define CONFIG_I2C
 #define CONFIG_CMD_I2C
-#define CONFIG_HARD_I2C
-#define CONFIG_SYS_I2C_SPEED		100000
-#define CONFIG_SYS_I2C_SLAVE		1
-#define CONFIG_I2C_MULTI_BUS
-#define CONFIG_DRIVER_OMAP24XX_I2C
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_OMAP24_I2C_SPEED	100000
+#define CONFIG_SYS_OMAP24_I2C_SLAVE	1
+#define CONFIG_SYS_I2C_OMAP24XX
 #define CONFIG_CMD_EEPROM
 #define CONFIG_ENV_EEPROM_IS_ON_I2C
 #define CONFIG_SYS_I2C_EEPROM_ADDR	0x50	/* Main EEPROM */
@@ -204,6 +199,7 @@
 /* Defines for SPL */
 #define CONFIG_SPL
 #define CONFIG_SPL_FRAMEWORK
+#define CONFIG_SPL_BOARD_INIT
 /*
  * Place the image at the start of the ROM defined image space.
  * We limit our size to the ROM-defined downloaded image area, and use the
@@ -292,7 +288,6 @@
 #define CONFIG_CMD_PING
 #define CONFIG_DRIVER_TI_CPSW
 #define CONFIG_MII
-#define CONFIG_BOOTP_DEFAULT
 #define CONFIG_BOOTP_DNS
 #define CONFIG_BOOTP_DNS2
 #define CONFIG_BOOTP_SEND_HOSTNAME

@@ -4,28 +4,13 @@
  * (C) Copyright 2012
  * Joe Hershberger <joe.hershberger@ni.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
 #include <asm/io.h>
 #include <zynqpl.h>
+#include <asm/sizes.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
 
@@ -39,6 +24,7 @@
 #define DEVCFG_STATUS_DMA_CMD_Q_E	0x40000000
 #define DEVCFG_STATUS_DMA_DONE_CNT_MASK	0x30000000
 #define DEVCFG_STATUS_PCFG_INIT		0x00000010
+#define DEVCFG_MCTRL_PCAP_LPBK		0x00000010
 #define DEVCFG_MCTRL_RFIFO_FLUSH	0x00000002
 #define DEVCFG_MCTRL_WFIFO_FLUSH	0x00000001
 
@@ -47,7 +33,7 @@
 #endif
 
 #ifndef CONFIG_SYS_FPGA_PROG_TIME
-#define CONFIG_SYS_FPGA_PROG_TIME CONFIG_SYS_HZ	/* 1 s */
+#define CONFIG_SYS_FPGA_PROG_TIME	(CONFIG_SYS_HZ * 4) /* 4 s */
 #endif
 
 int zynq_info(Xilinx_desc *desc)
@@ -192,8 +178,14 @@ int zynq_load(Xilinx_desc *desc, const void *buf, size_t bsize)
 		return FPGA_FAIL;
 	}
 
-	if ((u32)buf_start & 0x3) {
-		u32 *new_buf = (u32 *)((u32)buf & ~0x3);
+	if ((u32)buf < SZ_1M) {
+		printf("%s: Bitstream has to be placed up to 1MB (%x)\n",
+		       __func__, (u32)buf);
+		return FPGA_FAIL;
+	}
+
+	if ((u32)buf != ALIGN((u32)buf, ARCH_DMA_MINALIGN)) {
+		u32 *new_buf = (u32 *)ALIGN((u32)buf, ARCH_DMA_MINALIGN);
 
 		printf("%s: Align buffer at %x to %x(swap %d)\n", __func__,
 		       (u32)buf_start, (u32)new_buf, swap);
@@ -215,6 +207,9 @@ int zynq_load(Xilinx_desc *desc, const void *buf, size_t bsize)
 
 		swap = SWAP_DONE;
 	}
+
+	/* Clear loopback bit */
+	clrbits_le32(&devcfg_base->mctrl, DEVCFG_MCTRL_PCAP_LPBK);
 
 	if (!partialbit) {
 		zynq_slcr_devcfg_disable();
@@ -295,6 +290,10 @@ int zynq_load(Xilinx_desc *desc, const void *buf, size_t bsize)
 
 	debug("%s: Source = 0x%08X\n", __func__, (u32)buf);
 	debug("%s: Size = %zu\n", __func__, bsize);
+
+	/* flush(clean & invalidate) d-cache range buf */
+	flush_dcache_range((u32)buf, (u32)buf +
+			   roundup(bsize, ARCH_DMA_MINALIGN));
 
 	/* Set up the transfer */
 	writel((u32)buf | 1, &devcfg_base->dma_src_addr);

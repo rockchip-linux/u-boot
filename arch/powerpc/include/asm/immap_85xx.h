@@ -6,23 +6,7 @@
  * Copyright(c) 2002,2003 Motorola Inc.
  * Xianghua Xiao (x.xiao@motorola.com)
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __IMMAP_85xx__
@@ -31,9 +15,10 @@
 #include <asm/types.h>
 #include <asm/fsl_dma.h>
 #include <asm/fsl_i2c.h>
-#include <asm/fsl_ifc.h>
+#include <fsl_ifc.h>
 #include <asm/fsl_lbc.h>
 #include <asm/fsl_fman.h>
+#include <fsl_immap.h>
 
 typedef struct ccsr_local {
 	u32	ccsrbarh;	/* CCSR Base Addr High */
@@ -128,105 +113,6 @@ typedef struct ccsr_local_ecm {
 	u8	res24[492];
 } ccsr_local_ecm_t;
 
-/* DDR memory controller registers */
-typedef struct ccsr_ddr {
-	u32	cs0_bnds;		/* Chip Select 0 Memory Bounds */
-	u8	res1[4];
-	u32	cs1_bnds;		/* Chip Select 1 Memory Bounds */
-	u8	res2[4];
-	u32	cs2_bnds;		/* Chip Select 2 Memory Bounds */
-	u8	res3[4];
-	u32	cs3_bnds;		/* Chip Select 3 Memory Bounds */
-	u8	res4[100];
-	u32	cs0_config;		/* Chip Select Configuration */
-	u32	cs1_config;		/* Chip Select Configuration */
-	u32	cs2_config;		/* Chip Select Configuration */
-	u32	cs3_config;		/* Chip Select Configuration */
-	u8	res4a[48];
-	u32	cs0_config_2;		/* Chip Select Configuration 2 */
-	u32	cs1_config_2;		/* Chip Select Configuration 2 */
-	u32	cs2_config_2;		/* Chip Select Configuration 2 */
-	u32	cs3_config_2;		/* Chip Select Configuration 2 */
-	u8	res5[48];
-	u32	timing_cfg_3;		/* SDRAM Timing Configuration 3 */
-	u32	timing_cfg_0;		/* SDRAM Timing Configuration 0 */
-	u32	timing_cfg_1;		/* SDRAM Timing Configuration 1 */
-	u32	timing_cfg_2;		/* SDRAM Timing Configuration 2 */
-	u32	sdram_cfg;		/* SDRAM Control Configuration */
-	u32	sdram_cfg_2;		/* SDRAM Control Configuration 2 */
-	u32	sdram_mode;		/* SDRAM Mode Configuration */
-	u32	sdram_mode_2;		/* SDRAM Mode Configuration 2 */
-	u32	sdram_md_cntl;		/* SDRAM Mode Control */
-	u32	sdram_interval;		/* SDRAM Interval Configuration */
-	u32	sdram_data_init;	/* SDRAM Data initialization */
-	u8	res6[4];
-	u32	sdram_clk_cntl;		/* SDRAM Clock Control */
-	u8	res7[20];
-	u32	init_addr;		/* training init addr */
-	u32	init_ext_addr;		/* training init extended addr */
-	u8	res8_1[16];
-	u32	timing_cfg_4;		/* SDRAM Timing Configuration 4 */
-	u32	timing_cfg_5;		/* SDRAM Timing Configuration 5 */
-	u8	reg8_1a[8];
-	u32	ddr_zq_cntl;		/* ZQ calibration control*/
-	u32	ddr_wrlvl_cntl;		/* write leveling control*/
-	u8	reg8_1aa[4];
-	u32	ddr_sr_cntr;		/* self refresh counter */
-	u32	ddr_sdram_rcw_1;	/* Control Words 1 */
-	u32	ddr_sdram_rcw_2;	/* Control Words 2 */
-	u8	reg_1ab[8];
-	u32	ddr_wrlvl_cntl_2;	/* write leveling control 2 */
-	u32	ddr_wrlvl_cntl_3;	/* write leveling control 3 */
-	u8	res8_1b[104];
-	u32	sdram_mode_3;		/* SDRAM Mode Configuration 3 */
-	u32	sdram_mode_4;		/* SDRAM Mode Configuration 4 */
-	u32	sdram_mode_5;		/* SDRAM Mode Configuration 5 */
-	u32	sdram_mode_6;		/* SDRAM Mode Configuration 6 */
-	u32	sdram_mode_7;		/* SDRAM Mode Configuration 7 */
-	u32	sdram_mode_8;		/* SDRAM Mode Configuration 8 */
-	u8	res8_1ba[0x908];
-	u32	ddr_dsr1;		/* Debug Status 1 */
-	u32	ddr_dsr2;		/* Debug Status 2 */
-	u32	ddr_cdr1;		/* Control Driver 1 */
-	u32	ddr_cdr2;		/* Control Driver 2 */
-	u8	res8_1c[200];
-	u32	ip_rev1;		/* IP Block Revision 1 */
-	u32	ip_rev2;		/* IP Block Revision 2 */
-	u32	eor;			/* Enhanced Optimization Register */
-	u8	res8_2[252];
-	u32	mtcr;			/* Memory Test Control Register */
-	u8	res8_3[28];
-	u32	mtp1;			/* Memory Test Pattern 1 */
-	u32	mtp2;			/* Memory Test Pattern 2 */
-	u32	mtp3;			/* Memory Test Pattern 3 */
-	u32	mtp4;			/* Memory Test Pattern 4 */
-	u32	mtp5;			/* Memory Test Pattern 5 */
-	u32	mtp6;			/* Memory Test Pattern 6 */
-	u32	mtp7;			/* Memory Test Pattern 7 */
-	u32	mtp8;			/* Memory Test Pattern 8 */
-	u32	mtp9;			/* Memory Test Pattern 9 */
-	u32	mtp10;			/* Memory Test Pattern 10 */
-	u8	res8_4[184];
-	u32	data_err_inject_hi;	/* Data Path Err Injection Mask High */
-	u32	data_err_inject_lo;	/* Data Path Err Injection Mask Low */
-	u32	ecc_err_inject;		/* Data Path Err Injection Mask ECC */
-	u8	res9[20];
-	u32	capture_data_hi;	/* Data Path Read Capture High */
-	u32	capture_data_lo;	/* Data Path Read Capture Low */
-	u32	capture_ecc;		/* Data Path Read Capture ECC */
-	u8	res10[20];
-	u32	err_detect;		/* Error Detect */
-	u32	err_disable;		/* Error Disable */
-	u32	err_int_en;
-	u32	capture_attributes;	/* Error Attrs Capture */
-	u32	capture_address;	/* Error Addr Capture */
-	u32	capture_ext_address;	/* Error Extended Addr Capture */
-	u32	err_sbe;		/* Single-Bit ECC Error Management */
-	u8	res11[164];
-	u32	debug[32];		/* debug_1 to debug_32 */
-	u8	res12[128];
-} ccsr_ddr_t;
-
 #define DDR_EOR_RD_BDW_OPT_DIS	0x80000000 /* Read BDW Opt. disable */
 #define DDR_EOR_ADDR_HASH_EN	0x40000000 /* Address hash enabled */
 
@@ -298,7 +184,9 @@ typedef struct ccsr_pcix {
 	u32	int_ack;	/* PCIX IRQ Acknowledge */
 	u8	res000c[52];
 	u32	liodn_base;	/* PCIX LIODN base register */
-	u8	res0044[3004];
+	u8	res0044[2996];
+	u32	ipver1;		/* PCIX IP block revision register 1 */
+	u32	ipver2;		/* PCIX IP block revision register 2 */
 	u32	potar0;		/* PCIX Outbound Transaction Addr 0 */
 	u32	potear0;	/* PCIX Outbound Translation Extended Addr 0 */
 	u32	powbar0;	/* PCIX Outbound Window Base Addr 0 */
@@ -1560,6 +1448,18 @@ struct rio_pw {
 };
 #endif
 
+#ifdef CONFIG_SYS_FSL_SRIO_LIODN
+struct rio_liodn {
+	u32	plbr;
+	u8	res0[28];
+	u32	plaor;
+	u8	res1[12];
+	u32	pludr;
+	u32	plldr;
+	u8	res2[456];
+};
+#endif
+
 /* RapidIO Registers */
 struct ccsr_rio {
 	struct rio_arch	arch;
@@ -1581,6 +1481,10 @@ struct ccsr_rio {
 	struct rio_dbell	dbell;
 	u8	res7[100];
 	struct rio_pw	pw;
+#endif
+#ifdef CONFIG_SYS_FSL_SRIO_LIODN
+	u8	res5[8192];
+	struct rio_liodn liodn[CONFIG_SYS_FSL_SRIO_MAX_PORTS];
 #endif
 };
 #endif
@@ -1671,6 +1575,7 @@ typedef struct cpc_corenet {
 #define CPC_HDBCR0_CDQ_SPEC_DIS	0x08000000
 #define CPC_HDBCR0_TAG_ECC_SCRUB_DIS	0x01000000
 #define CPC_HDBCR0_DATA_ECC_SCRUB_DIS	0x00400000
+#define CPC_HDBCR0_SPLRU_LEVEL_EN	0x003c0000
 #endif /* CONFIG_SYS_FSL_CPC */
 
 /* Global Utilities Block */
@@ -1716,6 +1621,8 @@ typedef struct ccsr_gur {
 #define FSL_CORENET_DEVDISR2_DTSEC1_10	0x00400000
 #define FSL_CORENET_DEVDISR2_10GEC1_1	0x00800000
 #define FSL_CORENET_DEVDISR2_10GEC1_2	0x00400000
+#define FSL_CORENET_DEVDISR2_10GEC1_3	0x80000000
+#define FSL_CORENET_DEVDISR2_10GEC1_4	0x40000000
 #define FSL_CORENET_DEVDISR2_DTSEC2_1	0x00080000
 #define FSL_CORENET_DEVDISR2_DTSEC2_2	0x00040000
 #define FSL_CORENET_DEVDISR2_DTSEC2_3	0x00020000
@@ -1846,11 +1753,18 @@ typedef struct ccsr_gur {
 #define FSL_CORENET2_RCWSR4_SRDS2_PRTCL	0x00ff0000
 #define FSL_CORENET2_RCWSR4_SRDS2_PRTCL_SHIFT	16
 #define FSL_CORENET_RCWSR6_BOOT_LOC	0x0f800000
-#elif defined(CONFIG_PPC_T1040)
+#elif defined(CONFIG_PPC_T1040) || defined(CONFIG_PPC_T1042) ||\
+defined(CONFIG_PPC_T1020) || defined(CONFIG_PPC_T1022)
 #define FSL_CORENET2_RCWSR4_SRDS1_PRTCL	0xff000000
 #define FSL_CORENET2_RCWSR4_SRDS1_PRTCL_SHIFT	24
 #define FSL_CORENET2_RCWSR4_SRDS2_PRTCL	0x00fe0000
 #define FSL_CORENET2_RCWSR4_SRDS2_PRTCL_SHIFT	17
+#elif defined(CONFIG_PPC_T2080) || defined(CONFIG_PPC_T2081)
+#define FSL_CORENET2_RCWSR4_SRDS1_PRTCL		0xff000000
+#define FSL_CORENET2_RCWSR4_SRDS1_PRTCL_SHIFT	24
+#define FSL_CORENET2_RCWSR4_SRDS2_PRTCL		0x00ff0000
+#define FSL_CORENET2_RCWSR4_SRDS2_PRTCL_SHIFT	16
+#define FSL_CORENET_RCWSR6_BOOT_LOC		0x0f800000
 #endif
 #define FSL_CORENET2_RCWSR5_SRDS_PLL_PD_S1_PLL1	0x00800000
 #define FSL_CORENET2_RCWSR5_SRDS_PLL_PD_S1_PLL2	0x00400000
@@ -1860,6 +1774,9 @@ typedef struct ccsr_gur {
 #define FSL_CORENET2_RCWSR5_SRDS_PLL_PD_S3_PLL2	0x00040000
 #define FSL_CORENET2_RCWSR5_SRDS_PLL_PD_S4_PLL1	0x00020000
 #define FSL_CORENET2_RCWSR5_SRDS_PLL_PD_S4_PLL2	0x00010000
+#define FSL_CORENET2_RCWSR5_DDR_REFCLK_SEL_SHIFT 4
+#define FSL_CORENET2_RCWSR5_DDR_REFCLK_SEL_MASK	0x00000011
+#define FSL_CORENET2_RCWSR5_DDR_REFCLK_SINGLE_CLK	1
 
 #else /* CONFIG_SYS_FSL_QORIQ_CHASSIS2 */
 #define FSL_CORENET_RCWSR0_MEM_PLL_RAT_SHIFT	17
@@ -1913,6 +1830,15 @@ typedef struct ccsr_gur {
 #define FSL_CORENET_RCWSR13_EC2_FM1_DTSEC5_RGMII	0x00000000
 #define FSL_CORENET_RCWSR13_EC2_FM1_DTSEC6_RGMII	0x08000000
 #define FSL_CORENET_RCWSR13_EC2_FM1_GPIO		0x10000000
+#endif
+#if defined(CONFIG_PPC_T2080) || defined(CONFIG_PPC_T2081)
+#define FSL_CORENET_RCWSR13_EC1			0x60000000 /* bits 417..418 */
+#define FSL_CORENET_RCWSR13_EC1_DTSEC3_RGMII	0x00000000
+#define FSL_CORENET_RCWSR13_EC1_GPIO		0x40000000
+#define FSL_CORENET_RCWSR13_EC2			0x18000000 /* bits 419..420 */
+#define FSL_CORENET_RCWSR13_EC2_DTSEC4_RGMII	0x00000000
+#define FSL_CORENET_RCWSR13_EC2_DTSEC10_RGMII	0x08000000
+#define FSL_CORENET_RCWSR13_EC2_GPIO		0x10000000
 #endif
 	u8	res18[192];
 	u32	scratchrw[4];	/* Scratch Read/Write */
@@ -2016,20 +1942,13 @@ typedef struct ccsr_clk {
 		u8  res_004[0x0c];
 		u32 clkcgnhwacsr;/* clock generator n hardware accelerator */
 		u8  res_014[0x0c];
-	} clkcsr[8];
-	u8	res_100[0x700]; /* 0x100 */
-	u32	pllc1gsr;	/* 0x800 Cluster PLL 1 General Status */
-	u8	res10[0x1c];
-	u32	pllc2gsr;	/* 0x820 Cluster PLL 2 General Status */
-	u8	res11[0x1c];
-	u32	pllc3gsr;	/* 0x840 Cluster PLL 3 General Status */
-	u8	res12[0x1c];
-	u32	pllc4gsr;	/* 0x860 Cluster PLL 4 General Status */
-	u8	res13[0x1c];
-	u32	pllc5gsr;	/* 0x880 Cluster PLL 5 General Status */
-	u8	res14[0x1c];
-	u32	pllc6gsr;	/* 0x8a0 Cluster PLL 6 General Status */
-	u8	res15[0x35c];
+	} clkcsr[12];
+	u8	res_100[0x680]; /* 0x100 */
+	struct {
+		u32 pllcngsr;
+		u8 res10[0x1c];
+	} pllcgsr[12];
+	u8	res21[0x280];
 	u32	pllpgsr;	/* 0xc00 Platform PLL General Status */
 	u8	res16[0x1c];
 	u32	plldgsr;	/* 0xc20 DDR PLL General Status */
@@ -2147,6 +2066,11 @@ typedef struct ccsr_gur {
 #ifdef CONFIG_MPC8536
 #define MPC85xx_PORPLLSR_DDR_RATIO	0x3e000000
 #define MPC85xx_PORPLLSR_DDR_RATIO_SHIFT	25
+#elif defined(CONFIG_PPC_C29X)
+#define MPC85xx_PORPLLSR_DDR_RATIO	0x00003f00
+#define MPC85xx_PORPLLSR_DDR_RATIO_SHIFT	(9 - ((gur->pordevsr2 \
+					& MPC85xx_PORDEVSR2_DDR_SPD_0) \
+					>> MPC85xx_PORDEVSR2_DDR_SPD_0_SHIFT))
 #else
 #if defined(CONFIG_BSC9131) || defined(CONFIG_BSC9132)
 #define MPC85xx_PORPLLSR_DDR_RATIO	0x00003f00
@@ -2194,6 +2118,9 @@ typedef struct ccsr_gur {
 #elif defined(CONFIG_BSC9132)
 #define MPC85xx_PORDEVSR_IO_SEL		0x00FE0000
 #define MPC85xx_PORDEVSR_IO_SEL_SHIFT	17
+#elif defined(CONFIG_PPC_C29X)
+#define MPC85xx_PORDEVSR_IO_SEL		0x00e00000
+#define MPC85xx_PORDEVSR_IO_SEL_SHIFT	21
 #else
 #define MPC85xx_PORDEVSR_IO_SEL		0x00780000
 #define MPC85xx_PORDEVSR_IO_SEL_SHIFT	19
@@ -2209,6 +2136,10 @@ typedef struct ccsr_gur {
 #define MPC85xx_PORDEVSR_RIO_DEV_ID	0x00000007
 	u32	pordbgmsr;	/* POR debug mode status */
 	u32	pordevsr2;	/* POR I/O device status 2 */
+#if defined(CONFIG_PPC_C29X)
+#define MPC85xx_PORDEVSR2_DDR_SPD_0	0x00000008
+#define MPC85xx_PORDEVSR2_DDR_SPD_0_SHIFT	3
+#endif
 /* The 8544 RM says this is bit 26, but it's really bit 24 */
 #define MPC85xx_PORDEVSR2_SEC_CFG	0x00000080
 	u8	res1[8];
@@ -2354,6 +2285,11 @@ typedef struct ccsr_gur {
 #ifdef CONFIG_BSC9132
 #define MPC85xx_PMUXCR0_SIM_SEL_MASK	0x0003b000
 #define MPC85xx_PMUXCR0_SIM_SEL		0x00014000
+#endif
+#if defined(CONFIG_PPC_C29X)
+#define MPC85xx_PMUXCR_SPI_MASK			0x00000300
+#define MPC85xx_PMUXCR_SPI			0x00000000
+#define MPC85xx_PMUXCR_SPI_GPIO			0x00000100
 #endif
 	u32	pmuxcr2;	/* Alt. function signal multiplex control 2 */
 #if defined(CONFIG_P1010) || defined(CONFIG_P1014)
@@ -2542,7 +2478,9 @@ typedef struct serdes_corenet {
 #define SRDS_RSTCTL_RSTDONE	0x40000000
 #define SRDS_RSTCTL_RSTERR	0x20000000
 #define SRDS_RSTCTL_SWRST	0x10000000
-#define SRDS_RSTCTL_SDPD	0x00000020
+#define SRDS_RSTCTL_SDEN	0x00000020
+#define SRDS_RSTCTL_SDRST_B	0x00000040
+#define SRDS_RSTCTL_PLLRST_B	0x00000080
 		u32	pllcr0; /* PLL Control Register 0 */
 #define SRDS_PLLCR0_POFF		0x80000000
 #define SRDS_PLLCR0_RFCK_SEL_MASK	0x70000000
@@ -2827,54 +2765,6 @@ typedef struct ccsr_pme {
 	u8	res4[0x400];
 } ccsr_pme_t;
 
-#ifdef CONFIG_SYS_FSL_USB_DUAL_PHY_ENABLE
-struct ccsr_usb_port_ctrl {
-	u32	ctrl;
-	u32	drvvbuscfg;
-	u32	pwrfltcfg;
-	u32	sts;
-	u8	res_14[0xc];
-	u32	bistcfg;
-	u32	biststs;
-	u32	abistcfg;
-	u32	abiststs;
-	u8	res_30[0x10];
-	u32	xcvrprg;
-	u32	anaprg;
-	u32	anadrv;
-	u32	anasts;
-};
-
-typedef struct ccsr_usb_phy {
-	u32	id;
-	struct  ccsr_usb_port_ctrl port1;
-	u8	res_50[0xc];
-	u32	tvr;
-	u32	pllprg[4];
-	u8	res_70[0x4];
-	u32	anaccfg;
-	u32	dbg;
-	u8	res_7c[0x4];
-	struct  ccsr_usb_port_ctrl port2;
-	u8	res_dc[0x334];
-} ccsr_usb_phy_t;
-
-#define CONFIG_SYS_FSL_USB_CTRL_PHY_EN (1 << 0)
-#define CONFIG_SYS_FSL_USB_DRVVBUS_CR_EN (1 << 1)
-#define CONFIG_SYS_FSL_USB_PWRFLT_CR_EN (1 << 1)
-#define CONFIG_SYS_FSL_USB_PLLPRG2_PHY2_CLK_EN (1 << 0)
-#define CONFIG_SYS_FSL_USB_PLLPRG2_PHY1_CLK_EN (1 << 1)
-#define CONFIG_SYS_FSL_USB_PLLPRG2_MFI (5 << 16)
-#define CONFIG_SYS_FSL_USB_PLLPRG2_PLL_EN (1 << 21)
-#else
-typedef struct ccsr_usb_phy {
-	u8	res0[0x18];
-	u32	usb_enable_override;
-	u8	res[0xe4];
-} ccsr_usb_phy_t;
-#define CONFIG_SYS_FSL_USB_ENABLE_OVERRIDE 1
-#endif
-
 #ifdef CONFIG_SYS_FSL_RAID_ENGINE
 struct ccsr_raide {
 	u8	res0[0x543];
@@ -2946,6 +2836,7 @@ struct ccsr_pman {
 #define CONFIG_SYS_FSL_CPC_OFFSET		0x10000
 #define CONFIG_SYS_MPC85xx_DMA1_OFFSET		0x100000
 #define CONFIG_SYS_MPC85xx_DMA2_OFFSET		0x101000
+#define CONFIG_SYS_MPC85xx_DMA3_OFFSET		0x102000
 #define CONFIG_SYS_MPC85xx_DMA_OFFSET		CONFIG_SYS_MPC85xx_DMA1_OFFSET
 #define CONFIG_SYS_MPC85xx_ESPI_OFFSET		0x110000
 #define CONFIG_SYS_MPC85xx_ESDHC_OFFSET		0x114000
@@ -2967,7 +2858,6 @@ struct ccsr_pman {
 #endif
 #define CONFIG_SYS_MPC85xx_USB1_OFFSET		0x210000
 #define CONFIG_SYS_MPC85xx_USB2_OFFSET		0x211000
-#define CONFIG_SYS_MPC85xx_USB_OFFSET		CONFIG_SYS_MPC85xx_USB1_OFFSET
 #define CONFIG_SYS_MPC85xx_USB1_PHY_OFFSET 0x214000
 #define CONFIG_SYS_MPC85xx_USB2_PHY_OFFSET 0x214100
 #define CONFIG_SYS_MPC85xx_SATA1_OFFSET		0x220000
@@ -3020,16 +2910,22 @@ struct ccsr_pman {
 #define CONFIG_SYS_MPC85xx_IFC_OFFSET		0x1e000
 #define CONFIG_SYS_MPC85xx_L2_OFFSET		0x20000
 #define CONFIG_SYS_MPC85xx_DMA_OFFSET		0x21000
-#define CONFIG_SYS_MPC85xx_USB_OFFSET		0x22000
+#define CONFIG_SYS_MPC85xx_USB1_OFFSET		0x22000
 #define CONFIG_SYS_MPC85xx_USB2_OFFSET		0x23000
 #ifdef CONFIG_TSECV2
 #define CONFIG_SYS_TSEC1_OFFSET			0xB0000
+#elif defined(CONFIG_TSECV2_1)
+#define CONFIG_SYS_TSEC1_OFFSET			0x10000
 #else
 #define CONFIG_SYS_TSEC1_OFFSET			0x24000
 #endif
 #define CONFIG_SYS_MDIO1_OFFSET			0x24000
 #define CONFIG_SYS_MPC85xx_ESDHC_OFFSET		0x2e000
+#if defined(CONFIG_PPC_C29X)
+#define CONFIG_SYS_FSL_SEC_OFFSET		0x80000
+#else
 #define CONFIG_SYS_FSL_SEC_OFFSET		0x30000
+#endif
 #define CONFIG_SYS_MPC85xx_SERDES2_OFFSET	0xE3100
 #define CONFIG_SYS_MPC85xx_SERDES1_OFFSET	0xE3000
 #define CONFIG_SYS_SNVS_OFFSET			0xE6000
@@ -3046,6 +2942,12 @@ struct ccsr_pman {
 #define CONFIG_SYS_MPC85xx_PIC_OFFSET		0x40000
 #define CONFIG_SYS_MPC85xx_GUTS_OFFSET		0xE0000
 #define CONFIG_SYS_FSL_SRIO_OFFSET		0xC0000
+
+#if defined(CONFIG_BSC9132)
+#define CONFIG_SYS_FSL_DSP_CCSR_DDR_OFFSET	0x10000
+#define CONFIG_SYS_FSL_DSP_CCSR_DDR_ADDR \
+	(CONFIG_SYS_FSL_DSP_CCSRBAR + CONFIG_SYS_FSL_DSP_CCSR_DDR_OFFSET)
+#endif
 
 #define CONFIG_SYS_FSL_CPC_ADDR	\
 	(CONFIG_SYS_CCSRBAR + CONFIG_SYS_FSL_CPC_OFFSET)
@@ -3069,11 +2971,11 @@ struct ccsr_pman {
 	(CONFIG_SYS_IMMR + CONFIG_SYS_FSL_CORENET_RCPM_OFFSET)
 #define CONFIG_SYS_MPC85xx_ECM_ADDR \
 	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC85xx_ECM_OFFSET)
-#define CONFIG_SYS_MPC8xxx_DDR_ADDR \
+#define CONFIG_SYS_FSL_DDR_ADDR \
 	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC8xxx_DDR_OFFSET)
-#define CONFIG_SYS_MPC8xxx_DDR2_ADDR \
+#define CONFIG_SYS_FSL_DDR2_ADDR \
 	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC8xxx_DDR2_OFFSET)
-#define CONFIG_SYS_MPC8xxx_DDR3_ADDR \
+#define CONFIG_SYS_FSL_DDR3_ADDR \
 	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC8xxx_DDR3_OFFSET)
 #define CONFIG_SYS_LBC_ADDR \
 	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC85xx_LBC_OFFSET)
@@ -3109,8 +3011,10 @@ struct ccsr_pman {
 	(CONFIG_SYS_IMMR + CONFIG_SYS_FSL_CORENET_SERDES_OFFSET)
 #define CONFIG_SYS_FSL_CORENET_SERDES2_ADDR \
 	(CONFIG_SYS_IMMR + CONFIG_SYS_FSL_CORENET_SERDES2_OFFSET)
-#define CONFIG_SYS_MPC85xx_USB_ADDR \
-	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC85xx_USB_OFFSET)
+#define CONFIG_SYS_MPC85xx_USB1_ADDR \
+	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC85xx_USB1_OFFSET)
+#define CONFIG_SYS_MPC85xx_USB2_ADDR \
+	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC85xx_USB2_OFFSET)
 #define CONFIG_SYS_MPC85xx_USB1_PHY_ADDR \
 	(CONFIG_SYS_IMMR + CONFIG_SYS_MPC85xx_USB1_PHY_OFFSET)
 #define CONFIG_SYS_MPC85xx_USB2_PHY_ADDR \

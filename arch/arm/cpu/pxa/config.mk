@@ -3,26 +3,8 @@
 # Sysgo Real-Time Solutions, GmbH <www.elinos.com>
 # Marius Groeger <mgroeger@sysgo.de>
 #
-# See file CREDITS for list of people who contributed to this
-# project.
+# SPDX-License-Identifier:	GPL-2.0+
 #
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2 of
-# the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307 USA
-#
-
-PLATFORM_RELFLAGS += -fno-common -ffixed-r8 -msoft-float
 
 PLATFORM_CPPFLAGS += -mcpu=xscale
 # =========================================================================
@@ -32,3 +14,16 @@ PLATFORM_CPPFLAGS += -mcpu=xscale
 # ========================================================================
 PF_RELFLAGS_SLB_AT := $(call cc-option,-mshort-load-bytes,$(call cc-option,-malignment-traps,))
 PLATFORM_RELFLAGS += $(PF_RELFLAGS_SLB_AT)
+
+#
+# !WARNING!
+# The PXA's OneNAND SPL uses .text.0 and .text.1 segments to allow booting from
+# really small OneNAND memories where the mmap'd window is only 1KiB big. The
+# .text.0 contains only the bare minimum needed to load the real SPL into SRAM.
+# Add .text.0 and .text.1 into OBJFLAGS, so when the SPL is being objcopy'd,
+# they are not discarded.
+#
+
+#ifdef CONFIG_SPL_BUILD
+OBJCFLAGS += -j .text.0 -j .text.1
+#endif

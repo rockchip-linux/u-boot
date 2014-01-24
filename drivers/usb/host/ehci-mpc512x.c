@@ -10,20 +10,7 @@
  *
  * Author: Tor Krill tor@excito.com
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -45,12 +32,13 @@ static void usb_platform_dr_init(volatile struct usb_ehci *ehci);
  * This code is derived from EHCI FSL USB Linux driver for MPC5121
  *
  */
-int ehci_hcd_init(int index, struct ehci_hccr **hccr, struct ehci_hcor **hcor)
+int ehci_hcd_init(int index, enum usb_init_type init,
+		struct ehci_hccr **hccr, struct ehci_hcor **hcor)
 {
 	volatile struct usb_ehci *ehci;
 
 	/* Hook the memory mapped registers for EHCI-Controller */
-	ehci = (struct usb_ehci *)CONFIG_SYS_FSL_USB_ADDR;
+	ehci = (struct usb_ehci *)CONFIG_SYS_FSL_USB1_ADDR;
 	*hccr = (struct ehci_hccr *)((uint32_t)&(ehci->caplength));
 	*hcor = (struct ehci_hcor *)((uint32_t) *hccr +
 				HC_LENGTH(ehci_readl(&(*hccr)->cr_capbase)));
@@ -94,7 +82,7 @@ int ehci_hcd_stop(int index)
 	int exit_status = 0;
 
 	/* Reset the USB controller */
-	ehci = (struct usb_ehci *)CONFIG_SYS_FSL_USB_ADDR;
+	ehci = (struct usb_ehci *)CONFIG_SYS_FSL_USB1_ADDR;
 	exit_status = reset_usb_controller(ehci);
 
 	return exit_status;

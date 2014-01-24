@@ -6,23 +6,7 @@
  * Configuration for Versatile Express. Parts were derived from other ARM
  *   configurations.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __VEXPRESS_COMMON_H
@@ -133,7 +117,6 @@
 
 #define CONFIG_SYS_MEMTEST_START	V2M_BASE
 #define CONFIG_SYS_MEMTEST_END		0x20000000
-#define CONFIG_SYS_HZ			1000
 
 #define CONFIG_CMDLINE_TAG		1	/* enable passing of ATAGs */
 #define CONFIG_SETUP_MEMORY_TAGS	1
@@ -147,6 +130,10 @@
 
 #define SCTL_BASE			V2M_SYSCTL
 #define VEXPRESS_FLASHPROG_FLVPPEN	(1 << 0)
+
+#define CONFIG_SYS_TIMER_RATE		1000000
+#define CONFIG_SYS_TIMER_COUNTER	(V2M_TIMER01 + 0x4)
+#define CONFIG_SYS_TIMER_COUNTS_DOWN
 
 /* SMSC9115 Ethernet from SMSC9118 family */
 #define CONFIG_SMC911X			1

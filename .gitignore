@@ -17,6 +17,8 @@
 *.bin
 *.cfgtmp
 *.img
+*.dts.tmp
+
 # Build tree
 /build-*
 
@@ -24,10 +26,11 @@
 # Top-level generic files
 #
 
-/MLO
+/MLO*
 /SPL
 /System.map
 /u-boot
+/u-boot.elf
 /u-boot.hex
 /u-boot.imx
 /u-boot-with-spl.imx
@@ -49,6 +52,7 @@
 /u-boot.bd
 /u-boot.geany
 Untitled Project.*
+
 #
 # Generated files
 #
@@ -58,7 +62,13 @@ Untitled Project.*
 /errlog
 /reloc_off
 
+!/spl/Makefile
+/spl/*
+/tpl/
+
 /include/generated/
+/include/spl-autoconf.mk
+/include/tpl-autoconf.mk
 asm-offsets.s
 
 # stgit generated dirs
@@ -85,6 +95,3 @@ GPATH
 GRTAGS
 GSYMS
 GTAGS
-
-# spl ais files
-/spl/*.ais

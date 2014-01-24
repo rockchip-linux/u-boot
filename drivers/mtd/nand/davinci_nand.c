@@ -16,19 +16,8 @@
  *
  * ----------------------------------------------------------------------------
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * SPDX-License-Identifier:	GPL-2.0+
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * ----------------------------------------------------------------------------
  *
  *  Overview:
@@ -38,7 +27,6 @@
  Modifications:
  ver. 1.0: Feb 2005, Vinod/Sudhakar
  -
- *
  */
 
 #include <common.h>
@@ -278,6 +266,17 @@ static int nand_davinci_correct_data(struct mtd_info *mtd, u_char *dat,
 static struct nand_ecclayout nand_davinci_4bit_layout_oobfirst = {
 #if defined(CONFIG_SYS_NAND_PAGE_2K)
 	.eccbytes = 40,
+#ifdef CONFIG_NAND_6BYTES_OOB_FREE_10BYTES_ECC
+	.eccpos = {
+		6,   7,  8,  9, 10,	11, 12, 13, 14, 15,
+		22, 23, 24, 25, 26,	27, 28, 29, 30, 31,
+		38, 39, 40, 41, 42,	43, 44, 45, 46, 47,
+		54, 55, 56, 57, 58,	59, 60, 61, 62, 63,
+	},
+	.oobfree = {
+		{2, 4}, {16, 6}, {32, 6}, {48, 6},
+	},
+#else
 	.eccpos = {
 		24, 25, 26, 27, 28,
 		29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
@@ -288,6 +287,7 @@ static struct nand_ecclayout nand_davinci_4bit_layout_oobfirst = {
 	.oobfree = {
 		{.offset = 2, .length = 22, },
 	},
+#endif	/* #ifdef CONFIG_NAND_6BYTES_OOB_FREE_10BYTES_ECC */
 #elif defined(CONFIG_SYS_NAND_PAGE_4K)
 	.eccbytes = 80,
 	.eccpos = {

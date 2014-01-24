@@ -7,33 +7,13 @@
 #Modified:
 #Revision:       1.00
 #********************************************************************************
-include $(TOPDIR)/config.mk
 
-LIB	= $(obj)lib$(SOC).o
+#obj-y	+= cpu_info.o
+obj-y	+= timer.o
+obj-y	+= clock.o
+#obj-y	+= reset.o
+#obj-y	+= interrupts.o
+#obj-y	+= intc.o
 
-#COBJS	+= cpu_info.o
-COBJS	+= timer.o
-COBJS	+= clock.o
-#COBJS	+= reset.o
-#COBJS	+= interrupts.o
-#COBJS	+= intc.o
-
-SOBJS	+= cache.o
-SOBJS	+= lowlevel_init.o
-
-SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)
-OBJS	:= $(addprefix $(obj),$(COBJS) $(SOBJS))
-
-all:	 $(obj).depend $(LIB)
-
-$(LIB):	$(OBJS)
-	$(call cmd_link_o_target, $(OBJS))
-
-#########################################################################
-
-# defines $(obj).depend target
-include $(SRCTREE)/rules.mk
-
-sinclude $(obj).depend
-
-#########################################################################
+obj-y	+= cache.o
+obj-y	+= lowlevel_init.o

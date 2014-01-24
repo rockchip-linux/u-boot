@@ -1,18 +1,7 @@
 /*
  * (C) Copyright 2012 Stephen Warren
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef _BCM2835_MBOX_H
@@ -140,6 +129,54 @@ struct bcm2835_mbox_tag_get_arm_mem {
 		struct {
 			u32 mem_base;
 			u32 mem_size;
+		} resp;
+	} body;
+};
+
+#define BCM2835_MBOX_POWER_DEVID_SDHCI		0
+#define BCM2835_MBOX_POWER_DEVID_UART0		1
+#define BCM2835_MBOX_POWER_DEVID_UART1		2
+#define BCM2835_MBOX_POWER_DEVID_USB_HCD	3
+#define BCM2835_MBOX_POWER_DEVID_I2C0		4
+#define BCM2835_MBOX_POWER_DEVID_I2C1		5
+#define BCM2835_MBOX_POWER_DEVID_I2C2		6
+#define BCM2835_MBOX_POWER_DEVID_SPI		7
+#define BCM2835_MBOX_POWER_DEVID_CCP2TX		8
+
+#define BCM2835_MBOX_POWER_STATE_RESP_ON	(1 << 1)
+/* Device doesn't exist */
+#define BCM2835_MBOX_POWER_STATE_RESP_NODEV	(1 << 1)
+
+#define BCM2835_MBOX_TAG_GET_POWER_STATE	0x00020001
+
+struct bcm2835_mbox_tag_get_power_state {
+	struct bcm2835_mbox_tag_hdr tag_hdr;
+	union {
+		struct {
+			u32 device_id;
+		} req;
+		struct {
+			u32 device_id;
+			u32 state;
+		} resp;
+	} body;
+};
+
+#define BCM2835_MBOX_TAG_SET_POWER_STATE	0x00028001
+
+#define BCM2835_MBOX_SET_POWER_STATE_REQ_ON	(1 << 0)
+#define BCM2835_MBOX_SET_POWER_STATE_REQ_WAIT	(1 << 1)
+
+struct bcm2835_mbox_tag_set_power_state {
+	struct bcm2835_mbox_tag_hdr tag_hdr;
+	union {
+		struct {
+			u32 device_id;
+			u32 state;
+		} req;
+		struct {
+			u32 device_id;
+			u32 state;
 		} resp;
 	} body;
 };
@@ -361,6 +398,7 @@ struct bcm2835_mbox_tag_overscan {
 			u32 top;
 			u32 bottom;
 			u32 left;
+			u32 right;
 		} resp;
 	} body;
 };

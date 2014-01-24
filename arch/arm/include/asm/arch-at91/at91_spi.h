@@ -7,10 +7,7 @@
  * Serial Peripheral Interface (SPI) registers.
  * Based on AT91RM9200 datasheet revision E.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef AT91_SPI_H
@@ -121,6 +118,6 @@ typedef struct at91_spi {
 
 #define AT91_SPI_PTSR		0x0124			/* PDC Transfer Status Register */
 
-#endif /* CONFIG_AT91_LEGACY */
+#endif /* CONFIG_ATMEL_LEGACY */
 
 #endif

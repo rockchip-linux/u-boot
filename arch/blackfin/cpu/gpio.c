@@ -12,6 +12,7 @@
 #include <asm/gpio.h>
 #include <asm/portmux.h>
 
+#ifndef CONFIG_ADI_GPIO2
 #if ANOMALY_05000311 || ANOMALY_05000323
 enum {
 	AWA_data = SYSCR,
@@ -247,7 +248,7 @@ static struct {
 
 static void portmux_setup(unsigned short per)
 {
-	u16 y, offset, muxreg;
+	u16 y, offset, muxreg, mask;
 	u16 function = P_FUNCT2MUX(per);
 
 	for (y = 0; y < ARRAY_SIZE(port_mux_lut); y++) {
@@ -258,12 +259,13 @@ static void portmux_setup(unsigned short per)
 			offset = port_mux_lut[y].offset;
 			muxreg = bfin_read_PORT_MUX();
 
-			if (offset != 1)
-				muxreg &= ~(1 << offset);
+			if (offset == 1)
+				mask = 3;
 			else
-				muxreg &= ~(3 << 1);
+				mask = 1;
 
-			muxreg |= (function << offset);
+			muxreg &= ~(mask << offset);
+			muxreg |= ((function & mask) << offset);
 			bfin_write_PORT_MUX(muxreg);
 		}
 	}
@@ -662,8 +664,8 @@ void special_gpio_free(unsigned gpio)
 		return;
 	}
 
-	reserve(special_gpio, gpio);
-	reserve(peri, gpio);
+	unreserve(special_gpio, gpio);
+	unreserve(peri, gpio);
 	set_label(gpio, "free");
 }
 #endif
@@ -773,3 +775,19 @@ void gpio_labels(void)
 			continue;
 	}
 }
+#else
+struct gpio_port_t * const gpio_array[] = {
+	(struct gpio_port_t *)PORTA_FER,
+	(struct gpio_port_t *)PORTB_FER,
+	(struct gpio_port_t *)PORTC_FER,
+	(struct gpio_port_t *)PORTD_FER,
+	(struct gpio_port_t *)PORTE_FER,
+	(struct gpio_port_t *)PORTF_FER,
+	(struct gpio_port_t *)PORTG_FER,
+#if defined(CONFIG_BF54x)
+	(struct gpio_port_t *)PORTH_FER,
+	(struct gpio_port_t *)PORTI_FER,
+	(struct gpio_port_t *)PORTJ_FER,
+#endif
+};
+#endif

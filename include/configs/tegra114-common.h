@@ -18,6 +18,9 @@
 #define _TEGRA114_COMMON_H_
 #include "tegra-common.h"
 
+/* Cortex-A15 uses a cache line size of 64 bytes */
+#define CONFIG_SYS_CACHELINE_SIZE	64
+
 /*
  * NS16550 Configuration
  */
@@ -79,5 +82,6 @@
 
 /* For USB EHCI controller */
 #define CONFIG_EHCI_IS_TDI
+#define CONFIG_USB_EHCI_TXFIFO_THRESH	0x10
 
 #endif /* _TEGRA114_COMMON_H_ */

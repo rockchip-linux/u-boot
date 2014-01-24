@@ -3,23 +3,7 @@
  * Copyright (c) 2009-2013 NVIDIA Corporation
  * Copyright (c) 2013 Lucas Stach
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -715,7 +699,7 @@ static int process_usb_nodes(const void *blob, int node_list[], int count)
 	return 0;
 }
 
-int board_usb_init(const void *blob)
+int usb_process_devicetree(const void *blob)
 {
 	int node_list[USB_PORTS_MAX];
 	int count, err = 0;
@@ -750,7 +734,8 @@ int board_usb_init(const void *blob)
  * @param hcor		returns start address of EHCI HCOR registers
  * @return 0 if ok, -1 on error (generally invalid port number)
  */
-int ehci_hcd_init(int index, struct ehci_hccr **hccr, struct ehci_hcor **hcor)
+int ehci_hcd_init(int index, enum usb_init_type init,
+		struct ehci_hccr **hccr, struct ehci_hcor **hcor)
 {
 	struct fdt_usb *config;
 	struct usb_ctlr *usbctlr;

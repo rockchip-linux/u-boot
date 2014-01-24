@@ -14,7 +14,6 @@
 #define CONFIG_BFIN_CPU             bf533-0.3
 #define CONFIG_BFIN_BOOT_MODE       BFIN_BOOT_BYPASS
 
-
 /*
  * Clock Settings
  *	CCLK = (CLKIN * VCO_MULT) / CCLK_DIV
@@ -37,7 +36,6 @@
 /* SCLK_DIV controls the system clock divider				*/
 /* Values can range from 1-15						*/
 #define CONFIG_SCLK_DIV			6 /* note: 1.2 boards can go faster */
-
 
 /*
  * Memory Settings
@@ -74,6 +72,17 @@
 /* #define CONFIG_ETHADDR	02:80:ad:20:31:b8 */
 
 
+/* I2C */
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_SOFT		/* I2C bit-banged */
+#define CONFIG_SYS_I2C_SOFT_SPEED	50000
+#define CONFIG_SYS_I2C_SOFT_SLAVE	0
+/*
+ * Software (bit-bang) I2C driver configuration
+ */
+#define CONFIG_SOFT_I2C_GPIO_SCL	GPIO_PF3
+#define CONFIG_SOFT_I2C_GPIO_SDA	GPIO_PF2
+
 /*
  * Flash Settings
  */
@@ -83,7 +92,6 @@
 #define CONFIG_SYS_FLASH_CFI_AMD_RESET
 #define CONFIG_SYS_MAX_FLASH_BANKS	1
 #define CONFIG_SYS_MAX_FLASH_SECT	67
-
 
 /*
  * SPI Settings
@@ -122,8 +130,8 @@
  * it linked after the configuration sector.
  */
 # define LDS_BOARD_TEXT \
-	arch/blackfin/lib/libblackfin.o (.text*); \
-	arch/blackfin/cpu/libblackfin.o (.text*); \
+	arch/blackfin/lib/built-in.o (.text*); \
+	arch/blackfin/cpu/built-in.o (.text*); \
 	. = DEFINED(env_offset) ? env_offset : .; \
 	common/env_embedded.o (.text*);
 #endif
@@ -132,10 +140,15 @@
 /*
  * I2C Settings
  */
-#define CONFIG_SOFT_I2C
+#define CONFIG_SYS_I2C_SOFT
+#ifdef CONFIG_SYS_I2C_SOFT
+#define CONFIG_SYS_I2C
 #define CONFIG_SOFT_I2C_GPIO_SCL GPIO_PF3
 #define CONFIG_SOFT_I2C_GPIO_SDA GPIO_PF2
-
+#define I2C_DELAY		udelay(5)	/* 1/4 I2C clock duration */
+#define CONFIG_SYS_I2C_SOFT_SPEED	50000
+#define CONFIG_SYS_I2C_SOFT_SLAVE	0
+#endif
 
 /*
  * Compact Flash / IDE / ATA Settings

@@ -1,23 +1,7 @@
 /*
  * Copyright 2010-2011 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -94,31 +78,34 @@ struct fsl_e_tlb_entry tlb_table[] = {
 			0, 7, BOOKE_PAGESZ_1M, 1),
 #endif
 
-#if defined(CONFIG_SYS_RAMBOOT) || defined(CONFIG_SPL)
-#ifdef CONFIG_SYS_INIT_L2_ADDR
-	/* L2SRAM */
-	SET_TLB_ENTRY(1, CONFIG_SYS_INIT_L2_ADDR, CONFIG_SYS_INIT_L2_ADDR_PHYS,
-		      MAS3_SX|MAS3_SW|MAS3_SR, MAS2_I|MAS2_G,
-		      0, 8, BOOKE_PAGESZ_256K, 1),
-	SET_TLB_ENTRY(1, CONFIG_SYS_INIT_L2_ADDR + 0x40000,
-		      CONFIG_SYS_INIT_L2_ADDR_PHYS + 0x40000,
-		      MAS3_SX|MAS3_SW|MAS3_SR, MAS2_I|MAS2_G,
-		      0, 12, BOOKE_PAGESZ_256K, 1),
-#else
+#if defined(CONFIG_SYS_RAMBOOT) || \
+	(defined(CONFIG_SPL) && !defined(CONFIG_SPL_COMMON_INIT_DDR))
 	/* *I*G - eSDHC/eSPI/NAND boot */
 	SET_TLB_ENTRY(1, CONFIG_SYS_DDR_SDRAM_BASE, CONFIG_SYS_DDR_SDRAM_BASE,
 			MAS3_SX|MAS3_SW|MAS3_SR, 0,
 			0, 8, BOOKE_PAGESZ_1G, 1),
 
-#ifdef CONFIG_P1020MBG
+#if defined(CONFIG_P1020MBG) || defined(CONFIG_P1020RDB_PD)
 	/* 2G DDR on P1020MBG, map the second 1G */
 	SET_TLB_ENTRY(1, CONFIG_SYS_DDR_SDRAM_BASE + 0x40000000,
 			CONFIG_SYS_DDR_SDRAM_BASE + 0x40000000,
 			MAS3_SX|MAS3_SW|MAS3_SR, MAS2_I|MAS2_G,
 			0, 9, BOOKE_PAGESZ_1G, 1),
 #endif /* P1020MBG */
-#endif /* not L2 SRAM */
 #endif /* RAMBOOT/SPL */
+
+#ifdef CONFIG_SYS_INIT_L2_ADDR
+	/* *I*G - L2SRAM */
+	SET_TLB_ENTRY(1, CONFIG_SYS_INIT_L2_ADDR, CONFIG_SYS_INIT_L2_ADDR_PHYS,
+		      MAS3_SX|MAS3_SW|MAS3_SR, MAS2_G,
+		      0, 11, BOOKE_PAGESZ_256K, 1),
+#if CONFIG_SYS_L2_SIZE >= (256 << 10)
+	SET_TLB_ENTRY(1, CONFIG_SYS_INIT_L2_ADDR + 0x40000,
+		      CONFIG_SYS_INIT_L2_ADDR_PHYS + 0x40000,
+		      MAS3_SX|MAS3_SW|MAS3_SR, MAS2_I|MAS2_G,
+		      0, 12, BOOKE_PAGESZ_256K, 1)
+#endif
+#endif
 };
 
 int num_tlb_entries = ARRAY_SIZE(tlb_table);

@@ -10,8 +10,8 @@
 #include <i2c.h>
 #include <hwconfig.h>
 #include <asm/mmu.h>
-#include <asm/fsl_ddr_sdram.h>
-#include <asm/fsl_ddr_dimm_params.h>
+#include <fsl_ddr_sdram.h>
+#include <fsl_ddr_dimm_params.h>
 #include <asm/fsl_law.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -56,14 +56,14 @@ phys_size_t fixed_sdram(void)
 
 	ddr_size = (phys_size_t) CONFIG_SYS_SDRAM_SIZE * 1024 * 1024;
 	ddr_cfg_regs.ddr_cdr1 = DDR_CDR1_DHC_EN;
-	fsl_ddr_set_memctl_regs(&ddr_cfg_regs, 0);
+	fsl_ddr_set_memctl_regs(&ddr_cfg_regs, 0, 0);
 
 #if (CONFIG_NUM_DDR_CONTROLLERS == 2)
 	memcpy(&ddr_cfg_regs,
 		fixed_ddr_parm_1[i].ddr_settings,
 		sizeof(ddr_cfg_regs));
 	ddr_cfg_regs.ddr_cdr1 = DDR_CDR1_DHC_EN;
-	fsl_ddr_set_memctl_regs(&ddr_cfg_regs, 1);
+	fsl_ddr_set_memctl_regs(&ddr_cfg_regs, 1, 0);
 #endif
 
 	/*
@@ -114,7 +114,7 @@ struct board_specific_parameters {
 	u32 wrlvl_start;
 	u32 cpo;
 	u32 write_data_delay;
-	u32 force_2T;
+	u32 force_2t;
 };
 
 /*
@@ -217,7 +217,7 @@ void fsl_ddr_board_options(memctl_options_t *popts,
 					pbsp->write_data_delay;
 				popts->clk_adjust = pbsp->clk_adjust;
 				popts->wrlvl_start = pbsp->wrlvl_start;
-				popts->twoT_en = pbsp->force_2T;
+				popts->twot_en = pbsp->force_2t;
 				goto found;
 			}
 			pbsp_highest = pbsp;
@@ -234,7 +234,7 @@ void fsl_ddr_board_options(memctl_options_t *popts,
 		popts->write_data_delay = pbsp_highest->write_data_delay;
 		popts->clk_adjust = pbsp_highest->clk_adjust;
 		popts->wrlvl_start = pbsp_highest->wrlvl_start;
-		popts->twoT_en = pbsp_highest->force_2T;
+		popts->twot_en = pbsp_highest->force_2t;
 	} else {
 		panic("DIMM is not supported by this board");
 	}

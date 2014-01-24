@@ -1,27 +1,9 @@
 /*
  * Copyright 2012 Freescale Semiconductor, Inc.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
-#define _GNU_SOURCE
-
-#include "mkimage.h"
+#include "imagetool.h"
 #include <image.h>
 #include "pblimage.h"
 
@@ -260,7 +242,7 @@ static void add_end_cmd(void)
 	}
 }
 
-void pbl_load_uboot(int ifd, struct mkimage_params *params)
+void pbl_load_uboot(int ifd, struct image_tool_params *params)
 {
 	FILE *fp_uboot;
 	int size;
@@ -299,7 +281,7 @@ static int pblimage_check_image_types(uint8_t type)
 }
 
 static int pblimage_verify_header(unsigned char *ptr, int image_size,
-			struct mkimage_params *params)
+			struct image_tool_params *params)
 {
 	struct pbl_header *pbl_hdr = (struct pbl_header *) ptr;
 
@@ -326,7 +308,7 @@ static void pblimage_print_header(const void *ptr)
 }
 
 static void pblimage_set_header(void *ptr, struct stat *sbuf, int ifd,
-				struct mkimage_params *params)
+				struct image_tool_params *params)
 {
 	/*nothing need to do, pbl_load_uboot takes care of whole file. */
 }
@@ -345,5 +327,5 @@ static struct image_type_params pblimage_params = {
 void init_pbl_image_type(void)
 {
 	pbl_size = 0;
-	mkimage_register(&pblimage_params);
+	register_image_type(&pblimage_params);
 }

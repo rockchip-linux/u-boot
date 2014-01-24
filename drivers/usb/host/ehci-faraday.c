@@ -4,8 +4,7 @@
  * (C) Copyright 2010 Faraday Technology
  * Dante Su <dantesu@faraday-tech.com>
  *
- * This file is released under the terms of GPL v2 and any later version.
- * See the file COPYING in the root directory of the source tree for details.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -34,8 +33,8 @@ static inline int ehci_is_fotg2xx(union ehci_faraday_regs *regs)
  * Create the appropriate control structures to manage
  * a new EHCI host controller.
  */
-int ehci_hcd_init(int index, struct ehci_hccr **ret_hccr,
-		struct ehci_hcor **ret_hcor)
+int ehci_hcd_init(int index, enum usb_init_type init,
+		struct ehci_hccr **ret_hccr, struct ehci_hcor **ret_hcor)
 {
 	struct ehci_hccr *hccr;
 	struct ehci_hcor *hcor;

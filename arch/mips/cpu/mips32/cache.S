@@ -3,23 +3,7 @@
  *
  *  Copyright (c) 2003	Wolfgang Denk <wd@denx.de>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <asm-offsets.h>
@@ -34,16 +18,7 @@
 #define CONFIG_SYS_MIPS_CACHE_MODE CONF_CM_CACHABLE_NONCOHERENT
 #endif
 
-#define RA		t8
-
-/*
- * 16kB is the maximum size of instruction and data caches on MIPS 4K,
- * 64kB is on 4KE, 24K, 5K, etc. Set bigger size for convenience.
- *
- * Note that the above size is the maximum size of primary cache. U-Boot
- * doesn't have L2 cache support for now.
- */
-#define MIPS_MAX_CACHE_SIZE	0x10000
+#define RA		t9
 
 #define INDEX_BASE	CKSEG0
 
@@ -142,13 +117,85 @@ LEAF(mips_init_dcache)
  */
 NESTED(mips_cache_reset, 0, ra)
 	move	RA, ra
+
+#if !defined(CONFIG_SYS_ICACHE_SIZE) || !defined(CONFIG_SYS_DCACHE_SIZE) || \
+    !defined(CONFIG_SYS_CACHELINE_SIZE)
+	/* read Config1 for use below */
+	mfc0	t5, CP0_CONFIG, 1
+#endif
+
+#ifdef CONFIG_SYS_CACHELINE_SIZE
+	li	t7, CONFIG_SYS_CACHELINE_SIZE
+	li	t8, CONFIG_SYS_CACHELINE_SIZE
+#else
+	/* Detect I-cache line size. */
+	srl	t8, t5, MIPS_CONF1_IL_SHIFT
+	andi	t8, t8, (MIPS_CONF1_IL >> MIPS_CONF1_IL_SHIFT)
+	beqz	t8, 1f
+	li	t6, 2
+	sllv	t8, t6, t8
+
+1:	/* Detect D-cache line size. */
+	srl	t7, t5, MIPS_CONF1_DL_SHIFT
+	andi	t7, t7, (MIPS_CONF1_DL >> MIPS_CONF1_DL_SHIFT)
+	beqz	t7, 1f
+	li	t6, 2
+	sllv	t7, t6, t7
+1:
+#endif
+
+#ifdef CONFIG_SYS_ICACHE_SIZE
 	li	t2, CONFIG_SYS_ICACHE_SIZE
+#else
+	/* Detect I-cache size. */
+	srl	t6, t5, MIPS_CONF1_IS_SHIFT
+	andi	t6, t6, (MIPS_CONF1_IS >> MIPS_CONF1_IS_SHIFT)
+	li	t4, 32
+	xori	t2, t6, 0x7
+	beqz	t2, 1f
+	addi	t6, t6, 1
+	sllv	t4, t4, t6
+1:	/* At this point t4 == I-cache sets. */
+	mul	t2, t4, t8
+	srl	t6, t5, MIPS_CONF1_IA_SHIFT
+	andi	t6, t6, (MIPS_CONF1_IA >> MIPS_CONF1_IA_SHIFT)
+	addi	t6, t6, 1
+	/* At this point t6 == I-cache ways. */
+	mul	t2, t2, t6
+#endif
+
+#ifdef CONFIG_SYS_DCACHE_SIZE
 	li	t3, CONFIG_SYS_DCACHE_SIZE
-	li	t4, CONFIG_SYS_CACHELINE_SIZE
-	move	t5, t4
+#else
+	/* Detect D-cache size. */
+	srl	t6, t5, MIPS_CONF1_DS_SHIFT
+	andi	t6, t6, (MIPS_CONF1_DS >> MIPS_CONF1_DS_SHIFT)
+	li	t4, 32
+	xori	t3, t6, 0x7
+	beqz	t3, 1f
+	addi	t6, t6, 1
+	sllv	t4, t4, t6
+1:	/* At this point t4 == I-cache sets. */
+	mul	t3, t4, t7
+	srl	t6, t5, MIPS_CONF1_DA_SHIFT
+	andi	t6, t6, (MIPS_CONF1_DA >> MIPS_CONF1_DA_SHIFT)
+	addi	t6, t6, 1
+	/* At this point t6 == I-cache ways. */
+	mul	t3, t3, t6
+#endif
 
-	li	v0, MIPS_MAX_CACHE_SIZE
-
+	/* Determine the largest L1 cache size */
+#if defined(CONFIG_SYS_ICACHE_SIZE) && defined(CONFIG_SYS_DCACHE_SIZE)
+#if CONFIG_SYS_ICACHE_SIZE > CONFIG_SYS_DCACHE_SIZE
+	li	v0, CONFIG_SYS_ICACHE_SIZE
+#else
+	li	v0, CONFIG_SYS_DCACHE_SIZE
+#endif
+#else
+	move	v0, t2
+	sltu	t1, t2, t3
+	movn	v0, t3, t1
+#endif
 	/*
 	 * Now clear that much memory starting from zero.
 	 */
@@ -172,17 +219,17 @@ NESTED(mips_cache_reset, 0, ra)
 	 * Initialize the I-cache first,
 	 */
 	move	a1, t2
-	move	a2, t4
-	PTR_LA	t7, mips_init_icache
-	jalr	t7
+	move	a2, t8
+	PTR_LA	v1, mips_init_icache
+	jalr	v1
 
 	/*
 	 * then initialize D-cache.
 	 */
 	move	a1, t3
-	move	a2, t5
-	PTR_LA	t7, mips_init_dcache
-	jalr	t7
+	move	a2, t7
+	PTR_LA	v1, mips_init_dcache
+	jalr	v1
 
 	jr	RA
 	END(mips_cache_reset)

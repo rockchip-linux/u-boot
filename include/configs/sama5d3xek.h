@@ -7,23 +7,7 @@
  * Stelian Pop <stelian@popies.net>
  * Lead Tech Design <www.leadtechdesign.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -36,12 +20,14 @@
 /* ARM asynchronous clock */
 #define CONFIG_SYS_AT91_SLOW_CLOCK      32768
 #define CONFIG_SYS_AT91_MAIN_CLOCK      12000000 /* from 12 MHz crystal */
-#define CONFIG_SYS_HZ		        1000
 
 #define CONFIG_AT91FAMILY
 #define CONFIG_ARCH_CPU_INIT
 
+#ifndef CONFIG_SPL_BUILD
 #define CONFIG_SKIP_LOWLEVEL_INIT
+#endif
+
 #define CONFIG_BOARD_EARLY_INIT_F
 #define CONFIG_DISPLAY_CPUINFO
 
@@ -72,7 +58,6 @@
 #define LCD_BPP				LCD_COLOR16
 #define LCD_OUTPUT_BPP                  24
 #define CONFIG_LCD_LOGO
-#undef LCD_TEST_PATTERN
 #define CONFIG_LCD_INFO
 #define CONFIG_LCD_INFO_BELOW_LOGO
 #define CONFIG_SYS_WHITE_ON_BLACK
@@ -111,8 +96,12 @@
 #define CONFIG_SYS_SDRAM_BASE           ATMEL_BASE_DDRCS
 #define CONFIG_SYS_SDRAM_SIZE		0x20000000
 
+#ifdef CONFIG_SPL_BUILD
+#define CONFIG_SYS_INIT_SP_ADDR		0x310000
+#else
 #define CONFIG_SYS_INIT_SP_ADDR \
 	(CONFIG_SYS_SDRAM_BASE + 4 * 1024 - GENERATED_GBL_DATA_SIZE)
+#endif
 
 /* SerialFlash */
 #define CONFIG_CMD_SF
@@ -128,7 +117,6 @@
 #define CONFIG_CMD_NAND
 
 #ifdef CONFIG_CMD_NAND
-#define CONFIG_NAND_MAX_CHIPS		1
 #define CONFIG_NAND_ATMEL
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE		ATMEL_BASE_CS3
@@ -142,16 +130,19 @@
 #define CONFIG_ATMEL_NAND_HW_PMECC
 #define CONFIG_PMECC_CAP		4
 #define CONFIG_PMECC_SECTOR_SIZE	512
-#define CONFIG_PMECC_INDEX_TABLE_OFFSET	ATMEL_PMECC_INDEX_OFFSET_512
 #define CONFIG_CMD_NAND_TRIMFFS
 #endif
 
 /* Ethernet Hardware */
 #define CONFIG_MACB
 #define CONFIG_RMII
-#define CONFIG_NET_MULTI
 #define CONFIG_NET_RETRY_COUNT		20
 #define CONFIG_MACB_SEARCH_PHY
+#define CONFIG_RGMII
+#define CONFIG_CMD_MII
+#define CONFIG_PHYLIB
+#define CONFIG_PHY_MICREL
+#define CONFIG_PHY_MICREL_KSZ9021
 
 /* MMC */
 #define CONFIG_CMD_MMC
@@ -168,6 +159,7 @@
 
 #ifdef CONFIG_CMD_USB
 #define CONFIG_USB_ATMEL
+#define CONFIG_USB_ATMEL_CLK_SEL_UPLL
 #define CONFIG_USB_OHCI_NEW
 #define CONFIG_SYS_USB_OHCI_CPU_INIT
 #define CONFIG_SYS_USB_OHCI_REGS_BASE		ATMEL_BASE_OHCI
@@ -176,6 +168,14 @@
 #define CONFIG_DOS_PARTITION
 #define CONFIG_USB_STORAGE
 #endif
+
+/* USB device */
+#define CONFIG_USB_GADGET
+#define CONFIG_USB_GADGET_DUALSPEED
+#define CONFIG_USB_GADGET_ATMEL_USBA
+#define CONFIG_USB_ETHER
+#define CONFIG_USB_ETH_RNDIS
+#define CONFIG_USBNET_MANUFACTURER      "Atmel SAMA5D3xEK"
 
 #if defined(CONFIG_CMD_USB) || defined(CONFIG_CMD_MMC)
 #define CONFIG_CMD_FAT
@@ -211,7 +211,7 @@
 				"bootm 0x22000000 - 0x21000000"
 #define CONFIG_SYS_MMC_ENV_DEV	0
 #else
-#define CONIG_ENV_IS_NOWHERE
+#define CONFIG_ENV_IS_NOWHERE
 #endif
 
 #ifdef CONFIG_SYS_USE_MMC
@@ -241,5 +241,32 @@
 
 /* Size of malloc() pool */
 #define CONFIG_SYS_MALLOC_LEN		(1024 * 1024)
+
+/* SPL */
+#define CONFIG_SPL
+#define CONFIG_SPL_FRAMEWORK
+#define CONFIG_SPL_TEXT_BASE		0x300000
+#define CONFIG_SPL_MAX_SIZE		0x10000
+#define CONFIG_SPL_BSS_START_ADDR	0x20000000
+#define CONFIG_SPL_BSS_MAX_SIZE		0x80000
+#define CONFIG_SYS_SPL_MALLOC_START	0x20080000
+#define CONFIG_SYS_SPL_MALLOC_SIZE	0x80000
+
+#define CONFIG_SPL_LIBCOMMON_SUPPORT
+#define CONFIG_SPL_LIBGENERIC_SUPPORT
+#define CONFIG_SPL_GPIO_SUPPORT
+#define CONFIG_SPL_SERIAL_SUPPORT
+
+#define CONFIG_SPL_BOARD_INIT
+#ifdef CONFIG_SYS_USE_MMC
+#define CONFIG_SPL_LDSCRIPT		arch/arm/cpu/at91-common/u-boot-spl.lds
+#define CONFIG_SPL_MMC_SUPPORT
+#define CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS	0x400
+#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR 0x200
+#define CONFIG_SYS_MMC_SD_FAT_BOOT_PARTITION	1
+#define CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME	"u-boot.img"
+#define CONFIG_SPL_FAT_SUPPORT
+#define CONFIG_SPL_LIBDISK_SUPPORT
+#endif
 
 #endif

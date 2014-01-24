@@ -3,20 +3,7 @@
  *
  * Copyright (C) 2010 Marek Vasut <marek.vasut@gmail.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef	__CONFIG_H
@@ -106,7 +93,6 @@
  */
 #ifdef	CONFIG_CMD_KGDB
 #define	CONFIG_KGDB_BAUDRATE		230400	/* kgdb serial port speed */
-#define	CONFIG_KGDB_SER_INDEX		2	/* which serial port to use */
 #endif
 
 /*
@@ -117,8 +103,6 @@
 #define	CONFIG_SYS_LONGHELP
 #ifdef	CONFIG_SYS_HUSH_PARSER
 #define	CONFIG_SYS_PROMPT		"$ "
-#else
-#define	CONFIG_SYS_PROMPT		"=> "
 #endif
 #define	CONFIG_SYS_CBSIZE		256
 #define	CONFIG_SYS_PBSIZE		\
@@ -131,7 +115,7 @@
  * Clock Configuration
  */
 #undef	CONFIG_SYS_CLKS_IN_HZ
-#define	CONFIG_SYS_HZ			3250000		/* Timer @ 3250000 Hz */
+#define	CONFIG_SYS_HZ			1000
 #define	CONFIG_SYS_CPUSPEED		0x210		/* 416MHz ; N=2,L=16 */
 
 /*
@@ -174,10 +158,10 @@
 
 #define	CONFIG_SYS_FLASH_USE_BUFFER_WRITE	1
 
-#define	CONFIG_SYS_FLASH_ERASE_TOUT	(25*CONFIG_SYS_HZ)
-#define	CONFIG_SYS_FLASH_WRITE_TOUT	(25*CONFIG_SYS_HZ)
-#define	CONFIG_SYS_FLASH_LOCK_TOUT	(25*CONFIG_SYS_HZ)
-#define	CONFIG_SYS_FLASH_UNLOCK_TOUT	(25*CONFIG_SYS_HZ)
+#define	CONFIG_SYS_FLASH_ERASE_TOUT	240000
+#define	CONFIG_SYS_FLASH_WRITE_TOUT	240000
+#define	CONFIG_SYS_FLASH_LOCK_TOUT	240000
+#define	CONFIG_SYS_FLASH_UNLOCK_TOUT	240000
 #define	CONFIG_SYS_FLASH_PROTECTION
 
 #define	CONFIG_ENV_IS_IN_FLASH		1

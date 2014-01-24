@@ -2,23 +2,7 @@
 # (C) Copyright 2007
 # Stefan Roese, DENX Software Engineering, sr@denx.de.
 #
-# See file CREDITS for list of people who contributed to this
-# project.
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2 of
-# the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307 USA
+# SPDX-License-Identifier:	GPL-2.0+
 #
 
 include $(TOPDIR)/config.mk
@@ -40,9 +24,7 @@ OBJS	:= $(addprefix $(obj),$(SOBJS) $(COBJS))
 __OBJS	:= $(SOBJS) $(COBJS)
 LNDIR	:= $(nandobj)board/$(BOARDDIR)
 
-ALL	= $(nandobj)u-boot-spl $(nandobj)u-boot-spl.bin $(nandobj)u-boot-spl-16k.bin
-
-all:	$(obj).depend $(ALL)
+all: $(nandobj)u-boot-spl.bin $(nandobj)u-boot-spl-16k.bin
 
 $(nandobj)u-boot-spl-16k.bin: $(nandobj)u-boot-spl
 	$(OBJCOPY) ${OBJCFLAGS} --pad-to=$(PAD_TO) -O binary $< $@
@@ -52,8 +34,7 @@ $(nandobj)u-boot-spl.bin:	$(nandobj)u-boot-spl
 
 $(nandobj)u-boot-spl:	$(OBJS) $(nandobj)u-boot.lds
 	cd $(LNDIR) && $(LD) $(LDFLAGS) $(__OBJS) $(PLATFORM_LIBS) \
-		-Map $(nandobj)u-boot-spl.map \
-		-o $(nandobj)u-boot-spl
+		-Map $(nandobj)u-boot-spl.map -o $@
 
 $(nandobj)u-boot.lds: $(LDSCRIPT)
 	$(CPP) $(CPPFLAGS) $(LDPPFLAGS) -ansi -D__ASSEMBLY__ -P - <$^ >$@
@@ -62,38 +43,38 @@ $(nandobj)u-boot.lds: $(LDSCRIPT)
 
 # from cpu directory
 $(obj)44x_spd_ddr2.c: $(obj)ecc.h
-	@rm -f $(obj)44x_spd_ddr2.c
-	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/44x_spd_ddr2.c $(obj)44x_spd_ddr2.c
+	@rm -f $@
+	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/44x_spd_ddr2.c $@
 
 $(obj)cache.S:
-	@rm -f $(obj)cache.S
-	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/cache.S $(obj)cache.S
+	@rm -f $@
+	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/cache.S $@
 
 $(obj)ecc.h:
-	@rm -f $(obj)ecc.h
-	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/ecc.h $(obj)ecc.h
+	@rm -f $@
+	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/ecc.h $@
 
 $(obj)ndfc.c:
-	@rm -f $(obj)ndfc.c
-	ln -s $(SRCTREE)/drivers/mtd/nand/ndfc.c $(obj)ndfc.c
+	@rm -f $@
+	ln -s $(SRCTREE)/drivers/mtd/nand/ndfc.c $@
 
 $(obj)resetvec.S:
-	@rm -f $(obj)resetvec.S
-	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/resetvec.S $(obj)resetvec.S
+	@rm -f $@
+	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/resetvec.S $@
 
 $(obj)start.S:
-	@rm -f $(obj)start.S
-	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/start.S $(obj)start.S
+	@rm -f $@
+	ln -s $(SRCTREE)/arch/powerpc/cpu/ppc4xx/start.S $@
 
 # from nand_spl directory
 $(obj)nand_boot.c:
-	@rm -f $(obj)nand_boot.c
-	ln -s $(SRCTREE)/nand_spl/nand_boot.c $(obj)nand_boot.c
+	@rm -f $@
+	ln -s $(SRCTREE)/nand_spl/nand_boot.c $@
 
 # from drivers/nand directory
 $(obj)nand_ecc.c:
-	@rm -f $(obj)nand_ecc.c
-	ln -s $(SRCTREE)/drivers/mtd/nand/nand_ecc.c $(obj)nand_ecc.c
+	@rm -f $@
+	ln -s $(SRCTREE)/drivers/mtd/nand/nand_ecc.c $@
 
 #########################################################################
 

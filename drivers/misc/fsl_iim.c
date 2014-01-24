@@ -6,23 +6,7 @@
  * Copyright 2008 Silicon Turnkey Express, Inc.
  * Martha Marx <mmarx@silicontkx.com>
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
@@ -31,6 +15,9 @@
 #include <asm/io.h>
 #ifndef CONFIG_MPC512X
 #include <asm/arch/imx-regs.h>
+#endif
+#if defined(CONFIG_MX51) || defined(CONFIG_MX53)
+#include <asm/arch/clock.h>
 #endif
 
 /* FSL IIM-specific constants */
@@ -108,6 +95,10 @@ struct fsl_iim {
 		u32 word[0x100];
 	} bank[8];
 };
+
+#if !defined(CONFIG_MX51) && !defined(CONFIG_MX53)
+#define enable_efuse_prog_supply(enable)
+#endif
 
 static int prepare_access(struct fsl_iim **regs, u32 bank, u32 word, int assert,
 				const char *caller)
@@ -253,12 +244,16 @@ int fuse_prog(u32 bank, u32 word, u32 val)
 	if (ret)
 		return ret;
 
+	enable_efuse_prog_supply(1);
 	for (bit = 0; val; bit++, val >>= 1)
 		if (val & 0x01) {
 			ret = prog_bit(regs, bank, word, bit);
-			if (ret)
+			if (ret) {
+				enable_efuse_prog_supply(0);
 				return ret;
+			}
 		}
+	enable_efuse_prog_supply(0);
 
 	return 0;
 }

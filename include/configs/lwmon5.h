@@ -2,20 +2,7 @@
  * (C) Copyright 2007-2013
  * Stefan Roese, DENX Software Engineering, sr@denx.de.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 /*
@@ -298,11 +285,11 @@
 /*
  * I2C
  */
-#define CONFIG_HARD_I2C				/* I2C with hardware support	*/
-#undef	CONFIG_SOFT_I2C				/* I2C bit-banged		*/
-#define CONFIG_PPC4XX_I2C		/* use PPC4xx driver		*/
-#define CONFIG_SYS_I2C_SPEED		100000		/* I2C speed and slave address	*/
-#define CONFIG_SYS_I2C_SLAVE		0x7F
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_I2C_PPC4XX
+#define CONFIG_SYS_I2C_PPC4XX_CH0
+#define CONFIG_SYS_I2C_PPC4XX_SPEED_0		100000
+#define CONFIG_SYS_I2C_PPC4XX_SLAVE_0		0x7F
 
 #define CONFIG_SYS_I2C_RTC_ADDR	0x51	/* RTC				*/
 #define CONFIG_SYS_I2C_EEPROM_CPU_ADDR	0x52	/* EEPROM          (CPU Modul)	*/
@@ -476,7 +463,6 @@
 #define CONFIG_SUPPORT_VFAT
 
 #define CONFIG_SYS_LONGHELP			/* undef to save memory		*/
-#define CONFIG_SYS_PROMPT	        "=> "	/* Monitor Command Prompt	*/
 
 #define CONFIG_SYS_HUSH_PARSER		1	/* Use the HUSH parser		*/
 
@@ -494,8 +480,6 @@
 
 #define CONFIG_SYS_LOAD_ADDR		0x100000  /* default load address	*/
 #define CONFIG_SYS_EXTBDINFO		1	/* To use extended board_into (bd_t) */
-
-#define CONFIG_SYS_HZ		        1000	/* decrementer freq: 1 ms ticks	*/
 
 #define CONFIG_CMDLINE_EDITING	1	/* add command line history	*/
 #define CONFIG_LOOPW            1       /* enable loopw command         */
@@ -578,6 +562,7 @@
 #define CONFIG_SYS_GPIO_PHY1_RST	12
 #define CONFIG_SYS_GPIO_FLASH_WP	14
 #define CONFIG_SYS_GPIO_PHY0_RST	22
+#define CONFIG_SYS_GPIO_PERM_VOLT_FEED	49
 #define CONFIG_SYS_GPIO_DSPIC_READY	51
 #define CONFIG_SYS_GPIO_CAN_ENABLE	53
 #define CONFIG_SYS_GPIO_LSB_ENABLE	54
@@ -589,6 +574,13 @@
 #define CONFIG_SYS_GPIO_LIME_RST	60
 #define CONFIG_SYS_GPIO_SYSMON_STATUS	62
 #define CONFIG_SYS_GPIO_WATCHDOG	63
+
+/* On LCD4, GPIO49 has to be configured to 0 instead of 1 */
+#ifdef CONFIG_LCD4_LWMON5
+#define GPIO49_VAL	0
+#else
+#define GPIO49_VAL	1
+#endif
 
 /*
  * PPC440 GPIO Configuration
@@ -648,7 +640,7 @@
 {GPIO1_BASE, GPIO_IN , GPIO_ALT1, GPIO_OUT_0}, /* GPIO46 UIC_IRQ(7)	DMA_REQ(0)	*/	\
 {GPIO1_BASE, GPIO_IN , GPIO_ALT1, GPIO_OUT_0}, /* GPIO47 UIC_IRQ(8)	DMA_ACK(0)	*/	\
 {GPIO1_BASE, GPIO_IN , GPIO_ALT1, GPIO_OUT_0}, /* GPIO48 UIC_IRQ(9)	DMA_EOT/TC(0)	*/	\
-{GPIO1_BASE, GPIO_OUT, GPIO_SEL , GPIO_OUT_1}, /* GPIO49  Unselect via TraceSelect Bit	*/	\
+{GPIO1_BASE, GPIO_OUT, GPIO_SEL , GPIO49_VAL}, /* GPIO49  Unselect via TraceSelect Bit	*/	\
 {GPIO1_BASE, GPIO_IN,  GPIO_SEL , GPIO_OUT_0}, /* GPIO50  Unselect via TraceSelect Bit	*/	\
 {GPIO1_BASE, GPIO_IN , GPIO_SEL , GPIO_OUT_0}, /* GPIO51  Unselect via TraceSelect Bit	*/	\
 {GPIO1_BASE, GPIO_IN , GPIO_SEL , GPIO_OUT_0}, /* GPIO52  Unselect via TraceSelect Bit	*/	\
@@ -668,7 +660,6 @@
 
 #if defined(CONFIG_CMD_KGDB)
 #define CONFIG_KGDB_BAUDRATE	230400	/* speed to run kgdb serial port */
-#define CONFIG_KGDB_SER_INDEX	2	    /* which serial port to use */
 #endif
 
 /*

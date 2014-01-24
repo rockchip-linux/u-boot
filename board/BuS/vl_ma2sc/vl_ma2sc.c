@@ -3,36 +3,20 @@
  * Jens Scharsig  <esw@bus-elekronik.de>
  * BuS Elektronik GmbH & Co. KG
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <config.h>
 #include <common.h>
 #include <asm/sizes.h>
 #include <asm/io.h>
+#include <asm/gpio.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/clk.h>
 #include <asm/arch/at91_matrix.h>
 #include <asm/arch/at91sam9_smc.h>
 #include <asm/arch/at91_pmc.h>
 #include <asm/arch/at91_pio.h>
-#include <asm/arch/at91_rstc.h>
 #include <asm/arch/at91sam9263.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/at91_common.h>
@@ -82,35 +66,22 @@ static void vl_ma2sc_nand_hw_init(void)
 
 	/* Configure RDY/BSY */
 #ifdef CONFIG_SYS_NAND_READY_PIN
-	at91_set_pio_input(CONFIG_SYS_NAND_READY_PIN, 1);
+	gpio_direction_input(CONFIG_SYS_NAND_READY_PIN);
 #endif
 	/* Enable NandFlash */
-	at91_set_pio_output(CONFIG_SYS_NAND_ENABLE_PIN, 1);
+	gpio_direction_output(CONFIG_SYS_NAND_ENABLE_PIN, 1);
 }
 #endif
 
 #ifdef CONFIG_MACB
 static void vl_ma2sc_macb_hw_init(void)
 {
-	unsigned long	erstl;
 	at91_pmc_t	*pmc	= (at91_pmc_t *) ATMEL_BASE_PMC;
-	at91_rstc_t	*rstc	= (at91_rstc_t *) ATMEL_BASE_RSTC;
+
 	/* Enable clock */
 	writel(1 << ATMEL_ID_EMAC, &pmc->pcer);
 
-	erstl = readl(&rstc->mr) & AT91_RSTC_MR_ERSTL_MASK;
-
-	/* Need to reset PHY -> 500ms reset */
-	writel(AT91_RSTC_KEY | AT91_RSTC_MR_ERSTL(0x0D) |
-		AT91_RSTC_MR_URSTEN, &rstc->mr);
-
-	writel(AT91_RSTC_KEY | AT91_RSTC_CR_EXTRST, &rstc->cr);
-	/* Wait for end hardware reset */
-	while (!(readl(&rstc->sr) & AT91_RSTC_SR_NRSTL))
-		;
-
-	/* Restore NRST value */
-	writel(AT91_RSTC_KEY | erstl | AT91_RSTC_MR_URSTEN, &rstc->mr);
+	at91_phy_reset();
 
 	at91_macb_hw_init();
 }
@@ -323,7 +294,7 @@ int board_eth_init(bd_t *bis)
 	return rc;
 }
 
-#ifdef CONFIG_SOFT_I2C
+#ifdef CONFIG_SYS_I2C_SOFT
 void i2c_init_board(void)
 {
 	u32 pin;

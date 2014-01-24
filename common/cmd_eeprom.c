@@ -2,24 +2,7 @@
  * (C) Copyright 2000, 2001
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
- *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 /*
@@ -178,7 +161,7 @@ int eeprom_read (unsigned dev_addr, unsigned offset, uchar *buffer, unsigned cnt
 #if defined(CONFIG_SPI) && !defined(CONFIG_ENV_EEPROM_IS_ON_I2C)
 		spi_read (addr, alen, buffer, len);
 #else
-		if (i2c_read (addr[0], offset, alen-1, buffer, len) != 0)
+		if (i2c_read(addr[0], offset, alen - 1, buffer, len))
 			rcode = 1;
 #endif
 		buffer += len;
@@ -356,7 +339,7 @@ int eeprom_write (unsigned dev_addr, unsigned offset, uchar *buffer, unsigned cn
 		/* Write is enabled ... now write eeprom value.
 		 */
 #endif
-		if (i2c_write (addr[0], offset, alen-1, buffer, len) != 0)
+		if (i2c_write(addr[0], offset, alen - 1, buffer, len))
 			rcode = 1;
 
 #endif
@@ -406,8 +389,7 @@ void eeprom_init  (void)
 #if defined(CONFIG_SPI) && !defined(CONFIG_ENV_EEPROM_IS_ON_I2C)
 	spi_init_f ();
 #endif
-#if defined(CONFIG_HARD_I2C) || \
-    defined(CONFIG_SOFT_I2C)
+#if defined(CONFIG_HARD_I2C) || defined(CONFIG_SYS_I2C_SOFT)
 	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 #endif
 }

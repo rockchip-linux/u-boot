@@ -3,20 +3,7 @@
  *
  * Copyright (C) 2009-2010 Marek Vasut <marek.vasut@gmail.com>
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __CONFIG_H
@@ -130,7 +117,6 @@ unsigned char zipitz2_spi_read(void);
  */
 #ifdef	CONFIG_CMD_KGDB
 #define	CONFIG_KGDB_BAUDRATE		230400		/* speed to run kgdb serial port */
-#define	CONFIG_KGDB_SER_INDEX		2		/* which serial port to use */
 #endif
 
 /*
@@ -141,8 +127,6 @@ unsigned char zipitz2_spi_read(void);
 #define	CONFIG_SYS_LONGHELP				/* undef to save memory	*/
 #ifdef	CONFIG_SYS_HUSH_PARSER
 #define	CONFIG_SYS_PROMPT		"$ "		/* Monitor Command Prompt */
-#else
-#define	CONFIG_SYS_PROMPT		"=> "		/* Monitor Command Prompt */
 #endif
 #define	CONFIG_SYS_CBSIZE		256		/* Console I/O Buffer Size */
 #define	CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE+sizeof(CONFIG_SYS_PROMPT)+16)	/* Print Buffer Size */
@@ -154,7 +138,7 @@ unsigned char zipitz2_spi_read(void);
  * Clock Configuration
  */
 #undef	CONFIG_SYS_CLKS_IN_HZ
-#define	CONFIG_SYS_HZ			3250000		/* Timer @ 3250000 Hz */
+#define	CONFIG_SYS_HZ			1000
 #define CONFIG_SYS_CPUSPEED		0x190		/* standard setting for 312MHz; L=16, N=1.5, A=0, SDCLK!=SystemBus */
 
 /*
@@ -201,10 +185,10 @@ unsigned char zipitz2_spi_read(void);
 
 #define CONFIG_SYS_FLASH_USE_BUFFER_WRITE	1
 
-#define CONFIG_SYS_FLASH_ERASE_TOUT	(2*CONFIG_SYS_HZ)
-#define CONFIG_SYS_FLASH_WRITE_TOUT	(2*CONFIG_SYS_HZ)
-#define CONFIG_SYS_FLASH_LOCK_TOUT	(2*CONFIG_SYS_HZ)
-#define CONFIG_SYS_FLASH_UNLOCK_TOUT	(2*CONFIG_SYS_HZ)
+#define CONFIG_SYS_FLASH_ERASE_TOUT	240000
+#define CONFIG_SYS_FLASH_WRITE_TOUT	240000
+#define CONFIG_SYS_FLASH_LOCK_TOUT	240000
+#define CONFIG_SYS_FLASH_UNLOCK_TOUT	240000
 #define CONFIG_SYS_FLASH_PROTECTION
 
 /*
