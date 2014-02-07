@@ -459,12 +459,7 @@ int rk30_lcdc_init()
     lcdc_clk_enable();
     #ifdef CONFIG_VCC_LCDC_1_8
         g_grfReg->GRF_IO_CON[4] = 0x40004000;
-    #endif
-	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-	g_grfReg->GRF_GPIO_IOMUX[2].GPIOB_IOMUX |= 0xffff5555;   //3026 lcdc iomux
-	g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX |= 0xffff5555;   //3026 lcdc iomux
-	#endif
-	
+    #endif	
 	LcdMskReg(SYS_CTRL, m_AUTO_GATING_EN|m_LCDC_STANDBY | m_WIN0_EN, v_AUTO_GATING_EN(1)|v_LCDC_STANDBY(0)|v_WIN0_EN(1));	      //zyw
 //	LcdMskReg(INT_STATUS, m_FS_INT_EN, v_FS_INT_EN(1));  
 	LCDC_REG_CFG_DONE();  // write any value to  REG_CFG_DONE let config become effective

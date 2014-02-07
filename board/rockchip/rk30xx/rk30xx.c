@@ -84,7 +84,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 void RockusbKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    if(ChipType = CONFIG_RK3026)
+    if(ChipType == CONFIG_RK3026)
     	key->key.adc.index = 3;
     else
 	key->key.adc.index = 1;	
@@ -98,7 +98,7 @@ void RockusbKeyInit(key_config *key)
 void RecoveryKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    if(ChipType = CONFIG_RK3026)
+    if(ChipType == CONFIG_RK3026)
     	key->key.adc.index = 3;
     else
 	key->key.adc.index = 1;	
@@ -113,7 +113,7 @@ void RecoveryKeyInit(key_config *key)
 void FastbootKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    if(ChipType = CONFIG_RK3026)
+    if(ChipType == CONFIG_RK3026)
     	key->key.adc.index = 3;
     else
 	key->key.adc.index = 1;	
