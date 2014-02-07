@@ -20,6 +20,7 @@
 #include <linux/compiler.h>
 
 #include "../include/memory.h"
+#include "serial.h"
 
 #ifdef CONFIG_DB64360
 #include "../db64360/mpsc.h"

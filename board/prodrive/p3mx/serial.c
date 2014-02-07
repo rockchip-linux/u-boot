@@ -23,6 +23,7 @@
 #include <linux/compiler.h>
 
 #include "../../Marvell/include/memory.h"
+#include "serial.h"
 
 #include "mpsc.h"
 

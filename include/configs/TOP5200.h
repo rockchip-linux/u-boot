@@ -25,7 +25,8 @@
  * (easy to change)
  */
 
-#define CONFIG_MPC5200		1	/* This is a MPC5200 CPU */
+#define CONFIG_MPC5xxx		1	/* This is an MPC5xxx CPU */
+#define CONFIG_MPC5200		1	/* More exactly a MPC5200 */
 #define CONFIG_TOP5200		1	/* ... on TOP5200 board - we need this for FEC.C */
 
 /*

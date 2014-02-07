@@ -13,7 +13,8 @@
  */
 
 #define CONFIG_MPC5200
-#define CONFIG_A3M071			/* A3M071 board */
+#define CONFIG_MPC5xxx		1	/* This is an MPC5xxx CPU */
+#define CONFIG_A3M071			/* ... on A3M071 board */
 
 #define	CONFIG_SYS_TEXT_BASE	0x01000000	/* boot low for 32 MiB boards */
 

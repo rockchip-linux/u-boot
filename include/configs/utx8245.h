@@ -30,6 +30,7 @@
  * (easy to change)
  */
 
+#define CONFIG_MPC824X		1
 #define CONFIG_MPC8245		1
 #define CONFIG_UTX8245		1
 

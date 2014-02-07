@@ -40,6 +40,7 @@
 #define ERR_LED(code)
 #endif
 
+#define CONFIG_MPC824X		1
 #define CONFIG_MPC8245		1
 #define CONFIG_MVBLUE		1
 

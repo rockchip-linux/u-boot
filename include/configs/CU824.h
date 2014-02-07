@@ -25,6 +25,7 @@
  * (easy to change)
  */
 
+#define CONFIG_MPC824X		1
 #define CONFIG_MPC8240		1
 #define CONFIG_CU824		1
 

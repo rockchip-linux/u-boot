@@ -750,7 +750,6 @@ repeat:
 		ADDCH(str, '\0');
 		if (str > end)
 			end[-1] = '\0';
-		--str;
 	}
 #else
 	*str = '\0';

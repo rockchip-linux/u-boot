@@ -13,6 +13,7 @@
 
 #include <version.h>
 
+#define CONFIG_MPC5xxx	1
 #define CONFIG_MPC5200 	1
 
 #ifndef CONFIG_SYS_TEXT_BASE

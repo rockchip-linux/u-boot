@@ -41,6 +41,7 @@
 #define CONFIG_E500			/* BOOKE e500 family */
 #define CONFIG_E500MC			/* BOOKE e500mc family */
 #define CONFIG_SYS_BOOK3E_HV		/* Category E.HV supported */
+#define CONFIG_MPC85xx			/* MPC85xx/PQ3 platform */
 #define CONFIG_MP			/* support multiple processors */
 
 #ifndef CONFIG_SYS_TEXT_BASE
@@ -611,8 +612,9 @@ unsigned long get_board_ddr_clk(void);
 #endif
 
 #ifdef CONFIG_FMAN_ENET
-#define CONFIG_SYS_FM1_DTSEC4_PHY_ADDR	0x01
-#define CONFIG_SYS_FM1_DTSEC5_PHY_ADDR	0x02
+#define CONFIG_SYS_FM1_DTSEC5_PHY_ADDR	0x10
+#define CONFIG_SYS_FM1_DTSEC6_PHY_ADDR	0x11
+#define CONFIG_SYS_FM1_10GEC1_PHY_ADDR	4
 
 #define CONFIG_SYS_FM1_DTSEC1_RISER_PHY_ADDR    0x1c
 #define CONFIG_SYS_FM1_DTSEC2_RISER_PHY_ADDR    0x1d

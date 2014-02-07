@@ -21,6 +21,8 @@
 #include <ns16550.h>
 #endif
 
+#include "serial.h"
+
 #include "mpsc.h"
 
 DECLARE_GLOBAL_DATA_PTR;

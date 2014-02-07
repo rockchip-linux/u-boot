@@ -12,6 +12,7 @@
  * High Level Configuration Options
  * (easy to change)
  */
+#define CONFIG_MPC5xxx			1	/* This is an MPC5xxx CPU */
 #define CONFIG_MPC5200			1	/* This is an MPC5200 CPU */
 #define CONFIG_V38B			1	/* ...on V38B board */
 

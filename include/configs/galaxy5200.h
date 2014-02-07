@@ -23,7 +23,8 @@
  * High Level Configuration Options
  * (easy to change)
  */
-#define CONFIG_MPC5200		1	/* This is an MPC5200 CPU */
+#define CONFIG_MPC5xxx		1	/* This is an MPC5xxx CPU */
+#define CONFIG_MPC5200		1	/* (more precisely an MPC5200 CPU) */
 #define CONFIG_SYS_MPC5XXX_CLKIN 33333333	/* ... running at 33.333333MHz */
 
 /*
