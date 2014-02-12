@@ -18,7 +18,7 @@ Revision:       1.00
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
-#define SECOND_LEVEL_BOOTLOADER
+//#define SECOND_LEVEL_BOOTLOADER
 
 #define HAVE_VENDOR_COMMON_LIB y
 
@@ -58,7 +58,7 @@ Revision:       1.00
 #define CONFIG_SYS_TEXT_BASE    0x60200000
 #define RK_FLASH_BOOT_EN
 #else
-#define CONFIG_SYS_TEXT_BASE    0x60000000
+#define CONFIG_SYS_TEXT_BASE    0x00000000
 #define RK_SDMMC_BOOT_EN
 #endif
 
@@ -68,7 +68,7 @@ Revision:       1.00
 /* base definition of ram addr & size */
 //size should be 2^x.(like 64m/128m/256m/512m...)
 #define RAM_PHY_SIZE            0x04000000
-#define RAM_PHY_START           0x60000000
+#define RAM_PHY_START           0x00000000
 #define RAM_PHY_END             (RAM_PHY_START + RAM_PHY_SIZE)
 
 #define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 4)
@@ -123,8 +123,8 @@ Revision:       1.00
 //sp addr before relocate.
 #define CONFIG_SYS_INIT_SP_ADDR     RAM_PHY_END
 
-//#define CONFIG_SYS_ICACHE_OFF
-//#define CONFIG_SYS_DCACHE_OFF
+#define CONFIG_SYS_ICACHE_OFF
+#define CONFIG_SYS_DCACHE_OFF
 #define CONFIG_SYS_L2CACHE_OFF
 #define CONFIG_SYS_ARM_CACHE_WRITETHROUGH
 /*
@@ -200,15 +200,15 @@ Revision:       1.00
 //#define CONFIG_RK_SPI
 
 /* LCDC console */
-#define CONFIG_LCD
-#define CONFIG_RK_FB
-#define CONFIG_LCD_LOGO
+//#define CONFIG_LCD
+//#define CONFIG_RK_FB
+//#define CONFIG_LCD_LOGO
 
-#define CONFIG_COMPRESS_LOGO_RLE8// CONFIG_COMPRESS_LOGO_RLE16
+//#define CONFIG_COMPRESS_LOGO_RLE8// CONFIG_COMPRESS_LOGO_RLE16
 
-#define CONFIG_BMP_16BPP
-#define CONFIG_SYS_WHITE_ON_BLACK
-#define LCD_BPP			LCD_COLOR16
+//#define CONFIG_BMP_16BPP
+//#define CONFIG_SYS_WHITE_ON_BLACK
+//#define LCD_BPP			LCD_COLOR16
 //#define CONFIG_RK3066SDK
 //#define CONFIG_RK3188SDK
 
@@ -267,13 +267,13 @@ Revision:       1.00
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
 
-#define CONFIG_CMD_BMP
+//#define CONFIG_CMD_BMP
 //#define CONFIG_CMD_CHARGE_ANIM
-#define CONFIG_LCD_BMP_RLE8
+//#define CONFIG_LCD_BMP_RLE8
 
 #define CONFIG_QUICK_CHECKSUM
 
-#define CONFIG_RK_I2C
+//#define CONFIG_RK_I2C
 #define CONFIG_I2C_MULTI_BUS
 
 //allow to flash loader when check sign failed. should undef this in release version.

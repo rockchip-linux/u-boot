@@ -13,6 +13,8 @@ Revision:       1.00
 
 #ifdef DRIVERS_UART
 
+#define RKIO_GRF_PHYS		0xFF770000
+
 /*------------------------------------------------------------------
  * UART the serial port
  *-----------------------------------------------------------------*/
@@ -125,7 +127,7 @@ void UARTRest(pUART_REG phead)
 
 
 inline pUART_REG UARTGetRegBase(eUART_ch_t uartCh)
-{    
+{
 	if(uartCh == UART_CH0) {
 		return (pUART_REG)UART0_BASE_ADDR;
 	} else if (uartCh == UART_CH1) {
@@ -142,7 +144,16 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 {
 	pUART_REG pUartReg = NULL;
 	int32 val = -1;
-    
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	if (uartCh == UART_CH2) {
+		/* iomux gpio7_c6 and gpio7_c7 */
+		writel(((0x03<<8)|(0x03<<12))|((0x01<<8)|(0x01<<12)), RKIO_GRF_PHYS + 0x78);
+		pUartReg = (pUART_REG)UART2_BASE_ADDR;
+	} else {
+		return (-1);
+	}
+#else
 	if(uartCh == UART_CH0) { 
 		// iomux to uart 0
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
@@ -173,10 +184,10 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 					g_grfReg->GRF_UOC1_CON0 = 0x34000000;
 			}
 			#endif
-
 #endif
 		pUartReg = (pUART_REG)UART2_BASE_ADDR;
 	}
+#endif
 
 	UARTRest(pUartReg);
 

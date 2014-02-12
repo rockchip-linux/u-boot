@@ -13,7 +13,20 @@ Notes :
 *********************************************************************/
 #ifndef _RK30_MEMMAP_H
 #define _RK30_MEMMAP_H
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#define UART0_BASE_ADDR		0xFF180000
+#define UART1_BASE_ADDR		0xFF190000
+#define UART2_BASE_ADDR		0xFF690000
+
+#define USB_OTG_BASE_ADDR	0xFF580000
+
+#define TIMER0_BASE_ADDR	0xFF6B0000
+
+#define CRU_BASE_ADDR		0xFF760000
+#define REG_FILE_BASE_ADDR	0xFF770000
+
+
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
 #define     IMEM_BASE_ADDR          0x10080000
 #define     GPU_BASE_ADDR           0x10090000
 #define     BOOT_ROM_ADDR           0x10100000

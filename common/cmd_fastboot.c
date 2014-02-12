@@ -1964,9 +1964,9 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         //printf("board cmdline:\n%s\n", command_line);
 		amt = snprintf(command_line,
 				sizeof(command_line),
-				"%s androidboot.bootloader=%s fb.addr=0x%08lx",
+				"%s androidboot.bootloader=%s",
 				command_line,
-				CONFIG_FASTBOOT_VERSION_BOOTLOADER, gd->fb_base);
+				CONFIG_FASTBOOT_VERSION_BOOTLOADER);
         
 #if 0
 		for (i = 0; i < priv.num_device_info; i++) {

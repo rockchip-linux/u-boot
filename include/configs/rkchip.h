@@ -13,9 +13,9 @@
 #define CONFIG_RK3188T          6
 #define CONFIG_RK3026           7
 #define CONFIG_RK2928           8
+#define CONFIG_RK3288           9
 
-
-#define CONFIG_RKCHIPTYPE           CONFIG_RK3188
+#define CONFIG_RKCHIPTYPE           CONFIG_RK3288
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
 #define CONFIG_RK_3026_CHIP

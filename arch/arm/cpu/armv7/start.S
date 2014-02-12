@@ -147,6 +147,8 @@ reset:
 	orr	r0, r0, #0xc0		@ disable FIQ and IRQ
 	msr	cpsr,r0
 
+#if (CONFIG_RKCHIPTYPE != CONFIG_RK3288)
+
 #ifdef CONFIG_ROCKCHIP
         ldr 	r1, =0x20004000             /* cpu 1 2 3 power down */
         mov 	r0, #0x0E
@@ -181,6 +183,7 @@ reset:
 	bne 1b
 #endif
 #endif
+#endif /* CONFIG_RKCHIPTYPE */
 
 /*
  * Setup vector:

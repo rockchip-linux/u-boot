@@ -233,6 +233,8 @@ int print_cpuinfo(void)
      printf("CPU:\tRK3188T\n");
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
      printf("CPU:\tRK3026\n");
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+     printf("CPU:\tRK3288\n");
 #endif
      return 0;
 }
@@ -294,7 +296,7 @@ void enable_caches(void)
 void startRockusb()
 {
     printf("startRockusb,%d\n" , RkldTimerGetTick());
-    rk_backlight_ctrl(0);
+//    rk_backlight_ctrl(0);
     FW_SDRAM_ExcuteAddr = 0;
     g_BootRockusb = 1;
     FWSetResetFlag = 0;
