@@ -243,10 +243,14 @@ enum exynos_fb_rgb_mode_t {
 	OUT_P888 = 0,
 	OUT_P666 = 1,
 	OUT_P565 = 2,
+	OUT_P888_DPM =3, //Parallel 24-bit RGB888 double pixel mix out
 	OUT_S888x = 4,
-	OUT_CCIR656 = 6,
+	OUT_CCIR656_0 = 5,
+	OUT_CCIR656_1 = 6,
+	OUT_CCIR656_2 = 7,
 	OUT_S888 = 8,
 	OUT_S888DUMY = 12,
+	OUT_p888RGBaaa=15,  //Parallel 30-bit RGBaaa output R[9:0],G[9:0],B[9:0]
 	OUT_P16BPP4 = 24,
 	OUT_D888_P666 = 0x21,
 	OUT_D888_P565 = 0x22,

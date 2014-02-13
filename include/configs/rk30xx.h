@@ -200,15 +200,15 @@ Revision:       1.00
 //#define CONFIG_RK_SPI
 
 /* LCDC console */
-//#define CONFIG_LCD
-//#define CONFIG_RK_FB
-//#define CONFIG_LCD_LOGO
+#define CONFIG_LCD
+#define CONFIG_RK_FB
+#define CONFIG_LCD_LOGO
 
 //#define CONFIG_COMPRESS_LOGO_RLE8// CONFIG_COMPRESS_LOGO_RLE16
 
-//#define CONFIG_BMP_16BPP
-//#define CONFIG_SYS_WHITE_ON_BLACK
-//#define LCD_BPP			LCD_COLOR16
+#define CONFIG_BMP_16BPP
+#define CONFIG_SYS_WHITE_ON_BLACK
+#define LCD_BPP			LCD_COLOR16
 //#define CONFIG_RK3066SDK
 //#define CONFIG_RK3188SDK
 
@@ -223,6 +223,8 @@ Revision:       1.00
 #define CONFIG_RK_3168_FB
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
 #define CONFIG_RK_3026_FB
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#define CONFIG_RK_3288_FB
 #endif
 
 /*rk616 config*/
@@ -267,9 +269,9 @@ Revision:       1.00
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
 
-//#define CONFIG_CMD_BMP
+#define CONFIG_CMD_BMP
 //#define CONFIG_CMD_CHARGE_ANIM
-//#define CONFIG_LCD_BMP_RLE8
+#define CONFIG_LCD_BMP_RLE8
 
 #define CONFIG_QUICK_CHECKSUM
 
