@@ -274,6 +274,15 @@ void dram_init_banksize(void)
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
 }
 
+#ifdef CONFIG_OF_LIBFDT
+int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks) {
+    //TODO:auto detect size.
+    if (banks > 0)
+        size[0] = 0x40000000;//1G for now
+    return fdt_fixup_memory_banks(blob, start, size, banks);
+}
+#endif
+
 #ifdef CONFIG_DISPLAY_BOARDINFO
 /**
  * Print board information

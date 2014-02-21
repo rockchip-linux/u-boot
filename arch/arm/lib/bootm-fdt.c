@@ -32,5 +32,9 @@ int arch_fixup_memory_node(void *blob)
 		size[bank] = bd->bi_dram[bank].size;
 	}
 
+#ifdef CONFIG_ROCKCHIP
+	return rk_fixup_memory_banks(blob, start, size, CONFIG_NR_DRAM_BANKS);
+#else
 	return fdt_fixup_memory_banks(blob, start, size, CONFIG_NR_DRAM_BANKS);
+#endif
 }
