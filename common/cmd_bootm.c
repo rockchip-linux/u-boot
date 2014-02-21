@@ -23,6 +23,10 @@
 #include <asm/io.h>
 #include <linux/compiler.h>
 
+#ifdef CONFIG_RESOURCE_PARTITION
+#include <resource.h>
+#endif
+
 #if defined(CONFIG_BOOTM_VXWORKS) && \
 	(defined(CONFIG_PPC) || defined(CONFIG_ARM))
 #include <vxworks.h>
@@ -1929,3 +1933,42 @@ U_BOOT_CMD(
 	"boot Linux zImage image from memory", bootz_help_text
 );
 #endif	/* CONFIG_CMD_BOOTZ */
+
+
+#ifdef CONFIG_ROCKCHIP
+int rk_bootm_start(bootm_headers_t *images)
+{
+	boot_start_lmb(images);
+
+#if defined(CONFIG_OF_LIBFDT)
+	/* find flattened device tree */
+#define FDT_PATH        "fdt"
+    //load content
+    resource_content content;
+    snprintf(content.path, sizeof(content.path), "%s", FDT_PATH);
+    content.load_addr = 0;
+    if (!get_content(&content)) {
+		puts("Could not find a valid device tree\n");
+		return 1;
+    }
+    if (!load_content(&content)) {
+		puts("Could not find a valid device tree\n");
+		return 1;
+    }
+    printf("loaded:%s, size:%d\n", FDT_PATH, content.content_size);
+
+	images->ft_addr = content.load_addr;
+    images->ft_len = content.content_size;
+	if (!images->ft_addr || !images->ft_len) {
+		puts("Could not find a valid device tree\n");
+		return 1;
+	}
+
+	set_working_fdt_addr(images->ft_addr);
+#endif
+
+	return 0;
+}
+#endif
+
+

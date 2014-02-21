@@ -681,11 +681,8 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	misc_init_r();
 #endif
 
-	
-#ifndef CONFIG_ROCKCHIP
 	/* Initialize from environment */
 	load_addr = getenv_ulong("loadaddr", 16, load_addr);
-#endif
 
 #ifdef CONFIG_BOARD_LATE_INIT
 	board_late_init();

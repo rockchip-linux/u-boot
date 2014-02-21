@@ -1,0 +1,10 @@
+delay=900
+only_current_level=false
+levels=6
+max_level=-1 num=1 prefix=images/battery_fail
+max_level=20 num=1 prefix=images/battery_1
+max_level=40 num=1 prefix=images/battery_2
+max_level=60 num=1 prefix=images/battery_3
+max_level=80 num=1 prefix=images/battery_4
+max_level=100 num=1 prefix=images/battery_5
+

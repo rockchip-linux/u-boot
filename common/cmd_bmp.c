@@ -92,11 +92,9 @@ static int do_bmp_info(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[
 	ulong addr;
 
 	switch (argc) {
-#ifndef CONFIG_ROCKCHIP
 	case 1:		/* use load_addr as default address */
 		addr = load_addr;
 		break;
-#endif
     case 2:		/* use argument */
 		addr = simple_strtoul(argv[1], NULL, 16);
 		break;
@@ -115,11 +113,9 @@ static int do_bmp_display(cmd_tbl_t * cmdtp, int flag, int argc, char * const ar
 	splash_get_pos(&x, &y);
 
 	switch (argc) {
-#ifndef CONFIG_ROCKCHIP
 	case 1:		/* use load_addr as default address */
 		addr = load_addr;
 		break;
-#endif
 	case 2:		/* use argument */
 		addr = simple_strtoul(argv[1], NULL, 16);
 		break;

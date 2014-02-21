@@ -185,8 +185,11 @@ obj-$(CONFIG_CMD_ZFS) += cmd_zfs.o
 
 obj-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
 
+obj-$(CONFIG_RESOURCE_PARTITION) += resource.o
 ifdef CONFIG_CMD_FASTBOOT
+ifdef CONFIG_RESOURCE_PARTITION
 obj-$(CONFIG_CMD_CHARGE_ANIM) += cmd_charge.o
+endif
 endif
 
 # others
@@ -243,9 +246,7 @@ obj-$(CONFIG_HWCONFIG) += hwconfig.o
 obj-$(CONFIG_BOUNCE_BUFFER) += bouncebuf.o
 obj-y += console.o
 obj-y += dlmalloc.o
-ifndef CONFIG_ROCKCHIP
 obj-y += image.o
-endif
 obj-$(CONFIG_OF_LIBFDT) += image-fdt.o
 obj-$(CONFIG_FIT) += image-fit.o
 obj-$(CONFIG_FIT_SIGNATURE) += image-sig.o

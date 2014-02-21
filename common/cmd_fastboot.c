@@ -2004,6 +2004,13 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	images.rd_start = hdr->ramdisk_addr;
 	images.rd_end = hdr->ramdisk_addr + hdr->ramdisk_size;
 	free(hdr);
+ 
+#ifdef CONFIG_CMD_BOOTM
+#ifdef CONFIG_ROCKCHIP
+    rk_bootm_start(&images);
+#endif
+#endif
+
 	puts("booti: do_bootm_linux...\n");
 	do_bootm_linux(0, 0, NULL, &images);
 

@@ -4,7 +4,7 @@ default toolchain is arm-eabi-4.6 which is also the default toolchain android us
 Build
 make rk30xx                            use this command to build uboot,it will generate all the image and bin below
 make distclean                         use this command to clean uboot
-charge.img                             image which cantain charge animation
+resource.img                             image which cantain resources
 uboot.img                              uboot image can only act as second level loader and it should be flashed to specific partition which define in parameter
 RKxxxxLoader_miniall.bin               rkloader with nand driver in it. it can only act as first level bootloader
 RKxxxxLoader_miniall_debug.bin         RKxxxxLoader_miniall loader with debug message

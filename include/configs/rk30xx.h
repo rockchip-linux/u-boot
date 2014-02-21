@@ -132,6 +132,9 @@ Revision:       1.00
 /* DRAM Base */
 #define CONFIG_SYS_SDRAM_BASE		RAM_PHY_START		/* Physical start address of SDRAM. */
 
+/* Default load address */
+#define CONFIG_SYS_LOAD_ADDR        CONFIG_SYS_SDRAM_BASE
+
 //sp addr before relocate.
 #define CONFIG_SYS_INIT_SP_ADDR     RAM_PHY_END
 
@@ -267,7 +270,6 @@ Revision:       1.00
 
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB
-#undef CONFIG_CMD_BOOTM
 #undef CONFIG_CMD_BOOTD
 #undef CONFIG_CMD_ITEST
 #undef CONFIG_SOURCE
@@ -281,7 +283,11 @@ Revision:       1.00
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
 
+#define CONFIG_CMD_BOOTM
+#define CONFIG_LMB
+#define CONFIG_OF_LIBFDT
 #define CONFIG_CMD_BMP
+#define CONFIG_RESOURCE_PARTITION
 //#define CONFIG_CMD_CHARGE_ANIM
 #define CONFIG_LCD_BMP_RLE8
 
