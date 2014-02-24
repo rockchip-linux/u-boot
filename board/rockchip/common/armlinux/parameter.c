@@ -321,6 +321,15 @@ void ParseLine(PBootInfo pboot_info, char *line)
         uart2UsbEn(1);
 	}
 #endif	
+    //add by cjf, for fdt
+    else if (!memcmp(line, "FDT_NAME:", strlen("FDT_NAME:")) )
+    {
+		line += strlen("FDT_NAME:");
+		EATCHAR(line, ' ');
+		strcpy( pboot_info->fdt_name, line );
+		PRINT_I("FDT_NAME: %s\n", pboot_info->fdt_name);
+    }
+
 	else
 		PRINT_I("Unknow param: %s!\n", line);
 }

@@ -1936,16 +1936,17 @@ U_BOOT_CMD(
 
 
 #ifdef CONFIG_ROCKCHIP
+extern const char* get_fdt_name();
+
 int rk_bootm_start(bootm_headers_t *images)
 {
 	boot_start_lmb(images);
 
 #if defined(CONFIG_OF_LIBFDT)
 	/* find flattened device tree */
-#define FDT_PATH        "fdt"
     //load content
     resource_content content;
-    snprintf(content.path, sizeof(content.path), "%s", FDT_PATH);
+    snprintf(content.path, sizeof(content.path), "%s", get_fdt_name());
     content.load_addr = 0;
     if (!get_content(&content)) {
 		puts("Could not find a valid device tree\n");
@@ -1955,7 +1956,7 @@ int rk_bootm_start(bootm_headers_t *images)
 		puts("Could not find a valid device tree\n");
 		return 1;
     }
-    printf("loaded:%s, size:%d\n", FDT_PATH, content.content_size);
+    printf("loaded:%s, size:%d\n", content.path, content.content_size);
 
 	images->ft_addr = content.load_addr;
     images->ft_len = content.content_size;

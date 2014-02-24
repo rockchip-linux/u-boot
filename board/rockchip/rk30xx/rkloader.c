@@ -381,3 +381,11 @@ int eraseDrmKey() {
     gDrmKeyInfo.publicKeyLen = 0;
     return 0;
 }
+
+#define FDT_PATH        "rk-kernel.dtb"
+const char* get_fdt_name() {
+    if (!gBootInfo.fdt_name[0]) {
+        return FDT_PATH;
+    }
+    return gBootInfo.fdt_name;
+}

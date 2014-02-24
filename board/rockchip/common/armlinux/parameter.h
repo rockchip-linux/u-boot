@@ -46,6 +46,7 @@ typedef struct tagBootInfo
 	int index_backup;
 	int index_snapshot;
 	char fw_version[MAX_LINE_CHAR];
+	char fdt_name[MAX_LINE_CHAR];
 }BootInfo, *PBootInfo;
 
 extern BootInfo			gBootInfo;

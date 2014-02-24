@@ -7,12 +7,8 @@ OBJS    = $(SOURCES:.c=.o)
 
 CFLAGS  = -fshort-wchar -m32 -static
 
-TEST_LOAD = 1
-
-ifdef TEST_LOAD
-	SOURCES += tests.c
-	CFLAGS += -DTEST_LOAD
-endif
+SOURCES += tests.c
+HEADERS += tests.h
 
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)

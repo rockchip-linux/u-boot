@@ -3,7 +3,8 @@
 
 #include "common.h"
 
-#define RESOURCE_IMAGE              "resource.img"
+#define DEFAULT_IMAGE_PATH          "resource.img"
+#define DEFAULT_UNPACK_DIR          "out"
 #define BLOCK_SIZE                  512
 
 #define RESOURCE_PTN_HDR_SIZE       1
@@ -32,24 +33,16 @@ typedef struct {
     uint32_t content_size;//bytes, size of resource content.
 } index_tbl_entry;
 
-#if TEST_LOAD
-typedef struct {
-    char     path[MAX_INDEX_ENTRY_PATH_LEN];
-    uint32_t content_offset;//blocks, offset of resource content.
-    uint32_t content_size;//bytes, size of resource content.
-    void*    load_addr;
-} resource_content;
-#endif
-
-
 #define OPT_VERBOSE         "--verbose"
 #define OPT_HELP            "--help"
 #define OPT_VERSION         "--version"
 #define OPT_PRINT           "--print"
 #define OPT_PACK            "--pack"
 #define OPT_UNPACK          "--unpack"
+#define OPT_TEST_LOAD       "--test_load"
+#define OPT_TEST_CHARGE     "--test_charge"
+#define OPT_IMAGE           "--image="
 
-#define VERSION             "2014-2-14 10:22:23"
-
+#define VERSION             "2014-2-24 15:22:23"
 
 #endif //RESOURCE_TOOL_H

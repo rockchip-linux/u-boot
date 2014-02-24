@@ -40,5 +40,6 @@ void Switch2MSC(void);
 void setup_space(uint32 begin_addr);
 int get_bootloader_ver(char *boot_ver);
 int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot);
+const char* get_fdt_name();
 
 #endif /* RKLOADER_H */
