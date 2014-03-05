@@ -278,6 +278,53 @@ typedef enum
     IOMUX_SDMMC_8BIT,
     IOMUX_SDMMC_OTHER
 }eIOMUX_SDMMC;
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+    typedef enum _IRQ_NUM
+    {
+        INT_DMAC1_0=32     ,
+        INT_DMAC1_1     ,
+        INT_DMAC2_0     ,
+        INT_DMAC2_1     ,
+        INT_USB_OTG = 55    ,
+        INT_USB_Host = 56   ,
+        INT_USB_Host1 = 57   ,
+        INT_SDMMC = 64      ,
+        INT_SDIO = 65       ,
+        INT_SDIO1 = 66       ,
+        INT_eMMC = 67       ,
+        INT_SARADC = 68     ,
+        INT_TSADC = 69     ,
+        INT_NandC = 70      ,
+	INT_USB_Host0_OHCI  ,
+        INT_SPI0 = 70       ,
+        INT_SPI1        ,
+        INT_SPI2        ,
+        INT_UART0  = 87     ,
+        INT_UART1       ,
+        INT_UART2       ,
+        INT_UART3       ,
+	INT_UART4       ,
+
+        INT_I2C0 = 92       ,
+        INT_I2C1        ,
+        INT_I2C2        ,
+        INT_I2C3        ,
+        INT_I2C4        ,
+        INT_I2C5        ,
+      	INT_GPIO0 = 113 ,
+        INT_GPIO1       ,
+        INT_GPIO2       ,
+        INT_GPIO3       ,
+        INT_GPIO4       ,
+        INT_GPIO5       ,
+        INT_GPIO6       ,
+        INT_GPIO7       ,
+        INT_GPIO8       ,
+        INT_MAXNUM      
+    }eINT_NUM;
+
+#else
     typedef enum _IRQ_NUM
     {
         INT_DMAC1_0=32     ,
@@ -317,7 +364,7 @@ typedef enum
         INT_GPIO3       ,
         INT_MAXNUM      
     }eINT_NUM;
-
+#endif
     typedef enum _CRU_RST
     {
     //cru_rst_con0
