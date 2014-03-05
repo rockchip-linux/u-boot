@@ -25,6 +25,9 @@ Notes :
 #define CRU_BASE_ADDR		0xFF760000
 #define REG_FILE_BASE_ADDR	0xFF770000
 #define VOP_BIG_BASE_ADDR   0xff930000
+#define DMACS_BUS_BASE_ADDR     0xffb20000
+#define DMAC_BUS_BASE_ADDR      0xff600000
+#define DMAC_PERI_BASE_ADDR     0xff250000
 
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
 #define     IMEM_BASE_ADDR          0x10080000
@@ -154,8 +157,8 @@ Notes :
 #define     TIMER3_BASE_ADDR        0x2000E000
 #define     eFUSE_BASE_ADDR         0x20010000
 #define     TZPC_BASE_ADDR          0x20014000
-#define     DMACS1_BASE             0x20018000
-#define     DMAC1_BASE              0x2001C000
+#define     DMACS_BUS_BASE_ADDR     0x20018000
+#define     DMAC_BUS_BASE_ADDR      0x2001C000
 #define     DDR_PCTL_BASE           0x20020000
 #define     SDRAMC_BASE_ADDR        DDR_PCTL_BASE
 #define     I2C0_BASE_ADDR          0x2002C000
@@ -182,7 +185,7 @@ Notes :
 #define     SPI_MASTER_BASE_ADDR    SPI0_BASE_ADDR
 #define     SPI_BASE_ADDR           SPI0_BASE_ADDR
 #define     SPI1_BASE_ADDR          0x20074000
-#define     DMA2_BASE_ADDR          0x20078000
+#define     DMAC_PERI_BASE_ADDR     0x20078000
 #define     SMC_BASE_ADDR           0x2007C000
 #define     GPIO3_BASE_ADDR         0x20080000
 #define     GPIO4_BASE_ADDR         0x20084000

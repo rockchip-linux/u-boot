@@ -128,6 +128,24 @@ static void rkspi_iomux_init(unsigned int bus, unsigned int cs)
 		} else {
 			g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = ((0x1<<14)<<16)|(0x1<<14);
 		}
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+		g_grfReg->GRF_GPIO_IOMUX[5].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12)|(0x3<<8))<<16)|(0x1<<14)|(0x1<<12)|(0x1<<8);
+		if (cs == 0) {
+			g_grfReg->GRF_GPIO_IOMUX[5].GPIOB_IOMUX = ((0x3<<10)<<16)|((0x1<<10));
+		} else {
+			g_grfReg->GRF_GPIO_IOMUX[5].GPIOC_IOMUX = ((0x3)<<16)|(0x1);
+		}
+#endif
+	       	
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	}else if (bus == 1){
+		g_grfReg->GRF_GPIO_IOMUX[7].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12)|(0x3<<8))<<16)|(0x2<<14)|(0x2<<12)|(0x2<<8);
+		if (cs == 0) {
+			g_grfReg->GRF_GPIO_IOMUX[7].GPIOB_IOMUX = ((0x3<<10)<<16)|((0x2<<10));
+		} else {
+			printf("rkspi: bus=1 cs=1 not support");
+		}
+	}
 #endif
 	} else {
 		/* spi1 clk, txd, rxd and cs iomux */
@@ -145,6 +163,15 @@ static void rkspi_iomux_init(unsigned int bus, unsigned int cs)
 		} else {
 			g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = ((0x3<<12)<<16)|(0x2<<12);
 		}
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+		g_grfReg->GRF_GPIO_IOMUX[8].GPIOA_IOMUX = (((0x3<<12))<<16)|(0x1<<12);
+		g_grfReg->GRF_GPIO_IOMUX[8].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);
+		if (cs == 0) {
+			g_grfReg->GRF_GPIO_IOMUX[8].GPIOA_IOMUX = ((0x3<<14)<<16)|((0x1<<14));
+		} else {
+			g_grfReg->GRF_GPIO_IOMUX[8].GPIOA_IOMUX = ((0x3<<6)<<16)|(0x1<<6);
+		}
+#endif
 #endif
 	}
 }
@@ -365,6 +392,11 @@ struct spi_slave *spi_setup_slave(unsigned int bus, unsigned int cs,
 	case 1:
 		regs = (void __iomem *)SPI1_BASE_ADDR;
 		break;
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	case 2:
+		regs = (void __iomem *)SPI2_BASE_ADDR;
+		break;
+#endif
 	default:
 		printf("SPI error: unsupported bus %i. \
 			Supported busses 0 - 1\n", bus);

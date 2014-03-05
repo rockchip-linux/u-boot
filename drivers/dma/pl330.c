@@ -23,6 +23,7 @@
 #include <malloc.h>
 #include <asm/errno.h>
 #include <asm/io.h>
+#include <asm/arch/rk30_memap.h>
 #include "../../board/rockchip/common/armlinux/config.h"
 #include <api_pl330.h>
 
@@ -2106,7 +2107,7 @@ int DMAInit(void)
 	pl330_info_0->dev = (void*)0xffffffff;
 	pl330_info_0->dmac_reset=NULL;
 	pl330_info_0->mcbufsz=0;
-	pl330_info_0->base=(void*)0x20018000;
+	pl330_info_0->base=(void*)DMACS_BUS_BASE_ADDR;
 	//pl330_info_0->pcfg.num_chan = 0;//zy,2011-02-24
 	pl330_add(pl330_info_0);
 #ifdef DMA2_USE
@@ -2121,7 +2122,7 @@ int DMAInit(void)
 	pl330_info_2->dev = (void*)0xffffffff;
 	pl330_info_2->dmac_reset=NULL;
 	pl330_info_2->mcbufsz=0;
-	pl330_info_2->base=(void*)0x20078000;
+	pl330_info_2->base=(void*)DMAC_PERI_BASE_ADDR;
 	pl330_add(pl330_info_2);
 #endif	
 	if(IRQEnable(IRQ_DMAC1_0)<0){
