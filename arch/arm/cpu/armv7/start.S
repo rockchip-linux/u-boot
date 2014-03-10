@@ -271,6 +271,7 @@ ENTRY(cpu_init_cp15)
 	mrc	p15, 1, r0, c9, c0, 2	@ Read L2 Control Register
 	bic	r0, r0, #0x0003FFFF	@ clear bit 17:0
 	orr	r0, r0, #0x00000008	@ set bit 3
+	mcr	p15, 1, r0, c9, c0, 2	@ config L2 Control Register
 #endif
 
 	/*
