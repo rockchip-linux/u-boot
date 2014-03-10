@@ -265,6 +265,15 @@ ENTRY(cpu_init_cp15)
 	mcr     p15, 0, r0, c7, c5, 4	@ ISB
 
 	/*
+	 * Invalidate L2 Latency
+	 */
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	mrc	p15, 1, r0, c9, c0, 2	@ Read L2 Control Register
+	bic	r0, r0, #0x0003FFFF	@ clear bit 17:0
+	orr	r0, r0, #0x00000008	@ set bit 3
+#endif
+
+	/*
 	 * disable MMU stuff and caches
 	 */
 	mrc	p15, 0, r0, c1, c0, 0
