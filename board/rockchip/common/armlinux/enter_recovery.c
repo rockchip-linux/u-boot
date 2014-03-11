@@ -56,7 +56,7 @@ void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd )
 			replace_fore_string(s, 0, replace_str);
 		}
 		// 重新解析命令行
-		parse_cmdline(boot_info);
+		//parse_cmdline(boot_info);
 		strcat(boot_info->cmd_line,rec_cmd);
         ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|BOOT_RECOVER); //会丢失 recovery的参数
 	}

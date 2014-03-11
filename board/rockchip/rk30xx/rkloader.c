@@ -261,7 +261,7 @@ void getParameter() {
                 ((PLoaderParam)DataBuf)->length );
         cmd_mtd = &(gBootInfo.cmd_mtd);
         for(i = 0;i < cmd_mtd->num_parts;i++) {
-            fbt_partitions[i].name = cmd_mtd->parts[i].name;
+            fbt_partitions[i].name = strdup(cmd_mtd->parts[i].name);
             fbt_partitions[i].offset = cmd_mtd->parts[i].offset;
             if (cmd_mtd->parts[i].size == SIZE_REMAINING) {
                 fbt_partitions[i].size_kb = SIZE_REMAINING;
