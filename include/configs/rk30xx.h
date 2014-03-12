@@ -55,10 +55,18 @@ Revision:       1.00
 //define uboot loader addr.
 #ifdef SECOND_LEVEL_BOOTLOADER
 //2m offset for packed nand bin.
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#define CONFIG_SYS_TEXT_BASE    0x00200000
+#else
 #define CONFIG_SYS_TEXT_BASE    0x60200000
+#endif
 #define RK_FLASH_BOOT_EN
 #else
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 #define CONFIG_SYS_TEXT_BASE    0x00000000
+#else
+#define CONFIG_SYS_TEXT_BASE    0x60000000
+#endif
 #define RK_SDMMC_BOOT_EN
 #endif
 
@@ -68,7 +76,11 @@ Revision:       1.00
 /* base definition of ram addr & size */
 //size should be 2^x.(like 64m/128m/256m/512m...)
 #define RAM_PHY_SIZE            0x04000000
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 #define RAM_PHY_START           0x00000000
+#else
+#define RAM_PHY_START           0x60000000
+#endif
 #define RAM_PHY_END             (RAM_PHY_START + RAM_PHY_SIZE)
 
 #define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 4)
