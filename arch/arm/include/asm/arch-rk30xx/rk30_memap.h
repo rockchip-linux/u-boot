@@ -22,8 +22,8 @@ Notes :
 #define UART1_BASE_ADDR		0xFF190000
 #define UART2_BASE_ADDR		0xFF690000
 #define CPU_AXI_BUS_BASE        0xffe00000
-#define CORE_GICC_BASE          0xffc00000
-#define CORE_GICD_BASE          0xffc00000	//0x1012E000
+#define CORE_GICC_BASE          0xffc02000
+#define CORE_GICD_BASE          0xffc01000
 #define GIC_CPU_BASE_ADDR       CORE_GICC_BASE
 #define GIC_PERI_BASE_ADDR      CORE_GICD_BASE
 #define USB_OTG0_BASE_ADDR      0xFF580000

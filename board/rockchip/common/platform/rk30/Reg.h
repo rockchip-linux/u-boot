@@ -17,9 +17,6 @@ Revision:		1.00
     #define     write_XDATA(address, value)     (*((uint16 volatile*)(address)) = value)
     #define     write_XDATA32(address, value)   (*((uint32 volatile*)(address)) = value)
 
-    #define     USB_OTG_INT_CH                  (16+32)
-    #define     NANDC_INT_CH                    (USB_OTG_INT_CH+11)
-    #define     NAND_RDY_INT_CH                 (USB_OTG_INT_CH+12)
     
     typedef enum _CLK_GATE
     {   
@@ -579,6 +576,9 @@ typedef volatile struct TagSDC_REG2
 
 #define g_EMMCReg ((pSDC_REG_T2)EMMC_BASE_ADDR)
 
+#define     USB_OTG_INT_CH                  (INT_USB_OTG)
+#define     NANDC_INT_CH                    (USB_OTG_INT_CH+11)
+#define     NAND_RDY_INT_CH                 (USB_OTG_INT_CH+12)
 //1全局变量
 #undef	EXT
 #ifdef	IN_EPPHAL
