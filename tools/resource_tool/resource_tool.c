@@ -397,18 +397,17 @@ static bool write_index_tbl(const int file_num, const char** files) {
         //switch for le.
         fix_entry(&entry);
         memset(entry.path, 0, sizeof(entry.path));
-        snprintf(entry.path, sizeof(entry.path), "%s", fix_path(files[i]));
-        
+        char* path = fix_path(files[i]);
         if (!strcmp(files[i] + strlen(files[i]) - strlen(DTD_SUBFIX),
                     DTD_SUBFIX)) {
             if (!foundFdt) {
                 //use default path.
                 LOGD("mod fdt path:%s -> %s...", files[i], FDT_PATH);
-                snprintf(entry.path, sizeof(entry.path), "%s", FDT_PATH);
+                path = FDT_PATH;
                 foundFdt = true;
             }
         }
-
+        snprintf(entry.path, sizeof(entry.path), "%s", fix_path(files[i]));
         offset += fix_blocks(file_size);
         if (!write_data(header.header_size + i * header.tbl_entry_size,
                     &entry, sizeof(entry)))
