@@ -3,6 +3,10 @@
 
 #include "common.h"
 
+//sync with ./board/rockchip/rk30xx/rkloader.c #define FDT_PATH
+#define FDT_PATH                    "rk-kernel.dtb"
+#define DTD_SUBFIX                  ".dtb"
+
 #define DEFAULT_IMAGE_PATH          "resource.img"
 #define DEFAULT_UNPACK_DIR          "out"
 #define BLOCK_SIZE                  512

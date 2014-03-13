@@ -376,6 +376,7 @@ static bool write_header(const int file_num) {
 static bool write_index_tbl(const int file_num, const char** files) {
     LOGD("try to write index table...");
     bool ret = false;
+    bool foundFdt = false;
     int offset = header.header_size +
         header.tbl_entry_size * header.tbl_entry_num;
     index_tbl_entry entry;
@@ -397,6 +398,17 @@ static bool write_index_tbl(const int file_num, const char** files) {
         fix_entry(&entry);
         memset(entry.path, 0, sizeof(entry.path));
         snprintf(entry.path, sizeof(entry.path), "%s", fix_path(files[i]));
+        
+        if (!strcmp(files[i] + strlen(files[i]) - strlen(DTD_SUBFIX),
+                    DTD_SUBFIX)) {
+            if (!foundFdt) {
+                //use default path.
+                LOGD("mod fdt path:%s -> %s...", files[i], FDT_PATH);
+                snprintf(entry.path, sizeof(entry.path), "%s", FDT_PATH);
+                foundFdt = true;
+            }
+        }
+
         offset += fix_blocks(file_size);
         if (!write_data(header.header_size + i * header.tbl_entry_size,
                     &entry, sizeof(entry)))
@@ -417,7 +429,6 @@ static int pack_image(int file_num, const char** files) {
     fclose(image_file);
 
     //prepare files
-#define DTD_SUBFIX ".dtb"
     int i = 0;
     int pos = 0;
     char* tmp;
