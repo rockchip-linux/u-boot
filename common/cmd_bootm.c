@@ -1949,19 +1949,19 @@ int rk_bootm_start(bootm_headers_t *images)
     snprintf(content.path, sizeof(content.path), "%s", get_fdt_name());
     content.load_addr = 0;
     if (!get_content(&content)) {
-		puts("Could not find a valid device tree\n");
+		printf("Failed to find device tree(%s)\n", get_fdt_name());
 		return 1;
     }
     if (!load_content(&content)) {
-		puts("Could not find a valid device tree\n");
+		printf("Failed to load device tree(%s)\n", get_fdt_name());
 		return 1;
     }
-    printf("loaded:%s, size:%d\n", content.path, content.content_size);
+    printf("Loaded dtb file:%s, size:%d\n", content.path, content.content_size);
 
 	images->ft_addr = content.load_addr;
     images->ft_len = content.content_size;
 	if (!images->ft_addr || !images->ft_len) {
-		puts("Could not find a valid device tree\n");
+		printf("Failed to load device tree(%s)\n", get_fdt_name());
 		return 1;
 	}
 

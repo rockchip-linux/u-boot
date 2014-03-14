@@ -2012,7 +2012,10 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
  
 #ifdef CONFIG_CMD_BOOTM
 #ifdef CONFIG_ROCKCHIP
-    rk_bootm_start(&images);
+    if (rk_bootm_start(&images)/*it returns 1 when failed.*/) {
+	    puts("booti: failed to boot!\nreboot to bootloader...\n");
+        fbt_handle_reboot("reboot-bootloader");
+    }
 #endif
 #endif
 
