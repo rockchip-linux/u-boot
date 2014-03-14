@@ -49,9 +49,10 @@ void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd )
 		// 修改分区表，显示parameter分区
 		if( s != NULL )
 		{
-			mtd_partition *misc_part = boot_info->cmd_mtd.parts+boot_info->index_misc;
+            int i;
 			char replace_str[64]="";
-			sprintf(replace_str, "0x%08X@0x%08X(%s),", misc_part->offset, 0, PARTNAME_PARAMETER);
+            //parameter is 4M.
+			sprintf(replace_str, "0x00002000@0x%08X(%s),", 0, PARTNAME_PARAMETER);
 			s += strlen(szFind);
 			replace_fore_string(s, 0, replace_str);
 		}
