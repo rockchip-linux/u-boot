@@ -1,11 +1,13 @@
 CC 		= gcc
+STRIP = strip -s --remove-section=.note --remove-section=.comment
 TARGET 	= resource_tool
 
 HEADERS = resource_tool.h common.h
 SOURCES = resource_tool.c common.c
 OBJS    = $(SOURCES:.c=.o)
 
-CFLAGS  = -fshort-wchar -m32 -static
+CFLAGS  = -fshort-wchar -m32 -ffunction-sections -Os
+LDFLAGS = -Wl,--gc-sections -static
 
 SOURCES += tests.c
 HEADERS += tests.h
@@ -14,7 +16,8 @@ HEADERS += tests.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $(OBJS) $(CFLAGS) $(LIBS)
+	$(CC) -o $@ $(OBJS) $(CFLAGS) $(LDFLAGS) $(LIBS)
+	$(STRIP) $@
 
 .PHONY: clean
 clean:
