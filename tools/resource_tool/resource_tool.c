@@ -407,7 +407,7 @@ static bool write_index_tbl(const int file_num, const char** files) {
                 foundFdt = true;
             }
         }
-        snprintf(entry.path, sizeof(entry.path), "%s", fix_path(files[i]));
+        snprintf(entry.path, sizeof(entry.path), "%s", path);
         offset += fix_blocks(file_size);
         if (!write_data(header.header_size + i * header.tbl_entry_size,
                     &entry, sizeof(entry)))
