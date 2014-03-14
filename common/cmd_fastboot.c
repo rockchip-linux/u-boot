@@ -1658,8 +1658,8 @@ static int __def_fbt_key_pressed(void)
 {
 	return FASTBOOT_REBOOT_NONE;
 }
-static void __def_board_fbt_finalize_bootargs(char* args, size_t buf_sz,
-       size_t ramdisk_sz, int recovery)
+static void __def_board_fbt_finalize_bootargs(char* args, int buf_sz,
+       int ramdisk_sz, int recovery)
 {
 	return;
 }
@@ -1705,9 +1705,9 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	__attribute__((weak, alias("__def_fbt_get_reboot_type")));
 int board_fbt_key_pressed(void)
 	__attribute__((weak, alias("__def_fbt_key_pressed")));
-void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
-        size_t ramdisk_sz, int recovery)
-	__attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
+void board_fbt_finalize_bootargs(char* args, int buf_sz,
+        int ramdisk_addr, int ramdisk_sz, int recovery)
+    __attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
 int board_fbt_handle_flash(char *name,
                struct cmd_fastboot_interface *priv)
     __attribute__((weak, alias("__def_board_fbt_handle_flash")));
@@ -1920,12 +1920,6 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         /* set this aside somewhere safe */
         memcpy(hdr, (void *) addr, sizeof(*hdr));
 
-#ifdef CONFIG_ROCKCHIP
-        if (fixHdr(hdr) < 0) {
-            goto fail;
-        }
-#endif
-
         if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
                FASTBOOT_BOOT_MAGIC_SIZE)) {
             printf("booti: bad boot image magic\n");
@@ -1935,8 +1929,9 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         kaddr = (void *)(addr + hdr->page_size);
         raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
                            hdr->page_size));
-        memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
         hdr->ramdisk_addr = raddr;
+        hdr->kernel_addr = kaddr;
+        //memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
         //memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
     }
 
@@ -1965,7 +1960,8 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		 * version too.
 		 */
         board_fbt_finalize_bootargs(command_line, sizeof(command_line),
-                hdr->ramdisk_size, !strcmp(boot_source, RECOVERY_NAME));
+                hdr->ramdisk_addr, hdr->ramdisk_size,
+                !strcmp(boot_source, RECOVERY_NAME));
         //printf("board cmdline:\n%s\n", command_line);
 		amt = snprintf(command_line,
 				sizeof(command_line),

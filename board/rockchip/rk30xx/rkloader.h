@@ -32,7 +32,7 @@ int getSn(char* buf);
 void getParameter();
 int setBootloaderMsg(struct bootloader_message* bmsg);
 int checkMisc();
-void ReSizeRamdisk(PBootInfo pboot_info,uint32 ImageSize);
+void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz);
 int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors);
 int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec);
 void SysLowFormatCheck(void);

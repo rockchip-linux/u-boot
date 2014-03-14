@@ -336,11 +336,11 @@ int board_fbt_key_pressed(void)
 
 struct fbt_partition fbt_partitions[FBT_PARTITION_MAX_NUM];
 
-void board_fbt_finalize_bootargs(char* args, size_t buf_sz,
-        size_t ramdisk_sz, int recovery)
+void board_fbt_finalize_bootargs(char* args, int buf_sz,
+        int ramdisk_addr, int ramdisk_sz, int recovery)
 {
     char recv_cmd[2]={0};
-    ReSizeRamdisk(&gBootInfo, ramdisk_sz);
+    fixInitrd(&gBootInfo, ramdisk_addr, ramdisk_sz);
     if (recovery) {
         change_cmd_for_recovery(&gBootInfo, recv_cmd);
     }

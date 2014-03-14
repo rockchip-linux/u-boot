@@ -138,30 +138,37 @@ int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
     return 0;
 }
 
-void ReSizeRamdisk(PBootInfo pboot_info,uint32 ImageSize)
+void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz)
 {
-    char* sSize = NULL;
+    char* initrd = NULL;
     int len = 0;
     char* s = NULL;
-    char szFind[20]="";
-     //ÅÐ¶ÏImageSize ºÏ·¨
-    ImageSize = (ImageSize + 0x3FFFF)&0xFFFF0000;//64KB ¶ÔÆë
-    //ÐÞ¸Äramdisk´óÐ¡
-    sprintf(szFind, "initrd=0x");
-    sSize = strstr(pboot_info->cmd_line, szFind);
-    if( sSize != NULL )
-    {
-        sSize+=18;
-        s = strstr(sSize, " ");
-        len = s - sSize;
-        if(sSize[0]=='0' && sSize[1]=='x' && len <= 10 && len >= 8)
-        {
-            //sprintf(szFind, "0x000000");
-            //replace_fore_string(sSize,8, szFind);
-            sprintf(szFind, "%08X",ImageSize);
-            replace_fore_string(sSize+2,6+(len-8), szFind+(10-len));
+    ramdisk_sz = (ramdisk_sz + 0x3FFFF)&0xFFFF0000;//64KB ¶ÔÆë
+#define MAX_BUF_SIZE 1024
+    char buf[MAX_BUF_SIZE];
+    char str[MAX_BUF_SIZE]="initrd=";
+
+    initrd = strstr(pboot_info->cmd_line, str);
+    if (initrd) {
+        s = strstr(initrd, " ");
+        //remove initrd
+        *initrd = '\0';
+        if (s) {
+            snprintf(buf, sizeof(buf), "%s %s", pboot_info->cmd_line, s + 1);
+        } else {
+            snprintf(buf, sizeof(buf), "%s", pboot_info->cmd_line);
         }
+    } else {
+        snprintf(buf, sizeof(buf), "%s", pboot_info->cmd_line);
     }
+    snprintf(str, sizeof(str), "initrd=0x%07X,0x%07X", ramdisk_addr, ramdisk_sz);
+
+#ifndef CONFIG_OF_LIBFDT
+    snprintf(pboot_info->cmd_line, sizeof(pboot_info->cmd_line),
+            "%s %s", str, buf);
+#else
+    //if use fdt, we pass initrd's addr & len from fdt.
+#endif
 }
 
 int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
@@ -309,15 +316,26 @@ int getSn(char* buf)
 int fixHdr(struct fastboot_boot_img_hdr *hdr)
 {
     hdr->kernel_addr = gBootInfo.kernel_load_addr;
+    hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
 
     if (!hdr->kernel_addr)
     {
         //TODO:rk32 should be 0x00408000
         hdr->kernel_addr = 0x60408000;
     }
+#ifndef CONFIG_USE_PARAMETER_INITRD_ADDR
     //load it to fastboot_buf.
     hdr->ramdisk_addr = (u8 *)gd->arch.fastboot_buf_addr;
     printf("fix ramdisk_addr:%p\n", hdr->ramdisk_addr);
+#endif
+
+#if 0
+#ifndef CONFIG_USE_PARAMETER_KERNEL_ADDR
+    //buffer size=32M, max kernel size=32-20=12M, max ramdisk size=20M.
+    hdr->kernel_addr = hdr->ramdisk_addr + 20 * 1024 * 1024;
+    printf("fix kernel_addr:%p\n", hdr->kernel_addr);
+#endif
+#endif
     return 0;
 }
 

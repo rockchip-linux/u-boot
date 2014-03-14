@@ -305,8 +305,8 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt);
 /* gets the reboot type, automatically clearing it for next boot */
 enum fbt_reboot_type board_fbt_get_reboot_type(void);
 int board_fbt_key_pressed(void);
-void board_fbt_finalize_bootargs(char* args, size_t buf_sz, 
-        size_t ramdisk_sz, int recovery);
+void board_fbt_finalize_bootargs(char* args, int buf_sz, 
+        int ramdisk_addr, int ramdisk_sz, int recovery);
 int board_fbt_handle_flash(char *name,
         struct cmd_fastboot_interface *priv);
 int board_fbt_handle_download(unsigned char *buffer,
