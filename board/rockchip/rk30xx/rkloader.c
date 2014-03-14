@@ -12,6 +12,10 @@ Revision:       1.00
 #include "rkloader.h"
 #include "rkimage.h"
 
+
+DECLARE_GLOBAL_DATA_PTR;
+
+
 //from MainLoop.c
 uint32 g_bootRecovery;
 uint32 g_FwEndLba;
@@ -160,18 +164,6 @@ void ReSizeRamdisk(PBootInfo pboot_info,uint32 ImageSize)
     }
 }
 
-static int32 checkboothdr(struct fastboot_boot_img_hdr * boothdr)
-{
-    if((boothdr->kernel_addr > 0x60E00000 && boothdr->kernel_addr < 0x61000000) ||(boothdr->ramdisk_addr > 0x60E00000 && boothdr->ramdisk_addr < 0x61000000)
-    || boothdr->kernel_addr > 0xA0000000 || boothdr->ramdisk_addr > 0xA0000000
-    || boothdr->kernel_addr < 0x60000000 || boothdr->ramdisk_addr < 0x60000000)
-    {
-        PRINT_E("kernel=%x,ramdisk=%x\n", boothdr->kernel_addr , boothdr->ramdisk_addr);
-        return -1;
-    }
-    return 0;
-}
-
 int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
 {
     char* cmd = cmdlist;
@@ -316,23 +308,16 @@ int getSn(char* buf)
 
 int fixHdr(struct fastboot_boot_img_hdr *hdr)
 {
-    hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
     hdr->kernel_addr = gBootInfo.kernel_load_addr;
 
     if (!hdr->kernel_addr)
     {
+        //TODO:rk32 should be 0x00408000
         hdr->kernel_addr = 0x60408000;
     }
-    if (!hdr->ramdisk_addr)
-    {
-        hdr->ramdisk_addr = 0x62000000;
-    }
-
-    if (checkboothdr(hdr))
-    {
-        printf("checkBoot failed!\n");
-        return -1;
-    }
+    //load it to fastboot_buf.
+    hdr->ramdisk_addr = (u8 *)gd->arch.fastboot_buf_addr;
+    printf("fix ramdisk_addr:%p\n", hdr->ramdisk_addr);
     return 0;
 }
 

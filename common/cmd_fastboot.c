@@ -1860,6 +1860,10 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			   FASTBOOT_BOOT_MAGIC_SIZE)) {
 #ifdef CONFIG_ROCKCHIP
             memset(hdr, 0, blksz);
+            if (fixHdr(hdr) < 0) {
+                goto fail;
+            }
+            snprintf(hdr->magic, FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
             if (loadRkImage(hdr, ptn, fastboot_find_ptn(KERNEL_NAME)) != 0) {
                 FBTERR("booti: bad boot or kernel image\n");
                 goto fail;
@@ -1932,7 +1936,8 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
                            hdr->page_size));
         memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
-        memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
+        hdr->ramdisk_addr = raddr;
+        //memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
     }
 
     if (board_fbt_boot_check(hdr, priv.unlocked)) {

@@ -41,6 +41,7 @@ static int inline get_ptn_offset() {
 static bool get_entry(const char* file_path, index_tbl_entry* entry) {
     bool ret = false;
     char buf[BLOCK_SIZE];
+    char* cache = NULL;
     resource_ptn_header header;
     int ptn_offset = get_ptn_offset();
     if (!ptn_offset) {
@@ -66,7 +67,6 @@ static bool get_entry(const char* file_path, index_tbl_entry* entry) {
         FBTERR("Not supported in this version!\n");
         goto end;
     }
-    char* cache = NULL;
     
     if (header.tbl_entry_num * header.tbl_entry_size <= 0xFFFF) {
         cache = (char*) malloc(header.tbl_entry_num * header.tbl_entry_size * BLOCK_SIZE);

@@ -53,9 +53,6 @@ int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, \
     if(!boot_ptn || !kernel_ptn) {
         return -1;
     }
-    snprintf(hdr->magic, FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
-
-    hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
     if (loadImage(boot_ptn->offset, (unsigned char *)hdr->ramdisk_addr, \
                 &image_size) != 0) {
         printf("load boot image failed\n");
