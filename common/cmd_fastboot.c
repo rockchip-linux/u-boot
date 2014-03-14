@@ -2100,6 +2100,7 @@ void fbt_preboot(void)
 #endif
 
 #endif// CONFIG_ROCKCHIP
+#ifdef CONFIG_UBOOT_CHARGE
     //check charge mode when no key pressed.
     if(check_charge() || frt == FASTBOOT_REBOOT_CHARGE) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
@@ -2112,6 +2113,7 @@ void fbt_preboot(void)
         return fbt_run_charge();
 #endif
     }
+#endif //CONFIG_UBOOT_CHARGE
 #ifdef CONFIG_ROCKCHIP
 PowerHoldPinInit();
 #ifdef CONFIG_LCD
