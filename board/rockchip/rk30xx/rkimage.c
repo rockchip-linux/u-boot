@@ -60,7 +60,6 @@ int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, \
     }
     hdr->ramdisk_size = image_size;
 
-    hdr->kernel_addr = gBootInfo.kernel_load_addr;
     if (loadImage(kernel_ptn->offset, (unsigned char *)hdr->kernel_addr, \
                 &image_size) != 0) {
         printf("load kernel image failed\n");
