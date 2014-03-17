@@ -18,7 +18,7 @@ Revision:       1.00
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
-//#define SECOND_LEVEL_BOOTLOADER
+#define SECOND_LEVEL_BOOTLOADER
 
 #define HAVE_VENDOR_COMMON_LIB y
 
@@ -284,11 +284,11 @@ Revision:       1.00
 #undef CONFIG_CMDLINE_EDITING
 #undef CONFIG_SYS_BOOT_RAMDISK_HIGH//not to relocate ramdisk
 
-//#define CONFIG_CMD_BOOTM
-//#define CONFIG_LMB
-//#define CONFIG_OF_LIBFDT
+#define CONFIG_CMD_BOOTM
+#define CONFIG_LMB
+#define CONFIG_OF_LIBFDT
 #define CONFIG_CMD_BMP
-//#define CONFIG_RESOURCE_PARTITION
+#define CONFIG_RESOURCE_PARTITION
 //#define CONFIG_CMD_CHARGE_ANIM
 #define CONFIG_LCD_BMP_RLE8
 
