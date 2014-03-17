@@ -140,35 +140,35 @@ int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
 
 void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz)
 {
-    char* initrd = NULL;
-    int len = 0;
-    char* s = NULL;
     ramdisk_sz = (ramdisk_sz + 0x3FFFF)&0xFFFF0000;//64KB ¶ÔÆë
-#define MAX_BUF_SIZE 1024
-    char buf[MAX_BUF_SIZE];
-    char str[MAX_BUF_SIZE]="initrd=";
+#define MAX_BUF_SIZE 100
+    char str[MAX_BUF_SIZE];
+    char *cmd_line = strdup(pboot_info->cmd_line);
+    char *s_initrd_start = NULL;
+    char *s_initrd_end = NULL;
+    int len = 0;
 
-    initrd = strstr(pboot_info->cmd_line, str);
-    if (initrd) {
-        s = strstr(initrd, " ");
-        //remove initrd
-        *initrd = '\0';
-        if (s) {
-            snprintf(buf, sizeof(buf), "%s %s", pboot_info->cmd_line, s + 1);
-        } else {
-            snprintf(buf, sizeof(buf), "%s", pboot_info->cmd_line);
+    if (!cmd_line)
+		return;
+
+    s_initrd_start = strstr(cmd_line, "initrd=");
+    if (s_initrd_start) {
+        len = strlen(cmd_line);
+        s_initrd_end = strstr(s_initrd_start, " ");
+        if (!s_initrd_end)
+            *s_initrd_start = '\0';
+        else {
+            len = cmd_line + len - s_initrd_end;
+            memcpy(s_initrd_start, s_initrd_end, len);
+            *(s_initrd_start + len) = '\0';
         }
-    } else {
-        snprintf(buf, sizeof(buf), "%s", pboot_info->cmd_line);
     }
-    snprintf(str, sizeof(str), "initrd=0x%07X,0x%07X", ramdisk_addr, ramdisk_sz);
+    snprintf(str, sizeof(str), "initrd=0x%08X,0x%08X", ramdisk_addr, ramdisk_sz);
 
-#ifndef CONFIG_OF_LIBFDT
     snprintf(pboot_info->cmd_line, sizeof(pboot_info->cmd_line),
-            "%s %s", str, buf);
-#else
-    //if use fdt, we pass initrd's addr & len from fdt.
-#endif
+            "%s %s", str, cmd_line);
+
+    free(cmd_line);
 }
 
 int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
@@ -329,12 +329,10 @@ int fixHdr(struct fastboot_boot_img_hdr *hdr)
     printf("fix ramdisk_addr:%p\n", hdr->ramdisk_addr);
 #endif
 
-#if 0
 #ifndef CONFIG_USE_PARAMETER_KERNEL_ADDR
     //buffer size=32M, max kernel size=32-20=12M, max ramdisk size=20M.
     hdr->kernel_addr = hdr->ramdisk_addr + 20 * 1024 * 1024;
     printf("fix kernel_addr:%p\n", hdr->kernel_addr);
-#endif
 #endif
     return 0;
 }
