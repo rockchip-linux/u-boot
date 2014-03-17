@@ -319,25 +319,16 @@ int getSn(char* buf)
 
 int fixHdr(struct fastboot_boot_img_hdr *hdr)
 {
-    hdr->kernel_addr = gBootInfo.kernel_load_addr;
     hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
-
-    if (!hdr->kernel_addr)
-    {
-        //TODO:rk32 should be 0x00408000
-        hdr->kernel_addr = 0x60408000;
-    }
 #ifndef CONFIG_USE_PARAMETER_INITRD_ADDR
     //load it to fastboot_buf.
     hdr->ramdisk_addr = (u8 *)gd->arch.fastboot_buf_addr;
     printf("fix ramdisk_addr:%p\n", hdr->ramdisk_addr);
 #endif
 
-#ifndef CONFIG_USE_PARAMETER_KERNEL_ADDR
-    //buffer size=32M, max kernel size=32-20=12M, max ramdisk size=20M.
-    hdr->kernel_addr = hdr->ramdisk_addr + 20 * 1024 * 1024;
+    //set kernel addr at 32M.
+    hdr->kernel_addr = gd->bd->bi_dram[0].start + 32 * 1024 * 1024;
     printf("fix kernel_addr:%p\n", hdr->kernel_addr);
-#endif
     return 0;
 }
 
