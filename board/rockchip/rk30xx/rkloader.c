@@ -332,6 +332,12 @@ int fixHdr(struct fastboot_boot_img_hdr *hdr)
     hdr->ramdisk_addr = (u8 *)gd->arch.fastboot_buf_addr;
     printf("fix ramdisk_addr:%p\n", hdr->ramdisk_addr);
 #endif
+
+#ifndef CONFIG_USE_PARAMETER_KERNEL_ADDR
+    //buffer size=32M, max kernel size=32-20=12M, max ramdisk size=20M.
+    hdr->kernel_addr = hdr->ramdisk_addr + 20 * 1024 * 1024;
+    printf("fix kernel_addr:%p\n", hdr->kernel_addr);
+#endif
     return 0;
 }
 
