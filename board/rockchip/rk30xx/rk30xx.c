@@ -281,6 +281,11 @@ int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks) {
         size[0] = 0x40000000;//1G for now
     return fdt_fixup_memory_banks(blob, start, size, banks);
 }
+void board_lmb_reserve(struct lmb *lmb) {
+    //reserve 32M for kernel.
+    lmb_reserve(lmb, gd->bd->bi_dram[0].start, 32 * 1024 * 1024);
+}
+
 #endif
 
 #ifdef CONFIG_DISPLAY_BOARDINFO
