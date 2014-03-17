@@ -165,9 +165,13 @@ void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz)
     }
     snprintf(str, sizeof(str), "initrd=0x%08X,0x%08X", ramdisk_addr, ramdisk_sz);
 
+#ifndef CONFIG_OF_LIBFDT
     snprintf(pboot_info->cmd_line, sizeof(pboot_info->cmd_line),
             "%s %s", str, cmd_line);
-
+#else
+    snprintf(pboot_info->cmd_line, sizeof(pboot_info->cmd_line),
+            "%s", str);
+#endif
     free(cmd_line);
 }
 
