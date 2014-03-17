@@ -284,11 +284,11 @@ Revision:       1.00
 #undef CONFIG_CMDLINE_EDITING
 #undef CONFIG_SYS_BOOT_RAMDISK_HIGH//not to relocate ramdisk
 
-#define CONFIG_CMD_BOOTM
-#define CONFIG_LMB
-#define CONFIG_OF_LIBFDT
+//#define CONFIG_CMD_BOOTM
+//#define CONFIG_LMB
+//#define CONFIG_OF_LIBFDT
 #define CONFIG_CMD_BMP
-#define CONFIG_RESOURCE_PARTITION
+//#define CONFIG_RESOURCE_PARTITION
 //#define CONFIG_CMD_CHARGE_ANIM
 #define CONFIG_LCD_BMP_RLE8
 
@@ -299,5 +299,6 @@ Revision:       1.00
 
 //allow to flash loader when check sign failed. should undef this in release version.
 #define CONFIG_ENABLE_ERASEKEY
+#define CONFIG_SYS_VSNPRINTF
 
 #endif /* __CONFIG_H */
