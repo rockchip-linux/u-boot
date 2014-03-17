@@ -282,7 +282,6 @@ Revision:       1.00
 #undef CONFIG_CMD_ECHO
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
-#undef CONFIG_SYS_BOOT_RAMDISK_HIGH//not to relocate ramdisk
 
 #define CONFIG_CMD_BOOTM
 #define CONFIG_LMB
