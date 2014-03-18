@@ -71,8 +71,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CLK_DIV_32		32
 
 
-#define cru_readl(offset)	readl(RKIO_CRU_PHYS + offset)
-#define cru_writel(v, offset)	do { writel(v, RKIO_CRU_PHYS + offset); dsb(); } while (0)
+#define cru_readl(offset)	readl(CRU_BASE_ADDR + offset)
+#define cru_writel(v, offset)	do { writel(v, CRU_BASE_ADDR + offset); } while (0)
 
 
 /* pll set callback function */
@@ -127,7 +127,8 @@ void lcdc_clk_enable(void)
     int clk = 300;
     uint32 div = (CONFIG_RKCLK_GPLL_FREQ-1)/clk;
     if(div>0x1f)div = 0x1f;
-    g_cruReg->CRU_CLKSEL_CON[31] = (1<<31) | (0x1f<<24) | (1<<23) | (0x1f<<16) | (1<<15) | (div<<8) | (1<<7) | div;//  aclk0 = aclk1 = GPLL/(div+1)
+    //  aclk0 = aclk1 = GPLL/(div+1)
+    cru_writel((1<<31) | (0x1f<<24) | (1<<23) | (0x1f<<16) | (1<<15) | (div<<8) | (1<<7) | div, CRU_CLKSELS_CON(31));
 }
 
 void set_lcdc_dclk(int clk)
@@ -140,8 +141,8 @@ void set_lcdc_dclk(int clk)
     div = ((CONFIG_RKCLK_GPLL_FREQ/(div1+1)) > (CONFIG_RKCLK_CPLL_FREQ/(div2+1))) ? div1 : div2;
 
     printf("set_lcdc_dclk: lcdc_source_clk = %d, clk = %d, div = %d\n", (div==div1)?CONFIG_RKCLK_GPLL_FREQ:CONFIG_RKCLK_CPLL_FREQ, clk, div);
-    g_cruReg->CRU_CLKSEL_CON[27] = (1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0);     //lcdc0_dclk
-    g_cruReg->CRU_CLKSEL_CON[20] = (1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0);     //lcdc1_dclk
+    cru_writel((1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0), CRU_CLKSELS_CON(27)); //lcdc0_dclk
+    cru_writel((1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0), CRU_CLKSELS_CON(20)); //lcdc1_dclk
 }
 
 
