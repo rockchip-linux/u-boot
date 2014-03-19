@@ -13,3 +13,4 @@ obj-y += crc.o
 obj-y += rkimage.o
 obj-y += rkloader.o
 obj-y += fastboot.o
+obj-y += ddr.o
