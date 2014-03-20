@@ -187,6 +187,27 @@ Revision:		1.00
         uint32 ICCIIDR      ;         //0xfc  
     }GICC_REG, *pGICC_REG;
     
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+//CRU Registers
+    typedef volatile struct tagCRU_STRUCT 
+    {
+        uint32 CRU_PLL_CON[4][5]; 
+        uint32 CRU_MODE_CON;
+        uint32 reserved1[3];
+#if 1
+        uint32 CRU_CLKSEL_CON[42];
+        uint32 reserved2[22];
+        uint32 CRU_CLKGATE_CON[18];
+        uint32 reserved3[1];
+        uint32 CRU_GLB_SRST_FST_VALUE;
+        uint32 CRU_GLB_SRST_SND_VALUE;
+        uint32 CRU_SOFTRST_CON[11];
+        uint32 CRU_MISC_CON;
+        uint32 CRU_GLB_CNT_TH;
+#endif
+    } CRU_REG, *pCRU_REG;
+
+#else
     //CRU Registers
     typedef volatile struct tagCRU_STRUCT 
     {
@@ -203,7 +224,7 @@ Revision:		1.00
         uint32 reserved3[2];
         uint32 CRU_GLB_CNT_TH;
     } CRU_REG, *pCRU_REG;
-
+#endif
 #define g_cruReg ((pCRU_REG)CRU_BASE_ADDR)
 
     typedef struct tagGPIO_LH
