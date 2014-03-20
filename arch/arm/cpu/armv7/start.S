@@ -147,14 +147,18 @@ reset:
 	orr	r0, r0, #0xc0		@ disable FIQ and IRQ
 	msr	cpsr,r0
 
-#if (CONFIG_RKCHIPTYPE != CONFIG_RK3288)
 
 #ifdef CONFIG_ROCKCHIP
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+        ldr 	r1, =0xFF730000             /* cpu 1 2 3 power down */
+#else
         ldr 	r1, =0x20004000             /* cpu 1 2 3 power down */
+#endif
         mov 	r0, #0x0E
         str	r0, [r1,#8]
 #endif
 
+#if (CONFIG_RKCHIPTYPE != CONFIG_RK3288)
 #ifdef CONFIG_USE_RK30IRQ
 	/*;chip detect RK30 or RK3066B
 	;set remap bit in grf enabled, remap 0x0000 to imem, 
