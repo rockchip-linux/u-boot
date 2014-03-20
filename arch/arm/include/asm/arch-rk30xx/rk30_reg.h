@@ -40,6 +40,7 @@ typedef volatile struct tagPMU_REG
         uint32 CRU_PLL_CON[4][5]; 
         uint32 CRU_MODE_CON;
         uint32 reserved1[3];
+#if 0
         uint32 CRU_CLKSEL_CON[42];
         uint32 reserved2[22];
         uint32 CRU_CLKGATE_CON[18];
@@ -49,6 +50,7 @@ typedef volatile struct tagPMU_REG
         uint32 CRU_SOFTRST_CON[11];
         uint32 CRU_MISC_CON;
         uint32 CRU_GLB_CNT_TH;
+#endif
     } CRU_REG, *pCRU_REG;
 
 #else

@@ -172,10 +172,10 @@ ResetCpuDelay1
 	BGE     ResetCpuDelay1
 
  	LDR     R1, =0xeca8
-	LDR     R2, =0x20000104
-	LDR     R3, =0x10000000	
+	LDR     R2, =0xff7601b4
+//	LDR     R3, =0x10000000	
 	
- 	STR		R3, [R0,#0]  ;// remap
+ //	STR		R3, [R0,#0]  ;// remap
  	STR		R1, [R2,#0]
 
 ResetCpu_loop

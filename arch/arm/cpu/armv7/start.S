@@ -158,7 +158,11 @@ reset:
         str	r0, [r1,#8]
 #endif
 
-#if (CONFIG_RKCHIPTYPE != CONFIG_RK3288)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	LDR R0,=0xff740000
+	LDR R1,=0x08000800
+	STR R1,[R0]
+#else
 #ifdef CONFIG_USE_RK30IRQ
 	/*;chip detect RK30 or RK3066B
 	;set remap bit in grf enabled, remap 0x0000 to imem, 
