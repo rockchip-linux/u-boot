@@ -473,6 +473,10 @@ void sdmmcGpioInit(uint32 ChipSel)
         g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX = ((0x3<<14)<<16)|(0x2<<14);  // dqs
         g_grfReg->GRF_GPIO_IOMUX[4].GPIOB_IOMUX = ((0xf<<2)<<16)|(0xa<<2);   // cmd,rstn
         g_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x1<<11);                 // emmc data0-7,wp
+    }else if(ChipType == CONFIG_RK3288){
+	writel(0xffffaaaa,0xff770020);
+	writel(0x000c0008,0xff770024);
+	writel(0x003f002a,0xff770028);
     }
     else
     {
