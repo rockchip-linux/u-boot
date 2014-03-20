@@ -288,8 +288,8 @@ int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks) {
     return fdt_fixup_memory_banks(blob, start, size, banks);
 }
 void board_lmb_reserve(struct lmb *lmb) {
-    //reserve 48M for kernel.
-    lmb_reserve(lmb, gd->bd->bi_dram[0].start, 48 * 1024 * 1024);
+    //reserve 48M for kernel & 8M for nand api.
+    lmb_reserve(lmb, gd->bd->bi_dram[0].start, 56 * 1024 * 1024);
 }
 
 #endif

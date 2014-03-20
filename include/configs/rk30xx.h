@@ -83,7 +83,11 @@ Revision:       1.00
 #endif
 #define RAM_PHY_END             (RAM_PHY_START + RAM_PHY_SIZE)
 
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 0x3000000)//48M
+#else
 #define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 4)
+#endif
 
 /* uart config */
 #define	CONFIG_RK30_UART
