@@ -402,13 +402,13 @@ struct pll_data rkpll_data[END_PLL_ID] = {
 
 static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
-	#define GRF_SOC_STATUS0		0x0280
+	#define GRF_SOC_STATUS1		0x0284
 	uint32 pll_state[END_PLL_ID] = {1, 0, 2, 3, 4};
 	uint32 bit = (0x20u << pll_state[pll_id]);
 
 	/* delay for pll lock */
 	while (1) {
-		if (readl(REG_FILE_BASE_ADDR + GRF_SOC_STATUS0) & bit) {
+		if (readl(REG_FILE_BASE_ADDR + GRF_SOC_STATUS1) & bit) {
 			break;
 		}
 		clk_loop_delayus(1);
@@ -447,18 +447,19 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 
 	/* PLL enter slow-mode */
 	cru_writel(PLL_MODE_SLOW(pll_id), CRU_MODE_CON);
+
 	/* enter rest */
-	cru_writel(PLL_RESET | PLL_RESET_MSK | PLL_RESET_W_MSK, PLL_CONS(pll_id, 3));
+	cru_writel((PLL_RESET | PLL_RESET_W_MSK), PLL_CONS(pll_id, 3));
 
 	cru_writel(clkset->pllcon0, PLL_CONS(pll_id, 0));
 	cru_writel(clkset->pllcon1, PLL_CONS(pll_id, 1));
 	cru_writel(clkset->pllcon2, PLL_CONS(pll_id, 2));
 
-	clk_loop_delayus(5);
+	clk_loop_delayus(10);
 	/* return form rest */
-	cru_writel(PLL_RESET_RESUME | PLL_RESET_MSK | PLL_RESET_W_MSK, PLL_CONS(pll_id, 3));
-
+	cru_writel(PLL_RESET_RESUME | PLL_RESET_W_MSK, PLL_CONS(pll_id, 3));
 	clk_loop_delayus(clkset->rst_dly);
+
 	/* waiting for pll lock */
 	rkclk_pll_wait_lock(pll_id);
 
@@ -553,11 +554,11 @@ static void rkclk_bus_ahpclk_set(uint32 pll_src, uint32 axi_div, uint32 aclk_div
 		p_div = pclk_div - 1;
 	}
 
-	cru_writel(CRU_CLKSELS_CON(1), (PDBUS_SEL_PLL_W_MSK | pll_sel)
-				| (PDBUS_PCLK_DIV_W_MSK | (p_div << PDBUS_PCLK_DIV_OFF))
-				| (PDBUS_HCLK_DIV_W_MSK | (h_div << PDBUS_HCLK_DIV_OFF))
-				| (PDBUS_ACLK_DIV_W_MSK | (a_div << PDBUS_ACLK_DIV_OFF))
-				| (PDBUS_AXI_DIV_W_MSK | (axi_bus_div << PDBUS_AXI_DIV_OFF)));
+	cru_writel((PDBUS_SEL_PLL_W_MSK | pll_sel)
+			| (PDBUS_PCLK_DIV_W_MSK | (p_div << PDBUS_PCLK_DIV_OFF))
+			| (PDBUS_HCLK_DIV_W_MSK | (h_div << PDBUS_HCLK_DIV_OFF))
+			| (PDBUS_ACLK_DIV_W_MSK | (a_div << PDBUS_ACLK_DIV_OFF))
+			| (PDBUS_AXI_DIV_W_MSK | (axi_bus_div << PDBUS_AXI_DIV_OFF)), CRU_CLKSELS_CON(1));
 }
 
 
@@ -620,10 +621,10 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 			break;
 	}
 
-	cru_writel(CRU_CLKSELS_CON(10), (PERI_SEL_PLL_W_MSK | pll_sel)
-				| (PERI_PCLK_DIV_W_MSK | (p_div << PERI_PCLK_DIV_OFF))
-				| (PERI_HCLK_DIV_W_MSK | (h_div << PERI_HCLK_DIV_OFF))
-				| (PERI_ACLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)));
+	cru_writel((PERI_SEL_PLL_W_MSK | pll_sel)
+			| (PERI_PCLK_DIV_W_MSK | (p_div << PERI_PCLK_DIV_OFF))
+			| (PERI_HCLK_DIV_W_MSK | (h_div << PERI_HCLK_DIV_OFF))
+			| (PERI_ACLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)), CRU_CLKSELS_CON(10));
 }
 
 
@@ -663,10 +664,10 @@ static void rkclk_cpu_coreclk_set(uint32 pll_src, uint32 a12_core_div, uint32 ac
 		m0_div = aclk_core_m0_div - 1;
 	}
 
-	cru_writel(CRU_CLKSELS_CON(0), (CORE_SEL_PLL_W_MSK | pll_sel)
-				| (A12_CORE_CLK_DIV_W_MSK | (a12_div << A12_CORE_CLK_DIV_OFF))
-				| (MP_AXI_CLK_DIV_W_MSK | (mp_div << MP_AXI_CLK_DIV_OFF))
-				| (M0_AXI_CLK_DIV_W_MSK | (m0_div << M0_AXI_CLK_DIV_OFF)));
+	cru_writel((CORE_SEL_PLL_W_MSK | pll_sel)
+			| (A12_CORE_CLK_DIV_W_MSK | (a12_div << A12_CORE_CLK_DIV_OFF))
+			| (MP_AXI_CLK_DIV_W_MSK | (mp_div << MP_AXI_CLK_DIV_OFF))
+			| (M0_AXI_CLK_DIV_W_MSK | (m0_div << M0_AXI_CLK_DIV_OFF)), CRU_CLKSELS_CON(0));
 }
 
 
@@ -699,9 +700,9 @@ static void rkclk_cpu_l2dbgatclk_set(uint32 l2ram_div, uint32 atclk_core_div, ui
 		pclk_dbg_div = pclk_core_dbg_div - 1;
 	}
 
-	cru_writel(CRU_CLKSELS_CON(37), ((0x7 << (0 + 16)) | (l2_div << 0))
-				| ((0x1f << (4 + 16)) | (atclk_div << 4))
-				| ((0x1f << (9 + 16)) | (pclk_dbg_div << 9)));
+	cru_writel(((0x7 << (0 + 16)) | (l2_div << 0))
+			| ((0x1f << (4 + 16)) | (atclk_div << 4))
+			| ((0x1f << (9 + 16)) | (pclk_dbg_div << 9)), CRU_CLKSELS_CON(37));
 }
 
 
@@ -737,8 +738,7 @@ static void rkclk_ddr_clk_set(uint32 pll_src, uint32 ddr_div)
 			break;
 	}
 
-	cru_writel(CRU_CLKSELS_CON(26), (0x01 << (8 + 16) | (pll_sel << 8))
-				| ((0x03 << (0 + 16)) | (div << 0)));
+	cru_writel((0x01 << (8 + 16) | (pll_sel << 8)) | ((0x03 << (0 + 16)) | (div << 0)), CRU_CLKSELS_CON(26));
 }
 
 
