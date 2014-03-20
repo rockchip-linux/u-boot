@@ -277,8 +277,8 @@ int fdt_chosen(void *fdt, int force)
 			if (err < 0)
 				printf("WARNING: could not set bootargs %s.\n",
 					fdt_strerror(err));
-        }
-#else
+        } else
+#endif
 
 		if ((path == NULL) || force) {
 			err = fdt_setprop(fdt, nodeoffset,
@@ -287,7 +287,6 @@ int fdt_chosen(void *fdt, int force)
 				printf("WARNING: could not set bootargs %s.\n",
 					fdt_strerror(err));
 		}
-#endif
 	}
 
 	printf("------->path=%s\n",path);
