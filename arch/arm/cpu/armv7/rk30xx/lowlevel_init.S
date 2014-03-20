@@ -26,7 +26,7 @@ ENTRY(lowlevel_init)
 	 */
 	push	{ip, lr}
 
-//	bl	rkclk_set_pll
+	bl	rkclk_set_pll
 
 	pop	{ip, pc}
 ENDPROC(lowlevel_init)
