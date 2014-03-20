@@ -1,5 +1,6 @@
 
 #include    "../../armlinux/config.h"
+#include   <asm/io.h>
 
 #define     DELAY_ARM_FREQ      50
 #define     ASM_LOOP_INSTRUCTION_NUM     4

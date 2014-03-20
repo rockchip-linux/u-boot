@@ -209,7 +209,7 @@ Revision:       1.00
 #define CONFIG_PL330_DMA //enable pl330 dma
 
 #ifdef CONFIG_PL330_DMA   
-#define SDMMC_USE_DMA  //for emmc use dma trans
+//#define SDMMC_USE_DMA  //for emmc use dma trans
 #endif
 /* SPI */
 //#define CONFIG_RK_SPI
