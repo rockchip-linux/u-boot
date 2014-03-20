@@ -112,6 +112,11 @@ void ChipTypeCheck(void)
     ChipType = CONFIG_RK3026;
 	
 #endif
+
+#if(CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+    ChipType = CONFIG_RK3288;
+        Rk30ChipVerInfo[0] =  0x33323041; // "320A"
+#endif 
 }
 
 #include "../../common/rockusb/USB20.h"
@@ -130,6 +135,11 @@ void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
     else if (ChipType == CONFIG_RK3188 || ChipType == CONFIG_RK3188B)
     {
         pDeviceDescr->idProduct = 0x310B;
+        pDeviceDescr->idVendor  = 0x2207;
+    }
+    else if (ChipType == CONFIG_RK3288)
+    {
+        pDeviceDescr->idProduct = 0x320A;
         pDeviceDescr->idVendor  = 0x2207;
     }
 }

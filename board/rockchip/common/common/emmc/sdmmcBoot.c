@@ -239,6 +239,7 @@ uint32 SdmmcInit(uint32 ChipSel)
       	if(gSdCardInfoTbl[ChipSel].BootCapSize != 0)
         	gSdCardInfoTbl[ChipSel].BootCapSize = EMMC_BOOT_PART_SIZE;
 
+	gSdCardInfoTbl[ChipSel].BootCapSize = 0; //rk3288 do not use boot part
         ioctlParam[0] = ChipSel;
         ioctlParam[1] = 0;  //capbility
         ret1 = SDM_IOCtrl(SDM_IOCTR_GET_CAPABILITY, ioctlParam);
