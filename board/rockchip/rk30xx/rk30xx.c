@@ -278,8 +278,13 @@ void dram_init_banksize(void)
 extern uint32 ddr_get_cap(void);
 int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks) {
     //TODO:auto detect size.
-    if (banks > 0)
-        size[0] = ddr_get_cap();//1G for now
+    if (banks > 0){
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+        size[0] = ddr_get_cap();
+#else
+	size[0] = 0x40000000;//1G for now
+#endif
+    }
     return fdt_fixup_memory_banks(blob, start, size, banks);
 }
 void board_lmb_reserve(struct lmb *lmb) {
