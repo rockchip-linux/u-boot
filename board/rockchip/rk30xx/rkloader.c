@@ -170,7 +170,7 @@ void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz)
             "%s %s", str, cmd_line);
 #else
     snprintf(pboot_info->cmd_line, sizeof(pboot_info->cmd_line),
-            "%s", str);
+            "%s", cmd_line);
 #endif
     free(cmd_line);
 }

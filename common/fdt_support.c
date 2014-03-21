@@ -268,7 +268,7 @@ int fdt_chosen(void *fdt, int force)
 		path = fdt_getprop(fdt, nodeoffset, "bootargs", NULL);
 
 #ifndef CONFIG_FDT_REPLACE_CMDLINE
-        if (1){//path != NULL) {
+        if (path != NULL) {
             char buf[1024*64];//cmdline should not over it
             snprintf(buf, sizeof(buf), "%s %s", str, path);
 
@@ -289,7 +289,6 @@ int fdt_chosen(void *fdt, int force)
 		}
 	}
 
-	printf("------->path=%s\n",path);
 #ifdef CONFIG_OF_STDOUT_VIA_ALIAS
 	path = fdt_getprop(fdt, nodeoffset, "linux,stdout-path", NULL);
 	if ((path == NULL) || force)
