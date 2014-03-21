@@ -562,7 +562,7 @@ void SoftReset(void)
     }
     else if(ChipType == CONFIG_RK3288)
     {
-        ResetCpu((GRF_BASE + 0x244));
+        ResetCpu((0xff740000));
     }
     else
     {
