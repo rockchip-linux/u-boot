@@ -117,8 +117,8 @@ void FastbootKeyInit(key_config *key)
     	key->key.adc.index = 3;
     else
 	key->key.adc.index = 1;	
-    key->key.adc.keyValueLow = 950;
-    key->key.adc.keyValueHigh= 960;
+    key->key.adc.keyValueLow = 170;
+    key->key.adc.keyValueHigh= 180;
     key->key.adc.data = SARADC_BASE;
     key->key.adc.stas = SARADC_BASE+4;
     key->key.adc.ctrl = SARADC_BASE+8;
