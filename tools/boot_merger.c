@@ -1,6 +1,7 @@
 #include "boot_merger.h"
 #include <time.h>
 #include <sys/stat.h>  
+#include <version.h>
 
 bool gDebug = 
 #ifdef DEBUG
@@ -269,11 +270,26 @@ static bool parseLoader(FILE* file) {
 }
 
 static bool parseOut(FILE* file) {
+	char *str = 0;
+	char strtime[100] = U_BOOT_DATE "_" U_BOOT_TIME;
+	printf("strtime:%s\n", strtime);
+	str = strchr(strtime, ':');
+	str[0] = '_';
+	str = strchr(strtime, ':');
+	str[0] = '_';
+	str = strchr(strtime, ' ');
+	str[0] = '_';
+	str = strchr(strtime, ' ');
+	str[0] = '_';
     SCANF_EAT(file);
     if (fscanf(file, OPT_OUT_PATH "=%[^\r^\n]", gOpts.outPath) != 1)
         return false;
     fixPath(gOpts.outPath);
-    LOGD("out:%s\n", gOpts.outPath);
+	str = strrchr(gOpts.outPath, '.');
+	str[0] = '_';
+	strcpy(str + 1, strtime);
+	strcat(gOpts.outPath, ".bin");
+    printf("out:%s\n", gOpts.outPath);
     return true;
 }
 
