@@ -242,7 +242,12 @@ Revision:		1.00
     }GPIO_IOMUX_T;
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-    
+
+#define RK_PMU_SYS_REG0             0x94
+#define RK_PMU_SYS_REG1             0x98
+#define RK_PMU_SYS_REG2             0x9c
+#define RK_PMU_SYS_REG3             0xa0
+   
 typedef struct tagGPIO_PE
 {
     uint32 GPIOA;
@@ -316,7 +321,10 @@ typedef volatile struct tagGRF_REG
     uint32 GRF_SOC_CON16;        
 }GRF_REG, *pGRF_REG;
 #else
-
+#define RK_PMU_SYS_REG0             0x40
+#define RK_PMU_SYS_REG1             0x44
+#define RK_PMU_SYS_REG2             0x48
+#define RK_PMU_SYS_REG3             0x4c
 //REG FILE registers
 typedef volatile struct tagGRF_REG
 {
