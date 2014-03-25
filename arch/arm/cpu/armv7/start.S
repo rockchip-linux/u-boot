@@ -280,8 +280,7 @@ ENTRY(cpu_init_cp15)
 	bic	r0, r0, #0x000000FF	@ clear bit 17:0
 	bic	r0, r0, #0x0000FF00	@ clear bit 17:0
 	bic	r0, r0, #0x00030000	@ clear bit 17:0
-	orr	r0, r0, #0x00000051	@ set Data RAM read latency 2 cycle
-	orr r0, r0, #0x00009200 @ else 1 cycle
+	orr	r0, r0, #0x00000008	@ set bit 3
 	mcr	p15, 1, r0, c9, c0, 2	@ config L2 Control Register
 #endif
 
