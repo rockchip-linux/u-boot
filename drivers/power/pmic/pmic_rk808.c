@@ -68,7 +68,7 @@ int pmic_charger_setting(int current)
 int pmic_init(unsigned char bus)
 {
     //enable lcdc power ldo, and enable other ldo   
-    int usb_charger_type = dwc_otg_check_dpdm();
+    int usb_charger_type = 1;//dwc_otg_check_dpdm();
     ChargerStateInit();
     printf("%s, charger_type = %d, dc_is_charging= %d\n",__func__,usb_charger_type,is_charging());
     if(is_charging()){
