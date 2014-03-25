@@ -109,7 +109,7 @@ struct rk30_i2c {
 	{ .regs = I2C1_BASE_ADDR + SZ_4K, 0 },
 	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },
 	{ .regs = I2C3_BASE_ADDR + SZ_8K, 0 },
-	{ .regs = I2C4_BASE + SZ_8K, 0 }
+	{ .regs = I2C4_BASE_ADDR + SZ_8K, 0 }
 	#endif
 };
 
@@ -395,6 +395,9 @@ static void rk_i2c_init(int speed)
 		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
 #elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
 		g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+        *(int*)(PMU_BASE_ADDR+0x0088) |= 1<<14;
+        *(int*)(PMU_BASE_ADDR+0x008c) |= 1;
 #endif
 	} else if (gcurrent_bus == I2C_BUS_CH1) {
 		i2c_adap_sel(I2C_BUS_CH1);

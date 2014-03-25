@@ -29,6 +29,19 @@ uint32 RK3026GpioBaseAddr[7] =
     0x20084000, //GPIO2
     0x20088000, //GPIO3
 };
+uint32 RK3288GpioBaseAddr[9] = 
+{
+    0xff750000, //GPIO0
+    0xff780000, //GPIO1
+    0xff790000, //GPIO2
+    0xff7a0000, //GPIO3
+    0xff7b0000, //GPIO4
+    0xff7c0000, //GPIO5
+    0xff7d0000, //GPIO6
+    0xff7e0000, //GPIO7
+    0xff7f0000, //GPIO8
+};
+
 static inline unsigned int get_duration(unsigned int base) {
     unsigned int max = 0xFFFFFFFF;
     unsigned int now = get_rk_current_tick();
@@ -53,13 +66,18 @@ void setup_gpio(gpio_conf *key_gpio)
             return;
         base_addr = RK3026GpioBaseAddr[key_gpio->group];	
     }
-    else 
+    else if(ChipType == CONFIG_RK3188)
     {
         if(key_gpio->group >= 4)
             return;
         base_addr = RK3188GpioBaseAddr[key_gpio->group];
     }
-    
+    else
+    {
+        if(key_gpio->group >= 9)
+            return;
+        base_addr = RK3288GpioBaseAddr[key_gpio->group];
+    }
 	key_gpio->io_read = base_addr+0x50;
 	key_gpio->io_write = base_addr;
 	key_gpio->io_dir_conf = base_addr+0x4;
@@ -93,19 +111,24 @@ void clr_all_gpio_int(void)
                 return;
             base_addr = RK3066GpioBaseAddr[group];
         }
-	else if(ChipType == CONFIG_RK3026)
-	 {
-	    if(group >= 4)
-	            return;
-	    base_addr = RK3026GpioBaseAddr[group];	
-	 }
-        else
+    	else if(ChipType == CONFIG_RK3026)
+    	 {
+    	    if(group >= 4)
+    	            return;
+    	    base_addr = RK3026GpioBaseAddr[group];	
+    	 }
+        else if(ChipType == CONFIG_RK3188)
         {
             if(group >= 4)
                 return;
             base_addr = RK3188GpioBaseAddr[group];
         }
-
+        else
+        {
+            if(group >= 9)
+                return;
+            base_addr = RK3288GpioBaseAddr[group];
+        }
     	int_en = base_addr+0x30;
     	write_XDATA32(int_en, 0);
     }
@@ -128,13 +151,18 @@ void setup_int(int_conf *key_int)
 	       return;
 	  base_addr = RK3026GpioBaseAddr[key_int->group];	
     }
-    else
+    else if(ChipType == CONFIG_RK3188)
     {
         if(key_int->group >= 4)
             return;
         base_addr = RK3188GpioBaseAddr[key_int->group];
     }
-
+    else
+    {
+        if(key_int->group >= 9)
+            return;
+        base_addr = RK3288GpioBaseAddr[key_int->group];
+    }
 	key_int->int_en = base_addr+0x30;
 	key_int->int_mask = base_addr+0x34;
 	key_int->int_level = base_addr+0x38;
@@ -177,11 +205,17 @@ void gpio_isr(int gpio_group)
 	       return;
 	  base_addr = RK3026GpioBaseAddr[gpio_group];	
     }
-   else
+   else if(ChipType == CONFIG_RK3188)
    {
         if(gpio_group >= 4)
             return;
        base_addr = RK3188GpioBaseAddr[gpio_group];
+   }
+   else
+   {
+       if(gpio_group >= 9)
+            return;
+       base_addr = RK3288GpioBaseAddr[gpio_group];
    }
    int_eoi = base_addr+0x4c;
 

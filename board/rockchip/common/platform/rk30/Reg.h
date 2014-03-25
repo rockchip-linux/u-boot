@@ -241,53 +241,130 @@ Revision:		1.00
         uint32 GPIOD_IOMUX;
     }GPIO_IOMUX_T;
 
-    //REG FILE registers
-    typedef volatile struct tagGRF_REG
-    {
-        GPIO_LH_T GRF_GPIO_DIR[7];
-        GPIO_LH_T GRF_GPIO_DO[7];
-        GPIO_LH_T GRF_GPIO_EN[7];
-        GPIO_IOMUX_T GRF_GPIO_IOMUX[7];
-        GPIO_LH_T GRF_GPIO_PULL[7];
-        uint32 GRF_SOC_CON[3];
-        uint32 GRF_SOC_STATUS0;
-        uint32 GRF_DMAC1_CON[3];
-        uint32 GRF_DMAC2_CON[4];
-        uint32 GRF_UOC0_CON[3];
-        uint32 GRF_UOC1_CON[4];
-        uint32 GRF_DDRC_CON0;
-        uint32 GRF_DDRC_STAT;
-        uint32 reserved[(0x1c8-0x1a0)/4];
-        uint32 GRF_OS_REG[4];
-    } GRF_REG, *pGRF_REG;
-    #define g_grfReg ((pGRF_REG)GRF_BASE)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+    
+typedef struct tagGPIO_PE
+{
+    uint32 GPIOA;
+    uint32 GPIOB;
+    uint32 GPIOC;
+    uint32 GPIOD;
+} GPIO_PE;
 
-    typedef volatile struct tagRK3066B_GRF_REG
-    {
-        GPIO_LH_T GRF_GPIO_DIR[4];
-        GPIO_LH_T GRF_GPIO_DO[4];
-        GPIO_LH_T GRF_GPIO_EN[4];
-        GPIO_IOMUX_T GRF_GPIO_IOMUX[4];
-        uint32 GRF_SOC_CON[3];
-        uint32 GRF_SOC_STATUS0;
-        uint32 GRF_DMAC1_CON[3];
-        uint32 GRF_DMAC2_CON[4];
-        uint32 GRF_CPU_CON[6]; //  no use
-        uint32 GRF_CPU_STAT[2]; //  no use
-        uint32 GRF_DDRC_CON0;
-        uint32 GRF_DDRC_STAT;
-        uint32 GRF_IO_CON[5];
-        uint32 reserved0;
-        uint32 GRF_UOC0_CON[4];
-        uint32 GRF_UOC1_CON[4];
-        uint32 GRF_UOC2_CON[3];
-        uint32 GRF_UOC3_CON[2];
-        uint32 GRF_HSIC_STAT;
-        uint32 GRF_OS_REG[8];
-    } RK3066B_GRF_REG, *pRK3066B_GRF_REG;
-   
-    #define g_3066B_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
-    #define g_3188_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
+typedef volatile struct tagGRF_REG
+{
+    uint32 reserved[3];       
+    uint32 GRF_GPIO1D_IOMUX;   //0X0C
+    uint32 GRF_GPIO2A_IOMUX;   //0X10
+    uint32 GRF_GPIO2B_IOMUX;
+    uint32 GRF_GPIO2C_IOMUX;
+    uint32 reserved2; 
+    uint32 GRF_GPIO3A_IOMUX;   //0X20
+    uint32 GRF_GPIO3B_IOMUX;
+    uint32 GRF_GPIO3C_IOMUX;
+    uint32 GRF_GPIO3DL_IOMUX;
+    uint32 GRF_GPIO3DH_IOMUX; //0X30
+    uint32 GRF_GPIO4AL_IOMUX;
+    uint32 GRF_GPIO4AH_IOMUX;
+    uint32 GRF_GPIO4BL_IOMUX;
+    uint32 reserved3;           //0X40
+    uint32 GRF_GPIO4C_IOMUX;
+    uint32 GRF_GPIO4D_IOMUX;
+    uint32 reserved4;          
+    uint32 GRF_GPIO5B_IOMUX;   //0X50
+    uint32 GRF_GPIO5C_IOMUX;
+    uint32 GRF_GPIO6A_IOMUX;
+    uint32 reserved5;  
+    uint32 GRF_GPIO6B_IOMUX;   //0X60
+    uint32 GRF_GPIO6C_IOMUX; 
+    uint32 reserved6;
+    uint32 GRF_GPIO7A_IOMUX;
+    uint32 GRF_GPIO7B_IOMUX;  //0X70
+    uint32 GRF_GPIO7CL_IOMU;
+    uint32 GRF_GPIO7CH_IOMU;
+    uint32 reserved7;
+    uint32 GRF_GPIO8A_IOMUX;  //0X80
+    uint32 GRF_GPIO8B_IOMUX;   
+    uint32 reserved8[6];
+    GPIO_LH_T GRF_GPIO_SR[8];
+    GPIO_PE   GRF_GPIO_P[8];
+    GPIO_PE   GRF_GPIO_E[8];
+    uint32 GRF_GPIO_SMT;     //0x240
+    uint32 GRF_SOC_CON[15];
+    uint32 GRF_SOC_STATUS[22];  //0x0280
+    uint32 GRF_PERIDMAC_CON[4];
+    uint32 GRF_DDRC0_CON0;       //0x02e0
+    uint32 GRF_DDRC1_CON0;
+    uint32 GRF_CPU_CON[5];
+    uint32 reserved9[3];          
+    uint32 GRF_CPU_STATUS0;
+    uint32 reserved10;
+    uint32 GRF_UOC0_CON[5];  //0x320
+    uint32 GRF_UOC1_CON[5];
+    uint32 GRF_UOC2_CON[4];
+    uint32 GRF_UOC3_CON[2];
+    uint32 GRF_UOC4_CON[2];
+    uint32 GRF_PVTM_CON[3];
+    uint32 GRF_PVTM_STATUS[3];
+    uint32 GRF_IO_VSEL;
+    uint32 GRF_SARADC_TESTBIT;  
+    uint32 GRF_TSADC_TESTBIT_L; 
+    uint32 GRF_TSADC_TESTBIT_H;
+    uint32 GRF_OS_REG[4];
+    uint32 reserved11;    //0x3a0
+    uint32 GRF_SOC_CON15;       
+    uint32 GRF_SOC_CON16;        
+}GRF_REG, *pGRF_REG;
+#else
+
+//REG FILE registers
+typedef volatile struct tagGRF_REG
+{
+    GPIO_LH_T GRF_GPIO_DIR[7];
+    GPIO_LH_T GRF_GPIO_DO[7];
+    GPIO_LH_T GRF_GPIO_EN[7];
+    GPIO_IOMUX_T GRF_GPIO_IOMUX[7];
+    GPIO_LH_T GRF_GPIO_PULL[7];
+    uint32 GRF_SOC_CON[3];
+    uint32 GRF_SOC_STATUS0;
+    uint32 GRF_DMAC1_CON[3];
+    uint32 GRF_DMAC2_CON[4];
+    uint32 GRF_UOC0_CON[3];
+    uint32 GRF_UOC1_CON[4];
+    uint32 GRF_DDRC_CON0;
+    uint32 GRF_DDRC_STAT;
+    uint32 reserved[(0x1c8-0x1a0)/4];
+    uint32 GRF_OS_REG[4];
+} GRF_REG, *pGRF_REG;
+#endif
+#define g_grfReg ((pGRF_REG)GRF_BASE)
+
+typedef volatile struct tagRK3066B_GRF_REG
+{
+    GPIO_LH_T GRF_GPIO_DIR[4];
+    GPIO_LH_T GRF_GPIO_DO[4];
+    GPIO_LH_T GRF_GPIO_EN[4];
+    GPIO_IOMUX_T GRF_GPIO_IOMUX[4];
+    uint32 GRF_SOC_CON[3];
+    uint32 GRF_SOC_STATUS0;
+    uint32 GRF_DMAC1_CON[3];
+    uint32 GRF_DMAC2_CON[4];
+    uint32 GRF_CPU_CON[6]; //  no use
+    uint32 GRF_CPU_STAT[2]; //  no use
+    uint32 GRF_DDRC_CON0;
+    uint32 GRF_DDRC_STAT;
+    uint32 GRF_IO_CON[5];
+    uint32 reserved0;
+    uint32 GRF_UOC0_CON[4];
+    uint32 GRF_UOC1_CON[4];
+    uint32 GRF_UOC2_CON[3];
+    uint32 GRF_UOC3_CON[2];
+    uint32 GRF_HSIC_STAT;
+    uint32 GRF_OS_REG[8];
+} RK3066B_GRF_REG, *pRK3066B_GRF_REG;
+
+#define g_3066B_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
+#define g_3188_grfReg ((pRK3066B_GRF_REG)GRF_BASE)
     //SDMMC0
 typedef enum
 {

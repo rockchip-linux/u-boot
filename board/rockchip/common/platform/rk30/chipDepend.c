@@ -452,14 +452,16 @@ USB PHY RESET
 ***************************************************************************/
 void FlashCsInit(void)
 {
-    if(ChipType == CONFIG_RK3066)
+    #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+    //if(ChipType == CONFIG_RK3066)
     {
         g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX = ((0x3<<14)<<16)|(0x1<<14);  // dqs
         g_grfReg->GRF_GPIO_IOMUX[4].GPIOA_IOMUX = ((0xFFFF)<<16)|0x5555;      // data8-15
         g_grfReg->GRF_GPIO_IOMUX[4].GPIOB_IOMUX = ((0x3FFF)<<16)|0x1555;      // cs1-cs7
         g_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x0<<11);                 // flash data0-7,wp
     }
-    else
+    #else
+    //else
     {
         //g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOC_IOMUX = ((0xFFFF)<<16)|0x5555;      // data8-15
         g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00FF)<<16)|0x0055;      //dqs cs1-cs3 
@@ -467,6 +469,7 @@ void FlashCsInit(void)
         g_3066B_grfReg->GRF_IO_CON[4] = 0x08000000;  // vcc flash 3.3V 
         g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0008;  // drive_strength_ctrl_0  4ma
     }
+    #endif
 }
 
 /**************************************************************************
@@ -479,23 +482,29 @@ void SpiGpioInit(void)
 
 void sdmmcGpioInit(uint32 ChipSel)
 {
-    if(ChipType == CONFIG_RK3066)
+    #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+    //if(ChipType == CONFIG_RK3066)
     {
         g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX = ((0x3<<14)<<16)|(0x2<<14);  // dqs
         g_grfReg->GRF_GPIO_IOMUX[4].GPIOB_IOMUX = ((0xf<<2)<<16)|(0xa<<2);   // cmd,rstn
         g_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x1<<11);                 // emmc data0-7,wp
-    }else if(ChipType == CONFIG_RK3288){
+    }
+    #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+   // else if(ChipType == CONFIG_RK3288)
+   {
 	writel(0xffffaaaa,0xff770020);
 	writel(0x000c0008,0xff770024);
 	writel(0x003f002a,0xff770028);
     }
-    else
+    #else
+    //else
     {
         g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00F3)<<16)|0x00A2;      // clk cmd rstn 
         g_3066B_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x1<<11);                 // emmc data0-7,wp
         //g_3066B_grfReg->GRF_IO_CON[4] = 0x08000800;  // vccio0 1.8V 3188这个地方有问题?????
         //g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0004;  // drive_strength_ctrl_0  4ma
     }
+    #endif
 }
 
 /***************************************************************************

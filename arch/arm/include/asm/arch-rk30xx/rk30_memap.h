@@ -17,6 +17,7 @@ Notes :
 #define BOOT_ROM_ADDR           0xffff0000
 #define BOOT_ROM_CHIP_VER_ADDR  (BOOT_ROM_ADDR+0x27F0)
 #define VOP_BIG_BASE_ADDR  	    0xff930000
+#define VOP_LIT_BASE_ADDR  	    0xff940000
 #define HDMI_TX_BASE            0xff980000
 #define UART0_BASE_ADDR		0xFF180000
 #define UART1_BASE_ADDR		0xFF190000
@@ -55,6 +56,13 @@ Notes :
 #define eFUSE_BASE_ADDR         0xFFB40000
 #define RK_PWM0123_BASE_ADDR    0xFF680000
 #define DW_PWM0123_BASE_ADDR    0xFF670000
+#define I2C2_BASE_ADDR          0xFF650000
+#define I2C0_BASE_ADDR          0xFF650000
+#define I2C1_BASE_ADDR          0xFF140000
+#define I2C3_BASE_ADDR          0xFF150000
+#define I2C4_BASE_ADDR          0xFF160000
+#define I2C5_BASE_ADDR          0xFF170000
+
 #define PWM_BASE_ADDR           RK_PWM0123_BASE_ADDR
 #define PMU_BASE_ADDR           0xff730000
 #define SARADC_BASE_ADDR        0xff100000
@@ -62,6 +70,7 @@ Notes :
 
 #define REG_FILE_BASE_ADDR	0xFF770000
 #define VOP_BIG_BASE_ADDR   	0xff930000
+#define LVDS_BASE_ADDR   	0xff96c000
 #define DMACS_BUS_BASE_ADDR     0xffb20000
 #define DMAC_BUS_BASE_ADDR      0xff600000
 #define DMAC_PERI_BASE_ADDR     0xff250000
@@ -219,7 +228,7 @@ Notes :
 #define     PWM23_BASE_ADDR         0x20050000
 #define     I2C2_BASE_ADDR          0x20054000
 #define     I2C3_BASE_ADDR          0x20058000
-#define     I2C4_BASE               0x2005C000
+#define     I2C4_BASE_ADDR          0x2005C000
 #define     TSADC_BASE              0x20060000
 #define     UART2_BASE_ADDR         0x20064000
 #define     UART3_BASE_ADDR         0x20068000

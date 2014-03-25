@@ -577,8 +577,14 @@ void ChargerStateInit()
 {
     charger_state.type = KEY_GPIO;
     charger_state.key.gpio.valid = 1;
-    charger_state.key.gpio.group = 0;
-    charger_state.key.gpio.index = 10;
+#ifdef CONFIG_RK3288SDK 
+     charger_state.key.gpio.group = 0;//gpio0
+     charger_state.key.gpio.index = 8;//b0
+#else
+     charger_state.key.gpio.group = 0;
+     charger_state.key.gpio.index = 10;
+#endif
+
 
     setup_gpio(&charger_state.key.gpio);
 }

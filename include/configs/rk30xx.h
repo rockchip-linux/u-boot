@@ -230,6 +230,8 @@ Revision:       1.00
 #define LCD_BPP			LCD_COLOR16
 //#define CONFIG_RK3066SDK
 //#define CONFIG_RK3188SDK
+#define CONFIG_RK3288SDK
+
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #ifdef CONFIG_RK_FB
@@ -253,18 +255,19 @@ Revision:       1.00
 #define CONFIG_RK616_LCD_CHN 0
 #endif /*CONFIG_RK616*/ 
 #endif /*CONFIG_RK_FB*/
-//#define CONFIG_RK_I2C
+#define CONFIG_RK_I2C
 #ifdef CONFIG_RK_I2C
 #define CONFIG_HARD_I2C
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
-#define CONFIG_SYS_I2C_SLAVE 0x32
 #endif
 //#define CONFIG_BQ27541_I2C_ADDR  0x55
 
+
 /********************************** charger and pmic driver ********************************/
 //#define CONFIG_POWER_RICOH619
-#define CONFIG_POWER_RK_SAMPLE
+//#define CONFIG_POWER_RK_SAMPLE
+#define CONFIG_POWER_RK808
 
 /********************************** battery driver ********************************/
 //#define CONFIG_BATTERY_BQ27541
