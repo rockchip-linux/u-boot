@@ -53,11 +53,11 @@ int pmic_charger_setting(int current)
         break;
     case 2:
          //set charger current to 1.5A
-        i2c_reg_write(0x6b,0,(i2c_reg_read(0x6b,0)&0x7)|0x6);/* Input Current Limit  2A */
+        i2c_reg_write(0x6b,0,(i2c_reg_read(0x6b,0)&0xf8)|0x6);/* Input Current Limit  2A */
         break;
     case 3:
         //set charger current to 1.5A
-        i2c_reg_write(0x6b,0,(i2c_reg_read(0x6b,0)&0x7)|0x7);/* Input Current Limit 3A */
+        i2c_reg_write(0x6b,0,(i2c_reg_read(0x6b,0)&0xf8)|0x7);/* Input Current Limit 3A */
         break;
     default:
         break;
