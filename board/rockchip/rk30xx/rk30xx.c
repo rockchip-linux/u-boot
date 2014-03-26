@@ -409,7 +409,7 @@ int board_late_init(void)
 	rk_i2c_init();
 #endif
 
-#ifdef CONFIG_POWER_ACT8846
+#if defined( CONFIG_POWER_ACT8846) || defined(CONFIG_POWER_RK808) 
 	pmic_init(0);
 #endif
 
