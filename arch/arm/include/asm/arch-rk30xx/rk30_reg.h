@@ -211,7 +211,7 @@ typedef volatile struct tagGRF_REG
     uint32 reserved7;
     uint32 GRF_GPIO8A_IOMUX;  //0X80
     uint32 GRF_GPIO8B_IOMUX;   
-    uint32 reserved8[6];
+    uint32 reserved8[30];
     GPIO_LH_T GRF_GPIO_SR[8];
     GPIO_PE   GRF_GPIO_P[8];
     GPIO_PE   GRF_GPIO_E[8];

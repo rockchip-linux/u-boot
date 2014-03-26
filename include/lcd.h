@@ -286,10 +286,13 @@ enum screen_tpye {
 	SCREEN_NULL = 0,
 	SCREEN_RGB  = 1,
 	SCREEN_LVDS = 2,
-	SCREEN_MCU  = 3,
-	SCREEN_TVOUT = 4,
-	SCREEN_HDMI  = 5,
-	SCREEN_MIPI  = 6,
+	SCREEN_DUAL_LVDS = 3,
+	SCREEN_MCU  = 4,
+	SCREEN_TVOUT = 5,
+	SCREEN_HDMI  = 6,
+	SCREEN_MIPI  = 7,
+	SCREEN_DUAL_MIPI = 8,
+	SCREEN_EDP = 9,
 };
 
 struct fb_dsp_info{
@@ -351,6 +354,8 @@ typedef struct vidinfo {
 	unsigned int interface_mode;
 	unsigned int mipi_enabled;
 	unsigned int dp_enabled;
+    unsigned int lvds_format;
+    unsigned int lvds_ttl_en;
 	unsigned int cs_setup;
 	unsigned int wr_setup;
 	unsigned int logo_on;
@@ -359,7 +364,7 @@ typedef struct vidinfo {
 	unsigned long logo_addr;
 	unsigned int logo_rgb_mode;
 	unsigned int resolution;
-
+    
 	/* parent clock name(MPLL, EPLL or VPLL) */
 	unsigned int pclk_name;
 	/* ratio value for source clock from parent clock. */
@@ -370,7 +375,6 @@ typedef struct vidinfo {
 #ifdef CONFIG_RK616
     	u_char screen_type;
 #ifdef CONFIG_RK616_LVDS
-    	u_char lvds_format;
     	u_char lvds_ch_nr;
 #endif
 #endif
@@ -382,11 +386,12 @@ int rk30_load_screen(vidinfo_t *vid);
 int rk30_lcdc_init();
 void get_rk_logo_info(vidinfo_t *vid);
 
-#ifdef CONFIG_RK616
+
 #define LVDS_8BIT_1     0
 #define LVDS_8BIT_2     1
 #define LVDS_8BIT_3     2
 #define LVDS_6BIT       3
+#ifdef CONFIG_RK616
 
 int rk616_power_on(void);
 #endif /*CONFIG_RK616*/

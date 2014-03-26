@@ -84,6 +84,8 @@ int pmic_init(unsigned char bus)
     //printf("*******%s MINUTES REG = 0x%x\n",__func__,i2c_reg_read(0x1b,0x1));
     i2c_reg_write(0x1b,0x23,i2c_reg_read(0x1b,0x23)|0x60);
 
+    i2c_reg_write(0x1b,0x45,0x02);
+
 	return 0;
 }
 

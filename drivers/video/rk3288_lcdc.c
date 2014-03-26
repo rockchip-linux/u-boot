@@ -374,8 +374,34 @@ typedef volatile struct tagLCDC_REG
 #define v_VAEP(x) 		(((x)&0x1fff)<<0)
 #define v_VASP(x) 		(((x)&0x1fff)<<16)
 
+#define LVDS_CH0_REG_0			0x00
+#define LVDS_CH0_REG_1			0x04
+#define LVDS_CH0_REG_2			0x08
+#define LVDS_CH0_REG_3			0x0c
+#define LVDS_CH0_REG_4			0x10
+#define LVDS_CH0_REG_5			0x14
+#define LVDS_CH0_REG_9			0x24
+#define LVDS_CFG_REG_c			0x30
+#define LVDS_CH0_REG_d			0x34
+#define LVDS_CH0_REG_f			0x3c
+#define LVDS_CH0_REG_20			0x80
+#define LVDS_CFG_REG_21			0x84
+
+#define LVDS_SEL_VOP_LIT		(1 << 3)
+
+#define LVDS_FMT_MASK			(0x07 << 16)
+#define LVDS_MSB			(0x01 << 3)
+#define LVDS_DUAL			(0x01 << 4)
+#define LVDS_FMT_1			(0x01 << 5)
+#define LVDS_TTL_EN			(0x01 << 6)
+#define LVDS_START_PHASE_RST_1		(0x01 << 7)
+#define LVDS_DCLK_INV			(0x01 << 8)
+#define LVDS_CH0_EN			(0x01 << 11)
+#define LVDS_CH1_EN			(0x01 << 12)
+#define LVDS_PWRDN			(0x01 << 15)
 
 #define preg ((pLCDC_REG)VOP_BIG_BASE_ADDR)
+#define lvds_regs LVDS_BASE_ADDR
 
 enum 
 {
@@ -389,6 +415,125 @@ enum
 
 //LCDC_REG *preg = LCDC0_BASE;  
 LCDC_REG regbak;
+
+void writel_relaxed(uint32 val, uint32 addr)
+{
+    *(int*)addr = val;
+}
+
+static int inline lvds_writel(uint32 offset, uint32 val)
+{
+	writel_relaxed(val, lvds_regs + offset);
+	//if (lvds->screen.type == SCREEN_DUAL_LVDS)
+		writel_relaxed(val, lvds_regs + offset + 0x100);
+	return 0;
+}
+
+static int rk32_lvds_disable(void)
+{
+    g_grfReg->GRF_SOC_CON[7] = 0x80008000;
+	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_21); /*disable tx*/
+	writel_relaxed(0xff, lvds_regs + LVDS_CFG_REG_c); /*disable pll*/
+	return 0;
+}
+
+// lvds_type : 0 ttl, use lvds transmit ic;  1 lvds in rk3288
+static int rk32_lvds_en(vidinfo_t *vid)
+{
+	u32 h_bp = vid->vl_hspw + vid->vl_hbpd;
+	u32 i,j, val ;
+
+	int screen_type = SCREEN_RGB;
+	
+	//screen->lcdc_id = 1;
+	//if (screen->lcdc_id == 1) /*lcdc1 = vop little,lcdc0 = vop big*/
+	//	val = LVDS_SEL_VOP_LIT | (LVDS_SEL_VOP_LIT << 16);
+	//else
+		val = LVDS_SEL_VOP_LIT << 16;  // video source from vop0 = vop big
+    g_grfReg->GRF_SOC_CON[6] = val;
+
+	val = vid->lvds_format;
+	if (screen_type == SCREEN_DUAL_LVDS)
+		val |= LVDS_DUAL | LVDS_CH0_EN | LVDS_CH1_EN;
+	else if(screen_type == SCREEN_LVDS)
+		val |= LVDS_CH0_EN;
+		//val |= LVDS_MSB;
+	else if (screen_type == SCREEN_RGB)
+		val |= LVDS_TTL_EN | LVDS_CH0_EN | LVDS_CH1_EN;
+
+	if (h_bp & 0x01)
+		val |= LVDS_START_PHASE_RST_1;
+
+	val |= (vid->vl_clkp << 8) | (vid->vl_hsp << 9) |
+		(vid->vl_oep << 10);
+	val |= 0xffff << 16;
+    g_grfReg->GRF_SOC_CON[7] = val;
+    g_grfReg->GRF_GPIO_SR[1].GPIOH = 0x0f000f00;
+    g_grfReg->GRF_GPIO_E[1].GPIOD  = 0x00ff00ff;
+
+	if (screen_type == SCREEN_LVDS)
+		val = 0xbf;
+	else
+		val = 0x7f;
+
+	if(vid->lvds_ttl_en) //  1 lvds
+    {
+    	val = 0x00550055;
+        g_grfReg->GRF_GPIO1D_IOMUX = val;//lcdc iomux 
+    	
+    	lvds_writel( LVDS_CH0_REG_0, 0x7f);
+    	lvds_writel( LVDS_CH0_REG_1, 0x40);
+    	lvds_writel( LVDS_CH0_REG_2, 0x00);
+
+    	if (screen_type == SCREEN_RGB)
+    		val = 0x1f;
+    	else
+    		val = 0x00;
+    	lvds_writel( LVDS_CH0_REG_4, 0x3f);
+    	lvds_writel( LVDS_CH0_REG_5, 0x3f);
+    	lvds_writel( LVDS_CH0_REG_3, 0x46);
+    	lvds_writel( LVDS_CH0_REG_d, 0x0a);
+    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
+    	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
+    	writel_relaxed(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
+
+    	lvds_writel( 0x100, 0x7f);
+    	lvds_writel( 0x104, 0x40);
+    	lvds_writel( 0x108, 0x00);
+    	lvds_writel( 0x10c, 0x46);
+    	lvds_writel( 0x110, 0x3f);
+    	lvds_writel( 0x114, 0x3f);
+    	lvds_writel( 0x134, 0x0a);
+	}   else    {
+    	val  = *(int*)(lvds_regs + 0x88);
+    	printf("0x88:0x%x\n",val);
+
+    	lvds_writel( LVDS_CH0_REG_0, 0xbf);
+    	lvds_writel( LVDS_CH0_REG_1, 0x3f);//  3f
+    	lvds_writel( LVDS_CH0_REG_2, 0xfe);
+    	lvds_writel( LVDS_CH0_REG_3, 0x46);//0x46
+    	lvds_writel( LVDS_CH0_REG_4, 0x00);
+    	//lvds_writel( LVDS_CH0_REG_9, 0x20);
+    	//lvds_writel( LVDS_CH0_REG_d, 0x4b);
+    	//lvds_writel( LVDS_CH0_REG_f, 0x0d);
+    	lvds_writel( LVDS_CH0_REG_d, 0x0a);//0a
+    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
+    	//lvds_writel( 0x24,0x20);
+    	//writel_relaxed(0x23, lvds_regs + 0x88);
+    	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
+    	writel_relaxed(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
+
+    	//lvds_writel( 0x100, 0xbf);
+    	//lvds_writel( 0x104, 0x3f);
+    	//lvds_writel( 0x108, 0xfe);
+    	//lvds_writel( 0x10c, 0x46); //0x46
+    	//lvds_writel( 0x110, 0x00);
+    	//lvds_writel( 0x114, 0x00);
+    	//lvds_writel( 0x134, 0x0a);
+	}
+
+	return 0;
+}
 
 /* Configure VENC for a given Mode (NTSC / PAL) */
 void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
@@ -404,12 +549,13 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 		case WIN0:
 			LcdWrReg(WIN0_SCL_FACTOR_YRGB, v_X_SCL_FACTOR(0x1000) | v_Y_SCL_FACTOR(0x1000));
 			LcdWrReg(WIN0_SCL_FACTOR_CBR,v_X_SCL_FACTOR(0x1000)| v_Y_SCL_FACTOR(0x1000));
-			LcdMskReg(WIN0_CTRL0, m_win0_lb_mode|m_win0_data_fmt|m_win0_en, v_win0_lb_mode(5)|v_win0_data_fmt(vid->logo_rgb_mode) | v_win0_en(1));	      //zyw
-			LcdWrReg(WIN0_ACT_INFO,v_act_width(fb_info->xact) | v_act_height(fb_info->yact));
-			LcdWrReg(WIN0_DSP_ST, v_dsp_xst(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) | v_dsp_yst(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd));
-			LcdWrReg(WIN0_DSP_INFO, v_dsp_width(fb_info->xsize)| v_dsp_height(fb_info->ysize));
+			LcdMskReg(WIN0_CTRL0, m_win0_rb_swap |m_win0_alpha_swap | m_win0_lb_mode|m_win0_data_fmt|m_win0_en,v_win0_rb_swap(0)|v_win0_alpha_swap(0)| v_win0_lb_mode(5)|v_win0_data_fmt(vid->logo_rgb_mode) | v_win0_en(1));	      //zyw
+            LcdMskReg(WIN0_CTRL1, m_win0_cbr_vsu_mode | m_win0_yrgb_vsu_mode ,v_win0_cbr_vsu_mode(1)|v_win0_yrgb_vsu_mode(1));
+            LcdWrReg(WIN0_ACT_INFO,v_act_width(fb_info->xact-1) | v_act_height(fb_info->yact-1));
+			LcdWrReg(WIN0_DSP_ST, v_dsp_xst(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) | v_dsp_yst(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd)); 
+			LcdWrReg(WIN0_DSP_INFO, v_dsp_width(fb_info->xsize-1)| v_dsp_height(fb_info->ysize-1));
 			LcdMskReg(WIN0_COLOR_KEY, m_win0_key_en | m_win0_key_color,
-					v_win0_key_en(1) | v_win0_key_color(0));
+					v_win0_key_en(0) | v_win0_key_color(0));
 
             if(fb_info->xsize > 2560) {                
                 LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_3840X2));
@@ -453,6 +599,8 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 			printf("%s --->unknow lay_id \n");
 			break;
 	}
+    printf("%s end\n",__func__);
+
     LCDC_REG_CFG_DONE();
 }
 
@@ -474,9 +622,8 @@ int rk30_load_screen(vidinfo_t *vid)
 
     LcdMskReg(DSP_CTRL0, m_dsp_black_en|m_dsp_blank_en|m_dsp_out_zero|m_dsp_dclk_pol|m_dsp_den_pol|m_dsp_vsync_pol|m_dsp_hsync_pol, 
                          v_dsp_black_en(0)|v_dsp_blank_en(0)|v_dsp_out_zero(0)|v_dsp_dclk_pol(vid->vl_clkp)
-                         |v_dsp_den_pol(vid->vl_oep)|v_dsp_vsync_pol(vid->vl_vsp)|v_dsp_hsync_pol(vid->vl_vsp));
+                         |v_dsp_den_pol(vid->vl_oep)|v_dsp_vsync_pol(vid->vl_vsp)|v_dsp_hsync_pol(vid->vl_hsp));
 
-    
 	switch (vid->lcd_face)
 	{
     	case OUT_P565:
@@ -485,7 +632,7 @@ int rk30_load_screen(vidinfo_t *vid)
         		break;
     	case OUT_P666:
         		face = OUT_P666;
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(1) | v_dither_down_mode(1));
+        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_down_sel, v_dither_down_en(1) | v_dither_down_mode(1))|v_dither_down_sel(1);
         		break;
     	case OUT_D888_P565:
         		face = OUT_P888;
@@ -493,16 +640,14 @@ int rk30_load_screen(vidinfo_t *vid)
         		break;
     	case OUT_D888_P666:
         		face = OUT_P888;
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(1) | v_dither_down_mode(1));
+        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_down_sel, v_dither_down_en(1) | v_dither_down_mode(1)|v_dither_down_sel(1));
         		break; 
     	case OUT_P888:
         		face = OUT_P888;
-        		LcdMskReg(DSP_CTRL1, m_dither_up_en, v_dither_up_en(1));
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(0) | v_dither_down_mode(0));
+        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode | m_dither_up_en, v_dither_down_en(0) | v_dither_down_mode(0) | v_dither_up_en(1));
         		break;
     	default:
-        		LcdMskReg(DSP_CTRL1, m_dither_up_en, v_dither_up_en(0));
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(0) | v_dither_down_mode(0));
+        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_up_en, v_dither_down_en(0) | v_dither_down_mode(0) | v_dither_up_en(0));
         		face = vid->lcd_face;
         		break;
 	}
@@ -522,21 +667,23 @@ int rk30_load_screen(vidinfo_t *vid)
               v_VERPRD(vid->vl_vspw + vid->vl_vbpd + vid->vl_row + vid->vl_vfpd));
 	LcdWrReg(DSP_VACT_ST_END,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
               v_VASP(vid->vl_vspw + vid->vl_vbpd));
-    LcdWrReg(DSP_VACT_ST_END_F1,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-              v_VASP(vid->vl_vspw + vid->vl_vbpd));
+  //  LcdWrReg(DSP_VACT_ST_END_F1,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
+   //           v_VASP(vid->vl_vspw + vid->vl_vbpd));
 
     LcdWrReg(POST_DSP_HACT_INFO,v_HAEP(vid->vl_hspw + vid->vl_hbpd + vid->vl_col) |
              v_HASP(vid->vl_hspw + vid->vl_hbpd));
     LcdWrReg(POST_DSP_VACT_INFO,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
               v_VASP(vid->vl_vspw + vid->vl_vbpd));
-    LcdWrReg(POST_DSP_VACT_INFO_F1,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-              v_VASP(vid->vl_vspw + vid->vl_vbpd));
+    LcdWrReg(POST_DSP_VACT_INFO_F1, 0);// v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
+             // v_VASP(vid->vl_vspw + vid->vl_vbpd));
+    LcdWrReg(POST_RESERVED, 0x10001000);
+    LcdWrReg(MCU_CTRL, 0);
 
     // let above to take effect
 	LCDC_REG_CFG_DONE();
 
     set_lcdc_dclk(vid->vl_freq);
-    
+    rk32_lvds_en(vid);
 	printf("%s for lcdc ok!\n",__func__);
 	return 0;
 }
@@ -558,11 +705,17 @@ void rk30_lcdc_standby(enable)
 
 int rk30_lcdc_init()
 {
+ //   g_grfReg->GRF_GPIO1D_IOMUX = (((0x55)<<16)|0x55);   // [6] 1'b1:lcdc0_dclk,[4]1'b1:lcdc0_den;[2]1'b1:lcdc0_vsync [0]1'b1:lcdc0_hsync
+
+    g_grfReg->GRF_IO_VSEL = 1<<16;  //LCDCIOdomain 3.3 Vvoltageselectio
+    
     lcdc_clk_enable();
 	
-    printf("%s vop_version = %x\n",__func__,LcdRdReg(VERSION_INFO));
+    printf(" %s vop_version = %x\n",__func__,LcdRdReg(VERSION_INFO));
 	LcdMskReg(SYS_CTRL, m_auto_gating_en | m_standby_en | m_dma_stop | m_mmu_en, 
                         v_auto_gating_en(1)|v_standby_en(0)|v_dma_stop(0)|v_mmu_en(0));	      //zyw
+    LcdMskReg(DSP_CTRL1, m_dsp_layer3_sel | m_dsp_layer2_sel | m_dsp_layer1_sel | m_dsp_layer0_sel,
+                     v_dsp_layer3_sel(3) | v_dsp_layer2_sel(2) | v_dsp_layer1_sel(1) | v_dsp_layer0_sel(0));                     
 //	LcdMskReg(INT_STATUS, m_FS_INT_EN, v_FS_INT_EN(1));  
 	LCDC_REG_CFG_DONE();  // write any value to  REG_CFG_DONE let config become effective
 	return 0;

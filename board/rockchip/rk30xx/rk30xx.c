@@ -442,10 +442,34 @@ int board_late_init(void)
 #endif
 
 #ifdef CONFIG_RK_FB
+#ifdef CONFIG_RK3288SDK
+#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(RK_PWM0123_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
+#else
 #define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
+#endif
 
 void rk_backlight_ctrl(int brightness)
 {
+   #ifdef CONFIG_RK3288SDK
+    int id =0;
+    int total = 0x4b0;
+    int pwm = total * (100 - brightness) / 100;
+    int *addr =0;
+
+    printf("backlight --- brightness:%d\n", brightness);
+    g_grfReg->GRF_GPIO7A_IOMUX = ((3<<16)|1);   // 1: PWM0/ 0: GPIO7_A0
+
+    SetPortOutput(7,0,1);   // PWM0 /GPIO7_A0 /high
+    write_pwm_reg(id, 0x0c, 0x80);
+    write_pwm_reg(id, 0x08, total);
+    write_pwm_reg(id, 0x04, pwm);
+    write_pwm_reg(id, 0x00, 0);
+    write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN
+   
+    SetPortOutput(7,4,1);   // LCD_CS /GPIO7_A4 /NC ,high
+    SetPortOutput(7,2, (pwm != total));   // BL_EN  GPIO7_A2, high
+   #endif
+
     #ifdef CONFIG_RK3066SDK
     int id =0;
     int total = 0x4b0;
@@ -454,7 +478,7 @@ void rk_backlight_ctrl(int brightness)
     printf("backlight --- brightness:%d\n", brightness);
 
  
-        g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX |= ((1<<6)<<16)|(1<<6);   // pwm0, gpio0_a3
+    g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX |= ((1<<6)<<16)|(1<<6);   // pwm0, gpio0_a3
     
     //SetPortOutput(0,30,0);   //gpio0_d6 0
     write_pwm_reg(id, 0x0c, 0x80);
@@ -471,7 +495,6 @@ void rk_backlight_ctrl(int brightness)
     int total = 0x4b0;
     int pwm = total * (100 - brightness) / 100;
     int *addr =0;
-
 
     g_3188_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX |= ((1<<12)<<16)|(1<<12);   // pwm3, gpio3_d6
 
@@ -513,7 +536,8 @@ vidinfo_t panel_info = {
 	.vl_vsp		= 0,
 	.vl_bpix	= 4,	/* Bits per pixel, 2^5 = 32 */
     .vl_swap_rb = 0,
-
+    .lvds_format  = LVDS_8BIT_2,
+    .lvds_ttl_en  = 0,  // rk32 lvds ttl enable
 	/* Panel infomation */
 	.vl_hspw	= 10,
 	.vl_hbpd	= 100,
@@ -533,7 +557,6 @@ vidinfo_t panel_info = {
 #ifdef CONFIG_RK616
 	.screen_type  = SCREEN_LVDS,
 #ifdef CONFIG_RK616_LVDS
-	.lvds_format  = LVDS_8BIT_2,
 	.lvds_ch_nr = 1,
 #endif
 #endif
@@ -543,7 +566,7 @@ void init_panel_info(vidinfo_t *vid)
 {
 	vid->logo_on	= 1;
     vid->enable_ldo = rk_fb_init;
-    vid->backlight_on = rk_backlight_ctrl;   //move backlight enable to fbt_preboot, for don't show logo in rockusb
+    vid->backlight_on = NULL;//rk_backlight_ctrl;   //move backlight enable to fbt_preboot, for don't show logo in rockusb
     vid->logo_rgb_mode = RGB565;
 }
 
