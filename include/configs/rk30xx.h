@@ -218,10 +218,15 @@ Revision:       1.00
 /* SPI */
 //#define CONFIG_RK_SPI
 
+
 /* LCDC console */
-#define CONFIG_LCD
+//#define CONFIG_LCD
+#ifdef CONFIG_LCD
 #define CONFIG_RK_FB
 #define CONFIG_LCD_LOGO
+//#define CONFIG_CMD_CHARGE_ANIM
+#define CONFIG_LCD_BMP_RLE8
+#define CONFIG_CMD_BMP
 
 //#define CONFIG_COMPRESS_LOGO_RLE8// CONFIG_COMPRESS_LOGO_RLE16
 
@@ -231,7 +236,6 @@ Revision:       1.00
 //#define CONFIG_RK3066SDK
 //#define CONFIG_RK3188SDK
 #define CONFIG_RK3288SDK
-
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #ifdef CONFIG_RK_FB
@@ -255,6 +259,8 @@ Revision:       1.00
 #define CONFIG_RK616_LCD_CHN 0
 #endif /*CONFIG_RK616*/ 
 #endif /*CONFIG_RK_FB*/
+#endif
+
 #define CONFIG_RK_I2C
 #ifdef CONFIG_RK_I2C
 #define CONFIG_HARD_I2C
@@ -294,10 +300,9 @@ Revision:       1.00
 #define CONFIG_LMB
 #define CONFIG_OF_LIBFDT
 #define CONFIG_SYS_BOOT_RAMDISK_HIGH
-#define CONFIG_CMD_BMP
+
 #define CONFIG_RESOURCE_PARTITION
-//#define CONFIG_CMD_CHARGE_ANIM
-#define CONFIG_LCD_BMP_RLE8
+
 
 #define CONFIG_QUICK_CHECKSUM
 
