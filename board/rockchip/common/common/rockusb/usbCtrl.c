@@ -54,7 +54,7 @@ int dwc_otg_check_dpdm(void)
         // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
         //      OtgReg, *(OtgReg), &g_grfReg->GRF_UOC0_CON[2], g_grfReg->GRF_UOC0_CON[2]); 
     }else {
-        g_3188_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
+        g_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
         mdelay(105);
         // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
         //     OtgReg, *(OtgReg), &g_3188_grfReg->GRF_UOC0_CON[2], g_3188_grfReg->GRF_UOC0_CON[2]);
@@ -118,10 +118,10 @@ void UsbHook(void)
     uint32 xferLen;
 
     usbCmd.cmd = 0;
-    TimeOutBase = RkldTimerGetTick();
+    TimeOutBase = get_ticks();
     powerOn();
     FW_ReIntForUpdate();
-	RkPrintf("powerOn,%d\n" , RkldTimerGetTick());
+	RkPrintf("powerOn,%d\n" , get_ticks());
     while(1)
     {
         if (usbCmd.cmd==K_FW_READ_10)
@@ -427,8 +427,8 @@ void UsbHook(void)
         {
             if(g_BootRockusb != 2)
             {
-        	    if(((GetVbus() == 0)&&(((RkldTimerGetTick() - TimeOutBase > (1500*1000)))))
-        	    ||  ((GetVbus() == 1)&&((RkldTimerGetTick() - TimeOutBase > (10*1000*1000))))     )
+        	    if(((GetVbus() == 0)&&(((get_ticks() - TimeOutBase > (1500*1000)))))
+        	    ||  ((GetVbus() == 1)&&((get_ticks() - TimeOutBase > (10*1000*1000))))     )
                 {
                     char    recv_cmd[2];
                     recv_cmd[0]=0;
@@ -436,7 +436,7 @@ void UsbHook(void)
     				g_BootRockusb = 0;
                     //powerOn();
                     change_cmd_for_recovery(&gBootInfo , recv_cmd);  
-                    RkPrintf (" %d %d\n",TimeOutBase, RkldTimerGetTick());
+                    RkPrintf (" %d %d\n",TimeOutBase, get_ticks());
                     start_linux(&gBootInfo);
                     //如果引导失败，只能通过usb 修复，把UsbConnected标记置1
                     UsbConnected = 1;
@@ -444,10 +444,10 @@ void UsbHook(void)
             }
             else
             {
-                if((RkldTimerGetTick() - TimeOutBase > (3*1000*1000)))
+                if((get_ticks() - TimeOutBase > (3*1000*1000)))
                 {
-                    TimeOutBase = RkldTimerGetTick(); 
-                    PRINT_E("Usb re Boot. %d\n",RkldTimerGetTick());
+                    TimeOutBase = get_ticks(); 
+                    PRINT_E("Usb re Boot. %d\n",get_ticks());
                     UsbBoot();
                     power_on_timeout++;
                 }
@@ -457,14 +457,14 @@ void UsbHook(void)
         {
             UsbConnected = 2;
             power_on = 2;
-	        RkPrintf (" %d UsbConnected\n", RkldTimerGetTick());
-            TimeOutBase = RkldTimerGetTick();
+	        RkPrintf (" %d UsbConnected\n", get_ticks());
+            TimeOutBase = get_ticks();
         }
         else if(power_on >= 1)
         {
-    	    if((RkldTimerGetTick() - TimeOutBase > (3000*1000)))
+    	    if((get_ticks() - TimeOutBase > (3000*1000)))
     	    {
-    	        TimeOutBase=RkldTimerGetTick();
+    	        TimeOutBase=get_ticks();
                 power_on_timeout++;
     	    }
         }

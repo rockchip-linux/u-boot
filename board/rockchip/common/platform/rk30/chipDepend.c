@@ -77,45 +77,11 @@ uint32 Rk30ChipVerInfo[4];
 void ChipTypeCheck(void)
 {
     Rk30ChipVerInfo[0] = 0;
-#if(CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-    ftl_memcpy(Rk30ChipVerInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR + 0x20000), 16);
-#else
     ftl_memcpy(Rk30ChipVerInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR), 16);
-#endif
     
-    ChipType = CONFIG_RK3066;
-    if(Rk30ChipVerInfo[0]== 0x33303042&&Rk30ChipVerInfo[3] == 0x56313030) 
-    {
-        ChipType = CONFIG_RK3168;
-    }
-    
-    if(Rk30ChipVerInfo[0]== 0x33303041&& Rk30ChipVerInfo[3] == 0x56313030) 
-    {
-        ChipType = CONFIG_RK3066B;
-        Rk30ChipVerInfo[0] =  0x33313041; // "310A"
-    }
-
-    if(Rk30ChipVerInfo[0]== 0x33313042&& Rk30ChipVerInfo[3] == 0x56313030) 
-    {
-        ChipType = CONFIG_RK3188;
-    }
-#if(CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-    ChipType = CONFIG_RK3188;
-
-    if(Rk30ChipVerInfo[0]== 0x33313042&& Rk30ChipVerInfo[3] == 0x56313031) 
-    {
-        ChipType = CONFIG_RK3188B;
-    }
-	
-#endif
-#if(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-    ChipType = CONFIG_RK3026;
-	
-#endif
-
 #if(CONFIG_RKCHIPTYPE == CONFIG_RK3288)
     ChipType = CONFIG_RK3288;
-        Rk30ChipVerInfo[0] =  0x33323041; // "320A"
+    Rk30ChipVerInfo[0] =  0x33323041; // "320A"
 #endif 
 }
 
@@ -149,19 +115,19 @@ void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-    return (*LOADER_FLAG_REG);
+    return (*((REG32*)PMU_SYS_REG0));
 }
 
 void ISetLoaderFlag(uint32 flag)
 {
-    if(*LOADER_FLAG_REG == flag)
+    if(*((REG32*)PMU_SYS_REG0) == flag)
         return;
-    *LOADER_FLAG_REG = flag;
+    *((REG32*)PMU_SYS_REG0) = flag;
 }
 
 uint32 IReadLoaderMode(void)
 {
-    return (*LOADER_MODE_REG);
+    return (*((REG32*)PMU_SYS_REG1));
 }
 
 typedef enum PLL_ID_Tag
@@ -391,6 +357,7 @@ uint32 GetMmcCLK(void)
 
 void uart2UsbEn(uint8 en)
 {
+	/*
     if(en)
     {
         if((!(g_3066B_grfReg->GRF_SOC_STATUS0) & (1<<10)) && (g_BootRockusb == 0))
@@ -408,7 +375,7 @@ void uart2UsbEn(uint8 en)
     {
         g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
         g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
-    }
+    }*/
 }
 
 
@@ -436,7 +403,7 @@ bool UsbPhyReset(void)
     }
     else
     {
-        g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
+        g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
     }
 
     DRVDelayUs(1100); //1.1ms
@@ -447,38 +414,6 @@ bool UsbPhyReset(void)
     return (TRUE);
 }
 
-/**************************************************************************
-USB PHY RESET
-***************************************************************************/
-void FlashCsInit(void)
-{
-    #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-    //if(ChipType == CONFIG_RK3066)
-    {
-        g_grfReg->GRF_GPIO_IOMUX[3].GPIOD_IOMUX = ((0x3<<14)<<16)|(0x1<<14);  // dqs
-        g_grfReg->GRF_GPIO_IOMUX[4].GPIOA_IOMUX = ((0xFFFF)<<16)|0x5555;      // data8-15
-        g_grfReg->GRF_GPIO_IOMUX[4].GPIOB_IOMUX = ((0x3FFF)<<16)|0x1555;      // cs1-cs7
-        g_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x0<<11);                 // flash data0-7,wp
-    }
-    #else
-    //else
-    {
-        //g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOC_IOMUX = ((0xFFFF)<<16)|0x5555;      // data8-15
-        g_3066B_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x00FF)<<16)|0x0055;      //dqs cs1-cs3 
-        g_3066B_grfReg->GRF_SOC_CON[0] = ((0x1<<11)<<16)|(0x0<<11);                 // flash data0-7,wp
-        g_3066B_grfReg->GRF_IO_CON[4] = 0x08000000;  // vcc flash 3.3V 
-        g_3066B_grfReg->GRF_IO_CON[0] = 0x000C0008;  // drive_strength_ctrl_0  4ma
-    }
-    #endif
-}
-
-/**************************************************************************
-USB PHY RESET
-***************************************************************************/
-void SpiGpioInit(void)
-{
-
-}
 
 void sdmmcGpioInit(uint32 ChipSel)
 {
@@ -507,25 +442,6 @@ void sdmmcGpioInit(uint32 ChipSel)
     #endif
 }
 
-/***************************************************************************
-函数描述:关闭TCM
-入口参数:无
-出口参数:无
-调用函数:无
-***************************************************************************/
-void DisableRemap(void)
-{
-// TODO: Disable Remap
-    //clean remap bit in grf enabled, remap 0x0000 to rom, 
-    if(ChipType == CONFIG_RK3066)
-    {
-        *(unsigned long volatile *)(GRF_BASE + 0x150) = 0x10000000;
-    }
-    else
-    {
-        *(unsigned long volatile *)(GRF_BASE + 0xA0)  = 0x10000000;
-    }
-}
 
 void FW_NandDeInit(void)
 {
@@ -553,7 +469,7 @@ void SoftReset(void)
 {
     pFunc fp;
     pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
-    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG0_BASE_ADDR ;//USB_OTG_BASE_ADDR
+    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
 
     DisableIRQ();
     UsbPhyReset();
@@ -563,7 +479,7 @@ void SoftReset(void)
     MMUDeinit();              /*关闭MMU*/
     //cruReg->CRU_MODE_CON = 0x33030000;    //cpu enter slow mode
     //Delay100cyc(10);
-    g_giccReg->ICCEOIR=USB_OTG_INT_CH;
+    g_giccReg->ICCEOIR=INT_USB_OTG;
     //DisableRemap();
     if(ChipType == CONFIG_RK3066)
     {

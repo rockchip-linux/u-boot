@@ -24,9 +24,9 @@ Revision 1.1  2011/01/07 11:55:39  Administrator
 #ifndef _SDC_H_
 #define _SDC_H_
 
-#define SDC0_ADDR         (SDMMC0_BASE_ADDR)
-#define SDC1_ADDR         (SDMMC1_BASE_ADDR)
-#define SDC2_ADDR         (EMMC_BASE_ADDR)
+#define SDC0_ADDR         (RK3288_SDMMC_PHY)
+#define SDC1_ADDR         (RK3288_SDMMC_PHY)
+#define SDC2_ADDR         (RK3288_EMMC_PHY)
 
 #if(PALTFORM == RK30XX || PALTFORM == RK292X )
 //#define SD_FIFO_OFFSET    0x200
@@ -38,7 +38,7 @@ Revision 1.1  2011/01/07 11:55:39  Administrator
 
 #define SDC0_FIFO_ADDR    (SDC0_ADDR + SD_FIFO_OFFSET)
 #define SDC1_FIFO_ADDR    (SDC1_ADDR + SD_FIFO_OFFSET)
-#define SDC2_FIFO_ADDR    (EMMC_BASE_ADDR+ SD_FIFO_OFFSET)
+#define SDC2_FIFO_ADDR    (RK3288_EMMC_PHY+ SD_FIFO_OFFSET)
 
 /***************************************************************/
 //可配置的参数

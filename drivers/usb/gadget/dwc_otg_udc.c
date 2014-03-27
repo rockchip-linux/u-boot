@@ -31,7 +31,7 @@
 #include <fastboot.h>
 #include "ep0.h"
 #include <usb/dwc_otg_udc.h>
-#include <asm/arch/rk30_drivers.h>
+#include <asm/arch/drivers.h>
 #include "../../../board/rockchip/common/common/rockusb/dwc_otg_regs.h"
 #include "../../../board/rockchip/common/common/rockusb/USB20.h"
 

@@ -7,8 +7,8 @@ Created:
 Modified:
 Revision:       1.00
 ********************************************************************************/
-#ifndef _RK30_DRIVERS_H
-#define _RK30_DRIVERS_H
+#ifndef _RK_DRIVERS_H
+#define _RK_DRIVERS_H
 
 
 /********************************************************************
@@ -20,14 +20,17 @@ Revision:       1.00
 /********************************************************************
 **                 common head files                                *
 ********************************************************************/
-#include    "rk30_typedef.h"
-#include    "rk30_memap.h"
-#include    "rk30_reg.h"
+#include    "typedef.h"
+#include    "iomap.h"
+#include    "reg.h"
+#include    "cpu.h"
+#include    "grf.h"
+#include    "cru.h"
 
 
 /********************************************************************
 **                  drivers head files                              *
 ********************************************************************/
-#include    "rk30_uart.h"
+#include    "uart.h"
 
-#endif   /* _RK30_DRIVERS_H */
+#endif   /* _RK_DRIVERS_H */

@@ -315,7 +315,7 @@ void enable_caches(void)
 
 void startRockusb()
 {
-    printf("startRockusb,%d\n" , RkldTimerGetTick());
+    printf("startRockusb,%d\n" , get_ticks());
 //    rk_backlight_ctrl(0);
     FW_SDRAM_ExcuteAddr = 0;
     g_BootRockusb = 1;

@@ -9,7 +9,7 @@ Revision:       1.00
 ********************************************************************************/
 #include <common.h>
 #include <serial.h>
-#include  <asm/arch/rk30_drivers.h>
+#include  <asm/arch/drivers.h>
 
 #ifdef DRIVERS_UART
 
@@ -128,6 +128,21 @@ void UARTRest(pUART_REG phead)
 
 inline pUART_REG UARTGetRegBase(eUART_ch_t uartCh)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	if(uartCh == UART_BT) {
+		return (pUART_REG)RK3288_UART_BT_PHYS;
+	} else if (uartCh == UART_BB) {
+		return (pUART_REG)RK3288_UART_BB_PHYS;
+	} else if (uartCh == UART_DBG) {
+		return (pUART_REG)RK3288_UART_DBG_PHYS;
+	} else if (uartCh == UART_GPS) {
+		return (pUART_REG)RK3288_UART_GPS_PHYS;
+	} else if (uartCh == UART_EXP) {
+		return (pUART_REG)RK3288_UART_EXP_PHYS;
+} else {
+	return NULL;
+}
+#else
 	if(uartCh == UART_CH0) {
 		return (pUART_REG)UART0_BASE_ADDR;
 	} else if (uartCh == UART_CH1) {
@@ -137,6 +152,7 @@ inline pUART_REG UARTGetRegBase(eUART_ch_t uartCh)
 	} else {
 		return NULL;
 	}
+#endif
 }
 
  
@@ -146,10 +162,10 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 	int32 val = -1;
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	if (uartCh == UART_CH2) {
+	if (uartCh == UART_DBG) {
 		/* iomux gpio7_c6 and gpio7_c7 */
 		writel(((0x03<<8)|(0x03<<12))|((0x01<<8)|(0x01<<12)), RKIO_GRF_PHYS + 0x78);
-		pUartReg = (pUART_REG)UART2_BASE_ADDR;
+		pUartReg = (pUART_REG)RK3288_UART_DBG_PHYS;
 	} else {
 		return (-1);
 	}
@@ -204,6 +220,8 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 		return (-1);
 
 	UARTSetFifoEnabledNumb(pUartReg);
+	
+	//g_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
 	return (0);
 }
 

@@ -12,7 +12,7 @@ Revision:       1.00
 #include <i2c.h>
 #include <asm/io.h>
 #include <asm/sizes.h>
-#include <asm/arch/rk30_drivers.h>
+#include <asm/arch/drivers.h>
 #include <asm/arch/rk_i2c.h>
 
 #define i2c_writel		writel
@@ -119,12 +119,12 @@ static unsigned int gcurrent_bus = I2C_BUS_MAX;
 static void *get_base(void)
 {
 	if (gcurrent_bus >= I2C_BUS_MAX) {
-		printf("I2C bus error!");
+		printf("I2C bus error! gcurrent_bus = %d\n", gcurrent_bus);
 		return (void *)NULL;
 	}
 
 	if (rki2c_base[gcurrent_bus].regs == 0) {
-		printf("I2C base register error!");
+		printf("I2C base register error!\n");
 		return (void *)NULL;	
 	}
 
@@ -385,7 +385,7 @@ static void rk_i2c_init(int speed)
 		return ;
 	}
 
-	//printf("rk_i2c_init: I2C bus = %d\n", gcurrent_bus);
+	printf("rk_i2c_init: I2C bus = %d\n", gcurrent_bus);
 #if 1
 	if (gcurrent_bus == I2C_BUS_CH0) {
 		i2c_adap_sel(I2C_BUS_CH0);

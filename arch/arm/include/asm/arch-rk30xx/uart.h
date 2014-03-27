@@ -123,7 +123,6 @@ typedef volatile struct tagUART_STRUCT {
 #define UART_DLL UART_RBR
 #define UART_IER UART_DLH
 #define UART_FCR UART_IIR
-#define UART_STHR[(0x6c-0x30)/4]  UART_SRBR[(0x6c-0x30)/4]
 
 #define MODE_X_DIV              16
 
@@ -142,13 +141,22 @@ typedef volatile struct tagUART_STRUCT {
 #define   UART1_RX_WORK                     (1<<3)
 #define   UART_ERR_RX                       (1<<4)
 
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 
+typedef enum UART_ch {
+    UART_BT,
+    UART_BB,
+    UART_DBG,
+	UART_GPS,
+	UART_EXP
+}eUART_ch_t;
+#else
 typedef enum UART_ch {
     UART_CH0,
     UART_CH1,
     UART_CH2
 }eUART_ch_t;
-
+#endif
 #endif /* _RK30_UART_H_ */
 
 #endif /* DRIVERS_UART */

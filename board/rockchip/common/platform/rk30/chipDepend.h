@@ -21,9 +21,6 @@ extern uint8    ChipType;
 #define RKLD_HWTM1_CVR          ((REG32*)(APB0_TIMER_BASE+0X0004)) // 初始计数 寄存器.
 #define KRTIMELoaderCount       (uint32)RKLD_APB_FREQ*80*1000      /* 0xee6b2800 */
 
-//#define LOADER_FLAG_REG         ((REG32*)(GRF_BASE+0x1C8)) //GRF_OS_REG0
-#define LOADER_FLAG_REG         ((REG32*)(PMU_BASE_ADDR+RK_PMU_SYS_REG0)) //PMU_OS_REG0
-#define LOADER_MODE_REG         ((REG32*)(PMU_BASE_ADDR+RK_PMU_SYS_REG1)) //PMU_OS_REG4
 
 //定义Loader启动异常类型
 #define SYS_LOADER_ERR_FLAG      0X1888AAFF 

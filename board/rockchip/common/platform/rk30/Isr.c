@@ -90,7 +90,7 @@ void EnableOtgIntr(void)
 {
     //g_giccReg->ICCICR&=(~0x08);     //IntSetIRQ
     //g_gicdReg->ICDISER[USB_OTG_INT_CH/32]=(0x1<<(USB_OTG_INT_CH % 32));
-    IRQEnable(USB_OTG_INT_CH);
+    IRQEnable(INT_USB_OTG);
 }
 
 /***************************************************************************
@@ -102,7 +102,7 @@ void EnableOtgIntr(void)
 void DisableOtgIntr(void)
 {
     //g_gicdReg->ICDICER[USB_OTG_INT_CH/32]=(0x1<<(USB_OTG_INT_CH % 32));
-    IRQDisable(USB_OTG_INT_CH);
+    IRQDisable(INT_USB_OTG);
 }
 
 /***************************************************************************
@@ -113,7 +113,7 @@ void DisableOtgIntr(void)
 ***************************************************************************/
 void InterruptInit(void)
 {
-    g_giccReg->ICCEOIR=USB_OTG_INT_CH;
+    g_giccReg->ICCEOIR=INT_USB_OTG;
     g_giccReg->ICCEOIR=INT_eMMC;
     g_giccReg->ICCICR=0x00;   //disable signalling the interrupt
     g_gicdReg->ICDDCR=0x00;  
@@ -142,7 +142,7 @@ void IrqHandler(void)
 	//g_giccReg->ICCEOIR=intSrc;
 	//if((intSrc != USB_OTG_INT_CH) && (intSrc != INT_eMMC))
 	//	serial_printf("Irq: %d\n", intSrc);
-    if (intSrc == USB_OTG_INT_CH)
+    if (intSrc == INT_USB_OTG)
     {
         if(RockusbEn)
             UsbIsr();

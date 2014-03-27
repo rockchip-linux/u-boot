@@ -710,20 +710,8 @@ void FW_GetVersion(void)
 void FW_GetChipVer(void)
 {
     uint32 *chipInfo=(uint32*)BulkInBuf;
-    #if((PALTFORM==RK30XX)||(PALTFORM==RK_ALL)) 
-        extern uint32 Rk30ChipVerInfo[4];  
-        ftl_memcpy(chipInfo, Rk30ChipVerInfo, 16);
-    #else
-        ftl_memcpy(chipInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR), 16);
-    #endif
-    
-#if(PALTFORM==RK292X)
-    if(chipInfo[0]==0x32393241)//"292A"
-    {
-        chipInfo[0] = 0x32393258; // "292X"
-    }
-#endif
-
+    extern uint32 Rk30ChipVerInfo[4];  
+    ftl_memcpy(chipInfo, Rk30ChipVerInfo, 16);
     CSWHandler(CSW_GOOD,0);
     WriteBulkEndpoint(16, chipInfo);
     FWCmdPhase=K_InCSWPhase;
