@@ -8,7 +8,7 @@ Date    :   2014-03-18
 Notes   :
 $Log: ddr.c,v $
 ********************************************************************/
-#include "../common/armlinux/config.h"
+#include <asm/arch/drivers.h>
 
 //获取容量，返回字节数
 uint32 ddr_get_cap(void)

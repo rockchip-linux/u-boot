@@ -32,8 +32,8 @@
 #include "ep0.h"
 #include <usb/dwc_otg_udc.h>
 #include <asm/arch/drivers.h>
-#include "../../../board/rockchip/common/common/rockusb/dwc_otg_regs.h"
-#include "../../../board/rockchip/common/common/rockusb/USB20.h"
+#include "../../../board/rockchip/rk30xx/rockusb/dwc_otg_regs.h"
+#include "../../../board/rockchip/rk30xx/rockusb/USB20.h"
 
 #define UDC_INIT_MDELAY		80	/* Device settle delay */
 #define FBT_BULK_IN_EP              2

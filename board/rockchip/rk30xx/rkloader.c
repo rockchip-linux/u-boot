@@ -8,7 +8,7 @@ Modified:
 Revision:       1.00
 ********************************************************************************/
 #include <fastboot.h>
-#include "../common/armlinux/config.h"
+#include "config.h"
 #include "rkloader.h"
 #include "rkimage.h"
 

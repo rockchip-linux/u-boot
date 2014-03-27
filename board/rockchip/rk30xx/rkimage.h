@@ -11,7 +11,7 @@ Revision:       1.00
 #define RKIMAGE_H
 
 #include <fastboot.h>
-#include "../common/armlinux/config.h"
+#include "config.h"
 
 //from boot.c
 typedef struct tagDRM_KEY_INFO

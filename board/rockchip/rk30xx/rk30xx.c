@@ -10,7 +10,7 @@ Revision:       1.00
 
 #include <common.h>
 #include <fastboot.h>
-#include "../common/armlinux/config.h"
+#include "config.h"
 #include <asm/io.h>
 #include <lcd.h>
 #include "rkimage.h"
