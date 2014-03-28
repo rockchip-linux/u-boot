@@ -204,30 +204,6 @@ uint32 GetMmcCLK(void)
     return (GetAHBCLK());
 }
 
-void uart2UsbEn(uint8 en)
-{
-	/*
-    if(en)
-    {
-        if((!(g_3066B_grfReg->GRF_SOC_STATUS0) & (1<<10)) && (g_BootRockusb == 0))
-        {
-            DRVDelayUs(1);
-            if(!(g_3066B_grfReg->GRF_SOC_STATUS0) & (1<<10))
-            {
-                 //g_3066B_grfReg->GRF_UOC0_CON[2] = ((0x01 << 2) | ((0x01 << 2) << 16));  //software control usb phy enable
-                 //g_3066B_grfReg->GRF_UOC0_CON[3] = (0x2A | (0x3F << 16));  //usb phy enter suspend
-                 g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0300 | (0x0300 << 16)); // uart enable
-            }
-        }
-    }
-    else
-    {
-        g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
-        g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
-    }*/
-}
-
-
 
 /**************************************************************************
 USB PHY RESET
@@ -236,7 +212,7 @@ bool UsbPhyReset(void)
 {
     if(ChipType == CONFIG_RK3188 || ChipType == CONFIG_RK3188B)
     {
-        uart2UsbEn(0);
+        //uart2UsbEn(0);
         //g_3066B_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
         //g_3066B_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
         //3188 配置为software control usb phy，usb没有接的时候访问DiEpDma和DopDma会死机
@@ -403,62 +379,5 @@ void IOMUXSetSDMMC(uint32 sdmmcId,uint32 Bits)
 }
 
 
-#if 0
-int test_stuck_address(uint32 *bufa, uint32 count) {
-    uint32 *p1 = bufa;
-    unsigned int j;
-    size_t i;
-	RkPrintf("test_stuck_address = %x , %x \n",bufa,count);
-    for (j = 0; j < 2; j++) {
-        RkPrintf("write data %d\n",j);
-        p1 = (uint32 *) bufa;
-        for (i = 0; i < count; i++) {
-            *p1 = ((j + i) % 2) == 0 ? (uint32) p1 : ~((uint32) p1);
-            *p1++;
-        }
-        RkPrintf("check data %d\n",j);
-        p1 = (uint32 *) bufa;
-        for (i = 0; i < count; i++, p1++) {
-            if (*p1 != (((j + i) % 2) == 0 ? (uint32) p1 : ~((uint32) p1))) {
-                {
-                    RkPrintf("FAILURE: possible bad address line at offset 0x%x\n",j);
-                    while(1);
-                }
-                RkPrintf("Skipping to next test...\n");
-                return -1;
-            }
-        }
-    }
-    RkPrintf("Test end");
-    return 0;
-}
-
-void loader_reset(void)
-{
-    uint32 loader_flag = IReadLoaderFlag();
-    if(loader_flag!=BOOT_LOADER)
-    {
-        pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
-        ISetLoaderFlag(BOOT_LOADER);
-        DisableRemap();
-        DRVDelayMs(10);
-        cruReg->CRU_GLB_SRST_SND_VALUE = 0xeca8; //soft reset
-    }
-}
-void loader_reset2(void)
-{
-    uint32 loader_flag = *(uint32*)0x1008FFF0;//IReadLoaderFlag();
-    if(loader_flag!=BOOT_LOADER)
-    {
-        pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
-        //ISetLoaderFlag(BOOT_LOADER);
-        *(uint32*)0x1008FFF0 = BOOT_LOADER;
-        DisableRemap();
-        DRVDelayMs(10);
-        while(1);
-        //cruReg->CRU_GLB_SRST_SND_VALUE = 0xeca8; //soft reset
-    }
-}
-#endif
 
 

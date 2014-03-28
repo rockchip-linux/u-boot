@@ -308,12 +308,6 @@ void ParseLine(PBootInfo pboot_info, char *line)
 		strcpy( pboot_info->fw_version, line );
 		PRINT_I("FIRMWARE_VER: %s\n", pboot_info->fw_version);
 	}
-#if(PALTFORM==RK292X || PALTFORM==RK30XX )
-	else if( !memcmp(line, "UART", strlen("UART")) )
-	{
-        uart2UsbEn(1);
-	}
-#endif	
     //add by cjf, for fdt
     else if (!memcmp(line, "FDT_NAME:", strlen("FDT_NAME:")) )
     {

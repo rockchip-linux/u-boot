@@ -113,4 +113,54 @@
 #define RK3288_IMEM_PHYS                0xFF700000
 #define RK3288_IMEM_SZIE                0x00018000
 
+#define RK3288_I2C_SENSOR_PHYS          0xFF140000
+#define RK3288_I2C_SENSOR_SZIE          SZ_64K
+#define RK3288_I2C_CAM_PHYS             0xFF150000
+#define RK3288_I2C_CAM_SZIE             SZ_64K
+#define RK3288_I2C_TP_PHYS              0xFF160000
+#define RK3288_I2C_TP_SZIE              SZ_64K
+#define RK3288_I2C_HDMI_PHYS            0xFF170000
+#define RK3288_I2C_HDMI_SZIE            SZ_64K
+#define RK3288_I2C_PMU_PHYS             0xFF650000
+#define RK3288_I2C_PMU_SZIE             SZ_64K
+#define RK3288_I2C_AUDIO_PHYS           0xFF660000
+#define RK3288_I2C_AUDIO_SZIE           SZ_64K
+#define RK3288_NANDC0_PHYS              0xFF400000
+
+
+#define RK3288_USB_HOST0_EHCI_PHYS      0xFF500000
+#define RK3288_USB_HOST0_EHCI_SIZE      SZ_128K
+#define RK3288_USB_HOST0_OHCI_PHYS      0xFF520000
+#define RK3288_USB_HOST0_OHCI_SIZE      SZ_128K
+#define RK3288_USB_HOST0_HOST1_PHYS     0xFF540000
+#define RK3288_USB_HOST0_HOST1_SIZE     SZ_256K
+#define RK3288_USB_OTG_PHYS             0xFF580000
+#define RK3288_USB_OTG_SIZE             SZ_256K
+#define RK3288_USB_SHIC_PHYS            0xFF5C0000
+#define RK3288_USB_SHIC_SIZE            SZ_256K
+
+#define RK3288_SDMMC_PHY               0xFF0C0000
+#define RK3288_SDMMC_SIZE              SZ_64K
+#define RK3288_SDIO0_PHY               0xFF0D0000
+#define RK3288_SDIO0_SIZE              SZ_64K
+#define RK3288_SDIO1_PHY               0xFF0E0000
+#define RK3288_SDIO1_SIZE              SZ_64K
+#define RK3288_EMMC_PHY                0xFF0F0000
+#define RK3288_EMMC_SIZE               SZ_64K
+#define RK3288_SAR_ADC_PHY             0xFF100000
+#define RK3288_EMSAR_ADCMC_SIZE        SZ_64K
+
+
+
+
+#define PMU_SYS_REG0                   0xFF730094
+#define PMU_SYS_REG1                   0xFF730098
+#define PMU_SYS_REG2                   0xFF73009c
+#define PMU_SYS_REG3                   0xFF7300A0
+#define RK3288_BOOTROM_VERSION_ADDR    0xFFFF4FF0    //(320A20131116V100)
+#define RK3188_BOOTROM_VERSION_ADDR    0x101227F0
+#define PMU_SYS_REG3                   0xFF7300A0
+#define PMU_SYS_REG3                   0xFF7300A0
+#define PMU_SYS_REG3                   0xFF7300A0
+
 #endif

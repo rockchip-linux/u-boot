@@ -10,7 +10,7 @@ Revision:       1.00
 #include <common.h>
 #include <asm/io.h>
 #include <div64.h>
-//#include <asm/arch/rk30_drivers.h>
+#include <asm/arch/drivers.h>
 
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -42,15 +42,32 @@ static inline unsigned long long usec_to_tick(unsigned long long usec)
 
 int timer_init(void)
 {
-	//g_rk3188Time0Reg->TIMER_LOAD_COUNT0 = TIMER_LOAD_VAL;
-	//g_rk3188Time0Reg->TIMER_CTRL_REG = 0x01;
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+	/* set count value */
+	g_rk30Time0Reg->TIMER_LOAD_COUNT = TIMER_LOAD_VAL;
+	/* auto reload & enable the timer */
+	g_rk30Time0Reg->TIMER_CTRL_REG = 0x01;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188 ||CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+	g_rk3188Time0Reg->TIMER_LOAD_COUNT0 = TIMER_LOAD_VAL;
+	g_rk3188Time0Reg->TIMER_CTRL_REG = 0x01;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	g_Time0Reg->TIMER_LOAD_COUNT0 = TIMER_LOAD_VAL;
+	g_Time0Reg->TIMER_CTRL_REG = 0x01;
+#endif 
+
 	reset_timer_masked();
 	return 0;
 }
 
 inline unsigned long get_rk_current_tick()
 {
-    return 0;//g_rk3188Time0Reg->TIMER_CURR_VALUE0;
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+    return g_rk30Time0Reg->TIMER_CURR_VALUE;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188 ||CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+    return g_rk3188Time0Reg->TIMER_CURR_VALUE0;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+    return g_Time0Reg->TIMER_CURR_VALUE0;
+#endif
 }
 
 void reset_timer_masked(void)

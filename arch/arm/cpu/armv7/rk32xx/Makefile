@@ -9,11 +9,10 @@
 #********************************************************************************
 
 obj-y	+= cpu.o
-obj-y	+= board.o
 obj-y	+= timer.o
-#obj-y	+= clock.o
+obj-y	+= clock.o
+obj-y	+= board.o
 obj-y	+= interrupts.o
-#obj-y	+= intc.o
-
-obj-y	+= cache.o
+obj-y	+= ddr.o
+obj-y	+= gpio.o
 obj-y	+= lowlevel_init.o

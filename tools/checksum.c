@@ -1,4 +1,4 @@
-#include "../include/configs/rk30xx.h"
+#include "../include/configs/rk32xx.h"
 #include <sys/stat.h>
 #include <stdio.h>
 #include <stdint.h>

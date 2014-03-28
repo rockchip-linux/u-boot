@@ -10,7 +10,7 @@ Revision:       1.00
 #include "rkimage.h"
 #include "rkloader.h"
 #include "ext_fs.h"
-#include "../common/common/crc/sha.h"
+#include "sha.h"
 
 #undef ALIGN
 

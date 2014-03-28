@@ -13,14 +13,22 @@ Revision:       1.00
 #define __CONFIG_H
 #include "rkchip.h"
 
-#define CONFIG_RKCHIPTYPE           CONFIG_RK3299
-#define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
+#define CONFIG_RKCHIPTYPE           CONFIG_RK3288
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+#define CONFIG_RK_3026_CHIP
+#else
+#define CONFIG_RK_30XX_CHIP
+#endif
+
+#define CONFIG_ZYF
 
 /*
  * High Level Configuration Options
  */
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
+#define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
 //#define SECOND_LEVEL_BOOTLOADER
 
@@ -94,8 +102,12 @@ Revision:       1.00
 #endif
 
 /* uart config */
-//#define	CONFIG_RK30_UART
-//#define CONFIG_UART_NUM   		UART_CH2
+#define	CONFIG_RK30_UART
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#define CONFIG_UART_NUM   		UART_DBG
+#else
+#define CONFIG_UART_NUM   		UART_CH2
+#endif
 
 /* input clock of PLL: has 24MHz input clock at rk30xx */
 #define CONFIG_SYS_CLK_FREQ_CRYSTAL	24000000
@@ -173,9 +185,8 @@ Revision:       1.00
 
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
-#define CONFIG_ENV_IS_NOWHERE
 
-//#define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
+#define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
 
 #define CONFIG_ENV_OFFSET 0
 
@@ -194,7 +205,7 @@ Revision:       1.00
 /* Another macro may also be used or instead used to take care of the case
  * where fastboot is started at boot (to be incorporated) based on key press
  */
-//#define CONFIG_CMD_FASTBOOT
+#define CONFIG_CMD_FASTBOOT
 #define CONFIG_FASTBOOT_LOG
 #define CONFIG_FASTBOOT_LOG_SIZE                    (SZ_2M)
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH   (SZ_16M)
@@ -209,10 +220,15 @@ Revision:       1.00
 #define FASTBOOT_PRODUCT_NAME   "fastboot"
 
 #ifdef CONFIG_CMD_FASTBOOT
-//#define CONFIG_RK_UDC
-//#define CONFIG_USB_DEVICE
+#define CONFIG_RK_UDC
+#define CONFIG_USB_DEVICE
 
 #endif //CONFIG_CMD_FASTBOOT
+
+#define CONFIG_USB_EHCI
+#define CONFIG_USB_EHCI_RK
+#define CONFIG_CMD_USB
+//#define CONFIG_USB_STORAGE
 
 /* PL330 DMA */
 //#define CONFIG_PL330_DMA //enable pl330 dma
@@ -223,18 +239,24 @@ Revision:       1.00
 /* SPI */
 //#define CONFIG_RK_SPI
 
+
 /* LCDC console */
 //#define CONFIG_LCD
-//#define CONFIG_RK_FB
-//#define CONFIG_LCD_LOGO
+#ifdef CONFIG_LCD
+#define CONFIG_RK_FB
+#define CONFIG_LCD_LOGO
+//#define CONFIG_CMD_CHARGE_ANIM
+#define CONFIG_LCD_BMP_RLE8
+#define CONFIG_CMD_BMP
 
 //#define CONFIG_COMPRESS_LOGO_RLE8// CONFIG_COMPRESS_LOGO_RLE16
 
-//#define CONFIG_BMP_16BPP
-//#define CONFIG_SYS_WHITE_ON_BLACK
-//#define LCD_BPP			LCD_COLOR16
+#define CONFIG_BMP_16BPP
+#define CONFIG_SYS_WHITE_ON_BLACK
+#define LCD_BPP			LCD_COLOR16
 //#define CONFIG_RK3066SDK
 //#define CONFIG_RK3188SDK
+#define CONFIG_RK3288SDK
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #ifdef CONFIG_RK_FB
@@ -258,18 +280,21 @@ Revision:       1.00
 #define CONFIG_RK616_LCD_CHN 0
 #endif /*CONFIG_RK616*/ 
 #endif /*CONFIG_RK_FB*/
-//#define CONFIG_RK_I2C
+#endif
+
+#define CONFIG_RK_I2C
 #ifdef CONFIG_RK_I2C
 #define CONFIG_HARD_I2C
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
-#define CONFIG_SYS_I2C_SLAVE 0x32
 #endif
 //#define CONFIG_BQ27541_I2C_ADDR  0x55
 
+
 /********************************** charger and pmic driver ********************************/
 //#define CONFIG_POWER_RICOH619
-#define CONFIG_POWER_RK_SAMPLE
+//#define CONFIG_POWER_RK_SAMPLE
+#define CONFIG_POWER_RK808
 
 /********************************** battery driver ********************************/
 //#define CONFIG_BATTERY_BQ27541
@@ -292,18 +317,18 @@ Revision:       1.00
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
 
+//#define CONFIG_CMD_BOOTM
 #define CONFIG_LMB
 #define CONFIG_OF_LIBFDT
 #define CONFIG_SYS_BOOT_RAMDISK_HIGH
-//#define CONFIG_CMD_BMP
+
 #define CONFIG_RESOURCE_PARTITION
-//#define CONFIG_CMD_CHARGE_ANIM
-#define CONFIG_LCD_BMP_RLE8
+
 
 #define CONFIG_QUICK_CHECKSUM
 
 //#define CONFIG_RK_I2C
-#define CONFIG_I2C_MULTI_BUS
+//#define CONFIG_I2C_MULTI_BUS
 
 //allow to flash loader when check sign failed. should undef this in release version.
 #define CONFIG_ENABLE_ERASEKEY

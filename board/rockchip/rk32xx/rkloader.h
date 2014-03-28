@@ -11,7 +11,7 @@ Revision:       1.00
 #define RKLOADER_H
 
 #include <fastboot.h>
-#include "../common/armlinux/config.h"
+#include "config.h"
 
 extern BootInfo gBootInfo;
 

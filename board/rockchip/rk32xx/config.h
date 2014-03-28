@@ -84,7 +84,7 @@ Revision:		1.00
 #define PRINT_E PRINTF
 #define PRINT_W PRINTF
 #define RkPrintf PRINTF
-#include "../../../include/configs/rk30xx.h"
+#include "../../../include/configs/rk32xx.h"
 //#include    <string.h>
 //#include    <stdlib.h>
 //#include    <stdarg.h>
