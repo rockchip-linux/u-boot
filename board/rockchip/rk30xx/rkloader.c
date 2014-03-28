@@ -297,7 +297,7 @@ int getSn(char* buf)
 
     memset((void*)g_pIDBlock, 0, SECTOR_OFFSET * IDBLOCK_NUM);
 
-    if (StorageReadPba(g_IDBlockOffset[0] * IDBLOCK_SECTORS, 
+    if (StorageReadPba(g_IDBlockOffset[0] * g_FlashInfo.BlockSize, 
                 (void*)g_pIDBlock, IDBLOCK_NUM) != ERR_SUCCESS) {
         printf("read id block error.\n");
         return false;

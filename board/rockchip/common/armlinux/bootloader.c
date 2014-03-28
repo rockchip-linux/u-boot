@@ -120,6 +120,10 @@ int FindIDBlock(FlashInfo* pFlashInfo, int iStart,int *iPos)
 int FindAllIDB()
 {
 	int i,iRet,iIndex,iStart=0,iCount=0;
+	
+	if(g_FlashInfo.BlockSize)
+        g_id_block_size = g_FlashInfo.BlockSize;
+
 	memset(g_IDBlockOffset, 0xFFFF, 5);
 	for( i=0; i<5; i++)
 	{

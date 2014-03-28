@@ -92,7 +92,8 @@ int LMemApiReadLba(uint8 ChipSel, uint32 LBA ,void *pbuf  , uint16 nSec)
     int ret = FTL_ERROR;
     if(gp_loader_api->ReadLba) {
        ret = gp_loader_api->ReadLba(0, LBA , nSec, pbuf);
-        printf("LMemApiReadLba:%d\n", ret);
+       if(ret)
+          printf("LMemApiReadLba:%d\n", ret);
     }
     return ret;
 }
@@ -409,7 +410,7 @@ int32 StorageInit(void)
 #endif
 
     uint32 memdev;
-    
+    memset((uint8*)&g_FlashInfo,0,sizeof(g_FlashInfo));
     SdmmcSDMInit();
     for(memdev=0; memdev<MAX_MEM_DEV; memdev++)
     {
@@ -425,6 +426,7 @@ int32 StorageInit(void)
                     continue;
             }
 #endif
+            StorageReadFlashInfo((uint8*)&g_FlashInfo);
             return 0;
         }
     }
