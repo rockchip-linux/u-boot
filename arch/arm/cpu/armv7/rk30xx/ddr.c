@@ -8,7 +8,9 @@ Date    :   2014-03-18
 Notes   :
 $Log: ddr.c,v $
 ********************************************************************/
+#include <common.h>
 #include <asm/arch/drivers.h>
+DECLARE_GLOBAL_DATA_PTR;
 
 //获取容量，返回字节数
 uint32 ddr_get_cap(void)
@@ -42,5 +44,25 @@ uint32 ddr_get_cap(void)
     }
 
     return (cap[0]+cap[1]);
+}
+
+
+/**********************************************
+ * Routine: dram_init
+ * Description: sets uboots idea of sdram size
+ **********************************************/
+int dram_init(void)
+{
+	gd->ram_size = get_ram_size(
+			(void *)CONFIG_SYS_SDRAM_BASE,
+			CONFIG_SYS_SDRAM_SIZE);
+
+	return 0;
+}
+
+void dram_init_banksize(void)
+{
+	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
+	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
 }
 

@@ -10,13 +10,18 @@ Notes  :
 $Log     :  Revision 1.00  2009/02/14   nizy
 ********************************************************************/
 
-//#include "drivers.h"
+
 #include <asm/arch/drivers.h>
-//#include "hwapi_MMU.h"
+#include <common.h>
 
-#define DRIVERS_CACHE
-//#include "hwapi_Cache.h"
 
+#ifndef CONFIG_SYS_DCACHE_OFF
+void enable_caches(void)
+{
+	/* Enable D-cache. I-cache is already enabled in start.S */
+	dcache_enable();
+}
+#endif
 
 void MMUDeinit(uint32 adr)
 {
@@ -48,12 +53,31 @@ uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 #endif
 }
 
-/*uint32 CacheCleanDRegion(uint32 adr, uint32 size)
+#ifdef CONFIG_ARCH_CPU_INIT
+int arch_cpu_init(void)
 {
-    __CacheCleanDRegion(adr,size);
-#ifdef L2CACHE_ENABLE    
-    l2x0_flush_range(adr, adr+size);
+	ChipTypeCheck();
+	return 0;
+}
 #endif
-}*/
+
+
+#ifdef CONFIG_DISPLAY_CPUINFO
+int print_cpuinfo(void)
+{
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	printf("CPU:\tRK3288\n");
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3299)
+     printf("CPU:\tRK3299\n");
+#endif
+     return 0;
+}
+#endif
+
+
+void reset_cpu(ulong ignored)
+{
+	SoftReset();
+}
 
 

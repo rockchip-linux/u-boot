@@ -142,11 +142,11 @@ Revision:		1.00
 #include			"Mainloop.h"	//测试头文件
 #include            "rockusb/dwc_otg_regs.h"
 #include 		    "rockusb/rockusb.h"  //固件升级头文件
-#include            "gpio_oper.h"
+//#include            "gpio_oper.h"
 #include            "bootloader.h"
 #include			"parameter.h"	// Loader参数文件
 //#include			"../common/rk_dbg.h"		// debug file
-#include            "hw_mm.h" // MMU
+//#include            "hw_mm.h" // MMU
 //#include            "../common/A8MMU/hwapi_Cache.h" // MMU
 
 

@@ -147,65 +147,9 @@ typedef enum PLL_ID_Tag
 #define NF(n)      ((0xFFFF<<16) | (n-1))
 #define NB(n)      ((0xFFF<<16) | (n-1))
 
-static void APLL_cb(void)
-{
-    if(ChipType == CONFIG_RK3066)
-    {
-        g_cruReg->CRU_CLKSEL_CON[0] = ((0x1F | (0x3<<6) | (0x1<<8))<<16)
-                                                      | (0x0<<8)     //core_clk_src = ARM PLL = 600MHz
-                                                      | (0x1<<6)     //clk_core:clk_core_periph = 4:1 = 600MHz : 150MHz
-                                                      | 0;           //clk_core = core_clk_src/1 = 600MHz
-        g_cruReg->CRU_CLKSEL_CON[1] = (((0x3<<12) | (0x3<<8) | (0x3<<14) | 0x7)<<16)     //clk_core:aclk_cpu = 1:1 = 192MHz : 192 MHz
-                                                      | (0x1<<14)    //hclk_cpu:pclken_ahb2apb = 2:1 = 150MHz : 75MHz
-                                                      | (0x1<<12)    //aclk_cpu:pclk_cpu = 2:1 = 150MHz : 75MHz
-                                                      | (0x0<<8)     //aclk_cpu:hclk_cpu = 1:1 = 150MHz : 150MHz
-                                                      | 3;           //clk_core:aclk_cpu = 4:1 = 600MHz : 150MHz
-    }
-    else
-    {
-        g_cruReg->CRU_CLKSEL_CON[0] = (((0x1F<<9)|(1<<8)|(0x3<<6)|(1<<5)|(0x1F))<<16)
-                                                      | (0x0<<9)     //core_clk : core_clk_src = APLL = 600MHz
-                                                      | (0x0<<8)     //core_clk_src = APLL = 600MHz
-                                                      | (0x1<<6)     //clk_cpu:clk_core_periph = 4:1 = 600MHz : 150MHz
-                                                      | (0x0<<5)     //clk_cpu_src = APLL = 600MHz
-                                                      | 1;           //aclk_cpu = core_clk_src/2 = 300MHz
-        g_cruReg->CRU_CLKSEL_CON[1] = (((0x3<<14) | (0x3<<12) | (0x3<<8) | (0x7<<3)| 0x7)<<16)     //clk_core:aclk_cpu = 1:1 = 192MHz : 192 MHz
-                                                      | (0x1<<14)    //hclk_cpu:pclken_ahb2apb = 2:1 = 150MHz : 75MHz
-                                                      | (0x2<<12)    //aclk_cpu:pclk_cpu = 4:1 = 300MHz : 750MHz
-                                                      | (0x1<<8)     //aclk_cpu:hclk_cpu = 2:1 = 300MHz : 150MHz
-                                                      | (1<<3)       //clk_core:aclk_core = 2:1 = 600MHz : 300MHz
-                                                      | 1;           //clk_cpu:aclk_cpu = 1:1 = 300MHz : 300MHz
-    }
-}
 
-static void GPLL_cb(void)
-{
-    if(ChipType == CONFIG_RK3066)
-    {
-    	g_cruReg->CRU_CLKSEL_CON[10] = (((0x1<<15)|(0x3<<12)|(0x3<<8)|0x1F)<<16) 
-                                                    | (0x0<<15)     //aclk_periph = GPLL/1 = 144MHz
-                                                    | (0x3<<12)     //aclk_periph:pclk_periph = 4:1 = 144MHz : 36MHz
-                                                    | (0x1<<8)      //aclk_periph:hclk_periph = 1:1 = 144MHz : 144MHz
-                                                    | 0x0;   
-	
-    }
-    else if(ChipType == CONFIG_RK3188)
-	{
-    	g_cruReg->CRU_CLKSEL_CON[10] = (((0x1<<15)|(0x3<<12)|(0x3<<8)|0x1F)<<16) 
-                                                    | (0x1<<15)     //periph_clk_src = GPLL = 300MHz
-                                                    | (0x2<<12)     //aclk_periph:pclk_periph = 4:1 = 300MHz : 75MHz
-                                                    | (0x1<<8)      //aclk_periph:hclk_periph = 1:1 = 300MHz : 150MHz
-                                                    | 0x0;          //aclk_periph=periph_clk_src/1 = 300Mhz
-	}
-	else // 3066B 3168
-	{
-    	g_cruReg->CRU_CLKSEL_CON[10] = (((0x1<<15)|(0x3<<12)|(0x3<<8)|0x1F)<<16) 
-                                                    | (0x0<<15)     //periph_clk_src = GPLL = 300MHz
-                                                    | (0x2<<12)     //aclk_periph:pclk_periph = 4:1 = 300MHz : 75MHz
-                                                    | (0x1<<8)      //aclk_periph:hclk_periph = 2:1 = 300MHz : 150MHz
-                                                    | 0x0;          //aclk_periph=periph_clk_src/1 = 300Mhz
-	}
-}
+
+
 
 /*****************************************
 NR   NO     NF             Fout(range)
@@ -216,103 +160,8 @@ NR   NO     NF             Fout(range)
 24   1      300  - 1500   500 - 1000
 ******************************************/
 //rk 3066b 不能小于100Mhz
-static void Set_PLL(PLL_ID pll_id, uint32 MHz, pFunc cb)
-{
-    uint32 nr,no,nf;
-    
-    MHz += (MHz & 0x1);   //change to even, for NB setting
-    g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) +  16)) | (0x0<<(pll_id*4));            //PLL slow-mode
 
-    if(ChipType == CONFIG_RK3066)
-    {
-        if(MHz > 500)
-        {
-            nr = 24;
-            no = 1;
-        }
-        else if(MHz > 250)
-        {
-            nr = 12;
-            no = 2;
-        }
-        else if(MHz > 150)
-        {
-            nr = 6;
-            no = 4;
-        }
-        else if(MHz > 100)
-        {
-            nr = 4;
-            no = 6;
-        }
-        else
-        {
-            nr = 3;
-            no = 8;
-        }
 
-        g_cruReg->CRU_PLL_CON[pll_id][3] = PLL_RESET;
-        g_cruReg->CRU_PLL_CON[pll_id][0] = NR(nr) | NO(no);
-        g_cruReg->CRU_PLL_CON[pll_id][1] = NF(MHz);
-        g_cruReg->CRU_PLL_CON[pll_id][2] = NB(MHz);
-        DRVDelayUs(1);
-        g_cruReg->CRU_PLL_CON[pll_id][3] = PLL_DE_RESET;
-    }
-    else
-    {
-        if(MHz >= 600)
-        {
-            nr = 1;
-            no = 2;
-            nf = MHz *2 / 24;
-        }
-        else if(MHz >= 400)
-        {
-            nr = 1;
-            no = 3;
-            nf = MHz * 3 / 24;
-        }
-        else if(MHz >= 250)
-        {
-            nr = 1;
-            no = 5;
-            nf = MHz * 5 / 24;
-        }
-        else if(MHz >= 140)
-        {
-            nr = 1;
-            no = 8;
-            nf = MHz * 8 / 24;
-        }
-        else    
-        {
-            nr = 1;
-            no = 12;
-            nf = MHz * 12 / 24;
-        }
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x1<<1));
-        g_cruReg->CRU_PLL_CON[pll_id][0] = NR(nr) | NO(no);
-        g_cruReg->CRU_PLL_CON[pll_id][1] = NF(nf);
-        DRVDelayUs(1);
-        g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
-    }
-
-    DRVDelayUs(1000); // 1ms，
-    if(cb)
-    {
-        cb();
-    }
-   // g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) +  16))  | (0x1<<(pll_id*4));            //PLL normal
-}
-
-void SetARMPLL(uint16 nMhz)
-{
-    if(ChipType != CONFIG_RK3188 && ChipType != CONFIG_RK3188B)
-    {
-        Set_PLL(APLL, 600, APLL_cb);
-        Set_PLL(GPLL, 300, GPLL_cb); // 3188有些坏片，可能使用GPLL当作DPLL使用
-    }
-}
 
 uint32 GetGPLLCLK(void)
 {
@@ -551,34 +400,6 @@ Notes   : 默认使用4线，不使用pwr_en, write_prt, detect_n信号
 void IOMUXSetSDMMC(uint32 sdmmcId,uint32 Bits)
 {
 // TODO:SDMMC IOMUX 
-}
-
-
-void power_io_ctrl(uint8 mode)
-{
-    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
-    if(mode)         // 输出高电平
-    {
-        write_XDATA32((key_gpio->io_write), ReadReg32((key_gpio->io_write))|((1ul<<key_gpio->index))); //out put high
-        write_XDATA32(key_gpio->io_dir_conf, (read_XDATA32(key_gpio->io_dir_conf)|((1ul<<key_gpio->index)))); // port6 B0 out
-    }
-    else                //其他情况输出低电平
-    {
-        write_XDATA32((key_gpio->io_write), ReadReg32((key_gpio->io_write))&(~(1ul<<key_gpio->index))); //out put high
-        write_XDATA32(key_gpio->io_dir_conf, (read_XDATA32(key_gpio->io_dir_conf)|((1ul<<key_gpio->index)))); // port6 B0 out
-    }
-}
-
-void powerOn(void)
-{
-    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
-    power_io_ctrl((key_gpio->valid)&0x01);
-}
-
-void powerOff(void)
-{
-    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
-    power_io_ctrl((key_gpio->valid&0x01)==0);
 }
 
 

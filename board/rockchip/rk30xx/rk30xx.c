@@ -55,143 +55,10 @@ int get_wfi_status()
 	return wfi_status;
 }
 
-int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
-{
-    int i;
-    int recovery_key = 0;
-	*boot_rockusb = 0;
-	*boot_recovery = 0;
-	*boot_fastboot = 0;
-	printf("checkKey\n");
-	if(GetPortState(&key_rockusb))
-	{
-        *boot_rockusb = 1;
-	    //printf("rockusb key is pressed\n");
-	}
-	if(GetPortState(&key_recovery))
-	{
-        *boot_recovery = 1;
-	    //printf("recovery key is pressed\n");
-	}
-	if(GetPortState(&key_fastboot))
-	{
-		*boot_fastboot = 1;
-		//printf("fastboot key is pressed\n");
-	}
-	return 0;
-}
 
-void RockusbKeyInit(key_config *key)
-{
-    key->type = KEY_AD;
-    if(ChipType == CONFIG_RK3026)
-    	key->key.adc.index = 3;
-    else
-	key->key.adc.index = 1;	
-    key->key.adc.keyValueLow = 0;
-    key->key.adc.keyValueHigh= 30;
-    key->key.adc.data = SARADC_BASE;
-    key->key.adc.stas = SARADC_BASE+4;
-    key->key.adc.ctrl = SARADC_BASE+8;
-}
-
-void RecoveryKeyInit(key_config *key)
-{
-    key->type = KEY_AD;
-    if(ChipType == CONFIG_RK3026)
-    	key->key.adc.index = 3;
-    else
-	key->key.adc.index = 1;	
-    key->key.adc.keyValueLow = 0;
-    key->key.adc.keyValueHigh= 30;
-    key->key.adc.data = SARADC_BASE;
-    key->key.adc.stas = SARADC_BASE+4;
-    key->key.adc.ctrl = SARADC_BASE+8;
-}
-
-
-void FastbootKeyInit(key_config *key)
-{
-    key->type = KEY_AD;
-    if(ChipType == CONFIG_RK3026)
-    	key->key.adc.index = 3;
-    else
-	key->key.adc.index = 1;	
-    key->key.adc.keyValueLow = 170;
-    key->key.adc.keyValueHigh= 180;
-    key->key.adc.data = SARADC_BASE;
-    key->key.adc.stas = SARADC_BASE+4;
-    key->key.adc.ctrl = SARADC_BASE+8;
-}
-
-void PowerHoldPinInit()
-{
-   // pin_powerHold.type = KEY_GPIO;
-   // pin_powerHold.key.gpio.valid = 1; 
-
-  //  pin_powerHold.key.gpio.group = 0;
-  //  pin_powerHold.key.gpio.index = 0; // gpio0A0
-  //  setup_gpio(&pin_powerHold.key.gpio);
-  //  if(pin_powerHold.key.gpio.valid)
-  //      powerOn();
-}
-void PowerKeyInit()
-{
-#if 0
-    key_power.type = KEY_GPIO;
-    key_power.key.gpio.valid = 0; 
-    if(ChipType == CONFIG_RK3066)
-    {
-        key_power.key.gpio.group = 6;
-        key_power.key.gpio.index = 8; // gpio6B0
-    }
-    else
-    {
-        key_power.key.gpio.group = 0;
-        key_power.key.gpio.index = 4; // gpio0A4
-        //rknand_print_hex("grf:", g_3188_grfReg,1,512);
-    }
-
-    setup_gpio(&key_power.key.gpio);
-    if(key_power.key.gpio.valid)
-        powerOn();
-#else
-    key_power.type = KEY_INT;
-    key_power.key.ioint.valid = 0; 
-    if(ChipType == CONFIG_RK3066)
-    {
-        key_power.key.ioint.group = 6;
-        key_power.key.ioint.index = 8; // gpio6B0
-    }
-    else
-    {
-        key_power.key.ioint.group = 0;
-        key_power.key.ioint.index = 4; // gpio0A4
-    }
-	printf("setup gpio int\n");
-	clr_all_gpio_int();
-    setup_int(&key_power.key.ioint);
-	IRQEnable(INT_GPIO0);
-#endif
-
-}
-
-int power_hold() {
-    return GetPortState(&key_power);
-}
-
-void reset_cpu(ulong ignored)
-{
-	SoftReset();
-}
-
-#ifdef CONFIG_USE_RK30IRQ
+#if 1//def CONFIG_USE_RK30IRQ
 static int rk30_interrupt_inited = 0;
-void do_irq (struct pt_regs *pt_regs)
-{
-	//printf("do_irq\n");
-	IrqHandler();
-}
+
 
 int arch_interrupt_init (void)
 {
@@ -207,72 +74,11 @@ int arch_interrupt_init (void)
 #endif /* CONFIG_USE_IRQ */
 
 
-#ifdef CONFIG_ARCH_CPU_INIT
-int arch_cpu_init(void)
-{
-	ChipTypeCheck();
-	return 0;
-}
-#endif
 
 
-#ifdef CONFIG_DISPLAY_CPUINFO
-int print_cpuinfo(void)
-{
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-	printf("CPU:\tRK3066\n");
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3066B)
-     printf("CPU:\tRK3066B\n");
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-     printf("CPU:\tRK3168\n");
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-     printf("CPU:\tRK3188\n");
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188B)
-     printf("CPU:\tRK3188B\n");
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188T)
-     printf("CPU:\tRK3188T\n");
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-     printf("CPU:\tRK3026\n");
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-     printf("CPU:\tRK3288\n");
-#endif
-     return 0;
-}
-#endif
-
-/*****************************************
- * Routine: board_init
- * Description: Early hardware init.
- *****************************************/
-int board_init(void)
-{
-	/* Set Initial global variables */
-
-	gd->bd->bi_arch_number = MACH_TYPE_RK30XX;
-	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x88000;
-
-	return 0;
-}
 
 
-/**********************************************
- * Routine: dram_init
- * Description: sets uboots idea of sdram size
- **********************************************/
-int dram_init(void)
-{
-	gd->ram_size = get_ram_size(
-			(void *)CONFIG_SYS_SDRAM_BASE,
-			CONFIG_SYS_SDRAM_SIZE);
 
-	return 0;
-}
-
-void dram_init_banksize(void)
-{
-	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
-}
 
 #ifdef CONFIG_OF_LIBFDT
 extern uint32 ddr_get_cap(void);
@@ -294,24 +100,7 @@ void board_lmb_reserve(struct lmb *lmb) {
 
 #endif
 
-#ifdef CONFIG_DISPLAY_BOARDINFO
-/**
- * Print board information
- */
-int checkboard(void)
-{
-	puts("Board:\tRK30xx platform Board\n");
-	return 0;
-}
-#endif
 
-#ifndef CONFIG_SYS_DCACHE_OFF
-void enable_caches(void)
-{
-	/* Enable D-cache. I-cache is already enabled in start.S */
-	dcache_enable();
-}
-#endif
 
 void startRockusb()
 {
@@ -398,48 +187,6 @@ void board_fbt_boot_failed(const char* boot)
     startRockusb();
 }
 
-extern char bootloader_ver[];
-
-#ifdef CONFIG_BOARD_LATE_INIT
-int board_late_init(void)
-{
-    printf("board_late_init\n");
-
-#ifdef CONFIG_RK_I2C 
-	rk_i2c_init();
-#endif
-
-#if defined( CONFIG_POWER_ACT8846) || defined(CONFIG_POWER_RK808) 
-	pmic_init(0);
-#endif
-
-    SecureBootCheck();
-	get_bootloader_ver(NULL);
-	printf("##################################################\n");
-	printf("uboot version: %s\n",U_BOOT_VERSION_STRING);
-	printf("\n#Boot ver: %s\n\n", bootloader_ver);
-	printf("##################################################\n");
-
-    RockusbKeyInit(&key_rockusb);
-    FastbootKeyInit(&key_fastboot);
-    RecoveryKeyInit(&key_recovery);
-	PowerKeyInit();
-    ChargerStateInit();
-
-    getParameter();
-
-    //TODO:set those buffers in a better way, and use malloc?
-    setup_space(gd->arch.rk_extra_buf_addr);
-
-    char tmp_buf[30];
-    if (getSn(tmp_buf)) {
-        tmp_buf[sizeof(tmp_buf)-1] = 0;
-        setenv("fbt_sn#", tmp_buf);
-    }
-    fbt_preboot();
-	return 0;
-}
-#endif
 
 #ifdef CONFIG_RK_FB
 #ifdef CONFIG_RK3288SDK
@@ -595,31 +342,6 @@ void rk_i2c_init()
 }
 #endif
 
-static key_config charger_state;
-void ChargerStateInit()
-{
-    charger_state.type = KEY_GPIO;
-    charger_state.key.gpio.valid = 1;
-#ifdef CONFIG_RK3288SDK 
-     charger_state.key.gpio.group = 0;//gpio0
-     charger_state.key.gpio.index = 8;//b0
-#else
-     charger_state.key.gpio.group = 0;
-     charger_state.key.gpio.index = 10;
-#endif
-
-
-    setup_gpio(&charger_state.key.gpio);
-}
-
-/*
-return 0: no charger
-return 1: charging
-*/
-int is_charging()
-{
-    return !GetPortState(&charger_state);  //gpio0_b2, charger in status
-}
 
 #ifdef CONFIG_POWER_ACT8846
 struct pmic_voltage pmic_vol[] = {

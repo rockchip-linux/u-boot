@@ -8,12 +8,11 @@
 #Revision:       1.00
 #********************************************************************************
 
-#obj-y	+= cpu_info.o
+obj-y	+= cpu.o
 obj-y	+= timer.o
 obj-y	+= clock.o
-#obj-y	+= reset.o
-#obj-y	+= interrupts.o
-#obj-y	+= intc.o
-
-obj-y	+= cache.o
+obj-y	+= board.o
+obj-y	+= interrupts.o
+obj-y	+= ddr.o
+obj-y	+= gpio.o
 obj-y	+= lowlevel_init.o

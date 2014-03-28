@@ -3,7 +3,7 @@
 #ifndef _CHIP_DEPEND_H
 #define _CHIP_DEPEND_H
 
-#include "gpio_oper.h"
+//#include "gpio_oper.h"
 #include "configs/rkchip.h"
 #define     RK3068_POP_CHIP_TAG      0xF
 #define     RK3068_CHIP_TAG          0x5

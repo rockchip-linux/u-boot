@@ -1,8 +1,16 @@
 
-#include    "config.h"
+#include <asm/arch/drivers.h>
+#include <common.h>
+#include "gpio.h"
 uint32 g_Rk30xxChip;
 
 extern void DRVDelayUs(uint32 us);
+key_config		key_rockusb;
+key_config		key_recovery;
+key_config		key_fastboot;
+key_config		pin_powerHold;
+key_config      key_power;
+extern uint8  ChipType;
 
 uint32 RK3066GpioBaseAddr[7] = 
 {
@@ -139,30 +147,9 @@ void setup_int(int_conf *key_int)
 {
     uint32 base_addr = 0;
 
-    if (ChipType == CONFIG_RK3066)
-    {
-        if(key_int->group >= 7)
-            return;
-        base_addr = RK3066GpioBaseAddr[key_int->group];
-    }
-    else if(ChipType == CONFIG_RK3026)
-   {
-	  if(key_int->group >= 4)
-	       return;
-	  base_addr = RK3026GpioBaseAddr[key_int->group];	
-    }
-    else if(ChipType == CONFIG_RK3188)
-    {
-        if(key_int->group >= 4)
-            return;
-        base_addr = RK3188GpioBaseAddr[key_int->group];
-    }
-    else
-    {
         if(key_int->group >= 9)
             return;
         base_addr = RK3288GpioBaseAddr[key_int->group];
-    }
 	key_int->int_en = base_addr+0x30;
 	key_int->int_mask = base_addr+0x34;
 	key_int->int_level = base_addr+0x38;
@@ -193,30 +180,9 @@ void gpio_isr(int gpio_group)
    uint32 base_addr = 0;
    uint32  int_eoi;
 
-   if (ChipType == CONFIG_RK3066)
-   {
-       if(gpio_group >= 7)
-            return;
-       base_addr = RK3066GpioBaseAddr[gpio_group];
-   }
-   else if(ChipType == CONFIG_RK3026)
-   {
-	  if(gpio_group >= 4)
-	       return;
-	  base_addr = RK3026GpioBaseAddr[gpio_group];	
-    }
-   else if(ChipType == CONFIG_RK3188)
-   {
-        if(gpio_group >= 4)
-            return;
-       base_addr = RK3188GpioBaseAddr[gpio_group];
-   }
-   else
-   {
        if(gpio_group >= 9)
             return;
        base_addr = RK3288GpioBaseAddr[gpio_group];
-   }
    int_eoi = base_addr+0x4c;
 
 	if(key_power.type==KEY_INT)
@@ -294,7 +260,6 @@ void dump_gpio(gpio_conf* gpio)
 */
 int GetPortState(key_config *key)
 {
-#ifndef RK_LOADER_FOR_FT
     uint32 tt;
     uint32 hCnt = 0;
     gpio_conf* gpio = &key->key.gpio;
@@ -336,7 +301,7 @@ int GetPortState(key_config *key)
     		    timeout++;
             }while((value&0x40)==0);
     		value = read_XDATA32(adc->data);
-            //PRINT_E("adc key = %d\n",value);
+            //printf("adc key = %d\n",value);
     		//DRVDelayUs(1000);
     		if( value<=adc->keyValueHigh && value>=adc->keyValueLow)
                 hCnt++;
@@ -362,9 +327,6 @@ int GetPortState(key_config *key)
             return type;
 		}
 	}
-#else
-    return 0;
-#endif
 }
 
 int SetPortOutput(int group, int index, int level)
@@ -394,7 +356,8 @@ int GetPortInput(int group, int index)
     return read_XDATA32(key_gpio.io_read);
 }
 
-#if 0
+
+
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {
     int i;
@@ -402,6 +365,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 	*boot_rockusb = 0;
 	*boot_recovery = 0;
 	*boot_fastboot = 0;
+	printf("checkKey\n");
 	if(GetPortState(&key_rockusb))
 	{
         *boot_rockusb = 1;
@@ -417,57 +381,16 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 		*boot_fastboot = 1;
 		//printf("fastboot key is pressed\n");
 	}
-#if 0
-{
-        for(i=0;i<KeyCombinationNum;i++)
-        {
-    		//if(key_combination[i].type)
-    		{
-    		    // cmy@20100409: 在判断combination按键时，先初始化该IO口
-    			if(GetPortState(&key_combination[i]))// 按下组合键
-    			{
-    			    PRINT_E("COMBINATION key is pressed\n");
-    				*boot_recovery = 1;
-					*boot_rockusb = 0;
-					*boot_fastboot = 0;
-                    if(key_combination[i].type == KEY_GPIO) // TODO:按键值需要修改
-                        recovery_key = key_combination[i].key.gpio.group*32+key_combination[i].key.gpio.index;
-    				break; 
-    			}	
-    		}
-	    }
-	}
-#endif
 	return 0;
 }
-
-/*static int RKGetChipTag(void)
-{
-    uint32 i;
-    uint32 hCnt = 0;
-    uint32 valueL;
-    uint32 valueH;
-    uint32 value;
-    write_XDATA32((GPIO6_BASE_ADDR+0x4), (read_XDATA32(GPIO6_BASE_ADDR+0x4)&(~(0x3ul<<14)))); // portD 4:6 input
-    valueH = (read_XDATA32(GPIO6_BASE_ADDR+0x50)>>14)&0x03;
-    //PRINT_E("valueH = %x\n",valueH);
-    write_XDATA32((GRF_BASE+0x148), 0xC000C000); // GPIO 6 B6~7 disable pull up
-    write_XDATA32((GPIO6_BASE_ADDR+0x4), (read_XDATA32(GPIO6_BASE_ADDR+0x4)|((0x3ul<<14)))); // portD 4:6 out
-    write_XDATA32((GPIO6_BASE_ADDR+0), (read_XDATA32(GPIO6_BASE_ADDR+0)&(~(0x3ul<<14)))); //out put low
-    write_XDATA32((GPIO6_BASE_ADDR+0x4), (read_XDATA32(GPIO6_BASE_ADDR+0x4)&(~(0x3ul<<14)))); // portD 4:6 input
-    valueL = (read_XDATA32(GPIO6_BASE_ADDR+0x50)>>14)&0x03;
-    //PRINT_E("valueL = %x\n",valueL);
-    write_XDATA32((GRF_BASE+0x148), 0xC0000000); // GPIO 6 B6~7 enable pull up
-    value = (valueH<<2)|valueL;
-    //PRINT_E("value = 0x%x\n",value);
-    return value;
-}*/
-
 
 void RockusbKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    key->key.adc.index = 1;
+    if(ChipType == CONFIG_RK3026)
+    	key->key.adc.index = 3;
+    else
+	key->key.adc.index = 1;	
     key->key.adc.keyValueLow = 0;
     key->key.adc.keyValueHigh= 30;
     key->key.adc.data = SARADC_BASE;
@@ -478,7 +401,10 @@ void RockusbKeyInit(key_config *key)
 void RecoveryKeyInit(key_config *key)
 {
     key->type = KEY_AD;
-    key->key.adc.index = 1;
+    if(ChipType == CONFIG_RK3026)
+    	key->key.adc.index = 3;
+    else
+	key->key.adc.index = 1;	
     key->key.adc.keyValueLow = 0;
     key->key.adc.keyValueHigh= 30;
     key->key.adc.data = SARADC_BASE;
@@ -489,17 +415,34 @@ void RecoveryKeyInit(key_config *key)
 
 void FastbootKeyInit(key_config *key)
 {
-    key->type = KEY_GPIO;
-    key->key.gpio.valid = 0; 
-	key->key.gpio.group = 4;
-	key->key.gpio.index = 21;// gpio4C5
-    setup_gpio(&key->key.gpio);
+    key->type = KEY_AD;
+    if(ChipType == CONFIG_RK3026)
+    	key->key.adc.index = 3;
+    else
+	key->key.adc.index = 1;	
+    key->key.adc.keyValueLow = 170;
+    key->key.adc.keyValueHigh= 180;
+    key->key.adc.data = SARADC_BASE;
+    key->key.adc.stas = SARADC_BASE+4;
+    key->key.adc.ctrl = SARADC_BASE+8;
 }
 
-void PowerHoldKeyInit()
+void PowerHoldPinInit()
 {
+   // pin_powerHold.type = KEY_GPIO;
+   // pin_powerHold.key.gpio.valid = 1; 
+
+  //  pin_powerHold.key.gpio.group = 0;
+  //  pin_powerHold.key.gpio.index = 0; // gpio0A0
+  //  setup_gpio(&pin_powerHold.key.gpio);
+  //  if(pin_powerHold.key.gpio.valid)
+  //      powerOn();
+}
+void PowerKeyInit()
+{
+#if 0
     key_power.type = KEY_GPIO;
-    key_power.key.gpio.valid = 1; 
+    key_power.key.gpio.valid = 0; 
     if(ChipType == CONFIG_RK3066)
     {
         key_power.key.gpio.group = 6;
@@ -508,46 +451,98 @@ void PowerHoldKeyInit()
     else
     {
         key_power.key.gpio.group = 0;
-        key_power.key.gpio.index = 0; // gpio0A0
-        //rknand_print_hex("grf:", g_3066B_grfReg,1,512);
+        key_power.key.gpio.index = 4; // gpio0A4
+        //rknand_print_hex("grf:", g_3188_grfReg,1,512);
     }
 
     setup_gpio(&key_power.key.gpio);
+    if(key_power.key.gpio.valid)
+        powerOn();
+#else
+    key_power.type = KEY_INT;
+    key_power.key.ioint.valid = 0; 
+    if(ChipType == CONFIG_RK3066)
+    {
+        key_power.key.ioint.group = 6;
+        key_power.key.ioint.index = 8; // gpio6B0
+    }
+    else
+    {
+        key_power.key.ioint.group = 0;
+        key_power.key.ioint.index = 4; // gpio0A4
+    }
+	printf("setup gpio int\n");
+	clr_all_gpio_int();
+    setup_int(&key_power.key.ioint);
+	IRQEnable(INT_GPIO0);
+#endif
+
 }
 
-void test_port()
+int power_hold() {
+    return GetPortState(&key_power);
+}
+
+
+static key_config charger_state;
+void ChargerStateInit()
 {
-    key_config key;
-    int i,j;
-    uint32 value = 0;
-    uint32 iovalue[7];
+    charger_state.type = KEY_GPIO;
+    charger_state.key.gpio.valid = 1;
+#ifdef CONFIG_RK3288SDK 
+     charger_state.key.gpio.group = 0;//gpio0
+     charger_state.key.gpio.index = 8;//b0
+#else
+     charger_state.key.gpio.group = 0;
+     charger_state.key.gpio.index = 10;
+#endif
 
-	memset(&key, 0, sizeof(key));
-    key.type = KEY_GPIO;
-    key.key.gpio.index = 0;
-    key.key.gpio.valid = 0;
-    memset(iovalue, 0, 7*4);
 
-    while(1)
+    setup_gpio(&charger_state.key.gpio);
+}
+/*
+return 0: no charger
+return 1: charging
+*/
+int is_charging()
+{
+    return !GetPortState(&charger_state);  //gpio0_b2, charger in status
+}
+
+
+void key_init()
+{
+	RockusbKeyInit(&key_rockusb);
+	FastbootKeyInit(&key_fastboot);
+	RecoveryKeyInit(&key_recovery);
+	PowerKeyInit();
+}
+void power_io_ctrl(uint8 mode)
+{
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
+    if(mode)         // 输出高电平
     {
-        for(i=0; i<7; i++)
-        {
-            key.key.gpio.group = i;
-            setup_gpio(&key.key.gpio);
-            // set direction as input
-            write_XDATA32( key.key.gpio.io_dir_conf, (read_XDATA32(key.key.gpio.io_dir_conf)&0x00000000));
-            // enable debounce
-            write_XDATA32((key.key.gpio.io_debounce), (read_XDATA32(key.key.gpio.io_debounce)|0xFFFFFFFF));
-            value = read_XDATA32(key.key.gpio.io_read);
-            if(iovalue[i] != value)
-            {
-                RkPrintf("GPIO%d: %08X\n", i, value);
-                iovalue[i] = value;
-            }
-        }
-//        RkPrintf("---------------\n", i, value);
-		DRVDelayS(1);
+        write_XDATA32((key_gpio->io_write), ReadReg32((key_gpio->io_write))|((1ul<<key_gpio->index))); //out put high
+        write_XDATA32(key_gpio->io_dir_conf, (read_XDATA32(key_gpio->io_dir_conf)|((1ul<<key_gpio->index)))); // port6 B0 out
+    }
+    else                //其他情况输出低电平
+    {
+        write_XDATA32((key_gpio->io_write), ReadReg32((key_gpio->io_write))&(~(1ul<<key_gpio->index))); //out put high
+        write_XDATA32(key_gpio->io_dir_conf, (read_XDATA32(key_gpio->io_dir_conf)|((1ul<<key_gpio->index)))); // port6 B0 out
     }
 }
-#endif
+
+void powerOn(void)
+{
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
+    power_io_ctrl((key_gpio->valid)&0x01);
+}
+
+void powerOff(void)
+{
+    gpio_conf *key_gpio = &pin_powerHold.key.gpio;
+    power_io_ctrl((key_gpio->valid&0x01)==0);
+}
+
+
 
