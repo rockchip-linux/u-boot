@@ -158,6 +158,7 @@ EXT MEM_FUN_T * gpMemFun;
 EXT MEM_FUN_T * gpSdBootMemFun;
 EXT uint32 gIdDataBuf[512];
 EXT uint32 gSysData[512];
+EXT FLASH_INFO g_FlashInfo;
 
 #endif
 
