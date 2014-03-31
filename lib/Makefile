@@ -20,31 +20,23 @@ obj-$(CONFIG_BZIP2) += bzlib_decompress.o
 obj-$(CONFIG_BZIP2) += bzlib_randtable.o
 obj-$(CONFIG_BZIP2) += bzlib_huffman.o
 obj-$(CONFIG_USB_TTY) += circbuf.o
-ifndef CONFIG_ROCKCHIP
 obj-y += crc7.o
 obj-y += crc8.o
 obj-y += crc16.o
-endif
 obj-$(CONFIG_OF_CONTROL) += fdtdec.o
 obj-$(CONFIG_TEST_FDTDEC) += fdtdec_test.o
 obj-$(CONFIG_GZIP) += gunzip.o
 obj-$(CONFIG_GZIP_COMPRESSED) += gzip.o
-ifndef CONFIG_ROCKCHIP
 obj-y += initcall.o
-endif
 obj-$(CONFIG_LMB) += lmb.o
 obj-y += ldiv.o
 obj-$(CONFIG_MD5) += md5.o
-ifndef CONFIG_ROCKCHIP
 obj-y += net_utils.o
-endif
 obj-$(CONFIG_PHYSMEM) += physmem.o
 obj-y += qsort.o
 obj-$(CONFIG_SHA1) += sha1.o
 obj-$(CONFIG_SHA256) += sha256.o
-ifndef CONFIG_ROCKCHIP
 obj-y	+= strmhz.o
-endif
 obj-$(CONFIG_TPM) += tpm.o
 obj-$(CONFIG_RBTREE)	+= rbtree.o
 obj-$(CONFIG_BITREVERSE) += bitrev.o

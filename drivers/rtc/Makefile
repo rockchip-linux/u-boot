@@ -9,9 +9,7 @@
 
 obj-$(CONFIG_RTC_AT91SAM9_RTT) += at91sam9_rtt.o
 obj-$(CONFIG_RTC_BFIN) += bfin_rtc.o
-ifndef CONFIG_ROCKCHIP
 obj-y += date.o
-endif
 obj-$(CONFIG_RTC_DAVINCI) += davinci.o
 obj-$(CONFIG_RTC_DS12887) += ds12887.o
 obj-$(CONFIG_RTC_DS1302) += ds1302.o

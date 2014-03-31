@@ -63,10 +63,7 @@ endif
 CFLAGS_NTR := $(call cc-option,-fno-toplevel-reorder)
 CFLAGS += $(CFLAGS_NTR)
 
-all:	$(obj).depend
-ifndef CONFIG_ROCKCHIP
-	$(OBJS) $(LIB) $(SREC) $(BIN) $(ELF)
-endif
+all:	$(obj).depend $(OBJS) $(LIB) $(SREC) $(BIN) $(ELF)
 
 #########################################################################
 $(LIB):	$(obj).depend $(LIBOBJS)

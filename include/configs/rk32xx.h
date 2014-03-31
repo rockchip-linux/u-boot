@@ -136,8 +136,8 @@ Revision:       1.00
 /*
  * Miscellaneous configurable options
  */
-#undef CONFIG_SYS_LONGHELP		/* undef to save memory */
-#undef CONFIG_SYS_HUSH_PARSER		/* use "hush" command parser	*/
+#define CONFIG_SYS_LONGHELP		/* undef to save memory */
+#define CONFIG_SYS_HUSH_PARSER		/* use "hush" command parser	*/
 #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 #define CONFIG_SYS_PROMPT	"rk30boot # "
 #define CONFIG_SYS_CBSIZE	256	/* Console I/O Buffer Size */
@@ -302,6 +302,7 @@ Revision:       1.00
 #define CONFIG_BATTERY_RK_SAMPLE  //battery driver
 
 
+#if 0
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB
 #undef CONFIG_CMD_BOOTD
@@ -316,8 +317,8 @@ Revision:       1.00
 #undef CONFIG_CMD_ECHO
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
-
-//#define CONFIG_CMD_BOOTM
+#endif
+#define CONFIG_CMD_BOOTM
 #define CONFIG_LMB
 #define CONFIG_OF_LIBFDT
 #define CONFIG_SYS_BOOT_RAMDISK_HIGH

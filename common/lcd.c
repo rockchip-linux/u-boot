@@ -50,10 +50,8 @@
 /************************************************************************/
 /* ** FONT DATA								*/
 /************************************************************************/
-#ifdef CONFIG_LCD_FONT
 #include <video_font.h>		/* Get font data, width and height	*/
 #include <video_font_data.h>
-#endif //CONFIG_LCD_FONT
 
 /************************************************************************/
 /* ** LOGO DATA								*/
@@ -78,7 +76,6 @@
 /************************************************************************/
 /* ** CONSOLE DEFINITIONS & FUNCTIONS					*/
 /************************************************************************/
-#ifdef CONFIG_LCD_FONT
 #if defined(CONFIG_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
 # define CONSOLE_ROWS		((panel_info.vl_row-BMP_LOGO_HEIGHT) \
 					/ VIDEO_FONT_HEIGHT)
@@ -94,7 +91,6 @@
 					- CONSOLE_ROW_SIZE)
 #define CONSOLE_SIZE		(CONSOLE_ROW_SIZE * CONSOLE_ROWS)
 #define CONSOLE_SCROLL_SIZE	(CONSOLE_SIZE - CONSOLE_ROW_SIZE)
-#endif //CONFIG_LCD_FONT
 
 #if LCD_BPP == LCD_MONOCHROME
 # define COLOR_MASK(c)		((c)	  | (c) << 1 | (c) << 2 | (c) << 3 | \
@@ -158,7 +154,6 @@ void lcd_set_flush_dcache(int flush)
 	lcd_flush_dcache = (flush != 0);
 }
 
-#ifdef CONFIG_LCD_FONT
 /*----------------------------------------------------------------------*/
 
 static void console_scrollup(void)
@@ -215,6 +210,7 @@ void lcd_putc(const char c)
 
 		return;
 	}
+
 	switch (c) {
 	case '\r':
 		console_col = 0;
@@ -351,7 +347,6 @@ static inline void lcd_putc_xy(ushort x, ushort y, uchar c)
 {
 	lcd_drawchars(x, y, &c, 1);
 }
-#endif //CONFIG_LCD_FONT
 
 /************************************************************************/
 /**  Small utility to check that you got the colours right		*/
@@ -427,11 +422,8 @@ int drv_lcd_init(void)
 	strcpy(lcddev.name, "lcd");
 	lcddev.ext   = 0;			/* No extensions */
 	lcddev.flags = DEV_FLAGS_OUTPUT;	/* Output only */
-
-#ifdef CONFIG_LCD_FONT
 	lcddev.putc  = lcd_putc;		/* 'putc' function */
 	lcddev.puts  = lcd_puts;		/* 'puts' function */
-#endif //CONFIG_LCD_FONT
 
 	rc = stdio_register(&lcddev);
 
@@ -1244,10 +1236,8 @@ U_BOOT_ENV_CALLBACK(splashimage, on_splashimage);
 
 void lcd_position_cursor(unsigned col, unsigned row)
 {
-#ifdef CONFIG_LCD_FONT
 	console_col = min(col, CONSOLE_COLS - 1);
 	console_row = min(row, CONSOLE_ROWS - 1);
-#endif //CONFIG_LCD_FONT
 }
 
 int lcd_get_pixel_width(void)
@@ -1262,20 +1252,12 @@ int lcd_get_pixel_height(void)
 
 int lcd_get_screen_rows(void)
 {
-#ifdef CONFIG_LCD_FONT
 	return CONSOLE_ROWS;
-#else
-    return 0;
-#endif
 }
 
 int lcd_get_screen_columns(void)
 {
-#ifdef CONFIG_LCD_FONT
 	return CONSOLE_COLS;
-#else
-    return 0;
-#endif
 }
 
 #if defined(CONFIG_LCD_DT_SIMPLEFB)
