@@ -269,18 +269,26 @@ static bool parseLoader(FILE* file) {
     return true;
 }
 
+
+
+void removechar(char *s, char c) 
+{	
+	char *m=s;	char *n=s;	
+	while(*m)  
+	{   
+		if(*m!=c)	
+			*n++=*m;   
+		m++;  
+	}	
+	*n='\0'; 
+}
+
 static bool parseOut(FILE* file) {
 	char *str = 0;
 	char strtime[100] = U_BOOT_DATE "_" U_BOOT_TIME;
 	printf("strtime:%s\n", strtime);
-	str = strchr(strtime, ':');
-	str[0] = '_';
-	str = strchr(strtime, ':');
-	str[0] = '_';
-	str = strchr(strtime, ' ');
-	str[0] = '_';
-	str = strchr(strtime, ' ');
-	str[0] = '_';
+	removechar(strtime, ':');
+	removechar(strtime, ' ');
     SCANF_EAT(file);
     if (fscanf(file, OPT_OUT_PATH "=%[^\r^\n]", gOpts.outPath) != 1)
         return false;
