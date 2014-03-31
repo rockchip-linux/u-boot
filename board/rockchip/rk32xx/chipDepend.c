@@ -232,9 +232,9 @@ bool UsbPhyReset(void)
     }
 
     DRVDelayUs(1100); //1.1ms
-   // g_cruReg->CRU_SOFTRST_CON[4] = ((7ul<<5)<<16)|(7<<5);
+    g_cruReg->CRU_SOFTRST_CON[8] = ((7ul<<4)<<16)|(7<<4);
     DRVDelayUs(10*100);    //delay 10ms
-   // g_cruReg->CRU_SOFTRST_CON[4] = (uint32)((7ul<<5)<<16)|(0<<5);
+    g_cruReg->CRU_SOFTRST_CON[8] = (uint32)((7ul<<4)<<16)|(0<<4);
     DRVDelayUs(1*100);     //delay 1ms
     return (TRUE);
 }
@@ -322,12 +322,12 @@ void EmmcPowerEn(uint8 En)
 
 void SDCReset(uint32 sdmmcId)
 {
-    uint32 data = g_cruReg->CRU_SOFTRST_CON[5];
+    uint32 data = g_cruReg->CRU_SOFTRST_CON[8];
     data = ((1<<16)|(1))<<(sdmmcId + 1);
-  //  g_cruReg->CRU_SOFTRST_CON[5] = data;
+    g_cruReg->CRU_SOFTRST_CON[8] = data;
     DRVDelayUs(100);
     data = ((1<<16)|(0))<<(sdmmcId + 1);
-   // g_cruReg->CRU_SOFTRST_CON[5] = data;
+    g_cruReg->CRU_SOFTRST_CON[8] = data;
     DRVDelayUs(200);
     EmmcPowerEn(1);
 }
@@ -350,7 +350,7 @@ int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
     else    //emmc
     {
         //RkPrintf("SCUSelSDClk 2 %d\n",div);
-      //  g_cruReg->CRU_CLKSEL_CON[12] = (0x3Ful<<24)|(div-1)<<8;
+        g_cruReg->CRU_CLKSEL_CON[12] = (0x3Ful<<24)|(div-1)<<8;
     }
 #endif
     return(0);
