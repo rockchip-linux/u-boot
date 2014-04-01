@@ -66,11 +66,11 @@ int arch_cpu_init(void)
 int print_cpuinfo(void)
 {
 	printf("CPU:\t\tRK32xx\n");
-	printf("arm pll:\t\t%d\n", rk_get_arm_pll());
+	printf("arm pll:\t%d\n", rk_get_arm_pll());
 	printf("general pll:\t%d\n", rk_get_general_pll());
 	printf("codec pll:\t%d\n", rk_get_codec_pll());
-	printf("ddr pll:\t\t%d\n", rk_get_ddr_pll());
-	printf("new pll:\t\t%d\n", rk_get_new_pll());
+	printf("ddr pll:\t%d\n", rk_get_ddr_pll());
+	printf("new pll:\t%d\n", rk_get_new_pll());
 	return 0;
 }
 #endif
