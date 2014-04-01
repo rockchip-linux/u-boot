@@ -368,6 +368,7 @@ struct pll_data {
 static const struct pll_clk_set apll_clks[] = {
 	//rate, nr, nf, no,		a12_div, mp_div, m0_div,	l2, atclk, pclk_dbg
 	_APLL_SET_CLKS(1008000,1, 84, 2,	1, 4, 2,		2, 4, 4),
+	_APLL_SET_CLKS(912000, 1, 76, 2,	1, 4, 2,		2, 4, 4),
 	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 4, 2,		2, 4, 4),
 	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 4, 2,		2, 4, 4),
 };

@@ -14,7 +14,6 @@ $Log     :  Revision 1.00  2009/02/14   nizy
 #include <asm/arch/drivers.h>
 #include <common.h>
 
-extern int rkc_get_arm_pll(void);
 
 #ifndef CONFIG_SYS_DCACHE_OFF
 void enable_caches(void)
@@ -66,12 +65,13 @@ int arch_cpu_init(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	printf("CPU:\tRK3288, arm pll %d\n", rkc_get_arm_pll());
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3299)
-     printf("CPU:\tRK3299, arm pll %d\n", rkc_get_arm_pll());
-#endif
-     return 0;
+	printf("CPU:\t\tRK32xx\n");
+	printf("arm pll:\t\t%d\n", rk_get_arm_pll());
+	printf("general pll:\t%d\n", rk_get_general_pll());
+	printf("codec pll:\t%d\n", rk_get_codec_pll());
+	printf("ddr pll:\t\t%d\n", rk_get_ddr_pll());
+	printf("new pll:\t\t%d\n", rk_get_new_pll());
+	return 0;
 }
 #endif
 

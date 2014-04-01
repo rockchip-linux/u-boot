@@ -66,6 +66,16 @@
  */
 void rkclk_set_pll(void);
 
+int rk_get_arm_pll(void);
+
+int rk_get_general_pll(void);
+
+int rk_get_codec_pll(void);
+
+int rk_get_ddr_pll(void);
+
+int rk_get_new_pll(void);
+
 
 #endif	/* _RKXX_CLOCK_H */
 

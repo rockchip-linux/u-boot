@@ -21,7 +21,7 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 int checkboard(void)
 {
-	puts("Board:\tRK32xx platform Board\n");
+	puts("Board:\t\tRK32xx platform Board\n");
 	return 0;
 }
 #endif

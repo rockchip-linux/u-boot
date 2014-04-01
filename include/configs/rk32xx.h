@@ -158,8 +158,8 @@ Revision:       1.00
 //sp addr before relocate.
 #define CONFIG_SYS_INIT_SP_ADDR     RAM_PHY_END
 
-#define CONFIG_SYS_ICACHE_OFF
-#define CONFIG_SYS_DCACHE_OFF
+//#define CONFIG_SYS_ICACHE_OFF
+//#define CONFIG_SYS_DCACHE_OFF
 #define CONFIG_SYS_L2CACHE_OFF
 #define CONFIG_SYS_ARM_CACHE_WRITETHROUGH
 /*

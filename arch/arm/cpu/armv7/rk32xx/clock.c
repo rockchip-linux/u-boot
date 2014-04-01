@@ -158,9 +158,29 @@ void set_lcdc_dclk(int clk)
 }
 
 
-int rkc_get_arm_pll(void)
+int rk_get_arm_pll(void)
 {
 	return rkclk_pll_clk_get_rate(APLL_ID);
+}
+
+int rk_get_general_pll(void)
+{
+	return rkclk_pll_clk_get_rate(GPLL_ID);
+}
+
+int rk_get_codec_pll(void)
+{
+	return rkclk_pll_clk_get_rate(CPLL_ID);
+}
+
+int rk_get_ddr_pll(void)
+{
+	return rkclk_pll_clk_get_rate(DPLL_ID);
+}
+
+int rk_get_new_pll(void)
+{
+	return rkclk_pll_clk_get_rate(NPLL_ID);
 }
 
 
