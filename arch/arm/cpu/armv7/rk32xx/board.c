@@ -59,13 +59,8 @@ int board_late_init(void)
 	key_init();
 		SecureBootCheck();
 		get_bootloader_ver(NULL);
-		printf("##################################################\n");
-		printf("uboot version: %s\n",U_BOOT_VERSION_STRING);
-		printf("\n#Boot ver: %s\n\n", bootloader_ver);
-		printf("##################################################\n");
-	
+		printf("#Boot ver: %s\n", bootloader_ver);
 		ChargerStateInit();
-	
 		getParameter();
 	
 		//TODO:set those buffers in a better way, and use malloc?

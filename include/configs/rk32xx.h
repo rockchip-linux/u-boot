@@ -284,7 +284,7 @@ Revision:       1.00
 
 #define CONFIG_RK_I2C
 #ifdef CONFIG_RK_I2C
-#define CONFIG_HARD_I2C
+//#define CONFIG_HARD_I2C
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
 #endif
@@ -318,7 +318,7 @@ Revision:       1.00
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
 #endif
-#define CONFIG_CMD_BOOTM
+//#define CONFIG_CMD_BOOTM
 #define CONFIG_LMB
 #define CONFIG_OF_LIBFDT
 #define CONFIG_SYS_BOOT_RAMDISK_HIGH

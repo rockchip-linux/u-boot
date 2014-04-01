@@ -28,7 +28,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 
-#define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
+#define CONFIG_RKCLK_APLL_FREQ		1008 /* MHZ */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 #define CONFIG_RKCLK_GPLL_FREQ		384 /* MHZ */
 #else
@@ -155,6 +155,12 @@ void set_lcdc_dclk(int clk)
     cru_writel((1<<16) | (0xff<<24) | (div<<8) | ((div==div1)?1:0), CRU_CLKSELS_CON(20)); //lcdc1_dclk
     #endif
 
+}
+
+
+int rkc_get_arm_pll(void)
+{
+	return rkclk_pll_clk_get_rate(APLL_ID);
 }
 
 
