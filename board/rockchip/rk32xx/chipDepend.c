@@ -201,7 +201,8 @@ uint32 GetAHBCLK(void)
 
 uint32 GetMmcCLK(void)
 {
-    return (GetAHBCLK());
+    //return (GetAHBCLK());
+     return rk_get_general_pll()/1000;
 }
 
 
@@ -350,7 +351,7 @@ int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
     else    //emmc
     {
         //RkPrintf("SCUSelSDClk 2 %d\n",div);
-        //g_cruReg->CRU_CLKSEL_CON[12] = (0x3Ful<<24)|(div-1)<<8;
+        g_cruReg->CRU_CLKSEL_CON[12] = (0xFFul<<24)|(div-1)<<8 |(1<<14);//emmc use gerenall pll
     }
 #endif
     return(0);
