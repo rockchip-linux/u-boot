@@ -145,7 +145,7 @@ static int display_dram_config(void)
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++)
 		size += gd->bd->bi_dram[i].size;
 
-	puts("DRAM:  ");
+	puts("DRAM:\t\t");
 	print_size(size, "\n");
 #endif
 
@@ -476,7 +476,7 @@ void board_init_f(ulong bootflag)
 #endif
 
 	debug("New Stack Pointer is: %08lx\n", addr_sp);
-    printf("total reserving memory(except stack) is :%dm\n", ((CONFIG_SYS_SDRAM_BASE + gd->ram_size - addr_sp) >> 20) + 1);
+    debug("total reserving memory(except stack) is :%dm\n", ((CONFIG_SYS_SDRAM_BASE + gd->ram_size - addr_sp) >> 20) + 1);
 
 #ifdef CONFIG_POST
 	post_bootmode_init();
