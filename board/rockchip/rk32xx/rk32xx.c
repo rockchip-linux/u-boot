@@ -56,29 +56,6 @@ int get_wfi_status()
 }
 
 
-#if 1//def CONFIG_USE_RK30IRQ
-static int rk30_interrupt_inited = 0;
-
-
-int arch_interrupt_init (void)
-{
-	if(!rk30_interrupt_inited)
-	{
-		printf("arch_interrupt_init\n");
-		InterruptInit();
-		//rk30_reg_irq(irq_init_reg);
-		rk30_interrupt_inited = 1;
-	}
-	return 0;
-}
-#endif /* CONFIG_USE_IRQ */
-
-
-
-
-
-
-
 
 #ifdef CONFIG_OF_LIBFDT
 extern uint32 ddr_get_cap(void);

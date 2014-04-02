@@ -277,7 +277,7 @@ void SoftReset(void)
     pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
 
-    DisableIRQ();
+    disable_interrupts();
     UsbPhyReset();
     OtgReg->Device.dctl |= 0x02;          //soft disconnect
     FW_NandDeInit();

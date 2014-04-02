@@ -131,8 +131,6 @@ static int env_append(const char *buf, int check)
 void env_relocate_spec(void)
 {
 #if !defined(ENV_IS_EMBEDDED)
-	interrupt_init();
-	enable_interrupts();
 	if( StorageInit() == 0)
 		printf("storage init OK!\n");
 	else

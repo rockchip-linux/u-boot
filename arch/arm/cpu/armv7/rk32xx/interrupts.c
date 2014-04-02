@@ -1,17 +1,12 @@
-/*
- * (C) Copyright 2006
- * Stefan Roese, DENX Software Engineering, sr@denx.de.
- *
- * (C) Copyright 2002
- * Sysgo Real-Time Solutions, GmbH <www.elinos.com>
- * Marius Groeger <mgroeger@sysgo.de>
- *
- * (C) Copyright 2002
- * Sysgo Real-Time Solutions, GmbH <www.elinos.com>
- * Alex Zuepke <azu@sysgo.de>
- *
- * SPDX-License-Identifier:	GPL-2.0+
- */
+/********************************************************************************
+		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
+			--  ALL RIGHTS RESERVED  --
+File Name:	
+Author:         
+Created:        
+Modified:
+Revision:       1.00
+********************************************************************************/
 #include <asm/arch/drivers.h>
 #include <common.h>
 #define N_IRQS			143
@@ -23,41 +18,6 @@ struct _irq_handler {
 
 static struct _irq_handler IRQ_HANDLER[N_IRQS];
 uint32 RockusbEn = 1;
-/***************************************************************************
-函数描述:使能IRQ
-入口参数:
-出口参数:
-调用函数:
-***************************************************************************/
-void EnableIRQ(void)
-{
-	unsigned long temp;
-	__asm__ __volatile__("mrs %0, cpsr\n"
-			     "bic %0, %0, #0x80\n"
-			     "msr cpsr_c, %0"
-			     : "=r" (temp)
-			     :
-			     : "memory");
-}
-
-
-/***************************************************************************
-函数描述:使能IRQ
-入口参数:
-出口参数:
-调用函数:
-***************************************************************************/
-void DisableIRQ(void)
-{
-	unsigned long old,temp;
-	__asm__ __volatile__("mrs %0, cpsr\n"
-			     "orr %1, %0, #0xc0\n"
-			     "msr cpsr_c, %1"
-			     : "=r" (old), "=r" (temp)
-			     :
-			     : "memory");
-	return (old & 0x80) == 0;
-}
 
 uint32 IRQEnable(eINT_NUM intNum)
 {
@@ -123,21 +83,6 @@ void DisableOtgIntr(void)
 ***************************************************************************/
 void InterruptInit(void)
 {
-    g_giccReg->ICCEOIR=INT_USB_OTG;
-    g_giccReg->ICCEOIR=INT_eMMC;
-    g_giccReg->ICCICR=0x00;   //disable signalling the interrupt
-    g_gicdReg->ICDDCR=0x00;  
-                                              
-    g_gicdReg->ICDICER[0]=0xFFFFFFFF;
-    g_gicdReg->ICDICER[1]=0xFFFFFFFF;
-    g_gicdReg->ICDICER[2]=0xFFFFFFFF;
-    g_gicdReg->ICDICER[3]=0xFFFFFFFF;
-    g_gicdReg->ICDICFR[3]&=(~(1<<1));
-    EnableIRQ();   
-	g_giccReg->ICCPMR=0xff;     //IntSetPrioFilt
-	g_giccReg->ICCICR|=0x01;    //IntEnalbeSecureSignal
-	g_giccReg->ICCICR|=0x02;    //IntEnalbeNoSecureSignal
-	g_gicdReg->ICDDCR=0x01;     //IntEnalbeDistributor
 }
 
 
@@ -223,28 +168,29 @@ void do_irq (struct pt_regs *pt_regs)
 	IrqHandler();
 }
 
-#if 0
-static int rk30_interrupt_inited = 0;
 int arch_interrupt_init (void)
 {
 	int i;
-	printf("arch_interrupt_init:%d\n", rk30_interrupt_inited);
+	printf("arch_interrupt_init\n");
+    g_giccReg->ICCEOIR=INT_USB_OTG;
+    g_giccReg->ICCEOIR=INT_eMMC;
+    g_giccReg->ICCICR=0x00;   //disable signalling the interrupt
+    g_gicdReg->ICDDCR=0x00;  
+                                              
+    g_gicdReg->ICDICER[0]=0xFFFFFFFF;
+    g_gicdReg->ICDICER[1]=0xFFFFFFFF;
+    g_gicdReg->ICDICER[2]=0xFFFFFFFF;
+    g_gicdReg->ICDICER[3]=0xFFFFFFFF;
+    g_gicdReg->ICDICFR[3]&=(~(1<<1));
+	g_giccReg->ICCPMR=0xff;     //IntSetPrioFilt
+	g_giccReg->ICCICR|=0x01;    //IntEnalbeSecureSignal
+	g_giccReg->ICCICR|=0x02;    //IntEnalbeNoSecureSignal
+	g_gicdReg->ICDDCR=0x01;     //IntEnalbeDistributor
 
 	/* install default interrupt handlers */
-	//for (i = 0; i < N_IRQS; i++)
-	//	irq_install_handler(i, default_isr, (void *)i);
-	if(!rk30_interrupt_inited)
-	{
-		InterruptInit();
-		//rk30_reg_irq(irq_init_reg);
-		rk30_interrupt_inited = 1;
-	}
+	for (i = 0; i < N_IRQS; i++)
+		irq_install_handler(i, default_isr, (void *)i);
 	return 0;
-
-	/* configure interrupts for IRQ mode */
-	//*IXP425_ICLR = 0x00000000;
-
 }
 
-#endif
 
