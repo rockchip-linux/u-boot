@@ -195,14 +195,13 @@ uint32 GetAHBCLK(void)
     Div1 = (AhbClk&0x1F) + 1;
     Div2 = 1<<((AhbClk>>8)&0x3);
     AhbClk = ArmPll/(Div1*Div2);
-    //printf("AhbClk = %d\n",AhbClk);
     return AhbClk*1000;
 }
 
 uint32 GetMmcCLK(void)
 {
     //return (GetAHBCLK());
-     return rk_get_general_pll()/1000;
+     return rk_get_general_pll()/(1000*2); //emmc automic divide setting freq to 1/2,for get the right freq ,we divide this freq to 1/2
 }
 
 

@@ -122,6 +122,264 @@ extern struct rk29_eMMC *eMMC_host;
 #define DTO_EVENT   (0x1 << 1)
 #define DMA_EVENT   (0x1 << 2)
 
+
+#if (1==EN_SD_IDMA)
+/*
+Name:       SDC_WaitBusy
+Desc:       
+Param:      
+Return:     
+Global: 
+Note:   
+Author: 
+Log:
+*/
+int32 SDC_WaitBusy(SDMMC_PORT_E SDCPort)
+{
+    int32           ret = SDC_SUCCESS;
+    pSDC_REG_T      pReg = pSDCReg(SDCPort);
+    //wait busy
+    int32 timeout = 0;
+    volatile uint32 value;
+    
+    while ((value = pReg->SDMMC_STATUS) & DATA_BUSY)
+    {
+        SDOAM_Delay(1);
+        timeout++;
+        if (timeout > 250000 * 4) //写最长时间250ms
+        {
+            ret = SDC_BUSY_TIMEOUT;
+            break;
+        }
+    }
+    return ret;
+}
+
+/*
+Name:       SDC_StartCmd
+Desc:       
+Param:      
+Return:     
+Global: 
+Note:   
+Author: 
+Log:
+*/
+static int32 SDC_StartCmd(pSDC_REG_T	 pReg, uint32 cmd)
+{
+	int32 timeOut = 20000;
+
+	pReg->SDMMC_CMD = cmd;
+	while ((pReg->SDMMC_CMD & START_CMD) && (timeOut > 0))		 
+	{															 
+		timeOut--;							
+	}
+	if(timeOut == 0)
+	{
+		return SDC_SDC_ERROR;
+	}
+	
+	return SDC_SUCCESS;
+}
+
+static void SDC_HandleIDSTS(SDMMC_PORT_E SDCPort)
+{
+    volatile uint32  idsts = 0;
+    pSDC_REG_T       pReg = pSDCReg(SDCPort);
+    pSDC_INFO_T      pSDC = &gSDCInfo[SDCPort];
+    idsts = pReg->SDMMC_IDSTS;
+    if (idsts & IDMAC_FBE) // Fatal Bus Error
+    {
+		pReg->SDMMC_IDSTS = IDMAC_FBE;
+	}
+    if (idsts & IDMAC_DU) // Descriptor Unavailabe Interrupt
+    {
+        pReg->SDMMC_IDSTS = IDMAC_DU;
+        // Since we are getting descriptor Unavailable we are writing a value to 
+        // poll demand Register to release the IDMA from Suspend State.
+        pReg->SDMMC_PLDMND = 0x01; 
+	}
+    if (idsts & IDMAC_CES) // Card Error Summary 
+    {
+        volatile uint32 value = pReg->SDMMC_RINISTS;
+        
+        pReg->SDMMC_IDSTS = IDMAC_CES;
+        if (value & RTO_INT)
+        {
+            pSDC->ErrorStat = SDC_RESP_TIMEOUT;
+        }
+        else if (value & SBE_INT)
+        {
+            pSDC->ErrorStat = SDC_START_BIT_ERROR;
+        }
+        else if (value & EBE_INT)
+        {
+            pSDC->ErrorStat = SDC_END_BIT_ERROR;
+        }
+        else if (value & DRTO_INT)
+        {
+            pSDC->ErrorStat = SDC_DATA_READ_TIMEOUT;
+        }
+        else if (value & DCRC_INT) 
+        {
+            pSDC->ErrorStat = SDC_DATA_CRC_ERROR;
+        }
+        else
+        {
+            pSDC->ErrorStat = SDC_SDC_ERROR;
+        }
+	}
+    if (idsts & IDMAC_AI) // Abnormal Interrupt
+    {                   
+        pReg->SDMMC_IDSTS = IDMAC_AI;
+	}
+    if (idsts & IDMAC_NI) //Normal Interrupt Summary Enable
+    { 
+        pReg->SDMMC_IDSTS = IDMAC_NI;
+	}
+    if (idsts & IDMAC_TI) 
+    {                   // Tx Interrupt
+        pReg->SDMMC_IDSTS = IDMAC_TI;
+    }
+    if (idsts & IDMAC_RI) // Rx Interrupt
+    {                   
+        pReg->SDMMC_IDSTS = IDMAC_RI;
+    }
+}
+
+/*
+Name:       SDC_SetIDMADesc
+Desc:       
+Param:      
+Return:     
+Global: 
+Note:   
+Author: 
+Log:
+*/
+static int32 SDC_SetIDMADesc(SDMMC_PORT_E SDCPort, uint32 buffer, uint32  BufSize)
+{
+     pSDC_INFO_T      pSDC = &gSDCInfo[SDCPort];
+     pSDC_REG_T       pReg = pSDCReg(SDCPort);
+    PSDMMC_DMA_DESC pDesc = (PSDMMC_DMA_DESC)&pSDC->IDMADesc[0];
+    uint32 i, size;
+
+    pReg->SDMMC_DBADDR = (uint32)pDesc;
+    for (i=0; i<MAX_DESC_NUM_IDMAC; i++, pDesc++)
+    {
+        size = MIN(MAX_BUFF_SIZE_IDMAC, BufSize);    
+        pDesc->desc1 = ((size << DescBuf1SizeShift) & DescBuf1SizMsk);
+        pDesc->desc2 =  (uint32)buffer;
+        pDesc->desc0 = DescSecAddrChained | DescOwnByDma | ((i==0)? DescFirstDesc : 0)| DescDisInt;
+
+        BufSize -= size;
+        if (0 == BufSize)
+            break;
+        buffer += size;
+        pDesc->desc3 = (uint32)(pDesc+1);
+    }
+
+    pDesc->desc0 |= DescLastDesc;
+    pDesc->desc0 &= ~DescDisInt;
+
+    return 0;
+}
+
+/*
+Name:       SDC_RequestIDMA
+Desc:       
+Param:      
+Return:     
+Global: 
+Note:   
+Author: 
+Log:
+*/
+static int32 SDC_RequestIDMA(SDMMC_PORT_E SDCPort,
+						uint32	cmd,
+						uint32	CmdArg,
+						void   *pDataBuf,
+						uint32	DataLen)
+{
+	pSDC_INFO_T 	 pSDC = &gSDCInfo[SDCPort];
+	pSDC_REG_T	   	pReg = pSDCReg(SDCPort);
+	uint32			SlaveIntMask;
+	uint32			timeout  = DataLen*10;
+	volatile uint32 value;
+
+	SDC_SetIDMADesc(SDCPort,(uint32)pDataBuf, DataLen);
+
+#if (1==EN_SD_INT)
+	SlaveIntMask = pReg->SDMMC_INTMASK;
+	pReg->SDMMC_INTMASK = 0x00000000; //Mask all slave interrupts
+	pReg->SDMMC_IDINTEN = IDMAC_EN_INT_ALL;
+#endif
+
+	pReg->SDMMC_CTRL |= CTRL_USE_IDMAC;
+	pReg->SDMMC_BMOD |= (BMOD_DE | BMOD_FB);
+	//pReg->SDMMC_FIFOTH = (SD_MSIZE_1 | (RX_WMARK << RX_WMARK_SHIFT) | (TX_WMARK << TX_WMARK_SHIFT));
+	pSDC->ErrorStat = SDC_SUCCESS;
+	pSDC->IDMAOn = 1;
+
+	pReg->SDMMC_CMDARG = CmdArg;
+	if (SDC_SUCCESS != SDC_StartCmd(pReg, (cmd & ~(RSP_BUSY)) | START_CMD | USE_HOLD_REG))
+	{
+		return SDC_SDC_ERROR;
+	}
+
+	do
+	{
+		SDOAM_Delay(1);
+		if((--timeout) == 0 || pSDC->ErrorStat != SDC_SUCCESS) 
+			break;
+	} while ((pReg->SDMMC_RINISTS & (CD_INT | DTO_INT)) != (CD_INT | DTO_INT));
+
+#if (0==EN_SD_INT)
+	value = pReg->SDMMC_RINISTS;
+	if (value & RTO_INT)
+	{
+		pSDC->ErrorStat = SDC_RESP_TIMEOUT;
+	}
+	else if (value & SBE_INT)
+	{
+		pSDC->ErrorStat = SDC_START_BIT_ERROR;
+	}
+	else if (value & EBE_INT)
+	{
+		pSDC->ErrorStat = SDC_END_BIT_ERROR;
+	}
+	else if (value & DRTO_INT)
+	{
+		pSDC->ErrorStat = SDC_DATA_READ_TIMEOUT;
+	}
+	else if (value & DCRC_INT) 
+	{
+		pSDC->ErrorStat = SDC_DATA_CRC_ERROR;
+	}
+#endif
+	
+	pReg->SDMMC_RINISTS = 0xFFFFFFFF;
+#if (1==EN_SD_INT)
+	pReg->SDMMC_IDINTEN = 0x00000000;
+	pReg->SDMMC_IDSTS = 0xFFFFFFFF;
+	pReg->SDMMC_INTMASK = SlaveIntMask;
+#endif
+
+	pReg->SDMMC_CTRL &= ~CTRL_USE_IDMAC;
+	pReg->SDMMC_BMOD &= ~BMOD_DE;
+	pSDC->IDMAOn = 0;
+
+	if((cmd & SD_OP_MASK) == SD_WRITE_OP && (pSDC->ErrorStat == SDC_SUCCESS))
+	{
+		pSDC->ErrorStat = SDC_WaitBusy(SDCPort);
+	}
+	
+	return pSDC->ErrorStat;
+}
+
+#endif
+
+
 /****************************************************************/
 //函数名:SDC_ResetFIFO
 //描述: 清空FIFO
@@ -783,6 +1041,7 @@ static void _SDCISTHandle(SDMMC_PORT_E nSDCPort)
 #endif
     //eMMC_printk(5,"%s, %s  %d, ====irq callback===========\n",__FUNCTION__, __FILE__,__LINE__);
 
+
     value = pReg->SDMMC_MINTSTS;
 #if EN_SD_DMA
     if (value & (RXDR_INT | TXDR_INT))
@@ -965,7 +1224,17 @@ void _SDC1IST(void)
 //static
 void _SDC2IST(void)
 {
-    _SDCISTHandle(SDC2);
+#if (1==EN_SD_IDMA)
+if (gSDCInfo[SDC2].IDMAOn == 1)
+  {
+	  SDC_HandleIDSTS(SDC2);
+  }
+else
+#endif
+{
+   	 _SDCISTHandle(SDC2);
+}
+
 }
 
 /*void EMMC_ISR(void)
@@ -992,7 +1261,6 @@ void SDC_Init(uint32 CardId)
     int32            bUseGpioDet[SDC_MAX];
     int32            timeOut = 0;
     uint32          clkvalue, clkdiv;
-    
     if(CardId == 0)
     {
         /* init global variable */
@@ -1427,6 +1695,21 @@ int32 SDC_ResetController(int32 cardId)
         SDPAM_SDCClkEnable(nSDCPort, FALSE);
         return SDC_SDC_ERROR;
     }
+  
+#if (1==EN_SD_IDMA)
+	pReg->SDMMC_BMOD |= BMOD_SWR;
+	timeOut = 1000;
+	while ((pReg->SDMMC_BMOD & BMOD_SWR) && (timeOut > 0))
+	{
+	SDOAM_Delay(1);
+	timeOut--;
+	}
+	if(timeOut == 0)
+	{
+	SDPAM_SDCClkEnable(nSDCPort, FALSE);
+	return SDC_SDC_ERROR;
+	}
+     #endif
     /* config FIFO */
     pReg->SDMMC_FIFOTH = (SD_MSIZE_16 | (RX_WMARK << RX_WMARK_SHIFT) | (TX_WMARK << TX_WMARK_SHIFT));
     pReg->SDMMC_CTYPE = BUS_1_BIT;
@@ -1785,6 +2068,15 @@ int32 SDC_BusRequest(int32 cardId,
         {
             return SDC_PARAM_ERROR;
         }
+#if (1 == EN_SD_IDMA)
+	pReg->SDMMC_BLKSIZ = blockSize;
+         pReg->SDMMC_BYTCNT = dataLen;  //这个寄存器的长度一定要设置为需要的长度，不用考虑SDMMC控制器的32bit对齐
+	if (dataLen <= MAX_DATA_SIZE_IDMAC && dataLen >= 512)
+	{
+		return SDC_RequestIDMA(cardId, cmd, cmdArg, pDataBuf, dataLen);
+	}
+#endif
+
         if((cmd & SD_OP_MASK) == SD_WRITE_OP)
         {
             if(nSDCPort == SDC0)
