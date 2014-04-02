@@ -121,6 +121,9 @@ const uchar default_environment[] = {
 #ifdef	CONFIG_EXTRA_ENV_SETTINGS
 	CONFIG_EXTRA_ENV_SETTINGS
 #endif
+#ifdef	CONFIG_SILENT_CONSOLE
+	"silent="		"rk silent"			"\0"
+#endif
 	"\0"
 #ifdef DEFAULT_ENV_INSTANCE_EMBEDDED
 	}

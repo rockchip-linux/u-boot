@@ -143,8 +143,5 @@ void env_relocate_spec(void)
     if (!read_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, env_buf)) {
         env_append(env_buf, 1);
     }
-#ifdef CONFIG_SILENT_CONSOLE
-	setenv("silent", "silent\0");
-#endif
 #endif
 }

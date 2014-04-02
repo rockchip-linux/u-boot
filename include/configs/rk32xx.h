@@ -187,6 +187,7 @@ Revision:       1.00
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
 #define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
+//#define CONFIG_SILENT_CONSOLE 1
 
 #define CONFIG_ENV_OFFSET 0
 
@@ -259,7 +260,6 @@ Revision:       1.00
 #define CONFIG_RK3288SDK
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
-//#define CONFIG_SILENT_CONSOLE 1
 #ifdef CONFIG_RK_FB
 #if  (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 #define CONFIG_RK_3066_FB
