@@ -259,6 +259,7 @@ Revision:       1.00
 #define CONFIG_RK3288SDK
 
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
+//#define CONFIG_SILENT_CONSOLE 1
 #ifdef CONFIG_RK_FB
 #if  (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 #define CONFIG_RK_3066_FB
@@ -318,7 +319,6 @@ Revision:       1.00
 #undef CONFIG_CMD_REGINFO
 #undef CONFIG_CMDLINE_EDITING
 #endif
-//#define CONFIG_CMD_BOOTM
 #define CONFIG_LMB
 #define CONFIG_OF_LIBFDT
 #define CONFIG_SYS_BOOT_RAMDISK_HIGH
@@ -328,8 +328,6 @@ Revision:       1.00
 
 #define CONFIG_QUICK_CHECKSUM
 
-//#define CONFIG_RK_I2C
-//#define CONFIG_I2C_MULTI_BUS
 
 //allow to flash loader when check sign failed. should undef this in release version.
 #define CONFIG_ENABLE_ERASEKEY

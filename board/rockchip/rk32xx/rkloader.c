@@ -271,9 +271,11 @@ void getParameter() {
             } else {
                 fbt_partitions[i].size_kb = cmd_mtd->parts[i].size >> 1;
             }
+            #if 0
             printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
                     cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
                     cmd_mtd->parts[i].size);
+            #endif
         }
     }
 }
