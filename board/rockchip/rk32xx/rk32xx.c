@@ -307,10 +307,6 @@ vidinfo_t panel_info = {
 	.init_delay	= 0,
 	.power_on_delay = 0,
 	.reset_delay	= 0,
-#else
-    .vl_col     = 4096,
-    .vl_row     = 4096,
-    .vl_bpix    = 4,
 #endif
 };
 

@@ -368,7 +368,7 @@ struct pll_data {
 static const struct pll_clk_set apll_clks[] = {
 	//rate, nr, nf, no,		a12_div, mp_div, m0_div,	l2, atclk, pclk_dbg
 	_APLL_SET_CLKS(1008000,1, 84, 2,	1, 4, 2,		2, 4, 4),
-        _APLL_SET_CLKS(912000, 1, 76, 2,        1, 4, 2,                2, 4, 4),
+	_APLL_SET_CLKS(912000, 1, 76, 2,	1, 4, 2,		2, 4, 4),
 	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 4, 2,		2, 4, 4),
 	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 4, 2,		2, 4, 4),
 };
@@ -472,13 +472,6 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 	cru_writel(PLL_MODE_NORM(pll_id), CRU_MODE_CON);
 
 	return 0;
-}
-int rk_i2c_deinit(int chanel)
-{
-    printf("%s\n",__func__);
-    cru_writel(1<<(chanel+10)| 1<<(chanel+26),CRU_SOFTRSTS_CON(2));
-    mdelay(1);
-    cru_writel(1<<(chanel+26),CRU_SOFTRSTS_CON(2));
 }
 
 
