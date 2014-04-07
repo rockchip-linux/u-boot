@@ -65,9 +65,8 @@ int pmic_charger_setting(int current)
     return 0;
 }
 
-int pmic_init(unsigned char bus)
+int charger_init(unsigned char bus)
 {
-    //enable lcdc power ldo, and enable other ldo   
     int usb_charger_type = 1;//dwc_otg_check_dpdm();
     ChargerStateInit();
     printf("%s, charger_type = %d, dc_is_charging= %d\n",__func__,usb_charger_type,is_charging());
@@ -75,19 +74,24 @@ int pmic_init(unsigned char bus)
         pmic_charger_setting(3);
     }else if(usb_charger_type){
         pmic_charger_setting(usb_charger_type);
-    } 
-    
+    }
+    return 0;
 
+}
+
+int pmic_init(unsigned char bus)
+{
+    
     i2c_set_bus_num(0);
     i2c_init (CONFIG_SYS_I2C_SPEED, 0x1b);
     i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
     //printf("*******%s MINUTES REG = 0x%x\n",__func__,i2c_reg_read(0x1b,0x1));
     i2c_reg_write(0x1b,0x23,i2c_reg_read(0x1b,0x23)|0x60);
 
-    i2c_reg_write(0x1b,0x45,0x02);
-
-	return 0;
+    i2c_reg_write(0x1b,0x45,0x02); 
+    return 0;
 }
+
 
 void shut_down(void)
 {

@@ -52,8 +52,9 @@ int board_late_init(void)
 #ifdef CONFIG_RK_I2C 
 		rk_i2c_init();
 #endif
-	
-#if defined( CONFIG_POWER_ACT8846) || defined(CONFIG_POWER_RK808) 
+#ifdef CONFIG_POWER_RK808
+	charger_init(0);
+#elif CONFIG_POWER_ACT8846
 		pmic_init(0);
 #endif
 		key_init();
