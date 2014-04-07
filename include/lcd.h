@@ -239,22 +239,41 @@ void init_panel_info(vidinfo_t *vid);
 
 #elif defined(CONFIG_RK_FB)
 
-enum exynos_fb_rgb_mode_t {
-	OUT_P888 = 0,
-	OUT_P666 = 1,
-	OUT_P565 = 2,
-	OUT_P888_DPM =3, //Parallel 24-bit RGB888 double pixel mix out
-	OUT_S888x = 4,
-	OUT_CCIR656_0 = 5,
-	OUT_CCIR656_1 = 6,
-	OUT_CCIR656_2 = 7,
-	OUT_S888 = 8,
-	OUT_S888DUMY = 12,
-	OUT_p888RGBaaa=15,  //Parallel 30-bit RGBaaa output R[9:0],G[9:0],B[9:0]
-	OUT_P16BPP4 = 24,
-	OUT_D888_P666 = 0x21,
-	OUT_D888_P565 = 0x22,
-};
+#define OUT_P888            0	//24bit screen,connect to lcdc D0~D23
+#define OUT_P666            1	//18bit screen,connect to lcdc D0~D17
+#define OUT_P565            2
+#define OUT_S888x           4
+#define OUT_CCIR656         6
+#define OUT_S888            8
+#define OUT_S888DUMY        12
+#define OUT_P16BPP4         24
+#define OUT_D888_P666       0x21	//18bit screen,connect to lcdc D2~D7, D10~D15, D18~D23
+#define OUT_D888_P565       0x22
+
+#define SCREEN_NULL        0
+#define SCREEN_RGB	   1
+#define SCREEN_LVDS	   2
+#define SCREEN_DUAL_LVDS   3
+#define SCREEN_MCU         4
+#define SCREEN_TVOUT       5
+#define SCREEN_HDMI        6
+#define SCREEN_MIPI	   7
+#define SCREEN_DUAL_MIPI   8
+#define SCREEN_EDP         9
+
+#define LVDS_8BIT_1     0
+#define LVDS_8BIT_2     1
+#define LVDS_8BIT_3     2
+#define LVDS_6BIT       3
+
+#define NO_MIRROR	0
+#define X_MIRROR    	1
+#define Y_MIRROR    	2
+#define X_Y_MIRROR    	3
+
+#define PRMRY		1		/*primary display device*/
+#define EXTEND		2		/*extend display device*/
+
 #ifdef CONFIG_RK_3168_FB
 enum exynos_fb_data_format_t {
 	RGB888 = 0,
@@ -282,18 +301,6 @@ enum lay_id {
 	NUM_LAYERS,
 };
 
-enum screen_tpye {
-	SCREEN_NULL = 0,
-	SCREEN_RGB  = 1,
-	SCREEN_LVDS = 2,
-	SCREEN_DUAL_LVDS = 3,
-	SCREEN_MCU  = 4,
-	SCREEN_TVOUT = 5,
-	SCREEN_HDMI  = 6,
-	SCREEN_MIPI  = 7,
-	SCREEN_DUAL_MIPI = 8,
-	SCREEN_EDP = 9,
-};
 
 struct fb_dsp_info{
 	enum lay_id layer_id;
@@ -347,7 +354,7 @@ typedef struct vidinfo {
 	void (*enable_ldo)(unsigned int onoff);
 	void (*mipi_power)(void);
 
-	unsigned int win_id;
+	unsigned int lcdc_id;
 	unsigned int init_delay;
 	unsigned int power_on_delay;
 	unsigned int reset_delay;
@@ -383,14 +390,9 @@ typedef struct vidinfo {
 void init_panel_info(vidinfo_t *vid);
 void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid);
 int rk30_load_screen(vidinfo_t *vid);
-int rk30_lcdc_init();
+int rk30_lcdc_init(int lcdc_id);
 void get_rk_logo_info(vidinfo_t *vid);
 
-
-#define LVDS_8BIT_1     0
-#define LVDS_8BIT_2     1
-#define LVDS_8BIT_3     2
-#define LVDS_6BIT       3
 #ifdef CONFIG_RK616
 
 int rk616_power_on(void);

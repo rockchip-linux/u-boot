@@ -64,6 +64,9 @@
 #include <fastboot.h>
 #include <usbdevice.h>
 #include <asm/sizes.h>
+#ifdef CONFIG_RESOURCE_PARTITION
+#include <resource.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -2092,7 +2095,13 @@ void fbt_preboot(void)
     }
 
 #ifdef CONFIG_ROCKCHIP
+    const void *blob = rk_fdt_resource_load();
+    void *handle = fdt_getprop_u32_default(blob, "/display-timings", "native-mode", -1);
+    int node = fdt_node_offset_by_phandle(blob, handle);
+    int logo_on= fdtdec_get_int(blob, node, "uboot,logo-on", 0);
+    printf("read logo_on switch from dts [%d]\n", logo_on);
 #ifdef CONFIG_LCD
+    if(logo_on)
     drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb                                         
 #endif
 #ifdef CONFIG_RK616
@@ -2115,10 +2124,13 @@ void fbt_preboot(void)
     }
 #endif //CONFIG_UBOOT_CHARGE
 #ifdef CONFIG_ROCKCHIP
-PowerHoldPinInit();
+    powerOn();
 #ifdef CONFIG_LCD
-    lcd_enable_logo(true);
-    rk_backlight_ctrl(48);
+    if(logo_on)
+    {
+        lcd_enable_logo(true);
+        rk_backlight_ctrl(48);
+    }
 #endif
 #endif// CONFIG_ROCKCHIP
 

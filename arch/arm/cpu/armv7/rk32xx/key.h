@@ -4,23 +4,17 @@
 #define KEY_LONG_PRESS			-1
 #define KEY_SHORT_PRESS			1
 typedef enum{
-    KEY_GPIO = 0,   // IO按键
     KEY_AD,      // AD按键
     KEY_INT,
 }KEY_TYPE;
 
 typedef struct
 {
-    int     group;
-    int     index;
-    int     valid;
-
-    // IO操作地址
-	uint32	io_read;
-	uint32  io_write;
-	uint32	io_dir_conf;
-	uint32	io_debounce;
+    const char *name;   /* name of the fdt property defining this */
+    uint gpio;      /* GPIO number, or FDT_GPIO_NONE if none */
+    u8 flags;       /* FDT_GPIO_... flags */
 }gpio_conf;
+
 
 typedef struct
 {
@@ -34,33 +28,27 @@ typedef struct
 
 typedef struct
 {
-    int     group;
-    int     index;
-    int     valid;
-	uint32  int_en;
-	uint32  int_mask;
-	uint32  int_level;
-	uint32  int_polarity;
-	uint32  int_status;
-	uint32  int_eoi;
-	uint32	io_read;
-	uint32	io_dir_conf;
-	uint32  io_debounce;
+    const char *name;   /* name of the fdt property defining this */
+    uint gpio;      /* GPIO number, or FDT_GPIO_NONE if none */
+    u8 flags;       /* FDT_GPIO_... flags */
 	volatile uint32  pressed_state;
 	volatile uint32  press_time;
 }int_conf;
 
 typedef struct {
     KEY_TYPE type;
-    union{
-        gpio_conf   gpio;   
+    union{ 
         adc_conf    adc;    
         int_conf    ioint;    
     }key;
 }key_config;
 
-void boot_gpio_set(void);
-int GetPortState(key_config* gpio);
-int SetPortOutput(int group, int index, int level);
+int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
+int power_hold();
+void key_init();
+int is_charging();
+void powerOn(void);
+void powerOff(void);
+
 #endif
 

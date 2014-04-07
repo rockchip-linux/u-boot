@@ -14,5 +14,5 @@ obj-y	+= clock.o
 obj-y	+= board.o
 obj-y	+= interrupts.o
 obj-y	+= ddr.o
-obj-y	+= gpio.o
+obj-y	+= key.o
 obj-y	+= lowlevel_init.o

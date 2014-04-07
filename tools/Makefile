@@ -168,7 +168,7 @@ LOGO-$(CONFIG_VIDEO_LOGO) += $(LOGO_DATA_H)
 
 # Generic logo
 ifeq ($(LOGO_BMP),)
-LOGO_BMP= logos/denx.bmp
+LOGO_BMP= logos/rockchip.bmp
 
 # Use board logo and fallback to vendor
 ifneq ($(wildcard logos/$(BOARD).bmp),)

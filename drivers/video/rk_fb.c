@@ -12,7 +12,9 @@ Revision:       1.00
 #include <config.h>
 #include <common.h>
 #include <lcd.h>
-    
+#include <fdtdec.h>
+#include <bmp_logo.h>
+
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -33,10 +35,147 @@ static void lcd_panel_on(vidinfo_t *vid)
 
 }
 
+
+#ifdef CONFIG_OF_CONTROL
+int rk_fb_parse_dt(const void *blob)
+{
+	int node;
+    void *handle;
+    
+	handle = fdt_getprop_u32_default(blob, "/display-timings", "native-mode", -1);
+    node = fdt_node_offset_by_phandle(blob, handle);
+	if (node <= 0) {
+		printf("rk_fb: Can't get device node for display-timings\n");
+		return -19;
+	}
+	/* Panel infomation */	
+    panel_info.logo_on = fdtdec_get_int(blob, node, "uboot,logo-on", 0);
+    panel_info.vl_bpix = 4;
+
+    panel_info.lvds_ttl_en  = 0,  // rk32 lvds ttl enable
+    
+    panel_info.lcd_face = fdtdec_get_int(blob, node,"out-face", -1);
+    if (panel_info.lcd_face == (uchar)-1) {
+        printf("Can't get out-face set to OUT_D888_P666 for default\n");
+        panel_info.lcd_face = OUT_D888_P666;
+    }
+    
+	panel_info.vl_col = fdtdec_get_int(blob, node, "hactive", 0);
+	if (panel_info.vl_col == 0) {
+		printf("Can't get hactive set to 1280 for default\n");
+		panel_info.vl_col = 1280;
+	}
+
+	panel_info.vl_row = fdtdec_get_int(blob, node, "vactive", 0);
+	if (panel_info.vl_row == 0) {
+		printf("Can't get vactive set to 800 for default\n");
+		panel_info.vl_row = 800;
+	}
+
+	panel_info.vl_width = fdtdec_get_int(blob, node,
+						"hactive", 0);
+
+	panel_info.vl_height = fdtdec_get_int(blob, node,
+						"vactive", 0);
+
+	panel_info.vl_freq = fdtdec_get_int(blob, node, "clock-frequency", 0)/1000000;
+	if (panel_info.vl_freq == 0) {
+		printf("Can't get clock-frequency set to 71Mhz for default\n");
+		panel_info.vl_freq = 71;
+	}
+    
+    panel_info.vl_oep = fdtdec_get_int(blob, node, "de-active", -1);
+    if (panel_info.vl_oep == (u_char)-1) {
+        printf("Can't get de-active set to 0 for default\n");
+        panel_info.vl_oep = 0;
+    }
+
+    panel_info.vl_hsp = fdtdec_get_int(blob, node, "hsync-active", -1);
+    if (panel_info.vl_hsp == (u_char)-1) {
+        printf("Can't get hsync-active, set to 0 for default\n");
+        panel_info.vl_hsp = 0;
+    }
+    
+    panel_info.vl_vsp = fdtdec_get_int(blob, node, "vsync-active", -1);
+    if (panel_info.vl_vsp == (u_char)-1) {
+        printf("Can't get vsync-active, set to 0 for default\n");
+        panel_info.vl_vsp = 0;
+    }
+    
+    panel_info.lvds_format = fdtdec_get_int(blob, node, "lvds-format", -1);
+    if (panel_info.lvds_format == (u_char)-1) {
+        printf("Can't get lvds-format, set to LVDS_8BIT_2 for default\n");
+        panel_info.lvds_format = LVDS_8BIT_2;
+    }
+
+    panel_info.vl_swap_rb = fdtdec_get_int(blob, node, "swap-rb", -1);
+    if (panel_info.vl_swap_rb == (u_char)-1) {
+        printf("Can't get swap-rb, set to 0 for default\n");
+        panel_info.vl_swap_rb = 0;
+    }
+
+	panel_info.vl_hspw = fdtdec_get_int(blob, node, "hsync-len", 0);
+	if (panel_info.vl_hspw == 0) {
+		printf("Can't get hsync-len, use 10 to default\n");
+        panel_info.vl_hspw = 10;
+	}
+
+	panel_info.vl_hfpd = fdtdec_get_int(blob, node, "hfront-porch", 0);
+	if (panel_info.vl_hfpd == 0) {
+		printf("Can't get hfront-porch, use 18 to default\n");
+		panel_info.vl_hfpd = 18;
+	}
+
+	panel_info.vl_hbpd = (u_char)fdtdec_get_int(blob, node,	"hback-porch", 0);
+	if (panel_info.vl_hbpd == 0) {
+		printf("Can't get hback-porch use 100 to default\n");
+		panel_info.vl_hbpd = 100;
+	}
+
+ 	panel_info.vl_vspw = (u_char)fdtdec_get_int(blob, node, "vsync-len", 0);
+	if (panel_info.vl_vspw == 0) {
+		printf("Can't get vsync-len, use 2 to default\n");
+		panel_info.vl_vspw = 2;
+	}
+
+	panel_info.vl_vfpd = fdtdec_get_int(blob, node, "vfront-porch", 0);
+	if (panel_info.vl_vfpd == 0) {
+		printf("Can't get vfront-porch, use 6 to default\n");
+		panel_info.vl_vfpd = 6;
+	}
+
+	panel_info.vl_vbpd = fdtdec_get_int(blob, node, "vback-porch", 0);
+	if (panel_info.vl_vbpd == 0) {
+		printf("Can't get vback-porch, use 8 to default\n");
+		panel_info.vl_vbpd = 8;
+	}
+    
+    panel_info.lcdc_id = 0;
+    node = fdt_path_offset(blob, "lcdc1");
+    if(PRMRY == fdtdec_get_int(blob, node, "rockchip,prop", 0))
+    {
+        printf("lcdc1 is the prmry lcd controller\n");
+        panel_info.lcdc_id = 1;
+    }
+    
+    printf("read lcd timing from dts!\nlogo_on=%d,lcd_face=0x%x,vl_col=%d,vl_row=%d,vl_freq = %d,lvds_format=%d,lcdc_id=%d\n",
+           panel_info.logo_on, panel_info.lcd_face,panel_info.vl_col, panel_info.vl_row,panel_info.vl_freq,panel_info.lvds_format,panel_info.lcdc_id);
+
+	return 0;
+}
+#endif
+int lcd_get_size(int *line_length)
+{
+    printf("rk %s\n",__func__);
+    return BMP_LOGO_WIDTH*BMP_LOGO_HEIGHT*4;
+}
+
 void lcd_ctrl_init(void *lcdbase)
 {
-    printf("%s [%d]\n",__FUNCTION__,__LINE__);
+//    printf("%s [%d]\n",__FUNCTION__,__LINE__);
     /* initialize parameters which is specific to panel. */
+    
+    rk_fb_parse_dt(getenv_hex("fdtaddr", 0));
     init_panel_info(&panel_info);
     if (panel_info.enable_ldo)
         panel_info.enable_ldo(1);
@@ -46,7 +185,7 @@ void lcd_ctrl_init(void *lcdbase)
     panel_height = panel_info.vl_height;
     g_lcdbase = lcdbase;
 
-    rk30_lcdc_init();
+    rk_lcdc_init(panel_info.lcdc_id);
     rk30_load_screen(&panel_info);
 }
 

@@ -454,7 +454,7 @@ void rk30_lcdc_standby(enable)
 }
 
 
-int rk30_lcdc_init()
+int rk_lcdc_init(int lcdc_id)
 {
     lcdc_clk_enable();
     #ifdef CONFIG_VCC_LCDC_1_8

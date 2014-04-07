@@ -98,6 +98,7 @@
 #define RK3288_DDR_PUBL0_PHYS           0xFF620000
 #define RK3288_DDR_PUBL1_PHYS           0xFF640000
 #define RK3288_DDR_PUBL_SIZE            SZ_4K
+#define RK3288_PWM0123_BASE_ADDR        0xFF680000
 #define RK3288_UART_BT_PHYS             0xFF180000
 #define RK3288_UART_BB_PHYS             0xFF190000
 #define RK3288_UART_DBG_PHYS            0xFF690000
@@ -149,6 +150,10 @@
 #define RK3288_EMMC_SIZE               SZ_64K
 #define RK3288_SAR_ADC_PHY             0xFF100000
 #define RK3288_EMSAR_ADCMC_SIZE        SZ_64K
+
+#define RK3288_LVDS_BASE_ADDR          0xFF96C000
+#define RK3288_VOP_BIG_BASE_ADDR       0xFF930000
+#define RK3288_VOP_LIT_BASE_ADDR       0xFF940000
 
 
 

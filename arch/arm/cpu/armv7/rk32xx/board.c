@@ -52,16 +52,16 @@ int board_late_init(void)
 #ifdef CONFIG_RK_I2C 
 		rk_i2c_init();
 #endif
+	key_init();
 #ifdef CONFIG_POWER_RK808
 	charger_init(0);
 #elif CONFIG_POWER_ACT8846
 		pmic_init(0);
 #endif
-		key_init();
 		SecureBootCheck();
 		get_bootloader_ver(NULL);
 		//printf("#Boot ver: %s\n", bootloader_ver);
-		ChargerStateInit();
+
 		getParameter();
 	
 		//TODO:set those buffers in a better way, and use malloc?

@@ -74,10 +74,10 @@ no message
 #define EN_SD_DMA             (0)
 #endif
 
-#define EN_SD_IDMA            (1) 
+#define EN_SD_IDMA            (0) 
 
 
-#define EN_SD_INT             (1)      //是否采用中断发生来查询一些SDMMC控制器的重要位，1:用中断方式，0:用轮询方式，目前就算用轮询方式，卡检测还是设成中断的
+#define EN_SD_INT             (0)      //是否采用中断发生来查询一些SDMMC控制器的重要位，1:用中断方式，0:用轮询方式，目前就算用轮询方式，卡检测还是设成中断的
 #define EN_SD_PRINTF          (0)      //是否允许SD驱动内部调试信息打印，1:开启打印，0:关闭打印
 #define DEBOUNCE_TIME         (25)     //卡拔插的消抖动时间,单位ms
 
@@ -87,7 +87,7 @@ no message
 #define SDHC_FPP_FREQ         (40000)  //SDHC卡在高速模式下的工作频率，单位KHz，协议规定最大50MHz
 #define MMC_FPP_FREQ          (18000)  //标准MMC卡正常工作频率，单位KHz，协议规定最大20MHz
 #define MMCHS_26_FPP_FREQ     (25000)  //高速模式只支持最大26M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大26MHz
-#define MMCHS_52_FPP_FREQ     (48000)  //高速模式能支持最大52M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大52MHz
+#define MMCHS_52_FPP_FREQ     (40000)//(48000)  //高速模式能支持最大52M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大52MHz
 
 #if(!EN_SD_PRINTF)
 #define SDOAM_Printf(...)

@@ -128,7 +128,7 @@ void IrqHandler(void)
     #endif	
 	
 #endif
-    else if(intSrc >= INT_GPIO0 && intSrc <= INT_GPIO3)
+    else if(intSrc >= INT_GPIO0 && intSrc <= INT_GPIO8)
     {
 		gpio_isr(intSrc-INT_GPIO0);
     }

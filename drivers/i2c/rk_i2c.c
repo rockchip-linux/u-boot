@@ -99,7 +99,12 @@ struct rk30_i2c {
 
 #ifdef CONFIG_I2C_MULTI_BUS
  struct rk30_i2c rki2c_base[I2C_BUS_MAX] = {
- #if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
+ #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+ 	{ .regs = I2C0_BASE_ADDR, 0},
+	{ .regs = I2C1_BASE_ADDR, 0},
+	{ .regs = I2C2_BASE_ADDR, 0},
+	{ .regs = I2C3_BASE_ADDR, 0},
+ #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
  	{ .regs = I2C0_BASE_ADDR + SZ_8K, 0 },
 	{ .regs = I2C1_BASE_ADDR + SZ_8K, 0 },
 	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },
@@ -438,6 +443,7 @@ static void rk_i2c_init(int speed)
 #endif
 	rk_i2c_set_clk(i2c, speed);
 }
+
 
 #ifdef CONFIG_I2C_MULTI_BUS
 unsigned int i2c_get_bus_num(void)

@@ -298,7 +298,7 @@ void board_init_f(ulong bootflag)
 		}
 	}
 
-#ifdef CONFIG_OF_CONTROL
+#if defined(CONFIG_OF_CONTROL) && !defined(CONFIG_ROCKCHIP)
 	/* For now, put this check after the console is ready */
 	if (fdtdec_prepare_fdt()) {
 		panic("** CONFIG_OF_CONTROL defined but no FDT - please see "

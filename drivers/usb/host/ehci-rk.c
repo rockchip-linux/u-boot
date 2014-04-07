@@ -7,6 +7,7 @@
 #include <usb.h>
 
 #include "ehci.h"
+#include <asm/arch/gpio.h>
 
 #define RK32_EHCI_BASE (0xff500000)
 /*
@@ -17,7 +18,7 @@ int ehci_hcd_init(int index, enum usb_init_type init,
 		struct ehci_hccr **hccr, struct ehci_hcor **hcor)
 {
 	// TODO: POWER enable for ehci hcd 1.2V, external 5V power
-	SetPortOutput(0,14,1);   //gpio0_B6  output high
+	gpio_direction_output(RK3288_GPIO0_PHYS|GPIO_B6, 1); //gpio0_B6  output high
 	
 	// TODO: enable clock
 	

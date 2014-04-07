@@ -10,9 +10,9 @@ Revision:       1.00
 
 
 #include <common.h>
-#include <asm/arch/rk30_memap.h>
+#include <asm/arch/iomap.h>
 #include <lcd.h>
-#include <asm/arch/rk30_drivers.h>
+#include <asm/arch/drivers.h>
 
 
 #define LcdReadBit(addr, msk)      ((regbak.addr=preg->addr)&(msk))
@@ -400,8 +400,7 @@ typedef volatile struct tagLCDC_REG
 #define LVDS_CH1_EN			(0x01 << 12)
 #define LVDS_PWRDN			(0x01 << 15)
 
-#define preg ((pLCDC_REG)VOP_BIG_BASE_ADDR)
-#define lvds_regs LVDS_BASE_ADDR
+#define lvds_regs  RK3288_LVDS_BASE_ADDR
 
 enum 
 {
@@ -413,8 +412,9 @@ enum
     LB_RGB_1280X8 = 0x5 
 };
 
-//LCDC_REG *preg = LCDC0_BASE;  
+LCDC_REG *preg = NULL;  
 LCDC_REG regbak;
+
 
 void writel_relaxed(uint32 val, uint32 addr)
 {
@@ -444,11 +444,10 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	u32 i,j, val ;
 
 	int screen_type = SCREEN_RGB;
-	
-	//screen->lcdc_id = 1;
-	//if (screen->lcdc_id == 1) /*lcdc1 = vop little,lcdc0 = vop big*/
-	//	val = LVDS_SEL_VOP_LIT | (LVDS_SEL_VOP_LIT << 16);
-	//else
+    
+	if (vid->lcdc_id == 1) /*lcdc1 = vop little,lcdc0 = vop big*/
+		val = LVDS_SEL_VOP_LIT | (LVDS_SEL_VOP_LIT << 16);
+	else
 		val = LVDS_SEL_VOP_LIT << 16;  // video source from vop0 = vop big
     g_grfReg->GRF_SOC_CON[6] = val;
 
@@ -703,10 +702,9 @@ void rk30_lcdc_standby(enable)
     LCDC_REG_CFG_DONE();  
 }
 
-int rk30_lcdc_init()
+int rk_lcdc_init(int lcdc_id)
 {
- //   g_grfReg->GRF_GPIO1D_IOMUX = (((0x55)<<16)|0x55);   // [6] 1'b1:lcdc0_dclk,[4]1'b1:lcdc0_den;[2]1'b1:lcdc0_vsync [0]1'b1:lcdc0_hsync
-
+    preg = (lcdc_id == 1) ? RK3288_VOP_LIT_BASE_ADDR : RK3288_VOP_BIG_BASE_ADDR;  
     g_grfReg->GRF_IO_VSEL = 1<<16;  //LCDCIOdomain 3.3 Vvoltageselectio
     
     lcdc_clk_enable();
