@@ -2132,6 +2132,7 @@ void fbt_preboot(void)
         rk_backlight_ctrl(48);
     }
 #endif
+    rkclk_soft_reset();
 #endif// CONFIG_ROCKCHIP
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {

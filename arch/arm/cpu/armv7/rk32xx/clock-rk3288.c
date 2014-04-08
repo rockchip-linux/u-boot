@@ -400,6 +400,14 @@ struct pll_data rkpll_data[END_PLL_ID] = {
 	SET_PLL_DATA(GPLL_ID, gpll_clks, ARRAY_SIZE(gpll_clks)),
 };
 
+int rkclk_soft_reset()
+{
+    printf("%s\n",__func__);
+    cru_writel(0x3f<<10 | 0x3f<<26, CRU_SOFTRSTS_CON(2));  //soft reset i2c0 - i2c5
+    mdelay(1);
+    cru_writel(0x3f<<26, CRU_SOFTRSTS_CON(2));
+    return 0;
+}
 
 static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
