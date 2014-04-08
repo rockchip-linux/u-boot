@@ -48,9 +48,9 @@ int board_late_init(void)
 	stdio_print_current_devices();
 
 	printf("board_late_init\n");
-	
+	ChipTypeCheck();
 #ifdef CONFIG_RK_I2C 
-		rk_i2c_init();
+	rk_i2c_init();
 #endif
 	key_init();
 #ifdef CONFIG_POWER_RK808

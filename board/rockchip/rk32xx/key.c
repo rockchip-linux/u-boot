@@ -223,7 +223,6 @@ int power_hold() {
 
 void key_init()
 {
-    ChipTypeCheck();
     charge_state_gpio.name = "charge_state";
     charge_state_gpio.flags = 0;
     charge_state_gpio.gpio = RK3288_GPIO0_PHYS | GPIO_B0;
