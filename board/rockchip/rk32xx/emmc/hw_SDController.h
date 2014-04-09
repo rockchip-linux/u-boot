@@ -27,14 +27,8 @@ Revision 1.1  2011/01/07 11:55:39  Administrator
 #define SDC0_ADDR         (RK3288_SDMMC_PHY)
 #define SDC1_ADDR         (RK3288_SDMMC_PHY)
 #define SDC2_ADDR         (RK3288_EMMC_PHY)
-
-#if(PALTFORM == RK30XX || PALTFORM == RK292X )
-//#define SD_FIFO_OFFSET    0x200
-//#define FIFO_DEPTH        (0x100)       //FIFO depth = 256 word
-#else
-//#define SD_FIFO_OFFSET    0x100
-//#define FIFO_DEPTH        (0x20)       //FIFO depth = 256 word
-#endif
+#define SD_FIFO_OFFSET    0x200
+#define FIFO_DEPTH        (0x100)       //FIFO depth = 256 word
 
 #define SDC0_FIFO_ADDR    (SDC0_ADDR + SD_FIFO_OFFSET)
 #define SDC1_FIFO_ADDR    (SDC1_ADDR + SD_FIFO_OFFSET)

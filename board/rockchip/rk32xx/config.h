@@ -25,7 +25,7 @@ Revision:		1.00
 #define     RK32XX   0x40
 #define     RK_ALL   0xFF
 
-#include    "paltConfig.h" 
+#define     PALTFORM    RK30XX
 
 //#define     LINUX_LOADER
 #define     SECURE_BOOT_ENABLE

@@ -254,7 +254,7 @@ MEM_FUN_T NandFunOp =
 #ifdef RK_SDMMC_BOOT_EN
 MEM_FUN_T emmcFunOp = 
 {
-    SDMMC_SDC_ID,
+    2,
     BOOT_FROM_EMMC,
     0,
     SdmmcInit,

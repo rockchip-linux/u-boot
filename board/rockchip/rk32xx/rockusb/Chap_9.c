@@ -44,10 +44,8 @@ void get_descriptor(void)
                 length = ControlData.DeviceRequest.wLength;
 
             ftl_memcpy(Ep0Buf, (uint8*)&HSDeviceDescr, length);
-#if(RK_MODIFY_USB_VIDPID_EN)
             pDeviceDescr = (USB_DEVICE_DESCRIPTOR *)Ep0Buf;
             ModifyUsbVidPid(pDeviceDescr);
-#endif			
             if (BulkEpSize==FS_BULK_TX_SIZE)
             {
                 USB_DEVICE_DESCRIPTOR *ptr;
