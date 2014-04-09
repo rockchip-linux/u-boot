@@ -9,7 +9,7 @@ Revision:       1.00
 ********************************************************************************/
 #include "rkimage.h"
 #include "rkloader.h"
-#include "ext_fs.h"
+//#include "ext_fs.h"
 #include "sha.h"
 #include "parameter.h"
 
