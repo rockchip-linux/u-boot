@@ -14,7 +14,7 @@ Revision:       1.00
 #include <asm/io.h>
 #include <lcd.h>
 #include "rkimage.h"
-#include "rkloader.h"
+#include "idblock.h"
 #include "i2c.h"
 #include <power/pmic.h>
 #include <version.h>
