@@ -17,6 +17,7 @@ Revision:       1.00
 
 #define ALIGN(x,a)      __ALIGN_MASK((x),(typeof(x))(a)-1)
 #define __ALIGN_MASK(x,mask)    (((x)+(mask))&~(mask))
+extern uint8* g_pLoader;
 
 static int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {

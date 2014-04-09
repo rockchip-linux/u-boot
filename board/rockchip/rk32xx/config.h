@@ -139,11 +139,16 @@ Revision:		1.00
 #endif
 
 //#include 			"../common/dma.h"
-#include			"Mainloop.h"	//测试头文件
+extern uint32 SecureBootEn;
+extern uint32 SecureBootCheckOK;
+extern uint32 g_BootRockusb;
+extern uint32  SecureBootLock;
+extern uint32  SecureBootLock_backup;
+
 #include            "rockusb/dwc_otg_regs.h"
 #include 		    "rockusb/rockusb.h"  //固件升级头文件
 //#include            "gpio_oper.h"
-#include            "bootloader.h"
+//#include            "bootloader.h"
 #include			"parameter.h"	// Loader参数文件
 //#include			"../common/rk_dbg.h"		// debug file
 //#include            "hw_mm.h" // MMU

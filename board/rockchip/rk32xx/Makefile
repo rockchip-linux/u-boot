@@ -14,7 +14,6 @@ obj-y += rkimage.o
 obj-y += rkloader.o
 obj-y += fastboot.o
 obj-y	+= key.o
-obj-$(CONFIG_ZYF) += bootloader.o
 obj-$(CONFIG_ZYF) += enter_recovery.o
 obj-$(CONFIG_ZYF) += parameter.o
 obj-$(CONFIG_ZYF) += rsa.o
