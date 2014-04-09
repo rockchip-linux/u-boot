@@ -18,7 +18,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 //from MainLoop.c
 uint32 g_bootRecovery;
-uint32 g_FwEndLba;
 uint32 g_BootRockusb;
 
 uint32 krnl_load_addr = 0;

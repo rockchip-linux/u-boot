@@ -1,4 +1,5 @@
-#include "config.h"
+#include <asm/arch/drivers.h>
+#include "parameter.h"
 
 extern uint32 krnl_load_addr;
 extern uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize );
@@ -8,6 +9,7 @@ extern uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize );
 //uint8 gParamBuffer[MAX_LOADER_PARAM];	// 限制最大的Parameters的字节数为:32*512
 //suint8 *gParamBuffer;	// 限制最大的Parameters的字节数为:32*512
 BootInfo gBootInfo;
+uint32 g_FwEndLba;
 cmdline_mtd_partition *g_mymtd = &(gBootInfo.cmd_mtd);
 
 uint32 parameter_lba;
@@ -84,6 +86,157 @@ int get_rdInfo(PBootInfo pboot_info)
 	}
 	return 0;
 }
+
+int isxdigit(int c)
+{
+	if( (c >= 'A' && c <= 'Z')
+		|| (c>='a' && c<='z')
+		|| (c>='0' && c<='9'))
+		return 1;
+	
+	return 0;
+}
+
+int isdigit(int c)
+{
+	if(c>='0' && c<='9')
+		return 1;
+	
+	return 0;
+}
+unsigned long memparse (char *ptr, char **retptr)
+{
+	unsigned long ret = simple_strtoull (ptr, retptr, 0);
+
+	switch (**retptr) {
+	case 'G':
+	case 'g':
+		ret <<= 10;
+	case 'M':
+	case 'm':
+		ret <<= 10;
+	case 'K':
+	case 'k':
+		ret <<= 10;
+		(*retptr)++;
+	default:
+		break;
+	}
+	return ret;
+}
+
+int get_part(char* parts, mtd_partition* this_part, int* part_index)
+{
+	char delim;
+	unsigned int mask_flags;
+	unsigned int size = 0;
+	unsigned int offset;
+	char name[PART_NAME]="\0";
+
+	if (*parts == '-')
+	{	/* assign all remaining space to this partition */
+		size = SIZE_REMAINING;
+		parts++;
+	}
+	else
+	{
+		size = memparse(parts, &parts);
+	}
+	
+	/* check for offset */
+	if (*parts == '@')
+	{
+		parts++;
+		offset = memparse(parts, &parts);
+    }
+
+	mask_flags = 0; /* this is going to be a regular partition */
+	delim = 0;
+
+	/* now look for name */
+	if (*parts == '(')
+	{
+		delim = ')';
+	}
+	
+	if (delim)
+	{
+		char *p;
+		
+		if ((p = strchr(parts+1, delim)) == 0)
+		{
+//			printk(KERN_ERR ERRP "no closing %c found in partition name\n", delim);
+			return 0;
+		}
+		strncpy(name, parts+1, p-(parts+1));
+		parts = p + 1;
+	}
+	else
+	{ /* Partition_000 */
+		sprintf(name, "Partition_%03d", *part_index);
+	}
+	
+	/* test for options */
+	if (strncmp(parts, "ro", 2) == 0)
+	{
+		mask_flags |= MTD_WRITEABLE;
+		parts += 2;
+	}
+	
+	/* if lk is found do NOT unlock the MTD partition*/
+	if (strncmp(parts, "lk", 2) == 0)
+	{
+		mask_flags |= MTD_POWERUP_LOCK;
+		parts += 2;
+	}
+
+	this_part->size = size;
+	this_part->offset = offset;
+	this_part->mask_flags = mask_flags;
+	sprintf( this_part->name, "%s", name);
+
+	if( (++(*part_index) < MAX_PARTS) && (*parts == ',') )
+	{
+		get_part(++parts, this_part+1, part_index);
+	}
+
+	return 1;
+}
+
+int mtdpart_parse(const char* string, cmdline_mtd_partition* this_mtd)
+{
+	char *token = NULL;
+	char *s=NULL;
+	char *p = NULL;
+	char cmdline[MAX_LINE_CHAR];
+
+	strcpy(cmdline, string);
+
+	token = strtok(cmdline, " ");
+	while(token != NULL)
+	{
+		if( !strncmp(token, "mtdparts=", strlen("mtdparts=")) )
+		{
+			s = token + strlen("mtdparts=");
+			break;
+			
+		}
+		token = strtok(NULL, " ");
+	}
+	
+	if(s != NULL)
+	{
+		if (!(p = strchr(s, ':')))
+			return 0;
+
+		strncpy(this_mtd->mtd_id, s, p-s);
+		s = p+1;
+		get_part(s, this_mtd->parts+this_mtd->num_parts, &(this_mtd->num_parts));
+	}
+
+	return 1;
+}
+
 
 
 int parse_cmdline(PBootInfo pboot_info)
@@ -297,7 +450,7 @@ void ParseLine(PBootInfo pboot_info, char *line)
 		EATCHAR(line, ' ');
 		strcpy( pboot_info->cmd_line, line );
 
-		PRINT_I("ORG CMDLINE: %s\n", pboot_info->cmd_line);
+		//printf("ORG CMDLINE: %s\n", pboot_info->cmd_line);
 		parse_cmdline(pboot_info);
 	}
 	// cmy: get firmware version
@@ -306,7 +459,7 @@ void ParseLine(PBootInfo pboot_info, char *line)
 		line += strlen("FIRMWARE_VER:");
 		EATCHAR(line, ' ');
 		strcpy( pboot_info->fw_version, line );
-		PRINT_I("FIRMWARE_VER: %s\n", pboot_info->fw_version);
+		//printf("FIRMWARE_VER: %s\n", pboot_info->fw_version);
 	}
     //add by cjf, for fdt
     else if (!memcmp(line, "FDT_NAME:", strlen("FDT_NAME:")) )
@@ -314,11 +467,11 @@ void ParseLine(PBootInfo pboot_info, char *line)
 		line += strlen("FDT_NAME:");
 		EATCHAR(line, ' ');
 		strcpy( pboot_info->fdt_name, line );
-		PRINT_I("FDT_NAME: %s\n", pboot_info->fdt_name);
+		//printf("FDT_NAME: %s\n", pboot_info->fdt_name);
     }
 
 	else
-		PRINT_I("Unknow param: %s!\n", line);
+		printf("Unknow param: %s!\n", line);
 }
 
 //
@@ -354,20 +507,20 @@ int CheckParam(PLoaderParam pParam)
 	{
 		if(pParam->tag != PARM_TAG)
 		{
-			RkPrintf("W: Invalid Parameter's tag (0x%08X)!\n", pParam->tag);
+			printf("W: Invalid Parameter's tag (0x%08X)!\n", pParam->tag);
 			return -2;
 		}
 		
 		if( pParam->length > (MAX_LOADER_PARAM-12) )
 		{
-			RkPrintf("E: Invalid parameter length(%d)!\n", pParam->length);
+			printf("E: Invalid parameter length(%d)!\n", pParam->length);
 			return -3;
 		}
 
 		crc = CRC_32CheckBuffer((unsigned char*)pParam->parameter, pParam->length+4);
 		if(!crc)
 		{
-			RkPrintf("E:Para CRC failed!\n","");
+			printf("E:Para CRC failed!\n","");
 			return -4;
 		}
 	}
@@ -391,7 +544,7 @@ int32 GetParam(uint32 param_addr, void *buf)
 	int i=0;
 	int iRet = 0;
 	int read_sec = MAX_LOADER_PARAM>>9;
-	RkPrintf("GetParam\n","");
+	printf("GetParam\n","");
 
 	for(i=0; i<PARAMETER_NUM; i++)
 	{
@@ -400,18 +553,18 @@ int32 GetParam(uint32 param_addr, void *buf)
 			iResult = CheckParam(param);
 			if(iResult >= 0)
 			{
-				RkPrintf("check parameter success\n","");
+				printf("check parameter success\n","");
 				return 0;
 			}
 			else
 			{
-				RkPrintf("Invalid parameter\n","");
+				printf("Invalid parameter\n","");
 				iRet = -1;
 			}
 		}
 		else
 		{
-			RkPrintf("read parameter fail\n","");
+			printf("read parameter fail\n","");
 			iRet = -2;
 		}
 	}

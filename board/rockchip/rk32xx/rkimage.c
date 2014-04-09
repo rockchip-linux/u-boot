@@ -11,6 +11,7 @@ Revision:       1.00
 #include "rkloader.h"
 #include "ext_fs.h"
 #include "sha.h"
+#include "parameter.h"
 
 #undef ALIGN
 

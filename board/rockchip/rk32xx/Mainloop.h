@@ -35,7 +35,6 @@ extern uint8* g_pLoader;
 extern uint8* g_pReadBuf;
 extern uint8* g_pFlashInfoData;
 extern uint32 g_bootRecovery;
-extern uint32 g_FwEndLba;
 
 extern uint32 g_Rk29xxChip;
 extern uint32 SecureBootEn;

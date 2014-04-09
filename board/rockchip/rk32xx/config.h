@@ -151,8 +151,6 @@ Revision:		1.00
 
 
 // by cmy
-#define PARAMETER_NUM			8			// parameter文件的备份个数
-#define PARAMETER_OFFSET		1024			// 每个parameter的偏移量
 #define SYS_LOADER_REBOOT_FLAG   0x5242C300  //高24是TAG,低8位是标记
 #define SYS_KERNRL_REBOOT_FLAG   0xC3524200  //高24是TAG,低8位是标记
 

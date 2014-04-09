@@ -1,14 +1,46 @@
 #ifndef _PARAMETER_H_
 #define _PARAMETER_H_
 
-#include "mtdpart.h"
+#define PARAMETER_NUM			8			// parameter文件的备份个数
+#define PARAMETER_OFFSET		1024			// 每个parameter的偏移量
 
 #define MAX_LINE_CHAR		(1024*64)	        // Parameters有多个Line组成，限制每个Line最大占1024 Bytes
 #define MAX_LOADER_PARAM	(128*512)		// Parameters所占的最大Sector数(含tag、length、crc等)
 #define PARM_TAG			0x4D524150
 #define MAGIC_CODE			0x00280028
 #define EATCHAR(x, c) for (; *(x) == (c); (x)++) ; // 去除字符串x中左边为c的字符
+#define PART_NAME	32
+#define MAX_PARTS	20
+#define MAX_MTDID	64
 
+#define MTD_WRITEABLE				0x400	/* Device is writeable */
+#define MTD_POWERUP_LOCK			0x2000	/* Always locked after reset */
+
+
+#define SIZE_REMAINING		0xFFFFFFFF
+
+
+#define PARTNAME_MISC			"misc"
+#define PARTNAME_KERNEL			"kernel"
+#define PARTNAME_BOOT			"boot"
+#define PARTNAME_RECOVERY		"recovery"
+#define PARTNAME_SYSTEM		    "system"
+#define PARTNAME_BACKUP			"backup"
+#define PARTNAME_SNAPSHOT		"snapshot"
+
+
+typedef struct tag_mtd_partition {
+	char name[PART_NAME];			/* identifier string */
+	unsigned int size;			/* partition size */
+	unsigned int offset;		/* offset within the master MTD space */
+	unsigned int mask_flags;		/* master MTD flags to mask out for this partition */
+}mtd_partition;
+
+typedef struct tag_cmdline_mtd_partition {
+	char mtd_id[MAX_MTDID];
+	int num_parts;
+	mtd_partition parts[MAX_PARTS];
+}cmdline_mtd_partition;
 
 typedef struct tagLoaderParam
 {
