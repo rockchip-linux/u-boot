@@ -166,8 +166,8 @@ int rk_fb_parse_dt(const void *blob)
 #endif
 int lcd_get_size(int *line_length)
 {
-    printf("rk %s\n",__func__);
-    return BMP_LOGO_WIDTH*BMP_LOGO_HEIGHT*4;
+   // printf("rk %s\n",__func__);
+    return CONFIG_LCD_MAX_WIDTH * CONFIG_LCD_MAX_HEIGHT * 2; //BMP_LOGO_WIDTH*BMP_LOGO_HEIGHT*4; //
 }
 
 void lcd_ctrl_init(void *lcdbase)
