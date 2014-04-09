@@ -1,5 +1,5 @@
 #include "config.h"
-#include "mk_various_file.h"
+//#include "mk_various_file.h"
 
 extern int parse_cmdline(PBootInfo pboot_info);
 
@@ -52,7 +52,7 @@ void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd )
             int i;
 			char replace_str[64]="";
             //parameter is 4M.
-			sprintf(replace_str, "0x00002000@0x%08X(%s),", 0, PARTNAME_PARAMETER);
+			sprintf(replace_str, "0x00002000@0x%08X(%s),", 0, "parameter");
 			s += strlen(szFind);
 			replace_fore_string(s, 0, replace_str);
 		}
