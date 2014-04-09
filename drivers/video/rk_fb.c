@@ -49,7 +49,7 @@ int rk_fb_parse_dt(const void *blob)
 		return -19;
 	}
 	/* Panel infomation */	
-    panel_info.logo_on = fdtdec_get_int(blob, node, "uboot,logo-on", 0);
+    panel_info.logo_on = fdtdec_get_int(blob, 0, "uboot,logo-on", 0);
     panel_info.vl_bpix = 4;
 
     panel_info.lvds_ttl_en  = 0,  // rk32 lvds ttl enable
@@ -154,7 +154,6 @@ int rk_fb_parse_dt(const void *blob)
     node = fdt_path_offset(blob, "lcdc1");
     if(PRMRY == fdtdec_get_int(blob, node, "rockchip,prop", 0))
     {
-        printf("lcdc1 is the prmry lcd controller\n");
         panel_info.lcdc_id = 1;
     }
     
@@ -191,7 +190,6 @@ void lcd_ctrl_init(void *lcdbase)
 
 void lcd_enable(void)
 {
-    printf("%s [%d]\n",__FUNCTION__,__LINE__);
     if (panel_info.logo_on) {
         rk30_lcdc_set_par(&panel_info.par[0].fb_info, &panel_info);
     }

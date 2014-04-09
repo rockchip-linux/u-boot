@@ -616,71 +616,69 @@ static inline ushort *configuration_get_cmap(void)
 #endif
 }
 
-#if defined(CONFIG_RK_FB) && defined(CONFIG_OF_CONTROL)
-#include <fdtdec.h>
-void bitmap_plot(int x, int y)
+#if defined(CONFIG_RK_FB)
+#include <resource.h>
+int rk_bitmap_from_resource(unsigned short* fb) 
 {
-    u32 *cmap;
-    u32 *cdata;
-    unsigned short* fb = (unsigned short*)(lcd_base);
+    int ret=0;
+    char *cmap, *cdata, *data;
+    u8 n_colors;
+    int data_offset = 0, xact=0, yact=0, i=0, j=0, d=0; 
+    const char* file_path = "logo.bmp";
+    resource_content content;
     struct fb_dsp_info fb_info;
-    struct fdt_property *prop;
-    int clut_size = 0, data_size = 0, xact=0, yact=BMP_LOGO_HEIGHT, i=0, j=0;
-    void *blob = getenv_hex("fdtaddr", 0);
-    int node = fdt_path_offset(blob, "/linux_logo");
-    
-    clut_size = fdtdec_get_int(blob, node, "logo_clutsize", 0);
-	if (clut_size == 0) 
-    {
-		printf("Can't get logo clut_size from dts, so use default uboot logo\n");
-         /* true color mode */
-		u16 col16;
-		uchar *bmap = &bmp_logo_bitmap[0];
-		for(i = 0; i < BMP_LOGO_HEIGHT; ++i) {
-			for(j = 0; j < BMP_LOGO_WIDTH; j++) {
-				col16 = bmp_logo_palette[(bmap[j]-16)];
-				fb[j] =
-					((col16 & 0x000F) << 1) |
-					((col16 & 0x00F0) << 3) |
-					((col16 & 0x0F00) << 4);
-				}
-			bmap += BMP_LOGO_WIDTH;
-            fb += BMP_LOGO_WIDTH;
-		}
-        xact = BMP_LOGO_WIDTH;
-        yact = BMP_LOGO_HEIGHT;
-	} 
-    else
-    {
-        xact = fdtdec_get_int(blob, node, "width", 0);
-        yact = fdtdec_get_int(blob, node, "height", 0);
-        prop = fdt_get_property(blob, node, "linux_logo_clut", 0);
-        cmap = (u32*)prop->data;
-        prop = fdt_get_property(blob, node, "linux_logo_data", &data_size);
-        cdata = (u32*)prop->data;
-
-    #if (defined CONFIG_COMPRESS_LOGO_RLE8) || (defined CONFIG_COMPRESS_LOGO_RLE16)
-        unsigned n, index=0;
-        unsigned short data;
-        for(i=0; i<data_size;)
-        {
-            n = fdt32_to_cpu(cdata[i++]);
-            j = fdt32_to_cpu(cdata[i++]) - 0x20;
-            data = ((fdt32_to_cpu(cmap[3*j])&0xf8)<<8)|((fdt32_to_cpu(cmap[3*j+1])&0xfc)<<3)|((fdt32_to_cpu(cmap[3*j+2])&0xf8)>>3);
-            memset(fb + index, data, n);
-            index += n;
-        }
-    #else
-        for(i=0; i< xact*yact; i++)
-        {
-            j = fdt32_to_cpu(cdata[i]) - 0x20;
-            *(fb+i) = ((fdt32_to_cpu(cmap[3*j])&0xf8)<<8)|((fdt32_to_cpu(cmap[3*j+1])&0xfc)<<3)|((fdt32_to_cpu(cmap[3*j+2])&0xf8)>>3);
-        }
-    #endif
+    snprintf(content.path, sizeof(content.path), "%s", file_path);
+    content.load_addr = 0;
+    if(!get_content(&content)) {
+        printf("can't get_content\n");
+        return -1;
     }
-    
-	fb_info.xpos = (panel_info.vl_col - xact)/2;  //x;
-	fb_info.ypos = (panel_info.vl_row - yact)/2;  //y;
+    if(!load_content(&content)) {
+        printf("can't load_content\n");
+        ret=-1;
+        goto end;
+    } 
+    data = (char*)content.load_addr;   
+
+	if (data[0] == 'B' && data[1] == 'M')
+    {
+        data_offset = data[10] | data[11]<<8 | data[12]<<16 | data[13]<<24;
+    	xact = data[18] | (data[19]<<8) | (data[20]<<16) | (data[21]<<24);
+        yact = data[22] | (data[23]<<8) | (data[24]<<16) | (data[25]<<24);
+        n_colors = (data[29]<<8)|data[28];
+    	cmap = &data[54];
+        cdata = &data[data_offset];
+        //printf("%s data_offset=%d, xact=%d, yact=%d, n_colors=%d\n",__func__,data_offset,xact,yact,n_colors);
+        if(n_colors==8){
+            for(i=yact-1; i>=0; i--)
+            {
+                for(j=0; j< xact; j++)
+                {
+                    d = *cdata++;
+                    *(fb+i*xact+j) = ((cmap[4*d+2]&0xf8)<<8)|((cmap[4*d+1]&0xfc)<<3)|((cmap[4*d]&0xf8)>>3); 
+                }
+            }
+        }else if(n_colors==24){
+            u8 r,g,b;
+            for(i=yact-1; i>=0; i--)
+            {
+                for(j=0; j< xact; j++)
+                {
+                    r=*cdata++;
+                    g=*cdata++;
+                    b=*cdata++;
+                    *(fb+i*xact+j) =((r&0xf8)>>3)|((g&0xfc)<<3)|((b&0xf8)<<8); 
+                }
+            }            
+        }
+        else ret = -1;
+    }else{
+        printf("%s is not real bmp file\n",content.path);
+        ret=-1;
+        goto end;
+    }
+    fb_info.xpos = (panel_info.vl_col - xact)/2;
+	fb_info.ypos = (panel_info.vl_row - yact)/2;
 	fb_info.xact = xact;
 	fb_info.yact = yact;
 	fb_info.xsize = fb_info.xact;
@@ -690,10 +688,13 @@ void bitmap_plot(int x, int y)
 	fb_info.format = RGB565;
 	fb_info.yaddr = lcd_base;
 	lcd_pandispaly(&fb_info);
-
+end:
+    free_content(&content);  
+    return ret;
 }
+#endif
 
-#elif defined(CONFIG_LCD_LOGO)
+#if defined(CONFIG_LCD_LOGO)
 
 void bitmap_plot(int x, int y)
 {
@@ -712,13 +713,16 @@ void bitmap_plot(int x, int y)
 #endif
 	unsigned bpix = NBITS(panel_info.vl_bpix);
 
+    
 	debug("Logo: width %d  height %d  colors %d  cmap %d\n",
 		BMP_LOGO_WIDTH, BMP_LOGO_HEIGHT, BMP_LOGO_COLORS,
 		ARRAY_SIZE(bmp_logo_palette));
 
 	bmap = &bmp_logo_bitmap[0];
 #ifdef CONFIG_RK_FB
-	fb   = (uchar *)(lcd_base);
+	fb = (uchar *)(lcd_base);
+    if(!rk_bitmap_from_resource((unsigned short*)fb))
+        return;
 #else
 	fb   = (uchar *)(lcd_base + y * lcd_line_length + x * bpix / 8);
 #endif
@@ -1272,8 +1276,8 @@ static void *lcd_logo(void)
 	}
 #endif /* CONFIG_SPLASH_SCREEN */
 
-	//bitmap_plot((panel_info.vl_col - BMP_LOGO_WIDTH)/2, (panel_info.vl_row - BMP_LOGO_HEIGHT)/2);
-    bitmap_plot(0,0);
+	bitmap_plot((panel_info.vl_col - BMP_LOGO_WIDTH)/2, (panel_info.vl_row - BMP_LOGO_HEIGHT)/2);
+    //bitmap_plot(0,0);
 
 #ifdef CONFIG_LCD_INFO
 	console_col = LCD_INFO_X / VIDEO_FONT_WIDTH;

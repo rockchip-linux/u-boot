@@ -598,7 +598,7 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 			printf("%s --->unknow lay_id \n");
 			break;
 	}
-    printf("%s end\n",__func__);
+    //printf("%s end\n",__func__);
 
     LCDC_REG_CFG_DONE();
 }
@@ -683,7 +683,7 @@ int rk30_load_screen(vidinfo_t *vid)
 
     set_lcdc_dclk(vid->vl_freq);
     rk32_lvds_en(vid);
-	printf("%s for lcdc ok!\n",__func__);
+	//printf("%s for lcdc ok!\n",__func__);
 	return 0;
 }
 
@@ -709,7 +709,7 @@ int rk_lcdc_init(int lcdc_id)
     
     lcdc_clk_enable();
 	
-    printf(" %s vop_version = %x\n",__func__,LcdRdReg(VERSION_INFO));
+   // printf(" %s vop_version = %x\n",__func__,LcdRdReg(VERSION_INFO));
 	LcdMskReg(SYS_CTRL, m_auto_gating_en | m_standby_en | m_dma_stop | m_mmu_en, 
                         v_auto_gating_en(1)|v_standby_en(0)|v_dma_stop(0)|v_mmu_en(0));	      //zyw
     LcdMskReg(DSP_CTRL1, m_dsp_layer3_sel | m_dsp_layer2_sel | m_dsp_layer1_sel | m_dsp_layer0_sel,
