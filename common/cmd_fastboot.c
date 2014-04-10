@@ -2096,7 +2096,8 @@ void fbt_preboot(void)
 
 #ifdef CONFIG_ROCKCHIP
     const void *blob = rk_fdt_resource_load();
-    int logo_on= fdtdec_get_int(blob, 0, "uboot,logo-on", 0);
+    int node = fdt_path_offset(blob, "/fb");
+    int logo_on= fdtdec_get_int(blob, node, "uboot,logo-on", 0);
     printf("read logo_on switch from dts [%d]\n", logo_on);
 #ifdef CONFIG_LCD
     if(logo_on)
