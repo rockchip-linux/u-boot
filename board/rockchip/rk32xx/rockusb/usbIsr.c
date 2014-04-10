@@ -13,6 +13,7 @@ Revision:       1.00
 #define     IN_ISR
 #include    "../config.h"
 #include 	"USB20.h"		//USB部分总头文件
+uint32 RockusbEn = 1;
 
 extern void  CacheFlushBoth(void);
 /**************************************************************************
@@ -22,6 +23,11 @@ void UsbIsr(void)
 {
     uint32 IntFlag;
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
+	if(RockusbEn == 0)
+	{
+		udc_irq();
+		return;
+	}
 
     IntFlag=OtgReg->Core.gintsts & OtgReg->Core.gintmsk;
     if (IntFlag == 0)

@@ -713,12 +713,7 @@ void setup_space(uint32 begin_addr)
 
 void SysLowFormatCheck(void)
 {
-    if(FWLowFormatEn)
-    {
-        RkPrintf("FTLLowFormat,tick=%d\n" , get_ticks());
         FW_SorageLowFormat();
-        FWLowFormatEn = 0;
-    }
 }
 
 #define MaxFlashReadSize  16384  //8MB
@@ -892,9 +887,9 @@ int setBootloaderMsg(struct bootloader_message* bmsg)
 void getParameter() {
     int i = 0;
     cmdline_mtd_partition *cmd_mtd;
-    if (!GetParam(0, DataBuf)) {
-        ParseParam( &gBootInfo, ((PLoaderParam)DataBuf)->parameter, \
-                ((PLoaderParam)DataBuf)->length );
+	PLoaderParam param = (PLoaderParam)malloc(MAX_LOADER_PARAM * PARAMETER_NUM);
+    if (!GetParam(0, param)) {
+        ParseParam( &gBootInfo, param->parameter, param->length );
         cmd_mtd = &(gBootInfo.cmd_mtd);
         for(i = 0;i < cmd_mtd->num_parts;i++) {
             fbt_partitions[i].name = strdup(cmd_mtd->parts[i].name);
@@ -904,7 +899,7 @@ void getParameter() {
             } else {
                 fbt_partitions[i].size_kb = cmd_mtd->parts[i].size >> 1;
             }
-            #if 0
+            #if 1
             printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
                     cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
                     cmd_mtd->parts[i].size);

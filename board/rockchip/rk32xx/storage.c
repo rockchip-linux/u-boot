@@ -443,13 +443,24 @@ void FW_ReIntForUpdate(void)
     gpMemFun->Valid = 1;
 }
 
+int	FWLowFormatEn = 0;
+void FW_SorageLowFormatEn(int en)
+{
+	FWLowFormatEn = en;
+} 
+
 void FW_SorageLowFormat(void)
 {
-    if(gpMemFun->LowFormat)
+    if(FWLowFormatEn)
     {
-        gpMemFun->Valid = 0;
-        gpMemFun->LowFormat();
-        gpMemFun->Valid = 1;
+        RkPrintf("FTLLowFormat,tick=%d\n" , get_ticks());
+	    if(gpMemFun->LowFormat)
+	    {
+	        gpMemFun->Valid = 0;
+	        gpMemFun->LowFormat();
+	        gpMemFun->Valid = 1;
+	    }
+        FWLowFormatEn = 0;
     }
 } 
 

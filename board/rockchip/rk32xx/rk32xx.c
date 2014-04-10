@@ -82,17 +82,6 @@ void board_lmb_reserve(struct lmb *lmb) {
 
 
 
-void startRockusb()
-{
-    printf("startRockusb,%d\n" , get_ticks());
-//    rk_backlight_ctrl(0);
-    FW_SDRAM_ExcuteAddr = 0;
-    g_BootRockusb = 1;
-    FWSetResetFlag = 0;
-    FWLowFormatEn = 0;
-    UsbBoot();
-    UsbHook();
-}
 int board_fbt_key_pressed(void)
 {
     int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 

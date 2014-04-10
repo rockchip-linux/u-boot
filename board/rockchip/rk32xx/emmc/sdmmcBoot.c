@@ -23,6 +23,8 @@ uint32 UserCapSize;
 #define EMMC_CARD_ID                2
 #define SD_CARD_FW_PART_OFFSET      8192
 #define SD_CARD_SYS_PART_OFFSET     8064
+ALIGN(64)uint32 		 SpareBuf[(32*8*4/4)];
+ALIGN(64)uint32		  emmcData[(1024*8*4/4)];
 
 typedef struct SDCardInfoTag
 {
@@ -257,8 +259,8 @@ uint32 SdmmcInit(uint32 ChipSel)
             }
         	SDM_Read(ChipSel,0,4,gIdDataBuf); // id blk data
             EmmcSetBootPart(ChipSel,gEmmcBootPart,EMMC_DATA_PART);
-        	SDM_Read(ChipSel,SD_CARD_BOOT_PART_OFFSET,4,Data); // id blk data
-            if(Data[0] == 0xFCDC8C3B )
+        	SDM_Read(ChipSel,SD_CARD_BOOT_PART_OFFSET,4,emmcData); // id blk data
+            if(emmcData[0] == 0xFCDC8C3B )
                 gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET; 
         }
         else
@@ -363,10 +365,10 @@ uint32 SdmmcBootWritePBA(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec )
     {
         for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
         {
-            ftl_memcpy(Data+i*128, pDataBuf+(len+i)*132, 512);
+            ftl_memcpy(emmcData+i*128, pDataBuf+(len+i)*132, 512);
             ftl_memcpy(SpareBuf+i*4, pDataBuf+(len+i)*132+128, 16);
         }
-        SDM_Write(ChipSel,PBA,(MIN(nSec,pageSizeLimit)),Data);
+        SDM_Write(ChipSel,PBA,(MIN(nSec,pageSizeLimit)),emmcData);
     }
     
     return 0;
@@ -422,10 +424,10 @@ uint32 SdmmcBootReadPBA(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec )
         
     for (len=0; len<nSec; len+=pageSizeLimit)
     {
-        SDM_Read(ChipSel,PBA,(MIN(nSec,pageSizeLimit)),Data);
+        SDM_Read(ChipSel,PBA,(MIN(nSec,pageSizeLimit)),emmcData);
         for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
         {
-            ftl_memcpy(pDataBuf+(len+i)*132, Data+(i)*128, 512);
+            ftl_memcpy(pDataBuf+(len+i)*132, emmcData+(i)*128, 512);
             ftl_memcpy(pDataBuf+(len+i)*132+128, SpareBuf+(i)*4, 16);
         }
     }

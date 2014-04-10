@@ -318,7 +318,7 @@ void FW_TestUnitReady(void)
         CSWHandler(CSW_FAIL,0);
         gCSW.Residue=Swap32((totleBlock<<16)|currEraseBlk);
         //gCSW.Status=CSW_FAIL;
-        FWLowFormatEn = 1;
+		FW_SorageLowFormatEn(1);
     }
     else if(gCBW.Reseved0 == 0xFA)
     {
@@ -604,7 +604,7 @@ void FW_SDRAMExecute(void)
 ***************************************************************************/
 void FW_LowFormat(void)
 {
-    FWLowFormatEn = 1;
+	FW_SorageLowFormatEn(1);
     CSWHandler(CSW_GOOD,0);
     SendCSW();
 }

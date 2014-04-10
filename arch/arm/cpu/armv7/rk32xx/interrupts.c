@@ -17,7 +17,6 @@ struct _irq_handler {
 };
 
 static struct _irq_handler IRQ_HANDLER[N_IRQS];
-uint32 RockusbEn = 1;
 
 uint32 IRQEnable(eINT_NUM intNum)
 {
@@ -75,16 +74,6 @@ void DisableOtgIntr(void)
     IRQDisable(INT_USB_OTG);
 }
 
-/***************************************************************************
-函数描述:中断寄存器初始化
-入口参数:
-出口参数:
-调用函数:
-***************************************************************************/
-void InterruptInit(void)
-{
-}
-
 
 /**************************************************************************
 IRQ中断服务子程序
@@ -99,10 +88,7 @@ void IrqHandler(void)
 	//	serial_printf("Irq: %d\n", intSrc);
     if (intSrc == INT_USB_OTG)
     {
-        if(RockusbEn)
-            UsbIsr();
-        else if(RockusbEn == 0)
-            udc_irq();
+        UsbIsr();
 #ifdef DRIVERS_USB_APP
         else
             MscUsbIsr();

@@ -94,6 +94,18 @@ uint32 GetVbus(void)
     return (vbus);     //vbus״̬
 }
 
+void startRockusb()
+{
+    printf("startRockusb,%d\n" , get_ticks());
+//    rk_backlight_ctrl(0);
+    FW_SDRAM_ExcuteAddr = 0;
+    g_BootRockusb = 1;
+    FWSetResetFlag = 0;
+	FW_SorageLowFormatEn(0);
+    UsbBoot();
+    UsbHook();
+}
+
 bool UsbPhyReset(void)
 {
     g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable

@@ -184,7 +184,6 @@ typedef volatile struct _USB_XFER
 #endif		
 
 	EXT		ALIGN(4) uint8 	FWCmdPhase;			//ÃüÁî½×¶Î×´Ì¬×Ö
-	EXT     ALIGN(4) uint8  FWLowFormatEn;
 	EXT     ALIGN(4) uint8  FWSetResetFlag;
 	EXT		uint32 			FW_DataLenCnt;
 	EXT		uint32 			FW_Write10PBA;
@@ -204,8 +203,6 @@ typedef volatile struct _USB_XFER
     EXT		ALIGN( 64 )CBW           gCBW;
     EXT		ALIGN(64) uint8          BulkInBuf[512];
     EXT		ALIGN(64)uint32          DataBuf[528*128/4];
-    EXT		ALIGN(64)uint32          Data[(1024*8*4/4)];
-    EXT		ALIGN(64)uint32          SpareBuf[(32*8*4/4)];
     EXT    ALIGN(64) uint32          FWLBAWriteSrcBuf[512*32/4];
     EXT    ALIGN(64) uint32          FWLBAReadSrcBuf[512*32/4];
     EXT     ALIGN( 64 ) uint32 			usbXferBuf[2*USB_XFER_BUF_SIZE];

@@ -50,6 +50,7 @@ extern  void 	FlashReadID(uint8 ChipSel, void *buf);
 extern  void    ReadFlashIDInfo(uint8 * buf);
 extern  uint32  FlashBootErase(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod);
 extern  void    FW_ReIntForUpdate(void);
+extern  void FW_SorageLowFormatEn(int en);
 
 extern  int StorageWriteLba(uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode);
 extern  int StorageReadLba(uint32 LBA ,void *pbuf  , uint16 nSec);
