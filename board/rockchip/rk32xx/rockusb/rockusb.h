@@ -109,7 +109,6 @@ extern    void FW_LowFormatSysDisk(void);
 extern    void FW_SDRAMExecute(void);
 extern    void FW_ReadVersionAll(void);
 extern    void FW_SetUsbFlag(void);
-extern    void SoftReset(void);
 extern    void FW_SPIRead10(void);
 extern    void FW_SPIWrite10(void);
 

@@ -43,22 +43,17 @@ int dwc_otg_check_dpdm(void)
     g_cruReg->CRU_CLKGATE_CON[5] = ((1<<13)<<16);   // otg0 hclk clkgate
     g_cruReg->CRU_CLKGATE_CON[4] = ((3<<5)<<16);    // hclk usb clkgate
    #if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-   if(ChipType == CONFIG_RK3026){
         g_grfReg->GRF_UOC0_CON0 = ((0x01<<0)<<16);
-    }
-   #else
-    if(ChipType == CONFIG_RK3066)
-    {
+   #elif(CONFIG_RKCHIPTYPE == CONFIG_RK3066)
         g_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
         mdelay(105);
         // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
         //      OtgReg, *(OtgReg), &g_grfReg->GRF_UOC0_CON[2], g_grfReg->GRF_UOC0_CON[2]); 
-    }else {
+   #else
         g_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
         mdelay(105);
         // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
         //     OtgReg, *(OtgReg), &g_3188_grfReg->GRF_UOC0_CON[2], g_3188_grfReg->GRF_UOC0_CON[2]);
-     }
    #endif
     otg_dctl = (unsigned int * )(OtgReg+0x804);
 
@@ -98,6 +93,27 @@ uint32 GetVbus(void)
 //#endif 
     return (vbus);     //vbus״̬
 }
+
+bool UsbPhyReset(void)
+{
+    g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
+    DRVDelayUs(1100); //1.1ms
+    g_cruReg->CRU_SOFTRST_CON[8] = ((7ul<<4)<<16)|(7<<4);
+    DRVDelayUs(10*100);    //delay 10ms
+    g_cruReg->CRU_SOFTRST_CON[8] = (uint32)((7ul<<4)<<16)|(0<<4);
+    DRVDelayUs(1*100);     //delay 1ms
+    return (TRUE);
+}
+
+void UsbSoftDisconnect(void)
+{
+    pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
+    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
+
+    UsbPhyReset();
+    OtgReg->Device.dctl |= 0x02;          //soft disconnect
+}
+
 
 
 uint32 TimeOutBase;
@@ -497,18 +513,18 @@ void UsbHook(void)
         {
             ISetLoaderFlag(0xEF08A53C);
             FWSetResetFlag = 0;
-            SoftReset();
+			reset_cpu(0);
         }
         else if(FWSetResetFlag==4) //reboot 2 maskrom
         {
             FWSetResetFlag = 0;
             while(GetVbus());
-            SoftReset();
+			reset_cpu(0);
         }
         else if(FWSetResetFlag==0xFF)
         {
             FWSetResetFlag = 0;
-            SoftReset();
+			reset_cpu(0);
         }
         else if(FWSetResetFlag == 0x10)
         {
@@ -519,7 +535,7 @@ void UsbHook(void)
         if(FWSetResetFlag==0xFF)
         {
             FWSetResetFlag = 0;
-            SoftReset();
+			reset_cpu(0);
         }
 #endif
         SysLowFormatCheck();

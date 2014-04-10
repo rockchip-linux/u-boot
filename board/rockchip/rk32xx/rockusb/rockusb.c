@@ -710,7 +710,13 @@ void FW_GetVersion(void)
 void FW_GetChipVer(void)
 {
     uint32 *chipInfo=(uint32*)BulkInBuf;
-    extern uint32 Rk30ChipVerInfo[4];  
+    uint32 Rk30ChipVerInfo[4];  
+	Rk30ChipVerInfo[0] = 0;
+	ftl_memcpy(Rk30ChipVerInfo, (uint8*)(BOOT_ROM_CHIP_VER_ADDR), 16);
+		
+#if(CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	Rk30ChipVerInfo[0] =  0x33323041; // "320A"
+#endif 
     ftl_memcpy(chipInfo, Rk30ChipVerInfo, 16);
     CSWHandler(CSW_GOOD,0);
     WriteBulkEndpoint(16, chipInfo);

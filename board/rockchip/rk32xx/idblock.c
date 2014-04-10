@@ -683,7 +683,7 @@ int dispose_bootloader_cmd(struct bootloader_message *msg, mtd_partition *misc_p
 			    PRINT_I("reboot\n");
     			//DRVDelayMs(10);
     			ISetLoaderFlag(SYS_LOADER_REBOOT_FLAG | BOOT_NORMAL);
-                SoftReset();
+				reset_cpu(0);
 			}
 		} 
 	}

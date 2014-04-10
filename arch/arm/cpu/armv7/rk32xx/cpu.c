@@ -23,7 +23,7 @@ void enable_caches(void)
 }
 #endif
 
-void MMUDeinit(uint32 adr)
+void MMUDeinit()
 {
 
 #ifndef CONFIG_SYS_L2CACHE_OFF
@@ -56,7 +56,7 @@ uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 #ifdef CONFIG_ARCH_CPU_INIT
 int arch_cpu_init(void)
 {
-	ChipTypeCheck();
+	//ChipTypeCheck();
 	return 0;
 }
 #endif
@@ -78,7 +78,23 @@ int print_cpuinfo(void)
 
 void reset_cpu(ulong ignored)
 {
-	SoftReset();
+    pFunc fp;
+    pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
+
+    disable_interrupts();
+    UsbSoftDisconnect();
+    FW_NandDeInit();
+
+    MMUDeinit();              /*关闭MMU*/
+    //cruReg->CRU_MODE_CON = 0x33030000;    //cpu enter slow mode
+    //Delay100cyc(10);
+    g_giccReg->ICCEOIR=INT_USB_OTG;
+    //DisableRemap();
+	ResetCpu((0xff740000));
+    //cruReg->CRU_GLB_SRST_FST_VALUE = 0xfdb9; //kernel 使用 fst reset时，loader会死机，问题还没有查，所有loader还是用snd reset
+    cruReg->CRU_GLB_SRST_SND_VALUE = 0xeca8; //soft reset
+    Delay100cyc(10);
+    while(1);
 }
 
 

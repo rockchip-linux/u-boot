@@ -31,7 +31,6 @@ enum rk_plls_id {
 	END_PLL_ID,
 };
 
-extern uint8  ChipType;
 
 #define CRU_GET_REG_BITS_VAL(reg,bits_shift, msk)	(((reg) >> (bits_shift))&(msk))
 #define CRU_W_MSK(bits_shift, msk)	((msk) << ((bits_shift) + 16))
@@ -358,24 +357,24 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 
 	/* PLL enter slow-mode */
 	g_cruReg->CRU_MODE_CON = (0x3<<((pll_id*4) + 16)) | (0x0<<(pll_id*4));
-	if (ChipType == CONFIG_RK3188B) {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3188B)
 		/* enter rest */
 		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x1<<5));
-	} else {
+#else
 		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x1<<1));
-	}
+#endif
         g_cruReg->CRU_PLL_CON[pll_id][0] = clkset->pllcon0;
         g_cruReg->CRU_PLL_CON[pll_id][1] = clkset->pllcon1;
-	if (ChipType == CONFIG_RK3188B) {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3188B)
         	g_cruReg->CRU_PLL_CON[pll_id][2] = clkset->pllcon2;
-	}
+#endif
 
 	clk_loop_delayus(5);
-	if (ChipType == CONFIG_RK3188B) {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3188B)
 		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<5)<<16) | (0x0<<5));
-	} else {
+#else
 		g_cruReg->CRU_PLL_CON[pll_id][3] = (((0x1<<1)<<16) | (0x0<<1));
-	}
+#endif
 
 	clk_loop_delayus(clkset->rst_dly);
 	/* delay for pll setup */
@@ -405,19 +404,19 @@ static uint32 rkclk_pll_clk_get_rate(enum rk_plls_id pll_id)
 		return (24 * MHZ);
 	} else if (con == 1) {
 		/* normal mode */
-		if (ChipType == CONFIG_RK3188B) {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3188B)
 			con = g_cruReg->CRU_PLL_CON[pll_id][0];
 			no = PLUS_PLL_NO(con);
 			nr = PLUS_PLL_NR(con);
 			con = g_cruReg->CRU_PLL_CON[pll_id][1];
 			nf = PLUS_PLL_NF(con);
-		} else {
+#else
 			con = g_cruReg->CRU_PLL_CON[pll_id][0];
 			no = PLL_NO(con);
 			nr = PLL_NR(con);
 			con = g_cruReg->CRU_PLL_CON[pll_id][1];
 			nf = PLL_NF(con);
-		}
+#endif
 		return (24 * nf / (nr * no)) * MHZ;
 	} else {
 		/* deep slow mode */

@@ -45,7 +45,19 @@ void get_descriptor(void)
 
             ftl_memcpy(Ep0Buf, (uint8*)&HSDeviceDescr, length);
             pDeviceDescr = (USB_DEVICE_DESCRIPTOR *)Ep0Buf;
-            ModifyUsbVidPid(pDeviceDescr);
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066B)
+				pDeviceDescr->idProduct = 0x310A;
+				pDeviceDescr->idVendor	= 0x2207;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+				pDeviceDescr->idProduct = 0x300B;
+				pDeviceDescr->idVendor	= 0x2207;
+#elif ((CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3188B))
+				pDeviceDescr->idProduct = 0x310B;
+				pDeviceDescr->idVendor	= 0x2207;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+				pDeviceDescr->idProduct = 0x320A;
+				pDeviceDescr->idVendor	= 0x2207;
+#endif
             if (BulkEpSize==FS_BULK_TX_SIZE)
             {
                 USB_DEVICE_DESCRIPTOR *ptr;
