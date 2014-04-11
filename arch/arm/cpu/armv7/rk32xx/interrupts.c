@@ -94,12 +94,6 @@ void IrqHandler(void)
             MscUsbIsr();
 #endif
     }
-#ifdef    RK_SDMMC_BOOT_EN
-    else if(intSrc == INT_eMMC)
-    {
-        _SDC2IST();
-    }
-#endif    
 #ifdef CONFIG_PL330_DMA
     #if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
     else if(intSrc >= INT_DMAC2_0 && intSrc<=INT_DMAC2_0)

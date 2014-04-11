@@ -94,27 +94,6 @@ uint32 IReadLoaderMode(void)
 }
 
 
-
-
-
-
-
-
-uint32 GetMmcCLK(void)
-{
-    //return (GetAHBCLK());
-     return rk_get_general_pll()/(1000*2); //emmc automic divide setting freq to 1/2,for get the right freq ,we divide this freq to 1/2
-}
-
-
-void sdmmcGpioInit(uint32 ChipSel)
-{
-	writel(0xffffaaaa,0xff770020);
-	writel(0x000c0008,0xff770024);
-	writel(0x003f002a,0xff770028);
-}
-
-
 void FW_NandDeInit(void)
 {
 #ifdef RK_FLASH_BOOT_EN
@@ -124,39 +103,7 @@ void FW_NandDeInit(void)
         FlashDeInit();
     }
 #endif
-#ifdef RK_SDMMC_BOOT_EN
-    SdmmcDeInit();
-#endif
 }
-
-void EmmcPowerEn(uint8 En)
-{
-// TODO: EMMC 电源控制
-
-    if(En)
-    {
-        g_EMMCReg->SDMMC_PWREN = 1;  // power enable
-        g_EMMCReg->SDMMC_RST_n = 1;  // reset off
-    }
-    else
-    {
-        g_EMMCReg->SDMMC_PWREN = 0;  // power disable
-        g_EMMCReg->SDMMC_RST_n = 0;  //reset on
-    }
-}
-
-void SDCReset(uint32 sdmmcId)
-{
-    uint32 data = g_cruReg->CRU_SOFTRST_CON[8];
-    data = ((1<<16)|(1))<<(sdmmcId + 1);
-    g_cruReg->CRU_SOFTRST_CON[8] = data;
-    DRVDelayUs(100);
-    data = ((1<<16)|(0))<<(sdmmcId + 1);
-    g_cruReg->CRU_SOFTRST_CON[8] = data;
-    DRVDelayUs(200);
-    EmmcPowerEn(1);
-}
-
 int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
 {
     if((div == 0))//||(sdmmcId > 1))
@@ -181,27 +128,7 @@ int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
     return(0);
 }
 
-//mode=1  changemode to normal mode;
-//mode=0  changemode to boot mode
-int32 eMMC_changemode(uint8 mode)
-{ 
-#ifdef RK_SDMMC_BOOT_EN    
-    eMMC_SetDataHigh();
-#endif
-}
 
-/*----------------------------------------------------------------------
-Name	: IOMUXSetSDMMC1
-Desc	: 设置SDMMC1相关管脚
-Params  : type: IOMUX_SDMMC1 设置成SDMMC1信号线
-                IOMUX_SDMMC1_OTHER设置成非SDMMC1信号线
-Return  : 
-Notes   : 默认使用4线，不使用pwr_en, write_prt, detect_n信号
-----------------------------------------------------------------------*/
-void IOMUXSetSDMMC(uint32 sdmmcId,uint32 Bits)
-{
-// TODO:SDMMC IOMUX 
-}
 
 
 

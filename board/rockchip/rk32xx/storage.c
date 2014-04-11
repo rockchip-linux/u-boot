@@ -258,53 +258,6 @@ MEM_FUN_T NandFunOp =
 };
 #endif
 
-#ifdef RK_SDMMC_BOOT_EN
-MEM_FUN_T emmcFunOp = 
-{
-    2,
-    BOOT_FROM_EMMC,
-    0,
-    SdmmcInit,
-    SdmmcReadID,
-    SdmmcBootReadPBA,
-    SdmmcBootWritePBA,
-    SdmmcBootReadLBA,
-    SdmmcBootWriteLBA,
-    SdmmcBootErase,
-    SdmmcReadFlashInfo,
-    SdmmcCheckIdBlock,
-    NULL,
-    NULL,
-    NULL,
-    SdmmcGetCapacity,
-    SdmmcSysDataLoad,
-    SdmmcSysDataStore,
-};
-#endif
-
-#ifdef RK_SDCARD_BOOT_EN
-MEM_FUN_T sd0FunOp = 
-{
-    0,
-    BOOT_FROM_SD0,
-    0,
-    SdmmcInit,
-    SdmmcReadID,
-    SdmmcBootReadPBA,
-    SdmmcBootWritePBA,
-    SdmmcBootReadLBA,
-    SdmmcBootWriteLBA,
-    SdmmcBootErase,
-    SdmmcReadFlashInfo,
-    NULL,//SdmmcCheckIdBlock,
-    NULL,
-    NULL,
-    NULL,
-    SdmmcGetCapacity,
-    SdmmcSysDataLoad,
-    SdmmcSysDataStore,
-};
-#endif
 
 #ifdef RK_SPI_BOOT_EN
 MEM_FUN_T SpiFunOp = 
@@ -389,16 +342,8 @@ int32 StorageInit(void)
 #else
 MEM_FUN_T *memFunTab[] = 
 {
-#ifdef RK_SDCARD_BOOT_EN
-    &sd0FunOp,
-#endif
-
 #ifdef RK_FLASH_BOOT_EN
     &NandFunOp,
-#endif
-
-#ifdef RK_SDMMC_BOOT_EN
-    &emmcFunOp,
 #endif
 
 #ifdef RK_SPI_BOOT_EN
