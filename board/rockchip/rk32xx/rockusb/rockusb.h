@@ -206,6 +206,8 @@ typedef volatile struct _USB_XFER
     EXT    ALIGN(64) uint32          FWLBAWriteSrcBuf[512*32/4];
     EXT    ALIGN(64) uint32          FWLBAReadSrcBuf[512*32/4];
     EXT     ALIGN( 64 ) uint32 			usbXferBuf[2*USB_XFER_BUF_SIZE];
+EXT	ALIGN(64) uint32	SpareBuf[(1024*8*4/4)];
+EXT	ALIGN(64) uint32		  emmcData[(1024*8*4/4)];
 
 //1表格定义
 #ifdef IN_FW_Upgrade

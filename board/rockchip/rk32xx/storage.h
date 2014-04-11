@@ -62,7 +62,7 @@ extern  uint32 StorageGetSDFwOffset(void);
 extern  uint32 StorageGetSDSysOffset(void);
 extern  uint32 UsbStorageSysDataLoad(uint32 offset,uint32 len,uint32 *Buf);
 extern  uint32 UsbStorageSysDataStore(uint32 offset,uint32 len,uint32 *Buf);
-
+extern  uint32 StorageReadId(void *buf);
 //local memory operation function
 typedef uint32 (*Memory_Init)(uint32 BaseAddr);
 typedef uint32 (*Memory_ReadPba)(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec );
