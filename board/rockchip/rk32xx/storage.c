@@ -156,14 +156,14 @@ uint32 lMemApiInit(uint32 BaseAddr)
 {
     gp_loader_api = (pLOADER_MEM_API_T)(*((uint32*)CONFIG_RKNAND_API_ADDR)); // get api table
     if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000)
-    {
-        if(gp_loader_api->id==1)
+    {     //nand                   emmc
+        if(gp_loader_api->id==1 || gp_loader_api->id==2)
         {
-            return 0; //nand
+            return 0; 
         }
         else if(gp_loader_api->id==2)
         {
-            return 2; // emmc
+            return 2; 
         }
         else
         {
