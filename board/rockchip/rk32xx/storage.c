@@ -414,34 +414,14 @@ static int storage_device = -1;
 #define SD_CARD_FW_PART_OFFSET      8192
 #define SD_CARD_SYS_PART_OFFSET     8064
 
+#undef ALIGN
+#define ALIGN(x) __attribute__ ((aligned(x)))
+ALIGN(64)uint32 		 emmc_SpareBuf[(32*8*4/4)];
+ALIGN(64)uint32		  emmc_Data[(1024*8*4/4)];
+
 
 int32 StorageInit(void)
 {
-	#if 0
-    uint32 memdev;
-    memset((uint8*)&g_FlashInfo,0,sizeof(g_FlashInfo));
-    SdmmcSDMInit();
-    for(memdev=0; memdev<MAX_MEM_DEV; memdev++)
-    {
-        gpMemFun = memFunTab[memdev];
-        if(memFunTab[memdev]->Init(memFunTab[memdev]->id) == 0)
-        {
-            memFunTab[memdev]->Valid = 1;
-            //gpMemFun = memFunTab[memdev];
-#ifdef RK_SDCARD_BOOT_EN
-            if(memFunTab[memdev]->flag == BOOT_FROM_SD0)
-            {
-                if(BootFromSdCard(memFunTab[memdev]->id) != 0)
-                    continue;
-            }
-#endif
-            StorageReadFlashInfo((uint8*)&g_FlashInfo);
-            return 0;
-        }
-    }
-    gpMemFun = memFunTab[0];
-    return -1;
-	#else
 	struct mmc *mmc;
 	if (storage_device < 0) {
 		if (get_mmc_num() > 0)
@@ -461,18 +441,12 @@ int32 StorageInit(void)
 		return -1;
 	}
 	storage_mmc = mmc;
-	 StorageReadFlashInfo((uint8*)&g_FlashInfo);
-	#endif
+	StorageReadFlashInfo((uint8*)&g_FlashInfo);
 }
 #endif
 
 void FW_ReIntForUpdate(void)
 {
-	gpMemFun->Valid = 0;
-#if 0
-    if(gpMemFun->IntForUpdate)
-        gpMemFun->IntForUpdate();
-#endif
 	gpMemFun->Valid = 1;
 
 }
@@ -485,29 +459,10 @@ void FW_SorageLowFormatEn(int en)
 
 void FW_SorageLowFormat(void)
 {
-#if 0
-    if(gpMemFun->LowFormat)
-=======
-    if(FWLowFormatEn)
->>>>>>> 32a5de9b66e8c53a53a23a826dd320c50c129974
-    {
-        RkPrintf("FTLLowFormat,tick=%d\n" , get_ticks());
-	    if(gpMemFun->LowFormat)
-	    {
-	        gpMemFun->Valid = 0;
-	        gpMemFun->LowFormat();
-	        gpMemFun->Valid = 1;
-	    }
-        FWLowFormatEn = 0;
-    }
-#endif
 } 
 
 uint32 FW_StorageGetValid(void)
 {
-#if 0
-	return gpMemFun->Valid;
-#endif
 	return 1;
 }
 
@@ -520,11 +475,6 @@ uint32 FW_StorageGetValid(void)
 uint32 FW_GetCurEraseBlock(void)
 {
 	uint32 data = 1;
-	#if 0
-	if(gpMemFun->GetCurEraseBlock)
-	data = gpMemFun->GetCurEraseBlock();
-	return data;
-	#endif
 	return 0;
 }
 /***************************************************************************
@@ -536,20 +486,12 @@ uint32 FW_GetCurEraseBlock(void)
 uint32 FW_GetTotleBlk(void)
 {
    	 uint32 totle = 1;
-#if 0
-	if(gpMemFun->GetTotleBlk)
-	totle = gpMemFun->GetTotleBlk();
-#endif
 	return totle;
 }
 
 int StorageReadPba(uint32 PBA , void *pbuf, uint16 nSec )
 {
-    int ret = FTL_ERROR;
-#if 0
-    if(gpMemFun->ReadPba)
-       ret = gpMemFun->ReadPba(gpMemFun->id, PBA, pbuf, nSec );
-#endif
+   	 int ret = FTL_ERROR;
 	uint32 i;
 	uint16 len;
 	uint8 pageSizeRaw;
@@ -562,7 +504,7 @@ int StorageReadPba(uint32 PBA , void *pbuf, uint16 nSec )
 	int n;
 	uint32 *pDataBuf = pbuf;
 	pageSizeLimit = DATA_LEN/128;
-	memset(SpareBuf,0xFF,SPARE_LEN);
+	memset(emmc_SpareBuf,0xFF,SPARE_LEN);
 	if(PBA + nSec >= EMMC_BOOT_PART_SIZE*5) 
 		PBA &= (EMMC_BOOT_PART_SIZE-1);
 	PBA = PBA + SD_CARD_BOOT_PART_OFFSET;
@@ -570,13 +512,13 @@ int StorageReadPba(uint32 PBA , void *pbuf, uint16 nSec )
 	for (len=0; len<nSec; len+=pageSizeLimit)
 	{
 		n = storage_mmc->block_dev.block_read(storage_device, PBA,
-								  (MIN(nSec,pageSizeLimit)), emmcData);
+								  (MIN(nSec,pageSizeLimit)), emmc_Data);
 		if(n != (MIN(nSec,pageSizeLimit)))
 			return -1;
 		for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
 		{
-			ftl_memcpy(pDataBuf+(len+i)*132, emmcData+(i)*128, 512);
-			ftl_memcpy(pDataBuf+(len+i)*132+128, SpareBuf+(i)*4, 16);
+			ftl_memcpy(pDataBuf+(len+i)*132, emmc_Data+(i)*128, 512);
+			ftl_memcpy(pDataBuf+(len+i)*132+128, emmc_SpareBuf+(i)*4, 16);
 		}
 	}
 	flush_cache((ulong)pbuf, nSec*512);
@@ -584,84 +526,64 @@ int StorageReadPba(uint32 PBA , void *pbuf, uint16 nSec )
 }
 int StorageWritePba(uint32 PBA , void *pbuf, uint16 nSec )
 {
-    int ret = FTL_ERROR;
-	#if 0
-    if(gpMemFun->WritePba)
-       ret = gpMemFun->WritePba(gpMemFun->id, PBA , pbuf, nSec);
-	#endif
-     uint32 i;
-     uint16 len;
-     uint8 pageSizeLimit;
-     int n;
-    uint32 *pDataBuf = pbuf;
-    pageSizeLimit = DATA_LEN/128;
-     if(PBA + nSec >= EMMC_BOOT_PART_SIZE*5) 
-                return 0;
-     PBA = PBA + SD_CARD_BOOT_PART_OFFSET;
-    for (len=0; len<nSec; len+=pageSizeLimit)
-    {
-        for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
-        {
-            ftl_memcpy(emmcData+i*128, pDataBuf+(len+i)*132, 512);
-            ftl_memcpy(SpareBuf+i*4, pDataBuf+(len+i)*132+128, 16);
-        }
-        n = storage_mmc->block_dev.block_write(storage_device, PBA,
-									  (MIN(nSec,pageSizeLimit)), emmcData);
-        if(n != (MIN(nSec,pageSizeLimit)))
-		return -1;
-    }
-    return 0;
+	int ret = FTL_ERROR;
+	uint32 i;
+	uint16 len;
+	uint8 pageSizeLimit;
+	int n;
+	uint32 *pDataBuf = pbuf;
+	pageSizeLimit = DATA_LEN/128;
+	if(PBA + nSec >= EMMC_BOOT_PART_SIZE*5) 
+	return 0;
+	PBA = PBA + SD_CARD_BOOT_PART_OFFSET;
+	for (len=0; len<nSec; len+=pageSizeLimit)
+	{
+		for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
+		{
+			ftl_memcpy(emmc_Data+i*128, pDataBuf+(len+i)*132, 512);
+			ftl_memcpy(emmc_SpareBuf+i*4, pDataBuf+(len+i)*132+128, 16);
+		}
+		n = storage_mmc->block_dev.block_write(storage_device, PBA,
+							  (MIN(nSec,pageSizeLimit)), emmc_Data);
+		if(n != (MIN(nSec,pageSizeLimit)))
+			return -1;
+	}
+	return 0;
 }
 
 int StorageReadLba( uint32 LBA ,void *pbuf  , uint16 nSec)
 {
-    int ret = FTL_ERROR;
-    int n;
-   #if 0
-    if(gpMemFun->ReadLba)
-       ret = gpMemFun->ReadLba(gpMemFun->id, LBA , pbuf, nSec );
-  #endif
-    n = storage_mmc->block_dev.block_read(storage_device, LBA + SD_CARD_FW_PART_OFFSET,
-								  nSec, pbuf);
-  flush_cache((ulong)pbuf, nSec*512);
-   return (n == nSec) ? 0 : -1;
+	int ret = FTL_ERROR;
+	int n;
+	n = storage_mmc->block_dev.block_read(storage_device, LBA + SD_CARD_FW_PART_OFFSET,
+						  nSec, pbuf);
+	flush_cache((ulong)pbuf, nSec*512);
+	return (n == nSec) ? 0 : -1;
 }
 
 int StorageWriteLba( uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode)
 {
-    int ret = FTL_ERROR;
-    int n;
-    #if 0
-    if(gpMemFun->WriteLba)
-       ret = gpMemFun->WriteLba(gpMemFun->id, LBA , pbuf, nSec,mode);
-  #endif
-  n = storage_mmc->block_dev.block_write(storage_device, LBA + SD_CARD_FW_PART_OFFSET,
-									  nSec, pbuf);
-   return (n == nSec) ? 0 : -1;
+	int ret = FTL_ERROR;
+	int n;
+	n = storage_mmc->block_dev.block_write(storage_device, LBA + SD_CARD_FW_PART_OFFSET,
+							  nSec, pbuf);
+	return (n == nSec) ? 0 : -1;
 }
 
 uint32 StorageGetCapacity(void)
 {
-    uint32 ret = FTL_ERROR;
-	#if 0
-    if(gpMemFun->GetCapacity)
-       ret = gpMemFun->GetCapacity(gpMemFun->id);
-	#endif
+	uint32 ret = FTL_ERROR;
 	ret = storage_mmc->capacity/512 - SD_CARD_FW_PART_OFFSET;
-    return ret;
+	return ret;
 }
 
 uint32 StorageSysDataLoad(uint32 Index,void *Buf)
 {
-    uint32 ret = FTL_ERROR;
-    int n;
-    memset(Buf,0,512);
-#if 0
-    if(gpMemFun->SysDataLoad)
-       ret = gpMemFun->SysDataLoad(gpMemFun->id, Index,Buf);
-#endif
+	uint32 ret = FTL_ERROR;
+	int n;
+	memset(Buf,0,512);
 	n = storage_mmc->block_dev.block_read(storage_device, SD_CARD_SYS_PART_OFFSET+Index,
-								  1, Buf);
+						  1, Buf);
 	/* flush cache after read */
 	flush_cache((ulong)Buf, 512); /* FIXME */
 	return (n == 1) ? 0 : -1;
@@ -669,14 +591,10 @@ uint32 StorageSysDataLoad(uint32 Index,void *Buf)
 
 uint32 StorageSysDataStore(uint32 Index,void *Buf)
 {
-    uint32 ret = FTL_ERROR;
-    int n;
-#if 0
-    if(gpMemFun->SysDataStore)
-       ret = gpMemFun->SysDataStore(gpMemFun->id, Index,Buf);
-#endif
-   n = storage_mmc->block_dev.block_write(storage_device, SD_CARD_SYS_PART_OFFSET+Index,1, Buf);
-   return (n == 1) ? 0 : -1;
+	uint32 ret = FTL_ERROR;
+	int n;
+	n = storage_mmc->block_dev.block_write(storage_device, SD_CARD_SYS_PART_OFFSET+Index,1, Buf);
+	return (n == 1) ? 0 : -1;
 }
 
 #define UBOOT_SYS_DATA_OFFSET 64
@@ -721,15 +639,6 @@ uint32 UsbStorageSysDataStore(uint32 offset,uint32 len,uint32 *Buf)
 
 int StorageReadFlashInfo( void *pbuf)
 {
-#if 0
-    int ret = FTL_ERROR;
-    if(gpMemFun->ReadInfo)
-    {
-       gpMemFun->ReadInfo(pbuf);
-       ret = FTL_OK;
-    }
-    return ret;
-#endif
     pFLASH_INFO pInfo=(pFLASH_INFO)pbuf;
     ftl_memset((uint8*)pbuf,0,512);
     pInfo->BlockSize = EMMC_BOOT_PART_SIZE;
@@ -746,43 +655,24 @@ int StorageReadFlashInfo( void *pbuf)
 int StorageEraseBlock(uint32 blkIndex, uint32 nblk, uint8 mod)
 {
     int Status = FTL_OK;
- #if 0
-    if(gpMemFun->Erase)
-        Status = gpMemFun->Erase(0, blkIndex, nblk, mod);
-#endif
     return Status;
 }
 
 uint16 StorageGetBootMedia(void)
 {
-   #if 0
-    return gpMemFun->flag;
-   #endif
    return BOOT_FROM_EMMC;
 }
 
 uint32 StorageGetSDFwOffset(void)
 {
-    uint32 offset = 0;
-	#if 0
-    if(gpMemFun->flag != BOOT_FROM_FLASH)
-    {
-        offset = SdmmcGetFwOffset(gpMemFun->id);
-    }
-	#endif
+	uint32 offset = 0;
 	offset = SD_CARD_FW_PART_OFFSET;
-    return offset;
+	return offset;
 }
 
 uint32 StorageGetSDSysOffset(void)
 {
 	uint32 offset = 0;
-#if 0
-	if(gpMemFun->flag != BOOT_FROM_FLASH)
-	{
-	offset = SdmmcGetSysOffset(gpMemFun->id);
-	}
-#endif
 	offset = SD_CARD_FW_PART_OFFSET;
 	return offset;
 }
