@@ -134,7 +134,7 @@ void env_relocate_spec(void)
 	if( StorageInit() == 0)
 		printf("storage init OK!\n");
 	else
-		printf("Fail!\n");
+		printf("storage init fail!\n");
 
     //setup default env.
     set_default_env(NULL);

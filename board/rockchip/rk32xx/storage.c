@@ -154,6 +154,7 @@ uint32 LMemApiSysDataStore(uint8 ChipSel, uint32 Index,void *Buf)
 //uint32 lMemApiInit(void)
 uint32 lMemApiInit(uint32 BaseAddr)
 {
+	printf("use uboot as second level loader\n");
     gp_loader_api = (pLOADER_MEM_API_T)(*((uint32*)CONFIG_RKNAND_API_ADDR)); // get api table
     if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000)
     {     //nand                   emmc
