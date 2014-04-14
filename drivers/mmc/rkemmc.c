@@ -416,7 +416,7 @@ int rk_mmc_init()
 	mmc->init = rk_emmc_init;;
 	mmc->getcd = NULL;
 	mmc->getwp = NULL;
-	mmc->host_caps = MMC_MODE_8BIT | MMC_MODE_4BIT;
+	mmc->host_caps = MMC_MODE_8BIT | MMC_MODE_4BIT |MMC_MODE_HS |MMC_MODE_HS_52MHz;
 
 	mmc->voltages = 0x00ff8080;
 	mmc->f_max = MMC_BUS_CLOCK/2;
