@@ -110,11 +110,11 @@ Revision:		1.00
 #include    "FTL_OSDepend.h"
 #endif
 #endif
-#if 0
+
 #ifdef  DRIVERS_SDMMC
 #include    "emmc/sdmmcBoot.h"
 #endif
-#endif
+
 #ifdef  DRIVERS_SPI
 #include    "../common/spi/SpiFlash.h"
 #include    "../common/spi/SpiBoot.h"
