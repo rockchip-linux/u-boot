@@ -353,7 +353,8 @@ void FW_TestUnitReady(void)
 void FW_ReadID(void)
 {
     uint8 *FlashID=BulkInBuf;
-    StorageReadId(FlashID);
+    if(gpMemFun->ReadId)
+        gpMemFun->ReadId(gCBW.LUN, FlashID);
     CSWHandler(CSW_GOOD,0);
     WriteBulkEndpoint(5, FlashID);
     FWCmdPhase=K_InCSWPhase;
@@ -617,7 +618,8 @@ void FW_LowFormat(void)
 void FW_Erase10(void)
 {
 	bool Status;
-	StorageEraseBlock(gCBW.LBA, gCBW.Len, 0);
+    if(gpMemFun->Erase && SecureBootLock == 0)
+        Status = gpMemFun->Erase(gCBW.LUN, gCBW.LBA, gCBW.Len, 0);
 	CSWHandler(Status, 0);
     SendCSW();
 }
@@ -640,7 +642,8 @@ void FW_GetFlashInfo(void)
 #else
     uint16 byte;
     CSWHandler(CSW_GOOD, 0);
-    StorageReadFlashInfo(DataBuf);
+    if(gpMemFun->ReadInfo)
+        gpMemFun->ReadInfo(DataBuf);
     FW_DataLenCnt=0;
     WriteBulkEndpoint(512, &DataBuf[FW_DataLenCnt]);
     FWCmdPhase= K_InCSWPhase;
@@ -656,9 +659,10 @@ void FW_GetFlashInfo(void)
 void FW_Erase10Force(void)
 {
 	bool Status;
-	StorageEraseBlock(gCBW.LBA, gCBW.Len, 0);
+    if(gpMemFun->Erase && SecureBootLock == 0)
+        Status = gpMemFun->Erase(gCBW.LUN, gCBW.LBA, gCBW.Len, 1);
 	CSWHandler(Status, 0);
-    	SendCSW();
+    SendCSW();
 }
 
 /***************************************************************************
