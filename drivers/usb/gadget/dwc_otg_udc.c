@@ -415,7 +415,6 @@ void WriteBulkEndpoint(uint32_t len, void* buf)
 {
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
     uint32_t regBak;
-
 //    if ((OtgReg->Device.InEp[BULK_IN_EP].DTXFSTS & 0xffff) >= (len+3)/4)
     {
         OtgReg->Device.InEp[BULK_IN_EP].DiEpTSiz=len | (((len+BulkEpSize-1)/BulkEpSize)<<19);
@@ -459,6 +458,7 @@ void set_configuration(void)
 
 static dwc_otg_epn_in_ack(void)
 {
+    usberr("write 0");
 	WriteBulkEndpoint(0, NULL);
 }
 
@@ -514,7 +514,7 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 	if (ep0_recv_setup(ep0_urb)) {
 		/* Not a setup packet, stall next EP0 transaction */
 		udc_stall_ep(0);
-		usberr("can't parse setup packet, still waiting for setup\n");
+		//usberr("can't parse setup packet, still waiting for setup\n");
 		return;
 	}
 

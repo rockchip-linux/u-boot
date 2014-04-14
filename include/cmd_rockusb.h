@@ -8,6 +8,8 @@
 #include <usbdevice.h>
 #include <asm/sizes.h>
 #include <asm/unaligned.h>
+#include <asm/arch-rk32xx/typedef.h>
+
 #include "../board/rockchip/rk32xx/storage.h"
 
 #include <usb_defs.h>
@@ -51,7 +53,7 @@
 
 #define RKUSB_ERR
 #undef  RKUSB_WARN
-#define  RKUSB_INFO
+#undef  RKUSB_INFO
 #undef  RKUSB_DEBUG
 
 #ifdef RKUSB_DEBUG
@@ -284,7 +286,7 @@ struct cmd_rockusb_interface {
 #define USB_XFER_BUF_SIZE (2048*512/4) //1MB
 #if 1
 //	EXT		ALIGN(4) uint8_t 	FWCmdPhase;			//ÃüÁî½×¶Î×´Ì¬×Ö
-	EXT     ALIGN(4) uint8_t  FWLowFormatEn;
+	extern   int  FWLowFormatEn;
 	EXT     ALIGN(4) uint8_t  FWSetResetFlag;
 	EXT		uint32_t 			FW_DataLenCnt;
     EXT		uint32_t 			FW_SDRAM_ExcuteAddr;    

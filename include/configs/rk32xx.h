@@ -203,7 +203,7 @@ Revision:       1.00
 #define CONFIG_USBD_MANUFACTURER    "Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
 
-
+#define CONFIG_CMD_ROCKUSB
 /* Another macro may also be used or instead used to take care of the case
  * where fastboot is started at boot (to be incorporated) based on key press
  */

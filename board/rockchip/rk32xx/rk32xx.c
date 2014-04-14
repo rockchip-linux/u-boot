@@ -94,7 +94,7 @@ int board_fbt_key_pressed(void)
     } else if (boot_rockusb && (vbus!=0)) {
         printf("%s: rockusb key pressed.\n",__func__);
     //    startRockusb();
-	//do_rockusb(NULL, 0, 1, 1);
+	do_rockusb(NULL, 0, 1, 1);
     } else if(boot_fastboot && (vbus!=0)){
         printf("%s: fastboot key pressed.\n",__func__);
         frt = FASTBOOT_REBOOT_FASTBOOT;
@@ -154,7 +154,7 @@ void board_fbt_boot_failed(const char* boot)
     }  
     printf("try to start rockusb\n");
     //startRockusb();
-	//do_rockusb(NULL, 0, 1 , 1);
+	do_rockusb(NULL, 0, 1 , 1);
 }
 
 
