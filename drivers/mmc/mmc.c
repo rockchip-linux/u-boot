@@ -251,6 +251,7 @@ static ulong mmc_bread(int dev_num, lbaint_t start, lbaint_t blkcnt, void *dst)
 
 	if (mmc_set_blocklen(mmc, mmc->read_bl_len))
 		return 0;
+
 	do {
 		cur = (blocks_todo > mmc->b_max) ?  mmc->b_max : blocks_todo;
 		if(mmc_read_blocks(mmc, dst, start, cur) != cur)
@@ -275,6 +276,7 @@ static int mmc_go_idle(struct mmc *mmc)
 	cmd.resp_type = MMC_RSP_NONE;
 
 	err = mmc_send_cmd(mmc, &cmd, NULL);
+
 	if (err)
 		return err;
 
@@ -343,7 +345,7 @@ static int sd_send_op_cond(struct mmc *mmc)
 	mmc->ocr = cmd.response[0];
 
 	mmc->high_capacity = ((mmc->ocr & OCR_HCS) == OCR_HCS);
-	//mmc->rca = 0;
+	mmc->rca = 0;
 
 	return 0;
 }
@@ -428,7 +430,7 @@ int mmc_complete_op_cond(struct mmc *mmc)
 	mmc->ocr = cmd.response[0];
 
 	mmc->high_capacity = ((mmc->ocr & OCR_HCS) == OCR_HCS);
-	//mmc->rca = 0;
+	mmc->rca = 0;
 
 	return 0;
 }
@@ -473,6 +475,7 @@ static int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 	/* Waiting for the ready status */
 	if (!ret)
 		ret = mmc_send_status(mmc, timeout);
+
 	return ret;
 
 }
@@ -482,6 +485,7 @@ static int mmc_change_freq(struct mmc *mmc)
 	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
 	char cardtype;
 	int err;
+
 	mmc->card_caps = 0;
 
 	if (mmc_host_is_spi(mmc))
@@ -505,12 +509,14 @@ static int mmc_change_freq(struct mmc *mmc)
 
 	/* Now check to see that it worked */
 	err = mmc_send_ext_csd(mmc, ext_csd);
+
 	if (err)
 		return err;
 
 	/* No high-speed support */
 	if (!ext_csd[EXT_CSD_HS_TIMING])
 		return 0;
+
 	/* High Speed is set, there are two types: 52MHz and 26MHz */
 	if (cardtype & MMC_HS_52MHZ)
 		mmc->card_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS;
@@ -568,7 +574,9 @@ int mmc_switch_part(int dev_num, unsigned int part_num)
 int mmc_getcd(struct mmc *mmc)
 {
 	int cd;
+
 	cd = board_mmc_getcd(mmc);
+
 	if (cd < 0) {
 		if (mmc->getcd)
 			cd = mmc->getcd(mmc);
@@ -816,9 +824,8 @@ static int mmc_startup(struct mmc *mmc)
 		if (err)
 			return err;
 
-		if (IS_SD(mmc)){
+		if (IS_SD(mmc))
 			mmc->rca = (cmd.response[0] >> 16) & 0xffff;
-		}
 	}
 
 	/* Get the Card-Specific Data */
@@ -831,9 +838,8 @@ static int mmc_startup(struct mmc *mmc)
 	/* Waiting for the ready status */
 	mmc_send_status(mmc, timeout);
 
-	if (err){
+	if (err)
 		return err;
-	}
 
 	mmc->csd[0] = cmd.response[0];
 	mmc->csd[1] = cmd.response[1];
@@ -842,6 +848,7 @@ static int mmc_startup(struct mmc *mmc)
 
 	if (mmc->version == MMC_VERSION_UNKNOWN) {
 		int version = (cmd.response[0] >> 26) & 0xf;
+
 		switch (version) {
 			case 0:
 				mmc->version = MMC_VERSION_1_2;
@@ -942,6 +949,7 @@ static int mmc_startup(struct mmc *mmc)
 			if ((capacity >> 20) > 2 * 1024)
 				mmc->capacity_user = capacity;
 		}
+
 		switch (ext_csd[EXT_CSD_REV]) {
 		case 1:
 			mmc->version = MMC_VERSION_4_1;
@@ -1067,6 +1075,7 @@ static int mmc_startup(struct mmc *mmc)
 
 		for (idx=0; idx < ARRAY_SIZE(ext_csd_bits); idx++) {
 			unsigned int extw = ext_csd_bits[idx];
+
 			/*
 			 * Check to make sure the controller supports
 			 * this bus width, if it's more than 1
@@ -1099,6 +1108,7 @@ static int mmc_startup(struct mmc *mmc)
 				break;
 			}
 		}
+
 		if (mmc->card_caps & MMC_MODE_HS) {
 			if (mmc->card_caps & MMC_MODE_HS_52MHz)
 				mmc->tran_speed = 52000000;
@@ -1106,6 +1116,7 @@ static int mmc_startup(struct mmc *mmc)
 				mmc->tran_speed = 26000000;
 		}
 	}
+
 	mmc_set_clock(mmc, mmc->tran_speed);
 
 	/* fill in device description */
@@ -1114,7 +1125,6 @@ static int mmc_startup(struct mmc *mmc)
 	mmc->block_dev.blksz = mmc->read_bl_len;
 	mmc->block_dev.log2blksz = LOG2(mmc->block_dev.blksz);
 	mmc->block_dev.lba = lldiv(mmc->capacity, mmc->read_bl_len);
-	
 #if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
 	sprintf(mmc->block_dev.vendor, "Man %06x Snr %04x%04x",
 		mmc->cid[0] >> 24, (mmc->cid[2] & 0xffff),
@@ -1144,7 +1154,7 @@ static int mmc_send_if_cond(struct mmc *mmc)
 
 	cmd.cmdidx = SD_CMD_SEND_IF_COND;
 	/* We set the bit if the host supports voltages between 2.7 and 3.6 V */
-	cmd.cmdarg = 0x1aa;//((mmc->voltages & 0xff8000) != 0) << 8 | 0xaa;
+	cmd.cmdarg = ((mmc->voltages & 0xff8000) != 0) << 8 | 0xaa;
 	cmd.resp_type = MMC_RSP_R7;
 
 	err = mmc_send_cmd(mmc, &cmd, NULL);
@@ -1196,6 +1206,7 @@ block_dev_desc_t *mmc_get_dev(int dev)
 int mmc_start_init(struct mmc *mmc)
 {
 	int err;
+
 	if (mmc_getcd(mmc) == 0) {
 		mmc->has_init = 0;
 #if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
@@ -1206,6 +1217,7 @@ int mmc_start_init(struct mmc *mmc)
 
 	if (mmc->has_init)
 		return 0;
+
 	err = mmc->init(mmc);
 
 	if (err)
@@ -1213,7 +1225,7 @@ int mmc_start_init(struct mmc *mmc)
 
 	mmc_set_bus_width(mmc, 1);
 	mmc_set_clock(mmc, 1);
-	udelay(1000);
+
 	/* Reset the Card */
 	err = mmc_go_idle(mmc);
 
@@ -1232,6 +1244,7 @@ int mmc_start_init(struct mmc *mmc)
 	/* If the command timed out, we check for an MMC card */
 	if (err == TIMEOUT) {
 		err = mmc_send_op_cond(mmc);
+
 		if (err && err != IN_PROGRESS) {
 #if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
 			printf("Card did not respond to voltage select!\n");
@@ -1249,6 +1262,7 @@ int mmc_start_init(struct mmc *mmc)
 static int mmc_complete_init(struct mmc *mmc)
 {
 	int err = 0;
+
 	if (mmc->op_cond_pending)
 		err = mmc_complete_op_cond(mmc);
 
@@ -1266,6 +1280,7 @@ int mmc_init(struct mmc *mmc)
 {
 	int err = IN_PROGRESS;
 	unsigned start = get_timer(0);
+
 	if (mmc->has_init)
 		return 0;
 	if (!mmc->init_in_progress)
@@ -1346,6 +1361,7 @@ int mmc_initialize(bd_t *bis)
 {
 	INIT_LIST_HEAD (&mmc_devices);
 	cur_dev_num = 0;
+
 	if (board_mmc_init(bis) < 0)
 		cpu_mmc_init(bis);
 

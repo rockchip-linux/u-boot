@@ -332,11 +332,6 @@ void rk_i2c_init()
 }
 #endif
 
-int board_mmc_init(bd_t *bis)
-{
-	rk_mmc_init();
-	return 0;
-}
 
 #ifdef CONFIG_POWER_ACT8846
 struct pmic_voltage pmic_vol[] = {

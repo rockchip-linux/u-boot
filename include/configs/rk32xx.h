@@ -340,13 +340,4 @@ Revision:       1.00
 #define CONFIG_ENABLE_ERASEKEY
 #define CONFIG_SYS_VSNPRINTF
 
-
-
-#define CONFIG_GENERIC_MMC
-#define CONFIG_CMD_READ
-#define CONFIG_MMC
-#define CONFIG_PARTITIONS
-#define CONFIG_CMD_MMC
-#define CONFIG_SYS_MMC_ENV_DEV 0
-
 #endif /* __CONFIG_H */
