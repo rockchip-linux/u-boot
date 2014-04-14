@@ -202,7 +202,7 @@ void PowerKeyInit()
     //power_hold_gpio.name
     key_power.type = KEY_INT;
     key_power.key.ioint.name = "power_key";
-    key_power.key.ioint.gpio = RK3288_GPIO0_PHYS | GPIO_A5;
+    key_power.key.ioint.gpio = RK3288_GPIO0_PHYS | GPIO_A4;
     key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
     key_power.key.ioint.pressed_state = 0;
     key_power.key.ioint.press_time = 0;
