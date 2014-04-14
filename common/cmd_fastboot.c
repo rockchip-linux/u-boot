@@ -67,7 +67,7 @@
 #ifdef CONFIG_RESOURCE_PARTITION
 #include <resource.h>
 #endif
-
+#include <fdtdec.h>
 DECLARE_GLOBAL_DATA_PTR;
 
 /* If a BUILD_TAG was passed as an argument to make, use it
@@ -2096,9 +2096,11 @@ void fbt_preboot(void)
 
 #ifdef CONFIG_ROCKCHIP
     const void *blob = rk_fdt_resource_load();
-    int node = fdt_path_offset(blob, "/fb");
-    int logo_on= fdtdec_get_int(blob, node, "uboot,logo-on", 0);
-    printf("read logo_on switch from dts [%d]\n", logo_on);
+    int node = fdtdec_next_compatible(blob,
+					0, COMPAT_ROCKCHIP_FB);
+    int logo_on = fdtdec_get_int(blob, node, "rockchip,uboot-logo-on", 0);
+    printf("node:%d read logo_on switch from dts [%d]\n", node, logo_on);
+    
 #ifdef CONFIG_LCD
     if(logo_on)
     drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb                                         

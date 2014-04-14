@@ -416,6 +416,7 @@ LCDC_REG *preg = NULL;
 LCDC_REG regbak;
 
 
+extern int rk32_edp_enable(vidinfo_t * vid);
 void writel_relaxed(uint32 val, uint32 addr)
 {
     *(int*)addr = val;
@@ -610,6 +611,7 @@ int rk30_load_screen(vidinfo_t *vid)
 
     //rk3288_parse_dt();  //parse from fdt
 
+	vid->dp_enabled = 1;
     if(vid->mipi_enabled){
         LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1));
     }else if(vid->dp_enabled){
@@ -682,8 +684,13 @@ int rk30_load_screen(vidinfo_t *vid)
 	LCDC_REG_CFG_DONE();
 
     set_lcdc_dclk(vid->vl_freq);
-    rk32_lvds_en(vid);
-	//printf("%s for lcdc ok!\n",__func__);
+
+	if ((vid->screen_type == SCREEN_LVDS) ||
+			(vid->screen_type == SCREEN_DUAL_LVDS)) {
+		rk32_lvds_en(vid);
+	} else if (vid->screen_type == SCREEN_EDP) {
+		rk32_edp_enable(vid);
+	}
 	return 0;
 }
 

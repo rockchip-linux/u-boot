@@ -323,7 +323,7 @@ struct layer_par {
 	u8 fmt_cfg;
 };
 typedef struct vidinfo {
-    u_char lcd_face;    /* lcd rgb tye (i.e. RGB888) */
+	u_char lcd_face;    /* lcd rgb tye (i.e. RGB888) */
 	ushort vl_col;		/* Number of columns (i.e. 640) */
 	ushort vl_row;		/* Number of rows (i.e. 480) */
 	ushort vl_width;	/* Width of display area in millimeters */
@@ -332,7 +332,7 @@ typedef struct vidinfo {
 	/* LCD configuration register */
 	u_char vl_freq;		/* Frequency */
 	u_char vl_clkp;		/* Clock polarity */
-    u_char vl_oep;		/* Output Enable polarity */
+	u_char vl_oep;		/* Output Enable polarity */
 	u_char vl_hsp;		/* Horizontal Sync polarity */
 	u_char vl_vsp;		/* Vertical Sync polarity */
 	u_char vl_bpix;		/* Bits per pixel */
@@ -361,8 +361,8 @@ typedef struct vidinfo {
 	unsigned int interface_mode;
 	unsigned int mipi_enabled;
 	unsigned int dp_enabled;
-    unsigned int lvds_format;
-    unsigned int lvds_ttl_en;
+	unsigned int lvds_format;
+	unsigned int lvds_ttl_en;
 	unsigned int cs_setup;
 	unsigned int wr_setup;
 	unsigned int logo_on;
@@ -379,12 +379,10 @@ typedef struct vidinfo {
 
 	unsigned int dual_lcd_enabled;
 		
-#ifdef CONFIG_RK616
+
     	u_char screen_type;
-#ifdef CONFIG_RK616_LVDS
     	u_char lvds_ch_nr;
-#endif
-#endif
+
 } vidinfo_t;
 
 void init_panel_info(vidinfo_t *vid);
