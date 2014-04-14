@@ -15,7 +15,7 @@ Revision:       1.00
 #if !defined(CONFIG_FASTBOOT_NO_FORMAT)
 
 extern struct fbt_partition fbt_partitions[];
-
+//extern int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 static int do_format(void)
 {
 #if 0
@@ -146,7 +146,8 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
                 frt = FASTBOOT_REBOOT_NORMAL;
                 break;
             case BOOT_LOADER:
-                startRockusb();
+                //startRockusb();
+		//do_rockusb(NULL, 0, 1, 1);
                 break;
             case BOOT_FASTBOOT:
                 frt = FASTBOOT_REBOOT_FASTBOOT;

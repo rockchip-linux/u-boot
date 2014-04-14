@@ -174,6 +174,7 @@ obj-$(CONFIG_CMD_ZIP) += cmd_zip.o
 obj-$(CONFIG_CMD_ZFS) += cmd_zfs.o
 
 obj-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
+obj-$(CONFIG_CMD_ROCKUSB) += cmd_rockusb.o
 
 obj-$(CONFIG_RESOURCE_PARTITION) += resource.o
 ifdef CONFIG_CMD_FASTBOOT
