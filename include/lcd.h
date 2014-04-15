@@ -246,6 +246,7 @@ void init_panel_info(vidinfo_t *vid);
 #define OUT_CCIR656         6
 #define OUT_S888            8
 #define OUT_S888DUMY        12
+#define OUT_RGB_AAA	    15
 #define OUT_P16BPP4         24
 #define OUT_D888_P666       0x21	//18bit screen,connect to lcdc D2~D7, D10~D15, D18~D23
 #define OUT_D888_P565       0x22

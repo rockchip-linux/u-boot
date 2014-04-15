@@ -2130,7 +2130,7 @@ void fbt_preboot(void)
     if(logo_on)
     {
         lcd_enable_logo(true);
-        rk_backlight_ctrl(48);
+        rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
     }
 #endif
     rkclk_soft_reset();
