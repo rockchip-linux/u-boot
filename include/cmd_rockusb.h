@@ -241,6 +241,8 @@ struct bulk_cs_wrap {
 #define RKUSB_STATUS_RXDATA 2
 #define RKUSB_STATUS_TXDATA 3
 #define RKUSB_STATUS_CSW 4
+#define RKUSB_STATUS_RXDATA_PREPARE 5
+#define RKUSB_STATUS_TXDATA_PREPARE 6
 /*******************************************************************
 CSW·µ»Ø×´Ì¬Öµ
 *******************************************************************/
@@ -249,71 +251,44 @@ CSW·µ»Ø×´Ì¬Öµ
 
 
 struct cmd_rockusb_interface {
-   uint8_t cmd;
-   uint8_t status;
+    uint8_t cmd;
+    uint8_t status;
 	unsigned int configured;
-   uint8_t *buffer;
+    uint8_t *rx_buffer[2];
+    uint8_t *tx_buffer[2];
+    uint8_t rxbuf_num;
+    uint8_t txbuf_num;
    
+		/* Download size, if download has to be done. This can be checked to find
+		whether next packet is a command or a data */
+	uint32_t d_size;
+
+	/* Data downloaded so far */
+	uint32_t d_bytes;
+
+    /* Download status, < 0 when error, > 0 when complete */
+    uint32_t d_status;
+    	/* Upload size, if download has to be done */
+	uint32_t u_size;
+
+	/* Data uploaded so far */
+	uint32_t u_bytes;
+	
+	uint32_t			lba;
+	uint32_t            cmnd;
+	uint32_t            imgwr_mode;
 	
 	uint16_t			data_size;
 	uint32_t			data_size_from_cmnd;
-	uint32_t			lba;
 	uint32_t			tag;
 	uint32_t			residue;
 	uint32_t			usb_amount_left;
-	
+
+	uint32_t reset_flag;
 	struct fsg_bulk_cb_wrap cbw;
 	struct bulk_cs_wrap csw;
 };
 
-#ifndef __GNUC__
-#define PACKED1 __packed
-#define PACKED2
-#define ALIGN(x) __align(x)
-#else
-#define PACKED1
-#define PACKED2 __attribute__((packed))
-#define ALIGN(x) __attribute__ ((aligned(x)))
-#endif
-
-#undef	EXT
-#ifdef	IN_FW_Upgrade
-		#define	EXT
-#else
-		#define	EXT		extern
-#endif		
-    
-#define USB_XFER_BUF_SIZE (2048*512/4) //1MB
-#if 1
-//	EXT		ALIGN(4) uint8_t 	FWCmdPhase;			//ÃüÁî½×¶Î×´Ì¬×Ö
 	extern   int  FWLowFormatEn;
-	EXT     ALIGN(4) uint8_t  FWSetResetFlag;
-	EXT		uint32_t 			FW_DataLenCnt;
-    EXT		uint32_t 			FW_SDRAM_ExcuteAddr;    
-//	EXT		uint32_t 			FW_Write10PBA;
-//    EXT		int32_t           dCSWDataResidueVal;
-    
-//	EXT		ALIGN(4) uint16_t FWLBA_DataLenCnt;
-//	EXT		uint32_t 			FWLBA_Write10PBA;
-//    EXT		uint32_t 			FW_SDRAM_Parameter;
-    EXT     uint32_t          FW_WR_Mode;
-    EXT     uint32_t          FW_IMG_WR_Mode;//img Ð´»¹ÊÇlbaÐ´£¬0Îªimg£¬1Îªlba
-#endif
-//    EXT     USB_XFER        usbCmd;
-//    EXT     uint32_t 			*bulkBuf[2];
 
-//	EXT		ALIGN(64)CSW  	      gCSW;
-//    EXT		ALIGN(64)CBW           gCBW;
-//    EXT		ALIGN(64) uint8_t          BulkInBuf[512];
-
-//    EXT    ALIGN(64) uint32_t          FWLBAWriteSrcBuf[512*32/4];
-//    EXT    ALIGN(64) uint32_t          FWLBAReadSrcBuf[512*32/4];
-
-    //rkloader.c
-    EXT       ALIGN(64)uint32_t          DataBuf[528*128/4];
-
-    // sdmmcboot.c
-    EXT		ALIGN(64)uint32_t          Data[(1024*8*4/4)];
-    EXT		ALIGN(64)uint32_t          SpareBuf[(32*8*4/4)];
-    EXT     ALIGN( 64 ) uint32_t 			usbXferBuf[2*USB_XFER_BUF_SIZE];
 #endif

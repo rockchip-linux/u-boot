@@ -337,6 +337,17 @@ static void fbt_init_strings(void)
 	usb_strings = fbt_string_table;
 }
 
+void fbt_receive_firstcmd(void)
+{
+    struct usb_endpoint_instance *ep = &endpoint_instance[1];
+
+	// get first CMD
+
+    ep->rcv_urb->buffer_length = FASTBOOT_COMMAND_SIZE;
+    ep->rcv_urb->actual_length = 0;
+	resume_usb(ep, 0);
+}
+
 static void fbt_event_handler (struct usb_device_instance *device,
 				  usb_device_event_t event, int data)
 {
@@ -351,7 +362,7 @@ static void fbt_event_handler (struct usb_device_instance *device,
 
 	case DEVICE_ADDRESS_ASSIGNED:
 		fbt_init_endpoints();
-
+        fbt_receive_firstcmd();
 	default:
 		break;
 	}

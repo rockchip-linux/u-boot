@@ -19,11 +19,20 @@ DECLARE_GLOBAL_DATA_PTR;
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 /* USB specific */
+void rkusb_receive_firstcbw(void)
+{
+    struct usb_endpoint_instance *ep = &endpoint_instance[1];
 
+	// get first CBW
+    ep->rcv_urb->buffer = &usbcmd.cbw;
+    ep->rcv_urb->buffer_length = 31;
+    ep->rcv_urb->actual_length = 0;
+	resume_usb(ep, 0);
+}
 static void rkusb_event_handler (struct usb_device_instance *device,
 				  usb_device_event_t event, int data)
 {
-    //RKUSBINFO("%s \n", __func__);
+    RKUSBINFO("%x \n", event);
 	switch (event) {
 	case DEVICE_RESET:
 	case DEVICE_BUS_INACTIVE:
@@ -31,11 +40,12 @@ static void rkusb_event_handler (struct usb_device_instance *device,
 		break;
 	case DEVICE_CONFIGURED:
 		usbcmd.configured = 1;
+
 		break;
 
 	case DEVICE_ADDRESS_ASSIGNED:
 		rkusb_init_endpoints();
-
+        rkusb_receive_firstcbw();
 	default:
 		break;
 	}
@@ -98,6 +108,11 @@ static void rkusb_init_instances(void)
 		at another place ? */
 	//udc_setup_ep(device_instance, 0, &endpoint_instance[0]);//setup ep0 reg in UdcInit()
 
+	usbcmd.rx_buffer[0] = (u8 *)gd->arch.fastboot_buf_addr;
+	usbcmd.rx_buffer[1] = usbcmd.rx_buffer[0]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
+	usbcmd.tx_buffer[0] = usbcmd.rx_buffer[1]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
+	usbcmd.tx_buffer[1] = usbcmd.tx_buffer[0]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
+    RKUSBINFO("%p %p %p %p %x\n",usbcmd.rx_buffer[0], usbcmd.rx_buffer[1], usbcmd.tx_buffer[1], usbcmd.tx_buffer[0], usbcmd.tx_buffer[1]);
 	for (i = 1; i <= NUM_ENDPOINTS; i++) {
 		endpoint_instance[i].endpoint_address =
 			ep_descriptor_ptrs[i - 1]->bEndpointAddress;
@@ -126,14 +141,13 @@ static void rkusb_init_instances(void)
 			endpoint_instance[i].tx_urb =
 				usbd_alloc_urb(device_instance,
 					       &endpoint_instance[i]);
-			endpoint_instance[i].tx_urb->buffer = (u8 *)(u8 *)gd->arch.fastboot_buf_addr;
+			endpoint_instance[i].tx_urb->buffer = usbcmd.tx_buffer[0];
 		}
 		else{
 			endpoint_instance[i].rcv_urb =
 				usbd_alloc_urb(device_instance,
 					       &endpoint_instance[i]);
-			endpoint_instance[i].rcv_urb->buffer = (u8 *)(u8 *)gd->arch.fastboot_buf_addr
-			                                       + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
+			endpoint_instance[i].rcv_urb->buffer = usbcmd.rx_buffer[0];
         }
 	}
 }
@@ -197,8 +211,8 @@ void FW_TestUnitReady(void)
     {
         usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
         usbcmd.csw.Status= CSW_GOOD;
-        
-        FWSetResetFlag = 0x10;;
+
+        usbcmd.reset_flag = 0x10;
     }
     else if(usbcmd.cbw.CDB[1] == 0xF9)
     {
@@ -274,20 +288,18 @@ void FW_Read10(void)
 void FW_Write10(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
-	struct urb *current_urb = NULL;
+	struct urb *current_urb = ep->rcv_urb;
 	
-    FW_DataLenCnt=0;
-    FW_WR_Mode = FW_WR_MODE_PBA;
+    usbcmd.d_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 528;
+    usbcmd.d_bytes= 0;
+    usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
+    usbcmd.cmnd = K_FW_WRITE_10;
     
-    usbcmd.data_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 528;
-    usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);;
-    
-	current_urb = ep->rcv_urb;
-    RKUSBINFO("%p\n", current_urb);
+    RKUSBINFO("%x\n", usbcmd.d_size);
 	current_urb->actual_length = 0;
-	current_urb->buffer_length = usbcmd.data_size;//CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
-	resume_usb(ep, 0);
-    usbcmd.status = RKUSB_STATUS_RXDATA;
+	//current_urb->buffer_length = usbcmd.data_size;//CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
+	//resume_usb(ep, 0);
+    usbcmd.status = RKUSB_STATUS_RXDATA_PREPARE;
 }
 
 extern uint32_t  SecureBootLock;
@@ -345,19 +357,18 @@ void FW_LBAWrite10(void)
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
 	struct urb *current_urb = NULL;
 	
-    FW_DataLenCnt=0;
-    FW_WR_Mode = FW_WR_MODE_LBA;
-    FW_IMG_WR_Mode = usbcmd.cbw.CDB[1];
-    
-    usbcmd.data_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 512;
-    usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);;
+    usbcmd.d_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 512;
+    usbcmd.d_bytes= 0;
+    usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
+    usbcmd.cmnd = K_FW_LBA_WRITE_10;
+    usbcmd.imgwr_mode = usbcmd.cbw.CDB[1];
     
 	current_urb = ep->rcv_urb;
-    RKUSBINFO("%p\n", current_urb);
+    RKUSBINFO("lba %x, size %x\n", usbcmd.lba, usbcmd.d_size);
 	current_urb->actual_length = 0;
-	current_urb->buffer_length = usbcmd.data_size;
-	resume_usb(ep, 0);
-    usbcmd.status = RKUSB_STATUS_RXDATA;
+	//current_urb->buffer_length = usbcmd.data_size;
+	//resume_usb(ep, 0);
+    usbcmd.status = RKUSB_STATUS_RXDATA_PREPARE;
 }
 
 void FW_GetFlashInfo(void)
@@ -370,10 +381,9 @@ void FW_GetFlashInfo(void)
 	current_urb = ep->tx_urb;
     
     StorageReadFlashInfo(current_urb->buffer);
-    FW_DataLenCnt=0;
 
     //ftl_memcpy(current_urb->buffer, &DataBuf[FW_DataLenCnt],11);
-    ftl_memcpy(current_urb->buffer, current_urb->buffer+(FW_DataLenCnt<<2),11);
+    ftl_memcpy(current_urb->buffer, current_urb->buffer,11);
 	current_urb->actual_length = 11;
     usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= CSW_GOOD;
@@ -392,7 +402,7 @@ void FW_LowFormat(void)
 void FW_SetResetFlag(void)
 {
     RKUSBINFO("%s \n", __func__);
-    FWSetResetFlag = 1;
+    usbcmd.reset_flag = 1;
     
     usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= CSW_GOOD;
@@ -404,9 +414,9 @@ void FW_Reset(void)
     RKUSBINFO("%x \n", usbcmd.cbw.CDB[1]);
     
     if(usbcmd.cbw.CDB[1])
-        FWSetResetFlag = usbcmd.cbw.CDB[1];
+        usbcmd.reset_flag = usbcmd.cbw.CDB[1];
     else
-        FWSetResetFlag = 0xff;
+        usbcmd.reset_flag = 0xff;
     // SoftReset in main loop(usbhook)
     
     usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
@@ -414,9 +424,43 @@ void FW_Reset(void)
     usbcmd.status = RKUSB_STATUS_CSW;
 }
 
+static int rkusb_send_csw(void)
+{
+	struct usb_endpoint_instance *ep1 = &endpoint_instance[2];
+	struct usb_endpoint_instance *ep2 = &endpoint_instance[1];
+	struct urb *current_urb = ep1->tx_urb;
+	struct bulk_cs_wrap	*csw=&usbcmd.csw;
+    
+    RKUSBINFO("%s \n", __func__);
+	if (!current_urb) {
+		RKUSBERR("%s: current_urb NULL", __func__);
+		return;
+	}
+	
+	csw->Signature = cpu_to_le32(USB_BULK_CS_SIG);
+	csw->Tag = usbcmd.cbw.Tag;
+	current_urb->actual_length = 13;
+	current_urb->buffer = &usbcmd.csw;
+//	memcpy(current_urb->buffer, &, 13);
+
+    usbcmd.status = RKUSB_STATUS_IDLE;
+
+    ep2->rcv_urb->buffer = &usbcmd.cbw;
+    ep2->rcv_urb->buffer_length = 31;
+    ep2->rcv_urb->actual_length = 0;
+    resume_usb(ep2, 0);
+    
+	udc_endpoint_write(ep1);
+	return 0;
+}
+
 void do_rockusb_cmd(unsigned char *buffer)
 {
-    memcpy(&usbcmd.cbw, buffer,sizeof(struct fsg_bulk_cb_wrap));
+    struct usb_endpoint_instance *ep = &endpoint_instance[2];
+	struct urb *current_urb = ep->tx_urb;
+	current_urb->buffer = usbcmd.tx_buffer[usbcmd.txbuf_num&1];
+//    memcpy(&usbcmd.cbw, buffer,sizeof(struct fsg_bulk_cb_wrap));
+    
 //	RKUSBINFO("do_rockusb_cmd %x\n", usbcmd.cbw.CDB[0]);
     switch (usbcmd.cbw.CDB[0])
     {
@@ -469,8 +513,78 @@ void do_rockusb_cmd(unsigned char *buffer)
       }                
 }
 
+// dwc otg controller can handle 0x20000 data max for the datasize in DoEpCtl is 18 bit leng
+// we can only cut the transfer into smaller pieces
+#define RKDWC_BUFFER_LEN_MAX 0x1000
+void rkusb_handle_datarx(void)
+{
+	struct usb_endpoint_instance *ep=&endpoint_instance[1];
+	struct urb *current_urb = ep->rcv_urb;
+	uint8_t *rxdata_buf = NULL;
+	uint32_t rxdata_size = 0;
+	uint32_t rxdata_lba;
+	uint32_t transfer_length;
+
+	// updatea varilables
+	if(current_urb->actual_length){ // data received
+	    usbcmd.d_bytes += current_urb->actual_length;
+	    rxdata_buf = current_urb->buffer;
+	    rxdata_size = current_urb->actual_length;
+
+        current_urb->actual_length = 0;
+	    usbcmd.rxbuf_num ++;
+	    current_urb->buffer = usbcmd.rx_buffer[usbcmd.rxbuf_num & 1];
+//        RKUSBINFO("data received %x %p\n", usbcmd.rx_buffer[usbcmd.rxbuf_num & 1], current_urb->buffer);
+    }
+    // read next packet
+    if(usbcmd.d_bytes < usbcmd.d_size){
+        transfer_length = usbcmd.d_size - usbcmd.d_bytes;
+        if(transfer_length > RKDWC_BUFFER_LEN_MAX)
+            transfer_length = RKDWC_BUFFER_LEN_MAX;
+        
+//        RKUSBINFO("read next packet %x\n", transfer_length);
+        
+        current_urb->buffer_length = transfer_length;
+        resume_usb(ep, 0);
+        usbcmd.status = RKUSB_STATUS_RXDATA;
+    }
+    else{   // data receive complete
+//        RKUSBINFO("data receive complete\n");
+        usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+        usbcmd.csw.Status= CSW_GOOD;
+//        usbcmd.status = RKUSB_STATUS_CSW;
+        rkusb_send_csw();
+    }
+
+    // write to media
+    if(rxdata_size){
+//            RKUSBINFO("write to media %x, lba %x, buf %p\n", rxdata_size, usbcmd.lba, rxdata_buf);
+            if(usbcmd.cmnd==K_FW_WRITE_10){
+                ISetLoaderFlag(SYS_LOADER_ERR_FLAG);
+                if(SecureBootLock == 0){
+            	    StorageWritePba(usbcmd.lba,rxdata_buf,(rxdata_size/528));
+            	    usbcmd.lba += rxdata_size/528;
+            	}
+            }
+            else if(usbcmd.cmnd==K_FW_LBA_WRITE_10){
+                if(usbcmd.lba >= 0xFFFFFF00){
+                    UsbStorageSysDataStore(usbcmd.lba -0xFFFFFF00,(rxdata_size/512),rxdata_buf);
+            	    usbcmd.lba += rxdata_size/512;
+            	}
+                else if(usbcmd.lba == 0xFFFFF000)
+                    SecureBootUnlock(current_urb->buffer);
+                else if(SecureBootLock == 0){
+                    StorageWriteLba(usbcmd.lba,rxdata_buf,(rxdata_size/512),usbcmd.imgwr_mode);
+            	    usbcmd.lba += rxdata_size/512;
+            	}
+            }
+    }
+}
 
 
+void rkusb_handle_datatx(void)
+{
+}
 void rkusb_handle_response(void)
 {
 	struct usb_endpoint_instance *ep;
@@ -498,64 +612,25 @@ void rkusb_handle_response(void)
         udc_endpoint_write(ep);
         RKUSBINFO("udc_endpoint_write %x\n", current_urb->actual_length);
         while(current_urb->actual_length != 0);
+        
+        if(usbcmd.data_size == 0){
+            usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+            usbcmd.csw.Status= CSW_GOOD;
+        	usbcmd.status = RKUSB_STATUS_CSW;
+    	}
     }
     else if(RKUSB_STATUS_RXDATA == usbcmd.status){
         ep = &endpoint_instance[1];
         current_urb = ep->rcv_urb;
         actural_length = current_urb->actual_length;
-//        RKUSBINFO("write10 %p %x %x\n", current_urb, actural_length, usbcmd.data_size);
-        if((actural_length)&&(usbcmd.data_size)){ //write10
-            //RKUSBINFO("write10 %x %x\n", actural_length, usbcmd.data_size);
-            if(usbcmd.cbw.CDB[0]==K_FW_WRITE_10){
-                ISetLoaderFlag(SYS_LOADER_ERR_FLAG);
-                if(SecureBootLock == 0)
-            	StorageWritePba(usbcmd.lba,current_urb->buffer,(usbcmd.data_size/528));
-            }
-            else if(usbcmd.cbw.CDB[0]==K_FW_LBA_WRITE_10){
-                if(usbcmd.lba >= 0xFFFFFF00)
-                    UsbStorageSysDataStore(usbcmd.lba -0xFFFFFF00,(usbcmd.data_size/512),current_urb->buffer);
-                else if(usbcmd.lba == 0xFFFFF000)
-                    SecureBootUnlock(current_urb->buffer);
-                else if(SecureBootLock == 0)
-                    StorageWriteLba(usbcmd.lba,current_urb->buffer,(usbcmd.data_size/512),FW_IMG_WR_Mode);
 
-            }
-        	usbcmd.data_size = 0;
-        }
+        if(actural_length)
+            rkusb_handle_datarx();
+    }
+    else if(RKUSB_STATUS_RXDATA_PREPARE == usbcmd.status){
+        rkusb_handle_datarx();
     }
     
-    if(usbcmd.data_size == 0){
-        usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
-        usbcmd.csw.Status= CSW_GOOD;
-    	usbcmd.status = RKUSB_STATUS_CSW;
-	}
-}
-static int rkusb_send_csw(void)
-{
-	struct usb_endpoint_instance *ep1 = &endpoint_instance[2];
-	struct usb_endpoint_instance *ep2 = &endpoint_instance[1];
-	struct urb *current_urb = ep1->tx_urb;
-	struct bulk_cs_wrap	*csw=&usbcmd.csw;
-    
-    RKUSBINFO("%s \n", __func__);
-	if (!current_urb) {
-		RKUSBERR("%s: current_urb NULL", __func__);
-		return;
-	}
-	
-	csw->Signature = cpu_to_le32(USB_BULK_CS_SIG);
-	csw->Tag = usbcmd.cbw.Tag;
-	current_urb->actual_length = 13;
-	memcpy(current_urb->buffer, &usbcmd.csw, 13);
-
-    usbcmd.status = RKUSB_STATUS_IDLE;
-    
-    ep2->rcv_urb->buffer_length = 31;
-    ep2->rcv_urb->actual_length = 0;
-    resume_usb(ep2, 0);
-    
-	udc_endpoint_write(ep1);
-	return 0;
 }
 
 
@@ -590,19 +665,21 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	            struct usb_endpoint_instance *ep = &endpoint_instance[1];
 	            if(ep->rcv_urb->actual_length){
     	            usbcmd.status = RKUSB_STATUS_CMD;
+    	            ep->rcv_urb->buffer = usbcmd.rx_buffer[usbcmd.rxbuf_num&1];
     	            do_rockusb_cmd(ep->rcv_urb->buffer);
 	            }
 	        }
 	        if(usbcmd.status == RKUSB_STATUS_RXDATA
-	           ||usbcmd.status == RKUSB_STATUS_TXDATA){
+	           ||usbcmd.status == RKUSB_STATUS_TXDATA
+	           ||usbcmd.status == RKUSB_STATUS_RXDATA_PREPARE
+	           ||usbcmd.status == RKUSB_STATUS_TXDATA_PREPARE){
 	            rkusb_handle_response();
 	        }
 	        if(usbcmd.status == RKUSB_STATUS_CSW){
 	            rkusb_send_csw();
 	        }
-            if(FWSetResetFlag==0xFF){
-                FWSetResetFlag = 0;
-                //SoftReset();
+            if(usbcmd.reset_flag==0xFF){
+                usbcmd.reset_flag = 0;
             }
 	        SysLowFormatCheck();
 		}

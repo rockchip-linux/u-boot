@@ -462,7 +462,7 @@ static dwc_otg_epn_in_ack(void)
 	WriteBulkEndpoint(0, NULL);
 }
 
-volatile int suspend = 0;
+volatile int suspend = 1;
 void suspend_usb() {
     suspend = true;
 }
@@ -600,7 +600,7 @@ static void dwc_otg_enum_done_intr(void)
 	ReadEndpoint0(Ep0PktSize, Ep0Buf);
 	//ReadBulkEndpoint(31, (uint8_t*)&gCBW);
     //ReadBulkEndpoint(FASTBOOT_COMMAND_SIZE, FbtXferBuf);
-    
+    #if 0
 	if(endpoint){
         urb = endpoint->rcv_urb;
         urb->buffer_length = 31;
@@ -608,6 +608,7 @@ static void dwc_otg_enum_done_intr(void)
     }
     else
         usberr("endpoint null\n");
+    #endif
 	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1ul<<28) | (1<<15)|(2<<18)|(BULK_IN_EP<<22);
 }
 
