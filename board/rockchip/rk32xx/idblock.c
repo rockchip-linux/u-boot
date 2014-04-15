@@ -768,7 +768,6 @@ int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
 
 void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz)
 {
-    ramdisk_sz = (ramdisk_sz + 0x3FFFF)&0xFFFF0000;//64KB ¶ÔÆë
 #define MAX_BUF_SIZE 100
     char str[MAX_BUF_SIZE];
     char *cmd_line = strdup(pboot_info->cmd_line);

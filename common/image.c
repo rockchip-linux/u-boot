@@ -1008,12 +1008,26 @@ int boot_ramdisk_high(struct lmb *lmb, ulong rd_data, ulong rd_len,
 			*initrd_end = rd_data + rd_len;
 			lmb_reserve(lmb, rd_data, rd_len);
 		} else {
+//mod by cjf
+/*
 			if (initrd_high)
 				*initrd_start = (ulong)lmb_alloc_base(lmb,
 						rd_len, 0x1000, initrd_high);
 			else
 				*initrd_start = (ulong)lmb_alloc(lmb, rd_len,
 								 0x1000);
+*/
+            //don't know why, but this work fine with kernel's unpack codes.
+            int fix_rd_len = (rd_len + 0x3FFFF)&0xFFFF0000;
+            if (initrd_high)
+				*initrd_start = (ulong)lmb_alloc_base(lmb,
+						fix_rd_len, 0x1000, initrd_high);
+			else
+				*initrd_start = (ulong)lmb_alloc(lmb, fix_rd_len,
+								 0x1000);
+            if (*initrd_start)
+                memset(*initrd_start, 0, fix_rd_len);
+
 
 			if (*initrd_start == 0) {
 				puts("ramdisk - allocation error\n");

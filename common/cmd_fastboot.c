@@ -2007,7 +2007,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	images.ep = hdr->kernel_addr;
 	images.rd_start = hdr->ramdisk_addr;
 	images.rd_end = hdr->ramdisk_addr
-        + (hdr->ramdisk_size + 0x3FFFF)&0xFFFF0000;//64KB ¶ÔÆë
+        + hdr->ramdisk_size;
 	free(hdr);
  
 #ifdef CONFIG_CMD_BOOTM
