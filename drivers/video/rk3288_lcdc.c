@@ -653,7 +653,8 @@ int rk30_load_screen(vidinfo_t *vid)
         		break;
 	}
 
-
+	if (vid->screen_type == SCREEN_EDP)
+		face = OUT_RGB_AAA;
 	//set background color to black,set swap according to the screen panel,disable blank mode
 	LcdMskReg(DSP_CTRL0, m_dsp_rg_swap | m_dsp_rb_swap | m_dsp_delta_swap | m_dsp_field_pol  | 
 	 	m_dsp_dummy_swap | m_dsp_bg_swap|m_dsp_out_mode,v_dsp_rg_swap(0) | v_dsp_rb_swap(vid->vl_swap_rb) | 
