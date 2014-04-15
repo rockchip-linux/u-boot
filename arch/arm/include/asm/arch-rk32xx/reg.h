@@ -9,6 +9,7 @@ Revision:       1.00
 ********************************************************************************/
 #ifndef __RK_REG_H
 #define __RK_REG_H
+#include <asm/arch/typedef.h>
 typedef volatile struct tagGICD_REG
 {
 	uint32 ICDDCR		  ; 	 //0x000 
