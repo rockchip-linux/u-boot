@@ -467,25 +467,15 @@ void suspend_usb() {
     suspend = true;
 }
 void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {
-//    usberr("reusme usb suspend%x",suspend);
     if (suspend) {
         suspend = false;
-//            usberr("endpoint %p, urb %p",endpoint, endpoint->rcv_urb);
         if (endpoint && endpoint->rcv_urb) {
             struct urb* urb = endpoint->rcv_urb;
             //get available size for next xfer.
             int remaining_space = urb->buffer_length - urb->actual_length;
-//            usberr("remaining_space %x",remaining_space);
             if (remaining_space > 0) {
-                //remaining_space = remaining_space > FBT_USB_XFER_MAX_SIZE? FBT_USB_XFER_MAX_SIZE : remaining_space;
-
-                //if (max_size && remaining_space > max_size)
-                //    remaining_space = max_size;
-
+	        urb->status = RECV_READY;
                 usbdbg("next request:%d\n", remaining_space);
-                //schedule next xfer.
-                //ReadBulkEndpoint(remaining_space, FbtXferBuf);
-//                usberr("ReadBulkEndpoint %x remain %x, bulksiz %x", urb->buffer_length, remaining_space,BulkEpSize);
                 ReadBulkEndpoint(remaining_space, urb->buffer);
             }
         }
@@ -770,6 +760,7 @@ int udc_endpoint_write(struct usb_endpoint_instance *endpoint)
 		/* handle zero length packet here */
 		dwc_otg_epn_in_ack();
 	}
+	endpoint->tx_urb->status = SEND_IN_PROGRESS;
 	if (endpoint->tx_urb && endpoint->tx_urb->actual_length) {
 			/* write data */
 			dwc_otg_write_data(endpoint);
@@ -799,6 +790,7 @@ static void dwc_otg_epn_rx(uint32_t len)
             //if (len > 0)
             //    ftl_memcpy(cp, FbtXferBuf, len);
         }
+	    urb->status = RECV_OK;
         usbd_rcv_complete(endpoint, len, 0);
         remaining_space -= len;
         //    usberr("buffer_length:%x, actual_length:%x, len:%x\n", urb->buffer_length, urb->actual_length, len);
@@ -807,6 +799,7 @@ static void dwc_otg_epn_rx(uint32_t len)
             //buffer is full, so we not do another xfer here. 
             suspend_usb();
         } else {
+	        urb->status = RECV_READY;
             //schedule next xfer.
             remaining_space = remaining_space > FBT_USB_XFER_MAX_SIZE? FBT_USB_XFER_MAX_SIZE : remaining_space;
             //usberr("next request: buffer len %x, act %x, len %x, %x\n", urb->buffer_length, urb->actual_length, len, remaining_space);
@@ -831,6 +824,7 @@ static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint)
 		/* handle zero length packet here */
 		dwc_otg_epn_in_ack();
 	}
+	endpoint->tx_urb->status = SEND_FINISHED_OK;
 
 	if (endpoint->tx_urb && endpoint->tx_urb->actual_length) {
 		/* retire the data that was just sent */
@@ -840,6 +834,8 @@ static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint)
 		 * now.
 		 */
 		if (endpoint->tx_urb && endpoint->tx_urb->actual_length) {
+		    usberr("send again");
+	        //endpoint->tx_urb->status = SEND_IN_PROGRESS;
 			/* write data */
 			dwc_otg_write_data(endpoint);
 

@@ -249,7 +249,12 @@ CSW·µ»Ø×´Ì¬Öµ
 #define	    CSW_GOOD					0x00		//ÃüÁîÍ¨¹ı
 #define	    CSW_FAIL					0x01		//ÃüÁîÊ§°Ü
 
-
+struct cmd_rockusb_preread{
+    uint8_t *pre_buffer;
+    uint32_t pre_lba;
+    uint32_t pre_blocks;
+    
+};
 struct cmd_rockusb_interface {
     uint8_t cmd;
     uint8_t status;
@@ -287,6 +292,7 @@ struct cmd_rockusb_interface {
 	uint32_t reset_flag;
 	struct fsg_bulk_cb_wrap cbw;
 	struct bulk_cs_wrap csw;
+	struct cmd_rockusb_preread pre_read;
 };
 
 	extern   int  FWLowFormatEn;
