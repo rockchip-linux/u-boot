@@ -640,54 +640,8 @@ int rk_bitmap_from_resource(unsigned short* fb)
     } 
     data = (char*)content.load_addr;   
 
-	if (data[0] == 'B' && data[1] == 'M')
-    {
-        data_offset = data[10] | data[11]<<8 | data[12]<<16 | data[13]<<24;
-    	xact = data[18] | (data[19]<<8) | (data[20]<<16) | (data[21]<<24);
-        yact = data[22] | (data[23]<<8) | (data[24]<<16) | (data[25]<<24);
-        n_colors = (data[29]<<8)|data[28];
-    	cmap = &data[54];
-        cdata = &data[data_offset];
-        //printf("%s data_offset=%d, xact=%d, yact=%d, n_colors=%d\n",__func__,data_offset,xact,yact,n_colors);
-        if(n_colors==8){
-            for(i=yact-1; i>=0; i--)
-            {
-                for(j=0; j< xact; j++)
-                {
-                    d = *cdata++;
-                    *(fb+i*xact+j) = ((cmap[4*d+2]&0xf8)<<8)|((cmap[4*d+1]&0xfc)<<3)|((cmap[4*d]&0xf8)>>3); 
-                }
-            }
-        }else if(n_colors==24){
-            u8 r,g,b;
-            for(i=yact-1; i>=0; i--)
-            {
-                for(j=0; j< xact; j++)
-                {
-                    r=*cdata++;
-                    g=*cdata++;
-                    b=*cdata++;
-                    *(fb+i*xact+j) =((r&0xf8)>>3)|((g&0xfc)<<3)|((b&0xf8)<<8); 
-                }
-            }            
-        }
-        else ret = -1;
-    }else{
-        printf("%s is not real bmp file\n",content.path);
-        ret=-1;
-        goto end;
-    }
-    fb_info.xpos = (panel_info.vl_col - xact)/2;
-	fb_info.ypos = (panel_info.vl_row - yact)/2;
-	fb_info.xact = xact;
-	fb_info.yact = yact;
-	fb_info.xsize = fb_info.xact;
-	fb_info.ysize = fb_info.yact;
-	fb_info.xvir = fb_info.xact;
-	fb_info.layer_id = WIN0;
-	fb_info.format = RGB565;
-	fb_info.yaddr = lcd_base;
-	lcd_pandispaly(&fb_info);
+    lcd_display_bitmap_center(data);
+
 end:
     free_content(&content);  
     return ret;
