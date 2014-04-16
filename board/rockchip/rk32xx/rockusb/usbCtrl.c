@@ -50,7 +50,7 @@ int dwc_otg_check_dpdm(void)
         // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
         //      OtgReg, *(OtgReg), &g_grfReg->GRF_UOC0_CON[2], g_grfReg->GRF_UOC0_CON[2]); 
    #else
-        g_grfReg->GRF_UOC0_CON[2] = ((0x01<<2)<<16);    // exit suspend.
+        grf_writel(((0x01<<2)<<16), RK3288_GRF_UOC0_CON2); // exit suspend.
         mdelay(105);
         // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
         //     OtgReg, *(OtgReg), &g_3188_grfReg->GRF_UOC0_CON[2], g_3188_grfReg->GRF_UOC0_CON[2]);
@@ -108,7 +108,7 @@ void startRockusb()
 
 bool UsbPhyReset(void)
 {
-    g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16)); //software control usb phy disable
+    grf_writel((0x0000 | (0x0004 << 16)), RK3288_GRF_UOC0_CON2);//software control usb phy disable
     DRVDelayUs(1100); //1.1ms
     g_cruReg->CRU_SOFTRST_CON[8] = ((7ul<<4)<<16)|(7<<4);
     DRVDelayUs(10*100);    //delay 10ms

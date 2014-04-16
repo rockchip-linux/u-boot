@@ -16,6 +16,7 @@ Revision:       1.00
 #include <version.h>
 #include <asm/arch/rk_i2c.h>
 #include <asm/arch/gpio.h>
+#include <asm/arch/iomux.h>
 #include <fdtdec.h>
 #include <asm/arch/clock.h>
 #include <errno.h>
@@ -200,12 +201,16 @@ int rk_lcd_parse_dt(const void *blob)
 #endif
 
 
+
+
+
 void rk_backlight_ctrl(int brightness)
 {
 #ifdef CONFIG_OF_CONTROL
 	if (!lcd_node)
 		rk_lcd_parse_dt(getenv_hex("fdtaddr", 0));   
 #endif
+
 	rk_pwm_config(brightness);
 }
 

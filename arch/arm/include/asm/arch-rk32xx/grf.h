@@ -340,4 +340,10 @@
 
 #define RK3288_SGRF_FAST_BOOT_ADDR      0x0120
 
+#define grf_readl(offset)	readl(RK3288_GRF_PHYS + offset)
+#define grf_writel(v, offset)	do { writel(v, RK3288_GRF_PHYS + offset); } while (0)
+
+#define pmu_readl(offset)	readl(RK3288_PMU_PHYS + offset)
+#define pmu_writel(v, offset)	do { writel(v, RK3288_PMU_PHYS + offset); } while (0)
+
 #endif

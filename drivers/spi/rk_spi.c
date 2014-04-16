@@ -27,7 +27,7 @@
 #include <spi.h>
 #include <asm/errno.h>
 #include <asm/io.h>
-
+#include <asm/arch/iomux.h>
 #include <asm/arch/rk30_drivers.h>
 #include "rk_spi.h"
 
@@ -112,70 +112,8 @@ static void rkspi_cs_control(struct rk_spi_slave *spi, uint32 cs, u8 flag)
 
 static void rkspi_iomux_init(unsigned int bus, unsigned int cs)
 {
-	if (bus == 0) {
-		/* spi0 clk, txd, rxd and cs iomux */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x3<<14)|(0x3<<12)|(0x3<<10))<<16)|(0x2<<14)|(0x2<<12)|(0x2<<10);
-		if (cs == 0) {
-			g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = ((0x3<<8)<<16)|(0x2<<8);
-		} else {
-			g_grfReg->GRF_GPIO_IOMUX[4].GPIOB_IOMUX = ((0x1<<14)<<16)|(0x1<<14);
-		}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x3<<12)|(0x3<<10)|(0x3<<8))<<16)|(0x2<<12)|(0x2<<10)|(0x2<<8);
-		if (cs == 0) {
-			g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = ((0x3<<14)<<16)|(0x2<<14);
-		} else {
-			g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = ((0x1<<14)<<16)|(0x1<<14);
-		}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-		g_grfReg->GRF_GPIO_IOMUX[5].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12)|(0x3<<8))<<16)|(0x1<<14)|(0x1<<12)|(0x1<<8);
-		if (cs == 0) {
-			g_grfReg->GRF_GPIO_IOMUX[5].GPIOB_IOMUX = ((0x3<<10)<<16)|((0x1<<10));
-		} else {
-			g_grfReg->GRF_GPIO_IOMUX[5].GPIOC_IOMUX = ((0x3)<<16)|(0x1);
-		}
-#endif
-	       	
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	}else if (bus == 1){
-		g_grfReg->GRF_GPIO_IOMUX[7].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12)|(0x3<<8))<<16)|(0x2<<14)|(0x2<<12)|(0x2<<8);
-		if (cs == 0) {
-			g_grfReg->GRF_GPIO_IOMUX[7].GPIOB_IOMUX = ((0x3<<10)<<16)|((0x2<<10));
-		} else {
-			printf("rkspi: bus=1 cs=1 not support");
-		}
-	}
-#endif
-	} else {
-		/* spi1 clk, txd, rxd and cs iomux */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-		g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX = (((0x3<<12)|(0x3<<10)|(0x3<<6))<<16)|(0x2<<12)|(0x2<<10)|(0x2<<6);
-		if (cs == 0) {
-			g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX = ((0x3<<8)<<16)|(0x2<<8);
-		} else {
-			g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX = ((0x3<<14)<<16)|(0x2<<14);
-		}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-		g_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = (((0x1<<12)|(0x1<<10)|(0x1<<8))<<16)|(0x1<<12)|(0x1<<10)|(0x1<<8);
-		if (cs == 0) {
-			g_grfReg->GRF_GPIO_IOMUX[0].GPIOD_IOMUX = ((0x1<<14)<<16)|(0x1<<14);
-		} else {
-			g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = ((0x3<<12)<<16)|(0x2<<12);
-		}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-		g_grfReg->GRF_GPIO_IOMUX[8].GPIOA_IOMUX = (((0x3<<12))<<16)|(0x1<<12);
-		g_grfReg->GRF_GPIO_IOMUX[8].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);
-		if (cs == 0) {
-			g_grfReg->GRF_GPIO_IOMUX[8].GPIOA_IOMUX = ((0x3<<14)<<16)|((0x1<<14));
-		} else {
-			g_grfReg->GRF_GPIO_IOMUX[8].GPIOA_IOMUX = ((0x3<<6)<<16)|(0x1<<6);
-		}
-#endif
-#endif
-	}
+    rk_spi_iomux_config(RK_SPI0_CS0_IOMUX+2*bus+cs);
 }
-
 
 static int rkspi_null_writer(struct rk_spi_slave *spi)
 {

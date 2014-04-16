@@ -8,6 +8,8 @@
 #include <asm/arch/reg.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/pwm.h>
+#include <asm/arch/grf.h>
+#include <asm/arch/iomux.h>
 
 struct pwm_bl bl;
 static inline u64 div64_u64(u64 dividend, u64 divisor)
@@ -79,8 +81,7 @@ int  rk_pwm_config(int brightness)
 	int duty_ns,period_ns;
 	if (!bl.node) {
 		rk_bl_parse_dt(getenv_hex("fdtaddr", 0));
-		if( bl.id == 0)
-			g_grfReg->GRF_GPIO7A_IOMUX = (3<<16)|1;	 // 1: PWM0/ 0: GPIO7_A0
+        rk_iomux_config(RK_PWM0_IOMUX+bl.id);
 		gpio_direction_output(bl.bl_en.gpio, bl.bl_en.flags);
 	}
 
@@ -90,7 +91,7 @@ int  rk_pwm_config(int brightness)
 	duty_ns = (brightness * bl.period)/bl.max_brightness;
 	period_ns = bl.period;
 	id = bl.id;
-	g_grfReg->GRF_SOC_CON[2] = 0x00010001; /*use rk pwm*/
+    grf_writel(0x00010001, RK3288_GRF_SOC_CON2);/*use rk pwm*/
 	on   =  RK_PWM_ENABLE ;
 	conf = PWM_OUTPUT_LEFT|PWM_LP_DISABLE|
 	                    PWM_CONTINUMOUS|PWM_DUTY_POSTIVE|PWM_INACTIVE_NEGATIVE;
