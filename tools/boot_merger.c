@@ -10,6 +10,7 @@ bool gDebug =
     false;
 #endif //DEBUG
 
+#define ENTRY_ALIGN  (2048)
 options gOpts;
 
 #define SCANF_EAT(in)   fscanf(in, "%*[ \r\n\t/]", gEat)
@@ -558,6 +559,12 @@ static bool writeFile(FILE* outFile, const char* path, bool fix) {
 
     if (!fwrite(gBuf, size, 1, outFile))
         goto end;
+#ifndef USE_P_RC4
+    uint32_t tmp = size % ENTRY_ALIGN;
+    tmp = tmp ? (ENTRY_ALIGN - tmp): 0;
+    if (tmp && !fwrite(gBuf, tmp, 1, outFile))
+	goto end;
+#endif
     ret = true;
 end:
     if (inFile)
@@ -586,6 +593,11 @@ static bool saveEntry(FILE* outFile, char* path, rk_entry_type type,
     }
     if (fix)
         size = ((size - 1) / SMALL_PACKET + 1) * SMALL_PACKET;
+#ifndef USE_P_RC4
+    uint32_t tmp = size % ENTRY_ALIGN;
+    size += tmp ? (ENTRY_ALIGN - tmp): 0;
+    LOGD("align size:%d\n", size);
+#endif
     entry.dataSize = size;
     entry.dataDelay = delay;
     *offset += size;
