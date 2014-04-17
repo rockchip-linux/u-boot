@@ -140,7 +140,7 @@ typedef struct {
     uint8_t   second;
 } rk_time;
 
-#define  BOOT_RESERVED_SIZE 59
+#define  BOOT_RESERVED_SIZE 57
 typedef struct {
     uint32_t        tag;
     uint16_t        size;
@@ -157,6 +157,8 @@ typedef struct {
     uint8_t         loaderNum;
     uint32_t        loaderOffset;
     uint8_t         loaderSize;
+    uint8_t         signFlag;
+    uint8_t         rc4Flag;
     uint8_t         reserved[BOOT_RESERVED_SIZE];
 } rk_boot_header;
 
