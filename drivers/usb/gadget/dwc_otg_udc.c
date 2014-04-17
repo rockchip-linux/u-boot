@@ -353,8 +353,8 @@ void UdcInit(void)
     OtgReg->Core.gintsts=0xffffffff;
     OtgReg->Core.gotgint=0xffffffff;
     OtgReg->Core.gintmsk=(1<<4)|/*(1<<5)|*/(1<<10)|(1<<11)|(1<<12)|(1<<13)|(1<<18)|(1<<19)|(1ul<<30)|(1ul<<31);
-    OtgReg->Core.gahbcfg |= 0x01;             //Global interrupt mask
-    OtgReg->Core.gahbcfg |= 1<<5;
+//    OtgReg->Core.gahbcfg |= 0x01;             //Global interrupt mask
+    OtgReg->Core.gahbcfg |= (1<<5)|(7<<1)|1;
 
     OtgReg->Core.gintmsk&=~(1<<4);
 }

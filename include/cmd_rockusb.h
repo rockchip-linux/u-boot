@@ -84,6 +84,12 @@
 #define RKUSBERR(fmt, args...) do {} while (0)
 #endif
 
+/* dwc otg controller can handle 0x20000 data max for the datasize in DoEpCtl is 18 bit leng
+ * we can only cut the transfer into smaller pieces
+ * block size = 0x200/0x210
+ */
+#define RKUSB_BUFFER_BLOCK_MAX 0x80//0x20
+
 #define 		USB_DEVICE_CLASS_VENDOR_SPECIFIC    		    0xFF	//
 #define		    USB_SUBCLASS_CODE_SCSI					    0x06
 

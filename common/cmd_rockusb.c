@@ -197,27 +197,27 @@ void FW_TestUnitReady(void)
     {//ÕýÔÚµÍ¸ñ
         uint32_t totleBlock = FW_GetTotleBlk();
         uint32_t currEraseBlk = FW_GetCurEraseBlock();
-        usbcmd.csw.Residue = cpu_to_le32((totleBlock<<16)|currEraseBlk);
+        usbcmd.csw.Residue = cpu_to_be32((totleBlock<<16)|currEraseBlk);
         usbcmd.csw.Status= CSW_FAIL;
     }
     else if(usbcmd.cbw.CDB[1] == 0xFD)
     {
         uint32_t totleBlock = FW_GetTotleBlk();
         uint32_t currEraseBlk = 0;
-        usbcmd.csw.Residue = cpu_to_le32((totleBlock<<16)|currEraseBlk);
+        usbcmd.csw.Residue = cpu_to_be32((totleBlock<<16)|currEraseBlk);
         usbcmd.csw.Status= CSW_FAIL;
         FWLowFormatEn = 1;
     }
     else if(usbcmd.cbw.CDB[1] == 0xFA)
     {
-        usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+        usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
         usbcmd.csw.Status= CSW_GOOD;
 
         usbcmd.reset_flag = 0x10;
     }
     else if(usbcmd.cbw.CDB[1] == 0xF9)
     {
-        usbcmd.csw.Residue = cpu_to_le32(StorageGetCapacity());
+        usbcmd.csw.Residue = cpu_to_be32(StorageGetCapacity());
         usbcmd.csw.Status= CSW_GOOD;
     }
 //    else if(SecureBootLock)
@@ -227,9 +227,8 @@ void FW_TestUnitReady(void)
 //    }
     else
     {
-        usbcmd.csw.Residue = cpu_to_le32(6);
+        usbcmd.csw.Residue = cpu_to_be32(6);
         usbcmd.csw.Status= CSW_GOOD;
-        RKUSBINFO("FW_TestUnitReady CMD %8x %8x \n",6, usbcmd.csw.Residue);
     }
     usbcmd.status = RKUSB_STATUS_CSW;
 }
@@ -254,7 +253,7 @@ void FW_GetChipVer(void)
 #endif
     current_urb->actual_length = 16;
 		
-    usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= CSW_GOOD;
     usbcmd.status = RKUSB_STATUS_TXDATA;
 }
@@ -274,7 +273,7 @@ void FW_TestBadBlock(void)
     
     ftl_memcpy(current_urb->buffer, TestResult, 64);
 	current_urb->actual_length = 64;
-    usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= CSW_GOOD;
     usbcmd.status = RKUSB_STATUS_TXDATA;
 }
@@ -314,7 +313,7 @@ void FW_Erase10(void)
 
 	StorageEraseBlock(get_unaligned_be32(usbcmd.cbw.CDB[2]), get_unaligned_be32(usbcmd.cbw.CDB[7]), 0);
 	current_urb->actual_length = 13;
-    usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= status;
     usbcmd.status = RKUSB_STATUS_CSW;
 }
@@ -331,7 +330,7 @@ void FW_Erase10Force(void)
         status = gpMemFun->Erase(usbcmd.cbw.Lun, usbcmd.cbw.CDB[2], usbcmd.cbw.CDB[7], 1);
         
 	current_urb->actual_length = 13;
-    usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= status;
     usbcmd.status = RKUSB_STATUS_CSW;
 }
@@ -377,14 +376,14 @@ void FW_GetFlashInfo(void)
 
     ftl_memcpy(current_urb->buffer, current_urb->buffer,11);
 	current_urb->actual_length = 11;
-    usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= CSW_GOOD;
     usbcmd.status = RKUSB_STATUS_TXDATA;
 }
 void FW_LowFormat(void)
 {	
     RKUSBINFO("%s \n", __func__);
-    usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= CSW_GOOD;
     usbcmd.status = RKUSB_STATUS_CSW;
     
@@ -396,7 +395,7 @@ void FW_SetResetFlag(void)
     RKUSBINFO("%s \n", __func__);
     usbcmd.reset_flag = 1;
     
-    usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= CSW_GOOD;
     usbcmd.status = RKUSB_STATUS_CSW;
 }
@@ -411,7 +410,7 @@ void FW_Reset(void)
         usbcmd.reset_flag = 0xff;
     // SoftReset in main loop(usbhook)
     
-    usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
     usbcmd.csw.Status= CSW_GOOD;
     usbcmd.status = RKUSB_STATUS_CSW;
 }
@@ -510,9 +509,7 @@ void do_rockusb_cmd(unsigned char *buffer)
       }                
 }
 
-// dwc otg controller can handle 0x20000 data max for the datasize in DoEpCtl is 18 bit leng
-// we can only cut the transfer into smaller pieces
-#define RKUSB_BUFFER_BLOCK_MAX 0x20
+
 void rkusb_handle_datarx(void)
 {
 	struct usb_endpoint_instance *ep=&endpoint_instance[1];
@@ -559,7 +556,7 @@ void rkusb_handle_datarx(void)
     }
     else{   // data receive complete
  //       RKUSBINFO("data receive complete\n");
-        usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+        usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
         usbcmd.csw.Status= CSW_GOOD;
 //        usbcmd.status = RKUSB_STATUS_CSW;
         rkusb_send_csw();
@@ -656,7 +653,7 @@ start:
         goto start;
         
     if(usbcmd.u_size == usbcmd.u_bytes){
-        usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+        usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
         usbcmd.csw.Status= CSW_GOOD;
     	usbcmd.status = RKUSB_STATUS_CSW;
     }
@@ -674,7 +671,7 @@ void rkusb_handle_response(void)
         RKUSBINFO("udc_endpoint_write %x\n", current_urb->actual_length);
         
         if(usbcmd.data_size == 0){
-            usbcmd.csw.Residue = cpu_to_le32(usbcmd.cbw.DataTransferLength);
+            usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
             usbcmd.csw.Status= CSW_GOOD;
         	usbcmd.status = RKUSB_STATUS_CSW;
     	}
