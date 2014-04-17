@@ -1425,6 +1425,14 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 	strcpy(priv.response, "FAIL");
 
     cmdbuf[FASTBOOT_COMMAND_SIZE - 1] = 0;
+
+    /* dwc_otg controller use the buffer directory, 
+    * controller dma master write 4-byte align data to buffer,
+    * may corrupt the origin data
+    */
+    if(length < FASTBOOT_COMMAND_SIZE)
+        cmdbuf[length] = 0;
+        
 	FBTDBG("cmdbuf = (%s)\n", cmdbuf);
 	priv.executing_command = 1;
 
