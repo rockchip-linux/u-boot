@@ -4,6 +4,17 @@
 #include <common.h>
 #include "key.h"
 
+int gpio_reg[]={
+	RK3288_GPIO0_PHYS, 
+	RK3288_GPIO1_PHYS, 
+	RK3288_GPIO2_PHYS,
+	RK3288_GPIO3_PHYS,
+	RK3288_GPIO4_PHYS,
+	RK3288_GPIO5_PHYS,
+	RK3288_GPIO6_PHYS,
+	RK3288_GPIO7_PHYS,
+	RK3288_GPIO8_PHYS
+};
 
 extern void DRVDelayUs(uint32 us);
 
@@ -26,7 +37,7 @@ void gpio_isr(int gpio_group)
 {
     int i=0;
     int_conf* ioint = NULL; 
-    printf("gpio isr\n");
+    printf("gpio isr,gpio_group=%d \n",gpio_group);
     ioint = &key_power.key.ioint;
 
 	if((gpio_irq_state(ioint->gpio)))
@@ -78,8 +89,9 @@ void gpio_isr(int gpio_group)
         
 		gpio_irq_request(ioint->gpio, ioint->flags);
 	}
-	
-	for(i=0; i<32; i++)gpio_irq_clr(ioint->gpio&0xffff0000 + i); //clr all gpio0 int
+
+	if(gpio_group >= 0 && gpio_group < sizeof(gpio_reg)/sizeof(int))
+		for(i=0; i<32; i++)gpio_irq_clr(gpio_reg[gpio_group] + i); //clr all gpio0 int
 }
 
 

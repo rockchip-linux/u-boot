@@ -174,7 +174,7 @@ int lcd_get_size(int *line_length)
 
 void lcd_ctrl_init(void *lcdbase)
 {
-printf("%s [%d]\n",__FUNCTION__,__LINE__);
+	printf("%s [%d]\n",__FUNCTION__,__LINE__);
     /* initialize parameters which is specific to panel. */
     
     rk_fb_parse_dt(gd->fdt_blob);
