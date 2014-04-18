@@ -173,12 +173,12 @@ int rk_lcd_parse_dt(const void *blob)
 {
 	//int* blob = getenv_hex("fdtaddr", 0);
 	int node;
-	lcd_node = fdt_path_offset(blob, "lcdc1");
 	int lcd_en_node,lcd_cs_node;
 	const struct fdt_property *prop,*prop1;
 	const u32 *cell;
 	const u32 *reg;
-    
+	
+    lcd_node = fdt_path_offset(blob, "lcdc1");
 	if (PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0)) {
 		printf("lcdc1 is the prmry lcd controller\n");
 	} else {
@@ -208,7 +208,7 @@ void rk_backlight_ctrl(int brightness)
 {
 #ifdef CONFIG_OF_CONTROL
 	if (!lcd_node)
-		rk_lcd_parse_dt(getenv_hex("fdtaddr", 0));   
+		rk_lcd_parse_dt(gd->fdt_blob);   
 #endif
 
 	rk_pwm_config(brightness);
@@ -218,7 +218,7 @@ void rk_fb_init(unsigned int onoff)
 {
     pmic_init(0);  //enable lcdc power
 #ifdef CONFIG_OF_CONTROL    
-    if(lcd_node == 0)rk_lcd_parse_dt(getenv_hex("fdtaddr", 0));
+    if(lcd_node == 0)rk_lcd_parse_dt(gd->fdt_blob);
 
     if(onoff)
     {

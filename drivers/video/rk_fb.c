@@ -177,7 +177,7 @@ void lcd_ctrl_init(void *lcdbase)
 printf("%s [%d]\n",__FUNCTION__,__LINE__);
     /* initialize parameters which is specific to panel. */
     
-    rk_fb_parse_dt(getenv_hex("fdtaddr", 0));
+    rk_fb_parse_dt(gd->fdt_blob);
     init_panel_info(&panel_info);
     if (panel_info.enable_ldo)
         panel_info.enable_ldo(1);

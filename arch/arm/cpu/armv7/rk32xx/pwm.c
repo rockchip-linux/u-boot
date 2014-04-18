@@ -10,6 +10,7 @@
 #include <asm/arch/pwm.h>
 #include <asm/arch/grf.h>
 #include <asm/arch/iomux.h>
+DECLARE_GLOBAL_DATA_PTR;
 
 struct pwm_bl bl;
 static inline u64 div64_u64(u64 dividend, u64 divisor)
@@ -80,7 +81,7 @@ int  rk_pwm_config(int brightness)
 	int id = 0;
 	int duty_ns,period_ns;
 	if (!bl.node) {
-		rk_bl_parse_dt(getenv_hex("fdtaddr", 0));
+		rk_bl_parse_dt(gd->fdt_blob);
         rk_iomux_config(RK_PWM0_IOMUX+bl.id);
 		gpio_direction_output(bl.bl_en.gpio, bl.bl_en.flags);
 	}
