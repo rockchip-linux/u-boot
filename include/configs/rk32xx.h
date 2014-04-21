@@ -227,10 +227,11 @@ Revision:       1.00
 
 #endif //CONFIG_CMD_FASTBOOT
 
-#define CONFIG_USB_EHCI
-#define CONFIG_USB_EHCI_RK
+#define CONFIG_USB_DWC_HCD
+//#define CONFIG_USB_EHCI
+//#define CONFIG_USB_EHCI_RK
 #define CONFIG_CMD_USB
-//#define CONFIG_USB_STORAGE
+#define CONFIG_USB_STORAGE
 
 /* PL330 DMA */
 //#define CONFIG_PL330_DMA //enable pl330 dma
