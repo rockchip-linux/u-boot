@@ -37,13 +37,13 @@ static int rk32_edp_clk_enable(struct rk32_edp *edp)
 {
 	u32 val;
 	val = 0x01000000;
-	writel(val, RK3288_CRU_PHYS + 0x1a0); /*pclk*/
+	writel(val, RK3288_CRU_PHYS + 0x1a0); /*open pclk gate*/
 	val = (0x01 << 31) | (0x01 << 17) |
 		(0x01 << 15) | (0x01 << 6);
-	writel(val,RK3288_CRU_PHYS + 0x0d0);
+	writel(val,RK3288_CRU_PHYS + 0x0d0); /*clk_edp_24M clk_edp select*/
 
 	val = 0x30000000;
-	writel(val,RK3288_CRU_PHYS + 0x16c);
+	writel(val,RK3288_CRU_PHYS + 0x16c); /*open gate clk_edp_24M clk_edp*/
 	return 0;
 }
 
@@ -62,12 +62,12 @@ static int rk32_edp_pre_init(void)
 	writel(val, RK3288_GRF_PHYS + RK3288_GRF_SOC_CON12);
 
 	val = 0x80008000;
-	writel(val, RK3288_GRF_PHYS + 0x0d0); /*select 24m*/
+	writel(val, RK3288_CRU_PHYS + 0x0d0); /*select 24m*/
 	val = 0x80008000;
-	writel(val, RK3288_GRF_PHYS + 0x01d0); /*reset edp*/
+	writel(val, RK3288_CRU_PHYS + 0x01d0); /*reset edp*/
 	udelay(1);
 	val = 0x80000000;
-	writel(val, RK3288_GRF_PHYS + 0x01d0);
+	writel(val, RK3288_CRU_PHYS + 0x01d0);
 	udelay(1);
 	return 0;
 }

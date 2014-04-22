@@ -1046,7 +1046,7 @@ int rk32_edp_is_slave_video_stream_clock_on(struct rk32_edp *edp)
 	val = readl(edp->regs + SYS_CTL_1);
 
 	if (!(val & DET_STA)) {
-		printf( "Input stream clock not detected.\n");
+		//printf( "Input stream clock not detected.\n");
 		return -EINVAL;
 	}
 
@@ -1218,7 +1218,7 @@ int rk32_edp_is_video_stream_on(struct rk32_edp *edp)
 
 	val = readl(edp->regs + SYS_CTL_3);
 	if (!(val & STRM_VALID)) {
-		printf( "Input video stream is not detected.\n");
+		//printf( "Input video stream is not detected.\n");
 		return -EINVAL;
 	}
 
