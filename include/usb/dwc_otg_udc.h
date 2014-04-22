@@ -40,5 +40,8 @@ void udc_disable(void);
 void udc_connect(void);
 void udc_disconnect(void);
 void udc_startup_events(struct usb_device_instance *device);
+void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
+int is_usbd_high_speed(void);
+
 
 #endif /* __DWC_UDC_H */

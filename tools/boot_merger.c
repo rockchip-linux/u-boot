@@ -3,6 +3,8 @@
 #include <sys/stat.h>  
 #include <version.h>
 
+//#define USE_P_RC4
+
 bool gDebug = 
 #ifdef DEBUG
     true;
@@ -680,10 +682,9 @@ static inline void getBoothdr(rk_boot_header* hdr) {
     hdr->loaderNum = gOpts.loaderNum;
     hdr->loaderOffset = hdr->code472Offset + gOpts.code472Num * hdr->code472Size;
     hdr->loaderSize = sizeof(rk_boot_entry);
-   #ifndef USE_P_RC4
+#ifndef USE_P_RC4
     hdr->rc4Flag = 1;
-    #endif
-    
+#endif
 }
 
 static inline uint32_t getCrc(const char* path) {

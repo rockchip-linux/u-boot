@@ -18,6 +18,7 @@ Revision:       1.00
 #include <asm/arch/gpio.h>
 #include <asm/arch/iomux.h>
 #include <fdtdec.h>
+<<<<<<< HEAD
 #include <asm/arch/clock.h>
 #include <errno.h>
 #include <asm/arch/pwm.h>
@@ -27,6 +28,8 @@ Revision:       1.00
 #include "idblock.h"
 #include "i2c.h"
 
+=======
+>>>>>>> origin/develop_chrome
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
 extern char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
@@ -99,7 +102,8 @@ int board_fbt_key_pressed(void)
         frt = FASTBOOT_REBOOT_RECOVERY;
     } else if (boot_rockusb && (vbus!=0)) {
         printf("%s: rockusb key pressed.\n",__func__);
-        startRockusb();
+    //    startRockusb();
+	do_rockusb(NULL, 0, 1, 1);
     } else if(boot_fastboot && (vbus!=0)){
         printf("%s: fastboot key pressed.\n",__func__);
         frt = FASTBOOT_REBOOT_FASTBOOT;
@@ -158,7 +162,8 @@ void board_fbt_boot_failed(const char* boot)
         do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
     }  
     printf("try to start rockusb\n");
-    startRockusb();
+    //startRockusb();
+	do_rockusb(NULL, 0, 1 , 1);
 }
 
 
@@ -303,6 +308,11 @@ void rk_i2c_init()
 }
 #endif
 
+int board_mmc_init(bd_t *bis)
+{
+	rk_mmc_init();
+	return 0;
+}
 
 #ifdef CONFIG_POWER_ACT8846
 struct pmic_voltage pmic_vol[] = {

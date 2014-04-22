@@ -88,7 +88,8 @@ void IrqHandler(void)
 	//	serial_printf("Irq: %d\n", intSrc);
     if (intSrc == INT_USB_OTG)
     {
-        UsbIsr();
+        //UsbIsr();
+	udc_irq();
 #ifdef DRIVERS_USB_APP
         else
             MscUsbIsr();

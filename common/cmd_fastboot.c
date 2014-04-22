@@ -337,6 +337,17 @@ static void fbt_init_strings(void)
 	usb_strings = fbt_string_table;
 }
 
+void fbt_receive_firstcmd(void)
+{
+    struct usb_endpoint_instance *ep = &endpoint_instance[1];
+
+	// get first CMD
+
+    ep->rcv_urb->buffer_length = FASTBOOT_COMMAND_SIZE;
+    ep->rcv_urb->actual_length = 0;
+	resume_usb(ep, 0);
+}
+
 static void fbt_event_handler (struct usb_device_instance *device,
 				  usb_device_event_t event, int data)
 {
@@ -351,7 +362,7 @@ static void fbt_event_handler (struct usb_device_instance *device,
 
 	case DEVICE_ADDRESS_ASSIGNED:
 		fbt_init_endpoints();
-
+        fbt_receive_firstcmd();
 	default:
 		break;
 	}
@@ -1414,6 +1425,14 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 	strcpy(priv.response, "FAIL");
 
     cmdbuf[FASTBOOT_COMMAND_SIZE - 1] = 0;
+
+    /* dwc_otg controller use the buffer directory, 
+    * controller dma master write 4-byte align data to buffer,
+    * may corrupt the origin data
+    */
+    if(length < FASTBOOT_COMMAND_SIZE)
+        cmdbuf[length] = 0;
+        
 	FBTDBG("cmdbuf = (%s)\n", cmdbuf);
 	priv.executing_command = 1;
 

@@ -424,7 +424,8 @@ void main_loop (void)
 
     /* Should not reach here. */
     printf("failed to boot, start rockusb\n");
-    startRockusb();
+    //startRockusb();
+    do_rockusb(NULL, 0, 1, 1);
 }
 
 #else //CONFIG_ROCKCHIP

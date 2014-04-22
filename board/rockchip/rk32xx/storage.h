@@ -39,8 +39,6 @@ Revision:   1.00
 #define     PAGE_LEN            (DATA_LEN+SPARE_LEN)    //每个数据单位的长度
 
 
-extern uint32 gUseEmmc;
-
 extern  bool    FW_FlashBlockErase(uint8 ChipSel, uint32 RowAddr);
 extern  bool    FW_FlashPageProg(uint8 ChipSel, uint32 row, void *pData, void *pSpare, uint8 nSec);
 extern  bool    FW_CheckBadBlock(uint8 ChipSel, uint32 pageNum);

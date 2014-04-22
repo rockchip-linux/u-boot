@@ -82,7 +82,7 @@ void reset_cpu(ulong ignored)
     pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
 
     disable_interrupts();
-    UsbSoftDisconnect();
+    //UsbSoftDisconnect();
     FW_NandDeInit();
 
     MMUDeinit();              /*¹Ø±ÕMMU*/

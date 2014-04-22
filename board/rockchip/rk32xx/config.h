@@ -145,8 +145,8 @@ extern uint32 g_BootRockusb;
 extern uint32  SecureBootLock;
 extern uint32  SecureBootLock_backup;
 
-#include            "rockusb/dwc_otg_regs.h"
-#include 		    "rockusb/rockusb.h"  //固件升级头文件
+//#include            "rockusb/dwc_otg_regs.h"
+//#include 		    "rockusb/rockusb.h"  //固件升级头文件
 //#include            "gpio_oper.h"
 //#include            "bootloader.h"
 #include			"parameter.h"	// Loader参数文件

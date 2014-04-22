@@ -141,7 +141,6 @@ typedef struct {
 } rk_time;
 
 #define  BOOT_RESERVED_SIZE 57
-
 typedef struct {
     uint32_t        tag;
     uint16_t        size;
