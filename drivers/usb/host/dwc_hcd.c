@@ -208,14 +208,11 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
 	struct dwc_ctrl *ctrl = dev->controller;
     pUSB_OTG_REG otgReg = ctrl->otgReg;
     uint32_t channel_num = usb_pipeendpoint(pipe);
-    int32_t i;
     uint32_t eptype;
     HOST_RET ret = HOST_OK;
     
     HCTSIZ_DATA hctsiz;
-    HCINTMSK_DATA hcintmaskn;
     HCCHAR_DATA hcchar;
-    uint32_t pBufAddr;
     uint32_t hcStat;
     uint32_t errCnt;
     uint32_t packet_size;
@@ -228,7 +225,7 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
     else if (eptype == 3)
         eptype = 2;
     
-	debug("ehci_submit_async channel pipe %x req %p, len %x\n", pipe, req, length);
+	debug("ehci_submit_async channel pipe %lx req %p, len %x\n", pipe, req, length);
     if(req == NULL)
         packet_size = 0x200;
     else
@@ -312,7 +309,7 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
         hcchar.b.chen = 1;
         hcStat = HCSTAT_DATA;
         errCnt = 0;
-        dwc_init_channel(dev, hctsiz.d32, hcchar, NULL);
+        dwc_init_channel(dev, hctsiz.d32, hcchar, 0);
         if(dwc_wait_for_complete(dev, channel_num, &hcStat, &errCnt)){
             ret = HOST_ERR;
             goto out;
@@ -339,8 +336,6 @@ ehci_submit_root(struct usb_device *dev, unsigned long pipe, void *buffer,
 	u16 typeReq;
 	void *srcptr = NULL;
 	int len, srclen;
-	uint32_t reg;
-	uint32_t *status_reg;
 	int port = le16_to_cpu(req->index) & 0xff;
 	struct dwc_ctrl *ctrl = dev->controller;
     pUSB_OTG_REG otgReg = ctrl->otgReg;
@@ -619,7 +614,7 @@ int usb_lowlevel_init(int index, enum usb_init_type init, void **controller)
 	dwcctl.rootdev = 0;
 	dwcctl.datatoggle[0] = 0;
 	dwcctl.datatoggle[1] = 0;
-done:
+
 	*controller = &dwcctl;
 	return 0;
 }

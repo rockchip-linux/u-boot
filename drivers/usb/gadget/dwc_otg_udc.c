@@ -86,12 +86,10 @@ typedef struct _control_xfer
 #define DWC_DBG(fmt, args...) do {} while (0)
 #endif
 #ifndef __GNUC__
-#define PACKED1 __packed
-#define PACKED2
+#undef ALIGN
 #define ALIGN(x) __align(x)
 #else
-#define PACKED1
-#define PACKED2 __attribute__((packed))
+#undef ALIGN
 #define ALIGN(x) __attribute__ ((aligned(x)))
 #endif
 #define         BULK_IN_EP          0x01
@@ -158,6 +156,73 @@ ALIGN(8)        uint8_t Ep0Buf[64];
 static void udc_stall_ep(uint32_t ep_num);
 static void dwc_otg_epn_rx(uint32_t);
 static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint);
+
+
+/**************************************************************************
+读取端点数据
+***************************************************************************/
+void ReadEndpoint0(uint16_t len, void *buf)
+{
+    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
+
+    flush_cache((uint32_t)buf,(uint32_t)len);
+    OtgReg->Device.OutEp[0].DoEpDma=(uint32_t)buf;
+    OtgReg->Device.OutEp[0].DoEpTSiz=Ep0PktSize | (1<<19);
+    OtgReg->Device.OutEp[0].DoEpCtl = (1ul<<15) | (1ul<<26) | (1ul<<31);     //Active ep, Clr Nak, endpoint enable
+}
+
+
+/**************************************************************************
+写端点
+***************************************************************************/
+void WriteEndpoint0(uint16_t len, void* buf)
+{
+    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
+
+    if (((OtgReg->Core.gnptxsts & 0xffff) >= (len+3)/4) && (((OtgReg->Core.gnptxsts>>16) & 0xff)>0))
+    {
+        OtgReg->Device.InEp[0].DiEpTSiz=len | (1<<19);
+        OtgReg->Device.InEp[0].DiEpDma=(uint32_t)buf;
+        OtgReg->Device.InEp[0].DiEpCtl = (1ul<<26) | (1ul<<31);     //endpoint enable
+    }
+}
+
+/**************************************************************************
+读取端点数据
+***************************************************************************/
+void ReadBulkEndpoint(uint32_t len, void *buf)
+{
+    uint32_t regBak;
+    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
+    
+    flush_cache((uint32_t)buf,(uint32_t)len);
+    //RkPrintf("ReadBulkEndpoint %d\n",len);
+    OtgReg->Device.OutEp[BULK_OUT_EP].DoEpDma=(uint32_t)buf;
+   // OtgReg->Device.OutEp[BULK_OUT_EP].DoEpTSiz=BulkEpSize | (1<<19);
+    regBak = 0x20000| (((len+BulkEpSize-1)/BulkEpSize)<<19);
+    OtgReg->Device.OutEp[BULK_OUT_EP].DoEpTSiz=regBak;
+    regBak=OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl;
+    regBak = (regBak&0xFFFFF800) | (1ul<<15) | (1ul<<19) | (1ul<<26) | (1ul<<31) | BulkEpSize;
+    OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl =  regBak;//Active ep, Clr Nak, endpoint enable
+}
+
+/**************************************************************************
+写端点
+***************************************************************************/
+void WriteBulkEndpoint(uint32_t len, void* buf)
+{
+    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
+    uint32_t regBak;
+//    if ((OtgReg->Device.InEp[BULK_IN_EP].DTXFSTS & 0xffff) >= (len+3)/4)
+    {
+        OtgReg->Device.InEp[BULK_IN_EP].DiEpTSiz=len | (((len+BulkEpSize-1)/BulkEpSize)<<19);
+        OtgReg->Device.InEp[BULK_IN_EP].DiEpDma=(uint32_t)buf;
+        regBak=((OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl & (1<<16))==0)?(1<<28):(1<<29);
+        regBak |= (1<<15)|(2<<18)|(BULK_IN_EP<<22)|BulkEpSize; //endpoint enable
+        regBak |= (1ul<<26)|(1ul<<31);
+        OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = regBak;
+    }
+}
 
 /*
  * udc_state_transition - Write the next packet to TxFIFO.
@@ -359,82 +424,17 @@ void UdcInit(void)
     OtgReg->Core.gintmsk&=~(1<<4);
 }
 
-
-/**************************************************************************
-读取端点数据
-***************************************************************************/
-void ReadEndpoint0(uint16_t len, void *buf)
+void ep0in_ack(void)
 {
-    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
-
-    flush_cache((uint32_t)buf,(uint32_t)len);
-    OtgReg->Device.OutEp[0].DoEpDma=(uint32_t)buf;
-    OtgReg->Device.OutEp[0].DoEpTSiz=Ep0PktSize | (1<<19);
-    OtgReg->Device.OutEp[0].DoEpCtl = (1ul<<15) | (1ul<<26) | (1ul<<31);     //Active ep, Clr Nak, endpoint enable
+    WriteEndpoint0(0, NULL);
 }
 
-
-/**************************************************************************
-写端点
-***************************************************************************/
-void WriteEndpoint0(uint16_t len, void* buf)
-{
-    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
-
-    if (((OtgReg->Core.gnptxsts & 0xffff) >= (len+3)/4) && (((OtgReg->Core.gnptxsts>>16) & 0xff)>0))
-    {
-        OtgReg->Device.InEp[0].DiEpTSiz=len | (1<<19);
-        OtgReg->Device.InEp[0].DiEpDma=(uint32_t)buf;
-        OtgReg->Device.InEp[0].DiEpCtl = (1ul<<26) | (1ul<<31);     //endpoint enable
-    }
-}
-
-/**************************************************************************
-读取端点数据
-***************************************************************************/
-void ReadBulkEndpoint(uint32_t len, void *buf)
-{
-    uint32_t regBak;
-    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
-    
-    flush_cache((uint32_t)buf,(uint32_t)len);
-    //RkPrintf("ReadBulkEndpoint %d\n",len);
-    OtgReg->Device.OutEp[BULK_OUT_EP].DoEpDma=(uint32_t)buf;
-   // OtgReg->Device.OutEp[BULK_OUT_EP].DoEpTSiz=BulkEpSize | (1<<19);
-    regBak = 0x20000| (((len+BulkEpSize-1)/BulkEpSize)<<19);
-    OtgReg->Device.OutEp[BULK_OUT_EP].DoEpTSiz=regBak;
-    regBak=OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl;
-    regBak = (regBak&0xFFFFF800) | (1ul<<15) | (1ul<<19) | (1ul<<26) | (1ul<<31) | BulkEpSize;
-    OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl =  regBak;//Active ep, Clr Nak, endpoint enable
-}
-
-/**************************************************************************
-写端点
-***************************************************************************/
-void WriteBulkEndpoint(uint32_t len, void* buf)
-{
-    pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
-    uint32_t regBak;
-//    if ((OtgReg->Device.InEp[BULK_IN_EP].DTXFSTS & 0xffff) >= (len+3)/4)
-    {
-        OtgReg->Device.InEp[BULK_IN_EP].DiEpTSiz=len | (((len+BulkEpSize-1)/BulkEpSize)<<19);
-        OtgReg->Device.InEp[BULK_IN_EP].DiEpDma=(uint32_t)buf;
-        regBak=((OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl & (1<<16))==0)?(1<<28):(1<<29);
-        regBak |= (1<<15)|(2<<18)|(BULK_IN_EP<<22)|BulkEpSize; //endpoint enable
-        regBak |= (1ul<<26)|(1ul<<31);
-        OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = regBak;
-    }
-}
 void set_address(void)
 {
     pUSB_OTG_REG OtgReg=(pUSB_OTG_REG)USB_OTG_BASE_ADDR;
 
     OtgReg->Device.dcfg=(OtgReg->Device.dcfg & (~0x07f0)) | (ControlData.DeviceRequest.wValue << 4);  //reset device addr
     ep0in_ack();
-}
-void ep0in_ack(void)
-{
-    WriteEndpoint0(0, NULL);
 }
 
 
@@ -456,14 +456,14 @@ void set_configuration(void)
 }
 
 
-static dwc_otg_epn_in_ack(void)
+static void dwc_otg_epn_in_ack(void)
 {
     usberr("write 0");
 	WriteBulkEndpoint(0, NULL);
 }
 
 volatile int suspend = 1;
-void suspend_usb() {
+void suspend_usb(void) {
     suspend = true;
 }
 void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {
@@ -476,7 +476,7 @@ void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {
             if (remaining_space > 0) {
 	        urb->status = RECV_READY;
                 usbdbg("next request:%d\n", remaining_space);
-                ReadBulkEndpoint(remaining_space, urb->buffer);
+                ReadBulkEndpoint(remaining_space, (void *)urb->buffer);
             }
         }
     }
@@ -565,7 +565,6 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 
 static void dwc_otg_enum_done_intr(void)
 {
-	struct urb *urb;
 	struct usb_endpoint_instance *endpoint;
 
 	endpoint = &udc_device->bus->endpoint_array[1];
@@ -588,17 +587,6 @@ static void dwc_otg_enum_done_intr(void)
 	}
 	OtgReg->Device.dctl |= 1<<8;               //clear global IN NAK
 	ReadEndpoint0(Ep0PktSize, Ep0Buf);
-	//ReadBulkEndpoint(31, (uint8_t*)&gCBW);
-    //ReadBulkEndpoint(FASTBOOT_COMMAND_SIZE, FbtXferBuf);
-    #if 0
-	if(endpoint){
-        urb = endpoint->rcv_urb;
-        urb->buffer_length = 31;
-        ReadBulkEndpoint(HS_BULK_RX_SIZE, urb->buffer);
-    }
-    else
-        usberr("endpoint null\n");
-    #endif
 	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1ul<<28) | (1<<15)|(2<<18)|(BULK_IN_EP<<22);
 }
 
@@ -731,14 +719,10 @@ static void dwc_otg_write_data(struct usb_endpoint_instance *endpoint)
 		//	    endpoint->tx_packetSize);
 
 		if(last){
-			uint8_t *cp = urb->buffer + endpoint->sent;
-
 			usbdbg("endpoint->sent %d, tx_packetSize %d, last %d \n",
 				endpoint->sent, endpoint->tx_packetSize, last);
 
-			//ftl_memcpy(FbtBulkOutBuf, cp, last);
-			//WriteBulkEndpoint(last, FbtBulkOutBuf);
-			WriteBulkEndpoint(last, urb->buffer);
+			WriteBulkEndpoint(last, (void *)urb->buffer);
 		}
 		endpoint->last = last;
 	}
@@ -781,30 +765,23 @@ static void dwc_otg_epn_rx(uint32_t len)
         urb = endpoint->rcv_urb;
         remaining_space = FBT_USB_XFER_MAX_SIZE;
         if (urb) {
-            uint8_t *cp = urb->buffer + urb->actual_length;
-
             //get available size for next xfer.
             remaining_space = urb->buffer_length - urb->actual_length;
             usbdbg("buffer_length:%d, actual_length:%x, len:%x\n", urb->buffer_length, urb->actual_length, len);
             len = len <= remaining_space ? len : remaining_space;
-            //if (len > 0)
-            //    ftl_memcpy(cp, FbtXferBuf, len);
         }
 	    urb->status = RECV_OK;
         usbd_rcv_complete(endpoint, len, 0);
         remaining_space -= len;
         //    usberr("buffer_length:%x, actual_length:%x, len:%x\n", urb->buffer_length, urb->actual_length, len);
         if (remaining_space <= 0) {
-            //usberr("suspend usb: buffer len %x, act %x, len %x, %x\n", urb->buffer_length, urb->actual_length, len, remaining_space);
             //buffer is full, so we not do another xfer here. 
             suspend_usb();
         } else {
 	        urb->status = RECV_READY;
             //schedule next xfer.
             remaining_space = remaining_space > FBT_USB_XFER_MAX_SIZE? FBT_USB_XFER_MAX_SIZE : remaining_space;
-            //usberr("next request: buffer len %x, act %x, len %x, %x\n", urb->buffer_length, urb->actual_length, len, remaining_space);
-            //ReadBulkEndpoint(remaining_space, FbtXferBuf);
-            ReadBulkEndpoint(remaining_space, urb->buffer);
+            ReadBulkEndpoint(remaining_space, (void *)urb->buffer);
         }
     }
 }
@@ -863,9 +840,6 @@ int is_usbd_high_speed(void)
 /* Turn on the USB connection by enabling the pullup resistor */
 void udc_connect(void)
 {
-//	RockusbEn = 0;
-
-    //UsbPhyReset();
     //UsbPhyReset();
     if(!(OtgReg->Device.dctl & 0x02)){
         OtgReg->Device.dctl |= 0x02;           //soft disconnect
