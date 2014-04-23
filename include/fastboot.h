@@ -308,11 +308,11 @@ int board_fbt_key_pressed(void);
 void board_fbt_finalize_bootargs(char* args, int buf_sz, 
         int ramdisk_addr, int ramdisk_sz, int recovery);
 int board_fbt_handle_erase(fbt_partition_t *ptn);
-int board_fbt_handle_flash(char *name, fbt_partition_t *ptn,
+int board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
         struct cmd_fastboot_interface *priv);
 int board_fbt_handle_download(unsigned char *buffer,
         int length, struct cmd_fastboot_interface *priv);
-int board_fbt_check_misc();
+int board_fbt_check_misc(void);
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
 struct fbt_partition *fastboot_find_ptn(const char *name);
 

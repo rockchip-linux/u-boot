@@ -18,7 +18,7 @@ Revision:       1.00
 #define __ALIGN_MASK(x,mask)    (((x)+(mask))&~(mask))
 extern uint8* g_pLoader;
 
-static int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
+int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
     unsigned char buf[RK_BLK_SIZE];
     unsigned blocks;
@@ -472,7 +472,7 @@ fail:
     return false;
 }
 
-int handleRkFlash(char *name, fbt_partition_t *ptn,
+int handleRkFlash(const char *name, fbt_partition_t *ptn,
         struct cmd_fastboot_interface *priv)
 {
     if (!strcmp(PARAMETER_NAME, name))
