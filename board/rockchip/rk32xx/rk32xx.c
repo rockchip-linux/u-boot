@@ -21,6 +21,7 @@ Revision:       1.00
 #include <asm/arch/clock.h>
 #include <errno.h>
 #include <asm/arch/pwm.h>
+#include <fdt_support.h>
 
 #include "../common/config.h"
 #include "../common/idblock.h"
@@ -50,10 +51,10 @@ void board_lmb_reserve(struct lmb *lmb) {
 #endif
 
 int wfi_status = 0;
-void wait_for_interrupt()
+void wait_for_interrupt(void)
 {
-	uint8 ret,i;
-	u32 pllcon0[4], pllcon1[4], pllcon2[4];
+	//uint8 ret,i;
+	//u32 pllcon0[4], pllcon1[4], pllcon2[4];
 
 	/* PLL enter slow-mode */
 	g_cruReg->CRU_MODE_CON = (0x3<<((2*4) + 16)) | (0x0<<(2*4));
@@ -76,7 +77,7 @@ void wait_for_interrupt()
 	printf("PLL open end! \n");
 }
 
-int get_wfi_status()
+int get_wfi_status(void)
 {
 	return wfi_status;
 }
@@ -93,9 +94,9 @@ int rk_lcd_parse_dt(const void *blob)
 	//int* blob = getenv_hex("fdtaddr", 0);
 	int node;
 	int lcd_en_node,lcd_cs_node;
-	const struct fdt_property *prop,*prop1;
-	const u32 *cell;
-	const u32 *reg;
+	//const struct fdt_property *prop,*prop1;
+	//const u32 *cell;
+	//const u32 *reg;
 	
     lcd_node = fdt_path_offset(blob, "lcdc1");
 	if (PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0)) {
@@ -207,7 +208,7 @@ int rk616_power_on()
 #endif
 
 #ifdef CONFIG_RK_I2C 
-void rk_i2c_init()
+void rk_i2c_init(void)
 {
 
 #ifdef CONFIG_POWER_ACT8846
