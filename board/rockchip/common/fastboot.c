@@ -11,10 +11,19 @@ Revision:       1.00
 #include <malloc.h>
 #include <fastboot.h>
 #include <asm/io.h>
+#include <version.h>
+#include <asm/arch/gpio.h>
+#include <asm/arch/iomux.h>
+#include <errno.h>
+
+#include "config.h"
+#include "rkimage.h"
+#include "idblock.h"
+
+struct fbt_partition fbt_partitions[];
+extern char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
 
 #if !defined(CONFIG_FASTBOOT_NO_FORMAT)
-
-extern struct fbt_partition fbt_partitions[];
 
 static int do_format(void)
 {
@@ -78,26 +87,6 @@ int board_fbt_oem(const char *cmdbuf)
 	return -1;
 }
 #endif /* !CONFIG_FASTBOOT_NO_FORMAT */
-
-#define SYS_LOADER_REBOOT_FLAG   0x5242C300 
-#define SYS_KERNRL_REBOOT_FLAG   0xC3524200
-#define SYS_LOADER_ERR_FLAG      0X1888AAFF
-
-enum {
-    BOOT_NORMAL=                  0,
-    BOOT_LOADER,     /* enter loader rockusb mode */
-    BOOT_MASKROM,    /* enter maskrom rockusb mode*/
-    BOOT_RECOVER,    /* enter recover */
-    BOOT_NORECOVER,  /* do not enter recover */
-    BOOT_WINCE,      /* FOR OTHER SYSTEM */
-    BOOT_WIPEDATA,   /* enter recover and wipe data. */
-    BOOT_WIPEALL,    /* enter recover and wipe all data. */
-    BOOT_CHECKIMG,   /* check firmware img with backup part(in loader mode)*/
-    BOOT_FASTBOOT,
-    BOOT_SECUREBOOT_DISABLE,
-    BOOT_CHARGING,
-    BOOT_MAX         /* MAX VALID BOOT TYPE.*/
-};
 
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 {
@@ -170,3 +159,78 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
     return frt;
 }
 
+int board_fbt_key_pressed(void)
+{
+    int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
+    enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
+	int vbus = GetVbus();
+    checkKey(&boot_rockusb, &boot_recovery, &boot_fastboot);
+	printf("vbus = %d\n", vbus);
+    if(boot_recovery && (vbus==0)) {
+        printf("%s: recovery key pressed.\n",__func__);
+        frt = FASTBOOT_REBOOT_RECOVERY;
+    } else if (boot_rockusb && (vbus!=0)) {
+        printf("%s: rockusb key pressed.\n",__func__);
+        startRockusb();
+    } else if(boot_fastboot && (vbus!=0)){
+        printf("%s: fastboot key pressed.\n",__func__);
+        frt = FASTBOOT_REBOOT_FASTBOOT;
+    }
+
+    return frt;
+}
+
+void board_fbt_finalize_bootargs(char* args, int buf_sz,
+        int ramdisk_addr, int ramdisk_sz, int recovery)
+{
+    char recv_cmd[2]={0};
+    fixInitrd(&gBootInfo, ramdisk_addr, ramdisk_sz);
+    if (recovery) {
+        change_cmd_for_recovery(&gBootInfo, recv_cmd);
+    }
+    snprintf(args, buf_sz, "%s", gBootInfo.cmd_line);
+//TODO:setup serial_no/device_id/mac here?
+}
+int board_fbt_handle_erase(fbt_partition_t *ptn)
+{
+    return handleErase(ptn);
+}
+int board_fbt_handle_flash(char *name, fbt_partition_t *ptn,
+        struct cmd_fastboot_interface *priv)
+{
+    return handleRkFlash(name, ptn, priv);
+}
+int board_fbt_handle_download(unsigned char *buffer,
+        int length, struct cmd_fastboot_interface *priv)
+{
+    return handleDownload(buffer, length, priv);
+}
+int board_fbt_check_misc()
+{
+    //return true if we got recovery cmd from misc.
+    return checkMisc();
+}
+int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
+{
+    return setBootloaderMsg(bmsg);
+}
+int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
+{
+    return secureCheck(hdr, unlocked);
+}
+void board_fbt_boot_failed(const char* boot)
+{
+    printf("Unable to boot:%s\n", boot);
+
+    if (!memcmp(BOOT_NAME, boot, sizeof(BOOT_NAME))) {
+        printf("try to start recovery\n");
+        char *const boot_cmd[] = {"booti", RECOVERY_NAME};
+        do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+    } else if (!memcmp(RECOVERY_NAME, boot, sizeof(RECOVERY_NAME))) {
+        printf("try to start backup\n");
+        char *const boot_cmd[] = {"booti", BACKUP_NAME};
+        do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+    }  
+    printf("try to start rockusb\n");
+    startRockusb();
+}

@@ -472,7 +472,7 @@ fail:
     return false;
 }
 
-int handleRkFlash(char *name,
+int handleRkFlash(char *name, fbt_partition_t *ptn,
         struct cmd_fastboot_interface *priv)
 {
     if (!strcmp(PARAMETER_NAME, name))
@@ -535,14 +535,16 @@ int handleRkFlash(char *name,
             goto fail;
         }
     }
-
-    return 0;
+    //normal case
+    if (!ptn) {
+        FBTERR("ptn not found!!(%s)\n", name);
+        goto fail;
+    }
+    if (handleFlash(ptn, priv->transfer_buffer, priv->d_bytes) != 0)
+        goto fail;
 ok:
-    sprintf(priv->response, "OKAY");
-    return 1;
+    return 0;
 fail:
-    sprintf(priv->response,
-            "FAILWrite partition");
     return -1;
 }
 

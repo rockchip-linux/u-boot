@@ -99,7 +99,7 @@ typedef struct
     unsigned int dwDataDelay;//ÒÔÃëÎªµ¥Î»
 } PACKED2 STRUCT_RKBOOT_ENTRY,*PSTRUCT_RKBOOT_ENTRY;
 
-int handleRkFlash(char *name,
+int handleRkFlash(char *name, fbt_partition_t *ptn,
         struct cmd_fastboot_interface *priv);
 
 #define LOADER_MAGIC_SIZE     16
