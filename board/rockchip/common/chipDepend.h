@@ -17,5 +17,7 @@ extern uint8    ChipType;
 //extern void ModifyUsbVidPid(USB_DEVICE_DESCRIPTOR * pDeviceDescr);
 extern bool UsbPhyReset(void);
 extern void FlashCsInit(void);
+void ISetLoaderFlag(uint32 flag);
+uint32 IReadLoaderFlag(void);
 
 #endif

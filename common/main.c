@@ -421,10 +421,7 @@ void main_loop (void)
         run_command_list(p, -1, 0);
     }
     run_command_list(CONFIG_BOOTCOMMAND, -1, 0);
-
     /* Should not reach here. */
-    printf("failed to boot, start rockusb\n");
-    startRockusb();
 }
 
 #else //CONFIG_ROCKCHIP
