@@ -21,7 +21,7 @@ Revision:       1.00
 #include "idblock.h"
 
 struct fbt_partition fbt_partitions[];
-char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
+extern char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
 
 #if !defined(CONFIG_FASTBOOT_NO_FORMAT)
 
@@ -195,7 +195,7 @@ int board_fbt_handle_erase(fbt_partition_t *ptn)
 {
     return handleErase(ptn);
 }
-int board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
+int board_fbt_handle_flash(char *name, fbt_partition_t *ptn,
         struct cmd_fastboot_interface *priv)
 {
     return handleRkFlash(name, ptn, priv);

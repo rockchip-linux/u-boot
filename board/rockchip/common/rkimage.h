@@ -42,6 +42,8 @@ typedef struct tagKernelImg {
     uint32  crc;
 }KernelImg;
 
+static int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size);
+
 int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, \
         fbt_partition_t *kernel_ptn);
 
@@ -97,7 +99,7 @@ typedef struct
     unsigned int dwDataDelay;//ÒÔÃëÎªµ¥Î»
 } PACKED2 STRUCT_RKBOOT_ENTRY,*PSTRUCT_RKBOOT_ENTRY;
 
-int handleRkFlash(const char *name, fbt_partition_t *ptn,
+int handleRkFlash(char *name, fbt_partition_t *ptn,
         struct cmd_fastboot_interface *priv);
 
 #define LOADER_MAGIC_SIZE     16

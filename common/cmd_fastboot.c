@@ -68,7 +68,6 @@
 #include <resource.h>
 #endif
 #include <fdtdec.h>
-#include <usbdevice.h>
 DECLARE_GLOBAL_DATA_PTR;
 
 /* If a BUILD_TAG was passed as an argument to make, use it
@@ -168,7 +167,7 @@ struct _fbt_config_desc {
 
 static void fbt_handle_response(void);
 static void fbt_run_recovery_wipe_data(void);
-static void fbt_run_recovery(void);
+static void fbt_run_recovery();
 
 static u8 fastboot_name[] = "rk_fastboot";
 /* defined and used by gadget/ep0.c */
@@ -268,35 +267,6 @@ static char* log_buffer;
 static uint32_t log_position;
 #endif
 
-#ifdef CONFIG_ROCKCHIP
-extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
-extern int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec);
-extern int is_usbd_high_speed(void);
-extern void startRockusb(void);
-extern unsigned int SecureBootCheck(void);
-extern int fixHdr(struct fastboot_boot_img_hdr *hdr);
-extern int rk_bootm_start(bootm_headers_t *images);
-extern int rkclk_soft_reset(void);
-extern void rk_backlight_ctrl(int brightness);
-extern void* rk_fdt_resource_load(void);
-extern int lcd_enable_logo(bool enable);
-extern int drv_lcd_init (void);
-extern void powerOn(void);
-#else
-void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {;}
-int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec) {return 0;}
-void startRockusb(void) {;}
-unsigned int SecureBootCheck(void) {return 0;}
-int fixHdr(struct fastboot_boot_img_hdr *hdr) {return 0;}
-int rk_bootm_start(bootm_headers_t *images) {return 0;}
-int rkclk_soft_reset(void) {return 0;}
-void rk_backlight_ctrl(int brightness) {;}
-void* rk_fdt_resource_load(void) {;}
-int lcd_enable_logo(bool enable) {return 0;}
-int drv_lcd_init (void) {return 0;}
-void powerOn(void) {;}
-#endif
-
 static void fbt_init_endpoints(void);
 int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
 
@@ -394,7 +364,7 @@ static void fbt_init_instances(void)
 
 	/* initialize device instance */
 	memset(device_instance, 0, sizeof(struct usb_device_instance));
-	device_instance->name = (char*)fastboot_name;
+	device_instance->name = fastboot_name;
 	device_instance->device_state = STATE_INIT;
 	device_instance->device_descriptor = &device_descriptor;
 	device_instance->event = fbt_event_handler;
@@ -769,7 +739,7 @@ static const char *getvar_secure(const char *unused)
 static const char *getvar_product(const char *unused)
 {
 #ifdef CONFIG_ROCKCHIP
-    if (PRODUCT_NAME[0])
+    if (PRODUCT_NAME && PRODUCT_NAME[0])
         return PRODUCT_NAME;
 #endif
 	return FASTBOOT_PRODUCT_NAME;
@@ -823,11 +793,11 @@ static const char *getvar_checksum(const char *args)
     //1:parse params.
     uint32_t offset = 0;
     uint32_t blocks = 0;
-    const char* buf = args + sizeof("checksum:") - 1;
-    offset = simple_strtoull(buf, (char**)(&buf), 0);
+    char* buf = args + sizeof("checksum:") - 1;
+    offset = simple_strtoull(buf, &buf, 0);
     //skip a space char.
     buf++;
-    blocks = simple_strtoull(buf, (char**)(&buf), 0);
+    blocks = simple_strtoull(buf, &buf, 0);
 
     if (offset < 0 || blocks <= 0) {
         snprintf(priv.response, sizeof(priv.response),
@@ -838,7 +808,7 @@ static const char *getvar_checksum(const char *args)
             offset, blocks);
 
     //2:get checksum for each parts
-    buf = (const char*)priv.buffer[0];
+    buf = priv.buffer[0];
 
     //may overflow?
     uint16_t buf_blocks = priv.transfer_buffer_size / RK_BLK_SIZE;
@@ -854,11 +824,11 @@ static const char *getvar_checksum(const char *args)
     while (blocks > 0) {
         uint16_t read_blocks = blocks > buf_blocks? buf_blocks : blocks;
         
-        if (StorageReadLba(offset, (void*)buf, read_blocks) != 0) {
-            FBTERR("read failed, offset:0x%08x, blocks:0x%08x\n",
+        if (StorageReadLba(offset, buf, read_blocks) != 0) {
+            FBTERR("read failed, offset:0x%08lx, blocks:0x%08x\n",
                     offset, read_blocks);
             snprintf(priv.response, sizeof(priv.response),
-                    "FAILread 0x%08x failed!\n", offset);
+                    "FAILread 0x%08lx failed!\n", offset);
             return NULL;
         }
         offset += read_blocks;
@@ -1201,7 +1171,7 @@ static void fbt_handle_oem(char *cmdbuf)
 	}
 
 	if (strcmp(cmdbuf, "unlock_accept") == 0) {
-		int err = 0;
+		int err;
 		FBTDBG("oem unlock_accept\n");
 		if (!priv.unlock_pending_start_time) {
 			FBTERR("oem unlock_accept ignored, not pending\n");
@@ -1352,13 +1322,12 @@ static int fbt_rx_process(unsigned char *buffer, int length)
             if (buffer_length > priv.transfer_buffer_size)
                 buffer_length = priv.transfer_buffer_size;
 
-            //keep last 512 to next time(for storage write align)
-            memcpy((u8 *)priv.buffer[buffer == priv.transfer_buffer],
-                    buffer + length - RK_BLK_SIZE, RK_BLK_SIZE);
-
             ep->rcv_urb->buffer = (u8 *)priv.buffer[buffer == priv.transfer_buffer];
+            
+            //keep last 512 to next time(for storage write align)
             ep->rcv_urb->buffer_length = buffer_length;
             ep->rcv_urb->actual_length = RK_BLK_SIZE;
+            memcpy(ep->rcv_urb->buffer, buffer + length - RK_BLK_SIZE, RK_BLK_SIZE);
 
             FBTDBG("switch transfer buffer:%x -> %x len:%ld\n", buffer, ep->rcv_urb->buffer,
                    ep->rcv_urb->buffer_length);
@@ -1552,7 +1521,7 @@ static void fbt_handle_rx(void)
 		"usbd_rcv_complete" [gadget/core.c] also need to be modified */
 	if (ep->rcv_urb->actual_length) {
 		//FBTDBG("rx length: %u\n", ep->rcv_urb->actual_length);
-		if (fbt_rx_process((unsigned char*)ep->rcv_urb->buffer,
+		if (fbt_rx_process(ep->rcv_urb->buffer,
 				   ep->rcv_urb->actual_length)) {
 			/* Poison the command buffer so there's no confusion
 			 * when we receive the next one.  fastboot commands
@@ -1561,7 +1530,7 @@ static void fbt_handle_rx(void)
 			 * Also, it is assumed that at the time of creation of
 			 * urb it is poisoned.
 			*/
-			memset((void*)ep->rcv_urb->buffer, 0, FASTBOOT_COMMAND_SIZE);
+			memset(ep->rcv_urb->buffer, 0, FASTBOOT_COMMAND_SIZE);
 			ep->rcv_urb->actual_length = 0;
             resume_usb(ep, FASTBOOT_COMMAND_SIZE);
         }
@@ -1582,7 +1551,7 @@ static void fbt_response_process(void)
 		return;
 	}
 
-	dest = (unsigned char*)current_urb->buffer + current_urb->actual_length;
+	dest = current_urb->buffer + current_urb->actual_length;
 	n = MIN(64, strlen(priv.response));
 	memcpy(dest, priv.response, n);
 	current_urb->actual_length += n;
@@ -1603,8 +1572,7 @@ static void fbt_handle_response(void)
 	}
 }
 
-#ifdef CONFIG_CMD_CHARGE_ANIM
-static void fbt_run_charge(void)
+static void fbt_run_charge()
 {
     char *const boot_charge_cmd[] = {"booti", "charge"};
     do_booti(NULL, 0, ARRAY_SIZE(boot_charge_cmd), boot_charge_cmd);
@@ -1612,9 +1580,8 @@ static void fbt_run_charge(void)
     /* returns if boot.img is bad */
     FBTERR("\nfastboot: Error: Invalid boot img\n");
 }
-#endif
 
-static void fbt_run_recovery(void)
+static void fbt_run_recovery()
 {
 	char *const boot_recovery_cmd[] = {"booti", "recovery"};
 	do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
@@ -1679,7 +1646,7 @@ static int __def_board_fbt_handle_erase(fbt_partition_t *ptn)
 {
         return 0;
 }
-static int __def_board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
+static int __def_board_fbt_handle_flash(char *name, fbt_partition_t *ptn,
                             struct cmd_fastboot_interface *priv)
 {
         return 0;
@@ -1693,7 +1660,7 @@ static int __def_board_fbt_handle_download(unsigned char *buffer,
     }
     return 0;
 }
-static int __def_board_fbt_check_misc(void)
+static int __def_board_fbt_check_misc()
 {
     return 0;
 }
@@ -1711,7 +1678,6 @@ static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unl
 }
 static int __def_board_fbt_boot_failed(const char* boot)
 {
-    return 0;
 }
 
 int board_fbt_oem(const char *cmdbuf)
@@ -1727,13 +1693,13 @@ void board_fbt_finalize_bootargs(char* args, int buf_sz,
     __attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
 int board_fbt_handle_erase(fbt_partition_t *ptn)
     __attribute__((weak, alias("__def_board_fbt_handle_erase")));
-int board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
+int board_fbt_handle_flash(char *name, fbt_partition_t *ptn,
                struct cmd_fastboot_interface *priv)
     __attribute__((weak, alias("__def_board_fbt_handle_flash")));
 int board_fbt_handle_download(unsigned char *buffer,
         int length, struct cmd_fastboot_interface *priv)
     __attribute__((weak, alias("__def_board_fbt_handle_download")));
-int board_fbt_check_misc(void)
+int board_fbt_check_misc()
     __attribute__((weak, alias("__def_board_fbt_check_misc")));
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
     __attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
@@ -1882,8 +1848,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
             if (fixHdr(hdr) < 0) {
                 goto fail;
             }
-            snprintf((char*)hdr->magic,
-                    FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
+            snprintf(hdr->magic, FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
             if (loadRkImage(hdr, ptn, fastboot_find_ptn(KERNEL_NAME)) != 0) {
                 FBTERR("booti: bad boot or kernel image\n");
                 goto fail;
@@ -1949,8 +1914,8 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         kaddr = (void *)(addr + hdr->page_size);
         raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
                            hdr->page_size));
-        hdr->ramdisk_addr = (int)raddr;
-        hdr->kernel_addr = (int)kaddr;
+        hdr->ramdisk_addr = raddr;
+        hdr->kernel_addr = kaddr;
         //memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
         //memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
     }
@@ -1969,7 +1934,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
     {
 		/* static just to be safe when it comes to the stack */
 		static char command_line[1024];
-		int amt;
+		int i, amt;
 		/* Use the cmdline from board_fbt_finalize_bootargs instead of
 		 * any hardcoded into u-boot.  Also, Android wants the
 		 * serial number on the command line instead of via
@@ -2112,7 +2077,7 @@ void fbt_preboot(void)
     }
 
 #ifdef CONFIG_ROCKCHIP
-    const void *blob = (const void*)rk_fdt_resource_load();
+    const void *blob = rk_fdt_resource_load();
     int node = fdtdec_next_compatible(blob,
 					0, COMPAT_ROCKCHIP_FB);
     int logo_on = fdtdec_get_int(blob, node, "rockchip,uboot-logo-on", 0);
