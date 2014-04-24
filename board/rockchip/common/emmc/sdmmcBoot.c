@@ -23,8 +23,8 @@ uint32 UserCapSize;
 #define EMMC_CARD_ID                2
 #define SD_CARD_FW_PART_OFFSET      8192
 #define SD_CARD_SYS_PART_OFFSET     8064
-RK_ALIGN(64) uint32 		 SpareBuf[(32*8*4/4)];
-RK_ALIGN(64) uint32		  emmcData[(1024*8*4/4)];
+ALIGN(64)uint32 		 SpareBuf[(32*8*4/4)];
+ALIGN(64)uint32		  emmcData[(1024*8*4/4)];
 
 typedef struct SDCardInfoTag
 {
