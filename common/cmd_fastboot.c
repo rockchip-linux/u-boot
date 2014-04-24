@@ -1330,6 +1330,15 @@ static void fbt_handle_boot(const char *cmdbuf)
 	}
 	sprintf(priv.response, "FAILinvalid boot image");
 }
+void board_fbt_handle_download_block(char *name,unsigned char *buffer, int length, int offset, int total_len)
+{
+	FBTDBG("buffer %p, len %x..\n", buffer, length);
+}
+void board_fbt_handle_download_image(char *name, unsigned char *buffer, int length)
+{
+	FBTDBG("buffer %p, len %x..\n", buffer, length);
+}
+
 
 /* XXX: Replace magic number & strings with macros */
 static int fbt_rx_process(unsigned char *buffer, int length)
@@ -1338,12 +1347,38 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 	char *cmdbuf;
 	int clear_cmd_buf;
 
+	int offset;
+	u8 *data_buffer;
+
     if (priv.d_size) {
         ep = &endpoint_instance[1];
         if (length > priv.transfer_buffer_size) {
             FBTERR("buffer overflow when do receive\n");
             length = priv.transfer_buffer_size;
         }
+        if(length){
+            offset = priv.d_bytes;
+            priv.d_bytes += length;
+            data_buffer = ep->rcv_urb->buffer;
+        }
+        if(priv.d_bytes < priv.d_size){
+            int buffer_length = priv.d_size - priv.d_bytes;
+            if (buffer_length > priv.transfer_buffer_size)
+                buffer_length = priv.transfer_buffer_size;
+            ep->rcv_urb->actual_length = 0;
+            ep->rcv_urb->buffer_length = buffer_length;
+            if(priv.need_check)
+                ep->rcv_urb->buffer += priv.transfer_buffer_size;
+            else
+                ep->rcv_urb->buffer = (u8 *)priv.buffer[buffer == priv.transfer_buffer];
+            resume_usb(ep, 0);
+	        FBTDBG("buffer %p, len %x..\n", ep->rcv_urb->buffer, length);
+        }
+        if(!priv.need_check)
+            board_fbt_handle_download_block(priv.pending_ptn->name, data_buffer, length, offset, priv.d_size);
+        else if(priv.d_bytes == priv.d_size)
+            board_fbt_handle_download_image(priv.pending_ptn->name,priv.transfer_buffer, priv.d_size);
+        #if 0
         if (length == priv.transfer_buffer_size) {
             //switch buffer, and resume transfer.
 
@@ -1373,8 +1408,9 @@ static int fbt_rx_process(unsigned char *buffer, int length)
         if (board_fbt_handle_download(buffer, length, &priv)) {
             return 0;
         }
+        #endif
 
-		if (length < priv.d_size && !priv.d_status) {
+		if (priv.d_bytes < priv.d_size && !priv.d_status) {
 			/* don't clear cmd buf because we've replaced it
 			 * with our transfer buffer.  we'll clear it at
 			 * the end of the download.
@@ -1402,7 +1438,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
             /* transfer complete */
             strcpy(priv.response, "OKAY");
         }
-        priv.d_bytes = priv.d_size;
+//        priv.d_bytes = priv.d_size;
         priv.d_size = 0;
         priv.transfer_buffer_pos = 0;
         priv.flag |= FASTBOOT_FLAG_RESPONSE;
@@ -1494,12 +1530,13 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		priv.d_bytes = 0;
         priv.d_status = 0;
 
-		FBTINFO("starting download of %llu bytes\n", d_size);
+		FBTDBG("starting download of %llu bytes\n", d_size);
 
         bool needCheck = 
             (!strcmp(priv.pending_ptn->name, RECOVERY_NAME) ||
              !strcmp(priv.pending_ptn->name, BOOT_NAME) ||
              !strcmp(priv.pending_ptn->name, UBOOT_NAME));
+        priv.need_check = needCheck;
 
         if (!priv.unlocked) {
             FBTERR("download: failed, device is locked\n");
@@ -1529,9 +1566,10 @@ static int fbt_rx_process(unsigned char *buffer, int length)
             sprintf(priv.response, "DATA%08llx", priv.d_size);
 
             //we will check boot/recovery's sha, so need a big buffer to recv whole image.
-            priv.transfer_buffer_size = 
-                needCheck? CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE :
-                CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
+            // usb dwc_udc controller can receive 0x20000byte data for once
+            priv.transfer_buffer_size = 0x20000;
+                /*needCheck? CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE :
+                CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;*/
 
             /* as an optimization, replace the builtin
              * urb->buffer and urb->buffer_length with our
@@ -1549,6 +1587,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
              * transfer buffer for the download.
              */
 			clear_cmd_buf = 0;
+            resume_usb(ep, 0);
 		}
 	}
 	priv.flag |= FASTBOOT_FLAG_RESPONSE;

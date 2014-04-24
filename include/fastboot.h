@@ -158,6 +158,7 @@ struct cmd_fastboot_interface {
 	   Set by board */
     u8 *buffer[2];
 	u8 *transfer_buffer;
+	u32 need_check;
 
     u64 transfer_buffer_pos;
 
@@ -318,7 +319,7 @@ struct fbt_partition *fastboot_find_ptn(const char *name);
 #define FBT_ERR
 #undef  FBT_WARN
 #undef  FBT_INFO
-#undef  FBT_DEBUG
+#define  FBT_DEBUG
 
 #ifdef FBT_DEBUG
 #define FBTDBG(fmt, args...)\

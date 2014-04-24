@@ -774,7 +774,7 @@ static void dwc_otg_epn_rx(uint32_t len)
         usbd_rcv_complete(endpoint, len, 0);
         remaining_space -= len;
         //    usberr("buffer_length:%x, actual_length:%x, len:%x\n", urb->buffer_length, urb->actual_length, len);
-        if (remaining_space <= 0) {
+        if (1/*remaining_space <= 0*/) {
             //buffer is full, so we not do another xfer here. 
             suspend_usb();
         } else {
