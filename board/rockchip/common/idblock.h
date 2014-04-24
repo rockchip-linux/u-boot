@@ -288,6 +288,5 @@ int get_bootloader_ver(char *boot_ver);
 int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot);
 const char* get_fdt_name(void);
 int eraseDrmKey(void);
-int update_loader(bool dataLoaded);
 
 #endif /* RKLOADER_H */

@@ -7,21 +7,16 @@ Created:
 Modified:
 Revision:       1.00
 ********************************************************************************/
-#include <malloc.h>
 #include "rkimage.h"
 #include "idblock.h"
 #include "sha.h"
 #include "parameter.h"
-#include "boot.h"
 
 #undef ALIGN
 
 #define ALIGN(x,a)      __ALIGN_MASK((x),(typeof(x))(a)-1)
 #define __ALIGN_MASK(x,mask)    (((x)+(mask))&~(mask))
 extern uint8* g_pLoader;
-extern void P_RC4(unsigned char * buf, unsigned short len);
-extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
-extern uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
 
 int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
@@ -43,7 +38,7 @@ int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 
     //read the rest blks.
     blocks = DIV_ROUND_UP(*image_size, RK_BLK_SIZE);
-    if (CopyFlash2Memory((uint32) load_addr + RK_BLK_SIZE - head_offset, 
+    if (CopyFlash2Memory((void *) load_addr + RK_BLK_SIZE - head_offset, 
                 offset + 1, blocks - 1) != 0) {
         printf("failed to read image\n");
         return -1;
@@ -153,7 +148,7 @@ static int unsparse(unsigned char *source,
                    " write(sector=%lu,clen=%llu)\n",
                    chunk->chunk_sz, header->blk_sz, sector, clen);
 
-            if (CopyMemory2Flash((uint32)source, sector, blkcnt)) {
+            if (CopyMemory2Flash(source, sector, blkcnt)) {
                 printf("sparse: block write to sector %lu"
                     " of %llu bytes (%ld blkcnt) failed\n",
                     sector, clen, blkcnt);
@@ -212,7 +207,7 @@ int handleFlash(fbt_partition_t *ptn, void *image_start_ptr, loff_t d_bytes)
     }
 
     blocks = DIV_ROUND_UP(d_bytes, RK_BLK_SIZE);
-    return CopyMemory2Flash((uint32)image_start_ptr, ptn->offset, blocks);
+    return CopyMemory2Flash(image_start_ptr, ptn->offset, blocks);
 }
 
 int handleErase(fbt_partition_t *ptn)
@@ -296,7 +291,7 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
 #define RSA_KEY_LEN    0x102//258, public key's length
     char buf[RK_BLK_SIZE];
     memcpy(buf, new_loader + new_hdr->uiFlashBootOffset, RK_BLK_SIZE);
-    P_RC4((unsigned char *)buf, RK_BLK_SIZE);
+    P_RC4(buf, RK_BLK_SIZE);
 
     if (buf[RSA_KEY_OFFSET] != 0 || buf[RSA_KEY_OFFSET + 1] != 4) {
         FBTDBG("try to flash unsigned loader\n");
@@ -387,7 +382,7 @@ bool checkBootImageSign(rk_boot_img_hdr* boothdr)
                 goto fail;
             }
             //check rsa sign here.
-            if(SecureBootSignCheck((uint8 *)boothdr->rsaHash, (uint8 *)boothdr->hdr.id,
+            if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
                         boothdr->signlen) ==  FTL_OK) {
                 return true;
             } else {
@@ -484,6 +479,9 @@ int handleRkFlash(const char *name, fbt_partition_t *ptn,
     {
         //flash parameter.
         int i, ret = -1, len = 0;
+        PLoaderParam param = (PLoaderParam) 
+            (priv->transfer_buffer + priv->d_bytes);
+
         len = buildParameter(priv->transfer_buffer, priv->d_bytes);
         
         printf("Write parameter\n");
@@ -504,8 +502,8 @@ int handleRkFlash(const char *name, fbt_partition_t *ptn,
     } else if (!strcmp(LOADER_NAME, name))
     {
         //flash loader.
-        int size = 0;
-        if (make_loader_data((char *)priv->transfer_buffer, (char *)g_pLoader, &size))
+        int size = 0, ret = -1;
+        if (make_loader_data(priv->transfer_buffer, g_pLoader, &size))
         {
             printf("err! make_loader_data failed(loader's key not match)\n");
             goto fail;
@@ -622,6 +620,7 @@ int handleSparseDownload(unsigned char *buffer,
     chunk_header_t* chunk = (chunk_header_t*)calloc(sizeof(chunk_header_t), 1);
     sparse_header_t* header = &priv->sparse_header;
     u64 clen = 0;
+    lbaint_t blkcnt;
     while (priv->sparse_cur_chunk < header->total_chunks) {
         ret = length - priv->transfer_buffer_pos;
         if (ret < sizeof(chunk_header_t)) {

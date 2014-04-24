@@ -57,7 +57,5 @@ typedef struct bd_info {
 
 #define DECLARE_GLOBAL_DATA_PTR     register volatile gd_t *gd asm ("r8")
 
-uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
-
 #endif	/* _U_BOOT_H_ */
 
