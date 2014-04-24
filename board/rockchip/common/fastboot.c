@@ -20,13 +20,7 @@ Revision:       1.00
 #include "rkimage.h"
 #include "idblock.h"
 
-extern uint32 GetVbus(void);
-extern void startRockusb(void);
-extern int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
-extern void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
-extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
-
-struct fbt_partition fbt_partitions[FBT_PARTITION_MAX_NUM];
+struct fbt_partition fbt_partitions[];
 char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
 
 #if !defined(CONFIG_FASTBOOT_NO_FORMAT)
@@ -170,7 +164,7 @@ int board_fbt_key_pressed(void)
     int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
     enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
 	int vbus = GetVbus();
-    checkKey((uint32 *)&boot_rockusb, (uint32 *)&boot_recovery, (uint32 *)&boot_fastboot);
+    checkKey(&boot_rockusb, &boot_recovery, &boot_fastboot);
 	printf("vbus = %d\n", vbus);
     if(boot_recovery && (vbus==0)) {
         printf("%s: recovery key pressed.\n",__func__);

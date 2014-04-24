@@ -122,8 +122,4 @@ typedef struct tag_second_loader_hdr
     uint8_t reserved2[2048-1024-256-8];
 }second_loader_hdr;
 
-int handleDownload(unsigned char *buffer,
-                int length, struct cmd_fastboot_interface *priv);
-int handleErase(fbt_partition_t *ptn);
-
 #endif /* RKIMAGE_H */

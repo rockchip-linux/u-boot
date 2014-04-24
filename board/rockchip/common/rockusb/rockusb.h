@@ -17,11 +17,11 @@ Revision:       1.00
 #ifndef __GNUC__
 #define PACKED1 __packed
 #define PACKED2
-#define RK_ALIGN(x) __align(x)
+#define ALIGN(x) __align(x)
 #else
 #define PACKED1
 #define PACKED2 __attribute__((packed))
-#define RK_ALIGN(x) __attribute__ ((aligned(x)))
+#define ALIGN(x) __attribute__ ((aligned(x)))
 #endif
 //1可配置参数
 #define 	MAX_LUN					    4			/*最大支持的逻辑设备数*/
@@ -183,13 +183,13 @@ typedef volatile struct _USB_XFER
 		#define	EXT		extern
 #endif		
 
-	EXT		RK_ALIGN(4) uint8 	FWCmdPhase;			//命令阶段状态字
-	EXT     RK_ALIGN(4) uint8  FWSetResetFlag;
+	EXT		ALIGN(4) uint8 	FWCmdPhase;			//命令阶段状态字
+	EXT     ALIGN(4) uint8  FWSetResetFlag;
 	EXT		uint32 			FW_DataLenCnt;
 	EXT		uint32 			FW_Write10PBA;
     EXT		int32           dCSWDataResidueVal;
     
-	EXT		RK_ALIGN(4) uint16 FWLBA_DataLenCnt;
+	EXT		ALIGN(4) uint16 FWLBA_DataLenCnt;
 	EXT		uint32 			FWLBA_Write10PBA;
     EXT		uint32 			FW_SDRAM_Parameter;
     EXT		uint32 			FW_SDRAM_ExcuteAddr;    
@@ -199,13 +199,13 @@ typedef volatile struct _USB_XFER
     EXT     uint32 			*bulkBuf[2];
 
 
-	EXT		RK_ALIGN( 64 )CSW  	      gCSW;
-    EXT		RK_ALIGN( 64 )CBW           gCBW;
-    EXT		RK_ALIGN(64) uint8          BulkInBuf[512];
-    EXT		RK_ALIGN(64)uint32          DataBuf[528*128/4];
-    EXT    RK_ALIGN(64) uint32          FWLBAWriteSrcBuf[512*32/4];
-    EXT    RK_ALIGN(64) uint32          FWLBAReadSrcBuf[512*32/4];
-    EXT     RK_ALIGN( 64 ) uint32 			usbXferBuf[2*USB_XFER_BUF_SIZE];
+	EXT		ALIGN( 64 )CSW  	      gCSW;
+    EXT		ALIGN( 64 )CBW           gCBW;
+    EXT		ALIGN(64) uint8          BulkInBuf[512];
+    EXT		ALIGN(64)uint32          DataBuf[528*128/4];
+    EXT    ALIGN(64) uint32          FWLBAWriteSrcBuf[512*32/4];
+    EXT    ALIGN(64) uint32          FWLBAReadSrcBuf[512*32/4];
+    EXT     ALIGN( 64 ) uint32 			usbXferBuf[2*USB_XFER_BUF_SIZE];
 
 //1表格定义
 #ifdef IN_FW_Upgrade
