@@ -23,6 +23,7 @@ extern uint32 GetVbus(void);
 extern int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
 extern void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
 extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
+extern int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 struct fbt_partition fbt_partitions[FBT_PARTITION_MAX_NUM];
 char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
@@ -139,7 +140,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
                 break;
             case BOOT_LOADER:
                 //startRockusb();
-		do_rockusb(NULL, 0, 1, 1);
+		do_rockusb(NULL, 0, 0, NULL);
                 break;
             case BOOT_FASTBOOT:
                 frt = FASTBOOT_REBOOT_FASTBOOT;
@@ -168,7 +169,7 @@ int board_fbt_key_pressed(void)
     int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
     enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
 	int vbus = GetVbus();
-    checkKey(&boot_rockusb, &boot_recovery, &boot_fastboot);
+    checkKey((uint32 *)&boot_rockusb, (uint32 *)&boot_recovery, (uint32 *)&boot_fastboot);
 	printf("vbus = %d\n", vbus);
     if(boot_recovery && (vbus==0)) {
         printf("%s: recovery key pressed.\n",__func__);
@@ -176,7 +177,7 @@ int board_fbt_key_pressed(void)
     } else if (boot_rockusb && (vbus!=0)) {
         printf("%s: rockusb key pressed.\n",__func__);
     //    startRockusb();
-	do_rockusb(NULL, 0, 1, 1);
+	do_rockusb(NULL, 0, 0, NULL);
     } else if(boot_fastboot && (vbus!=0)){
         printf("%s: fastboot key pressed.\n",__func__);
         frt = FASTBOOT_REBOOT_FASTBOOT;
@@ -196,10 +197,14 @@ void board_fbt_finalize_bootargs(char* args, int buf_sz,
     snprintf(args, buf_sz, "%s", gBootInfo.cmd_line);
 //TODO:setup serial_no/device_id/mac here?
 }
-int board_fbt_handle_flash(char *name,
+int board_fbt_handle_erase(fbt_partition_t *ptn)
+{
+    return handleErase(ptn);
+}
+int board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
         struct cmd_fastboot_interface *priv)
 {
-    return handleRkFlash(name, priv);
+    return handleRkFlash(name, ptn, priv);
 }
 int board_fbt_handle_download(unsigned char *buffer,
         int length, struct cmd_fastboot_interface *priv)
@@ -234,5 +239,5 @@ void board_fbt_boot_failed(const char* boot)
     }  
     printf("try to start rockusb\n");
     //startRockusb();
-	do_rockusb(NULL, 0, 1 , 1);
+	do_rockusb(NULL, 0, 0, NULL);
 }

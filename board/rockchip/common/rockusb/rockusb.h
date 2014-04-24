@@ -17,11 +17,11 @@ Revision:       1.00
 #ifndef __GNUC__
 #define PACKED1 __packed
 #define PACKED2
-#define ALIGN(x) __align(x)
+#define RK_ALIGN(x) __align(x)
 #else
 #define PACKED1
 #define PACKED2 __attribute__((packed))
-#define ALIGN(x) __attribute__ ((aligned(x)))
+#define RK_ALIGN(x) __attribute__ ((aligned(x)))
 #endif
 //1可配置参数
 #define 	MAX_LUN					    4			/*最大支持的逻辑设备数*/
@@ -183,13 +183,13 @@ typedef volatile struct _USB_XFER
 		#define	EXT		extern
 #endif		
 
-	EXT		ALIGN(4) uint8 	FWCmdPhase;			//命令阶段状态字
-	EXT     ALIGN(4) uint8  FWSetResetFlag;
+	EXT		RK_ALIGN(4) uint8 	FWCmdPhase;			//命令阶段状态字
+	EXT     RK_ALIGN(4) uint8  FWSetResetFlag;
 	EXT		uint32 			FW_DataLenCnt;
 	EXT		uint32 			FW_Write10PBA;
     EXT		int32           dCSWDataResidueVal;
     
-	EXT		ALIGN(4) uint16 FWLBA_DataLenCnt;
+	EXT		RK_ALIGN(4) uint16 FWLBA_DataLenCnt;
 	EXT		uint32 			FWLBA_Write10PBA;
     EXT		uint32 			FW_SDRAM_Parameter;
     EXT		uint32 			FW_SDRAM_ExcuteAddr;    

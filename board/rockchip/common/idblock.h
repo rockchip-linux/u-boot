@@ -275,9 +275,9 @@ typedef struct tag_rk_boot_img_hdr {
 int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked);
 int fixHdr(struct fastboot_boot_img_hdr *hdr);
 int getSn(char* buf);
-void getParameter();
+void getParameter(void);
 int setBootloaderMsg(struct bootloader_message* bmsg);
-int checkMisc();
+int checkMisc(void);
 void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz);
 int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors);
 int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec);
@@ -286,6 +286,7 @@ void Switch2MSC(void);
 void setup_space(uint32 begin_addr);
 int get_bootloader_ver(char *boot_ver);
 int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot);
-const char* get_fdt_name();
+const char* get_fdt_name(void);
+int eraseDrmKey(void);
 
 #endif /* RKLOADER_H */

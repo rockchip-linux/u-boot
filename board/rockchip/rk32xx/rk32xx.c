@@ -17,6 +17,9 @@ Revision:       1.00
 #include <asm/arch/rk_i2c.h>
 #include <asm/arch/gpio.h>
 #include <fdtdec.h>
+#include <asm/arch/clock.h>
+#include <errno.h>
+#include <fdt_support.h>
 
 #include "../common/config.h"
 #include "../common/idblock.h"
@@ -25,10 +28,10 @@ Revision:       1.00
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
 int wfi_status = 0;
-void wait_for_interrupt()
+void wait_for_interrupt(void)
 {
-	uint8 ret,i;
-	u32 pllcon0[4], pllcon1[4], pllcon2[4];
+	//uint8 ret,i;
+	//u32 pllcon0[4], pllcon1[4], pllcon2[4];
 
 	/* PLL enter slow-mode */
 	g_cruReg->CRU_MODE_CON = (0x3<<((2*4) + 16)) | (0x0<<(2*4));
@@ -51,7 +54,7 @@ void wait_for_interrupt()
 	printf("PLL open end! \n");
 }
 
-int get_wfi_status()
+int get_wfi_status(void)
 {
 	return wfi_status;
 }
@@ -148,7 +151,7 @@ void rk_backlight_ctrl(int brightness)
     printf("backlight --- brightness:%d\n", brightness);
     
     #ifdef CONFIG_OF_CONTROL
-    if(bl_node == 0)rk_lcd_parse_dt(getenv_hex("fdtaddr", 0));
+    if(bl_node == 0)rk_lcd_parse_dt((void const *)getenv_hex("fdtaddr", 0));
     if(pwm_addr)id = (pwm_addr-RK3288_PWM0123_BASE_ADDR)/0x10;   
     #endif
     if(id == 0)g_grfReg->GRF_GPIO7A_IOMUX = (3<<16)|1;   // 1: PWM0/ 0: GPIO7_A0
@@ -170,7 +173,7 @@ void rk_fb_init(unsigned int onoff)
 {
     pmic_init(0);  //enable lcdc power
 #ifdef CONFIG_OF_CONTROL    
-    if(lcd_node == 0)rk_lcd_parse_dt(getenv_hex("fdtaddr", 0));
+    if(lcd_node == 0)rk_lcd_parse_dt((void const *)getenv_hex("fdtaddr", 0));
 
     if(onoff)
     {
@@ -240,7 +243,7 @@ int rk616_power_on()
 #endif
 
 #ifdef CONFIG_RK_I2C 
-void rk_i2c_init()
+void rk_i2c_init(void)
 {
 
 #ifdef CONFIG_POWER_ACT8846
@@ -255,6 +258,7 @@ void rk_i2c_init()
 }
 #endif
 
+extern int rk_mmc_init(void);
 int board_mmc_init(bd_t *bis)
 {
 	rk_mmc_init();
