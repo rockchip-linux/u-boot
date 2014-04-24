@@ -10,7 +10,7 @@
 #include <asm/unaligned.h>
 #include <asm/arch-rk32xx/typedef.h>
 
-#include "../board/rockchip/rk32xx/storage.h"
+#include "../board/rockchip/common/storage.h"
 
 #include <usb_defs.h>
 

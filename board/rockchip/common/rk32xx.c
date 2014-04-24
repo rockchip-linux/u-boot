@@ -10,20 +10,20 @@ Revision:       1.00
 
 #include <common.h>
 #include <fastboot.h>
+#include "config.h"
 #include <asm/io.h>
 #include <lcd.h>
+#include "rkimage.h"
+#include "idblock.h"
+#include "i2c.h"
 #include <power/pmic.h>
 #include <version.h>
 #include <asm/arch/rk_i2c.h>
 #include <asm/arch/gpio.h>
 #include <fdtdec.h>
-
-#include "../common/config.h"
-#include "../common/idblock.h"
-#include "i2c.h"
-
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
+extern char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
 int wfi_status = 0;
 void wait_for_interrupt()
 {
@@ -78,6 +78,84 @@ void board_lmb_reserve(struct lmb *lmb) {
 }
 
 #endif
+
+
+
+int board_fbt_key_pressed(void)
+{
+    int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
+    enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
+	int vbus = GetVbus();
+    checkKey(&boot_rockusb, &boot_recovery, &boot_fastboot);
+	printf("vbus = %d\n", vbus);
+    if(boot_recovery && (vbus==0)) {
+        printf("%s: recovery key pressed.\n",__func__);
+        frt = FASTBOOT_REBOOT_RECOVERY;
+    } else if (boot_rockusb && (vbus!=0)) {
+        printf("%s: rockusb key pressed.\n",__func__);
+    //    startRockusb();
+	do_rockusb(NULL, 0, 1, 1);
+    } else if(boot_fastboot && (vbus!=0)){
+        printf("%s: fastboot key pressed.\n",__func__);
+        frt = FASTBOOT_REBOOT_FASTBOOT;
+    }
+
+    return frt;
+}
+
+struct fbt_partition fbt_partitions[FBT_PARTITION_MAX_NUM];
+
+void board_fbt_finalize_bootargs(char* args, int buf_sz,
+        int ramdisk_addr, int ramdisk_sz, int recovery)
+{
+    char recv_cmd[2]={0};
+    fixInitrd(&gBootInfo, ramdisk_addr, ramdisk_sz);
+    if (recovery) {
+        change_cmd_for_recovery(&gBootInfo, recv_cmd);
+    }
+    snprintf(args, buf_sz, "%s", gBootInfo.cmd_line);
+//TODO:setup serial_no/device_id/mac here?
+}
+int board_fbt_handle_flash(char *name,
+        struct cmd_fastboot_interface *priv)
+{
+    return handleRkFlash(name, priv);
+}
+int board_fbt_handle_download(unsigned char *buffer,
+        int length, struct cmd_fastboot_interface *priv)
+{
+    return handleDownload(buffer, length, priv);
+}
+int board_fbt_check_misc()
+{
+    //return true if we got recovery cmd from misc.
+    return checkMisc();
+}
+int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
+{
+    return setBootloaderMsg(bmsg);
+}
+int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
+{
+    return secureCheck(hdr, unlocked);
+}
+void board_fbt_boot_failed(const char* boot)
+{
+    printf("Unable to boot:%s\n", boot);
+
+    if (!memcmp(BOOT_NAME, boot, sizeof(BOOT_NAME))) {
+        printf("try to start recovery\n");
+        char *const boot_cmd[] = {"booti", RECOVERY_NAME};
+        do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+    } else if (!memcmp(RECOVERY_NAME, boot, sizeof(RECOVERY_NAME))) {
+        printf("try to start backup\n");
+        char *const boot_cmd[] = {"booti", BACKUP_NAME};
+        do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+    }  
+    printf("try to start rockusb\n");
+    //startRockusb();
+	do_rockusb(NULL, 0, 1 , 1);
+}
 
 
 #ifdef CONFIG_RK_FB
