@@ -11,29 +11,29 @@
 
 #define RESOURCE_PTN_HDR_MAGIC      "RSCE"
 typedef struct {
-	char magic[4];		//tag, "RSCE"
-	uint16_t resource_ptn_version;
-	uint16_t index_tbl_version;
-	uint8_t header_size;	//blocks, size of ptn header.
-	uint8_t tbl_offset;	//blocks, offset of index table.
-	uint8_t tbl_entry_size;	//blocks, size of index table's entry.
-	uint32_t tbl_entry_num;	//numbers of index table's entry.
+    char     magic[4];//tag, "RSCE"
+    uint16_t resource_ptn_version;
+    uint16_t index_tbl_version;
+    uint8_t  header_size;//blocks, size of ptn header.
+    uint8_t  tbl_offset;//blocks, offset of index table.
+    uint8_t  tbl_entry_size;//blocks, size of index table's entry.
+    uint32_t tbl_entry_num;//numbers of index table's entry.
 } resource_ptn_header;
 
 #define INDEX_TBL_ENTR_TAG          "ENTR"
 #define MAX_INDEX_ENTRY_PATH_LEN    256
 typedef struct {
-	char tag[4];		//tag, "ENTR"
-	char path[MAX_INDEX_ENTRY_PATH_LEN];
-	uint32_t content_offset;	//blocks, offset of resource content.
-	uint32_t content_size;	//bytes, size of resource content.
+    char     tag[4];//tag, "ENTR"
+    char     path[MAX_INDEX_ENTRY_PATH_LEN];
+    uint32_t content_offset;//blocks, offset of resource content.
+    uint32_t content_size;//bytes, size of resource content.
 } index_tbl_entry;
 
 typedef struct {
-	char path[MAX_INDEX_ENTRY_PATH_LEN];
-	uint32_t content_offset;	//blocks, offset of resource content.
-	uint32_t content_size;	//bytes, size of resource content.
-	void *load_addr;
+    char     path[MAX_INDEX_ENTRY_PATH_LEN];
+    uint32_t content_offset;//blocks, offset of resource content.
+    uint32_t content_size;//bytes, size of resource content.
+    void*    load_addr;
 } resource_content;
 
 #endif //RESOURCE_H

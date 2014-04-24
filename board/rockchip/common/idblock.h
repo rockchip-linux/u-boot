@@ -29,7 +29,7 @@ extern BootInfo gBootInfo;
 #define ERR_SUCCESS				0
 #define ERR_DEVICE_READY		ERR_SUCCESS
 #define ERR_DEVICE_OPEN_FAILED	-1
-#define ERR_DEVICE_WRITE_FAILED	-2
+#define ERR_DEVICE_WRITE_FAILED	-2 
 #define ERR_DEVICE_READ_FAILED	-3
 #define ERR_CMD_NOTMATCH		-4
 #define ERR_DEVICE_UNREADY		-5
@@ -39,12 +39,13 @@ extern BootInfo gBootInfo;
 #define ERR_CROSS_BORDER		-9
 #define ERR_CSW_OPEN_FAILED		-10
 
-typedef enum { USB_BULK_READ = 0, USB_BULK_WRITE, USB_CONTROL } Usb_Access_type;
 
+typedef enum{USB_BULK_READ=0, USB_BULK_WRITE, USB_CONTROL} Usb_Access_type;
+	
 #define FLASH_ID_LEN			5
 #define BLOCK_STATE_BYTES		64
-#define MAX_TEST_BLOCK			512	//一次可测试的最大块数
-#define MAX_ERASE_BLOCK			128	//一次可擦除的最大块数
+#define MAX_TEST_BLOCK			512		//一次可测试的最大块数
+#define MAX_ERASE_BLOCK			128						//一次可擦除的最大块数
 
 #define SECTOR_SIZE				512
 #define MLC_SECTOR_SIZE			528
@@ -77,53 +78,53 @@ typedef enum { USB_BULK_READ = 0, USB_BULK_WRITE, USB_CONTROL } Usb_Access_type;
 #define PBYTE   BYTE*
 #define LPBYTE	BYTE*
 
-PACKED1 struct _Sector0Info {	//总共512Bytes
-	UINT fwSig;
-	UCHAR reserved[8];
-	USHORT usBootCode1Offset;
-	USHORT usBootCode2Offset;
-	UCHAR reserved1[490];
-	USHORT usFlashDataSize;	//扇区为单位
-	USHORT ucFlashBootSize;
-	UCHAR reserved2[2];
-} PACKED2;
+PACKED1 struct _Sector0Info{			//总共512Bytes
+	UINT	fwSig;
+	UCHAR	reserved[8];
+	USHORT	usBootCode1Offset;
+	USHORT	usBootCode2Offset;
+	UCHAR	reserved1[490];
+	USHORT  usFlashDataSize;//扇区为单位
+	USHORT	ucFlashBootSize;
+	UCHAR	reserved2[2];
+}PACKED2;
 
-typedef struct _Sector0Info Sector0Info;
+typedef	struct _Sector0Info Sector0Info;
 
-typedef PACKED1 struct _Sector1Info {
-	USHORT usSysReservedBlock;	// 2 bytes
-	USHORT usDisk0Size;	// 2 bytes
-	USHORT usDisk1Size;	// 2 bytes
-	USHORT usDisk2Size;	// 2 bytes
-	USHORT usDisk3Size;	// 2 bytes
-	UINT uiChipTag;
-	UINT uiMachineId;
-	USHORT usLoaderYear;
-	USHORT usLoaderDate;
-	USHORT usLoaderVer;	// Master and slave version
-	UCHAR reserved[72];
-	USHORT usFlashDataOffset;
-	USHORT usFlashDataLen;	//以Sector为单位
-	UCHAR reserved2[384];
-	UINT uiFlashChipSize;	//以Sector为单位
-	UCHAR reserved1;
-	UCHAR bAccessTime;
-	USHORT usPhyBlockSize;
-	UCHAR bPhyPageSize;
-	UCHAR bECCBits;
+typedef PACKED1 struct _Sector1Info{
+    USHORT  usSysReservedBlock;                  // 2 bytes
+    USHORT  usDisk0Size;					// 2 bytes
+	USHORT  usDisk1Size;					// 2 bytes
+	USHORT  usDisk2Size;					// 2 bytes
+	USHORT  usDisk3Size;					// 2 bytes
+	UINT	uiChipTag;
+	UINT	uiMachineId;
+	USHORT	usLoaderYear;
+	USHORT	usLoaderDate;
+	USHORT	usLoaderVer;				// Master and slave version
+	UCHAR   reserved[72];
+	USHORT  usFlashDataOffset;
+	USHORT  usFlashDataLen;             //以Sector为单位
+	UCHAR	reserved2[384];
+	UINT    uiFlashChipSize; //以Sector为单位
+	UCHAR   reserved1;
+	UCHAR   bAccessTime;
+    USHORT  usPhyBlockSize;
+    UCHAR   bPhyPageSize;
+    UCHAR   bECCBits;
+    
+    BYTE	reserved3[8];
+	USHORT  usIdBlock0;
+	USHORT  usIdBlock1;
+	USHORT  usIdBlock2;
+	USHORT  usIdBlock3;
+	USHORT  usIdBlock4;
+}PACKED2 Sector1Info;
 
-	BYTE reserved3[8];
-	USHORT usIdBlock0;
-	USHORT usIdBlock1;
-	USHORT usIdBlock2;
-	USHORT usIdBlock3;
-	USHORT usIdBlock4;
-} PACKED2 Sector1Info;
-
-typedef PACKED1 struct _Sector2Info {
-	USHORT chipInfoSize;
-	UCHAR chipInfo[510];
-} PACKED2 Sector2Info;
+typedef PACKED1 struct _Sector2Info{
+    USHORT  chipInfoSize;                        
+    UCHAR   chipInfo[510];					
+}PACKED2 Sector2Info;
 
 #define TAG_MANUFACTURER	"M.F.T"
 #define TAG_PRODUCT_SERIES	"PROD_SERIES"
@@ -137,38 +138,38 @@ typedef PACKED1 struct _Sector2Info {
 #define BT_MAX_SIZE 6
 #define MAC_MAX_SIZE 6
 
-typedef PACKED1 struct _Sector3Info {
-	USHORT snSize;
-//      MySN    sn;
-	UCHAR sn[SN_MAX_SIZE];
-	UCHAR macTag[3];
-	UCHAR macSize;
-	UCHAR macAddr[6];
-} PACKED2 Sector3Info;
+typedef PACKED1 struct _Sector3Info{
+    USHORT  snSize;  
+//	MySN	sn;
+    UCHAR   sn[SN_MAX_SIZE];
+	UCHAR   macTag[3];
+	UCHAR	macSize;
+	UCHAR	macAddr[6];					
+}PACKED2 Sector3Info;
 
 typedef UCHAR Sector[512];
 typedef UCHAR Spare[16];
 
-typedef PACKED1 struct _IDBlock {
+typedef PACKED1 struct _IDBlock{
 	Sector0Info sector0;
 	Sector1Info sector1;
-	Sector sector2;
-	Sector sector3;
-	UCHAR SDRAM_Initial[512];
-	UCHAR *flashBoot;
-} PACKED2 IDBlock;
+	Sector		sector2;
+	Sector		sector3;
+	UCHAR		SDRAM_Initial[512];
+	UCHAR*		flashBoot;
+}PACKED2 IDBlock;
 
-typedef PACKED1 struct _DataInfo {
-	BOOL bIsExist;		// 0,该数据不存在；1,存在
-	int iOffset;
-	int iLength;
-	UINT uiRAMAddress;
-} PACKED2 DataInfo;
+typedef PACKED1 struct _DataInfo{
+	BOOL 	bIsExist;		// 0,该数据不存在；1,存在
+	int 	iOffset;
+	int 	iLength;
+    UINT 	uiRAMAddress;
+}PACKED2 DataInfo;
 
-typedef PACKED1 struct _ManufacturerInfo {
-	UCHAR manufacturerID;
-	char manufacturerName[MAX_MANUFACTURER_NAME];
-} PACKED2 ManufacturerInfo;
+typedef PACKED1 struct _ManufacturerInfo{
+	UCHAR	manufacturerID;
+	char	manufacturerName[MAX_MANUFACTURER_NAME];
+}PACKED2 ManufacturerInfo;
 
 /*
 typedef	__packed struct _DeviceInfo
@@ -178,38 +179,42 @@ typedef	__packed struct _DeviceInfo
 }DeviceInfo;
 */
 
-typedef PACKED1 struct _FlashID {
+typedef	PACKED1 struct _FlashID
+{
 	UCHAR makerCode;
-	UCHAR deviceCode;
-	UCHAR cellType;		// 0,512 bytes ;1,2024 bytes; 2,2048 bytes
-	UCHAR flashType;
-	UCHAR reserved2;
-} PACKED2 FlashID;
+    UCHAR deviceCode;
+    UCHAR cellType; // 0,512 bytes ;1,2024 bytes; 2,2048 bytes
+    UCHAR flashType;
+    UCHAR reserved2;
+}PACKED2 FlashID;
 
 /* Flash 信息 */
-typedef PACKED1 struct _FlashInfo {
+typedef	PACKED1 struct _FlashInfo
+{
 	char szManufacturerName[MAX_MANUFACTURER_NAME];
-	UINT uiFlashSize;	//MB
-	USHORT usBlockSize;	//KB
-	UINT uiPageSize;	//KB
+	UINT uiFlashSize;		//MB
+	USHORT usBlockSize;		//KB
+	UINT uiPageSize;		//KB
 	UINT uiSectorPerBlock;
-//      UCHAR *BlockState;
-	UCHAR BlockState[200];
-	UINT uiBlockNum;
-	BYTE bECCBits;
-	BYTE bAccessTime;	// 两次访问Flash的间隔时间
-	BYTE bFlashCS;		// Flash片选(若Flash片选存在，则将相应的Bit置1，否则置0)
-} PACKED2 FlashInfo, *PFlashInfo;
+//	UCHAR *BlockState;
+	UCHAR   BlockState[200];
+	UINT	uiBlockNum;
+	BYTE	bECCBits;
+	BYTE	bAccessTime;		// 两次访问Flash的间隔时间
+	BYTE	bFlashCS;		// Flash片选(若Flash片选存在，则将相应的Bit置1，否则置0)
+}PACKED2 FlashInfo, *PFlashInfo;
 
-typedef PACKED1 struct _FlashInfoCmd {
-	UINT uiFlashSize;	// Flash大小（以Sector为单位）
-	USHORT usBlockSize;	// 物理的Block大小（以Sector为单位）
-	BYTE bPageSize;		// 物理的Page大小（以Sector为单位）
-	BYTE bECCBits;		// 8/14
-	BYTE AccessTime;	// 两次访问Flash的间隔时间
-	BYTE bManufCode;	// 厂商识别码
-	BYTE bFlashCS;		// Flash片选(若Flash片选存在，则将相应的Bit置1，否则置0)
-} PACKED2 FlashInfoCmd, *PFlashInfoCmd;
+typedef PACKED1 struct _FlashInfoCmd
+{
+	UINT	uiFlashSize;	// Flash大小（以Sector为单位）
+	USHORT	usBlockSize;	// 物理的Block大小（以Sector为单位）
+	BYTE	bPageSize;		// 物理的Page大小（以Sector为单位）
+	BYTE	bECCBits;		// 8/14
+	BYTE	AccessTime;		// 两次访问Flash的间隔时间
+	BYTE	bManufCode;		// 厂商识别码
+	BYTE	bFlashCS;		// Flash片选(若Flash片选存在，则将相应的Bit置1，否则置0)
+}PACKED2 FlashInfoCmd, *PFlashInfoCmd;
+
 
 #define BOOTSIGN		"RK28@Copyright2008Rockchip"
 #define BOOTSIGN_SIZE	32
@@ -217,59 +222,61 @@ typedef PACKED1 struct _FlashInfoCmd {
 #define HEADINFO_SIZE	512
 
 typedef PACKED1 struct _rk_time {
-	unsigned short usYear;
-	unsigned short usMonth;
-	unsigned short usDate;
-	unsigned short usHour;
-	unsigned short usMinute;
-	unsigned short usSecond;
-} PACKED2 RK_TIME;
+	unsigned short		usYear;
+	unsigned short      usMonth;
+	unsigned short		usDate;
+	unsigned short		usHour;
+	unsigned short		usMinute;
+	unsigned short		usSecond;
+}PACKED2 RK_TIME;
 
-typedef PACKED1 struct _RK28BOOT_HEAD {
-	char szSign[BOOTSIGN_SIZE];
-	unsigned char bMD5Check[CHECK_SIZE];
-	RK_TIME tmCreateTime;
+typedef PACKED1 struct _RK28BOOT_HEAD{
+	char				szSign[BOOTSIGN_SIZE];
+	unsigned char		bMD5Check[CHECK_SIZE];
+	RK_TIME				tmCreateTime;
 
-	unsigned int uiMajorVersion;
-	unsigned int uiMinorVersion;
+	unsigned int		uiMajorVersion;
+	unsigned int		uiMinorVersion;
 
-	unsigned int uiUsbDataOffset;
-	unsigned int uiUsbDataLen;
+	unsigned int		uiUsbDataOffset;
+	unsigned int		uiUsbDataLen;
 
-	unsigned int uiUsbBootOffset;
-	unsigned int uiUsbBootLen;
+	unsigned int		uiUsbBootOffset;
+	unsigned int		uiUsbBootLen;
+	
+	unsigned int		uiFlashDataOffset;
+	unsigned int		uiFlashDataLen;
 
-	unsigned int uiFlashDataOffset;
-	unsigned int uiFlashDataLen;
-
-	unsigned int uiFlashBootOffset;
-	unsigned int uiFlashBootLen;
-
-	unsigned int MergerVersion;	// 生成Boot文件所用Merger工具的版本号(高16字节为主版本号、低16字节为副版本号)
-} PACKED2 RK28BOOT_HEAD, *PRK28BOOT_HEAD;
+	unsigned int        uiFlashBootOffset;
+	unsigned int		uiFlashBootLen;
+	
+	unsigned int		MergerVersion;		// 生成Boot文件所用Merger工具的版本号(高16字节为主版本号、低16字节为副版本号)
+}PACKED2 RK28BOOT_HEAD, *PRK28BOOT_HEAD;
 
 struct bootloader_message {
-	char command[32];
-	char status[32];
-	char recovery[1024];
+    char command[32];
+    char status[32];
+    char recovery[1024];
 };
 
-typedef struct tag_rk_boot_img_hdr {
-	struct fastboot_boot_img_hdr hdr;
 
-	unsigned char reserved[0x400 - 0x260];
-	unsigned long signTag;	//0x4E474953
-	unsigned long signlen;	//128
-	unsigned char rsaHash[128];
+
+typedef struct tag_rk_boot_img_hdr {
+    struct fastboot_boot_img_hdr hdr;
+    
+    unsigned char reserved[0x400-0x260];
+    unsigned long signTag; //0x4E474953
+    unsigned long signlen; //128
+    unsigned char rsaHash[128];
 } rk_boot_img_hdr;
 
 #define SECURE_BOOT_SIGN_TAG    0x4E474953
 
 int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked);
 int fixHdr(struct fastboot_boot_img_hdr *hdr);
-int getSn(char *buf);
+int getSn(char* buf);
 void getParameter(void);
-int setBootloaderMsg(struct bootloader_message *bmsg);
+int setBootloaderMsg(struct bootloader_message* bmsg);
 int checkMisc(void);
 void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz);
 int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors);
@@ -278,8 +285,8 @@ void SysLowFormatCheck(void);
 void Switch2MSC(void);
 void setup_space(uint32 begin_addr);
 int get_bootloader_ver(char *boot_ver);
-int execute_cmd(PBootInfo pboot_info, char *cmdlist, bool * reboot);
-const char *get_fdt_name(void);
+int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot);
+const char* get_fdt_name(void);
 int eraseDrmKey(void);
 int update_loader(bool dataLoaded);
 
