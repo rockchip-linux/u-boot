@@ -1,12 +1,12 @@
 /********************************************************************************
-		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
-			--  ALL RIGHTS RESERVED  --
-File Name:	
+  COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
+  --  ALL RIGHTS RESERVED  --
+  File Name:	
 Author:         
 Created:        
 Modified:
 Revision:       1.00
-********************************************************************************/
+ ********************************************************************************/
 #ifndef RKLOADER_H
 #define RKLOADER_H
 
@@ -41,7 +41,7 @@ extern BootInfo gBootInfo;
 
 
 typedef enum{USB_BULK_READ=0, USB_BULK_WRITE, USB_CONTROL} Usb_Access_type;
-	
+
 #define FLASH_ID_LEN			5
 #define BLOCK_STATE_BYTES		64
 #define MAX_TEST_BLOCK			512		//一次可测试的最大块数
@@ -92,8 +92,8 @@ PACKED1 struct _Sector0Info{			//总共512Bytes
 typedef	struct _Sector0Info Sector0Info;
 
 typedef PACKED1 struct _Sector1Info{
-    USHORT  usSysReservedBlock;                  // 2 bytes
-    USHORT  usDisk0Size;					// 2 bytes
+	USHORT  usSysReservedBlock;                  // 2 bytes
+	USHORT  usDisk0Size;					// 2 bytes
 	USHORT  usDisk1Size;					// 2 bytes
 	USHORT  usDisk2Size;					// 2 bytes
 	USHORT  usDisk3Size;					// 2 bytes
@@ -109,11 +109,11 @@ typedef PACKED1 struct _Sector1Info{
 	UINT    uiFlashChipSize; //以Sector为单位
 	UCHAR   reserved1;
 	UCHAR   bAccessTime;
-    USHORT  usPhyBlockSize;
-    UCHAR   bPhyPageSize;
-    UCHAR   bECCBits;
-    
-    BYTE	reserved3[8];
+	USHORT  usPhyBlockSize;
+	UCHAR   bPhyPageSize;
+	UCHAR   bECCBits;
+
+	BYTE	reserved3[8];
 	USHORT  usIdBlock0;
 	USHORT  usIdBlock1;
 	USHORT  usIdBlock2;
@@ -122,8 +122,8 @@ typedef PACKED1 struct _Sector1Info{
 }PACKED2 Sector1Info;
 
 typedef PACKED1 struct _Sector2Info{
-    USHORT  chipInfoSize;                        
-    UCHAR   chipInfo[510];					
+	USHORT  chipInfoSize;                        
+	UCHAR   chipInfo[510];					
 }PACKED2 Sector2Info;
 
 #define TAG_MANUFACTURER	"M.F.T"
@@ -139,9 +139,9 @@ typedef PACKED1 struct _Sector2Info{
 #define MAC_MAX_SIZE 6
 
 typedef PACKED1 struct _Sector3Info{
-    USHORT  snSize;  
-//	MySN	sn;
-    UCHAR   sn[SN_MAX_SIZE];
+	USHORT  snSize;  
+	//	MySN	sn;
+	UCHAR   sn[SN_MAX_SIZE];
 	UCHAR   macTag[3];
 	UCHAR	macSize;
 	UCHAR	macAddr[6];					
@@ -163,7 +163,7 @@ typedef PACKED1 struct _DataInfo{
 	BOOL 	bIsExist;		// 0,该数据不存在；1,存在
 	int 	iOffset;
 	int 	iLength;
-    UINT 	uiRAMAddress;
+	UINT 	uiRAMAddress;
 }PACKED2 DataInfo;
 
 typedef PACKED1 struct _ManufacturerInfo{
@@ -172,20 +172,20 @@ typedef PACKED1 struct _ManufacturerInfo{
 }PACKED2 ManufacturerInfo;
 
 /*
-typedef	__packed struct _DeviceInfo
-{
-	UCHAR deviceCode;
-	UINT flashSize;
-}DeviceInfo;
-*/
+   typedef	__packed struct _DeviceInfo
+   {
+   UCHAR deviceCode;
+   UINT flashSize;
+   }DeviceInfo;
+   */
 
 typedef	PACKED1 struct _FlashID
 {
 	UCHAR makerCode;
-    UCHAR deviceCode;
-    UCHAR cellType; // 0,512 bytes ;1,2024 bytes; 2,2048 bytes
-    UCHAR flashType;
-    UCHAR reserved2;
+	UCHAR deviceCode;
+	UCHAR cellType; // 0,512 bytes ;1,2024 bytes; 2,2048 bytes
+	UCHAR flashType;
+	UCHAR reserved2;
 }PACKED2 FlashID;
 
 /* Flash 信息 */
@@ -196,7 +196,7 @@ typedef	PACKED1 struct _FlashInfo
 	USHORT usBlockSize;		//KB
 	UINT uiPageSize;		//KB
 	UINT uiSectorPerBlock;
-//	UCHAR *BlockState;
+	//	UCHAR *BlockState;
 	UCHAR   BlockState[200];
 	UINT	uiBlockNum;
 	BYTE	bECCBits;
@@ -243,31 +243,31 @@ typedef PACKED1 struct _RK28BOOT_HEAD{
 
 	unsigned int		uiUsbBootOffset;
 	unsigned int		uiUsbBootLen;
-	
+
 	unsigned int		uiFlashDataOffset;
 	unsigned int		uiFlashDataLen;
 
 	unsigned int        uiFlashBootOffset;
 	unsigned int		uiFlashBootLen;
-	
+
 	unsigned int		MergerVersion;		// 生成Boot文件所用Merger工具的版本号(高16字节为主版本号、低16字节为副版本号)
 }PACKED2 RK28BOOT_HEAD, *PRK28BOOT_HEAD;
 
 struct bootloader_message {
-    char command[32];
-    char status[32];
-    char recovery[1024];
+	char command[32];
+	char status[32];
+	char recovery[1024];
 };
 
 
 
 typedef struct tag_rk_boot_img_hdr {
-    struct fastboot_boot_img_hdr hdr;
-    
-    unsigned char reserved[0x400-0x260];
-    unsigned long signTag; //0x4E474953
-    unsigned long signlen; //128
-    unsigned char rsaHash[128];
+	struct fastboot_boot_img_hdr hdr;
+
+	unsigned char reserved[0x400-0x260];
+	unsigned long signTag; //0x4E474953
+	unsigned long signlen; //128
+	unsigned char rsaHash[128];
 } rk_boot_img_hdr;
 
 #define SECURE_BOOT_SIGN_TAG    0x4E474953

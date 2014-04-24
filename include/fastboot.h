@@ -68,11 +68,11 @@
    To use this interface, define CONFIG_FASTBOOT in your board config file.
    An example is include/configs/omap3430labrador.h
    ...
-   #define CONFIG_FASTBOOT	        1    / * Using fastboot interface * /
-   ...
+#define CONFIG_FASTBOOT	        1    / * Using fastboot interface * /
+...
 
-   An example of the board specific spupport for omap3 is found at
-   cpu/omap3/fastboot.c
+An example of the board specific spupport for omap3 is found at
+cpu/omap3/fastboot.c
 
 */
 
@@ -106,17 +106,17 @@
 
 /* sparse things */
 typedef struct sparse_header {
-  __le32    magic;      /* 0xed26ff3a */
-  __le16    major_version;  /* (0x1) - reject images with higher major versions */
-  __le16    minor_version;  /* (0x0) - allow images with higer minor versions */
-  __le16    file_hdr_sz;    /* 28 bytes for first revision of the file format */
-  __le16    chunk_hdr_sz;   /* 12 bytes for first revision of the file format */
-  __le32    blk_sz;     /* block size in bytes, must be a multiple of 4 (4096) */
-  __le32    total_blks; /* total blocks in the non-sparse output image */
-  __le32    total_chunks;   /* total chunks in the sparse input image */
-  __le32    image_checksum; /* CRC32 checksum of the original data, counting "don't care" */
-                /* as 0. Standard 802.3 polynomial, use a Public Domain */
-                /* table implementation */
+	__le32    magic;      /* 0xed26ff3a */
+	__le16    major_version;  /* (0x1) - reject images with higher major versions */
+	__le16    minor_version;  /* (0x0) - allow images with higer minor versions */
+	__le16    file_hdr_sz;    /* 28 bytes for first revision of the file format */
+	__le16    chunk_hdr_sz;   /* 12 bytes for first revision of the file format */
+	__le32    blk_sz;     /* block size in bytes, must be a multiple of 4 (4096) */
+	__le32    total_blks; /* total blocks in the non-sparse output image */
+	__le32    total_chunks;   /* total chunks in the sparse input image */
+	__le32    image_checksum; /* CRC32 checksum of the original data, counting "don't care" */
+	/* as 0. Standard 802.3 polynomial, use a Public Domain */
+	/* table implementation */
 } sparse_header_t;
 
 #define SPARSE_HEADER_MAGIC 0xed26ff3a
@@ -126,10 +126,10 @@ typedef struct sparse_header {
 #define CHUNK_TYPE_DONT_CARE    0xCAC3
 
 typedef struct chunk_header {
-  __le16    chunk_type; /* 0xCAC1 -> raw; 0xCAC2 -> fill; 0xCAC3 -> don't care */
-  __le16    reserved1;
-  __le32    chunk_sz;   /* in blocks in output image */
-  __le32    total_sz;   /* in bytes of chunk input file including chunk header and data */
+	__le16    chunk_type; /* 0xCAC1 -> raw; 0xCAC2 -> fill; 0xCAC3 -> don't care */
+	__le16    reserved1;
+	__le32    chunk_sz;   /* in blocks in output image */
+	__le32    total_sz;   /* in bytes of chunk input file including chunk header and data */
 } chunk_header_t;
 
 #define SPARSE_HEADER_MAJOR_VER 1
@@ -147,8 +147,8 @@ struct cmd_fastboot_interface {
 	   Set by board */
 	char *serial_no;
 
-    //fastboot likely to query partition-type before do flash.
-    struct fbt_partition *pending_ptn;
+	//fastboot likely to query partition-type before do flash.
+	struct fbt_partition *pending_ptn;
 
 	/* Transfer buffer, for handling flash updates
 	   Should be multiple of the block size
@@ -156,11 +156,11 @@ struct cmd_fastboot_interface {
 	   Controlled by the configure variable CONFIG_FASTBOOT_TRANSFER_BUFFER
 
 	   Set by board */
-    u8 *buffer[2];
+	u8 *buffer[2];
 	u8 *transfer_buffer;
 	u32 need_check;
 
-    u64 transfer_buffer_pos;
+	u64 transfer_buffer_pos;
 
 	/* How big is the transfer buffer
 	   Controlled by the configure variable
@@ -170,20 +170,20 @@ struct cmd_fastboot_interface {
 	u64 transfer_buffer_size;
 
 	/* Download size, if download has to be done. This can be checked to find
-		whether next packet is a command or a data */
+	   whether next packet is a command or a data */
 	u64 d_size;
 
 	/* Data downloaded so far */
 	u64 d_bytes;
 
-    /* Download status, < 0 when error, > 0 when complete */
-    int d_status;
+	/* Download status, < 0 when error, > 0 when complete */
+	int d_status;
 
-    /* Download size, copy downloaded data to storage */ 
-    u64 d_direct_size;
+	/* Download size, copy downloaded data to storage */ 
+	u64 d_direct_size;
 
-    /* Offset of storage, will download 'd_direct_size' data to this offset */
-    u64 d_direct_offset;
+	/* Offset of storage, will download 'd_direct_size' data to this offset */
+	u64 d_direct_offset;
 
 	/* Upload size, if download has to be done */
 	u64 u_size;
@@ -210,17 +210,17 @@ struct cmd_fastboot_interface {
 	unsigned long unlock_pending_start_time;
 
 	/* device specific info */
-    /*
-	unsigned int dev_info_uninitialized;
-	unsigned int num_device_info;
-	struct device_info dev_info[FASTBOOT_MAX_NUM_DEVICE_INFO];
-    */
-    //TODO:maybe we need device info?
-    
-    /* sparse things */
-    int flag_sparse;
-    sparse_header_t sparse_header;
-    int sparse_cur_chunk;
+	/*
+	   unsigned int dev_info_uninitialized;
+	   unsigned int num_device_info;
+	   struct device_info dev_info[FASTBOOT_MAX_NUM_DEVICE_INFO];
+	   */
+	//TODO:maybe we need device info?
+
+	/* sparse things */
+	int flag_sparse;
+	sparse_header_t sparse_header;
+	int sparse_cur_chunk;
 };
 
 /* Status values */
@@ -238,9 +238,9 @@ struct cmd_fastboot_interface {
 
 /* in a board specific file */
 typedef struct fbt_partition {
-    const char *name;
-    unsigned offset;
-    unsigned size_kb;
+	const char *name;
+	unsigned offset;
+	unsigned size_kb;
 } fbt_partition_t;
 
 extern struct fbt_partition fbt_partitions[];
@@ -307,12 +307,12 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt);
 enum fbt_reboot_type board_fbt_get_reboot_type(void);
 int board_fbt_key_pressed(void);
 void board_fbt_finalize_bootargs(char* args, int buf_sz, 
-        int ramdisk_addr, int ramdisk_sz, int recovery);
+		int ramdisk_addr, int ramdisk_sz, int recovery);
 int board_fbt_handle_erase(fbt_partition_t *ptn);
 int board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
-        struct cmd_fastboot_interface *priv);
+		struct cmd_fastboot_interface *priv);
 int board_fbt_handle_download(unsigned char *buffer,
-        int length, struct cmd_fastboot_interface *priv);
+		int length, struct cmd_fastboot_interface *priv);
 int board_fbt_check_misc(void);
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
 struct fbt_partition *fastboot_find_ptn(const char *name);
@@ -324,28 +324,28 @@ struct fbt_partition *fastboot_find_ptn(const char *name);
 
 #ifdef FBT_DEBUG
 #define FBTDBG(fmt, args...)\
-    printf("DEBUG: [%s]: %d:\n"fmt, __func__, __LINE__, ##args)
+	printf("DEBUG: [%s]: %d:\n"fmt, __func__, __LINE__, ##args)
 #else
 #define FBTDBG(fmt, args...) do {} while (0)
 #endif
 
 #ifdef FBT_INFO
 #define FBTINFO(fmt, args...)\
-    printf("INFO: [%s]: "fmt, __func__, ##args)
+	printf("INFO: [%s]: "fmt, __func__, ##args)
 #else
 #define FBTINFO(fmt, args...) do {} while (0)
 #endif
 
 #ifdef FBT_WARN
 #define FBTWARN(fmt, args...)\
-    printf("WARNING: [%s]: "fmt, __func__, ##args)
+	printf("WARNING: [%s]: "fmt, __func__, ##args)
 #else
 #define FBTWARN(fmt, args...) do {} while (0)
 #endif
 
 #ifdef FBT_ERR
 #define FBTERR(fmt, args...)\
-    printf("ERROR: [%s]: "fmt, __func__, ##args)
+	printf("ERROR: [%s]: "fmt, __func__, ##args)
 #else
 #define FBTERR(fmt, args...) do {} while (0)
 #endif
