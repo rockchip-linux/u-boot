@@ -39,17 +39,16 @@
 
 #define CONFIG_NR_DRAM_BANKS 	1
 typedef struct bd_info {
-    int			bi_baudrate;	/* serial console baudrate */
-    unsigned long	bi_ip_addr;	/* IP Address */
-    unsigned char	bi_enetaddr[6]; /* Ethernet adress */
-    struct environment_s	       *bi_env;
-    ulong	        bi_arch_number;	/* unique id for this board */
-    ulong	        bi_boot_params;	/* where this board expects params */
-    struct				/* RAM configuration */
-    {
-	ulong start;
-	ulong size;
-    } 			bi_dram[CONFIG_NR_DRAM_BANKS];
+	int bi_baudrate;	/* serial console baudrate */
+	unsigned long bi_ip_addr;	/* IP Address */
+	unsigned char bi_enetaddr[6];	/* Ethernet adress */
+	struct environment_s *bi_env;
+	ulong bi_arch_number;	/* unique id for this board */
+	ulong bi_boot_params;	/* where this board expects params */
+	struct {		/* RAM configuration */
+		ulong start;
+		ulong size;
+	} bi_dram[CONFIG_NR_DRAM_BANKS];
 } bd_t;
 
 #define bi_env_data bi_env->data
@@ -57,7 +56,6 @@ typedef struct bd_info {
 
 #define DECLARE_GLOBAL_DATA_PTR     register volatile gd_t *gd asm ("r8")
 
-uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
+uint32 SecureBootSignCheck(uint8 * rsaHash, uint8 * Hash, uint8 length);
 
-#endif	/* _U_BOOT_H_ */
-
+#endif /* _U_BOOT_H_ */

@@ -33,9 +33,9 @@ no message
 /****************************************************************/
 //对外函数声明
 /****************************************************************/
-void   MMC_Init(void *pCardInfo);
-int32  MMC_SwitchBoot(void *pCardInfo, bool enable, uint32 partition);
-int32  MMC_AccessBootPartition(void *pCardInfo, uint32 partition);
+void MMC_Init(void *pCardInfo);
+int32 MMC_SwitchBoot(void *pCardInfo, bool enable, uint32 partition);
+int32 MMC_AccessBootPartition(void *pCardInfo, uint32 partition);
 
 uint8 MMC_GetMID(void);
 

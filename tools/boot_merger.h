@@ -62,23 +62,23 @@ typedef int line_t[MAX_LINE_LEN];
 #define OPT_OUT_PATH        "PATH"
 
 typedef struct {
-    char       name[MAX_LINE_LEN];
-    char       path[MAX_LINE_LEN];
+	char name[MAX_LINE_LEN];
+	char path[MAX_LINE_LEN];
 } name_entry;
 
 typedef struct {
-    int         major;
-    int         minor;
-    char        chip[MAX_LINE_LEN];
-    int         code471Sleep;
-    int         code472Sleep;
-    int         code471Num;
-    int         code472Num;
-    line_t*     code471Path;
-    line_t*     code472Path;
-    int         loaderNum;
-    name_entry* loader;
-    char        outPath[MAX_LINE_LEN];
+	int major;
+	int minor;
+	char chip[MAX_LINE_LEN];
+	int code471Sleep;
+	int code472Sleep;
+	int code471Num;
+	int code472Num;
+	line_t *code471Path;
+	line_t *code472Path;
+	int loaderNum;
+	name_entry *loader;
+	char outPath[MAX_LINE_LEN];
 } options;
 
 
@@ -107,69 +107,69 @@ typedef struct {
 #define CHIP_RK32               "RK32"
 
 typedef enum {
-    RKNONE_DEVICE   =0,
-    RK27_DEVICE     =0x10,
-    RKCAYMAN_DEVICE =0x11,
-    RK28_DEVICE     =0x20,
-    RK281X_DEVICE   =0x21,
-    RKPANDA_DEVICE  =0x22,
-    RKNANO_DEVICE   =0x30,
-    RKSMART_DEVICE  =0x31,
-    RKCROWN_DEVICE  =0x40,
-    RK29_DEVICE     =0x50,
-    RK292X_DEVICE   =0x51,
-    RK30_DEVICE     =0x60,
-    RK30B_DEVICE    =0x61,
-    RK31_DEVICE     =0x70,
-    RK32_DEVICE     =0x80
+	RKNONE_DEVICE = 0,
+	RK27_DEVICE = 0x10,
+	RKCAYMAN_DEVICE = 0x11,
+	RK28_DEVICE = 0x20,
+	RK281X_DEVICE = 0x21,
+	RKPANDA_DEVICE = 0x22,
+	RKNANO_DEVICE = 0x30,
+	RKSMART_DEVICE = 0x31,
+	RKCROWN_DEVICE = 0x40,
+	RK29_DEVICE = 0x50,
+	RK292X_DEVICE = 0x51,
+	RK30_DEVICE = 0x60,
+	RK30B_DEVICE = 0x61,
+	RK31_DEVICE = 0x70,
+	RK32_DEVICE = 0x80
 } rk_chip_type;
 
 typedef enum {
-    ENTRY_471       =1,
-    ENTRY_472       =2,
-    ENTRY_LOADER    =4,
+	ENTRY_471 = 1,
+	ENTRY_472 = 2,
+	ENTRY_LOADER = 4,
 } rk_entry_type;
 
 #pragma pack(1)
 typedef struct {
-    uint16_t  year;
-    uint8_t   month;
-    uint8_t   day;
-    uint8_t   hour;
-    uint8_t   minute;
-    uint8_t   second;
+	uint16_t year;
+	uint8_t month;
+	uint8_t day;
+	uint8_t hour;
+	uint8_t minute;
+	uint8_t second;
 } rk_time;
 
 #define  BOOT_RESERVED_SIZE 57
 
 typedef struct {
-    uint32_t        tag;
-    uint16_t        size;
-    uint32_t        version;
-    uint32_t        mergerVersion;
-    rk_time         releaseTime;
-    uint32_t        chipType;
-    uint8_t         code471Num;
-    uint32_t        code471Offset;
-    uint8_t         code471Size;
-    uint8_t         code472Num;
-    uint32_t        code472Offset;
-    uint8_t         code472Size;
-    uint8_t         loaderNum;
-    uint32_t        loaderOffset;
-    uint8_t         loaderSize;
-    uint8_t         signFlag;
-    uint8_t         rc4Flag;
-    uint8_t         reserved[BOOT_RESERVED_SIZE];
+	uint32_t tag;
+	uint16_t size;
+	uint32_t version;
+	uint32_t mergerVersion;
+	rk_time releaseTime;
+	uint32_t chipType;
+	uint8_t code471Num;
+	uint32_t code471Offset;
+	uint8_t code471Size;
+	uint8_t code472Num;
+	uint32_t code472Offset;
+	uint8_t code472Size;
+	uint8_t loaderNum;
+	uint32_t loaderOffset;
+	uint8_t loaderSize;
+	uint8_t signFlag;
+	uint8_t rc4Flag;
+	uint8_t reserved[BOOT_RESERVED_SIZE];
 } rk_boot_header;
 
 typedef struct {
-    uint8_t         size;
-    rk_entry_type   type;
-    uint16_t        name[MAX_NAME_LEN];
-    uint32_t        dataOffset;
-    uint32_t        dataSize;
-    uint32_t        dataDelay;
+	uint8_t size;
+	rk_entry_type type;
+	uint16_t name[MAX_NAME_LEN];
+	uint32_t dataOffset;
+	uint32_t dataSize;
+	uint32_t dataDelay;
 } rk_boot_entry;
 #pragma pack()
 
@@ -181,4 +181,4 @@ typedef struct {
 
 #define VERSION             "2013-8-12 14:27:23"
 
-#endif// BOOT_MERGER_H
+#endif // BOOT_MERGER_H

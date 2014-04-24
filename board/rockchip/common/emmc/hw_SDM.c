@@ -87,36 +87,34 @@ Revision 1.2  2009/03/05 12:37:15  hxy
 /****************************************************************/
 static void _RegisterCard(pSDM_CARD_INFO_T pCardInfo)
 {
-    uint32 i;
+	uint32 i;
 
-    if (pCardInfo == NULL)
-    {
-        return;
-    }
+	if (pCardInfo == NULL) {
+		return;
+	}
 
-    for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
-    {
-        #if Only_Controller2_USED
-        //为了不影响控制器1和2(即sdmmc和sdio)
-        if(SDC2 != pCardInfo->cardId)
-        {
-            continue;
-        }
-        #endif
-        
-        Assert((gSDMDriver[i].cardInfo.cardId != pCardInfo->cardId), "_RegisterCard:Repeat cardId\n", pCardInfo->cardId);
-        if (gSDMDriver[i].cardInfo.cardId == SDM_INVALID_CARDID)
-        {
-            if(i!=pCardInfo->cardId)
-            {
-                continue;
-            }
-            
-            SDOAM_Memcpy(&gSDMDriver[i].cardInfo, pCardInfo, sizeof(SDM_CARD_INFO_T));
-            return;
-        }
-    }
-    return;
+	for (i = 0; i < SDM_MAX_MANAGER_PORT; i++) {
+#if Only_Controller2_USED
+		//为了不影响控制器1和2(即sdmmc和sdio)
+		if (SDC2 != pCardInfo->cardId) {
+			continue;
+		}
+#endif
+
+		Assert((gSDMDriver[i].cardInfo.cardId !=
+			pCardInfo->cardId),
+		       "_RegisterCard:Repeat cardId\n", pCardInfo->cardId);
+		if (gSDMDriver[i].cardInfo.cardId == SDM_INVALID_CARDID) {
+			if (i != pCardInfo->cardId) {
+				continue;
+			}
+
+			SDOAM_Memcpy(&gSDMDriver[i].cardInfo, pCardInfo,
+				     sizeof(SDM_CARD_INFO_T));
+			return;
+		}
+	}
+	return;
 }
 
 /****************************************************************/
@@ -129,22 +127,21 @@ static void _RegisterCard(pSDM_CARD_INFO_T pCardInfo)
 /****************************************************************/
 static void _UnRegisterCard(int32 cardId)
 {
-    uint32 i;
+	uint32 i;
 
-    for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
-    {
-        if (gSDMDriver[i].cardInfo.cardId == cardId)
-        {
-            SDC_ControlClock(cardId, FALSE);
-            SDC_ControlPower(cardId, FALSE);
-            
-            SDOAM_Memset(&gSDMDriver[i].cardInfo, 0x00, sizeof(SDM_CARD_INFO_T));
-            gSDMDriver[i].bOpen  = FALSE;
-            gSDMDriver[i].cardInfo.cardId = SDM_INVALID_CARDID;
-            return;
-        }
-    }
-    return;
+	for (i = 0; i < SDM_MAX_MANAGER_PORT; i++) {
+		if (gSDMDriver[i].cardInfo.cardId == cardId) {
+			SDC_ControlClock(cardId, FALSE);
+			SDC_ControlPower(cardId, FALSE);
+
+			SDOAM_Memset(&gSDMDriver[i].cardInfo, 0x00,
+				     sizeof(SDM_CARD_INFO_T));
+			gSDMDriver[i].bOpen = FALSE;
+			gSDMDriver[i].cardInfo.cardId = SDM_INVALID_CARDID;
+			return;
+		}
+	}
+	return;
 }
 
 /****************************************************************/
@@ -157,27 +154,22 @@ static void _UnRegisterCard(int32 cardId)
 //相关全局变量:读取gSDMDriver[i].cardInfo.cardId
 //注意:
 /****************************************************************/
-static uint32 _IsCardRegistered(int32 cardId, uint32* pPort)
+static uint32 _IsCardRegistered(int32 cardId, uint32 * pPort)
 {
-    uint32 i;
+	uint32 i;
 
-    for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
-    {
-        if (gSDMDriver[i].cardInfo.cardId == cardId)
-        {
-            break;
-        }
-    }
-    *pPort = i;
+	for (i = 0; i < SDM_MAX_MANAGER_PORT; i++) {
+		if (gSDMDriver[i].cardInfo.cardId == cardId) {
+			break;
+		}
+	}
+	*pPort = i;
 
-    if (i >= SDM_MAX_MANAGER_PORT)
-    {
-        return FALSE;
-    }
-    else
-    {
-        return TRUE;
-    }
+	if (i >= SDM_MAX_MANAGER_PORT) {
+		return FALSE;
+	} else {
+		return TRUE;
+	}
 }
 
 /****************************************************************/
@@ -194,84 +186,79 @@ static uint32 _IsCardRegistered(int32 cardId, uint32* pPort)
 /****************************************************************/
 static int32 _ResponseTimeoutHandle(int32 cardId)
 {
-    uint32 status  = 0;
-    uint32 repeatCount = 0;
-    int32  ret = SDC_SUCCESS;
-    uint32 port = SDM_MAX_MANAGER_PORT;
+	uint32 status = 0;
+	uint32 repeatCount = 0;
+	int32 ret = SDC_SUCCESS;
+	uint32 port = SDM_MAX_MANAGER_PORT;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
 
-    if (TRUE == SDC_IsCardPresence(cardId))
-    {
-        SDOAM_Printf("HANDLING:card presence\n");
-        while (repeatCount < SDM_CMD_RESENT_COUNT)
-        {
-            SDOAM_Printf("HANDLING:read status\n");
-            ret = SDC_SendCommand(cardId, (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 | NO_WAIT_PREV), (gSDMDriver[port].cardInfo.rca << 16), &status);
-            if (SDC_SUCCESS == ret)
-            {
-                if (status & CARD_IS_LOCKED)
-                {
-                    SDOAM_Printf("HANDLING:card locked\n");
-                    ret = SDM_CARD_LOCKED;
-                    break;
-                }
-                else if (status & COM_CRC_ERROR)
-                {
-                    SDOAM_Printf("HANDLING:previous cmd CRC er\n");
-                    ret = SDM_SUCCESS;
-                    break;
-                }
-                else
-                {
-                    SDOAM_Printf("HANDLING:other er %x\n", status);
-                    ret = SDM_FALSE;
-                    break;
-                }
-            }
-            else if (ret == SDC_RESP_TIMEOUT)
-            {
-                SDOAM_Printf("HANDLING:read status timeout\n");
-                if (TRUE == SDC_IsCardPresence(cardId))
-                {
-                    ret = SDM_RESP_TIMEOUT;
-                    break;
-                }
-                else
-                {
-                    ret = SDM_CARD_NOTPRESENT;
-                    break;
-                }
-            }
-            else if ((ret == SDC_RESP_CRC_ERROR) || (ret == SDC_RESP_ERROR))
-            {
-                SDOAM_Printf("HANDLING:read status Rsp er or CRC er, Resend Read status\n");
-                repeatCount++;
-                continue;
-            }
-            else
-            {
-                SDOAM_Printf("HANDLING:read status other errror %d\n", ret);
-                //其他错误，直接返回
-                break;
-            }
-        }
-        if ((repeatCount == SDM_CMD_RESENT_COUNT) && (ret != SDM_SUCCESS))
-        {
-            SDOAM_Printf("HANDLING:retry two times, but not success\n");
-            ret = SDM_FALSE;
-        }
-    }
-    else
-    {
-        SDOAM_Printf("HANDLING:card not presence\n");
-        ret = SDM_CARD_NOTPRESENT;
-    }
+	if (TRUE == SDC_IsCardPresence(cardId)) {
+		SDOAM_Printf("HANDLING:card presence\n");
+		while (repeatCount < SDM_CMD_RESENT_COUNT) {
+			SDOAM_Printf("HANDLING:read status\n");
+			ret =
+			    SDC_SendCommand(cardId,
+					    (SD_SEND_STATUS | SD_NODATA_OP
+					     | SD_RSP_R1 | NO_WAIT_PREV),
+					    (gSDMDriver[port].cardInfo.
+					     rca << 16), &status);
+			if (SDC_SUCCESS == ret) {
+				if (status & CARD_IS_LOCKED) {
+					SDOAM_Printf
+					    ("HANDLING:card locked\n");
+					ret = SDM_CARD_LOCKED;
+					break;
+				} else if (status & COM_CRC_ERROR) {
+					SDOAM_Printf
+					    ("HANDLING:previous cmd CRC er\n");
+					ret = SDM_SUCCESS;
+					break;
+				} else {
+					SDOAM_Printf
+					    ("HANDLING:other er %x\n",
+					     status);
+					ret = SDM_FALSE;
+					break;
+				}
+			} else if (ret == SDC_RESP_TIMEOUT) {
+				SDOAM_Printf
+				    ("HANDLING:read status timeout\n");
+				if (TRUE == SDC_IsCardPresence(cardId)) {
+					ret = SDM_RESP_TIMEOUT;
+					break;
+				} else {
+					ret = SDM_CARD_NOTPRESENT;
+					break;
+				}
+			} else if ((ret == SDC_RESP_CRC_ERROR)
+				   || (ret == SDC_RESP_ERROR)) {
+				SDOAM_Printf
+				    ("HANDLING:read status Rsp er or CRC er, Resend Read status\n");
+				repeatCount++;
+				continue;
+			} else {
+				SDOAM_Printf
+				    ("HANDLING:read status other errror %d\n",
+				     ret);
+				//其他错误，直接返回
+				break;
+			}
+		}
+		if ((repeatCount == SDM_CMD_RESENT_COUNT)
+		    && (ret != SDM_SUCCESS)) {
+			SDOAM_Printf
+			    ("HANDLING:retry two times, but not success\n");
+			ret = SDM_FALSE;
+		}
+	} else {
+		SDOAM_Printf("HANDLING:card not presence\n");
+		ret = SDM_CARD_NOTPRESENT;
+	}
 
-    return ret;
+	return ret;
 }
 
 /****************************************************************/
@@ -288,37 +275,36 @@ static int32 _ResponseTimeoutHandle(int32 cardId)
 /****************************************************************/
 static int32 _DataErrorHandle(int32 cardId)
 {
-    uint32 status  = 0;
-    int32  ret = SDM_SUCCESS;
+	uint32 status = 0;
+	int32 ret = SDM_SUCCESS;
 
-    ret = SDC_SendCommand(cardId, (SD_STOP_TRANSMISSION | SD_NODATA_OP | SD_RSP_R1B | STOP_CMD | NO_WAIT_PREV), 0, &status);
-    if (ret == SDC_RESP_TIMEOUT)
-    {
-        SDOAM_Printf("HANDLING:Send STOP cmd timeout\n");
-        if (TRUE == SDC_IsCardPresence(cardId))
-        {
-            SDOAM_Printf("HANDLING:card presence but timeout\n");
-            ret = SDC_RESP_TIMEOUT;
-        }
-        else
-        {
-            SDOAM_Printf("HANDLING:card not presence\n");
-            ret = SDM_CARD_NOTPRESENT;
-        }
-    }
-    else if ((ret == SDC_SUCCESS) || (ret == SDC_RESP_ERROR) || (ret == SDC_RESP_CRC_ERROR))
-    {
-        SDOAM_Printf("HANDLING:Send STOP cmd not timeout, ReSend cmd\n");
-        //STOP command 成功或response错误，都认为是正确的重发
-        ret = SDM_SUCCESS;
-    }
-    else
-    {
-        //其他错误，直接返回
-        ;
-    }
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_STOP_TRANSMISSION | SD_NODATA_OP |
+			     SD_RSP_R1B | STOP_CMD | NO_WAIT_PREV), 0,
+			    &status);
+	if (ret == SDC_RESP_TIMEOUT) {
+		SDOAM_Printf("HANDLING:Send STOP cmd timeout\n");
+		if (TRUE == SDC_IsCardPresence(cardId)) {
+			SDOAM_Printf
+			    ("HANDLING:card presence but timeout\n");
+			ret = SDC_RESP_TIMEOUT;
+		} else {
+			SDOAM_Printf("HANDLING:card not presence\n");
+			ret = SDM_CARD_NOTPRESENT;
+		}
+	} else if ((ret == SDC_SUCCESS) || (ret == SDC_RESP_ERROR)
+		   || (ret == SDC_RESP_CRC_ERROR)) {
+		SDOAM_Printf
+		    ("HANDLING:Send STOP cmd not timeout, ReSend cmd\n");
+		//STOP command 成功或response错误，都认为是正确的重发
+		ret = SDM_SUCCESS;
+	} else {
+		//其他错误，直接返回
+		;
+	}
 
-    return ret;
+	return ret;
 }
 
 /****************************************************************/
@@ -332,169 +318,156 @@ static int32 _DataErrorHandle(int32 cardId)
 //相关全局变量:
 //注意:
 /****************************************************************/
-static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void *pBuf)
+static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount,
+			 void *pBuf)
 {
-    int32            ret = SDM_SUCCESS;
-    int32            handleRet = SDM_SUCCESS;  //出错处理的返回值
-    uint32           repeatCount = 0;
-    uint32           status = 0;
+	int32 ret = SDM_SUCCESS;
+	int32 handleRet = SDM_SUCCESS;	//出错处理的返回值
+	uint32 repeatCount = 0;
+	uint32 status = 0;
 
-    while (repeatCount < SDM_CMD_RESENT_COUNT)
-    {
-        if (blockCount == 1)
-        {
-            ret = SDC_ReadBlockData(cardId, 
-                                    (SD_READ_SINGLE_BLOCK | SD_READ_OP | SD_RSP_R1 | WAIT_PREV), 
-                                    dataAddr, 
-                                    &status, 
-                                    (blockCount << 9), 
-                                    pBuf);
-        }
-        else
-        {
-            uint32 PreDefined = 0;
-            if(gSDMDriver[cardId].cardInfo.type & eMMC2G && gSDMDriver[cardId].cardInfo.bootSize)
-            {
-                ret = SDC_BusRequest(cardId, (SD_SET_BLOCK_COUNT | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), blockCount, &status, 0, 0, NULL);
-                if (ret == SDC_SUCCESS)
-                {
-                    PreDefined = 1;
-                } 
-            }
-            ret = SDC_ReadBlockData(cardId, 
-                                    (SD_READ_MULTIPLE_BLOCK | SD_READ_OP | SD_RSP_R1 | WAIT_PREV), 
-                                    dataAddr, 
-                                    &status, 
-                                    (blockCount << 9), 
-                                    pBuf);
-            if(ret == SDC_SUCCESS && PreDefined == 0)
-            {
-               //SDOAM_Delay(200);  //hcy 09-06-12发现CMMB的变态大卡，在多块读完后发送STOP命令，如果这边没有延时，也就是如果STOP跟数据结束相隔太短，卡工作会不正常，
-                                   //表现出来的现象是:读写都没报错，只是读到的数据不是我们想要的数据。原本想读大卡CA部分第4扇区的数据，结果读到的是大卡内自带存储
-                                   //空间内的第4个扇区开始的数据，而且存储区的第4扇区会被修改成全0，后面的扇区不会。
-                ret = SDC_SendCommand(cardId, (SD_STOP_TRANSMISSION | SD_NODATA_OP | SD_RSP_R1B | STOP_CMD | NO_WAIT_PREV), 0, &status);
-                if (ret == SDC_RESP_TIMEOUT)
-                {
-                    SDOAM_Printf("HANDLING:Send STOP cmd timeout\n");
-                    if (TRUE == SDC_IsCardPresence(cardId))
-                    {
-                        SDOAM_Printf("HANDLING:card presence but timeout\n");
-                        ret = SDC_RESP_TIMEOUT;
-                        break;
-                    }
-                    else
-                    {
-                        SDOAM_Printf("HANDLING:card not presence\n");
-                        ret = SDM_CARD_NOTPRESENT;
-                        break;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
+	while (repeatCount < SDM_CMD_RESENT_COUNT) {
+		if (blockCount == 1) {
+			ret = SDC_ReadBlockData(cardId,
+						(SD_READ_SINGLE_BLOCK |
+						 SD_READ_OP | SD_RSP_R1 |
+						 WAIT_PREV), dataAddr,
+						&status, (blockCount << 9),
+						pBuf);
+		} else {
+			uint32 PreDefined = 0;
+			if (gSDMDriver[cardId].cardInfo.type & eMMC2G
+			    && gSDMDriver[cardId].cardInfo.bootSize) {
+				ret =
+				    SDC_BusRequest(cardId,
+						   (SD_SET_BLOCK_COUNT |
+						    SD_NODATA_OP |
+						    SD_RSP_R1 | WAIT_PREV),
+						   blockCount, &status, 0,
+						   0, NULL);
+				if (ret == SDC_SUCCESS) {
+					PreDefined = 1;
+				}
+			}
+			ret = SDC_ReadBlockData(cardId,
+						(SD_READ_MULTIPLE_BLOCK |
+						 SD_READ_OP | SD_RSP_R1 |
+						 WAIT_PREV), dataAddr,
+						&status, (blockCount << 9),
+						pBuf);
+			if (ret == SDC_SUCCESS && PreDefined == 0) {
+				//SDOAM_Delay(200);  //hcy 09-06-12发现CMMB的变态大卡，在多块读完后发送STOP命令，如果这边没有延时，也就是如果STOP跟数据结束相隔太短，卡工作会不正常，
+				//表现出来的现象是:读写都没报错，只是读到的数据不是我们想要的数据。原本想读大卡CA部分第4扇区的数据，结果读到的是大卡内自带存储
+				//空间内的第4个扇区开始的数据，而且存储区的第4扇区会被修改成全0，后面的扇区不会。
+				ret =
+				    SDC_SendCommand(cardId,
+						    (SD_STOP_TRANSMISSION |
+						     SD_NODATA_OP |
+						     SD_RSP_R1B | STOP_CMD
+						     | NO_WAIT_PREV), 0,
+						    &status);
+				if (ret == SDC_RESP_TIMEOUT) {
+					SDOAM_Printf
+					    ("HANDLING:Send STOP cmd timeout\n");
+					if (TRUE ==
+					    SDC_IsCardPresence(cardId)) {
+						SDOAM_Printf
+						    ("HANDLING:card presence but timeout\n");
+						ret = SDC_RESP_TIMEOUT;
+						break;
+					} else {
+						SDOAM_Printf
+						    ("HANDLING:card not presence\n");
+						ret = SDM_CARD_NOTPRESENT;
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		}
 
-        if (ret == SDC_SUCCESS)
-        {
-            break;
-        }
-        else if (ret == SDC_START_BIT_ERROR)
-        {
-            SDOAM_Printf("HANDLING:SDC_START_BIT_ER\n");
-            if (TRUE == SDC_IsCardPresence(cardId))
-            {
-                SDOAM_Printf("HANDLING:card presence ReSend Read cmd\n");
-                repeatCount++;
-                handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));  //频率降2MHz
-                if(handleRet != SDC_SUCCESS)
-                {
-                    break;
-                }
-                continue;
-            }
-            else
-            {
-                SDOAM_Printf("HANDLING:card not presence\n");
-                ret = SDM_CARD_NOTPRESENT;
-                break;
-            }
-        }
-        else if ((ret == SDC_END_BIT_ERROR) || (ret == SDC_DATA_READ_TIMEOUT))
-        {
-            SDOAM_Printf("HANDLING:%s DataEr handle\n", ((ret == SDC_END_BIT_ERROR) ? "SDC_END_BIT_ER" : "SDC_DATA_READ_TIMEOUT"));
-            handleRet = _DataErrorHandle(cardId);
-            if (handleRet == SDM_SUCCESS)
-            {
-                SDOAM_Printf("HANDLING:DataEr handle success, ReSend Read cmd\n");
-                repeatCount++;
-                handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));  //频率降2MHz
-                if(handleRet != SDC_SUCCESS)
-                {
-                    break;
-                }
-                continue;
-            }
-            else
-            {
-                //其他错误，直接返回
-                break;
-            }
-        }
-        else if (ret == SDC_DATA_CRC_ERROR)
-        {
-            SDOAM_Printf("HANDLING:DATA CRC ER ReSend Read cmd\n");
-            //重发
-            repeatCount++;
-            handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));  //频率降2MHz
-            if(handleRet != SDC_SUCCESS)
-            {
-                break;
-            }
-            continue;
-        }
-        else if (ret == SDC_RESP_TIMEOUT)
-        {
-            SDOAM_Printf("HANDLING:Read cmd Rsp timeout\n");
-            handleRet = _ResponseTimeoutHandle(cardId);
-            if (handleRet == SDM_SUCCESS)
-            {
-                SDOAM_Printf("HANDLING:Rsp timeout handle success, ReSend Read cmd\n");
-                //重发一次
-                repeatCount++;
-                continue;
-            }
-            else
-            {
-                break;
-            }
-        }
-        else if ((ret == SDC_RESP_CRC_ERROR) || (ret == SDC_RESP_ERROR))
-        {
-            //回复出错不管，只要数据不出错都没问题
-            ret = SDM_SUCCESS;
-            break;
-        }
-        else
-        {
-            //其他错误，直接返回
-            break;
-        }
-    }
-    if ((repeatCount == SDM_CMD_RESENT_COUNT) && (ret != SDM_SUCCESS))
-    {
-        ret = SDM_FALSE;
-    }
+		if (ret == SDC_SUCCESS) {
+			break;
+		} else if (ret == SDC_START_BIT_ERROR) {
+			SDOAM_Printf("HANDLING:SDC_START_BIT_ER\n");
+			if (TRUE == SDC_IsCardPresence(cardId)) {
+				SDOAM_Printf
+				    ("HANDLING:card presence ReSend Read cmd\n");
+				repeatCount++;
+				handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));	//频率降2MHz
+				if (handleRet != SDC_SUCCESS) {
+					break;
+				}
+				continue;
+			} else {
+				SDOAM_Printf
+				    ("HANDLING:card not presence\n");
+				ret = SDM_CARD_NOTPRESENT;
+				break;
+			}
+		} else if ((ret == SDC_END_BIT_ERROR)
+			   || (ret == SDC_DATA_READ_TIMEOUT)) {
+			SDOAM_Printf("HANDLING:%s DataEr handle\n",
+				     ((ret ==
+				       SDC_END_BIT_ERROR) ?
+				      "SDC_END_BIT_ER" :
+				      "SDC_DATA_READ_TIMEOUT"));
+			handleRet = _DataErrorHandle(cardId);
+			if (handleRet == SDM_SUCCESS) {
+				SDOAM_Printf
+				    ("HANDLING:DataEr handle success, ReSend Read cmd\n");
+				repeatCount++;
+				handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));	//频率降2MHz
+				if (handleRet != SDC_SUCCESS) {
+					break;
+				}
+				continue;
+			} else {
+				//其他错误，直接返回
+				break;
+			}
+		} else if (ret == SDC_DATA_CRC_ERROR) {
+			SDOAM_Printf
+			    ("HANDLING:DATA CRC ER ReSend Read cmd\n");
+			//重发
+			repeatCount++;
+			handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));	//频率降2MHz
+			if (handleRet != SDC_SUCCESS) {
+				break;
+			}
+			continue;
+		} else if (ret == SDC_RESP_TIMEOUT) {
+			SDOAM_Printf("HANDLING:Read cmd Rsp timeout\n");
+			handleRet = _ResponseTimeoutHandle(cardId);
+			if (handleRet == SDM_SUCCESS) {
+				SDOAM_Printf
+				    ("HANDLING:Rsp timeout handle success, ReSend Read cmd\n");
+				//重发一次
+				repeatCount++;
+				continue;
+			} else {
+				break;
+			}
+		} else if ((ret == SDC_RESP_CRC_ERROR)
+			   || (ret == SDC_RESP_ERROR)) {
+			//回复出错不管，只要数据不出错都没问题
+			ret = SDM_SUCCESS;
+			break;
+		} else {
+			//其他错误，直接返回
+			break;
+		}
+	}
+	if ((repeatCount == SDM_CMD_RESENT_COUNT) && (ret != SDM_SUCCESS)) {
+		ret = SDM_FALSE;
+	}
 
-    if(handleRet == SDM_SUCCESS)
-    {
-        return ret;
-    }
-    else
-    {
-        return handleRet;
-    }
+	if (handleRet == SDM_SUCCESS) {
+		return ret;
+	} else {
+		return handleRet;
+	}
 }
 
 /****************************************************************/
@@ -508,155 +481,133 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
 //相关全局变量:
 //注意:
 /****************************************************************/
-static int32 _SDMMC_Write(int32 cardId, uint32 dataAddr, uint32 blockCount, void *pBuf)
+static int32 _SDMMC_Write(int32 cardId, uint32 dataAddr, uint32 blockCount,
+			  void *pBuf)
 {
-    int32            ret = SDM_SUCCESS;
-    int32            handleRet = SDM_SUCCESS;  //出错处理的返回值
-    uint32           status  = 0;
-    uint32           repeatCount = 0;
+	int32 ret = SDM_SUCCESS;
+	int32 handleRet = SDM_SUCCESS;	//出错处理的返回值
+	uint32 status = 0;
+	uint32 repeatCount = 0;
 
-    while (repeatCount < SDM_CMD_RESENT_COUNT)
-    {
-        if (blockCount == 1)
-        {
-            ret = SDC_WriteBlockData(cardId, 
-                                     (SD_WRITE_BLOCK | SD_WRITE_OP | SD_RSP_R1 | WAIT_PREV), 
-                                     dataAddr, 
-                                     &status, 
-                                     (blockCount << 9), 
-                                     pBuf);
-        }
-        else
-        {
-            ret = SDC_WriteBlockData(cardId, 
-                                     (SD_WRITE_MULTIPLE_BLOCK | SD_WRITE_OP | SD_RSP_R1 | WAIT_PREV), 
-                                     dataAddr, 
-                                     &status, 
-                                     (blockCount << 9), 
-                                     pBuf);
-            if (ret == SDC_SUCCESS)
-            {
-                ret = SDC_SendCommand(cardId, (SD_STOP_TRANSMISSION | SD_NODATA_OP | SD_RSP_R1B | STOP_CMD | NO_WAIT_PREV), 0, &status);
-                if (ret == SDC_RESP_TIMEOUT)
-                {
-                    SDOAM_Printf("HANDLING:Send STOP cmd timeout\n");
-                    if (TRUE == SDC_IsCardPresence(cardId))
-                    {
-                        SDOAM_Printf("HANDLING:card presence but timeout\n");
-                        ret = SDC_RESP_TIMEOUT;
-                        break;
-                    }
-                    else
-                    {
-                        SDOAM_Printf("HANDLING:card not presence\n");
-                        ret = SDM_CARD_NOTPRESENT;
-                        break;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
+	while (repeatCount < SDM_CMD_RESENT_COUNT) {
+		if (blockCount == 1) {
+			ret = SDC_WriteBlockData(cardId,
+						 (SD_WRITE_BLOCK |
+						  SD_WRITE_OP | SD_RSP_R1 |
+						  WAIT_PREV), dataAddr,
+						 &status,
+						 (blockCount << 9), pBuf);
+		} else {
+			ret = SDC_WriteBlockData(cardId,
+						 (SD_WRITE_MULTIPLE_BLOCK |
+						  SD_WRITE_OP | SD_RSP_R1 |
+						  WAIT_PREV), dataAddr,
+						 &status,
+						 (blockCount << 9), pBuf);
+			if (ret == SDC_SUCCESS) {
+				ret =
+				    SDC_SendCommand(cardId,
+						    (SD_STOP_TRANSMISSION |
+						     SD_NODATA_OP |
+						     SD_RSP_R1B | STOP_CMD
+						     | NO_WAIT_PREV), 0,
+						    &status);
+				if (ret == SDC_RESP_TIMEOUT) {
+					SDOAM_Printf
+					    ("HANDLING:Send STOP cmd timeout\n");
+					if (TRUE ==
+					    SDC_IsCardPresence(cardId)) {
+						SDOAM_Printf
+						    ("HANDLING:card presence but timeout\n");
+						ret = SDC_RESP_TIMEOUT;
+						break;
+					} else {
+						SDOAM_Printf
+						    ("HANDLING:card not presence\n");
+						ret = SDM_CARD_NOTPRESENT;
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		}
 
-        if (ret == SDC_SUCCESS)
-        {
-            break;
-        }
-        else if (ret == SDC_DATA_CRC_ERROR)
-        {
-            SDOAM_Printf("HANDLING:DATA CRC ER, DataEr handle\n", ret);
-            handleRet = _DataErrorHandle(cardId);
-            if (handleRet == SDM_SUCCESS)
-            {
-                SDOAM_Printf("HANDLING:DataEr handle success, ReSend Write cmd\n");
-                repeatCount++;
-                handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));  //频率降2MHz
-                if(handleRet != SDC_SUCCESS)
-                {
-                    break;
-                }
-                continue;
-            }
-            else
-            {
-                //其他错误，直接返回
-                break;
-            }
-        }
-        else if (ret == SDC_END_BIT_ERROR)
-        {
-            SDOAM_Printf("HANDLING:END BIT ERRPR\n");
-            if (TRUE == SDC_IsCardPresence(cardId))
-            {
-                SDOAM_Printf("HANDLING:card presence, DataEr handle\n");
-                handleRet = _DataErrorHandle(cardId);
-                if (handleRet == SDM_SUCCESS)
-                {
-                    SDOAM_Printf("HANDLING:DataEr handle success, ReSend Write cmd\n");
-                    repeatCount++;
-                    handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));  //频率降2MHz
-                    if(handleRet != SDC_SUCCESS)
-                    {
-                        break;
-                    }
-                    continue;
-                }
-                else
-                {
-                    //其他错误，直接返回
-                    break;
-                }
-            }
-            else
-            {
-                SDOAM_Printf("HANDLING:card not presence\n");
-                ret = SDM_CARD_NOTPRESENT;
-                break;
-            }
-        }
-        else if (ret == SDC_RESP_TIMEOUT)
-        {
-            SDOAM_Printf("HANDLING:Write cmd Rsp timeout\n");
-            handleRet = _ResponseTimeoutHandle(cardId);
-            if (handleRet == SDM_SUCCESS)
-            {
-                SDOAM_Printf("HANDLING:Rsp timeout handle success, ReSend Write cmd\n");
-                //重发一次
-                repeatCount++;
-                continue;
-            }
-            else
-            {
-                break;
-            }
-        }
-        else if ((ret == SDC_RESP_CRC_ERROR) || (ret == SDC_RESP_ERROR))
-        {
-            //回复出错不管，只要数据不出错都没问题
-            ret = SDM_SUCCESS;
-            break;
-        }
-        else
-        {
-            //其他错误，直接返回
-            break;
-        }
-    }
-    if ((repeatCount == SDM_CMD_RESENT_COUNT) && (ret != SDM_SUCCESS))
-    {
-        ret = SDM_FALSE;
-    }
+		if (ret == SDC_SUCCESS) {
+			break;
+		} else if (ret == SDC_DATA_CRC_ERROR) {
+			SDOAM_Printf
+			    ("HANDLING:DATA CRC ER, DataEr handle\n", ret);
+			handleRet = _DataErrorHandle(cardId);
+			if (handleRet == SDM_SUCCESS) {
+				SDOAM_Printf
+				    ("HANDLING:DataEr handle success, ReSend Write cmd\n");
+				repeatCount++;
+				handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));	//频率降2MHz
+				if (handleRet != SDC_SUCCESS) {
+					break;
+				}
+				continue;
+			} else {
+				//其他错误，直接返回
+				break;
+			}
+		} else if (ret == SDC_END_BIT_ERROR) {
+			SDOAM_Printf("HANDLING:END BIT ERRPR\n");
+			if (TRUE == SDC_IsCardPresence(cardId)) {
+				SDOAM_Printf
+				    ("HANDLING:card presence, DataEr handle\n");
+				handleRet = _DataErrorHandle(cardId);
+				if (handleRet == SDM_SUCCESS) {
+					SDOAM_Printf
+					    ("HANDLING:DataEr handle success, ReSend Write cmd\n");
+					repeatCount++;
+					handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));	//频率降2MHz
+					if (handleRet != SDC_SUCCESS) {
+						break;
+					}
+					continue;
+				} else {
+					//其他错误，直接返回
+					break;
+				}
+			} else {
+				SDOAM_Printf
+				    ("HANDLING:card not presence\n");
+				ret = SDM_CARD_NOTPRESENT;
+				break;
+			}
+		} else if (ret == SDC_RESP_TIMEOUT) {
+			SDOAM_Printf("HANDLING:Write cmd Rsp timeout\n");
+			handleRet = _ResponseTimeoutHandle(cardId);
+			if (handleRet == SDM_SUCCESS) {
+				SDOAM_Printf
+				    ("HANDLING:Rsp timeout handle success, ReSend Write cmd\n");
+				//重发一次
+				repeatCount++;
+				continue;
+			} else {
+				break;
+			}
+		} else if ((ret == SDC_RESP_CRC_ERROR)
+			   || (ret == SDC_RESP_ERROR)) {
+			//回复出错不管，只要数据不出错都没问题
+			ret = SDM_SUCCESS;
+			break;
+		} else {
+			//其他错误，直接返回
+			break;
+		}
+	}
+	if ((repeatCount == SDM_CMD_RESENT_COUNT) && (ret != SDM_SUCCESS)) {
+		ret = SDM_FALSE;
+	}
 
-    if(handleRet == SDM_SUCCESS)
-    {
-        return ret;
-    }
-    else
-    {
-        return handleRet;
-    }
+	if (handleRet == SDM_SUCCESS) {
+		return ret;
+	} else {
+		return handleRet;
+	}
 }
 
 /****************************************************************/
@@ -669,36 +620,29 @@ static int32 _SDMMC_Write(int32 cardId, uint32 dataAddr, uint32 blockCount, void
 /****************************************************************/
 static void _RegisterFunction(pSDM_CARD_INFO_T pCardInfo)
 {
-    if (pCardInfo->type & SDIO)
-    {
-        if (pCardInfo->type & (SDHC | SD20 | SD1X))
-        {
-            pCardInfo->fun.read  = NULL;
-            pCardInfo->fun.write = NULL;
-        }
-        else
-        {
-            pCardInfo->fun.read  = NULL;
-            pCardInfo->fun.write = NULL;
-        }
-    }
-    else
-    {
-        if (pCardInfo->type & (SDHC | SD20 | SD1X))
-        {
-            pCardInfo->fun.read  = _SDMMC_Read;
-            pCardInfo->fun.write = _SDMMC_Write;
-        }
-        if (pCardInfo->type & (MMC4 | MMC | eMMC2G))
-        {
-            pCardInfo->fun.read  = _SDMMC_Read;
-            pCardInfo->fun.write = _SDMMC_Write;
-        }
-    }
-    
-    return;
+	if (pCardInfo->type & SDIO) {
+		if (pCardInfo->type & (SDHC | SD20 | SD1X)) {
+			pCardInfo->fun.read = NULL;
+			pCardInfo->fun.write = NULL;
+		} else {
+			pCardInfo->fun.read = NULL;
+			pCardInfo->fun.write = NULL;
+		}
+	} else {
+		if (pCardInfo->type & (SDHC | SD20 | SD1X)) {
+			pCardInfo->fun.read = _SDMMC_Read;
+			pCardInfo->fun.write = _SDMMC_Write;
+		}
+		if (pCardInfo->type & (MMC4 | MMC | eMMC2G)) {
+			pCardInfo->fun.read = _SDMMC_Read;
+			pCardInfo->fun.write = _SDMMC_Write;
+		}
+	}
+
+	return;
 }
-#if(0)//SD_CARD_Support)
+
+#if(0)				//SD_CARD_Support)
 /****************************************************************/
 //函数名:_SetPassword
 //描述:设置密码，如果之前没有密码，则程序只关心pNewPassword的内容
@@ -711,91 +655,87 @@ static void _RegisterFunction(pSDM_CARD_INFO_T pCardInfo)
 //相关全局变量:
 //注意:
 /****************************************************************/
-static int32 _SetPassword(int32 cardId, uint8 *pOldPassword, uint8 *pNewPassword, bool lock)
+static int32 _SetPassword(int32 cardId, uint8 * pOldPassword,
+			  uint8 * pNewPassword, bool lock)
 {
-    pSDM_CARD_INFO_T pCardInfo = NULL;
-    uint32           data[9];   //新就密码加起来最多只会用到34个字节的数据，最后一个用于存放字符结束符
-    uint8           *pPasswordData = (uint8 *)data;
-    uint32           status = 0;
-    uint32           port = SDM_MAX_MANAGER_PORT;
-    int32            ret = SDM_SUCCESS;
+	pSDM_CARD_INFO_T pCardInfo = NULL;
+	uint32 data[9];		//新就密码加起来最多只会用到34个字节的数据，最后一个用于存放字符结束符
+	uint8 *pPasswordData = (uint8 *) data;
+	uint32 status = 0;
+	uint32 port = SDM_MAX_MANAGER_PORT;
+	int32 ret = SDM_SUCCESS;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    pCardInfo = &gSDMDriver[port].cardInfo;
-    
-    if (((pOldPassword == NULL) && (pNewPassword == NULL))
-            || ((pOldPassword != NULL) && (16 < SDOAM_Strlen(pOldPassword)))
-            || (16 < SDOAM_Strlen(pNewPassword))
-            || ((pCardInfo->bPassword) && (pOldPassword == NULL)))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    if (!(pCardInfo->ccc & COMMAND_CLASS_7))
-    {
-        return SDM_FUNC_NOT_SUPPORT;
-    }
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
 
-    SDOAM_Memset(data, 0x00, (9 << 2));
-    if (lock)
-    {
-        pPasswordData[0] = (1 << 2) | (1 << 0);   //LOCK and SET_PWD
-    }
-    else
-    {
-        pPasswordData[0] = (0 << 2) | (1 << 0);  //UNLOCK and SET_PWD
-    }
-    if (pCardInfo->bPassword)
-    {
-        pPasswordData[1] = SDOAM_Strlen(pOldPassword) + SDOAM_Strlen(pNewPassword);
-        SDOAM_Strcat(&pPasswordData[2], pOldPassword);
-        SDOAM_Strcat(&pPasswordData[2], pNewPassword);
-    }
-    else
-    {
-        pPasswordData[1] = SDOAM_Strlen(pNewPassword);
-        SDOAM_Strcat(&pPasswordData[2], pNewPassword);
-    }
-    ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), (pPasswordData[1] + 2), &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    ret = SDC_BusRequest(cardId, 
-                         (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 | WAIT_PREV), 
-                         0, 
-                         &status, 
-                         (pPasswordData[1] + 2), 
-                         (pPasswordData[1] + 2), 
-                         data);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (status & LOCK_UNLOCK_FAILED)
-    {
-        ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-        if (SDC_SUCCESS != ret)
-        {
-            return ret;
-        }
-        return SDM_FALSE;
-    }
-    pCardInfo->bPassword = TRUE;
-    ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if ((lock) && (!(status & CARD_IS_LOCKED)))
-    {
-        ret = SDM_FALSE;
-    }
+	pCardInfo = &gSDMDriver[port].cardInfo;
 
-    return ret;
+	if (((pOldPassword == NULL) && (pNewPassword == NULL))
+	    || ((pOldPassword != NULL)
+		&& (16 < SDOAM_Strlen(pOldPassword)))
+	    || (16 < SDOAM_Strlen(pNewPassword))
+	    || ((pCardInfo->bPassword) && (pOldPassword == NULL))) {
+		return SDM_PARAM_ERROR;
+	}
+	if (!(pCardInfo->ccc & COMMAND_CLASS_7)) {
+		return SDM_FUNC_NOT_SUPPORT;
+	}
+
+	SDOAM_Memset(data, 0x00, (9 << 2));
+	if (lock) {
+		pPasswordData[0] = (1 << 2) | (1 << 0);	//LOCK and SET_PWD
+	} else {
+		pPasswordData[0] = (0 << 2) | (1 << 0);	//UNLOCK and SET_PWD
+	}
+	if (pCardInfo->bPassword) {
+		pPasswordData[1] =
+		    SDOAM_Strlen(pOldPassword) +
+		    SDOAM_Strlen(pNewPassword);
+		SDOAM_Strcat(&pPasswordData[2], pOldPassword);
+		SDOAM_Strcat(&pPasswordData[2], pNewPassword);
+	} else {
+		pPasswordData[1] = SDOAM_Strlen(pNewPassword);
+		SDOAM_Strcat(&pPasswordData[2], pNewPassword);
+	}
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 |
+			     WAIT_PREV), (pPasswordData[1] + 2), &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	ret = SDC_BusRequest(cardId,
+			     (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 |
+			      WAIT_PREV), 0, &status,
+			     (pPasswordData[1] + 2),
+			     (pPasswordData[1] + 2), data);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (status & LOCK_UNLOCK_FAILED) {
+		ret =
+		    SDC_SendCommand(cardId,
+				    (SD_SET_BLOCKLEN | SD_NODATA_OP |
+				     SD_RSP_R1 | WAIT_PREV), 512, &status);
+		if (SDC_SUCCESS != ret) {
+			return ret;
+		}
+		return SDM_FALSE;
+	}
+	pCardInfo->bPassword = TRUE;
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 |
+			     WAIT_PREV), 512, &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if ((lock) && (!(status & CARD_IS_LOCKED))) {
+		ret = SDM_FALSE;
+	}
+
+	return ret;
 }
 
 /****************************************************************/
@@ -807,76 +747,75 @@ static int32 _SetPassword(int32 cardId, uint8 *pOldPassword, uint8 *pNewPassword
 //相关全局变量:
 //注意:
 /****************************************************************/
-static int32 _ClearPassword(int32 cardId, uint8 *pPassword)
+static int32 _ClearPassword(int32 cardId, uint8 * pPassword)
 {
-    pSDM_CARD_INFO_T pCardInfo = NULL;
-    uint32           data[5];   //只有一个密码最多只会用到18个字节的数据，最后一个用于存放字符结束符
-    uint8           *pPasswordData = (uint8 *)data;
-    uint32           status = 0;
-    uint32           port = SDM_MAX_MANAGER_PORT;
-    int32            ret = SDM_SUCCESS;
+	pSDM_CARD_INFO_T pCardInfo = NULL;
+	uint32 data[5];		//只有一个密码最多只会用到18个字节的数据，最后一个用于存放字符结束符
+	uint8 *pPasswordData = (uint8 *) data;
+	uint32 status = 0;
+	uint32 port = SDM_MAX_MANAGER_PORT;
+	int32 ret = SDM_SUCCESS;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    pCardInfo = &gSDMDriver[port].cardInfo;
-    
-    if (16 < SDOAM_Strlen(pPassword))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    if (!(pCardInfo->ccc & COMMAND_CLASS_7))
-    {
-        return SDM_FUNC_NOT_SUPPORT;
-    }
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
 
-    if (pCardInfo->bPassword)
-    {
-        SDOAM_Memset(data, 0x00, (5 << 2));
-        pPasswordData[0] = (1 << 1);   //CLR_PWD
-        pPasswordData[1] = SDOAM_Strlen(pPassword);
-        SDOAM_Strcat(&pPasswordData[2], pPassword);
+	pCardInfo = &gSDMDriver[port].cardInfo;
 
-        ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), (pPasswordData[1] + 2), &status);
-        if (SDC_SUCCESS != ret)
-        {
-            return ret;
-        }
-        ret = SDC_BusRequest(cardId, 
-                             (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 | WAIT_PREV), 
-                             0, 
-                             &status, 
-                             (pPasswordData[1] + 2), 
-                             (pPasswordData[1] + 2), 
-                             data);
-        if (SDC_SUCCESS != ret)
-        {
-            return ret;
-        }
-        if (status & LOCK_UNLOCK_FAILED)
-        {
-            ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-            if (SDC_SUCCESS != ret)
-            {
-                return ret;
-            }
-            return SDM_FALSE;
-        }
-        pCardInfo->bPassword = FALSE;
-        ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-        if (SDC_SUCCESS != ret)
-        {
-            return ret;
-        }
-        if (status & CARD_IS_LOCKED)
-        {
-            ret = SDM_FALSE;
-        }
-    }
+	if (16 < SDOAM_Strlen(pPassword)) {
+		return SDM_PARAM_ERROR;
+	}
+	if (!(pCardInfo->ccc & COMMAND_CLASS_7)) {
+		return SDM_FUNC_NOT_SUPPORT;
+	}
 
-    return ret;
+	if (pCardInfo->bPassword) {
+		SDOAM_Memset(data, 0x00, (5 << 2));
+		pPasswordData[0] = (1 << 1);	//CLR_PWD
+		pPasswordData[1] = SDOAM_Strlen(pPassword);
+		SDOAM_Strcat(&pPasswordData[2], pPassword);
+
+		ret =
+		    SDC_SendCommand(cardId,
+				    (SD_SET_BLOCKLEN | SD_NODATA_OP |
+				     SD_RSP_R1 | WAIT_PREV),
+				    (pPasswordData[1] + 2), &status);
+		if (SDC_SUCCESS != ret) {
+			return ret;
+		}
+		ret = SDC_BusRequest(cardId,
+				     (SD_LOCK_UNLOCK | SD_WRITE_OP |
+				      SD_RSP_R1 | WAIT_PREV), 0, &status,
+				     (pPasswordData[1] + 2),
+				     (pPasswordData[1] + 2), data);
+		if (SDC_SUCCESS != ret) {
+			return ret;
+		}
+		if (status & LOCK_UNLOCK_FAILED) {
+			ret =
+			    SDC_SendCommand(cardId,
+					    (SD_SET_BLOCKLEN | SD_NODATA_OP
+					     | SD_RSP_R1 | WAIT_PREV), 512,
+					    &status);
+			if (SDC_SUCCESS != ret) {
+				return ret;
+			}
+			return SDM_FALSE;
+		}
+		pCardInfo->bPassword = FALSE;
+		ret =
+		    SDC_SendCommand(cardId,
+				    (SD_SET_BLOCKLEN | SD_NODATA_OP |
+				     SD_RSP_R1 | WAIT_PREV), 512, &status);
+		if (SDC_SUCCESS != ret) {
+			return ret;
+		}
+		if (status & CARD_IS_LOCKED) {
+			ret = SDM_FALSE;
+		}
+	}
+
+	return ret;
 }
 
 /****************************************************************/
@@ -889,77 +828,75 @@ static int32 _ClearPassword(int32 cardId, uint8 *pPassword)
 /****************************************************************/
 static int32 _ForceErasePassword(int32 cardId)
 {
-    pSDM_CARD_INFO_T pCardInfo = NULL;
-    uint32           passwordData;  //force erase只要用到一个字节数据就可以了
-    uint32           status = 0;
-    uint32           port = SDM_MAX_MANAGER_PORT;
-    int32            ret = SDM_SUCCESS;
+	pSDM_CARD_INFO_T pCardInfo = NULL;
+	uint32 passwordData;	//force erase只要用到一个字节数据就可以了
+	uint32 status = 0;
+	uint32 port = SDM_MAX_MANAGER_PORT;
+	int32 ret = SDM_SUCCESS;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    pCardInfo = &gSDMDriver[port].cardInfo;
-    
-    if (!(pCardInfo->bPassword))
-    {
-        return SDM_SUCCESS;
-    }
-    if (!(pCardInfo->ccc & COMMAND_CLASS_7))
-    {
-        return SDM_FUNC_NOT_SUPPORT;
-    }
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
 
-    ret = SDC_SendCommand(cardId, (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 | NO_WAIT_PREV), (pCardInfo->rca << 16), &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (!(status & CARD_IS_LOCKED))
-    {
-        return SDM_SUCCESS;
-    }
+	pCardInfo = &gSDMDriver[port].cardInfo;
 
-    passwordData = (1 << 3);   //ERASE
+	if (!(pCardInfo->bPassword)) {
+		return SDM_SUCCESS;
+	}
+	if (!(pCardInfo->ccc & COMMAND_CLASS_7)) {
+		return SDM_FUNC_NOT_SUPPORT;
+	}
 
-    ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 1, &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    ret = SDC_BusRequest(cardId, 
-                         (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 | WAIT_PREV), 
-                         0, 
-                         &status, 
-                         1, 
-                         1, 
-                         &passwordData);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (status & LOCK_UNLOCK_FAILED)
-    {
-        ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-        if (SDC_SUCCESS != ret)
-        {
-            return ret;
-        }
-        return SDM_FALSE;
-    }
-    pCardInfo->bPassword = FALSE;
-    ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (status & CARD_IS_LOCKED)
-    {
-        ret = SDM_FALSE;
-    }
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 |
+			     NO_WAIT_PREV), (pCardInfo->rca << 16),
+			    &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (!(status & CARD_IS_LOCKED)) {
+		return SDM_SUCCESS;
+	}
 
-    return ret;
+	passwordData = (1 << 3);	//ERASE
+
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 |
+			     WAIT_PREV), 1, &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	ret = SDC_BusRequest(cardId,
+			     (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 |
+			      WAIT_PREV), 0, &status, 1, 1, &passwordData);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (status & LOCK_UNLOCK_FAILED) {
+		ret =
+		    SDC_SendCommand(cardId,
+				    (SD_SET_BLOCKLEN | SD_NODATA_OP |
+				     SD_RSP_R1 | WAIT_PREV), 512, &status);
+		if (SDC_SUCCESS != ret) {
+			return ret;
+		}
+		return SDM_FALSE;
+	}
+	pCardInfo->bPassword = FALSE;
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 |
+			     WAIT_PREV), 512, &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (status & CARD_IS_LOCKED) {
+		ret = SDM_FALSE;
+	}
+
+	return ret;
 }
 
 /****************************************************************/
@@ -971,86 +908,85 @@ static int32 _ForceErasePassword(int32 cardId)
 //相关全局变量:
 //注意:
 /****************************************************************/
-static int32 _LockCard(int32 cardId, uint8 *pPassword)
+static int32 _LockCard(int32 cardId, uint8 * pPassword)
 {
-    pSDM_CARD_INFO_T pCardInfo = NULL;
-    uint32           data[5];   //只有一个密码最多只会用到18个字节的数据，最后一个用于存放字符结束符
-    uint8           *pPasswordData = (uint8 *)data;
-    uint32           status = 0;
-    uint32           port = SDM_MAX_MANAGER_PORT;
-    int32            ret = SDM_SUCCESS;
+	pSDM_CARD_INFO_T pCardInfo = NULL;
+	uint32 data[5];		//只有一个密码最多只会用到18个字节的数据，最后一个用于存放字符结束符
+	uint8 *pPasswordData = (uint8 *) data;
+	uint32 status = 0;
+	uint32 port = SDM_MAX_MANAGER_PORT;
+	int32 ret = SDM_SUCCESS;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    pCardInfo = &gSDMDriver[port].cardInfo;
-    
-    if (16 < SDOAM_Strlen(pPassword))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    if (!(pCardInfo->ccc & COMMAND_CLASS_7))
-    {
-        return SDM_FUNC_NOT_SUPPORT;
-    }
-    if (!(pCardInfo->bPassword))
-    {
-        return SDM_FALSE;
-    }
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
 
-    ret = SDC_SendCommand(cardId, (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 | NO_WAIT_PREV), (pCardInfo->rca << 16), &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (status & CARD_IS_LOCKED)
-    {
-        return SDM_SUCCESS;
-    }
+	pCardInfo = &gSDMDriver[port].cardInfo;
 
-    SDOAM_Memset(data, 0x00, (5 << 2));
-    pPasswordData[0] = (1 << 2);   //LOCK
-    pPasswordData[1] = SDOAM_Strlen(pPassword);
-    SDOAM_Strcat(&pPasswordData[2], pPassword);
+	if (16 < SDOAM_Strlen(pPassword)) {
+		return SDM_PARAM_ERROR;
+	}
+	if (!(pCardInfo->ccc & COMMAND_CLASS_7)) {
+		return SDM_FUNC_NOT_SUPPORT;
+	}
+	if (!(pCardInfo->bPassword)) {
+		return SDM_FALSE;
+	}
 
-    ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), (pPasswordData[1] + 2), &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    ret = SDC_BusRequest(cardId, 
-                         (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 | WAIT_PREV), 
-                         0, 
-                         &status, 
-                         (pPasswordData[1] + 2), 
-                         (pPasswordData[1] + 2), 
-                         data);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (status & LOCK_UNLOCK_FAILED)
-    {
-        ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-        if (SDC_SUCCESS != ret)
-        {
-            return ret;
-        }
-        return SDM_FALSE;
-    }
-    ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (!(status & CARD_IS_LOCKED))
-    {
-        ret = SDM_FALSE;
-    }
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 |
+			     NO_WAIT_PREV), (pCardInfo->rca << 16),
+			    &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (status & CARD_IS_LOCKED) {
+		return SDM_SUCCESS;
+	}
 
-    return ret;
+	SDOAM_Memset(data, 0x00, (5 << 2));
+	pPasswordData[0] = (1 << 2);	//LOCK
+	pPasswordData[1] = SDOAM_Strlen(pPassword);
+	SDOAM_Strcat(&pPasswordData[2], pPassword);
+
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 |
+			     WAIT_PREV), (pPasswordData[1] + 2), &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	ret = SDC_BusRequest(cardId,
+			     (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 |
+			      WAIT_PREV), 0, &status,
+			     (pPasswordData[1] + 2),
+			     (pPasswordData[1] + 2), data);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (status & LOCK_UNLOCK_FAILED) {
+		ret =
+		    SDC_SendCommand(cardId,
+				    (SD_SET_BLOCKLEN | SD_NODATA_OP |
+				     SD_RSP_R1 | WAIT_PREV), 512, &status);
+		if (SDC_SUCCESS != ret) {
+			return ret;
+		}
+		return SDM_FALSE;
+	}
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 |
+			     WAIT_PREV), 512, &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (!(status & CARD_IS_LOCKED)) {
+		ret = SDM_FALSE;
+	}
+
+	return ret;
 }
 
 /****************************************************************/
@@ -1062,86 +998,85 @@ static int32 _LockCard(int32 cardId, uint8 *pPassword)
 //相关全局变量:
 //注意:
 /****************************************************************/
-static int32 _UnLockCard(int32 cardId, uint8 *pPassword)
+static int32 _UnLockCard(int32 cardId, uint8 * pPassword)
 {
-    pSDM_CARD_INFO_T pCardInfo = NULL;
-    uint32           data[5];   //只有一个密码最多只会用到18个字节的数据，最后一个用于存放字符结束符
-    uint8           *pPasswordData = (uint8 *)data;
-    uint32           status = 0;
-    uint32           port = SDM_MAX_MANAGER_PORT;
-    int32            ret = SDM_SUCCESS;
+	pSDM_CARD_INFO_T pCardInfo = NULL;
+	uint32 data[5];		//只有一个密码最多只会用到18个字节的数据，最后一个用于存放字符结束符
+	uint8 *pPasswordData = (uint8 *) data;
+	uint32 status = 0;
+	uint32 port = SDM_MAX_MANAGER_PORT;
+	int32 ret = SDM_SUCCESS;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    pCardInfo = &gSDMDriver[port].cardInfo;
-    
-    if (16 < SDOAM_Strlen(pPassword))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    if (!(pCardInfo->ccc & COMMAND_CLASS_7))
-    {
-        return SDM_FUNC_NOT_SUPPORT;
-    }
-    if (!(pCardInfo->bPassword))
-    {
-        return SDM_FALSE;
-    }
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
 
-    ret = SDC_SendCommand(cardId, (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 | NO_WAIT_PREV), (pCardInfo->rca << 16), &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (!(status & CARD_IS_LOCKED))
-    {
-        return SDM_SUCCESS;
-    }
+	pCardInfo = &gSDMDriver[port].cardInfo;
 
-    SDOAM_Memset(data, 0x00, (5 << 2));
-    pPasswordData[0] = (0 << 2);   //UNLOCK
-    pPasswordData[1] = SDOAM_Strlen(pPassword);
-    SDOAM_Strcat(&pPasswordData[2], pPassword);
+	if (16 < SDOAM_Strlen(pPassword)) {
+		return SDM_PARAM_ERROR;
+	}
+	if (!(pCardInfo->ccc & COMMAND_CLASS_7)) {
+		return SDM_FUNC_NOT_SUPPORT;
+	}
+	if (!(pCardInfo->bPassword)) {
+		return SDM_FALSE;
+	}
 
-    ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), (pPasswordData[1] + 2), &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    ret = SDC_BusRequest(cardId, 
-                         (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 | WAIT_PREV), 
-                         0, 
-                         &status, 
-                         (pPasswordData[1] + 2), 
-                         (pPasswordData[1] + 2), 
-                         data);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (status & LOCK_UNLOCK_FAILED)
-    {
-        ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-        if (SDC_SUCCESS != ret)
-        {
-            return ret;
-        }
-        return SDM_FALSE;
-    }
-    ret = SDC_SendCommand(cardId, (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 512, &status);
-    if (SDC_SUCCESS != ret)
-    {
-        return ret;
-    }
-    if (status & CARD_IS_LOCKED)
-    {
-        ret = SDM_FALSE;
-    }
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 |
+			     NO_WAIT_PREV), (pCardInfo->rca << 16),
+			    &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (!(status & CARD_IS_LOCKED)) {
+		return SDM_SUCCESS;
+	}
 
-    return ret;
+	SDOAM_Memset(data, 0x00, (5 << 2));
+	pPasswordData[0] = (0 << 2);	//UNLOCK
+	pPasswordData[1] = SDOAM_Strlen(pPassword);
+	SDOAM_Strcat(&pPasswordData[2], pPassword);
+
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 |
+			     WAIT_PREV), (pPasswordData[1] + 2), &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	ret = SDC_BusRequest(cardId,
+			     (SD_LOCK_UNLOCK | SD_WRITE_OP | SD_RSP_R1 |
+			      WAIT_PREV), 0, &status,
+			     (pPasswordData[1] + 2),
+			     (pPasswordData[1] + 2), data);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (status & LOCK_UNLOCK_FAILED) {
+		ret =
+		    SDC_SendCommand(cardId,
+				    (SD_SET_BLOCKLEN | SD_NODATA_OP |
+				     SD_RSP_R1 | WAIT_PREV), 512, &status);
+		if (SDC_SUCCESS != ret) {
+			return ret;
+		}
+		return SDM_FALSE;
+	}
+	ret =
+	    SDC_SendCommand(cardId,
+			    (SD_SET_BLOCKLEN | SD_NODATA_OP | SD_RSP_R1 |
+			     WAIT_PREV), 512, &status);
+	if (SDC_SUCCESS != ret) {
+		return ret;
+	}
+	if (status & CARD_IS_LOCKED) {
+		ret = SDM_FALSE;
+	}
+
+	return ret;
 }
 #endif
 /****************************************************************/
@@ -1156,16 +1091,15 @@ static int32 _UnLockCard(int32 cardId, uint8 *pPassword)
 /****************************************************************/
 static int32 _AccessBootPartition(int32 cardId, uint32 partition)
 {
-    pSDM_CARD_INFO_T pCardInfo = NULL;
-    uint32           port = SDM_MAX_MANAGER_PORT;
+	pSDM_CARD_INFO_T pCardInfo = NULL;
+	uint32 port = SDM_MAX_MANAGER_PORT;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    pCardInfo = &gSDMDriver[port].cardInfo;
-    return MMC_AccessBootPartition(pCardInfo,  partition);
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
+
+	pCardInfo = &gSDMDriver[port].cardInfo;
+	return MMC_AccessBootPartition(pCardInfo, partition);
 }
 
 
@@ -1181,17 +1115,16 @@ static int32 _AccessBootPartition(int32 cardId, uint32 partition)
 /****************************************************************/
 static int32 _SetBootWidth(int32 cardId, bool enable, uint8 width)
 {
-    pSDM_CARD_INFO_T pCardInfo = NULL;
-    uint32           port = SDM_MAX_MANAGER_PORT;
-    HOST_BUS_WIDTH_E bootBusWidth = (HOST_BUS_WIDTH_E)width; 
+	pSDM_CARD_INFO_T pCardInfo = NULL;
+	uint32 port = SDM_MAX_MANAGER_PORT;
+	HOST_BUS_WIDTH_E bootBusWidth = (HOST_BUS_WIDTH_E) width;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    pCardInfo = &gSDMDriver[port].cardInfo;
-    return MMC_SetBootBusWidth(pCardInfo, enable, bootBusWidth);    
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
+
+	pCardInfo = &gSDMDriver[port].cardInfo;
+	return MMC_SetBootBusWidth(pCardInfo, enable, bootBusWidth);
 }
 
 
@@ -1209,16 +1142,15 @@ static int32 _SetBootWidth(int32 cardId, bool enable, uint8 width)
 /****************************************************************/
 static int32 _SwitchBoot(int32 cardId, bool enable, uint32 partition)
 {
-    pSDM_CARD_INFO_T pCardInfo = NULL;
-    uint32           port = SDM_MAX_MANAGER_PORT;
+	pSDM_CARD_INFO_T pCardInfo = NULL;
+	uint32 port = SDM_MAX_MANAGER_PORT;
 
-    if (!_IsCardRegistered(cardId, &port))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    pCardInfo = &gSDMDriver[port].cardInfo;
-    return MMC_SwitchBoot(pCardInfo, enable, partition);
+	if (!_IsCardRegistered(cardId, &port)) {
+		return SDM_PARAM_ERROR;
+	}
+
+	pCardInfo = &gSDMDriver[port].cardInfo;
+	return MMC_SwitchBoot(pCardInfo, enable, partition);
 }
 
 /****************************************************************/
@@ -1231,238 +1163,211 @@ static int32 _SwitchBoot(int32 cardId, bool enable, uint32 partition)
 /****************************************************************/
 static int32 _IdentifyCard(int32 cardId)
 {
-    SDM_CARD_INFO_T  cardInfo;
-    uint32           status = 0;
-    uint32           nf;
-    uint32           mp;
-    int32            ret = SDC_SUCCESS;
+	SDM_CARD_INFO_T cardInfo;
+	uint32 status = 0;
+	uint32 nf;
+	uint32 mp;
+	int32 ret = SDC_SUCCESS;
 
-    SDOAM_Memset(&cardInfo, 0x00, sizeof(SDM_CARD_INFO_T));
-    cardInfo.type = UNKNOW_CARD;
-    cardInfo.cardId = cardId;
-    gSDMDriver[cardId].step = 0;
-    gSDMDriver[cardId].error = 0;
-    /* reset all card */
-    do
-    {
-        ret = SDC_ControlPower(cardId, TRUE);
-        if (SDC_SUCCESS != ret)
-        {
-            gSDMDriver[cardId].step = 0x11;
-            gSDMDriver[cardId].error = ret;
-            break;
-        }
-        ret = SDC_SetHostBusWidth(cardId, BUS_WIDTH_1_BIT);
-        if (SDC_SUCCESS != ret)
-        {
-            gSDMDriver[cardId].step = 0x12;
-            gSDMDriver[cardId].error = ret;
-            break;
-        }
-        ret = SDC_UpdateCardFreq(cardId, FOD_FREQ);
-        if (SDC_SUCCESS != ret)
-        {
-            gSDMDriver[cardId].step = 0x13;
-            gSDMDriver[cardId].error = ret;
-            break;
-        }
-        SDOAM_Delay(1000);  //等待电源和时钟稳定
-        ret = _Identify_SendCmd(cardId, (SD_GO_IDLE_STATE | SD_NODATA_OP | SD_RSP_NONE | NO_WAIT_PREV | SEND_INIT), 0, NULL, 0, 0, NULL);
-        if (SDC_SUCCESS != ret)
-        {
-            gSDMDriver[cardId].step = 0x14;
-            gSDMDriver[cardId].error = ret;
-            break;
-        }
-        SDOAM_Delay(100);  // 27有发现CMD0发送完以后延时一下再发其他命令能提高卡的识别率
-        
-        /**************************************************/
-        // 卡识别
-        /**************************************************/
-        ret = _Identify_SendCmd(cardId, (SD2_SEND_IF_COND | SD_NODATA_OP | SD_RSP_R7 | WAIT_PREV), 0x1AA, &status, 0, 0, NULL);
-        if (SDC_SUCCESS == ret)
-        {
-#if(SD_CARD_Support)
-            /* SDIO-only Card or SDIO-SDHC/SD2.0 Combo Card or SDIO-SDHC/SD2.0 only Card or SD2.0 or SDHC */
-            nf = 0;
-            mp = 0;
-            ret = _Identify_SendCmd(cardId, (SDIO_IO_SEND_OP_COND | SD_NODATA_OP | SD_RSP_R4 | WAIT_PREV), 0, &status, 0, 0, NULL);
-            if (SDC_SUCCESS == ret)
-            {
-                nf = (status >> 28) & 0x7;
-                mp = (status >> 27) & 0x1;
-                if ((mp == 1) && (nf > 0) && (status & 0xFFFF00))
-                {
-                    /* SDIO-SDHC/SD2.0 Combo Card */
-                    //SDIOHC_SD20_ComboInit(&cardInfo);
-                    cardInfo.type == UNKNOW_CARD;
-                }
-                else if ((mp == 0) && (nf > 0) && (status & 0xFFFF00))
-                {
-                    /* SDIO-only Card */
-                    //SDIO_OnlyInit(&cardInfo);
-                    cardInfo.type == UNKNOW_CARD;
-                }
-                else if(mp == 1)
-                {
-                    /* SDIO-SDHC/SD2.0 only Card */
-                    SD20_Init(&cardInfo);
-                }
-                else
-                {
-                    /* unknow card */
-                }
-            }
-            else if (ret == SDC_RESP_TIMEOUT)
-            {
-                /* SD2.0 or SDHC */
-                SD20_Init(&cardInfo);
-            }
-            else
-            {
-                /* must be error occured */
-                gSDMDriver[cardId].step = 0x14;
-                gSDMDriver[cardId].error = ret;
-            }
-#endif
-        }
-        else if (SDC_RESP_TIMEOUT == ret)
-        {
-            /* SDIO-only Card or SDIO-SD1.X Combo Card or SDIO-SD1.X only Card or SD1.X or MMC or SD2.0 or later with voltage mismatch */
-            nf = 0;
-            mp = 0;
-            ret = _Identify_SendCmd(cardId, (SDIO_IO_SEND_OP_COND | SD_NODATA_OP | SD_RSP_R4 | WAIT_PREV), 0, &status, 0, 0, NULL);
-            if (SDC_SUCCESS == ret)
-            {
-#if(SD_CARD_Support)
-                nf = (status >> 28) & 0x7;
-                mp = (status >> 27) & 0x1;
-                if((mp == 1) && (nf > 0) && (status & 0xFFFF00))
-                {
-                    /* SDIO-SD1.X Combo Card */
-                    //SDIO_SD1X_ComboInit(&cardInfo);
-                    cardInfo.type == UNKNOW_CARD;
-                }
-                else if ((mp == 0) && (nf > 0) && (status & 0xFFFF00))
-                {
-                    /* SDIO-only Card */
-                    //SDIO_OnlyInit(&cardInfo);
-                    cardInfo.type == UNKNOW_CARD;
-                }
-                else if (mp == 1)
-                {
-                    /* SDIO-SD1.X only Card */
-                    SD1X_Init(&cardInfo);
-                }
-                else
-                {
-                    /* unknow card */
-                }
-#endif
-            }
-            else if (ret == SDC_RESP_TIMEOUT)
-            {
-                /* SD1.X or MMC or SD2.0 or later with voltage mismatch */
-                ret = _Identify_SendCmd(cardId, (SD_APP_CMD | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 0, &status, 0, 0, NULL);
-                if (SDC_SUCCESS == ret)
-                {
-                    /* SD1.X or SD2.0 or later with voltage mismatch */
-                    #if(SD_CARD_Support)
-                    SD1X_Init(&cardInfo);
-                    #endif
-                }
-                else if (SDC_RESP_TIMEOUT == ret)
-                {
-                    /* must be MMC */
-                    MMC_Init(&cardInfo);
-                }
-                else
-                {
-                    /* must be error occured */
-                    gSDMDriver[cardId].step = 0x15;
-                    gSDMDriver[cardId].error = ret;
-                }
-            }
-            else
-            {
-                /* must be error occured */
-                gSDMDriver[cardId].step = 0x16;
-                gSDMDriver[cardId].error = ret;
-            }
-        }
-        else
-        {
-            /* must be error occured */
-            gSDMDriver[cardId].step = 0x17;
-            gSDMDriver[cardId].error = ret;
-        }
-    }while (0);
+	SDOAM_Memset(&cardInfo, 0x00, sizeof(SDM_CARD_INFO_T));
+	cardInfo.type = UNKNOW_CARD;
+	cardInfo.cardId = cardId;
+	gSDMDriver[cardId].step = 0;
+	gSDMDriver[cardId].error = 0;
+	/* reset all card */
+	do {
+		ret = SDC_ControlPower(cardId, TRUE);
+		if (SDC_SUCCESS != ret) {
+			gSDMDriver[cardId].step = 0x11;
+			gSDMDriver[cardId].error = ret;
+			break;
+		}
+		ret = SDC_SetHostBusWidth(cardId, BUS_WIDTH_1_BIT);
+		if (SDC_SUCCESS != ret) {
+			gSDMDriver[cardId].step = 0x12;
+			gSDMDriver[cardId].error = ret;
+			break;
+		}
+		ret = SDC_UpdateCardFreq(cardId, FOD_FREQ);
+		if (SDC_SUCCESS != ret) {
+			gSDMDriver[cardId].step = 0x13;
+			gSDMDriver[cardId].error = ret;
+			break;
+		}
+		SDOAM_Delay(1000);	//等待电源和时钟稳定
+		ret =
+		    _Identify_SendCmd(cardId,
+				      (SD_GO_IDLE_STATE | SD_NODATA_OP |
+				       SD_RSP_NONE | NO_WAIT_PREV |
+				       SEND_INIT), 0, NULL, 0, 0, NULL);
+		if (SDC_SUCCESS != ret) {
+			gSDMDriver[cardId].step = 0x14;
+			gSDMDriver[cardId].error = ret;
+			break;
+		}
+		SDOAM_Delay(100);	// 27有发现CMD0发送完以后延时一下再发其他命令能提高卡的识别率
 
-    if (cardInfo.type == UNKNOW_CARD)
-    {
-        SDC_ResetController(cardId);
-        SDC_SetHostBusWidth(cardId, BUS_WIDTH_1_BIT);
-        SDC_ControlClock(cardId, FALSE);
-        SDC_ControlPower(cardId, FALSE);
-        PRINTF("ERROR:Card Identify Failed %lx\n", ret);
-        return ret;
-    }
-    else
-    {
-        _RegisterFunction(&cardInfo);
-        _RegisterCard(&cardInfo);
+	/**************************************************/
+		// 卡识别
+	/**************************************************/
+		ret =
+		    _Identify_SendCmd(cardId,
+				      (SD2_SEND_IF_COND | SD_NODATA_OP |
+				       SD_RSP_R7 | WAIT_PREV), 0x1AA,
+				      &status, 0, 0, NULL);
+		if (SDC_SUCCESS == ret) {
+#if(SD_CARD_Support)
+			/* SDIO-only Card or SDIO-SDHC/SD2.0 Combo Card or SDIO-SDHC/SD2.0 only Card or SD2.0 or SDHC */
+			nf = 0;
+			mp = 0;
+			ret =
+			    _Identify_SendCmd(cardId,
+					      (SDIO_IO_SEND_OP_COND |
+					       SD_NODATA_OP | SD_RSP_R4 |
+					       WAIT_PREV), 0, &status, 0,
+					      0, NULL);
+			if (SDC_SUCCESS == ret) {
+				nf = (status >> 28) & 0x7;
+				mp = (status >> 27) & 0x1;
+				if ((mp == 1) && (nf > 0)
+				    && (status & 0xFFFF00)) {
+					/* SDIO-SDHC/SD2.0 Combo Card */
+					//SDIOHC_SD20_ComboInit(&cardInfo);
+					cardInfo.type == UNKNOW_CARD;
+				} else if ((mp == 0) && (nf > 0)
+					   && (status & 0xFFFF00)) {
+					/* SDIO-only Card */
+					//SDIO_OnlyInit(&cardInfo);
+					cardInfo.type == UNKNOW_CARD;
+				} else if (mp == 1) {
+					/* SDIO-SDHC/SD2.0 only Card */
+					SD20_Init(&cardInfo);
+				} else {
+					/* unknow card */
+				}
+			} else if (ret == SDC_RESP_TIMEOUT) {
+				/* SD2.0 or SDHC */
+				SD20_Init(&cardInfo);
+			} else {
+				/* must be error occured */
+				gSDMDriver[cardId].step = 0x14;
+				gSDMDriver[cardId].error = ret;
+			}
+#endif
+		} else if (SDC_RESP_TIMEOUT == ret) {
+			/* SDIO-only Card or SDIO-SD1.X Combo Card or SDIO-SD1.X only Card or SD1.X or MMC or SD2.0 or later with voltage mismatch */
+			nf = 0;
+			mp = 0;
+			ret =
+			    _Identify_SendCmd(cardId,
+					      (SDIO_IO_SEND_OP_COND |
+					       SD_NODATA_OP | SD_RSP_R4 |
+					       WAIT_PREV), 0, &status, 0,
+					      0, NULL);
+			if (SDC_SUCCESS == ret) {
+#if(SD_CARD_Support)
+				nf = (status >> 28) & 0x7;
+				mp = (status >> 27) & 0x1;
+				if ((mp == 1) && (nf > 0)
+				    && (status & 0xFFFF00)) {
+					/* SDIO-SD1.X Combo Card */
+					//SDIO_SD1X_ComboInit(&cardInfo);
+					cardInfo.type == UNKNOW_CARD;
+				} else if ((mp == 0) && (nf > 0)
+					   && (status & 0xFFFF00)) {
+					/* SDIO-only Card */
+					//SDIO_OnlyInit(&cardInfo);
+					cardInfo.type == UNKNOW_CARD;
+				} else if (mp == 1) {
+					/* SDIO-SD1.X only Card */
+					SD1X_Init(&cardInfo);
+				} else {
+					/* unknow card */
+				}
+#endif
+			} else if (ret == SDC_RESP_TIMEOUT) {
+				/* SD1.X or MMC or SD2.0 or later with voltage mismatch */
+				ret =
+				    _Identify_SendCmd(cardId,
+						      (SD_APP_CMD |
+						       SD_NODATA_OP |
+						       SD_RSP_R1 |
+						       WAIT_PREV), 0,
+						      &status, 0, 0, NULL);
+				if (SDC_SUCCESS == ret) {
+					/* SD1.X or SD2.0 or later with voltage mismatch */
+#if(SD_CARD_Support)
+					SD1X_Init(&cardInfo);
+#endif
+				} else if (SDC_RESP_TIMEOUT == ret) {
+					/* must be MMC */
+					MMC_Init(&cardInfo);
+				} else {
+					/* must be error occured */
+					gSDMDriver[cardId].step = 0x15;
+					gSDMDriver[cardId].error = ret;
+				}
+			} else {
+				/* must be error occured */
+				gSDMDriver[cardId].step = 0x16;
+				gSDMDriver[cardId].error = ret;
+			}
+		} else {
+			/* must be error occured */
+			gSDMDriver[cardId].step = 0x17;
+			gSDMDriver[cardId].error = ret;
+		}
+	} while (0);
+
+	if (cardInfo.type == UNKNOW_CARD) {
+		SDC_ResetController(cardId);
+		SDC_SetHostBusWidth(cardId, BUS_WIDTH_1_BIT);
+		SDC_ControlClock(cardId, FALSE);
+		SDC_ControlPower(cardId, FALSE);
+		PRINTF("ERROR:Card Identify Failed %lx\n", ret);
+		return ret;
+	} else {
+		_RegisterFunction(&cardInfo);
+		_RegisterCard(&cardInfo);
 #ifdef RK_SD_BOOT
-        PRINTF("MSG:Card Identify SUCCESS\n");
-        if (cardInfo.type & SDIO)
-        {
-            if (cardInfo.type & (SDHC | SD20 | SD1X))
-            {
-                PRINTF("MSG:SDIO Combo Card\n");
-            }
-            else
-            {
-                PRINTF("MSG:SDIO only Card\n");
-            }
-        }
-        else
-        {
-            if (cardInfo.type & SDHC)
-            {
-                PRINTF("MSG:SDHC Card\n");
-            }
-            if (cardInfo.type & SD20)
-            {
-                PRINTF("MSG:SD2.0 Card\n");
-            }
-            if (cardInfo.type & SD1X)
-            {
-                PRINTF("MSG:SD1.x Card\n");
-            }
-            if (cardInfo.type & MMC4)
-            {
-                PRINTF("MSG:MMC4 Card\n");
-            }
-            if (cardInfo.type & MMC)
-            {
-                PRINTF("MSG:MMC Card\n");
-            }
-            if (cardInfo.type & eMMC2G)
-            {
-                PRINTF("MSG:eMMC2G Card\n");
-            }
-        }
-        PRINTF("MSG:Manufacture Data:%d.%d\n", cardInfo.year, cardInfo.month);
-        if(cardInfo.workMode & SDM_WIDE_BUS_MODE)
-        {
-            PRINTF("MSG:Use Wide bus mode\n");
-        }
-        if(cardInfo.workMode & SDM_HIGH_SPEED_MODE)
-        {
-            PRINTF("MSG:Use High speed mode\n");
-        }
+		PRINTF("MSG:Card Identify SUCCESS\n");
+		if (cardInfo.type & SDIO) {
+			if (cardInfo.type & (SDHC | SD20 | SD1X)) {
+				PRINTF("MSG:SDIO Combo Card\n");
+			} else {
+				PRINTF("MSG:SDIO only Card\n");
+			}
+		} else {
+			if (cardInfo.type & SDHC) {
+				PRINTF("MSG:SDHC Card\n");
+			}
+			if (cardInfo.type & SD20) {
+				PRINTF("MSG:SD2.0 Card\n");
+			}
+			if (cardInfo.type & SD1X) {
+				PRINTF("MSG:SD1.x Card\n");
+			}
+			if (cardInfo.type & MMC4) {
+				PRINTF("MSG:MMC4 Card\n");
+			}
+			if (cardInfo.type & MMC) {
+				PRINTF("MSG:MMC Card\n");
+			}
+			if (cardInfo.type & eMMC2G) {
+				PRINTF("MSG:eMMC2G Card\n");
+			}
+		}
+		PRINTF("MSG:Manufacture Data:%d.%d\n", cardInfo.year,
+		       cardInfo.month);
+		if (cardInfo.workMode & SDM_WIDE_BUS_MODE) {
+			PRINTF("MSG:Use Wide bus mode\n");
+		}
+		if (cardInfo.workMode & SDM_HIGH_SPEED_MODE) {
+			PRINTF("MSG:Use High speed mode\n");
+		}
 #endif
-        return SDM_SUCCESS;
-    }
+		return SDM_SUCCESS;
+	}
 }
 
 /****************************************************************/
@@ -1476,18 +1381,16 @@ static int32 _IdentifyCard(int32 cardId)
 /****************************************************************/
 uint16 _GenerateRCA(void)
 {
-    uint16 max = 2;   //rca = 0001是MMC上电后初始化时使用的默认地址，所以从2开始
-    uint32 i;
+	uint16 max = 2;		//rca = 0001是MMC上电后初始化时使用的默认地址，所以从2开始
+	uint32 i;
 
-    for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
-    {
-        if (gSDMDriver[i].cardInfo.rca > max)
-        {
-            max = gSDMDriver[i].cardInfo.rca;
-        }
-    }
+	for (i = 0; i < SDM_MAX_MANAGER_PORT; i++) {
+		if (gSDMDriver[i].cardInfo.rca > max) {
+			max = gSDMDriver[i].cardInfo.rca;
+		}
+	}
 
-    return (max + 1);  //不知道会不会溢出
+	return (max + 1);	//不知道会不会溢出
 }
 
 /****************************************************************/
@@ -1502,17 +1405,15 @@ uint16 _GenerateRCA(void)
 /****************************************************************/
 bool _IsRCAUsable(uint16 rca)
 {
-    uint32 i;
+	uint32 i;
 
-    for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
-    {
-        if (gSDMDriver[i].cardInfo.rca == rca)
-        {
-            return FALSE;
-        }
-    }
+	for (i = 0; i < SDM_MAX_MANAGER_PORT; i++) {
+		if (gSDMDriver[i].cardInfo.rca == rca) {
+			return FALSE;
+		}
+	}
 
-    return TRUE;
+	return TRUE;
 }
 
 /****************************************************************/
@@ -1524,22 +1425,23 @@ bool _IsRCAUsable(uint16 rca)
 //注意:
 /****************************************************************/
 int32 _Identify_SendCmd(int32 cardId,
-                               uint32 cmd,
-                               uint32 cmdArg,
-                               uint32 *responseBuf,
-                               uint32  blockSize,
-                               uint32  dataLen,
-                               void   *pDataBuf)
+			uint32 cmd,
+			uint32 cmdArg,
+			uint32 * responseBuf,
+			uint32 blockSize, uint32 dataLen, void *pDataBuf)
 {
-    int32 ret = SDM_SUCCESS;
-    int32 retry = SDM_CMD_ERROR_RETRY_COUNT;
+	int32 ret = SDM_SUCCESS;
+	int32 retry = SDM_CMD_ERROR_RETRY_COUNT;
 
-    do
-    {
-        ret = SDC_BusRequest(cardId, cmd, cmdArg, responseBuf, blockSize, dataLen, pDataBuf);
-        retry--;
-    }while((ret & (SDC_RESP_ERROR | SDC_RESP_CRC_ERROR | SDC_RESP_TIMEOUT)) && (retry > 0));
-    return ret;
+	do {
+		ret =
+		    SDC_BusRequest(cardId, cmd, cmdArg, responseBuf,
+				   blockSize, dataLen, pDataBuf);
+		retry--;
+	} while ((ret &
+		  (SDC_RESP_ERROR | SDC_RESP_CRC_ERROR | SDC_RESP_TIMEOUT))
+		 && (retry > 0));
+	return ret;
 }
 
 /****************************************************************/
@@ -1551,35 +1453,34 @@ int32 _Identify_SendCmd(int32 cardId,
 //注意:
 /****************************************************************/
 int32 _Identify_SendAppCmd(int32 cardId,
-                                    uint16 rca,
-                                    uint32 cmd,
-                                    uint32 cmdArg,
-                                    uint32 *responseBuf,
-                                    uint32  blockSize,
-                                    uint32  dataLen,
-                                    void   *pDataBuf)
+			   uint16 rca,
+			   uint32 cmd,
+			   uint32 cmdArg,
+			   uint32 * responseBuf,
+			   uint32 blockSize,
+			   uint32 dataLen, void *pDataBuf)
 {
-    int32  ret = SDM_SUCCESS;
-    uint32 status = 0;
-    int32  retry = SDM_CMD_ERROR_RETRY_COUNT;
+	int32 ret = SDM_SUCCESS;
+	uint32 status = 0;
+	int32 retry = SDM_CMD_ERROR_RETRY_COUNT;
 
-    do
-    {
-        ret = SDC_BusRequest(cardId, 
-                             (SD_APP_CMD | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), 
-                             (rca << 16), 
-                             &status, 
-                             0, 
-                             0, 
-                             NULL);
-        if ((ret == SDC_SUCCESS) && (status & 0x20))
-        {
-            ret = SDC_BusRequest(cardId, cmd, cmdArg, responseBuf, blockSize, dataLen, pDataBuf);
-        }
-        retry--;
-    }while((ret & (SDC_RESP_ERROR | SDC_RESP_CRC_ERROR | SDC_RESP_TIMEOUT)) && (retry > 0));
+	do {
+		ret = SDC_BusRequest(cardId,
+				     (SD_APP_CMD | SD_NODATA_OP | SD_RSP_R1
+				      | WAIT_PREV), (rca << 16), &status,
+				     0, 0, NULL);
+		if ((ret == SDC_SUCCESS) && (status & 0x20)) {
+			ret =
+			    SDC_BusRequest(cardId, cmd, cmdArg,
+					   responseBuf, blockSize, dataLen,
+					   pDataBuf);
+		}
+		retry--;
+	} while ((ret &
+		  (SDC_RESP_ERROR | SDC_RESP_CRC_ERROR | SDC_RESP_TIMEOUT))
+		 && (retry > 0));
 
-    return ret;
+	return ret;
 }
 
 /****************************************************************/
@@ -1592,23 +1493,24 @@ int32 _Identify_SendAppCmd(int32 cardId,
 /****************************************************************/
 void SDM_Init(uint32 CardId)
 {
-    uint32 i;
-    uint8  name[3][5] = {"SDC0", "SDC1", "SDC2"};
+	uint32 i;
+	uint8 name[3][5] = { "SDC0", "SDC1", "SDC2" };
 
-    //for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
-    {
-        //mutex的创建过程已经在RockCreateSems函数中做了
-        gSDMDriver[CardId].mutex  = SDOAM_CreateMutex(name[i]);
-        //Assert((gSDMDriver[i].mutex != NULL), "SDM_Init:Create mutex failed\n", i);
-        //if(gSDMDriver[i].mutex == NULL)
-        //{
-        //    continue;
-        //}
-        gSDMDriver[CardId].bOpen  = FALSE;
-        SDOAM_Memset(&gSDMDriver[CardId].cardInfo, 0x00, sizeof(SDM_CARD_INFO_T));
-        gSDMDriver[CardId].cardInfo.cardId = SDM_INVALID_CARDID;
-    }
-    SDC_Init(CardId);
+	//for (i=0; i<SDM_MAX_MANAGER_PORT; i++)
+	{
+		//mutex的创建过程已经在RockCreateSems函数中做了
+		gSDMDriver[CardId].mutex = SDOAM_CreateMutex(name[i]);
+		//Assert((gSDMDriver[i].mutex != NULL), "SDM_Init:Create mutex failed\n", i);
+		//if(gSDMDriver[i].mutex == NULL)
+		//{
+		//    continue;
+		//}
+		gSDMDriver[CardId].bOpen = FALSE;
+		SDOAM_Memset(&gSDMDriver[CardId].cardInfo, 0x00,
+			     sizeof(SDM_CARD_INFO_T));
+		gSDMDriver[CardId].cardInfo.cardId = SDM_INVALID_CARDID;
+	}
+	SDC_Init(CardId);
 }
 
 /****************************************************************/
@@ -1621,20 +1523,19 @@ void SDM_Init(uint32 CardId)
 /****************************************************************/
 int32 SDM_Open(int32 cardId)
 {
-    uint32 port = SDM_MAX_MANAGER_PORT;
+	uint32 port = SDM_MAX_MANAGER_PORT;
 
-    if ((!SDC_IsCardIdValid(cardId)) || (!_IsCardRegistered(cardId, &port)))
-    {
-        return SDM_PARAM_ERROR;
-    }
+	if ((!SDC_IsCardIdValid(cardId))
+	    || (!_IsCardRegistered(cardId, &port))) {
+		return SDM_PARAM_ERROR;
+	}
 
-    if (gSDMDriver[port].bOpen)
-    {
-        return SDM_SUCCESS;
-    }
+	if (gSDMDriver[port].bOpen) {
+		return SDM_SUCCESS;
+	}
 
-    gSDMDriver[port].bOpen = TRUE;
-    return SDM_SUCCESS;
+	gSDMDriver[port].bOpen = TRUE;
+	return SDM_SUCCESS;
 }
 
 /****************************************************************/
@@ -1648,21 +1549,20 @@ int32 SDM_Open(int32 cardId)
 int32 SDM_Close(int32 cardId)
 {
 #if 0
-    uint32 port = SDM_MAX_MANAGER_PORT;
-    return SDM_SUCCESS;
-    
-    if ((!SDC_IsCardIdValid(cardId)) || (!_IsCardRegistered(cardId, &port)))
-    {
-        return SDM_PARAM_ERROR;
-    }
-    if (!(gSDMDriver[port].bOpen))
-    {
-        return SDM_SUCCESS;
-    }
+	uint32 port = SDM_MAX_MANAGER_PORT;
+	return SDM_SUCCESS;
 
-    gSDMDriver[port].bOpen = FALSE;
-#endif    
-    return SDM_SUCCESS;
+	if ((!SDC_IsCardIdValid(cardId))
+	    || (!_IsCardRegistered(cardId, &port))) {
+		return SDM_PARAM_ERROR;
+	}
+	if (!(gSDMDriver[port].bOpen)) {
+		return SDM_SUCCESS;
+	}
+
+	gSDMDriver[port].bOpen = FALSE;
+#endif
+	return SDM_SUCCESS;
 }
 
 /****************************************************************/
@@ -1676,77 +1576,74 @@ int32 SDM_Close(int32 cardId)
 //相关全局变量:读gSDMDriver[i]
 //注意:pBuf地址要求地址4字节对齐
 /****************************************************************/
-int32 SDM_Read(int32 cardId, uint32 blockNum, uint32 blockCount, void *pBuf)
+int32 SDM_Read(int32 cardId, uint32 blockNum, uint32 blockCount,
+	       void *pBuf)
 {
-    SDM_PORT_INFO_T *pSDMDriver;
-    uint32           port;
-    int32            ret = SDM_SUCCESS;
-    uint32           mul;
-    //PRINT_E("SDM_Read blockNum = %x %x\n",blockNum , blockCount);
-    Assert((blockCount != 0), "SDM_Read:read count = 0\n", blockCount);
-    if (blockCount == 0)
-    {
-        return SDM_PARAM_ERROR;
-    }
+	SDM_PORT_INFO_T *pSDMDriver;
+	uint32 port;
+	int32 ret = SDM_SUCCESS;
+	uint32 mul;
+	//PRINT_E("SDM_Read blockNum = %x %x\n",blockNum , blockCount);
+	Assert((blockCount != 0), "SDM_Read:read count = 0\n", blockCount);
+	if (blockCount == 0) {
+		return SDM_PARAM_ERROR;
+	}
 
-    if(SDC2 == cardId)
-    {
-        port = SDC2;
-    }
-    else
-    {
-        if ((!SDC_IsCardIdValid(cardId)) || (!_IsCardRegistered(cardId, &port)))
-        {
-            return SDM_PARAM_ERROR;
-        }
-    }
+	if (SDC2 == cardId) {
+		port = SDC2;
+	} else {
+		if ((!SDC_IsCardIdValid(cardId))
+		    || (!_IsCardRegistered(cardId, &port))) {
+			return SDM_PARAM_ERROR;
+		}
+	}
 
-    pSDMDriver = &gSDMDriver[port];
-    if (((blockNum + blockCount) > (pSDMDriver->cardInfo.capability)))//(blockCount > (pSDMDriver->cardInfo.capability)) || 
-    {
-        return SDM_PARAM_ERROR;
-    }
-    
-    if((pSDMDriver->cardInfo.type) & (SDHC | eMMC2G))
-    {
-        mul = 0;  //SDHC地址是以block(512)为单位的，而早期协议地址是以byte为单位
-    }
-    else
-    {
-        mul = 9;
-    }
-    
-    SDOAM_RequestMutex(pSDMDriver->mutex);
-    if (pSDMDriver->bOpen)
-    {
-        #if 0
-        int i;
-        char * pu8buf = pBuf;
-        for(i=0;i<blockCount;i++)
-        {
-            ret = (pSDMDriver->cardInfo.fun.read)(cardId, ((blockNum+i) << mul), 1, pu8buf+i*512);
-            if(ret != SDM_SUCCESS)
-            {
-                SDM_Close(cardId);
-                break;
-            }
-        }
-        #else
-        //地址4字节对齐
-        ret = (pSDMDriver->cardInfo.fun.read)(cardId, (blockNum << mul), blockCount, pBuf);
-        if(ret != SDM_SUCCESS)
-        {
-            SDM_Close(cardId);
-        }
-        #endif
-    }
-    else
-    {
-        ret = SDM_CARD_CLOSED;
-    }
-    SDOAM_ReleaseMutex(pSDMDriver->mutex);
+	pSDMDriver = &gSDMDriver[port];
+	if (((blockNum + blockCount) > (pSDMDriver->cardInfo.capability)))	//(blockCount > (pSDMDriver->cardInfo.capability)) || 
+	{
+		return SDM_PARAM_ERROR;
+	}
 
-    return ret;
+	if ((pSDMDriver->cardInfo.type) & (SDHC | eMMC2G)) {
+		mul = 0;	//SDHC地址是以block(512)为单位的，而早期协议地址是以byte为单位
+	} else {
+		mul = 9;
+	}
+
+	SDOAM_RequestMutex(pSDMDriver->mutex);
+	if (pSDMDriver->bOpen) {
+#if 0
+		int i;
+		char *pu8buf = pBuf;
+		for (i = 0; i < blockCount; i++) {
+			ret =
+			    (pSDMDriver->cardInfo.fun.read) (cardId,
+							     ((blockNum +
+							       i) << mul),
+							     1,
+							     pu8buf +
+							     i * 512);
+			if (ret != SDM_SUCCESS) {
+				SDM_Close(cardId);
+				break;
+			}
+		}
+#else
+		//地址4字节对齐
+		ret =
+		    (pSDMDriver->cardInfo.fun.read) (cardId,
+						     (blockNum << mul),
+						     blockCount, pBuf);
+		if (ret != SDM_SUCCESS) {
+			SDM_Close(cardId);
+		}
+#endif
+	} else {
+		ret = SDM_CARD_CLOSED;
+	}
+	SDOAM_ReleaseMutex(pSDMDriver->mutex);
+
+	return ret;
 }
 
 /****************************************************************/
@@ -1760,67 +1657,61 @@ int32 SDM_Read(int32 cardId, uint32 blockNum, uint32 blockCount, void *pBuf)
 //相关全局变量:读gSDMDriver[i]
 //注意:pBuf地址要求地址4字节对齐
 /****************************************************************/
-int32 SDM_Write(int32 cardId, uint32 blockNum, uint32 blockCount, void *pBuf)
+int32 SDM_Write(int32 cardId, uint32 blockNum, uint32 blockCount,
+		void *pBuf)
 {
-    SDM_PORT_INFO_T *pSDMDriver;
-    uint32           port;
-    int32            ret = SDM_SUCCESS;
-    uint32           mul;
+	SDM_PORT_INFO_T *pSDMDriver;
+	uint32 port;
+	int32 ret = SDM_SUCCESS;
+	uint32 mul;
 
-    Assert((blockCount != 0), "SDM_Write:read count = 0\n", blockCount);
-    if (blockCount == 0)
-    {
-        return SDM_PARAM_ERROR;
-    }
+	Assert((blockCount != 0), "SDM_Write:read count = 0\n",
+	       blockCount);
+	if (blockCount == 0) {
+		return SDM_PARAM_ERROR;
+	}
 
-    if(SDC2 == cardId)
-    {
-        port = SDC2;
-    }
-    else
-    {
-        if ((!SDC_IsCardIdValid(cardId)) || (!_IsCardRegistered(cardId, &port)))
-        {
-            return SDM_PARAM_ERROR;
-        }
-    }
+	if (SDC2 == cardId) {
+		port = SDC2;
+	} else {
+		if ((!SDC_IsCardIdValid(cardId))
+		    || (!_IsCardRegistered(cardId, &port))) {
+			return SDM_PARAM_ERROR;
+		}
+	}
 
-    pSDMDriver = &gSDMDriver[port];
-    if (((blockNum + blockCount) > (pSDMDriver->cardInfo.capability)))//(blockCount > (pSDMDriver->cardInfo.capability)) || 
-    {
-        return SDM_PARAM_ERROR;
-    }
+	pSDMDriver = &gSDMDriver[port];
+	if (((blockNum + blockCount) > (pSDMDriver->cardInfo.capability)))	//(blockCount > (pSDMDriver->cardInfo.capability)) || 
+	{
+		return SDM_PARAM_ERROR;
+	}
 
-    if (pSDMDriver->cardInfo.WriteProt) //只有SD卡才有写保护,MMC卡这个值总是为0
-    {
-        return SDM_CARD_WRITE_PROT;
-    }
+	if (pSDMDriver->cardInfo.WriteProt)	//只有SD卡才有写保护,MMC卡这个值总是为0
+	{
+		return SDM_CARD_WRITE_PROT;
+	}
 
-    if((pSDMDriver->cardInfo.type) & (SDHC | eMMC2G))
-    {
-        mul = 0;  //SDHC地址是以block(512)为单位的，而早期协议地址是以byte为单位
-    }
-    else
-    {
-        mul = 9;
-    }
-    
-    SDOAM_RequestMutex(pSDMDriver->mutex);
-    if (pSDMDriver->bOpen)
-    {
-        ret = (pSDMDriver->cardInfo.fun.write)(cardId, (blockNum << mul), blockCount, pBuf);
-        if(ret != SDM_SUCCESS)
-        {
-            SDM_Close(cardId);
-        }
-    }
-    else
-    {
-        ret = SDM_CARD_CLOSED;
-    }
-    SDOAM_ReleaseMutex(pSDMDriver->mutex);
+	if ((pSDMDriver->cardInfo.type) & (SDHC | eMMC2G)) {
+		mul = 0;	//SDHC地址是以block(512)为单位的，而早期协议地址是以byte为单位
+	} else {
+		mul = 9;
+	}
 
-    return ret;
+	SDOAM_RequestMutex(pSDMDriver->mutex);
+	if (pSDMDriver->bOpen) {
+		ret =
+		    (pSDMDriver->cardInfo.fun.write) (cardId,
+						      (blockNum << mul),
+						      blockCount, pBuf);
+		if (ret != SDM_SUCCESS) {
+			SDM_Close(cardId);
+		}
+	} else {
+		ret = SDM_CARD_CLOSED;
+	}
+	SDOAM_ReleaseMutex(pSDMDriver->mutex);
+
+	return ret;
 }
 
 /****************************************************************/
@@ -1834,221 +1725,177 @@ int32 SDM_Write(int32 cardId, uint32 blockNum, uint32 blockCount, void *pBuf)
 /****************************************************************/
 int32 SDM_IOCtrl(uint32 cmd, void *param)
 {
-    uint32           port = SDM_MAX_MANAGER_PORT;
-    int32            ret = SDM_SUCCESS;
-    uint32          *pTmp = NULL;
-    int32            cardId = SDM_INVALID_CARDID;
+	uint32 port = SDM_MAX_MANAGER_PORT;
+	int32 ret = SDM_SUCCESS;
+	uint32 *pTmp = NULL;
+	int32 cardId = SDM_INVALID_CARDID;
 
-    pTmp = (uint32 *)param;
-    cardId = (int32)pTmp[0];
+	pTmp = (uint32 *) param;
+	cardId = (int32) pTmp[0];
 
-    if (!(cmd == SDM_IOCTRL_REGISTER_CARD))
-    {
-        if ((!SDC_IsCardIdValid(cardId)) || (!_IsCardRegistered(cardId, &port)))
-        {
-            if(cmd == SDM_IOCTR_IS_CARD_READY)
-            {
-                pTmp[1] = FALSE;
-            }
-            else if(cmd == SDM_IOCTR_GET_CAPABILITY)
-            {
-                pTmp[1] = 0;
-            }
-            else if(cmd == SDM_IOCTR_GET_PSN)
-            {
-                pTmp[1] = (uint32)NULL;//
-            }
-            else
-            {
-            }
-            return SDM_PARAM_ERROR;
-        }
-    }
-    else
-    {
-        if(!SDC_IsCardIdValid(cardId))
-        {
-            return SDM_PARAM_ERROR;
-        }
-    }
+	if (!(cmd == SDM_IOCTRL_REGISTER_CARD)) {
+		if ((!SDC_IsCardIdValid(cardId))
+		    || (!_IsCardRegistered(cardId, &port))) {
+			if (cmd == SDM_IOCTR_IS_CARD_READY) {
+				pTmp[1] = FALSE;
+			} else if (cmd == SDM_IOCTR_GET_CAPABILITY) {
+				pTmp[1] = 0;
+			} else if (cmd == SDM_IOCTR_GET_PSN) {
+				pTmp[1] = (uint32) NULL;	//
+			} else {
+			}
+			return SDM_PARAM_ERROR;
+		}
+	} else {
+		if (!SDC_IsCardIdValid(cardId)) {
+			return SDM_PARAM_ERROR;
+		}
+	}
 
-    switch (cmd)
-    {
-        case SDM_IOCTRL_REGISTER_CARD:
-            ret = _IdentifyCard(cardId);
-            break;
-        case SDM_IOCTRL_UNREGISTER_CARD:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);  //hcy 09-09-22 等前面的读写完成，否则直接进去关控制器会使得前面的读写while在控制器驱动中
-            _UnRegisterCard(cardId);
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
-#if(0)//SD_CARD_Support)
-        case SDM_IOCTRL_SET_PASSWORD:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            if (gSDMDriver[port].bOpen)
-            {
-                ret = _SetPassword(cardId, (uint8 *)pTmp[1], (uint8 *)pTmp[2], (bool)pTmp[3]);
-                if (ret == SDM_CARD_NOTPRESENT)
-                {
-                    SDM_Close(cardId);
-                }
-            }
-            else
-            {
-                ret = SDM_CARD_CLOSED;
-            }
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
-        case SDM_IOCTRL_CLEAR_PASSWORD:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            if (gSDMDriver[port].bOpen)
-            {
-                ret = _ClearPassword(cardId, (uint8 *)pTmp[1]);
-                if (ret == SDM_CARD_NOTPRESENT)
-                {
-                    SDM_Close(cardId);
-                }
-            }
-            else
-            {
-                ret = SDM_CARD_CLOSED;
-            }
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
-        case SDM_IOCTRL_FORCE_ERASE_PASSWORD:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            if (gSDMDriver[port].bOpen)
-            {
-                ret = _ForceErasePassword(cardId);
-                if (ret == SDM_CARD_NOTPRESENT)
-                {
-                    SDM_Close(cardId);
-                }
-            }
-            else
-            {
-                ret = SDM_CARD_CLOSED;
-            }
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
-        case SDM_IOCTRL_LOCK_CARD:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            if (gSDMDriver[port].bOpen)
-            {
-                ret = _LockCard(cardId, (uint8 *)pTmp[1]);
-                if (ret == SDM_CARD_NOTPRESENT)
-                {
-                    SDM_Close(cardId);
-                }
-            }
-            else
-            {
-                ret = SDM_CARD_CLOSED;
-            }
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
-        case SDM_IOCTRL_UNLOCK_CARD:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            if (gSDMDriver[port].bOpen)
-            {
-                ret = _UnLockCard(cardId, (uint8 *)pTmp[1]);
-                if (ret == SDM_CARD_NOTPRESENT)
-                {
-                    SDM_Close(cardId);
-                }
-            }
-            else
-            {
-                ret = SDM_CARD_CLOSED;
-            }
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
-        case SDM_IOCTR_FLUSH:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            if (gSDMDriver[port].bOpen)
-            {
-                ret = SDC_WaitCardBusy(cardId);
-            }
-            else
-            {
-                ret = SDM_CARD_CLOSED;
-            }
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
+	switch (cmd) {
+	case SDM_IOCTRL_REGISTER_CARD:
+		ret = _IdentifyCard(cardId);
+		break;
+	case SDM_IOCTRL_UNREGISTER_CARD:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);	//hcy 09-09-22 等前面的读写完成，否则直接进去关控制器会使得前面的读写while在控制器驱动中
+		_UnRegisterCard(cardId);
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
+#if(0)				//SD_CARD_Support)
+	case SDM_IOCTRL_SET_PASSWORD:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		if (gSDMDriver[port].bOpen) {
+			ret =
+			    _SetPassword(cardId, (uint8 *) pTmp[1],
+					 (uint8 *) pTmp[2],
+					 (bool) pTmp[3]);
+			if (ret == SDM_CARD_NOTPRESENT) {
+				SDM_Close(cardId);
+			}
+		} else {
+			ret = SDM_CARD_CLOSED;
+		}
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
+	case SDM_IOCTRL_CLEAR_PASSWORD:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		if (gSDMDriver[port].bOpen) {
+			ret = _ClearPassword(cardId, (uint8 *) pTmp[1]);
+			if (ret == SDM_CARD_NOTPRESENT) {
+				SDM_Close(cardId);
+			}
+		} else {
+			ret = SDM_CARD_CLOSED;
+		}
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
+	case SDM_IOCTRL_FORCE_ERASE_PASSWORD:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		if (gSDMDriver[port].bOpen) {
+			ret = _ForceErasePassword(cardId);
+			if (ret == SDM_CARD_NOTPRESENT) {
+				SDM_Close(cardId);
+			}
+		} else {
+			ret = SDM_CARD_CLOSED;
+		}
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
+	case SDM_IOCTRL_LOCK_CARD:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		if (gSDMDriver[port].bOpen) {
+			ret = _LockCard(cardId, (uint8 *) pTmp[1]);
+			if (ret == SDM_CARD_NOTPRESENT) {
+				SDM_Close(cardId);
+			}
+		} else {
+			ret = SDM_CARD_CLOSED;
+		}
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
+	case SDM_IOCTRL_UNLOCK_CARD:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		if (gSDMDriver[port].bOpen) {
+			ret = _UnLockCard(cardId, (uint8 *) pTmp[1]);
+			if (ret == SDM_CARD_NOTPRESENT) {
+				SDM_Close(cardId);
+			}
+		} else {
+			ret = SDM_CARD_CLOSED;
+		}
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
+	case SDM_IOCTR_FLUSH:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		if (gSDMDriver[port].bOpen) {
+			ret = SDC_WaitCardBusy(cardId);
+		} else {
+			ret = SDM_CARD_CLOSED;
+		}
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
 #endif
-        case SDM_IOCTR_GET_CAPABILITY:
-            if (gSDMDriver[port].bOpen)
-            {
-                pTmp[1] = gSDMDriver[port].cardInfo.capability;
-            }
-            else
-            {
-                pTmp[1] = 0;
-                ret = SDM_CARD_CLOSED;
-            }
-            break;
-        case SDM_IOCTR_GET_PSN:
-            if (gSDMDriver[port].bOpen)
-            {
-                pTmp[1] = gSDMDriver[port].cardInfo.psn;
-            }
-            else
-            {
-                pTmp[1] = (uint32)NULL;
-                ret = SDM_CARD_CLOSED;
-            }
-            break;
-        case SDM_IOCTR_IS_CARD_READY:
-            if (gSDMDriver[port].bOpen)
-            {
-                pTmp[1] = TRUE;
-            }
-            else
-            {
-                pTmp[1] = FALSE;
-                ret = SDM_CARD_CLOSED;
-            }
-            break;
-        case SDM_IOCTR_GET_BOOT_CAPABILITY:
-            if (gSDMDriver[port].bOpen)
-            {
-                pTmp[1] = gSDMDriver[port].cardInfo.bootSize;
-            }
-            else
-            {
-                pTmp[1] = 0;
-                ret = SDM_CARD_CLOSED;
-            }
-            break;
-        case SDM_IOCTR_INIT_BOOT_PARTITION:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            ret = _SwitchBoot(cardId, 1, pTmp[1]);
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
-        case SDM_IOCTR_DEINIT_BOOT_PARTITION:
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            ret = _SwitchBoot(cardId, 0, pTmp[1]);
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;
-            
-       case SDM_IOCTR_SET_BOOT_BUSWIDTH:      //设置boot模式下的线宽       
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            ret = _SetBootWidth(cardId, pTmp[1], pTmp[2]); 
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;    
+	case SDM_IOCTR_GET_CAPABILITY:
+		if (gSDMDriver[port].bOpen) {
+			pTmp[1] = gSDMDriver[port].cardInfo.capability;
+		} else {
+			pTmp[1] = 0;
+			ret = SDM_CARD_CLOSED;
+		}
+		break;
+	case SDM_IOCTR_GET_PSN:
+		if (gSDMDriver[port].bOpen) {
+			pTmp[1] = gSDMDriver[port].cardInfo.psn;
+		} else {
+			pTmp[1] = (uint32) NULL;
+			ret = SDM_CARD_CLOSED;
+		}
+		break;
+	case SDM_IOCTR_IS_CARD_READY:
+		if (gSDMDriver[port].bOpen) {
+			pTmp[1] = TRUE;
+		} else {
+			pTmp[1] = FALSE;
+			ret = SDM_CARD_CLOSED;
+		}
+		break;
+	case SDM_IOCTR_GET_BOOT_CAPABILITY:
+		if (gSDMDriver[port].bOpen) {
+			pTmp[1] = gSDMDriver[port].cardInfo.bootSize;
+		} else {
+			pTmp[1] = 0;
+			ret = SDM_CARD_CLOSED;
+		}
+		break;
+	case SDM_IOCTR_INIT_BOOT_PARTITION:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		ret = _SwitchBoot(cardId, 1, pTmp[1]);
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
+	case SDM_IOCTR_DEINIT_BOOT_PARTITION:
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		ret = _SwitchBoot(cardId, 0, pTmp[1]);
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
 
-        case SDM_IOCTR_ACCESS_BOOT_PARTITION: //选择读写的区域; 0--用户区；1--boot1； 2--boot2;
-            SDOAM_RequestMutex(gSDMDriver[port].mutex);
-            ret = _AccessBootPartition(cardId, pTmp[1]);
-            SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
-            break;    
-            
-        default:
-            ret = SDM_PARAM_ERROR;
-            break;
-    }
+	case SDM_IOCTR_SET_BOOT_BUSWIDTH:	//设置boot模式下的线宽       
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		ret = _SetBootWidth(cardId, pTmp[1], pTmp[2]);
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
 
-    return ret;
+	case SDM_IOCTR_ACCESS_BOOT_PARTITION:	//选择读写的区域; 0--用户区；1--boot1； 2--boot2;
+		SDOAM_RequestMutex(gSDMDriver[port].mutex);
+		ret = _AccessBootPartition(cardId, pTmp[1]);
+		SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+		break;
+
+	default:
+		ret = SDM_PARAM_ERROR;
+		break;
+	}
+
+	return ret;
 }
 
 /****************************************************************/
@@ -2060,39 +1907,34 @@ int32 SDM_IOCtrl(uint32 cmd, void *param)
 //注意:
 /****************************************************************/
 int32 SDM_SendCmd(int32 cardId,
-                            uint32 cmd,
-                            uint32 cmdArg,
-                            uint32 *responseBuf,
-                            uint32  blockSize,
-                            uint32  dataLen,
-                            void   *pDataBuf)
+		  uint32 cmd,
+		  uint32 cmdArg,
+		  uint32 * responseBuf,
+		  uint32 blockSize, uint32 dataLen, void *pDataBuf)
 {
-    int32    ret = SDM_SUCCESS;
-    uint32   port = SDM_MAX_MANAGER_PORT;
+	int32 ret = SDM_SUCCESS;
+	uint32 port = SDM_MAX_MANAGER_PORT;
 
-    if ((!SDC_IsCardIdValid(cardId)) || (!_IsCardRegistered(cardId, &port)))
-    {
-        return SDM_PARAM_ERROR;
-    }
+	if ((!SDC_IsCardIdValid(cardId))
+	    || (!_IsCardRegistered(cardId, &port))) {
+		return SDM_PARAM_ERROR;
+	}
 
-    SDOAM_RequestMutex(gSDMDriver[port].mutex);
-    if (gSDMDriver[port].bOpen)
-    {
-        //地址4字节对齐
-        ret = SDC_BusRequest(cardId, cmd, cmdArg, responseBuf, blockSize, dataLen, pDataBuf);
-        if (ret != SDM_SUCCESS)
-        {
-            SDM_Close(cardId);
-        }
-    }
-    else
-    {
-        ret = SDM_CARD_CLOSED;
-    }
-    SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
+	SDOAM_RequestMutex(gSDMDriver[port].mutex);
+	if (gSDMDriver[port].bOpen) {
+		//地址4字节对齐
+		ret =
+		    SDC_BusRequest(cardId, cmd, cmdArg, responseBuf,
+				   blockSize, dataLen, pDataBuf);
+		if (ret != SDM_SUCCESS) {
+			SDM_Close(cardId);
+		}
+	} else {
+		ret = SDM_CARD_CLOSED;
+	}
+	SDOAM_ReleaseMutex(gSDMDriver[port].mutex);
 
-    return ret;
+	return ret;
 }
 
 #endif //end of #ifdef DRIVERS_SDMMC
-
