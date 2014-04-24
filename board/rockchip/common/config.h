@@ -38,11 +38,11 @@ Revision:		1.00
 #define     LOAD_OEM_DATA
 //#define     RK_LOADER_FOR_FT
 #define     DRIVERS_UART
-#define     DRIVERS_NAND
+#define     DRIVERS_NAND   
 #define 	RK28_FPGA		0
 #define     RK_SDMMC_BOOT_EN
 //#define     L2CACHE_ENABLE
-//define                DRIVERS_MMU
+//define		DRIVERS_MMU
 #define __packed __attribute__((packed))
 #define __align(x) __attribute__ ((aligned(x)))
 
@@ -53,7 +53,7 @@ Revision:		1.00
 #ifdef RK_SDMMC_BOOT_EN
 #define DRIVERS_SDMMC
 #endif
-#ifdef RK_FLASH_BOOT_EN
+#ifdef RK_FLASH_BOOT_EN 
 #define DRIVERS_FLASH
 #endif
 
@@ -105,7 +105,7 @@ Revision:		1.00
 #ifdef  DRIVERS_FLASH
 #include    "FlashBoot.h"
 #include 	"flash.h"	//FLASH头文件
-#include 	"ftl.h"		//FTL头文件
+#include 	"ftl.h"	//FTL头文件
 #include    "LoaderFlash.h"
 #include    "FTL_OSDepend.h"
 #endif
@@ -125,8 +125,8 @@ Revision:		1.00
 #endif
 
 
-#define	BOOT_ONLY		//定义只生成中间件引导代码, 不定义是完整可测试的文件系统
-#define DEBUG			// 定义DEBUG模式，将打印信息输出到串口
+#define	BOOT_ONLY           //定义只生成中间件引导代码, 不定义是完整可测试的文件系统
+#define DEBUG				// 定义DEBUG模式，将打印信息输出到串口
 
 #define USE_RECOVER		// cmy: 禁止Recover功能(自动修复kernel/boot/recovery)
 #define USE_RECOVER_IMG
@@ -134,51 +134,51 @@ Revision:		1.00
 //#define DRIVERS_USB_APP
 
 #ifndef BOOT_ONLY
-#define	IN_SYSTEM		//嵌入到系统软件时定义
-#define	OS_FILE			//定义OS下的文件系统
+#define	IN_SYSTEM           //嵌入到系统软件时定义
+#define	OS_FILE             //定义OS下的文件系统
 #endif
 
-//#include                      "../common/dma.h"
+//#include 			"../common/dma.h"
 extern uint32 SecureBootEn;
 extern uint32 SecureBootCheckOK;
 extern uint32 g_BootRockusb;
-extern uint32 SecureBootLock;
-extern uint32 SecureBootLock_backup;
+extern uint32  SecureBootLock;
+extern uint32  SecureBootLock_backup;
 
 #include            "rockusb/dwc_otg_regs.h"
-#include 		    "rockusb/rockusb.h"	//固件升级头文件
+#include 		    "rockusb/rockusb.h"  //固件升级头文件
 //#include            "gpio_oper.h"
 //#include            "bootloader.h"
 #include			"parameter.h"	// Loader参数文件
-//#include                      "../common/rk_dbg.h"            // debug file
+//#include			"../common/rk_dbg.h"		// debug file
 //#include            "hw_mm.h" // MMU
 //#include            "../common/A8MMU/hwapi_Cache.h" // MMU
 
 
 // by cmy
-#define SYS_LOADER_REBOOT_FLAG   0x5242C300	//高24是TAG,低8位是标记
-#define SYS_KERNRL_REBOOT_FLAG   0xC3524200	//高24是TAG,低8位是标记
+#define SYS_LOADER_REBOOT_FLAG   0x5242C300  //高24是TAG,低8位是标记
+#define SYS_KERNRL_REBOOT_FLAG   0xC3524200  //高24是TAG,低8位是标记
 #define SYS_LOADER_ERR_FLAG      0X1888AAFF
 
 enum {
-	BOOT_NORMAL = 0,
-	BOOT_LOADER,		/* enter loader rockusb mode */
-	BOOT_MASKROM,		/* enter maskrom rockusb mode */
-	BOOT_RECOVER,		/* enter recover */
-	BOOT_NORECOVER,		/* do not enter recover */
-	BOOT_WINCE,		/* FOR OTHER SYSTEM */
-	BOOT_WIPEDATA,		/* enter recover and wipe data. */
-	BOOT_WIPEALL,		/* enter recover and wipe all data. */
-	BOOT_CHECKIMG,		/* check firmware img with backup part(in loader mode) */
-	BOOT_FASTBOOT,
-	BOOT_SECUREBOOT_DISABLE,
-	BOOT_CHARGING,
-	BOOT_MAX		/* MAX VALID BOOT TYPE. */
+    BOOT_NORMAL=                  0,
+    BOOT_LOADER,     /* enter loader rockusb mode */
+    BOOT_MASKROM,    /* enter maskrom rockusb mode*/
+    BOOT_RECOVER,    /* enter recover */
+    BOOT_NORECOVER,  /* do not enter recover */
+    BOOT_WINCE,      /* FOR OTHER SYSTEM */
+    BOOT_WIPEDATA,   /* enter recover and wipe data. */
+    BOOT_WIPEALL,    /* enter recover and wipe all data. */
+    BOOT_CHECKIMG,   /* check firmware img with backup part(in loader mode)*/
+    BOOT_FASTBOOT,
+    BOOT_SECUREBOOT_DISABLE,
+    BOOT_CHARGING,
+    BOOT_MAX         /* MAX VALID BOOT TYPE.*/
 };
 
-uint32 RkldTimerGetTick(void);
-void loader_tag_set_timer(__u32 t0, __u32 t1);
-extern void UsbIsr(void);
+uint32 RkldTimerGetTick( void );
+void loader_tag_set_timer( __u32 t0 , __u32 t1);
+extern	void UsbIsr(void);
 
 
 #endif
@@ -186,3 +186,4 @@ extern void UsbIsr(void);
 /*********************************************************************************************************
 **                            End Of File
 ********************************************************************************************************/
+

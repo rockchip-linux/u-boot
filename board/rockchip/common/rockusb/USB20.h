@@ -48,200 +48,218 @@ RK28XX  0x071b  0x3228  0x81    0x02
 #define ALIGN(x) __attribute__ ((aligned(x)))
 #endif
 
-#define 		iManufactuer		0	/*厂商描述符字符串索引 */
-#define 		iProduct			0	/*产品描述符字符串索引 */
-#define 		iSerialNumber		0	/*设备序列号字符串索引 */
-#define 		iConfiguration		0	/*配置描述符字符串索引 */
-#define 		iInterface			0	/*接口描述符字符串索引 */
+#define 		iManufactuer		0		/*厂商描述符字符串索引*/
+#define 		iProduct			0		/*产品描述符字符串索引*/
+#define 		iSerialNumber		0		/*设备序列号字符串索引*/
+#define 		iConfiguration		0		/*配置描述符字符串索引*/
+#define 		iInterface			0		/*接口描述符字符串索引*/
 
 
 //1结构定义
 //设备描述符结构
-typedef PACKED1 struct _USB_DEVICE_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint16 bcdUSB;
-	uint8 bDeviceClass;
-	uint8 bDeviceSubClass;
-	uint8 bDeviceProtocol;
-	uint8 bMaxPacketSize0;
-	uint16 idVendor;
-	uint16 idProduct;
-	uint16 bcdDevice;
-	uint8 iiManufacturer;
-	uint8 iiProduct;
-	uint8 iiSerialNumber;
-	uint8 bNumConfigurations;
-} PACKED2 USB_DEVICE_DESCRIPTOR, *PUSB_DEVICE_DESCRIPTOR;
+typedef PACKED1 struct _USB_DEVICE_DESCRIPTOR
+{
+    uint8		bLength;
+    uint8		bDescriptorType;
+    uint16 		bcdUSB;
+    uint8 		bDeviceClass;
+    uint8 		bDeviceSubClass;
+    uint8 		bDeviceProtocol;
+    uint8 		bMaxPacketSize0;
+    uint16 		idVendor;
+    uint16 		idProduct;
+    uint16 		bcdDevice;
+    uint8 		iiManufacturer;
+    uint8 		iiProduct;
+    uint8 		iiSerialNumber;
+    uint8 		bNumConfigurations;
+}PACKED2 USB_DEVICE_DESCRIPTOR, *PUSB_DEVICE_DESCRIPTOR;
 
 //端点描述符结构
-typedef PACKED1 struct _USB_ENDPOINT_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint8 bEndpointAddress;
-	uint8 bmAttributes;
-	uint16 wMaxPacketSize;
-	uint8 bInterval;
-} PACKED2 USB_ENDPOINT_DESCRIPTOR, *PUSB_ENDPOINT_DESCRIPTOR;
+typedef PACKED1 struct _USB_ENDPOINT_DESCRIPTOR
+{
+    uint8 		bLength;
+    uint8 		bDescriptorType;
+    uint8 		bEndpointAddress;
+    uint8 		bmAttributes;
+    uint16 		wMaxPacketSize;
+    uint8 		bInterval;
+}PACKED2 USB_ENDPOINT_DESCRIPTOR, *PUSB_ENDPOINT_DESCRIPTOR;
 
 
 //配置描述符结构
-typedef PACKED1 struct _USB_CONFIGURATION_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint16 wTotalLength;
-	uint8 bNumInterfaces;
-	uint8 bConfigurationValue;
-	uint8 iiConfiguration;
-	uint8 bmAttributes;
-	uint8 MaxPower;
-} PACKED2 USB_CONFIGURATION_DESCRIPTOR, *PUSB_CONFIGURATION_DESCRIPTOR;
+typedef PACKED1 struct  _USB_CONFIGURATION_DESCRIPTOR
+{
+    uint8 		bLength;
+    uint8 		bDescriptorType;
+    uint16		wTotalLength;
+    uint8 		bNumInterfaces;
+    uint8 		bConfigurationValue;
+    uint8 		iiConfiguration;
+    uint8 		bmAttributes;
+    uint8 		MaxPower;
+}PACKED2 USB_CONFIGURATION_DESCRIPTOR, *PUSB_CONFIGURATION_DESCRIPTOR;
 
 //接口描述符结构
-typedef PACKED1 struct _USB_INTERFACE_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint8 bInterfaceNumber;
-	uint8 bAlternateSetting;
-	uint8 bNumEndpoints;
-	uint8 bInterfaceClass;
-	uint8 bInterfaceSubClass;
-	uint8 bInterfaceProtocol;
-	uint8 iiInterface;
-} PACKED2 USB_INTERFACE_DESCRIPTOR, *PUSB_INTERFACE_DESCRIPTOR;
+typedef PACKED1 struct _USB_INTERFACE_DESCRIPTOR
+{
+    uint8 		bLength;
+    uint8 		bDescriptorType;
+    uint8 		bInterfaceNumber;
+    uint8 		bAlternateSetting;
+    uint8 		bNumEndpoints;
+    uint8 		bInterfaceClass;
+    uint8 		bInterfaceSubClass;
+    uint8 		bInterfaceProtocol;
+    uint8 		iiInterface;
+}PACKED2 USB_INTERFACE_DESCRIPTOR, *PUSB_INTERFACE_DESCRIPTOR;
 
 //配置描述符集合描述符结构
-typedef PACKED1 struct _USB_CONFIGS_DESCRIPTOR {
-	USB_CONFIGURATION_DESCRIPTOR Config;
-	USB_INTERFACE_DESCRIPTOR Interface;
-	USB_ENDPOINT_DESCRIPTOR BulkIn;
-	USB_ENDPOINT_DESCRIPTOR BulkOut;
-} PACKED2 USB_CONFIGS_DESCRIPTOR;
+typedef PACKED1 struct _USB_CONFIGS_DESCRIPTOR
+{
+    USB_CONFIGURATION_DESCRIPTOR Config;
+    USB_INTERFACE_DESCRIPTOR Interface;
+    USB_ENDPOINT_DESCRIPTOR BulkIn;
+    USB_ENDPOINT_DESCRIPTOR BulkOut;
+}PACKED2 USB_CONFIGS_DESCRIPTOR;
 
 //高速设备的其它速度配置描述符
-typedef PACKED1 struct _OTHER_SPEED_CONFIG_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint16 wTotalLength;
-	uint8 bNumInterfaces;
-	uint8 bConfigurationValue;
-	uint8 iiConfiguration;
-	uint8 bmAttributes;
-	uint8 MaxPower;
-} PACKED2 OTHER_SPEED_CONFIG_DESCRIPTOR;
+typedef PACKED1 struct _OTHER_SPEED_CONFIG_DESCRIPTOR
+{
+    uint8 		bLength;
+    uint8 		bDescriptorType;
+    uint16		wTotalLength;
+    uint8 		bNumInterfaces;
+    uint8 		bConfigurationValue;
+    uint8 		iiConfiguration;
+    uint8 		bmAttributes;
+    uint8 		MaxPower;
+}PACKED2 OTHER_SPEED_CONFIG_DESCRIPTOR;
 
 //字符串描述符结构
-typedef PACKED1 struct _USB_STRING_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint8 bString[1];
-} PACKED2 USB_STRING_DESCRIPTOR, *PUSB_STRING_DESCRIPTOR;
+typedef PACKED1 struct _USB_STRING_DESCRIPTOR
+{
+    uint8 		bLength;
+    uint8 		bDescriptorType;
+    uint8 		bString[1];
+}PACKED2 USB_STRING_DESCRIPTOR, *PUSB_STRING_DESCRIPTOR;
 
 
 //高速设备限制描述符
-typedef PACKED1 struct _HS_DEVICE_QUALIFIER {
-	uint8 bLength;		//length of HS Device Descriptor
-	uint8 bQualifier;	//HS Device Qualifier Type
-	uint16 wVersion;	// USB 2.0 version
-	uint8 bDeviceClass;	//Device class
-	uint8 bDeviceSubClasss;	//Device SubClass
-	uint8 bProtocol;	//Device Protocol Code
-	uint8 MaxPktSize;	//Maximum Packet SIze for other speed
-	uint8 bOther_Config;	//Number of Other speed configurations
-	uint8 Reserved;		//Reserved
-} PACKED2 HS_DEVICE_QUALIFIER;
+typedef PACKED1 struct _HS_DEVICE_QUALIFIER
+{
+	uint8	bLength;			//length of HS Device Descriptor
+	uint8	bQualifier; 			//HS Device Qualifier Type
+	uint16	wVersion;			// USB 2.0 version
+	uint8	bDeviceClass;		//Device class
+	uint8	bDeviceSubClasss;	//Device SubClass
+	uint8	bProtocol;			//Device Protocol Code
+	uint8	MaxPktSize;			//Maximum Packet SIze for other speed
+	uint8	bOther_Config;		//Number of Other speed configurations
+	uint8	Reserved;			//Reserved
+}PACKED2 HS_DEVICE_QUALIFIER;
 
 //BOS: group of device-level capabilities 
-typedef PACKED1 struct _USB_BOS_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint16 wTotalLength;
-	uint8 bNumDeviceCaps;
-} PACKED2 USB_BOS_DESCRIPTOR;
+typedef PACKED1 struct _USB_BOS_DESCRIPTOR
+{
+    uint8   bLength;
+    uint8   bDescriptorType;
+    uint16  wTotalLength;
+    uint8   bNumDeviceCaps;
+}PACKED2 USB_BOS_DESCRIPTOR;
 
 //Capability header descriptor 
-typedef PACKED1 struct _USB_DEVICE_CAP_HEADER {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint8 bDevCapabilityType;
+typedef PACKED1 struct _USB_DEVICE_CAP_HEADER
+{
+    uint8   bLength;
+    uint8   bDescriptorType;
+    uint8   bDevCapabilityType;
 } PACKED2 USB_DEVICE_CAP_HEADER;
 
 //BOS描述符集合描述符结构
-typedef PACKED1 struct _USB_BOS_ALL_DESCRIPTORS {
-	USB_BOS_DESCRIPTOR BosDescriptor;
-	USB_DEVICE_CAP_HEADER CapHeaderDescriptor;
-} PACKED2 USB_BOS_ALL_DESCRIPTORS;
+typedef PACKED1 struct _USB_BOS_ALL_DESCRIPTORS
+{
+    USB_BOS_DESCRIPTOR  BosDescriptor;
+    USB_DEVICE_CAP_HEADER  CapHeaderDescriptor;
+}PACKED2 USB_BOS_ALL_DESCRIPTORS;
 
 
 //电源描述符结构
-typedef struct _USB_POWER_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
-	uint8 bCapabilitiesFlags;
-	uint16 EventNotification;
-	uint16 D1LatencyTime;
-	uint16 D2LatencyTime;
-	uint16 D3LatencyTime;
-	uint8 PowerUnit;
-	uint16 D0PowerConsumption;
-	uint16 D1PowerConsumption;
-	uint16 D2PowerConsumption;
+typedef struct _USB_POWER_DESCRIPTOR
+{
+    uint8 		bLength;
+    uint8 		bDescriptorType;
+    uint8 		bCapabilitiesFlags;
+    uint16 		EventNotification;
+    uint16 		D1LatencyTime;
+    uint16 		D2LatencyTime;
+    uint16		D3LatencyTime;
+    uint8 		PowerUnit;
+    uint16 		D0PowerConsumption;
+    uint16 		D1PowerConsumption;
+    uint16 		D2PowerConsumption;
 } USB_POWER_DESCRIPTOR, *PUSB_POWER_DESCRIPTOR;
 
 
 //通用描述符结构
-typedef struct _USB_COMMON_DESCRIPTOR {
-	uint8 bLength;
-	uint8 bDescriptorType;
+typedef struct _USB_COMMON_DESCRIPTOR 
+{
+    uint8 		bLength;
+    uint8 		bDescriptorType;
 } USB_COMMON_DESCRIPTOR, *PUSB_COMMON_DESCRIPTOR;
 
 
 //标准HUB描述符结构
-typedef struct _USB_HUB_DESCRIPTOR {
-	uint8 bDescriptorLength;	// Length of this descriptor
-	uint8 bDescriptorType;	// Hub configuration type
-	uint8 bNumberOfPorts;	// number of ports on this hub
-	uint16 wHubCharacteristics;	// Hub Charateristics
-	uint8 bPowerOnToPowerGood;	// port power on till power good in 2ms
-	uint8 bHubControlCurrent;	// max current in mA
-	// room for 255 ports power control and removable bitmask
-	uint8 bRemoveAndPowerMask[64];
+typedef struct _USB_HUB_DESCRIPTOR 
+{
+    uint8        	bDescriptorLength;      	// Length of this descriptor
+    uint8        	bDescriptorType;        	// Hub configuration type
+    uint8        	bNumberOfPorts;         	// number of ports on this hub
+    uint16	    	wHubCharacteristics;    	// Hub Charateristics
+    uint8       	bPowerOnToPowerGood;        // port power on till power good in 2ms
+    uint8       	bHubControlCurrent;     	// max current in mA
+    // room for 255 ports power control and removable bitmask
+    uint8        	bRemoveAndPowerMask[64];
 } USB_HUB_DESCRIPTOR, *PUSB_HUB_DESCRIPTOR;
 
 //设备请求结构
-typedef struct _device_request {
-	uint8 bmRequestType;
-	uint8 bRequest;
-	uint16 wValue;
-	uint16 wIndex;
-	uint16 wLength;
+typedef struct _device_request
+{
+	uint8 	bmRequestType;
+	uint8 	bRequest;
+	uint16	wValue;
+	uint16	wIndex;
+	uint16	wLength;
 } DEVICE_REQUEST;
 
 //I/O请求结构(用于DMA)
-typedef struct _IO_REQUEST {
-	uint16 uAddressL;
-	uint8 bAddressH;
-	uint16 uSize;
-	uint8 bCommand;
+typedef struct _IO_REQUEST 
+{
+	uint16	uAddressL;
+	uint8	bAddressH;
+	uint16	uSize;
+	uint8	bCommand;
 } IO_REQUEST, *PIO_REQUEST;
 
 
-#define MAX_CONTROLDATA_SIZE	8	//控制管道最大包长
+#define MAX_CONTROLDATA_SIZE	8		//控制管道最大包长
 //带数据的设备请求结构
-typedef struct _control_xfer {
+typedef struct _control_xfer
+{
 	DEVICE_REQUEST DeviceRequest;
-	uint16 wLength;
-	uint16 wCount;
-	uint8 *pData;
-//      uint8   dataBuffer[MAX_CONTROLDATA_SIZE];
+	uint16 	wLength;
+	uint16 	wCount;
+	uint8 	*pData;
+//	uint8 	dataBuffer[MAX_CONTROLDATA_SIZE];
 } CONTROL_XFER;
 
 
 
-typedef struct _TWAIN_FILEINFO {
-	uint8 bPage;		// bPage bit 7 - 5 map to uSize bit 18 - 16
-	uint8 uSizeH;		// uSize bit 15 - 8
-	uint8 uSizeL;		// uSize bit 7 - 0
+typedef struct _TWAIN_FILEINFO 
+{
+	uint8	bPage;		// bPage bit 7 - 5 map to uSize bit 18 - 16
+	uint8	uSizeH;		// uSize bit 15 - 8
+	uint8	uSizeL;		// uSize bit 7 - 0
 } TWAIN_FILEINFO, *PTWAIN_FILEINFO;
 
 
@@ -259,7 +277,7 @@ typedef struct _TWAIN_FILEINFO {
 #define			USB_DEVICE_CAPABILITY           0x10
 
 
-#define 		NUM_ENDPOINTS		2	//端点数除0外
+#define 		NUM_ENDPOINTS		2		//端点数除0外
 #define 		CONFIG_DESCRIPTOR_LENGTH    sizeof(USB_CONFIGURATION_DESCRIPTOR) \
 											+ sizeof(USB_INTERFACE_DESCRIPTOR) \
 											+ (NUM_ENDPOINTS * sizeof(USB_ENDPOINT_DESCRIPTOR))
@@ -381,7 +399,7 @@ typedef struct _TWAIN_FILEINFO {
 #define 		USB_DEVICE_CLASS_HUB                			0x09	//HUB
 #define 		USB_DEVICE_CLASS_VENDOR_SPECIFIC    		    0xFF	//
 
-//define        USB subclass
+//define	USB subclass
 #define		    USB_SUBCLASS_CODE_RBC					    0x01
 #define		    USB_SUBCLASS_CODE_SFF8020I				    0x02
 #define		    USB_SUBCLASS_CODE_QIC157				    0x03
@@ -389,7 +407,7 @@ typedef struct _TWAIN_FILEINFO {
 #define		    USB_SUBCLASS_CODE_SFF8070I				    0x05
 #define		    USB_SUBCLASS_CODE_SCSI					    0x06
 
-//define        USB protocol
+//define	USB protocol
 #define		    USB_PROTOCOL_CODE_CBI0					    0x00
 #define		    USB_PROTOCOL_CODE_CBI1					    0x01
 #define		    USB_PROTOCOL_CODE_BULK				    	0x50
@@ -418,97 +436,98 @@ typedef struct _TWAIN_FILEINFO {
 
 
 
-extern volatile uint8 UsbBootFlag;
-extern volatile uint8 UsbConnected;
-extern volatile uint8 UsbBusReset;
-extern volatile uint8 ControlStage;
-extern volatile uint8 Ep0PktSize;
-extern volatile uint16 BulkEpSize;
+extern volatile uint8           UsbBootFlag;
+extern volatile uint8           UsbConnected;
+extern volatile uint8           UsbBusReset;
+extern volatile uint8           ControlStage;
+extern volatile uint8           Ep0PktSize;
+extern volatile uint16          BulkEpSize;
 
-extern CONTROL_XFER ControlData;
-extern ALIGN(8)
-uint8 Ep0Buf[64];
+extern CONTROL_XFER    ControlData;
+extern ALIGN(8)        uint8 Ep0Buf[64];
 
 
 
 //1函数原型声明
-//extern        void    Delay100cyc(uint16 count);
+//extern 	void 	Delay100cyc(uint16 count);
 //d12ci.c
-extern void UdcInit(void);
-extern void ReadEndpoint0(uint16 len, void *buf);
-extern void WriteEndpoint0(uint16 len, void *buf);
-extern void ReadBulkEndpoint(uint32 len, void *buf);
-extern void WriteBulkEndpoint(uint32 len, void *buf);
+extern	void 	UdcInit(void);
+extern	void 	ReadEndpoint0(uint16 len, void *buf);
+extern	void 	WriteEndpoint0(uint16 len, void* buf);
+extern	void 	ReadBulkEndpoint(uint32 len, void *buf);
+extern	void 	WriteBulkEndpoint(uint32 len, void* buf);
 
 
 //usbCtrl.c
-extern void UsbBoot(void);
+extern	void	UsbBoot(void);
 
 
 //chap_9.c
-extern void set_address(void);
-extern void get_descriptor(void);
-extern void set_configuration(void);
-extern void ep0in_ack(void);
-extern void stall_ep0(void);
-extern bool UsbPhyReset(void);
+extern	void 	set_address(void);
+extern	void 	get_descriptor(void);
+extern	void 	set_configuration(void);
+extern	void 	ep0in_ack(void);
+extern	void 	stall_ep0(void);
+extern  bool    UsbPhyReset(void);
 //isr.c
-extern void IrqHandler(void);
-extern void UsbIsr(void);
-extern void BusReset(void);
-extern void EnumDone(void);
-extern void RxFifoNonEmpty(void);
-extern void Setup(void);
-extern void ControlHandler(void);
-extern void Ep0OutPacket(uint16 len);
-extern void OutIntr(void);
-extern void InIntr(void);
+extern	void 	IrqHandler(void);
+extern	void 	UsbIsr(void);
+extern	void 	BusReset(void);
+extern	void 	EnumDone(void);
+extern	void	RxFifoNonEmpty(void);
+extern	void 	Setup(void);
+extern	void 	ControlHandler(void);
+extern	void	Ep0OutPacket(uint16 len);
+extern	void 	OutIntr(void);
+extern	void 	InIntr(void);
 
 //1表格定义
 #ifdef	IN_CHAP9
-const USB_DEVICE_DESCRIPTOR HSDeviceDescr = {
-	sizeof(USB_DEVICE_DESCRIPTOR),	//描述符的大小18(1B)
-	USB_DEVICE_DESCRIPTOR_TYPE,	//描述符的类型01(1B)
-	0x0201,			//USB规划分布号(2B)
-	0,			//1类型代码(由USB指定)(1B),0x00
-	0, 0,			//子类型和协议(由USB分配)(2B)
-	EP0_PACKET_SIZE_HS,	//端点0最大包长(1B)
-	USB_VID,		//VID
-	USB_PID,		//PID, rk28xx use 0x3228
+const USB_DEVICE_DESCRIPTOR HSDeviceDescr =
+{
+	sizeof(USB_DEVICE_DESCRIPTOR),				//描述符的大小18(1B)
+	USB_DEVICE_DESCRIPTOR_TYPE,				    //描述符的类型01(1B)
+	0x0201,										//USB规划分布号(2B)
+	0,											//1类型代码(由USB指定)(1B),0x00
+	0, 0,										//子类型和协议(由USB分配)(2B)
+	EP0_PACKET_SIZE_HS,							//端点0最大包长(1B)
+	USB_VID,										//VID
+	USB_PID,										//PID, rk28xx use 0x3228
 	0x0100,
-	iManufactuer, iProduct, iSerialNumber,	//厂商,产品,设备序列号字符串索引(3B)
-	1			//可能的配置数(1B)
+	iManufactuer, iProduct, iSerialNumber,		//厂商,产品,设备序列号字符串索引(3B)
+	1											//可能的配置数(1B)
 };
 
-const USB_CONFIGS_DESCRIPTOR HSConfigDescr = {
+const USB_CONFIGS_DESCRIPTOR HSConfigDescr =
+{
 //配置描述符
-	sizeof(USB_CONFIGURATION_DESCRIPTOR),	//描述符的大小9(1B)
-	USB_CONFIGURATION_DESCRIPTOR_TYPE,	//描述符的类型02(1B)
+	sizeof(USB_CONFIGURATION_DESCRIPTOR),		//描述符的大小9(1B)
+	USB_CONFIGURATION_DESCRIPTOR_TYPE,		    //描述符的类型02(1B)
 	CONFIG_DESCRIPTOR_LENGTH,
-	1,			//配置所支持的接口数(1B)
-	1,			//作为Set configuration的一个参数选择配置值(1B)
-	0,			//用于描述配置字符串的索引(1B)
-	0x80,			//位图,总线供电&远程唤醒(1B)
-	200,			//最大消耗电流*2mA(1B)
+	1,											//配置所支持的接口数(1B)
+	1,											//作为Set configuration的一个参数选择配置值(1B)
+	0,											//用于描述配置字符串的索引(1B)
+	0x80,										//位图,总线供电&远程唤醒(1B)
+	200,										//最大消耗电流*2mA(1B)
 
 //接口描述符
-	sizeof(USB_INTERFACE_DESCRIPTOR),	//描述符的大小9(1B)
-	USB_INTERFACE_DESCRIPTOR_TYPE,	//描述符的类型04(1B)
-	0,			//接口的编号(1B)
-	0,			//用于为上一个字段可供替换的设置(1B)
-	NUM_ENDPOINTS,		//使用的端点数(端点0除外)(1B)
-	USB_DEVICE_CLASS_VENDOR_SPECIFIC,	//1类型代码(由USB分配)(1B),USB_DEVICE_CLASS_STORAGE=Mass Storage
-	USB_SUBCLASS_CODE_SCSI,	//1子类型代码(由USB分配)(1B),"0x06=Reduced Block Commands(RBC)"
-	0x05,			//1协议代码(由USB分配)(1B),"0X50=Mass Storage Class Bulk-Only Transport"
-	0,			//字符串描述的索引(1B)
+	sizeof(USB_INTERFACE_DESCRIPTOR),			//描述符的大小9(1B)
+	USB_INTERFACE_DESCRIPTOR_TYPE,				//描述符的类型04(1B)
+	0,											//接口的编号(1B)
+	0,											//用于为上一个字段可供替换的设置(1B)
+	NUM_ENDPOINTS,								//使用的端点数(端点0除外)(1B)
+	USB_DEVICE_CLASS_VENDOR_SPECIFIC,			//1类型代码(由USB分配)(1B),USB_DEVICE_CLASS_STORAGE=Mass Storage
+	USB_SUBCLASS_CODE_SCSI,				    	//1子类型代码(由USB分配)(1B),"0x06=Reduced Block Commands(RBC)"
+	0x05,										//1协议代码(由USB分配)(1B),"0X50=Mass Storage Class Bulk-Only Transport"
+	0,											//字符串描述的索引(1B)
 
 //BULK-IN端点描述符
 	sizeof(USB_ENDPOINT_DESCRIPTOR),
 	USB_ENDPOINT_DESCRIPTOR_TYPE,
-	BULK_IN_EP | 0x80,
+	BULK_IN_EP|0x80,
 	USB_ENDPOINT_TYPE_BULK,
 	HS_BULK_TX_SIZE,
-	0,			//bulk trans invailed
+	0,		//bulk trans invailed
 
 //BULK-OUT端点描述符
 	sizeof(USB_ENDPOINT_DESCRIPTOR),
@@ -516,23 +535,25 @@ const USB_CONFIGS_DESCRIPTOR HSConfigDescr = {
 	BULK_OUT_EP,
 	USB_ENDPOINT_TYPE_BULK,
 	HS_BULK_TX_SIZE,
-	0			//bulk trans invailed
+	0		//bulk trans invailed
 };
 
-const USB_BOS_ALL_DESCRIPTORS HSBosDescr = {
-	sizeof(USB_BOS_DESCRIPTOR),	//Size of descriptor 0x05(1B)
-	USB_BOS_DESCRIPTOR_TYPE,	//BOS descriptor type 0x0F(1B)
-	BOS_DESCRIPTOR_LENGTH,	//Length of this descriptor and all of its sub descriptor
-	0x01,			//the number of separate device capability descriptors in the BOS
-	//First device capability
-	USB_CAP_HEADER_SIZE,	//Length of cap header
-	USB_DEVICE_CAPABILITY,	//Device Capability type
-	0			//DevCapability Type,reserved
+const USB_BOS_ALL_DESCRIPTORS HSBosDescr =
+{
+    sizeof(USB_BOS_DESCRIPTOR),                 //Size of descriptor 0x05(1B)
+    USB_BOS_DESCRIPTOR_TYPE,                    //BOS descriptor type 0x0F(1B)
+    BOS_DESCRIPTOR_LENGTH,                      //Length of this descriptor and all of its sub descriptor
+    0x01,                                       //the number of separate device capability descriptors in the BOS
+                                                //First device capability
+    USB_CAP_HEADER_SIZE,                        //Length of cap header
+    USB_DEVICE_CAPABILITY,                      //Device Capability type
+    0                                           //DevCapability Type,reserved
 };
 
 #else
-extern const USB_DEVICE_DESCRIPTOR HSDeviceDescr;
-extern const USB_CONFIGS_DESCRIPTOR HSConfigDescr;
-extern const uint8 MicrosoftOSDesc[18];
+extern	 	const USB_DEVICE_DESCRIPTOR 		HSDeviceDescr;
+extern	 	const USB_CONFIGS_DESCRIPTOR 		HSConfigDescr;
+extern		const uint8 MicrosoftOSDesc[18];
 #endif
 #endif
+

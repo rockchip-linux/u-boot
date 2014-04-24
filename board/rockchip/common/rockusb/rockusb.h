@@ -24,18 +24,18 @@ Revision:       1.00
 #define RK_ALIGN(x) __attribute__ ((aligned(x)))
 #endif
 //1可配置参数
-#define 	MAX_LUN					    4	/*最大支持的逻辑设备数 */
-#define 	FW_VERSION				    1	/*中间件版权号, 1表示v1.00 */
+#define 	MAX_LUN					    4			/*最大支持的逻辑设备数*/
+#define 	FW_VERSION				    1			/*中间件版权号, 1表示v1.00*/
 
 //1常量定义
 
-#define	    MAX_CDBLEN      			0x10	//最长的CBW长度
+#define	    MAX_CDBLEN      			0x10		//最长的CBW长度
 
 /*******************************************************************
 CSW返回状态值
 *******************************************************************/
-#define	    CSW_GOOD					0x00	//命令通过
-#define	    CSW_FAIL					0x01	//命令失败
+#define	    CSW_GOOD					0x00		//命令通过
+#define	    CSW_FAIL					0x01		//命令失败
 
 /*******************************************************************
 传输阶段
@@ -71,46 +71,46 @@ CSW返回状态值
 #define     K_FW_GET_CHIP_VER           0x1B
 #define     K_FW_LOW_FORMAT             0x1C
 #define     K_FW_SET_RESET_FLAG         0x1E
-#define     K_FW_SPI_READ_10            0x21
-#define     K_FW_SPI_WRITE_10           0x22
+#define     K_FW_SPI_READ_10            0x21  
+#define     K_FW_SPI_WRITE_10           0x22  
 
-#define     K_FW_SESSION				0X30	// ADD BY HSL.
+#define     K_FW_SESSION				0X30 // ADD BY HSL.
 #define 	K_FW_RESET				    0xff
 
 
 //1函数原型声明
-extern void FWCmd(void);
-extern void FWInPacket(void);
-extern void FWOutPacket(uint32 len);
-extern void FWOutPacketTest(uint32 len);
-extern void FW_TestUnitReady(void);
-extern void FW_ReadID(void);
-extern void FW_SetDeviceID(void);
-extern void FW_TestBadBlock(void);
-extern void FW_Read10(void);
-extern void FW_Write10(void);
-extern void FW_LBARead10(void);
-extern void FW_LBAWrite10(void);
-extern void FW_Erase10(void);
-extern void FW_GetFlashInfo(void);
-extern void FW_Reset(void);
-extern void FW_Erase10Force(void);
-extern void FW_GetVersion(void);
-extern void FW_GetChipVer(void);
-extern bool CBWValidVerify(void);
-extern void FW_LowFormat(void);
-extern void CSWHandler(uint8 HostDevCase, uint32 DeviceTrDataLen);
-extern void SendCSW(void);
-extern uint16 Swap16(uint16 input);
-extern uint32 Swap32(uint32 input);
-extern void FW_SDRAMRead10(void);
-extern void FW_SDRAMWrite10(void);
-extern void FW_LowFormatSysDisk(void);
-extern void FW_SDRAMExecute(void);
-extern void FW_ReadVersionAll(void);
-extern void FW_SetUsbFlag(void);
-extern void FW_SPIRead10(void);
-extern void FW_SPIWrite10(void);
+extern 	void 	FWCmd(void);
+extern	void	FWInPacket(void);
+extern	void    FWOutPacket(uint32 len);
+extern	void    FWOutPacketTest(uint32 len);
+extern 	void 	FW_TestUnitReady(void);
+extern 	void 	FW_ReadID(void);
+extern 	void 	FW_SetDeviceID(void);
+extern 	void 	FW_TestBadBlock(void);
+extern 	void 	FW_Read10(void);
+extern 	void 	FW_Write10(void);
+extern 	void 	FW_LBARead10(void);
+extern 	void 	FW_LBAWrite10(void);
+extern 	void 	FW_Erase10(void);
+extern 	void    FW_GetFlashInfo(void);
+extern 	void 	FW_Reset(void);
+extern 	void 	FW_Erase10Force(void);
+extern 	void 	FW_GetVersion(void);
+extern 	void    FW_GetChipVer(void);
+extern 	bool 	CBWValidVerify(void);
+extern  void    FW_LowFormat(void);
+extern 	void 	CSWHandler(uint8 HostDevCase, uint32 DeviceTrDataLen);
+extern 	void    SendCSW(void);
+extern    uint16 Swap16(uint16 input);
+extern    uint32 Swap32(uint32 input);
+extern    void FW_SDRAMRead10( void );
+extern    void FW_SDRAMWrite10(void);
+extern    void FW_LowFormatSysDisk(void);
+extern    void FW_SDRAMExecute(void);
+extern    void FW_ReadVersionAll(void);
+extern    void FW_SetUsbFlag(void);
+extern    void FW_SPIRead10(void);
+extern    void FW_SPIWrite10(void);
 
 
 
@@ -118,44 +118,47 @@ extern void FW_SPIWrite10(void);
 /*******************************************************************/
 
 //1结构定义
-typedef PACKED1 struct _USBMSDC_CBW {
-	uint32 Signature;
-	uint32 Tag;
-	uint32 XferLen;
-	uint8 Flags;
-	uint8 LUN;
-	uint8 CBWLen;
-	uint8 Code;
-	uint8 Reseved0;
-	uint32 LBA;
-	uint8 Reseved1;
-	uint16 Len;
-	uint8 Reseved2[7];
-} PACKED2 CBW, *pCBW;
+typedef PACKED1 struct _USBMSDC_CBW
+{
+    uint32 Signature;
+    uint32 Tag;
+    uint32 XferLen;
+    uint8 Flags;
+    uint8 LUN;
+    uint8 CBWLen;
+    uint8 Code;
+    uint8 Reseved0;
+    uint32 LBA;
+    uint8 Reseved1;
+    uint16 Len;
+    uint8 Reseved2[7];
+}PACKED2 CBW,*pCBW;
 
-typedef PACKED1 struct _USBMSDC_CSW {
-	uint32 Signature;
-	uint32 Tag;
-	uint32 Residue;
-	uint8 Status;
-} PACKED2 CSW;
+typedef PACKED1 struct _USBMSDC_CSW
+{
+    uint32	Signature;
+    uint32	Tag;
+    uint32	Residue;
+    uint8	Status;
+}PACKED2 CSW;
 
-typedef volatile struct _USB_XFER {
-	uint8 cmd;
-	uint8 Precmd;
-	uint8 LUN;
-	uint32 LBA;
-	uint32 len;
+typedef volatile struct _USB_XFER
+{
+    uint8 cmd;
+    uint8 Precmd;
+    uint8 LUN;
+    uint32 LBA;
+    uint32 len;
+    
+    void *xferBuf;
+    uint32 xferLBA;
+    uint32 xferLen;
 
-	void *xferBuf;
-	uint32 xferLBA;
-	uint32 xferLen;
+    uint32 preLen;
+    uint32 preLBA;
+    uint32 *preBuf;
 
-	uint32 preLen;
-	uint32 preLBA;
-	uint32 *preBuf;
-
-	uint32 pppBufId;
+    uint32 pppBufId;
 } USB_XFER, *pUSB_XFER;
 
 
@@ -167,57 +170,48 @@ typedef volatile struct _USB_XFER {
 
 
 #define SDRAM_BASE_ADDRESS 0x60000000
-#define FW_WR_BUF_SIZE   1024	//KB
+#define FW_WR_BUF_SIZE   1024 //KB
 #define DRAM_SIZE  	0x10000000
 
-#define USB_XFER_BUF_SIZE (2048*512/4)	//1MB
+#define USB_XFER_BUF_SIZE (2048*512/4) //1MB
 
 //1全局变量
 #undef	EXT
 #ifdef	IN_FW_Upgrade
-#define	EXT
+		#define	EXT
 #else
-#define	EXT		extern
-#endif
+		#define	EXT		extern
+#endif		
 
-EXT RK_ALIGN(4)
-uint8 FWCmdPhase;		//命令阶段状态字
-EXT RK_ALIGN(4)
-uint8 FWSetResetFlag;
-EXT uint32 FW_DataLenCnt;
-EXT uint32 FW_Write10PBA;
-EXT int32 dCSWDataResidueVal;
-
-EXT RK_ALIGN(4)
-uint16 FWLBA_DataLenCnt;
-EXT uint32 FWLBA_Write10PBA;
-EXT uint32 FW_SDRAM_Parameter;
-EXT uint32 FW_SDRAM_ExcuteAddr;
-EXT uint32 FW_WR_Mode;
-EXT uint32 FW_IMG_WR_Mode;	//img 写还是lba写，0为img，1为lba
-EXT USB_XFER usbCmd;
-EXT uint32 *bulkBuf[2];
+	EXT		RK_ALIGN(4) uint8 	FWCmdPhase;			//命令阶段状态字
+	EXT     RK_ALIGN(4) uint8  FWSetResetFlag;
+	EXT		uint32 			FW_DataLenCnt;
+	EXT		uint32 			FW_Write10PBA;
+    EXT		int32           dCSWDataResidueVal;
+    
+	EXT		RK_ALIGN(4) uint16 FWLBA_DataLenCnt;
+	EXT		uint32 			FWLBA_Write10PBA;
+    EXT		uint32 			FW_SDRAM_Parameter;
+    EXT		uint32 			FW_SDRAM_ExcuteAddr;    
+    EXT     uint32          FW_WR_Mode;
+    EXT     uint32          FW_IMG_WR_Mode;//img 写还是lba写，0为img，1为lba
+    EXT     USB_XFER        usbCmd;
+    EXT     uint32 			*bulkBuf[2];
 
 
-EXT RK_ALIGN(64)
-CSW gCSW;
-EXT RK_ALIGN(64)
-CBW gCBW;
-EXT RK_ALIGN(64)
-uint8 BulkInBuf[512];
-EXT RK_ALIGN(64)
-uint32 DataBuf[528 * 128 / 4];
-EXT RK_ALIGN(64)
-uint32 FWLBAWriteSrcBuf[512 * 32 / 4];
-EXT RK_ALIGN(64)
-uint32 FWLBAReadSrcBuf[512 * 32 / 4];
-EXT RK_ALIGN(64)
-uint32 usbXferBuf[2 * USB_XFER_BUF_SIZE];
+	EXT		RK_ALIGN( 64 )CSW  	      gCSW;
+    EXT		RK_ALIGN( 64 )CBW           gCBW;
+    EXT		RK_ALIGN(64) uint8          BulkInBuf[512];
+    EXT		RK_ALIGN(64)uint32          DataBuf[528*128/4];
+    EXT    RK_ALIGN(64) uint32          FWLBAWriteSrcBuf[512*32/4];
+    EXT    RK_ALIGN(64) uint32          FWLBAReadSrcBuf[512*32/4];
+    EXT     RK_ALIGN( 64 ) uint32 			usbXferBuf[2*USB_XFER_BUF_SIZE];
 
 //1表格定义
 #ifdef IN_FW_Upgrade
 #ifdef DEBUG_FLASH
-const uint8 USB_CMD[] = {
+const uint8 USB_CMD[]=
+{
 	K_FW_TEST_UNIT_READY,
 	K_FW_READ_FLASH_ID,
 	K_FW_SET_DEVICE_ID,
@@ -229,7 +223,8 @@ const uint8 USB_CMD[] = {
 	K_FW_RESET
 };
 
-const char *USB_CMD_Desr[] = {
+const char* USB_CMD_Desr[]=
+{
 	"TEST_UNIT_READY",
 	"READ_FLASH_ID",
 	"SET_DEVICE_ID",
@@ -243,3 +238,4 @@ const char *USB_CMD_Desr[] = {
 #endif
 #endif
 #endif
+

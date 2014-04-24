@@ -15,23 +15,23 @@
 extern "C" {
 #endif
 
-	typedef struct {
-		unsigned long long size;
-		unsigned int H[5];
-		unsigned int W[16];
-	} SHA_CTX;
+typedef struct {
+	unsigned long long size;
+	unsigned int H[5];
+	unsigned int W[16];
+} SHA_CTX;
 
-	void SHA_init(SHA_CTX * ctx);
-	void SHA_update(SHA_CTX * ctx, const void *data,
-			unsigned long len);
-	uint8_t *SHA_final(SHA_CTX * ctx);
+void SHA_init(SHA_CTX *ctx);
+void SHA_update(SHA_CTX *ctx, const void* data, unsigned long len);
+uint8_t* SHA_final(SHA_CTX *ctx);
 
 /* Convenience method. Returns digest parameter value. */
-	const uint8_t *SHA(const void *data, int len, uint8_t * digest);
+const uint8_t* SHA(const void *data, int len, uint8_t *digest);
 
 #define SHA_DIGEST_SIZE 20
 
 #ifdef __cplusplus
 }
 #endif
+
 #endif

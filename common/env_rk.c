@@ -23,14 +23,14 @@ DECLARE_GLOBAL_DATA_PTR;
 #if !defined(CONFIG_ENV_OFFSET)
 #define CONFIG_ENV_OFFSET           0
 #endif
-extern uint32_t StorageSysDataStore(uint32_t Index, void *Buf);
-extern uint32_t StorageSysDataLoad(uint32_t Index, void *Buf);
+extern uint32_t StorageSysDataStore(uint32_t Index,void *Buf);
+extern uint32_t StorageSysDataLoad(uint32_t Index,void *Buf);
 
 int env_init(void)
 {
 	/* use default */
-	gd->env_addr = (ulong) & default_environment[0];
-	gd->env_valid = 1;
+	gd->env_addr	= (ulong)&default_environment[0];
+	gd->env_valid	= 1;
 
 	return 0;
 }
@@ -39,42 +39,42 @@ int env_init(void)
 static inline int write_env(unsigned long size,
 			    unsigned long offset, const void *buffer)
 {
-	uint blk_start, blk_cnt, i;
-	blk_start = ALIGN(offset, RK_BLK_SIZE) / RK_BLK_SIZE;
-	blk_cnt = ALIGN(size, RK_BLK_SIZE) / RK_BLK_SIZE;
+    uint blk_start, blk_cnt, i;
+    blk_start   = ALIGN(offset, RK_BLK_SIZE) / RK_BLK_SIZE;
+    blk_cnt     = ALIGN(size, RK_BLK_SIZE) / RK_BLK_SIZE;
 
-	for (i = 0; i < blk_cnt; i++) {
-		if (StorageUbootDataStore(blk_start + i,
-					  buffer + i * RK_BLK_SIZE)) {
-			printf
-			    ("write_env StorageUbootDataStore failed at %d\n",
-			     blk_start + i);
-			return -1;
-		}
-	}
-	return 0;
+    for (i = 0;i < blk_cnt;i++)
+    {
+        if(StorageUbootDataStore(blk_start + i,
+                    buffer + i * RK_BLK_SIZE))
+        {
+            printf("write_env StorageUbootDataStore failed at %d\n",
+                    blk_start + i);
+            return -1;
+        }
+    }
+    return 0;
 }
 
 int saveenv(void)
 {
-	env_t *env_new = (env_t *) env_buf;
-	ssize_t len;
-	char *res;
-	u32 offset;
+	env_t *env_new = (env_t *)env_buf;
+	ssize_t	len;
+	char	*res;
+	u32	offset;
 
 	res = (char *)env_new->data;
 	len = hexport_r(&env_htab, '\0', 0, &res, ENV_SIZE, 0, NULL);
 	if (len < 0) {
 		error("Cannot export environment: errno = %d\n", errno);
-		return -1;
+        return -1;
 	}
 
 	env_new->crc = crc32(0, env_new->data, ENV_SIZE);
 	printf("Writing env to storage... \n");
-	if (write_env
-	    (CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, (u_char *) env_new)) {
+	if (write_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, (u_char *)env_new)) {
 		puts("failed\n");
-		return -1;
+        return -1;
 	}
 
 	puts("done\n");
@@ -86,62 +86,62 @@ static inline int read_env(unsigned long size,
 			   unsigned long offset, const void *buffer)
 {
 	uint blk_start, blk_cnt, i;
-	blk_start = ALIGN(offset, RK_BLK_SIZE) / RK_BLK_SIZE;
-	blk_cnt = ALIGN(size, RK_BLK_SIZE) / RK_BLK_SIZE;
+	blk_start	= ALIGN(offset, RK_BLK_SIZE) / RK_BLK_SIZE;
+	blk_cnt		= ALIGN(size, RK_BLK_SIZE) / RK_BLK_SIZE;
 
-	for (i = 0; i < blk_cnt; i++) {
-		if (StorageUbootDataLoad(blk_start + i,
-					 buffer + i * RK_BLK_SIZE)) {
-			printf
-			    ("read_env StorageUbootDataLoad failed at %d\n",
-			     blk_start + i);
-			return -1;
-		}
-	}
-	return 0;
+    for (i = 0;i < blk_cnt;i++)
+    {
+        if(StorageUbootDataLoad(blk_start + i, 
+                    buffer + i * RK_BLK_SIZE))
+        {
+            printf("read_env StorageUbootDataLoad failed at %d\n",
+                    blk_start + i);
+            return -1;
+        }
+    }
+    return 0;
 }
 
 //base on env_import
 static int env_append(const char *buf, int check)
 {
-	env_t *ep = (env_t *) buf;
+    env_t *ep = (env_t *)buf;
 
-	if (check) {
-		uint32_t crc;
+    if (check) {
+        uint32_t crc;
 
-		memcpy(&crc, &ep->crc, sizeof(crc));
+        memcpy(&crc, &ep->crc, sizeof(crc));
 
-		if (crc32(0, ep->data, ENV_SIZE) != crc) {
-			return 0;
-		}
-	}
+        if (crc32(0, ep->data, ENV_SIZE) != crc) {
+            return 0;
+        }
+    }
 
-	if (himport_r
-	    (&env_htab, (char *)ep->data, ENV_SIZE, '\0', H_NOCLEAR, 0,
-	     NULL)) {
-		gd->flags |= GD_FLG_ENV_READY;
-		return 1;
-	}
+    if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', H_NOCLEAR,
+            0, NULL)) {
+        gd->flags |= GD_FLG_ENV_READY;
+        return 1;
+    }
 
-	printf("Cannot import environment: errno = %d\n", errno);
+    printf("Cannot import environment: errno = %d\n", errno);
 
-	return 0;
+    return 0;
 }
 
 void env_relocate_spec(void)
 {
 #if !defined(ENV_IS_EMBEDDED)
-	if (StorageInit() == 0)
+	if( StorageInit() == 0)
 		printf("storage init OK!\n");
 	else
 		printf("storage init fail!\n");
 
-	//setup default env.
-	set_default_env(NULL);
+    //setup default env.
+    set_default_env(NULL);
 
-	//override with saved env.
-	if (!read_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, env_buf)) {
-		env_append(env_buf, 1);
-	}
+    //override with saved env.
+    if (!read_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, env_buf)) {
+        env_append(env_buf, 1);
+    }
 #endif
 }
