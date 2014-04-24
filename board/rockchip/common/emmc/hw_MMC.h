@@ -24,21 +24,20 @@ no message
 Revision 1.1.1.1  2009/08/14 08:02:01  Administrator
 no message
 
-****************************************************************/
+****************************************************************/  
 #ifdef DRIVERS_SDMMC
-
+    
 #ifndef _MMCP_API_H_
 #define _MMCP_API_H_
-
-/****************************************************************/
+    
+/****************************************************************/ 
 //对外函数声明
-/****************************************************************/
-void   MMC_Init(void *pCardInfo);
-int32  MMC_SwitchBoot(void *pCardInfo, bool enable, uint32 partition);
-int32  MMC_AccessBootPartition(void *pCardInfo, uint32 partition);
-
-uint8 MMC_GetMID(void);
-
+/****************************************************************/ 
+void MMC_Init(void *pCardInfo);
+int32 MMC_SwitchBoot(void *pCardInfo, bool enable, uint32 partition);
+int32 MMC_AccessBootPartition(void *pCardInfo, uint32 partition);
+ uint8 MMC_GetMID(void);
+ 
 #endif //end of #ifndef _MMCP_API_H
-
+    
 #endif //end of #ifdef DRIVERS_SDMMC

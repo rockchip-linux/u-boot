@@ -1,5 +1,5 @@
-/******************************************************************/
-/*	Copyright (C)  ROCK-CHIPS FUZHOU . All Rights Reserved.  	  */
+/******************************************************************/  
+/*	Copyright (C)  ROCK-CHIPS FUZHOU . All Rights Reserved.  	  */ 
 /*******************************************************************
 File    :   driver.h
 Desc    :   包含驱动层的所有驱动头文件，
@@ -15,14 +15,14 @@ Revision 1.1  2011/03/29 09:20:48  Administrator
 Revision 1.1  2011/01/07 03:28:04  Administrator
 *** empty log message ***
 
-********************************************************************/
+********************************************************************/ 
 #ifndef _EMMC_CONFIG_H
 #define _EMMC_CONFIG_H
-
+    
 #include    "../config.h"
-
+    
 #define     DRIVER_ONLY
-
+    
 #include    "hw_SDConfig.h"
 #include    "hw_SDCommon.h"
 #include    "hwapi_SDOsAdapt.h"
@@ -33,11 +33,11 @@ Revision 1.1  2011/01/07 03:28:04  Administrator
 #include    "hw_MMC.h"
 #include    "hw_SDM.h"
 #include    "hwapi_SDM.h"
-
+    
 /********************************************************************
 **                 api head files                                   *
-********************************************************************/
+********************************************************************/ 
 //#include    "api_drivers.h"
-
-#endif
-
+    
+#endif	/*  */
+    
