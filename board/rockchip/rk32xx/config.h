@@ -84,7 +84,7 @@ Revision:		1.00
 #define PRINT_E PRINTF
 #define PRINT_W PRINTF
 #define RkPrintf PRINTF
-#include "../include/config.h"
+#include "../../../include/configs/rk32xx.h"
 //#include    <string.h>
 //#include    <stdlib.h>
 //#include    <stdarg.h>
@@ -158,7 +158,6 @@ extern uint32  SecureBootLock_backup;
 // by cmy
 #define SYS_LOADER_REBOOT_FLAG   0x5242C300  //高24是TAG,低8位是标记
 #define SYS_KERNRL_REBOOT_FLAG   0xC3524200  //高24是TAG,低8位是标记
-#define SYS_LOADER_ERR_FLAG      0X1888AAFF
 
 enum {
     BOOT_NORMAL=                  0,
@@ -170,9 +169,8 @@ enum {
     BOOT_WIPEDATA,   /* enter recover and wipe data. */
     BOOT_WIPEALL,    /* enter recover and wipe all data. */
     BOOT_CHECKIMG,   /* check firmware img with backup part(in loader mode)*/
-    BOOT_FASTBOOT,
-    BOOT_SECUREBOOT_DISABLE,
-    BOOT_CHARGING,
+    BOOT_FASTBOOT,   
+    BOOT_SECUREBOOT_DISABLE,  
     BOOT_MAX         /* MAX VALID BOOT TYPE.*/
 };
 

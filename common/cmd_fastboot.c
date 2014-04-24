@@ -663,7 +663,7 @@ static int fbt_handle_erase(char *cmdbuf)
 	FBTDBG("\tstart blk %lu, blk_cnt %lu\n", ptn->offset,
 			ptn->size_kb);
 
-	err = board_fbt_handle_erase(ptn);
+	err = handleErase(ptn);
 	if (err) {
 		FBTERR("Erasing '%s' FAILED! error=%d\n", ptn->name, err);
 		sprintf(priv.response,
@@ -692,14 +692,38 @@ static int fbt_handle_flash(char *cmdbuf, int check_unlock)
 		return -1;
 	}
 
+    if (board_fbt_handle_flash(name, &priv)) {
+        //handled by board side.
+        return 0;//return val may not right.
+    }
+
 	ptn = fastboot_find_ptn(name);
-    if (!board_fbt_handle_flash(name, ptn, &priv)) {
+	if (ptn == 0) {
+	    FBTERR("%s: failed, partition %s does not exist\n",
+		       __func__, cmdbuf + 6);
+		sprintf(priv.response, "FAILpartition does not exist");
+		return -1;
+	}
+
+    /* Normal case */
+    FBTDBG("writing to partition '%s'\n", ptn->name);
+
+    int err;
+
+    FBTDBG("Writing %llu bytes to '%s'\n",
+            priv.d_bytes, ptn->name);
+    err = handleFlash(ptn, priv.transfer_buffer, priv.d_bytes);
+    if (err) {
+        FBTERR("Writing '%s' FAILED! error=%d\n",
+                ptn->name, err);
+        sprintf(priv.response,
+                "FAILWrite partition, error=%d", err);
+        return -1;
+    } else {
+        FBTDBG("Writing '%s' DONE!\n", ptn->name);
         sprintf(priv.response, "OKAY");
         return 0;
     }
-    sprintf(priv.response,
-            "FAILWrite partition:%s", name);
-    return -1;
 }
 
 struct getvar_entry {
@@ -1183,7 +1207,7 @@ static void fbt_handle_oem(char *cmdbuf)
         fbt_partition_t* ptn;
         ptn = fastboot_find_ptn("userdata");
         if (ptn) {
-            err = board_fbt_handle_erase(ptn);
+            err = handleErase(ptn);
         }
 		if (err) {
 			FBTERR("Erase failed with error %d\n", err);
@@ -1642,11 +1666,7 @@ static void __def_board_fbt_finalize_bootargs(char* args, int buf_sz,
 {
 	return;
 }
-static int __def_board_fbt_handle_erase(fbt_partition_t *ptn)
-{
-        return 0;
-}
-static int __def_board_fbt_handle_flash(char *name, fbt_partition_t *ptn,
+static int __def_board_fbt_handle_flash(char *name,
                             struct cmd_fastboot_interface *priv)
 {
         return 0;
@@ -1691,9 +1711,7 @@ int board_fbt_key_pressed(void)
 void board_fbt_finalize_bootargs(char* args, int buf_sz,
         int ramdisk_addr, int ramdisk_sz, int recovery)
     __attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
-int board_fbt_handle_erase(fbt_partition_t *ptn)
-    __attribute__((weak, alias("__def_board_fbt_handle_erase")));
-int board_fbt_handle_flash(char *name, fbt_partition_t *ptn,
+int board_fbt_handle_flash(char *name,
                struct cmd_fastboot_interface *priv)
     __attribute__((weak, alias("__def_board_fbt_handle_flash")));
 int board_fbt_handle_download(unsigned char *buffer,
