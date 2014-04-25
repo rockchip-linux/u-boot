@@ -8,6 +8,10 @@
 #include <search.h>
 #include <errno.h>
 
+#include <../board/rockchip/common/config.h>
+#include <../board/rockchip/common/storage.h>
+
+
 char *env_name_spec = "RK STORAGE";
 
 #ifdef ENV_IS_EMBEDDED
@@ -23,7 +27,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #if !defined(CONFIG_ENV_OFFSET)
 #define CONFIG_ENV_OFFSET           0
 #endif
-extern uint32_t StorageSysDataStore(uint32_t Index,void *Buf);
 extern uint32_t StorageSysDataLoad(uint32_t Index,void *Buf);
 
 int env_init(void)
@@ -46,7 +49,7 @@ static inline int write_env(unsigned long size,
     for (i = 0;i < blk_cnt;i++)
     {
         if(StorageUbootDataStore(blk_start + i,
-                    buffer + i * RK_BLK_SIZE))
+                    (void*)buffer + i * RK_BLK_SIZE))
         {
             printf("write_env StorageUbootDataStore failed at %d\n",
                     blk_start + i);
@@ -61,7 +64,6 @@ int saveenv(void)
 	env_t *env_new = (env_t *)env_buf;
 	ssize_t	len;
 	char	*res;
-	u32	offset;
 
 	res = (char *)env_new->data;
 	len = hexport_r(&env_htab, '\0', 0, &res, ENV_SIZE, 0, NULL);
@@ -92,7 +94,7 @@ static inline int read_env(unsigned long size,
     for (i = 0;i < blk_cnt;i++)
     {
         if(StorageUbootDataLoad(blk_start + i, 
-                    buffer + i * RK_BLK_SIZE))
+                    (void*)buffer + i * RK_BLK_SIZE))
         {
             printf("read_env StorageUbootDataLoad failed at %d\n",
                     blk_start + i);

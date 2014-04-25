@@ -291,12 +291,13 @@ uint32_t ZEXPORT crc32 (uint32_t crc, const Bytef *p, uInt len)
 {
 #ifdef CONFIG_ROCKCHIP
 #define DO_CRC(x) crc = tab[((crc >> 24) ^ (x)) & 255] ^ (crc << 8)
-    crc = cpu_to_le32(crc);
-    const uint32_t *tab = crc_table;
-	 do {
-	      DO_CRC(*p++);
-	 } while (--len);
-    return le32_to_cpu(crc);
+	const uint32_t *tab;
+	tab	= crc_table;
+	crc = cpu_to_le32(crc);
+	do {
+		DO_CRC(*p++);
+	} while (--len);
+	return le32_to_cpu(crc);
 #undef DO_CRC
 #endif
      return crc32_no_comp(crc ^ 0xffffffffL, p, len) ^ 0xffffffffL;

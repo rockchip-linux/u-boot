@@ -1,5 +1,10 @@
+#include <common.h>
 #include <asm/arch/drivers.h>
+#include <linux/string.h>
+#include <malloc.h>
 #include "parameter.h"
+#include "../common/config.h"
+#include "storage.h"
 
 extern uint32 krnl_load_addr;
 extern uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize );
@@ -55,8 +60,6 @@ int find_mtd_part(cmdline_mtd_partition* this_mtd, const char* part_name)
 int get_rdInfo(PBootInfo pboot_info)
 {
 	char *token = NULL;
-	char *s=NULL;
-	char *p = NULL;
     char cmdline[MAX_LINE_CHAR];
     int len = strlen("initrd=");
 
@@ -130,7 +133,7 @@ int get_part(char* parts, mtd_partition* this_part, int* part_index)
 	char delim;
 	unsigned int mask_flags;
 	unsigned int size = 0;
-	unsigned int offset;
+	unsigned int offset = 0;
 	char name[PART_NAME]="\0";
 
 	if (*parts == '-')
@@ -507,20 +510,20 @@ int CheckParam(PLoaderParam pParam)
 	{
 		if(pParam->tag != PARM_TAG)
 		{
-			printf("W: Invalid Parameter's tag (0x%08X)!\n", pParam->tag);
+			printf("W: Invalid Parameter's tag (0x%08X)!\n", (unsigned int)pParam->tag);
 			return -2;
 		}
 		
 		if( pParam->length > (MAX_LOADER_PARAM-12) )
 		{
-			printf("E: Invalid parameter length(%d)!\n", pParam->length);
+			printf("E: Invalid parameter length(%d)!\n", (int)pParam->length);
 			return -3;
 		}
 
 		crc = CRC_32CheckBuffer((unsigned char*)pParam->parameter, pParam->length+4);
 		if(!crc)
 		{
-			printf("E:Para CRC failed!\n","");
+			printf("E:Para CRC failed!\n");
 			return -4;
 		}
 	}
@@ -544,7 +547,7 @@ int32 GetParam(uint32 param_addr, void *buf)
 	int i=0;
 	int iRet = 0;
 	int read_sec = MAX_LOADER_PARAM>>9;
-	printf("GetParam\n","");
+	printf("GetParam\n");
 
 	for(i=0; i<PARAMETER_NUM; i++)
 	{
@@ -553,18 +556,18 @@ int32 GetParam(uint32 param_addr, void *buf)
 			iResult = CheckParam(param);
 			if(iResult >= 0)
 			{
-				printf("check parameter success\n","");
+				printf("check parameter success\n");
 				return 0;
 			}
 			else
 			{
-				printf("Invalid parameter\n","");
+				printf("Invalid parameter\n");
 				iRet = -1;
 			}
 		}
 		else
 		{
-			printf("read parameter fail\n","");
+			printf("read parameter fail\n");
 			iRet = -2;
 		}
 	}

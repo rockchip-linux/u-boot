@@ -159,5 +159,13 @@ EXT uint32 gIdDataBuf[512];
 EXT uint32 gSysData[512];
 EXT FLASH_INFO g_FlashInfo;
 
+
+uint32 StorageUbootDataStore(uint32 Index,void *Buf);
+uint32 StorageUbootDataLoad(uint32 Index,void *Buf);
+int32 StorageInit(void);
+uint32 SetSysData2Kernel(uint32 SecureBootFlag);
+uint32 StorageSysDataStore(uint32 Index,void *Buf);
+void FW_SorageLowFormat(void);
+
 #endif
 

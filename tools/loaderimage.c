@@ -166,11 +166,11 @@ int main (int argc, char *argv[])
 			exit (EXIT_FAILURE);
 		}
 		memset(&hdr, 0, sizeof(second_loader_hdr));
-		strcpy(hdr.magic, RK_UBOOT_MAGIC);
+		strcpy((char *)hdr.magic, RK_UBOOT_MAGIC);
 		hdr.loader_load_addr = CONFIG_SYS_TEXT_BASE;
 		hdr.loader_load_size = size;
 		fread(buf + sizeof(second_loader_hdr), size, 1, fi);
-		hdr.crc32 = crc32(buf + sizeof(second_loader_hdr), size);
+		hdr.crc32 = crc32((uint8_t *)buf + sizeof(second_loader_hdr), size);
 		printf("crc = 0x%08x\n", hdr.crc32);
 
 		SHA_CTX ctx;
@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
 		SHA_update(&ctx, &hdr.loader_load_addr, sizeof(hdr.loader_load_addr));
 		SHA_update(&ctx, &hdr.loader_load_size, sizeof(hdr.loader_load_size));
 		SHA_update(&ctx, &hdr.hash_len, sizeof(hdr.hash_len));
-		sha = SHA_final(&ctx);
+		sha = (uint8_t*)SHA_final(&ctx);
 		memcpy(hdr.hash, sha, hdr.hash_len);
 
 		printf("uboot version:%s\n",U_BOOT_VERSION_STRING);
@@ -202,5 +202,6 @@ int main (int argc, char *argv[])
 	fclose(fi);
 	fclose(fo);
 
+	return 0;
 }
 

@@ -12,6 +12,8 @@
 #include    "config.h"
 #include "sha.h"
 
+extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
+
 #if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 
 /*

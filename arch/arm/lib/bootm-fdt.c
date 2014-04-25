@@ -20,6 +20,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_ROCKCHIP
+extern int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks);
+#endif
+
 int arch_fixup_memory_node(void *blob)
 {
 	bd_t *bd = gd->bd;

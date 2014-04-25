@@ -18,11 +18,11 @@ extern bool gDebug;
 } while (0)
 
 
-#define SCANF_EAT(in)   fscanf(in, "%*[ \r\n\t/]", gEat)
+#define SCANF_EAT(in)   fscanf(in, "%*[ \r\n\t/]")//, gEat)
 #define MAX_LINE_LEN        256
 extern char gEat[MAX_LINE_LEN];
 
-typedef int line_t[MAX_LINE_LEN];
+typedef char line_t[MAX_LINE_LEN];
 
 
 

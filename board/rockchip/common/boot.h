@@ -34,7 +34,7 @@
  */
 
 #ifndef _U_BOOT_H_
-#define _U_BOOT_H_	1
+#define _U_BOOT_H_
 //typedef unsigned long ulong;
 
 #define CONFIG_NR_DRAM_BANKS 	1
@@ -55,9 +55,15 @@ typedef struct bd_info {
 #define bi_env_data bi_env->data
 #define bi_env_crc  bi_env->crc
 
-#define DECLARE_GLOBAL_DATA_PTR     register volatile gd_t *gd asm ("r8")
+/* For image.h:image_check_target_arch() */
+#ifndef CONFIG_ARM64
+#define IH_ARCH_DEFAULT IH_ARCH_ARM
+#else
+#define IH_ARCH_DEFAULT IH_ARCH_ARM64
+#endif
 
 uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
+uint32 SecureBootDisable(void);
 
 #endif	/* _U_BOOT_H_ */
 

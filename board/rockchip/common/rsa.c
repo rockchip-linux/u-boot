@@ -1,5 +1,10 @@
 
 #include "rsa.h"
+#include <malloc.h>
+
+extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
+extern int ftl_memcmp(void *str1, void *str2, unsigned int count);
+
 
 /*
 static unsigned short g_publicKey[ 129 ] = 
@@ -22,9 +27,7 @@ unsigned char g_mess[ 20 ] = {
 
 /* Returns sign of a - b. */
 
-int NN_Cmp (a, b, digits)
-NN_DIGIT *a, *b;
-unsigned int digits;
+int NN_Cmp (NN_DIGIT* a, NN_DIGIT* b, unsigned int digits)
 {
 
 	if(digits) {
@@ -43,9 +46,7 @@ unsigned int digits;
 #if 0
 /* Returns nonzero iff a is zero. */
 
-int NN_Zero (a, digits)
-NN_DIGIT *a;
-unsigned int digits;
+int NN_Zero (NN_DIGIT *a, unsigned int digits)
 {
 	if(digits) {
 		do {
@@ -60,9 +61,7 @@ unsigned int digits;
 
 /* Assigns a = b. */
 
-void NN_Assign (a, b, digits)
-NN_DIGIT *a, *b;
-unsigned int digits;
+void NN_Assign (NN_DIGIT* a, NN_DIGIT* b, unsigned int digits)
 {
 	if(digits) {
 		do {
@@ -73,9 +72,7 @@ unsigned int digits;
 
 /* Returns the significant length of a in digits. */
 
-unsigned int NN_Digits (a, digits)
-NN_DIGIT *a;
-unsigned int digits;
+unsigned int NN_Digits (NN_DIGIT* a, unsigned int digits)
 {
 
 	if(digits) {
@@ -97,9 +94,7 @@ unsigned int digits;
 
 	 Lengths: a[digits], b[digits], c[digits].
  */
-NN_DIGIT NN_Add (a, b, c, digits)
-NN_DIGIT *a, *b, *c;
-unsigned int digits;
+NN_DIGIT NN_Add (NN_DIGIT *a, NN_DIGIT *b, NN_DIGIT *c, unsigned int digits)
 {
 	NN_DIGIT temp, carry = 0;
 
@@ -123,8 +118,7 @@ unsigned int digits;
 
 /* Returns the significant length of a in bits, where a is a digit. */
 
-static unsigned int NN_DigitBits (a)
-NN_DIGIT a;
+static unsigned int NN_DigitBits (NN_DIGIT a)
 {
 	unsigned int i;
 
@@ -141,9 +135,7 @@ NN_DIGIT a;
 
 	 Lengths: a[digits]. */
 
-unsigned int NN_Bits (a, digits)
-NN_DIGIT *a;
-unsigned int digits;
+unsigned int NN_Bits (NN_DIGIT *a, unsigned int digits)
 {
 	if ((digits = NN_Digits (a, digits)) == 0)
 		return (0);
@@ -154,10 +146,7 @@ unsigned int digits;
 
 /* Computes a * b, result stored in high and low. */
  
-static void dmult( a, b, high, low)
-NN_DIGIT          a, b;
-NN_DIGIT         *high;
-NN_DIGIT         *low;
+static void dmult(NN_DIGIT a, NN_DIGIT b, NN_DIGIT* high, NN_DIGIT* low)
 {
 	NN_HALF_DIGIT al, ah, bl, bh;
 	NN_DIGIT m1, m2, m, ml, mh, carry = 0;
@@ -190,9 +179,7 @@ NN_DIGIT         *low;
 
 /* Assigns a = 0. */
 
-void NN_AssignZero (a, digits)
-NN_DIGIT *a;
-unsigned int digits;
+void NN_AssignZero (NN_DIGIT *a, unsigned int digits)
 {
 	if(digits) {
 		do {
@@ -207,9 +194,7 @@ unsigned int digits;
    Lengths: a[digits].
 	 Requires b < digits * NN_DIGIT_BITS.
  */
-void NN_Assign2Exp (a, b, digits)
-NN_DIGIT *a;
-unsigned int b, digits;
+void NN_Assign2Exp (NN_DIGIT *a, unsigned int b, unsigned int digits)
 {
   NN_AssignZero (a, digits);
 
@@ -224,9 +209,7 @@ unsigned int b, digits;
 
 	 Lengths: a[digits], b[digits], c[digits].
  */
-NN_DIGIT NN_Sub (a, b, c, digits)
-NN_DIGIT *a, *b, *c;
-unsigned int digits;
+NN_DIGIT NN_Sub (NN_DIGIT *a, NN_DIGIT *b, NN_DIGIT *c, unsigned int digits)
 {
 	NN_DIGIT temp, borrow = 0;
 
@@ -263,9 +246,7 @@ unsigned int digits;
 	 Assumes digits < MAX_NN_DIGITS.
 */
 
-void NN_Mult (a, b, c, digits)
-NN_DIGIT *a, *b, *c;
-unsigned int digits;
+void NN_Mult (NN_DIGIT *a, NN_DIGIT *b, NN_DIGIT *c, unsigned int digits)
 {
 	NN_DIGIT t[2*MAX_NN_DIGITS];
 	NN_DIGIT dhigh, dlow, carry;
@@ -301,9 +282,7 @@ unsigned int digits;
 
 	 Requires c < NN_DIGIT_BITS. */
 
-NN_DIGIT NN_LShift (a, b, c, digits)
-NN_DIGIT *a, *b;
-unsigned int c, digits;
+NN_DIGIT NN_LShift (NN_DIGIT *a, NN_DIGIT *b, unsigned int c, unsigned int digits)
 {
 	NN_DIGIT temp, carry = 0;
 	unsigned int t;
@@ -327,9 +306,7 @@ unsigned int c, digits;
 
 	 Requires: c < NN_DIGIT_BITS. */
 
-NN_DIGIT NN_RShift (a, b, c, digits)
-NN_DIGIT *a, *b;
-unsigned int c, digits;
+NN_DIGIT NN_RShift (NN_DIGIT *a, NN_DIGIT *b, unsigned int c, unsigned int digits)
 {
 	NN_DIGIT temp, carry = 0;
 	unsigned int t;
@@ -350,9 +327,7 @@ unsigned int c, digits;
 	return (carry);
 }
 
-static NN_DIGIT subdigitmult(a, b, c, d, digits)
-NN_DIGIT *a, *b, c, *d;
-unsigned int digits;
+static NN_DIGIT subdigitmult(NN_DIGIT *a, NN_DIGIT *b, NN_DIGIT c, NN_DIGIT *d, unsigned int digits)
 {
 	NN_DIGIT borrow, thigh, tlow;
 	unsigned int i;
@@ -382,9 +357,7 @@ unsigned int digits;
 					 dDigits < MAX_NN_DIGITS.
 */
 
-void NN_Div (a, b, c, cDigits, d, dDigits)
-NN_DIGIT *a, *b, *c, *d;
-unsigned int cDigits, dDigits;
+void NN_Div (NN_DIGIT *a, NN_DIGIT *b, NN_DIGIT *c, unsigned int  cDigits, NN_DIGIT *d, unsigned int  dDigits)
 {
 	NN_DIGIT ai, cc[2*MAX_NN_DIGITS+1], dd[MAX_NN_DIGITS], s;
 	NN_DIGIT t[2], u, v, *ccptr;
@@ -479,9 +452,7 @@ unsigned int cDigits, dDigits;
 	 Lengths: a[cDigits], b[bDigits], c[cDigits].
 	 Assumes c > 0, bDigits < 2 * MAX_NN_DIGITS, cDigits < MAX_NN_DIGITS.
 */
-void NN_Mod (a, b, bDigits, c, cDigits)
-NN_DIGIT *a, *b, *c;
-unsigned int bDigits, cDigits;
+void NN_Mod (NN_DIGIT *a, NN_DIGIT *b, unsigned int bDigits, NN_DIGIT *c, unsigned int cDigits)
 {
     NN_DIGIT t[2 * MAX_NN_DIGITS];
   
@@ -493,9 +464,7 @@ unsigned int bDigits, cDigits;
    Lengths: a[digits], b[digits], c[digits], d[digits].
    Assumes d > 0, digits < MAX_NN_DIGITS.
  */
-void NN_ModMult (a, b, c, d, digits)
-NN_DIGIT *a, *b, *c, *d;
-unsigned int digits;
+void NN_ModMult (NN_DIGIT *a, NN_DIGIT *b, NN_DIGIT *c, NN_DIGIT *d, unsigned int digits)
 {
     NN_DIGIT t[2*MAX_NN_DIGITS];
 
@@ -508,9 +477,7 @@ unsigned int digits;
    Lengths: a[dDigits], b[dDigits], c[cDigits], d[dDigits].
 	 Assumes d > 0, cDigits > 0, dDigits < MAX_NN_DIGITS.
  */
-void NN_ModExp (a, b, c, cDigits, d, dDigits)
-NN_DIGIT *a, *b, *c, *d;
-unsigned int cDigits, dDigits;
+void NN_ModExp (NN_DIGIT *a, NN_DIGIT *b, NN_DIGIT *c, unsigned int cDigits, NN_DIGIT *d, unsigned int dDigits)
 {
     NN_DIGIT bPower[3][MAX_NN_DIGITS], ci, t[MAX_NN_DIGITS];
     int i;
@@ -556,9 +523,7 @@ unsigned int cDigits, dDigits;
    Lengths: a[digits], b[digits], c[digits].
 	 Assumes gcd (b, c) = 1, digits < MAX_NN_DIGITS.
  */
-void NN_ModInv (a, b, c, digits)
-NN_DIGIT *a, *b, *c;
-unsigned int digits;
+void NN_ModInv (NN_DIGIT *a, NN_DIGIT *b, NN_DIGIT *c, unsigned int digits)
 {
     NN_DIGIT q[MAX_NN_DIGITS], t1[MAX_NN_DIGITS], t3[MAX_NN_DIGITS],
 		u1[MAX_NN_DIGITS], u3[MAX_NN_DIGITS], v1[MAX_NN_DIGITS],
@@ -601,9 +566,7 @@ unsigned int digits;
 #define iminus1 ( i==0 ? 2 : i-1 )      /* used by Euclid algorithms */
 #define g(i) (  &(t[i][0])  )
 
-void NN_Gcd(a ,b ,c, digits)
-NN_DIGIT *a, *b, *c;
-unsigned int digits;
+void NN_Gcd(NN_DIGIT *a , NN_DIGIT *b , NN_DIGIT *c, unsigned int digits)
 {
 	short i;
 	NN_DIGIT t[3][MAX_NN_DIGITS];
@@ -630,10 +593,7 @@ unsigned int digits;
 	 Assumes b[i] = 0 for i < len - digits * NN_DIGIT_LEN. (Otherwise most
 	 significant bytes are truncated.)
  */
-void NN_Decode (a, digits, b, len)
-NN_DIGIT *a;
-unsigned char *b;
-unsigned int digits, len;
+void NN_Decode (NN_DIGIT *a, unsigned int digits, unsigned char *b, unsigned int len)
 {
   NN_DIGIT t;
   unsigned int i, u;
@@ -658,10 +618,7 @@ unsigned int digits, len;
 	 Assumes NN_Bits (b, digits) <= 8 * len. (Otherwise most significant
 	 digits are truncated.)
  */
-void NN_Encode (a, len, b, digits)
-NN_DIGIT *b;
-unsigned char *a;
-unsigned int digits, len;
+void NN_Encode (unsigned char *a, unsigned int len, NN_DIGIT *b, unsigned int digits)
 {
 	NN_DIGIT t;
     unsigned int i, u;
@@ -734,11 +691,8 @@ void rsa_test(void)
 unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input,unsigned char *publicKey,unsigned char inputlen)
 {
     unsigned char outputdata[128];
-    unsigned long outputlen;
-    unsigned long startTime;
-    unsigned long endTime;
+    unsigned outputlen;
     unsigned long rst;
-    unsigned long i;
     memset(outputdata,0,80);
     //startTime = RkldTimerGetTick();
     rst = rsapublicfunc(outputdata,&outputlen,input,128,(R_RSA_PUBLIC_KEY *)publicKey);
@@ -751,10 +705,7 @@ unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input,unsigned
 unsigned long rsaCheckMD5(unsigned char *input,unsigned char *rawData,unsigned char *publicKey,unsigned char inputlen)
 {
     unsigned char outputdata[128];
-    unsigned long outputlen;
-    unsigned long startTime;
-    unsigned long endTime;
-    unsigned long i;
+    unsigned outputlen;
     memset(outputdata,0,128);
     rsapublicfunc(outputdata,&outputlen,input,128,(R_RSA_PUBLIC_KEY *)publicKey);
     if(ftl_memcmp(rawData,outputdata + outputlen-32,32) == 0)

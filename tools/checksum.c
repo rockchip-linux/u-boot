@@ -61,7 +61,7 @@ int main (int argc, char *argv[])
 	uint16_t crc_counts = 0;
 	uint32_t checksum = 0;
 #else
-	uint64_t checksum = 0;
+	long long unsigned int checksum = 0;
 #endif
 	while (blocks > 0) {
 		uint16_t read_blocks = blocks > buf_blocks? buf_blocks : blocks;

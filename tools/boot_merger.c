@@ -15,7 +15,6 @@ false;
 #define ENTRY_ALIGN  (2048)
 options gOpts;
 
-#define SCANF_EAT(in)   fscanf(in, "%*[ \r\n\t/]", gEat)
 
 char gEat[MAX_LINE_LEN];
 char* gConfigPath;
@@ -304,7 +303,38 @@ static bool parseOut(FILE* file) {
 	return true;
 }
 
-static bool parseOpts() {
+void printOpts(FILE* out) {
+	uint32_t i;
+	fprintf(out, SEC_CHIP "\n" OPT_NAME "=%s\n", gOpts.chip);
+	fprintf(out, SEC_VERSION "\n" OPT_MAJOR "=%d\n" OPT_MINOR 
+			"=%d\n", gOpts.major, gOpts.minor);
+
+	fprintf(out, SEC_471 "\n" OPT_NUM "=%d\n", gOpts.code471Num);
+	for (i=0 ;i<gOpts.code471Num ;i++) {
+		fprintf(out, OPT_PATH "%d=%s\n", i+1, gOpts.code471Path[i]);
+	}
+	if (gOpts.code471Sleep > 0)
+		fprintf(out, OPT_SLEEP "=%d\n", gOpts.code471Sleep);
+
+	fprintf(out, SEC_472 "\n" OPT_NUM "=%d\n", gOpts.code472Num);
+	for (i=0 ;i<gOpts.code472Num ;i++) {
+		fprintf(out, OPT_PATH "%d=%s\n", i+1, gOpts.code472Path[i]);
+	}
+	if (gOpts.code472Sleep > 0)
+		fprintf(out, OPT_SLEEP "=%d\n", gOpts.code472Sleep);
+
+	fprintf(out, SEC_LOADER "\n" OPT_NUM "=%d\n", gOpts.loaderNum);
+	for (i=0 ;i<gOpts.loaderNum ;i++) {
+		fprintf(out, OPT_LOADER_NAME "%d=%s\n", i+1, gOpts.loader[i].name);
+	}
+	for (i=0 ;i<gOpts.loaderNum ;i++) {
+		fprintf(out, "%s=%s\n", gOpts.loader[i].name, gOpts.loader[i].path);
+	}
+
+	fprintf(out, SEC_OUT "\n" OPT_OUT_PATH "=%s\n", gOpts.outPath);
+}
+
+static bool parseOpts(void) {
 	bool ret = false;
 	bool chipOk = false;
 	bool versionOk = false;
@@ -319,7 +349,7 @@ static bool parseOpts() {
 	file = fopen(configPath, "r");
 	if (!file) {
 		fprintf(stderr, "config(%s) not found!\n", configPath);
-		if (configPath == DEF_CONFIG_FILE) {
+		if (configPath == (char*)DEF_CONFIG_FILE) {
 			file = fopen(DEF_CONFIG_FILE, "w");
 			if (file) {
 				fprintf(stderr, "create defconfig\n");
@@ -387,7 +417,7 @@ end:
 	return ret;
 }
 
-bool initOpts() {
+bool initOpts(void) {
 	//set default opts
 	gOpts.major = DEF_MAJOR;
 	gOpts.minor = DEF_MINOR;
@@ -410,39 +440,6 @@ bool initOpts() {
 
 	return parseOpts();
 }
-
-void printOpts(FILE* out) {
-	uint32_t i;
-	fprintf(out, SEC_CHIP "\n" OPT_NAME "=%s\n", gOpts.chip);
-	fprintf(out, SEC_VERSION "\n" OPT_MAJOR "=%d\n" OPT_MINOR 
-			"=%d\n", gOpts.major, gOpts.minor);
-
-	fprintf(out, SEC_471 "\n" OPT_NUM "=%d\n", gOpts.code471Num);
-	for (i=0 ;i<gOpts.code471Num ;i++) {
-		fprintf(out, OPT_PATH "%d=%s\n", i+1, gOpts.code471Path[i]);
-	}
-	if (gOpts.code471Sleep > 0)
-		fprintf(out, OPT_SLEEP "=%d\n", gOpts.code471Sleep);
-
-	fprintf(out, SEC_472 "\n" OPT_NUM "=%d\n", gOpts.code472Num);
-	for (i=0 ;i<gOpts.code472Num ;i++) {
-		fprintf(out, OPT_PATH "%d=%s\n", i+1, gOpts.code472Path[i]);
-	}
-	if (gOpts.code472Sleep > 0)
-		fprintf(out, OPT_SLEEP "=%d\n", gOpts.code472Sleep);
-
-	fprintf(out, SEC_LOADER "\n" OPT_NUM "=%d\n", gOpts.loaderNum);
-	for (i=0 ;i<gOpts.loaderNum ;i++) {
-		fprintf(out, OPT_LOADER_NAME "%d=%s\n", i+1, gOpts.loader[i].name);
-	}
-	for (i=0 ;i<gOpts.loaderNum ;i++) {
-		fprintf(out, "%s=%s\n", gOpts.loader[i].name, gOpts.loader[i].path);
-	}
-
-	fprintf(out, SEC_OUT "\n" OPT_OUT_PATH "=%s\n", gOpts.outPath);
-}
-
-
 
 /************merge code****************/
 
@@ -508,7 +505,7 @@ static inline bool getFileSize(const char *path, uint32_t* size) {
 	return true;
 }  
 
-static inline rk_time getTime() {
+static inline rk_time getTime(void) {
 	rk_time rkTime;
 
 	struct tm *tm;
@@ -528,7 +525,7 @@ static inline rk_time getTime() {
 
 static bool writeFile(FILE* outFile, const char* path, bool fix) {
 	bool ret = false;
-	uint32_t size, fixSize;
+	uint32_t size = 0, fixSize = 0;
 	uint8_t* buf;
 
 	FILE* inFile = fopen(path, "rb");
@@ -688,7 +685,7 @@ static inline void getBoothdr(rk_boot_header* hdr) {
 }
 
 static inline uint32_t getCrc(const char* path) {
-	uint32_t size;
+	uint32_t size = 0;
 	uint32_t crc = 0;
 	FILE* file = fopen(path, "rb");
 	getFileSize(path, &size);
@@ -704,7 +701,7 @@ end:
 	return crc;
 }
 
-static bool mergeBoot() {
+static bool mergeBoot(void) {
 	uint32_t dataOffset;
 	bool ret = false;
 	int i;
@@ -872,7 +869,7 @@ end:
 
 /************unpack code end***********/
 
-static void printHelp() {
+static void printHelp(void) {
 	printf("Usage: boot_merger [options]... FILE\n");
 	printf("Merge or unpack Rockchip's loader (Default action is to merge.)\n");
 	printf("Options:\n");

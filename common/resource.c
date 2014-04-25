@@ -30,8 +30,11 @@
 
 #include <resource.h>
 #include <fastboot.h>
+#include <malloc.h>
+#include <../board/rockchip/common/config.h>
+#include <../board/rockchip/common/storage.h>
 
-static int inline get_ptn_offset() {
+static int inline get_ptn_offset(void) {
 	fbt_partition_t* ptn = fastboot_find_ptn(RESOURCE_NAME);
 	if (!ptn)
 		return 0;
@@ -144,7 +147,7 @@ bool load_content(resource_content* content) {
 		return true;
 
 	int blocks = (content->content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
-	content->load_addr = malloc(blocks * BLOCK_SIZE);
+	content->load_addr = (void*)malloc(blocks * BLOCK_SIZE);
 	if (!content->load_addr)
 		return false;
 	if (StorageReadLba(get_ptn_offset() +

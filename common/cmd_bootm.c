@@ -1936,30 +1936,30 @@ U_BOOT_CMD(
 
 
 #ifdef CONFIG_ROCKCHIP
-extern const char* get_fdt_name();
+extern const char* get_fdt_name(void);
 #if defined(CONFIG_OF_LIBFDT)
-void* rk_fdt_resource_load()
+void* rk_fdt_resource_load(void)
 {
     resource_content content;
     snprintf(content.path, sizeof(content.path), "%s", get_fdt_name());
     content.load_addr = 0;
     if (!get_content(&content)) {
 		printf("Failed to find device tree(%s)\n", get_fdt_name());
-		return 1;
+		return 0;
     }
     if (!load_content(&content)) {
 		printf("Failed to load device tree(%s)\n", get_fdt_name());
-		return 1;
+		return 0;
     }
-    printf("Loaded dtb file:%s,load_addr = 0x%x size:%d\n", content.path, content.load_addr, content.content_size);
+    printf("Loaded dtb file:%s,load_addr = %p size:%d\n", content.path, content.load_addr, content.content_size);
 
 	if (!content.load_addr|| !content.content_size) {
 		printf("Failed to load device tree(%s)\n", get_fdt_name());
-		return 1;
+		return 0;
 	}
 
 	set_working_fdt_addr(content.load_addr);
-    setenv_addr("fdtsize", content.content_size);
+    setenv_addr("fdtsize", (void const *)content.content_size);
     return content.load_addr;
  }
 #endif
@@ -1975,7 +1975,7 @@ int rk_bootm_start(bootm_headers_t *images)
         rk_fdt_resource_load();
     }
 
-	images->ft_addr = getenv_hex("fdtaddr", 0);//content.load_addr;
+	images->ft_addr = (char *)getenv_hex("fdtaddr", 0);//content.load_addr;
     images->ft_len = getenv_hex("fdtsize", 0);//content.content_size;
 #endif
 

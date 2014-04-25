@@ -195,7 +195,7 @@ int main (int argc, char *argv[])
 		);
 	}
 
-#else //COMPRESS_RLE8 || COMPRESS_RLE16
+#else
     printf("unsigned char bmp_logo_bitmap[%d * %d];\n", b->width, b->height);
 
 #ifdef COMPRESS_RLE16
@@ -212,7 +212,7 @@ int main (int argc, char *argv[])
         }
     }
 
-    //add by cjf, base on android:build/tools/rgb2565/to565.c
+    /* add by cjf, base on android:build/tools/rgb2565/to565.c */
     DATA_TYPE* data;
     if ((data = (DATA_TYPE*)malloc(b->width * b->height
                     << 1 * sizeof(DATA_TYPE))) == NULL)
@@ -253,7 +253,7 @@ int main (int argc, char *argv[])
         );
     }
 
-#endif //COMPRESS_RLE8 || COMPRESS_RLE16
+#endif
 	printf ("\n"
 		"};\n\n"
 		"#endif /* __BMP_LOGO_DATA_H__ */\n"

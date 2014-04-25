@@ -7,13 +7,20 @@ Created:
 Modified:
 Revision:       1.00
  ********************************************************************************/
+#include "../common/config.h"
+#include "boot.h"
 #include <fastboot.h>
-#include "config.h"
+#include <malloc.h>
+#include "storage.h"
 #include "idblock.h"
 #include "rkimage.h"
 
 
 DECLARE_GLOBAL_DATA_PTR;
+
+
+extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
+extern int ftl_memcmp(void *str1, void *str2, unsigned int count);
 
 
 //from MainLoop.c
@@ -142,7 +149,7 @@ extern void P_RC4(unsigned char * buf, unsigned short len);
 
 void GetIdblockDataNoRc4(char * fwbuf, int len)
 {
-	P_RC4(fwbuf, len);
+	P_RC4((unsigned char*)fwbuf, len);
 }
 
 #endif
@@ -174,16 +181,15 @@ char GetChipSectorInfo(char * pbuf)
 
 int get_bootloader_ver(char *boot_ver)
 {
-	int i=0;
 	uint8 *buf = (uint8*)&gIdDataBuf[0];
 	memset(bootloader_ver,0,24);
 
 	if( *(uint32*)buf == 0xfcdc8c3b )
 	{
 		uint16 year, date;
-		// GetIdblockDataNoRc4((uint8*)&gIdDataBuf[0],512);
-		GetIdblockDataNoRc4((uint8*)&gIdDataBuf[128*2],512);
-		GetIdblockDataNoRc4((uint8*)&gIdDataBuf[128*3],512);
+		// GetIdblockDataNoRc4((char*)&gIdDataBuf[0],512);
+		GetIdblockDataNoRc4((char*)&gIdDataBuf[128*2],512);
+		GetIdblockDataNoRc4((char*)&gIdDataBuf[128*3],512);
 		year = *(uint16*)((uint8*)buf+512+18);
 		date = *(uint16*)((uint8*)buf+512+20);
 		internal_boot_bloader_ver = *(uint16*)((uint8*)buf+512+22);
@@ -308,8 +314,9 @@ int FindIDBlock(FlashInfo* pFlashInfo, int iStart,int *iPos)
 		{
 			continue;
 		}
-
-		if ( (*(unsigned int*)ucSpareData) == 0xfcdc8c3b ) 
+		unsigned int tag = 0;
+		memcpy(&(tag), ucSpareData, sizeof(tag));
+		if (tag == (unsigned int)0xfcdc8c3b ) 
 		{
 			*iPos = i;
 			return 0;//ÕÒµ½idb
@@ -320,7 +327,7 @@ int FindIDBlock(FlashInfo* pFlashInfo, int iStart,int *iPos)
 	return -1;							// new mp3
 }
 
-int FindAllIDB()
+int FindAllIDB(void)
 {
 	int i,iRet,iIndex,iStart=0,iCount=0;
 
@@ -576,7 +583,6 @@ bool WriteXIDBlock(USHORT *pSysBlockAddr, int iIDBCount, UCHAR *idBlockData, UIN
 int update_loader(bool dataLoaded)
 {
 	int iRet=0,iResult;
-	int i=0;
 	int iIDBCount;
 	UINT uiNeedIdSectorNum;
 	PRINT_E("update loader\n");
@@ -753,7 +759,7 @@ int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
 	{
 		sec = (remain_sec>32)?32:remain_sec;
 
-		if(StorageWriteLba(dest_offset, src_addr, sec, 0) != 0)
+		if(StorageWriteLba(dest_offset, (void *)src_addr, sec, 0) != 0)
 		{
 			return -2;
 		}
@@ -880,7 +886,7 @@ int setBootloaderMsg(struct bootloader_message* bmsg)
 		return -1;
 	}
 
-	return CopyMemory2Flash(&buf, ptn->offset + MISC_COMMAND_OFFSET,
+	return CopyMemory2Flash((uint32)&buf, ptn->offset + MISC_COMMAND_OFFSET,
 			DIV_ROUND_UP(sizeof(struct bootloader_message), RK_BLK_SIZE));
 }
 
@@ -917,7 +923,7 @@ void getParameter() {
 extern uint16 g_IDBlockOffset[];
 int getSn(char* buf)
 {
-	int i, size;
+	int size;
 	Sector3Info *pSec3;
 	int idbCount = FindAllIDB();
 	if (idbCount <= 0) {
@@ -941,7 +947,7 @@ int getSn(char* buf)
 		printf("empty serial no.\n");
 		return false;
 	}
-	strncpy(buf, pSec3->sn, size);
+	strncpy(buf, (char*)pSec3->sn, size);
 	buf[size] = '\0';
 	printf("sn:%s\n", buf);
 	return true;
@@ -952,13 +958,13 @@ int fixHdr(struct fastboot_boot_img_hdr *hdr)
 	hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
 #ifndef CONFIG_USE_PARAMETER_INITRD_ADDR
 	//load it to fastboot_buf.
-	hdr->ramdisk_addr = (u8 *)gd->arch.fastboot_buf_addr;
-	printf("fix ramdisk_addr:%p\n", hdr->ramdisk_addr);
+	hdr->ramdisk_addr = (uint32)gd->arch.fastboot_buf_addr;
+	printf("fix ramdisk_addr:0x%x\n", hdr->ramdisk_addr);
 #endif
 
 	//set kernel addr at 32M.
 	hdr->kernel_addr = gd->bd->bi_dram[0].start + 32 * 1024 * 1024;
-	printf("fix kernel_addr:%p\n", hdr->kernel_addr);
+	printf("fix kernel_addr:0x%x\n", hdr->kernel_addr);
 	return 0;
 }
 
@@ -976,7 +982,7 @@ int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked)
 	if(!unlocked && SecureBootEn &&
 			boothdr->signTag == SECURE_BOOT_SIGN_TAG)
 	{
-		if(SecureBootSignCheck(boothdr->rsaHash, boothdr->hdr.id,
+		if(SecureBootSignCheck(boothdr->rsaHash, (uint8 *)boothdr->hdr.id,
 					boothdr->signlen) == FTL_OK)
 		{
 			SecureBootCheckOK = 1;
@@ -986,7 +992,7 @@ int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked)
 	}
 
 end:
-	printf("SecureBootCheckOK:%d\n", SecureBootCheckOK);
+	printf("SecureBootCheckOK:%d\n", (int)SecureBootCheckOK);
 	if(SecureBootCheckOK == 0)
 	{
 		SecureBootDisable();

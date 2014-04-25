@@ -36,4 +36,12 @@ typedef struct {
 	void*    load_addr;
 } resource_content;
 
+
+bool get_content(resource_content* content);
+void free_content(resource_content* content);
+bool load_content(resource_content* content);
+bool load_content_data(resource_content* content,
+        int offset_block, void* data, int blocks);
+
+
 #endif //RESOURCE_H
