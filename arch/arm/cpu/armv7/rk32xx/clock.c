@@ -99,17 +99,12 @@ static void clk_loop_delayus(uint32_t us)
 }
 
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-	#include "clock-rk3066.c"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-	#include "clock-rk3168.c"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-	#include "clock-rk3188.c"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-	#include "clock-rk3026.c"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#include "clock-rk3288.c"
+#else
+	#error "PLS config chiptype for clock-rkxx.c!"
 #endif
+
 
 /*
  * rkplat clock set for arm and general pll
