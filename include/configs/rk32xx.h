@@ -83,6 +83,9 @@ Revision:       1.00
 #define RK_SDMMC_BOOT_EN
 #endif
 
+// mod it to enable console commands.
+#define CONFIG_BOOTDELAY 0
+
 /*
  * Hardware drivers
  */

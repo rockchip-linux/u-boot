@@ -413,18 +413,6 @@ static void process_boot_delay(void)
 }
 #endif /* CONFIG_BOOTDELAY */
 
-#ifdef CONFIG_ROCKCHIP
-void main_loop (void)
-{
-    char *p;
-    if ((p = getenv ("preboot")) != NULL) {
-        run_command_list(p, -1, 0);
-    }
-    run_command_list(CONFIG_BOOTCOMMAND, -1, 0);
-    /* Should not reach here. */
-}
-
-#else //CONFIG_ROCKCHIP
 void main_loop(void)
 {
 #ifndef CONFIG_SYS_HUSH_PARSER
@@ -536,7 +524,6 @@ void main_loop(void)
 	}
 #endif /*CONFIG_SYS_HUSH_PARSER*/
 }
-#endif // CONFIG_ROCKCHIP
 
 #ifdef CONFIG_BOOT_RETRY_TIME
 /***************************************************************************
