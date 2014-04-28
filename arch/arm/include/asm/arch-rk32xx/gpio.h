@@ -19,7 +19,6 @@
 #define _ASM_NIOS2_GPIO_H_
 
 #include <asm/io.h>
-#include "iomap.h"
 
 #define RK_GPIO_WRITE_REG        0
 #define RK_GPIO_DIR_REG          0x4
@@ -75,17 +74,6 @@ enum of_gpio_flags {
 	OF_GPIO_ACTIVE_LOW = 0x1,
 };
 
-enum {
-	IRQ_TYPE_NONE		= 0x00000000,
-	IRQ_TYPE_EDGE_RISING	= 0x00000001,
-	IRQ_TYPE_EDGE_FALLING	= 0x00000002,
-	IRQ_TYPE_EDGE_BOTH	= (IRQ_TYPE_EDGE_FALLING | IRQ_TYPE_EDGE_RISING),
-	IRQ_TYPE_LEVEL_HIGH	= 0x00000004,
-	IRQ_TYPE_LEVEL_LOW	= 0x00000008,
-	IRQ_TYPE_LEVEL_MASK	= (IRQ_TYPE_LEVEL_LOW | IRQ_TYPE_LEVEL_HIGH),
-	IRQ_TYPE_SENSE_MASK	= 0x0000000f,
-	IRQ_TYPE_DEFAULT	= IRQ_TYPE_SENSE_MASK,
-};
 
 int gpio_request(unsigned gpio, const char *label);
 int gpio_free(unsigned gpio);

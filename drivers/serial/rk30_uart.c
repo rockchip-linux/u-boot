@@ -130,15 +130,15 @@ inline pUART_REG UARTGetRegBase(eUART_ch_t uartCh)
 {
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	if(uartCh == UART_BT) {
-		return (pUART_REG)RK3288_UART_BT_PHYS;
+		return (pUART_REG)RKIO_UART0_BT_PHYS;
 	} else if (uartCh == UART_BB) {
-		return (pUART_REG)RK3288_UART_BB_PHYS;
+		return (pUART_REG)RKIO_UART1_BB_PHYS;
 	} else if (uartCh == UART_DBG) {
-		return (pUART_REG)RK3288_UART_DBG_PHYS;
+		return (pUART_REG)RKIO_UART2_DBG_PHYS;
 	} else if (uartCh == UART_GPS) {
-		return (pUART_REG)RK3288_UART_GPS_PHYS;
+		return (pUART_REG)RKIO_UART3_GPS_PHYS;
 	} else if (uartCh == UART_EXP) {
-		return (pUART_REG)RK3288_UART_EXP_PHYS;
+		return (pUART_REG)RKIO_UART4_EXP_PHYS;
 } else {
 	return NULL;
 }
@@ -165,7 +165,7 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 	if (uartCh == UART_DBG) {
 		/* iomux gpio7_c6 and gpio7_c7 */
 		writel(((0x03<<8)|(0x03<<12))|((0x01<<8)|(0x01<<12)), RKIO_GRF_PHYS + 0x78);
-		pUartReg = (pUART_REG)RK3288_UART_DBG_PHYS;
+		pUartReg = (pUART_REG)RKIO_UART2_DBG_PHYS;
 	} else {
 		return (-1);
 	}

@@ -87,7 +87,7 @@ void reset_cpu(ulong ignored)
     MMUDeinit();              /*关闭MMU*/
     //cruReg->CRU_MODE_CON = 0x33030000;    //cpu enter slow mode
     //Delay100cyc(10);
-    g_giccReg->ICCEOIR=INT_USB_OTG;
+    g_giccReg->icceoir=INT_USB_OTG;
     //DisableRemap();
 	ResetCpu((0xff740000));
     //cruReg->CRU_GLB_SRST_FST_VALUE = 0xfdb9; //kernel 使用 fst reset时，loader会死机，问题还没有查，所有loader还是用snd reset

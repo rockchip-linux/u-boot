@@ -29,9 +29,9 @@ uint32 IRQEnable(eINT_NUM intNum)
     }
     M=intNum/32;
     N=intNum%32;
-    g_giccReg->ICCICR&=(~0x08);     //IntSetIRQ
-    g_gicdReg->ICDISER[M]=(0x1<<(N));
-    g_gicdReg->ITARGETSR[offset] |= (1 << shift);
+    g_giccReg->iccicr&=(~0x08);     //IntSetIRQ
+    g_gicdReg->icdiser[M]=(0x1<<(N));
+    g_gicdReg->itargetsr[offset] |= (1 << shift);
     return(0);
 }
 uint32 IRQDisable(eINT_NUM intNum)
@@ -43,7 +43,7 @@ uint32 IRQDisable(eINT_NUM intNum)
     }
     M=intNum/32;
     N=intNum%32;
-    g_gicdReg->ICDICER[M]=(0x1<<(N));
+    g_gicdReg->icdicer[M]=(0x1<<(N));
     return(0);
 }
 
@@ -82,7 +82,7 @@ void IrqHandler(void)
 {
     uint32 intSrc;
 
-	intSrc=g_giccReg->ICCIAR&0x3ff;     //IntGetIntID
+	intSrc=g_giccReg->icciar&0x3ff;     //IntGetIntID
 	//g_giccReg->ICCEOIR=intSrc;
 	//if((intSrc != USB_OTG_INT_CH) && (intSrc != INT_eMMC))
 	//	serial_printf("Irq: %d\n", intSrc);
@@ -113,7 +113,7 @@ void IrqHandler(void)
     {
 		gpio_isr(intSrc-INT_GPIO0);
     }
-    g_giccReg->ICCEOIR=intSrc;
+    g_giccReg->icceoir=intSrc;
 }
 
 
@@ -121,7 +121,7 @@ void IrqHandler(void)
 static void default_isr(void *data)
 {
     uint32 intSrc = 0;
-	//intSrc=g_giccReg->ICCIAR&0x3ff;     //IntGetIntID
+	//intSrc=g_giccReg->icciar&0x3ff;     //IntGetIntID
 	//printf("default_isr():  called for IRQ %d, Interrupt Status=%x PR=%x\n",
 	//       (int)data, *IXP425_ICIP, *IXP425_ICIH);
 }
@@ -153,20 +153,20 @@ int arch_interrupt_init (void)
 {
 	int i;
 	printf("arch_interrupt_init\n");
-    g_giccReg->ICCEOIR=INT_USB_OTG;
-    g_giccReg->ICCEOIR=INT_eMMC;
-    g_giccReg->ICCICR=0x00;   //disable signalling the interrupt
-    g_gicdReg->ICDDCR=0x00;  
+    g_giccReg->icceoir=INT_USB_OTG;
+    g_giccReg->icceoir=INT_eMMC;
+    g_giccReg->iccicr=0x00;   //disable signalling the interrupt
+    g_gicdReg->icddcr=0x00;  
                                               
-    g_gicdReg->ICDICER[0]=0xFFFFFFFF;
-    g_gicdReg->ICDICER[1]=0xFFFFFFFF;
-    g_gicdReg->ICDICER[2]=0xFFFFFFFF;
-    g_gicdReg->ICDICER[3]=0xFFFFFFFF;
-    g_gicdReg->ICDICFR[3]&=(~(1<<1));
-	g_giccReg->ICCPMR=0xff;     //IntSetPrioFilt
-	g_giccReg->ICCICR|=0x01;    //IntEnalbeSecureSignal
-	g_giccReg->ICCICR|=0x02;    //IntEnalbeNoSecureSignal
-	g_gicdReg->ICDDCR=0x01;     //IntEnalbeDistributor
+    g_gicdReg->icdicer[0]=0xFFFFFFFF;
+    g_gicdReg->icdicer[1]=0xFFFFFFFF;
+    g_gicdReg->icdicer[2]=0xFFFFFFFF;
+    g_gicdReg->icdicer[3]=0xFFFFFFFF;
+    g_gicdReg->icdicfr[3]&=(~(1<<1));
+	g_giccReg->iccpmr=0xff;     //IntSetPrioFilt
+	g_giccReg->iccicr|=0x01;    //IntEnalbeSecureSignal
+	g_giccReg->iccicr|=0x02;    //IntEnalbeNoSecureSignal
+	g_gicdReg->icddcr=0x01;     //IntEnalbeDistributor
 
 	/* install default interrupt handlers */
 	for (i = 0; i < N_IRQS; i++)

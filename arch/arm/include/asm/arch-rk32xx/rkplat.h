@@ -20,18 +20,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-#ifndef __RKXX_CRU_H
-#define __RKXX_CRU_H
+#ifndef __RKPLAT_H
+#define __RKPLAT_H
 
 
-#define cru_readl(offset)	readl(RKIO_CRU_PHYS + offset)
-#define cru_writel(v, offset)	do { writel(v, RKIO_CRU_PHYS + offset); } while (0)
+/********************************************************************
+**                      common head files                           *
+********************************************************************/
+#include <common.h>
+#include <asm/io.h>
+#include <asm/errno.h>
 
+#include "typedef.h"
+#include "io.h"
+#include "pmu.h"
+#include "grf.h"
+#include "cru.h"
+#include "irqs.h"
+#include "gpio.h"
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	#include "cru-rk3288.h"
-#else
-	#error "PLS config cru-rkxx.h!"
-#endif
+#endif /* __RKPLAT_H */
 
-#endif /* __RKXX_CRU_H */

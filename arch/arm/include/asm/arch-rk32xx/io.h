@@ -20,18 +20,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-#ifndef __RKXX_CRU_H
-#define __RKXX_CRU_H
+#ifndef __RKXX_IO_H
+#define __RKXX_IO_H
 
 
-#define cru_readl(offset)	readl(RKIO_CRU_PHYS + offset)
-#define cru_writel(v, offset)	do { writel(v, RKIO_CRU_PHYS + offset); } while (0)
-
-
+/*
+ * RKXX IO memory map:
+ *
+ */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	#include "cru-rk3288.h"
+	#include "io-rk3288.h"
 #else
-	#error "PLS config cru-rkxx.h!"
+	#error "PLS config io-rkxx.h!"
 #endif
 
-#endif /* __RKXX_CRU_H */
+
+#endif /* __RKXX_IO_H */
+

@@ -10,7 +10,6 @@ Revision:       1.00
 
 
 #include <common.h>
-#include <asm/arch/iomap.h>
 #include <lcd.h>
 #include <asm/arch/drivers.h>
 
@@ -400,7 +399,7 @@ typedef volatile struct tagLCDC_REG
 #define LVDS_CH1_EN			(0x01 << 12)
 #define LVDS_PWRDN			(0x01 << 15)
 
-#define lvds_regs  RK3288_LVDS_BASE_ADDR
+#define lvds_regs  RKIO_LVDS_PHYS
 
 enum 
 {
@@ -704,7 +703,7 @@ void rk30_lcdc_standby(enable)
 
 int rk_lcdc_init(int lcdc_id)
 {
-    preg = (lcdc_id == 1) ? RK3288_VOP_LIT_BASE_ADDR : RK3288_VOP_BIG_BASE_ADDR;  
+    preg = (lcdc_id == 1) ? RKIO_VOP_LIT_PHYS : RKIO_VOP_BIG_PHYS;  
     g_grfReg->grf_io_vsel = 1<<16;  //LCDCIOdomain 3.3 Vvoltageselectio
     
     lcdc_clk_enable();

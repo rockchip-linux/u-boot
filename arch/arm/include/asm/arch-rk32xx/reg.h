@@ -22,48 +22,7 @@
 #ifndef __RK_REG_H
 #define __RK_REG_H
 
-typedef volatile struct tagGICD_REG
-{
-	uint32 ICDDCR; 	 //0x000
-	uint32 ICDICTR;    //0x004
-	uint32 ICDIIDR;    //0x008
-	uint32 RESERVED0[29];
-	uint32 ICDISR[4];	//	 0x080
-	uint32 RESERVED1[28];
-	uint32 ICDISER[4];	  // 0x100
-	uint32 RESERVED2[28];
-	uint32 ICDICER[4]; 	   //0x180
-	uint32 RESERVED3[28];
-	uint32 ICDISPR[4];	   //0x200
-	uint32 RESERVED4[28];
-	uint32 ICDICPR[4]; 	 //0x280   
-	uint32 RESERVED5[28];
-	uint32 ICDIABR[4]; 	   //0x300
-	uint32 RESERVED6[60];
-	uint32 ICDIPR_SGI[4];		// 0x400
-	uint32 ICDIPR_PPI[4];		// 0x410
-	uint32 ICDIPR_SPI[18]; 		//0x420
-	uint32 RESERVED7[230];
-	uint32 ITARGETSR[255];		  //0x800
-	uint32 RESERVED9[1];
-	uint32 ICDICFR[7]; 	   //0xc00
-	uint32 RESERVED8[185];
-	uint32 ICDSGIR; 	   //0xf00
-} GICD_REG, *pGICD_REG;
 
-typedef volatile struct tagGICC_REG
-{
-	uint32 ICCICR;		   //0x00
-	uint32 ICCPMR;		   //0x04
-	uint32 ICCBPR;		   //0x08
-	uint32 ICCIAR;		   //0x0c
-	uint32 ICCEOIR;		  //0x10
-	uint32 ICCRPR;		   //0x14
-	uint32 ICCHPIR;		  //0x18
-	uint32 ICCABPR;		  //0x1c
-	uint32 RESERVED0[55];
-	uint32 ICCIIDR;		  //0xfc
-}GICC_REG, *pGICC_REG;
 
 
 typedef enum _IRQ_NUM
@@ -116,7 +75,7 @@ typedef enum _IRQ_NUM
 	INT_GPIO7		,
 	INT_GPIO8		,
 	INT_MAXNUM		
-}eINT_NUM;
+} eINT_NUM;
 
 /* PMU registers */
 typedef volatile struct tagPMU_REG
@@ -319,18 +278,17 @@ typedef volatile struct TagSDC_REG2
 
 
 
-#define PMU_BASE_ADDR           RK3288_PMU_PHYS
-#define CRU_BASE_ADDR           RK3288_CRU_PHYS
-#define GRF_BASE                RK3288_GRF_PHYS
-#define UART2_BASE_ADDR         RK3288_UART_DBG_PHYS
-#define USB_OTG_BASE_ADDR       RK3288_USB_OTG_PHYS
-#define USB_OTG_BASE_ADDR_VA    RK3288_USB_OTG_PHYS
-#define NANDC_BASE_ADDR         RK3288_NANDC0_PHYS
-#define EMMC_BASE_ADDR          RK3288_EMMC_PHY
-#define SARADC_BASE             RK3288_SAR_ADC_PHY
-#define TIMER0_BASE_ADDR        RK3288_TIMER0_PHYS
-#define BOOT_ROM_CHIP_VER_ADDR  RK3288_BOOTROM_VERSION_ADDR
-#define REG_FILE_BASE_ADDR      GRF_BASE
+#define PMU_BASE_ADDR           RKIO_PMU_PHYS
+#define CRU_BASE_ADDR           RKIO_CRU_PHYS
+#define REG_FILE_BASE_ADDR      RKIO_GRF_PHYS
+#define UART2_BASE_ADDR         RKIO_UART2_DBG_PHYS
+#define USB_OTG_BASE_ADDR       RKIO_USBOTG_PHYS
+#define USB_OTG_BASE_ADDR_VA    RKIO_USBOTG_PHYS
+#define NANDC_BASE_ADDR         RKIO_NANDC0_PHYS
+#define EMMC_BASE_ADDR          RKIO_EMMC_PHYS
+#define SARADC_BASE             RKIO_SARADC_PHYS
+#define TIMER0_BASE_ADDR        RKIO_TIMER_6CH_PHYS
+#define BOOT_ROM_CHIP_VER_ADDR  RKIO_ROM_CHIP_VER_ADDR
 
 
 
@@ -342,13 +300,13 @@ typedef volatile struct TagSDC_REG2
 #define I2C5_BASE_ADDR          0xFF170000
 
 
-#define g_cruReg 	((pCRU_REG)CRU_BASE_ADDR)
-#define g_pmuReg 	((pPMU_REG)PMU_BASE_ADDR)
-#define g_grfReg 	((pGRF_REG)RK3288_GRF_PHYS)
-#define g_gicdReg       ((pGICD_REG)RK3288_GIC_DIST_PHYS)
-#define g_giccReg       ((pGICC_REG)RK3288_GIC_CPU_PHYS)
-#define g_Time0Reg      ((pTIMER_REG)TIMER0_BASE_ADDR)
-#define g_EMMCReg       ((pSDC_REG_T2)EMMC_BASE_ADDR)
+#define g_cruReg 	((pCRU_REG)RKIO_CRU_PHYS)
+#define g_pmuReg 	((pPMU_REG)RKIO_PMU_PHYS)
+#define g_grfReg 	((pGRF_REG)RKIO_GRF_PHYS)
+#define g_gicdReg       ((pGICD_REG)RKIO_GICD_PHYS)
+#define g_giccReg       ((pGICC_REG)RKIO_GICC_PHYS)
+#define g_Time0Reg      ((pTIMER_REG)RKIO_TIMER_6CH_PHYS)
+#define g_EMMCReg       ((pSDC_REG_T2)RKIO_EMMC_PHYS)
 
 
 #define read_XDATA(address) 		(*((uint16 volatile*)(address)))

@@ -20,13 +20,15 @@ Revision:       1.00
 /********************************************************************
 **                 common head files                                *
 ********************************************************************/
-#include    "typedef.h"
-#include    "iomap.h"
-#include    "reg.h"
-#include    "cpu.h"
-#include    "grf.h"
-#include    "cru.h"
+#include "typedef.h"
+#include "io.h"
+#include "pmu.h"
+#include "grf.h"
+#include "cru.h"
+#include "irqs.h"
+#include "gpio.h"
 
+#include    "reg.h"
 
 /********************************************************************
 **                  drivers head files                              *

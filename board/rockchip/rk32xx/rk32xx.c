@@ -85,7 +85,7 @@ void board_lmb_reserve(struct lmb *lmb) {
 
 #ifdef CONFIG_RK_FB
 #ifdef CONFIG_RK3288SDK
-#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+RK3288_PWM0123_BASE_ADDR+id*0x10)=val)
+#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+RKIO_RK_PWM_PHYS+id*0x10)=val)
 #else
 #define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
 #endif
@@ -152,7 +152,7 @@ void rk_backlight_ctrl(int brightness)
 
 #ifdef CONFIG_OF_CONTROL
 	if(bl_node == 0)rk_lcd_parse_dt((void const *)getenv_hex("fdtaddr", 0));
-	if(pwm_addr)id = (pwm_addr-RK3288_PWM0123_BASE_ADDR)/0x10;   
+	if(pwm_addr)id = (pwm_addr-RKIO_RK_PWM_PHYS)/0x10;   
 #endif
 	if(id == 0)g_grfReg->grf_gpio7a_iomux = (3<<16)|1;   // 1: PWM0/ 0: GPIO7_A0
 
@@ -165,7 +165,7 @@ void rk_backlight_ctrl(int brightness)
 #ifdef CONFIG_OF_CONTROL
 	if(bl_en_gpio.name!=NULL)gpio_direction_output(bl_en_gpio.gpio, (pwm != total)?bl_en_gpio.flags:!bl_en_gpio.flags);  
 #else
-	gpio_direction_output(RK3288_GPIO7_PHYS|GPIO_A2, (pwm != total)); // BL_EN  GPIO7_A2, high
+	gpio_direction_output(RKIO_GPIO7_PHYS|GPIO_A2, (pwm != total)); // BL_EN  GPIO7_A2, high
 #endif
 }
 
