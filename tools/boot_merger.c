@@ -3,7 +3,7 @@
 #include <sys/stat.h>  
 #include <version.h>
 
-//#define USE_P_RC4
+#define USE_P_RC4
 
 bool gDebug = 
 #ifdef DEBUG
