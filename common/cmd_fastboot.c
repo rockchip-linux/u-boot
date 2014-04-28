@@ -2082,7 +2082,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	memset(&images, 0, sizeof(images));
 	images.ep = hdr->kernel_addr;
 	images.rd_start = hdr->ramdisk_addr;
-	images.rd_end = hdr->ramdisk_addr;
+	images.rd_end = hdr->ramdisk_addr + hdr->ramdisk_size;
 	free(hdr);
 
 #ifdef CONFIG_CMD_BOOTM

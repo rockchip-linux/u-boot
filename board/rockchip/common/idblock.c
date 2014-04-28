@@ -8,17 +8,19 @@ Modified:
 Revision:       1.00
  ********************************************************************************/
 #include "../common/config.h"
-#include "boot.h"
 #include <fastboot.h>
 #include <malloc.h>
 #include "storage.h"
 #include "idblock.h"
 #include "rkimage.h"
+#include "boot.h"
 
 
 DECLARE_GLOBAL_DATA_PTR;
 
 
+extern uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
+extern uint32 SecureBootDisable(void);
 extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
 extern int ftl_memcmp(void *str1, void *str2, unsigned int count);
 
@@ -774,7 +776,6 @@ int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
 
 void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz)
 {
-	ramdisk_sz = (ramdisk_sz + 0x3FFFF)&0xFFFF0000;//64KB ¶ÔÆë
 #define MAX_BUF_SIZE 100
 	char str[MAX_BUF_SIZE];
 	char *cmd_line = strdup(pboot_info->cmd_line);
