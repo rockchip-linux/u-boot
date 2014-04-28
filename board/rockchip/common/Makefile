@@ -17,21 +17,15 @@ obj-$(CONFIG_ZYF) += enter_recovery.o
 obj-$(CONFIG_ZYF) += parameter.o
 obj-$(CONFIG_ZYF) += rsa.o
 obj-$(CONFIG_ZYF) += sha.o
-#obj-$(CONFIG_ZYF) += emmc/hw_MMC.o
-#obj-$(CONFIG_ZYF) += emmc/hw_SD.o
-#obj-$(CONFIG_ZYF) += emmc/hw_SDController.o
-#obj-$(CONFIG_ZYF) += emmc/hw_SDM.o
-#obj-$(CONFIG_ZYF) += emmc/hw_SDOsAdapt.o
-#obj-$(CONFIG_ZYF) += emmc/hw_SDPlatAdapt.o
-#obj-$(CONFIG_ZYF) += emmc/sdmmcBoot.o
 obj-$(CONFIG_ZYF) += rc4_enc.o
-#obj-$(CONFIG_ZYF) += rockusb/Chap_9.o
-#obj-$(CONFIG_ZYF) += rockusb/D12ci.o
-#obj-$(CONFIG_ZYF) += rockusb/rockusb.o
-#obj-$(CONFIG_ZYF) += rockusb/usbCtrl.o
-#obj-$(CONFIG_ZYF) += rockusb/usbIsr.o
 obj-$(CONFIG_ZYF) += boot.o
 obj-$(CONFIG_ZYF) += std_commod.o
-obj-$(CONFIG_ZYF) += storage.o
+ifdef CONFIG_NAND
+obj-y += storage_nand.o
+else
+obj-y += storage.o
+endif
+
 obj-$(CONFIG_ZYF) += chipDepend.o
+
 
