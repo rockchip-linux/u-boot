@@ -61,6 +61,8 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(INFINEON_SLB9635_TPM, "infineon,slb9635-tpm"),
 	COMPAT(INFINEON_SLB9645_TPM, "infineon,slb9645-tpm"),
 	COMPAT(SAMSUNG_EXYNOS5_I2C, "samsung,exynos5-hsi2c"),
+	COMPAT(ROCKCHIP_FB, "rockchip,rk-fb"),
+	COMPAT(ROCKCHIP_BL, "pwm-backlight"),
 };
 
 const char *fdtdec_get_compatible(enum fdt_compat_id id)

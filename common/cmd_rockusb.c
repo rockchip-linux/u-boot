@@ -236,6 +236,13 @@ void FW_TestUnitReady(void)
     usbcmd.status = RKUSB_STATUS_CSW;
 }
 
+void FW_LowFormatSysDisk(void)
+{
+    usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
+    usbcmd.csw.Status= CSW_GOOD;
+    usbcmd.status = RKUSB_STATUS_CSW;
+}
+
 void FW_GetChipVer(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[2];
@@ -475,20 +482,23 @@ void do_rockusb_cmd(void)
         case K_FW_WRITE_10:				//0x05
             FW_Write10();
             break;
-		case K_FW_ERASE_10:				//0x06
-			FW_Erase10();
-			break;
-		case K_FW_ERASE_10_FORCE:		//0x0b
-			FW_Erase10Force();
-			break;
-		case K_FW_LBA_READ_10:				//0x14
-			FW_LBARead10();
-			break;
+	case K_FW_ERASE_10:				//0x06
+	    FW_Erase10();
+	    break;
+	case K_FW_ERASE_10_FORCE:		//0x0b
+	    FW_Erase10Force();
+	    break;
+	case K_FW_LBA_READ_10:				//0x14
+	    FW_LBARead10();
+	    break;
 
-		case K_FW_LBA_WRITE_10:				//0x15
+	case K_FW_LBA_WRITE_10:				//0x15
 			FW_LBAWrite10();
 			break;
-        case K_FW_READ_FLASH_INFO:        //0x1A
+        case K_FW_ERASE_SYS_DISK:           //0x16
+            FW_LowFormatSysDisk();
+            break;
+	case K_FW_READ_FLASH_INFO:        //0x1A
             FW_GetFlashInfo();
             break;
         case K_FW_GET_CHIP_VER:         //0x1B

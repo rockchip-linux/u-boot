@@ -10,6 +10,8 @@ Revision:       1.00
 #include <common.h>
 #include <serial.h>
 #include  <asm/arch/drivers.h>
+#include <asm/arch/iomux.h>
+
 
 #ifdef DRIVERS_UART
 
@@ -161,49 +163,12 @@ int32 UARTInit(eUART_ch_t uartCh, uint32 baudRate)
 	pUART_REG pUartReg = NULL;
 	int32 val = -1;
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	if (uartCh == UART_DBG) {
-		/* iomux gpio7_c6 and gpio7_c7 */
-		writel(((0x03<<8)|(0x03<<12))|((0x01<<8)|(0x01<<12)), RKIO_GRF_PHYS + 0x78);
-		pUartReg = (pUART_REG)RK3288_UART_DBG_PHYS;
-	} else {
-		return (-1);
-	}
-#else
-	if(uartCh == UART_CH0) { 
-		// iomux to uart 0
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
-		pUartReg = (pUART_REG)UART0_BASE_ADDR;
-	} else if (uartCh == UART_CH1) {
-		// iomux to uart 1
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOA_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);   // sin,sout
-		pUartReg = (pUART_REG)UART1_BASE_ADDR;
-	} else if (uartCh == UART_CH2) {
-		// iomux to uart 2
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x1<<2)|(0x1))<<16)|(0x1<<2)|(0x1);   // sin,sout
-#elif  (CONFIG_RKCHIPTYPE == CONFIG_RK3168)		
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-			g_grfReg->GRF_GPIO_IOMUX[1].GPIOB_IOMUX = (((0x3<<2)|(0x3))<<16)|(0x1<<2)|(0x1);   // sin,sout
-			g_grfReg->GRF_UOC0_CON[0] = (0x0000 | (0x0300 << 16));
-			g_grfReg->GRF_UOC0_CON[2] = (0x0000 | (0x0004 << 16));
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)	
-			g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX = ((0xf<<12)<<16)|(0xf<<12);;   // sin,sout
-			#if 1
-			if(g_grfReg->GRF_SOC_STATUS0&(1<<10)){
-				if(!(g_grfReg->GRF_SOC_STATUS0&(1<<7))){
-					g_grfReg->GRF_UOC0_CON0 = 0x007f0055;
-					g_grfReg->GRF_UOC1_CON0 = 0x34003000;
-				}
-				else
-					g_grfReg->GRF_UOC1_CON0 = 0x34000000;
-			}
-			#endif
-#endif
-		pUartReg = (pUART_REG)UART2_BASE_ADDR;
-	}
-#endif
+	rk_iomux_config(RK_UART_BT_IOMUX+uartCh);
+    if(uartCh == UART_DBG)pUartReg = (pUART_REG)RK3288_UART_DBG_PHYS;
+    else if(uartCh == UART_BT)pUartReg = (pUART_REG)RK3288_UART_BT_PHYS;
+    else if(uartCh == UART_BB)pUartReg = (pUART_REG)RK3288_UART_BB_PHYS;
+    else if(uartCh == UART_GPS)pUartReg = (pUART_REG)RK3288_UART_GPS_PHYS;
+    else if(uartCh == UART_EXP)pUartReg = (pUART_REG)RK3288_UART_EXP_PHYS;
 
 	UARTRest(pUartReg);
 

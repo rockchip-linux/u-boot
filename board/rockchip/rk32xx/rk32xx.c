@@ -16,7 +16,9 @@ Revision:       1.00
 #include <version.h>
 #include <asm/arch/rk_i2c.h>
 #include <asm/arch/gpio.h>
+#include <asm/arch/iomux.h>
 #include <fdtdec.h>
+
 #include <asm/arch/clock.h>
 #include <errno.h>
 #include <fdt_support.h>
@@ -24,6 +26,9 @@ Revision:       1.00
 #include "../common/config.h"
 #include "../common/idblock.h"
 #include "i2c.h"
+
+#include <asm/arch/pwm.h>
+
 
 //#include <asm/arch/rk30_drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
@@ -84,31 +89,28 @@ void board_lmb_reserve(struct lmb *lmb) {
 
 
 #ifdef CONFIG_RK_FB
-#ifdef CONFIG_RK3288SDK
-#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+RK3288_PWM0123_BASE_ADDR+id*0x10)=val)
-#else
-#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
-#endif
 
 #ifdef CONFIG_OF_CONTROL
-struct fdt_gpio_state lcd_en_gpio,lcd_cs_gpio,bl_en_gpio;
+struct fdt_gpio_state lcd_en_gpio,lcd_cs_gpio;
 int lcd_en_delay,lcd_cs_delay;
-int lcd_node = 0,bl_node=0;
-int pwm_addr = 0;
+int lcd_node = 0;
+
 int rk_lcd_parse_dt(const void *blob)
 {
 	//int* blob = getenv_hex("fdtaddr", 0);
 	int node;
-	lcd_node = fdt_path_offset(blob, "lcdc1");
+
 	int lcd_en_node,lcd_cs_node;
 	const struct fdt_property *prop,*prop1;
 	const u32 *cell;
 	const u32 *reg;
 
-	if(PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0))
-	{
+	
+    lcd_node = fdt_path_offset(blob, "lcdc1");
+	if (PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0)) {
 		printf("lcdc1 is the prmry lcd controller\n");
-	}else{
+	} else {
+
 		lcd_node = fdt_path_offset(blob, "lcdc0");
 	}
 	node=fdt_subnode_offset(blob,lcd_node,"power_ctr");
@@ -122,71 +124,48 @@ int rk_lcd_parse_dt(const void *blob)
 	lcd_cs_gpio.flags = !(lcd_cs_gpio.flags  & OF_GPIO_ACTIVE_LOW);    
 	lcd_cs_delay = fdtdec_get_int(blob, lcd_cs_node, "rockchip,delay", 0);
 
-	bl_node = fdt_path_offset(blob, "/backlight");
-	fdtdec_decode_gpio(blob, bl_node, "enable-gpios", &bl_en_gpio);
-	bl_en_gpio.flags = !(bl_en_gpio.flags  & OF_GPIO_ACTIVE_LOW); 
 
-	prop=fdt_get_property(blob, bl_node, "pwms", 0);
-	cell = (u32 *)prop->data;
-	prop1 = fdt_get_property(blob, 
-			fdt_node_offset_by_phandle(blob, fdt32_to_cpu(cell[0])), 
-			"reg", 
-			0);
-	reg = (u32 *)prop1->data;
-	pwm_addr = fdt32_to_cpu(reg[0]);
-	printf("read lcd power ctrl from dts! \nlcd_en_gpio %s gpio=0x%x, flag=%d\n",lcd_en_gpio.name,lcd_en_gpio.gpio,lcd_en_gpio.flags);
-	printf("lcd_cs_gpio %s gpio=0x%x, flag=%d\n",lcd_cs_gpio.name,lcd_cs_gpio.gpio,lcd_cs_gpio.flags);
-	printf("bl_en_gpio %s gpio=0x%x, flag=%d, pwm_addr=0x%x\n",bl_en_gpio.name,bl_en_gpio.gpio,bl_en_gpio.flags,pwm_addr);
 	return 0;
 }
 
 #endif
 
+
+
+
+
 void rk_backlight_ctrl(int brightness)
 {
-	int id =0;
-	int total = 0x4b0;
-	int pwm = total * (100 - brightness) / 100;
-
-	printf("backlight --- brightness:%d\n", brightness);
 
 #ifdef CONFIG_OF_CONTROL
-	if(bl_node == 0)rk_lcd_parse_dt((void const *)getenv_hex("fdtaddr", 0));
-	if(pwm_addr)id = (pwm_addr-RK3288_PWM0123_BASE_ADDR)/0x10;   
+	if (!lcd_node)
+		rk_lcd_parse_dt(gd->fdt_blob);   
 #endif
-	if(id == 0)g_grfReg->GRF_GPIO7A_IOMUX = (3<<16)|1;   // 1: PWM0/ 0: GPIO7_A0
 
-	//gpio_direction_output(RK3288_GPIO7_PHYS|GPIO_A0, 1);   // PWM0 /GPIO7_A0 /high
-	write_pwm_reg(id, 0x0c, 0x80);
-	write_pwm_reg(id, 0x08, total);
-	write_pwm_reg(id, 0x04, pwm);
-	write_pwm_reg(id, 0x00, 0);
-	write_pwm_reg(id, 0x0c, 0x09);  // PWM_DIV|PWM_ENABLE|PWM_TIME_EN
-#ifdef CONFIG_OF_CONTROL
-	if(bl_en_gpio.name!=NULL)gpio_direction_output(bl_en_gpio.gpio, (pwm != total)?bl_en_gpio.flags:!bl_en_gpio.flags);  
-#else
-	gpio_direction_output(RK3288_GPIO7_PHYS|GPIO_A2, (pwm != total)); // BL_EN  GPIO7_A2, high
-#endif
+	rk_pwm_config(brightness);
+
 }
 
 void rk_fb_init(unsigned int onoff)
 {
 	pmic_init(0);  //enable lcdc power
 #ifdef CONFIG_OF_CONTROL    
-	if(lcd_node == 0)rk_lcd_parse_dt((void const *)getenv_hex("fdtaddr", 0));
 
-	if(onoff)
-	{
-		if(lcd_en_gpio.name!=NULL)gpio_direction_output(lcd_en_gpio.gpio, lcd_en_gpio.flags);
-		mdelay(lcd_en_delay);     
-		if(lcd_cs_gpio.name!=NULL)gpio_direction_output(lcd_cs_gpio.gpio, lcd_cs_gpio.flags);
-		mdelay(lcd_cs_delay);
-	}else{
-		if(lcd_cs_gpio.name!=NULL)gpio_direction_output(lcd_cs_gpio.gpio, !lcd_cs_gpio.flags);
-		mdelay(lcd_cs_delay);
-		if(lcd_en_gpio.name!=NULL)gpio_direction_output(lcd_en_gpio.gpio, !lcd_en_gpio.flags);
-		mdelay(lcd_en_delay);
-	}
+    if(lcd_node == 0)rk_lcd_parse_dt(gd->fdt_blob);
+
+    if(onoff)
+    {
+        if(lcd_en_gpio.name!=NULL)gpio_direction_output(lcd_en_gpio.gpio, lcd_en_gpio.flags);
+        mdelay(lcd_en_delay);     
+        if(lcd_cs_gpio.name!=NULL)gpio_direction_output(lcd_cs_gpio.gpio, lcd_cs_gpio.flags);
+        mdelay(lcd_cs_delay);
+    }else{
+        if(lcd_cs_gpio.name!=NULL)gpio_direction_output(lcd_cs_gpio.gpio, !lcd_cs_gpio.flags);
+        mdelay(lcd_cs_delay);
+        if(lcd_en_gpio.name!=NULL)gpio_direction_output(lcd_en_gpio.gpio, !lcd_en_gpio.flags);
+        mdelay(lcd_en_delay);
+    }
+
 #else
 	gpio_direction_output(RK3288_GPIO7_PHYS|GPIO_A4, 1);   // LCD_CS /GPIO7_A4 /NC ,high
 #endif

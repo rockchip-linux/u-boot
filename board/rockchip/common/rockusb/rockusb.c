@@ -658,7 +658,7 @@ void FW_Erase10Force(void)
 	bool Status;
 	StorageEraseBlock(gCBW.LBA, gCBW.Len, 0);
 	CSWHandler(Status, 0);
-    	SendCSW();
+    SendCSW();
 }
 
 /***************************************************************************

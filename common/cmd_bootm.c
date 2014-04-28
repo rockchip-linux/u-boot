@@ -1959,7 +1959,9 @@ void* rk_fdt_resource_load(void)
 	}
 
 	set_working_fdt_addr(content.load_addr);
+
     setenv_addr("fdtsize", (void const *)content.content_size);
+
     return content.load_addr;
  }
 #endif
@@ -1970,12 +1972,13 @@ int rk_bootm_start(bootm_headers_t *images)
 #if defined(CONFIG_OF_LIBFDT)
 	/* find flattened device tree */
     //load content
-    if(getenv_hex("fdtaddr", 0) == 0)
+    if(gd->fdt_blob == 0)
     {
         rk_fdt_resource_load();
     }
 
 	images->ft_addr = (char *)getenv_hex("fdtaddr", 0);//content.load_addr;
+
     images->ft_len = getenv_hex("fdtsize", 0);//content.content_size;
 #endif
 

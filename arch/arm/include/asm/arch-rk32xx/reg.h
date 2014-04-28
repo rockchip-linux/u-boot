@@ -9,6 +9,7 @@ Revision:       1.00
 ********************************************************************************/
 #ifndef __RK_REG_H
 #define __RK_REG_H
+#include <asm/arch/typedef.h>
 typedef volatile struct tagGICD_REG
 {
 	uint32 ICDDCR		  ; 	 //0x000 
@@ -188,72 +189,6 @@ typedef struct tagGPIO_PE
 } GPIO_PE;
 
 
-typedef volatile struct tagGRF_REG
-{
-    uint32 reserved[3];       
-    uint32 GRF_GPIO1D_IOMUX;   //0X0C
-    uint32 GRF_GPIO2A_IOMUX;   //0X10
-    uint32 GRF_GPIO2B_IOMUX;
-    uint32 GRF_GPIO2C_IOMUX;
-    uint32 reserved2; 
-    uint32 GRF_GPIO3A_IOMUX;   //0X20
-    uint32 GRF_GPIO3B_IOMUX;
-    uint32 GRF_GPIO3C_IOMUX;
-    uint32 GRF_GPIO3DL_IOMUX;
-    uint32 GRF_GPIO3DH_IOMUX; //0X30
-    uint32 GRF_GPIO4AL_IOMUX;
-    uint32 GRF_GPIO4AH_IOMUX;
-    uint32 GRF_GPIO4BL_IOMUX;
-    uint32 reserved3;           //0X40
-    uint32 GRF_GPIO4C_IOMUX;
-    uint32 GRF_GPIO4D_IOMUX;
-    uint32 reserved4;          
-    uint32 GRF_GPIO5B_IOMUX;   //0X50
-    uint32 GRF_GPIO5C_IOMUX;
-    uint32 GRF_GPIO6A_IOMUX;
-    uint32 reserved5;  
-    uint32 GRF_GPIO6B_IOMUX;   //0X60
-    uint32 GRF_GPIO6C_IOMUX; 
-    uint32 reserved6;
-    uint32 GRF_GPIO7A_IOMUX;
-    uint32 GRF_GPIO7B_IOMUX;  //0X70
-    uint32 GRF_GPIO7CL_IOMU;
-    uint32 GRF_GPIO7CH_IOMU;
-    uint32 reserved7;
-    uint32 GRF_GPIO8A_IOMUX;  //0X80
-    uint32 GRF_GPIO8B_IOMUX;   
-    uint32 reserved8[30];
-    GPIO_LH_T GRF_GPIO_SR[8];
-    GPIO_PE   GRF_GPIO_P[8];
-    GPIO_PE   GRF_GPIO_E[8];
-    uint32 GRF_GPIO_SMT;     //0x240
-    uint32 GRF_SOC_CON[15];
-    uint32 GRF_SOC_STATUS[22];  //0x0280
-    uint32 GRF_PERIDMAC_CON[4];
-    uint32 GRF_DDRC0_CON0;       //0x02e0
-    uint32 GRF_DDRC1_CON0;
-    uint32 GRF_CPU_CON[5];
-    uint32 reserved9[3];          
-    uint32 GRF_CPU_STATUS0;
-    uint32 reserved10;
-    uint32 GRF_UOC0_CON[5];  //0x320
-    uint32 GRF_UOC1_CON[5];
-    uint32 GRF_UOC2_CON[4];
-    uint32 GRF_UOC3_CON[2];
-    uint32 GRF_UOC4_CON[2];
-    uint32 GRF_PVTM_CON[3];
-    uint32 GRF_PVTM_STATUS[3];
-    uint32 GRF_IO_VSEL;
-    uint32 GRF_SARADC_TESTBIT;  
-    uint32 GRF_TSADC_TESTBIT_L; 
-    uint32 GRF_TSADC_TESTBIT_H;
-    uint32 GRF_OS_REG[4];
-    uint32 reserved11;    //0x3a0
-    uint32 GRF_SOC_CON15;       
-    uint32 GRF_SOC_CON16;        
-}GRF_REG, *pGRF_REG;
-
-
 typedef volatile struct tagTIMER_STRUCT
 {
 	uint32 TIMER_LOAD_COUNT0;
@@ -331,7 +266,6 @@ typedef volatile struct TagSDC_REG2
 #define g_pmuReg 		((pPMU_REG)PMU_BASE_ADDR)
 #define g_Time0Reg      ((pTIMER_REG)TIMER0_BASE_ADDR)
 #define g_EMMCReg       ((pSDC_REG_T2)EMMC_BASE_ADDR)
-#define g_grfReg 		((pGRF_REG)RK3288_GRF_PHYS)
 #define g_gicdReg       ((pGICD_REG)RK3288_GIC_DIST_PHYS)
 #define g_giccReg       ((pGICC_REG)RK3288_GIC_CPU_PHYS)
 #define 	read_XDATA(address) 			(*((uint16 volatile*)(address)))

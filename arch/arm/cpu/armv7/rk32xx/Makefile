@@ -15,3 +15,5 @@ obj-y	+= board.o
 obj-y	+= interrupts.o
 obj-y	+= ddr.o
 obj-y	+= lowlevel_init.o
+obj-y   += pwm.o
+obj-y   += iomux.o

@@ -94,7 +94,7 @@ static void emmc_gpio_init()
 
 static int rk_emmc_init(struct mmc *mmc)
 {
-	int timeOut;
+	int timeOut = 10000;
 	emmc_dev_reset();
 	emmcreset();
 	emmc_gpio_init();

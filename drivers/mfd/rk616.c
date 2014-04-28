@@ -113,6 +113,7 @@ static int rk616_common_config()
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 	g_grfReg->GRF_GPIO_IOMUX[1].GPIOC_IOMUX = GRF_IOMUX_CONFIG_I2S;
 #endif
+    //rk_iomux_config(RK_I2S_IOMUX);
 
 	//12m i2s clk input -- cru config
 	g_cruReg->CRU_CLKSEL_CON[3] = CRU_I2S_CLK_24M;	

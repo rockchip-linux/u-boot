@@ -90,7 +90,15 @@ void reset_cpu(ulong ignored)
     //Delay100cyc(10);
     g_giccReg->ICCEOIR=INT_USB_OTG;
     //DisableRemap();
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	/* pll enter slow mode */
+	writel(RK3288_PLL_MODE_SLOW(0) | RK3288_PLL_MODE_SLOW(1) | RK3288_PLL_MODE_SLOW(2), RK3288_GRF_PHYS + RK3288_CRU_MODE_CON);
+
+	/* soft reset */
+	writel(0xeca8, RK3288_CRU_PHYS + 0x1B4);
+#else
 	ResetCpu((0xff740000));
+#endif
     //cruReg->CRU_GLB_SRST_FST_VALUE = 0xfdb9; //kernel 使用 fst reset时，loader会死机，问题还没有查，所有loader还是用snd reset
     cruReg->CRU_GLB_SRST_SND_VALUE = 0xeca8; //soft reset
     Delay100cyc(10);

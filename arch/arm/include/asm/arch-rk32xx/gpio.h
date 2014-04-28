@@ -1,22 +1,9 @@
 /*
- * nios2 gpio driver
- *
- * This gpio core is described in http://nioswiki.com/GPIO
- * bit[0] data
- * bit[1] output enable
- *
- * When CONFIG_SYS_GPIO_BASE is not defined, the board may either
- * provide its own driver or the altera_pio driver may be used.
- *
- * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * rockchip gpio driver
  */
 
-#ifndef _ASM_NIOS2_GPIO_H_
-#define _ASM_NIOS2_GPIO_H_
+#ifndef _ASM_ROCKCHIP_GPIO_H_
+#define _ASM_ROCKCHIP_GPIO_H_
 
 #include <asm/io.h>
 #include "iomap.h"
@@ -96,4 +83,4 @@ int gpio_set_value(unsigned gpio, int value);
 int gpio_is_valid(int number);
 int gpio_irq_request(unsigned gpio, int type);
 
-#endif /* _ASM_NIOS2_GPIO_H_ */
+#endif /* _ASM_ROCKCHIP_GPIO_H_ */

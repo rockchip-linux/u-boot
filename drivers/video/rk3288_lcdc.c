@@ -13,6 +13,8 @@ Revision:       1.00
 #include <asm/arch/iomap.h>
 #include <lcd.h>
 #include <asm/arch/drivers.h>
+#include <asm/arch/iomux.h>
+#include <asm/arch/grf.h>
 
 
 #define LcdReadBit(addr, msk)      ((regbak.addr=preg->addr)&(msk))
@@ -416,6 +418,7 @@ LCDC_REG *preg = NULL;
 LCDC_REG regbak;
 
 
+extern int rk32_edp_enable(vidinfo_t * vid);
 void writel_relaxed(uint32 val, uint32 addr)
 {
     *(int*)addr = val;
@@ -431,7 +434,7 @@ static int inline lvds_writel(uint32 offset, uint32 val)
 
 static int rk32_lvds_disable(void)
 {
-    g_grfReg->GRF_SOC_CON[7] = 0x80008000;
+    grf_writel(0x80008000, RK3288_GRF_SOC_CON7);   
 	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_21); /*disable tx*/
 	writel_relaxed(0xff, lvds_regs + LVDS_CFG_REG_c); /*disable pll*/
 	return 0;
@@ -449,8 +452,8 @@ static int rk32_lvds_en(vidinfo_t *vid)
 		val = LVDS_SEL_VOP_LIT | (LVDS_SEL_VOP_LIT << 16);
 	else
 		val = LVDS_SEL_VOP_LIT << 16;  // video source from vop0 = vop big
-    g_grfReg->GRF_SOC_CON[6] = val;
-
+    grf_writel(val, RK3288_GRF_SOC_CON6);   
+    
 	val = vid->lvds_format;
 	if (screen_type == SCREEN_DUAL_LVDS)
 		val |= LVDS_DUAL | LVDS_CH0_EN | LVDS_CH1_EN;
@@ -466,9 +469,9 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	val |= (vid->vl_clkp << 8) | (vid->vl_hsp << 9) |
 		(vid->vl_oep << 10);
 	val |= 0xffff << 16;
-    g_grfReg->GRF_SOC_CON[7] = val;
-    g_grfReg->GRF_GPIO_SR[1].GPIOH = 0x0f000f00;
-    g_grfReg->GRF_GPIO_E[1].GPIOD  = 0x00ff00ff;
+    grf_writel(val, RK3288_GRF_SOC_CON7);  
+    grf_writel(0x0f000f00, RK3288_GRF_GPIO1H_SR);  
+    grf_writel(0x00ff00ff, RK3288_GRF_GPIO1D_E);  
 
 	if (screen_type == SCREEN_LVDS)
 		val = 0xbf;
@@ -477,9 +480,7 @@ static int rk32_lvds_en(vidinfo_t *vid)
 
 	if(vid->lvds_ttl_en) //  1 lvds
     {
-    	val = 0x00550055;
-        g_grfReg->GRF_GPIO1D_IOMUX = val;//lcdc iomux 
-    	
+    	rk_iomux_config(RK_LCDC0_IOMUX); //lcdc iomux 
     	lvds_writel( LVDS_CH0_REG_0, 0x7f);
     	lvds_writel( LVDS_CH0_REG_1, 0x40);
     	lvds_writel( LVDS_CH0_REG_2, 0x00);
@@ -610,6 +611,7 @@ int rk30_load_screen(vidinfo_t *vid)
 
     //rk3288_parse_dt();  //parse from fdt
 
+	vid->dp_enabled = 1;
     if(vid->mipi_enabled){
         LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1));
     }else if(vid->dp_enabled){
@@ -651,7 +653,8 @@ int rk30_load_screen(vidinfo_t *vid)
         		break;
 	}
 
-
+	if (vid->screen_type == SCREEN_EDP)
+		face = OUT_RGB_AAA;
 	//set background color to black,set swap according to the screen panel,disable blank mode
 	LcdMskReg(DSP_CTRL0, m_dsp_rg_swap | m_dsp_rb_swap | m_dsp_delta_swap | m_dsp_field_pol  | 
 	 	m_dsp_dummy_swap | m_dsp_bg_swap|m_dsp_out_mode,v_dsp_rg_swap(0) | v_dsp_rb_swap(vid->vl_swap_rb) | 
@@ -682,8 +685,13 @@ int rk30_load_screen(vidinfo_t *vid)
 	LCDC_REG_CFG_DONE();
 
     set_lcdc_dclk(vid->vl_freq);
-    rk32_lvds_en(vid);
-	//printf("%s for lcdc ok!\n",__func__);
+
+	if ((vid->screen_type == SCREEN_LVDS) ||
+			(vid->screen_type == SCREEN_DUAL_LVDS)) {
+		rk32_lvds_en(vid);
+	} else if (vid->screen_type == SCREEN_EDP) {
+		rk32_edp_enable(vid);
+	}
 	return 0;
 }
 
@@ -705,7 +713,8 @@ void rk30_lcdc_standby(enable)
 int rk_lcdc_init(int lcdc_id)
 {
     preg = (lcdc_id == 1) ? RK3288_VOP_LIT_BASE_ADDR : RK3288_VOP_BIG_BASE_ADDR;  
-    g_grfReg->GRF_IO_VSEL = 1<<16;  //LCDCIOdomain 3.3 Vvoltageselectio
+    
+    grf_writel(1<<16, RK3288_GRF_IO_VSEL);   //LCDCIOdomain 3.3 Vvoltageselectio
     
     lcdc_clk_enable();
 	
