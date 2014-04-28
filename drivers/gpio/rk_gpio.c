@@ -7,6 +7,8 @@
 #include <asm/gpio.h>
 #include <asm/io.h>
 
+#include <asm/arch/drivers.h>
+
 /*
  * It's how we calculate the full port address
  * We have to get the group number from gpio

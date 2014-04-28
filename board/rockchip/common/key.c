@@ -214,14 +214,14 @@ void PowerKeyInit()
     //power_hold_gpio.name
     key_power.type = KEY_INT;
     key_power.key.ioint.name = "power_key";
-    key_power.key.ioint.gpio = RK3288_GPIO0_PHYS | GPIO_A5;
+    key_power.key.ioint.gpio = RKIO_GPIO0_PHYS | GPIO_A4;
     key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
     key_power.key.ioint.pressed_state = 0;
     key_power.key.ioint.press_time = 0;
 
 	printf("%s start\n",__func__);
    // for(i=0; i<32; i++)
-	    gpio_irq_request(RK3288_GPIO0_PHYS+i, IRQ_TYPE_NONE); //disable all gpio 0 Interrupt
+	    gpio_irq_request(RKIO_GPIO0_PHYS+i, IRQ_TYPE_NONE); //disable all gpio 0 Interrupt
     gpio_direction_input(key_power.key.ioint.gpio);
     gpio_irq_request(key_power.key.ioint.gpio, key_power.key.ioint.flags);
 	IRQEnable(INT_GPIO0);
@@ -234,10 +234,11 @@ int power_hold() {
 
 
 void key_init()
-{
+{
+
     charge_state_gpio.name = "charge_state";
     charge_state_gpio.flags = 0;
-    charge_state_gpio.gpio = RK3288_GPIO0_PHYS | GPIO_B0;
+    charge_state_gpio.gpio = RKIO_GPIO0_PHYS | GPIO_B0;
     gpio_direction_input(charge_state_gpio.gpio);
 
     //power_hold_gpio.name

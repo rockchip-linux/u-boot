@@ -10,6 +10,8 @@
 #include <watchdog.h>
 #include <linux/compiler.h>
 
+#include <asm/arch/drivers.h>
+
 #include "../gadget/dwc_otg_regs.h"
 
 #include "ehci.h"
@@ -487,7 +489,7 @@ ehci_submit_root(struct usb_device *dev, unsigned long pipe, void *buffer,
 		    hprt0.b.prtpwr = 1;
 		    otgReg->Host.hprt = hprt0.d32;
             // 5V power enable
-        	gpio_direction_output(RK3288_GPIO0_PHYS|GPIO_B6, 1); //gpio0_B6  output high
+        	gpio_direction_output(RKIO_GPIO0_PHYS|GPIO_B6, 1); //gpio0_B6  output high
 			break;
 		case USB_PORT_FEAT_RESET:
     		hprt0.b.prtrst = 1;
@@ -523,7 +525,7 @@ ehci_submit_root(struct usb_device *dev, unsigned long pipe, void *buffer,
     			hprt0.b.prtpwr = 0;			
     			otgReg->Host.hprt = hprt0.d32;		
                 // 5V power enable
-            	gpio_direction_output(RK3288_GPIO0_PHYS|GPIO_B6, 0); //gpio0_B6  output low
+            	gpio_direction_output(RKIO_GPIO0_PHYS|GPIO_B6, 0); //gpio0_B6  output low
     			break;
     		case USB_PORT_FEAT_OVER_CURRENT:
     			break;
@@ -575,7 +577,7 @@ int usb_lowlevel_stop(int index)
 
 int usb_lowlevel_init(int index, enum usb_init_type init, void **controller)
 {
-    pUSB_OTG_REG otgReg = (pUSB_OTG_REG)RK3288_USB_HOST0_HOST1_PHYS;
+    pUSB_OTG_REG otgReg = (pUSB_OTG_REG)RKIO_USBHOST1_PHYS;
     GINTMSK_DATA gintmsk;
     uint32_t count;
 

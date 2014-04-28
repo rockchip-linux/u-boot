@@ -10,7 +10,6 @@ Revision:       1.00
 
 
 #include <common.h>
-#include <asm/arch/iomap.h>
 #include <lcd.h>
 #include <asm/arch/drivers.h>
 #include <asm/arch/iomux.h>
@@ -402,7 +401,7 @@ typedef volatile struct tagLCDC_REG
 #define LVDS_CH1_EN			(0x01 << 12)
 #define LVDS_PWRDN			(0x01 << 15)
 
-#define lvds_regs  RK3288_LVDS_BASE_ADDR
+#define lvds_regs  RKIO_LVDS_PHYS
 
 enum 
 {
@@ -434,7 +433,7 @@ static int inline lvds_writel(uint32 offset, uint32 val)
 
 static int rk32_lvds_disable(void)
 {
-    grf_writel(0x80008000, RK3288_GRF_SOC_CON7);   
+    g_grfReg->grf_soc_con[7] = 0x80008000;
 	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_21); /*disable tx*/
 	writel_relaxed(0xff, lvds_regs + LVDS_CFG_REG_c); /*disable pll*/
 	return 0;
@@ -452,8 +451,8 @@ static int rk32_lvds_en(vidinfo_t *vid)
 		val = LVDS_SEL_VOP_LIT | (LVDS_SEL_VOP_LIT << 16);
 	else
 		val = LVDS_SEL_VOP_LIT << 16;  // video source from vop0 = vop big
-    grf_writel(val, RK3288_GRF_SOC_CON6);   
-    
+    g_grfReg->grf_soc_con[6] = val;
+
 	val = vid->lvds_format;
 	if (screen_type == SCREEN_DUAL_LVDS)
 		val |= LVDS_DUAL | LVDS_CH0_EN | LVDS_CH1_EN;
@@ -469,9 +468,9 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	val |= (vid->vl_clkp << 8) | (vid->vl_hsp << 9) |
 		(vid->vl_oep << 10);
 	val |= 0xffff << 16;
-    grf_writel(val, RK3288_GRF_SOC_CON7);  
-    grf_writel(0x0f000f00, RK3288_GRF_GPIO1H_SR);  
-    grf_writel(0x00ff00ff, RK3288_GRF_GPIO1D_E);  
+    g_grfReg->grf_soc_con[7] = val;
+    g_grfReg->grf_gpio_sr[1].GPIOH = 0x0f000f00;
+    g_grfReg->grf_gpio_e[1].GPIOD  = 0x00ff00ff;
 
 	if (screen_type == SCREEN_LVDS)
 		val = 0xbf;
@@ -480,7 +479,9 @@ static int rk32_lvds_en(vidinfo_t *vid)
 
 	if(vid->lvds_ttl_en) //  1 lvds
     {
-    	rk_iomux_config(RK_LCDC0_IOMUX); //lcdc iomux 
+    	val = 0x00550055;
+        g_grfReg->grf_gpio1d_iomux = val;//lcdc iomux 
+    	
     	lvds_writel( LVDS_CH0_REG_0, 0x7f);
     	lvds_writel( LVDS_CH0_REG_1, 0x40);
     	lvds_writel( LVDS_CH0_REG_2, 0x00);
@@ -712,9 +713,8 @@ void rk30_lcdc_standby(enable)
 
 int rk_lcdc_init(int lcdc_id)
 {
-    preg = (lcdc_id == 1) ? RK3288_VOP_LIT_BASE_ADDR : RK3288_VOP_BIG_BASE_ADDR;  
-    
-    grf_writel(1<<16, RK3288_GRF_IO_VSEL);   //LCDCIOdomain 3.3 Vvoltageselectio
+    preg = (lcdc_id == 1) ? RKIO_VOP_LIT_PHYS : RKIO_VOP_BIG_PHYS;  
+    g_grfReg->grf_io_vsel = 1<<16;  //LCDCIOdomain 3.3 Vvoltageselectio
     
     lcdc_clk_enable();
 	

@@ -79,7 +79,6 @@ int print_cpuinfo(void)
 void reset_cpu(ulong ignored)
 {
     pFunc fp;
-    pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
 
     disable_interrupts();
     //UsbSoftDisconnect();
@@ -88,7 +87,7 @@ void reset_cpu(ulong ignored)
     MMUDeinit();              /*关闭MMU*/
     //cruReg->CRU_MODE_CON = 0x33030000;    //cpu enter slow mode
     //Delay100cyc(10);
-    g_giccReg->ICCEOIR=INT_USB_OTG;
+    g_giccReg->icceoir=INT_USB_OTG;
     //DisableRemap();
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	/* pll enter slow mode */
@@ -100,7 +99,7 @@ void reset_cpu(ulong ignored)
 	ResetCpu((0xff740000));
 #endif
     //cruReg->CRU_GLB_SRST_FST_VALUE = 0xfdb9; //kernel 使用 fst reset时，loader会死机，问题还没有查，所有loader还是用snd reset
-    cruReg->CRU_GLB_SRST_SND_VALUE = 0xeca8; //soft reset
+    g_cruReg->cru_glb_srst_snd_value = 0xeca8; //soft reset
     Delay100cyc(10);
     while(1);
 }

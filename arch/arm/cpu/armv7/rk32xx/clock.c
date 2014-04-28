@@ -71,9 +71,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CLK_DIV_32		32
 
 
-#define cru_readl(offset)	readl(CRU_BASE_ADDR + offset)
-#define cru_writel(v, offset)	do { writel(v, CRU_BASE_ADDR + offset); } while (0)
-
 
 /* pll set callback function */
 struct pll_clk_set;
