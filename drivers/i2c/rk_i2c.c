@@ -138,7 +138,7 @@ static void *get_base(void)
 
 static void i2c_adap_sel(int nr)
 {
-    g_grfReg->GRF_SOC_CON[1] = (1 << I2C_ADAP_SEL_BIT(nr)) | (1 << I2C_ADAP_SEL_MASK(nr));
+    g_grfReg->grf_soc_con[1] = (1 << I2C_ADAP_SEL_BIT(nr)) | (1 << I2C_ADAP_SEL_MASK(nr));
 }
 
 static void rk30_show_regs(struct rk30_i2c *i2c)

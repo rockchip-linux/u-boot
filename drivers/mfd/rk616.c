@@ -115,7 +115,7 @@ static int rk616_common_config()
 #endif
 
 	//12m i2s clk input -- cru config
-	g_cruReg->CRU_CLKSEL_CON[3] = CRU_I2S_CLK_24M;	
+	g_cruReg->cru_clksel_con[3] = CRU_I2S_CLK_24M;	
 	return 0;
 }
 

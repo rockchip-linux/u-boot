@@ -79,7 +79,6 @@ int print_cpuinfo(void)
 void reset_cpu(ulong ignored)
 {
     pFunc fp;
-    pCRU_REG cruReg=(pCRU_REG)CRU_BASE_ADDR;
 
     disable_interrupts();
     //UsbSoftDisconnect();
@@ -92,7 +91,7 @@ void reset_cpu(ulong ignored)
     //DisableRemap();
 	ResetCpu((0xff740000));
     //cruReg->CRU_GLB_SRST_FST_VALUE = 0xfdb9; //kernel 使用 fst reset时，loader会死机，问题还没有查，所有loader还是用snd reset
-    cruReg->CRU_GLB_SRST_SND_VALUE = 0xeca8; //soft reset
+    g_cruReg->cru_glb_srst_snd_value = 0xeca8; //soft reset
     Delay100cyc(10);
     while(1);
 }

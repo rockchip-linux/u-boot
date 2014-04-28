@@ -718,9 +718,7 @@ static void rkclk_cpu_l2dbgatclk_set(uint32 l2ram_div, uint32 atclk_core_div, ui
 
 void rkclk_emmc_set_clk(int div)
 {
-	//g_cruReg->CRU_CLKSEL_CON[12] = (0xFFul<<24)|(div-1)<<8 |(1<<14);
 	cru_writel((0xFFul<<24)|(div-1)<<8 |(1<<14) , CRU_CLKSELS_CON(12));	
-	//g_cruReg->CRU_CLKSEL_CON[12] = (0xFFul<<24)|(div-1)<<8 |(1<<14);//emmc use gerenall pll
 }
 /*
  * rkplat clock set ddr clock from ddr pll

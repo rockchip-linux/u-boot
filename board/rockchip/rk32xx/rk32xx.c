@@ -34,9 +34,9 @@ void wait_for_interrupt(void)
 	//u32 pllcon0[4], pllcon1[4], pllcon2[4];
 
 	/* PLL enter slow-mode */
-	g_cruReg->CRU_MODE_CON = (0x3<<((2*4) + 16)) | (0x0<<(2*4));
-	g_cruReg->CRU_MODE_CON = (0x3<<((3*4) + 16)) | (0x0<<(3*4));
-	g_cruReg->CRU_MODE_CON = (0x3<<((0*4) + 16)) | (0x0<<(0*4));
+	g_cruReg->cru_mode_con = (0x3<<((2*4) + 16)) | (0x0<<(2*4));
+	g_cruReg->cru_mode_con = (0x3<<((3*4) + 16)) | (0x0<<(3*4));
+	g_cruReg->cru_mode_con = (0x3<<((0*4) + 16)) | (0x0<<(0*4));
 
 	printf("PLL close over! \n\n\n");
 	wfi_status = 1;
@@ -46,9 +46,9 @@ void wait_for_interrupt(void)
 
 
 	/* PLL enter normal-mode */
-	g_cruReg->CRU_MODE_CON = (0x3<<((0*4) + 16)) | (0x1<<(0*4));
-	g_cruReg->CRU_MODE_CON = (0x3<<((3*4) + 16)) | (0x1<<(3*4));
-	g_cruReg->CRU_MODE_CON = (0x3<<((2*4) + 16)) | (0x1<<(2*4));
+	g_cruReg->cru_mode_con = (0x3<<((0*4) + 16)) | (0x1<<(0*4));
+	g_cruReg->cru_mode_con = (0x3<<((3*4) + 16)) | (0x1<<(3*4));
+	g_cruReg->cru_mode_con = (0x3<<((2*4) + 16)) | (0x1<<(2*4));
 
 
 	printf("PLL open end! \n");
@@ -154,7 +154,7 @@ void rk_backlight_ctrl(int brightness)
 	if(bl_node == 0)rk_lcd_parse_dt((void const *)getenv_hex("fdtaddr", 0));
 	if(pwm_addr)id = (pwm_addr-RK3288_PWM0123_BASE_ADDR)/0x10;   
 #endif
-	if(id == 0)g_grfReg->GRF_GPIO7A_IOMUX = (3<<16)|1;   // 1: PWM0/ 0: GPIO7_A0
+	if(id == 0)g_grfReg->grf_gpio7a_iomux = (3<<16)|1;   // 1: PWM0/ 0: GPIO7_A0
 
 	//gpio_direction_output(RK3288_GPIO7_PHYS|GPIO_A0, 1);   // PWM0 /GPIO7_A0 /high
 	write_pwm_reg(id, 0x0c, 0x80);

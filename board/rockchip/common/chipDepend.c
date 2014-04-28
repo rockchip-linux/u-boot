@@ -113,16 +113,16 @@ int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
 #if 1
     if(0 == sdmmcId)
     {
-        g_cruReg->CRU_CLKSEL_CON[11] = (0x3Ful<<16)|(div-1)<<0;
+        g_cruReg->cru_clksel_con[11] = (0x3Ful<<16)|(div-1)<<0;
     }
     else if(1 == sdmmcId)
     {
-        g_cruReg->CRU_CLKSEL_CON[12] = (0x3Ful<<16)|(div-1)<<0;
+        g_cruReg->cru_clksel_con[12] = (0x3Ful<<16)|(div-1)<<0;
     }
     else    //emmc
     {
         //RkPrintf("SCUSelSDClk 2 %d\n",div);
-        g_cruReg->CRU_CLKSEL_CON[12] = (0xFFul<<24)|(div-1)<<8 |(1<<14);//emmc use gerenall pll
+        g_cruReg->cru_clksel_con[12] = (0xFFul<<24)|(div-1)<<8 |(1<<14);//emmc use gerenall pll
     }
 #endif
     return(0);
