@@ -516,12 +516,12 @@ int handleRkFlash(const char *name, fbt_partition_t *ptn,
 			goto fail;
 		}
 		goto ok;
-	} else if (priv->d_bytes > priv->transfer_buffer_size) {
-		//flash large image with dma.
+	} else if (!priv->d_legacy) {
 		if (!priv->pending_ptn) {
 			goto fail;
 		}
-		FBTDBG("download large file, ptn:%s, target:%s\n", priv->pending_ptn->name, name);
+		FBTDBG("accelerated download, ptn:%s, target:%s\n",
+				priv->pending_ptn->name, name);
 		if (!strcmp(priv->pending_ptn->name, name) && priv->d_status > 0)
 			goto ok;
 		goto fail;
@@ -537,7 +537,7 @@ int handleRkFlash(const char *name, fbt_partition_t *ptn,
 			goto fail;
 		}
 	}
-	//normal case
+	//legacy case, let's flash it!
 	if (!ptn) {
 		FBTERR("ptn not found!!(%s)\n", name);
 		goto fail;
@@ -550,11 +550,17 @@ fail:
 	return -1;
 }
 
+#define CONSUMED(buf, len, size) \
+	{ \
+		buf += size; len -= size; \
+	}
+
+//direct download to storage, and return wrote len.
 int handleDirectDownload(unsigned char *buffer, 
 		int length, struct cmd_fastboot_interface *priv)
 {
 	int size = priv->d_direct_size;
-	int avail_len = length - priv->transfer_buffer_pos;
+	int avail_len = length;
 	int write_len = 0;
 	if (avail_len >= size) {
 		write_len = size;
@@ -566,36 +572,43 @@ int handleDirectDownload(unsigned char *buffer,
 	FBTDBG("direct download, size:%d, offset:%lld, rest:%lld\n",
 			size, priv->d_direct_offset, priv->d_direct_size - write_len);
 
-	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->offset, buffer + priv->transfer_buffer_pos, blocks, 0)) {
+	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->offset,
+				buffer, blocks, 0)) {
 		FBTDBG("handleDirectDownload failed\n");
 		return -1;
 	}
 	priv->d_direct_offset += blocks;
 	priv->d_direct_size -= write_len;
-	priv->transfer_buffer_pos += write_len;
-	return priv->d_direct_size;
+	return write_len;
 }
 
 void noBuffer(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
-	int rest = length - priv->transfer_buffer_pos;
-	priv->d_bytes += priv->transfer_buffer_pos;
-	priv->transfer_buffer_pos = RK_BLK_SIZE - rest;
-	FBTDBG("rest:%d, len:%d, new pos:%lld\n", rest, length, priv->transfer_buffer_pos);
+	if (length) {
+		//cache rest buffer.
+		memcpy(priv->d_cache, buffer, length);
+		priv->d_cache_pos = length;
+		FBTDBG("rest:%d\n", length);
+	}
 }
 
 int handleImageDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
 	if (!priv->d_direct_size) {
+		//should not reach here.
 		return 0;
 	}
 	int ret = handleDirectDownload(buffer, length, priv);
 	if (ret < 0) {
 		priv->d_status = -1;
 		return 0;
-	} else if (ret > 0) {
+	}
+	CONSUMED(buffer, length, ret);
+
+	//not done yet!
+	if (priv->d_direct_size) {
 		noBuffer(buffer, length, priv);
 		return 1;
 	}
@@ -614,7 +627,11 @@ int handleSparseDownload(unsigned char *buffer,
 		if (ret < 0) {
 			priv->d_status = -1;
 			return 0;
-		} else if (ret > 0) {
+		}
+		CONSUMED(buffer, length, ret);
+
+		//not done yet!
+	  	if (priv->d_direct_size) {
 			noBuffer(buffer, length, priv);
 			return 1;
 		}
@@ -623,21 +640,21 @@ int handleSparseDownload(unsigned char *buffer,
 	sparse_header_t* header = &priv->sparse_header;
 	u64 clen = 0;
 	while (priv->sparse_cur_chunk < header->total_chunks) {
-		ret = length - priv->transfer_buffer_pos;
-		if (ret < sizeof(chunk_header_t)) {
+		if (length < sizeof(chunk_header_t)) {
 			noBuffer(buffer, length, priv);
 			return 1;
 		}
 		priv->sparse_cur_chunk++;
-		memcpy(chunk, buffer + priv->transfer_buffer_pos, sizeof(chunk_header_t));
-		priv->transfer_buffer_pos += sizeof(chunk_header_t);
+		memcpy(chunk, buffer, sizeof(chunk_header_t));
+		CONSUMED(buffer, length, sizeof(chunk_header_t));
 
 		switch (chunk->chunk_type) {
 			case CHUNK_TYPE_RAW:
 				clen = (u64)chunk->chunk_sz * header->blk_sz;
 				FBTDBG("sparse: RAW blk=%d bsz=%d:"
-						" write(sector=%lu,clen=%llu)\n",
-						chunk->chunk_sz, header->blk_sz, priv->d_direct_offset, clen);
+						" write(sector=%llu,clen=%llu)\n",
+						chunk->chunk_sz, header->blk_sz,
+						priv->d_direct_offset, clen);
 
 				if (chunk->total_sz != (clen + sizeof(chunk_header_t))) {
 					printf("sparse: bad chunk size for"
@@ -651,7 +668,11 @@ int handleSparseDownload(unsigned char *buffer,
 				if (ret < 0) {
 					priv->d_status = -1;
 					return 0;
-				} else if (ret > 0) {
+				}
+				CONSUMED(buffer, length, ret);
+
+				//not done yet!
+				if (priv->d_direct_size) {
 					noBuffer(buffer, length, priv);
 					return 1;
 				}
@@ -663,7 +684,7 @@ int handleSparseDownload(unsigned char *buffer,
 				}
 				clen = (u64)chunk->chunk_sz * header->blk_sz;
 				FBTDBG("sparse: DONT_CARE blk=%d bsz=%d:"
-						" skip(sector=%lu,clen=%llu)\n",
+						" skip(sector=%llu,clen=%llu)\n",
 						chunk->chunk_sz, header->blk_sz, priv->d_direct_offset, clen);
 
 				priv->d_direct_offset += (clen / RK_BLK_SIZE);
@@ -688,26 +709,22 @@ failed:
 int startDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
+#if 0
+	printf("start download, receive:\n");
+	int i = 0;
+	for (i = 0; i < 512; i++) {
+		if (!(i%8))
+			printf("\n");
+		printf("0x%02x ", buffer[i]);
+	}
+	printf("\n ---------------------------\n");
+#endif
 	priv->d_status = 0;
 	priv->flag_sparse = false;
 	priv->d_direct_size = 0;
 	priv->d_direct_offset = 0;
 	priv->sparse_cur_chunk = 0;
-	priv->transfer_buffer_pos = 0;
-
-	//check sign before flash large boot/recovery.
-	if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
-			!strcmp(priv->pending_ptn->name, BOOT_NAME)) {
-		/*
-		   if (!checkImageSign((rk_boot_img_hdr *)buffer)) {
-		   priv->d_status = -1;
-		   return 0;
-		   }*/
-		//should not reach here, check size before.
-		FBTERR("boot/recovery image should not be so large.\n");
-		priv->d_status = -1;
-		return 0;
-	}
+	priv->d_cache_pos = 0;
 
 	//check sparse image
 	sparse_header_t* header = &priv->sparse_header;
@@ -717,7 +734,9 @@ int startDownload(unsigned char *buffer,
 			(header->file_hdr_sz == sizeof(sparse_header_t)) &&
 			(header->chunk_hdr_sz == sizeof(chunk_header_t))) {
 		priv->flag_sparse = true;
-		priv->transfer_buffer_pos += sizeof(sparse_header_t);
+
+		CONSUMED(buffer, length, sizeof(sparse_header_t));
+
 		FBTDBG("found sparse image\n");
 		return handleSparseDownload(buffer, length, priv);
 	}
@@ -743,24 +762,19 @@ int startDownload(unsigned char *buffer,
 int handleDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
-	if (priv->d_size <= priv->transfer_buffer_size) {
-		//nothing to do with these.
-		return 0;
-	}
-
 	if (!priv->pending_ptn || !priv->pending_ptn->offset) {
 		//fastboot flash with "-u" opt? or no parameter?
 		if (!priv->pending_ptn) {
 			FBTDBG("no pending_ptn\n");
 		} else {
-			FBTDBG("pending ptn(%s) offset:%x\n", priv->pending_ptn->name, priv->pending_ptn->offset);
+			FBTDBG("pending ptn(%s) offset:%x\n", priv->pending_ptn->name,
+					priv->pending_ptn->offset);
 		}
 		priv->d_status = -1;
 		return 0;
 	}
 
-	if ((length - priv->transfer_buffer_pos)/*rcved data len*/
-			+ priv->d_bytes < priv->d_size &&
+	if (length + priv->d_bytes < priv->d_size &&
 			length < priv->transfer_buffer_size) {
 		//keep downloading, util buffer is full or end of download.
 		return 1;
@@ -771,14 +785,31 @@ int handleDownload(unsigned char *buffer,
 		return 0;
 	}
 
-	if (!priv->d_bytes) {
+	//start to download something.
+	bool start = priv->d_bytes == 0;
+
+	if (start) {
 		FBTDBG("start download, length:%d\n", length);
 		return startDownload(buffer, length, priv);
 	}
 
-	buffer += priv->transfer_buffer_pos;
-	length -= priv->transfer_buffer_pos;
-	priv->transfer_buffer_pos = 0;
+	//check buffer size.
+	if (length + priv->d_cache_pos > sizeof(priv->d_cache)) {
+		FBTDBG("something wrong with d_cache, pose:%d, len %d\n",
+				priv->d_cache_pos, length);
+		priv->d_status = -1;
+		return 0;
+	}
+
+	if (priv->d_cache_pos) {
+		memcpy(priv->d_cache + priv->d_cache_pos, buffer, length);
+		length += priv->d_cache_pos;
+		buffer = priv->d_cache;
+		priv->d_cache_pos = 0;
+		if (!priv->flag_sparse) {
+			FBTERR("normal image should not get here!\n");
+		}
+	}
 
 	FBTDBG("continue download, length:%d\n", length);
 	if (priv->flag_sparse) {

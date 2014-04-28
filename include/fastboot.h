@@ -139,6 +139,8 @@ typedef struct chunk_header {
  */
 /* end sparse things */
 
+#define PARTITION_NAME_SIZE 16
+#define USB_MAX_TRANS_SIZE  0x20000
 struct cmd_fastboot_interface {
 
 	/* A getvar string for the serial number
@@ -149,6 +151,7 @@ struct cmd_fastboot_interface {
 
 	//fastboot likely to query partition-type before do flash.
 	struct fbt_partition *pending_ptn;
+	char pending_ptn_name[PARTITION_NAME_SIZE];
 
 	/* Transfer buffer, for handling flash updates
 	   Should be multiple of the block size
@@ -158,9 +161,9 @@ struct cmd_fastboot_interface {
 	   Set by board */
 	u8 *buffer[2];
 	u8 *transfer_buffer;
-	u32 need_check;
-
-	u64 transfer_buffer_pos;
+	
+	//d_legacy set to 0, when we use double buffer to accelerate download.
+	u8 d_legacy;
 
 	/* How big is the transfer buffer
 	   Controlled by the configure variable
@@ -184,6 +187,10 @@ struct cmd_fastboot_interface {
 
 	/* Offset of storage, will download 'd_direct_size' data to this offset */
 	u64 d_direct_offset;
+
+	/* May cache some data here. */
+	unsigned char d_cache[USB_MAX_TRANS_SIZE + RK_BLK_SIZE];
+	int d_cache_pos;
 
 	/* Upload size, if download has to be done */
 	u64 u_size;

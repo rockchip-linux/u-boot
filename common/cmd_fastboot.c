@@ -702,7 +702,7 @@ static int fbt_handle_erase(char *cmdbuf)
 
 	FBTDBG("Erasing partition '%s':\n", ptn->name);
 
-	FBTDBG("\tstart blk %lu, blk_cnt %lu\n", ptn->offset,
+	FBTDBG("\tstart blk %u, blk_cnt %u\n", ptn->offset,
 			ptn->size_kb);
 
 	err = board_fbt_handle_erase(ptn);
@@ -816,6 +816,8 @@ static const char *getvar_partition_type(const char *args)
 	priv.pending_ptn = NULL;
 
 	partition_name = args + sizeof("partition-type:") - 1;
+	snprintf(priv.pending_ptn_name, sizeof(priv.pending_ptn_name), "%s", partition_name);
+
 	ptn = fastboot_find_ptn(partition_name);
 	if (ptn) {
 		FBTDBG("fastboot pending_ptn:%s\n", ptn->name);
@@ -846,7 +848,7 @@ static const char *getvar_checksum(const char *args)
 				"FAILinvalidate params!\n");
 		return NULL;
 	}
-	FBTDBG("try to get checksum, offset:0x%08lx, blocks:0x%08x\n",
+	FBTDBG("try to get checksum, offset:0x%08x, blocks:0x%08x\n",
 			offset, blocks);
 
 	//2:get checksum for each parts
@@ -1337,15 +1339,6 @@ static void fbt_handle_boot(const char *cmdbuf)
 	}
 	sprintf(priv.response, "FAILinvalid boot image");
 }
-void board_fbt_handle_download_block(const char *name,unsigned char *buffer, int length, int offset, int total_len)
-{
-	FBTDBG("buffer %p, len %x..\n", buffer, length);
-}
-void board_fbt_handle_download_image(const char *name, unsigned char *buffer, int length)
-{
-	FBTDBG("buffer %p, len %x..\n", buffer, length);
-}
-
 
 /* XXX: Replace magic number & strings with macros */
 static int fbt_rx_process(unsigned char *buffer, int length)
@@ -1353,70 +1346,32 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 	struct usb_endpoint_instance *ep;
 	char *cmdbuf;
 	int clear_cmd_buf;
-
-	int offset;
-	u8 *data_buffer;
-
+	u8 *data_buffer = NULL;
 	if (priv.d_size) {
 		ep = &endpoint_instance[1];
 		if (length > priv.transfer_buffer_size) {
 			FBTERR("buffer overflow when do receive\n");
 			length = priv.transfer_buffer_size;
 		}
-		if(length){
-			offset = priv.d_bytes;
-			priv.d_bytes += length;
-			data_buffer = (u8 *)ep->rcv_urb->buffer;
-		}
-		if(priv.d_bytes < priv.d_size){
-			int buffer_length = priv.d_size - priv.d_bytes;
+		data_buffer = (u8 *)ep->rcv_urb->buffer;
+
+		if(priv.d_bytes + length < priv.d_size){
+			int buffer_length = priv.d_size - priv.d_bytes - length;
 			if (buffer_length > priv.transfer_buffer_size)
 				buffer_length = priv.transfer_buffer_size;
 			ep->rcv_urb->actual_length = 0;
 			ep->rcv_urb->buffer_length = buffer_length;
-			if(priv.need_check)
+			if(priv.d_legacy)
 				ep->rcv_urb->buffer += priv.transfer_buffer_size;
 			else
 				ep->rcv_urb->buffer = (u8 *)priv.buffer[buffer == priv.transfer_buffer];
 			resume_usb(ep, 0);
 			FBTDBG("buffer %p, len %x..\n", ep->rcv_urb->buffer, length);
 		}
-		if(!priv.need_check)
-			board_fbt_handle_download_block(priv.pending_ptn->name, data_buffer, length, offset, priv.d_size);
-		else if(priv.d_bytes == priv.d_size)
-			board_fbt_handle_download_image(priv.pending_ptn->name,priv.transfer_buffer, priv.d_size);
-#if 0
-		if (length == priv.transfer_buffer_size) {
-			//switch buffer, and resume transfer.
+		if (!priv.d_legacy)
+			board_fbt_handle_download(data_buffer, length, &priv);
 
-			//compute new buffer_length
-			int buffer_length = priv.d_size - priv.d_bytes -//bytes to rcv seens last time.
-				(length - priv.transfer_buffer_pos);//bytes we rcved this time.
-
-			//keep last 512 to next time(for storage write align)
-			buffer_length += RK_BLK_SIZE;
-
-			if (buffer_length > priv.transfer_buffer_size)
-				buffer_length = priv.transfer_buffer_size;
-
-			//keep last 512 to next time(for storage write align)
-			memcpy((u8 *)priv.buffer[buffer == priv.transfer_buffer],
-					buffer + length - RK_BLK_SIZE, RK_BLK_SIZE);
-
-			ep->rcv_urb->buffer = (u8 *)priv.buffer[buffer == priv.transfer_buffer];
-			ep->rcv_urb->buffer_length = buffer_length;
-			ep->rcv_urb->actual_length = RK_BLK_SIZE;
-
-			FBTDBG("switch transfer buffer:%x -> %x len:%ld\n", buffer, ep->rcv_urb->buffer,
-					ep->rcv_urb->buffer_length);
-			resume_usb(ep, 0);
-		}
-
-		//board handle this
-		if (board_fbt_handle_download(buffer, length, &priv)) {
-			return 0;
-		}
-#endif
+		priv.d_bytes += length;
 
 		if (priv.d_bytes < priv.d_size && !priv.d_status) {
 			/* don't clear cmd buf because we've replaced it
@@ -1429,13 +1384,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		if (priv.d_status < 0 && priv.d_bytes < priv.d_size) {
 			FBTDBG("Failed to download, d_bytes:%lld d_size:%lld, length:%d\n",
 					priv.d_bytes, priv.d_size, length);
-			//ignore transfer_buffer_pos, consider we ate it up.
-			priv.transfer_buffer_pos = 0;
 			priv.d_bytes += length;
-
-			//fix 512 bytes we kept for next download.
-			if (priv.d_bytes < priv.d_size)
-				priv.d_bytes -= RK_BLK_SIZE;
 			return 0;
 		}
 		if (priv.d_status < 0) {
@@ -1448,7 +1397,6 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		}
 		//        priv.d_bytes = priv.d_size;
 		priv.d_size = 0;
-		priv.transfer_buffer_pos = 0;
 		priv.flag |= FASTBOOT_FLAG_RESPONSE;
 
 		/* restore default buffer in urb */
@@ -1538,28 +1486,31 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		priv.d_bytes = 0;
 		priv.d_status = 0;
 
-		FBTDBG("starting download of %llu bytes\n", d_size);
+		FBTDBG("starting download of %d bytes\n", d_size);
 
-		bool needCheck = 
-			(!strcmp(priv.pending_ptn->name, RECOVERY_NAME) ||
-			 !strcmp(priv.pending_ptn->name, BOOT_NAME) ||
-			 !strcmp(priv.pending_ptn->name, UBOOT_NAME));
-		priv.need_check = needCheck;
+		//we should receive whole image for those partitions.
+		priv.d_legacy = 
+			(!strcmp(priv.pending_ptn_name, RECOVERY_NAME) ||
+			 !strcmp(priv.pending_ptn_name, BOOT_NAME) ||
+			 !strcmp(priv.pending_ptn_name, LOADER_NAME) ||
+			 !strcmp(priv.pending_ptn_name, PARAMETER_NAME) ||
+			 //!strcmp(priv.pending_ptn_name, RESOURCE_NAME) ||
+			 !strcmp(priv.pending_ptn_name, UBOOT_NAME));
+
+		FBTDBG("legacy download? %d\n", priv.d_legacy);
 
 		if (!priv.unlocked) {
 			FBTERR("download: failed, device is locked\n");
 			sprintf(priv.response, "FAILdevice is locked");
 		} else if (d_size > CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH
 				&& !priv.pending_ptn) {
-			//flash loader would not set pending_ptn,
-			//because there is not a partition for loader.
 			FBTERR("download large image with \"-u\" option\n");
 			sprintf(priv.response, "FAILnot support \"-u\" option");
-			//what if they use "fastboot getvar partition-type" before flash?
+			//what if they use "fastboot getvar partition-type" before flash with -u?
 		} else if (d_size >= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE &&
-				needCheck) {
-			//image size too large for sign check.
-			FBTERR("%s image too large\n", priv.pending_ptn->name);
+				priv.d_legacy) {
+			//image size too large for legacy download.
+			FBTERR("%s image too large\n", priv.pending_ptn_name);
 			sprintf(priv.response, "FAILdata too large");
 		} else if (d_size == 0) {
 			strcpy(priv.response, "FAILdata invalid size");
@@ -1575,8 +1526,8 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 
 			//we will check boot/recovery's sha, so need a big buffer to recv whole image.
 			// usb dwc_udc controller can receive 0x20000byte data for once
-			priv.transfer_buffer_size = 0x20000;
-			/*needCheck? CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE :
+			priv.transfer_buffer_size = USB_MAX_TRANS_SIZE;
+			/*priv.d_legacy? CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE :
 			  CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;*/
 
 			/* as an optimization, replace the builtin
@@ -1838,6 +1789,7 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	FBTINFO("fastboot initialized\n");
 
 	priv.pending_ptn = NULL;
+	priv.pending_ptn_name[0] = '\0';
 	//load key here.
 	SecureBootCheck();
 
@@ -2082,7 +2034,8 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	memset(&images, 0, sizeof(images));
 	images.ep = hdr->kernel_addr;
 	images.rd_start = hdr->ramdisk_addr;
-	images.rd_end = hdr->ramdisk_addr + hdr->ramdisk_size;
+	images.rd_end = hdr->ramdisk_addr
+        + hdr->ramdisk_size;
 	free(hdr);
 
 #ifdef CONFIG_CMD_BOOTM
