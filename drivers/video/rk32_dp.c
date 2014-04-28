@@ -38,7 +38,7 @@ static int rk32_edp_clk_enable(struct rk32_edp *edp)
 	u32 val;
 	val = 0x01000000;
 	writel(val, RK3288_CRU_PHYS + 0x1a0); /*open pclk gate*/
-	val = (0x01 << 31) | (0x01 << 17) |
+	val = (0x01 << 31) | (0x01 << 22) |
 		(0x01 << 15) | (0x01 << 6);
 	writel(val,RK3288_CRU_PHYS + 0x0d0); /*clk_edp_24M clk_edp select*/
 
