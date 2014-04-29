@@ -33,67 +33,6 @@ static inline unsigned int get_duration(unsigned int base) {
 	return tick_duration/(CONFIG_SYS_CLK_FREQ/CONFIG_SYS_HZ);//tick_to_time(tick_duration);
 }
 
-void gpio_isr(int gpio_group)
-{
-    int i=0;
-    int_conf* ioint = NULL; 
-    printf("gpio isr,gpio_group=%d \n",gpio_group);
-    ioint = &key_power.key.ioint;
-
-	if((gpio_irq_state(ioint->gpio)))
-	{
-		printf("key_power gpio isr\n");
-		gpio_irq_clr(ioint->gpio);
-		if(get_wfi_status())
-		{
-			printf("gpio isr in wfi\n");
-			return;
-		}
-		if(ioint->press_time)
-		{
-            //it's key up.
-            int type = (get_duration(ioint->press_time)>LONE_PRESS_TIME) ? KEY_LONG_PRESS:KEY_SHORT_PRESS;
-			ioint->press_time = 0;
-
-            //we should make sure long press event will pass to user.
-            //we should ignore double short press.
-            switch (ioint->pressed_state) {
-                case KEY_LONG_PRESS:
-                    //still have a long pressed to be process.
-                    //do nothing here, should not skip this long press event.
-                    break;
-                case KEY_SHORT_PRESS:
-                    if (type == KEY_LONG_PRESS)
-                        //new long press, ignore old short press event.
-                        ioint->pressed_state = type;
-                    else
-                        //ignore double press.
-                        ioint->pressed_state = 0;
-                    break;
-                default:
-                    //new press event.
-                    ioint->pressed_state = type;
-                    break;
-            }
-		}
-		else
-		{
-			ioint->press_time = get_rk_current_tick();
-		}
-		
-		serial_printf("switch polarity\n");
-		if(ioint->flags == IRQ_TYPE_EDGE_FALLING)
-		{
-			ioint->flags = IRQ_TYPE_EDGE_RISING;
-		}else ioint->flags = IRQ_TYPE_EDGE_FALLING;
-        
-		gpio_irq_request(ioint->gpio, ioint->flags);
-	}
-
-	if(gpio_group >= 0 && gpio_group < sizeof(gpio_reg)/sizeof(int))
-		for(i=0; i<32; i++)gpio_irq_clr(gpio_reg[gpio_group] + i); //clr all gpio0 int
-}
-
 
 /*
     固定GPIOA_0口作为烧写检测口,系统部分不能使用该口
@@ -214,18 +153,10 @@ void PowerKeyInit()
     //power_hold_gpio.name
     key_power.type = KEY_INT;
     key_power.key.ioint.name = "power_key";
-    key_power.key.ioint.gpio = RKIO_GPIO0_PHYS | GPIO_A5;
+    key_power.key.ioint.gpio = RKXX_PIN0_PA5;
     key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
     key_power.key.ioint.pressed_state = 0;
     key_power.key.ioint.press_time = 0;
-
-	printf("%s start\n",__func__);
-   // for(i=0; i<32; i++)
-	    gpio_irq_request(RKIO_GPIO0_PHYS+i, IRQ_TYPE_NONE); //disable all gpio 0 Interrupt
-    gpio_direction_input(key_power.key.ioint.gpio);
-    gpio_irq_request(key_power.key.ioint.gpio, key_power.key.ioint.flags);
-	IRQEnable(INT_GPIO0);
-    printf("%s end\n",__func__);
 }
 
 int power_hold() {
@@ -238,7 +169,7 @@ void key_init()
 
     charge_state_gpio.name = "charge_state";
     charge_state_gpio.flags = 0;
-    charge_state_gpio.gpio = RKIO_GPIO0_PHYS | GPIO_B0;
+    charge_state_gpio.gpio = RKXX_PIN0_PB0;
     gpio_direction_input(charge_state_gpio.gpio);
 
     //power_hold_gpio.name

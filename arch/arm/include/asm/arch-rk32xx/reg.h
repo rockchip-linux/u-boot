@@ -303,8 +303,6 @@ typedef volatile struct TagSDC_REG2
 #define g_cruReg 	((pCRU_REG)RKIO_CRU_PHYS)
 #define g_pmuReg 	((pPMU_REG)RKIO_PMU_PHYS)
 #define g_grfReg 	((pGRF_REG)RKIO_GRF_PHYS)
-#define g_gicdReg       ((pGICD_REG)RKIO_GICD_PHYS)
-#define g_giccReg       ((pGICC_REG)RKIO_GICC_PHYS)
 #define g_Time0Reg      ((pTIMER_REG)RKIO_TIMER_6CH_PHYS)
 #define g_EMMCReg       ((pSDC_REG_T2)RKIO_EMMC_PHYS)
 

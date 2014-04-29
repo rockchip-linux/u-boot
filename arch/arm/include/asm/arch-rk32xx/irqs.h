@@ -90,6 +90,9 @@ typedef volatile struct tagGICC_REG {
 } GICC_REG, *pGICC_REG;
 
 
+#define g_gicdReg       ((pGICD_REG)RKIO_GICD_PHYS)
+#define g_giccReg       ((pGICC_REG)RKIO_GICC_PHYS)
+
 
 /*
  * RKXX irq

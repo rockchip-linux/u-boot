@@ -847,8 +847,10 @@ void udc_connect(void)
     }
     UdcInit();
     OtgReg->Device.dctl &= ~0x02;          //soft connect
-    EnableOtgIntr();
-    
+
+	irq_install_handler(IRQ_USB_OTG, udc_irq, NULL);
+	irq_handler_enable(IRQ_USB_OTG);
+
 	usbdbg("OtgReg->Core.grstctl = 0x%08x\n",OtgReg->Core.grstctl);
 	usbdbg("OtgReg->Device.dcfg = 0x%08x\n",OtgReg->Device.dcfg);
 	usbdbg("OtgReg->Core.grxfsiz = 0x%08x\n",OtgReg->Core.grxfsiz);
