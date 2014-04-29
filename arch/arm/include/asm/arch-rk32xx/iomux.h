@@ -6,7 +6,6 @@
 #define _ASM_ROCKCHIP_IOMUX_H_
 
 #include <asm/io.h>
-#include "iomap.h"
 
 /* The clocks supported by the hardware */
 enum iomux_id {

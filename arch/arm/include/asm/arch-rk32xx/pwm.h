@@ -2,7 +2,7 @@
 #define __RK32XX_PWM_H_
 
 #ifdef CONFIG_RK3288SDK
-#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+RK3288_PWM0123_BASE_ADDR+id*0x10)=val)
+#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+RKIO_RK_PWM_PHYS+id*0x10)=val)
 #else
 #define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
 #endif

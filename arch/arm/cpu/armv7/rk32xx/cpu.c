@@ -78,30 +78,32 @@ int print_cpuinfo(void)
 
 void reset_cpu(ulong ignored)
 {
-    pFunc fp;
+	pFunc fp;
 
-    disable_interrupts();
-    //UsbSoftDisconnect();
-    FW_NandDeInit();
+	disable_interrupts();
+	//UsbSoftDisconnect();
+	FW_NandDeInit();
 
-    MMUDeinit();              /*关闭MMU*/
-    //cruReg->CRU_MODE_CON = 0x33030000;    //cpu enter slow mode
-    //Delay100cyc(10);
-    g_giccReg->icceoir=INT_USB_OTG;
-    //DisableRemap();
+	MMUDeinit();			  /*关闭MMU*/
+	//cruReg->CRU_MODE_CON = 0x33030000;	//cpu enter slow mode
+	//Delay100cyc(10);
+	g_giccReg->icceoir=INT_USB_OTG;
+	//DisableRemap();
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	/* pll enter slow mode */
-	writel(RK3288_PLL_MODE_SLOW(0) | RK3288_PLL_MODE_SLOW(1) | RK3288_PLL_MODE_SLOW(2), RK3288_GRF_PHYS + RK3288_CRU_MODE_CON);
+	writel(PLL_MODE_SLOW(0) | PLL_MODE_SLOW(1) | PLL_MODE_SLOW(2), RKIO_CRU_PHYS + 0x50);
 
 	/* soft reset */
-	writel(0xeca8, RK3288_CRU_PHYS + 0x1B4);
+	writel(0xeca8, RKIO_CRU_PHYS + 0x1B4);
 #else
 	ResetCpu((0xff740000));
 #endif
-    //cruReg->CRU_GLB_SRST_FST_VALUE = 0xfdb9; //kernel 使用 fst reset时，loader会死机，问题还没有查，所有loader还是用snd reset
-    g_cruReg->cru_glb_srst_snd_value = 0xeca8; //soft reset
-    Delay100cyc(10);
-    while(1);
+	ResetCpu((0xff740000));
+	//cruReg->CRU_GLB_SRST_FST_VALUE = 0xfdb9; //kernel 使用 fst reset时，loader会死机，问题还没有查，所有loader还是用snd reset
+	g_cruReg->cru_glb_srst_snd_value = 0xeca8; //soft reset
+	Delay100cyc(10);
+	while(1);
 }
+
 
 

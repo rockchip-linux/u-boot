@@ -316,6 +316,12 @@
 /* secure grf fast boot address */
 #define SGRF_FAST_BOOT_ADDR	0x120
 
+#define grf_readl(offset)	readl(RKIO_GRF_PHYS + offset)
+#define grf_writel(v, offset)	do { writel(v, RKIO_GRF_PHYS + offset); } while (0)
+
+#define pmu_readl(offset)	readl(RKIO_PMU_PHYS + offset)
+#define pmu_writel(v, offset)	do { writel(v, RKIO_PMU_PHYS + offset); } while (0)
+
 
 #endif /* __RK3288_GRF_H */
 

@@ -1,15 +1,16 @@
+
 #include <common.h>
 #include <malloc.h>
 #include <fdtdec.h>
 #include <errno.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
-#include <asm/arch/iomap.h>
-#include <asm/arch/reg.h>
+//#include <asm/arch/reg.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/pwm.h>
 #include <asm/arch/grf.h>
 #include <asm/arch/iomux.h>
+#include <asm/arch/drivers.h>
 DECLARE_GLOBAL_DATA_PTR;
 
 struct pwm_bl bl;
@@ -23,7 +24,7 @@ static int get_pclk_pwm(void)
 	u32 pclk_pwm, pclk_bus, pclk_bus_div;
 	u32 aclk_bus,aclk_bus_div;
 	u32 aclk_bus_src, aclk_bus_src_div;
-	u32 clksel1 = readl(RK3288_CRU_PHYS + 0x64);
+	u32 clksel1 = readl(RKIO_CRU_PHYS + 0x64);
 	aclk_bus_div = (clksel1 & 0x7);
 	aclk_bus_src_div = (clksel1 & 0xf8) >> 3;
 	pclk_bus_div = (clksel1  &0x7000) >> 12;
@@ -71,7 +72,6 @@ static int rk_bl_parse_dt(const void *blob)
 	return 0;
 	
 }
-
 int  rk_pwm_config(int brightness)
 {
 	u64 val, div, clk_rate;
@@ -82,7 +82,7 @@ int  rk_pwm_config(int brightness)
 	int duty_ns,period_ns;
 	if (!bl.node) {
 		rk_bl_parse_dt(gd->fdt_blob);
-        rk_iomux_config(RK_PWM0_IOMUX+bl.id);
+        		rk_iomux_config(RK_PWM0_IOMUX+bl.id);
 		gpio_direction_output(bl.bl_en.gpio, bl.bl_en.flags);
 	}
 
@@ -92,7 +92,7 @@ int  rk_pwm_config(int brightness)
 	duty_ns = (brightness * bl.period)/bl.max_brightness;
 	period_ns = bl.period;
 	id = bl.id;
-    grf_writel(0x00010001, RK3288_GRF_SOC_CON2);/*use rk pwm*/
+    	grf_writel(0x00010001, 0x024c);/*use rk pwm*/
 	on   =  RK_PWM_ENABLE ;
 	conf = PWM_OUTPUT_LEFT|PWM_LP_DISABLE|
 	                    PWM_CONTINUMOUS|PWM_DUTY_POSTIVE|PWM_INACTIVE_NEGATIVE;

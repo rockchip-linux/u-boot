@@ -5,15 +5,15 @@
 #include "key.h"
 
 int gpio_reg[]={
-	RK3288_GPIO0_PHYS, 
-	RK3288_GPIO1_PHYS, 
-	RK3288_GPIO2_PHYS,
-	RK3288_GPIO3_PHYS,
-	RK3288_GPIO4_PHYS,
-	RK3288_GPIO5_PHYS,
-	RK3288_GPIO6_PHYS,
-	RK3288_GPIO7_PHYS,
-	RK3288_GPIO8_PHYS
+	RKIO_GPIO0_PHYS, 
+	RKIO_GPIO1_PHYS, 
+	RKIO_GPIO2_PHYS,
+	RKIO_GPIO3_PHYS,
+	RKIO_GPIO4_PHYS,
+	RKIO_GPIO5_PHYS,
+	RKIO_GPIO6_PHYS,
+	RKIO_GPIO7_PHYS,
+	RKIO_GPIO8_PHYS
 };
 
 extern void DRVDelayUs(uint32 us);
@@ -214,7 +214,7 @@ void PowerKeyInit()
     //power_hold_gpio.name
     key_power.type = KEY_INT;
     key_power.key.ioint.name = "power_key";
-    key_power.key.ioint.gpio = RKIO_GPIO0_PHYS | GPIO_A4;
+    key_power.key.ioint.gpio = RKIO_GPIO0_PHYS | GPIO_A5;
     key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
     key_power.key.ioint.pressed_state = 0;
     key_power.key.ioint.press_time = 0;

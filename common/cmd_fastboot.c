@@ -780,8 +780,8 @@ static const char *getvar_secure(const char *unused)
 static const char *getvar_product(const char *unused)
 {
 #ifdef CONFIG_ROCKCHIP
-	if (PRODUCT_NAME[0])
-		return PRODUCT_NAME;
+    if (PRODUCT_NAME && PRODUCT_NAME[0])
+        return PRODUCT_NAME;
 #endif
 	return FASTBOOT_PRODUCT_NAME;
 }
@@ -2154,13 +2154,11 @@ void fbt_preboot(void)
 #ifdef CONFIG_ROCKCHIP
 	powerOn();
 #ifdef CONFIG_LCD
-
-	if(logo_on)
-	{
-		lcd_enable_logo(true);
-		rk_backlight_ctrl(48);
-	}
-
+    if(logo_on)
+    {
+        lcd_enable_logo(true);
+        rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
+    }
 #endif
 	rkclk_soft_reset();
 #endif// CONFIG_ROCKCHIP

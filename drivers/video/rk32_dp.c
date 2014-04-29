@@ -13,7 +13,6 @@
  * GNU General Public License for more details.
  */
 #include <common.h>
-#include <asm/arch/iomap.h>
 #include <lcd.h>
 #include <asm/arch/drivers.h>
 #include "rk32_dp.h"
@@ -37,13 +36,13 @@ static int rk32_edp_clk_enable(struct rk32_edp *edp)
 {
 	u32 val;
 	val = 0x01000000;
-	writel(val, RK3288_CRU_PHYS + 0x1a0); /*open pclk gate*/
+	writel(val, RKIO_CRU_PHYS + 0x1a0); /*open pclk gate*/
 	val = (0x01 << 31) | (0x01 << 22) |
 		(0x01 << 15) | (0x01 << 6);
-	writel(val,RK3288_CRU_PHYS + 0x0d0); /*clk_edp_24M clk_edp select*/
+	writel(val,RKIO_CRU_PHYS + 0x0d0); /*clk_edp_24M clk_edp select*/
 
 	val = 0x30000000;
-	writel(val,RK3288_CRU_PHYS + 0x16c); /*open gate clk_edp_24M clk_edp*/
+	writel(val,RKIO_CRU_PHYS + 0x16c); /*open gate clk_edp_24M clk_edp*/
 	return 0;
 }
 
@@ -59,15 +58,15 @@ static int rk32_edp_pre_init(void)
 	u32 val;
 	val = GRF_EDP_REF_CLK_SEL_INTER |
 		(GRF_EDP_REF_CLK_SEL_INTER << 16);
-	writel(val, RK3288_GRF_PHYS + RK3288_GRF_SOC_CON12);
+	writel(val, RKIO_GRF_PHYS + 0x0274);
 
 	val = 0x80008000;
-	writel(val, RK3288_CRU_PHYS + 0x0d0); /*select 24m*/
+	writel(val, RKIO_CRU_PHYS + 0x0d0); /*select 24m*/
 	val = 0x80008000;
-	writel(val, RK3288_CRU_PHYS + 0x01d0); /*reset edp*/
+	writel(val, RKIO_CRU_PHYS + 0x01d0); /*reset edp*/
 	udelay(1);
 	val = 0x80000000;
-	writel(val, RK3288_CRU_PHYS + 0x01d0);
+	writel(val, RKIO_CRU_PHYS + 0x01d0);
 	udelay(1);
 	return 0;
 }
@@ -80,7 +79,7 @@ static int rk32_edp_init_edp(struct rk32_edp *edp)
 		val = EDP_SEL_VOP_LIT | (EDP_SEL_VOP_LIT << 16);
 	else
 		val = EDP_SEL_VOP_LIT << 16;
-	writel(val, RK3288_GRF_PHYS + RK3288_GRF_SOC_CON6);
+	writel(val, RKIO_GRF_PHYS + 0x025c);
 
 	
 	rk32_edp_reset(edp);
