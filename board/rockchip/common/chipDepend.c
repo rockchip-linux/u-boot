@@ -78,19 +78,24 @@ void DRVDelayS(uint32 count)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-    return (*((REG32*)PMU_SYS_REG0));
+   // return (*((REG32*)PMU_SYS_REG0));
+  return  readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
 }
 
 void ISetLoaderFlag(uint32 flag)
 {
-    if(*((REG32*)PMU_SYS_REG0) == flag)
-        return;
-    *((REG32*)PMU_SYS_REG0) = flag;
+    //if(*((REG32*)PMU_SYS_REG0) == flag)
+    //    return;
+  //  *((REG32*)PMU_SYS_REG0) = flag;
+  	if( readl(RKIO_PMU_PHYS + PMU_SYS_REG0) == flag)
+		return;
+	writel(flag,RKIO_PMU_PHYS + PMU_SYS_REG0);
 }
 
 uint32 IReadLoaderMode(void)
 {
-    return (*((REG32*)PMU_SYS_REG1));
+    //return (*((REG32*)PMU_SYS_REG1));
+	return  readl(RKIO_PMU_PHYS + PMU_SYS_REG1);
 }
 
 

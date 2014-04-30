@@ -750,6 +750,7 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	        }
             if(usbcmd.reset_flag==0xFF){
                 usbcmd.reset_flag = 0;
+	       reset_cpu(0);
             }
 	        SysLowFormatCheck();
 		}
