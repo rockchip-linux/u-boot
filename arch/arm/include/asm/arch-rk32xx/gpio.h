@@ -56,6 +56,20 @@ struct rk_gpio_bank {
 	int ngpio;
 };
 
+/*
+ * rk gpio api define the gpio format as:
+ * using 32 bit for rk gpio value,
+ * the high 16bit of gpio is bank id, the low 16bit of gpio is pin number
+ * eg: gpio = 0x00010008, it mean gpio1_b0, 0x00010000 is bank id of GPIO_BANK1, 0x00000008 is GPIO_B0
+ */
+
+/* bank and pin bit mask */
+#define RK_GPIO_BANK_MASK	0xFFFF0000
+#define RK_GPIO_BANK_OFFSET	16
+#define RK_GPIO_PIN_MASK	0x0000FFFF
+#define RK_GPIO_PIN_OFFSET	0
+
+
 /* gpio pin defined */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#include "gpio-rk3288.h"
@@ -91,27 +105,42 @@ typedef enum GPIODriveSlector {
 
 struct rk_gpio_bank *rk_gpio_get_bank(unsigned gpio);
 struct rk_gpio_bank *rk_id_get_bank(unsigned int id);
-
+int rk_gpio_base_to_id(unsigned base);
 
 #ifdef CONFIG_USE_IRQ
+int rk_gpio_gpio_to_irq(unsigned gpio);
+int rk_gpio_irq_to_gpio(unsigned irq);
+
 static inline int gpio_to_irq(unsigned gpio)
 {
 	if (gpio == INVALID_GPIO) {
 		return INVALID_GPIO;
 	}
 
-	return gpio - PIN_BASE + NR_GIC_IRQS;
+	return rk_gpio_gpio_to_irq(gpio);
 }
 
 static inline int irq_to_gpio(unsigned irq)
 {
-	return irq - NR_GIC_IRQS + PIN_BASE;
+	return rk_gpio_irq_to_gpio(irq);
 }
 #endif
 
+static inline rk_gpio_base_to_bank(unsigned base)
+{
+	int bank = rk_gpio_base_to_id(base);
+
+	if (bank == -1) {
+		return -1;
+	}
+
+	return (bank << RK_GPIO_BANK_MASK);
+}
+
+
 static inline bool gpio_is_valid(int number)
 {
-	return (number != INVALID_GPIO) && (number >= PIN_BASE) && (number <= PIN_MAX);
+	return (number != INVALID_GPIO);
 }
 
 static inline void rk_gpio_bit_op(void __iomem *regbase, unsigned int offset, uint32 bit, unsigned char flag)
@@ -126,11 +155,9 @@ static inline void rk_gpio_bit_op(void __iomem *regbase, unsigned int offset, ui
 	__raw_writel(val, regbase + offset);
 }
 
-static inline unsigned gpio_to_bit(unsigned gpio)
+static inline unsigned pin_to_bit(unsigned pin)
 {
-	gpio -= PIN_BASE;
-
-	return 1u << (gpio % NUM_GROUP);
+	return 1u << pin;
 }
 
 static inline unsigned offset_to_bit(unsigned offset)

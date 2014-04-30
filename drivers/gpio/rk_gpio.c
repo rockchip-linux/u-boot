@@ -28,22 +28,21 @@
 
 #include <asm/arch/rkplat.h>
 
-#define RKGPIO_VERSION		"1.1"
+#define RKGPIO_VERSION		"1.2"
 
 struct rk_gpio_bank *rk_gpio_get_bank(unsigned gpio)
 {
 	int index;
+	int bank;
 
 	if (!gpio_is_valid(gpio)) {
 		debug("rk_gpio_get_bank gpio = %d is not valid!\n", gpio);
 		return NULL;
 	}
 
-	gpio -= PIN_BASE;
-	gpio /= NUM_GROUP;
-
+	bank = (gpio & RK_GPIO_BANK_MASK) >> RK_GPIO_BANK_OFFSET;
 	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
-		if (rk_gpio_banks[index].id == gpio)
+		if (rk_gpio_banks[index].id == bank)
 			return &(rk_gpio_banks[index]);
 	}
 
@@ -64,6 +63,64 @@ struct rk_gpio_bank *rk_id_get_bank(unsigned int id)
 	debug("rk_id_get_bank error: id = %d\n", id);
 	return NULL;
 }
+
+
+int rk_gpio_base_to_id(unsigned base)
+{
+	int index;
+
+	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
+		if (rk_gpio_banks[index].regbase == base)
+			return index;
+	}
+
+	return -1;
+}
+
+
+#ifdef CONFIG_USE_IRQ
+int rk_gpio_gpio_to_irq(unsigned gpio)
+{
+	int bank = 0, pin = 0;
+	int index;
+
+	if (!gpio_is_valid(gpio)) {
+		debug("rk_gpio_gpio_to_irq gpio = %d is not valid!\n", gpio);
+		return -1;
+	}
+
+	bank = (gpio & RK_GPIO_BANK_MASK) >> RK_GPIO_BANK_OFFSET;
+	pin = (gpio & RK_GPIO_PIN_MASK) >> RK_GPIO_PIN_OFFSET;
+
+	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
+		if (rk_gpio_banks[index].id == bank)
+			return (rk_gpio_banks[index].base + pin);
+	}
+
+	debug("rk_gpio_gpio_to_irq error: gpio = %d\n", gpio);
+	return -1;
+}
+
+
+int rk_gpio_irq_to_gpio(unsigned irq)
+{
+	int bank, pin;
+	int gpio = 0;
+	int index;
+
+	bank = (irq - PIN_BASE) / NUM_GROUP;
+	pin = (irq - PIN_BASE) % NUM_GROUP;
+
+	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
+		if (rk_gpio_banks[index].id == bank) {
+			return (bank << RK_GPIO_BANK_OFFSET) | (pin << RK_GPIO_PIN_OFFSET);
+		}
+	}
+
+	debug("rk_gpio_irq_to_gpio error: irq = %d\n", irq);
+	return -1;
+}
+#endif
 
 
 static inline void rk_gpio_set_pin_level(void __iomem *regbase, unsigned int bit, eGPIOPinLevel_t level)
@@ -110,7 +167,7 @@ int gpio_direction_input(unsigned gpio)
 	if (bank == NULL)
 		return -1;
 
-	gpio -= bank->base;
+	gpio = (gpio & RK_GPIO_PIN_MASK) >> RK_GPIO_PIN_OFFSET;
 	if (gpio >= bank->ngpio)
 		return -1;
 
@@ -130,7 +187,7 @@ int gpio_direction_output(unsigned gpio, int value)
 	if (bank == NULL)
 		return -1;
 
-	gpio -= bank->base;
+	gpio = (gpio & RK_GPIO_PIN_MASK) >> RK_GPIO_PIN_OFFSET;
 	if (gpio >= bank->ngpio)
 		return -1;
 
@@ -152,7 +209,7 @@ int gpio_get_value(unsigned gpio)
 		return -1;
 	}
 
-	gpio -= bank->base;
+	gpio = (gpio & RK_GPIO_PIN_MASK) >> RK_GPIO_PIN_OFFSET;
 	if (gpio >= bank->ngpio) {
 		return -1;
 	}
@@ -172,7 +229,7 @@ int gpio_set_value(unsigned gpio, int value)
 		return -1;
 	}
 
-	gpio -= bank->base;
+	gpio = (gpio & RK_GPIO_PIN_MASK) >> RK_GPIO_PIN_OFFSET;
 	if (gpio >= bank->ngpio) {
 		return -1;
 	}
@@ -195,7 +252,7 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		return -1;
 	}
 
-	gpio -= bank->base;
+	gpio = (gpio & RK_GPIO_PIN_MASK) >> RK_GPIO_PIN_OFFSET;
 	if (gpio >= bank->ngpio) {
 		return -1;
 	}
@@ -300,7 +357,7 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		return -1;
 	}
 
-	gpio -= bank->base;
+	gpio = (gpio & RK_GPIO_PIN_MASK) >> RK_GPIO_PIN_OFFSET;
 	if (gpio >= bank->ngpio) {
 		return -1;
 	}

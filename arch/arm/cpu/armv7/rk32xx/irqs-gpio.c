@@ -75,8 +75,9 @@ static void rk_gpio_set_intr_type(void __iomem *regbase, unsigned int bit, eGPIO
 /**
  * Set gpio interrupt type
  */
-static int gpio_irq_set_type(int gpio, unsigned int type)
+static int gpio_irq_set_type(int gpio_irq, unsigned int type)
 {
+	int gpio = rk_gpio_irq_to_gpio(gpio_irq);
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
 	eGPIOIntType_t int_type = 0;
 
@@ -84,7 +85,7 @@ static int gpio_irq_set_type(int gpio, unsigned int type)
 		return -1;
 	}
 
-	gpio -= bank->base;
+	gpio &= RK_GPIO_PIN_MASK;
 	if (gpio >= bank->ngpio) {
 		return -1;
 	}
@@ -118,15 +119,16 @@ static int gpio_irq_set_type(int gpio, unsigned int type)
 /**
  * ACK gpio interrupt
  */
-static int gpio_irq_ack(int gpio)
+static int gpio_irq_ack(int gpio_irq)
 {
+	int gpio = rk_gpio_irq_to_gpio(gpio_irq);
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
 
 	if (bank == NULL) {
 		return -1;
 	}
 
-	gpio -= bank->base;
+	gpio &= RK_GPIO_PIN_MASK;
 	if (gpio >= bank->ngpio) {
 		return -1;
 	}
@@ -139,15 +141,16 @@ static int gpio_irq_ack(int gpio)
 /**
  * Enable gpio interrupt
  */
-static int gpio_irq_enable(int gpio)
+static int gpio_irq_enable(int gpio_irq)
 {
+	int gpio = rk_gpio_irq_to_gpio(gpio_irq);
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
 
 	if (bank == NULL) {
 		return -1;
 	}
 
-	gpio -= bank->base;
+	gpio &= RK_GPIO_PIN_MASK;
 	if (gpio >= bank->ngpio) {
 		return -1;
 	}
@@ -161,15 +164,16 @@ static int gpio_irq_enable(int gpio)
 /**
  * Disable gpio interrupt
  */
-static int gpio_irq_disable(int gpio)
+static int gpio_irq_disable(int gpio_irq)
 {
+	int gpio = rk_gpio_irq_to_gpio(gpio_irq);
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
 
 	if (bank == NULL) {
 		return -1;
 	}
 
-	gpio -= bank->base;
+	gpio &= RK_GPIO_PIN_MASK;
 	if (gpio >= bank->ngpio) {
 		return -1;
 	}
