@@ -89,7 +89,7 @@
 	{								\
 		.regbase = (unsigned char __iomem *) RKIO_GPIO##ID##_PHYS, \
 		.id = ID,	\
-		.base             = PIN_BASE + ID*NUM_GROUP,	\
+		.irq_base         = PIN_BASE + ID*NUM_GROUP,	\
 		.ngpio            = NUM_GROUP,	\
 	}
 

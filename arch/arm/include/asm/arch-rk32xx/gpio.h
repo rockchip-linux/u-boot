@@ -52,9 +52,10 @@ enum of_gpio_flags {
 struct rk_gpio_bank {
 	void __iomem *regbase;
 	int id;
-	int base;
+	int irq_base;
 	int ngpio;
 };
+
 
 /*
  * rk gpio api define the gpio format as:
@@ -76,6 +77,12 @@ struct rk_gpio_bank {
 #else
 	#error "PLS config gpio-rkxx.h!"
 #endif
+
+
+#define RK_GPIO_BANK(gpio)		((gpio & RK_GPIO_BANK_MASK) >> RK_GPIO_BANK_OFFSET)
+#define RK_GPIO_PIN(gpio)		((gpio & RK_GPIO_PIN_MASK) >> RK_GPIO_PIN_OFFSET)
+#define RK_GPIO_BANK_VALID(gpio)	(RK_GPIO_BANK(gpio) < GPIO_BANKS)
+#define RK_GPIO_PIN_VALID(gpio)		(RK_GPIO_PIN(gpio) < NUM_GROUP)
 
 
 typedef enum eGPIOPinLevel {
@@ -103,9 +110,17 @@ typedef enum GPIODriveSlector {
 	GPIODrv12mA,
 } eGPIODriveSlector_t;
 
-struct rk_gpio_bank *rk_gpio_get_bank(unsigned gpio);
-struct rk_gpio_bank *rk_id_get_bank(unsigned int id);
-int rk_gpio_base_to_id(unsigned base);
+
+static inline bool gpio_is_valid(int gpio)
+{
+	if ((gpio == INVALID_GPIO) || !RK_GPIO_BANK_VALID(gpio) || !RK_GPIO_PIN_VALID(gpio)) {
+		debug("gpio = 0x%x is not valid!\n", gpio);
+		return 0;
+	}
+
+	return 1;
+}
+
 
 #ifdef CONFIG_USE_IRQ
 int rk_gpio_gpio_to_irq(unsigned gpio);
@@ -113,7 +128,7 @@ int rk_gpio_irq_to_gpio(unsigned irq);
 
 static inline int gpio_to_irq(unsigned gpio)
 {
-	if (gpio == INVALID_GPIO) {
+	if (gpio_is_valid(gpio) == 0) {
 		return INVALID_GPIO;
 	}
 
@@ -126,22 +141,7 @@ static inline int irq_to_gpio(unsigned irq)
 }
 #endif
 
-static inline rk_gpio_base_to_bank(unsigned base)
-{
-	int bank = rk_gpio_base_to_id(base);
 
-	if (bank == -1) {
-		return -1;
-	}
-
-	return (bank << RK_GPIO_BANK_MASK);
-}
-
-
-static inline bool gpio_is_valid(int number)
-{
-	return (number != INVALID_GPIO);
-}
 
 static inline void rk_gpio_bit_op(void __iomem *regbase, unsigned int offset, uint32 bit, unsigned char flag)
 {
@@ -165,6 +165,10 @@ static inline unsigned offset_to_bit(unsigned offset)
 	return 1u << offset;
 }
 
+
+struct rk_gpio_bank *rk_gpio_get_bank(unsigned gpio);
+struct rk_gpio_bank *rk_gpio_id_to_bank(unsigned int id);
+int rk_gpio_base_to_bank(unsigned base);
 
 int gpio_pull_updown(unsigned gpio, enum GPIOPullType type);
 int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector);

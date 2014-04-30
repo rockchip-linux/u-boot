@@ -189,7 +189,7 @@ static int gpio_irq_disable(int gpio_irq)
  */
 static void gpio_irq_handler(int irq)
 {
-	struct rk_gpio_bank *bank = rk_id_get_bank(irq - IRQ_GPIO0);
+	struct rk_gpio_bank *bank = rk_gpio_id_to_bank(irq - IRQ_GPIO0);
 	unsigned gpio_irq, pin;
 	u32 isr, ilr;
 	unsigned unmasked = 0;
@@ -197,7 +197,7 @@ static void gpio_irq_handler(int irq)
 	isr = __raw_readl(bank->regbase + GPIO_INT_STATUS);
 	ilr = __raw_readl(bank->regbase + GPIO_INTTYPE_LEVEL);
 
-	gpio_irq = gpio_to_irq(bank->base);
+	gpio_irq = bank->irq_base;
 
 	while (isr) {
 		pin = fls(isr) - 1;
@@ -237,7 +237,7 @@ static void gpio_irq_init(void)
 	debug("gpio_irq_init, default enable gpio group interrupt.\n");
 
 	for(i = 0; i < GPIO_BANKS; i++) {
-		bank = rk_id_get_bank(i);
+		bank = rk_gpio_id_to_bank(i);
 		if (bank != NULL) {
 			/* disable gpio pin interrupt */
 			__raw_writel(0, bank->regbase + GPIO_INTEN);

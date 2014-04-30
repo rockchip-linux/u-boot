@@ -30,42 +30,36 @@
 
 #define RKGPIO_VERSION		"1.2"
 
-struct rk_gpio_bank *rk_gpio_get_bank(unsigned gpio)
+
+struct rk_gpio_bank *rk_gpio_id_to_bank(unsigned int id)
 {
 	int index;
-	int bank;
+
+	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
+		if (rk_gpio_banks[index].id == id) {
+			return &(rk_gpio_banks[index]);
+		}
+	}
+
+	debug("rk_gpio_id_to_bank error id = %d!\n", id);
+	return NULL;
+}
+
+
+struct rk_gpio_bank *rk_gpio_get_bank(unsigned gpio)
+{
+	int id;
 
 	if (!gpio_is_valid(gpio)) {
-		debug("rk_gpio_get_bank gpio = %d is not valid!\n", gpio);
 		return NULL;
 	}
 
-	bank = (gpio & RK_GPIO_BANK_MASK) >> RK_GPIO_BANK_OFFSET;
-	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
-		if (rk_gpio_banks[index].id == bank)
-			return &(rk_gpio_banks[index]);
-	}
-
-	debug("rk_gpio_get_bank error: gpio = %d\n", gpio);
-	return NULL;
+	id = (gpio & RK_GPIO_BANK_MASK) >> RK_GPIO_BANK_OFFSET;
+	return rk_gpio_id_to_bank(id);
 }
 
 
-struct rk_gpio_bank *rk_id_get_bank(unsigned int id)
-{
-	int index;
-
-	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
-		if (rk_gpio_banks[index].id == id)
-			return &(rk_gpio_banks[index]);
-	}
-
-	debug("rk_id_get_bank error: id = %d\n", id);
-	return NULL;
-}
-
-
-int rk_gpio_base_to_id(unsigned base)
+static int rk_gpio_base_to_id(unsigned int base)
 {
 	int index;
 
@@ -74,7 +68,20 @@ int rk_gpio_base_to_id(unsigned base)
 			return index;
 	}
 
+	debug("rk_gpio_base_to_id error base = 0x%x!\n", base);
 	return -1;
+}
+
+
+int rk_gpio_base_to_bank(unsigned base)
+{
+	int bank = rk_gpio_base_to_id(base);
+
+	if (bank == -1) {
+		return -1;
+	}
+
+	return (bank << RK_GPIO_BANK_MASK);
 }
 
 
@@ -85,7 +92,6 @@ int rk_gpio_gpio_to_irq(unsigned gpio)
 	int index;
 
 	if (!gpio_is_valid(gpio)) {
-		debug("rk_gpio_gpio_to_irq gpio = %d is not valid!\n", gpio);
 		return -1;
 	}
 
@@ -94,7 +100,7 @@ int rk_gpio_gpio_to_irq(unsigned gpio)
 
 	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
 		if (rk_gpio_banks[index].id == bank)
-			return (rk_gpio_banks[index].base + pin);
+			return (rk_gpio_banks[index].irq_base + pin);
 	}
 
 	debug("rk_gpio_gpio_to_irq error: gpio = %d\n", gpio);
@@ -105,7 +111,6 @@ int rk_gpio_gpio_to_irq(unsigned gpio)
 int rk_gpio_irq_to_gpio(unsigned irq)
 {
 	int bank, pin;
-	int gpio = 0;
 	int index;
 
 	bank = (irq - PIN_BASE) / NUM_GROUP;
