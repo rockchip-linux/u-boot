@@ -827,6 +827,7 @@ static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint)
 int udc_init(void)
 {
 	udc_device = NULL;
+	suspend = true;
 	usbdbg("starting \n");
 	
 	return 0;
