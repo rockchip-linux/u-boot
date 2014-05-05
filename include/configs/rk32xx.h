@@ -49,7 +49,6 @@
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
-#define CONFIG_RK_GPIO
 //#define SECOND_LEVEL_BOOTLOADER
 
 #define HAVE_VENDOR_COMMON_LIB y
@@ -67,10 +66,20 @@
 
 
 /*
+ * cache config
+ */
+//#define CONFIG_SYS_ICACHE_OFF
+//#define CONFIG_SYS_DCACHE_OFF
+#define CONFIG_SYS_L2CACHE_OFF
+#define CONFIG_SYS_ARM_CACHE_WRITETHROUGH
+
+
+/*
  * Enabling relocation of u-boot by default
  * Relocation can be skipped if u-boot is copied to the TEXT_BASE
  */
 #undef CONFIG_SKIP_RELOCATE_UBOOT	/* to a proper address, init done */
+
 
 /*
  * Size of malloc() pool
@@ -78,59 +87,55 @@
  */
 #define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 20))
 
+
 /*
  * select serial console configuration
  */
 #define CONFIG_SERIAL2			1	/* use SERIAL2 */
 #define CONFIG_BAUDRATE			115200
 
-//define uboot loader addr.
-#ifdef SECOND_LEVEL_BOOTLOADER
-//2m offset for packed nand bin.
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-#define CONFIG_SYS_TEXT_BASE    0x00200000
-#else
-#define CONFIG_SYS_TEXT_BASE    0x60200000
-#endif
-#define RK_FLASH_BOOT_EN
-#else
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-#define CONFIG_SYS_TEXT_BASE    0x00000000
-#else
-#define CONFIG_SYS_TEXT_BASE    0x60000000
-#endif
-#define RK_SDMMC_BOOT_EN
-#endif
-
-// mod it to enable console commands.
-#define CONFIG_BOOTDELAY 0
 
 /*
- * Hardware drivers
- */
-/* base definition of ram addr & size */
-//size should be 2^x.(like 64m/128m/256m/512m...)
-#define RAM_PHY_SIZE            0x08000000
+ *	base definition of ram addr & size
+ * size should be 2^x. (like 64m/128m/256m/512m...)
+*/
+#define RAM_PHY_SIZE		0x08000000
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-#define RAM_PHY_START           0x00000000
+	#define RAM_PHY_START	0x00000000
 #else
-#define RAM_PHY_START           0x60000000
+	#define RAM_PHY_START	0x60000000
 #endif
 #define RAM_PHY_END             (RAM_PHY_START + RAM_PHY_SIZE)
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-#define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 0x3000000)//48M
+
+//define uboot loader addr.
+#ifdef SECOND_LEVEL_BOOTLOADER
+	//2m offset for packed nand bin.
+	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+		#define CONFIG_SYS_TEXT_BASE    0x00200000
+	#else
+		#define CONFIG_SYS_TEXT_BASE    0x60200000
+	#endif
+
+	#define RK_FLASH_BOOT_EN
 #else
-#define CONFIG_RKNAND_API_ADDR  (RAM_PHY_START + 4)
+	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+		#define CONFIG_SYS_TEXT_BASE    0x00000000
+	#else
+		#define CONFIG_SYS_TEXT_BASE    0x60000000
+	#endif
+
+	#define RK_SDMMC_BOOT_EN
 #endif
 
-/* uart config */
-#define	CONFIG_RK30_UART
+
+// rk nand api function code address 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-#define CONFIG_UART_NUM   		UART_DBG
+	#define CONFIG_RKNAND_API_ADDR	(RAM_PHY_START + 0x3000000)//48M
 #else
-#define CONFIG_UART_NUM   		UART_CH2
+	#define CONFIG_RKNAND_API_ADDR	(RAM_PHY_START + 4)
 #endif
+
 
 /* input clock of PLL: has 24MHz input clock at rk30xx */
 #define CONFIG_SYS_CLK_FREQ_CRYSTAL	24000000
@@ -143,7 +148,10 @@
 
 #define CONFIG_CMD_CACHE	/* icache, dcache		 */
 #define CONFIG_CMD_REGINFO	/* Register dump		 */
-//#define CONFIG_CMD_MTDPARTS	/* mtdparts command line support */
+
+
+// mod it to enable console commands.
+#define CONFIG_BOOTDELAY 	0
 
 
 /*
@@ -151,9 +159,9 @@
  */
 /* use preboot to detect key press for fastboot */
 #define CONFIG_PREBOOT
-#define CONFIG_BOOTCOMMAND "booti"
+#define CONFIG_BOOTCOMMAND		"booti"
 
-#define CONFIG_EXTRA_ENV_SETTINGS  "verify=n\0"
+#define CONFIG_EXTRA_ENV_SETTINGS	"verify=n\0"
 
 
 /*
@@ -172,19 +180,25 @@
 #define CONFIG_USE_IRQ
 #define CONFIG_SYS_RAMBOOT
 
+/*
+ * SDRAM Memory Map
+ * Even though we use two CS all the memory
+ * is mapped to one contiguous block
+ */
+#define CONFIG_NR_DRAM_BANKS		1
+#define PHYS_SDRAM_1            	CONFIG_SYS_SDRAM_BASE /* OneDRAM Bank #0 */
+#define PHYS_SDRAM_1_SIZE       	(RAM_PHY_END - RAM_PHY_START) /* 128 MB in Bank #0 */
+
 /* DRAM Base */
 #define CONFIG_SYS_SDRAM_BASE		RAM_PHY_START		/* Physical start address of SDRAM. */
+#define CONFIG_SYS_SDRAM_SIZE   	PHYS_SDRAM_1_SIZE
 
 /* Default load address */
-#define CONFIG_SYS_LOAD_ADDR        CONFIG_SYS_SDRAM_BASE
+#define CONFIG_SYS_LOAD_ADDR		CONFIG_SYS_SDRAM_BASE
 
 //sp addr before relocate.
-#define CONFIG_SYS_INIT_SP_ADDR     RAM_PHY_END
+#define CONFIG_SYS_INIT_SP_ADDR		RAM_PHY_END
 
-//#define CONFIG_SYS_ICACHE_OFF
-//#define CONFIG_SYS_DCACHE_OFF
-#define CONFIG_SYS_L2CACHE_OFF
-#define CONFIG_SYS_ARM_CACHE_WRITETHROUGH
 /*
  * Stack sizes
  *
@@ -196,28 +210,22 @@
 #endif
 
 
-/*
- * SDRAM Memory Map
- * Even though we use two CS all the memory
- * is mapped to one contiguous block
- */
-#define CONFIG_NR_DRAM_BANKS	1
-#define PHYS_SDRAM_1            CONFIG_SYS_SDRAM_BASE /* OneDRAM Bank #0 */
-#define PHYS_SDRAM_1_SIZE       (RAM_PHY_END - RAM_PHY_START) /* 128 MB in Bank #0 */
-#define CONFIG_SYS_SDRAM_SIZE   PHYS_SDRAM_1_SIZE
-
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
 #define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
 //#define CONFIG_SILENT_CONSOLE 1
 
-#define CONFIG_ENV_OFFSET 0
 
+#define CONFIG_ENV_OFFSET 0
 #define CONFIG_ENV_SIZE	        0x200
 #define CONFIG_CMD_SAVEENV
 
 #define RK_BLK_SIZE             512
+
+
+#define CONFIG_CMD_ROCKUSB
+
 
 /* for fastboot */
 #define CONFIG_USBD_VENDORID        0x2207
@@ -225,7 +233,6 @@
 #define CONFIG_USBD_MANUFACTURER    "Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
 
-#define CONFIG_CMD_ROCKUSB
 /* Another macro may also be used or instead used to take care of the case
  * where fastboot is started at boot (to be incorporated) based on key press
  */
@@ -246,8 +253,21 @@
 #ifdef CONFIG_CMD_FASTBOOT
 #define CONFIG_RK_UDC
 #define CONFIG_USB_DEVICE
-
 #endif //CONFIG_CMD_FASTBOOT
+
+/*
+ * Hardware drivers
+ */
+
+/* uart config */
+#define	CONFIG_RK30_UART
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#define CONFIG_UART_NUM   		UART_DBG
+#else
+#define CONFIG_UART_NUM   		UART_CH2
+#endif
+
+#define CONFIG_RK_GPIO
 
 #define CONFIG_USB_DWC_HCD
 //#define CONFIG_USB_EHCI
@@ -364,7 +384,6 @@
 #define CONFIG_SYS_VSNPRINTF
 
 
-
 #define CONFIG_GENERIC_MMC
 #define CONFIG_CMD_READ
 #define CONFIG_MMC
@@ -373,3 +392,4 @@
 #define CONFIG_SYS_MMC_ENV_DEV 0
 
 #endif /* __CONFIG_H */
+
