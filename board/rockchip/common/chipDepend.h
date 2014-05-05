@@ -3,9 +3,6 @@
 #ifndef _CHIP_DEPEND_H
 #define _CHIP_DEPEND_H
 
-//#include "gpio_oper.h"
-#include "configs/rkchip.h"
-
 extern uint8    ChipType;
 
 //typedef volatile unsigned int       REG32;

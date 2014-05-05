@@ -22,23 +22,29 @@
 
 #ifdef CONFIG_ROCKCHIP
 .globl _start
-_start: msr cpsr_c,#0xd3 
+_start:
+	msr cpsr_c, #0xd3 
         b _vector
+
+/* For rockchip rsa key */
 .globl RSA_KEY_TAG
 RSA_KEY_TAG:
-		.word 0x4B415352
+	.word	0x4B415352
+
 .globl RSA_KEY_LENGTH
 RSA_KEY_LENGTH:
-		.word 0x200-0x08
+	.word	0x200-0x08
+
 .globl RSA_KEY_DATA
 RSA_KEY_DATA:
-		.space 0x200-0x08
+	.space	0x200-0x08
+
 .globl loader_tag_check
 loader_tag_check:
-		.word 0x4B415351
+	.word	0x4B415351
 .globl RSA_PAD
 RSA_PAD:
-		.space 20
+	.space	20
 
 	.align	5
 .globl _vector
@@ -46,7 +52,7 @@ _vector: b	reset
 #else
 .globl _start
 _start: b	reset
-#endif
+#endif /* CONFIG_ROCKCHIP */
 	ldr	pc, _undefined_instruction
 	ldr	pc, _software_interrupt
 	ldr	pc, _prefetch_abort
@@ -149,48 +155,23 @@ reset:
 
 
 #ifdef CONFIG_ROCKCHIP
+	/* cpu 1 2 3 power down */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-        ldr 	r1, =0xFF730000             /* cpu 1 2 3 power down */
+        ldr 	r1, =0xFF730000
 #else
-        ldr 	r1, =0x20004000             /* cpu 1 2 3 power down */
+	#error "PLS config chip for cpu power down!"
 #endif
         mov 	r0, #0x0E
         str	r0, [r1,#8]
 #endif
 
+	/* io remap */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	LDR R0,=0xff740000
-	LDR R1,=0x08000000
-	STR R1,[R0]
+	LDR 	R0, =0xff740000
+	LDR 	R1, =0x08000000
+	STR 	R1, [R0]
 #else
-#ifdef CONFIG_USE_RK30IRQ
-	/*;chip detect RK30 or RK3066B
-	;set remap bit in grf enabled, remap 0x0000 to imem, 
-	;*(unsigned long volatile *)(GRF_BASE + GRF_SOC_CON0) 0x20008150  = 0x10001000; 30
-	;*(unsigned long volatile *)(GRF_BASE + GRF_SOC_CON0) 0x200080A0  = 0x10001000; 3066B 3168 3188
-	*/
-	
-	LDR R0,=0x101027FC
-	LDR R2,=0x56313031
-	LDR R1,[R0]
-	CMP R1,R2
-	LDREQ R0,=0x20008150 ;//rk30
-	LDRNE R0,=0x200080A0 ;//rk3066B 3168 3188
-	LDR R1,=0x10001000
-	STR R1,[R0]
-#if 0
-
-	adr r0, _vector
-	adr r1, _end_vect
-	
-	sub r2, r1, r0
-	mov r1, #0
-1:	ldr r3, [r0], #4
-	str r3, [r1], #4 
-	cmp r1, r2
-	bne 1b
-#endif
-#endif
+	#error "PLS config chip for io remap!"
 #endif /* CONFIG_RKCHIPTYPE */
 
 /*
@@ -282,6 +263,8 @@ ENTRY(cpu_init_cp15)
 	bic	r0, r0, #0x00030000	@ clear bit 17:0
 	orr	r0, r0, #0x00000008	@ set bit 3
 	mcr	p15, 1, r0, c9, c0, 2	@ config L2 Control Register
+#else
+	#error "PLS config chip for L2 Latency!"
 #endif
 
 	/*

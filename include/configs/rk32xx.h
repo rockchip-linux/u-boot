@@ -1,26 +1,45 @@
-/********************************************************************************
-		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
-			--  ALL RIGHTS RESERVED  --
-File Name:	
-Author:         
-Created:        
-Modified:
-Revision:       1.00
-********************************************************************************/
-
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 
 #ifndef __CONFIG_H
 #define __CONFIG_H
-#include "rkchip.h"
 
 
-#define CONFIG_RKCHIPTYPE           CONFIG_RK3288
+/* config rockchip chip type plat form */
+#define CONFIG_RK3066		1
+#define CONFIG_RK3066B		2
+#define CONFIG_RK3168		3
+#define CONFIG_RK3188		4
+#define CONFIG_RK3188B		5
+#define CONFIG_RK3188T		6
+#define CONFIG_RK3026		7
+#define CONFIG_RK2928		8
+#define CONFIG_RK3288		9
+#define CONFIG_RK3299		10
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-#define CONFIG_RK_3026_CHIP
-#else
-#define CONFIG_RK_30XX_CHIP
-#endif
+#define CONFIG_RKCHIPTYPE	CONFIG_RK3288
+
 
 #define CONFIG_ZYF
 
@@ -46,7 +65,7 @@ Revision:       1.00
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
 #define CONFIG_BOARD_LATE_INIT
 
-#define CONFIG_USE_RK30IRQ
+
 /*
  * Enabling relocation of u-boot by default
  * Relocation can be skipped if u-boot is copied to the TEXT_BASE
