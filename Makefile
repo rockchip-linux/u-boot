@@ -421,14 +421,17 @@ RKCHIP ?= RK302A
 endif
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 
+ifneq ($(SECOND_LEVEL_BOOTLOADER), )
 $(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
-	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP).ini && \
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINI.ini && \
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIdebug.ini && \
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini && \
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALLdebug.ini && \
 	./tools/loaderimage  --pack u-boot.bin uboot.img
-		
+else
+$(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
+	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
+endif
 
 endif
 
