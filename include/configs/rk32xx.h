@@ -214,18 +214,18 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
 #define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
-//#define CONFIG_SILENT_CONSOLE 1
-
 
 #define CONFIG_ENV_OFFSET 0
 #define CONFIG_ENV_SIZE	        0x200
 #define CONFIG_CMD_SAVEENV
 
+//#define CONFIG_SILENT_CONSOLE 1
+#define CONFIG_SYS_CONSOLE_IS_IN_ENV
+
+
 #define RK_BLK_SIZE             512
 
-
 #define CONFIG_CMD_ROCKUSB
-
 
 /* for fastboot */
 #define CONFIG_USBD_VENDORID        0x2207
@@ -258,6 +258,10 @@
 /*
  * Hardware drivers
  */
+#define CONFIG_RK_GPIO
+
+/* SPI */
+//#define CONFIG_RK_SPI
 
 /* uart config */
 #define	CONFIG_RK30_UART
@@ -266,8 +270,6 @@
 #else
 #define CONFIG_UART_NUM   		UART_CH2
 #endif
-
-#define CONFIG_RK_GPIO
 
 #define CONFIG_USB_DWC_HCD
 //#define CONFIG_USB_EHCI
@@ -281,10 +283,7 @@
 #ifdef CONFIG_PL330_DMA   
 //#define SDMMC_USE_DMA  //for emmc use dma trans
 #endif
-/* SPI */
-//#define CONFIG_RK_SPI
 
-#define CONFIG_OF_CONTROL
 
 /* LCDC console */
 #define CONFIG_LCD
@@ -301,15 +300,14 @@
 #define CONFIG_SYS_WHITE_ON_BLACK
 #define LCD_BPP			LCD_COLOR16
 
-#define CONFIG_LCD_MAX_WIDTH 4096
-#define CONFIG_LCD_MAX_HEIGHT 2048
+#define CONFIG_LCD_MAX_WIDTH	4096
+#define CONFIG_LCD_MAX_HEIGHT	2048
 
 
 //#define CONFIG_RK3066SDK
 //#define CONFIG_RK3188SDK
 #define CONFIG_RK3288SDK
 
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
 #ifdef CONFIG_RK_FB
 #if  (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 #define CONFIG_RK_3066_FB
@@ -335,11 +333,9 @@
 
 #define CONFIG_RK_I2C
 #ifdef CONFIG_RK_I2C
-//#define CONFIG_HARD_I2C
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
 #endif
-//#define CONFIG_BQ27541_I2C_ADDR  0x55
 
 
 /********************************** charger and pmic driver ********************************/
@@ -371,10 +367,10 @@
 #endif
 #define CONFIG_LMB
 #define CONFIG_OF_LIBFDT
+#define CONFIG_OF_CONTROL
 #define CONFIG_SYS_BOOT_RAMDISK_HIGH
 
 #define CONFIG_RESOURCE_PARTITION
-
 
 #define CONFIG_QUICK_CHECKSUM
 
