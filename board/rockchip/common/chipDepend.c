@@ -101,7 +101,7 @@ uint32 IReadLoaderMode(void)
 
 void FW_NandDeInit(void)
 {
-#ifdef RK_FLASH_BOOT_EN
+#ifdef CONFIG_NAND//RK_FLASH_BOOT_EN
     if(gpMemFun->flag == BOOT_FROM_FLASH)
     {
         FtlDeInit();

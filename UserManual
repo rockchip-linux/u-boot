@@ -23,7 +23,7 @@ there are 3 boot mode.
 1. RKxxxxLoader_miniall.bin used as first level boot loader.uboot.img used as second level boot loader. it support nand flash storage.
 2. RKxxxxLoader_mini.bin used as first level boot loader.uboot.img used as second level boot loader. it support emmc storage.
 3. RKxxxxLoader_uboot.bin used as first level boot loader. do not have second level boot loader. it support emmc storage.
-SECOND_LEVEL_BOOTLOADER in include/configs/rk30xx.h should be defined for boot mode 1 and 2.
+CONFIG_SECOND_LEVEL_BOOTLOADER in include/configs/rk30xx.h should be defined for boot mode 1 and 2.
 
 Logo
 support display logo in uboot. 

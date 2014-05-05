@@ -41,7 +41,7 @@
 #define CONFIG_RKCHIPTYPE	CONFIG_RK3288
 
 
-#define CONFIG_ZYF
+//#define CONFIG_ZYF
 
 /*
  * High Level Configuration Options
@@ -49,7 +49,7 @@
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
-//#define SECOND_LEVEL_BOOTLOADER
+#define CONFIG_SECOND_LEVEL_BOOTLOADER 
 
 #define HAVE_VENDOR_COMMON_LIB y
 
@@ -109,23 +109,19 @@
 
 
 //define uboot loader addr.
-#ifdef SECOND_LEVEL_BOOTLOADER
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 	//2m offset for packed nand bin.
 	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 		#define CONFIG_SYS_TEXT_BASE    0x00200000
 	#else
 		#define CONFIG_SYS_TEXT_BASE    0x60200000
 	#endif
-
-	#define RK_FLASH_BOOT_EN
 #else
 	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 		#define CONFIG_SYS_TEXT_BASE    0x00000000
 	#else
 		#define CONFIG_SYS_TEXT_BASE    0x60000000
 	#endif
-
-	#define RK_SDMMC_BOOT_EN
 #endif
 
 

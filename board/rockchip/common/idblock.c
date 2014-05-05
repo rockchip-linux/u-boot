@@ -393,7 +393,7 @@ bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 
 	pSec0 = (Sector0Info *)(pIDBlockData);
 	pSec1 = (Sector1Info *)(pIDBlockData+SECTOR_OFFSET);
-#ifdef RK_FLASH_BOOT_EN
+#ifdef CONFIG_NAND
 	if( pSec1->usFlashDataOffset && pSec1->usFlashDataLen )
 	{
 		hasFlashInfo = 1;

@@ -50,12 +50,6 @@ Revision:		1.00
 #ifdef RK_SPI_BOOT_EN
 #define DRIVERS_SPI
 #endif
-#ifdef RK_SDMMC_BOOT_EN
-#define DRIVERS_SDMMC
-#endif
-#ifdef RK_FLASH_BOOT_EN 
-#define DRIVERS_FLASH
-#endif
 
 //œµÕ≥≈‰÷√
 #define     MAX_COMBINATION_KEY     6

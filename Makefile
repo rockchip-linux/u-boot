@@ -421,7 +421,7 @@ RKCHIP ?= RK302A
 endif
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 
-ifneq ($(SECOND_LEVEL_BOOTLOADER), )
+ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 $(obj)RKLoader_uboot.bin: $(obj)u-boot.bin
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINI.ini && \
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIdebug.ini && \
