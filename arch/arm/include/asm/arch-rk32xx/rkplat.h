@@ -38,6 +38,7 @@
 #include "cru.h"
 #include "irqs.h"
 #include "gpio.h"
+#include "iomux.h"
 
 #endif /* __RKPLAT_H */
 
