@@ -276,7 +276,6 @@ extern void startRockusb(void);
 extern unsigned int SecureBootCheck(void);
 extern int fixHdr(struct fastboot_boot_img_hdr *hdr);
 extern int rk_bootm_start(bootm_headers_t *images);
-extern int rkclk_soft_reset(void);
 extern void rk_backlight_ctrl(int brightness);
 extern void* rk_fdt_resource_load(void);
 extern int lcd_enable_logo(bool enable);
@@ -289,7 +288,6 @@ void startRockusb(void) {;}
 unsigned int SecureBootCheck(void) {return 0;}
 int fixHdr(struct fastboot_boot_img_hdr *hdr) {return 0;}
 int rk_bootm_start(bootm_headers_t *images) {return 0;}
-int rkclk_soft_reset(void) {return 0;}
 void rk_backlight_ctrl(int brightness) {;}
 void* rk_fdt_resource_load(void) {;}
 int lcd_enable_logo(bool enable) {return 0;}
@@ -2160,7 +2158,7 @@ void fbt_preboot(void)
         rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
     }
 #endif
-	rkclk_soft_reset();
+	do_reset(NULL, 0, 0, NULL);
 #endif// CONFIG_ROCKCHIP
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {

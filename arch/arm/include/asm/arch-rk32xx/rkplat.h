@@ -40,5 +40,9 @@
 #include "gpio.h"
 #include "iomux.h"
 
+#include "clock.h"
+
+#include "rk_i2c.h"
+
 #endif /* __RKPLAT_H */
 

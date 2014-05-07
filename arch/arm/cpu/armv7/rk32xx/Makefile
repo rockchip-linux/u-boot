@@ -17,3 +17,4 @@ obj-y	+= ddr.o
 obj-y	+= lowlevel_init.o
 obj-y   += pwm.o
 obj-y   += iomux.o
+obj-y   += reset.o

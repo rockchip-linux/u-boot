@@ -23,28 +23,6 @@ void enable_caches(void)
 }
 #endif
 
-void MMUDeinit()
-{
-
-#ifndef CONFIG_SYS_L2CACHE_OFF
-	v7_outer_cache_disable();
-#endif
-#ifndef CONFIG_SYS_DCACHE_OFF
-	flush_dcache_all();
-#endif
-#ifndef CONFIG_SYS_ICACHE_OFF
-	invalidate_icache_all();
-#endif
-
-#ifndef CONFIG_SYS_DCACHE_OFF
-	dcache_disable();
-#endif
-
-#ifndef CONFIG_SYS_ICACHE_OFF
-	icache_disable();
-#endif
-
-}
 
 uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 {
@@ -56,7 +34,6 @@ uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 #ifdef CONFIG_ARCH_CPU_INIT
 int arch_cpu_init(void)
 {
-	//ChipTypeCheck();
 	return 0;
 }
 #endif
@@ -65,45 +42,17 @@ int arch_cpu_init(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
+	rkclk_get_pll();
+
 	printf("CPU:\t\tRK32xx\n");
-	printf("arm pll:\t%d\n", rk_get_arm_pll());
-	printf("general pll:\t%d\n", rk_get_general_pll());
-	printf("codec pll:\t%d\n", rk_get_codec_pll());
-	printf("ddr pll:\t%d\n", rk_get_ddr_pll());
-	printf("new pll:\t%d\n", rk_get_new_pll());
+	printf("arm pll:\t%d\n", rkclk_get_arm_pll());
+	printf("general pll:\t%d\n", rkclk_get_general_pll());
+	printf("codec pll:\t%d\n", rkclk_get_codec_pll());
+	printf("ddr pll:\t%d\n", rkclk_get_ddr_pll());
+	printf("new pll:\t%d\n", rkclk_get_new_pll());
 	return 0;
 }
 #endif
-
-
-void reset_cpu(ulong ignored)
-{
-	pFunc fp;
-
-	disable_interrupts();
-	//UsbSoftDisconnect();
-	FW_NandDeInit();
-
-	MMUDeinit();			  /*关闭MMU*/
-	//cruReg->CRU_MODE_CON = 0x33030000;	//cpu enter slow mode
-	//Delay100cyc(10);
-	g_giccReg->icceoir=INT_USB_OTG;
-	//DisableRemap();
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	/* pll enter slow mode */
-	writel(PLL_MODE_SLOW(0) | PLL_MODE_SLOW(1) | PLL_MODE_SLOW(2), RKIO_CRU_PHYS + 0x50);
-
-	/* soft reset */
-	writel(0xeca8, RKIO_CRU_PHYS + 0x1B4);
-#else
-	ResetCpu((0xff740000));
-#endif
-	ResetCpu((0xff740000));
-	//cruReg->CRU_GLB_SRST_FST_VALUE = 0xfdb9; //kernel 使用 fst reset时，loader会死机，问题还没有查，所有loader还是用snd reset
-	g_cruReg->cru_glb_srst_snd_value = 0xeca8; //soft reset
-	Delay100cyc(10);
-	while(1);
-}
 
 
 

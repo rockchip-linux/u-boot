@@ -1,14 +1,5 @@
-/********************************************************************************
-		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
-			--  ALL RIGHTS RESERVED  --
-File Name:	
-Author:         
-Created:        
-Modified:
-Revision:       1.00
-********************************************************************************/
 /*
- * (C) Copyright 2013
+ * (C) Copyright 2008-2014 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * See file CREDITS for list of people who contributed to this
@@ -32,22 +23,18 @@ Revision:       1.00
 #ifndef _RK_I2C_H_
 #define _RK_I2C_H_
 
+
 typedef enum rk_i2c_bus_ch {
 	I2C_BUS_CH0,
 	I2C_BUS_CH1,
 	I2C_BUS_CH2,
 	I2C_BUS_CH3,
 	I2C_BUS_CH4,
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	I2C_BUS_CH5,
+#endif
 	I2C_BUS_MAX
 } rk_i2c_bus_ch_t;
-
-enum rk30_i2c_state {
-	STATE_IDLE,
-	STATE_START,
-	STATE_READ,
-	STATE_WRITE,
-	STATE_STOP
-};
 
 #endif /* _RK_I2C_H_ */
 

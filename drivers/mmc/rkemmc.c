@@ -377,7 +377,7 @@ static void rk_set_ios(struct mmc *mmc)
 			mmc->clock = mmc->f_max;
 		if(mmc->clock < mmc->f_min)
 			mmc->clock = mmc->f_min;
-		src_clk = rk_get_general_pll()/2; //rk32 emmc src generall pll,emmc automic divide setting freq to 1/2,for get the right freq ,we divide this freq to 1/2
+		src_clk = rkclk_get_general_pll()/2; //rk32 emmc src generall pll,emmc automic divide setting freq to 1/2,for get the right freq ,we divide this freq to 1/2
 		src_clk_div = src_clk/mmc->clock;
 		if(src_clk_div > 0x3e)
 			src_clk_div = 0x3e;

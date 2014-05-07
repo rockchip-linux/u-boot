@@ -22,9 +22,16 @@
  */
 #include <common.h>
 #include <asm/io.h>
+#include <asm/arch/rkplat.h>
 
 
 DECLARE_GLOBAL_DATA_PTR;
+
+
+/* ARM/General/Codec pll freq config */
+#define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
+#define CONFIG_RKCLK_CPLL_FREQ		384 /* MHZ */
 
 
 /* Cpu clock source select */
@@ -34,6 +41,10 @@ DECLARE_GLOBAL_DATA_PTR;
 /* Periph clock source select */
 #define PERIPH_SRC_GENERAL_PLL		1
 #define PERIPH_SRC_CODEC_PLL		0
+
+/* bus clock source select */
+#define BUS_SRC_GENERAL_PLL		1
+#define BUS_SRC_CODEC_PLL		0
 
 /* DDR clock source select */
 #define DDR_SRC_DDR_PLL			0
@@ -46,15 +57,26 @@ struct pll_clk_set {
 	u32	pllcon1;
 	u32	pllcon2; //bit0 - bit11: nb = bwadj+1 = nf/2
 	u32	rst_dly; //us
-	u8	a12_core_div;
-	u8	aclk_core_mp_div;
-	u8	aclk_core_m0_div;
-	u8	pclk_dbg_div;
-	u8	atclk_core_div;
-	u8	l2ram_div;
-	u8	aclk_div;
-	u8	hclk_div;
-	u8	pclk_div;
+
+	u8	a12_core_div;		// S0_[8, 12]
+	u8	aclk_core_mp_div;	// S0_[4, 7]
+	u8	aclk_core_m0_div;	// S0_[0, 3]
+	u8	pad0;
+
+	u8	pclk_dbg_div;	// S37_[9, 13]
+	u8	atclk_core_div;	// S37_[4, 8]
+	u8	l2ram_div;	// S37_[0, 2]
+	u8	pad1;
+
+	u8	aclk_peri_div;	// S10_[0, 4]
+	u8	hclk_peri_div;	// S10_[8, 9]
+	u8	pclk_peri_div;	// S10_[12, 13]
+	u8	pad2;
+
+	u8	axi_bus_div;	// S1_[0, 2]
+	u8	aclk_bus_div;	// S1_[3, 7]
+	u8	hclk_bus_div;	// S1_[8, 9]
+	u8	pclk_bus_div;	// S1_[12, 14]
 };
 
 
@@ -64,25 +86,29 @@ struct pll_clk_set {
 	.pllcon0		= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
 	.pllcon1		= PLL_CLKF_SET(nf), \
 	.pllcon2		= PLL_CLK_BWADJ_SET(nf >> 1), \
+	.rst_dly		= ((nr*500)/24+1), \
 	.a12_core_div		= CLK_DIV_##_a12_div, \
 	.aclk_core_mp_div	= CLK_DIV_##_mp_div, \
 	.aclk_core_m0_div	= CLK_DIV_##_m0_div, \
 	.pclk_dbg_div		= CLK_DIV_##_pclk_dbg_div, \
 	.atclk_core_div		= CLK_DIV_##_atclk_div, \
 	.l2ram_div		= CLK_DIV_##_l2_div, \
-	.rst_dly		= ((nr*500)/24+1), \
 }
 
-#define _GPLL_SET_CLKS(khz, nr, nf, no, _axi_div, _ahb_div, _apb_div) \
+#define _GPLL_SET_CLKS(khz, nr, nf, no, _axi_peri_div, _ahb_peri_div, _apb_peri_div, _axi_bus_div, _aclk_bus_div, _ahb_bus_div, _apb_bus_div) \
 { \
 	.rate		= khz * KHZ, \
 	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
 	.pllcon1	= PLL_CLKF_SET(nf), \
 	.pllcon2	= PLL_CLK_BWADJ_SET(nf >> 1), \
-	.aclk_div	= CLK_DIV_##_axi_div, \
-	.hclk_div	= CLK_DIV_##_ahb_div, \
-	.pclk_div	= CLK_DIV_##_apb_div, \
 	.rst_dly	= ((nr*500)/24+1), \
+	.aclk_peri_div	= CLK_DIV_##_axi_peri_div, \
+	.hclk_peri_div	= CLK_DIV_##_ahb_peri_div, \
+	.pclk_peri_div	= CLK_DIV_##_apb_peri_div, \
+	.axi_bus_div	= CLK_DIV_##_axi_bus_div, \
+	.aclk_bus_div	= CLK_DIV_##_aclk_bus_div, \
+	.hclk_bus_div	= CLK_DIV_##_ahb_bus_div, \
+	.pclk_bus_div	= CLK_DIV_##_apb_bus_div, \
 }
 
 #define _DPLL_SET_CLKS(khz, nr, nf, no, _ddr_div) \
@@ -91,8 +117,8 @@ struct pll_clk_set {
 	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
 	.pllcon1	= PLL_CLKF_SET(nf), \
 	.pllcon2	= PLL_CLK_BWADJ_SET(nf >> 1), \
-	.core_div	= CLK_DIV_##_ddr_div, \
 	.rst_dly	= ((nr*500)/24+1), \
+	.core_div	= CLK_DIV_##_ddr_div, \
 }
 
 
@@ -137,7 +163,6 @@ struct pll_data {
 static const struct pll_clk_set apll_clks[] = {
 	//rate, nr, nf, no,		a12_div, mp_div, m0_div,	l2, atclk, pclk_dbg
 	_APLL_SET_CLKS(1008000,1, 84, 2,	1, 4, 2,		2, 4, 4),
-	_APLL_SET_CLKS(912000, 1, 76, 2,	1, 4, 2,		2, 4, 4),
 	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 4, 2,		2, 4, 4),
 	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 4, 2,		2, 4, 4),
 };
@@ -145,12 +170,10 @@ static const struct pll_clk_set apll_clks[] = {
 
 /* gpll clock table, should be from high to low */
 static const struct pll_clk_set gpll_clks[] = {
-	//rate, nr, nf, no,		aclk_div, hclk_div, pclk_div
-	_GPLL_SET_CLKS(768000, 1,  64, 2,    4, 2, 4),
-	_GPLL_SET_CLKS(594000, 2, 198, 4,    4, 1, 2),
-	_GPLL_SET_CLKS(300000, 1,  50, 4,    2, 1, 2),
-	_GPLL_SET_CLKS(297000, 2, 198, 8,    2, 1, 2),
-	_GPLL_SET_CLKS(148500, 2,  99, 8,    1, 2, 4),
+	//rate, nr, nf, no,	aclk_peri_div, hclk_peri_div, pclk_peri_div,	axi_bus_div, aclk_bus_div, hclk_bus_div, pclk_bus_div
+	_GPLL_SET_CLKS(768000, 1,  64, 2,    2, 2, 4,				1, 2, 2, 4),
+	_GPLL_SET_CLKS(594000, 2, 198, 4,    2, 2, 4,				1, 2, 2, 4),
+	_GPLL_SET_CLKS(300000, 1,  50, 4,    1, 2, 4,				1, 1, 2, 4),
 };
 
 
@@ -159,6 +182,7 @@ static const struct pll_clk_set cpll_clks[] = {
 	//rate, nr, nf, no
 	_CPLL_SET_CLKS(798000, 2, 133, 2),
 	_CPLL_SET_CLKS(594000, 2, 198, 4),
+	_CPLL_SET_CLKS(384000, 2, 128, 4),
 };
 
 
@@ -169,14 +193,6 @@ struct pll_data rkpll_data[END_PLL_ID] = {
 	SET_PLL_DATA(GPLL_ID, gpll_clks, ARRAY_SIZE(gpll_clks)),
 };
 
-int rkclk_soft_reset()
-{
-    printf("%s\n",__func__);
-    cru_writel(0x3f<<10 | 0x3f<<26, CRU_SOFTRSTS_CON(2));  //soft reset i2c0 - i2c5
-    mdelay(1);
-    cru_writel(0x3f<<26, CRU_SOFTRSTS_CON(2));
-    return 0;
-}
 
 static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
@@ -189,6 +205,29 @@ static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 			break;
 		}
 		clk_loop_delayus(1);
+	}
+}
+
+
+static void rkclk_pll_set_mode(enum rk_plls_id pll_id, int pll_mode)
+{
+	uint32 con;
+	uint32 nr, dly;
+
+	con = cru_readl(PLL_CONS(pll_id, 0));
+	nr = PLL_NR(con);
+	dly = (nr * 500) / 24 + 1;
+
+	if (pll_mode == RKCLK_PLL_MODE_NORMAL) {
+		cru_writel(PLL_PWR_ON | PLL_PWR_DN_W_MSK, PLL_CONS(pll_id, 3));
+		clk_loop_delayus(dly);
+		rkclk_pll_wait_lock(pll_id);
+		/* PLL enter normal-mode */
+		cru_writel(PLL_MODE_NORM(pll_id), CRU_MODE_CON);
+	} else {
+		/* PLL enter slow-mode */
+		cru_writel(PLL_MODE_SLOW(pll_id), CRU_MODE_CON);
+		cru_writel(PLL_PWR_DN | PLL_PWR_DN_W_MSK, PLL_CONS(pll_id, 3));
 	}
 }
 
@@ -224,7 +263,6 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 
 	/* PLL enter slow-mode */
 	cru_writel(PLL_MODE_SLOW(pll_id), CRU_MODE_CON);
-
 	/* enter rest */
 	cru_writel((PLL_RESET | PLL_RESET_W_MSK), PLL_CONS(pll_id, 3));
 
@@ -232,11 +270,11 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 	cru_writel(clkset->pllcon1, PLL_CONS(pll_id, 1));
 	cru_writel(clkset->pllcon2, PLL_CONS(pll_id, 2));
 
-	clk_loop_delayus(10);
+	clk_loop_delayus(5);
 	/* return form rest */
 	cru_writel(PLL_RESET_RESUME | PLL_RESET_W_MSK, PLL_CONS(pll_id, 3));
-	clk_loop_delayus(clkset->rst_dly);
 
+	clk_loop_delayus(clkset->rst_dly);
 	/* waiting for pll lock */
 	rkclk_pll_wait_lock(pll_id);
 
@@ -483,11 +521,6 @@ static void rkclk_cpu_l2dbgatclk_set(uint32 l2ram_div, uint32 atclk_core_div, ui
 }
 
 
-
-void rkclk_emmc_set_clk(int div)
-{
-	cru_writel((0xFFul<<24)|(div-1)<<8 |(1<<14) , CRU_CLKSELS_CON(12));	
-}
 /*
  * rkplat clock set ddr clock from ddr pll
  * 	when call this function, make sure pll is in slow mode
@@ -533,7 +566,8 @@ static void rkclk_apll_cb(struct pll_clk_set *clkset)
 
 static void rkclk_gpll_cb(struct pll_clk_set *clkset)
 {
-	rkclk_periph_ahpclk_set(PERIPH_SRC_GENERAL_PLL, clkset->aclk_div, clkset->hclk_div, clkset->pclk_div);
+	rkclk_bus_ahpclk_set(BUS_SRC_GENERAL_PLL, clkset->axi_bus_div, clkset->aclk_bus_div, clkset->hclk_bus_div, clkset->pclk_bus_div);
+	rkclk_periph_ahpclk_set(PERIPH_SRC_GENERAL_PLL, clkset->aclk_peri_div, clkset->hclk_peri_div, clkset->pclk_peri_div);
 }
 
 
@@ -712,3 +746,316 @@ static uint32 rkclk_get_periph_pclk_div(void)
 
 	return div;
 }
+
+
+/*
+ * rkplat clock set pll mode
+ */
+void rkclk_pll_mode(int pll_id, int pll_mode)
+{
+	rkclk_pll_set_mode(pll_id, pll_mode);
+}
+
+
+/*
+ * rkplat clock set for arm and general pll
+ */
+void rkclk_set_pll(void)
+{
+	rkclk_pll_clk_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
+	rkclk_pll_clk_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
+	rkclk_pll_clk_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
+}
+
+
+/*
+ * rkplat clock get arm pll, general pll and so on
+ */
+void rkclk_get_pll(void)
+{
+	uint32 div;
+
+	/* cpu / periph / ddr freq */
+	gd->cpu_clk = rkclk_pll_clk_get_rate(APLL_ID);
+	gd->bus_clk = rkclk_pll_clk_get_rate(GPLL_ID);
+	gd->mem_clk = rkclk_pll_clk_get_rate(DPLL_ID);
+	gd->pci_clk = rkclk_pll_clk_get_rate(CPLL_ID);
+
+	/* cpu mp */
+	div = rkclk_get_cpu_mp_div();
+	gd->arch.cpu_mp_rate_hz = gd->cpu_clk / div;
+
+	/* cpu mo */
+	div = rkclk_get_cpu_m0_div();
+	gd->arch.cpu_m0_rate_hz = gd->cpu_clk / div;
+
+	/* cpu l2ram */
+	div = rkclk_get_cpu_l2ram_div();
+	gd->arch.cpu_l2ram_rate_hz = gd->cpu_clk / div;
+
+	/* periph aclk */
+	div = rkclk_get_periph_aclk_div();
+	gd->arch.aclk_periph_rate_hz = gd->bus_clk / div;
+
+	/* periph hclk */
+	div = rkclk_get_periph_hclk_div();
+	gd->arch.hclk_periph_rate_hz = gd->arch.aclk_periph_rate_hz / div;
+
+	/* periph pclk */
+	div = rkclk_get_periph_pclk_div();
+	gd->arch.pclk_periph_rate_hz = gd->arch.aclk_periph_rate_hz / div;
+
+	/* bus aclk */
+	div = rkclk_get_bus_aclk_div();
+	div *= rkclk_get_bus_axi_div();
+	gd->arch.aclk_bus_rate_hz = gd->bus_clk / div;
+
+	/* bus hclk */
+	div = rkclk_get_bus_hclk_div();
+	gd->arch.hclk_bus_rate_hz = gd->arch.aclk_bus_rate_hz / div;
+
+	/* bus pclk */
+	div = rkclk_get_periph_pclk_div();
+	gd->arch.pclk_bus_rate_hz = gd->arch.aclk_bus_rate_hz / div;
+}
+
+int rkclk_get_arm_pll(void)
+{
+	return rkclk_pll_clk_get_rate(APLL_ID);
+}
+
+int rkclk_get_general_pll(void)
+{
+	return rkclk_pll_clk_get_rate(GPLL_ID);
+}
+
+int rkclk_get_codec_pll(void)
+{
+	return rkclk_pll_clk_get_rate(CPLL_ID);
+}
+
+int rkclk_get_ddr_pll(void)
+{
+	return rkclk_pll_clk_get_rate(DPLL_ID);
+}
+
+int rkclk_get_new_pll(void)
+{
+	return rkclk_pll_clk_get_rate(NPLL_ID);
+}
+
+
+/*
+ * rkplat clock dump pll information
+ */
+void rkclk_dump_pll(void)
+{
+	printf("CPU's clock information:\n");
+
+	printf("    arm pll = %ldHZ, mp_cpu = %ldHZ, m0_cpu = %ldHZ, l2ram_cpu = %ldHZ\n",
+		gd->cpu_clk, gd->arch.cpu_mp_rate_hz, gd->arch.cpu_m0_rate_hz, gd->arch.cpu_l2ram_rate_hz);
+
+	printf("    periph pll = %ldHZ, aclk_periph = %ldHZ, hclk_periph = %ldHZ, pclk_periph = %ldHZ\n",
+		gd->bus_clk, gd->arch.aclk_periph_rate_hz, gd->arch.hclk_periph_rate_hz, gd->arch.pclk_periph_rate_hz);
+	printf("               aclk_bus = %ldHZ, hclk_bus = %ldHZ, pclk_bus = %ldHZ\n",
+		gd->arch.aclk_bus_rate_hz, gd->arch.hclk_bus_rate_hz, gd->arch.pclk_bus_rate_hz);
+
+	printf("    ddr pll = %ldHZ\n", gd->mem_clk);
+
+	printf("    codec pll = %ldHZ\n", gd->pci_clk);
+}
+
+/*
+ * rkplat lcdc aclk config
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * pll_sel (lcdc aclk source pll select) : 0 - codec pll, 1 - general pll, 2 - usbphy pll
+ * div (lcdc aclk div from pll) : 0x00 - 0x1f
+ */
+int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+{
+	uint32 con = 0;
+	uint32 offset = 0;
+
+	if (lcdc_id > 1) {
+		return -1;
+	}
+
+	/* lcdc0 and lcdc1 register bit offset */
+	offset = lcdc_id * 8;
+	con = 0;
+
+	/* aclk div */
+	div = (div & 0x1f) - 1;
+	con |= (0x1f << (offset + 16)) | (div << offset);
+
+	/* aclk pll source select */
+	if (pll_sel == 0) {
+		con |= (3 << (6 + offset + 16)) | (0 << (6 + offset));
+	} else if (pll_sel == 1){
+		con |= (3 << (6 + offset + 16)) | (1 << (6 + offset));
+	} else {
+		con |= (3 << (6 + offset + 16)) | (2 << (6 + offset));
+	}
+
+	cru_writel(con, CRU_CLKSELS_CON(31));
+
+	return 0;
+}
+
+
+/*
+ * rkplat lcdc dclk config
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * pll_sel (lcdc dclk source pll select) : 0 - codec pll, 1 - general pll, 2 - new pll
+ * div (lcdc dclk div from pll) : 0x00 - 0xff
+ */
+int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+{
+	uint32 con = 0;
+	uint32 offset = 0;
+
+	if (lcdc_id > 1) {
+		return -1;
+	}
+
+	offset = 0;
+	if (lcdc_id == 1) {
+		offset = 6;
+	}
+
+	con = 0;
+	/* dclk pll source select */
+	if (pll_sel == 0) {
+		con |= (3 << (offset + 16)) | (0 << offset);
+	} else if (pll_sel == 1) {
+		con |= (3 << (offset + 16)) | (1 << offset);
+	} else {
+		con |= (3 << (offset + 16)) | (2 << offset);
+	}
+
+	/* dclk div */
+	div = (div & 0xff) - 1;
+	con |= (0xff << (8 + 16)) | (div << 8);
+
+	if (lcdc_id == 0) {
+		cru_writel(con, CRU_CLKSELS_CON(27));
+	} else {
+		cru_writel(con, CRU_CLKSELS_CON(29));
+	}
+
+	return 0;
+}
+
+
+/*
+ * rkplat set sd clock src
+ * 0: codec pll; 1: general pll; 2: 24M
+ */
+void rkclk_set_sdclk_src(uint32 sdid, uint32 src)
+{
+	src &= 0x03;
+	if (0 == sdid) {
+		/* sdmmc */
+		cru_writel((src << 6) | (0x03 << (6 + 16)), CRU_CLKSELS_CON(11));
+	} else if (1 == sdid) {
+		/* sdio0 */
+		cru_writel((src << 6) | (0x03 << (6 + 16)), CRU_CLKSELS_CON(12));
+	} else if (2 == sdid) {
+		/* emmc */
+		cru_writel((src << 14) | (0x03 << (14 + 16)), CRU_CLKSELS_CON(12));
+	}
+}
+
+
+/*
+ * rkplat set sd/sdmmc/emmc clock src
+ */
+unsigned int rkclk_get_sdclk_src_freq(uint32 sdid)
+{
+	uint32 con;
+	uint32 sel;
+
+	if (0 == sdid) {
+		/* sdmmc */
+		con =  cru_readl(CRU_CLKSELS_CON(11));
+		sel = (con >> 5) & 0x3;
+	} else if (1 == sdid) {
+		/* sdio0 */
+		con =  cru_readl(CRU_CLKSELS_CON(12));
+		sel = (con >> 5) & 0x3;
+	} else if (2 == sdid) {
+		/* emmc */
+		con =  cru_readl(CRU_CLKSELS_CON(12));
+		sel = (con >> 14) & 0x3;
+	} else {
+		return 0;
+	}
+
+	/* rk3288 sd clk pll can be from 24M/general pll/codec pll, defualt 24M */
+	if (sel == 0) {
+		return gd->pci_clk;
+	} else if (sel == 1) {
+		return gd->bus_clk;
+	} else if (sel == 2) {
+		return (24 * MHZ);
+	} else {
+		return 0;
+	}
+}
+
+
+/*
+ * rkplat set sd clock div
+ * here no check clkgate, because chip default is enable.
+ */
+int rkclk_set_sdclk_div(uint32 sdid, uint32 div)
+{
+	if (div == 0) {
+		return -1;
+	}
+
+	if (0 == sdid) {
+		/* sdmmc */
+		cru_writel(((0x3Ful<<0)<<16) | ((div-1)<<0), CRU_CLKSELS_CON(11));
+	} else if (1 == sdid) {
+		/* sdio0 */
+		cru_writel(((0x3Ful<<0)<<16) | ((div-1)<<0), CRU_CLKSELS_CON(12));
+	} else if (2 == sdid) {
+		/* emmc */
+		cru_writel(((0x3Ful<<8)<<16) | ((div-1)<<8), CRU_CLKSELS_CON(12));
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
+
+void rkclk_emmc_set_clk(int div)
+{
+	cru_writel((0xFFul<<24)|(div-1)<<8 |(1<<14) , CRU_CLKSELS_CON(12));	
+}
+
+/*
+ * rkplat get PWM clock, from pclk_bus
+ * here no check clkgate, because chip default is enable.
+ */
+unsigned int rkclk_get_pwm_clk(uint32 pwm_id)
+{
+	return gd->arch.pclk_bus_rate_hz;
+}
+
+
+/*
+ * rkplat get I2C clock, I2c0 and i2c1 from pclk_cpu, I2c2 and i2c3 from pclk_periph
+ * here no check clkgate, because chip default is enable.
+ */
+unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id)
+{
+	if (i2c_bus_id == 0 || i2c_bus_id == 1) {
+		return gd->arch.pclk_bus_rate_hz;
+	} else {
+		return gd->arch.pclk_periph_rate_hz;
+	}
+}
+

@@ -29,9 +29,9 @@ static int get_pclk_pwm(void)
 	aclk_bus_src_div = (clksel1 & 0xf8) >> 3;
 	pclk_bus_div = (clksel1  &0x7000) >> 12;
 	if (clksel1 & 0x8000) {
-		aclk_bus_src = rk_get_general_pll() / (aclk_bus_src_div + 1);
+		aclk_bus_src = rkclk_get_general_pll() / (aclk_bus_src_div + 1);
 	} else {
-		aclk_bus_src = rk_get_codec_pll() / (aclk_bus_src_div + 1);
+		aclk_bus_src = rkclk_get_codec_pll() / (aclk_bus_src_div + 1);
 	}
 	aclk_bus = aclk_bus_src / (aclk_bus_div + 1);
 	pclk_pwm = pclk_bus = aclk_bus / (pclk_bus_div +1 );

@@ -1,31 +1,62 @@
-/********************************************************************************
-		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
-			--  ALL RIGHTS RESERVED  --
-File Name:	
-Author:         
-Created:        
-Modified:
-Revision:       1.00
-********************************************************************************/
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 
 #include <common.h>
-#include <i2c.h>
 #include <asm/io.h>
 #include <asm/sizes.h>
-#include <asm/arch/drivers.h>
-#include <asm/arch/rk_i2c.h>
+#include <i2c.h>
+#include <asm/arch/rkplat.h>
 
-#define i2c_writel		writel
-#define i2c_readl		readl
+
+#define RKI2C_VERSION		"1.1"
+
+/* i2c debug information config */
+//#define RKI2C_DEBUG_INFO
+
+#ifdef RKI2C_DEBUG_INFO
+#define rki2c_printf(format, arg...)	printf(format, ##arg)
+#else
+#define rki2c_printf(format, arg...)
+#endif
+
+
+/* register io */
+#define i2c_writel(val, addr)		writel(val, addr)
+#define i2c_readl(addr)			readl(addr)
+
+/* rk i2c fifo max transfer bytes */
+#define RK_I2C_FIFO_SIZE	32
+
+/* rk i2c device register size */
+#define RK_I2C_REGISTER_SIZE	3
 
 #define rk_ceil(x, y) \
 	({ unsigned long __x = (x), __y = (y); (__x + __y - 1) / __y; })
 
-#define I2C_ADAP_SEL_BIT(nr)        ((nr) + 11)
-#define I2C_ADAP_SEL_MASK(nr)        ((nr) + 27)
 
-#define COMPLETE_READ		(1<<STATE_START|1<<STATE_READ|1<<STATE_STOP)
-#define COMPLETE_WRITE		(1<<STATE_START|1<<STATE_WRITE|1<<STATE_STOP)
+#define I2C_ADAP_SEL_BIT(nr)	((nr) + 11)
+#define I2C_ADAP_SEL_MASK(nr)	((nr) + 27)
+
 
 /* Control register */
 #define I2C_CON                 0x000
@@ -92,209 +123,221 @@ Revision:       1.00
 /* I2C rx data register */
 #define I2C_RXDATA_BASE         0x200
 
-struct rk30_i2c {
+struct rk_i2c {
 	void __iomem		*regs;
 	unsigned int		speed;
 };
 
 #ifdef CONFIG_I2C_MULTI_BUS
- struct rk30_i2c rki2c_base[I2C_BUS_MAX] = {
- #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
- 	{ .regs = I2C0_BASE_ADDR, 0},
-	{ .regs = I2C1_BASE_ADDR, 0},
-	{ .regs = I2C2_BASE_ADDR, 0},
-	{ .regs = I2C3_BASE_ADDR, 0},
- #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
- 	{ .regs = I2C0_BASE_ADDR + SZ_8K, 0 },
-	{ .regs = I2C1_BASE_ADDR + SZ_8K, 0 },
-	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },
-	{ .regs = I2C3_BASE_ADDR + SZ_8K, 0 },
- #else
-	{ .regs = I2C0_BASE_ADDR + SZ_4K, 0 },
-	{ .regs = I2C1_BASE_ADDR + SZ_4K, 0 },
-	{ .regs = I2C2_BASE_ADDR + SZ_8K, 0 },
-	{ .regs = I2C3_BASE_ADDR + SZ_8K, 0 },
-	{ .regs = I2C4_BASE_ADDR + SZ_8K, 0 }
-	#endif
+static struct rk_i2c rki2c_base[I2C_BUS_MAX] = {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	{ .regs = (void __iomem *)(RKIO_I2C0_PMU_PHYS), 0 },
+	{ .regs = (void __iomem *)(RKIO_I2C1_SENSOR_PHYS), 0 },
+	{ .regs = (void __iomem *)(RKIO_I2C2_AUDIO_PHYS), 0 },
+	{ .regs = (void __iomem *)(RKIO_I2C3_CAM_PHYS), 0 },
+	{ .regs = (void __iomem *)(RKIO_I2C4_TP_PHYS), 0 },
+	{ .regs = (void __iomem *)(RKIO_I2C5_HDMI_PHYS), 0 }
+#else
+	#error "PLS config chiptype for i2c base!"
+#endif
 };
-
-static unsigned int gcurrent_bus = I2C_BUS_MAX;
 #endif
 
-static void *get_base(void)
+static uint g_i2c_online_bus = I2C_BUS_MAX;
+
+
+static inline void *rk_i2c_get_base(void)
 {
-	if (gcurrent_bus >= I2C_BUS_MAX) {
-		printf("I2C bus error! gcurrent_bus = %d\n", gcurrent_bus);
+	if(g_i2c_online_bus >= I2C_BUS_MAX) {
+		printf("I2C bus error, PLS set i2c bus first!");
 		return (void *)NULL;
 	}
 
-	if (rki2c_base[gcurrent_bus].regs == 0) {
-		printf("I2C base register error!\n");
+	if(rki2c_base[g_i2c_online_bus].regs == 0) {
+		printf("I2C base register error, PLS check i2c config!");
 		return (void *)NULL;	
 	}
 
-	return (void *) &rki2c_base[gcurrent_bus];
+	return (void *)&rki2c_base[g_i2c_online_bus];
 }
 
-static void i2c_adap_sel(int nr)
+
+static inline void rk_i2c_iomux(rk_i2c_bus_ch_t bus_id)
 {
-    g_grfReg->grf_soc_con[1] = (1 << I2C_ADAP_SEL_BIT(nr)) | (1 << I2C_ADAP_SEL_MASK(nr));
+	rk_iomux_config(RK_I2C0_IOMUX + bus_id);
 }
 
-static void rk30_show_regs(struct rk30_i2c *i2c)
+
+static void rk_i2c_show_regs(struct rk_i2c *i2c)
 {
-        int i;
+#ifdef RKI2C_DEBUG_INFO
+	uint i;
 
-        printf("I2C_CON: 0x%08x\n", i2c_readl(i2c->regs + I2C_CON));
-        printf("I2C_CLKDIV: 0x%08x\n", i2c_readl(i2c->regs + I2C_CLKDIV));
-        printf("I2C_MRXADDR: 0x%08x\n", i2c_readl(i2c->regs + I2C_MRXADDR));
-        printf("I2C_MRXRADDR: 0x%08x\n", i2c_readl(i2c->regs + I2C_MRXRADDR));
-        printf("I2C_MTXCNT: 0x%08x\n", i2c_readl(i2c->regs + I2C_MTXCNT));
-        printf("I2C_MRXCNT: 0x%08x\n", i2c_readl(i2c->regs + I2C_MRXCNT));
-        printf("I2C_IEN: 0x%08x\n", i2c_readl(i2c->regs + I2C_IEN));
-        printf("I2C_IPD: 0x%08x\n", i2c_readl(i2c->regs + I2C_IPD));
-        printf("I2C_FCNT: 0x%08x\n", i2c_readl(i2c->regs + I2C_FCNT));
-        for( i = 0; i < 8; i ++) 
-                printf("I2C_TXDATA%d: 0x%08x\n", i, i2c_readl(i2c->regs + I2C_TXDATA_BASE + i * 4));
-        for( i = 0; i < 8; i ++) 
-                printf("I2C_RXDATA%d: 0x%08x\n", i, i2c_readl(i2c->regs + I2C_RXDATA_BASE + i * 4));
+	rki2c_printf("I2C_CON: 0x%08x\n", i2c_readl(i2c->regs + I2C_CON));
+	rki2c_printf("I2C_CLKDIV: 0x%08x\n", i2c_readl(i2c->regs + I2C_CLKDIV));
+	rki2c_printf("I2C_MRXADDR: 0x%08x\n", i2c_readl(i2c->regs + I2C_MRXADDR));
+	rki2c_printf("I2C_MRXRADDR: 0x%08x\n", i2c_readl(i2c->regs + I2C_MRXRADDR));
+	rki2c_printf("I2C_MTXCNT: 0x%08x\n", i2c_readl(i2c->regs + I2C_MTXCNT));
+	rki2c_printf("I2C_MRXCNT: 0x%08x\n", i2c_readl(i2c->regs + I2C_MRXCNT));
+	rki2c_printf("I2C_IEN: 0x%08x\n", i2c_readl(i2c->regs + I2C_IEN));
+	rki2c_printf("I2C_IPD: 0x%08x\n", i2c_readl(i2c->regs + I2C_IPD));
+	rki2c_printf("I2C_FCNT: 0x%08x\n", i2c_readl(i2c->regs + I2C_FCNT));
+	for(i = 0; i < 8; i ++) {
+		rki2c_printf("I2C_TXDATA%d: 0x%08x\n", i, i2c_readl(i2c->regs + I2C_TXDATA_BASE + i * 4));
+	}
+	for(i = 0; i < 8; i ++) {
+		rki2c_printf("I2C_RXDATA%d: 0x%08x\n", i, i2c_readl(i2c->regs + I2C_RXDATA_BASE + i * 4));
+	}
+#endif
 }
-
-void rk_i2c_show_regs(void)
-{
-	rk30_show_regs(get_base());
-}
-
 
 /* returns TRUE if we reached the end of the current message */
 static inline int is_msgend(uint cnt, uint r_len, uint b_len)
 {
-	return cnt >= 1 + r_len + b_len;
+	return (cnt >= 1 + r_len + b_len);
 }
 
-static inline void rk30_i2c_enable(struct rk30_i2c *i2c, unsigned int mode, unsigned int lastnak)
+static inline void rk_i2c_enable(struct rk_i2c *i2c, uint mode, uint lastnak)
 {
-        unsigned int con = 0;
+	uint con = 0;
 
-        con |= I2C_CON_EN;
-        con |= I2C_CON_MOD(mode);
-        if(lastnak)
-                con |= I2C_CON_LASTACK;
-        con |= I2C_CON_START;
+	con |= I2C_CON_EN;
+	con |= I2C_CON_MOD(mode);
+	if(lastnak) {
+		con |= I2C_CON_LASTACK;
+	}
+	con |= I2C_CON_START;
 	con &= ~(I2C_CON_STOP);
-        i2c_writel(con, i2c->regs + I2C_CON);
+	i2c_writel(con, i2c->regs + I2C_CON);
 }
 
-static inline void rk_i2c_disable(struct rk30_i2c *i2c)
+static inline void rk_i2c_disable(struct rk_i2c *i2c)
 {
-        i2c_writel(0, i2c->regs + I2C_CON);
+	i2c_writel(0, i2c->regs + I2C_CON);
 }
 
-static inline void rk_i2c_clean_start(struct rk30_i2c *i2c)
+static inline void rk_i2c_clean_start(struct rk_i2c *i2c)
 {
-        unsigned int con = i2c_readl(i2c->regs + I2C_CON);
+	uint con = i2c_readl(i2c->regs + I2C_CON);
 
-        con &= ~I2C_CON_START;
-        i2c_writel(con, i2c->regs + I2C_CON);
+	con &= ~I2C_CON_START;
+	i2c_writel(con, i2c->regs + I2C_CON);
 }
 
-static inline void rk_i2c_send_start(struct rk30_i2c *i2c)
+static inline void rk_i2c_send_start(struct rk_i2c *i2c)
 {
-        unsigned int con = i2c_readl(i2c->regs + I2C_CON);
+	uint con = i2c_readl(i2c->regs + I2C_CON);
 
-        con |= I2C_CON_START;
-        if(con & I2C_CON_STOP)
-                printf("rk30_i2c_send_start, I2C_CON: stop bit is set.\n");
-        
-        i2c_writel(con, i2c->regs + I2C_CON);
+	con |= I2C_CON_START;
+	if(con & I2C_CON_STOP) {
+		printf("rk_i2c_send_start, I2C_CON: stop bit is set.\n");
+	}
+	i2c_writel(con, i2c->regs + I2C_CON);
 }
 
-static inline void rk_i2c_send_stop(struct rk30_i2c *i2c)
+static inline void rk_i2c_send_stop(struct rk_i2c *i2c)
 {
-        unsigned int con = i2c_readl(i2c->regs + I2C_CON);
+	uint con = i2c_readl(i2c->regs + I2C_CON);
 
-        con |= I2C_CON_STOP;
-        if(con & I2C_CON_START)
-                printf("rk30_i2c_send_stop, I2C_CON: start bit is set.\n");
-        
-        i2c_writel(con, i2c->regs + I2C_CON);
+	con |= I2C_CON_STOP;
+	if(con & I2C_CON_START) {
+		printf("rk_i2c_send_stop, I2C_CON: start bit is set.\n");
+	}
+
+	i2c_writel(con, i2c->regs + I2C_CON);
 }
 
-static inline void rk_i2c_clean_stop(struct rk30_i2c *i2c)
+static inline void rk_i2c_clean_stop(struct rk_i2c *i2c)
 {
-        unsigned int con = i2c_readl(i2c->regs + I2C_CON);
+	uint con = i2c_readl(i2c->regs + I2C_CON);
 
-        con &= ~I2C_CON_STOP;
-        i2c_writel(con, i2c->regs + I2C_CON);
+	con &= ~I2C_CON_STOP;
+	i2c_writel(con, i2c->regs + I2C_CON);
 }
 
-static inline void rk_i2c_get_ipd_event(struct rk30_i2c *i2c, int type)
+static inline void rk_i2c_clean_all_ipd(struct rk_i2c *i2c)
 {
-	unsigned int con = i2c_readl(i2c->regs + I2C_IPD);
+	i2c_writel(I2C_IPD_ALL_CLEAN, i2c->regs + I2C_IPD);
+}
+
+static inline int rk_i2c_get_ipd_event(struct rk_i2c *i2c, int type)
+{
+	uint con = i2c_readl(i2c->regs + I2C_IPD);
 	int time = 2000;
 
-	while((--time) && (!(con & type))){
+	while((--time) && (!(con & type))) {
 		udelay(10);
 		con = i2c_readl(i2c->regs + I2C_IPD);
 	}
+	rki2c_printf("i2c ipd register = 0x%x, type = 0x%x\n", i2c_readl(i2c->regs + I2C_IPD), type);
 	i2c_writel(type, i2c->regs + I2C_IPD);
-	
-	if(time <= 0){
-		if (type == I2C_STARTIPD){
-			printf("I2C_STARTIPD time out.\n");
-		} else if (type == I2C_STOPIPD){
-			printf("I2C_STOPIPD time out.\n");
-		} else if (type == I2C_MBTFIPD){
-			printf("I2C_MBTFIPD time out.\n");
-		} else if (type == I2C_MBRFIPD){
-			printf("I2C_MBRFIPD time out.\n");
-		}
+
+	if (con & I2C_NAKRCVIPD) {
+		printf("No ACK Received when get ipd event = 0x%x!\n", type);
+		i2c_writel(I2C_NAKRCVIPD, i2c->regs + I2C_IPD);
+		return -1;
 	}
+
+	if(time <= 0) {
+		printf("Get ipd event = 0x%x time out.\n", type);
+		return -2;
+	}
+	
+	return 0;
 }
 
 /* SCL Divisor = 8 * (CLKDIVL + CLKDIVH)
- * SCL = i2c_rate/ SCLK Divisor
+ * SCL = PCLK / SCLK Divisor
+ * i2c_rate = PCLK
 */
-static void rk_i2c_set_clk(struct rk30_i2c *i2c, unsigned long scl_rate)
+static void rk_i2c_set_clk(struct rk_i2c *i2c, uint32 scl_rate)
 {
-        unsigned long i2c_rate;
-        unsigned int div, divl, divh;
+	uint32 i2c_rate;
+	uint div, divl, divh;
 
-	if (i2c->speed == scl_rate)
+	if(i2c->speed == scl_rate) {
 		return ;
+	}
+	/* First get i2c rate from pclk */
+	i2c_rate = rkclk_get_i2c_clk(g_i2c_online_bus);
 
-	if (gcurrent_bus < I2C_BUS_CH3)
-		i2c_rate = 100*1000*1000;
-	else
-		i2c_rate = 375*100*1000;
-        div = rk_ceil(i2c_rate, scl_rate * 8);
-        divh = divl = rk_ceil(div, 2);
-        i2c_writel(I2C_CLKDIV_VAL(divl, divh), i2c->regs + I2C_CLKDIV);
+	div = rk_ceil(i2c_rate, scl_rate * 8);
+	divh = divl = rk_ceil(div, 2);
+	i2c_writel(I2C_CLKDIV_VAL(divl, divh), i2c->regs + I2C_CLKDIV);
 
 	i2c->speed = scl_rate;
-       printf("i2c->regs_addr = %x,set clk(I2C_CLKDIV: 0x%08x)\n",i2c->regs,i2c_readl(i2c->regs + I2C_CLKDIV));
-		
+
+	rki2c_printf("rk_i2c_set_clk: i2c rate = %d, scl rate = %d\n", i2c_rate, scl_rate);
+	rki2c_printf("set i2c clk div = %d, divh = %d, divl = %d\n", div, divh, divl);
+	rki2c_printf("set clk(I2C_CLKDIV: 0x%08x)\n", i2c_readl(i2c->regs + I2C_CLKDIV));
 }
 
-
-static void rk_i2c_write_prepare(struct rk30_i2c *i2c, uchar chip, uint reg, uint r_len, uchar *buf, uint b_len)
+static int rk_i2c_write_prepare(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len, uchar *buf, uint b_len)
 {
-	unsigned int data = 0, cnt = 0, len = 0, i, j;
-	unsigned char byte;
+	uint data = 0, cnt = 0, len = 0;
+	uint i, j;
+	uchar byte;
+
+	if (r_len > RK_I2C_REGISTER_SIZE) {
+		printf("Not support register len.\n");
+		return -1;
+	}
 
 	i2c_writel(I2C_MBTFIEN, i2c->regs + I2C_IEN);
 
 	for(i = 0; i < 8; i++) {
 		data = 0;
 		for(j = 0; j < 4; j++) {
-			if (is_msgend(cnt, r_len, b_len))
+			if(is_msgend(cnt, r_len, b_len))
 				break;
-			if (cnt == 0) {
+			if(cnt == 0) {
 				byte = (chip & 0x7f) << 1;
-			} else if ((cnt == 1) && (r_len != 0)) {
-				byte = (unsigned char)(reg & 0xff);
-			} else if ((cnt == 2) && (r_len == 2)) {
-				byte = (unsigned char)((reg >> 8) & 0xff);
+			} else if((cnt == 1) && (r_len != 0)) {
+				byte = (uchar)(reg & 0xff);
+			} else if((cnt == 2) && (r_len == 2)) {
+				byte = (uchar)((reg >> 8) & 0xff);
+			} else if((cnt == 3) && (r_len == 3)) {
+				byte = (uchar)((reg >> 16) & 0xff);
 			} else {
 				byte =  buf[len++];
 			}
@@ -302,165 +345,189 @@ static void rk_i2c_write_prepare(struct rk30_i2c *i2c, uchar chip, uint reg, uin
 			cnt++;
 			data |= (byte << (j * 8));
 		}
-		//printf("rk_i2c_write_prepare: data = 0x%08x\n", data);
+		//rki2c_printf("rk_i2c_write_prepare: data = 0x%08x\n", data);
 		i2c_writel(data, i2c->regs + I2C_TXDATA_BASE + 4 * i);
-		if (is_msgend(cnt, r_len, b_len))
+		if(is_msgend(cnt, r_len, b_len)) {
 			break;
+		}
 	}
+
 	i2c_writel(cnt, i2c->regs + I2C_MTXCNT);
+	return 0;
 }
 
-static void rk_i2c_read_prepare(struct rk30_i2c *i2c, uchar chip, uint reg, uint r_len, uchar *buf, uint b_len)
+static int rk_i2c_read_prepare(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len, uchar *buf, uint b_len)
 {
-	unsigned int addr = (chip & 0x7f) << 1;
-	unsigned int p = 0;
+	uint addr = (chip & 0x7f) << 1;
+
+	if (r_len > RK_I2C_REGISTER_SIZE) {
+		printf("Not support register len.\n");
+		return -1;
+	}
 
 	i2c_writel(I2C_MBRFIEN, i2c->regs + I2C_IEN);
 	i2c_writel(addr | I2C_MRXADDR_LOW, i2c->regs + I2C_MRXADDR);
-	if (r_len == 1) {
+
+	/* if r_len == 0, device has no register addr, detect read/write mode */
+	if(r_len == 1) {
 		i2c_writel(reg | I2C_MRXADDR_LOW, i2c->regs + I2C_MRXRADDR);
-	} else if (r_len == 2) {
+	} else if(r_len == 2) {
 		i2c_writel(reg | I2C_MRXRADDR_LOW | I2C_MRXRADDR_MID, i2c->regs + I2C_MRXRADDR);
-	} else {
-		printf("Not support register len.\n");
+	} else if(r_len == 3) {
+		i2c_writel(reg | I2C_MRXRADDR_LOW | I2C_MRXRADDR_MID | I2C_MRXRADDR_HIGH, i2c->regs + I2C_MRXRADDR);
 	}
-	//printf("rk_i2c_read_prepare: reg = 0x%04x, I2C_MRXRADDR = 0x%08x\n", reg, i2c->regs + I2C_MRXRADDR);
+
+	//rki2c_printf("rk_i2c_read_prepare: reg = 0x%04x, I2C_MRXRADDR = 0x%08x\n", reg, i2c->regs + I2C_MRXRADDR);
 	i2c_writel(b_len, i2c->regs + I2C_MRXCNT);
+
+	return 0;
 }
 
-
-static void rk_i2c_get_data(struct rk30_i2c *i2c, uchar *buf, uint b_len)
+static void rk_i2c_get_data(struct rk_i2c *i2c, uchar *buf, uint b_len)
 {
-	unsigned int p = 0, i = 0;
+	uint p = 0, i = 0;
 
-	for(i = 0; i < b_len; i++){
-		if(i%4 == 0)
+	for(i = 0; i < b_len; i++) {
+		if(i%4 == 0) {
 			p = i2c_readl(i2c->regs + I2C_RXDATA_BASE +  (i/4) * 4);
+		}
 		buf[i] = (p >> ((i%4) * 8)) & 0xff;
 	}
 }
 
-static int rk_i2c_read(struct rk30_i2c *i2c, uchar chip, uint reg, uint r_len, uchar *buf, uint b_len)
+static int rk_i2c_read(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len, uchar *buf, uint b_len)
 {
-	if (b_len > 32) {
+	int err;
+
+	if(b_len > RK_I2C_FIFO_SIZE) {
+		printf("rk_i2c_read: recv len > fifo buffer.\n");
 		return -1;
 	}
-	rk30_i2c_enable(i2c, 1, 1);
-	rk_i2c_get_ipd_event(i2c, I2C_STARTIPD);
+
+	//rki2c_printf("rk_i2c_read: chip = %d, reg = %d, r_len = %d, b_len = %d\n", chip, reg, r_len, b_len);
+	rk_i2c_enable(i2c, 1, 1);
+	rk_i2c_clean_all_ipd(i2c);
+	err = rk_i2c_get_ipd_event(i2c, I2C_STARTIPD);
+	if(err < 0) {
+		goto read_fail;
+	}
 	rk_i2c_clean_start(i2c);
 
-	rk_i2c_read_prepare(i2c, chip, reg, r_len, buf, b_len);
-	rk_i2c_get_ipd_event(i2c, I2C_MBRFIPD);
+	err = rk_i2c_read_prepare(i2c, chip, reg, r_len, buf, b_len);
+	if(err < 0) {
+		goto read_fail;
+	}
+	err = rk_i2c_get_ipd_event(i2c, I2C_MBRFIPD);
+	if(err < 0) {
+		goto read_fail;
+	}
 	rk_i2c_get_data(i2c, buf, b_len);
 
 	rk_i2c_send_stop(i2c);
-	rk_i2c_get_ipd_event(i2c, I2C_STOPIPD);
+	err = rk_i2c_get_ipd_event(i2c, I2C_STOPIPD);
+	if(err < 0) {
+		goto read_fail;
+	}
 	rk_i2c_clean_stop(i2c);
+	rk_i2c_clean_all_ipd(i2c);
 	rk_i2c_disable(i2c);
 
 	return 0;
+
+read_fail:
+	rk_i2c_send_stop(i2c);
+	rk_i2c_clean_all_ipd(i2c);
+	rk_i2c_disable(i2c);
+	return err;
 }
 
-static int rk_i2c_write(struct rk30_i2c *i2c, uchar chip, uint reg, uint r_len, uchar *buf, uint b_len)
+static int rk_i2c_write(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len, uchar *buf, uint b_len)
 {
-	if (r_len + b_len + 1 > 32) {
+	int err;
+
+	if(r_len + b_len + 1 > RK_I2C_FIFO_SIZE) {
+		printf("rk_i2c_write: send len > fifo buffer.\n");
 		return -1;
 	}
-	rk30_i2c_enable(i2c, 0, 1);
-	rk_i2c_get_ipd_event(i2c, I2C_STARTIPD);
+
+	//rki2c_printf("rk_i2c_write: chip = %d, reg = %d, r_len = %d, b_len = %d\n", chip, reg, r_len, b_len);
+	rk_i2c_enable(i2c, 0, 1);
+	rk_i2c_clean_all_ipd(i2c);
+	err = rk_i2c_get_ipd_event(i2c, I2C_STARTIPD);
+	if(err < 0) {
+		goto write_fail;
+	}
 	rk_i2c_clean_start(i2c);
 
-	rk_i2c_write_prepare(i2c, chip, reg, r_len, buf, b_len);
-	rk_i2c_get_ipd_event(i2c, I2C_MBTFIPD);
-	
+	err = rk_i2c_write_prepare(i2c, chip, reg, r_len, buf, b_len);
+	if(err < 0) {
+		goto write_fail;
+	}
+	err = rk_i2c_get_ipd_event(i2c, I2C_MBTFIPD);
+	if(err < 0) {
+		goto write_fail;
+	}
+
 	rk_i2c_send_stop(i2c);
-	rk_i2c_get_ipd_event(i2c, I2C_STOPIPD);
+	err = rk_i2c_get_ipd_event(i2c, I2C_STOPIPD);
+	if(err < 0) {
+		goto write_fail;
+	}
 	rk_i2c_clean_stop(i2c);
+	rk_i2c_clean_all_ipd(i2c);
 	rk_i2c_disable(i2c);
+
+	return 0;
+
+write_fail:
+	rk_i2c_send_stop(i2c);
+	rk_i2c_clean_all_ipd(i2c);
+	rk_i2c_disable(i2c);
+	return err;
+}
+
+
+static int rk_i2c_init(int speed)
+{
+	struct rk_i2c *i2c = (struct rk_i2c *)rk_i2c_get_base();
+
+	if(i2c == NULL) {
+		return -1;
+	}
+
+	rki2c_printf("rk_i2c_init: I2C bus = %d\n", g_i2c_online_bus);
+
+	rk_i2c_iomux(g_i2c_online_bus);
+	rk_i2c_set_clk(i2c, speed);
 
 	return 0;
 }
 
 
-static void rk_i2c_init(int speed)
+void rki2c_show_regs(void)
 {
-	struct rk30_i2c *i2c = (struct rk30_i2c *)get_base();
-	if (i2c == NULL) {
-		printf("rk_i2c_init error: i2c = NULL\n");
-		return ;
-	}
-
-	printf("rk_i2c_init: I2C bus = %d\n", gcurrent_bus);
-#if 1
-	if (gcurrent_bus == I2C_BUS_CH0) {
-		i2c_adap_sel(I2C_BUS_CH0);
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-		g_grfReg->GRF_GPIO_IOMUX[2].GPIOD_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
-#elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-		g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-        *(int*)(PMU_BASE_ADDR+0x0088) |= 1<<14;
-        *(int*)(PMU_BASE_ADDR+0x008c) |= 1;
-#endif
-	} else if (gcurrent_bus == I2C_BUS_CH1) {
-		i2c_adap_sel(I2C_BUS_CH1);
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-		g_grfReg->GRF_GPIO_IOMUX[2].GPIOD_IOMUX = (((0x1<<14)|(0x1<<12))<<16)|(0x1<<14)|(0x1<<12);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
-#elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-		g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
-#endif
-	} else if (gcurrent_bus == I2C_BUS_CH2) {
-		i2c_adap_sel(I2C_BUS_CH2);
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-		g_grfReg->GRF_GPIO_IOMUX[3].GPIOA_IOMUX = (((0x1<<2)|(0x1<<0))<<16)|(0x1<<2)|(0x1<<0);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<10)|(0x1<<8))<<16)|(0x1<<10)|(0x1<<8);
-#elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-		g_grfReg->GRF_GPIO_IOMUX[2].GPIOC_IOMUX = (((0x3<<10)|(0x3<<8))<<16)|(0x3<<10)|(0x3<<8);
-#endif
-	} else if (gcurrent_bus == I2C_BUS_CH3) {
-		i2c_adap_sel(I2C_BUS_CH3);
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-		g_grfReg->GRF_GPIO_IOMUX[3].GPIOA_IOMUX = (((0x1<<6)|(0x1<<4))<<16)|(0x1<<6)|(0x1<<4);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-		g_grfReg->GRF_GPIO_IOMUX[3].GPIOB_IOMUX = (((0x3<<14)|(0x3<<12))<<16)|(0x2<<14)|(0x2<<12);
-#elif(CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-		g_grfReg->GRF_GPIO_IOMUX[0].GPIOA_IOMUX = (((0x3<<14)|(0x3<<12))<<16)|(0x1<<14)|(0x1<<12);
-#endif
-	}else if(gcurrent_bus == I2C_BUS_CH4){
-		i2c_adap_sel(I2C_BUS_CH4);
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3188)|| (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-		g_grfReg->GRF_GPIO_IOMUX[1].GPIOD_IOMUX = (((0x1<<14)|(0x1<<12))<<16)|(0x1<<14)|(0x1<<12);
-#endif
-	} 
-	else {
-		printf("gcurrent_bus is error!\n");
-	}
-#endif
-	rk_i2c_set_clk(i2c, speed);
+	debug("rk i2c version: %s\n", RKI2C_VERSION);
+	rk_i2c_show_regs(rk_i2c_get_base());
 }
 
 
 #ifdef CONFIG_I2C_MULTI_BUS
 unsigned int i2c_get_bus_num(void)
 {
-	return gcurrent_bus;
+	return g_i2c_online_bus;
 }
+
 
 int i2c_set_bus_num(unsigned bus_idx)
 {
-	if (bus_idx >= I2C_BUS_MAX) {
+	if(bus_idx >= I2C_BUS_MAX) {
 		printf("i2c_set_bus_num: I2C bus error!");
 		return -1;
 	}
 
-	printf("i2c_set_bus_num: I2C bus = %d\n", bus_idx);
+	rki2c_printf("i2c_set_bus_num: I2C bus = %d\n", bus_idx);
 
-	gcurrent_bus = bus_idx;
+	g_i2c_online_bus = bus_idx;
 
 	return 0;
 }
@@ -479,11 +546,14 @@ int i2c_set_bus_num(unsigned bus_idx)
  */
 int i2c_read(uchar chip, uint addr, int alen, uchar *buf, int len)
 {
-	struct rk30_i2c *i2c = (struct rk30_i2c *)get_base();
+	struct rk_i2c *i2c = (struct rk_i2c *)rk_i2c_get_base();
 
-	if (i2c == NULL || buf == NULL) {
-		printf("i2c_read error: i2c = 0x%08x, buf = 0x%08x\n", i2c, buf);
+	if(i2c == NULL) {
 		return -1;
+	}
+	if ((buf == NULL) && (len != 0)) {
+		printf("i2c_read: buf == NULL");
+		return -2;
 	}
 
 	return rk_i2c_read(i2c, chip, addr, alen, buf, len);
@@ -502,25 +572,28 @@ int i2c_read(uchar chip, uint addr, int alen, uchar *buf, int len)
  */
 int i2c_write(uchar chip, uint addr, int alen, uchar *buf, int len)
 {
-	struct rk30_i2c *i2c = (struct rk30_i2c *)get_base();
+	struct rk_i2c *i2c = (struct rk_i2c *)rk_i2c_get_base();
 
-	if (i2c == NULL || buf == NULL) {
-		printf("i2c_read error: i2c = 0x%08x, buf = 0x%08x\n", i2c, buf);
+	if(i2c == NULL) {
 		return -1;
+	}
+	if ((buf == NULL) && (len != 0)) {
+		printf("i2c_write: buf == NULL");
+		return -2;
 	}
 
 	return rk_i2c_write(i2c, chip, addr, alen, buf, len);
 }
+
 
 /*
  * Test if a chip at a given address responds (probe the chip)
  */
 int i2c_probe(uchar chip)
 {
-	struct rk30_i2c *i2c = (struct rk30_i2c *)get_base();
+	struct rk_i2c *i2c = (struct rk_i2c *)rk_i2c_get_base();
 
-	if (i2c == NULL) {
-		printf("i2c_read error: i2c = 0x%08x\n", i2c);
+	if(i2c == NULL) {
 		return -1;
 	}
 
@@ -541,15 +614,13 @@ void i2c_init(int speed, int unused)
  */
 int i2c_set_bus_speed(unsigned int speed)
 {
-	struct rk30_i2c *i2c = (struct rk30_i2c *)get_base();
+	struct rk_i2c *i2c = (struct rk_i2c *)rk_i2c_get_base();
 
-	if (i2c == NULL) {
-		printf("i2c_read error: i2c = 0x%08x\n", i2c);
+	if(i2c == NULL) {
 		return -1;
 	}
 
-	if (gcurrent_bus >= I2C_BUS_MAX) {
-		printf("I2C bus error, PLS first set bus!");
+	if(g_i2c_online_bus >= I2C_BUS_MAX) {
 		return -1;
 	}
 

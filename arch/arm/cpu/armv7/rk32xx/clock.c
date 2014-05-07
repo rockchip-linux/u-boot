@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2013 Rockchip Electronics
+ * (C) Copyright 2008-2014 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * See file CREDITS for list of people who contributed to this
@@ -22,19 +22,13 @@
  */
 #include <common.h>
 #include <asm/io.h>
-#include <asm/arch/drivers.h>
-#include <asm/arch/clock.h>
+#include <asm/arch/rkplat.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define RKCLOCK_VERSION		"1.1"
 
-#define CONFIG_RKCLK_APLL_FREQ		1008 /* MHZ */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-#define CONFIG_RKCLK_GPLL_FREQ		384 /* MHZ */
-#else
-#define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
-#endif
-#define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
+
 
 /* define clock sourc div */
 #define CLK_DIV_1		1
@@ -71,7 +65,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CLK_DIV_32		32
 
 
-
 /* pll set callback function */
 struct pll_clk_set;
 typedef void (*pll_callback_f)(struct pll_clk_set *clkset);
@@ -104,13 +97,47 @@ static void clk_loop_delayus(uint32_t us)
 
 
 /*
- * rkplat clock set for arm and general pll
+ * rkplat calculate child clock div from parent
+ * clk_parent: parent clock rate (HZ)
+ * clk_child: child clock request rate (HZ)
+ * even: if div needs even
+ * return value: div
  */
-void rkclk_set_pll(void)
+uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even)
 {
-	rkclk_pll_clk_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
-	rkclk_pll_clk_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
-	rkclk_pll_clk_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
+	uint32 div = 0;
+
+	div = (clk_parent + (clk_child - 1)) / clk_child;
+
+	if (even) {
+		div += (div % 2);
+	}
+
+	return div;
+}
+
+
+/*
+ * rkplat pll select and clock div calcate
+ * clock: device request freq HZ
+ * even: if div needs even
+ * return value:
+ * high 16bit: 0 - codec pll, 1 - general pll
+ * low 16bit : div
+ */
+uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
+{
+	uint32 div = 0, gdiv = 0, cdiv = 0;
+	uint32 pll_sel = 0; // 0: general pll, 1: codec pll
+
+	gdiv = rkclk_calc_clkdiv(gd->bus_clk, clock, even); // general pll div
+	cdiv = rkclk_calc_clkdiv(gd->pci_clk, clock, even); // codec pll div
+
+	pll_sel = (gd->bus_clk / gdiv) >= (gd->pci_clk / cdiv);
+
+	div = pll_sel ? gdiv : cdiv;
+
+	return (pll_sel << 16) | div;
 }
 
 
@@ -148,31 +175,4 @@ void set_lcdc_dclk(int clk)
     #endif
 
 }
-
-
-int rk_get_arm_pll(void)
-{
-	return rkclk_pll_clk_get_rate(APLL_ID);
-}
-
-int rk_get_general_pll(void)
-{
-	return rkclk_pll_clk_get_rate(GPLL_ID);
-}
-
-int rk_get_codec_pll(void)
-{
-	return rkclk_pll_clk_get_rate(CPLL_ID);
-}
-
-int rk_get_ddr_pll(void)
-{
-	return rkclk_pll_clk_get_rate(DPLL_ID);
-}
-
-int rk_get_new_pll(void)
-{
-	return rkclk_pll_clk_get_rate(NPLL_ID);
-}
-
 
