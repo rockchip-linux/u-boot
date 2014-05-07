@@ -41,8 +41,6 @@
 #define CONFIG_RKCHIPTYPE	CONFIG_RK3288
 
 
-//#define CONFIG_ZYF
-
 /*
  * High Level Configuration Options
  */
@@ -73,6 +71,7 @@
 #define CONFIG_SYS_L2CACHE_OFF
 #define CONFIG_SYS_ARM_CACHE_WRITETHROUGH
 
+
 /* irq config */
 #define CONFIG_USE_IRQ
 
@@ -96,6 +95,8 @@
  */
 #define CONFIG_SERIAL2			1	/* use SERIAL2 */
 #define CONFIG_BAUDRATE			115200
+/* valid baudrates */
+#define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
 
 /*
@@ -169,14 +170,15 @@
 #define CONFIG_SYS_LONGHELP		/* undef to save memory */
 #define CONFIG_SYS_HUSH_PARSER		/* use "hush" command parser	*/
 #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
-#define CONFIG_SYS_PROMPT	"rk30boot # "
-#define CONFIG_SYS_CBSIZE	256	/* Console I/O Buffer Size */
-#define CONFIG_SYS_PBSIZE	384	/* Print Buffer Size */
-#define CONFIG_SYS_MAXARGS	16	/* max number of command args */
+#define CONFIG_SYS_PROMPT		"rk30boot # "
+#define CONFIG_SYS_CBSIZE		256	/* Console I/O Buffer Size */
+#define CONFIG_SYS_PBSIZE		384	/* Print Buffer Size */
+#define CONFIG_SYS_MAXARGS		16	/* max number of command args */
 /* Boot Argument Buffer Size */
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 
 #define CONFIG_SYS_RAMBOOT
+#define CONFIG_SYS_VSNPRINTF
 
 /*
  * SDRAM Memory Map
@@ -207,9 +209,6 @@
 #  define CONFIG_STACKSIZE_FIQ	0x1000
 #endif
 
-
-/* valid baudrates */
-#define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
 
 #define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
 
@@ -266,6 +265,13 @@
 #define	CONFIG_RK_UART
 #define CONFIG_RKUSB2UART_FORCE
 #define CONFIG_UART_NUM 	UART_CH2
+
+/* i2c */
+#define CONFIG_RK_I2C
+#ifdef CONFIG_RK_I2C
+#define CONFIG_I2C_MULTI_BUS
+#define CONFIG_SYS_I2C_SPEED 100000
+#endif
 
 #define CONFIG_USB_DWC_HCD
 //#define CONFIG_USB_EHCI
@@ -324,12 +330,6 @@
 #endif /*CONFIG_RK_FB*/
 #endif
 
-#define CONFIG_RK_I2C
-#ifdef CONFIG_RK_I2C
-#define CONFIG_I2C_MULTI_BUS
-#define CONFIG_SYS_I2C_SPEED 100000
-#endif
-
 
 /********************************** charger and pmic driver ********************************/
 //#define CONFIG_POWER_RICOH619
@@ -370,7 +370,6 @@
 
 //allow to flash loader when check sign failed. should undef this in release version.
 #define CONFIG_ENABLE_ERASEKEY
-#define CONFIG_SYS_VSNPRINTF
 
 
 #define CONFIG_GENERIC_MMC
