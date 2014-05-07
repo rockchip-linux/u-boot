@@ -260,12 +260,9 @@
 //#define CONFIG_RK_SPI
 
 /* uart config */
-#define	CONFIG_RK30_UART
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-#define CONFIG_UART_NUM   		UART_DBG
-#else
-#define CONFIG_UART_NUM   		UART_CH2
-#endif
+#define	CONFIG_RK_UART
+#define CONFIG_UART_NUM 	UART_CH2
+
 
 #define CONFIG_USB_DWC_HCD
 //#define CONFIG_USB_EHCI

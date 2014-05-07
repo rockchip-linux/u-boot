@@ -44,5 +44,7 @@
 
 #include "rk_i2c.h"
 
+#include "uart.h"
+
 #endif /* __RKPLAT_H */
 
