@@ -325,63 +325,7 @@ int ParseAtoi( const char * line )
     }
     return v;
 }
-#if 0
-/*  从输入的line中获取到按键的信息
-    返回值:
-        0   - 正常返回
-        -1  - 解析出错
-        -2  - 未实现
- */
-int setup_key(char* line, key_config* key)
-{
-    key_config keyTemp;
 
-	keyTemp.type = ParseAtoi(line++);
-    if( keyTemp.type == KEY_GPIO )
-    {
-        int sub_group;
-    	if(*(line++)!=',') return -1;
-        keyTemp.key.gpio.group = ParseAtoi(line++);
-    	if(*(line++)!=',') return -1;
-        sub_group = *(line++);
-    	if(*(line++)!=',') return -1;
-        keyTemp.key.gpio.index = (sub_group-'A')*8+ParseAtoi(line++);
-    	if(*(line++)!=',') return -1;
-        keyTemp.key.gpio.valid = ParseAtoi(line++);
-        *key = keyTemp;
-        setup_gpio(&key->key.gpio);
-#if 0 
-        RkPrintf("%d,%d,%d,%d\n", key->type, key->key.gpio.group
-                                        , key->key.gpio.index
-                                        , key->key.gpio.valid);
-        
-        RkPrintf("%08X,%08X,%08X,%08X\n", key->key.gpio.io_read
-                                        , key->key.gpio.io_write
-                                        , key->key.gpio.io_dir_conf
-                                        , key->key.gpio.io_debounce);
-#endif
-    }
-    else if( keyTemp.type == KEY_AD)
-    {// 其它类型的按键定义
-    	if(*(line++)!=',') return -1;
-        keyTemp.key.adc.index = ParseAtoi(line++);
-    	if(*(line++)!=',') return -1;
-        keyTemp.key.adc.keyValueLow = ParseAtoi(line++);
-    	if(*(line++)!=',')
-            if(*(line++)!=',')
-    	        return -1;
-        keyTemp.key.adc.keyValueHigh = ParseAtoi(line++);
-    	if(*(line++)!=',')
-    	     if(*(line++)!=',')
-    	         return -1;
-    	if(keyTemp.key.adc.keyValueLow >= keyTemp.key.adc.keyValueHigh)
-    	    return -1;
-        *key = keyTemp;
-        setup_adckey(&key->key.adc);
-    }
-    return 0;
-}
-#endif
 extern char PRODUCT_NAME[20];
 
 void ParseLine(PBootInfo pboot_info, char *line)
@@ -464,14 +408,17 @@ void ParseLine(PBootInfo pboot_info, char *line)
 		strcpy( pboot_info->fw_version, line );
 		//printf("FIRMWARE_VER: %s\n", pboot_info->fw_version);
 	}
-    //add by cjf, for fdt
-    else if (!memcmp(line, "FDT_NAME:", strlen("FDT_NAME:")) )
-    {
+	//add by cjf, for fdt
+	else if (!memcmp(line, "FDT_NAME:", strlen("FDT_NAME:")) )
+	{
 		line += strlen("FDT_NAME:");
 		EATCHAR(line, ' ');
 		strcpy( pboot_info->fdt_name, line );
 		//printf("FDT_NAME: %s\n", pboot_info->fdt_name);
-    }
+	}
+	else if (!memcmp(line, "UART", strlen("UART"))) {
+		rkplat_uart2UsbEn(1);
+	}
 
 	else
 		printf("Unknow param: %s!\n", line);

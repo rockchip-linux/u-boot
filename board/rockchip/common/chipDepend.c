@@ -2,9 +2,7 @@
 #include    "config.h"
 #include   <asm/io.h>
 
-#define     DELAY_ARM_FREQ      50
-#define     ASM_LOOP_INSTRUCTION_NUM     4
-#define     ASM_LOOP_PER_US    (DELAY_ARM_FREQ/ASM_LOOP_INSTRUCTION_NUM) //
+
  
 /***************************************************************************
 函数描述:延时
@@ -12,40 +10,11 @@
 出口参数:
 调用函数:
 ***************************************************************************/
-extern uint32 Timer0Get100ns( void );
 void DRVDelayUs(uint32 count)
 {
-#if 0
-    uint32 tmp;
-    uint32 TimerEnd = Timer0Get100ns() + count * 13;
-    tmp =  ASM_LOOP_PER_US;//15;
-    if(tmp)
-        tmp *= count;
-    else
-        tmp = 1;
-
-    while (--tmp) 
-    {
-        if(Timer0Get100ns() > TimerEnd)
-            break;
-    }
-#else
 	__udelay(count);
-#endif
 }
-/***************************************************************************
-函数描述:延时
-入口参数:
-出口参数:
-调用函数:
-***************************************************************************/
-void Delay100cyc(uint16 count)
-{
-    uint16 i;
 
-    while (count--)
-        for (i=0; i<8; i++);
-}
 
 
 /***************************************************************************
@@ -56,7 +25,7 @@ void Delay100cyc(uint16 count)
 ***************************************************************************/
 void DRVDelayMs(uint32 count)
 {
-    DRVDelayUs(1000*count);
+	DRVDelayUs(1000*count);
 }
 
 
@@ -68,8 +37,8 @@ void DRVDelayMs(uint32 count)
 ***************************************************************************/
 void DRVDelayS(uint32 count)
 {
-    while (count--)
-        DRVDelayMs(1000);
+	while (count--)
+		DRVDelayMs(1000);
 }
 
 
@@ -78,62 +47,58 @@ void DRVDelayS(uint32 count)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-   // return (*((REG32*)PMU_SYS_REG0));
-  return  readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
+	return readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
 }
 
 void ISetLoaderFlag(uint32 flag)
 {
-    //if(*((REG32*)PMU_SYS_REG0) == flag)
-    //    return;
-  //  *((REG32*)PMU_SYS_REG0) = flag;
-  	if( readl(RKIO_PMU_PHYS + PMU_SYS_REG0) == flag)
-		return;
-	writel(flag,RKIO_PMU_PHYS + PMU_SYS_REG0);
+	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
 }
 
 uint32 IReadLoaderMode(void)
 {
-    //return (*((REG32*)PMU_SYS_REG1));
-	return  readl(RKIO_PMU_PHYS + PMU_SYS_REG1);
+	return readl(RKIO_PMU_PHYS + PMU_SYS_REG1);
 }
 
 
 void FW_NandDeInit(void)
 {
 #ifdef CONFIG_NAND//RK_FLASH_BOOT_EN
-    if(gpMemFun->flag == BOOT_FROM_FLASH)
-    {
-        FtlDeInit();
-        FlashDeInit();
-    }
+	if(gpMemFun->flag == BOOT_FROM_FLASH) {
+		FtlDeInit();
+		FlashDeInit();
+	}
 #endif
 }
-int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
+
+
+void rkplat_uart2UsbEn(uint32 en)
 {
-    if((div == 0))//||(sdmmcId > 1))
-    {
-        return (-1);
-    }
-#if 1
-    if(0 == sdmmcId)
-    {
-        g_cruReg->cru_clksel_con[11] = (0x3Ful<<16)|(div-1)<<0;
-    }
-    else if(1 == sdmmcId)
-    {
-        g_cruReg->cru_clksel_con[12] = (0x3Ful<<16)|(div-1)<<0;
-    }
-    else    //emmc
-    {
-        //RkPrintf("SCUSelSDClk 2 %d\n",div);
-        g_cruReg->cru_clksel_con[12] = (0xFFul<<24)|(div-1)<<8 |(1<<14);//emmc use gerenall pll
-    }
-#endif
-    return(0);
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	if (en) {
+		uint32 con = 0;
+
+		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usbphy0 bypass select and otg disable.
+
+		/* if define force enable usb to uart, maybe usb function will be affected */
+#ifdef CONFIG_RKUSB2UART_FORCE
+		grf_writel((0x00C0 | (0x00C0 << 16)), GRF_UOC0_CON3); // usb uart enable.
+#else
+		con = grf_readl(GRF_SOC_STATUS2);
+		if (!(con & (1<<14)) && (con & (1<<17))) { // check IO domain voltage select.
+			grf_writel((0x0004 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy disable
+			grf_writel((0x002A | (0x003F << 16)), GRF_UOC0_CON3); // usb phy enter suspend
+			grf_writel((0x00C0 | (0x00C0 << 16)), GRF_UOC0_CON3); // uart enable
+		}
+#endif /* CONFIG_RKUSB2UART_FORCE */
+	} else {
+		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usb uart disable
+		grf_writel((0x0000 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy enable
+	}
+#else
+	#error "PLS check CONFIG_RKCHIPTYPE if support uart2usb."
+#endif /* CONFIG_RKPLATFORM */
 }
-
-
 
 
 

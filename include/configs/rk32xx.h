@@ -73,6 +73,9 @@
 #define CONFIG_SYS_L2CACHE_OFF
 #define CONFIG_SYS_ARM_CACHE_WRITETHROUGH
 
+/* irq config */
+#define CONFIG_USE_IRQ
+
 
 /*
  * Enabling relocation of u-boot by default
@@ -173,7 +176,6 @@
 /* Boot Argument Buffer Size */
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
 
-#define CONFIG_USE_IRQ
 #define CONFIG_SYS_RAMBOOT
 
 /*
@@ -218,9 +220,10 @@
 //#define CONFIG_SILENT_CONSOLE 1
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
-
+/* rk mtd block size */
 #define RK_BLK_SIZE             512
 
+/* rockusb */
 #define CONFIG_CMD_ROCKUSB
 
 /* for fastboot */
@@ -261,8 +264,8 @@
 
 /* uart config */
 #define	CONFIG_RK_UART
+#define CONFIG_RKUSB2UART_FORCE
 #define CONFIG_UART_NUM 	UART_CH2
-
 
 #define CONFIG_USB_DWC_HCD
 //#define CONFIG_USB_EHCI
@@ -273,13 +276,10 @@
 /* PL330 DMA */
 //#define CONFIG_PL330_DMA //enable pl330 dma
 
-#ifdef CONFIG_PL330_DMA   
-//#define SDMMC_USE_DMA  //for emmc use dma trans
-#endif
-
 
 /* LCDC console */
 #define CONFIG_LCD
+
 #ifdef CONFIG_LCD
 #define CONFIG_RK_FB
 #define CONFIG_LCD_LOGO
