@@ -9,7 +9,7 @@
 #include <fdtdec.h>
 
 #include <asm/gpio.h>
-#include <asm/arch/drivers.h>
+#include <asm/arch/rkplat.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 

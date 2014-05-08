@@ -1,10 +1,8 @@
 #include <common.h>
-#include <asm/arch/rk30_memap.h>
 #include <lcd.h>
-#include <asm/arch/rk30_drivers.h>
+#include <asm/arch/rkplat.h>
 #include <i2c.h>
 #include <asm/io.h>
-#include <asm/arch/rk_i2c.h>
 #include "../rk616.h"
 #include "rk616_lvds.h"
 

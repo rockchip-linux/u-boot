@@ -30,14 +30,9 @@
 
 #include <usbdevice.h>
 #include <usb/dwc_otg_udc.h>
-//#include <asm/arch/platform.h>
-
-//#include <fastboot.h>
-//#include "ep0.h"
-//#include <asm/arch/reg.h>
-#include <asm/arch/drivers.h>
+#include <asm/arch/rkplat.h>
 #include "dwc_otg_regs.h"
-//#include "../../../board/rockchip/common/common/rockusb/USB20.h"
+
 //Global Registers
 
 

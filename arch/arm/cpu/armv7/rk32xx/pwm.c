@@ -1,19 +1,35 @@
-
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #include <common.h>
 #include <malloc.h>
 #include <fdtdec.h>
 #include <errno.h>
 #include <asm/io.h>
-#include <asm/arch/clock.h>
-//#include <asm/arch/reg.h>
-#include <asm/arch/gpio.h>
-#include <asm/arch/pwm.h>
-#include <asm/arch/grf.h>
-#include <asm/arch/iomux.h>
-#include <asm/arch/drivers.h>
+#include <asm/arch/rkplat.h>
+
 DECLARE_GLOBAL_DATA_PTR;
 
 struct pwm_bl bl;
+
 static inline u64 div64_u64(u64 dividend, u64 divisor)
 {
 	return dividend / divisor;
@@ -35,6 +51,7 @@ static int get_pclk_pwm(void)
 	}
 	aclk_bus = aclk_bus_src / (aclk_bus_div + 1);
 	pclk_pwm = pclk_bus = aclk_bus / (pclk_bus_div +1 );
+
 	return pclk_pwm;
 }
 
@@ -69,10 +86,13 @@ static int rk_bl_parse_dt(const void *blob)
 	}
 
 	bl.dft_brightness = fdtdec_get_int(blob, bl.node, "default-brightness-level", 48);
+
 	return 0;
 	
 }
-int  rk_pwm_config(int brightness)
+
+
+int rk_pwm_config(int brightness)
 {
 	u64 val, div, clk_rate;
 	unsigned long prescale = 0, pv, dc;
@@ -142,14 +162,12 @@ int  rk_pwm_config(int brightness)
 	 * registers.
 	 */
 
-
-	
 	conf |= (prescale << RK_PWM_PRESCALE);
 	write_pwm_reg(id, PWM_REG_DUTY,dc);//0x1900);// dc);
 	write_pwm_reg(id, PWM_REG_PERIOD,pv);//0x5dc0);//pv);
 	write_pwm_reg(id, PWM_REG_CNTR,0);
 	write_pwm_reg(id, PWM_REG_CTRL,on|conf);
+
 	return 0;
 }
-
 

@@ -1,19 +1,42 @@
-
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 
 #include <common.h>
-#include <fastboot.h>
-#include "config.h"
-#include <asm/io.h>
-#include <lcd.h>
-//#include "rkimage.h"
-//#include "rkloader.h"
-#include "i2c.h"
-#include <power/pmic.h>
 #include <version.h>
-#include <asm/arch/rk_i2c.h>
+#include <fastboot.h>
+#include <asm/io.h>
+#include <power/pmic.h>
+#include <asm/arch/rkplat.h>
+
+#include "config.h"
+
+DECLARE_GLOBAL_DATA_PTR;
+
 
 extern char bootloader_ver[];
-DECLARE_GLOBAL_DATA_PTR;
+
 
 #ifdef CONFIG_DISPLAY_BOARDINFO
 /**
@@ -55,23 +78,22 @@ int board_late_init(void)
 #ifdef CONFIG_POWER_RK808
 	charger_init(0);
 #elif CONFIG_POWER_ACT8846
-		pmic_init(0);
+	pmic_init(0);
 #endif
-		SecureBootCheck();
-		get_bootloader_ver(NULL);
-		//printf("#Boot ver: %s\n", bootloader_ver);
+	SecureBootCheck();
+	get_bootloader_ver(NULL);
+	//printf("#Boot ver: %s\n", bootloader_ver);
 
-		//TODO:set those buffers in a better way, and use malloc?
-		setup_space(gd->arch.rk_extra_buf_addr);
-	
-		char tmp_buf[30];
-		if (getSn(tmp_buf)) {
-			tmp_buf[sizeof(tmp_buf)-1] = 0;
-			setenv("fbt_sn#", tmp_buf);
-		}
-		fbt_preboot();
-		return 0;
+	//TODO:set those buffers in a better way, and use malloc?
+	setup_space(gd->arch.rk_extra_buf_addr);
 
+	char tmp_buf[30];
+	if (getSn(tmp_buf)) {
+		tmp_buf[sizeof(tmp_buf)-1] = 0;
+		setenv("fbt_sn#", tmp_buf);
+	}
+	fbt_preboot();
 	return 0;
 }
 #endif
+

@@ -13,7 +13,7 @@ Revision:       1.00
 ********************************************************************************/
 #define IN_FW_Upgrade
 #include <cmd_rockusb.h>
-#include <asm/arch/drivers.h>
+#include <asm/arch/rkplat.h>
 DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_RK_UDC)
 #include <usb/dwc_otg_udc.h>

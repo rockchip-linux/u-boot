@@ -28,6 +28,7 @@
 **                      common head files                           *
 ********************************************************************/
 #include <common.h>
+#include <fdtdec.h>
 #include <asm/io.h>
 #include <asm/errno.h>
 
@@ -39,12 +40,14 @@
 #include "irqs.h"
 #include "gpio.h"
 #include "iomux.h"
+#include "reg.h"
 
 #include "clock.h"
-
+#include "uart.h"
+#include "pwm.h"
 #include "rk_i2c.h"
 
-#include "uart.h"
+
 
 #endif /* __RKPLAT_H */
 

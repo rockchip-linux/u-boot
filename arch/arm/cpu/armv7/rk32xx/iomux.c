@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2008-2014 Rockchip Electronics
- * rockchips iomux driver
+ * zyw, rockchips iomux driver
  *
  * See file CREDITS for list of people who contributed to this
  * project.

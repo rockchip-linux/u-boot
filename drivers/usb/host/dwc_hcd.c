@@ -5,12 +5,11 @@
 #include <asm/unaligned.h>
 #include <usb.h>
 #include <asm/io.h>
-#include <asm/arch/gpio.h>
 #include <malloc.h>
 #include <watchdog.h>
 #include <linux/compiler.h>
 
-#include <asm/arch/drivers.h>
+#include <asm/arch/rkplat.h>
 
 #include "../gadget/dwc_otg_regs.h"
 

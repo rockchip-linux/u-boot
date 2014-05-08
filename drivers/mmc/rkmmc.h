@@ -1,6 +1,6 @@
 
 #include <common.h>
-#include <asm/arch/drivers.h>
+#include <asm/arch/rkplat.h>
 
 #define BIT(nr)			(1UL << (nr))
 

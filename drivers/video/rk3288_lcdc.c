@@ -11,9 +11,7 @@ Revision:       1.00
 
 #include <common.h>
 #include <lcd.h>
-#include <asm/arch/drivers.h>
-#include <asm/arch/iomux.h>
-#include <asm/arch/grf.h>
+#include <asm/arch/rkplat.h>
 
 
 #define LcdReadBit(addr, msk)      ((regbak.addr=preg->addr)&(msk))

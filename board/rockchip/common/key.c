@@ -1,6 +1,5 @@
 
-#include <asm/arch/drivers.h>
-#include <asm/arch/gpio.h>
+#include <asm/arch/rkplat.h>
 #include <common.h>
 #include "key.h"
 

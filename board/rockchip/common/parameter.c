@@ -1,9 +1,8 @@
 #include <common.h>
-#include <asm/arch/drivers.h>
 #include <linux/string.h>
 #include <malloc.h>
-#include "parameter.h"
 #include "../common/config.h"
+#include "parameter.h"
 #include "storage.h"
 
 extern uint32 krnl_load_addr;

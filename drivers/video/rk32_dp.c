@@ -14,7 +14,7 @@
  */
 #include <common.h>
 #include <lcd.h>
-#include <asm/arch/drivers.h>
+#include <asm/arch/rkplat.h>
 #include "rk32_dp.h"
 
 #if defined(CONFIG_OF)

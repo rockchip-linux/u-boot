@@ -1,11 +1,31 @@
-#ifndef __RK32XX_PWM_H_
-#define __RK32XX_PWM_H_
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+#ifndef __RK_PWM_H_
+#define __RK_PWM_H_
 
-#ifdef CONFIG_RK3288SDK
-#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+RKIO_RK_PWM_PHYS+id*0x10)=val)
-#else
-#define write_pwm_reg(id, addr, val)        (*(unsigned long *)(addr+(PWM01_BASE_ADDR+(id>>1)*0x20000)+id*0x10)=val)
-#endif
+#include "typedef.h"
+
+#define write_pwm_reg(id, addr, val)	(*(unsigned long *)(addr+RKIO_RK_PWM_PHYS+id*0x10)=val)
+
 
 #define RK_PWM_DISABLE                  (0 << 0) 
 #define RK_PWM_ENABLE                   (1 << 0)
@@ -57,5 +77,8 @@ struct pwm_bl {
 	unsigned int dft_brightness;
 	u32 *levels;
 };
+
 extern int rk_pwm_config(int brightness);
-#endif
+
+#endif /* __RK_PWM_H_ */
+

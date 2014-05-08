@@ -14,10 +14,8 @@ Revision:       1.00
 #include <lcd.h>
 #include <power/pmic.h>
 #include <version.h>
-#include <asm/arch/rk_i2c.h>
-#include <asm/arch/gpio.h>
 #include <fdtdec.h>
-#include <asm/arch/clock.h>
+#include <asm/arch/rkplat.h>
 #include <errno.h>
 #include <fdt_support.h>
 

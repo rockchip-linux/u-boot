@@ -27,8 +27,7 @@
 #include <spi.h>
 #include <asm/errno.h>
 #include <asm/io.h>
-#include <asm/arch/iomux.h>
-#include <asm/arch/rk30_drivers.h>
+#include <asm/arch/rkplat.h>
 #include "rk_spi.h"
 
 static void rkspi_dump_regs(struct rk_spi_slave *spi) {

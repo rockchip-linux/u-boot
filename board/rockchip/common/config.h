@@ -78,32 +78,18 @@ Revision:		1.00
 #define PRINT_E PRINTF
 #define PRINT_W PRINTF
 #define RkPrintf PRINTF
-#include "../include/config.h"
-//#include    <string.h>
-//#include    <stdlib.h>
-//#include    <stdarg.h>
-#include <asm/arch/drivers.h>
+
+#include <common.h>
+#include <asm/arch/rkplat.h>
 
 //平台无关头文件
 #include    "storage.h"
-//#include    "../common/debug.h"
 
 //平台相关头文件
 #include    "chipDepend.h"
 
 //系统相关头文件
 #include    "parameter.h"
-
-
-#if 0
-#ifdef  DRIVERS_FLASH
-#include    "FlashBoot.h"
-#include 	"flash.h"	//FLASH头文件
-#include 	"ftl.h"	//FTL头文件
-#include    "LoaderFlash.h"
-#include    "FTL_OSDepend.h"
-#endif
-#endif
 
 
 
@@ -136,15 +122,6 @@ extern uint32 SecureBootCheckOK;
 extern uint32 g_BootRockusb;
 extern uint32  SecureBootLock;
 extern uint32  SecureBootLock_backup;
-
-//#include            "rockusb/dwc_otg_regs.h"
-//#include 		    "rockusb/rockusb.h"  //固件升级头文件
-//#include            "gpio_oper.h"
-//#include            "bootloader.h"
-#include			"parameter.h"	// Loader参数文件
-//#include			"../common/rk_dbg.h"		// debug file
-//#include            "hw_mm.h" // MMU
-//#include            "../common/A8MMU/hwapi_Cache.h" // MMU
 
 
 // by cmy
