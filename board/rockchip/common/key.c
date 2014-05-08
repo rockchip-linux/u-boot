@@ -26,13 +26,6 @@ key_config		key_recovery;
 key_config		key_fastboot;
 key_config      key_power;
 
-static inline unsigned int get_duration(unsigned int base) {
-    unsigned int max = 0xFFFFFFFF;
-    unsigned int now = get_rk_current_tick();
-	unsigned int tick_duration = base >= now? base - now : max - (base - now) + 1;
-	return tick_duration/(CONFIG_SYS_CLK_FREQ/CONFIG_SYS_HZ);//tick_to_time(tick_duration);
-}
-
 
 /*
     固定GPIOA_0口作为烧写检测口,系统部分不能使用该口
@@ -68,21 +61,6 @@ int GetPortState(key_config *key)
         write_XDATA32( adc->ctrl, 0);
         return (hCnt>8);
     }
-    else if(key->type == KEY_INT)
-	{
-		if(ioint->press_time)
-		{
-            //still pressed
-			if(get_duration(ioint->press_time)>LONE_PRESS_TIME) {
-                //update state, if it's a long press.
-                ioint->pressed_state = KEY_LONG_PRESS;
-            }
-		}
-        //return and reset state.
-        int type = ioint->pressed_state;
-        ioint->pressed_state = 0;
-        return type;		
-	}
 }
 
 
