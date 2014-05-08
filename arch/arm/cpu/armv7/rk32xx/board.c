@@ -61,8 +61,6 @@ int board_late_init(void)
 		get_bootloader_ver(NULL);
 		//printf("#Boot ver: %s\n", bootloader_ver);
 
-		getParameter();
-	
 		//TODO:set those buffers in a better way, and use malloc?
 		setup_space(gd->arch.rk_extra_buf_addr);
 	

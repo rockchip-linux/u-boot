@@ -52,21 +52,21 @@ int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 	return 0;
 }
 
-int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, \
-		fbt_partition_t *kernel_ptn)
+int loadRkImage(struct fastboot_boot_img_hdr *hdr, const disk_partition_t *boot_ptn, \
+		const disk_partition_t *kernel_ptn)
 {
 	size_t image_size;
 	if(!boot_ptn || !kernel_ptn) {
 		return -1;
 	}
-	if (loadImage(boot_ptn->offset, (unsigned char *)hdr->ramdisk_addr, \
+	if (loadImage(boot_ptn->start, (unsigned char *)hdr->ramdisk_addr, \
 				&image_size) != 0) {
 		printf("load boot image failed\n");
 		return -1;
 	}
 	hdr->ramdisk_size = image_size;
 
-	if (loadImage(kernel_ptn->offset, (unsigned char *)hdr->kernel_addr, \
+	if (loadImage(kernel_ptn->start, (unsigned char *)hdr->kernel_addr, \
 				&image_size) != 0) {
 		printf("load kernel image failed\n");
 		return -1;
@@ -195,7 +195,7 @@ static int unsparse(unsigned char *source,
 }
 
 
-int handleFlash(fbt_partition_t *ptn, void *image_start_ptr, loff_t d_bytes)
+int handleFlash(const disk_partition_t *ptn, void *image_start_ptr, loff_t d_bytes)
 {
 	unsigned blocks;
 	if (!ptn) return -1;
@@ -208,19 +208,17 @@ int handleFlash(fbt_partition_t *ptn, void *image_start_ptr, loff_t d_bytes)
 			== SPARSE_HEADER_MAGIC) {
 		FBTDBG("fastboot: %s is in sparse format\n", ptn->name);
 		return unsparse(image_start_ptr,
-				ptn->offset, ptn->size_kb);
+				ptn->start, ptn->size * ptn->blksz >> 10);
 	}
 
 	blocks = DIV_ROUND_UP(d_bytes, RK_BLK_SIZE);
-	return CopyMemory2Flash((uint32)image_start_ptr, ptn->offset, blocks);
+	return CopyMemory2Flash((uint32)image_start_ptr, ptn->start, blocks);
 }
 
-int handleErase(fbt_partition_t *ptn)
+int handleErase(const disk_partition_t *ptn)
 {
-	unsigned blocks;
 	if (!ptn) return -1;
-	blocks = DIV_ROUND_UP(ptn->size_kb << 10, RK_BLK_SIZE);
-	return StorageEraseBlock(ptn->offset, blocks, 1);
+	return StorageEraseBlock(ptn->start, ptn->size, 1);
 }
 
 #define PARAMETER_HEAD_OFFSET   8
@@ -477,7 +475,7 @@ fail:
 	return false;
 }
 
-int handleRkFlash(const char *name, fbt_partition_t *ptn,
+int handleRkFlash(const char *name, const disk_partition_t *ptn,
 		struct cmd_fastboot_interface *priv)
 {
 	if (!strcmp(PARAMETER_NAME, name))
@@ -497,7 +495,6 @@ int handleRkFlash(const char *name, fbt_partition_t *ptn,
 		}
 		if (!ret)
 		{
-			getParameter();
 			goto ok;
 		}
 		goto fail;
@@ -522,16 +519,16 @@ int handleRkFlash(const char *name, fbt_partition_t *ptn,
 		}
 		FBTDBG("accelerated download, ptn:%s, target:%s\n",
 				priv->pending_ptn->name, name);
-		if (!strcmp(priv->pending_ptn->name, name) && priv->d_status > 0)
+		if (!strcmp((const char*)priv->pending_ptn->name, name) && priv->d_status > 0)
 			goto ok;
 		goto fail;
-	} else if (!strcmp(priv->pending_ptn->name, RECOVERY_NAME) ||
-			!strcmp(priv->pending_ptn->name, BOOT_NAME)) {
+	} else if (!strcmp((const char*)priv->pending_ptn->name, RECOVERY_NAME) ||
+			!strcmp((const char*)priv->pending_ptn->name, BOOT_NAME)) {
 		//flash boot/recovery.
 		if (!checkBootImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
 			goto fail;
 		}
-	} else if (!strcmp(priv->pending_ptn->name, UBOOT_NAME)) {
+	} else if (!strcmp((const char*)priv->pending_ptn->name, UBOOT_NAME)) {
 		//flash uboot
 		if (!checkUbootImageSign((second_loader_hdr *)priv->transfer_buffer)) {
 			goto fail;
@@ -572,7 +569,7 @@ int handleDirectDownload(unsigned char *buffer,
 	FBTDBG("direct download, size:%d, offset:%lld, rest:%lld\n",
 			size, priv->d_direct_offset, priv->d_direct_size - write_len);
 
-	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->offset,
+	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->start,
 				buffer, blocks, 0)) {
 		FBTDBG("handleDirectDownload failed\n");
 		return -1;
@@ -762,13 +759,13 @@ int startDownload(unsigned char *buffer,
 int handleDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
-	if (!priv->pending_ptn || !priv->pending_ptn->offset) {
+	if (!priv->pending_ptn || !priv->pending_ptn->start) {
 		//fastboot flash with "-u" opt? or no parameter?
 		if (!priv->pending_ptn) {
 			FBTDBG("no pending_ptn\n");
 		} else {
 			FBTDBG("pending ptn(%s) offset:%x\n", priv->pending_ptn->name,
-					priv->pending_ptn->offset);
+					priv->pending_ptn->start);
 		}
 		priv->d_status = -1;
 		return 0;

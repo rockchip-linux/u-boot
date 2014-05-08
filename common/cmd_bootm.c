@@ -1977,7 +1977,7 @@ int rk_bootm_start(bootm_headers_t *images)
         rk_fdt_resource_load();
     }
 
-	images->ft_addr = gd->fdt_blob;//content.load_addr;
+	images->ft_addr = (void*)gd->fdt_blob;//content.load_addr;
     images->ft_len = getenv_hex("fdtsize", 0);//content.content_size;
 #endif
 

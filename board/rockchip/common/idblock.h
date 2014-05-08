@@ -275,7 +275,6 @@ typedef struct tag_rk_boot_img_hdr {
 int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked);
 int fixHdr(struct fastboot_boot_img_hdr *hdr);
 int getSn(char* buf);
-void getParameter(void);
 int setBootloaderMsg(struct bootloader_message* bmsg);
 int checkMisc(void);
 void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz);

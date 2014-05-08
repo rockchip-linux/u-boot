@@ -25,9 +25,6 @@ extern void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
 extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
 extern int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
-struct fbt_partition fbt_partitions[FBT_PARTITION_MAX_NUM];
-char PRODUCT_NAME[20] = FASTBOOT_PRODUCT_NAME;
-
 #if !defined(CONFIG_FASTBOOT_NO_FORMAT)
 static int do_format(void)
 {
@@ -196,11 +193,11 @@ void board_fbt_finalize_bootargs(char* args, int buf_sz,
 	snprintf(args, buf_sz, "%s", gBootInfo.cmd_line);
 	//TODO:setup serial_no/device_id/mac here?
 }
-int board_fbt_handle_erase(fbt_partition_t *ptn)
+int board_fbt_handle_erase(const disk_partition_t *ptn)
 {
 	return handleErase(ptn);
 }
-int board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
+int board_fbt_handle_flash(const char *name, const disk_partition_t *ptn,
 		struct cmd_fastboot_interface *priv)
 {
 	return handleRkFlash(name, ptn, priv);
@@ -240,3 +237,40 @@ void board_fbt_boot_failed(const char* boot)
 	//startRockusb();
 	do_rockusb(NULL, 0, 0, NULL);
 }
+
+int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition) {
+	memset((void*)ptable, 0, sizeof(disk_partition_t) * max_partition);
+
+    int i = 0;
+	int ret = -1;
+    cmdline_mtd_partition *cmd_mtd;
+    PLoaderParam param = (PLoaderParam)malloc(MAX_LOADER_PARAM * PARAMETER_NUM);
+    if (!GetParam(0, param)) {
+        ParseParam( &gBootInfo, param->parameter, param->length );
+        cmd_mtd = &(gBootInfo.cmd_mtd);
+        for(i = 0;i < cmd_mtd->num_parts;i++) {
+			if (i >= max_partition) {
+				printf("Failed to load partition table, too much partition:%d(%d)\n",
+						cmd_mtd->num_parts, max_partition);
+				goto end;
+			}
+			snprintf((char*)ptable[i].name, sizeof(ptable[i].name), "%s",
+					cmd_mtd->parts[i].name);
+			ptable[i].start = cmd_mtd->parts[i].offset;
+			ptable[i].size = cmd_mtd->parts[i].size;
+			ptable[i].blksz = RK_BLK_SIZE;
+			snprintf((char*)ptable[i].type, sizeof(ptable[i].type), "%s", "raw");
+#if 1
+            printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
+                    cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
+                    cmd_mtd->parts[i].size);
+#endif
+        }
+		ret = 0;
+    }
+end:
+	if (param)
+		free(param);
+	return ret;
+}
+

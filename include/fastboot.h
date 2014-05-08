@@ -61,6 +61,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <part.h>
 
 /* This is the interface file between the common cmd_fastboot.c and
    the board specific support.
@@ -139,7 +140,7 @@ typedef struct chunk_header {
  */
 /* end sparse things */
 
-#define PARTITION_NAME_SIZE 16
+#define FBT_MAX_PARTITION_NAME_LEN 16
 #define USB_MAX_TRANS_SIZE  0x20000
 struct cmd_fastboot_interface {
 
@@ -150,8 +151,8 @@ struct cmd_fastboot_interface {
 	char *serial_no;
 
 	//fastboot likely to query partition-type before do flash.
-	struct fbt_partition *pending_ptn;
-	char pending_ptn_name[PARTITION_NAME_SIZE];
+	const disk_partition_t *pending_ptn;
+	char pending_ptn_name[FBT_MAX_PARTITION_NAME_LEN];
 
 	/* Transfer buffer, for handling flash updates
 	   Should be multiple of the block size
@@ -242,17 +243,7 @@ struct cmd_fastboot_interface {
 #define FASTBOOT_BOOT_NAME_SIZE 16
 #define FASTBOOT_BOOT_ARGS_SIZE 512
 
-
-/* in a board specific file */
-typedef struct fbt_partition {
-	const char *name;
-	unsigned offset;
-	unsigned size_kb;
-} fbt_partition_t;
-
-extern struct fbt_partition fbt_partitions[];
-
-#define FBT_PARTITION_MAX_NUM 16
+#define FBT_MAX_PARTITION_NUM 16
 
 #define PARAMETER_NAME  "parameter"
 #define LOADER_NAME     "loader"
@@ -315,14 +306,15 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void);
 int board_fbt_key_pressed(void);
 void board_fbt_finalize_bootargs(char* args, int buf_sz, 
 		int ramdisk_addr, int ramdisk_sz, int recovery);
-int board_fbt_handle_erase(fbt_partition_t *ptn);
-int board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
+int board_fbt_handle_erase(const disk_partition_t *ptn);
+int board_fbt_handle_flash(const char *name, const disk_partition_t *ptn,
 		struct cmd_fastboot_interface *priv);
 int board_fbt_handle_download(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv);
 int board_fbt_check_misc(void);
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
-struct fbt_partition *fastboot_find_ptn(const char *name);
+const disk_partition_t *fastboot_find_ptn(const char *name);
+int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition);
 
 #define FBT_ERR
 #undef  FBT_WARN
@@ -356,8 +348,6 @@ struct fbt_partition *fastboot_find_ptn(const char *name);
 #else
 #define FBTERR(fmt, args...) do {} while (0)
 #endif
-
-extern char PRODUCT_NAME[20];
 
 #endif /* CONFIG_CMD_FASTBOOT */
 #endif /* FASTBOOT_H */

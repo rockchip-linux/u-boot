@@ -35,10 +35,10 @@
 #include <../board/rockchip/common/storage.h>
 
 static int inline get_ptn_offset(void) {
-	fbt_partition_t* ptn = fastboot_find_ptn(RESOURCE_NAME);
+	const disk_partition_t* ptn = fastboot_find_ptn(RESOURCE_NAME);
 	if (!ptn)
 		return 0;
-	return ptn->offset;
+	return ptn->start;
 }
 
 static bool get_entry(const char* file_path, index_tbl_entry* entry) {

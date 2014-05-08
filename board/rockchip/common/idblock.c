@@ -855,13 +855,13 @@ int checkMisc() {
 	struct bootloader_message *bmsg = NULL;
 	unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
 			RK_BLK_SIZE) * RK_BLK_SIZE];
-	fbt_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
+	const disk_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
 	if (!ptn) {
 		printf("misc partition not found!\n");
 		return false;
 	}
 	bmsg = (struct bootloader_message *)buf;
-	if (StorageReadLba(ptn->offset + MISC_COMMAND_OFFSET, buf, DIV_ROUND_UP(
+	if (StorageReadLba(ptn->start + MISC_COMMAND_OFFSET, buf, DIV_ROUND_UP(
 					sizeof(struct bootloader_message), RK_BLK_SIZE)) != 0) {
 		printf("failed to read misc\n");
 		return false;
@@ -881,38 +881,14 @@ int setBootloaderMsg(struct bootloader_message* bmsg)
 	unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
 			RK_BLK_SIZE) * RK_BLK_SIZE];
 	memcpy(buf, bmsg, sizeof(struct bootloader_message));
-	fbt_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
+	const disk_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
 	if (!ptn) {
 		printf("misc partition not found!\n");
 		return -1;
 	}
 
-	return CopyMemory2Flash((uint32)&buf, ptn->offset + MISC_COMMAND_OFFSET,
+	return CopyMemory2Flash((uint32)&buf, ptn->start + MISC_COMMAND_OFFSET,
 			DIV_ROUND_UP(sizeof(struct bootloader_message), RK_BLK_SIZE));
-}
-
-void getParameter() {
-	int i = 0;
-	cmdline_mtd_partition *cmd_mtd;
-	PLoaderParam param = (PLoaderParam)malloc(MAX_LOADER_PARAM * PARAMETER_NUM);
-	if (!GetParam(0, param)) {
-		ParseParam( &gBootInfo, param->parameter, param->length );
-		cmd_mtd = &(gBootInfo.cmd_mtd);
-		for(i = 0;i < cmd_mtd->num_parts;i++) {
-			fbt_partitions[i].name = strdup(cmd_mtd->parts[i].name);
-			fbt_partitions[i].offset = cmd_mtd->parts[i].offset;
-			if (cmd_mtd->parts[i].size == SIZE_REMAINING) {
-				fbt_partitions[i].size_kb = SIZE_REMAINING;
-			} else {
-				fbt_partitions[i].size_kb = cmd_mtd->parts[i].size >> 1;
-			}
-#if 1
-			printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
-					cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
-					cmd_mtd->parts[i].size);
-#endif
-		}
-	}
 }
 
 #define IDBLOCK_SN          3//the sector 3

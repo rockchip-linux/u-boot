@@ -326,8 +326,6 @@ int ParseAtoi( const char * line )
     return v;
 }
 
-extern char PRODUCT_NAME[20];
-
 void ParseLine(PBootInfo pboot_info, char *line)
 {
 	if( !memcmp(line, "MAGIC:", strlen("MAGIC:")) )

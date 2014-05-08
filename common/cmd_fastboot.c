@@ -268,6 +268,8 @@ static char* log_buffer;
 static uint32_t log_position;
 #endif
 
+static disk_partition_t fbt_partitions [FBT_MAX_PARTITION_NUM];
+
 #ifdef CONFIG_ROCKCHIP
 extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
 extern int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec);
@@ -593,20 +595,20 @@ static void create_serial_number(void)
 	}
 }
 
-fbt_partition_t *fastboot_find_ptn(const char *name)
+const disk_partition_t *fastboot_find_ptn(const char *name)
 {
 	unsigned int i;
 
-	for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
-		if (!fbt_partitions[i].name)
+	for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
+		if (!fbt_partitions[i].name[0])
 			break;
 		if (!strcmp((char *)fbt_partitions[i].name, name))
-			return fbt_partitions + i;
+			return &fbt_partitions[i];
 	}
 
 	FBTERR("partition(%s) not found, aborting\ntable:\n", name);
-	for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
-		if (!fbt_partitions[i].name)
+	for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
+		if (!fbt_partitions[i].name[0])
 			break;
 		FBTDBG("partition(%s)\n", fbt_partitions[i].name);
 	}
@@ -677,7 +679,8 @@ static void fbt_fastboot_init(void)
 	else
 		FBTDBG("Device is locked\n");
 
-	//TODO:check parameter, if no parameter, set flag to let some fbt cmds failed.
+	(void)board_fbt_load_partition_table((disk_partition_t *)&fbt_partitions,
+			FBT_MAX_PARTITION_NUM);
 
 	//TODO:load device info, setup serial_number
 	if (priv.serial_no == NULL)
@@ -687,7 +690,7 @@ static void fbt_fastboot_init(void)
 
 static int fbt_handle_erase(char *cmdbuf)
 {
-	fbt_partition_t *ptn;
+	const disk_partition_t *ptn;
 	int err;
 	char *partition_name = cmdbuf + 6;
 	ptn = fastboot_find_ptn(partition_name);
@@ -699,8 +702,8 @@ static int fbt_handle_erase(char *cmdbuf)
 
 	FBTDBG("Erasing partition '%s':\n", ptn->name);
 
-	FBTDBG("\tstart blk %u, blk_cnt %u\n", ptn->offset,
-			ptn->size_kb);
+	FBTDBG("\tstart blk %u, blk_cnt %u\n", ptn->start,
+			ptn->size);
 
 	err = board_fbt_handle_erase(ptn);
 	if (err) {
@@ -716,7 +719,7 @@ static int fbt_handle_erase(char *cmdbuf)
 
 static int fbt_handle_flash(char *cmdbuf, int check_unlock)
 {
-	fbt_partition_t *ptn;
+	const disk_partition_t *ptn;
 	const char *name = cmdbuf + 6;
 
 	if (check_unlock && !priv.unlocked) {
@@ -734,6 +737,11 @@ static int fbt_handle_flash(char *cmdbuf, int check_unlock)
 	ptn = fastboot_find_ptn(name);
 	if (!board_fbt_handle_flash(name, ptn, &priv)) {
 		sprintf(priv.response, "OKAY");
+
+		//reload partition after flash.
+		(void)board_fbt_load_partition_table((disk_partition_t *)&fbt_partitions,
+				FBT_MAX_PARTITION_NUM);
+
 		return 0;
 	}
 	sprintf(priv.response,
@@ -777,10 +785,6 @@ static const char *getvar_secure(const char *unused)
 
 static const char *getvar_product(const char *unused)
 {
-#ifdef CONFIG_ROCKCHIP
-    if (PRODUCT_NAME && PRODUCT_NAME[0])
-        return PRODUCT_NAME;
-#endif
 	return FASTBOOT_PRODUCT_NAME;
 }
 
@@ -792,20 +796,15 @@ static const char *getvar_serialno(const char *unused)
 static const char *getvar_partition_type(const char *args)
 {
 	const char *partition_name;
-	fbt_partition_t *ptn;
-	/**
-	 * we cannot get partition type right now, so just return raw,
-	 * and skip format command.
-	 */
-	const char *type = "raw";
+	const disk_partition_t *ptn;
 
 	if (!strcmp(args, "all")) {
 		int i;
-		for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
-			if (!fbt_partitions[i].name)
+		for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
+			if (!fbt_partitions[i].name[0])
 				break;
 			FBTDBG("partition \"%s\" has type \"%s\"\n",
-					fbt_partitions[i].name, type);
+					fbt_partitions[i].name, fbt_partitions[i].type);
 		}
 		return NULL;
 	}
@@ -819,7 +818,7 @@ static const char *getvar_partition_type(const char *args)
 	if (ptn) {
 		FBTDBG("fastboot pending_ptn:%s\n", ptn->name);
 		priv.pending_ptn = ptn;
-		return type;
+		return (char*)ptn->type;
 	}
 	snprintf(priv.response, sizeof(priv.response),
 			"FAILunknown partition %s\n", partition_name);
@@ -912,16 +911,16 @@ static const char *getvar_checksum(const char *args)
 static const char *getvar_partition_offset(const char *args)
 {
 	const char *partition_name;
-	fbt_partition_t *ptn;
+	const disk_partition_t *ptn;
 
 	if (!strcmp(args, "all")) {
 		int i;
-		for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
-			if (!fbt_partitions[i].name)
+		for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
+			if (!fbt_partitions[i].name[0])
 				break;
 			FBTDBG("partition \"%s\" offset 0x%08llx\n",
 					fbt_partitions[i].name,
-					(uint64_t)fbt_partitions[i].offset);
+					(uint64_t)fbt_partitions[i].start);
 		}
 		return NULL;
 	}
@@ -930,7 +929,7 @@ static const char *getvar_partition_offset(const char *args)
 	ptn = fastboot_find_ptn(partition_name);
 	if (ptn) {
 		snprintf(priv.response, sizeof(priv.response),
-				"OKAY0x%08llx", (uint64_t)ptn->offset);
+				"OKAY0x%08llx", (uint64_t)ptn->start);
 	} else {
 		snprintf(priv.response, sizeof(priv.response),
 				"FAILunknown partition %s\n", partition_name);
@@ -942,16 +941,16 @@ static const char *getvar_partition_offset(const char *args)
 static const char *getvar_partition_size(const char *args)
 {
 	const char *partition_name;
-	fbt_partition_t *ptn;
+	const disk_partition_t *ptn;
 
 	if (!strcmp(args, "all")) {
 		int i;
-		for (i = 0; i < FBT_PARTITION_MAX_NUM; i++) {
-			if (!fbt_partitions[i].name)
+		for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
+			if (!fbt_partitions[i].name[0])
 				break;
-			FBTDBG("partition \"%s\" has size 0x%016llx kb\n",
+			FBTDBG("partition \"%s\" has size 0x%016llx(blk)\n",
 					fbt_partitions[i].name,
-					(uint64_t)fbt_partitions[i].size_kb);
+					(uint64_t)fbt_partitions[i].size);
 		}
 		return NULL;
 	}
@@ -960,7 +959,7 @@ static const char *getvar_partition_size(const char *args)
 	ptn = fastboot_find_ptn(partition_name);
 	if (ptn) {
 		snprintf(priv.response, sizeof(priv.response),
-				"OKAY0x%016llx kb", (uint64_t)ptn->size_kb);
+				"OKAY0x%016llx(blk)", (uint64_t)ptn->size);
 	} else {
 		snprintf(priv.response, sizeof(priv.response),
 				"FAILunknown partition %s\n", partition_name);
@@ -1221,7 +1220,7 @@ static void fbt_handle_oem(char *cmdbuf)
 		}
 		priv.unlock_pending_start_time = 0;
 		FBTDBG("Erasing userdata partition\n");
-		fbt_partition_t* ptn;
+		const disk_partition_t* ptn;
 		ptn = fastboot_find_ptn("userdata");
 		if (ptn) {
 			err = board_fbt_handle_erase(ptn);
@@ -1682,11 +1681,11 @@ static void __def_board_fbt_finalize_bootargs(char* args, int buf_sz,
 {
 	return;
 }
-static int __def_board_fbt_handle_erase(fbt_partition_t *ptn)
+static int __def_board_fbt_handle_erase(const disk_partition_t *ptn)
 {
 	return 0;
 }
-static int __def_board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
+static int __def_board_fbt_handle_flash(const char *name, const disk_partition_t *ptn,
 		struct cmd_fastboot_interface *priv)
 {
 	return 0;
@@ -1732,9 +1731,9 @@ int board_fbt_key_pressed(void)
 void board_fbt_finalize_bootargs(char* args, int buf_sz,
 		int ramdisk_addr, int ramdisk_sz, int recovery)
 __attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
-int board_fbt_handle_erase(fbt_partition_t *ptn)
+int board_fbt_handle_erase(const disk_partition_t *ptn)
 	__attribute__((weak, alias("__def_board_fbt_handle_erase")));
-int board_fbt_handle_flash(const char *name, fbt_partition_t *ptn,
+int board_fbt_handle_flash(const char *name, const disk_partition_t *ptn,
 		struct cmd_fastboot_interface *priv)
 __attribute__((weak, alias("__def_board_fbt_handle_flash")));
 int board_fbt_handle_download(unsigned char *buffer,
@@ -1849,7 +1848,7 @@ static void bootimg_print_image_hdr(struct fastboot_boot_img_hdr *hdr)
 }
 
 #ifdef CONFIG_ROCKCHIP
-extern int loadRkImage(struct fastboot_boot_img_hdr *hdr, fbt_partition_t *boot_ptn, fbt_partition_t *kernel_ptn);
+extern int loadRkImage(struct fastboot_boot_img_hdr *hdr, const disk_partition_t *boot_ptn, const disk_partition_t *kernel_ptn);
 #endif
 
 /* booti [ <addr> | <partition> ] */
@@ -1857,7 +1856,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	char *boot_source = "boot";
 	struct fastboot_boot_img_hdr *hdr = NULL;
-	fbt_partition_t* ptn;
+	const disk_partition_t* ptn;
 	bootm_headers_t images;
 
 	bool charge = false;
@@ -1871,7 +1870,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	ptn = fastboot_find_ptn(boot_source);
 	if (ptn) {
-		unsigned long blksz = RK_BLK_SIZE;
+		unsigned long blksz = ptn->blksz;
 		unsigned sector;
 		unsigned blocks;
 		hdr = malloc(blksz << 2);
@@ -1879,7 +1878,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			FBTERR("error allocating blksz(%lu) buffer\n", blksz);
 			goto fail;
 		}
-		if (StorageReadLba(ptn->offset, (void *) hdr, 1 << 2) != 0) {
+		if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
 			FBTERR("booti: failed to read bootimg header\n");
 			goto fail;
 		}
@@ -1906,7 +1905,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				goto fail;
 			}
 #endif
-			sector = ptn->offset + (hdr->page_size / blksz);
+			sector = ptn->start + (hdr->page_size / blksz);
 			blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
 			if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
 						blocks) != 0) {
@@ -2158,7 +2157,6 @@ void fbt_preboot(void)
         rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
     }
 #endif
-
 #endif// CONFIG_ROCKCHIP
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
