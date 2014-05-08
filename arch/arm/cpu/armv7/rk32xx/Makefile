@@ -15,6 +15,6 @@ obj-y	+= board.o
 obj-y	+= irqs.o
 obj-y	+= ddr.o
 obj-y	+= lowlevel_init.o
-obj-y   += pwm.o
+obj-$(CONFIG_RK_PWM)   += pwm.o
 obj-y   += iomux.o
 obj-y   += reset.o

@@ -287,6 +287,7 @@
 #define CONFIG_LCD
 
 #ifdef CONFIG_LCD
+#define CONFIG_RK_PWM
 #define CONFIG_RK_FB
 #define CONFIG_LCD_LOGO
 //#define CONFIG_CMD_CHARGE_ANIM
