@@ -2158,7 +2158,7 @@ void fbt_preboot(void)
         rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
     }
 #endif
-	do_reset(NULL, 0, 0, NULL);
+	rk_i2c_soft_reset();
 #endif// CONFIG_ROCKCHIP
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
