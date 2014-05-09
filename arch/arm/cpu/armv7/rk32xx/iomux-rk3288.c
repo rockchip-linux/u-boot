@@ -145,3 +145,18 @@ static void rk_uart_iomux_config(int uart_id)
 	}
 }
 
+
+static void rk_emmc_iomux_config(int emmc_id)
+{
+	switch (emmc_id) {
+		case RK_EMMC_IOMUX:
+			grf_writel((0xFFFF << 16) | 0xAAAA, GRF_GPIO3A_IOMUX); // emmc data0-7
+			grf_writel((0x000C << 16) | 0x0008, GRF_GPIO3B_IOMUX); // emmc pwren
+			grf_writel((0x003F << 16) | 0x002A, GRF_GPIO3C_IOMUX); // emmc cmd, emmc rstn out, emmc clkout
+			break;
+		default:
+			debug("RK have not this emmc iomux id!\n");
+			break;
+	}
+}
+
