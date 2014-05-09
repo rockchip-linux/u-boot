@@ -61,6 +61,13 @@ int rkclk_get_new_pll(void);
  */
 void rkclk_dump_pll(void);
 
+
+/*
+ * rkplat clock set codec pll
+ */
+void rkclk_set_cpll_rate(uint32 pll_hz);
+
+
 /*
  * rkplat set sd clock src
  * 0: codec pll; 1: general pll; 2: 24M

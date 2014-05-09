@@ -866,6 +866,171 @@ void rkclk_dump_pll(void)
 	printf("    codec pll = %ldHZ\n", gd->pci_clk);
 }
 
+
+#define PLL_FREF_MIN	(269*KHZ)
+#define PLL_FREF_MAX	(2200*MHZ)
+
+#define PLL_FVCO_MIN	(440*MHZ)
+#define PLL_FVCO_MAX	(2200*MHZ)
+
+#define PLL_FOUT_MIN	(27500*KHZ) 
+#define PLL_FOUT_MAX	(2200*MHZ)
+
+#define PLL_NF_MAX	(4096)
+#define PLL_NR_MAX	(64)
+#define PLL_NO_MAX	(16)
+
+
+static inline uint32 rkclk_gcd(uint32 numerator, uint32 denominator)
+{
+        uint32 a, b;
+
+        if (!numerator || !denominator) {
+                return 0;
+	}
+
+        if (numerator > denominator) {
+                a = numerator;
+                b = denominator;
+        } else {
+                a = denominator;
+                b = numerator;
+        }
+
+        while (b != 0) {
+                int r = b;
+                b = a % b;
+                a = r;
+        }
+
+        return a;
+}
+
+
+/*
+ * rkplat rkclk_cal_pll_set
+ * fin_hz: parent freq
+ * fout_hz: child freq which request
+ * nr, nf, no: pll set
+ *
+ */
+static int rkclk_cal_pll_set(unsigned long fin_hz, unsigned long fout_hz, uint32 *nr_set, uint32 *nf_set, uint32 *no_set)
+{
+	uint32 nr, nf, no, nonr;
+	uint32 nr_out, nf_out, no_out;
+	uint32 n;
+	uint32 YFfenzi;
+	uint32 YFfenmu;
+	uint64 fref, fvco, fout;
+	uint32 gcd_val = 0;
+
+	if (!fin_hz || !fout_hz || fout_hz == fin_hz) {
+		return -1;
+	}
+
+	nr_out = PLL_NR_MAX + 1;
+	no_out = 0;
+
+	gcd_val = rkclk_gcd(fin_hz, fout_hz);
+	YFfenzi = fout_hz / gcd_val;
+	YFfenmu = fin_hz / gcd_val;
+
+	for (n = 1; ; n++) {
+		nf = YFfenzi * n;
+		nonr = YFfenmu * n;
+		if (nf > PLL_NF_MAX || nonr > (PLL_NO_MAX * PLL_NR_MAX)) {
+			break;
+		}
+		for (no = 1; no <= PLL_NO_MAX; no++) {
+			if (!(no == 1 || !(no % 2))) {
+				continue;
+			}
+			if (nonr % no) {
+				continue;
+			}
+
+			nr = nonr / no;
+			if (nr > PLL_NR_MAX) {
+				continue;
+			}
+
+			fref = fin_hz / nr;
+			if (fref < PLL_FREF_MIN || fref > PLL_FREF_MAX) {
+			       continue;
+			}
+
+			fvco = fref * nf;
+			if (fvco < PLL_FVCO_MIN || fvco > PLL_FVCO_MAX) {
+				continue;
+			}
+
+			fout = fvco / no;
+			if (fout < PLL_FOUT_MIN || fout > PLL_FOUT_MAX) {
+				continue;
+			}
+
+			/* select the best from all available PLL settings */
+			if ((nr < nr_out) || ((nr == nr_out) && (no > no_out))) {
+				nr_out = nr;
+				nf_out = nf;
+				no_out = no;
+			}
+		}
+	}
+
+	/* output the best PLL setting */
+	if ((nr_out <= PLL_NR_MAX) && (no_out > 0)) {
+		if (nr_set && nf_set && no_set) {
+			*nr_set = nr_out;
+			*nf_set = nf_out;
+			*no_set = no_out;
+		}
+
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+
+/*
+ * rkplat clock set codec pll
+ */
+void rkclk_set_cpll_rate(uint32 pll_hz)
+{
+	uint32 no, nr, nf;
+	uint32 pllcon;
+
+	if (rkclk_cal_pll_set(24000000, pll_hz, &nr, &nf, &no) == 0) {
+		/* PLL enter slow-mode */
+		cru_writel(PLL_MODE_SLOW(CPLL_ID), CRU_MODE_CON);
+		/* enter rest */
+		cru_writel((PLL_RESET | PLL_RESET_W_MSK), PLL_CONS(CPLL_ID, 3));
+
+		/* pll con set */
+		pllcon = PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no);
+		cru_writel(pllcon, PLL_CONS(CPLL_ID, 0));
+
+		pllcon	= PLL_CLKF_SET(nf);
+		cru_writel(pllcon, PLL_CONS(CPLL_ID, 1));
+
+		pllcon	= PLL_CLK_BWADJ_SET(nf >> 1);
+		cru_writel(pllcon, PLL_CONS(CPLL_ID, 2));
+
+		clk_loop_delayus(5);
+		/* return form rest */
+		cru_writel(PLL_RESET_RESUME | PLL_RESET_W_MSK, PLL_CONS(CPLL_ID, 3));
+
+		clk_loop_delayus((nr*500)/24+1);
+		/* waiting for pll lock */
+		rkclk_pll_wait_lock(CPLL_ID);
+
+		/* PLL enter normal-mode */
+		cru_writel(PLL_MODE_NORM(CPLL_ID), CRU_MODE_CON);
+	}
+}
+
+
 /*
  * rkplat lcdc aclk config
  * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
