@@ -65,7 +65,7 @@ void rk_iomux_config(int iomux_id)
 		case RK_SPI1_CS1_IOMUX:
 		case RK_SPI2_CS0_IOMUX:
 		case RK_SPI2_CS1_IOMUX:
-			rk_pwm_iomux_config(iomux_id);
+			rk_spi_iomux_config(iomux_id);
 			break;
 		default :
 			printf("RK have not this iomux id!\n");

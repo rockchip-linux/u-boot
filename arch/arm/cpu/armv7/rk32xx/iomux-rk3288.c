@@ -66,6 +66,10 @@ static void rk_i2c_iomux_config(int i2c_id)
 		case RK_I2C4_IOMUX:
 			grf_writel((1<<28)|(1<<26)|(1<<12)|(1<<10), GRF_GPIO1D_IOMUX);
 			break;
+		case RK_I2C5_IOMUX:
+			grf_writel((3<<28)|(1<<12), GRF_GPIO7CL_IOMUX);
+			grf_writel((3<<16)| 1, GRF_GPIO7CH_IOMUX);
+			break;
 		default :
 			debug("RK have not this i2c iomux id!\n");
 			break;        
