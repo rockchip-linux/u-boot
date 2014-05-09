@@ -30,7 +30,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General/Codec pll freq config */
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		297 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		384 /* MHZ */
 
 
@@ -174,6 +174,7 @@ static const struct pll_clk_set gpll_clks[] = {
 	_GPLL_SET_CLKS(768000, 1,  64, 2,    2, 2, 4,				1, 2, 2, 4),
 	_GPLL_SET_CLKS(594000, 2, 198, 4,    2, 2, 4,				1, 2, 2, 4),
 	_GPLL_SET_CLKS(300000, 1,  50, 4,    1, 2, 4,				1, 1, 2, 4),
+	_GPLL_SET_CLKS(297000, 5, 198, 8,    1, 2, 4,				1, 1, 2, 4),
 };
 
 
