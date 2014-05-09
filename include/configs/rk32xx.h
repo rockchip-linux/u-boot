@@ -100,41 +100,36 @@
 
 
 /*
- *	base definition of ram addr & size
- * size should be 2^x. (like 64m/128m/256m/512m...)
-*/
+ *			Uboot memory map
+ *
+ * CONFIG_SYS_TEXT_BASE is the default address which maskrom loader uboot code.
+ * CONFIG_RKNAND_API_ADDR is the address which maskrom loader miniloader code.
+ *
+ * For RK3288:
+ *	kernel load address: CONFIG_SDRAM_PHY_START + 32M, size 16M,
+ *	miniloader code load address: CONFIG_SDRAM_PHY_START + 48M, size 8M,
+ *	total reverse memory is CONFIG_LMB_RESERVE_MEMORY_SIZE.
+ *
+ *|---------------------------------------------------------------------------|
+ *|START  -  KERNEL LOADER  -  NAND LOADER  -     LMB     -    Uboot    -  END|
+ *|SDRAM  -    START 32M    -   START 48M   -  START 56M  -  START 80M  - 128M|
+ *|       -     kernel      -   nand code   - ramdisk/fdt -    uboot    -     |
+ *|---------------------------------------------------------------------------|
+ */
 #define RAM_PHY_SIZE		0x08000000
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	#define RAM_PHY_START	0x00000000
-#else
-	#define RAM_PHY_START	0x60000000
-#endif
+#define RAM_PHY_START		0x00000000
 #define RAM_PHY_END             (RAM_PHY_START + RAM_PHY_SIZE)
-
 
 //define uboot loader addr.
 #ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 	//2m offset for packed nand bin.
-	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-		#define CONFIG_SYS_TEXT_BASE    0x00200000
-	#else
-		#define CONFIG_SYS_TEXT_BASE    0x60200000
-	#endif
+	#define CONFIG_SYS_TEXT_BASE    0x00200000
 #else
-	#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-		#define CONFIG_SYS_TEXT_BASE    0x00000000
-	#else
-		#define CONFIG_SYS_TEXT_BASE    0x60000000
-	#endif
+	#define CONFIG_SYS_TEXT_BASE    0x00000000
 #endif
-
 
 // rk nand api function code address 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	#define CONFIG_RKNAND_API_ADDR	(RAM_PHY_START + 0x3000000)//48M
-#else
-	#define CONFIG_RKNAND_API_ADDR	(RAM_PHY_START + 4)
-#endif
+#define CONFIG_RKNAND_API_ADDR		(RAM_PHY_START + 0x3000000)//48M
 
 
 /* input clock of PLL: has 24MHz input clock at rk30xx */
