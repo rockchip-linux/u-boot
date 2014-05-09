@@ -174,7 +174,7 @@ static const struct pll_clk_set gpll_clks[] = {
 	_GPLL_SET_CLKS(768000, 1,  64, 2,    2, 2, 4,				1, 2, 2, 4),
 	_GPLL_SET_CLKS(594000, 2, 198, 4,    2, 2, 4,				1, 2, 2, 4),
 	_GPLL_SET_CLKS(300000, 1,  50, 4,    1, 2, 4,				1, 1, 2, 4),
-	_GPLL_SET_CLKS(297000, 5, 198, 8,    1, 2, 4,				1, 1, 2, 4),
+	_GPLL_SET_CLKS(297000, 2, 198, 8,    1, 2, 4,				1, 1, 2, 4),
 };
 
 
