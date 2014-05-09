@@ -1,7 +1,4 @@
 #include "config.h"
-//#include "mk_various_file.h"
-
-extern int parse_cmdline(PBootInfo pboot_info);
 
 #ifdef USE_RECOVER
 // 将字符串string从开头开始的replen个字符，替换为字符串newstr
@@ -49,20 +46,17 @@ void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd )
 		// 修改分区表，显示parameter分区
 		if( s != NULL )
 		{
-            int i;
+			int i;
 			char replace_str[64]="";
-            //parameter is 4M.
+			//parameter is 4M.
 			sprintf(replace_str, "0x00002000@0x%08X(%s),", 0, "parameter");
 			s += strlen(szFind);
 			replace_fore_string(s, 0, replace_str);
 		}
-		// 重新解析命令行
-		//parse_cmdline(boot_info);
-		strcat(boot_info->cmd_line,rec_cmd);
-        ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|BOOT_RECOVER); //会丢失 recovery的参数
+
+		strcat(boot_info->cmd_line, rec_cmd);
+		ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|BOOT_RECOVER); //会丢失 recovery的参数
 	}
-	else
-		;//PRINT_E("Try to boot recovery system, but can't find recovery partition!\n");
 }
 #endif
 

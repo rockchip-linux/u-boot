@@ -688,31 +688,34 @@ void rsa_test(void)
     printf ("rsa_test times  %d ,rst = %x\n", endTime - startTime,rst);
 }*/
 
-unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input,unsigned char *publicKey,unsigned char inputlen)
+
+unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input, unsigned char *publicKey, unsigned char inputlen)
 {
-    unsigned char outputdata[128];
-    unsigned outputlen;
-    unsigned long rst;
-    memset(outputdata,0,80);
-    //startTime = RkldTimerGetTick();
-    rst = rsapublicfunc(outputdata,&outputlen,input,128,(R_RSA_PUBLIC_KEY *)publicKey);
-    //endTime = RkldTimerGetTick();
-    //printf ("rsa_test times  %d ,rst = %x outputlen = %d\n", endTime - startTime,rst,outputlen);
-    ftl_memcpy(output,outputdata+outputlen-20,20);
-    return rst;
+	unsigned char outputdata[128];
+	unsigned outputlen;
+	unsigned long rst;
+
+	memset(outputdata, 0, 80);
+	//startTime = RkldTimerGetTick();
+	rst = rsapublicfunc(outputdata, &outputlen, input, 128, (R_RSA_PUBLIC_KEY *)publicKey);
+	//endTime = RkldTimerGetTick();
+	//printf ("rsa_test times  %d ,rst = %x outputlen = %d\n", endTime - startTime,rst,outputlen);
+	ftl_memcpy(output, outputdata+outputlen-20, 20);
+	return rst;
 }
 
-unsigned long rsaCheckMD5(unsigned char *input,unsigned char *rawData,unsigned char *publicKey,unsigned char inputlen)
+unsigned long rsaCheckMD5(unsigned char *input, unsigned char *rawData, unsigned char *publicKey, unsigned char inputlen)
 {
-    unsigned char outputdata[128];
-    unsigned outputlen;
-    memset(outputdata,0,128);
-    rsapublicfunc(outputdata,&outputlen,input,128,(R_RSA_PUBLIC_KEY *)publicKey);
-    if(ftl_memcmp(rawData,outputdata + outputlen-32,32) == 0)
-    {
-        ftl_memcpy(input,rawData,256);
-        return 0;
-    }
-    return -1;
+	unsigned char outputdata[128];
+	unsigned outputlen;
+
+	memset(outputdata, 0, 128);
+	rsapublicfunc(outputdata, &outputlen, input, 128, (R_RSA_PUBLIC_KEY *)publicKey);
+	if(ftl_memcmp(rawData,outputdata + outputlen-32, 32) == 0)
+	{
+		ftl_memcpy(input, rawData, 256);
+		return 0;
+	}
+	return -1;
 }
 

@@ -1,11 +1,7 @@
 /*
- * (C) Copyright 2002
- * Sysgo Real-Time Solutions, GmbH <www.elinos.com>
- * Marius Groeger <mgroeger@sysgo.de>
+ * (C) Copyright 2008-2014 Rockchip Electronics
  *
- * (C) Copyright 2002
- * Sysgo Real-Time Solutions, GmbH <www.elinos.com>
- * Alex Zuepke <azu@sysgo.de>
+ * Configuation settings for the rk3xxx chip platform.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -17,39 +13,32 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
- *
- ********************************************************************
- * NOTE: This header file defines an interface to U-Boot. Including
- * this (unmodified) header file in another file is considered normal
- * use of U-Boot, and does *not* fall under the heading of "derived
- * work".
- ********************************************************************
  */
 
 #ifndef _U_BOOT_H_
 #define _U_BOOT_H_
-//typedef unsigned long ulong;
+
 
 #define CONFIG_NR_DRAM_BANKS 	1
 typedef struct bd_info {
-    int			bi_baudrate;	/* serial console baudrate */
-    unsigned long	bi_ip_addr;	/* IP Address */
-    unsigned char	bi_enetaddr[6]; /* Ethernet adress */
-    struct environment_s	       *bi_env;
-    ulong	        bi_arch_number;	/* unique id for this board */
-    ulong	        bi_boot_params;	/* where this board expects params */
-    struct				/* RAM configuration */
-    {
-	ulong start;
-	ulong size;
-    } 			bi_dram[CONFIG_NR_DRAM_BANKS];
+	int		bi_baudrate;	/* serial console baudrate */
+	unsigned long	bi_ip_addr;	/* IP Address */
+	unsigned char	bi_enetaddr[6]; /* Ethernet adress */
+	struct environment_s	       *bi_env;
+	ulong	        bi_arch_number;	/* unique id for this board */
+	ulong	        bi_boot_params;	/* where this board expects params */
+	struct				/* RAM configuration */
+	{
+		ulong	start;
+		ulong	size;
+	} bi_dram[CONFIG_NR_DRAM_BANKS];
 } bd_t;
 
 #define bi_env_data bi_env->data
@@ -62,7 +51,7 @@ typedef struct bd_info {
 #define IH_ARCH_DEFAULT IH_ARCH_ARM64
 #endif
 
-uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
+uint32 SecureBootSignCheck(uint8 * rsaHash, uint8 *Hash, uint8 length);
 uint32 SecureBootDisable(void);
 
 #endif	/* _U_BOOT_H_ */

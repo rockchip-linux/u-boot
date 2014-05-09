@@ -1,9 +1,8 @@
 
-#include    "config.h"
-#include   <asm/io.h>
+#include "config.h"
+#include <asm/io.h>
 
 
- 
 /***************************************************************************
 函数描述:延时
 入口参数:us数
@@ -99,7 +98,4 @@ void rkplat_uart2UsbEn(uint32 en)
 	#error "PLS check CONFIG_RKCHIPTYPE if support uart2usb."
 #endif /* CONFIG_RKPLATFORM */
 }
-
-
-
 

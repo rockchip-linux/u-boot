@@ -48,9 +48,9 @@
 #define MAX_RSA_PRIME_LEN ((MAX_RSA_PRIME_BITS + 7) / 8)
 
 typedef struct {
-  unsigned short bits;                     /* length in bits of modulus */
-  unsigned char modulus[MAX_RSA_MODULUS_LEN];  /* modulus */
-  unsigned char exponent[MAX_RSA_MODULUS_LEN]; /* public exponent */
+	unsigned short bits;                     /* length in bits of modulus */
+	unsigned char modulus[MAX_RSA_MODULUS_LEN];  /* modulus */
+	unsigned char exponent[MAX_RSA_MODULUS_LEN]; /* public exponent */
 } R_RSA_PUBLIC_KEY;
 
 typedef unsigned long NN_DIGIT;
@@ -58,5 +58,6 @@ typedef unsigned short NN_HALF_DIGIT;
 typedef unsigned char *POINTER;
 
 
-extern unsigned long rsaCheckMD5(unsigned char *input,unsigned char *rawData,unsigned char *publicKey,unsigned char inputlen);
+extern unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input, unsigned char *publicKey, unsigned char inputlen);
+extern unsigned long rsaCheckMD5(unsigned char *input, unsigned char *rawData, unsigned char *publicKey, unsigned char inputlen);
 
