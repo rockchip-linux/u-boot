@@ -1114,6 +1114,53 @@ int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 
 
 /*
+ * rkplat lcdc dclk and aclk parent pll source
+ * 0 - codec pll, 1 - general pll
+ */
+#define RK3288_LIMIT_PLL_VIO	(400*MHZ)
+static uint32 rkclk_lcdc_dclk_to_pll(uint32 rate_hz, uint32 *dclk_div)
+{
+	uint32 div;
+	uint32 pll_hz;
+
+	/* make sure general pll is 297MHz */
+	if ((rate_hz <= (297 * MHZ)) && ((297 * MHZ) % rate_hz == 0)) {
+		pll_hz = (297 * MHZ);
+		div = rkclk_calc_clkdiv(pll_hz, rate_hz, 0);
+		*dclk_div =  div;
+
+		return 1; // general pll
+	} else {
+		div = RK3288_LIMIT_PLL_VIO / rate_hz;
+		pll_hz = div * rate_hz;
+		rkclk_set_cpll_rate(pll_hz);
+
+		pll_hz = rkclk_pll_clk_get_rate(CPLL_ID);
+		div = rkclk_calc_clkdiv(pll_hz, rate_hz, 0);
+		*dclk_div = div;
+
+		return 0; // codec pll;
+	}
+}
+
+
+/*
+ * rkplat lcdc dclk and aclk parent pll source
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * dclk_hz: dclk rate
+ */
+int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
+{
+	uint32 pll_src;
+	uint32 dclk_div;
+
+	pll_src = rkclk_lcdc_dclk_to_pll(dclk_hz, &dclk_div);
+	rkclk_lcdc_dclk_set(lcdc_id, pll_src, dclk_div);
+	rkclk_lcdc_aclk_set(lcdc_id, pll_src, 1);
+}
+
+
+/*
  * rkplat set sd clock src
  * 0: codec pll; 1: general pll; 2: 24M
  */

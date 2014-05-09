@@ -124,6 +124,14 @@ int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div);
 
 
 /*
+ * rkplat lcdc dclk and aclk parent pll source 
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * dclk_hz: dclk rate
+ */
+int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz);
+
+
+/*
  * rkplat pll select by clock
  * clock: device request freq HZ
  * return value:

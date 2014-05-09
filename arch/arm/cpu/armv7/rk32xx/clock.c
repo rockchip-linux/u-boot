@@ -88,14 +88,6 @@ static void clk_loop_delayus(uint32_t us)
 	}
 }
 
-
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	#include "clock-rk3288.c"
-#else
-	#error "PLS config chiptype for clock-rkxx.c!"
-#endif
-
-
 /*
  * rkplat calculate child clock div from parent
  * clk_parent: parent clock rate (HZ)
@@ -139,6 +131,13 @@ uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
 
 	return (pll_sel << 16) | div;
 }
+
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	#include "clock-rk3288.c"
+#else
+	#error "PLS config chiptype for clock-rkxx.c!"
+#endif
 
 
 void lcdc_clk_enable(void)
