@@ -562,7 +562,7 @@ static void set_serial_number(const char *serial_no)
 	strncpy(serial_number, serial_no, sizeof(serial_number));
 	serial_number[sizeof(serial_number) - 1] = '\0';
 	priv.serial_no = serial_number;
-	setenv("fbt_sn#", serial_number);
+	//setenv("fbt_sn#", serial_number);
 	FBTDBG("fastboot serial_number = %s\n", serial_number);
 }
 
