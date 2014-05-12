@@ -1148,6 +1148,7 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 rate_hz, uint32 *dclk_div)
  * rkplat lcdc dclk and aclk parent pll source
  * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
  * dclk_hz: dclk rate
+ * return dclk rate
  */
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
@@ -1157,6 +1158,13 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	pll_src = rkclk_lcdc_dclk_to_pll(dclk_hz, &dclk_div);
 	rkclk_lcdc_dclk_set(lcdc_id, pll_src, dclk_div);
 	rkclk_lcdc_aclk_set(lcdc_id, pll_src, 1);
+
+	// return dclk rate
+	if (pll_src == 0) {	// codec pll
+		return (rkclk_pll_clk_get_rate(CPLL_ID) / dclk_div);
+	} else {	// general pll
+		return (rkclk_pll_clk_get_rate(GPLL_ID) / dclk_div);
+	}
 }
 
 
