@@ -372,6 +372,7 @@ typedef struct vidinfo {
 	unsigned long logo_addr;
 	unsigned int logo_rgb_mode;
 	unsigned int resolution;
+	unsigned int real_freq;
     
 	/* parent clock name(MPLL, EPLL or VPLL) */
 	unsigned int pclk_name;

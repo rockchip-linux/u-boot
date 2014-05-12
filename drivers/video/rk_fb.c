@@ -187,6 +187,8 @@ void lcd_ctrl_init(void *lcdbase)
     panel_height = panel_info.vl_height;
     g_lcdbase = lcdbase;
 
+    panel_info.real_freq = rkclk_lcdc_clk_set(panel_info.lcdc_id, panel_info.vl_freq*1000000);
+	
     rk_lcdc_init(panel_info.lcdc_id);
     rk30_load_screen(&panel_info);
 }

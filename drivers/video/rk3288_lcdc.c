@@ -683,7 +683,7 @@ int rk30_load_screen(vidinfo_t *vid)
     // let above to take effect
 	LCDC_REG_CFG_DONE();
 
-    set_lcdc_dclk(vid->vl_freq);
+  //  set_lcdc_dclk(vid->vl_freq);
 
 	if ((vid->screen_type == SCREEN_LVDS) ||
 			(vid->screen_type == SCREEN_DUAL_LVDS)) {
@@ -714,7 +714,7 @@ int rk_lcdc_init(int lcdc_id)
     preg = (lcdc_id == 1) ? RKIO_VOP_LIT_PHYS : RKIO_VOP_BIG_PHYS;  
     g_grfReg->grf_io_vsel = 1<<16;  //LCDCIOdomain 3.3 Vvoltageselectio
     
-    lcdc_clk_enable();
+   // lcdc_clk_enable();
 	
    // printf(" %s vop_version = %x\n",__func__,LcdRdReg(VERSION_INFO));
 	LcdMskReg(SYS_CTRL, m_auto_gating_en | m_standby_en | m_dma_stop | m_mmu_en, 

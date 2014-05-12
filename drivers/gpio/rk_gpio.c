@@ -81,7 +81,7 @@ int rk_gpio_base_to_bank(unsigned base)
 		return -1;
 	}
 
-	return (bank << RK_GPIO_BANK_MASK);
+	return (bank << RK_GPIO_BANK_OFFSET);
 }
 
 
