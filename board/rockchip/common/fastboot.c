@@ -20,7 +20,6 @@ Revision:       1.00
 #include "idblock.h"
 
 extern uint32 GetVbus(void);
-extern int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
 extern void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
 extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
 extern int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
@@ -224,6 +223,7 @@ void board_fbt_boot_failed(const char* boot)
 {
 	printf("Unable to boot:%s\n", boot);
 
+#ifdef CONFIG_CMD_BOOTI
 	if (!memcmp(BOOT_NAME, boot, sizeof(BOOT_NAME))) {
 		printf("try to start recovery\n");
 		char *const boot_cmd[] = {"booti", RECOVERY_NAME};
@@ -233,6 +233,7 @@ void board_fbt_boot_failed(const char* boot)
 		char *const boot_cmd[] = {"booti", BACKUP_NAME};
 		do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
 	}  
+#endif
 	printf("try to start rockusb\n");
 	//startRockusb();
 	do_rockusb(NULL, 0, 0, NULL);

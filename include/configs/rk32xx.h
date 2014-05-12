@@ -47,7 +47,7 @@
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
-#define CONFIG_SECOND_LEVEL_BOOTLOADER 
+//#define CONFIG_SECOND_LEVEL_BOOTLOADER 
 
 #define HAVE_VENDOR_COMMON_LIB y
 
@@ -374,6 +374,9 @@
 //#define CONFIG_PARTITIONS
 #define CONFIG_CMD_MMC
 #define CONFIG_SYS_MMC_ENV_DEV 0
+
+#define CONFIG_CMD_BOOTI
+#define CONFIG_KERNEL_LOAD_ADDR 		SZ_32M
 
 #endif /* __CONFIG_H */
 

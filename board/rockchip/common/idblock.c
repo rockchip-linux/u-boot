@@ -930,21 +930,6 @@ int getSn(char* buf)
 	return true;
 }
 
-int fixHdr(struct fastboot_boot_img_hdr *hdr)
-{
-	hdr->ramdisk_addr = gBootInfo.ramdisk_load_addr;
-#ifndef CONFIG_USE_PARAMETER_INITRD_ADDR
-	//load it to fastboot_buf.
-	hdr->ramdisk_addr = (uint32)gd->arch.fastboot_buf_addr;
-	printf("fix ramdisk_addr:0x%x\n", hdr->ramdisk_addr);
-#endif
-
-	//set kernel addr at 32M.
-	hdr->kernel_addr = gd->bd->bi_dram[0].start + 32 * 1024 * 1024;
-	printf("fix kernel_addr:0x%x\n", hdr->kernel_addr);
-	return 0;
-}
-
 int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked)
 {
 	rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)hdr;

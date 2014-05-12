@@ -685,7 +685,7 @@ ulong getenv_ulong(const char *name, int base, ulong default_val)
 
 #ifndef CONFIG_SPL_BUILD
 #if defined(CONFIG_CMD_SAVEENV) && !defined(CONFIG_ENV_IS_NOWHERE)
-static int do_env_save(cmd_tbl_t *cmdtp, int flag, int argc,
+int do_env_save(cmd_tbl_t *cmdtp, int flag, int argc,
 		       char * const argv[])
 {
 	printf("Saving Environment to %s...\n", env_name_spec);

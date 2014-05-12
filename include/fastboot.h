@@ -65,16 +65,6 @@
 
 /* This is the interface file between the common cmd_fastboot.c and
    the board specific support.
-
-   To use this interface, define CONFIG_FASTBOOT in your board config file.
-   An example is include/configs/omap3430labrador.h
-   ...
-#define CONFIG_FASTBOOT	        1    / * Using fastboot interface * /
-...
-
-An example of the board specific spupport for omap3 is found at
-cpu/omap3/fastboot.c
-
 */
 
 /* From fastboot client.. */
@@ -82,6 +72,7 @@ cpu/omap3/fastboot.c
 #define FASTBOOT_INTERFACE_SUB_CLASS 0x42
 #define FASTBOOT_INTERFACE_PROTOCOL  0x03
 
+#define FASTBOOT_UNLOCKED_ENV_NAME "fastboot_unlocked"
 #define FASTBOOT_SERIALNO_BOOTARG "androidboot.serialno"
 
 /* The fastboot client uses a value of 2048 for the
@@ -315,6 +306,8 @@ int board_fbt_check_misc(void);
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
 const disk_partition_t *fastboot_find_ptn(const char *name);
 int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition);
+void board_fbt_boot_failed(const char* boot);
+int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked);
 
 #define FBT_ERR
 #undef  FBT_WARN

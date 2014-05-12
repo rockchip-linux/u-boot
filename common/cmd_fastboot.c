@@ -109,7 +109,6 @@ int(foo[4], 36) * 2)
 #endif
 
 #define FASTBOOT_RUN_RECOVERY_ENV_NAME "fastboot_run_recovery"
-#define FASTBOOT_UNLOCKED_ENV_NAME "fastboot_unlocked"
 #define FASTBOOT_UNLOCK_TIMEOUT_SECS 5
 
 #include <exports.h>
@@ -274,10 +273,7 @@ static disk_partition_t fbt_partitions [FBT_MAX_PARTITION_NUM];
 extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
 extern int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec);
 extern int is_usbd_high_speed(void);
-extern void startRockusb(void);
 extern unsigned int SecureBootCheck(void);
-extern int fixHdr(struct fastboot_boot_img_hdr *hdr);
-extern int rk_bootm_start(bootm_headers_t *images);
 extern void rk_backlight_ctrl(int brightness);
 extern void* rk_fdt_resource_load(void);
 extern int lcd_enable_logo(bool enable);
@@ -286,10 +282,7 @@ extern void powerOn(void);
 #else
 void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {;}
 int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec) {return 0;}
-void startRockusb(void) {;}
 unsigned int SecureBootCheck(void) {return 0;}
-int fixHdr(struct fastboot_boot_img_hdr *hdr) {return 0;}
-int rk_bootm_start(bootm_headers_t *images) {return 0;}
 void rk_backlight_ctrl(int brightness) {;}
 void* rk_fdt_resource_load(void) {;}
 int lcd_enable_logo(bool enable) {return 0;}
@@ -298,16 +291,6 @@ void powerOn(void) {;}
 #endif
 
 static void fbt_init_endpoints(void);
-int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
-
-extern int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
-extern int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
-/* Use do_bootm_linux and do_go for fastboot's 'boot' command */
-extern int do_go(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[]);
-extern int do_bootm_linux(int flag, int argc, char *argv[],
-		bootm_headers_t *images);
-extern int do_env_save(cmd_tbl_t *cmdtp, int flag, int argc,
-		char *const argv[]);
 
 /* USB specific */
 
@@ -579,6 +562,7 @@ static void set_serial_number(const char *serial_no)
 	strncpy(serial_number, serial_no, sizeof(serial_number));
 	serial_number[sizeof(serial_number) - 1] = '\0';
 	priv.serial_no = serial_number;
+	setenv("fbt_sn#", serial_number);
 	FBTDBG("fastboot serial_number = %s\n", serial_number);
 }
 
@@ -1324,9 +1308,11 @@ static void fbt_handle_boot(const char *cmdbuf)
 		fbt_handle_response();
 		udelay(1000000); /* 1 sec */
 
+#ifdef CONFIG_CMD_BOOTI
 		do_booti(NULL, 0, ARRAY_SIZE(booti), booti);
 
 		FBTERR("do_booti() returned, trying go..\n");
+#endif
 
 		FBTINFO("Booting raw image..\n");
 		do_go(NULL, 0, ARRAY_SIZE(go), go);
@@ -1613,7 +1599,9 @@ static void fbt_handle_response(void)
 static void fbt_run_charge(void)
 {
 	char *const boot_charge_cmd[] = {"booti", "charge"};
+#ifdef CONFIG_CMD_BOOTI
 	do_booti(NULL, 0, ARRAY_SIZE(boot_charge_cmd), boot_charge_cmd);
+#endif
 
 	/* returns if boot.img is bad */
 	FBTERR("\nfastboot: Error: Invalid boot img\n");
@@ -1622,8 +1610,10 @@ static void fbt_run_charge(void)
 
 static void fbt_run_recovery(void)
 {
+#ifdef CONFIG_CMD_BOOTI
 	char *const boot_recovery_cmd[] = {"booti", "recovery"};
 	do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
+#endif
 
 	/* returns if recovery.img is bad */
 	FBTERR("\nfastboot: Error: Invalid recovery img\n");
@@ -1715,9 +1705,8 @@ static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unl
 {
 	return 0;
 }
-static int __def_board_fbt_boot_failed(const char* boot)
+static void __def_board_fbt_boot_failed(const char* boot)
 {
-	return 0;
 }
 
 int board_fbt_oem(const char *cmdbuf)
@@ -1745,7 +1734,7 @@ int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
 	__attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
 	__attribute__((weak, alias("__def_board_fbt_boot_check")));
-int board_fbt_boot_failed(const char* boot)
+void board_fbt_boot_failed(const char* boot)
 	__attribute__((weak, alias("__def_board_fbt_boot_failed")));
 
 	/* command */
@@ -1816,265 +1805,6 @@ out:
 
 U_BOOT_CMD(fastboot, 1,	1, do_fastboot,
 		"use USB Fastboot protocol", NULL);
-
-/* Section for Android bootimage format support
- * Refer:
- * http://android.git.kernel.org/?p=platform/system/core.git;a=blob;f=mkbootimg/bootimg.h
- */
-static void bootimg_print_image_hdr(struct fastboot_boot_img_hdr *hdr)
-{
-#ifdef DEBUG
-	int i;
-	printf("   Image magic:   %s\n", hdr->magic);
-
-	printf("   kernel_size:   0x%x\n", hdr->kernel_size);
-	printf("   kernel_addr:   0x%x\n", hdr->kernel_addr);
-
-	printf("   rdisk_size:   0x%x\n", hdr->ramdisk_size);
-	printf("   rdisk_addr:   0x%x\n", hdr->ramdisk_addr);
-
-	printf("   second_size:   0x%x\n", hdr->second_size);
-	printf("   second_addr:   0x%x\n", hdr->second_addr);
-
-	printf("   tags_addr:   0x%x\n", hdr->tags_addr);
-	printf("   page_size:   0x%x\n", hdr->page_size);
-
-	printf("   name:      %s\n", hdr->name);
-	printf("   cmdline:   %s\n", hdr->cmdline);
-
-	for (i = 0; i < 8; i++)
-		printf("   id[%d]:   0x%x\n", i, hdr->id[i]);
-#endif
-}
-
-#ifdef CONFIG_ROCKCHIP
-extern int loadRkImage(struct fastboot_boot_img_hdr *hdr, const disk_partition_t *boot_ptn, const disk_partition_t *kernel_ptn);
-#endif
-
-/* booti [ <addr> | <partition> ] */
-int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
-{
-	char *boot_source = "boot";
-	struct fastboot_boot_img_hdr *hdr = NULL;
-	const disk_partition_t* ptn;
-	bootm_headers_t images;
-
-	bool charge = false;
-	if (argc >= 2) {
-		if (!strcmp(argv[1], "charge")) {
-			charge = true;
-		} else {
-			boot_source = argv[1];
-		}
-	}
-
-	ptn = fastboot_find_ptn(boot_source);
-	if (ptn) {
-		unsigned long blksz = ptn->blksz;
-		unsigned sector;
-		unsigned blocks;
-		hdr = malloc(blksz << 2);
-		if (hdr == NULL) {
-			FBTERR("error allocating blksz(%lu) buffer\n", blksz);
-			goto fail;
-		}
-		if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
-			FBTERR("booti: failed to read bootimg header\n");
-			goto fail;
-		}
-		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-					FASTBOOT_BOOT_MAGIC_SIZE)) {
-#ifdef CONFIG_ROCKCHIP
-			memset(hdr, 0, blksz);
-			if (fixHdr(hdr) < 0) {
-				goto fail;
-			}
-			snprintf((char*)hdr->magic,
-					FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
-			if (loadRkImage(hdr, ptn, fastboot_find_ptn(KERNEL_NAME)) != 0) {
-				FBTERR("booti: bad boot or kernel image\n");
-				goto fail;
-			}
-#else
-			FBTERR("booti: bad boot image magic\n");
-			goto fail;
-#endif
-		} else {
-#ifdef CONFIG_ROCKCHIP
-			if (fixHdr(hdr) < 0) {
-				goto fail;
-			}
-#endif
-			sector = ptn->start + (hdr->page_size / blksz);
-			blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
-			if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
-						blocks) != 0) {
-				FBTERR("booti: failed to read kernel\n");
-				goto fail;
-			}
-
-			sector += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
-			blocks = DIV_ROUND_UP(hdr->ramdisk_size, blksz);
-			if (StorageReadLba(sector, (void *) hdr->ramdisk_addr, \
-						blocks) != 0) {
-				FBTERR("booti: failed to read ramdisk\n");
-				goto fail;
-			}
-		}
-	} else {
-		unsigned addr;
-		void *kaddr, *raddr;
-		char *ep;
-
-		addr = simple_strtoul(boot_source, &ep, 16);
-		if (ep == boot_source || *ep != '\0') {
-			printf("'%s' does not seem to be a partition nor "
-					"an address\n", boot_source);
-			/* this is most likely due to having no
-			 * partition table in factory case, or could
-			 * be argument is wrong.  in either case, start
-			 * fastboot mode.
-			 */
-			goto fail;
-		}
-
-		hdr = malloc(sizeof(*hdr));
-		if (hdr == NULL) {
-			printf("error allocating buffer\n");
-			goto fail;
-		}
-
-		/* set this aside somewhere safe */
-		memcpy(hdr, (void *) addr, sizeof(*hdr));
-
-		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-					FASTBOOT_BOOT_MAGIC_SIZE)) {
-			printf("booti: bad boot image magic\n");
-			goto fail;
-		}
-
-		kaddr = (void *)(addr + hdr->page_size);
-		raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
-					hdr->page_size));
-		hdr->ramdisk_addr = (int)raddr;
-		hdr->kernel_addr = (int)kaddr;
-		//memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
-		//memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
-	}
-
-	if (board_fbt_boot_check(hdr, priv.unlocked)) {
-		FBTERR("booti: board check boot image error\n");
-		goto fail;
-	}
-
-	bootimg_print_image_hdr(hdr);
-
-	FBTDBG("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
-	FBTDBG("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
-
-#ifdef CONFIG_CMDLINE_TAG
-	{
-		/* static just to be safe when it comes to the stack */
-		static char command_line[1024];
-		int amt;
-		/* Use the cmdline from board_fbt_finalize_bootargs instead of
-		 * any hardcoded into u-boot.  Also, Android wants the
-		 * serial number on the command line instead of via
-		 * tags so append the serial number to the bootimg header
-		 * value and set the bootargs environment variable.
-		 * do_bootm_linux() will use the bootargs environment variable
-		 * to pass it to the kernel.  Add the bootloader
-		 * version too.
-		 */
-		board_fbt_finalize_bootargs(command_line, sizeof(command_line),
-				hdr->ramdisk_addr, hdr->ramdisk_size,
-				!strcmp(boot_source, RECOVERY_NAME));
-		//printf("board cmdline:\n%s\n", command_line);
-		amt = snprintf(command_line,
-				sizeof(command_line),
-				"%s androidboot.bootloader=%s",
-				command_line,
-				CONFIG_FASTBOOT_VERSION_BOOTLOADER);
-
-#if 0
-		for (i = 0; i < priv.num_device_info; i++) {
-			/* Append device specific information like
-			 * MAC addresses and serialno
-			 */
-			amt += snprintf(command_line + amt,
-					sizeof(command_line) - amt,
-					" %s=%s",
-					priv.dev_info[i].name,
-					priv.dev_info[i].value);
-		}
-#endif
-		//TODO:add some dev info to cmdline?
-		//
-		if (charge)
-			snprintf(command_line, sizeof(command_line),
-					"%s %s",command_line," androidboot.mode=charger");
-
-		/* append serial number if it wasn't in device_info already */
-		if (!strstr(command_line, FASTBOOT_SERIALNO_BOOTARG)) {
-			snprintf(command_line + amt, sizeof(command_line) - amt,
-					" %s=%s", FASTBOOT_SERIALNO_BOOTARG,
-					priv.serial_no);
-		}
-
-		command_line[sizeof(command_line) - 1] = 0;
-
-		setenv("bootargs", command_line);
-	}
-#endif /* CONFIG_CMDLINE_TAG */
-
-	memset(&images, 0, sizeof(images));
-	images.ep = hdr->kernel_addr;
-	images.rd_start = hdr->ramdisk_addr;
-	images.rd_end = hdr->ramdisk_addr
-        + hdr->ramdisk_size;
-	free(hdr);
-
-#ifdef CONFIG_CMD_BOOTM
-#ifdef CONFIG_ROCKCHIP
-	if (rk_bootm_start(&images)/*it returns 1 when failed.*/) {
-		puts("booti: failed to boot!\nreboot to bootloader...\n");
-		fbt_handle_reboot("reboot-bootloader");
-	}
-#endif
-#endif
-
-	puts("booti: do_bootm_linux...\n");
-	do_bootm_linux(0, 0, NULL, &images);
-
-	//Should not reach here.
-	goto fail;
-
-	puts("booti: Control returned to monitor - resetting...\n");
-	do_reset(cmdtp, flag, argc, argv);
-	return 1;
-
-fail:
-	/* if booti fails, always start fastboot */
-	free(hdr); /* hdr may be NULL, but that's ok. */
-
-	board_fbt_boot_failed(boot_source);
-
-	return do_fastboot(NULL, 0, 0, NULL);
-}
-
-U_BOOT_CMD(
-		booti,	2,	1,	do_booti,
-		"boot android bootimg",
-#ifdef DEBUG
-		"[ <addr> | <partition> ]\n    - boot application image\n"
-		"\t'addr' should be the address of the boot image which is\n"
-		"\tzImage+ramdisk.img if in memory.  'partition' is the name\n"
-		"\tof the partition to boot from.  The default is to boot\n"
-		"\tfrom the 'boot' partition.\n"
-#else
-		"\n"
-#endif
-		);
 
 static void fbt_request_start_fastboot(void)
 {
