@@ -272,7 +272,6 @@ struct fastboot_boot_img_hdr {
 
 struct bootloader_message;
 
-#ifdef	CONFIG_CMD_FASTBOOT
 enum fbt_reboot_type {
 	FASTBOOT_REBOOT_UNKNOWN, /* typically for a cold boot */
 	FASTBOOT_REBOOT_NORMAL,
@@ -342,5 +341,4 @@ int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked);
 #define FBTERR(fmt, args...) do {} while (0)
 #endif
 
-#endif /* CONFIG_CMD_FASTBOOT */
 #endif /* FASTBOOT_H */

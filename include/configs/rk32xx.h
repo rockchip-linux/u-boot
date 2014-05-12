@@ -243,10 +243,8 @@
 /* Fastboot product name */
 #define FASTBOOT_PRODUCT_NAME   "fastboot"
 
-#ifdef CONFIG_CMD_FASTBOOT
 #define CONFIG_RK_UDC
 #define CONFIG_USB_DEVICE
-#endif //CONFIG_CMD_FASTBOOT
 
 /*
  * Hardware drivers

@@ -111,10 +111,19 @@ static void rkusb_init_instances(void)
 		at another place ? */
 	//udc_setup_ep(device_instance, 0, &endpoint_instance[0]);//setup ep0 reg in UdcInit()
 
+#ifdef CONFIG_CMD_FASTBOOT
 	usbcmd.rx_buffer[0] = (u8 *)gd->arch.fastboot_buf_addr;
 	usbcmd.rx_buffer[1] = usbcmd.rx_buffer[0]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
 	usbcmd.tx_buffer[0] = usbcmd.rx_buffer[1]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
 	usbcmd.tx_buffer[1] = usbcmd.tx_buffer[0]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
+#else
+	//is this enough?
+	int buffer_len = RKUSB_BUFFER_BLOCK_MAX << 10;
+	usbcmd.rx_buffer[0] = (u8 *)malloc(buffer_len << 2);
+	usbcmd.rx_buffer[1] = usbcmd.rx_buffer[0]+buffer_len;
+	usbcmd.tx_buffer[0] = usbcmd.rx_buffer[1]+buffer_len;
+	usbcmd.tx_buffer[1] = usbcmd.tx_buffer[0]+buffer_len;
+#endif
     RKUSBINFO("%p %p %p %p %x\n",usbcmd.rx_buffer[0], usbcmd.rx_buffer[1], usbcmd.tx_buffer[1], usbcmd.tx_buffer[0], usbcmd.tx_buffer[1]);
 	for (i = 1; i <= NUM_ENDPOINTS; i++) {
 		endpoint_instance[i].endpoint_address =

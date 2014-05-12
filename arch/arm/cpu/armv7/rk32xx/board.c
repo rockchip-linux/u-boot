@@ -92,7 +92,9 @@ int board_late_init(void)
 		tmp_buf[sizeof(tmp_buf)-1] = 0;
 		setenv("fbt_sn#", tmp_buf);
 	}
+#ifdef CONFIG_CMD_FASTBOOT
 	fbt_preboot();
+#endif
 	return 0;
 }
 #endif

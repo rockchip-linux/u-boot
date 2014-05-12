@@ -35,7 +35,13 @@
 #include <../board/rockchip/common/storage.h>
 
 static int inline get_ptn_offset(void) {
-	const disk_partition_t* ptn = fastboot_find_ptn(RESOURCE_NAME);
+	const disk_partition_t* ptn;
+#ifdef CONFIG_CMD_FASTBOOT
+	ptn	= fastboot_find_ptn(RESOURCE_NAME);
+#else
+	//TODO: find disk_partition_t in other way.
+	ptn = NULL;
+#endif
 	if (!ptn)
 		return 0;
 	return ptn->start;
