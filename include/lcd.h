@@ -331,7 +331,7 @@ typedef struct vidinfo {
 	ushort vl_height;	/* Height of display area in millimeters */
 
 	/* LCD configuration register */
-	u_char vl_freq;		/* Frequency */
+	int vl_freq;		/* Frequency */
 	u_char vl_clkp;		/* Clock polarity */
 	u_char vl_oep;		/* Output Enable polarity */
 	u_char vl_hsp;		/* Horizontal Sync polarity */
