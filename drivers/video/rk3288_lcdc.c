@@ -416,6 +416,9 @@ LCDC_REG regbak;
 
 
 extern int rk32_edp_enable(vidinfo_t * vid);
+extern int rk32_mipi_enable(vidinfo_t * vid);
+extern int rk32_dsi_enable(void);
+extern int rk32_dsi_sync(void);
 void writel_relaxed(uint32 val, uint32 addr)
 {
     *(int*)addr = val;
@@ -610,9 +613,20 @@ int rk30_load_screen(vidinfo_t *vid)
 
     //rk3288_parse_dt();  //parse from fdt
 
-	vid->dp_enabled = 1;
+	vid->dp_enabled = 0;
+	vid->mipi_enabled = 0;
+    if((vid->screen_type == SCREEN_MIPI)||(vid->screen_type == SCREEN_DUAL_MIPI))
+    	vid->mipi_enabled = 1;
+    else if(vid->screen_type == SCREEN_EDP)
+    	vid->dp_enabled = 1;
+    
     if(vid->mipi_enabled){
-        LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1));
+	rk32_mipi_enable(vid);
+	if(vid->screen_type == SCREEN_MIPI){
+        	LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1));
+	}else{
+		LcdMskReg(SYS_CTRL,m_mipi_out_en|m_doub_channel_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1)|v_doub_channel_en(1));
+	}
     }else if(vid->dp_enabled){
         LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_edp_out_en(1));
    //} else if(vid->hdmi_enable){
@@ -690,6 +704,11 @@ int rk30_load_screen(vidinfo_t *vid)
 		rk32_lvds_en(vid);
 	} else if (vid->screen_type == SCREEN_EDP) {
 		rk32_edp_enable(vid);
+	} else if ((vid->screen_type == SCREEN_MIPI)
+		||(vid->screen_type == SCREEN_DUAL_MIPI)) {
+		//rk32_mipi_enable(vid);
+		//rk32_dsi_enable();
+		rk32_dsi_sync();
 	}
 	return 0;
 }

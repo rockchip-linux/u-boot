@@ -89,6 +89,14 @@ enum fdt_compat_id {
 	COMPAT_SAMSUNG_EXYNOS5_I2C,	/* Exynos5 High Speed I2C Controller */
 	COMPAT_ROCKCHIP_FB,		/*RockChip Framebuffer driver*/
 	COMPAT_ROCKCHIP_BL,		/*RockChip backlight driver*/
+	COMPAT_ROCKCHIP_DSIHOST,	/*RockChip DSI host Controller*/
+	COMPAT_ROCKCHIP_MIPI_INIT,	/*RockChip MIPI init*/
+	COMPAT_ROCKCHIP_MIPI_PWR,	/*RockChip MIPI pwr*/
+	COMPAT_ROCKCHIP_MIPI_SONCMDS,	/*RockChip MIPI screen on cmds*/
+	COMPAT_ROCKCHIP_MIPI_ONCMDS,	/*RockChip MIPI screen on cmd*/
+	COMPAT_ROCKCHIP_MIPI_LCD_DT,	/*RockChip MIPI screen display timing */
+	COMPAT_ROCKCHIP_MIPI_LCD_RST,   /*RockChip MIPI screen rst pin */
+	COMPAT_ROCKCHIP_MIPI_LCD_EN,    /*RockChip MIPI screen en pin */
 
 	COMPAT_COUNT,
 };

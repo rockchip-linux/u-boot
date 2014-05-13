@@ -63,6 +63,15 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(SAMSUNG_EXYNOS5_I2C, "samsung,exynos5-hsi2c"),
 	COMPAT(ROCKCHIP_FB, "rockchip,rk-fb"),
 	COMPAT(ROCKCHIP_BL, "pwm-backlight"),
+	COMPAT(ROCKCHIP_DSIHOST, "rockchip,rk32-dsi"),
+	COMPAT(ROCKCHIP_MIPI_INIT, "rockchip,mipi_dsi_init"),
+	COMPAT(ROCKCHIP_MIPI_PWR, "rockchip,mipi_power_ctr"),
+	COMPAT(ROCKCHIP_MIPI_SONCMDS, "rockchip,screen-on-cmds"),
+	COMPAT(ROCKCHIP_MIPI_ONCMDS, "rockchip,on-cmds"),
+	COMPAT(ROCKCHIP_MIPI_LCD_DT, "rockchip,display-timings"),
+	COMPAT(ROCKCHIP_MIPI_LCD_RST, "rockchip,lcd_rst"),
+	COMPAT(ROCKCHIP_MIPI_LCD_EN, "rockchip,lcd_en"),
+	
 };
 
 const char *fdtdec_get_compatible(enum fdt_compat_id id)
