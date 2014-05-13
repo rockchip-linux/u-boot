@@ -461,6 +461,25 @@ static inline void set_screen_state(int brightness, int force) {
 	}
 }
 
+
+void wait_for_interrupt(void)
+{
+	/* PLL enter slow-mode */
+	g_cruReg->cru_mode_con = (0x3<<((2*4) + 16)) | (0x0<<(2*4));
+	g_cruReg->cru_mode_con = (0x3<<((3*4) + 16)) | (0x0<<(3*4));
+	g_cruReg->cru_mode_con = (0x3<<((0*4) + 16)) | (0x0<<(0*4));
+
+	wfi();
+
+	/* PLL enter normal-mode */
+	g_cruReg->cru_mode_con = (0x3<<((0*4) + 16)) | (0x1<<(0*4));
+	g_cruReg->cru_mode_con = (0x3<<((3*4) + 16)) | (0x1<<(3*4));
+	g_cruReg->cru_mode_con = (0x3<<((2*4) + 16)) | (0x1<<(2*4));
+
+	printf("PLL open end! \n");
+}
+
+
 void do_sleep()
 {
 	set_screen_state(BRIGHT_OFF, false);
