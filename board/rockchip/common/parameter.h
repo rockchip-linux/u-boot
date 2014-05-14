@@ -1,30 +1,53 @@
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #ifndef _PARAMETER_H_
 #define _PARAMETER_H_
 
 #define PARAMETER_NUM			8			// parameter文件的备份个数
 #define PARAMETER_OFFSET		1024			// 每个parameter的偏移量
 
-#define MAX_LINE_CHAR		(1024*64)	        // Parameters有多个Line组成，限制每个Line最大占1024 Bytes
-#define MAX_LOADER_PARAM	(128*512)		// Parameters所占的最大Sector数(含tag、length、crc等)
+#define MAX_LINE_CHAR			(1024*64)	        // Parameters有多个Line组成，限制每个Line最大占1024 Bytes
+#define MAX_LOADER_PARAM		(128*512)		// Parameters所占的最大Sector数(含tag、length、crc等)
 #define PARM_TAG			0x4D524150
 #define MAGIC_CODE			0x00280028
-#define EATCHAR(x, c) for (; *(x) == (c); (x)++) ; // 去除字符串x中左边为c的字符
+#define EATCHAR(x, c)			for (; *(x) == (c); (x)++) ; // 去除字符串x中左边为c的字符
 #define PART_NAME	32
 #define MAX_PARTS	20
 #define MAX_MTDID	64
 
-#define MTD_WRITEABLE				0x400	/* Device is writeable */
-#define MTD_POWERUP_LOCK			0x2000	/* Always locked after reset */
+#define MTD_WRITEABLE			0x400	/* Device is writeable */
+#define MTD_POWERUP_LOCK		0x2000	/* Always locked after reset */
 
 
-#define SIZE_REMAINING		0xFFFFFFFF
+#define SIZE_REMAINING			0xFFFFFFFF
 
 
 #define PARTNAME_MISC			"misc"
 #define PARTNAME_KERNEL			"kernel"
 #define PARTNAME_BOOT			"boot"
 #define PARTNAME_RECOVERY		"recovery"
-#define PARTNAME_SYSTEM		    "system"
+#define PARTNAME_SYSTEM		    	"system"
 #define PARTNAME_BACKUP			"backup"
 #define PARTNAME_SNAPSHOT		"snapshot"
 
@@ -47,7 +70,6 @@ typedef struct tagLoaderParam
 	uint32	tag;
 	uint32	length;
 	char	parameter[1];
-//	char*	parameter;
 	uint32	crc;
 }LoaderParam, *PLoaderParam;
 
@@ -79,15 +101,12 @@ typedef struct tagBootInfo
 	int index_snapshot;
 	char fw_version[MAX_LINE_CHAR];
 	char fdt_name[MAX_LINE_CHAR];
-}BootInfo, *PBootInfo;
+} BootInfo, *PBootInfo;
 
 extern BootInfo			gBootInfo;
-//extern uint32			gLoaderTlb[];
-//extern uint8			gParamBuffer[];
 extern uint32			parameter_lba;
 
 extern void ParseParam(PBootInfo pboot_info, char *param, uint32 len);
-//extern void ParseParam(PBootInfo pboot_info, char *param);
 extern int32 GetParam(uint32 param_addr, void* buf);
 
 #endif

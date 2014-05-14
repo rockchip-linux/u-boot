@@ -1,8 +1,32 @@
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+
 #include "config.h"
 
-#ifdef USE_RECOVER
+
 // 将字符串string从开头开始的replen个字符，替换为字符串newstr
-void replace_fore_string(char* string, int replen, const char* newstr)
+static void replace_fore_string(char* string, int replen, const char* newstr)
 {
 	int newlen = strlen(newstr);
 	char *p1 = string;
@@ -31,10 +55,8 @@ void replace_fore_string(char* string, int replen, const char* newstr)
 		strncpy(string, newstr, newlen);
 	}
 }
-#endif
 
-#ifdef USE_RECOVER
-void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd )
+void change_cmd_for_recovery(PBootInfo boot_info, char * rec_cmd)
 {
 	if(boot_info->index_recovery >= 0)
 	{
@@ -58,5 +80,4 @@ void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd )
 		ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|BOOT_RECOVER); //会丢失 recovery的参数
 	}
 }
-#endif
 

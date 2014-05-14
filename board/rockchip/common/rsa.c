@@ -1,4 +1,26 @@
-
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #include "rsa.h"
 #include <malloc.h>
 
@@ -672,22 +694,6 @@ static int rsapublicfunc(unsigned char *output, unsigned int *outputLen, unsigne
 	return(ID_OK);
 }
 
-/*
-void rsa_test(void)
-{
-    unsigned char outputdata[256];
-    unsigned long outputlen;
-    unsigned long startTime;
-    unsigned long endTime;
-    unsigned long rst;
-    memset(outputdata,0,40);
-    outputlen=20; 
-    startTime = RkldTimerGetTick();
-    rst = rsapublicfunc(outputdata,&outputlen,( unsigned char *)g_mess,20,(R_RSA_PUBLIC_KEY *)g_publicKey);
-    endTime = RkldTimerGetTick();
-    printf ("rsa_test times  %d ,rst = %x\n", endTime - startTime,rst);
-}*/
-
 
 unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input, unsigned char *publicKey, unsigned char inputlen)
 {
@@ -696,10 +702,7 @@ unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input, unsigne
 	unsigned long rst;
 
 	memset(outputdata, 0, 80);
-	//startTime = RkldTimerGetTick();
 	rst = rsapublicfunc(outputdata, &outputlen, input, 128, (R_RSA_PUBLIC_KEY *)publicKey);
-	//endTime = RkldTimerGetTick();
-	//printf ("rsa_test times  %d ,rst = %x outputlen = %d\n", endTime - startTime,rst,outputlen);
 	ftl_memcpy(output, outputdata+outputlen-20, 20);
 	return rst;
 }

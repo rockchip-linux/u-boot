@@ -1,19 +1,34 @@
-/********************************************************************************
-  COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
-  --  ALL RIGHTS RESERVED  --
-  File Name:	
-Author:         
-Created:        
-Modified:
-Revision:       1.00
- ********************************************************************************/
-#ifndef RKLOADER_H
-#define RKLOADER_H
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+#ifndef RKIDBLOCK_H
+#define RKIDBLOCK_H
 
 #include <fastboot.h>
 #include "config.h"
 
 extern BootInfo gBootInfo;
+
 #ifndef __GNUC__
 #define PACKED1 __packed
 #define PACKED2
@@ -22,43 +37,39 @@ extern BootInfo gBootInfo;
 #define PACKED2 __attribute__((packed))
 #endif
 
-//#include "RK28Boot.h"
-//#include "rkusbComm.h"
 
 /* 函数返回的错误码 */
-#define ERR_SUCCESS				0
+#define ERR_SUCCESS			0
 #define ERR_DEVICE_READY		ERR_SUCCESS
-#define ERR_DEVICE_OPEN_FAILED	-1
-#define ERR_DEVICE_WRITE_FAILED	-2 
-#define ERR_DEVICE_READ_FAILED	-3
+#define ERR_DEVICE_OPEN_FAILED		-1
+#define ERR_DEVICE_WRITE_FAILED		-2 
+#define ERR_DEVICE_READ_FAILED		-3
 #define ERR_CMD_NOTMATCH		-4
 #define ERR_DEVICE_UNREADY		-5
-#define ERR_DEVICE_SET_FAILED	-6
+#define ERR_DEVICE_SET_FAILED		-6
 #define ERR_FOUND_BAD_BLOCK		-7
-#define ERR_FAILED				-8
+#define ERR_FAILED			-8
 #define ERR_CROSS_BORDER		-9
 #define ERR_CSW_OPEN_FAILED		-10
 
-
-typedef enum{USB_BULK_READ=0, USB_BULK_WRITE, USB_CONTROL} Usb_Access_type;
 
 #define FLASH_ID_LEN			5
 #define BLOCK_STATE_BYTES		64
 #define MAX_TEST_BLOCK			512		//一次可测试的最大块数
 #define MAX_ERASE_BLOCK			128						//一次可擦除的最大块数
 
-#define SECTOR_SIZE				512
+#define SECTOR_SIZE			512
 #define MLC_SECTOR_SIZE			528
 #define SLC_SECTOR_SIZE			SECTOR_SIZE
 #define MAX_RW_SECTOR			20	// 一次可读写的最大扇区数
-#define MAX_MANUFACTURER_NAME	16
+#define MAX_MANUFACTURER_NAME		16
 #define MAX_FLASH_NUMBER		8
 
-#define CELL_SLC	0
-#define CELL_MLC	1
+#define CELL_SLC			0
+#define CELL_MLC			1
 
 #define MAX_FW_SIZE			(64 * 1024 - 1)
-#define DEVICE_TRY_COUNT	5
+#define DEVICE_TRY_COUNT		5
 
 #define IOCTL_TRANSFER_SIZE		4096
 #define IDB_BLOCKS	5
@@ -66,8 +77,8 @@ typedef enum{USB_BULK_READ=0, USB_BULK_WRITE, USB_CONTROL} Usb_Access_type;
 #define RESERVE_BLOCKS	2
 
 #define MAX_TRY_COUNT		20	// 重试20次就够了
-#define MAX_BLOCK_STATE	512
-#define MAX_BLOCK_SEARCH 200
+#define MAX_BLOCK_STATE		512
+#define MAX_BLOCK_SEARCH 	200
 
 #define MAX_WRITE_SECTOR	20
 
@@ -128,19 +139,18 @@ typedef PACKED1 struct _Sector2Info{
 
 #define TAG_MANUFACTURER	"M.F.T"
 #define TAG_PRODUCT_SERIES	"PROD_SERIES"
-#define TAG_PRODUCT			"PRODUCT"
+#define TAG_PRODUCT		"PRODUCT"
 #define TAG_SUB_PRODUCT		"SUB_PROD"
 #define TAG_MACHINE_SN		"SN"
 
-#define SN_MAX_SIZE	30
-#define SEC3_RESERVED_SIZE 435
-#define UID_MAX_SIZE 30
-#define BT_MAX_SIZE 6
-#define MAC_MAX_SIZE 6
+#define SN_MAX_SIZE		30
+#define SEC3_RESERVED_SIZE 	435
+#define UID_MAX_SIZE 		30
+#define BT_MAX_SIZE 		6
+#define MAC_MAX_SIZE 		6
 
 typedef PACKED1 struct _Sector3Info{
 	USHORT  snSize;  
-	//	MySN	sn;
 	UCHAR   sn[SN_MAX_SIZE];
 	UCHAR   macTag[3];
 	UCHAR	macSize;
@@ -171,13 +181,6 @@ typedef PACKED1 struct _ManufacturerInfo{
 	char	manufacturerName[MAX_MANUFACTURER_NAME];
 }PACKED2 ManufacturerInfo;
 
-/*
-   typedef	__packed struct _DeviceInfo
-   {
-   UCHAR deviceCode;
-   UINT flashSize;
-   }DeviceInfo;
-   */
 
 typedef	PACKED1 struct _FlashID
 {
@@ -217,13 +220,13 @@ typedef PACKED1 struct _FlashInfoCmd
 
 
 #define BOOTSIGN		"RK28@Copyright2008Rockchip"
-#define BOOTSIGN_SIZE	32
+#define BOOTSIGN_SIZE		32
 #define CHECK_SIZE		16
-#define HEADINFO_SIZE	512
+#define HEADINFO_SIZE		512
 
 typedef PACKED1 struct _rk_time {
 	unsigned short		usYear;
-	unsigned short      usMonth;
+	unsigned short      	usMonth;
 	unsigned short		usDate;
 	unsigned short		usHour;
 	unsigned short		usMinute;
@@ -231,9 +234,9 @@ typedef PACKED1 struct _rk_time {
 }PACKED2 RK_TIME;
 
 typedef PACKED1 struct _RK28BOOT_HEAD{
-	char				szSign[BOOTSIGN_SIZE];
+	char			szSign[BOOTSIGN_SIZE];
 	unsigned char		bMD5Check[CHECK_SIZE];
-	RK_TIME				tmCreateTime;
+	RK_TIME			tmCreateTime;
 
 	unsigned int		uiMajorVersion;
 	unsigned int		uiMinorVersion;
@@ -247,7 +250,7 @@ typedef PACKED1 struct _RK28BOOT_HEAD{
 	unsigned int		uiFlashDataOffset;
 	unsigned int		uiFlashDataLen;
 
-	unsigned int        uiFlashBootOffset;
+	unsigned int        	uiFlashBootOffset;
 	unsigned int		uiFlashBootLen;
 
 	unsigned int		MergerVersion;		// 生成Boot文件所用Merger工具的版本号(高16字节为主版本号、低16字节为副版本号)
@@ -258,7 +261,6 @@ struct bootloader_message {
 	char status[32];
 	char recovery[1024];
 };
-
 
 
 typedef struct tag_rk_boot_img_hdr {
@@ -288,4 +290,5 @@ const char* get_fdt_name(void);
 int eraseDrmKey(void);
 int update_loader(bool dataLoaded);
 
-#endif /* RKLOADER_H */
+#endif /* RKIDBLOCK_H */
+

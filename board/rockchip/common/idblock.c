@@ -1,51 +1,53 @@
-/********************************************************************************
-  COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
-  --  ALL RIGHTS RESERVED  --
-  File Name:	
-Author:         
-Created:        
-Modified:
-Revision:       1.00
- ********************************************************************************/
-#include "../common/config.h"
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+
 #include <fastboot.h>
 #include <malloc.h>
-#include "storage.h"
-#include "idblock.h"
-#include "rkimage.h"
-#include "boot.h"
-
+#include "config.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
-
-extern uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
-extern uint32 SecureBootDisable(void);
-extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
-extern int ftl_memcmp(void *str1, void *str2, unsigned int count);
-
-
-//from MainLoop.c
-uint32 g_bootRecovery;
-uint32 g_BootRockusb;
-
-uint32 krnl_load_addr = 0;
+extern unsigned long gIdDataBuf[512];
 
 char bootloader_ver[24]="";
 uint16 internal_boot_bloader_ver = 0;
 uint16 update_boot_bloader_ver = 0;
 uint32 g_id_block_size = 1024;
 
-uint32* gLoaderTlb ;//= (uint32*)0x60040000;
+extern void P_RC4(unsigned char * buf, unsigned short len);
+
+#if 0
 #undef GET_BYTE
 #undef PUT_BYTE
 #undef GET_CHAR
 #undef PUT_CHAR
 
-#define GET_BYTE(pb,ib)    (pb)[(ib)]
-#define PUT_BYTE(pb,ib,b)  (pb)[(ib)]=(b)
-#define GET_CHAR(pch,ich)  (pch)[(ich)]
-#define PUT_CHAR(pch,ich,ch)  (pch)[(ich)]=(ch)
+#define GET_BYTE(pb, ib)	(pb)[(ib)]
+#define PUT_BYTE(pb, ib, b)	(pb)[(ib)] = (b)
+#define GET_CHAR(pch, ich)	(pch)[(ich)]
+#define PUT_CHAR(pch, ich, ch)	(pch)[(ich)] = (ch)
+
 
 //重新定义类型
 #define DRM_VOID  void
@@ -58,7 +60,6 @@ uint32* gLoaderTlb ;//= (uint32*)0x60040000;
 #define DRM_UINT  unsigned int
 #define DRM_INT   int
 
-//////////////////////////////////////////////////////////////
 #define RC4_TABLESIZE 256
 
 /* Key structure */
@@ -68,10 +69,6 @@ typedef struct __tagRC4_KEYSTRUCT
 	unsigned char i, j;						/* Indices */
 } RC4_KEYSTRUCT;
 
-unsigned short CRC_16(unsigned char * aData, unsigned long aSize);
-unsigned long CRC_32(unsigned char * aData, unsigned long aSize) ;
-extern unsigned long gIdDataBuf[512];
-#if 0
 DRM_VOID DRM_API NAND_RC4_KeySetup(
 		OUT   RC4_KEYSTRUCT  *pKS,
 		IN        DRM_DWORD       cbKey,
@@ -143,18 +140,18 @@ void GetIdblockDataNoRc4(char * fwbuf, int len)
 	RC4_KEYSTRUCT       rc4KeyStruct;
 	unsigned char       rc4Key[RK_IDBLOCK_RC4KEY_LEN] = RK_IDBLOCK_RC4KEY_KEY
 
-		NAND_RC4_KeySetup(&rc4KeyStruct, RK_IDBLOCK_RC4KEY_LEN , rc4Key);
+	NAND_RC4_KeySetup(&rc4KeyStruct, RK_IDBLOCK_RC4KEY_LEN , rc4Key);
 	NAND_RC4_Cipher(&rc4KeyStruct , len, (DRM_BYTE *)fwbuf);
 }
-#else
-extern void P_RC4(unsigned char * buf, unsigned short len);
 
-void GetIdblockDataNoRc4(char * fwbuf, int len)
+#else
+
+static void GetIdblockDataNoRc4(char * fwbuf, int len)
 {
 	P_RC4((unsigned char*)fwbuf, len);
 }
-
 #endif
+
 #if 0
 int GetIdBlockSysData(char * buf, int Sector)
 {
@@ -205,6 +202,7 @@ int get_bootloader_ver(char *boot_ver)
 	return -1;
 }
 
+
 uint8* g_32secbuf;
 uint8* g_cramfs_check_buf;
 
@@ -213,15 +211,8 @@ uint8* g_pLoader;
 uint8* g_pReadBuf;
 uint8* g_pFlashInfoData;
 
-
-
 #if 1
-extern void P_RC4(unsigned char * buf, unsigned short len);
-extern int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec);
-extern void DRVDelayMs(uint32 ms);
-
 FlashInfo m_flashInfo;
-
 uint16 g_IDBlockOffset[5];
 
 #define CALC_UNIT(a, b)		((a>0)?((a-1)/b+1):(a))			// 计算a可以分成多少个b，剩余部分算1个
@@ -244,13 +235,13 @@ uint16 g_IDBlockOffset[5];
  *          Meiyou Chen   07/12/20       1.0            ORG
  *
  **********************************************************/
-uint32 BuildNFBlockStateMap(uint8 ucFlashIndex, uint8 *NFBlockState, uint32 uiNFBlockLen)
+static uint32 BuildNFBlockStateMap(uint8 ucFlashIndex, uint8 *NFBlockState, uint32 uiNFBlockLen)
 {
 	return TRUE;
 }
 
 /*************************** 生成指定Flash的所有块的状态表 ******************************/
-uint32 BuildFlashStateMap(uint8 ucFlashIndex, FlashInfo *pFlash)
+static uint32 BuildFlashStateMap(uint8 ucFlashIndex, FlashInfo *pFlash)
 {
 	memset((void*)pFlash->BlockState, 0, 200);
 	return BuildNFBlockStateMap(ucFlashIndex, pFlash->BlockState, 200);//pFlash->uiBlockNum);//Test 512个块就足够了 pFlash->uiBlockNum);
@@ -271,7 +262,7 @@ uint32 BuildFlashStateMap(uint8 ucFlashIndex, FlashInfo *pFlash)
  *          Meiyou Chen   07/12/20       1.0            ORG
  *
  **********************************************************/
-int FindSerialBlocks(uint8 *NFBlockState, int iNFBlockLen, int iBegin, int iLen)
+static int FindSerialBlocks(uint8 *NFBlockState, int iNFBlockLen, int iBegin, int iLen)
 {
 	int iCount = 0;
 	int iIndex = iBegin;
@@ -294,11 +285,12 @@ int FindSerialBlocks(uint8 *NFBlockState, int iNFBlockLen, int iBegin, int iLen)
 }
 
 //寻找ID Block，该块在位于最前面的20个好块中若能找到，则是我们的片子，否则便是其它公司或者新片
-int FindIDBlock(FlashInfo* pFlashInfo, int iStart,int *iPos)
+static int FindIDBlock(FlashInfo* pFlashInfo, int iStart, int *iPos)
 {
 	BYTE ucSpareData[4*528];
 	int iRet = ERR_SUCCESS;
 	int i = FindSerialBlocks(pFlashInfo->BlockState, MAX_BLOCK_SEARCH/*MAX_BLOCK_STATE*/, iStart, 1);
+
 	*iPos = 0;
 	//	PRINT_I("i = %d \n", i);
 	if ( i<0 )
@@ -329,7 +321,7 @@ int FindIDBlock(FlashInfo* pFlashInfo, int iStart,int *iPos)
 	return -1;							// new mp3
 }
 
-int FindAllIDB(void)
+static int FindAllIDB(void)
 {
 	int i,iRet,iIndex,iStart=0,iCount=0;
 
@@ -357,7 +349,7 @@ int FindAllIDB(void)
 extern void ReadFlashInfo(void *buf);
 extern uint16 update_boot_bloader_ver;
 extern uint16 internal_boot_bloader_ver;
-bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
+static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 {
 	//	PBYTE pIDB,pFlashData,pFlashCode;
 	int iRet,i;
@@ -455,7 +447,7 @@ bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 	return TRUE;
 }
 
-int get_rk28boot(uint8 * pLoader, bool dataLoaded)
+static int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 {
 	mtd_partition *misc_part = gBootInfo.cmd_mtd.parts+gBootInfo.index_misc;
 	RK28BOOT_HEAD* hdr = (RK28BOOT_HEAD*)pLoader;
@@ -494,7 +486,7 @@ int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 //返回值：
 // true  成功
 // false 失败
-bool WriteXIDBlock(USHORT *pSysBlockAddr, int iIDBCount, UCHAR *idBlockData, UINT uiIdSectorNum)
+static bool WriteXIDBlock(USHORT *pSysBlockAddr, int iIDBCount, UCHAR *idBlockData, UINT uiIdSectorNum)
 {
 	//	UCHAR *pIDBlockData = NULL;
 	int i=0, ii=0;
@@ -650,19 +642,19 @@ Exit_update:
 	return iRet;    
 }
 #else
-int update_loader()
+int update_loader(void)
 {
 	PRINT_E("NOT SUPPORT!\n");
 	return 0;
 }
 #endif
 
-int dispose_bootloader_cmd(struct bootloader_message *msg, mtd_partition *misc_part)
+static int dispose_bootloader_cmd(struct bootloader_message *msg, mtd_partition *misc_part)
 {
 	int ret = 0;
-	if( 0 == strcmp(msg->command, "boot-recovery") )
-		g_bootRecovery = TRUE;// 进入Recovery System
-	else if( 0 == strcmp(msg->command, "bootloader")
+	if(0 == strcmp(msg->command, "boot-recovery")) {
+		// Recovery System
+	} else if( 0 == strcmp(msg->command, "bootloader")
 			|| 0 == strcmp(msg->command, "loader") ) // 新Loader才能支持"loader"命令
 	{
 		bool reboot;
@@ -851,7 +843,8 @@ int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
 #define MISC_SIZE           (MISC_PAGES * PAGE_SIZE)//48K
 #define MISC_COMMAND_OFFSET (MISC_COMMAND_PAGE * PAGE_SIZE / RK_BLK_SIZE)//32
 
-int checkMisc() {
+int checkMisc(void)
+{
 	struct bootloader_message *bmsg = NULL;
 	unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
 			RK_BLK_SIZE) * RK_BLK_SIZE];
@@ -876,6 +869,8 @@ int checkMisc() {
 	}
 	return false;
 }
+
+
 int setBootloaderMsg(struct bootloader_message* bmsg)
 {
 	unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
@@ -968,7 +963,9 @@ end:
 	return 0;
 }
 
-int eraseDrmKey() {
+
+int eraseDrmKey(void)
+{
 	char buf[RK_BLK_SIZE];
 	memset(buf, 0, RK_BLK_SIZE);
 	StorageSysDataStore(1, buf);
@@ -977,7 +974,8 @@ int eraseDrmKey() {
 }
 
 #define FDT_PATH        "rk-kernel.dtb"
-const char* get_fdt_name() {
+const char* get_fdt_name(void)
+{
 	if (!gBootInfo.fdt_name[0]) {
 		return FDT_PATH;
 	}

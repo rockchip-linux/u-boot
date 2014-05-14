@@ -28,74 +28,27 @@
 extern  uint32   RSA_KEY_TAG;
 extern  uint32   RSA_KEY_LENGTH;
 extern  uint32   RSA_KEY_DATA;
-uint16  * RSK_KEY;
+static	uint16   *RSK_KEY;
 
-unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input, unsigned char *publicKey, unsigned char inputlen);
 uint32  SecureBootEn;
 uint32  SecureBootCheckOK;
 uint32  SecureBootLock;
 uint32  SecureBootLock_backup;
-
-#define RKNAND_SYS_STORGAE_DATA_LEN 504
-typedef struct tagRKNAND_SYS_STORGAE {
-	uint32  tag;
-	uint32  len;
-	uint8   data[RKNAND_SYS_STORGAE_DATA_LEN];
-} RKNAND_SYS_STORGAE;
-
-typedef struct tagSYS_DATA_INFO {
-	uint32 systag;          // "SYSD" 0x44535953
-	uint32 syslen;          // 504
-	uint32 sysdata[(512-8)/4];  //
-
-	uint32 drmtag;          // "DRMK" 0x4B4D5244
-	uint32 drmlen;          // 504
-	uint32 drmdata[(512-8)/4];  //
-
-	uint32 reserved[(2048-1024)/4];  //保留
-} SYS_DATA_INFO, *pSYS_DATA_INFO;
-
-
-typedef struct tagBOOT_CONFIG_INFO {
-	uint32 bootTag;          // "SYSD" 0x44535953
-	uint32 bootLen;          // 504
-	uint32 bootMedia;        // 1:flash 2:emmc 4:sdcard0 8:sdcard1
-	uint32 BootPart;         // 0 disable , 1~N : part 1~N
-	uint32 secureBootEn;     // 0 disable , 1:enable
-	uint32 sdPartOffset;     
-	uint32 sdSysPartOffset;  
-	uint32 sys_reserved[(508-28)/4];
-	uint32 hash; // 0 disable , 1:enable
-} BOOT_CONFIG_INFO, *pBOOT_CONFIG_INFO;
-
-
-typedef struct tagDRM_KEY_INFO {
-	uint32 drmtag;           // "DRMK" 0x4B4D5244
-	uint32 drmLen;           // 504
-	uint32 keyBoxEnable;     // 0:flash 1:emmc 2:sdcard1 3:sdcard2
-	uint32 drmKeyLen;        //0 disable , 1~N : part 1~N
-	uint32 publicKeyLen;     //0 disable , 1:enable
-	uint32 secureBootLock;   //0 disable , 1:lock
-	uint32 secureBootLockKey;//加解密是使用
-	uint32 reserved0[(0x40-0x1C)/4];
-	uint8  drmKey[0x80];      // key data
-	uint32 reserved2[(0xFC-0xC0)/4];
-	uint8  publicKey[0x104];      // key data
-} DRM_KEY_INFO, *pDRM_KEY_INFO;
-
 BOOT_CONFIG_INFO gBootConfig;
 DRM_KEY_INFO gDrmKeyInfo;
+
 
 void RKLockLoader(void)
 {
 	if((RSK_KEY[0] == 0X400)) {
-		if( gDrmKeyInfo.secureBootLock == 0) {
+		if(gDrmKeyInfo.secureBootLock == 0) {
 			gDrmKeyInfo.secureBootLock = 1;
 			gDrmKeyInfo.secureBootLockKey = 0;
 			StorageSysDataStore(1, &gDrmKeyInfo);
 		}
 	}
 }
+
 
 uint32 SecureBootCheck(void)
 {
@@ -250,7 +203,7 @@ uint32 SecureBootCheck(void)
 }
 
 
-uint8 g_secureBootCheckBuf[512];
+static uint8 g_secureBootCheckBuf[512];
 void SecureBootUnlock(uint8 *pKey)
 {
 	g_secureBootCheckBuf[0] = 0;
@@ -321,7 +274,7 @@ uint32 SecureBootSignCheck(uint8 * rsaHash, uint8 *Hash, uint8 length)
 	return ret;
 }
 
-void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 length)
+static void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 length)
 {
 	uint8 *pSramAddr = (uint8 *)(NANDC_BASE_ADDR + 0x1000);
 
@@ -335,17 +288,18 @@ void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 length)
 	}
 }
 
-uint32 JSHashBase(uint8 * buf, uint32 len, uint32 hash)
+static uint32 JSHashBase(uint8 * buf, uint32 len, uint32 hash)
 {
 	uint32 i;
 	for(i=0;i<len;i++)
 	{
 		hash ^= ((hash << 5) + buf[i] + (hash >> 2));
 	}
+
 	return hash;
 }
 
-uint32 JSHash(uint8 * buf,uint32 len)
+static uint32 JSHash(uint8 * buf,uint32 len)
 {
 	return(JSHashBase(buf, len, 0x47C6A7E6));
 }
@@ -370,6 +324,7 @@ uint32 SetSysData2Kernel(uint32 SecureBootFlag)
 	StorageSysDataLoad(2,tmp_buf); 
 	FlashSramLoadStore(tmp_buf, 1024, 1, 512);          // vonder info
 	FlashSramLoadStore(&gIdDataBuf[384], 1536, 1, 512);  // idblk sn info
+
 	return 0;
 }
 

@@ -1,23 +1,37 @@
-/********************************************************************************
-  COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
-  --  ALL RIGHTS RESERVED  --
-  File Name:	
-Author:         
-Created:        
-Modified:
-Revision:       1.00
- ********************************************************************************/
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #include <common.h>
 #include <malloc.h>
 #include <fastboot.h>
-#include <asm/io.h>
-#include <version.h>
-#include <asm/arch/gpio.h>
 #include <errno.h>
+#include <version.h>
+#include <asm/io.h>
+
+#include <asm/arch/rkplat.h>
 
 #include "config.h"
-#include "rkimage.h"
-#include "idblock.h"
+
 
 extern uint32 GetVbus(void);
 extern void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
@@ -164,6 +178,7 @@ int board_fbt_key_pressed(void)
 	int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
 	enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
 	int vbus = GetVbus();
+
 	checkKey((uint32 *)&boot_rockusb, (uint32 *)&boot_recovery, (uint32 *)&boot_fastboot);
 	printf("vbus = %d\n", vbus);
 	if(boot_recovery && (vbus==0)) {
@@ -239,17 +254,20 @@ void board_fbt_boot_failed(const char* boot)
 	do_rockusb(NULL, 0, 0, NULL);
 }
 
-int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition) {
+
+int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition)
+{
+	int i = 0;
+	int ret = -1;
+	cmdline_mtd_partition *cmd_mtd;
+	PLoaderParam param = (PLoaderParam)malloc(MAX_LOADER_PARAM * PARAMETER_NUM);
+
 	memset((void*)ptable, 0, sizeof(disk_partition_t) * max_partition);
 
-    int i = 0;
-	int ret = -1;
-    cmdline_mtd_partition *cmd_mtd;
-    PLoaderParam param = (PLoaderParam)malloc(MAX_LOADER_PARAM * PARAMETER_NUM);
-    if (!GetParam(0, param)) {
-        ParseParam( &gBootInfo, param->parameter, param->length );
-        cmd_mtd = &(gBootInfo.cmd_mtd);
-        for(i = 0;i < cmd_mtd->num_parts;i++) {
+	if (!GetParam(0, param)) {
+		ParseParam( &gBootInfo, param->parameter, param->length );
+		cmd_mtd = &(gBootInfo.cmd_mtd);
+		for(i = 0;i < cmd_mtd->num_parts;i++) {
 			if (i >= max_partition) {
 				printf("Failed to load partition table, too much partition:%d(%d)\n",
 						cmd_mtd->num_parts, max_partition);
@@ -262,13 +280,13 @@ int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition) 
 			ptable[i].blksz = RK_BLK_SIZE;
 			snprintf((char*)ptable[i].type, sizeof(ptable[i].type), "%s", "raw");
 #if 1
-            printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
-                    cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
-                    cmd_mtd->parts[i].size);
+			printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
+				cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
+				cmd_mtd->parts[i].size);
 #endif
-        }
+        	}
 		ret = 0;
-    }
+	}
 end:
 	if (param)
 		free(param);

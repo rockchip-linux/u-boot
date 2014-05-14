@@ -1,26 +1,39 @@
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+
 #include <common.h>
-#include <linux/string.h>
 #include <malloc.h>
-#include "../common/config.h"
+
+#include "config.h"
 #include "parameter.h"
-#include "storage.h"
 
-extern uint32 krnl_load_addr;
-extern uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize );
 
-//uint8 g_mtdBuffer[sizeof(cmdline_mtd_partition)];
-
-//uint8 gParamBuffer[MAX_LOADER_PARAM];	// 限制最大的Parameters的字节数为:32*512
-//suint8 *gParamBuffer;	// 限制最大的Parameters的字节数为:32*512
 BootInfo gBootInfo;
 uint32 g_FwEndLba;
-cmdline_mtd_partition *g_mymtd = &(gBootInfo.cmd_mtd);
-
 uint32 parameter_lba;
 
-//#pragma arm section code = "LOADER2"
-
-uint32 str2hex(char *str)
+static uint32 str2hex(char *str)
 {
 	int32 i=0;
 	uint32 value = 0;
@@ -44,7 +57,7 @@ uint32 str2hex(char *str)
 	return value;
 }
 
-int find_mtd_part(cmdline_mtd_partition* this_mtd, const char* part_name)
+static int find_mtd_part(cmdline_mtd_partition* this_mtd, const char* part_name)
 {
 	int i=0;
 	for(i=0; i<this_mtd->num_parts; i++)
@@ -56,31 +69,31 @@ int find_mtd_part(cmdline_mtd_partition* this_mtd, const char* part_name)
 	return -1;
 }
 
-int get_rdInfo(PBootInfo pboot_info)
+static int get_rdInfo(PBootInfo pboot_info)
 {
 	char *token = NULL;
-    char cmdline[MAX_LINE_CHAR];
-    int len = strlen("initrd=");
+	char cmdline[MAX_LINE_CHAR];
+	int len = strlen("initrd=");
 
 	strcpy(cmdline, pboot_info->cmd_line);
-    pboot_info->ramdisk_load_addr = 0;
-    pboot_info->ramdisk_offset = 0;
-    pboot_info->ramdisk_size = 0;
+	pboot_info->ramdisk_load_addr = 0;
+	pboot_info->ramdisk_offset = 0;
+	pboot_info->ramdisk_size = 0;
     
 	token = strtok(cmdline, " ");
 	while(token != NULL)
 	{
 		if( !strncmp(token, "initrd=", len) )
 		{
-            token+=len; //initrd=0x62000000,0x80000
-            pboot_info->ramdisk_load_addr = simple_strtoull(token,&token,0);
-            pboot_info->ramdisk_size = 0x80000;
+			token+=len; //initrd=0x62000000,0x80000
+			pboot_info->ramdisk_load_addr = simple_strtoull(token,&token,0);
+			pboot_info->ramdisk_size = 0x80000;
             
-            if(*token == ',')
-            {
-                token++;
-                pboot_info->ramdisk_size = simple_strtoull(token,NULL,0);
-            }
+			if(*token == ',')
+			{
+				token++;
+				pboot_info->ramdisk_size = simple_strtoull(token, NULL, 0);
+			}
             
 			break;
 		}
@@ -89,7 +102,7 @@ int get_rdInfo(PBootInfo pboot_info)
 	return 0;
 }
 
-int isxdigit(int c)
+static int isxdigit(int c)
 {
 	if( (c >= 'A' && c <= 'Z')
 		|| (c>='a' && c<='z')
@@ -99,14 +112,15 @@ int isxdigit(int c)
 	return 0;
 }
 
-int isdigit(int c)
+static int isdigit(int c)
 {
 	if(c>='0' && c<='9')
 		return 1;
 	
 	return 0;
 }
-unsigned long memparse (char *ptr, char **retptr)
+
+static unsigned long memparse (char *ptr, char **retptr)
 {
 	unsigned long ret = simple_strtoull (ptr, retptr, 0);
 
@@ -127,7 +141,7 @@ unsigned long memparse (char *ptr, char **retptr)
 	return ret;
 }
 
-int get_part(char* parts, mtd_partition* this_part, int* part_index)
+static int get_part(char* parts, mtd_partition* this_part, int* part_index)
 {
 	char delim;
 	unsigned int mask_flags;
@@ -150,7 +164,7 @@ int get_part(char* parts, mtd_partition* this_part, int* part_index)
 	{
 		parts++;
 		offset = memparse(parts, &parts);
-    }
+	}
 
 	mask_flags = 0; /* this is going to be a regular partition */
 	delim = 0;
@@ -205,7 +219,7 @@ int get_part(char* parts, mtd_partition* this_part, int* part_index)
 	return 1;
 }
 
-int mtdpart_parse(const char* string, cmdline_mtd_partition* this_mtd)
+static int mtdpart_parse(const char* string, cmdline_mtd_partition* this_mtd)
 {
 	char *token = NULL;
 	char *s=NULL;
@@ -240,7 +254,6 @@ int mtdpart_parse(const char* string, cmdline_mtd_partition* this_mtd)
 }
 
 
-
 int parse_cmdline(PBootInfo pboot_info)
 {
 
@@ -265,12 +278,12 @@ int parse_cmdline(PBootInfo pboot_info)
 		pboot_info->index_backup = find_mtd_part(&pboot_info->cmd_mtd, PARTNAME_BACKUP);
 		pboot_info->index_snapshot = find_mtd_part(&pboot_info->cmd_mtd, PARTNAME_SNAPSHOT);
 
-        if(pboot_info->index_backup > 0)
-        {
-            g_FwEndLba = pboot_info->cmd_mtd.parts[pboot_info->index_backup].offset + pboot_info->cmd_mtd.parts[pboot_info->index_backup].size;
-        }
+		if(pboot_info->index_backup > 0)
+		{
+			g_FwEndLba = pboot_info->cmd_mtd.parts[pboot_info->index_backup].offset + pboot_info->cmd_mtd.parts[pboot_info->index_backup].size;
+		}
 
-        get_rdInfo(pboot_info);
+		get_rdInfo(pboot_info);
         
 		if(pboot_info->index_misc < 0 ||
 			pboot_info->index_kernel < 0 ||
@@ -289,29 +302,29 @@ int parse_cmdline(PBootInfo pboot_info)
 	return 0;
 }
 
- /* -1:error. */
-int ParseAtoi( const char * line )
+/* -1:error. */
+static int ParseAtoi( const char * line )
 {
-    int base = 10;
-    char max = '9';
-    int v = 0;
+	int base = 10;
+	char max = '9';
+	int v = 0;
 
-    EATCHAR(line, ' ');
-    if(*line == 0) return 0;
+	EATCHAR(line, ' ');
+	if(*line == 0) return 0;
     
-    if( line[1] == 'x' || line[1] == 'X' ){
-        base = 16;
-        max = 'f';      /* F*/
-        line += 2;
-    }
-    if( base == 10 ) {
-            while( *line >= '0' && *line <= max ) {
-                        v *= base ;
-                        v += *line-'0';
-                        line++;
-            }
-    } else {
-            while( *line >= '0' && *line <= max ) {
+	if( line[1] == 'x' || line[1] == 'X' ){
+		base = 16;
+		max = 'f';      /* F*/
+		line += 2;
+	}
+	if( base == 10 ) {
+		while( *line >= '0' && *line <= max ) {
+			v *= base ;
+			v += *line-'0';
+			line++;
+		}
+	} else {
+		while( *line >= '0' && *line <= max ) {
                         v *= base ;
                         if( *line >= 'a' )
                                 v += *line-'a'+10;
@@ -322,8 +335,10 @@ int ParseAtoi( const char * line )
                         line++;
                 }
     }
+
     return v;
 }
+
 
 void ParseLine(PBootInfo pboot_info, char *line)
 {
@@ -336,7 +351,7 @@ void ParseLine(PBootInfo pboot_info, char *line)
 	else if( !memcmp(line, "CHECK_MASK:", strlen("CHECK_MASK:")) )
 	    pboot_info->check_mask = ParseAtoi(line+strlen("CHECK_MASK:"));
 	else if( !memcmp(line, "KERNEL_IMG:", strlen("KERNEL_IMG:")) )
-	    krnl_load_addr = pboot_info->kernel_load_addr = ParseAtoi(line+strlen("KERNEL_IMG:"));
+	    pboot_info->kernel_load_addr = ParseAtoi(line+strlen("KERNEL_IMG:"));
 	else if( !memcmp(line, "BOOT_IMG:", strlen("BOOT_IMG:")) )
 	    pboot_info->boot_offset = ParseAtoi(line+strlen("BOOT_IMG:"));
 	else if( !memcmp(line, "RECOVERY_IMG:", strlen("RECOVERY_IMG:")) )
@@ -346,46 +361,46 @@ void ParseLine(PBootInfo pboot_info, char *line)
 #if 0
 	else if( !memcmp(line, "RECOVER_KEY:", strlen("RECOVER_KEY:")) )
 	{//  RECOVER_KEY: 0,4,A,2,0  ==> GPIO4 PA2 低有效
-    	line += strlen("RECOVER_KEY:");
-    	EATCHAR(line, ' ');
-        setup_key(line, &key_rockusb);
+		line += strlen("RECOVER_KEY:");
+		EATCHAR(line, ' ');
+		setup_key(line, &key_rockusb);
 	}
-    else if( !memcmp(line, "PRODUCT:", strlen("PRODUCT:")))
-    {
-        line += strlen("PRODUCT:");
-        EATCHAR(line, ' ');
-        strncpy(PRODUCT_NAME, line ,sizeof(PRODUCT_NAME));
-    }
+	else if( !memcmp(line, "PRODUCT:", strlen("PRODUCT:")))
+	{
+		line += strlen("PRODUCT:");
+		EATCHAR(line, ' ');
+		strncpy(PRODUCT_NAME, line ,sizeof(PRODUCT_NAME));
+	}
 	else if( !memcmp(line, "PWR_HLD:", strlen("PWR_HLD:")) )
 	{//  RECOVER_KEY: 0,4,A,2,0  ==> GPIO4 PA2 低有效
-    	line += strlen("PWR_HLD:");
-    	EATCHAR(line, ' ');
-        setup_key(line, &pin_powerHold);
-        if(pin_powerHold.key.gpio.valid)
-            powerOn();
-	}
+		line += strlen("PWR_HLD:");
+		EATCHAR(line, ' ');
+		setup_key(line, &pin_powerHold);
+		if(pin_powerHold.key.gpio.valid)
+			powerOn();
+		}
 	else if( !memcmp(line, "COMBINATION_KEY:", strlen("COMBINATION_KEY:")) )
 	{
 		line += strlen("COMBINATION_KEY:");
 		EATCHAR(line, ' ');
-        setup_key(line, &key_combination[KeyCombinationNum]);
-        KeyCombinationNum++;
+		setup_key(line, &key_combination[KeyCombinationNum]);
+		KeyCombinationNum++;
 	}
 #endif
 #ifdef OTP_DATA_ENABLE
 	else if( !memcmp(line, "WAV_ADDR:", strlen("WAV_ADDR:")) )
 	{
-	    uint32 wav_addr;
+		uint32 wav_addr;
 		line += strlen("WAV_ADDR:");
 		EATCHAR(line, ' ');
-	    wav_addr = simple_strtoull(line,&line,0);
-        RkPrintf("wav_addr = %x\n",wav_addr);
-        if(wav_addr >= 0x60000000 && wav_addr < 0x80000000)
-        {
-            OtpDataLoad(0, 0, (void*)wav_addr, 512);
-            OtpDataLoad(1, 0, (void*)(wav_addr + (512ul*512)), 512);
-            RkPrintf("wav = %x\n",*(uint32*)(wav_addr));
-        }
+		wav_addr = simple_strtoull(line,&line,0);
+		RkPrintf("wav_addr = %x\n",wav_addr);
+		if(wav_addr >= 0x60000000 && wav_addr < 0x80000000)
+		{
+			OtpDataLoad(0, 0, (void*)wav_addr, 512);
+			OtpDataLoad(1, 0, (void*)(wav_addr + (512ul*512)), 512);
+			RkPrintf("wav = %x\n",*(uint32*)(wav_addr));
+		}
 	}
 #endif	
 	else if( !memcmp(line, "CMDLINE:", strlen("CMDLINE:")) )
@@ -416,7 +431,6 @@ void ParseLine(PBootInfo pboot_info, char *line)
 	else if (!memcmp(line, "UART", strlen("UART"))) {
 		rkplat_uart2UsbEn(1);
 	}
-
 	else
 		printf("Unknow param: %s!\n", line);
 }
@@ -429,7 +443,6 @@ void ParseLine(PBootInfo pboot_info, char *line)
 char* getline(char* param, int32 len, char *line)
 {
 	int i=0;
-//	char *string=param;
 	
 	for(i=0; i<len; i++)
 	{
@@ -515,18 +528,19 @@ int32 GetParam(uint32 param_addr, void *buf)
 			iRet = -2;
 		}
 	}
+
 	return iRet;
 }
 
 int32 GetBackupParam(void *buf)
 {
 	int iResult = -1;
-    return iResult;
+	return iResult;
 }
 
 int32 BackupParam(void *buf)
 {
-    return 0;
+	return 0;
 }
 
 void ParseParam(PBootInfo pboot_info, char *param, uint32 len)
@@ -556,4 +570,3 @@ void ParseParam(PBootInfo pboot_info, char *param, uint32 len)
 //	RkPrintf("Leave\n");
 }
 
-//#pragma arm section code

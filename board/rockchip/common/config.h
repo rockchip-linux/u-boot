@@ -1,19 +1,28 @@
-/********************************************************************************
-*********************************************************************************
-		COPYRIGHT (c)   2001-2012 BY ROCK-CHIP FUZHOU
-				--  ALL RIGHTS RESERVED  --
-
-File Name:	    config.h
-Author:		    YIFENG ZHAO
-Created:        2012-02-07
-Modified:       ZYF
-Revision:		1.00
-********************************************************************************
-********************************************************************************/
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #ifndef _CONFIG_H
 #define _CONFIG_H
-
-//#define FPGA_EMU
 
 //平台配置
 #define     RK28XX   0x0
@@ -27,23 +36,25 @@ Revision:		1.00
 
 #define     PALTFORM    RK30XX
 
-//#define     LINUX_LOADER
 #define     SECURE_BOOT_ENABLE
 #define     SECURE_BOOT_ENABLE_ALWAY
 #define     SECURE_BOOT_LOCK
 //#define     ERASE_DRM_KEY_EN
 //#define   SECURE_BOOT_TEST
-#define     MALLOC_DISABLE
-//#define   INSTANT_BOOT_EN
+
 #define     LOAD_OEM_DATA
-//#define     RK_LOADER_FOR_FT
-#define     DRIVERS_UART
-#define     DRIVERS_NAND   
-#define     RK_SDMMC_BOOT_EN
 
 
 #define __packed	__attribute__((packed))
 #define __align(x)	__attribute__ ((aligned(x)))
+
+#ifndef __GNUC__
+#define PACKED1	__packed
+#define PACKED2
+#else
+#define PACKED1
+#define PACKED2	__attribute__((packed))
+#endif
 
 //模块配置
 #ifdef RK_SPI_BOOT_EN
@@ -84,16 +95,19 @@ Revision:		1.00
 #include <common.h>
 #include <asm/arch/rkplat.h>
 
-//平台无关头文件
-#include "storage.h"
-
 //平台相关头文件
 #include "chipDepend.h"
 
 //系统相关头文件
 #include "parameter.h"
+#include "rsa.h"
+#include "sha.h"
+#include "boot.h"
+#include "rkimage.h"
+#include "idblock.h"
+#include "storage.h"
 
-
+#include "key.h"
 
 #ifdef  DRIVERS_SPI
 #include "../common/spi/SpiFlash.h"
@@ -103,17 +117,6 @@ Revision:		1.00
 #ifdef CONFIG_PL330_DMA
 #include <api_pl330.h>
 #endif
-
-#define USE_RECOVER		// cmy: 禁止Recover功能(自动修复kernel/boot/recovery)
-#define USE_RECOVER_IMG
-
-
-extern uint32 SecureBootEn;
-extern uint32 SecureBootCheckOK;
-extern uint32 g_BootRockusb;
-extern uint32 SecureBootLock;
-extern uint32 SecureBootLock_backup;
-
 
 // by cmy
 #define SYS_LOADER_REBOOT_FLAG   0x5242C300  //高24是TAG,低8位是标记
@@ -136,10 +139,14 @@ enum {
 	BOOT_MAX         /* MAX VALID BOOT TYPE.*/
 };
 
-uint32 RkldTimerGetTick( void );
 int ftl_memcmp(void *str1, void *str2, unsigned int count);
 void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int size);
 int ftl_memcmp(void *str1, void *str2, unsigned int count);
+
+void P_RC4(unsigned char * buf, unsigned short len);
+void P_RC4_ext(unsigned char * buf, unsigned short len);
+uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize );
+void change_cmd_for_recovery(PBootInfo boot_info, char * rec_cmd);
 
 #endif
 

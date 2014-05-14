@@ -1,26 +1,37 @@
-/********************************************************************************
-*********************************************************************************
-			COPYRIGHT (c)   2004 BY ROCK-CHIP FUZHOU
-				--  ALL RIGHTS RESERVED  --
-
-File Name:  api_flash.h
-Author:     XUESHAN LIN
-Created:    1st Dec 2008
-Modified:
-Revision:   1.00
-********************************************************************************
-********************************************************************************/
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Configuation settings for the rk3xxx chip platform.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #ifndef _STORAGE_H
 #define _STORAGE_H
 
+
 #ifndef __GNUC__
-#define PACKED1 __packed
+#define PACKED1	__packed
 #define PACKED2
 #else
 #define PACKED1
-#define PACKED2 __attribute__((packed))
+#define PACKED2	__attribute__((packed))
 #endif
-
 
 //1:flash 2:emmc 4:sdcard0 8:sdcard1
 #define     BOOT_FROM_FLASH   (1<<0)
@@ -48,7 +59,7 @@ extern  void 	FlashReadID(uint8 ChipSel, void *buf);
 extern  void    ReadFlashIDInfo(uint8 * buf);
 extern  uint32  FlashBootErase(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod);
 extern  void    FW_ReIntForUpdate(void);
-extern  void FW_SorageLowFormatEn(int en);
+extern  void    FW_SorageLowFormatEn(int en);
 
 extern  int StorageWriteLba(uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode);
 extern  int StorageReadLba(uint32 LBA ,void *pbuf  , uint16 nSec);
@@ -61,6 +72,10 @@ extern  uint32 StorageGetSDSysOffset(void);
 extern  uint32 UsbStorageSysDataLoad(uint32 offset,uint32 len,uint32 *Buf);
 extern  uint32 UsbStorageSysDataStore(uint32 offset,uint32 len,uint32 *Buf);
 extern  uint32 StorageReadId(void *buf);
+extern  uint32 StorageUbootDataStore(uint32 Index,void *Buf);
+extern  uint32 StorageUbootDataLoad(uint32 Index,void *Buf);
+extern  int32 StorageInit(void);
+
 //local memory operation function
 typedef uint32 (*Memory_Init)(uint32 BaseAddr);
 typedef uint32 (*Memory_ReadPba)(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec );
@@ -80,36 +95,36 @@ typedef uint32 (*Memory_SysDataStore)(uint8 ChipSel, uint32 Index,void *Buf);
 
 typedef struct MEM_FUN_Tag
 {
-    uint16 id;
-    uint16 flag; // 传递给kernel的，确定从哪里引导到flash的
-    uint32 Valid;
-    Memory_Init Init;
-    Memory_ReadID ReadId;
-    Memory_ReadPba ReadPba;
-    Memory_WritePba WritePba;
-    Memory_ReadLba ReadLba;
-    Memory_WriteLba WriteLba;
-    Memory_Erase Erase;
-    Memory_ReadInfo ReadInfo;
-    Memory_IntForUpdate IntForUpdate;
-    Memory_LowFormat LowFormat;
-    Memory_GetCurEraseBlock GetCurEraseBlock;
-    Memory_GetTotleBlk GetTotleBlk;
-    Memory_GetCapacity GetCapacity;
-    Memory_SysDataLoad SysDataLoad;
-    Memory_SysDataStore SysDataStore;
-}MEM_FUN_T,pMEM_FUN_T;
+	uint16 id;
+	uint16 flag; // 传递给kernel的，确定从哪里引导到flash的
+	uint32 Valid;
+	Memory_Init Init;
+	Memory_ReadID ReadId;
+	Memory_ReadPba ReadPba;
+	Memory_WritePba WritePba;
+	Memory_ReadLba ReadLba;
+	Memory_WriteLba WriteLba;
+	Memory_Erase Erase;
+	Memory_ReadInfo ReadInfo;
+	Memory_IntForUpdate IntForUpdate;
+	Memory_LowFormat LowFormat;
+	Memory_GetCurEraseBlock GetCurEraseBlock;
+	Memory_GetTotleBlk GetTotleBlk;
+	Memory_GetCapacity GetCapacity;
+	Memory_SysDataLoad SysDataLoad;
+	Memory_SysDataStore SysDataStore;
+} MEM_FUN_T, pMEM_FUN_T;
 
 
 typedef PACKED1  struct  _FLASH_INFO//需要加__packed或着声明时4对齐不然程序可能在有判断的时候出现异常
 {
-    uint32  FlashSize;          //（Sector为单位）   4Byte
-    uint16  BlockSize;          //（Sector为单位）   2Byte
-    uint8   PageSize;           // (Sector为单位）    1Byte
-    uint8   ECCBits;            //（bits为单位）    1Byte
-    uint8   AccessTime;
-    uint8   ManufacturerName;   // 1Byte
-    uint8   FlashMask;          // 每一bit代表那个片选是否有FLASH
+	uint32  FlashSize;          //（Sector为单位）   4Byte
+	uint16  BlockSize;          //（Sector为单位）   2Byte
+	uint8   PageSize;           // (Sector为单位）    1Byte
+	uint8   ECCBits;            //（bits为单位）    1Byte
+	uint8   AccessTime;
+	uint8   ManufacturerName;   // 1Byte
+	uint8   FlashMask;          // 每一bit代表那个片选是否有FLASH
 }PACKED2 FLASH_INFO, *pFLASH_INFO;
 
 //for nand
@@ -123,27 +138,27 @@ typedef uint32 (*Memory_flash_deinit)(void);
 typedef void   (*uart_Trace)(const char* Format , ...);
 typedef struct LOADER_MEM_API_Tag
 {
-    uint32 tag;                       //0x4e460001 
-    uint32 id;                        //0 nand,1 emmc ,2 spi
-    uint32 reversd0;                  //do not used
-    uint32 reversd1;                  //do not used
-    uart_Trace Trace;
-    Memory_Init Init;
-    Memory_ReadID ReadId;
-    Memory_ReadPba ReadPba;
-    Memory_WritePba WritePba;
-    Memory_FlashReadLba ReadLba;
-    Memory_FlashWriteLba WriteLba;         
-    Memory_Erase Erase;
-    Memory_ReadInfo ReadInfo;
-    Memory_GetBlkSize getBlkSize;
-    Memory_LowFormat LowFormat;
-    Memory_ftl_deinit ftl_deinit;
-    Memory_flash_deinit flash_deinit;
-    Memory_GetCapacity GetCapacity;    //get capacity
-    Memory_SysDataLoad SysDataLoad;    //vendor part,1MB
-    Memory_SysDataStore SysDataStore;  //vendor part,1MB
-}LOADER_MEM_API_T,*pLOADER_MEM_API_T;
+	uint32 tag;                       //0x4e460001 
+	uint32 id;                        //0 nand,1 emmc ,2 spi
+	uint32 reversd0;                  //do not used
+	uint32 reversd1;                  //do not used
+	uart_Trace Trace;
+	Memory_Init Init;
+	Memory_ReadID ReadId;
+	Memory_ReadPba ReadPba;
+	Memory_WritePba WritePba;
+	Memory_FlashReadLba ReadLba;
+	Memory_FlashWriteLba WriteLba;         
+	Memory_Erase Erase;
+	Memory_ReadInfo ReadInfo;
+	Memory_GetBlkSize getBlkSize;
+	Memory_LowFormat LowFormat;
+	Memory_ftl_deinit ftl_deinit;
+	Memory_flash_deinit flash_deinit;
+	Memory_GetCapacity GetCapacity;    //get capacity
+	Memory_SysDataLoad SysDataLoad;    //vendor part,1MB
+	Memory_SysDataStore SysDataStore;  //vendor part,1MB
+} LOADER_MEM_API_T, *pLOADER_MEM_API_T;
 
 //1全局变量
 #undef	EXT
@@ -158,14 +173,6 @@ EXT MEM_FUN_T * gpSdBootMemFun;
 EXT uint32 gIdDataBuf[512];
 EXT uint32 gSysData[512];
 EXT FLASH_INFO g_FlashInfo;
-
-
-uint32 StorageUbootDataStore(uint32 Index,void *Buf);
-uint32 StorageUbootDataLoad(uint32 Index,void *Buf);
-int32 StorageInit(void);
-uint32 SetSysData2Kernel(uint32 SecureBootFlag);
-uint32 StorageSysDataStore(uint32 Index,void *Buf);
-void FW_SorageLowFormat(void);
 
 #endif
 
