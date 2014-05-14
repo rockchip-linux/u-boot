@@ -1124,8 +1124,9 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 #if defined(CONFIG_RK_FB)
 	if((int)lcd_base == gd->fb_base)
 		lcd_base += width*height*2; 
-	else
-		lcd_base = (void*)gd->fb_base; 
+	else 
+		lcd_base = gd->fb_base; 
+	lcd_base =  ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
 
 	lcd_line_length = (width * NBITS(panel_info.vl_bpix)) / 8;
 	fb = (uchar *) (lcd_base +
