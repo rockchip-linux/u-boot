@@ -70,7 +70,7 @@ int board_late_init(void)
 {
 	stdio_print_current_devices();
 
-	printf("board_late_init\n");
+	debug("board_late_init\n");
 #ifdef CONFIG_RK_I2C 
 	rk_i2c_init();
 #endif

@@ -61,6 +61,7 @@ int print_cpuinfo(void)
 	printf("codec pll:\t%d\n", rkclk_get_codec_pll());
 	printf("ddr pll:\t%d\n", rkclk_get_ddr_pll());
 	printf("new pll:\t%d\n", rkclk_get_new_pll());
+
 	return 0;
 }
 #endif

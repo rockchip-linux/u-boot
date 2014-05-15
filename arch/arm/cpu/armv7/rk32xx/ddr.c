@@ -30,6 +30,7 @@ DECLARE_GLOBAL_DATA_PTR;
 //获取容量，返回字节数
 uint32 ddr_get_cap(void)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	uint32 reg = *(volatile uint32*)(RKIO_PMU_PHYS + 0x9c);
 	uint32 cap[2] = {0, 0};
 
@@ -59,6 +60,9 @@ uint32 ddr_get_cap(void)
 	}
 
 	return (cap[0]+cap[1]);
+#else
+	#error "PLS config chiptype for ddr cap get!"
+#endif
 }
 
 
