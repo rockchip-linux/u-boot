@@ -994,3 +994,45 @@ void udc_irq(void)
 	}
 }
 
+
+#define DWC_OTG_HOST_PORT_REGS_OFFSET  0x440
+int dwc_otg_check_dpdm(void)
+{
+    volatile unsigned int * otg_dctl;
+    volatile unsigned int * otg_gotgctl;
+    volatile unsigned int * otg_hprt0;
+    int bus_status = 0;
+    char *OtgReg = USB_OTG_BASE_ADDR_VA;
+
+	cru_writel(((7<<4)<<16)|(7<<4), CRU_SOFTRSTS_CON(8));    // otg0 phy clkgate
+    //g_cruReg->CRU_SOFTRST_CON[8] = ((7<<4)<<16)|(7<<4);    // otg0 phy clkgate
+    udelay(3);
+	cru_writel(((7<<4)<<16)|(0<<4), CRU_SOFTRSTS_CON(8));  // otg0 phy clkgate
+	//g_cruReg->CRU_SOFTRST_CON[8] = ((7<<4)<<16)|(0<<4);    // otg0 phy clkgate
+    mdelay(50);
+   
+    grf_writel(((0x01<<2)<<16), GRF_UOC0_CON2); // exit suspend.
+    mdelay(105);
+    // printf("regbase %p 0x%x, otg_phy_con%p, 0x%x\n",
+    //     OtgReg, *(OtgReg), &g_3188_grfReg->GRF_UOC0_CON[2], g_3188_grfReg->GRF_UOC0_CON[2]);
+    otg_dctl = (unsigned int * )(OtgReg+0x804);
+
+    otg_gotgctl = (unsigned int * )(OtgReg);
+
+    otg_hprt0 = (unsigned int * )(OtgReg + DWC_OTG_HOST_PORT_REGS_OFFSET);
+
+    if(*otg_gotgctl &(1<<19)){
+        bus_status = 1;
+        *otg_dctl &= ~2;
+        mdelay(50);    // delay about 10ms
+    // check dp,dm
+        printf("%s otg_dctl=0x%x,otg_hprt0 = 0x%x\n",__func__,*otg_dctl,*otg_hprt0);
+        if((*otg_hprt0 & 0xc00)==0xc00)
+            bus_status = 2;
+        *otg_dctl |= 2;
+    }
+   // printf("%s %d \n",__func__,bus_status);
+
+    return bus_status;
+}
+

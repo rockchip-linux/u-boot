@@ -67,7 +67,7 @@ int pmic_charger_setting(int current)
 
 int charger_init(unsigned char bus)
 {
-    int usb_charger_type = 1;//dwc_otg_check_dpdm();
+    int usb_charger_type = dwc_otg_check_dpdm();
 
     printf("%s, charger_type = %d, dc_is_charging= %d\n",__func__,usb_charger_type,is_charging());
     if(is_charging()){
