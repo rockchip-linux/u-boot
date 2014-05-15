@@ -21,7 +21,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
+
 #include "config.h"
+
 
 /***************************************************************************
 º¯ÊýÃèÊö:
@@ -38,16 +40,15 @@ void * ftl_memset(void *s, int c, unsigned int n)
 ***************************************************************************/
 void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int size)
 {
-	if(((int)pvTo & 0x3)||((int)pvForm & 0x3))
-	{
+	if(((int)pvTo & 0x3)||((int)pvForm & 0x3)) {
 		int i;
 		char * pTo = (char *)pvTo;
 		char * pForm = (char *)pvForm;
 
-		for(i=0;i<size;i++)
-		{
+		for(i=0;i<size;i++) {
 			*pTo++ = *pForm++;
 		}
+
 		return 0;
 	}
 

@@ -21,28 +21,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-#ifndef _CONFIG_H
-#define _CONFIG_H
+#ifndef _RK_CONFIG_H
+#define _RK_CONFIG_H
 
-//平台配置
-#define     RK28XX   0x0
-#define     RK2828   0x2
-#define     RK29XX   0x10
-#define     RK292X   0x12
-#define     RK30XX   0x20
-#define     RK31XX   0x30
-#define     RK32XX   0x40
-#define     RK_ALL   0xFF
 
-#define     PALTFORM    RK30XX
+#define	SECURE_BOOT_ENABLE
+#define	SECURE_BOOT_ENABLE_ALWAY
+#define	SECURE_BOOT_LOCK
+//#define	ERASE_DRM_KEY_EN
 
-#define     SECURE_BOOT_ENABLE
-#define     SECURE_BOOT_ENABLE_ALWAY
-#define     SECURE_BOOT_LOCK
-//#define     ERASE_DRM_KEY_EN
-//#define   SECURE_BOOT_TEST
-
-#define     LOAD_OEM_DATA
+//#define	SECURE_BOOT_TEST
 
 
 #define __packed	__attribute__((packed))
@@ -56,13 +44,6 @@
 #define PACKED2	__attribute__((packed))
 #endif
 
-//模块配置
-#ifdef RK_SPI_BOOT_EN
-	#define DRIVERS_SPI
-#endif
-
-//系统配置
-#define     MAX_COMBINATION_KEY     6
 
 //库头文件
 #define Assert(cond,msg,num)
@@ -81,7 +62,7 @@
 
 
 #ifdef DEBUG_FLASH
-#define	PRINTF  printf
+#define	PRINTF		printf
 #else
 #define	PRINTF(...)
 #endif
@@ -92,10 +73,12 @@
 #define PRINT_W		PRINTF
 #define RkPrintf	PRINTF
 
+
 #include <common.h>
 #include <asm/arch/rkplat.h>
 
 //平台相关头文件
+#include "ftl_std.h"
 #include "chipDepend.h"
 
 //系统相关头文件
@@ -106,22 +89,12 @@
 #include "rkimage.h"
 #include "idblock.h"
 #include "storage.h"
-
 #include "key.h"
 
-#ifdef  DRIVERS_SPI
-#include "../common/spi/SpiFlash.h"
-#include "../common/spi/SpiBoot.h"
-#endif
-
-#ifdef CONFIG_PL330_DMA
-#include <api_pl330.h>
-#endif
-
 // by cmy
-#define SYS_LOADER_REBOOT_FLAG   0x5242C300  //高24是TAG,低8位是标记
-#define SYS_KERNRL_REBOOT_FLAG   0xC3524200  //高24是TAG,低8位是标记
-#define SYS_LOADER_ERR_FLAG      0X1888AAFF
+#define SYS_LOADER_REBOOT_FLAG		0x5242C300  //高24是TAG,低8位是标记
+#define SYS_KERNRL_REBOOT_FLAG		0xC3524200  //高24是TAG,低8位是标记
+#define SYS_LOADER_ERR_FLAG		0X1888AAFF
 
 enum {
 	BOOT_NORMAL = 0,
@@ -139,18 +112,11 @@ enum {
 	BOOT_MAX         /* MAX VALID BOOT TYPE.*/
 };
 
-int ftl_memcmp(void *str1, void *str2, unsigned int count);
-void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int size);
-int ftl_memcmp(void *str1, void *str2, unsigned int count);
 
 void P_RC4(unsigned char * buf, unsigned short len);
 void P_RC4_ext(unsigned char * buf, unsigned short len);
-uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize );
+uint32 CRC_32CheckBuffer(unsigned char * aData, unsigned long aSize);
 void change_cmd_for_recovery(PBootInfo boot_info, char * rec_cmd);
 
-#endif
-
-/*********************************************************************************************************
-**                            End Of File
-********************************************************************************************************/
+#endif /* _RK_CONFIG_H */
 
