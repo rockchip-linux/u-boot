@@ -5,6 +5,16 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
+
+ifneq ($(wildcard ../arm-eabi-4.7),)
+CROSS_COMPILE   ?= $(shell pwd)/../arm-eabi-4.7/bin/arm-eabi-
+endif
+ifneq ($(wildcard ../toolchain/arm-eabi-4.7),)
+CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.7/bin/arm-eabi-
+endif
+ifneq ($(wildcard ../arm-eabi-4.6),)
+CROSS_COMPILE   ?= $(shell pwd)/../arm-eabi-4.6/bin/arm-eabi-
+endif
 ifneq ($(wildcard ../toolchain/arm-eabi-4.6),)
 CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.6/bin/arm-eabi-
 endif
