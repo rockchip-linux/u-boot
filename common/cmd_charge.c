@@ -57,11 +57,13 @@ typedef struct {
 static anim_level_conf* level_confs = NULL;
 static int level_conf_num = 0;
 static int only_current_level = false;
+static int low_power_level = 0;
 
 #define DEF_CHARGE_DESC_PATH        "charge_anim_desc.txt"
 
 #define OPT_CHARGE_ANIM_DELAY       "delay="
 #define OPT_CHARGE_ANIM_LOOP_CUR    "only_current_level="
+#define OPT_CHARGE_ANIM_LOW_POWER   "low_power_level="
 #define OPT_CHARGE_ANIM_LEVELS      "levels="
 #define OPT_CHARGE_ANIM_LEVEL_CONF  "max_level="
 #define OPT_CHARGE_ANIM_LEVEL_NUM   "num="
@@ -179,7 +181,7 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 		buf += (strlen(buf) + 1);
 
 		LOGD("parse arg:%s", arg);
-		if (arg[0] == '#')
+		if (arg[0] == '#' || !arg[0])
 			continue;
 		if (!memcmp(arg, OPT_CHARGE_ANIM_LEVEL_CONF,
 					strlen(OPT_CHARGE_ANIM_LEVEL_CONF))) {
@@ -205,6 +207,10 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 			only_current_level =
 				!memcmp(arg + strlen(OPT_CHARGE_ANIM_LOOP_CUR), "true", 4);
 			LOGD("Found only_current_level:%d", only_current_level);
+        } else if (!memcmp(arg, OPT_CHARGE_ANIM_LOW_POWER,
+                    strlen(OPT_CHARGE_ANIM_LOW_POWER))) {
+            low_power_level = atoi(arg + strlen(OPT_CHARGE_ANIM_LOW_POWER));
+            LOGD("Found low_power_level:%d", low_power_level);
 		} else if (!memcmp(arg, OPT_CHARGE_ANIM_LEVELS,
 					strlen(OPT_CHARGE_ANIM_LEVELS))) {
 			if (level_conf_num) {
@@ -256,6 +262,7 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 	if (dump) {
 		printf("Parse anim desc(%s):\n", desc_path);
 		printf("only_current_level=%d\n", only_current_level);
+		printf("low_power_level=%d\n", low_power_level);
 		printf("level conf:\n");
 		for (i = 0; i < level_conf_num; i++) {
 			printf("\tmax=%d, delay=%d, num=%d, prefix=%s\n",
@@ -561,9 +568,13 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				brightness = BRIGHT_OFF;
 			}
 #endif
-		} else if(key_state == KEY_LONG_PRESSED){
+		} else if(key_state == KEY_LONG_PRESSED) {
 			//long pressed key, continue bootting.
-			goto boot;
+			if (batt_status.capacity < low_power_level) {
+				FBTERR("ignore booting, low power:%d\n", batt_status.capacity);
+			} else {
+				goto boot;
+			}
 		}
 
 		//step 4: update anim & set brightness.

@@ -7,6 +7,9 @@ only_current_level=false
 #max levels.
 levels=7
 
+#not to boot from charge if lower than this level.
+low_power_level=3
+
 #max_level(max cap level to match this level-conf), num(num of pics in this level-conf)
 #prefix(prefix of pics' path in resource.img)
 #'num=1 prefix=test' means: test.bmp
