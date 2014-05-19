@@ -30,11 +30,21 @@
 
 #include <power/battery.h>
 #include <fastboot.h>
+#include <malloc.h>
+#include <lcd.h>
 #include <power/pmic.h>
 #include <resource.h>
 
 #define LOGE(fmt, args...) FBTERR(fmt "\n", ##args)
 #define LOGD(fmt, args...) FBTDBG(fmt "\n", ##args)
+
+extern int power_hold(void);
+extern int is_charging(void);
+extern int check_charge(void);
+extern int pmic_charger_setting(int current);
+extern void shut_down(void);
+extern void rk_backlight_ctrl(int brightness);
+extern void lcd_standby(int enable);
 
 typedef struct {
 	int                 max_level;
@@ -110,14 +120,14 @@ static bool parse_level_conf(const char* arg, anim_level_conf* level_conf) {
 	return true;
 }
 
-static void free_level_confs() {
+static void free_level_confs(void) {
 	if (!level_confs)
 		return;
 	int i = 0, j = 0;
 	for (i = 0; i < level_conf_num; i++) {
 		if (level_confs[i].images) {
 			for (j = 0; j < level_confs[i].num; j++) {
-				free_content(level_confs[i].images[j]);
+				free_content(&level_confs[i].images[j]);
 			}
 			free(level_confs[i].images);
 		}
@@ -169,6 +179,8 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 		buf += (strlen(buf) + 1);
 
 		LOGD("parse arg:%s", arg);
+		if (arg[0] == '#')
+			continue;
 		if (!memcmp(arg, OPT_CHARGE_ANIM_LEVEL_CONF,
 					strlen(OPT_CHARGE_ANIM_LEVEL_CONF))) {
 			if (!level_confs) {
@@ -208,7 +220,7 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 			LOGD("Found levels:%d", level_conf_num);
 		} else {
 			LOGE("Unknown arg:%s", arg);
-			goto end;
+			continue;
 		}
 	}
 
@@ -218,7 +230,7 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 	}
 
 	//sort level confs.
-	int i = 0, j = 0, k = 0;
+	int i = 0, j = 0;
 	for (i = 0; i < level_conf_num; i++) {
 		if (!level_confs[i].delay) {
 			level_confs[i].delay = delay;
@@ -262,7 +274,7 @@ end:
 }
 
 #if 0
-void test_anim_desc() {
+void test_anim_desc(void) {
 	load_anim_desc(DEF_CHARGE_DESC_PATH, true);
 }
 #endif
@@ -272,7 +284,7 @@ static int current_index = 0;
 
 static struct battery batt_status;
 
-static resource_content* get_image_content() {
+static resource_content* get_image_content(void) {
 	if (!level_confs
 			|| current_conf >= level_conf_num || current_conf < 0
 			|| current_index >= level_confs[current_conf].num
@@ -326,23 +338,22 @@ static resource_content* get_image_content() {
 	return image;
 }
 
-static uint32_t get_image() {
+static uint32_t get_image(void) {
 	resource_content* image = get_image_content();
 	if (!image) {
 		//TODO:use a default error logo.
 		FBTDBG("failed to get bmp image\n");
-		return NULL;
+		return 0;
 	}
-	return image->load_addr;
+	return (uint32_t)image->load_addr;
 }
 
-static void free_image() {
+static void free_image(void) {
 	resource_content* image = get_image_content();
 	if (image) {
 		free_content(image);
 	}
 }
-
 
 static inline int get_index_for_level(int level) {
 	int i = 0;
@@ -353,7 +364,7 @@ static inline int get_index_for_level(int level) {
 	return 0;
 }
 
-static uint32_t get_next_image() {
+static uint32_t get_next_image(void) {
 	int level = batt_status.capacity;
 	int actual_conf = get_index_for_level(level);
 	//FBTDBG("level:%d, index:%d\n", level, next_conf);
@@ -398,25 +409,29 @@ static uint32_t get_next_image() {
 	return addr;
 }
 
-static void show_next_image() {
+static void show_next_image(void) {
 	lcd_display_bitmap_center(get_next_image());
 	free_image();
 }
 
 #define DELAY 80000 //us
-static int get_anim_delay() {
+static int get_anim_delay(void) {
 	if (!level_confs
 			|| current_conf >= level_conf_num || current_conf < 0)
 		return DELAY;
 	return level_confs[current_conf].delay * 1000;
 }
 
-static int sleep = false;
-static long long power_hold_time = 0; // hold 178s may overflow...
-static long long screen_on_time = 0; // 178s may overflow...
+typedef struct _screen_state {
+	int brightness;
+	long long screen_on_time; // 178s may overflow...
+} screen_state;
 
-static inline int get_delay() {
-	return sleep? DELAY << 1: get_anim_delay();
+static inline int get_delay(const screen_state* state) {
+	return state->brightness? get_anim_delay()
+
+		/* check duration while screen off */
+		: DELAY << 1;
 }
 
 static inline unsigned int get_fix_duration(unsigned int base) {
@@ -425,43 +440,54 @@ static inline unsigned int get_fix_duration(unsigned int base) {
 	return base > now? base - now : max + (base - now) + 1;
 }
 
-#define POWER_LONG_PRESS_TIMEOUT    1500 //ms
+//screen timeouts.
 #define SCREEN_DIM_TIMEOUT          60000 //ms
 #define SCREEN_OFF_TIMEOUT          120000 //ms
+
+//screen brightness.
 #define BRIGHT_ON                   48
 #define BRIGHT_DIM                  12
 #define BRIGHT_OFF                  0
 
-static inline void set_screen_state(int brightness, int force) {
-	//FBTDBG("set_screen_state:%d\n", brightness);
-	int was_sleep = sleep;
+//key pressed state.
+#define KEY_NOT_PRESSED 			0
+#define KEY_SHORT_PRESSED 			1
+#define KEY_LONG_PRESSED 			2
 
-	switch(brightness) {
-		case BRIGHT_ON:
-		case BRIGHT_DIM:
-			sleep = false;
-			break;
-		case BRIGHT_OFF:
-			sleep = true;
-			break;
+static int check_key_pressed(void) {
+#ifdef CONFIG_ROCKCHIP
+	//see: ./board/rockchip/common/key.c
+	int power_pressed_state = power_hold();
+	//printf("pressed state:%x\n", power_pressed_state);
+	if(power_pressed_state > 0) {
+		return KEY_SHORT_PRESSED;
+	} else if(power_pressed_state <0){
+		return KEY_LONG_PRESSED;
 	}
-	if (was_sleep != sleep || force) { //switch state.
-		//FBTDBG("screen state changed:%d -> %d\n", was_sleep, sleep);
-		if(sleep == true){
-			rk_backlight_ctrl(brightness);
-			lcd_standby(sleep);
-		}else{
-			lcd_standby(sleep);
-			mdelay(100);
-			rk_backlight_ctrl(brightness);
-		}
-		screen_on_time = get_timer(0);
-	}else{
-		rk_backlight_ctrl(brightness);
-	}
+#endif
+	return KEY_NOT_PRESSED;
 }
 
+static inline void set_brightness(int brightness, screen_state* state) {
+	FBTDBG("set_brightness: %d -> %d\n", state->brightness, brightness);
+	if (state->brightness && !brightness) {
+		FBTDBG("screen off!\n");
+		rk_backlight_ctrl(brightness);
+		lcd_standby(1);
+		state->screen_on_time = 0;
+	} else if (!state->brightness && brightness) {
+		FBTDBG("screen on!\n");
+		lcd_standby(0);
+		mdelay(100);
+		rk_backlight_ctrl(brightness);
+		state->screen_on_time = get_timer(0);
+	} else {
+		rk_backlight_ctrl(brightness);
+	}
+	state->brightness = brightness;
+}
 
+#ifdef CONFIG_CHARGE_DEEP_SLEEP
 void wait_for_interrupt(void)
 {
 	/* PLL enter slow-mode */
@@ -478,21 +504,11 @@ void wait_for_interrupt(void)
 
 	printf("PLL open end! \n");
 }
-
-
-void do_sleep()
-{
-	set_screen_state(BRIGHT_OFF, false);
-	wait_for_interrupt();
-	set_screen_state(BRIGHT_ON, false);
-}
-
+#endif
 
 int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	load_anim_desc(DEF_CHARGE_DESC_PATH, true);
-	int power_pressed_state = 0;
-	int count = 0;
 
 	get_power_bat_status(&batt_status);
 	//init status
@@ -500,55 +516,83 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		pmic_charger_setting(2);
 	else 
 		pmic_charger_setting(1);
-	set_screen_state(BRIGHT_ON, true);
+
+	screen_state g_state;
+	memset(&g_state, 0, sizeof(g_state));
 
 	int load_delay = 0;
-
+	int brightness = BRIGHT_ON;
+	int key_state = KEY_NOT_PRESSED;
 	while (1) {
+		//step 1: update battery info, check charger state.
 		get_power_bat_status(&batt_status);
-		if (!is_charging())
+		if (!is_charging()) {
+			FBTDBG("charger disconnceted.\n");
 			goto shutdown;
+		}
 		if(!batt_status.state_of_chrg)
 		{
 			pmic_charger_setting(0);
 			goto shutdown;
 		}
 
-		power_pressed_state = power_hold();
-		//printf("pressed state:%x\n", power_pressed_state);
-		if(power_pressed_state > 0) {
-			do_sleep();
-			//printf("sleep end\n");
-		} else if(power_pressed_state <0){
+		//step 2: check timeouts, if screen is on.
+		if (g_state.brightness) {
+			unsigned int idle_time = get_fix_duration(g_state.screen_on_time);
+			//printf("idle_time:%ld\n", idle_time);
+			if (idle_time > SCREEN_OFF_TIMEOUT) {
+				FBTDBG("screen off\n");
+				brightness = BRIGHT_OFF;
+			} else if (idle_time >= SCREEN_DIM_TIMEOUT) {
+				FBTDBG("dim\n");
+				brightness = BRIGHT_DIM;
+			}
+		}
+
+		//step 3: check key state.
+		key_state = check_key_pressed();
+		FBTDBG("key pressed state:%x\n", key_state);
+		if (key_state == KEY_SHORT_PRESSED) {
+			brightness = g_state.brightness? BRIGHT_OFF : BRIGHT_ON;
+#ifdef CONFIG_CHARGE_DEEP_SLEEP
+			if (brightness) {
+				//should not reach here!
+				FBTERR("screen state error!\n");
+				brightness = BRIGHT_OFF;
+			}
+#endif
+		} else if(key_state == KEY_LONG_PRESSED){
 			//long pressed key, continue bootting.
 			goto boot;
 		}
-		udelay(get_delay() - load_delay);
-		if (!sleep) { //screen on and device idle
-			unsigned int idle_time = get_fix_duration(screen_on_time);
-			//printf("idle_time:%ld\n", idle_time);
-			if (idle_time > SCREEN_OFF_TIMEOUT) {
-				//printf("idle time out sleep\n");
-				do_sleep();
-			} else if (idle_time >= SCREEN_DIM_TIMEOUT) {
-				//idle dim timeout
-				//FBTDBG("dim\n");
-				set_screen_state(BRIGHT_DIM, false);
-			}
-		}
-		if (!sleep) {
+
+		//step 4: update anim & set brightness.
+		if (brightness) {
+			//do anim when screen is on.
 			load_delay = get_timer(0);
 			show_next_image();
 			load_delay = get_fix_duration(load_delay);
+		} else {
+			//screen off.
+#ifdef CONFIG_CHARGE_DEEP_SLEEP
+			//goto sleep, and wait for wakeup by power-key.
+			brightness = BRIGHT_ON;
+			set_brightness(BRIGHT_OFF, &g_state);
+			wait_for_interrupt();
+#endif
 		}
+		set_brightness(brightness, &g_state);
+
+		udelay(get_delay(&g_state) - load_delay);
+		load_delay = 0;
 	}
 boot:
-	set_screen_state(BRIGHT_OFF, false);
+	set_brightness(BRIGHT_OFF, &g_state);
 	printf("booting...\n");
 	return 1;
 shutdown:
 	printf("shutting down...\n");
-	set_screen_state(BRIGHT_OFF, false);
+	set_brightness(BRIGHT_OFF, &g_state);
 	shut_down();
 	printf("not reach here.\n");
 	return 0;

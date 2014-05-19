@@ -426,6 +426,7 @@ void	lcd_puts(const char *s);
 void	lcd_printf(const char *fmt, ...);
 void	lcd_clear(void);
 int	lcd_display_bitmap(ulong bmp_image, int x, int y);
+int lcd_display_bitmap_center(ulong bmp_image);
 
 /**
  * Get the width of the LCD in pixels
