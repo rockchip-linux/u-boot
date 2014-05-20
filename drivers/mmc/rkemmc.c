@@ -21,6 +21,7 @@ Revision:       1.00
 #ifndef CONFIG_SYS_MMC_MAX_BLK_COUNT
 #define CONFIG_SYS_MMC_MAX_BLK_COUNT 65535
 #endif
+
 static int mmcwaitbusy(void)
 {
   int count;
@@ -36,6 +37,24 @@ static int mmcwaitbusy(void)
     udelay(1);
   }
   return 0;
+}
+static int reset_fifo()
+{
+	int timeout;
+	int status;
+	status = Readl (gMmcBaseAddr + MMC_STATUS);
+	if(!(status&MMC_CTRL_FIFO_RESET)){
+		Writel(gMmcBaseAddr + MMC_CTRL, Readl(gMmcBaseAddr + MMC_CTRL) | MMC_CTRL_FIFO_RESET);
+		timeout = 10000;
+		while ((Readl(gMmcBaseAddr + MMC_CTRL) & (MMC_CTRL_FIFO_RESET)) && (timeout > 0)){
+			udelay(1);
+			timeout--;
+		}
+		if(timeout == 0)
+			return -1;
+	}
+	
+	return 0;
 }
 static int  mci_send_cmd(u32 cmd, u32 arg)
 {
@@ -102,14 +121,25 @@ static int rk_emmc_init(struct mmc *mmc)
 	Writel(gMmcBaseAddr + MMC_PWREN,1);
 	while ((Readl(gMmcBaseAddr + MMC_CTRL) & (MMC_CTRL_FIFO_RESET | MMC_CTRL_RESET)) && (timeOut > 0))
 	{
-		DRVDelayUs(1);
+		udelay(1);
 		timeOut--;
 	}
 	if(timeOut == 0)
 		return -1;
+	#if USE_MMCDMA
+	timeOut = 10000;
+	Writel(gMmcBaseAddr + MMC_BMOD, (Readl(gMmcBaseAddr + MMC_BMOD) |BMOD_SWR));
+	while ((Readl(gMmcBaseAddr + MMC_BMOD) & BMOD_SWR) && (timeOut > 0))
+	{
+		udelay(1);
+		timeOut--;
+	}
+	if(timeOut == 0)
+		return -1;
+	#endif
 	Writel(gMmcBaseAddr + MMC_RINTSTS, 0xFFFFFFFF);/* Clear the interrupts for the host controller */
 	Writel(gMmcBaseAddr + MMC_INTMASK, 0); /* disable all mmc interrupt first */
-	Writel(gMmcBaseAddr + MMC_TMOUT, 0xFFFFFFFF);/* Put in max timeout */
+	Writel(gMmcBaseAddr + MMC_TMOUT, 0xFFFFFF40);/* Put in max timeout */
 	Writel(gMmcBaseAddr + MMC_FIFOTH, (0x3 << 28) |((FIFO_DETH/2 - 1) << 16) | ((FIFO_DETH/2) << 0));
 	Writel(gMmcBaseAddr + MMC_CLKSRC, 0);
 	return 0;
@@ -144,7 +174,6 @@ static int rk_mmc_start_command(struct mmc *mmc,
 	unsigned int time_out = 10000;
 	Writel(gMmcBaseAddr + MMC_CMDARG, cmd->cmdarg);
 	Writel(gMmcBaseAddr + MMC_CMD, cmd_flags | MMC_CMD_START | MMC_USE_HOLD_REG);
-	udelay(1);
 	for (RetryCount; RetryCount<MAX_RETRY_COUNT; RetryCount++) {
 		if(Readl(gMmcBaseAddr + MMC_RINTSTS) & MMC_INT_CMD_DONE){
 			Writel(gMmcBaseAddr + MMC_RINTSTS, MMC_INT_CMD_DONE);
@@ -200,7 +229,7 @@ static int EmmcWriteData (void *Buffer, unsigned int Blocks)
 		Writel((gMmcBaseAddr + MMC_DATA), *DataBuffer++);
 	Size32 -= FifoCount;
 	if(Readl(gMmcBaseAddr + MMC_RINTSTS) & MMC_DATA_ERROR_FLAGS) {
-		printf("Emmc::ReadSingleBlock data error, RINTSTS: 0x%08x\n",(Readl(gMmcBaseAddr + MMC_RINTSTS)));
+		printf("Emmc::WriteSingleBlock data error, RINTSTS: 0x%08x\n",(Readl(gMmcBaseAddr + MMC_RINTSTS)));
 		Writel(gMmcBaseAddr + MMC_RINTSTS, MMC_DATA_ERROR_FLAGS);
 		return -1;
 	}
@@ -297,7 +326,96 @@ static int EmmcReadData (void *Buffer, unsigned int Blocks)
 
 	return Status;
 }
-
+#if USE_MMCDMA
+static volatile SDMMC_DMA_DESC      IDMADesc[MAX_DESC_NUM_IDMAC];
+static int set_idmadesc(struct mmc *mmc, int buffer,
+		uint32 BufSize)
+{
+	uint32 i,size;
+	pSDC_REG_T  pReg = (pSDC_REG_T)gMmcBaseAddr;
+	PSDMMC_DMA_DESC pDesc = &IDMADesc[0];
+	pReg->SDMMC_DBADDR = (uint32)pDesc;
+	for (i=0; i<MAX_DESC_NUM_IDMAC; i++, pDesc++)
+	{
+		size = MIN(MAX_BUFF_SIZE_IDMAC, BufSize);    
+		pDesc->desc1 = ((size << DescBuf1SizeShift) & DescBuf1SizMsk);
+		pDesc->desc2 =  (uint32)buffer;
+		pDesc->desc0 = DescSecAddrChained | DescOwnByDma | ((i==0)? DescFirstDesc : 0)| DescDisInt;
+		BufSize -= size;
+		if (0 == BufSize)
+			break;
+		buffer += size;
+		pDesc->desc3 = (uint32)(pDesc+1);
+	}
+	pDesc->desc0 |= DescLastDesc;
+	pDesc->desc0 &= ~DescDisInt;
+	return 0;
+}
+static int request_idma(struct mmc *mmc, struct mmc_cmd *cmd,
+		struct mmc_data *data,uint32 data_len)
+{
+	u32 cmdflags,ret;
+         uint32 value;
+	uint32 timeout;
+	pSDC_REG_T  pReg = (pSDC_REG_T)gMmcBaseAddr;
+	timeout  = data_len*100;
+	if(data->flags == MMC_DATA_READ){
+		set_idmadesc(mmc,data->dest,data_len);
+	}
+	else{
+		set_idmadesc(mmc,data->src,data_len);
+	}
+	pReg->SDMMC_CTRL |= CTRL_USE_IDMAC;
+	pReg->SDMMC_BMOD |= (BMOD_DE | BMOD_FB);
+	cmdflags = rk_mmc_prepare_command(mmc, cmd,data);
+	ret = rk_mmc_start_command(mmc, cmd, cmdflags);
+	if(ret){
+		printf("dma send cmd err\n");
+		return ret;
+	}
+	do
+	{
+		udelay(1);
+		if((--timeout) == 0) 
+			break;
+	} while ((Readl(gMmcBaseAddr + MMC_RINTSTS) & ( MMC_INT_DATA_OVER)) != (MMC_INT_DATA_OVER));
+	value = pReg->SDMMC_RINISTS;
+	if(value&MMC_CMD_RES_TIME_OUT){
+		ret = -1;
+		printf("dma MMC_CMD_RES_TIME_OUT error\n");
+	}
+	else if(value&MMC_INT_SBE){
+		ret = -1;
+		printf("dma MMC_INT_SBE error\n");
+	}
+	else if(value&MMC_INT_DTO){
+		ret = -1;
+		printf("dma MMC_INT_DTO error\n");
+	}
+	else if(value&MMC_INT_DCRC){
+		ret = -1;
+		printf("dma MMC_INT_DCRC error\n");
+	}
+	Writel(gMmcBaseAddr +MMC_RINTSTS, 0xffffffff);
+	pReg->SDMMC_CTRL &= ~CTRL_USE_IDMAC;
+	pReg->SDMMC_BMOD &= ~BMOD_DE;
+	if(data->flags == MMC_DATA_WRITE){
+		 timeout = 0;
+		while ((value = pReg->SDMMC_STATUS) & MMC_BUSY)
+		{
+			udelay(1);
+			timeout++;
+			if (timeout > 250000 * 4) //D¡ä¡Á?3¡è¨º¡À??250ms
+			{
+			printf("dma data busy\n");
+			ret = -1;
+			break;
+			}
+		}
+	}
+	return ret;
+}
+#endif
 static int rk_emmc_request(struct mmc *mmc, struct mmc_cmd *cmd,
 		struct mmc_data *data)
 {
@@ -306,33 +424,30 @@ static int rk_emmc_request(struct mmc *mmc, struct mmc_cmd *cmd,
 	int Status;
 	int value;
 	int timeout;
+	int data_len;
 	if (data) {
+		Status = reset_fifo();
+		if (Status < 0) {
+			printf("wait reset error\n");
+			return Status;
+		}
 		Writel(gMmcBaseAddr +MMC_BYTCNT, data->blocksize*data->blocks);
 		Writel(gMmcBaseAddr +MMC_BLKSIZ, data->blocksize);
-		Writel(gMmcBaseAddr + MMC_CTRL, Readl(gMmcBaseAddr + MMC_CTRL) | MMC_CTRL_FIFO_RESET);
-		Writel((gMmcBaseAddr + MMC_INTMASK), 
-		  MMC_INT_TXDR | MMC_INT_RXDR | MMC_INT_CMD_DONE | MMC_INT_DATA_OVER | MMC_ERROR_FLAGS);
-		 //Wait contrloler ready
-		Status = mmcwaitbusy();
-		if (Status < 0) {
-		      printf("Emmc::EmmcPreTransfer failed, data busy\n");
-		      return Status;
-  		}
+		#if USE_MMCDMA
+		data_len = data->blocksize*data->blocks;
+		if(data_len <= MAX_DATA_SIZE_IDMAC && data_len >= 512&&\
+			((cmd->cmdidx== MMC_CMD_READ_SINGLE_BLOCK ||cmd->cmdidx == MMC_CMD_READ_MULTIPLE_BLOCK) \
+			||(cmd->cmdidx== MMC_CMD_WRITE_SINGLE_BLOCK ||cmd->cmdidx == MMC_CMD_WRITE_MULTIPLE_BLOCK)))
+			return  request_idma(mmc,cmd,data,data_len);
+		#endif
 	}
 	if(cmd->cmdidx == MMC_CMD_STOP_TRANSMISSION)
 	{
-		value = Readl(gMmcBaseAddr + MMC_STATUS);
-		if (!(value & MMC_FIFO_EMPTY))
-		{
-			value = Readl(gMmcBaseAddr + MMC_CTRL);
-			value |= MMC_CTRL_FIFO_RESET;
-			Writel(gMmcBaseAddr + MMC_CTRL,value), 
-			Status = mmcwaitbusy();
-			if (Status < 0) {
-			      printf("Emmc::EmmcPreTransfer failed, data busy\n");
-			      return Status;
-	  		}
-		}
+		Status = reset_fifo();
+		if (Status < 0) {
+		      printf("wait reset error\n");
+		      return Status;
+  		}
 	}
 	cmdflags = rk_mmc_prepare_command(mmc, cmd,data);
 	if(cmd->cmdidx == 0)

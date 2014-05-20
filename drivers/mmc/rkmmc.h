@@ -33,10 +33,44 @@
 #define MMC_VERID	0x6c
 #define MMC_UHS_REG	0X74
 #define MMC_RST_N	0x78
+#define MMC_BMOD       0x80
+#define MMC_DBADDR  0x88
+#define MMC_IDSTS        0x8c
+#define MMC_IDINTEN   0x90
 
 #define MAX_RETRY_COUNT (250000)  //250ms
 #define MMC_FIFO_BASE	0x200
 #define MMC_DATA	MMC_FIFO_BASE
+
+#define MAX_DESC_NUM_IDMAC     64//1024//128
+#define MAX_BUFF_SIZE_IDMAC    8192
+#define MAX_DATA_SIZE_IDMAC      (MAX_DESC_NUM_IDMAC*MAX_BUFF_SIZE_IDMAC)
+
+#define CTRL_USE_IDMAC	       0x02000000  
+#define CTRL_IDMAC_RESET       0x00000004    
+
+/* Bus Mode Register Bit Definitions */
+#define  BMOD_SWR 		0x00000001	// Software Reset: Auto cleared after one clock cycle                                0
+#define  BMOD_FB 		0x00000002	// Fixed Burst Length: when set SINGLE/INCR/INCR4/INCR8/INCR16 used at the start     1 
+#define  BMOD_DE 		0x00000080	// Idmac Enable: When set IDMAC is enabled                                           7
+#define  BMOD_DSL_MSK		0x0000007C	// Descriptor Skip length: In Number of Words                                      6:2 
+#define  BMOD_DSL_Shift		2	        // Descriptor Skip length Shift value
+#define  BMOD_DSL_ZERO          0x00000000	// No Gap between Descriptors
+#define  BMOD_DSL_TWO           0x00000008	// 2 Words Gap between Descriptors
+#define  BMOD_PBL		0x00000400	// MSIZE in FIFOTH Register 
+/* Internal DMAC Status Register IDSTS Bit Definitions
+ * Internal DMAC Interrupt Enable Register Bit Definitions */
+#define  IDMAC_AI			        0x00000200   // Abnormal Interrupt Summary Enable/ Status                                       9
+#define  IDMAC_NI    		   	        0x00000100   // Normal Interrupt Summary Enable/ Status                                         8
+#define  IDMAC_CES				0x00000020   // Card Error Summary Interrupt Enable/ status                                     5
+#define  IDMAC_DU				0x00000010   // Descriptor Unavailabe Interrupt Enable /Status                                  4
+#define  IDMAC_FBE				0x00000004   // Fata Bus Error Enable/ Status                                                   2
+#define  IDMAC_RI				0x00000002   // Rx Interrupt Enable/ Status                                                     1
+#define  IDMAC_TI				0x00000001   // Tx Interrupt Enable/ Status       
+
+#define  IDMAC_EN_INT_ALL   	0x00000337   // Enables all interrupts 
+
+
 /* Control register defines */
 #define MMC_CTRL_ABORT_READ_DATA	BIT(8)
 #define MMC_CTRL_SEND_IRQ_RESPONSE	BIT(7)
@@ -105,8 +139,16 @@
 #define MMC_DATA_BUSY			BIT(9)
 #define MMC_FIFO_EMPTY                     BIT(2)
 #define MMC_BUSY			(MMC_MC_BUSY | MMC_DATA_BUSY)
+
+#define USE_MMCDMA 1
+
 /* FIFO threshold register defines */
+#if USE_MMCDMA
+#define FIFO_DETH			256
+#else
 #define FIFO_DETH			512
+#endif
+
 
 /* UHS-1 register defines */
 #define MMC_UHS_DDR_MODE		BIT(16)
@@ -138,11 +180,120 @@
 #define emmc_err(x...)           printk(BIOS_ERR, ## x)
 
 
+typedef struct tagSDMMC_DMA_DESC 
+{
+    uint32 desc0;   	 /* control and status information of descriptor */
+    uint32 desc1;   	 /* buffer sizes                                 */
+    uint32 desc2;   	 /* physical address of the buffer 1             */  
+    uint32 desc3;    	 /* physical address of the buffer 2             */       
+}SDMMC_DMA_DESC, *PSDMMC_DMA_DESC;
+
 typedef enum {
   READ = 0,
   WRITE,
 } OPERATION_TYPE;
 
+/*----------------------------------- Typedefs -------------------------------*/
+/*
+ DBADDR  = 0x88 : Descriptor List Base Address Register
+ The DBADDR is the pointer to the first Descriptor
+ The Descriptor format in Little endian with a 32 bit Data bus is as shown below 
+           --------------------------------------------------------------------------
+     DES0 | OWN (31)| Control and Status                                             |
+       --------------------------------------------------------------------------
+     DES1 | Reserved |         Buffer 2 Size        |        Buffer 1 Size           |
+       --------------------------------------------------------------------------
+     DES2 |  Buffer Address Pointer 1                                                |
+       --------------------------------------------------------------------------
+     DES3 |  Buffer Address Pointer 2 / Next Descriptor Address Pointer              |
+       --------------------------------------------------------------------------
+*/
+enum DmaDescriptorDES0    // Control and status word of DMA descriptor DES0 
+{
+     DescOwnByDma          = 0x80000000,   /* (OWN)Descriptor is owned by DMA engine              31   */
+     DescCardErrSummary    = 0x40000000,   /* Indicates EBE/RTO/RCRC/SBE/DRTO/DCRC/RE             30   */
+     DescEndOfRing         = 0x00000020,   /* A "1" indicates End of Ring for Ring Mode           05   */
+     DescSecAddrChained    = 0x00000010,   /* A "1" indicates DES3 contains Next Desc Address     04   */
+     DescFirstDesc         = 0x00000008,   /* A "1" indicates this Desc contains first            03
+                                              buffer of the data                                       */
+     DescLastDesc          = 0x00000004,   /* A "1" indicates buffer pointed to by this this      02
+                                              Desc contains last buffer of Data                        */
+     DescDisInt            = 0x00000002,   /* A "1" in this field disables the RI/TI of IDSTS     01
+                                              for data that ends in the buffer pointed to by 
+                                              this descriptor                                          */     
+};
+enum DmaDescriptorDES1    // Buffer's size field of Descriptor
+{
+     DescBuf2SizMsk       = 0x03FFE000,    /* Mask for Buffer2 Size                            25:13   */
+     DescBuf2SizeShift    = 13,            /* Shift value for Buffer2 Size                             */
+     DescBuf1SizMsk       = 0x00001FFF,    /* Mask for Buffer1 Size                            12:0    */
+     DescBuf1SizeShift    = 0,             /* Shift value for Buffer2 Size                             */
+};
+enum DescMode
+{
+    RINGMODE    = 0x00000001,
+    CHAINMODE   = 0x00000002,
+};
+enum BufferMode
+{
+    SINGLEBUF   = 0x00000001,
+    DUALBUF     = 0x00000002,
+};
+enum DmaAccessType
+{
+    TO_DEVICE       = 0x00000001,
+    FROM_DEVICE     = 0x00000002,
+    BIDIRECTIONAL   = 0x00000003,
+};
+/* EMMC Host Controller register struct */
+typedef volatile struct TagSDC_REG
+{
+    volatile uint32 SDMMC_CTRL;        //SDMMC Control register
+    volatile uint32 SDMMC_PWREN;       //Power enable register
+    volatile uint32 SDMMC_CLKDIV;      //Clock divider register
+    volatile uint32 SDMMC_CLKSRC;      //Clock source register
+    volatile uint32 SDMMC_CLKENA;      //Clock enable register
+    volatile uint32 SDMMC_TMOUT;       //Time out register
+    volatile uint32 SDMMC_CTYPE;       //Card type register
+    volatile uint32 SDMMC_BLKSIZ;      //Block size register
+    volatile uint32 SDMMC_BYTCNT;      //Byte count register
+    volatile uint32 SDMMC_INTMASK;     //Interrupt mask register
+    volatile uint32 SDMMC_CMDARG;      //Command argument register
+    volatile uint32 SDMMC_CMD;         //Command register
+    volatile uint32 SDMMC_RESP0;       //Response 0 register
+    volatile uint32 SDMMC_RESP1;       //Response 1 register
+    volatile uint32 SDMMC_RESP2;       //Response 2 register
+    volatile uint32 SDMMC_RESP3;       //Response 3 register
+    volatile uint32 SDMMC_MINTSTS;     //Masked interrupt status register
+    volatile uint32 SDMMC_RINISTS;     //Raw interrupt status register
+    volatile uint32 SDMMC_STATUS;      //Status register
+    volatile uint32 SDMMC_FIFOTH;      //FIFO threshold register
+    volatile uint32 SDMMC_CDETECT;     //Card detect register
+    volatile uint32 SDMMC_WRTPRT;      //Write protect register
+    volatile uint32 reserved;          //reserved
+    volatile uint32 SDMMC_TCBCNT;      //Transferred CIU card byte count
+    volatile uint32 SDMMC_TBBCNT;      //Transferred host/DMA to/from BIU_FIFO byte count
+    volatile uint32 SDMMC_DEBNCE;      //Card detect debounce register
+    volatile uint32 SDMMC_USRID;        //User ID register        
+    volatile uint32 SDMMC_VERID;        //Synopsys version ID register
+    volatile uint32 SDMMC_HCON;         //Hardware configuration register          
+    volatile uint32 SDMMC_UHS_REG;      //UHS-1 register  
+    volatile uint32 SDMMC_RST_n;        //Hardware reset register
+    volatile uint32 SDMMC_RESERVED0;
+    volatile uint32 SDMMC_BMOD;        //HBus Mode Register
+    volatile uint32 SDMMC_PLDMND;      //Poll Demand Register
+    volatile uint32 SDMMC_DBADDR;      //Descriptor List Base Address Register
+    volatile uint32 SDMMC_IDSTS;        //Internal DMAC Status Register
+    volatile uint32 SDMMC_IDINTEN;      // Internal DMAC Interrupt Enable Register
+    volatile uint32 SDMMC_DSCADDR;      //Current Host Descriptor Address Register
+    volatile uint32 SDMMC_BUFADDR;      //Current Buffer Descriptor Address Register
+    volatile uint32 SDMMC_RESERVED1[(0x100-0x9C)/4];
+    volatile uint32 SDMMC_CARDTHRCTL;   //Card Threshold Control Register
+    volatile uint32 SDMMC_BACK_END_POWER; //Back-end Power Register
+    volatile uint32 SDMMC_UHS_REG_EXT;      //UHS Register
+    volatile uint32 SDMMC_EMMC_DDR_REG;     //eMMC 4.5 DDR START Bit Detection Control Register
+    volatile uint32 SDMMC_ENABLE_SHIFT;     //Enable Phase Shift Register
+}*pSDC_REG_T;
 
 
 
