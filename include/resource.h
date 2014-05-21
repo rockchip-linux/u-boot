@@ -43,5 +43,6 @@ bool load_content(resource_content* content);
 bool load_content_data(resource_content* content,
         int offset_block, void* data, int blocks);
 
+bool show_resource_image(const char* image_path);
 
 #endif //RESOURCE_H

@@ -620,31 +620,8 @@ static inline ushort *configuration_get_cmap(void)
 #include <resource.h>
 int rk_bitmap_from_resource(unsigned short* fb) 
 {
-    int ret=0;
-    char *cmap, *cdata, *data;
-    u8 n_colors;
-    int data_offset = 0, xact=0, yact=0, i=0, j=0, d=0; 
-    const char* file_path = "logo.bmp";
-    resource_content content;
-    struct fb_dsp_info fb_info;
-    snprintf(content.path, sizeof(content.path), "%s", file_path);
-    content.load_addr = 0;
-    if(!get_content(&content)) {
-        printf("can't get_content\n");
-        return -1;
-    }
-    if(!load_content(&content)) {
-        printf("can't load_content\n");
-        ret=-1;
-        goto end;
-    } 
-    data = (char*)content.load_addr;   
-
-    lcd_display_bitmap_center(data);
-
-end:
-    free_content(&content);  
-    return ret;
+	const char* file_path = "logo.bmp";
+	return show_resource_image(file_path) ? 0 : -1;
 }
 #endif
 

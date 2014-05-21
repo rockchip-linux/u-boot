@@ -34,6 +34,8 @@
 #include <../board/rockchip/common/config.h>
 #include <../board/rockchip/common/storage.h>
 
+#include <lcd.h>
+
 static int inline get_ptn_offset(void) {
 	const disk_partition_t* ptn;
 #ifdef CONFIG_CMD_FASTBOOT
@@ -175,6 +177,24 @@ bool load_content_data(resource_content* content,
 		return false;
 	}
 	return true;
+}
+
+bool show_resource_image(const char* image_path) {
+	bool ret = false;
+#ifdef CONFIG_LCD
+    resource_content image;
+    memset(&image, 0, sizeof(image));
+    snprintf(image.path, sizeof(image.path), "%s", image_path);
+    if (get_content(&image) && load_content(&image)) {
+        FBTDBG("Try to show:%s\n", image_path);
+        lcd_display_bitmap_center((uint32_t)image.load_addr);
+		ret = true;
+    } else {
+        FBTERR("Failed to load image:%s\n", image_path);
+    }
+    free_content(&image);
+#endif
+	return ret;
 }
 
 #if 0
