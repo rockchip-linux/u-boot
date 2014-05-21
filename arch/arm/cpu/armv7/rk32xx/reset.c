@@ -59,13 +59,6 @@ void reset_cpu(ulong ignored)
 #endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	//soft reset i2c0 - i2c5
-#ifdef CONFIG_RK_I2C
-	cru_writel(0x3f<<10 | 0x3f<<26, CRU_SOFTRSTS_CON(2));
-	mdelay(1);
-	cru_writel(0x3f<<26, CRU_SOFTRSTS_CON(2));
-#endif
-
         /* disable remap */
 	/* rk3288 address remap control bit: SGRF soc con0 bit 11 */
         writel(1 << (11 + 16), RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON0);
