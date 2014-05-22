@@ -351,10 +351,12 @@ void usbd_rcv_complete(struct usb_endpoint_instance *endpoint, int len, int urb_
 			/*rcv_urb->actual_length, rcv_urb->buffer_length); */
 
 			/* check the urb is ok, are we adding data less than the packetsize */
-
-            //mod for large urb transfer.
-			//if (!urb_bad && (len <= endpoint->rcv_packetSize)) {
-			if (!urb_bad /*&& (len <= endpoint->rcv_packetSize)*/) {
+#ifdef CONFIG_ROCKCHIP
+			//mod for large urb transfer.
+			if (!urb_bad) {
+#else
+			if (!urb_bad && (len <= endpoint->rcv_packetSize)) {
+#endif
 			  /*usbdbg("updating actual_length by %d\n",len); */
 
 				/* increment the received data size */
