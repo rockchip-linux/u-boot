@@ -5,14 +5,15 @@ delay=900
 only_current_level=false
 
 #max levels.
-levels=7
+levels=6
+
+bat_error=images/battery_fail.bmp
 
 #max_level(max cap level to match this level-conf), num(num of pics in this level-conf)
 #prefix(prefix of pics' path in resource.img)
 #'num=1 prefix=test' means: test.bmp
 #'num=2 prefix=test' means: test00.bmp & test01.bmp
-max_level=-1 num=1 prefix=images/battery_fail
-max_level=1 num=1 prefix=images/battery_0
+max_level=0 num=1 prefix=images/battery_0
 max_level=20 num=1 prefix=images/battery_1
 max_level=40 num=1 prefix=images/battery_2
 max_level=60 num=1 prefix=images/battery_3
