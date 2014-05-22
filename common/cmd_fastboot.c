@@ -67,6 +67,8 @@
 #ifdef CONFIG_RESOURCE_PARTITION
 #include <resource.h>
 #endif
+#include <power/battery.h>
+#include <power/pmic.h>
 #include <fdtdec.h>
 #include <usbdevice.h>
 DECLARE_GLOBAL_DATA_PTR;
@@ -269,6 +271,7 @@ static uint32_t log_position;
 
 static disk_partition_t fbt_partitions [FBT_MAX_PARTITION_NUM];
 
+//TODO: get rid of these!
 #ifdef CONFIG_ROCKCHIP
 extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
 extern int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec);
@@ -279,6 +282,7 @@ extern void* rk_fdt_resource_load(void);
 extern int lcd_enable_logo(bool enable);
 extern int drv_lcd_init (void);
 extern void powerOn(void);
+extern int is_charging(void);
 #else
 void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {;}
 int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec) {return 0;}
@@ -288,6 +292,7 @@ void* rk_fdt_resource_load(void) {;}
 int lcd_enable_logo(bool enable) {return 0;}
 int drv_lcd_init (void) {return 0;}
 void powerOn(void) {;}
+int is_charging(void) {;}
 #endif
 
 static void fbt_init_endpoints(void);
@@ -1850,6 +1855,20 @@ void fbt_preboot(void)
 
 #ifdef CONFIG_ROCKCHIP
 
+	if (is_power_extreme_low()) {
+		if (is_charging()) {
+			FBTERR("extreme low power, charging...\n");
+			while (1) {
+				if (!is_power_extreme_low())
+					break;
+			}
+		} else {
+			FBTERR("extreme low power, shutting down...\n");
+			shut_down();
+			printf("not reach here.\n");
+		}
+	}
+
 	const void *blob = rk_fdt_resource_load();
 	int node = fdt_path_offset(blob, "/fb");
     int logo_on = fdtdec_get_int(blob, node, "rockchip,uboot-logo-on", 0);
@@ -1859,6 +1878,25 @@ void fbt_preboot(void)
 	if(logo_on)
 		drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb                                         
 #endif
+
+    if (is_power_low()) {
+        if (!is_charging()) {
+			FBTERR("low power, shutting down...\n");
+
+			//TODO: set backlight in better way.
+			rk_backlight_ctrl(48);
+			lcd_standby(1);
+
+			//TODO: show warning logo.
+			show_resource_image("images/battery_fail.bmp");
+
+			udelay(1000000);//1 sec
+			shut_down();
+			printf("not reach here.\n");
+			while(1);
+		}
+    }
+
 #ifdef CONFIG_RK616
 	rk616_init(CONFIG_RK616_LCD_CHN);
 #endif

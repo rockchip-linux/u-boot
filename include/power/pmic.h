@@ -97,11 +97,9 @@ int pmic_get_vol(char *name);
 #define pmic_spi_bitlen (p->hw.spi.bitlen)
 #define pmic_spi_flags (p->hw.spi.flags)
 
-#ifdef CONFIG_POWER_RICOH619
 int check_charge(void);
 int pmic_charger_setting(int current);
 void shut_down(void);
-#endif
 
 
 #endif /* __CORE_PMIC_H_ */

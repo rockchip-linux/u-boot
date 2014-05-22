@@ -69,7 +69,6 @@ extern int power_hold(void);
 extern int is_charging(void);
 extern int check_charge(void);
 extern int pmic_charger_setting(int current);
-extern void shut_down(void);
 extern void rk_backlight_ctrl(int brightness);
 extern void lcd_standby(int enable);
 
@@ -188,16 +187,16 @@ int check_charging(void) {
  * return -1 if we need to stay charging.
  */
 int handle_exit_charge(void) {
-/*
 	get_power_bat_status(&batt_status);
-	if (low power) {
+	if (is_power_low()) {
 		LOGE("low power, unable to boot");
-		show_resource_image("low power warning or sth else");
-		set backlight
-		delay some time
+
+		//TODO:show warning logo.
+		show_resource_image("images/battery_fail.bmp");
+		
+		udelay(1000000);//1 sec.
 		return -1;//unable to boot, so continue charging.
 	}
-*/
 	//do something before exit charge here.
 	return 0;
 }
