@@ -30,5 +30,6 @@ obj-y	+= irqs.o
 obj-y	+= ddr.o
 obj-y   += iomux.o
 obj-y   += reset.o
+obj-y	+= pm.o
 
 obj-$(CONFIG_RK_PWM)   += pwm.o

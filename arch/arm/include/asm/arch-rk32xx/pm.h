@@ -20,34 +20,26 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-#ifndef __RKPLAT_H
-#define __RKPLAT_H
+#ifndef __RKPM_H
+#define __RKPM_H
 
 
-/********************************************************************
-**                      common head files                           *
-********************************************************************/
-#include <common.h>
-#include <fdtdec.h>
-#include <asm/io.h>
-#include <asm/errno.h>
-
-#include "typedef.h"
-#include "io.h"
-#include "pmu.h"
-#include "grf.h"
-#include "cru.h"
-#include "irqs.h"
-#include "gpio.h"
-#include "iomux.h"
-#include "reg.h"
-
-#include "clock.h"
-#include "uart.h"
-#include "pwm.h"
-#include "rk_i2c.h"
-#include "pm.h"
+/* void pm callback function type */
+typedef void (* v_pm_cb_f)(int flag);
 
 
-#endif /* __RKPLAT_H */
+/*
+ * rkpm wakeup gpio init
+ */
+void rk_pm_wakeup_gpio_init(void);
+
+
+/*
+ * rkpm enter
+ * module_pm_conf: callback function that control such as backlight/lcd on or off
+ */
+void rk_pm_enter(v_pm_cb_f module_pm_conf);
+
+
+#endif /* __RKPM_H */
 

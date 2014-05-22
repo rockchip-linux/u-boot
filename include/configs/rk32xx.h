@@ -47,7 +47,8 @@
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
-//#define CONFIG_SECOND_LEVEL_BOOTLOADER 
+#define CONFIG_SECOND_LEVEL_BOOTLOADER 
+#define CONFIG_NAND
 
 #define HAVE_VENDOR_COMMON_LIB y
 
@@ -265,6 +266,9 @@
 #define CONFIG_I2C_MULTI_BUS
 #define CONFIG_SYS_I2C_SPEED 100000
 #endif
+
+/* pm management */
+#define CONFIG_PM_SUBSYSTEM
 
 #define CONFIG_USB_DWC_HCD
 //#define CONFIG_USB_EHCI
