@@ -635,13 +635,7 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	AT91F_DataflashInit();
 	dataflash_print_info();
 #endif
-	/* set up exceptions */
-	interrupt_init();
-	/* enable exceptions */
-	enable_interrupts();
-#ifdef CONFIG_PL330_DMA
-	DMAInit();
-#endif
+
 	/* initialize environment */
 	if (should_load_env())
 		env_relocate();
@@ -680,6 +674,11 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	/* miscellaneous platform dependent initialisations */
 	misc_init_r();
 #endif
+
+	 /* set up exceptions */
+	interrupt_init();
+	/* enable exceptions */
+	enable_interrupts();
 
 	/* Initialize from environment */
 	load_addr = getenv_ulong("loadaddr", 16, load_addr);
