@@ -107,8 +107,14 @@ int rk_pwm_config(int brightness)
 		gpio_direction_output(bl.bl_en.gpio, bl.bl_en.flags);
 	}
 
+	if (brightness == 0)
+		gpio_set_value(bl.bl_en.gpio, !(bl.bl_en.flags));
+	else
+		gpio_set_value(bl.bl_en.gpio, bl.bl_en.flags);
+
 	if (brightness < 0)
 		brightness = bl.dft_brightness;
+	printf("%s:brightness:%d\n", __func__,brightness);
 	brightness = bl.levels[brightness];
 	duty_ns = (brightness * bl.period)/bl.max_brightness;
 	period_ns = bl.period;
