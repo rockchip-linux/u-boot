@@ -283,6 +283,7 @@ extern int lcd_enable_logo(bool enable);
 extern int drv_lcd_init (void);
 extern void powerOn(void);
 extern int is_charging(void);
+extern void lcd_standby(int enable);
 #else
 void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {;}
 int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec) {return 0;}
@@ -293,6 +294,7 @@ int lcd_enable_logo(bool enable) {return 0;}
 int drv_lcd_init (void) {return 0;}
 void powerOn(void) {;}
 int is_charging(void) {;}
+void lcd_standby(int enable) {;}
 #endif
 
 static void fbt_init_endpoints(void);
@@ -1859,8 +1861,11 @@ void fbt_preboot(void)
 		if (is_charging()) {
 			FBTERR("extreme low power, charging...\n");
 			while (1) {
-				if (!is_power_extreme_low())
+				udelay(1000000); /* 1 sec */
+				if (!is_power_extreme_low()) {
+					FBTERR("leave extreme low power charge\n");
 					break;
+				}
 			}
 		} else {
 			FBTERR("extreme low power, shutting down...\n");
@@ -1893,7 +1898,6 @@ void fbt_preboot(void)
 			udelay(1000000);//1 sec
 			shut_down();
 			printf("not reach here.\n");
-			while(1);
 		}
     }
 

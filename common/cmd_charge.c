@@ -74,7 +74,7 @@ extern void lcd_standby(int enable);
 
 /***************board spec ops, maybe move these out of here.***************/
 //define this when we dont have a worked battery.
-#define MOCK_CHARGER
+//#define MOCK_CHARGER
 
 #ifdef MOCK_CHARGER
 #define get_power_bat_status(...)
@@ -187,7 +187,6 @@ int check_charging(void) {
  * return -1 if we need to stay charging.
  */
 int handle_exit_charge(void) {
-	get_power_bat_status(&batt_status);
 	if (is_power_low()) {
 		LOGE("low power, unable to boot");
 
