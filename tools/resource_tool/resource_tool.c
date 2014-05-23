@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
         case ACTION_PACK:
             {
                 int file_num = argc;
-                const char** files = argv;
+                const char** files = (const char**)argv;
                 if (!file_num) {
                     LOGE("No file to pack!");
                     return 0;
@@ -182,13 +182,14 @@ static bool dump_file(FILE* file, const char* unpack_dir,
     LOGD("try to dump entry:%s", entry.path);
     bool ret = false;
     FILE* out_file = NULL;
+    long int pos = 0;
+    char path[MAX_INDEX_ENTRY_PATH_LEN];
     if (just_print) {
         ret = true;
         goto done;
     }
 
-    long int pos = ftell(file);
-    char path[MAX_INDEX_ENTRY_PATH_LEN];
+    pos = ftell(file);
     snprintf(path, sizeof(path), "%s/%s", unpack_dir, entry.path);
     mkdirs(path);
     out_file = fopen(path, "wb");
@@ -222,13 +223,16 @@ done:
 end:
     if (out_file)
         fclose(out_file);
-    fseek(file, pos, SEEK_SET);
-    return ret;
+	if (pos)
+		fseek(file, pos, SEEK_SET);
+	return ret;
 }
 
 static int unpack_image(const char* dir) {
     bool ret = false;
     char unpack_dir[MAX_INDEX_ENTRY_PATH_LEN];
+	if (just_print)
+		dir = ".";
     snprintf(unpack_dir, sizeof(unpack_dir), "%s", dir);
     if (!strlen(unpack_dir)) {
         goto end;
@@ -397,7 +401,7 @@ static bool write_index_tbl(const int file_num, const char** files) {
         //switch for le.
         fix_entry(&entry);
         memset(entry.path, 0, sizeof(entry.path));
-        char* path = fix_path(files[i]);
+        const char* path = fix_path(files[i]);
         if (!strcmp(files[i] + strlen(files[i]) - strlen(DTD_SUBFIX),
                     DTD_SUBFIX)) {
             if (!foundFdt) {
@@ -430,7 +434,7 @@ static int pack_image(int file_num, const char** files) {
     //prepare files
     int i = 0;
     int pos = 0;
-    char* tmp;
+    const char* tmp;
     for (i = 0; i < file_num; i++) {
         if (!strcmp(files[i] + strlen(files[i]) - strlen(DTD_SUBFIX),
                     DTD_SUBFIX)) {

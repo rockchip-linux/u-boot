@@ -47,6 +47,6 @@ typedef struct {
 #define OPT_TEST_CHARGE     "--test_charge"
 #define OPT_IMAGE           "--image="
 
-#define VERSION             "2014-2-24 15:22:23"
+#define VERSION             "2014-5-23 12:28:21"
 
 #endif //RESOURCE_TOOL_H

@@ -12,7 +12,7 @@ function pack_resource ()
 	if [ -d "$RESOURCES" ];then
 		cd $RESOURCES
 	fi
-	$TOOL --pack --image=$IMAGE `find $RESOURCES -type f` 
+	$TOOL --pack --image=$IMAGE `find $RESOURCES -type f|sed "s#^$RESOURCES/##"` 
 	if [ -d "$RESOURCES" ];then
 		cd -
 		export OLDPWD=$ori_dir
@@ -30,7 +30,7 @@ function append_resource ()
 	if [ -f "$IMAGE" ];then
 		$TOOL --unpack --image=$IMAGE $TMP_DIR 1>/dev/null 2>&1
 	fi
-	cp -r $RESOURCES $TMP_DIR
+	cp -r $RESOURCES/* $TMP_DIR
 	pack_resource $TOOL $TMP_DIR $IMAGE
 }
 
