@@ -244,6 +244,8 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif
 #endif
 
+	rk_module_deinit();
+
 	puts("booti: do_bootm_linux...\n");
 	do_bootm_linux(0, 0, NULL, &images);
 

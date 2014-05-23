@@ -31,6 +31,15 @@ DECLARE_GLOBAL_DATA_PTR;
 #define RKRESET_VERSION		"1.2"
 
 
+void rk_module_deinit(void)
+{
+#ifdef CONFIG_RK_I2C
+	// soft reset i2c0 - i2c5
+	writel(0x3f<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
+#endif
+}
+
+
 /*
  * Reset the cpu by setting up the watchdog timer and let him time out.
  */
