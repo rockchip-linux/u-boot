@@ -202,7 +202,7 @@ int handle_exit_charge(void) {
 /*****************************************************************/
 
 typedef struct {
-	int                 max_level;
+	int                 min_level;
 	int                 delay;
 	char                prefix[MAX_INDEX_ENTRY_PATH_LEN];
 	int                 num;
@@ -217,7 +217,7 @@ static char bat_err_path[MAX_INDEX_ENTRY_PATH_LEN];
 #define OPT_CHARGE_ANIM_LOOP_CUR    "only_current_level="
 #define OPT_CHARGE_ANIM_LEVELS      "levels="
 #define OPT_CHARGE_ANIM_BAT_ERROR   "bat_error="
-#define OPT_CHARGE_ANIM_LEVEL_CONF  "max_level="
+#define OPT_CHARGE_ANIM_LEVEL_CONF  "min_level="
 #define OPT_CHARGE_ANIM_LEVEL_NUM   "num="
 #define OPT_CHARGE_ANIM_LEVEL_PFX   "prefix="
 
@@ -240,7 +240,7 @@ static bool parse_level_conf(const char* arg, anim_level_conf* level_conf) {
 	char* buf = NULL;
 	buf = strstr(arg, OPT_CHARGE_ANIM_LEVEL_CONF);
 	if (buf) {
-		level_conf->max_level = atoi(buf + strlen(OPT_CHARGE_ANIM_LEVEL_CONF));
+		level_conf->min_level = atoi(buf + strlen(OPT_CHARGE_ANIM_LEVEL_CONF));
 	} else {
 		LOGE("Not found:%s", OPT_CHARGE_ANIM_LEVEL_CONF);
 		return false;
@@ -268,8 +268,8 @@ static bool parse_level_conf(const char* arg, anim_level_conf* level_conf) {
 		return false;
 	}
 
-	LOGD("Found conf:\nmax_level:%d, num:%d, delay:%d, prefix:%s",
-			level_conf->max_level, level_conf->num,
+	LOGD("Found conf:\nmin_level:%d, num:%d, delay:%d, prefix:%s",
+			level_conf->min_level, level_conf->num,
 			level_conf->delay, level_conf->prefix);
 	return true;
 }
@@ -390,11 +390,11 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 			goto end;
 		}
 		for (j = 0; j < i; j++) {
-			if (level_confs[j].max_level == level_confs[i].max_level) {
+			if (level_confs[j].min_level == level_confs[i].min_level) {
 				LOGE("Dup level conf:%d", i);
 				goto end;
 			}
-			if (level_confs[j].max_level > level_confs[i].max_level) {
+			if (level_confs[j].min_level > level_confs[i].min_level) {
 				anim_level_conf conf = level_confs[i];
 				memmove(level_confs + j + 1, level_confs + j,
 						(i - j) * sizeof(anim_level_conf));
@@ -408,8 +408,8 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 		printf("only_current_level=%d\n", only_current_level);
 		printf("level conf:\n");
 		for (i = 0; i < level_conf_num; i++) {
-			printf("\tmax=%d, delay=%d, num=%d, prefix=%s\n",
-					level_confs[i].max_level, level_confs[i].delay,
+			printf("\tmin=%d, delay=%d, num=%d, prefix=%s\n",
+					level_confs[i].min_level, level_confs[i].delay,
 					level_confs[i].num, level_confs[i].prefix);
 		}
 	}
@@ -467,7 +467,7 @@ static bool show_image(void) {
 static inline int get_index_for_level(int level) {
 	int i = 0;
 	for (i = 0;i < level_conf_num;i++) {
-		if (level <= level_confs[i].max_level)
+		if (level <= level_confs[i].min_level)
 			return i;
 	}
 	return 0;
@@ -494,18 +494,18 @@ static void update_image(void) {
 			current_index = 0;
 		}
 	} else {
-		int start_conf = get_index_for_level(0);
+		int end_conf = get_index_for_level(100);
 
 		if (current_index >= level_confs[current_conf].num) {
 			//index overflow, goto next level
 			current_conf++;
 			current_index = 0;
 		}
-		if (actual_conf < current_conf
-				|| current_conf < start_conf) {
-			//level changed(down) or level overflow
-			//loop from first level.
-			current_conf = start_conf;
+		if (current_conf < actual_conf
+				|| current_conf > end_conf) {
+			//level changed(up) or level overflow
+			//loop from actual level.
+			current_conf = actual_conf;
 			current_index = 0;
 		}
 	}
