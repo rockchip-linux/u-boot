@@ -49,5 +49,7 @@
 #include "pm.h"
 
 
+void rk_module_deinit(void);
+
 #endif /* __RKPLAT_H */
 
