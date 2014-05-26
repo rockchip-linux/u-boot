@@ -1715,7 +1715,20 @@ static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unl
 static void __def_board_fbt_boot_failed(const char* boot)
 {
 }
+static int __def_board_fbt_is_cold_boot(void)
+{
+	return 0;
+}
+static int __def_board_fbt_is_charging(void)
+{
+	return 0;
+}
 
+
+int board_fbt_is_cold_boot(void)
+    __attribute__((weak, alias("__def_board_fbt_is_cold_boot")));
+int board_fbt_is_charging(void)
+    __attribute__((weak, alias("__def_board_fbt_is_charging")));
 int board_fbt_oem(const char *cmdbuf)
 	__attribute__((weak, alias("__def_fbt_oem")));
 void board_fbt_set_reboot_type(enum fbt_reboot_type fre)
@@ -1908,7 +1921,9 @@ void fbt_preboot(void)
 #endif// CONFIG_ROCKCHIP
 #ifdef CONFIG_UBOOT_CHARGE
 	//check charge mode when no key pressed.
-	if(check_charge() || frt == FASTBOOT_REBOOT_CHARGE) {
+	int cold_boot = board_fbt_is_cold_boot();
+	if((cold_boot && board_fbt_is_charging())
+			|| frt == FASTBOOT_REBOOT_CHARGE) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
 		if (do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {

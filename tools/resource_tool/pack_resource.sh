@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # usage: . ./pack_resource.sh --pack|--append resources/ resource.img
 function pack_resource ()
@@ -24,13 +24,17 @@ function append_resource ()
 	local TOOL=`realpath "$1"`
 	local RESOURCES=`realpath "$2"`
 	local IMAGE=$3
-	local TMP_DIR=/tmp/out
-	rm -r $TMP_DIR
+	local TMP_DIR=/tmp/resource_out
+	sudo rm -r $TMP_DIR
 	mkdir $TMP_DIR
 	if [ -f "$IMAGE" ];then
-		$TOOL --unpack --image=$IMAGE $TMP_DIR 1>/dev/null 2>&1
+		sudo $TOOL --unpack --image=$IMAGE $TMP_DIR 1>/dev/null 2>&1
 	fi
-	cp -r $RESOURCES/* $TMP_DIR
+	if [ -d "$RESOURCES" ];then
+		cp -r $RESOURCES/* $TMP_DIR
+	else
+		cp -r $RESOURCES $TMP_DIR
+	fi
 	pack_resource $TOOL $TMP_DIR $IMAGE
 }
 
@@ -44,16 +48,16 @@ if [ ! -f $TOOL ];then
 fi
 
 OPT=$1
-RESOURCE_DIR=$2
+RESOURCES=$2
 IMAGE=$3
 
-if [ ! -d "$RESOURCE_DIR" ];then
-	echo "resource dir not found $RESOURCE_DIR !"
-	return;
+if [ ! -e "$RESOURCES" ];then
+	echo "resource not found $RESOURCES !"
+	exit
 fi
 
 if [ -z "$IMAGE" ];then
 	IMAGE=resource.img
 fi
 
-append_resource $TOOL $RESOURCE_DIR $IMAGE
+append_resource $TOOL $RESOURCES $IMAGE
