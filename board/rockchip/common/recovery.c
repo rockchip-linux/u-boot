@@ -24,38 +24,6 @@
 
 #include "config.h"
 
-
-// 将字符串string从开头开始的replen个字符，替换为字符串newstr
-static void replace_fore_string(char* string, int replen, const char* newstr)
-{
-	int newlen = strlen(newstr);
-	char *p1 = string;
-	char *p2 = string;
-	
-	if(newlen == replen)
-	{
-		strncpy(string, newstr, newlen);
-	}
-	else if(newlen < replen)
-	{
-		strncpy(string, newstr, newlen);
-		p1 += newlen;
-		p2 += replen;
-		while(*p2) *(p1++) = *(p2++);
-		*p1 = 0;
-	}
-	else if(newlen > replen)
-	{
-		int i=0;
-		int len = strlen(string);
-		p1 = string+len;
-		p2 = p1 + (newlen - replen);
-		for(i=0; i<(len - replen); i++)
-			*(p2--) = *(p1--);
-		strncpy(string, newstr, newlen);
-	}
-}
-
 void change_cmd_for_recovery(PBootInfo boot_info, char * rec_cmd)
 {
 	if(boot_info->index_recovery >= 0)
@@ -68,12 +36,14 @@ void change_cmd_for_recovery(PBootInfo boot_info, char * rec_cmd)
 		// 修改分区表，显示parameter分区
 		if( s != NULL )
 		{
-			int i;
-			char replace_str[64]="";
+            s += strlen(szFind);
+            char tmp[MAX_LINE_CHAR] = "\0";
+			int max_size = sizeof(boot_info->cmd_line) -
+				(s - boot_info->cmd_line);
 			//parameter is 4M.
-			sprintf(replace_str, "0x00002000@0x%08X(%s),", 0, "parameter");
-			s += strlen(szFind);
-			replace_fore_string(s, 0, replace_str);
+			snprintf(tmp, sizeof(tmp),
+					"0x00002000@0x00000000(parameter),%s", s);
+            snprintf(s, max_size, "%s\0", tmp);
 		}
 
 		strcat(boot_info->cmd_line, rec_cmd);
