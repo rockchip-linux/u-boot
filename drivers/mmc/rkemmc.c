@@ -104,11 +104,13 @@ static void emmc_dev_reset(void)
 	emmcpoweren(1);
 	DRVDelayMs(1);
 }
-static void emmc_gpio_init()
+static void emmc_gpio_init(void) 
 {
-	Writel(gGrfBaseAddr + 0x20,0xffffaaaa);
+	#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+	Writel(gGrfBaseAddr + 0x20,0xffffaaaa); 
 	Writel(gGrfBaseAddr + 0x24,0x000c0008);
 	Writel(gGrfBaseAddr + 0x28,0x003f002a);
+	#endif
 }
 
 static int rk_emmc_init(struct mmc *mmc)

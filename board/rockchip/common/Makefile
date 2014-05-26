@@ -33,11 +33,9 @@ obj-y += boot.o
 obj-y += ftl_std.o
 obj-y += key.o
 obj-y += chipDepend.o
-
-ifdef CONFIG_NAND
-obj-y += storage_nand.o
-else
 obj-y += storage.o
-endif
+obj-y += emmc_boot.o
+obj-y += nandflash_boot.o
+
 
 

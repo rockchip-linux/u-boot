@@ -31,47 +31,87 @@
 
 #include "config.h"
 #include "storage.h"
+#include "nandflash_boot.h"
+#include "emmc_boot.h"
 
 //TODO 
 extern void FtlReIntForUpdate(void);
 extern uint32 FTLLowFormat(void);
-struct mmc *storage_mmc;
-static int storage_device = -1;
-#define EMMC_BOOT_PART_SIZE         1024
-#define SD_CARD_BOOT_PART_OFFSET    64
+MEM_FUN_T NandFunOp = 
+{
+    0,
+    BOOT_FROM_FLASH,
+    0,
+    lMemApiInit,
+    LMemApiReadId,
+    LMemApiReadPba,
+    LMemApiWritePba,
+    LMemApiReadLba,
+    LMemApiWriteLba,
+    LMemApiErase,
+    LMemApiFlashInfo,
+    NULL,
+    LMemApiErase,
+    NULL,
+    NULL,
+    LMemApiLowFormat,
+    LMemApiSysDataLoad,
+    LMemApiSysDataStore,
+};
+
+MEM_FUN_T emmcFunOp = 
+{
+    2,
+    BOOT_FROM_EMMC,
+    0,
+    emmcInit,
+    emmcReadID,
+    emmcBootReadPBA,
+    emmcBootWritePBA,
+    emmcBootReadLBA,
+    emmcBootWriteLBA,
+    emmcBootErase,
+    emmcReadFlashInfo,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    emmcGetCapacity,
+    emmcSysDataLoad,
+    emmcSysDataStore,
+};
+MEM_FUN_T *memFunTab[] = 
+{
+    &emmcFunOp,
+    &NandFunOp,
+};
+
+#define MAX_MEM_DEV (sizeof(memFunTab)/sizeof(MEM_FUN_T *))
 #define SD_CARD_FW_PART_OFFSET      8192
-#define SD_CARD_SYS_PART_OFFSET     8064
-#undef ALIGN
-#define ALIGN(x) __attribute__ ((aligned(x)))
-ALIGN(64)uint32 		 emmc_SpareBuf[(32*8*4/4)];
-ALIGN(64)uint32		  emmc_Data[(1024*8*4/4)];
 
 
 int32 StorageInit(void)
 {
-	struct mmc *mmc;
-	if (storage_device < 0) {
-		if (get_mmc_num() > 0)
-			storage_device = 0;
-		else {
-			printf("No MMC device available\n");
-			return -1;
+	uint32 memdev;
+	memset((uint8*)&g_FlashInfo,0,sizeof(g_FlashInfo));
+	for(memdev=0; memdev<MAX_MEM_DEV; memdev++)
+	{
+		gpMemFun = memFunTab[memdev];
+		if(memFunTab[memdev]->Init(memFunTab[memdev]->id) == 0)
+		{
+			memFunTab[memdev]->Valid = 1;
+			StorageReadFlashInfo((uint8*)&g_FlashInfo);
+			return 0;
 		}
 	}
-	mmc = find_mmc_device(storage_device);
-	if (!mmc) {
-		printf("no mmc device at slot %x\n", storage_device);
-		return 1;
-	}
-	if (mmc_init(mmc)) {
-		printf("MMC init failed\n");
-		return -1;
-	}
-	storage_mmc = mmc;
-	StorageReadFlashInfo((uint8*)&g_FlashInfo);
+	gpMemFun = memFunTab[1];
+	return -1;
 }
 void FW_ReIntForUpdate(void)
 {
+	gpMemFun->Valid = 0;
+	if(gpMemFun->IntForUpdate)
+		gpMemFun->IntForUpdate();
 	gpMemFun->Valid = 1;
 
 }
@@ -84,11 +124,21 @@ void FW_SorageLowFormatEn(int en)
 
 void FW_SorageLowFormat(void)
 {
+	if(FWLowFormatEn)
+	{
+		if(gpMemFun->LowFormat)
+		{
+			gpMemFun->Valid = 0;
+			gpMemFun->LowFormat();
+			gpMemFun->Valid = 1;
+		}
+		FWLowFormatEn = 0;
+	}
 } 
 
 uint32 FW_StorageGetValid(void)
 {
-	return 1;
+	 return gpMemFun->Valid;
 }
 
 /***************************************************************************
@@ -100,7 +150,9 @@ uint32 FW_StorageGetValid(void)
 uint32 FW_GetCurEraseBlock(void)
 {
 	uint32 data = 1;
-	return 0;
+	if(gpMemFun->GetCurEraseBlock)
+		data = gpMemFun->GetCurEraseBlock();
+	return data;
 }
 /***************************************************************************
 函数描述:获取 FTL 总block数
@@ -110,117 +162,74 @@ uint32 FW_GetCurEraseBlock(void)
 ***************************************************************************/
 uint32 FW_GetTotleBlk(void)
 {
-   	 uint32 totle = 1;
+	uint32 totle = 1;
+	if(gpMemFun->GetTotleBlk)
+		totle = gpMemFun->GetTotleBlk();
 	return totle;
 }
 
 int StorageReadPba(uint32 PBA , void *pbuf, uint16 nSec )
 {
-   	 int ret = FTL_ERROR;
-	uint32 i;
-	uint16 len;
-	uint8 pageSizeRaw;
-	uint8 pageSizeLimit;
-	uint32 BlockOffset;
-	uint16 PageOffset;
-	uint16 PageAlignOffset;
-	uint16 idblk_flag = 0;
-	uint16 read_len;
-	int n;
-	uint32 *pDataBuf = pbuf;
-	pageSizeLimit = DATA_LEN/128;
-	memset(emmc_SpareBuf,0xFF,SPARE_LEN);
-	if(PBA + nSec >= EMMC_BOOT_PART_SIZE*5) 
-		PBA &= (EMMC_BOOT_PART_SIZE-1);
-	PBA = PBA + SD_CARD_BOOT_PART_OFFSET;
-
-	for (len=0; len<nSec; len+=pageSizeLimit)
-	{
-		n = storage_mmc->block_dev.block_read(storage_device, PBA,
-								  (MIN(nSec,pageSizeLimit)), emmc_Data);
-		if(n != (MIN(nSec,pageSizeLimit)))
-			return -1;
-		for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
-		{
-			ftl_memcpy(pDataBuf+(len+i)*132, emmc_Data+(i)*128, 512);
-			ftl_memcpy(pDataBuf+(len+i)*132+128, emmc_SpareBuf+(i)*4, 16);
-		}
-	}
-	flush_cache((ulong)pbuf, nSec*512);
-    return 0;
+	int ret = FTL_ERROR;
+	if(gpMemFun->ReadPba)
+		ret = gpMemFun->ReadPba(gpMemFun->id, PBA, pbuf, nSec );
+	return ret;
 }
 int StorageWritePba(uint32 PBA , void *pbuf, uint16 nSec )
 {
 	int ret = FTL_ERROR;
-	uint32 i;
-	uint16 len;
-	uint8 pageSizeLimit;
-	int n;
-	uint32 *pDataBuf = pbuf;
-	pageSizeLimit = DATA_LEN/128;
-	if(PBA + nSec >= EMMC_BOOT_PART_SIZE*5) 
-	return 0;
-	PBA = PBA + SD_CARD_BOOT_PART_OFFSET;
-	for (len=0; len<nSec; len+=pageSizeLimit)
-	{
-		for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
-		{
-			ftl_memcpy(emmc_Data+i*128, pDataBuf+(len+i)*132, 512);
-			ftl_memcpy(emmc_SpareBuf+i*4, pDataBuf+(len+i)*132+128, 16);
-		}
-		n = storage_mmc->block_dev.block_write(storage_device, PBA,
-							  (MIN(nSec,pageSizeLimit)), emmc_Data);
-		if(n != (MIN(nSec,pageSizeLimit)))
-			return -1;
-	}
-	return 0;
+	if(gpMemFun->WritePba)
+	   ret = gpMemFun->WritePba(gpMemFun->id, PBA , pbuf, nSec);
+	return ret;
 }
+
 
 int StorageReadLba( uint32 LBA ,void *pbuf  , uint16 nSec)
 {
 	int ret = FTL_ERROR;
-	int n;
-	n = storage_mmc->block_dev.block_read(storage_device, LBA + SD_CARD_FW_PART_OFFSET,
-						  nSec, pbuf);
-	flush_cache((ulong)pbuf, nSec*512);
-	return (n == nSec) ? 0 : -1;
+	if(gpMemFun->ReadLba)
+	   ret = gpMemFun->ReadLba(gpMemFun->id, LBA , pbuf, nSec );
+	return ret;
 }
+
 
 int StorageWriteLba( uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode)
 {
 	int ret = FTL_ERROR;
-	int n;
-	n = storage_mmc->block_dev.block_write(storage_device, LBA + SD_CARD_FW_PART_OFFSET,
-							  nSec, pbuf);
-	return (n == nSec) ? 0 : -1;
+	if(gpMemFun->WriteLba)
+	   ret = gpMemFun->WriteLba(gpMemFun->id, LBA , pbuf, nSec,mode);
+	return ret;
 }
+
 
 uint32 StorageGetCapacity(void)
 {
 	uint32 ret = FTL_ERROR;
-	ret = storage_mmc->capacity/512 - SD_CARD_FW_PART_OFFSET;
+	if(gpMemFun->GetCapacity)
+	   ret = gpMemFun->GetCapacity(gpMemFun->id);
 	return ret;
 }
+
 
 uint32 StorageSysDataLoad(uint32 Index,void *Buf)
 {
 	uint32 ret = FTL_ERROR;
-	int n;
 	memset(Buf,0,512);
-	n = storage_mmc->block_dev.block_read(storage_device, SD_CARD_SYS_PART_OFFSET+Index,
-						  1, Buf);
-	/* flush cache after read */
-	flush_cache((ulong)Buf, 512); /* FIXME */
-	return (n == 1) ? 0 : -1;
+	if(gpMemFun->SysDataLoad)
+	   ret = gpMemFun->SysDataLoad(gpMemFun->id, Index,Buf);
+	return ret;
 }
+
+
 
 uint32 StorageSysDataStore(uint32 Index,void *Buf)
 {
 	uint32 ret = FTL_ERROR;
-	int n;
-	n = storage_mmc->block_dev.block_write(storage_device, SD_CARD_SYS_PART_OFFSET+Index,1, Buf);
-	return (n == 1) ? 0 : -1;
+	if(gpMemFun->SysDataStore)
+	   ret = gpMemFun->SysDataStore(gpMemFun->id, Index,Buf);
+	return ret;
 }
+
 
 #define UBOOT_SYS_DATA_OFFSET 64
 uint32 StorageUbootDataLoad(uint32 Index,void *Buf) {
@@ -264,50 +273,46 @@ uint32 UsbStorageSysDataStore(uint32 offset,uint32 len,uint32 *Buf)
 
 int StorageReadFlashInfo( void *pbuf)
 {
-    pFLASH_INFO pInfo=(pFLASH_INFO)pbuf;
-    ftl_memset((uint8*)pbuf,0,512);
-    pInfo->BlockSize = EMMC_BOOT_PART_SIZE;
-    pInfo->ECCBits = 0;
-    pInfo->FlashSize =  storage_mmc->capacity/512; 
-    pInfo->PageSize = 4;
-    pInfo->AccessTime = 40;
-    pInfo->ManufacturerName=0;
-    pInfo->FlashMask = 0;
-    pInfo->FlashMask=1;
-    return 0;
+	int ret = FTL_ERROR;
+	if(gpMemFun->ReadInfo)
+	{
+	   gpMemFun->ReadInfo(pbuf);
+	   ret = FTL_OK;
+	}
+	return ret;
 }
+
 
 int StorageEraseBlock(uint32 blkIndex, uint32 nblk, uint8 mod)
 {
-    int Status = FTL_OK;
-    return Status;
+	int Status = FTL_OK;
+	if(gpMemFun->Erase)
+		Status = gpMemFun->Erase(0, blkIndex, nblk, mod);
+	return Status;
 }
+
 
 uint16 StorageGetBootMedia(void)
 {
-   return BOOT_FROM_EMMC;
+   	return gpMemFun->flag;
 }
 
 uint32 StorageGetSDFwOffset(void)
 {
 	uint32 offset = 0;
-	offset = SD_CARD_FW_PART_OFFSET;
+	if(gpMemFun->flag != BOOT_FROM_FLASH)
+	{
+		offset = SD_CARD_FW_PART_OFFSET;
+	}
 	return offset;
 }
 
 uint32 StorageGetSDSysOffset(void)
 {
 	uint32 offset = 0;
-	offset = SD_CARD_FW_PART_OFFSET;
+	if(gpMemFun->flag != BOOT_FROM_FLASH)
+	{
+		offset = SD_CARD_FW_PART_OFFSET;
+	}
 	return offset;
 }
-uint32 StorageReadId(void *buf)
-{
-	uint8 * pbuf = buf;
-	pbuf[0] = 'E';
-	pbuf[1] = 'M';
-	pbuf[2] = 'M';
-	pbuf[3] = 'C';
-	pbuf[4] = ' ';
-}
-

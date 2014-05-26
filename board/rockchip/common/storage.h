@@ -71,7 +71,6 @@ extern  uint32 StorageGetSDFwOffset(void);
 extern  uint32 StorageGetSDSysOffset(void);
 extern  uint32 UsbStorageSysDataLoad(uint32 offset,uint32 len,uint32 *Buf);
 extern  uint32 UsbStorageSysDataStore(uint32 offset,uint32 len,uint32 *Buf);
-extern  uint32 StorageReadId(void *buf);
 extern  uint32 StorageUbootDataStore(uint32 Index,void *Buf);
 extern  uint32 StorageUbootDataLoad(uint32 Index,void *Buf);
 extern  int32 StorageInit(void);
