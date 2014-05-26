@@ -67,7 +67,6 @@
 
 extern int power_hold(void);
 extern int is_charging(void);
-extern int check_charge(void);
 extern int pmic_charger_setting(int current);
 extern void rk_backlight_ctrl(int brightness);
 extern void lcd_standby(int enable);

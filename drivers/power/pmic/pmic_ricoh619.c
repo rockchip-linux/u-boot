@@ -31,19 +31,17 @@ int check_charge(void)
 {
     int reg=0;
     int ret = 0;
-    if(0==IReadLoaderFlag()) {
-        i2c_set_bus_num(1);
-        i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-        i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-        reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);//
-        printf("%s power on history %x \n",__func__,reg);
-        if((reg & 0x04) || ((reg & 0x02)&& is_charging()))
-        {
-            printf("In charging! \n");
-            ret = 1;
-        }
-    }
-    
+	i2c_set_bus_num(1);
+	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+	i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
+	reg = i2c_reg_read(CONFIG_SYS_I2C_SLAVE,0x09);//
+	printf("%s power on history %x \n",__func__,reg);
+	if((reg & 0x04) || ((reg & 0x02)&& is_charging()))
+	{
+		printf("In charging! \n");
+		ret = 1;
+	}
+
     return ret;
 }
 

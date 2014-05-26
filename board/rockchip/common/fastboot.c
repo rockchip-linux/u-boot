@@ -30,13 +30,15 @@
 
 #include <asm/arch/rkplat.h>
 
+#include <power/pmic.h>
 #include "config.h"
-
 
 extern uint32 GetVbus(void);
 extern void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
 extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
 extern int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+
+static int g_cold_boot = 0;
 
 #if !defined(CONFIG_FASTBOOT_NO_FORMAT)
 static int do_format(void)
@@ -102,6 +104,22 @@ int board_fbt_oem(const char *cmdbuf)
 }
 #endif /* !CONFIG_FASTBOOT_NO_FORMAT */
 
+/**
+ * return 1 if is a cold boot.
+ */
+int board_fbt_is_cold_boot(void)
+{
+    return g_cold_boot;
+}
+
+/**
+ * return 1 if is charging.
+ */
+int board_fbt_is_charging(void)
+{
+    return check_charge();
+}
+
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 {
 	int boot = BOOT_NORMAL;
@@ -123,6 +141,7 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 			frt = BOOT_NORMAL;
 			break;
 	}
+
 	ISetLoaderFlag(SYS_LOADER_REBOOT_FLAG|boot);
 }
 
@@ -131,19 +150,21 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	enum fbt_reboot_type frt = FASTBOOT_REBOOT_UNKNOWN;
 
 	uint32_t loader_flag = IReadLoaderFlag();
-	int boot = BOOT_NORMAL;
+	int reboot_mode = loader_flag ? (loader_flag & 0xFF) : BOOT_NORMAL;
+
+	if (!g_cold_boot)
+		g_cold_boot = !loader_flag;
+
 	if(SYS_LOADER_ERR_FLAG == loader_flag)
 	{
 		printf("reboot to rockusb.\n");
 		loader_flag = SYS_LOADER_REBOOT_FLAG | BOOT_LOADER;
 	}
 
-	if((loader_flag&0xFFFFFF00) == SYS_LOADER_REBOOT_FLAG)
+	//if((loader_flag&0xFFFFFF00) == SYS_LOADER_REBOOT_FLAG)
 	{
-		boot = loader_flag&0xFF;
 
-		ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|boot);
-		switch(boot) {
+		switch(reboot_mode) {
 			case BOOT_NORMAL:
 				frt = FASTBOOT_REBOOT_NORMAL;
 				break;
@@ -165,11 +186,13 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 				frt = FASTBOOT_REBOOT_CHARGE;
 				break;
 			default:
-				printf("unsupport rk boot type %d\n", boot);
+				printf("unsupport rk boot type %d\n", reboot_mode);
 				break;
 		}
 	}
 
+	//set to non-0.
+	ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG | reboot_mode);
 	return frt;
 }
 

@@ -307,6 +307,8 @@ const disk_partition_t *fastboot_find_ptn(const char *name);
 int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition);
 void board_fbt_boot_failed(const char* boot);
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked);
+int board_fbt_is_cold_boot(void);
+int board_fbt_is_charging(void);
 
 #define FBT_ERR
 #undef  FBT_WARN

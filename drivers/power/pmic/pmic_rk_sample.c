@@ -18,13 +18,11 @@ int check_charge(void)
 {
     int reg=0;
     int ret = 0;
-    if(IReadLoaderFlag() == 0) {
-		if(GetVbus()) { 	  //reboot charge
-			printf("In charging! \n");
-			ret = 1;
-		}
-    }
-    
+	if(GetVbus()) { 	  //reboot charge
+		printf("In charging! \n");
+		ret = 1;
+	}
+
     return ret;
 }
 
