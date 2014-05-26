@@ -31,7 +31,6 @@ extern void DRVDelayS(uint32 count);
 
 extern void ISetLoaderFlag(uint32 flag);
 extern uint32 IReadLoaderFlag(void);
-extern uint32 IReadLoaderMode(void);
 
 extern void FW_NandDeInit(void);
 

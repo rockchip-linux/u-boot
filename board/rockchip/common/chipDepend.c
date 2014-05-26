@@ -76,12 +76,6 @@ void ISetLoaderFlag(uint32 flag)
 	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
 }
 
-uint32 IReadLoaderMode(void)
-{
-	return readl(RKIO_PMU_PHYS + PMU_SYS_REG1);
-}
-
-
 void FW_NandDeInit(void)
 {
 #ifdef CONFIG_NAND//RK_FLASH_BOOT_EN
