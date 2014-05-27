@@ -122,27 +122,6 @@ void do_set_brightness(int brightness, int old_brightness) {
 	}
 }
 
-#ifdef CONFIG_CHARGE_DEEP_SLEEP
-/**
- * goto deep sleep and wait for interrupt.
- */
-void wait_for_interrupt(void)
-{
-	/* PLL enter slow-mode */
-	g_cruReg->cru_mode_con = (0x3<<((2*4) + 16)) | (0x0<<(2*4));
-	g_cruReg->cru_mode_con = (0x3<<((3*4) + 16)) | (0x0<<(3*4));
-	g_cruReg->cru_mode_con = (0x3<<((0*4) + 16)) | (0x0<<(0*4));
-
-	wfi();
-
-	/* PLL enter normal-mode */
-	g_cruReg->cru_mode_con = (0x3<<((0*4) + 16)) | (0x1<<(0*4));
-	g_cruReg->cru_mode_con = (0x3<<((3*4) + 16)) | (0x1<<(3*4));
-	g_cruReg->cru_mode_con = (0x3<<((2*4) + 16)) | (0x1<<(2*4));
-
-	printf("PLL open end! \n");
-}
-#endif
 
 /**
  * do something before start charging.
@@ -563,6 +542,10 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int brightness = BRIGHT_ON;
 	int key_state = KEY_NOT_PRESSED;
 	int exit_type = NOT_EXIT;
+
+#ifdef CONFIG_CHARGE_DEEP_SLEEP
+	rk_pm_wakeup_gpio_init();
+#endif
 	while (1) {
 		//step 1: check charger state.
 		exit_type = check_charging();
@@ -616,7 +599,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
 			//goto sleep, and wait for wakeup by power-key.
 			set_brightness(BRIGHT_OFF, &g_state);
-			wait_for_interrupt();
+			rk_pm_enter(NULL);
 			brightness = BRIGHT_ON;
 #endif
 		}
