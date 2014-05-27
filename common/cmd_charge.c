@@ -609,6 +609,9 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		load_delay = 0;
 	}
 exit:
+#ifdef CONFIG_CHARGE_DEEP_SLEEP
+	rk_pm_wakeup_gpio_deinit();
+#endif
 	set_brightness(BRIGHT_OFF, &g_state);
 	if (exit_type == EXIT_BOOT) {
 		printf("booting...\n");

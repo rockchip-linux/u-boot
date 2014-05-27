@@ -35,6 +35,12 @@ void rk_pm_wakeup_gpio_init(void);
 
 
 /*
+ * rkpm wakeup gpio deinit
+ */
+void rk_pm_wakeup_gpio_deinit(void);
+
+
+/*
  * rkpm enter
  * module_pm_conf: callback function that control such as backlight/lcd on or off
  */
