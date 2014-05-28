@@ -1,14 +1,14 @@
 /********************************************************************************
 		COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
 			--  ALL RIGHTS RESERVED  --
-File Name:	
-Author:         
-Created:        
+File Name:
+Author:
+Created:
 Modified:
 Revision:       1.00
 ********************************************************************************/
 
-    
+
 #include <config.h>
 #include <common.h>
 #include <errno.h>
@@ -30,7 +30,7 @@ static void lcd_panel_on(vidinfo_t *vid)
 
     if (vid->mipi_power)
         vid->mipi_power();
-    
+
     if (vid->backlight_on)
         vid->backlight_on(50);
 
@@ -50,8 +50,8 @@ int rk_fb_parse_dt(const void *blob)
 		printf("rk_fb: Can't get device node for display-timings\n");
 		return -19;
 	}
-	/* Panel infomation */	
-   
+	/* Panel infomation */
+
 	panel_info.vl_bpix = 4;
 
 	panel_info.lvds_ttl_en  = 0,  // rk32 lvds ttl enable
@@ -62,7 +62,7 @@ int rk_fb_parse_dt(const void *blob)
 		printf("Can't get out-face set to OUT_D888_P666 for default\n");
 		panel_info.lcd_face = OUT_D888_P666;
 	}
-    
+
 	panel_info.vl_col = fdtdec_get_int(blob, node, "hactive", 0);
 	if (panel_info.vl_col == 0) {
 		printf("Can't get hactive set to 1280 for default\n");
@@ -81,12 +81,12 @@ int rk_fb_parse_dt(const void *blob)
 	panel_info.vl_height = fdtdec_get_int(blob, node,
 						"vactive", 0);
 
-	panel_info.vl_freq = fdtdec_get_int(blob, node, "clock-frequency", 0)/1000000;
+	panel_info.vl_freq = fdtdec_get_int(blob, node, "clock-frequency", 0);
 	if (panel_info.vl_freq == 0) {
 		printf("Can't get clock-frequency set to 71Mhz for default\n");
-		panel_info.vl_freq = 71;
+		panel_info.vl_freq = 71000000;
 	}
-    
+
 	panel_info.vl_oep = fdtdec_get_int(blob, node, "de-active", -1);
 	if (panel_info.vl_oep == (u_char)-1) {
 		printf("Can't get de-active set to 0 for default\n");
@@ -104,7 +104,7 @@ int rk_fb_parse_dt(const void *blob)
 		printf("Can't get vsync-active, set to 0 for default\n");
 		panel_info.vl_vsp = 0;
 	}
-    
+
 	panel_info.lvds_format = fdtdec_get_int(blob, node, "lvds-format", -1);
 	if (panel_info.lvds_format == (u_char)-1) {
 		printf("Can't get lvds-format, set to LVDS_8BIT_2 for default\n");
@@ -152,14 +152,14 @@ int rk_fb_parse_dt(const void *blob)
 		printf("Can't get vback-porch, use 8 to default\n");
 		panel_info.vl_vbpd = 8;
 	}
-    
+
 	panel_info.lcdc_id = 0;
 	node = fdt_path_offset(blob, "lcdc1");
 	if(PRMRY == fdtdec_get_int(blob, node, "rockchip,prop", 0)) {
 		printf("lcdc1 is the prmry lcd controller\n");
 		panel_info.lcdc_id = 1;
 	}
-    
+
     	printf("read lcd timing from dts!\nlogo_on=%d,lcd_face=0x%x,vl_col=%d,vl_row=%d,vl_freq = %d,lvds_format=%d,lcdc_id=%d\n",
            panel_info.logo_on, panel_info.lcd_face,panel_info.vl_col, panel_info.vl_row,panel_info.vl_freq,panel_info.lvds_format,panel_info.lcdc_id);
 
@@ -176,19 +176,19 @@ void lcd_ctrl_init(void *lcdbase)
 {
 	printf("%s [%d]\n",__FUNCTION__,__LINE__);
     /* initialize parameters which is specific to panel. */
-    
+
     rk_fb_parse_dt(gd->fdt_blob);
     init_panel_info(&panel_info);
     if (panel_info.enable_ldo)
         panel_info.enable_ldo(1);
     udelay(panel_info.init_delay);
-    
+
     panel_width = panel_info.vl_width;
     panel_height = panel_info.vl_height;
     g_lcdbase = lcdbase;
 
-    panel_info.real_freq = rkclk_lcdc_clk_set(panel_info.lcdc_id, panel_info.vl_freq*1000000);
-	
+    panel_info.real_freq = rkclk_lcdc_clk_set(panel_info.lcdc_id, panel_info.vl_freq);
+
     rk_lcdc_init(panel_info.lcdc_id);
     rk30_load_screen(&panel_info);
 }

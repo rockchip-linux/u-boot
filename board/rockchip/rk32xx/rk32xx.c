@@ -74,7 +74,7 @@ int rk_lcd_parse_dt(const void *blob)
 	const struct fdt_property *prop, *prop1;
 	const u32 *cell;
 	const u32 *reg;
-	
+
 	lcd_node = fdt_path_offset(blob, "lcdc1");
 	if (PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0)) {
 		printf("lcdc1 is the prmry lcd controller\n");
@@ -91,7 +91,7 @@ int rk_lcd_parse_dt(const void *blob)
 
 	fdtdec_decode_gpio(blob, lcd_cs_node, "gpios", &lcd_cs_gpio);
 	lcd_cs_gpio.gpio = rk_gpio_base_to_bank(lcd_cs_gpio.gpio & RK_GPIO_BANK_MASK) | (lcd_cs_gpio.gpio & RK_GPIO_PIN_MASK);
-	lcd_cs_gpio.flags = !(lcd_cs_gpio.flags & OF_GPIO_ACTIVE_LOW);    
+	lcd_cs_gpio.flags = !(lcd_cs_gpio.flags & OF_GPIO_ACTIVE_LOW);
 	lcd_cs_delay = fdtdec_get_int(blob, lcd_cs_node, "rockchip,delay", 0);
 
 	return 0;
@@ -103,7 +103,7 @@ void rk_backlight_ctrl(int brightness)
 {
 #ifdef CONFIG_OF_CONTROL
 	if (!lcd_node)
-		rk_lcd_parse_dt(gd->fdt_blob);   
+		rk_lcd_parse_dt(gd->fdt_blob);
 #endif
 
 	rk_pwm_config(brightness);
@@ -114,12 +114,12 @@ void rk_fb_init(unsigned int onoff)
 {
 	pmic_init(0);  //enable lcdc power
 
-#ifdef CONFIG_OF_CONTROL    
+#ifdef CONFIG_OF_CONTROL
 	if (lcd_node == 0) rk_lcd_parse_dt(gd->fdt_blob);
 
 	if(onoff) {
 		if (lcd_en_gpio.name!=NULL) gpio_direction_output(lcd_en_gpio.gpio, lcd_en_gpio.flags);
-		mdelay(lcd_en_delay);     
+		mdelay(lcd_en_delay);
 		if (lcd_cs_gpio.name!=NULL) gpio_direction_output(lcd_cs_gpio.gpio, lcd_cs_gpio.flags);
 		mdelay(lcd_cs_delay);
 	} else {
@@ -135,9 +135,9 @@ void rk_fb_init(unsigned int onoff)
 
 
 vidinfo_t panel_info = {
-#ifndef CONFIG_OF_CONTROL     
+#ifndef CONFIG_OF_CONTROL
 	.lcd_face	= OUT_D888_P666,
-	.vl_freq	= 71,  
+	.vl_freq	= 71000000,
 	.vl_col		= 1280,
 	.vl_row		= 800,
 	.vl_width	= 1280,
@@ -179,7 +179,7 @@ void init_panel_info(vidinfo_t *vid)
 
 #ifdef CONFIG_RK616
 int rk616_power_on(void)
-{	
+{
 	return 0;
 }
 #endif
@@ -187,7 +187,7 @@ int rk616_power_on(void)
 #endif /* CONFIG_RK_FB */
 
 
-#ifdef CONFIG_RK_I2C 
+#ifdef CONFIG_RK_I2C
 void rk_i2c_init(void)
 {
 #ifdef CONFIG_POWER_ACT8846
@@ -198,7 +198,7 @@ void rk_i2c_init(void)
 #ifdef CONFIG_RK616
 	i2c_set_bus_num(I2C_BUS_CH4);
 	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-#endif 
+#endif
 }
 #endif
 
@@ -221,7 +221,7 @@ struct pmic_voltage pmic_vol[] = {
 	{"act_ldo2" , 1200000},
 	{"act_ldo3" , 1800000},
 	{"act_ldo4" , 3300000},
-	{"act_ldo5" , 3300000}, 
+	{"act_ldo5" , 3300000},
 	{"act_ldo6" , 3300000},
 	{"act_ldo7" , 1800000},
 	{"act_ldo8" , 2800000},
