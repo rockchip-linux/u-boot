@@ -82,6 +82,15 @@ int GetPortState(key_config *key)
     	}
         write_XDATA32( adc->ctrl, 0);
         return (hCnt>8);
+    } else if (key->type == KEY_INT) {
+	int state;
+
+	state = gpio_get_value(key->key.ioint.gpio);
+	if (ioint->pressed_state == 0) { // active low
+		return !state;
+	} else {
+		return state;
+	}
     }
 }
 
