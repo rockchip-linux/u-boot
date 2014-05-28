@@ -155,6 +155,9 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	if (!g_cold_boot)
 		g_cold_boot = !loader_flag;
 
+	//set to non-0.
+	ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG | reboot_mode);
+
 	if(SYS_LOADER_ERR_FLAG == loader_flag)
 	{
 		printf("reboot to rockusb.\n");
@@ -191,9 +194,6 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 				break;
 		}
 	}
-
-	//set to non-0.
-	ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG | reboot_mode);
 	return frt;
 }
 
