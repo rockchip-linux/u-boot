@@ -71,6 +71,13 @@ extern int pmic_charger_setting(int current);
 extern void rk_backlight_ctrl(int brightness);
 extern void lcd_standby(int enable);
 
+//return duration(ms).
+static inline unsigned int get_fix_duration(unsigned int base) {
+	unsigned int max = 0xFFFFFFFF / 24000;
+	unsigned int now = get_timer(0);
+	return base > now? base - now : max + (base - now) + 1;
+}
+
 /***************board spec ops, maybe move these out of here.***************/
 //define this when we dont have a worked battery.
 //#define MOCK_CHARGER
@@ -84,7 +91,7 @@ int get_battery_capacity(void) {
 	return 50;
 #endif
 	//alreay update it before.
-    //get_power_bat_status(&batt_status);
+	//get_power_bat_status(&batt_status);
 	return batt_status.capacity;
 }
 
@@ -92,6 +99,7 @@ int get_battery_capacity(void) {
  * check power key pressed state.
  */
 int power_key_pressed(void) {
+#ifdef CONFIG_INTERRUPT_KEY_DETECT
 	//see: ./board/rockchip/common/key.c
 	int power_pressed_state = power_hold();
 	//printf("pressed state:%x\n", power_pressed_state);
@@ -101,6 +109,34 @@ int power_key_pressed(void) {
 		return KEY_LONG_PRESSED;
 	}
 	return KEY_NOT_PRESSED;
+#else
+	static unsigned int power_pressed_time = 0;
+	int power_pressed = power_hold();
+	int power_pressed_state = KEY_NOT_PRESSED;
+	if (!power_pressed_time) {
+		//haven't pressed before.
+		if (power_pressed) {
+			//record press time.
+			power_pressed_time = (get_timer(0) >> 1 << 1) + 1;
+		}
+		return KEY_NOT_PRESSED;
+	} else {
+		//power pressed before.
+		if (power_pressed) {
+			//still pressing
+#define LONG_PRESSED_TIME 2000 //2s
+			if (get_fix_duration(power_pressed_time) >= LONG_PRESSED_TIME) {
+				//long pressed.
+				power_pressed_state = KEY_LONG_PRESSED;
+			}
+		} else {
+			//power key released now.
+			power_pressed_state = KEY_SHORT_PRESSED;
+			power_pressed_time = 0;
+		}
+	}
+	return power_pressed_state;
+#endif
 }
 
 /**
@@ -109,6 +145,7 @@ int power_key_pressed(void) {
 void do_set_brightness(int brightness, int old_brightness) {
 	if (brightness == old_brightness)
 		return;
+	LOGD("set_brightness: %d -> %d", old_brightness, brightness);
 	if (brightness) {
 		rk_backlight_ctrl(brightness);
 		if (!old_brightness)
@@ -127,11 +164,11 @@ void do_set_brightness(int brightness, int old_brightness) {
  * do something before start charging.
  */
 void pre_charge(void) {
-    get_power_bat_status(&batt_status);
-    if(batt_status.state_of_chrg == 2)
-        pmic_charger_setting(2);
-    else
-        pmic_charger_setting(1);
+	get_power_bat_status(&batt_status);
+	if(batt_status.state_of_chrg == 2)
+		pmic_charger_setting(2);
+	else
+		pmic_charger_setting(1);
 }
 
 /**
@@ -154,9 +191,9 @@ int check_charging(void) {
 		return EXIT_SHUTDOWN;
 	}
 	/*
-	if (check cap enough)
-		return EXIT_BOOT;
-	*/
+	   if (check cap enough)
+	   return EXIT_BOOT;
+	   */
 	return 0;
 }
 
@@ -170,7 +207,7 @@ int handle_exit_charge(void) {
 
 		//TODO:show warning logo.
 		show_resource_image("images/battery_fail.bmp");
-		
+
 		udelay(1000000);//1 sec.
 		return -1;//unable to boot, so continue charging.
 	}
@@ -509,14 +546,7 @@ static inline int get_delay(const screen_state* state) {
 		: DEFAULT_ANIM_DELAY << 1;
 }
 
-static inline unsigned int get_fix_duration(unsigned int base) {
-	unsigned int max = 0xFFFFFFFF / 24000;
-	unsigned int now = get_timer(0);
-	return base > now? base - now : max + (base - now) + 1;
-}
-
 static inline void set_brightness(int brightness, screen_state* state) {
-	LOGD("set_brightness: %d -> %d", state->brightness, brightness);
 	if (state->brightness && !brightness) {
 		LOGD("screen off!");
 		state->screen_on_time = 0;
@@ -538,7 +568,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	screen_state g_state;
 	memset(&g_state, 0, sizeof(g_state));
 
-	int load_delay = 0;
+	unsigned int anim_time = 0;
 	int brightness = BRIGHT_ON;
 	int key_state = KEY_NOT_PRESSED;
 	int exit_type = NOT_EXIT;
@@ -566,7 +596,9 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 		//step 3: check power key pressed state.
 		key_state = power_key_pressed();
-		LOGD("key pressed state:%d", key_state);
+		if (key_state) {
+			LOGD("key pressed state:%d", key_state);
+		}
 		if (key_state == KEY_SHORT_PRESSED) {
 			brightness = g_state.brightness? BRIGHT_OFF : BRIGHT_ON;
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
@@ -588,9 +620,11 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		//step 4: update anim & set brightness.
 		if (brightness) {
 			//do anim when screen is on.
-			load_delay = get_timer(0);
-			update_image();
-			load_delay = get_fix_duration(load_delay);
+			unsigned int duration = get_fix_duration(anim_time) * 1000;
+			if (!g_state.brightness || duration >= get_delay(&g_state)) {
+				anim_time = get_timer(0);
+				update_image();
+			}
 		} else {
 			//screen off.
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
@@ -606,8 +640,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		set_brightness(brightness, &g_state);
 
-		udelay(get_delay(&g_state) - load_delay);
-		load_delay = 0;
+		udelay(50000);// 50ms.
 	}
 exit:
 	set_brightness(BRIGHT_OFF, &g_state);
