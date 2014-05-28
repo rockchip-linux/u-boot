@@ -120,7 +120,10 @@ static int lcd_color_bg;
 int lcd_line_length;
 
 char lcd_is_enabled = 0;
+#ifdef CONFIG_ROCKCHIP
 char lcd_show_logo = 0;
+#endif
+
 
 static short console_col;
 static short console_row;
@@ -400,12 +403,14 @@ __weak int lcd_get_size(int *line_length)
 	return *line_length * panel_info.vl_row;
 }
 
+#ifdef CONFIG_ROCKCHIP
 int lcd_enable_logo(bool enable)
 {
     lcd_show_logo = enable;
     if (lcd_show_logo)
         lcd_clear();
 }
+#endif
 
 int drv_lcd_init(void)
 {
@@ -467,12 +472,17 @@ void lcd_clear(void)
 		lcd_line_length * panel_info.vl_row);
 #endif
 	/* Paint the logo and retrieve LCD base address */
-    
+
+#ifndef CONFIG_ROCKCHIP
+	debug("[LCD] Drawing the logo...\n");
+	lcd_console_address = lcd_logo();
+#else
     if (lcd_show_logo)
     {
         debug("[LCD] Drawing the logo...\n");
 	    lcd_console_address = lcd_logo();
     }
+#endif
 
     console_col = 0;
 	console_row = 0;
@@ -548,9 +558,6 @@ ulong lcd_setmem(ulong addr)
 		panel_info.vl_row, NBITS(panel_info.vl_bpix));
 
 	size = lcd_get_size(&line_length);
-//#ifdef CONFIG_ROCKCHIP
-//    size <<= 1;//double fb buffer.
-//#endif
 
 	/* Round up to nearest full page, or MMU section if defined */
 	size = ALIGN(size, CONFIG_LCD_ALIGNMENT);
@@ -644,7 +651,6 @@ void bitmap_plot(int x, int y)
 #endif
 	unsigned bpix = NBITS(panel_info.vl_bpix);
 
-    
 	debug("Logo: width %d  height %d  colors %d  cmap %d\n",
 		BMP_LOGO_WIDTH, BMP_LOGO_HEIGHT, BMP_LOGO_COLORS,
 		ARRAY_SIZE(bmp_logo_palette));
@@ -713,7 +719,7 @@ void bitmap_plot(int x, int y)
 		WATCHDOG_RESET();
 
 #ifdef CONFIG_RK_FB
-			memcpy(fb, bmap, BMP_LOGO_WIDTH*BMP_LOGO_HEIGHT);
+		memcpy(fb, bmap, BMP_LOGO_WIDTH*BMP_LOGO_HEIGHT);
 #else
 		for (i = 0; i < BMP_LOGO_HEIGHT; ++i) {
 			memcpy(fb, bmap, BMP_LOGO_WIDTH);
@@ -947,6 +953,7 @@ static inline void fb_put_word(uchar **fb, uchar **from)
 #endif
 #endif /* CONFIG_BMP_16BPP */
 
+#ifdef CONFIG_ROCKCHIP
 int lcd_display_bitmap_center(ulong bmp_image)
 {
     bmp_image_t *bmp=(bmp_image_t *)bmp_image;
@@ -962,12 +969,9 @@ int lcd_display_bitmap_center(ulong bmp_image)
     width = le32_to_cpu(bmp->header.width);
     height = le32_to_cpu(bmp->header.height);
 
-   // memset((char *)lcd_base,
-   //         COLOR_MASK(lcd_getbgcolor()),
-   //         lcd_line_length * panel_info.vl_row);
-
     lcd_display_bitmap(bmp_image, (panel_info.vl_col - width)/2, (panel_info.vl_row - height)/2);
 }
+#endif
 
 int lcd_display_bitmap(ulong bmp_image, int x, int y)
 {
@@ -1054,7 +1058,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		}
 	}
 #endif
-  
 
 	/*
 	 *  BMP format for Monochrome assumes that the state of a
@@ -1089,17 +1092,17 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	bmap = (uchar *) bmp + le32_to_cpu(bmp->header.data_offset);
     
 #if defined(CONFIG_RK_FB)
-
 	if(lcd_base == gd->fb_base)
 		lcd_base += width*height*2; 
-	else lcd_base = gd->fb_base; 
+	else
+		lcd_base = gd->fb_base; 
 
 	lcd_line_length = (width * NBITS(panel_info.vl_bpix)) / 8;
 	fb = (uchar *) (lcd_base +
 			( height - 1) * lcd_line_length);
 #else
 	fb   = (uchar *) (lcd_base +
-			(y + height - 1) * lcd_line_length + x * bpix / 8);
+		(y + height - 1) * lcd_line_length + x * bpix / 8);
 #endif
 
 	switch (bmp_bpix) {
@@ -1116,6 +1119,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 			break;
 		}
 #endif
+
 		if (bpix != 16)
 			byte_width = width;
 		else
@@ -1207,8 +1211,11 @@ static void *lcd_logo(void)
 	}
 #endif /* CONFIG_SPLASH_SCREEN */
 
+#ifndef CONFIG_ROCKCHIP
+	bitmap_plot(0, 0);
+#else
 	bitmap_plot((panel_info.vl_col - BMP_LOGO_WIDTH)/2, (panel_info.vl_row - BMP_LOGO_HEIGHT)/2);
-    //bitmap_plot(0,0);
+#endif
 
 #ifdef CONFIG_LCD_INFO
 	console_col = LCD_INFO_X / VIDEO_FONT_WIDTH;

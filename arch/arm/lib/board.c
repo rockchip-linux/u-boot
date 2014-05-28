@@ -21,7 +21,6 @@
  * IRQ Stack: 00ebff7c
  * FIQ Stack: 00ebef7c
  */
-//#define DEBUG
 
 #include <common.h>
 #include <command.h>
@@ -59,7 +58,6 @@ extern void dataflash_print_info(void);
 #include <i2c.h>
 #endif
 
-extern void DMADeInit(void);
 /************************************************************************
  * Coloured LED functionality
  ************************************************************************
@@ -145,7 +143,7 @@ static int display_dram_config(void)
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++)
 		size += gd->bd->bi_dram[i].size;
 
-	puts("DRAM:\t\t");
+	puts("DRAM:  ");
 	print_size(size, "\n");
 #endif
 
@@ -622,6 +620,7 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	puts("NAND:  ");
 	nand_init();		/* go init the NAND */
 #endif
+
 #if defined(CONFIG_CMD_ONENAND)
 	onenand_init();
 #endif

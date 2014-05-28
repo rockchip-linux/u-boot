@@ -269,8 +269,10 @@ LIBS-$(CONFIG_API) += api/
 LIBS-$(CONFIG_HAS_POST) += post/
 LIBS-y += test/
 
+#ifdef CONFIG_ROCKCHIP
 LIBS-y += drivers/mfd/
 LIBS-y += drivers/mfd/transmitter/
+#endif
 
 ifneq (,$(filter $(SOC), mx25 mx27 mx5 mx6 mx31 mx35 mxs vf610))
 LIBS-y += arch/$(ARCH)/imx-common/

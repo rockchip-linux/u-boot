@@ -22,6 +22,9 @@ unsigned long do_go_exec(ulong (*entry)(int, char * const []), int argc,
 	return entry (argc, argv);
 }
 
+#ifndef CONFIG_ROCKCHIP
+static 
+#endif
 int do_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	ulong	addr, rc;

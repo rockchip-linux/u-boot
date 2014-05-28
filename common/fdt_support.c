@@ -297,7 +297,6 @@ int fdt_chosen(void *fdt, int force)
 
 #ifdef OF_STDOUT_PATH
 	path = fdt_getprop(fdt, nodeoffset, "linux,stdout-path", NULL);
-	printf("------->path=%s\n",path);
 	if ((path == NULL) || force) {
 		err = fdt_setprop(fdt, nodeoffset,
 			"linux,stdout-path", OF_STDOUT_PATH, strlen(OF_STDOUT_PATH)+1);

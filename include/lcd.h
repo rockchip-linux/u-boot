@@ -394,7 +394,6 @@ int rk30_lcdc_init(int lcdc_id);
 void get_rk_logo_info(vidinfo_t *vid);
 
 #ifdef CONFIG_RK616
-
 int rk616_power_on(void);
 #endif /*CONFIG_RK616*/
 
