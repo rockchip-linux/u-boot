@@ -32,7 +32,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define RKPM_VERSION		"1.0"
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	#define RK_WAKEUP_KEY_PIN	(GPIO_BANK0 | GPIO_A2)
+	#define RK_WAKEUP_KEY_PIN	(GPIO_BANK0 | GPIO_A5)
 #else
 	#error	"PLS config wake up key for chip!"
 #endif

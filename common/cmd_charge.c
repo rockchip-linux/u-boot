@@ -543,9 +543,6 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int key_state = KEY_NOT_PRESSED;
 	int exit_type = NOT_EXIT;
 
-#ifdef CONFIG_CHARGE_DEEP_SLEEP
-	rk_pm_wakeup_gpio_init();
-#endif
 	while (1) {
 		//step 1: check charger state.
 		exit_type = check_charging();
@@ -599,7 +596,11 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
 			//goto sleep, and wait for wakeup by power-key.
 			set_brightness(BRIGHT_OFF, &g_state);
+			printf("wakeup gpio init and sleep.\n");
+			rk_pm_wakeup_gpio_init();
 			rk_pm_enter(NULL);
+			rk_pm_wakeup_gpio_deinit();
+			printf("wakeup gpio deinit and wakeup.\n");
 			brightness = BRIGHT_ON;
 #endif
 		}
@@ -609,9 +610,6 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		load_delay = 0;
 	}
 exit:
-#ifdef CONFIG_CHARGE_DEEP_SLEEP
-	rk_pm_wakeup_gpio_deinit();
-#endif
 	set_brightness(BRIGHT_OFF, &g_state);
 	if (exit_type == EXIT_BOOT) {
 		printf("booting...\n");
