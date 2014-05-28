@@ -159,6 +159,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	{
 		printf("reboot to rockusb.\n");
 		loader_flag = SYS_LOADER_REBOOT_FLAG | BOOT_LOADER;
+		reboot_mode = BOOT_LOADER;
 	}
 
 	//if((loader_flag&0xFFFFFF00) == SYS_LOADER_REBOOT_FLAG)
