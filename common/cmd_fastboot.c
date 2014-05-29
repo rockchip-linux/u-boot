@@ -1938,11 +1938,13 @@ void fbt_preboot(void)
 #ifdef CONFIG_ROCKCHIP
 	powerOn();
 #ifdef CONFIG_LCD
-    if(logo_on)
-    {
-        lcd_enable_logo(true);
-        rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
-    }
+	if(logo_on)
+	{
+		lcd_enable_logo(true);
+		lcd_standby(0);
+		mdelay(100);
+		rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
+	}
 #endif
 #endif// CONFIG_ROCKCHIP
 
