@@ -11,6 +11,7 @@
 #include <linux/ctype.h>
 #include <errno.h>
 #include <linux/list.h>
+#include <fs.h>
 
 #include "menu.h"
 
@@ -155,6 +156,19 @@ static int do_get_fat(cmd_tbl_t *cmdtp, const char *file_path, char *file_addr)
 	fs_argv[4] = (void *)file_path;
 
 	if (!do_fat_fsload(cmdtp, 0, 5, fs_argv))
+		return 1;
+#endif
+	return -ENOENT;
+}
+
+static int do_get_any(cmd_tbl_t *cmdtp, const char *file_path, char *file_addr)
+{
+#ifdef CONFIG_CMD_FS_GENERIC
+	fs_argv[0] = "load";
+	fs_argv[3] = file_addr;
+	fs_argv[4] = (void *)file_path;
+
+	if (!do_load(cmdtp, 0, 5, fs_argv, FS_TYPE_ANY))
 		return 1;
 #endif
 	return -ENOENT;
@@ -445,6 +459,7 @@ struct pxe_label {
 	char *append;
 	char *initrd;
 	char *fdt;
+	char *fdtdir;
 	int ipappend;
 	int attempted;
 	int localboot;
@@ -516,6 +531,9 @@ static void label_destroy(struct pxe_label *label)
 
 	if (label->fdt)
 		free(label->fdt);
+
+	if (label->fdtdir)
+		free(label->fdtdir);
 
 	free(label);
 }
@@ -675,13 +693,67 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
 	bootm_argv[3] = getenv("fdt_addr_r");
 
 	/* if fdt label is defined then get fdt from server */
-	if (bootm_argv[3] && label->fdt) {
-		if (get_relfile_envaddr(cmdtp, label->fdt, "fdt_addr_r") < 0) {
-			printf("Skipping %s for failure retrieving fdt\n",
-					label->name);
-			return 1;
+	if (bootm_argv[3]) {
+		char *fdtfile = NULL;
+		char *fdtfilefree = NULL;
+
+		if (label->fdt) {
+			fdtfile = label->fdt;
+		} else if (label->fdtdir) {
+			fdtfile = getenv("fdtfile");
+			/*
+			 * For complex cases, it might be worth calling a
+			 * board- or SoC-provided function here to provide a
+			 * better default:
+			 *
+			 * if (!fdtfile)
+			 *     fdtfile = gen_fdtfile();
+			 *
+			 * If this is added, be sure to keep the default below,
+			 * or move it to the default weak implementation of
+			 * gen_fdtfile().
+			 */
+			if (!fdtfile) {
+				char *soc = getenv("soc");
+				char *board = getenv("board");
+				char *slash;
+
+				len = strlen(label->fdtdir);
+				if (!len)
+					slash = "./";
+				else if (label->fdtdir[len - 1] != '/')
+					slash = "/";
+				else
+					slash = "";
+
+				len = strlen(label->fdtdir) + strlen(slash) +
+					strlen(soc) + 1 + strlen(board) + 5;
+				fdtfilefree = malloc(len);
+				if (!fdtfilefree) {
+					printf("malloc fail (FDT filename)\n");
+					return 1;
+				}
+
+				snprintf(fdtfilefree, len, "%s%s%s-%s.dtb",
+					label->fdtdir, slash, soc, board);
+				fdtfile = fdtfilefree;
+			}
 		}
-	} else
+
+		if (fdtfile) {
+			int err = get_relfile_envaddr(cmdtp, fdtfile, "fdt_addr_r");
+			free(fdtfilefree);
+			if (err < 0) {
+				printf("Skipping %s for failure retrieving fdt\n",
+						label->name);
+				return 1;
+			}
+		} else {
+			bootm_argv[3] = NULL;
+		}
+	}
+
+	if (!bootm_argv[3])
 		bootm_argv[3] = getenv("fdt_addr");
 
 	if (bootm_argv[3])
@@ -716,6 +788,7 @@ enum token_type {
 	T_PROMPT,
 	T_INCLUDE,
 	T_FDT,
+	T_FDTDIR,
 	T_ONTIMEOUT,
 	T_IPAPPEND,
 	T_INVALID
@@ -745,7 +818,10 @@ static const struct token keywords[] = {
 	{"append", T_APPEND},
 	{"initrd", T_INITRD},
 	{"include", T_INCLUDE},
+	{"devicetree", T_FDT},
 	{"fdt", T_FDT},
+	{"devicetreedir", T_FDTDIR},
+	{"fdtdir", T_FDTDIR},
 	{"ontimeout", T_ONTIMEOUT,},
 	{"ipappend", T_IPAPPEND,},
 	{NULL, T_INVALID}
@@ -1132,6 +1208,11 @@ static int parse_label(char **c, struct pxe_menu *cfg)
 		case T_FDT:
 			if (!label->fdt)
 				err = parse_sliteral(c, &label->fdt);
+			break;
+
+		case T_FDTDIR:
+			if (!label->fdtdir)
+				err = parse_sliteral(c, &label->fdtdir);
 			break;
 
 		case T_LOCALBOOT:
@@ -1539,6 +1620,8 @@ int do_sysboot(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		do_getfile = do_get_ext2;
 	else if (strstr(argv[3], "fat"))
 		do_getfile = do_get_fat;
+	else if (strstr(argv[3], "any"))
+		do_getfile = do_get_any;
 	else {
 		printf("Invalid filesystem: %s\n", argv[3]);
 		return 1;
@@ -1576,7 +1659,7 @@ int do_sysboot(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 U_BOOT_CMD(
 	sysboot, 7, 1, do_sysboot,
 	"command to get and boot from syslinux files",
-	"[-p] <interface> <dev[:part]> <ext2|fat> [addr] [filename]\n"
-	"    - load and parse syslinux menu file 'filename' from ext2 or fat\n"
-	"      filesystem on 'dev' on 'interface' to address 'addr'"
+	"[-p] <interface> <dev[:part]> <ext2|fat|any> [addr] [filename]\n"
+	"    - load and parse syslinux menu file 'filename' from ext2, fat\n"
+	"      or any filesystem on 'dev' on 'interface' to address 'addr'"
 );
