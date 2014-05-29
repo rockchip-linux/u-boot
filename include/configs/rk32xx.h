@@ -152,6 +152,11 @@
  * Environment setup
  */
 /* use preboot to detect key press for fastboot */
+/* if you want to enable bootdelay, define CONFIG_PREBOOT as:
+ * 	#define CONFIG_PREBOOT "setenv bootdelay 3"
+ * else just do as:
+ *	#define CONFIG_PREBOOT
+ */
 #define CONFIG_PREBOOT
 #define CONFIG_BOOTCOMMAND		"booti"
 
@@ -286,10 +291,9 @@
 #define CONFIG_RK_FB
 #define CONFIG_LCD_LOGO
 #define CONFIG_RK_3288_DSI_UBOOT
-#define CONFIG_CHARGE_DEEP_SLEEP
 //#define CONFIG_UBOOT_CHARGE
 //#define CONFIG_CMD_CHARGE_ANIM
-//#define CONFIG_CHARGE_DEEP_SLEEP
+#define CONFIG_CHARGE_DEEP_SLEEP
 #define CONFIG_LCD_BMP_RLE8
 #define CONFIG_CMD_BMP
 
