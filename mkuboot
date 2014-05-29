@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+echo    "******************************"
+echo    "*     make board config      *"
+echo    "******************************"
+make rk32xx_config
+
+echo    "******************************"
+echo    "*     make rkuboot.bin       *"
+echo    "******************************"
+make -j4
+
