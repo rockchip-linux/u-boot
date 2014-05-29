@@ -724,7 +724,7 @@ void rk30_lcdc_enable(void)
 /* Enable LCD and DIGITAL OUT in DSS */
 void rk30_lcdc_standby(enable)
 {
-    LcdMskReg(WIN0_CTRL0, m_win0_en,v_win0_en(enable?0:1));	
+    LcdMskReg(SYS_CTRL, m_standby_en, v_standby_en(enable ? 1 : 0));
     LCDC_REG_CFG_DONE();  
 }
 
