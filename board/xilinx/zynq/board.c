@@ -5,18 +5,13 @@
  */
 
 #include <common.h>
+#include <fdtdec.h>
 #include <netdev.h>
 #include <zynqpl.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/sys_proto.h>
 
 DECLARE_GLOBAL_DATA_PTR;
-
-/* Bootmode setting values */
-#define ZYNQ_BM_MASK		0x0F
-#define ZYNQ_BM_NOR		0x02
-#define ZYNQ_BM_SD		0x05
-#define ZYNQ_BM_JTAG		0x0
 
 #ifdef CONFIG_FPGA
 Xilinx_desc fpga;
@@ -59,8 +54,6 @@ int board_init(void)
 	}
 #endif
 
-	icache_enable();
-
 #ifdef CONFIG_FPGA
 	fpga_init();
 	fpga_add(fpga_xilinx, &fpga);
@@ -89,7 +82,6 @@ int board_late_init(void)
 	return 0;
 }
 
-#ifdef CONFIG_CMD_NET
 int board_eth_init(bd_t *bis)
 {
 	u32 ret = 0;
@@ -123,7 +115,6 @@ int board_eth_init(bd_t *bis)
 #endif
 	return ret;
 }
-#endif
 
 #ifdef CONFIG_CMD_MMC
 int board_mmc_init(bd_t *bd)
@@ -144,8 +135,27 @@ int board_mmc_init(bd_t *bd)
 
 int dram_init(void)
 {
-	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
+#ifdef CONFIG_OF_CONTROL
+	int node;
+	fdt_addr_t addr;
+	fdt_size_t size;
+	const void *blob = gd->fdt_blob;
 
+	node = fdt_node_offset_by_prop_value(blob, -1, "device_type",
+					     "memory", 7);
+	if (node == -FDT_ERR_NOTFOUND) {
+		debug("ZYNQ DRAM: Can't get memory node\n");
+		return -1;
+	}
+	addr = fdtdec_get_addr_size(blob, node, "reg", &size);
+	if (addr == FDT_ADDR_T_NONE || size == 0) {
+		debug("ZYNQ DRAM: Can't get base address or size\n");
+		return -1;
+	}
+	gd->ram_size = size;
+#else
+	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
+#endif
 	zynq_ddrc_init();
 
 	return 0;

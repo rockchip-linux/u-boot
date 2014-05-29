@@ -150,7 +150,6 @@ serial_initfunc(oc_serial_initialize);
 serial_initfunc(sandbox_serial_initialize);
 serial_initfunc(clps7111_serial_initialize);
 serial_initfunc(imx_serial_initialize);
-serial_initfunc(ixp_serial_initialize);
 serial_initfunc(ks8695_serial_initialize);
 serial_initfunc(lh7a40x_serial_initialize);
 serial_initfunc(max3100_serial_initialize);
@@ -161,6 +160,7 @@ serial_initfunc(sh_serial_initialize);
 serial_initfunc(rk30_serial_initialize);
 serial_initfunc(arm_dcc_initialize);
 serial_initfunc(mxs_auart_initialize);
+serial_initfunc(arc_serial_initialize);
 
 /**
  * serial_register() - Register serial driver with serial driver core
@@ -244,7 +244,6 @@ void serial_initialize(void)
 	sandbox_serial_initialize();
 	clps7111_serial_initialize();
 	imx_serial_initialize();
-	ixp_serial_initialize();
 	ks8695_serial_initialize();
 	lh7a40x_serial_initialize();
 	max3100_serial_initialize();
@@ -255,6 +254,7 @@ void serial_initialize(void)
 	rk30_serial_initialize();
 	arm_dcc_initialize();
 	mxs_auart_initialize();
+	arc_serial_initialize();
 
 	serial_assign(default_serial_console()->name);
 }

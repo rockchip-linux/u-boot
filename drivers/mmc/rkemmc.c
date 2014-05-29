@@ -490,10 +490,10 @@ static void rk_set_ios(struct mmc *mmc)
 		Writel(gMmcBaseAddr + MMC_CLKENA, 0);
 		/* inform CIU */
 		mci_send_cmd(MMC_CMD_START |MMC_CMD_UPD_CLK | MMC_CMD_PRV_DAT_WAIT, 0);
-		if(mmc->clock > mmc->f_max )
-			mmc->clock = mmc->f_max;
-		if(mmc->clock < mmc->f_min)
-			mmc->clock = mmc->f_min;
+		if(mmc->clock > mmc->cfg->f_max )
+			mmc->clock = mmc->cfg->f_max;
+		if(mmc->clock < mmc->cfg->f_min)
+			mmc->clock = mmc->cfg->f_min;
 		src_clk = rkclk_get_general_pll()/2; //rk32 emmc src generall pll,emmc automic divide setting freq to 1/2,for get the right freq ,we divide this freq to 1/2
 		src_clk_div = src_clk/mmc->clock;
 		if(src_clk_div > 0x3e)
@@ -521,25 +521,32 @@ static void rk_set_ios(struct mmc *mmc)
 	Writel(gMmcBaseAddr + MMC_CTYPE, cfg);
 }
 
-int rk_mmc_init()
+
+static const struct mmc_ops rkmmc_ops = {
+	.send_cmd	= rk_emmc_request,
+	.set_ios	= rk_set_ios,
+	.init		= rk_emmc_init,
+	.getcd		= NULL,
+	.getwp		= NULL,
+};
+
+static struct mmc_config rkmmc_cfg = {
+	.name		= "rk emmc",
+	.ops		= &rkmmc_ops,
+	.host_caps	= MMC_MODE_8BIT | MMC_MODE_4BIT |MMC_MODE_HS |MMC_MODE_HS_52MHz,
+	.voltages	= 0x00ff8080,
+	.f_max		= MMC_BUS_CLOCK / 2,
+	.f_min		= (MMC_BUS_CLOCK + 510 - 1) / 510,
+	.b_max		= 255,
+};
+
+int rk_mmc_init(void)
 {
 	struct mmc *mmc = NULL;
 	mmc = malloc(sizeof(struct mmc));
 	if (!mmc)
 		return -1;
-	sprintf(mmc->name, "rk emmc");
-	mmc->send_cmd = rk_emmc_request;
-	mmc->set_ios = rk_set_ios;
-	mmc->init = rk_emmc_init;;
-	mmc->getcd = NULL;
-	mmc->getwp = NULL;
-	mmc->host_caps = MMC_MODE_8BIT | MMC_MODE_4BIT |MMC_MODE_HS |MMC_MODE_HS_52MHz;
-
-	mmc->voltages = 0x00ff8080;
-	mmc->f_max = MMC_BUS_CLOCK/2;
-	mmc->f_min = (MMC_BUS_CLOCK+510 -1)/510;
-
-	mmc->b_max = 255;
+	mmc->cfg = &rkmmc_cfg;
 	mmc->rca = 3;
 	mmc_register(mmc);
 

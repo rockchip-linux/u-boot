@@ -26,7 +26,7 @@
  */
 #include <common.h>
 #include <command.h>
-#include <asm/sizes.h>
+#include <linux/sizes.h>
 
 #include <resource.h>
 #include <fastboot.h>

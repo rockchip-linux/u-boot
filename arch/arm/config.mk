@@ -5,38 +5,6 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-
-ifneq ($(wildcard ../arm-eabi-4.7),)
-CROSS_COMPILE   ?= $(shell pwd)/../arm-eabi-4.7/bin/arm-eabi-
-endif
-ifneq ($(wildcard ../toolchain/arm-eabi-4.7),)
-CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.7/bin/arm-eabi-
-endif
-ifneq ($(wildcard ../arm-eabi-4.6),)
-CROSS_COMPILE   ?= $(shell pwd)/../arm-eabi-4.6/bin/arm-eabi-
-endif
-ifneq ($(wildcard ../toolchain/arm-eabi-4.6),)
-CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.6/bin/arm-eabi-
-endif
-ifneq ($(wildcard ../toolchain/arm-eabi-4.4.3),)
-CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.4.3/bin/arm-eabi-
-endif
-ifneq ($(wildcard ../toolchain/arm-eabi-4.4.0),)
-CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.4.0/bin/arm-eabi-
-endif
-
-ifneq ($(wildcard ../prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin),)
-CROSS_COMPILE   ?= $(shell pwd)/../prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
-endif
-ifneq ($(wildcard ../android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3),)
-CROSS_COMPILE   ?= $(shell pwd)/../android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
-endif
-ifneq ($(wildcard ../android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.0),)
-CROSS_COMPILE   ?= $(shell pwd)/../android/prebuilt/linux-x86/toolchain/arm-eabi-4.4.0/bin/arm-eabi-
-endif
-
-CROSS_COMPILE ?= arm-linux-
-
 ifndef CONFIG_STANDALONE_LOAD_ADDR
 ifneq ($(CONFIG_OMAP_COMMON),)
 CONFIG_STANDALONE_LOAD_ADDR = 0x80300000
@@ -69,7 +37,17 @@ endif
 
 # Only test once
 ifneq ($(CONFIG_SPL_BUILD),y)
-ALL-$(CONFIG_SYS_THUMB_BUILD)	+= checkthumb
+ifeq ($(CONFIG_SYS_THUMB_BUILD),y)
+archprepare: checkthumb
+
+checkthumb:
+	@if test "$(call cc-version)" -lt "0404"; then \
+		echo -n '*** Your GCC does not produce working '; \
+		echo 'binaries in THUMB mode.'; \
+		echo '*** Your board is configured for THUMB mode.'; \
+		false; \
+	fi
+endif
 endif
 
 # Try if EABI is supported, else fall back to old API,
@@ -97,13 +75,8 @@ ifneq (,$(findstring -mabi=aapcs-linux,$(PLATFORM_CPPFLAGS)))
 # times. Also, the prefix needs to be different based on whether
 # CONFIG_SPL_BUILD is defined or not. 'filter-out' the existing entry
 # before adding the correct one.
-ifdef CONFIG_SPL_BUILD
-PLATFORM_LIBS := $(SPLTREE)/arch/arm/lib/eabi_compat.o \
-	$(filter-out %/arch/arm/lib/eabi_compat.o, $(PLATFORM_LIBS))
-else
-PLATFORM_LIBS := $(OBJTREE)/arch/arm/lib/eabi_compat.o \
-	$(filter-out %/arch/arm/lib/eabi_compat.o, $(PLATFORM_LIBS))
-endif
+PLATFORM_LIBS := arch/arm/lib/eabi_compat.o \
+	$(filter-out arch/arm/lib/eabi_compat.o, $(PLATFORM_LIBS))
 endif
 
 # needed for relocation
@@ -138,7 +111,21 @@ endif
 
 # limit ourselves to the sections we want in the .bin.
 ifdef CONFIG_ARM64
-OBJCFLAGS += -j .text -j .rodata -j .data -j .u_boot_list -j .rela.dyn
+OBJCOPYFLAGS += -j .text -j .rodata -j .data -j .u_boot_list -j .rela.dyn
 else
-OBJCFLAGS += -j .text -j .rodata -j .hash -j .data -j .got.plt -j .u_boot_list -j .rel.dyn
+OBJCOPYFLAGS += -j .text -j .rodata -j .hash -j .data -j .got.plt -j .u_boot_list -j .rel.dyn
+endif
+
+ifneq ($(CONFIG_IMX_CONFIG),)
+ifdef CONFIG_SPL
+ifndef CONFIG_SPL_BUILD
+ALL-y += SPL
+endif
+else
+ifeq ($(CONFIG_OF_SEPARATE),y)
+ALL-y += u-boot-dtb.imx
+else
+ALL-y += u-boot.imx
+endif
+endif
 endif

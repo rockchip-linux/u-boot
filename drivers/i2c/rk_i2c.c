@@ -23,7 +23,7 @@
 
 #include <common.h>
 #include <asm/io.h>
-#include <asm/sizes.h>
+#include <linux/sizes.h>
 #include <i2c.h>
 #include <asm/arch/rkplat.h>
 

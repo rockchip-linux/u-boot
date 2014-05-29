@@ -63,7 +63,7 @@
 #include <malloc.h>
 #include <fastboot.h>
 #include <usbdevice.h>
-#include <asm/sizes.h>
+#include <linux/sizes.h>
 #ifdef CONFIG_RESOURCE_PARTITION
 #include <resource.h>
 #endif

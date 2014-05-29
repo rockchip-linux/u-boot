@@ -6,7 +6,7 @@
 #include <command.h>
 #include <malloc.h>
 #include <usbdevice.h>
-#include <asm/sizes.h>
+#include <linux/sizes.h>
 #include <asm/unaligned.h>
 #include <asm/arch-rk32xx/typedef.h>
 #include <usb/udc.h>

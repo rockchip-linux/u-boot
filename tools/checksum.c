@@ -1,7 +1,8 @@
-#include "../include/configs/rk32xx.h"
 #include <sys/stat.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <config.h>
+
 
 #define SZ_16M                          0x01000000
 #define SZ_32M                          0x02000000

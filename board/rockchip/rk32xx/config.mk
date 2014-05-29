@@ -32,5 +32,5 @@
 #
 # For use with external or internal boots.
 
-ALL-y += $(obj)RKLoader_uboot.bin
+ALL-y += RKLoader_uboot.bin
 
