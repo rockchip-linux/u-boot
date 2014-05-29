@@ -147,15 +147,16 @@ void do_set_brightness(int brightness, int old_brightness) {
 		return;
 	LOGD("set_brightness: %d -> %d", old_brightness, brightness);
 	if (brightness) {
-		rk_backlight_ctrl(brightness);
-		if (!old_brightness)
-			lcd_standby(1);
-	} else {
-		if (old_brightness) {
+		if (!old_brightness) {
 			lcd_standby(0);
 			mdelay(100);
 		}
+		rk_backlight_ctrl(brightness);
+	} else {
 		rk_backlight_ctrl(0);
+		if (old_brightness) {
+			lcd_standby(1);
+		}
 	}
 }
 
@@ -617,17 +618,9 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			goto exit;
 		}
 
-		//step 4: update anim & set brightness.
-		if (brightness) {
-			//do anim when screen is on.
-			unsigned int duration = get_fix_duration(anim_time) * 1000;
-			if (!g_state.brightness || duration >= get_delay(&g_state)) {
-				anim_time = get_timer(0);
-				update_image();
-			}
-		} else {
-			//screen off.
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
+		//step 4:try to do deep sleep.
+		if (!brightness) {
 			//goto sleep, and wait for wakeup by power-key.
 			set_brightness(BRIGHT_OFF, &g_state);
 			printf("wakeup gpio init and sleep.\n");
@@ -636,8 +629,20 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			rk_pm_wakeup_gpio_deinit();
 			printf("wakeup gpio deinit and wakeup.\n");
 			brightness = BRIGHT_ON;
-#endif
 		}
+#endif
+
+		//step 5:step anim when screen is on.
+		if (brightness) {
+			//do anim when screen is on.
+			unsigned int duration = get_fix_duration(anim_time) * 1000;
+			if (!g_state.brightness || duration >= get_delay(&g_state)) {
+				anim_time = get_timer(0);
+				update_image();
+			}
+		}
+
+		//step 6:set brightness.
 		set_brightness(brightness, &g_state);
 
 		udelay(50000);// 50ms.
