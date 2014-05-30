@@ -546,9 +546,8 @@ int rk_mmc_init(void)
 	mmc = malloc(sizeof(struct mmc));
 	if (!mmc)
 		return -1;
-	mmc->cfg = &rkmmc_cfg;
 	mmc->rca = 3;
-	mmc_register(mmc);
+	mmc_create(&rkmmc_cfg, NULL);
 
 	return 0;
 }
