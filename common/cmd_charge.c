@@ -35,7 +35,7 @@
 #include <power/pmic.h>
 #include <resource.h>
 
-//#define DEBUG
+/*#define DEBUG*/
 #define LOGE(fmt, args...) printf(fmt "\n", ##args)
 #ifdef DEBUG
 #define LOGD(fmt, args...) printf(fmt "\n", ##args)
@@ -180,10 +180,10 @@ int check_charging(void) {
 #ifdef MOCK_CHARGER
 	return NOT_EXIT;
 #endif
-	if (!is_charging()) {
+	/*if (!is_charging()) {
 		LOGD("charger disconnceted.");
 		return EXIT_SHUTDOWN;
-	}
+	}*/
 	get_power_bat_status(&batt_status);
 	if(!batt_status.state_of_chrg)
 	{
