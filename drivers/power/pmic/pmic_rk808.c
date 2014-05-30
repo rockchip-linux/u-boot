@@ -9,6 +9,7 @@
 #include <i2c.h>
 #include <errno.h>
 
+#if 0
 /*
 for chack charger status in boot
 return 0, no charger
@@ -25,7 +26,7 @@ int check_charge(void)
     return ret;
 }
 
-
+#endif
 
 /*
 set charge current
@@ -94,7 +95,10 @@ int pmic_init(unsigned char bus)
 
 void shut_down(void)
 {
-    //shut down pmic or pull down power_hold pin
+	u8 reg;
+	i2c_set_bus_num(0);
+	reg = i2c_reg_read(0x1b, 0x4b);
+	i2c_reg_write(0x1b, 0x4b, (reg |(0x1 <<3)));
 
 }
 
