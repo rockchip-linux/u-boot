@@ -21,6 +21,7 @@
 *.patch
 *.cfgtmp
 *.img
+*.cmd
 *.dts.tmp
 
 # Build tree
