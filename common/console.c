@@ -657,6 +657,7 @@ int console_init_f(void)
 void stdio_print_current_devices(void)
 {
 	/* Print information */
+#ifndef CONFIG_ROCKCHIP
 	puts("In:    ");
 	if (stdio_devices[stdin] == NULL) {
 		puts("No input devices available!\n");
@@ -677,6 +678,7 @@ void stdio_print_current_devices(void)
 	} else {
 		printf ("%s\n", stdio_devices[stderr]->name);
 	}
+#endif
 }
 
 #ifdef CONFIG_SYS_CONSOLE_IS_IN_ENV

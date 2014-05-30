@@ -19,7 +19,7 @@ int check_charge(void)
     int reg=0;
     int ret = 0;
 	if(GetVbus()) { 	  //reboot charge
-		printf("In charging! \n");
+		debug("In charging! \n");
 		ret = 1;
 	}
     return ret;
@@ -36,11 +36,11 @@ set charge current
 */
 int pmic_charger_setting(int current)
 {
-    printf("%s charger_type = %d\n",__func__,current);
+    debug("%s charger_type = %d\n",__func__,current);
     i2c_set_bus_num(0);
     i2c_init (CONFIG_SYS_I2C_SPEED, 0x6b);
     i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-    printf("%s charge ic id = 0x%x\n",__func__,i2c_reg_read(0x6b,0x0a));
+    debug("%s charge ic id = 0x%x\n",__func__,i2c_reg_read(0x6b,0x0a));
     switch (current){
     case 0:
         //disable charging
@@ -66,7 +66,7 @@ int charger_init(unsigned char bus)
 {
     int usb_charger_type = dwc_otg_check_dpdm();
 
-    printf("%s, charger_type = %d, dc_is_charging= %d\n",__func__,usb_charger_type,is_charging());
+    debug("%s, charger_type = %d, dc_is_charging= %d\n",__func__,usb_charger_type,is_charging());
     if(is_charging()){
         pmic_charger_setting(3);
     }else if(usb_charger_type){

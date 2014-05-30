@@ -47,7 +47,7 @@ int pmu_debug(u8 reg)
 		reg_val=i2c_reg_read(PMU_I2C_ADDRESS,reg);
 		if(PMU_DEBUG)
 		{
-			printf("pmu_i2c_init read reg_addr 0x%x : 0x%x\n",reg , reg_val);
+			debug("pmu_i2c_init read reg_addr 0x%x : 0x%x\n",reg , reg_val);
 		}
 	return reg_val;
 }
@@ -102,13 +102,13 @@ static int get_check_fuel_gauge_reg(int Reg_h, int Reg_l, int enable_bit)
 	for (i = 0; i < 5 ; i++) {
 		ret = read_pmu_reg(Reg_h, &get_data_h);
 		if (ret < 0) {
-			printf("Error in reading the control register\n");
+			debug("Error in reading the control register\n");
 			return ret;
 		}
 
 		ret = read_pmu_reg(Reg_l, &get_data_l);
 		if (ret < 0) {
-			printf("Error in reading the control register\n");
+			debug("Error in reading the control register\n");
 			return ret;
 		}
 
@@ -132,7 +132,7 @@ static int get_battery_temp()
 
 	ret = get_check_fuel_gauge_reg(TEMP_1_REG, TEMP_2_REG, 0x0fff);
 	if (ret < 0) {
-		printf("Error in reading the fuel gauge control register\n");
+		debug("Error in reading the fuel gauge control register\n");
 		return ret;
 	}
 
@@ -177,7 +177,7 @@ static int calc_capacity()
 	/* get remaining battery capacity from fuel gauge */
 	ret = read_pmu_reg(SOC_REG, &capacity);
 	if (ret < 0) {
-		printf("Error in reading the control register\n");
+		debug("Error in reading the control register\n");
 		return ret;
 	}
 	
@@ -206,7 +206,7 @@ static int calc_capacity()
         else if(vol < 4197)
             temp = 99;
         else temp = 100;
-        printf("capacity reg is 0, capacity calc from vol = %d, vol = %d \n",temp,vol);
+        debug("capacity reg is 0, capacity calc from vol = %d, vol = %d \n",temp,vol);
     }else{
         temp = capacity * 100 * 100 / (10000 - nt);
     }
@@ -235,13 +235,13 @@ int pmu_get_voltage()
 	vol+=(vol_tmp1&0xF)|((vol_tmp2&0xFF)<<4);
 	
 	if(PMU_DEBUG)
-		printf("voltage_l=%x,voltage_h=%x,voltage=%lx \n",voltage_l,voltage_h,vol/i);
+		debug("voltage_l=%x,voltage_h=%x,voltage=%lx \n",voltage_l,voltage_h,vol/i);
 	}
 	vol=vol/10;
 	vol=vol*5000/4095;
 	
 	if(PMU_DEBUG)
-	printf("the voltage of battery is %d mV\n",vol);
+		debug("the voltage of battery is %d mV\n",vol);
 	return vol;
 }
 
@@ -267,6 +267,6 @@ int get_power_bat_status(struct battery *batt_status)
     batt_status->voltage_uV = pmu_get_voltage();
     
     batt_status->state_of_chrg = state_of_chrg;
-    printf("%s capacity = %d, voltage_uV = %d,state_of_chrg=%d\n",__func__,batt_status->capacity,batt_status->voltage_uV,batt_status->state_of_chrg  );
+    debug("%s capacity = %d, voltage_uV = %d,state_of_chrg=%d\n",__func__,batt_status->capacity,batt_status->voltage_uV,batt_status->state_of_chrg  );
 	return 0;
 }

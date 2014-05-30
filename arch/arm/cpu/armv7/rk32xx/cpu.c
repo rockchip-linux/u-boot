@@ -56,11 +56,11 @@ int print_cpuinfo(void)
 	rkclk_get_pll();
 
 	printf("CPU:\t\tRK32xx\n");
-	printf("arm pll:\t%d\n", rkclk_get_arm_pll());
-	printf("general pll:\t%d\n", rkclk_get_general_pll());
-	printf("codec pll:\t%d\n", rkclk_get_codec_pll());
-	printf("ddr pll:\t%d\n", rkclk_get_ddr_pll());
-	printf("new pll:\t%d\n", rkclk_get_new_pll());
+	printf("apll:\t%d\n", rkclk_get_arm_pll());
+	printf("gpll:\t%d\n", rkclk_get_general_pll());
+	printf("cpll:\t%d\n", rkclk_get_codec_pll());
+	debug("dpll:\t%d\n", rkclk_get_ddr_pll());
+	debug("npll:\t%d\n", rkclk_get_new_pll());
 
 	return 0;
 }

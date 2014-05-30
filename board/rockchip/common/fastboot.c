@@ -173,7 +173,6 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 				frt = FASTBOOT_REBOOT_NORMAL;
 				break;
 			case BOOT_LOADER:
-				//startRockusb();
 				do_rockusb(NULL, 0, 0, NULL);
 				break;
 			case BOOT_FASTBOOT:
@@ -206,14 +205,13 @@ int board_fbt_key_pressed(void)
 	checkKey((uint32 *)&boot_rockusb, (uint32 *)&boot_recovery, (uint32 *)&boot_fastboot);
 	printf("vbus = %d\n", vbus);
 	if(boot_recovery && (vbus==0)) {
-		printf("%s: recovery key pressed.\n",__func__);
+		printf("recovery key pressed.\n");
 		frt = FASTBOOT_REBOOT_RECOVERY;
 	} else if (boot_rockusb && (vbus!=0)) {
-		printf("%s: rockusb key pressed.\n",__func__);
-		//    startRockusb();
+		printf("rockusb key pressed.\n");
 		do_rockusb(NULL, 0, 0, NULL);
 	} else if(boot_fastboot && (vbus!=0)){
-		printf("%s: fastboot key pressed.\n",__func__);
+		printf("fastboot key pressed.\n");
 		frt = FASTBOOT_REBOOT_FASTBOOT;
 	}
 
@@ -274,7 +272,6 @@ void board_fbt_boot_failed(const char* boot)
 	}  
 #endif
 	printf("try to start rockusb\n");
-	//startRockusb();
 	do_rockusb(NULL, 0, 0, NULL);
 }
 
@@ -293,7 +290,7 @@ int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition)
 		cmd_mtd = &(gBootInfo.cmd_mtd);
 		for(i = 0;i < cmd_mtd->num_parts;i++) {
 			if (i >= max_partition) {
-				printf("Failed to load partition table, too much partition:%d(%d)\n",
+				printf("Failed! Too much partition: %d(%d)\n",
 						cmd_mtd->num_parts, max_partition);
 				goto end;
 			}
@@ -303,7 +300,7 @@ int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition)
 			ptable[i].size = cmd_mtd->parts[i].size;
 			ptable[i].blksz = RK_BLK_SIZE;
 			snprintf((char*)ptable[i].type, sizeof(ptable[i].type), "%s", "raw");
-#if 1
+#if 0
 			printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
 				cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
 				cmd_mtd->parts[i].size);

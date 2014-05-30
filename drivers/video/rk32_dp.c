@@ -107,7 +107,7 @@ static int rk32_edp_detect_hpd(struct rk32_edp *edp)
 	while (rk32_edp_get_plug_in_status(edp) != 0) {
 		timeout_loop++;
 		if (DP_TIMEOUT_LOOP_CNT < timeout_loop) {
-			printf( "failed to get hpd plug status\n");
+			debug( "failed to get hpd plug status\n");
 			return -ETIMEDOUT;
 		}
 		udelay(10);
@@ -135,23 +135,23 @@ static int rk32_edp_read_edid(struct rk32_edp *edp)
 	retval = rk32_edp_read_byte_from_i2c(edp, EDID_ADDR, EDID_EXTENSION_FLAG,
 						&extend_block);
 	if (retval < 0) {
-		printf( "EDID extension flag failed!\n");
+		debug( "EDID extension flag failed!\n");
 		return -EIO;
 	}
 
 	if (extend_block > 0) {
-		printf( "EDID data includes a single extension!\n");
+		debug( "EDID data includes a single extension!\n");
 
 		/* Read EDID data */
 		retval = rk32_edp_read_bytes_from_i2c(edp, EDID_ADDR, EDID_HEADER,
 						EDID_LENGTH, &edid[EDID_HEADER]);
 		if (retval != 0) {
-			printf( "EDID Read failed!\n");
+			debug( "EDID Read failed!\n");
 			return -EIO;
 		}
 		sum = edp_calc_edid_check_sum(edid);
 		if (sum != 0) {
-			printf( "EDID bad checksum!\n");
+			debug( "EDID bad checksum!\n");
 			return 0;
 		}
 
@@ -159,19 +159,19 @@ static int rk32_edp_read_edid(struct rk32_edp *edp)
 		retval = rk32_edp_read_bytes_from_i2c(edp, EDID_ADDR, EDID_LENGTH,
 						EDID_LENGTH, &edid[EDID_LENGTH]);
 		if (retval != 0) {
-			printf( "EDID Read failed!\n");
+			debug( "EDID Read failed!\n");
 			return -EIO;
 		}
 		sum = edp_calc_edid_check_sum(&edid[EDID_LENGTH]);
 		if (sum != 0) {
-			printf( "EDID bad checksum!\n");
+			debug( "EDID bad checksum!\n");
 			return 0;
 		}
 
 		retval = rk32_edp_read_byte_from_dpcd(edp, DPCD_TEST_REQUEST,
 					&test_vector);
 		if (retval < 0) {
-			printf( "DPCD EDID Read failed!\n");
+			debug( "DPCD EDID Read failed!\n");
 			return retval;
 		}
 
@@ -180,37 +180,37 @@ static int rk32_edp_read_edid(struct rk32_edp *edp)
 					DPCD_TEST_EDID_CHECKSUM,
 					edid[EDID_LENGTH + EDID_CHECKSUM]);
 			if (retval < 0) {
-				printf( "DPCD EDID Write failed!\n");
+				debug( "DPCD EDID Write failed!\n");
 				return retval;
 			}
 			retval = rk32_edp_write_byte_to_dpcd(edp,
 					DPCD_TEST_RESPONSE,
 					DPCD_TEST_EDID_CHECKSUM_WRITE);
 			if (retval < 0) {
-				printf( "DPCD EDID checksum failed!\n");
+				debug( "DPCD EDID checksum failed!\n");
 				return retval;
 			}
 		}
 	} else {
-		printf( "EDID data does not include any extensions.\n");
+		debug( "EDID data does not include any extensions.\n");
 
 		/* Read EDID data */
 		retval = rk32_edp_read_bytes_from_i2c(edp, EDID_ADDR, EDID_HEADER,
 						EDID_LENGTH, &edid[EDID_HEADER]);
 		if (retval != 0) {
-			printf( "EDID Read failed!\n");
+			debug( "EDID Read failed!\n");
 			return -EIO;
 		}
 		sum = edp_calc_edid_check_sum(edid);
 		if (sum != 0) {
-			printf( "EDID bad checksum!\n");
+			debug( "EDID bad checksum!\n");
 			return 0;
 		}
 
 		retval = rk32_edp_read_byte_from_dpcd(edp,DPCD_TEST_REQUEST,
 						&test_vector);
 		if (retval < 0) {
-			printf( "DPCD EDID Read failed!\n");
+			debug( "DPCD EDID Read failed!\n");
 			return retval;
 		}
 
@@ -219,14 +219,14 @@ static int rk32_edp_read_edid(struct rk32_edp *edp)
 					DPCD_TEST_EDID_CHECKSUM,
 					edid[EDID_CHECKSUM]);
 			if (retval < 0) {
-				printf( "DPCD EDID Write failed!\n");
+				debug( "DPCD EDID Write failed!\n");
 				return retval;
 			}
 			retval = rk32_edp_write_byte_to_dpcd(edp,
 					DPCD_TEST_RESPONSE,
 					DPCD_TEST_EDID_CHECKSUM_WRITE);
 			if (retval < 0) {
-				printf( "DPCD EDID checksum failed!\n");
+				debug( "DPCD EDID checksum failed!\n");
 				return retval;
 			}
 		}
@@ -427,7 +427,7 @@ static int rk32_edp_link_start(struct rk32_edp *edp)
 	retval = rk32_edp_write_byte_to_dpcd(edp, DPCD_SINK_POWER_STATE,
 				DPCD_SET_POWER_STATE_D0);
 	if (retval < 0) {
-		printf( "failed to set sink device to D0!\n");
+		debug( "failed to set sink device to D0!\n");
 		return retval;
 	}
 
@@ -441,7 +441,7 @@ static int rk32_edp_link_start(struct rk32_edp *edp)
 	retval = rk32_edp_write_bytes_to_dpcd(edp, DPCD_LINK_BW_SET,
 					2, buf);
 	if (retval < 0) {
-		printf( "failed to set bandwidth and lane count!\n");
+		debug( "failed to set bandwidth and lane count!\n");
 		return retval;
 	}
 
@@ -459,7 +459,7 @@ static int rk32_edp_link_start(struct rk32_edp *edp)
 			DPCD_SCRAMBLING_DISABLED |
 			DPCD_TRAINING_PATTERN_1);
 	if (retval < 0) {
-		printf( "failed to set training pattern 1!\n");
+		debug( "failed to set training pattern 1!\n");
 		return retval;
 	}
 
@@ -470,7 +470,7 @@ static int rk32_edp_link_start(struct rk32_edp *edp)
 			DPCD_TRAINING_LANE0_SET,
 			lane_count, buf);
 	if (retval < 0) {
-		printf( "failed to set training lane!\n");
+		debug( "failed to set training lane!\n");
 		return retval;
 	}
 
@@ -609,7 +609,7 @@ static int rk32_edp_process_clock_recovery(struct rk32_edp *edp)
 			DPCD_LANE0_1_STATUS,
 			2, link_status);
 	if (retval < 0) {
-		printf( "failed to read lane status!\n");
+		debug( "failed to read lane status!\n");
 		return retval;
 	}
 
@@ -622,7 +622,7 @@ static int rk32_edp_process_clock_recovery(struct rk32_edp *edp)
 					DPCD_ADJUST_REQUEST_LANE0_1,
 					2, adjust_request);
 			if (retval < 0) {
-				printf( "failed to read adjust request!\n");
+				debug( "failed to read adjust request!\n");
 				return retval;
 			}
 
@@ -650,7 +650,7 @@ static int rk32_edp_process_clock_recovery(struct rk32_edp *edp)
 				DPCD_SCRAMBLING_DISABLED |
 				DPCD_TRAINING_PATTERN_2);
 		if (retval < 0) {
-			printf( "failed to set training pattern 2!\n");
+			debug( "failed to set training pattern 2!\n");
 			return retval;
 		}
 
@@ -659,11 +659,11 @@ static int rk32_edp_process_clock_recovery(struct rk32_edp *edp)
 				lane_count,
 				edp->link_train.training_lane);
 		if (retval < 0) {
-			printf( "failed to set training lane!\n");
+			debug( "failed to set training lane!\n");
 			return retval;
 		}
 
-		printf( "Link Training Clock Recovery success\n");
+		debug( "Link Training Clock Recovery success\n");
 		edp->link_train.lt_state = LT_EQ_TRAINING;
 	} else {
 		for (lane = 0; lane < lane_count; lane++) {
@@ -673,7 +673,7 @@ static int rk32_edp_process_clock_recovery(struct rk32_edp *edp)
 					DPCD_ADJUST_REQUEST_LANE0_1,
 					2, adjust_request);
 			if (retval < 0) {
-				printf( "failed to read adjust request!\n");
+				debug( "failed to read adjust request!\n");
 				return retval;
 			}
 
@@ -684,7 +684,7 @@ static int rk32_edp_process_clock_recovery(struct rk32_edp *edp)
 
 			if (voltage_swing == VOLTAGE_LEVEL_3 ||
 			    pre_emphasis == PRE_EMPHASIS_LEVEL_3) {
-				printf( "voltage or pre emphasis reached max level\n");
+				debug( "voltage or pre emphasis reached max level\n");
 				goto reduce_link_rate;
 			}
 
@@ -694,7 +694,7 @@ static int rk32_edp_process_clock_recovery(struct rk32_edp *edp)
 					pre_emphasis)) {
 				edp->link_train.cr_loop[lane]++;
 				if (edp->link_train.cr_loop[lane] == MAX_CR_LOOP) {
-					printf( "CR Max loop\n");
+					debug( "CR Max loop\n");
 					goto reduce_link_rate;
 				}
 			}
@@ -718,7 +718,7 @@ static int rk32_edp_process_clock_recovery(struct rk32_edp *edp)
 				lane_count,
 				edp->link_train.training_lane);
 		if (retval < 0) {
-			printf( "failed to set training lane!\n");
+			debug( "failed to set training lane!\n");
 			return retval;
 		}
 	}
@@ -752,7 +752,7 @@ static int rk32_edp_process_equalizer_training(struct rk32_edp *edp)
 			DPCD_LANE0_1_STATUS,
 			2, link_status);
 	if (retval < 0) {
-		printf( "failed to read lane status!\n");
+		debug( "failed to read lane status!\n");
 		return retval;
 	}
 
@@ -764,7 +764,7 @@ static int rk32_edp_process_equalizer_training(struct rk32_edp *edp)
 				DPCD_LANE_ALIGN_STATUS_UPDATED,
 				&link_align[2]);
 		if (retval < 0) {
-			printf( "failed to read lane aligne status!\n");
+			debug( "failed to read lane aligne status!\n");
 			return retval;
 		}
 
@@ -773,7 +773,7 @@ static int rk32_edp_process_equalizer_training(struct rk32_edp *edp)
 					DPCD_ADJUST_REQUEST_LANE0_1,
 					2, adjust_request);
 			if (retval < 0) {
-				printf( "failed to read adjust request!\n");
+				debug( "failed to read adjust request!\n");
 				return retval;
 			}
 
@@ -800,17 +800,15 @@ static int rk32_edp_process_equalizer_training(struct rk32_edp *edp)
 				return retval;
 			}
 
-			printf( "Link Training success!\n");
+			debug( "Link Training success!\n");
 
 			rk32_edp_get_link_bandwidth(edp, &reg);
 			edp->link_train.link_rate = reg;
-			printf( "final bandwidth = %.2x\n",
-				edp->link_train.link_rate);
+			debug( "final bandwidth = %.2x\n", edp->link_train.link_rate);
 
 			rk32_edp_get_lane_count(edp, &reg);
 			edp->link_train.lane_count = reg;
-			printf( "final lane count = %.2x\n",
-				edp->link_train.lane_count);
+			debug( "final lane count = %.2x\n", edp->link_train.lane_count);
 
 			edp->link_train.lt_state = FINISHED;
 		} else {
@@ -818,7 +816,7 @@ static int rk32_edp_process_equalizer_training(struct rk32_edp *edp)
 			edp->link_train.eq_loop++;
 
 			if (edp->link_train.eq_loop > MAX_EQ_LOOP) {
-				printf( "EQ Max loop\n");
+				debug( "EQ Max loop\n");
 				goto reduce_link_rate;
 			}
 
@@ -832,7 +830,7 @@ static int rk32_edp_process_equalizer_training(struct rk32_edp *edp)
 					lane_count,
 					edp->link_train.training_lane);
 			if (retval < 0) {
-				printf( "failed to set training lane!\n");
+				debug( "failed to set training lane!\n");
 				return retval;
 			}
 		}
@@ -898,14 +896,14 @@ static int rk32_edp_init_training(struct rk32_edp *edp)
 	
 	retval = rk32_edp_get_max_rx_bandwidth(edp, &edp->link_train.link_rate);
 	retval = rk32_edp_get_max_rx_lane_count(edp, &edp->link_train.lane_count);
-	printf( "max link rate:%d.%dGps max number of lanes:%d\n",
+	debug( "max link rate:%d.%dGps max number of lanes:%d\n",
 			edp->link_train.link_rate * 27/100,
 			edp->link_train.link_rate*27%100,
 			edp->link_train.lane_count);
 	
 	if ((edp->link_train.link_rate != LINK_RATE_1_62GBPS) &&
 	   (edp->link_train.link_rate != LINK_RATE_2_70GBPS)) {
-		printf( "Rx Max Link Rate is abnormal :%x !"
+		debug( "Rx Max Link Rate is abnormal :%x !"
 			"use default link rate:%d.%dGps\n",
 			edp->link_train.link_rate,
 			edp->video_info.link_rate*27/100,
@@ -914,7 +912,7 @@ static int rk32_edp_init_training(struct rk32_edp *edp)
 	}
 
 	if (edp->link_train.lane_count == 0) {
-		printf( "Rx Max Lane count is abnormal :%x !"
+		debug( "Rx Max Lane count is abnormal :%x !"
 			"use default lanes:%d\n",
 			edp->link_train.lane_count,
 			edp->video_info.lane_count);
@@ -1019,7 +1017,7 @@ static int rk32_edp_config_video(struct rk32_edp *edp,
 			video_info->ycbcr_coeff);
 
 	if (rk32_edp_get_pll_lock_status(edp) == DP_PLL_UNLOCKED) {
-		printf( "PLL is not locked yet.\n");
+		debug( "PLL is not locked yet.\n");
 		return -EINVAL;
 	}
 
@@ -1028,7 +1026,7 @@ static int rk32_edp_config_video(struct rk32_edp *edp,
 		if (rk32_edp_is_slave_video_stream_clock_on(edp) == 0)
 			break;
 		if (DP_TIMEOUT_LOOP_CNT < timeout_loop) {
-			printf( "Timeout of video streamclk ok\n");
+			debug( "Timeout of video streamclk ok\n");
 			return -ETIMEDOUT;
 		}
 
@@ -1063,15 +1061,16 @@ static int rk32_edp_config_video(struct rk32_edp *edp,
 			done_count = 0;
 		}
 		if (DP_TIMEOUT_LOOP_CNT < timeout_loop) {
-			printf( "Timeout of video streamclk ok\n");
+			debug( "Timeout of video streamclk ok\n");
 			return -ETIMEDOUT;
 		}
 
 		udelay(1);
 	}
 
-	if (retval != 0)
-		printf( "Video stream is not detected!\n");
+	if (retval != 0) {
+		debug( "Video stream is not detected!\n");
+	}
 
 	return retval;
 }

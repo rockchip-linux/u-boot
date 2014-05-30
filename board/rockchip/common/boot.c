@@ -197,7 +197,7 @@ uint32 SecureBootCheck(void)
 		RkPrintf("no sys part.\n");
 		SecureBootEn = 0;
 	}
-	RkPrintf("SecureBootEn = %d %d\n", SecureBootEn, SecureBootLock);
+	printf("SecureBootEn = %d, SecureBootLock = %d\n", SecureBootEn, SecureBootLock);
 	SecureBootLock_backup = SecureBootLock;
 	return ret;
 }

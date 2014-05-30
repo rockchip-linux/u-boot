@@ -480,7 +480,7 @@ int CheckParam(PLoaderParam pParam)
 		crc = CRC_32CheckBuffer((unsigned char*)pParam->parameter, pParam->length+4);
 		if(!crc)
 		{
-			printf("E:Para CRC failed!\n");
+			printf("E: Para CRC failed!\n");
 			return -4;
 		}
 	}
