@@ -130,18 +130,82 @@
 // rk nand api function code address 
 #define CONFIG_RKNAND_API_ADDR		(RAM_PHY_START + 0x3000000)//48M
 
+#define CONFIG_KERNEL_LOAD_ADDR 	SZ_32M
 
 /* input clock of PLL: has 24MHz input clock at rk30xx */
 #define CONFIG_SYS_CLK_FREQ_CRYSTAL	24000000
 #define CONFIG_SYS_CLK_FREQ		CONFIG_SYS_CLK_FREQ_CRYSTAL
 #define CONFIG_SYS_HZ			1000	/* decrementer freq: 1 ms ticks */
 
+/*
+ * Supported U-boot commands
+ */
 /* Declare no flash (NOR/SPI) */
 #define CONFIG_SYS_NO_FLASH		1       /* It should define before config_cmd_default.h */
 
+/* Command definition */
+#include <config_cmd_default.h>
 
-#define CONFIG_CMD_CACHE	/* icache, dcache		 */
-#define CONFIG_CMD_REGINFO	/* Register dump		 */
+#undef CONFIG_GZIP
+#undef CONFIG_ZLIB
+#undef CONFIG_SOURCE
+#undef CONFIG_PARTITIONS
+
+/* config for cmd_bootm */
+#undef CONFIG_BOOTM_NETBSD
+#undef CONFIG_BOOTM_RTEMS
+#undef CONFIG_BOOTM_OSE
+#undef CONFIG_BOOTM_PLAN9
+#undef CONFIG_BOOTM_VXWORKS
+#undef CONFIG_LYNXKDI
+#undef CONFIG_INTEGRITY
+#undef CONFIG_CMD_ELF
+#undef CONFIG_CMD_BOOTD
+
+/* Disabled commands */
+#undef CONFIG_CMD_FPGA          	/* FPGA configuration Support   */
+#undef CONFIG_CMD_MISC
+#undef CONFIG_CMD_NET
+#undef CONFIG_CMD_NFS
+#undef CONFIG_CMD_XIMG
+
+#undef CONFIG_CMD_ITEST
+#undef CONFIG_CMD_SOURCE
+#undef CONFIG_CMD_BDI
+#undef CONFIG_CMD_CONSOLE
+#undef CONFIG_CMD_CACHE
+#undef CONFIG_CMD_MEMORY
+#undef CONFIG_CMD_ECHO
+#undef CONFIG_CMD_REGINFO
+#undef CONFIG_CMDLINE_EDITING
+#undef CONFIG_CMD_LOADB
+#undef CONFIG_CMD_LOADS
+#undef CONFIG_CMD_IMI
+#undef CONFIG_CMD_EDITENV
+#undef CONFIG_CMD_RUN
+#undef CONFIG_CMD_SETGETDCR
+
+#define CONFIG_CMD_BOOTI
+
+#define CONFIG_GENERIC_MMC
+#define CONFIG_CMD_READ
+#define CONFIG_MMC
+#define CONFIG_CMD_MMC
+
+#define CONFIG_SYS_MMC_ENV_DEV 0
+
+
+#define CONFIG_LMB
+#define CONFIG_OF_LIBFDT
+#define CONFIG_OF_CONTROL
+#define CONFIG_SYS_BOOT_RAMDISK_HIGH
+
+
+#define CONFIG_RESOURCE_PARTITION
+#define CONFIG_QUICK_CHECKSUM
+
+//allow to flash loader when check sign failed. should undef this in release version.
+#define CONFIG_ENABLE_ERASEKEY
 
 
 // mod it to enable console commands.
@@ -218,8 +282,10 @@
 //#define CONFIG_SILENT_CONSOLE 1
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
+
 /* rk mtd block size */
 #define RK_BLK_SIZE             512
+
 
 /* rockusb */
 #define CONFIG_CMD_ROCKUSB
@@ -273,11 +339,13 @@
 /* pm management */
 #define CONFIG_PM_SUBSYSTEM
 
+
 #define CONFIG_USB_DWC_HCD
 //#define CONFIG_USB_EHCI
 //#define CONFIG_USB_EHCI_RK
 #define CONFIG_CMD_USB
 #define CONFIG_USB_STORAGE
+
 
 /* PL330 DMA */
 //#define CONFIG_PL330_DMA //enable pl330 dma
@@ -344,47 +412,6 @@
 //#define CONFIG_BATTERY_BQ27541
 //#define CONFIG_BATTERY_RICOH619
 #define CONFIG_BATTERY_RK_SAMPLE  //battery driver
-
-
-#if 0
-#undef CONFIG_GZIP
-#undef CONFIG_ZLIB
-#undef CONFIG_CMD_BOOTD
-#undef CONFIG_CMD_ITEST
-#undef CONFIG_SOURCE
-#undef CONFIG_CMD_SOURCE
-#undef CONFIG_CMD_BDI
-#undef CONFIG_CMD_CONSOLE
-#undef CONFIG_CMD_CACHE
-#undef CONFIG_CMD_MEMORY
-#undef CONFIG_PARTITIONS
-#undef CONFIG_CMD_ECHO
-#undef CONFIG_CMD_REGINFO
-#undef CONFIG_CMDLINE_EDITING
-#endif
-#define CONFIG_LMB
-#define CONFIG_OF_LIBFDT
-#define CONFIG_OF_CONTROL
-#define CONFIG_SYS_BOOT_RAMDISK_HIGH
-
-#define CONFIG_RESOURCE_PARTITION
-
-#define CONFIG_QUICK_CHECKSUM
-
-
-//allow to flash loader when check sign failed. should undef this in release version.
-#define CONFIG_ENABLE_ERASEKEY
-
-
-#define CONFIG_GENERIC_MMC
-#define CONFIG_CMD_READ
-#define CONFIG_MMC
-//#define CONFIG_PARTITIONS
-#define CONFIG_CMD_MMC
-#define CONFIG_SYS_MMC_ENV_DEV 0
-
-#define CONFIG_CMD_BOOTI
-#define CONFIG_KERNEL_LOAD_ADDR 		SZ_32M
 
 #endif /* __CONFIG_H */
 
