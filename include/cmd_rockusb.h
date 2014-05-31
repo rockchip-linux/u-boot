@@ -203,6 +203,17 @@ static struct _rkusb_config_desc rkusb_config_desc = {
         },
     },
 };
+
+static struct usb_bos_descriptor rkusb_bos_desc = {
+	.bLength = (sizeof (struct usb_bos_descriptor) - 3),
+	.bDescriptorType = USB_DESCRIPTOR_TYPE_BOS,
+	.wTotalLength = sizeof (struct usb_bos_descriptor),
+	.bNumDeviceCaps = 0x01,
+	.bCapHeaderLength = (sizeof (struct usb_bos_descriptor) - 5),
+	.bCapabilityType = USB_DT_DEVICE_CAPABILITY,
+	.bDevCapabilityType = 0
+};
+
 static struct usb_interface_descriptor interface_descriptors[NUM_INTERFACES];
 static struct usb_endpoint_descriptor *ep_descriptor_ptrs[NUM_ENDPOINTS];
 

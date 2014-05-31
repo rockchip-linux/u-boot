@@ -64,6 +64,7 @@ static void rkusb_init_instances(void)
 	device_instance->name = rockusb_name;
 	device_instance->device_state = STATE_INIT;
 	device_instance->device_descriptor = &device_descriptor;
+	device_instance->bos_descriptor = &rkusb_bos_desc;
 	device_instance->event = rkusb_event_handler;
 	device_instance->cdc_recv_setup = NULL;
 	device_instance->bus = bus_instance;

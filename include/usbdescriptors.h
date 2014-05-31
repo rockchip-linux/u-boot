@@ -228,6 +228,18 @@ struct usb_device_descriptor {
 	u8 bNumConfigurations;
 } __attribute__ ((packed));
 
+#if defined(CONFIG_ROCKCHIP)
+struct usb_bos_descriptor {
+	u8 bLength;
+	u8 bDescriptorType;
+	u16 wTotalLength;
+	u8 bNumDeviceCaps;
+	u8 bCapHeaderLength;
+	u8 bCapabilityType;
+	u8 bDevCapabilityType;
+} __attribute__ ((packed));
+#endif
+
 #if defined(CONFIG_USBD_HS)
 struct usb_qualifier_descriptor {
 	u8 bLength;
