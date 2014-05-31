@@ -7,6 +7,7 @@ static const char* PROG = NULL;
 static resource_ptn_header header;
 static bool just_print = false;
 char image_path[MAX_INDEX_ENTRY_PATH_LEN] = "\0";
+char root_path[MAX_INDEX_ENTRY_PATH_LEN] = "\0";
 
 static void version() {
     printf("%s (cjf@rock-chips.com)\t" VERSION "\n", PROG);
@@ -24,6 +25,7 @@ static void usage() {
     printf("\t" OPT_VERBOSE "\t\tDisplay more runtime informations.\n");
     printf("\t" OPT_HELP    "\t\t\tDisplay this information.\n");
     printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
+    printf("\t" OPT_ROOT "\t\tResources' root dir.\n");
 }
 
 static int pack_image(int file_num, const char** files);
@@ -79,6 +81,9 @@ int main(int argc, char** argv) {
         } else if (!memcmp(OPT_IMAGE, arg, strlen(OPT_IMAGE))) {
             snprintf(image_path, sizeof(image_path),
                     "%s", arg + strlen(OPT_IMAGE));
+        } else if (!memcmp(OPT_ROOT, arg, strlen(OPT_ROOT))) {
+            snprintf(root_path, sizeof(root_path),
+                    "%s", arg + strlen(OPT_ROOT));
         } else {
             LOGE("Unknown opt:%s", arg);
             usage();
@@ -401,7 +406,15 @@ static bool write_index_tbl(const int file_num, const char** files) {
         //switch for le.
         fix_entry(&entry);
         memset(entry.path, 0, sizeof(entry.path));
-        const char* path = fix_path(files[i]);
+        const char* path = files[i];
+		if (root_path[0]) {
+			if (!strncmp(path, root_path, strlen(root_path))) {
+				path += strlen(root_path);
+				if (path[0] == '/')
+					path++;
+			}
+		}
+		path = fix_path(path);
         if (!strcmp(files[i] + strlen(files[i]) - strlen(DTD_SUBFIX),
                     DTD_SUBFIX)) {
             if (!foundFdt) {

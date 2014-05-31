@@ -107,7 +107,7 @@ int test_load(int argc, char** argv) {
     int offset_block = 0;
     int blocks = 0;
     if (argc > 0) {
-        file_path = fix_path(argv[0]);
+        file_path = (const char*)fix_path(argv[0]);
         argc--, argv++;
     }
     if (argc > 0) {
