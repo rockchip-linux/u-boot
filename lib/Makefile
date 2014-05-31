@@ -23,7 +23,11 @@ obj-$(CONFIG_USB_TTY) += circbuf.o
 obj-y += crc7.o
 obj-y += crc8.o
 obj-y += crc16.o
+ifndef CONFIG_ROCKCHIP
 obj-$(CONFIG_OF_CONTROL) += fdtdec.o
+else
+obj-$(CONFIG_OF_LIBFDT) += fdtdec.o
+endif
 obj-$(CONFIG_TEST_FDTDEC) += fdtdec_test.o
 obj-$(CONFIG_GZIP) += gunzip.o
 obj-$(CONFIG_GZIP_COMPRESSED) += gzip.o

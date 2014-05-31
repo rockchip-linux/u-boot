@@ -37,7 +37,7 @@ static void lcd_panel_on(vidinfo_t *vid)
 }
 
 
-#ifdef CONFIG_OF_CONTROL
+#ifdef CONFIG_OF_LIBFDT
 int rk_fb_parse_dt(const void *blob)
 {
 	int node;
@@ -165,7 +165,8 @@ int rk_fb_parse_dt(const void *blob)
 
 	return 0;
 }
-#endif
+#endif /* CONFIG_OF_LIBFDT */
+
 int lcd_get_size(int *line_length)
 {
    // printf("rk %s\n",__func__);
@@ -177,7 +178,9 @@ void lcd_ctrl_init(void *lcdbase)
 	printf("%s [%d]\n",__FUNCTION__,__LINE__);
     /* initialize parameters which is specific to panel. */
 
+#ifdef CONFIG_OF_LIBFDT
     rk_fb_parse_dt(gd->fdt_blob);
+#endif
     init_panel_info(&panel_info);
     if (panel_info.enable_ldo)
         panel_info.enable_ldo(1);

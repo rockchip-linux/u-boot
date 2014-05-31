@@ -537,6 +537,7 @@ int rk_mipi_get_dsi_clk(void)
 EXPORT_SYMBOL(rk_mipi_get_dsi_clk);
 #endif
 #ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_OF_LIBFDT
 static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 {
     struct mipi_dcs_cmd_ctr_list  *dcs_cmd;
@@ -701,27 +702,32 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 
     return 0; 
 }
+#endif /* CONFIG_OF_LIBFDT */
+
 
 int rk_mipi_screen_probe(void)
 {
-    int ret = 0;
-    gmipi_screen = calloc(1, sizeof(struct mipi_screen));
+	int ret = 0;
+
+	gmipi_screen = calloc(1, sizeof(struct mipi_screen));
 	if(!gmipi_screen) {
 		printf("request struct screen fail!\n");
 		return -ENOMEM;
 	}
-    ret = rk_mipi_screen_init_dt(gmipi_screen);
-    if(ret < 0){
-        printf(" rk_mipi_screen_init_dt fail!\n");
-        return -1;
-    }
-    
+#ifdef CONFIG_OF_LIBFDT
+	ret = rk_mipi_screen_init_dt(gmipi_screen);
+	if(ret < 0){
+		printf(" rk_mipi_screen_init_dt fail!\n");
+		return -1;
+	}
+#endif /* CONFIG_OF_LIBFDT */
+
 //    MIPI_SCREEN_DBG("---rk_mipi_screen_probe--end\n");
 
 	return 0;
 }
+#endif /* CONFIG_RK_3288_DSI_UBOOT */
 
-#endif
 #ifdef CONFIG_LCD_MIPI
 static int __init rk_mipi_screen_probe(struct platform_device *pdev)
 {

@@ -55,7 +55,7 @@ static int get_pclk_pwm(void)
 	return pclk_pwm;
 }
 
-
+#ifdef CONFIG_OF_LIBFDT
 static int rk_bl_parse_dt(const void *blob) 
 {
 	u32 data[3];
@@ -89,8 +89,8 @@ static int rk_bl_parse_dt(const void *blob)
 	bl.dft_brightness = fdtdec_get_int(blob, bl.node, "default-brightness-level", 48);
 
 	return 0;
-	
 }
+#endif /* CONFIG_OF_LIBFDT */
 
 
 int rk_pwm_config(int brightness)
@@ -102,8 +102,10 @@ int rk_pwm_config(int brightness)
 	int id = 0;
 	int duty_ns,period_ns;
 	if (!bl.node) {
+#ifdef CONFIG_OF_LIBFDT
 		rk_bl_parse_dt(gd->fdt_blob);
-        		rk_iomux_config(RK_PWM0_IOMUX+bl.id);
+#endif
+		rk_iomux_config(RK_PWM0_IOMUX+bl.id);
 		gpio_direction_output(bl.bl_en.gpio, bl.bl_en.flags);
 	}
 
