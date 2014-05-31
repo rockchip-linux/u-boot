@@ -25,7 +25,7 @@ static void usage() {
     printf("\t" OPT_VERBOSE "\t\tDisplay more runtime informations.\n");
     printf("\t" OPT_HELP    "\t\t\tDisplay this information.\n");
     printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
-    printf("\t" OPT_ROOT "\t\tResources' root dir.\n");
+    printf("\t" OPT_ROOT "path" "\t\tSpecify resources' root dir.\n");
 }
 
 static int pack_image(int file_num, const char** files);
