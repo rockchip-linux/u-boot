@@ -221,11 +221,6 @@ int board_mmc_init(bd_t *bis)
 #ifdef CONFIG_RK_I2C
 static void rk_pmic_i2c_init(void)
 {
-#ifdef CONFIG_POWER_ACT8846
-	i2c_set_bus_num(I2C_BUS_CH1);
-	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-#endif
-
 #ifdef CONFIG_RK616
 	i2c_set_bus_num(I2C_BUS_CH4);
 	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);

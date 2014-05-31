@@ -1,10 +1,11 @@
 #ifndef _PMIC_ACT8846_H_
 #define _PMIC_ACT8846_H_
 
-#define I2C_CH  I2C_BUS_CH1
+#define I2C_CH  I2C_BUS_CH0
 #define I2C_ADDRESS  0x5a
 #define I2C_REG_LEN  1
 #define I2C_VALUE_LEN 1
+#define ACT8846_I2C_SPEED	100000
 #define I2C_READ(addr,value) i2c_read(I2C_ADDRESS,addr,I2C_REG_LEN,value,I2C_VALUE_LEN);
 #define I2C_WRITE(addr,value) i2c_write(I2C_ADDRESS,addr,I2C_REG_LEN,value,I2C_VALUE_LEN);
 

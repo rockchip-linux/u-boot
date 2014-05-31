@@ -143,6 +143,38 @@ static struct act8846_reg_stable act8846_ldo[] = {
  };
 
 
+struct pmic_voltage pmic_vol[] = {
+	{"act_dcdc1", 1200000},
+	{"vdd_core" , 1000000},
+	{"vdd_cpu"  , 1000000},
+	{"act_dcdc4", 3000000},
+	{"act_ldo1" , 1000000},
+	{"act_ldo2" , 1200000},
+	{"act_ldo3" , 1800000},
+	{"act_ldo4" , 1800000},
+	{"act_ldo5" , 3300000},
+	{"act_ldo6" , 1000000},
+	{"act_ldo7" , 1800000},
+	{"act_ldo8" , 2800000},
+};
+
+
+int pmic_get_vol(char *name)
+{
+	int i =0, vol = 0;
+
+	for(i=0;i<ARRAY_SIZE(pmic_vol);i++) {
+		if(strcmp(pmic_vol[i].name, name) == 0) {
+			vol = pmic_vol[i].vol;
+			break;
+		}
+	}
+
+	return vol;
+}
+
+
+
 static int act8846_set_bits(int reg_addr,int mask,int val)
 {
 	int tmp = 0,ret =0;
@@ -155,24 +187,6 @@ static int act8846_set_bits(int reg_addr,int mask,int val)
 	return 0;	
 }
 
-
-/*
-for chack charger status in boot
-return 0, no charger
-return 1, charging
-*/
-int check_charge(void)
-{
-    int reg=0;
-    int ret = 0;
-/*
-		if(GetVbus()) { 	  //reboot charge
-			printf("In charging! \n");
-			ret = 1;
-		}
-*/ 
-    return ret;
-}
 
 
 
@@ -260,9 +274,31 @@ static int act8846_set_init()
 
 int pmic_init(unsigned char bus)
 {
+	int vol,reg_val;
+	gpio_direction_output(10,1); /*power hold*/
 	i2c_set_bus_num(I2C_CH);
-	act8846_set_init();
+	i2c_init (ACT8846_I2C_SPEED, 0);
+	//act8846_set_init();
+	vol = pmic_get_vol("act_ldo6");
 
+	reg_val = check_vol_stable(ldo_voltage_map,vol);
+
+	printf("pmu2: name : %s, vol: %d ,val: 0x%02x\r\n",act8846_ldo[5].name,vol,reg_val);
+	//vol
+	act8846_set_bits(act8846_ldo[1].reg_vol,LDO_VOL_MASK,reg_val);
+
+	//en
+	act8846_set_bits(act8846_ldo[1].reg_ctl,LDO_EN_MASK,LDO_EN_MASK);
+	vol = pmic_get_vol("act_ldo4");
+
+	reg_val = check_vol_stable(ldo_voltage_map,vol);
+
+	printf("pmu2: name : %s, vol: %d ,val: 0x%02x\r\n",act8846_ldo[3].name,vol,reg_val);
+	//vol
+	act8846_set_bits(act8846_ldo[7].reg_vol,LDO_VOL_MASK,reg_val);
+
+	//en
+	act8846_set_bits(act8846_ldo[7].reg_ctl,LDO_EN_MASK,LDO_EN_MASK);
 	return 0;
 }
 
