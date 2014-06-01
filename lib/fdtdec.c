@@ -493,17 +493,17 @@ int fdtdec_decode_gpios(const void *blob, int node, const char *prop_name,
 		return -FDT_ERR_BADLAYOUT;
 	}
  #ifdef CONFIG_ROCKCHIP
-    const struct fdt_property *prop1;
-    const u32 *reg;
-    prop1 = fdt_get_property(blob, 
-                             fdt_node_offset_by_phandle(blob, fdt32_to_cpu(cell[0])), 
-                             "reg", 
-                             0);
-    reg = (u32 *)prop1->data;
+	const struct fdt_property *prop1;
+	const u32 *reg;
+   
         for (i = 0; i < len; i++, cell += 3) {
-            gpio[i].gpio = fdt32_to_cpu(cell[1]) | fdt32_to_cpu(reg[0]);
-            gpio[i].flags = fdt32_to_cpu(cell[2]);
-            gpio[i].name = name;
+		prop1 = fdt_get_property(blob, 
+		             fdt_node_offset_by_phandle(blob, fdt32_to_cpu(cell[0])), 
+		             "reg", 0);
+		reg = (u32 *)prop1->data;
+		gpio[i].gpio = fdt32_to_cpu(cell[1]) | fdt32_to_cpu(reg[0]);
+		gpio[i].flags = fdt32_to_cpu(cell[2]);
+		gpio[i].name = name;
         }
  #else
 	/* Read out the GPIO data from the cells */
