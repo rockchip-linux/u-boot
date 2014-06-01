@@ -1,6 +1,11 @@
 #ifndef _PMIC_ACT8846_H_
 #define _PMIC_ACT8846_H_
 
+#include <power/pmic.h>
+
+#define COMPAT_ACTIVE_ACT8846  "act,act8846"
+#define ACT8846_NUM_REGULATORS 12
+
 #define I2C_CH  I2C_BUS_CH0
 #define I2C_ADDRESS  0x5a
 #define I2C_REG_LEN  1
@@ -53,10 +58,16 @@
 #define VOL_MIN_IDX 0x00
 #define VOL_MAX_IDX 0x3f
 
-struct  act8846_reg_stable {
+struct  act8846_reg_table {
 	char	*name;
-	int	reg_ctl;
-	int	reg_vol;
+	char	reg_ctl;
+	char	reg_vol;
+};
+
+struct pmic_act8846 {
+	struct pmic *pmic;
+	int node;	/*device tree node*/
+	struct fdt_gpio_state pwr_hold;
 };
 
 #endif

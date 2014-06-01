@@ -1,58 +1,38 @@
 /*
  *  Copyright (C) 2012 rockchips
  *  zyw < zyw@rock-chips.com >
- *  for sample
+ * yxj <yxj@rock-chips.com>
+ * 
  */
 
+/*#define DEBUG*/
 #include <common.h>
-#include <power/pmic.h>
-#include <i2c.h>
-#include <asm/arch/rk_i2c.h>
+#include <fdtdec.h>
 #include <errno.h>
-#include "pmic_act8846.h"
+#include <power/act8846_pmic.h>
+#include <asm/arch/rkplat.h>
 
-const static int buck_set_vol_base_addr[] = {
-	act8846_BUCK1_SET_VOL_BASE,
-	act8846_BUCK2_SET_VOL_BASE,
-	act8846_BUCK3_SET_VOL_BASE,
-	act8846_BUCK4_SET_VOL_BASE,
+DECLARE_GLOBAL_DATA_PTR;
+
+struct pmic_act8846 act8846;
+
+static struct fdt_regulator_match act8846_reg_matches[] = {
+	{ .prop = "act_dcdc1" ,.min_uV = 1200000, .max_uV = 1200000, .boot_on =1},
+	{ .prop = "act_dcdc2" ,.min_uV = 3300000, .max_uV = 3300000, .boot_on = 1},
+	{ .prop = "act_dcdc3", .min_uV = 700000, .max_uV = 1500000, .boot_on = 1},
+	{ .prop = "act_dcdc4", .min_uV = 2000000, .max_uV = 2000000, .boot_on = 1},
+	{ .prop = "act_ldo1", .min_uV = 3300000, .max_uV = 3300000, .boot_on = 1 },
+	{ .prop = "act_ldo2", .min_uV = 1000000, .max_uV = 1000000, .boot_on = 1 },
+	{ .prop = "act_ldo3", .min_uV = 3300000, .max_uV = 3300000, .boot_on = 1 },
+	{ .prop = "act_ldo4", .min_uV = 3300000, .max_uV = 3300000, .boot_on = 1 },
+	{ .prop = "act_ldo5", .min_uV = 3300000, .max_uV = 3300000, .boot_on = 1 },
+	{ .prop = "act_ldo6", .min_uV = 1000000, .max_uV = 1000000, .boot_on = 1 },
+	{ .prop = "act_ldo7", .min_uV = 1800000, .max_uV = 1800000, .boot_on = 1 },
+	{ .prop = "act_ldo8", .min_uV = 1800000, .max_uV = 1800000, .boot_on = 1 },
 };
-const static int buck_contr_base_addr[] = {
-	act8846_BUCK1_CONTR_BASE,
- 	act8846_BUCK2_CONTR_BASE,
- 	act8846_BUCK3_CONTR_BASE,
- 	act8846_BUCK4_CONTR_BASE,
-};
-#define act8846_BUCK_SET_VOL_REG(x) (buck_set_vol_base_addr[x])
-#define act8846_BUCK_CONTR_REG(x) (buck_contr_base_addr[x])
 
 
-const static int ldo_set_vol_base_addr[] = {
-	act8846_LDO1_SET_VOL_BASE,
-	act8846_LDO2_SET_VOL_BASE,
-	act8846_LDO3_SET_VOL_BASE,
-	act8846_LDO4_SET_VOL_BASE, 
-	act8846_LDO5_SET_VOL_BASE, 
-	act8846_LDO6_SET_VOL_BASE, 
-	act8846_LDO7_SET_VOL_BASE, 
-	act8846_LDO8_SET_VOL_BASE, 
-//	act8846_LDO9_SET_VOL_BASE, 
-};
-const static int ldo_contr_base_addr[] = {
-	act8846_LDO1_CONTR_BASE,
-	act8846_LDO2_CONTR_BASE,
-	act8846_LDO3_CONTR_BASE,
-	act8846_LDO4_CONTR_BASE,
-	act8846_LDO5_CONTR_BASE,
-	act8846_LDO6_CONTR_BASE,
-	act8846_LDO7_CONTR_BASE,
-	act8846_LDO8_CONTR_BASE,
-//	act8846_LDO9_CONTR_BASE,
-};
-#define act8846_LDO_SET_VOL_REG(x) (ldo_set_vol_base_addr[x])
-#define act8846_LDO_CONTR_REG(x) (ldo_contr_base_addr[x])
-
-const static int buck_voltage_map[] = {
+const static int voltage_map[] = {
 	 600, 625, 650, 675, 700, 725, 750, 775,
 	 800, 825, 850, 875, 900, 925, 950, 975,
 	 1000, 1025, 1050, 1075, 1100, 1125, 1150,
@@ -64,31 +44,20 @@ const static int buck_voltage_map[] = {
 	 3300, 3400, 3500, 3600, 3700, 3800, 3900,
 };
 
-const static int ldo_voltage_map[] = {
-	 600, 625, 650, 675, 700, 725, 750, 775,
-	 800, 825, 850, 875, 900, 925, 950, 975,
-	 1000, 1025, 1050, 1075, 1100, 1125, 1150,
-	 1175, 1200, 1250, 1300, 1350, 1400, 1450,
-	 1500, 1550, 1600, 1650, 1700, 1750, 1800, 
-	 1850, 1900, 1950, 2000, 2050, 2100, 2150, 
-	 2200, 2250, 2300, 2350, 2400, 2500, 2600, 
-	 2700, 2800, 2850, 2900, 3000, 3100, 3200,
-	 3300, 3400, 3500, 3600, 3700, 3800, 3900,
-};
 
-static struct act8846_reg_stable act8846_dcdc[] = {
+static struct act8846_reg_table act8846_regulators[] = {
 	{
 		.name		= "act_dcdc1",   //ddr
 		.reg_ctl	= act8846_BUCK1_CONTR_BASE,
 		.reg_vol	= act8846_BUCK1_SET_VOL_BASE,
 	},
 	{
-		.name		= "vdd_core",    //logic
+		.name		= "act_dcdc2",    //logic
 		.reg_ctl	= act8846_BUCK2_CONTR_BASE,
 		.reg_vol	= act8846_BUCK2_SET_VOL_BASE,
 	},
 	{
-		.name		= "vdd_cpu",   //arm
+		.name		= "act_dcdc3",   //arm
 		.reg_ctl	= act8846_BUCK3_CONTR_BASE,
 		.reg_vol	= act8846_BUCK3_SET_VOL_BASE,
 	},
@@ -97,9 +66,6 @@ static struct act8846_reg_stable act8846_dcdc[] = {
 		.reg_ctl	= act8846_BUCK4_CONTR_BASE,
 		.reg_vol	= act8846_BUCK4_SET_VOL_BASE,
 	},
-}; 
-
-static struct act8846_reg_stable act8846_ldo[] = {
 	{
 		.name		= "act_ldo1",   //vdd11
 		.reg_ctl	= act8846_LDO1_CONTR_BASE,
@@ -143,41 +109,11 @@ static struct act8846_reg_stable act8846_ldo[] = {
  };
 
 
-struct pmic_voltage pmic_vol[] = {
-	{"act_dcdc1", 1200000},
-	{"vdd_core" , 1000000},
-	{"vdd_cpu"  , 1000000},
-	{"act_dcdc4", 3000000},
-	{"act_ldo1" , 1000000},
-	{"act_ldo2" , 1200000},
-	{"act_ldo3" , 1800000},
-	{"act_ldo4" , 1800000},
-	{"act_ldo5" , 3300000},
-	{"act_ldo6" , 1000000},
-	{"act_ldo7" , 1800000},
-	{"act_ldo8" , 2800000},
-};
 
-
-int pmic_get_vol(char *name)
+static int act8846_set_bits(uint reg_addr, uchar  mask, uchar val)
 {
-	int i =0, vol = 0;
-
-	for(i=0;i<ARRAY_SIZE(pmic_vol);i++) {
-		if(strcmp(pmic_vol[i].name, name) == 0) {
-			vol = pmic_vol[i].vol;
-			break;
-		}
-	}
-
-	return vol;
-}
-
-
-
-static int act8846_set_bits(int reg_addr,int mask,int val)
-{
-	int tmp = 0,ret =0;
+	uchar tmp = 0;
+	int ret =0;
 
 	ret = I2C_READ(reg_addr,&tmp);
 	if (ret == 0){
@@ -217,88 +153,86 @@ int pmic_charger_setting(int current)
 }
 
 
-static int check_vol_stable(int *vol_stable,int vol)
+static int check_volt_table(const int *volt_table,int volt)
 {
 	int i=0;
 
 	for(i=VOL_MIN_IDX;i<VOL_MAX_IDX;i++){
-		if(vol <= (vol_stable[i]*1000))
+		if(volt <= (volt_table[i]*1000))
 			return i;
 	}
 	return -1;
 }
 
-
-static int act8846_set_init()
+int act8846_regulator_set(void)
 {
-	int i=0,vol=0,reg_val=0;
-
-	for(i = 0; i < ARRAY_SIZE(act8846_dcdc); i++){
-		vol = pmic_get_vol(act8846_dcdc[i].name);
-		if(vol == 0)
-			continue;
-
-		reg_val = check_vol_stable(buck_voltage_map,vol);
-		if(reg_val == -1)
-			continue;
-
-		printf("pmu: name : %s, vol: %d ,val: %d\r\n",act8846_dcdc[i].name,vol,reg_val);
-
-		//vol
-		act8846_set_bits(act8846_dcdc[i].reg_vol,BUCK_VOL_MASK,reg_val);
-
-		//en
-		act8846_set_bits(act8846_dcdc[i].reg_ctl,BUCK_EN_MASK,BUCK_EN_MASK);
-	}
-	
-	for(i = 0; i < ARRAY_SIZE(act8846_ldo); i++){
-		vol = pmic_get_vol(act8846_ldo[i].name);
-		if(vol == 0)
-			continue;
-
-		reg_val = check_vol_stable(ldo_voltage_map,vol);
-		if(reg_val == -1)
-			continue;
-
-		printf("pmu2: name : %s, vol: %d ,val: %d\r\n",act8846_dcdc[i].name,vol,reg_val);
-		//vol
-		act8846_set_bits(act8846_ldo[i].reg_vol,LDO_VOL_MASK,reg_val);
-
-		//en
-		act8846_set_bits(act8846_ldo[i].reg_ctl,LDO_EN_MASK,LDO_EN_MASK);	
+	int i;
+	int volt;
+	uchar reg_val;
+	struct fdt_regulator_match *match;
+	struct act8846_reg_table *regulator;
+	for (i = 0; i < ACT8846_NUM_REGULATORS; i++) {
+		match = &act8846_reg_matches[i];
+		if (match->boot_on && (match->min_uV == match->max_uV)) {
+			volt = match->min_uV;
+			reg_val = check_volt_table(voltage_map, volt);
+			regulator = &act8846_regulators[i];
+			if ((volt == 0) || (reg_val == -1)) {
+				printf("invalid volt = %d or reg_val = %d\n", volt, reg_val);
+				continue;
+			}
+			act8846_set_bits(regulator->reg_vol,LDO_VOL_MASK,reg_val);
+			act8846_set_bits(regulator->reg_ctl,LDO_EN_MASK,LDO_EN_MASK);
+			debug("set %s--%s volt:%d\n", match->prop, match->name, volt);
+		}
 	}
 
 	return 0;
 }
 
+int act8846_parse_dt(const void* blob)
+{
+	int node, parent, nd;
+	u32 i2c_bus_addr;
+	struct fdt_gpio_state gpios[2];
+	node = fdt_node_offset_by_compatible(blob,
+					0, COMPAT_ACTIVE_ACT8846);
+	if (node < 0) {
+		printf("can't find dts node for act8846\n");
+		return -ENODEV;
+	}
+
+	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
+	act8846.pwr_hold.gpio = rk_gpio_base_to_bank(gpios[1].gpio & RK_GPIO_BANK_MASK) | 
+				(gpios[1].gpio & RK_GPIO_PIN_MASK);
+	act8846.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
+	parent = fdt_parent_offset(blob, node);
+	if (parent < 0) {
+		debug("%s: Cannot find node parent\n", __func__);
+		return -1;
+	}
+	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
+	act8846.pmic->bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+	nd = fdt_first_subnode(blob,node);
+	fdt_regulator_match(blob, nd, act8846_reg_matches,
+					ACT8846_NUM_REGULATORS);
+	return 0;
+	 
+}
+
 
 int pmic_init(unsigned char bus)
 {
-	int vol,reg_val;
-	gpio_direction_output(10,1); /*power hold*/
-	i2c_set_bus_num(I2C_CH);
-	i2c_init (ACT8846_I2C_SPEED, 0);
-	//act8846_set_init();
-	vol = pmic_get_vol("act_ldo6");
+	if (!act8846.pmic) {
+		act8846.pmic = pmic_alloc();
+		act8846_parse_dt(gd->fdt_blob);
+	}
+	gpio_direction_output(act8846.pwr_hold.gpio,
+			act8846.pwr_hold.flags); /*power hold*/
+	i2c_set_bus_num(act8846.pmic->bus);
+	i2c_init(ACT8846_I2C_SPEED, 0);
+	act8846_regulator_set( );
 
-	reg_val = check_vol_stable(ldo_voltage_map,vol);
-
-	printf("pmu2: name : %s, vol: %d ,val: 0x%02x\r\n",act8846_ldo[5].name,vol,reg_val);
-	//vol
-	act8846_set_bits(act8846_ldo[1].reg_vol,LDO_VOL_MASK,reg_val);
-
-	//en
-	act8846_set_bits(act8846_ldo[1].reg_ctl,LDO_EN_MASK,LDO_EN_MASK);
-	vol = pmic_get_vol("act_ldo4");
-
-	reg_val = check_vol_stable(ldo_voltage_map,vol);
-
-	printf("pmu2: name : %s, vol: %d ,val: 0x%02x\r\n",act8846_ldo[3].name,vol,reg_val);
-	//vol
-	act8846_set_bits(act8846_ldo[7].reg_vol,LDO_VOL_MASK,reg_val);
-
-	//en
-	act8846_set_bits(act8846_ldo[7].reg_ctl,LDO_EN_MASK,LDO_EN_MASK);
 	return 0;
 }
 
