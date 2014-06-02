@@ -546,6 +546,7 @@ int i2c_set_bus_num(unsigned bus_idx)
  */
 int i2c_read(uchar chip, uint addr, int alen, uchar *buf, int len)
 {
+	int err;
 	struct rk_i2c *i2c = (struct rk_i2c *)rk_i2c_get_base();
 
 	if(i2c == NULL) {
@@ -556,7 +557,10 @@ int i2c_read(uchar chip, uint addr, int alen, uchar *buf, int len)
 		return -2;
 	}
 
-	return rk_i2c_read(i2c, chip, addr, alen, buf, len);
+	err = rk_i2c_read(i2c, chip, addr, alen, buf, len);
+	if (err < 0)
+		buf[0] = 0xff;  /*0xff as invalid number*/
+	return err;
 }
 
 
