@@ -38,7 +38,6 @@ int fdt_regulator_match(const void *blob, int node ,
 	for (nd = fdt_first_subnode(blob, node); nd >= 0;
 		 		nd = fdt_next_subnode(blob, nd)) { 
 		prop = fdt_getprop(blob,nd,"regulator-compatible", NULL);
-		
 		for (i = 0; i < num_matches; i++) {
 			struct fdt_regulator_match *match = &matches[i];
 			if (!strcmp(match->prop, prop))
@@ -47,5 +46,10 @@ int fdt_regulator_match(const void *blob, int node ,
 			
 	 }
 	return 0;
+}
+
+int fdt_get_regulator_node(const void * blob,int parent_nd)
+{
+	return fdt_subnode_offset_namelen(blob, parent_nd, "regulators", 10);
 }
 

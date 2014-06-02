@@ -7,7 +7,7 @@
 #include <common.h>
 #include <power/pmic.h>
 #include <power/battery.h>
-
+#include <power/pmic_ricoh619.h>
 #include <errno.h>
 
 #define PMU_DEBUG 0
@@ -15,39 +15,22 @@
 #define VOLTAGE_1                       0xEB
 #define VOLTAGE_0                       0xEC
 
-/* 619 Register information */
-/* bank 0 */
-#define PSWR_REG                        0x07
-/* for ADC */
-#define INTEN_REG               0x9D
-#define EN_ADCIR3_REG           0x8A
-#define ADCCNT3_REG             0x66
-#define VBATDATAH_REG           0x6A
-#define VBATDATAL_REG           0x6B
 
-#define CHGCTL1_REG             0xB3
-#define REGISET1_REG    0xB6
-#define REGISET2_REG    0xB7
-#define CHGISET_REG             0xB8
-#define BATSET2_REG             0xBB
-#define FG_CTRL_REG     0xE0
-#define	SOC_REG			0xE1
-#define	TEMP_1_REG		0xED
-#define	TEMP_2_REG		0xEE
 #define RICOH619_TAH_SEL2				5
 #define RICOH619_TAL_SEL2				6
 
-#define PMU_I2C_ADDRESS        CONFIG_SYS_I2C_SLAVE
+#define PMU_I2C_ADDRESS      0x32
 
 int state_of_chrg = 0;
 
+int volt_tab[6] = {3466, 3586, 3670, 3804, 4014, 4316};
 int pmu_debug(u8 reg)
 {
 	u8 reg_val;
 		reg_val=i2c_reg_read(PMU_I2C_ADDRESS,reg);
 		if(PMU_DEBUG)
 		{
-			debug("pmu_i2c_init read reg_addr 0x%x : 0x%x\n",reg , reg_val);
+			printf("pmu_i2c_init read reg_addr 0x%x : 0x%x\n",reg , reg_val);
 		}
 	return reg_val;
 }
@@ -61,12 +44,11 @@ int pmu_i2c_set(u8 addr, u8 reg,u8 reg_val)
 	return 0;
 }
 
-int pmu_i2c_init()
+int pmu_i2c_init(void)
 {
-	u8 reg_val,i;
-    i2c_set_bus_num(1);
-    i2c_init (PMU_I2C_ADDRESS, CONFIG_SYS_I2C_SLAVE);
-    i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
+	i2c_set_bus_num(CONFIG_PMIC_I2C_BUS);
+	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+	i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
 
 	pmu_i2c_set(PMU_I2C_ADDRESS, 0x66, 0x00);
 	pmu_i2c_set(PMU_I2C_ADDRESS, 0x64, 0x02);
@@ -102,13 +84,13 @@ static int get_check_fuel_gauge_reg(int Reg_h, int Reg_l, int enable_bit)
 	for (i = 0; i < 5 ; i++) {
 		ret = read_pmu_reg(Reg_h, &get_data_h);
 		if (ret < 0) {
-			debug("Error in reading the control register\n");
+			printf("Error in reading the control register\n");
 			return ret;
 		}
 
 		ret = read_pmu_reg(Reg_l, &get_data_l);
 		if (ret < 0) {
-			debug("Error in reading the control register\n");
+			printf("Error in reading the control register\n");
 			return ret;
 		}
 
@@ -124,7 +106,7 @@ static int get_check_fuel_gauge_reg(int Reg_h, int Reg_l, int enable_bit)
 	return current_data;
 }
 
-static int get_battery_temp()
+static int get_battery_temp(void)
 {
 	int ret = 0;
 
@@ -132,7 +114,7 @@ static int get_battery_temp()
 
 	ret = get_check_fuel_gauge_reg(TEMP_1_REG, TEMP_2_REG, 0x0fff);
 	if (ret < 0) {
-		debug("Error in reading the fuel gauge control register\n");
+		printf("Error in reading the fuel gauge control register\n");
 		return ret;
 	}
 
@@ -156,7 +138,34 @@ static int get_battery_temp()
 	return ret;
 }
 
-static int calc_capacity()
+// the unit of voltage value is mV .
+int pmu_get_voltage(void)
+{
+	u8 voltage_h,voltage_l;
+	int vol=0,vol_tmp1,vol_tmp2;
+	u8 i;
+	int ret=0;
+
+	for(i=1;i<11;i++)
+	{
+	ret=read_pmu_reg(VBATDATAL_REG,&voltage_l);
+	ret=read_pmu_reg(VBATDATAH_REG,&voltage_h);
+	vol_tmp1=voltage_l;
+	vol_tmp2=voltage_h;
+	vol+=(vol_tmp1&0xF)|((vol_tmp2&0xFF)<<4);
+	
+	if(PMU_DEBUG)
+		printf("voltage_l=%x,voltage_h=%x,voltage=%lx \n",voltage_l,voltage_h,vol/i);
+	}
+	vol=vol/10;
+	vol=vol*5000/4095;
+	
+	if(PMU_DEBUG)
+	printf("the voltage of battery is %d mV\n",vol);
+	return vol;
+}
+
+static int calc_capacity(void)
 {
 	uint8_t capacity;
 	int temp;
@@ -177,7 +186,7 @@ static int calc_capacity()
 	/* get remaining battery capacity from fuel gauge */
 	ret = read_pmu_reg(SOC_REG, &capacity);
 	if (ret < 0) {
-		debug("Error in reading the control register\n");
+		printf("Error in reading the control register\n");
 		return ret;
 	}
 	
@@ -206,7 +215,7 @@ static int calc_capacity()
         else if(vol < 4197)
             temp = 99;
         else temp = 100;
-        debug("capacity reg is 0, capacity calc from vol = %d, vol = %d \n",temp,vol);
+        printf("capacity reg is 0, capacity calc from vol = %d, vol = %d \n",temp,vol);
     }else{
         temp = capacity * 100 * 100 / (10000 - nt);
     }
@@ -217,33 +226,35 @@ static int calc_capacity()
 }
 
 
-
-// the unit of voltage value is mV .
-int pmu_get_voltage()
+int get_capcity(int volt)
 {
-	u8 voltage_h,voltage_l;
-	int vol=0,vol_tmp1,vol_tmp2;
-	u8 i;
-	int ret=0;
+	int i = 0;
+	int level0, level1;
+	int cap;
+	int diff;
+	int step = 100 / (ARRAY_SIZE(volt_tab) -1);
 
-	for(i=1;i<11;i++)
-	{
-	ret=read_pmu_reg(VBATDATAL_REG,&voltage_l);
-	ret=read_pmu_reg(VBATDATAH_REG,&voltage_h);
-	vol_tmp1=voltage_l;
-	vol_tmp2=voltage_h;
-	vol+=(vol_tmp1&0xF)|((vol_tmp2&0xFF)<<4);
-	
-	if(PMU_DEBUG)
-		debug("voltage_l=%x,voltage_h=%x,voltage=%lx \n",voltage_l,voltage_h,vol/i);
+	if (state_of_chrg == 1)
+		diff = 70;
+	else if (state_of_chrg == 2)
+		diff = 270;
+	for (i = 0 ; i < ARRAY_SIZE(volt_tab); i++) {
+		if (volt <= (volt_tab[i] + diff))
+			break;
 	}
-	vol=vol/10;
-	vol=vol*5000/4095;
+
+	if (i == 0) 
+		return 0;
 	
-	if(PMU_DEBUG)
-		debug("the voltage of battery is %d mV\n",vol);
-	return vol;
+	level0 = volt_tab[i -1] + diff; 
+	level1 = volt_tab[i] + diff;
+
+	cap = step * (i-1) + step *(volt - level0)/(level1 - level0);
+	/*printf("cap%d step:%d level0 %d level1 %d  diff %d\n",
+			cap, step, level0 ,level1, diff);*/
+	return cap;
 }
+
 
 /*
 get battery status, contain capacity, voltage, status
@@ -254,19 +265,21 @@ state_of_chrg: 0. no charger; 1. usb charging; 2. AC charging
 */
 int get_power_bat_status(struct battery *batt_status)
 {
-    u8 reg_val;
-    int ret=0;
+	u8 reg_val;
+	int ret=0;
     
-    if(!state_of_chrg)
-    {
-        state_of_chrg = dwc_otg_check_dpdm();
-        pmu_i2c_init();
-    }
-    batt_status->capacity = calc_capacity();
-
-    batt_status->voltage_uV = pmu_get_voltage();
-    
-    batt_status->state_of_chrg = state_of_chrg;
-    debug("%s capacity = %d, voltage_uV = %d,state_of_chrg=%d\n",__func__,batt_status->capacity,batt_status->voltage_uV,batt_status->state_of_chrg  );
+	if (!state_of_chrg) {
+		pmu_i2c_init();
+	}
+   	state_of_chrg = dwc_otg_check_dpdm();
+	//batt_status->capacity = calc_capacity();
+	batt_status->voltage_uV = pmu_get_voltage();
+	batt_status->capacity = get_capcity(batt_status->voltage_uV);
+	batt_status->state_of_chrg = state_of_chrg;
+	printf("%s capacity = %d, voltage_uV = %d,state_of_chrg=%d REGISET1_REG:0x%02x CHGISET:0x%02x\n",
+		__func__,batt_status->capacity,batt_status->voltage_uV,
+		batt_status->state_of_chrg,
+		i2c_reg_read(PMU_I2C_ADDRESS, REGISET1_REG),
+		i2c_reg_read(PMU_I2C_ADDRESS, CHGISET_REG));
 	return 0;
 }

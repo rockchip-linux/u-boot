@@ -132,7 +132,7 @@ set charge current
 1. usb charging, 500mA
 2. ac adapter charging, 1.5A
 */
-int pmic_charger_setting(int current)
+int pmic_act8846_charger_setting(int current)
 {
 
     printf("%s %d\n",__func__,current);
@@ -190,10 +190,25 @@ int act8846_regulator_set(void)
 	return 0;
 }
 
-int act8846_parse_dt(const void* blob)
+static int act8846_i2c_probe(void)
+{
+	char val;
+	i2c_set_bus_num(act8846.pmic->bus);
+	i2c_init(ACT8846_I2C_SPEED, 0);
+	val = i2c_reg_read(act8846.pmic->hw.i2c.addr, 0x22);
+	if (val == 0xff)
+		return -ENODEV;
+	else
+		return 0;
+	
+	
+}
+
+static int act8846_parse_dt(const void* blob)
 {
 	int node, parent, nd;
 	u32 i2c_bus_addr;
+	int ret;
 	struct fdt_gpio_state gpios[2];
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ACTIVE_ACT8846);
@@ -202,6 +217,8 @@ int act8846_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
+	act8846.node = node;
+	act8846.pmic->hw.i2c.addr = fdtdec_get_addr(blob, node, "reg");
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
 	act8846.pwr_hold.gpio = rk_gpio_base_to_bank(gpios[1].gpio & RK_GPIO_BANK_MASK) | 
 				(gpios[1].gpio & RK_GPIO_PIN_MASK);
@@ -213,19 +230,31 @@ int act8846_parse_dt(const void* blob)
 	}
 	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
 	act8846.pmic->bus = i2c_get_bus_num_fdt(i2c_bus_addr);
-	nd = fdt_first_subnode(blob,node);
-	fdt_regulator_match(blob, nd, act8846_reg_matches,
+	ret = act8846_i2c_probe();
+	if (ret < 0) {
+		debug("pmic act8846 i2c probe failed\n");
+		return ret;
+	}
+	
+	nd = fdt_get_regulator_node(blob, node);
+	if (nd < 0)
+		printf("%s: Cannot find regulators\n");
+	else
+		fdt_regulator_match(blob, nd, act8846_reg_matches,
 					ACT8846_NUM_REGULATORS);
 	return 0;
 	 
 }
 
 
-int pmic_init(unsigned char bus)
+int pmic_act8846_init(unsigned char bus)
 {
+	int ret;
 	if (!act8846.pmic) {
 		act8846.pmic = pmic_alloc();
-		act8846_parse_dt(gd->fdt_blob);
+		ret = act8846_parse_dt(gd->fdt_blob);
+		if (ret < 0)
+			return ret;
 	}
 	gpio_direction_output(act8846.pwr_hold.gpio,
 			act8846.pwr_hold.flags); /*power hold*/
@@ -236,7 +265,7 @@ int pmic_init(unsigned char bus)
 	return 0;
 }
 
-void shut_down(void)
+void pmic_act8846_shut_down(void)
 {
 
 }

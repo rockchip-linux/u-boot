@@ -98,6 +98,7 @@ int pmic_set_output(struct pmic *p, u32 reg, int ldo, int on);
 int pmic_get_vol(char *name);
 int fdt_regulator_match(const void *blob, int node ,
 		struct fdt_regulator_match *matches, int num_matches);
+int fdt_get_regulator_node(const void * blob,int parent_nd);
 
 
 #define pmic_i2c_addr (p->hw.i2c.addr)
