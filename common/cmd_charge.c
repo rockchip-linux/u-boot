@@ -305,10 +305,10 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 	resource_content content;
 	snprintf(content.path, sizeof(content.path), "%s", desc_path);
 	content.load_addr = 0;
-	if (!get_content(&content)) {
+	if (!get_content(0, &content)) {
 		goto end;
 	}
-	if (!load_content(&content)) {
+	if (!load_content(0, &content)) {
 		goto end;
 	}
 

@@ -25,7 +25,6 @@
 ** ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-//#include "mincrypt/sha.h"
 #include <sha.h>
 
 // Some machines lack byteswap.h and endian.h.  These have to use the

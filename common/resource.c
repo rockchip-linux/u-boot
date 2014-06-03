@@ -36,7 +36,19 @@
 
 #include <lcd.h>
 
-static int inline get_ptn_offset(void) {
+static bool inline read_storage(uint16_t offset, void* buf, uint16_t blocks) {
+#if 1
+	return !StorageReadLba(offset, buf, blocks);
+#else
+	//we may use block_read in the future.
+	block_dev_desc_t* blkdev = get_dev_by_name("mmc0");
+	int read = blkdev->block_read(blkdev->dev, offset,
+			blocks, buf);
+	return read == blocks;
+#endif
+}
+
+static int inline get_base_offset(void) {
 	const disk_partition_t* ptn;
 #ifdef CONFIG_CMD_FASTBOOT
 	ptn	= fastboot_find_ptn(RESOURCE_NAME);
@@ -44,22 +56,27 @@ static int inline get_ptn_offset(void) {
 	//TODO: find disk_partition_t in other way.
 	ptn = NULL;
 #endif
-	if (!ptn)
+	if (!ptn) {
+		FBTERR("%s ptn not found.\n", RESOURCE_NAME);
 		return 0;
+	}
 	return ptn->start;
 }
 
-static bool get_entry(const char* file_path, index_tbl_entry* entry) {
+static bool get_entry(int base_offset, const char* file_path,
+		index_tbl_entry* entry) {
 	bool ret = false;
 	char buf[BLOCK_SIZE];
 	char* cache = NULL;
 	resource_ptn_header header;
-	int ptn_offset = get_ptn_offset();
-	if (!ptn_offset) {
-		FBTERR("%s ptn not found.\n", RESOURCE_NAME);
+	if (!base_offset) {
+		base_offset = get_base_offset();
+	}
+	if (!base_offset) {
+		FBTERR("base offset is NULL!\n");
 		goto end;
 	}
-	if (StorageReadLba(ptn_offset, buf, 1)) {
+	if (!read_storage(base_offset, buf, 1)) {
 		FBTERR("Failed to read header!\n");
 		goto end;
 	}
@@ -82,7 +99,7 @@ static bool get_entry(const char* file_path, index_tbl_entry* entry) {
 	if (header.tbl_entry_num * header.tbl_entry_size <= 0xFFFF) {
 		cache = (char*) malloc(header.tbl_entry_num * header.tbl_entry_size * BLOCK_SIZE);
 		if (cache) {
-			if (StorageReadLba(ptn_offset + header.header_size, cache,
+			if (!read_storage(base_offset + header.header_size, cache,
 						header.tbl_entry_num * header.tbl_entry_size)) {
 				FBTERR("Failed to read index entries!\n");
 				goto end;
@@ -93,7 +110,7 @@ static bool get_entry(const char* file_path, index_tbl_entry* entry) {
 	for (i = 0; i < header.tbl_entry_num; i++) {
 		//TODO: support tbl_entry_size
 		if (!cache) {
-			if (StorageReadLba(ptn_offset +
+			if (!read_storage(base_offset + 
 						header.header_size + i * header.tbl_entry_size, buf, 1)) {
 				FBTERR("Failed to read index entry:%d!\n", i);
 				goto end;
@@ -131,10 +148,10 @@ end:
 	return ret;
 }
 
-bool get_content(resource_content* content) {
+bool get_content(int base_offset, resource_content* content) {
 	bool ret = false;
 	index_tbl_entry entry;
-	if (!get_entry(content->path, &entry))
+	if (!get_entry(base_offset, content->path, &entry))
 		goto end;
 	content->content_offset = entry.content_offset;
 	content->content_size = entry.content_size;
@@ -150,29 +167,31 @@ void free_content(resource_content* content) {
 	}
 }
 
-bool load_content(resource_content* content) {
+bool load_content(int base_offset, resource_content* content) {
 	if (content->load_addr)
 		return true;
-
 	int blocks = (content->content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 	content->load_addr = (void*)malloc(blocks * BLOCK_SIZE);
 	if (!content->load_addr)
 		return false;
-	if (StorageReadLba(get_ptn_offset() +
-				content->content_offset, content->load_addr, blocks)) {
+	if (!load_content_data(base_offset, content, 0,
+				content->load_addr, blocks)) {
 		free_content(content);
 		return false;
 	}
 	return true;
 }
 
-bool load_content_data(resource_content* content,
+bool load_content_data(int base_offset, resource_content* content,
 		int offset_block, void* data, int blocks) {
-	int ptn_offset = get_ptn_offset();
-	if (!ptn_offset) {
+	if (!base_offset) {
+		base_offset = get_base_offset();
+	}
+	if (!base_offset) {
+		FBTERR("base offset is NULL!\n");
 		return false;
 	}
-	if (StorageReadLba(get_ptn_offset() +
+	if (!read_storage(base_offset + 
 				content->content_offset + offset_block, data, blocks)) {
 		return false;
 	}
@@ -182,50 +201,18 @@ bool load_content_data(resource_content* content,
 bool show_resource_image(const char* image_path) {
 	bool ret = false;
 #ifdef CONFIG_LCD
-    resource_content image;
-    memset(&image, 0, sizeof(image));
-    snprintf(image.path, sizeof(image.path), "%s", image_path);
-    if (get_content(&image) && load_content(&image)) {
-        FBTDBG("Try to show:%s\n", image_path);
-        lcd_display_bitmap_center((uint32_t)image.load_addr);
+	resource_content image;
+	memset(&image, 0, sizeof(image));
+	snprintf(image.path, sizeof(image.path), "%s", image_path);
+	if (get_content(0, &image) && load_content(0, &image)) {
+		FBTDBG("Try to show:%s\n", image_path);
+		lcd_display_bitmap_center((uint32_t)image.load_addr);
 		ret = true;
-    } else {
-        FBTERR("Failed to load image:%s\n", image_path);
-    }
-    free_content(&image);
+	} else {
+		FBTERR("Failed to load image:%s\n", image_path);
+	}
+	free_content(&image);
 #endif
 	return ret;
 }
-
-#if 0
-void test_content() {
-	const char* file_path = "git.diff";
-	int offset_block = 0;
-	int blocks = 1;
-	resource_content content;
-	snprintf(content.path, sizeof(content.path), "%s", file_path);
-	content.load_addr = 0;
-	if (!get_content(&content)) {
-		return;
-	}
-	if (!blocks) {
-		if (!load_content(&content)) {
-			goto end;
-		}
-		((char*)content.load_addr)[content.content_size - 1] = '\0';
-		printf("%s\n", content.load_addr);
-	} else {
-		void* data = malloc(blocks * BLOCK_SIZE);
-		if (!data)
-			goto end;
-		if (!load_content_data(&content, offset_block, data, blocks)) {
-			goto end;
-		}
-		((char*)data)[blocks * BLOCK_SIZE - 1] = '\0';
-		printf("%s\n", data);
-	}
-end:
-	free_content(&content);
-}
-#endif
 

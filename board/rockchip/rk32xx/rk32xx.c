@@ -71,9 +71,6 @@ int rk_lcd_parse_dt(const void *blob)
 {
 	int node;
 	int lcd_en_node, lcd_cs_node;
-	const struct fdt_property *prop, *prop1;
-	const u32 *cell;
-	const u32 *reg;
 
 	lcd_node = fdt_path_offset(blob, "lcdc1");
 	if (PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0)) {

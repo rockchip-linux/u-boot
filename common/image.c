@@ -1026,7 +1026,7 @@ int boot_ramdisk_high(struct lmb *lmb, ulong rd_data, ulong rd_len,
 				*initrd_start = (ulong)lmb_alloc(lmb, fix_rd_len,
 								 0x1000);
             if (*initrd_start)
-                memset(*initrd_start, 0, fix_rd_len);
+                memset((void*)(*initrd_start), 0, fix_rd_len);
 #endif
 
 			if (*initrd_start == 0) {

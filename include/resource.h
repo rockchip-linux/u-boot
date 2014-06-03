@@ -37,10 +37,10 @@ typedef struct {
 } resource_content;
 
 
-bool get_content(resource_content* content);
+bool get_content(int base_offset, resource_content* content);
 void free_content(resource_content* content);
-bool load_content(resource_content* content);
-bool load_content_data(resource_content* content,
+bool load_content(int base_offset, resource_content* content);
+bool load_content_data(int base_offset, resource_content* content,
         int offset_block, void* data, int blocks);
 
 bool show_resource_image(const char* image_path);

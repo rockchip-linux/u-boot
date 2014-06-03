@@ -1943,11 +1943,11 @@ void* rk_fdt_resource_load(void)
     resource_content content;
     snprintf(content.path, sizeof(content.path), "%s", get_fdt_name());
     content.load_addr = 0;
-    if (!get_content(&content)) {
+    if (!get_content(0, &content)) {
 		printf("Failed to find device tree(%s)\n", get_fdt_name());
 		return 0;
     }
-    if (!load_content(&content)) {
+    if (!load_content(0, &content)) {
 		printf("Failed to load device tree(%s)\n", get_fdt_name());
 		return 0;
     }
