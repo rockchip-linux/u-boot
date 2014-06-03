@@ -27,7 +27,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #if !defined(CONFIG_ENV_OFFSET)
 #define CONFIG_ENV_OFFSET           0
 #endif
-extern uint32_t StorageSysDataLoad(uint32_t Index,void *Buf);
 
 int env_init(void)
 {

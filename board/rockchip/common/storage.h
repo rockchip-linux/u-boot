@@ -50,37 +50,38 @@
 #define     PAGE_LEN            (DATA_LEN+SPARE_LEN)    //Ã¿¸öÊý¾Ýµ¥Î»µÄ³¤¶È
 
 
-extern  bool    FW_FlashBlockErase(uint8 ChipSel, uint32 RowAddr);
-extern  bool    FW_FlashPageProg(uint8 ChipSel, uint32 row, void *pData, void *pSpare, uint8 nSec);
-extern  bool    FW_CheckBadBlock(uint8 ChipSel, uint32 pageNum);
-extern  void    FW_SetBadBlock(uint8 ChipSel, uint32 pageNum);
-extern  uint8   FW_FlashReadPage(uint8 ChipSel, uint32 row, void *pData, void *pSpare, uint8 nSec);
-extern  void 	FlashReadID(uint8 ChipSel, void *buf);
-extern  void    ReadFlashIDInfo(uint8 * buf);
-extern  uint32  FlashBootErase(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod);
 extern  void    FW_ReIntForUpdate(void);
+extern  void	FW_SorageLowFormat(void);
 extern  void    FW_SorageLowFormatEn(int en);
+extern  uint32	FW_StorageGetValid(void);
+extern  uint32	FW_GetCurEraseBlock(void);
+extern  uint32	FW_GetTotleBlk(void);
 
-extern  int StorageWriteLba(uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode);
-extern  int StorageReadLba(uint32 LBA ,void *pbuf  , uint16 nSec);
-extern  int StorageReadPba(uint32 PBA , void *pbuf, uint16 nSec );
-extern  int StorageWritePba(uint32 PBA , void *pbuf, uint16 nSec );
+extern  int StorageWriteLba(uint32 LBA, void *pbuf, uint16 nSec, uint16 mode);
+extern  int StorageReadLba(uint32 LBA, void *pbuf, uint16 nSec);
+extern  int StorageReadPba(uint32 PBA, void *pbuf, uint16 nSec);
+extern  int StorageWritePba(uint32 PBA, void *pbuf, uint16 nSec);
+extern  uint32 StorageGetCapacity(void);
+extern  uint32 StorageSysDataLoad(uint32 Index, void *Buf);
+extern  uint32 StorageSysDataStore(uint32 Index, void *Buf);
+extern  uint32 StorageUbootDataStore(uint32 Index, void *Buf);
+extern  uint32 StorageUbootDataLoad(uint32 Index, void *Buf);
+extern  int StorageReadFlashInfo( void *pbuf);
 extern  int StorageEraseBlock(uint32 blkIndex, uint32 nblk, uint8 mod);
 extern  uint16 StorageGetBootMedia(void);
 extern  uint32 StorageGetSDFwOffset(void);
 extern  uint32 StorageGetSDSysOffset(void);
-extern  uint32 UsbStorageSysDataLoad(uint32 offset,uint32 len,uint32 *Buf);
-extern  uint32 UsbStorageSysDataStore(uint32 offset,uint32 len,uint32 *Buf);
-extern  uint32 StorageUbootDataStore(uint32 Index,void *Buf);
-extern  uint32 StorageUbootDataLoad(uint32 Index,void *Buf);
 extern  int32 StorageInit(void);
+extern  uint32 UsbStorageSysDataLoad(uint32 offset, uint32 len, uint32 *Buf);
+extern  uint32 UsbStorageSysDataStore(uint32 offset, uint32 len, uint32 *Buf);
+
 
 //local memory operation function
 typedef uint32 (*Memory_Init)(uint32 BaseAddr);
-typedef uint32 (*Memory_ReadPba)(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec );
-typedef uint32 (*Memory_WritePba)(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec );
-typedef uint32 (*Memory_ReadLba)(uint8 ChipSel, uint32 LBA , void *pbuf, uint16 nSec );
-typedef uint32 (*Memory_WriteLba)(uint8 ChipSel, uint32 LBA , void *pbuf, uint16 nSec ,uint16 mode);
+typedef uint32 (*Memory_ReadPba)(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec);
+typedef uint32 (*Memory_WritePba)(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec);
+typedef uint32 (*Memory_ReadLba)(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec);
+typedef uint32 (*Memory_WriteLba)(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec, uint16 mode);
 typedef uint32 (*Memory_Erase)(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod);
 typedef void (*Memory_ReadID)(uint8 ChipSel, void *buf);
 typedef void (*Memory_ReadInfo)(void *buf);
@@ -89,8 +90,8 @@ typedef uint32 (*Memory_LowFormat)(void);
 typedef uint32 (*Memory_GetCurEraseBlock)(void);
 typedef uint32 (*Memory_GetTotleBlk)(void);
 typedef uint32 (*Memory_GetCapacity)(uint8 ChipSel);
-typedef uint32 (*Memory_SysDataLoad)(uint8 ChipSel, uint32 Index,void *Buf);
-typedef uint32 (*Memory_SysDataStore)(uint8 ChipSel, uint32 Index,void *Buf);
+typedef uint32 (*Memory_SysDataLoad)(uint8 ChipSel, uint32 Index, void *Buf);
+typedef uint32 (*Memory_SysDataStore)(uint8 ChipSel, uint32 Index, void *Buf);
 
 typedef struct MEM_FUN_Tag
 {
@@ -126,15 +127,15 @@ typedef PACKED1  struct  _FLASH_INFO//ÐèÒª¼Ó__packed»ò×ÅÉùÃ÷Ê±4¶ÔÆë²»È»³ÌÐò¿ÉÄÜÔ
 	uint8   FlashMask;          // Ã¿Ò»bit´ú±íÄÇ¸öÆ¬Ñ¡ÊÇ·ñÓÐFLASH
 }PACKED2 FLASH_INFO, *pFLASH_INFO;
 
+
 //for nand
 typedef uint32 (*Memory_GetBlkSize)(void);
-
-typedef uint32 (*Memory_FlashReadLba)(uint8 ChipSel, uint32 LBA , uint16 nSec, void *pbuf);
-typedef uint32 (*Memory_FlashWriteLba)(uint8 ChipSel, uint32 LBA , uint16 nSec, void *pbuf);
+typedef uint32 (*Memory_FlashReadLba)(uint8 ChipSel, uint32 LBA, uint16 nSec, void *pbuf);
+typedef uint32 (*Memory_FlashWriteLba)(uint8 ChipSel, uint32 LBA, uint16 nSec, void *pbuf);
 typedef uint32 (*Memory_ftl_deinit)(void);
 typedef uint32 (*Memory_flash_deinit)(void);
+typedef void   (*uart_Trace)(const char* Format, ...);
 
-typedef void   (*uart_Trace)(const char* Format , ...);
 typedef struct LOADER_MEM_API_Tag
 {
 	uint32 tag;                       //0x4e460001 

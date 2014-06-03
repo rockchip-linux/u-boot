@@ -219,7 +219,7 @@ void FW_TestUnitReady(void)
         uint32_t currEraseBlk = 0;
         usbcmd.csw.Residue = cpu_to_be32((totleBlock<<16)|currEraseBlk);
         usbcmd.csw.Status= CSW_FAIL;
-        FWLowFormatEn = 1;
+        FW_SorageLowFormatEn(1);
     }
     else if(usbcmd.cbw.CDB[1] == 0xFA)
     {
@@ -407,7 +407,7 @@ void FW_LowFormat(void)
     usbcmd.csw.Status= CSW_GOOD;
     usbcmd.status = RKUSB_STATUS_CSW;
     
-    FWLowFormatEn = 1;
+    FW_SorageLowFormatEn(1);
 }
 
 void FW_SetResetFlag(void)

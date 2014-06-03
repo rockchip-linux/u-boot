@@ -313,6 +313,6 @@ struct cmd_rockusb_interface {
 	struct cmd_rockusb_preread pre_read;
 };
 
-	extern   int  FWLowFormatEn;
+extern void FW_SorageLowFormatEn(int en);
 
 #endif
