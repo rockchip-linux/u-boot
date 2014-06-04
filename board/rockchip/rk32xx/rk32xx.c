@@ -32,6 +32,8 @@
 #include <asm/io.h>
 #include <asm/arch/rkplat.h>
 
+#include "../common/config.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 
 
@@ -184,8 +186,16 @@ int rk616_power_on(void)
 #endif /* CONFIG_RK_FB */
 
 
+extern int rk_mmc_init(void);
+int board_mmc_init(bd_t *bis)
+{
+	rk_mmc_init();
+	return 0;
+}
+
+
 #ifdef CONFIG_RK_I2C
-void rk_i2c_init(void)
+static void rk_pmic_i2c_init(void)
 {
 #ifdef CONFIG_POWER_ACT8846
 	i2c_set_bus_num(I2C_BUS_CH1);
@@ -198,14 +208,6 @@ void rk_i2c_init(void)
 #endif
 }
 #endif
-
-
-extern int rk_mmc_init(void);
-int board_mmc_init(bd_t *bis)
-{
-	rk_mmc_init();
-	return 0;
-}
 
 
 #ifdef CONFIG_POWER_ACT8846
@@ -240,4 +242,62 @@ int pmic_get_vol(char *name)
 }
 #endif /* CONFIG_POWER_ACT8846 */
 
+
+/*****************************************
+ * Routine: board_init
+ * Description: Early hardware init.
+ *****************************************/
+int board_init(void)
+{
+	/* Set Initial global variables */
+
+	gd->bd->bi_arch_number = MACH_TYPE_RK30XX;
+	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x88000;
+
+	return 0;
+}
+
+
+#ifdef CONFIG_DISPLAY_BOARDINFO
+/**
+ * Print board information
+ */
+int checkboard(void)
+{
+	puts("Board:\t\tRK32xx platform Board\n");
+	return 0;
+}
+#endif
+
+
+#ifdef CONFIG_BOARD_LATE_INIT
+int board_late_init(void)
+{
+	debug("board_late_init\n");
+
+#ifdef CONFIG_RK_I2C 
+	rk_pmic_i2c_init();
+#endif
+	key_init();
+#ifdef CONFIG_POWER_RK808
+	charger_init(0);
+#elif CONFIG_POWER_ACT8846
+	pmic_init(0);
+#endif
+	SecureBootCheck();
+
+	//TODO:set those buffers in a better way, and use malloc?
+	setup_space(gd->arch.rk_extra_buf_addr);
+
+	char tmp_buf[30];
+	if (getSn(tmp_buf)) {
+		tmp_buf[sizeof(tmp_buf)-1] = 0;
+		setenv("fbt_sn#", tmp_buf);
+	}
+#ifdef CONFIG_CMD_FASTBOOT
+	fbt_preboot();
+#endif
+	return 0;
+}
+#endif
 

@@ -21,7 +21,6 @@
 # MA 02111-1307 USA
 #
 
-obj-y	+= board.o
 obj-y	+= cpu.o
 obj-y	+= timer.o
 obj-y	+= clock.o
