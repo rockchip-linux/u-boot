@@ -293,7 +293,7 @@ void board_init_f(ulong bootflag)
 		}
 	}
 
-#if defined(CONFIG_OF_CONTROL) && !defined(CONFIG_ROCKCHIP)
+#if defined(CONFIG_OF_CONTROL)
 	/* For now, put this check after the console is ready */
 	if (fdtdec_prepare_fdt()) {
 		panic("** CONFIG_OF_CONTROL defined but no FDT - please see "
@@ -375,7 +375,8 @@ void board_init_f(ulong bootflag)
     addr -= CONFIG_RK_EXTRA_BUFFER_SIZE;
 
     gd->arch.rk_extra_buf_addr = addr;
-	debug("Reserving %ldk for rk global buffers at %08lx\n", CONFIG_RK_EXTRA_BUFFER_SIZE >> 10, addr);
+	debug("Reserving %dk for rk global buffers at %08lx\n",
+			CONFIG_RK_EXTRA_BUFFER_SIZE >> 10, addr);
 #endif
 
 #ifdef CONFIG_CMD_FASTBOOT
@@ -386,7 +387,8 @@ void board_init_f(ulong bootflag)
     addr -= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE;
 
     gd->arch.fastboot_buf_addr = addr;
-	debug("Reserving %ldk for fastboot transfer buffer at %08lx\n", CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 10, addr);
+	debug("Reserving %dk for fastboot transfer buffer at %08lx\n",
+			CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 10, addr);
 
 #ifndef CONFIG_FASTBOOT_LOG_SIZE
 #define CONFIG_FASTBOOT_LOG_SIZE (SZ_2M)
@@ -394,7 +396,8 @@ void board_init_f(ulong bootflag)
     /* reserve fastboot log buffer */
     addr -= CONFIG_FASTBOOT_LOG_SIZE;
     gd->arch.fastboot_log_buf_addr = addr;
-    debug("Reserving %ldk for fastboot log buffer at %08lx\n", CONFIG_FASTBOOT_LOG_SIZE >> 10, addr);
+    debug("Reserving %dk for fastboot log buffer at %08lx\n",
+			CONFIG_FASTBOOT_LOG_SIZE >> 10, addr);
 #endif //CONFIG_CMD_FASTBOOT
 
 	/*
@@ -471,7 +474,8 @@ void board_init_f(ulong bootflag)
 #endif
 
 	debug("New Stack Pointer is: %08lx\n", addr_sp);
-    debug("total reserving memory(except stack) is :%dm\n", ((CONFIG_SYS_SDRAM_BASE + gd->ram_size - addr_sp) >> 20) + 1);
+    debug("total reserving memory(except stack) is :%ldm\n",
+			((CONFIG_SYS_SDRAM_BASE + gd->ram_size - addr_sp) >> 20) + 1);
 
 #ifdef CONFIG_POST
 	post_bootmode_init();

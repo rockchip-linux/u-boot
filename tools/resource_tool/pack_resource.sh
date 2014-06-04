@@ -4,7 +4,7 @@ function usage()
 {
 	echo "append resources to resource image."
 	echo "usage:"
-	echo "sudo ./pack_resource <resources dir> <resource.img>"
+	echo "sudo ./pack_resource <resources dir> <dst image> <old image> <resource_tool path>"
 }
 
 function die()
@@ -13,35 +13,18 @@ function die()
 	exit -1
 }
 
-function pack_resource ()
+function append_resource()
 {
-	local TOOL=`realpath "$1"`
-	local RESOURCES=`realpath "$2"`
+	local TOOL=$1
+	local RESOURCES=$2
 	local IMAGE=$3
-	local old_dir=$OLDPWD
-	touch $IMAGE
-	IMAGE=`realpath $IMAGE`
-	if [ -d "$RESOURCES" ];then
-		cd $RESOURCES
-	fi
-	$TOOL --pack --image=$IMAGE `find $RESOURCES -type f|sed "s#^$RESOURCES/##"` 
-	if [ -d "$RESOURCES" ];then
-		cd - > /dev/null
-		export OLDPWD=$ori_dir
-	fi
-}
-
-function append_resource ()
-{
-	local TOOL=`realpath "$1"`
-	local RESOURCES=`realpath "$2"`
-	local IMAGE=$3
+	local OLD_IMAGE=$4
 	local TMP_DIR=.resource_tmp
 	rm -r $TMP_DIR 2>/dev/null
 	mkdir $TMP_DIR || die "failed to mkdir $TMP_DIR"
-	if [ -f "$IMAGE" ];then
-		echo "Unpacking old image($IMAGE):"
-		$TOOL --unpack --verbose --image=$IMAGE $TMP_DIR 2>&1|grep entry|sed "s/^.*://"|xargs echo
+	if [ -f "$OLD_IMAGE" ];then
+		echo "Unpacking old image($OLD_IMAGE):"
+		$TOOL --unpack --verbose --image=$OLD_IMAGE $TMP_DIR 2>&1|grep entry|sed "s/^.*://"|xargs echo
 	fi
 	if [ -d "$RESOURCES" ];then
 		cp -r $RESOURCES/* $TMP_DIR
@@ -49,7 +32,7 @@ function append_resource ()
 		cp -r $RESOURCES $TMP_DIR
 	fi
 	echo
-	pack_resource $TOOL $TMP_DIR $IMAGE
+	$TOOL --pack --root=$TMP_DIR --image=$IMAGE `find $TMP_DIR -type f` 
 	echo
 	echo "Packed resources:"
 	$TOOL --unpack --verbose --image=$IMAGE $TMP_DIR 2>&1|grep entry|sed "s/^.*://"|xargs echo
@@ -57,7 +40,9 @@ function append_resource ()
 }
 
 RESOURCES=$1
-IMAGE=$2
+OLD_IMAGE=$2
+IMAGE=$3
+TOOL=$4
 
 if [ `id -u` -gt 0 ];then
 	usage
@@ -72,16 +57,23 @@ if [ -z "$IMAGE" ];then
 	IMAGE=resource.img
 fi
 
-echo "Append $RESOURCES to $IMAGE..."
+if [ -z "$OLD_IMAGE" ];then
+    OLD_IMAGE=$IMAGE
+fi
+
+if [ -z "$TOOL" ];then
+	TOOL=./resource_tool
+fi
+
+echo "Pack $RESOURCES & $OLD_IMAGE to $IMAGE ..."
 echo
 
 if [ ! -e "$RESOURCES" ];then
 	die "resource not found $RESOURCES !"
 fi
 
-TOOL=`realpath resource_tool`
 if [ ! -f $TOOL ];then
 	die "tool not found $TOOL !"
 fi
 
-append_resource $TOOL $RESOURCES $IMAGE
+append_resource $TOOL $RESOURCES $IMAGE $OLD_IMAGE

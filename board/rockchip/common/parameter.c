@@ -33,30 +33,6 @@ BootInfo gBootInfo;
 uint32 g_FwEndLba;
 uint32 parameter_lba;
 
-static uint32 str2hex(char *str)
-{
-	int32 i=0;
-	uint32 value = 0;
-	
-	if(*str == '0' && ( *(str+1) == 'x' || *(str+1) == 'X' ) )
-		str += 2;
-	if( *str == 'x' || *str == 'X' )
-		str += 1;
-
-	for(i=0; *str!='\0'; i++,++str) 
-	{ 
-		if(*str>='0' && *str<='9') 
-			value = value*16+*str-'0'; 
-		else if(*str>='a' && *str<='f') 
-			value = value*16+*str-'a'+10; 
-		else if(*str>='A' && *str<='F') 
-			value = value*16+*str-'A'+10;
-		else// ÆäËü×Ö·û
-			break;
-	}
-	return value;
-}
-
 static int find_mtd_part(cmdline_mtd_partition* this_mtd, const char* part_name)
 {
 	int i=0;
@@ -99,24 +75,6 @@ static int get_rdInfo(PBootInfo pboot_info)
 		}
 		token = strtok(NULL, " ");
 	}
-	return 0;
-}
-
-static int isxdigit(int c)
-{
-	if( (c >= 'A' && c <= 'Z')
-		|| (c>='a' && c<='z')
-		|| (c>='0' && c<='9'))
-		return 1;
-	
-	return 0;
-}
-
-static int isdigit(int c)
-{
-	if(c>='0' && c<='9')
-		return 1;
-	
 	return 0;
 }
 

@@ -34,66 +34,64 @@
 #include "nandflash_boot.h"
 #include "emmc_boot.h"
 
-//TODO 
-extern void FtlReIntForUpdate(void);
-extern uint32 FTLLowFormat(void);
-MEM_FUN_T NandFunOp = 
+
+static MEM_FUN_T NandFunOp = 
 {
-    0,
-    BOOT_FROM_FLASH,
-    0,
-    lMemApiInit,
-    LMemApiReadId,
-    LMemApiReadPba,
-    LMemApiWritePba,
-    LMemApiReadLba,
-    LMemApiWriteLba,
-    LMemApiErase,
-    LMemApiFlashInfo,
-    NULL,
-    LMemApiErase,
-    NULL,
-    NULL,
-    LMemApiLowFormat,
-    LMemApiSysDataLoad,
-    LMemApiSysDataStore,
+	0,
+	BOOT_FROM_FLASH,
+	0,
+	lMemApiInit,
+	LMemApiReadId,
+	LMemApiReadPba,
+	LMemApiWritePba,
+	LMemApiReadLba,
+	LMemApiWriteLba,
+	LMemApiErase,
+	LMemApiFlashInfo,
+	NULL,
+	LMemApiErase,
+	NULL,
+	NULL,
+	LMemApiLowFormat,
+	LMemApiSysDataLoad,
+	LMemApiSysDataStore,
 };
 
-MEM_FUN_T emmcFunOp = 
+static MEM_FUN_T emmcFunOp = 
 {
-    2,
-    BOOT_FROM_EMMC,
-    0,
-    emmcInit,
-    emmcReadID,
-    emmcBootReadPBA,
-    emmcBootWritePBA,
-    emmcBootReadLBA,
-    emmcBootWriteLBA,
-    emmcBootErase,
-    emmcReadFlashInfo,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    emmcGetCapacity,
-    emmcSysDataLoad,
-    emmcSysDataStore,
-};
-MEM_FUN_T *memFunTab[] = 
-{
-    &emmcFunOp,
-    &NandFunOp,
+	2,
+	BOOT_FROM_EMMC,
+	0,
+	emmcInit,
+	emmcReadID,
+	emmcBootReadPBA,
+	emmcBootWritePBA,
+	emmcBootReadLBA,
+	emmcBootWriteLBA,
+	emmcBootErase,
+	emmcReadFlashInfo,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	emmcGetCapacity,
+	emmcSysDataLoad,
+	emmcSysDataStore,
 };
 
-#define MAX_MEM_DEV (sizeof(memFunTab)/sizeof(MEM_FUN_T *))
-#define SD_CARD_FW_PART_OFFSET      8192
+static MEM_FUN_T *memFunTab[] = 
+{
+	&emmcFunOp,
+	&NandFunOp,
+};
+#define MAX_MEM_DEV	(sizeof(memFunTab)/sizeof(MEM_FUN_T *))
 
 
 int32 StorageInit(void)
 {
 	uint32 memdev;
-	memset((uint8*)&g_FlashInfo,0,sizeof(g_FlashInfo));
+
+	memset((uint8*)&g_FlashInfo, 0, sizeof(g_FlashInfo));
 	for(memdev=0; memdev<MAX_MEM_DEV; memdev++)
 	{
 		gpMemFun = memFunTab[memdev];
@@ -105,18 +103,19 @@ int32 StorageInit(void)
 		}
 	}
 	gpMemFun = memFunTab[1];
+
 	return -1;
 }
+
 void FW_ReIntForUpdate(void)
 {
 	gpMemFun->Valid = 0;
 	if(gpMemFun->IntForUpdate)
 		gpMemFun->IntForUpdate();
 	gpMemFun->Valid = 1;
-
 }
 
-int	FWLowFormatEn = 0;
+static int FWLowFormatEn = 0;
 void FW_SorageLowFormatEn(int en)
 {
 	FWLowFormatEn = en;
@@ -150,10 +149,13 @@ uint32 FW_StorageGetValid(void)
 uint32 FW_GetCurEraseBlock(void)
 {
 	uint32 data = 1;
+
 	if(gpMemFun->GetCurEraseBlock)
 		data = gpMemFun->GetCurEraseBlock();
+
 	return data;
 }
+
 /***************************************************************************
 函数描述:获取 FTL 总block数
 入口参数:
@@ -163,134 +165,152 @@ uint32 FW_GetCurEraseBlock(void)
 uint32 FW_GetTotleBlk(void)
 {
 	uint32 totle = 1;
+
 	if(gpMemFun->GetTotleBlk)
 		totle = gpMemFun->GetTotleBlk();
+
 	return totle;
 }
 
-int StorageReadPba(uint32 PBA , void *pbuf, uint16 nSec )
+int StorageReadPba(uint32 PBA, void *pbuf, uint16 nSec )
 {
 	int ret = FTL_ERROR;
+
 	if(gpMemFun->ReadPba)
-		ret = gpMemFun->ReadPba(gpMemFun->id, PBA, pbuf, nSec );
+		ret = gpMemFun->ReadPba(gpMemFun->id, PBA, pbuf, nSec);
+
 	return ret;
 }
-int StorageWritePba(uint32 PBA , void *pbuf, uint16 nSec )
+
+int StorageWritePba(uint32 PBA, void *pbuf, uint16 nSec )
 {
 	int ret = FTL_ERROR;
+
 	if(gpMemFun->WritePba)
-	   ret = gpMemFun->WritePba(gpMemFun->id, PBA , pbuf, nSec);
+		ret = gpMemFun->WritePba(gpMemFun->id, PBA, pbuf, nSec);
+
 	return ret;
 }
 
-
-int StorageReadLba( uint32 LBA ,void *pbuf  , uint16 nSec)
+int StorageReadLba(uint32 LBA, void *pbuf, uint16 nSec)
 {
 	int ret = FTL_ERROR;
+
 	if(gpMemFun->ReadLba)
-	   ret = gpMemFun->ReadLba(gpMemFun->id, LBA , pbuf, nSec );
+		ret = gpMemFun->ReadLba(gpMemFun->id, LBA, pbuf, nSec);
+
 	return ret;
 }
 
-
-int StorageWriteLba( uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode)
+int StorageWriteLba(uint32 LBA, void *pbuf, uint16 nSec, uint16 mode)
 {
 	int ret = FTL_ERROR;
+
 	if(gpMemFun->WriteLba)
-	   ret = gpMemFun->WriteLba(gpMemFun->id, LBA , pbuf, nSec,mode);
+		ret = gpMemFun->WriteLba(gpMemFun->id, LBA, pbuf, nSec, mode);
+
 	return ret;
 }
-
 
 uint32 StorageGetCapacity(void)
 {
 	uint32 ret = FTL_ERROR;
+
 	if(gpMemFun->GetCapacity)
-	   ret = gpMemFun->GetCapacity(gpMemFun->id);
+		ret = gpMemFun->GetCapacity(gpMemFun->id);
+
 	return ret;
 }
 
-
-uint32 StorageSysDataLoad(uint32 Index,void *Buf)
+uint32 StorageSysDataLoad(uint32 Index, void *Buf)
 {
 	uint32 ret = FTL_ERROR;
-	memset(Buf,0,512);
+
+	memset(Buf, 0, 512);
 	if(gpMemFun->SysDataLoad)
-	   ret = gpMemFun->SysDataLoad(gpMemFun->id, Index,Buf);
+		ret = gpMemFun->SysDataLoad(gpMemFun->id, Index, Buf);
 	return ret;
 }
 
-
-
-uint32 StorageSysDataStore(uint32 Index,void *Buf)
+uint32 StorageSysDataStore(uint32 Index, void *Buf)
 {
 	uint32 ret = FTL_ERROR;
+
 	if(gpMemFun->SysDataStore)
-	   ret = gpMemFun->SysDataStore(gpMemFun->id, Index,Buf);
+		ret = gpMemFun->SysDataStore(gpMemFun->id, Index, Buf);
+
 	return ret;
 }
 
 
 #define UBOOT_SYS_DATA_OFFSET 64
-uint32 StorageUbootDataLoad(uint32 Index,void *Buf) {
-    StorageSysDataLoad(Index + UBOOT_SYS_DATA_OFFSET, Buf);
-}
-
-uint32 StorageUbootDataStore(uint32 Index,void *Buf) {
-    StorageSysDataStore(Index + UBOOT_SYS_DATA_OFFSET, Buf);
-}
-
-uint32 UsbStorageSysDataLoad(uint32 offset,uint32 len,uint32 *Buf)
+uint32 StorageUbootDataLoad(uint32 Index, void *Buf)
 {
-    uint32 ret = FTL_ERROR;
-    uint32 i;
-    for(i=0;i<len;i++)
-    {
-        StorageSysDataLoad(offset + 2 + i,Buf);
-        if(offset + i < 2) 
-        {
-            Buf[0] = 0x444E4556;
-            Buf[1] = 504;
-        }
-        Buf += 128;
-    }
-    return ret;
+	return StorageSysDataLoad(Index + UBOOT_SYS_DATA_OFFSET, Buf);
 }
 
-uint32 UsbStorageSysDataStore(uint32 offset,uint32 len,uint32 *Buf)
+uint32 StorageUbootDataStore(uint32 Index, void *Buf)
 {
-    uint32 ret = FTL_ERROR;
-    uint32 i;
-    for(i=0;i<len;i++)
-    {
-        Buf[0] = 0x444E4556;
-        Buf[1] = 504;
-        StorageSysDataStore(offset + 2 + i,Buf);
-        Buf += 128;
-    }
-    return ret;
+	return StorageSysDataStore(Index + UBOOT_SYS_DATA_OFFSET, Buf);
+}
+
+uint32 UsbStorageSysDataLoad(uint32 offset, uint32 len, uint32 *Buf)
+{
+	uint32 ret = FTL_ERROR;
+	uint32 i;
+
+	for(i=0;i<len;i++)
+	{
+		StorageSysDataLoad(offset + 2 + i, Buf);
+		if(offset + i < 2) 
+		{
+			Buf[0] = 0x444E4556;
+			Buf[1] = 504;
+		}
+		Buf += 128;
+	}
+
+	return ret;
+}
+
+uint32 UsbStorageSysDataStore(uint32 offset, uint32 len, uint32 *Buf)
+{
+	uint32 ret = FTL_ERROR;
+	uint32 i;
+
+	for(i=0; i<len; i++)
+	{
+		Buf[0] = 0x444E4556;
+		Buf[1] = 504;
+		StorageSysDataStore(offset + 2 + i, Buf);
+		Buf += 128;
+	}
+
+	return ret;
 }
 
 int StorageReadFlashInfo( void *pbuf)
 {
 	int ret = FTL_ERROR;
+
 	if(gpMemFun->ReadInfo)
 	{
-	   gpMemFun->ReadInfo(pbuf);
-	   ret = FTL_OK;
+		gpMemFun->ReadInfo(pbuf);
+		ret = FTL_OK;
 	}
+
 	return ret;
 }
-
 
 int StorageEraseBlock(uint32 blkIndex, uint32 nblk, uint8 mod)
 {
 	int Status = FTL_OK;
+
 	if(gpMemFun->Erase)
 		Status = gpMemFun->Erase(0, blkIndex, nblk, mod);
+
 	return Status;
 }
-
 
 uint16 StorageGetBootMedia(void)
 {
@@ -300,6 +320,7 @@ uint16 StorageGetBootMedia(void)
 uint32 StorageGetSDFwOffset(void)
 {
 	uint32 offset = 0;
+
 	if(gpMemFun->flag != BOOT_FROM_FLASH)
 	{
 		offset = SD_CARD_FW_PART_OFFSET;
@@ -310,9 +331,12 @@ uint32 StorageGetSDFwOffset(void)
 uint32 StorageGetSDSysOffset(void)
 {
 	uint32 offset = 0;
+
 	if(gpMemFun->flag != BOOT_FROM_FLASH)
 	{
 		offset = SD_CARD_FW_PART_OFFSET;
 	}
+
 	return offset;
 }
+

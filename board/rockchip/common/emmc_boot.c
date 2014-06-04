@@ -22,7 +22,6 @@
  * MA 02111-1307 USA
  */
 
-//#define     IN_STORAGE
 #include <common.h>
 #include <command.h>
 #include <mmc.h>
@@ -31,21 +30,22 @@
 
 #include "config.h"
 #include "emmc_boot.h"
-//TODO 
-struct mmc *storage_mmc;
-static int storage_device = -1;
-#define EMMC_BOOT_PART_SIZE         1024
-#define SD_CARD_BOOT_PART_OFFSET    64
-#define SD_CARD_FW_PART_OFFSET      8192
-#define SD_CARD_SYS_PART_OFFSET     8064
+
 #undef ALIGN
 #define ALIGN(x) __attribute__ ((aligned(x)))
-ALIGN(64)uint32 		 emmc_SpareBuf[(32*8*4/4)];
-ALIGN(64)uint32		  emmc_Data[(1024*8*4/4)];
 
-int32 emmcInit(void)
+//TODO 
+static struct mmc *storage_mmc;
+static int storage_device = -1;
+
+ALIGN(64)uint32	emmc_SpareBuf[(32*8*4/4)];
+ALIGN(64)uint32	emmc_Data[(1024*8*4/4)];
+
+
+uint32 emmcInit(uint32 unused)
 {
 	struct mmc *mmc;
+
 	if (storage_device < 0) {
 		if (get_mmc_num() > 0)
 			storage_device = 0;
@@ -64,29 +64,21 @@ int32 emmcInit(void)
 		return -1;
 	}
 	storage_mmc = mmc;
+
 	return 0;
 }
-void emmcReIntForUpdate(void)
-{
-	return;
 
-}
-uint32 emmcBootReadPBA(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec )
+
+uint32 emmcBootReadPBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec)
 {
-   	 int ret = FTL_ERROR;
 	uint32 i;
 	uint16 len;
-	uint8 pageSizeRaw;
 	uint8 pageSizeLimit;
-	uint32 BlockOffset;
-	uint16 PageOffset;
-	uint16 PageAlignOffset;
-	uint16 idblk_flag = 0;
-	uint16 read_len;
 	int n;
 	uint32 *pDataBuf = pbuf;
+
 	pageSizeLimit = DATA_LEN/128;
-	memset(emmc_SpareBuf,0xFF,SPARE_LEN);
+	memset(emmc_SpareBuf, 0xFF, SPARE_LEN);
 	if(PBA + nSec >= EMMC_BOOT_PART_SIZE*5) 
 		PBA &= (EMMC_BOOT_PART_SIZE-1);
 	PBA = PBA + SD_CARD_BOOT_PART_OFFSET;
@@ -94,8 +86,8 @@ uint32 emmcBootReadPBA(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec )
 	for (len=0; len<nSec; len+=pageSizeLimit)
 	{
 		n = storage_mmc->block_dev.block_read(storage_device, PBA,
-								  (MIN(nSec,pageSizeLimit)), emmc_Data);
-		if(n != (MIN(nSec,pageSizeLimit)))
+							(MIN(nSec, pageSizeLimit)), emmc_Data);
+		if(n != (MIN(nSec, pageSizeLimit)))
 			return -1;
 		for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
 		{
@@ -104,101 +96,114 @@ uint32 emmcBootReadPBA(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec )
 		}
 	}
 	flush_cache((ulong)pbuf, nSec*512);
-    return 0;
+
+	return 0;
 }
-uint32 emmcBootWritePBA(uint8 ChipSel, uint32 PBA , void *pbuf, uint16 nSec )
+
+
+uint32 emmcBootWritePBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec)
 {
-	int ret = FTL_ERROR;
 	uint32 i;
 	uint16 len;
 	uint8 pageSizeLimit;
 	int n;
 	uint32 *pDataBuf = pbuf;
+
 	pageSizeLimit = DATA_LEN/128;
 	if(PBA + nSec >= EMMC_BOOT_PART_SIZE*5) 
-	return 0;
+		return 0;
 	PBA = PBA + SD_CARD_BOOT_PART_OFFSET;
+
 	for (len=0; len<nSec; len+=pageSizeLimit)
 	{
-		for (i=0; i<(MIN(nSec,pageSizeLimit)); i++)
+		for (i=0; i<(MIN(nSec, pageSizeLimit)); i++)
 		{
 			ftl_memcpy(emmc_Data+i*128, pDataBuf+(len+i)*132, 512);
 			ftl_memcpy(emmc_SpareBuf+i*4, pDataBuf+(len+i)*132+128, 16);
 		}
 		n = storage_mmc->block_dev.block_write(storage_device, PBA,
-							  (MIN(nSec,pageSizeLimit)), emmc_Data);
-		if(n != (MIN(nSec,pageSizeLimit)))
+							(MIN(nSec, pageSizeLimit)), emmc_Data);
+		if(n != (MIN(nSec, pageSizeLimit)))
 			return -1;
 	}
+
 	return 0;
 }
 
-uint32 emmcBootReadLBA(uint8 ChipSel, uint32 LBA ,void *pbuf  , uint16 nSec)
+
+uint32 emmcBootReadLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec)
 {
-	int ret = FTL_ERROR;
 	int n;
+
 	n = storage_mmc->block_dev.block_read(storage_device, LBA + SD_CARD_FW_PART_OFFSET,
-						  nSec, pbuf);
+						nSec, pbuf);
 	flush_cache((ulong)pbuf, nSec*512);
 	return (n == nSec) ? 0 : -1;
 }
 
-uint32 emmcBootWriteLBA(uint8 ChipSel, uint32 LBA, void *pbuf  , uint16 nSec  ,uint16 mode)
+
+uint32 emmcBootWriteLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec, uint16 mode)
 {
-	int ret = FTL_ERROR;
 	int n;
+
 	n = storage_mmc->block_dev.block_write(storage_device, LBA + SD_CARD_FW_PART_OFFSET,
-							  nSec, pbuf);
+						nSec, pbuf);
 	return (n == nSec) ? 0 : -1;
 }
 
+
 uint32 emmcGetCapacity(uint8 ChipSel)
 {
-	uint32 ret = FTL_ERROR;
-	ret = storage_mmc->capacity/512 - SD_CARD_FW_PART_OFFSET;
-	return ret;
+	return (storage_mmc->capacity / 512 - SD_CARD_FW_PART_OFFSET);
 }
 
-uint32 emmcSysDataLoad(uint8 ChipSel, uint32 Index,void *Buf)
+
+uint32 emmcSysDataLoad(uint8 ChipSel, uint32 Index, void *Buf)
 {
-	uint32 ret = FTL_ERROR;
 	int n;
-	memset(Buf,0,512);
+
+	memset(Buf, 0, 512);
 	n = storage_mmc->block_dev.block_read(storage_device, SD_CARD_SYS_PART_OFFSET+Index,
-						  1, Buf);
+						1, Buf);
 	/* flush cache after read */
 	flush_cache((ulong)Buf, 512); /* FIXME */
 	return (n == 1) ? 0 : -1;
 }
 
-uint32 emmcSysDataStore(uint8 ChipSel, uint32 Index,void *Buf)
+
+uint32 emmcSysDataStore(uint8 ChipSel, uint32 Index, void *Buf)
 {
-	uint32 ret = FTL_ERROR;
 	int n;
-	n = storage_mmc->block_dev.block_write(storage_device, SD_CARD_SYS_PART_OFFSET+Index,1, Buf);
+
+	n = storage_mmc->block_dev.block_write(storage_device, SD_CARD_SYS_PART_OFFSET+Index, 1, Buf);
 	return (n == 1) ? 0 : -1;
 }
 
-int emmcReadFlashInfo( void *pbuf)
+
+void emmcReadFlashInfo(void *pbuf)
 {
-    pFLASH_INFO pInfo=(pFLASH_INFO)pbuf;
-    ftl_memset((uint8*)pbuf,0,512);
-    pInfo->BlockSize = EMMC_BOOT_PART_SIZE;
-    pInfo->ECCBits = 0;
-    pInfo->FlashSize =  storage_mmc->capacity/512; 
-    pInfo->PageSize = 4;
-    pInfo->AccessTime = 40;
-    pInfo->ManufacturerName=0;
-    pInfo->FlashMask = 0;
-    pInfo->FlashMask=1;
-    return 0;
+	pFLASH_INFO pInfo = (pFLASH_INFO)pbuf;
+
+	ftl_memset((uint8*)pbuf, 0, 512);
+	pInfo->BlockSize = EMMC_BOOT_PART_SIZE;
+	pInfo->ECCBits = 0;
+	pInfo->FlashSize =  storage_mmc->capacity/512; 
+	pInfo->PageSize = 4;
+	pInfo->AccessTime = 40;
+	pInfo->ManufacturerName = 0;
+	pInfo->FlashMask = 0;
+	pInfo->FlashMask = 1;
 }
+
+
 uint32 emmcBootErase(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod)
 {
-	   int Status = FTL_OK;
-  	  return Status;
+	int Status = FTL_OK;
+	return Status;
 }
-uint32 emmcReadID(void *buf)
+
+
+void emmcReadID(uint8 ChipSel, void *buf)
 {
 	uint8 * pbuf = buf;
 	pbuf[0] = 'E';
@@ -207,20 +212,3 @@ uint32 emmcReadID(void *buf)
 	pbuf[3] = 'C';
 	pbuf[4] = ' ';
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

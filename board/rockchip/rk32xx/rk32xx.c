@@ -62,7 +62,7 @@ void board_lmb_reserve(struct lmb *lmb) {
 
 #ifdef CONFIG_RK_FB
 
-#ifdef CONFIG_OF_CONTROL
+#ifdef CONFIG_OF_LIBFDT
 static struct fdt_gpio_state lcd_en_gpio, lcd_cs_gpio;
 static int lcd_en_delay, lcd_cs_delay;
 static int lcd_node = 0;
@@ -71,9 +71,6 @@ int rk_lcd_parse_dt(const void *blob)
 {
 	int node;
 	int lcd_en_node, lcd_cs_node;
-	const struct fdt_property *prop, *prop1;
-	const u32 *cell;
-	const u32 *reg;
 
 	lcd_node = fdt_path_offset(blob, "lcdc1");
 	if (PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0)) {
@@ -96,12 +93,12 @@ int rk_lcd_parse_dt(const void *blob)
 
 	return 0;
 }
-#endif /* CONFIG_OF_CONTROL */
+#endif /* CONFIG_OF_LIBFDT */
 
 
 void rk_backlight_ctrl(int brightness)
 {
-#ifdef CONFIG_OF_CONTROL
+#ifdef CONFIG_OF_LIBFDT
 	if (!lcd_node)
 		rk_lcd_parse_dt(gd->fdt_blob);
 #endif
@@ -114,7 +111,7 @@ void rk_fb_init(unsigned int onoff)
 {
 	pmic_init(0);  //enable lcdc power
 
-#ifdef CONFIG_OF_CONTROL
+#ifdef CONFIG_OF_LIBFDT
 	if (lcd_node == 0) rk_lcd_parse_dt(gd->fdt_blob);
 
 	if(onoff) {
@@ -135,7 +132,7 @@ void rk_fb_init(unsigned int onoff)
 
 
 vidinfo_t panel_info = {
-#ifndef CONFIG_OF_CONTROL
+#ifndef CONFIG_OF_LIBFDT
 	.lcd_face	= OUT_D888_P666,
 	.vl_freq	= 71000000,
 	.vl_col		= 1280,

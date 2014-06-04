@@ -1307,7 +1307,9 @@ distclean: mrproper
 		-o -name '.*.rej' -o -name '*.pyc' \
 		-o -name '*%' -o -name '.*.cmd' -o -name 'core' \) \
 		-type f -print | xargs rm -f
-	@ls|grep -E '*.bin|*.img'|xargs rm -f
+	@find $(srctree) \
+	   -maxdepth 1 \( -name "*.img" -o -name "*.bin" \) \
+	   -type f -print | xargs rm -f
 
 backup:
 	F=`basename $(srctree)` ; cd .. ; \

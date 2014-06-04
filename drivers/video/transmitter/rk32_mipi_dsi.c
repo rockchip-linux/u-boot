@@ -1388,6 +1388,7 @@ static void rk32_init_phy_mode(int lcdc_id)
 	}
 }
 #ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_OF_LIBFDT
 int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 {
 	int node;
@@ -1409,6 +1410,7 @@ int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 	MIPI_DBG("dsi->host.membase 0x%08x, length %d\n",dsi->host.membase,length);
 	return 0;
 }
+#endif /* #ifdef CONFIG_OF_LIBFDT */
 
 int rk32_mipi_enable(vidinfo_t *vid)
 {
@@ -1429,8 +1431,9 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		}
 
 		dsi->dsi_id = id;
+#ifdef CONFIG_OF_LIBFDT
 		rk_dsi_host_parse_dt(getenv_hex("fdtaddr", 0),dsi);
-
+#endif /* #ifdef CONFIG_OF_LIBFDT */
 		screen = calloc(1, sizeof(struct rk_screen));
 		if(!screen) {
 		  MIPI_DBG("request struct rk_screen fail!\n");

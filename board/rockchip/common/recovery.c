@@ -24,30 +24,30 @@
 
 #include "config.h"
 
+//add parameter partition to cmdline, ota may update this partition.
 void change_cmd_for_recovery(PBootInfo boot_info, char * rec_cmd)
 {
 	if(boot_info->index_recovery >= 0)
 	{
 		char* s = NULL;
 		char szFind[128]="";
-	
+
 		sprintf(szFind, "%s=%s:", "mtdparts", boot_info->cmd_mtd.mtd_id);
 		s = strstr(boot_info->cmd_line, szFind);
-		// 修改分区表，显示parameter分区
 		if( s != NULL )
 		{
-            s += strlen(szFind);
-            char tmp[MAX_LINE_CHAR] = "\0";
+			s += strlen(szFind);
+			char tmp[MAX_LINE_CHAR] = "\0";
 			int max_size = sizeof(boot_info->cmd_line) -
 				(s - boot_info->cmd_line);
 			//parameter is 4M.
 			snprintf(tmp, sizeof(tmp),
 					"0x00002000@0x00000000(parameter),%s", s);
-            snprintf(s, max_size, "%s\0", tmp);
+			snprintf(s, max_size, "%s", tmp);
 		}
 
 		strcat(boot_info->cmd_line, rec_cmd);
-		ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|BOOT_RECOVER); //会丢失 recovery的参数
+		ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG|BOOT_RECOVER);//set recovery flag.
 	}
 }
 

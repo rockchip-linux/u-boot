@@ -417,7 +417,7 @@ __weak int lcd_get_size(int *line_length)
 }
 
 #ifdef CONFIG_ROCKCHIP
-int lcd_enable_logo(bool enable)
+void lcd_enable_logo(bool enable)
 {
     lcd_show_logo = enable;
     if (lcd_show_logo)
@@ -778,7 +778,7 @@ void bitmap_plot(int x, int y)
 		fb_info.xvir = fb_info.xact;
 		fb_info.layer_id = WIN0;
 		fb_info.format = RGB565;
-		fb_info.yaddr = lcd_base;
+		fb_info.yaddr = (int)lcd_base;
 		lcd_pandispaly(&fb_info);
 	}
 #endif
@@ -978,7 +978,8 @@ int lcd_display_bitmap_center(ulong bmp_image)
 
     if (!bmp || !(bmp->header.signature[0] == 'B' &&
         bmp->header.signature[1] == 'M')) {
-        printf("Error: no valid bmp image at %lx, sign:%c %c\n", bmp_image, bmp->header.signature[0], bmp->header.signature[1]);                                       
+        printf("Error: no valid bmp image at %lx, sign:%c %c\n",
+				bmp_image, bmp->header.signature[0], bmp->header.signature[1]);                                       
 
         return 1;
     }
@@ -986,7 +987,8 @@ int lcd_display_bitmap_center(ulong bmp_image)
     width = le32_to_cpu(bmp->header.width);
     height = le32_to_cpu(bmp->header.height);
 
-    lcd_display_bitmap(bmp_image, (panel_info.vl_col - width)/2, (panel_info.vl_row - height)/2);
+    return lcd_display_bitmap(bmp_image, (panel_info.vl_col - width)/2,
+			(panel_info.vl_row - height)/2);
 }
 #endif
 
@@ -1106,10 +1108,10 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
   	bmap = (uchar *)bmp + get_unaligned_le32(&bmp->header.data_offset);
 #if defined(CONFIG_RK_FB)
-	if(lcd_base == gd->fb_base)
+	if((int)lcd_base == gd->fb_base)
 		lcd_base += width*height*2; 
 	else
-		lcd_base = gd->fb_base; 
+		lcd_base = (void*)gd->fb_base; 
 
 	lcd_line_length = (width * NBITS(panel_info.vl_bpix)) / 8;
 	fb = (uchar *) (lcd_base +
@@ -1197,7 +1199,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	fb_info.xvir = fb_info.xact;
 	fb_info.layer_id = WIN0;
 	fb_info.format = RGB565;
-	fb_info.yaddr = lcd_base;
+	fb_info.yaddr = (int)lcd_base;
 	lcd_pandispaly(&fb_info);
 #endif
 

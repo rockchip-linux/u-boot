@@ -197,7 +197,7 @@ uint32 SecureBootCheck(void)
 		RkPrintf("no sys part.\n");
 		SecureBootEn = 0;
 	}
-	printf("SecureBootEn = %d, SecureBootLock = %d\n", SecureBootEn, SecureBootLock);
+	printf("SecureBootEn = %lx, SecureBootLock = %lx\n", SecureBootEn, SecureBootLock);
 	SecureBootLock_backup = SecureBootLock;
 	return ret;
 }
@@ -258,7 +258,6 @@ uint32 SecureBootDisable(void)
 uint32 SecureBootSignCheck(uint8 * rsaHash, uint8 *Hash, uint8 length)
 {
 	uint32 ret  = FTL_ERROR;
-	uint32 i;
 	uint8  decodedHash[40];
     
 	if(0 == rsaDecodeHash(decodedHash, rsaHash, (uint8*)RSK_KEY, length))//

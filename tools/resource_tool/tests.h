@@ -9,7 +9,7 @@ typedef struct {
     int max_level;
     int num;
     int delay;
-    char prefix[MAX_INDEX_ENTRY_PATH_LEN]
+    char prefix[MAX_INDEX_ENTRY_PATH_LEN];
 } anim_level_conf;
 
 #define DEF_CHARGE_DESC_PATH        "charge_anim_desc.txt"
