@@ -209,7 +209,7 @@ static void rkusb_init_endpoints(void)
 /***************************************************************************
  * 命令:测试准备0x00
  ***************************************************************************/
-void FW_TestUnitReady(void)
+static void FW_TestUnitReady(void)
 {
 	RKUSBINFO("%s \n", __func__);
 	if(FW_StorageGetValid() == 0)
@@ -264,7 +264,7 @@ void FW_TestUnitReady(void)
          1、2009-4-10 ：增加出错返回，PC工具检测到擦除系统盘出错会擦除所有保留块
             后面的块，重启后loader会低格，重新分配空间。            
 ***************************************************************************/
-void FW_LowFormatSysDisk(void)
+static void FW_LowFormatSysDisk(void)
 {
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
 	usbcmd.csw.Status = CSW_GOOD;
@@ -277,7 +277,7 @@ void FW_LowFormatSysDisk(void)
 出口参数:无
 调用函数:无
 ***************************************************************************/
-void FW_GetChipVer(void)
+static void FW_GetChipVer(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[2];
 	struct urb *current_urb = NULL;
@@ -308,7 +308,7 @@ void FW_GetChipVer(void)
 出口参数:无
 调用函数:无
 ***************************************************************************/
-void FW_TestBadBlock(void)
+static void FW_TestBadBlock(void)
 {
 	uint16_t i;
 	uint32_t TestResult[16];
@@ -334,7 +334,7 @@ void FW_TestBadBlock(void)
 出口参数:无
 调用函数:无
 ***************************************************************************/
-void FW_Read10(void)
+static void FW_Read10(void)
 {
 	usbcmd.u_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 528;
 	usbcmd.u_bytes = 0;
@@ -350,7 +350,7 @@ void FW_Read10(void)
 出口参数:无
 调用函数:无
 ***************************************************************************/
-void FW_Write10(void)
+static void FW_Write10(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
 	struct urb *current_urb = ep->rcv_urb;
@@ -371,7 +371,7 @@ void FW_Write10(void)
 出口参数:无
 调用函数:无
 ***************************************************************************/
-void FW_Erase10(void)
+static void FW_Erase10(void)
 {
 	bool status = 0;
 	struct usb_endpoint_instance *ep = &endpoint_instance[2];
@@ -393,7 +393,7 @@ void FW_Erase10(void)
 出口参数:无
 调用函数:无
 ***************************************************************************/
-void FW_Erase10Force(void)
+static void FW_Erase10Force(void)
 {
 	bool status = 0;
 	struct usb_endpoint_instance *ep = &endpoint_instance[2];
@@ -411,7 +411,7 @@ void FW_Erase10Force(void)
 	usbcmd.status = RKUSB_STATUS_CSW;
 }
 
-void FW_LBARead10(void)
+static void FW_LBARead10(void)
 {
 	usbcmd.u_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 512;
 	usbcmd.u_bytes = 0;
@@ -422,7 +422,7 @@ void FW_LBARead10(void)
 	usbcmd.status = RKUSB_STATUS_TXDATA_PREPARE;
 }
 
-void FW_LBAWrite10(void)
+static void FW_LBAWrite10(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
 	struct urb *current_urb = NULL;
@@ -438,9 +438,8 @@ void FW_LBAWrite10(void)
 	usbcmd.status = RKUSB_STATUS_RXDATA_PREPARE;
 }
 
-void FW_GetFlashInfo(void)
+static void FW_GetFlashInfo(void)
 {
-	extern void ReadFlashInfo(void *buf);
 	struct usb_endpoint_instance *ep = &endpoint_instance[2];
 	struct urb *current_urb = NULL;
 
@@ -462,7 +461,7 @@ void FW_GetFlashInfo(void)
 出口参数:无
 调用函数:无
 ***************************************************************************/
-void FW_LowFormat(void)
+static void FW_LowFormat(void)
 {	
 	RKUSBINFO("%s \n", __func__);
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
@@ -472,7 +471,7 @@ void FW_LowFormat(void)
 	FW_SorageLowFormatEn(1);
 }
 
-void FW_SetResetFlag(void)
+static void FW_SetResetFlag(void)
 {
 	RKUSBINFO("%s \n", __func__);
 	usbcmd.reset_flag = 1;
@@ -491,7 +490,7 @@ LOG:
         20100209,HSL@RK,ADD LUN for deffirent reboot.
         0: normal  reboot, 1: loader reboot.
 ***************************************************************************/
-void FW_Reset(void)
+static void FW_Reset(void)
 {
 	RKUSBINFO("%x \n", usbcmd.cbw.CDB[1]);
 
