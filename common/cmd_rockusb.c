@@ -253,6 +253,32 @@ static void FW_TestUnitReady(void)
 }
 
 /***************************************************************************
+函数描述:固件升级命令:读FLASH ID
+入口参数:无
+出口参数:无
+调用函数:无
+***************************************************************************/
+void FW_ReadID(void)
+{
+	struct usb_endpoint_instance *ep = &endpoint_instance[2];
+	struct urb *current_urb = NULL;
+
+	RKUSBINFO("%s \n", __func__);
+
+	current_urb = ep->tx_urb;
+	if (!current_urb) {
+		RKUSBERR("%s: current_urb NULL", __func__);
+		return;
+	}
+
+	StorageReadId(current_urb->buffer);
+	current_urb->actual_length = 5;
+	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
+	usbcmd.csw.Status= CSW_GOOD;
+	usbcmd.status = RKUSB_STATUS_TXDATA;
+}
+
+/***************************************************************************
 函数描述:固件升级命令:设置FLASH 类型
 	Flash 1:
 	0:8bit small page;	1:8bit large page 4cyc;		2:8bit large page 5cyc
@@ -550,6 +576,10 @@ void do_rockusb_cmd(void)
 	{
 		case K_FW_TEST_UNIT_READY:      //0x00
 			FW_TestUnitReady();
+			break;
+
+		case K_FW_READ_FLASH_ID:	//0x01
+			FW_ReadID();
 			break;
 
 		case K_FW_TEST_BAD_BLOCK:	//0x03

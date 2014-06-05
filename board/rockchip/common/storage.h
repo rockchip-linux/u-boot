@@ -71,6 +71,7 @@ extern  int StorageEraseBlock(uint32 blkIndex, uint32 nblk, uint8 mod);
 extern  uint16 StorageGetBootMedia(void);
 extern  uint32 StorageGetSDFwOffset(void);
 extern  uint32 StorageGetSDSysOffset(void);
+extern  int StorageReadId(void *pbuf);
 extern  int32 StorageInit(void);
 extern  uint32 UsbStorageSysDataLoad(uint32 offset, uint32 len, uint32 *Buf);
 extern  uint32 UsbStorageSysDataStore(uint32 offset, uint32 len, uint32 *Buf);

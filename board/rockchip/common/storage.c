@@ -289,7 +289,7 @@ uint32 UsbStorageSysDataStore(uint32 offset, uint32 len, uint32 *Buf)
 	return ret;
 }
 
-int StorageReadFlashInfo( void *pbuf)
+int StorageReadFlashInfo(void *pbuf)
 {
 	int ret = FTL_ERROR;
 
@@ -338,5 +338,18 @@ uint32 StorageGetSDSysOffset(void)
 	}
 
 	return offset;
+}
+
+int StorageReadId(void *pbuf)
+{
+	int ret = FTL_ERROR;
+
+	if(gpMemFun->ReadId)
+	{
+		gpMemFun->ReadId(0, pbuf);
+		ret = FTL_OK;
+	}
+
+	return ret;
 }
 
