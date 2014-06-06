@@ -33,6 +33,8 @@ void rkusb_receive_firstcbw(void)
 	ep->rcv_urb->buffer = (u8*)&usbcmd.cbw;
 	ep->rcv_urb->buffer_length = 31;
 	ep->rcv_urb->actual_length = 0;
+	// make sure endpoint will be re-enabled
+	suspend_usb();
 	resume_usb(ep, 0);
 }
 

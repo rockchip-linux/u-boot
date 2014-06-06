@@ -274,6 +274,7 @@ static disk_partition_t fbt_partitions [FBT_MAX_PARTITION_NUM];
 //TODO: get rid of these!
 #ifdef CONFIG_ROCKCHIP
 extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
+extern void suspend_usb(void);
 extern int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec);
 extern int is_usbd_high_speed(void);
 extern unsigned int SecureBootCheck(void);
@@ -286,6 +287,7 @@ extern int is_charging(void);
 extern void lcd_standby(int enable);
 #else
 void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {;}
+extern void suspend_usb(void){;}
 int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec) {return 0;}
 unsigned int SecureBootCheck(void) {return 0;}
 void rk_backlight_ctrl(int brightness) {;}
@@ -365,6 +367,8 @@ void fbt_receive_firstcmd(void)
 
 	ep->rcv_urb->buffer_length = FASTBOOT_COMMAND_SIZE;
 	ep->rcv_urb->actual_length = 0;
+	// make sure the endpoint re-enabled
+	suspend_usb();
 	resume_usb(ep, 0);
 }
 
