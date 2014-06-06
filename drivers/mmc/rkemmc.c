@@ -61,7 +61,7 @@ static int reset_fifo(void)
 	int status;
 
 	status = Readl (gMmcBaseAddr + MMC_STATUS);
-	if (!(status&MMC_CTRL_FIFO_RESET)) {
+	if (!(status&MMC_FIFO_EMPTY)) {
 		Writel(gMmcBaseAddr + MMC_CTRL, Readl(gMmcBaseAddr + MMC_CTRL) | MMC_CTRL_FIFO_RESET);
 		timeout = 10000;
 		while ((Readl(gMmcBaseAddr + MMC_CTRL) & (MMC_CTRL_FIFO_RESET)) && (timeout > 0)) {

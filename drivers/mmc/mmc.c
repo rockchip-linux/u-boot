@@ -135,9 +135,11 @@ int mmc_send_status(struct mmc *mmc, int timeout)
 			}
 		} else if (--retries < 0)
 			return err;
-
+#ifdef CONFIG_ROCKCHIP
+		udelay(1);
+#else
 		udelay(1000);
-
+#endif
 	} while (timeout--);
 
 #ifdef CONFIG_MMC_TRACE

@@ -103,7 +103,12 @@ static ulong mmc_write_blocks(struct mmc *mmc, lbaint_t start,
 {
 	struct mmc_cmd cmd;
 	struct mmc_data data;
-	int timeout = 1000;
+	#ifdef CONFIG_ROCKCHIP
+		int timeout = 10000;
+	#else
+		int timeout = 1000;
+	#endif
+	
 
 	if ((start + blkcnt) > mmc->block_dev.lba) {
 		printf("MMC: block number 0x" LBAF " exceeds max(0x" LBAF ")\n",
