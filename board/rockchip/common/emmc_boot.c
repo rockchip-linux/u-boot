@@ -184,7 +184,6 @@ void emmcReadFlashInfo(void *pbuf)
 {
 	pFLASH_INFO pInfo = (pFLASH_INFO)pbuf;
 
-	ftl_memset((uint8*)pbuf, 0, 512);
 	pInfo->BlockSize = EMMC_BOOT_PART_SIZE;
 	pInfo->ECCBits = 0;
 	pInfo->FlashSize =  storage_mmc->capacity/512; 
