@@ -197,7 +197,7 @@ static int rk_mmc_start_command(struct mmc *mmc,
 
 	Writel(gMmcBaseAddr + MMC_CMDARG, cmd->cmdarg);
 	Writel(gMmcBaseAddr + MMC_CMD, cmd_flags | MMC_CMD_START | MMC_USE_HOLD_REG);
-	for (RetryCount; RetryCount<MAX_RETRY_COUNT; RetryCount++) {
+	for (RetryCount = 0; RetryCount < 250000; RetryCount++) {
 		if (Readl(gMmcBaseAddr + MMC_RINTSTS) & MMC_INT_CMD_DONE) {
 			Writel(gMmcBaseAddr + MMC_RINTSTS, MMC_INT_CMD_DONE);
 			break;
@@ -384,9 +384,9 @@ static int request_idma(struct mmc *mmc, struct mmc_cmd *cmd,
 
 	timeout  = data_len*100;
 	if (data->flags == MMC_DATA_READ) {
-		set_idmadesc(mmc, data->dest, data_len);
+		set_idmadesc(mmc, (void*)data->dest, data_len);
 	} else {
-		set_idmadesc(mmc, data->src, data_len);
+		set_idmadesc(mmc, (void*)data->src, data_len);
 	}
 	pReg->SDMMC_CTRL |= CTRL_USE_IDMAC;
 	pReg->SDMMC_BMOD |= (BMOD_DE | BMOD_FB);
@@ -477,9 +477,9 @@ static int rk_emmc_request(struct mmc *mmc, struct mmc_cmd *cmd,
 		return ret;
 	if (data) {
 		if (data->flags == MMC_DATA_READ) {
-			ret = EmmcReadData(data->dest, data->blocks);
+			ret = EmmcReadData((void*)data->dest, data->blocks);
 		} else if (data->flags == MMC_DATA_WRITE) {
-			ret = EmmcWriteData(data->src, data->blocks);
+			ret = EmmcWriteData((void*)data->src, data->blocks);
 		}
 	}
 
@@ -489,10 +489,10 @@ static int rk_emmc_request(struct mmc *mmc, struct mmc_cmd *cmd,
 static void rk_set_ios(struct mmc *mmc)
 {
 	int cfg = 0;
-	int suit_clk_div;
-	int src_clk;
-	int src_clk_div;
-	int second_freq;
+	uint suit_clk_div;
+	uint src_clk;
+	uint src_clk_div;
+	uint second_freq;
 	int value;
 
 	switch (mmc->bus_width) {
