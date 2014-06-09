@@ -48,7 +48,7 @@
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
 /* enable thune build */
-#define CONFIG_SYS_THUMB_BUILD
+//#define CONFIG_SYS_THUMB_BUILD
 
 //#define CONFIG_SECOND_LEVEL_BOOTLOADER
 #define HAVE_VENDOR_COMMON_LIB y
