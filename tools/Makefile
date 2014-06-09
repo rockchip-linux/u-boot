@@ -188,6 +188,20 @@ HOST_EXTRACFLAGS += -include $(srctree)/include/libfdt_env.h \
 		-D__KERNEL_STRICT_NAMES \
 		-D_GNU_SOURCE
 
+#
+# rockchip compress logo flag define
+#
+ifneq ($(CONFIG_ROCKCHIP),)
+ifneq ($(CONFIG_COMPRESS_LOGO_RLE16),)
+HOSTCFLAGS += -DCOMPRESS_RLE16
+else
+ifneq ($(CONFIG_COMPRESS_LOGO_RLE8),)
+HOSTCFLAGS += -DCOMPRESS_RLE8
+endif # /* CONFIG_COMPRESS_LOGO_RLE8 */
+endif # /* CONFIG_COMPRESS_LOGO_RLE16 */
+endif # /* CONFIG_ROCKCHIP */
+
+
 __build:	$(LOGO-y)
 
 $(LOGO_H):	$(obj)/bmp_logo $(LOGO_BMP)
