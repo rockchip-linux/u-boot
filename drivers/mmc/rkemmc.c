@@ -559,7 +559,7 @@ static struct mmc_config rkmmc_cfg = {
 	.host_caps	= MMC_MODE_8BIT | MMC_MODE_4BIT |MMC_MODE_HS |MMC_MODE_HS_52MHz,
 	.voltages	= 0x00ff8080,
 	.f_max		= MMC_BUS_CLOCK / 2,
-	.f_min		= 400000,//(MMC_BUS_CLOCK + 510 - 1) / 510,
+	.f_min		= (MMC_BUS_CLOCK + 510 - 1) / 510,
 	.b_max		= 255,
 };
 
