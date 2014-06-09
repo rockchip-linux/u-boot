@@ -52,8 +52,9 @@
 /************************************************************************/
 /* ** FONT DATA								*/
 /************************************************************************/
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 #include <video_font.h>		/* Get font data, width and height	*/
-#include <video_font_data.h>
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 /************************************************************************/
 /* ** LOGO DATA								*/
@@ -82,6 +83,7 @@
 /************************************************************************/
 /* ** CONSOLE DEFINITIONS & FUNCTIONS					*/
 /************************************************************************/
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 #if defined(CONFIG_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
 # define CONSOLE_ROWS		((panel_info.vl_row-BMP_LOGO_HEIGHT) \
 					/ VIDEO_FONT_HEIGHT)
@@ -97,6 +99,7 @@
 					- CONSOLE_ROW_SIZE)
 #define CONSOLE_SIZE		(CONSOLE_ROW_SIZE * CONSOLE_ROWS)
 #define CONSOLE_SCROLL_SIZE	(CONSOLE_SIZE - CONSOLE_ROW_SIZE)
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 #if LCD_BPP == LCD_MONOCHROME
 # define COLOR_MASK(c)		((c)	  | (c) << 1 | (c) << 2 | (c) << 3 | \
@@ -109,9 +112,11 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 static void lcd_drawchars(ushort x, ushort y, uchar *str, int count);
 static inline void lcd_puts_xy(ushort x, ushort y, uchar *s);
 static inline void lcd_putc_xy(ushort x, ushort y, uchar  c);
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 static int lcd_init(void *lcdbase);
 
@@ -130,9 +135,10 @@ char lcd_is_enabled = 0;
 char lcd_show_logo = 0;
 #endif
 
-
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 static short console_col;
 static short console_row;
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 static void *lcd_console_address;
 static void *lcd_base;			/* Start of framebuffer memory	*/
@@ -170,6 +176,7 @@ void lcd_set_flush_dcache(int flush)
 	lcd_flush_dcache = (flush != 0);
 }
 
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 /*----------------------------------------------------------------------*/
 
 static void console_scrollup(void)
@@ -363,6 +370,7 @@ static inline void lcd_putc_xy(ushort x, ushort y, uchar c)
 {
 	lcd_drawchars(x, y, &c, 1);
 }
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 /************************************************************************/
 /**  Small utility to check that you got the colours right		*/
@@ -439,9 +447,11 @@ int drv_lcd_init(void)
 
 	strcpy(lcddev.name, "lcd");
 	lcddev.ext   = 0;			/* No extensions */
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 	lcddev.flags = DEV_FLAGS_OUTPUT;	/* Output only */
 	lcddev.putc  = lcd_putc;		/* 'putc' function */
 	lcddev.puts  = lcd_puts;		/* 'puts' function */
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 	rc = stdio_register(&lcddev);
 
@@ -497,8 +507,10 @@ void lcd_clear(void)
     }
 #endif
 
-    console_col = 0;
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
+	console_col = 0;
 	console_row = 0;
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 	lcd_sync();
 }
 
@@ -540,6 +552,7 @@ static int lcd_init(void *lcdbase)
 	lcd_clear();
 	lcd_enable();
 
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 	/* Initialize the console */
 	console_col = 0;
 #ifdef CONFIG_LCD_INFO_BELOW_LOGO
@@ -547,6 +560,7 @@ static int lcd_init(void *lcdbase)
 #else
 	console_row = 1;	/* leave 1 blank line below logo */
 #endif
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 	return 0;
 }
@@ -1237,11 +1251,13 @@ static void *lcd_logo(void)
 	bitmap_plot((panel_info.vl_col - BMP_LOGO_WIDTH)/2, (panel_info.vl_row - BMP_LOGO_HEIGHT)/2);
 #endif
 
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 #ifdef CONFIG_LCD_INFO
 	console_col = LCD_INFO_X / VIDEO_FONT_WIDTH;
 	console_row = LCD_INFO_Y / VIDEO_FONT_HEIGHT;
 	lcd_show_board_info();
 #endif /* CONFIG_LCD_INFO */
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 #if defined(CONFIG_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
 	return (void *)((ulong)lcd_base + BMP_LOGO_HEIGHT * lcd_line_length);
@@ -1274,11 +1290,13 @@ static int on_splashimage(const char *name, const char *value, enum env_op op,
 U_BOOT_ENV_CALLBACK(splashimage, on_splashimage);
 #endif
 
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 void lcd_position_cursor(unsigned col, unsigned row)
 {
 	console_col = min(col, CONSOLE_COLS - 1);
 	console_row = min(row, CONSOLE_ROWS - 1);
 }
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 int lcd_get_pixel_width(void)
 {
@@ -1290,6 +1308,7 @@ int lcd_get_pixel_height(void)
 	return panel_info.vl_row;
 }
 
+#ifndef CONFIG_LCD_CONSOLE_DISABLE
 int lcd_get_screen_rows(void)
 {
 	return CONSOLE_ROWS;
@@ -1299,6 +1318,7 @@ int lcd_get_screen_columns(void)
 {
 	return CONSOLE_COLS;
 }
+#endif /* CONFIG_LCD_CONSOLE_DISABLE */
 
 #if defined(CONFIG_LCD_DT_SIMPLEFB)
 static int lcd_dt_simplefb_configure_node(void *blob, int off)

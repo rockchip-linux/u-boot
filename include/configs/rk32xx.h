@@ -282,6 +282,7 @@
 #define CONFIG_CMD_SAVEENV
 
 //#define CONFIG_SILENT_CONSOLE 1
+#define CONFIG_LCD_CONSOLE_DISABLE	/* lcd not support console putc and puts */
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
 
