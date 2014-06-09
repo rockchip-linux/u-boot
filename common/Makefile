@@ -10,11 +10,15 @@ ifndef CONFIG_SPL_BUILD
 obj-y += main.o
 obj-y += command.o
 obj-y += exports.o
+ifndef CONFIG_ROCKCHIP
 obj-y += hash.o
+endif
 obj-$(CONFIG_SYS_HUSH_PARSER) += hush.o
+ifndef CONFIG_ROCKCHIP
 obj-y += s_record.o
 obj-y += xyzModem.o
 obj-y += cmd_disk.o
+endif
 
 # boards
 obj-$(CONFIG_SYS_GENERIC_BOARD) += board_f.o
@@ -107,7 +111,9 @@ obj-$(CONFIG_CMD_CRAMFS) += cmd_cramfs.o
 obj-$(CONFIG_CMD_LDRINFO) += cmd_ldrinfo.o
 obj-$(CONFIG_CMD_LED) += cmd_led.o
 obj-$(CONFIG_CMD_LICENSE) += cmd_license.o
+ifndef CONFIG_ROCKCHIP
 obj-y += cmd_load.o
+endif
 obj-$(CONFIG_LOGBUFFER) += cmd_log.o
 obj-$(CONFIG_ID_EEPROM) += cmd_mac.o
 obj-$(CONFIG_CMD_MD5SUM) += cmd_md5sum.o
@@ -134,7 +140,9 @@ obj-$(CONFIG_CMD_PART) += cmd_part.o
 ifdef CONFIG_PCI
 obj-$(CONFIG_CMD_PCI) += cmd_pci.o
 endif
+ifndef CONFIG_ROCKCHIP
 obj-y += cmd_pcmcia.o
+endif
 obj-$(CONFIG_CMD_PORTIO) += cmd_portio.o
 obj-$(CONFIG_CMD_PXE) += cmd_pxe.o
 obj-$(CONFIG_CMD_READ) += cmd_read.o
@@ -153,7 +161,9 @@ obj-$(CONFIG_CMD_STRINGS) += cmd_strings.o
 obj-$(CONFIG_CMD_TERMINAL) += cmd_terminal.o
 obj-$(CONFIG_CMD_TIME) += cmd_time.o
 obj-$(CONFIG_CMD_TRACE) += cmd_trace.o
+ifndef CONFIG_ROCKCHIP
 obj-$(CONFIG_SYS_HUSH_PARSER) += cmd_test.o
+endif
 obj-$(CONFIG_CMD_TPM) += cmd_tpm.o
 obj-$(CONFIG_CMD_TSI148) += cmd_tsi148.o
 obj-$(CONFIG_CMD_UBI) += cmd_ubi.o
@@ -164,7 +174,9 @@ ifdef CONFIG_LZMA
 obj-$(CONFIG_CMD_LZMADEC) += cmd_lzmadec.o
 endif
 ifdef CONFIG_CMD_USB
+ifndef CONFIG_ROCKCHIP
 obj-y += cmd_usb.o
+endif
 obj-y += usb.o usb_hub.o
 obj-$(CONFIG_USB_STORAGE) += usb_storage.o
 endif
