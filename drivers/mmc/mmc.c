@@ -266,9 +266,9 @@ static int mmc_go_idle(struct mmc *mmc)
 {
 	struct mmc_cmd cmd;
 	int err;
-
+	#ifndef CONFIG_ROCKCHIP
 	udelay(1000);
-
+	#endif
 	cmd.cmdidx = MMC_CMD_GO_IDLE_STATE;
 	cmd.cmdarg = 0;
 	cmd.resp_type = MMC_RSP_NONE;
@@ -277,9 +277,9 @@ static int mmc_go_idle(struct mmc *mmc)
 
 	if (err)
 		return err;
-
+	#ifndef CONFIG_ROCKCHIP
 	udelay(2000);
-
+	#endif
 	return 0;
 }
 
@@ -1115,7 +1115,6 @@ static int mmc_startup(struct mmc *mmc)
 				mmc->tran_speed = 26000000;
 		}
 	}
-
 	mmc_set_clock(mmc, mmc->tran_speed);
 
 	/* fill in device description */
@@ -1313,7 +1312,6 @@ int mmc_init(struct mmc *mmc)
 {
 	int err = IN_PROGRESS;
 	unsigned start = get_timer(0);
-
 	if (mmc->has_init)
 		return 0;
 	if (!mmc->init_in_progress)
