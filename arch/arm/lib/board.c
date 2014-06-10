@@ -368,9 +368,6 @@ void board_init_f(ulong bootflag)
 #endif /* CONFIG_LCD */
 
 #ifdef CONFIG_ROCKCHIP
-#ifndef CONFIG_RK_EXTRA_BUFFER_SIZE
-#define CONFIG_RK_EXTRA_BUFFER_SIZE (SZ_4M)
-#endif
     /* reserve rk global buffers */
     addr -= CONFIG_RK_EXTRA_BUFFER_SIZE;
 
@@ -380,15 +377,20 @@ void board_init_f(ulong bootflag)
 #endif
 
 #ifdef CONFIG_CMD_FASTBOOT
-#ifndef CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_32M)
-#endif
-    /* reserve fastboot transfer buffer(also use in fastboot charge animation. */
-    addr -= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE;
+	/* reserve fastboot transfer buffer */
+#ifdef CONFIG_ROCKCHIP
+	//use rk_extra_buf for fbt buffer.
+	gd->arch.fastboot_buf_addr = gd->arch.rk_extra_buf_addr + CONFIG_RK_GLOBAL_BUFFER_SIZE;
 
-    gd->arch.fastboot_buf_addr = addr;
+	debug("Reserving %dk for fastboot transfer buffer at %08lx\n",
+			CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 10, gd->arch.fastboot_buf_addr);
+#else
+	addr -= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE;
+
+	gd->arch.fastboot_buf_addr = addr;
 	debug("Reserving %dk for fastboot transfer buffer at %08lx\n",
 			CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 10, addr);
+#endif
 
 #ifndef CONFIG_FASTBOOT_LOG_SIZE
 #define CONFIG_FASTBOOT_LOG_SIZE (SZ_2M)

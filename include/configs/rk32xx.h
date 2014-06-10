@@ -298,19 +298,20 @@
 #define CONFIG_USBD_MANUFACTURER    "Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
 
+//for board/rockchip/common/idblock.c setup_space.
+#define CONFIG_RK_GLOBAL_BUFFER_SIZE 				(SZ_4M)
+#define CONFIG_RK_EXTRA_BUFFER_SIZE                 (SZ_4M + SZ_32M)
+
 /* Another macro may also be used or instead used to take care of the case
  * where fastboot is started at boot (to be incorporated) based on key press
  */
 #define CONFIG_CMD_FASTBOOT
 #define CONFIG_FASTBOOT_LOG
 #define CONFIG_FASTBOOT_LOG_SIZE                    (SZ_2M)
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH   (SZ_16M)
-//CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE should be at least 2*CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH,
-//and larger than our boot/recovery image size.
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH << 1)
+//CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE should be larger than our boot/recovery image size.
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (CONFIG_RK_EXTRA_BUFFER_SIZE - CONFIG_RK_GLOBAL_BUFFER_SIZE)
 
-//for board/rockchip/rk30xx/rkloader.c setup_space.
-#define CONFIG_RK_EXTRA_BUFFER_SIZE                 (SZ_4M)
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH   (CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 1)
 
 /* Fastboot product name */
 #define FASTBOOT_PRODUCT_NAME   "fastboot"

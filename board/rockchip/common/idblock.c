@@ -25,6 +25,7 @@
 #include <fastboot.h>
 #include <malloc.h>
 #include "config.h"
+#include <linux/sizes.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -709,6 +710,11 @@ void setup_space(uint32 begin_addr)
 	next += MAX_WRITE_SECTOR*528;
 	g_pFlashInfoData = (uint8*)next;
 	next += 2048;
+	if (next > CONFIG_RK_GLOBAL_BUFFER_SIZE) {
+		printf("CONFIG_RK_GLOBAL_BUFFER_SIZE too small:%d < %lu\n",
+				CONFIG_RK_GLOBAL_BUFFER_SIZE, next);
+		while(1);
+	}
 }
 
 void SysLowFormatCheck(void)

@@ -67,8 +67,8 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	void *kaddr, *raddr;
 	kaddr = (void*)gd->bd->bi_dram[0].start +  CONFIG_KERNEL_LOAD_ADDR;
-#ifdef CONFIG_CMD_FASTBOOT
-	raddr = (void*)(uint32)gd->arch.fastboot_buf_addr;
+#ifdef CONFIG_ROCKCHIP
+	raddr = (void*)(uint32)(gd->arch.rk_extra_buf_addr + CONFIG_RK_GLOBAL_BUFFER_SIZE);
 #else
 	//TODO:find a place to load ramdisk.
 	raddr = (void*)0;

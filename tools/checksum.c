@@ -4,6 +4,7 @@
 #include <config.h>
 
 
+#define SZ_4M                           0x00400000
 #define SZ_16M                          0x01000000
 #define SZ_32M                          0x02000000
 
