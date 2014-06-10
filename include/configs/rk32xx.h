@@ -114,7 +114,7 @@
  *|---------------------------------------------------------------------------|
  *|START  -  KERNEL LOADER  -  NAND LOADER  -     LMB     -    Uboot    -  END|
  *|SDRAM  -    START 32M    -   START 48M   -  START 56M  -  START 80M  - 128M|
- *|       -     kernel      -   nand code   - ramdisk/fdt -    uboot    -     |
+ *|       -     kernel      -   nand code   -     fdt     -   uboot/ramdisk   |
  *|---------------------------------------------------------------------------|
  */
 #define RAM_PHY_SIZE		0x08000000
@@ -293,35 +293,37 @@
 #define CONFIG_CMD_ROCKUSB
 
 /* for fastboot */
-#define CONFIG_USBD_VENDORID        0x2207
-#define CONFIG_USBD_PRODUCTID       0x0006
-#define CONFIG_USBD_MANUFACTURER    "Rockchip"
-#define CONFIG_USBD_PRODUCT_NAME    "rk30xx"
+#define CONFIG_USBD_VENDORID		0x2207
+#define CONFIG_USBD_PRODUCTID		0x0006
+#define CONFIG_USBD_MANUFACTURER	"Rockchip"
+#define CONFIG_USBD_PRODUCT_NAME	"rk30xx"
+
+/* Fastboot product name */
+#define FASTBOOT_PRODUCT_NAME		"fastboot"
+
 
 //for board/rockchip/common/idblock.c setup_space.
-#define CONFIG_RK_GLOBAL_BUFFER_SIZE 				(SZ_4M)
-#define CONFIG_RK_EXTRA_BUFFER_SIZE                 (SZ_4M + SZ_32M)
+#define CONFIG_RK_GLOBAL_BUFFER_SIZE			(SZ_4M)
+#define CONFIG_RK_EXTRA_BUFFER_SIZE			(CONFIG_RK_GLOBAL_BUFFER_SIZE + SZ_32M)
 
 /* Another macro may also be used or instead used to take care of the case
  * where fastboot is started at boot (to be incorporated) based on key press
  */
 #define CONFIG_CMD_FASTBOOT
 #define CONFIG_FASTBOOT_LOG
-#define CONFIG_FASTBOOT_LOG_SIZE                    (SZ_2M)
+#define CONFIG_FASTBOOT_LOG_SIZE			(SZ_2M)
+
 //CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE should be larger than our boot/recovery image size.
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE        (CONFIG_RK_EXTRA_BUFFER_SIZE - CONFIG_RK_GLOBAL_BUFFER_SIZE)
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE		(CONFIG_RK_EXTRA_BUFFER_SIZE - CONFIG_RK_GLOBAL_BUFFER_SIZE)
+#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH	(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 1)
 
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH   (CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 1)
-
-/* Fastboot product name */
-#define FASTBOOT_PRODUCT_NAME   "fastboot"
-
-#define CONFIG_RK_UDC
-#define CONFIG_USB_DEVICE
 
 /*
  * Hardware drivers
  */
+#define CONFIG_RK_UDC
+#define CONFIG_USB_DEVICE
+
 #define CONFIG_RK_GPIO
 
 /* SPI */
@@ -377,22 +379,9 @@
 #define CONFIG_LCD_MAX_WIDTH	4096
 #define CONFIG_LCD_MAX_HEIGHT	2048
 
-
-//#define CONFIG_RK3066SDK
-//#define CONFIG_RK3188SDK
-#define CONFIG_RK3288SDK
-
 #ifdef CONFIG_RK_FB
-#if  (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
-#define CONFIG_RK_3066_FB
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-#define CONFIG_RK_3188_FB
-//#define CONFIG_VCC_LCDC_1_8   //vcc lcdc switch to 1.8v
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
-#define CONFIG_RK_3168_FB
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3026)
-#define CONFIG_RK_3026_FB
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 #define CONFIG_RK_3288_FB
 #endif
 
@@ -401,9 +390,11 @@
 #ifdef CONFIG_RK616
 #define CONFIG_RK616_LVDS //lvds or mipi
 #define CONFIG_RK616_LCD_CHN 0
-#endif /*CONFIG_RK616*/ 
-#endif /*CONFIG_RK_FB*/
-#endif
+#endif /* CONFIG_RK616 */
+
+#endif /* CONFIG_RK_FB */
+
+#endif /* CONFIG_LCD */
 
 
 /********************************** charger and pmic driver ********************************/
