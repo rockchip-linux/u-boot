@@ -64,7 +64,6 @@
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
 #define CONFIG_BOARD_LATE_INIT
 
-
 /*
  * cache config
  */
@@ -226,7 +225,7 @@
 #define CONFIG_PREBOOT
 #define CONFIG_BOOTCOMMAND		"booti"
 
-#define CONFIG_EXTRA_ENV_SETTINGS	"verify=n\0"
+#define CONFIG_EXTRA_ENV_SETTINGS	"verify=n\0initrd_high=0xffffffff=n\0"
 
 
 /*

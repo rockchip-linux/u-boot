@@ -55,9 +55,26 @@ int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks) {
 }
 
 
+static ulong get_sp(void)
+{
+    ulong ret;
+
+    asm("mov %0, sp" : "=r"(ret) : );
+    return ret;
+}
+
 void board_lmb_reserve(struct lmb *lmb) {
-	//reserve 48M for kernel & 8M for nand api.
-	lmb_reserve(lmb, gd->bd->bi_dram[0].start, 56 * 1024 * 1024);
+    ulong sp;
+    sp = get_sp();
+    debug("## Current stack ends at 0x%08lx ", sp);
+
+    /* adjust sp by 64K to be safe */
+    sp -= 64<<10;
+	lmb_reserve(lmb, sp,
+			gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size - sp);
+
+    //reserve 48M for kernel & 8M for nand api.
+    lmb_reserve(lmb, gd->bd->bi_dram[0].start, 56 * 1024 * 1024);
 }
 #endif /* CONFIG_OF_LIBFDT */
 
