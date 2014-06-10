@@ -1,135 +1,160 @@
+/*
+ * Based on drivers/usb/gadget/omap1510_udc.c
+ * TI OMAP1510 USB bus interface driver
+ *
+ * (C) Copyright 2009
+ * Vipin Kumar, ST Micoelectronics, vipin.kumar@st.com.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #ifndef __DWC_OTG_REGS_H__
 #define __DWC_OTG_REGS_H__
 
 typedef volatile struct tagCORE_REG 
 {
-    uint32_t gotgctl; 
-    uint32_t gotgint;
-    uint32_t gahbcfg;
-    uint32_t gusbcfg; 
-    uint32_t grstctl; 
-    uint32_t gintsts; 
-    uint32_t gintmsk; 
-    uint32_t grxstsr; 
-    uint32_t grxstsp; 
-    uint32_t grxfsiz; 
-    uint32_t gnptxfsiz; 
-    uint32_t gnptxsts; 
-    uint32_t gi2cctl; 
-    uint32_t gpvndctl;
-    uint32_t ggpio; 
-    uint32_t guid; 
-    uint32_t gsnpsid;
-    uint32_t ghwcfg1; 
-    uint32_t ghwcfg2;
-    uint32_t ghwcfg3;
-    uint32_t ghwcfg4;
-    uint32_t RESERVED1[(0x100-0x54)/4];
-    uint32_t hptxfsiz;
-    uint32_t dptxfsiz_dieptxf[15]; 
-    uint32_t RESERVED2[(0x400-0x140)/4];
+	uint32_t gotgctl; 
+	uint32_t gotgint;
+	uint32_t gahbcfg;
+	uint32_t gusbcfg; 
+	uint32_t grstctl; 
+	uint32_t gintsts; 
+	uint32_t gintmsk; 
+	uint32_t grxstsr; 
+	uint32_t grxstsp; 
+	uint32_t grxfsiz; 
+	uint32_t gnptxfsiz; 
+	uint32_t gnptxsts; 
+	uint32_t gi2cctl; 
+	uint32_t gpvndctl;
+	uint32_t ggpio; 
+	uint32_t guid; 
+	uint32_t gsnpsid;
+	uint32_t ghwcfg1; 
+	uint32_t ghwcfg2;
+	uint32_t ghwcfg3;
+	uint32_t ghwcfg4;
+	uint32_t RESERVED1[(0x100-0x54)/4];
+	uint32_t hptxfsiz;
+	uint32_t dptxfsiz_dieptxf[15]; 
+	uint32_t RESERVED2[(0x400-0x140)/4];
 } CORE_REG, *pCORE_REG;
 
 typedef volatile struct tagCHANNEL_REG
 {
-    uint32_t hccharn;
-    uint32_t hcspltn;
-    uint32_t hcintn;
-    uint32_t hcintmaskn;
-    uint32_t hctsizn;
-    uint32_t hcdman;
-    uint32_t reserved[2];
+	uint32_t hccharn;
+	uint32_t hcspltn;
+	uint32_t hcintn;
+	uint32_t hcintmaskn;
+	uint32_t hctsizn;
+	uint32_t hcdman;
+	uint32_t reserved[2];
 }HC_REG, *pHC_REG;
 
 //Host Mode Register Structures
 typedef volatile struct tagHOST_REG 
 {
-    uint32_t hcfg;		  
-    uint32_t hfir;		  
-    uint32_t hfnum; 
-    uint32_t reserved40C;
-    uint32_t hptxsts;	  
-    uint32_t haint;	  
-    uint32_t haintmsk;	  
-    uint32_t RESERVED1[(0x440-0x41c)/4];
-    uint32_t hprt;
-    uint32_t RESERVED2[(0x500-0x444)/4];
-    HC_REG hchn[4];
-    uint32_t RESERVED3[(0x800-0x580)/4];
+	uint32_t hcfg;		  
+	uint32_t hfir;		  
+	uint32_t hfnum; 
+	uint32_t reserved40C;
+	uint32_t hptxsts;	  
+	uint32_t haint;	  
+	uint32_t haintmsk;	  
+	uint32_t RESERVED1[(0x440-0x41c)/4];
+	uint32_t hprt;
+	uint32_t RESERVED2[(0x500-0x444)/4];
+	HC_REG hchn[4];
+	uint32_t RESERVED3[(0x800-0x580)/4];
 } HOST_REG, *pHOST_REG;
 
 //Device IN ep reg
 typedef volatile struct tagIN_EP_REG 
 {
-    uint32_t DiEpCtl;
-    uint32_t reserved04;	
-    uint32_t DiEpInt; 
-    uint32_t reserved0C;	
-    uint32_t DiEpTSiz; 
-    uint32_t DiEpDma; 
-    uint32_t DTXFSTS;
-    uint32_t DiEpDmaB; 
+	uint32_t DiEpCtl;
+	uint32_t reserved04;	
+	uint32_t DiEpInt; 
+	uint32_t reserved0C;	
+	uint32_t DiEpTSiz; 
+	uint32_t DiEpDma; 
+	uint32_t DTXFSTS;
+	uint32_t DiEpDmaB; 
 }IN_EP_REG, *pIN_EP_REG;
 
 typedef volatile struct tagOUT_EP_REG 
 {
-    uint32_t DoEpCtl; 
-    uint32_t DoEpFn; 
-    uint32_t DoEpInt; 
-    uint32_t reserved0C;	
-    uint32_t DoEpTSiz; 
-    uint32_t DoEpDma; 
-    uint32_t reserved18;
-    uint32_t DoEpDmaB0;
+	uint32_t DoEpCtl; 
+	uint32_t DoEpFn; 
+	uint32_t DoEpInt; 
+	uint32_t reserved0C;	
+	uint32_t DoEpTSiz; 
+	uint32_t DoEpDma; 
+	uint32_t reserved18;
+	uint32_t DoEpDmaB0;
 }OUT_EP_REG, *pOUT_EP_REG;
 
 
 //Device Mode Registers Structures
 typedef volatile struct tagDEVICE_REG 
 {
-    uint32_t dcfg; 
-    uint32_t dctl; 
-    uint32_t dsts; 
-    uint32_t unused;		
-    uint32_t diepmsk; 
-    uint32_t doepmsk;	
-    uint32_t daint;	
-    uint32_t daintmsk; 
-    uint32_t dtknqr1;	
-    uint32_t dtknqr2;	
-    uint32_t dvbusdis;		
-    uint32_t dvbuspulse;
-    uint32_t dtknqr3_dthrctl;	
-    uint32_t dtknqr4_fifoemptymsk;
-    uint32_t RESERVED1[(0x900-0x838)/4];
+	uint32_t dcfg; 
+	uint32_t dctl; 
+	uint32_t dsts; 
+	uint32_t unused;		
+	uint32_t diepmsk; 
+	uint32_t doepmsk;	
+	uint32_t daint;	
+	uint32_t daintmsk; 
+	uint32_t dtknqr1;	
+	uint32_t dtknqr2;	
+	uint32_t dvbusdis;		
+	uint32_t dvbuspulse;
+	uint32_t dtknqr3_dthrctl;	
+	uint32_t dtknqr4_fifoemptymsk;
+	uint32_t RESERVED1[(0x900-0x838)/4];
 
-    //0x900~0xaff:ep in reg
-    IN_EP_REG InEp[16];
-    OUT_EP_REG OutEp[16];
-    //0xb00~0xcff:ep out reg
-    uint32_t RESERVED8[(0xe00-0xd00)/4];
+	//0x900~0xaff:ep in reg
+	IN_EP_REG InEp[16];
+	OUT_EP_REG OutEp[16];
+	//0xb00~0xcff:ep out reg
+	uint32_t RESERVED8[(0xe00-0xd00)/4];
 } DEVICE_REG, *pDEVICE_REG; 
 
 typedef volatile struct tagPOWER_CLOCK_CTRL 
 {
-    uint32_t PCGCR;
-    uint32_t RESERVED[(0x1000-0xe04)/4];
+	uint32_t PCGCR;
+	uint32_t RESERVED[(0x1000-0xe04)/4];
 }POWER_CLOCK_CTRL, *pPOWER_CLOCK_CTRL;
 
 typedef volatile struct tagFIFO
 {
-    uint32_t dataPort;
-    uint32_t RESERVED[(0x1000-0x004)/4];
+	uint32_t dataPort;
+	uint32_t RESERVED[(0x1000-0x004)/4];
 }FIFO, *pFIFO;
 
 typedef volatile struct tagUSB_OTG_REG 
 {
-    CORE_REG Core; 
-    HOST_REG Host; 
-    DEVICE_REG Device;
-    POWER_CLOCK_CTRL ClkGate;
-    FIFO Fifo[16];
-    uint32_t RESERVED[(0x40000-0x11000)/4];
+	CORE_REG Core; 
+	HOST_REG Host; 
+	DEVICE_REG Device;
+	POWER_CLOCK_CTRL ClkGate;
+	FIFO Fifo[16];
+	uint32_t RESERVED[(0x40000-0x11000)/4];
 }USB_OTG_REG, *pUSB_OTG_REG;
 
 //1寄存器位结构定义
@@ -1122,4 +1147,5 @@ struct dwc_ctrl {
 	int ntds;
 };
 
-#endif
+#endif /* __DWC_OTG_REGS_H__ */
+
