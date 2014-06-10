@@ -165,9 +165,8 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 		reboot_mode = BOOT_LOADER;
 	}
 
-	//if((loader_flag&0xFFFFFF00) == SYS_LOADER_REBOOT_FLAG)
+	if((loader_flag&0xFFFFFF00) == SYS_LOADER_REBOOT_FLAG)
 	{
-
 		switch(reboot_mode) {
 			case BOOT_NORMAL:
 				frt = FASTBOOT_REBOOT_NORMAL;
@@ -193,6 +192,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 				break;
 		}
 	}
+
 	return frt;
 }
 
