@@ -699,6 +699,7 @@ static int dispose_bootloader_cmd(struct bootloader_message *msg, mtd_partition 
 void setup_space(uint32 begin_addr)
 {
 	uint32 next = 0;
+
 	g_32secbuf = (uint8*)begin_addr;
 	next += 32*528;
 	g_cramfs_check_buf = (uint8*)begin_addr;
@@ -710,9 +711,9 @@ void setup_space(uint32 begin_addr)
 	next += MAX_WRITE_SECTOR*528;
 	g_pFlashInfoData = (uint8*)next;
 	next += 2048;
-	if (next > CONFIG_RK_GLOBAL_BUFFER_SIZE) {
+	if ((next - begin_addr) > CONFIG_RK_GLOBAL_BUFFER_SIZE) {
 		printf("CONFIG_RK_GLOBAL_BUFFER_SIZE too small:%d < %lu\n",
-				CONFIG_RK_GLOBAL_BUFFER_SIZE, next);
+				CONFIG_RK_GLOBAL_BUFFER_SIZE, (next - begin_addr));
 		while(1);
 	}
 }
