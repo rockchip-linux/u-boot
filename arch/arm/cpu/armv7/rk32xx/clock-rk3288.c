@@ -1151,6 +1151,8 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 rate_hz, uint32 *dclk_div)
 		rkclk_set_cpll_rate(pll_hz);
 
 		pll_hz = rkclk_pll_clk_get_rate(CPLL_ID);
+		/* codec pll rate reconfig, so we should set new rate to gd->pci_clk */
+		gd->pci_clk = pll_hz;
 		div = rkclk_calc_clkdiv(pll_hz, rate_hz, 0);
 		*dclk_div = div;
 
