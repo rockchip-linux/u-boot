@@ -53,14 +53,18 @@ int arch_cpu_init(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
-	rkclk_get_pll();
-
 	printf("CPU:\t\tRK32xx\n");
+
+	rkclk_get_pll();
+#if 0
 	printf("apll:\t%d\n", rkclk_get_arm_pll());
 	printf("gpll:\t%d\n", rkclk_get_general_pll());
 	printf("cpll:\t%d\n", rkclk_get_codec_pll());
 	debug("dpll:\t%d\n", rkclk_get_ddr_pll());
 	debug("npll:\t%d\n", rkclk_get_new_pll());
+#else
+	rkclk_dump_pll();
+#endif
 
 	return 0;
 }

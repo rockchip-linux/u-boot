@@ -853,13 +853,17 @@ void rkclk_dump_pll(void)
 {
 	printf("CPU's clock information:\n");
 
-	printf("    arm pll = %ldHZ, mp_cpu = %ldHZ, m0_cpu = %ldHZ, l2ram_cpu = %ldHZ\n",
-		gd->cpu_clk, gd->arch.cpu_mp_rate_hz, gd->arch.cpu_m0_rate_hz, gd->arch.cpu_l2ram_rate_hz);
+	printf("    arm pll = %ldHZ", gd->cpu_clk);
+	debug(", mp_cpu = %ldHZ, m0_cpu = %ldHZ, l2ram_cpu = %ldHZ",
+		gd->arch.cpu_mp_rate_hz, gd->arch.cpu_m0_rate_hz, gd->arch.cpu_l2ram_rate_hz);
+	printf("\n");
 
-	printf("    periph pll = %ldHZ, aclk_periph = %ldHZ, hclk_periph = %ldHZ, pclk_periph = %ldHZ\n",
-		gd->bus_clk, gd->arch.aclk_periph_rate_hz, gd->arch.hclk_periph_rate_hz, gd->arch.pclk_periph_rate_hz);
-	printf("               aclk_bus = %ldHZ, hclk_bus = %ldHZ, pclk_bus = %ldHZ\n",
+	printf("    periph pll = %ldHZ", gd->bus_clk);
+	debug(", aclk_periph = %ldHZ, hclk_periph = %ldHZ, pclk_periph = %ldHZ\n",
+		gd->arch.aclk_periph_rate_hz, gd->arch.hclk_periph_rate_hz, gd->arch.pclk_periph_rate_hz);
+	debug("               aclk_bus = %ldHZ, hclk_bus = %ldHZ, pclk_bus = %ldHZ",
 		gd->arch.aclk_bus_rate_hz, gd->arch.hclk_bus_rate_hz, gd->arch.pclk_bus_rate_hz);
+	printf("\n");
 
 	printf("    ddr pll = %ldHZ\n", gd->mem_clk);
 
