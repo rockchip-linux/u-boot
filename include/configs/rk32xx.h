@@ -338,7 +338,7 @@
 #define CONFIG_RK_I2C
 #ifdef CONFIG_RK_I2C
 #define CONFIG_I2C_MULTI_BUS
-#define CONFIG_SYS_I2C_SPEED	200000
+#define CONFIG_SYS_I2C_SPEED 100000
 #endif
 
 /* pm management */
