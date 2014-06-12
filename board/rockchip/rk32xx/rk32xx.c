@@ -207,6 +207,13 @@ extern int rk_mmc_init(void);
 int board_mmc_init(bd_t *bis)
 {
 	rk_mmc_init();
+
+	if (StorageInit() == 0) {
+		printf("storage init OK!\n");
+	} else {
+		printf("storage init fail!\n");
+	}
+
 	return 0;
 }
 

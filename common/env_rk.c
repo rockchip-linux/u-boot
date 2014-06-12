@@ -134,11 +134,6 @@ static int env_append(const char *buf, int check)
 void env_relocate_spec(void)
 {
 #if !defined(ENV_IS_EMBEDDED)
-	if( StorageInit() == 0)
-		printf("storage init OK!\n");
-	else
-		printf("storage init fail!\n");
-
 	//setup default env.
 	set_default_env(NULL);
 
