@@ -135,7 +135,7 @@ static struct ricoh619_regulator ricoh619_regulator_data[] = {
 			0x00, 0, 0x00, 0),
 };
 
-int check_charge(void)
+int ricoh619_check_charge(void)
 {
 	int ret = 0;
 	get_power_bat_status(&batt_status);

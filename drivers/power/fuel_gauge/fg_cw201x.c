@@ -3,9 +3,12 @@
 #include <power/battery.h>
 #include <errno.h>
 #include <asm/arch/rkplat.h>
+#include <power/rockchip_pmic.h>
 #include <i2c.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#define COMPAT_ROCKCHIP_CW201X "cw201x"
 static int state_of_chrg = 0;
 #define CW201X_I2C_ADDR		0x62
 #define CW201X_I2C_CH		0
@@ -22,17 +25,58 @@ static int state_of_chrg = 0;
 int volt_tab[6] = {3466, 3586, 3670, 3804, 4014, 4316};
 
 struct cw201x {
+	struct pmic *p;
 	int node;
 	struct fdt_gpio_state dc_det;
 	int i2c_ch;
 };
 
 struct cw201x cw;
-int cw201x_parse_dt(const void* blob)
+
+static int cw201x_i2c_probe(u32 bus, u32 addr)
+{
+	char val;
+	i2c_set_bus_num(bus);
+	i2c_init(CW201X_I2C_SPEED, 0);
+	val = i2c_probe(addr);
+	if (val < 0)
+		return -ENODEV;
+	val = i2c_reg_read(addr, REG_VERSION);
+	if (val == 0xff)
+		return -ENODEV;
+	else
+		return 0;
+}
+static int cw201x_parse_dt(const void* blob)
 {
 	int err;
-	cw.node = fdtdec_next_compatible(blob,
+	int node, parent;
+	u32 i2c_bus_addr, bus;
+	int ret;
+	fdt_addr_t addr;
+	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_CW201X);
+	if (node < 0) {
+		printf("Can't find dts node for fuel guage cw201x\n");
+		return -ENODEV;
+	}
+	addr = fdtdec_get_addr(blob, node, "reg");
+	parent = fdt_parent_offset(blob, node);
+	if (parent < 0) {
+		debug("%s: Cannot find node parent\n", __func__);
+		return -1;
+	}
+	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
+	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+	ret = cw201x_i2c_probe(bus, addr);
+	if (ret < 0) {
+		debug("fg cw201x i2c probe failed\n");
+		return ret;
+	}
+	cw.p = pmic_alloc();
+	cw.node = node;
+	cw.p->hw.i2c.addr = addr;
+	cw.p->bus = bus;
 	err = fdtdec_decode_gpio(blob, cw.node, "dc_det_gpio", &cw.dc_det);
 	if (err) {
 		printf("decode dc_det_gpio err\n");
@@ -41,15 +85,9 @@ int cw201x_parse_dt(const void* blob)
 	cw.dc_det.gpio = rk_gpio_base_to_bank(cw.dc_det.gpio & RK_GPIO_BANK_MASK) |
 					(cw.dc_det.gpio & RK_GPIO_PIN_MASK);
 	cw.dc_det.flags = !(cw.dc_det.flags  & OF_GPIO_ACTIVE_LOW);
-}
-
-static int cw201x_i2c_init(void)
-{
-	cw201x_parse_dt(gd->fdt_blob);
-	i2c_set_bus_num(CW201X_I2C_CH);
-	i2c_init (CW201X_I2C_SPEED, 0);
 	return 0;
 }
+
 
 static int cw_read_word(int reg)
 {
@@ -60,9 +98,9 @@ static int cw_read_word(int reg)
 	val = ((u16)valh << 8) | vall;
 	return val;
 }
+
 static int cw_get_vol(void)
 {
-        int ret;
         u16 value16, value16_1, value16_2, value16_3;
         int voltage;
 
@@ -106,11 +144,9 @@ for chack charger status in boot
 return 0, no charger
 return 1, charging
 */
-int check_charge(void)
+static int cw201x_check_charge(void)
 {
 	int ret = 0;
-	if (!state_of_chrg) 
-		cw201x_i2c_init();
 	if (gpio_get_value(cw.dc_det.gpio) == cw.dc_det.flags)
 		state_of_chrg = 2;
 	else
@@ -144,19 +180,50 @@ static int get_capcity(int volt)
 	return cap;
 }
 
-int get_power_bat_status(struct battery *batt_status)
+static int cw201x_update_battery(struct pmic *p, struct pmic *bat)
 {
-    
-	if (!state_of_chrg) 
-		cw201x_i2c_init();
+	struct battery *battery = bat->pbat->bat;
 	if (gpio_get_value(cw.dc_det.gpio) == cw.dc_det.flags)
 		state_of_chrg = 2;
 	else
 		state_of_chrg = 0;
-	batt_status->voltage_uV = cw_get_vol();
-	batt_status->capacity = get_capcity(batt_status->voltage_uV);
-	batt_status->state_of_chrg = state_of_chrg;
-	printf("%s capacity = %d, voltage_uV = %d,state_of_chrg=%d\n",__func__,batt_status->capacity,batt_status->voltage_uV,batt_status->state_of_chrg);
+	
+	i2c_set_bus_num(cw.p->bus);
+	i2c_init (CW201X_I2C_SPEED, 0);
+	battery->voltage_uV = cw_get_vol();
+	battery->capacity = get_capcity(battery->voltage_uV);
+	battery->state_of_chrg = state_of_chrg;
+	printf("%s capacity = %d, voltage_uV = %d,state_of_chrg=%d\n",
+		bat->name,battery->capacity,battery->voltage_uV,
+		battery->state_of_chrg);
+	return 0;
+}
+
+static int cw201x_check_battery(struct pmic *p, struct pmic *bat)
+{
+	struct battery *battery = bat->pbat->bat;
+	battery->state_of_chrg = cw201x_check_charge();
+	return 0;
+}
+
+static struct power_fg cw201x_fg_ops = {
+	.fg_battery_check = cw201x_check_battery,
+	.fg_battery_update = cw201x_update_battery,
+};
+
+int fg_cw201x_init(unsigned char bus)
+{
+	static const char name[] = "CW201X_FG";
+	int ret;
+	if (!cw.p) {
+		ret = cw201x_parse_dt(gd->fdt_blob);
+		if (ret < 0)
+			return ret;
+	}
+
+	cw.p->name = name;
+	cw.p->interface = PMIC_I2C;
+	cw.p->fg = &cw201x_fg_ops;
 	return 0;
 }
 

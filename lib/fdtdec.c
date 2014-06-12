@@ -76,7 +76,6 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(ROCKCHIP_MIPI_LCD_EN, "rockchip,lcd_en"),
 	COMPAT(SANDBOX_HOST_EMULATION, "sandbox,host-emulation"),
 	COMPAT(SANDBOX_LCD_SDL, "sandbox,lcd-sdl"),
-	COMPAT(ROCKCHIP_CW201X, "cw201x"),
 };
 
 const char *fdtdec_get_compatible(enum fdt_compat_id id)

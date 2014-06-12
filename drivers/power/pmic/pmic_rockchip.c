@@ -8,6 +8,59 @@
 #include <common.h>
 #include <errno.h>
 #include <power/rockchip_pmic.h>
+#include <power/battery.h>
+
+static unsigned char rockchip_pmic_id;
+
+static const char * const fg_names[] = {
+	"CW201X_FG",
+	"RICOH619_FG",
+};
+
+
+static void set_rockchip_pmic_id(unsigned char id)
+{
+	rockchip_pmic_id = id;
+}
+
+static unsigned char get_rockchip_pmic_id(void)
+{
+	return rockchip_pmic_id;
+}
+
+
+int get_power_bat_status(struct battery *battery)
+{
+	int i;
+	struct pmic *p_fg = NULL;
+	for (i = 0; i < ARRAY_SIZE(fg_names); i++) {
+		
+		p_fg = pmic_get(fg_names[i]);
+		if (p_fg)
+			break;
+	}
+
+	if (p_fg) {
+		p_fg->pbat->bat = battery;
+		if (p_fg->fg->fg_battery_update)
+			p_fg->fg->fg_battery_update(p_fg, p_fg);
+	}
+
+	return 0;
+}
+
+
+/*
+return 0: no charger
+return 1: charging
+*/
+int is_charging(void)
+{
+	struct battery battery;
+	memset(&battery,0, sizeof(battery));
+	get_power_bat_status(&battery);
+	return battery.state_of_chrg;
+}
 
 int pmic_charger_setting(int current)
 {
@@ -60,6 +113,20 @@ int pmic_init(unsigned char  bus)
 	return ret;
 }
 
+
+int fg_init(unsigned char bus)
+{
+	int ret;
+#if defined(CONFIG_POWER_FG_CW201X)
+	ret = fg_cw201x_init(bus);
+	if(ret >= 0) {
+		printf("fg:cw201x\n");
+		return 0;
+	}
+#endif
+	return 0;
+}
+
 void shut_down(void)
 {
 	enum pmic_id  id = get_rockchip_pmic_id();
@@ -76,6 +143,5 @@ void shut_down(void)
 		default:
 			break;
 	}
-	return 0;
 }
 

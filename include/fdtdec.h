@@ -102,7 +102,6 @@ enum fdt_compat_id {
 	COMPAT_ROCKCHIP_MIPI_LCD_EN,    /*RockChip MIPI screen en pin */
 	COMPAT_SANDBOX_HOST_EMULATION,	/* Sandbox emulation of a function */
 	COMPAT_SANDBOX_LCD_SDL,		/* Sandbox LCD emulation with SDL */
-	COMPAT_ROCKCHIP_CW201X,
 	COMPAT_COUNT,
 };
 

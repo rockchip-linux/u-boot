@@ -110,6 +110,6 @@ int fdt_get_regulator_node(const void * blob,int parent_nd);
 int check_charge(void);
 int pmic_charger_setting(int current);
 void shut_down(void);
-
+int fg_init(unsigned char bus);
 
 #endif /* __CORE_PMIC_H_ */

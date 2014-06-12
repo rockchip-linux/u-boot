@@ -365,7 +365,7 @@
 #define CONFIG_RK_3288_DSI_UBOOT
 //#define CONFIG_UBOOT_CHARGE
 //#define CONFIG_CMD_CHARGE_ANIM
-#define CONFIG_CHARGE_DEEP_SLEEP
+//#define CONFIG_CHARGE_DEEP_SLEEP
 #define CONFIG_LCD_BMP_RLE8
 #define CONFIG_CMD_BMP
 
@@ -397,14 +397,18 @@
 
 
 /********************************** charger and pmic driver ********************************/
-//#define CONFIG_POWER_RICOH619
+#define CONFIG_POWER
+#define CONFIG_POWER_I2C
+#define CONFIG_POWER_RICOH619
 //#define CONFIG_POWER_RK_SAMPLE
 #define CONFIG_POWER_RK808
+#define CONFIG_POWER_ACT8846
 
+//#define CONFIG_POWER_FG_CW201X
 /********************************** battery driver ********************************/
 //#define CONFIG_BATTERY_BQ27541
 //#define CONFIG_BATTERY_RICOH619
-#define CONFIG_BATTERY_RK_SAMPLE  //battery driver
+//#define CONFIG_BATTERY_RK_SAMPLE  //battery driver
 
 #define CONFIG_MAX_PARTITIONS		16
 #define CONFIG_OF_FROM_RESOURCE
