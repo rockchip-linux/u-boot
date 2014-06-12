@@ -99,12 +99,15 @@ int charger_init(unsigned char bus)
 
 }
 
-static int rk808_i2c_probe(void)
+static int rk808_i2c_probe(u32 bus, u32 addr)
 {
 	char val;
-	i2c_set_bus_num(rk808.pmic->bus);
+	i2c_set_bus_num(bus);
 	i2c_init(RK808_I2C_SPEED, 0);
-	val = i2c_reg_read(rk808.pmic->hw.i2c.addr, 0x2f);
+	val = i2c_probe(addr);
+	if (val < 0)
+		return -ENODEV;
+	val = i2c_reg_read(addr, 0x2f);
 	if (val == 0xff)
 		return -ENODEV;
 	else
@@ -116,8 +119,9 @@ static int rk808_i2c_probe(void)
 static int rk808_parse_dt(const void* blob)
 {
 	int node, parent, nd;
-	u32 i2c_bus_addr;
+	u32 i2c_bus_addr, bus;
 	int ret;
+	fdt_addr_t addr;
 	struct fdt_gpio_state gpios[2];
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_RK808);
@@ -126,20 +130,17 @@ static int rk808_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
-	rk808.node = node;
-	rk808.pmic->hw.i2c.addr = fdtdec_get_addr(blob, node, "reg");
+	addr = fdtdec_get_addr(blob, node, "reg");
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
-	rk808.pwr_hold.gpio = rk_gpio_base_to_bank(gpios[1].gpio & RK_GPIO_BANK_MASK) | 
-				(gpios[1].gpio & RK_GPIO_PIN_MASK);
-	rk808.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
+	
 	parent = fdt_parent_offset(blob, node);
 	if (parent < 0) {
 		debug("%s: Cannot find node parent\n", __func__);
 		return -1;
 	}
 	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	rk808.pmic->bus = i2c_get_bus_num_fdt(i2c_bus_addr);
-	ret = rk808_i2c_probe();
+	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+	ret = rk808_i2c_probe(bus, addr);
 	if (ret < 0) {
 		debug("pmic rk808 i2c probe failed\n");
 		return ret;
@@ -151,6 +152,13 @@ static int rk808_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, rk808_reg_matches,
 					RK808_NUM_REGULATORS);
+	rk808.pmic = pmic_alloc();
+	rk808.node = node;
+	rk808.pmic->hw.i2c.addr = addr;
+	rk808.pmic->bus = bus;
+	rk808.pwr_hold.gpio = rk_gpio_base_to_bank(gpios[1].gpio & RK_GPIO_BANK_MASK) | 
+				(gpios[1].gpio & RK_GPIO_PIN_MASK);
+	rk808.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
 	debug("rk808 i2c_bus:%d addr:0x%02x\n", rk808.pmic->bus,
 		rk808.pmic->hw.i2c.addr);
 	return 0;
@@ -161,7 +169,6 @@ int pmic_rk808_init(unsigned char bus)
 {
 	int ret;
 	if (!rk808.pmic) {
-		rk808.pmic = pmic_alloc();
 		ret = rk808_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;

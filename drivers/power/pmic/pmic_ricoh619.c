@@ -1,25 +1,9 @@
 /*
- *  Copyright (C) 2012 Samsung Electronics
- *  Lukasz Majewski <l.majewski@samsung.com>
- *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ *  Copyright (C) 2012 rockchips
+ * yxj <yxj@rock-chips.com>
+ * 
  */
+
 /*#define DEBUG*/
 #include <common.h>
 #include <fdtdec.h>
@@ -257,12 +241,15 @@ static int ricoh619_set_voltage( struct ricoh619_regulator *ri,
 	return ret;
 }
 
-static int ricoh619_i2c_probe(void)
+static int ricoh619_i2c_probe(u32 bus, u32 addr)
 {
 	uchar val;
-	i2c_set_bus_num(ricoh619.pmic->bus);
+	i2c_set_bus_num(bus);
 	i2c_init (RICOH619_I2C_SPEED, 0);
-	val = i2c_reg_read(ricoh619.pmic->hw.i2c.addr, 0x36);
+	val = i2c_probe(addr);
+	if (val < 0)
+		return -ENODEV;
+	val = i2c_reg_read(addr, 0x36);
 	if ((val == 0xff) || (val == 0))
 		return -ENODEV;
 	else
@@ -272,8 +259,9 @@ static int ricoh619_i2c_probe(void)
 int ricoh619_parse_dt(const void* blob)
 {
 	int node, parent, nd;
-	u32 i2c_bus_addr;
+	u32 i2c_bus_addr, bus;
 	int ret;
+	fdt_addr_t addr;
 	node = fdt_node_offset_by_compatible(blob, 0,
 					COMPAT_RICOH_RICOH619);
 	if (node < 0) {
@@ -281,16 +269,15 @@ int ricoh619_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
-	ricoh619.node = node;
-	ricoh619.pmic->hw.i2c.addr = fdtdec_get_addr(blob, node, "reg");
+	addr = fdtdec_get_addr(blob, node, "reg");
 	parent = fdt_parent_offset(blob, node);
 	if (parent < 0) {
 		debug("%s: Cannot find node parent\n", __func__);
 		return -1;
 	}
 	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	ricoh619.pmic->bus = i2c_get_bus_num_fdt(i2c_bus_addr);
-	ret = ricoh619_i2c_probe();
+	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+	ret = ricoh619_i2c_probe(bus, addr);
 	if (ret < 0) {
 		debug("pmic ricoh619 i2c probe failed\n");
 		return ret;
@@ -301,6 +288,10 @@ int ricoh619_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, ricoh619_regulator_matches,
 					RICOH619_NUM_REGULATORS);
+	ricoh619.pmic = pmic_alloc();
+	ricoh619.node = node;
+	ricoh619.pmic->hw.i2c.addr = addr;
+	ricoh619.pmic->bus = bus;
 	debug("ricoh619 i2c_bus:%d addr:0x%02x\n", ricoh619.pmic->bus,
 		ricoh619.pmic->hw.i2c.addr);
 	return 0;
@@ -311,7 +302,6 @@ int pmic_ricoh619_init(unsigned char bus)
 {
 	int ret;
 	if (!ricoh619.pmic) {
-		ricoh619.pmic = pmic_alloc();
 		ret = ricoh619_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;

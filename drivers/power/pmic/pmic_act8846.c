@@ -190,12 +190,15 @@ int act8846_regulator_set(void)
 	return 0;
 }
 
-static int act8846_i2c_probe(void)
+static int act8846_i2c_probe(u32 bus ,u32 addr)
 {
 	char val;
-	i2c_set_bus_num(act8846.pmic->bus);
+	i2c_set_bus_num(bus);
 	i2c_init(ACT8846_I2C_SPEED, 0);
-	val = i2c_reg_read(act8846.pmic->hw.i2c.addr, 0x22);
+	val = i2c_probe(addr);
+	if (val < 0)
+		return -ENODEV;
+	val = i2c_reg_read(addr, 0x22);
 	if (val == 0xff)
 		return -ENODEV;
 	else
@@ -207,8 +210,9 @@ static int act8846_i2c_probe(void)
 static int act8846_parse_dt(const void* blob)
 {
 	int node, parent, nd;
-	u32 i2c_bus_addr;
+	u32 i2c_bus_addr, bus;
 	int ret;
+	fdt_addr_t addr;
 	struct fdt_gpio_state gpios[2];
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ACTIVE_ACT8846);
@@ -217,20 +221,16 @@ static int act8846_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
-	act8846.node = node;
-	act8846.pmic->hw.i2c.addr = fdtdec_get_addr(blob, node, "reg");
-	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
-	act8846.pwr_hold.gpio = rk_gpio_base_to_bank(gpios[1].gpio & RK_GPIO_BANK_MASK) | 
-				(gpios[1].gpio & RK_GPIO_PIN_MASK);
-	act8846.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
+	addr = fdtdec_get_addr(blob, node, "reg");
+	
 	parent = fdt_parent_offset(blob, node);
 	if (parent < 0) {
 		debug("%s: Cannot find node parent\n", __func__);
 		return -1;
 	}
 	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	act8846.pmic->bus = i2c_get_bus_num_fdt(i2c_bus_addr);
-	ret = act8846_i2c_probe();
+	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+	ret = act8846_i2c_probe(bus, addr);
 	if (ret < 0) {
 		debug("pmic act8846 i2c probe failed\n");
 		return ret;
@@ -238,10 +238,18 @@ static int act8846_parse_dt(const void* blob)
 	
 	nd = fdt_get_regulator_node(blob, node);
 	if (nd < 0)
-		printf("%s: Cannot find regulators\n");
+		printf("%s: Cannot find regulators\n", __func__);
 	else
 		fdt_regulator_match(blob, nd, act8846_reg_matches,
 					ACT8846_NUM_REGULATORS);
+	act8846.pmic = pmic_alloc();
+	act8846.node = node;
+	act8846.pmic->hw.i2c.addr = addr;
+	act8846.pmic->bus = bus;
+	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
+	act8846.pwr_hold.gpio = rk_gpio_base_to_bank(gpios[1].gpio & RK_GPIO_BANK_MASK) | 
+				(gpios[1].gpio & RK_GPIO_PIN_MASK);
+	act8846.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
 	return 0;
 	 
 }
@@ -251,7 +259,6 @@ int pmic_act8846_init(unsigned char bus)
 {
 	int ret;
 	if (!act8846.pmic) {
-		act8846.pmic = pmic_alloc();
 		ret = act8846_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;
