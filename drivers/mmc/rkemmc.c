@@ -126,9 +126,7 @@ static void emmc_dev_reset(void)
 static void emmc_gpio_init(void) 
 {
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
-	Writel(gGrfBaseAddr + 0x20, 0xffffaaaa);
-	Writel(gGrfBaseAddr + 0x24, 0x000c0008);
-	Writel(gGrfBaseAddr + 0x28, 0x003f002a);
+	rk_iomux_config(RK_EMMC_IOMUX);
 #endif
 }
 
