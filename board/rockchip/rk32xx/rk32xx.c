@@ -128,7 +128,6 @@ void rk_backlight_ctrl(int brightness)
 
 void rk_fb_init(unsigned int onoff)
 {
-	pmic_init(0);  //enable lcdc power
 
 #ifdef CONFIG_OF_LIBFDT
 	if (lcd_node == 0) rk_lcd_parse_dt(gd->fdt_blob);
@@ -218,50 +217,6 @@ int board_mmc_init(bd_t *bis)
 }
 
 
-#ifdef CONFIG_RK_I2C
-static void rk_pmic_i2c_init(void)
-{
-#ifdef CONFIG_RK616
-	i2c_set_bus_num(I2C_BUS_CH4);
-	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
-#endif
-}
-#endif
-
-
-#ifdef CONFIG_POWER_ACT8846
-struct pmic_voltage pmic_vol[] = {
-	{"act_dcdc1", 1200000},
-	{"vdd_core" , 1000000},
-	{"vdd_cpu"  , 1000000},
-	{"act_dcdc4", 3000000},
-	{"act_ldo1" , 1000000},
-	{"act_ldo2" , 1200000},
-	{"act_ldo3" , 1800000},
-	{"act_ldo4" , 3300000},
-	{"act_ldo5" , 3300000},
-	{"act_ldo6" , 3300000},
-	{"act_ldo7" , 1800000},
-	{"act_ldo8" , 2800000},
-};
-
-
-int pmic_get_vol(char *name)
-{
-	int i =0, vol = 0;
-
-	for(i=0;i<ARRAY_SIZE(pmic_vol);i++) {
-		if(strcmp(pmic_vol[i].name, name) == 0) {
-			vol = pmic_vol[i].vol;
-			break;
-		}
-	}
-
-	return vol;
-}
-#endif /* CONFIG_POWER_ACT8846 */
-
-
 /*****************************************
  * Routine: board_init
  * Description: Early hardware init.
@@ -293,18 +248,12 @@ int checkboard(void)
 int board_late_init(void)
 {
 	debug("board_late_init\n");
-
 	load_disk_partitions();
 	prepare_fdt();
-
-#ifdef CONFIG_RK_I2C 
-	rk_pmic_i2c_init();
-#endif
 	key_init();
-#ifdef CONFIG_POWER_RK808
-	charger_init(0);
-#elif CONFIG_POWER_ACT8846
 	pmic_init(0);
+#if defined(CONFIG_UBOOT_CHARGE)
+	fg_init(0);
 #endif
 	SecureBootCheck();
 
