@@ -50,8 +50,8 @@ static bool inline read_storage(uint16_t offset, void* buf, uint16_t blocks) {
 
 static int inline get_base_offset(void) {
 	const disk_partition_t* ptn;
-#ifdef CONFIG_CMD_FASTBOOT
-	ptn	= fastboot_find_ptn(RESOURCE_NAME);
+#ifdef CONFIG_ROCKCHIP
+	ptn	= get_disk_partition(RESOURCE_NAME);
 #else
 	//TODO: find disk_partition_t in other way.
 	ptn = NULL;

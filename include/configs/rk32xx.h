@@ -407,5 +407,7 @@
 //#define CONFIG_BATTERY_RICOH619
 #define CONFIG_BATTERY_RK_SAMPLE  //battery driver
 
+#define CONFIG_MAX_PARTITIONS		16
+
 #endif /* __CONFIG_H */
 

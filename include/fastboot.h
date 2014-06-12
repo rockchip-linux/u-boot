@@ -131,7 +131,6 @@ typedef struct chunk_header {
  */
 /* end sparse things */
 
-#define FBT_MAX_PARTITION_NAME_LEN 16
 #define USB_MAX_TRANS_SIZE  0x20000
 struct cmd_fastboot_interface {
 
@@ -143,7 +142,7 @@ struct cmd_fastboot_interface {
 
 	//fastboot likely to query partition-type before do flash.
 	const disk_partition_t *pending_ptn;
-	char pending_ptn_name[FBT_MAX_PARTITION_NAME_LEN];
+	char pending_ptn_name[32];//see include/part.h
 
 	/* Transfer buffer, for handling flash updates
 	   Should be multiple of the block size
@@ -234,8 +233,6 @@ struct cmd_fastboot_interface {
 #define FASTBOOT_BOOT_NAME_SIZE 16
 #define FASTBOOT_BOOT_ARGS_SIZE 512
 
-#define FBT_MAX_PARTITION_NUM 16
-
 #define PARAMETER_NAME  "parameter"
 #define LOADER_NAME     "loader"
 #define UBOOT_NAME      "uboot"
@@ -303,12 +300,12 @@ int board_fbt_handle_download(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv);
 int board_fbt_check_misc(void);
 int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
-const disk_partition_t *fastboot_find_ptn(const char *name);
-int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition);
+int board_fbt_load_partition_table(void);
 void board_fbt_boot_failed(const char* boot);
 int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked);
 int board_fbt_is_cold_boot(void);
 int board_fbt_is_charging(void);
+const disk_partition_t* board_fbt_get_partition(const char* name);
 
 #define FBT_ERR
 #undef  FBT_WARN

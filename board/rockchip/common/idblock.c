@@ -450,13 +450,17 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 
 static int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 {
-	mtd_partition *misc_part = gBootInfo.cmd_mtd.parts+gBootInfo.index_misc;
+	const disk_partition_t *misc_part = get_disk_partition(MISC_NAME);
+	if (!misc_part) {
+		printf("misc partition not found!\n");
+		return -1;
+	}
 	RK28BOOT_HEAD* hdr = (RK28BOOT_HEAD*)pLoader;
 	int nBootSize = 0;
 
 	if (!dataLoaded)
 	{
-		if(StorageReadLba(misc_part->offset+96, (void*)pLoader,4)!=0 )
+		if(StorageReadLba(misc_part->start+96, (void*)pLoader,4)!=0 )
 		{
 			//PRINT_E("ERROR: StorageRead(%d, %d, %d, 0x%p) Failed!\n", 0, misc_part->offset+96, 4, pLoader);
 			return -1;
@@ -476,7 +480,7 @@ static int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 
 	if (!dataLoaded)
 	{
-		if( CopyFlash2Memory( (int32)pLoader, misc_part->offset+96, BYTE2SECTOR(nBootSize)) )
+		if( CopyFlash2Memory( (int32)pLoader, misc_part->start+96, BYTE2SECTOR(nBootSize)) )
 			return -3;
 	}
 
@@ -650,7 +654,8 @@ int update_loader(void)
 }
 #endif
 
-static int dispose_bootloader_cmd(struct bootloader_message *msg, mtd_partition *misc_part)
+static int dispose_bootloader_cmd(struct bootloader_message *msg,
+		const disk_partition_t *misc_part)
 {
 	int ret = 0;
 	if(0 == strcmp(msg->command, "boot-recovery")) {
@@ -670,7 +675,7 @@ static int dispose_bootloader_cmd(struct bootloader_message *msg, mtd_partition 
 			memset(g_32secbuf, 0, 32*528);
 			for(i=0; i<3; i++)
 			{
-				if(StorageWriteLba(misc_part->offset+i*32,  (void*)g_32secbuf ,32,0) != 0 )
+				if(StorageWriteLba(misc_part->start+i*32,  (void*)g_32secbuf ,32,0) != 0 )
 				{
 					//PRINT_E("Clear misc failed!\n");
 					//break;
@@ -881,7 +886,7 @@ int checkMisc(void)
 	struct bootloader_message *bmsg = NULL;
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
 			RK_BLK_SIZE) * RK_BLK_SIZE);
-	const disk_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
+	const disk_partition_t *ptn = get_disk_partition(MISC_NAME);
 	if (!ptn) {
 		printf("misc partition not found!\n");
 		return false;
@@ -898,7 +903,12 @@ int checkMisc(void)
 	} else if((!strcmp(bmsg->command, "bootloader")) ||
 			(!strcmp(bmsg->command, "loader"))) {
 		printf("got bootloader cmd from misc.\n");
-		dispose_bootloader_cmd(bmsg, gBootInfo.cmd_mtd.parts+gBootInfo.index_misc);
+		const disk_partition_t* misc_part = get_disk_partition(MISC_NAME);
+		if (!misc_part) {
+			printf("misc partition not found!\n");
+			return -1;
+		}
+		dispose_bootloader_cmd(bmsg, misc_part);
 	}
 	return false;
 }
@@ -909,7 +919,7 @@ int setBootloaderMsg(struct bootloader_message* bmsg)
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
 			RK_BLK_SIZE) * RK_BLK_SIZE);
 	memcpy(buf, bmsg, sizeof(struct bootloader_message));
-	const disk_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
+	const disk_partition_t *ptn = get_disk_partition(MISC_NAME);
 	if (!ptn) {
 		printf("misc partition not found!\n");
 		return -1;

@@ -276,40 +276,12 @@ void board_fbt_boot_failed(const char* boot)
 }
 
 
-int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition)
+int board_fbt_load_partition_table(void)
 {
-	int i = 0;
-	int ret = -1;
-	cmdline_mtd_partition *cmd_mtd;
-	PLoaderParam param = (PLoaderParam)memalign(ARCH_DMA_MINALIGN, MAX_LOADER_PARAM * PARAMETER_NUM);
-	memset((void*)ptable, 0, sizeof(disk_partition_t) * max_partition);
-
-	if (!GetParam(0, param)) {
-		ParseParam( &gBootInfo, param->parameter, param->length );
-		cmd_mtd = &(gBootInfo.cmd_mtd);
-		for(i = 0;i < cmd_mtd->num_parts;i++) {
-			if (i >= max_partition) {
-				printf("Failed! Too much partition: %d(%d)\n",
-						cmd_mtd->num_parts, max_partition);
-				goto end;
-			}
-			snprintf((char*)ptable[i].name, sizeof(ptable[i].name), "%s",
-					cmd_mtd->parts[i].name);
-			ptable[i].start = cmd_mtd->parts[i].offset;
-			ptable[i].size = cmd_mtd->parts[i].size;
-			ptable[i].blksz = RK_BLK_SIZE;
-			snprintf((char*)ptable[i].type, sizeof(ptable[i].type), "%s", "raw");
-#if 0
-			printf("partition(%s): offset=0x%08X, size=0x%08X\n", \
-				cmd_mtd->parts[i].name, cmd_mtd->parts[i].offset, \
-				cmd_mtd->parts[i].size);
-#endif
-        	}
-		ret = 0;
-	}
-end:
-	if (param)
-		free(param);
-	return ret;
+	return load_disk_partitions();
 }
 
+const disk_partition_t* board_fbt_get_partition(const char* name)
+{
+	return get_disk_partition(name);
+}

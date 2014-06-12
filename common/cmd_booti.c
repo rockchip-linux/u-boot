@@ -74,8 +74,8 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	raddr = (void*)0;
 #endif
 
-#ifdef CONFIG_CMD_FASTBOOT
-	ptn = fastboot_find_ptn(boot_source);
+#ifdef CONFIG_ROCKCHIP
+	ptn = get_disk_partition(boot_source);
 #else
 	//TODO: find disk_partition_t other way.
 #endif
@@ -101,7 +101,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 			snprintf((char*)hdr->magic,
 					FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
-			if (loadRkImage(hdr, ptn, fastboot_find_ptn(KERNEL_NAME)) != 0) {
+			if (loadRkImage(hdr, ptn, get_disk_partition(KERNEL_NAME)) != 0) {
 				FBTERR("booti: bad boot or kernel image\n");
 				goto fail;
 			}

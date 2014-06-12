@@ -33,7 +33,6 @@
 #define MAGIC_CODE			0x00280028
 #define EATCHAR(x, c)			for (; *(x) == (c); (x)++) ; // È¥³ý×Ö·û´®xÖÐ×ó±ßÎªcµÄ×Ö·û
 #define PART_NAME	32
-#define MAX_PARTS	20
 #define MAX_MTDID	64
 
 #define MTD_WRITEABLE			0x400	/* Device is writeable */
@@ -51,18 +50,10 @@
 #define PARTNAME_BACKUP			"backup"
 #define PARTNAME_SNAPSHOT		"snapshot"
 
-
-typedef struct tag_mtd_partition {
-	char name[PART_NAME];			/* identifier string */
-	unsigned int size;			/* partition size */
-	unsigned int offset;		/* offset within the master MTD space */
-	unsigned int mask_flags;		/* master MTD flags to mask out for this partition */
-}mtd_partition;
-
 typedef struct tag_cmdline_mtd_partition {
 	char mtd_id[MAX_MTDID];
 	int num_parts;
-	mtd_partition parts[MAX_PARTS];
+	disk_partition_t parts[CONFIG_MAX_PARTITIONS];
 }cmdline_mtd_partition;
 
 typedef struct tagLoaderParam
@@ -108,5 +99,8 @@ extern uint32			parameter_lba;
 
 extern void ParseParam(PBootInfo pboot_info, char *param, uint32 len);
 extern int32 GetParam(uint32 param_addr, void* buf);
+const disk_partition_t* get_disk_partition(const char* name);
+void dump_disk_partitions(void);
+int load_disk_partitions(void);
 
 #endif

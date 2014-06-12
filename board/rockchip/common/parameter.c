@@ -38,7 +38,7 @@ static int find_mtd_part(cmdline_mtd_partition* this_mtd, const char* part_name)
 	int i=0;
 	for(i=0; i<this_mtd->num_parts; i++)
 	{
-		if( !strcmp(part_name, this_mtd->parts[i].name) )
+		if( !strcmp(part_name, (const char*)this_mtd->parts[i].name) )
 			return i;
 	}
 	
@@ -99,7 +99,7 @@ static unsigned long memparse (char *ptr, char **retptr)
 	return ret;
 }
 
-static int get_part(char* parts, mtd_partition* this_part, int* part_index)
+static int get_part(char* parts, disk_partition_t* this_part, int* part_index)
 {
 	char delim;
 	unsigned int mask_flags;
@@ -165,11 +165,12 @@ static int get_part(char* parts, mtd_partition* this_part, int* part_index)
 	}
 
 	this_part->size = size;
-	this_part->offset = offset;
-	this_part->mask_flags = mask_flags;
-	sprintf( this_part->name, "%s", name);
+	this_part->start = offset;
+	this_part->blksz = RK_BLK_SIZE;
+	snprintf((char*)this_part->name, sizeof(this_part->name), "%s", name);
+	snprintf((char*)this_part->type, sizeof(this_part->type), "%s", "raw");
 
-	if( (++(*part_index) < MAX_PARTS) && (*parts == ',') )
+	if( (++(*part_index) < CONFIG_MAX_PARTITIONS) && (*parts == ',') )
 	{
 		get_part(++parts, this_part+1, part_index);
 	}
@@ -238,7 +239,8 @@ int parse_cmdline(PBootInfo pboot_info)
 
 		if(pboot_info->index_backup > 0)
 		{
-			g_FwEndLba = pboot_info->cmd_mtd.parts[pboot_info->index_backup].offset + pboot_info->cmd_mtd.parts[pboot_info->index_backup].size;
+			g_FwEndLba = pboot_info->cmd_mtd.parts[pboot_info->index_backup].start
+				+ pboot_info->cmd_mtd.parts[pboot_info->index_backup].size;
 		}
 
 		get_rdInfo(pboot_info);
@@ -526,5 +528,56 @@ void ParseParam(PBootInfo pboot_info, char *param, uint32 len)
 	}
 //	RkPrintf("--------------------------------------\n");
 //	RkPrintf("Leave\n");
+}
+
+void dump_disk_partitions(void)
+{
+	int i;
+	printf("dump_disk_partitions:\n");
+	for(i = 0;i < gBootInfo.cmd_mtd.num_parts;i++) {
+		printf("partition(%s): start=0x%08lX, size=0x%08lX, type=%s\n", \
+				gBootInfo.cmd_mtd.parts[i].name, gBootInfo.cmd_mtd.parts[i].start, \
+				gBootInfo.cmd_mtd.parts[i].size, gBootInfo.cmd_mtd.parts[i].type);
+	}
+}
+
+const disk_partition_t* get_disk_partition(const char* name)
+{
+	int part_index = find_mtd_part(&gBootInfo.cmd_mtd, name);
+	if (part_index < 0) {
+		printf("failed to find part:%s\n", name);
+		return NULL;
+	}
+	return &gBootInfo.cmd_mtd.parts[part_index];
+}
+
+int load_disk_partitions(void)
+{
+	int i = 0;
+	int ret = -1;
+	cmdline_mtd_partition *cmd_mtd;
+	PLoaderParam param = (PLoaderParam)memalign(ARCH_DMA_MINALIGN, MAX_LOADER_PARAM * PARAMETER_NUM);
+
+	if (!GetParam(0, param)) {
+		ParseParam( &gBootInfo, param->parameter, param->length );
+		cmd_mtd = &(gBootInfo.cmd_mtd);
+		for(i = 0;i < cmd_mtd->num_parts;i++) {
+			if (i >= CONFIG_MAX_PARTITIONS) {
+				printf("Failed! Too much partition: %d(%d)\n",
+						cmd_mtd->num_parts, CONFIG_MAX_PARTITIONS);
+				goto end;
+			}
+#ifdef DEBUG
+			printf("partition(%s): offset=0x%08lX, size=0x%08lX\n", \
+					cmd_mtd->parts[i].name, cmd_mtd->parts[i].start, \
+					cmd_mtd->parts[i].size);
+#endif
+		}
+		ret = 0;
+	}
+end:
+	if (param)
+		free(param);
+	return ret;
 }
 

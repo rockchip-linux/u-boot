@@ -269,8 +269,6 @@ static char* log_buffer;
 static uint32_t log_position;
 #endif
 
-static disk_partition_t fbt_partitions [FBT_MAX_PARTITION_NUM];
-
 //TODO: get rid of these!
 #ifdef CONFIG_ROCKCHIP
 extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
@@ -590,26 +588,6 @@ static void create_serial_number(void)
 	}
 }
 
-const disk_partition_t *fastboot_find_ptn(const char *name)
-{
-	unsigned int i;
-
-	for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
-		if (!fbt_partitions[i].name[0])
-			break;
-		if (!strcmp((char *)fbt_partitions[i].name, name))
-			return &fbt_partitions[i];
-	}
-
-	FBTERR("partition(%s) not found, aborting\ntable:\n", name);
-	for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
-		if (!fbt_partitions[i].name[0])
-			break;
-		FBTDBG("partition(%s)\n", fbt_partitions[i].name);
-	}
-	return NULL;
-}
-
 static void fbt_set_unlocked(int unlocked)
 {
 	char *unlocked_string;
@@ -674,8 +652,7 @@ static void fbt_fastboot_init(void)
 	else
 		FBTDBG("Device is locked\n");
 
-	(void)board_fbt_load_partition_table((disk_partition_t *)&fbt_partitions,
-			FBT_MAX_PARTITION_NUM);
+	(void)board_fbt_load_partition_table();
 
 	//TODO:load device info, setup serial_number
 	if (priv.serial_no == NULL)
@@ -688,7 +665,7 @@ static int fbt_handle_erase(char *cmdbuf)
 	const disk_partition_t *ptn;
 	int err;
 	char *partition_name = cmdbuf + 6;
-	ptn = fastboot_find_ptn(partition_name);
+	ptn = board_fbt_get_partition(partition_name);
 	if (ptn == 0) {
 		FBTERR("Partition %s does not exist\n", partition_name);
 		sprintf(priv.response, "FAILpartition does not exist");
@@ -729,13 +706,12 @@ static int fbt_handle_flash(char *cmdbuf, int check_unlock)
 		return -1;
 	}
 
-	ptn = fastboot_find_ptn(name);
+	ptn = board_fbt_get_partition(name);
 	if (!board_fbt_handle_flash(name, ptn, &priv)) {
 		sprintf(priv.response, "OKAY");
 
 		//reload partition after flash.
-		(void)board_fbt_load_partition_table((disk_partition_t *)&fbt_partitions,
-				FBT_MAX_PARTITION_NUM);
+		(void)board_fbt_load_partition_table();
 
 		return 0;
 	}
@@ -793,23 +769,12 @@ static const char *getvar_partition_type(const char *args)
 	const char *partition_name;
 	const disk_partition_t *ptn;
 
-	if (!strcmp(args, "all")) {
-		int i;
-		for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
-			if (!fbt_partitions[i].name[0])
-				break;
-			FBTDBG("partition \"%s\" has type \"%s\"\n",
-					fbt_partitions[i].name, fbt_partitions[i].type);
-		}
-		return NULL;
-	}
-
 	priv.pending_ptn = NULL;
 
 	partition_name = args + sizeof("partition-type:") - 1;
 	snprintf(priv.pending_ptn_name, sizeof(priv.pending_ptn_name), "%s", partition_name);
 
-	ptn = fastboot_find_ptn(partition_name);
+	ptn = board_fbt_get_partition(partition_name);
 	if (ptn) {
 		FBTDBG("fastboot pending_ptn:%s\n", ptn->name);
 		priv.pending_ptn = ptn;
@@ -908,20 +873,8 @@ static const char *getvar_partition_offset(const char *args)
 	const char *partition_name;
 	const disk_partition_t *ptn;
 
-	if (!strcmp(args, "all")) {
-		int i;
-		for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
-			if (!fbt_partitions[i].name[0])
-				break;
-			FBTDBG("partition \"%s\" offset 0x%08llx\n",
-					fbt_partitions[i].name,
-					(uint64_t)fbt_partitions[i].start);
-		}
-		return NULL;
-	}
-
 	partition_name = args + sizeof("partition-offset:") - 1;
-	ptn = fastboot_find_ptn(partition_name);
+	ptn = board_fbt_get_partition(partition_name);
 	if (ptn) {
 		snprintf(priv.response, sizeof(priv.response),
 				"OKAY0x%08llx", (uint64_t)ptn->start);
@@ -938,20 +891,8 @@ static const char *getvar_partition_size(const char *args)
 	const char *partition_name;
 	const disk_partition_t *ptn;
 
-	if (!strcmp(args, "all")) {
-		int i;
-		for (i = 0; i < FBT_MAX_PARTITION_NUM; i++) {
-			if (!fbt_partitions[i].name[0])
-				break;
-			FBTDBG("partition \"%s\" has size 0x%016llx(blk)\n",
-					fbt_partitions[i].name,
-					(uint64_t)fbt_partitions[i].size);
-		}
-		return NULL;
-	}
-
 	partition_name = args + sizeof("partition-size:") - 1;
-	ptn = fastboot_find_ptn(partition_name);
+	ptn = board_fbt_get_partition(partition_name);
 	if (ptn) {
 		snprintf(priv.response, sizeof(priv.response),
 				"OKAY0x%016llx(blk)", (uint64_t)ptn->size);
@@ -1216,7 +1157,7 @@ static void fbt_handle_oem(char *cmdbuf)
 		priv.unlock_pending_start_time = 0;
 		FBTDBG("Erasing userdata partition\n");
 		const disk_partition_t* ptn;
-		ptn = fastboot_find_ptn("userdata");
+		ptn = board_fbt_get_partition("userdata");
 		if (ptn) {
 			err = board_fbt_handle_erase(ptn);
 		}
@@ -1642,7 +1583,7 @@ static void fbt_run_recovery_wipe_data(void)
 
 	FBTDBG("Rebooting into recovery to do wipe_data\n");
 
-	if (!fastboot_find_ptn("misc"))
+	if (!board_fbt_get_partition("misc"))
 	{
 		FBTERR("not found misc partition, just run recovery.\n");
 		fbt_run_recovery();
@@ -1727,8 +1668,13 @@ static int __def_board_fbt_is_charging(void)
 {
 	return 0;
 }
+static const disk_partition_t* __def_board_fbt_get_partition(const char* name)
+{
+	return NULL;
+}
 
-
+const disk_partition_t* board_fbt_get_partition(const char* name)
+	__attribute__((weak, alias("__def_board_fbt_get_partition")));
 int board_fbt_is_cold_boot(void)
     __attribute__((weak, alias("__def_board_fbt_is_cold_boot")));
 int board_fbt_is_charging(void)
