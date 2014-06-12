@@ -39,6 +39,7 @@ uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 #ifndef CONFIG_SYS_DCACHE_OFF
 	flush_cache(adr, size);
 #endif
+	return 0;
 }
 
 

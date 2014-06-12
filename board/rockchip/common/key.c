@@ -94,6 +94,7 @@ int GetPortState(key_config *key)
 			return state;
 		}
 	}
+	return 0;
 }
 
 

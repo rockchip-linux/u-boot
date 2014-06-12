@@ -27,16 +27,20 @@
 
 #include <sha.h>
 
-// Some machines lack byteswap.h and endian.h.  These have to use the
-// slower code, even if they're little-endian.
+/*
+ Some machines lack byteswap.h and endian.h.  These have to use the
+ slower code, even if they're little-endian.
+*/
 
 #if defined(HAVE_ENDIAN_H) && defined(HAVE_LITTLE_ENDIAN)
 
 #include <byteswap.h>
 #include <memory.h>
 
-// This version is about 28% faster than the generic version below,
-// but assumes little-endianness.
+/*
+ This version is about 28% faster than the generic version below,
+ but assumes little-endianness.
+*/
 
 static inline uint32_t ror27(uint32_t val) {
     return (val >> 27) | (val << 5);
@@ -72,7 +76,7 @@ static void SHA1_Transform(SHA_CTX* ctx) {
         SHA_F1(C,D,E,A,B,t + 3);
         SHA_F1(B,C,D,E,A,t + 4);
     }
-    SHA_F1(A,B,C,D,E,t + 0);  // 16th one, t == 15
+    SHA_F1(A,B,C,D,E,t + 0);  /* 16th one, t == 15 */
 
 #undef SHA_F1
 
@@ -188,7 +192,7 @@ const uint8_t* SHA_final(SHA_CTX* ctx) {
     return ctx->buf.b;
 }
 
-#else   // #if defined(HAVE_ENDIAN_H) && defined(HAVE_LITTLE_ENDIAN)
+#else /* #if defined(HAVE_ENDIAN_H) && defined(HAVE_LITTLE_ENDIAN)*/
 
 #define rol(bits, value) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
@@ -281,7 +285,7 @@ const uint8_t *SHA_final(SHA_CTX *ctx) {
     return ctx->buf;
 }
 
-#endif // endianness
+#endif /* endianness */
 
 void SHA_init(SHA_CTX* ctx) {
     ctx->state[0] = 0x67452301;

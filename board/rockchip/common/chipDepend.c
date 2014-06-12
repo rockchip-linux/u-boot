@@ -91,8 +91,6 @@ void rkplat_uart2UsbEn(uint32 en)
 {
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	if (en) {
-		uint32 con = 0;
-
 		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usbphy0 bypass select and otg disable.
 
 		/* if define force enable usb to uart, maybe usb function will be affected */

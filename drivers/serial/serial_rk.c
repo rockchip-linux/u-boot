@@ -268,15 +268,6 @@ static void rk_serial_putc(char c)
 	rk_uart_sendbyte(CONFIG_UART_NUM, c);
 }
 
-
-static void rk_serial_puts(const char *s)
-{
-	while (*s) {
-		serial_putc(*s++);
-	}
-}
-
-
 static int rk_serial_tstc(void)
 {
 	return (int)rk_uart_tstc(CONFIG_UART_NUM);
