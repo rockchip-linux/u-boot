@@ -116,7 +116,7 @@ int board_fbt_is_cold_boot(void)
  */
 int board_fbt_is_charging(void)
 {
-    return check_charge();
+    return is_charging();
 }
 
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)

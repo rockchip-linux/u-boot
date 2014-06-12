@@ -192,17 +192,6 @@ void key_init(void)
 	PowerKeyInit();
 }
 
-/*
-return 0: no charger
-return 1: charging
-*/
-int is_charging(void)
-{
-	if(charge_state_gpio.name != NULL)
-		return (charge_state_gpio.flags == gpio_get_value(charge_state_gpio.gpio));
-
-	return 0;
-}
 
 void powerOn(void)
 {
