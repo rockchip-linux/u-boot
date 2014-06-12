@@ -28,10 +28,9 @@
 #include <version.h>
 #include <asm/io.h>
 
-#include <asm/arch/rkplat.h>
-
 #include <power/pmic.h>
-#include "config.h"
+#include <asm/arch/rkplat.h>
+#include "../config.h"
 
 extern uint32 GetVbus(void);
 extern void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );

@@ -9,7 +9,6 @@
 #include <errno.h>
 
 #include <../board/rockchip/common/config.h>
-#include <../board/rockchip/common/storage.h>
 
 
 char *env_name_spec = "RK STORAGE";

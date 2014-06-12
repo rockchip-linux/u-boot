@@ -27,9 +27,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_RK_UDC)
 #include <usb/dwc_otg_udc.h>
 #endif
+#include <../board/rockchip/common/config.h>
 
-
-extern uint32_t SecureBootLock;
+extern uint32 SecureBootLock;
 extern void FW_SorageLowFormatEn(int en);
 
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);

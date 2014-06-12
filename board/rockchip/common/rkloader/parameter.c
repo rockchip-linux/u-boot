@@ -25,7 +25,7 @@
 #include <common.h>
 #include <malloc.h>
 
-#include "config.h"
+#include "../config.h"
 #include "parameter.h"
 
 

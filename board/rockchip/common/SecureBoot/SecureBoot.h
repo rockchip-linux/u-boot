@@ -22,8 +22,8 @@
  * MA 02111-1307 USA
  */
 
-#ifndef _RK_BOOT_H_
-#define _RK_BOOT_H_
+#ifndef _RK_SECUREBOOT_H_
+#define _RK_SECUREBOOT_H_
 
 
 #define RKNAND_SYS_STORGAE_DATA_LEN	504
@@ -84,8 +84,9 @@ uint32 SecureBootSignCheck(uint8 * rsaHash, uint8 *Hash, uint8 length);
 uint32 SecureBootDisable(void);
 void SecureBootUnlock(uint8 *pKey);
 void SecureBootUnlockCheck(uint8 *pKey);
+void SecureBootLockLoader(void);
 
 uint32 SetSysData2Kernel(uint32 SecureBootFlag);
 
-#endif	/* _RK_BOOT_H_ */
+#endif	/* _RK_SECUREBOOT_H_ */
 

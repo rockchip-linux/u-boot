@@ -78,18 +78,20 @@
 #include <asm/arch/rkplat.h>
 
 //平台相关头文件
-#include "ftl_std.h"
-#include "chipDepend.h"
+#include "platform/ftl_std.h"
+#include "platform/chipDepend.h"
 
 //系统相关头文件
-#include "parameter.h"
-#include "rsa.h"
-#include "sha.h"
-#include "boot.h"
-#include "rkimage.h"
-#include "idblock.h"
-#include "storage.h"
-#include "key.h"
+#include "rkloader/parameter.h"
+#include "platform/rsa.h"
+#include "platform/sha.h"
+#include "SecureBoot/SecureBoot.h"
+#include "rkloader/rkimage.h"
+#include "rkloader/idblock.h"
+#include "rkloader/key.h"
+#include "storage/storage.h"
+#include "mediaboot/emmc_boot.h"
+#include "mediaboot/nandflash_boot.h"
 
 // by cmy
 #define SYS_LOADER_REBOOT_FLAG		0x5242C300  //高24是TAG,低8位是标记

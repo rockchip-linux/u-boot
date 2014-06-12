@@ -25,7 +25,7 @@
 #define RKIDBLOCK_H
 
 #include <fastboot.h>
-#include "config.h"
+#include "../config.h"
 
 extern BootInfo gBootInfo;
 

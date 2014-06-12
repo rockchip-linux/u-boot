@@ -8,10 +8,7 @@
 #include <usbdevice.h>
 #include <linux/sizes.h>
 #include <asm/unaligned.h>
-#include <asm/arch-rk32xx/typedef.h>
 #include <usb/udc.h>
-
-#include "../board/rockchip/common/storage.h"
 
 #include <usb_defs.h>
 

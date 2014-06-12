@@ -25,7 +25,7 @@
 #define RKIMAGE_H
 
 #include <fastboot.h>
-#include "config.h"
+#include "../config.h"
 
 #define TAG_KERNEL          0x4C4E524B
 

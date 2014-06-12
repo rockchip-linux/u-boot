@@ -23,7 +23,7 @@
  */
 #include <common.h>
 
-#include "config.h"
+#include "../config.h"
 #include "key.h"
 
 int gpio_reg[]={

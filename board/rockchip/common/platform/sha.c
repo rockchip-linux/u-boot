@@ -9,7 +9,7 @@
 /* this is only to get definitions for memcpy(), ntohl() and htonl() */
 
 //#include <string.h>
-#include    "config.h"
+#include "../config.h"
 #include "sha.h"
 
 extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);

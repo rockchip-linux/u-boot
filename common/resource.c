@@ -32,7 +32,6 @@
 #include <fastboot.h>
 #include <malloc.h>
 #include <../board/rockchip/common/config.h>
-#include <../board/rockchip/common/storage.h>
 
 #include <lcd.h>
 

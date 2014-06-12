@@ -8,11 +8,8 @@ Modified:
 Revision:       1.00
  ********************************************************************************/
 #include <malloc.h>
-#include "rkimage.h"
-#include "idblock.h"
-#include "sha.h"
-#include "parameter.h"
-#include "boot.h"
+
+#include "../config.h"
 
 #undef ALIGN
 

@@ -28,7 +28,7 @@
 #include <part.h>
 #include <malloc.h>
 
-#include "config.h"
+#include "../config.h"
 #include "emmc_boot.h"
 
 #undef ALIGN

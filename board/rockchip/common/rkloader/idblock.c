@@ -24,9 +24,8 @@
 
 #include <fastboot.h>
 #include <malloc.h>
-#include "config.h"
 #include <linux/sizes.h>
-
+#include "../config.h"
 DECLARE_GLOBAL_DATA_PTR;
 
 extern unsigned long gIdDataBuf[512];

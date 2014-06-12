@@ -20,22 +20,22 @@
 # MA 02111-1307 USA
 #
 
-obj-y += crc.o
-obj-y += rsa.o
-obj-y += sha.o
-obj-y += rc4_enc.o
-obj-y += rkimage.o
-obj-y += idblock.o
-obj-y += fastboot.o
-obj-y += recovery.o
-obj-y += parameter.o
-obj-y += boot.o
-obj-y += ftl_std.o
-obj-y += key.o
-obj-y += chipDepend.o
-obj-y += storage.o
-obj-y += emmc_boot.o
-obj-y += nandflash_boot.o
+obj-y += platform/crc.o
+obj-y += platform/rsa.o
+obj-y += platform/sha.o
+obj-y += platform/rc4_enc.o
+obj-y += platform/ftl_std.o
+obj-y += platform/chipDepend.o
+obj-y += rkloader/parameter.o
+obj-y += rkloader/idblock.o
+obj-y += rkloader/rkimage.o
+obj-y += rkloader/key.o
+obj-y += rkloader/recovery.o
+obj-y += rkboot/fastboot.o
+obj-y += SecureBoot/SecureBoot.o
+obj-y += storage/storage.o
+obj-y += mediaboot/emmc_boot.o
+obj-y += mediaboot/nandflash_boot.o
 
 
 

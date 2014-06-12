@@ -29,10 +29,9 @@
 #include <part.h>
 #include <malloc.h>
 
-#include "config.h"
+#include "../config.h"
 #include "storage.h"
-#include "nandflash_boot.h"
-#include "emmc_boot.h"
+
 
 
 static MEM_FUN_T NandFunOp = 

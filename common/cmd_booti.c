@@ -5,7 +5,6 @@
 #include <fastboot.h>
 #include <malloc.h>
 #include <../board/rockchip/common/config.h>
-#include <../board/rockchip/common/storage.h>
 
 extern int rk_bootm_start(bootm_headers_t *images);
 extern int do_bootm_linux(int flag, int argc, char *argv[],

@@ -22,8 +22,7 @@
  * MA 02111-1307 USA
  */
 
-#include "config.h"
-
+#include "../config.h"
 
 extern  uint32   RSA_KEY_TAG;
 extern  uint32   RSA_KEY_LENGTH;
@@ -34,20 +33,9 @@ uint32  SecureBootEn;
 uint32  SecureBootCheckOK;
 uint32  SecureBootLock;
 uint32  SecureBootLock_backup;
+
 BOOT_CONFIG_INFO gBootConfig __attribute__((aligned(ARCH_DMA_MINALIGN)));
 DRM_KEY_INFO gDrmKeyInfo __attribute__((aligned(ARCH_DMA_MINALIGN)));
-
-
-void RKLockLoader(void)
-{
-	if((RSK_KEY[0] == 0X400)) {
-		if(gDrmKeyInfo.secureBootLock == 0) {
-			gDrmKeyInfo.secureBootLock = 1;
-			gDrmKeyInfo.secureBootLockKey = 0;
-			StorageSysDataStore(1, &gDrmKeyInfo);
-		}
-	}
-}
 
 
 uint32 SecureBootCheck(void)
@@ -273,9 +261,22 @@ uint32 SecureBootSignCheck(uint8 * rsaHash, uint8 *Hash, uint8 length)
 	return ret;
 }
 
+
+void SecureBootLockLoader(void)
+{
+	if((RSK_KEY[0] == 0X400)) {
+		if(gDrmKeyInfo.secureBootLock == 0) {
+			gDrmKeyInfo.secureBootLock = 1;
+			gDrmKeyInfo.secureBootLockKey = 0;
+			StorageSysDataStore(1, &gDrmKeyInfo);
+		}
+	}
+}
+
+
 static void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 length)
 {
-	uint8 *pSramAddr = (uint8 *)(NANDC_BASE_ADDR + 0x1000);
+	uint8 *pSramAddr = (uint8 *)(RKIO_NANDC0_PHYS + 0x1000);
 
 	if (dir == 0)
 	{
@@ -290,6 +291,7 @@ static void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 len
 static uint32 JSHashBase(uint8 * buf, uint32 len, uint32 hash)
 {
 	uint32 i;
+
 	for(i=0;i<len;i++)
 	{
 		hash ^= ((hash << 5) + buf[i] + (hash >> 2));
@@ -298,14 +300,14 @@ static uint32 JSHashBase(uint8 * buf, uint32 len, uint32 hash)
 	return hash;
 }
 
-static uint32 JSHash(uint8 * buf,uint32 len)
+static uint32 JSHash(uint8 * buf, uint32 len)
 {
 	return(JSHashBase(buf, len, 0x47C6A7E6));
 }
 
 uint32 SetSysData2Kernel(uint32 SecureBootFlag)
 {
-	uint8 tmp_buf[512];
+	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
 
 	gBootConfig.secureBootEn = SecureBootFlag;
 	gBootConfig.sdPartOffset = StorageGetSDFwOffset();
@@ -320,7 +322,7 @@ uint32 SetSysData2Kernel(uint32 SecureBootFlag)
 
 	FlashSramLoadStore(&gBootConfig, 0, 1, 512);
 	FlashSramLoadStore(&gDrmKeyInfo, 512, 1, 512);
-	StorageSysDataLoad(2,tmp_buf); 
+	StorageSysDataLoad(2, tmp_buf); 
 	FlashSramLoadStore(tmp_buf, 1024, 1, 512);          // vonder info
 	FlashSramLoadStore(&gIdDataBuf[384], 1536, 1, 512);  // idblk sn info
 
