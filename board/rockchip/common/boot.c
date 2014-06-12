@@ -80,7 +80,6 @@ uint32 SecureBootCheck(void)
 #endif
 	SecureBootLock = 0;
 
-#define ERASE_DRM_KEY_EN
 #ifdef ERASE_DRM_KEY_EN
 	if(gSysData[128+4] != 0 )//publicKeyLen
 	{
