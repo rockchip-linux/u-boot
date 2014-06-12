@@ -213,9 +213,8 @@ static int mtdpart_parse(const char* string, cmdline_mtd_partition* this_mtd)
 }
 
 
-int parse_cmdline(PBootInfo pboot_info)
+static int parse_cmdline(PBootInfo pboot_info)
 {
-
 // cmy: 解析命令行，获取分区信息
 	pboot_info->cmd_mtd.num_parts = 0;
 	pboot_info->cmd_mtd.mtd_id[0]='\0';
@@ -272,7 +271,7 @@ static int ParseAtoi( const char * line )
 	EATCHAR(line, ' ');
 	if(*line == 0) return 0;
     
-	if( line[1] == 'x' || line[1] == 'X' ){
+	if( line[1] == 'x' || line[1] == 'X' ) {
 		base = 16;
 		max = 'f';      /* F*/
 		line += 2;
@@ -294,13 +293,13 @@ static int ParseAtoi( const char * line )
                                 v += *line-'0';
                         line++;
                 }
-    }
+	}
 
-    return v;
+	return v;
 }
 
 
-void ParseLine(PBootInfo pboot_info, char *line)
+static void ParseLine(PBootInfo pboot_info, char *line)
 {
 	if( !memcmp(line, "MAGIC:", strlen("MAGIC:")) )
 	    pboot_info->magic_code = ParseAtoi(line+strlen("MAGIC:"));
@@ -400,7 +399,7 @@ void ParseLine(PBootInfo pboot_info, char *line)
 // line   获取到的一行数据存放在该变量中
 // 返回值 偏移的位置
 //
-char* getline(char* param, int32 len, char *line)
+static char* getline(char* param, int32 len, char *line)
 {
 	int i=0;
 	
@@ -533,6 +532,7 @@ void ParseParam(PBootInfo pboot_info, char *param, uint32 len)
 void dump_disk_partitions(void)
 {
 	int i;
+
 	printf("dump_disk_partitions:\n");
 	for(i = 0;i < gBootInfo.cmd_mtd.num_parts;i++) {
 		printf("partition(%s): start=0x%08lX, size=0x%08lX, type=%s\n", \
@@ -578,6 +578,7 @@ int load_disk_partitions(void)
 end:
 	if (param)
 		free(param);
+
 	return ret;
 }
 

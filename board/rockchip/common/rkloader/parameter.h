@@ -54,7 +54,7 @@ typedef struct tag_cmdline_mtd_partition {
 	char mtd_id[MAX_MTDID];
 	int num_parts;
 	disk_partition_t parts[CONFIG_MAX_PARTITIONS];
-}cmdline_mtd_partition;
+} cmdline_mtd_partition;
 
 typedef struct tagLoaderParam
 {
@@ -62,7 +62,7 @@ typedef struct tagLoaderParam
 	uint32	length;
 	char	parameter[1];
 	uint32	crc;
-}LoaderParam, *PLoaderParam;
+} LoaderParam, *PLoaderParam;
 
 typedef struct tagBootInfo
 {
@@ -94,6 +94,7 @@ typedef struct tagBootInfo
 	char fdt_name[MAX_LINE_CHAR];
 } BootInfo, *PBootInfo;
 
+
 extern BootInfo			gBootInfo;
 extern uint32			parameter_lba;
 
@@ -103,4 +104,5 @@ const disk_partition_t* get_disk_partition(const char* name);
 void dump_disk_partitions(void);
 int load_disk_partitions(void);
 
-#endif
+#endif /* _PARAMETER_H_ */
+

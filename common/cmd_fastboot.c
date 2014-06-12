@@ -73,6 +73,8 @@
 #include <usbdevice.h>
 DECLARE_GLOBAL_DATA_PTR;
 
+#include <../board/rockchip/common/config.h>
+
 /* If a BUILD_TAG was passed as an argument to make, use it
  * for the fastboot version.  Otherwise, see if a board file
  * defined a CONFIG_FASTBOOT_VERSION_BOOTLOADER and if so, use
@@ -273,9 +275,7 @@ static uint32_t log_position;
 #ifdef CONFIG_ROCKCHIP
 extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
 extern void suspend_usb(void);
-extern int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec);
 extern int is_usbd_high_speed(void);
-extern unsigned int SecureBootCheck(void);
 extern void rk_backlight_ctrl(int brightness);
 extern void* rk_fdt_resource_load(void);
 extern int lcd_enable_logo(bool enable);
@@ -286,7 +286,7 @@ extern void lcd_standby(int enable);
 #else
 void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {;}
 extern void suspend_usb(void){;}
-int StorageReadLba(unsigned int LBA ,void *pbuf  , unsigned short nSec) {return 0;}
+int StorageReadLba(unsigned int LBA ,void *pbuf, unsigned short nSec) {return 0;}
 unsigned int SecureBootCheck(void) {return 0;}
 void rk_backlight_ctrl(int brightness) {;}
 void* rk_fdt_resource_load(void) {;}
@@ -1571,11 +1571,6 @@ static void fbt_run_recovery(void)
 	FBTERR("\nfastboot: Error: Invalid recovery img\n");
 }
 
-struct bootloader_message {
-	char command[32];
-	char status[32];
-	char recovery[1024];
-};
 
 static void fbt_run_recovery_wipe_data(void)
 {
