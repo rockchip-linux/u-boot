@@ -24,7 +24,6 @@
  * MA 02111-1307 USA
  */
      
-
 #include <common.h>
 #include <asm/io.h>
 
@@ -32,6 +31,7 @@
 #include <usb/dwc_otg_udc.h>
 #include <asm/arch/rkplat.h>
 #include "dwc_otg_regs.h"
+
 
 #define DWCERR
 #undef DWCWARN
@@ -67,13 +67,6 @@
 #define DWC_DBG(fmt, args...) do {} while (0)
 #endif
 
-#ifndef __GNUC__
-#undef ALIGN
-#define ALIGN(x) __align(x)
-#else
-#undef ALIGN
-#define ALIGN(x) __attribute__ ((aligned(x)))
-#endif
 
 #define	BULK_IN_EP			0x01
 #define	BULK_OUT_EP			0x02
@@ -81,6 +74,7 @@
 #define	EP0_RX_FIFO_SIZE		64
 #define	EP0_PACKET_SIZE_FS		8
 #define	EP0_PACKET_SIZE_HS		64
+#define EP0_BUF_MAXSIZE			64
 
 #define	EP1_TX_FIFO_SIZE		64
 #define	EP1_RX_FIFO_SIZE		64
@@ -130,17 +124,17 @@ typedef struct _control_xfer {
 } CONTROL_XFER;
 
 
-static struct urb *ep0_urb;
+static struct urb 		*ep0_urb;
 static struct usb_device_instance *udc_device;
 
-static CONTROL_XFER	ControlData;
-static ALIGN(8)		uint8_t Ep0Buf[64];
+static CONTROL_XFER		ControlData;
+static volatile uint8_t		*Ep0Buf;
 
-volatile uint8_t	UsbConnected;
-volatile uint8_t	UsbBusReset;
-volatile uint8_t	ControlStage;
-volatile uint8_t	Ep0PktSize;
-volatile uint16_t	BulkEpSize;
+static volatile uint8_t		UsbConnected;
+static volatile uint8_t		UsbBusReset;
+static volatile uint8_t		ControlStage;
+static volatile uint8_t		Ep0PktSize;
+static volatile uint16_t	BulkEpSize;
 
 
 static void udc_stall_ep(uint32_t ep_num);
@@ -317,16 +311,17 @@ static void udc_state_transition(usb_device_state_t initial,
 void ControlInPacket(void)
 {
 	uint16_t length = ControlData.wLength;
+
 	if(STAGE_DATA == ControlStage)
 	{
 		if (length > Ep0PktSize)
-			length=Ep0PktSize;
+			length = Ep0PktSize;
 
 		WriteEndpoint0(length, Ep0Buf);
 		ControlData.pData += length;
 		ControlData.wLength -= length;
 		if (ControlData.wLength == 0)
-			ControlStage=STAGE_STATUS;
+			ControlStage = STAGE_STATUS;
 	}
 }
 
@@ -370,19 +365,19 @@ void UdcInit(void)
 	OtgReg->Device.dcfg |= 0x01;                    //Force FS
 #endif    
 	OtgReg->Device.dcfg &= ~0x07f0;                 //reset device addr
-	OtgReg->Core.grstctl|=(0x10<<6) | (1<<5);       //Flush all Txfifo
+	OtgReg->Core.grstctl |= (0x10<<6) | (1<<5);     //Flush all Txfifo
 	for (count=0; count<10000; count++)
 	{
 		if ((OtgReg->Core.grstctl & (1<<5)) == 0)
 			break;
 	}
-	OtgReg->Core.grstctl|=1<<4;                     //Flush all Rxfifo
+	OtgReg->Core.grstctl |= 1<<4;                     //Flush all Rxfifo
 	for (count=0; count<10000; count++)
 	{
 		if ((OtgReg->Core.grstctl & (1<<4)) == 0)
 			break;
 	}
-	OtgReg->Core.grstctl|=1<<3;                     //Flush IN token lenarning queue
+	OtgReg->Core.grstctl |= 1<<3;                     //Flush IN token lenarning queue
 
 	OtgReg->Core.grxfsiz = 0x00000210;
 	OtgReg->Core.gnptxfsiz = 0x00100210;
@@ -458,11 +453,13 @@ static void dwc_otg_epn_in_ack(void)
 
 
 volatile int suspend = 1;
-void suspend_usb(void) {
+void suspend_usb(void)
+{
 	suspend = true;
 }
 
-void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {
+void resume_usb(struct usb_endpoint_instance *endpoint, int max_size)
+{
 	if (suspend) {
 		suspend = false;
 		if (endpoint && endpoint->rcv_urb) {
@@ -550,9 +547,9 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 		ftl_memcpy(Ep0Buf, ep0_urb->buffer, ep0_urb->actual_length);
 		
 		//WriteEndpoint0(ep0_urb->actual_length, Ep0Buf);
-		ControlData.pData=(uint8_t*)&Ep0Buf[0];
-		ControlData.wLength=ep0_urb->actual_length;
-		ControlStage=STAGE_DATA;
+		ControlData.pData = (uint8_t*)&Ep0Buf[0];
+		ControlData.wLength = ep0_urb->actual_length;
+		ControlStage = STAGE_DATA;
 		
 		ControlInPacket();
 	}
@@ -566,25 +563,25 @@ static void dwc_otg_enum_done_intr(void)
 
 	endpoint = &udc_device->bus->endpoint_array[1];
 	
-	BulkEpSize=FS_BULK_TX_SIZE;
+	BulkEpSize = FS_BULK_TX_SIZE;
 	switch ((OtgReg->Device.dsts>>1) & 0x03)
 	{
 		case 0:         //High speed, PHY clock @30MHz or 60MHz
-			BulkEpSize=HS_BULK_TX_SIZE;
+			BulkEpSize = HS_BULK_TX_SIZE;
 		case 1:         //Full speed, PHY clock @30MHz or 60MHz
 		case 3:         //Full speed, PHY clock @48MHz
 			OtgReg->Device.InEp[0].DiEpCtl &= ~0x03;   //64bytes MPS
-			Ep0PktSize=EP0_PACKET_SIZE_HS;
+			Ep0PktSize = EP0_PACKET_SIZE_HS;
 			break;
  		case 2:
 		default:
 			OtgReg->Device.InEp[0].DiEpCtl |= 0x03;   //8bytes MPS
-			Ep0PktSize=EP0_PACKET_SIZE_FS;
+			Ep0PktSize = EP0_PACKET_SIZE_FS;
 			break;
 	}
 	OtgReg->Device.dctl |= 1<<8;               //clear global IN NAK
 	ReadEndpoint0(Ep0PktSize, Ep0Buf);
-	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1ul<<28) | (1<<15)|(2<<18)|(BULK_IN_EP<<22);
+	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1ul<<28) | (1<<15) | (2<<18) | (BULK_IN_EP<<22);
 }
 
 static void dwc_otg_in_intr(void)
@@ -603,9 +600,11 @@ static void dwc_otg_in_intr(void)
 			event &= OtgReg->Device.InEp[i].DiEpInt;
 			if ((event & 0x01) != 0)        //Transfer complete
 			{
-				OtgReg->Device.InEp[i].DiEpInt=0x01;
+				OtgReg->Device.InEp[i].DiEpInt = 0x01;
 				if(i == 0)
+				{
 					ControlInPacket();
+				}
 				else
 				{
 					struct usb_endpoint_instance *endpoint;
@@ -616,27 +615,27 @@ static void dwc_otg_in_intr(void)
 			}
 			if ((event & 0x02) != 0)        //Endpoint disable
 			{
-				OtgReg->Device.InEp[i].DiEpInt=0x02;
+				OtgReg->Device.InEp[i].DiEpInt = 0x02;
 			}
 			if ((event & 0x04) != 0)        //AHB Error
 			{
-				OtgReg->Device.InEp[i].DiEpInt=0x04;
+				OtgReg->Device.InEp[i].DiEpInt = 0x04;
 			}
 			if ((event & 0x08) != 0)        //TimeOUT Handshake (non-ISOC IN EPs)
 			{
-				OtgReg->Device.InEp[i].DiEpInt=0x08;
+				OtgReg->Device.InEp[i].DiEpInt = 0x08;
 			}
 			if ((event & 0x20) != 0)        //IN Token Received with EP mismatch
 			{
-				OtgReg->Device.InEp[i].DiEpInt=0x20;
+				OtgReg->Device.InEp[i].DiEpInt = 0x20;
 			}
 			if ((event & 0x80) != 0)        //Transmit FIFO empty
 			{
-				OtgReg->Device.InEp[i].DiEpInt=0x10;
+				OtgReg->Device.InEp[i].DiEpInt = 0x10;
 			}
 			if ((event & 0x100) != 0)       //Buffer Not Available
 			{
-				OtgReg->Device.InEp[i].DiEpInt=0x100;
+				OtgReg->Device.InEp[i].DiEpInt = 0x100;
 			}
 		}
 	}
@@ -657,12 +656,13 @@ static void dwc_otg_out_intr(void)
 			event = OtgReg->Device.OutEp[i].DoEpInt & OtgReg->Device.doepmsk;
 			if ((event & 0x01) != 0)        //Transfer complete
 			{
-				OtgReg->Device.OutEp[i].DoEpInt=0x01;
-				if (i==0)
+				OtgReg->Device.OutEp[i].DoEpInt = 0x01;
+				if (i == 0)
 				{
 					uint32_t len;
-					len=Ep0PktSize-(OtgReg->Device.OutEp[0].DoEpTSiz&0x7f);
-					if (len>0){
+
+					len = Ep0PktSize-(OtgReg->Device.OutEp[0].DoEpTSiz&0x7f);
+					if (len>0) {
 					//	Ep0OutPacket(len);
 					//usberr("ep0 out packet receive");
 					}
@@ -671,6 +671,7 @@ static void dwc_otg_out_intr(void)
 				else
 				{
 					uint32_t len;
+
 					len = 0x20000-(OtgReg->Device.OutEp[BULK_OUT_EP].DoEpTSiz&0x1ffff);
 					if (len>0)
 					{
@@ -710,7 +711,7 @@ static void dwc_otg_write_data(struct usb_endpoint_instance *endpoint)
 {
 	struct urb *urb = endpoint->tx_urb;
 
-	if(urb){
+	if(urb) {
 		uint32_t last;
 
 		usbdbg("urb->buffer %p, buffer_length %d, actual_length %d \n",
@@ -719,7 +720,7 @@ static void dwc_otg_write_data(struct usb_endpoint_instance *endpoint)
 		//last = MIN(urb->actual_length - endpoint->sent,
 		//	    endpoint->tx_packetSize);
 
-		if(last){
+		if(last) {
 			usbdbg("endpoint->sent %d, tx_packetSize %d, last %d \n",
 				endpoint->sent, endpoint->tx_packetSize, last);
 
@@ -814,7 +815,7 @@ static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint)
 		 */
 		if (endpoint->tx_urb && endpoint->tx_urb->actual_length) {
 		    usberr("send again");
-	        //endpoint->tx_urb->status = SEND_IN_PROGRESS;
+			//endpoint->tx_urb->status = SEND_IN_PROGRESS;
 			/* write data */
 			dwc_otg_write_data(endpoint);
 
@@ -830,6 +831,7 @@ int udc_init(void)
 {
 	udc_device = NULL;
 	suspend = true;
+	Ep0Buf = memalign(ARCH_DMA_MINALIGN, EP0_BUF_MAXSIZE);
 	usbdbg("starting \n");
 	
 	return 0;
@@ -861,7 +863,7 @@ void udc_connect(void)
 	usbdbg("OtgReg->Core.grstctl = 0x%08x\n", OtgReg->Core.grstctl);
 	usbdbg("OtgReg->Device.dcfg = 0x%08x\n", OtgReg->Device.dcfg);
 	usbdbg("OtgReg->Core.grxfsiz = 0x%08x\n", OtgReg->Core.grxfsiz);
-	usbdbg("OtgReg->Core.gnptxfsiz = 0x%08x\n",OtgReg->Core.gnptxfsiz);
+	usbdbg("OtgReg->Core.gnptxfsiz = 0x%08x\n", OtgReg->Core.gnptxfsiz);
 	usbdbg("OtgReg->Core.dptxfsiz_dieptxf[0] = 0x%08x\n", OtgReg->Core.dptxfsiz_dieptxf[0] );
 	usbdbg("OtgReg->Core.dptxfsiz_dieptxf[1]%08x\n", OtgReg->Core.dptxfsiz_dieptxf[1]);
 	usbdbg("OtgReg->Device.InEp[0].DiEpCtl = 0x%08x\n", OtgReg->Device.InEp[0].DiEpCtl);
@@ -886,11 +888,11 @@ void udc_disconnect(void)
 /* Switch on the UDC */
 void udc_enable(struct usb_device_instance *device)
 {
-	usbinfo("enable device %p, status %d ,device_state %d\n", device, device->status, device->device_state);
+	usbinfo("enable device %p, status %d, device_state %d\n", device, device->status, device->device_state);
 
 	/* Save the device structure pointer */
 	udc_device = device;
-	usbinfo("enable device %p, status %d ,device_state %d\n", udc_device, udc_device->status, udc_device->device_state);
+	usbinfo("enable device %p, status %d, device_state %d\n", udc_device, udc_device->status, udc_device->device_state);
 	/* Setup ep0 urb */
 	if (!ep0_urb) {
 		ep0_urb =
@@ -941,7 +943,7 @@ void udc_irq(void)
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
 	uint32_t IntFlag;
 
-	IntFlag=OtgReg->Core.gintsts & OtgReg->Core.gintmsk;
+	IntFlag = OtgReg->Core.gintsts & OtgReg->Core.gintmsk;
 	if (IntFlag == 0)
 		return;
 
@@ -953,15 +955,15 @@ void udc_irq(void)
 	if(IntFlag & (1<<5))    //xfer FIFO enpty
 	{
 		OtgReg->Core.gintmsk &= ~(1<<5);
-		OtgReg->Device.dtknqr4_fifoemptymsk=0;
+		OtgReg->Device.dtknqr4_fifoemptymsk = 0;
 	}
 	if(IntFlag & (1<<10))       //early suspend
 	{
-		OtgReg->Core.gintsts=1<<10;
+		OtgReg->Core.gintsts = 1<<10;
 	}
 	if(IntFlag & (1<<11))       //suspend
 	{
-		OtgReg->Core.gintsts=1<<11;
+		OtgReg->Core.gintsts = 1<<11;
 	}
 	if(IntFlag & (1<<12))  //USB总线复位
 	{
@@ -971,7 +973,7 @@ void udc_irq(void)
 		
 		UsbBusReset++;
 		OtgReg->Device.dcfg &= ~0x07f0;                 //reset device addr
-		ControlStage=STAGE_IDLE;
+		ControlStage = STAGE_IDLE;
 		OtgReg->Device.dctl &= ~0x01;      //Clear the Remote Wakeup Signalling
 	    
 		OtgReg->Core.gintsts = 1<<12;

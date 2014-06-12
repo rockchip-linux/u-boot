@@ -22,35 +22,36 @@
 /*******************************************************************
 ¹Ì¼þÉý¼¶ÃüÁî¼¯
 *******************************************************************/
-#define 	K_FW_TEST_UNIT_READY		0x00
-#define 	K_FW_READ_FLASH_ID		    0x01
-#define 	K_FW_SET_DEVICE_ID		    0x02
-#define 	K_FW_TEST_BAD_BLOCK		    0x03
-#define 	K_FW_READ_10				0x04
-#define 	K_FW_WRITE_10				0x05
-#define 	K_FW_ERASE_10				0x06
-#define 	K_FW_WRITE_SPARE			0x07
-#define 	K_FW_READ_SPARE			    0x08
+#define	K_FW_TEST_UNIT_READY		0x00
+#define	K_FW_READ_FLASH_ID		0x01
+#define	K_FW_SET_DEVICE_ID		0x02
+#define	K_FW_TEST_BAD_BLOCK		0x03
+#define	K_FW_READ_10			0x04
+#define	K_FW_WRITE_10			0x05
+#define	K_FW_ERASE_10			0x06
+#define	K_FW_WRITE_SPARE		0x07
+#define	K_FW_READ_SPARE			0x08
 
-#define 	K_FW_ERASE_10_FORCE		    0x0b
-#define 	K_FW_GET_VERSION			0x0c
+#define	K_FW_ERASE_10_FORCE		0x0b
+#define	K_FW_GET_VERSION		0x0c
 
-#define 	K_FW_LBA_READ_10            0x14
-#define 	K_FW_LBA_WRITE_10           0x15
-#define 	K_FW_ERASE_SYS_DISK         0x16
-#define 	K_FW_SDRAM_READ_10          0x17
-#define 	K_FW_SDRAM_WRITE_10         0x18
-#define 	K_FW_SDRAM_EXECUTE          0x19
-#define 	K_FW_READ_FLASH_INFO	    0x1A
-#define     K_FW_GET_CHIP_VER           0x1B
-#define     K_FW_LOW_FORMAT             0x1C
-#define     K_FW_SET_RESET_FLAG         0x1E
-#define     K_FW_SPI_READ_10            0x21  
-#define     K_FW_SPI_WRITE_10           0x22  
+#define	K_FW_LBA_READ_10		0x14
+#define	K_FW_LBA_WRITE_10		0x15
+#define	K_FW_ERASE_SYS_DISK		0x16
+#define	K_FW_SDRAM_READ_10		0x17
+#define	K_FW_SDRAM_WRITE_10		0x18
+#define	K_FW_SDRAM_EXECUTE		0x19
+#define	K_FW_READ_FLASH_INFO		0x1A
+#define	K_FW_GET_CHIP_VER		0x1B
+#define	K_FW_LOW_FORMAT			0x1C
+#define	K_FW_SET_RESET_FLAG		0x1E
+#define	K_FW_SPI_READ_10		0x21  
+#define	K_FW_SPI_WRITE_10		0x22  
 
-#define     K_FW_SESSION				0X30 // ADD BY HSL.
-#define 	K_FW_RESET				    0xff
+#define	K_FW_SESSION			0X30 // ADD BY HSL.
+#define	K_FW_RESET			0xff
 /* Bulk-only data structures */
+
 
 #define RKUSB_ERR
 #undef  RKUSB_WARN
@@ -59,30 +60,30 @@
 
 #ifdef RKUSB_DEBUG
 #define RKUSBDBG(fmt, args...)\
-    printf("DEBUG: [%s]: %d:\n"fmt, __func__, __LINE__, ##args)
+	printf("DEBUG: [%s]: %d:\n"fmt, __func__, __LINE__, ##args)
 #else
-#define RKUSBDBG(fmt, args...) do {} while (0)
+	#define RKUSBDBG(fmt, args...) do {} while (0)
 #endif
 
 #ifdef RKUSB_INFO
 #define RKUSBINFO(fmt, args...)\
-    printf("INFO: [%s]: "fmt, __func__, ##args)
+	printf("INFO: [%s]: "fmt, __func__, ##args)
 #else
-#define RKUSBINFO(fmt, args...) do {} while (0)
+	#define RKUSBINFO(fmt, args...) do {} while (0)
 #endif
 
 #ifdef RKUSB_WARN
 #define RKUSBWARN(fmt, args...)\
-    printf("WARNING: [%s]: "fmt, __func__, ##args)
+	printf("WARNING: [%s]: "fmt, __func__, ##args)
 #else
-#define RKUSBWARN(fmt, args...) do {} while (0)
+	#define RKUSBWARN(fmt, args...) do {} while (0)
 #endif
 
 #ifdef RKUSB_ERR
 #define RKUSBERR(fmt, args...)\
-    printf("ERROR: [%s]: "fmt, __func__, ##args)
+	printf("ERROR: [%s]: "fmt, __func__, ##args)
 #else
-#define RKUSBERR(fmt, args...) do {} while (0)
+	#define RKUSBERR(fmt, args...) do {} while (0)
 #endif
 
 /* dwc otg controller can handle 0x20000 data max for the datasize in DoEpCtl is 18 bit leng
@@ -91,8 +92,8 @@
  */
 #define RKUSB_BUFFER_BLOCK_MAX 0x80//0x20
 
-#define 		USB_DEVICE_CLASS_VENDOR_SPECIFIC    		    0xFF	//
-#define		    USB_SUBCLASS_CODE_SCSI					    0x06
+#define	USB_DEVICE_CLASS_VENDOR_SPECIFIC	0xFF	//
+#define	USB_SUBCLASS_CODE_SCSI			0x06
 
 #define STR_LANG		0x00
 #define STR_MANUFACTURER	0x01
@@ -127,11 +128,11 @@
 #define SYS_LOADER_ERR_FLAG      0X1888AAFF
 
 struct _rkusb_config_desc {
-    struct usb_configuration_descriptor configuration_desc;
-    struct usb_interface_descriptor interface_desc;
-    struct usb_endpoint_descriptor endpoint_desc[NUM_ENDPOINTS];
+	struct usb_configuration_descriptor configuration_desc;
+	struct usb_interface_descriptor interface_desc;
+	struct usb_endpoint_descriptor endpoint_desc[NUM_ENDPOINTS];
 };
-static struct cmd_rockusb_interface usbcmd;
+static struct cmd_rockusb_interface usbcmd __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
 static void rkusb_handle_response(void);
 static void rkusb_init_endpoints(void);
@@ -264,23 +265,22 @@ struct bulk_cs_wrap {
 /*******************************************************************
 CSW·µ»Ø×´Ì¬Öµ
 *******************************************************************/
-#define	    CSW_GOOD					0x00		//ÃüÁîÍ¨¹ý
-#define	    CSW_FAIL					0x01		//ÃüÁîÊ§°Ü
+#define	CSW_GOOD		0x00		//ÃüÁîÍ¨¹ý
+#define	CSW_FAIL		0x01		//ÃüÁîÊ§°Ü
 
-struct cmd_rockusb_preread{
-    uint8_t *pre_buffer;
-    uint32_t pre_lba;
-    uint32_t pre_blocks;
-    
+struct cmd_rockusb_preread {
+	uint8_t *pre_buffer;
+	uint32_t pre_lba;
+	uint32_t pre_blocks;
 };
 struct cmd_rockusb_interface {
-    uint8_t cmd;
-    uint8_t status;
+	uint8_t cmd;
+	uint8_t status;
 	unsigned int configured;
-    uint8_t *rx_buffer[2];
-    uint8_t *tx_buffer[2];
-    uint8_t rxbuf_num;
-    uint8_t txbuf_num;
+	uint8_t *rx_buffer[2];
+	uint8_t *tx_buffer[2];
+	uint8_t rxbuf_num;
+	uint8_t txbuf_num;
    
 		/* Download size, if download has to be done. This can be checked to find
 		whether next packet is a command or a data */
@@ -289,30 +289,29 @@ struct cmd_rockusb_interface {
 	/* Data downloaded so far */
 	uint32_t d_bytes;
 
-    /* Download status, < 0 when error, > 0 when complete */
-    uint32_t d_status;
+	/* Download status, < 0 when error, > 0 when complete */
+	uint32_t d_status;
     	/* Upload size, if download has to be done */
 	uint32_t u_size;
 
 	/* Data uploaded so far */
 	uint32_t u_bytes;
 	
-	uint32_t			lba;
-	uint32_t            cmnd;
-	uint32_t            imgwr_mode;
+	uint32_t lba;
+	uint32_t cmnd;
+	uint32_t imgwr_mode;
 	
-	uint16_t			data_size;
-	uint32_t			data_size_from_cmnd;
-	uint32_t			tag;
-	uint32_t			residue;
-	uint32_t			usb_amount_left;
+	uint16_t data_size;
+	uint32_t data_size_from_cmnd;
+	uint32_t tag;
+	uint32_t residue;
+	uint32_t usb_amount_left;
 
 	uint32_t reset_flag;
-	struct fsg_bulk_cb_wrap cbw;
-	struct bulk_cs_wrap csw;
-	struct cmd_rockusb_preread pre_read;
-};
 
-extern void FW_SorageLowFormatEn(int en);
+	struct bulk_cs_wrap csw __attribute__((aligned(ARCH_DMA_MINALIGN)));
+	struct fsg_bulk_cb_wrap cbw __attribute__((aligned(ARCH_DMA_MINALIGN)));
+	struct cmd_rockusb_preread pre_read __attribute__((aligned(ARCH_DMA_MINALIGN)));
+};
 
 #endif

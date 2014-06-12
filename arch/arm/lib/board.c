@@ -368,10 +368,12 @@ void board_init_f(ulong bootflag)
 #endif /* CONFIG_LCD */
 
 #ifdef CONFIG_ROCKCHIP
-    /* reserve rk global buffers */
-    addr -= CONFIG_RK_EXTRA_BUFFER_SIZE;
+	/* round down to next 4 kB limit */
+	addr &= ~(4096 - 1);
+	/* reserve rk global buffers */
+	addr -= CONFIG_RK_EXTRA_BUFFER_SIZE;
 
-    gd->arch.rk_extra_buf_addr = addr;
+	gd->arch.rk_extra_buf_addr = addr;
 	debug("Reserving %dk for rk global buffers at %08lx\n",
 			CONFIG_RK_EXTRA_BUFFER_SIZE >> 10, addr);
 #endif

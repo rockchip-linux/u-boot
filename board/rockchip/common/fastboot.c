@@ -281,8 +281,7 @@ int board_fbt_load_partition_table(disk_partition_t* ptable, int max_partition)
 	int i = 0;
 	int ret = -1;
 	cmdline_mtd_partition *cmd_mtd;
-	PLoaderParam param = (PLoaderParam)malloc(MAX_LOADER_PARAM * PARAMETER_NUM);
-
+	PLoaderParam param = (PLoaderParam)memalign(ARCH_DMA_MINALIGN, MAX_LOADER_PARAM * PARAMETER_NUM);
 	memset((void*)ptable, 0, sizeof(disk_partition_t) * max_partition);
 
 	if (!GetParam(0, param)) {

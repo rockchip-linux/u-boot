@@ -25,7 +25,7 @@ extern uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
 
 int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
-	unsigned char buf[RK_BLK_SIZE];
+	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
 	unsigned blocks;
 	KernelImg *image = (KernelImg*)buf;
 	unsigned head_offset = 8;//tagKernelImg's tag & size

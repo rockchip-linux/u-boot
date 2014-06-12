@@ -288,7 +288,7 @@ static int FindSerialBlocks(uint8 *NFBlockState, int iNFBlockLen, int iBegin, in
 //寻找ID Block，该块在位于最前面的20个好块中若能找到，则是我们的片子，否则便是其它公司或者新片
 static int FindIDBlock(FlashInfo* pFlashInfo, int iStart, int *iPos)
 {
-	BYTE ucSpareData[4*528];
+	ALLOC_CACHE_ALIGN_BUFFER(u8, ucSpareData, 4*528);
 	int iRet = ERR_SUCCESS;
 	int i = FindSerialBlocks(pFlashInfo->BlockState, MAX_BLOCK_SEARCH/*MAX_BLOCK_STATE*/, iStart, 1);
 
@@ -303,7 +303,7 @@ static int FindIDBlock(FlashInfo* pFlashInfo, int iStart, int *iPos)
 		//	    PRINT_I("i = %d \n", i);
 		if ( i<0 ) break;
 		memset(ucSpareData, 0, 4*528);
-		iRet = StorageReadPba(i*g_id_block_size , ucSpareData, 4);
+		iRet = StorageReadPba(i*g_id_block_size, ucSpareData, 4);
 
 		if(ERR_SUCCESS != iRet)
 		{
@@ -723,6 +723,7 @@ void SysLowFormatCheck(void)
 	FW_SorageLowFormat();
 }
 
+#if 0
 #define MaxFlashReadSize  16384  //8MB
 int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
 {
@@ -750,6 +751,31 @@ int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
 	//  RkPrintf("Leave\n");
 	return 0;
 }
+#else
+#define MaxFlashReadSize  32  //16KB
+int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
+{
+	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE * MaxFlashReadSize);
+	uint8 * pSdram = (uint8*)dest_addr;
+	uint16 sec = 0;
+	uint32 LBA = src_addr;
+	uint32 remain_sec = total_sec;
+
+	while(remain_sec > 0)
+	{
+		sec = (remain_sec > MaxFlashReadSize) ? MaxFlashReadSize : remain_sec;
+		if(StorageReadLba(LBA, (uint8*)buf, sec) != 0) {
+			return -1;
+		}
+		memcpy(pSdram, buf, RK_BLK_SIZE * sec);
+		remain_sec -= sec;
+		LBA += sec;
+		pSdram += sec * RK_BLK_SIZE;
+	}
+
+	return 0;
+}
+#endif
 
 int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
 {
@@ -853,8 +879,8 @@ int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
 int checkMisc(void)
 {
 	struct bootloader_message *bmsg = NULL;
-	unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
-			RK_BLK_SIZE) * RK_BLK_SIZE];
+	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
+			RK_BLK_SIZE) * RK_BLK_SIZE);
 	const disk_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
 	if (!ptn) {
 		printf("misc partition not found!\n");
@@ -880,8 +906,8 @@ int checkMisc(void)
 
 int setBootloaderMsg(struct bootloader_message* bmsg)
 {
-	unsigned char buf[DIV_ROUND_UP(sizeof(struct bootloader_message),
-			RK_BLK_SIZE) * RK_BLK_SIZE];
+	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
+			RK_BLK_SIZE) * RK_BLK_SIZE);
 	memcpy(buf, bmsg, sizeof(struct bootloader_message));
 	const disk_partition_t *ptn = fastboot_find_ptn(MISC_NAME);
 	if (!ptn) {
@@ -973,7 +999,7 @@ end:
 
 int eraseDrmKey(void)
 {
-	char buf[RK_BLK_SIZE];
+	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
 	memset(buf, 0, RK_BLK_SIZE);
 	StorageSysDataStore(1, buf);
 	gDrmKeyInfo.publicKeyLen = 0;

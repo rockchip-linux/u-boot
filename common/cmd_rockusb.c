@@ -1,16 +1,25 @@
-/********************************************************************************
-*********************************************************************************
-                        COPYRIGHT (c)   2004 BY ROCK-CHIP FUZHOU
-                                --  ALL RIGHTS RESERVED  --
-
-File Name:      FW_Upgrade.C
-Author:         XUESHAN LIN
-Created:        1st Dec 2008
-
-Modified:	Kever Yang 2014.03.31
-Revision:       1.00
-********************************************************************************
-********************************************************************************/
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ * Kever Yang 2014.03.31
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #define IN_FW_Upgrade
 #include <cmd_rockusb.h>
 #include <asm/arch/rkplat.h>
@@ -21,6 +30,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 extern uint32_t SecureBootLock;
+extern void FW_SorageLowFormatEn(int en);
 
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
@@ -125,7 +135,7 @@ static void rkusb_init_instances(void)
 #else
 	//is this enough?
 	int buffer_len = RKUSB_BUFFER_BLOCK_MAX << 10;
-	usbcmd.rx_buffer[0] = (u8 *)malloc(buffer_len << 2);
+	usbcmd.rx_buffer[0] = (u8 *)memalign(ARCH_DMA_MINALIGN, buffer_len << 2);
 	usbcmd.rx_buffer[1] = usbcmd.rx_buffer[0]+buffer_len;
 	usbcmd.tx_buffer[0] = usbcmd.rx_buffer[1]+buffer_len;
 	usbcmd.tx_buffer[1] = usbcmd.tx_buffer[0]+buffer_len;
@@ -276,7 +286,7 @@ void FW_ReadID(void)
 	StorageReadId(current_urb->buffer);
 	current_urb->actual_length = 5;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
-	usbcmd.csw.Status= CSW_GOOD;
+	usbcmd.csw.Status = CSW_GOOD;
 	usbcmd.status = RKUSB_STATUS_TXDATA;
 }
 
@@ -321,7 +331,7 @@ static void FW_GetChipVer(void)
 	ftl_memcpy(current_urb->buffer, (uint8*)(BOOT_ROM_CHIP_VER_ADDR), 16);
 
 #if(CONFIG_RKCHIPTYPE==CONFIG_RK3288) 
-	current_urb->buffer[0] =  0x33323041; // "320A"
+	current_urb->buffer[0] = 0x33323041; // "320A"
 #endif
 	current_urb->actual_length = 16;
 		
@@ -347,12 +357,12 @@ static void FW_TestBadBlock(void)
 	current_urb = ep->tx_urb;
 
 	for (i=0; i<16; i++)
-		TestResult[i]=0;
+		TestResult[i] = 0;
     
 	ftl_memcpy(current_urb->buffer, TestResult, 64);
 	current_urb->actual_length = 64;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
-	usbcmd.csw.Status= CSW_GOOD;
+	usbcmd.csw.Status = CSW_GOOD;
 	usbcmd.status = RKUSB_STATUS_TXDATA;
 }
 
@@ -384,7 +394,7 @@ static void FW_Write10(void)
 	struct urb *current_urb = ep->rcv_urb;
 	
 	usbcmd.d_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 528;
-	usbcmd.d_bytes= 0;
+	usbcmd.d_bytes = 0;
 	usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
 
 	RKUSBINFO("lba %x len %x\n", usbcmd.lba, usbcmd.d_size);
@@ -411,7 +421,7 @@ static void FW_Erase10(void)
 	StorageEraseBlock(get_unaligned_be32(&usbcmd.cbw.CDB[2]), get_unaligned_be32(&usbcmd.cbw.CDB[7]), 0);
 	current_urb->actual_length = 13;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
-	usbcmd.csw.Status= status;
+	usbcmd.csw.Status = status;
 	usbcmd.status = RKUSB_STATUS_CSW;
 }
 
@@ -435,7 +445,7 @@ static void FW_Erase10Force(void)
         
 	current_urb->actual_length = 13;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
-	usbcmd.csw.Status= status;
+	usbcmd.csw.Status = status;
 	usbcmd.status = RKUSB_STATUS_CSW;
 }
 
@@ -505,7 +515,7 @@ static void FW_SetResetFlag(void)
 	usbcmd.reset_flag = 1;
 
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
-	usbcmd.csw.Status= CSW_GOOD;
+	usbcmd.csw.Status = CSW_GOOD;
 	usbcmd.status = RKUSB_STATUS_CSW;
 }
 
@@ -529,7 +539,7 @@ static void FW_Reset(void)
 	// SoftReset in main loop(usbhook)
 
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
-	usbcmd.csw.Status= CSW_GOOD;
+	usbcmd.csw.Status = CSW_GOOD;
 	usbcmd.status = RKUSB_STATUS_CSW;
 }
 
@@ -538,9 +548,9 @@ static int rkusb_send_csw(void)
 	struct usb_endpoint_instance *ep1 = &endpoint_instance[2];
 	struct usb_endpoint_instance *ep2 = &endpoint_instance[1];
 	struct urb *current_urb = ep1->tx_urb;
-	struct bulk_cs_wrap	*csw=&usbcmd.csw;
+	struct bulk_cs_wrap	*csw = &usbcmd.csw;
     
-	RKUSBINFO("%s \n", __func__);
+	RKUSBINFO("%s tag %x\n", __func__, usbcmd.cbw.Tag);
 	if (!current_urb) {
 		RKUSBERR("%s: current_urb NULL", __func__);
 		return -1;
@@ -572,6 +582,7 @@ void do_rockusb_cmd(void)
 	struct urb *current_urb = ep->tx_urb;
 	current_urb->buffer = usbcmd.tx_buffer[usbcmd.txbuf_num&1];
 	usbcmd.cmnd = usbcmd.cbw.CDB[0];
+	RKUSBINFO("CBW %x %x %x\n",usbcmd.cbw.Tag, usbcmd.cbw.Flags, usbcmd.cbw.Length);
     
 //	RKUSBINFO("do_rockusb_cmd %x\n", usbcmd.cbw.CDB[0]);
 	switch (usbcmd.cmnd)
@@ -642,7 +653,6 @@ void rkusb_handle_datarx(void)
 	uint32_t rxdata_blocks = 0;
 	uint32_t transfer_length;
 	uint32_t rx_blocks = 0;
-	
 	uint32_t block_length;
     
 	if(usbcmd.cmnd == K_FW_WRITE_10)
@@ -678,7 +688,7 @@ void rkusb_handle_datarx(void)
 	else {   // data receive complete
 //		RKUSBINFO("data receive complete\n");
 		usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
-		usbcmd.csw.Status= CSW_GOOD;
+		usbcmd.csw.Status = CSW_GOOD;
 //		usbcmd.status = RKUSB_STATUS_CSW;
 		rkusb_send_csw();
 	}
@@ -686,22 +696,23 @@ void rkusb_handle_datarx(void)
 	// write to media
 	if(rxdata_blocks) {
 		RKUSBINFO("write to media %x, lba %x, buf %p\n", rxdata_blocks, usbcmd.lba, rxdata_buf);
-		if(usbcmd.cmnd==K_FW_WRITE_10) {
+		if(usbcmd.cmnd == K_FW_WRITE_10) {
 			ISetLoaderFlag(SYS_LOADER_ERR_FLAG);
 			if(SecureBootLock == 0) {
 				StorageWritePba(usbcmd.lba, rxdata_buf, rxdata_blocks);
 				usbcmd.lba += rxdata_blocks;
 			}
 		}
-		else if(usbcmd.cmnd==K_FW_LBA_WRITE_10) {
+		else if(usbcmd.cmnd == K_FW_LBA_WRITE_10) {
 			if(usbcmd.lba >= 0xFFFFFF00) {
-				UsbStorageSysDataStore(usbcmd.lba -0xFFFFFF00,rxdata_blocks,(uint32_t *)rxdata_buf);
+				UsbStorageSysDataStore(usbcmd.lba - 0xFFFFFF00, rxdata_blocks, (uint32_t *)rxdata_buf);
 				usbcmd.lba += rxdata_blocks;
 			}
-			else if(usbcmd.lba == 0xFFFFF000)
+			else if(usbcmd.lba == 0xFFFFF000) {
 				SecureBootUnlock(current_urb->buffer);
-			else if(SecureBootLock == 0){
-				StorageWriteLba(usbcmd.lba,rxdata_buf,rxdata_blocks,usbcmd.imgwr_mode);
+			}
+			else if(SecureBootLock == 0) {
+				StorageWriteLba(usbcmd.lba, rxdata_buf, rxdata_blocks, usbcmd.imgwr_mode);
 				usbcmd.lba += rxdata_blocks;
 			}
 		}
@@ -711,11 +722,10 @@ void rkusb_handle_datarx(void)
 
 void rkusb_handle_datatx(void)
 {
-	struct usb_endpoint_instance *ep=&endpoint_instance[2];
+	struct usb_endpoint_instance *ep = &endpoint_instance[2];
 	struct urb *current_urb = ep->tx_urb;
 	uint32_t txdata_size = 0;
 	uint32_t tx_blocks;
-	
 	uint32_t block_length = 0;
 	uint32_t pre_blocks;
 
@@ -757,16 +767,16 @@ start:
 	// read data from media
 	if(pre_blocks) {
 		RKUSBINFO("read lba %x, buffer %p block %x\n", usbcmd.pre_read.pre_lba, usbcmd.pre_read.pre_buffer, pre_blocks);
-		if(usbcmd.cmnd ==K_FW_READ_10) {
-			StorageReadPba(usbcmd.pre_read.pre_lba, usbcmd.pre_read.pre_buffer,pre_blocks);
+		if(usbcmd.cmnd == K_FW_READ_10) {
+			StorageReadPba(usbcmd.pre_read.pre_lba, usbcmd.pre_read.pre_buffer, pre_blocks);
 		}
-		else if(usbcmd.cmnd == K_FW_LBA_READ_10){
+		else if(usbcmd.cmnd == K_FW_LBA_READ_10) {
 			if(usbcmd.lba >= 0xFFFFFF00)
-				UsbStorageSysDataLoad(usbcmd.pre_read.pre_lba -0xFFFFFF00,pre_blocks, (uint32_t *)usbcmd.pre_read.pre_buffer);
+				UsbStorageSysDataLoad(usbcmd.pre_read.pre_lba - 0xFFFFFF00, pre_blocks, (uint32_t *)usbcmd.pre_read.pre_buffer);
 			else if(usbcmd.lba == 0xFFFFF000)
 				SecureBootUnlockCheck(usbcmd.pre_read.pre_buffer);
 			else
-				StorageReadLba(usbcmd.pre_read.pre_lba,usbcmd.pre_read.pre_buffer,pre_blocks);
+				StorageReadLba(usbcmd.pre_read.pre_lba, usbcmd.pre_read.pre_buffer, pre_blocks);
 		}
 	}
 	if(usbcmd.u_bytes == 0)
@@ -784,6 +794,7 @@ void rkusb_handle_response(void)
 	struct usb_endpoint_instance *ep;
 	struct urb *current_urb = NULL;
 	uint32_t actural_length;
+
 	if(RKUSB_STATUS_TXDATA == usbcmd.status) {
 		ep = &endpoint_instance[2];
 		current_urb = ep->tx_urb;
@@ -842,7 +853,6 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	while(1)
 	{
 		/*if(usbcmd.configured)*/ {
-
 			if(usbcmd.status == RKUSB_STATUS_IDLE) {
 				struct usb_endpoint_instance *ep = &endpoint_instance[1];
 				if(ep->rcv_urb->actual_length) {
@@ -860,7 +870,7 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			if(usbcmd.status == RKUSB_STATUS_CSW) {
 				rkusb_send_csw();
 			}
-			if(usbcmd.reset_flag==0xFF) {
+			if(usbcmd.reset_flag == 0xFF) {
 				usbcmd.reset_flag = 0;
 				reset_cpu(0);
 			}

@@ -83,7 +83,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		unsigned long blksz = ptn->blksz;
 		unsigned sector;
 		unsigned blocks;
-		hdr = malloc(blksz << 2);
+		hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
 		if (hdr == NULL) {
 			FBTERR("error allocating blksz(%lu) buffer\n", blksz);
 			goto fail;

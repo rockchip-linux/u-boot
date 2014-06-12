@@ -34,8 +34,8 @@ uint32  SecureBootEn;
 uint32  SecureBootCheckOK;
 uint32  SecureBootLock;
 uint32  SecureBootLock_backup;
-BOOT_CONFIG_INFO gBootConfig;
-DRM_KEY_INFO gDrmKeyInfo;
+BOOT_CONFIG_INFO gBootConfig __attribute__((aligned(ARCH_DMA_MINALIGN)));
+DRM_KEY_INFO gDrmKeyInfo __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
 
 void RKLockLoader(void)

@@ -66,7 +66,7 @@ static int inline get_base_offset(void) {
 static bool get_entry(int base_offset, const char* file_path,
 		index_tbl_entry* entry) {
 	bool ret = false;
-	char buf[BLOCK_SIZE];
+	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, BLOCK_SIZE);
 	char* cache = NULL;
 	resource_ptn_header header;
 	if (!base_offset) {
@@ -97,7 +97,7 @@ static bool get_entry(int base_offset, const char* file_path,
 	}
 
 	if (header.tbl_entry_num * header.tbl_entry_size <= 0xFFFF) {
-		cache = (char*) malloc(header.tbl_entry_num * header.tbl_entry_size * BLOCK_SIZE);
+		cache = (char *)memalign(ARCH_DMA_MINALIGN, header.tbl_entry_num * header.tbl_entry_size * BLOCK_SIZE);
 		if (cache) {
 			if (!read_storage(base_offset + header.header_size, cache,
 						header.tbl_entry_num * header.tbl_entry_size)) {
@@ -171,7 +171,7 @@ bool load_content(int base_offset, resource_content* content) {
 	if (content->load_addr)
 		return true;
 	int blocks = (content->content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
-	content->load_addr = (void*)malloc(blocks * BLOCK_SIZE);
+	content->load_addr = (void*)memalign(ARCH_DMA_MINALIGN, blocks * BLOCK_SIZE);
 	if (!content->load_addr)
 		return false;
 	if (!load_content_data(base_offset, content, 0,
