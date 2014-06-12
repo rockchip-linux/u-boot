@@ -26,6 +26,7 @@
 
 #include <fastboot.h>
 #include "../config.h"
+#include <resource.h>
 
 #define TAG_KERNEL          0x4C4E524B
 
@@ -119,5 +120,8 @@ int handleRkFlash(const char *name, const disk_partition_t *ptn,
 int handleDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv);
 int handleErase(const disk_partition_t *ptn);
+
+resource_content load_fdt(const disk_partition_t* ptn);
+void prepare_fdt(void);
 
 #endif /* RKIMAGE_H */

@@ -308,7 +308,7 @@ static bool load_anim_desc(const char* desc_path, bool dump) {
 	if (!get_content(0, &content)) {
 		goto end;
 	}
-	if (!load_content(0, &content)) {
+	if (!load_content(&content)) {
 		goto end;
 	}
 

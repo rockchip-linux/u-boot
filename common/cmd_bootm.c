@@ -23,10 +23,6 @@
 #include <asm/io.h>
 #include <linux/compiler.h>
 
-#ifdef CONFIG_RESOURCE_PARTITION
-#include <resource.h>
-#endif
-
 #if defined(CONFIG_BOOTM_VXWORKS) && \
 	(defined(CONFIG_PPC) || defined(CONFIG_ARM))
 #include <vxworks.h>
@@ -1934,55 +1930,14 @@ U_BOOT_CMD(
 );
 #endif	/* CONFIG_CMD_BOOTZ */
 
-
 #ifdef CONFIG_ROCKCHIP
-extern const char* get_fdt_name(void);
-#if defined(CONFIG_OF_LIBFDT)
-void* rk_fdt_resource_load(void)
-{
-    resource_content content;
-    snprintf(content.path, sizeof(content.path), "%s", get_fdt_name());
-    content.load_addr = 0;
-    if (!get_content(0, &content)) {
-		printf("Failed to find device tree(%s)\n", get_fdt_name());
-		return 0;
-    }
-    if (!load_content(0, &content)) {
-		printf("Failed to load device tree(%s)\n", get_fdt_name());
-		return 0;
-    }
-    printf("Loaded dtb file:%s,load_addr = %p size:%d\n", content.path, content.load_addr, content.content_size);
 
-	if (!content.load_addr|| !content.content_size) {
-		printf("Failed to load device tree(%s)\n", get_fdt_name());
-		return 0;
-	}
-
-	set_working_fdt_addr(content.load_addr);
-
-    setenv_addr("fdtsize", (void const *)content.content_size);
-	if(!gd->fdt_blob)gd->fdt_blob = content.load_addr;
-    return content.load_addr;
- }
-#endif
 int rk_bootm_start(bootm_headers_t *images)
 {
 	boot_start_lmb(images);
-    printf(" %s \n",__func__);
-#if defined(CONFIG_OF_LIBFDT)
-	/* find flattened device tree */
-    //load content
-    if(gd->fdt_blob == 0)
-    {
-        rk_fdt_resource_load();
-    }
 
-	images->ft_addr = (void*)gd->fdt_blob;//content.load_addr;
-    images->ft_len = getenv_hex("fdtsize", 0);//content.content_size;
-#endif
-
+	images->state = BOOTM_STATE_OS_GO;
 	return 0;
 }
+
 #endif
-
-

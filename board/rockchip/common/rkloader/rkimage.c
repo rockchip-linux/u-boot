@@ -11,6 +11,8 @@ Revision:       1.00
 
 #include "../config.h"
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #undef ALIGN
 
 #define ALIGN(x,a)      __ALIGN_MASK((x),(typeof(x))(a)-1)
@@ -811,4 +813,72 @@ int handleDownload(unsigned char *buffer,
 	} else {
 		return handleImageDownload(buffer, length, priv);
 	}
+}
+
+resource_content load_fdt(const disk_partition_t* ptn)
+{
+	resource_content content;
+	snprintf(content.path, sizeof(content.path), "%s", get_fdt_name());
+	content.load_addr = 0;
+#ifndef CONFIG_RESOURCE_PARTITION
+	return content;
+#else
+	if (!ptn)
+		return content;
+
+	if (!strcmp((char*)ptn->name, BOOT_NAME)
+			|| !strcmp((char*)ptn->name, RECOVERY_NAME)) {
+		//load from bootimg's second data area.
+		unsigned long blksz = ptn->blksz;
+		int offset = 0;
+		struct fastboot_boot_img_hdr *hdr = NULL;
+		hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
+		if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
+			return content;
+		}
+		if (!memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
+					FASTBOOT_BOOT_MAGIC_SIZE)) {
+			//compute second data area's offset.
+			offset = ptn->start + (hdr->page_size / blksz);
+			offset += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
+			offset += ALIGN(hdr->ramdisk_size, hdr->page_size) / blksz;
+
+			if (get_content(offset, &content))
+				load_content(&content);
+		}
+		return content;
+	}
+	//load from spec partition.
+	if (get_content(ptn->start, &content))
+		load_content(&content);
+	return content;
+#endif
+}
+
+void prepare_fdt(void)
+{
+	gd->fdt_blob = NULL;
+	gd->fdt_size = 0;
+#ifdef CONFIG_RESOURCE_PARTITION
+	resource_content content = load_fdt(get_disk_partition(RECOVERY_NAME));
+	if (!content.load_addr) {
+		printf("failed to prepare_fdt from recovery!\n");
+	} else {
+		gd->fdt_blob = content.load_addr;
+		gd->fdt_size = content.content_size;
+		FBTDBG("prepare fdt from recovery:%p(%d)\n", gd->fdt_blob, gd->fdt_size);
+		return;
+	}
+#ifdef CONFIG_OF_FROM_RESOURCE
+	content = load_fdt(get_disk_partition(RESOURCE_NAME));
+	if (!content.load_addr) {
+		printf("failed to prepare_fdt from resource!\n");
+	} else {
+		gd->fdt_blob = content.load_addr;
+		gd->fdt_size = content.content_size;
+		FBTDBG("prepare fdt from resource:%p(%d)\n", gd->fdt_blob, gd->fdt_size);
+		return;
+	}
+#endif
+#endif
 }

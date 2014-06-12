@@ -299,6 +299,9 @@ int board_late_init(void)
 {
 	debug("board_late_init\n");
 
+	load_disk_partitions();
+	prepare_fdt();
+
 #ifdef CONFIG_RK_I2C 
 	rk_pmic_i2c_init();
 #endif

@@ -33,9 +33,10 @@
 #include <malloc.h>
 #include <../board/rockchip/common/config.h>
 
+#include <fdt_support.h>
 #include <lcd.h>
 
-static bool inline read_storage(uint16_t offset, void* buf, uint16_t blocks) {
+static bool inline read_storage(lbaint_t offset, void* buf, uint16_t blocks) {
 #if 1
 	return !StorageReadLba(offset, buf, blocks);
 #else
@@ -150,9 +151,16 @@ end:
 bool get_content(int base_offset, resource_content* content) {
 	bool ret = false;
 	index_tbl_entry entry;
+    if (!base_offset) {
+        base_offset = get_base_offset();
+    }
+    if (!base_offset) {
+        FBTERR("base offset is NULL!\n");
+        goto end;
+    }
 	if (!get_entry(base_offset, content->path, &entry))
 		goto end;
-	content->content_offset = entry.content_offset;
+	content->content_offset = entry.content_offset + base_offset;
 	content->content_size = entry.content_size;
 	ret = true;
 end:
@@ -166,14 +174,14 @@ void free_content(resource_content* content) {
 	}
 }
 
-bool load_content(int base_offset, resource_content* content) {
+bool load_content(resource_content* content) {
 	if (content->load_addr)
 		return true;
 	int blocks = (content->content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 	content->load_addr = (void*)memalign(ARCH_DMA_MINALIGN, blocks * BLOCK_SIZE);
 	if (!content->load_addr)
 		return false;
-	if (!load_content_data(base_offset, content, 0,
+	if (!load_content_data(content, 0,
 				content->load_addr, blocks)) {
 		free_content(content);
 		return false;
@@ -181,17 +189,9 @@ bool load_content(int base_offset, resource_content* content) {
 	return true;
 }
 
-bool load_content_data(int base_offset, resource_content* content,
+bool load_content_data(resource_content* content,
 		int offset_block, void* data, int blocks) {
-	if (!base_offset) {
-		base_offset = get_base_offset();
-	}
-	if (!base_offset) {
-		FBTERR("base offset is NULL!\n");
-		return false;
-	}
-	if (!read_storage(base_offset + 
-				content->content_offset + offset_block, data, blocks)) {
+	if (!read_storage(content->content_offset + offset_block, data, blocks)) {
 		return false;
 	}
 	return true;
@@ -203,7 +203,7 @@ bool show_resource_image(const char* image_path) {
 	resource_content image;
 	memset(&image, 0, sizeof(image));
 	snprintf(image.path, sizeof(image.path), "%s", image_path);
-	if (get_content(0, &image) && load_content(0, &image)) {
+	if (get_content(0, &image) && load_content(&image)) {
 		FBTDBG("Try to show:%s\n", image_path);
 		lcd_display_bitmap_center((uint32_t)image.load_addr);
 		ret = true;

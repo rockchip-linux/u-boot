@@ -343,8 +343,6 @@ static void fbt_run_recovery_wipe_data(void)
 void rk_preboot(void)
 {
 	enum fbt_reboot_type frt;
-	load_disk_partitions();
-
 	frt = board_fbt_key_pressed();
 	if (frt == FASTBOOT_REBOOT_NONE) {
         FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n",

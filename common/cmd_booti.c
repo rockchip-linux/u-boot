@@ -6,7 +6,6 @@
 #include <malloc.h>
 #include <../board/rockchip/common/config.h>
 
-extern int rk_bootm_start(bootm_headers_t *images);
 extern int do_bootm_linux(int flag, int argc, char *argv[],
 		        bootm_headers_t *images);
 
@@ -229,19 +228,38 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif /* CONFIG_CMDLINE_TAG */
 
 	memset(&images, 0, sizeof(images));
+#ifdef CONFIG_CMD_BOOTM
+#ifdef CONFIG_ROCKCHIP
+	extern int rk_bootm_start(bootm_headers_t *images);
+	if (rk_bootm_start(&images)/*it returns 1 when failed.*/) {
+		puts("booti: failed to setup lmb!\n");
+		goto fail;
+	}
+
+#ifdef CONFIG_OF_LIBFDT
+    resource_content content = load_fdt(ptn);
+    if (!content.load_addr) {
+        printf("failed to prepare_fdt from %s!\n", boot_source);
+#ifdef CONFIG_OF_FROM_RESOURCE
+		content = load_fdt(get_disk_partition(RESOURCE_NAME));
+#endif
+    }
+	if (!content.load_addr) {
+        printf("failed to prepare_fdt!\n");
+		goto fail;
+	} else {
+		images.ft_addr = content.load_addr;
+		images.ft_len = content.content_size;
+    }
+#endif
+
+#endif
+#endif
+
 	images.ep = hdr->kernel_addr;
 	images.rd_start = hdr->ramdisk_addr;
 	images.rd_end = hdr->ramdisk_addr + hdr->ramdisk_size;
 	free(hdr);
-
-#ifdef CONFIG_CMD_BOOTM
-#ifdef CONFIG_ROCKCHIP
-	if (rk_bootm_start(&images)/*it returns 1 when failed.*/) {
-		puts("booti: failed to boot with fdt!\n");
-		goto fail;
-	}
-#endif
-#endif
 
 	rk_module_deinit();
 

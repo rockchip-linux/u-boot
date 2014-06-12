@@ -277,7 +277,6 @@ extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
 extern void suspend_usb(void);
 extern int is_usbd_high_speed(void);
 extern void rk_backlight_ctrl(int brightness);
-extern void* rk_fdt_resource_load(void);
 extern int lcd_enable_logo(bool enable);
 extern int drv_lcd_init (void);
 extern void powerOn(void);
@@ -289,7 +288,6 @@ extern void suspend_usb(void){;}
 int StorageReadLba(unsigned int LBA ,void *pbuf, unsigned short nSec) {return 0;}
 unsigned int SecureBootCheck(void) {return 0;}
 void rk_backlight_ctrl(int brightness) {;}
-void* rk_fdt_resource_load(void) {;}
 int lcd_enable_logo(bool enable) {return 0;}
 int drv_lcd_init (void) {return 0;}
 void powerOn(void) {;}
@@ -651,8 +649,6 @@ static void fbt_fastboot_init(void)
 		FBTDBG("Device is unlocked\n");
 	else
 		FBTDBG("Device is locked\n");
-
-	(void)board_fbt_load_partition_table();
 
 	//TODO:load device info, setup serial_number
 	if (priv.serial_no == NULL)
@@ -1832,9 +1828,11 @@ void fbt_preboot(void)
 		}
 	}
 
-	const void *blob = rk_fdt_resource_load();
-	int node = fdt_path_offset(blob, "/fb");
-    int logo_on = fdtdec_get_int(blob, node, "rockchip,uboot-logo-on", 0);
+	int logo_on = 0;
+	if (gd->fdt_blob) {
+		int node = fdt_path_offset(gd->fdt_blob, "/fb");
+		logo_on = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-logo-on", 0);
+	}
 	printf("read logo_on switch from dts [%d]\n", logo_on);
 
 #ifdef CONFIG_LCD
