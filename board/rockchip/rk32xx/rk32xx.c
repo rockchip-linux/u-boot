@@ -320,6 +320,8 @@ int board_late_init(void)
 	}
 #ifdef CONFIG_CMD_FASTBOOT
 	fbt_preboot();
+#else
+	rk_preboot();
 #endif
 	return 0;
 }

@@ -54,7 +54,11 @@ int main (int argc, char *argv[])
 
 	printf("totle blocks:0x%08x\n", blocks);
 
+#ifdef CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH
 	uint32_t buf_size = CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
+#else
+	uint32_t buf_size = 16*1024*1024;
+#endif
 	void* buf = malloc(buf_size);
 	uint16_t buf_blocks = buf_size / RK_BLK_SIZE;
 	uint32_t offset = 0;
