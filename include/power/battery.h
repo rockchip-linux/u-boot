@@ -26,10 +26,4 @@ int is_power_low(void);
 //return 1, if power extreme low.
 int is_power_extreme_low(void);
 
-//TODO:implement these interface.
-#if 1
-#define is_power_low() 0
-#define is_power_extreme_low() 0
-#endif
-
 #endif /* __POWER_BATTERY_H_ */

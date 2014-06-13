@@ -403,8 +403,9 @@
 //#define CONFIG_POWER_RK_SAMPLE
 #define CONFIG_POWER_RK808
 #define CONFIG_POWER_ACT8846
-
-//#define CONFIG_POWER_FG_CW201X
+#define CONFIG_SCREEN_ON_VOL_THRESD          3550
+#define CONFIG_SYSTEM_ON_VOL_THRESD          3650
+#define CONFIG_POWER_FG_CW201X
 /********************************** battery driver ********************************/
 //#define CONFIG_BATTERY_BQ27541
 //#define CONFIG_BATTERY_RICOH619

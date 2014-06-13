@@ -252,9 +252,8 @@ int board_late_init(void)
 	prepare_fdt();
 	key_init();
 	pmic_init(0);
-#if defined(CONFIG_UBOOT_CHARGE)
-	fg_init(0);
-#endif
+	fg_init(0); /*fuel gauge init*/
+
 	SecureBootCheck();
 
 	//TODO:set those buffers in a better way, and use malloc?

@@ -81,6 +81,27 @@ int pmic_charger_setting(int current)
 	return 0;
 }
 
+
+/*system on thresd*/
+int is_power_low(void)
+{
+	struct battery battery;
+	memset(&battery,0, sizeof(battery));
+	get_power_bat_status(&battery);
+	return (battery.voltage_uV <= CONFIG_SYSTEM_ON_VOL_THRESD) ? 1:0;	
+}
+
+
+/*screen on thresd*/
+int is_power_extreme_low(void)
+{
+	struct battery battery;
+	memset(&battery,0, sizeof(battery));
+	get_power_bat_status(&battery);
+	return (battery.voltage_uV <= CONFIG_SCREEN_ON_VOL_THRESD) ? 1:0;
+}
+
+
 int pmic_init(unsigned char  bus)
 {
 	int ret;
