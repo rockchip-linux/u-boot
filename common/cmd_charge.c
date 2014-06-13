@@ -571,6 +571,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	//init status
 	screen_state g_state;
 	memset(&g_state, 0, sizeof(g_state));
+	g_state.brightness = SCREEN_OFF;
 
 	unsigned int anim_time = 0;
 	int brightness = SCREEN_BRIGHT;
