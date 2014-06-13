@@ -90,7 +90,7 @@ int charger_init(unsigned char bus)
     int usb_charger_type = dwc_otg_check_dpdm();
 
     debug("%s, charger_type = %d, dc_is_charging= %d\n",__func__,usb_charger_type,is_charging());
-    if(is_charging()){
+    if(1){
         pmic_rk808_charger_setting(3);
     }else if(usb_charger_type){
         pmic_rk808_charger_setting(usb_charger_type);
@@ -173,9 +173,11 @@ int pmic_rk808_init(unsigned char bus)
 		if (ret < 0)
 			return ret;
 	}
+	
 	rk808.pmic->interface = PMIC_I2C;
 	//enable lcdc power ldo, and enable other ldo 
 	i2c_set_bus_num(rk808.pmic->bus);
+	charger_init(0);
 	i2c_init(RK808_I2C_SPEED, rk808.pmic->hw.i2c.addr);
 	i2c_set_bus_speed(RK808_I2C_SPEED);
 	i2c_reg_write(0x1b,0x23,i2c_reg_read(0x1b,0x23)|0x60);
