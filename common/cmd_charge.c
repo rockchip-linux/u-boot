@@ -47,10 +47,12 @@
 #define SCREEN_DIM_TIMEOUT          60000 //ms
 #define SCREEN_OFF_TIMEOUT          120000 //ms
 
-//screen brightness.
-#define BRIGHT_ON                   48
-#define BRIGHT_DIM                  12
-#define BRIGHT_OFF                  0
+//screen brightness state.
+#define SCREEN_BRIGHT               0
+#define SCREEN_DIM                  1
+#define SCREEN_OFF                  2
+
+#define IS_BRIGHT(brightness) 		(brightness != SCREEN_OFF)
 
 //key pressed state.
 #define KEY_NOT_PRESSED 			0
@@ -146,15 +148,15 @@ void do_set_brightness(int brightness, int old_brightness) {
 	if (brightness == old_brightness)
 		return;
 	LOGD("set_brightness: %d -> %d", old_brightness, brightness);
-	if (brightness) {
-		if (!old_brightness) {
+	if (IS_BRIGHT(brightness)) {
+		if (!IS_BRIGHT(old_brightness)) {
 			lcd_standby(0);
 			mdelay(100);
 		}
-		rk_backlight_ctrl(brightness);
+		rk_backlight_ctrl(brightness == SCREEN_BRIGHT ? -1 : CONFIG_BRIGHTNESS_DIM);
 	} else {
 		rk_backlight_ctrl(0);
-		if (old_brightness) {
+		if (IS_BRIGHT(old_brightness)) {
 			lcd_standby(1);
 		}
 	}
@@ -547,11 +549,12 @@ static inline int get_delay(const screen_state* state) {
 		: DEFAULT_ANIM_DELAY << 1;
 }
 
+
 static inline void set_brightness(int brightness, screen_state* state) {
-	if (state->brightness && !brightness) {
+	if (IS_BRIGHT(state->brightness) && !IS_BRIGHT(brightness)) {
 		LOGD("screen off!");
 		state->screen_on_time = 0;
-	} else if (!state->brightness && brightness) {
+	} else if (!IS_BRIGHT(state->brightness) && IS_BRIGHT(brightness)) {
 		LOGD("screen on!");
 		state->screen_on_time = get_timer(0);
 	}
@@ -570,7 +573,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	memset(&g_state, 0, sizeof(g_state));
 
 	unsigned int anim_time = 0;
-	int brightness = BRIGHT_ON;
+	int brightness = SCREEN_BRIGHT;
 	int key_state = KEY_NOT_PRESSED;
 	int exit_type = NOT_EXIT;
 
@@ -583,15 +586,15 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 
 		//step 2: handle timeouts.
-		if (g_state.brightness) {
+		if (IS_BRIGHT(g_state.brightness)) {
 			unsigned int idle_time = get_fix_duration(g_state.screen_on_time);
 			//printf("idle_time:%ld\n", idle_time);
 			if (idle_time > SCREEN_OFF_TIMEOUT) {
 				LOGD("screen off");
-				brightness = BRIGHT_OFF;
+				brightness = SCREEN_OFF;
 			} else if (idle_time >= SCREEN_DIM_TIMEOUT) {
 				LOGD("screen dim");
-				brightness = BRIGHT_DIM;
+				brightness = SCREEN_DIM;
 			}
 		}
 
@@ -601,12 +604,10 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			LOGD("key pressed state:%d", key_state);
 		}
 		if (key_state == KEY_SHORT_PRESSED) {
-			brightness = g_state.brightness? BRIGHT_OFF : BRIGHT_ON;
+			brightness = IS_BRIGHT(g_state.brightness)? SCREEN_OFF : SCREEN_BRIGHT;
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
-			if (brightness) {
-				//should not reach here!
-				LOGE("screen state error!");
-				brightness = BRIGHT_OFF;
+			if (IS_BRIGHT(brightness)) {
+				brightness = SCREEN_OFF;
 			}
 #endif
 		} else if(key_state == KEY_LONG_PRESSED){
@@ -620,35 +621,36 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
 		//step 4:try to do deep sleep.
-		if (!brightness) {
+		if (!IS_BRIGHT(brightness)) {
 			//goto sleep, and wait for wakeup by power-key.
-			set_brightness(BRIGHT_OFF, &g_state);
+			set_brightness(SCREEN_OFF, &g_state);
 			printf("wakeup gpio init and sleep.\n");
 			rk_pm_wakeup_gpio_init();
 			rk_pm_enter(NULL);
 			rk_pm_wakeup_gpio_deinit();
 			printf("wakeup gpio deinit and wakeup.\n");
-			brightness = BRIGHT_ON;
+			brightness = SCREEN_BRIGHT;
 		}
 #endif
 
 		//step 5:step anim when screen is on.
-		if (brightness) {
+		if (IS_BRIGHT(brightness)) {
 			//do anim when screen is on.
 			unsigned int duration = get_fix_duration(anim_time) * 1000;
-			if (!g_state.brightness || duration >= get_delay(&g_state)) {
+			if (IS_BRIGHT(g_state.brightness)
+					|| duration >= get_delay(&g_state)) {
 				anim_time = get_timer(0);
 				update_image();
 			}
 		}
 
-		//step 6:set brightness.
+		//step 6:set brightness state.
 		set_brightness(brightness, &g_state);
 
 		udelay(50000);// 50ms.
 	}
 exit:
-	set_brightness(BRIGHT_OFF, &g_state);
+	set_brightness(SCREEN_OFF, &g_state);
 	if (exit_type == EXIT_BOOT) {
 		printf("booting...\n");
 		return 1;

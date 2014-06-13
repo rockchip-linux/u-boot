@@ -413,6 +413,7 @@
 
 #define CONFIG_MAX_PARTITIONS		16
 #define CONFIG_OF_FROM_RESOURCE
+#define CONFIG_BRIGHTNESS_DIM		48
 
 #endif /* __CONFIG_H */
 
