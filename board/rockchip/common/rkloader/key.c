@@ -22,6 +22,7 @@
  * MA 02111-1307 USA
  */
 #include <common.h>
+#include <power/rockchip_power.h>
 
 #include "../config.h"
 #include "key.h"
@@ -180,7 +181,10 @@ void PowerKeyInit(void)
 
 int power_hold(void)
 {
-	return GetPortState(&key_power);
+	if (get_rockchip_pmic_id() == PMIC_ID_RICOH619)
+		return ricoh619_poll_pwr_key_sta();
+	else
+		return GetPortState(&key_power);
 }
 
 
