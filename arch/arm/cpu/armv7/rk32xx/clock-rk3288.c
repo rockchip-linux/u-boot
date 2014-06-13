@@ -1050,7 +1050,7 @@ void rkclk_set_cpll_rate(uint32 pll_hz)
  * rkplat lcdc aclk config
  * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
  * pll_sel (lcdc aclk source pll select) : 0 - codec pll, 1 - general pll, 2 - usbphy pll
- * div (lcdc aclk div from pll) : 0x00 - 0x1f
+ * div (lcdc aclk div from pll) : 0x01 - 0x20
  */
 int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
@@ -1066,7 +1066,7 @@ int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	con = 0;
 
 	/* aclk div */
-	div = (div & 0x1f) - 1;
+	div = (div - 1) & 0x1f;
 	con |= (0x1f << (offset + 16)) | (div << offset);
 
 	/* aclk pll source select */
@@ -1084,11 +1084,35 @@ int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 }
 
 
+
+
+/*
+ * rkplat vio hclk config from aclk vio0
+ * div (lcdc hclk div from aclk) : 0x01 - 0x20
+ */
+static int rkclk_vio_hclk_set(uint32 lcdc_id, uint32 div)
+{
+	uint32 con = 0;
+
+	/* only when lcdc id is 0 */
+	if (lcdc_id != 0) {
+		return -1;
+	}
+
+	/* dclk div */
+	div = (div - 1) & 0x1f;
+	con = (0x1f << (8 + 16)) | (div << 8);
+
+	cru_writel(con, CRU_CLKSELS_CON(28));
+
+	return 0;
+}
+
 /*
  * rkplat lcdc dclk config
  * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
  * pll_sel (lcdc dclk source pll select) : 0 - codec pll, 1 - general pll, 2 - new pll
- * div (lcdc dclk div from pll) : 0x00 - 0xff
+ * div (lcdc dclk div from pll) : 0x01 - 0x100
  */
 int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
@@ -1115,7 +1139,7 @@ int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	}
 
 	/* dclk div */
-	div = (div & 0xff) - 1;
+	div = (div - 1) & 0xff;
 	con |= (0xff << (8 + 16)) | (div << 8);
 
 	if (lcdc_id == 0) {
@@ -1181,6 +1205,19 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	pll_src = rkclk_lcdc_dclk_to_pll(lcdc_id, dclk_hz, &dclk_div);
 	rkclk_lcdc_dclk_set(lcdc_id, pll_src, dclk_div);
 	rkclk_lcdc_aclk_set(lcdc_id, pll_src, 1);
+	/* when set lcdc0, should vio hclk */
+	if (lcdc_id == 0) {
+		uint32 pll_hz;
+		uint32 hclk_div;
+
+		if (pll_src == 0) {
+			pll_hz = rkclk_pll_clk_get_rate(CPLL_ID);
+		} else {
+			pll_hz = rkclk_pll_clk_get_rate(GPLL_ID);
+		}
+		hclk_div = rkclk_calc_clkdiv(pll_hz, 100 * MHZ, 0);
+		rkclk_vio_hclk_set(lcdc_id, hclk_div);
+	}
 
 	printf("pll_src = %d, dclk_hz = %d, dclk_div = %d\n", pll_src, dclk_hz, dclk_div);
 	// return dclk rate
