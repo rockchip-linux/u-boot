@@ -36,10 +36,11 @@ struct cw201x cw;
 static int cw201x_i2c_probe(u32 bus, u32 addr)
 {
 	char val;
+	int ret;
 	i2c_set_bus_num(bus);
 	i2c_init(CW201X_I2C_SPEED, 0);
-	val = i2c_probe(addr);
-	if (val < 0)
+	ret = i2c_probe(addr);
+	if (ret < 0)
 		return -ENODEV;
 	val = i2c_reg_read(addr, REG_VERSION);
 	if (val == 0xff)

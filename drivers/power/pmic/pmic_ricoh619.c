@@ -244,10 +244,11 @@ static int ricoh619_set_voltage( struct ricoh619_regulator *ri,
 static int ricoh619_i2c_probe(u32 bus, u32 addr)
 {
 	uchar val;
+	int ret;
 	i2c_set_bus_num(bus);
 	i2c_init (RICOH619_I2C_SPEED, 0);
-	val = i2c_probe(addr);
-	if (val < 0)
+	ret = i2c_probe(addr);
+	if (ret < 0)
 		return -ENODEV;
 	val = i2c_reg_read(addr, 0x36);
 	if ((val == 0xff) || (val == 0))
@@ -314,7 +315,8 @@ int pmic_ricoh619_init(unsigned char bus)
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x36,0xc8);// dcdc1 output 3.1v for vccio
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x4c,0x54);// vout1 output 3.0v for vccio_pmu
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x51,0x30);// ldo6 output 1.8v for VCC18_LCD
-	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x44,i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0x44)|(1<<5));//ldo6 enable
+	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x52,0x04);//
+	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x44,i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0x44)|(3<<5));//ldo6 enable
 	return 0;
 }
 

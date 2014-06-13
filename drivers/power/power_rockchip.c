@@ -44,6 +44,8 @@ int get_power_bat_status(struct battery *battery)
 		p_fg->pbat->bat = battery;
 		if (p_fg->fg->fg_battery_update)
 			p_fg->fg->fg_battery_update(p_fg, p_fg);
+	} else {
+		return -ENODEV;
 	}
 
 	return 0;
@@ -56,9 +58,12 @@ return 1: charging
 */
 int is_charging(void)
 {
+	int ret;
 	struct battery battery;
 	memset(&battery,0, sizeof(battery));
-	get_power_bat_status(&battery);
+	ret = get_power_bat_status(&battery);
+	if (ret < 0)
+		return ret;
 	return battery.state_of_chrg;
 }
 
@@ -85,9 +90,12 @@ int pmic_charger_setting(int current)
 /*system on thresd*/
 int is_power_low(void)
 {
+	int ret;
 	struct battery battery;
 	memset(&battery,0, sizeof(battery));
-	get_power_bat_status(&battery);
+	ret = get_power_bat_status(&battery);
+	if (ret < 0)
+		return 0;
 	return (battery.voltage_uV <= CONFIG_SYSTEM_ON_VOL_THRESD) ? 1:0;	
 }
 
@@ -95,9 +103,12 @@ int is_power_low(void)
 /*screen on thresd*/
 int is_power_extreme_low(void)
 {
+	int ret;
 	struct battery battery;
 	memset(&battery,0, sizeof(battery));
-	get_power_bat_status(&battery);
+	ret = get_power_bat_status(&battery);
+	if (ret < 0)
+		return 0;
 	return (battery.voltage_uV <= CONFIG_SCREEN_ON_VOL_THRESD) ? 1:0;
 }
 
