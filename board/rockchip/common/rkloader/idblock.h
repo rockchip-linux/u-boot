@@ -226,7 +226,7 @@ typedef PACKED1 struct _FlashInfoCmd
 
 typedef PACKED1 struct _rk_time {
 	unsigned short		usYear;
-	unsigned short      	usMonth;
+	unsigned short		usMonth;
 	unsigned short		usDate;
 	unsigned short		usHour;
 	unsigned short		usMinute;
@@ -234,9 +234,9 @@ typedef PACKED1 struct _rk_time {
 }PACKED2 RK_TIME;
 
 typedef PACKED1 struct _RK28BOOT_HEAD{
-	char			szSign[BOOTSIGN_SIZE];
+	char				szSign[BOOTSIGN_SIZE];
 	unsigned char		bMD5Check[CHECK_SIZE];
-	RK_TIME			tmCreateTime;
+	RK_TIME				tmCreateTime;
 
 	unsigned int		uiMajorVersion;
 	unsigned int		uiMinorVersion;
@@ -250,8 +250,9 @@ typedef PACKED1 struct _RK28BOOT_HEAD{
 	unsigned int		uiFlashDataOffset;
 	unsigned int		uiFlashDataLen;
 
-	unsigned int        	uiFlashBootOffset;
+	unsigned int       	uiFlashBootOffset;
 	unsigned int		uiFlashBootLen;
+	unsigned char		ucRc4Flag;
 
 	unsigned int		MergerVersion;		// 生成Boot文件所用Merger工具的版本号(高16字节为主版本号、低16字节为副版本号)
 }PACKED2 RK28BOOT_HEAD, *PRK28BOOT_HEAD;

@@ -284,6 +284,7 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
 	new_hdr->uiFlashDataLen = pFlashDataEntry->dwDataSize;
 	new_hdr->uiFlashBootOffset = new_hdr->uiFlashDataOffset+new_hdr->uiFlashDataLen;
 	new_hdr->uiFlashBootLen = pFlashBootEntry->dwDataSize;
+	new_hdr->ucRc4Flag = boot_hdr->ucRc4Flag;
 	memcpy(new_loader+new_hdr->uiFlashDataOffset, old_loader+pFlashDataEntry->dwDataOffset, pFlashDataEntry->dwDataSize);
 	memcpy(new_loader+new_hdr->uiFlashBootOffset, old_loader+pFlashBootEntry->dwDataOffset, pFlashBootEntry->dwDataSize);
 	*new_loader_size = new_hdr->uiFlashBootOffset+new_hdr->uiFlashBootLen;

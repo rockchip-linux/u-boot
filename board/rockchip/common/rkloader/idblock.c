@@ -359,6 +359,7 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 	//	Sector3Info *pSec3;
 	RK28BOOT_HEAD *hdr = NULL;
 	int hasFlashInfo = 0;
+	int rc4Flag = 0;
 
 	//cmy: 获取已有的IDBlock加密数据，并进行解密
 
@@ -395,6 +396,7 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 
 	//cmy: 使用新的loader代码更新IDBlock的数据
 	hdr = (RK28BOOT_HEAD*)g_pLoader;
+	pSec0->reserved[4] = hdr->ucRc4Flag;
 
 	PRINT_I("update loader data\n");
 
@@ -402,12 +404,20 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 	// cmy: 更新FlashData及FlashBoot内容
 	pSec0->usFlashDataSize = PAGEALIGN(BYTE2SECTOR(hdr->uiFlashDataLen))*4;
 	pSec0->ucFlashBootSize = PAGEALIGN(BYTE2SECTOR(hdr->uiFlashBootLen))*4;
+
+#define SMALL_PACKET                   512
 	for(i=0; i<pSec0->ucFlashBootSize; i++)
 	{
+		if (hdr->ucRc4Flag) {
+			P_RC4((void*)(g_pLoader+hdr->uiFlashBootOffset+i*512), 512);
+		}
 		ftl_memcpy( (void*)(pIDBlockData+SECTOR_OFFSET*(4+pSec0->usFlashDataSize+i)), (void*)(g_pLoader+hdr->uiFlashBootOffset+i*512), 512 );
 	}
 	for(i=0; i<pSec0->usFlashDataSize; i++)
 	{
+		if (hdr->ucRc4Flag) {
+			P_RC4((void*)(g_pLoader+hdr->uiFlashDataOffset+i*512), 512);
+		}
 		ftl_memcpy( (void*)(pIDBlockData+SECTOR_OFFSET*(4+i)), (void*)(g_pLoader+hdr->uiFlashDataOffset+i*512), 512 );
 	}
 	pSec0->ucFlashBootSize += pSec0->usFlashDataSize;

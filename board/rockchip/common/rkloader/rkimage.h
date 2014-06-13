@@ -40,7 +40,7 @@ typedef struct tagKernelImg {
 
 #define BCD2INT(num) (((((num)>>4)&0x0F)*10)+((num)&0x0F))
 
-#define BOOT_RESERVED_SIZE 59
+#define BOOT_RESERVED_SIZE 57
 
 typedef enum {
 	RK27_DEVICE = 1,
@@ -76,6 +76,8 @@ typedef struct
 	unsigned char ucLoaderEntryCount;
 	unsigned int dwLoaderEntryOffset;
 	unsigned char ucLoaderEntrySize;
+	unsigned char ucSignFlag;
+	unsigned char ucRc4Flag;
 	unsigned char reserved[BOOT_RESERVED_SIZE];
 } PACKED2 STRUCT_RKBOOT_HEAD,*PSTRUCT_RKBOOT_HEAD;
 
