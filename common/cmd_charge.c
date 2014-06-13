@@ -483,7 +483,7 @@ static bool show_image(void) {
 static inline int get_index_for_level(int level) {
 	int i = 0;
 	for (i = 0;i < level_conf_num;i++) {
-		if (level <= level_confs[i].min_level)
+		if (level >= level_confs[i].min_level)
 			return i;
 	}
 	return 0;
