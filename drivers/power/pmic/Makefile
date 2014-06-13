@@ -6,7 +6,6 @@
 #
 
 ifdef CONFIG_ROCKCHIP
-obj-y			+= pmic_rockchip.o
 obj-$(CONFIG_OF_LIBFDT) += fdt_pmic.o
 endif
 obj-$(CONFIG_POWER_MAX8998) += pmic_max8998.o

@@ -7,7 +7,7 @@
 
 #include <common.h>
 #include <errno.h>
-#include <power/rockchip_pmic.h>
+#include <power/rockchip_power.h>
 #include <power/battery.h>
 
 static unsigned char rockchip_pmic_id;

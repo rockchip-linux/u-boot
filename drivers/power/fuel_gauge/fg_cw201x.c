@@ -3,7 +3,7 @@
 #include <power/battery.h>
 #include <errno.h>
 #include <asm/arch/rkplat.h>
-#include <power/rockchip_pmic.h>
+#include <power/rockchip_power.h>
 #include <i2c.h>
 
 DECLARE_GLOBAL_DATA_PTR;
