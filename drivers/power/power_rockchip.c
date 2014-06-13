@@ -23,7 +23,7 @@ static void set_rockchip_pmic_id(unsigned char id)
 	rockchip_pmic_id = id;
 }
 
-static unsigned char get_rockchip_pmic_id(void)
+unsigned char get_rockchip_pmic_id(void)
 {
 	return rockchip_pmic_id;
 }
@@ -73,9 +73,6 @@ int pmic_charger_setting(int current)
 	switch (id) {
 		case PMIC_ID_ACT8846:
 			pmic_act8846_charger_setting(current);
-			break;
-		case PMIC_ID_RICOH619:
-			pmic_ricoh619_charger_setting(current);
 			break;
 		case PMIC_ID_RK808:
 			pmic_rk808_charger_setting(current);

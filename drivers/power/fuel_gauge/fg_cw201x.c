@@ -22,7 +22,7 @@ static int state_of_chrg = 0;
 #define REG_MODE                0xA
 #define REG_BATINFO             0x10
 
-int volt_tab[6] = {3466, 3586, 3670, 3804, 4014, 4316};
+static int volt_tab[6] = {3466, 3586, 3670, 3804, 4014, 4316};
 
 struct cw201x {
 	struct pmic *p;

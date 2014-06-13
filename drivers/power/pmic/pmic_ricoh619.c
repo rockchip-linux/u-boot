@@ -9,6 +9,7 @@
 #include <fdtdec.h>
 #include <power/battery.h>
 #include <power/ricoh619_pmic.h>
+#include <power/rockchip_power.h>
 #include <errno.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -154,60 +155,6 @@ static int pmic_charger_state(struct pmic *p, int state, int current)
 }
 
 
-/*
-0. disable charging  
-1. usb charging
-2. ac adapter charging
-*/
-int pmic_ricoh619_charger_setting(int current)
-{
-	u8 iset1_val,chgiset_val;
-	const u8 dc_iset1_cfg = 0x16;
-	const u8 usb_iset1_cfg = 0x06;
-	const u8 dc_chgiset_cfg = 0xd3;
-	const u8 usb_chgiset_cfg = 0xc6;
-	
-	i2c_set_bus_num(ricoh619.pmic->bus);
-	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, 0xff, 0x00); /*for i2c protect*/
-	iset1_val = i2c_reg_read(ricoh619.pmic->hw.i2c.addr, REGISET1_REG);
-	chgiset_val = i2c_reg_read(ricoh619.pmic->hw.i2c.addr, CHGISET_REG);
-	
-	if ( current == 1) {
-		if ((iset1_val == usb_iset1_cfg) && (chgiset_val == usb_chgiset_cfg))
-			return 0;
-	} else if (current == 2) {
-		if ((iset1_val == dc_iset1_cfg) && (chgiset_val == dc_chgiset_cfg))
-			return 0;
-	}
-	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, PWRFUNC,
-			i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0x0d)|0x20);                                            
-	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, CHGCTL1_REG,
-			i2c_reg_read(ricoh619.pmic->hw.i2c.addr, CHGCTL1_REG) | 0x08);
-	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, BATSET2_REG, 0x44);  /* VFCHG 4.35v)   */ 
-	printf("%s iset1:0x%02x chgiset:0x%02x current %d\n",__func__,
-					iset1_val, chgiset_val,current);
-	switch (current){
-	case 0:
-		i2c_reg_write(ricoh619.pmic->hw.i2c.addr, CHGCTL1_REG,
-			i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0xb3)&~0x03);      //disable charging    
-		break;
-	case 1:
-		i2c_reg_write(ricoh619.pmic->hw.i2c.addr, REGISET1_REG, usb_iset1_cfg);
-		i2c_reg_write(ricoh619.pmic->hw.i2c.addr, CHGISET_REG, usb_chgiset_cfg);	
-		break;
-	case 2:
-		i2c_reg_write(ricoh619.pmic->hw.i2c.addr, REGISET1_REG, dc_iset1_cfg);
-		i2c_reg_write(ricoh619.pmic->hw.i2c.addr, CHGISET_REG, dc_chgiset_cfg);	/* ILIM_ADP	0x11= 0x0-0x1D (100mA - 3000mA) */
-		break;
-	default:
-		break;
-	}
-	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, CHGCTL1_REG,
-			i2c_reg_read(ricoh619.pmic->hw.i2c.addr, CHGCTL1_REG) & 0xf7);
-	return 0;
-}
-
-
 int ricoh619_poll_pwr_key_sta(void)
 {
 	i2c_set_bus_num(ricoh619.pmic->bus);
@@ -317,6 +264,7 @@ int pmic_ricoh619_init(unsigned char bus)
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x51,0x30);// ldo6 output 1.8v for VCC18_LCD
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x52,0x04);//
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x44,i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0x44)|(3<<5));//ldo6 enable
+	fg_ricoh619_init(ricoh619.pmic->bus, ricoh619.pmic->hw.i2c.addr);
 	return 0;
 }
 

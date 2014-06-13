@@ -5,9 +5,9 @@
  */
 
 #include <common.h>
-#include <power/pmic.h>
 #include <power/battery.h>
-#include <power/pmic_ricoh619.h>
+#include <power/ricoh619_pmic.h>
+#include <power/rockchip_power.h>
 #include <errno.h>
 
 #define PMU_DEBUG 0
@@ -23,7 +23,13 @@
 
 int state_of_chrg = 0;
 
-int volt_tab[6] = {3466, 3586, 3670, 3804, 4014, 4316};
+struct ricoh619_fg {
+	struct pmic *p;
+};
+
+struct ricoh619_fg ricoh_fg;
+
+static int volt_tab[6] = {3466, 3586, 3670, 3804, 4014, 4316};
 int pmu_debug(u8 reg)
 {
 	u8 reg_val;
@@ -44,7 +50,7 @@ int pmu_i2c_set(u8 addr, u8 reg,u8 reg_val)
 	return 0;
 }
 
-int pmu_i2c_init(void)
+/*int pmu_i2c_init(void)
 {
 	i2c_set_bus_num(CONFIG_PMIC_I2C_BUS);
 	i2c_init (CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
@@ -58,20 +64,21 @@ int pmu_i2c_init(void)
 	pmu_i2c_set(PMU_I2C_ADDRESS, 0x66, 0x20);
 
 	return 1;
-}
+}*/
 
-int read_pmu_reg(u8 reg,u8 *reg_val)
+int read_pmu_reg(struct pmic *pmic,u8 reg,u8 *reg_val)
 {
-	*reg_val=i2c_reg_read(PMU_I2C_ADDRESS,reg);
+	*reg_val=i2c_reg_read(pmic->hw.i2c.addr, reg);
 	return 0;
 }
 
-int write_pmu_reg(u8 reg,u8 reg_val)
+int write_pmu_reg(struct pmic *pmic,u8 reg,u8 reg_val)
 {
-	pmu_i2c_set(PMU_I2C_ADDRESS, reg, reg_val);
+	pmu_i2c_set(pmic->hw.i2c.addr, reg, reg_val);
 	return 0;
 }
 
+#if 0
 static int get_check_fuel_gauge_reg(int Reg_h, int Reg_l, int enable_bit)
 {
 	uint8_t get_data_h, get_data_l;
@@ -137,34 +144,29 @@ static int get_battery_temp(void)
     //printk("%s: %d\n",__func__,ret);
 	return ret;
 }
+#endif
 
 // the unit of voltage value is mV .
-int pmu_get_voltage(void)
+int ricoh619_get_voltage(struct pmic *pmic)
 {
 	u8 voltage_h,voltage_l;
 	int vol=0,vol_tmp1,vol_tmp2;
 	u8 i;
-	int ret=0;
 
 	for(i=1;i<11;i++)
 	{
-	ret=read_pmu_reg(VBATDATAL_REG,&voltage_l);
-	ret=read_pmu_reg(VBATDATAH_REG,&voltage_h);
-	vol_tmp1=voltage_l;
-	vol_tmp2=voltage_h;
-	vol+=(vol_tmp1&0xF)|((vol_tmp2&0xFF)<<4);
-	
-	if(PMU_DEBUG)
-		printf("voltage_l=%x,voltage_h=%x,voltage=%lx \n",voltage_l,voltage_h,vol/i);
+		read_pmu_reg(pmic, VBATDATAL_REG,&voltage_l);
+		read_pmu_reg(pmic,VBATDATAH_REG,&voltage_h);
+		vol_tmp1=voltage_l;
+		vol_tmp2=voltage_h;
+		vol+=(vol_tmp1&0xF)|((vol_tmp2&0xFF)<<4);
 	}
 	vol=vol/10;
 	vol=vol*5000/4095;
-	
-	if(PMU_DEBUG)
-	printf("the voltage of battery is %d mV\n",vol);
 	return vol;
 }
 
+#if 0
 static int calc_capacity(void)
 {
 	uint8_t capacity;
@@ -225,6 +227,7 @@ static int calc_capacity(void)
 	return temp;		/* Unit is 1% */
 }
 
+#endif
 
 int get_capcity(int volt)
 {
@@ -257,29 +260,106 @@ int get_capcity(int volt)
 
 
 /*
+0. disable charging  
+1. usb charging
+2. ac adapter charging
+*/
+static int ricoh619_charger_setting(struct pmic *pmic,int current)
+{
+	u8 iset1_val,chgiset_val;
+	const u8 dc_iset1_cfg = 0x16;
+	const u8 usb_iset1_cfg = 0x06;
+	const u8 dc_chgiset_cfg = 0xd3;
+	const u8 usb_chgiset_cfg = 0xc6;
+	
+	i2c_set_bus_num(pmic->bus);
+	i2c_reg_write(pmic->hw.i2c.addr, 0xff, 0x00); /*for i2c protect*/
+	iset1_val = i2c_reg_read(pmic->hw.i2c.addr, REGISET1_REG);
+	chgiset_val = i2c_reg_read(pmic->hw.i2c.addr, CHGISET_REG);
+	
+	if ( current == 1) {
+		if ((iset1_val == usb_iset1_cfg) && (chgiset_val == usb_chgiset_cfg))
+			return 0;
+	} else if (current == 2) {
+		if ((iset1_val == dc_iset1_cfg) && (chgiset_val == dc_chgiset_cfg))
+			return 0;
+	}
+	i2c_reg_write(pmic->hw.i2c.addr, PWRFUNC,
+			i2c_reg_read(pmic->hw.i2c.addr,0x0d)|0x20);                                            
+	i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
+			i2c_reg_read(pmic->hw.i2c.addr, CHGCTL1_REG) | 0x08);
+	i2c_reg_write(pmic->hw.i2c.addr, BATSET2_REG, 0x44);  /* VFCHG 4.35v)   */ 
+	printf("%s iset1:0x%02x chgiset:0x%02x current %d\n",__func__,
+					iset1_val, chgiset_val,current);
+	switch (current){
+	case 0:
+		i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
+			i2c_reg_read(pmic->hw.i2c.addr,0xb3)&~0x03);      //disable charging    
+		break;
+	case 1:
+		i2c_reg_write(pmic->hw.i2c.addr, REGISET1_REG, usb_iset1_cfg);
+		i2c_reg_write(pmic->hw.i2c.addr, CHGISET_REG, usb_chgiset_cfg);	
+		break;
+	case 2:
+		i2c_reg_write(pmic->hw.i2c.addr, REGISET1_REG, dc_iset1_cfg);
+		i2c_reg_write(pmic->hw.i2c.addr, CHGISET_REG, dc_chgiset_cfg);	/* ILIM_ADP	0x11= 0x0-0x1D (100mA - 3000mA) */
+		break;
+	default:
+		break;
+	}
+	i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
+			i2c_reg_read(pmic->hw.i2c.addr, CHGCTL1_REG) & 0xf7);
+	return 0;
+}
+
+static int ricoh619_check_battery(struct pmic *p, struct pmic *bat)
+{
+	struct battery *battery = bat->pbat->bat;
+	battery->state_of_chrg = dwc_otg_check_dpdm();
+	return 0;
+}
+
+
+/*
 get battery status, contain capacity, voltage, status
 struct battery *batt_status:
 voltage_uV. battery voltage
 capacity.   battery capacity
 state_of_chrg: 0. no charger; 1. usb charging; 2. AC charging
 */
-int get_power_bat_status(struct battery *batt_status)
+
+static int ricoh619_update_battery(struct pmic *p, struct pmic *bat)
 {
-	u8 reg_val;
-	int ret=0;
-    
-	if (!state_of_chrg) {
-		pmu_i2c_init();
-	}
-   	state_of_chrg = dwc_otg_check_dpdm();
-	//batt_status->capacity = calc_capacity();
-	batt_status->voltage_uV = pmu_get_voltage();
-	batt_status->capacity = get_capcity(batt_status->voltage_uV);
-	batt_status->state_of_chrg = state_of_chrg;
-	printf("%s capacity = %d, voltage_uV = %d,state_of_chrg=%d REGISET1_REG:0x%02x CHGISET:0x%02x\n",
-		__func__,batt_status->capacity,batt_status->voltage_uV,
-		batt_status->state_of_chrg,
-		i2c_reg_read(PMU_I2C_ADDRESS, REGISET1_REG),
-		i2c_reg_read(PMU_I2C_ADDRESS, CHGISET_REG));
+	struct battery *battery = bat->pbat->bat;
+
+	state_of_chrg = dwc_otg_check_dpdm();
+	i2c_set_bus_num(bat->bus);
+	i2c_init(100000, bat->hw.i2c.addr);
+	ricoh619_charger_setting(bat,state_of_chrg);
+	battery->voltage_uV = ricoh619_get_voltage(bat);
+	battery->capacity = get_capcity(battery->voltage_uV);
+	battery->state_of_chrg = state_of_chrg;
+	printf("%s capacity = %d, voltage_uV = %d,state_of_chrg=%d\n",
+	bat->name,battery->capacity,battery->voltage_uV,state_of_chrg);
+	return 0;
+
+}
+
+static struct power_fg fg_ops = {
+	.fg_battery_check = ricoh619_check_battery,
+	.fg_battery_update = ricoh619_update_battery,
+};
+
+int fg_ricoh619_init(unsigned char bus,uchar addr)
+{
+	static const char name[] = "RICOH619_FG";
+	if (!ricoh_fg.p)
+		ricoh_fg.p = pmic_alloc();
+	ricoh_fg.p->name = name;
+	ricoh_fg.p->bus = bus;
+	ricoh_fg.p->hw.i2c.addr = addr;
+	ricoh_fg.p->interface = PMIC_I2C;
+	ricoh_fg.p->fg = &fg_ops;
 	return 0;
 }
+
