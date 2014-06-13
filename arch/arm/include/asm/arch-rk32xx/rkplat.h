@@ -40,7 +40,6 @@
 #include "irqs.h"
 #include "gpio.h"
 #include "iomux.h"
-#include "reg.h"
 
 #include "clock.h"
 #include "uart.h"

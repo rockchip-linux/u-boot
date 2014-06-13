@@ -26,6 +26,13 @@
 #include "../config.h"
 #include "key.h"
 
+#define SARADC_BASE             RKIO_SARADC_PHYS
+
+#define read_XDATA(address) 		(*((uint16 volatile*)(address)))
+#define read_XDATA32(address)		(*((uint32 volatile*)(address)))
+#define write_XDATA(address, value) 	(*((uint16 volatile*)(address)) = value)
+#define write_XDATA32(address, value)	(*((uint32 volatile*)(address)) = value)
+
 int gpio_reg[]={
 	RKIO_GPIO0_PHYS, 
 	RKIO_GPIO1_PHYS, 

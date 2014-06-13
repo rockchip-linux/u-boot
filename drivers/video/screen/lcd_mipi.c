@@ -28,9 +28,7 @@
 #include <fdtdec.h>
 #include <errno.h>
 #include <asm/io.h>
-#include <asm/arch/clock.h>
-#include <asm/arch/reg.h>
-#include <asm/arch/gpio.h>
+#include <asm/arch/rkplat.h>
 #include <lcd.h>
 #include "../transmitter/mipi_dsi.h"
 #endif

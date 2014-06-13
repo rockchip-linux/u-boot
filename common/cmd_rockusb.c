@@ -328,7 +328,7 @@ static void FW_GetChipVer(void)
 		return;
 	}
 	current_urb->buffer[0] = 0;
-	ftl_memcpy(current_urb->buffer, (uint8*)(BOOT_ROM_CHIP_VER_ADDR), 16);
+	ftl_memcpy(current_urb->buffer, (uint8*)(RKIO_ROM_CHIP_VER_ADDR), 16);
 
 #if(CONFIG_RKCHIPTYPE==CONFIG_RK3288) 
 	current_urb->buffer[0] = 0x33323041; // "320A"

@@ -434,7 +434,8 @@ static int inline lvds_writel(uint32 offset, uint32 val)
 
 static int rk32_lvds_disable(void)
 {
-    g_grfReg->grf_soc_con[7] = 0x80008000;
+	grf_writel(0x80008000, GRF_SOC_CON7);
+
 	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_21); /*disable tx*/
 	writel_relaxed(0xff, lvds_regs + LVDS_CFG_REG_c); /*disable pll*/
 	return 0;
@@ -452,7 +453,8 @@ static int rk32_lvds_en(vidinfo_t *vid)
 		val = LVDS_SEL_VOP_LIT | (LVDS_SEL_VOP_LIT << 16);
 	else
 		val = LVDS_SEL_VOP_LIT << 16;  // video source from vop0 = vop big
-    g_grfReg->grf_soc_con[6] = val;
+
+	grf_writel(val, GRF_SOC_CON6);
 
 	val = vid->lvds_format;
 	if (screen_type == SCREEN_DUAL_LVDS)
@@ -469,10 +471,10 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	val |= (vid->vl_clkp << 8) | (vid->vl_hsp << 9) |
 		(vid->vl_oep << 10);
 	val |= 0xffff << 16;
-    g_grfReg->grf_soc_con[7] = val;
-    g_grfReg->grf_gpio_sr[1].GPIOH = 0x0f000f00;
-    g_grfReg->grf_gpio_e[1].GPIOD  = 0x00ff00ff;
 
+	grf_writel(val, GRF_SOC_CON7);
+	grf_writel(0x0f000f00, GRF_GPIO1H_SR);
+	grf_writel(0x00ff00ff, GRF_GPIO1D_E);
 	if (screen_type == SCREEN_LVDS)
 		val = 0xbf;
 	else
@@ -480,9 +482,8 @@ static int rk32_lvds_en(vidinfo_t *vid)
 
 	if(vid->lvds_ttl_en) //  1 lvds
     {
-    	val = 0x00550055;
-        g_grfReg->grf_gpio1d_iomux = val;//lcdc iomux 
-    	
+	grf_writel(0x00550055, GRF_GPIO1D_IOMUX); //lcdc iomux
+
     	lvds_writel( LVDS_CH0_REG_0, 0x7f);
     	lvds_writel( LVDS_CH0_REG_1, 0x40);
     	lvds_writel( LVDS_CH0_REG_2, 0x00);
@@ -731,8 +732,7 @@ void rk30_lcdc_standby(enable)
 int rk_lcdc_init(int lcdc_id)
 {
     preg = (lcdc_id == 1) ? RKIO_VOP_LIT_PHYS : RKIO_VOP_BIG_PHYS;  
-    g_grfReg->grf_io_vsel = 1<<16;  //LCDCIOdomain 3.3 Vvoltageselectio
-    
+    grf_writel(1<<16, GRF_IO_VSEL); //LCDCIOdomain 3.3 Vvoltageselectio
    // lcdc_clk_enable();
 	
    // printf(" %s vop_version = %x\n",__func__,LcdRdReg(VERSION_INFO));
