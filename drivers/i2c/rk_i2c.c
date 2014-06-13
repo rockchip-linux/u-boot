@@ -646,7 +646,7 @@ int i2c_get_bus_num_fdt(int bus_addr)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(rki2c_base); i++) {
-		if (bus_addr  == rki2c_base[i].regs)
+		if ((void __iomem *)bus_addr  == rki2c_base[i].regs)
 			return i;
 	}
 
