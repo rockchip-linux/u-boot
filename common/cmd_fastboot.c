@@ -1419,12 +1419,12 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		FBTDBG("starting download of %d bytes\n", d_size);
 
 		//we should receive whole image for those partitions.
-		priv.d_legacy = 
+		priv.d_legacy = !priv.pending_ptn_name[0] ||
 			(!strcmp(priv.pending_ptn_name, RECOVERY_NAME) ||
 			 !strcmp(priv.pending_ptn_name, BOOT_NAME) ||
 			 !strcmp(priv.pending_ptn_name, LOADER_NAME) ||
 			 !strcmp(priv.pending_ptn_name, PARAMETER_NAME) ||
-			 //!strcmp(priv.pending_ptn_name, RESOURCE_NAME) ||
+			 !strcmp(priv.pending_ptn_name, RESOURCE_NAME) ||
 			 !strcmp(priv.pending_ptn_name, UBOOT_NAME));
 
 		FBTDBG("legacy download? %d\n", priv.d_legacy);
