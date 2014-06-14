@@ -10,6 +10,7 @@ enum pmic_id {
 };
 unsigned char get_rockchip_pmic_id(void);
 int dwc_otg_check_dpdm(void);
+int is_charging(void);
 int pmic_act8846_init(unsigned char bus);
 int pmic_ricoh619_init(unsigned char bus);
 int pmic_rk808_init(unsigned char bus);

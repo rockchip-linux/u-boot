@@ -63,7 +63,7 @@ int is_charging(void)
 	memset(&battery,0, sizeof(battery));
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
-		return ret;
+		return 0;
 	return battery.state_of_chrg;
 }
 

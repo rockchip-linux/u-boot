@@ -8,6 +8,7 @@
 /*#define DEBUG*/
 #include <common.h>
 #include <power/rk808_pmic.h>
+#include <power/rockchip_power.h>
 #include <errno.h>
 #include <asm/arch/rkplat.h>
 
