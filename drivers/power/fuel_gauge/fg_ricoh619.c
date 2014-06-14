@@ -234,7 +234,7 @@ int get_capcity(int volt)
 	int i = 0;
 	int level0, level1;
 	int cap;
-	int diff;
+	int diff = 0;
 	int step = 100 / (ARRAY_SIZE(volt_tab) -1);
 
 	if (state_of_chrg == 1)
