@@ -638,7 +638,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (IS_BRIGHT(brightness)) {
 			//do anim when screen is on.
 			unsigned int duration = get_fix_duration(anim_time) * 1000;
-			if (IS_BRIGHT(g_state.brightness)
+			if (!IS_BRIGHT(g_state.brightness)
 					|| duration >= get_delay(&g_state)) {
 				anim_time = get_timer(0);
 				update_image();
