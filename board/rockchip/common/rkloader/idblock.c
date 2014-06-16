@@ -359,7 +359,6 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 	//	Sector3Info *pSec3;
 	RK28BOOT_HEAD *hdr = NULL;
 	int hasFlashInfo = 0;
-	int rc4Flag = 0;
 
 	//cmy: 获取已有的IDBlock加密数据，并进行解密
 
