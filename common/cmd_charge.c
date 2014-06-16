@@ -543,10 +543,10 @@ typedef struct _screen_state {
 } screen_state;
 
 static inline int get_delay(const screen_state* state) {
-	return state->brightness? get_anim_delay()
+	return IS_BRIGHT(state->brightness)? get_anim_delay()
 
 		/* check duration while screen off */
-		: DEFAULT_ANIM_DELAY << 1;
+		: get_anim_delay() << 1;
 }
 
 
