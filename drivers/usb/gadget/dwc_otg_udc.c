@@ -844,12 +844,16 @@ int is_usbd_high_speed(void)
 	return ((OtgReg->Device.dsts>>1) & 0x03) ? 0 : 1;
 }
 
+
+extern void rkplat_uart2UsbEn(uint32 en);
+
 /* Turn on the USB connection by enabling the pullup resistor */
 void udc_connect(void)
 {
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
 
-	//UsbPhyReset();
+	rkplat_uart2UsbEn(0);
+
 	if(!(OtgReg->Device.dctl & 0x02)){
 		OtgReg->Device.dctl |= 0x02;           //soft disconnect
 		udelay(500*1000);    //delay 500ms
