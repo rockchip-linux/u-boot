@@ -275,6 +275,8 @@ int pmic_act8846_init(unsigned char bus)
 
 void pmic_act8846_shut_down(void)
 {
-
+	gpio_direction_output(act8846.pwr_hold.gpio,
+			!(act8846.pwr_hold.flags)); 
+	mdelay(100);
 }
 
