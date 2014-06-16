@@ -33,7 +33,7 @@
 #include "storage.h"
 
 
-
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 static MEM_FUN_T NandFunOp = 
 {
 	0,
@@ -55,6 +55,7 @@ static MEM_FUN_T NandFunOp =
 	LMemApiSysDataLoad,
 	LMemApiSysDataStore,
 };
+#endif
 
 static MEM_FUN_T emmcFunOp = 
 {
@@ -81,7 +82,9 @@ static MEM_FUN_T emmcFunOp =
 static MEM_FUN_T *memFunTab[] = 
 {
 	&emmcFunOp,
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 	&NandFunOp,
+#endif
 };
 #define MAX_MEM_DEV	(sizeof(memFunTab)/sizeof(MEM_FUN_T *))
 
@@ -101,8 +104,11 @@ int32 StorageInit(void)
 			return 0;
 		}
 	}
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 	gpMemFun = memFunTab[1];
-
+#else
+	gpMemFun = memFunTab[0];
+#endif
 	return -1;
 }
 

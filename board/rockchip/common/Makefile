@@ -35,7 +35,8 @@ obj-y += rkboot/fastboot.o
 obj-y += SecureBoot/SecureBoot.o
 obj-y += storage/storage.o
 obj-y += mediaboot/emmc_boot.o
+ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 obj-y += mediaboot/nandflash_boot.o
-
+endif
 
 
