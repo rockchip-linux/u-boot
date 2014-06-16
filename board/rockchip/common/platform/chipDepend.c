@@ -91,22 +91,24 @@ void rkplat_uart2UsbEn(uint32 en)
 {
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	if (en) {
-		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usbphy0 bypass select and otg disable.
+		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usbphy0 bypass disable and otg enable.
 
 		/* if define force enable usb to uart, maybe usb function will be affected */
 #ifdef CONFIG_RKUSB2UART_FORCE
+		grf_writel((0x0004 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy enable
+		grf_writel((0x002A | (0x003F << 16)), GRF_UOC0_CON3); // usb phy enter suspend
 		grf_writel((0x00C0 | (0x00C0 << 16)), GRF_UOC0_CON3); // usb uart enable.
 #else
 		con = grf_readl(GRF_SOC_STATUS2);
 		if (!(con & (1<<14)) && (con & (1<<17))) { // check IO domain voltage select.
-			grf_writel((0x0004 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy disable
+			grf_writel((0x0004 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy enable
 			grf_writel((0x002A | (0x003F << 16)), GRF_UOC0_CON3); // usb phy enter suspend
 			grf_writel((0x00C0 | (0x00C0 << 16)), GRF_UOC0_CON3); // uart enable
 		}
 #endif /* CONFIG_RKUSB2UART_FORCE */
 	} else {
 		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usb uart disable
-		grf_writel((0x0000 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy enable
+		grf_writel((0x0000 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy disable
 	}
 #else
 	#error "PLS check CONFIG_RKCHIPTYPE if support uart2usb."
