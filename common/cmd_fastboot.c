@@ -1869,7 +1869,7 @@ void fbt_preboot(void)
 			|| frt == FASTBOOT_REBOOT_CHARGE) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
-		if (do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
+		if (logo_on && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
 			//boot from charge animation.
 			frt = FASTBOOT_REBOOT_NONE;
 		}
