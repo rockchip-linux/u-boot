@@ -822,25 +822,10 @@ u-boot.ldr.hex u-boot.ldr.srec: u-boot.ldr FORCE
 
 ifneq ($(CONFIG_ROCKCHIP),)
 
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3066))
-RKCHIP ?= RK30
-endif
-
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3168))
-RKCHIP ?= RK30B
-endif
-
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3188))
-RKCHIP ?= RK310B
-endif
-
 ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3288))
 RKCHIP ?= RK3288
 endif
 
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3026))
-RKCHIP ?= RK302A
-endif
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
