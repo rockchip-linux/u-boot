@@ -36,7 +36,7 @@
 #ifdef CONFIG_RK_3288_DSI_UBOOT
 #define	MIPI_SCREEN_DBG(x...)	//printf(x)
 #elif defined CONFIG_LCD_MIPI
-#define	MIPI_SCREEN_DBG(x...)	printk(KERN_ERR x)
+#define	MIPI_SCREEN_DBG(x...)	//printk(KERN_ERR x)
 #else
 #define	MIPI_SCREEN_DBG(x...)  
 #endif
@@ -69,7 +69,10 @@ static void rk_mipi_screen_pwr_disable(struct mipi_screen *screen)
 
 static void rk_mipi_screen_pwr_enable(struct mipi_screen *screen)
 {   
+
 	if(screen->lcd_en_gpio != INVALID_GPIO){
+		gpio_direction_output(screen->lcd_en_gpio, !screen->lcd_en_atv_val);
+		msleep(screen->lcd_en_delay);
 		gpio_direction_output(screen->lcd_en_gpio, screen->lcd_en_atv_val);
 		msleep(screen->lcd_en_delay);
 	}
@@ -88,10 +91,26 @@ static void rk_mipi_screen_pwr_enable(struct mipi_screen *screen)
 
 static void rk_mipi_screen_cmd_init(struct mipi_screen *screen)
 {
-	u8 len, i, cmds[25] = {0}; 
+	u8 len, i;
+	u8 *cmds;
 	struct list_head *screen_pos;
 	struct mipi_dcs_cmd_ctr_list  *dcs_cmd;
-	
+#ifdef CONFIG_RK_3288_DSI_UBOOT
+	cmds = calloc(1,0x400);
+	if(!cmds) {
+		printf("request cmds fail!\n");
+		return;
+	}
+#endif
+
+#ifdef CONFIG_LCD_MIPI
+	cmds = kmalloc(0x400, GFP_KERNEL);
+	if(!cmds) {
+		printk("request cmds fail!\n");
+		return ;
+	}
+#endif
+		
 	list_for_each(screen_pos, &screen->cmdlist_head){
 	
 		dcs_cmd = list_entry(screen_pos, struct mipi_dcs_cmd_ctr_list, list);
@@ -148,13 +167,20 @@ static void rk_mipi_screen_cmd_init(struct mipi_screen *screen)
 		else
 		    MIPI_SCREEN_DBG("cmd type err.\n");
 	}
+
+#ifdef CONFIG_RK_3288_DSI_UBOOT
+	free(cmds);
+#endif
+#ifdef CONFIG_LCD_MIPI
+	kfree(cmds);
+#endif
+
 }
 
 int rk_mipi_screen(void) 
 {
 	u8 dcs[16] = {0}, rk_dsi_num;
 	rk_dsi_num = gmipi_screen->mipi_dsi_num;
-	
 	if(gmipi_screen->screen_init == 0){
 	
 		dsi_enable_hs_clk(0,1);
@@ -704,12 +730,10 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 }
 #endif /* CONFIG_OF_LIBFDT */
 
-
 int rk_mipi_screen_probe(void)
 {
-	int ret = 0;
-
-	gmipi_screen = calloc(1, sizeof(struct mipi_screen));
+    int ret = 0;
+    gmipi_screen = calloc(1, sizeof(struct mipi_screen));
 	if(!gmipi_screen) {
 		printf("request struct screen fail!\n");
 		return -ENOMEM;
@@ -726,8 +750,8 @@ int rk_mipi_screen_probe(void)
 
 	return 0;
 }
-#endif /* CONFIG_RK_3288_DSI_UBOOT */
 
+#endif /* CONFIG_RK_3288_DSI_UBOOT */
 #ifdef CONFIG_LCD_MIPI
 static int __init rk_mipi_screen_probe(struct platform_device *pdev)
 {

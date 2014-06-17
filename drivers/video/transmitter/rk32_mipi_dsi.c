@@ -63,7 +63,7 @@
 #include <linux/rockchip/iomap.h>
 #endif
 #ifdef CONFIG_RK32_MIPI_DSI
-#define	MIPI_DBG(x...)	printk(KERN_INFO x)
+#define	MIPI_DBG(x...)	//printk(KERN_INFO x)
 #elif defined CONFIG_RK_3288_DSI_UBOOT
 #define	MIPI_DBG(x...)	//printf( x)
 #define	printk(x...)	//printf( x)
@@ -72,7 +72,7 @@
 #endif
 
 #ifdef CONFIG_MIPI_DSI_LINUX
-#define	MIPI_TRACE(x...)	printk(KERN_INFO x)
+#define	MIPI_TRACE(x...)	//printk(KERN_INFO x)
 #else
 #define	MIPI_TRACE(...)    \
 	do\
@@ -91,7 +91,7 @@
 *
 */
 
-#define RK_MIPI_DSI_VERSION_AND_TIME  "rockchip mipi_dsi v1.0 2014-05-08"
+#define RK_MIPI_DSI_VERSION_AND_TIME  "rockchip mipi_dsi v1.1 2014-06-17"
 
 static struct dsi *dsi0;
 static struct dsi *dsi1;
@@ -108,7 +108,6 @@ DECLARE_GLOBAL_DATA_PTR;
 extern int rk_mipi_screen_probe(void);
 extern void writel_relaxed(uint32 val, uint32 addr);
 #define msleep(a) udelay(a * 1000)
-
 /* 
 dsihost0:
 clocks = <&clk_gates5 15>, <&clk_gates16 4>;
@@ -203,8 +202,7 @@ static int rk32_dsi_set_bits(struct dsi *dsi, u32 data, u32 reg)
 	
 	return 0;
 }
-
-#ifdef CONFIG_MIPI_DSI_LINUX
+#if 0
 static int rk32_dwc_phy_test_rd(struct dsi *dsi, unsigned char test_code)
 {
 	int val = 0;
@@ -318,7 +316,7 @@ static int rk32_phy_init(struct dsi *dsi)
 	test_data[0] = 0x80 | val << 3 | 0x3;
 	rk32_dwc_phy_test_wr(dsi, 0x10, test_data, 1);
 	
-	test_data[0] = 0xf;
+	test_data[0] = 0x8;
 	rk32_dwc_phy_test_wr(dsi, 0x11, test_data, 1); 
 	
 	test_data[0] = 0x80 | 0x40;
@@ -760,17 +758,28 @@ static int rk32_mipi_dsi_is_active(void *arg)
 static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length)
 {
 	struct dsi *dsi = arg;
-	unsigned char regs[25] = {0}; 
+	unsigned char *regs;
 	u32 type, liTmp = 0, i = 0, j = 0, data = 0;
 
 	if(rk32_dsi_get_bits(dsi, gen_cmd_full) == 1) {
 		MIPI_TRACE("gen_cmd_full\n");
 		return -1;
 	}
-	
-	for(i = 0; i < length; i++){
-		regs[i] = cmds[i];
+#ifdef CONFIG_MIPI_DSI_LINUX
+	regs = kmalloc(0x400, GFP_KERNEL);
+	if(!regs) {
+		printk("request regs fail!\n");
+		return -ENOMEM;
 	}
+#endif
+#ifdef CONFIG_RK_3288_DSI_UBOOT
+	regs = malloc(0x400);
+	if(!regs) {
+		printf("request regs fail!\n");
+		return -ENOMEM;
+	}
+#endif
+	memcpy(regs,cmds,length);
 	
 	liTmp	= length - 2;
 	type	= regs[1];
@@ -898,7 +907,12 @@ static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length
 		udelay(10);
 	}
 	udelay(10);
-
+#ifdef CONFIG_MIPI_DSI_LINUX
+	kfree(regs);
+#endif
+#ifdef CONFIG_RK_3288_DSI_UBOOT
+	free(regs);
+#endif
 	return 0;
 }
 
@@ -1069,7 +1083,7 @@ int reg_proc_write(struct file *file, const char __user *buff, size_t count, lof
 						MIPI_TRACE("payload entry is larger than 32\n");
 						break;
 					}	
-					sscanf(data, "%x,", str + i);   //-c 1,29,02,03,05,06,> pro
+					sscanf(data, "%x,", (unsigned int *)(str + i));   //-c 1,29,02,03,05,06,> pro
 					data = strstr(data, ",");
 					if(data == NULL)
 						break;
@@ -1209,7 +1223,7 @@ int reg_proc_write1(struct file *file, const char __user *buff, size_t count, lo
 						MIPI_TRACE("payload entry is larger than 32\n");
 						break;
 					}	
-					sscanf(data, "%x,", str + i);   //-c 1,29,02,03,05,06,> pro
+					sscanf(data, "%x,", (unsigned int *)(str + i));   //-c 1,29,02,03,05,06,> pro
 					data = strstr(data, ",");
 					if(data == NULL)
 						break;
@@ -1276,7 +1290,7 @@ struct file_operations reg_proc_fops1 = {
 	.read   = reg_proc_read1,
 };
 #endif
-#ifdef CONFIG_MIPI_DSI_LINUX
+#if 0//def CONFIG_MIPI_DSI_LINUX
 static irqreturn_t rk32_mipi_dsi_irq_handler(int irq, void *data)
 {
 	printk("-------rk32_mipi_dsi_irq_handler-------\n");
@@ -1304,14 +1318,11 @@ int rk32_dsi_sync(void)
 }
 
 #endif
-#ifdef CONFIG_MIPI_DSI_LINUX
+#if 0
 static int dwc_phy_test_rd(struct dsi *dsi, unsigned char test_code)
 {
     int val = 0;
 
-
-
-     
     rk32_dsi_set_bits(dsi, 0x10000 | test_code, PHY_TEST_CTRL1);
     rk32_dsi_set_bits(dsi, 0x2, PHY_TEST_CTRL0);
     rk32_dsi_set_bits(dsi, 0x0, PHY_TEST_CTRL0);
@@ -1546,7 +1557,7 @@ int rk32_mipi_enable(vidinfo_t *vid)
 }
 #endif
 #ifdef CONFIG_MIPI_DSI_LINUX
-int rk32_mipi_power_down_DDR()
+int rk32_mipi_power_down_DDR(void)
 {	
 	dsi_is_enable(0, 0);	
 	if (rk_mipi_get_dsi_num() ==2)	    
@@ -1554,7 +1565,7 @@ int rk32_mipi_power_down_DDR()
 	return 0;   
 }
 EXPORT_SYMBOL(rk32_mipi_power_down_DDR);
-int rk32_mipi_power_up_DDR()
+int rk32_mipi_power_up_DDR(void)
 {	
 	dsi_is_enable(0, 0);	
 	if (rk_mipi_get_dsi_num() ==2)	    
@@ -1615,11 +1626,11 @@ static int rk32_mipi_dsi_probe(struct platform_device *pdev)
 		return dsi->host.irq;
 	}
 	
-	ret = request_irq(dsi->host.irq, rk32_mipi_dsi_irq_handler, 0,dev_name(&pdev->dev), dsi);
-	if(ret) {
-		dev_err(&pdev->dev, "request mipi_dsi irq fail\n");
-		return -EINVAL;
-	}
+	//ret = request_irq(dsi->host.irq, rk32_mipi_dsi_irq_handler, 0,dev_name(&pdev->dev), dsi);
+	//if(ret) {
+	//	dev_err(&pdev->dev, "request mipi_dsi irq fail\n");
+	//	return -EINVAL;
+	//}
 	printk("dsi->host.irq =%d\n",dsi->host.irq); 
 
 	disable_irq(dsi->host.irq);
@@ -1684,7 +1695,9 @@ static int rk32_mipi_dsi_probe(struct platform_device *pdev)
 	}	
 
 	if(id == 1){
-		rk32_init_phy_mode(dsi_screen->lcdc_id);
+
+		if(!support_uboot_display())
+			rk32_init_phy_mode(dsi_screen->lcdc_id);
 		rk_fb_trsm_ops_register(&trsm_dsi_ops, SCREEN_MIPI);
 	
 #ifdef MIPI_DSI_REGISTER_IO        
