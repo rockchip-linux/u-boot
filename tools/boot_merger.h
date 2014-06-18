@@ -44,6 +44,8 @@ typedef char line_t[MAX_LINE_LEN];
 #define DEF_LOADER1_PATH    "../../u-boot.bin"
 #define DEF_OUT_PATH        "../../RK30xxLoader_uboot.bin"
 
+#define OUT_SUBFIX          ".bin"
+
 #define SEC_CHIP            "[CHIP_NAME]"
 #define SEC_VERSION         "[VERSION]"
 #define SEC_471             "[CODE471_OPTION]"
