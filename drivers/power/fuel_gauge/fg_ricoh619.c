@@ -165,6 +165,8 @@ int ricoh619_get_voltage(struct pmic *pmic)
 	}
 	vol=vol/10;
 	vol=vol*5000/4095;
+	if (!vol)
+		vol = 3780;
 	return vol;
 }
 
@@ -243,6 +245,7 @@ int get_capcity(int volt)
 		diff = 70;
 	else if (state_of_chrg == 2)
 		diff = 270;
+
 	for (i = 0 ; i < ARRAY_SIZE(volt_tab); i++) {
 		if (volt <= (volt_tab[i] + diff))
 			break;
