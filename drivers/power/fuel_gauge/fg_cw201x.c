@@ -61,6 +61,12 @@ static int cw201x_parse_dt(const void* blob)
 		printf("Can't find dts node for fuel guage cw201x\n");
 		return -ENODEV;
 	}
+
+	if (!fdt_device_is_available(blob,node)) {
+		debug("device cw201x is disabled\n");
+		return -1;
+	}
+	
 	addr = fdtdec_get_addr(blob, node, "reg");
 	parent = fdt_parent_offset(blob, node);
 	if (parent < 0) {

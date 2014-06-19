@@ -222,6 +222,10 @@ static int act8846_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
+	if (!fdt_device_is_available(blob,node)) {
+		debug("device act8846 is disabled\n");
+		return -1;
+	}
 	addr = fdtdec_get_addr(blob, node, "reg");
 	
 	parent = fdt_parent_offset(blob, node);

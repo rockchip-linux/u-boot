@@ -132,6 +132,11 @@ static int rk808_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
+	if (!fdt_device_is_available(blob,node)) {
+		debug("device rk808 is disabled\n");
+		return -1;
+	}
+	
 	addr = fdtdec_get_addr(blob, node, "reg");
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
 	

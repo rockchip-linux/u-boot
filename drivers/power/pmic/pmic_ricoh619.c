@@ -217,6 +217,11 @@ int ricoh619_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
+	if (!fdt_device_is_available(blob,node)) {
+		debug("device ricoh619 is disabled\n");
+		return -1;
+	}
+	
 	addr = fdtdec_get_addr(blob, node, "reg");
 	parent = fdt_parent_offset(blob, node);
 	if (parent < 0) {
