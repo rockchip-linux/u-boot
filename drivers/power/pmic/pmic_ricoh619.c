@@ -258,6 +258,7 @@ int pmic_ricoh619_init(unsigned char bus)
 	ricoh619.pmic->interface = PMIC_I2C;
 	i2c_set_bus_num(ricoh619.pmic->bus);
 	i2c_init (RICOH619_I2C_SPEED, 0);
+	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, 0xff, 0x00); /*for i2c protect*/
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr ,0x10,0x4c);// DIS_OFF_PWRON_TIM bit 0; OFF_PRESS_PWRON 6s; OFF_JUDGE_PWRON bit 1; ON_PRESS_PWRON bit 2s
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x36,0xc8);// dcdc1 output 3.1v for vccio
 	i2c_reg_write(ricoh619.pmic->hw.i2c.addr,0x4c,0x54);// vout1 output 3.0v for vccio_pmu

@@ -273,7 +273,6 @@ static int ricoh619_charger_setting(struct pmic *pmic,int current)
 	const u8 usb_chgiset_cfg = 0xc6;
 	
 	i2c_set_bus_num(pmic->bus);
-	i2c_reg_write(pmic->hw.i2c.addr, 0xff, 0x00); /*for i2c protect*/
 	iset1_val = i2c_reg_read(pmic->hw.i2c.addr, REGISET1_REG);
 	chgiset_val = i2c_reg_read(pmic->hw.i2c.addr, CHGISET_REG);
 	
