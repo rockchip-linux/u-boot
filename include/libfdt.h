@@ -1574,5 +1574,6 @@ int fdt_find_regions(const void *fdt, char * const inc[], int inc_count,
 		     char * const exc_prop[], int exc_prop_count,
 		     struct fdt_region region[], int max_regions,
 		     char *path, int path_len, int add_string_tab);
+int fdt_device_is_available(const void *blob, int node);
 
 #endif /* _LIBFDT_H */

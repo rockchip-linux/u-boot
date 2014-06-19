@@ -530,3 +530,26 @@ int fdt_node_offset_by_compatible(const void *fdt, int startoffset,
 
 	return offset; /* error from fdt_next_node() */
 }
+
+
+/**
+ *  of_device_is_available - check if a device is available for use
+ *
+ *  @device: Node to check for availability
+ *
+ *  Returns 1 if the status property is absent or set to "okay" or "ok",
+ *  0 otherwise
+ */
+int fdt_device_is_available(const void *blob, int node)
+{
+	const char *cell;
+	cell = fdt_getprop(blob, node, "status", NULL);
+	if (cell) {
+		if (!strcmp(cell, "okay") || !strcmp(cell, "ok"))
+			return 1;
+	} else {
+		return 1;
+	}
+	return 0;
+}
+
