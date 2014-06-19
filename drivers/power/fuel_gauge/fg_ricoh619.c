@@ -10,6 +10,8 @@
 #include <power/rockchip_power.h>
 #include <errno.h>
 
+/*#define SUPPORT_USB_CONNECT_TO_ADP*/
+
 #define PMU_DEBUG 0
 
 #define VOLTAGE_1                       0xEB
@@ -311,10 +313,31 @@ static int ricoh619_charger_setting(struct pmic *pmic,int current)
 	return 0;
 }
 
+
+static int ricoh619_chrg_det(struct pmic *pmic)
+{
+	u8 val;
+	unsigned int chrg_state = 0;
+	val = i2c_reg_read(pmic->hw.i2c.addr, CHGSTATE_REG);
+	if (val & 0x40) { 
+#if defined(SUPPORT_USB_CONNECT_TO_ADP)
+		chrg_state = dwc_otg_check_dpdm();
+#else
+		chrg_state = 2;	
+#endif
+	} else if (val & 0x80) {
+		chrg_state = dwc_otg_check_dpdm();
+	} else {
+		chrg_state = 0;
+	}
+
+	return chrg_state;
+}
+
 static int ricoh619_check_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
-	battery->state_of_chrg = dwc_otg_check_dpdm();
+	battery->state_of_chrg = ricoh619_chrg_det(bat);
 	return 0;
 }
 
@@ -331,7 +354,7 @@ static int ricoh619_update_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
 
-	state_of_chrg = dwc_otg_check_dpdm();
+	state_of_chrg = ricoh619_chrg_det(bat);
 	i2c_set_bus_num(bat->bus);
 	i2c_init(100000, bat->hw.i2c.addr);
 	ricoh619_charger_setting(bat,state_of_chrg);
