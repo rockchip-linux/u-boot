@@ -13,6 +13,7 @@ obj-$(CONFIG_TWL6030_POWER)	+= twl6030.o
 obj-$(CONFIG_PALMAS_POWER)	+= palmas.o
 
 obj-$(CONFIG_POWER) += power_core.o
+obj-$(CONFIG_OF_LIBFDT) += power_fdt.o
 obj-$(CONFIG_ROCKCHIP) += power_rockchip.o
 obj-$(CONFIG_DIALOG_POWER) += power_dialog.o
 obj-$(CONFIG_POWER_FSL) += power_fsl.o

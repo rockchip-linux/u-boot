@@ -53,3 +53,4 @@ int fdt_get_regulator_node(const void * blob,int parent_nd)
 	return fdt_subnode_offset_namelen(blob, parent_nd, "regulators", 10);
 }
 
+
