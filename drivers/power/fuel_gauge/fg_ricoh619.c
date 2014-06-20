@@ -155,6 +155,10 @@ int ricoh619_get_voltage(struct pmic *pmic)
 	int vol=0,vol_tmp1,vol_tmp2;
 	u8 i;
 
+	u8 pswr = i2c_reg_read(pmic->hw.i2c.addr, PSWR_REG);
+	if (!(pswr & 0x80))
+		return 3780;
+	
 	for(i=1;i<11;i++)
 	{
 		read_pmu_reg(pmic, VBATDATAL_REG,&voltage_l);
@@ -165,8 +169,7 @@ int ricoh619_get_voltage(struct pmic *pmic)
 	}
 	vol=vol/10;
 	vol=vol*5000/4095;
-	if (!vol)
-		vol = 3780;
+
 	return vol;
 }
 
