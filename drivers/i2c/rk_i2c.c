@@ -180,14 +180,26 @@ static inline void rk_i2c_iomux(rk_i2c_bus_ch_t bus_id)
 }
 
 
-/* SCL Divisor = 8 * (CLKDIVL + CLKDIVH)
+static inline void rk_i2c_get_div(int div, int *divh, int *divl)
+{
+	if (div % 2 == 0) {
+		*divh = div / 2;
+		*divl = div / 2;
+	} else {
+		*divh = RK_CEIL(div, 2);
+		*divl = div / 2;
+	}
+}
+
+
+/* SCL Divisor = 8 * (CLKDIVL+1 + CLKDIVH+1)
  * SCL = PCLK / SCLK Divisor
  * i2c_rate = PCLK
 */
 static void rk_i2c_set_clk(struct rk_i2c *i2c, uint32 scl_rate)
 {
 	uint32 i2c_rate;
-	uint div, divl, divh;
+	int div, divl, divh;
 
 	if (i2c->speed == scl_rate) {
 		return ;
@@ -195,8 +207,12 @@ static void rk_i2c_set_clk(struct rk_i2c *i2c, uint32 scl_rate)
 	/* First get i2c rate from pclk */
 	i2c_rate = rkclk_get_i2c_clk(g_i2c_online_bus);
 
-	div = RK_CEIL(i2c_rate, scl_rate * 8);
-	divh = divl = RK_CEIL(div, 2);
+	div = RK_CEIL(i2c_rate, scl_rate * 8) - 2;
+	if (div < 0) {
+		divh = divl = 0;
+	} else {
+		rk_i2c_get_div(div, &divh, &divl);
+	}
 	i2c_writel(I2C_CLKDIV_VAL(divl, divh), i2c->regs + I2C_CLKDIV);
 
 	i2c->speed = scl_rate;
