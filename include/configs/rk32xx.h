@@ -26,17 +26,15 @@
 #define __CONFIG_H
 
 
-/* config rockchip chip type plat form */
-#define CONFIG_RK3288		1
-
-#define CONFIG_RKCHIPTYPE	CONFIG_RK3288
-
-
 /*
  * High Level Configuration Options
  */
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
+
+#include <asm/arch/cpu.h>		/* get chip and board defs */
+
+#define CONFIG_RKCHIPTYPE	CONFIG_RK3288
 
 /* enable thune build */
 //#define CONFIG_SYS_THUMB_BUILD

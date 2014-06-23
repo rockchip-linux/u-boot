@@ -36,11 +36,11 @@
 #define ROCKCHIP_CPU_RK3288	0x32880000
 
 /* rockchip cpu type */
-#define RKCHIP_RK3066		(ROCKCHIP_CPU_RK30XX | 0x01)	/* rk3066 chip */
-#define RKCHIP_RK3168		(ROCKCHIP_CPU_RK30XXB | 0x01)	/* rk3168 chip */
-#define RKCHIP_RK3188		(ROCKCHIP_CPU_RK3188 | 0x00)	/* rk3188 chip */
-#define RKCHIP_RK3188_PLUS	(ROCKCHIP_CPU_RK3188 | 0x10)	/* rk3188 plus chip */
-#define RKCHIP_RK3288		(ROCKCHIP_CPU_RK3288 | 0x00)	/* rk3288 chip */
+#define CONFIG_RK3066		(ROCKCHIP_CPU_RK30XX | 0x01)	/* rk3066 chip */
+#define CONFIG_RK3168		(ROCKCHIP_CPU_RK30XXB | 0x01)	/* rk3168 chip */
+#define CONFIG_RK3188		(ROCKCHIP_CPU_RK3188 | 0x00)	/* rk3188 chip */
+#define CONFIG_RK3188_PLUS	(ROCKCHIP_CPU_RK3188 | 0x10)	/* rk3188 plus chip */
+#define CONFIG_RK3288		(ROCKCHIP_CPU_RK3288 | 0x00)	/* rk3288 chip */
 
 #endif	/* _RK3XXX_CPU_H */
 
