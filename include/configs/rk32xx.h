@@ -106,22 +106,33 @@
  *|       -     kernel      -   nand code   -     fdt     -   uboot/ramdisk   |
  *|---------------------------------------------------------------------------|
  */
-#define RAM_PHY_SIZE		0x08000000
-#define RAM_PHY_START		0x00000000
-#define RAM_PHY_END             (RAM_PHY_START + RAM_PHY_SIZE)
+#include <linux/sizes.h>
+#define CONFIG_RAM_PHY_START		0x00000000
+#define CONFIG_RAM_PHY_SIZE		SZ_128M
+#define CONFIG_RAM_PHY_END		(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE)
 
-//define uboot loader addr.
+/*
+ * 		define uboot loader addr.
+ * notice: CONFIG_SYS_TEXT_BASE must be an immediate,
+ * so if CONFIG_RAM_PHY_START is changed, also update CONFIG_SYS_TEXT_BASE define.
+ *
+ * if uboot as first level, CONFIG_SYS_TEXT_BASE = CONFIG_RAM_PHY_START
+ * if uboot ad second level, CONFIG_SYS_TEXT_BASE = CONFIG_RAM_PHY_START + SZ_2M
+ *    Resersed 2M space for packed nand bin.
+ *
+ */
+
 #ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
-	//2m offset for packed nand bin.
-	#define CONFIG_SYS_TEXT_BASE    0x00200000
+	#define CONFIG_SYS_TEXT_BASE    0x00200000 //Resersed 2M space for packed nand bin.
 #else
 	#define CONFIG_SYS_TEXT_BASE    0x00000000
 #endif
 
-// rk nand api function code address 
-#define CONFIG_RKNAND_API_ADDR		(RAM_PHY_START + 0x3000000)//48M
+#define CONFIG_KERNEL_LOAD_ADDR 	(CONFIG_RAM_PHY_START + SZ_32M) //32M
 
-#define CONFIG_KERNEL_LOAD_ADDR 	SZ_32M
+// rk nand api function code address 
+#define CONFIG_RKNAND_API_ADDR		(CONFIG_RAM_PHY_START + SZ_32M + SZ_16M) //48M
+
 
 /* input clock of PLL: has 24MHz input clock at rk30xx */
 #define CONFIG_SYS_CLK_FREQ_CRYSTAL	24000000
@@ -239,17 +250,17 @@
  */
 #define CONFIG_NR_DRAM_BANKS		1
 #define PHYS_SDRAM_1            	CONFIG_SYS_SDRAM_BASE /* OneDRAM Bank #0 */
-#define PHYS_SDRAM_1_SIZE       	(RAM_PHY_END - RAM_PHY_START) /* 128 MB in Bank #0 */
+#define PHYS_SDRAM_1_SIZE       	(CONFIG_RAM_PHY_END - CONFIG_RAM_PHY_START) /* 128 MB in Bank #0 */
 
 /* DRAM Base */
-#define CONFIG_SYS_SDRAM_BASE		RAM_PHY_START		/* Physical start address of SDRAM. */
+#define CONFIG_SYS_SDRAM_BASE		CONFIG_RAM_PHY_START		/* Physical start address of SDRAM. */
 #define CONFIG_SYS_SDRAM_SIZE   	PHYS_SDRAM_1_SIZE
 
 /* Default load address */
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_SYS_SDRAM_BASE
 
 //sp addr before relocate.
-#define CONFIG_SYS_INIT_SP_ADDR		RAM_PHY_END
+#define CONFIG_SYS_INIT_SP_ADDR		CONFIG_RAM_PHY_END
 
 /*
  * Stack sizes
