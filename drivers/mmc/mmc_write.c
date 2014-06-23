@@ -68,7 +68,11 @@ unsigned long mmc_berase(int dev_num, lbaint_t start, lbaint_t blkcnt)
 	int err = 0;
 	struct mmc *mmc = find_mmc_device(dev_num);
 	lbaint_t blk = 0, blk_r = 0;
-	int timeout = 1000;
+	#ifdef CONFIG_ROCKCHIP
+		int timeout = 100000;
+	#else
+		int timeout = 1000;
+	#endif
 
 	if (!mmc)
 		return -1;
@@ -104,7 +108,7 @@ static ulong mmc_write_blocks(struct mmc *mmc, lbaint_t start,
 	struct mmc_cmd cmd;
 	struct mmc_data data;
 	#ifdef CONFIG_ROCKCHIP
-		int timeout = 10000;
+		int timeout = 100000;
 	#else
 		int timeout = 1000;
 	#endif

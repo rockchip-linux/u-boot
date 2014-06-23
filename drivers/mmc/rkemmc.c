@@ -218,7 +218,6 @@ static int rk_mmc_start_command(struct mmc *mmc,
 		Writel(gMmcBaseAddr + MMC_RINTSTS, MMC_CMD_ERROR_FLAGS);
 		return COMM_ERR;
 	}
-#if 1
 	if (cmd->resp_type & MMC_RSP_PRESENT) {
 		if (cmd->resp_type & MMC_RSP_136) {
 			cmd->response[3] = Readl(gMmcBaseAddr+MMC_RESP0);
@@ -232,8 +231,6 @@ static int rk_mmc_start_command(struct mmc *mmc,
 			cmd->response[3] = 0;
 		}
 	}
-#endif
-
 	return 0;
 }
 
