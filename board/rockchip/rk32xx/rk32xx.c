@@ -44,11 +44,7 @@ extern int rk_fb_parse_dt(const void *blob);
 int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks) {
 	//TODO:auto detect size.
 	if (banks > 0) {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 		size[0] = ddr_get_cap();
-#else
-		#error "PLS config chiptype ddr size for fdt!"
-#endif
 	}
 
 	return fdt_fixup_memory_banks(blob, start, size, banks);
