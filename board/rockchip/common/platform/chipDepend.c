@@ -68,12 +68,24 @@ void DRVDelayS(uint32 count)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	return readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	return readl(RKIO_GRF_PHYS + GRF_OS_REG4);
+#else
+	#error "PLS check CONFIG_RKCHIPTYPE for loader flag."
+#endif
 }
 
 void ISetLoaderFlag(uint32 flag)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG4);
+#else
+	#error "PLS check CONFIG_RKCHIPTYPE for loader flag."
+#endif
 }
 
 void FW_NandDeInit(void)
