@@ -68,6 +68,14 @@
 #endif
 
 
+/* usb otg base */
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
+#else
+	#error "PLS config chiptype for usb otg base!"
+#endif
+
+
 #define	BULK_IN_EP			0x01
 #define	BULK_OUT_EP			0x02
 #define	EP0_TX_FIFO_SIZE		64
@@ -147,7 +155,7 @@ static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint);
 ***************************************************************************/
 void ReadEndpoint0(uint16_t len, void *buf)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	flush_cache((uint32_t)buf, (uint32_t)len);
 	OtgReg->Device.OutEp[0].DoEpDma = (uint32_t)buf;
@@ -161,7 +169,7 @@ void ReadEndpoint0(uint16_t len, void *buf)
 ***************************************************************************/
 void WriteEndpoint0(uint16_t len, void* buf)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	if (((OtgReg->Core.gnptxsts & 0xffff) >= (len+3)/4) && (((OtgReg->Core.gnptxsts>>16) & 0xff) > 0))
 	{
@@ -176,7 +184,7 @@ void WriteEndpoint0(uint16_t len, void* buf)
 ***************************************************************************/
 void ReadBulkEndpoint(uint32_t len, void *buf)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t regBak;
 
 	flush_cache((uint32_t)buf, (uint32_t)len);
@@ -194,7 +202,7 @@ void ReadBulkEndpoint(uint32_t len, void *buf)
 ***************************************************************************/
 void WriteBulkEndpoint(uint32_t len, void* buf)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t regBak;
 
 	//if ((OtgReg->Device.InEp[BULK_IN_EP].DTXFSTS & 0xffff) >= (len+3)/4)
@@ -328,7 +336,7 @@ void ControlInPacket(void)
 
 uint32_t GetVbus(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t vbus = 1;
 	vbus = (OtgReg->Core.gotgctl >> 19) & 0x01;
 	udelay(1);
@@ -339,7 +347,7 @@ uint32_t GetVbus(void)
 
 void UdcInit(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t count;
 
 	UsbConnected = 0;
@@ -418,7 +426,7 @@ void ep0in_ack(void)
 
 void set_address(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	OtgReg->Device.dcfg = (OtgReg->Device.dcfg & (~0x07f0)) | (ControlData.DeviceRequest.wValue << 4);  //reset device addr
 	ep0in_ack();
@@ -430,7 +438,7 @@ void set_address(void)
 ***************************************************************************/
 void stall_ep0(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	OtgReg->Device.OutEp[0].DoEpCtl |= 1<<21;  //send OUT0 stall handshack
 	OtgReg->Device.InEp[0].DiEpCtl |= 1<<21;   //send IN0 stall handshack
@@ -438,7 +446,7 @@ void stall_ep0(void)
 
 void set_configuration(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1<<28)|(BULK_IN_EP<<22)|(2<<18)|(1<<15)|0x200;//|(1<<27)
 	ep0in_ack();
@@ -558,7 +566,7 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 
 static void dwc_otg_enum_done_intr(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	struct usb_endpoint_instance *endpoint;
 
 	endpoint = &udc_device->bus->endpoint_array[1];
@@ -586,7 +594,7 @@ static void dwc_otg_enum_done_intr(void)
 
 static void dwc_otg_in_intr(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t i;
 	uint32_t ch;
 	uint32_t event;
@@ -643,7 +651,7 @@ static void dwc_otg_in_intr(void)
 
 static void dwc_otg_out_intr(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t i;
 	uint32_t ch;
 	uint32_t event;
@@ -701,7 +709,7 @@ static void dwc_otg_out_intr(void)
 /* Stall endpoint */
 static void udc_stall_ep(uint32_t ep_num)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	OtgReg->Device.OutEp[ep_num].DoEpCtl |= 1<<21;  //send OUT0 stall handshack
 	OtgReg->Device.InEp[ep_num].DiEpCtl |= 1<<21;   //send IN0 stall handshack	
@@ -839,7 +847,7 @@ int udc_init(void)
 
 int is_usbd_high_speed(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	return ((OtgReg->Device.dsts>>1) & 0x03) ? 0 : 1;
 }
@@ -850,7 +858,7 @@ extern void rkplat_uart2UsbEn(uint32 en);
 /* Turn on the USB connection by enabling the pullup resistor */
 void udc_connect(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	rkplat_uart2UsbEn(0);
 
@@ -944,7 +952,7 @@ extern uint32_t SecureBootLock_backup;
  */
 void udc_irq(void)
 {
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_PHYS;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t IntFlag;
 
 	IntFlag = OtgReg->Core.gintsts & OtgReg->Core.gintmsk;
@@ -1020,8 +1028,9 @@ int dwc_otg_check_dpdm(void)
 	volatile unsigned int * otg_gotgctl;
 	volatile unsigned int * otg_hprt0;
 	int bus_status = 0;
-	char *OtgReg = RKIO_USBOTG_PHYS;
+	char *OtgReg = RKIO_USBOTG_BASE;
 
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	cru_writel(((7<<4)<<16)|(7<<4), CRU_SOFTRSTS_CON(8));    // otg0 phy clkgate
 	udelay(3);
 	cru_writel(((7<<4)<<16)|(0<<4), CRU_SOFTRSTS_CON(8));  // otg0 phy clkgate
@@ -1043,6 +1052,9 @@ int dwc_otg_check_dpdm(void)
 			bus_status = 2;
 		*otg_dctl |= 2;
 	}
+#else
+	#error "PLS config chiptype for usb dpdm check!"
+#endif
 	// printf("%s %d \n",__func__,bus_status);
 
 	return bus_status;

@@ -1,4 +1,28 @@
-
+/*
+ * Based on drivers/usb/gadget/omap1510_udc.c
+ * TI OMAP1510 USB bus interface driver
+ *
+ * (C) Copyright 2009
+ * Vipin Kumar, ST Micoelectronics, vipin.kumar@st.com.
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #include <common.h>
 #include <errno.h>
 #include <asm/byteorder.h>
@@ -15,8 +39,14 @@
 
 #include "ehci.h"
 
-//#undef debug
-//#define debug(fmt, args...)	printf(fmt, ##args)
+
+/* usb host base */
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	#define RKIO_USBHOST_BASE	RKIO_USBHOST1_PHYS
+#else
+	#error "PLS config chiptype for usb otg base!"
+#endif
+
 
 static struct descriptor {
 	struct usb_hub_descriptor hub;
@@ -97,24 +127,24 @@ static struct descriptor {
 #define HCSTAT_ERR      ((uint32_t)0x0ff)
 typedef volatile struct _HC_INFO
 {
-    HCTSIZ_DATA hctsiz;
-    HCINTMSK_DATA hcintmaskn;
-    HCCHAR_DATA hcchar;
-    uint32_t pBufAddr;
-    uint32_t hcStat;
-    uint32_t errCnt;
-}HC_INFO,*pHC_INFO;
+	HCTSIZ_DATA hctsiz;
+	HCINTMSK_DATA hcintmaskn;
+	HCCHAR_DATA hcchar;
+	uint32_t pBufAddr;
+	uint32_t hcStat;
+	uint32_t errCnt;
+} HC_INFO, *pHC_INFO;
 
 typedef enum _HOST_RET
 {
-    HOST_OK = 0,
-    HOST_ERR,
-    HOST_STALL,
-    HOST_NOT_RDY,
-    HOST_SPD_UNSP,  //speed not support
-    HOST_DEV_UNSP,  //device not support
-    HOST_RET_MAX
-}HOST_RET;
+	HOST_OK = 0,
+	HOST_ERR,
+	HOST_STALL,
+	HOST_NOT_RDY,
+	HOST_SPD_UNSP,  //speed not support
+	HOST_DEV_UNSP,  //device not support
+	HOST_RET_MAX
+} HOST_RET;
 
 HC_INFO         g_hcInfo[HOST_CHN_NUM];
 static struct dwc_ctrl dwcctl;
@@ -122,81 +152,81 @@ static struct dwc_ctrl dwcctl;
 int dwc_init_channel(struct usb_device *dev, uint32_t hctsiz, HCCHAR_DATA hcchar, uint32_t buffer)
 {
 	struct dwc_ctrl *ctrl = dev->controller;
-    pUSB_OTG_REG otgReg = ctrl->otgReg;
-    uint32_t channel_num = hcchar.b.epnum;
+	pUSB_OTG_REG otgReg = ctrl->otgReg;
+	uint32_t channel_num = hcchar.b.epnum;
 
-    debug("dwc_init channel hcziz %x, hcdma %x, hcchar %x\n", hctsiz, buffer, hcchar.d32);
-    otgReg->Host.haintmsk = 0;
-    otgReg->Host.hchn[channel_num].hcintn = 0x7ff;
-    otgReg->Host.hchn[channel_num].hcintmaskn = 0;
-    otgReg->Host.hchn[channel_num].hctsizn = hctsiz;
-    otgReg->Host.hchn[channel_num].hcdman =  buffer;
-    otgReg->Host.hchn[channel_num].hccharn = hcchar.d32;
-    return 0;
+	debug("dwc_init channel hcziz %x, hcdma %x, hcchar %x\n", hctsiz, buffer, hcchar.d32);
+	otgReg->Host.haintmsk = 0;
+	otgReg->Host.hchn[channel_num].hcintn = 0x7ff;
+	otgReg->Host.hchn[channel_num].hcintmaskn = 0;
+	otgReg->Host.hchn[channel_num].hctsizn = hctsiz;
+	otgReg->Host.hchn[channel_num].hcdman =  buffer;
+	otgReg->Host.hchn[channel_num].hccharn = hcchar.d32;
+	return 0;
 }
 int dwc_wait_for_complete(struct usb_device *dev, uint32_t channel_num, uint32_t *hcStat, uint32_t *errCnt)
 {
 	struct dwc_ctrl *ctrl = dev->controller;
-    pUSB_OTG_REG otgReg = ctrl->otgReg;
-    HCINT_DATA hcintn;
+	pUSB_OTG_REG otgReg = ctrl->otgReg;
+	HCINT_DATA hcintn;
 
 start:
-    hcintn.d32 = otgReg->Host.hchn[channel_num].hcintn;
-    debug("dwc_wait_for_complete, hcints %x\n", hcintn.d32);
+	hcintn.d32 = otgReg->Host.hchn[channel_num].hcintn;
+	debug("dwc_wait_for_complete, hcints %x\n", hcintn.d32);
     
-    if(hcintn.b.chhltd)
-    {
-        if((hcintn.b.stall)||(hcintn.b.xfercomp))
-        {
-            *errCnt = 0;
-            if(hcintn.b.stall)
-            {
-                *hcStat = HCSTAT_STALL;
-                //g_hcInfo[chn].hctsiz.b.dopng = 0;
-            }
-            else
-            {
-                *hcStat = HCSTAT_DONE;
-                if(hcintn.b.nyet)
-                {
-                    //g_hcInfo[chn].hctsiz.b.dopng = 1;
-                }
-                else
-                {
-                    //g_hcInfo[chn].hctsiz.b.dopng = 0;
-                }
-            }
-        }
-        else if((hcintn.b.xacterr)||(hcintn.b.bblerr))
-        {
-            if((hcintn.b.ack)||(hcintn.b.nak)||(hcintn.b.nyet))
-            {
-                *errCnt = 1;
-                *hcStat = HCSTAT_REINIT;
-            }
-            else
-            {
-                *errCnt++;
-                if(*errCnt == 3)
-                {
-                    *hcStat = HCSTAT_ERR;
-                }
-                else
-                {
-                    *hcStat = HCSTAT_REINIT;
-                }
-            }
-            //g_hcInfo[chn].hctsiz.b.dopng = 0;
-        }
-        otgReg->Host.hchn[channel_num].hcintn = 0x7ff;
-    }
+	if(hcintn.b.chhltd)
+	{
+		if((hcintn.b.stall)||(hcintn.b.xfercomp))
+		{
+			*errCnt = 0;
+			if(hcintn.b.stall)
+			{
+				*hcStat = HCSTAT_STALL;
+				//g_hcInfo[chn].hctsiz.b.dopng = 0;
+			}
+			else
+			{
+				*hcStat = HCSTAT_DONE;
+				if(hcintn.b.nyet)
+				{
+					//g_hcInfo[chn].hctsiz.b.dopng = 1;
+				}
+				else
+				{
+					//g_hcInfo[chn].hctsiz.b.dopng = 0;
+				}
+			}
+		}
+		else if((hcintn.b.xacterr)||(hcintn.b.bblerr))
+		{
+			if((hcintn.b.ack)||(hcintn.b.nak)||(hcintn.b.nyet))
+			{
+				*errCnt = 1;
+				*hcStat = HCSTAT_REINIT;
+			}
+			else
+			{
+				*errCnt++;
+				if(*errCnt == 3)
+				{
+					*hcStat = HCSTAT_ERR;
+				}
+				else
+				{
+					*hcStat = HCSTAT_REINIT;
+				}
+			}
+			//g_hcInfo[chn].hctsiz.b.dopng = 0;
+		}
+		otgReg->Host.hchn[channel_num].hcintn = 0x7ff;
+	}
 
-    if(!(*hcStat & 0xf0)){
-        udelay(5);
-        goto start;
-        }
-        
-    return 0;
+	if(!(*hcStat & 0xf0)){
+		udelay(5);
+		goto start;
+	}
+
+	return 0;
 }
 
 #define     DWC_EPDIR_OUT          0x0
@@ -207,126 +237,126 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
 		   int length, struct devrequest *req)
 {
 	struct dwc_ctrl *ctrl = dev->controller;
-    pUSB_OTG_REG otgReg = ctrl->otgReg;
-    uint32_t channel_num = usb_pipeendpoint(pipe);
-    uint32_t eptype;
-    HOST_RET ret = HOST_OK;
-    
-    HCTSIZ_DATA hctsiz;
-    HCCHAR_DATA hcchar;
-    uint32_t hcStat;
-    uint32_t errCnt;
-    uint32_t packet_size;
-    uint32_t datatoggle;
+	pUSB_OTG_REG otgReg = ctrl->otgReg;
+	uint32_t channel_num = usb_pipeendpoint(pipe);
+	uint32_t eptype;
+	HOST_RET ret = HOST_OK;
 
-    eptype = usb_pipetype(pipe);
-    // ep tye definition is different in pipe and dwc hcchar
-    if(eptype == 2 )
-        eptype = 0;
-    else if (eptype == 3)
-        eptype = 2;
+	HCTSIZ_DATA hctsiz;
+	HCCHAR_DATA hcchar;
+	uint32_t hcStat;
+	uint32_t errCnt;
+	uint32_t packet_size;
+	uint32_t datatoggle;
+
+	eptype = usb_pipetype(pipe);
+	// ep tye definition is different in pipe and dwc hcchar
+	if(eptype == 2 )
+		eptype = 0;
+	else if (eptype == 3)
+		eptype = 2;
     
 	debug("ehci_submit_async channel pipe %lx req %p, len %x\n", pipe, req, length);
-    if(req == NULL)
-        packet_size = 0x200;
-    else
-        packet_size = 0x40;
+	if(req == NULL)
+		packet_size = 0x200;
+	else
+		packet_size = 0x40;
 	if (req != NULL) {  // setup for control
-	    hctsiz.d32 = 0;
-        hctsiz.b.pid =  DWC_HCTSIZ_SETUP;
-        hctsiz.b.pktcnt =  1;
-        hctsiz.b.xfersize =  8;
-        hcchar.d32 = 0;
-        hcchar.b.mps = packet_size; 
-        hcchar.b.epnum = channel_num; // use the same channel number as endpoint number
-        hcchar.b.epdir = DWC_EPDIR_OUT;
-        hcchar.b.eptype = eptype;
-        hcchar.b.multicnt = 1;
-        hcchar.b.devaddr = usb_pipedevice(pipe);
-        hcchar.b.chdis = 0;
-        hcchar.b.chen = 1;
-        hcStat = HCSTAT_SETUP;
-        errCnt = 0;
-        dwc_init_channel(dev, hctsiz.d32, hcchar, (uint32_t)req);
-        if(dwc_wait_for_complete(dev, channel_num, &hcStat, &errCnt)){
-            ret = HOST_ERR;
-            goto out;
-            }
-        if(hcStat != HCSTAT_DONE){
-            ret = HOST_ERR;
-            goto out;
-            }
+		hctsiz.d32 = 0;
+		hctsiz.b.pid =  DWC_HCTSIZ_SETUP;
+		hctsiz.b.pktcnt =  1;
+		hctsiz.b.xfersize =  8;
+		hcchar.d32 = 0;
+		hcchar.b.mps = packet_size; 
+		hcchar.b.epnum = channel_num; // use the same channel number as endpoint number
+		hcchar.b.epdir = DWC_EPDIR_OUT;
+		hcchar.b.eptype = eptype;
+		hcchar.b.multicnt = 1;
+		hcchar.b.devaddr = usb_pipedevice(pipe);
+		hcchar.b.chdis = 0;
+		hcchar.b.chen = 1;
+		hcStat = HCSTAT_SETUP;
+		errCnt = 0;
+		dwc_init_channel(dev, hctsiz.d32, hcchar, (uint32_t)req);
+		if(dwc_wait_for_complete(dev, channel_num, &hcStat, &errCnt)){
+			ret = HOST_ERR;
+			goto out;
+		}
+		if(hcStat != HCSTAT_DONE){
+			ret = HOST_ERR;
+			goto out;
+		}
 	}
 	
 	if (length || (req == NULL)) {    // data for bulk & control
-	    if(req)
-	        datatoggle = DWC_HCTSIZ_DATA1;
-	    else
-	        datatoggle = ctrl->datatoggle[usb_pipein(pipe)];
-	    debug("dwc_hcd data len %x toggle %x\n", length, datatoggle);
-	    hctsiz.d32 = 0;
-        hctsiz.b.pid =  datatoggle;
-        hctsiz.b.pktcnt =  (length+packet_size - 1)/packet_size;
-        hctsiz.b.xfersize =  length;
-        hcchar.d32 = 0;
-        hcchar.b.mps = packet_size; 
-        hcchar.b.epnum = channel_num; // use the same channel number as endpoint number
-        hcchar.b.epdir = (req == NULL) ? usb_pipein(pipe) : DWC_EPDIR_IN;
-        hcchar.b.eptype = eptype;
-        hcchar.b.multicnt = 1;
-        hcchar.b.devaddr = usb_pipedevice(pipe);
-        hcchar.b.chdis = 0;
-        hcchar.b.chen = 1;
-        hcStat = HCSTAT_DATA;
-        errCnt = 0;
+		if(req)
+			datatoggle = DWC_HCTSIZ_DATA1;
+		else
+			datatoggle = ctrl->datatoggle[usb_pipein(pipe)];
+		debug("dwc_hcd data len %x toggle %x\n", length, datatoggle);
+		hctsiz.d32 = 0;
+		hctsiz.b.pid =  datatoggle;
+		hctsiz.b.pktcnt =  (length+packet_size - 1)/packet_size;
+		hctsiz.b.xfersize =  length;
+		hcchar.d32 = 0;
+		hcchar.b.mps = packet_size; 
+		hcchar.b.epnum = channel_num; // use the same channel number as endpoint number
+		hcchar.b.epdir = (req == NULL) ? usb_pipein(pipe) : DWC_EPDIR_IN;
+		hcchar.b.eptype = eptype;
+		hcchar.b.multicnt = 1;
+		hcchar.b.devaddr = usb_pipedevice(pipe);
+		hcchar.b.chdis = 0;
+		hcchar.b.chen = 1;
+		hcStat = HCSTAT_DATA;
+		errCnt = 0;
         
-        if((req == NULL)&&(hctsiz.b.pktcnt&0x01))
-        {
-            ctrl->datatoggle[usb_pipein(pipe)] ^= 0x02;
-        }
-        dwc_init_channel(dev, hctsiz.d32, hcchar, (uint32_t)buffer);
-        if(dwc_wait_for_complete(dev, channel_num, &hcStat, &errCnt)){
-            ret = HOST_ERR;
-            goto out;
-        }
-        if(hcStat == HCSTAT_STALL)
-            ctrl->datatoggle[usb_pipein(pipe)] = 0;
+		if((req == NULL)&&(hctsiz.b.pktcnt&0x01))
+		{
+			ctrl->datatoggle[usb_pipein(pipe)] ^= 0x02;
+		}
+		dwc_init_channel(dev, hctsiz.d32, hcchar, (uint32_t)buffer);
+		if(dwc_wait_for_complete(dev, channel_num, &hcStat, &errCnt)){
+			ret = HOST_ERR;
+			goto out;
+		}
+		if(hcStat == HCSTAT_STALL)
+			ctrl->datatoggle[usb_pipein(pipe)] = 0;
 	}
 	if (req != NULL) {  // status for control
-	    debug("status len %x\n", length);
-	    hctsiz.d32 = 0;
-	    hctsiz.b.dopng = 0;
-        hctsiz.b.pid =  DWC_HCTSIZ_DATA1;
-        hctsiz.b.pktcnt =  1;
-        hctsiz.b.xfersize =  0;
-        hcchar.d32 = 0;
-        hcchar.b.mps = packet_size; 
-        hcchar.b.epnum = channel_num; // use the same channel number as endpoint number
-        hcchar.b.epdir = (length) ? DWC_EPDIR_OUT : DWC_EPDIR_IN;
-        hcchar.b.eptype = eptype;
-        hcchar.b.multicnt = 1;
-        hcchar.b.devaddr = usb_pipedevice(pipe);
-        hcchar.b.chdis = 0;
-        hcchar.b.chen = 1;
-        hcStat = HCSTAT_DATA;
-        errCnt = 0;
-        dwc_init_channel(dev, hctsiz.d32, hcchar, 0);
-        if(dwc_wait_for_complete(dev, channel_num, &hcStat, &errCnt)){
-            ret = HOST_ERR;
-            goto out;
-            }
+		debug("status len %x\n", length);
+		hctsiz.d32 = 0;
+		hctsiz.b.dopng = 0;
+		hctsiz.b.pid =  DWC_HCTSIZ_DATA1;
+		hctsiz.b.pktcnt =  1;
+		hctsiz.b.xfersize =  0;
+		hcchar.d32 = 0;
+		hcchar.b.mps = packet_size; 
+		hcchar.b.epnum = channel_num; // use the same channel number as endpoint number
+		hcchar.b.epdir = (length) ? DWC_EPDIR_OUT : DWC_EPDIR_IN;
+		hcchar.b.eptype = eptype;
+		hcchar.b.multicnt = 1;
+		hcchar.b.devaddr = usb_pipedevice(pipe);
+		hcchar.b.chdis = 0;
+		hcchar.b.chen = 1;
+		hcStat = HCSTAT_DATA;
+		errCnt = 0;
+		dwc_init_channel(dev, hctsiz.d32, hcchar, 0);
+		if(dwc_wait_for_complete(dev, channel_num, &hcStat, &errCnt)){
+			ret = HOST_ERR;
+			goto out;
+		}
 	}
 	
 out:
-    if(ret){
-        debug("dwc_init channel hcziz %x, hcdma %x, hcchar %x\n", 
-                otgReg->Host.hchn[channel_num].hctsizn, 
-                otgReg->Host.hchn[channel_num].hcdman,
-                otgReg->Host.hchn[channel_num].hccharn);
-    }
-    dev->act_len = length;
-    dev->status = 0;
-    return (ret);
+	if(ret){
+		debug("dwc_init channel hcziz %x, hcdma %x, hcchar %x\n", 
+			otgReg->Host.hchn[channel_num].hctsizn, 
+			otgReg->Host.hchn[channel_num].hcdman,
+			otgReg->Host.hchn[channel_num].hccharn);
+	}
+	dev->act_len = length;
+	dev->status = 0;
+	return (ret);
 }
 
 int
@@ -339,8 +369,8 @@ ehci_submit_root(struct usb_device *dev, unsigned long pipe, void *buffer,
 	int len, srclen;
 	int port = le16_to_cpu(req->index) & 0xff;
 	struct dwc_ctrl *ctrl = dev->controller;
-    pUSB_OTG_REG otgReg = ctrl->otgReg;
-    HPRT0_DATA hprt0;
+	pUSB_OTG_REG otgReg = ctrl->otgReg;
+	HPRT0_DATA hprt0;
 
 	srclen = 0;
 
@@ -571,46 +601,47 @@ unknown:
 
 int usb_lowlevel_stop(int index)
 {
-    return 0;
+	return 0;
 }
+
 
 int usb_lowlevel_init(int index, enum usb_init_type init, void **controller)
 {
-    pUSB_OTG_REG otgReg = (pUSB_OTG_REG)RKIO_USBHOST1_PHYS;
-    GINTMSK_DATA gintmsk;
-    uint32_t count;
+	pUSB_OTG_REG otgReg = (pUSB_OTG_REG)RKIO_USBHOST_BASE;
+	GINTMSK_DATA gintmsk;
+	uint32_t count;
 
-    dwcctl.otgReg = otgReg;
-    for (count=0; count<10000; count++)
-    {
-        if ((otgReg->Core.grstctl & (1ul<<31))!=0)
-            break;
-    }
-    otgReg->ClkGate.PCGCR=0x00;               //Restart the Phy Clock
-    //core soft reset
-    otgReg->Core.grstctl|=1<<0;               //Core soft reset
-    for (count=0; count<10000; count++)
-    {
-        if ((otgReg->Core.grstctl & (1<<0))==0)
-            break;
-    }
-    // 16bit phy if,force host mode
-    otgReg->Core.gusbcfg |= ((0x01u<<3)|(0x01<<29));
-    udelay(20);
+	dwcctl.otgReg = otgReg;
+	for (count=0; count<10000; count++)
+	{
+		if ((otgReg->Core.grstctl & (1ul<<31))!=0)
+			break;
+	}
+	otgReg->ClkGate.PCGCR=0x00;               //Restart the Phy Clock
+	//core soft reset
+	otgReg->Core.grstctl|=1<<0;               //Core soft reset
+	for (count=0; count<10000; count++)
+	{
+		if ((otgReg->Core.grstctl & (1<<0))==0)
+			break;
+	}
+	// 16bit phy if,force host mode
+	otgReg->Core.gusbcfg |= ((0x01u<<3)|(0x01<<29));
+	udelay(20);
 
-    otgReg->Core.grxfsiz= 0x0208;
-    otgReg->Core.gnptxfsiz = 0x00800208;//0x04000208
-    otgReg->Core.gnptxfsiz = 0x00800208;//0x04000208
-    otgReg->Host.hprt |= (0x01<<12);          //power on the port
-    otgReg->Core.gintsts=0xffffffff;
-    otgReg->Core.gotgint=0xffffffff;
-    gintmsk.d32 = 0;
-    gintmsk.b.disconnint = 1;
-    gintmsk.b.conidstschng = 1;
-    gintmsk.b.hchint = 1;
-    gintmsk.b.prtint = 1;
-    otgReg->Core.gintmsk = gintmsk.d32;
-    otgReg->Core.gahbcfg = 0x2f;      //unmask int, internal dma
+	otgReg->Core.grxfsiz= 0x0208;
+	otgReg->Core.gnptxfsiz = 0x00800208;//0x04000208
+	otgReg->Core.gnptxfsiz = 0x00800208;//0x04000208
+	otgReg->Host.hprt |= (0x01<<12);          //power on the port
+	otgReg->Core.gintsts=0xffffffff;
+	otgReg->Core.gotgint=0xffffffff;
+	gintmsk.d32 = 0;
+	gintmsk.b.disconnint = 1;
+	gintmsk.b.conidstschng = 1;
+	gintmsk.b.hchint = 1;
+	gintmsk.b.prtint = 1;
+	otgReg->Core.gintmsk = gintmsk.d32;
+	otgReg->Core.gahbcfg = 0x2f;      //unmask int, internal dma
 
 	dwcctl.rootdev = 0;
 	dwcctl.datatoggle[0] = 0;
@@ -654,6 +685,6 @@ int
 submit_int_msg(struct usb_device *dev, unsigned long pipe, void *buffer,
 	       int length, int interval)
 {
-    return 0;
+	return 0;
 }
 
