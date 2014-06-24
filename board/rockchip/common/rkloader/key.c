@@ -35,8 +35,9 @@
 #define write_XDATA32(address, value)	(*((uint32 volatile*)(address)) = value)
 
 int gpio_reg[]={
-	RKIO_GPIO0_PHYS, 
-	RKIO_GPIO1_PHYS, 
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	RKIO_GPIO0_PHYS,
+	RKIO_GPIO1_PHYS,
 	RKIO_GPIO2_PHYS,
 	RKIO_GPIO3_PHYS,
 	RKIO_GPIO4_PHYS,
@@ -44,6 +45,13 @@ int gpio_reg[]={
 	RKIO_GPIO6_PHYS,
 	RKIO_GPIO7_PHYS,
 	RKIO_GPIO8_PHYS
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	RKIO_GPIO0_PHYS,
+	RKIO_GPIO1_PHYS,
+	RKIO_GPIO2_PHYS
+#else
+	#error "PLS check CONFIG_RKCHIPTYPE for key."
+#endif
 };
 
 extern void DRVDelayUs(uint32 us);
@@ -132,6 +140,31 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 	return 0;
 }
 
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	/* rk3036 only hase rockusb key */
+void RockusbKeyInit(key_config *key)
+{
+	key->type = KEY_INT;
+	key->key.ioint.name = "rockusb_key";
+	key->key.ioint.gpio = (GPIO_BANK2 | GPIO_B0);
+	key->key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
+	key->key.ioint.pressed_state = 0;
+	key->key.ioint.press_time = 0;
+}
+
+int power_hold(void)
+{
+	return 0;
+}
+
+
+void key_init(void)
+{
+	RockusbKeyInit(&key_rockusb);
+}
+
+#else
+
 void RockusbKeyInit(key_config *key)
 {
 	key->type = KEY_AD;
@@ -202,6 +235,7 @@ void key_init(void)
 	RecoveryKeyInit(&key_recovery);
 	PowerKeyInit();
 }
+#endif /* CONFIG_RKCHIPTYPE */
 
 
 void powerOn(void)
