@@ -144,13 +144,20 @@ typedef volatile struct tagUART_STRUCT {
 
 
 typedef enum UART_ch {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	UART_CH0,
 	UART_CH1,
 	UART_CH2,
 	UART_CH3,
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	UART_CH4,
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	UART_CH0,
+	UART_CH1,
+	UART_CH2,
+#else
+	#error "PLS config chip type for uart ch!"
 #endif
+
 	UART_CH_MAX
 } eUART_ch_t;
 
