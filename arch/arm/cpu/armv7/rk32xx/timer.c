@@ -27,10 +27,20 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define RKTIMER_VERSION		"1.2"
+#define RKTIMER_VERSION		"1.3"
+
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#define TIMER_REG_BASE			RKIO_TIMER_6CH_PHYS
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#define TIMER_REG_BASE			RKIO_TIMER_PHYS
+#else
+	#error "Please define timer base for chip type!"
+#endif
+
 
 /* rk timer register offset */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288) || (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 #define RK_TIMER_LOADE_COUNT0		0x00
 #define RK_TIMER_LOADE_COUNT1		0x04
 #define RK_TIMER_CURRENT_VALUE0		0x08
@@ -41,8 +51,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define TIMER_LOADE_COUNT		RK_TIMER_LOADE_COUNT0
 #define TIMER_CURR_VALUE		RK_TIMER_CURRENT_VALUE0
-
-#define TIMER_REG_BASE			RKIO_TIMER_6CH_PHYS
 
 #else
 	#error "Please define timer register for chip type!"
