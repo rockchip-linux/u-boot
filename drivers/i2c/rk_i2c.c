@@ -149,6 +149,10 @@ static struct rk_i2c rki2c_base[I2C_BUS_MAX] = {
 	{ .regs = (void __iomem *)(RKIO_I2C3_CAM_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C4_TP_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C5_HDMI_PHYS), 0 }
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	{ .regs = (void __iomem *)(RKIO_I2C0_PHYS), 0 },
+	{ .regs = (void __iomem *)(RKIO_I2C1_PHYS), 0 },
+	{ .regs = (void __iomem *)(RKIO_I2C2_PHYS), 0 },
 #else
 	#error "PLS config chiptype for i2c base!"
 #endif
