@@ -60,6 +60,8 @@ uint32 ddr_get_cap(void)
 	}
 
 	return (cap[0]+cap[1]);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	return 0x20000000; /* return 512M for temp */
 #else
 	#error "PLS config chiptype for ddr cap get!"
 #endif
