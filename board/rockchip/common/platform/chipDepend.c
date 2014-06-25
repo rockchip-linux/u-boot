@@ -94,7 +94,7 @@ void rkplat_uart2UsbEn(uint32 en)
 		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usbphy0 bypass disable and otg enable.
 
 		/* if define force enable usb to uart, maybe usb function will be affected */
-#ifdef CONFIG_RKUSB2UART_FORCE
+#ifdef CONFIG_RKUART2USB_FORCE
 		grf_writel((0x0004 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy enable
 		grf_writel((0x002A | (0x003F << 16)), GRF_UOC0_CON3); // usb phy enter suspend
 		grf_writel((0x00C0 | (0x00C0 << 16)), GRF_UOC0_CON3); // usb uart enable.
@@ -105,7 +105,7 @@ void rkplat_uart2UsbEn(uint32 en)
 			grf_writel((0x002A | (0x003F << 16)), GRF_UOC0_CON3); // usb phy enter suspend
 			grf_writel((0x00C0 | (0x00C0 << 16)), GRF_UOC0_CON3); // uart enable
 		}
-#endif /* CONFIG_RKUSB2UART_FORCE */
+#endif /* CONFIG_RKUART2USB_FORCE */
 	} else {
 		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usb uart disable
 		grf_writel((0x0000 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy disable
