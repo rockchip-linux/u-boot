@@ -163,7 +163,9 @@
 #define MMC_FIFO_EMPTY                  BIT(2)
 #define MMC_BUSY			(MMC_MC_BUSY | MMC_DATA_BUSY)
 
+#ifdef CONFIG_RK_MMC_DMA
 #define USE_MMCDMA			1
+#endif
 
 /* FIFO threshold register defines */
 #if USE_MMCDMA

@@ -135,6 +135,8 @@
 /*
  * rockchip Hardware drivers
  */
+/* mmc using dma */
+#define CONFIG_RK_MMC_DMA
 
 /* rk clock module */
 #define CONFIG_RK_CLOCK
