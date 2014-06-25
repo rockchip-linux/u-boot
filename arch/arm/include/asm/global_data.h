@@ -27,7 +27,7 @@ struct arch_global_data {
 	unsigned long	at91_pllb_usb_init;
 #endif
 
-#ifdef CONFIG_ROCKCHIP
+#ifdef CONFIG_RK_CLOCK
 	/* "static data" needed by rk's clock.c */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	unsigned long	cpu_mp_rate_hz;
@@ -45,7 +45,7 @@ struct arch_global_data {
 	#error "PLS config chiptype for clock!"
 #endif
 
-#endif /* CONFIG_ROCKCHIP */
+#endif /* CONFIG_RK_CLOCK */
 	/* "static data" needed by most of timer.c on ARM platforms */
 	unsigned long timer_rate_hz;
 	unsigned long tbu;
