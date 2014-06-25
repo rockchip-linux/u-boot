@@ -29,8 +29,10 @@
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#include "iomux-rk3288.c"
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	#include "iomux-rk3036.c"
 #else
-	#error "PLS config iomux-rk3288.c!"
+	#error "PLS config iomux-rk32xx.c!"
 #endif
 
 
