@@ -71,6 +71,8 @@
 /* usb otg base */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	#define RKIO_USBOTG_BASE	RKIO_USBOTG20_PHYS
 #else
 	#error "PLS config chiptype for usb otg base!"
 #endif
@@ -1052,6 +1054,8 @@ int dwc_otg_check_dpdm(void)
 			bus_status = 2;
 		*otg_dctl |= 2;
 	}
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	/* */
 #else
 	#error "PLS config chiptype for usb dpdm check!"
 #endif

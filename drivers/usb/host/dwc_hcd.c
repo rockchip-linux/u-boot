@@ -43,6 +43,8 @@
 /* usb host base */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#define RKIO_USBHOST_BASE	RKIO_USBHOST1_PHYS
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	#define RKIO_USBHOST_BASE	RKIO_USBHOST20_PHYS
 #else
 	#error "PLS config chiptype for usb otg base!"
 #endif
