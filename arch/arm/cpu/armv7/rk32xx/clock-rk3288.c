@@ -1341,3 +1341,13 @@ unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id)
 	}
 }
 
+
+/*
+ * rkplat get spi clock, spi0 and spi1 from  pclk_periph
+ * here no check clkgate, because chip default is enable.
+ */
+unsigned int rkclk_get_spi_clk(uint32 spi_bus)
+{
+	return 0;
+}
+

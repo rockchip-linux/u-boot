@@ -28,6 +28,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define RKCLOCK_VERSION		"1.2"
 
+
+#ifdef CONFIG_RK_CLOCK
+
 /* define clock sourc div */
 #define CLK_DIV_1		1
 #define CLK_DIV_2		2
@@ -137,4 +140,29 @@ uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
 	#error "PLS config chiptype for clock-rkxx.c!"
 #endif
 
+
+#else
+
+void rkclk_pll_mode(int pll_id, int pll_mode) {};
+void rkclk_set_pll(void) {};
+void rkclk_get_pll(void) {};
+void rkclk_dump_pll(void) {};
+int rkclk_get_arm_pll(void) { return 24 * MHZ; };
+int rkclk_get_general_pll(void) { return 24 * MHZ; };
+int rkclk_get_codec_pll(void) { return 24 * MHZ; };
+int rkclk_get_ddr_pll(void) { return 24 * MHZ; };
+int rkclk_get_new_pll(void) { return 24 * MHZ; };
+void rkclk_set_cpll_rate(uint32 pll_hz) {};
+int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div) { return 0; };
+int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div) { return 0; };
+int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; };
+void rkclk_set_sdclk_src(uint32 sdid, uint32 src) {};
+unsigned int rkclk_get_sdclk_src_freq(uint32 sdid) { return 0; };
+int rkclk_set_sdclk_div(uint32 sdid, uint32 div) { return 0; };
+void rkclk_emmc_set_clk(int div) {};
+unsigned int rkclk_get_pwm_clk(uint32 pwm_id) { return 0; };
+unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id) { return 0; };
+unsigned int rkclk_get_spi_clk(uint32 spi_bus) { return 0; };
+
+#endif /* CONFIG_RK_CLOCK */
 

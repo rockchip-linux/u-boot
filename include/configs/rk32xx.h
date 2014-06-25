@@ -320,6 +320,8 @@
 /*
  * Hardware drivers
  */
+#define CONFIG_RK_CLOCK
+
 #define CONFIG_RK_UDC
 #define CONFIG_USB_DEVICE
 
