@@ -32,15 +32,15 @@
 #define CONFIG_ARMV7		1	/* This is an ARM V7 CPU core */
 #define CONFIG_ROCKCHIP		1	/* in a ROCKCHIP core */
 
+
 #include <asm/arch/cpu.h>		/* get chip and board defs */
 
 #define CONFIG_RKCHIPTYPE	CONFIG_RK3288
 
-/* enable thune build */
-//#define CONFIG_SYS_THUMB_BUILD
 
-//#define CONFIG_SECOND_LEVEL_BOOTLOADER
+/* for rk common fold */
 #define HAVE_VENDOR_COMMON_LIB y
+
 
 /* Display CPU and Board Info */
 #define CONFIG_ARCH_CPU_INIT
@@ -52,6 +52,7 @@
 #define CONFIG_CMDLINE_EDITING		/* add command line history	*/
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
 #define CONFIG_BOARD_LATE_INIT
+
 
 /*
  * cache config
@@ -74,70 +75,18 @@
 
 
 /*
- * Size of malloc() pool
- * 1MB = 0x100000, 0x100000 = 1024 * 1024
- */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 20))
-
-
-/*
  * select serial console configuration
  */
-#define CONFIG_SERIAL2			1	/* use SERIAL2 */
 #define CONFIG_BAUDRATE			115200
 /* valid baudrates */
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
-
-
-/*
- *			Uboot memory map
- *
- * CONFIG_SYS_TEXT_BASE is the default address which maskrom loader uboot code.
- * CONFIG_RKNAND_API_ADDR is the address which maskrom loader miniloader code.
- *
- * For RK3288:
- *	kernel load address: CONFIG_SDRAM_PHY_START + 32M, size 16M,
- *	miniloader code load address: CONFIG_SDRAM_PHY_START + 48M, size 8M,
- *	total reverse memory is CONFIG_LMB_RESERVE_MEMORY_SIZE.
- *
- *|---------------------------------------------------------------------------|
- *|START  -  KERNEL LOADER  -  NAND LOADER  -     LMB     -    Uboot    -  END|
- *|SDRAM  -    START 32M    -   START 48M   -  START 56M  -  START 80M  - 128M|
- *|       -     kernel      -   nand code   -     fdt     -   uboot/ramdisk   |
- *|---------------------------------------------------------------------------|
- */
-#include <linux/sizes.h>
-#define CONFIG_RAM_PHY_START		0x00000000
-#define CONFIG_RAM_PHY_SIZE		SZ_128M
-#define CONFIG_RAM_PHY_END		(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE)
-
-/*
- * 		define uboot loader addr.
- * notice: CONFIG_SYS_TEXT_BASE must be an immediate,
- * so if CONFIG_RAM_PHY_START is changed, also update CONFIG_SYS_TEXT_BASE define.
- *
- * if uboot as first level, CONFIG_SYS_TEXT_BASE = CONFIG_RAM_PHY_START
- * if uboot ad second level, CONFIG_SYS_TEXT_BASE = CONFIG_RAM_PHY_START + SZ_2M
- *    Resersed 2M space for packed nand bin.
- *
- */
-
-#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
-	#define CONFIG_SYS_TEXT_BASE    0x00200000 //Resersed 2M space for packed nand bin.
-#else
-	#define CONFIG_SYS_TEXT_BASE    0x00000000
-#endif
-
-#define CONFIG_KERNEL_LOAD_ADDR 	(CONFIG_RAM_PHY_START + SZ_32M) //32M
-
-// rk nand api function code address 
-#define CONFIG_RKNAND_API_ADDR		(CONFIG_RAM_PHY_START + SZ_32M + SZ_16M) //48M
 
 
 /* input clock of PLL: has 24MHz input clock at rk30xx */
 #define CONFIG_SYS_CLK_FREQ_CRYSTAL	24000000
 #define CONFIG_SYS_CLK_FREQ		CONFIG_SYS_CLK_FREQ_CRYSTAL
 #define CONFIG_SYS_HZ			1000	/* decrementer freq: 1 ms ticks */
+
 
 /*
  * Supported U-boot commands
@@ -187,29 +136,21 @@
 #undef CONFIG_CMD_RUN
 #undef CONFIG_CMD_SETGETDCR
 
-#define CONFIG_CMD_BOOTI
 
-#define CONFIG_GENERIC_MMC
-#define CONFIG_CMD_READ
+/* mmc config */
 #define CONFIG_MMC
+#define CONFIG_GENERIC_MMC
 #define CONFIG_CMD_MMC
-
-#define CONFIG_SYS_MMC_ENV_DEV 0
+#define CONFIG_CMD_READ
 
 
 #define CONFIG_LMB
-#define CONFIG_OF_LIBFDT
 #define CONFIG_SYS_BOOT_RAMDISK_HIGH
-
-#define CONFIG_RESOURCE_PARTITION
-#define CONFIG_QUICK_CHECKSUM
-
-//allow to flash loader when check sign failed. should undef this in release version.
-#define CONFIG_ENABLE_ERASEKEY
+#define CONFIG_OF_LIBFDT
 
 
-// mod it to enable console commands.
-#define CONFIG_BOOTDELAY 	0
+/* mod it to enable console commands.	*/
+#define CONFIG_BOOTDELAY		0
 
 
 /*
@@ -222,9 +163,24 @@
  *	#define CONFIG_PREBOOT
  */
 #define CONFIG_PREBOOT
+#define CONFIG_CMD_BOOTI
 #define CONFIG_BOOTCOMMAND		"booti"
 
 #define CONFIG_EXTRA_ENV_SETTINGS	"verify=n\0initrd_high=0xffffffff=n\0"
+
+
+/* env config */
+#define CONFIG_ENV_IS_IN_RK_STORAGE	1 /* Store ENV in rk storage only */
+
+#define CONFIG_ENV_OFFSET		0
+#define CONFIG_ENV_SIZE			0x200
+#define CONFIG_CMD_SAVEENV
+
+#define CONFIG_SYS_MMC_ENV_DEV		0
+
+//#define CONFIG_SILENT_CONSOLE		1
+#define CONFIG_LCD_CONSOLE_DISABLE	/* lcd not support console putc and puts */
+#define CONFIG_SYS_CONSOLE_IS_IN_ENV
 
 
 /*
@@ -243,6 +199,15 @@
 #define CONFIG_SYS_RAMBOOT
 #define CONFIG_SYS_VSNPRINTF
 
+
+/* rk plat config include */
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	#include "rkplat/rk32plat.h"
+#else
+	#error: PLS config chip for rk plat!
+#endif
+
+
 /*
  * SDRAM Memory Map
  * Even though we use two CS all the memory
@@ -259,8 +224,9 @@
 /* Default load address */
 #define CONFIG_SYS_LOAD_ADDR		CONFIG_SYS_SDRAM_BASE
 
-//sp addr before relocate.
+/* sp addr before relocate. */
 #define CONFIG_SYS_INIT_SP_ADDR		CONFIG_RAM_PHY_END
+
 
 /*
  * Stack sizes
@@ -268,150 +234,17 @@
  * The stack sizes are set up in start.S using the settings below
  */
 #ifdef CONFIG_USE_IRQ
-#  define CONFIG_STACKSIZE_IRQ	0x10000
-#  define CONFIG_STACKSIZE_FIQ	0x1000
+#  define CONFIG_STACKSIZE_IRQ		0x10000
+#  define CONFIG_STACKSIZE_FIQ		0x1000
 #endif
-
-
-#define CONFIG_ENV_IS_IN_RK_STORAGE    1 /* Store ENV in rk storage only */
-
-#define CONFIG_ENV_OFFSET 0
-#define CONFIG_ENV_SIZE	        0x200
-#define CONFIG_CMD_SAVEENV
-
-//#define CONFIG_SILENT_CONSOLE 1
-#define CONFIG_LCD_CONSOLE_DISABLE	/* lcd not support console putc and puts */
-#define CONFIG_SYS_CONSOLE_IS_IN_ENV
-
-
-/* rk mtd block size */
-#define RK_BLK_SIZE             512
-
-
-/* rockusb */
-#define CONFIG_CMD_ROCKUSB
-
-/* for fastboot */
-#define CONFIG_USBD_VENDORID		0x2207
-#define CONFIG_USBD_PRODUCTID		0x0006
-#define CONFIG_USBD_MANUFACTURER	"Rockchip"
-#define CONFIG_USBD_PRODUCT_NAME	"rk30xx"
-
-/* Fastboot product name */
-#define FASTBOOT_PRODUCT_NAME		"fastboot"
-
-
-//for board/rockchip/common/idblock.c setup_space.
-#define CONFIG_RK_GLOBAL_BUFFER_SIZE			(SZ_4M)
-#define CONFIG_RK_EXTRA_BUFFER_SIZE			(CONFIG_RK_GLOBAL_BUFFER_SIZE + SZ_32M)
-
-/* Another macro may also be used or instead used to take care of the case
- * where fastboot is started at boot (to be incorporated) based on key press
- */
-#define CONFIG_CMD_FASTBOOT
-#define CONFIG_FASTBOOT_LOG
-#define CONFIG_FASTBOOT_LOG_SIZE			(SZ_2M)
-
-//CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE should be larger than our boot/recovery image size.
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE		(CONFIG_RK_EXTRA_BUFFER_SIZE - CONFIG_RK_GLOBAL_BUFFER_SIZE)
-#define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH	(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 1)
 
 
 /*
- * Hardware drivers
+ * Size of malloc() pool
+ * 1MB = 0x100000, 0x100000 = 1024 * 1024
  */
-#define CONFIG_RK_CLOCK
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 20))
 
-#define CONFIG_RK_UDC
-#define CONFIG_USB_DEVICE
-
-#define CONFIG_RK_GPIO
-
-/* SPI */
-//#define CONFIG_RK_SPI
-
-/* uart config */
-#define	CONFIG_RK_UART
-#define CONFIG_RKUSB2UART_FORCE
-#define CONFIG_UART_NUM 	UART_CH2
-
-/* i2c */
-#define CONFIG_RK_I2C
-#ifdef CONFIG_RK_I2C
-#define CONFIG_I2C_MULTI_BUS
-#define CONFIG_SYS_I2C_SPEED 100000
-#endif
-
-/* pm management */
-#define CONFIG_PM_SUBSYSTEM
-
-
-#define CONFIG_USB_DWC_HCD
-//#define CONFIG_USB_EHCI
-//#define CONFIG_USB_EHCI_RK
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
-
-
-/* LCDC console */
-#define CONFIG_LCD
-
-#ifdef CONFIG_LCD
-#define CONFIG_RK_PWM
-#define CONFIG_RK_FB
-#define CONFIG_LCD_LOGO
-#define CONFIG_RK_3288_DSI_UBOOT
-//#define CONFIG_UBOOT_CHARGE
-//#define CONFIG_CMD_CHARGE_ANIM
-//#define CONFIG_CHARGE_DEEP_SLEEP
-#define CONFIG_LCD_BMP_RLE8
-#define CONFIG_CMD_BMP
-
-//#define CONFIG_COMPRESS_LOGO_RLE8// CONFIG_COMPRESS_LOGO_RLE16
-
-#define CONFIG_BMP_16BPP
-#define CONFIG_SYS_WHITE_ON_BLACK
-#define LCD_BPP			LCD_COLOR16
-
-#define CONFIG_LCD_MAX_WIDTH	4096
-#define CONFIG_LCD_MAX_HEIGHT	2048
-
-#ifdef CONFIG_RK_FB
-
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-#define CONFIG_RK_3288_FB
-#endif
-
-/*rk616 config*/
-//#define CONFIG_RK616
-#ifdef CONFIG_RK616
-#define CONFIG_RK616_LVDS //lvds or mipi
-#define CONFIG_RK616_LCD_CHN 0
-#endif /* CONFIG_RK616 */
-
-#endif /* CONFIG_RK_FB */
-
-#endif /* CONFIG_LCD */
-
-
-/********************************** charger and pmic driver ********************************/
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
-#define CONFIG_POWER_RICOH619
-//#define CONFIG_POWER_RK_SAMPLE
-#define CONFIG_POWER_RK808
-#define CONFIG_POWER_ACT8846
-#define CONFIG_SCREEN_ON_VOL_THRESD          3550
-#define CONFIG_SYSTEM_ON_VOL_THRESD          3650
-#define CONFIG_POWER_FG_CW201X
-/********************************** battery driver ********************************/
-//#define CONFIG_BATTERY_BQ27541
-//#define CONFIG_BATTERY_RICOH619
-//#define CONFIG_BATTERY_RK_SAMPLE  //battery driver
-
-#define CONFIG_MAX_PARTITIONS		16
-#define CONFIG_OF_FROM_RESOURCE
-#define CONFIG_BRIGHTNESS_DIM		48
 
 #endif /* __CONFIG_H */
 
