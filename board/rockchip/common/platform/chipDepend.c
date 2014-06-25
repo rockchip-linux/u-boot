@@ -99,9 +99,9 @@ void FW_NandDeInit(void)
 }
 
 
-void rkplat_uart2UsbEn(uint32 en)
-{
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+static void rk3288_uart2usb(uint32 en)
+{
 	if (en) {
 		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usbphy0 bypass disable and otg enable.
 
@@ -122,6 +122,38 @@ void rkplat_uart2UsbEn(uint32 en)
 		grf_writel((0x0000 | (0x00C0 << 16)), GRF_UOC0_CON3); // usb uart disable
 		grf_writel((0x0000 | (0x0004 << 16)), GRF_UOC0_CON2); // software control usb phy disable
 	}
+}
+#endif
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+static void rk3036_uart2usb(uint32 en)
+{
+	if (en) {
+		grf_writel(0x34000000, GRF_UOC0_CON5); // usbphy0 bypass disable and otg enable.
+
+		/* if define force enable usb to uart, maybe usb function will be affected */
+#ifdef CONFIG_RKUART2USB_FORCE
+		grf_writel(0x007f0055, GRF_UOC0_CON5); // usb phy enter suspend
+		grf_writel(0x34003000, GRF_UOC1_CON4); // usb uart enable.
+#else
+		con = grf_readl(GRF_SOC_STATUS0);
+		if (!(con & (1<<7)) && (con & (1<<10))) { // detect id and bus
+			grf_writel(0x007f0055, GRF_UOC0_CON5); // usb phy enter suspend
+			grf_writel(0x34003000, GRF_UOC1_CON4); // usb uart enable.
+		}
+#endif /* CONFIG_RKUART2USB_FORCE */
+	} else {
+		grf_writel(0x34000000, GRF_UOC0_CON5); // usb uart disable
+	}
+}
+#endif
+
+void rkplat_uart2UsbEn(uint32 en)
+{
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	rk3288_uart2usb(en);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	rk3036_uart2usb(en);
 #else
 	#error "PLS check CONFIG_RKCHIPTYPE if support uart2usb."
 #endif /* CONFIG_RKPLATFORM */
