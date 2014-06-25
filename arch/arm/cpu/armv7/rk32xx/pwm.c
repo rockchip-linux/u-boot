@@ -35,24 +35,9 @@ static inline u64 div64_u64(u64 dividend, u64 divisor)
 	return dividend / divisor;
 }
 
-static int get_pclk_pwm(void)
+static int get_pclk_pwm(uint32 pwm_id)
 {
-	u32 pclk_pwm, pclk_bus, pclk_bus_div;
-	u32 aclk_bus,aclk_bus_div;
-	u32 aclk_bus_src, aclk_bus_src_div;
-	u32 clksel1 = readl(RKIO_CRU_PHYS + 0x64);
-	aclk_bus_div = (clksel1 & 0x7);
-	aclk_bus_src_div = (clksel1 & 0xf8) >> 3;
-	pclk_bus_div = (clksel1  &0x7000) >> 12;
-	if (clksel1 & 0x8000) {
-		aclk_bus_src = rkclk_get_general_pll() / (aclk_bus_src_div + 1);
-	} else {
-		aclk_bus_src = rkclk_get_codec_pll() / (aclk_bus_src_div + 1);
-	}
-	aclk_bus = aclk_bus_src / (aclk_bus_div + 1);
-	pclk_pwm = pclk_bus = aclk_bus / (pclk_bus_div +1 );
-
-	return pclk_pwm;
+	return rkclk_get_pwm_clk(pwm_id);
 }
 
 #ifdef CONFIG_OF_LIBFDT
@@ -139,7 +124,7 @@ int rk_pwm_config(int brightness)
 	 * DC = (PWM_CLK_RATE * duty_ns) / (10^9 * (PRESCALE + 1))
 	 */
 
-	clk_rate = get_pclk_pwm();
+	clk_rate = get_pclk_pwm(bl.id);
 
 	while (1) {
 		div = 1000000000;
