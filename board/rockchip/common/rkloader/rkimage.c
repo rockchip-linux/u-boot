@@ -838,7 +838,7 @@ resource_content load_fdt(const disk_partition_t* ptn)
 			return content;
 		}
 		if (!memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-					FASTBOOT_BOOT_MAGIC_SIZE)) {
+					FASTBOOT_BOOT_MAGIC_SIZE) && hdr->second_size) {
 			//compute second data area's offset.
 			offset = ptn->start + (hdr->page_size / blksz);
 			offset += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
