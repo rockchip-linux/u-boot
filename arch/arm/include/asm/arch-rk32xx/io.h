@@ -30,6 +30,8 @@
  */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#include "io-rk3288.h"
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	#include "io-rk3036.h"
 #else
 	#error "PLS config io-rkxx.h!"
 #endif
