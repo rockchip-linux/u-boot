@@ -861,9 +861,9 @@ void prepare_fdt(void)
 	gd->fdt_blob = NULL;
 	gd->fdt_size = 0;
 #ifdef CONFIG_RESOURCE_PARTITION
-	resource_content content = load_fdt(get_disk_partition(RECOVERY_NAME));
+	resource_content content = load_fdt(get_disk_partition(BOOT_NAME));
 	if (!content.load_addr) {
-		printf("failed to prepare_fdt from recovery!\n");
+		printf("failed to prepare_fdt from boot!\n");
 	} else {
 		gd->fdt_blob = content.load_addr;
 		gd->fdt_size = content.content_size;
