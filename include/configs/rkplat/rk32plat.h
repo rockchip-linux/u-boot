@@ -155,6 +155,10 @@
 #define CONFIG_RK_GPIO
 
 
+/* rk iomux module */
+#define CONFIG_RK_IOMUX
+
+
 /* rk spi module */
 //#define CONFIG_RK_SPI
 

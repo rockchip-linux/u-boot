@@ -24,6 +24,8 @@
 #include <common.h>
 #include <asm/arch/rkplat.h>
 
+#ifdef CONFIG_RK_IOMUX
+
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#include "iomux-rk3288.c"
@@ -75,4 +77,10 @@ void rk_iomux_config(int iomux_id)
 			break;
 	}
 }
+
+#else
+
+void rk_iomux_config(int iomux_id) {};
+
+#endif /* CONFIG_RK_IOMUX */
 
