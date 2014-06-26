@@ -618,7 +618,7 @@ unsigned int rkclk_get_sdclk_src_freq(uint32 sdid)
 		return 0;
 	}
 
-	/* rk3288 sd clk pll can be from arm pll/ddr pll/general pll/24M, defualt general pll */
+	/* rk3036 sd clk pll can be from arm pll/ddr pll/general pll/24M, defualt general pll */
 	if (sel == 0) {
 		return gd->cpu_clk;
 	} else if (sel == 1) {
@@ -688,11 +688,28 @@ unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id)
 
 
 /*
- * rkplat get spi clock, spi0 and spi1 from  pclk_periph
+ * rkplat get spi clock, spi0 can be from arm pll/ddr pll/general pll
  * here no check clkgate, because chip default is enable.
  */
 unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 {
-	return 0;
+	uint32 con;
+	uint32 sel;
+	uint32 div;
+
+	con =  cru_readl(CRU_CLKSELS_CON(25));
+	sel = (con >> 8) & 0x3;
+	div = con && 0x7F + 1;
+
+	/* rk3036 sd clk pll can be from arm pll/ddr pll/general pll, defualt general pll */
+	if (sel == 0) {
+		return gd->cpu_clk / div;
+	} else if (sel == 1) {
+		return gd->mem_clk / div;
+	} else (sel == 2) {
+		return gd->bus_clk / div;
+	} else {
+		return 0;
+	}
 }
 
