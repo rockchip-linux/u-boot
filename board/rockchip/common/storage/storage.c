@@ -32,9 +32,30 @@
 #include "../config.h"
 #include "storage.h"
 
+static MEM_FUN_T nullFunOp =
+{
+	-1,
+	BOOT_FROM_NULL,
+	0,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
 
 #ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
-static MEM_FUN_T NandFunOp = 
+static MEM_FUN_T NandFunOp =
 {
 	0,
 	BOOT_FROM_FLASH,
@@ -57,7 +78,7 @@ static MEM_FUN_T NandFunOp =
 };
 #endif
 
-static MEM_FUN_T emmcFunOp = 
+static MEM_FUN_T emmcFunOp =
 {
 	2,
 	BOOT_FROM_EMMC,
@@ -104,11 +125,10 @@ int32 StorageInit(void)
 			return 0;
 		}
 	}
-#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
-	gpMemFun = memFunTab[1];
-#else
-	gpMemFun = memFunTab[0];
-#endif
+
+	/* if all media init error, usding null function */
+	gpMemFun = &nullFunOp;
+
 	return -1;
 }
 

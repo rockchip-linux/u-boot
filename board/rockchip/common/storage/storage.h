@@ -34,6 +34,7 @@
 #endif
 
 //1:flash 2:emmc 4:sdcard0 8:sdcard1
+#define     BOOT_FROM_NULL    (0)
 #define     BOOT_FROM_FLASH   (1<<0)
 #define     BOOT_FROM_EMMC    (1<<1)
 #define     BOOT_FROM_SD0     (1<<2)
