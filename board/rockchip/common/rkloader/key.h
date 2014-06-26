@@ -29,6 +29,7 @@
 #define KEY_SHORT_PRESS		1
 
 typedef enum{
+	KEY_NULL,
 	KEY_AD,      // AD°´¼ü
 	KEY_INT,
 }KEY_TYPE;
