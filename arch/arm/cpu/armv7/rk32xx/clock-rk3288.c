@@ -1156,8 +1156,9 @@ int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
  * rkplat lcdc dclk and aclk parent pll source
  * 0 - codec pll, 1 - general pll
  */
-#define RK3288_LIMIT_PLL_VIO0	(400*MHZ)
-#define RK3288_LIMIT_PLL_VIO1	(410*MHZ)
+/* lcdc0 as prmry (LCD) and lcdc1 as extend (HDMI) */
+#define RK3288_LIMIT_PLL_VIO0	(410*MHZ)
+#define RK3288_LIMIT_PLL_VIO1	(350*MHZ)
 
 static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dclk_div)
 {
