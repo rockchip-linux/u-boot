@@ -110,6 +110,7 @@ int GetPortState(key_config *key)
 			return state;
 		}
 	}
+
 	return 0;
 }
 
@@ -121,6 +122,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 	*boot_fastboot = 0;
 
 	printf("checkKey\n");
+
 	if(GetPortState(&key_rockusb))
 	{
 		*boot_rockusb = 1;
@@ -140,33 +142,17 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 	return 0;
 }
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
-	/* rk3036 only hase rockusb key */
+
 void RockusbKeyInit(key_config *key)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	key->type = KEY_INT;
 	key->key.ioint.name = "rockusb_key";
 	key->key.ioint.gpio = (GPIO_BANK2 | GPIO_B0);
 	key->key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key->key.ioint.pressed_state = 0;
 	key->key.ioint.press_time = 0;
-}
-
-int power_hold(void)
-{
-	return 0;
-}
-
-
-void key_init(void)
-{
-	RockusbKeyInit(&key_rockusb);
-}
-
 #else
-
-void RockusbKeyInit(key_config *key)
-{
 	key->type = KEY_AD;
 	key->key.adc.index = 1;	
 	key->key.adc.keyValueLow = 0;
@@ -174,10 +160,14 @@ void RockusbKeyInit(key_config *key)
 	key->key.adc.data = SARADC_BASE;
 	key->key.adc.stas = SARADC_BASE+4;
 	key->key.adc.ctrl = SARADC_BASE+8;
+#endif
 }
 
 void RecoveryKeyInit(key_config *key)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	key->type = KEY_NULL;
+#else
 	key->type = KEY_AD;
 	key->key.adc.index = 1;	
 	key->key.adc.keyValueLow = 0;
@@ -185,11 +175,15 @@ void RecoveryKeyInit(key_config *key)
 	key->key.adc.data = SARADC_BASE;
 	key->key.adc.stas = SARADC_BASE+4;
 	key->key.adc.ctrl = SARADC_BASE+8;
+#endif
 }
 
 
 void FastbootKeyInit(key_config *key)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	key->type = KEY_NULL;
+#else
 	key->type = KEY_AD;
 	key->key.adc.index = 1;	
 	key->key.adc.keyValueLow = 170;
@@ -197,32 +191,45 @@ void FastbootKeyInit(key_config *key)
 	key->key.adc.data = SARADC_BASE;
 	key->key.adc.stas = SARADC_BASE+4;
 	key->key.adc.ctrl = SARADC_BASE+8;
+#endif
 }
 
 
 void PowerKeyInit(void)
 {
 	//power_hold_gpio.name
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	key_power.type = KEY_NULL;
+	key_power.key.ioint.name = NULL;
+#else
 	key_power.type = KEY_INT;
 	key_power.key.ioint.name = "power_key";
 	key_power.key.ioint.gpio = (GPIO_BANK0 | GPIO_A5);
 	key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key_power.key.ioint.pressed_state = 0;
 	key_power.key.ioint.press_time = 0;
+#endif
 }
 
 
 int power_hold(void)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	/* no power hold */
+#else
 	if (get_rockchip_pmic_id() == PMIC_ID_RICOH619)
 		return ricoh619_poll_pwr_key_sta();
 	else
 		return GetPortState(&key_power);
+#endif
 }
 
 
 void key_init(void)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	RockusbKeyInit(&key_rockusb);
+#else
 	charge_state_gpio.name = "charge_state";
 	charge_state_gpio.flags = 0;
 	charge_state_gpio.gpio = (GPIO_BANK0 | GPIO_B0);
@@ -234,19 +241,27 @@ void key_init(void)
 	FastbootKeyInit(&key_fastboot);
 	RecoveryKeyInit(&key_recovery);
 	PowerKeyInit();
+#endif
 }
-#endif /* CONFIG_RKCHIPTYPE */
 
 
 void powerOn(void)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	/* no power hold */
+#else
 	if(power_hold_gpio.name != NULL)
 		gpio_direction_output(power_hold_gpio.gpio, power_hold_gpio.flags);
+#endif
 }
 
 void powerOff(void)
 {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	/* no power hold */
+#else
 	if(power_hold_gpio.name != NULL)
 		gpio_direction_output(power_hold_gpio.gpio, !power_hold_gpio.flags);
+#endif
 }
 
