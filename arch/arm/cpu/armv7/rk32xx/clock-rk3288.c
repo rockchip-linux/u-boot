@@ -1343,11 +1343,28 @@ unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id)
 
 
 /*
- * rkplat get spi clock, spi0 and spi1 from  pclk_periph
+ * rkplat get spi clock, spi0 and spi1 from  cpll or gpll
  * here no check clkgate, because chip default is enable.
  */
 unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 {
-	return 0;
+	uint32 con;
+	uint32 sel;
+	uint32 div;
+
+	if (spi_bus > 1) {
+		return 0;
+	}
+
+	con = cru_readl(CRU_CLKSELS_CON(25));
+	sel = (con >> (7 + 8 * spi_bus)) & 0x1;
+	div = (con >> (0 + 8 * spi_bus)) & 0x7F + 1;
+
+	/* rk3288 sd clk pll can be from codec pll/general pll, defualt codec pll */
+	if (sel == 0) {
+		return gd->pci_clk / div;
+	} else {
+		return gd->bus_clk / div;
+	}
 }
 
