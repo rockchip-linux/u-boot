@@ -699,7 +699,7 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 
 	con =  cru_readl(CRU_CLKSELS_CON(25));
 	sel = (con >> 8) & 0x3;
-	div = con && 0x7F + 1;
+	div = con & 0x7F + 1;
 
 	/* rk3036 sd clk pll can be from arm pll/ddr pll/general pll, defualt general pll */
 	if (sel == 0) {
