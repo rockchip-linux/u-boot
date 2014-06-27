@@ -234,7 +234,7 @@ int board_init(void)
  */
 int checkboard(void)
 {
-	puts("Board:\t\tRK32xx platform Board\n");
+	puts("Board:\tRockchip platform Board\n");
 	return 0;
 }
 #endif
