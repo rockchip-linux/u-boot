@@ -136,12 +136,12 @@
  * rockchip Hardware drivers
  */
 /* dma config */
-//#define CONFIG_RK_PL330			/* rk dma pl330 */
-//#define CONFIG_RK_DMAC			/* rk dmac */
+//#define CONFIG_RK_PL330		/* rk dma pl330 */
+//#define CONFIG_RK_DMAC		/* rk dmac */
 
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
-#define CONFIG_RK_MMC_IDMAC		/* emmc/sdio using idmac */
+#define CONFIG_RK_MMC_IDMAC	/* internal dmac */
 
 
 /* rk clock module */
