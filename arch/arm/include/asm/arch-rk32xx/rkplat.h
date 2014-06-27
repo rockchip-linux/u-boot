@@ -56,6 +56,7 @@
 #endif
 
 
+int rk_get_chiptype(void);
 void rk_module_deinit(void);
 
 #endif /* __RKPLAT_H */

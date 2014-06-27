@@ -37,6 +37,7 @@ ENTRY(lowlevel_init)
 	 */
 	push	{ip, lr}
 
+	bl	rk_get_chiptype
 	bl	rkclk_set_pll
 
 	pop	{ip, pc}
