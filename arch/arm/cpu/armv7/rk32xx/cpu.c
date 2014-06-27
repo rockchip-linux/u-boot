@@ -36,6 +36,7 @@ void enable_caches(void)
 
 
 /*
+ * rk3036 chip info:		{0x33303141, 0x32303134, 0x30343231, 0x56313031} - 301A20140421V101
  * rk3066 chip info:		{0x33303041, 0x32303131, 0x31313131, 0x56313031} - 300A20111111V101
  * rk3168 chip info:		{0x33303042, 0x32303132, 0x31303031, 0x56313030} - 300B20121011V100
  * rk3188 chip info:		{0x33313042, 0x32303132, 0x31313330, 0x56313030} - 310B20121130V100
@@ -59,6 +60,10 @@ int rk_get_chiptype(void)
 		if ((chip_info[0] == 0x33303042) && (chip_info[1] == 0x32303132) && (chip_info[2] == 0x31303031) && (chip_info[3] == 0x56313030)) {
 			gd->arch.chiptype = CONFIG_RK3168;
 			return CONFIG_RK3168;
+		}
+		if ((chip_info[0] == 0x33303141) && (chip_info[1] == 0x32303134) && (chip_info[2] == 0x30343231) && (chip_info[3] == 0x56313031)) {
+			gd->arch.chiptype = CONFIG_RK3036;
+			return CONFIG_RK3036;
 		}
 	} else if (chip_class == 0x3331) { // 31
 		if ((chip_info[0] == 0x33313042) && (chip_info[1] == 0x32303132) && (chip_info[2] == 0x31313330) && (chip_info[3] == 0x56313030)) {
@@ -97,6 +102,14 @@ int print_cpuinfo(void)
 	if (gd->arch.chiptype == RKCHIP_UNKNOWN) {
 		rk_get_chiptype();
 	}
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	if (gd->arch.chiptype == CONFIG_RK3036) {
+		printf("CPU is rk3036\n");
+	} else {
+		printf("error: uboot is not for chip rk3036!\n");
+	}
+#endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 	if (gd->arch.chiptype == CONFIG_RK3066) {

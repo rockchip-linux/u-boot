@@ -140,7 +140,7 @@
 
 
 /* define for getting chip version */
-#define RKIO_ROM_CHIP_VER_ADDR		(RKIO_ROM_PHYS + 0x27F0)
+#define RKIO_ROM_CHIP_VER_ADDR		(RKIO_ROM_PHYS + 0x3FF0)
 #define RKIO_ROM_CHIP_VER_SIZE		16
 
 
