@@ -141,7 +141,7 @@
 
 /* mmc using dma */
 //#define CONFIG_RK_MMC_DMA
-#define CONFIG_RK_MMC_PL330MAC		/* emmc/sdio using pl330 mac */
+#define CONFIG_RK_MMC_EDMAC		/* external mac */
 
 
 /* rk clock module */
