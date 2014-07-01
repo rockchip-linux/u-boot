@@ -38,6 +38,15 @@ typedef struct bd_info {
 	ulong start;
 	ulong size;
     }			bi_dram[CONFIG_NR_DRAM_BANKS];
+
+#ifdef CONFIG_RK_MAX_DRAM_BANKS
+    struct            	/* RAM configuration for kernel */
+	{
+		u64 start;
+		u64 size;
+	} 			rk_dram[CONFIG_RK_MAX_DRAM_BANKS + 1];
+#endif /* CONFIG_ROCKCHIP */
+
 } bd_t;
 #endif
 

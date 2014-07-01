@@ -77,6 +77,7 @@
 /* rk nand api function code address */
 #define CONFIG_RKNAND_API_ADDR		(CONFIG_RAM_PHY_START + SZ_32M + SZ_16M) //48M
 
+#define CONFIG_RKDDR_PARAM_ADDR		(CONFIG_RAM_PHY_START + SZ_32M)
 
 /* rk mtd block size */
 #define RK_BLK_SIZE			512

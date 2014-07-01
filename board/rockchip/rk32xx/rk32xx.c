@@ -41,16 +41,6 @@ DECLARE_GLOBAL_DATA_PTR;
 extern uint32 ddr_get_cap(void);
 extern int rk_fb_parse_dt(const void *blob);
 
-int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks) {
-	//TODO:auto detect size.
-	if (banks > 0) {
-		size[0] = ddr_get_cap();
-	}
-
-	return fdt_fixup_memory_banks(blob, start, size, banks);
-}
-
-
 static ulong get_sp(void)
 {
     ulong ret;

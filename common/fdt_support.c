@@ -387,11 +387,19 @@ void do_fixup_by_compat_u32(void *fdt, const char *compat,
 	do_fixup_by_compat(fdt, compat, prop, &tmp, 4, create);
 }
 
+#ifdef CONFIG_ROCKCHIP
+//we hack banks, so will not match CONFIG_NR_DRAM_BANKS.
+#define MEMORY_BANKS_MAX 4
+#else
+
 #ifdef CONFIG_NR_DRAM_BANKS
 #define MEMORY_BANKS_MAX CONFIG_NR_DRAM_BANKS
 #else
 #define MEMORY_BANKS_MAX 4
 #endif
+
+#endif
+
 int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 {
 	int err, nodeoffset;
@@ -434,6 +442,21 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 	size_cell_len = get_cells_len(blob, "#size-cells");
 
 	for (bank = 0, len = 0; bank < banks; bank++) {
+		
+#ifdef CONFIG_MAX_MEM_ADDR
+		if ((start[bank] + size[bank]) >= CONFIG_MAX_MEM_ADDR) {
+			if (start[bank] < CONFIG_MAX_MEM_ADDR) {
+				//resize bank.
+				size[bank] = CONFIG_MAX_MEM_ADDR - start[bank];
+			} else {
+				//skip this bank.
+				continue;
+			}
+		}
+#endif
+
+		printf("Add bank:%016llx, %016llx\n", start[bank], size[bank]);
+
 		write_cell(tmp + len, start[bank], addr_cell_len);
 		len += addr_cell_len;
 

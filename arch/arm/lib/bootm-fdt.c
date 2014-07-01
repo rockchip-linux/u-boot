@@ -20,14 +20,24 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifdef CONFIG_ROCKCHIP
-extern int rk_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks);
-#endif
-
 int arch_fixup_memory_node(void *blob)
 {
 	bd_t *bd = gd->bd;
 	int bank;
+#if defined CONFIG_RK_MAX_DRAM_BANKS \
+	&& !defined CONFIG_SYS_GENERIC_BOARD
+	u64 _start[CONFIG_RK_MAX_DRAM_BANKS];
+	u64 _size[CONFIG_RK_MAX_DRAM_BANKS];
+	for (bank = 0; bank < CONFIG_RK_MAX_DRAM_BANKS; bank++) {
+		if (!bd->rk_dram[bank].size)
+			break;
+		_start[bank] = bd->rk_dram[bank].start;
+		_size[bank] = bd->rk_dram[bank].size;
+	}
+	if (bank)
+		return fdt_fixup_memory_banks(blob, _start, _size, bank);
+#endif
+
 	u64 start[CONFIG_NR_DRAM_BANKS];
 	u64 size[CONFIG_NR_DRAM_BANKS];
 
@@ -36,9 +46,5 @@ int arch_fixup_memory_node(void *blob)
 		size[bank] = bd->bi_dram[bank].size;
 	}
 
-#ifdef CONFIG_ROCKCHIP
-	return rk_fixup_memory_banks(blob, start, size, CONFIG_NR_DRAM_BANKS);
-#else
 	return fdt_fixup_memory_banks(blob, start, size, CONFIG_NR_DRAM_BANKS);
-#endif
 }

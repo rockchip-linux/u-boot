@@ -24,6 +24,7 @@
  */
 #include <common.h>
 #include <asm/arch/rkplat.h>
+#include <asm/byteorder.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -83,6 +84,35 @@ int dram_init(void)
 
 void dram_init_banksize(void)
 {
+#if defined CONFIG_RKDDR_PARAM_ADDR && !defined CONFIG_SYS_GENERIC_BOARD
+	u64* buf = (u64*)CONFIG_RKDDR_PARAM_ADDR;
+	u32 count = ((u32*)buf)[0];
+	buf ++;
+	printf("Found dram banks:%d\n", count);
+	gd->bd->rk_dram[0].start = gd->bd->rk_dram[0].size = 0;
+	if (count >= CONFIG_RK_MAX_DRAM_BANKS){
+		printf("Wrong bank count: %d(%d)\n",
+				count, CONFIG_RK_MAX_DRAM_BANKS);
+		goto failed;
+	}
+	int i;
+	for (i = 0; i < count; i++) {
+		gd->bd->rk_dram[i].start = le64_to_cpu(buf[i]);
+		gd->bd->rk_dram[i].size = le64_to_cpu(buf[count + i]);
+		//TODO: add check, if start|size not valide, goto failed.
+		/*
+		if (check) {
+			gd->bd->rk_dram[0].start = gd->bd->rk_dram[0].size = 0;
+			goto failed;
+		}*/
+		printf("Adding bank:%016llx(%016llx)\n",
+				gd->bd->rk_dram[i].start,
+				gd->bd->rk_dram[i].size);
+		gd->bd->rk_dram[i+1].start = gd->bd->rk_dram[i+1].size = 0;
+	}
+failed:
+#endif
+
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
 }
