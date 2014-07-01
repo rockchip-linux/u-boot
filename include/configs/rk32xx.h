@@ -216,7 +216,6 @@
  * is mapped to one contiguous block
  */
 #define CONFIG_NR_DRAM_BANKS		1
-#define CONFIG_RK_MAX_DRAM_BANKS	8
 
 #define PHYS_SDRAM_1            	CONFIG_SYS_SDRAM_BASE /* OneDRAM Bank #0 */
 #define PHYS_SDRAM_1_SIZE       	(CONFIG_RAM_PHY_END - CONFIG_RAM_PHY_START) /* 128 MB in Bank #0 */
@@ -250,7 +249,5 @@
 #define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 20))
 
 
-//reserve iomap memory.
-#define CONFIG_MAX_MEM_ADDR				0xFF000000
 #endif /* __CONFIG_H */
 

@@ -77,7 +77,15 @@
 /* rk nand api function code address */
 #define CONFIG_RKNAND_API_ADDR		(CONFIG_RAM_PHY_START + SZ_32M + SZ_16M) //48M
 
+/* rk ddr max banks */
+#define CONFIG_RK_MAX_DRAM_BANKS	8
+
+/* rk ddr banks address and size */
 #define CONFIG_RKDDR_PARAM_ADDR		(CONFIG_RAM_PHY_START + SZ_32M)
+
+/* reserve iomap memory. */
+#define CONFIG_MAX_MEM_ADDR		0xFF000000
+
 
 /* rk mtd block size */
 #define RK_BLK_SIZE			512

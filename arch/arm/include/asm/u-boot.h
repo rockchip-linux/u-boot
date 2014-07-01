@@ -45,7 +45,7 @@ typedef struct bd_info {
 		u64 start;
 		u64 size;
 	} 			rk_dram[CONFIG_RK_MAX_DRAM_BANKS + 1];
-#endif /* CONFIG_ROCKCHIP */
+#endif /* CONFIG_RK_MAX_DRAM_BANKS */
 
 } bd_t;
 #endif

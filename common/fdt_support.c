@@ -398,7 +398,7 @@ void do_fixup_by_compat_u32(void *fdt, const char *compat,
 #define MEMORY_BANKS_MAX 4
 #endif
 
-#endif
+#endif /* CONFIG_ROCKCHIP */
 
 int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 {
@@ -443,6 +443,8 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 
 	for (bank = 0, len = 0; bank < banks; bank++) {
 		
+#ifdef CONFIG_ROCKCHIP
+
 #ifdef CONFIG_MAX_MEM_ADDR
 		if ((start[bank] + size[bank]) >= CONFIG_MAX_MEM_ADDR) {
 			if (start[bank] < CONFIG_MAX_MEM_ADDR) {
@@ -456,6 +458,7 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 #endif
 
 		printf("Add bank:%016llx, %016llx\n", start[bank], size[bank]);
+#endif /* CONFIG_ROCKCHIP */
 
 		write_cell(tmp + len, start[bank], addr_cell_len);
 		len += addr_cell_len;

@@ -24,6 +24,9 @@ int arch_fixup_memory_node(void *blob)
 {
 	bd_t *bd = gd->bd;
 	int bank;
+
+#ifdef CONFIG_ROCKCHIP
+
 #if defined CONFIG_RK_MAX_DRAM_BANKS \
 	&& !defined CONFIG_SYS_GENERIC_BOARD
 	u64 _start[CONFIG_RK_MAX_DRAM_BANKS];
@@ -37,6 +40,8 @@ int arch_fixup_memory_node(void *blob)
 	if (bank)
 		return fdt_fixup_memory_banks(blob, _start, _size, bank);
 #endif
+
+#endif /* CONFIG_ROCKCHIP */
 
 	u64 start[CONFIG_NR_DRAM_BANKS];
 	u64 size[CONFIG_NR_DRAM_BANKS];
