@@ -184,8 +184,8 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	bootimg_print_image_hdr(hdr);
 
-	FBTDBG("kernel   @ %08x (%d)\n", hdr->kernel_addr, hdr->kernel_size);
-	FBTDBG("ramdisk  @ %08x (%d)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
+	printf("kernel   @ 0x%08x (0x%08x)\n", hdr->kernel_addr, hdr->kernel_size);
+	printf("ramdisk  @ 0x%08x (0x%08x)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
 
 #ifdef CONFIG_CMDLINE_TAG
 	{
