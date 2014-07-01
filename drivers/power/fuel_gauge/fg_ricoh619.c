@@ -302,10 +302,12 @@ static int ricoh619_charger_setting(struct pmic *pmic,int current)
 		break;
 	case 1:
 		i2c_reg_write(pmic->hw.i2c.addr, REGISET1_REG, usb_iset1_cfg);
+		i2c_reg_write(pmic->hw.i2c.addr, REGISET2_REG, usb_iset1_cfg);
 		i2c_reg_write(pmic->hw.i2c.addr, CHGISET_REG, usb_chgiset_cfg);	
 		break;
 	case 2:
 		i2c_reg_write(pmic->hw.i2c.addr, REGISET1_REG, dc_iset1_cfg);
+		i2c_reg_write(pmic->hw.i2c.addr, REGISET2_REG, dc_iset1_cfg);
 		i2c_reg_write(pmic->hw.i2c.addr, CHGISET_REG, dc_chgiset_cfg);	/* ILIM_ADP	0x11= 0x0-0x1D (100mA - 3000mA) */
 		break;
 	default:
