@@ -156,7 +156,7 @@ int ricoh619_get_voltage(struct pmic *pmic)
 	u8 i;
 
 	u8 pswr = i2c_reg_read(pmic->hw.i2c.addr, PSWR_REG);
-	if (!(pswr & 0x80))
+	if (!(pswr & 0x7f))
 		return 3780;
 	
 	for(i=1;i<11;i++)
