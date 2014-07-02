@@ -22,6 +22,16 @@ static int state_of_chrg = 0;
 #define REG_MODE                0xA
 #define REG_BATINFO             0x10
 
+
+#define MODE_SLEEP_MASK         (0x3<<6)
+#define MODE_SLEEP              (0x3<<6)
+#define MODE_NORMAL             (0x0<<6)
+#define MODE_QUICK_START        (0x3<<4)
+#define MODE_RESTART            (0xf<<0)
+
+#define CONFIG_UPDATE_FLG       (0x1<<1)
+#define ATHD                    (0x0<<3)        //ATHD = 0%
+
 static int volt_tab[6] = {3466, 3586, 3670, 3804, 4014, 4316};
 
 struct cw201x {
@@ -218,6 +228,24 @@ static struct power_fg cw201x_fg_ops = {
 	.fg_battery_update = cw201x_update_battery,
 };
 
+
+static int fg_cw201x_cfg(void)
+{
+	int ret;
+	int i;
+	u8 val = MODE_SLEEP;
+	u8 addr = cw.p->hw.i2c.addr;
+
+	i2c_set_bus_num(cw.p->bus);
+	i2c_init (CW201X_I2C_SPEED, 0);
+        if ((val & MODE_SLEEP_MASK) == MODE_SLEEP) {
+                val = MODE_NORMAL;
+                i2c_reg_write(addr, REG_MODE, val);
+        }
+
+        return 0;
+
+}
 int fg_cw201x_init(unsigned char bus)
 {
 	static const char name[] = "CW201X_FG";
@@ -231,6 +259,7 @@ int fg_cw201x_init(unsigned char bus)
 	cw.p->name = name;
 	cw.p->interface = PMIC_I2C;
 	cw.p->fg = &cw201x_fg_ops;
+	fg_cw201x_cfg();
 	return 0;
 }
 
