@@ -25,13 +25,15 @@
 
 
 typedef enum rk_i2c_bus_ch {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	I2C_BUS_CH0,
 	I2C_BUS_CH1,
 	I2C_BUS_CH2,
 	I2C_BUS_CH3,
 	I2C_BUS_CH4,
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	I2C_BUS_CH5,
+#else
+	#error "PLS config chiptype for i2c bus!"
 #endif
 	I2C_BUS_MAX
 } rk_i2c_bus_ch_t;
