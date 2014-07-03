@@ -83,7 +83,7 @@
 #define IRQ_SPDIF                       92
 
 
-#define NR_GIC_IRQS                     (5 * 32)
+#define NR_GIC_IRQS                     (4 * 32)
 #define NR_GPIO_IRQS                    (3 * 32)
 #define NR_BOARD_IRQS                   64
 #define NR_IRQS                         (NR_GIC_IRQS + NR_GPIO_IRQS + NR_BOARD_IRQS)
