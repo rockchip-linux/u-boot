@@ -1142,12 +1142,12 @@ int rk_dma_getposition(enum dma_ch id, dma_addr_t *src, dma_addr_t *dst)
 	#define RK_DMAC1_IRQ1		IRQ_DMAC_PERI1
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	#define RK_PL330_DMAC_MAX	1
-	#define CONFIG_RK_DMAC_1	/* dmac 1 */
+	#define CONFIG_RK_DMAC_0	/* dmac 0 */
 
-	#define RK_DMAC1_BASE		RKIO_DMAC_PHYS
+	#define RK_DMAC0_BASE		RKIO_DMAC_PHYS
 
-	#define RK_DMAC1_IRQ0		IRQ_DMAC_0
-	#define RK_DMAC1_IRQ1		IRQ_DMAC_1
+	#define RK_DMAC0_IRQ0		IRQ_DMAC_0
+	#define RK_DMAC0_IRQ1		IRQ_DMAC_1
 #else
 	#error "Please config platform for dmac."
 #endif
@@ -1311,6 +1311,44 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 		[31] = DMACH_MAX,
 	},
 };
+
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+static struct rk_pl330_platdata g_dmac1_pdata = {
+	.peri = {
+		[0] = DMACH_I2S_TX,
+		[1] = DMACH_I2S_RX,
+		[2] = DMACH_UART0_TX,
+		[3] = DMACH_UART0_RX,
+		[4] = DMACH_UART1_TX,
+		[5] = DMACH_UART1_RX,
+		[6] = DMACH_UART2_TX,
+		[7] = DMACH_UART2_RX,
+		[8] = DMACH_SPI_TX,
+		[9] = DMACH_SPI_RX,
+		[10] = DMACH_SDMMC,
+		[11] = DMACH_SDIO,
+		[12] = DMACH_EMMC,
+		[13] = DMACH_SPDIF_TX,
+		[14] = DMACH_MAX,
+		[15] = DMACH_MAX,
+		[16] = DMACH_DMAC2_MEMTOMEM,
+		[17] = DMACH_MAX,
+		[18] = DMACH_MAX,
+		[19] = DMACH_MAX,
+		[20] = DMACH_MAX,
+		[21] = DMACH_MAX,
+		[22] = DMACH_MAX,
+		[23] = DMACH_MAX,
+		[24] = DMACH_MAX,
+		[25] = DMACH_MAX,
+		[26] = DMACH_MAX,
+		[27] = DMACH_MAX,
+		[28] = DMACH_MAX,
+		[29] = DMACH_MAX,
+		[30] = DMACH_MAX,
+		[31] = DMACH_MAX,
+	},
+};
 #else 
 	#error "Please config CONFIG_RKCHIPTYPE for dmac1."
 #endif
@@ -1378,44 +1416,6 @@ static struct rk_pl330_platdata g_dmac2_pdata = {
 		[14] = DMACH_SPI1_RX,
 		[15] = DMACH_SPI2_TX,
 		[16] = DMACH_SPI2_RX,
-		[17] = DMACH_MAX,
-		[18] = DMACH_MAX,
-		[19] = DMACH_MAX,
-		[20] = DMACH_MAX,
-		[21] = DMACH_MAX,
-		[22] = DMACH_MAX,
-		[23] = DMACH_MAX,
-		[24] = DMACH_MAX,
-		[25] = DMACH_MAX,
-		[26] = DMACH_MAX,
-		[27] = DMACH_MAX,
-		[28] = DMACH_MAX,
-		[29] = DMACH_MAX,
-		[30] = DMACH_MAX,
-		[31] = DMACH_MAX,
-	},
-};
-
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
-static struct rk_pl330_platdata g_dmac2_pdata = {
-	.peri = {
-		[0] = DMACH_MAX,
-		[1] = DMACH_MAX,
-		[2] = DMACH_MAX,
-		[3] = DMACH_MAX,
-		[4] = DMACH_MAX,
-		[5] = DMACH_MAX,
-		[6] = DMACH_MAX,
-		[7] = DMACH_MAX,
-		[8] = DMACH_MAX,
-		[9] = DMACH_MAX,
-		[10] = DMACH_MAX,
-		[11] = DMACH_MAX,
-		[12] = DMACH_MAX,
-		[13] = DMACH_EMMC,
-		[14] = DMACH_MAX,
-		[15] = DMACH_DMAC0_MEMTOMEM,
-		[16] = DMACH_MAX,
 		[17] = DMACH_MAX,
 		[18] = DMACH_MAX,
 		[19] = DMACH_MAX,
