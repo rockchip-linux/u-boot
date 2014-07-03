@@ -181,6 +181,12 @@ void lcd_ctrl_init(void *lcdbase)
 #ifdef CONFIG_OF_LIBFDT
     rk_fb_parse_dt(gd->fdt_blob);
 #endif
+
+#ifdef CONFIG_RK_3288_HDMI
+   if (panel_info.screen_type == SCREEN_HDMI)
+		   rk3288_hdmi_init(&panel_info);
+#endif
+
     init_panel_info(&panel_info);
     if (panel_info.enable_ldo)
         panel_info.enable_ldo(1);

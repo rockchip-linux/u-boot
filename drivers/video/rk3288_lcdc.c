@@ -630,8 +630,8 @@ int rk30_load_screen(vidinfo_t *vid)
 	}
     }else if(vid->dp_enabled){
         LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_edp_out_en(1));
-   //} else if(vid->hdmi_enable){
-   //     LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_hdmi_out_en(1));
+   } else if(vid->screen_type == SCREEN_HDMI){
+        LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_hdmi_out_en(1));
     }else
         LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_rgb_out_en(1));
 
@@ -667,7 +667,7 @@ int rk30_load_screen(vidinfo_t *vid)
         		break;
 	}
 
-	if (vid->screen_type == SCREEN_EDP)
+	if (vid->screen_type == SCREEN_EDP || vid->screen_type == SCREEN_HDMI)
 		face = OUT_RGB_AAA;
 	//set background color to black,set swap according to the screen panel,disable blank mode
 	LcdMskReg(DSP_CTRL0, m_dsp_rg_swap | m_dsp_rb_swap | m_dsp_delta_swap | m_dsp_field_pol  | 
