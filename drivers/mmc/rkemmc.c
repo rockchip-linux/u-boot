@@ -110,9 +110,9 @@ static void emmcreset(void)
 	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
 	udelay(200);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
-	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(6));
+	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(5));
 	udelay(100);
-	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(6));
+	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(5));
 	udelay(200);
 #else
 	#error "PLS config platform for emmc reset!"
