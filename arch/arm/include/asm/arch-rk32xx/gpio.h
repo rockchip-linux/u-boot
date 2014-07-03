@@ -76,6 +76,8 @@ struct rk_gpio_bank {
 	#include "gpio-rk3288.h"
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	#include "gpio-rk3036.h"
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	#include "gpio-rk312X.h"
 #else
 	#error "PLS config gpio-rkxx.h!"
 #endif

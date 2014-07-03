@@ -71,7 +71,7 @@
 /* usb otg base */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG20_PHYS
 #else
 	#error "PLS config chiptype for usb otg base!"
@@ -1047,6 +1047,14 @@ int dwc_otg_check_dpdm(void)
 	mdelay(50);
 
 	grf_writel(((0x01<<0)<<16), GRF_UOC0_CON5); // exit suspend.
+	mdelay(105);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	cru_writel(((7<<4)<<16)|(7<<4), CRU_SOFTRSTS_CON(4)); // otg phy reset
+	udelay(3);
+	cru_writel(((7<<4)<<16)|(0<<4), CRU_SOFTRSTS_CON(4));
+	mdelay(50);
+
+	grf_writel(((0x01<<0)<<16), GRF_UOC0_CON0); // exit suspend.
 	mdelay(105);
 #else
 	#error "PLS config chiptype for usb dpdm check!"

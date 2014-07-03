@@ -36,6 +36,11 @@ typedef enum rk_i2c_bus_ch {
 	I2C_BUS_CH0,
 	I2C_BUS_CH1,
 	I2C_BUS_CH2,
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	I2C_BUS_CH0,
+	I2C_BUS_CH1,
+	I2C_BUS_CH2,
+	I2C_BUS_CH3,
 #else
 	#error "PLS config chiptype for i2c bus!"
 #endif

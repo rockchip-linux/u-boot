@@ -203,7 +203,7 @@
 /* rk plat config include */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#include "rkplat/rk32plat.h"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
 	#include "rkplat/rk30plat.h"
 #else
 	#error: PLS config chip for rk plat!

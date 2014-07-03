@@ -32,6 +32,8 @@
 	#include "grf-rk3288.h"
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	#include "grf-rk3036.h"
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	#include "grf-rk312X.h"
 #else
 	#error "PLS config grf-rkxx.h!"
 #endif

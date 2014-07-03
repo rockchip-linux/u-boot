@@ -276,7 +276,7 @@ void SecureBootLockLoader(void)
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#define RKIO_NANDC_BASE		RKIO_NANDC0_PHYS
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
 	#define RKIO_NANDC_BASE		RKIO_NANDC_PHYS
 #else
 	#error "PLS config platform for nandc base!"
