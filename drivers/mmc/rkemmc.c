@@ -104,14 +104,14 @@ static void emmcpoweren(char En)
 
 static void emmcreset(void)
 {
-	int data;
-
-	data = ((1<<16)|(1))<<3;
-	Writel(gCruBaseAddr + 0x1d8, data);
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
 	udelay(100);
-	data = ((1<<16)|(0))<<3;
-	Writel(gCruBaseAddr + 0x1d8, data);
+	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
 	udelay(200);
+#else
+	#error "PLS config platform for emmc reset!"
+#endif
 	emmcpoweren(1);
 }
 
