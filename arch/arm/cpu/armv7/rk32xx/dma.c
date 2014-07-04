@@ -1173,20 +1173,20 @@ static inline void *rk_pl330_dmac_get_base(int dmac_id)
 
 
 /* dmac pl330 info */
+static struct pl330_info	*g_pl330_info_0 = NULL;
 static struct pl330_info	*g_pl330_info_1 = NULL;
-static struct pl330_info	*g_pl330_info_2 = NULL;
 
 static inline struct pl330_info *rk_pl330_dmac_get_info(int dmac_id)
 {
 #ifdef CONFIG_RK_DMAC_0
 	if (dmac_id == 0) {
-		return &g_pl330_info_1;
+		return &g_pl330_info_0;
 	}
 #endif
 
 #ifdef CONFIG_RK_DMAC_1
 	if (dmac_id == 1) {
-		return &g_pl330_info_2;
+		return &g_pl330_info_1;
 	}
 #endif
 
@@ -1198,7 +1198,7 @@ static inline struct pl330_info *rk_pl330_dmac_get_info(int dmac_id)
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 
-static struct rk_pl330_platdata dmac1_pdata = {
+static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_UART0_TX,
 		[1] = DMACH_UART0_RX,
@@ -1237,7 +1237,7 @@ static struct rk_pl330_platdata dmac1_pdata = {
 
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 
-static struct rk_pl330_platdata g_dmac1_pdata = {
+static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_UART0_TX,
 		[1] = DMACH_UART0_RX,
@@ -1275,7 +1275,7 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 };
 
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-static struct rk_pl330_platdata g_dmac1_pdata = {
+static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S_TX,
 		[1] = DMACH_I2S_RX,
@@ -1387,7 +1387,7 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 	},
 };
 #else 
-	#error "Please config CONFIG_RKCHIPTYPE for dmac1."
+	#error "Please config CONFIG_RKCHIPTYPE for dmac0."
 #endif
 
 #endif /* CONFIG_RK_DMAC_0 */
@@ -1396,7 +1396,7 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 #ifdef CONFIG_RK_DMAC_1
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
-static struct rk_pl330_platdata g_dmac2_pdata = {
+static struct rk_pl330_platdata g_dmac1_pdata = {
 	.peri = {
 		[0] = DMACH_HSADC,
 		[1] = DMACH_SDMMC,
@@ -1434,7 +1434,7 @@ static struct rk_pl330_platdata g_dmac2_pdata = {
 };
 
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-static struct rk_pl330_platdata g_dmac2_pdata = {
+static struct rk_pl330_platdata g_dmac1_pdata = {
 	.peri = {
 		[0] = DMACH_HSADC,
 		[1] = DMACH_UART0_BT_TX,
@@ -1472,7 +1472,7 @@ static struct rk_pl330_platdata g_dmac2_pdata = {
 };
 
 #else
-	#error "Please config CONFIG_RKCHIPTYPE for dmac2."
+	#error "Please config CONFIG_RKCHIPTYPE for dmac1."
 #endif
 
 #endif /* CONFIG_RK_DMAC_1 */
@@ -1482,13 +1482,13 @@ static inline struct rk_pl330_platdata *rk_pl330_dmac_get_pd(int dmac_id)
 {
 #ifdef CONFIG_RK_DMAC_0
 	if (dmac_id == 0) {
-		return &g_dmac1_pdata;
+		return &g_dmac0_pdata;
 	}
 #endif
 
 #ifdef CONFIG_RK_DMAC_1
 	if (dmac_id == 1) {
-		return &g_dmac2_pdata;
+		return &g_dmac1_pdata;
 	}
 #endif
 
@@ -1505,14 +1505,14 @@ static void rk_pl330_dmac_isr(void *data)
 #ifdef CONFIG_RK_DMAC_0
 		case RK_DMAC0_IRQ0:
 		case RK_DMAC0_IRQ1:
-			pl330_update(g_pl330_info_1);
+			pl330_update(g_pl330_info_0);
 			break;
 #endif /* CONFIG_RK_DMAC_0 */
 
 #ifdef CONFIG_RK_DMAC_1
 		case RK_DMAC1_IRQ0:
 		case RK_DMAC1_IRQ1:
-			pl330_update(g_pl330_info_2);
+			pl330_update(g_pl330_info_1);
 			break;
 #endif /* CONFIG_RK_DMAC_1 */
 	}
@@ -1590,7 +1590,7 @@ int rk_pl330_dmac_init(int dmac_id)
 	/* global info */
 	if (dmac_id == 0) {
 #ifdef CONFIG_RK_DMAC_0
-		g_pl330_info_1 = pl330_info;
+		g_pl330_info_0 = pl330_info;
 
 		irq_install_handler(RK_DMAC0_IRQ0, rk_pl330_dmac_isr, NULL);
 		irq_install_handler(RK_DMAC0_IRQ1, rk_pl330_dmac_isr, NULL);
@@ -1600,7 +1600,7 @@ int rk_pl330_dmac_init(int dmac_id)
 #endif
 	} else {
 #ifdef CONFIG_RK_DMAC_1
-		g_pl330_info_2 = pl330_info;
+		g_pl330_info_1 = pl330_info;
 
 		irq_install_handler(RK_DMAC1_IRQ0, rk_pl330_dmac_isr, NULL);
 		irq_install_handler(RK_DMAC1_IRQ1, rk_pl330_dmac_isr, NULL);
@@ -1691,13 +1691,13 @@ int rk_pl330_dmac_deinit(int dmac_id)
 #ifdef CONFIG_RK_DMAC_0
 		irq_uninstall_handler(RK_DMAC0_IRQ0);
 		irq_uninstall_handler(RK_DMAC0_IRQ1);
-		g_pl330_info_1 = NULL;
+		g_pl330_info_0 = NULL;
 #endif
 	} else {
 #ifdef CONFIG_RK_DMAC_1
 		irq_uninstall_handler(RK_DMAC1_IRQ0);
 		irq_uninstall_handler(RK_DMAC1_IRQ1);
-		g_pl330_info_2 = NULL;
+		g_pl330_info_1 = NULL;
 #endif
 	}
 	spin_unlock_irqrestore(&res_lock, flags);
