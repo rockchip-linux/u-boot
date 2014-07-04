@@ -38,6 +38,7 @@ void enable_caches(void)
 /*
  * rk3036 chip info:		{0x33303141, 0x32303134, 0x30343231, 0x56313031} - 301A20140421V101
  * rk3066 chip info:		{0x33303041, 0x32303131, 0x31313131, 0x56313031} - 300A20111111V101
+ * rk312x chip info:		{0x33313043, 0x32303134, 0x30343239, 0x56313030} - 310C20140429V100
  * rk3168 chip info:		{0x33303042, 0x32303132, 0x31303031, 0x56313030} - 300B20121011V100
  * rk3188 chip info:		{0x33313042, 0x32303132, 0x31313330, 0x56313030} - 310B20121130V100
  * rk3188_plus chip info:	{0x33313042, 0x32303133, 0x30313331, 0x56313031} - 310B20130131V101
@@ -73,6 +74,10 @@ int rk_get_chiptype(void)
 		if ((chip_info[0] == 0x33313042) && (chip_info[1] == 0x32303133) && (chip_info[2] == 0x30313331) && (chip_info[3] == 0x56313031)) {
 			gd->arch.chiptype = CONFIG_RK3188_PLUS;
 			return CONFIG_RK3188_PLUS;
+		}
+		if ((chip_info[0] == 0x33313043) && (chip_info[1] == 0x32303134) && (chip_info[2] == 0x30343239) && (chip_info[3] == 0x56313030)) {
+			gd->arch.chiptype = CONFIG_RK312X;
+			return CONFIG_RK312X;
 		}
 	} else if (chip_class == 0x3332) { // 32
 		if ((chip_info[0] == 0x33323041) && (chip_info[1] == 0x32303133) && (chip_info[2] == 0x31313136) && (chip_info[3] == 0x56313030)) {
@@ -116,6 +121,14 @@ int print_cpuinfo(void)
 		printf("CPU is rk3066\n");
 	} else {
 		printf("error: uboot is not for chip rk3066!\n");
+	}
+#endif
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	if (gd->arch.chiptype == CONFIG_RK312X) {
+		printf("CPU is rk312x\n");
+	} else {
+		printf("error: uboot is not for chip rk312x!\n");
 	}
 #endif
 
