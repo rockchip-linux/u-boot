@@ -27,6 +27,11 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+/* audi-s no pmu module, no support pm */
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#undef CONFIG_PM_SUBSYSTEM
+#endif
+
 #ifdef CONFIG_PM_SUBSYSTEM
 
 #define RKPM_VERSION		"1.0"
