@@ -388,8 +388,10 @@ void do_fixup_by_compat_u32(void *fdt, const char *compat,
 }
 
 #ifdef CONFIG_ROCKCHIP
+
 //we hack banks, so will not match CONFIG_NR_DRAM_BANKS.
 #define MEMORY_BANKS_MAX 4
+
 #else
 
 #ifdef CONFIG_NR_DRAM_BANKS
@@ -442,7 +444,6 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 	size_cell_len = get_cells_len(blob, "#size-cells");
 
 	for (bank = 0, len = 0; bank < banks; bank++) {
-		
 #ifdef CONFIG_ROCKCHIP
 
 #ifdef CONFIG_MAX_MEM_ADDR

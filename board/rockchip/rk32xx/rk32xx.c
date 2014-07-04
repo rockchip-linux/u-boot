@@ -38,7 +38,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 #ifdef CONFIG_OF_LIBFDT
-extern uint32 ddr_get_cap(void);
 extern int rk_fb_parse_dt(const void *blob);
 
 static ulong get_sp(void)

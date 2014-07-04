@@ -28,46 +28,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-//获取容量，返回字节数
-uint32 ddr_get_cap(void)
-{
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	uint32 reg = *(volatile uint32*)(RKIO_PMU_PHYS + 0x9c);
-	uint32 cap[2] = {0, 0};
-
-	if((reg>>28)&1)
-	{
-		cap[0] = (1 << ((13+((reg>>6)&0x3))+(9+((reg>>9)&0x3))+(3-((reg>>8)&0x1))+(2>>((reg>>2)&0x3))));
-		if((1+((reg>>11)&0x1)) > 1)
-		{
-			cap[0] += cap[0] >> (((reg>>6)&0x3)-((reg>>4)&0x3));
-		}
-		if(((reg>>30)&0x1))
-		{
-			cap[0] = cap[0]*3/4;
-		}
-	}
-	if((reg>>29)&1)
-	{
-		cap[1] = (1 << ((13+((reg>>22)&0x3))+(9+((reg>>25)&0x3))+(3-((reg>>24)&0x1))+(2>>((reg>>18)&0x3))));
-		if((1+((reg>>27)&0x1)) > 1)
-		{
-			cap[1] += cap[1] >> (((reg>>22)&0x3)-((reg>>20)&0x3));
-		}
-		if(((reg>>31)&0x1))
-		{
-			cap[1] = cap[1]*3/4;
-		}
-	}
-
-	return (cap[0]+cap[1]);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
-	return 0x20000000; /* return 512M for temp */
-#else
-	#error "PLS config chiptype for ddr cap get!"
-#endif
-}
-
 
 /**********************************************
  * Routine: dram_init
