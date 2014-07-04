@@ -53,56 +53,56 @@
 
 
 /* Register and Bit field Definitions */
-#define DS		0x0
-#define DS_ST_STOP	0x0
-#define DS_ST_EXEC	0x1
-#define DS_ST_CMISS	0x2
-#define DS_ST_UPDTPC	0x3
-#define DS_ST_WFE	0x4
-#define DS_ST_ATBRR	0x5
-#define DS_ST_QBUSY	0x6
-#define DS_ST_WFP	0x7
-#define DS_ST_KILL	0x8
-#define DS_ST_CMPLT	0x9
-#define DS_ST_FLTCMP	0xe
-#define DS_ST_FAULT	0xf
+#define DS			0x0
+#define DS_ST_STOP		0x0
+#define DS_ST_EXEC		0x1
+#define DS_ST_CMISS		0x2
+#define DS_ST_UPDTPC		0x3
+#define DS_ST_WFE		0x4
+#define DS_ST_ATBRR		0x5
+#define DS_ST_QBUSY		0x6
+#define DS_ST_WFP		0x7
+#define DS_ST_KILL		0x8
+#define DS_ST_CMPLT		0x9
+#define DS_ST_FLTCMP		0xe
+#define DS_ST_FAULT		0xf
 
-#define DPC		0x4
-#define INTEN		0x20
-#define ES		0x24
-#define INTSTATUS	0x28
-#define INTCLR		0x2c
-#define FSM		0x30
-#define FSC		0x34
-#define FTM		0x38
+#define DPC			0x4
+#define INTEN			0x20
+#define ES			0x24
+#define INTSTATUS		0x28
+#define INTCLR			0x2c
+#define FSM			0x30
+#define FSC			0x34
+#define FTM			0x38
 
-#define _FTC		0x40
-#define FTC(n)		(_FTC + (n)*0x4)
+#define _FTC			0x40
+#define FTC(n)			(_FTC + (n)*0x4)
 
-#define _CS		0x100
-#define CS(n)		(_CS + (n)*0x8)
-#define CS_CNS		(1 << 21)
+#define _CS			0x100
+#define CS(n)			(_CS + (n)*0x8)
+#define CS_CNS			(1 << 21)
 
-#define _CPC		0x104
-#define CPC(n)		(_CPC + (n)*0x8)
+#define _CPC			0x104
+#define CPC(n)			(_CPC + (n)*0x8)
 
-#define _SA		0x400
-#define SA(n)		(_SA + (n)*0x20)
+#define _SA			0x400
+#define SA(n)			(_SA + (n)*0x20)
 
-#define _DA		0x404
-#define DA(n)		(_DA + (n)*0x20)
+#define _DA			0x404
+#define DA(n)			(_DA + (n)*0x20)
 
-#define _CC		0x408
-#define CC(n)		(_CC + (n)*0x20)
+#define _CC			0x408
+#define CC(n)			(_CC + (n)*0x20)
 
-#define CC_SRCINC	(1 << 0)
-#define CC_DSTINC	(1 << 14)
-#define CC_SRCPRI	(1 << 8)
-#define CC_DSTPRI	(1 << 22)
-#define CC_SRCNS	(1 << 9)
-#define CC_DSTNS	(1 << 23)
-#define CC_SRCIA	(1 << 10)
-#define CC_DSTIA	(1 << 24)
+#define CC_SRCINC		(1 << 0)
+#define CC_DSTINC		(1 << 14)
+#define CC_SRCPRI		(1 << 8)
+#define CC_DSTPRI		(1 << 22)
+#define CC_SRCNS		(1 << 9)
+#define CC_DSTNS		(1 << 23)
+#define CC_SRCIA		(1 << 10)
+#define CC_DSTIA		(1 << 24)
 #define CC_SRCBRSTLEN_SHFT	4
 #define CC_DSTBRSTLEN_SHFT	18
 #define CC_SRCBRSTSIZE_SHFT	1
@@ -113,28 +113,33 @@
 #define CC_DRCCCTRL_MASK	0x7
 #define CC_SWAP_SHFT		28
 
-#define _LC0		0x40c
-#define LC0(n)		(_LC0 + (n)*0x20)
+#define _LC0			0x40c
+#define LC0(n)			(_LC0 + (n)*0x20)
 
-#define _LC1		0x410
-#define LC1(n)		(_LC1 + (n)*0x20)
+#define _LC1			0x410
+#define LC1(n)			(_LC1 + (n)*0x20)
 
-#define DBGSTATUS	0xd00
-#define DBG_BUSY	(1 << 0)
+#define DBGSTATUS		0xd00
+#define DBG_BUSY		(1 << 0)
 
-#define DBGCMD		0xd04
-#define DBGINST0	0xd08
-#define DBGINST1	0xd0c
+#define DBGCMD			0xd04
+#define DBGINST0		0xd08
+#define DBGINST1		0xd0c
 
-#define CR0		0xe00
-#define CR1		0xe04
-#define CR2		0xe08
-#define CR3		0xe0c
-#define CR4		0xe10
-#define CRD		0xe14
+#define CR0			0xe00
+#define CR1			0xe04
+#define CR2			0xe08
+#define CR3			0xe0c
+#define CR4			0xe10
+#define CRD			0xe14
 
-#define PERIPH_ID	0xfe0
-#define PCELL_ID	0xff0
+#define PERIPH_ID		0xfe0
+#define PERIPH_REV_SHIFT	20
+#define PERIPH_REV_MASK		0xf
+#define PERIPH_REV_R0P0		0
+#define PERIPH_REV_R1P0		1
+#define PERIPH_REV_R1P1		2
+#define PCELL_ID		0xff0
 
 #define CR0_PERIPH_REQ_SET	(1 << 0)
 #define CR0_BOOT_EN_SET		(1 << 1)
@@ -164,13 +169,13 @@
 #define CRD_DATA_BUFF_SHIFT	20
 #define CRD_DATA_BUFF_MASK	0x3ff
 
-#define	PART		0x330
-#define DESIGNER	0x41
-#define REVISION	0x0
-#define INTEG_CFG	0x0
-#define PERIPH_ID_VAL	((PART << 0) | (DESIGNER << 12))
+#define PART			0x330
+#define DESIGNER		0x41
+#define REVISION		0x0
+#define INTEG_CFG		0x0
+#define PERIPH_ID_VAL		((PART << 0) | (DESIGNER << 12))
 
-#define PCELL_ID_VAL	0xb105f00d
+#define PCELL_ID_VAL		0xb105f00d
 
 #define PL330_STATE_STOPPED		(1 << 0)
 #define PL330_STATE_EXECUTING		(1 << 1)
@@ -189,51 +194,51 @@
 #define PL330_STABLE_STATES (PL330_STATE_STOPPED | PL330_STATE_EXECUTING \
 				| PL330_STATE_WFE | PL330_STATE_FAULTING)
 
-#define CMD_DMAADDH	0x54
-#define CMD_DMAEND	0x00
-#define CMD_DMAFLUSHP	0x35
-#define CMD_DMAGO	0xa0
-#define CMD_DMALD	0x04
-#define CMD_DMALDP	0x25
-#define CMD_DMALP	0x20
-#define CMD_DMALPEND	0x28
-#define CMD_DMAKILL	0x01
-#define CMD_DMAMOV	0xbc
-#define CMD_DMANOP	0x18
-#define CMD_DMARMB	0x12
-#define CMD_DMASEV	0x34
-#define CMD_DMAST	0x08
-#define CMD_DMASTP	0x29
-#define CMD_DMASTZ	0x0c
-#define CMD_DMAWFE	0x36
-#define CMD_DMAWFP	0x30
-#define CMD_DMAWMB	0x13
+#define CMD_DMAADDH		0x54
+#define CMD_DMAEND		0x00
+#define CMD_DMAFLUSHP		0x35
+#define CMD_DMAGO		0xa0
+#define CMD_DMALD		0x04
+#define CMD_DMALDP		0x25
+#define CMD_DMALP		0x20
+#define CMD_DMALPEND		0x28
+#define CMD_DMAKILL		0x01
+#define CMD_DMAMOV		0xbc
+#define CMD_DMANOP		0x18
+#define CMD_DMARMB		0x12
+#define CMD_DMASEV		0x34
+#define CMD_DMAST		0x08
+#define CMD_DMASTP		0x29
+#define CMD_DMASTZ		0x0c
+#define CMD_DMAWFE		0x36
+#define CMD_DMAWFP		0x30
+#define CMD_DMAWMB		0x13
 
-#define SZ_DMAADDH	3
-#define SZ_DMAEND	1
-#define SZ_DMAFLUSHP	2
-#define SZ_DMALD	1
-#define SZ_DMALDP	2
-#define SZ_DMALP	2
-#define SZ_DMALPEND	2
-#define SZ_DMAKILL	1
-#define SZ_DMAMOV	6
-#define SZ_DMANOP	1
-#define SZ_DMARMB	1
-#define SZ_DMASEV	2
-#define SZ_DMAST	1
-#define SZ_DMASTP	2
-#define SZ_DMASTZ	1
-#define SZ_DMAWFE	2
-#define SZ_DMAWFP	2
-#define SZ_DMAWMB	1
-#define SZ_DMAGO	6
+#define SZ_DMAADDH		3
+#define SZ_DMAEND		1
+#define SZ_DMAFLUSHP		2
+#define SZ_DMALD		1
+#define SZ_DMALDP		2
+#define SZ_DMALP		2
+#define SZ_DMALPEND		2
+#define SZ_DMAKILL		1
+#define SZ_DMAMOV		6
+#define SZ_DMANOP		1
+#define SZ_DMARMB		1
+#define SZ_DMASEV		2
+#define SZ_DMAST		1
+#define SZ_DMASTP		2
+#define SZ_DMASTZ		1
+#define SZ_DMAWFE		2
+#define SZ_DMAWFP		2
+#define SZ_DMAWMB		1
+#define SZ_DMAGO		6
 
-#define BRST_LEN(ccr)	((((ccr) >> CC_SRCBRSTLEN_SHFT) & 0xf) + 1)
-#define BRST_SIZE(ccr)	(1 << (((ccr) >> CC_SRCBRSTSIZE_SHFT) & 0x7))
+#define BRST_LEN(ccr)		((((ccr) >> CC_SRCBRSTLEN_SHFT) & 0xf) + 1)
+#define BRST_SIZE(ccr)		(1 << (((ccr) >> CC_SRCBRSTSIZE_SHFT) & 0x7))
 
-#define BYTE_TO_BURST(b, ccr)  ((b) / BRST_SIZE(ccr) / BRST_LEN(ccr))
-#define BURST_TO_BYTE(c, ccr)  ((c) * BRST_SIZE(ccr) * BRST_LEN(ccr))
+#define BYTE_TO_BURST(b, ccr)	((b) / BRST_SIZE(ccr) / BRST_LEN(ccr))
+#define BURST_TO_BYTE(c, ccr)	((c) * BRST_SIZE(ccr) * BRST_LEN(ccr))
 
 /*
  * With 256 bytes, we can do more than 2.5MB and 5MB xfers per req
@@ -241,18 +246,7 @@
  * For typical scenario, at 1word/burst, 10MB and 20MB xfers per req
  * should be enough for P<->M and M<->M respectively.
  */
-#define MCODE_BUFF_PER_REQ	128
-
-/*
- * Mark a _pl330_req as free.
- * We do it by writing DMAEND as the first instruction
- * because no valid request is going to have DMAEND as
- * its first instruction to execute.
- */
-#define MARK_FREE(req)	do { \
-				_emit_END(0, (req)->mc_cpu); \
-				(req)->mc_len = 0; \
-			} while (0)
+#define MCODE_BUFF_PER_REQ	256
 
 /* If the _pl330_req is available to the client */
 #define IS_FREE(req)	(*((u8 *)((req)->mc_cpu)) == CMD_DMAEND)
@@ -323,7 +317,7 @@ struct pl330_thread {
 	struct pl330_dmac *dmac;
 	/* Only two at a time */
 	struct _pl330_req req[2];
-	/* Index of the last submitted request */
+	/* Index of the last enqueued request */
 	unsigned lstenq;
 };
 
@@ -407,6 +401,11 @@ static inline u32 get_id(struct pl330_info *pi, u32 off)
 	id |= ((readl(regs + off + 0xc) & 0xff) << 24);
 
 	return id;
+}
+
+static inline u32 get_revision(u32 periph_id)
+{
+	return (periph_id >> PERIPH_REV_SHIFT) & PERIPH_REV_MASK;
 }
 
 static inline u32 _emit_ADDH(unsigned dry_run, u8 buf[],
@@ -838,6 +837,20 @@ static inline void _execute_DBGINSN(struct pl330_thread *thrd,
 	writel(0, regs + DBGCMD);
 }
 
+/*
+ * Mark a _pl330_req as free.
+ * We do it by writing DMAEND as the first instruction
+ * because no valid request is going to have DMAEND as
+ * its first instruction to execute.
+ */
+static void mark_free(struct pl330_thread *thrd, int idx)
+{
+	struct _pl330_req *req = &thrd->req[idx];
+
+	_emit_END(0, req->mc_cpu);
+	req->mc_len = 0;
+}
+
 static inline u32 _state(struct pl330_thread *thrd)
 {
 	void __iomem *regs = thrd->dmac->pinfo->base;
@@ -958,18 +971,23 @@ static bool _trigger(struct pl330_thread *thrd)
 	struct _arg_GO go;
 	unsigned ns;
 	u8 insn[6] = {0, 0, 0, 0, 0, 0};
+	int idx;
 
 	/* Return if already ACTIVE */
 	if (_state(thrd) != PL330_STATE_STOPPED) {
 		return true;
 	}
 
-	if (!IS_FREE(&thrd->req[1 - thrd->lstenq])) {
-		req = &thrd->req[1 - thrd->lstenq];
-	} else if (!IS_FREE(&thrd->req[thrd->lstenq])) {
-		req = &thrd->req[thrd->lstenq];
+	idx = 1 - thrd->lstenq;
+	if (!IS_FREE(&thrd->req[idx])) {
+		req = &thrd->req[idx];
 	} else {
-		req = NULL;
+		idx = thrd->lstenq;
+		if (!IS_FREE(&thrd->req[idx])) {
+			req = &thrd->req[idx];
+		} else {
+			req = NULL;
+		}
 	}
 
 	/* Return if no request */
@@ -1045,12 +1063,21 @@ static inline int _ldst_memtomem(unsigned dry_run, u8 buf[],
 		const struct _xfer_spec *pxs, int cyc)
 {
 	int off = 0;
+	struct pl330_config *pcfg = pxs->r->cfg->pcfg;
 
-	while (cyc--) {
-		off += _emit_LD(dry_run, &buf[off], ALWAYS);
-		off += _emit_RMB(dry_run, &buf[off]);
-		off += _emit_ST(dry_run, &buf[off], ALWAYS);
-		off += _emit_WMB(dry_run, &buf[off]);
+	/* check lock-up free version */
+	if (get_revision(pcfg->periph_id) >= PERIPH_REV_R1P0) {
+		while (cyc--) {
+			off += _emit_LD(dry_run, &buf[off], ALWAYS);
+			off += _emit_ST(dry_run, &buf[off], ALWAYS);
+		}
+	} else {
+		while (cyc--) {
+			off += _emit_LD(dry_run, &buf[off], ALWAYS);
+			off += _emit_RMB(dry_run, &buf[off]);
+			off += _emit_ST(dry_run, &buf[off], ALWAYS);
+			off += _emit_WMB(dry_run, &buf[off]);
+		}
 	}
 
 	return off;
@@ -1105,6 +1132,77 @@ static int _bursts(unsigned dry_run, u8 buf[],
 		off += 0x40000000; /* Scare off the Client */
 		break;
 	}
+
+	return off;
+}
+
+/* Returns bytes consumed */
+static inline int _loop_infiniteloop(unsigned dry_run, u8 buf[],
+		unsigned long bursts, const struct _xfer_spec *pxs, int ev)
+{
+	int cyc, off;
+	unsigned lcnt0, lcnt1, ljmp0, ljmp1, ljmpfe;
+	struct _arg_LPEND lpend;
+
+	off = 0;
+	ljmpfe = off;
+	lcnt0 = pxs->r->infiniteloop;
+
+	if (bursts > 256) {
+		lcnt1 = 256;
+		cyc = bursts / 256;
+	} else {
+		lcnt1 = bursts;
+		cyc = 1;
+	}
+
+	/* forever loop */
+	off += _emit_MOV(dry_run, &buf[off], SAR, pxs->x->src_addr);
+	off += _emit_MOV(dry_run, &buf[off], DAR, pxs->x->dst_addr);
+	if (pxs->r->rqtype != MEMTOMEM)
+		off += _emit_FLUSHP(dry_run, &buf[off], pxs->r->peri);
+
+	/* loop0 */
+	off += _emit_LP(dry_run, &buf[off], 0,  lcnt0);
+	ljmp0 = off;
+
+	/* loop1 */
+	off += _emit_LP(dry_run, &buf[off], 1, lcnt1);
+	ljmp1 = off;
+	off += _bursts(dry_run, &buf[off], pxs, cyc);
+	lpend.cond = ALWAYS;
+	lpend.forever = false;
+	lpend.loop = 1;
+	lpend.bjump = off - ljmp1;
+	off += _emit_LPEND(dry_run, &buf[off], &lpend);
+
+	/* remainder */
+	lcnt1 = bursts - (lcnt1 * cyc);
+
+	if (lcnt1) {
+		off += _emit_LP(dry_run, &buf[off], 1, lcnt1);
+		ljmp1 = off;
+		off += _bursts(dry_run, &buf[off], pxs, 1);
+		lpend.cond = ALWAYS;
+		lpend.forever = false;
+		lpend.loop = 1;
+		lpend.bjump = off - ljmp1;
+		off += _emit_LPEND(dry_run, &buf[off], &lpend);
+	}
+
+	off += _emit_SEV(dry_run, &buf[off], ev);
+
+	lpend.cond = ALWAYS;
+	lpend.forever = false;
+	lpend.loop = 0;
+	lpend.bjump = off - ljmp0;
+	off += _emit_LPEND(dry_run, &buf[off], &lpend);
+
+	lpend.cond = ALWAYS;
+	lpend.forever = true;
+	lpend.loop = 1;
+	lpend.bjump = off - ljmpfe;
+	off +=  _emit_LPEND(dry_run, &buf[off], &lpend);
 
 	return off;
 }
@@ -1189,59 +1287,16 @@ static inline int _loop(unsigned dry_run, u8 buf[],
 	return off;
 }
 
-/* Returns bytes consumed and updates bursts */
-static inline int _loop_infiniteloop(unsigned dry_run, u8 buf[],
-		unsigned long bursts, const struct _xfer_spec *pxs, int ev)
+static inline int _setup_xfer_infiniteloop(unsigned dry_run, u8 buf[],
+		const struct _xfer_spec *pxs, int ev)
 {
-	int cyc, off;
-	unsigned lcnt0, lcnt1, ljmp0, ljmp1, ljmpfe;
-	struct _arg_LPEND lpend;
+	struct pl330_xfer *x = pxs->x;
+	u32 ccr = pxs->ccr;
+	unsigned long bursts = BYTE_TO_BURST(x->bytes, ccr);
+	int off = 0;
 
-	off = 0;
-	ljmpfe = off;
-	lcnt0 = pxs->r->infiniteloop;
-	//hhb
-	/* Max iterations possible in DMALP is 256 */
-	if (bursts > 256) {
-		lcnt1 = 256;
-		cyc = bursts/256;    //cyc shuold be less than 8
-	} else {
-		lcnt1 = bursts;
-		cyc = 1;
-	}
-
-	/* forever loop */
-	off += _emit_MOV(dry_run, &buf[off], SAR, pxs->x->src_addr);
-	off += _emit_MOV(dry_run, &buf[off], DAR, pxs->x->dst_addr);
-
-	/* loop0 */
-	off += _emit_LP(dry_run, &buf[off], 0,  lcnt0);
-	ljmp0 = off;
-
-	/* loop1 */
-	off += _emit_LP(dry_run, &buf[off], 1, lcnt1);
-	ljmp1 = off;
-	off += _bursts(dry_run, &buf[off], pxs, cyc);
-	lpend.cond = ALWAYS;
-	lpend.forever = false;
-	lpend.loop = 1;
-	lpend.bjump = off - ljmp1;
-	off += _emit_LPEND(dry_run, &buf[off], &lpend);
-	if(pxs->r->infiniteloop_sev) {  //may be we don't need interrupt when dma transfer
-		off += _emit_SEV(dry_run, &buf[off], ev);
-	}
-	/* end loop1 */
-	lpend.cond = ALWAYS;
-	lpend.forever = false;
-	lpend.loop = 0;
-	lpend.bjump = off - ljmp0;
-	off += _emit_LPEND(dry_run, &buf[off], &lpend);
-	/* end loop0 */
-	lpend.cond = ALWAYS;
-	lpend.forever = true;
-	lpend.loop = 1;
-	lpend.bjump = off - ljmpfe;
-	off +=  _emit_LPEND(dry_run, &buf[off], &lpend);
+	/* Setup Loop(s) */
+	off += _loop_infiniteloop(dry_run, &buf[off], bursts, pxs, ev);
 
 	return off;
 }
@@ -1276,20 +1331,6 @@ static inline int _setup_xfer(unsigned dry_run, u8 buf[],
 
 	/* Setup Loop(s) */
 	off += _setup_loops(dry_run, &buf[off], pxs);
-
-	return off;
-}
-
-static inline int _setup_xfer_infiniteloop(unsigned dry_run, u8 buf[],
-		const struct _xfer_spec *pxs, int ev)
-{
-	struct pl330_xfer *x = pxs->x;
-	u32 ccr = pxs->ccr;
-	unsigned long bursts = BYTE_TO_BURST(x->bytes, ccr);
-	int off = 0;
-
-	/* Setup Loop(s) */
-	off += _loop_infiniteloop(dry_run, &buf[off], bursts, pxs, ev);
 
 	return off;
 }
@@ -1338,8 +1379,8 @@ static int _setup_req(unsigned dry_run, struct pl330_thread *thrd,
 		}
 
 		pxs->x = x;
-		off += _setup_xfer_infiniteloop
-				(dry_run, &buf[off], pxs, thrd->ev);
+		off += _setup_xfer_infiniteloop(dry_run, &buf[off],
+						pxs, thrd->ev);
 	}
 	return off;
 }
@@ -1373,8 +1414,8 @@ static inline u32 _prepare_ccr(const struct pl330_reqcfg *rqc)
 	ccr |= (rqc->brst_size << CC_SRCBRSTSIZE_SHFT);
 	ccr |= (rqc->brst_size << CC_DSTBRSTSIZE_SHFT);
 
-	ccr |= (rqc->dcctl << CC_SRCCCTRL_SHFT);
-	ccr |= (rqc->scctl << CC_DSTCCTRL_SHFT);
+	ccr |= (rqc->scctl << CC_SRCCCTRL_SHFT);
+	ccr |= (rqc->dcctl << CC_DSTCCTRL_SHFT);
 
 	ccr |= (rqc->swap << CC_SWAP_SHFT);
 
@@ -1547,8 +1588,8 @@ static void pl330_dotask(unsigned long data)
 
 			thrd->req[0].r = NULL;
 			thrd->req[1].r = NULL;
-			MARK_FREE(&thrd->req[0]);
-			MARK_FREE(&thrd->req[1]);
+			mark_free(thrd, 0);
+			mark_free(thrd, 1);
 
 			/* Clear the reset flag */
 			pl330->dmac_tbd.reset_chan &= ~(1 << i);
@@ -1638,7 +1679,7 @@ int pl330_update(const struct pl330_info *pi)
 			rqdone = &thrd->req[active];
 
 			if (!rqdone->r->infiniteloop) {
-				MARK_FREE(rqdone);
+				mark_free(thrd, active);
 
 				/* Get going again ASAP */
 				_start(thrd);
@@ -1698,8 +1739,8 @@ int pl330_chan_ctrl(void *ch_id, enum pl330_chan_op op)
 
 		thrd->req[0].r = NULL;
 		thrd->req[1].r = NULL;
-		MARK_FREE(&thrd->req[0]);
-		MARK_FREE(&thrd->req[1]);
+		mark_free(thrd, 0);
+		mark_free(thrd, 1);
 		break;
 
 	case PL330_OP_ABORT:
@@ -1715,7 +1756,7 @@ int pl330_chan_ctrl(void *ch_id, enum pl330_chan_op op)
 		active--;
 
 		thrd->req[active].r = NULL;
-		MARK_FREE(&thrd->req[active]);
+		mark_free(thrd, active);
 
 		/* Start the next */
 	case PL330_OP_START:
@@ -1800,6 +1841,10 @@ static inline int _alloc_event(struct pl330_thread *thrd)
 	return -1;
 }
 
+static bool _chan_ns(const struct pl330_info *pi, int i)
+{
+	return pi->pcfg.irq_ns & (1 << i);
+}
 
 /* Upon success, returns IdentityToken for the
  * allocated channel, NULL otherwise.
@@ -1827,15 +1872,16 @@ void *pl330_request_channel(const struct pl330_info *pi)
 
 	for (i = 0; i < chans; i++) {
 		thrd = &pl330->channels[i];
-		if (thrd->free) {
+		if ((thrd->free) && (!_manager_ns(thrd) ||
+					_chan_ns(pi, i))) {
 			thrd->ev = _alloc_event(thrd);
 			if (thrd->ev >= 0) {
 				thrd->free = false;
 				thrd->lstenq = 1;
 				thrd->req[0].r = NULL;
-				MARK_FREE(&thrd->req[0]);
+				mark_free(thrd, 0);
 				thrd->req[1].r = NULL;
-				MARK_FREE(&thrd->req[1]);
+				mark_free(thrd, 1);
 				break;
 			}
 		}
@@ -1853,11 +1899,20 @@ static inline void _free_event(struct pl330_thread *thrd, int ev)
 {
 	struct pl330_dmac *pl330 = thrd->dmac;
 	struct pl330_info *pi = pl330->pinfo;
+	void __iomem *regs = pi->base;
+	u32 inten = readl(regs + INTEN);
 
 	/* If the event is valid and was held by the thread */
 	if (ev >= 0 && ev < pi->pcfg.num_events
 			&& pl330->events[ev] == thrd->id) {
 		pl330->events[ev] = -1;
+
+		if (readl(regs + ES) & (1 << ev)) {
+			if (!(inten & (1 << ev)))
+				writel(inten | (1 << ev), regs + INTEN);
+			writel(1 << ev, regs + INTCLR);
+			writel(inten & ~(1 << ev) , regs + INTEN);
+		}
 	}
 }
 
@@ -1944,14 +1999,14 @@ static inline void _reset_thread(struct pl330_thread *thrd)
 	thrd->req[0].mc_bus = pl330->mcode_bus
 				+ (thrd->id * pi->mcbufsz);
 	thrd->req[0].r = NULL;
-	MARK_FREE(&thrd->req[0]);
+	mark_free(thrd, 0);
 
 	thrd->req[1].mc_cpu = thrd->req[0].mc_cpu
 				+ pi->mcbufsz / 2;
 	thrd->req[1].mc_bus = thrd->req[0].mc_bus
 				+ pi->mcbufsz / 2;
 	thrd->req[1].r = NULL;
-	MARK_FREE(&thrd->req[1]);
+	mark_free(thrd, 1);
 }
 
 static int dmac_alloc_threads(struct pl330_dmac *pl330)
@@ -1966,7 +2021,7 @@ static int dmac_alloc_threads(struct pl330_dmac *pl330)
 	if (!pl330->channels) {
 		return -ENOMEM;
 	}
-	memset(pl330->channels,0,sizeof(*thrd));
+	memset(pl330->channels, 0, sizeof(*thrd));
 
 	/* Init Channel threads */
 	for (i = 0; i < chans; i++) {
@@ -2064,7 +2119,7 @@ int pl330_add(struct pl330_info *pi)
 			__func__, __LINE__);
 		return -ENOMEM;
 	}
-	memset(pl330,0,sizeof(*pl330));
+	memset(pl330, 0, sizeof(*pl330));
 
 	/* Assign the info structure and private data */
 	pl330->pinfo = pi;
