@@ -1313,7 +1313,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 };
 
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
-static struct rk_pl330_platdata g_dmac1_pdata = {
+static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S_TX,
 		[1] = DMACH_I2S_RX,
@@ -1350,7 +1350,7 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 	},
 };
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
-static struct rk_pl330_platdata g_dmac1_pdata = {
+static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S_2CH_TX,
 		[1] = DMACH_I2S_2CH_RX,
