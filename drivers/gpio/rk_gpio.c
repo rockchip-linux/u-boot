@@ -329,7 +329,7 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 	/* rk3168 do nothing */
 
-#else
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 	/* RK30XX && RK292X */
 	/*
 	 * Values written to this register independently
@@ -343,6 +343,8 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 	base = RKIO_GRF_PHYS + GRF_GPIO0L_PULL + bank->id * 8 + ((gpio / 16) * 4);
 	gpio = gpio % 16;
 	__raw_writel((1 << (16 + gpio)) | (val << gpio), base);
+#else
+	#error "PLS config platform for gpio driver."
 #endif
 
 	return 0;
@@ -403,8 +405,11 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+	/* no drive config */
 #else
 	/* check chip if support gpio drive slector */
+	#error "PLS config platform for gpio driver."
 #endif
 
 	return 0;
