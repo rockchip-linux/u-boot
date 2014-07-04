@@ -43,6 +43,10 @@
 #define GRF_GPIO3C_IOMUX        0x00e0
 #define GRF_GPIO3D_IOMUX        0x00e4
 
+#define GRF_GPIO2C_IOMUX2       0x00e8
+#define GRF_CIF_IOMUX           0x00ec
+#define GRF_CIF_IOMUX1          0x00f0
+
 /* gpio ds control */
 #define GRF_GPIO_DS             0x0100
 
