@@ -235,6 +235,7 @@
 
 /********************************** charger and pmic driver ********************************/
 #define CONFIG_POWER
+#define CONFIG_POWER_RK
 #define CONFIG_POWER_I2C
 #define CONFIG_POWER_RICOH619
 //#define CONFIG_POWER_RK_SAMPLE

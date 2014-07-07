@@ -256,9 +256,10 @@ int board_late_init(void)
 	load_disk_partitions();
 	prepare_fdt();
 	key_init();
+#ifdef CONFIG_POWER_RK
 	pmic_init(0);
 	fg_init(0); /*fuel gauge init*/
-
+#endif
 	SecureBootCheck();
 
 	//TODO:set those buffers in a better way, and use malloc?
