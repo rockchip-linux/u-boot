@@ -42,24 +42,24 @@ extern int rk_fb_parse_dt(const void *blob);
 
 static ulong get_sp(void)
 {
-    ulong ret;
+	ulong ret;
 
-    asm("mov %0, sp" : "=r"(ret) : );
-    return ret;
+	asm("mov %0, sp" : "=r"(ret) : );
+	return ret;
 }
 
 void board_lmb_reserve(struct lmb *lmb) {
-    ulong sp;
-    sp = get_sp();
-    debug("## Current stack ends at 0x%08lx ", sp);
+	ulong sp;
+	sp = get_sp();
+	debug("## Current stack ends at 0x%08lx ", sp);
 
-    /* adjust sp by 64K to be safe */
-    sp -= 64<<10;
+	/* adjust sp by 64K to be safe */
+	sp -= 64<<10;
 	lmb_reserve(lmb, sp,
 			gd->bd->bi_dram[0].start + gd->bd->bi_dram[0].size - sp);
 
-    //reserve 48M for kernel & 8M for nand api.
-    lmb_reserve(lmb, gd->bd->bi_dram[0].start, 56 * 1024 * 1024);
+	//reserve 48M for kernel & 8M for nand api.
+	lmb_reserve(lmb, gd->bd->bi_dram[0].start, CONFIG_LMB_RESERVE_SIZE);
 }
 #endif /* CONFIG_OF_LIBFDT */
 

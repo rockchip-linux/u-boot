@@ -77,6 +77,9 @@
 /* rk nand api function code address */
 #define CONFIG_RKNAND_API_ADDR		(CONFIG_RAM_PHY_START + SZ_32M + SZ_16M) //48M
 
+/* rk uboot reserve size */
+#define CONFIG_LMB_RESERVE_SIZE		(SZ_32M + SZ_16M + SZ_8M) //56M
+
 /* rk ddr max banks */
 #define CONFIG_RK_MAX_DRAM_BANKS	8
 
