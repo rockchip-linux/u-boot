@@ -70,6 +70,45 @@ typedef void (*rk_dma_cbfn_t)(void *buf, int size,
 
 typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
 
+
+/* rk dmac platform configure */
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+	#define RK_PL330_DMAC_MAX	2
+	#define CONFIG_RK_DMAC_0	/* dmac 0 */
+	#define CONFIG_RK_DMAC_1	/* dmac 1 */
+
+	#define RK_DMAC0_BASE		RKIO_DMAC1_PHYS
+	#define RK_DMAC1_BASE		RKIO_DMAC2_PHYS
+
+	#define RK_DMAC0_IRQ0		IRQ_DMAC0_0
+	#define RK_DMAC0_IRQ1		IRQ_DMAC0_1
+	#define RK_DMAC1_IRQ0		IRQ_DMAC1_0
+	#define RK_DMAC1_IRQ1		IRQ_DMAC1_1
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	#define RK_PL330_DMAC_MAX	2
+	#define CONFIG_RK_DMAC_0	/* dmac 0 */
+	#define CONFIG_RK_DMAC_1	/* dmac 1 */
+
+	#define RK_DMAC0_BASE		RKIO_DMAC_BUS_PHYS
+	#define RK_DMAC1_BASE		RKIO_DMAC_PERI_PHYS
+
+	#define RK_DMAC0_IRQ0		IRQ_DMAC_BUS0
+	#define RK_DMAC0_IRQ1		IRQ_DMAC_BUS1
+	#define RK_DMAC1_IRQ0		IRQ_DMAC_PERI0
+	#define RK_DMAC1_IRQ1		IRQ_DMAC_PERI1
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	#define RK_PL330_DMAC_MAX	1
+	#define CONFIG_RK_DMAC_0	/* dmac 0 */
+
+	#define RK_DMAC0_BASE		RKIO_DMAC_PHYS
+
+	#define RK_DMAC0_IRQ0		IRQ_DMAC_0
+	#define RK_DMAC0_IRQ1		IRQ_DMAC_1
+#else
+	#error "Please config platform for dmac."
+#endif
+
+
 /*
  * PL330 can assign any channel to communicate with
  * any of the peripherals attched to the DMAC.

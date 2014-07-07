@@ -213,6 +213,16 @@ int board_init(void)
 	gd->bd->bi_arch_number = MACH_TYPE_RK30XX;
 	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x88000;
 
+	/* rk pl330 dmac init */
+#ifdef CONFIG_RK_DMAC
+#ifdef CONFIG_RK_DMAC_0
+	rk_pl330_dmac_init(0);
+#endif
+#ifdef CONFIG_RK_DMAC_1
+	rk_pl330_dmac_init(1);
+#endif
+#endif /* CONFIG_RK_DMAC*/
+
 	return 0;
 }
 
