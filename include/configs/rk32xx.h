@@ -52,6 +52,7 @@
 #define CONFIG_CMDLINE_EDITING		/* add command line history	*/
 #define CONFIG_INITRD_TAG		/* Required for ramdisk support */
 #define CONFIG_BOARD_LATE_INIT
+#define CONFIG_ARCH_EARLY_INIT_R
 
 
 /*
