@@ -99,7 +99,7 @@
 #define RKIO_USBOTG_SIZE                SZ_256K
 #define RKIO_HSIC_PHYS                  0xFF5C0000
 #define RKIO_HSIC_SIZE                  SZ_256K
-#define RKIO_DMAC_BUS_PHYS              0xFFB20000
+#define RKIO_DMAC_BUS_PHYS              0xFF600000
 #define RKIO_DMAC_BUS_SIZE              SZ_64K
 #define RKIO_DDR_PCTL0_PHYS             0xFF610000
 #define RKIO_DDR_PCTL0_SIZE             SZ_64K
