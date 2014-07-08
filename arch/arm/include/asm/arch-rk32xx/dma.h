@@ -89,7 +89,7 @@ typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
 	#define CONFIG_RK_DMAC_0	/* dmac 0 */
 	#define CONFIG_RK_DMAC_1	/* dmac 1 */
 
-	#define RK_DMAC0_BASE		RKIO_DMAC_BUS_PHYS
+	#define RK_DMAC0_BASE		RKIO_SECURITY_DMAC_BUS_PHYS /* default is security dma bus */
 	#define RK_DMAC1_BASE		RKIO_DMAC_PERI_PHYS
 
 	#define RK_DMAC0_IRQ0		IRQ_DMAC_BUS0
