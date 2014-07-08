@@ -486,6 +486,7 @@ static int rk_emmc_request(struct mmc *mmc, struct mmc_cmd *cmd,
 	return ret;
 }
 
+#define RK_EMMC_ID	2
 static void rk_set_ios(struct mmc *mmc)
 {
 	int cfg = 0;
@@ -517,17 +518,17 @@ static void rk_set_ios(struct mmc *mmc)
 			mmc->clock = mmc->cfg->f_min;
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 		// set general pll
-		rkclk_set_sdclk_src(2, 1);
+		rkclk_set_sdclk_src(RK_EMMC_ID, 1);
 		//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
-		src_clk = rkclk_get_sdclk_src_freq(2) / 2;
+		src_clk = rkclk_get_sdclk_src_freq(RK_EMMC_ID) / 2;
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 		// set general pll
-		rkclk_set_sdclk_src(2, 2);
-		src_clk = rkclk_get_sdclk_src_freq(2);
+		rkclk_set_sdclk_src(RK_EMMC_ID, 2);
+		src_clk = rkclk_get_sdclk_src_freq(RK_EMMC_ID);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
 		// set general pll
-		rkclk_set_sdclk_src(2, 1);
-		src_clk = rkclk_get_sdclk_src_freq(2);
+		rkclk_set_sdclk_src(RK_EMMC_ID, 1);
+		src_clk = rkclk_get_sdclk_src_freq(RK_EMMC_ID);
 #else
 		#error "PLS config platform for emmc reset!"
 #endif
@@ -547,7 +548,7 @@ static void rk_set_ios(struct mmc *mmc)
 		/* inform CIU */
 		mci_send_cmd(MMC_CMD_START | MMC_CMD_UPD_CLK | MMC_CMD_PRV_DAT_WAIT, 0);
 
-		rkclk_emmc_set_clk(src_clk_div);
+		rkclk_set_sdclk_div(RK_EMMC_ID, src_clk_div);
 		/* enable clock */
 		Writel(gMmcBaseAddr + MMC_CLKENA, MMC_CLKEN_ENABLE);
 		/* inform CIU */

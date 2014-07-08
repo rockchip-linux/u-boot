@@ -84,8 +84,6 @@ unsigned int rkclk_get_sdclk_src_freq(uint32 sdid);
  */
 int rkclk_set_sdclk_div(uint32 sdid, uint32 div);
 
-void rkclk_emmc_set_clk(int div);
-
 
 /*
  * rkplat get PWM clock, PWM01 from pclk_cpu, PWM23 from pclk_periph

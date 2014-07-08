@@ -1314,11 +1314,6 @@ int rkclk_set_sdclk_div(uint32 sdid, uint32 div)
 }
 
 
-void rkclk_emmc_set_clk(int div)
-{
-	rkclk_set_sdclk_div(2, div);
-}
-
 /*
  * rkplat get PWM clock, from pclk_bus
  * here no check clkgate, because chip default is enable.
