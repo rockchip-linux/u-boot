@@ -138,6 +138,8 @@ uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
 	#include "clock-rk3288.c"
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	#include "clock-rk3036.c"
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	#include "clock-rk312X.c"
 #else
 	#error "PLS config chiptype for clock-rkxx.c!"
 #endif
