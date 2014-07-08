@@ -520,6 +520,14 @@ static void rk_set_ios(struct mmc *mmc)
 		rkclk_set_sdclk_src(2, 1);
 		//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
 		src_clk = rkclk_get_sdclk_src_freq(2) / 2;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+		// set general pll
+		rkclk_set_sdclk_src(2, 2);
+		src_clk = rkclk_get_sdclk_src_freq(2);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+		// set general pll
+		rkclk_set_sdclk_src(2, 1);
+		src_clk = rkclk_get_sdclk_src_freq(2);
 #else
 		#error "PLS config platform for emmc reset!"
 #endif
