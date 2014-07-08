@@ -515,8 +515,14 @@ static void rk_set_ios(struct mmc *mmc)
 			mmc->clock = mmc->cfg->f_max;
 		if (mmc->clock < mmc->cfg->f_min)
 			mmc->clock = mmc->cfg->f_min;
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+		// set general pll
+		rkclk_set_sdclk_src(2, 1);
 		//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
-		src_clk = rkclk_get_general_pll()/2;
+		src_clk = rkclk_get_sdclk_src_freq(2) / 2;
+#else
+		#error "PLS config platform for emmc reset!"
+#endif
 		src_clk_div = src_clk/mmc->clock;
 		if (src_clk_div > 0x3e)
 			src_clk_div = 0x3e;
