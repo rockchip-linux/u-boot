@@ -29,7 +29,7 @@
 /* enable thume build */
 //#define CONFIG_SYS_THUMB_BUILD
 
-//#define CONFIG_SECOND_LEVEL_BOOTLOADER
+#define CONFIG_SECOND_LEVEL_BOOTLOADER
 
 
 
