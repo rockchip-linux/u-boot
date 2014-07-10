@@ -839,7 +839,6 @@ RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 RKLoader_uboot.bin: u-boot.bin
 	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini && \
-	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALLdebug.ini && \
 	./tools/loaderimage  --pack u-boot.bin uboot.img
 else
 RKLoader_uboot.bin: u-boot.bin
