@@ -212,7 +212,7 @@ void PowerKeyInit(void)
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	key_power.key.ioint.gpio = (GPIO_BANK0 | GPIO_A5);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
-	key_power.key.ioint.gpio = (GPIO_BANK1 | GPIO_A2);
+	key_power.key.ioint.gpio = ((GPIO_BANK1 << RK_GPIO_BANK_OFFSET) | GPIO_A2);
 #endif
 	key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key_power.key.ioint.pressed_state = 0;
