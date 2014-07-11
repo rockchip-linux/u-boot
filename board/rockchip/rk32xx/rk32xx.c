@@ -106,8 +106,9 @@ void rk_backlight_ctrl(int brightness)
 	if (!lcd_node)
 		rk_lcd_parse_dt(gd->fdt_blob);
 #endif
-
+#ifdef CONFIG_RK_PWM
 	rk_pwm_config(brightness);
+#endif	
 }
 
 

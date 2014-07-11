@@ -375,6 +375,8 @@ typedef struct vidinfo {
 	unsigned int logo_rgb_mode;
 	unsigned int resolution;
 	unsigned int real_freq;
+	unsigned int pixelrepeat;
+	unsigned int vmode;//interlace mode
     
 	/* parent clock name(MPLL, EPLL or VPLL) */
 	unsigned int pclk_name;
