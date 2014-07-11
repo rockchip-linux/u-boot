@@ -87,13 +87,13 @@ static void rk_spi_iomux_config(int spi_id)
 static void rk_uart_iomux_config(int uart_id)
 {
 	switch (uart_id) {
-		case RK_UART_BT_IOMUX:
+		case RK_UART0_IOMUX:
 			grf_writel((1<<20)|(1<<22)|(1<<4)|(1<<6), GRF_GPIO0C_IOMUX); 
 			break;
-		case RK_UART_BB_IOMUX:
+		case RK_UART1_IOMUX:
 			grf_writel((1<<28)|(3<<30)|(1<<12)|(1<<14), GRF_GPIO2C_IOMUX); 
 			break;
-		case RK_UART_DBG_IOMUX:
+		case RK_UART2_IOMUX:
 			grf_writel((0xf<<20)|(2<<6)|(2<<4), GRF_GPIO1C_IOMUX); 
 			break;
 		default:
