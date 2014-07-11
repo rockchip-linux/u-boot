@@ -88,7 +88,7 @@ static void rk_uart_iomux_config(int uart_id)
 {
 	switch (uart_id) {
 		case RK_UART_BT_IOMUX:
-			grf_writel(1<<20)|(1<<22)|(1<<4)|(1<<6), GRF_GPIO0C_IOMUX); 
+			grf_writel((1<<20)|(1<<22)|(1<<4)|(1<<6), GRF_GPIO0C_IOMUX); 
 			break;
 		case RK_UART_BB_IOMUX:
 			grf_writel((1<<28)|(3<<30)|(1<<12)|(1<<14), GRF_GPIO2C_IOMUX); 
