@@ -166,7 +166,7 @@
 
 
 /* rk iomux module */
-//#define CONFIG_RK_IOMUX
+#define CONFIG_RK_IOMUX
 
 
 /* rk spi module */
