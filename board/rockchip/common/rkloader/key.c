@@ -210,7 +210,7 @@ void PowerKeyInit(void)
 	key_power.type = KEY_INT;
 	key_power.key.ioint.name = "power_key";
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	key_power.key.ioint.gpio = (GPIO_BANK0 | GPIO_A5);
+	key_power.key.ioint.gpio = ((GPIO_BANK0 << RK_GPIO_BANK_OFFSET) | GPIO_A5);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
 	key_power.key.ioint.gpio = ((GPIO_BANK1 << RK_GPIO_BANK_OFFSET) | GPIO_A2);
 #endif
@@ -241,7 +241,7 @@ void key_init(void)
 #else
 	charge_state_gpio.name = "charge_state";
 	charge_state_gpio.flags = 0;
-	charge_state_gpio.gpio = (GPIO_BANK0 | GPIO_B0);
+	charge_state_gpio.gpio = ((GPIO_BANK0 << RK_GPIO_BANK_OFFSET) | GPIO_B0);
 	gpio_direction_input(charge_state_gpio.gpio);
 
 	//power_hold_gpio.name
