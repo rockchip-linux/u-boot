@@ -59,7 +59,7 @@ static volatile void __iomem* rk_uart_get_base(eUART_ch_t ch)
 
 static void rk_uart_iomux(eUART_ch_t ch)
 {
-	rk_iomux_config(RK_UART_BT_IOMUX + ch);
+	rk_iomux_config(RK_UART0_IOMUX + ch);
 }
 
 
