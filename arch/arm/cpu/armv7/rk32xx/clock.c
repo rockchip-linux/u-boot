@@ -96,7 +96,7 @@ static void clk_loop_delayus(uint32_t us)
  * even: if div needs even
  * return value: div
  */
-uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even)
+static uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even)
 {
 	uint32 div = 0;
 
@@ -107,30 +107,6 @@ uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even)
 	}
 
 	return div;
-}
-
-
-/*
- * rkplat pll select and clock div calcate
- * clock: device request freq HZ
- * even: if div needs even
- * return value:
- * high 16bit: 0 - codec pll, 1 - general pll
- * low 16bit : div
- */
-uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
-{
-	uint32 div = 0, gdiv = 0, cdiv = 0;
-	uint32 pll_sel = 0; // 0: general pll, 1: codec pll
-
-	gdiv = rkclk_calc_clkdiv(gd->bus_clk, clock, even); // general pll div
-	cdiv = rkclk_calc_clkdiv(gd->pci_clk, clock, even); // codec pll div
-
-	pll_sel = (gd->bus_clk / gdiv) >= (gd->pci_clk / cdiv);
-
-	div = pll_sel ? gdiv : cdiv;
-
-	return (pll_sel << 16) | div;
 }
 
 
@@ -147,25 +123,25 @@ uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
 
 #else
 
-void rkclk_pll_mode(int pll_id, int pll_mode) {};
-void rkclk_set_pll(void) {};
-void rkclk_get_pll(void) {};
-void rkclk_dump_pll(void) {};
-int rkclk_get_arm_pll(void) { return 24 * MHZ; };
-int rkclk_get_general_pll(void) { return 24 * MHZ; };
-int rkclk_get_codec_pll(void) { return 24 * MHZ; };
-int rkclk_get_ddr_pll(void) { return 24 * MHZ; };
-int rkclk_get_new_pll(void) { return 24 * MHZ; };
-void rkclk_set_cpll_rate(uint32 pll_hz) {};
-int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div) { return 0; };
-int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div) { return 0; };
-int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; };
-void rkclk_set_sdclk_src(uint32 sdid, uint32 src) {};
-unsigned int rkclk_get_sdclk_src_freq(uint32 sdid) { return 24 * MHZ; };
-int rkclk_set_sdclk_div(uint32 sdid, uint32 div) { return 0; };
-unsigned int rkclk_get_pwm_clk(uint32 pwm_id) { return 0; };
-unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id) { return 0; };
-unsigned int rkclk_get_spi_clk(uint32 spi_bus) { return 0; };
+void rkclk_pll_mode(int pll_id, int pll_mode) {}
+void rkclk_set_pll(void) {}
+void rkclk_get_pll(void) {}
+void rkclk_dump_pll(void) {}
+int rkclk_get_arm_pll(void) { return 24 * MHZ; }
+int rkclk_get_general_pll(void) { return 24 * MHZ; }
+int rkclk_get_codec_pll(void) { return 24 * MHZ; }
+int rkclk_get_ddr_pll(void) { return 24 * MHZ; }
+int rkclk_get_new_pll(void) { return 24 * MHZ; }
+void rkclk_set_cpll_rate(uint32 pll_hz) {}
+int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz) { return 0; }
+int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
+int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
+void rkclk_set_sdclk_src(uint32 sdid, uint32 src) {}
+unsigned int rkclk_get_sdclk_src_freq(uint32 sdid) { return 24 * MHZ; }
+int rkclk_set_sdclk_div(uint32 sdid, uint32 div) { return 0; }
+unsigned int rkclk_get_pwm_clk(uint32 pwm_id) { return 0; }
+unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id) { return 0; }
+unsigned int rkclk_get_spi_clk(uint32 spi_bus) { return 0; }
 
 #endif /* CONFIG_RK_CLOCK */
 

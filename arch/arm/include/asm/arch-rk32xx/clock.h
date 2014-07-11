@@ -105,20 +105,18 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus);
 
 /*
  * rkplat lcdc aclk config
- * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
- * pll_sel (lcdc aclk source pll select) : 0 - codec pll, 1 - general pll
- * div (lcdc aclk div from pll) : 0x00 - 0x1f
+ * lcdc_id (lcdc id select) : start from 0, max depend chip platform.
+ * aclk_hz : lcdc aclk freq
  */
-int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div);
+int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz);
 
 
 /*
  * rkplat lcdc dclk config
- * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
- * pll_sel (lcdc dclk source pll select) : 0 - codec pll, 1 - general pll
- * div (lcdc dclk div from pll) : 0x00 - 0xff
+ * lcdc_id (lcdc id select) : start from 0, max depend chip platform.
+ * aclk_hz : lcdc aclk freq
  */
-int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div);
+int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz);
 
 
 /*

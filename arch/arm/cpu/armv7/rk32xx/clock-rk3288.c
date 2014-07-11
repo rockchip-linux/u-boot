@@ -871,6 +871,30 @@ void rkclk_dump_pll(void)
 }
 
 
+/*
+ * rkplat pll select and clock div calcate
+ * clock: device request freq HZ
+ * even: if div needs even
+ * return value:
+ * high 16bit: 0 - codec pll, 1 - general pll
+ * low 16bit : div
+ */
+static uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
+{
+	uint32 div = 0, gdiv = 0, cdiv = 0;
+	uint32 pll_sel = 0; // 0: general pll, 1: codec pll
+
+	gdiv = rkclk_calc_clkdiv(gd->bus_clk, clock, even); // general pll div
+	cdiv = rkclk_calc_clkdiv(gd->pci_clk, clock, even); // codec pll div
+
+	pll_sel = (gd->bus_clk / gdiv) >= (gd->pci_clk / cdiv);
+
+	div = pll_sel ? gdiv : cdiv;
+
+	return (pll_sel << 16) | div;
+}
+
+
 static inline uint32 rkclk_gcd(uint32 numerator, uint32 denominator)
 {
         uint32 a, b;
@@ -1052,7 +1076,7 @@ void rkclk_set_cpll_rate(uint32 pll_hz)
  * pll_sel (lcdc aclk source pll select) : 0 - codec pll, 1 - general pll, 2 - usbphy pll
  * div (lcdc aclk div from pll) : 0x01 - 0x20
  */
-int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
 	uint32 con = 0;
 	uint32 offset = 0;
@@ -1114,7 +1138,7 @@ static int rkclk_vio_hclk_set(uint32 lcdc_id, uint32 div)
  * pll_sel (lcdc dclk source pll select) : 0 - codec pll, 1 - general pll, 2 - new pll
  * div (lcdc dclk div from pll) : 0x01 - 0x100
  */
-int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
 	uint32 con = 0;
 	uint32 offset = 0;
@@ -1204,8 +1228,8 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	uint32 dclk_div;
 
 	pll_src = rkclk_lcdc_dclk_to_pll(lcdc_id, dclk_hz, &dclk_div);
-	rkclk_lcdc_dclk_set(lcdc_id, pll_src, dclk_div);
-	rkclk_lcdc_aclk_set(lcdc_id, pll_src, 1);
+	rkclk_lcdc_dclk_config(lcdc_id, pll_src, dclk_div);
+	rkclk_lcdc_aclk_config(lcdc_id, pll_src, 1);
 	/* when set lcdc0, should vio hclk */
 	if (lcdc_id == 0) {
 		uint32 pll_hz;
