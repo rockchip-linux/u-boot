@@ -600,7 +600,7 @@ static uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
  * rkplat lcdc aclk config
  * lcdc_id (lcdc id select) : 0 - lcdc0
  * pll_sel (lcdc aclk source pll select) : 0 - codec pll, 1 - ddr pll, 2 - general pll
- * div (lcdc aclk div from pll) : 0x00 - 0x1f
+ * div (lcdc aclk div from pll) : 0x01 - 0x20
  */
 static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
@@ -621,7 +621,7 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	}
 
 	/* aclk div */
-	div = (div & 0x1f) - 1;
+	div = div ? (div - 1) : 0;
 	con |= (0x1f << (8 + 16)) | (div << 8);
 
 
@@ -650,7 +650,7 @@ int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
  * rkplat lcdc dclk config
  * lcdc_id (lcdc id select) : 0 - lcdc0
  * pll_sel (lcdc dclk source pll select) : 0 - arm pll, 1 - ddr pll, 2 - general pll
- * div (lcdc dclk div from pll) : 0x00 - 0xff
+ * div (lcdc dclk div from pll) : 0x01 - 0x100
  */
 static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
@@ -671,7 +671,7 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	}
 
 	/* dclk div */
-	div = (div & 0xff) - 1;
+	div = div ? (div - 1) : 0;
 	con |= (0xff << (8 + 16)) | (div << 8);
 
 	cru_writel(con, CRU_CLKSELS_CON(28));
