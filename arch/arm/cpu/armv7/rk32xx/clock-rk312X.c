@@ -607,6 +607,145 @@ void rkclk_dump_pll(void)
 }
 
 /*
+ * rkplat pll select and clock div calcate
+ * clock: device request freq HZ
+ * even: if div needs even
+ * return value:
+ * high 16bit: 1 - general pll div2
+ * low 16bit : div
+ */
+static uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
+{
+	uint32 div = 0, gdiv = 0;
+	uint32 pll_sel = 1; // 1: general pll div2
+
+	gdiv = rkclk_calc_clkdiv(gd->bus_clk >> 1, clock, even); // general pll div2
+
+	div = gdiv;
+
+	return (pll_sel << 16) | div;
+}
+
+
+/*
+ * rkplat lcdc aclk config
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * pll_sel (lcdc aclk source pll select) :
+	0 - codec pll, 1 - general pll, 2 - general pll div2, 3 - general pll div3, 4 - usbphy 480M
+ * div (lcdc aclk div from pll) : 0x00 - 0x1f
+ */
+static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+{
+	uint32 con = 0;
+	uint32 offset = 0;
+
+	if (lcdc_id > 1) {
+		return -1;
+	}
+
+	/* lcdc0 and lcdc1 register bit offset */
+	offset = lcdc_id * 8;
+	con = 0;
+	/* aclk pll source select */
+	if (pll_sel == 0) {
+		con |= (7 << (5 + offset + 16)) | (0 << (5 + offset));
+	} else if (pll_sel == 1) {
+		con |= (7 << (5 + offset + 16)) | (1 << (5 + offset));
+	} else if (pll_sel == 2) {
+		con |= (7 << (5 + offset + 16)) | (2 << (5 + offset));
+	} else if (pll_sel == 3) {
+		con |= (7 << (5 + offset + 16)) | (3 << (5 + offset));
+	} else if (pll_sel == 4) {
+		con |= (7 << (5 + offset + 16)) | (4 << (5 + offset));
+	} else {
+		con |= (7 << (5 + offset + 16)) | (2 << (5 + offset));
+	}
+
+	/* aclk div */
+	div = (div & 0x1f) - 1;
+	con |= (0x1f << (0 + offset + 16)) | (div << (0 + offset));
+
+
+	cru_writel(con, CRU_CLKSELS_CON(31));
+
+	return 0;
+}
+
+
+int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
+{
+	uint32 alck_info = 0;
+	uint32 pll_sel = 0, div = 0;
+
+	alck_info = rkclk_calc_pll_and_div(aclk_hz, 0);
+
+	pll_sel = (alck_info & 0xFFFF0000) >> 16;
+	div = alck_info & 0x0000FFFF;
+	debug("rk lcdc aclk config: aclk = %dHZ, pll select = %d, div = %d\n", aclk_hz, pll_sel, div);
+
+	rkclk_lcdc_aclk_config(lcdc_id, pll_sel, div);
+}
+
+
+/*
+ * rkplat lcdc dclk config
+ * lcdc_id (lcdc id select) : 0 - lcdc0
+ * pll_sel (lcdc dclk source pll select) :
+	0 - codec pll, 1 - general pll, 2 - general pll div2, 3 - general pll div3
+ * div (lcdc dclk div from pll) : 0x00 - 0xff
+ */
+static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+{
+	uint32 con = 0;
+
+	if (lcdc_id > 1) {
+		return -1;
+	}
+
+	con = 0;
+	/* dclk pll source select */
+	if (pll_sel == 0) {
+		con |= (3 << (0 + 16)) | (0 << 0);
+	} else if (pll_sel == 1) {
+		con |= (3 << (0 + 16)) | (1 << 0);
+	} else if (pll_sel == 2) {
+		con |= (3 << (0 + 16)) | (2 << 0);
+	} else if (pll_sel == 3) {
+		con |= (3 << (0 + 16)) | (3 << 0);
+	} else {
+		con |= (3 << (0 + 16)) | (1 << 0);
+	}
+
+	/* dclk div */
+	div = (div & 0xff) - 1;
+	con |= (0xff << (8 + 16)) | (div << 8);
+
+	if (lcdc_id == 0) {
+		cru_writel(con, CRU_CLKSELS_CON(27));
+	} else {
+		cru_writel(con, CRU_CLKSELS_CON(28));
+	}
+
+	return 0;
+}
+
+
+int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
+{
+	uint32 dlck_info = 0;
+	uint32 pll_sel = 0, div = 0;
+
+	dlck_info = rkclk_calc_pll_and_div(dclk_hz, 0);
+
+	pll_sel = (dlck_info & 0xFFFF0000) >> 16;
+	div = dlck_info & 0x0000FFFF;
+	debug("rk lcdc dclk set: dclk = %dHZ, pll select = %d, div = %d\n", dclk_hz, pll_sel, div);
+
+	rkclk_lcdc_dclk_config(lcdc_id, pll_sel, div);
+}
+
+
+/*
  * rkplat set sd clock src
  * 0: codec pll; 1: general pll; 2: general pll div2; 3: 24M
  */
