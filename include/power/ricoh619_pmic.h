@@ -14,6 +14,8 @@
 /* for ADC */
 #define INTEN_REG               0x9D
 #define EN_ADCIR3_REG           0x8A
+#define ADCCNT1_REG		0x64
+#define ADCCNT2_REG		0x65
 #define ADCCNT3_REG             0x66
 #define VBATDATAH_REG           0x6A
 #define VBATDATAL_REG           0x6B
