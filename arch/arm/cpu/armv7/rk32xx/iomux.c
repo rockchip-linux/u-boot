@@ -53,14 +53,16 @@ void rk_iomux_config(int iomux_id)
 		case RK_I2C4_IOMUX:
 			rk_i2c_iomux_config(iomux_id);
 			break;
-		case RK_UART_BT_IOMUX:
-		case RK_UART_BB_IOMUX:
-		case RK_UART_DBG_IOMUX:
-		case RK_UART_GPS_IOMUX:
-		case RK_UART_EXP_IOMUX:
+
+		case RK_UART0_IOMUX:
+		case RK_UART1_IOMUX:
+		case RK_UART2_IOMUX:
+		case RK_UART3_IOMUX:
+		case RK_UART4_IOMUX:
 			rk_uart_iomux_config(iomux_id);
 			break;    
 		case RK_LCDC0_IOMUX:
+		case RK_LCDC1_IOMUX:
 			rk_lcdc_iomux_config(iomux_id);
 			break;
 		case RK_SPI0_CS0_IOMUX:
