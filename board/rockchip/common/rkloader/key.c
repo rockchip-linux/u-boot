@@ -153,7 +153,7 @@ void RockusbKeyInit(key_config *key)
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	key->type = KEY_INT;
 	key->key.ioint.name = "rockusb_key";
-	key->key.ioint.gpio = (GPIO_BANK2 | GPIO_B0);
+	key->key.ioint.gpio = ((GPIO_BANK2 << RK_GPIO_BANK_OFFSET) | GPIO_B0);
 	key->key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key->key.ioint.pressed_state = 0;
 	key->key.ioint.press_time = 0;
