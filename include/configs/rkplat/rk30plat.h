@@ -80,6 +80,16 @@
 /* rk uboot reserve size */
 #define CONFIG_LMB_RESERVE_SIZE		(SZ_32M + SZ_16M + SZ_8M) //56M
 
+/* rk ddr max banks */
+#define CONFIG_RK_MAX_DRAM_BANKS	8
+
+/* rk ddr banks address and size */
+#define CONFIG_RKDDR_PARAM_ADDR		(CONFIG_RAM_PHY_START + SZ_32M)
+
+/* reserve iomap memory. */
+#define CONFIG_MAX_MEM_ADDR		0xFFFFFFFF
+
+
 /* rk mtd block size */
 #define RK_BLK_SIZE			512
 
