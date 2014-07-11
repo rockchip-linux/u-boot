@@ -28,7 +28,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General pll freq config */
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		297 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
 
 
 /* Cpu clock source select */
@@ -633,16 +633,18 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 
 int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 {
-	uint32 alck_info = 0;
+	uint32 aclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
 
-	alck_info = rkclk_calc_pll_and_div(aclk_hz, 0);
+	aclk_info = rkclk_calc_pll_and_div(aclk_hz, 0);
 
-	pll_sel = (alck_info & 0xFFFF0000) >> 16;
-	div = alck_info & 0x0000FFFF;
+	pll_sel = (aclk_info & 0xFFFF0000) >> 16;
+	div = aclk_info & 0x0000FFFF;
 	debug("rk lcdc aclk config: aclk = %dHZ, pll select = %d, div = %d\n", aclk_hz, pll_sel, div);
 
 	rkclk_lcdc_aclk_config(lcdc_id, pll_sel, div);
+
+	return aclk_info;
 }
 
 
@@ -682,17 +684,41 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 
 int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
-	uint32 dlck_info = 0;
+	uint32 dclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
 
-	dlck_info = rkclk_calc_pll_and_div(dclk_hz, 0);
+	dclk_info = rkclk_calc_pll_and_div(dclk_hz, 0);
 
-	pll_sel = (dlck_info & 0xFFFF0000) >> 16;
-	div = dlck_info & 0x0000FFFF;
+	pll_sel = (dclk_info & 0xFFFF0000) >> 16;
+	div = dclk_info & 0x0000FFFF;
 	debug("rk lcdc dclk set: dclk = %dHZ, pll select = %d, div = %d\n", dclk_hz, pll_sel, div);
 
 	rkclk_lcdc_dclk_config(lcdc_id, pll_sel, div);
+
+	return dclk_info;
 }
+
+
+/*
+ * rkplat lcdc dclk and aclk parent pll source
+ * lcdc_id (lcdc id select) : 0 - lcdc0
+ * dclk_hz: dclk rate
+ * return dclk rate
+ */
+int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
+{
+	uint32 pll_src;
+	uint32 dclk_div;
+	uint32 dclk_info = 0;
+
+	rkclk_lcdc_aclk_set(lcdc_id, 297 * MHZ);
+	dclk_info = rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
+
+	dclk_div = dclk_info & 0x0000FFFF;
+	// general pll
+	return (rkclk_pll_clk_get_rate(GPLL_ID) / dclk_div);
+}
+
 
 /*
  * rkplat set sd clock src
