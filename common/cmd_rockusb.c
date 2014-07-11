@@ -330,7 +330,7 @@ static void FW_GetChipVer(void)
 	current_urb->buffer[0] = 0;
 	ftl_memcpy(current_urb->buffer, (uint8*)(RKIO_ROM_CHIP_VER_ADDR), 16);
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
-//	ftl_memcpy(current_urb->buffer, (uint8*)"303A", 4);
+	ftl_memcpy(current_urb->buffer, (uint8*)"303A", 4);
 #endif
 	current_urb->actual_length = 16;
 		
