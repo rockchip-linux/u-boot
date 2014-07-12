@@ -28,7 +28,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General pll freq config */
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		297 /* MHZ */
 
 
 /* Cpu clock source select */
@@ -116,9 +116,9 @@ static const struct pll_clk_set apll_clks[] = {
 static const struct pll_clk_set gpll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	//	aclk_div, hclk_div, pclk_div
-	_GPLL_SET_CLKS(768000, 1, 32, 1, 1, 1, 0,	4, 2, 4),
-	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 4),
-	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0,	2, 1, 2),
+	_GPLL_SET_CLKS(768000, 1, 32, 1, 1, 1, 0,	6, 2, 2),
+	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 2),
+	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0,	2, 2, 2),
 };
 
 
@@ -270,11 +270,7 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 	}
 
 	/* periph aclk - aclk_periph = periph_clk_src / n */
-	if (aclk_div == 0) {
-		a_div = 1;
-	} else {
-		a_div = aclk_div - 1;
-	}
+	a_div = aclk_div ? (aclk_div - 1) : 1;
 
 	/* periph hclk - aclk_periph:hclk_periph */
 	switch (hclk_div)
@@ -316,7 +312,7 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 	cru_writel((PERI_SEL_PLL_W_MSK | (pll_sel << PERI_SEL_PLL_OFF))
 			| (PERI_PCLK_DIV_W_MSK | (p_div << PERI_PCLK_DIV_OFF))
 			| (PERI_HCLK_DIV_W_MSK | (h_div << PERI_HCLK_DIV_OFF))
-			| (PERI_PCLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)), CRU_CLKSELS_CON(10));
+			| (PERI_ACLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)), CRU_CLKSELS_CON(10));
 }
 
 
@@ -562,7 +558,7 @@ void rkclk_dump_pll(void)
 	printf("CPU's clock information:\n");
 
 	printf("    arm pll = %ldHZ", gd->cpu_clk);
-	debug(", aclk_cpu = %ldHZ, aclk_cpu = %ldHZ, aclk_cpu = %ldHZ",
+	debug(", aclk_cpu = %ldHZ, hclk_cpu = %ldHZ, pclk_cpu = %ldHZ",
 		gd->arch.aclk_cpu_rate_hz, gd->arch.hclk_cpu_rate_hz, gd->arch.pclk_cpu_rate_hz);
 	printf("\n");
 

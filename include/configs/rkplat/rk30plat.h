@@ -157,7 +157,7 @@
 
 
 /* rk clock module */
-//#define CONFIG_RK_CLOCK
+#define CONFIG_RK_CLOCK
 
 
 /* rk usb module */

@@ -27,7 +27,7 @@
 enum rk_plls_id {
 	APLL_ID = 0,
 	DPLL_ID,
-	GPLL_ID,
+	GPLL_ID = 3,
 
 	END_PLL_ID
 };
