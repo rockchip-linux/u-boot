@@ -319,7 +319,8 @@ static void FW_GetChipVer(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[2];
 	struct urb *current_urb = NULL;
-	
+	unsigned int chip_info[4];
+
 	RKUSBINFO("%s \n", __func__);
 
 	current_urb = ep->tx_urb;
@@ -327,11 +328,14 @@ static void FW_GetChipVer(void)
 		RKUSBERR("%s: current_urb NULL", __func__);
 		return;
 	}
+	/* notice here chip version should the same as rk tools RKBOOT/*.ini config */
 	current_urb->buffer[0] = 0;
-	ftl_memcpy(current_urb->buffer, (uint8*)(RKIO_ROM_CHIP_VER_ADDR), 16);
+	memset(chip_info, 0, sizeof(chip_info));
+	ftl_memcpy(chip_info, (uint8*)(RKIO_ROM_CHIP_VER_ADDR), 16);
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
-	ftl_memcpy(current_urb->buffer, (uint8*)"303A", 4);
+	chip_info[0] = 0x33303341; // 303A
 #endif
+	ftl_memcpy(current_urb->buffer, chip_info, 16);
 	current_urb->actual_length = 16;
 		
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);

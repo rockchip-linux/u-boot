@@ -115,9 +115,19 @@
 /* rockusb */
 #define CONFIG_CMD_ROCKUSB
 
-/* for fastboot */
+
+/* VID/PID should the same as maskrom */
 #define CONFIG_USBD_VENDORID		0x2207
-#define CONFIG_USBD_PRODUCTID		0x0006
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#define CONFIG_USBD_PRODUCTID		0x303A
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#define CONFIG_USBD_PRODUCTID		0x310C
+#else
+	#error: "PLS config chip for rk rockusb!"
+#endif
+
+/* for fastboot */
 #define CONFIG_USBD_MANUFACTURER	"Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME	"rk30xx"
 
