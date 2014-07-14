@@ -28,7 +28,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General pll freq config */
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		297 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
 
 
 /* Cpu clock source select */
