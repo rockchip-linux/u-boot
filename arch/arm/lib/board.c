@@ -397,10 +397,10 @@ void board_init_f(ulong bootflag)
 #ifndef CONFIG_FASTBOOT_LOG_SIZE
 #define CONFIG_FASTBOOT_LOG_SIZE (SZ_2M)
 #endif
-    /* reserve fastboot log buffer */
-    addr -= CONFIG_FASTBOOT_LOG_SIZE;
-    gd->arch.fastboot_log_buf_addr = addr;
-    debug("Reserving %dk for fastboot log buffer at %08lx\n",
+	/* reserve fastboot log buffer */
+	addr -= CONFIG_FASTBOOT_LOG_SIZE;
+	gd->arch.fastboot_log_buf_addr = addr;
+	debug("Reserving %dk for fastboot log buffer at %08lx\n",
 			CONFIG_FASTBOOT_LOG_SIZE >> 10, addr);
 #endif //CONFIG_CMD_FASTBOOT
 
