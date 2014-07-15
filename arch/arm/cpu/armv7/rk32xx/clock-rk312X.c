@@ -294,11 +294,7 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 	}
 
 	/* periph aclk - aclk_periph = periph_clk_src / n */
-	if (aclk_div == 0) {
-		a_div = 1;
-	} else {
-		a_div = aclk_div - 1;
-	}
+	a_div = aclk_div ? (aclk_div - 1) : 1;
 
 	/* periph hclk - aclk_periph:hclk_periph */
 	switch (hclk_div)
@@ -340,7 +336,7 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 	cru_writel((PERI_SEL_PLL_W_MSK | (pll_sel << PERI_SEL_PLL_OFF))
 			| (PERI_PCLK_DIV_W_MSK | (p_div << PERI_PCLK_DIV_OFF))
 			| (PERI_HCLK_DIV_W_MSK | (h_div << PERI_HCLK_DIV_OFF))
-			| (PERI_PCLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)), CRU_CLKSELS_CON(10));
+			| (PERI_ACLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)), CRU_CLKSELS_CON(10));
 }
 
 
@@ -592,7 +588,7 @@ void rkclk_dump_pll(void)
 	printf("CPU's clock information:\n");
 
 	printf("    arm pll = %ldHZ", gd->cpu_clk);
-	debug(", aclk_cpu = %ldHZ, aclk_cpu = %ldHZ, aclk_cpu = %ldHZ",
+	debug(", aclk_cpu = %ldHZ, hclk_cpu = %ldHZ, pclk_cpu = %ldHZ",
 		gd->arch.aclk_cpu_rate_hz, gd->arch.hclk_cpu_rate_hz, gd->arch.pclk_cpu_rate_hz);
 	printf("\n");
 
