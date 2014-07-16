@@ -236,6 +236,7 @@
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 #define CONFIG_RK_3036_FB
+#define CONFIG_RK_3036_HDMI
 #endif
 
 

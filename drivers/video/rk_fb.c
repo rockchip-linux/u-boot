@@ -183,8 +183,7 @@ void lcd_ctrl_init(void *lcdbase)
 #endif
 
 #ifdef CONFIG_RK_3288_HDMI
-   if (panel_info.screen_type == SCREEN_HDMI)
-		   rk3288_hdmi_init(&panel_info);
+   rk3288_hdmi_probe(&panel_info);
 #endif
 
     init_panel_info(&panel_info);

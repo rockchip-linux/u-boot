@@ -1,29 +1,187 @@
 #include "rk_hdmi.h"
 #include <malloc.h>
+#include <lcd.h>
+#include <../board/rockchip/common/config.h>
+#include <../board/rockchip/common/storage/storage.h>
 
-typedef enum HDMI_EDID_ERRORCODE
+#define PARTITION_NAME "baseparamer"
+#define DEFAULT_MODE   11 
+
+short g_hdmi_vic = -1;
+//struct hdmi_dev *hdmi = NULL;
+
+static const struct hdmi_video_timing hdmi_mode [] = {
+		//name			refresh		xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw	polariry			                            PorI	flag	vic		2ndvic		               pixelrepeat	interface
+	{ {	"720x480p@60Hz",	60,		720,	480,	27000000,	60,	    16,	    30,	    9,	    62,  	6,		0,				                                0,	    0	},	2,  	HDMI_720x480p_60HZ_16_9,	1,		    OUT_P888},
+	{ {	"720x576p@50Hz",	50,		720,	576,	27000000,	68,	    12,	    39,	    5,	    64,	    5,		0,				                                0,	    0	},	17,  	HDMI_720x576p_50HZ_16_9,	1,		    OUT_P888},
+	{ {	"1280x720p@24Hz",	24,		1280,	720,	59400000,	220,	1760,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	60,	    HDMI_1280x720p_24HZ_4_3,	1,		    OUT_P888},
+	{ {	"1280x720p@25Hz",	25,		1280,	720,	74250000,	220,	2420,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	61,	    HDMI_1280x720p_25HZ_4_3,	1,		    OUT_P888},
+	{ {	"1280x720p@30Hz",	30,		1280,	720,	74250000,	220,	1760,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	62,	    HDMI_1280x720p_30HZ_4_3,	1,		    OUT_P888},
+	{ {	"1280x720p@50Hz",	50,		1280,	720,	74250000,	220,	440,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	19,  	HDMI_1280x720p_50HZ_4_3,	1,		    OUT_P888},
+	{ {	"1280x720p@60Hz",	60,		1280,	720,	74250000,	220,	110,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	4,  	HDMI_1280x720p_60HZ_4_3,	1,		    OUT_P888},
+	{ {	"1920x1080p@24Hz",	24,		1920,	1080,	74250000,	148,	638,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	32,	    HDMI_1920x1080p_24HZ_4_3,	1,		    OUT_P888},
+	{ {	"1920x1080p@25Hz",	25,		1920,	1080,	74250000,	148,	528,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	33,	    HDMI_1920x1080p_25HZ_4_3,	1,		    OUT_P888},
+	{ {	"1920x1080p@30Hz",	30,		1920,	1080,	74250000,	148,	88,	    36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	34,	    HDMI_1920x1080p_30HZ_4_3,	1,		    OUT_P888},
+	{ {	"1920x1080p@50Hz",	50,		1920,	1080,	148500000,	148,	528,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	31,  	HDMI_1920x1080p_50HZ_4_3,	1,		    OUT_P888},
+	{ {	"1920x1080p@60Hz",	60,		1920,	1080,	148500000,	148,	88,	    36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	16,  	HDMI_1920x1080p_60HZ_4_3,	1,		    OUT_P888},		
+	{ {	"3840x2160p@24Hz",	24,		3840,	2160,	297000000,	296,	1276,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	93,	    HDMI_3840x2160p_24HZ_4_3,	1,		    OUT_P888},
+	{ {	"3840x2160p@25Hz",	25,		3840,	2160,	297000000,	296,	1056,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	94,	    HDMI_3840x2160p_25HZ_4_3,	1,		    OUT_P888},
+	{ {	"3840x2160p@30Hz", 	30,		3840,	2160,	297000000,	296,	176,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	95,	    HDMI_3840x2160p_30HZ_4_3,	1,		    OUT_P888},
+	{ {	"3840x2160p@50Hz",	50,		3840,	2160,	594000000,	296,	1056,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	96,	    HDMI_3840x2160p_50HZ_4_3,	1,		    OUT_P888},
+	{ {	"3840x2160p@60Hz",	60,		3840,	2160,	594000000,	296,	176,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	97,	    HDMI_3840x2160p_60HZ_4_3,	1,		    OUT_P888},
+
+};
+
+static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 {
-	E_HDMI_EDID_SUCCESS = 0,
-	E_HDMI_EDID_PARAM,
-	E_HDMI_EDID_HEAD,
-	E_HDMI_EDID_CHECKSUM,
-	E_HDMI_EDID_VERSION,
-	E_HDMI_EDID_UNKOWNDATA,
-	E_HDMI_EDID_NOMEMORY
-}HDMI_EDID_ErrorCode;
+	struct hdmi_video_timing *timing = NULL;
+	const struct fb_videomode *mode = NULL;
+	const struct hdmi_video *vpara = &hdmi_dev->video; 
 
-int hdmi_videomode_to_vic(struct fb_videomode *vmode)
+
+
+	timing = (struct hdmi_video_timing *)hdmi_vic2timing(hdmi_dev, vpara->vic);
+	if(timing == NULL) {
+		printf("[%s] not found vic %d\n", __FUNCTION__, vpara->vic);
+		return ;
+	}
+	mode = &(timing->mode);
+
+	panel->screen_type = SCREEN_HDMI; 
+	panel->vl_freq    = mode->pixclock; 
+	panel->vl_col     = mode->xres ;//xres
+	panel->vl_row     = mode->yres;//yres
+	panel->vl_width   = mode->xres;
+	panel->vl_height  = mode->yres;
+	//sync polarity
+	panel->vl_clkp = 1;
+	if(FB_SYNC_HOR_HIGH_ACT & mode->sync)
+		panel->vl_hsp  = 1;
+	else
+		panel->vl_hsp  = 0;
+	if(FB_SYNC_VERT_HIGH_ACT & mode->sync)
+		panel->vl_vsp  = 1;
+	else
+		panel->vl_vsp  = 0;
+
+	//h
+	panel->vl_hspw = mode->hsync_len;
+	panel->vl_hbpd = mode->left_margin;
+	panel->vl_hfpd = mode->right_margin;
+	//v
+	panel->vl_vspw = mode->vsync_len;
+	panel->vl_vbpd = mode->upper_margin;
+	panel->vl_vfpd = mode->lower_margin;
+
+	HDMIDBG("%s:panel->lcd_face=%d\n panel->vl_freq=%d\n panel->vl_col=%d\n panel->vl_row=%d\n panel->vl_width=%d\n panel->vl_height=%d\n panel->vl_clkp=%d\n panel->vl_hsp=%d\n panel->vl_vsp=%d\n panel->vl_bpix=%d\n panel->vl_swap_rb=%d\n panel->vl_hspw=%d\n panel->vl_hbpd=%d\n panel->vl_hfpd=%d\n panel->vl_vspw=%d\n panel->vl_vbpd=%d\n panel->vl_vfpd=%d\n",
+
+	__func__,
+	
+	panel->lcd_face,
+	panel->vl_freq,
+	panel->vl_col,
+	panel->vl_row,
+	panel->vl_width,
+	panel->vl_height,
+	panel->vl_clkp,
+	panel->vl_hsp,
+	panel->vl_vsp,
+	panel->vl_bpix,
+    panel->vl_swap_rb,
+
+	/* Panel infomation */
+	panel->vl_hspw,
+	panel->vl_hbpd,
+	panel->vl_hfpd,
+
+	panel->vl_vspw,
+	panel->vl_vbpd,
+	panel->vl_vfpd);
+}
+
+/*
+ * return preset res position
+ */
+static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev) 
+{
+	int i, ret = -1;
+    const disk_partition_t* ptn;                                       
+	char baseparamer_buf[8 * RK_BLK_SIZE];
+
+	if (!hdmi_dev)
+		goto err;
+
+#ifdef CONFIG_CMD_FASTBOOT                                             
+    ptn = get_disk_partition(hdmi_dev->pname);                            
+#else                                                                  
+    //TODO: find disk_partition_t in other way.                        
+    ptn = NULL;                                                        
+#endif                                                                 
+    if (!ptn) {                                                        
+		goto err;
+    }                                                                  
+
+    if (StorageReadLba(ptn->start, baseparamer_buf, 8) < 0) {
+		printf("%s: Failed Read baseparamer Partition data\n", __func__);
+		goto err;
+	}
+
+
+    memcpy(&hdmi_dev->base_paramer.xres, &baseparamer_buf[0], sizeof(hdmi_dev->base_paramer.xres));
+    memcpy(&hdmi_dev->base_paramer.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer.yres));
+    memcpy(&hdmi_dev->base_paramer.width, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer.width));
+    memcpy(&hdmi_dev->base_paramer.height, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer.height));
+    memcpy(&hdmi_dev->base_paramer.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer.refresh));
+
+	for (i = 0; i < hdmi_dev->mode_len; i++) {
+		if (hdmi_dev->base_paramer.xres == hdmi_dev->modedb[i].mode.xres &&
+				hdmi_dev->base_paramer.yres == hdmi_dev->modedb[i].mode.yres &&
+				   hdmi_dev->base_paramer.refresh == hdmi_dev->modedb[i].mode.refresh)
+			break;
+	}
+
+	if (i != hdmi_dev->mode_len) {
+		printf("preset display resolution is %dx%d@%d\n", hdmi_dev->base_paramer.xres, hdmi_dev->base_paramer.yres, hdmi_dev->base_paramer.refresh);
+		ret = i;
+	}
+
+err:
+	return ret;
+}
+
+/*
+ * hdmi_vic2timing: transverse vic mode to video timing
+ * @vmode: vic to transverse
+ * 
+ */
+const struct hdmi_video_timing* hdmi_vic2timing(struct hdmi_dev *hdmi_dev, int vic)
+{
+    int i;
+    if(vic == 0 || hdmi_dev == NULL)
+        return NULL;
+
+	HDMIDBG("%s: modedb len = %d\n", __func__, hdmi_dev->mode_len);
+
+    for(i = 0; i < hdmi_dev->mode_len; i++)
+    {
+        if(hdmi_dev->modedb[i].vic == vic || hdmi_dev->modedb[i].vic_2nd == vic)
+            return &(hdmi_dev->modedb[i]);
+    }        
+    return NULL;
+} 
+
+static int hdmi_videomode_to_vic(struct hdmi_dev *hdmi_dev, struct fb_videomode *vmode)
 {
 	const struct fb_videomode *mode = NULL;
 	unsigned char vic = 0;
 	int i = 0;
 	
-	if (!hdmi || !hdmi->modedb)
+	if (hdmi_dev == NULL || hdmi_dev->modedb == NULL)
 		return -1;
 
-	for(i = 0; i < hdmi->mode_len; i++) {
-		mode = (const struct fb_videomode *)&(hdmi->modedb[i].mode);
-		if (!mode) {
+	for(i = 0; i < hdmi_dev->mode_len; i++) {
+		mode = (const struct fb_videomode *)&(hdmi_dev->modedb[i].mode);
+		if (mode == NULL) {
 			printf("%s: NULL mode\n", __func__);
 			return -1;
 		}
@@ -37,34 +195,30 @@ int hdmi_videomode_to_vic(struct fb_videomode *vmode)
 			vmode->lower_margin == mode->lower_margin && 
 			vmode->hsync_len == mode->hsync_len && 
 			vmode->vsync_len == mode->vsync_len) {
-			//if( (vmode->vmode == FB_VMODE_NONINTERLACED && vmode->yres == mode->yres) || 
-			//	(vmode->vmode == FB_VMODE_INTERLACED && vmode->yres == mode->yres/2))
-			{								
-				vic = hdmi->modedb[i].vic;
+				vic = hdmi_dev->modedb[i].vic;
 				break;
-			}
 		}
 	}
 	return vic;
 }
 
-void hdmi_add_vic(int vic)
+static void hdmi_add_vic(struct hdmi_dev *hdmi_dev, int vic)
 {
 	int i, exist = 0;
 
-	if (!hdmi)
+	if (hdmi_dev == NULL)
 		return;
 
-	for (i = 0; i < hdmi->vic_pos; i++) {
-		if (hdmi->vicdb[i] == vic) {
+	for (i = 0; i < hdmi_dev->vic_pos; i++) {
+		if (hdmi_dev->vicdb[i] == vic) {
 			exist = 1;
 			break;
 		}
 	}
 
-	if (!exist && hdmi->vic_pos < HDMI_VICDB_LEN) {
-		hdmi->vicdb[hdmi->vic_pos] = vic;
-		hdmi->vic_pos++;
+	if (!exist && hdmi_dev->vic_pos < HDMI_VICDB_LEN) {
+		hdmi_dev->vicdb[hdmi_dev->vic_pos] = vic;
+		hdmi_dev->vic_pos++;
 	}
 }
 
@@ -531,10 +685,13 @@ static int hdmi_edid_parse_dtd(unsigned char *block, struct fb_videomode *mode)
 	return E_HDMI_EDID_SUCCESS;
 }
 
-int hdmi_edid_parse_base(unsigned char *buf, int *extend_num, struct hdmi_edid *pedid)
+static int hdmi_edid_parse_base(struct hdmi_dev *hdmi_dev, unsigned char *buf, int *extend_num)
 {
 	int rc, len = -1;
 	
+	if (hdmi_dev == NULL)
+		return -1;
+
 	if(buf == NULL || extend_num == NULL)
 		return E_HDMI_EDID_PARAM;
 		
@@ -572,13 +729,12 @@ int hdmi_edid_parse_base(unsigned char *buf, int *extend_num, struct hdmi_edid *
 	//fb_edid_to_monspecs(buf, pedid->specs);
 	fb_create_modedb(buf, &len);
 
-	printf("%s: create len %d\n", __func__, len);
 	
     return E_HDMI_EDID_SUCCESS;
 }
 
 // Parse CEA Short Video Descriptor
-static int hdmi_edid_get_cea_svd(unsigned char *buf, struct hdmi_edid *pedid)
+static int hdmi_edid_get_cea_svd(struct hdmi_dev *hdmi_dev, unsigned char *buf)
 {
 	int count, i, vic;
 	
@@ -587,7 +743,7 @@ static int hdmi_edid_get_cea_svd(unsigned char *buf, struct hdmi_edid *pedid)
 	{
 		HDMIDBG("[EDID-CEA] %02x VID %d native %d\n", buf[1 + i], buf[1 + i] & 0x7f, buf[1 + i] >> 7);
 		vic = buf[1 + i] & 0x7f;
-		hdmi_add_vic(vic);
+		hdmi_add_vic(hdmi_dev, vic);
 	}
 	
 	return 0;
@@ -619,16 +775,17 @@ static int hdmi_edid_parse_cea_sad(unsigned char *buf, struct hdmi_edid *pedid)
 	return E_HDMI_EDID_SUCCESS;
 }
 
-static int hdmi_edid_parse_3dinfo(unsigned char *buf/*, struct list_head *head*/)
+static int hdmi_edid_parse_3dinfo(struct hdmi_dev *hdmi_dev, unsigned char *buf/*, struct list_head *head*/)
 {
-	int i, j, len = 0, format_3d, vic_mask;
-	unsigned char offset = 2, vic_2d, structure_3d;
+	int i, len = 0, format_3d, vic_mask;
+	unsigned char offset = 2/*, vic_2d, structure_3d*/;
 	//struct list_head *pos;
 	
 	if(buf[1] & 0xF0) {
 		len = (buf[1] & 0xF0) >> 4;
 		for(i = 0; i < len; i++) {
-			hdmi_add_vic(96 - buf[offset++]);
+			if (buf[offset])
+				hdmi_add_vic(hdmi_dev, 96 - buf[offset++]);
 		}
 	}
 	
@@ -646,9 +803,9 @@ static int hdmi_edid_parse_3dinfo(unsigned char *buf/*, struct list_head *head*/
 			vic_mask |= buf[offset++];
 		}
 
-		for(i = 0; i < 16; i++) {
-			if(vic_mask & (1 << i)) {
-				j = 0;
+		//for(i = 0; i < 16; i++) {
+		//	if(vic_mask & (1 << i)) {
+				//j = 0;
 				//for (pos = (head)->next; pos != (head); pos = pos->next) {
 					//j++;
 					//if(j == i) {
@@ -657,12 +814,12 @@ static int hdmi_edid_parse_3dinfo(unsigned char *buf/*, struct list_head *head*/
 						//break;
 					//}
 				//}
-			}
-		}
-		while(offset < len) {
-			vic_2d = (buf[offset] & 0xF0) >> 4;
-			structure_3d = (buf[offset++] & 0x0F);
-			j = 0;
+		//	}
+		//}
+		//while(offset < len) {
+			//vic_2d = (buf[offset] & 0xF0) >> 4;
+			//structure_3d = (buf[offset++] & 0x0F);
+			//j = 0;
 			//for (pos = (head)->next; pos != (head); pos = pos->next) {
 				//j++;
 				//if(j == vic_2d) {
@@ -673,22 +830,24 @@ static int hdmi_edid_parse_3dinfo(unsigned char *buf/*, struct list_head *head*/
 					//break;
 				//}
 			//}
-		}
+		//}
 	}
 	
 	return 0;
 }
 
 // Parse CEA 861 Serial Extension.
-static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *pedid)
+static int hdmi_edid_parse_extensions_cea(struct hdmi_dev *hdmi_dev, unsigned char *buf)
 {
-	unsigned int ddc_offset, native_dtd_num, cur_offset = 4, buf_offset;
+	unsigned int ddc_offset, /*native_dtd_num,*/ cur_offset = 4, buf_offset;
 //	unsigned int underscan_support, baseaudio_support;
 	unsigned int tag, IEEEOUI = 0, count;
+	struct hdmi_edid *pedid = NULL;
 	
-	if(buf == NULL)
+	if(buf == NULL || hdmi_dev == NULL)
 		return E_HDMI_EDID_PARAM;
 		
+	pedid = &hdmi_dev->driver.edid;
 	// Check ces extension version
 	if(buf[1] != 3)
 	{
@@ -701,7 +860,7 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 //	baseaudio_support = (buf[3] >> 6) & 0x01;
 	pedid->ycbcr444 = (buf[3] >> 5) & 0x01;
 	pedid->ycbcr422 = (buf[3] >> 4) & 0x01;
-	native_dtd_num = buf[3] & 0x0F;
+	//native_dtd_num = buf[3] & 0x0F;
 	
 	// Parse data block
 	while(cur_offset < ddc_offset)
@@ -712,7 +871,7 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 		{
 			case 0x02:	// Video Data Block
 				HDMIDBG("[EDID-CEA] It is a Video Data Block.\n");
-				hdmi_edid_get_cea_svd(buf + cur_offset, pedid);
+				hdmi_edid_get_cea_svd(hdmi_dev, buf + cur_offset);
 				break;
 			case 0x01:	// Audio Data Block
 				HDMIDBG("[EDID-CEA] It is a Audio Data Block.\n");
@@ -757,7 +916,7 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 					pedid->interlaced_audio_latency = buf[buf_offset++];
 				}
 				if(pedid->fields_present & 0x20) {
-					hdmi_edid_parse_3dinfo(buf + buf_offset);
+					hdmi_edid_parse_3dinfo(hdmi_dev, buf + buf_offset);
 				}
 				break;		
 			case 0x05:	// VESA DTC Data Block
@@ -784,7 +943,7 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 			break;
 		memset(vmode, 0, sizeof(struct fb_videomode));
 		hdmi_edid_parse_dtd(buf + ddc_offset, vmode);		
-		hdmi_add_vic(hdmi_videomode_to_vic(vmode));
+		hdmi_add_vic(hdmi_dev, hdmi_videomode_to_vic(hdmi_dev, vmode));
 		ddc_offset += 18;
 	}
 	free(vmode);
@@ -793,11 +952,11 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 	return E_HDMI_EDID_SUCCESS;
 }
 
-int hdmi_edid_parse_extensions(unsigned char *buf, struct hdmi_edid *pedid)
+static int hdmi_edid_parse_extensions(struct hdmi_dev *hdmi_dev, unsigned char *buf)
 {
 	int rc;
 	
-	if(buf == NULL || pedid == NULL)
+	if(buf == NULL || hdmi_dev == NULL)
 		return E_HDMI_EDID_PARAM;
 		
 	// Checksum
@@ -815,7 +974,7 @@ int hdmi_edid_parse_extensions(unsigned char *buf, struct hdmi_edid *pedid)
     		break;
     	case 0x02:
     		printf("[EDID-EXTEND] It is a  CEA 861 Series Extension.\n");
-    		hdmi_edid_parse_extensions_cea(buf, pedid);
+    		hdmi_edid_parse_extensions_cea(hdmi_dev, buf);
     		break;
     	case 0x10:
     		printf("[EDID-EXTEND] It is a Video Timing Block Extension.\n");
@@ -835,4 +994,92 @@ int hdmi_edid_parse_extensions(unsigned char *buf, struct hdmi_edid *pedid)
     }
     
     return E_HDMI_EDID_SUCCESS;
+}
+
+int hdmi_parse_edid(struct hdmi_dev *hdmi_dev)
+{
+	unsigned char buf[HDMI_EDID_BLOCK_SIZE];
+	int rc = HDMI_ERROR_SUCESS, extendblock = 0, i, trytimes;
+
+	if (!hdmi_dev || !hdmi_dev->read_edid)
+		goto err;
+
+	for(trytimes = 0; trytimes < 3; trytimes++) {
+		memset(buf, 0 , HDMI_EDID_BLOCK_SIZE);
+		if (hdmi_dev->read_edid(hdmi_dev, 0, buf) == 0) {
+			rc = hdmi_edid_parse_base(hdmi_dev, buf, &extendblock);
+			if (rc) 
+				printf("[HDMI] parse edid base block error-%d\n", rc);
+			else
+				break;
+		}else{
+			printf("[HDMI] read edid base block error\n");
+		}
+	}
+
+	if (rc)
+		goto err;
+
+	for(i = 1; i < extendblock + 1; i++) {
+		memset(buf, 0 , HDMI_EDID_BLOCK_SIZE);
+		if (hdmi_dev->read_edid(hdmi_dev, i, buf) == 0) {
+			rc = hdmi_edid_parse_extensions(hdmi_dev, buf);
+			if (rc) {
+				printf("[HDMI] parse edid block %d error-%d\n", i, rc);
+				continue;
+			}
+		}else {
+			printf("[HDMI] read edid block %d error\n", i);
+			goto err;
+		}
+	}
+
+	return 0;
+
+err:
+	return -1;
+}
+
+void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
+{
+	int i, pos;
+
+	pos = read_baseparamer_storage(hdmi_dev);
+	if (pos < 0)
+		pos = hdmi_dev->mode_len;
+	else
+		pos += 1;
+
+	while (pos--) {
+		for (i = 0; i < hdmi_dev->vic_pos; i++) {
+			if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos].vic) {
+				break;
+			}
+		}
+
+		if (i != hdmi_dev->vic_pos) {
+			hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
+			break;
+		}
+	}
+
+	printf("%s[%d]: pos = %d vic = %d\n", __func__, hdmi_dev->mode_len, pos, hdmi_dev->video.vic);
+}
+
+void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
+{
+	hdmi_dev->pname = PARTITION_NAME;
+	//init vicdb
+	hdmi_dev->vic_pos = 0;
+	//init video modedb
+	hdmi_dev->modedb = hdmi_mode;
+	hdmi_dev->mode_len = sizeof(hdmi_mode) / sizeof(hdmi_mode[0]);
+	//default out res
+	hdmi_dev->video.vic = hdmi_dev->modedb[DEFAULT_MODE].vic;
+
+	if (hdmi_dev->hd_init && !hdmi_dev->hd_init(hdmi_dev)) {
+		g_hdmi_vic = hdmi_dev->video.vic;
+		//config lcdc panel
+		hdmi_init_panel(hdmi_dev, panel);
+	}
 }

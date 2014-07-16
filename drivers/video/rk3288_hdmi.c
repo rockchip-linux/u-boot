@@ -5,96 +5,7 @@
 #include <malloc.h>
 #include <lcd.h>
 
-#include <../board/rockchip/common/config.h>
-#include <../board/rockchip/common/storage/storage.h>
-
-#define PARTITION_NAME "baseparamer"
-#define DEFAULT_MODE        11 
 #define HDMI_SEL_LCDC(x)    ((((x)&1)<<4)|(1<<20))
-
-struct HW_BASE_PARAMETER
-{
-    int xres;
-    int yres;
-    int width;
-    int height;
-    int refresh;
-};
-
-struct HW_BASE_PARAMETER base_paramer;
-
-short g_hdmi_vic = -1;
-struct hdmi_dev *hdmi = NULL;
-
-static const struct hdmi_video_timing hdmi_mode [] = {
-		//name			refresh		xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw	polariry			                            PorI	flag	vic		2ndvic		               pixelrepeat	interface
-	{ {	"720x480p@60Hz",	60,		720,	480,	27000000,	60,	    16,	    30,	    9,	    62,  	6,		0,				                                0,	    0	},	2,  	HDMI_720x480p_60HZ_16_9,	1,		    OUT_P888},
-	{ {	"720x576p@50Hz",	50,		720,	576,	27000000,	68,	    12,	    39,	    5,	    64,	    5,		0,				                                0,	    0	},	17,  	HDMI_720x576p_50HZ_16_9,	1,		    OUT_P888},
-	{ {	"1280x720p@24Hz",	24,		1280,	720,	59400000,	220,	1760,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	60,	    HDMI_1280x720p_24HZ_4_3,	1,		    OUT_P888},
-	{ {	"1280x720p@25Hz",	25,		1280,	720,	74250000,	220,	2420,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	61,	    HDMI_1280x720p_25HZ_4_3,	1,		    OUT_P888},
-	{ {	"1280x720p@30Hz",	30,		1280,	720,	74250000,	220,	1760,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	62,	    HDMI_1280x720p_30HZ_4_3,	1,		    OUT_P888},
-	{ {	"1280x720p@50Hz",	50,		1280,	720,	74250000,	220,	440,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	19,  	HDMI_1280x720p_50HZ_4_3,	1,		    OUT_P888},
-	{ {	"1280x720p@60Hz",	60,		1280,	720,	74250000,	220,	110,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	4,  	HDMI_1280x720p_60HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@24Hz",	24,		1920,	1080,	74250000,	148,	638,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	32,	    HDMI_1920x1080p_24HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@25Hz",	25,		1920,	1080,	74250000,	148,	528,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	33,	    HDMI_1920x1080p_25HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@30Hz",	30,		1920,	1080,	74250000,	148,	88,	    36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	34,	    HDMI_1920x1080p_30HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@50Hz",	50,		1920,	1080,	148500000,	148,	528,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	31,  	HDMI_1920x1080p_50HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@60Hz",	60,		1920,	1080,	148500000,	148,	88,	    36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	16,  	HDMI_1920x1080p_60HZ_4_3,	1,		    OUT_P888},		
-	{ {	"3840x2160p@24Hz",	24,		3840,	2160,	297000000,	296,	1276,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	93,	    HDMI_3840x2160p_24HZ_4_3,	1,		    OUT_P888},
-	{ {	"3840x2160p@25Hz",	25,		3840,	2160,	297000000,	296,	1056,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	94,	    HDMI_3840x2160p_25HZ_4_3,	1,		    OUT_P888},
-	{ {	"3840x2160p@30Hz", 	30,		3840,	2160,	297000000,	296,	176,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	95,	    HDMI_3840x2160p_30HZ_4_3,	1,		    OUT_P888},
-	{ {	"3840x2160p@50Hz",	50,		3840,	2160,	594000000,	296,	1056,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	96,	    HDMI_3840x2160p_50HZ_4_3,	1,		    OUT_P888},
-	{ {	"3840x2160p@60Hz",	60,		3840,	2160,	594000000,	296,	176,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	97,	    HDMI_3840x2160p_60HZ_4_3,	1,		    OUT_P888},
-
-};
-
-/*
- * return preset res position
- */
-static int inline read_baseparamer_storage(void) 
-{
-	int i, ret = -1;
-    const disk_partition_t* ptn;                                       
-	char baseparamer_buf[8 * RK_BLK_SIZE];
-
-#ifdef CONFIG_CMD_FASTBOOT                                             
-    ptn = get_disk_partition(PARTITION_NAME);                            
-#else                                                                  
-    //TODO: find disk_partition_t in other way.                        
-    ptn = NULL;                                                        
-#endif                                                                 
-    if (!ptn) {                                                        
-        //printf("%s ptn not found.\n", PARTITION_NAME);                  
-		goto err;
-    }                                                                  
-
-    if (StorageReadLba(ptn->start, baseparamer_buf, 8) < 0) {
-		printf("%s: Failed Read baseparamer Partition data\n", __func__);
-		goto err;
-	}
-
-
-    memcpy(&base_paramer.xres, &baseparamer_buf[0], sizeof(base_paramer.xres));
-    memcpy(&base_paramer.yres, &baseparamer_buf[4], sizeof(base_paramer.yres));
-    memcpy(&base_paramer.width, &baseparamer_buf[8], sizeof(base_paramer.width));
-    memcpy(&base_paramer.height, &baseparamer_buf[12], sizeof(base_paramer.height));
-    memcpy(&base_paramer.refresh, &baseparamer_buf[16], sizeof(base_paramer.refresh));
-
-	for (i = 0; i < (sizeof(hdmi_mode) / sizeof(hdmi_mode[0])); i++) {
-		if (base_paramer.xres == hdmi_mode[i].mode.xres &&
-				base_paramer.yres == hdmi_mode[i].mode.yres &&
-				   base_paramer.refresh == hdmi_mode[i].mode.refresh)
-			break;
-	}
-
-	if (i != sizeof(hdmi_mode) / sizeof(hdmi_mode[0])) {
-		printf("preset display resolution is %dx%d@%d\n", base_paramer.xres, base_paramer.yres, base_paramer.refresh);
-		ret = i;
-	}
-
-err:
-	return ret;
-}
 
 static const struct phy_mpll_config_tab PHY_MPLL_TABLE[] = {	
 	//tmdsclk = (pixclk / ref_cntrl ) * (fbdiv2 * fbdiv1) / nctrl / tmdsmhl
@@ -133,90 +44,6 @@ static const struct phy_mpll_config_tab* get_phy_mpll_tab(unsigned int pixClock,
 			return &PHY_MPLL_TABLE[i];
 	}
 	return NULL;
-}
-
-/**
- * hdmi_vic2timing: transverse vic mode to video timing
- * @vmode: vic to transverse
- * 
- */
-const struct hdmi_video_timing* hdmi_vic2timing(int vic)
-{
-    int i;
-
-    if(vic == 0)
-        return NULL;
-
-    for(i = 0; i < ARRAY_SIZE(hdmi_mode); i++)
-    {
-        if(hdmi_mode[i].vic == vic || hdmi_mode[i].vic_2nd == vic)
-            return &(hdmi_mode[i]);
-    }        
-    return NULL;
-} 
-
-static void hdmi_init_panel(struct hdmi_video *vpara, vidinfo_t *panel)
-{
-	struct hdmi_video_timing *timing = NULL;
-	const struct fb_videomode *mode = NULL;
-
-
-	timing = (struct hdmi_video_timing *)hdmi_vic2timing(vpara->vic);
-	if(timing == NULL) {
-		printf("[%s] not found vic %d\n", __FUNCTION__, vpara->vic);
-		return ;
-	}
-	mode = &(timing->mode);
-
-	panel->vl_freq    = mode->pixclock; 
-	panel->vl_col     = mode->xres ;//xres
-	panel->vl_row     = mode->yres;//yres
-	panel->vl_width   = mode->xres;
-	panel->vl_height  = mode->yres;
-	//sync polarity
-	panel->vl_clkp = 1;
-	if(FB_SYNC_HOR_HIGH_ACT & mode->sync)
-		panel->vl_hsp  = 1;
-	else
-		panel->vl_hsp  = 0;
-	if(FB_SYNC_VERT_HIGH_ACT & mode->sync)
-		panel->vl_vsp  = 1;
-	else
-		panel->vl_vsp  = 0;
-
-	//h
-	panel->vl_hspw = mode->hsync_len;
-	panel->vl_hbpd = mode->left_margin;
-	panel->vl_hfpd = mode->right_margin;
-	//v
-	panel->vl_vspw = mode->vsync_len;
-	panel->vl_vbpd = mode->upper_margin;
-	panel->vl_vfpd = mode->lower_margin;
-
-	HDMIDBG("%s:panel->lcd_face=%d\n panel->vl_freq=%d\n panel->vl_col=%d\n panel->vl_row=%d\n panel->vl_width=%d\n panel->vl_height=%d\n panel->vl_clkp=%d\n panel->vl_hsp=%d\n panel->vl_vsp=%d\n panel->vl_bpix=%d\n panel->vl_swap_rb=%d\n panel->vl_hspw=%d\n panel->vl_hbpd=%d\n panel->vl_hfpd=%d\n panel->vl_vspw=%d\n panel->vl_vbpd=%d\n panel->vl_vfpd=%d\n",
-
-	__func__,
-	
-	panel->lcd_face,
-	panel->vl_freq,
-	panel->vl_col,
-	panel->vl_row,
-	panel->vl_width,
-	panel->vl_height,
-	panel->vl_clkp,
-	panel->vl_hsp,
-	panel->vl_vsp,
-	panel->vl_bpix,
-    panel->vl_swap_rb,
-
-	/* Panel infomation */
-	panel->vl_hspw,
-	panel->vl_hbpd,
-	panel->vl_hfpd,
-
-	panel->vl_vspw,
-	panel->vl_vbpd,
-	panel->vl_vfpd);
 }
 
 //i2c master reset
@@ -307,76 +134,6 @@ exit:
 	hdmi_msk_reg(hdmi_dev, I2CM_INT, m_I2CM_DONE_MASK, v_I2CM_DONE_MASK(1));
 	hdmi_msk_reg(hdmi_dev, I2CM_CTLINT, m_I2CM_NACK_MASK | m_I2CM_ARB_MASK, v_I2CM_NACK_MASK(1) | v_I2CM_ARB_MASK(1));
 	return ret;
-}
-
-static int hdmi_parse_edid(struct hdmi_dev *hdmi_dev)
-{
-	struct hdmi_edid pedid;
-	unsigned char buf[HDMI_EDID_BLOCK_SIZE];
-	int rc = HDMI_ERROR_SUCESS, extendblock = 0, i, trytimes;
-	for(trytimes = 0; trytimes < 3; trytimes++) {
-		memset(buf, 0 , HDMI_EDID_BLOCK_SIZE);
-		if (hdmi_dev_read_edid(hdmi_dev, 0, buf) == 0) {
-			rc = hdmi_edid_parse_base(buf, &extendblock, &pedid);
-			if (rc) 
-				printf("[HDMI] parse edid base block error-%d\n", rc);
-			else
-				break;
-		}else{
-			printf("[HDMI] read edid base block error\n");
-		}
-	}
-
-	if (rc)
-		goto err;
-
-	for(i = 1; i < extendblock + 1; i++) {
-		memset(buf, 0 , HDMI_EDID_BLOCK_SIZE);
-		if (hdmi_dev_read_edid(hdmi_dev, i, buf) == 0) {
-			rc = hdmi_edid_parse_extensions(buf, &pedid);
-			if (rc) {
-				printf("[HDMI] parse edid block %d error-%d\n", i, rc);
-				continue;
-			}
-		}else {
-			printf("[HDMI] read edid block %d error\n", i);
-			goto err;
-		}
-	}
-#if 0
-	for (i = 0; i < hdmi_dev->vic_pos; i++)
-		printf("%s\n",  hdmi_vic2timing(hdmi_dev->vicdb[i])->mode.name);
-#endif
-	return 0;
-
-err:
-	return -1;
-}
-
-static void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
-{
-	int i, pos;
-
-	pos = read_baseparamer_storage();
-	if (pos < 0)
-		pos = hdmi_dev->mode_len;
-	else
-		pos += 1;
-
-	while (pos--) {
-		for (i = 0; i < hdmi_dev->vic_pos; i++) {
-			if (hdmi_dev->vicdb[i] == hdmi->modedb[pos].vic) {
-				break;
-			}
-		}
-
-		if (i != hdmi_dev->vic_pos) {
-			hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
-			break;
-		}
-	}
-
-	printf("%s[%d]: pos = %d vic = %d\n", __func__, hdmi_dev->mode_len, pos, hdmi_dev->video.vic);
 }
 
 static void rk3288_hdmi_powerdown(struct hdmi_dev* hdmi_dev)
@@ -481,7 +238,7 @@ static int rk3288_hdmi_video_frameComposer(struct hdmi_dev *hdmi_dev, struct hdm
 	hsync_pol = 1;
 	de_pol = 1;
 	
-	timing = (struct hdmi_video_timing *)hdmi_vic2timing(vpara->vic);
+	timing = (struct hdmi_video_timing *)hdmi_vic2timing(hdmi_dev, vpara->vic);
 	if(timing == NULL) {
 		printf("[%s] not found vic %d\n", __FUNCTION__, vpara->vic);
 		return -1;
@@ -947,43 +704,53 @@ static int hdmi_dev_insert(struct hdmi_dev *hdmi_dev)
 }
 
 
-void rk3288_hdmi_init(vidinfo_t *panel)
+static int rk32hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
-	hdmi = malloc(sizeof (struct hdmi_dev));
-	if (hdmi != NULL) {
-		memset(hdmi, 0, sizeof (hdmi));
-		//init vicdb
-		hdmi->regbase = (void *)RKIO_HDMI_PHYS;
-		hdmi->vic_pos = 0;
-		//init modedb
-		hdmi->modedb = hdmi_mode;
-		hdmi->mode_len = sizeof(hdmi_mode) / sizeof(hdmi_mode[0]);
+	int ret = -1;
 
-		hdmi->video.vic = hdmi->modedb[DEFAULT_MODE].vic;
+	printf("inital rk3288 hdmi hardware.\n");
 
-		hdmi->video.color_input = HDMI_COLOR_RGB_0_255;
-		hdmi->video.sink_hdmi = OUTPUT_HDMI;
-		hdmi->video.format_3d = HDMI_3D_NONE;
+	if (!hdmi_dev)
+		return ret;
 
-		hdmi->video.color_output = HDMI_COLOR_RGB_16_235;
-		hdmi->video.color_output_depth = 10;
-		
-		hdmi_dev_init(hdmi);	
-		if (hdmi_dev_detect_hotplug(hdmi)) {
-			hdmi_dev_insert(hdmi);
-			hdmi_parse_edid(hdmi);
-			hdmi_find_best_mode(hdmi);
-			g_hdmi_vic = hdmi->video.vic;
-			//config lcdc panel
-			hdmi_init_panel(&hdmi->video, panel);
-			hdmi_dev_config_video(hdmi, &hdmi->video);
-			hdmi_dev_control_output(hdmi, HDMI_AV_UNMUTE);
-		}else {
-			printf("Hdmi Devices Not Exist.\n");
-		}
+	hdmi_dev->video.color_input = HDMI_COLOR_RGB_0_255;
+	hdmi_dev->video.sink_hdmi = OUTPUT_HDMI;
+	hdmi_dev->video.format_3d = HDMI_3D_NONE;
+
+	hdmi_dev->video.color_output = HDMI_COLOR_RGB_16_235;
+	hdmi_dev->video.color_output_depth = 10;
+	
+
+	hdmi_dev_init(hdmi_dev);	
+	if (hdmi_dev_detect_hotplug(hdmi_dev)) {
+		hdmi_dev_insert(hdmi_dev);
+		hdmi_parse_edid(hdmi_dev);
+		hdmi_find_best_mode(hdmi_dev);
+		hdmi_dev_config_video(hdmi_dev, &hdmi_dev->video);
+		hdmi_dev_control_output(hdmi_dev, HDMI_AV_UNMUTE);
+
+		ret = 0;
+	}else {
+		printf("Hdmi Devices Not Exist.\n");
 	}
 
-	free(hdmi);
+	return ret;
 }
 
+void rk3288_hdmi_probe(vidinfo_t *panel)
+{
+	struct hdmi_dev *hdmi_dev = NULL;
 
+	hdmi_dev = malloc(sizeof(struct hdmi_dev));
+	if (hdmi_dev != NULL && panel != NULL) {
+		memset(hdmi_dev, 0, sizeof(struct hdmi_dev));
+		hdmi_dev->regbase = (void *)RKIO_HDMI_PHYS;
+		hdmi_dev->hd_init = rk32hdmi_hardware_init;
+		hdmi_dev->read_edid = hdmi_dev_read_edid;
+		rk_hdmi_register(hdmi_dev, panel);
+	}else {
+		printf("%s: hdmi_dev %#x  panel %#x\n", __func__, hdmi_dev, panel);
+	}
+
+	free(hdmi_dev);
+}
