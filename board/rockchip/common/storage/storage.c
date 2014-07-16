@@ -69,10 +69,10 @@ static MEM_FUN_T NandFunOp =
 	LMemApiErase,
 	LMemApiFlashInfo,
 	NULL,
-	LMemApiErase,
-	NULL,
-	NULL,
 	LMemApiLowFormat,
+	NULL,
+	NULL,
+	LMemApiGetCapacity,
 	LMemApiSysDataLoad,
 	LMemApiSysDataStore,
 };

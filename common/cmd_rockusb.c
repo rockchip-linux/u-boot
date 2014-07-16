@@ -421,7 +421,9 @@ static void FW_Erase10(void)
 	RKUSBINFO("%s \n", __func__);
 	current_urb = ep->tx_urb;
 
-	StorageEraseBlock(get_unaligned_be32(&usbcmd.cbw.CDB[2]), get_unaligned_be32(&usbcmd.cbw.CDB[7]), 0);
+	if (SecureBootLock == 0) {
+		StorageEraseBlock(get_unaligned_be32(&usbcmd.cbw.CDB[2]), get_unaligned_be16(&usbcmd.cbw.CDB[7]), 0);
+	}
 	current_urb->actual_length = 13;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
 	usbcmd.csw.Status = status;
@@ -442,10 +444,10 @@ static void FW_Erase10Force(void)
 	
 	RKUSBINFO("%s \n", __func__);
 	current_urb = ep->tx_urb;
-	
-	if(gpMemFun->Erase && (SecureBootLock == 0))
-		status = gpMemFun->Erase(usbcmd.cbw.Lun, usbcmd.cbw.CDB[2], usbcmd.cbw.CDB[7], 1);
-        
+
+	if (SecureBootLock == 0) {
+		StorageEraseBlock(get_unaligned_be32(&usbcmd.cbw.CDB[2]), get_unaligned_be16(&usbcmd.cbw.CDB[7]), 1);
+	}
 	current_urb->actual_length = 13;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
 	usbcmd.csw.Status = status;
