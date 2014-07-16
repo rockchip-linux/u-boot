@@ -7,6 +7,9 @@
 #define PARTITION_NAME "baseparamer"
 #define DEFAULT_MODE   11 
 
+#ifndef OUT_P888
+#define OUT_P888 0 
+#endif
 short g_hdmi_vic = -1;
 //struct hdmi_dev *hdmi = NULL;
 
@@ -32,6 +35,7 @@ static const struct hdmi_video_timing hdmi_mode [] = {
 
 };
 
+#if defined(CONFIG_RK_FB)
 static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 {
 	struct hdmi_video_timing *timing = NULL;
@@ -98,7 +102,7 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	panel->vl_vbpd,
 	panel->vl_vfpd);
 }
-
+#endif
 /*
  * return preset res position
  */
@@ -1080,6 +1084,8 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	if (hdmi_dev->hd_init && !hdmi_dev->hd_init(hdmi_dev)) {
 		g_hdmi_vic = hdmi_dev->video.vic;
 		//config lcdc panel
+#if defined(CONFIG_RK_FB)
 		hdmi_init_panel(hdmi_dev, panel);
+#endif
 	}
 }
