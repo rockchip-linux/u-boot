@@ -196,7 +196,7 @@ static struct usb_device_descriptor device_descriptor = {
 	.bDeviceProtocol =	0x00,
 	.bMaxPacketSize0 =	EP0_MAX_PACKET_SIZE,
 	.idVendor =		cpu_to_le16(CONFIG_USBD_VENDORID),
-	.idProduct =		cpu_to_le16(CONFIG_USBD_PRODUCTID),
+	.idProduct =		cpu_to_le16(CONFIG_USBD_PRODUCTID_FASTBOOT),
 	.bcdDevice =		cpu_to_le16(USBFBT_BCD_DEVICE),
 	.iManufacturer =	STR_MANUFACTURER,
 	.iProduct =		STR_PRODUCT,
@@ -1799,7 +1799,6 @@ void fbt_preboot(void)
 	fbt_fastboot_init();
 
 	frt = board_fbt_key_pressed();
-
 	if (frt == FASTBOOT_REBOOT_NONE) {
 		FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n",
 				__func__);
@@ -1840,8 +1839,8 @@ void fbt_preboot(void)
 		drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb                                         
 #endif
 
-    if (is_power_low()) {
-        if (!is_charging()) {
+	if (is_power_low()) {
+		if (!is_charging()) {
 			FBTERR("low power, shutting down...\n");
 
 #ifdef CONFIG_LCD
@@ -1856,7 +1855,7 @@ void fbt_preboot(void)
 			shut_down();
 			printf("not reach here.\n");
 		}
-    }
+	}
 
 #ifdef CONFIG_RK616
 	rk616_init(CONFIG_RK616_LCD_CHN);

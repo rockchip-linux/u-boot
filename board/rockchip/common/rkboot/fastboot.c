@@ -108,7 +108,7 @@ int board_fbt_oem(const char *cmdbuf)
  */
 int board_fbt_is_cold_boot(void)
 {
-    return g_cold_boot;
+	return g_cold_boot;
 }
 
 /**
@@ -116,7 +116,7 @@ int board_fbt_is_cold_boot(void)
  */
 int board_fbt_is_charging(void)
 {
-    return is_charging();
+	return is_charging();
 }
 
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
@@ -288,95 +288,91 @@ const disk_partition_t* board_fbt_get_partition(const char* name)
 #ifndef CONFIG_CMD_FASTBOOT
 static void fbt_handle_reboot(const char *cmdbuf)
 {
-    if (!strcmp(&cmdbuf[6], "-bootloader")) {
-        FBTDBG("%s\n", cmdbuf);
-        board_fbt_set_reboot_type(FASTBOOT_REBOOT_BOOTLOADER);
-    }
-    if (!strcmp(&cmdbuf[6], "-recovery")) {
-        FBTDBG("%s\n", cmdbuf);
-        board_fbt_set_reboot_type(FASTBOOT_REBOOT_RECOVERY);
-    }
-    if (!strcmp(&cmdbuf[6], "-recovery:wipe_data")) {
-        FBTDBG("%s\n", cmdbuf);
-        board_fbt_set_reboot_type(FASTBOOT_REBOOT_RECOVERY_WIPE_DATA);
-    }
+	if (!strcmp(&cmdbuf[6], "-bootloader")) {
+		FBTDBG("%s\n", cmdbuf);
+		board_fbt_set_reboot_type(FASTBOOT_REBOOT_BOOTLOADER);
+	}
+	if (!strcmp(&cmdbuf[6], "-recovery")) {
+		FBTDBG("%s\n", cmdbuf);
+		board_fbt_set_reboot_type(FASTBOOT_REBOOT_RECOVERY);
+	}
+	if (!strcmp(&cmdbuf[6], "-recovery:wipe_data")) {
+		FBTDBG("%s\n", cmdbuf);
+		board_fbt_set_reboot_type(FASTBOOT_REBOOT_RECOVERY_WIPE_DATA);
+	}
 
-    udelay(1000000); /* 1 sec */
+	udelay(1000000); /* 1 sec */
 
-    do_reset(NULL, 0, 0, NULL);
+	do_reset(NULL, 0, 0, NULL);
 }
 
 static void fbt_run_recovery(void)
 {
 #ifdef CONFIG_CMD_BOOTI
-    char *const boot_recovery_cmd[] = {"booti", "recovery"};
-    do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
+	char *const boot_recovery_cmd[] = {"booti", "recovery"};
+	do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
 #endif
 
-    /* returns if recovery.img is bad */
-    FBTERR("\nfastboot: Error: Invalid recovery img\n");
+	/* returns if recovery.img is bad */
+	FBTERR("\nfastboot: Error: Invalid recovery img\n");
 }
 
 static void fbt_run_recovery_wipe_data(void)
 {
-    struct bootloader_message bmsg;
+	struct bootloader_message bmsg;
 
-    FBTDBG("Rebooting into recovery to do wipe_data\n");
+	FBTDBG("Rebooting into recovery to do wipe_data\n");
 
-    if (!board_fbt_get_partition("misc"))
-    {
-        FBTERR("not found misc partition, just run recovery.\n");
-        fbt_run_recovery();
-    }
-    strcpy(bmsg.command, "boot-recovery");
-    bmsg.status[0] = 0;
-    strcpy(bmsg.recovery, "recovery\n--wipe_data");
-    if (board_fbt_set_bootloader_msg(&bmsg))
-    {
-        FBTERR("set bootloader msg failed, retry!\n");
-        fbt_handle_reboot("reboot-recovery:wipe_data");
-    }
-    /* now reboot to recovery */
-    fbt_run_recovery();
+	if (!board_fbt_get_partition("misc"))
+	{
+		FBTERR("not found misc partition, just run recovery.\n");
+		fbt_run_recovery();
+	}
+	strcpy(bmsg.command, "boot-recovery");
+	bmsg.status[0] = 0;
+	strcpy(bmsg.recovery, "recovery\n--wipe_data");
+	if (board_fbt_set_bootloader_msg(&bmsg))
+	{
+		FBTERR("set bootloader msg failed, retry!\n");
+		fbt_handle_reboot("reboot-recovery:wipe_data");
+	}
+	/* now reboot to recovery */
+	fbt_run_recovery();
 }
 
 void rk_preboot(void)
 {
 	enum fbt_reboot_type frt;
+
 	frt = board_fbt_key_pressed();
 	if (frt == FASTBOOT_REBOOT_NONE) {
-        FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n",
-                __func__);
-        frt = board_fbt_get_reboot_type();
-    } else {
-        //clear reboot type when key pressed.
-        board_fbt_set_reboot_type(FASTBOOT_REBOOT_NONE);
-    }
+		FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n", __func__);
+		frt = board_fbt_get_reboot_type();
+	} else {
+		//clear reboot type when key pressed.
+		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NONE);
+	}
 
-    if (frt == FASTBOOT_REBOOT_RECOVERY) {
-        return fbt_run_recovery();
-    } else if (frt == FASTBOOT_REBOOT_RECOVERY_WIPE_DATA) {
-        FBTDBG("\n%s: starting recovery img to wipe data "
-                "because of reboot flag\n",
-                __func__);
-        /* we've not initialized most of our state so don't
-         * save env in this case
-         */
-        return fbt_run_recovery_wipe_data();
-    } else {
-
-        FBTDBG("\n%s: check misc command.\n", __func__);
-        /* unknown reboot cause (typically because of a cold boot).
-         * check if we had misc command to boot recovery.
-         */
-        int run_recovery = board_fbt_check_misc();
-        if (run_recovery) {
-            FBTDBG("\n%s: starting recovery because of misc command\n",
-                    __func__);
-            return fbt_run_recovery();
-        }
-        FBTDBG("\n%s: no special reboot flags, doing normal boot\n",
-                __func__);
-    }
+	if (frt == FASTBOOT_REBOOT_RECOVERY) {
+		return fbt_run_recovery();
+	} else if (frt == FASTBOOT_REBOOT_RECOVERY_WIPE_DATA) {
+		FBTDBG("\n%s: starting recovery img to wipe data "
+			"because of reboot flag\n", __func__);
+		/* we've not initialized most of our state so don't
+		 * save env in this case
+		 */
+		return fbt_run_recovery_wipe_data();
+	} else {
+		FBTDBG("\n%s: check misc command.\n", __func__);
+		/* unknown reboot cause (typically because of a cold boot).
+		 * check if we had misc command to boot recovery.
+		 */
+		int run_recovery = board_fbt_check_misc();
+		if (run_recovery) {
+			FBTDBG("\n%s: starting recovery because of misc command\n", __func__);
+			return fbt_run_recovery();
+		}
+		FBTDBG("\n%s: no special reboot flags, doing normal boot\n", __func__);
+	}
 }
 #endif

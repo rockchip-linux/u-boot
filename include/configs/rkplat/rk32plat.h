@@ -120,12 +120,13 @@
 #define CONFIG_USBD_VENDORID		0x2207
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-#define CONFIG_USBD_PRODUCTID		0x320A
+#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x320A
 #else
 	#error: "PLS config chip for rk rockusb!"
 #endif
 
 /* for fastboot */
+#define CONFIG_USBD_PRODUCTID_FASTBOOT	0x0006
 #define CONFIG_USBD_MANUFACTURER	"Rockchip"
 #define CONFIG_USBD_PRODUCT_NAME	"rk30xx"
 
