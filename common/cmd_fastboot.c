@@ -1811,20 +1811,21 @@ void fbt_preboot(void)
 #ifdef CONFIG_ROCKCHIP
 
 	if (is_power_extreme_low()) {
-		if (is_charging()) {
+		while (is_charging()) {
 			FBTERR("extreme low power, charging...\n");
-			while (1) {
-				udelay(1000000); /* 1 sec */
-				if (!is_power_extreme_low()) {
-					FBTERR("leave extreme low power charge\n");
-					break;
-				}
+			udelay(1000000); /* 1 sec */
+			if (!is_power_extreme_low()) {
+				FBTERR("extreme low power charge done\n");
+				break;
 			}
-		} else {
-			FBTERR("extreme low power, shutting down...\n");
-			shut_down();
-			printf("not reach here.\n");
 		}
+	}
+
+	if (is_power_extreme_low()) {
+		//it should be extreme low power without charger connected.
+		FBTERR("extreme low power, shutting down...\n");
+		shut_down();
+		printf("not reach here.\n");
 	}
 
 	int logo_on = 0;
