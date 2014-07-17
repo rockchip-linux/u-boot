@@ -1842,12 +1842,16 @@ void fbt_preboot(void)
 		if (!is_charging()) {
 			FBTERR("low power, shutting down...\n");
 
+#ifdef CONFIG_LCD
+			lcd_standby(0);
+			//TODO: set backlight in better way.
+			rk_backlight_ctrl(48);
+#endif
 			//TODO: show warning logo.
 			show_resource_image("images/battery_fail.bmp");
 			udelay(1000000);//1 sec
 #ifdef CONFIG_LCD
-			//TODO: set backlight in better way.
-			rk_backlight_ctrl(48);
+			rk_backlight_ctrl(0);
 			lcd_standby(1);
 #endif
 			shut_down();
