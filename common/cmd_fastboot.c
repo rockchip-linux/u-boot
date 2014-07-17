@@ -1800,15 +1800,12 @@ void fbt_preboot(void)
 
 	frt = board_fbt_key_pressed();
 	if (frt == FASTBOOT_REBOOT_NONE) {
-		FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n",
-				__func__);
+		FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n", __func__);
 		frt = board_fbt_get_reboot_type();
 	} else {
 		//clear reboot type when key pressed.
 		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NONE);
 	}
-
-#ifdef CONFIG_ROCKCHIP
 
 	if (is_power_extreme_low()) {
 		while (is_charging()) {
@@ -1836,23 +1833,23 @@ void fbt_preboot(void)
 	printf("read logo_on switch from dts [%d]\n", logo_on);
 
 #ifdef CONFIG_LCD
-	if(logo_on)
-		drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb                                         
+	if (logo_on) {
+		drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb
+	}
 #endif
 
 	if (is_power_low()) {
 		if (!is_charging()) {
 			FBTERR("low power, shutting down...\n");
 
+			//TODO: show warning logo.
+			show_resource_image("images/battery_fail.bmp");
+			udelay(1000000);//1 sec
 #ifdef CONFIG_LCD
 			//TODO: set backlight in better way.
 			rk_backlight_ctrl(48);
 			lcd_standby(1);
 #endif
-			//TODO: show warning logo.
-			show_resource_image("images/battery_fail.bmp");
-
-			udelay(1000000);//1 sec
 			shut_down();
 			printf("not reach here.\n");
 		}
@@ -1862,11 +1859,11 @@ void fbt_preboot(void)
 	rk616_init(CONFIG_RK616_LCD_CHN);
 #endif
 
-#endif// CONFIG_ROCKCHIP
+
 #ifdef CONFIG_UBOOT_CHARGE
 	//check charge mode when no key pressed.
 	int cold_boot = board_fbt_is_cold_boot();
-	if((cold_boot && board_fbt_is_charging())
+	if ((cold_boot && board_fbt_is_charging())
 			|| frt == FASTBOOT_REBOOT_CHARGE) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
@@ -1879,35 +1876,29 @@ void fbt_preboot(void)
 #endif
 	}
 #endif //CONFIG_UBOOT_CHARGE
-#ifdef CONFIG_ROCKCHIP
+
 	powerOn();
 #ifdef CONFIG_LCD
-	if(logo_on)
-	{
+	if (logo_on) {
 		lcd_enable_logo(true);
 		lcd_standby(0);
 		mdelay(100);
 		rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
 	}
 #endif
-#endif// CONFIG_ROCKCHIP
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
-		FBTDBG("\n%s: starting recovery img because of reboot flag\n",
-				__func__);
-
+		FBTDBG("\n%s: starting recovery img because of reboot flag\n", __func__);
 		return fbt_run_recovery();
 	} else if (frt == FASTBOOT_REBOOT_RECOVERY_WIPE_DATA) {
 		FBTDBG("\n%s: starting recovery img to wipe data "
-				"because of reboot flag\n",
-				__func__);
+				"because of reboot flag\n", __func__);
 		/* we've not initialized most of our state so don't
 		 * save env in this case
 		 */
 		return fbt_run_recovery_wipe_data();
 	} else if (frt == FASTBOOT_REBOOT_FASTBOOT) {
-		FBTDBG("\n%s: starting fastboot because of reboot flag\n",
-				__func__);
+		FBTDBG("\n%s: starting fastboot because of reboot flag\n", __func__);
 		fbt_request_start_fastboot();
 	} else {
 		FBTDBG("\n%s: check misc command.\n", __func__);
@@ -1916,12 +1907,10 @@ void fbt_preboot(void)
 		 */
 		int run_recovery = board_fbt_check_misc();
 		if (run_recovery) {
-			FBTDBG("\n%s: starting recovery because of misc command\n", 
-					__func__);
+			FBTDBG("\n%s: starting recovery because of misc command\n", __func__);
 			return fbt_run_recovery();
 		}
-		FBTDBG("\n%s: no special reboot flags, doing normal boot\n",
-				__func__);
+		FBTDBG("\n%s: no special reboot flags, doing normal boot\n", __func__);
 	}
 }
 
