@@ -313,6 +313,9 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 			| (PERI_PCLK_DIV_W_MSK | (p_div << PERI_PCLK_DIV_OFF))
 			| (PERI_HCLK_DIV_W_MSK | (h_div << PERI_HCLK_DIV_OFF))
 			| (PERI_ACLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)), CRU_CLKSELS_CON(10));
+
+	/* set gpu default div set as 2:1 */
+	cru_writel((0x1f << (0 + 16)) | (1 << 0), CRU_CLKSELS_CON(34));
 }
 
 
