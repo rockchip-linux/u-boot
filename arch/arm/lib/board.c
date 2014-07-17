@@ -576,7 +576,11 @@ void board_init_r(gd_t *id, ulong dest_addr)
 #endif
 	serial_initialize();
 
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
 	debug("Now running in RAM - U-Boot at: %08lx\n", dest_addr);
+#else
+	debug("Now running in RAM - U-Boot at: %08lx\n", CONFIG_SYS_SDRAM_BASE);
+#endif
 
 #ifdef CONFIG_LOGBUFFER
 	logbuff_init_ptrs();
