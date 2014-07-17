@@ -340,9 +340,37 @@ uint32_t GetVbus(void)
 {
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t vbus = 1;
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	if (grf_readl(GRF_UOC0_CON2) & (0x01 << 2)) {
+		/* exit suspend */
+		grf_writel(((0x01 << 2) << 16), GRF_UOC0_CON2);
+		/* delay more than 1ms, waiting for usb phy init */
+		mdelay(3);
+	}
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	if (grf_readl(GRF_UOC0_CON5) & (0x01 << 0)) {
+		/* exit suspend */
+		grf_writel(((0x01 << 0) << 16), GRF_UOC0_CON5);
+		/* delay more than 1ms, waiting for usb phy init */
+		mdelay(3);
+	}
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
+		/* exit suspend */
+		grf_writel(((0x01 << 0) << 16), GRF_UOC0_CON0);
+		/* delay more than 1ms, waiting for usb phy init */
+		mdelay(3);
+	}
+#else
+	#error "PLS config chiptype for usb vbus check!"
+#endif
+
 	vbus = (OtgReg->Core.gotgctl >> 19) & 0x01;
-	udelay(1);
-	vbus = (OtgReg->Core.gotgctl >> 19) & 0x01;
+	if (vbus == 0) {
+		mdelay(1);
+		vbus = (OtgReg->Core.gotgctl >> 19) & 0x01;
+	}
 
 	return (vbus);     //vbus״̬
 }
