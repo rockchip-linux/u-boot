@@ -1783,6 +1783,7 @@ static void fbt_request_start_fastboot(void)
 	FBTDBG("%s: setting preboot env to %s\n", __func__, getenv("preboot"));
 }
 
+
 /*
  * Determine if we should enter fastboot mode based on board specific
  * key press or parameter left in memory from previous boot.
@@ -1841,16 +1842,16 @@ void fbt_preboot(void)
 	if (is_power_low()) {
 		if (!is_charging()) {
 			FBTERR("low power, shutting down...\n");
-
 #ifdef CONFIG_LCD
-			lcd_standby(0);
-			//TODO: set backlight in better way.
-			rk_backlight_ctrl(48);
-#endif
 			//TODO: show warning logo.
 			show_resource_image("images/battery_fail.bmp");
+
+			lcd_standby(0);
+			//TODO: set backlight in better way.
+			rk_backlight_ctrl(CONFIG_BRIGHTNESS_DIM);
+
 			udelay(1000000);//1 sec
-#ifdef CONFIG_LCD
+
 			rk_backlight_ctrl(0);
 			lcd_standby(1);
 #endif
@@ -1882,6 +1883,7 @@ void fbt_preboot(void)
 #endif //CONFIG_UBOOT_CHARGE
 
 	powerOn();
+
 #ifdef CONFIG_LCD
 	if (logo_on) {
 		lcd_enable_logo(true);
