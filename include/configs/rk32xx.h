@@ -202,7 +202,15 @@
 /* rk plat config include */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#include "rkplat/rk32plat.h"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	#include "rkplat/rk30plat.h"
+
+	#undef CONFIG_PM_SUBSYSTEM
+	#undef CONFIG_RK_PWM
+	#undef CONFIG_UBOOT_CHARGE
+	#undef CONFIG_CMD_CHARGE_ANIM
+	#undef CONFIG_CHARGE_DEEP_SLEEP
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
 	#include "rkplat/rk30plat.h"
 #else
 	#error: "PLS config chip for rk plat!"
