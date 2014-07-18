@@ -137,32 +137,6 @@ reset:
 	orr	r0, r0, #0xc0		@ disable FIQ and IRQ
 	msr	cpsr,r0
 
-
-#ifdef CONFIG_ROCKCHIP
-	/* cpu 1 2 3 power down */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-        ldr 	r1, =0xFF730000
-        mov 	r0, #0x0E
-        str	r0, [r1,#8]
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
-	/* rk3036 no map, no power down cpu1, keeping cpu1 run in maskrom */
-#else
-	#error "PLS config chip for cpu power down!"
-#endif /* CONFIG_RKCHIPTYPE */
-
-	/* io remap */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	LDR 	R0, =0xff740000
-	LDR 	R1, =0x08000000
-	STR 	R1, [R0]
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
-	/* rk3036 no map, no power down cpu1, keeping cpu1 run in maskrom */
-#else
-	#error "PLS config chip for io remap!"
-#endif /* CONFIG_RKCHIPTYPE */
-
-#endif /* CONFIG_ROCKCHIP */
-
 /*
  * Setup vector:
  * (OMAP4 spl TEXT_BASE is not 32 byte aligned.
@@ -252,10 +226,6 @@ ENTRY(cpu_init_cp15)
 	bic	r0, r0, #0x00030000	@ clear bit 17:0
 	orr	r0, r0, #0x00000008	@ set bit 3
 	mcr	p15, 1, r0, c9, c0, 2	@ config L2 Control Register
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
-	/* rk3036 no config l2 latency */
-#else
-	#error "PLS config chip for L2 Latency!"
 #endif
 
 	/*
