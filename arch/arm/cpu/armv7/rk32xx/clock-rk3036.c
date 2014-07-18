@@ -388,7 +388,15 @@ static void rkclk_cpu_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk_di
 static void rkclk_apll_cb(struct pll_clk_set *clkset)
 {
 	rkclk_cpu_coreclk_set(CORE_SRC_ARM_PLL, clkset->core_div, clkset->core_periph_div, clkset->core_aclk_div);
+#if 0
 	rkclk_cpu_ahpclk_set(CPU_SRC_ARM_PLL, clkset->aclk_div, clkset->hclk_div, clkset->pclk_div);
+#else
+	if (CONFIG_RKCLK_GPLL_FREQ > 300) {
+		rkclk_cpu_ahpclk_set(CPU_SRC_GENERAL_PLL, 4, 2, 2);
+	} else {
+		rkclk_cpu_ahpclk_set(CPU_SRC_GENERAL_PLL, 2, 2, 2);
+	}
+#endif
 }
 
 
@@ -529,8 +537,15 @@ void rkclk_get_pll(void)
 
 	/* cpu aclk */
 	div = rkclk_get_cpu_aclk_div();
-	gd->arch.aclk_cpu_rate_hz = gd->cpu_clk / div;
-
+	int con = cru_readl(CRU_CLKSELS_CON(0));
+	con = (con & CPU_SEL_PLL_MSK) >> CPU_SEL_PLL_OFF;
+	if (con == CPU_SRC_GENERAL_PLL) {
+		gd->arch.aclk_cpu_rate_hz = gd->bus_clk / div;
+	} else if (con == CPU_SRC_DDR_PLL) {
+		gd->arch.aclk_cpu_rate_hz = gd->mem_clk / div;
+	} else {
+		gd->arch.aclk_cpu_rate_hz = gd->cpu_clk / div;
+	}
 	/* cpu hclk */
 	div = rkclk_get_cpu_hclk_div();
 	gd->arch.hclk_cpu_rate_hz = gd->arch.aclk_cpu_rate_hz / div;
