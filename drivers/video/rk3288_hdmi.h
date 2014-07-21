@@ -18,10 +18,6 @@ enum {
 	OUTPUT_DVI = 0,
 	OUTPUT_HDMI,
 };
-enum{
-	INPUT_IIS,
-	INPUT_SPDIF
-};
 
 /* Color Space Convertion Mode */
 enum {
