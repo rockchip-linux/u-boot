@@ -81,30 +81,18 @@ void reset_cpu(ulong ignored)
 #endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-        /* disable remap */
-	/* rk3288 address remap control bit: SGRF soc con0 bit 11 */
-        writel(1 << (11 + 16), RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON0);
-
 	/* pll enter slow mode */
 	writel(PLL_MODE_SLOW(APLL_ID) | PLL_MODE_SLOW(GPLL_ID) | PLL_MODE_SLOW(CPLL_ID) | PLL_MODE_SLOW(NPLL_ID), RKIO_GRF_PHYS + CRU_MODE_CON);
 
 	/* soft reset */
 	writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
-        /* disable remap */
-	/* rk3036 address remap control bit: GRF soc con0 bit 12 */
-        writel(1 << (12 + 16), RKIO_GRF_PHYS + GRF_SOC_CON0);
-
 	/* pll enter slow mode */
 	writel(PLL_MODE_SLOW(APLL_ID) | PLL_MODE_SLOW(GPLL_ID), RKIO_GRF_PHYS + CRU_MODE_CON);
 
 	/* soft reset */
 	writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
-        /* disable remap */
-	/* rk3036 address remap control bit: GRF soc con0 bit 12 */
-        writel(1 << (12 + 16), RKIO_GRF_PHYS + GRF_SOC_CON0);
-
 	/* pll enter slow mode */
 	writel(PLL_MODE_SLOW(APLL_ID) | PLL_MODE_SLOW(CPLL_ID) | PLL_MODE_SLOW(GPLL_ID), RKIO_GRF_PHYS + CRU_MODE_CON);
 
