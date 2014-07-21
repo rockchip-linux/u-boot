@@ -456,17 +456,17 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 	switch(fb_info->layer_id){
 		case WIN0:
 		case WIN1:
-			ScaleYrgbX = CalScale(fb_info->xact, vid->vl_col);
-			ScaleYrgbY = CalScale(fb_info->yact, vid->vl_row);		
+			ScaleYrgbX = CalScale(fb_info->xact, fb_info->xsize);
+			ScaleYrgbY = CalScale(fb_info->yact, fb_info->ysize);
 			LcdWrReg(WIN1_SCL_FACTOR_YRGB,v_X_SCL_FACTOR(ScaleYrgbX) | 
 							v_Y_SCL_FACTOR(ScaleYrgbY));
 			LcdMskReg(SYS_CTRL, m_WIN1_EN |m_WIN1_FORMAT, 
 				v_WIN1_EN(1)|v_WIN1_FORMAT(vid->logo_rgb_mode));
 
-	    		LcdWrReg(WIN1_ACT_INFO,v_ACT_WIDTH(fb_info->xact-1) | v_ACT_HEIGHT(fb_info->yact-1));
+			LcdWrReg(WIN1_ACT_INFO,v_ACT_WIDTH(fb_info->xact) | v_ACT_HEIGHT(fb_info->yact));
 			LcdWrReg(WIN1_DSP_ST, v_DSP_STX(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) | 
 				v_DSP_STY(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd)); 
-			LcdWrReg(WIN1_DSP_INFO, v_DSP_WIDTH(fb_info->xsize-1)| v_DSP_HEIGHT(fb_info->ysize-1));
+			LcdWrReg(WIN1_DSP_INFO, v_DSP_WIDTH(fb_info->xsize)| v_DSP_HEIGHT(fb_info->ysize));
 			LcdMskReg(WIN1_COLOR_KEY, m_COLOR_KEY_EN | m_COLOR_KEY_VAL,
 					v_COLOR_KEY_EN(0) | v_COLOR_KEY_VAL(0));
 
