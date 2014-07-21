@@ -165,6 +165,7 @@ vidinfo_t panel_info = {
 	.init_delay	= 0,
 	.power_on_delay = 0,
 	.reset_delay	= 0,
+	.pixelrepeat    = 0,
 #endif
 };
 

@@ -506,12 +506,14 @@ int rk30_load_screen(vidinfo_t *vid)
 
 	if (vid->screen_type == SCREEN_HDMI) {
         	LcdMskReg(AXI_BUS_CTRL,m_HDMI_DCLK_EN,v_HDMI_DCLK_EN(1));
-		if (vid->pixelrepeat)
+		if (vid->pixelrepeat) {
 			LcdMskReg(AXI_BUS_CTRL,m_CORE_CLK_DIV_EN,v_CORE_CLK_DIV_EN(1));
+		}
     	} else if (vid->screen_type == SCREEN_TVOUT) {
 		LcdMskReg(AXI_BUS_CTRL,m_TVE_DAC_DCLK_EN,v_TVE_DAC_DCLK_EN(1));
-		if (vid->pixelrepeat)
+		if (vid->pixelrepeat) {
 			LcdMskReg(AXI_BUS_CTRL,m_CORE_CLK_DIV_EN,v_CORE_CLK_DIV_EN(1));
+		}
 		if(vid->vl_col == 720 && vid->vl_row== 576) {
 			LcdMskReg(DSP_CTRL0,m_TVE_MODE,v_TVE_MODE(TV_PAL));
 		} else if(vid->vl_col == 720 && vid->vl_row== 480) {
