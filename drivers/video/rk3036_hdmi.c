@@ -1,7 +1,32 @@
 #include <common.h>
-#include "rk_hdmi.h"
+#include <malloc.h>
 #include "rk3036_hdmi.h"
 #include <asm-generic/errno.h>
+#include <asm/arch/rkplat.h>
+
+#include "rk_hdmi.h"
+
+static int rk3036_hdmi_show_reg(struct hdmi_dev *hdmi_dev)
+{
+	int i = 0;
+	u32 val = 0;
+
+	printf("\n>>>rk3036_ctl reg");
+	for (i = 0; i < 16; i++)
+		printf(" %2x", i); 
+
+	printf("\n-----------------------------------------------------------------");
+
+	for (i = 0; i <= PHY_PRE_DIV_RATIO; i++) {
+		hdmi_readl(hdmi_dev, i, &val);
+		if (i % 16 == 0)
+			printf("\n>>>rk3036_ctl %2x:", i); 
+		printf(" %02x", val);
+	}   
+	printf("\n-----------------------------------------------------------------\n");
+
+	return 0;
+}
 
 int hdmi_init_video_para(struct hdmi_dev *hdmi_dev)
 {
@@ -70,16 +95,13 @@ static void rk3036_hdmi_set_pwr_mode(struct hdmi_dev *hdmi_dev, int mode)
 	if (hdmi_dev->driver.pwr_mode == mode)
 		return;
 
-	HDMIDBG("%s change pwr_mode %d --> %d\n", __func__,
-		 hdmi_dev->driver.pwr_mode, mode);
-
 	switch (mode) {
 	case NORMAL:
 		HDMIDBG("%s change pwr_mode NORMAL pwr_mode = %d, mode = %d\n",
 			 __func__, hdmi_dev->driver.pwr_mode, mode);
 		rk3036_hdmi_sys_power(hdmi_dev, false);
-		hdmi_writel(hdmi_dev, PHY_DRIVER, 0x99);
-		hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x0f);
+		hdmi_writel(hdmi_dev, PHY_DRIVER, 0xaa);
+		hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x6f);
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x15);
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x14);
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x10);
@@ -111,9 +133,10 @@ static int hdmi_detect_hotplug(struct hdmi_dev *hdmi_dev)
 {
 	u32 value = 0;
 
-	HDMIDBG("[%s] value %02x\n", __func__, value);
 	hdmi_readl(hdmi_dev, HDMI_STATUS, &value);
+	HDMIDBG("[%s] value %02x\n", __func__, value);
 	value &= m_HOTPLUG;
+	HDMIDBG("[%s] value %02x\n", __func__, value);
 	if (value == m_HOTPLUG)
 		return HDMI_HPD_ACTIVED;
 	else if (value)
@@ -122,9 +145,9 @@ static int hdmi_detect_hotplug(struct hdmi_dev *hdmi_dev)
 		return HDMI_HPD_REMOVED;
 }
 
-int rk3036_hdmi_insert(struct hdmi *hdmi_drv)
+int rk3036_hdmi_insert(struct hdmi_dev *hdmi_dev)
 {
-	rk3036_hdmi_set_pwr_mode(hdmi_drv, NORMAL);
+	rk3036_hdmi_set_pwr_mode(hdmi_dev, NORMAL);
 	return 0;
 }
 
@@ -227,7 +250,10 @@ static void rk3036_hdmi_config_avi(struct hdmi_dev *hdmi_dev,
 	    ACTIVE_ASPECT_RATE_SAME_AS_CODED_FRAME;
 	info[6] = 0;
 	info[7] = vic;
-	info[8] = 0;
+	if ((vic == HDMI_720X480I_60HZ_VIC) || (vic == HDMI_720X576I_50HZ_VIC))
+		info[8] = 1;
+	else
+		info[8] = 0;
 
 	/* Calculate AVI InfoFrame ChecKsum */
 	for (i = 4; i < SIZE_AVI_INFOFRAME; i++)
@@ -276,10 +302,10 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 #if 1
 	hdmi_writel(hdmi_dev, VIDEO_TIMING_CTL, 0);
 	//mode = (struct fb_videomode *)hdmi_vic_to_videomode(vpara->vic);
-	timing = (struct hdmi_video_timing *)hdmi_vic2timing(vpara->vic);
+	timing = (struct hdmi_video_timing *)hdmi_vic2timing(hdmi_dev, vpara->vic);
 	if(timing == NULL) {
 		printf("[%s] not found vic %d\n", __FUNCTION__, vpara->vic);
-		return ;
+		return -1;
 	}
 	mode = &(timing->mode);
 	if (mode == NULL) {
@@ -349,13 +375,10 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	return 0;
 }
 
-static void rk3036_hdmi_config_aai(struct hdmi *hdmi_drv)
+static void rk3036_hdmi_config_aai(struct hdmi_dev *hdmi_dev)
 {
 	int i;
 	char info[SIZE_AUDIO_INFOFRAME];
-	struct hdmi_dev *hdmi_dev = /*container_of(hdmi_drv,
-						       struct hdmi_dev,
-						       driver)*/hdmi;
 
 	memset(info, 0, SIZE_AUDIO_INFOFRAME);
 
@@ -374,14 +397,10 @@ static void rk3036_hdmi_config_aai(struct hdmi *hdmi_drv)
 		hdmi_writel(hdmi_dev, CONTROL_PACKET_ADDR + i, info[i]);
 }
 
-#if 0
-static int rk3036_hdmi_config_audio(struct hdmi *hdmi_drv,
+static int rk3036_hdmi_config_audio(struct hdmi_dev *hdmi_dev,
 				   struct hdmi_audio *audio)
 {
 	int rate, N, channel, mclk_fs;
-	struct hdmi_dev *hdmi_dev = /*container_of(hdmi_drv,
-						       struct hdmi_dev,
-						       driver)*/hdmi;
 
 	if (audio->channel < 3)
 		channel = I2S_CHANNEL_1_2;
@@ -453,11 +472,12 @@ static int rk3036_hdmi_config_audio(struct hdmi *hdmi_drv,
 	hdmi_writel(hdmi_dev, AUDIO_N_H, (N >> 16) & 0x0F);
 	hdmi_writel(hdmi_dev, AUDIO_N_M, (N >> 8) & 0xFF);
 	hdmi_writel(hdmi_dev, AUDIO_N_L, N & 0xFF);
-	rk3036_hdmi_config_aai(hdmi_drv);
+	rk3036_hdmi_config_aai(hdmi_dev);
 
 	return 0;
 }
 
+#if 0
 int rk3036_hdmi_removed(struct hdmi *hdmi_drv)
 {
 
@@ -537,31 +557,33 @@ static void rk3036_hdmi_reset(struct hdmi_dev *hdmi_dev)
 	msk = m_REG_CLK_INV | m_REG_CLK_SOURCE | m_POWER | m_INT_POL;
 	val = v_REG_CLK_INV | v_REG_CLK_SOURCE_SYS | v_PWR_ON | v_INT_POL_HIGH;
 	hdmi_msk_reg(hdmi_dev, SYS_CTRL, msk, val);
-	//hdmi_readl(hdmi_dev, HDMI_STATUS,&val);//enable hpg
-	//val |= m_MASK_INT_HOTPLUG;
-	//hdmi_writel(hdmi_dev, HDMI_STATUS,val);
 
-	rk3036_hdmi_set_pwr_mode(hdmi_dev, LOWER_PWR);
+	//rk3036_hdmi_set_pwr_mode(hdmi_dev, LOWER_PWR);
+	rk3036_hdmi_set_pwr_mode(hdmi_dev, NORMAL);
 }
 
-int hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
+static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
-	int ret = -1;
+	int i = 5, ret = -1, val = 0;
 
 	if (!hdmi_dev)
 		return ret;
 
+
     rk3036_hdmi_reset_pclk();
     rk3036_hdmi_reset(hdmi_dev);
+	mdelay(400);
 
 	hdmi_dev->read_edid = hdmi_dev_read_edid;
+	hdmi_dev->driver.pwr_mode = NORMAL;
 
 	if (hdmi_detect_hotplug(hdmi_dev) == HDMI_HPD_ACTIVED) {
 		hdmi_parse_edid(hdmi_dev);
 		hdmi_find_best_mode(hdmi_dev);
 		hdmi_init_video_para(hdmi_dev);
-		rk3036_hdmi_config_vide(hdmi_dev);
-		rk3036_hdmi_control_output(hdmi_dev, HDMI_AN_UNMUTE);
+		rk3036_hdmi_config_video(hdmi_dev);
+		rk3036_hdmi_config_audio(hdmi_dev, &hdmi_dev->driver.audio);
+		rk3036_hdmi_control_output(hdmi_dev, 1);
 
 		ret = 0;
 	}else {
@@ -569,4 +591,35 @@ int hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 	}
 
 	return ret;
+}
+
+void rk3036_hdmi_probe(vidinfo_t *panel)
+{
+	int val = 0;
+	struct hdmi_dev *hdmi_dev = NULL;
+
+	//iomux scl/ada/hpd/cec
+	val = (0x55 | (0x55 << 16));
+	grf_writel(val, GRF_GPIO1B_IOMUX); 
+
+	hdmi_dev = malloc(sizeof(struct hdmi_dev));
+	if (hdmi_dev != NULL && panel != NULL) {
+		memset(hdmi_dev, 0, sizeof(struct hdmi_dev));
+		hdmi_dev->regbase = (void *)RKIO_HDMI_PHYS;
+		hdmi_dev->hd_init = rk3036_hdmi_hardware_init;
+		hdmi_dev->read_edid = hdmi_dev_read_edid;
+
+        hdmi_dev->driver.vic = HDMI_VIDEO_DEFAULT_MODE;
+		//audio
+        hdmi_dev->driver.audio.channel = HDMI_AUDIO_DEFAULT_CHANNEL;
+        hdmi_dev->driver.audio.rate = HDMI_AUDIO_DEFAULT_RATE;
+        hdmi_dev->driver.audio.word_length = HDMI_AUDIO_DEFAULT_WORD_LENGTH;
+
+		rk_hdmi_register(hdmi_dev, panel);
+	}else {
+		printf("%s: hdmi_dev %#x  panel %#x\n", __func__, hdmi_dev, panel);
+	}
+
+	rk3036_hdmi_show_reg(hdmi_dev);
+	free(hdmi_dev);
 }

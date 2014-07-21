@@ -185,6 +185,9 @@ void lcd_ctrl_init(void *lcdbase)
 #ifdef CONFIG_RK_3288_HDMI
    rk3288_hdmi_probe(&panel_info);
 #endif
+#ifdef CONFIG_RK_3036_HDMI
+   rk3036_hdmi_probe(&panel_info);
+#endif
 
     init_panel_info(&panel_info);
     if (panel_info.enable_ldo)

@@ -2,6 +2,8 @@
 #define _RK3036_HDMI_H
 
 #include <asm/io.h>
+#include <asm/arch-rk32xx/io-rk3036.h>
+#include "rk_hdmi.h"
 
 enum PWR_MODE {
 	NORMAL,
@@ -12,11 +14,13 @@ enum {
 	OUTPUT_HDMI
 };
 
-#ifdef RK616_USE_MCLK_12M
-#define HDMI_SYS_FREG_CLK        12000000
-#else
-#define HDMI_SYS_FREG_CLK        11289600
-#endif
+//#ifdef RK616_USE_MCLK_12M
+//#define HDMI_SYS_FREG_CLK        12000000
+//#else
+//#define HDMI_SYS_FREG_CLK        11289600
+//#endif
+
+#define HDMI_SYS_FREG_CLK        74250000
 
 #define HDMI_SCL_RATE            (100*1000)
 #define DDC_BUS_FREQ_L			0x4b
@@ -314,9 +318,9 @@ static inline int hdmi_msk_reg(struct hdmi_dev *hdmi_dev, u16 offset,
 
 static inline void rk3036_hdmi_reset_pclk(void)
 {
-	writel(0x00010001, RK_CRU_VIRT + 0x128);
-	mdelay(100);
-	writel(0x00010000, RK_CRU_VIRT + 0x128);
+	writel(0x00010001, RKIO_CRU_PHYS + 0x128);
+	mdelay(400);
+	writel(0x00010000, RKIO_CRU_PHYS + 0x128);
 }
 
 extern int rk616_hdmi_initial(void);
