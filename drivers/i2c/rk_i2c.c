@@ -170,12 +170,12 @@ static uint g_i2c_online_bus = I2C_BUS_MAX;
 static inline void *rk_i2c_get_base(void)
 {
 	if (g_i2c_online_bus >= I2C_BUS_MAX) {
-		printf("I2C bus error, PLS set i2c bus first!");
+		printf("I2C bus error, PLS set i2c bus first!\n");
 		return (void *)NULL;
 	}
 
 	if (rki2c_base[g_i2c_online_bus].regs == 0) {
-		printf("I2C base register error, PLS check i2c config!");
+		printf("I2C base register error, PLS check i2c config!\n");
 		return (void *)NULL;	
 	}
 
@@ -515,7 +515,7 @@ int i2c_set_bus_num(unsigned bus_idx)
 	i2c_info("i2c_set_bus_num: I2C bus = %d\n", bus_idx);
 
 	if (bus_idx >= I2C_BUS_MAX) {
-		printf("i2c_set_bus_num: I2C bus error!");
+		printf("i2c_set_bus_num: I2C bus error!\n");
 		return -1;
 	}
 
@@ -544,7 +544,7 @@ int i2c_read(uchar chip, uint addr, int alen, uchar *buf, int len)
 		return -1;
 	}
 	if ((buf == NULL) && (len != 0)) {
-		printf("i2c_read: buf == NULL");
+		printf("i2c_read: buf == NULL\n");
 		return -2;
 	}
 
@@ -570,7 +570,7 @@ int i2c_write(uchar chip, uint addr, int alen, uchar *buf, int len)
 		return -1;
 	}
 	if ((buf == NULL) && (len != 0)) {
-		printf("i2c_write: buf == NULL");
+		printf("i2c_write: buf == NULL\n");
 		return -2;
 	}
 
