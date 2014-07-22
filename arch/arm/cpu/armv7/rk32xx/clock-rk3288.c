@@ -820,31 +820,6 @@ void rkclk_get_pll(void)
 	gd->arch.pclk_bus_rate_hz = gd->arch.aclk_bus_rate_hz / div;
 }
 
-int rkclk_get_arm_pll(void)
-{
-	return rkclk_pll_clk_get_rate(APLL_ID);
-}
-
-int rkclk_get_general_pll(void)
-{
-	return rkclk_pll_clk_get_rate(GPLL_ID);
-}
-
-int rkclk_get_codec_pll(void)
-{
-	return rkclk_pll_clk_get_rate(CPLL_ID);
-}
-
-int rkclk_get_ddr_pll(void)
-{
-	return rkclk_pll_clk_get_rate(DPLL_ID);
-}
-
-int rkclk_get_new_pll(void)
-{
-	return rkclk_pll_clk_get_rate(NPLL_ID);
-}
-
 
 /*
  * rkplat clock dump pll information
@@ -1253,6 +1228,41 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	}
 }
 
+
+/*
+ * rkplat set nandc clock div
+ * nandc_id:	nandc id
+ * pllsrc:	0: codec pll; 1: general pll;
+ * freq:	nandc max freq request
+ */
+int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
+{
+	uint32 parent = 0;
+	uint con = 0, div = 0, offset = 0;
+
+	if (nandc_id == 0) {
+		offset = 0;
+	} else {
+		offset = 8;
+	}
+
+	if (pllsrc == 0) {
+		con = (0 << (7 + offset)) | (1 << (7 + offset + 16));
+		parent = gd->pci_clk;
+	} else {
+		con = (1 << (7 + offset)) | (1 << (7 + offset + 16));
+		parent = gd->bus_clk;
+	}
+
+	div = rkclk_calc_clkdiv(parent, freq, 0);
+	if (div == 0) {
+		div = 1;
+	}
+	con |= (((div - 1) << (0 + offset)) | (0x1f << (0 + offset + 16)));
+	cru_writel(con, CRU_CLKSELS_CON(38));
+
+	return 0;
+}
 
 /*
  * rkplat set sd clock src

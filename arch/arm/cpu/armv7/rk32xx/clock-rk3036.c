@@ -735,6 +735,40 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 
 
 /*
+ * rkplat set nandc clock div
+ * nandc_id:	nandc id
+ * 0: arm pll; 1: ddr pll; 2: general pll;
+ */
+int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
+{
+	uint32 parent = 0;
+	uint con = 0, div = 0;
+
+	nandc_id = nandc_id;
+
+	if (pllsrc == 0) {
+		con = (0 << 8) | (3 << (8 + 16));
+		parent = gd->cpu_clk;
+	} else if (pllsrc == 1) {
+		con = (1 << 8) | (3 << (8 + 16));
+		parent = gd->mem_clk;
+	} else {
+		con = (2 << 8) | (3 << (8 + 16));
+		parent = gd->bus_clk;
+	}
+
+	div = rkclk_calc_clkdiv(parent, freq, 0);
+	if (div == 0) {
+		div = 1;
+	}
+	con |= (((div - 1) << 10) | (0x1f << (10 + 16)));
+	cru_writel(con, CRU_CLKSELS_CON(16));
+
+	return 0;
+}
+
+
+/*
  * rkplat set sd clock src
  * 0: arm pll; 1: ddr pll; 2: general pll; 3: 24M
  */

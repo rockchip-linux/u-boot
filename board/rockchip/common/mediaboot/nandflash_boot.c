@@ -26,10 +26,7 @@
 #include "nandflash_boot.h"
 
 
-//#define LMemApiFlashInfo        ReadFlashInfo
 static pLOADER_MEM_API_T gp_loader_api = NULL;
-static uint32 gMedia = 0;
-
 
 void LMemApiReadId(uint8 chipSel, void *pbuf)
 {
@@ -49,8 +46,7 @@ uint32 LMemApiLowFormat(void)
 {
 	int ret = FTL_ERROR;
 
-	if(gp_loader_api->LowFormat)
-	{
+	if(gp_loader_api->LowFormat) {
 		gp_loader_api->LowFormat();
 		ret = FTL_OK;
 	}
@@ -62,8 +58,7 @@ uint32 LMemApiErase(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod)
 {
 	int ret = FTL_ERROR;
 
-	if(gp_loader_api->Erase)
-	{
+	if(gp_loader_api->Erase) {
 		gp_loader_api->Erase(ChipSel, blkIndex, nblk, mod);
 		ret = FTL_OK;
 	}
@@ -75,8 +70,9 @@ uint32 LMemApiReadPba(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec)
 {
 	int ret = FTL_ERROR;
 
-	if(gp_loader_api->ReadPba)
+	if(gp_loader_api->ReadPba) {
 		ret = gp_loader_api->ReadPba(0, PBA, pbuf, nSec);
+	}
 
 	return ret;
 }
@@ -85,8 +81,9 @@ uint32 LMemApiWritePba(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec)
 {
 	int ret = FTL_ERROR;
 
-	if(gp_loader_api->WritePba)
+	if(gp_loader_api->WritePba) {
 		ret = gp_loader_api->WritePba(0, PBA, pbuf, nSec);
+	}
 
 	return ret;
 }
@@ -97,10 +94,7 @@ uint32 LMemApiReadLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec)
 
 	if(gp_loader_api->ReadLba) {
 		ret = gp_loader_api->ReadLba(0, LBA , nSec, pbuf);
-	if(ret)
-		printf("LMemApiReadLba:%d\n", ret);
 	}
-
 	return ret;
 }
 
@@ -108,8 +102,9 @@ uint32 LMemApiWriteLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec, uint1
 {
 	int ret = FTL_ERROR;
 
-	if(gp_loader_api->WriteLba)
+	if(gp_loader_api->WriteLba) {
 		ret = gp_loader_api->WriteLba(0, LBA, nSec, pbuf);
+	}
 
 	return ret;
 }
@@ -118,8 +113,9 @@ uint32 FtlDeInit(void)
 {
 	uint32 ret = FTL_ERROR;
 
-	if(gp_loader_api->ftl_deinit)
+	if(gp_loader_api->ftl_deinit) {
 		ret = gp_loader_api->ftl_deinit();
+	}
 
 	return ret;
 }
@@ -128,8 +124,9 @@ uint32 FlashDeInit(void)
 {
 	uint32 ret = FTL_ERROR;
 
-	if(gp_loader_api->flash_deinit)
+	if(gp_loader_api->flash_deinit) {
 		ret = gp_loader_api->flash_deinit();
+	}
 
 	return ret;
 }
@@ -138,8 +135,9 @@ uint32 LMemApiGetCapacity(uint8 ChipSel)
 {
 	uint32 ret = FTL_ERROR;
 
-	if(gp_loader_api->GetCapacity)
+	if(gp_loader_api->GetCapacity) {
 		ret = gp_loader_api->GetCapacity(gpMemFun->id);
+	}
 
 	return ret;
 }
@@ -149,8 +147,9 @@ uint32 LMemApiSysDataLoad(uint8 ChipSel, uint32 Index, void *Buf)
 	uint32 ret = FTL_ERROR;
 
 	ftl_memset(Buf, 0, 512);
-	if(gp_loader_api->SysDataLoad)
+	if(gp_loader_api->SysDataLoad) {
 		ret = gp_loader_api->SysDataLoad(gpMemFun->id, Index, Buf);
+	}
 
 	return ret;
 }
@@ -159,36 +158,38 @@ uint32 LMemApiSysDataStore(uint8 ChipSel, uint32 Index, void *Buf)
 {
 	uint32 ret = FTL_ERROR;
 
-	if(gp_loader_api->SysDataStore)
+	if(gp_loader_api->SysDataStore) {
 		ret = gp_loader_api->SysDataStore(gpMemFun->id, Index, Buf);
+	}
 
 	return ret;
 }
 
+#define RKNANDC_MAX_FREQ	(150 * MHZ)
 uint32 lMemApiInit(uint32 BaseAddr)
 {
-	printf("use uboot as second level loader\n");
+	printf("Uboot as second level loader\n");
+
 	gp_loader_api = (pLOADER_MEM_API_T)(*((uint32*)CONFIG_RKNAND_API_ADDR)); // get api table
-	if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000)
-	{     //nand                   emmc
-		if(gp_loader_api->id == 1 || gp_loader_api->id == 2)
-		{
+	if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000) {
+		// nand and emmc support
+		if((gp_loader_api->id == 1) || (gp_loader_api->id == 2)) {
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+			rkclk_set_nandc_div(0, 1, RKNANDC_MAX_FREQ);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+			rkclk_set_nandc_div(0, 2, RKNANDC_MAX_FREQ);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+			rkclk_set_nandc_div(0, 1, RKNANDC_MAX_FREQ);
+#else
+			#error "PLS config platform for nandc freq!"
+#endif
 			return 0;
-		}
-		else if(gp_loader_api->id == 2)
-		{
-			return 2;
-		}
-		else
-		{
+		} else {
 			return -1;
 		}
-	}
-	else
-	{
+	} else {
 		return -1;
 		//error
 	}
 }
-
 

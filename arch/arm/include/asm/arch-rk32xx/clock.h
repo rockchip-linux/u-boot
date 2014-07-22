@@ -50,11 +50,6 @@ void rkclk_set_pll(void);
  * rkplat clock get arm pll, general pll and so on
  */
 void rkclk_get_pll(void);
-int rkclk_get_arm_pll(void);
-int rkclk_get_general_pll(void);
-int rkclk_get_codec_pll(void);
-int rkclk_get_ddr_pll(void);
-int rkclk_get_new_pll(void);
 
 /*
  * rkplat clock pll dump
@@ -69,60 +64,76 @@ void rkclk_set_cpll_rate(uint32 pll_hz);
 
 
 /*
+ * rkplat set nandc clock div
+ * nandc_id:	nandc id
+ * pllsrc: 	nandc clock src;
+ * freq:	nandc max freq request.
+ */
+int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq);
+
+
+/*
  * rkplat set sd clock src
- * 0: codec pll; 1: general pll; 2: 24M
+ * sdid:	sdmmc/sdio/emmc id
+ * src:		sd clock source
  */
 void rkclk_set_sdclk_src(uint32 sdid, uint32 src);
 
 /*
- * rkplat set sd/sdmmc/emmc clock src
+ * rkplat get sd/sdmmc/emmc clock source freq
+ * sdid:	sdmmc/sdio/emmc id
  */
 unsigned int rkclk_get_sdclk_src_freq(uint32 sdid);
 
 /*
  * rkplat set sd clock div, from source input
+ * sdid:	sdmmc/sdio/emmc id
+ * div:		sd clock div, start from 1
  */
 int rkclk_set_sdclk_div(uint32 sdid, uint32 div);
 
 
 /*
- * rkplat get PWM clock, PWM01 from pclk_cpu, PWM23 from pclk_periph
+ * rkplat get PWM clock
+ * id:		pwm id
  */
 unsigned int rkclk_get_pwm_clk(uint32 id);
 
 
 /*
- * rkplat get I2C clock, I2c0 and i2c1 from pclk_cpu, I2c2 and i2c3 from pclk_periph
+ * rkplat get I2C clock
+ * i2c_bus_id:	i2c bus id
  */
 unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id);
 
 
 /*
- * rkplat get spi clock, spi0 and spi1 from  pclk_periph
+ * rkplat get spi clock
+ * spi_bus:	spi bus id
  */
 unsigned int rkclk_get_spi_clk(uint32 spi_bus);
 
 
 /*
  * rkplat lcdc aclk config
- * lcdc_id (lcdc id select) : start from 0, max depend chip platform.
- * aclk_hz : lcdc aclk freq
+ * lcdc_id (lcdc id select) :	start from 0, max depend chip platform.
+ * aclk_hz :			lcdc aclk freq
  */
 int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz);
 
 
 /*
  * rkplat lcdc dclk config
- * lcdc_id (lcdc id select) : start from 0, max depend chip platform.
- * aclk_hz : lcdc aclk freq
+ * lcdc_id (lcdc id select) :	start from 0, max depend chip platform.
+ * aclk_hz :			lcdc aclk freq
  */
 int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz);
 
 
 /*
  * rkplat lcdc dclk and aclk parent pll source
- * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
- * dclk_hz: dclk rate
+ * lcdc_id (lcdc id select) :	start from 0, max depend chip platform.
+ * dclk_hz:			dclk rate
  * return dclk rate
  */
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz);
@@ -132,8 +143,8 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz);
  * rkplat pll select by clock
  * clock: device request freq HZ
  * return value:
- * high 16bit: 0 - codec pll, 1 - general pll
- * low 16bit : div
+ * high 16bit:		clock source select
+ * low 16bit :		div
  */
 uint32 rkclk_select_pll_source(uint32 clock, uint32 even);
 
