@@ -24,6 +24,8 @@
 
 #include "typedef.h"
 
+#define COMPAT_ROCKCHIP_BL "pwm-backlight"
+
 #define write_pwm_reg(id, addr, val)	(*(unsigned long *)(addr+RKIO_RK_PWM_PHYS+id*0x10)=val)
 
 
@@ -71,6 +73,7 @@
 struct pwm_bl {
 	int id;				/*pwm id*/
 	int node;			/*device node*/
+	int status;
 	struct fdt_gpio_state bl_en;
 	unsigned int	period; 	/* in nanoseconds */
 	unsigned int max_brightness;

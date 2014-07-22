@@ -47,13 +47,24 @@ static int rk_bl_parse_dt(const void *blob)
 	int len;
 	bl.node = fdtdec_next_compatible(blob,
 					0, COMPAT_ROCKCHIP_BL);
+	if (bl.node < 0) {
+		debug("can't find dts node for backlight\n");
+		bl.status = 0;
+		return -ENODEV;
+	}
+	if (!fdt_device_is_available(blob,bl.node)) {
+		debug("device backlight is disabled\n");
+		bl.status = 0;
+		return -EPERM;
+	}
 	fdtdec_decode_gpio(blob, bl.node, "enable-gpios", &bl.bl_en);
 	bl.bl_en.gpio = rk_gpio_base_to_bank(bl.bl_en.gpio & RK_GPIO_BANK_MASK) | (bl.bl_en.gpio & RK_GPIO_PIN_MASK);
 	bl.bl_en.flags = !(bl.bl_en.flags  & OF_GPIO_ACTIVE_LOW);
 	if (fdtdec_get_int_array(blob, bl.node, "pwms", data,
 			ARRAY_SIZE(data))) {
-		printf("Cannot decode PWM property pwms\n");
-		return -1;
+		debug("Cannot decode PWM property pwms\n");
+		bl.status = 0;
+		return -ENODEV;
 	}
 	bl.id = data[1];
 	bl.period = data[2];
@@ -72,6 +83,7 @@ static int rk_bl_parse_dt(const void *blob)
 	}
 
 	bl.dft_brightness = fdtdec_get_int(blob, bl.node, "default-brightness-level", 48);
+	bl.status = 1;
 
 	return 0;
 }
@@ -86,13 +98,19 @@ int rk_pwm_config(int brightness)
 	int conf=0;
 	int id = 0;
 	int duty_ns,period_ns;
+	int ret;
 	if (!bl.node) {
 #ifdef CONFIG_OF_LIBFDT
-		rk_bl_parse_dt(gd->fdt_blob);
+		ret = rk_bl_parse_dt(gd->fdt_blob);
+		if (ret < 0)
+			return ret;
 #endif
 		rk_iomux_config(RK_PWM0_IOMUX+bl.id);
 		gpio_direction_output(bl.bl_en.gpio, bl.bl_en.flags);
 	}
+
+	if (!bl.status)
+		return -EPERM;
 
 	if (brightness == 0)
 		gpio_set_value(bl.bl_en.gpio, !(bl.bl_en.flags));
