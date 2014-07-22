@@ -764,6 +764,7 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 	con |= (((div - 1) << 10) | (0x1f << (10 + 16)));
 	cru_writel(con, CRU_CLKSELS_CON(16));
 
+	debug("nandc clock src rate = %d, div = %d\n", parent, div);
 	return 0;
 }
 
