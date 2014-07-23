@@ -173,7 +173,6 @@ typedef struct LOADER_MEM_API_Tag
 EXT MEM_FUN_T * gpMemFun;
 EXT MEM_FUN_T * gpSdBootMemFun;
 EXT uint32 gIdDataBuf[512] __attribute__((aligned(ARCH_DMA_MINALIGN)));
-EXT uint32 gSysData[512] __attribute__((aligned(ARCH_DMA_MINALIGN)));
 EXT FLASH_INFO g_FlashInfo __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
 #endif

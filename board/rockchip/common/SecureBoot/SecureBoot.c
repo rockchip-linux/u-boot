@@ -38,6 +38,18 @@ BOOT_CONFIG_INFO gBootConfig __attribute__((aligned(ARCH_DMA_MINALIGN)));
 DRM_KEY_INFO gDrmKeyInfo __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
 
+#ifdef ERASE_DRM_KEY_EN
+void SecureBootEraseDrmKey(void)
+{
+	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, 512);
+
+	printf("erase drm key for debug!\n");
+	memset(buf, 0, 512);
+	StorageSysDataStore(1, buf);
+}
+#endif
+
+
 uint32 SecureBootCheck(void)
 {
 	uint32 ret  = FTL_OK;
@@ -69,12 +81,7 @@ uint32 SecureBootCheck(void)
 	SecureBootLock = 0;
 
 #ifdef ERASE_DRM_KEY_EN
-	if(gSysData[128+4] != 0 )//publicKeyLen
-	{
-		RkPrintf("erase drm key for debug!\n");
-		ftl_memset(gSysData,0,2048);
-		StorageSysDataStore(1, gSysData);
-	}
+	SecureBootEraseDrmKey();
 #endif
 
 	if(StorageSysDataLoad(1,&gDrmKeyInfo) == FTL_OK)
