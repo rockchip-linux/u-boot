@@ -1507,7 +1507,7 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		//  dsi_screen->dsi_video_mode = screen->dsi_video_mode; //no sure
 		dsi_screen->dsi_lane = rk_mipi_get_dsi_lane();
 		dsi_screen->hs_tx_clk = rk_mipi_get_dsi_clk();	
-		dsi_screen->lcdc_id = 1;
+		//dsi_screen->lcdc_id = 1;
 		dsi->dsi_id = id++;//of_alias_get_id(pdev->dev.of_node, "dsi");
 		sprintf(ops->name, "rk_mipi_dsi.%d", dsi->dsi_id);
 
@@ -1518,7 +1518,7 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		}	
 		
 		if(id == 1){
-		  rk32_init_phy_mode(dsi_screen->lcdc_id);
+		  //rk32_init_phy_mode(dsi_screen->lcdc_id);
 		  //rk_fb_trsm_ops_register(&trsm_dsi_ops, SCREEN_MIPI);
 		  dsi0 = dsi;
 		}else{   
@@ -1532,7 +1532,7 @@ int rk32_mipi_enable(vidinfo_t *vid)
 	    	    break;
 
 	}while(1);
-	
+	rk32_init_phy_mode(vid->lcdc_id);
 	rk32_dsi_enable();
 	
 #if 0
