@@ -45,7 +45,7 @@ static int rk_bl_parse_dt(const void *blob)
 {
 	u32 data[3];
 	int len;
-	bl.node = fdtdec_next_compatible(blob,
+	bl.node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_BL);
 	if (bl.node < 0) {
 		debug("can't find dts node for backlight\n");
