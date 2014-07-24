@@ -362,9 +362,9 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	if (vpara->output_mode == OUTPUT_HDMI) {
 		rk3036_hdmi_config_avi(hdmi_dev, vpara->vic,
 				      vpara->output_color);
-		HDMIDBG("[%s] sucess output HDMI.\n", __func__);
+		printf("sucess output HDMI.\n");
 	} else {
-		HDMIDBG("[%s] sucess output DVI.\n", __func__);
+		printf("sucess output DVI.\n");
 	}
 
 	/* rk3028a */
@@ -569,11 +569,11 @@ static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 	if (!hdmi_dev)
 		return ret;
 
-
     rk3036_hdmi_reset_pclk();
     rk3036_hdmi_reset(hdmi_dev);
 	mdelay(400);
 
+	hdmi_dev->mode_len = 16; //1080p@60
 	hdmi_dev->read_edid = hdmi_dev_read_edid;
 	hdmi_dev->driver.pwr_mode = NORMAL;
 
@@ -609,17 +609,16 @@ void rk3036_hdmi_probe(vidinfo_t *panel)
 		hdmi_dev->hd_init = rk3036_hdmi_hardware_init;
 		hdmi_dev->read_edid = hdmi_dev_read_edid;
 
-        hdmi_dev->driver.vic = HDMI_VIDEO_DEFAULT_MODE;
 		//audio
         hdmi_dev->driver.audio.channel = HDMI_AUDIO_DEFAULT_CHANNEL;
         hdmi_dev->driver.audio.rate = HDMI_AUDIO_DEFAULT_RATE;
         hdmi_dev->driver.audio.word_length = HDMI_AUDIO_DEFAULT_WORD_LENGTH;
 
 		rk_hdmi_register(hdmi_dev, panel);
+		 
 	}else {
 		printf("%s: hdmi_dev %#x  panel %#x\n", __func__, hdmi_dev, panel);
 	}
 
-	rk3036_hdmi_show_reg(hdmi_dev);
 	free(hdmi_dev);
 }
