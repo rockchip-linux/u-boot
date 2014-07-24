@@ -456,6 +456,10 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 	switch(fb_info->layer_id){
 		case WIN0:
 		case WIN1:
+			if (vid->vmode) {
+				fb_info->ysize /= 2;
+				fb_info->ypos  /= 2;
+			}
 			ScaleYrgbX = CalScale(fb_info->xact, fb_info->xsize);
 			ScaleYrgbY = CalScale(fb_info->yact, fb_info->ysize);
 			LcdWrReg(WIN1_SCL_FACTOR_YRGB,v_X_SCL_FACTOR(ScaleYrgbX) | 
@@ -582,7 +586,7 @@ int rk30_load_screen(vidinfo_t *vid)
 			    v_VASP(2 * (vid->vl_vspw + vid->vl_vbpd) + vid->vl_row/2 + vid->vl_vfpd + 1));
 			    
 		LcdMskReg(DSP_CTRL0, m_INTERLACE_DSP_EN | m_WIN1_INTERLACE_EN | m_WIN0_YRGB_DEFLICK_EN | m_WIN0_CBR_DEFLICK_EN, 
-			v_INTERLACE_DSP_EN(1) | v_WIN1_INTERLACE_EN(1) | v_WIN0_YRGB_DEFLICK_EN(1) | v_WIN0_CBR_DEFLICK_EN(1) );
+			v_INTERLACE_DSP_EN(1) | v_WIN1_INTERLACE_EN(0) | v_WIN0_YRGB_DEFLICK_EN(1) | v_WIN0_CBR_DEFLICK_EN(1) );
 
 	} else {
 		val = v_VSYNC(vid->vl_vspw) | 
