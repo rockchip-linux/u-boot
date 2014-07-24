@@ -714,7 +714,7 @@ void rkusb_handle_datarx(void)
 				usbcmd.lba += rxdata_blocks;
 			}
 			else if(usbcmd.lba == 0xFFFFF000) {
-				SecureBootUnlock(current_urb->buffer);
+				SecureBootUnlock(rxdata_buf);
 			}
 			else if(SecureBootLock == 0) {
 				StorageWriteLba(usbcmd.lba, rxdata_buf, rxdata_blocks, usbcmd.imgwr_mode);
