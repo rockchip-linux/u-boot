@@ -5,7 +5,7 @@
 #include <../board/rockchip/common/storage/storage.h>
 
 #define PARTITION_NAME "baseparamer"
-#define DEFAULT_MODE   11 
+#define DEFAULT_MODE   15 
 
 #ifndef OUT_P888
 #define OUT_P888 0 
