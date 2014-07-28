@@ -335,6 +335,9 @@ static void FW_GetChipVer(void)
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	chip_info[0] = 0x33303341; // 303A
 #endif
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+	chip_info[0] = 0x33313241; // 312A
+#endif
 	ftl_memcpy(current_urb->buffer, chip_info, 16);
 	current_urb->actual_length = 16;
 		
