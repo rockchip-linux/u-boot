@@ -1165,9 +1165,9 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dcl
 	uint32 pll_hz;
 	uint32 vio_limit_freq = 0;
 
-	/* make sure general pll is 297MHz */
-	if ((rate_hz <= (297 * MHZ)) && ((297 * MHZ) % rate_hz == 0)) {
-		pll_hz = (297 * MHZ);
+	/* make sure general pll is 297MHz or 594MHz */
+	if ((rate_hz <= gd->bus_clk) && (gd->bus_clk % rate_hz == 0)) {
+		pll_hz = gd->bus_clk;
 		div = rkclk_calc_clkdiv(pll_hz, rate_hz, 0);
 		*dclk_div =  div;
 
@@ -1200,11 +1200,16 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dcl
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
 	uint32 pll_src;
-	uint32 dclk_div;
+	uint32 aclk_div, dclk_div;
 
 	pll_src = rkclk_lcdc_dclk_to_pll(lcdc_id, dclk_hz, &dclk_div);
 	rkclk_lcdc_dclk_config(lcdc_id, pll_src, dclk_div);
-	rkclk_lcdc_aclk_config(lcdc_id, pll_src, 1);
+	if (pll_src != 0) { // gpll
+		aclk_div = rkclk_calc_clkdiv(gd->bus_clk, 300 * MHZ, 0);
+	} else { //cpll
+		aclk_div = 1;
+	}
+	rkclk_lcdc_aclk_config(lcdc_id, pll_src, aclk_div);
 	/* when set lcdc0, should vio hclk */
 	if (lcdc_id == 0) {
 		uint32 pll_hz;
