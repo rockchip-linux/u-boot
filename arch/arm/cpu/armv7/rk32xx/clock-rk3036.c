@@ -313,9 +313,6 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 			| (PERI_PCLK_DIV_W_MSK | (p_div << PERI_PCLK_DIV_OFF))
 			| (PERI_HCLK_DIV_W_MSK | (h_div << PERI_HCLK_DIV_OFF))
 			| (PERI_ACLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)), CRU_CLKSELS_CON(10));
-
-	/* set gpu default div set as 4:1 */
-	cru_writel((0x1f << (0 + 16)) | (3 << 0), CRU_CLKSELS_CON(34));
 }
 
 
@@ -388,6 +385,7 @@ static void rkclk_cpu_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk_di
 static void rkclk_apll_cb(struct pll_clk_set *clkset)
 {
 	rkclk_cpu_coreclk_set(CORE_SRC_ARM_PLL, clkset->core_div, clkset->core_periph_div, clkset->core_aclk_div);
+	/* cpu ahp clock source select general pll */
 #if 0
 	rkclk_cpu_ahpclk_set(CPU_SRC_ARM_PLL, clkset->aclk_div, clkset->hclk_div, clkset->pclk_div);
 #else
@@ -402,7 +400,25 @@ static void rkclk_apll_cb(struct pll_clk_set *clkset)
 
 static void rkclk_gpll_cb(struct pll_clk_set *clkset)
 {
+	uint32 con, div;
+
 	rkclk_periph_ahpclk_set(PERIPH_SRC_GENERAL_PLL, clkset->aclk_div, clkset->hclk_div, clkset->pclk_div);
+
+	/* set module clock default div from general pll */
+	/* nandc default clock div */
+	if (CONFIG_RKCLK_GPLL_FREQ > 300) {
+		div = 4;
+	} else {
+		div = 2;
+	}
+	con = (((div - 1) << 10) | (0x1f << (10 + 16)));
+	cru_writel(con, CRU_CLKSELS_CON(16));
+
+	/* set gpu default div set as 4:1 */
+	cru_writel((0x1f << (0 + 16)) | (3 << 0), CRU_CLKSELS_CON(34));
+
+	/* set vpu default div set as 4:1 */
+	cru_writel((0x1f << (8 + 16)) | (3 << 0), CRU_CLKSELS_CON(32));
 }
 
 
