@@ -68,6 +68,7 @@ key_config	key_rockusb;
 key_config	key_recovery;
 key_config	key_fastboot;
 key_config      key_power;
+key_config      key_remote;
 
 
 /*
@@ -220,6 +221,34 @@ void PowerKeyInit(void)
 #endif
 }
 
+extern int g_ir_keycode;
+extern int remotectl_do_something(void);
+extern void remotectlInitInDriver();
+
+extern unsigned int rkclk_get_pwm_clk(uint32 pwm_id);
+
+
+int RemotectlInit(void)
+{
+	int i = 0;
+	key_remote.type = KYE_REMOTE;
+	key_remote.key.ioint.name = NULL;
+	key_remote.key.ioint.gpio = (GPIO_BANK0 | GPIO_D3);
+	key_remote.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
+	key_remote.key.ioint.pressed_state = 0;
+	key_remote.key.ioint.press_time = 0;
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	remotectlInitInDriver();
+
+	//select gpio0d3_sel for pwm3(IR)
+	grf_writel( 0x40 | (0x40 << 16),0xb4);
+	//install the irq hander for PWM irq.
+	irq_install_handler(IRQ_PWM, remotectl_do_something, NULL);
+	irq_handler_enable(IRQ_PWM);
+#endif
+	return 0;
+}
 
 int power_hold(void)
 {
@@ -238,6 +267,7 @@ void key_init(void)
 {
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	RockusbKeyInit(&key_rockusb);
+	RemotectlInit();
 #else
 	charge_state_gpio.name = "charge_state";
 	charge_state_gpio.flags = 0;
