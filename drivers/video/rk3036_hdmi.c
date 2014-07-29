@@ -562,6 +562,7 @@ static void rk3036_hdmi_reset(struct hdmi_dev *hdmi_dev)
 	rk3036_hdmi_set_pwr_mode(hdmi_dev, NORMAL);
 }
 
+int g_hdmi_noexit = 0;
 static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
 	int i = 5, ret = -1, val = 0;
@@ -588,6 +589,7 @@ static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 		ret = 0;
 	}else {
 		printf("Hdmi Devices Not Exist.\n");
+		g_hdmi_noexit = 1;
 	}
 
 	return ret;

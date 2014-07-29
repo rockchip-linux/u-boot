@@ -173,6 +173,8 @@ int lcd_get_size(int *line_length)
     return CONFIG_LCD_MAX_WIDTH * CONFIG_LCD_MAX_HEIGHT * 2; //BMP_LOGO_WIDTH*BMP_LOGO_HEIGHT*4; //
 }
 
+extern int g_hdmi_noexit;
+
 void lcd_ctrl_init(void *lcdbase)
 {
 	printf("%s [%d]\n",__FUNCTION__,__LINE__);
@@ -188,7 +190,12 @@ void lcd_ctrl_init(void *lcdbase)
 #ifdef CONFIG_RK_3036_HDMI
    rk3036_hdmi_probe(&panel_info);
 #endif
-
+#ifdef CONFIG_RK3036_TVE
+	if(g_hdmi_noexit == 1)
+	{
+		rk3036_tve_init(&panel_info);
+	}
+#endif
     init_panel_info(&panel_info);
     if (panel_info.enable_ldo)
         panel_info.enable_ldo(1);
