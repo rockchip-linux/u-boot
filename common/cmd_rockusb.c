@@ -398,13 +398,24 @@ static void FW_Write10(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
 	struct urb *current_urb = ep->rcv_urb;
-	
+	uint32_t rxdata_blocks = 0;
+
 	usbcmd.d_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 528;
 	usbcmd.d_bytes = 0;
 	usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
 
 	RKUSBINFO("lba %x len %x\n", usbcmd.lba, usbcmd.d_size);
 	current_urb->actual_length = 0;
+
+	/* check current lba buffer not include in pre lba buffer */
+	rxdata_blocks = usbcmd.d_size/528;
+	if(!(((usbcmd.lba + rxdata_blocks) < usbcmd.pre_read.pre_lba)
+			|| (usbcmd.lba > (usbcmd.pre_read.pre_lba + usbcmd.pre_read.pre_blocks)))) {
+		RKUSBINFO("FW_Write10: invalid pre read\n");
+		usbcmd.pre_read.pre_blocks = 0;
+		usbcmd.pre_read.pre_lba = 0;
+	}
+
 	usbcmd.status = RKUSB_STATUS_RXDATA_PREPARE;
 }
 
@@ -472,6 +483,7 @@ static void FW_LBAWrite10(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
 	struct urb *current_urb = NULL;
+	uint32_t rxdata_blocks = 0;
 	
 	usbcmd.d_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 512;
 	usbcmd.d_bytes = 0;
@@ -481,6 +493,16 @@ static void FW_LBAWrite10(void)
 	current_urb = ep->rcv_urb;
 	RKUSBINFO("lba %x, size %x\n", usbcmd.lba, usbcmd.d_size);
 	current_urb->actual_length = 0;
+
+	/* check current lba buffer not include in pre lba buffer */
+	rxdata_blocks = usbcmd.d_size/512;
+	if(!(((usbcmd.lba + rxdata_blocks) < usbcmd.pre_read.pre_lba)
+			|| (usbcmd.lba > (usbcmd.pre_read.pre_lba + usbcmd.pre_read.pre_blocks)))) {
+		RKUSBINFO("FW_LBAWrite10: invalid pre read\n");
+		usbcmd.pre_read.pre_blocks = 0;
+		usbcmd.pre_read.pre_lba = 0;
+	}
+
 	usbcmd.status = RKUSB_STATUS_RXDATA_PREPARE;
 }
 
