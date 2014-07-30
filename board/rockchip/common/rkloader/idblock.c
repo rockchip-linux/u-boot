@@ -944,11 +944,14 @@ int setBootloaderMsg(struct bootloader_message* bmsg)
 #define SECTOR_OFFSET       528
 
 extern uint16 g_IDBlockOffset[];
-int getSn(char* buf)
+
+
+int get_idblk_data(void)
 {
-	int size;
-	Sector3Info *pSec3;
+	uint32 index;
 	int idbCount = FindAllIDB();
+	uint8 *psrc, *pdst;
+
 	if (idbCount <= 0) {
 		printf("id block not found.\n");
 		return false;
@@ -962,7 +965,32 @@ int getSn(char* buf)
 		return false;
 	}
 
-	pSec3 = (Sector3Info *)(g_pIDBlock + SECTOR_OFFSET * IDBLOCK_SN);
+	pdst = (uint8 *)gIdDataBuf;
+	psrc = (uint8 *)g_pIDBlock;
+	for (index = 0; index < IDBLOCK_NUM; index++) {
+		memcpy(pdst + IDBLOCK_SIZE * index, psrc + SECTOR_OFFSET * index, IDBLOCK_SIZE);
+	}
+
+#if 0
+	int i = 0;
+	for (i = 0; i < 512 * IDBLOCK_NUM; i ++) {
+		printf("%02x ", pdst[i]);
+		if ((i+1) % 16 == 0) {
+			printf("\n");
+		}
+	}
+	printf("\n");
+#endif
+	return true;
+}
+
+
+int getSn(char* buf)
+{
+	int size;
+	Sector3Info *pSec3;
+
+	pSec3 = (Sector3Info *)(gIdDataBuf + IDBLOCK_SIZE * IDBLOCK_SN);
 	P_RC4((void *)pSec3, IDBLOCK_SIZE);
 
 	size = pSec3->snSize;

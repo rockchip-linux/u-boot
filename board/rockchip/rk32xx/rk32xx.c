@@ -267,11 +267,15 @@ int board_late_init(void)
 	//TODO:set those buffers in a better way, and use malloc?
 	setup_space(gd->arch.rk_extra_buf_addr);
 
+	/* after setup space, get id block data first */
+	get_idblk_data();
+
 	char tmp_buf[30];
 	if (getSn(tmp_buf)) {
 		tmp_buf[sizeof(tmp_buf)-1] = 0;
 		setenv("fbt_sn#", tmp_buf);
 	}
+
 #ifdef CONFIG_CMD_FASTBOOT
 	fbt_preboot();
 #else

@@ -276,6 +276,7 @@ typedef struct tag_rk_boot_img_hdr {
 #define SECURE_BOOT_SIGN_TAG    0x4E474953
 
 int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked);
+int get_idblk_data(void);
 int getSn(char* buf);
 int setBootloaderMsg(struct bootloader_message* bmsg);
 int checkMisc(void);
