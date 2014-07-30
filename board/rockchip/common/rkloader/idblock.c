@@ -178,7 +178,7 @@ char GetChipSectorInfo(char * pbuf)
 }
 #endif
 
-int get_bootloader_ver(char *boot_ver)
+int get_bootloader_ver(void)
 {
 	uint8 *buf = (uint8*)&gIdDataBuf[0];
 	memset(bootloader_ver,0,24);

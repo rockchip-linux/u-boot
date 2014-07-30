@@ -275,6 +275,8 @@ typedef struct tag_rk_boot_img_hdr {
 
 #define SECURE_BOOT_SIGN_TAG    0x4E474953
 
+extern char bootloader_ver[24];
+
 int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked);
 int get_idblk_data(void);
 int getSn(char* buf);
@@ -286,7 +288,7 @@ int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec);
 void SysLowFormatCheck(void);
 void Switch2MSC(void);
 void setup_space(uint32 begin_addr);
-int get_bootloader_ver(char *boot_ver);
+int get_bootloader_ver(void);
 int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot);
 const char* get_fdt_name(void);
 int eraseDrmKey(void);

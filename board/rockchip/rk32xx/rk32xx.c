@@ -252,6 +252,7 @@ int arch_early_init_r(void)
 
 
 #ifdef CONFIG_BOARD_LATE_INIT
+extern char bootloader_ver[24];
 int board_late_init(void)
 {
 	debug("board_late_init\n");
@@ -269,6 +270,10 @@ int board_late_init(void)
 
 	/* after setup space, get id block data first */
 	get_idblk_data();
+
+	if (get_bootloader_ver() == 0) {
+		printf("\n#Boot ver: %s\n", bootloader_ver);
+	}
 
 	char tmp_buf[30];
 	if (getSn(tmp_buf)) {
