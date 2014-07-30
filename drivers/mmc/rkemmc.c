@@ -150,7 +150,7 @@ static int rk_emmc_init(struct mmc *mmc)
 	}
 	if (timeOut == 0)
 		return -1;
-#if USE_MMCDMA
+#if USE_MMC_IDMA
 	timeOut = 10000;
 	Writel(gMmcBaseAddr + MMC_BMOD, (Readl(gMmcBaseAddr + MMC_BMOD) |BMOD_SWR));
 	while ((Readl(gMmcBaseAddr + MMC_BMOD) & BMOD_SWR) && (timeOut > 0)) {
@@ -346,7 +346,7 @@ static int EmmcReadData(void *Buffer, unsigned int Blocks)
 	return 0;
 }
 
-#if USE_MMCDMA
+#if USE_MMC_IDMA
 static volatile SDMMC_DMA_DESC      IDMADesc[MAX_DESC_NUM_IDMAC];
 static int set_idmadesc(struct mmc *mmc, void *buffer,
 		uint32 BufSize)
@@ -454,7 +454,7 @@ static int rk_emmc_request(struct mmc *mmc, struct mmc_cmd *cmd,
 		}
 		Writel(gMmcBaseAddr +MMC_BYTCNT, data->blocksize*data->blocks);
 		Writel(gMmcBaseAddr +MMC_BLKSIZ, data->blocksize);
-#if USE_MMCDMA
+#if USE_MMC_IDMA
 		data_len = data->blocksize*data->blocks;
 		if (data_len <= MAX_DATA_SIZE_IDMAC && data_len >= 512 && \
 				((cmd->cmdidx== MMC_CMD_READ_SINGLE_BLOCK ||cmd->cmdidx == MMC_CMD_READ_MULTIPLE_BLOCK) \

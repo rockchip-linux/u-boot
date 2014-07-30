@@ -163,12 +163,25 @@
 #define MMC_FIFO_EMPTY                  BIT(2)
 #define MMC_BUSY			(MMC_MC_BUSY | MMC_DATA_BUSY)
 
+/* EMMC dma mode config */
 #ifdef CONFIG_RK_MMC_DMA
-#define USE_MMCDMA			1
+
+#if (defined (CONFIG_RK_MMC_IDMAC) && defined (CONFIG_RK_MMC_EDMAC))
+	#error "PLS check emmc dmac mode!"
 #endif
 
+#if defined (CONFIG_RK_MMC_IDMAC)
+	#define USE_MMC_IDMA		1
+#endif
+
+#if defined (CONFIG_RK_MMC_EDMAC)
+	#define USE_MMC_EDMA		1
+#endif
+
+#endif /* CONFIG_RK_MMC_DMA */
+
 /* FIFO threshold register defines */
-#if USE_MMCDMA
+#if USE_MMC_IDMA
 #define FIFO_DETH			256
 #else
 #define FIFO_DETH			512
