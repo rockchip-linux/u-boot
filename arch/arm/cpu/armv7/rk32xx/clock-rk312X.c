@@ -42,7 +42,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CORE_SRC_GENERAL_PLL_DIV2	1
 
 /* Periph clock source select */
-#define PERIPH_SRC_ARM_PLL		0
+#define PERIPH_SRC_GENERAL_PLL		0
 #define PERIPH_SRC_CODEC_PLL		1
 #define PERIPH_SRC_GENERAL_PLL_DIV2	2
 #define PERIPH_SRC_GENERAL_PLL_DIV3	3
@@ -118,7 +118,7 @@ struct pll_data {
 static const struct pll_clk_set apll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, 
 	//	_core_div, _core_aclk_civ, _dbg_pclk_div, _cpu_aclk_div, _cpu_hclk_div, _cpu_pclk_div
-	_APLL_SET_CLKS(816000, 1, 34, 1, 1, 1, 0,	1, 4, 4, 4, 2, 2),
+	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 4, 4, 4, 2, 2),
 	_APLL_SET_CLKS(600000, 1, 75, 3, 1, 1, 0,	1, 2, 4, 4, 2, 2),
 };
 
@@ -280,8 +280,8 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 {
 	uint32 pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
-	/* periph clock source select: 0: arm pll, 1: codec pll, 2: general pll div 2, 3: general pll div 3 */
-	if (pll_src == PERIPH_SRC_ARM_PLL) {
+	/* periph clock source select: 0: general pll, 1: codec pll, 2: general pll div 2, 3: general pll div 3 */
+	if (pll_src == PERIPH_SRC_GENERAL_PLL) {
 		pll_sel = 0;
 	} else if (pll_src == PERIPH_SRC_CODEC_PLL) {
 		pll_sel = 1;
@@ -546,7 +546,7 @@ void rkclk_set_pll(void)
  */
 void rkclk_get_pll(void)
 {
-	uint32 div;
+	uint32 con, div;
 
 	/* cpu / periph / ddr freq */
 	gd->cpu_clk = rkclk_pll_clk_get_rate(APLL_ID);
@@ -556,7 +556,17 @@ void rkclk_get_pll(void)
 
 	/* cpu aclk */
 	div = rkclk_get_cpu_aclk_div();
-	gd->arch.aclk_cpu_rate_hz = gd->cpu_clk / div;
+	con = cru_readl(CRU_CLKSELS_CON(0));
+	con = (con & CPU_SEL_PLL_MSK) >> CPU_SEL_PLL_OFF;
+	if (con == CPU_SRC_GENERAL_PLL) {
+		gd->arch.aclk_cpu_rate_hz = gd->bus_clk / div;
+	} else if (con == CPU_SRC_GENERAL_PLL_DIV2) {
+		gd->arch.aclk_cpu_rate_hz = gd->bus_clk / 2 / div;
+	} else if (con == CPU_SRC_GENERAL_PLL_DIV3) {
+		gd->arch.aclk_cpu_rate_hz = gd->bus_clk / 3 / div;
+	} else {
+		gd->arch.aclk_cpu_rate_hz = gd->pci_clk / div;
+	}
 
 	/* cpu hclk */
 	div = rkclk_get_cpu_hclk_div();
@@ -568,8 +578,17 @@ void rkclk_get_pll(void)
 
 	/* periph aclk */
 	div = rkclk_get_periph_aclk_div();
-	gd->arch.aclk_periph_rate_hz = gd->bus_clk / div;
-
+	con = cru_readl(CRU_CLKSELS_CON(10));
+	con = (con & PERI_SEL_PLL_MSK) >> PERI_SEL_PLL_OFF;
+	if (con == PERIPH_SRC_GENERAL_PLL) {
+		gd->arch.aclk_periph_rate_hz = gd->bus_clk / div;
+	} else if (con == PERIPH_SRC_CODEC_PLL) {
+		gd->arch.aclk_periph_rate_hz = gd->pci_clk / div;
+	} else if (con == PERIPH_SRC_GENERAL_PLL_DIV3) {
+		gd->arch.aclk_periph_rate_hz = gd->bus_clk / 3 / div;
+	} else {
+		gd->arch.aclk_periph_rate_hz = gd->bus_clk / 2 / div;
+	}
 	/* periph hclk */
 	div = rkclk_get_periph_hclk_div();
 	gd->arch.hclk_periph_rate_hz = gd->arch.aclk_periph_rate_hz / div;
