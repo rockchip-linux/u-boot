@@ -112,8 +112,9 @@ static void rk_emmc_iomux_config(int emmc_id)
 		case RK_EMMC_IOMUX:
 			// emmc data0-7
 			grf_writel((0xFFFF << 16) | 0xAAAA, GRF_GPIO1D_IOMUX);
-			// emmc cmd, emmc rstn out, pwren, emmc clkout
-			grf_writel((3<<18) | (3<<24) | (3<<26) | (3<<30) | (2<<2) | (2<<8) | (2<<10) | (2<<14), GRF_GPIO2A_IOMUX);
+			// emmc emmc rstn out, pwren, emmc clkout
+			// note: here no iomux emmc cmd for maskrom has do it for rk3126 or rk3128
+			grf_writel((3<<18) | (3<<26) | (3<<30) | (2<<2) | (2<<10) | (2<<14), GRF_GPIO2A_IOMUX);
 			break;
 		default:
 			debug("RK have not this emmc iomux id!\n");
