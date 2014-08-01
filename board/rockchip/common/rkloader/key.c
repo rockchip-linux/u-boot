@@ -160,7 +160,7 @@ void RockusbKeyInit(key_config *key)
 	key->key.ioint.press_time = 0;
 #else
 	key->type = KEY_AD;
-	key->key.adc.index = 1;	
+	key->key.adc.index = KEY_ADC_CN;
 	key->key.adc.keyValueLow = 0;
 	key->key.adc.keyValueHigh= 30;
 	key->key.adc.data = SARADC_BASE;
@@ -175,7 +175,7 @@ void RecoveryKeyInit(key_config *key)
 	key->type = KEY_NULL;
 #else
 	key->type = KEY_AD;
-	key->key.adc.index = 1;	
+	key->key.adc.index = KEY_ADC_CN;
 	key->key.adc.keyValueLow = 0;
 	key->key.adc.keyValueHigh= 30;
 	key->key.adc.data = SARADC_BASE;
@@ -191,7 +191,7 @@ void FastbootKeyInit(key_config *key)
 	key->type = KEY_NULL;
 #else
 	key->type = KEY_AD;
-	key->key.adc.index = 1;	
+	key->key.adc.index = KEY_ADC_CN;
 	key->key.adc.keyValueLow = 170;
 	key->key.adc.keyValueHigh= 180;
 	key->key.adc.data = SARADC_BASE;

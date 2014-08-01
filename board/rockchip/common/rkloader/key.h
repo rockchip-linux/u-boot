@@ -28,6 +28,8 @@
 #define KEY_LONG_PRESS		-1
 #define KEY_SHORT_PRESS		1
 
+#define KEY_ADC_CN		1
+
 typedef enum{
 	KEY_NULL,
 	KEY_AD,      // AD°´¼ü
