@@ -145,8 +145,8 @@
 #define RKIO_UART2_SIZE         SZ_16K
 #define RKIO_SARADC_PHYS        0x2006C000
 #define RKIO_SARADC_SIZE        SZ_16K
-#define RKIO_I2C0_PHYS          0x20070000
-#define RKIO_I2C0_SIZE          SZ_16K
+#define RKIO_I2C0_PHYS          0x20072000
+#define RKIO_I2C0_SIZE          SZ_8K
 #define RKIO_SPI_PHYS           0x20074000
 #define RKIO_SPI_SIZE           SZ_16K
 #define RKIO_DMAC_PHYS          0x20078000
