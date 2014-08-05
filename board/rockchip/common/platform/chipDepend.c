@@ -68,7 +68,7 @@ void DRVDelayS(uint32 count)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	return readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	return readl(RKIO_GRF_PHYS + GRF_OS_REG4);
@@ -79,7 +79,7 @@ uint32 IReadLoaderFlag(void)
 
 void ISetLoaderFlag(uint32 flag)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG4);
@@ -148,7 +148,7 @@ static void rk3036_uart2usb(uint32 en)
 }
 #endif
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 static void rk312X_uart2usb(uint32 en)
 {
 	if (en) {
@@ -177,7 +177,7 @@ void rkplat_uart2UsbEn(uint32 en)
 	rk3288_uart2usb(en);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	rk3036_uart2usb(en);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	rk312X_uart2usb(en);
 #else
 	#error "PLS check CONFIG_RKCHIPTYPE if support uart2usb."

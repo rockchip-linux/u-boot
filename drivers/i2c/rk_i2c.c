@@ -153,7 +153,7 @@ static struct rk_i2c rki2c_base[I2C_BUS_MAX] = {
 	{ .regs = (void __iomem *)(RKIO_I2C0_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C1_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C2_PHYS), 0 },
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	{ .regs = (void __iomem *)(RKIO_I2C0_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C1_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C2_PHYS), 0 },

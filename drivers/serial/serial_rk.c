@@ -35,7 +35,7 @@ static volatile void __iomem * g_rkuart_base[UART_CH_MAX] = {
 	(void __iomem *)RKIO_UART2_DBG_PHYS,
 	(void __iomem *)RKIO_UART3_GPS_PHYS,
 	(void __iomem *)RKIO_UART4_EXP_PHYS
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	(void __iomem *)RKIO_UART0_PHYS,
 	(void __iomem *)RKIO_UART1_PHYS,
 	(void __iomem *)RKIO_UART2_PHYS

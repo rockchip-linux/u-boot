@@ -31,7 +31,7 @@
 	#include "iomux-rk3288.c"
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	#include "iomux-rk3036.c"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	#include "iomux-rk312X.c"
 #else
 	#error "PLS config iomux-rk32xx.c!"

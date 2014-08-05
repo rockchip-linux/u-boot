@@ -71,7 +71,11 @@ int rk_get_chiptype(void)
 			return CONFIG_RK3188_PLUS;
 		}
 		if ((chip_info[0] == 0x33313043) && (chip_info[1] == 0x32303134) && (chip_info[2] == 0x30343239) && (chip_info[3] == 0x56313030)) {
-			return CONFIG_RK312X;
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126)
+			return CONFIG_RK3126;
+#else
+			return CONFIG_RK3128;
+#endif
 		}
 	} else if (chip_class == 0x3332) { // 32
 		if ((chip_info[0] == 0x33323041) && (chip_info[1] == 0x32303133) && (chip_info[2] == 0x31313136) && (chip_info[3] == 0x56313030)) {
@@ -116,11 +120,19 @@ int print_cpuinfo(void)
 	}
 #endif
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
-	if (gd->arch.chiptype == CONFIG_RK312X) {
-		printf("CPU is rk312x\n");
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126)
+	if (gd->arch.chiptype == CONFIG_RK3126) {
+		printf("CPU is rk3126\n");
 	} else {
-		printf("error: uboot is not for chip rk312x!\n");
+		printf("error: uboot is not for chip rk3126!\n");
+	}
+#endif
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+	if (gd->arch.chiptype == CONFIG_RK3128) {
+		printf("CPU is rk3128\n");
+	} else {
+		printf("error: uboot is not for chip rk3128!\n");
 	}
 #endif
 

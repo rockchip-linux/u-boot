@@ -1311,7 +1311,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 		[31] = DMACH_MAX,
 	},
 };
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S_2CH_TX,

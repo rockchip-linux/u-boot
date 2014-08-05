@@ -178,7 +178,7 @@ uint32 lMemApiInit(uint32 BaseAddr)
 			rkclk_set_nandc_div(0, 1, RKNANDC_MAX_FREQ);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 			rkclk_set_nandc_div(0, 2, RKNANDC_MAX_FREQ);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 			rkclk_set_nandc_div(0, 1, RKNANDC_MAX_FREQ);
 #else
 			#error "PLS config platform for nandc freq!"

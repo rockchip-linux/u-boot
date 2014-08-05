@@ -71,7 +71,7 @@
 /* usb otg base */
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG20_PHYS
 #else
 	#error "PLS config chiptype for usb otg base!"
@@ -355,7 +355,7 @@ uint32_t GetVbus(void)
 		/* delay more than 1ms, waiting for usb phy init */
 		mdelay(3);
 	}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
 		/* exit suspend */
 		grf_writel(((0x01 << 0) << 16), GRF_UOC0_CON0);
@@ -1078,7 +1078,7 @@ int dwc_otg_check_dpdm(void)
 
 	grf_writel(((0x01<<0)<<16), GRF_UOC0_CON5); // exit suspend.
 	mdelay(105);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	cru_writel(((5<<5)<<16)|(5<<5), CRU_SOFTRSTS_CON(4)); // otg phy reset
 	cru_writel(((1<<7)<<16)|(1<<7), CRU_SOFTRSTS_CON(6));
 	udelay(3);

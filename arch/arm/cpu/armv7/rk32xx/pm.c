@@ -38,7 +38,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	#define RK_WAKEUP_KEY_PIN	(GPIO_BANK0 | GPIO_A5)
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	/* 	audi playkey maybe:
 	 * gpio1_a4 for usb wifi board
 	 * gpio0_a2 for sdio wifi board

@@ -40,7 +40,7 @@ void rk_module_deinit(void)
 	writel(0x3f<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
 	mdelay(1);
 	writel(0x00<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	// soft reset i2c0 - i2c3
 	writel(0x7<<11 | 0x7<<(11+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
 	mdelay(1);
@@ -92,7 +92,7 @@ void reset_cpu(ulong ignored)
 
 	/* soft reset */
 	writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	/* pll enter slow mode */
 	writel(PLL_MODE_SLOW(APLL_ID) | PLL_MODE_SLOW(CPLL_ID) | PLL_MODE_SLOW(GPLL_ID), RKIO_GRF_PHYS + CRU_MODE_CON);
 

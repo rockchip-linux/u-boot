@@ -32,7 +32,7 @@
 	#include "io-rk3288.h"
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	#include "io-rk3036.h"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	#include "io-rk312X.h"
 #else
 	#error "PLS config io-rkxx.h!"
