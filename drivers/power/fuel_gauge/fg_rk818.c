@@ -128,6 +128,8 @@ int rk818_get_capcity(int volt)
 1. usb charging
 2. ac adapter charging
 */
+extern int support_dc_chg;
+
 static int rk818_charger_setting(struct pmic *pmic,int current)
 {
 	u8 iset1_val,chgiset_val;
@@ -140,35 +142,44 @@ static int rk818_charger_setting(struct pmic *pmic,int current)
 	iset1_val = i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG);
 	chgiset_val = i2c_reg_read(pmic->hw.i2c.addr, CHRG_CTRL_REG1);
 	
-	if ( current == 1) {
-		if (((iset1_val & 0x0f) == usb_iset1_cfg) && ((chgiset_val & 0x0f) == usb_chgiset_cfg))
-			return 0;
-	} else if (current == 2) {
+	if ( support_dc_chg || (current == 2)) {
 		if (((iset1_val & 0x0f) == dc_iset1_cfg) && ((chgiset_val & 0x0f) == dc_chgiset_cfg))
 			return 0;
+	}else if (current == 1) {
+		if (((iset1_val & 0x0f) == usb_iset1_cfg) && ((chgiset_val & 0x0f) == usb_chgiset_cfg))
+			return 0;
 	}
+	
+	if (support_dc_chg){
+		i2c_reg_write(pmic->hw.i2c.addr, USB_CTRL_REG,
+				(i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0) | dc_iset1_cfg);
+		i2c_reg_write(pmic->hw.i2c.addr, CHRG_CTRL_REG1,
+				(i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0) | dc_chgiset_cfg);
+		printf("use dc chg %s iset1:0x%02x chgiset:0x%02x current %d\n",__func__,
+					i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG), i2c_reg_read(pmic->hw.i2c.addr, CHRG_CTRL_REG1),current);
 
-//	printf("%s iset1:0x%02x chgiset:0x%02x current %d\n",__func__,
-//					iset1_val, chgiset_val,current);
-	switch (current){
-	case 2:
-		i2c_reg_write(pmic->hw.i2c.addr, USB_CTRL_REG,
-			(i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0) | dc_iset1_cfg);
-		i2c_reg_write(pmic->hw.i2c.addr, CHRG_CTRL_REG1,
-			(i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0) | dc_chgiset_cfg);
-		break;
-	default:
-		i2c_reg_write(pmic->hw.i2c.addr, USB_CTRL_REG,
-			i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0);
-		i2c_reg_write(pmic->hw.i2c.addr, CHRG_CTRL_REG1,
-			i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0);
-		break;
+
+	}else{
+		switch (current){
+		case 2:
+			i2c_reg_write(pmic->hw.i2c.addr, USB_CTRL_REG,
+				(i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0) | dc_iset1_cfg);
+			i2c_reg_write(pmic->hw.i2c.addr, CHRG_CTRL_REG1,
+				(i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0) | dc_chgiset_cfg);
+			break;
+		default:
+			i2c_reg_write(pmic->hw.i2c.addr, USB_CTRL_REG,
+				i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0);
+			i2c_reg_write(pmic->hw.i2c.addr, CHRG_CTRL_REG1,
+				i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG) & 0xf0);
+			break;
+		}
+		printf("use usb chg %s iset1:0x%02x chgiset:0x%02x current %d\n",__func__,
+					i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG), i2c_reg_read(pmic->hw.i2c.addr, CHRG_CTRL_REG1),current);
 	}
 	i2c_reg_write(pmic->hw.i2c.addr, CHRG_CTRL_REG1,
 			i2c_reg_read(pmic->hw.i2c.addr, CHRG_CTRL_REG1) | 0x80);
 
-	printf("%s iset1:0x%02x chgiset:0x%02x current %d\n",__func__,
-					i2c_reg_read(pmic->hw.i2c.addr, USB_CTRL_REG), i2c_reg_read(pmic->hw.i2c.addr, CHRG_CTRL_REG1),current);
 	return 0;
 }
 

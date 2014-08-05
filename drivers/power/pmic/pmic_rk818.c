@@ -16,6 +16,8 @@ DECLARE_GLOBAL_DATA_PTR;
 
 struct pmic_rk818 rk818;
 
+int support_dc_chg;
+
 static struct fdt_regulator_match rk818_reg_matches[] = {
 	{ .prop = "rk_dcdc1",},
 	{ .prop = "rk_dcdc2",},
@@ -93,6 +95,8 @@ static int rk818_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, rk818_reg_matches,
 					RK818_NUM_REGULATORS);
+	
+	support_dc_chg = fdtdec_get_int(blob, node, "rk818,support_dc_chg",0);
 	rk818.pmic = pmic_alloc();
 	rk818.node = node;
 	rk818.pmic->hw.i2c.addr = addr;
