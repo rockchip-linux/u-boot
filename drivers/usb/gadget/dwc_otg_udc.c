@@ -1070,16 +1070,20 @@ int dwc_otg_check_dpdm(void)
 	mdelay(105);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	cru_writel(((5<<5)<<16)|(5<<5), CRU_SOFTRSTS_CON(4)); // otg phy reset
+	cru_writel(((1<<7)<<16)|(1<<7), CRU_SOFTRSTS_CON(6));
 	udelay(3);
 	cru_writel(((5<<5)<<16)|(0<<5), CRU_SOFTRSTS_CON(4));
+	cru_writel(((1<<7)<<16)|(0<<7), CRU_SOFTRSTS_CON(6));
 	mdelay(50);
 
 	grf_writel(((0x01<<0)<<16), GRF_UOC0_CON5); // exit suspend.
 	mdelay(105);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK312X)
 	cru_writel(((5<<5)<<16)|(5<<5), CRU_SOFTRSTS_CON(4)); // otg phy reset
+	cru_writel(((1<<7)<<16)|(1<<7), CRU_SOFTRSTS_CON(6));
 	udelay(3);
 	cru_writel(((5<<5)<<16)|(0<<5), CRU_SOFTRSTS_CON(4));
+	cru_writel(((1<<7)<<16)|(0<<7), CRU_SOFTRSTS_CON(6));
 	mdelay(50);
 
 	grf_writel(((0x01<<0)<<16), GRF_UOC0_CON0); // exit suspend.
