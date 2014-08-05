@@ -15,6 +15,7 @@ static unsigned char rockchip_pmic_id;
 static const char * const fg_names[] = {
 	"CW201X_FG",
 	"RICOH619_FG",
+	"RK818_FG",
 };
 
 
@@ -139,6 +140,15 @@ int pmic_init(unsigned char  bus)
 		return 0;
 	}
 #endif
+
+#if defined(CONFIG_POWER_RK818)
+	ret = pmic_rk818_init (bus);
+	if (ret >= 0) {
+		set_rockchip_pmic_id(PMIC_ID_RK818);
+		printf("pmic:rk818\n");
+		return 0;
+	}
+#endif
 	return ret;
 }
 
@@ -168,6 +178,9 @@ void shut_down(void)
 			break;
 		case PMIC_ID_RK808:
 			pmic_rk808_shut_down();
+			break;
+		case PMIC_ID_RK818:
+			pmic_rk818_shut_down();
 			break;
 		default:
 			break;
