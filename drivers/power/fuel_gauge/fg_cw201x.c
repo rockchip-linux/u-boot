@@ -259,6 +259,7 @@ int fg_cw201x_init(unsigned char bus)
 	cw.p->name = name;
 	cw.p->interface = PMIC_I2C;
 	cw.p->fg = &cw201x_fg_ops;
+	cw.p->pbat = calloc(sizeof(struct  power_battery), 1);
 	fg_cw201x_cfg();
 	return 0;
 }

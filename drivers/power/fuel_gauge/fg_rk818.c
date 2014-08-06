@@ -217,7 +217,7 @@ state_of_chrg: 0. no charger; 1. usb charging; 2. AC charging
 static int rk818_update_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
-
+	
 	rk818_state_of_chrg = rk818_chrg_det(bat);
 	i2c_set_bus_num(bat->bus);
 	i2c_init(RK818_I2C_SPEED, bat->hw.i2c.addr);
@@ -254,6 +254,7 @@ static void get_voltage_offset_value()
 	
 	return;
 }
+
 int fg_rk818_init(unsigned char bus,uchar addr)
 {
 	static const char name[] = "RK818_FG";
@@ -264,6 +265,7 @@ int fg_rk818_init(unsigned char bus,uchar addr)
 	rk818_fg.p->hw.i2c.addr = addr;
 	rk818_fg.p->interface = PMIC_I2C;
 	rk818_fg.p->fg = &fg_ops;
+	rk818_fg.p->pbat = calloc(sizeof(struct  power_battery), 1);
 	i2c_set_bus_num(bus);
 	i2c_init(RK818_I2C_SPEED,addr);
 	get_voltage_offset_value();

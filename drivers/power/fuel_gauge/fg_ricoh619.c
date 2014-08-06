@@ -389,6 +389,7 @@ int fg_ricoh619_init(unsigned char bus,uchar addr)
 	ricoh_fg.p->hw.i2c.addr = addr;
 	ricoh_fg.p->interface = PMIC_I2C;
 	ricoh_fg.p->fg = &fg_ops;
+	ricoh_fg.p->pbat = calloc(sizeof(struct  power_battery), 1);
 	i2c_set_bus_num(bus);
 	i2c_init(100000,addr);
 	i2c_reg_write(addr, ADCCNT3_REG, 0x28);
