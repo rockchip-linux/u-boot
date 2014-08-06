@@ -156,6 +156,12 @@ struct irq_chip {
 	int		(*irq_set_type)(int irq, unsigned int flow_type);
 };
 
+
+#ifdef CONFIG_IMPRECISE_ABORTS_CHECK
+void enable_imprecise_aborts(void);
+#endif
+
+
 /* irq_install_handler() has been define in include/common.h */
 void irq_install_handler(int irq, interrupt_handler_t *handler, void *data);
 void irq_uninstall_handler(int irq);

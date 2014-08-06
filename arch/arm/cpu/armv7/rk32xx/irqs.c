@@ -126,6 +126,15 @@ static inline int irq_init(void)
 }
 
 
+#ifdef CONFIG_IMPRECISE_ABORTS_CHECK
+void enable_imprecise_aborts(void)
+{
+	/* enable imprecise aborts */
+	asm volatile("cpsie a");
+}
+#endif
+
+
 /* enable irq handler */
 int irq_handler_enable(int irq)
 {

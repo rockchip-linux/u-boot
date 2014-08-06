@@ -275,6 +275,11 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	rk_module_deinit();
 
+#ifdef CONFIG_IMPRECISE_ABORTS_CHECK
+	puts("enable imprecise aborts check.");
+	enable_imprecise_aborts();
+#endif
+
 	puts("booti: do_bootm_linux...\n");
 	do_bootm_linux(0, 0, NULL, &images);
 

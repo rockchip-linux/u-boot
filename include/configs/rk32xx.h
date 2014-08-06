@@ -67,6 +67,9 @@
 /* irq config */
 #define CONFIG_USE_IRQ
 
+/* enable imprecise aborts check, default disable */
+//#define CONFIG_IMPRECISE_ABORTS_CHECK
+
 
 /*
  * Enabling relocation of u-boot by default
