@@ -228,8 +228,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			/* append serial number if it wasn't in device_info already */
 			if (!strstr(command_line, FASTBOOT_SERIALNO_BOOTARG)) {
 				snprintf(command_line, sizeof(command_line),
-						" %s=%s", FASTBOOT_SERIALNO_BOOTARG,
-						sn);
+						"%s %s=%s", command_line, FASTBOOT_SERIALNO_BOOTARG, sn);
 			}
 		}
 
