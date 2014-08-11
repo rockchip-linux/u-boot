@@ -186,9 +186,7 @@ int get_bootloader_ver(void)
 	if( *(uint32*)buf == 0xfcdc8c3b )
 	{
 		uint16 year, date;
-		// GetIdblockDataNoRc4((char*)&gIdDataBuf[0],512);
-		GetIdblockDataNoRc4((char*)&gIdDataBuf[128*2],512);
-		GetIdblockDataNoRc4((char*)&gIdDataBuf[128*3],512);
+
 		year = *(uint16*)((uint8*)buf+512+18);
 		date = *(uint16*)((uint8*)buf+512+20);
 		internal_boot_bloader_ver = *(uint16*)((uint8*)buf+512+22);
@@ -971,6 +969,10 @@ int get_idblk_data(void)
 		memcpy(pdst + IDBLOCK_SIZE * index, psrc + SECTOR_OFFSET * index, IDBLOCK_SIZE);
 	}
 
+	// GetIdblockDataNoRc4((char*)&gIdDataBuf[0],512);
+	GetIdblockDataNoRc4((char*)&gIdDataBuf[128*2],512);
+	GetIdblockDataNoRc4((char*)&gIdDataBuf[128*3],512);
+
 #if 0
 	int i = 0;
 	for (i = 0; i < 512 * IDBLOCK_NUM; i ++) {
@@ -989,9 +991,9 @@ int getSn(char* buf)
 {
 	int size;
 	Sector3Info *pSec3;
+	uint8 *pidbbuf = (uint8 *)gIdDataBuf;
 
-	pSec3 = (Sector3Info *)(gIdDataBuf + IDBLOCK_SIZE * IDBLOCK_SN);
-	P_RC4((void *)pSec3, IDBLOCK_SIZE);
+	pSec3 = (Sector3Info *)(pidbbuf + IDBLOCK_SIZE * IDBLOCK_SN);
 
 	size = pSec3->snSize;
 	if (size <= 0 || size > SN_MAX_SIZE) {
