@@ -115,6 +115,8 @@
 /* rockusb */
 #define CONFIG_CMD_ROCKUSB
 
+/* support rockusb timeout check */
+#define CONFIG_ROCKUSB_TIMEOUT_CHECK	1
 
 /* VID/PID should the same as maskrom */
 #define CONFIG_USBD_VENDORID		0x2207

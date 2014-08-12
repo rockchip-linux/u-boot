@@ -208,7 +208,11 @@ int board_fbt_key_pressed(void)
 		frt = FASTBOOT_REBOOT_RECOVERY;
 	} else if (boot_rockusb && (vbus!=0)) {
 		printf("rockusb key pressed.\n");
-		do_rockusb(NULL, 0, 0, NULL);
+		/* rockusb key press, set flag = 1 for rockusb timeout check */
+		if (do_rockusb(NULL, 1, 0, NULL) == 1) {
+			/* if rockusb return 1, boot recovery */
+			frt = FASTBOOT_REBOOT_RECOVERY;
+		}
 	} else if(boot_fastboot && (vbus!=0)){
 		printf("fastboot key pressed.\n");
 		frt = FASTBOOT_REBOOT_FASTBOOT;

@@ -858,12 +858,37 @@ void rkusb_handle_response(void)
 }
 
 
+#ifdef CONFIG_ROCKUSB_TIMEOUT_CHECK
+static uint32 TimeOutBase = 0;
+static inline int rkusb_timeout_check(int flag)
+{
+	/* TV Box: usb default as host, so Vbus always is high,
+	 * if recovery key pressed and not connect to pc,
+	 * 10s timeout enter recovery.
+	 */
+	if (flag != 0) { // if recovery key pressed
+		if (GetVbus() != 0) { // if Vbus is high
+			if (UsbConnectStatus() == 0) { // if usb no connect
+				if (get_timer(TimeOutBase) > (10*1000)) {
+					printf("Usb Timeout, Return for boot recovery!\n");
+					return 1;
+				}
+			}
+		} else {
+			TimeOutBase = get_ticks();
+		}
+	}
+
+	return 0;
+}
+#endif /* CONFIG_ROCKUSB_TIMEOUT_CHECK */
+
+
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
 	//init usbd controller for rockusb
     
-	//powerOn();
 	RKUSBINFO("do_rockusb\n");
 	rkusb_init_endpoint_ptrs();
 	memset(&usbcmd, 0, sizeof(struct cmd_rockusb_interface));
@@ -879,7 +904,10 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	udc_startup_events(device_instance);
 	udc_connect();
-	
+
+#ifdef CONFIG_ROCKUSB_TIMEOUT_CHECK
+	TimeOutBase = get_ticks();
+#endif
 	while(1)
 	{
 		/*if(usbcmd.configured)*/ {
@@ -906,6 +934,13 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				reset_cpu(0);
 			}
 			SysLowFormatCheck();
+#ifdef CONFIG_ROCKUSB_TIMEOUT_CHECK
+			/* if press key enter rockusb, flag = 1 */
+			if(rkusb_timeout_check(flag) == 1) {
+				/* if timeout, return 1 for enter recovery */
+				return 1;
+			}
+#endif
 		}
 	}
 out:
