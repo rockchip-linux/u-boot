@@ -43,5 +43,9 @@ void udc_startup_events(struct usb_device_instance *device);
 void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
 int is_usbd_high_speed(void);
 
+uint32_t GetVbus(void);
+uint8_t UsbConnectStatus(void);
+void suspend_usb(void);
+int dwc_otg_check_dpdm(void);
 
 #endif /* __DWC_UDC_H */
