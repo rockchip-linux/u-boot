@@ -884,6 +884,25 @@ static inline int rkusb_timeout_check(int flag)
 #endif /* CONFIG_ROCKUSB_TIMEOUT_CHECK */
 
 
+static inline void rkusb_reset_check(void)
+{
+	if (usbcmd.reset_flag == 0x03) { // reboot to maskrom
+		usbcmd.reset_flag = 0;
+		ISetLoaderFlag(0xEF08A53C);
+		mdelay(10);
+		reset_cpu(0);
+	} else if (usbcmd.reset_flag == 0x10) { // lock loader
+		usbcmd.reset_flag = 0;
+		SecureBootLockLoader();
+
+	} else if (usbcmd.reset_flag == 0xFF) { // reboot
+		usbcmd.reset_flag = 0;
+		mdelay(10);
+		reset_cpu(0);
+	}
+}
+
+
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
@@ -928,11 +947,7 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			if(usbcmd.status == RKUSB_STATUS_CSW) {
 				rkusb_send_csw();
 			}
-			if(usbcmd.reset_flag == 0xFF) {
-				usbcmd.reset_flag = 0;
-				mdelay(10);
-				reset_cpu(0);
-			}
+			rkusb_reset_check();
 			SysLowFormatCheck();
 #ifdef CONFIG_ROCKUSB_TIMEOUT_CHECK
 			/* if press key enter rockusb, flag = 1 */
