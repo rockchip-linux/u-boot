@@ -223,7 +223,7 @@ void PowerKeyInit(void)
 
 extern int g_ir_keycode;
 extern int remotectl_do_something(void);
-extern void remotectlInitInDriver();
+extern void remotectlInitInDriver(void);
 
 extern unsigned int rkclk_get_pwm_clk(uint32 pwm_id);
 
@@ -242,7 +242,8 @@ int RemotectlInit(void)
 	remotectlInitInDriver();
 
 	//select gpio0d3_sel for pwm3(IR)
-	grf_writel( 0x40 | (0x40 << 16),0xb4);
+	grf_writel(0x40 | (0x40 << 16), 0xb4);
+
 	//install the irq hander for PWM irq.
 	irq_install_handler(IRQ_PWM, remotectl_do_something, NULL);
 	irq_handler_enable(IRQ_PWM);

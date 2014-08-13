@@ -1,10 +1,32 @@
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+
 #include <linux/input.h>
 #include <asm/io.h>
 
 
 /* PWM0 registers  */
 #define PWM_REG_CNTR                    0x00  /* Counter Register */
-#define PWM_REG_HPR		                  0x04  /* Period Register */
+#define PWM_REG_HPR                     0x04  /* Period Register */
 #define PWM_REG_LPR                     0x08  /* Duty Cycle Register */
 #define PWM_REG_CTRL                    0x0c  /* Control Register */
 #define PWM_REG_INTSTS                  0x10  /* Interrupt Status Refister */
@@ -12,25 +34,25 @@
 
 
 /*REG_CTRL bits definitions*/
-#define PWM_ENABLE			            (1 << 0)
-#define PWM_DISABLE			            (0 << 0)
+#define PWM_ENABLE                      (1 << 0)
+#define PWM_DISABLE                     (0 << 0)
 
 /*operation mode*/
-#define PWM_MODE_ONESHOT			     (0x00 << 1)
-#define PWM_MODE_CONTINUMOUS 	     (0x01 << 1)
-#define PWM_MODE_CAPTURE		        (0x02 << 1)
+#define PWM_MODE_ONESHOT                (0x00 << 1)
+#define PWM_MODE_CONTINUMOUS            (0x01 << 1)
+#define PWM_MODE_CAPTURE                (0x02 << 1)
 
 /*duty cycle output polarity*/
-#define PWM_DUTY_POSTIVE	            (0x01 << 3)
-#define PWM_DUTY_NEGATIVE	            (0x00 << 3)
+#define PWM_DUTY_POSTIVE                (0x01 << 3)
+#define PWM_DUTY_NEGATIVE               (0x00 << 3)
 
 /*incative state output polarity*/
-#define PWM_INACTIVE_POSTIVE 		    (0x01 << 4)
-#define PWM_INACTIVE_NEGATIVE		    (0x00 << 4)
+#define PWM_INACTIVE_POSTIVE            (0x01 << 4)
+#define PWM_INACTIVE_NEGATIVE           (0x00 << 4)
 
 /*clock source select*/
-#define PWM_CLK_SCALE		            (1 << 9)
-#define PWM_CLK_NON_SCALE 	            (0 << 9)
+#define PWM_CLK_SCALE                   (1 << 9)
+#define PWM_CLK_NON_SCALE               (0 << 9)
 
 #define PWM_CH0_INT                     (1 << 0)
 #define PWM_CH1_INT                     (1 << 1)
@@ -55,142 +77,143 @@
 #define PWM_CH3_INT_DISABLE             (0 << 3)
 
 /*prescale factor*/
-#define PWMCR_MIN_PRESCALE	            0x00
-#define PWMCR_MAX_PRESCALE	            0x07
+#define PWMCR_MIN_PRESCALE              0x00
+#define PWMCR_MAX_PRESCALE              0x07
 
 #define PWMDCR_MIN_DUTY	       	        0x0001
-#define PWMDCR_MAX_DUTY		            0xFFFF
+#define PWMDCR_MAX_DUTY                 0xFFFF
 
-#define PWMPCR_MIN_PERIOD		        0x0001
-#define PWMPCR_MAX_PERIOD		        0xFFFF
+#define PWMPCR_MIN_PERIOD               0x0001
+#define PWMPCR_MAX_PERIOD               0xFFFF
 
-#define PWMPCR_MIN_PERIOD		        0x0001
-#define PWMPCR_MAX_PERIOD		        0xFFFF
+#define PWMPCR_MIN_PERIOD               0x0001
+#define PWMPCR_MAX_PERIOD               0xFFFF
 
-extern int remotectl_do_something(void);
 
 int g_ir_keycode = 0;
 int g_ir_flag_signal = 0;
 
 
-typedef enum _RMC_STATE
-{
-    RMC_IDLE,
-    RMC_PRELOAD,
-    RMC_USERCODE,
-    RMC_GETDATA,
-    RMC_SEQUENCE
-}eRMC_STATE;
+typedef enum _RMC_STATE {
+	RMC_IDLE,
+	RMC_PRELOAD,
+	RMC_USERCODE,
+	RMC_GETDATA,
+	RMC_SEQUENCE
+} eRMC_STATE;
 
 
-struct rkxx_remotectl_suspend_data{
-    int suspend_flag;
-    int cnt;
-    long scanTime[50];
+struct rkxx_remotectl_suspend_data {
+	int suspend_flag;
+	int cnt;
+	long scanTime[50];
 };
 
-struct rkxx_remote_key_table{
-    int scanCode;
+struct rkxx_remote_key_table {
+	int scanCode;
 	int keyCode;		
 };
 
 struct rkxx_remotectl_button {	
-    int usercode;
-    int nbuttons;
-    struct rkxx_remote_key_table *key_table;
+	int usercode;
+	int nbuttons;
+	struct rkxx_remote_key_table *key_table;
 };
 
 struct rkxx_remotectl_drvdata {
-    int state;
+	int state;
 	int nbuttons;
 	int result;
-    unsigned long pre_time;
-    unsigned long cur_time;
-    long int pre_sec;
-    long int cur_sec;
-    long period;
-    int scandata;
-    int count;
-    int keybdNum;
-    int keycode;
-    int press;
-    int pre_press;
+	unsigned long pre_time;
+	unsigned long cur_time;
+	long int pre_sec;
+	long int cur_sec;
+	long period;
+	int scandata;
+	int count;
+	int keybdNum;
+	int keycode;
+	int press;
+	int pre_press;
 	unsigned int  base;
-    struct rkxx_remotectl_suspend_data remotectl_suspend_data;
+	struct rkxx_remotectl_suspend_data remotectl_suspend_data;
 };
+
 #if 0
 //特殊功能键值定义
-    //193      //photo
-    //194      //video
-    //195      //music
-    //196      //IE
-    //197      //
-    //198
-    //199
-    //200
-    
-    //183      //rorate_left
-    //184      //rorate_right
-    //185      //zoom out
-    //186      //zoom in
+	//193      //photo
+	//194      //video
+	//195      //music
+	//196      //IE
+	//197      //
+	//198
+	//199
+	//200
+
+	//183      //rorate_left
+	//184      //rorate_right
+	//185      //zoom out
+	//186      //zoom in
     
 static struct rkxx_remote_key_table remote_key_table_meiyu_202[] = {
-    {0xD0, KEY_UP},
-    {0x70, KEY_DOWN},
-    {0x08, KEY_LEFT},
-    {0x88, KEY_RIGHT},  ////////
-    {0x42, KEY_HOME},     //home
-    {0xA8, KEY_VOLUMEUP},
-    {0x38, KEY_VOLUMEDOWN},
-    {0xB2, KEY_POWER},     //power off
-    {0xC2, KEY_MUTE},       //mute
+	{0xD0, KEY_UP},
+	{0x70, KEY_DOWN},
+	{0x08, KEY_LEFT},
+	{0x88, KEY_RIGHT},  ////////
+	{0x42, KEY_HOME},     //home
+	{0xA8, KEY_VOLUMEUP},
+	{0x38, KEY_VOLUMEDOWN},
+	{0xB2, KEY_POWER},     //power off
+	{0xC2, KEY_MUTE},       //mute
 
 //media ctrl
-    {0x78,   0x190},      //play pause
-    {0xF8,   0x191},      //pre
-    {0x02,   0x192},      //next
+	{0x78, 0x190},      //play pause
+	{0xF8, 0x191},      //pre
+	{0x02, 0x192},      //next
 
 //pic
-    {0xB8, 183},          //rorate left
-    {0x58, 184},          //rorate right
-    {0x68, 185},          //zoom out
-    {0x98, 186},          //zoom in
+	{0xB8, 183},          //rorate left
+	{0x58, 184},          //rorate right
+	{0x68, 185},          //zoom out
+	{0x98, 186},          //zoom in
 //mouse switch
-    {0xf0,388},
+	{0xf0, 388},
 //display switch
-    {0x82,   0x175},
+	{0x82, 0x175},
 };
 
 static struct rkxx_remote_key_table remote_key_table_df[] = {
-    {0xf0, KEY_UP},
-    {0xd8, KEY_DOWN},
-    {0xd0, KEY_LEFT},
-    {0xe8,KEY_RIGHT},  ////////
-    {0x90, KEY_VOLUMEDOWN},
-    {0x60, KEY_VOLUMEUP},
-    {0x80, KEY_HOME},     //home
-    {0xe0, 183},          //rorate left
-    {0x10, 184},          //rorate right
-    {0x20, 185},          //zoom out
-    {0xa0, 186},          //zoom in
-    {0x70, KEY_MUTE},       //mute
-    {0x50, KEY_POWER},     //power off
+	{0xf0, KEY_UP},
+	{0xd8, KEY_DOWN},
+	{0xd0, KEY_LEFT},
+	{0xe8, KEY_RIGHT},  ////////
+	{0x90, KEY_VOLUMEDOWN},
+	{0x60, KEY_VOLUMEUP},
+	{0x80, KEY_HOME},     //home
+	{0xe0, 183},          //rorate left
+	{0x10, 184},          //rorate right
+	{0x20, 185},          //zoom out
+	{0xa0, 186},          //zoom in
+	{0x70, KEY_MUTE},       //mute
+	{0x50, KEY_POWER},     //power off
 };
 #endif
+
+
 //特殊功能键值定义
-    //193      //photo
-    //194      //video
-    //195      //music
-    //196      //IE
-    //197      //
-    //198
-    //199
-    //200
-    
-    //183      //rorate_left
-    //184      //rorate_right
-    //185      //zoom out
-    //186      //zoom in
+	//193      //photo
+	//194      //video
+	//195      //music
+	//196      //IE
+	//197      //
+	//198
+	//199
+	//200
+
+	//183      //rorate_left
+	//184      //rorate_right
+	//185      //zoom out
+	//186      //zoom in
   
 
 static struct rkxx_remote_key_table remote_key_table_meiyu_4040[] = {
@@ -259,7 +282,7 @@ static struct rkxx_remote_key_table remote_key_table_sunchip_ff00[] = {
 	{0xb4, KEY_VOLUMEDOWN},
 	{0xbe, KEY_SEARCH},
 };
-  
+
 /********************************************************************
 **                            宏定义                                *
 ********************************************************************/
@@ -282,13 +305,13 @@ static struct rkxx_remote_key_table remote_key_table_sunchip_ff00[] = {
 #define RK_PWM_TIME_SEQ2_MAX     500   /*103000*/         /*Repeat  105-2.81=102.19ms*/  //110-9-2.25-0.56=98.19ms
 	
 
-static struct rkxx_remotectl_drvdata data={0};
-static struct rkxx_remotectl_drvdata *ddata;
+static struct rkxx_remotectl_drvdata data = {0};
+static struct rkxx_remotectl_drvdata *ddata = NULL;
 
 
 static struct rkxx_remotectl_button remotectl_button[] = 
 {
-    {
+	{
 		.usercode = 0xff00,
 		.nbuttons =  29,
 		.key_table = &remote_key_table_sunchip_ff00[0],
@@ -302,33 +325,37 @@ static struct rkxx_remotectl_button remotectl_button[] =
 
 static int remotectl_keybdNum_lookup(struct rkxx_remotectl_drvdata *ddata)
 {	
-    int i;	
+	int i;	
 
-    for (i = 0; i < sizeof(remotectl_button)/sizeof(struct rkxx_remotectl_button); i++){		
-        if (remotectl_button[i].usercode == (ddata->scandata&0xFFFF)){			
-            ddata->keybdNum = i;
-            return 1;
-        }
-    }
-    return 0;
+	for (i = 0; i < sizeof(remotectl_button)/sizeof(struct rkxx_remotectl_button); i++){		
+		if (remotectl_button[i].usercode == (ddata->scandata&0xFFFF)){			
+			ddata->keybdNum = i;
+			return 1;
+		}
+	}
+
+	return 0;
 }
+
 static int remotectl_keycode_lookup(struct rkxx_remotectl_drvdata *ddata)
 {	
-    int i;	
-    unsigned char keyData = ((ddata->scandata >> 8) & 0xff);
+	int i;	
+	unsigned char keyData = ((ddata->scandata >> 8) & 0xff);
 
-    for (i = 0; i < remotectl_button[ddata->keybdNum].nbuttons; i++){
-        if (remotectl_button[ddata->keybdNum].key_table[i].scanCode == keyData){			
-            ddata->keycode = remotectl_button[ddata->keybdNum].key_table[i].keyCode;
-            return 1;
-        }
-    }
-    return 0;
+	for (i = 0; i < remotectl_button[ddata->keybdNum].nbuttons; i++){
+		if (remotectl_button[ddata->keybdNum].key_table[i].scanCode == keyData){			
+			ddata->keycode = remotectl_button[ddata->keybdNum].key_table[i].keyCode;
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
-int remotectl_do_something_readtime()
+int remotectl_do_something_readtime(void)
 {
 	int val;
+
 	val = readl(ddata->base + PWM_REG_INTSTS);
 	if (val&PWM_CH3_INT) {
 		if (val & PWM_CH3_POL) {
@@ -343,6 +370,7 @@ int remotectl_do_something_readtime()
 			//printf("lpr=0x%x \n", val);
 		}
 	}
+
 	return 0;
 }
 
@@ -354,87 +382,89 @@ int remotectl_do_something(void)
 		return 0;
 	}
 
- switch (ddata->state) {
-	case RMC_IDLE: {
-		;
-		break;
-	}
-	case RMC_PRELOAD: {
-		            g_ir_flag_signal = 1;
-            if ((RK_PWM_TIME_PRE_MIN < ddata->period) && 
-				(ddata->period < RK_PWM_TIME_PRE_MAX)){
-			
-                ddata->scandata = 0;
-                ddata->count = 0;
-                ddata->state = RMC_USERCODE;
-            }else{
-          
-                ddata->state = RMC_PRELOAD;
-            }   
-		break;
-	}
-	case RMC_USERCODE: {
-			 ddata->count ++; 
-            g_ir_flag_signal = 1;
-				 ddata->scandata <<= 1;
-            if ((RK_PWM_TIME_BIT1_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT1_MAX)){
-                ddata->scandata |= 0x01 ;
-            }   
-          else if ((RK_PWM_TIME_BIT0_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT0_MAX)){
-                ;   
-            }   
-            else {
-                 ddata->state = RMC_PRELOAD;
-            }     
-			
-            if (ddata->count == 0x10){//16 bit user code
-                printf("remote usercode = 0x%x\n",((ddata->scandata)&0xFFFF));
-                if (remotectl_keybdNum_lookup(ddata)){
-                    ddata->state = RMC_GETDATA;
-                    ddata->scandata = 0;
-                    ddata->count = 0;
-                }else{                //user code error
-                    ddata->state = RMC_PRELOAD;
-                }
-            }
-	}
-	break;
-	case RMC_GETDATA: {
-
-		g_ir_flag_signal = 1;
-		if ((RK_PWM_TIME_BIT1_MIN < ddata->period) &&
-		    (ddata->period < RK_PWM_TIME_BIT1_MAX)){
+	switch (ddata->state) {
+		case RMC_IDLE: {
 			;
+			break;
 		}
-           else if ((RK_PWM_TIME_BIT0_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT0_MAX))
-           	{
-				ddata->scandata |= (0x01 << ddata->count);
-		   }
-             else
-                  ddata->state = RMC_PRELOAD;  
-		ddata->count ++;
-		if (ddata->count < 0x10)
-			return;
-		printf("RMC_GETDATA=%x\n", (ddata->scandata>>8));
-		if ((ddata->scandata&0x0ff) ==
-		    ((~ddata->scandata >> 8) & 0x0ff)) {
-			if (remotectl_keycode_lookup(ddata)) {
-				ddata->press = 1;
+
+		case RMC_PRELOAD: {
+			g_ir_flag_signal = 1;
+			if ((RK_PWM_TIME_PRE_MIN < ddata->period) && 
+					(ddata->period < RK_PWM_TIME_PRE_MAX)){
+			
+				ddata->scandata = 0;
+				ddata->count = 0;
+				ddata->state = RMC_USERCODE;
+			}else{
 				ddata->state = RMC_PRELOAD;
-				g_ir_keycode = ddata->keycode;
-				printf("g_ir_keycode = [%d] \n", g_ir_keycode);
+			}   
+			break;
+		}
+
+		case RMC_USERCODE: {
+			ddata->count ++; 
+			g_ir_flag_signal = 1;
+			ddata->scandata <<= 1;
+			if ((RK_PWM_TIME_BIT1_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT1_MAX)){
+				ddata->scandata |= 0x01 ;
+			}   
+			else if ((RK_PWM_TIME_BIT0_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT0_MAX)){
+				;   
+			}   
+			else {
+				ddata->state = RMC_PRELOAD;
+			}     
+			
+			if (ddata->count == 0x10){//16 bit user code
+				printf("remote usercode = 0x%x\n",((ddata->scandata)&0xFFFF));
+				if (remotectl_keybdNum_lookup(ddata)){
+					ddata->state = RMC_GETDATA;
+					ddata->scandata = 0;
+					ddata->count = 0;
+				}else{                //user code error
+					ddata->state = RMC_PRELOAD;
+				}
+			}
+			break;
+		}
+
+		case RMC_GETDATA: {
+			g_ir_flag_signal = 1;
+			if ((RK_PWM_TIME_BIT1_MIN < ddata->period) &&
+					(ddata->period < RK_PWM_TIME_BIT1_MAX)){
+				;
+			}
+			else if ((RK_PWM_TIME_BIT0_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT0_MAX))
+			{
+				ddata->scandata |= (0x01 << ddata->count);
+			}
+			else
+				ddata->state = RMC_PRELOAD;  
+			ddata->count ++;
+			if (ddata->count < 0x10)
+				return;
+			printf("RMC_GETDATA=%x\n", (ddata->scandata>>8));
+			if ((ddata->scandata&0x0ff) ==
+					((~ddata->scandata >> 8) & 0x0ff)) {
+				if (remotectl_keycode_lookup(ddata)) {
+					ddata->press = 1;
+					ddata->state = RMC_PRELOAD;
+					g_ir_keycode = ddata->keycode;
+					printf("g_ir_keycode = [%d] \n", g_ir_keycode);
+				} else {
+					ddata->state = RMC_PRELOAD;
+				}
 			} else {
 				ddata->state = RMC_PRELOAD;
 			}
-		} else {
-			ddata->state = RMC_PRELOAD;
+			break;
 		}
-	}
-	break;
 	
-	default:
-		break;
+		default:
+			break;
 	}
+
 	return 0;
 }
 
@@ -468,9 +498,9 @@ static int rk_pwm_remotectl_hw_init(struct rkxx_remotectl_drvdata *ddata)
 }
 
 
-void remotectlInitInDriver()
+void remotectlInitInDriver(void)
 {
-	printf( "remotectl v0.1 \n");
+	printf("remotectl v0.1\n");
 	ddata = &data;
 	ddata->state = RMC_PRELOAD;
 	ddata->base = 0x20050030;
