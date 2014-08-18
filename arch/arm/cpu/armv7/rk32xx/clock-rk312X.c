@@ -126,8 +126,8 @@ static const struct pll_clk_set apll_clks[] = {
 static const struct pll_clk_set gpll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	//	aclk_div, hclk_div, pclk_div
-	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 4),
-	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0,	2, 1, 2),
+	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 2),
+	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0,	2, 2, 2),
 };
 
 
@@ -420,7 +420,7 @@ static void rkclk_gpll_cb(struct pll_clk_set *clkset)
 {
 	uint32 con, div;
 
-	rkclk_periph_ahpclk_set(PERIPH_SRC_GENERAL_PLL_DIV2, clkset->aclk_div, clkset->hclk_div, clkset->pclk_div);
+	rkclk_periph_ahpclk_set(PERIPH_SRC_GENERAL_PLL, clkset->aclk_div, clkset->hclk_div, clkset->pclk_div);
 
 	/* set module clock default div from general pll */
 	/* nandc default clock div */
