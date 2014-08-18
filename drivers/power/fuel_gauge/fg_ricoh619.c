@@ -153,7 +153,7 @@ int ricoh619_get_voltage(struct pmic *pmic)
 {
 	u8 voltage_h,voltage_l;
 	int vol=0,vol_tmp1,vol_tmp2;
-	u8 i;
+	u8 i,val;
 
 	u8 pswr = i2c_reg_read(pmic->hw.i2c.addr, PSWR_REG);
 	if (!(pswr & 0x7f))
@@ -169,6 +169,14 @@ int ricoh619_get_voltage(struct pmic *pmic)
 	}
 	vol=vol/10;
 	vol=vol*5000/4095;
+	val=i2c_reg_read(pmic->hw.i2c.addr, BATSET2_REG);
+	if(vol > 4100&&(val!=0x44)){
+		i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
+			i2c_reg_read(pmic->hw.i2c.addr, CHGCTL1_REG) | 0x08);
+		i2c_reg_write(pmic->hw.i2c.addr, BATSET2_REG, 0x44);  /* VFCHG 4.35v) */
+		i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
+			i2c_reg_read(pmic->hw.i2c.addr, CHGCTL1_REG) & 0xf7);
+	}
 	return vol;
 }
 
@@ -241,6 +249,7 @@ int get_capcity(int volt)
 	int level0, level1;
 	int cap;
 	int diff = 0;
+	u8 chgstate;
 	int step = 100 / (ARRAY_SIZE(volt_tab) -1);
 
 	if (state_of_chrg == 1)
@@ -262,6 +271,13 @@ int get_capcity(int volt)
 	cap = step * (i-1) + step *(volt - level0)/(level1 - level0);
 	/*printf("cap%d step:%d level0 %d level1 %d  diff %d\n",
 			cap, step, level0 ,level1, diff);*/
+
+	chgstate = i2c_reg_read(PMU_I2C_ADDRESS, CHGSTATE_REG);
+	if ((chgstate & 0x3f) == 0x04){
+		printf("%s chg complete\n",__func__);
+		cap = 100;
+	}
+
 	return cap;
 }
 
@@ -292,15 +308,12 @@ static int ricoh619_charger_setting(struct pmic *pmic,int current)
 	}
 	i2c_reg_write(pmic->hw.i2c.addr, PWRFUNC,
 			i2c_reg_read(pmic->hw.i2c.addr,0x0d)|0x20);                                            
-	i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
-			i2c_reg_read(pmic->hw.i2c.addr, CHGCTL1_REG) | 0x08);
-	i2c_reg_write(pmic->hw.i2c.addr, BATSET2_REG, 0x44);  /* VFCHG 4.35v)   */ 
 	printf("%s iset1:0x%02x chgiset:0x%02x current %d\n",__func__,
 					iset1_val, chgiset_val,current);
 	switch (current){
 	case 0:
-		i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
-			i2c_reg_read(pmic->hw.i2c.addr,0xb3)&~0x03);      //disable charging    
+//		i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
+//			i2c_reg_read(pmic->hw.i2c.addr, 0xb3)&~0x03);      //disable charging
 		break;
 	case 1:
 		i2c_reg_write(pmic->hw.i2c.addr, REGISET1_REG, usb_iset1_cfg);
