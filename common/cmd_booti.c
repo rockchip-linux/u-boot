@@ -172,6 +172,35 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
 	}
 
+	memset(&images, 0, sizeof(images));
+#ifdef CONFIG_CMD_BOOTM
+#ifdef CONFIG_ROCKCHIP
+	extern int rk_bootm_start(bootm_headers_t *images);
+	if (rk_bootm_start(&images)) { /*it returns 1 when failed.*/
+		puts("booti: failed to setup lmb!\n");
+		goto fail;
+	}
+
+	/* loader fdt */
+#ifdef CONFIG_OF_LIBFDT
+	resource_content content = load_fdt(ptn);
+	if (!content.load_addr) {
+		printf("failed to prepare_fdt from %s!\n", boot_source);
+#ifdef CONFIG_OF_FROM_RESOURCE
+		content = load_fdt(get_disk_partition(RESOURCE_NAME));
+#endif
+	}
+	if (!content.load_addr) {
+		printf("failed to prepare_fdt!\n");
+		goto fail;
+	} else {
+		images.ft_addr = content.load_addr;
+		images.ft_len = content.content_size;
+	}
+#endif /* CONFIG_OF_LIBFDT */
+#endif /* CONFIG_ROCKCHIP */
+#endif /* CONFIG_CMD_BOOTM */
+
 #if defined CONFIG_CMD_FASTBOOT || defined CONFIG_ROCKCHIP
 	char* fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);
 	unsigned long unlocked = 0;
@@ -180,6 +209,9 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			unlocked = unlocked? 1 : 0;
 		}
 	}
+	/* boot check call SetSysData2Kernel, set sn and others information in the nanc ram,
+	 * so, after check, PLS notice do not read/write nand flash. 
+	 */
 	if (board_fbt_boot_check(hdr, unlocked)) {
 		FBTERR("booti: board check boot image error\n");
 		goto fail;
@@ -212,14 +244,15 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		//printf("board cmdline:\n%s\n", command_line);
 #endif
 
-		if (charge)
+		if (charge) {
 			snprintf(command_line, sizeof(command_line),
 					"%s %s",command_line," androidboot.mode=charger");
+		}
 		snprintf(command_line, sizeof(command_line),
 				"%s loader.timestamp=%s",command_line, U_BOOT_TIMESTAMP);
 
 #ifdef CONFIG_RK_3288_HDMI
-	   snprintf(command_line, sizeof(command_line),
+		snprintf(command_line, sizeof(command_line),
 				 "%s hdmi.vic=%d",command_line, g_hdmi_vic);
 #endif
 
@@ -237,35 +270,6 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		setenv("bootargs", command_line);
 	}
 #endif /* CONFIG_CMDLINE_TAG */
-
-	memset(&images, 0, sizeof(images));
-#ifdef CONFIG_CMD_BOOTM
-#ifdef CONFIG_ROCKCHIP
-	extern int rk_bootm_start(bootm_headers_t *images);
-	if (rk_bootm_start(&images)/*it returns 1 when failed.*/) {
-		puts("booti: failed to setup lmb!\n");
-		goto fail;
-	}
-
-#ifdef CONFIG_OF_LIBFDT
-    resource_content content = load_fdt(ptn);
-    if (!content.load_addr) {
-        printf("failed to prepare_fdt from %s!\n", boot_source);
-#ifdef CONFIG_OF_FROM_RESOURCE
-		content = load_fdt(get_disk_partition(RESOURCE_NAME));
-#endif
-    }
-	if (!content.load_addr) {
-        printf("failed to prepare_fdt!\n");
-		goto fail;
-	} else {
-		images.ft_addr = content.load_addr;
-		images.ft_len = content.content_size;
-    }
-#endif
-
-#endif
-#endif
 
 	images.ep = hdr->kernel_addr;
 	images.rd_start = hdr->ramdisk_addr;
