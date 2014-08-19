@@ -119,6 +119,9 @@ int mmc_send_status(struct mmc *mmc, int timeout)
 	if (!mmc_host_is_spi(mmc))
 		cmd.cmdarg = mmc->rca << 16;
 
+#ifdef CONFIG_ROCKCHIP
+	timeout = timeout * 100;
+#endif
 	do {
 		err = mmc_send_cmd(mmc, &cmd, NULL);
 		if (!err) {
@@ -459,11 +462,7 @@ static int mmc_send_ext_csd(struct mmc *mmc, u8 *ext_csd)
 static int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 {
 	struct mmc_cmd cmd;
-	#ifdef CONFIG_ROCKCHIP
-		int timeout = 100000;
-	#else
-		int timeout = 1000;
-	#endif
+	int timeout = 1000;
 	int ret;
 
 	cmd.cmdidx = MMC_CMD_SWITCH;
@@ -785,11 +784,7 @@ static int mmc_startup(struct mmc *mmc)
 	struct mmc_cmd cmd;
 	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
 	ALLOC_CACHE_ALIGN_BUFFER(u8, test_csd, MMC_MAX_BLOCK_LEN);
-	#ifdef CONFIG_ROCKCHIP
-		int timeout = 100000;
-	#else
-		int timeout = 1000;
-	#endif
+	int timeout = 1000;
 
 #ifdef CONFIG_MMC_SPI_CRC_ON
 	if (mmc_host_is_spi(mmc)) { /* enable CRC check for spi */
