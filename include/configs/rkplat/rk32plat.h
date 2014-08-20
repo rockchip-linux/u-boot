@@ -172,14 +172,18 @@
 
 
 /* rk usb module */
+/* usb device */
 #define CONFIG_USB_DEVICE
 #define CONFIG_RK_UDC
 
+/* usb host */
+#if 0
+#define CONFIG_CMD_USB
+#define CONFIG_USB_STORAGE
 #define CONFIG_USB_DWC_HCD
 //#define CONFIG_USB_EHCI
 //#define CONFIG_USB_EHCI_RK
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
+#endif
 
 
 /* rk gpio module */
