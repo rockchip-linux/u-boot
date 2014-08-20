@@ -517,7 +517,7 @@ static inline int rk_pl330_submit(struct rk_pl330_chan *ch,
 
 			ch->rqcfg.brst_len = bl;
 		} else {
-#ifndef CONFIG_RK_MMC_IDMAC
+#ifdef CONFIG_RK_MMC_EDMAC
 			/* mmc using pll330 dma */
 			if (ch->id == DMACH_EMMC) {
 				ch->rqcfg.brst_len = 16;
