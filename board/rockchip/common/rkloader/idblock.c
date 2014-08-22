@@ -763,7 +763,7 @@ int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
 	return 0;
 }
 #else
-#define MaxFlashReadSize  32  //16KB
+#define MaxFlashReadSize  128  //64KB
 int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE * MaxFlashReadSize);
