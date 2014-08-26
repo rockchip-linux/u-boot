@@ -16,6 +16,7 @@ bool gDebug =
 options gOpts;
 
 
+char gSubfix[MAX_LINE_LEN] = OUT_SUBFIX;
 char gEat[MAX_LINE_LEN];
 char* gConfigPath;
 uint8_t gBuf[MAX_MERGE_SIZE];
@@ -688,7 +689,7 @@ static bool mergeBoot(void) {
 		char* subfix = strstr(gOpts.outPath, OUT_SUBFIX);
 		char version[MAX_LINE_LEN];
 		snprintf(version, sizeof(version), "_V%d.%d%s", gOpts.major,
-				gOpts.minor, OUT_SUBFIX);
+				gOpts.minor, gSubfix);
 		if (subfix && !strcmp(subfix, OUT_SUBFIX)) {
 			subfix[0] = '\0';
 		}
@@ -862,6 +863,7 @@ static void printHelp(void) {
 	printf("\t" OPT_VERBOSE "\t\tDisplay more runtime informations.\n");
 	printf("\t" OPT_HELP "\t\t\tDisplay this information.\n");
 	printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
+	printf("\t" OPT_SUBFIX "\t\tSpec subfix.\n");
 }
 
 int main(int argc, char** argv) {
@@ -882,6 +884,9 @@ int main(int argc, char** argv) {
 			merge = true;
 		} else if (!strcmp(OPT_UNPACK, argv[i])) {
 			merge = false;
+		} else if (!strcmp(OPT_SUBFIX, argv[i])) {
+			i++;
+			snprintf(gSubfix, sizeof(gSubfix), "%s", argv[i]);
 		} else {
 			if (optPath) {
 				fprintf(stderr, "only need one path arg, but we have:\n%s\n%s.\n", optPath, argv[i]);

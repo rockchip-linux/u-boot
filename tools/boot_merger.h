@@ -179,6 +179,7 @@ typedef struct {
 #define OPT_VERSION         "--version"
 #define OPT_MERGE           "--pack"
 #define OPT_UNPACK          "--unpack"
+#define OPT_SUBFIX          "--subfix"
 
 #define VERSION             "2013-8-12 14:27:23"
 

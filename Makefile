@@ -379,7 +379,7 @@ KBUILD_AFLAGS   := -D__ASSEMBLY__
 
 # Read UBOOTRELEASE from include/config/uboot.release (if it exists)
 UBOOTRELEASE = $(shell cat include/config/uboot.release 2> /dev/null)
-UBOOTVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)$(if $(RKCHIP),-$(RKCHIP))
+UBOOTVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
 
 export VERSION PATCHLEVEL SUBLEVEL UBOOTRELEASE UBOOTVERSION
 export ARCH CPU BOARD VENDOR SOC CPUDIR BOARDDIR
@@ -824,6 +824,8 @@ ifneq ($(CONFIG_ROCKCHIP),)
 
 ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3288))
 RKCHIP ?= RK3288
+# rk uboot version should consist of two digits, as 01
+RK_UBOOT_VERSION = 01
 endif
 
 ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3036))
@@ -840,13 +842,19 @@ endif
 
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
 
+UBOOTVERSION := $(UBOOTVERSION)$(if $(RKCHIP),-$(RKCHIP))$(if $(RK_UBOOT_VERSION),-$(RK_UBOOT_VERSION))
+
+RK_SUBFIX = $(if $(RK_UBOOT_VERSION),.$(RK_UBOOT_VERSION)).bin
+
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 RKLoader_uboot.bin: u-boot.bin
-	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini && \
-	./tools/loaderimage  --pack u-boot.bin uboot.img
+	./tools/boot_merger --subfix "$(RK_SUBFIX)" \
+		./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini && \
+		./tools/loaderimage --pack u-boot.bin uboot.img
 else
 RKLoader_uboot.bin: u-boot.bin
-	./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
+	./tools/boot_merger --subfix "$(RK_SUBFIX)" \
+		./tools/rk_tools/RKBOOT/$(RKCHIP).ini
 endif
 
 endif
