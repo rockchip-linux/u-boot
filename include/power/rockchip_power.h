@@ -8,6 +8,7 @@ enum pmic_id {
 	PMIC_ID_ACT8846,
 	PMIC_ID_RK808,
 	PMIC_ID_RK818,
+	PMIC_ID_RT5025,
 };
 unsigned char get_rockchip_pmic_id(void);
 int dwc_otg_check_dpdm(void);
