@@ -83,13 +83,14 @@
 	#define RKUSBERR(fmt, args...) do {} while (0)
 #endif
 
-/* dwc otg controller can handle 0x20000 data max for the datasize in DoEpCtl is 18 bit leng
- * we can only cut the transfer into smaller pieces
+/*
+ * dwc otg controller can handle max 0x20000 bytes data for the XferSize in DoEpSiz
+ * is 18 bit length, we cut the transfer into smaller pieces
  * block size = 0x200/0x210
  */
 #define RKUSB_BUFFER_BLOCK_MAX 0x80//0x20
 
-#define	USB_DEVICE_CLASS_VENDOR_SPECIFIC	0xFF	//
+#define	USB_DEVICE_CLASS_VENDOR_SPECIFIC	0xFF
 #define	USB_SUBCLASS_CODE_SCSI			0x06
 
 #define STR_LANG		0x00
@@ -279,8 +280,10 @@ struct cmd_rockusb_interface {
 	uint8_t rxbuf_num;
 	uint8_t txbuf_num;
    
-		/* Download size, if download has to be done. This can be checked to find
-		whether next packet is a command or a data */
+	/* 
+	 * Download size, if download has to be done. This can be checked to find
+	 * whether next packet is a command or a data 
+	 */
 	uint32_t d_size;
 
 	/* Data downloaded so far */
@@ -288,12 +291,13 @@ struct cmd_rockusb_interface {
 
 	/* Download status, < 0 when error, > 0 when complete */
 	uint32_t d_status;
+
     	/* Upload size, if download has to be done */
 	uint32_t u_size;
 
 	/* Data uploaded so far */
 	uint32_t u_bytes;
-	
+
 	uint32_t lba;
 	uint32_t cmnd;
 	uint32_t imgwr_mode;
@@ -310,5 +314,11 @@ struct cmd_rockusb_interface {
 	struct fsg_bulk_cb_wrap cbw __attribute__((aligned(ARCH_DMA_MINALIGN)));
 	struct cmd_rockusb_preread pre_read __attribute__((aligned(ARCH_DMA_MINALIGN)));
 };
+
+/* Declare functions */
+//extern uint32_t SecureBootLock;
+extern void FW_SorageLowFormatEn(int en);
+
+int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 #endif

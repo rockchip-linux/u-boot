@@ -573,8 +573,6 @@ void usbd_dealloc_urb (struct urb *urb)
 	}
 }
 
-/* Event signaling functions ***************************************************** */
-
 /**
  * usbd_device_event - called to respond to various usb events
  * @device: pointer to struct device
@@ -582,7 +580,8 @@ void usbd_dealloc_urb (struct urb *urb)
  *
  * Used by a Bus driver to indicate an event.
  */
-void usbd_device_event_irq (struct usb_device_instance *device, usb_device_event_t event, int data)
+void usbd_device_event_irq (struct usb_device_instance *device,
+				 usb_device_event_t event, int data)
 {
 	usb_device_state_t state;
 

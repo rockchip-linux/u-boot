@@ -124,7 +124,7 @@
 #define	STAGE_STATUS        		2
 
 
-//Global Registers
+/* Global variable */
 //带数据的设备请求结构
 typedef struct _control_xfer {
 	DEVICE_REQUEST_T DeviceRequest;
@@ -151,6 +151,11 @@ static void udc_stall_ep(uint32_t ep_num);
 static void dwc_otg_epn_rx(uint32_t);
 static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint);
 
+extern void rkplat_uart2UsbEn(uint32 en);
+/* For secure boot from boot.c */
+extern uint32_t SecureBootLock;
+extern uint32_t SecureBootLock_backup;
+
 
 /**************************************************************************
 读取端点数据
@@ -161,8 +166,9 @@ static void ReadEndpoint0(uint16_t len, void *buf)
 
 	flush_cache((uint32_t)buf, (uint32_t)len);
 	OtgReg->Device.OutEp[0].DoEpDma = (uint32_t)buf;
-	OtgReg->Device.OutEp[0].DoEpTSiz = Ep0PktSize | (1<<19);
-	OtgReg->Device.OutEp[0].DoEpCtl = (1ul<<15) | (1ul<<26) | (1ul<<31);     //Active ep, Clr Nak, endpoint enable
+	OtgReg->Device.OutEp[0].DoEpTSiz = Ep0PktSize | (1<<29) | (1<<19);
+	/* Active ep, Clr Nak, endpoint enable */
+	OtgReg->Device.OutEp[0].DoEpCtl = (1<<15) | (1<<26) | (1<<31);
 }
 
 
@@ -172,12 +178,14 @@ static void ReadEndpoint0(uint16_t len, void *buf)
 static void WriteEndpoint0(uint16_t len, void* buf)
 {
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
+	const uint32 gnptxsts = OtgReg->Core.gnptxsts;
 
-	if (((OtgReg->Core.gnptxsts & 0xffff) >= (len+3)/4) && (((OtgReg->Core.gnptxsts>>16) & 0xff) > 0))
+	if (((gnptxsts & 0xffff) >= (len+3)/4) && (((gnptxsts >> 16) & 0xff) > 0))
 	{
 		OtgReg->Device.InEp[0].DiEpTSiz = len | (1<<19);
 		OtgReg->Device.InEp[0].DiEpDma = (uint32_t)buf;
-		OtgReg->Device.InEp[0].DiEpCtl = (1ul<<26) | (1ul<<31);     //endpoint enable
+		/* Ep enable & clear NAK */
+		OtgReg->Device.InEp[0].DiEpCtl = (1<<26) | (1<<31);
 	}
 }
 
@@ -356,12 +364,10 @@ uint32_t GetVbus(void)
 		mdelay(3);
 	}
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
-	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
 		/* exit suspend */
-		grf_writel(((0x01 << 0) << 16), GRF_UOC0_CON0);
+		grf_writel(((0x1 << 0) << 16), GRF_UOC0_CON0);
 		/* delay more than 1ms, waiting for usb phy init */
-		mdelay(3);
-	}
+		mdelay(10);
 #else
 	#error "PLS config chiptype for usb vbus check!"
 #endif
@@ -390,14 +396,14 @@ void UdcInit(void)
 	UsbConnected = 0;
 	UsbBusReset = 0;
 
-	//wait AHB Master idle
-	for (count=0; count<10000; count++)
+	/* Wait AHB Master idle */
+	for (count = 0; count < 10000; count++)
 	{
-		if ((OtgReg->Core.grstctl & (1ul<<31)) != 0)
+		if ((OtgReg->Core.grstctl & (1<<31)) != 0)
 			break;
 	}
-	//core soft reset
-	OtgReg->Core.grstctl |= 1<<0;               //Core soft reset
+	/* Core soft reset */
+	OtgReg->Core.grstctl |= 1 << 0;
 	for (count=0; count<10000; count++)
 	{
 		if ((OtgReg->Core.grstctl & (1<<0)) == 0)
@@ -444,7 +450,7 @@ void UdcInit(void)
 	OtgReg->Device.OutEp[BULK_OUT_EP].DoEpInt = 0xff;
 
 	OtgReg->Device.diepmsk = 0x2f;                   //device IN interrutp mask
-	OtgReg->Device.doepmsk = 0x0f;                   //device OUT interrutp mask
+	OtgReg->Device.doepmsk = 0x2f;                   //device OUT interrutp mask
 	OtgReg->Device.daint = 0xffffffff;               //clear all pending intrrupt
 	OtgReg->Device.daintmsk = 0x00010001 | ((1<<BULK_IN_EP) | ((1<<BULK_OUT_EP)<<16));    //device all ep interrtup mask(IN0 & OUT0)
 	OtgReg->Core.gintsts = 0xffffffff;
@@ -469,6 +475,116 @@ static void set_address(void)
 	ep0in_ack();
 }
 
+void HaltBulkEndpoint(uint8 ep_num)
+{
+	uint32 regBak,count;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
+
+	switch(ep_num) {
+	case BULK_IN_EP:
+		if(OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl & (1<<31)) {
+			/* Enable the Global IN NP NAK */
+			OtgReg->Device.dctl |= (1<<7);
+			/* Wait for the GINTSTS.Global IN NP NAK Effective */
+			for (count = 0; count < 10000; count++) {
+				if (OtgReg->Core.gintsts & (1<<6))
+					break;
+				udelay(1);
+			}
+
+			/* Disable non-periodic Endpoints */
+			OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl |= (1<<30 | 1<<27);
+			/* Wait for the DIEPINTn.EPDisabled interrupt */
+			for (count=0; count < 10000; count++) {
+				if (OtgReg->Device.InEp[BULK_IN_EP].DiEpInt & (1 << 1)) {
+					OtgReg->Device.InEp[BULK_IN_EP].DiEpInt |= (1 << 1);
+					break;
+				}
+				udelay(1);
+			}
+			/* Clear the Global IN NP NAK */
+			OtgReg->Device.dctl |= (1<<8);
+
+			//Flush all Tx Fifo
+			OtgReg->Core.grstctl |= (0x10<<6) | (1<<5);
+			for (count=0; count < 10000; count++) {
+				if (!(OtgReg->Core.grstctl & (1<<5)))
+					break;
+			}
+		}
+		/* Set DATA0 Toggle */
+		printf("SET IN TOGGLE 0 \n");
+		OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl |= 1<<28;
+		break;
+
+	case BULK_OUT_EP:
+		if(OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl & (1<<31)) {
+			/* Setting Global OUT NAK */
+			OtgReg->Device.dctl |= (1<<9);
+			/* Wait for the GINTSTS.GOUTNakEff interrupt*/
+			for (count=0; count<10000; count++) {
+				if (OtgReg->Core.gintsts & (1<<7))
+					break;
+				udelay(1);
+			}
+
+			/* Disable the required OUT endpoint */
+			OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl |= (1<<30 | 1<<27);
+			/* Wait for the DOEPINTn.EPDisabled interrupt */
+			for (count=0; count<10000; count++) {
+				if (OtgReg->Device.OutEp[BULK_OUT_EP].DoEpInt & (1<<1)) {
+					OtgReg->Device.OutEp[BULK_OUT_EP].DoEpInt |= (1<<1);
+					break;
+				}
+				udelay(1);
+			}
+
+			/* Flush Rxfifo */
+			OtgReg->Core.grstctl |= 1<<4;
+			for (count=0; count<10000; count++) {
+				if (!(OtgReg->Core.grstctl & (1<<4)))
+					break;
+			}
+
+			/* Clear the Global OUT NAK */
+			OtgReg->Device.dctl = (1<<10);
+			mdelay(5);
+		}
+
+		//Set DATA0 Toggle
+		OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl |= 1<<28;
+		break;
+
+	default:
+		printf("Invalid bulk ep num!\n");
+	}
+
+}
+
+void clear_feature(uint8 ep_num)
+{
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
+
+	ep_num &= 0x0f;
+	printf("USB CMD Clear_feature\n");
+	if(ep_num == BULK_IN_EP) {
+		HaltBulkEndpoint(BULK_IN_EP);
+		printf("##0x%08x DiEpCtl \n",
+		       OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl);
+		printf("##0x%08x DiEpInt \n",
+		       OtgReg->Device.InEp[BULK_IN_EP].DiEpInt);
+	}
+	if(ep_num == BULK_OUT_EP) {
+		HaltBulkEndpoint(BULK_OUT_EP);
+		printf("##0x%08x DoEpCtl \n",
+		       OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl);
+		printf("##0x%08x DoEpInt \n",
+		       OtgReg->Device.OutEp[BULK_OUT_EP].DoEpInt);
+		usbd_device_event_irq(udc_device, DEVICE_CLEAR_FEATURE, 0);
+	}
+
+	ep0in_ack();
+}
 
 /***************************************************************************
 返回stall应答
@@ -510,7 +626,7 @@ void resume_usb(struct usb_endpoint_instance *endpoint, int max_size)
 		if (endpoint && endpoint->rcv_urb) {
 			struct urb* urb = endpoint->rcv_urb;
 
-			//get available size for next xfer.
+			/* Get available size for next xfer */
 			int remaining_space = urb->buffer_length - urb->actual_length;
 			if (remaining_space > 0) {
 				urb->status = RECV_READY;
@@ -531,7 +647,6 @@ void udc_unset_nak(int epid)
 {
 	/* noop */
 }
-
 
 static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 {
@@ -562,6 +677,9 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 		{
 			switch (ep0_urb->device_request.bRequest & USB_REQUEST_MASK)
 			{
+				case 1:
+					clear_feature(ep0_urb->device_request.wIndex);
+					break;
 				case 5:
 					usbdbg("set address\n");
 					set_address();
@@ -627,7 +745,7 @@ static void dwc_otg_enum_done_intr(void)
 	}
 	OtgReg->Device.dctl |= 1<<8;               //clear global IN NAK
 	ReadEndpoint0(Ep0PktSize, Ep0Buf);
-	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1ul<<28) | (1<<15) | (2<<18) | (BULK_IN_EP<<22);
+	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1<<28) | (1<<15) | (2<<18) | (BULK_IN_EP<<22);
 }
 
 static void dwc_otg_in_intr(void)
@@ -693,7 +811,7 @@ static void dwc_otg_out_intr(void)
 	uint32_t i;
 	uint32_t ch;
 	uint32_t event;
-
+	
 	ch = (OtgReg->Device.daint & OtgReg->Device.daintmsk) >> 16;   //鍦≧OM閲屽彧鏈塃P0涓柇
 	for (i=0; i<3; i++)
 	{
@@ -736,9 +854,13 @@ static void dwc_otg_out_intr(void)
 			if ((event & 0x08) != 0)        //Setup Phase Done (contorl EPs)
 			{
 				OtgReg->Device.OutEp[i].DoEpInt=0x08;
-				//Setup();
 				dwc_otg_setup(udc_device->bus->endpoint_array);
 				ReadEndpoint0(Ep0PktSize, Ep0Buf);
+			}
+			if ((event & 0x20) != 0)        //StsPhseRcvd
+			{
+				usbdbg("<< StsPhseRcvd >> \n");
+				OtgReg->Device.OutEp[i].DoEpInt=0x20;
 			}
 		}
 	}
@@ -798,7 +920,6 @@ int udc_endpoint_write(struct usb_endpoint_instance *endpoint)
 			dwc_otg_write_data(endpoint);
 
 	}
-
 	return 0;
 }
 
@@ -890,22 +1011,30 @@ int is_usbd_high_speed(void)
 	return ((OtgReg->Device.dsts>>1) & 0x03) ? 0 : 1;
 }
 
-
-extern void rkplat_uart2UsbEn(uint32 en);
+void usbphy_tunning(void)
+{
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || \
+    (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+	/* Phy PLL recovering */
+	grf_writel(0x00030001, GRF_UOC0_CON0);
+	mdelay(100);
+	grf_writel(0x00030002, GRF_UOC0_CON0);
+#endif
+}
 
 /* Turn on the USB connection by enabling the pullup resistor */
 void udc_connect(void)
 {
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
+	/* Disable usb-uart bypass */
 	rkplat_uart2UsbEn(0);
 
-	if(!(OtgReg->Device.dctl & 0x02)){
-		OtgReg->Device.dctl |= 0x02;           //soft disconnect
-		udelay(500*1000);    //delay 500ms
-	}
+	OtgReg->Device.dctl |= 0x02;	//soft disconnect
+	usbphy_tunning();
+	mdelay(500);
 	UdcInit();
-	OtgReg->Device.dctl &= ~0x02;          //soft connect
+	OtgReg->Device.dctl &= ~0x02;	//soft connect
 
 	irq_install_handler(IRQ_USB_OTG, udc_irq, NULL);
 	irq_handler_enable(IRQ_USB_OTG);
@@ -932,17 +1061,23 @@ void udc_connect(void)
 /* Turn off the USB connection by disabling the pullup resistor */
 void udc_disconnect(void)
 {
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
+
+	OtgReg->Device.dctl |= 0x02;	//soft disconnect
 	UsbConnected = 0;
 }
 
 /* Switch on the UDC */
 void udc_enable(struct usb_device_instance *device)
 {
-	usbinfo("enable device %p, status %d, device_state %d\n", device, device->status, device->device_state);
+	usbinfo("enable device %p, status %d, device_state %d\n",
+		device, device->status, device->device_state);
 
 	/* Save the device structure pointer */
 	udc_device = device;
-	usbinfo("enable device %p, status %d, device_state %d\n", udc_device, udc_device->status, udc_device->device_state);
+	usbinfo("enable device %p, status %d, device_state %d\n", udc_device,
+		udc_device->status, udc_device->device_state);
+
 	/* Setup ep0 urb */
 	if (!ep0_urb) {
 		ep0_urb =
@@ -950,7 +1085,6 @@ void udc_enable(struct usb_device_instance *device)
 	} else {
 		usbinfo("udc_enable: ep0_urb already allocated %p\n", ep0_urb);
 	}
-
 }
 
 /**
@@ -979,11 +1113,6 @@ void udc_startup_events(struct usb_device_instance *device)
 
 	udc_enable(device);
 }
-
-
-// for secure boot from boot.c
-extern uint32_t SecureBootLock;
-extern uint32_t SecureBootLock_backup;
 
 /*
  * UDC interrupts
@@ -1015,7 +1144,7 @@ void udc_irq(void)
 	{
 		OtgReg->Core.gintsts = 1<<11;
 	}
-	if(IntFlag & (1<<12))  //USB鎬荤嚎澶嶄綅
+	if(IntFlag & (1<<12))  //USB reset
 	{
 		usbinfo("device attached and powered\n");
 		
@@ -1106,7 +1235,7 @@ int dwc_otg_check_dpdm(void)
 	if(*otg_gotgctl &(1<<19)) {
 		bus_status = 1;
 		*otg_dctl &= ~2;
-		mdelay(50);    // delay about 10ms
+		mdelay(50);
 		// check dp,dm
 		printf("%s otg_dctl=0x%x,otg_hprt0 = 0x%x\n", __func__, *otg_dctl, *otg_hprt0);
 		if((*otg_hprt0 & 0xc00) == 0xc00)

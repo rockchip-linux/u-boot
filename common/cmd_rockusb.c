@@ -29,16 +29,11 @@ DECLARE_GLOBAL_DATA_PTR;
 #endif
 #include <../board/rockchip/common/config.h>
 
-extern uint32 SecureBootLock;
-extern void FW_SorageLowFormatEn(int en);
-
-int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 /* USB specific */
 void rkusb_receive_firstcbw(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
-
 	// get first CBW
 	ep->rcv_urb->buffer = (u8*)&usbcmd.cbw;
 	ep->rcv_urb->buffer_length = 31;
@@ -51,7 +46,7 @@ void rkusb_receive_firstcbw(void)
 static void rkusb_event_handler (struct usb_device_instance *device,
 				  usb_device_event_t event, int data)
 {
-	RKUSBINFO("%x \n", event);
+	RKUSBINFO("@rkusb_event_handler   %x \n", event);
 	switch (event) {
 		case DEVICE_RESET:
 		case DEVICE_BUS_INACTIVE:
@@ -59,10 +54,15 @@ static void rkusb_event_handler (struct usb_device_instance *device,
 			break;
 		case DEVICE_CONFIGURED:
 			usbcmd.configured = 1;
-
 			break;
 		case DEVICE_ADDRESS_ASSIGNED:
+			usbcmd.status = RKUSB_STATUS_IDLE;
 			rkusb_init_endpoints();
+			rkusb_receive_firstcbw();
+		case DEVICE_CLEAR_FEATURE:
+			usbcmd.status = RKUSB_STATUS_IDLE;
+			endpoint_instance[2].tx_urb->status = SEND_FINISHED_OK;
+			endpoint_instance[1].rcv_urb->status = RECV_OK;
 			rkusb_receive_firstcbw();
 		default:
 			break;
@@ -223,7 +223,6 @@ static void rkusb_init_endpoints(void)
  ***************************************************************************/
 static void FW_TestUnitReady(void)
 {
-	RKUSBINFO("%s \n", __func__);
 	if(FW_StorageGetValid() == 0)
 	{//ÕýÔÚµÍ¸ñ
 		uint32_t totleBlock = FW_GetTotleBlk();
@@ -383,9 +382,7 @@ static void FW_Read10(void)
 	usbcmd.u_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 528;
 	usbcmd.u_bytes = 0;
 	usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
-
 	usbcmd.status = RKUSB_STATUS_TXDATA_PREPARE;
-	RKUSBINFO("lba %x block num %x \n", usbcmd.lba, usbcmd.u_size);
 }
 
 /***************************************************************************
@@ -404,7 +401,7 @@ static void FW_Write10(void)
 	usbcmd.d_bytes = 0;
 	usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
 
-	RKUSBINFO("lba %x len %x\n", usbcmd.lba, usbcmd.d_size);
+	RKUSBINFO("WRITE10 %x len %x\n", usbcmd.lba, usbcmd.d_size);
 	current_urb->actual_length = 0;
 
 	/* check current lba buffer not include in pre lba buffer */
@@ -473,9 +470,6 @@ static void FW_LBARead10(void)
 	usbcmd.u_size = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 512;
 	usbcmd.u_bytes = 0;
 	usbcmd.lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
-
-	RKUSBINFO("lba %x len %x\n", usbcmd.lba, usbcmd.u_size);
-
 	usbcmd.status = RKUSB_STATUS_TXDATA_PREPARE;
 }
 
@@ -491,7 +485,6 @@ static void FW_LBAWrite10(void)
 	usbcmd.imgwr_mode = usbcmd.cbw.CDB[1];
 
 	current_urb = ep->rcv_urb;
-	RKUSBINFO("lba %x, size %x\n", usbcmd.lba, usbcmd.d_size);
 	current_urb->actual_length = 0;
 
 	/* check current lba buffer not include in pre lba buffer */
@@ -516,7 +509,7 @@ static void FW_GetFlashInfo(void)
 
 	StorageReadFlashInfo(current_urb->buffer);
 
-	ftl_memcpy(current_urb->buffer, current_urb->buffer,11);
+	ftl_memcpy(current_urb->buffer, current_urb->buffer, 11);
 	current_urb->actual_length = 11;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
 	usbcmd.csw.Status = CSW_GOOD;
@@ -723,7 +716,7 @@ void rkusb_handle_datarx(void)
 		rkusb_send_csw();
 	}
 
-	// write to media
+	/* Write to media */
 	if(rxdata_blocks) {
 		RKUSBINFO("write to media %x, lba %x, buf %p\n", rxdata_blocks, usbcmd.lba, rxdata_buf);
 		if(usbcmd.cmnd == K_FW_WRITE_10) {
@@ -770,7 +763,7 @@ start:
 	tx_blocks = txdata_size / block_length;
 	if(tx_blocks >= RKUSB_BUFFER_BLOCK_MAX) {
 		tx_blocks = RKUSB_BUFFER_BLOCK_MAX;
-		txdata_size = tx_blocks*block_length;
+		txdata_size = tx_blocks * block_length;
 	}
     
 	// send data to usb
@@ -784,7 +777,8 @@ start:
 		current_urb->actual_length = txdata_size;
 		current_urb->buffer = usbcmd.pre_read.pre_buffer;
 		udc_endpoint_write(ep);
-		RKUSBINFO("udc_endpoint_write buffer %p, len %x\n", current_urb->buffer, current_urb->actual_length);
+		RKUSBINFO("udc_endpoint_write buffer %p, len %x\n",
+			current_urb->buffer, current_urb->actual_length);
 	}
 
 	if((usbcmd.u_bytes == 0) || (tx_blocks == RKUSB_BUFFER_BLOCK_MAX)) {
@@ -825,7 +819,8 @@ void rkusb_handle_response(void)
 	struct urb *current_urb = NULL;
 	uint32_t actural_length;
 
-	if(RKUSB_STATUS_TXDATA == usbcmd.status) {
+	switch (usbcmd.status) {
+	case RKUSB_STATUS_TXDATA:
 		ep = &endpoint_instance[2];
 		current_urb = ep->tx_urb;
 		udc_endpoint_write(ep);
@@ -837,23 +832,30 @@ void rkusb_handle_response(void)
 			usbcmd.csw.Status= CSW_GOOD;
 			usbcmd.status = RKUSB_STATUS_CSW;
 		}
-	}
-	else if(RKUSB_STATUS_RXDATA == usbcmd.status) {
+		break;
+
+	case RKUSB_STATUS_RXDATA:
 		ep = &endpoint_instance[1];
 		current_urb = ep->rcv_urb;
 		actural_length = current_urb->actual_length;
 
 		if(actural_length)
 			rkusb_handle_datarx();
-	}
-	else if(RKUSB_STATUS_RXDATA_PREPARE == usbcmd.status){
+		break;
+
+	case RKUSB_STATUS_RXDATA_PREPARE:
 		rkusb_handle_datarx();
-	}
-	else if(RKUSB_STATUS_TXDATA_PREPARE == usbcmd.status){
+		break;
+
+	case RKUSB_STATUS_TXDATA_PREPARE:
 		ep = &endpoint_instance[2];
 		current_urb = ep->tx_urb;
 		if((usbcmd.u_bytes == 0)||(current_urb->status == SEND_FINISHED_OK))
-			rkusb_handle_datatx();
+			rkusb_handle_datatx();	
+		break;
+
+	default :
+		break;
 	}
 }
 
@@ -866,13 +868,11 @@ static inline int rkusb_timeout_check(int flag)
 	 * if recovery key pressed and not connect to pc,
 	 * 10s timeout enter recovery.
 	 */
-	if (flag != 0) { // if recovery key pressed
-		if (GetVbus() != 0) { // if Vbus is high
-			if (UsbConnectStatus() == 0) { // if usb no connect
-				if (get_timer(TimeOutBase) > (10*1000)) {
+	if (flag) { // if recovery key pressed
+		if (GetVbus()) { // if Vbus is high
+			if (!UsbConnectStatus()) { // if usb no connect
+				if (get_timer(TimeOutBase) > (10*1000))
 					printf("Usb Timeout, Return for boot recovery!\n");
-					return 1;
-				}
 			}
 		} else {
 			TimeOutBase = get_ticks();
@@ -902,7 +902,6 @@ static inline void rkusb_reset_check(void)
 	}
 }
 
-
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
@@ -914,11 +913,10 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	ret = udc_init();
 	if (ret < 0) {
-		RKUSBERR("%s: MUSB UDC init failure\n", __func__);
-		goto out;
+		RKUSBERR("%s: UDC init failure\n", __func__);
+		return ret;
 	}
 
-//	rkusb_init_strings();
 	rkusb_init_instances();
 
 	udc_startup_events(device_instance);
@@ -929,37 +927,33 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif
 	while(1)
 	{
-		/*if(usbcmd.configured)*/ {
-			if(usbcmd.status == RKUSB_STATUS_IDLE) {
-				struct usb_endpoint_instance *ep = &endpoint_instance[1];
-				if(ep->rcv_urb->actual_length) {
-					usbcmd.status = RKUSB_STATUS_CMD;
-					ep->rcv_urb->buffer = usbcmd.rx_buffer[usbcmd.rxbuf_num&1];
-					do_rockusb_cmd();
-				}
+		if(usbcmd.status == RKUSB_STATUS_IDLE) {
+			struct usb_endpoint_instance *ep = &endpoint_instance[1];
+			if(ep->rcv_urb->actual_length) {
+				usbcmd.status = RKUSB_STATUS_CMD;
+				ep->rcv_urb->buffer = usbcmd.rx_buffer[usbcmd.rxbuf_num&1];
+				do_rockusb_cmd();
 			}
-			if(usbcmd.status == RKUSB_STATUS_RXDATA
-					||usbcmd.status == RKUSB_STATUS_TXDATA
-					||usbcmd.status == RKUSB_STATUS_RXDATA_PREPARE
-					||usbcmd.status == RKUSB_STATUS_TXDATA_PREPARE) {
-				rkusb_handle_response();
-			}
-			if(usbcmd.status == RKUSB_STATUS_CSW) {
-				rkusb_send_csw();
-			}
-			rkusb_reset_check();
-			SysLowFormatCheck();
-#ifdef CONFIG_ROCKUSB_TIMEOUT_CHECK
-			/* if press key enter rockusb, flag = 1 */
-			if(rkusb_timeout_check(flag) == 1) {
-				/* if timeout, return 1 for enter recovery */
-				return 1;
-			}
-#endif
 		}
+		if (usbcmd.status == RKUSB_STATUS_RXDATA ||
+		    usbcmd.status == RKUSB_STATUS_TXDATA ||
+		    usbcmd.status == RKUSB_STATUS_RXDATA_PREPARE ||
+		    usbcmd.status == RKUSB_STATUS_TXDATA_PREPARE) {
+			rkusb_handle_response();
+		}
+		if (usbcmd.status == RKUSB_STATUS_CSW) {
+			rkusb_send_csw();
+		}
+		rkusb_reset_check();
+		SysLowFormatCheck();
+#ifdef CONFIG_ROCKUSB_TIMEOUT_CHECK
+		/* if press key enter rockusb, flag = 1 */
+		if(rkusb_timeout_check(flag) == 1) {
+			/* if timeout, return 1 for enter recovery */
+			return 1;
+		}
+#endif
 	}
-out:
-	return ret;
 }
 
 U_BOOT_CMD(rockusb, CONFIG_SYS_MAXARGS, 1, do_rockusb,
