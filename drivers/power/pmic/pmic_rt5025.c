@@ -44,8 +44,6 @@ static int rt5025_i2c_probe(u32 bus, u32 addr)
 		return -ENODEV;
 	else
 		return 0;
-	
-	
 }
 
 static int rt5025_parse_dt(const void* blob)
@@ -138,7 +136,6 @@ int pmic_rt5025_init(unsigned char bus)
 
 void pmic_rt5025_shut_down(void)
 {
-	u8 reg;
 	i2c_set_bus_num(rt5025.pmic->bus);
     	i2c_init (RT5025_I2C_SPEED, rt5025.pmic->hw.i2c.addr);
     	i2c_set_bus_speed(RT5025_I2C_SPEED);

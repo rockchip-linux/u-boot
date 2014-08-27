@@ -73,12 +73,16 @@ int pmic_charger_setting(int current)
 {
 	enum pmic_id  id = get_rockchip_pmic_id();
 	switch (id) {
+#if defined(CONFIG_POWER_ACT8846)
 		case PMIC_ID_ACT8846:
 			pmic_act8846_charger_setting(current);
 			break;
+#endif
+#if defined(CONFIG_POWER_RK808)
 		case PMIC_ID_RK808:
 			pmic_rk808_charger_setting(current);
 			break;
+#endif
 		default:
 			break;
 	}
@@ -182,23 +186,31 @@ void shut_down(void)
 {
 	enum pmic_id  id = get_rockchip_pmic_id();
 	switch (id) {
+#if defined(CONFIG_POWER_ACT8846)
 		case PMIC_ID_ACT8846:
 			pmic_act8846_shut_down();
 			break;
+#endif
+#if defined(CONFIG_POWER_RICOH619)
 		case PMIC_ID_RICOH619:
 			pmic_ricoh619_shut_down();
 			break;
+#endif
+#if defined(CONFIG_POWER_RK808)
 		case PMIC_ID_RK808:
 			pmic_rk808_shut_down();
 			break;
+#endif
+#if defined(CONFIG_POWER_RK818)
 		case PMIC_ID_RK818:
 			pmic_rk818_shut_down();
 			break;
-		#if defined(CONFIG_POWER_RT5025)
+#endif
+#if defined(CONFIG_POWER_RT5025)
 		case PMIC_ID_RT5025:
 			pmic_rt5025_shut_down();
 			break;
-		#endif
+#endif
 		default:
 			break;
 	}

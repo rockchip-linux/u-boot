@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <malloc.h>
 #include <power/battery.h>
 #include <power/rk818_pmic.h>
 #include <power/rockchip_power.h>
@@ -234,7 +235,7 @@ static struct power_fg fg_ops = {
 	.fg_battery_update = rk818_update_battery,
 };
 
-static void get_voltage_offset_value()
+static void get_voltage_offset_value(void)
 {
 	int vcalib0,vcalib1;
 	u8 val;
@@ -251,8 +252,6 @@ static void get_voltage_offset_value()
 
 	voltage_k = (4200 - 3000)/(vcalib1 - vcalib0);
 	voltage_b = 4200 - voltage_k*vcalib1;
-	
-	return;
 }
 
 int fg_rk818_init(unsigned char bus,uchar addr)

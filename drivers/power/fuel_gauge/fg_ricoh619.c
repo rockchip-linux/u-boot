@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <malloc.h>
 #include <power/battery.h>
 #include <power/ricoh619_pmic.h>
 #include <power/rockchip_power.h>

@@ -39,102 +39,6 @@ static struct fdt_regulator_match ricoh619_regulator_matches[] = {
 	{ .prop = "ricoh619_ldortc2",},
 };
 
-static int ricoh619_set_voltage(struct ricoh619_regulator *ri,
-				int min_uV, int max_uV, unsigned *selector);
-
-#define RICOH619_REG(_id, _en_reg, _en_bit, _disc_reg, _disc_bit, _vout_reg, \
-	_vout_mask, _ds_reg, _min_uv, _max_uv, _step_uV, _nsteps,    \
-	_set_volt, _delay, _eco_reg, _eco_bit, _eco_slp_reg, _eco_slp_bit)  \
-{								\
-	.reg_en_reg	= _en_reg,				\
-	.en_bit		= _en_bit,				\
-	.reg_disc_reg	= _disc_reg,				\
-	.disc_bit	= _disc_bit,				\
-	.vout_reg	= _vout_reg,				\
-	.vout_mask	= _vout_mask,				\
-	.sleep_reg	= _ds_reg,				\
-	.min_uV		= _min_uv,			\
-	.max_uV		= _max_uv ,			\
-	.step_uV	= _step_uV,				\
-	.nsteps		= _nsteps,				\
-	.delay		= _delay,				\
-	.id		= RICOH619_ID_##_id,			\
-	.eco_reg			=  _eco_reg,				\
-	.eco_bit			=  _eco_bit,				\
-	.eco_slp_reg		=  _eco_slp_reg,				\
-	.eco_slp_bit		=  _eco_slp_bit,				\
-	.set_voltage		= _set_volt			\
-}
-
-static struct ricoh619_regulator ricoh619_regulator_data[] = {
-  	RICOH619_REG(DC1, 0x2C, 0, 0x2C, 1, 0x36, 0xFF, 0x3B,
-		600000, 3500000, 12500, 0xE8, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(DC2, 0x2E, 0, 0x2E, 1, 0x37, 0xFF, 0x3C,
-			600000, 3500000, 12500, 0xE8, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(DC3, 0x30, 0, 0x30, 1, 0x38, 0xFF, 0x3D,
-			600000, 3500000, 12500, 0xE8, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(DC4, 0x32, 0, 0x32, 1, 0x39, 0xFF, 0x3E,
-			600000, 3500000, 12500, 0xE8, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(DC5, 0x34, 0, 0x34, 1, 0x3A, 0xFF, 0x3F,
-			600000, 3500000, 12500, 0xE8, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-			
-  	RICOH619_REG(LDO1, 0x44, 0, 0x46, 0, 0x4C, 0x7F, 0x58,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x48, 0, 0x4A, 0),
-
-	RICOH619_REG(LDO2, 0x44, 1, 0x46, 1, 0x4D, 0x7F, 0x59,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x48, 1, 0x4A, 1),
-
-  	RICOH619_REG(LDO3, 0x44, 2, 0x46, 2, 0x4E, 0x7F, 0x5A,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x48, 2, 0x4A, 2),
-
-  	RICOH619_REG(LDO4, 0x44, 3, 0x46, 3, 0x4F, 0x7F, 0x5B,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x48, 3, 0x4A, 3),
-
-  	RICOH619_REG(LDO5, 0x44, 4, 0x46, 4, 0x50, 0x7F, 0x5C,
-			600000, 3500000, 25000, 0x74, ricoh619_set_voltage, 500,
-			0x48, 4, 0x4A, 4),
-
-  	RICOH619_REG(LDO6, 0x44, 5, 0x46, 5, 0x51, 0x7F, 0x5D,
-			600000, 3500000, 25000, 0x74, ricoh619_set_voltage, 500,
-			0x48, 5, 0x4A, 5),
-
-  	RICOH619_REG(LDO7, 0x44, 6, 0x46, 6, 0x52, 0x7F, 0x5E,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(LDO8, 0x44, 7, 0x46, 7, 0x53, 0x7F, 0x5F,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(LDO9, 0x45, 0, 0x47, 0, 0x54, 0x7F, 0x60,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(LDO10, 0x45, 1, 0x47, 1, 0x55, 0x7F, 0x61,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(LDORTC1, 0x45, 4, 0x00, 0, 0x56, 0x7F, 0x00,
-			1700000, 3500000, 25000, 0x48, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-
-  	RICOH619_REG(LDORTC2, 0x45, 5, 0x00, 0, 0x57, 0x7F, 0x00,
-			900000, 3500000, 25000, 0x68, ricoh619_set_voltage, 500,
-			0x00, 0, 0x00, 0),
-};
 
 int ricoh619_check_charge(void)
 {
@@ -146,12 +50,12 @@ int ricoh619_check_charge(void)
 		printf("low power.....\n");
 	}
     
-    return ret;
+	return ret;
 }
 
 static int pmic_charger_state(struct pmic *p, int state, int current)
 {
-    return 0;
+	return 0;
 }
 
 
@@ -161,31 +65,6 @@ int ricoh619_poll_pwr_key_sta(void)
 	i2c_init(CONFIG_SYS_I2C_SPEED, ricoh619.pmic->hw.i2c.addr);
 	i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
 	return i2c_reg_read(ricoh619.pmic->hw.i2c.addr, 0x14) & 0x01;	
-}
-
-static int ricoh619_set_voltage( struct ricoh619_regulator *ri,
-				int min_uV, int max_uV, unsigned *selector)
-{
-	int vsel;
-	int ret;
-	uint8_t vout_val;
-
-	if ((min_uV < ri->min_uV) || (max_uV > ri->max_uV))
-		return -EDOM;
-
-	vsel = (min_uV - ri->min_uV + ri->step_uV - 1)/ri->step_uV;
-	if (vsel > ri->nsteps)
-		return -EDOM;
-
-	if (selector)
-		*selector = vsel;
-
-	vout_val = (ri->vout_reg_cache & ~ri->vout_mask) |
-				(vsel & ri->vout_mask);
-	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, ri->vout_reg, vout_val);
-	ri->vout_reg_cache = vout_val;
-
-	return ret;
 }
 
 static int ricoh619_i2c_probe(u32 bus, u32 addr)
@@ -277,11 +156,11 @@ int pmic_ricoh619_init(unsigned char bus)
 
 void pmic_ricoh619_shut_down(void)
 {
-    i2c_set_bus_num(ricoh619.pmic->bus);
-    i2c_init (CONFIG_SYS_I2C_SPEED, ricoh619.pmic->hw.i2c.addr);
-    i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
-    i2c_reg_write(ricoh619.pmic->hw.i2c.addr, 0xe0, i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0xe0) & 0xfe);
-    i2c_reg_write(ricoh619.pmic->hw.i2c.addr, 0x0f, i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0x0f) & 0xfe);   
-    i2c_reg_write(ricoh619.pmic->hw.i2c.addr, 0x0e, i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0x0e) | 0x01);  
+	i2c_set_bus_num(ricoh619.pmic->bus);
+	i2c_init (CONFIG_SYS_I2C_SPEED, ricoh619.pmic->hw.i2c.addr);
+	i2c_set_bus_speed(CONFIG_SYS_I2C_SPEED);
+	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, 0xe0, i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0xe0) & 0xfe);
+	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, 0x0f, i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0x0f) & 0xfe);
+	i2c_reg_write(ricoh619.pmic->hw.i2c.addr, 0x0e, i2c_reg_read(ricoh619.pmic->hw.i2c.addr,0x0e) | 0x01);
 }
 

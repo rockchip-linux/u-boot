@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <malloc.h>
 #include <power/battery.h>
 #include <power/rt5025_pmic.h>
 #include <power/rockchip_power.h>
@@ -35,7 +36,7 @@ int rt5025_get_vbat_voltage(struct pmic *pmic)
 {
 	u8 voltage_h,voltage_l;
 	int vol=0,vol_tmp1,vol_tmp2;
-	u8 i,val;
+	u8 i;
 /*
 	u8 pswr = i2c_reg_read(pmic->hw.i2c.addr, PSWR_REG);
 	if (!(pswr & 0x7f))
@@ -81,10 +82,10 @@ int rt5025_get_capcity(int volt)
 	level0 = rt5025_volt_tab[i -1] + diff;
 	level1 = rt5025_volt_tab[i] + diff;
 
-	cap = step * (i-1) + step *(volt - level0)/(level1 - level0);
+	cap = step * (i-1) + step * (volt - level0)/(level1 - level0);
 	
 	chgstate = i2c_reg_read(PMU_I2C_ADDRESS, RT5025_REG_CHGCTL1);
-	if (((chgstate & 0x03) !=0) &&(chgstate & 0x20 == 0x00)){
+	if (((chgstate & 0x03) != 0) &&((chgstate & 0x20) == 0x00)){
 		printf("%s chg complete\n",__func__);
 		cap = 100;
 	}
@@ -198,7 +199,7 @@ static struct power_fg fg_ops = {
 	.fg_battery_update = rt5025_update_battery,
 };
 
-int fg_rt5025_init(unsigned char bus,uchar addr)
+int fg_rt5025_init(unsigned char bus, uchar addr)
 {
 	static const char name[] = "RT5025_FG";
 	if (!rt5025_fg.p)

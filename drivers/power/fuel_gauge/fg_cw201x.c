@@ -1,4 +1,5 @@
 #include <common.h>
+#include <malloc.h>
 #include <fdtdec.h>
 #include <power/battery.h>
 #include <errno.h>
@@ -231,8 +232,6 @@ static struct power_fg cw201x_fg_ops = {
 
 static int fg_cw201x_cfg(void)
 {
-	int ret;
-	int i;
 	u8 val = MODE_SLEEP;
 	u8 addr = cw.p->hw.i2c.addr;
 
