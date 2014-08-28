@@ -136,8 +136,12 @@ int mmc_send_status(struct mmc *mmc, int timeout)
 #endif
 				return COMM_ERR;
 			}
-		} else if (--retries < 0)
+		} else if (--retries < 0) {
+#ifdef CONFIG_ROCKCHIP
+			printf("mmc send status retry fail!\n");
+#endif
 			return err;
+		}
 #ifdef CONFIG_ROCKCHIP
 		udelay(10);
 #else
