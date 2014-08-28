@@ -364,10 +364,12 @@ uint32_t GetVbus(void)
 		mdelay(3);
 	}
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
 		/* exit suspend */
 		grf_writel(((0x1 << 0) << 16), GRF_UOC0_CON0);
 		/* delay more than 1ms, waiting for usb phy init */
-		mdelay(10);
+		mdelay(3);
+	}
 #else
 	#error "PLS config chiptype for usb vbus check!"
 #endif
