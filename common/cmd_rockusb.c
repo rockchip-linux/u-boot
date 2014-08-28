@@ -851,7 +851,7 @@ void rkusb_handle_response(void)
 		ep = &endpoint_instance[2];
 		current_urb = ep->tx_urb;
 		if((usbcmd.u_bytes == 0)||(current_urb->status == SEND_FINISHED_OK))
-			rkusb_handle_datatx();	
+			rkusb_handle_datatx();
 		break;
 
 	default :
@@ -871,8 +871,10 @@ static inline int rkusb_timeout_check(int flag)
 	if (flag) { // if recovery key pressed
 		if (GetVbus()) { // if Vbus is high
 			if (!UsbConnectStatus()) { // if usb no connect
-				if (get_timer(TimeOutBase) > (10*1000))
+				if (get_timer(TimeOutBase) > (10*1000)) {
 					printf("Usb Timeout, Return for boot recovery!\n");
+					return 1;
+				}
 			}
 		} else {
 			TimeOutBase = get_ticks();
