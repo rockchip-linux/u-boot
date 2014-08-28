@@ -1019,11 +1019,16 @@ void usbphy_tunning(void)
     (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	/* Phy PLL recovering */
 	grf_writel(0x00030001, GRF_UOC0_CON0);
-	mdelay(100);
+	mdelay(10);
 	grf_writel(0x00030002, GRF_UOC0_CON0);
 #endif
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	/* Phy PLL recovering */
+	grf_writel(0x00030001, GRF_UOC0_CON5);
+	mdelay(10);
+	grf_writel(0x00030002, GRF_UOC0_CON5);
+#endif
 }
-
 /* Turn on the USB connection by enabling the pullup resistor */
 void udc_connect(void)
 {
