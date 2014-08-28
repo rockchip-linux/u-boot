@@ -831,7 +831,7 @@ endif
 ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3036))
 RKCHIP ?= RK3036
 # rk uboot version should consist of two digits, as 01
-RK_UBOOT_VERSION = 01
+RK_UBOOT_VERSION = 06
 endif
 
 ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3126))
