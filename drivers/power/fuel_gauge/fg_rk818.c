@@ -99,6 +99,7 @@ int rk818_get_capcity(int volt)
 	int level0, level1;
 	int cap;
 	int diff = 0;
+	u8 chgstate;
 	int step = 100 / (ARRAY_SIZE(rk818_volt_tab) -1);
 
 	if (rk818_state_of_chrg == 1)
@@ -120,6 +121,13 @@ int rk818_get_capcity(int volt)
 	cap = step * (i-1) + step *(volt - level0)/(level1 - level0);
 	debug("cap%d step:%d level0 %d level1 %d  diff %d\n",
 			cap, step, level0 ,level1, diff);
+	
+	chgstate = i2c_reg_read(PMU_I2C_ADDRESS, 0xa0);
+	if ((chgstate & 0x70) == 0x40){
+		printf("%s chg complete\n",__func__);
+		cap = 100;
+	}
+
 	return cap;
 }
 
