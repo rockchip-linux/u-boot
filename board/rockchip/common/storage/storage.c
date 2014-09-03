@@ -54,7 +54,7 @@ static MEM_FUN_T nullFunOp =
 	NULL,
 };
 
-#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+#ifdef RK_FLASH_BOOT_EN
 static MEM_FUN_T NandFunOp =
 {
 	0,
@@ -78,32 +78,37 @@ static MEM_FUN_T NandFunOp =
 };
 #endif
 
+#ifdef RK_SDMMC_BOOT_EN
 static MEM_FUN_T emmcFunOp =
 {
 	2,
 	BOOT_FROM_EMMC,
 	0,
-	emmcInit,
-	emmcReadID,
-	emmcBootReadPBA,
-	emmcBootWritePBA,
-	emmcBootReadLBA,
-	emmcBootWriteLBA,
-	emmcBootErase,
-	emmcReadFlashInfo,
+	SdmmcInit,
+	SdmmcReadID,
+	SdmmcBootReadPBA,
+	SdmmcBootWritePBA,
+	SdmmcBootReadLBA,
+	SdmmcBootWriteLBA,
+	SdmmcBootErase,
+	SdmmcReadFlashInfo,
+	SdmmcCheckIdBlock,
 	NULL,
 	NULL,
 	NULL,
-	NULL,
-	emmcGetCapacity,
-	emmcSysDataLoad,
-	emmcSysDataStore,
+	SdmmcGetCapacity,
+	SdmmcSysDataLoad,
+	SdmmcSysDataStore,
 };
+#endif
 
 static MEM_FUN_T *memFunTab[] = 
 {
+#ifdef RK_SDMMC_BOOT_EN
 	&emmcFunOp,
-#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+#endif
+
+#ifdef RK_FLASH_BOOT_EN
 	&NandFunOp,
 #endif
 };
@@ -348,7 +353,7 @@ uint32 StorageGetSDFwOffset(void)
 
 	if(gpMemFun->flag != BOOT_FROM_FLASH)
 	{
-		offset = SD_CARD_FW_PART_OFFSET;
+		offset = SdmmcGetFwOffset(gpMemFun->id);
 	}
 	return offset;
 }
@@ -359,7 +364,7 @@ uint32 StorageGetSDSysOffset(void)
 
 	if(gpMemFun->flag != BOOT_FROM_FLASH)
 	{
-		offset = SD_CARD_FW_PART_OFFSET;
+		offset = SdmmcGetSysOffset(gpMemFun->id);
 	}
 
 	return offset;

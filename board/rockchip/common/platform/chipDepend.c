@@ -33,9 +33,8 @@
 ***************************************************************************/
 void DRVDelayUs(uint32 count)
 {
-	__udelay(count);
+	udelay(count);
 }
-
 
 
 /***************************************************************************
@@ -60,6 +59,14 @@ void DRVDelayS(uint32 count)
 {
 	while (count--)
 		DRVDelayMs(1000);
+}
+
+
+uint32 CacheFlushDRegion(uint32 adr, uint32 size)
+{
+#ifndef CONFIG_SYS_DCACHE_OFF
+	flush_cache(adr, size);
+#endif
 }
 
 
@@ -88,13 +95,97 @@ void ISetLoaderFlag(uint32 flag)
 #endif
 }
 
+
+uint32 GetMmcCLK(uint32 nSDCPort)
+{
+	uint32 src_clk;
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	// set general pll
+	rkclk_set_sdclk_src(nSDCPort, 1);
+	//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
+	src_clk = rkclk_get_sdclk_src_freq(nSDCPort) / 2;
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+	// set general pll
+	rkclk_set_sdclk_src(nSDCPort, 2);
+	src_clk = rkclk_get_sdclk_src_freq(nSDCPort);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+	// set general pll
+	rkclk_set_sdclk_src(nSDCPort, 1);
+	src_clk = rkclk_get_sdclk_src_freq(nSDCPort);
+#else
+	#error "PLS config platform for emmc clock get!"
+#endif
+	src_clk = src_clk / KHZ;
+	debug("GetMmcCLK: sd clk = %d\n", src_clk);
+	return src_clk;
+}
+
+
+#define RK_EMMC_PWREN		0X04
+#define RK_EMMC_RST_N		0x78
+void EmmcPowerEn(char En)
+{
+	if (En) {
+		writel(1, RKIO_EMMC_PHYS + RK_EMMC_PWREN);
+		writel(1, RKIO_EMMC_PHYS + RK_EMMC_RST_N);
+	} else {
+		writel(0, RKIO_EMMC_PHYS + RK_EMMC_PWREN);
+		writel(0, RKIO_EMMC_PHYS + RK_EMMC_RST_N);
+	}
+}
+
+void SDCReset(void)
+{
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
+	udelay(100);
+	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
+	udelay(200);
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(5));
+	udelay(100);
+	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(5));
+	udelay(200);
+#else
+	#error "PLS config platform for emmc reset!"
+#endif
+	EmmcPowerEn(1);
+}
+
+int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
+{
+	debug("SCUSelSDClk: sd id = %d, div = %d\n", sdmmcId, div);
+	rkclk_set_sdclk_div(sdmmcId, div);
+}
+
+//mode=1  changemode to normal mode;
+//mode=0  changemode to boot mode
+int32 eMMC_changemode(uint8 mode)
+{ 
+#ifdef RK_SDMMC_BOOT_EN    
+    eMMC_SetDataHigh();
+#endif
+}
+
+void sdmmcGpioInit(uint32 ChipSel)
+{
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+	rk_iomux_config(RK_EMMC_IOMUX);
+#endif
+}
+
 void FW_NandDeInit(void)
 {
-#ifdef CONFIG_NAND//RK_FLASH_BOOT_EN
+#ifdef RK_FLASH_BOOT_EN
 	if(gpMemFun->flag == BOOT_FROM_FLASH) {
 		FtlDeInit();
 		FlashDeInit();
 	}
+#endif
+
+#ifdef RK_SDMMC_BOOT_EN
+	SdmmcDeInit();
 #endif
 }
 

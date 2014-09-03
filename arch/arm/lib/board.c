@@ -639,6 +639,15 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	mmc_initialize(gd->bd);
 #endif
 
+#ifdef CONFIG_ROCKCHIP
+	 /* set up exceptions */
+	interrupt_init();
+	/* enable exceptions */
+	enable_interrupts();
+	
+	board_rkmmc_init();
+#endif
+
 #ifdef CONFIG_CMD_SCSI
 	puts("SCSI:  ");
 	scsi_init();
@@ -688,10 +697,12 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	misc_init_r();
 #endif
 
+#ifndef CONFIG_ROCKCHIP
 	 /* set up exceptions */
 	interrupt_init();
 	/* enable exceptions */
 	enable_interrupts();
+#endif
 
 	/* Initialize from environment */
 	load_addr = getenv_ulong("loadaddr", 16, load_addr);

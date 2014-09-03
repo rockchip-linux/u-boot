@@ -189,18 +189,15 @@ int rk616_power_on(void)
 #endif /* CONFIG_RK_FB */
 
 
-extern int rk_mmc_init(void);
-int board_mmc_init(bd_t *bis)
+int board_rkmmc_init(void)
 {
-	rk_mmc_init();
-
 	if (StorageInit() == 0) {
 		printf("storage init OK!\n");
+		return 0;
 	} else {
 		printf("storage init fail!\n");
+		return -1;
 	}
-
-	return 0;
 }
 
 

@@ -33,11 +33,17 @@ obj-y += rkloader/key.o
 obj-y += rkloader/pwm_remotectl.o
 obj-y += rkloader/recovery.o
 obj-y += rkboot/fastboot.o
-obj-y += SecureBoot/SecureBoot.o
-obj-y += storage/storage.o
-obj-y += mediaboot/emmc_boot.o
+obj-y += emmc/hw_MMC.o
+obj-y += emmc/hw_SD.o
+obj-y += emmc/hw_SDController.o
+obj-y += emmc/hw_SDM.o
+obj-y += emmc/hw_SDOsAdapt.o
+obj-y += emmc/hw_SDPlatAdapt.o
+obj-y += mediaboot/sdmmcBoot.o
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 obj-y += mediaboot/nandflash_boot.o
 endif
+obj-y += SecureBoot/SecureBoot.o
+obj-y += storage/storage.o
 
 

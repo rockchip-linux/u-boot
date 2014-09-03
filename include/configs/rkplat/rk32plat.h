@@ -155,6 +155,12 @@
 #define CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH	(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 1)
 
 
+/* boot mode enable config */
+#define CONFIG_RK_SDMMC_BOOT_EN
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+#define CONFIG_RK_FLASH_BOOT_EN
+#endif
+
 /*
  * rockchip Hardware drivers
  */
@@ -165,7 +171,6 @@
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
 #define CONFIG_RK_MMC_IDMAC	/* internal dmac */
-
 
 /* rk clock module */
 #define CONFIG_RK_CLOCK
