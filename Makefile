@@ -852,13 +852,16 @@ UBOOTVERSION := $(UBOOTVERSION)$(if $(RKCHIP),-$(RKCHIP))$(if $(RK_UBOOT_VERSION
 
 RK_SUBFIX = $(if $(RK_UBOOT_VERSION),.$(RK_UBOOT_VERSION)).bin
 
-ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 RKLoader_uboot.bin: u-boot.bin
+ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+ifdef CONFIG_MERGER_MINILOADER
+	./tools/boot_merger --subfix "$(RK_SUBFIX)" ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini && \
 	./tools/loaderimage --pack u-boot.bin uboot.img
 else
-RKLoader_uboot.bin: u-boot.bin
-	./tools/boot_merger --subfix "$(RK_SUBFIX)" \
-		./tools/rk_tools/RKBOOT/$(RKCHIP).ini
+	./tools/loaderimage --pack u-boot.bin uboot.img
+endif
+else
+	./tools/boot_merger --subfix "$(RK_SUBFIX)" ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
 endif
 
 endif
