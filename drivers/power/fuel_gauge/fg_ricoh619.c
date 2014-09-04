@@ -154,7 +154,7 @@ int ricoh619_get_voltage(struct pmic *pmic)
 {
 	u8 voltage_h,voltage_l;
 	int vol=0,vol_tmp1,vol_tmp2;
-	u8 i,val;
+	u8 i,val, val2;
 
 	u8 pswr = i2c_reg_read(pmic->hw.i2c.addr, PSWR_REG);
 	if (!(pswr & 0x7f))
@@ -178,6 +178,23 @@ int ricoh619_get_voltage(struct pmic *pmic)
 		i2c_reg_write(pmic->hw.i2c.addr, CHGCTL1_REG,
 			i2c_reg_read(pmic->hw.i2c.addr, CHGCTL1_REG) & 0xf7);
 	}
+	
+	/***************DISABLE_CHARGER_TIMER************************/
+	val = i2c_reg_read(pmic->hw.i2c.addr, CHGSTATE_REG);
+	if ((vol > 4000) && (val & 0xc0)) {
+		//printf("##########DISABLE_CHARGER_TIMER#############\n");
+		val = i2c_reg_read(pmic->hw.i2c.addr, TIMSET_REG);
+		val2 = val & 0x03;
+		if (val2 == 0x02){
+			i2c_reg_write(pmic->hw.i2c.addr, TIMSET_REG, val | 0x03);
+		} else {
+			i2c_reg_write(pmic->hw.i2c.addr, TIMSET_REG, val & 0xfe);
+			i2c_reg_write(pmic->hw.i2c.addr, TIMSET_REG, val | 0x02);
+			
+		}
+	}
+	/****************************************************************/
+
 	return vol;
 }
 
