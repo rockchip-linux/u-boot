@@ -1301,11 +1301,11 @@ unsigned int rkclk_get_sdclk_src_freq(uint32 sdid)
 	if (0 == sdid) {
 		/* sdmmc */
 		con =  cru_readl(CRU_CLKSELS_CON(11));
-		sel = (con >> 5) & 0x3;
+		sel = (con >> 6) & 0x3;
 	} else if (1 == sdid) {
 		/* sdio0 */
 		con =  cru_readl(CRU_CLKSELS_CON(12));
-		sel = (con >> 5) & 0x3;
+		sel = (con >> 6) & 0x3;
 	} else if (2 == sdid) {
 		/* emmc */
 		con =  cru_readl(CRU_CLKSELS_CON(12));
