@@ -159,6 +159,7 @@
 
 /* boot mode enable config */
 #define CONFIG_RK_SDMMC_BOOT_EN
+#define CONFIG_RK_SDCARD_BOOT_EN
 #ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 #define CONFIG_RK_FLASH_BOOT_EN
 #endif

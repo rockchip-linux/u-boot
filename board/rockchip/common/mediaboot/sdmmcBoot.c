@@ -113,17 +113,23 @@ uint32 SdmmcInit(uint32 ChipSel)
         //gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET; 
         //PRINT_E("gIdDataBuf[0]=%lx ret1 = %x\n", gIdDataBuf[0],ret1);
         ret1 = SDM_Read(ChipSel,SD_CARD_BOOT_PART_OFFSET,4,gIdDataBuf); // id blk data
-			#ifdef RK_SDCARD_BOOT_EN
-        	if(ChipSel == 0)
-        	{
-				if(gIdDataBuf[0] == 0xFCDC8C3B )
-					gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET; 
-        	}
-        	else
-        	#endif
-        	{
-            	gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET; 
+        #ifdef RK_SDCARD_BOOT_EN
+        if(ChipSel == 0)
+        {
+            if(gIdDataBuf[0] == 0xFCDC8C3B )
+            {
+                gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET; 
             }
+            else
+            {
+                ret1 = -1; 
+            }
+        }
+        else
+        #endif
+        {
+            gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET; 
+        }
 #endif
       	PRINT_E("FwPartOffset=%lx , %x\n", gSdCardInfoTbl[ChipSel].FwPartOffset,BootCapSize);
         //PRINT_E("SdmmcInit OK!!");
@@ -353,10 +359,11 @@ void SdmmcReadFlashInfo(void *buf)
 
     pInfo->BlockSize = EMMC_BOOT_PART_SIZE;
     pInfo->ECCBits = 0;
-    pInfo->FlashSize = gSdCardInfoTbl[EMMC_CARD_ID].UserCapSize; 
-#ifdef RK_SDCARD_FOR_GAME    
-    pInfo->FlashSize = gSdCardInfoTbl[0].UserCapSize; 
-#endif    
+    pInfo->FlashSize = gSdCardInfoTbl[EMMC_CARD_ID].UserCapSize;
+#ifdef RK_SDCARD_BOOT_EN
+    if(pInfo->FlashSize == 0)
+		pInfo->FlashSize = gSdCardInfoTbl[0].UserCapSize;
+#endif
     pInfo->PageSize = 4;
     pInfo->AccessTime = 40;
     pInfo->ManufacturerName=0;

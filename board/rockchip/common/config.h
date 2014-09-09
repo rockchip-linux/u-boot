@@ -38,6 +38,13 @@
 
 /* rk sdmmc boot config */
 #ifdef CONFIG_RK_SDMMC_BOOT_EN
+	#define RK_SDMMC_BOOT_EN
+#endif
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+	#define RK_SDCARD_BOOT_EN
+#endif
+
+#if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
 	#define DRIVERS_SDMMC
 	#define RK_SDMMC_BOOT_EN
 	#define EMMC_NOT_USED_BOOT_PART

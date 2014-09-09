@@ -102,8 +102,35 @@ static MEM_FUN_T emmcFunOp =
 };
 #endif
 
+#ifdef RK_SDCARD_BOOT_EN
+MEM_FUN_T sd0FunOp = 
+{
+  0,
+  BOOT_FROM_SD0,
+  0,
+  SdmmcInit,
+  SdmmcReadID,
+  SdmmcBootReadPBA,
+  SdmmcBootWritePBA,
+  SdmmcBootReadLBA,
+  SdmmcBootWriteLBA,
+  SdmmcBootErase,
+  SdmmcReadFlashInfo,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  SdmmcGetCapacity,
+  SdmmcSysDataLoad,
+  SdmmcSysDataStore,
+};
+#endif
+
 static MEM_FUN_T *memFunTab[] = 
 {
+#ifdef RK_SDCARD_BOOT_EN
+	&sd0FunOp,
+#endif
 #ifdef RK_SDMMC_BOOT_EN
 	&emmcFunOp,
 #endif
