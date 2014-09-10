@@ -244,16 +244,22 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		//printf("board cmdline:\n%s\n", command_line);
 #endif
 
+		if (StorageGetBootMedia() == BOOT_FROM_SD0) {
+			snprintf(command_line, sizeof(command_line),
+					"%s %s", command_line, "sdfwupdate");
+		}
+
 		if (charge) {
 			snprintf(command_line, sizeof(command_line),
-					"%s %s",command_line," androidboot.mode=charger");
+					"%s %s", command_line, "androidboot.mode=charger");
 		}
+
 		snprintf(command_line, sizeof(command_line),
-				"%s loader.timestamp=%s",command_line, U_BOOT_TIMESTAMP);
+				"%s loader.timestamp=%s", command_line, U_BOOT_TIMESTAMP);
 
 #ifdef CONFIG_RK_3288_HDMI
 		snprintf(command_line, sizeof(command_line),
-				 "%s hdmi.vic=%d",command_line, g_hdmi_vic);
+				 "%s hdmi.vic=%d", command_line, g_hdmi_vic);
 #endif
 
 		char *sn = getenv("fbt_sn#");
