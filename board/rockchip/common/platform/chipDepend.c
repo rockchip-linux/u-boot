@@ -164,7 +164,7 @@ int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
 int32 eMMC_changemode(uint8 mode)
 { 
 #ifdef RK_SDMMC_BOOT_EN    
-    eMMC_SetDataHigh();
+	eMMC_SetDataHigh();
 #endif
 }
 
@@ -184,7 +184,7 @@ void FW_NandDeInit(void)
 	}
 #endif
 
-#ifdef RK_SDMMC_BOOT_EN
+#if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
 	SdmmcDeInit();
 #endif
 }

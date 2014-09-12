@@ -328,12 +328,7 @@ uint32 SetSysData2Kernel(uint32 SecureBootFlag)
 	gBootConfig.sdPartOffset = StorageGetSDFwOffset();
 	gBootConfig.bootMedia = StorageGetBootMedia();
 	gBootConfig.sdSysPartOffset =  StorageGetSDSysOffset();
-#ifdef RK_SD_BOOT
-	PRINT_E("sdpart %x %x %x\n", gBootConfig.sdPartOffset, gBootConfig.bootMedia, gBootConfig.sdSysPartOffset); 
-#endif
 	gBootConfig.hash = JSHash((uint8*)&gBootConfig, 508);
-	//printf("gBootMedia = %x\n",gBootMedia);
-	//printf("gSdmmcFwPartOffset = %x\n",gSdmmcFwPartOffset);
 
 	FlashSramLoadStore(&gBootConfig, 0, 1, 512);
 	FlashSramLoadStore(&gDrmKeyInfo, 512, 1, 512);

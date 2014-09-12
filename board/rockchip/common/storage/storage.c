@@ -105,24 +105,24 @@ static MEM_FUN_T emmcFunOp =
 #ifdef RK_SDCARD_BOOT_EN
 MEM_FUN_T sd0FunOp = 
 {
-  0,
-  BOOT_FROM_SD0,
-  0,
-  SdmmcInit,
-  SdmmcReadID,
-  SdmmcBootReadPBA,
-  SdmmcBootWritePBA,
-  SdmmcBootReadLBA,
-  SdmmcBootWriteLBA,
-  SdmmcBootErase,
-  SdmmcReadFlashInfo,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  SdmmcGetCapacity,
-  SdmmcSysDataLoad,
-  SdmmcSysDataStore,
+	0,
+	BOOT_FROM_SD0,
+	0,
+	SdmmcInit,
+	SdmmcReadID,
+	SdmmcBootReadPBA,
+	SdmmcBootWritePBA,
+	SdmmcBootReadLBA,
+	SdmmcBootWriteLBA,
+	SdmmcBootErase,
+	SdmmcReadFlashInfo,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	SdmmcGetCapacity,
+	SdmmcSysDataLoad,
+	SdmmcSysDataStore,
 };
 #endif
 
@@ -131,6 +131,7 @@ static MEM_FUN_T *memFunTab[] =
 #ifdef RK_SDCARD_BOOT_EN
 	&sd0FunOp,
 #endif
+
 #ifdef RK_SDMMC_BOOT_EN
 	&emmcFunOp,
 #endif
@@ -168,7 +169,9 @@ void FW_ReIntForUpdate(void)
 {
 	gpMemFun->Valid = 0;
 	if(gpMemFun->IntForUpdate)
+	{
 		gpMemFun->IntForUpdate();
+	}
 	gpMemFun->Valid = 1;
 }
 
@@ -208,7 +211,9 @@ uint32 FW_GetCurEraseBlock(void)
 	uint32 data = 1;
 
 	if(gpMemFun->GetCurEraseBlock)
+	{
 		data = gpMemFun->GetCurEraseBlock();
+	}
 
 	return data;
 }
@@ -224,27 +229,33 @@ uint32 FW_GetTotleBlk(void)
 	uint32 totle = 1;
 
 	if(gpMemFun->GetTotleBlk)
+	{
 		totle = gpMemFun->GetTotleBlk();
+	}
 
 	return totle;
 }
 
-int StorageReadPba(uint32 PBA, void *pbuf, uint16 nSec )
+int StorageReadPba(uint32 PBA, void *pbuf, uint16 nSec)
 {
 	int ret = FTL_ERROR;
 
 	if(gpMemFun->ReadPba)
+	{
 		ret = gpMemFun->ReadPba(gpMemFun->id, PBA, pbuf, nSec);
+	}
 
 	return ret;
 }
 
-int StorageWritePba(uint32 PBA, void *pbuf, uint16 nSec )
+int StorageWritePba(uint32 PBA, void *pbuf, uint16 nSec)
 {
 	int ret = FTL_ERROR;
 
 	if(gpMemFun->WritePba)
+	{
 		ret = gpMemFun->WritePba(gpMemFun->id, PBA, pbuf, nSec);
+	}
 
 	return ret;
 }
@@ -254,7 +265,9 @@ int StorageReadLba(uint32 LBA, void *pbuf, uint16 nSec)
 	int ret = FTL_ERROR;
 
 	if(gpMemFun->ReadLba)
+	{
 		ret = gpMemFun->ReadLba(gpMemFun->id, LBA, pbuf, nSec);
+	}
 
 	return ret;
 }
@@ -264,7 +277,9 @@ int StorageWriteLba(uint32 LBA, void *pbuf, uint16 nSec, uint16 mode)
 	int ret = FTL_ERROR;
 
 	if(gpMemFun->WriteLba)
+	{
 		ret = gpMemFun->WriteLba(gpMemFun->id, LBA, pbuf, nSec, mode);
+	}
 
 	return ret;
 }
@@ -274,7 +289,9 @@ uint32 StorageGetCapacity(void)
 	uint32 ret = FTL_ERROR;
 
 	if(gpMemFun->GetCapacity)
+	{
 		ret = gpMemFun->GetCapacity(gpMemFun->id);
+	}
 
 	return ret;
 }
@@ -285,7 +302,10 @@ uint32 StorageSysDataLoad(uint32 Index, void *Buf)
 
 	memset(Buf, 0, 512);
 	if(gpMemFun->SysDataLoad)
+	{
 		ret = gpMemFun->SysDataLoad(gpMemFun->id, Index, Buf);
+	}
+
 	return ret;
 }
 
@@ -294,7 +314,9 @@ uint32 StorageSysDataStore(uint32 Index, void *Buf)
 	uint32 ret = FTL_ERROR;
 
 	if(gpMemFun->SysDataStore)
+	{
 		ret = gpMemFun->SysDataStore(gpMemFun->id, Index, Buf);
+	}
 
 	return ret;
 }
@@ -364,7 +386,9 @@ int StorageEraseBlock(uint32 blkIndex, uint32 nblk, uint8 mod)
 	int Status = FTL_OK;
 
 	if(gpMemFun->Erase)
+	{
 		Status = gpMemFun->Erase(0, blkIndex, nblk, mod);
+	}
 
 	return Status;
 }
@@ -382,6 +406,7 @@ uint32 StorageGetSDFwOffset(void)
 	{
 		offset = SdmmcGetFwOffset(gpMemFun->id);
 	}
+
 	return offset;
 }
 
