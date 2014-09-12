@@ -244,11 +244,12 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		//printf("board cmdline:\n%s\n", command_line);
 #endif
 
-		if (StorageGetBootMedia() == BOOT_FROM_SD0) {
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+		if (StorageSDCardUpdateMode() != 0) { // sd ¿¨Éý¼¶£¬½øÈërecovery
 			snprintf(command_line, sizeof(command_line),
 					"%s %s", command_line, "sdfwupdate");
 		}
-
+#endif
 		if (charge) {
 			snprintf(command_line, sizeof(command_line),
 					"%s %s", command_line, "androidboot.mode=charger");

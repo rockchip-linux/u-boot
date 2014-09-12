@@ -435,3 +435,15 @@ int StorageReadId(void *pbuf)
 	return ret;
 }
 
+#ifdef RK_SDCARD_BOOT_EN
+uint32 StorageSDCardUpdateMode(void)
+{
+	if ((StorageGetBootMedia() == BOOT_FROM_SD0) && (SdmmcGetSDCardBootMode() == SDMMC_SDCARD_UPDATE))
+	{
+		return 1;
+	}
+
+	return 0;
+}
+#endif
+

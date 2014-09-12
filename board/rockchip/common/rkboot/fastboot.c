@@ -169,6 +169,11 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 		switch(reboot_mode) {
 			case BOOT_NORMAL:
 				frt = FASTBOOT_REBOOT_NORMAL;
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+				if (StorageSDCardUpdateMode() != 0) { // sd ¿¨Éý¼¶£¬½øÈërecovery
+					frt = FASTBOOT_REBOOT_RECOVERY;
+				}
+#endif
 				break;
 			case BOOT_LOADER:
 				do_rockusb(NULL, 0, 0, NULL);

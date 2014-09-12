@@ -32,6 +32,9 @@ typedef struct SDCardInfoTag
 }SD_Card_Info;
 
 
+#ifdef RK_SDCARD_BOOT_EN
+static uint32 gsdboot_mode = 0;
+#endif
 static SD_Card_Info gSdCardInfoTbl[3];
 static uint32	sdmmc_Data[(1024*8*4/4)]; __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
@@ -115,6 +118,14 @@ uint32 SdmmcInit(uint32 ChipSel)
 			if(gIdDataBuf[0] == 0xFCDC8C3B)
 			{
 				gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET;
+				if(0 == gIdDataBuf[128+104/4]) // sd¿¨Éý¼¶
+				{
+					gsdboot_mode = SDMMC_SDCARD_UPDATE;
+				}
+				else if(1 == gIdDataBuf[128+104/4])// sd ¿¨ÔËÐÐ
+				{
+					gsdboot_mode = SDMMC_SDCARD_BOOT;
+				}
 			}
 			else
 			{
@@ -478,6 +489,11 @@ void SdmmcCheckIdBlock(void)
 }
 
 #ifdef RK_SDCARD_BOOT_EN
+uint32 SdmmcGetSDCardBootMode(void)
+{
+	return gsdboot_mode;
+}
+
 uint32 BootFromSdCard(uint8 ChipSel)
 {
 	uint32 ret = -1;

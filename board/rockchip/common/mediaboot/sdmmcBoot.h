@@ -13,6 +13,10 @@ Revision:   1.00
 #ifndef _SDMMC_BOOT_H
 #define _SDMMC_BOOT_H
 
+#ifdef RK_SDCARD_BOOT_EN
+#define     SDMMC_SDCARD_BOOT		(1)	// SD Card boot
+#define     SDMMC_SDCARD_UPDATE		(2)	// SD card update
+#endif
 extern uint32 SdmmcInit(uint32 sdcId);
 extern void SdmmcReadID(uint8 chip, void *buf);
 
@@ -33,6 +37,7 @@ extern uint32 SdmmcGetSysOffset(uint8 ChipSel);
 extern void _SDC0IST(void);
 extern void _SDC2IST(void);
 #ifdef RK_SDCARD_BOOT_EN
+extern uint32 SdmmcGetSDCardBootMode(void);
 extern uint32 BootFromSdCard(uint8 ChipSel);
 #endif
 
