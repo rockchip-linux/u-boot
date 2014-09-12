@@ -645,7 +645,7 @@ void board_init_r(gd_t *id, ulong dest_addr)
 	/* enable exceptions */
 	enable_interrupts();
 	
-	board_rkmmc_init();
+	board_storage_init();
 #endif
 
 #ifdef CONFIG_CMD_SCSI
