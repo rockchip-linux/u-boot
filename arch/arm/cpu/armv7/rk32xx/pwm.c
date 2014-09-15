@@ -28,7 +28,68 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define COMPAT_ROCKCHIP_BL "pwm-backlight"
+
+
+
+
+#define RK_PWM_DISABLE                  (0 << 0) 
+#define RK_PWM_ENABLE                   (1 << 0)
+
+#define PWM_SHOT                        (0 << 1)
+#define PWM_CONTINUMOUS                 (1 << 1)
+#define RK_PWM_CAPTURE                  (1 << 2)
+
+#define PWM_DUTY_POSTIVE                (1 << 3)
+#define PWM_DUTY_NEGATIVE               (0 << 3)
+
+#define PWM_INACTIVE_POSTIVE            (1 << 4)
+#define PWM_INACTIVE_NEGATIVE           (0 << 4)
+
+#define PWM_OUTPUT_LEFT                 (0 << 5)
+#define PWM_OUTPUT_ENTER                (1 << 5)
+
+#define PWM_LP_ENABLE                   (1<<8)
+#define PWM_LP_DISABLE                  (0<<8)
+
+#define DW_PWM_PRESCALE			9
+#define RK_PWM_PRESCALE			16
+
+#define PWMCR_MIN_PRESCALE		0x00
+#define PWMCR_MAX_PRESCALE		0x07
+
+#define PWMDCR_MIN_DUTY			0x0001
+#define PWMDCR_MAX_DUTY			0xFFFF
+
+#define PWMPCR_MIN_PERIOD		0x0001
+#define PWMPCR_MAX_PERIOD		0xFFFF
+
+#define DW_PWM				0x00
+#define RK_PWM				0x01
+#define PWM_REG_CNTR    		0x00
+#define PWM_REG_HRC     		0x04
+#define PWM_REG_LRC     		0x08
+#define PWM_REG_CTRL    		0x0c
+#define PWM_REG_PERIOD			PWM_REG_HRC  /* Period Register */
+#define PWM_REG_DUTY        		PWM_REG_LRC  /* Dutby Cycle Register */
+
+
+struct pwm_bl {
+	u32 base;
+	int id;				/*pwm id*/
+	int node;			/*device node*/
+	int status;
+	struct fdt_gpio_state bl_en;
+	unsigned int	period; 	/* in nanoseconds */
+	unsigned int max_brightness;
+	unsigned int dft_brightness;
+	int *levels;
+};
+
 struct pwm_bl bl;
+static void write_pwm_reg(struct pwm_bl *bl, int reg, int val) {	
+	writel(val, bl->base + reg);
+}
 
 static inline u64 div64_u64(u64 dividend, u64 divisor)
 {
@@ -45,6 +106,7 @@ static int rk_bl_parse_dt(const void *blob)
 {
 	u32 data[3];
 	int len;
+	int pwm_node;
 	bl.node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_BL);
 	if (bl.node < 0) {
@@ -66,9 +128,11 @@ static int rk_bl_parse_dt(const void *blob)
 		bl.status = 0;
 		return -ENODEV;
 	}
+
 	bl.id = data[1];
 	bl.period = data[2];
-
+	pwm_node = fdt_node_offset_by_phandle(blob, data[0]);
+	bl.base = fdtdec_get_addr(blob, pwm_node, "reg");
 	fdt_getprop(blob, bl.node, "brightness-levels", &len);
 	bl.max_brightness = len / sizeof(u32);
 	bl.levels = malloc(len);
@@ -84,7 +148,6 @@ static int rk_bl_parse_dt(const void *blob)
 
 	bl.dft_brightness = fdtdec_get_int(blob, bl.node, "default-brightness-level", 48);
 	bl.status = 1;
-
 	return 0;
 }
 #endif /* CONFIG_OF_LIBFDT */
@@ -124,7 +187,8 @@ int rk_pwm_config(int brightness)
 	duty_ns = (brightness * bl.period)/bl.max_brightness;
 	period_ns = bl.period;
 	id = bl.id;
-    	grf_writel(0x00010001, 0x024c);/*use rk pwm*/
+	if (gd->arch.chiptype == CONFIG_RK3288)
+    		grf_writel(0x00010001, 0x024c);/*use rk pwm*/
 	on   =  RK_PWM_ENABLE ;
 	conf = PWM_OUTPUT_LEFT|PWM_LP_DISABLE|
 	                    PWM_CONTINUMOUS|PWM_DUTY_POSTIVE|PWM_INACTIVE_NEGATIVE;
@@ -175,10 +239,10 @@ int rk_pwm_config(int brightness)
 	 */
 
 	conf |= (prescale << RK_PWM_PRESCALE);
-	write_pwm_reg(id, PWM_REG_DUTY,dc);//0x1900);// dc);
-	write_pwm_reg(id, PWM_REG_PERIOD,pv);//0x5dc0);//pv);
-	write_pwm_reg(id, PWM_REG_CNTR,0);
-	write_pwm_reg(id, PWM_REG_CTRL,on|conf);
+	write_pwm_reg(&bl, PWM_REG_DUTY,dc);//0x1900);// dc);
+	write_pwm_reg(&bl, PWM_REG_PERIOD,pv);//0x5dc0);//pv);
+	write_pwm_reg(&bl, PWM_REG_CNTR,0);
+	write_pwm_reg(&bl, PWM_REG_CTRL,on|conf);
 
 	return 0;
 }
