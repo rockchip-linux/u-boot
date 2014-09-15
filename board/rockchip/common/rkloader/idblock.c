@@ -946,30 +946,35 @@ extern uint16 g_IDBlockOffset[];
 
 int get_idblk_data(void)
 {
-	uint32 index;
-	int idbCount = FindAllIDB();
-	uint8 *psrc, *pdst;
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+	// if storage media is nand, get id block data,
+	// else if emmc or sdcard, has been get when sdmmc init.
+	if (StorageGetBootMedia() == BOOT_FROM_FLASH) {
+		uint32 index;
+		int idbCount = FindAllIDB();
+		uint8 *psrc, *pdst;
 
-	if (idbCount <= 0) {
-		printf("id block not found.\n");
-		return false;
+		if (idbCount <= 0) {
+			printf("id block not found.\n");
+			return false;
+		}
+
+		memset((void*)g_pIDBlock, 0, SECTOR_OFFSET * IDBLOCK_NUM);
+
+		if (StorageReadPba(g_IDBlockOffset[0] * g_FlashInfo.BlockSize,
+					(void*)g_pIDBlock, IDBLOCK_NUM) != ERR_SUCCESS) {
+			printf("read id block error.\n");
+			return false;
+		}
+
+		pdst = (uint8 *)gIdDataBuf;
+		psrc = (uint8 *)g_pIDBlock;
+		for (index = 0; index < IDBLOCK_NUM; index++) {
+			memcpy(pdst + IDBLOCK_SIZE * index, psrc + SECTOR_OFFSET * index, IDBLOCK_SIZE);
+		}
 	}
-
-	memset((void*)g_pIDBlock, 0, SECTOR_OFFSET * IDBLOCK_NUM);
-
-	if (StorageReadPba(g_IDBlockOffset[0] * g_FlashInfo.BlockSize, 
-				(void*)g_pIDBlock, IDBLOCK_NUM) != ERR_SUCCESS) {
-		printf("read id block error.\n");
-		return false;
-	}
-
-	pdst = (uint8 *)gIdDataBuf;
-	psrc = (uint8 *)g_pIDBlock;
-	for (index = 0; index < IDBLOCK_NUM; index++) {
-		memcpy(pdst + IDBLOCK_SIZE * index, psrc + SECTOR_OFFSET * index, IDBLOCK_SIZE);
-	}
-
-	// GetIdblockDataNoRc4((char*)&gIdDataBuf[0],512);
+#endif
+	// some block rc4 decode
 	GetIdblockDataNoRc4((char*)&gIdDataBuf[128*2],512);
 	GetIdblockDataNoRc4((char*)&gIdDataBuf[128*3],512);
 
