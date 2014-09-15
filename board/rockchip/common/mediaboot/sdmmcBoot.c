@@ -121,10 +121,12 @@ uint32 SdmmcInit(uint32 ChipSel)
 				if(0 == gIdDataBuf[128+104/4]) // sd¿¨Éý¼¶
 				{
 					gsdboot_mode = SDMMC_SDCARD_UPDATE;
+					printf("SDCard Update.\n");
 				}
 				else if(1 == gIdDataBuf[128+104/4])// sd ¿¨ÔËÐÐ
 				{
 					gsdboot_mode = SDMMC_SDCARD_BOOT;
+					printf("SDCard Boot.\n");
 				}
 			}
 			else

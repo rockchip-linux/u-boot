@@ -193,7 +193,6 @@ int board_storage_init(void)
 {
 	if (StorageInit() == 0) {
 		printf("storage init OK!\n");
-		printf("storage media id = %d\n", StorageGetBootMedia());
 		return 0;
 	} else {
 		printf("storage init fail!\n");
