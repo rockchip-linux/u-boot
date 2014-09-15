@@ -60,14 +60,14 @@ struct rk_gpio_bank {
 /*
  * rk gpio api define the gpio format as:
  * using 32 bit for rk gpio value,
- * the high 16bit of gpio is bank id, the low 16bit of gpio is pin number
+ * the high 24bit of gpio is bank id, the low 8bit of gpio is pin number
  * eg: gpio = 0x00010008, it mean gpio1_b0, 0x00010000 is bank id of GPIO_BANK1, 0x00000008 is GPIO_B0
  */
 
 /* bank and pin bit mask */
-#define RK_GPIO_BANK_MASK	0xFFFF0000
-#define RK_GPIO_BANK_OFFSET	16
-#define RK_GPIO_PIN_MASK	0x0000FFFF
+#define RK_GPIO_BANK_MASK	0xFFFFFF00
+#define RK_GPIO_BANK_OFFSET	8
+#define RK_GPIO_PIN_MASK	0x000000FF
 #define RK_GPIO_PIN_OFFSET	0
 
 
