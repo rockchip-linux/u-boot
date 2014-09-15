@@ -151,8 +151,9 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 	uint32_t loader_flag = IReadLoaderFlag();
 	int reboot_mode = loader_flag ? (loader_flag & 0xFF) : BOOT_NORMAL;
 
-	if (!g_cold_boot)
+	if (!g_cold_boot) {
 		g_cold_boot = !loader_flag;
+	}
 
 	//set to non-0.
 	ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG | reboot_mode);
@@ -163,17 +164,11 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 		loader_flag = SYS_LOADER_REBOOT_FLAG | BOOT_LOADER;
 		reboot_mode = BOOT_LOADER;
 	}
-
 	if((loader_flag&0xFFFFFF00) == SYS_LOADER_REBOOT_FLAG)
 	{
 		switch(reboot_mode) {
 			case BOOT_NORMAL:
 				frt = FASTBOOT_REBOOT_NORMAL;
-#ifdef CONFIG_RK_SDCARD_BOOT_EN
-				if (StorageSDCardUpdateMode() != 0) { // sd ¿¨Éý¼¶£¬½øÈërecovery
-					frt = FASTBOOT_REBOOT_RECOVERY;
-				}
-#endif
 				break;
 			case BOOT_LOADER:
 				do_rockusb(NULL, 0, 0, NULL);
@@ -196,6 +191,13 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 				break;
 		}
 	}
+
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+	if ((reboot_mode == BOOT_NORMAL) && (StorageSDCardUpdateMode() != 0)) {
+		// Normal boot mode, when detect sd card update£¬audo entern recovery
+		frt = FASTBOOT_REBOOT_RECOVERY;
+	}
+#endif
 
 	return frt;
 }
