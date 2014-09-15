@@ -109,59 +109,45 @@ int print_cpuinfo(void)
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	if (gd->arch.chiptype == CONFIG_RK3036) {
-		printf("CPU is rk3036\n");
-	} else {
-		printf("error: uboot is not for chip rk3036!\n");
+		printf("CPU: rk3036\n");
 	}
 #endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
 	if (gd->arch.chiptype == CONFIG_RK3066) {
-		printf("CPU is rk3066\n");
-	} else {
-		printf("error: uboot is not for chip rk3066!\n");
+		printf("CPU: rk3066\n");
 	}
 #endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3126)
 	if (gd->arch.chiptype == CONFIG_RK3126) {
-		printf("CPU is rk3126\n");
-	} else {
-		printf("error: uboot is not for chip rk3126!\n");
+		printf("CPU: rk3126\n");
 	}
 #endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 	if (gd->arch.chiptype == CONFIG_RK3128) {
-		printf("CPU is rk3128\n");
-	} else {
-		printf("error: uboot is not for chip rk3128!\n");
+		printf("CPU: rk3128\n");
 	}
 #endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
 	if (gd->arch.chiptype == CONFIG_RK3168) {
-		printf("CPU is rk3168\n");
-	} else {
-		printf("error: uboot is not for chip rk3168!\n");
+		printf("CPU: rk3168\n");
 	}
 #endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
 	if (gd->arch.chiptype == CONFIG_RK3188) {
-		printf("CPU is rk3188\n");
+		printf("CPU: rk3188\n");
 	} else if (gd->arch.chiptype == CONFIG_RK3188_PLUS) {
-		printf("CPU is rk3188 plus\n");
-	} else {
-		printf("error: uboot is not for chip rk3188!\n");
+		printf("CPU: rk3188 plus\n");
 	}
 #endif
 
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	if (gd->arch.chiptype == CONFIG_RK3288) {
-		printf("CPU is rk3288\n");
-	} else {
-		printf("error: uboot is not for chip rk3288!\n");
+		printf("CPU: rk3288\n");
 	}
 #endif
 
