@@ -30,7 +30,6 @@
 
 
 BootInfo gBootInfo;
-uint32 g_FwEndLba;
 uint32 parameter_lba;
 
 static int find_mtd_part(cmdline_mtd_partition* this_mtd, const char* part_name)
@@ -61,8 +60,8 @@ static int get_rdInfo(PBootInfo pboot_info)
 	{
 		if( !strncmp(token, "initrd=", len) )
 		{
-			token+=len; //initrd=0x62000000,0x80000
-			pboot_info->ramdisk_load_addr = simple_strtoull(token,&token,0);
+			token += len;
+			pboot_info->ramdisk_load_addr = simple_strtoull(token, &token, 0);
 			pboot_info->ramdisk_size = 0x80000;
             
 			if(*token == ',')
@@ -105,7 +104,7 @@ static int get_part(char* parts, disk_partition_t* this_part, int* part_index)
 	unsigned int mask_flags;
 	unsigned int size = 0;
 	unsigned int offset = 0;
-	char name[PART_NAME]="\0";
+	char name[PART_NAME] = "\0";
 
 	if (*parts == '-')
 	{	/* assign all remaining space to this partition */
@@ -139,7 +138,6 @@ static int get_part(char* parts, disk_partition_t* this_part, int* part_index)
 		
 		if ((p = strchr(parts+1, delim)) == 0)
 		{
-//			printk(KERN_ERR ERRP "no closing %c found in partition name\n", delim);
 			return 0;
 		}
 		strncpy(name, parts+1, p-(parts+1));
@@ -217,30 +215,16 @@ static int parse_cmdline(PBootInfo pboot_info)
 {
 // cmy: 解析命令行，获取分区信息
 	pboot_info->cmd_mtd.num_parts = 0;
-	pboot_info->cmd_mtd.mtd_id[0]='\0';
+	pboot_info->cmd_mtd.mtd_id[0] = '\0';
  
-	if( mtdpart_parse(pboot_info->cmd_line, &pboot_info->cmd_mtd) )
+	if(mtdpart_parse(pboot_info->cmd_line, &pboot_info->cmd_mtd))
 	{
-//		int i=0;
-//		printf("NO\tOFFSET\t\tSIZE\t\tNAME\n");
-//		for(i=0; i<pboot_info->cmd_mtd.num_parts; i++)
-//		{
-//			printf("%d\t0x%08X\t0x%08X\t%s\n", i, pboot_info->cmd_mtd.parts[i].offset, pboot_info->cmd_mtd.parts[i].size, pboot_info->cmd_mtd.parts[i].name);
-//		}
-		
 		pboot_info->index_misc = find_mtd_part(&pboot_info->cmd_mtd, PARTNAME_MISC);
 		pboot_info->index_kernel = find_mtd_part(&pboot_info->cmd_mtd, 	PARTNAME_KERNEL);
 		pboot_info->index_boot= find_mtd_part(&pboot_info->cmd_mtd, PARTNAME_BOOT);
 		pboot_info->index_recovery = find_mtd_part(&pboot_info->cmd_mtd, PARTNAME_RECOVERY);
 		pboot_info->index_system = find_mtd_part(&pboot_info->cmd_mtd, PARTNAME_SYSTEM);
 		pboot_info->index_backup = find_mtd_part(&pboot_info->cmd_mtd, PARTNAME_BACKUP);
-		pboot_info->index_snapshot = find_mtd_part(&pboot_info->cmd_mtd, PARTNAME_SNAPSHOT);
-
-		if(pboot_info->index_backup > 0)
-		{
-			g_FwEndLba = pboot_info->cmd_mtd.parts[pboot_info->index_backup].start
-				+ pboot_info->cmd_mtd.parts[pboot_info->index_backup].size;
-		}
 
 		get_rdInfo(pboot_info);
         
@@ -346,22 +330,6 @@ static void ParseLine(PBootInfo pboot_info, char *line)
 		KeyCombinationNum++;
 	}
 #endif
-#ifdef OTP_DATA_ENABLE
-	else if( !memcmp(line, "WAV_ADDR:", strlen("WAV_ADDR:")) )
-	{
-		uint32 wav_addr;
-		line += strlen("WAV_ADDR:");
-		EATCHAR(line, ' ');
-		wav_addr = simple_strtoull(line,&line,0);
-		RkPrintf("wav_addr = %x\n",wav_addr);
-		if(wav_addr >= 0x60000000 && wav_addr < 0x80000000)
-		{
-			OtpDataLoad(0, 0, (void*)wav_addr, 512);
-			OtpDataLoad(1, 0, (void*)(wav_addr + (512ul*512)), 512);
-			RkPrintf("wav = %x\n",*(uint32*)(wav_addr));
-		}
-	}
-#endif	
 	else if( !memcmp(line, "CMDLINE:", strlen("CMDLINE:")) )
 	{
 		line += strlen("CMDLINE:");
@@ -422,32 +390,24 @@ int CheckParam(PLoaderParam pParam)
 	uint32 crc = 0;
 //	PRINT_D("Enter\n");
 	
-	//if( pParam->tag != 0xFFFFFFFF && pParam->tag != 0 )
+	if(pParam->tag != PARM_TAG)
 	{
-		if(pParam->tag != PARM_TAG)
-		{
-			printf("W: Invalid Parameter's tag (0x%08X)!\n", (unsigned int)pParam->tag);
-			return -2;
-		}
-		
-		if( pParam->length > (MAX_LOADER_PARAM-12) )
-		{
-			printf("E: Invalid parameter length(%d)!\n", (int)pParam->length);
-			return -3;
-		}
-
-		crc = CRC_32CheckBuffer((unsigned char*)pParam->parameter, pParam->length+4);
-		if(!crc)
-		{
-			printf("E: Para CRC failed!\n");
-			return -4;
-		}
+		printf("W: Invalid Parameter's tag (0x%08X)!\n", (unsigned int)pParam->tag);
+		return -2;
 	}
-	/*else
+
+	if( pParam->length > (MAX_LOADER_PARAM-12) )
 	{
-		RkPrintf("Warning: No parameter or Parameter's tag not match!\n");
-		return -1;
-	}*/
+		printf("E: Invalid parameter length(%d)!\n", (int)pParam->length);
+		return -3;
+	}
+
+	crc = CRC_32CheckBuffer((unsigned char*)pParam->parameter, pParam->length+4);
+	if(!crc)
+	{
+		printf("E: Para CRC failed!\n");
+		return -4;
+	}
 
 //	pParam->crc = crc;
 
