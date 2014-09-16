@@ -176,6 +176,8 @@
 /* rk clock module */
 #define CONFIG_RK_CLOCK
 
+/* rk pwm remote ctrl */
+//#define CONFIG_RK_PWM_REMOTE
 
 /* rk usb module */
 /* usb device */

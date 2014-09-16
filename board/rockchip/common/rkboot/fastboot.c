@@ -31,6 +31,7 @@
 #include <power/pmic.h>
 #include <asm/arch/rkplat.h>
 #include "../config.h"
+#include <linux/input.h>
 
 extern uint32 GetVbus(void);
 extern void change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
@@ -39,6 +40,10 @@ extern int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 static int g_cold_boot = 0;
 
+static int ir_keycode = 0;
+#if defined(CONFIG_RK_PWM_REMOTE)
+extern int g_ir_keycode;
+#endif
 #if !defined(CONFIG_FASTBOOT_NO_FORMAT)
 static int do_format(void)
 {
@@ -208,12 +213,16 @@ int board_fbt_key_pressed(void)
 	enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
 	int vbus = GetVbus();
 
+	#if defined(CONFIG_RK_PWM_REMOTE)
+	ir_keycode = g_ir_keycode;
+	#endif
+
 	checkKey((uint32 *)&boot_rockusb, (uint32 *)&boot_recovery, (uint32 *)&boot_fastboot);
 	printf("vbus = %d\n", vbus);
-	if(boot_recovery && (vbus==0)) {
+	if((boot_recovery && (vbus==0)) || (ir_keycode  == KEY_POWER)) {
 		printf("recovery key pressed.\n");
 		frt = FASTBOOT_REBOOT_RECOVERY;
-	} else if (boot_rockusb && (vbus!=0)) {
+	} else if ((boot_rockusb && (vbus!=0)) || (ir_keycode  == KEY_HOME)) {
 		printf("rockusb key pressed.\n");
 		/* rockusb key press, set flag = 1 for rockusb timeout check */
 		if (do_rockusb(NULL, 1, 0, NULL) == 1) {
@@ -224,6 +233,7 @@ int board_fbt_key_pressed(void)
 		printf("fastboot key pressed.\n");
 		frt = FASTBOOT_REBOOT_FASTBOOT;
 	}
+	printf("%s:ir_keycode=0x%x\n",__func__, ir_keycode);
 
 	return frt;
 }
