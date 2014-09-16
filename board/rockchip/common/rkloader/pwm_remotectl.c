@@ -283,6 +283,246 @@ static struct rkxx_remote_key_table remote_key_table_sunchip_ff00[] = {
 	{0xbe, KEY_SEARCH},
 };
 
+
+static struct rkxx_remote_key_table remote_key_table_meiyu_220[] = {
+	{0xf2, KEY_REPLY},//ok = DPAD CENTER
+	{0xba, KEY_BACK}, 
+	{0xf4, KEY_UP},
+	{0xf1, KEY_DOWN},
+	{0xef, KEY_LEFT},
+	{0xee, KEY_RIGHT}, ////////
+	{0xbd, KEY_HOME}, //home
+	{0xea, KEY_VOLUMEUP},
+	{0xe3, KEY_VOLUMEDOWN},
+	{0xb8, KEY_SEARCH}, //search
+	{0xb2, KEY_POWER}, //power off
+	{0xbc, KEY_MUTE}, //mute
+	{0xec, KEY_MENU},
+
+//media ctrl
+	{0xe1, 0x190}, //play pause
+	{0xe0, 0x191}, //pre
+	{0xbf, 0x192}, //next
+
+//pic
+	{0xe2, 183}, //rorate left
+	{0xe5, 184}, //rorate right
+	{0xe9, 185}, //zoom out
+	{0xe6, 186}, //zoom in
+//mouse switch
+	{0xf0,388},
+//display switch
+	{0xbe, 0x175},
+};
+
+static struct rkxx_remote_key_table remote_key_table_df00[] = {
+	{0xe0, KEY_REPLY},
+	{0xfc, KEY_BACK}, 
+	{0xf0, KEY_UP},
+	{0xe4, KEY_DOWN},
+	{0xf4, KEY_LEFT},
+	{0xe8,KEY_RIGHT}, ////////
+	{0xf6, KEY_VOLUMEDOWN},
+	{0xf9, KEY_VOLUMEUP},
+	{0xfe, KEY_HOME}, //home
+	{0xf8, 183}, //rorate left
+	{0xf7, 184}, //rorate right
+	{0xfb, 185}, //zoom out
+	{0xfa, 186}, //zoom in
+	{0xf1, KEY_MUTE}, //mute
+	{0xf5, KEY_POWER}, //power off
+	{0xfd, KEY_SEARCH}, //search
+};
+
+static struct rkxx_remote_key_table remote_key_table_b24d[] = {
+	{0x23, KEY_POWER},
+	{0x77, KEY_HOME},
+	{0x7d, KEY_SEARCH},
+
+	{0x35, KEY_UP},
+	{0x2d, KEY_DOWN},
+	{0x66, KEY_LEFT},
+	{0x3e, KEY_RIGHT},
+	{0x31, KEY_REPLY},
+	{0x3a, KEY_BACK},
+	{0x65, KEY_MENU},
+
+	{0x7e, KEY_VOLUMEDOWN},
+	{0x7f, KEY_VOLUMEUP},
+
+	{0x6d, KEY_1},
+	{0x6c, KEY_2},
+	{0x33, KEY_3},
+	{0x71, KEY_4},
+	{0x70, KEY_5},
+
+	{0x37, KEY_6},
+	{0x75, KEY_7},
+	{0x74, KEY_8},
+	{0x3b, KEY_9},
+	{0x78, KEY_0},
+
+	{0x25, KEY_MINUS}, //KEY_NUMERIC_STAR
+	{0x2f, KEY_EQUAL}, //KEY_NUMERIC_POUND
+};
+
+static struct rkxx_remote_key_table remote_key_table_ff00[] = {
+	{0xe7, KEY_POWER},
+	{0xf9, KEY_HOME},
+	{0xa4, KEY_SEARCH},
+
+	{0xb9, KEY_UP},
+	{0xe9, KEY_DOWN},
+	{0xb8, KEY_LEFT},
+	{0xea, KEY_RIGHT},
+	{0xaa, KEY_REPLY},
+	{0xbf, KEY_BACK},
+	{0xfb, KEY_MENU},
+
+	{0xeb, KEY_VOLUMEDOWN},
+	{0xf7, KEY_MUTE},
+	{0xef, KEY_VOLUMEUP},
+
+	{0xab, KEY_1},
+	{0xb7, KEY_2},
+	{0xf8, KEY_3},
+	{0xaf, KEY_4},
+	{0xed, KEY_5},
+
+	{0xee, KEY_6},
+	{0xb3, KEY_7},
+	{0xf1, KEY_8},
+	{0xf2, KEY_9},
+	{0xf3, KEY_0},
+
+	{0xbe, KEY_MINUS}, //KEY_NUMERIC_STAR
+	{0xb4, KEY_EQUAL}, //KEY_NUMERIC_POUND
+};
+
+
+// ¿¿2.0¿¿¿
+static struct rkxx_remote_key_table remote_key_table_bb44[] = {
+	{0x23, KEY_POWER}, // ¿¿
+
+	{0x67, KEY_SEARCH}, // ¿¿
+	{0x63, KEY_SEARCH}, // ¿¿
+	{0x72, KEY_SEARCH}, // ¿¿
+	{0x29, KEY_SEARCH}, // ¿¿
+
+	{0x32, KEY_SEARCH}, // ¿¿
+	{0x6e, KEY_SEARCH}, // ¿¿
+	{0x7c, KEY_SEARCH}, // ¿¿
+	{0x3c, KEY_SEARCH}, // ¿¿
+
+	{0x77, KEY_HOME}, // ¿¿
+	{0x7d, KEY_SEARCH}, // ¿¿
+	{0x6a, KEY_SEARCH}, // ¿¿
+	{0x3a, KEY_SEARCH}, // ¿¿
+
+	{0x35, KEY_UP}, // ¿
+	{0x2d, KEY_DOWN}, // ¿
+	{0x66, KEY_LEFT}, // ¿
+	{0x3e, KEY_RIGHT}, // ¿
+	{0x31, KEY_REPLY}, // OK
+
+	{0x7f, KEY_VOLUMEUP}, // ¿¿¿
+	{0x7e, KEY_VOLUMEDOWN}, // ¿¿¿
+
+	{0x22, KEY_SEARCH}, // ¿¿¿
+	{0x73, KEY_SEARCH}, // ¿¿¿
+
+	{0x7a, KEY_SEARCH}, // ¿¿¿
+	{0x79, KEY_SEARCH}, // ¿¿¿
+
+	{0x76, KEY_SEARCH}, // ¿¿
+	{0x7b, KEY_SEARCH}, // ¿¿
+	{0x26, KEY_SEARCH}, // ¿¿/¿¿
+	{0x69, KEY_SEARCH}, // ¿¿
+
+	{0x6d, KEY_1},
+	{0x6c, KEY_2},
+	{0x33, KEY_3},
+	{0x71, KEY_4},
+	{0x70, KEY_5},
+
+	{0x37, KEY_6},
+	{0x75, KEY_7},
+	{0x74, KEY_8},
+	{0x3b, KEY_9},
+	{0x78, KEY_0},
+
+	{0x25, KEY_0}, // #
+	{0x2f, KEY_0}, // ¿¿
+};
+
+static struct rkxx_remote_key_table remote_key_table_6810[] = {
+	{0x23, KEY_POWER}, // ¿¿
+	{0x4b, KEY_UP}, // ¿
+	{0x4a, KEY_DOWN}, // ¿
+	{0x49, KEY_LEFT}, // ¿
+	{0x48, KEY_RIGHT}, // ¿
+	{0x4c, KEY_REPLY}, // OK
+
+	{0x47, KEY_VOLUMEUP}, // ¿¿¿
+	{0x46, KEY_VOLUMEDOWN}, // ¿¿¿
+	{0x4e, KEY_HOME}, //home
+	{0x4d, KEY_BACK}, //
+
+	{0x45, KEY_MUTE}, //mute
+	{0x44, KEY_MENU}, 
+};
+
+// ¿¿ ¿¿ V3 ¿¿ ¿¿¿@2014-7-24 11:43:37
+static struct rkxx_remote_key_table remote_key_table_32cd[] = {
+	{0x23, KEY_POWER},
+	{0x77, KEY_HOME},
+	{0x7d, KEY_SEARCH},
+
+	{0x35, KEY_UP},
+	{0x2d, KEY_DOWN},
+	{0x66, KEY_LEFT},
+	{0x3e, KEY_RIGHT},
+
+	{0x31, KEY_REPLY},
+	{0x3a, KEY_BACK},
+	{0x65, KEY_MENU},
+
+	{0x7e, KEY_VOLUMEDOWN},
+	{0x7f, KEY_VOLUMEUP},
+
+	{0x6d, KEY_1},
+	{0x6c, KEY_2},
+	{0x33, KEY_3},
+	{0x71, KEY_4},
+	{0x70, KEY_5},
+
+	{0x37, KEY_6},
+	{0x75, KEY_7},
+	{0x74, KEY_8},
+	{0x3b, KEY_9},
+	{0x78, KEY_0},
+
+	{0x25, KEY_MINUS}, //KEY_NUMERIC_STAR
+	{0x2f, KEY_EQUAL}, //KEY_NUMERIC_POUND
+	{0x72, KEY_SETUP},
+	{0x7b, KEY_F2},
+	{0x76, KEY_F1},
+	{0x26, KEY_F3},
+	{0x69, KEY_F4},
+	{0x6a, KEY_MUTE},
+//	{0x29, KEY_LAST},
+//	{0x7a, KEY_CHANNELUP},
+//	{0x79, KEY_CHANNELDOWN},
+	{0x63, KEY_MUTE},
+//	{0x67, KEY_AUDIO},
+	{0x32, KEY_F2},
+	{0x6e, KEY_F1},
+	{0x7c, KEY_F3},
+	{0x3c, KEY_F4},
+	{0x22, KEY_PAGEUP},
+};
+
+
 /********************************************************************
 **                            ºê¶¨Òå                                *
 ********************************************************************/
@@ -320,6 +560,42 @@ static struct rkxx_remotectl_button remotectl_button[] =
 		.usercode = 0x4040,
 		.nbuttons =  22,
 		.key_table = &remote_key_table_meiyu_4040[0],
+	},
+	
+	{
+		.usercode = 0x220,
+		.nbuttons =  22,
+		.key_table = &remote_key_table_meiyu_220[0],
+	},
+	{
+		.usercode = 0xdf00,
+		.nbuttons =  16,
+		.key_table = &remote_key_table_df00[0],
+	},
+	{
+		.usercode = 0xb24d,
+		.nbuttons =  24,
+		.key_table = &remote_key_table_b24d[0],
+	},
+	{
+		.usercode = 0xff00,
+		.nbuttons =  25,
+		.key_table = &remote_key_table_ff00[0],
+	},
+	{
+		.usercode = 0xbb44,
+		.nbuttons = 40,
+		.key_table = &remote_key_table_bb44[0],
+	},
+	{
+		.usercode = 0x6810,
+		.nbuttons = 12,
+		.key_table = &remote_key_table_6810[0],
+	},
+	{
+		.usercode = 0x32cd,
+		.nbuttons = 40,
+		.key_table = &remote_key_table_32cd[0],
 	},
 };
 
