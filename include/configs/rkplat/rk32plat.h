@@ -266,6 +266,7 @@
 #define CONFIG_SCREEN_ON_VOL_THRESD	0
 #define CONFIG_SYSTEM_ON_VOL_THRESD	0
 #define CONFIG_POWER_FG_CW201X
+#define CONFIG_POWER_FG_ADC
 
 
 /********************************** battery driver ********************************/

@@ -179,6 +179,14 @@ int fg_init(unsigned char bus)
 		return 0;
 	}
 #endif
+#if defined(CONFIG_POWER_FG_ADC)
+	ret = adc_battery_init();
+	if (ret >= 0) {
+		printf("fg:adc-battery\n");
+		return 0;
+	}
+
+#endif
 	return 0;
 }
 
