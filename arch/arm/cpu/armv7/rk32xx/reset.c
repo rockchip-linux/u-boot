@@ -28,7 +28,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 
-#define RKRESET_VERSION		"1.2"
+#define RKRESET_VERSION		"1.3"
 
 
 void rk_module_deinit(void)
@@ -50,6 +50,16 @@ void rk_module_deinit(void)
 #endif
 
 #endif /* CONFIG_RK_I2C */
+
+	/* rk pl330 dmac deinit */
+#ifdef CONFIG_RK_DMAC
+#ifdef CONFIG_RK_DMAC_0
+	rk_pl330_dmac_deinit(0);
+#endif
+#ifdef CONFIG_RK_DMAC_1
+	rk_pl330_dmac_deinit(1);
+#endif
+#endif /* CONFIG_RK_DMAC*/
 }
 
 

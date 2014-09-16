@@ -32,7 +32,7 @@
 /* if rk dmac define */
 #ifdef CONFIG_RK_DMAC
 
-#define RK_DMA_PL330_VERSION	"1.0"
+#define RK_DMA_PL330_VERSION	"1.1"
 
 #define rk_dma_dev_err(...) \
     do\
@@ -1142,13 +1142,13 @@ static inline struct pl330_info *rk_pl330_dmac_get_info(int dmac_id)
 {
 #ifdef CONFIG_RK_DMAC_0
 	if (dmac_id == 0) {
-		return &g_pl330_info_0;
+		return g_pl330_info_0;
 	}
 #endif
 
 #ifdef CONFIG_RK_DMAC_1
 	if (dmac_id == 1) {
-		return &g_pl330_info_1;
+		return g_pl330_info_1;
 	}
 #endif
 
@@ -1505,6 +1505,7 @@ int rk_pl330_dmac_init(int dmac_id)
 
 	pl330_info = malloc(sizeof(struct pl330_info));
 	if (!pl330_info) {
+		rk_dma_dev_err("malloc error!\n");
 		return -ENOMEM;
 	}
 	memset(pl330_info, 0, sizeof(struct pl330_info));
@@ -1513,11 +1514,13 @@ int rk_pl330_dmac_init(int dmac_id)
 	pl330_info->base = rk_pl330_dmac_get_base(dmac_id);
 	if (pl330_info->base == NULL) {
 		ret = -EIO;
+		rk_dma_dev_err("pl330 base error!\n");
 		goto probe_err1;
 	}
 
 	ret = pl330_add(pl330_info);
 	if (ret) {
+		rk_dma_dev_err("pl330 info add error!\n");
 		goto probe_err1;
 	}
 
@@ -1597,6 +1600,7 @@ int rk_pl330_dmac_deinit(int dmac_id)
 	unsigned long flags;
 	int del, found;
 
+	debug("%s, dmac_id = %d\n", __func__, dmac_id);
 	if (dmac_id >= RK_PL330_DMAC_MAX) {
 		rk_dma_dev_err("dmac id error!\n");
 		return -EIO;
@@ -1651,12 +1655,16 @@ int rk_pl330_dmac_deinit(int dmac_id)
 
 	if (dmac_id == 0) {
 #ifdef CONFIG_RK_DMAC_0
+		irq_handler_disable(RK_DMAC0_IRQ0);
+		irq_handler_disable(RK_DMAC0_IRQ1);
 		irq_uninstall_handler(RK_DMAC0_IRQ0);
 		irq_uninstall_handler(RK_DMAC0_IRQ1);
 		g_pl330_info_0 = NULL;
 #endif
 	} else {
 #ifdef CONFIG_RK_DMAC_1
+		irq_handler_disable(RK_DMAC1_IRQ0);
+		irq_handler_disable(RK_DMAC1_IRQ1);
 		irq_uninstall_handler(RK_DMAC1_IRQ0);
 		irq_uninstall_handler(RK_DMAC1_IRQ1);
 		g_pl330_info_1 = NULL;
@@ -1664,6 +1672,16 @@ int rk_pl330_dmac_deinit(int dmac_id)
 	}
 	spin_unlock_irqrestore(&res_lock, flags);
 
+	// soft reset dmac0 and dmac1
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188) \
+	|| (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128) \
+	|| (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+	writel(0x5<<0 | 0x5<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));
+	mdelay(1);
+	writel(0x0<<0 | 0x5<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));
+#else
+	#error "PLS config platform for dmac deinit."
+#endif
 	return 0;
 }
 
