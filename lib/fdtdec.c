@@ -490,27 +490,34 @@ int fdtdec_decode_gpios(const void *blob, int node, const char *prop_name,
 			"property '%s'\n", __func__, prop_name);
 		return -FDT_ERR_BADLAYOUT;
 	}
- #ifdef CONFIG_ROCKCHIP
+#ifdef CONFIG_ROCKCHIP
 	const struct fdt_property *prop1;
 	const u32 *reg;
-   
+	u32 gpio_dts;
+
         for (i = 0; i < len; i++, cell += 3) {
 		prop1 = fdt_get_property(blob, 
 		             fdt_node_offset_by_phandle(blob, fdt32_to_cpu(cell[0])), 
 		             "reg", 0);
 		reg = (u32 *)prop1->data;
-		gpio[i].gpio = fdt32_to_cpu(cell[1]) | fdt32_to_cpu(reg[0]);
+		gpio_dts = fdt32_to_cpu(cell[1]) | fdt32_to_cpu(reg[0]);
+		/* change dts gpio to rk uboot gpio */
+#ifdef CONFIG_RK_GPIO
+		gpio[i].gpio = rk_gpio_base_to_bank(gpio_dts & RK_GPIO_BANK_MASK) | (gpio_dts & RK_GPIO_PIN_MASK);
+#else
+		gpio[i].gpio = gpio_dts;
+#endif
 		gpio[i].flags = fdt32_to_cpu(cell[2]);
 		gpio[i].name = name;
         }
- #else
+#else
 	/* Read out the GPIO data from the cells */
 	for (i = 0; i < len; i++, cell += 3) {
 		gpio[i].gpio = fdt32_to_cpu(cell[1]);
 		gpio[i].flags = fdt32_to_cpu(cell[2]);
 		gpio[i].name = name;
 	}
- #endif
+#endif
 
 	return len;
 }

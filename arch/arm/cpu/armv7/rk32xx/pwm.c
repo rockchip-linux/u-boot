@@ -120,7 +120,6 @@ static int rk_bl_parse_dt(const void *blob)
 		return -EPERM;
 	}
 	fdtdec_decode_gpio(blob, bl.node, "enable-gpios", &bl.bl_en);
-	bl.bl_en.gpio = rk_gpio_base_to_bank(bl.bl_en.gpio & RK_GPIO_BANK_MASK) | (bl.bl_en.gpio & RK_GPIO_PIN_MASK);
 	bl.bl_en.flags = !(bl.bl_en.flags  & OF_GPIO_ACTIVE_LOW);
 	if (fdtdec_get_int_array(blob, bl.node, "pwms", data,
 			ARRAY_SIZE(data))) {

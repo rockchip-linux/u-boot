@@ -621,7 +621,6 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 	    printf("Can't get pin of mipi_lcd_rst\n");
 	} else {
 	   err = fdtdec_decode_gpio(blob, subnode, "rockchip,gpios", &gpio_val);
-	   gpio_val.gpio = rk_gpio_base_to_bank(gpio_val.gpio & RK_GPIO_BANK_MASK) | (gpio_val.gpio & RK_GPIO_PIN_MASK);
 	    if(err < 0){    
 		screen->lcd_rst_gpio = INVALID_GPIO;
 		printf("Can't find GPIO rst\n");
@@ -655,7 +654,6 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 	     noffset = fdt_next_subnode(blob, noffset)) {
 	    if ( 0 == fdt_node_check_compatible(blob, noffset, "rockchip,lcd_rst")){
                 err = fdtdec_decode_gpio(blob, noffset, "rockchip,gpios", &gpio_val);
-                gpio_val.gpio = rk_gpio_base_to_bank(gpio_val.gpio & RK_GPIO_BANK_MASK) | (gpio_val.gpio & RK_GPIO_PIN_MASK);
                 if(err < 0){    
                     screen->lcd_rst_gpio = INVALID_GPIO;
                     MIPI_SCREEN_DBG("Can't find GPIO rst\n");
@@ -672,7 +670,6 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 	    if ( 0 == fdt_node_check_compatible(blob, noffset, "rockchip,lcd_en")){
 	    
 	        err = fdtdec_decode_gpio(blob, noffset, "rockchip,gpios", &gpio_val);
-	         gpio_val.gpio = rk_gpio_base_to_bank(gpio_val.gpio & RK_GPIO_BANK_MASK) | (gpio_val.gpio & RK_GPIO_PIN_MASK);
 	        if(err < 0){    
 	            screen->lcd_en_gpio = INVALID_GPIO;
 	            MIPI_SCREEN_DBG("Can't find GPIO en\n");

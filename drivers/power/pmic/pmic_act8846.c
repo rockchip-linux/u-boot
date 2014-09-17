@@ -252,8 +252,7 @@ static int act8846_parse_dt(const void* blob)
 	act8846.pmic->hw.i2c.addr = addr;
 	act8846.pmic->bus = bus;
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
-	act8846.pwr_hold.gpio = rk_gpio_base_to_bank(gpios[1].gpio & RK_GPIO_BANK_MASK) | 
-				(gpios[1].gpio & RK_GPIO_PIN_MASK);
+	act8846.pwr_hold.gpio = gpios[1].gpio;
 	act8846.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
 	return 0;
 	 

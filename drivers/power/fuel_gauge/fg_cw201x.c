@@ -100,8 +100,6 @@ static int cw201x_parse_dt(const void* blob)
 		printf("decode dc_det_gpio err\n");
 		return err;
 	}
-	cw.dc_det.gpio = rk_gpio_base_to_bank(cw.dc_det.gpio & RK_GPIO_BANK_MASK) |
-					(cw.dc_det.gpio & RK_GPIO_PIN_MASK);
 	cw.dc_det.flags = !(cw.dc_det.flags  & OF_GPIO_ACTIVE_LOW);
 	return 0;
 }

@@ -87,12 +87,10 @@ int rk_lcd_parse_dt(const void *blob)
 	lcd_en_node = fdt_subnode_offset(blob, node, "lcd_en");
 	lcd_cs_node = fdt_subnode_offset(blob, node, "lcd_cs");
 	fdtdec_decode_gpio(blob, lcd_en_node, "gpios", &lcd_en_gpio);
-	lcd_en_gpio.gpio = rk_gpio_base_to_bank(lcd_en_gpio.gpio & RK_GPIO_BANK_MASK) | (lcd_en_gpio.gpio & RK_GPIO_PIN_MASK);
 	lcd_en_gpio.flags = !(lcd_en_gpio.flags  & OF_GPIO_ACTIVE_LOW);
 	lcd_en_delay = fdtdec_get_int(blob, lcd_en_node, "rockchip,delay", 0);
 
 	fdtdec_decode_gpio(blob, lcd_cs_node, "gpios", &lcd_cs_gpio);
-	lcd_cs_gpio.gpio = rk_gpio_base_to_bank(lcd_cs_gpio.gpio & RK_GPIO_BANK_MASK) | (lcd_cs_gpio.gpio & RK_GPIO_PIN_MASK);
 	lcd_cs_gpio.flags = !(lcd_cs_gpio.flags & OF_GPIO_ACTIVE_LOW);
 	lcd_cs_delay = fdtdec_get_int(blob, lcd_cs_node, "rockchip,delay", 0);
 

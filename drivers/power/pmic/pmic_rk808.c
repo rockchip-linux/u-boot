@@ -163,8 +163,7 @@ static int rk808_parse_dt(const void* blob)
 	rk808.node = node;
 	rk808.pmic->hw.i2c.addr = addr;
 	rk808.pmic->bus = bus;
-	rk808.pwr_hold.gpio = rk_gpio_base_to_bank(gpios[1].gpio & RK_GPIO_BANK_MASK) | 
-				(gpios[1].gpio & RK_GPIO_PIN_MASK);
+	rk808.pwr_hold.gpio = gpios[1].gpio;
 	rk808.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
 	debug("rk808 i2c_bus:%d addr:0x%02x\n", rk808.pmic->bus,
 		rk808.pmic->hw.i2c.addr);
