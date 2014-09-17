@@ -22,6 +22,7 @@
 
 #include <linux/input.h>
 #include <asm/io.h>
+#include <asm/arch/rkplat.h>
 
 
 /* PWM0 registers  */
