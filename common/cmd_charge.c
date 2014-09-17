@@ -189,7 +189,7 @@ int check_charging(void) {
 	get_power_bat_status(&batt_status);
 	if(!batt_status.state_of_chrg)
 	{
-		LOGD("pmic not charging.");
+		printf("pmic not charging.");
 		pmic_charger_setting(0);
 		return EXIT_SHUTDOWN;
 	}
@@ -656,12 +656,12 @@ exit:
 		printf("booting...\n");
 		return 1;
 	} else if (exit_type == EXIT_SHUTDOWN) {
-		printf("shutting down...\n");
+		printf("%s :shutting down...\n", __func__);
 		shut_down();
-		LOGE("not reach here.\n");
+		LOGE("%s : not reach here: %d \n", __func__, __LINE__);
 		return 0;
 	}
-	LOGE("not reach here.\n");
+	LOGE("%s : not reach here :%d\n", __func__, __LINE__);
 	return 0;
 }
 
