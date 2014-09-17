@@ -779,7 +779,7 @@ void remotectlInitInDriver(void)
 	printf("remotectl v0.1\n");
 	ddata = &data;
 	ddata->state = RMC_PRELOAD;
-	ddata->base = 0x20050030;
+	ddata->base = RKIO_PWM_PHYS + 0x30; // PWM3
 
 	rk_pwm_remotectl_hw_init(ddata);
 }
