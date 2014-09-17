@@ -232,8 +232,11 @@ int board_fbt_key_pressed(void)
 	} else if(boot_fastboot && (vbus!=0)){
 		printf("fastboot key pressed.\n");
 		frt = FASTBOOT_REBOOT_FASTBOOT;
+	} else if(ir_keycode == KEY_DOWN){
+		printf("recovery wipe data key pressed.\n");
+		frt = FASTBOOT_REBOOT_RECOVERY_WIPE_DATA;
 	}
-	printf("%s:ir_keycode=0x%x\n",__func__, ir_keycode);
+	printf("%s:ir_keycode=0x%x,frt=%d\n",__func__, ir_keycode, frt);
 
 	return frt;
 }
