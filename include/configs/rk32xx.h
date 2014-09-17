@@ -208,8 +208,17 @@
 	#undef CONFIG_CMD_CHARGE_ANIM
 	#undef CONFIG_CHARGE_DEEP_SLEEP
 	#undef CONFIG_POWER_FG_ADC
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126)
 	#include "rkplat/rk30plat.h"
+
+	#undef CONFIG_RK_PWM_REMOTE
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+	#include "rkplat/rk30plat.h"
+
+	#undef CONFIG_UBOOT_CHARGE
+	#undef CONFIG_CMD_CHARGE_ANIM
+	#undef CONFIG_CHARGE_DEEP_SLEEP
+	#undef CONFIG_POWER_FG_ADC
 #else
 	#error: "PLS config chip for rk plat!"
 #endif
