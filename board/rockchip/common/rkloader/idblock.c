@@ -931,7 +931,7 @@ int setBootloaderMsg(struct bootloader_message* bmsg)
 		return -1;
 	}
 
-	return CopyMemory2Flash((uint32)&buf, ptn->start + MISC_COMMAND_OFFSET,
+	return CopyMemory2Flash((uint32)buf, ptn->start + MISC_COMMAND_OFFSET,
 			DIV_ROUND_UP(sizeof(struct bootloader_message), RK_BLK_SIZE));
 }
 

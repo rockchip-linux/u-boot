@@ -1579,6 +1579,8 @@ static void fbt_run_recovery_wipe_data(void)
 		FBTERR("not found misc partition, just run recovery.\n");
 		fbt_run_recovery();
 	}
+
+	memset((char *)&bmsg, 0, sizeof(struct bootloader_message));
 	strcpy(bmsg.command, "boot-recovery");
 	bmsg.status[0] = 0;
 	strcpy(bmsg.recovery, "recovery\n--wipe_data");
