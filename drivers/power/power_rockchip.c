@@ -17,6 +17,7 @@ static const char * const fg_names[] = {
 	"RICOH619_FG",
 	"RK818_FG",
 	"RT5025_FG",
+	"RK-ADC-FG",
 };
 
 
@@ -36,7 +37,6 @@ int get_power_bat_status(struct battery *battery)
 	int i;
 	struct pmic *p_fg = NULL;
 	for (i = 0; i < ARRAY_SIZE(fg_names); i++) {
-		
 		p_fg = pmic_get(fg_names[i]);
 		if (p_fg)
 			break;
@@ -47,6 +47,7 @@ int get_power_bat_status(struct battery *battery)
 		if (p_fg->fg->fg_battery_update)
 			p_fg->fg->fg_battery_update(p_fg, p_fg);
 	} else {
+		printf("no fuel gauge found\n");
 		return -ENODEV;
 	}
 

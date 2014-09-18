@@ -42,9 +42,9 @@ static int get_status(void)
 	int ac_charging, usb_charging;
 
 	if (fg_adc.support_ac_charge == 1) {
-		if (gpio_get_value(fg_adc.dc_det.gpio) == fg_adc.dc_det.flags)
+		if (gpio_get_value(fg_adc.dc_det.gpio) == fg_adc.dc_det.flags) {
 			ac_charging = 1;
-		else
+		} else
 			ac_charging = 0;
 		return ac_charging;
 	}
@@ -56,17 +56,33 @@ static int get_status(void)
 	return 0;
 }
 
+static int adc_init(void)
+{
+	uint32 value;
+	uint32 timeout = 0;
+
+	write_XDATA32(fg_adc.adc.ctrl, 0);
+	DRVDelayUs(1);
+	write_XDATA32(fg_adc.adc.ctrl, 0x0028|(fg_adc.adc.index));
+	DRVDelayUs(1);
+	do {
+		value = read_XDATA32(fg_adc.adc.ctrl);
+		timeout++;
+	} while ((value&0x40) == 0);
+	value = read_XDATA32(fg_adc.adc.data);
+	return value;
+}
+
 static int adc_get_vol(void)
 {
 	int value;
 	int voltage;
-
+	adc_init();
 	do {
 		value = read_XDATA32(fg_adc.adc.ctrl);
 	} while ((value&0x40) == 0);
 	value = read_XDATA32(fg_adc.adc.data);
 	voltage = (value * 3300 * (fg_adc.bat_table[4] + fg_adc.bat_table[5])) / (1024 * fg_adc.bat_table[5]);
-
 	return voltage;
 }
 static int vol_to_capacity(int BatVoltage)
@@ -100,18 +116,17 @@ static int get_capacity(int volt)
 	fg_adc.capacity = vol_to_capacity(volt);
 	return fg_adc.capacity;
 }
-static int adc_check_battery(struct pmic *p, struct pmic *bat)
+static int adc_update_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
 
-	battery->voltage_uV = adc_get_vol();
+	battery->voltage_uV = adc_get_vol() * 1000;
 	battery->capacity = get_capacity(battery->voltage_uV);
 	battery->state_of_chrg = get_status();
-
 	return 0;
 }
 
-static int adc_update_battery(struct pmic *p, struct pmic *bat)
+static int adc_check_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
 	battery->state_of_chrg = get_status();
@@ -147,10 +162,8 @@ static int rk_adcbat_parse_dt(const void *blob)
 	}
 	fdtdec_decode_gpio(blob, node, "dc_det_gpio",
 		&(fg_adc.dc_det));
-
 	fdtdec_decode_gpio(blob, node, "charge_ctrl_gpios",
 		&(fg_adc.charge_ctrl_gpios));
-
 	fg_adc.support_ac_charge  =
 		fdtdec_get_int(blob, node, "is_dc_charge", 1);
 	fg_adc.support_usb_charge  =
@@ -168,29 +181,13 @@ static int rk_adcbat_parse_dt(const void *blob)
 	return 0;
 }
 
-static int adc_init(void)
-{
-	uint32 value;
-	uint32 timeout = 0;
 
-	write_XDATA32(fg_adc.adc.ctrl, 0);
-	DRVDelayUs(1);
-	write_XDATA32(fg_adc.adc.ctrl, 0x0028|(fg_adc.adc.index));
-	DRVDelayUs(1);
-	do {
-		value = read_XDATA32(fg_adc.adc.ctrl);
-		timeout++;
-	} while ((value&0x40) == 0);
-	value = read_XDATA32(fg_adc.adc.data);
-	return value;
-}
 
 int adc_battery_init(void)
 {
-	static const char name[] = "rk30-adc-battery";
+	static const char name[] = "RK-ADC-FG";
 	int ret;
 	int voltage;
-	printf("adc_battery_init\n");
 	if (!fg_adc.p) {
 		ret = rk_adcbat_parse_dt(gd->fdt_blob);
 		if (ret < 0)
