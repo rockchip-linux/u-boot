@@ -9,6 +9,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #define SARADC_BASE             RKIO_SARADC_PHYS
+#define GRF_BASE		RKIO_GRF_PHYS
 #define BATT_NUM  11
 
 #define read_XDATA(address)	(*((uint16 volatile*)(address)))
@@ -42,9 +43,9 @@ static int get_status(void)
 	int ac_charging, usb_charging;
 
 	if (fg_adc.support_ac_charge == 1) {
-		if (gpio_get_value(fg_adc.dc_det.gpio) == fg_adc.dc_det.flags) {
+		if (gpio_get_value(fg_adc.dc_det.gpio) == (fg_adc.dc_det.flags ? 0x0 : 0x01))
 			ac_charging = 1;
-		} else
+		else
 			ac_charging = 0;
 		return ac_charging;
 	}
