@@ -39,9 +39,10 @@ RSA_KEY_LENGTH:
 RSA_KEY_DATA:
 	.space	0x200-0x08
 
-.globl loader_tag_check
-loader_tag_check:
+.globl LoaderTagCheck
+LoaderTagCheck:
 	.word	0x4B415351
+
 .globl RSA_PAD
 RSA_PAD:
 	.space	20
@@ -111,7 +112,7 @@ IRQ_STACK_START:
 /* IRQ stack memory (calculated at run-time) */
 .globl FIQ_STACK_START
 FIQ_STACK_START:
-	.word 0x0badc0de
+	.word	0x0badc0de
 #endif
 
 /* IRQ stack memory (calculated at run-time) + 8 bytes */
@@ -136,6 +137,17 @@ reset:
 	orrne	r0, r0, #0x13		@ set SVC mode
 	orr	r0, r0, #0xc0		@ disable FIQ and IRQ
 	msr	cpsr,r0
+
+/*
+ * check loader tag
+ */
+#ifdef CONFIG_ROCKCHIP
+	ldr	r0, =__loader_tag
+	ldr	r1, [r0]
+	ldr	r0, LoaderTagCheck
+	cmp	r1, r0
+	movne	pc, r14
+#endif
 
 /*
  * Setup vector:

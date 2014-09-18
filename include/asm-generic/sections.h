@@ -56,6 +56,9 @@ extern char __text_start[];
 /* This marks the end of the text region which must be relocated */
 extern char __image_copy_end[];
 
+/* rockchip uboot loader tag */
+extern char __loader_tag[];
+
 /*
  * This is the U-Boot entry point - prior to relocation it should be same
  * as __text_start

@@ -65,6 +65,12 @@ SECTIONS
 		*(.__end)
 	}
 
+	. = ALIGN(4);
+	.loader_tag : {
+		KEEP(*(.__loader_tag));
+	}
+
+	. = ALIGN(4);
 	_image_binary_end = .;
 
 	/*
