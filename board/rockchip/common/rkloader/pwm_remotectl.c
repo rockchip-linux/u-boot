@@ -140,65 +140,31 @@ struct rkxx_remotectl_drvdata {
 	struct rkxx_remotectl_suspend_data remotectl_suspend_data;
 };
 
-#if 0
-//ÌØÊâ¹¦ÄÜ¼üÖµ¶¨Òå
-	//193      //photo
-	//194      //video
-	//195      //music
-	//196      //IE
-	//197      //
-	//198
-	//199
-	//200
 
-	//183      //rorate_left
-	//184      //rorate_right
-	//185      //zoom out
-	//186      //zoom in
-    
-static struct rkxx_remote_key_table remote_key_table_meiyu_202[] = {
-	{0xD0, KEY_UP},
-	{0x70, KEY_DOWN},
-	{0x08, KEY_LEFT},
-	{0x88, KEY_RIGHT},  ////////
-	{0x42, KEY_HOME},     //home
-	{0xA8, KEY_VOLUMEUP},
-	{0x38, KEY_VOLUMEDOWN},
-	{0xB2, KEY_POWER},     //power off
-	{0xC2, KEY_MUTE},       //mute
+/********************************************************************
+**                            ºê¶¨Òå                                *
+********************************************************************/
+#define RK_PWM_TIME_PRE_MIN      19   /*4500*/
+#define RK_PWM_TIME_PRE_MAX      30   /*5500*/           /*PreLoad 4.5+0.56 = 5.06ms*/
 
-//media ctrl
-	{0x78, 0x190},      //play pause
-	{0xF8, 0x191},      //pre
-	{0x02, 0x192},      //next
+#define RK_PWM_TIME_BIT0_MIN     1  /*Bit0  1.125ms*/
+#define RK_PWM_TIME_BIT0_MAX     5
 
-//pic
-	{0xB8, 183},          //rorate left
-	{0x58, 184},          //rorate right
-	{0x68, 185},          //zoom out
-	{0x98, 186},          //zoom in
-//mouse switch
-	{0xf0, 388},
-//display switch
-	{0x82, 0x175},
-};
+#define RK_PWM_TIME_BIT1_MIN     7  /*Bit1  2.25ms*/
+#define RK_PWM_TIME_BIT1_MAX     11
 
-static struct rkxx_remote_key_table remote_key_table_df[] = {
-	{0xf0, KEY_UP},
-	{0xd8, KEY_DOWN},
-	{0xd0, KEY_LEFT},
-	{0xe8, KEY_RIGHT},  ////////
-	{0x90, KEY_VOLUMEDOWN},
-	{0x60, KEY_VOLUMEUP},
-	{0x80, KEY_HOME},     //home
-	{0xe0, 183},          //rorate left
-	{0x10, 184},          //rorate right
-	{0x20, 185},          //zoom out
-	{0xa0, 186},          //zoom in
-	{0x70, KEY_MUTE},       //mute
-	{0x50, KEY_POWER},     //power off
-};
-#endif
+#define RK_PWM_TIME_RPT_MIN      0x215   /*101000*/
+#define RK_PWM_TIME_RPT_MAX      0x235   /*103000*/         /*Repeat  105-2.81=102.19ms*/  //110-9-2.25-0.56=98.19ms
+
+#define RK_PWM_TIME_SEQ1_MIN     2   /*2650*/
+#define RK_PWM_TIME_SEQ1_MAX     0x20   /*3000*/           /*sequence  2.25+0.56=2.81ms*/ //11.25ms
+
+#define RK_PWM_TIME_SEQ2_MIN     0xEE   /*101000*/
+#define RK_PWM_TIME_SEQ2_MAX     0x120   /*103000*/         /*Repeat  105-2.81=102.19ms*/  //110-9-2.25-0.56=98.19ms
+
+
+static struct rkxx_remotectl_drvdata data = {0};
+static struct rkxx_remotectl_drvdata *ddata = NULL;
 
 
 //ÌØÊâ¹¦ÄÜ¼üÖµ¶¨Òå
@@ -284,8 +250,9 @@ static struct rkxx_remote_key_table remote_key_table_sunchip_ff00[] = {
 	{0xbe, KEY_SEARCH},
 };
 
+//########################################
 
-static struct rkxx_remote_key_table remote_key_table_meiyu_220[] = {
+static struct rkxx_remote_key_table remote_key_table_meiyu_202[] = {
 	{0xf2, KEY_REPLY},//ok = DPAD CENTER
 	{0xba, KEY_BACK}, 
 	{0xf4, KEY_UP},
@@ -316,7 +283,7 @@ static struct rkxx_remote_key_table remote_key_table_meiyu_220[] = {
 	{0xbe, 0x175},
 };
 
-static struct rkxx_remote_key_table remote_key_table_df00[] = {
+static struct rkxx_remote_key_table remote_key_table_df[] = {
 	{0xe0, KEY_REPLY},
 	{0xfc, KEY_BACK}, 
 	{0xf0, KEY_UP},
@@ -335,7 +302,7 @@ static struct rkxx_remote_key_table remote_key_table_df00[] = {
 	{0xfd, KEY_SEARCH}, //search
 };
 
-static struct rkxx_remote_key_table remote_key_table_b24d[] = {
+static struct rkxx_remote_key_table remote_key_table_4db2[] = {
 	{0x23, KEY_POWER},
 	{0x77, KEY_HOME},
 	{0x7d, KEY_SEARCH},
@@ -367,7 +334,7 @@ static struct rkxx_remote_key_table remote_key_table_b24d[] = {
 	{0x2f, KEY_EQUAL}, //KEY_NUMERIC_POUND
 };
 
-static struct rkxx_remote_key_table remote_key_table_ff00[] = {
+static struct rkxx_remote_key_table remote_key_table_ff[] = {
 	{0xe7, KEY_POWER},
 	{0xf9, KEY_HOME},
 	{0xa4, KEY_SEARCH},
@@ -401,44 +368,44 @@ static struct rkxx_remote_key_table remote_key_table_ff00[] = {
 };
 
 
-// ¿¿2.0¿¿¿
-static struct rkxx_remote_key_table remote_key_table_bb44[] = {
-	{0x23, KEY_POWER}, // ¿¿
+// åŽä¸º2.0é¥æŽ§å™¨
+static struct rkxx_remote_key_table remote_key_table_44bb[] = {
+	{0x23, KEY_POWER}, // ç”µæº
 
-	{0x67, KEY_SEARCH}, // ¿¿
-	{0x63, KEY_SEARCH}, // ¿¿
-	{0x72, KEY_SEARCH}, // ¿¿
-	{0x29, KEY_SEARCH}, // ¿¿
+	{0x67, KEY_SEARCH}, // å£°é“
+	{0x63, KEY_SEARCH}, // é™éŸ³
+	{0x72, KEY_SEARCH}, // è®¾ç½®
+	{0x29, KEY_SEARCH}, // å®šä½
 
-	{0x32, KEY_SEARCH}, // ¿¿
-	{0x6e, KEY_SEARCH}, // ¿¿
-	{0x7c, KEY_SEARCH}, // ¿¿
-	{0x3c, KEY_SEARCH}, // ¿¿
+	{0x32, KEY_SEARCH}, // ç›´æ’­
+	{0x6e, KEY_SEARCH}, // å›žçœ‹
+	{0x7c, KEY_SEARCH}, // ç‚¹æ’­
+	{0x3c, KEY_SEARCH}, // ä¿¡æ¯
 
-	{0x77, KEY_HOME}, // ¿¿
-	{0x7d, KEY_SEARCH}, // ¿¿
-	{0x6a, KEY_SEARCH}, // ¿¿
-	{0x3a, KEY_SEARCH}, // ¿¿
+	{0x77, KEY_HOME}, // é¦–é¡µ
+	{0x7d, KEY_SEARCH}, // åº”ç”¨
+	{0x6a, KEY_SEARCH}, // è¿”å›ž
+	{0x3a, KEY_SEARCH}, // å¸®åŠ©
 
-	{0x35, KEY_UP}, // ¿
-	{0x2d, KEY_DOWN}, // ¿
-	{0x66, KEY_LEFT}, // ¿
-	{0x3e, KEY_RIGHT}, // ¿
+	{0x35, KEY_UP}, // ä¸Š
+	{0x2d, KEY_DOWN}, // ä¸‹
+	{0x66, KEY_LEFT}, // å·¦
+	{0x3e, KEY_RIGHT}, // å³
 	{0x31, KEY_REPLY}, // OK
 
-	{0x7f, KEY_VOLUMEUP}, // ¿¿¿
-	{0x7e, KEY_VOLUMEDOWN}, // ¿¿¿
+	{0x7f, KEY_VOLUMEUP}, // éŸ³é‡åŠ 
+	{0x7e, KEY_VOLUMEDOWN}, // éŸ³é‡å‡
 
-	{0x22, KEY_SEARCH}, // ¿¿¿
-	{0x73, KEY_SEARCH}, // ¿¿¿
+	{0x22, KEY_SEARCH}, // ä¸Šä¸€é¡µ
+	{0x73, KEY_SEARCH}, // ä¸‹ä¸€é¡µ
 
-	{0x7a, KEY_SEARCH}, // ¿¿¿
-	{0x79, KEY_SEARCH}, // ¿¿¿
+	{0x7a, KEY_SEARCH}, // é¢‘é“åŠ 
+	{0x79, KEY_SEARCH}, // é¢‘é“å‡
 
-	{0x76, KEY_SEARCH}, // ¿¿
-	{0x7b, KEY_SEARCH}, // ¿¿
-	{0x26, KEY_SEARCH}, // ¿¿/¿¿
-	{0x69, KEY_SEARCH}, // ¿¿
+	{0x76, KEY_SEARCH}, // å¿«è¿›
+	{0x7b, KEY_SEARCH}, // å¿«é€€
+	{0x26, KEY_SEARCH}, // æ’­æ”¾/æš‚åœ
+	{0x69, KEY_SEARCH}, // åœæ­¢
 
 	{0x6d, KEY_1},
 	{0x6c, KEY_2},
@@ -453,19 +420,19 @@ static struct rkxx_remote_key_table remote_key_table_bb44[] = {
 	{0x78, KEY_0},
 
 	{0x25, KEY_0}, // #
-	{0x2f, KEY_0}, // ¿¿
+	{0x2f, KEY_0}, // åˆ·æ–°
 };
 
-static struct rkxx_remote_key_table remote_key_table_6810[] = {
-	{0x23, KEY_POWER}, // ¿¿
-	{0x4b, KEY_UP}, // ¿
-	{0x4a, KEY_DOWN}, // ¿
-	{0x49, KEY_LEFT}, // ¿
-	{0x48, KEY_RIGHT}, // ¿
+static struct rkxx_remote_key_table remote_key_table_1068[] = {
+	{0x23, KEY_POWER}, // ç”µæº
+	{0x4b, KEY_UP}, // ä¸Š
+	{0x4a, KEY_DOWN}, // ä¸‹
+	{0x49, KEY_LEFT}, // å·¦
+	{0x48, KEY_RIGHT}, // å³
 	{0x4c, KEY_REPLY}, // OK
 
-	{0x47, KEY_VOLUMEUP}, // ¿¿¿
-	{0x46, KEY_VOLUMEDOWN}, // ¿¿¿
+	{0x47, KEY_VOLUMEUP}, // éŸ³é‡åŠ 
+	{0x46, KEY_VOLUMEDOWN}, // éŸ³é‡å‡
 	{0x4e, KEY_HOME}, //home
 	{0x4d, KEY_BACK}, //
 
@@ -473,8 +440,8 @@ static struct rkxx_remote_key_table remote_key_table_6810[] = {
 	{0x44, KEY_MENU}, 
 };
 
-// ¿¿ ¿¿ V3 ¿¿ ¿¿¿@2014-7-24 11:43:37
-static struct rkxx_remote_key_table remote_key_table_32cd[] = {
+// åŽä¸º å®‰å¾½ V3 ç®€ç‰ˆ å†¯æ˜Žå–œ@2014-7-24 11:43:37
+static struct rkxx_remote_key_table remote_key_table_cd32[] = {
 	{0x23, KEY_POWER},
 	{0x77, KEY_HOME},
 	{0x7d, KEY_SEARCH},
@@ -523,35 +490,7 @@ static struct rkxx_remote_key_table remote_key_table_32cd[] = {
 	{0x22, KEY_PAGEUP},
 };
 
-
-/********************************************************************
-**                            ºê¶¨Òå                                *
-********************************************************************/
-#define RK_PWM_TIME_PRE_MIN      19   /*4500*/
-#define RK_PWM_TIME_PRE_MAX      30   /*5500*/           /*PreLoad 4.5+0.56 = 5.06ms*/
-	
-#define RK_PWM_TIME_BIT0_MIN     8  /*Bit0  1.125ms*/
-#define RK_PWM_TIME_BIT0_MAX     12
-	
-#define RK_PWM_TIME_BIT1_MIN     2  /*Bit1  2.25ms*/
-#define RK_PWM_TIME_BIT1_MAX     7
-	
-#define RK_PWM_TIME_RPT_MIN      200   /*101000*/
-#define RK_PWM_TIME_RPT_MAX      250   /*103000*/         /*Repeat  105-2.81=102.19ms*/  //110-9-2.25-0.56=98.19ms
-	
-#define RK_PWM_TIME_SEQ1_MIN     8   /*2650*/
-#define RK_PWM_TIME_SEQ1_MAX     12   /*3000*/           /*sequence  2.25+0.56=2.81ms*/ //11.25ms
-	
-#define RK_PWM_TIME_SEQ2_MIN     450   /*101000*/
-#define RK_PWM_TIME_SEQ2_MAX     500   /*103000*/         /*Repeat  105-2.81=102.19ms*/  //110-9-2.25-0.56=98.19ms
-	
-
-static struct rkxx_remotectl_drvdata data = {0};
-static struct rkxx_remotectl_drvdata *ddata = NULL;
-
-
-static struct rkxx_remotectl_button remotectl_button[] = 
-{
+static struct rkxx_remotectl_button remotectl_button[] = {
 	{
 		.usercode = 0xff00,
 		.nbuttons =  29,
@@ -561,42 +500,41 @@ static struct rkxx_remotectl_button remotectl_button[] =
 		.usercode = 0x4040,
 		.nbuttons =  22,
 		.key_table = &remote_key_table_meiyu_4040[0],
-	},
-	
+	},	
 	{
-		.usercode = 0x220,
+		.usercode = 0x202,
 		.nbuttons =  22,
-		.key_table = &remote_key_table_meiyu_220[0],
+		.key_table = &remote_key_table_meiyu_202[0],
 	},
 	{
-		.usercode = 0xdf00,
+		.usercode = 0xdf,
 		.nbuttons =  16,
-		.key_table = &remote_key_table_df00[0],
+		.key_table = &remote_key_table_df[0],
 	},
 	{
-		.usercode = 0xb24d,
+		.usercode = 0x4db2,
 		.nbuttons =  24,
-		.key_table = &remote_key_table_b24d[0],
+		.key_table = &remote_key_table_4db2[0],
 	},
 	{
-		.usercode = 0xff00,
+		.usercode = 0xff,
 		.nbuttons =  25,
-		.key_table = &remote_key_table_ff00[0],
+		.key_table = &remote_key_table_ff[0],
 	},
 	{
-		.usercode = 0xbb44,
+		.usercode = 0x44bb,
 		.nbuttons = 40,
-		.key_table = &remote_key_table_bb44[0],
+		.key_table = &remote_key_table_44bb[0],
 	},
 	{
-		.usercode = 0x6810,
+		.usercode = 0x1068,
 		.nbuttons = 12,
-		.key_table = &remote_key_table_6810[0],
+		.key_table = &remote_key_table_1068[0],
 	},
 	{
-		.usercode = 0x32cd,
+		.usercode = 0xcd32,
 		.nbuttons = 40,
-		.key_table = &remote_key_table_32cd[0],
+		.key_table = &remote_key_table_cd32[0],
 	},
 };
 
@@ -617,7 +555,7 @@ static int remotectl_keybdNum_lookup(struct rkxx_remotectl_drvdata *ddata)
 static int remotectl_keycode_lookup(struct rkxx_remotectl_drvdata *ddata)
 {	
 	int i;	
-	unsigned char keyData = ((ddata->scandata >> 8) & 0xff);
+	unsigned char keyData = (unsigned char)((ddata->scandata >> 8) & 0xff);
 
 	for (i = 0; i < remotectl_button[ddata->keybdNum].nbuttons; i++){
 		if (remotectl_button[ddata->keybdNum].key_table[i].scanCode == keyData){			
@@ -680,47 +618,32 @@ int remotectl_do_something(void)
 		}
 
 		case RMC_USERCODE: {
-			ddata->count ++; 
-			g_ir_flag_signal = 1;
-			ddata->scandata <<= 1;
-			if ((RK_PWM_TIME_BIT1_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT1_MAX)){
-				ddata->scandata |= 0x01 ;
-			}   
-			else if ((RK_PWM_TIME_BIT0_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT0_MAX)){
-				;   
-			}   
-			else {
-				ddata->state = RMC_PRELOAD;
-			}     
 			
+			g_ir_flag_signal = 1;
+		if ((RK_PWM_TIME_BIT1_MIN < ddata->period) &&
+		    (ddata->period < RK_PWM_TIME_BIT1_MAX))
+			ddata->scandata |= (0x01 << ddata->count);
+		ddata->count++;
 			if (ddata->count == 0x10){//16 bit user code
-				printf("remote usercode = 0x%x\n",((ddata->scandata)&0xFFFF));
-				if (remotectl_keybdNum_lookup(ddata)){
-					ddata->state = RMC_GETDATA;
-					ddata->scandata = 0;
-					ddata->count = 0;
-				}else{                //user code error
-					ddata->state = RMC_PRELOAD;
-				}
+				printf("remote usercode1 = 0x%x\n",((ddata->scandata)&0xFFFF));
+			if (remotectl_keybdNum_lookup(ddata)) {
+				ddata->state = RMC_GETDATA;
+				ddata->scandata = 0;
+				ddata->count = 0;
+			} else {
+				ddata->state = RMC_PRELOAD;
 			}
-			break;
 		}
-
+	}
+	break;
 		case RMC_GETDATA: {
 			g_ir_flag_signal = 1;
-			if ((RK_PWM_TIME_BIT1_MIN < ddata->period) &&
-					(ddata->period < RK_PWM_TIME_BIT1_MAX)){
-				;
-			}
-			else if ((RK_PWM_TIME_BIT0_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT0_MAX))
-			{
-				ddata->scandata |= (0x01 << ddata->count);
-			}
-			else
-				ddata->state = RMC_PRELOAD;  
-			ddata->count ++;
-			if (ddata->count < 0x10)
-				return;
+		if ((RK_PWM_TIME_BIT1_MIN < ddata->period) &&
+		    (ddata->period < RK_PWM_TIME_BIT1_MAX))
+			ddata->scandata |= (0x01<<ddata->count);
+		ddata->count++;
+		if (ddata->count < 0x10)
+			return;
 			printf("RMC_GETDATA=%x\n", (ddata->scandata>>8));
 			if ((ddata->scandata&0x0ff) ==
 					((~ddata->scandata >> 8) & 0x0ff)) {
@@ -770,7 +693,6 @@ static int rk_pwm_remotectl_hw_init(struct rkxx_remotectl_drvdata *ddata)
 	val = readl(ddata->base + PWM_REG_CTRL);
 	val = (val & 0xFFFFFFFE) | PWM_ENABLE;
 	writel(val, ddata->base + PWM_REG_CTRL);
-	
 	return 0;
 }
 
