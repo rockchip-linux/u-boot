@@ -42,13 +42,17 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 void rk_pm_wakeup_gpio_init(void)
 {
-	struct fdt_gpio_state * gpio_dt;
-	int irq;
+	int irq = INVALID_GPIO, wakeup_gpio = INVALID_GPIO;
+#ifdef CONFIG_OF_LIBFDT
+	struct fdt_gpio_state * gpio_dt = NULL;
 
 	gpio_dt = rkkey_get_powerkey();
-
 	if (gpio_dt != NULL) {
-		irq = irq = gpio_to_irq(gpio_dt->gpio);
+		wakeup_gpio = gpio_dt->gpio;
+	}
+#endif
+	irq = gpio_to_irq(wakeup_gpio);
+	if (irq != INVALID_GPIO) {
 		/* gpio pin just use to wakeup, no need isr handle */
 		irq_install_handler(irq, -1, NULL);
 		irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
@@ -62,13 +66,17 @@ void rk_pm_wakeup_gpio_init(void)
  */
 void rk_pm_wakeup_gpio_deinit(void)
 {
-	struct fdt_gpio_state * gpio_dt;
-	int irq;
+	int irq = INVALID_GPIO, wakeup_gpio = INVALID_GPIO;
+#ifdef CONFIG_OF_LIBFDT
+	struct fdt_gpio_state * gpio_dt = NULL;
 
 	gpio_dt = rkkey_get_powerkey();
-
 	if (gpio_dt != NULL) {
-		irq = irq = gpio_to_irq(gpio_dt->gpio);
+		wakeup_gpio = gpio_dt->gpio;
+	}
+#endif
+	irq = gpio_to_irq(wakeup_gpio);
+	if (irq != INVALID_GPIO) {
 		irq_handler_disable(irq);
 		irq_uninstall_handler(irq);
 	}
