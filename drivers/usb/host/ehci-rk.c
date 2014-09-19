@@ -18,7 +18,7 @@ int ehci_hcd_init(int index, enum usb_init_type init,
 		struct ehci_hccr **hccr, struct ehci_hcor **hcor)
 {
 	// TODO: POWER enable for ehci hcd 1.2V, external 5V power
-	gpio_direction_output((GPIO_BANK0<< RK_GPIO_BANK_OFFSET) | GPIO_B6, 1); //gpio0_B6  output high
+	gpio_direction_output(GPIO_BANK0 | GPIO_B6, 1); //gpio0_B6  output high
 	
 	// TODO: enable clock
 	

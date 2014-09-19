@@ -129,7 +129,7 @@ void rk_fb_init(unsigned int onoff)
 		mdelay(lcd_en_delay);
 	}
 #else
-	gpio_direction_output((GPIO_BANK7 << RK_GPIO_BANK_OFFSET) | GPIO_A4, 1);
+	gpio_direction_output(GPIO_BANK7 | GPIO_A4, 1);
 #endif
 }
 

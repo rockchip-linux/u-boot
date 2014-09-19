@@ -154,7 +154,7 @@ void RockusbKeyInit(key_config *key)
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	key->type = KEY_INT;
 	key->key.ioint.name = "rockusb_key";
-	key->key.ioint.gpio = ((GPIO_BANK2 << RK_GPIO_BANK_OFFSET) | GPIO_B0);
+	key->key.ioint.gpio = (GPIO_BANK2 | GPIO_B0);
 	key->key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key->key.ioint.pressed_state = 0;
 	key->key.ioint.press_time = 0;
@@ -211,9 +211,9 @@ void PowerKeyInit(void)
 	key_power.type = KEY_INT;
 	key_power.key.ioint.name = "power_key";
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	key_power.key.ioint.gpio = ((GPIO_BANK0 << RK_GPIO_BANK_OFFSET) | GPIO_A5);
+	key_power.key.ioint.gpio = (GPIO_BANK0 | GPIO_A5);
 #elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
-	key_power.key.ioint.gpio = ((GPIO_BANK1 << RK_GPIO_BANK_OFFSET) | GPIO_A2);
+	key_power.key.ioint.gpio = (GPIO_BANK1 | GPIO_A2);
 #endif
 	key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key_power.key.ioint.pressed_state = 0;
@@ -278,7 +278,7 @@ void key_init(void)
 #else
 	charge_state_gpio.name = "charge_state";
 	charge_state_gpio.flags = 0;
-	charge_state_gpio.gpio = ((GPIO_BANK0 << RK_GPIO_BANK_OFFSET) | GPIO_B0);
+	charge_state_gpio.gpio = (GPIO_BANK0 | GPIO_B0);
 	gpio_direction_input(charge_state_gpio.gpio);
 
 	//power_hold_gpio.name

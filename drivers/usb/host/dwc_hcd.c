@@ -522,7 +522,7 @@ ehci_submit_root(struct usb_device *dev, unsigned long pipe, void *buffer,
 		    hprt0.b.prtpwr = 1;
 		    otgReg->Host.hprt = hprt0.d32;
             // 5V power enable
-        	gpio_direction_output((GPIO_BANK0 << RK_GPIO_BANK_OFFSET) | GPIO_B6, 1); //gpio0_B6  output high
+        	gpio_direction_output(GPIO_BANK0 | GPIO_B6, 1); //gpio0_B6  output high
 			break;
 		case USB_PORT_FEAT_RESET:
     		hprt0.b.prtrst = 1;
@@ -558,7 +558,7 @@ ehci_submit_root(struct usb_device *dev, unsigned long pipe, void *buffer,
     			hprt0.b.prtpwr = 0;			
     			otgReg->Host.hprt = hprt0.d32;		
                 // 5V power enable
-            	gpio_direction_output((GPIO_BANK0<< RK_GPIO_BANK_OFFSET) | GPIO_B6, 0); //gpio0_B6  output low
+            	gpio_direction_output(GPIO_BANK0 | GPIO_B6, 0); //gpio0_B6  output low
     			break;
     		case USB_PORT_FEAT_OVER_CURRENT:
     			break;
