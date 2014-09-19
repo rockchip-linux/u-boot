@@ -83,5 +83,9 @@ int is_charging(void);
 void powerOn(void);
 void powerOff(void);
 
+#ifdef CONFIG_OF_LIBFDT
+struct fdt_gpio_state *rkkey_get_powerkey(void);
+#endif
+
 #endif /* __KEY_H__ */
 

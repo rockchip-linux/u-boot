@@ -27,6 +27,8 @@
 #include "../config.h"
 #include "key.h"
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #define SARADC_BASE             RKIO_SARADC_PHYS
 
 #define read_XDATA(address) 		(*((uint16 volatile*)(address)))
@@ -61,15 +63,18 @@ int gpio_reg[]={
 
 extern void DRVDelayUs(uint32 us);
 
-gpio_conf       charge_state_gpio;
-gpio_conf       power_hold_gpio;
+static gpio_conf	charge_state_gpio;
+static gpio_conf	power_hold_gpio;
 
-key_config	key_rockusb;
-key_config	key_recovery;
-key_config	key_fastboot;
-key_config      key_power;
-key_config      key_remote;
+static key_config	key_rockusb;
+static key_config	key_recovery;
+static key_config	key_fastboot;
+static key_config	key_power;
+static key_config	key_remote;
 
+#ifdef CONFIG_OF_LIBFDT
+static struct fdt_gpio_state	gPowerKey;
+#endif
 
 /*
     固定GPIOA_0口作为烧写检测口,系统部分不能使用该口
@@ -267,6 +272,46 @@ int power_hold(void)
 }
 
 
+#ifdef CONFIG_OF_LIBFDT
+static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powerkey_gpio)
+{
+	int adc_node, key_node, powerkey_node;
+
+	adc_node = fdt_path_offset(blob, "/adc");
+	if (adc_node < 0) {
+		printf("no adc node\n");
+		return -1;
+	}
+
+	key_node = fdt_subnode_offset(blob, adc_node, "key");
+	if (key_node < 0) {
+		printf("no key node\n");
+		return -1;
+	}
+
+	powerkey_node = fdt_subnode_offset(blob, key_node, "power-key");
+	if (powerkey_node < 0) {
+		printf("no power key node\n");
+		return -1;
+	}
+
+	fdtdec_decode_gpio(blob, powerkey_node, "gpios", powerkey_gpio);
+	powerkey_gpio->flags = !(powerkey_gpio->flags & OF_GPIO_ACTIVE_LOW);
+
+	printf("power key: bank-%d pin-%d\n", RK_GPIO_BANK(powerkey_gpio->gpio), RK_GPIO_PIN(powerkey_gpio->gpio));
+	return 0;
+}
+
+struct fdt_gpio_state *rkkey_get_powerkey(void)
+{
+	if (gPowerKey.gpio != FDT_GPIO_NONE) {
+		return &gPowerKey;
+	}
+
+	return NULL;
+}
+#endif
+
 void key_init(void)
 {
 #ifdef CONFIG_RK_PWM_REMOTE
@@ -287,6 +332,11 @@ void key_init(void)
 	FastbootKeyInit(&key_fastboot);
 	RecoveryKeyInit(&key_recovery);
 	PowerKeyInit();
+#endif
+
+#ifdef CONFIG_OF_LIBFDT
+	memset(&gPowerKey, 0, sizeof(struct fdt_gpio_state));
+	rkkey_parse_powerkey_dt(gd->fdt_blob, &gPowerKey);
 #endif
 }
 

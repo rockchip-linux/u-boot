@@ -34,19 +34,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_PM_SUBSYSTEM
 
-#define RKPM_VERSION		"1.0"
-
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	#define RK_WAKEUP_KEY_PIN	(GPIO_BANK0 | GPIO_A5)
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
-	/* 	audi playkey maybe:
-	 * gpio1_a4 for usb wifi board
-	 * gpio0_a2 for sdio wifi board
-	 */
-	#define RK_WAKEUP_KEY_PIN	(GPIO_BANK1 | GPIO_A4)
-#else
-	#error	"PLS config wake up key for chip!"
-#endif
+#define RKPM_VERSION		"1.1"
 
 
 /*
@@ -54,12 +42,18 @@ DECLARE_GLOBAL_DATA_PTR;
  */
 void rk_pm_wakeup_gpio_init(void)
 {
-	int irq = gpio_to_irq(RK_WAKEUP_KEY_PIN);
+	struct fdt_gpio_state * gpio_dt;
+	int irq;
 
-	/* gpio pin just use to wakeup, no need isr handle */
-	irq_install_handler(irq, -1, NULL);
-	irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
-	irq_handler_enable(irq);
+	gpio_dt = rkkey_get_powerkey();
+
+	if (gpio_dt != NULL) {
+		irq = irq = gpio_to_irq(gpio_dt->gpio);
+		/* gpio pin just use to wakeup, no need isr handle */
+		irq_install_handler(irq, -1, NULL);
+		irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
+		irq_handler_enable(irq);
+	}
 }
 
 
@@ -68,10 +62,16 @@ void rk_pm_wakeup_gpio_init(void)
  */
 void rk_pm_wakeup_gpio_deinit(void)
 {
-	int irq = gpio_to_irq(RK_WAKEUP_KEY_PIN);
+	struct fdt_gpio_state * gpio_dt;
+	int irq;
 
-	irq_handler_disable(irq);
-	irq_uninstall_handler(irq);
+	gpio_dt = rkkey_get_powerkey();
+
+	if (gpio_dt != NULL) {
+		irq = irq = gpio_to_irq(gpio_dt->gpio);
+		irq_handler_disable(irq);
+		irq_uninstall_handler(irq);
+	}
 }
 
 
