@@ -498,3 +498,11 @@ fiq:
 
 #endif /* CONFIG_USE_IRQ */
 #endif /* CONFIG_SPL_BUILD */
+
+
+#ifdef CONFIG_ROCKCHIP
+	.section .loader_tag, "axT"
+.globl gloader_tag
+gloader_tag:
+	.word	0x4B415351
+#endif

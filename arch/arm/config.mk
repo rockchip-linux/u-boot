@@ -116,6 +116,10 @@ else
 OBJCOPYFLAGS += -j .text -j .rodata -j .hash -j .data -j .got.plt -j .u_boot_list -j .rel.dyn
 endif
 
+ifdef CONFIG_ROCKCHIP
+OBJCOPYFLAGS += -j .loader_tag
+endif
+
 ifneq ($(CONFIG_IMX_CONFIG),)
 ifdef CONFIG_SPL
 ifndef CONFIG_SPL_BUILD

@@ -67,7 +67,8 @@ SECTIONS
 
 	. = ALIGN(4);
 	.loader_tag : {
-		KEEP(*(.__loader_tag));
+		*(.__loader_tag)
+		KEEP(*(.loader_tag));
 	}
 
 	. = ALIGN(4);
