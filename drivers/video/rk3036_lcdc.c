@@ -456,6 +456,9 @@ enum _vop_tv_mode {
 	TV_PAL,
 };
 
+LCDC_REG *preg = NULL;  
+LCDC_REG regbak;
+
 #define BITS(x, bit)            ((x) << (bit))
 #define BITS_MASK(x, mask, bit)  BITS((x) & (mask), bit)
 #define BITS_EN(mask, bit)       BITS(mask, bit + 16)
@@ -469,6 +472,7 @@ enum _vop_tv_mode {
 #define v_MIPIPHY_LANE0_EN(x)   (BITS_MASK(x, 1, 8) | BITS_EN(1, 8))
 #define v_MIPIDPI_FORCEX_EN(x)  (BITS_MASK(x, 1, 9) | BITS_EN(1, 9))
 
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
 enum {
         LVDS_DATA_FROM_LCDC = 0,
         LVDS_DATA_FORM_EBC,
@@ -550,8 +554,7 @@ enum {
 #define v_LANE1_EN(x)           BITS_MASK(x, 1, 6)
 #define v_LANE0_EN(x)           BITS_MASK(x, 1, 7)
 
-LCDC_REG *preg = NULL;  
-LCDC_REG regbak;
+
 
 struct rk_lvds_device {
 	int    base;
@@ -663,7 +666,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 	u32 val = 0;
 	struct rk_lvds_device *lvds = &rk31xx_lvds;
 
-	grf_writel(0xffff5555, GRF_GPIO2B_IOMUX);
+	grf_writel(0xfff35555, GRF_GPIO2B_IOMUX);
 	grf_writel(0x00ff0055, GRF_GPIO2C_IOMUX);
 	grf_writel(0x77771111, GRF_GPIO2C_IOMUX2);
 	grf_writel(0x700c1004, GRF_GPIO2D_IOMUX);
@@ -710,7 +713,7 @@ static int rk31xx_lvds_en(vidinfo_t *vid)
 	return 0;
 }
 
-
+#endif
 
 /* Configure VENC for a given Mode (NTSC / PAL) */
 void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
@@ -920,14 +923,14 @@ int rk30_load_screen(vidinfo_t *vid)
 	}
 	
 	LCDC_REG_CFG_DONE();
-	if (gd->arch.chiptype != CONFIG_RK3036){
-		if ((vid->screen_type == SCREEN_LVDS) ||
-				(vid->screen_type == SCREEN_RGB)) {
-			rk31xx_lvds_en(vid);
-		} else if ((vid->screen_type == SCREEN_MIPI)
-			||(vid->screen_type == SCREEN_DUAL_MIPI)) {
-		}
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+	if ((vid->screen_type == SCREEN_LVDS) ||
+	    (vid->screen_type == SCREEN_RGB)) {
+		rk31xx_lvds_en(vid);
+	} else if ((vid->screen_type == SCREEN_MIPI)||
+		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
 	}
+#endif
 	return 0;
 }
 
