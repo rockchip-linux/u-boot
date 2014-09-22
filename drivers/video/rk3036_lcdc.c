@@ -929,6 +929,7 @@ int rk30_load_screen(vidinfo_t *vid)
 		rk31xx_lvds_en(vid);
 	} else if ((vid->screen_type == SCREEN_MIPI)||
 		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
+		rk32_mipi_enable(vid);
 	}
 #endif
 	return 0;

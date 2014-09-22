@@ -5,4 +5,4 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj-$(CONFIG_RK_3288_DSI_UBOOT) +=  rk32_mipi_dsi.o mipi_dsi.o
+obj-$(CONFIG_RK_3288_DSI) +=  rk32_mipi_dsi.o mipi_dsi.o

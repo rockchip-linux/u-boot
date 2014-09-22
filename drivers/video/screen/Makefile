@@ -5,4 +5,4 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj-$(CONFIG_RK_3288_DSI_UBOOT) +=  lcd_mipi.o 
+obj-$(CONFIG_RK_3288_DSI) +=  lcd_mipi.o 

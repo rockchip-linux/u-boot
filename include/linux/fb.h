@@ -36,7 +36,7 @@ struct fb_fix_screeninfo {
 	__u32 mmio_len;			/* Length of Memory Mapped I/O	*/
 	__u32 accel;			/* Indicate to driver which	*/
 					/*  specific chip/card we have	*/
-	__u16 reserved[3];		/* Reserved for future compatibility */
+	__u16 _reserved[3];		/* Reserved for future compatibility */
 };
 
 /*
@@ -137,7 +137,7 @@ struct fb_var_screeninfo {
 	__u32 sync;			/* see FB_SYNC_*		*/
 	__u32 vmode;			/* see FB_VMODE_*		*/
 	__u32 rotate;			/* angle we rotate counter clockwise */
-	__u32 reserved[5];		/* Reserved for future compatibility */
+	__u32 _reserved[5];		/* Reserved for future compatibility */
 };
 
 struct fb_cmap {
@@ -193,7 +193,7 @@ struct fb_vblank {
 	__u32 count;			/* counter of retraces since boot */
 	__u32 vcount;			/* current scanline position */
 	__u32 hcount;			/* current scandot position */
-	__u32 reserved[4];		/* reserved for future compatibility */
+	__u32 _reserved[4];		/* reserved for future compatibility */
 };
 
 /* Internal HW accel */

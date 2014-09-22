@@ -24,8 +24,10 @@
 #define CONFIG_MIPI_DSI_LINUX	0
 #endif
 #define DWC_DSI_VERSION			0x3133302A
+#define DWC_DSI_VERSION_RK312x		0x3132312A
+#define DWC_DSI_VERSION_ERR		-1
 
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 #include <asm/io.h>
 #include <errno.h>
 #include <lcd.h>
@@ -61,18 +63,18 @@
 #include "mipi_dsi.h"
 #include "rk32_mipi_dsi.h"
 #include <linux/rockchip/iomap.h>
+#include <linux/rockchip/cpu.h>
 #endif
 #ifdef CONFIG_RK32_MIPI_DSI
-#define	MIPI_DBG(x...)	//printk(KERN_INFO x)
-#elif defined CONFIG_RK_3288_DSI_UBOOT
-#define	MIPI_DBG(x...)	//printf( x)
-#define	printk(x...)	//printf( x)
+#define	MIPI_DBG(x...)	/* MIPI_DBG(KERN_INFO x) */
+#elif defined CONFIG_RK_3288_DSI
+#define	MIPI_DBG(x...)	/* printf( x) */
 #else
 #define	MIPI_DBG(x...)  
 #endif
 
 #ifdef CONFIG_MIPI_DSI_LINUX
-#define	MIPI_TRACE(x...)	//printk(KERN_INFO x)
+#define	MIPI_TRACE(x...)	/* MIPI_DBG(KERN_INFO x) */
 #else
 #define	MIPI_TRACE(...)    \
 	do\
@@ -103,11 +105,12 @@ static int rk32_mipi_dsi_enable_command_mode(void *arg, u32 enable);
 static int rk32_mipi_dsi_is_enable(void *arg, u32 enable);
 int rk_mipi_screen_standby(u8 enable);
 
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 DECLARE_GLOBAL_DATA_PTR;
 extern int rk_mipi_screen_probe(void);
 extern void writel_relaxed(uint32 val, uint32 addr);
 #define msleep(a) udelay(a * 1000)
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 /* 
 dsihost0:
 clocks = <&clk_gates5 15>, <&clk_gates16 4>;
@@ -118,6 +121,9 @@ clocks = <&clk_gates5 15>, <&clk_gates16 5>;
 clock-names = "clk_mipi_24m", "pclk_mipi_dsi";
 
 */
+#define cpu_is_rk3288() 1
+#define cpu_is_rk312x() 0
+
 int rk32_mipi_dsi_clk_enable(struct dsi *dsi)
 {
 	u32 val;
@@ -143,17 +149,67 @@ int rk32_mipi_dsi_clk_disable(struct dsi *dsi)
 	writel(val, RK3288_CRU_PHYS + 0x174); /*24M*/
 	return 0;
 }
+#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126)
+#define cpu_is_rk3288() 0
+#define cpu_is_rk312x() 1
+
+int rk32_mipi_dsi_clk_enable(struct dsi *dsi)
+{
+	u32 val;
+	val = (1 << 31); /* bit31~bit16 */
+	writel(val, RK312x_CRU_PHYS + 0xd8); /*24M*/
+
+	val = (1 << 16);
+	writel(val, RK312x_CRU_PHYS + 0xe4); /*pclk*/
+
+	val = (3 << 21);
+	writel(val, RK312x_CRU_PHYS + 0xf4); /*mipi controller clock and AHB h2p bridge*/
+	return 0;
+}
+int rk32_mipi_dsi_clk_disable(struct dsi *dsi)
+{
+	u32 val;
+	val = (1 << 16) | (1 << 0);
+	writel(val, RK312x_CRU_PHYS + 0xe4); /*pclk*/
+
+	val = (1 << 31) | (1 << 15); /* bit31~bit16 */
+	writel(val, RK312x_CRU_PHYS + 0xd8); /*24M*/
+
+	val = (3 << 21) | (3 << 5);
+	writel(val, RK312x_CRU_PHYS + 0xf4); /*24M*/
+	return 0;
+}
+
+#else
+	#error "rk32_mipi_dsi_clk_enable/disable lossing!"
+#endif
+
+
 
 #endif
 static int rk32_dsi_read_reg(struct dsi *dsi, u16 reg, u32 *pval)
 {
-	*pval = __raw_readl(dsi->host.membase + (reg - MIPI_DSI_HOST_OFFSET));
+	if (cpu_is_rk3288()) {
+		*pval = __raw_readl(dsi->host.membase + (reg - MIPI_DSI_HOST_OFFSET));
+	} else if (cpu_is_rk312x()) {
+		if (reg >= MIPI_DSI_HOST_OFFSET)
+			*pval = __raw_readl(dsi->host.membase + (reg - MIPI_DSI_HOST_OFFSET));
+		else if (reg >= MIPI_DSI_PHY_OFFSET)
+			*pval = __raw_readl(dsi->phy.membase + (reg - MIPI_DSI_PHY_OFFSET));
+	}
 	return 0;
 }
 
 static int rk32_dsi_write_reg(struct dsi *dsi, u16 reg, u32 *pval)
 {
-	__raw_writel(*pval, dsi->host.membase + (reg - MIPI_DSI_HOST_OFFSET));
+	if (cpu_is_rk3288()) {
+		__raw_writel(*pval, dsi->host.membase + (reg - MIPI_DSI_HOST_OFFSET));
+	} else if (cpu_is_rk312x()) {
+		if (reg >= MIPI_DSI_HOST_OFFSET)
+			__raw_writel(*pval, dsi->host.membase + (reg - MIPI_DSI_HOST_OFFSET));
+		else if (reg >= MIPI_DSI_PHY_OFFSET)
+			__raw_writel(*pval, dsi->phy.membase + (reg - MIPI_DSI_PHY_OFFSET));
+	}
 	return 0;
 }
 
@@ -241,7 +297,7 @@ static int rk32_dwc_phy_test_wr(struct dsi *dsi, unsigned char test_code, unsign
 static int rk32_phy_power_up(struct dsi *dsi)
 {
     //enable ref clock
-    #ifdef CONFIG_RK_3288_DSI_UBOOT
+    #ifdef CONFIG_RK_3288_DSI
     rk32_mipi_dsi_clk_enable(dsi);
     #else
     clk_prepare_enable(dsi->phy.refclk); 
@@ -273,18 +329,100 @@ static int rk32_phy_power_up(struct dsi *dsi)
 	
 	return 0;
 }
+static void rk312x_mipi_dsi_set_hs_clk(struct dsi *dsi)
+{
+	rk32_dsi_set_bits(dsi, dsi->phy.prediv, reg_prediv);
+	rk32_dsi_set_bits(dsi, dsi->phy.fbdiv & 0xff, reg_fbdiv);
+	rk32_dsi_set_bits(dsi, (dsi->phy.fbdiv >> 8) & 0x01, reg_fbdiv_8);
+}
+
+static int rk312x_phy_power_up(struct dsi *dsi)
+{
+	/* enable ref clock */
+#ifdef CONFIG_RK_3288_DSI
+	rk312x_mipi_dsi_set_hs_clk(dsi);
+	rk32_mipi_dsi_clk_enable(dsi);
+#else
+	rk312x_mipi_dsi_set_hs_clk(dsi);
+	clk_prepare_enable(dsi->phy.refclk);
+	clk_prepare_enable(dsi->dsi_pclk);
+	/* clk_prepare_enable(dsi->dsi_pd); */
+#endif
+	udelay(10);
+
+	rk32_dsi_set_bits(dsi, 0xe4, DPHY_REGISTER1);
+	printf("lane = %d\n", dsi->host.lane);
+
+	switch (dsi->host.lane) {
+	case 4:
+		rk32_dsi_set_bits(dsi, 1, lane_en_3);
+	case 3:
+		rk32_dsi_set_bits(dsi, 1, lane_en_2);
+	case 2:
+		rk32_dsi_set_bits(dsi, 1, lane_en_1);
+	case 1:
+		rk32_dsi_set_bits(dsi, 1, lane_en_0);
+		rk32_dsi_set_bits(dsi, 1, lane_en_ck);
+		break;
+	default:
+		break;
+	}
+	rk32_dsi_set_bits(dsi, 0xe0, DPHY_REGISTER1);
+	udelay(10);
+
+	rk32_dsi_set_bits(dsi, 0x1e, DPHY_REGISTER20);
+	rk32_dsi_set_bits(dsi, 0x1f, DPHY_REGISTER20);
+
+	rk32_dsi_set_bits(dsi, 1, phy_enableclk);
+	return 0;
+}
+
+static int rk_phy_power_up(struct dsi *dsi)
+{
+	if (cpu_is_rk3288()) {
+		rk32_phy_power_up(dsi);
+	} else if (cpu_is_rk312x()) {
+		rk312x_phy_power_up(dsi);
+	}
+	return 0;
+}
 
 static int rk32_phy_power_down(struct dsi *dsi)
 {
     rk32_dsi_set_bits(dsi, 0, phy_shutdownz);
-    #ifdef CONFIG_RK_3288_DSI_UBOOT
-    rk32_mipi_dsi_clk_disable(dsi);
-    #else
-    clk_disable_unprepare(dsi->phy.refclk); 
+#ifdef CONFIG_RK_3288_DSI
+	rk32_mipi_dsi_clk_disable(dsi);
+#else
+    clk_disable_unprepare(dsi->phy.refclk);
     clk_disable_unprepare(dsi->dsi_pclk);
     clk_disable_unprepare(dsi->dsi_pd);
-    #endif
+#endif
     return 0;
+}
+
+static int rk312x_phy_power_down(struct dsi *dsi)
+{
+#ifdef CONFIG_RK_3288_DSI
+    rk32_mipi_dsi_clk_disable(dsi);
+#else
+    rk32_dsi_set_bits(dsi, 0x01, DPHY_REGISTER0);
+    rk32_dsi_set_bits(dsi, 0xe3, DPHY_REGISTER1);
+
+	clk_disable_unprepare(dsi->phy.refclk);
+    clk_disable_unprepare(dsi->dsi_pclk);
+	/* clk_disable_unprepare(dsi->dsi_pd); */
+#endif
+    return 0;
+}
+
+static int rk_phy_power_down(struct dsi *dsi)
+{
+	if (cpu_is_rk3288()) {
+		rk32_phy_power_down(dsi);
+	} else if (cpu_is_rk312x()) {
+		rk312x_phy_power_down(dsi);
+	}
+	return 0;
 }
 
 static int rk32_phy_init(struct dsi *dsi)
@@ -443,6 +581,258 @@ static int rk32_phy_init(struct dsi *dsi)
 
     return 0;
 }
+static int rk321x_mipi_dsi_phy_set_gotp(struct dsi *dsi, u32 offset, int n)
+{
+	u32 val = 0, temp = 0, Tlpx = 0;
+	u32 ddr_clk = dsi->phy.ddr_clk;
+	u32 Ttxbyte_clk = dsi->phy.Ttxbyte_clk;
+	u32 Tsys_clk = dsi->phy.Tsys_clk;
+	u32 Ttxclkesc = dsi->phy.Ttxclkesc;
+
+	switch (offset) {
+	case DPHY_CLOCK_OFFSET:
+		MIPI_DBG("******set DPHY_CLOCK_OFFSET gotp******\n");
+		break;
+	case DPHY_LANE0_OFFSET:
+		MIPI_DBG("******set DPHY_LANE0_OFFSET gotp******\n");
+		break;
+	case DPHY_LANE1_OFFSET:
+		MIPI_DBG("******set DPHY_LANE1_OFFSET gotp******\n");
+		break;
+	case DPHY_LANE2_OFFSET:
+		MIPI_DBG("******set DPHY_LANE2_OFFSET gotp******\n");
+		break;
+	case DPHY_LANE3_OFFSET:
+		MIPI_DBG("******set DPHY_LANE3_OFFSET gotp******\n");
+		break;
+	default:
+		break;
+	}
+
+	if (ddr_clk < 110 * MHz)
+		val = 0;
+	else if (ddr_clk < 150 * MHz)
+		val = 1;
+	else if (ddr_clk < 200 * MHz)
+		val = 2;
+	else if (ddr_clk < 250 * MHz)
+		val = 3;
+	else if (ddr_clk < 300 * MHz)
+		val = 4;
+	else if (ddr_clk < 400 * MHz)
+		val = 5;
+	else if (ddr_clk < 500 * MHz)
+		val = 6;
+	else if (ddr_clk < 600 * MHz)
+		val = 7;
+	else if (ddr_clk < 700 * MHz)
+		val = 8;
+	else if (ddr_clk < 800 * MHz)
+		val = 9;
+	else if (ddr_clk <= 1000 * MHz)
+		val = 10;
+	MIPI_DBG("%s reg_ths_settle = 0x%x\n", __func__, val);
+	rk32_dsi_set_bits(dsi, val, reg_ths_settle + offset);
+
+	if (ddr_clk < 110 * MHz)
+		val = 0x20;
+	else if (ddr_clk < 150 * MHz)
+		val = 0x06;
+	else if (ddr_clk < 200 * MHz)
+		val = 0x18;
+	else if (ddr_clk < 250 * MHz)
+		val = 0x05;
+	else if (ddr_clk < 300 * MHz)
+		val = 0x51;
+	else if (ddr_clk < 400 * MHz)
+		val = 0x64;
+	else if (ddr_clk < 500 * MHz)
+		val = 0x59;
+	else if (ddr_clk < 600 * MHz)
+		val = 0x6a;
+	else if (ddr_clk < 700 * MHz)
+		val = 0x3e;
+	else if (ddr_clk < 800 * MHz)
+		val = 0x21;
+	else if (ddr_clk <= 1000 * MHz)
+		val = 0x09;
+	MIPI_DBG("%s reg_hs_ths_prepare = 0x%x\n", __func__, val);
+	rk32_dsi_set_bits(dsi, val, reg_hs_ths_prepare + offset);
+
+	if (offset != DPHY_CLOCK_OFFSET) {
+		if (ddr_clk < 110 * MHz)
+			val = 2;
+		else if (ddr_clk < 150 * MHz)
+			val = 3;
+		else if (ddr_clk < 200 * MHz)
+			val = 4;
+		else if (ddr_clk < 250 * MHz)
+			val = 5;
+		else if (ddr_clk < 300 * MHz)
+			val = 6;
+		else if (ddr_clk < 400 * MHz)
+			val = 7;
+		else if (ddr_clk < 500 * MHz)
+			val = 7;
+		else if (ddr_clk < 600 * MHz)
+			val = 8;
+		else if (ddr_clk < 700 * MHz)
+			val = 8;
+		else if (ddr_clk < 800 * MHz)
+			val = 9;
+		else if (ddr_clk <= 1000 * MHz)
+			val = 9;
+	} else {
+		if (ddr_clk < 110 * MHz)
+			val = 0x16;
+		else if (ddr_clk < 150 * MHz)
+			val = 0x16;
+		else if (ddr_clk < 200 * MHz)
+			val = 0x17;
+		else if (ddr_clk < 250 * MHz)
+			val = 0x17;
+		else if (ddr_clk < 300 * MHz)
+			val = 0x18;
+		else if (ddr_clk < 400 * MHz)
+			val = 0x19;
+		else if (ddr_clk < 500 * MHz)
+			val = 0x1b;
+		else if (ddr_clk < 600 * MHz)
+			val = 0x1d;
+		else if (ddr_clk < 700 * MHz)
+			val = 0x1e;
+		else if (ddr_clk < 800 * MHz)
+			val = 0x1f;
+		else if (ddr_clk <= 1000 * MHz)
+			val = 0x20;
+	}
+	MIPI_DBG("%s reg_hs_the_zero = 0x%x\n", __func__, val);
+	rk32_dsi_set_bits(dsi, val, reg_hs_the_zero + offset);
+
+	if (ddr_clk < 110 * MHz)
+		val = 0x22;
+	else if (ddr_clk < 150 * MHz)
+		val = 0x45;
+	else if (ddr_clk < 200 * MHz)
+		val = 0x0b;
+	else if (ddr_clk < 250 * MHz)
+		val = 0x16;
+	else if (ddr_clk < 300 * MHz)
+		val = 0x2c;
+	else if (ddr_clk < 400 * MHz)
+		val = 0x33;
+	else if (ddr_clk < 500 * MHz)
+		val = 0x4e;
+	else if (ddr_clk < 600 * MHz)
+		val = 0x3a;
+	else if (ddr_clk < 700 * MHz)
+		val = 0x6a;
+	else if (ddr_clk < 800 * MHz)
+		val = 0x29;
+	else if (ddr_clk <= 1000 * MHz)
+		val = 0x21; /* 0x27 */
+
+	MIPI_DBG("%s reg_hs_ths_trail = 0x%x\n", __func__, val);
+	rk32_dsi_set_bits(dsi, val, reg_hs_ths_trail + offset);
+	val = 120000 / Ttxbyte_clk + 1;
+	MIPI_DBG("reg_hs_ths_exit: %d, %d\n", val, val*Ttxbyte_clk/1000);
+	rk32_dsi_set_bits(dsi, val, reg_hs_ths_exit + offset);
+
+	if (offset == DPHY_CLOCK_OFFSET) {
+		val = (60000 + 52*dsi->phy.UI) / Ttxbyte_clk + 1;
+		MIPI_DBG("reg_hs_tclk_post: %d, %d\n", val, val*Ttxbyte_clk/1000);
+		rk32_dsi_set_bits(dsi, val, reg_hs_tclk_post + offset);
+		val = 10*dsi->phy.UI / Ttxbyte_clk + 1;
+		MIPI_DBG("reg_hs_tclk_pre: %d, %d\n", val, val*Ttxbyte_clk/1000);
+		rk32_dsi_set_bits(dsi, val, reg_hs_tclk_pre + offset);
+	}
+
+	val = 1010000000 / Tsys_clk + 1;
+	MIPI_DBG("reg_hs_twakup: %d, %d\n", val, val*Tsys_clk/1000);
+	if (val > 0x3ff) {
+		val = 0x2ff;
+		MIPI_DBG("val is too large, 0x3ff is the largest\n");
+	}
+	temp = (val >> 8) & 0x03;
+	val &= 0xff;
+	rk32_dsi_set_bits(dsi, temp, reg_hs_twakup_h + offset);
+	rk32_dsi_set_bits(dsi, val, reg_hs_twakup_l + offset);
+
+	if (Ttxclkesc > 50000) {
+		val = 2*Ttxclkesc;
+		MIPI_DBG("Ttxclkesc:%d\n", Ttxclkesc);
+	}
+	val = val / Ttxbyte_clk;
+	Tlpx = val*Ttxbyte_clk;
+	MIPI_DBG("reg_hs_tlpx: %d, %d\n", val, Tlpx);
+	val -= 2;
+	rk32_dsi_set_bits(dsi, val, reg_hs_tlpx + offset);
+
+	Tlpx = 2*Ttxclkesc;
+	val = 4*Tlpx / Ttxclkesc;
+	MIPI_DBG("reg_hs_tta_go: %d, %d\n", val, val*Ttxclkesc);
+	rk32_dsi_set_bits(dsi, val, reg_hs_tta_go + offset);
+	val = 3 * Tlpx / 2 / Ttxclkesc;
+	MIPI_DBG("reg_hs_tta_sure: %d, %d\n", val, val*Ttxclkesc);
+	rk32_dsi_set_bits(dsi, val, reg_hs_tta_sure + offset);
+	val = 5 * Tlpx / Ttxclkesc;
+	MIPI_DBG("reg_hs_tta_wait: %d, %d\n", val, val*Ttxclkesc);
+	rk32_dsi_set_bits(dsi, val, reg_hs_tta_wait + offset);
+	return 0;
+}
+
+static int rk312x_phy_init(struct dsi *dsi, int n)
+{
+	/* DPHY init */
+	rk32_dsi_set_bits(dsi, 0x11, DSI_DPHY_BITS(0x06<<2, 32, 0));
+	rk32_dsi_set_bits(dsi, 0x11, DSI_DPHY_BITS(0x07<<2, 32, 0));
+	rk32_dsi_set_bits(dsi, 0xcc, DSI_DPHY_BITS(0x09<<2, 32, 0));
+#if 0
+	dsi_set_bits(0x4e, DSI_DPHY_BITS(0x08<<2, 32, 0));
+	dsi_set_bits(0x84, DSI_DPHY_BITS(0x0a<<2, 32, 0));
+#endif
+
+	/*reg1[4]	0: enable a function of "pll phase for serial data being captured
+				inside analog part"
+				1: disable it
+	we disable it here because reg5[6:4] is not compatible with the HS speed.
+	*/
+
+	if (dsi->phy.ddr_clk >= 800*MHz) {
+		rk32_dsi_set_bits(dsi, 0x30, DSI_DPHY_BITS(0x05<<2, 32, 0));
+	} else {
+		rk32_dsi_set_bits (dsi, 1, reg_da_ppfc);
+	}
+
+	switch (dsi->host.lane) {
+	case 4:
+		rk321x_mipi_dsi_phy_set_gotp(dsi, DPHY_LANE3_OFFSET, n);
+	case 3:
+		rk321x_mipi_dsi_phy_set_gotp(dsi, DPHY_LANE2_OFFSET, n);
+	case 2:
+		rk321x_mipi_dsi_phy_set_gotp(dsi, DPHY_LANE1_OFFSET, n);
+	case 1:
+		rk321x_mipi_dsi_phy_set_gotp(dsi, DPHY_LANE0_OFFSET, n);
+		rk321x_mipi_dsi_phy_set_gotp(dsi, DPHY_CLOCK_OFFSET, n);
+		break;
+	default:
+		break;
+	}
+	rk32_dsi_set_bits(dsi, 0x06, reg5_phy);
+	rk32_dsi_set_bits(dsi, 0x6, reg10_4_6_phy);
+	rk32_dsi_set_bits(dsi, 0x9, regb_phy);
+	return 0;
+
+}
+
+static int rk_phy_init(struct dsi *dsi)
+{
+	if (cpu_is_rk3288())
+		rk32_phy_init(dsi);
+	else if (cpu_is_rk312x())
+		rk312x_phy_init(dsi, 4);
+	return 0;
+}
 
 static int rk32_mipi_dsi_host_power_up(struct dsi *dsi) 
 {
@@ -514,13 +904,22 @@ static int rk32_mipi_dsi_host_init(struct dsi *dsi)
 			break;
 	}
 	
-	rk32_dsi_set_bits(dsi, 1, hsync_active_low);
-	rk32_dsi_set_bits(dsi, 1, vsync_active_low);
-	
-	rk32_dsi_set_bits(dsi, 0, dataen_active_low);
-	rk32_dsi_set_bits(dsi, 0, colorm_active_low);
-	rk32_dsi_set_bits(dsi, 0, shutd_active_low);
-	
+	if (cpu_is_rk3288()) {
+		rk32_dsi_set_bits(dsi, 1, hsync_active_low);
+		rk32_dsi_set_bits(dsi, 1, vsync_active_low);
+
+		rk32_dsi_set_bits(dsi, 0, dataen_active_low);
+		rk32_dsi_set_bits(dsi, 0, colorm_active_low);
+		rk32_dsi_set_bits(dsi, 0, shutd_active_low);
+	} else if (cpu_is_rk312x()) {
+		rk32_dsi_set_bits(dsi, !screen->pin_hsync, hsync_active_low);
+		rk32_dsi_set_bits(dsi, !screen->pin_vsync, vsync_active_low);
+
+		rk32_dsi_set_bits(dsi, screen->pin_den, dataen_active_low);
+		rk32_dsi_set_bits(dsi, 1, colorm_active_low);
+		rk32_dsi_set_bits(dsi, 1, shutd_active_low);
+	}
+
 	rk32_dsi_set_bits(dsi, dsi->host.video_mode, vid_mode_type);	  //burst mode
 	
 	switch(dsi->host.video_mode) {
@@ -559,6 +958,10 @@ static int rk32_mipi_dsi_host_init(struct dsi *dsi)
 		
 			break;
 	}	
+	MIPI_DBG("dsi->phy.Tpclk = %d\n", dsi->phy.Tpclk);
+	MIPI_DBG("screen->left_margin = %d\n", screen->left_margin);
+	MIPI_DBG("dsi->phy.Ttxbyte_clk = %d\n", dsi->phy.Ttxbyte_clk);
+	MIPI_DBG("screen->hsync_len = %d\n", screen->hsync_len);
 
 	//rk32_dsi_set_bits(dsi, 0, CMD_MODE_CFG << 16);
 	if(screen->type == SCREEN_MIPI){
@@ -638,23 +1041,32 @@ static int rk_mipi_dsi_init(void *arg, u32 n)
 		MIPI_TRACE("dsi number and mipi type not match!\n");
 	    return -1;
     }
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 	dsi->phy.Tpclk = div_u64(1000000000000llu, screen->pixclock);
-	dsi->phy.ref_clk = 24*MHZ;
+	dsi->phy.ref_clk = 24*MHZ / 2; /* 1/2 of input refclk */
 #else
 	dsi->phy.Tpclk = rk_fb_get_prmry_screen_pixclock();
 
-	if(dsi->phy.refclk)
-		dsi->phy.ref_clk = clk_get_rate(dsi->phy.refclk) ;
+	if (dsi->phy.refclk)
+		dsi->phy.ref_clk = clk_get_rate(dsi->phy.refclk);
+	if (cpu_is_rk312x())
+		dsi->phy.ref_clk = dsi->phy.ref_clk / 2; /* 1/2 of input refclk */
 #endif
 	dsi->phy.sys_clk = dsi->phy.ref_clk;
 
-	printk("dsi->phy.sys_clk =%d\n",dsi->phy.sys_clk );
+	MIPI_DBG("dsi->phy.sys_clk =%d\n", dsi->phy.sys_clk);
 
-	if((screen->hs_tx_clk <= 90 * MHz) || (screen->hs_tx_clk >= 1500 * MHz))
-		dsi->phy.ddr_clk = 1500 * MHz;    //default is 1.5HGz
-	else
-		dsi->phy.ddr_clk = screen->hs_tx_clk;   
+	if (cpu_is_rk3288()) {
+		if ((screen->hs_tx_clk <= 90 * MHz) || (screen->hs_tx_clk >= 1500 * MHz))
+			dsi->phy.ddr_clk = 1500 * MHz;    /* default is 1.5HGz */
+		else
+			dsi->phy.ddr_clk = screen->hs_tx_clk;
+	} else if (cpu_is_rk312x()) {
+		if ((screen->hs_tx_clk <= 80 * MHz) || (screen->hs_tx_clk >= 1000 * MHz))
+			dsi->phy.ddr_clk = 1000 * MHz; /* default is 1GHz */
+		else
+			dsi->phy.ddr_clk = screen->hs_tx_clk;
+	}
 
 	if(n != 0) 
 		dsi->phy.ddr_clk = n;
@@ -704,10 +1116,11 @@ static int rk_mipi_dsi_init(void *arg, u32 n)
 	MIPI_DBG("txbyte_clk:%d, Ttxbyte_clk:%d\n", dsi->phy.txbyte_clk, 
 				dsi->phy.Ttxbyte_clk);
 	MIPI_DBG("txclkesc:%d, Ttxclkesc:%d\n", dsi->phy.txclkesc, dsi->phy.Ttxclkesc);
-	
-	rk32_phy_power_up(dsi);
+
+	mdelay(10);
+	rk_phy_power_up(dsi);
 	rk32_mipi_dsi_host_power_up(dsi);
-	rk32_phy_init(dsi);
+	rk_phy_init(dsi);
 	rk32_mipi_dsi_host_init(dsi);
 	
 	return 0;
@@ -768,12 +1181,12 @@ static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length
 #ifdef CONFIG_MIPI_DSI_LINUX
 	regs = kmalloc(0x400, GFP_KERNEL);
 	if(!regs) {
-		printk("request regs fail!\n");
+		MIPI_DBG("request regs fail!\n");
 		return -ENOMEM;
 	}
 #endif
-#ifdef CONFIG_RK_3288_DSI_UBOOT
-	regs = malloc(0x400);
+#ifdef CONFIG_RK_3288_DSI
+	regs = calloc(1, 0x400);
 	if(!regs) {
 		printf("request regs fail!\n");
 		return -ENOMEM;
@@ -887,13 +1300,12 @@ static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length
 			
 		case DTYPE_GEN_SWRITE_0P:
 			rk32_dsi_set_bits(dsi, regs[0], gen_sw_0p_tx);
-			data =  type;
+			data = type;
 			data |= regs[2] << 8;
 			break;
 
 		default:
-		   printk("0x%x:this type not suppport!\n",type);
-			
+			MIPI_DBG("0x%x:this type not suppport!\n", type);
 	}
 
 	MIPI_DBG("%d command sent in %s size:%d\n", __LINE__, regs[0] ? "LP mode" : "HS mode", liTmp);
@@ -910,7 +1322,7 @@ static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length
 #ifdef CONFIG_MIPI_DSI_LINUX
 	kfree(regs);
 #endif
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 	free(regs);
 #endif
 	return 0;
@@ -937,22 +1349,23 @@ static int rk32_mipi_dsi_read_dcs_packet(void *arg, unsigned char *data1, u32 n)
 		data = (dsi->vid << 6) | ((n-1) << 4) | type;*/
 
 	data |= regs[1] << 8 | type;
-	// if(n == 2)
-	//    data |= regs[1] << 16;
-
+	/*
+	if(n == 2)
+		data |= regs[1] << 16;
+	*/
 	MIPI_DBG("write GEN_HDR:%08x\n", data);
 	rk32_dsi_set_bits(dsi, data, GEN_HDR);
 	msleep(100);
     
 	// rk32_dsi_set_bits(dsi, regs[0], gen_sr_0p_tx);
 
-	printk("rk32_mipi_dsi_read_dcs_packet==0x%x\n",rk32_dsi_get_bits(dsi, GEN_PLD_DATA));
+	MIPI_DBG("rk32_mipi_dsi_read_dcs_packet==0x%x\n", rk32_dsi_get_bits(dsi, GEN_PLD_DATA));
 	msleep(100);
 
 	//  rk32_dsi_set_bits(dsi, regs[0], max_rd_pkt_size);
 	
 	msleep(100);
-	// printk("_____rk32_mipi_dsi_read_dcs_packet==0x%x\n",rk32_dsi_get_bits(dsi, GEN_PLD_DATA));
+	/* MIPI_DBG("_____rk32_mipi_dsi_read_dcs_packet==0x%x\n", rk32_dsi_get_bits(dsi, GEN_PLD_DATA)); */
 	
 	msleep(100);
 	return 0;
@@ -976,7 +1389,7 @@ static int rk32_mipi_dsi_power_down(void *arg)
 		return -1;
 
 	rk32_mipi_dsi_host_power_down(dsi);
-	rk32_phy_power_down(dsi);
+	rk_phy_power_down(dsi);
 
 	MIPI_TRACE("%s:%d\n", __func__, __LINE__);
 	return 0;
@@ -1039,7 +1452,7 @@ int reg_proc_write(struct file *file, const char __user *buff, size_t count, lof
 				if((regs_val & 0xffff00000000ULL) == 0)
 					goto reg_proc_write_exit;
 				read_val = regs_val & 0xffffffff;
-				printk("regs_val=0x%llx\n",regs_val);
+				MIPI_DBG("regs_val=0x%llx\n", regs_val);
 				rk32_dsi_write_reg(dsi0, regs_val >> 32, &read_val);
 				rk32_dsi_read_reg(dsi0, regs_val >> 32, &read_val);
 				regs_val &= 0xffffffff;
@@ -1293,11 +1706,11 @@ struct file_operations reg_proc_fops1 = {
 #if 0//def CONFIG_MIPI_DSI_LINUX
 static irqreturn_t rk32_mipi_dsi_irq_handler(int irq, void *data)
 {
-	printk("-------rk32_mipi_dsi_irq_handler-------\n");
+	MIPI_DBG("-------rk32_mipi_dsi_irq_handler-------\n");
 	return IRQ_HANDLED;
 }
 #endif
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 int rk32_dsi_sync(void)
 {
 	/*
@@ -1308,8 +1721,9 @@ int rk32_dsi_sync(void)
     if (rk_mipi_get_dsi_num() ==2)
 	dsi_is_enable(1, 0); 
 
-    dsi_enable_video_mode(0, 1);
-    dsi_enable_video_mode(1, 1);
+	dsi_enable_video_mode(0, 1);
+	if (rk_mipi_get_dsi_num() == 2)
+		dsi_enable_video_mode(1, 1);
 
     dsi_is_enable(0, 1);
     if (rk_mipi_get_dsi_num() ==2)
@@ -1336,6 +1750,12 @@ static int dwc_phy_test_rd(struct dsi *dsi, unsigned char test_code)
 static int rk32_dsi_enable(void)
 {
 	MIPI_DBG("rk32_dsi_enable-------\n");
+	/*
+	rk_fb_get_prmry_screen(dsi0->screen.screen);
+	dsi0->screen.lcdc_id = dsi0->screen.screen->lcdc_id;
+	rk_init_phy_mode(dsi0->screen.lcdc_id);
+	*/
+
 	dsi_init(0, 0);
 	if (rk_mipi_get_dsi_num() ==2)
 		dsi_init(1, 0);
@@ -1351,7 +1771,8 @@ static int rk32_dsi_enable(void)
 		dsi_is_enable(1, 0);  
 
 	dsi_enable_video_mode(0, 1);
-	dsi_enable_video_mode(1, 1);
+	if (rk_mipi_get_dsi_num() == 2)
+		dsi_enable_video_mode(1, 1);
 
 	dsi_is_enable(0, 1);
 	if (rk_mipi_get_dsi_num() ==2)
@@ -1360,30 +1781,12 @@ static int rk32_dsi_enable(void)
 	return 0;
 }
 
-#ifdef CONFIG_MIPI_DSI_LINUX
-static int rk32_dsi_disable(void)
-{
-	MIPI_DBG("rk32_dsi_disable-------\n");
-	
-	rk_mipi_screen_standby(1); 
-	dsi_power_off(0);
-	if (rk_mipi_get_dsi_num() ==2)
-		dsi_power_off(1);
-
-	return 0;
-}
-
-static struct rk_fb_trsm_ops trsm_dsi_ops = 
-{
-	.enable = rk32_dsi_enable,
-	.disable = rk32_dsi_disable,
-};
-#endif
 static void rk32_init_phy_mode(int lcdc_id)
 { 
 	int val0 = 0, val1 = 0;
 
 	MIPI_DBG("rk32_init_phy_mode----------lcdc_id=%d\n",lcdc_id);
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
 	//D-PHY mode select
 	if( rk_mipi_get_dsi_num() ==1 ){
 	
@@ -1408,12 +1811,22 @@ static void rk32_init_phy_mode(int lcdc_id)
 		writel_relaxed(val0, RK_GRF_VIRT + RK3288_GRF_SOC_CON6);
 		writel_relaxed(val1, RK_GRF_VIRT + RK3288_GRF_SOC_CON14);
 	}
+#endif
 }
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+
+
+static void rk_init_phy_mode(int lcdc_id)
+{
+	if (cpu_is_rk3288())
+		rk32_init_phy_mode(lcdc_id);
+}
+
+#ifdef CONFIG_RK_3288_DSI
 #ifdef CONFIG_OF_LIBFDT
 int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 {
 	int node;
+	u32 mipi_regs[4];
 
 	node = fdtdec_next_compatible(blob, 0, COMPAT_ROCKCHIP_DSIHOST);
 	if(node<0) {
@@ -1432,11 +1845,19 @@ int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 			break;
 		}
 	}while(1);
-	
-	//fdtdec_get_addr_size(blob,node,"reg",&length);
-	dsi->host.membase = (void __iomem *)fdtdec_get_int(blob, node, "reg", -1);
-	//fdt_getprop(blob, node, "reg", &length);
-	MIPI_DBG("dsi->host.membase 0x%08lx.\n",(unsigned long)dsi->host.membase);
+
+	if (cpu_is_rk3288()) {
+		/* fdtdec_get_addr_size(blob,node,"reg",&length); */
+		dsi->host.membase = (void __iomem *)fdtdec_get_int(blob, node, "reg", -1);
+		/* fdt_getprop(blob, node, "reg", &length); */
+		MIPI_DBG("dsi->host.membase 0x%08lx.\n", (unsigned long)dsi->host.membase);
+	} else if (cpu_is_rk312x()) {
+		fdtdec_get_int_array(blob, node, "reg", mipi_regs, 4);
+		dsi->host.membase = (void __iomem *)mipi_regs[0];
+		MIPI_DBG("dsi->host.membase 0x%08lx.\n", (unsigned long)dsi->host.membase);
+		dsi->phy.membase = (void __iomem *)mipi_regs[2];
+		MIPI_DBG("dsi->phy.membase 0x%08lx.\n", (unsigned long)dsi->phy.membase);
+	}
 	return 0;
 }
 #endif /* #ifdef CONFIG_OF_LIBFDT */
@@ -1470,7 +1891,13 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		//rk_fb_get_prmry_screen(screen);
 		ops = &dsi->ops;
 		ops->dsi = dsi;
-		ops->id = DWC_DSI_VERSION,
+		if (cpu_is_rk3288())
+			ops->id = DWC_DSI_VERSION;
+		else if (cpu_is_rk312x())
+			ops->id = DWC_DSI_VERSION_RK312x;
+		else
+			ops->id = DWC_DSI_VERSION_ERR;
+
 		ops->get_id = rk32_mipi_dsi_get_id,
 		ops->dsi_send_packet = rk32_mipi_dsi_send_packet;
 		ops->dsi_read_dcs_packet = rk32_mipi_dsi_read_dcs_packet,
@@ -1507,7 +1934,7 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		//  dsi_screen->dsi_video_mode = screen->dsi_video_mode; //no sure
 		dsi_screen->dsi_lane = rk_mipi_get_dsi_lane();
 		dsi_screen->hs_tx_clk = rk_mipi_get_dsi_clk();	
-		//dsi_screen->lcdc_id = 1;
+		dsi_screen->lcdc_id = 1;
 		dsi->dsi_id = id++;//of_alias_get_id(pdev->dev.of_node, "dsi");
 		sprintf(ops->name, "rk_mipi_dsi.%d", dsi->dsi_id);
 
@@ -1518,6 +1945,7 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		}	
 		
 		if(id == 1){
+			rk_init_phy_mode(vid->lcdc_id);
 		  //rk32_init_phy_mode(dsi_screen->lcdc_id);
 		  //rk_fb_trsm_ops_register(&trsm_dsi_ops, SCREEN_MIPI);
 		  dsi0 = dsi;
@@ -1532,9 +1960,8 @@ int rk32_mipi_enable(vidinfo_t *vid)
 	    	    break;
 
 	}while(1);
-	rk32_init_phy_mode(vid->lcdc_id);
-	rk32_dsi_enable();
 	
+	rk32_dsi_enable();
 #if 0
 
 	int reg = 0;
@@ -1556,204 +1983,4 @@ int rk32_mipi_enable(vidinfo_t *vid)
 	
 }
 #endif
-#ifdef CONFIG_MIPI_DSI_LINUX
-int rk32_mipi_power_down_DDR(void)
-{	
-	dsi_is_enable(0, 0);	
-	if (rk_mipi_get_dsi_num() ==2)	    
-		dsi_is_enable(1, 0);  		
-	return 0;   
-}
-EXPORT_SYMBOL(rk32_mipi_power_down_DDR);
-int rk32_mipi_power_up_DDR(void)
-{	
-	dsi_is_enable(0, 0);	
-	if (rk_mipi_get_dsi_num() ==2)	    
-		dsi_is_enable(1, 0);     		
-	dsi_enable_video_mode(0, 1);	
-	dsi_enable_video_mode(1, 1);		
-	dsi_is_enable(0, 1);	
-	if (rk_mipi_get_dsi_num() ==2)	    
-		dsi_is_enable(1, 1);	
-	return 0;
-}
-EXPORT_SYMBOL(rk32_mipi_power_up_DDR);
 
-static int rk32_mipi_dsi_probe(struct platform_device *pdev)
-{
-	int ret = 0; 
-	static int id = 0;
-	struct dsi *dsi;
-	struct mipi_dsi_ops *ops;
-	struct rk_screen *screen;
-	struct mipi_dsi_screen *dsi_screen;
-	struct resource *res_host;
- 
-	dsi = devm_kzalloc(&pdev->dev, sizeof(struct dsi), GFP_KERNEL);
-	if(!dsi) {
-		dev_err(&pdev->dev,"request struct dsi fail!\n");
-		return -ENOMEM;
-	}
-
-	res_host = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	dsi->host.membase = devm_request_and_ioremap(&pdev->dev, res_host);
-	if (!dsi->host.membase){
-		dev_err(&pdev->dev, "get resource mipi host membase fail!\n");
-		return -ENOMEM;
-	}
-	
-	dsi->phy.refclk  = devm_clk_get(&pdev->dev, "clk_mipi_24m"); 
-	if (unlikely(IS_ERR(dsi->phy.refclk))) {
-		dev_err(&pdev->dev, "get clk_mipi_24m clock fail\n");
-		return PTR_ERR(dsi->phy.refclk);
-	}
-
-	dsi->dsi_pclk = devm_clk_get(&pdev->dev, "pclk_mipi_dsi");
-	if (unlikely(IS_ERR(dsi->dsi_pclk))) {
-		dev_err(&pdev->dev, "get pclk_mipi_dsi clock fail\n");
-		return PTR_ERR(dsi->dsi_pclk);
-	}
-
-	dsi->dsi_pd = devm_clk_get(&pdev->dev, "pd_mipi_dsi");
-	if (unlikely(IS_ERR(dsi->dsi_pd))) {
-		dev_err(&pdev->dev, "get pd_mipi_dsi clock fail\n");
-		return PTR_ERR(dsi->dsi_pd);
-	}
-
-	dsi->host.irq = platform_get_irq(pdev, 0);
-	if (dsi->host.irq < 0) {
-		dev_err(&pdev->dev, "no irq resource?\n");
-		return dsi->host.irq;
-	}
-	
-	//ret = request_irq(dsi->host.irq, rk32_mipi_dsi_irq_handler, 0,dev_name(&pdev->dev), dsi);
-	//if(ret) {
-	//	dev_err(&pdev->dev, "request mipi_dsi irq fail\n");
-	//	return -EINVAL;
-	//}
-	printk("dsi->host.irq =%d\n",dsi->host.irq); 
-
-	disable_irq(dsi->host.irq);
-
-	screen = devm_kzalloc(&pdev->dev, sizeof(struct rk_screen), GFP_KERNEL);
-	if(!screen) {
-		dev_err(&pdev->dev,"request struct rk_screen fail!\n");
-		return -1;
-	}
-	rk_fb_get_prmry_screen(screen);
-
-	dsi->pdev = pdev;
-	ops = &dsi->ops;
-	ops->dsi = dsi;
-	ops->id = DWC_DSI_VERSION,
-	ops->get_id = rk32_mipi_dsi_get_id,
-	ops->dsi_send_packet = rk32_mipi_dsi_send_packet;
-	ops->dsi_read_dcs_packet = rk32_mipi_dsi_read_dcs_packet,
-	ops->dsi_enable_video_mode = rk32_mipi_dsi_enable_video_mode,
-	ops->dsi_enable_command_mode = rk32_mipi_dsi_enable_command_mode,
-	ops->dsi_enable_hs_clk = rk32_mipi_dsi_enable_hs_clk,
-	ops->dsi_is_active = rk32_mipi_dsi_is_active,
-	ops->dsi_is_enable= rk32_mipi_dsi_is_enable,
-	ops->power_up = rk32_mipi_dsi_power_up,
-	ops->power_down = rk32_mipi_dsi_power_down,
-	ops->dsi_init = rk_mipi_dsi_init,
-
-	dsi_screen = &dsi->screen;
-	dsi_screen->type = screen->type;
-	dsi_screen->face = screen->face;
-	dsi_screen->lcdc_id = screen->lcdc_id;
-	dsi_screen->screen_id = screen->screen_id;
-	dsi_screen->pixclock = screen->mode.pixclock;
-	dsi_screen->left_margin = screen->mode.left_margin;
-	dsi_screen->right_margin = screen->mode.right_margin;
-	dsi_screen->hsync_len = screen->mode.hsync_len;
-	dsi_screen->upper_margin = screen->mode.upper_margin;
-	dsi_screen->lower_margin = screen->mode.lower_margin;
-	dsi_screen->vsync_len = screen->mode.vsync_len;
-	dsi_screen->x_res = screen->mode.xres;
-	dsi_screen->y_res = screen->mode.yres;
-	dsi_screen->pin_hsync = screen->pin_hsync;
-	dsi_screen->pin_vsync = screen->pin_vsync;
-	dsi_screen->pin_den = screen->pin_den;
-	dsi_screen->pin_dclk = screen->pin_dclk;
-	dsi_screen->dsi_lane = rk_mipi_get_dsi_lane();
-//  dsi_screen->dsi_video_mode = screen->dsi_video_mode; //no sure
-	dsi_screen->dsi_lane = rk_mipi_get_dsi_lane();
-	dsi_screen->hs_tx_clk = rk_mipi_get_dsi_clk();  
-	dsi_screen->lcdc_id = 1;
-
-	dsi->dsi_id = id++;
-
-	sprintf(ops->name, "rk_mipi_dsi.%d", dsi->dsi_id);
-	platform_set_drvdata(pdev, dsi);
-
-	ret = rk_mipi_dsi_probe(dsi);
-	if(ret) {
-		dev_err(&pdev->dev,"rk mipi_dsi probe fail!\n");
-		dev_err(&pdev->dev,"%s\n", RK_MIPI_DSI_VERSION_AND_TIME);
-		return -1;
-	}	
-
-	if(id == 1){
-
-		if(!support_uboot_display())
-			rk32_init_phy_mode(dsi_screen->lcdc_id);
-		rk_fb_trsm_ops_register(&trsm_dsi_ops, SCREEN_MIPI);
-	
-#ifdef MIPI_DSI_REGISTER_IO        
-		debugfs_create_file("mipidsi0", S_IFREG | S_IRUGO, dsi->debugfs_dir, dsi, 
-							&reg_proc_fops);
-#endif
-		dsi0 = dsi;
-	}else{   
-		dsi1 = dsi;
-
-#ifdef MIPI_DSI_REGISTER_IO  
-        debugfs_create_file("mipidsi1", S_IFREG | S_IRUGO, dsi->debugfs_dir, dsi, 
-							&reg_proc_fops1);
-#endif
-
-	}
-
-    if(support_uboot_display()){
-	    clk_prepare_enable(dsi->phy.refclk); 
-	    clk_prepare_enable(dsi->dsi_pclk);
-	    clk_prepare_enable(dsi->dsi_pd);
-	    udelay(10);
-    }
-	dev_info(&pdev->dev,"rk mipi_dsi probe success!\n");
-	dev_info(&pdev->dev,"%s\n", RK_MIPI_DSI_VERSION_AND_TIME);
-	
-	return ret;
-}
-
-#ifdef CONFIG_OF
-static const struct of_device_id of_rk_mipi_dsi_match[] = {
-	{ .compatible = "rockchip,rk32-dsi" }, 
-	{ /* Sentinel */ } 
-}; 
-#endif
-
-static struct platform_driver rk32_mipi_dsi_driver = {
-	.probe		= rk32_mipi_dsi_probe,
-	.driver		= {
-		.name	= "rk32-mipi",
-		.owner	= THIS_MODULE,
-#ifdef CONFIG_OF
-		.of_match_table	= of_rk_mipi_dsi_match,
-#endif		
-	},
-};
-
-static int __init rk32_mipi_dsi_init(void)
-{
-	return platform_driver_register(&rk32_mipi_dsi_driver);
-}
-fs_initcall(rk32_mipi_dsi_init);
-
-static void __exit rk32_mipi_dsi_exit(void)
-{
-	platform_driver_unregister(&rk32_mipi_dsi_driver);
-}
-module_exit(rk32_mipi_dsi_exit);
-#endif

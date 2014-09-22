@@ -14,7 +14,7 @@ drivers/video/rockchip/transmitter/mipi_dsi.h
 #include <linux/of_gpio.h>
 #include <dt-bindings/gpio/gpio.h>
 #endif
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 #include <linux/list.h>
 #endif
 
@@ -239,6 +239,7 @@ struct mipi_dsi_screen {
 	u8 dsi_lane;
 	u8 dsi_video_mode;
 	u32 hs_tx_clk;
+	struct rk_screen *screen;
 
 	/* Operation function*/
 	int (*init)(void);

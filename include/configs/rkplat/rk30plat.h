@@ -259,6 +259,10 @@
 #define CONFIG_RK3036_TVE
 #endif
 
+#if ((CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128))
+#define CONFIG_RK_3288_DSI
+#endif
+
 
 /*rk616 config*/
 //#define CONFIG_RK616

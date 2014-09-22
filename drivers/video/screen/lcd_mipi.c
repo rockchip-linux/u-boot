@@ -20,7 +20,7 @@
 #include "../transmitter/mipi_dsi.h"
 #include <linux/delay.h>
 #endif
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 #include <common.h>
 #include <asm/io.h>
 #include <errno.h>
@@ -33,14 +33,14 @@
 #include "../transmitter/mipi_dsi.h"
 #endif
 
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 #define	MIPI_SCREEN_DBG(x...)	//printf(x)
 #elif defined CONFIG_LCD_MIPI
 #define	MIPI_SCREEN_DBG(x...)	//printk(KERN_ERR x)
 #else
 #define	MIPI_SCREEN_DBG(x...)  
 #endif
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 DECLARE_GLOBAL_DATA_PTR;
 #define msleep(a) udelay(a * 1000)
 #define	printk(x...)	//printf(x)
@@ -95,7 +95,7 @@ static void rk_mipi_screen_cmd_init(struct mipi_screen *screen)
 	u8 *cmds;
 	struct list_head *screen_pos;
 	struct mipi_dcs_cmd_ctr_list  *dcs_cmd;
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 	cmds = calloc(1,0x400);
 	if(!cmds) {
 		printf("request cmds fail!\n");
@@ -168,7 +168,7 @@ static void rk_mipi_screen_cmd_init(struct mipi_screen *screen)
 		    MIPI_SCREEN_DBG("cmd type err.\n");
 	}
 
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 	free(cmds);
 #endif
 #ifdef CONFIG_LCD_MIPI
@@ -182,7 +182,7 @@ int rk_mipi_screen(void)
 	u8 dcs[16] = {0}, rk_dsi_num;
 	rk_dsi_num = gmipi_screen->mipi_dsi_num;
 	if(gmipi_screen->screen_init == 0){
-	
+		rk_mipi_screen_pwr_enable(gmipi_screen);
 		dsi_enable_hs_clk(0,1);
 		if(rk_dsi_num == 2){
 			dsi_enable_hs_clk(1, 1);
@@ -197,7 +197,7 @@ int rk_mipi_screen(void)
 		if(rk_dsi_num == 2){
 			dsi_enable_command_mode(1, 1);
 		} 
-		
+
 		dcs[0] = LPDT;
 		dcs[1] = DTYPE_DCS_SWRITE_0P;
 		dcs[2] = dcs_exit_sleep_mode; 
@@ -224,7 +224,7 @@ int rk_mipi_screen(void)
 		dsi_enable_video_mode(0,1);
 		if(rk_dsi_num == 2){
 			dsi_enable_video_mode(1,1);
-		} 
+		}
 	}
 	else{
 		rk_mipi_screen_pwr_enable(gmipi_screen);
@@ -561,7 +561,7 @@ int rk_mipi_get_dsi_clk(void)
 #ifdef CONFIG_LCD_MIPI
 EXPORT_SYMBOL(rk_mipi_get_dsi_clk);
 #endif
-#ifdef CONFIG_RK_3288_DSI_UBOOT
+#ifdef CONFIG_RK_3288_DSI
 #ifdef CONFIG_OF_LIBFDT
 static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 {
@@ -748,7 +748,7 @@ int rk_mipi_screen_probe(void)
 	return 0;
 }
 
-#endif /* CONFIG_RK_3288_DSI_UBOOT */
+#endif /* CONFIG_RK_3288_DSI */
 #ifdef CONFIG_LCD_MIPI
 static int __init rk_mipi_screen_probe(struct platform_device *pdev)
 {
