@@ -108,51 +108,97 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	panel->vl_vfpd);
 }
 #endif
+
+
 /*
  * return preset res position
  */
 static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev) 
 {
 	int i, ret = -1;
-    const disk_partition_t* ptn;                                       
+    const disk_partition_t* ptn_baseparamer;
+    const disk_partition_t* ptn_deviceinfo;
+	char deviceinfo_buf[8 * RK_BLK_SIZE];
 	char baseparamer_buf[8 * RK_BLK_SIZE];
+	char *p_deviceinfo = 0x68000000;
+    char *p_baseparamer = 0x68001000;
+	char *p = p_deviceinfo;
 
 	if (!hdmi_dev)
 		goto err;
 
-#ifdef CONFIG_CMD_FASTBOOT                                             
-    ptn = get_disk_partition(hdmi_dev->pname);                            
-#else                                                                  
-    //TODO: find disk_partition_t in other way.                        
-    ptn = NULL;                                                        
-#endif                                                                 
-    if (!ptn) {                                                        
-		goto err;
-    }                                                                  
+	memset(p_deviceinfo, 0, 4096);
+	memset(p_baseparamer, 0, 4096);
 
-    if (StorageReadLba(ptn->start, baseparamer_buf, 8) < 0) {
-		printf("%s: Failed Read baseparamer Partition data\n", __func__);
-		goto err;
-	}
+#ifdef CONFIG_RK_READ_DEVICEINFO
 
+#ifdef CONFIG_CMD_FASTBOOT
+	ptn_deviceinfo = get_disk_partition("deviceinfo");
+#else
+    //TODO: find disk_partition_t in other way.
+    ptn_deviceinfo = NULL;
+#endif
+    if (ptn_deviceinfo)
+	{
+		if (StorageReadLba(ptn_deviceinfo->start, deviceinfo_buf, 8) < 0)
+		{
+			printf("%s: Failed Read baseparamer Partition data\n", __func__);
+			goto err;
+		}
 
-    memcpy(&hdmi_dev->base_paramer.xres, &baseparamer_buf[0], sizeof(hdmi_dev->base_paramer.xres));
-    memcpy(&hdmi_dev->base_paramer.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer.yres));
-    memcpy(&hdmi_dev->base_paramer.width, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer.width));
-    memcpy(&hdmi_dev->base_paramer.height, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer.height));
-    memcpy(&hdmi_dev->base_paramer.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer.refresh));
+		memcpy(p_deviceinfo, deviceinfo_buf, sizeof(deviceinfo_buf));
+    }
 
-	for (i = 0; i < hdmi_dev->mode_len; i++) {
-		if (hdmi_dev->base_paramer.xres == hdmi_dev->modedb[i].mode.xres &&
-				hdmi_dev->base_paramer.yres == hdmi_dev->modedb[i].mode.yres &&
-				   hdmi_dev->base_paramer.refresh == hdmi_dev->modedb[i].mode.refresh)
-			break;
-	}
+#endif
 
-	if (i != hdmi_dev->mode_len) {
-		printf("preset display resolution is %dx%d@%d\n", hdmi_dev->base_paramer.xres, hdmi_dev->base_paramer.yres, hdmi_dev->base_paramer.refresh);
-		ret = i;
-	}
+#ifdef CONFIG_CMD_FASTBOOT
+    ptn_baseparamer = get_disk_partition("baseparamer");
+#else
+    //TODO: find disk_partition_t in other way.
+    ptn_baseparamer = NULL;
+#endif
+    if (ptn_baseparamer)
+	{
+		if (StorageReadLba(ptn_baseparamer->start, baseparamer_buf, 8) < 0)
+		{
+			printf("%s: Failed Read baseparamer Partition data\n", __func__);
+			goto err;
+		}
+
+		memcpy(p_baseparamer, baseparamer_buf, sizeof(baseparamer_buf));
+
+		memcpy(&hdmi_dev->base_paramer.xres, &baseparamer_buf[0], sizeof(hdmi_dev->base_paramer.xres));
+	    memcpy(&hdmi_dev->base_paramer.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer.yres));
+	    memcpy(&hdmi_dev->base_paramer.width, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer.width));
+	    memcpy(&hdmi_dev->base_paramer.height, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer.height));
+	    memcpy(&hdmi_dev->base_paramer.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer.refresh));
+
+		printf("baseparamer %dx%d@%d\n", hdmi_dev->base_paramer.xres, hdmi_dev->base_paramer.yres, hdmi_dev->base_paramer.refresh);
+
+		for (i = 0; i < hdmi_dev->mode_len; i++) {
+			if (hdmi_dev->base_paramer.xres == hdmi_dev->modedb[i].mode.xres &&
+					hdmi_dev->base_paramer.yres == hdmi_dev->modedb[i].mode.yres &&
+					   hdmi_dev->base_paramer.refresh == hdmi_dev->modedb[i].mode.refresh)
+				break;
+		}
+
+		if (i != hdmi_dev->mode_len) {
+			printf("preset display resolution is %dx%d@%d,i=%d\n", hdmi_dev->base_paramer.xres, hdmi_dev->base_paramer.yres, hdmi_dev->base_paramer.refresh,i);
+			ret = i;
+		}
+    }
+	
+#if 0
+		for(i=0; i<4096*2; i++)
+		{
+				printf("%x ",*p);
+				if((i > 0) && (i % 32)== 0)
+				printf("\nnum=%d\n",i/32);
+				p++;
+		}
+		printf("\n");
+#endif
+
 
 err:
 	return ret;
@@ -1166,6 +1212,7 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 	printf("\n");
 #endif
 
+#if 0
 	while (pos--) {
 		for (i = 0; i < hdmi_dev->vic_pos; i++) {
 			if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos].vic) {
@@ -1178,7 +1225,10 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 			break;
 		}
 	}
-
+#else
+	pos--;
+	hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
+#endif
 	printf("%s[%d]: pos = %d vic = %d\n", __func__, hdmi_dev->mode_len, pos, hdmi_dev->video.vic);
 }
 
