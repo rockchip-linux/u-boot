@@ -74,6 +74,7 @@ static key_config	key_remote;
 
 #ifdef CONFIG_OF_LIBFDT
 static struct fdt_gpio_state	gPowerKey;
+static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powerkey_gpio);
 #endif
 
 /*
@@ -208,6 +209,11 @@ void FastbootKeyInit(key_config *key)
 
 void PowerKeyInit(void)
 {
+#ifdef CONFIG_OF_LIBFDT
+	memset(&gPowerKey, 0, sizeof(struct fdt_gpio_state));
+	rkkey_parse_powerkey_dt(gd->fdt_blob, &gPowerKey);
+#endif
+
 	//power_hold_gpio.name
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	key_power.type = KEY_NULL;
@@ -215,10 +221,10 @@ void PowerKeyInit(void)
 #else
 	key_power.type = KEY_INT;
 	key_power.key.ioint.name = "power_key";
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	key_power.key.ioint.gpio = (GPIO_BANK0 | GPIO_A5);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
-	key_power.key.ioint.gpio = (GPIO_BANK1 | GPIO_A2);
+#ifdef CONFIG_OF_LIBFDT
+	key_power.key.ioint.gpio = gPowerKey.gpio;
+#else
+	key_power.key.ioint.gpio = INVALID_GPIO;
 #endif
 	key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key_power.key.ioint.pressed_state = 0;
@@ -259,7 +265,7 @@ int RemotectlInit(void)
 }
 #endif
 
-int power_hold(void)
+int rkkey_power_state(void)
 {
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	/* no power hold */
@@ -332,11 +338,6 @@ void key_init(void)
 	FastbootKeyInit(&key_fastboot);
 	RecoveryKeyInit(&key_recovery);
 	PowerKeyInit();
-#endif
-
-#ifdef CONFIG_OF_LIBFDT
-	memset(&gPowerKey, 0, sizeof(struct fdt_gpio_state));
-	rkkey_parse_powerkey_dt(gd->fdt_blob, &gPowerKey);
 #endif
 }
 

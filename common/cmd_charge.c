@@ -67,7 +67,7 @@
 #define DEF_CHARGE_DESC_PATH		"charge_anim_desc.txt"
 #define DEFAULT_ANIM_DELAY			80000 //us
 
-extern int power_hold(void);
+extern int rkkey_power_state(void);
 extern int is_charging(void);
 extern int pmic_charger_setting(int current);
 extern void rk_backlight_ctrl(int brightness);
@@ -103,7 +103,7 @@ int get_battery_capacity(void) {
 int power_key_pressed(void) {
 #ifdef CONFIG_INTERRUPT_KEY_DETECT
 	//see: ./board/rockchip/common/key.c
-	int power_pressed_state = power_hold();
+	int power_pressed_state = rkkey_power_state();
 	//printf("pressed state:%x\n", power_pressed_state);
 	if(power_pressed_state > 0) {
 		return KEY_SHORT_PRESSED;
@@ -113,7 +113,7 @@ int power_key_pressed(void) {
 	return KEY_NOT_PRESSED;
 #else
 	static unsigned int power_pressed_time = 0;
-	int power_pressed = power_hold();
+	int power_pressed = rkkey_power_state();
 	int power_pressed_state = KEY_NOT_PRESSED;
 	if (!power_pressed_time) {
 		//haven't pressed before.
