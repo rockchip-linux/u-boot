@@ -81,11 +81,7 @@ static int rt5025_parse_dt(const void* blob)
 		return ret;
 	}
 	
-	nd = fdt_get_regulator_node(blob, node);
-	if (nd < 0)
-		printf("%s: Cannot find regulators\n", __func__);
-	else
-		fdt_regulator_match(blob, nd, rt5025_reg_matches,
+	fdt_regulator_match(blob, parent, rt5025_reg_matches,
 					RT5025_NUM_REGULATORS);
 	
 	rt5025.pmic = pmic_alloc();
