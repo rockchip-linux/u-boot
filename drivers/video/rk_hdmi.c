@@ -116,12 +116,12 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev) 
 {
 	int i, ret = -1;
-    const disk_partition_t* ptn_baseparamer;
-    const disk_partition_t* ptn_deviceinfo;
+	const disk_partition_t* ptn_baseparamer;
+	const disk_partition_t* ptn_deviceinfo;
 	char deviceinfo_buf[8 * RK_BLK_SIZE];
 	char baseparamer_buf[8 * RK_BLK_SIZE];
 	char *p_deviceinfo = 0x68000000;
-    char *p_baseparamer = 0x68001000;
+	char *p_baseparamer = 0x68001000;
 	char *p = p_deviceinfo;
 
 	if (!hdmi_dev)
@@ -130,15 +130,9 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 	memset(p_deviceinfo, 0, 4096);
 	memset(p_baseparamer, 0, 4096);
 
-#ifdef CONFIG_RK_READ_DEVICEINFO
-
-#ifdef CONFIG_CMD_FASTBOOT
+#ifdef CONFIG_RK_DEVICEINFO
 	ptn_deviceinfo = get_disk_partition("deviceinfo");
-#else
-    //TODO: find disk_partition_t in other way.
-    ptn_deviceinfo = NULL;
-#endif
-    if (ptn_deviceinfo)
+	if (ptn_deviceinfo)
 	{
 		if (StorageReadLba(ptn_deviceinfo->start, deviceinfo_buf, 8) < 0)
 		{
@@ -147,17 +141,11 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 		}
 
 		memcpy(p_deviceinfo, deviceinfo_buf, sizeof(deviceinfo_buf));
-    }
-
+	}
 #endif
 
-#ifdef CONFIG_CMD_FASTBOOT
-    ptn_baseparamer = get_disk_partition("baseparamer");
-#else
-    //TODO: find disk_partition_t in other way.
-    ptn_baseparamer = NULL;
-#endif
-    if (ptn_baseparamer)
+	ptn_baseparamer = get_disk_partition("baseparamer");
+	if (ptn_baseparamer)
 	{
 		if (StorageReadLba(ptn_baseparamer->start, baseparamer_buf, 8) < 0)
 		{
@@ -168,10 +156,10 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 		memcpy(p_baseparamer, baseparamer_buf, sizeof(baseparamer_buf));
 
 		memcpy(&hdmi_dev->base_paramer.xres, &baseparamer_buf[0], sizeof(hdmi_dev->base_paramer.xres));
-	    memcpy(&hdmi_dev->base_paramer.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer.yres));
-	    memcpy(&hdmi_dev->base_paramer.width, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer.width));
-	    memcpy(&hdmi_dev->base_paramer.height, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer.height));
-	    memcpy(&hdmi_dev->base_paramer.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer.refresh));
+		memcpy(&hdmi_dev->base_paramer.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer.yres));
+		memcpy(&hdmi_dev->base_paramer.width, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer.width));
+		memcpy(&hdmi_dev->base_paramer.height, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer.height));
+		memcpy(&hdmi_dev->base_paramer.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer.refresh));
 
 		printf("baseparamer %dx%d@%d\n", hdmi_dev->base_paramer.xres, hdmi_dev->base_paramer.yres, hdmi_dev->base_paramer.refresh);
 
