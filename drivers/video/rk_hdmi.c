@@ -120,8 +120,8 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 	const disk_partition_t* ptn_deviceinfo;
 	char deviceinfo_buf[8 * RK_BLK_SIZE];
 	char baseparamer_buf[8 * RK_BLK_SIZE];
-	char *p_deviceinfo = 0x68000000;
-	char *p_baseparamer = 0x68001000;
+	char *p_deviceinfo = CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE;
+	char *p_baseparamer =  CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000;//4K
 	char *p = p_deviceinfo;
 
 	if (!hdmi_dev)
@@ -1214,7 +1214,7 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 		}
 	}
 #else
-	pos--;
+	if(pos--)
 	hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
 #endif
 	printf("%s[%d]: pos = %d vic = %d\n", __func__, hdmi_dev->mode_len, pos, hdmi_dev->video.vic);
