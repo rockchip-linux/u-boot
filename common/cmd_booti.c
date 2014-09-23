@@ -243,6 +243,21 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				!strcmp(boot_source, RECOVERY_NAME));
 		//printf("board cmdline:\n%s\n", command_line);
 #endif
+		// Storage Media Name
+		uint32 media = StorageGetBootMedia();
+		char *medianame = NULL;
+		if (media == BOOT_FROM_FLASH) {
+			medianame = "nand";
+		} else if (media == BOOT_FROM_EMMC) {
+			medianame = "emmc";
+		} else if (media == BOOT_FROM_SD0) {
+			medianame = "sd";
+		}
+
+		if (medianame != NULL) {
+			snprintf(command_line, sizeof(command_line),
+					"%s storagemedia=%s", command_line, medianame);
+		}
 
 #ifdef CONFIG_RK_SDCARD_BOOT_EN
 		if (StorageSDCardUpdateMode() != 0) { // sd ¿¨Éý¼¶£¬½øÈërecovery
