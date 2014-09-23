@@ -177,8 +177,8 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 
 		memcpy(&hdmi_dev->base_paramer.xres, &baseparamer_buf[0], sizeof(hdmi_dev->base_paramer.xres));
 		memcpy(&hdmi_dev->base_paramer.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer.yres));
-		memcpy(&hdmi_dev->base_paramer.width, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer.width));
-		memcpy(&hdmi_dev->base_paramer.height, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer.height));
+		memcpy(&hdmi_dev->base_paramer.interlaced, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer.interlaced));
+		memcpy(&hdmi_dev->base_paramer.vic, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer.vic));
 		memcpy(&hdmi_dev->base_paramer.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer.refresh));
 
 		printf("baseparamer %dx%d@%d\n", hdmi_dev->base_paramer.xres, hdmi_dev->base_paramer.yres, hdmi_dev->base_paramer.refresh);
@@ -186,7 +186,8 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 		for (i = 0; i < hdmi_dev->mode_len; i++) {
 			if (hdmi_dev->base_paramer.xres == hdmi_dev->modedb[i].mode.xres &&
 					hdmi_dev->base_paramer.yres == hdmi_dev->modedb[i].mode.yres &&
-					   hdmi_dev->base_paramer.refresh == hdmi_dev->modedb[i].mode.refresh)
+					   hdmi_dev->base_paramer.refresh == hdmi_dev->modedb[i].mode.refresh &&
+					    hdmi_dev->base_paramer.interlaced == hdmi_dev->modedb[i].mode.vmode)
 				break;
 		}
 

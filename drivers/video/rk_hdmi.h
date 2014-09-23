@@ -444,8 +444,8 @@ struct HW_BASE_PARAMETER
 {
     int xres;
     int yres;
-    int width;
-    int height;
+    int interlaced;
+    int vic;
     int refresh;
 };
 
