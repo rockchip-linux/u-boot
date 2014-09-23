@@ -69,7 +69,7 @@ static int rt5036_charger_setting(struct pmic *pmic,int current)
 
 	rt5036_chrg_done = rt5036_charger_done_det(pmic);
 	
-	printf("use usb chg %s iset1:0x%02x current %d chrg_done = %d\n",__func__,
+	debug("use usb chg %s iset1:0x%02x current %d chrg_done = %d\n",__func__,
 					i2c_reg_read(pmic->hw.i2c.addr, RT5036_REG_CHGCTL1),  current, rt5036_chrg_done);
 					
 	

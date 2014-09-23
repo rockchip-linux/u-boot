@@ -16,6 +16,7 @@ obj-$(CONFIG_POWER_TPS65910) += pmic_tps65910.o
 obj-$(CONFIG_POWER_RK808) += pmic_rk808.o
 obj-$(CONFIG_POWER_RK818) += pmic_rk818.o
 obj-$(CONFIG_POWER_ACT8846) += pmic_act8846.o
+obj-$(CONFIG_POWER_ACT8931) += pmic_act8931.o
 obj-$(CONFIG_POWER_RICOH619) += pmic_ricoh619.o
 obj-$(CONFIG_POWER_RT5025) += pmic_rt5025.o
 obj-$(CONFIG_POWER_RT5036) += pmic_rt5036.o
