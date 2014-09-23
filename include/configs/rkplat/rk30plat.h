@@ -235,6 +235,7 @@
 
 #define CONFIG_RK_PWM
 #define CONFIG_RK_FB
+#define CONFIG_RK_HDMI
 
 #define CONFIG_LCD_LOGO
 #define CONFIG_LCD_BMP_RLE8
