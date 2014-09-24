@@ -78,6 +78,9 @@ void rk_iomux_config(int iomux_id)
 		case RK_EMMC_IOMUX:
 			rk_emmc_iomux_config(iomux_id);
 			break;
+		case RK_HDMI_IOMUX:
+			rk_hdmi_iomux_config(iomux_id);
+			break;
 		default :
 			printf("RK have not this iomux id!\n");
 			break;

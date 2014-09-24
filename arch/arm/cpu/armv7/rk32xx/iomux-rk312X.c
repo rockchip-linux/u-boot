@@ -24,20 +24,24 @@
 #include <common.h>
 #include <asm/arch/rkplat.h>
 
+
 static void rk_pwm_iomux_config(int pwm_id)
 {
 	switch (pwm_id) {
 		case RK_PWM0_IOMUX:
-			grf_writel((1<<20)|(1<<4), GRF_GPIO0D_IOMUX);     
+			grf_writel((1<<20)|(1<<4), GRF_GPIO0D_IOMUX);
 			break;
 		case RK_PWM1_IOMUX:
-			grf_writel((1<<22)|(1<<6), GRF_GPIO0D_IOMUX); 
+			grf_writel((1<<22)|(1<<6), GRF_GPIO0D_IOMUX);
 			break;
 		case RK_PWM2_IOMUX:
 			grf_writel((1<<24)|(1<<8), GRF_GPIO0D_IOMUX); 
 			break;
+		case RK_PWM3_IOMUX:
+			grf_writel((1<<20)|(1<<4), GRF_GPIO3D_IOMUX);
+			break;
 		default :
-			debug("RK have not this pwm iomux id!\n");
+			debug("pwm id = %d iomux error!\n", pwm_id);
 			break;
 	}
 }
@@ -45,8 +49,8 @@ static void rk_pwm_iomux_config(int pwm_id)
 static void rk_i2c_iomux_config(int i2c_id)
 {
 	switch (i2c_id) {
-		case RK_I2C0_IOMUX: 
-			grf_writel((1<<18)|(1<<16)|(1<<2)|(1<<0), GRF_GPIO0A_IOMUX); 
+		case RK_I2C0_IOMUX:
+			grf_writel((1<<18)|(1<<16)|(1<<2)|(1<<0), GRF_GPIO0A_IOMUX);
 			break;
 		case RK_I2C1_IOMUX:
 			grf_writel((3<<22)|(1<<20)|(1<<6)|(1<<4), GRF_GPIO0A_IOMUX);
@@ -58,32 +62,31 @@ static void rk_i2c_iomux_config(int i2c_id)
 			grf_writel((3<<30)|(3<<28)|(1<<14)|(1<<12), GRF_GPIO0A_IOMUX);
 			break;
 		default :
-			debug("RK have not this i2c iomux id!\n");
-			break;		  
+			debug("i2c id = %d iomux error!\n", i2c_id);
+			break;
 	}
 }
 
 static void rk_lcdc_iomux_config(int lcd_id)
 {
 	switch (lcd_id) {
-		case RK_LCDC0_IOMUX: 
+		case RK_LCDC0_IOMUX:
 			grf_writel(0x00550055, GRF_GPIO2B_IOMUX);  //lcdc0 iomux
 			break;
 		default :
-			debug("RK have not this lcdc iomux id!\n");
-		break;    
+			debug("lcdc id = %d iomux error!\n", lcd_id);
+			break;
 	}
 }
-
 
 static void rk_spi_iomux_config(int spi_id)
 {
 	switch (spi_id) {
 		case RK_SPI0_CS0_IOMUX:
-			grf_writel((3<<28)|(3<<26)|(3<<22)|(3<<18)|(2<<12)|(2<<10)|(2<<6)|(2<<2), GRF_GPIO0B_IOMUX); 
+			grf_writel((3<<28)|(3<<26)|(3<<22)|(3<<18)|(2<<12)|(2<<10)|(2<<6)|(2<<2), GRF_GPIO0B_IOMUX);
 			break;
 		default :
-			debug("RK have not this spi iomux id!\n");
+			debug("spi id = %d iomux error!\n", spi_id);
 			break;
 	}
 }
@@ -92,17 +95,17 @@ static void rk_uart_iomux_config(int uart_id)
 {
 	switch (uart_id) {
 		case RK_UART0_IOMUX:
-			grf_writel((3<<22)|(3<<20)|(2<<6)|(2<<4), GRF_GPIO2D_IOMUX); 
+			grf_writel((3<<22)|(3<<20)|(2<<6)|(2<<4), GRF_GPIO2D_IOMUX);
 			break;
 		case RK_UART1_IOMUX:
-			grf_writel((3<<20)|(3<<18)|(2<<4)|(2<<2), GRF_GPIO1B_IOMUX); 
+			grf_writel((3<<20)|(3<<18)|(2<<4)|(2<<2), GRF_GPIO1B_IOMUX);
 			break;
 		case RK_UART2_IOMUX:
-			grf_writel((3<<22)|(3<<20)|(2<<6)|(2<<4), GRF_GPIO1C_IOMUX); 
+			grf_writel((3<<22)|(3<<20)|(2<<6)|(2<<4), GRF_GPIO1C_IOMUX);
 			break;
 		default:
-			debug("RK have not this uart iomux id!\n");
-			break;		 
+			debug("uart id = %d iomux error!\n", uart_id);
+			break;
 	}
 }
 
@@ -117,7 +120,24 @@ static void rk_emmc_iomux_config(int emmc_id)
 			grf_writel((3<<18) | (3<<26) | (3<<30) | (2<<2) | (2<<10) | (2<<14), GRF_GPIO2A_IOMUX);
 			break;
 		default:
-			debug("RK have not this emmc iomux id!\n");
+			debug("emmc id = %d iomux error!\n", emmc_id);
+			break;
+	}
+}
+
+static void rk_hdmi_iomux_config(int hdmi_id)
+{
+	switch (hdmi_id) {
+		case RK_HDMI_IOMUX:
+			/*iomux scl/ada/*/
+			grf_writel((0xa000 | (0xa000 << 16)), GRF_GPIO0A_IOMUX);
+			/*iomux hpd*/
+			grf_writel((0x4000 | (0x4000 << 16)), GRF_GPIO0B_IOMUX);
+			/*iomux cec*/
+			grf_writel((0x0100 | (0x0100 << 16)), GRF_GPIO0C_IOMUX);
+			break;
+		default:
+			debug("hdmi id = %d iomux error!\n", hdmi_id);
 			break;
 	}
 }
