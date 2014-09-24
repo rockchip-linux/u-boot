@@ -13,7 +13,7 @@ drivers/video/rockchip/transmitter/rk32_mipi_dsi.h
 
 #define RK3288_GRF_SOC_CON6             GRF_SOC_CON6
 #define RK3288_GRF_SOC_CON14            GRF_SOC_CON14
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126)
+#elif ((CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128))
 #define RK_GRF_VIRT			RKIO_GRF_PHYS
 #define RK312x_CRU_PHYS			RKIO_CRU_PHYS
 

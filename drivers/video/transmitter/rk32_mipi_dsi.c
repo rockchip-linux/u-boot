@@ -149,7 +149,7 @@ int rk32_mipi_dsi_clk_disable(struct dsi *dsi)
 	writel(val, RK3288_CRU_PHYS + 0x174); /*24M*/
 	return 0;
 }
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126)
+#elif ((CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128))
 #define cpu_is_rk3288() 0
 #define cpu_is_rk312x() 1
 
