@@ -77,6 +77,7 @@ static struct fdt_gpio_state	gPowerKey;
 static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powerkey_gpio);
 #endif
 
+
 /*
     固定GPIOA_0口作为烧写检测口,系统部分不能使用该口
 */
@@ -150,6 +151,23 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 		*boot_fastboot = 1;
 		//printf("fastboot key is pressed\n");
 	}
+
+#if defined(CONFIG_RK_PWM_REMOTE)
+#if 0 /* 0: no need delay */
+	int i, ir_keycode = 0;
+	extern int g_ir_keycode;
+
+	for(i=0; i<1000; i++)
+	{
+		ir_keycode = g_ir_keycode;
+		if(ir_keycode != 0) {
+			break;
+		}
+		udelay(1000);
+	}
+	printf("%s: delay %dus\n", __func__, i*1000);
+#endif
+#endif
 
 	return 0;
 }
@@ -242,21 +260,31 @@ extern unsigned int rkclk_get_pwm_clk(uint32 pwm_id);
 
 int RemotectlInit(void)
 {
-	int i = 0;
 	key_remote.type = KYE_REMOTE;
 	key_remote.key.ioint.name = NULL;
 	key_remote.key.ioint.gpio = (GPIO_BANK0 | GPIO_D3);
 	key_remote.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key_remote.key.ioint.pressed_state = 0;
 	key_remote.key.ioint.press_time = 0;
-	
+
 	remotectlInitInDriver();
 	rk_iomux_config(RK_PWM3_IOMUX);
 	//install the irq hander for PWM irq.
 	irq_install_handler(IRQ_PWM, remotectl_do_something, NULL);
 	irq_handler_enable(IRQ_PWM);
+
 	return 0;
 }
+
+int RemotectlDeInit(void)
+{
+	//uninstall and disable PWM irq.
+	irq_uninstall_handler(IRQ_PWM);
+	irq_handler_disable(IRQ_PWM);
+
+	return 0;
+}
+
 #endif
 
 int rkkey_power_state(void)
@@ -314,10 +342,6 @@ struct fdt_gpio_state *rkkey_get_powerkey(void)
 
 void key_init(void)
 {
-#ifdef CONFIG_RK_PWM_REMOTE
-        RemotectlInit();
-#endif
-
 #if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
 	RockusbKeyInit(&key_rockusb);
 #else

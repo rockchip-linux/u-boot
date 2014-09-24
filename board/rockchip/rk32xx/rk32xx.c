@@ -36,8 +36,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-static int ir_keycode = 0;
-
 #ifdef CONFIG_OF_LIBFDT
 extern int rk_fb_parse_dt(const void *blob);
 
@@ -246,21 +244,20 @@ int arch_early_init_r(void)
 }
 #endif
 
-#ifdef CONFIG_RK_PWM_REMOTE
-extern int g_ir_keycode;
-#endif
 
 #ifdef CONFIG_BOARD_LATE_INIT
 extern char bootloader_ver[24];
 int board_late_init(void)
 {
-	int i = 0;
-
 	debug("board_late_init\n");
 #if (CONFIG_BOOTDELAY > 0)
 	setenv("bootdelay", simple_itoa(CONFIG_BOOTDELAY));
 #endif
 	load_disk_partitions();
+
+#ifdef CONFIG_RK_PWM_REMOTE
+        RemotectlInit();
+#endif
 	prepare_fdt();
 	key_init();
 #ifdef CONFIG_POWER_RK
@@ -279,16 +276,6 @@ int board_late_init(void)
 		printf("\n#Boot ver: %s\n", bootloader_ver);
 	}
 
-#if defined(CONFIG_RK_PWM_REMOTE)
-	ir_keycode = g_ir_keycode;
-	for(i=0; i<1000; i++)
-	{
-		udelay(1000);
-		if(ir_keycode != 0)
-		break;
-	}
-	printf("%s:delay %dus\n",__func__, i*1000);
-#endif
 	char tmp_buf[30];
 	if (getSn(tmp_buf)) {
 		tmp_buf[sizeof(tmp_buf)-1] = 0;

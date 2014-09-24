@@ -40,10 +40,10 @@ extern int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 static int g_cold_boot = 0;
 
-static int ir_keycode = 0;
 #if defined(CONFIG_RK_PWM_REMOTE)
 extern int g_ir_keycode;
 #endif
+
 #if !defined(CONFIG_FASTBOOT_NO_FORMAT)
 static int do_format(void)
 {
@@ -212,12 +212,13 @@ int board_fbt_key_pressed(void)
 	int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
 	enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
 	int vbus = GetVbus();
-
-	#if defined(CONFIG_RK_PWM_REMOTE)
-	ir_keycode = g_ir_keycode;
-	#endif
+	int ir_keycode = 0;
 
 	checkKey((uint32 *)&boot_rockusb, (uint32 *)&boot_recovery, (uint32 *)&boot_fastboot);
+#if defined(CONFIG_RK_PWM_REMOTE)
+	ir_keycode = g_ir_keycode;
+	RemotectlDeInit();
+#endif
 	printf("vbus = %d\n", vbus);
 	if((boot_recovery && (vbus==0)) || (ir_keycode  == KEY_POWER)) {
 		printf("recovery key pressed.\n");
@@ -236,7 +237,10 @@ int board_fbt_key_pressed(void)
 		printf("recovery wipe data key pressed.\n");
 		frt = FASTBOOT_REBOOT_RECOVERY_WIPE_DATA;
 	}
-	printf("%s:ir_keycode=0x%x,frt=%d\n",__func__, ir_keycode, frt);
+
+#if defined(CONFIG_RK_PWM_REMOTE)
+	printf("%s: ir_keycode = 0x%x, frt = %d\n", __func__, ir_keycode, frt);
+#endif
 
 	return frt;
 }

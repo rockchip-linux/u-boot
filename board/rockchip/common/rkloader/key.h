@@ -87,5 +87,10 @@ void powerOff(void);
 struct fdt_gpio_state *rkkey_get_powerkey(void);
 #endif
 
+#ifdef CONFIG_RK_PWM_REMOTE
+int RemotectlInit(void);
+int RemotectlDeInit(void);
+#endif
+
 #endif /* __KEY_H__ */
 
