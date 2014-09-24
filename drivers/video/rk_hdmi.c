@@ -129,6 +129,7 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 }
 #endif
 
+DECLARE_GLOBAL_DATA_PTR;
 
 /*
  * return preset res position
@@ -143,6 +144,11 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 	char *p_deviceinfo = CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE;
 	char *p_baseparamer =  CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000;//4K
 	char *p = p_deviceinfo;
+	int deviceinfo_reserve_on = 0;
+	int size = 0;
+	int node = 0;
+	int len = 0;
+	int reg[2] = {0,0};
 
 	if (!hdmi_dev)
 		goto err;
@@ -151,6 +157,38 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 	memset(p_baseparamer, 0, 4096);
 
 #ifdef CONFIG_RK_DEVICEINFO
+	if (gd->fdt_blob)
+	{
+			node = fdt_node_offset_by_compatible(gd->fdt_blob,
+					0, "rockchip,deviceinfo");
+			if (node < 0) {
+				printf("can't find dts node for deviceinfo\n");
+				return -ENODEV;
+			}
+
+			if (!fdt_device_is_available(gd->fdt_blob, node)) {
+				printf("device deviceinfo is disabled\n");
+				return -EPERM;
+			}
+
+			deviceinfo_reserve_on = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-deviceinfo-on", 0);
+			if(deviceinfo_reserve_on)
+			{
+				if (fdtdec_get_int_array(gd->fdt_blob, node, "reg", reg, 2)) {
+					printf("Cannot decode reg\n");
+					return -EINVAL;
+				}
+
+				p_deviceinfo = reg[0];
+				size = reg[1];
+				p_baseparamer = p_deviceinfo + size / 2;
+
+				//printf("%s:deviceinfo_reserve_on=%d,reg[0]=0x%x,reg[1]=0x%x\n",__func__, deviceinfo_reserve_on, reg[0], reg[1]);
+				printf("%s:p_deviceinfo=0x%p,p_baseparamer=0x%p\n", __func__, p_deviceinfo, p_baseparamer);
+			}
+
+	}
+
 	ptn_deviceinfo = get_disk_partition("deviceinfo");
 	if (ptn_deviceinfo)
 	{
@@ -201,7 +239,18 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
     }
 	
 #if 0
-		for(i=0; i<4096*2; i++)
+		p = p_deviceinfo;
+		for(i=0; i<4096; i++)
+		{
+				printf("%x ",*p);
+				if((i > 0) && (i % 32)== 0)
+				printf("\nnum=%d\n",i/32);
+				p++;
+		}
+		printf("\n\n");
+
+		p = p_baseparamer;
+		for(i=0; i<4096; i++)
 		{
 				printf("%x ",*p);
 				if((i > 0) && (i % 32)== 0)
