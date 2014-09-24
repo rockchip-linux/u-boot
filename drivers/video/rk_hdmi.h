@@ -34,6 +34,12 @@ enum {
 	HDMI_SOURCE_LCDC1 = 1
 };
 
+enum {
+	HDMI_SOC_RK3036,
+	HDMI_SOC_RK312X,
+	HDMI_SOC_RK3288
+};
+
 typedef enum HDMI_EDID_ERRORCODE
 {
 	E_HDMI_EDID_SUCCESS = 0,
@@ -448,6 +454,10 @@ struct HW_BASE_PARAMETER
     int type;
     int refresh;
 };
+struct rk_hdmi_drvdata  {
+	u8 soc_type;
+	u32 reversed;
+};
 
 #define HDMI_VICDB_LEN 50
 struct hdmi_dev {
@@ -460,8 +470,9 @@ struct hdmi_dev {
 	unsigned char  colordepth;
     
 	//uboot
-    unsigned char  vicdb[HDMI_VICDB_LEN];
-    unsigned char  vic_pos;
+	unsigned char  vicdb[HDMI_VICDB_LEN];
+	unsigned char  vic_pos;
+	struct rk_hdmi_drvdata *data;
 
 	const struct hdmi_video_timing *modedb;
 	unsigned short mode_len;

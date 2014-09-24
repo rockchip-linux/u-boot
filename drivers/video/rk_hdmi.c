@@ -116,7 +116,7 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	panel->vl_hsp,
 	panel->vl_vsp,
 	panel->vl_bpix,
-    panel->vl_swap_rb,
+	panel->vl_swap_rb,
 
 	/* Panel infomation */
 	panel->vl_hspw,
@@ -1310,7 +1310,7 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 		g_hdmi_vic = hdmi_dev->video.vic;
 		//config lcdc panel
 #if defined(CONFIG_RK_FB)
-		hdmi_init_panel(hdmi_dev, panel);
+	hdmi_init_panel(hdmi_dev, panel);
 #endif
 	}
 }

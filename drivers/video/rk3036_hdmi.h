@@ -14,12 +14,41 @@ enum {
 	OUTPUT_HDMI
 };
 
+/* C0 C2 Change */
+enum {
+	C0_C2_CHANGE_ENABLE,	/* enable c0 c2 change*/
+	C0_C2_CHANGE_DISABLE	/* disable c0 c2 change*/
+};
+
+/* Auto CSC mode enable */
+enum {
+	AUTO_CSC_DISABLE,	/* disable auto csc*/
+	AUTO_CSC_ENABLE	/* enable auto csc*/
+};
+
+
+/* Color Limit Range */
+enum {
+	COLOR_LIMIT_RANGE_0_255,	/* Color Limit Range 0 To 255*/
+	COLOR_LIMIT_RANGE_16_235,	/* Color Limit Range 16 To 235*/
+};
+
+/* Color Space Convertion Mode */
+enum {
+	CSC_ITU601_16_235_TO_RGB_0_255_8BIT,	/* YCbCr 16-235 input to RGB 0-255 output according BT601 that is 8bit clolor depth */
+	CSC_ITU601_0_255_TO_RGB_0_255_8BIT,	/* YCbCr 0-255 input to RGB 0-255 output according BT601 that is 8bit clolor depth */
+	CSC_ITU709_16_235_TO_RGB_0_255_8BIT,	/* YCbCr 16-235 input to RGB 0-255 output according BT709 that is 8bit clolor depth */
+	CSC_RGB_0_255_TO_ITU601_16_235_8BIT,	/* RGB 0-255 input to YCbCr 16-235 output according BT601 that is 8bit clolor depth */
+	CSC_RGB_0_255_TO_ITU709_16_235_8BIT,	/* RGB 0-255 input to YCbCr 16-235 output accroding BT709 that is 8bit clolor depth */
+	CSC_RGB_0_255_TO_RGB_16_235_8BIT,	/* RGB 0-255 input to RGB 16-235 output that is 8bit clolor depth */
+};
+
 //#ifdef RK616_USE_MCLK_12M
 //#define HDMI_SYS_FREG_CLK        12000000
 //#else
 //#define HDMI_SYS_FREG_CLK        11289600
 //#endif
-
+#define AUTO_DEFINE_CSC 1
 #define HDMI_SYS_FREG_CLK        74250000
 
 #define HDMI_SCL_RATE            (100*1000)
@@ -66,13 +95,23 @@ enum {
 #define VIDEO_CONTRL2			0x02
 #define m_VIDEO_OUTPUT_FORMAT	(3 << 6)
 #define m_VIDEO_INPUT_BITS	(3 << 4)
-#define v_VIDEO_OUTPUT_FORMAT(n)(n << 6)
+#define m_VIDEO_INPUT_CSP	(1 << 0)
+#define v_VIDEO_OUTPUT_FORMAT(n)((n) << 6)
 #define v_VIDEO_INPUT_BITS(n)	(n << 4)
+#define v_VIDEO_INPUT_CSP(n)	(n << 0)
+
 enum {
 	VIDEO_INPUT_12BITS = 0,
 	VIDEO_INPUT_10BITS,
+	REVERT,
 	VIDEO_INPUT_8BITS
 };
+#define VIDEO_CONTRL			0x03
+#define m_VIDEO_AUTO_CSC	  (1 << 7)
+#define v_VIDEO_AUTO_CSC(n)	  (n << 7)
+#define m_VIDEO_C0_C2_EXCHANGE	  (1 << 0)
+#define v_VIDEO_C0_C2_EXCHANGE(n) (n << 0)
+
 #define VIDEO_CONTRL3			0x04
 #define m_SOF			(1 << 3)
 #define m_CSC			(1 << 0)
@@ -108,6 +147,8 @@ enum {
 #define VIDEO_EXT_VBLANK		0x13
 #define VIDEO_EXT_VDELAY		0x14
 #define VIDEO_EXT_VDURATION		0x15
+#define VIDEO_CSC_COEF			0x18
+
 
 #define AUDIO_CTRL1			0x35
 enum {

@@ -359,37 +359,46 @@ typedef volatile struct tagLCDC_REG
 #define v_VSYNC_END_F1(x) 		(((x)&0xfff)<<0)
 #define v_VSYNC_ST_F1(x) 		(((x)&0xfff)<<16)
 //#define DSP_VACT_ST_END_F1	(0x80)
+/* BCSH Registers */
+//#define BCSH_CTRL		(0xd0)
+#define m_BCSH_EN		BITS(1, 0)
+#define m_BCSH_R2Y_CSC_MODE     BITS(1, 1)       /* rk312x */
+#define m_BCSH_OUT_MODE		BITS(3, 2)
+#define m_BCSH_Y2R_CSC_MODE     BITS(3, 4)
+#define m_BCSH_Y2R_EN           BITS(1, 6)       /* rk312x */
+#define m_BCSH_R2Y_EN           BITS(1, 7)       /* rk312x */
 
-/*BCSH Registers*/
-//#define BCSH_COLOR_BAR 			(0xD0)
-#define v_BCSH_EN(x)			(((x)&1)<<0)
-#define v_BCSH_COLOR_BAR_Y(x)		(((x)&0x3ff)<<2)
-#define v_BCSH_COLOR_BAR_U(x)		(((x)&0x3ff)<<12)
-#define v_BCSH_COLOR_BAR_V(x)		(((x)&0x3ff)<<22)
+#define v_BCSH_EN(x)		BITS_MASK(x, 1, 0)
+#define v_BCSH_R2Y_CSC_MODE(x)  BITS_MASK(x, 1, 1)       /* rk312x */
+#define v_BCSH_OUT_MODE(x)	BITS_MASK(x, 3, 2)
+#define v_BCSH_Y2R_CSC_MODE(x)	BITS_MASK(x, 3, 4)
+#define v_BCSH_Y2R_EN(x)        BITS_MASK(x, 1, 6)       /* rk312x */
+#define v_BCSH_R2Y_EN(x)        BITS_MASK(x, 1, 7)       /* rk312x */
 
-#define m_BCSH_EN			(1<<0)
-#define m_BCSH_COLOR_BAR_Y		(0x3ff<<2)
-#define m_BCSH_COLOR_BAR_U		(0x3ff<<12)
-#define m_BCSH_COLOR_BAR_V		((u32)0x3ff<<22)
+//#define BCSH_COLOR_BAR 		(0xd4)
+#define m_BCSH_COLOR_BAR_Y      BITS(0xff, 0)
+#define m_BCSH_COLOR_BAR_U	BITS(0xff, 8)
+#define m_BCSH_COLOR_BAR_V	BITS(0xff, 16)
 
-//#define BCSH_BCS 			(0xD4)
-#define v_BCSH_BRIGHTNESS(x)		(((x)&0xff)<<0)	
-#define v_BCSH_CONTRAST(x)		(((x)&0x1ff)<<8)	
-#define v_BCSH_SAT_CON(x)		(((x)&0x3ff)<<20)	
-#define v_BCSH_OUT_MODE(x)		(((x)&0x3)<<30)	
+#define v_BCSH_COLOR_BAR_Y(x)	BITS_MASK(x, 0xff, 0)
+#define v_BCSH_COLOR_BAR_U(x)   BITS_MASK(x, 0xff, 8)
+#define v_BCSH_COLOR_BAR_V(x)   BITS_MASK(x, 0xff, 16)
 
-#define m_BCSH_BRIGHTNESS		(0xff<<0)	
-#define m_BCSH_CONTRAST			(0x1ff<<8)
-#define m_BCSH_SAT_CON			(0x3ff<<20)	
-#define m_BCSH_OUT_MODE			((u32)0x3<<30)	
+//#define BCSH_BCS 		(0xd8)
+#define m_BCSH_BRIGHTNESS	BITS(0x1f, 0)
+#define m_BCSH_CONTRAST		BITS(0xff, 8)
+#define m_BCSH_SAT_CON		BITS(0x1ff, 16)
 
+#define v_BCSH_BRIGHTNESS(x)	BITS_MASK(x, 0x1f, 0)
+#define v_BCSH_CONTRAST(x)	BITS_MASK(x, 0xff, 8)
+#define v_BCSH_SAT_CON(x)       BITS_MASK(x, 0x1ff, 16)
 
-//#define BCSH_H 				(0xD8)
-#define v_BCSH_SIN_HUE(x)		(((x)&0x1ff)<<0)
-#define v_BCSH_COS_HUE(x)		(((x)&0x1ff)<<16)
+//#define BCSH_H 			(0xdc)
+#define m_BCSH_SIN_HUE		BITS(0xff, 0)
+#define m_BCSH_COS_HUE		BITS(0xff, 8)
 
-#define m_BCSH_SIN_HUE			(0x1ff<<0)
-#define m_BCSH_COS_HUE			(0x1ff<<16)
+#define v_BCSH_SIN_HUE(x)	BITS_MASK(x, 0xff, 0)
+#define v_BCSH_COS_HUE(x)	BITS_MASK(x, 0xff, 8)
 
 /* Bus Register */
 //#define AXI_BUS_CTRL		(0x2C)
@@ -492,6 +501,19 @@ enum {
         LVDS_MSB_D0 = 0,
         LVDS_MSB_D7,
 };
+
+enum _vop_r2y_csc_mode {
+	VOP_R2Y_CSC_BT601 = 0,
+	VOP_R2Y_CSC_BT709
+};
+
+enum _vop_y2r_csc_mode {
+	VOP_Y2R_CSC_MPEG = 0,
+	VOP_Y2R_CSC_JPEG,
+	VOP_Y2R_CSC_HD,
+	VOP_Y2R_CSC_BYPASS
+};
+
 
 /* RK312X_GRF_SOC_CON1 */
 #define v_MIPITTL_CLK_EN(x)     (BITS_MASK(x, 1, 7) | BITS_EN(1, 7))
@@ -818,7 +840,22 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 		printf("%s --->unknow lay_id \n");
 		break;
 	}
-    	LCDC_REG_CFG_DONE();
+
+#if (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+	if ((vid->screen_type == SCREEN_HDMI) ||
+	   (vid->screen_type == SCREEN_TVOUT)) {
+		LcdWrReg(BCSH_COLOR_BAR,0x00);
+		LcdWrReg(BCSH_BCS,0x00808000);
+		LcdWrReg(BCSH_H,0x00008000);
+		LcdMskReg(BCSH_CTRL,
+		m_BCSH_R2Y_EN | m_BCSH_R2Y_CSC_MODE | m_BCSH_Y2R_EN | m_BCSH_EN | m_BCSH_OUT_MODE,
+		v_BCSH_R2Y_EN(1) | v_BCSH_R2Y_CSC_MODE(VOP_Y2R_CSC_MPEG) |
+		v_BCSH_Y2R_EN(0) | v_BCSH_EN(1) | v_BCSH_OUT_MODE(3));
+		LcdMskReg(DSP_CTRL1, m_BG_COLOR,v_BG_COLOR(0x800a80));
+	}
+#endif
+	LCDC_REG_CFG_DONE();
+	/*setenv("bootdelay", "3");*/
 }
 
 int rk30_load_screen(vidinfo_t *vid)
