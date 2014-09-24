@@ -165,6 +165,8 @@
 /*
  * rockchip Hardware drivers
  */
+//#define CONFIG_RK_IO_TOOL	/* rk io command tool */
+
 /* dma config */
 //#define CONFIG_RK_PL330		/* rk dma pl330 */
 //#define CONFIG_RK_DMAC		/* rk dmac */

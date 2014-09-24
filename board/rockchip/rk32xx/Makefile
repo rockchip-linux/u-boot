@@ -21,3 +21,4 @@
 #
 
 obj-y := $(BOARD).o
+obj-$(CONFIG_RK_IO_TOOL) += io_tool.o
