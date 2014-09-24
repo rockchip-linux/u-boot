@@ -255,7 +255,11 @@ extern char bootloader_ver[24];
 int board_late_init(void)
 {
 	int i = 0;
+
 	debug("board_late_init\n");
+#if (CONFIG_BOOTDELAY > 0)
+	setenv("bootdelay", simple_itoa(CONFIG_BOOTDELAY));
+#endif
 	load_disk_partitions();
 	prepare_fdt();
 	key_init();
