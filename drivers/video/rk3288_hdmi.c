@@ -212,13 +212,6 @@ static void hdmi_dev_init(struct hdmi_dev *hdmi_dev)
 {
 	int val;
 
-	//i2c_hdmi_sda GRF_GPIO7CL_IOMUX[13:12]=10
-	val = (0x2 << 12) | ((0x3 << 12) << 16);
-	grf_writel(val, GRF_GPIO7CL_IOMUX);
-	//i2c_hdmi_scl GRF_GPIO7CH_IOMUX[1:0]=10
-	val = (0x2 << 0) | ((0x3 << 0) << 16);
-	grf_writel(val, GRF_GPIO7CH_IOMUX); 
-
 	//lcdc source select
 	//grf_writel(HDMI_SEL_LCDC(0), GRF_SOC_CON6);	
 
@@ -728,7 +721,7 @@ static int rk32hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
 	int ret = -1;
 
-	printf("inital rk3288 hdmi hardware.\n");
+	HDMIDBG("inital rk3288 hdmi hardware.\n");
 
 	if (!hdmi_dev)
 		return ret;

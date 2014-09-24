@@ -445,7 +445,7 @@ struct HW_BASE_PARAMETER
     int xres;
     int yres;
     int interlaced;
-    int vic;
+    int type;
     int refresh;
 };
 

@@ -621,10 +621,6 @@ void rk3036_hdmi_probe(vidinfo_t *panel)
 	int val = 0;
 	struct hdmi_dev *hdmi_dev = NULL;
 
-	//iomux scl/ada/hpd/cec
-	val = (0x55 | (0x55 << 16));
-	grf_writel(val, GRF_GPIO1B_IOMUX); 
-
 	hdmi_dev = malloc(sizeof(struct hdmi_dev));
 	if (hdmi_dev != NULL && panel != NULL) {
 		memset(hdmi_dev, 0, sizeof(struct hdmi_dev));

@@ -251,13 +251,7 @@ int RemotectlInit(void)
 	key_remote.key.ioint.press_time = 0;
 	
 	remotectlInitInDriver();
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
-        //select gpio0d3_sel for pwm3(IR)
-        grf_writel(0x40 | (0x40 << 16), 0xb4);
-#elif  (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
-	//select gpio3d2_sel for pwm3_irin
-	grf_writel(0x08 | (0x08 << 16), 0xe4);
-#endif
+	rk_iomux_config(RK_PWM3_IOMUX);
 	//install the irq hander for PWM irq.
 	irq_install_handler(IRQ_PWM, remotectl_do_something, NULL);
 	irq_handler_enable(IRQ_PWM);
