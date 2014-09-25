@@ -177,11 +177,6 @@ int rk_fb_parse_dt(const void *blob)
 }
 #endif /* CONFIG_OF_LIBFDT */
 
-int lcd_get_size(int *line_length)
-{
-	// printf("rk %s\n",__func__);
-	return CONFIG_LCD_MAX_WIDTH * CONFIG_LCD_MAX_HEIGHT * 2;
-}
 
 extern int g_hdmi_noexit;
 

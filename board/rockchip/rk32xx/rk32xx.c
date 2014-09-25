@@ -133,7 +133,11 @@ void rk_fb_init(unsigned int onoff)
 
 
 vidinfo_t panel_info = {
-#ifndef CONFIG_OF_LIBFDT
+#ifdef CONFIG_OF_LIBFDT
+	.vl_col		= CONFIG_LCD_MAX_WIDTH,
+	.vl_row		= CONFIG_LCD_MAX_HEIGHT,
+	.vl_bpix	= 4,	/* Bits per pixel, 2^5 = 32 */
+#else
 	.lcd_face	= OUT_D888_P666,
 	.vl_freq	= 71000000,
 	.vl_col		= 1280,
