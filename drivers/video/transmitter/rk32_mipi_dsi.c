@@ -68,7 +68,7 @@
 #ifdef CONFIG_RK32_MIPI_DSI
 #define	MIPI_DBG(x...)	/* MIPI_DBG(KERN_INFO x) */
 #elif defined CONFIG_RK_3288_DSI
-#define	MIPI_DBG(x...)	/* printf( x) */
+#define	MIPI_DBG(x...)	/* */printf( x) 
 #else
 #define	MIPI_DBG(x...)  
 #endif
@@ -1828,7 +1828,12 @@ int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 	int node;
 	u32 mipi_regs[4];
 
-	node = fdtdec_next_compatible(blob, 0, COMPAT_ROCKCHIP_DSIHOST);
+	//node = fdtdec_next_compatible(blob, 0, COMPAT_ROCKCHIP_DSIHOST);
+	if (cpu_is_rk3288()) {
+		node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk32-dsi");
+	} else if(cpu_is_rk312x()) {
+		node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk312x-dsi");
+	}	
 	if(node<0) {
 		printf("mipi dts get node failed, node = %d.\n", node);
 		return -1;
@@ -1836,7 +1841,12 @@ int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 
 	do{
 		if(fdtdec_get_int(blob, node, "rockchip,prop", -1) != dsi->dsi_id){
-			node = fdtdec_next_compatible(blob, node, COMPAT_ROCKCHIP_DSIHOST);
+			//node = fdtdec_next_compatible(blob, node, COMPAT_ROCKCHIP_DSIHOST);
+			if (cpu_is_rk3288()) {
+				node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk32-dsi");
+			} else if(cpu_is_rk312x()) {
+				node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk312x-dsi");
+			}			
 			if(node<0) {
 				printf("mipi dts get node failed, node = %d.\n", node);
 				return -1;
