@@ -448,11 +448,12 @@ struct hdmi {
 
 struct HW_BASE_PARAMETER
 {
-    int xres;
-    int yres;
-    int interlaced;
-    int type;
-    int refresh;
+	int xres;
+	int yres;
+	int interlaced;
+	int type;
+	int refresh;
+	int reserve;
 };
 struct rk_hdmi_drvdata  {
 	u8 soc_type;

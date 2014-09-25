@@ -33,6 +33,9 @@
 short g_hdmi_vic = -1;
 //struct hdmi_dev *hdmi = NULL;
 
+//#define HDMIDEBUG
+
+
 static const struct hdmi_video_timing hdmi_mode [] = {
 		//name			refresh		xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw	polariry			                            PorI	flag	vic		2ndvic		               pixelrepeat	interface
 	{ { "720x480i@60Hz",    60,	    720,    480,    27000000,   57,     19,     15,     4,      62,     3,		0,				                                1,      0   },  6,      HDMI_720x480i_60HZ_16_9,    0,          OUT_P888},
@@ -1258,13 +1261,14 @@ err:
 
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
-	int i, pos;
+	int i = 0, pos = 0, pos_baseparamer = 0, pos_edid = 0, pos_default = 0;
 
-	pos = read_baseparamer_storage(hdmi_dev);
-	if (pos < 0)
+	pos_baseparamer = read_baseparamer_storage(hdmi_dev);
+	if (pos_baseparamer < 0)
+	{
 		pos = hdmi_dev->mode_len;
-	else
-		pos += 1;
+		pos_default = 8;
+	}
 
 #ifdef HDMIDEBUG
 	for (i = 0; i < hdmi_dev->vic_pos; i++) {
@@ -1273,24 +1277,40 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 	printf("\n");
 #endif
 
-#if 0
-	while (pos--) {
-		for (i = 0; i < hdmi_dev->vic_pos; i++) {
-			if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos].vic) {
-				break;
+	//baseparamer > edid > default
+	if(pos_baseparamer >= 0)
+	{
+		hdmi_dev->video.vic = hdmi_dev->modedb[pos_baseparamer].vic;		
+		printf("%s:use baseparamer config,pos_baseparamer=%d\n",__func__, pos_baseparamer);
+	}
+	else
+	{
+		if(hdmi_dev->vic_pos > 0)
+		{
+			while (pos--) {
+				for (i = 0; i < hdmi_dev->vic_pos; i++) {
+					if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos].vic) {
+						pos_edid = pos;
+						break;
+					}
+				}
+
+				if (i != hdmi_dev->vic_pos) {
+					hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
+					printf("%s:use edid config,pos_edid=%d\n",__func__, pos_edid);
+					break;
+				}
 			}
 		}
-
-		if (i != hdmi_dev->vic_pos) {
-			hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
-			break;
+		else
+		{
+			hdmi_dev->video.vic = hdmi_dev->modedb[pos_default].vic;
+			printf("%s:use default config,pos_default=%d\n",__func__, pos_default);
 		}
+	
 	}
-#else
-	if(pos--)
-	hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
-#endif
-	printf("%s[%d]: pos = %d vic = %d\n", __func__, hdmi_dev->mode_len, pos, hdmi_dev->video.vic);
+
+	printf("%s: baseparamer=%d edid = %d default=%d vic = %d\n", __func__, pos_baseparamer, pos_edid, pos_default, hdmi_dev->video.vic);
 }
 
 void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
