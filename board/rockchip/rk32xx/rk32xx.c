@@ -75,6 +75,7 @@ int rk_lcd_parse_dt(const void *blob)
 	int node;
 	int lcd_en_node, lcd_cs_node;
 
+	debug("%s: parse lcd control gpio.\n", __func__);
 	lcd_node = fdt_path_offset(blob, "lcdc1");
 	if (PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0)) {
 		printf("lcdc1 is the prmry lcd controller\n");
@@ -99,9 +100,11 @@ int rk_lcd_parse_dt(const void *blob)
 
 void rk_backlight_ctrl(int brightness)
 {
+	debug("%s.\n", __func__);
 #ifdef CONFIG_OF_LIBFDT
-	if (!lcd_node)
+	if (!lcd_node) {
 		rk_lcd_parse_dt(gd->fdt_blob);
+	}
 #endif
 #ifdef CONFIG_RK_PWM
 	rk_pwm_config(brightness);
@@ -111,11 +114,13 @@ void rk_backlight_ctrl(int brightness)
 
 void rk_fb_init(unsigned int onoff)
 {
-
+	debug("%s.\n", __func__);
 #ifdef CONFIG_OF_LIBFDT
-	if (lcd_node == 0) rk_lcd_parse_dt(gd->fdt_blob);
+	if (!lcd_node) {
+		rk_lcd_parse_dt(gd->fdt_blob);
+	}
 
-	if(onoff) {
+	if (onoff) {
 		if (lcd_en_gpio.name!=NULL) gpio_direction_output(lcd_en_gpio.gpio, lcd_en_gpio.flags);
 		mdelay(lcd_en_delay);
 		if (lcd_cs_gpio.name!=NULL) gpio_direction_output(lcd_cs_gpio.gpio, lcd_cs_gpio.flags);
@@ -175,7 +180,8 @@ void init_panel_info(vidinfo_t *vid)
 {
 	vid->logo_on	= 1;
 	vid->enable_ldo = rk_fb_init;
-	vid->backlight_on = NULL;//rk_backlight_ctrl;   //move backlight enable to fbt_preboot, for don't show logo in rockusb
+	/* move backlight enable to fbt_preboot, for don't show logo in rockusb */
+	vid->backlight_on = NULL; /* rk_backlight_ctrl; */
 	vid->logo_rgb_mode = RGB565;
 }
 
