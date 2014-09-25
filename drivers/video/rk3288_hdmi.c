@@ -534,9 +534,9 @@ static int hdmi_dev_config_vsi(struct hdmi_dev *hdmi_dev, unsigned char vic_3d, 
 	HDMIDBG("[%s] vic %d format %d.\n", __FUNCTION__, vic_3d, format);
         
 	hdmi_msk_reg(hdmi_dev, FC_DATAUTO0, m_VSD_AUTO, v_VSD_AUTO(0));
-	hdmi_writel(hdmi_dev, FC_VSDIEEEID0, id & 0xff);
+	hdmi_writel(hdmi_dev, FC_VSDIEEEID2, id & 0xff);
 	hdmi_writel(hdmi_dev, FC_VSDIEEEID1, (id >> 8) & 0xff);
-	hdmi_writel(hdmi_dev, FC_VSDIEEEID2, (id >> 16) & 0xff);
+	hdmi_writel(hdmi_dev, FC_VSDIEEEID0, (id >> 16) & 0xff);
 
 	data[0] = format << 5;	//PB4 --HDMI_Video_Format
 	switch(format)
@@ -558,13 +558,16 @@ static int hdmi_dev_config_vsi(struct hdmi_dev *hdmi_dev, unsigned char vic_3d, 
 	for (i = 0; i < 3; i++) {
 		hdmi_writel(hdmi_dev, FC_VSDPAYLOAD0 + i, data[i]);
 	}
-
-//	if (auto_send) {
-		hdmi_msk_reg(hdmi_dev, FC_DATAUTO0, m_VSD_AUTO, v_VSD_AUTO(1));
-//	}
-//	else {
-//		hdmi_msk_reg(hdmi_dev, FC_DATMAN, m_VSD_MAN, v_VSD_MAN(1));
-//	}
+	hdmi_writel(hdmi_dev, FC_VSDSIZE, 0x6);
+/*	if (auto_send) { */
+	hdmi_writel(hdmi_dev, FC_DATAUTO1, 1);
+	hdmi_writel(hdmi_dev, FC_DATAUTO2, 0x11);
+	hdmi_msk_reg(hdmi_dev, FC_DATAUTO0, m_VSD_AUTO, v_VSD_AUTO(1));
+/*	}
+	else {
+		hdmi_msk_reg(hdmi_dev, FC_DATMAN, m_VSD_MAN, v_VSD_MAN(1));
+	}
+*/
 
 	return 0;
 }
@@ -650,6 +653,7 @@ static int rk3288_hdmi_config_phy(struct hdmi_dev *hdmi_dev)
 
 static int hdmi_dev_config_video(struct hdmi_dev *hdmi_dev, struct hdmi_video *vpara)
 {
+	int vic;
 	HDMIDBG("%s vic %d 3dformat %d\n", __FUNCTION__, vpara->vic, vpara->format_3d);
 		
 	// force output blue
@@ -671,8 +675,8 @@ static int hdmi_dev_config_video(struct hdmi_dev *hdmi_dev, struct hdmi_video *v
 			hdmi_dev_config_vsi(hdmi_dev, vpara->format_3d, HDMI_VIDEO_FORMAT_3D);
 		#ifndef HDMI_VERSION_2
 		else if ((vpara->vic > 92 && vpara->vic < 96) || (vpara->vic == 98)) {
-			vpara->vic = (vpara->vic == 98) ? 4 : (96 - vpara->vic);
-			hdmi_dev_config_vsi(hdmi_dev, vpara->vic, HDMI_VIDEO_FORMAT_4Kx2K);
+			vic = (vpara->vic == 98) ? 4 : (96 - vpara->vic);
+			hdmi_dev_config_vsi(hdmi_dev, vic, HDMI_VIDEO_FORMAT_4Kx2K);
 		}
 		#endif
 		else
