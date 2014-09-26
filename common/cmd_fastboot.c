@@ -1862,11 +1862,6 @@ void fbt_preboot(void)
 		}
 	}
 
-#ifdef CONFIG_RK616
-	rk616_init(CONFIG_RK616_LCD_CHN);
-#endif
-
-
 #ifdef CONFIG_UBOOT_CHARGE
 	//check charge mode when no key pressed.
 	int cold_boot = board_fbt_is_cold_boot();

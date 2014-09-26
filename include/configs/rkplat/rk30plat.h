@@ -266,15 +266,6 @@
 #define CONFIG_RK_3288_DSI
 #endif
 
-
-/*rk616 config*/
-//#define CONFIG_RK616
-#ifdef CONFIG_RK616
-	#define CONFIG_RK616_LVDS //lvds or mipi
-	#define CONFIG_RK616_LCD_CHN 0
-#endif /* CONFIG_RK616 */
-
-
 #endif /* CONFIG_LCD */
 
 
