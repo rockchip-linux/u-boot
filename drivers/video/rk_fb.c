@@ -139,13 +139,13 @@ int rk_fb_parse_dt(const void *blob)
 		panel_info.vl_hfpd = 18;
 	}
 
-	panel_info.vl_hbpd = (u_char)fdtdec_get_int(blob, node,	"hback-porch", 0);
+	panel_info.vl_hbpd = fdtdec_get_int(blob, node,	"hback-porch", 0);
 	if (panel_info.vl_hbpd == 0) {
 		debug("Can't get hback-porch use 100 to default\n");
 		panel_info.vl_hbpd = 100;
 	}
 
- 	panel_info.vl_vspw = (u_char)fdtdec_get_int(blob, node, "vsync-len", 0);
+	panel_info.vl_vspw = fdtdec_get_int(blob, node, "vsync-len", 0);
 	if (panel_info.vl_vspw == 0) {
 		debug("Can't get vsync-len, use 2 to default\n");
 		panel_info.vl_vspw = 2;
