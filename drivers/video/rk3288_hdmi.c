@@ -35,7 +35,8 @@ static const struct phy_mpll_config_tab PHY_MPLL_TABLE[] = {
 	{27000000,	0,	10,	1,	0,	0,	5,	1,	0,	3,	3,	0,	0},
 	{27000000,	0,	12,	2,	0,	0,	3,	3,	0,	3,	3,	0,	0},
 	{27000000,	0,	16,	3,	0,	0,	2,	3,	0,	2,	5,	0,	1},
-	{74250000, 	0,	8, 	0,	0,	0, 	1, 	3,	0,	2,	5,	0, 	1},
+	{74250000,	0,	8,	0,	0,	0,	4,	3,	3,	2,	7,	0,	3},
+//	{74250000, 	0,	8, 	0,	0,	0, 	1, 	3,	0,	2,	5,	0, 	1},
 	{74250000,	0,	10,	1,	0,	0,	5,	0,	1,	1,	7,	0,	2},
 	{74250000,	0,	12,	2,	0,	0,	1,	2,	0,	1,	7,	0,	2},
 	{74250000,	0,	16,	3,	0,	0,	1,	3,	0,	1,	7,	0,	2},
@@ -280,10 +281,12 @@ static int rk3288_hdmi_video_frameComposer(struct hdmi_dev *hdmi_dev, struct hdm
 		vpara->color_output_depth = 8;
 		hdmi_dev->tmdsclk = mode->pixclock;
 	}
+	printf("tmdsclk is %d\n", hdmi_dev->tmdsclk);
 	hdmi_dev->pixelclk = mode->pixclock;
 	hdmi_dev->pixelrepeat = timing->pixelrepeat;
 	hdmi_dev->colordepth = vpara->color_output_depth;
-
+	vsync_pol = timing->mode.sync & FB_SYNC_HOR_HIGH_ACT;
+	hsync_pol = timing->mode.sync & FB_SYNC_VERT_HIGH_ACT;
 	hdmi_msk_reg(hdmi_dev, A_HDCPCFG0, m_ENCRYPT_BYPASS | m_HDMI_DVI,
 		v_ENCRYPT_BYPASS(1) | v_HDMI_DVI(vpara->sink_hdmi));	//cfg to bypass hdcp data encrypt
 	hdmi_msk_reg(hdmi_dev, FC_INVIDCONF, m_FC_VSYNC_POL | m_FC_HSYNC_POL | m_FC_DE_POL | m_FC_HDMI_DVI | m_FC_INTERLACE_MODE,
@@ -693,10 +696,10 @@ static int hdmi_dev_config_video(struct hdmi_dev *hdmi_dev, struct hdmi_video *v
 static int hdmi_dev_control_output(struct hdmi_dev *hdmi_dev, int enable)
 {
 	if(enable == HDMI_AV_UNMUTE) {
-		hdmi_msk_reg(hdmi_dev, AUD_CONF0, m_SW_AUD_FIFO_RST, v_SW_AUD_FIFO_RST(1));
-		hdmi_writel(hdmi_dev, MC_SWRSTZREQ, 0xF7);
-		//unmute audio
-		hdmi_msk_reg(hdmi_dev, FC_AUDSCONF, m_AUD_PACK_SAMPFIT, v_AUD_PACK_SAMPFIT(0));
+//		hdmi_msk_reg(hdmi_dev, AUD_CONF0, m_SW_AUD_FIFO_RST, v_SW_AUD_FIFO_RST(1));
+//		hdmi_writel(hdmi_dev, MC_SWRSTZREQ, 0xF7);
+//		//unmute audio
+//		hdmi_msk_reg(hdmi_dev, FC_AUDSCONF, m_AUD_PACK_SAMPFIT, v_AUD_PACK_SAMPFIT(0));
 		hdmi_writel(hdmi_dev, FC_DBGFORCE, 0x00);
 	} else {
 		if(enable & HDMI_VIDEO_MUTE) {
@@ -715,7 +718,7 @@ static int hdmi_dev_insert(struct hdmi_dev *hdmi_dev)
 	HDMIDBG("%s\n", __FUNCTION__);
     hdmi_writel(hdmi_dev, MC_CLKDIS, 0x0);
     //mute audio
-	hdmi_msk_reg(hdmi_dev, FC_AUDSCONF, m_AUD_PACK_SAMPFIT, v_AUD_PACK_SAMPFIT(0x0F));
+//	hdmi_msk_reg(hdmi_dev, FC_AUDSCONF, m_AUD_PACK_SAMPFIT, v_AUD_PACK_SAMPFIT(0x0F));
 
     return HDMI_ERROR_SUCESS;
 }
@@ -734,8 +737,8 @@ static int rk32hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 	hdmi_dev->video.sink_hdmi = OUTPUT_HDMI;
 	hdmi_dev->video.format_3d = HDMI_3D_NONE;
 
-	hdmi_dev->video.color_output = HDMI_COLOR_RGB_16_235;
-	hdmi_dev->video.color_output_depth = 10;
+	hdmi_dev->video.color_output = HDMI_COLOR_RGB_0_255;
+	hdmi_dev->video.color_output_depth = 8;
 	
 
 	hdmi_dev_init(hdmi_dev);	
