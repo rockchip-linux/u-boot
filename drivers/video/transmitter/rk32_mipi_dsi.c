@@ -27,7 +27,6 @@
 #define DWC_DSI_VERSION_RK312x		0x3132312A
 #define DWC_DSI_VERSION_ERR		-1
 
-#ifdef CONFIG_RK_3288_DSI
 #include <asm/io.h>
 #include <errno.h>
 #include <lcd.h>
@@ -42,29 +41,7 @@
 #include <linux/fb.h>
 #include <linux/rk_screen.h>
 #include <malloc.h>
-#else
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/platform_device.h>
-#include <linux/slab.h>
-#include <linux/rk_fb.h>
-#include <linux/rk_screen.h>
-#include <linux/delay.h>
-#include <linux/clk.h>
-#include <linux/interrupt.h>
-#include <asm/div64.h>
 
-#include <linux/fs.h>
-#include <linux/debugfs.h>
-#include <linux/seq_file.h>
-#include <linux/regulator/machine.h>
-
-#include <linux/dma-mapping.h>
-#include "mipi_dsi.h"
-#include "rk32_mipi_dsi.h"
-#include <linux/rockchip/iomap.h>
-#include <linux/rockchip/cpu.h>
-#endif
 #ifdef CONFIG_RK32_MIPI_DSI
 #define	MIPI_DBG(x...)	/* MIPI_DBG(KERN_INFO x) */
 #elif defined CONFIG_RK_3288_DSI
@@ -73,17 +50,13 @@
 #define	MIPI_DBG(x...)  
 #endif
 
-#ifdef CONFIG_MIPI_DSI_LINUX
-#define	MIPI_TRACE(x...)	/* MIPI_DBG(KERN_INFO x) */
-#else
+
 #define	MIPI_TRACE(...)    \
 	do\
 	{\
 		printf(__VA_ARGS__);\
 		printf("\n");\
 	}while(0);
-	
-#endif
 
 /*
 *			 Driver Version Note
@@ -105,7 +78,6 @@ static int rk32_mipi_dsi_enable_command_mode(void *arg, u32 enable);
 static int rk32_mipi_dsi_is_enable(void *arg, u32 enable);
 int rk_mipi_screen_standby(u8 enable);
 
-#ifdef CONFIG_RK_3288_DSI
 DECLARE_GLOBAL_DATA_PTR;
 extern int rk_mipi_screen_probe(void);
 extern void writel_relaxed(uint32 val, uint32 addr);
@@ -184,9 +156,6 @@ int rk32_mipi_dsi_clk_disable(struct dsi *dsi)
 	#error "rk32_mipi_dsi_clk_enable/disable lossing!"
 #endif
 
-
-
-#endif
 static int rk32_dsi_read_reg(struct dsi *dsi, u16 reg, u32 *pval)
 {
 	if (cpu_is_rk3288()) {
@@ -297,13 +266,7 @@ static int rk32_dwc_phy_test_wr(struct dsi *dsi, unsigned char test_code, unsign
 static int rk32_phy_power_up(struct dsi *dsi)
 {
     //enable ref clock
-    #ifdef CONFIG_RK_3288_DSI
     rk32_mipi_dsi_clk_enable(dsi);
-    #else
-    clk_prepare_enable(dsi->phy.refclk); 
-    clk_prepare_enable(dsi->dsi_pclk);
-    clk_prepare_enable(dsi->dsi_pd);
-    #endif
     udelay(10);
 
 	switch(dsi->host.lane) {
@@ -339,15 +302,8 @@ static void rk312x_mipi_dsi_set_hs_clk(struct dsi *dsi)
 static int rk312x_phy_power_up(struct dsi *dsi)
 {
 	/* enable ref clock */
-#ifdef CONFIG_RK_3288_DSI
 	rk312x_mipi_dsi_set_hs_clk(dsi);
 	rk32_mipi_dsi_clk_enable(dsi);
-#else
-	rk312x_mipi_dsi_set_hs_clk(dsi);
-	clk_prepare_enable(dsi->phy.refclk);
-	clk_prepare_enable(dsi->dsi_pclk);
-	/* clk_prepare_enable(dsi->dsi_pd); */
-#endif
 	udelay(10);
 
 	rk32_dsi_set_bits(dsi, 0xe4, DPHY_REGISTER1);
@@ -390,28 +346,13 @@ static int rk_phy_power_up(struct dsi *dsi)
 static int rk32_phy_power_down(struct dsi *dsi)
 {
     rk32_dsi_set_bits(dsi, 0, phy_shutdownz);
-#ifdef CONFIG_RK_3288_DSI
 	rk32_mipi_dsi_clk_disable(dsi);
-#else
-    clk_disable_unprepare(dsi->phy.refclk);
-    clk_disable_unprepare(dsi->dsi_pclk);
-    clk_disable_unprepare(dsi->dsi_pd);
-#endif
     return 0;
 }
 
 static int rk312x_phy_power_down(struct dsi *dsi)
 {
-#ifdef CONFIG_RK_3288_DSI
     rk32_mipi_dsi_clk_disable(dsi);
-#else
-    rk32_dsi_set_bits(dsi, 0x01, DPHY_REGISTER0);
-    rk32_dsi_set_bits(dsi, 0xe3, DPHY_REGISTER1);
-
-	clk_disable_unprepare(dsi->phy.refclk);
-    clk_disable_unprepare(dsi->dsi_pclk);
-	/* clk_disable_unprepare(dsi->dsi_pd); */
-#endif
     return 0;
 }
 
@@ -1041,17 +982,9 @@ static int rk_mipi_dsi_init(void *arg, u32 n)
 		MIPI_TRACE("dsi number and mipi type not match!\n");
 	    return -1;
     }
-#ifdef CONFIG_RK_3288_DSI
 	dsi->phy.Tpclk = div_u64(1000000000000llu, screen->pixclock);
 	dsi->phy.ref_clk = 24*MHZ / 2; /* 1/2 of input refclk */
-#else
-	dsi->phy.Tpclk = rk_fb_get_prmry_screen_pixclock();
 
-	if (dsi->phy.refclk)
-		dsi->phy.ref_clk = clk_get_rate(dsi->phy.refclk);
-	if (cpu_is_rk312x())
-		dsi->phy.ref_clk = dsi->phy.ref_clk / 2; /* 1/2 of input refclk */
-#endif
 	dsi->phy.sys_clk = dsi->phy.ref_clk;
 
 	MIPI_DBG("dsi->phy.sys_clk =%d\n", dsi->phy.sys_clk);
@@ -1178,20 +1111,12 @@ static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length
 		MIPI_TRACE("gen_cmd_full\n");
 		return -1;
 	}
-#ifdef CONFIG_MIPI_DSI_LINUX
-	regs = kmalloc(0x400, GFP_KERNEL);
-	if(!regs) {
-		MIPI_DBG("request regs fail!\n");
-		return -ENOMEM;
-	}
-#endif
-#ifdef CONFIG_RK_3288_DSI
+
 	regs = calloc(1, 0x400);
 	if(!regs) {
 		printf("request regs fail!\n");
 		return -ENOMEM;
 	}
-#endif
 	memcpy(regs,cmds,length);
 	
 	liTmp	= length - 2;
@@ -1319,12 +1244,8 @@ static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length
 		udelay(10);
 	}
 	udelay(10);
-#ifdef CONFIG_MIPI_DSI_LINUX
-	kfree(regs);
-#endif
-#ifdef CONFIG_RK_3288_DSI
+
 	free(regs);
-#endif
 	return 0;
 }
 
