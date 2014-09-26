@@ -49,7 +49,7 @@ enum {
 //#define HDMI_SYS_FREG_CLK        11289600
 //#endif
 #define AUTO_DEFINE_CSC 1
-#define HDMI_SYS_FREG_CLK        74250000
+#define HDMI_SYS_FREG_CLK        75000000//74250000
 
 #define HDMI_SCL_RATE            (100*1000)
 #define DDC_BUS_FREQ_L			0x4b
@@ -327,7 +327,6 @@ enum {
 
 #define PHY_PRE_DIV_RATIO		0xed
 #define v_PRE_DIV_RATIO(n)	(n & 0x1f)
-
 static inline int hdmi_readl(struct hdmi_dev *hdmi_dev, u16 offset,
 			     u32 *val)
 {

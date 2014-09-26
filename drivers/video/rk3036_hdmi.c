@@ -115,9 +115,11 @@ static void rk3036_hdmi_sys_power(struct hdmi_dev *hdmi_dev, bool enable)
 
 static void rk3036_hdmi_set_pwr_mode(struct hdmi_dev *hdmi_dev, int mode)
 {
+	HDMIDBG("%s change pwr_mode %d --> %d\n", __func__,
+		 hdmi_dev->driver.pwr_mode, mode);
 
-	if (hdmi_dev->driver.pwr_mode == mode)
-		return;
+	//if (hdmi_dev->driver.pwr_mode == mode)
+	//	return;
 
 	switch (mode) {
 	case NORMAL:
@@ -324,7 +326,7 @@ static int rk3036_hdmi_video_csc(struct hdmi_dev *hdmi_dev,
 	const char *coeff = NULL;
 
 	/* Enable or disalbe color space convert */
-	/*printf("input_color=%d,output_color=%d\n",vpara->input_color, vpara->output_color);*/
+	printf("input_color=%d,output_color=%d\n",vpara->input_color, vpara->output_color);
 	if (vpara->input_color == vpara->output_color) {
 		if ((vpara->input_color >= VIDEO_INPUT_COLOR_YCBCR444) ||
 		  ((vpara->input_color == VIDEO_INPUT_COLOR_RGB) &&
@@ -468,7 +470,7 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 		vpara->output_color = VIDEO_OUTPUT_RGB444;
 	/*for set DVI output mode, or not hdmi will not display,need to check again*/
 	vpara->output_color = VIDEO_OUTPUT_RGB444;
-	vpara->output_mode = 0;
+	//vpara->output_mode = 0;
 
 	if (hdmi_dev->driver.pwr_mode == LOWER_PWR)
 		rk3036_hdmi_set_pwr_mode(hdmi_dev, NORMAL);
@@ -491,12 +493,6 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	/* Enable or disalbe color space convert */
 	rk3036_hdmi_video_csc(hdmi_dev, vpara);
 
-	/* Enable or disalbe color space convert */
-	if (vpara->input_color != vpara->output_color)
-		value = v_SOF_DISABLE | v_CSC_ENABLE;
-	else
-		value = v_SOF_DISABLE;
-	hdmi_writel(hdmi_dev, VIDEO_CONTRL3, value);
 
 	/* Set ext video timing */
 #if 1
@@ -758,7 +754,7 @@ static void rk3036_hdmi_reset(struct hdmi_dev *hdmi_dev)
 	hdmi_msk_reg(hdmi_dev, SYS_CTRL, msk, val);
 
 	//rk3036_hdmi_set_pwr_mode(hdmi_dev, LOWER_PWR);
-	rk3036_hdmi_set_pwr_mode(hdmi_dev, NORMAL);
+	rk3036_hdmi_set_pwr_mode(hdmi_dev, LOWER_PWR);
 }
 
 int g_hdmi_noexit = 0;
@@ -778,11 +774,13 @@ static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 	hdmi_dev->driver.pwr_mode = NORMAL;
 
 	if (hdmi_detect_hotplug(hdmi_dev) == HDMI_HPD_ACTIVED) {
+		rk3036_hdmi_insert(hdmi_dev);
 		hdmi_parse_edid(hdmi_dev);
 		hdmi_find_best_mode(hdmi_dev);
 		hdmi_init_video_para(hdmi_dev);
+		rk3036_hdmi_set_pwr_mode(hdmi_dev, LOWER_PWR);
 		rk3036_hdmi_config_video(hdmi_dev);
-		rk3036_hdmi_config_audio(hdmi_dev, &hdmi_dev->driver.audio);
+		//rk3036_hdmi_config_audio(hdmi_dev, &hdmi_dev->driver.audio);
 		rk3036_hdmi_control_output(hdmi_dev, 1);
 
 		ret = 0;
