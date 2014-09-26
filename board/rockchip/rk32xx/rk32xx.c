@@ -185,14 +185,6 @@ void init_panel_info(vidinfo_t *vid)
 	vid->logo_rgb_mode = RGB565;
 }
 
-
-#ifdef CONFIG_RK616
-int rk616_power_on(void)
-{
-	return 0;
-}
-#endif
-
 #endif /* CONFIG_RK_FB */
 
 

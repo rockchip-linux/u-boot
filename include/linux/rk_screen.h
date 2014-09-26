@@ -1,29 +1,47 @@
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #ifndef _SCREEN_H
 #define _SCREEN_H
 
 typedef enum _REFRESH_STAGE {
-    REFRESH_PRE = 0,
-    REFRESH_END,
-
+	REFRESH_PRE = 0,
+	REFRESH_END,
 } REFRESH_STAGE;
 
 
 typedef enum _MCU_IOCTL {
-    MCU_WRCMD = 0,
-    MCU_WRDATA,
-    MCU_SETBYPASS,
-
+	MCU_WRCMD = 0,
+	MCU_WRDATA,
+	MCU_SETBYPASS,
 } MCU_IOCTL;
 
 
 typedef enum _MCU_STATUS {
-    MS_IDLE = 0,
-    MS_MCU,
-    MS_EBOOK,
-    MS_EWAITSTART,
-    MS_EWAITEND,
-    MS_EEND,
-
+	MS_IDLE = 0,
+	MS_MCU,
+	MS_EBOOK,
+	MS_EWAITSTART,
+	MS_EWAITEND,
+	MS_EEND,
 } MCU_STATUS;
 
 struct rk29_fb_setting_info {
@@ -40,7 +58,7 @@ struct rk29lcd_info {
 	u32 txd_pin;
 	u32 clk_pin;
 	u32 cs_pin;
-	u32	reset_pin;
+	u32 reset_pin;
 	int (*io_init)(void);
 	int (*io_deinit)(void);
 	int (*io_enable)(void);
