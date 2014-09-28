@@ -248,8 +248,8 @@ static int rk3288_hdmi_video_frameComposer(struct hdmi_dev *hdmi_dev, struct hdm
 	struct hdmi_video_timing *timing = NULL;
 	struct fb_videomode *mode = NULL;
 	
-	vsync_pol = 1;
-	hsync_pol = 1;
+	vsync_pol = 0;
+	hsync_pol = 0;
 	de_pol = 1;
 	
 	timing = (struct hdmi_video_timing *)hdmi_vic2timing(hdmi_dev, vpara->vic);
@@ -285,8 +285,11 @@ static int rk3288_hdmi_video_frameComposer(struct hdmi_dev *hdmi_dev, struct hdm
 	hdmi_dev->pixelclk = mode->pixclock;
 	hdmi_dev->pixelrepeat = timing->pixelrepeat;
 	hdmi_dev->colordepth = vpara->color_output_depth;
-	vsync_pol = timing->mode.sync & FB_SYNC_HOR_HIGH_ACT;
-	hsync_pol = timing->mode.sync & FB_SYNC_VERT_HIGH_ACT;
+	if (timing->mode.sync & FB_SYNC_HOR_HIGH_ACT)
+		hsync_pol = 1;
+	if (timing->mode.sync & FB_SYNC_VERT_HIGH_ACT)
+		vsync_pol = 1;
+	printf("hsync_pol %d vsync_pol %d",hsync_pol, vsync_pol);
 	hdmi_msk_reg(hdmi_dev, A_HDCPCFG0, m_ENCRYPT_BYPASS | m_HDMI_DVI,
 		v_ENCRYPT_BYPASS(1) | v_HDMI_DVI(vpara->sink_hdmi));	//cfg to bypass hdcp data encrypt
 	hdmi_msk_reg(hdmi_dev, FC_INVIDCONF, m_FC_VSYNC_POL | m_FC_HSYNC_POL | m_FC_DE_POL | m_FC_HDMI_DVI | m_FC_INTERLACE_MODE,
