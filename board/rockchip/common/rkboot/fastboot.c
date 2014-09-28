@@ -372,12 +372,12 @@ void rk_preboot(void)
 {
 	enum fbt_reboot_type frt;
 
-	frt = board_fbt_key_pressed();
+	frt = board_fbt_get_reboot_type();
 	if (frt == FASTBOOT_REBOOT_NONE) {
-		FBTDBG("\n%s: no spec key pressed, get requested reboot type.\n", __func__);
-		frt = board_fbt_get_reboot_type();
+		FBTDBG("\n%s: no spec reboot type, check key press.\n", __func__);
+		frt = board_fbt_key_pressed();
 	} else {
-		//clear reboot type when key pressed.
+		//clear reboot type.
 		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NONE);
 	}
 
