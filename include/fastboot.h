@@ -233,7 +233,6 @@ enum fbt_reboot_type {
 	FASTBOOT_REBOOT_NORMAL,			/* normal */
 	FASTBOOT_REBOOT_BOOTLOADER,		/* rockusb */
 	FASTBOOT_REBOOT_RECOVERY,		/* recovery */
-	FASTBOOT_REBOOT_NONE,
 	FASTBOOT_REBOOT_RECOVERY_WIPE_DATA,	/* recovery and wipe data */
 	FASTBOOT_REBOOT_FASTBOOT,		/* android fastboot */
 	FASTBOOT_REBOOT_CHARGE,			/* charge */

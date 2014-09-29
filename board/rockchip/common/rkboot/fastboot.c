@@ -116,7 +116,6 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 
 	if(SYS_LOADER_ERR_FLAG == loader_flag)
 	{
-		printf("reboot to rockusb.\n");
 		loader_flag = SYS_LOADER_REBOOT_FLAG | BOOT_LOADER;
 		reboot_mode = BOOT_LOADER;
 	}
@@ -127,6 +126,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 				frt = FASTBOOT_REBOOT_NORMAL;
 				break;
 			case BOOT_LOADER:
+				printf("reboot to rockusb.\n");
 				do_rockusb(NULL, 0, 0, NULL);
 				break;
 #ifdef CONFIG_CMD_FASTBOOT
@@ -163,7 +163,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 int board_fbt_key_pressed(void)
 {
 	int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
-	enum fbt_reboot_type frt = FASTBOOT_REBOOT_NONE;
+	enum fbt_reboot_type frt = FASTBOOT_REBOOT_UNKNOWN;
 	int vbus = GetVbus();
 	int ir_keycode = 0;
 
@@ -356,12 +356,12 @@ void board_fbt_preboot(void)
 #endif
 
 	frt = board_fbt_get_reboot_type();
-	if (frt == FASTBOOT_REBOOT_NONE) {
+	if ((frt == FASTBOOT_REBOOT_UNKNOWN) || (frt == FASTBOOT_REBOOT_NORMAL)) {
 		FBTDBG("\n%s: no spec reboot type, check key press.\n", __func__);
 		frt = board_fbt_key_pressed();
 	} else {
 		//clear reboot type.
-		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NONE);
+		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NORMAL);
 	}
 
 	if (is_power_extreme_low()) {
@@ -425,7 +425,7 @@ void board_fbt_preboot(void)
 		char *charge[] = { "charge" };
 		if (logo_on && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
 			//boot from charge animation.
-			frt = FASTBOOT_REBOOT_NONE;
+			frt = FASTBOOT_REBOOT_NORMAL;
 		}
 #else
 		return fbt_run_charge();
