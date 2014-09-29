@@ -71,6 +71,7 @@
 #include <power/pmic.h>
 #include <fdtdec.h>
 #include <usbdevice.h>
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #include <../board/rockchip/common/config.h>
@@ -170,8 +171,6 @@ struct _fbt_config_desc {
 };
 
 static void fbt_handle_response(void);
-static void fbt_run_recovery_wipe_data(void);
-static void fbt_run_recovery(void);
 
 static u8 fastboot_name[] = "rk_fastboot";
 /* defined and used by gadget/ep0.c */
@@ -272,28 +271,10 @@ static uint32_t log_position;
 #endif
 
 //TODO: get rid of these!
-#ifdef CONFIG_ROCKCHIP
 extern void resume_usb(struct usb_endpoint_instance *endpoint, int max_size);
 extern void suspend_usb(void);
 extern int is_usbd_high_speed(void);
-extern void rk_backlight_ctrl(int brightness);
-extern int lcd_enable_logo(bool enable);
-extern int drv_lcd_init (void);
-extern void powerOn(void);
-extern int is_charging(void);
-extern void lcd_standby(int enable);
-#else
-void resume_usb(struct usb_endpoint_instance *endpoint, int max_size) {;}
-extern void suspend_usb(void){;}
-int StorageReadLba(unsigned int LBA ,void *pbuf, unsigned short nSec) {return 0;}
-unsigned int SecureBootCheck(void) {return 0;}
-void rk_backlight_ctrl(int brightness) {;}
-int lcd_enable_logo(bool enable) {return 0;}
-int drv_lcd_init (void) {return 0;}
-void powerOn(void) {;}
-int is_charging(void) {;}
-void lcd_standby(int enable) {;}
-#endif
+extern void board_fbt_run_recovery_wipe_data(void);
 
 static void fbt_init_endpoints(void);
 
@@ -603,7 +584,7 @@ static void fbt_set_unlocked(int unlocked)
 #endif
 }
 
-static void fbt_fastboot_init(void)
+void fbt_fastboot_init(void)
 {
 	char *fastboot_unlocked_env;
 	priv.flag = 0;
@@ -1171,7 +1152,7 @@ static void fbt_handle_oem(char *cmdbuf)
 		/* now reboot into recovery to do a format of the
 		 * userdata partition so it's ready to use on next boot
 		 */
-		fbt_run_recovery_wipe_data();
+		board_fbt_run_recovery_wipe_data();
 		return;
 	}
 
@@ -1244,10 +1225,7 @@ static void fbt_handle_boot(const char *cmdbuf)
 		 * Use this later to determine if a command line was passed
 		 * for the kernel.
 		 */
-		struct fastboot_boot_img_hdr *fb_hdr =
-			(struct fastboot_boot_img_hdr *) priv.transfer_buffer;
-
-		sprintf(start, "%p", fb_hdr);
+		sprintf(start, "%p", priv.transfer_buffer);
 
 		/* Execution should jump to kernel so send the response
 		   now and wait a bit.  */
@@ -1543,164 +1521,8 @@ static void fbt_handle_response(void)
 	}
 }
 
-#ifdef CONFIG_CMD_CHARGE_ANIM
-static void fbt_run_charge(void)
-{
-	char *const boot_charge_cmd[] = {"booti", "charge"};
-#ifdef CONFIG_CMD_BOOTI
-	do_booti(NULL, 0, ARRAY_SIZE(boot_charge_cmd), boot_charge_cmd);
-#endif
 
-	/* returns if boot.img is bad */
-	FBTERR("\nfastboot: Error: Invalid boot img\n");
-}
-#endif
-
-static void fbt_run_recovery(void)
-{
-#ifdef CONFIG_CMD_BOOTI
-	char *const boot_recovery_cmd[] = {"booti", "recovery"};
-	do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
-#endif
-
-	/* returns if recovery.img is bad */
-	FBTERR("\nfastboot: Error: Invalid recovery img\n");
-}
-
-
-static void fbt_run_recovery_wipe_data(void)
-{
-	struct bootloader_message bmsg;
-
-	FBTDBG("Rebooting into recovery to do wipe_data\n");
-
-	if (!board_fbt_get_partition("misc"))
-	{
-		FBTERR("not found misc partition, just run recovery.\n");
-		fbt_run_recovery();
-	}
-
-	memset((char *)&bmsg, 0, sizeof(struct bootloader_message));
-	strcpy(bmsg.command, "boot-recovery");
-	bmsg.status[0] = 0;
-	strcpy(bmsg.recovery, "recovery\n--wipe_data");
-	if (board_fbt_set_bootloader_msg(&bmsg))
-	{
-		FBTERR("set bootloader msg failed, retry!\n");
-		fbt_handle_reboot("reboot-recovery:wipe_data");
-	}
-	/* now reboot to recovery */
-	fbt_run_recovery();
-}
-
-/*
- * default board-specific hooks and defaults
- */
-static int __def_fbt_oem(const char *cmdbuf)
-{
-	return -1;
-}
-static void __def_fbt_set_reboot_type(enum fbt_reboot_type fre)
-{
-}
-static enum fbt_reboot_type __def_fbt_get_reboot_type(void)
-{
-	return FASTBOOT_REBOOT_NORMAL;
-}
-static int __def_fbt_key_pressed(void)
-{
-	return FASTBOOT_REBOOT_NONE;
-}
-static void __def_board_fbt_finalize_bootargs(char* args, int buf_sz,
-		int ramdisk_sz, int recovery)
-{
-	return;
-}
-static int __def_board_fbt_handle_erase(const disk_partition_t *ptn)
-{
-	return 0;
-}
-static int __def_board_fbt_handle_flash(const char *name, const disk_partition_t *ptn,
-		struct cmd_fastboot_interface *priv)
-{
-	return 0;
-}
-static int __def_board_fbt_handle_download(unsigned char *buffer,
-		int length, struct cmd_fastboot_interface *priv)
-{
-	if (priv->d_size > priv->transfer_buffer_size)
-	{
-		priv->d_status = -1;
-	}
-	return 0;
-}
-static int __def_board_fbt_check_misc(void)
-{
-	return 0;
-}
-static int __def_board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
-{
-	memcpy(priv.transfer_buffer, bmsg, sizeof(struct bootloader_message));
-	priv.d_bytes = sizeof(struct bootloader_message);
-
-	/* write this structure to the "misc" partition, no unlock check */
-	return fbt_handle_flash("flash:misc", 0);
-}
-static int __def_board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
-{
-	return 0;
-}
-static void __def_board_fbt_boot_failed(const char* boot)
-{
-}
-static int __def_board_fbt_is_cold_boot(void)
-{
-	return 0;
-}
-static int __def_board_fbt_is_charging(void)
-{
-	return 0;
-}
-static const disk_partition_t* __def_board_fbt_get_partition(const char* name)
-{
-	return NULL;
-}
-
-const disk_partition_t* board_fbt_get_partition(const char* name)
-	__attribute__((weak, alias("__def_board_fbt_get_partition")));
-int board_fbt_is_cold_boot(void)
-    __attribute__((weak, alias("__def_board_fbt_is_cold_boot")));
-int board_fbt_is_charging(void)
-    __attribute__((weak, alias("__def_board_fbt_is_charging")));
-int board_fbt_oem(const char *cmdbuf)
-	__attribute__((weak, alias("__def_fbt_oem")));
-void board_fbt_set_reboot_type(enum fbt_reboot_type fre)
-	__attribute__((weak, alias("__def_fbt_set_reboot_type")));
-enum fbt_reboot_type board_fbt_get_reboot_type(void)
-	__attribute__((weak, alias("__def_fbt_get_reboot_type")));
-int board_fbt_key_pressed(void)
-	__attribute__((weak, alias("__def_fbt_key_pressed")));
-void board_fbt_finalize_bootargs(char* args, int buf_sz,
-		int ramdisk_addr, int ramdisk_sz, int recovery)
-__attribute__((weak, alias("__def_board_fbt_finalize_bootargs")));
-int board_fbt_handle_erase(const disk_partition_t *ptn)
-	__attribute__((weak, alias("__def_board_fbt_handle_erase")));
-int board_fbt_handle_flash(const char *name, const disk_partition_t *ptn,
-		struct cmd_fastboot_interface *priv)
-__attribute__((weak, alias("__def_board_fbt_handle_flash")));
-int board_fbt_handle_download(unsigned char *buffer,
-		int length, struct cmd_fastboot_interface *priv)
-__attribute__((weak, alias("__def_board_fbt_handle_download")));
-int board_fbt_check_misc(void)
-	__attribute__((weak, alias("__def_board_fbt_check_misc")));
-int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg)
-	__attribute__((weak, alias("__def_board_fbt_set_bootloader_msg")));
-int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked)
-	__attribute__((weak, alias("__def_board_fbt_boot_check")));
-void board_fbt_boot_failed(const char* boot)
-	__attribute__((weak, alias("__def_board_fbt_boot_failed")));
-
-	/* command */
+/* command */
 static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 		char * const argv[])
 {
@@ -1768,154 +1590,6 @@ out:
 
 U_BOOT_CMD(fastboot, 1,	1, do_fastboot,
 		"use USB Fastboot protocol", NULL);
-
-static void fbt_request_start_fastboot(void)
-{
-	char buf[512];
-	char *old_preboot = getenv("preboot");
-	FBTDBG("old preboot env = %s\n", old_preboot);
-
-	if (old_preboot) {
-		snprintf(buf, sizeof(buf),
-				"setenv preboot %s; fastboot", old_preboot);
-		setenv("preboot", buf);
-	} else
-		setenv("preboot", "setenv preboot; fastboot");
-
-	FBTDBG("%s: setting preboot env to %s\n", __func__, getenv("preboot"));
-}
-
-
-/*
- * Determine if we should enter fastboot mode based on board specific
- * key press or parameter left in memory from previous boot.
- *
- * This is also where we initialize fbt private data.  Even if we
- * don't enter fastboot mode, we need our environment setup for
- * things like unlock state, etc.
- */
-void fbt_preboot(void)
-{
-	enum fbt_reboot_type frt;
-
-	/* need to init this ASAP so we know the unlocked state */
-	fbt_fastboot_init();
-
-	frt = board_fbt_get_reboot_type();
-	if (frt == FASTBOOT_REBOOT_NONE) {
-		FBTDBG("\n%s: no spec reboot type, check key press.\n", __func__);
-		frt = board_fbt_key_pressed();
-	} else {
-		//clear reboot type.
-		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NONE);
-	}
-
-	if (is_power_extreme_low()) {
-		while (is_charging()) {
-			FBTERR("extreme low power, charging...\n");
-			udelay(1000000); /* 1 sec */
-			if (!is_power_extreme_low()) {
-				FBTERR("extreme low power charge done\n");
-				break;
-			}
-		}
-	}
-
-	if (is_power_extreme_low()) {
-		//it should be extreme low power without charger connected.
-		FBTERR("extreme low power, shutting down...\n");
-		shut_down();
-		printf("not reach here.\n");
-	}
-
-	int logo_on = 0;
-	if (gd->fdt_blob) {
-		int node = fdt_path_offset(gd->fdt_blob, "/fb");
-		logo_on = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-logo-on", 0);
-	}
-	printf("read logo_on switch from dts [%d]\n", logo_on);
-
-#ifdef CONFIG_LCD
-	if (logo_on) {
-		drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb
-	}
-#endif
-
-	if (is_power_low()) {
-		if (!is_charging()) {
-			FBTERR("low power, shutting down...\n");
-#ifdef CONFIG_LCD
-			//TODO: show warning logo.
-			show_resource_image("images/battery_fail.bmp");
-
-			lcd_standby(0);
-			//TODO: set backlight in better way.
-			rk_backlight_ctrl(CONFIG_BRIGHTNESS_DIM);
-
-			udelay(1000000);//1 sec
-
-			rk_backlight_ctrl(0);
-			lcd_standby(1);
-#endif
-			shut_down();
-			printf("not reach here.\n");
-		}
-	}
-
-#ifdef CONFIG_UBOOT_CHARGE
-	//check charge mode when no key pressed.
-	int cold_boot = board_fbt_is_cold_boot();
-	if ((cold_boot && board_fbt_is_charging())
-			|| frt == FASTBOOT_REBOOT_CHARGE) {
-#ifdef CONFIG_CMD_CHARGE_ANIM
-		char *charge[] = { "charge" };
-		if (logo_on && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
-			//boot from charge animation.
-			frt = FASTBOOT_REBOOT_NONE;
-		}
-#else
-		return fbt_run_charge();
-#endif
-	}
-#endif //CONFIG_UBOOT_CHARGE
-
-	powerOn();
-
-#ifdef CONFIG_LCD
-	if (logo_on) {
-		lcd_enable_logo(true);
-		lcd_standby(0);
-		mdelay(100);
-		rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
-	}
-#endif
-
-	if (frt == FASTBOOT_REBOOT_RECOVERY) {
-		FBTDBG("\n%s: starting recovery img because of reboot flag\n", __func__);
-		return fbt_run_recovery();
-	} else if (frt == FASTBOOT_REBOOT_RECOVERY_WIPE_DATA) {
-		FBTDBG("\n%s: starting recovery img to wipe data "
-				"because of reboot flag\n", __func__);
-		/* we've not initialized most of our state so don't
-		 * save env in this case
-		 */
-		return fbt_run_recovery_wipe_data();
-	} else if (frt == FASTBOOT_REBOOT_FASTBOOT) {
-		FBTDBG("\n%s: starting fastboot because of reboot flag\n", __func__);
-		fbt_request_start_fastboot();
-	} else {
-		FBTDBG("\n%s: check misc command.\n", __func__);
-		/* unknown reboot cause (typically because of a cold boot).
-		 * check if we had misc command to boot recovery.
-		 */
-		int run_recovery = board_fbt_check_misc();
-		if (run_recovery) {
-			FBTDBG("\n%s: starting recovery because of misc command\n", __func__);
-			return fbt_run_recovery();
-		}
-		FBTDBG("\n%s: no special reboot flags, doing normal boot\n", __func__);
-	}
-}
 
 #ifdef CONFIG_FASTBOOT_LOG
 int fbt_log(const char *info, const int len, bool send)

@@ -260,7 +260,7 @@ int board_late_init(void)
 #ifdef CONFIG_RK_PWM_REMOTE
         RemotectlInit();
 #endif
-	prepare_fdt();
+	rkimage_prepare_fdt();
 	key_init();
 #ifdef CONFIG_POWER_RK
 	pmic_init(0);
@@ -269,26 +269,23 @@ int board_late_init(void)
 	SecureBootCheck();
 
 	//TODO:set those buffers in a better way, and use malloc?
-	setup_space(gd->arch.rk_extra_buf_addr);
+	rkidb_setup_space(gd->arch.rk_extra_buf_addr);
 
 	/* after setup space, get id block data first */
-	get_idblk_data();
+	rkidb_get_idblk_data();
 
-	if (get_bootloader_ver() == 0) {
+	if (rkidb_get_bootloader_ver() == 0) {
 		printf("\n#Boot ver: %s\n", bootloader_ver);
 	}
 
 	char tmp_buf[30];
-	if (getSn(tmp_buf)) {
+	if (rkidb_get_sn(tmp_buf)) {
 		tmp_buf[sizeof(tmp_buf)-1] = 0;
 		setenv("fbt_sn#", tmp_buf);
 	}
 
-#ifdef CONFIG_CMD_FASTBOOT
-	fbt_preboot();
-#else
-	rk_preboot();
-#endif
+	board_fbt_preboot();
+
 	return 0;
 }
 #endif

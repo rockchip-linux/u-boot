@@ -1,8 +1,6 @@
 /*
  * (C) Copyright 2008-2014 Rockchip Electronics
  *
- * Configuation settings for the rk3xxx chip platform.
- *
  * See file CREDITS for list of people who contributed to this
  * project.
  *
@@ -22,184 +20,16 @@
  * MA 02111-1307 USA
  */
 
-#include <fastboot.h>
 #include <malloc.h>
-#include <linux/sizes.h>
 #include "../config.h"
+
 DECLARE_GLOBAL_DATA_PTR;
 
-extern unsigned long gIdDataBuf[512];
 
-char bootloader_ver[24]="";
+char bootloader_ver[24] = "";
 uint16 internal_boot_bloader_ver = 0;
 uint16 update_boot_bloader_ver = 0;
 uint32 g_id_block_size = 1024;
-
-extern void P_RC4(unsigned char * buf, unsigned short len);
-
-#if 0
-#undef GET_BYTE
-#undef PUT_BYTE
-#undef GET_CHAR
-#undef PUT_CHAR
-
-#define GET_BYTE(pb, ib)	(pb)[(ib)]
-#define PUT_BYTE(pb, ib, b)	(pb)[(ib)] = (b)
-#define GET_CHAR(pch, ich)	(pch)[(ich)]
-#define PUT_CHAR(pch, ich, ch)	(pch)[(ich)] = (ch)
-
-
-//重新定义类型
-#define DRM_VOID  void
-#define DRM_API
-#define IN
-#define OUT
-
-#define DRM_BYTE  unsigned char
-#define DRM_DWORD unsigned int
-#define DRM_UINT  unsigned int
-#define DRM_INT   int
-
-#define RC4_TABLESIZE 256
-
-/* Key structure */
-typedef struct __tagRC4_KEYSTRUCT
-{
-	unsigned char S[(RC4_TABLESIZE)];		/* State table */
-	unsigned char i, j;						/* Indices */
-} RC4_KEYSTRUCT;
-
-DRM_VOID DRM_API NAND_RC4_KeySetup(
-		OUT   RC4_KEYSTRUCT  *pKS,
-		IN        DRM_DWORD       cbKey,
-		IN  const DRM_BYTE       *pbKey)
-{
-	DRM_BYTE j;
-	DRM_BYTE k;
-	DRM_BYTE t;
-	DRM_INT  i;
-
-	for (i = 0;i < RC4_TABLESIZE;i++)
-	{
-		PUT_BYTE(pKS->S, i, (DRM_BYTE)i);
-	}
-
-	pKS->i = 0;
-	pKS->j = 0;
-	j      = 0;
-	k      = 0;
-	for (i = 0;i < RC4_TABLESIZE;i++)
-	{
-		t = GET_BYTE(pKS->S, i);
-		j = (DRM_BYTE)((j + t + GET_BYTE(pbKey, k)) % RC4_TABLESIZE);
-		PUT_BYTE(pKS->S, i, GET_BYTE(pKS->S, j));
-		PUT_BYTE(pKS->S, j, t);
-		k = (DRM_BYTE)((k + 1) % cbKey);
-	}
-}
-
-/******************************************************************************/
-DRM_VOID DRM_API NAND_RC4_Cipher(
-		IN OUT RC4_KEYSTRUCT *pKS,
-		IN     DRM_UINT       cbBuffer,
-		IN OUT DRM_BYTE      *pbBuffer)
-{
-	DRM_BYTE  i = pKS->i;
-	DRM_BYTE  j = pKS->j;
-	DRM_BYTE *p = pKS->S;
-	DRM_DWORD ib = 0;
-
-	while (cbBuffer--)
-	{
-		DRM_BYTE bTemp1 = 0;
-		DRM_BYTE bTemp2 = 0;
-
-		i = ((i + 1) & (RC4_TABLESIZE - 1));
-		bTemp1 = GET_BYTE(p, i);
-		j = ((j + bTemp1) & (RC4_TABLESIZE - 1));
-
-		PUT_BYTE(p, i, GET_BYTE(p, j));
-		PUT_BYTE(p, j, bTemp1);
-		bTemp2 = GET_BYTE(pbBuffer, ib);
-
-		bTemp2 ^= GET_BYTE(p, (GET_BYTE(p, i) + bTemp1) & (RC4_TABLESIZE - 1));
-		PUT_BYTE(pbBuffer, ib, bTemp2);
-		ib++;
-	}
-
-	pKS->i = i;
-	pKS->j = j;
-}
-
-/*****************************************************************************************/
-#define RK_IDBLOCK_RC4KEY_KEY   {124,78,3,4,85,5,9,7,45,44,123,56,23,13,23,17};
-#define RK_IDBLOCK_RC4KEY_LEN   16
-
-void GetIdblockDataNoRc4(char * fwbuf, int len)
-{
-	RC4_KEYSTRUCT       rc4KeyStruct;
-	unsigned char       rc4Key[RK_IDBLOCK_RC4KEY_LEN] = RK_IDBLOCK_RC4KEY_KEY
-
-	NAND_RC4_KeySetup(&rc4KeyStruct, RK_IDBLOCK_RC4KEY_LEN , rc4Key);
-	NAND_RC4_Cipher(&rc4KeyStruct , len, (DRM_BYTE *)fwbuf);
-}
-
-#else
-
-static void GetIdblockDataNoRc4(char * fwbuf, int len)
-{
-	P_RC4((unsigned char*)fwbuf, len);
-}
-#endif
-
-#if 0
-int GetIdBlockSysData(char * buf, int Sector)
-{
-	int ret = -1;
-	if(Sector <= 3)
-	{
-		memcpy(buf,gIdDataBuf+128*Sector,512);
-		if(Sector!=1)
-			GetIdblockDataNoRc4(buf,512);
-		ret = 0;
-	}
-	return ret;
-}
-
-
-char GetSNSectorInfo(char * pbuf)
-{
-	return (GetIdBlockSysData(pbuf,3));    
-}
-
-char GetChipSectorInfo(char * pbuf)
-{
-	return (GetIdBlockSysData(pbuf,2));    
-}
-#endif
-
-int get_bootloader_ver(void)
-{
-	uint8 *buf = (uint8*)&gIdDataBuf[0];
-	memset(bootloader_ver,0,24);
-
-	if( *(uint32*)buf == 0xfcdc8c3b )
-	{
-		uint16 year, date;
-
-		year = *(uint16*)((uint8*)buf+512+18);
-		date = *(uint16*)((uint8*)buf+512+20);
-		internal_boot_bloader_ver = *(uint16*)((uint8*)buf+512+22);
-		//loader_tag_set_version( year<<16 |date , ver>>8 , ver&0xff );
-		sprintf(bootloader_ver,"%04X-%02X-%02X#%X.%02X",
-				year,
-				(uint8)((date>>8)&0x00FF), (uint8)(date&0x00FF),
-				(uint8)((internal_boot_bloader_ver>>8)&0x00FF), (uint8)(internal_boot_bloader_ver&0x00FF));
-		return 0;
-	}
-	return -1;
-}
-
 
 uint8* g_32secbuf;
 uint8* g_cramfs_check_buf;
@@ -209,9 +39,19 @@ uint8* g_pLoader;
 uint8* g_pReadBuf;
 uint8* g_pFlashInfoData;
 
-#if 1
 FlashInfo m_flashInfo;
 uint16 g_IDBlockOffset[5];
+
+extern unsigned long gIdDataBuf[512];
+
+extern void P_RC4(unsigned char * buf, unsigned short len);
+
+
+static void GetIdblockDataNoRc4(char * fwbuf, int len)
+{
+	P_RC4((unsigned char*)fwbuf, len);
+}
+
 
 #define CALC_UNIT(a, b)		((a>0)?((a-1)/b+1):(a))			// 计算a可以分成多少个b，剩余部分算1个
 #define MB2SECTOR(x)		(x*1024*(1024/SECTOR_SIZE))		// x MB的数据所须的Sector数
@@ -242,7 +82,7 @@ static uint32 BuildNFBlockStateMap(uint8 ucFlashIndex, uint8 *NFBlockState, uint
 static uint32 BuildFlashStateMap(uint8 ucFlashIndex, FlashInfo *pFlash)
 {
 	memset((void*)pFlash->BlockState, 0, 200);
-	return BuildNFBlockStateMap(ucFlashIndex, pFlash->BlockState, 200);//pFlash->uiBlockNum);//Test 512个块就足够了 pFlash->uiBlockNum);
+	return BuildNFBlockStateMap(ucFlashIndex, pFlash->BlockState, 200);
 }
 
 /***********************************************************
@@ -290,15 +130,14 @@ static int FindIDBlock(FlashInfo* pFlashInfo, int iStart, int *iPos)
 	int i = FindSerialBlocks(pFlashInfo->BlockState, MAX_BLOCK_SEARCH/*MAX_BLOCK_STATE*/, iStart, 1);
 
 	*iPos = 0;
-	//	PRINT_I("i = %d \n", i);
-	if ( i<0 )
-	{
+	if (i < 0) {
 		return -1;
 	}
+
 	for(; i<MAX_BLOCK_SEARCH/*MAX_BLOCK_STATE*/; i=FindSerialBlocks(pFlashInfo->BlockState, MAX_BLOCK_SEARCH/*MAX_BLOCK_STATE*/, i+1, 1))
 	{
-		//	    PRINT_I("i = %d \n", i);
-		if ( i<0 ) break;
+		if (i < 0)
+			break;
 		memset(ucSpareData, 0, 4*528);
 		iRet = StorageReadPba(i*g_id_block_size, ucSpareData, 4);
 
@@ -308,30 +147,32 @@ static int FindIDBlock(FlashInfo* pFlashInfo, int iStart, int *iPos)
 		}
 		unsigned int tag = 0;
 		memcpy(&(tag), ucSpareData, sizeof(tag));
-		if (tag == (unsigned int)0xfcdc8c3b ) 
+		if (tag == (unsigned int)0xfcdc8c3b) 
 		{
 			*iPos = i;
 			return 0;//找到idb
 		}
 		else
+		{
 			continue;
+		}
 	}
-	return -1;							// new mp3
+
+	return -1;
 }
 
 static int FindAllIDB(void)
 {
-	int i,iRet,iIndex,iStart=0,iCount=0;
+	int i, iRet, iIndex, iStart = 0, iCount = 0;
 
-	if(g_FlashInfo.BlockSize)
+	if (g_FlashInfo.BlockSize)
 		g_id_block_size = g_FlashInfo.BlockSize;
 
 	memset(g_IDBlockOffset, 0xFFFF, 5);
-	for( i=0; i<5; i++)
+	for(i=0; i<5; i++)
 	{
-		//	    PRINT_I("find %d \n", i);
 		iRet = FindIDBlock( &m_flashInfo, iStart, &iIndex );
-		if ( iRet<0 )
+		if (iRet < 0)
 		{
 			return iCount;
 		}
@@ -339,18 +180,17 @@ static int FindAllIDB(void)
 		iCount++;
 		iStart = iIndex+1;
 	}
+
 	return iCount;
 }
 
 #define SECTOR_OFFSET 528
 
-extern void ReadFlashInfo(void *buf);
 extern uint16 update_boot_bloader_ver;
 extern uint16 internal_boot_bloader_ver;
 static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 {
-	//	PBYTE pIDB,pFlashData,pFlashCode;
-	int iRet,i;
+	int iRet, i;
 	UINT uiSectorPerBlock;
 	Sector1Info *pSec1;
 	Sector0Info *pSec0;
@@ -362,10 +202,10 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 
 	//1.读出前4个secotor
 	uiSectorPerBlock = g_id_block_size;
-	memset( (void*)pIDBlockData, 0, 4*SECTOR_OFFSET );
+	memset((void*)pIDBlockData, 0, 4*SECTOR_OFFSET);
 
-	iRet = StorageReadPba( g_IDBlockOffset[0]*uiSectorPerBlock, (void*)pIDBlockData, 4 );
-	if ( iRet!=ERR_SUCCESS )
+	iRet = StorageReadPba(g_IDBlockOffset[0]*uiSectorPerBlock, (void*)pIDBlockData, 4);
+	if (iRet != ERR_SUCCESS)
 	{
 		PRINT_I("ERROR: %d\n", iRet);
 		return FALSE;
@@ -378,16 +218,18 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 		if(i != 1)
 			P_RC4(pIDBlockData+SECTOR_OFFSET*i, 512);
 	}
-	memset(pIDBlockData+SECTOR_OFFSET*2, 0, SECTOR_OFFSET ); //靠 chip info,靠靠靠靠sn
+	memset(pIDBlockData+SECTOR_OFFSET*2, 0, SECTOR_OFFSET ); //chip info
 	PRINT_I("OK\n");
 
 	pSec0 = (Sector0Info *)(pIDBlockData);
 	pSec1 = (Sector1Info *)(pIDBlockData+SECTOR_OFFSET);
-#ifdef CONFIG_NAND
-	if( pSec1->usFlashDataOffset && pSec1->usFlashDataLen )
+#ifdef RK_FLASH_BOOT_EN
+	if(pSec1->usFlashDataOffset && pSec1->usFlashDataLen)
 	{
 		hasFlashInfo = 1;
-		ReadFlashInfo(g_pFlashInfoData);
+		if (gpMemFun->ReadInfo) {
+			gpMemFun->ReadInfo(g_pFlashInfoData);
+		}
 	}
 #endif
 
@@ -408,14 +250,14 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 		if (hdr->ucRc4Flag) {
 			P_RC4((void*)(g_pLoader+hdr->uiFlashBootOffset+i*512), 512);
 		}
-		ftl_memcpy( (void*)(pIDBlockData+SECTOR_OFFSET*(4+pSec0->usFlashDataSize+i)), (void*)(g_pLoader+hdr->uiFlashBootOffset+i*512), 512 );
+		ftl_memcpy((void*)(pIDBlockData+SECTOR_OFFSET*(4+pSec0->usFlashDataSize+i)), (void*)(g_pLoader+hdr->uiFlashBootOffset+i*512), 512);
 	}
 	for(i=0; i<pSec0->usFlashDataSize; i++)
 	{
 		if (hdr->ucRc4Flag) {
 			P_RC4((void*)(g_pLoader+hdr->uiFlashDataOffset+i*512), 512);
 		}
-		ftl_memcpy( (void*)(pIDBlockData+SECTOR_OFFSET*(4+i)), (void*)(g_pLoader+hdr->uiFlashDataOffset+i*512), 512 );
+		ftl_memcpy((void*)(pIDBlockData+SECTOR_OFFSET*(4+i)), (void*)(g_pLoader+hdr->uiFlashDataOffset+i*512), 512);
 	}
 	pSec0->ucFlashBootSize += pSec0->usFlashDataSize;
 
@@ -427,7 +269,7 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 	pSec1->usLoaderDate = (INT2BCD(hdr->tmCreateTime.usMonth)<<8)|INT2BCD(hdr->tmCreateTime.usDate);
 	pSec1->usLoaderVer = (INT2BCD(hdr->uiMajorVersion)<<8)|INT2BCD(hdr->uiMinorVersion);
 
-	if( hasFlashInfo )
+	if(hasFlashInfo)
 	{
 		pSec1->usFlashDataOffset = *needIdSectorNum;
 		*needIdSectorNum += (PAGEALIGN(pSec1->usFlashDataLen)*4);
@@ -441,7 +283,7 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 			P_RC4(pIDBlockData+SECTOR_OFFSET*i, 512);
 	}
 
-	if( hasFlashInfo )
+	if(hasFlashInfo)
 	{
 		for(i=0; i<pSec1->usFlashDataLen; i++)
 		{
@@ -453,6 +295,7 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 
 	return TRUE;
 }
+
 
 static int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 {
@@ -473,7 +316,7 @@ static int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 		}
 	}
 
-	if(strcmp(BOOTSIGN, hdr->szSign) )
+	if (strcmp(BOOTSIGN, hdr->szSign))
 	{
 		return -2;
 	}
@@ -486,7 +329,7 @@ static int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 
 	if (!dataLoaded)
 	{
-		if( CopyFlash2Memory( (int32)pLoader, misc_part->start+96, BYTE2SECTOR(nBootSize)) )
+		if(rkloader_CopyFlash2Memory((int32)pLoader, misc_part->start+96, BYTE2SECTOR(nBootSize)))
 			return -3;
 	}
 
@@ -499,7 +342,6 @@ static int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 // false 失败
 static bool WriteXIDBlock(USHORT *pSysBlockAddr, int iIDBCount, UCHAR *idBlockData, UINT uiIdSectorNum)
 {
-	//	UCHAR *pIDBlockData = NULL;
 	int i=0, ii=0;
 	int write_failed = 0;
 
@@ -519,8 +361,8 @@ static bool WriteXIDBlock(USHORT *pSysBlockAddr, int iIDBCount, UCHAR *idBlockDa
 		int iCount = 0;
 
 		PRINT_D("Erase block %d\n", pSysBlockAddr[i]);
-		iCMDRet = StorageEraseBlock(pSysBlockAddr[i],1,1);
-		if ( iCMDRet!=ERR_SUCCESS )
+		iCMDRet = StorageEraseBlock(pSysBlockAddr[i], 1, 1);
+		if (iCMDRet!=ERR_SUCCESS)
 		{
 			//PRINT_E("erase B%d failed: %d\n", pSysBlockAddr[i], iCMDRet);
 			retry = !retry;
@@ -568,8 +410,10 @@ static bool WriteXIDBlock(USHORT *pSysBlockAddr, int iIDBCount, UCHAR *idBlockDa
 			++iCount;
 			uiNeedWriteSector -= uiWriteSector;
 		}
-		if(uiNeedWriteSector == 0)
+		if (uiNeedWriteSector == 0)
+		{
 			PRINT_D("IDB[%d] write complete\n", pSysBlockAddr[i]);
+		}
 		else
 		{
 			PRINT_D("IDB[%d] write abort\n", pSysBlockAddr[i]);
@@ -585,7 +429,7 @@ static bool WriteXIDBlock(USHORT *pSysBlockAddr, int iIDBCount, UCHAR *idBlockDa
 }
 
 // cmy: 升级loader
-int update_loader(bool dataLoaded)
+int rkidb_update_loader(bool dataLoaded)
 {
 	int iRet=0,iResult;
 	int iIDBCount;
@@ -652,62 +496,9 @@ Exit_update:
 	PRINT_I(">>> LEVEL update(%d)\n", iRet);
 	return iRet;    
 }
-#else
-int update_loader(void)
-{
-	PRINT_E("NOT SUPPORT!\n");
-	return 0;
-}
-#endif
 
-static int dispose_bootloader_cmd(struct bootloader_message *msg,
-		const disk_partition_t *misc_part)
-{
-	int ret = 0;
-	if(0 == strcmp(msg->command, "boot-recovery")) {
-		// Recovery System
-	} else if( 0 == strcmp(msg->command, "bootloader")
-			|| 0 == strcmp(msg->command, "loader") ) // 新Loader才能支持"loader"命令
-	{
-		bool reboot;
-		FW_ReIntForUpdate();
-		if( execute_cmd(&gBootInfo, msg->recovery, &reboot) )
-		{
-			ret = -1;
-		}
 
-		{// 不管成功与否，将misc清0
-			int i=0;
-			memset(g_32secbuf, 0, 32*528);
-			for(i=0; i<3; i++)
-			{
-				if(StorageWriteLba(misc_part->start+i*32,  (void*)g_32secbuf ,32,0) != 0 )
-				{
-					//PRINT_E("Clear misc failed!\n");
-					//break;
-				}
-			}
-			//if(i >=3)
-			//	PRINT_I("Clear misc okay!\n");
-
-			if(reboot)
-			{
-				PRINT_I("reboot\n");
-				//DRVDelayMs(10);
-				ISetLoaderFlag(SYS_LOADER_REBOOT_FLAG | BOOT_NORMAL);
-				reset_cpu(0);
-			}
-		} 
-	}
-	else
-	{
-		PRINT_W("Unsupport cmd\n");
-	}
-
-	return ret;
-}
-
-void setup_space(uint32 begin_addr)
+void rkidb_setup_space(uint32 begin_addr)
 {
 	uint32 next = 0;
 
@@ -729,211 +520,6 @@ void setup_space(uint32 begin_addr)
 	}
 }
 
-void SysLowFormatCheck(void)
-{
-	FW_SorageLowFormat();
-}
-
-#if 0
-#define MaxFlashReadSize  16384  //8MB
-int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
-{
-	uint8 * pSdram = (uint8*)dest_addr;
-	uint16 sec = 0;
-	uint32 LBA = src_addr;
-	uint32 remain_sec = total_sec;
-
-	//  RkPrintf("Enter >> src_addr=0x%08X, dest_addr=0x%08X, total_sec=%d\n", src_addr, dest_addr, total_sec);
-
-	//  RkPrintf("(0x%X->0x%X)  size: %d\n", src_addr, dest_addr, total_sec);
-
-	while(remain_sec > 0)
-	{
-		sec = (remain_sec > MaxFlashReadSize) ? MaxFlashReadSize : remain_sec;
-		if(StorageReadLba(LBA,(uint8*)pSdram, sec) != 0)
-		{
-			return -1;
-		}
-		remain_sec -= sec;
-		LBA += sec;
-		pSdram += sec*512;
-	}
-
-	//  RkPrintf("Leave\n");
-	return 0;
-}
-#else
-#define MaxFlashReadSize  128  //64KB
-int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
-{
-	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE * MaxFlashReadSize);
-	uint8 * pSdram = (uint8*)dest_addr;
-	uint16 sec = 0;
-	uint32 LBA = src_addr;
-	uint32 remain_sec = total_sec;
-
-	while(remain_sec > 0)
-	{
-		sec = (remain_sec > MaxFlashReadSize) ? MaxFlashReadSize : remain_sec;
-		if(StorageReadLba(LBA, (uint8*)buf, sec) != 0) {
-			return -1;
-		}
-		memcpy(pSdram, buf, RK_BLK_SIZE * sec);
-		remain_sec -= sec;
-		LBA += sec;
-		pSdram += sec * RK_BLK_SIZE;
-	}
-
-	return 0;
-}
-#endif
-
-int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
-{
-	uint16 sec = 0;
-	uint32 remain_sec = sectors;
-
-	while(remain_sec > 0)
-	{
-		sec = (remain_sec>32)?32:remain_sec;
-
-		if(StorageWriteLba(dest_offset, (void *)src_addr, sec, 0) != 0)
-		{
-			return -2;
-		}
-
-		remain_sec -= sec;
-		src_addr += sec*512;
-		dest_offset += sec;
-	}
-
-	return 0;
-}
-
-void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz)
-{
-#define MAX_BUF_SIZE 100
-	char str[MAX_BUF_SIZE];
-	char *cmd_line = strdup(pboot_info->cmd_line);
-	char *s_initrd_start = NULL;
-	char *s_initrd_end = NULL;
-	int len = 0;
-
-	if (!cmd_line)
-		return;
-
-	s_initrd_start = strstr(cmd_line, "initrd=");
-	if (s_initrd_start) {
-		len = strlen(cmd_line);
-		s_initrd_end = strstr(s_initrd_start, " ");
-		if (!s_initrd_end)
-			*s_initrd_start = '\0';
-		else {
-			len = cmd_line + len - s_initrd_end;
-			memcpy(s_initrd_start, s_initrd_end, len);
-			*(s_initrd_start + len) = '\0';
-		}
-	}
-	snprintf(str, sizeof(str), "initrd=0x%08X,0x%08X", ramdisk_addr, ramdisk_sz);
-
-#ifndef CONFIG_OF_LIBFDT
-	snprintf(pboot_info->cmd_line, sizeof(pboot_info->cmd_line),
-			"%s %s", str, cmd_line);
-#else
-	snprintf(pboot_info->cmd_line, sizeof(pboot_info->cmd_line),
-			"%s", cmd_line);
-#endif
-	free(cmd_line);
-}
-
-int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot)
-{
-	char* cmd = cmdlist;
-
-	*reboot = FALSE;
-	while(*cmdlist)
-	{
-		if(*cmdlist=='\n') *cmdlist='\0';
-		++cmdlist;
-	}
-
-	while(*cmd)
-	{
-		PRINT_I("bootloader cmd: %s\n", cmd);
-
-		if( !strcmp(cmd, "update-bootloader") )// 脡媒录露 bootloader
-		{
-			PRINT_I("--- update bootloader ---\n");
-			if( update_loader(false)==0 )
-			{// cmy: 脡媒录露脥锚鲁脡潞贸脰脴脝么
-				*reboot = TRUE;
-			}
-			else
-			{// cmy: 脡媒录露脢搂掳脺
-				return -1;
-			}
-		}
-		else
-			PRINT_I("Unsupport cmd: %s\n", cmd);
-
-		cmd += strlen(cmd)+1;
-	}
-	return 0;
-}
-
-#define MISC_PAGES          3
-#define MISC_COMMAND_PAGE   1
-#define PAGE_SIZE           (16 * 1024)//16K
-#define MISC_SIZE           (MISC_PAGES * PAGE_SIZE)//48K
-#define MISC_COMMAND_OFFSET (MISC_COMMAND_PAGE * PAGE_SIZE / RK_BLK_SIZE)//32
-
-int checkMisc(void)
-{
-	struct bootloader_message *bmsg = NULL;
-	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
-			RK_BLK_SIZE) * RK_BLK_SIZE);
-	const disk_partition_t *ptn = get_disk_partition(MISC_NAME);
-	if (!ptn) {
-		printf("misc partition not found!\n");
-		return false;
-	}
-	bmsg = (struct bootloader_message *)buf;
-	if (StorageReadLba(ptn->start + MISC_COMMAND_OFFSET, buf, DIV_ROUND_UP(
-					sizeof(struct bootloader_message), RK_BLK_SIZE)) != 0) {
-		printf("failed to read misc\n");
-		return false;
-	}
-	if(!strcmp(bmsg->command, "boot-recovery")) {
-		printf("got recovery cmd from misc.\n");
-		return true;
-	} else if((!strcmp(bmsg->command, "bootloader")) ||
-			(!strcmp(bmsg->command, "loader"))) {
-		printf("got bootloader cmd from misc.\n");
-		const disk_partition_t* misc_part = get_disk_partition(MISC_NAME);
-		if (!misc_part) {
-			printf("misc partition not found!\n");
-			return -1;
-		}
-		dispose_bootloader_cmd(bmsg, misc_part);
-	}
-	return false;
-}
-
-
-int setBootloaderMsg(struct bootloader_message* bmsg)
-{
-	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
-			RK_BLK_SIZE) * RK_BLK_SIZE);
-	memcpy(buf, bmsg, sizeof(struct bootloader_message));
-	const disk_partition_t *ptn = get_disk_partition(MISC_NAME);
-	if (!ptn) {
-		printf("misc partition not found!\n");
-		return -1;
-	}
-
-	return CopyMemory2Flash((uint32)buf, ptn->start + MISC_COMMAND_OFFSET,
-			DIV_ROUND_UP(sizeof(struct bootloader_message), RK_BLK_SIZE));
-}
 
 #define IDBLOCK_SN          3//the sector 3
 #define IDBLOCK_SECTORS     1024
@@ -943,8 +529,7 @@ int setBootloaderMsg(struct bootloader_message* bmsg)
 
 extern uint16 g_IDBlockOffset[];
 
-
-int get_idblk_data(void)
+int rkidb_get_idblk_data(void)
 {
 #ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 	// if storage media is nand, get id block data,
@@ -992,7 +577,29 @@ int get_idblk_data(void)
 }
 
 
-int getSn(char* buf)
+int rkidb_get_bootloader_ver(void)
+{
+	uint8 *buf = (uint8*)&gIdDataBuf[0];
+	memset(bootloader_ver,0,24);
+
+	if(*(uint32*)buf == 0xfcdc8c3b)
+	{
+		uint16 year, date;
+
+		year = *(uint16*)((uint8*)buf+512+18);
+		date = *(uint16*)((uint8*)buf+512+20);
+		internal_boot_bloader_ver = *(uint16*)((uint8*)buf+512+22);
+		sprintf(bootloader_ver,"%04X-%02X-%02X#%X.%02X",
+				year,
+				(uint8)((date>>8)&0x00FF), (uint8)(date&0x00FF),
+				(uint8)((internal_boot_bloader_ver>>8)&0x00FF), (uint8)(internal_boot_bloader_ver&0x00FF));
+		return 0;
+	}
+
+	return -1;
+}
+
+int rkidb_get_sn(char* buf)
 {
 	int size;
 	Sector3Info *pSec3;
@@ -1011,46 +618,8 @@ int getSn(char* buf)
 	return true;
 }
 
-int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked)
-{
-	rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)hdr;
 
-	SecureBootCheckOK = 0;
-
-	if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-				FASTBOOT_BOOT_MAGIC_SIZE)) {
-		goto end;
-	}
-
-	if(!unlocked && SecureBootEn &&
-			boothdr->signTag == SECURE_BOOT_SIGN_TAG)
-	{
-		if(SecureBootSignCheck(boothdr->rsaHash, (uint8 *)boothdr->hdr.id,
-					boothdr->signlen) == FTL_OK)
-		{
-			SecureBootCheckOK = 1;
-		} else {
-			printf("SecureBootSignCheck failed\n");
-		}
-	}
-
-end:
-	printf("SecureBootCheckOK:%d\n", (int)SecureBootCheckOK);
-	if(SecureBootCheckOK == 0)
-	{
-		SecureBootDisable();
-	}
-
-#ifdef SECURE_BOOT_TEST
-	SetSysData2Kernel(1);
-#else
-	SetSysData2Kernel(SecureBootCheckOK);
-#endif
-	return 0;
-}
-
-
-int eraseDrmKey(void)
+int rkidb_erase_drm_key(void)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
 	memset(buf, 0, RK_BLK_SIZE);
@@ -1059,11 +628,3 @@ int eraseDrmKey(void)
 	return 0;
 }
 
-#define FDT_PATH        "rk-kernel.dtb"
-const char* get_fdt_name(void)
-{
-	if (!gBootInfo.fdt_name[0]) {
-		return FDT_PATH;
-	}
-	return gBootInfo.fdt_name;
-}

@@ -20,7 +20,7 @@ DECLARE_GLOBAL_DATA_PTR;
  * Refer:
  * http://android.git.kernel.org/?p=platform/system/core.git;a=blob;f=mkbootimg/bootimg.h
  */
-static void bootimg_print_image_hdr(struct fastboot_boot_img_hdr *hdr)
+static void bootimg_print_image_hdr(rk_boot_img_hdr *hdr)
 {
 #ifdef DEBUG
 	int i;
@@ -47,7 +47,7 @@ static void bootimg_print_image_hdr(struct fastboot_boot_img_hdr *hdr)
 }
 
 #ifdef CONFIG_ROCKCHIP
-extern int loadRkImage(struct fastboot_boot_img_hdr *hdr,
+extern int rkimage_load_image(rk_boot_img_hdr *hdr,
 		const disk_partition_t *boot_ptn, const disk_partition_t *kernel_ptn);
 #endif
 
@@ -55,7 +55,7 @@ extern int loadRkImage(struct fastboot_boot_img_hdr *hdr,
 int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	char *boot_source = "boot";
-	struct fastboot_boot_img_hdr *hdr = NULL;
+	rk_boot_img_hdr *hdr = NULL;
 	const disk_partition_t* ptn;
 	bootm_headers_t images;
 
@@ -95,16 +95,15 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			FBTERR("booti: failed to read bootimg header\n");
 			goto fail;
 		}
-		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-					FASTBOOT_BOOT_MAGIC_SIZE)) {
+		if (memcmp(hdr->magic, BOOT_MAGIC,
+					BOOT_MAGIC_SIZE)) {
 #ifdef CONFIG_ROCKCHIP
 			memset(hdr, 0, blksz);
 			hdr->kernel_addr = (uint32)kaddr;
 			hdr->ramdisk_addr = (uint32)raddr;
 
-			snprintf((char*)hdr->magic,
-					FASTBOOT_BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
-			if (loadRkImage(hdr, ptn, get_disk_partition(KERNEL_NAME)) != 0) {
+			snprintf((char*)hdr->magic, BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
+			if (rkimage_load_image(hdr, ptn, get_disk_partition(KERNEL_NAME)) != 0) {
 				FBTERR("booti: bad boot or kernel image\n");
 				goto fail;
 			}
@@ -157,8 +156,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		/* set this aside somewhere safe */
 		memcpy(hdr, (void *) addr, sizeof(*hdr));
 
-		if (memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-					FASTBOOT_BOOT_MAGIC_SIZE)) {
+		if (memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE)) {
 			printf("booti: bad boot image magic\n");
 			goto fail;
 		}
@@ -183,15 +181,15 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	/* loader fdt */
 #ifdef CONFIG_OF_LIBFDT
-	resource_content content = load_fdt(ptn);
+	resource_content content = rkimage_load_fdt(ptn);
 	if (!content.load_addr) {
-		printf("failed to prepare_fdt from %s!\n", boot_source);
+		printf("failed to load fdt from %s!\n", boot_source);
 #ifdef CONFIG_OF_FROM_RESOURCE
-		content = load_fdt(get_disk_partition(RESOURCE_NAME));
+		content = rkimage_load_fdt(get_disk_partition(RESOURCE_NAME));
 #endif
 	}
 	if (!content.load_addr) {
-		printf("failed to prepare_fdt!\n");
+		printf("failed to load fdt!\n");
 		goto fail;
 	} else {
 		images.ft_addr = content.load_addr;
@@ -201,7 +199,6 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif /* CONFIG_ROCKCHIP */
 #endif /* CONFIG_CMD_BOOTM */
 
-#if defined CONFIG_CMD_FASTBOOT || defined CONFIG_ROCKCHIP
 	char* fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);
 	unsigned long unlocked = 0;
 	if (fastboot_unlocked_env) {
@@ -212,11 +209,10 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	/* boot check call SetSysData2Kernel, set sn and others information in the nanc ram,
 	 * so, after check, PLS notice do not read/write nand flash. 
 	 */
-	if (board_fbt_boot_check(hdr, unlocked)) {
+	if (rkloader_secureCheck(hdr, unlocked)) {
 		FBTERR("booti: board check boot image error\n");
 		goto fail;
 	}
-#endif
 
 	bootimg_print_image_hdr(hdr);
 

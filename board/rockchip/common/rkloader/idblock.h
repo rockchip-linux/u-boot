@@ -1,8 +1,6 @@
 /*
  * (C) Copyright 2008-2014 Rockchip Electronics
  *
- * Configuation settings for the rk3xxx chip platform.
- *
  * See file CREDITS for list of people who contributed to this
  * project.
  *
@@ -24,10 +22,6 @@
 #ifndef RKIDBLOCK_H
 #define RKIDBLOCK_H
 
-#include <fastboot.h>
-#include "../config.h"
-
-extern BootInfo gBootInfo;
 
 #ifndef __GNUC__
 #define PACKED1 __packed
@@ -89,35 +83,35 @@ extern BootInfo gBootInfo;
 #define PBYTE   BYTE*
 #define LPBYTE	BYTE*
 
-PACKED1 struct _Sector0Info{			//总共512Bytes
+/* id block: sector0 */
+typedef PACKED1 struct _Sector0Info {	//总共512Bytes
 	UINT	fwSig;
 	UCHAR	reserved[8];
 	USHORT	usBootCode1Offset;
 	USHORT	usBootCode2Offset;
 	UCHAR	reserved1[490];
-	USHORT  usFlashDataSize;//扇区为单位
+	USHORT  usFlashDataSize;	//扇区为单位
 	USHORT	ucFlashBootSize;
 	UCHAR	reserved2[2];
-}PACKED2;
+}PACKED2 Sector0Info;
 
-typedef	struct _Sector0Info Sector0Info;
-
-typedef PACKED1 struct _Sector1Info{
-	USHORT  usSysReservedBlock;                  // 2 bytes
-	USHORT  usDisk0Size;					// 2 bytes
-	USHORT  usDisk1Size;					// 2 bytes
-	USHORT  usDisk2Size;					// 2 bytes
-	USHORT  usDisk3Size;					// 2 bytes
+/* id block: sector1 */
+typedef PACKED1 struct _Sector1Info {	//总共512Bytes
+	USHORT  usSysReservedBlock;	// 2 bytes
+	USHORT  usDisk0Size;		// 2 bytes
+	USHORT  usDisk1Size;		// 2 bytes
+	USHORT  usDisk2Size;		// 2 bytes
+	USHORT  usDisk3Size;		// 2 bytes
 	UINT	uiChipTag;
 	UINT	uiMachineId;
 	USHORT	usLoaderYear;
 	USHORT	usLoaderDate;
-	USHORT	usLoaderVer;				// Master and slave version
+	USHORT	usLoaderVer;		// Master and slave version
 	UCHAR   reserved[72];
 	USHORT  usFlashDataOffset;
-	USHORT  usFlashDataLen;             //以Sector为单位
+	USHORT  usFlashDataLen;		//以Sector为单位
 	UCHAR	reserved2[384];
-	UINT    uiFlashChipSize; //以Sector为单位
+	UINT    uiFlashChipSize; 	//以Sector为单位
 	UCHAR   reserved1;
 	UCHAR   bAccessTime;
 	USHORT  usPhyBlockSize;
@@ -132,10 +126,12 @@ typedef PACKED1 struct _Sector1Info{
 	USHORT  usIdBlock4;
 }PACKED2 Sector1Info;
 
-typedef PACKED1 struct _Sector2Info{
-	USHORT  chipInfoSize;                        
-	UCHAR   chipInfo[510];					
+/* id block: sector2 */
+typedef PACKED1 struct _Sector2Info {	//总共512Bytes
+	USHORT  chipInfoSize;
+	UCHAR   chipInfo[510];
 }PACKED2 Sector2Info;
+
 
 #define TAG_MANUFACTURER	"M.F.T"
 #define TAG_PRODUCT_SERIES	"PROD_SERIES"
@@ -149,51 +145,52 @@ typedef PACKED1 struct _Sector2Info{
 #define BT_MAX_SIZE 		6
 #define MAC_MAX_SIZE 		6
 
-typedef PACKED1 struct _Sector3Info{
-	USHORT  snSize;  
+/* id block: sector3 */
+typedef PACKED1 struct _Sector3Info {
+	USHORT  snSize;
 	UCHAR   sn[SN_MAX_SIZE];
 	UCHAR   macTag[3];
 	UCHAR	macSize;
-	UCHAR	macAddr[6];					
+	UCHAR	macAddr[6];
 }PACKED2 Sector3Info;
+
 
 typedef UCHAR Sector[512];
 typedef UCHAR Spare[16];
 
-typedef PACKED1 struct _IDBlock{
-	Sector0Info sector0;
-	Sector1Info sector1;
+/* idb */
+typedef PACKED1 struct _IDBlock {
+	Sector0Info	sector0;
+	Sector1Info	sector1;
 	Sector		sector2;
 	Sector		sector3;
 	UCHAR		SDRAM_Initial[512];
 	UCHAR*		flashBoot;
 }PACKED2 IDBlock;
 
-typedef PACKED1 struct _DataInfo{
+typedef PACKED1 struct _DataInfo {
 	BOOL 	bIsExist;		// 0,该数据不存在；1,存在
 	int 	iOffset;
 	int 	iLength;
 	UINT 	uiRAMAddress;
 }PACKED2 DataInfo;
 
-typedef PACKED1 struct _ManufacturerInfo{
+typedef PACKED1 struct _ManufacturerInfo {
 	UCHAR	manufacturerID;
 	char	manufacturerName[MAX_MANUFACTURER_NAME];
 }PACKED2 ManufacturerInfo;
 
 
-typedef	PACKED1 struct _FlashID
-{
+typedef	PACKED1 struct _FlashID {
 	UCHAR makerCode;
 	UCHAR deviceCode;
-	UCHAR cellType; // 0,512 bytes ;1,2024 bytes; 2,2048 bytes
+	UCHAR cellType;		// 0: 512 bytes;1: 2024 bytes; 2: 2048 bytes
 	UCHAR flashType;
 	UCHAR reserved2;
 }PACKED2 FlashID;
 
 /* Flash 信息 */
-typedef	PACKED1 struct _FlashInfo
-{
+typedef	PACKED1 struct _FlashInfo {
 	char szManufacturerName[MAX_MANUFACTURER_NAME];
 	UINT uiFlashSize;		//MB
 	USHORT usBlockSize;		//KB
@@ -207,8 +204,7 @@ typedef	PACKED1 struct _FlashInfo
 	BYTE	bFlashCS;		// Flash片选(若Flash片选存在，则将相应的Bit置1，否则置0)
 }PACKED2 FlashInfo, *PFlashInfo;
 
-typedef PACKED1 struct _FlashInfoCmd
-{
+typedef PACKED1 struct _FlashInfoCmd {
 	UINT	uiFlashSize;	// Flash大小（以Sector为单位）
 	USHORT	usBlockSize;	// 物理的Block大小（以Sector为单位）
 	BYTE	bPageSize;		// 物理的Page大小（以Sector为单位）
@@ -233,10 +229,10 @@ typedef PACKED1 struct _rk_time {
 	unsigned short		usSecond;
 }PACKED2 RK_TIME;
 
-typedef PACKED1 struct _RK28BOOT_HEAD{
-	char				szSign[BOOTSIGN_SIZE];
+typedef PACKED1 struct _RK28BOOT_HEAD {
+	char			szSign[BOOTSIGN_SIZE];
 	unsigned char		bMD5Check[CHECK_SIZE];
-	RK_TIME				tmCreateTime;
+	RK_TIME			tmCreateTime;
 
 	unsigned int		uiMajorVersion;
 	unsigned int		uiMinorVersion;
@@ -257,42 +253,17 @@ typedef PACKED1 struct _RK28BOOT_HEAD{
 	unsigned int		MergerVersion;		// 生成Boot文件所用Merger工具的版本号(高16字节为主版本号、低16字节为副版本号)
 }PACKED2 RK28BOOT_HEAD, *PRK28BOOT_HEAD;
 
-struct bootloader_message {
-	char command[32];
-	char status[32];
-	char recovery[1024];
-};
-
-
-typedef struct tag_rk_boot_img_hdr {
-	struct fastboot_boot_img_hdr hdr;
-
-	unsigned char reserved[0x400-0x260];
-	unsigned long signTag; //0x4E474953
-	unsigned long signlen; //128
-	unsigned char rsaHash[128];
-} rk_boot_img_hdr;
 
 #define SECURE_BOOT_SIGN_TAG    0x4E474953
 
 extern char bootloader_ver[24];
 
-int secureCheck(struct fastboot_boot_img_hdr *hdr, int unlocked);
-int get_idblk_data(void);
-int getSn(char* buf);
-int setBootloaderMsg(struct bootloader_message* bmsg);
-int checkMisc(void);
-void fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz);
-int CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors);
-int32 CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec);
-void SysLowFormatCheck(void);
-void Switch2MSC(void);
-void setup_space(uint32 begin_addr);
-int get_bootloader_ver(void);
-int execute_cmd(PBootInfo pboot_info, char* cmdlist, bool* reboot);
-const char* get_fdt_name(void);
-int eraseDrmKey(void);
-int update_loader(bool dataLoaded);
+int rkidb_update_loader(bool dataLoaded);
+void rkidb_setup_space(uint32 begin_addr);
+int rkidb_get_bootloader_ver(void);
+int rkidb_get_idblk_data(void);
+int rkidb_get_sn(char* buf);
+int rkidb_erase_drm_key(void);
 
 #endif /* RKIDBLOCK_H */
 

@@ -904,6 +904,12 @@ static inline void rkusb_reset_check(void)
 	}
 }
 
+static inline void rkusb_lowformat_check(void)
+{
+	FW_SorageLowFormat();
+}
+
+
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
@@ -947,7 +953,7 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			rkusb_send_csw();
 		}
 		rkusb_reset_check();
-		SysLowFormatCheck();
+		rkusb_lowformat_check();
 #ifdef CONFIG_ROCKUSB_TIMEOUT_CHECK
 		/* if press key enter rockusb, flag = 1 */
 		if(rkusb_timeout_check(flag) == 1) {

@@ -1,12 +1,24 @@
-/********************************************************************************
-  COPYRIGHT (c)   2013 BY ROCK-CHIP FUZHOU
-  --  ALL RIGHTS RESERVED  --
-  File Name:	
-Author:         
-Created:        
-Modified:
-Revision:       1.00
- ********************************************************************************/
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
 #include <malloc.h>
 
 #include "../config.h"
@@ -22,12 +34,13 @@ extern void P_RC4(unsigned char * buf, unsigned short len);
 extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
 extern uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
 
-int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
+static int rkimg_load_image(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
 	unsigned blocks;
-	KernelImg *image = (KernelImg*)buf;
-	unsigned head_offset = 8;//tagKernelImg's tag & size
+	rk_kernel_iamge *image = (rk_kernel_iamge *)buf;
+	unsigned head_offset = 8;//tag_rk_kernel_iamge's tag & size
+
 	if (StorageReadLba(offset, (void *) image, 1) != 0) {
 		printf("failed to read image header\n");
 		return -1;
@@ -42,7 +55,7 @@ int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 
 	//read the rest blks.
 	blocks = DIV_ROUND_UP(*image_size, RK_BLK_SIZE);
-	if (CopyFlash2Memory((uint32) load_addr + RK_BLK_SIZE - head_offset, 
+	if (rkloader_CopyFlash2Memory((uint32) load_addr + RK_BLK_SIZE - head_offset, 
 				offset + 1, blocks - 1) != 0) {
 		printf("failed to read image\n");
 		return -1;
@@ -51,21 +64,22 @@ int loadImage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 	return 0;
 }
 
-int loadRkImage(struct fastboot_boot_img_hdr *hdr, const disk_partition_t *boot_ptn, \
+
+int rkimage_load_image(rk_boot_img_hdr *hdr, const disk_partition_t *boot_ptn, \
 		const disk_partition_t *kernel_ptn)
 {
 	size_t image_size;
 	if(!boot_ptn || !kernel_ptn) {
 		return -1;
 	}
-	if (loadImage(boot_ptn->start, (unsigned char *)hdr->ramdisk_addr, \
+	if (rkimg_load_image(boot_ptn->start, (unsigned char *)hdr->ramdisk_addr, \
 				&image_size) != 0) {
 		printf("load boot image failed\n");
 		return -1;
 	}
 	hdr->ramdisk_size = image_size;
 
-	if (loadImage(kernel_ptn->start, (unsigned char *)hdr->kernel_addr, \
+	if (rkimg_load_image(kernel_ptn->start, (unsigned char *)hdr->kernel_addr, \
 				&image_size) != 0) {
 		printf("load kernel image failed\n");
 		return -1;
@@ -152,7 +166,7 @@ static int unsparse(unsigned char *source,
 						" write(sector=%lu,clen=%llu)\n",
 						chunk->chunk_sz, header->blk_sz, sector, clen);
 
-				if (CopyMemory2Flash((uint32)source, sector, blkcnt)) {
+				if (rkloader_CopyMemory2Flash((uint32)source, sector, blkcnt)) {
 					printf("sparse: block write to sector %lu"
 							" of %llu bytes (%ld blkcnt) failed\n",
 							sector, clen, blkcnt);
@@ -194,12 +208,13 @@ static int unsparse(unsigned char *source,
 }
 
 
-int handleFlash(const disk_partition_t *ptn, void *image_start_ptr, loff_t d_bytes)
+
+static int rkimg_store_image(const disk_partition_t *ptn, void *image_start_ptr, loff_t d_bytes)
 {
 	unsigned blocks;
 	if (!ptn) return -1;
 	if (!image_start_ptr)
-		return handleErase(ptn);
+		return rkimage_partition_erase(ptn);
 
 
 	//base on ti's common/cmd_fastboot.c
@@ -211,17 +226,19 @@ int handleFlash(const disk_partition_t *ptn, void *image_start_ptr, loff_t d_byt
 	}
 
 	blocks = DIV_ROUND_UP(d_bytes, RK_BLK_SIZE);
-	return CopyMemory2Flash((uint32)image_start_ptr, ptn->start, blocks);
+	return rkloader_CopyMemory2Flash((uint32)image_start_ptr, ptn->start, blocks);
 }
 
-int handleErase(const disk_partition_t *ptn)
+
+int rkimage_partition_erase(const disk_partition_t *ptn)
 {
 	if (!ptn) return -1;
 	return StorageEraseBlock(ptn->start, ptn->size, 1);
 }
 
+
 #define PARAMETER_HEAD_OFFSET   8
-static int buildParameter(unsigned char *parameter, int len)
+static int rkimg_buildParameter(unsigned char *parameter, int len)
 {
 	int i;
 	uint32 crc = crc32(0, parameter, len);
@@ -316,35 +333,35 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
 	return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
 }
 
-bool checkBootImageSha(rk_boot_img_hdr* boothdr)
+static bool checkBootImageSha(rk_boot_img_hdr* boothdr)
 {
 	uint8_t* sha;
 	SHA_CTX ctx;
-	int size = SHA_DIGEST_SIZE > sizeof(boothdr->hdr.id) ? sizeof(boothdr->hdr.id) : SHA_DIGEST_SIZE;
+	int size = SHA_DIGEST_SIZE > sizeof(boothdr->id) ? sizeof(boothdr->id) : SHA_DIGEST_SIZE;
 
-	void *kernel_data = (void*)boothdr + boothdr->hdr.page_size;
-	void *ramdisk_data = kernel_data + ALIGN(boothdr->hdr.kernel_size, boothdr->hdr.page_size);
+	void *kernel_data = (void*)boothdr + boothdr->page_size;
+	void *ramdisk_data = kernel_data + ALIGN(boothdr->kernel_size, boothdr->page_size);
 	void *second_data = 0;
-	if (boothdr->hdr.second_size) {
-		second_data = kernel_data + ALIGN(boothdr->hdr.ramdisk_size, boothdr->hdr.page_size);
+	if (boothdr->second_size) {
+		second_data = kernel_data + ALIGN(boothdr->ramdisk_size, boothdr->page_size);
 	}
 
 	FBTDBG("compute real sha\n");
 
 	SHA_init(&ctx);
-	SHA_update(&ctx, kernel_data, boothdr->hdr.kernel_size);
-	SHA_update(&ctx, &boothdr->hdr.kernel_size, sizeof(boothdr->hdr.kernel_size));
-	SHA_update(&ctx, ramdisk_data, boothdr->hdr.ramdisk_size);
-	SHA_update(&ctx, &boothdr->hdr.ramdisk_size, sizeof(boothdr->hdr.ramdisk_size));
-	SHA_update(&ctx, second_data, boothdr->hdr.second_size);
-	SHA_update(&ctx, &boothdr->hdr.second_size, sizeof(boothdr->hdr.second_size));
+	SHA_update(&ctx, kernel_data, boothdr->kernel_size);
+	SHA_update(&ctx, &boothdr->kernel_size, sizeof(boothdr->kernel_size));
+	SHA_update(&ctx, ramdisk_data, boothdr->ramdisk_size);
+	SHA_update(&ctx, &boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
+	SHA_update(&ctx, second_data, boothdr->second_size);
+	SHA_update(&ctx, &boothdr->second_size, sizeof(boothdr->second_size));
 
 	//only rockchip's image do these.
-	SHA_update(&ctx, &boothdr->hdr.tags_addr, sizeof(boothdr->hdr.tags_addr));
-	SHA_update(&ctx, &boothdr->hdr.page_size, sizeof(boothdr->hdr.page_size));
-	SHA_update(&ctx, &boothdr->hdr.unused, sizeof(boothdr->hdr.unused));
-	SHA_update(&ctx, &boothdr->hdr.name, sizeof(boothdr->hdr.name));
-	SHA_update(&ctx, &boothdr->hdr.cmdline, sizeof(boothdr->hdr.cmdline));
+	SHA_update(&ctx, &boothdr->tags_addr, sizeof(boothdr->tags_addr));
+	SHA_update(&ctx, &boothdr->page_size, sizeof(boothdr->page_size));
+	SHA_update(&ctx, &boothdr->unused, sizeof(boothdr->unused));
+	SHA_update(&ctx, &boothdr->name, sizeof(boothdr->name));
+	SHA_update(&ctx, &boothdr->cmdline, sizeof(boothdr->cmdline));
 
 	sha = SHA_final(&ctx);
 
@@ -357,12 +374,12 @@ bool checkBootImageSha(rk_boot_img_hdr* boothdr)
 	}
 	printf("\nsha from image header:\n");
 	for (i = 0;i < size;i++) {
-		printf("%02x", ((char*)boothdr->hdr.id)[i]);
+		printf("%02x", ((char*)boothdr->id)[i]);
 	}
 	printf("\n");
 #endif
 
-	return !memcmp(boothdr->hdr.id, sha, size);
+	return !memcmp(boothdr->id, sha, size);
 }
 
 bool checkBootImageSign(rk_boot_img_hdr* boothdr)
@@ -372,7 +389,7 @@ bool checkBootImageSign(rk_boot_img_hdr* boothdr)
 		FBTERR("current loader unsigned, allow flash anyway\n");
 		return true;
 	}
-	if (!memcmp(boothdr->hdr.magic, FASTBOOT_BOOT_MAGIC, FASTBOOT_BOOT_MAGIC_SIZE)) {
+	if (!memcmp(boothdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE)) {
 		if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
 			//signed image, check with signature.
 			//check sha here.
@@ -385,7 +402,7 @@ bool checkBootImageSign(rk_boot_img_hdr* boothdr)
 				goto fail;
 			}
 			//check rsa sign here.
-			if(SecureBootSignCheck((uint8 *)boothdr->rsaHash, (uint8 *)boothdr->hdr.id,
+			if(SecureBootSignCheck((uint8 *)boothdr->rsaHash, (uint8 *)boothdr->id,
 						boothdr->signlen) ==  FTL_OK) {
 				return true;
 			} else {
@@ -404,7 +421,7 @@ fail:
 	return false;
 }
 
-bool checkUbootImageSha(second_loader_hdr* hdr)
+bool checkUbootImageSha(second_loader_hdr *hdr)
 {
 	uint8_t* sha;
 	SHA_CTX ctx;
@@ -475,14 +492,14 @@ fail:
 	return false;
 }
 
-int handleRkFlash(const char *name, const disk_partition_t *ptn,
+int rkimage_store_image(const char *name, const disk_partition_t *ptn,
 		struct cmd_fastboot_interface *priv)
 {
 	if (!strcmp(PARAMETER_NAME, name))
 	{
 		//flash parameter.
 		int i, ret = -1, len = 0;
-		len = buildParameter(priv->transfer_buffer, priv->d_bytes);
+		len = rkimg_buildParameter(priv->transfer_buffer, priv->d_bytes);
 
 		printf("Write parameter\n");
 		for(i=0; i<PARAMETER_NUM; i++)
@@ -507,7 +524,7 @@ int handleRkFlash(const char *name, const disk_partition_t *ptn,
 			printf("err! make_loader_data failed(loader's key not match)\n");
 			goto fail;
 		}
-		if (update_loader(true))
+		if (rkidb_update_loader(true))
 		{
 			printf("err! update_loader failed\n");
 			goto fail;
@@ -539,7 +556,7 @@ int handleRkFlash(const char *name, const disk_partition_t *ptn,
 		FBTERR("ptn not found!!(%s)\n", name);
 		goto fail;
 	}
-	if (handleFlash(ptn, priv->transfer_buffer, priv->d_bytes) != 0)
+	if (rkimg_store_image(ptn, priv->transfer_buffer, priv->d_bytes) != 0)
 		goto fail;
 ok:
 	return 0;
@@ -553,7 +570,7 @@ fail:
 	}
 
 //direct download to storage, and return wrote len.
-int handleDirectDownload(unsigned char *buffer, 
+static int rkimg_handleDirectDownload(unsigned char *buffer, 
 		int length, struct cmd_fastboot_interface *priv)
 {
 	int size = priv->d_direct_size;
@@ -571,7 +588,7 @@ int handleDirectDownload(unsigned char *buffer,
 
 	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->start,
 				buffer, blocks, 0)) {
-		FBTDBG("handleDirectDownload failed\n");
+		FBTDBG("rkimg_handleDirectDownload failed\n");
 		return -1;
 	}
 	priv->d_direct_offset += blocks;
@@ -579,7 +596,7 @@ int handleDirectDownload(unsigned char *buffer,
 	return write_len;
 }
 
-void noBuffer(unsigned char *buffer,
+static void rkimg_noBuffer(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
 	if (length) {
@@ -590,14 +607,14 @@ void noBuffer(unsigned char *buffer,
 	}
 }
 
-int handleImageDownload(unsigned char *buffer,
+static int rkimg_ImageDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
 	if (!priv->d_direct_size) {
 		//should not reach here.
 		return 0;
 	}
-	int ret = handleDirectDownload(buffer, length, priv);
+	int ret = rkimg_handleDirectDownload(buffer, length, priv);
 	if (ret < 0) {
 		priv->d_status = -1;
 		return 0;
@@ -606,7 +623,7 @@ int handleImageDownload(unsigned char *buffer,
 
 	//not done yet!
 	if (priv->d_direct_size) {
-		noBuffer(buffer, length, priv);
+		rkimg_noBuffer(buffer, length, priv);
 		return 1;
 	}
 	FBTDBG("image download compelete\n");
@@ -614,13 +631,13 @@ int handleImageDownload(unsigned char *buffer,
 	return 0;
 }
 
-int handleSparseDownload(unsigned char *buffer,
+static int rkimg_handleSparseDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
 	int ret;
 	if (priv->d_direct_size) {
 		//continue direct download
-		ret = handleDirectDownload(buffer, length, priv);
+		ret = rkimg_handleDirectDownload(buffer, length, priv);
 		if (ret < 0) {
 			priv->d_status = -1;
 			return 0;
@@ -629,8 +646,8 @@ int handleSparseDownload(unsigned char *buffer,
 
 		//not done yet!
 	  	if (priv->d_direct_size) {
-			noBuffer(buffer, length, priv);
-			return 1;
+				rkimg_noBuffer(buffer, length, priv);
+				return 1;
 		}
 	}
 	chunk_header_t* chunk = (chunk_header_t*)calloc(sizeof(chunk_header_t), 1);
@@ -638,7 +655,7 @@ int handleSparseDownload(unsigned char *buffer,
 	u64 clen = 0;
 	while (priv->sparse_cur_chunk < header->total_chunks) {
 		if (length < sizeof(chunk_header_t)) {
-			noBuffer(buffer, length, priv);
+			rkimg_noBuffer(buffer, length, priv);
 			return 1;
 		}
 		priv->sparse_cur_chunk++;
@@ -661,7 +678,7 @@ int handleSparseDownload(unsigned char *buffer,
 
 				priv->d_direct_size = clen;
 
-				ret = handleDirectDownload(buffer, length, priv);
+				ret = rkimg_handleDirectDownload(buffer, length, priv);
 				if (ret < 0) {
 					priv->d_status = -1;
 					return 0;
@@ -670,7 +687,7 @@ int handleSparseDownload(unsigned char *buffer,
 
 				//not done yet!
 				if (priv->d_direct_size) {
-					noBuffer(buffer, length, priv);
+					rkimg_noBuffer(buffer, length, priv);
 					return 1;
 				}
 				break;
@@ -703,7 +720,7 @@ failed:
 	return 0;
 }
 
-int startDownload(unsigned char *buffer,
+static int rkimg_startDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
 #if 0
@@ -735,12 +752,12 @@ int startDownload(unsigned char *buffer,
 		CONSUMED(buffer, length, sizeof(sparse_header_t));
 
 		FBTDBG("found sparse image\n");
-		return handleSparseDownload(buffer, length, priv);
+		return rkimg_handleSparseDownload(buffer, length, priv);
 	}
 
 #if 1
 	priv->d_direct_size = priv->d_size;
-	return handleImageDownload(buffer, length, priv);
+	return rkimg_ImageDownload(buffer, length, priv);
 #else //only support ext image
 	//check ext image
 	filesystem* fs = (filesystem*) buffer;
@@ -748,7 +765,7 @@ int startDownload(unsigned char *buffer,
 			fs->sb.s_magic == EXT3_MAGIC_NUMBER) {
 		priv->d_direct_size = priv->d_size;
 		FBTDBG("found ext image\n");
-		return handleImageDownload(buffer, length, priv);
+		return rkimg_ImageDownload(buffer, length, priv);
 	}
 
 	priv->d_status = -1;
@@ -756,7 +773,7 @@ int startDownload(unsigned char *buffer,
 #endif
 }
 
-int handleDownload(unsigned char *buffer,
+int rkimage_handleDownload(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv)
 {
 	if (!priv->pending_ptn || !priv->pending_ptn->start) {
@@ -787,7 +804,7 @@ int handleDownload(unsigned char *buffer,
 
 	if (start) {
 		FBTDBG("start download, length:%d\n", length);
-		return startDownload(buffer, length, priv);
+		return rkimg_startDownload(buffer, length, priv);
 	}
 
 	//check buffer size.
@@ -810,17 +827,29 @@ int handleDownload(unsigned char *buffer,
 
 	FBTDBG("continue download, length:%d\n", length);
 	if (priv->flag_sparse) {
-		return handleSparseDownload(buffer, length, priv);
+		return rkimg_handleSparseDownload(buffer, length, priv);
 	} else {
-		return handleImageDownload(buffer, length, priv);
+		return rkimg_ImageDownload(buffer, length, priv);
 	}
 }
 
-resource_content load_fdt(const disk_partition_t* ptn)
+
+#define FDT_PATH        "rk-kernel.dtb"
+static const char* get_fdt_name(void)
+{
+	if (!gBootInfo.fdt_name[0]) {
+		return FDT_PATH;
+	}
+	return gBootInfo.fdt_name;
+}
+
+
+resource_content rkimage_load_fdt(const disk_partition_t* ptn)
 {
 	resource_content content;
 	snprintf(content.path, sizeof(content.path), "%s", get_fdt_name());
 	content.load_addr = 0;
+
 #ifndef CONFIG_RESOURCE_PARTITION
 	return content;
 #else
@@ -832,13 +861,13 @@ resource_content load_fdt(const disk_partition_t* ptn)
 		//load from bootimg's second data area.
 		unsigned long blksz = ptn->blksz;
 		int offset = 0;
-		struct fastboot_boot_img_hdr *hdr = NULL;
+		rk_boot_img_hdr *hdr = NULL;
 		hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
 		if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
 			return content;
 		}
-		if (!memcmp(hdr->magic, FASTBOOT_BOOT_MAGIC,
-					FASTBOOT_BOOT_MAGIC_SIZE) && hdr->second_size) {
+		if (!memcmp(hdr->magic, BOOT_MAGIC,
+					BOOT_MAGIC_SIZE) && hdr->second_size) {
 			//compute second data area's offset.
 			offset = ptn->start + (hdr->page_size / blksz);
 			offset += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
@@ -856,14 +885,14 @@ resource_content load_fdt(const disk_partition_t* ptn)
 #endif
 }
 
-void prepare_fdt(void)
+void rkimage_prepare_fdt(void)
 {
 	gd->fdt_blob = NULL;
 	gd->fdt_size = 0;
 #ifdef CONFIG_RESOURCE_PARTITION
-	resource_content content = load_fdt(get_disk_partition(BOOT_NAME));
+	resource_content content = rkimage_load_fdt(get_disk_partition(BOOT_NAME));
 	if (!content.load_addr) {
-		printf("failed to prepare_fdt from boot!\n");
+		printf("failed to prepare fdt from boot!\n");
 	} else {
 		gd->fdt_blob = content.load_addr;
 		gd->fdt_size = content.content_size;
@@ -871,9 +900,9 @@ void prepare_fdt(void)
 		return;
 	}
 #ifdef CONFIG_OF_FROM_RESOURCE
-	content = load_fdt(get_disk_partition(RESOURCE_NAME));
+	content = rkimage_load_fdt(get_disk_partition(RESOURCE_NAME));
 	if (!content.load_addr) {
-		printf("failed to prepare_fdt from resource!\n");
+		printf("failed to prepare fdt from resource!\n");
 	} else {
 		gd->fdt_blob = content.load_addr;
 		gd->fdt_size = content.content_size;
@@ -883,3 +912,4 @@ void prepare_fdt(void)
 #endif
 #endif
 }
+

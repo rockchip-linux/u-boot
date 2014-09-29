@@ -29,6 +29,8 @@
 #include <command.h>
 #include <asm/arch/rkplat.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #define	SECURE_BOOT_ENABLE
 #define	SECURE_BOOT_ENABLE_ALWAY
 #define	SECURE_BOOT_LOCK
@@ -117,12 +119,13 @@
 #include "platform/chipDepend.h"
 
 //系统相关头文件
-#include "rkloader/parameter.h"
 #include "platform/rsa.h"
 #include "platform/sha.h"
+#include "rkloader/parameter.h"
 #include "SecureBoot/SecureBoot.h"
 #include "rkloader/rkimage.h"
 #include "rkloader/idblock.h"
+#include "rkloader/rkloader.h"
 #include "rkloader/key.h"
 #include "storage/storage.h"
 
@@ -160,7 +163,6 @@ enum {
 void P_RC4(unsigned char * buf, unsigned short len);
 void P_RC4_ext(unsigned char * buf, unsigned short len);
 uint32 CRC_32CheckBuffer(unsigned char * aData, unsigned long aSize);
-void change_cmd_for_recovery(PBootInfo boot_info, char * rec_cmd);
 
 #endif /* _RK_CONFIG_H */
 

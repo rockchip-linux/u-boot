@@ -227,85 +227,46 @@ struct cmd_fastboot_interface {
 #define FASTBOOT_DISCONNECT		1
 #define FASTBOOT_INACTIVE		2
 
-/* Android bootimage file format */
-#define FASTBOOT_BOOT_MAGIC "ANDROID!"
-#define FASTBOOT_BOOT_MAGIC_SIZE 8
-#define FASTBOOT_BOOT_NAME_SIZE 16
-#define FASTBOOT_BOOT_ARGS_SIZE 512
-
-#define PARAMETER_NAME  "parameter"
-#define LOADER_NAME     "loader"
-#define UBOOT_NAME      "uboot"
-#define MISC_NAME       "misc"
-#define KERNEL_NAME     "kernel"
-#define BOOT_NAME       "boot"
-#define RECOVERY_NAME   "recovery"
-#define SYSTEM_NAME     "system"
-#define BACKUP_NAME     "backup"
-#define RESOURCE_NAME   "resource"
-
-struct fastboot_boot_img_hdr {
-	unsigned char magic[FASTBOOT_BOOT_MAGIC_SIZE];
-
-	unsigned kernel_size;  /* size in bytes */
-	unsigned kernel_addr;  /* physical load addr */
-
-	unsigned ramdisk_size; /* size in bytes */
-	unsigned ramdisk_addr; /* physical load addr */
-
-	unsigned second_size;  /* size in bytes */
-	unsigned second_addr;  /* physical load addr */
-
-	unsigned tags_addr;    /* physical addr for kernel tags */
-	unsigned page_size;    /* flash page size we assume */
-	unsigned unused[2];    /* future expansion: should be 0 */
-
-	unsigned char name[FASTBOOT_BOOT_NAME_SIZE]; /* asciiz product name */
-
-	unsigned char cmdline[FASTBOOT_BOOT_ARGS_SIZE];
-
-	unsigned id[8]; /* timestamp / checksum / sha1 / etc */
-};
-
-struct bootloader_message;
 
 enum fbt_reboot_type {
-	FASTBOOT_REBOOT_UNKNOWN, /* typically for a cold boot */
-	FASTBOOT_REBOOT_NORMAL,
-	FASTBOOT_REBOOT_BOOTLOADER, //rockusb
-	FASTBOOT_REBOOT_RECOVERY,
+	FASTBOOT_REBOOT_UNKNOWN,		/* typically for a cold boot */
+	FASTBOOT_REBOOT_NORMAL,			/* normal */
+	FASTBOOT_REBOOT_BOOTLOADER,		/* rockusb */
+	FASTBOOT_REBOOT_RECOVERY,		/* recovery */
 	FASTBOOT_REBOOT_NONE,
-	FASTBOOT_REBOOT_RECOVERY_WIPE_DATA,
-	FASTBOOT_REBOOT_FASTBOOT,
-	FASTBOOT_REBOOT_CHARGE,
+	FASTBOOT_REBOOT_RECOVERY_WIPE_DATA,	/* recovery and wipe data */
+	FASTBOOT_REBOOT_FASTBOOT,		/* android fastboot */
+	FASTBOOT_REBOOT_CHARGE,			/* charge */
 };
-extern void fbt_preboot(void);
+
 
 #ifdef CONFIG_FASTBOOT_LOG
 extern int fbt_send_info(const char *info);
 extern int fbt_log(const char *str, const int len, bool send);
 #endif
 
-int board_fbt_oem(const char *cmdbuf);
+int board_fbt_is_cold_boot(void);
+int board_fbt_is_charging(void);
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt);
 /* gets the reboot type, automatically clearing it for next boot */
 enum fbt_reboot_type board_fbt_get_reboot_type(void);
 int board_fbt_key_pressed(void);
 void board_fbt_finalize_bootargs(char* args, int buf_sz, 
 		int ramdisk_addr, int ramdisk_sz, int recovery);
+void board_fbt_boot_failed(const char* boot);
+#ifdef CONFIG_CMD_FASTBOOT
+int board_fbt_oem(const char *cmdbuf);
 int board_fbt_handle_erase(const disk_partition_t *ptn);
 int board_fbt_handle_flash(const char *name, const disk_partition_t *ptn,
 		struct cmd_fastboot_interface *priv);
 int board_fbt_handle_download(unsigned char *buffer,
 		int length, struct cmd_fastboot_interface *priv);
-int board_fbt_check_misc(void);
-int board_fbt_set_bootloader_msg(struct bootloader_message* bmsg);
+#endif
 int board_fbt_load_partition_table(void);
-void board_fbt_boot_failed(const char* boot);
-int board_fbt_boot_check(struct fastboot_boot_img_hdr *hdr, int unlocked);
-int board_fbt_is_cold_boot(void);
-int board_fbt_is_charging(void);
 const disk_partition_t* board_fbt_get_partition(const char* name);
+void board_fbt_run_recovery_wipe_data(void);
+void board_fbt_preboot(void);
+
 
 #define FBT_ERR
 #undef  FBT_WARN
