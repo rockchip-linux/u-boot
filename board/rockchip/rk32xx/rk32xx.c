@@ -278,9 +278,10 @@ int board_late_init(void)
 		printf("\n#Boot ver: %s\n", bootloader_ver);
 	}
 
-	char tmp_buf[30];
+	char tmp_buf[32];
+	/* rk sn size 30bytes, zero buff */
+	memset(tmp_buf, 0, 32);
 	if (rkidb_get_sn(tmp_buf)) {
-		tmp_buf[sizeof(tmp_buf)-1] = 0;
 		setenv("fbt_sn#", tmp_buf);
 	}
 
