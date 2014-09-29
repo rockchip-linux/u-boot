@@ -257,7 +257,7 @@ static int rkimg_buildParameter(unsigned char *parameter, int len)
 	return len + PARAMETER_HEAD_OFFSET;
 }
 
-static int make_loader_data(const char* old_loader, char* new_loader, int *new_loader_size)//path, RKIMAGE_HDR *hdr)
+static int rkimg_make_loader_data(const char* old_loader, char* new_loader, int *new_loader_size)
 {
 	int i,j;
 	PSTRUCT_RKBOOT_ENTRY pFlashDataEntry = NULL;
@@ -333,7 +333,7 @@ static int make_loader_data(const char* old_loader, char* new_loader, int *new_l
 	return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
 }
 
-static bool checkBootImageSha(rk_boot_img_hdr* boothdr)
+static bool rkimg_checkBootImageSha(rk_boot_img_hdr *boothdr)
 {
 	uint8_t* sha;
 	SHA_CTX ctx;
@@ -382,7 +382,7 @@ static bool checkBootImageSha(rk_boot_img_hdr* boothdr)
 	return !memcmp(boothdr->id, sha, size);
 }
 
-bool checkBootImageSign(rk_boot_img_hdr* boothdr)
+static bool rkimg_checkBootImageSign(rk_boot_img_hdr* boothdr)
 {
 	//flash boot/recovery.
 	if (gDrmKeyInfo.publicKeyLen == 0) {
@@ -393,7 +393,7 @@ bool checkBootImageSign(rk_boot_img_hdr* boothdr)
 		if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
 			//signed image, check with signature.
 			//check sha here.
-			if (!checkBootImageSha(boothdr)) {
+			if (!rkimg_checkBootImageSha(boothdr)) {
 				FBTERR("sha mismatch!\n");
 				goto fail;
 			}
@@ -421,7 +421,7 @@ fail:
 	return false;
 }
 
-bool checkUbootImageSha(second_loader_hdr *hdr)
+static bool rkimg_checkUbootImageSha(second_loader_hdr *hdr)
 {
 	uint8_t* sha;
 	SHA_CTX ctx;
@@ -453,7 +453,7 @@ bool checkUbootImageSha(second_loader_hdr *hdr)
 }
 
 
-bool checkUbootImageSign(second_loader_hdr* hdr)
+static bool rkimg_checkUbootImageSign(second_loader_hdr* hdr)
 {
 	//flash uboot.
 	if (gDrmKeyInfo.publicKeyLen == 0) {
@@ -464,7 +464,7 @@ bool checkUbootImageSign(second_loader_hdr* hdr)
 		if (hdr->signTag == RK_UBOOT_SIGN_TAG) {
 			//signed image, check with signature.
 			//check sha here.
-			if (!checkUbootImageSha(hdr)) {
+			if (!rkimg_checkUbootImageSha(hdr)) {
 				FBTERR("sha mismatch!\n");
 				goto fail;
 			}
@@ -519,14 +519,14 @@ int rkimage_store_image(const char *name, const disk_partition_t *ptn,
 	{
 		//flash loader.
 		int size = 0;
-		if (make_loader_data((char *)priv->transfer_buffer, (char *)g_pLoader, &size))
+		if (rkimg_make_loader_data((char *)priv->transfer_buffer, (char *)g_pLoader, &size))
 		{
-			printf("err! make_loader_data failed(loader's key not match)\n");
+			printf("make loader data failed(loader's key not match)\n");
 			goto fail;
 		}
 		if (rkidb_update_loader(true))
 		{
-			printf("err! update_loader failed\n");
+			printf("update_loader failed\n");
 			goto fail;
 		}
 		goto ok;
@@ -542,12 +542,12 @@ int rkimage_store_image(const char *name, const disk_partition_t *ptn,
 	} else if (!strcmp((const char*)priv->pending_ptn->name, RECOVERY_NAME) ||
 			!strcmp((const char*)priv->pending_ptn->name, BOOT_NAME)) {
 		//flash boot/recovery.
-		if (!checkBootImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
+		if (!rkimg_checkBootImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
 			goto fail;
 		}
 	} else if (!strcmp((const char*)priv->pending_ptn->name, UBOOT_NAME)) {
 		//flash uboot
-		if (!checkUbootImageSign((second_loader_hdr *)priv->transfer_buffer)) {
+		if (!rkimg_checkUbootImageSign((second_loader_hdr *)priv->transfer_buffer)) {
 			goto fail;
 		}
 	}
