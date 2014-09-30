@@ -983,7 +983,11 @@ static int rk_mipi_dsi_init(void *arg, u32 n)
 	    return -1;
     }
 	dsi->phy.Tpclk = div_u64(1000000000000llu, screen->pixclock);
-	dsi->phy.ref_clk = 24*MHZ / 2; /* 1/2 of input refclk */
+	if (cpu_is_rk3288())
+		dsi->phy.ref_clk = 24*MHZ;
+	else if (cpu_is_rk312x())
+		dsi->phy.ref_clk = 24*MHZ / 2; /* 1/2 of input refclk */
+	dsi->phy.sys_clk = dsi->phy.ref_clk;
 
 	dsi->phy.sys_clk = dsi->phy.ref_clk;
 
@@ -1764,9 +1768,9 @@ int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 		if(fdtdec_get_int(blob, node, "rockchip,prop", -1) != dsi->dsi_id){
 			//node = fdtdec_next_compatible(blob, node, COMPAT_ROCKCHIP_DSIHOST);
 			if (cpu_is_rk3288()) {
-				node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk32-dsi");
+				node = fdt_node_offset_by_compatible(blob, node, "rockchip,rk32-dsi");
 			} else if(cpu_is_rk312x()) {
-				node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk312x-dsi");
+				node = fdt_node_offset_by_compatible(blob, node, "rockchip,rk312x-dsi");
 			}			
 			if(node<0) {
 				printf("mipi dts get node failed, node = %d.\n", node);
