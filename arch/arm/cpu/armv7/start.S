@@ -162,7 +162,11 @@ reset:
 	mcr	p15, 0, r0, c1, c0, 0	@ Write CP15 SCTRL Register
 
 	/* Set vector address in CP15 VBAR register */
+#ifdef CONFIG_ROCKCHIP
 	ldr	r0, =_vector
+#else
+	ldr	r0, =_start
+#endif
 	mcr	p15, 0, r0, c12, c0, 0	@Set VBAR
 #endif
 
@@ -189,7 +193,11 @@ ENTRY(c_runtime_cpu_setup)
  * Move vector table
  */
 	/* Set vector address in CP15 VBAR register */
-	ldr     r0, =_vector
+#ifdef CONFIG_ROCKCHIP
+	ldr	r0, =_vector
+#else
+	ldr	r0, =_start
+#endif
 	mcr     p15, 0, r0, c12, c0, 0  @Set VBAR
 
 	bx	lr
