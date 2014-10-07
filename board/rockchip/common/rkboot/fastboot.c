@@ -465,11 +465,6 @@ void board_fbt_preboot(void)
 		/* unknown reboot cause (typically because of a cold boot).
 		 * check if we had misc command to boot recovery.
 		 */
-		int run_recovery = rkloader_run_misc_cmd();
-		if (run_recovery) {
-			FBTDBG("\n%s: starting recovery because of misc command\n", __func__);
-			return board_fbt_run_recovery();
-		}
-		FBTDBG("\n%s: no special reboot flags, doing normal boot\n", __func__);
+		rkloader_run_misc_cmd();
 	}
 }

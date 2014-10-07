@@ -149,11 +149,7 @@ static int dispose_bootloader_cmd(struct bootloader_message *msg,
 {
 	int ret = 0;
 
-	if(0 == strcmp(msg->command, "boot-recovery"))
-	{
-		// Recovery System
-	}
-	else if (0 == strcmp(msg->command, "bootloader")
+	if (0 == strcmp(msg->command, "bootloader")
 			|| 0 == strcmp(msg->command, "loader")) // 新Loader才能支持"loader"命令
 	{
 		bool reboot;
@@ -180,10 +176,6 @@ static int dispose_bootloader_cmd(struct bootloader_message *msg,
 				reset_cpu(0);
 			}
 		} 
-	}
-	else
-	{
-		PRINT_W("Unsupport cmd\n");
 	}
 
 	return ret;
@@ -243,16 +235,20 @@ int rkloader_run_misc_cmd(void)
 	}
 	if(!strcmp(bmsg->command, "boot-recovery")) {
 		printf("got recovery cmd from misc.\n");
-		return true;
+#ifdef CONFIG_CMD_BOOTRK
+		char *const boot_cmd[] = {"bootrk", "recovery"};
+		do_bootrk(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+#endif
+		return false;
 	} else if((!strcmp(bmsg->command, "bootloader")) ||
 			(!strcmp(bmsg->command, "loader"))) {
 		printf("got bootloader cmd from misc.\n");
 		const disk_partition_t* misc_part = get_disk_partition(MISC_NAME);
 		if (!misc_part) {
 			printf("misc partition not found!\n");
-			return -1;
+			return false;
 		}
-		dispose_bootloader_cmd(bmsg, misc_part);
+		return dispose_bootloader_cmd(bmsg, misc_part);
 	}
 
 	return false;
