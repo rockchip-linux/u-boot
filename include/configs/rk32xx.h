@@ -229,7 +229,7 @@
  * Even though we use two CS all the memory
  * is mapped to one contiguous block
  */
-#define CONFIG_NR_DRAM_BANKS		1
+#define CONFIG_NR_DRAM_BANKS		CONFIG_RK_MAX_DRAM_BANKS
 
 #define PHYS_SDRAM_1            	CONFIG_SYS_SDRAM_BASE /* OneDRAM Bank #0 */
 #define PHYS_SDRAM_1_SIZE       	(CONFIG_RAM_PHY_END - CONFIG_RAM_PHY_START) /* 128 MB in Bank #0 */

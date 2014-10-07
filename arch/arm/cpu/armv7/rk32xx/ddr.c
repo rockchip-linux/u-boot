@@ -44,7 +44,7 @@ int dram_init(void)
 
 void dram_init_banksize(void)
 {
-#if defined CONFIG_RKDDR_PARAM_ADDR && !defined CONFIG_SYS_GENERIC_BOARD
+#if defined CONFIG_RKDDR_PARAM_ADDR
 	u64* buf = (u64*)CONFIG_RKDDR_PARAM_ADDR;
 	u32 count = ((u32*)buf)[0];
 	buf ++;
