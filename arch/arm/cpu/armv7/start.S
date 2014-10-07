@@ -144,7 +144,8 @@ reset:
 #ifdef CONFIG_ROCKCHIP
 	ldr	r0, =__loader_tag
 	ldr	r1, [r0]
-	ldr	r0, LoaderTagCheck
+	ldr	r0, =LoaderTagCheck
+	ldr	r0, [r0]
 	cmp	r1, r0
 	movne	pc, r14
 #endif
