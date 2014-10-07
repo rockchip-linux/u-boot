@@ -1218,7 +1218,9 @@ static void fbt_handle_boot(const char *cmdbuf)
 	if ((priv.d_bytes) &&
 			(CONFIG_FASTBOOT_MKBOOTIMAGE_PAGE_SIZE < priv.d_bytes)) {
 		char start[32];
-		char *booti[] = { "booti", start };
+#ifdef CONFIG_CMD_BOOTRK
+		char *bootrk[] = { "bootrk", start };
+#endif
 		char *go[]    = { "go",    start };
 
 		/*
@@ -1234,10 +1236,10 @@ static void fbt_handle_boot(const char *cmdbuf)
 		fbt_handle_response();
 		udelay(1000000); /* 1 sec */
 
-#ifdef CONFIG_CMD_BOOTI
-		do_booti(NULL, 0, ARRAY_SIZE(booti), booti);
+#ifdef CONFIG_CMD_BOOTRK
+		do_bootrk(NULL, 0, ARRAY_SIZE(bootrk), bootrk);
 
-		FBTERR("do_booti() returned, trying go..\n");
+		FBTERR("do_bootrk() returned, trying go..\n");
 #endif
 
 		FBTINFO("Booting raw image..\n");

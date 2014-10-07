@@ -1929,15 +1929,3 @@ U_BOOT_CMD(
 	"boot Linux zImage image from memory", bootz_help_text
 );
 #endif	/* CONFIG_CMD_BOOTZ */
-
-#ifdef CONFIG_ROCKCHIP
-
-int rk_bootm_start(bootm_headers_t *images)
-{
-	boot_start_lmb(images);
-
-	images->state = BOOTM_STATE_OS_GO;
-	return 0;
-}
-
-#endif

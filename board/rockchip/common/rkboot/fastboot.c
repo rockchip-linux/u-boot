@@ -42,7 +42,6 @@ extern void fbt_fastboot_init(void);
 extern uint32 GetVbus(void);
 extern void rkloader_change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
 extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
-extern int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 #ifdef CONFIG_LCD
 extern void rk_backlight_ctrl(int brightness);
 extern int lcd_enable_logo(bool enable);
@@ -217,15 +216,15 @@ void board_fbt_boot_failed(const char* boot)
 {
 	printf("Unable to boot:%s\n", boot);
 
-#ifdef CONFIG_CMD_BOOTI
+#ifdef CONFIG_CMD_BOOTRK
 	if (!memcmp(BOOT_NAME, boot, sizeof(BOOT_NAME))) {
 		printf("try to start recovery\n");
-		char *const boot_cmd[] = {"booti", RECOVERY_NAME};
-		do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+		char *const boot_cmd[] = {"bootrk", RECOVERY_NAME};
+		do_bootrk(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
 	} else if (!memcmp(RECOVERY_NAME, boot, sizeof(RECOVERY_NAME))) {
 		printf("try to start backup\n");
-		char *const boot_cmd[] = {"booti", BACKUP_NAME};
-		do_booti(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+		char *const boot_cmd[] = {"bootrk", BACKUP_NAME};
+		do_bootrk(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
 	}  
 #endif
 	printf("try to start rockusb\n");
@@ -292,9 +291,9 @@ const disk_partition_t* board_fbt_get_partition(const char* name)
 #ifdef CONFIG_CMD_CHARGE_ANIM
 static void board_fbt_run_charge(void)
 {
-	char *const boot_charge_cmd[] = {"booti", "charge"};
-#ifdef CONFIG_CMD_BOOTI
-	do_booti(NULL, 0, ARRAY_SIZE(boot_charge_cmd), boot_charge_cmd);
+	char *const boot_charge_cmd[] = {"bootrk", "charge"};
+#ifdef CONFIG_CMD_BOOTRK
+	do_bootrk(NULL, 0, ARRAY_SIZE(boot_charge_cmd), boot_charge_cmd);
 #endif
 
 	/* returns if boot.img is bad */
@@ -305,9 +304,9 @@ static void board_fbt_run_charge(void)
 
 static void board_fbt_run_recovery(void)
 {
-#ifdef CONFIG_CMD_BOOTI
-	char *const boot_recovery_cmd[] = {"booti", "recovery"};
-	do_booti(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
+#ifdef CONFIG_CMD_BOOTRK
+	char *const boot_recovery_cmd[] = {"bootrk", "recovery"};
+	do_bootrk(NULL, 0, ARRAY_SIZE(boot_recovery_cmd), boot_recovery_cmd);
 #endif
 
 	/* returns if recovery.img is bad */

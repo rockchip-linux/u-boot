@@ -255,6 +255,8 @@ int board_late_init(void)
 #if (CONFIG_BOOTDELAY > 0)
 	setenv("bootdelay", simple_itoa(CONFIG_BOOTDELAY));
 #endif
+	setenv("bootcmd", CONFIG_BOOTCOMMAND);
+
 	load_disk_partitions();
 
 #ifdef CONFIG_RK_PWM_REMOTE

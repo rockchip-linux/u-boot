@@ -159,8 +159,8 @@
  *	#define CONFIG_PREBOOT
  */
 #define CONFIG_PREBOOT
-#define CONFIG_CMD_BOOTI
-#define CONFIG_BOOTCOMMAND		"booti"
+#define CONFIG_CMD_BOOTRK
+#define CONFIG_BOOTCOMMAND		"bootrk"
 
 #define CONFIG_EXTRA_ENV_SETTINGS	"verify=n\0initrd_high=0xffffffff=n\0"
 
