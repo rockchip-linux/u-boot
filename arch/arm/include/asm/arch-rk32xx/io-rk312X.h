@@ -85,8 +85,8 @@
 #define RKIO_TSP_SIZE           SZ_16K
 #define RKIO_SFC_PHYS           0x1020C000
 #define RKIO_SFC_SIZE           SZ_16K
-#define RKIO_SDMMC0_PHYS        0x10214000
-#define RKIO_SDMMC0_SIZE        SZ_16K
+#define RKIO_SDMMC_PHYS         0x10214000
+#define RKIO_SDMMC_SIZE         SZ_16K
 #define RKIO_SDIO_PHYS          0x10218000
 #define RKIO_SDIO_SIZE          SZ_16K
 #define RKIO_EMMC_PHYS          0x1021C000

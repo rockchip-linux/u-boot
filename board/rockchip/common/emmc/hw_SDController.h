@@ -16,19 +16,9 @@ $Log: hw_SDController.h,v $
 
 #include <asm/arch/rkplat.h>
 
-
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
-	#define SDC0_ADDR	RKIO_SDMMC_PHYS
-	#define SDC1_ADDR	RKIO_SDIO0_PHYS
-	#define SDC2_ADDR	RKIO_EMMC_PHYS
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
-	#define SDC0_ADDR	RKIO_SDMMC0_PHYS
-	#define SDC1_ADDR	RKIO_SDIO_PHYS
-	#define SDC2_ADDR	RKIO_EMMC_PHYS
-#else
-	#error: "PLS config chip for sdmmc controller!"
-#endif
-
+#define SDC0_ADDR		SDMMC_BASE_ADDR
+#define SDC1_ADDR		SDIO_BASE_ADDR
+#define SDC2_ADDR		EMMC_BASE_ADDR
 
 #define	SD_FIFO_OFFSET		0x200
 #define	FIFO_DEPTH		0x100       //FIFO depth = 256 word
