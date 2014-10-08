@@ -363,6 +363,7 @@ void board_fbt_preboot(void)
 		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NORMAL);
 	}
 
+#ifdef CONFIG_POWER_RK
 	if (is_power_extreme_low()) {
 		while (is_charging()) {
 			FBTERR("extreme low power, charging...\n");
@@ -380,6 +381,7 @@ void board_fbt_preboot(void)
 		shut_down();
 		printf("not reach here.\n");
 	}
+#endif
 
 	int logo_on = 0;
 	if (gd->fdt_blob) {
@@ -394,6 +396,7 @@ void board_fbt_preboot(void)
 	}
 #endif
 
+#ifdef CONFIG_POWER_RK
 	if (is_power_low()) {
 		if (!is_charging()) {
 			FBTERR("low power, shutting down...\n");
@@ -414,6 +417,7 @@ void board_fbt_preboot(void)
 			printf("not reach here.\n");
 		}
 	}
+#endif
 
 #ifdef CONFIG_UBOOT_CHARGE
 	//check charge mode when no key pressed.
