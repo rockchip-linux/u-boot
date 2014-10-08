@@ -730,6 +730,7 @@ void rk3036_hdmi_control_output(struct hdmi_dev *hdmi_dev, int enable)
 		}
 		rk3036_hdmi_sys_power(hdmi_dev, true);
 		rk3036_hdmi_sys_power(hdmi_dev, false);
+		delay100us();
 		rk3036_hdmi_sys_power(hdmi_dev, true);
 		hdmi_writel(hdmi_dev, 0xce, 0x00);
 		delay100us();
