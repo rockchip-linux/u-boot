@@ -234,8 +234,6 @@ int arch_early_init_r(void)
 
 	 /* set up exceptions */
 	interrupt_init();
-	/* enable exceptions */
-	enable_interrupts();
 
 	/* rk pl330 dmac init */
 #ifdef CONFIG_RK_DMAC
@@ -246,6 +244,9 @@ int arch_early_init_r(void)
 	rk_pl330_dmac_init(1);
 #endif
 #endif /* CONFIG_RK_DMAC*/
+
+	/* enable exceptions */
+	enable_interrupts();
 
 	return 0;
 }
