@@ -1256,6 +1256,10 @@ int rk30_load_screen(vidinfo_t *vid)
 		      v_WIN0_YRGB_DEFLICK_EN(1) | v_WIN0_CBR_DEFLICK_EN(1);
 		lcdc_msk_reg(lcdc_dev,DSP_CTRL0, msk, val);
 
+		msk = m_LF_INT_NUM;
+		val = v_LF_INT_NUM(vid->vl_vspw + vid->vl_vbpd + vid->vl_row/2);
+		lcdc_msk_reg(lcdc_dev, INT_STATUS, msk, val);
+
 	} else {
 		val = v_VERPRD(vid->vl_vspw + vid->vl_vbpd + vid->vl_row +
 		      vid->vl_vfpd) | v_VSYNC(vid->vl_vspw);
@@ -1268,6 +1272,10 @@ int rk30_load_screen(vidinfo_t *vid)
 		val = v_INTERLACE_DSP_EN(0) | v_WIN1_INTERLACE_EN(0) |
 		      v_WIN0_YRGB_DEFLICK_EN(0) | v_WIN0_CBR_DEFLICK_EN(0);
 		lcdc_msk_reg(lcdc_dev, DSP_CTRL0, msk, val);
+
+		msk = m_LF_INT_NUM;
+		val = v_LF_INT_NUM(vid->vl_vspw + vid->vl_vbpd + vid->vl_row);
+		lcdc_msk_reg(lcdc_dev, INT_STATUS, msk, val);
 	}
 	
 	lcdc_cfg_done(lcdc_dev);
