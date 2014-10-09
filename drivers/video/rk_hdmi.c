@@ -136,17 +136,12 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
-
-/*
- * return preset res position
- */
-static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev) 
+#ifdef CONFIG_RK_DEVICEINFO
+static int inline read_deviceinfo_storage(struct hdmi_dev *hdmi_dev) 
 {
-	int i, ret = -1;
-	const disk_partition_t* ptn_baseparamer;
+	int i, ret = 0;
 	const disk_partition_t* ptn_deviceinfo;
 	char deviceinfo_buf[8 * RK_BLK_SIZE];
-	char baseparamer_buf[8 * RK_BLK_SIZE];
 	char *p_deviceinfo = CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE;
 	char *p_baseparamer =  CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000;//4K
 	char *p = p_deviceinfo;
@@ -162,7 +157,7 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 	memset(p_deviceinfo, 0, 4096);
 	memset(p_baseparamer, 0, 4096);
 
-#ifdef CONFIG_RK_DEVICEINFO
+
 	if (gd->fdt_blob)
 	{
 			node = fdt_node_offset_by_compatible(gd->fdt_blob,
@@ -200,13 +195,52 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 	{
 		if (StorageReadLba(ptn_deviceinfo->start, deviceinfo_buf, 8) < 0)
 		{
-			printf("%s: Failed Read baseparamer Partition data\n", __func__);
+			printf("%s: Failed Read deviceinfo Partition data\n", __func__);
 			goto err;
 		}
 
 		memcpy(p_deviceinfo, deviceinfo_buf, sizeof(deviceinfo_buf));
 	}
+
+	
+#if 0
+		p = p_deviceinfo;
+		for(i=0; i<4096; i++)
+		{
+				printf("%x ",*p);
+				if((i > 0) && (i % 32)== 0)
+				printf("\nnum=%d\n",i/32);
+				p++;
+		}
+		printf("\n\n");
 #endif
+
+
+err:
+	return ret;
+}
+#endif
+
+/*
+ * return preset res position
+ */
+static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev) 
+{
+	int i, ret = -1;
+	const disk_partition_t* ptn_baseparamer;
+	char baseparamer_buf[8 * RK_BLK_SIZE];
+	char *p_baseparamer =  CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000;//4K
+	char *p = p_baseparamer;
+	int deviceinfo_reserve_on = 0;
+	int size = 0;
+	int node = 0;
+	int len = 0;
+	int reg[2] = {0,0};
+
+	if (!hdmi_dev)
+		goto err;
+
+	memset(p_baseparamer, 0, 4096);
 
 	ptn_baseparamer = get_disk_partition("baseparamer");
 	if (ptn_baseparamer)
@@ -245,25 +279,15 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
     }
 	
 #if 0
-		p = p_deviceinfo;
-		for(i=0; i<4096; i++)
-		{
-				printf("%x ",*p);
-				if((i > 0) && (i % 32)== 0)
-				printf("\nnum=%d\n",i/32);
-				p++;
-		}
-		printf("\n\n");
-
-		p = p_baseparamer;
-		for(i=0; i<4096; i++)
-		{
-				printf("%x ",*p);
-				if((i > 0) && (i % 32)== 0)
-				printf("\nnum=%d\n",i/32);
-				p++;
-		}
-		printf("\n");
+	p = p_baseparamer;
+	for(i=0; i<4096; i++)
+	{
+			printf("%x ",*p);
+			if((i > 0) && (i % 32)== 0)
+			printf("\nnum=%d\n",i/32);
+			p++;
+	}
+	printf("\n");
 #endif
 
 
@@ -1265,7 +1289,13 @@ err:
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0, pos = 0, pos_baseparamer = 0, pos_edid = 0, pos_default = 0;
-
+	int ret = 0;
+	
+#ifdef CONFIG_RK_DEVICEINFO	
+	ret = read_deviceinfo_storage(hdmi_dev);
+	if(ret)
+	printf("%s:fail to read deviceinfo\n",__func__);
+#endif
 	pos_baseparamer = read_baseparamer_storage(hdmi_dev);
 	if (pos_baseparamer < 0)
 	{
