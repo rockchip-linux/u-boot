@@ -248,7 +248,7 @@ bool SDPAM_DMAInit(SDMMC_PORT_E nSDCPort)
 		return FALSE;
 	}
 
-	if (rk_dma_config(DMACH_EMMC, 4, 16) < 0) {
+	if (rk_dma_config(dmac_chn, 4, 16) < 0) {
 		printf("Dmac ch = %d config fail!\n", dmac_chn);
 		return FALSE;
 	}
