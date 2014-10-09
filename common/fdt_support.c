@@ -387,10 +387,14 @@ void do_fixup_by_compat_u32(void *fdt, const char *compat,
 	do_fixup_by_compat(fdt, compat, prop, &tmp, 4, create);
 }
 
+#ifndef CONFIG_ROCKCHIP
 #ifdef CONFIG_NR_DRAM_BANKS
 #define MEMORY_BANKS_MAX CONFIG_NR_DRAM_BANKS
 #else
 #define MEMORY_BANKS_MAX 4
+#endif
+#else
+#define MEMORY_BANKS_MAX CONFIG_RK_MAX_DRAM_BANKS
 #endif
 int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 {
