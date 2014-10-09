@@ -232,6 +232,11 @@ int arch_early_init_r(void)
 {
 	debug("arch_early_init_r\n");
 
+	 /* set up exceptions */
+	interrupt_init();
+	/* enable exceptions */
+	enable_interrupts();
+
 	/* rk pl330 dmac init */
 #ifdef CONFIG_RK_DMAC
 #ifdef CONFIG_RK_DMAC_0
