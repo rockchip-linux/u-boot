@@ -404,7 +404,9 @@ uint32 StorageGetSDFwOffset(void)
 
 	if(gpMemFun->flag != BOOT_FROM_FLASH)
 	{
+#if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
 		offset = SdmmcGetFwOffset(gpMemFun->id);
+#endif
 	}
 
 	return offset;
@@ -416,7 +418,9 @@ uint32 StorageGetSDSysOffset(void)
 
 	if(gpMemFun->flag != BOOT_FROM_FLASH)
 	{
+#if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
 		offset = SdmmcGetSysOffset(gpMemFun->id);
+#endif
 	}
 
 	return offset;
