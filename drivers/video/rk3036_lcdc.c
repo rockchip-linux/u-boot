@@ -838,14 +838,16 @@ enum {
 #define v_LANE1_EN(x)           BITS_MASK(x, 1, 6)
 #define v_LANE0_EN(x)           BITS_MASK(x, 1, 7)
 
-
+#define MIPIPHY_STATUS		0x101100b0		
 
 struct rk_lvds_device {
 	int    base;
+	int    ctrl_reg;
 	bool   sys_state;
 };
 
 struct rk_lvds_device rk31xx_lvds;
+
 static inline int lvds_writel(struct rk_lvds_device *lvds, u32 offset, u32 val)
 {
 	writel(val, lvds->base + offset);
@@ -868,17 +870,28 @@ static inline u32 lvds_readl(struct rk_lvds_device *lvds, u32 offset)
 }
 
 
+static inline u32 lvds_phy_lock(struct rk_lvds_device *lvds)
+{
+	u32 val = 0;
+	val = readl(lvds->ctrl_reg);
+	return (val & 0x01);
+}
 
 
 static int rk31xx_lvds_pwr_on(vidinfo_t * vid)
 {
         struct rk_lvds_device *lvds = &rk31xx_lvds;
+	u32 delay_times = 20;
 
         if (vid->screen_type == SCREEN_LVDS) {
                 /* power up lvds pll and ldo */
 	        lvds_msk_reg(lvds, MIPIPHY_REG1,
 	                     m_SYNC_RST | m_LDO_PWR_DOWN | m_PLL_PWR_DOWN,
 	                     v_SYNC_RST(0) | v_LDO_PWR_DOWN(0) | v_PLL_PWR_DOWN(0));
+		/* enable lvds lane and power on pll */
+		lvds_writel(lvds, MIPIPHY_REGEB,
+			    v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) |
+			    v_LANE3_EN(1) | v_LANECLK_EN(1) | v_PLL_PWR_OFF(0));
 
 	        /* enable lvds */
 	        lvds_msk_reg(lvds, MIPIPHY_REGE3,
@@ -889,13 +902,24 @@ static int rk31xx_lvds_pwr_on(vidinfo_t * vid)
 	                     m_MIPI_EN | m_LVDS_EN | m_TTL_EN,
 	                     v_MIPI_EN(0) | v_LVDS_EN(0) | v_TTL_EN(1));
         }
+	/* delay for waitting pll lock on */
+	while (delay_times--) {
+		if (lvds_phy_lock(lvds)) {
+			break;
+		}
+		udelay(100);
+	}
+
+	if (delay_times <= 0)
+		printf("wait lvds phy lock failed\n");
+		
         return 0;
 }
 
 static void rk31xx_output_lvds(vidinfo_t *vid)
 {
-	u32 val = 0;
 	struct rk_lvds_device *lvds = &rk31xx_lvds;
+	u32 val = 0;
 
 	/* if LVDS transmitter source from VOP, vop_dclk need get invert
 	 * set iomux in dts pinctrl
@@ -908,10 +932,8 @@ static void rk31xx_output_lvds(vidinfo_t *vid)
 	val |= v_MIPIPHY_LANE0_EN(1) | v_MIPIDPI_FORCEX_EN(1);
 	grf_writel(val, GRF_LVDS_CON0);
 
-	/* enable lvds lane */
-	val = v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) | v_LANE3_EN(1) |
-	        v_LANECLK_EN(1) | v_PLL_PWR_OFF(0);
-	lvds_writel(lvds, MIPIPHY_REGEB, val);
+	/* digital internal disable */
+	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(0));
 
 	/* set pll prediv and fbdiv */
 	lvds_writel(lvds, MIPIPHY_REG3, v_PREDIV(2) | v_FBDIV_MSB(0));
@@ -924,9 +946,9 @@ static void rk31xx_output_lvds(vidinfo_t *vid)
 	             m_MSB_SEL | m_DIG_INTER_RST,
 	             v_MSB_SEL(1) | v_DIG_INTER_RST(1));
 
+	rk31xx_lvds_pwr_on(vid);
 	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(1));
 
-	rk31xx_lvds_pwr_on(vid);
 
 }
 
@@ -967,6 +989,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 static int rk31xx_lvds_en(vidinfo_t *vid)
 {
 	rk31xx_lvds.base = 0x20038000;
+	rk31xx_lvds.ctrl_reg = MIPIPHY_STATUS;
 
 	switch (vid->screen_type) {
 	case SCREEN_LVDS:
@@ -1164,7 +1187,9 @@ int rk30_load_screen(vidinfo_t *vid)
 			return -EINVAL;
 		}		
 	} else if (vid->screen_type == SCREEN_LVDS) {
-		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, m_LVDS_DCLK_EN, v_LVDS_DCLK_EN(1));
+		msk = m_LVDS_DCLK_INVERT | m_LVDS_DCLK_EN;
+		val = v_LVDS_DCLK_INVERT(1) | v_LVDS_DCLK_EN(1);
+		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, msk, val);
 	} else if(vid->screen_type == SCREEN_RGB) {
 		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, m_RGB_DCLK_EN |
 			      m_LVDS_DCLK_EN, v_RGB_DCLK_EN(1) | v_LVDS_DCLK_EN(1));
