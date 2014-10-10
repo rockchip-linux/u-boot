@@ -1145,6 +1145,11 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info,
 {
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
 
+	if (vid->vmode) {
+		fb_info->ysize /= 2;
+		fb_info->ypos  /= 2;
+	}
+
 	fb_info->layer_id = lcdc_dev->dft_win;
 	if(fb_info->layer_id == WIN0)
 		win0_set_par(lcdc_dev, fb_info, vid);
@@ -1156,6 +1161,7 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info,
 	    ((vid->screen_type == SCREEN_HDMI) ||
 	     (vid->screen_type == SCREEN_TVOUT)))
 		rk312x_lcdc_cfg_bcsh(lcdc_dev);
+	/*setenv("bootdelay", "3");*/
 }
 
 int rk30_load_screen(vidinfo_t *vid)
@@ -1281,6 +1287,20 @@ int rk30_load_screen(vidinfo_t *vid)
 		      v_WIN0_YRGB_DEFLICK_EN(1) | v_WIN0_CBR_DEFLICK_EN(1);
 		lcdc_msk_reg(lcdc_dev,DSP_CTRL0, msk, val);
 
+		lcdc_msk_reg(lcdc_dev, DSP_CTRL0,
+			     m_INTERLACE_DSP_EN |
+			     m_WIN0_YRGB_DEFLICK_EN |
+			     m_WIN0_CBR_DEFLICK_EN |
+			     m_INTERLACE_FIELD_POL |
+			     m_WIN0_INTERLACE_EN |
+			     m_WIN1_INTERLACE_EN,
+			     v_INTERLACE_DSP_EN(1) |
+			     v_WIN0_YRGB_DEFLICK_EN(1) |
+			     v_WIN0_CBR_DEFLICK_EN(1) |
+			     v_INTERLACE_FIELD_POL(0) |
+			     v_WIN0_INTERLACE_EN(1) |
+			     v_WIN1_INTERLACE_EN(1));
+
 		msk = m_LF_INT_NUM;
 		val = v_LF_INT_NUM(vid->vl_vspw + vid->vl_vbpd + vid->vl_row/2);
 		lcdc_msk_reg(lcdc_dev, INT_STATUS, msk, val);
@@ -1297,6 +1317,20 @@ int rk30_load_screen(vidinfo_t *vid)
 		val = v_INTERLACE_DSP_EN(0) | v_WIN1_INTERLACE_EN(0) |
 		      v_WIN0_YRGB_DEFLICK_EN(0) | v_WIN0_CBR_DEFLICK_EN(0);
 		lcdc_msk_reg(lcdc_dev, DSP_CTRL0, msk, val);
+
+		lcdc_msk_reg(lcdc_dev, DSP_CTRL0,
+			     m_INTERLACE_DSP_EN |
+			     m_WIN0_YRGB_DEFLICK_EN |
+			     m_WIN0_CBR_DEFLICK_EN |
+			     m_INTERLACE_FIELD_POL |
+			     m_WIN0_INTERLACE_EN |
+			     m_WIN1_INTERLACE_EN,
+			     v_INTERLACE_DSP_EN(0) |
+			     v_WIN0_YRGB_DEFLICK_EN(0) |
+			     v_WIN0_CBR_DEFLICK_EN(0) |
+			     v_INTERLACE_FIELD_POL(0) |
+			     v_WIN0_INTERLACE_EN(0) |
+			     v_WIN1_INTERLACE_EN(0));
 
 		msk = m_LF_INT_NUM;
 		val = v_LF_INT_NUM(vid->vl_vspw + vid->vl_vbpd + vid->vl_row);
