@@ -759,6 +759,23 @@ void rkclk_pll_mode(int pll_id, int pll_mode)
 
 
 /*
+ * rkplat clock set pll freq by id
+ */
+void rkclk_set_pll_by_id(enum rk_plls_id pll_id, uint32 mHz)
+{
+	pll_callback_f cb_f = NULL;
+
+	if (APLL_ID == pll_id) {
+		cb_f = rkclk_apll_cb;
+	} else if (GPLL_ID == pll_id) {
+		cb_f = rkclk_gpll_cb;
+	}
+
+	rkclk_pll_clk_set_rate(pll_id, mHz, cb_f);
+}
+
+
+/*
  * rkplat clock set for arm and general pll
  */
 void rkclk_set_pll(void)
