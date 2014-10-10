@@ -1289,13 +1289,7 @@ err:
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0, pos = 0, pos_baseparamer = 0, pos_edid = 0, pos_default = 0;
-	int ret = 0;
-	
-#ifdef CONFIG_RK_DEVICEINFO	
-	ret = read_deviceinfo_storage(hdmi_dev);
-	if(ret)
-	printf("%s:fail to read deviceinfo\n",__func__);
-#endif
+
 	pos_baseparamer = read_baseparamer_storage(hdmi_dev);
 	if (pos_baseparamer < 0)
 	{
@@ -1348,6 +1342,7 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 
 void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 {
+	int ret = 0;
 	//hdmi iomux
 	rk_iomux_config(RK_HDMI_IOMUX);
 	hdmi_dev->pname = PARTITION_NAME;
@@ -1358,6 +1353,12 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	hdmi_dev->mode_len = sizeof(hdmi_mode) / sizeof(hdmi_mode[0]);
 	//default out res
 	hdmi_dev->video.vic = hdmi_dev->modedb[DEFAULT_MODE].vic;
+
+#ifdef CONFIG_RK_DEVICEINFO
+	ret = read_deviceinfo_storage(hdmi_dev);
+	if(ret)
+	printf("%s:fail to read deviceinfo\n",__func__);
+#endif
 
 	if (hdmi_dev->hd_init && !hdmi_dev->hd_init(hdmi_dev)) {
 		g_hdmi_vic = hdmi_dev->video.vic;
