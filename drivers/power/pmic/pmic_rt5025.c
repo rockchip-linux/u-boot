@@ -105,6 +105,8 @@ static int rt5025_pre_init(unsigned char bus,uchar addr)
 	i2c_reg_write(addr, RT5025_REG_CHGCTL2, i2c_reg_read(addr, RT5025_REG_CHGCTL2) | 0xf0); /*set chg time*/
 	i2c_reg_write(addr, 0x17, i2c_reg_read(addr, 0x17) & 0x1f); /*power off 2.8v*/
  	i2c_reg_write(addr, 0x52,i2c_reg_read(addr,0x52)|0x02); /*no action when vref*/
+	i2c_reg_write(addr, 0x08, (i2c_reg_read(addr,0x08) & 0x03) |0x40); /*set arm 1.1v*/
+	i2c_reg_write(addr, 0x09, (i2c_reg_read(addr,0x09) & 0x01) |0x20); /*set logic 1.1v*/
 // 	i2c_reg_write(addr, RT5025_REG_LDOONOFF,
 //		i2c_reg_read(addr, RT5025_REG_LDOONOFF) |RT5025_LDOEN_MASK6); /*enable ldo6*/
 	return 0;

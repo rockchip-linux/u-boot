@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <power/rockchip_power.h>
 #include <power/battery.h>
+#include <asm/arch/rkplat.h>
 
 static unsigned char rockchip_pmic_id;
 
@@ -25,6 +26,11 @@ static const char * const fg_names[] = {
 static void set_rockchip_pmic_id(unsigned char id)
 {
 	rockchip_pmic_id = id;
+	/********set APLL CLK 600M***********/
+	#if ((CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128))
+	rkclk_set_pll_by_id(APLL_ID,600);
+	#endif
+	/**********************************/
 }
 
 unsigned char get_rockchip_pmic_id(void)
