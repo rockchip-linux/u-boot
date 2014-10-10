@@ -84,7 +84,7 @@
 #define RKIO_TSP_PHYS           0x10208000
 #define RKIO_TSP_SIZE           SZ_16K
 #define RKIO_SFC_PHYS           0x1020C000
-#define RKIO_SFC_SIZE           SZ_16K
+#define RKIO_SFC_SIZE           SZ_32K
 #define RKIO_SDMMC_PHYS         0x10214000
 #define RKIO_SDMMC_SIZE         SZ_16K
 #define RKIO_SDIO_PHYS          0x10218000
@@ -130,13 +130,13 @@
 #define RKIO_WDT_PHYS           0x2004C000
 #define RKIO_WDT_SIZE           SZ_16K
 #define RKIO_PWM_PHYS           0x20050000
-#define RKIO_PWM_SIZE           SZ_16K
-#define RKIO_I2C1_PHYS          0x20054000
+#define RKIO_PWM_SIZE           SZ_24K
+#define RKIO_I2C1_PHYS          0x20056000
 #define RKIO_I2C1_SIZE          SZ_16K
-#define RKIO_I2C2_PHYS          0x20058000
+#define RKIO_I2C2_PHYS          0x2005A000
 #define RKIO_I2C2_SIZE          SZ_16K
-#define RKIO_I2C3_PHYS          0x2005C000
-#define RKIO_I2C3_SIZE          SZ_16K
+#define RKIO_I2C3_PHYS          0x2005E000
+#define RKIO_I2C3_SIZE          SZ_8K
 #define RKIO_UART0_PHYS         0x20060000
 #define RKIO_UART0_SIZE         SZ_16K
 #define RKIO_UART1_PHYS         0x20064000
@@ -144,7 +144,7 @@
 #define RKIO_UART2_PHYS         0x20068000
 #define RKIO_UART2_SIZE         SZ_16K
 #define RKIO_SARADC_PHYS        0x2006C000
-#define RKIO_SARADC_SIZE        SZ_16K
+#define RKIO_SARADC_SIZE        SZ_24K
 #define RKIO_I2C0_PHYS          0x20072000
 #define RKIO_I2C0_SIZE          SZ_8K
 #define RKIO_SPI_PHYS           0x20074000
