@@ -40,13 +40,13 @@
 /* LCDCµÄ¼Ä´æÆ÷½á¹¹ */
 typedef volatile struct tagLCDC_REG
 {
-    /* offset 0x00~0xc0 */
-    unsigned int REG_CFG_DONE;           //0x00 REGISTER CONFIG FINISH
-    unsigned int VERSION_INFO;           //0x04
+	/* offset 0x00~0xc0 */
+	unsigned int REG_CFG_DONE;           //0x00 REGISTER CONFIG FINISH
+	unsigned int VERSION_INFO;           //0x04
 	unsigned int SYS_CTRL;               //0x08 system control register 0
 	unsigned int SYS_CTRL1;              //0x0c system control register 1
-	unsigned int DSP_CTRL0;				 //0x10 display control register 0
-	unsigned int DSP_CTRL1;				 //0x14 display control register 1
+	unsigned int DSP_CTRL0;			//0x10 display control register 0
+	unsigned int DSP_CTRL1;			//0x14 display control register 1
 	unsigned int DSP_BG;                 //0x18 backgroundcolor
 	unsigned int MCU_CTRL;				 //0x1c MCU mode contol register
 	unsigned int INTR_CTRL0;             //0x20 Interruptctrl register0
@@ -54,52 +54,57 @@ typedef volatile struct tagLCDC_REG
 	unsigned int INTR_RESERVED0;         //0x28 
 	unsigned int INTR_RESERVED1;         //0x2c
 	
-    unsigned int WIN0_CTRL0;             //0x30 win0 ctrlregister0
-    unsigned int WIN0_CTRL1;             //0x34 win0 ctrlregister1
-    unsigned int WIN0_COLOR_KEY;         //0x38 Win0 colorkey register
-    unsigned int WIN0_VIR;               //0x3c Win0 virtual stride
-    unsigned int WIN0_YRGB_MST;          //0x40 Win0 YRGB memory start address
-    unsigned int WIN0_CBR_MST;           //0x44 Win0 Cbr memory start address
-    unsigned int WIN0_ACT_INFO;          //0x48 Win0 active window width/height
-    unsigned int WIN0_DSP_INFO;          //0x4c Win0 display width/height on panel
-    unsigned int WIN0_DSP_ST;            //0x50 Win0 display start point on panel
-    unsigned int WIN0_SCL_FACTOR_YRGB;   //0x54 Win0 YRGB scaling factor 
-    unsigned int WIN0_SCL_FACTOR_CBR;    //0x58 Win0 Cbr scaling factor 
-    unsigned int WIN0_SCL_OFFSET;        //0x5c Win0 scaling start point offset
-    unsigned int WIN0_SRC_ALPHA_CTRL;    //0x60
-    unsigned int WIN0_DST_ALPHA_CTRL;    //0x64
-    unsigned int WIN0_FADING_CTRL;       //0x68
-    unsigned int WIN0_RESERVED0;         //0x6c
-
-    unsigned int WIN1_CTRL0;             //0x70 win1 ctrlregister0
-    unsigned int WIN1_CTRL1;             //0x74 win1 ctrlregister1
-    unsigned int WIN1_COLOR_KEY;         //0x78 Win1 colorkey register
-    unsigned int WIN1_VIR;               //0x7c Win1 virtualstride
-    unsigned int WIN1_YRGB_MST;          //0x80 Win1 YRGB memory start address
-    unsigned int WIN1_CBR_MST;           //0x84 Win1 Cbr memory start address
-    unsigned int WIN1_ACT_INFO;          //0x88 Win1 active window width/height
-    unsigned int WIN1_DSP_INFO;          //0x8c Win1 display width/height on panel
-    unsigned int WIN1_DSP_ST;            //0x90 Win1 display start point on panel
-    unsigned int WIN1_SCL_FACTOR_YRGB;   //0x94 Win1 YRGB scaling factor 
-    unsigned int WIN1_SCL_FACTOR_CBR;    //0x98 Win1 Cbr scaling factor 
-    unsigned int WIN1_SCL_OFFSET;        //0x9c Win1 scaling start point offset
-    unsigned int WIN1_SRC_ALPHA_CTRL;    //0xa0
-    unsigned int WIN1_DST_ALPHA_CTRL;    //0xa4
-    unsigned int WIN1_FADING_CTRL;       //0xa8
-    unsigned int WIN1_RESERVED0;         //0xac  
-    unsigned int RESERVED2[48];          //0xb0-0x16c
-    unsigned int POST_DSP_HACT_INFO;     //0x170 posts caler down horizontal start and end
-    unsigned int POST_DSP_VACT_INFO;     //0x174 Panel active horizontal scanning start point and end point
-    unsigned int POST_SCL_FACTOR_YRGB;   //0x178 posty rgb scaling factor
-    unsigned int POST_RESERVED;          //0x17c 
-    unsigned int POST_SCL_CTRL;          //0x180 post scaling start point offset
-    unsigned int POST_DSP_VACT_INFO_F1;  //0x184 Panel active horizontal scanning start point and end point F1
-    unsigned int DSP_HTOTAL_HS_END;       //0x188 Panel scanning horizontal width and hsync pulse end point
+	unsigned int WIN0_CTRL0;             //0x30 win0 ctrlregister0
+	unsigned int WIN0_CTRL1;             //0x34 win0 ctrlregister1
+	unsigned int WIN0_COLOR_KEY;         //0x38 Win0 colorkey register
+	unsigned int WIN0_VIR;               //0x3c Win0 virtual stride
+	unsigned int WIN0_YRGB_MST;          //0x40 Win0 YRGB memory start address
+	unsigned int WIN0_CBR_MST;           //0x44 Win0 Cbr memory start address
+	unsigned int WIN0_ACT_INFO;          //0x48 Win0 active window width/height
+	unsigned int WIN0_DSP_INFO;          //0x4c Win0 display width/height on panel
+	unsigned int WIN0_DSP_ST;            //0x50 Win0 display start point on panel
+	unsigned int WIN0_SCL_FACTOR_YRGB;   //0x54 Win0 YRGB scaling factor 
+	unsigned int WIN0_SCL_FACTOR_CBR;    //0x58 Win0 Cbr scaling factor 
+	unsigned int WIN0_SCL_OFFSET;        //0x5c Win0 scaling start point offset
+	unsigned int WIN0_SRC_ALPHA_CTRL;    //0x60
+	unsigned int WIN0_DST_ALPHA_CTRL;    //0x64
+	unsigned int WIN0_FADING_CTRL;       //0x68
+	unsigned int WIN0_RESERVED0;         //0x6c
+	
+	unsigned int WIN1_CTRL0;             //0x70 win1 ctrlregister0
+	unsigned int WIN1_CTRL1;             //0x74 win1 ctrlregister1
+	unsigned int WIN1_COLOR_KEY;         //0x78 Win1 colorkey register
+	unsigned int WIN1_VIR;               //0x7c Win1 virtualstride
+	unsigned int WIN1_YRGB_MST;          //0x80 Win1 YRGB memory start address
+	unsigned int WIN1_CBR_MST;           //0x84 Win1 Cbr memory start address
+	unsigned int WIN1_ACT_INFO;          //0x88 Win1 active window width/height
+	unsigned int WIN1_DSP_INFO;          //0x8c Win1 display width/height on panel
+	unsigned int WIN1_DSP_ST;            //0x90 Win1 display start point on panel
+	unsigned int WIN1_SCL_FACTOR_YRGB;   //0x94 Win1 YRGB scaling factor 
+	unsigned int WIN1_SCL_FACTOR_CBR;    //0x98 Win1 Cbr scaling factor 
+	unsigned int WIN1_SCL_OFFSET;        //0x9c Win1 scaling start point offset
+	unsigned int WIN1_SRC_ALPHA_CTRL;    //0xa0
+	unsigned int WIN1_DST_ALPHA_CTRL;    //0xa4
+	unsigned int WIN1_FADING_CTRL;       //0xa8
+	unsigned int WIN1_RESERVED0;         //0xac  
+	unsigned int RESERVED2[48];          //0xb0-0x16c
+	unsigned int POST_DSP_HACT_INFO;     //0x170 posts caler down horizontal start and end
+	unsigned int POST_DSP_VACT_INFO;     //0x174 Panel active horizontal scanning start point and end point
+	unsigned int POST_SCL_FACTOR_YRGB;   //0x178 posty rgb scaling factor
+	unsigned int POST_RESERVED;          //0x17c 
+	unsigned int POST_SCL_CTRL;          //0x180 post scaling start point offset
+	unsigned int POST_DSP_VACT_INFO_F1;  //0x184 Panel active horizontal scanning start point and end point F1
+	unsigned int DSP_HTOTAL_HS_END;       //0x188 Panel scanning horizontal width and hsync pulse end point
 	unsigned int DSP_HACT_ST_END;         //0x18c Panel active horizontal scanning start/end point
 	unsigned int DSP_VTOTAL_VS_END;       //0x190 Panel scanning vertical height and vsync pulse end point
 	unsigned int DSP_VACT_ST_END;         //0x194 Panel active vertical scanning start/end point
 	unsigned int DSP_VS_ST_END_F1;        //0x198 Vertical scanning start point and vsync pulse end point of even filed in interlace mode
 	unsigned int DSP_VACT_ST_END_F1;      //0x19c Vertical scanning active start/end point of even filed in interlace mode
+	unsigned int RESERVED3[4];		//0x1a0-0x1ac
+	unsigned int BCSH_COLOR_BAR;		//0x1b0 BCSH CTRL
+	unsigned int BCSH_BCS;			//0x1b4	BCSH BCS
+	unsigned int BCSH_H;			//0x1b8 BCSH HUE
+
 } LCDC_REG, *pLCDC_REG;
 
 /*******************register definition**********************/
@@ -490,59 +495,58 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	else
 		val = 0x7f;
 
-	if(vid->lvds_ttl_en) //  1 lvds
-    {
-	grf_writel(0x00550055, GRF_GPIO1D_IOMUX); //lcdc iomux
-
-    	lvds_writel( LVDS_CH0_REG_0, 0x7f);
-    	lvds_writel( LVDS_CH0_REG_1, 0x40);
-    	lvds_writel( LVDS_CH0_REG_2, 0x00);
-
-    	if (screen_type == SCREEN_RGB)
-    		val = 0x1f;
-    	else
-    		val = 0x00;
-    	lvds_writel( LVDS_CH0_REG_4, 0x3f);
-    	lvds_writel( LVDS_CH0_REG_5, 0x3f);
-    	lvds_writel( LVDS_CH0_REG_3, 0x46);
-    	lvds_writel( LVDS_CH0_REG_d, 0x0a);
-    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
-    	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
-    	writel_relaxed(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
-
-    	lvds_writel( 0x100, 0x7f);
-    	lvds_writel( 0x104, 0x40);
-    	lvds_writel( 0x108, 0x00);
-    	lvds_writel( 0x10c, 0x46);
-    	lvds_writel( 0x110, 0x3f);
-    	lvds_writel( 0x114, 0x3f);
-    	lvds_writel( 0x134, 0x0a);
-	}   else    {
-    	val  = *(int*)(lvds_regs + 0x88);
-    	printf("0x88:0x%x\n",val);
-
-    	lvds_writel( LVDS_CH0_REG_0, 0xbf);
-    	lvds_writel( LVDS_CH0_REG_1, 0x3f);//  3f
-    	lvds_writel( LVDS_CH0_REG_2, 0xfe);
-    	lvds_writel( LVDS_CH0_REG_3, 0x46);//0x46
-    	lvds_writel( LVDS_CH0_REG_4, 0x00);
-    	//lvds_writel( LVDS_CH0_REG_9, 0x20);
-    	//lvds_writel( LVDS_CH0_REG_d, 0x4b);
-    	//lvds_writel( LVDS_CH0_REG_f, 0x0d);
-    	lvds_writel( LVDS_CH0_REG_d, 0x0a);//0a
-    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
-    	//lvds_writel( 0x24,0x20);
-    	//writel_relaxed(0x23, lvds_regs + 0x88);
-    	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
-    	writel_relaxed(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
-
-    	//lvds_writel( 0x100, 0xbf);
-    	//lvds_writel( 0x104, 0x3f);
-    	//lvds_writel( 0x108, 0xfe);
-    	//lvds_writel( 0x10c, 0x46); //0x46
-    	//lvds_writel( 0x110, 0x00);
-    	//lvds_writel( 0x114, 0x00);
-    	//lvds_writel( 0x134, 0x0a);
+	if(vid->lvds_ttl_en) {//  1 lvds
+		grf_writel(0x00550055, GRF_GPIO1D_IOMUX); //lcdc iomux
+	
+	    	lvds_writel( LVDS_CH0_REG_0, 0x7f);
+	    	lvds_writel( LVDS_CH0_REG_1, 0x40);
+	    	lvds_writel( LVDS_CH0_REG_2, 0x00);
+	
+	    	if (screen_type == SCREEN_RGB)
+	    		val = 0x1f;
+	    	else
+	    		val = 0x00;
+	    	lvds_writel( LVDS_CH0_REG_4, 0x3f);
+	    	lvds_writel( LVDS_CH0_REG_5, 0x3f);
+	    	lvds_writel( LVDS_CH0_REG_3, 0x46);
+	    	lvds_writel( LVDS_CH0_REG_d, 0x0a);
+	    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
+	    	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
+	    	writel_relaxed(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
+	
+	    	lvds_writel( 0x100, 0x7f);
+	    	lvds_writel( 0x104, 0x40);
+	    	lvds_writel( 0x108, 0x00);
+	    	lvds_writel( 0x10c, 0x46);
+	    	lvds_writel( 0x110, 0x3f);
+	    	lvds_writel( 0x114, 0x3f);
+	    	lvds_writel( 0x134, 0x0a);
+	} else {
+	    	val  = *(int*)(lvds_regs + 0x88);
+	    	printf("0x88:0x%x\n",val);
+	
+	    	lvds_writel( LVDS_CH0_REG_0, 0xbf);
+	    	lvds_writel( LVDS_CH0_REG_1, 0x3f);//  3f
+	    	lvds_writel( LVDS_CH0_REG_2, 0xfe);
+	    	lvds_writel( LVDS_CH0_REG_3, 0x46);//0x46
+	    	lvds_writel( LVDS_CH0_REG_4, 0x00);
+	    	//lvds_writel( LVDS_CH0_REG_9, 0x20);
+	    	//lvds_writel( LVDS_CH0_REG_d, 0x4b);
+	    	//lvds_writel( LVDS_CH0_REG_f, 0x0d);
+	    	lvds_writel( LVDS_CH0_REG_d, 0x0a);//0a
+	    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
+	    	//lvds_writel( 0x24,0x20);
+	    	//writel_relaxed(0x23, lvds_regs + 0x88);
+	    	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
+	    	writel_relaxed(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
+	
+	    	//lvds_writel( 0x100, 0xbf);
+	    	//lvds_writel( 0x104, 0x3f);
+	    	//lvds_writel( 0x108, 0xfe);
+	    	//lvds_writel( 0x10c, 0x46); //0x46
+	    	//lvds_writel( 0x110, 0x00);
+	    	//lvds_writel( 0x114, 0x00);
+	    	//lvds_writel( 0x134, 0x0a);
 	}
 
 	return 0;
@@ -552,9 +556,9 @@ static int rk32_lvds_en(vidinfo_t *vid)
 void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 {
 	struct layer_par *par = &vid->par[fb_info->layer_id];
-	if(par == NULL){
+	if(par == NULL)
 		printf("%s lay_par==NULL,id=%d\n",fb_info->layer_id);
-	}
+
 	if(fb_info != &par->fb_info)
 		memcpy(&par->fb_info,fb_info,sizeof(struct fb_dsp_info *));
 
@@ -563,22 +567,22 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 			LcdWrReg(WIN0_SCL_FACTOR_YRGB, v_X_SCL_FACTOR(0x1000) | v_Y_SCL_FACTOR(0x1000));
 			LcdWrReg(WIN0_SCL_FACTOR_CBR,v_X_SCL_FACTOR(0x1000)| v_Y_SCL_FACTOR(0x1000));
 			LcdMskReg(WIN0_CTRL0, m_win0_rb_swap |m_win0_alpha_swap | m_win0_lb_mode|m_win0_data_fmt|m_win0_en,v_win0_rb_swap(0)|v_win0_alpha_swap(0)| v_win0_lb_mode(5)|v_win0_data_fmt(vid->logo_rgb_mode) | v_win0_en(1));	      //zyw
-            LcdMskReg(WIN0_CTRL1, m_win0_cbr_vsu_mode | m_win0_yrgb_vsu_mode ,v_win0_cbr_vsu_mode(1)|v_win0_yrgb_vsu_mode(1));
-            LcdWrReg(WIN0_ACT_INFO,v_act_width(fb_info->xact-1) | v_act_height(fb_info->yact-1));
+			LcdMskReg(WIN0_CTRL1, m_win0_cbr_vsu_mode | m_win0_yrgb_vsu_mode ,v_win0_cbr_vsu_mode(1)|v_win0_yrgb_vsu_mode(1));
+			LcdWrReg(WIN0_ACT_INFO,v_act_width(fb_info->xact-1) | v_act_height(fb_info->yact-1));
 			LcdWrReg(WIN0_DSP_ST, v_dsp_xst(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) | v_dsp_yst(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd)); 
 			LcdWrReg(WIN0_DSP_INFO, v_dsp_width(fb_info->xsize-1)| v_dsp_height(fb_info->ysize-1));
 			LcdMskReg(WIN0_COLOR_KEY, m_win0_key_en | m_win0_key_color,
 					v_win0_key_en(0) | v_win0_key_color(0));
 
-            if(fb_info->xsize > 2560) {                
-                LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_3840X2));
-            } else if(fb_info->xsize > 1920) {
-                LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_2560X4));
-            } else if(fb_info->xsize > 1280){
-                LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_1920X5));
-            } else {
-                LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_1280X8));
-            }
+			if(fb_info->xsize > 2560) {                
+				LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_3840X2));
+			} else if(fb_info->xsize > 1920) {
+				LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_2560X4));
+			} else if(fb_info->xsize > 1280){
+				LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_1920X5));
+			} else {
+				LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_1280X8));
+			}
 			switch(vid->logo_rgb_mode) 
 			{
 				case ARGB888:
@@ -593,11 +597,11 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 				case YUV422:
 				case YUV420:   
 					LcdWrReg(WIN0_VIR,v_YUV_VIRWIDTH(fb_info->xvir));
-                    if(fb_info->xsize > 1280) {
-                        LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_YUV_3840X5));
-                    } else {
-                        LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_YUV_2560X8));
-                    }          
+					if(fb_info->xsize > 1280) {
+						LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_YUV_3840X5));
+					} else {
+						LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_YUV_2560X8));
+					}          
 					break;
 				default:
 					LcdWrReg(WIN0_VIR,v_RGB888_VIRWIDTH(fb_info->xvir));
@@ -613,70 +617,73 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 			break;
 	}
     //printf("%s end\n",__func__);
+	LcdWrReg(BCSH_BCS, 0xd0010000);
+	LcdWrReg(BCSH_H, 0x01000000);
+	LcdWrReg(BCSH_COLOR_BAR, 1);
+	LCDC_REG_CFG_DONE();
 
-    LCDC_REG_CFG_DONE();
 }
 
 int rk30_load_screen(vidinfo_t *vid)
 {
 	int ret = -1;
-    int face = 0;
-
-    //rk3288_parse_dt();  //parse from fdt
-
+	int face = 0;
+	
+	//rk3288_parse_dt();  //parse from fdt
+	
 	vid->dp_enabled = 0;
 	vid->mipi_enabled = 0;
-    if((vid->screen_type == SCREEN_MIPI)||(vid->screen_type == SCREEN_DUAL_MIPI))
-    	vid->mipi_enabled = 1;
-    else if(vid->screen_type == SCREEN_EDP)
-    	vid->dp_enabled = 1;
-    
-    if(vid->mipi_enabled){
-	rk32_mipi_enable(vid);
-	if(vid->screen_type == SCREEN_MIPI){
-        	LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1));
-	}else{
-		LcdMskReg(SYS_CTRL,m_mipi_out_en|m_doub_channel_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1)|v_doub_channel_en(1));
+	if ((vid->screen_type == SCREEN_MIPI)||(vid->screen_type == SCREEN_DUAL_MIPI))
+		vid->mipi_enabled = 1;
+	else if(vid->screen_type == SCREEN_EDP)
+		vid->dp_enabled = 1;
+	
+	if (vid->mipi_enabled) {
+		rk32_mipi_enable(vid);
+		if (vid->screen_type == SCREEN_MIPI) {
+			LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1));
+		} else {
+			LcdMskReg(SYS_CTRL,m_mipi_out_en|m_doub_channel_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_mipi_out_en(1)|v_doub_channel_en(1));
+		}
+	} else if (vid->dp_enabled) {
+		LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_edp_out_en(1));
+	} else if(vid->screen_type == SCREEN_HDMI){
+		LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_hdmi_out_en(1));
+	} else {
+		LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_rgb_out_en(1));
 	}
-    }else if(vid->dp_enabled){
-        LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_edp_out_en(1));
-   } else if(vid->screen_type == SCREEN_HDMI){
-        LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_hdmi_out_en(1));
-    }else
-        LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_rgb_out_en(1));
-
-    LcdMskReg(DSP_CTRL0, m_dsp_black_en|m_dsp_blank_en|m_dsp_out_zero|m_dsp_dclk_pol|m_dsp_den_pol|m_dsp_vsync_pol|m_dsp_hsync_pol, 
-                         v_dsp_black_en(0)|v_dsp_blank_en(0)|v_dsp_out_zero(0)|v_dsp_dclk_pol(vid->vl_clkp)
-                         |v_dsp_den_pol(vid->vl_oep)|v_dsp_vsync_pol(vid->vl_vsp)|v_dsp_hsync_pol(vid->vl_hsp));
-
+	LcdMskReg(DSP_CTRL0, m_dsp_black_en|m_dsp_blank_en|m_dsp_out_zero|m_dsp_dclk_pol|m_dsp_den_pol|m_dsp_vsync_pol|m_dsp_hsync_pol, 
+	                 v_dsp_black_en(0)|v_dsp_blank_en(0)|v_dsp_out_zero(0)|v_dsp_dclk_pol(vid->vl_clkp)
+	                 |v_dsp_den_pol(vid->vl_oep)|v_dsp_vsync_pol(vid->vl_vsp)|v_dsp_hsync_pol(vid->vl_hsp));
+	
 	switch (vid->lcd_face)
 	{
-    	case OUT_P565:
-        		face = OUT_P565;
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(1) | v_dither_down_mode(0));
-        		break;
-    	case OUT_P666:
-        		face = OUT_P666;
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_down_sel, v_dither_down_en(1) | v_dither_down_mode(1))|v_dither_down_sel(1);
-        		break;
-    	case OUT_D888_P565:
-        		face = OUT_P888;
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(1) | v_dither_down_mode(0));
-        		break;
-    	case OUT_D888_P666:
-        		face = OUT_P888;
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_down_sel, v_dither_down_en(1) | v_dither_down_mode(1)|v_dither_down_sel(1));
-        		break; 
-    	case OUT_P888:
-        		face = OUT_P888;
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode | m_dither_up_en, v_dither_down_en(0) | v_dither_down_mode(0) | v_dither_up_en(1));
-        		break;
-    	default:
-        		LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_up_en, v_dither_down_en(0) | v_dither_down_mode(0) | v_dither_up_en(0));
-        		face = vid->lcd_face;
-        		break;
+	case OUT_P565:
+			face = OUT_P565;
+			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(1) | v_dither_down_mode(0));
+			break;
+	case OUT_P666:
+			face = OUT_P666;
+			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_down_sel, v_dither_down_en(1) | v_dither_down_mode(1))|v_dither_down_sel(1);
+			break;
+	case OUT_D888_P565:
+			face = OUT_P888;
+			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(1) | v_dither_down_mode(0));
+			break;
+	case OUT_D888_P666:
+			face = OUT_P888;
+			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_down_sel, v_dither_down_en(1) | v_dither_down_mode(1)|v_dither_down_sel(1));
+			break; 
+	case OUT_P888:
+			face = OUT_P888;
+			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode | m_dither_up_en, v_dither_down_en(0) | v_dither_down_mode(0) | v_dither_up_en(1));
+			break;
+	default:
+			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_up_en, v_dither_down_en(0) | v_dither_down_mode(0) | v_dither_up_en(0));
+			face = vid->lcd_face;
+			break;
 	}
-
+	
 	if (vid->screen_type == SCREEN_EDP || vid->screen_type == SCREEN_HDMI)
 		face = OUT_RGB_AAA;
 	//set background color to black,set swap according to the screen panel,disable blank mode
@@ -685,33 +692,33 @@ int rk30_load_screen(vidinfo_t *vid)
 	 	 v_dsp_delta_swap(0) | v_dsp_dummy_swap(0) | v_dsp_field_pol(0) | v_dsp_bg_swap(0) | v_dsp_out_mode(face) );
 	LcdWrReg(DSP_BG,0);
 	LcdWrReg(DSP_HTOTAL_HS_END,v_HSYNC(vid->vl_hspw) |
-             v_HORPRD(vid->vl_hspw + vid->vl_hbpd + vid->vl_col + vid->vl_hfpd));
+	     v_HORPRD(vid->vl_hspw + vid->vl_hbpd + vid->vl_col + vid->vl_hfpd));
 	LcdWrReg(DSP_HACT_ST_END, v_HAEP(vid->vl_hspw + vid->vl_hbpd + vid->vl_col) |
-             v_HASP(vid->vl_hspw + vid->vl_hbpd));
-
+	     v_HASP(vid->vl_hspw + vid->vl_hbpd));
+	
 	LcdWrReg(DSP_VTOTAL_VS_END, v_VSYNC(vid->vl_vspw) |
-              v_VERPRD(vid->vl_vspw + vid->vl_vbpd + vid->vl_row + vid->vl_vfpd));
+	      v_VERPRD(vid->vl_vspw + vid->vl_vbpd + vid->vl_row + vid->vl_vfpd));
 	LcdWrReg(DSP_VACT_ST_END,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-              v_VASP(vid->vl_vspw + vid->vl_vbpd));
-  //  LcdWrReg(DSP_VACT_ST_END_F1,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-   //           v_VASP(vid->vl_vspw + vid->vl_vbpd));
-
-    LcdWrReg(POST_DSP_HACT_INFO,v_HAEP(vid->vl_hspw + vid->vl_hbpd + vid->vl_col) |
-             v_HASP(vid->vl_hspw + vid->vl_hbpd));
-    LcdWrReg(POST_DSP_VACT_INFO,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-              v_VASP(vid->vl_vspw + vid->vl_vbpd));
-    LcdWrReg(POST_DSP_VACT_INFO_F1, 0);// v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-             // v_VASP(vid->vl_vspw + vid->vl_vbpd));
-    LcdWrReg(POST_RESERVED, 0x10001000);
-    LcdWrReg(MCU_CTRL, 0);
-
-    // let above to take effect
+	      v_VASP(vid->vl_vspw + vid->vl_vbpd));
+	//  LcdWrReg(DSP_VACT_ST_END_F1,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
+	//           v_VASP(vid->vl_vspw + vid->vl_vbpd));
+	
+	LcdWrReg(POST_DSP_HACT_INFO,v_HAEP(vid->vl_hspw + vid->vl_hbpd + vid->vl_col) |
+	     v_HASP(vid->vl_hspw + vid->vl_hbpd));
+	LcdWrReg(POST_DSP_VACT_INFO,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
+	      v_VASP(vid->vl_vspw + vid->vl_vbpd));
+	LcdWrReg(POST_DSP_VACT_INFO_F1, 0);// v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
+	     // v_VASP(vid->vl_vspw + vid->vl_vbpd));
+	LcdWrReg(POST_RESERVED, 0x10001000);
+	LcdWrReg(MCU_CTRL, 0);
+	
+	// let above to take effect
 	LCDC_REG_CFG_DONE();
-
-  //  set_lcdc_dclk(vid->vl_freq);
-
+	
+	//  set_lcdc_dclk(vid->vl_freq);
+	
 	if ((vid->screen_type == SCREEN_LVDS) ||
-			(vid->screen_type == SCREEN_DUAL_LVDS)) {
+		(vid->screen_type == SCREEN_DUAL_LVDS)) {
 		rk32_lvds_en(vid);
 	} else if (vid->screen_type == SCREEN_EDP) {
 		rk32_edp_enable(vid);
@@ -741,15 +748,16 @@ void rk30_lcdc_standby(enable)
 
 int rk_lcdc_init(int lcdc_id)
 {
-    preg = (lcdc_id == 1) ? RKIO_VOP_LIT_PHYS : RKIO_VOP_BIG_PHYS;  
-    grf_writel(1<<16, GRF_IO_VSEL); //LCDCIOdomain 3.3 Vvoltageselectio
-   // lcdc_clk_enable();
+	preg = (lcdc_id == 1) ? RKIO_VOP_LIT_PHYS : RKIO_VOP_BIG_PHYS;  
+	grf_writel(1<<16, GRF_IO_VSEL); //LCDCIOdomain 3.3 Vvoltageselectio
+	// lcdc_clk_enable();
 	
-   // printf(" %s vop_version = %x\n",__func__,LcdRdReg(VERSION_INFO));
+	// printf(" %s vop_version = 0x%x\n",__func__,LcdRdReg(VERSION_INFO));
 	LcdMskReg(SYS_CTRL, m_auto_gating_en | m_standby_en | m_dma_stop | m_mmu_en, 
-                        v_auto_gating_en(1)|v_standby_en(0)|v_dma_stop(0)|v_mmu_en(0));	      //zyw
-    LcdMskReg(DSP_CTRL1, m_dsp_layer3_sel | m_dsp_layer2_sel | m_dsp_layer1_sel | m_dsp_layer0_sel,
-                     v_dsp_layer3_sel(3) | v_dsp_layer2_sel(2) | v_dsp_layer1_sel(1) | v_dsp_layer0_sel(0));                     
+	                v_auto_gating_en(1)|v_standby_en(0)|v_dma_stop(0)|v_mmu_en(0));	      //zyw
+	LcdMskReg(DSP_CTRL1, m_dsp_layer3_sel | m_dsp_layer2_sel | m_dsp_layer1_sel | m_dsp_layer0_sel,
+	             v_dsp_layer3_sel(3) | v_dsp_layer2_sel(2) | v_dsp_layer1_sel(1) | v_dsp_layer0_sel(0)); 
+
 //	LcdMskReg(INT_STATUS, m_FS_INT_EN, v_FS_INT_EN(1));  
 	LCDC_REG_CFG_DONE();  // write any value to  REG_CFG_DONE let config become effective
 	return 0;
