@@ -25,7 +25,7 @@
 
 
 /* rk board common fold */
-#define HAVE_VENDOR_COMMON_LIB	y
+#define HAVE_VENDOR_COMMON_LIB		y
 
 
 /*
@@ -80,8 +80,8 @@
 /*
  * cache config
  */
-#define CONFIG_SYS_ICACHE_OFF
-#define CONFIG_SYS_DCACHE_OFF
+#undef CONFIG_SYS_ICACHE_OFF
+#undef CONFIG_SYS_DCACHE_OFF
 #define CONFIG_SYS_L2CACHE_OFF
 #define CONFIG_SYS_ARM_CACHE_WRITETHROUGH
 
@@ -91,7 +91,7 @@
 
 
 /* enable imprecise aborts check, default disable */
-#define CONFIG_IMPRECISE_ABORTS_CHECK
+#undef CONFIG_IMPRECISE_ABORTS_CHECK
 
 
 /*
@@ -190,12 +190,6 @@
 #define CONFIG_RKDDR_PARAM_ADDR		(CONFIG_RAM_PHY_START + SZ_32M) /* rk ddr banks address and size */
 
 
-/* rk mtd block size */
-#define RK_BLK_SIZE			512
-
-/* rk mtd block size */
-#define CONFIG_MAX_PARTITIONS		16
-
 /*
  * SDRAM Memory Map
  * Even though we use two CS all the memory
@@ -261,7 +255,7 @@
 /* 
  * allow to flash loader when check sign failed. should undef this in release version.
  */
-#define CONFIG_ENABLE_ERASEKEY
+#undef CONFIG_ENABLE_ERASEKEY
 
 
 /* rk quick check sum */
@@ -269,7 +263,7 @@
 
 
 /* rk io command tool */
-#define CONFIG_RK_IO_TOOL
+#undef CONFIG_RK_IO_TOOL
 
 
 /* rockusb */
@@ -278,6 +272,13 @@
 
 /* fastboot */
 #define CONFIG_CMD_FASTBOOT
+
+
+/* rk mtd block size */
+#define RK_BLK_SIZE			512
+
+/* rk mtd block size */
+#define CONFIG_MAX_PARTITIONS		16
 
 
 /* fdt and rk resource support */
@@ -328,7 +329,7 @@
 /* rk i2c module */
 #define CONFIG_RK_I2C
 #define CONFIG_I2C_MULTI_BUS
-#define CONFIG_SYS_I2C_SPEED 100000
+#define CONFIG_SYS_I2C_SPEED	100000
 
 /* rk spi module */
 #define CONFIG_RK_SPI
@@ -361,7 +362,7 @@
 
 #define CONFIG_BRIGHTNESS_DIM		64
 
-#define CONFIG_UBOOT_CHARGE
+#undef CONFIG_UBOOT_CHARGE
 
 #endif /* CONFIG_LCD */
 

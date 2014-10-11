@@ -46,14 +46,9 @@
 #include <configs/rk_default_config.h>
 
 /* undef some module for rk chip */
-#undef CONFIG_SYS_ICACHE_OFF
-#undef CONFIG_SYS_DCACHE_OFF
-#undef CONFIG_IMPRECISE_ABORTS_CHECK
-#undef CONFIG_MERGER_MINILOADER
-#undef CONFIG_RK_IO_TOOL
-#undef CONFIG_RK_SPI
-
 #if defined(CONFIG_RKCHIP_RK3036)
+	#undef CONFIG_MERGER_MINILOADER
+	#undef CONFIG_RK_SPI
 	#undef CONFIG_PM_SUBSYSTEM
 	#undef CONFIG_RK_PWM
 	#undef CONFIG_POWER
@@ -61,12 +56,16 @@
 #endif /* CONFIG_RKCHIP_RK3036 */
 
 #if defined(CONFIG_RKCHIP_RK3126)
+	#undef CONFIG_MERGER_MINILOADER
+	#undef CONFIG_RK_SPI
 	#undef CONFIG_RK_PWM_REMOTE
 	#undef CONFIG_RK_DEVICEINFO
 	#undef CONFIG_RK_HDMI
 #endif /* CONFIG_RKCHIP_RK3126 */
 
 #if defined(CONFIG_RKCHIP_RK3128)
+	#undef CONFIG_MERGER_MINILOADER
+	#undef CONFIG_RK_SPI
 	#undef CONFIG_PM_SUBSYSTEM
 	#undef CONFIG_RK_PWM
 	#undef CONFIG_POWER
@@ -82,13 +81,19 @@
 #define CONFIG_RK_MMC_EDMAC		/* external mac */
 
 
-/* usb host */
+/*
+ * USB Host support, default no using
+ * please first check plat if you want to using usb host
+ */
 #if 0
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
+/* dwc otg */
 #define CONFIG_USB_DWC_HCD
+/* echi */
 #undef CONFIG_USB_EHCI
 #undef CONFIG_USB_EHCI_RK
+
+#define CONFIG_CMD_USB
+#define CONFIG_USB_STORAGE
 #endif
 
 

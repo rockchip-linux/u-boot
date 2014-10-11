@@ -46,14 +46,9 @@
 #include <configs/rk_default_config.h>
 
 /* undef some module for rk chip */
-#undef CONFIG_SYS_ICACHE_OFF
-#undef CONFIG_SYS_DCACHE_OFF
-#undef CONFIG_IMPRECISE_ABORTS_CHECK
-#undef CONFIG_MERGER_MINILOADER
-#undef CONFIG_RK_IO_TOOL
-#undef CONFIG_RK_SPI
-
 #if defined(CONFIG_RKCHIP_RK3288)
+	#undef CONFIG_MERGER_MINILOADER
+	#undef CONFIG_RK_SPI
 	#undef CONFIG_RK_PL330
 	#undef CONFIG_RK_DMAC
 	#undef CONFIG_RK_DEVICEINFO
@@ -68,13 +63,19 @@
 #define CONFIG_RK_MMC_IDMAC	/* internal dmac */
 
 
-/* usb host */
+/*
+ * USB Host support, default no using
+ * please first check plat if you want to using usb host
+ */
 #if 0
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
+/* dwc otg */
 #define CONFIG_USB_DWC_HCD
+/* echi */
 #undef CONFIG_USB_EHCI
 #undef CONFIG_USB_EHCI_RK
+
+#define CONFIG_CMD_USB
+#define CONFIG_USB_STORAGE
 #endif
 
 
