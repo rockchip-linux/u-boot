@@ -371,39 +371,4 @@
 #define CONFIG_POWER_RK
 
 
-/* more config for rockusb */
-#ifdef CONFIG_CMD_ROCKUSB
-
-/* support rockusb timeout check */
-#define CONFIG_ROCKUSB_TIMEOUT_CHECK	1
-
-/* rockusb VID/PID should the same as maskrom */
-#define CONFIG_USBD_VENDORID			0x2207
-#if defined(CONFIG_RKCHIP_RK3036)
-	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x301A
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x310C
-#elif defined(CONFIG_RKCHIP_RK3288)
-	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x320A
-#else
-	#error "PLS config rk chip for rockusb PID!"
-#endif
-
-#endif /* CONFIG_CMD_ROCKUSB */
-
-
-/* more config for fastboot */
-#ifdef CONFIG_CMD_FASTBOOT
-
-#define CONFIG_USBD_PRODUCTID_FASTBOOT	0x0006
-#define CONFIG_USBD_MANUFACTURER	"Rockchip"
-#define CONFIG_USBD_PRODUCT_NAME	"rk30xx"
-
-#define FASTBOOT_PRODUCT_NAME		"fastboot" /* Fastboot product name */
-
-#define CONFIG_FASTBOOT_LOG
-#define CONFIG_FASTBOOT_LOG_SIZE	(SZ_2M)
-
-#endif /* CONFIG_CMD_FASTBOOT */
-
 #endif /* __RK_DEFAULT_CONFIG_H */
