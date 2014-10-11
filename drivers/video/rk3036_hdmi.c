@@ -127,7 +127,7 @@ static void rk3036_hdmi_set_pwr_mode(struct hdmi_dev *hdmi_dev, int mode)
 			 __func__, hdmi_dev->driver.pwr_mode, mode);
 		rk3036_hdmi_sys_power(hdmi_dev, false);
 		hdmi_writel(hdmi_dev, PHY_DRIVER, 0xaa);
-		hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x6f);
+		hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x5f);
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x15);
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x14);
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x10);
@@ -469,7 +469,7 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	if (hdmi_dev->data->soc_type == HDMI_SOC_RK3036)
 		vpara->output_color = VIDEO_OUTPUT_RGB444;
 	/*for set DVI output mode, or not hdmi will not display,need to check again*/
-	vpara->output_color = VIDEO_OUTPUT_RGB444;
+	//vpara->output_color = VIDEO_OUTPUT_RGB444;
 	//vpara->output_mode = 0;
 
 	if (hdmi_dev->driver.pwr_mode == LOWER_PWR)
