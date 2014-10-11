@@ -46,12 +46,14 @@
 #include <configs/rk_default_config.h>
 
 /* undef some module for rk chip */
+#undef CONFIG_SYS_ICACHE_OFF
+#undef CONFIG_SYS_DCACHE_OFF
+#undef CONFIG_IMPRECISE_ABORTS_CHECK
+#undef CONFIG_MERGER_MINILOADER
+#undef CONFIG_RK_IO_TOOL
+#undef CONFIG_RK_SPI
+
 #if defined(CONFIG_RKCHIP_RK3288)
-	#undef CONFIG_SYS_ICACHE_OFF
-	#undef CONFIG_SYS_DCACHE_OFF
-	#undef CONFIG_IMPRECISE_ABORTS_CHECK
-	#undef CONFIG_RK_IO_TOOL
-	#undef CONFIG_RK_SPI
 	#undef CONFIG_RK_PL330
 	#undef CONFIG_RK_DMAC
 	#undef CONFIG_RK_DEVICEINFO
