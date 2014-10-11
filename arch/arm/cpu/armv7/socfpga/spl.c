@@ -14,6 +14,8 @@
 #include <spl.h>
 #include <asm/arch/system_manager.h>
 #include <asm/arch/freeze_controller.h>
+#include <asm/arch/clock_manager.h>
+#include <asm/arch/scan_manager.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -120,6 +122,10 @@ void spl_board_init(void)
 	debug("Reconfigure Clock Manager\n");
 	/* reconfigure the PLLs */
 	cm_basic_init(&cm_default_cfg);
+
+	/* configure the IOCSR / IO buffer settings */
+	if (scan_mgr_configure_iocsr())
+		hang();
 
 	/* configure the pin muxing through system manager */
 	sysmgr_pinmux_init();

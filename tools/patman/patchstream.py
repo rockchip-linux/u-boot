@@ -21,7 +21,7 @@ re_remove = re.compile('^BUG=|^TEST=|^BRANCH=|^Change-Id:|^Review URL:'
 re_allowed_after_test = re.compile('^Signed-off-by:')
 
 # Signoffs
-re_signoff = re.compile('^Signed-off-by:')
+re_signoff = re.compile('^Signed-off-by: *(.*)')
 
 # The start of the cover letter
 re_cover = re.compile('^Cover-letter:')
@@ -72,7 +72,6 @@ class PatchStream:
         self.in_change = 0               # Non-zero if we are in a change list
         self.blank_count = 0             # Number of blank lines stored up
         self.state = STATE_MSG_HEADER    # What state are we in?
-        self.tags = []                   # Tags collected, like Tested-by...
         self.signoff = []                # Contents of signoff line
         self.commit = None               # Current commit
 
@@ -113,16 +112,6 @@ class PatchStream:
             self.series.AddCommit(self.commit)
             self.commit = None
 
-    def FormatTags(self, tags):
-        out_list = []
-        for tag in sorted(tags):
-            if tag.startswith('Cc:'):
-                tag_list = tag[4:].split(',')
-                out_list += gitutil.BuildEmailList(tag_list, 'Cc:')
-            else:
-                out_list.append(tag)
-        return out_list
-
     def ProcessLine(self, line):
         """Process a single line of a patch file or commit log
 
@@ -159,6 +148,7 @@ class PatchStream:
         commit_tag_match = re_commit_tag.match(line)
         commit_match = re_commit.match(line) if self.is_log else None
         cover_cc_match = re_cover_cc.match(line)
+        signoff_match = re_signoff.match(line)
         tag_match = None
         if self.state == STATE_PATCH_HEADER:
             tag_match = re_tag.match(line)
@@ -223,7 +213,7 @@ class PatchStream:
             if is_blank:
                 # Blank line ends this change list
                 self.in_change = 0
-            elif line == '---' or re_signoff.match(line):
+            elif line == '---':
                 self.in_change = 0
                 out = self.ProcessLine(line)
             else:
@@ -270,7 +260,13 @@ class PatchStream:
             elif tag_match.group(1) == 'Patch-cc':
                 self.commit.AddCc(tag_match.group(2).split(','))
             else:
-                self.tags.append(line);
+                out = [line]
+
+        # Suppress duplicate signoffs
+        elif signoff_match:
+            if (self.is_log or not self.commit or
+                self.commit.CheckDuplicateSignoff(signoff_match.group(1))):
+                out = [line]
 
         # Well that means this is an ordinary line
         else:
@@ -304,8 +300,10 @@ class PatchStream:
                 # Output the tags (signeoff first), then change list
                 out = []
                 log = self.series.MakeChangeLog(self.commit)
-                out += self.FormatTags(self.tags)
-                out += [line] + self.commit.notes + [''] + log
+                out += [line]
+                if self.commit:
+                    out += self.commit.notes
+                out += [''] + log
             elif self.found_test:
                 if not re_allowed_after_test.match(line):
                     self.lines_after_test += 1
@@ -357,7 +355,7 @@ class PatchStream:
 
 
 def GetMetaDataForList(commit_range, git_dir=None, count=None,
-                       series = Series()):
+                       series = None, allow_overwrite=False):
     """Reads out patch series metadata from the commits
 
     This does a 'git log' on the relevant commits and pulls out the tags we
@@ -369,17 +367,16 @@ def GetMetaDataForList(commit_range, git_dir=None, count=None,
         count: Number of commits to list, or None for no limit
         series: Series object to add information into. By default a new series
             is started.
+        allow_overwrite: Allow tags to overwrite an existing tag
     Returns:
         A Series object containing information about the commits.
     """
-    params = ['git', 'log', '--no-color', '--reverse', '--no-decorate',
-                    commit_range]
-    if count is not None:
-        params[2:2] = ['-n%d' % count]
-    if git_dir:
-        params[1:1] = ['--git-dir', git_dir]
-    pipe = [params]
-    stdout = command.RunPipe(pipe, capture=True).stdout
+    if not series:
+        series = Series()
+    series.allow_overwrite = allow_overwrite
+    params = gitutil.LogCmd(commit_range,reverse=True, count=count,
+                            git_dir=git_dir)
+    stdout = command.RunPipe([params], capture=True).stdout
     ps = PatchStream(series, is_log=True)
     for line in stdout.splitlines():
         ps.ProcessLine(line)

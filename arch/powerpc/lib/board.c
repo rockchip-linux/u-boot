@@ -226,6 +226,9 @@ static int init_func_spi(void)
 #if defined(CONFIG_WATCHDOG)
 int init_func_watchdog_init(void)
 {
+#if defined(CONFIG_MPC85xx)
+	init_85xx_watchdog();
+#endif
 	puts("       Watchdog enabled\n");
 	WATCHDOG_RESET();
 	return 0;
@@ -343,6 +346,13 @@ void board_init_f(ulong bootflag)
 #ifdef CONFIG_PRAM
 	ulong reg;
 #endif
+#ifdef CONFIG_DEEP_SLEEP
+	const ccsr_gur_t *gur = (void __iomem *)(CONFIG_SYS_MPC85xx_GUTS_ADDR);
+	struct ccsr_scfg *scfg = (void *)CONFIG_SYS_MPC85xx_SCFG;
+	u32 start_addr;
+	typedef void (*func_t)(void);
+	func_t kernel_resume;
+#endif
 
 	/* Pointer is writable since we allocated a register for it */
 	gd = (gd_t *) (CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_GBL_DATA_OFFSET);
@@ -356,9 +366,25 @@ void board_init_f(ulong bootflag)
 	memset((void *) gd, 0, sizeof(gd_t));
 #endif
 
+	gd->flags = bootflag;
+
 	for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr)
 		if ((*init_fnc_ptr) () != 0)
 			hang();
+
+#ifdef CONFIG_DEEP_SLEEP
+	/* Jump to kernel in deep sleep case */
+	if (in_be32(&gur->scrtsr[0]) & (1 << 3)) {
+		l2cache_init();
+#if defined(CONFIG_RAMBOOT_PBL)
+		disable_cpc_sram();
+#endif
+		enable_cpc();
+		start_addr = in_be32(&scfg->sparecr[1]);
+		kernel_resume = (func_t)start_addr;
+		kernel_resume();
+	}
+#endif
 
 #ifdef CONFIG_POST
 	post_bootmode_init();
@@ -531,7 +557,6 @@ void board_init_f(ulong bootflag)
 	bd->bi_ipbfreq = gd->arch.ipb_clk;
 	bd->bi_pcifreq = gd->pci_clk;
 #endif /* CONFIG_MPC5xxx */
-	bd->bi_baudrate = gd->baudrate;	/* Console Baudrate     */
 
 #ifdef CONFIG_SYS_EXTBDINFO
 	strncpy((char *) bd->bi_s_version, "1.2", sizeof(bd->bi_s_version));
@@ -974,14 +999,6 @@ void board_init_r(gd_t *id, ulong dest_addr)
 #ifdef CONFIG_PS2KBD
 	puts("PS/2:  ");
 	kbd_init();
-#endif
-
-#ifdef CONFIG_MODEM_SUPPORT
-	{
-		extern int do_mdm_init;
-
-		do_mdm_init = gd->do_mdm_init;
-	}
 #endif
 
 	/* Initialization complete - start the monitor */

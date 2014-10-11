@@ -13,8 +13,6 @@
 
 #define CONFIG_SYS_PROMPT		"ORIGEN # "
 
-#undef CONFIG_DEFAULT_DEVICE_TREE
-#define CONFIG_DEFAULT_DEVICE_TREE	exynos4210-origen
 
 /* High Level Configuration Options */
 #define CONFIG_EXYNOS4210		1	/* which is a EXYNOS4210 SoC */
@@ -65,7 +63,6 @@
 #undef CONFIG_CMD_NFS
 
 /* MMC SPL */
-#define CONFIG_SPL
 #define COPY_BL2_FNPTR_ADDR	0x02020030
 #define CONFIG_SPL_TEXT_BASE	0x02021410
 

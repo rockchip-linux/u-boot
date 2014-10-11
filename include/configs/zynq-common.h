@@ -12,7 +12,6 @@
 
 /* High Level configuration Options */
 #define CONFIG_ARMV7
-#define CONFIG_ZYNQ
 
 /* CPU clock */
 #ifndef CONFIG_CPU_FREQ_HZ
@@ -83,10 +82,27 @@
 # define CONFIG_SDHCI
 # define CONFIG_ZYNQ_SDHCI
 # define CONFIG_CMD_MMC
-# define CONFIG_CMD_FAT
+#endif
+
+#ifdef CONFIG_ZYNQ_USB
+# define CONFIG_USB_EHCI
+# define CONFIG_CMD_USB
+# define CONFIG_USB_STORAGE
+# define CONFIG_USB_EHCI_ZYNQ
+# define CONFIG_USB_ULPI_VIEWPORT
+# define CONFIG_USB_ULPI
+# define CONFIG_EHCI_IS_TDI
+# define CONFIG_USB_MAX_CONTROLLER_COUNT	2
+#endif
+
+#if defined(CONFIG_ZYNQ_SDHCI) || defined(CONFIG_ZYNQ_USB)
 # define CONFIG_SUPPORT_VFAT
+# define CONFIG_CMD_FAT
 # define CONFIG_CMD_EXT2
+# define CONFIG_FAT_WRITE
 # define CONFIG_DOS_PARTITION
+# define CONFIG_CMD_EXT4
+# define CONFIG_CMD_EXT4_WRITE
 #endif
 
 #define CONFIG_SYS_I2C_ZYNQ
@@ -150,7 +166,13 @@
 		"bootm ${load_addr}\0" \
 	"jtagboot=echo TFTPing FIT to RAM... && " \
 		"tftpboot ${load_addr} ${fit_image} && " \
-		"bootm ${load_addr}\0"
+		"bootm ${load_addr}\0" \
+	"usbboot=if usb start; then " \
+			"echo Copying FIT from USB to RAM... && " \
+			"fatload usb 0 ${load_addr} ${fit_image} && " \
+			"bootm ${load_addr}\0" \
+		"fi\0"
+
 #define CONFIG_BOOTCOMMAND		"run $modeboot"
 #define CONFIG_BOOTDELAY		3 /* -1 to Disable autoboot */
 #define CONFIG_SYS_LOAD_ADDR		0 /* default? */
@@ -165,7 +187,7 @@
 #define CONFIG_SYS_LONGHELP
 #define CONFIG_CLOCKS
 #define CONFIG_CMD_CLK
-#define CONFIG_SYS_MAXARGS		15 /* max number of command args */
+#define CONFIG_SYS_MAXARGS		32 /* max number of command args */
 #define CONFIG_SYS_CBSIZE		256 /* Console I/O Buffer Size */
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
 					sizeof(CONFIG_SYS_PROMPT) + 16)
@@ -191,6 +213,10 @@
 #define CONFIG_FPGA_XILINX
 #define CONFIG_FPGA_ZYNQPL
 #define CONFIG_CMD_FPGA
+#define CONFIG_CMD_FPGA_LOADMK
+#define CONFIG_CMD_FPGA_LOADP
+#define CONFIG_CMD_FPGA_LOADBP
+#define CONFIG_CMD_FPGA_LOADFS
 
 /* Open Firmware flat tree */
 #define CONFIG_OF_LIBFDT
@@ -198,10 +224,9 @@
 /* FIT support */
 #define CONFIG_FIT
 #define CONFIG_FIT_VERBOSE	1 /* enable fit_format_{error,warning}() */
+#define CONFIG_IMAGE_FORMAT_LEGACY /* enable also legacy image format */
 
 /* FDT support */
-#define CONFIG_OF_CONTROL
-#define CONFIG_OF_SEPARATE
 #define CONFIG_DISPLAY_BOARDINFO_LATE
 
 /* RSA support */
@@ -209,7 +234,7 @@
 #define CONFIG_RSA
 
 /* Extend size of kernel image for uncompression */
-#define CONFIG_SYS_BOOTM_LEN	(20 * 1024 * 1024)
+#define CONFIG_SYS_BOOTM_LEN	(60 * 1024 * 1024)
 
 /* Boot FreeBSD/vxWorks from an ELF image */
 #if defined(CONFIG_ZYNQ_BOOT_FREEBSD)
@@ -229,21 +254,14 @@
 #define CONFIG_CMD_TFTPPUT
 
 /* SPL part */
-#define CONFIG_SPL
 #define CONFIG_CMD_SPL
 #define CONFIG_SPL_FRAMEWORK
 #define CONFIG_SPL_LIBCOMMON_SUPPORT
 #define CONFIG_SPL_LIBGENERIC_SUPPORT
 #define CONFIG_SPL_SERIAL_SUPPORT
+#define CONFIG_SPL_BOARD_INIT
 
 #define CONFIG_SPL_LDSCRIPT	"arch/arm/cpu/armv7/zynq/u-boot-spl.lds"
-
-/* Disable dcache for SPL just for sure */
-#ifdef CONFIG_SPL_BUILD
-#define CONFIG_SYS_DCACHE_OFF
-#undef CONFIG_FPGA
-#undef CONFIG_OF_CONTROL
-#endif
 
 /* MMC support */
 #ifdef CONFIG_ZYNQ_SDHCI0
@@ -253,7 +271,13 @@
 #define CONFIG_SYS_MMC_SD_FAT_BOOT_PARTITION    1
 #define CONFIG_SPL_LIBDISK_SUPPORT
 #define CONFIG_SPL_FAT_SUPPORT
-#define CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME     "u-boot.img"
+#define CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME     "u-boot-dtb.img"
+#endif
+
+/* Disable dcache for SPL just for sure */
+#ifdef CONFIG_SPL_BUILD
+#define CONFIG_SYS_DCACHE_OFF
+#undef CONFIG_FPGA
 #endif
 
 /* Address in RAM where the parameters must be copied by SPL. */
@@ -272,9 +296,7 @@
 #define CONFIG_SPL_SPI_SUPPORT
 #define CONFIG_SPL_SPI_LOAD
 #define CONFIG_SPL_SPI_FLASH_SUPPORT
-#define CONFIG_SPL_SPI_BUS	0
 #define CONFIG_SYS_SPI_U_BOOT_OFFS	0x100000
-#define CONFIG_SPL_SPI_CS	0
 #endif
 
 /* for booting directly linux */
@@ -305,5 +327,7 @@
 #define CONFIG_SPL_BSS_MAX_SIZE		0x100000
 
 #define CONFIG_SYS_UBOOT_START	CONFIG_SYS_TEXT_BASE
+
+#define CONFIG_SYS_GENERIC_BOARD
 
 #endif /* __CONFIG_ZYNQ_COMMON_H */

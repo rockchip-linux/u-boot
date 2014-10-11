@@ -10,6 +10,11 @@
 #include <common.h>
 #include <i2c.h>
 
+#ifndef CONFIG_SYS_I2C_EEPROM_ADDR
+# define CONFIG_SYS_I2C_EEPROM_ADDR	0x50
+# define CONFIG_SYS_I2C_EEPROM_ADDR_LEN	1
+#endif
+
 #define EEPROM_LAYOUT_VER_OFFSET	44
 #define BOARD_SERIAL_OFFSET		20
 #define BOARD_SERIAL_OFFSET_LEGACY	8
@@ -26,8 +31,19 @@ static int cl_eeprom_layout; /* Implicitly LAYOUT_INVALID */
 
 static int cl_eeprom_read(uint offset, uchar *buf, int len)
 {
-	return i2c_read(CONFIG_SYS_I2C_EEPROM_ADDR, offset,
+	int res;
+	unsigned int current_i2c_bus = i2c_get_bus_num();
+
+	res = i2c_set_bus_num(CONFIG_SYS_I2C_EEPROM_BUS);
+	if (res < 0)
+		return res;
+
+	res = i2c_read(CONFIG_SYS_I2C_EEPROM_ADDR, offset,
 			CONFIG_SYS_I2C_EEPROM_ADDR_LEN, buf, len);
+
+	i2c_set_bus_num(current_i2c_bus);
+
+	return res;
 }
 
 static int cl_eeprom_setup_layout(void)

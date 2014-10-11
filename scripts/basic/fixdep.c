@@ -221,7 +221,11 @@ static void use_config(const char *m, int slen)
 
 	define_config(m, slen, hash);
 
-	printf("    $(wildcard include/config/");
+	/* printf("    $(wildcard include/config/"); */
+	/* modified for U-Boot */
+	printf("    $(wildcard %sinclude/config/",
+	       strncmp(depfile, "spl/", 4) ?
+	       (strncmp(depfile, "tpl/", 4) ? "" : "tpl/") : "spl/");
 	for (i = 0; i < slen; i++) {
 		c = m[i];
 		if (c == '_')
@@ -409,10 +413,10 @@ static void print_deps(void)
 		exit(2);
 	}
 	if (fstat(fd, &st) < 0) {
-                fprintf(stderr, "fixdep: error fstat'ing depfile: ");
-                perror(depfile);
-                exit(2);
-        }
+		fprintf(stderr, "fixdep: error fstat'ing depfile: ");
+		perror(depfile);
+		exit(2);
+	}
 	if (st.st_size == 0) {
 		fprintf(stderr,"fixdep: %s is empty\n",depfile);
 		close(fd);

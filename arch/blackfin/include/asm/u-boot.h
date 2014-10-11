@@ -13,7 +13,6 @@
 #define _U_BOOT_H_	1
 
 typedef struct bd_info {
-	unsigned int bi_baudrate;	/* serial console baudrate */
 	unsigned long bi_boot_params;	/* where this board expects params */
 	unsigned long bi_memstart;	/* start of DRAM memory */
 	phys_size_t bi_memsize;		/* size  of DRAM memory in bytes */
@@ -26,9 +25,12 @@ typedef struct bd_info {
 	unsigned long bi_vco;
 	unsigned long bi_cclk;
 	unsigned long bi_sclk;
+	unsigned char bi_enetaddr[6];
 } bd_t;
 
 /* For image.h:image_check_target_arch() */
 #define IH_ARCH_DEFAULT IH_ARCH_BLACKFIN
+
+int	arch_misc_init(void);
 
 #endif	/* _U_BOOT_H_ */

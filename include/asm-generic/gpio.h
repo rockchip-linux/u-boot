@@ -79,14 +79,18 @@ int gpio_get_value(unsigned gpio);
  */
 int gpio_set_value(unsigned gpio, int value);
 
-/* State of a GPIO, as reported by get_state() */
+/* State of a GPIO, as reported by get_function() */
 enum {
 	GPIOF_INPUT = 0,
 	GPIOF_OUTPUT,
-	GPIOF_UNKNOWN,
+	GPIOF_UNUSED,		/* Not claimed */
+	GPIOF_UNKNOWN,		/* Not known */
+	GPIOF_FUNC,		/* Not used as a GPIO */
+
+	GPIOF_COUNT,
 };
 
-struct device;
+struct udevice;
 
 /**
  * struct struct dm_gpio_ops - Driver model GPIO operations
@@ -116,15 +120,22 @@ struct device;
  * all devices. Be careful not to confuse offset with gpio in the parameters.
  */
 struct dm_gpio_ops {
-	int (*request)(struct device *dev, unsigned offset, const char *label);
-	int (*free)(struct device *dev, unsigned offset);
-	int (*direction_input)(struct device *dev, unsigned offset);
-	int (*direction_output)(struct device *dev, unsigned offset,
+	int (*request)(struct udevice *dev, unsigned offset, const char *label);
+	int (*free)(struct udevice *dev, unsigned offset);
+	int (*direction_input)(struct udevice *dev, unsigned offset);
+	int (*direction_output)(struct udevice *dev, unsigned offset,
 				int value);
-	int (*get_value)(struct device *dev, unsigned offset);
-	int (*set_value)(struct device *dev, unsigned offset, int value);
-	int (*get_function)(struct device *dev, unsigned offset);
-	int (*get_state)(struct device *dev, unsigned offset, char *state,
+	int (*get_value)(struct udevice *dev, unsigned offset);
+	int (*set_value)(struct udevice *dev, unsigned offset, int value);
+	/**
+	 * get_function() Get the GPIO function
+	 *
+	 * @dev:     Device to check
+	 * @offset:  GPIO offset within that device
+	 * @return current function - GPIOF_...
+	 */
+	int (*get_function)(struct udevice *dev, unsigned offset);
+	int (*get_state)(struct udevice *dev, unsigned offset, char *state,
 			 int maxlen);
 };
 
@@ -166,7 +177,7 @@ struct gpio_dev_priv {
  * @offset_count: Returns number of GPIOs within this bank
  * @return bank name of this device
  */
-const char *gpio_get_bank_info(struct device *dev, int *offset_count);
+const char *gpio_get_bank_info(struct udevice *dev, int *offset_count);
 
 /**
  * gpio_lookup_name - Look up a GPIO name and return its details
@@ -179,7 +190,7 @@ const char *gpio_get_bank_info(struct device *dev, int *offset_count);
  * @offsetp: Returns the offset number within this device
  * @gpiop: Returns the absolute GPIO number, numbered from 0
  */
-int gpio_lookup_name(const char *name, struct device **devp,
+int gpio_lookup_name(const char *name, struct udevice **devp,
 		     unsigned int *offsetp, unsigned int *gpiop);
 
 #endif	/* _ASM_GENERIC_GPIO_H_ */

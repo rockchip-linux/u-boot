@@ -67,7 +67,7 @@
 #define CONFIG_HOSTNAME		bf537-stamp
 /* Uncomment next line to use fixed MAC address */
 /* #define CONFIG_ETHADDR	02:80:ad:20:31:e8 */
-
+#define CONFIG_LIB_RAND
 
 /*
  * Flash Settings
@@ -254,7 +254,6 @@
 #define CONFIG_MISC_INIT_R
 #define CONFIG_RTC_BFIN
 #define CONFIG_UART_CONSOLE	0
-#define CONFIG_CC_OPTIMIZE_LIBS_FOR_SPEED
 
 /* Define if want to do post memory test */
 #undef CONFIG_POST

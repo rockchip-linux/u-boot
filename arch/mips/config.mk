@@ -25,7 +25,9 @@ endif
 # Default to EB if no endianess is configured
 ENDIANNESS ?= -EB
 
-PLATFORM_CPPFLAGS += -DCONFIG_MIPS -D__MIPS__
+PLATFORM_CPPFLAGS += -D__MIPS__
+
+__HAVE_ARCH_GENERIC_BOARD := y
 
 #
 # From Linux arch/mips/Makefile
@@ -52,4 +54,5 @@ PLATFORM_CPPFLAGS		+= -msoft-float
 PLATFORM_LDFLAGS		+= -G 0 -static -n -nostdlib $(ENDIANNESS)
 PLATFORM_RELFLAGS		+= -ffunction-sections -fdata-sections
 LDFLAGS_FINAL			+= --gc-sections -pie
-OBJCOPYFLAGS			+= --remove-section=.dynsym
+OBJCOPYFLAGS			+= -j .text -j .rodata -j .data -j .got
+OBJCOPYFLAGS			+= -j .u_boot_list -j .rel.dyn

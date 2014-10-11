@@ -15,6 +15,12 @@
 #define VPLL	4
 #define BPLL	5
 #define RPLL	6
+#define SPLL	7
+
+#define MASK_PRE_RATIO(x)	(0xff << ((x << 4) + 8))
+#define MASK_RATIO(x)		(0xf << (x << 4))
+#define SET_PRE_RATIO(x, y)	((y & 0xff) << ((x << 4) + 8))
+#define SET_RATIO(x, y)		((y & 0xf) << (x << 4))
 
 enum pll_src_bit {
 	EXYNOS_SRC_MPLL = 6,

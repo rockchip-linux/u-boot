@@ -25,6 +25,7 @@
  */
 
 #include <common.h>
+#include <cli.h>
 #include <command.h>
 #include <environment.h>
 #include <search.h>
@@ -33,6 +34,7 @@
 #include <watchdog.h>
 #include <linux/stddef.h>
 #include <asm/byteorder.h>
+#include <asm/io.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -408,7 +410,7 @@ int do_env_ask(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return 1;
 
 	/* prompt for input */
-	len = readline(message);
+	len = cli_readline(message);
 
 	if (size < len)
 		console_buffer[size] = '\0';
@@ -591,7 +593,7 @@ static int do_env_edit(cmd_tbl_t *cmdtp, int flag, int argc,
 	else
 		buffer[0] = '\0';
 
-	if (readline_into_buffer("edit: ", buffer, 0) < 0)
+	if (cli_readline_into_buffer("edit: ", buffer, 0) < 0)
 		return 1;
 
 	return setenv(argv[1], buffer);
@@ -850,7 +852,8 @@ static int do_env_export(cmd_tbl_t *cmdtp, int flag,
 			 int argc, char * const argv[])
 {
 	char	buf[32];
-	char	*addr, *cmd, *res;
+	ulong	addr;
+	char	*ptr, *cmd, *res;
 	size_t	size = 0;
 	ssize_t	len;
 	env_t	*envp;
@@ -895,10 +898,11 @@ NXTARG:		;
 	if (argc < 1)
 		return CMD_RET_USAGE;
 
-	addr = (char *)simple_strtoul(argv[0], NULL, 16);
+	addr = simple_strtoul(argv[0], NULL, 16);
+	ptr = map_sysmem(addr, size);
 
 	if (size)
-		memset(addr, '\0', size);
+		memset(ptr, '\0', size);
 
 	argc--;
 	argv++;
@@ -906,7 +910,7 @@ NXTARG:		;
 	if (sep) {		/* export as text file */
 		len = hexport_r(&env_htab, sep,
 				H_MATCH_KEY | H_MATCH_IDENT,
-				&addr, size, argc, argv);
+				&ptr, size, argc, argv);
 		if (len < 0) {
 			error("Cannot export environment: errno = %d\n", errno);
 			return 1;
@@ -917,12 +921,12 @@ NXTARG:		;
 		return 0;
 	}
 
-	envp = (env_t *)addr;
+	envp = (env_t *)ptr;
 
 	if (chk)		/* export as checksum protected block */
 		res = (char *)envp->data;
 	else			/* export as raw binary data */
-		res = addr;
+		res = ptr;
 
 	len = hexport_r(&env_htab, '\0',
 			H_MATCH_KEY | H_MATCH_IDENT,
@@ -950,11 +954,15 @@ sep_err:
 
 #ifdef CONFIG_CMD_IMPORTENV
 /*
- * env import [-d] [-t | -b | -c] addr [size]
+ * env import [-d] [-t [-r] | -b | -c] addr [size]
  *	-d:	delete existing environment before importing;
  *		otherwise overwrite / append to existion definitions
  *	-t:	assume text format; either "size" must be given or the
  *		text data must be '\0' terminated
+ *	-r:	handle CRLF like LF, that means exported variables with
+ *		a content which ends with \r won't get imported. Used
+ *		to import text files created with editors which are using CRLF
+ *		for line endings. Only effective in addition to -t.
  *	-b:	assume binary format ('\0' separated, "\0\0" terminated)
  *	-c:	assume checksum protected environment format
  *	addr:	memory address to read from
@@ -964,11 +972,13 @@ sep_err:
 static int do_env_import(cmd_tbl_t *cmdtp, int flag,
 			 int argc, char * const argv[])
 {
-	char	*cmd, *addr;
+	ulong	addr;
+	char	*cmd, *ptr;
 	char	sep = '\n';
 	int	chk = 0;
 	int	fmt = 0;
 	int	del = 0;
+	int	crlf_is_lf = 0;
 	size_t	size;
 
 	cmd = *argv;
@@ -993,6 +1003,9 @@ static int do_env_import(cmd_tbl_t *cmdtp, int flag,
 					goto sep_err;
 				sep = '\n';
 				break;
+			case 'r':		/* handle CRLF like LF */
+				crlf_is_lf = 1;
+				break;
 			case 'd':
 				del = 1;
 				break;
@@ -1008,7 +1021,11 @@ static int do_env_import(cmd_tbl_t *cmdtp, int flag,
 	if (!fmt)
 		printf("## Warning: defaulting to text format\n");
 
-	addr = (char *)simple_strtoul(argv[0], NULL, 16);
+	if (sep != '\n' && crlf_is_lf )
+		crlf_is_lf = 0;
+
+	addr = simple_strtoul(argv[0], NULL, 16);
+	ptr = map_sysmem(addr, 0);
 
 	if (argc == 2) {
 		size = simple_strtoul(argv[1], NULL, 16);
@@ -1016,7 +1033,7 @@ static int do_env_import(cmd_tbl_t *cmdtp, int flag,
 		puts("## Error: external checksum format must pass size\n");
 		return CMD_RET_FAILURE;
 	} else {
-		char *s = addr;
+		char *s = ptr;
 
 		size = 0;
 
@@ -1036,7 +1053,7 @@ static int do_env_import(cmd_tbl_t *cmdtp, int flag,
 
 	if (chk) {
 		uint32_t crc;
-		env_t *ep = (env_t *)addr;
+		env_t *ep = (env_t *)ptr;
 
 		size -= offsetof(env_t, data);
 		memcpy(&crc, &ep->crc, sizeof(crc));
@@ -1045,11 +1062,11 @@ static int do_env_import(cmd_tbl_t *cmdtp, int flag,
 			puts("## Error: bad CRC, import failed\n");
 			return 1;
 		}
-		addr = (char *)ep->data;
+		ptr = (char *)ep->data;
 	}
 
-	if (himport_r(&env_htab, addr, size, sep, del ? 0 : H_NOCLEAR,
-			0, NULL) == 0) {
+	if (himport_r(&env_htab, ptr, size, sep, del ? 0 : H_NOCLEAR,
+			crlf_is_lf, 0, NULL) == 0) {
 		error("Environment import failed: errno = %d\n", errno);
 		return 1;
 	}
@@ -1178,7 +1195,7 @@ static char env_help_text[] =
 #endif
 #endif
 #if defined(CONFIG_CMD_IMPORTENV)
-	"env import [-d] [-t | -b | -c] addr [size] - import environment\n"
+	"env import [-d] [-t [-r] | -b | -c] addr [size] - import environment\n"
 #endif
 	"env print [-a | name ...] - print environment\n"
 #if defined(CONFIG_CMD_RUN)

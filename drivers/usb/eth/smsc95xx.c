@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 The Chromium OS Authors.
  * Copyright (C) 2009 NVIDIA, Corporation
+ * Copyright (C) 2007-2008 SMSC (Steve Glendinning)
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -799,6 +800,7 @@ static const struct smsc95xx_dongle smsc95xx_dongles[] = {
 	{ 0x0424, 0x9500 },	/* LAN9500 Ethernet */
 	{ 0x0424, 0x9730 },	/* LAN9730 Ethernet (HSIC) */
 	{ 0x0424, 0x9900 },	/* SMSC9500 USB Ethernet Device (SAL10) */
+	{ 0x0424, 0x9e00 },	/* LAN9500A Ethernet */
 	{ 0x0000, 0x0000 }	/* END - Do not remove */
 };
 

@@ -22,7 +22,7 @@ extra-$(CONFIG_PPC)                += sched
 ELF := $(strip $(extra-y))
 
 extra-y += $(addsuffix .srec,$(extra-y)) $(addsuffix .bin,$(extra-y))
-clean-files  := $(extra-) $(addsuffix .srec,$(extra-)) $(addsuffix .bin,$(extra-))
+clean-files  := *.srec *.bin
 
 COBJS	:= $(ELF:=.o)
 
@@ -37,8 +37,6 @@ targets += $(patsubst $(obj)/%,%,$(LIB)) $(COBJS) $(LIBOBJS-y)
 
 LIBOBJS	:= $(addprefix $(obj)/,$(LIBOBJS-y))
 ELF	:= $(addprefix $(obj)/,$(ELF))
-
-gcclibdir := $(shell dirname `$(CC) -print-libgcc-file-name`)
 
 # For PowerPC there's no need to compile standalone applications as a
 # relocatable executable.  The relocation data is not needed, and
@@ -63,7 +61,7 @@ $(LIB):	$(LIBOBJS) FORCE
 
 quiet_cmd_link_elf = LD      $@
       cmd_link_elf = $(LD) $(LDFLAGS) -g -Ttext $(CONFIG_STANDALONE_LOAD_ADDR) \
-		     -o $@ -e $(SYM_PREFIX)$(@F) $< $(LIB) -L$(gcclibdir) -lgcc
+		     -o $@ -e $(SYM_PREFIX)$(@F) $< $(LIB) $(PLATFORM_LIBGCC)
 
 $(ELF): $(obj)/%: $(obj)/%.o $(LIB) FORCE
 	$(call if_changed,link_elf)

@@ -1,7 +1,7 @@
 # Copyright (c) 2011 The Chromium OS Authors.
 # SPDX-License-Identifier:	GPL-2.0+
 
-PLATFORM_CPPFLAGS += -DCONFIG_SANDBOX -D__SANDBOX__ -U_FORTIFY_SOURCE
+PLATFORM_CPPFLAGS += -D__SANDBOX__ -U_FORTIFY_SOURCE
 PLATFORM_CPPFLAGS += -DCONFIG_ARCH_MAP_SYSMEM -DCONFIG_SYS_GENERIC_BOARD
 PLATFORM_LIBS += -lrt
 
@@ -18,3 +18,9 @@ cmd_u-boot__ = $(CC) -o $@ -T u-boot.lds \
 	$(PLATFORM_LIBS) -Wl,-Map -Wl,u-boot.map
 
 CONFIG_ARCH_DEVICE_TREE := sandbox
+
+# Define this to avoid linking with SDL, which requires SDL libraries
+# This can solve 'sdl-config: Command not found' errors
+ifneq ($(NO_SDL),)
+PLATFORM_CPPFLAGS += -DSANDBOX_NO_SDL
+endif

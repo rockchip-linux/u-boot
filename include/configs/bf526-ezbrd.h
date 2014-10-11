@@ -87,7 +87,7 @@
 #define CONFIG_HOSTNAME		bf526-ezbrd
 /* Uncomment next line to use fixed MAC address */
 /* #define CONFIG_ETHADDR	02:80:ad:20:31:e8 */
-
+#define CONFIG_LIB_RAND
 
 /*
  * Flash Settings
@@ -153,7 +153,6 @@
 #define CONFIG_MISC_INIT_R
 #define CONFIG_RTC_BFIN
 #define CONFIG_UART_CONSOLE	1
-#define CONFIG_CC_OPTIMIZE_LIBS_FOR_SPEED
 
 /* define to enable run status via led */
 /* #define CONFIG_STATUS_LED */

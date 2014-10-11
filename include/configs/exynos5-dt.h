@@ -24,10 +24,6 @@
 #define CONFIG_ARCH_EARLY_INIT_R
 #define CONFIG_EXYNOS_SPL
 
-/* Enable fdt support for Exynos5250 */
-#define CONFIG_OF_CONTROL
-#define CONFIG_OF_SEPARATE
-
 /* Allow tracing to be enabled */
 #define CONFIG_TRACE
 #define CONFIG_CMD_TRACE
@@ -136,7 +132,6 @@
 #define CONFIG_TPM_TIS_I2C_SLAVE_ADDR	0x20
 
 /* MMC SPL */
-#define CONFIG_SPL
 #define COPY_BL2_FNPTR_ADDR	0x02020030
 
 #define CONFIG_SPL_LIBCOMMON_SUPPORT
@@ -144,8 +139,6 @@
 
 /* specific .lds file */
 #define CONFIG_SPL_LDSCRIPT	"board/samsung/common/exynos-uboot-spl.lds"
-#define CONFIG_SPL_MAX_FOOTPRINT	(14 * 1024)
-
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP		/* undef to save memory */
@@ -163,8 +156,6 @@
 
 #define CONFIG_RD_LVL
 
-#define CONFIG_NR_DRAM_BANKS	8
-#define SDRAM_BANK_SIZE		(256UL << 20UL)	/* 256 MB */
 #define PHYS_SDRAM_1		CONFIG_SYS_SDRAM_BASE
 #define PHYS_SDRAM_1_SIZE	SDRAM_BANK_SIZE
 #define PHYS_SDRAM_2		(CONFIG_SYS_SDRAM_BASE + SDRAM_BANK_SIZE)
@@ -207,7 +198,10 @@
 
 #define CONFIG_BL1_OFFSET	(CONFIG_RES_BLOCK_SIZE + CONFIG_SEC_FW_SIZE)
 #define CONFIG_BL2_OFFSET	(CONFIG_BL1_OFFSET + CONFIG_BL1_SIZE)
-#define CONFIG_ENV_OFFSET	(CONFIG_BL2_OFFSET + CONFIG_BL2_SIZE)
+
+/* Store environment at the end of a 4 MB SPI flash */
+#define FLASH_SIZE		(0x4 << 20)
+#define CONFIG_ENV_OFFSET	(FLASH_SIZE - CONFIG_BL2_SIZE)
 
 /* U-boot copy size from boot Media to DRAM.*/
 #define BL2_START_OFFSET	(CONFIG_BL2_OFFSET/512)
@@ -259,6 +253,7 @@
 /* PMIC */
 #define CONFIG_POWER
 #define CONFIG_POWER_I2C
+#define CONFIG_POWER_TPS65090
 
 /* Ethernet Controllor Driver */
 #ifdef CONFIG_CMD_NET
@@ -287,5 +282,13 @@
 #define CONFIG_CMD_TIME
 
 #define CONFIG_CMD_BOOTZ
+
+#define CONFIG_CMD_GPIO
+
+/* USB boot mode */
+#define CONFIG_USB_BOOTING
+#define EXYNOS_COPY_USB_FNPTR_ADDR	0x02020070
+#define EXYNOS_USB_SECONDARY_BOOT	0xfeed0002
+#define EXYNOS_IRAM_SECONDARY_BASE	0x02020018
 
 #endif	/* __CONFIG_H */

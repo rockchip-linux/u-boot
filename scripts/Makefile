@@ -9,8 +9,8 @@ hostprogs-y += docproc
 
 # These targets are used internally to avoid "is up to date" messages
 PHONY += build_docproc
-build_docproc: scripts/docproc
+build_docproc: $(obj)/docproc
 	@:
 
 # Let clean descend into subdirs
-subdir-	+= basic
+subdir-	+= basic kconfig

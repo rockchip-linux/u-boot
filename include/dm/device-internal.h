@@ -11,7 +11,7 @@
 #ifndef _DM_DEVICE_INTERNAL_H
 #define _DM_DEVICE_INTERNAL_H
 
-struct device;
+struct udevice;
 
 /**
  * device_bind() - Create a device and bind it to a driver
@@ -34,9 +34,9 @@ struct device;
  * @devp: Returns a pointer to the bound device
  * @return 0 if OK, -ve on error
  */
-int device_bind(struct device *parent, struct driver *drv,
+int device_bind(struct udevice *parent, struct driver *drv,
 		const char *name, void *platdata, int of_offset,
-		struct device **devp);
+		struct udevice **devp);
 
 /**
  * device_bind_by_name: Create a device and bind it to a driver
@@ -45,12 +45,14 @@ int device_bind(struct device *parent, struct driver *drv,
  * tree.
  *
  * @parent: Pointer to device's parent
+ * @pre_reloc_only: If true, bind the driver only if its DM_INIT_F flag is set.
+ * If false bind the driver always.
  * @info: Name and platdata for this device
  * @devp: Returns a pointer to the bound device
  * @return 0 if OK, -ve on error
  */
-int device_bind_by_name(struct device *parent, const struct driver_info *info,
-			struct device **devp);
+int device_bind_by_name(struct udevice *parent, bool pre_reloc_only,
+			const struct driver_info *info, struct udevice **devp);
 
 /**
  * device_probe() - Probe a device, activating it
@@ -61,7 +63,7 @@ int device_bind_by_name(struct device *parent, const struct driver_info *info,
  * @dev: Pointer to device to probe
  * @return 0 if OK, -ve on error
  */
-int device_probe(struct device *dev);
+int device_probe(struct udevice *dev);
 
 /**
  * device_remove() - Remove a device, de-activating it
@@ -72,7 +74,7 @@ int device_probe(struct device *dev);
  * @dev: Pointer to device to remove
  * @return 0 if OK, -ve on error (an error here is normally a very bad thing)
  */
-int device_remove(struct device *dev);
+int device_remove(struct udevice *dev);
 
 /**
  * device_unbind() - Unbind a device, destroying it
@@ -82,6 +84,10 @@ int device_remove(struct device *dev);
  * @dev: Pointer to device to unbind
  * @return 0 if OK, -ve on error
  */
-int device_unbind(struct device *dev);
+int device_unbind(struct udevice *dev);
+
+/* Cast away any volatile pointer */
+#define DM_ROOT_NON_CONST		(((gd_t *)gd)->dm_root)
+#define DM_UCLASS_ROOT_NON_CONST	(((gd_t *)gd)->uclass_root)
 
 #endif

@@ -4,70 +4,30 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#ifndef USE_HOSTCC
 #include <common.h>
 #include <fdtdec.h>
-#include <rsa.h>
-#include <sha1.h>
+#include <asm/types.h>
 #include <asm/byteorder.h>
 #include <asm/errno.h>
+#include <asm/types.h>
 #include <asm/unaligned.h>
-
-/**
- * struct rsa_public_key - holder for a public key
- *
- * An RSA public key consists of a modulus (typically called N), the inverse
- * and R^2, where R is 2^(# key bits).
- */
-struct rsa_public_key {
-	uint len;		/* Length of modulus[] in number of uint32_t */
-	uint32_t n0inv;		/* -1 / modulus[0] mod 2^32 */
-	uint32_t *modulus;	/* modulus as little endian array */
-	uint32_t *rr;		/* R^2 as little endian array */
-};
+#else
+#include "fdt_host.h"
+#include "mkimage.h"
+#include <fdt_support.h>
+#endif
+#include <u-boot/rsa.h>
+#include <u-boot/sha1.h>
+#include <u-boot/sha256.h>
 
 #define UINT64_MULT32(v, multby)  (((uint64_t)(v)) * ((uint32_t)(multby)))
 
-#define RSA2048_BYTES	(2048 / 8)
+#define get_unaligned_be32(a) fdt32_to_cpu(*(uint32_t *)a)
+#define put_unaligned_be32(a, b) (*(uint32_t *)(b) = cpu_to_fdt32(a))
 
-/* This is the minimum/maximum key size we support, in bits */
-#define RSA_MIN_KEY_BITS	2048
-#define RSA_MAX_KEY_BITS	2048
-
-/* This is the maximum signature length that we support, in bits */
-#define RSA_MAX_SIG_BITS	2048
-
-static const uint8_t padding_sha1_rsa2048[RSA2048_BYTES - SHA1_SUM_LEN] = {
-	0x00, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0x00, 0x30, 0x21, 0x30,
-	0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a,
-	0x05, 0x00, 0x04, 0x14
-};
+/* Default public exponent for backward compatibility */
+#define RSA_DEFAULT_PUBEXP	65537
 
 /**
  * subtract_modulus() - subtract modulus from the given value
@@ -97,9 +57,9 @@ static void subtract_modulus(const struct rsa_public_key *key, uint32_t num[])
 static int greater_equal_modulus(const struct rsa_public_key *key,
 				 uint32_t num[])
 {
-	uint32_t i;
+	int i;
 
-	for (i = key->len - 1; i >= 0; i--) {
+	for (i = (int)key->len - 1; i >= 0; i--) {
 		if (num[i] < key->modulus[i])
 			return 0;
 		if (num[i] > key->modulus[i])
@@ -166,6 +126,48 @@ static void montgomery_mul(const struct rsa_public_key *key,
 }
 
 /**
+ * num_pub_exponent_bits() - Number of bits in the public exponent
+ *
+ * @key:	RSA key
+ * @num_bits:	Storage for the number of public exponent bits
+ */
+static int num_public_exponent_bits(const struct rsa_public_key *key,
+		int *num_bits)
+{
+	uint64_t exponent;
+	int exponent_bits;
+	const uint max_bits = (sizeof(exponent) * 8);
+
+	exponent = key->exponent;
+	exponent_bits = 0;
+
+	if (!exponent) {
+		*num_bits = exponent_bits;
+		return 0;
+	}
+
+	for (exponent_bits = 1; exponent_bits < max_bits + 1; ++exponent_bits)
+		if (!(exponent >>= 1)) {
+			*num_bits = exponent_bits;
+			return 0;
+		}
+
+	return -EINVAL;
+}
+
+/**
+ * is_public_exponent_bit_set() - Check if a bit in the public exponent is set
+ *
+ * @key:	RSA key
+ * @pos:	The bit position to check
+ */
+static int is_public_exponent_bit_set(const struct rsa_public_key *key,
+		int pos)
+{
+	return key->exponent & (1ULL << pos);
+}
+
+/**
  * pow_mod() - in-place public exponentiation
  *
  * @key:	RSA key
@@ -175,6 +177,7 @@ static int pow_mod(const struct rsa_public_key *key, uint32_t *inout)
 {
 	uint32_t *result, *ptr;
 	uint i;
+	int j, k;
 
 	/* Sanity check for stack size - key->len is in 32-bit words */
 	if (key->len > RSA_MAX_KEY_BITS / 32) {
@@ -184,18 +187,48 @@ static int pow_mod(const struct rsa_public_key *key, uint32_t *inout)
 	}
 
 	uint32_t val[key->len], acc[key->len], tmp[key->len];
+	uint32_t a_scaled[key->len];
 	result = tmp;  /* Re-use location. */
 
 	/* Convert from big endian byte array to little endian word array. */
 	for (i = 0, ptr = inout + key->len - 1; i < key->len; i++, ptr--)
 		val[i] = get_unaligned_be32(ptr);
 
-	montgomery_mul(key, acc, val, key->rr);  /* axx = a * RR / R mod M */
-	for (i = 0; i < 16; i += 2) {
-		montgomery_mul(key, tmp, acc, acc); /* tmp = acc^2 / R mod M */
-		montgomery_mul(key, acc, tmp, tmp); /* acc = tmp^2 / R mod M */
+	if (0 != num_public_exponent_bits(key, &k))
+		return -EINVAL;
+
+	if (k < 2) {
+		debug("Public exponent is too short (%d bits, minimum 2)\n",
+		      k);
+		return -EINVAL;
 	}
-	montgomery_mul(key, result, acc, val);  /* result = XX * a / R mod M */
+
+	if (!is_public_exponent_bit_set(key, 0)) {
+		debug("LSB of RSA public exponent must be set.\n");
+		return -EINVAL;
+	}
+
+	/* the bit at e[k-1] is 1 by definition, so start with: C := M */
+	montgomery_mul(key, acc, val, key->rr); /* acc = a * RR / R mod n */
+	/* retain scaled version for intermediate use */
+	memcpy(a_scaled, acc, key->len * sizeof(a_scaled[0]));
+
+	for (j = k - 2; j > 0; --j) {
+		montgomery_mul(key, tmp, acc, acc); /* tmp = acc^2 / R mod n */
+
+		if (is_public_exponent_bit_set(key, j)) {
+			/* acc = tmp * val / R mod n */
+			montgomery_mul(key, acc, tmp, a_scaled);
+		} else {
+			/* e[j] == 0, copy tmp back to acc for next operation */
+			memcpy(acc, tmp, key->len * sizeof(acc[0]));
+		}
+	}
+
+	/* the bit at e[0] is always 1 */
+	montgomery_mul(key, tmp, acc, acc); /* tmp = acc^2 / R mod n */
+	montgomery_mul(key, acc, tmp, val); /* acc = tmp * a / R mod M */
+	memcpy(result, acc, key->len * sizeof(result[0]));
 
 	/* Make sure result < mod; result is at most 1x mod too large. */
 	if (greater_equal_modulus(key, result))
@@ -204,24 +237,26 @@ static int pow_mod(const struct rsa_public_key *key, uint32_t *inout)
 	/* Convert to bigendian byte array */
 	for (i = key->len - 1, ptr = inout; (int)i >= 0; i--, ptr++)
 		put_unaligned_be32(result[i], ptr);
-
 	return 0;
 }
 
 static int rsa_verify_key(const struct rsa_public_key *key, const uint8_t *sig,
-		const uint32_t sig_len, const uint8_t *hash)
+			  const uint32_t sig_len, const uint8_t *hash,
+			  struct checksum_algo *algo)
 {
 	const uint8_t *padding;
 	int pad_len;
 	int ret;
 
-	if (!key || !sig || !hash)
+	if (!key || !sig || !hash || !algo)
 		return -EIO;
 
 	if (sig_len != (key->len * sizeof(uint32_t))) {
 		debug("Signature is of incorrect length %d\n", sig_len);
 		return -EINVAL;
 	}
+
+	debug("Checksum algorithm: %s", algo->name);
 
 	/* Sanity check for stack size */
 	if (sig_len > RSA_MAX_SIG_BITS / 8) {
@@ -238,9 +273,8 @@ static int rsa_verify_key(const struct rsa_public_key *key, const uint8_t *sig,
 	if (ret)
 		return ret;
 
-	/* Determine padding to use depending on the signature type. */
-	padding = padding_sha1_rsa2048;
-	pad_len = RSA2048_BYTES - SHA1_SUM_LEN;
+	padding = algo->rsa_padding;
+	pad_len = algo->pad_len - algo->checksum_len;
 
 	/* Check pkcs1.5 padding bytes. */
 	if (memcmp(buf, padding, pad_len)) {
@@ -271,6 +305,8 @@ static int rsa_verify_with_keynode(struct image_sign_info *info,
 	const void *blob = info->fdt_blob;
 	struct rsa_public_key key;
 	const void *modulus, *rr;
+	const uint64_t *public_exponent;
+	int length;
 	int ret;
 
 	if (node < 0) {
@@ -283,6 +319,11 @@ static int rsa_verify_with_keynode(struct image_sign_info *info,
 	}
 	key.len = fdtdec_get_int(blob, node, "rsa,num-bits", 0);
 	key.n0inv = fdtdec_get_int(blob, node, "rsa,n0-inverse", 0);
+	public_exponent = fdt_getprop(blob, node, "rsa,exponent", &length);
+	if (!public_exponent || length < sizeof(*public_exponent))
+		key.exponent = RSA_DEFAULT_PUBEXP;
+	else
+		key.exponent = fdt64_to_cpu(*public_exponent);
 	modulus = fdt_getprop(blob, node, "rsa,modulus", NULL);
 	rr = fdt_getprop(blob, node, "rsa,r-squared", NULL);
 	if (!key.len || !modulus || !rr) {
@@ -309,7 +350,7 @@ static int rsa_verify_with_keynode(struct image_sign_info *info,
 	}
 
 	debug("key length %d\n", key.len);
-	ret = rsa_verify_key(&key, sig, sig_len, hash);
+	ret = rsa_verify_key(&key, sig, sig_len, hash, info->algo->checksum);
 	if (ret) {
 		printf("%s: RSA failed to verify: %d\n", __func__, ret);
 		return ret;
@@ -323,12 +364,23 @@ int rsa_verify(struct image_sign_info *info,
 	       uint8_t *sig, uint sig_len)
 {
 	const void *blob = info->fdt_blob;
-	uint8_t hash[SHA1_SUM_LEN];
+	/* Reserve memory for maximum checksum-length */
+	uint8_t hash[info->algo->checksum->pad_len];
 	int ndepth, noffset;
 	int sig_node, node;
 	char name[100];
-	sha1_context ctx;
-	int ret, i;
+	int ret;
+
+	/*
+	 * Verify that the checksum-length does not exceed the
+	 * rsa-signature-length
+	 */
+	if (info->algo->checksum->checksum_len >
+	    info->algo->checksum->pad_len) {
+		debug("%s: invlaid checksum-algorithm %s for %s\n",
+		      __func__, info->algo->checksum->name, info->algo->name);
+		return -EINVAL;
+	}
 
 	sig_node = fdt_subnode_offset(blob, 0, FIT_SIG_NODENAME);
 	if (sig_node < 0) {
@@ -336,10 +388,8 @@ int rsa_verify(struct image_sign_info *info,
 		return -ENOENT;
 	}
 
-	sha1_starts(&ctx);
-	for (i = 0; i < region_count; i++)
-		sha1_update(&ctx, region[i].data, region[i].size);
-	sha1_finish(&ctx, hash);
+	/* Calculate checksum with checksum-algorithm */
+	info->algo->checksum->calculate(region, region_count, hash);
 
 	/* See if we must use a particular key */
 	if (info->required_keynode != -1) {

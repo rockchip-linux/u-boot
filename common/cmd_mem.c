@@ -12,6 +12,8 @@
  */
 
 #include <common.h>
+#include <bootretry.h>
+#include <cli.h>
 #include <command.h>
 #ifdef CONFIG_HAS_DATAFLASH
 #include <dataflash.h>
@@ -213,7 +215,7 @@ static int do_mem_mw(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 }
 
 #ifdef CONFIG_MX_CYCLIC
-int do_mem_mdc ( cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_mem_mdc(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int i;
 	ulong count;
@@ -240,7 +242,7 @@ int do_mem_mdc ( cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return 0;
 }
 
-int do_mem_mwc ( cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_mem_mwc(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int i;
 	ulong count;
@@ -593,7 +595,8 @@ static int do_mem_loop(cmd_tbl_t *cmdtp, int flag, int argc,
 }
 
 #ifdef CONFIG_LOOPW
-int do_mem_loopw (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_mem_loopw(cmd_tbl_t *cmdtp, int flag, int argc,
+			char * const argv[])
 {
 	ulong	addr, length, i, bytes;
 	int	size;
@@ -1096,9 +1099,7 @@ mod_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char * const argv[])
 	if (argc != 2)
 		return CMD_RET_USAGE;
 
-#ifdef CONFIG_BOOT_RETRY_TIME
-	reset_cmd_timeout();	/* got a good command to get here */
-#endif
+	bootretry_reset_cmd_timeout();	/* got a good command to get here */
 	/* We use the last specified parameters, unless new ones are
 	 * entered.
 	 */
@@ -1149,7 +1150,7 @@ mod_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char * const argv[])
 		else
 			printf(" %02x", *((u8 *)ptr));
 
-		nbytes = readline (" ? ");
+		nbytes = cli_readline(" ? ");
 		if (nbytes == 0 || (nbytes == 1 && console_buffer[0] == '-')) {
 			/* <CR> pressed as only input, don't modify current
 			 * location and move to next. "-" pressed will go back.
@@ -1157,9 +1158,8 @@ mod_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char * const argv[])
 			if (incrflag)
 				addr += nbytes ? -size : size;
 			nbytes = 1;
-#ifdef CONFIG_BOOT_RETRY_TIME
-			reset_cmd_timeout(); /* good enough to not time out */
-#endif
+			/* good enough to not time out */
+			bootretry_reset_cmd_timeout();
 		}
 #ifdef CONFIG_BOOT_RETRY_TIME
 		else if (nbytes == -2) {
@@ -1175,11 +1175,9 @@ mod_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char * const argv[])
 #endif
 			nbytes = endp - console_buffer;
 			if (nbytes) {
-#ifdef CONFIG_BOOT_RETRY_TIME
 				/* good enough to not time out
 				 */
-				reset_cmd_timeout();
-#endif
+				bootretry_reset_cmd_timeout();
 				if (size == 4)
 					*((u32 *)ptr) = i;
 #ifdef CONFIG_SYS_SUPPORT_64BIT_DATA

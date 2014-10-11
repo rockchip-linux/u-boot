@@ -24,8 +24,11 @@ obj-y += crc7.o
 obj-y += crc8.o
 obj-y += crc16.o
 ifndef CONFIG_ROCKCHIP
+obj-$(CONFIG_FIT) += fdtdec_common.o
+obj-$(CONFIG_OF_CONTROL) += fdtdec_common.o
 obj-$(CONFIG_OF_CONTROL) += fdtdec.o
 else
+obj-$(CONFIG_OF_LIBFDT) += fdtdec_common.o
 obj-$(CONFIG_OF_LIBFDT) += fdtdec.o
 endif
 obj-$(CONFIG_TEST_FDTDEC) += fdtdec_test.o
@@ -39,11 +42,13 @@ obj-y += net_utils.o
 obj-$(CONFIG_PHYSMEM) += physmem.o
 obj-y += qsort.o
 obj-$(CONFIG_SHA1) += sha1.o
+obj-$(CONFIG_SUPPORT_EMMC_RPMB) += sha256.o
 obj-$(CONFIG_SHA256) += sha256.o
 obj-y	+= strmhz.o
 obj-$(CONFIG_TPM) += tpm.o
 obj-$(CONFIG_RBTREE)	+= rbtree.o
 obj-$(CONFIG_BITREVERSE) += bitrev.o
+obj-y += list_sort.o
 endif
 
 ifdef CONFIG_SPL_BUILD
@@ -59,6 +64,7 @@ obj-y += crc32.o
 obj-y += ctype.o
 obj-y += div64.o
 obj-y += hang.o
+obj-y += linux_compat.o
 obj-y += linux_string.o
 obj-$(CONFIG_REGEX) += slre.o
 obj-y += string.o

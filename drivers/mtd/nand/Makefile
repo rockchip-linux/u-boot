@@ -18,6 +18,9 @@ obj-$(CONFIG_SPL_NAND_LOAD) += nand_spl_load.o
 obj-$(CONFIG_SPL_NAND_ECC) += nand_ecc.o
 obj-$(CONFIG_SPL_NAND_BASE) += nand_base.o
 obj-$(CONFIG_SPL_NAND_INIT) += nand.o
+ifeq ($(CONFIG_SPL_ENV_SUPPORT),y)
+obj-$(CONFIG_ENV_IS_IN_NAND) += nand_util.o
+endif
 
 else # not spl
 
@@ -39,6 +42,7 @@ obj-$(CONFIG_NAND_ECC_BCH) += nand_bch.o
 obj-$(CONFIG_NAND_ATMEL) += atmel_nand.o
 obj-$(CONFIG_DRIVER_NAND_BFIN) += bfin_nand.o
 obj-$(CONFIG_NAND_DAVINCI) += davinci_nand.o
+obj-$(CONFIG_NAND_DENALI) += denali.o
 obj-$(CONFIG_NAND_FSL_ELBC) += fsl_elbc_nand.o
 obj-$(CONFIG_NAND_FSL_IFC) += fsl_ifc_nand.o
 obj-$(CONFIG_NAND_FSL_UPM) += fsl_upm.o
@@ -65,5 +69,6 @@ else  # minimal SPL drivers
 obj-$(CONFIG_NAND_FSL_ELBC) += fsl_elbc_spl.o
 obj-$(CONFIG_NAND_FSL_IFC) += fsl_ifc_spl.o
 obj-$(CONFIG_NAND_MXC) += mxc_nand_spl.o
+obj-$(CONFIG_NAND_MXS) += mxs_nand_spl.o mxs_nand.o
 
 endif # drivers

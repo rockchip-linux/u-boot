@@ -574,11 +574,7 @@ void abb_setup(u32 fuse, u32 ldovbb, u32 setup, u32 control,
 	       u32 txdone, u32 txdone_mask, u32 opp);
 s8 abb_setup_ldovbb(u32 fuse, u32 ldovbb);
 
-/* HW Init Context */
-#define OMAP_INIT_CONTEXT_SPL			0
-#define OMAP_INIT_CONTEXT_UBOOT_FROM_NOR	1
-#define OMAP_INIT_CONTEXT_UBOOT_AFTER_SPL	2
-#define OMAP_INIT_CONTEXT_UBOOT_AFTER_CH	3
+void usb_fake_mac_from_die_id(u32 *id);
 
 /* ABB */
 #define OMAP_ABB_NOMINAL_OPP		0
@@ -598,6 +594,14 @@ static inline u32 omap_revision(void)
 	extern u32 *const omap_si_rev;
 	return *omap_si_rev;
 }
+
+#define OMAP44xx	0x44000000
+
+static inline u8 is_omap44xx(void)
+{
+	extern u32 *const omap_si_rev;
+	return (*omap_si_rev & 0xFF000000) == OMAP44xx;
+};
 
 #define OMAP54xx	0x54000000
 
@@ -643,6 +647,7 @@ static inline u8 is_dra7xx(void)
 /* DRA7XX */
 #define DRA752_ES1_0	0x07520100
 #define DRA752_ES1_1	0x07520110
+#define DRA722_ES1_0	0x07220100
 
 /*
  * SRAM scratch space entries

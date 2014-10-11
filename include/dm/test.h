@@ -30,7 +30,7 @@ struct dm_test_pdata {
  *	@return 0 if OK, -ve on error
  */
 struct test_ops {
-	int (*ping)(struct device *dev, int pingval, int *pingret);
+	int (*ping)(struct udevice *dev, int pingval, int *pingret);
 };
 
 /* Operations that our test driver supports */
@@ -82,6 +82,17 @@ struct dm_test_uclass_priv {
 	int total_add;
 };
 
+/**
+ * struct dm_test_parent_data - parent's information on each child
+ *
+ * @sum: Test value used to check parent data works correctly
+ * @flag: Used to track calling of parent operations
+ */
+struct dm_test_parent_data {
+	int sum;
+	int flag;
+};
+
 /*
  * Operation counts for the test driver, used to check that each method is
  * called correctly
@@ -100,13 +111,15 @@ extern struct dm_test_state global_test_state;
  * @fail_count: Number of tests that failed
  * @force_fail_alloc: Force all memory allocs to fail
  * @skip_post_probe: Skip uclass post-probe processing
+ * @removed: Used to keep track of a device that was removed
  */
 struct dm_test_state {
-	struct device *root;
-	struct device *testdev;
+	struct udevice *root;
+	struct udevice *testdev;
 	int fail_count;
 	int force_fail_alloc;
 	int skip_post_probe;
+	struct udevice *removed;
 };
 
 /* Test flags for each test */
@@ -138,8 +151,8 @@ struct dm_test {
 	}
 
 /* Declare ping methods for the drivers */
-int test_ping(struct device *dev, int pingval, int *pingret);
-int testfdt_ping(struct device *dev, int pingval, int *pingret);
+int test_ping(struct udevice *dev, int pingval, int *pingret);
+int testfdt_ping(struct udevice *dev, int pingval, int *pingret);
 
 /**
  * dm_check_operations() - Check that we can perform ping operations
@@ -152,8 +165,17 @@ int testfdt_ping(struct device *dev, int pingval, int *pingret);
  * @priv: Pointer to private test information
  * @return 0 if OK, -ve on error
  */
-int dm_check_operations(struct dm_test_state *dms, struct device *dev,
+int dm_check_operations(struct dm_test_state *dms, struct udevice *dev,
 			uint32_t base, struct dm_test_priv *priv);
+
+/**
+ * dm_check_devices() - check the devices respond to operations correctly
+ *
+ * @dms: Overall test state
+ * @num_devices: Number of test devices to check
+ * @return 0 if OK, -ve on error
+ */
+int dm_check_devices(struct dm_test_state *dms, int num_devices);
 
 /**
  * dm_test_main() - Run all the tests

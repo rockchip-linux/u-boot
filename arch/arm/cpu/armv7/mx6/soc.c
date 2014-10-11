@@ -35,6 +35,12 @@ struct scu_regs {
 	u32	fpga_rev;
 };
 
+u32 get_nr_cpus(void)
+{
+	struct scu_regs *scu = (struct scu_regs *)SCU_BASE_ADDR;
+	return readl(&scu->config) & 3;
+}
+
 u32 get_cpu_rev(void)
 {
 	struct anatop_regs *anatop = (struct anatop_regs *)ANATOP_BASE_ADDR;
@@ -79,9 +85,15 @@ u32 __weak get_board_rev(void)
 void init_aips(void)
 {
 	struct aipstz_regs *aips1, *aips2;
+#ifdef CONFIG_MX6SX
+	struct aipstz_regs *aips3;
+#endif
 
 	aips1 = (struct aipstz_regs *)AIPS1_BASE_ADDR;
 	aips2 = (struct aipstz_regs *)AIPS2_BASE_ADDR;
+#ifdef CONFIG_MX6SX
+	aips3 = (struct aipstz_regs *)AIPS3_BASE_ADDR;
+#endif
 
 	/*
 	 * Set all MPROTx to be non-bufferable, trusted for R/W,
@@ -107,6 +119,26 @@ void init_aips(void)
 	writel(0x00000000, &aips2->opacr2);
 	writel(0x00000000, &aips2->opacr3);
 	writel(0x00000000, &aips2->opacr4);
+
+#ifdef CONFIG_MX6SX
+	/*
+	 * Set all MPROTx to be non-bufferable, trusted for R/W,
+	 * not forced to user-mode.
+	 */
+	writel(0x77777777, &aips3->mprot0);
+	writel(0x77777777, &aips3->mprot1);
+
+	/*
+	 * Set all OPACRx to be non-bufferable, not require
+	 * supervisor privilege level for access,allow for
+	 * write access and untrusted master access.
+	 */
+	writel(0x00000000, &aips3->opacr0);
+	writel(0x00000000, &aips3->opacr1);
+	writel(0x00000000, &aips3->opacr2);
+	writel(0x00000000, &aips3->opacr3);
+	writel(0x00000000, &aips3->opacr4);
+#endif
 }
 
 static void clear_ldo_ramp(void)
@@ -124,10 +156,9 @@ static void clear_ldo_ramp(void)
 }
 
 /*
- * Set the VDDSOC
+ * Set the PMU_REG_CORE register
  *
- * Mask out the REG_CORE[22:18] bits (REG2_TRIG) and set
- * them to the specified millivolt level.
+ * Set LDO_SOC/PU/ARM regulators to the specified millivolt level.
  * Possible values are from 0.725V to 1.450V in steps of
  * 0.025V (25mV).
  */
@@ -293,10 +324,10 @@ const struct boot_mode soc_boot_modes[] = {
 	/* reserved value should start rom usb */
 	{"usb",		MAKE_CFGVAL(0x01, 0x00, 0x00, 0x00)},
 	{"sata",	MAKE_CFGVAL(0x20, 0x00, 0x00, 0x00)},
-	{"escpi1:0",	MAKE_CFGVAL(0x30, 0x00, 0x00, 0x08)},
-	{"escpi1:1",	MAKE_CFGVAL(0x30, 0x00, 0x00, 0x18)},
-	{"escpi1:2",	MAKE_CFGVAL(0x30, 0x00, 0x00, 0x28)},
-	{"escpi1:3",	MAKE_CFGVAL(0x30, 0x00, 0x00, 0x38)},
+	{"ecspi1:0",	MAKE_CFGVAL(0x30, 0x00, 0x00, 0x08)},
+	{"ecspi1:1",	MAKE_CFGVAL(0x30, 0x00, 0x00, 0x18)},
+	{"ecspi1:2",	MAKE_CFGVAL(0x30, 0x00, 0x00, 0x28)},
+	{"ecspi1:3",	MAKE_CFGVAL(0x30, 0x00, 0x00, 0x38)},
 	/* 4 bit bus width */
 	{"esdhc1",	MAKE_CFGVAL(0x40, 0x20, 0x00, 0x00)},
 	{"esdhc2",	MAKE_CFGVAL(0x40, 0x28, 0x00, 0x00)},
@@ -311,6 +342,10 @@ void s_init(void)
 	int is_6q = is_cpu_type(MXC_CPU_MX6Q);
 	u32 mask480;
 	u32 mask528;
+
+
+	if (is_cpu_type(MXC_CPU_MX6SX))
+		return;
 
 	/* Due to hardware limitation, on MX6Q we need to gate/ungate all PFDs
 	 * to make sure PFD is working right, otherwise, PFDs may
@@ -394,6 +429,9 @@ void v7_outer_cache_enable(void)
 		writel(val, &iomux->gpr[11]);
 	}
 #endif
+
+	/* Must disable the L2 before changing the latency parameters */
+	clrbits_le32(&pl310->pl310_ctrl, L2X0_CTRL_EN);
 
 	writel(0x132, &pl310->pl310_tag_latency_ctrl);
 	writel(0x132, &pl310->pl310_data_latency_ctrl);

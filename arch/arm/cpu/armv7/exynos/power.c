@@ -112,6 +112,12 @@ static void exynos5_set_ps_hold_ctrl(void)
 			EXYNOS_PS_HOLD_CONTROL_DATA_HIGH);
 }
 
+/*
+ * Set ps_hold data driving value high
+ * This enables the machine to stay powered on
+ * after the initial power-on condition goes away
+ * (e.g. power button).
+ */
 void set_ps_hold_ctrl(void)
 {
 	if (cpu_is_exynos5())
@@ -195,4 +201,11 @@ void power_exit_wakeup(void)
 		exynos5_power_exit_wakeup();
 	else
 		exynos4_power_exit_wakeup();
+}
+
+unsigned int get_boot_mode(void)
+{
+	unsigned int om_pin = samsung_get_base_power();
+
+	return readl(om_pin) & OM_PIN_MASK;
 }

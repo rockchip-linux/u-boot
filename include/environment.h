@@ -146,7 +146,12 @@ extern unsigned long nand_env_oob_offset;
 extern char *env_name_spec;
 #endif
 
+#ifdef CONFIG_ENV_AES
+/* Make sure the payload is multiple of AES block size */
+#define ENV_SIZE ((CONFIG_ENV_SIZE - ENV_HEADER_SIZE) & ~(16 - 1))
+#else
 #define ENV_SIZE (CONFIG_ENV_SIZE - ENV_HEADER_SIZE)
+#endif
 
 typedef struct environment_s {
 	uint32_t	crc;		/* CRC32 over data bytes	*/
@@ -154,7 +159,12 @@ typedef struct environment_s {
 	unsigned char	flags;		/* active/obsolete flags	*/
 #endif
 	unsigned char	data[ENV_SIZE]; /* Environment data		*/
-} env_t;
+} env_t
+#ifdef CONFIG_ENV_AES
+/* Make sure the env is aligned to block size. */
+__attribute__((aligned(16)))
+#endif
+;
 
 #ifdef ENV_IS_EMBEDDED
 extern env_t environment;
@@ -168,6 +178,15 @@ extern unsigned char env_get_char_spec(int);
 
 #if defined(CONFIG_NEEDS_MANUAL_RELOC)
 extern void env_reloc(void);
+#endif
+
+#ifdef CONFIG_ENV_IS_IN_MMC
+#include <mmc.h>
+
+extern int mmc_get_env_addr(struct mmc *mmc, int copy, u32 *env_addr);
+# ifdef CONFIG_SYS_MMC_ENV_PART
+extern uint mmc_get_env_part(struct mmc *mmc);
+# endif
 #endif
 
 #ifndef DO_DEPS_ONLY
@@ -200,6 +219,9 @@ int set_default_vars(int nvars, char * const vars[]);
 
 /* Import from binary representation into hash table */
 int env_import(const char *buf, int check);
+
+/* Export from hash table into binary representation */
+int env_export(env_t *env_out);
 
 #endif /* DO_DEPS_ONLY */
 

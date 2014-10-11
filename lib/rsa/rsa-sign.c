@@ -76,6 +76,7 @@ static int rsa_get_pub_key(const char *keydir, const char *name, RSA **rsap)
 	rsa = EVP_PKEY_get1_RSA(key);
 	if (!rsa) {
 		rsa_err("Couldn't convert to a RSA style key");
+		ret = -EINVAL;
 		goto err_rsa;
 	}
 	fclose(f);
@@ -159,8 +160,9 @@ static void rsa_remove(void)
 	EVP_cleanup();
 }
 
-static int rsa_sign_with_key(RSA *rsa, const struct image_region region[],
-		int region_count, uint8_t **sigp, uint *sig_size)
+static int rsa_sign_with_key(RSA *rsa, struct checksum_algo *checksum_algo,
+		const struct image_region region[], int region_count,
+		uint8_t **sigp, uint *sig_size)
 {
 	EVP_PKEY *key;
 	EVP_MD_CTX *context;
@@ -192,7 +194,7 @@ static int rsa_sign_with_key(RSA *rsa, const struct image_region region[],
 		goto err_create;
 	}
 	EVP_MD_CTX_init(context);
-	if (!EVP_SignInit(context, EVP_sha1())) {
+	if (!EVP_SignInit(context, checksum_algo->calculate_sign())) {
 		ret = rsa_err("Signer setup failed");
 		goto err_sign;
 	}
@@ -242,7 +244,8 @@ int rsa_sign(struct image_sign_info *info,
 	ret = rsa_get_priv_key(info->keydir, info->keyname, &rsa);
 	if (ret)
 		goto err_priv;
-	ret = rsa_sign_with_key(rsa, region, region_count, sigp, sig_len);
+	ret = rsa_sign_with_key(rsa, info->algo->checksum, region,
+				region_count, sigp, sig_len);
 	if (ret)
 		goto err_sign;
 
@@ -259,10 +262,57 @@ err_priv:
 }
 
 /*
+ * rsa_get_exponent(): - Get the public exponent from an RSA key
+ */
+static int rsa_get_exponent(RSA *key, uint64_t *e)
+{
+	int ret;
+	BIGNUM *bn_te;
+	uint64_t te;
+
+	ret = -EINVAL;
+	bn_te = NULL;
+
+	if (!e)
+		goto cleanup;
+
+	if (BN_num_bits(key->e) > 64)
+		goto cleanup;
+
+	*e = BN_get_word(key->e);
+
+	if (BN_num_bits(key->e) < 33) {
+		ret = 0;
+		goto cleanup;
+	}
+
+	bn_te = BN_dup(key->e);
+	if (!bn_te)
+		goto cleanup;
+
+	if (!BN_rshift(bn_te, bn_te, 32))
+		goto cleanup;
+
+	if (!BN_mask_bits(bn_te, 32))
+		goto cleanup;
+
+	te = BN_get_word(bn_te);
+	te <<= 32;
+	*e |= te;
+	ret = 0;
+
+cleanup:
+	if (bn_te)
+		BN_free(bn_te);
+
+	return ret;
+}
+
+/*
  * rsa_get_params(): - Get the important parameters of an RSA public key
  */
-int rsa_get_params(RSA *key, uint32_t *n0_invp, BIGNUM **modulusp,
-		   BIGNUM **r_squaredp)
+int rsa_get_params(RSA *key, uint64_t *exponent, uint32_t *n0_invp,
+		   BIGNUM **modulusp, BIGNUM **r_squaredp)
 {
 	BIGNUM *big1, *big2, *big32, *big2_32;
 	BIGNUM *n, *r, *r_squared, *tmp;
@@ -283,6 +333,9 @@ int rsa_get_params(RSA *key, uint32_t *n0_invp, BIGNUM **modulusp,
 		fprintf(stderr, "Out of memory (bignum)\n");
 		return -ENOMEM;
 	}
+
+	if (0 != rsa_get_exponent(key, exponent))
+		ret = -1;
 
 	if (!BN_copy(n, key->n) || !BN_set_word(big1, 1L) ||
 	    !BN_set_word(big2, 2L) || !BN_set_word(big32, 32L))
@@ -384,6 +437,7 @@ static int fdt_add_bignum(void *blob, int noffset, const char *prop_name,
 int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 {
 	BIGNUM *modulus, *r_squared;
+	uint64_t exponent;
 	uint32_t n0_inv;
 	int parent, node;
 	char name[100];
@@ -395,7 +449,7 @@ int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 	ret = rsa_get_pub_key(info->keydir, info->keyname, &rsa);
 	if (ret)
 		return ret;
-	ret = rsa_get_params(rsa, &n0_inv, &modulus, &r_squared);
+	ret = rsa_get_params(rsa, &exponent, &n0_inv, &modulus, &r_squared);
 	if (ret)
 		return ret;
 	bits = BN_num_bits(modulus);
@@ -403,11 +457,15 @@ int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 	if (parent == -FDT_ERR_NOTFOUND) {
 		parent = fdt_add_subnode(keydest, 0, FIT_SIG_NODENAME);
 		if (parent < 0) {
-			fprintf(stderr, "Couldn't create signature node: %s\n",
-				fdt_strerror(parent));
-			return -EINVAL;
+			ret = parent;
+			if (ret != -FDT_ERR_NOSPACE) {
+				fprintf(stderr, "Couldn't create signature node: %s\n",
+					fdt_strerror(parent));
+			}
 		}
 	}
+	if (ret)
+		goto done;
 
 	/* Either create or overwrite the named key node */
 	snprintf(name, sizeof(name), "key-%s", info->keyname);
@@ -415,32 +473,50 @@ int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 	if (node == -FDT_ERR_NOTFOUND) {
 		node = fdt_add_subnode(keydest, parent, name);
 		if (node < 0) {
-			fprintf(stderr, "Could not create key subnode: %s\n",
-				fdt_strerror(node));
-			return -EINVAL;
+			ret = node;
+			if (ret != -FDT_ERR_NOSPACE) {
+				fprintf(stderr, "Could not create key subnode: %s\n",
+					fdt_strerror(node));
+			}
 		}
 	} else if (node < 0) {
 		fprintf(stderr, "Cannot select keys parent: %s\n",
 			fdt_strerror(node));
-		return -ENOSPC;
+		ret = node;
 	}
 
-	ret = fdt_setprop_string(keydest, node, "key-name-hint",
+	if (!ret) {
+		ret = fdt_setprop_string(keydest, node, "key-name-hint",
 				 info->keyname);
-	ret |= fdt_setprop_u32(keydest, node, "rsa,num-bits", bits);
-	ret |= fdt_setprop_u32(keydest, node, "rsa,n0-inverse", n0_inv);
-	ret |= fdt_add_bignum(keydest, node, "rsa,modulus", modulus, bits);
-	ret |= fdt_add_bignum(keydest, node, "rsa,r-squared", r_squared, bits);
-	ret |= fdt_setprop_string(keydest, node, FIT_ALGO_PROP,
-				  info->algo->name);
-	if (info->require_keys) {
-		fdt_setprop_string(keydest, node, "required",
-				   info->require_keys);
 	}
+	if (!ret)
+		ret = fdt_setprop_u32(keydest, node, "rsa,num-bits", bits);
+	if (!ret)
+		ret = fdt_setprop_u32(keydest, node, "rsa,n0-inverse", n0_inv);
+	if (!ret) {
+		ret = fdt_setprop_u64(keydest, node, "rsa,exponent", exponent);
+	}
+	if (!ret) {
+		ret = fdt_add_bignum(keydest, node, "rsa,modulus", modulus,
+				     bits);
+	}
+	if (!ret) {
+		ret = fdt_add_bignum(keydest, node, "rsa,r-squared", r_squared,
+				     bits);
+	}
+	if (!ret) {
+		ret = fdt_setprop_string(keydest, node, FIT_ALGO_PROP,
+					 info->algo->name);
+	}
+	if (info->require_keys) {
+		ret = fdt_setprop_string(keydest, node, "required",
+					 info->require_keys);
+	}
+done:
 	BN_free(modulus);
 	BN_free(r_squared);
 	if (ret)
-		return -EIO;
+		return ret == -FDT_ERR_NOSPACE ? -ENOSPC : -EIO;
 
 	return 0;
 }

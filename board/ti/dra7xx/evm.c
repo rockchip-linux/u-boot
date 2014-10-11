@@ -13,9 +13,12 @@
 #include <common.h>
 #include <palmas.h>
 #include <sata.h>
+#include <asm/gpio.h>
+#include <asm/arch/gpio.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/mmc_host_def.h>
 #include <asm/arch/sata.h>
+#include <environment.h>
 
 #include "mux_data.h"
 
@@ -24,6 +27,9 @@
 #endif
 
 DECLARE_GLOBAL_DATA_PTR;
+
+/* GPIO 7_11 */
+#define GPIO_DDR_VTT_EN 203
 
 const struct omap_sysinfo sysinfo = {
 	"Board: DRA7xx\n"
@@ -81,6 +87,12 @@ int board_init(void)
 
 int board_late_init(void)
 {
+#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
+	if (omap_revision() == DRA722_ES1_0)
+		setenv("board_name", "dra72x");
+	else
+		setenv("board_name", "dra7xx");
+#endif
 	init_sata(0);
 	return 0;
 }
@@ -124,6 +136,24 @@ int board_mmc_init(bd_t *bis)
 }
 #endif
 
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_OS_BOOT)
+int spl_start_uboot(void)
+{
+	/* break into full u-boot on 'c' */
+	if (serial_tstc() && serial_getc() == 'c')
+		return 1;
+
+#ifdef CONFIG_SPL_ENV_SUPPORT
+	env_init();
+	env_relocate_spec();
+	if (getenv_yesno("boot_os") != 1)
+		return 1;
+#endif
+
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_DRIVER_TI_CPSW
 
 /* Delay value to add to calibrated value */
@@ -137,6 +167,8 @@ int board_mmc_init(bd_t *bis)
 #define VIN2A_D16_DLY_VAL		((0x3 << 5) + 0x2)
 #define VIN2A_D15_DLY_VAL		((0x4 << 5) + 0x0)
 #define VIN2A_D14_DLY_VAL		((0x4 << 5) + 0x0)
+
+extern u32 *const omap_si_rev;
 
 static void cpsw_control(int enabled)
 {
@@ -164,7 +196,7 @@ static struct cpsw_platform_data cpsw_data = {
 	.mdio_div		= 0xff,
 	.channels		= 8,
 	.cpdma_reg_ofs		= 0x800,
-	.slaves			= 1,
+	.slaves			= 2,
 	.slave_data		= cpsw_slaves,
 	.ale_reg_ofs		= 0xd00,
 	.ale_entries		= 1024,
@@ -235,10 +267,39 @@ int board_eth_init(bd_t *bis)
 	ctrl_val |= 0x22;
 	writel(ctrl_val, (*ctrl)->control_core_control_io1);
 
+	if (*omap_si_rev == DRA722_ES1_0)
+		cpsw_data.active_slave = 1;
+
 	ret = cpsw_register(&cpsw_data);
 	if (ret < 0)
 		printf("Error %d registering CPSW switch\n", ret);
 
 	return ret;
+}
+#endif
+
+#ifdef CONFIG_BOARD_EARLY_INIT_F
+/* VTT regulator enable */
+static inline void vtt_regulator_enable(void)
+{
+	if (omap_hw_init_context() == OMAP_INIT_CONTEXT_UBOOT_AFTER_SPL)
+		return;
+
+	/* Do not enable VTT for DRA722 */
+	if (omap_revision() == DRA722_ES1_0)
+		return;
+
+	/*
+	 * EVM Rev G and later use gpio7_11 for DDR3 termination.
+	 * This is safe enough to do on older revs.
+	 */
+	gpio_request(GPIO_DDR_VTT_EN, "ddr_vtt_en");
+	gpio_direction_output(GPIO_DDR_VTT_EN, 1);
+}
+
+int board_early_init_f(void)
+{
+	vtt_regulator_enable();
+	return 0;
 }
 #endif

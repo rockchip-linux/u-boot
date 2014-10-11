@@ -162,8 +162,19 @@ while true ; do
 		echo "Internal error!" >&2 ; exit 1 ;;
 	esac
 done
+
+GNU_MAKE=$(scripts/show-gnu-make) || {
+	echo "GNU Make not found" >&2
+	exit 1
+}
+
 # echo "Remaining arguments:"
 # for arg do echo '--> '"\`$arg'" ; done
+
+tools/genboardscfg.py || {
+	echo "Failed to generate boards.cfg" >&2
+	exit 1
+}
 
 FILTER="\$1 !~ /^#/"
 [ "$opt_a" ] && FILTER="${FILTER} && $opt_a"
@@ -418,50 +429,8 @@ LIST_arm="$(targets_by_arch arm |		\
 ## MIPS Systems		(default = big endian)
 #########################################################################
 
-LIST_mips4kc="		\
-	incaip		\
-	incaip_100MHz	\
-	incaip_133MHz	\
-	incaip_150MHz	\
-	qemu_mips	\
-	vct_platinum	\
-	vct_platinum_small	\
-	vct_platinum_onenand	\
-	vct_platinum_onenand_small	\
-	vct_platinumavc	\
-	vct_platinumavc_small	\
-	vct_platinumavc_onenand	\
-	vct_platinumavc_onenand_small	\
-	vct_premium	\
-	vct_premium_small	\
-	vct_premium_onenand	\
-	vct_premium_onenand_small	\
-"
+LIST_mips="$(targets_by_arch mips)"
 
-LIST_au1xx0="		\
-	dbau1000	\
-	dbau1100	\
-	dbau1500	\
-	dbau1550	\
-"
-
-LIST_mips="		\
-	${LIST_mips4kc}	\
-	${LIST_mips5kc}	\
-	${LIST_au1xx0}	\
-"
-
-#########################################################################
-## MIPS Systems		(little endian)
-#########################################################################
-
-LIST_au1xx0_el="	\
-	dbau1550_el	\
-	pb1000		\
-"
-LIST_mips_el="			\
-	${LIST_au1xx0_el}	\
-"
 #########################################################################
 ## OpenRISC Systems
 #########################################################################
@@ -548,9 +517,9 @@ get_target_location() {
 
 	set ${line}
 
-	CONFIG_NAME="${7%_config}"
+	CONFIG_NAME="${7%_defconfig}"
 
-	[ "${BOARD_NAME}" ] || BOARD_NAME="${7%_config}"
+	[ "${BOARD_NAME}" ] || BOARD_NAME="${7%_defconfig}"
 
 	if [ $# -gt 5 ]; then
 		if [ "$6" = "-" ] ; then
@@ -675,19 +644,21 @@ build_target() {
 	target_arch=$(get_target_arch ${target})
 	eval cross_toolchain=\$CROSS_COMPILE_`echo $target_arch | tr '[:lower:]' '[:upper:]'`
 	if [ "${cross_toolchain}" ] ; then
-	    MAKE="make CROSS_COMPILE=${cross_toolchain}"
+	    MAKE="$GNU_MAKE CROSS_COMPILE=${cross_toolchain}"
 	elif [ "${CROSS_COMPILE}" ] ; then
-	    MAKE="make CROSS_COMPILE=${CROSS_COMPILE}"
+	    MAKE="$GNU_MAKE CROSS_COMPILE=${CROSS_COMPILE}"
 	else
-	    MAKE=make
+	    MAKE=$GNU_MAKE
 	fi
 
 	if [  "${output_dir}" != "." ] ; then
 		MAKE="${MAKE} O=${output_dir}"
 	fi
 
-	${MAKE} distclean >/dev/null
-	${MAKE} -s ${target}_config
+	${MAKE} mrproper >/dev/null
+
+	echo "Building ${target} board..."
+	${MAKE} -s ${target}_defconfig >/dev/null
 
 	${MAKE} ${JOBS} ${CHECK} all \
 		>${LOG_DIR}/$target.MAKELOG 2> ${LOG_DIR}/$target.ERR

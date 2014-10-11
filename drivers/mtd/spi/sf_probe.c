@@ -197,16 +197,6 @@ static struct spi_flash *spi_flash_validate_params(struct spi_slave *spi,
 		/* Go for default supported write cmd */
 		flash->write_cmd = CMD_PAGE_PROGRAM;
 
-	/* Set the quad enable bit - only for quad commands */
-	if ((flash->read_cmd == CMD_READ_QUAD_OUTPUT_FAST) ||
-	    (flash->read_cmd == CMD_READ_QUAD_IO_FAST) ||
-	    (flash->write_cmd == CMD_QUAD_PAGE_PROGRAM)) {
-		if (spi_flash_set_qeb(flash, idcode[0])) {
-			debug("SF: Fail to set QEB for %02x\n", idcode[0]);
-			return NULL;
-		}
-	}
-
 	/* Read dummy_byte: dummy byte is determined based on the
 	 * dummy cycles of a particular command.
 	 * Fast commands - dummy_byte = dummy_cycles/8
@@ -291,6 +281,34 @@ int spi_flash_decode_fdt(const void *blob, struct spi_flash *flash)
 }
 #endif /* CONFIG_OF_CONTROL */
 
+#ifdef CONFIG_SYS_SPI_ST_ENABLE_WP_PIN
+/* enable the W#/Vpp signal to disable writing to the status register */
+static int spi_enable_wp_pin(struct spi_flash *flash)
+{
+	u8 status;
+	int ret;
+
+	ret = spi_flash_cmd_read_status(flash, &status);
+	if (ret < 0)
+		return ret;
+
+	ret = spi_flash_cmd_write_status(flash, STATUS_SRWD);
+	if (ret < 0)
+		return ret;
+
+	ret = spi_flash_cmd_write_disable(flash);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+#else
+static int spi_enable_wp_pin(struct spi_flash *flash)
+{
+	return 0;
+}
+#endif
+
 static struct spi_flash *spi_flash_probe_slave(struct spi_slave *spi)
 {
 	struct spi_flash *flash = NULL;
@@ -327,6 +345,16 @@ static struct spi_flash *spi_flash_probe_slave(struct spi_slave *spi)
 	if (!flash)
 		goto err_read_id;
 
+	/* Set the quad enable bit - only for quad commands */
+	if ((flash->read_cmd == CMD_READ_QUAD_OUTPUT_FAST) ||
+	    (flash->read_cmd == CMD_READ_QUAD_IO_FAST) ||
+	    (flash->write_cmd == CMD_QUAD_PAGE_PROGRAM)) {
+		if (spi_flash_set_qeb(flash, idcode[0])) {
+			debug("SF: Fail to set QEB for %02x\n", idcode[0]);
+			return NULL;
+		}
+	}
+
 #ifdef CONFIG_OF_CONTROL
 	if (spi_flash_decode_fdt(gd->fdt_blob, flash)) {
 		debug("SF: FDT decode error\n");
@@ -351,6 +379,8 @@ static struct spi_flash *spi_flash_probe_slave(struct spi_slave *spi)
 		puts(" Full access #define CONFIG_SPI_FLASH_BAR\n");
 	}
 #endif
+	if (spi_enable_wp_pin(flash))
+		puts("Enable WP pin failed\n");
 
 	/* Release spi bus */
 	spi_release_bus(spi);

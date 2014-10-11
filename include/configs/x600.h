@@ -107,6 +107,7 @@
 #define CONFIG_CMD_DHCP
 #define CONFIG_CMD_ENV
 #define CONFIG_CMD_FPGA
+#define CONFIG_CMD_FPGA_LOADMK
 #define CONFIG_CMD_GPIO
 #define CONFIG_CMD_I2C
 #define CONFIG_CMD_MEMORY
@@ -273,7 +274,6 @@
 /*
  * SPL related defines
  */
-#define CONFIG_SPL
 #define CONFIG_SPL_TEXT_BASE	0xd2800b00
 #define	CONFIG_SPL_START_S_PATH	"arch/arm/cpu/arm926ejs/spear"
 #define CONFIG_SPL_LDSCRIPT	"arch/arm/cpu/arm926ejs/spear/u-boot-spl.lds"

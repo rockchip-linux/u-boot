@@ -13,9 +13,23 @@
 #include <s_record.h>
 #include <net.h>
 #include <ata.h>
+#include <asm/io.h>
 #include <part.h>
 #include <fat.h>
 #include <fs.h>
+
+int do_fat_size(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	return do_size(cmdtp, flag, argc, argv, FS_TYPE_FAT);
+}
+
+U_BOOT_CMD(
+	fatsize,	4,	0,	do_fat_size,
+	"determine a file's size",
+	"<interface> <dev[:part]> <filename>\n"
+	"    - Find file 'filename' from 'dev' on 'interface'\n"
+	"      and determine its size."
+);
 
 int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -26,7 +40,7 @@ int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 U_BOOT_CMD(
 	fatload,	7,	0,	do_fat_fsload,
 	"load binary file from a dos filesystem",
-	"<interface> [<dev[:part]>]  <addr> <filename> [bytes [pos]]\n"
+	"<interface> [<dev[:part]> [<addr> [<filename> [bytes [pos]]]]]\n"
 	"    - Load binary file 'filename' from 'dev' on 'interface'\n"
 	"      to address 'addr' from dos filesystem.\n"
 	"      'pos' gives the file position to start loading from.\n"
@@ -93,6 +107,7 @@ static int do_fat_fswrite(cmd_tbl_t *cmdtp, int flag,
 	disk_partition_t info;
 	int dev = 0;
 	int part = 1;
+	void *buf;
 
 	if (argc < 5)
 		return cmd_usage(cmdtp);
@@ -111,7 +126,9 @@ static int do_fat_fswrite(cmd_tbl_t *cmdtp, int flag,
 	addr = simple_strtoul(argv[3], NULL, 16);
 	count = simple_strtoul(argv[5], NULL, 16);
 
-	size = file_fat_write(argv[4], (void *)addr, count);
+	buf = map_sysmem(addr, count);
+	size = file_fat_write(argv[4], buf, count);
+	unmap_sysmem(buf);
 	if (size == -1) {
 		printf("\n** Unable to write \"%s\" from %s %d:%d **\n",
 			argv[4], argv[1], dev, part);

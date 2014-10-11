@@ -12,6 +12,7 @@
 /* High Level Configuration Options */
 #define CONFIG_SAMSUNG			1	/* in a SAMSUNG core */
 #define CONFIG_S5P			1	/* S5P Family */
+#define CONFIG_EXYNOS4				/* EXYNOS4 Family */
 #define CONFIG_EXYNOS4210		1	/* which is a EXYNOS4210 SoC */
 #define CONFIG_SMDKV310			1	/* working with SMDKV310*/
 
@@ -75,7 +76,6 @@
 #define CONFIG_ZERO_BOOTDELAY_CHECK
 
 /* MMC SPL */
-#define CONFIG_SPL
 #define CONFIG_SKIP_LOWLEVEL_INIT
 #define COPY_BL2_FNPTR_ADDR	0x00002488
 

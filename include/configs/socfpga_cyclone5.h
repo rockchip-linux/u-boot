@@ -8,13 +8,14 @@
 
 #include <asm/arch/socfpga_base_addrs.h>
 #include "../../board/altera/socfpga/pinmux_config.h"
+#include "../../board/altera/socfpga/iocsr_config.h"
 #include "../../board/altera/socfpga/pll_config.h"
 
 /*
  * High level configuration
  */
 /* Virtual target or real hardware */
-#define CONFIG_SOCFPGA_VIRTUAL_TARGET
+#undef CONFIG_SOCFPGA_VIRTUAL_TARGET
 
 #define CONFIG_ARMV7
 #define CONFIG_SYS_DCACHE_OFF
@@ -201,16 +202,59 @@
 #else
 #define CONFIG_SYS_TIMER_RATE		25000000
 #endif
+#define CONFIG_SYS_TIMER_COUNTS_DOWN
 #define CONFIG_SYS_TIMER_COUNTER	(CONFIG_SYS_TIMERBASE + 0x4)
 
 #define CONFIG_ENV_IS_NOWHERE
+
+/*
+ * network support
+ */
+#ifndef CONFIG_SOCFPGA_VIRTUAL_TARGET
+#define CONFIG_DESIGNWARE_ETH          1
+#endif
+
+#ifdef CONFIG_DESIGNWARE_ETH
+#define CONFIG_EMAC0_BASE              SOCFPGA_EMAC0_ADDRESS
+#define CONFIG_EMAC1_BASE              SOCFPGA_EMAC1_ADDRESS
+/* console support for network */
+#define CONFIG_CMD_DHCP
+#define CONFIG_CMD_MII
+#define CONFIG_CMD_NET
+#define CONFIG_CMD_PING
+/* designware */
+#define CONFIG_NET_MULTI
+#define CONFIG_DW_ALTDESCRIPTOR
+#define CONFIG_DW_SEARCH_PHY
+#define CONFIG_MII
+#define CONFIG_PHY_GIGE
+#define CONFIG_DW_AUTONEG
+#define CONFIG_AUTONEG_TIMEOUT         (15 * CONFIG_SYS_HZ)
+#define CONFIG_PHYLIB
+#define CONFIG_PHY_MICREL
+#define CONFIG_PHY_MICREL_KSZ9021
+/* EMAC controller and PHY used */
+#define CONFIG_EMAC_BASE               CONFIG_EMAC1_BASE
+#define CONFIG_EPHY_PHY_ADDR           CONFIG_EPHY1_PHY_ADDR
+#define CONFIG_PHY_INTERFACE_MODE      PHY_INTERFACE_MODE_RGMII
+#endif /* CONFIG_DESIGNWARE_ETH */
+
+/*
+ * L4 Watchdog
+ */
+#define CONFIG_HW_WATCHDOG
+#define CONFIG_HW_WATCHDOG_TIMEOUT_MS	2000
+#define CONFIG_DESIGNWARE_WATCHDOG
+#define CONFIG_DW_WDT_BASE		SOCFPGA_L4WD0_ADDRESS
+/* Clocks source frequency to watchdog timer */
+#define CONFIG_DW_WDT_CLOCK_KHZ		25000
+
 
 /*
  * SPL "Second Program Loader" aka Initial Software
  */
 
 /* Enable building of SPL globally */
-#define CONFIG_SPL
 #define CONFIG_SPL_FRAMEWORK
 
 /* TEXT_BASE for linking the SPL binary */
@@ -236,5 +280,8 @@
 #define CONFIG_SPL_LIBCOMMON_SUPPORT
 /* Support for lib/libgeneric.o in SPL binary */
 #define CONFIG_SPL_LIBGENERIC_SUPPORT
+
+/* Support for watchdog */
+#define CONFIG_SPL_WATCHDOG_SUPPORT
 
 #endif	/* __CONFIG_H */

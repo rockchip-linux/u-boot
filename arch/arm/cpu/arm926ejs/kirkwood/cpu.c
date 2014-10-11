@@ -13,7 +13,7 @@
 #include <asm/io.h>
 #include <asm/arch/cpu.h>
 #include <asm/arch/kirkwood.h>
-#include <hush.h>
+#include <mvebu_mmc.h>
 
 #define BUFLEN	16
 
@@ -211,7 +211,7 @@ static void kw_sysrst_action(void)
 
 	debug("Starting %s process...\n", __FUNCTION__);
 	ret = run_command(s, 0);
-	if (ret < 0)
+	if (ret != 0)
 		debug("Error.. %s failed\n", __FUNCTION__);
 	else
 		debug("%s process finished\n", __FUNCTION__);
@@ -378,3 +378,11 @@ int cpu_eth_init(bd_t *bis)
 	return 0;
 }
 #endif
+
+#ifdef CONFIG_MVEBU_MMC
+int board_mmc_init(bd_t *bis)
+{
+	mvebu_mmc_init(bis);
+	return 0;
+}
+#endif /* CONFIG_MVEBU_MMC */

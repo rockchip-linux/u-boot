@@ -4,7 +4,6 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 
-#define __UBOOT__
 #include <usb.h>
 #include "linux-compat.h"
 #include "usb-compat.h"
@@ -204,7 +203,10 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 
 int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 {
-	/* TODO: implement me */
+	if (driver->disconnect)
+		driver->disconnect(&gadget->g);
+	if (driver->unbind)
+		driver->unbind(&gadget->g);
 	return 0;
 }
 #endif /* CONFIG_MUSB_GADGET */

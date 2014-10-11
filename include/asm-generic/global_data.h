@@ -65,7 +65,8 @@ typedef struct global_data {
 	struct global_data *new_gd;	/* relocated global data */
 
 #ifdef CONFIG_DM
-	struct device	*dm_root;	/* Root instance for Driver Model */
+	struct udevice	*dm_root;	/* Root instance for Driver Model */
+	struct udevice	*dm_root_f;	/* Pre-relocation root instance */
 	struct list_head uclass_root;	/* Head of core tree */
 #endif
 
@@ -80,8 +81,16 @@ typedef struct global_data {
 #if defined(CONFIG_SYS_I2C)
 	int		cur_i2c_bus;	/* current used i2c bus */
 #endif
+#ifdef CONFIG_SYS_I2C_MXC
+	void *srdata[10];
+#endif
 	unsigned long timebase_h;
 	unsigned long timebase_l;
+#ifdef CONFIG_SYS_MALLOC_F_LEN
+	unsigned long malloc_base;	/* base address of early malloc() */
+	unsigned long malloc_limit;	/* limit address */
+	unsigned long malloc_ptr;	/* current address */
+#endif
 	struct arch_global_data arch;	/* architecture-specific data */
 } gd_t;
 #endif
@@ -97,6 +106,7 @@ typedef struct global_data {
 #define GD_FLG_LOGINIT		0x00020	/* Log Buffer has been initialized */
 #define GD_FLG_DISABLE_CONSOLE	0x00040	/* Disable console (in & out)	   */
 #define GD_FLG_ENV_READY	0x00080	/* Env. imported into hash table   */
+#define GD_FLG_SERIAL_READY	0x00100	/* Pre-reloc serial console ready  */
 
 
 #ifdef CONFIG_ROCKCHIP

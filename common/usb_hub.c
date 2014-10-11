@@ -35,10 +35,6 @@
 #include <asm/4xx_pci.h>
 #endif
 
-#ifndef CONFIG_USB_HUB_MIN_POWER_ON_DELAY
-#define CONFIG_USB_HUB_MIN_POWER_ON_DELAY	100
-#endif
-
 #define USB_BUFSIZ	512
 
 static struct usb_hub_device hub_dev[USB_MAX_HUB];
@@ -138,8 +134,11 @@ static void usb_hub_power_on(struct usb_hub_device *hub)
 		debug("port %d returns %lX\n", i + 1, dev->status);
 	}
 
-	/* Wait for power to become stable */
-	mdelay(max(pgood_delay, CONFIG_USB_HUB_MIN_POWER_ON_DELAY));
+	/*
+	 * Wait for power to become stable,
+	 * plus spec-defined max time for device to connect
+	 */
+	mdelay(pgood_delay + 1000);
 }
 
 void usb_hub_reset(void)
@@ -210,9 +209,22 @@ int hub_port_reset(struct usb_device *dev, int port,
 		      (portstatus & USB_PORT_STAT_CONNECTION) ? 1 : 0,
 		      (portstatus & USB_PORT_STAT_ENABLE) ? 1 : 0);
 
-		if ((portchange & USB_PORT_STAT_C_CONNECTION) ||
-		    !(portstatus & USB_PORT_STAT_CONNECTION))
-			return -1;
+		/*
+		 * Perhaps we should check for the following here:
+		 * - C_CONNECTION hasn't been set.
+		 * - CONNECTION is still set.
+		 *
+		 * Doing so would ensure that the device is still connected
+		 * to the bus, and hasn't been unplugged or replaced while the
+		 * USB bus reset was going on.
+		 *
+		 * However, if we do that, then (at least) a San Disk Ultra
+		 * USB 3.0 16GB device fails to reset on (at least) an NVIDIA
+		 * Tegra Jetson TK1 board. For some reason, the device appears
+		 * to briefly drop off the bus when this second bus reset is
+		 * executed, yet if we retry this loop, it'll eventually come
+		 * back after another reset or two.
+		 */
 
 		if (portstatus & USB_PORT_STAT_ENABLE)
 			break;

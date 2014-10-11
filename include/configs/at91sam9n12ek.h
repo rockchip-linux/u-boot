@@ -18,9 +18,6 @@
 
 #define CONFIG_SYS_TEXT_BASE		0x26f00000
 
-#define CONFIG_ARM926EJS
-#define CONFIG_AT91FAMILY
-
 /* ARM asynchronous clock */
 #define CONFIG_SYS_AT91_SLOW_CLOCK	32768		/* slow clock xtal */
 #define CONFIG_SYS_AT91_MAIN_CLOCK	16000000	/* main clock xtal */
@@ -34,6 +31,7 @@
 #define CONFIG_DISPLAY_CPUINFO
 
 #define CONFIG_OF_LIBFDT
+#define CONFIG_SYS_GENERIC_BOARD
 
 /* general purpose I/O */
 #define CONFIG_AT91_GPIO

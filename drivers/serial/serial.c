@@ -74,9 +74,6 @@ static int on_baudrate(const char *name, const char *value, enum env_op op,
 		}
 
 		gd->baudrate = baudrate;
-#if defined(CONFIG_PPC) || defined(CONFIG_MCF52x2)
-		gd->bd->bi_baudrate = baudrate;
-#endif
 
 		serial_setbrg();
 
@@ -117,7 +114,7 @@ serial_initfunc(ns16550_serial_initialize);
 serial_initfunc(pxa_serial_initialize);
 serial_initfunc(s3c24xx_serial_initialize);
 serial_initfunc(s5p_serial_initialize);
-serial_initfunc(zynq_serial_initalize);
+serial_initfunc(zynq_serial_initialize);
 serial_initfunc(bfin_serial_initialize);
 serial_initfunc(bfin_jtag_initialize);
 serial_initfunc(mpc512x_serial_initialize);
@@ -215,7 +212,7 @@ void serial_initialize(void)
 	bfin_serial_initialize();
 	bfin_jtag_initialize();
 	uartlite_serial_initialize();
-	zynq_serial_initalize();
+	zynq_serial_initialize();
 	au1x00_serial_initialize();
 	asc_serial_initialize();
 	jz_serial_initialize();
@@ -259,6 +256,48 @@ void serial_initialize(void)
 	serial_assign(default_serial_console()->name);
 }
 
+int serial_stub_start(struct stdio_dev *sdev)
+{
+	struct serial_device *dev = sdev->priv;
+
+	return dev->start();
+}
+
+int serial_stub_stop(struct stdio_dev *sdev)
+{
+	struct serial_device *dev = sdev->priv;
+
+	return dev->stop();
+}
+
+void serial_stub_putc(struct stdio_dev *sdev, const char ch)
+{
+	struct serial_device *dev = sdev->priv;
+
+	dev->putc(ch);
+}
+
+void serial_stub_puts(struct stdio_dev *sdev, const char *str)
+{
+	struct serial_device *dev = sdev->priv;
+
+	dev->puts(str);
+}
+
+int serial_stub_getc(struct stdio_dev *sdev)
+{
+	struct serial_device *dev = sdev->priv;
+
+	return dev->getc();
+}
+
+int serial_stub_tstc(struct stdio_dev *sdev)
+{
+	struct serial_device *dev = sdev->priv;
+
+	return dev->tstc();
+}
+
 /**
  * serial_stdio_init() - Register serial ports with STDIO core
  *
@@ -277,12 +316,13 @@ void serial_stdio_init(void)
 		strcpy(dev.name, s->name);
 		dev.flags = DEV_FLAGS_OUTPUT | DEV_FLAGS_INPUT;
 
-		dev.start = s->start;
-		dev.stop = s->stop;
-		dev.putc = s->putc;
-		dev.puts = s->puts;
-		dev.getc = s->getc;
-		dev.tstc = s->tstc;
+		dev.start = serial_stub_start;
+		dev.stop = serial_stub_stop;
+		dev.putc = serial_stub_putc;
+		dev.puts = serial_stub_puts;
+		dev.getc = serial_stub_getc;
+		dev.tstc = serial_stub_tstc;
+		dev.priv = s;
 
 		stdio_register(&dev);
 
@@ -381,6 +421,7 @@ static struct serial_device *get_current(void)
  */
 int serial_init(void)
 {
+	gd->flags |= GD_FLG_SERIAL_READY;
 	return get_current()->start();
 }
 
@@ -504,12 +545,11 @@ int uart_post_test(int flags)
 	unsigned char c;
 	int ret, saved_baud, b;
 	struct serial_device *saved_dev, *s;
-	bd_t *bd = gd->bd;
 
 	/* Save current serial state */
 	ret = 0;
 	saved_dev = serial_current;
-	saved_baud = bd->bi_baudrate;
+	saved_baud = gd->baudrate;
 
 	for (s = serial_devices; s; s = s->next) {
 		/* If this driver doesn't support loop back, skip it */
@@ -532,7 +572,7 @@ int uart_post_test(int flags)
 
 		/* Test every available baud rate */
 		for (b = 0; b < ARRAY_SIZE(bauds); ++b) {
-			bd->bi_baudrate = bauds[b];
+			gd->baudrate = bauds[b];
 			serial_setbrg();
 
 			/*
@@ -574,7 +614,7 @@ int uart_post_test(int flags)
  done:
 	/* Restore previous serial state */
 	serial_current = saved_dev;
-	bd->bi_baudrate = saved_baud;
+	gd->baudrate = saved_baud;
 	serial_reinit_all();
 	serial_setbrg();
 

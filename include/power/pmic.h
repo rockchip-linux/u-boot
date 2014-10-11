@@ -17,6 +17,11 @@ enum { I2C_PMIC, I2C_NUM, };
 enum { PMIC_READ, PMIC_WRITE, };
 enum { PMIC_SENSOR_BYTE_ORDER_LITTLE, PMIC_SENSOR_BYTE_ORDER_BIG, };
 
+enum {
+	PMIC_CHARGER_DISABLE,
+	PMIC_CHARGER_ENABLE,
+};
+
 struct p_i2c {
 	unsigned char addr;
 	unsigned char *buf;
@@ -87,6 +92,7 @@ struct fdt_regulator_match {
 };
 
 int pmic_init(unsigned char bus);
+int power_init_board(void);
 int pmic_dialog_init(unsigned char bus);
 int check_reg(struct pmic *p, u32 reg);
 struct pmic *pmic_alloc(void);

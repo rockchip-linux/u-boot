@@ -12,6 +12,8 @@
 #ifndef __BUR_AM335X_COMMON_H__
 #define __BUR_AM335X_COMMON_H__
 /* ------------------------------------------------------------------------- */
+#define CONFIG_SYS_GENERIC_BOARD
+
 #define CONFIG_AM33XX
 #define CONFIG_OMAP
 #define CONFIG_OMAP_COMMON
@@ -94,7 +96,7 @@
 #define CONFIG_SYS_OMAP24_I2C_SPEED	100000
 #define CONFIG_SYS_OMAP24_I2C_SLAVE	1
 #define CONFIG_SYS_I2C_OMAP24XX
-
+#define CONFIG_CMD_I2C
 /* GPIO */
 #define CONFIG_OMAP_GPIO
 #define CONFIG_CMD_GPIO
@@ -149,7 +151,6 @@
 #undef CONFIG_CMD_NFS
 #undef CONFIG_CMD_SETGETDCR
 #undef CONFIG_CMD_XIMG
-#undef CONFIG_CMD_CRC32
 /* define command we need always */
 #define CONFIG_CMD_ECHO
 #define CONFIG_CMD_SOURCE
@@ -162,7 +163,6 @@
  * under common/spl/.  Given our generally common memory map, we set a
  * number of related defaults and sizes here.
  */
-#define CONFIG_SPL
 #define CONFIG_SPL_FRAMEWORK
 /*
  * Place the image at the start of the ROM defined image space.

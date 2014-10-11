@@ -49,8 +49,13 @@ static void set_inbound_window(volatile pit_t *pi,
 				u64 size)
 {
 	u32 sz = (__ilog2_u64(size) - 1);
-	u32 flag = PIWAR_EN | PIWAR_LOCAL |
-			PIWAR_READ_SNOOP | PIWAR_WRITE_SNOOP;
+#ifdef CONFIG_SYS_FSL_ERRATUM_A005434
+	u32 flag = 0;
+#else
+	u32 flag = PIWAR_LOCAL;
+#endif
+
+	flag |= PIWAR_EN | PIWAR_READ_SNOOP | PIWAR_WRITE_SNOOP;
 
 	out_be32(&pi->pitar, r->phys_start >> 12);
 	out_be32(&pi->piwbar, r->bus_start >> 12);
@@ -499,8 +504,14 @@ void fsl_pci_init(struct pci_controller *hose, struct fsl_pci_info *pci_info)
 		}
 #endif
 		if (!enabled) {
-			/* Let the user know there's no PCIe link */
-			printf("no link, regs @ 0x%lx\n", pci_info->regs);
+			/* Let the user know there's no PCIe link for root
+			 * complex. for endpoint, the link may not setup, so
+			 * print undetermined.
+			 */
+			if (fsl_is_pci_agent(hose))
+				printf("undetermined, regs @ 0x%lx\n", pci_info->regs);
+			else
+				printf("no link, regs @ 0x%lx\n", pci_info->regs);
 			hose->last_busno = hose->first_busno;
 			return;
 		}

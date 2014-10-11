@@ -15,6 +15,8 @@
 
 static int do_dfu(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	bool dfu_reset = false;
+
 	if (argc < 4)
 		return CMD_RET_USAGE;
 
@@ -22,14 +24,13 @@ static int do_dfu(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	char *interface = argv[2];
 	char *devstring = argv[3];
 
-	char *s = "dfu";
 	int ret, i = 0;
 
-	ret = dfu_init_env_entities(interface, simple_strtoul(devstring,
-							      NULL, 10));
+	ret = dfu_init_env_entities(interface, devstring);
 	if (ret)
-		return ret;
+		goto done;
 
+	ret = CMD_RET_SUCCESS;
 	if (argc > 4 && strcmp(argv[4], "list") == 0) {
 		dfu_show_entities();
 		goto done;
@@ -37,17 +38,28 @@ static int do_dfu(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	int controller_index = simple_strtoul(usb_controller, NULL, 0);
 	board_usb_init(controller_index, USB_INIT_DEVICE);
-
-	g_dnl_register(s);
+	dfu_clear_detach();
+	g_dnl_register("usb_dnl_dfu");
 	while (1) {
-		if (dfu_reset())
+		if (dfu_detach()) {
+			/*
+			 * Check if USB bus reset is performed after detach,
+			 * which indicates that -R switch has been passed to
+			 * dfu-util. In this case reboot the device
+			 */
+			if (dfu_usb_get_reset()) {
+				dfu_reset = true;
+				goto exit;
+			}
+
 			/*
 			 * This extra number of usb_gadget_handle_interrupts()
 			 * calls is necessary to assure correct transmission
 			 * completion with dfu-util
 			 */
-			if (++i == 10)
+			if (++i == 10000)
 				goto exit;
+		}
 
 		if (ctrlc())
 			goto exit;
@@ -59,10 +71,12 @@ exit:
 done:
 	dfu_free_entities();
 
-	if (dfu_reset())
+	if (dfu_reset)
 		run_command("reset", 0);
 
-	return CMD_RET_SUCCESS;
+	dfu_clear_detach();
+
+	return ret;
 }
 
 U_BOOT_CMD(dfu, CONFIG_SYS_MAXARGS, 1, do_dfu,

@@ -6,4 +6,10 @@
 #
 
 obj-y	:= board.o
-obj-$(CONFIG_SPL_BUILD)	+= ps7_init.o
+
+# Please copy ps7_init.c/h from hw project to this directory
+obj-$(CONFIG_SPL_BUILD) += \
+		$(if $(wildcard $(srctree)/$(src)/ps7_init.c), ps7_init.o)
+
+# Suppress "warning: function declaration isn't a prototype"
+CFLAGS_REMOVE_ps7_init.o := -Wstrict-prototypes

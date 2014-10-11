@@ -11,9 +11,9 @@
 #include <power/pmic.h>
 #include <power/pfuze100_pmic.h>
 
-int pmic_init(unsigned char bus)
+int power_pfuze100_init(unsigned char bus)
 {
-	static const char name[] = "PFUZE100_PMIC";
+	static const char name[] = "PFUZE100";
 	struct pmic *p = pmic_alloc();
 
 	if (!p) {

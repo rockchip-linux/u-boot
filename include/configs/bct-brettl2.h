@@ -75,6 +75,7 @@
 #define CONFIG_ROOTPATH		"/romfs/brettl2"
 /* Uncomment next line to use fixed MAC address */
 /* #define CONFIG_ETHADDR	02:80:ad:20:31:e8 */
+#define CONFIG_LIB_RAND
 #endif
 
 
@@ -136,7 +137,6 @@
 #define CONFIG_MTD_DEVICE
 #define CONFIG_MTD_PARTITIONS
 #define CONFIG_SYS_HUSH_PARSER
-#define CONFIG_CC_OPTIMIZE_LIBS_FOR_SPEED
 
 /*
  * Pull in common ADI header for remaining command/environment setup

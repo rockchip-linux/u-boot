@@ -3,10 +3,13 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#ifndef USE_HOSTCC
 #include <common.h>
+#include <errno.h>
 #include <serial.h>
 #include <libfdt.h>
 #include <fdtdec.h>
+#include <linux/ctype.h>
 
 #include <asm/gpio.h>
 #include <asm/arch/rkplat.h>
@@ -55,7 +58,7 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(SAMSUNG_EXYNOS_FIMD, "samsung,exynos-fimd"),
 	COMPAT(SAMSUNG_EXYNOS_MIPI_DSI, "samsung,exynos-mipi-dsi"),
 	COMPAT(SAMSUNG_EXYNOS5_DP, "samsung,exynos5-dp"),
-	COMPAT(SAMSUNG_EXYNOS5_DWMMC, "samsung,exynos5250-dwmmc"),
+	COMPAT(SAMSUNG_EXYNOS_DWMMC, "samsung,exynos-dwmmc"),
 	COMPAT(SAMSUNG_EXYNOS_MMC, "samsung,exynos-mmc"),
 	COMPAT(SAMSUNG_EXYNOS_SERIAL, "samsung,exynos4210-uart"),
 	COMPAT(MAXIM_MAX77686_PMIC, "maxim,max77686_pmic"),
@@ -75,6 +78,10 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(ROCKCHIP_MIPI_LCD_EN, "rockchip,lcd_en"),
 	COMPAT(SANDBOX_HOST_EMULATION, "sandbox,host-emulation"),
 	COMPAT(SANDBOX_LCD_SDL, "sandbox,lcd-sdl"),
+	COMPAT(TI_TPS65090, "ti,tps65090"),
+	COMPAT(COMPAT_NXP_PTN3460, "nxp,ptn3460"),
+	COMPAT(SAMSUNG_EXYNOS_SYSMMU, "samsung,sysmmu-v3.3"),
+	COMPAT(PARADE_PS8625, "parade,ps8625"),
 };
 
 const char *fdtdec_get_compatible(enum fdt_compat_id id)
@@ -116,24 +123,6 @@ fdt_addr_t fdtdec_get_addr(const void *blob, int node,
 		const char *prop_name)
 {
 	return fdtdec_get_addr_size(blob, node, prop_name, NULL);
-}
-
-s32 fdtdec_get_int(const void *blob, int node, const char *prop_name,
-		s32 default_val)
-{
-	const s32 *cell;
-	int len;
-
-	debug("%s: %s: ", __func__, prop_name);
-	cell = fdt_getprop(blob, node, prop_name, &len);
-	if (cell && len >= sizeof(s32)) {
-		s32 val = fdt32_to_cpu(cell[0]);
-
-		debug("%#x (%d)\n", val, val);
-		return val;
-	}
-	debug("(not found)\n");
-	return default_val;
 }
 
 uint64_t fdtdec_get_uint64(const void *blob, int node, const char *prop_name,
@@ -342,6 +331,80 @@ int fdtdec_add_aliases_for_id(const void *blob, const char *name,
 	}
 
 	return num_found;
+}
+
+int fdtdec_get_alias_seq(const void *blob, const char *base, int offset,
+			 int *seqp)
+{
+	int base_len = strlen(base);
+	const char *find_name;
+	int find_namelen;
+	int prop_offset;
+	int aliases;
+
+	find_name = fdt_get_name(blob, offset, &find_namelen);
+	debug("Looking for '%s' at %d, name %s\n", base, offset, find_name);
+
+	aliases = fdt_path_offset(blob, "/aliases");
+	for (prop_offset = fdt_first_property_offset(blob, aliases);
+	     prop_offset > 0;
+	     prop_offset = fdt_next_property_offset(blob, prop_offset)) {
+		const char *prop;
+		const char *name;
+		const char *slash;
+		const char *p;
+		int len;
+
+		prop = fdt_getprop_by_offset(blob, prop_offset, &name, &len);
+		debug("   - %s, %s\n", name, prop);
+		if (len < find_namelen || *prop != '/' || prop[len - 1] ||
+		    strncmp(name, base, base_len))
+			continue;
+
+		slash = strrchr(prop, '/');
+		if (strcmp(slash + 1, find_name))
+			continue;
+		for (p = name; *p; p++) {
+			if (isdigit(*p)) {
+				*seqp = simple_strtoul(p, NULL, 10);
+				debug("Found seq %d\n", *seqp);
+				return 0;
+			}
+		}
+	}
+
+	debug("Not found\n");
+	return -ENOENT;
+}
+
+int fdtdec_get_alias_node(const void *blob, const char *name)
+{
+	const char *prop;
+	int alias_node;
+	int len;
+
+	if (!blob)
+		return -FDT_ERR_NOTFOUND;
+	alias_node = fdt_path_offset(blob, "/aliases");
+	prop = fdt_getprop(blob, alias_node, name, &len);
+	if (!prop)
+		return -FDT_ERR_NOTFOUND;
+	return fdt_path_offset(blob, prop);
+}
+
+int fdtdec_get_chosen_node(const void *blob, const char *name)
+{
+	const char *prop;
+	int chosen_node;
+	int len;
+
+	if (!blob)
+		return -FDT_ERR_NOTFOUND;
+	chosen_node = fdt_path_offset(blob, "/chosen");
+	prop = fdt_getprop(blob, chosen_node, name, &len);
+	if (!prop)
+		return -FDT_ERR_NOTFOUND;
+	return fdt_path_offset(blob, prop);
 }
 
 int fdtdec_check_fdt(void)
@@ -676,3 +739,4 @@ int fdtdec_read_fmap_entry(const void *blob, int node, const char *name,
 
 	return 0;
 }
+#endif

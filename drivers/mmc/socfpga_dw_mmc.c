@@ -16,15 +16,13 @@ static const struct socfpga_clock_manager *clock_manager_base =
 static const struct socfpga_system_manager *system_manager_base =
 		(void *)SOCFPGA_SYSMGR_ADDRESS;
 
-static char *SOCFPGA_NAME = "SOCFPGA DWMMC";
-
 static void socfpga_dwmci_clksel(struct dwmci_host *host)
 {
 	unsigned int drvsel;
 	unsigned int smplsel;
 
 	/* Disable SDMMC clock. */
-	clrbits_le32(&clock_manager_base->per_pll_en,
+	clrbits_le32(&clock_manager_base->per_pll.en,
 		CLKMGR_PERPLLGRP_EN_SDMMCCLK_MASK);
 
 	/* Configures drv_sel and smpl_sel */
@@ -39,20 +37,22 @@ static void socfpga_dwmci_clksel(struct dwmci_host *host)
 		readl(&system_manager_base->sdmmcgrp_ctrl));
 
 	/* Enable SDMMC clock */
-	setbits_le32(&clock_manager_base->per_pll_en,
+	setbits_le32(&clock_manager_base->per_pll.en,
 		CLKMGR_PERPLLGRP_EN_SDMMCCLK_MASK);
 }
 
 int socfpga_dwmmc_init(u32 regbase, int bus_width, int index)
 {
-	struct dwmci_host *host = NULL;
+	struct dwmci_host *host;
+
+	/* calloc for zero init */
 	host = calloc(sizeof(struct dwmci_host), 1);
 	if (!host) {
 		printf("dwmci_host calloc fail!\n");
 		return -1;
 	}
 
-	host->name = SOCFPGA_NAME;
+	host->name = "SOCFPGA DWMMC";
 	host->ioaddr = (void *)regbase;
 	host->buswidth = bus_width;
 	host->clksel = socfpga_dwmci_clksel;

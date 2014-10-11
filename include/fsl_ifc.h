@@ -12,6 +12,8 @@
 #include <config.h>
 #include <common.h>
 
+#define FSL_IFC_V1_1_0	0x01010000
+#define FSL_IFC_V2_0_0	0x02000000
 
 #ifdef CONFIG_SYS_FSL_IFC_LE
 #define ifc_in32(a)       in_le32(a)
@@ -367,6 +369,8 @@
  */
 /* Auto Boot Mode */
 #define IFC_NAND_NCFGR_BOOT		0x80000000
+/* SRAM INIT EN */
+#define IFC_NAND_SRAM_INIT_EN		0x20000000
 /* Addressing Mode-ROW0+n/COL0 */
 #define IFC_NAND_NCFGR_ADDR_MODE_RC0	0x00000000
 /* Addressing Mode-ROW0+n/COL0+n */
@@ -784,6 +788,7 @@ enum ifc_nand_fir_opcodes {
 
 extern void print_ifc_regs(void);
 extern void init_early_memctl_regs(void);
+void init_final_memctl_regs(void);
 
 #define IFC_BASE_ADDR ((struct fsl_ifc *)CONFIG_SYS_IFC_ADDR)
 
