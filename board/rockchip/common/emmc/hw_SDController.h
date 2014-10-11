@@ -14,7 +14,7 @@ $Log: hw_SDController.h,v $
 #ifndef _SDC_H_
 #define _SDC_H_
 
-#include <asm/arch/rkplat.h>
+#include "../config.h"
 
 #define SDC0_ADDR		SDMMC_BASE_ADDR
 #define SDC1_ADDR		SDIO_BASE_ADDR

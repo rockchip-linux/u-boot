@@ -72,7 +72,7 @@ typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
 
 
 /* rk dmac platform configure */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+#if defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3188)
 	#define RK_PL330_DMAC_MAX	2
 	#define CONFIG_RK_DMAC_0	/* dmac 0 */
 	#define CONFIG_RK_DMAC_1	/* dmac 1 */
@@ -84,7 +84,7 @@ typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
 	#define RK_DMAC0_IRQ1		IRQ_DMAC0_1
 	#define RK_DMAC1_IRQ0		IRQ_DMAC1_0
 	#define RK_DMAC1_IRQ1		IRQ_DMAC1_1
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#elif defined(CONFIG_RKCHIP_RK3288)
 	#define RK_PL330_DMAC_MAX	2
 	#define CONFIG_RK_DMAC_0	/* dmac 0 */
 	#define CONFIG_RK_DMAC_1	/* dmac 1 */
@@ -96,7 +96,7 @@ typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
 	#define RK_DMAC0_IRQ1		IRQ_DMAC_BUS1
 	#define RK_DMAC1_IRQ0		IRQ_DMAC_PERI0
 	#define RK_DMAC1_IRQ1		IRQ_DMAC_PERI1
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#define RK_PL330_DMAC_MAX	1
 	#define CONFIG_RK_DMAC_0	/* dmac 0 */
 
@@ -118,7 +118,7 @@ typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
  * Order is not important since rk PL330 API driver
  * use these just as IDs.
  */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+#if defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3188)
 enum dma_ch {
 	DMACH_UART0_TX,
 	DMACH_UART0_RX,
@@ -157,7 +157,7 @@ enum dma_ch {
 	DMACH_MAX,
 };
 
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#elif defined(CONFIG_RKCHIP_RK3288)
 
 enum dma_ch {
 	DMACH_I2S_TX,
@@ -197,7 +197,7 @@ enum dma_ch {
 	DMACH_MAX,
 };
 
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 
 enum dma_ch {
 	DMACH_I2S_TX,
@@ -237,7 +237,7 @@ enum dma_ch {
 	DMACH_MAX,
 };
 
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 enum dma_ch {
 	DMACH_I2S_2CH_TX,
 	DMACH_I2S_2CH_RX,

@@ -37,7 +37,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define write_XDATA32(address, value)	(*((uint32 volatile*)(address)) = value)
 
 int gpio_reg[]={
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	RKIO_GPIO0_PHYS,
 	RKIO_GPIO1_PHYS,
 	RKIO_GPIO2_PHYS,
@@ -47,17 +47,17 @@ int gpio_reg[]={
 	RKIO_GPIO6_PHYS,
 	RKIO_GPIO7_PHYS,
 	RKIO_GPIO8_PHYS
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	RKIO_GPIO0_PHYS,
 	RKIO_GPIO1_PHYS,
 	RKIO_GPIO2_PHYS
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	RKIO_GPIO0_PHYS,
 	RKIO_GPIO1_PHYS,
 	RKIO_GPIO2_PHYS,
 	RKIO_GPIO3_PHYS,
 #else
-	#error "PLS check CONFIG_RKCHIPTYPE for key."
+	#error "PLS config rk chip for key."
 #endif
 };
 
@@ -175,7 +175,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 
 void RockusbKeyInit(key_config *key)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	key->type = KEY_INT;
 	key->key.ioint.name = "rockusb_key";
 	key->key.ioint.gpio = (GPIO_BANK2 | GPIO_B0);
@@ -195,7 +195,7 @@ void RockusbKeyInit(key_config *key)
 
 void RecoveryKeyInit(key_config *key)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	key->type = KEY_NULL;
 #else
 	key->type = KEY_AD;
@@ -211,7 +211,7 @@ void RecoveryKeyInit(key_config *key)
 
 void FastbootKeyInit(key_config *key)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	key->type = KEY_NULL;
 #else
 	key->type = KEY_AD;
@@ -233,7 +233,7 @@ void PowerKeyInit(void)
 #endif
 
 	//power_hold_gpio.name
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	key_power.type = KEY_NULL;
 	key_power.key.ioint.name = NULL;
 #else
@@ -289,7 +289,7 @@ int RemotectlDeInit(void)
 
 int rkkey_power_state(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	/* no power hold */
 #else
 	if (get_rockchip_pmic_id() == PMIC_ID_RICOH619)
@@ -342,7 +342,7 @@ struct fdt_gpio_state *rkkey_get_powerkey(void)
 
 void key_init(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	RockusbKeyInit(&key_rockusb);
 #else
 	charge_state_gpio.name = "charge_state";
@@ -362,7 +362,7 @@ void key_init(void)
 
 void powerOn(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	/* no power hold */
 #else
 	if(power_hold_gpio.name != NULL)
@@ -372,7 +372,7 @@ void powerOn(void)
 
 void powerOff(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	/* no power hold */
 #else
 	if(power_hold_gpio.name != NULL)

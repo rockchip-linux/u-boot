@@ -24,8 +24,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <linux/list.h>
-#include <ubi_uboot.h>
-#include <asm/processor.h>
+#include <linux/compat.h>
 #include <asm/errno.h>
 #include <asm/io.h>
 #include <asm/unaligned.h>

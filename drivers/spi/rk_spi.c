@@ -329,7 +329,7 @@ struct spi_slave *spi_setup_slave(unsigned int bus, unsigned int cs,
 	case 1:
 		regs = (void __iomem *)SPI1_BASE_ADDR;
 		break;
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	case 2:
 		regs = (void __iomem *)SPI2_BASE_ADDR;
 		break;

@@ -1,0 +1,23 @@
+if ROCKCHIP
+
+choice
+	prompt "rockchip platform select"
+
+config PLAT_RK32XX
+	bool "rk32xx platform"
+
+config PLAT_RK30XX
+	bool "rk30xx platform"
+
+endchoice
+
+
+config SYS_CPU
+	default "armv7"
+
+config SYS_SOC
+	default "rk32xx"
+
+source "board/rockchip/rk32xx/Kconfig"
+
+endif

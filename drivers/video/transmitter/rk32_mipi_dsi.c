@@ -82,7 +82,7 @@ DECLARE_GLOBAL_DATA_PTR;
 extern int rk_mipi_screen_probe(void);
 extern void writel_relaxed(uint32 val, uint32 addr);
 #define msleep(a) udelay(a * 1000)
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 /* 
 dsihost0:
 clocks = <&clk_gates5 15>, <&clk_gates16 4>;
@@ -121,7 +121,7 @@ int rk32_mipi_dsi_clk_disable(struct dsi *dsi)
 	writel(val, RK3288_CRU_PHYS + 0x174); /*24M*/
 	return 0;
 }
-#elif ((CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128))
+#elif (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
 #define cpu_is_rk3288() 0
 #define cpu_is_rk312x() 1
 
@@ -1711,7 +1711,7 @@ static void rk32_init_phy_mode(int lcdc_id)
 	int val0 = 0, val1 = 0;
 
 	MIPI_DBG("rk32_init_phy_mode----------lcdc_id=%d\n",lcdc_id);
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	//D-PHY mode select
 	if( rk_mipi_get_dsi_num() ==1 ){
 	

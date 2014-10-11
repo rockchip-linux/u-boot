@@ -7,13 +7,13 @@ drivers/video/rockchip/transmitter/rk32_mipi_dsi.h
 
 #ifdef CONFIG_RK_3288_DSI
 #include <asm/arch/rkplat.h>
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 #define RK_GRF_VIRT			RKIO_GRF_PHYS
 #define RK3288_CRU_PHYS			RKIO_CRU_PHYS
 
 #define RK3288_GRF_SOC_CON6             GRF_SOC_CON6
 #define RK3288_GRF_SOC_CON14            GRF_SOC_CON14
-#elif ((CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128))
+#elif (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
 #define RK_GRF_VIRT			RKIO_GRF_PHYS
 #define RK312x_CRU_PHYS			RKIO_CRU_PHYS
 

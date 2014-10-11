@@ -75,23 +75,23 @@ uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	return readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	return readl(RKIO_GRF_PHYS + GRF_OS_REG4);
 #else
-	#error "PLS check CONFIG_RKCHIPTYPE for loader flag."
+	#error "PLS config rk chip for loader flag."
 #endif
 }
 
 void ISetLoaderFlag(uint32 flag)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG4);
 #else
-	#error "PLS check CONFIG_RKCHIPTYPE for loader flag."
+	#error "PLS config rk chip for loader flag."
 #endif
 }
 
@@ -100,16 +100,16 @@ uint32 GetMmcCLK(uint32 nSDCPort)
 {
 	uint32 src_clk;
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	// set general pll
 	rkclk_set_sdclk_src(nSDCPort, 1);
 	//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
 	src_clk = rkclk_get_sdclk_src_freq(nSDCPort) / 2;
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	// set general pll
 	rkclk_set_sdclk_src(nSDCPort, 2);
 	src_clk = rkclk_get_sdclk_src_freq(nSDCPort);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	// set general pll
 	rkclk_set_sdclk_src(nSDCPort, 1);
 	src_clk = rkclk_get_sdclk_src_freq(nSDCPort);
@@ -137,12 +137,12 @@ void EmmcPowerEn(char En)
 
 void SDCReset(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
 	udelay(100);
 	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
 	udelay(200);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(5));
 	udelay(100);
 	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(5));
@@ -190,7 +190,7 @@ void FW_NandDeInit(void)
 }
 
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 static void rk3288_uart2usb(uint32 en)
 {
 	if (en) {
@@ -216,7 +216,7 @@ static void rk3288_uart2usb(uint32 en)
 }
 #endif
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 static void rk3036_uart2usb(uint32 en)
 {
 	if (en) {
@@ -239,7 +239,7 @@ static void rk3036_uart2usb(uint32 en)
 }
 #endif
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 static void rk312X_uart2usb(uint32 en)
 {
 	if (en) {
@@ -264,14 +264,14 @@ static void rk312X_uart2usb(uint32 en)
 
 void rkplat_uart2UsbEn(uint32 en)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	rk3288_uart2usb(en);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	rk3036_uart2usb(en);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	rk312X_uart2usb(en);
 #else
-	#error "PLS check CONFIG_RKCHIPTYPE if support uart2usb."
+	#error "PLS config rk chip if support uart2usb."
 #endif /* CONFIG_RKPLATFORM */
 }
 

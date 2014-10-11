@@ -69,9 +69,9 @@
 
 
 /* usb otg base */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG20_PHYS
 #else
 	#error "PLS config chiptype for usb otg base!"
@@ -349,21 +349,21 @@ uint32_t GetVbus(void)
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t vbus = 1;
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	if (grf_readl(GRF_UOC0_CON2) & (0x01 << 2)) {
 		/* exit suspend */
 		grf_writel(((0x01 << 2) << 16), GRF_UOC0_CON2);
 		/* delay more than 1ms, waiting for usb phy init */
 		mdelay(3);
 	}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	if (grf_readl(GRF_UOC0_CON5) & (0x01 << 0)) {
 		/* exit suspend */
 		grf_writel(((0x01 << 0) << 16), GRF_UOC0_CON5);
 		/* delay more than 1ms, waiting for usb phy init */
 		mdelay(3);
 	}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
 		/* exit suspend */
 		grf_writel(((0x1 << 0) << 16), GRF_UOC0_CON0);
@@ -1015,14 +1015,14 @@ int is_usbd_high_speed(void)
 
 void usbphy_tunning(void)
 {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || \
-    (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#if defined(CONFIG_RKCHIP_RK3126) || \
+    defined(CONFIG_RKCHIP_RK3128)
 	/* Phy PLL recovering */
 	grf_writel(0x00030001, GRF_UOC0_CON0);
 	mdelay(10);
 	grf_writel(0x00030002, GRF_UOC0_CON0);
 #endif
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	/* Phy PLL recovering */
 	grf_writel(0x00030001, GRF_UOC0_CON5);
 	mdelay(10);
@@ -1204,7 +1204,7 @@ int dwc_otg_check_dpdm(void)
 	int bus_status = 0;
 	char *OtgReg = RKIO_USBOTG_BASE;
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	cru_writel(((7<<4)<<16)|(7<<4), CRU_SOFTRSTS_CON(8)); // otg0 phy reset
 	udelay(3);
 	cru_writel(((7<<4)<<16)|(0<<4), CRU_SOFTRSTS_CON(8));
@@ -1212,7 +1212,7 @@ int dwc_otg_check_dpdm(void)
 
 	grf_writel(((0x01<<2)<<16), GRF_UOC0_CON2); // exit suspend.
 	mdelay(105);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	cru_writel(((5<<5)<<16)|(5<<5), CRU_SOFTRSTS_CON(4)); // otg phy reset
 	cru_writel(((1<<7)<<16)|(1<<7), CRU_SOFTRSTS_CON(6));
 	udelay(3);
@@ -1222,7 +1222,7 @@ int dwc_otg_check_dpdm(void)
 
 	grf_writel(((0x01<<0)<<16), GRF_UOC0_CON5); // exit suspend.
 	mdelay(105);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	cru_writel(((5<<5)<<16)|(5<<5), CRU_SOFTRSTS_CON(4)); // otg phy reset
 	cru_writel(((1<<7)<<16)|(1<<7), CRU_SOFTRSTS_CON(6));
 	udelay(3);

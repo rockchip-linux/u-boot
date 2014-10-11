@@ -178,7 +178,7 @@ static inline struct rk_spi_slave *to_rk_spi(struct spi_slave *slave)
 }
 
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 #define RK_SPI_BUS_MAX			3
 #else
 #define RK_SPI_BUS_MAX			2

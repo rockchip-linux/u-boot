@@ -96,13 +96,16 @@ SECTIONS
 		*(.__end)
 	}
 
+#if defined(CONFIG_ROCKCHIP)
 	. = ALIGN(4);
+
 	.loader_tag : {
 		*(.__loader_tag)
 		KEEP(*(.loader_tag));
 	}
 
 	. = ALIGN(4);
+#endif
 	_image_binary_end = .;
 
 	/*

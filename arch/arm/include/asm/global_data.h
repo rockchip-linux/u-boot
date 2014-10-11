@@ -32,7 +32,7 @@ struct arch_global_data {
 
 #ifdef CONFIG_RK_CLOCK
 	/* "static data" needed by rk's clock.c */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	unsigned long	cpu_mp_rate_hz;
 	unsigned long	cpu_m0_rate_hz;
 	unsigned long	cpu_l2ram_rate_hz;
@@ -44,7 +44,7 @@ struct arch_global_data {
 	unsigned long	aclk_bus_rate_hz;
 	unsigned long	pclk_bus_rate_hz;
 	unsigned long	hclk_bus_rate_hz;
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	unsigned long	aclk_cpu_rate_hz;
 	unsigned long	pclk_cpu_rate_hz;
 	unsigned long	hclk_cpu_rate_hz;

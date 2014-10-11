@@ -28,7 +28,7 @@
 #define KEY_LONG_PRESS		-1
 #define KEY_SHORT_PRESS		1
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126)
+#if defined(CONFIG_RKCHIP_RK3126)
 #define KEY_ADC_CN		2
 #else
 #define KEY_ADC_CN		1

@@ -755,7 +755,7 @@ static inline void lcdc_cfg_done(struct lcdc_device *lcdc_dev)
 #define v_MIPIPHY_LANE0_EN(x)   (BITS_MASK(x, 1, 8) | BITS_EN(1, 8))
 #define v_MIPIDPI_FORCEX_EN(x)  (BITS_MASK(x, 1, 9) | BITS_EN(1, 9))
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 enum {
         LVDS_DATA_FROM_LCDC = 0,
         LVDS_DATA_FORM_EBC,
@@ -1338,7 +1338,7 @@ int rk30_load_screen(vidinfo_t *vid)
 	}
 	
 	lcdc_cfg_done(lcdc_dev);
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	if ((vid->screen_type == SCREEN_LVDS) ||
 	    (vid->screen_type == SCREEN_RGB)) {
 		rk31xx_lvds_en(vid);

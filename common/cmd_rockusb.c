@@ -331,10 +331,10 @@ static void FW_GetChipVer(void)
 	current_urb->buffer[0] = 0;
 	memset(chip_info, 0, sizeof(chip_info));
 	ftl_memcpy(chip_info, (uint8*)(RKIO_ROM_CHIP_VER_ADDR), 16);
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 	chip_info[0] = 0x33303341; // 303A
 #endif
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	chip_info[0] = 0x33313241; // 312A
 #endif
 	ftl_memcpy(current_urb->buffer, chip_info, 16);

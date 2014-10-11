@@ -72,11 +72,11 @@ struct rk_gpio_bank {
 
 
 /* gpio bank defined */
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	#include "gpio-rk3288.h"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	#include "gpio-rk3036.h"
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#include "gpio-rk312X.h"
 #else
 	#error "PLS config gpio-rkxx.h!"

@@ -1158,7 +1158,7 @@ static inline struct pl330_info *rk_pl330_dmac_get_info(int dmac_id)
 
 #ifdef CONFIG_RK_DMAC_0
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066)
+#if defined(CONFIG_RKCHIP_RK3066)
 
 static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
@@ -1197,7 +1197,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 	},
 };
 
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+#elif defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3188)
 
 static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
@@ -1236,7 +1236,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 	},
 };
 
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#elif defined(CONFIG_RKCHIP_RK3288)
 static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S_TX,
@@ -1274,7 +1274,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 	},
 };
 
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S_TX,
@@ -1311,7 +1311,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 		[31] = DMACH_MAX,
 	},
 };
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S_2CH_TX,
@@ -1349,7 +1349,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 	},
 };
 #else 
-	#error "Please config CONFIG_RKCHIPTYPE for dmac0."
+	#error "Please config rk chip for dmac0."
 #endif
 
 #endif /* CONFIG_RK_DMAC_0 */
@@ -1357,7 +1357,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 
 #ifdef CONFIG_RK_DMAC_1
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+#if defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3188)
 static struct rk_pl330_platdata g_dmac1_pdata = {
 	.peri = {
 		[0] = DMACH_HSADC,
@@ -1395,7 +1395,7 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 	},
 };
 
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#elif defined(CONFIG_RKCHIP_RK3288)
 static struct rk_pl330_platdata g_dmac1_pdata = {
 	.peri = {
 		[0] = DMACH_HSADC,
@@ -1434,7 +1434,7 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 };
 
 #else
-	#error "Please config CONFIG_RKCHIPTYPE for dmac1."
+	#error "Please config rk chip for dmac1."
 #endif
 
 #endif /* CONFIG_RK_DMAC_1 */
@@ -1673,9 +1673,9 @@ int rk_pl330_dmac_deinit(int dmac_id)
 	spin_unlock_irqrestore(&res_lock, flags);
 
 	// soft reset dmac0 and dmac1
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3188) \
-	|| (CONFIG_RKCHIPTYPE == CONFIG_RK3036) || (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128) \
-	|| (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3188) \
+	|| defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
+	|| defined(CONFIG_RKCHIP_RK3288)
 	writel(0x5<<0 | 0x5<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));
 	mdelay(1);
 	writel(0x0<<0 | 0x5<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));

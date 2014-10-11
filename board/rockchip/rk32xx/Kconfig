@@ -1,0 +1,24 @@
+if PLAT_RK32XX || PLAT_RK30XX
+
+config SYS_BOARD
+	default "rk32xx"
+
+config SYS_VENDOR
+	default "rockchip"
+
+
+if PLAT_RK32XX
+
+config SYS_CONFIG_NAME
+	default "rk32plat"
+
+endif
+
+if PLAT_RK30XX
+
+config SYS_CONFIG_NAME
+	default "rk30plat"
+
+endif
+
+endif

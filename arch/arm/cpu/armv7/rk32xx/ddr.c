@@ -73,7 +73,7 @@ void dram_init_banksize(void)
 failed:
 #endif
 
-	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
-	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
+	gd->bd->bi_dram[0].start = PHYS_SDRAM;
+	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;
 }
 

@@ -845,27 +845,27 @@ OBJCOPYFLAGS_u-boot.ldr.srec := -I binary -O srec
 u-boot.ldr.hex u-boot.ldr.srec: u-boot.ldr FORCE
 	$(call if_changed,objcopy)
 
-ifneq ($(CONFIG_ROCKCHIP),)
+ifdef CONFIG_ROCKCHIP
 
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3288))
+ifdef CONFIG_RKCHIP_RK3288
 RKCHIP ?= RK3288
 # rk uboot version should consist of two digits, as 01
 RK_UBOOT_VERSION = 01
 endif
 
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3036))
+ifdef CONFIG_RKCHIP_RK3036
 RKCHIP ?= RK3036
 # rk uboot version should consist of two digits, as 01
 RK_UBOOT_VERSION = 06
 endif
 
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3126))
+ifdef CONFIG_RKCHIP_RK3126
 RKCHIP ?= RK312X
 # rk uboot version should consist of two digits, as 01
 RK_UBOOT_VERSION = 08
 endif
 
-ifeq ($(CONFIG_RKCHIPTYPE),$(CONFIG_RK3128))
+ifdef CONFIG_RKCHIP_RK3128
 RKCHIP ?= RK312X
 # rk uboot version should consist of two digits, as 01
 RK_UBOOT_VERSION = 08

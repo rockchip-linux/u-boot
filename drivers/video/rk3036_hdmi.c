@@ -809,9 +809,9 @@ void rk3036_hdmi_probe(vidinfo_t *panel)
 	        hdmi_dev->driver.audio.channel = HDMI_AUDIO_DEFAULT_CHANNEL;
 	        hdmi_dev->driver.audio.rate = HDMI_AUDIO_DEFAULT_RATE;
 	        hdmi_dev->driver.audio.word_length = HDMI_AUDIO_DEFAULT_WORD_LENGTH;
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036)
 		hdmi_dev->data->soc_type = HDMI_SOC_RK3036;
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3128)
 		hdmi_dev->data->soc_type = HDMI_SOC_RK312X;
 #else
 	#error "PLS config chiptype for rk3036_hdmi.c!"

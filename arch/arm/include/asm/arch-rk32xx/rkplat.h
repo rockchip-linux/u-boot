@@ -27,12 +27,15 @@
 /********************************************************************
 **                      common head files                           *
 ********************************************************************/
+#include <config.h>
 #include <common.h>
+#include <command.h>
 #include <fdtdec.h>
 #include <asm/io.h>
 #include <asm/errno.h>
 
 #include "typedef.h"
+#include "cpu.h"
 #include "io.h"
 #include "pmu.h"
 #include "grf.h"

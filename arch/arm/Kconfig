@@ -521,6 +521,9 @@ config TARGET_COLIBRI_PXA270
 config TARGET_JORNADA
 	bool "Support jornada"
 
+config ROCKCHIP
+	bool "Support Rockchip SOC"
+
 endchoice
 
 source "arch/arm/cpu/armv8/Kconfig"
@@ -552,6 +555,8 @@ source "arch/arm/cpu/armv7/tegra-common/Kconfig"
 source "arch/arm/cpu/arm926ejs/versatile/Kconfig"
 
 source "arch/arm/cpu/armv7/zynq/Kconfig"
+
+source "arch/arm/cpu/armv7/rk32xx/Kconfig"
 
 source "board/aristainetos/Kconfig"
 source "board/BuR/kwb/Kconfig"

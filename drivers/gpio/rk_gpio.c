@@ -262,7 +262,7 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		return -1;
 	}
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3188)
+#if defined(CONFIG_RKCHIP_RK3188)
 	/*
 	 * pull setting
 	 * 2'b00: Z(Noraml operaton)
@@ -293,7 +293,7 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#elif defined(CONFIG_RKCHIP_RK3288)
 	/*
 	 * pull setting
 	 * 2'b00: Z(Noraml operaton)
@@ -326,11 +326,11 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3168)
+#elif defined(CONFIG_RKCHIP_RK3168)
 	/* rk3168 do nothing */
 
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3036) \
-	|| (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3036) \
+	|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	/* RK30XX && RK292X */
 	/*
 	 * Values written to this register independently
@@ -370,7 +370,7 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		return -1;
 	}
 
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	/*
 	 * drive slector
 	 * 2'b00: 2mA
@@ -406,8 +406,8 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3066) || (CONFIG_RKCHIPTYPE == CONFIG_RK3168) || (CONFIG_RKCHIPTYPE == CONFIG_RK3036) \
-	|| (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3036) \
+	|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	/* no drive config */
 #else
 	/* check chip if support gpio drive slector */

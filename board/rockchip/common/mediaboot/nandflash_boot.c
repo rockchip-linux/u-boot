@@ -174,11 +174,11 @@ uint32 lMemApiInit(uint32 BaseAddr)
 	if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000) {
 		// nand and emmc support
 		if((gp_loader_api->id == 1) || (gp_loader_api->id == 2)) {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 			rkclk_set_nandc_div(0, 1, RKNANDC_MAX_FREQ);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 			rkclk_set_nandc_div(0, 2, RKNANDC_MAX_FREQ);
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 			rkclk_set_nandc_div(0, 1, RKNANDC_MAX_FREQ);
 #else
 			#error "PLS config platform for nandc freq!"

@@ -8,9 +8,6 @@
 #include <search.h>
 #include <errno.h>
 
-#include <../board/rockchip/common/config.h>
-
-
 char *env_name_spec = "RK STORAGE";
 
 #ifdef ENV_IS_EMBEDDED
@@ -49,8 +46,7 @@ static inline int write_env(unsigned long size,
 		if(StorageUbootDataStore(blk_start + i,
 				(void*)buffer + i * RK_BLK_SIZE))
 		{
-			printf("write_env StorageUbootDataStore failed at %d\n",
-			blk_start + i);
+			printf("write_env failed at %d\n", blk_start + i);
 			return -1;
 		}
 	}
@@ -95,8 +91,7 @@ static inline int read_env(unsigned long size,
 		if(StorageUbootDataLoad(blk_start + i, 
 				(void*)buffer + i * RK_BLK_SIZE))
 		{
-			printf("read_env StorageUbootDataLoad failed at %d\n",
-				blk_start + i);
+			printf("read_env failed at %d\n", blk_start + i);
 			return -1;
 		}
 	}
@@ -119,7 +114,7 @@ static int env_append(const char *buf, int check)
 		}
 	}
 
-	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', H_NOCLEAR,
+	if (himport_r(&env_htab, (char *)ep->data, ENV_SIZE, '\0', H_NOCLEAR, 0,
 			0, NULL)) {
 		gd->flags |= GD_FLG_ENV_READY;
 		return 1;

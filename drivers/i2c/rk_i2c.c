@@ -142,18 +142,18 @@ struct rk_i2c {
 
 #ifdef CONFIG_I2C_MULTI_BUS
 static struct rk_i2c rki2c_base[I2C_BUS_MAX] = {
-#if (CONFIG_RKCHIPTYPE == CONFIG_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288)
 	{ .regs = (void __iomem *)(RKIO_I2C0_PMU_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C1_SENSOR_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C2_AUDIO_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C3_CAM_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C4_TP_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C5_HDMI_PHYS), 0 }
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3036)
+#elif defined(CONFIG_RKCHIP_RK3036)
 	{ .regs = (void __iomem *)(RKIO_I2C0_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C1_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C2_PHYS), 0 },
-#elif (CONFIG_RKCHIPTYPE == CONFIG_RK3126) || (CONFIG_RKCHIPTYPE == CONFIG_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	{ .regs = (void __iomem *)(RKIO_I2C0_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C1_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C2_PHYS), 0 },
