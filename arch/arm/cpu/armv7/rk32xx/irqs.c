@@ -28,7 +28,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_USE_IRQ
 
-#define RKIRQ_VERSION		"1.0"
+#define RKIRQ_VERSION		"1.1"
 
 
 /* irq handler struct and hander table */
@@ -105,7 +105,7 @@ static inline int irq_init(void)
 
 	if (gd->flags & GD_FLG_IRQINIT) {
 		debug("irq_init: irq has been initialized.\n");
-		return -2;
+		return 0;
 	}
 	gd->flags |= GD_FLG_IRQINIT;
 
