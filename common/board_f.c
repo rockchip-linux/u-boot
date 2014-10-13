@@ -483,6 +483,37 @@ static int reserve_trace(void)
 	return 0;
 }
 
+#ifdef CONFIG_ROCKCHIP
+static int reserve_global_buffers(void)
+{
+	/* reserve rk global buffer */
+	gd->relocaddr -= CONFIG_RK_GLOBAL_BUFFER_SIZE;
+	gd->arch.rk_global_buf_addr = map_sysmem(gd->relocaddr, CONFIG_RK_GLOBAL_BUFFER_SIZE);
+	debug("Reserving %dk for rk global buffer at %08lx\n",
+			CONFIG_RK_GLOBAL_BUFFER_SIZE >> 10, gd->arch.rk_global_buf_addr);
+
+	/* reserve rk boot buffer */
+	gd->relocaddr -= CONFIG_RK_BOOT_BUFFER_SIZE;
+	gd->arch.rk_boot_buf_addr = map_sysmem(gd->relocaddr, CONFIG_RK_BOOT_BUFFER_SIZE);
+	debug("Reserving %dk for rk boot buffer at %08lx\n",
+			CONFIG_RK_BOOT_BUFFER_SIZE >> 10, gd->arch.rk_boot_buf_addr);
+
+#ifdef CONFIG_CMD_FASTBOOT
+	/* using rk boot buffer for fbt buffer */
+	gd->arch.fastboot_buf_addr = gd->arch.rk_boot_buf_addr;
+	debug("Using rk boot buffer as Fastboot transfer buffer.\n");
+
+	/* reserve fastboot log buffer */
+	gd->relocaddr -= CONFIG_FASTBOOT_LOG_SIZE;
+	gd->arch.fastboot_log_buf_addr = map_sysmem(gd->relocaddr, CONFIG_FASTBOOT_LOG_SIZE);
+	debug("Reserving %dk for fastboot log buffer at %08lx\n",
+			CONFIG_FASTBOOT_LOG_SIZE >> 10, gd->arch.fastboot_log_buf_addr);
+#endif /* CONFIG_CMD_FASTBOOT */
+
+	return 0;
+}
+#endif
+
 #if defined(CONFIG_VIDEO) && (!defined(CONFIG_PPC) || defined(CONFIG_8xx)) && \
 		!defined(CONFIG_ARM) && !defined(CONFIG_X86) && \
 		!defined(CONFIG_BLACKFIN)
@@ -964,6 +995,9 @@ static init_fnc_t init_sequence_f[] = {
 #endif
 #ifdef CONFIG_LCD
 	reserve_lcd,
+#endif
+#ifdef CONFIG_ROCKCHIP
+	reserve_global_buffers,
 #endif
 	reserve_trace,
 	/* TODO: Why the dependency on CONFIG_8xx? */

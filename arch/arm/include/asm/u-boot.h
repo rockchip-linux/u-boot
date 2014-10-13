@@ -40,10 +40,10 @@ typedef struct bd_info {
 
 #ifdef CONFIG_RK_MAX_DRAM_BANKS
     struct            	/* RAM configuration for kernel */
-	{
-		u64 start;
-		u64 size;
-	} 			rk_dram[CONFIG_RK_MAX_DRAM_BANKS + 1];
+    {
+	u64 start;
+	u64 size;
+    } 			rk_dram[CONFIG_RK_MAX_DRAM_BANKS + 1];
 #endif /* CONFIG_RK_MAX_DRAM_BANKS */
 
 } bd_t;

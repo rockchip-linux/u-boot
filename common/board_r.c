@@ -287,7 +287,11 @@ __weak int power_init_board(void)
 
 static int initr_announce(void)
 {
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
 	debug("Now running in RAM - U-Boot at: %08lx\n", gd->relocaddr);
+#else
+	debug("Now running in RAM - U-Boot at: %08lx\n", CONFIG_SYS_TEXT_BASE);
+#endif
 	return 0;
 }
 
@@ -405,6 +409,15 @@ int initr_dataflash(void)
 	return 0;
 }
 #endif
+
+#ifdef CONFIG_ROCKCHIP
+int initr_rk_storage(void)
+{
+	board_storage_init();
+	return 0;
+}
+#endif
+
 
 /*
  * Tell if it's OK to load the environment early in boot.
@@ -801,6 +814,9 @@ init_fnc_t init_sequence_r[] = {
 #endif
 #ifdef CONFIG_HAS_DATAFLASH
 	initr_dataflash,
+#endif
+#ifdef CONFIG_ROCKCHIP
+	initr_rk_storage,
 #endif
 	initr_env,
 	INIT_FUNC_WATCHDOG_RESET
