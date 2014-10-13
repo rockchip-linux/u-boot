@@ -53,16 +53,18 @@
 	#define m_Y_AGC_PULSE_ON	(1 << 15)
 	#define m_Y_VIDEO_ON		(1 << 11)
 	#define m_Y_SYNC_ON		(1 << 7)
+	#define m_YPP_MODE		(1 << 3)
 	#define m_MONO_EN		(1 << 2)
 	#define m_PIC_MODE		(1 << 1)
-	
-	#define v_DAC_SENSE_EN(x)	( (x & 1) << 27)
-	#define v_Y_IRE_7_5(x)		( (x & 1) << 19)
-	#define v_Y_AGC_PULSE_ON(x)	( (x & 1) << 15)
-	#define v_Y_VIDEO_ON(x)		( (x & 1) << 11)
-	#define v_Y_SYNC_ON(x)		( (x & 1) << 7)
-	#define v_MONO_EN(x)		( (x & 1) << 2)
-	#define v_PIC_MODE(x)		( (x & 1) << 1)
+
+	#define v_DAC_SENSE_EN(x)	((x & 1) << 27)
+	#define v_Y_IRE_7_5(x)		((x & 1) << 19)
+	#define v_Y_AGC_PULSE_ON(x)	((x & 1) << 15)
+	#define v_Y_VIDEO_ON(x)		((x & 1) << 11)
+	#define v_Y_SYNC_ON(x)		((x & 1) << 7)
+	#define v_YPP_MODE(x)		((x & 1) << 3)
+	#define v_MONO_EN(x)		((x & 1) << 2)
+	#define v_PIC_MODE(x)		((x & 1) << 1)
 	
 #define TV_SYNC_ADJUST		(0x50)
 #define TV_STATUS		(0x54)
@@ -97,13 +99,25 @@
 #define m_SENSE_EN		(1 << 3)
 #define m_BIAS_EN		(7 << 4)
 #define m_DAC_GAIN		(0x3f << 7)
+#define v_DAC_GAIN(x)		((x & 0x3f) << 7)
 
 enum {
 	TVOUT_CVBS_NTSC = 0,
 	TVOUT_CVBS_PAL,
 };
 
+enum {
+	SOC_RK3036 = 0,
+	SOC_RK312X
+};
+
 #define TVOUT_DEAULT TVOUT_CVBS_PAL
+
+struct rk3036_tve {
+	u32				reg_phy_base;
+	int				soctype;
+	int				test_mode;
+};
 
 #define RK30_TVE_REGBASE 0x10118000 + 0x200
 

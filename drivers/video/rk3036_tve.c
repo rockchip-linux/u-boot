@@ -25,14 +25,15 @@
 #include <asm/arch/rkplat.h>
 #include"rk3036_tve.h"
 
+static struct rk3036_tve tve_s;
 
-#define tve_writel(offset, v)	writel(v, RK30_TVE_REGBASE  + offset)
-#define tve_readl(offset)	readl(RK30_TVE_REGBASE + offset)
+#define tve_writel(offset, v)	writel(v, tve_s.reg_phy_base  + offset)
+#define tve_readl(offset)	readl(tve_s.reg_phy_base + offset)
 
 static const struct fb_videomode rk3036_cvbs_mode [] = {
 	/*name	refresh	xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw			polariry				PorI		flag*/
-	{"NTSC",60,	720,	480,	27000000,	57,	19,	19,	0,	62,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
-	{"PAL",	50,	720,	576,	27000000,	69,	12,	19,	2,	63,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
+	{"NTSC",	60,	720,	480,	27000000,	43,	33,	19,	0,	62,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
+	{"PAL",		50,	720,	576,	27000000,	52,	29,	19,	2,	63,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
 };
 
 
@@ -48,9 +49,9 @@ int rk3036_tve_show_reg()
 	printf("\n\n\n\n--------------------------%s------------------------------------",__FUNCTION__);
 
 	for (i = 0; i <= TVE_REG_NUM; i++) {
-		val = readl(0x10118000 + i * 0x04);
+		val = readl(tve_s.reg_phy_base + i * 0x04);
 		if (i % 4 == 0)
-			printf("\n%8x:", i*0x04 + 0x10118000); 
+			printf("\n%8x:", i*0x04 + tve_s.reg_phy_base - 0x200); 
 		printf(" %08x", val);
 	}   
 	printf("\n-----------------------------------------------------------------\n");
@@ -62,18 +63,35 @@ int rk3036_tve_show_reg()
 static void dac_enable(int enable)
 {
 	u32 mask, val;
-	
+	u32 grfreg = 0;
+
 //	printf("%s enable %d\n", __FUNCTION__, enable);
-	
-	if(enable) {
-		mask = m_VBG_EN | m_DAC_EN;
-		val = mask;
+	if (enable) {
+		mask = m_VBG_EN | m_DAC_EN | m_DAC_GAIN;
+		#if defined(CONFIG_RKCHIP_RK3128)
+			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(0x3a);
+			grfreg = GRF_TVE_CON0;
+		#elif defined(CONFIG_RKCHIP_RK3036)
+			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(0x3e);
+			grfreg = GRF_SOC_CON3;
+		#endif
+		val |= mask << 16;
 	} else {
 		mask = m_VBG_EN | m_DAC_EN;
 		val = 0;
+		#if defined(CONFIG_RKCHIP_RK3128)
+			grfreg = GRF_TVE_CON0;
+		#elif defined(CONFIG_RKCHIP_RK3036)
+			grfreg = GRF_SOC_CON3;
+		#endif
+		val |= mask << 16;
 	}
-	grf_writel((mask << 16) | val,GRF_SOC_CON3);
-
+	if (grfreg) {
+//		printf("grfreg 0x%x mask 0x%x val 0x%x\n", grfreg, mask, val);
+		writel(val, RKIO_GRF_PHYS + grfreg);
+//		grf_writel(grfreg, val);
+	}
+//	printf("%s enable %d end\n", __FUNCTION__, enable);
 }
 
 static void tve_set_mode (int mode)
@@ -83,10 +101,15 @@ static void tve_set_mode (int mode)
 	tve_writel(TV_RESET, v_RESET(1));
 	udelay(100);
 	tve_writel(TV_RESET, v_RESET(0));
-	
-	tve_writel(TV_CTRL, v_CVBS_MODE(mode) | v_CLK_UPSTREAM_EN(2) | 
-			v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) | 
-			v_LUMA_FILTER_UPSAMPLE(0) | v_CSC_PATH(0) );
+
+	if (tve_s.soctype == SOC_RK3036)
+		tve_writel(TV_CTRL, v_CVBS_MODE(mode) | v_CLK_UPSTREAM_EN(2) |
+			   v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) |
+			   v_LUMA_FILTER_UPSAMPLE(1) | v_CSC_PATH(0));
+	else
+		tve_writel(TV_CTRL, v_CVBS_MODE(mode) | v_CLK_UPSTREAM_EN(2) |
+			   v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) |
+			   v_LUMA_FILTER_UPSAMPLE(1) | v_CSC_PATH(3));
 	tve_writel(TV_LUMA_FILTER0, 0x02ff0000);
 	tve_writel(TV_LUMA_FILTER1, 0xF40202fd);
 	tve_writel(TV_LUMA_FILTER2, 0xF332d919);
@@ -106,18 +129,32 @@ static void tve_set_mode (int mode)
 		tve_writel(TV_ACT_TIMING, 0x169800FC);
 
 	} else if (mode == TVOUT_CVBS_PAL) {
-		tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(0) | 
-			v_Y_AGC_PULSE_ON(1) | v_Y_VIDEO_ON(1) | 
-			v_Y_SYNC_ON(1) | v_CVBS_MODE(mode));
-		tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_PAL) | v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
-		tve_writel(TV_SATURATION, 0x002e553c);
-		tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00007579);
-		
+		tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(0) |
+			v_Y_AGC_PULSE_ON(0) | v_Y_VIDEO_ON(1) |
+			v_YPP_MODE(1) | v_Y_SYNC_ON(1) | v_PIC_MODE(mode));
+		tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_PAL) |
+			v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
+		if (tve_s.soctype == SOC_RK312X) {
+			tve_writel(TV_SATURATION, /*0x00325c40*/ 0x002b4d3c);
+			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008a0a);
+		} else {
+			tve_writel(TV_SATURATION, /*0x00325c40*/ 0x00386346);
+			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008b00);
+		}
+
 		tve_writel(TV_FREQ_SC,	0x2A098ACB);
 		tve_writel(TV_SYNC_TIMING, 0x00C28381);
-		tve_writel(TV_ADJ_TIMING, 0xB6C00880);
+		tve_writel(TV_ADJ_TIMING, (0xc << 28) | 0x06c00800 | 0x80);
 		tve_writel(TV_ACT_ST,	0x001500F6);
-		tve_writel(TV_ACT_TIMING, 0x2694011D);
+		tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
+		if (tve_s.soctype == SOC_RK312X) {
+			tve_writel(TV_ADJ_TIMING, (0xa << 28) | 0x06c00800 | 0x80);
+			udelay(100);
+			tve_writel(TV_ADJ_TIMING, (0xa << 28) | 0x06c00800 | 0x80);
+			tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
+		} else {
+			tve_writel(TV_ADJ_TIMING, (0xa << 28) | 0x06c00800 | 0x80);
+		}
 	}
 }
 
@@ -188,6 +225,16 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 
 int rk3036_tve_init(vidinfo_t *panel)
 {
+	
+#if defined(CONFIG_RKCHIP_RK3036)
+	tve_s.reg_phy_base = 0x10118000 + 0x200;
+	tve_s.soctype = SOC_RK3036;
+//	printf("%s start soc is 3036\n", __func__);
+#elif defined(CONFIG_RKCHIP_RK3128)
+	tve_s.reg_phy_base = 0x1010e000 + 0x200;
+	tve_s.soctype = SOC_RK312X;
+//	printf("%s start soc is 3128\n", __func__);
+#endif
 	rk3036_tve_init_panel(panel);
 
 	dac_enable(0);

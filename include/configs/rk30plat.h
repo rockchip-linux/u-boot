@@ -140,7 +140,7 @@
 #define CONFIG_RK_3036_HDMI
 #endif
 
-#if defined(CONFIG_RKCHIP_RK3036)
+#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3128)
 #define CONFIG_RK3036_TVE
 #endif /* CONFIG_RKCHIP_RK3036 */
 
