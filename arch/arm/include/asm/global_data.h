@@ -73,11 +73,12 @@ struct arch_global_data {
 	struct omap_boot_parameters omap_boot_params;
 #endif
 #ifdef CONFIG_ROCKCHIP
-    unsigned long rk_extra_buf_addr;
+	unsigned long rk_global_buf_addr;
+	unsigned long rk_boot_buf_addr;
 #endif
 #ifdef CONFIG_CMD_FASTBOOT
-    unsigned long fastboot_buf_addr;
-    unsigned long fastboot_log_buf_addr;
+	unsigned long fastboot_buf_addr;
+	unsigned long fastboot_log_buf_addr;
 #endif
 };
 

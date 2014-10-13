@@ -130,15 +130,15 @@ static void rkusb_init_instances(void)
 #ifdef CONFIG_CMD_FASTBOOT
 	usbcmd.rx_buffer[0] = (u8 *)gd->arch.fastboot_buf_addr;
 	usbcmd.rx_buffer[1] = usbcmd.rx_buffer[0]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
-	usbcmd.tx_buffer[0] = usbcmd.rx_buffer[1]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
+
+	usbcmd.tx_buffer[0] = (u8 *)gd->arch.fastboot_buf_addr + CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;
 	usbcmd.tx_buffer[1] = usbcmd.tx_buffer[0]+(CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH>>1);
 #else
-	//is this enough?
-	int buffer_len = RKUSB_BUFFER_BLOCK_MAX << 10;
-	usbcmd.rx_buffer[0] = (u8 *)memalign(ARCH_DMA_MINALIGN, buffer_len << 2);
-	usbcmd.rx_buffer[1] = usbcmd.rx_buffer[0]+buffer_len;
-	usbcmd.tx_buffer[0] = usbcmd.rx_buffer[1]+buffer_len;
-	usbcmd.tx_buffer[1] = usbcmd.tx_buffer[0]+buffer_len;
+	usbcmd.rx_buffer[0] = (u8 *)gd->arch.rk_boot_buf_addr;
+	usbcmd.rx_buffer[1] = usbcmd.rx_buffer[0]+(CONFIG_RK_BOOT_BUFFER_SIZE>>2);
+
+	usbcmd.tx_buffer[0] = (u8 *)gd->arch.rk_boot_buf_addr + (CONFIG_RK_BOOT_BUFFER_SIZE>>1);
+	usbcmd.tx_buffer[1] = usbcmd.tx_buffer[0]+(CONFIG_RK_BOOT_BUFFER_SIZE>>2);
 #endif
 	RKUSBINFO("%p %p %p %p %x\n",
 		usbcmd.rx_buffer[0], usbcmd.rx_buffer[1], usbcmd.tx_buffer[1], usbcmd.tx_buffer[0], usbcmd.tx_buffer[1]);

@@ -371,24 +371,29 @@ void board_init_f(ulong bootflag)
 	/* round down to next 4 kB limit */
 	addr &= ~(4096 - 1);
 	/* reserve rk global buffers */
-	addr -= CONFIG_RK_EXTRA_BUFFER_SIZE;
+	addr -= CONFIG_RK_GLOBAL_BUFFER_SIZE;
+	gd->arch.rk_global_buf_addr = addr;
+	debug("Reserving %dk for rk global buffer at %08lx\n",
+			CONFIG_RK_GLOBAL_BUFFER_SIZE >> 10, addr);
 
-	gd->arch.rk_extra_buf_addr = addr;
-	debug("Reserving %dk for rk global buffers at %08lx\n",
-			CONFIG_RK_EXTRA_BUFFER_SIZE >> 10, addr);
+	/* reserve rk boot buffers */
+	addr &= ~(4096 - 1);
+	addr -= CONFIG_RK_BOOT_BUFFER_SIZE;
+	gd->arch.rk_boot_buf_addr = addr;
+
+	debug("Reserving %dk for rk boot buffer at %08lx\n",
+			CONFIG_RK_BOOT_BUFFER_SIZE >> 10, gd->arch.rk_boot_buf_addr);
 #endif
 
 #ifdef CONFIG_CMD_FASTBOOT
 	/* reserve fastboot transfer buffer */
 #ifdef CONFIG_ROCKCHIP
-	//use rk_extra_buf for fbt buffer.
-	gd->arch.fastboot_buf_addr = gd->arch.rk_extra_buf_addr + CONFIG_RK_GLOBAL_BUFFER_SIZE;
-
-	debug("Reserving %dk for fastboot transfer buffer at %08lx\n",
-			CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 10, gd->arch.fastboot_buf_addr);
+	/* using rk boot buffer for fbt buffer */
+	gd->arch.fastboot_buf_addr = gd->arch.rk_boot_buf_addr;
+	debug("Using rk boot buffer as Fastboot transfer buffer.\n");
 #else
+	addr &= ~(4096 - 1);
 	addr -= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE;
-
 	gd->arch.fastboot_buf_addr = addr;
 	debug("Reserving %dk for fastboot transfer buffer at %08lx\n",
 			CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE >> 10, addr);

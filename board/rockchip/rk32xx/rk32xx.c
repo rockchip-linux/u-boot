@@ -276,7 +276,7 @@ int board_late_init(void)
 	SecureBootCheck();
 
 	//TODO:set those buffers in a better way, and use malloc?
-	rkidb_setup_space(gd->arch.rk_extra_buf_addr);
+	rkidb_setup_space(gd->arch.rk_global_buf_addr);
 
 	/* after setup space, get id block data first */
 	rkidb_get_idblk_data();

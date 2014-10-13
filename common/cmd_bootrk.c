@@ -121,7 +121,7 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	void *kaddr, *raddr;
 	kaddr = (void*)CONFIG_KERNEL_LOAD_ADDR;
-	raddr = (void*)(uint32)(gd->arch.rk_extra_buf_addr + CONFIG_RK_GLOBAL_BUFFER_SIZE);
+	raddr = (void*)(gd->arch.rk_boot_buf_addr);
 
 	ptn = get_disk_partition(boot_source);
 	if (ptn) {
