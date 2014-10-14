@@ -22,7 +22,9 @@
 #include <malloc.h>
 #include "rk_hdmi.h"
 #include <lcd.h>
+#include <common.h>
 #include <../board/rockchip/common/config.h>
+#include "rk3036_tve.h"
 
 #define PARTITION_NAME "baseparamer"
 #define DEFAULT_MODE   15 
@@ -31,10 +33,16 @@
 #define OUT_P888 0 
 #endif
 short g_hdmi_vic = -1;
+static struct baseparamer_pos g_pos_baseparamer = {-1, -1};
+
 //struct hdmi_dev *hdmi = NULL;
 
 //#define HDMIDEBUG
-
+#ifdef CONFIG_RK3036_TVE
+#include <linux/fb.h>
+extern struct fb_videomode rk3036_cvbs_mode [MAX_TVE_COUNT];
+extern int g_tve_pos;
+#endif
 
 static const struct hdmi_video_timing hdmi_mode [] = {
 		//name			refresh		xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw	polariry			                            PorI	flag	vic		2ndvic		               pixelrepeat	interface
@@ -224,9 +232,9 @@ err:
 /*
  * return preset res position
  */
-static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev) 
+static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct baseparamer_pos *id)
 {
-	int i, ret = -1;
+	int i, ret = 0;
 	const disk_partition_t* ptn_baseparamer;
 	char baseparamer_buf[8 * RK_BLK_SIZE];
 	char *p_baseparamer =  CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000;//4K
@@ -253,29 +261,56 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev)
 
 		memcpy(p_baseparamer, baseparamer_buf, sizeof(baseparamer_buf));
 
-		memcpy(&hdmi_dev->base_paramer.xres, &baseparamer_buf[0], sizeof(hdmi_dev->base_paramer.xres));
-		memcpy(&hdmi_dev->base_paramer.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer.yres));
-		memcpy(&hdmi_dev->base_paramer.interlaced, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer.interlaced));
-		memcpy(&hdmi_dev->base_paramer.type, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer.type));
-		memcpy(&hdmi_dev->base_paramer.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer.refresh));
+		memcpy(&hdmi_dev->base_paramer_hdmi.xres, &baseparamer_buf[0], sizeof(hdmi_dev->base_paramer_hdmi.xres));
+		memcpy(&hdmi_dev->base_paramer_hdmi.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer_hdmi.yres));
+		memcpy(&hdmi_dev->base_paramer_hdmi.interlaced, &baseparamer_buf[8], sizeof(hdmi_dev->base_paramer_hdmi.interlaced));
+		memcpy(&hdmi_dev->base_paramer_hdmi.type, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer_hdmi.type));
+		memcpy(&hdmi_dev->base_paramer_hdmi.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer_hdmi.refresh));
 
 		
 		for (i = 0; i < hdmi_dev->mode_len; i++) {
-			if (hdmi_dev->base_paramer.xres == hdmi_dev->modedb[i].mode.xres &&
-					hdmi_dev->base_paramer.yres == hdmi_dev->modedb[i].mode.yres &&
-					   hdmi_dev->base_paramer.refresh == hdmi_dev->modedb[i].mode.refresh &&
-					    hdmi_dev->base_paramer.interlaced == hdmi_dev->modedb[i].mode.vmode)
+			if (hdmi_dev->base_paramer_hdmi.xres == hdmi_dev->modedb[i].mode.xres &&
+					hdmi_dev->base_paramer_hdmi.yres == hdmi_dev->modedb[i].mode.yres &&
+					   hdmi_dev->base_paramer_hdmi.refresh == hdmi_dev->modedb[i].mode.refresh &&
+					    hdmi_dev->base_paramer_hdmi.interlaced == hdmi_dev->modedb[i].mode.vmode)
 				break;
 		}
 
 		if (i != hdmi_dev->mode_len) {
-			printf("preset display resolution is %dx%d@%d-%d,i=%d\n", hdmi_dev->base_paramer.xres, hdmi_dev->base_paramer.yres, hdmi_dev->base_paramer.refresh, hdmi_dev->base_paramer.interlaced, i);
-			ret = i;
+			printf("preset hdmi resolution is %dx%d@%d-%d,i=%d\n", hdmi_dev->base_paramer_hdmi.xres, hdmi_dev->base_paramer_hdmi.yres, hdmi_dev->base_paramer_hdmi.refresh, hdmi_dev->base_paramer_hdmi.interlaced, i);
+			id->hdmi_pos = i;
 		}
 		else
 		{
-			printf("baseparamer %dx%d@%d-%d\n", hdmi_dev->base_paramer.xres, hdmi_dev->base_paramer.yres, hdmi_dev->base_paramer.refresh, hdmi_dev->base_paramer.interlaced);
+			printf("hdmi baseparamer %dx%d@%d-%d\n", hdmi_dev->base_paramer_hdmi.xres, hdmi_dev->base_paramer_hdmi.yres, hdmi_dev->base_paramer_hdmi.refresh, hdmi_dev->base_paramer_hdmi.interlaced);
 		}
+
+
+		memcpy(&hdmi_dev->base_paramer_tve.xres, &baseparamer_buf[24+0], sizeof(hdmi_dev->base_paramer_tve.xres));
+                memcpy(&hdmi_dev->base_paramer_tve.yres, &baseparamer_buf[24+4], sizeof(hdmi_dev->base_paramer_tve.yres));
+                memcpy(&hdmi_dev->base_paramer_tve.interlaced, &baseparamer_buf[24+8], sizeof(hdmi_dev->base_paramer_tve.interlaced));
+                memcpy(&hdmi_dev->base_paramer_tve.type, &baseparamer_buf[24+12], sizeof(hdmi_dev->base_paramer_tve.type));
+                memcpy(&hdmi_dev->base_paramer_tve.refresh, &baseparamer_buf[24+16], sizeof(hdmi_dev->base_paramer_tve.refresh));
+
+#ifdef CONFIG_RK3036_TVE
+                for (i = 0; i < MAX_TVE_COUNT; i++) {
+                        if (hdmi_dev->base_paramer_tve.xres == rk3036_cvbs_mode[i].xres &&
+                                        hdmi_dev->base_paramer_tve.yres == rk3036_cvbs_mode[i].yres &&
+                                           hdmi_dev->base_paramer_tve.refresh == rk3036_cvbs_mode[i].refresh &&
+                                            hdmi_dev->base_paramer_tve.interlaced == rk3036_cvbs_mode[i].vmode)
+                                break;
+                }
+
+                if (i != MAX_TVE_COUNT) {
+                        printf("preset tve resolution is %dx%d@%d-%d,i=%d\n", hdmi_dev->base_paramer_tve.xres, hdmi_dev->base_paramer_tve.yres, hdmi_dev->base_paramer_tve.refresh, hdmi_dev->base_paramer_tve.interlaced, i);
+                        id->tve_pos = i;
+                }
+                else
+                {
+                        printf("tve baseparamer %dx%d@%d-%d\n", hdmi_dev->base_paramer_tve.xres, hdmi_dev->base_paramer_tve.yres, hdmi_dev->base_paramer_tve.refresh, hdmi_dev->base_paramer_tve.interlaced);
+                }
+#endif
+
     }
 	
 #if 0
@@ -1290,7 +1325,7 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0, pos = 0, pos_baseparamer = 0, pos_edid = 0, pos_default = 0;
 
-	pos_baseparamer = read_baseparamer_storage(hdmi_dev);
+	pos_baseparamer = g_pos_baseparamer.hdmi_pos;
 	if (pos_baseparamer < 0)
 	{
 		pos = hdmi_dev->mode_len;
@@ -1358,6 +1393,11 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	ret = read_deviceinfo_storage(hdmi_dev);
 	if(ret)
 	printf("%s:fail to read deviceinfo\n",__func__);
+#endif
+	ret = read_baseparamer_storage(hdmi_dev, &g_pos_baseparamer);
+
+#ifdef CONFIG_RK3036_TVE
+	g_tve_pos = g_pos_baseparamer.tve_pos;
 #endif
 
 	if (hdmi_dev->hd_init && !hdmi_dev->hd_init(hdmi_dev)) {

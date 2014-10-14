@@ -34,6 +34,10 @@ DECLARE_GLOBAL_DATA_PTR;
 extern short g_hdmi_vic;
 #endif
 
+#ifdef CONFIG_RK3036_TVE
+extern int g_tve_pos;
+#endif
+
 #ifdef CONFIG_BOOTM_LINUX
 extern int do_bootm_linux(int flag, int argc, char *argv[],
 		        bootm_headers_t *images);
@@ -304,6 +308,12 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 				 "%s hdmi.vic=%d", command_line, g_hdmi_vic);
 		//printf("%s:g_hdmi_vic=%d\n",__func__,g_hdmi_vic);
 #endif
+
+#ifdef CONFIG_RK3036_TVE
+		snprintf(command_line, sizeof(command_line),
+				"%s tve.format=%d", command_line, g_tve_pos);
+#endif
+
 
 		char *sn = getenv("fbt_sn#");
 		if (sn != NULL) {

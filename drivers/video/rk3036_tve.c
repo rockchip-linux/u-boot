@@ -23,14 +23,16 @@
 #include <asm/io.h>
 #include <linux/fb.h>
 #include <asm/arch/rkplat.h>
-#include"rk3036_tve.h"
+#include "rk3036_tve.h"
+
+int g_tve_pos = -1;
 
 static struct rk3036_tve tve_s;
 
 #define tve_writel(offset, v)	writel(v, tve_s.reg_phy_base  + offset)
 #define tve_readl(offset)	readl(tve_s.reg_phy_base + offset)
 
-static const struct fb_videomode rk3036_cvbs_mode [] = {
+struct fb_videomode rk3036_cvbs_mode[MAX_TVE_COUNT] = {
 	/*name	refresh	xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw			polariry				PorI		flag*/
 	{"NTSC",	60,	720,	480,	27000000,	43,	33,	19,	0,	62,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
 	{"PAL",		50,	720,	576,	27000000,	52,	29,	19,	2,	63,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
@@ -218,14 +220,13 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 	panel->vl_vbpd,
 	panel->vl_vfpd);
 */
-	printf("panel->vmode = %d \n", panel->vmode);
+	//printf("panel->vmode = %d \n", panel->vmode);
 }
 #endif
 
 
 int rk3036_tve_init(vidinfo_t *panel)
 {
-	
 #if defined(CONFIG_RKCHIP_RK3036)
 	tve_s.reg_phy_base = 0x10118000 + 0x200;
 	tve_s.soctype = SOC_RK3036;
@@ -237,9 +238,20 @@ int rk3036_tve_init(vidinfo_t *panel)
 #endif
 	rk3036_tve_init_panel(panel);
 
+	if(g_tve_pos < 0)
+	{
+		g_tve_pos = TVOUT_DEAULT;
+		printf("%s:use default config g_tve_pos = %d \n", __func__,g_tve_pos);
+	}
+	else
+	{
+		printf("%s:use baseparamer config g_tve_pos = %d \n", __func__,g_tve_pos);
+	}
+
 	dac_enable(0);
-	tve_set_mode(TVOUT_DEAULT);
+	tve_set_mode(g_tve_pos);
 	dac_enable(1);
+
 
 //	rk3036_tve_show_reg();
 }

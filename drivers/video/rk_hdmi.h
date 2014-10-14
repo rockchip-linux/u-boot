@@ -455,6 +455,13 @@ struct HW_BASE_PARAMETER
 	int refresh;
 	int reserve;
 };
+
+struct baseparamer_pos
+{
+	int hdmi_pos;
+	int tve_pos;
+};
+
 struct rk_hdmi_drvdata  {
 	u8 soc_type;
 	u32 reversed;
@@ -484,7 +491,8 @@ struct hdmi_dev {
 	struct hdmi_video_para vpara; 
 
 	char *pname;    //the partition name of save hdmi res
-	struct HW_BASE_PARAMETER base_paramer;
+	struct HW_BASE_PARAMETER base_paramer_hdmi;
+	struct HW_BASE_PARAMETER base_paramer_tve;
 
 	int (*hd_init) (struct hdmi_dev *hdmi_dev);
 	int (*read_edid)(struct hdmi_dev *hdmi_dev, int block, unsigned char *buff);

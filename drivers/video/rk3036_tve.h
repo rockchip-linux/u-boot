@@ -120,6 +120,7 @@ struct rk3036_tve {
 };
 
 #define RK30_TVE_REGBASE 0x10118000 + 0x200
+#define MAX_TVE_COUNT  2
 
 extern  int rk3036_tve_init(vidinfo_t *panel);
 #endif
