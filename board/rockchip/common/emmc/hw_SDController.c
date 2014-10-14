@@ -1366,7 +1366,7 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
     pSDC_REG_T      pReg = pSDCReg(nSDCPort);
     pSDC_INFO_T     pSDC= &gSDCInfo[nSDCPort];
     uint32          SlaveIntMask;
-    uint32          timeout  = DataLen*10;
+    uint32          timeout  = DataLen*500; //最长一个512需要等250ms 
     volatile uint32 value;
 
     SDC_SetIDMADesc(nSDCPort,(uint32)pDataBuf, DataLen);
@@ -1389,7 +1389,13 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
         if((--timeout) == 0 || pSDC->ErrorStat != SDC_SUCCESS) 
             break;
     } while ((pReg->SDMMC_RINISTS & (CD_INT | DTO_INT)) != (CD_INT | DTO_INT));
-
+    
+    if(timeout==0)
+    {
+		//PRINT_E("SDC_RequestIDMA timeout %d error\n",timeout);
+        pSDC->ErrorStat = SDC_RESP_TIMEOUT;
+    }
+    
     value = pReg->SDMMC_RINISTS;
     if (value & RTO_INT)
     {
