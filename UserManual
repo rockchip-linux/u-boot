@@ -1,89 +1,73 @@
-Toolchain
-default toolchain is arm-eabi-4.6 which is also the default toolchain android use now. put uboot in the root directory of android. it can recognise toolchain by itself.if you want to use another toolchain. you can modify CROSS_COMPILE in arch/arm/config.mk.
+1.  Toolchain
+    Toolchain is define by CROSS_COMPILE in the file Makefile now, you modify or add your default toolchain path.
 
-Build
-make rk30xx                            use this command to build uboot,it will generate all the image and bin below
-make distclean                         use this command to clean uboot
-resource.img                             image which cantain resources
-uboot.img                              uboot image can only act as second level loader and it should be flashed to specific partition which define in parameter
-RKxxxxLoader_miniall.bin               rkloader with nand driver in it. it can only act as first level bootloader
-RKxxxxLoader_miniall_debug.bin         RKxxxxLoader_miniall loader with debug message
-RKxxxxLoader_mini.bin                  rkloader with emmc driver only in it. it can only act as first level bootloader
-RK3188Loader_mini_debug.bin            RKxxxxLoader_mini loader with debug message
-RKxxxxLoader_uboot.bin                 uboot image can act as first level bootloader or second level bootloader. 
+2.  Configure the rk platform
+    rockchip support for uboot chip set configs as:
+        configs\rk3288_defconfig
+        configs\rk3036_defconfig
+        configs\rk3126_defconfig
+        configs\rk3128_defconfig
 
-Chipset
-support RK3066,RK3188,RK3168,RK3026
+    example:
+        make rk3288_defconfig	-	Command to configure rk3288 platform for uboot.
 
-Storage
-support emmc and nand flash. 
+3.  Build
+	make			-	Command to make rk uboot bin.
 
-Boot stage
-there are 3 boot mode.
-1. RKxxxxLoader_miniall.bin used as first level boot loader.uboot.img used as second level boot loader. it support nand flash storage.
-2. RKxxxxLoader_mini.bin used as first level boot loader.uboot.img used as second level boot loader. it support emmc storage.
-3. RKxxxxLoader_uboot.bin used as first level boot loader. do not have second level boot loader. it support emmc storage.
-CONFIG_SECOND_LEVEL_BOOTLOADER in include/configs/rk30xx.h should be defined for boot mode 1 and 2.
+4.  Clean
+	make clean
+	make distclean		-	Command to clean all include config.
 
-Logo
-support display logo in uboot. 
-CONFIG_RK_FB and CONFIG_CMD_BMP should be defined in include/configs/rk30xx.h. 
-rk_backlight_ctrl and rk_fb_init should be modified to fit the board.
-replace tools/logos/denx.bmp by your own logo. 
+5.  rk uboot bin
+    if uboot as first level bootloader, rk uboot just a bin, such as:
+        RK3288Loader_uboot_V2.17.01.bin
 
-Rockusb
-support all the function for rockusb.
-plug in usb cable with volume + pressed can enter rockusb mode. you can use pc tool to flash image. 
-please modify RockusbKeyInit in board/rockchip/rk30xx/rk30xx.c if you want to use another key for entering rockusb. 
-you can modify pid and vid of rockusb in ModifyUsbVidPid of board/rockchip/common/platform/rk30/chipDepend.c
+    if uboot as second level bootloader, rk uboot just a image, such as:
+	uboot.img
+    define CONFIG_SECOND_LEVEL_BOOTLOADER configure uboot as second level bootloader,
+    if define CONFIG_MERGER_MINILOADER, rk uboot will merge mini loader bin which as first level bootloader, such as:
+        RK312xLoader_miniall_V2.17.08.bin	-	fist level bootloader
+	uboot.img				-	second level bootloader
 
-Charge animation
-support display charge animation in uboot.
-CONFIG_RK_FB, CONFIG_CMD_BMP and CONFIG_CMD_CHARGE_ANIM should be defined in include/configs/rk30xx.h. 
-rk_backlight_ctrl and rk_fb_init should be modified to fit the board. 
-it need battery driver for battery voltage detction.there are 3 battery define in include/configs/rk30xx.h. shows as below 
-//#define CONFIG_BATTERY_BQ27541
-//#define CONFIG_BATTERY_RICOH619
-#define CONFIG_BATTERY_RK_SAMPLE  //battery driver
-CONFIG_BATTERY_RK_SAMPLE is a fake one. if you want to write one by yourself, you can use this as sample
-put your charge animation bitmap in tools/logos/charge/images/
+6.  Chipset
+    support RK3288,RK3036,RK3126,RK3128.
 
-Recovery
-there is 2 way to enter android recovery
-1. long press volume + and power key without usb cable pluged. 
-2. use adb command "adb reboot recovery"
-please modify RockusbKeyInit in board/rockchip/rk30xx/rk30xx.c if you want to use another key for entering android recovery.
+7.  Storage
+    support emmc, sdcard and nand flash.
 
-Fastboot
-there is 2 way to enter android recovery
-1. plug in usb cable with volume - pressed. 
-2. use adb command "adb reboot fastboot"
-we use the same pid and vid as rockchip adb because the window usb driver for fastboot is the same as adb.
-you can modify CONFIG_USBD_VENDORID and CONFIG_USBD_PRODUCTID in include/configs/rk30xx.h if you want to use another pid, vid.
-fastboot support below command
-fastboot getvar version
-fastboot getvar version-bootloader
-fastboot getvar unlocked
-fastboot getvar secure
-fastboot getvar product
-fastboot getvar serialno
-fastboot getvar partition-type:<partition_name>
-fastboot getvar partition-size:<partition_name>
-fastboot oem recovery
-fastboot oem recovery:wipe_data
-fastboot oem unlock
-fastboot oem unlock_accept
-fastboot oem lock
-fastboot flash <partition_name> [ <filename> ]
-fastboot reboot
-fastboot reboot-bootloader
-fastboot continue
-fastboot boot <kernel> [ <ramdisk> ]
-fastboot update <filename> (this file should use make updatepackage in android root directory to generate it)
-fastboot flashall
+8.  configure file
+    rk uboot configure files as:
+        include\configs\rk_default_config.h	-	define all rk default module, just a common file.
+        include\configs\rk30plat.h		-	define detail configure for rk30 plat: rk3036, rk3126, rk3128
+        include\configs\rk32plat.h		-	define detail configure for rk32 plat: rk3288
 
-tool
-please use git clone ssh://git@git.rockchip.com.cn:2222/repo/tools  to get tool repository. flash tool is in AndroidTool directory. parameter is in parameter directory.this parameter has uboot partition defined. uboot.img should be flash to uboot partition.
+9.  maskrom mode
+    if storage hasn't program rk first level bootloader, power on will enter maskrom mode, prepare for bootloader download.
 
+10. rockusb mode
+    rk rockusb mode is using for down rk other images, such as kernel.img and so on.
 
+11. Fastboot
+    Android fastboot, all command as:
+        fastboot support below command
+        fastboot getvar version
+        fastboot getvar version-bootloader
+        fastboot getvar unlocked
+        fastboot getvar secure
+        fastboot getvar product
+        fastboot getvar serialno
+        fastboot getvar partition-type:<partition_name>
+        fastboot getvar partition-size:<partition_name>
+        fastboot oem recovery
+        fastboot oem recovery:wipe_data
+        fastboot oem unlock
+        fastboot oem unlock_accept
+        fastboot oem lock
+        fastboot flash <partition_name> [ <filename> ]
+        fastboot reboot
+        fastboot reboot-bootloader
+        fastboot continue
+        fastboot boot <kernel> [ <ramdisk> ]
+        fastboot update <filename> (this file should use make updatepackage in android root directory to generate it)
+        fastboot flashall
 
