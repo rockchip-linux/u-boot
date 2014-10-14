@@ -42,9 +42,14 @@
 void rkclk_pll_mode(int pll_id, int pll_mode);
 
 /*
- * rkplat clock set pll freq by id
+ * rkplat clock set pll rate by id
  */
-void rkclk_set_pll_by_id(enum rk_plls_id pll_id, uint32 mHz);
+void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz);
+
+/*
+ * rkplat clock get pll rate by id
+ */
+uint32 rkclk_get_pll_rate_by_id(enum rk_plls_id pll_id);
 
 /*
  * rkplat clock set for arm and general pll
@@ -78,24 +83,24 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq);
 
 
 /*
- * rkplat set sd clock src
+ * rkplat set mmc clock src
  * sdid:	sdmmc/sdio/emmc id
  * src:		sd clock source
  */
-void rkclk_set_sdclk_src(uint32 sdid, uint32 src);
+void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src);
 
 /*
  * rkplat get sd/sdmmc/emmc clock source freq
  * sdid:	sdmmc/sdio/emmc id
  */
-unsigned int rkclk_get_sdclk_src_freq(uint32 sdid);
+unsigned int rkclk_get_mmc_clk(uint32 sdid);
 
 /*
  * rkplat set sd clock div, from source input
  * sdid:	sdmmc/sdio/emmc id
  * div:		sd clock div, start from 1
  */
-int rkclk_set_sdclk_div(uint32 sdid, uint32 div);
+int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div);
 
 
 /*

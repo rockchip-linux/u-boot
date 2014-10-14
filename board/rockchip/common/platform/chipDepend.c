@@ -102,17 +102,17 @@ uint32 GetMmcCLK(uint32 nSDCPort)
 
 #if defined(CONFIG_RKCHIP_RK3288)
 	// set general pll
-	rkclk_set_sdclk_src(nSDCPort, 1);
+	rkclk_set_mmc_clk_src(nSDCPort, 1);
 	//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
-	src_clk = rkclk_get_sdclk_src_freq(nSDCPort) / 2;
+	src_clk = rkclk_get_mmc_clk(nSDCPort) / 2;
 #elif defined(CONFIG_RKCHIP_RK3036)
 	// set general pll
-	rkclk_set_sdclk_src(nSDCPort, 2);
-	src_clk = rkclk_get_sdclk_src_freq(nSDCPort);
+	rkclk_set_mmc_clk_src(nSDCPort, 2);
+	src_clk = rkclk_get_mmc_clk(nSDCPort);
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	// set general pll
-	rkclk_set_sdclk_src(nSDCPort, 1);
-	src_clk = rkclk_get_sdclk_src_freq(nSDCPort);
+	rkclk_set_mmc_clk_src(nSDCPort, 1);
+	src_clk = rkclk_get_mmc_clk(nSDCPort);
 #else
 	#error "PLS config platform for emmc clock get!"
 #endif
@@ -156,7 +156,7 @@ void SDCReset(void)
 int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
 {
 	debug("SCUSelSDClk: sd id = %d, div = %d\n", sdmmcId, div);
-	rkclk_set_sdclk_div(sdmmcId, div);
+	rkclk_set_mmc_clk_div(sdmmcId, div);
 }
 
 //mode=1  changemode to normal mode;

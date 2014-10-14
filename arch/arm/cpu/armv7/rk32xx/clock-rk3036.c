@@ -23,6 +23,7 @@
 #include <common.h>
 #include <asm/io.h>
 #include <div64.h>
+#include <asm/arch/rkplat.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -122,13 +123,14 @@ static const struct pll_clk_set gpll_clks[] = {
 };
 
 
-struct pll_data rkpll_data[END_PLL_ID] = {
+static struct pll_data rkpll_data[END_PLL_ID] = {
 	SET_PLL_DATA(APLL_ID, apll_clks, ARRAY_SIZE(apll_clks)),
 	SET_PLL_DATA(DPLL_ID, NULL, 0),
 	SET_PLL_DATA(GPLL_ID, gpll_clks, ARRAY_SIZE(gpll_clks)),
 };
 
 
+/* Waiting for pll locked by pll id */
 static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
 	int delay = 24000000;
@@ -145,6 +147,7 @@ static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 }
 
 
+/* Set pll mode by id, normal mode or slow mode */
 static void rkclk_pll_set_mode(enum rk_plls_id pll_id, int pll_mode)
 {
 	uint32 dly = 1500;
@@ -163,13 +166,15 @@ static void rkclk_pll_set_mode(enum rk_plls_id pll_id, int pll_mode)
 }
 
 
-static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f cb_f)
+/* Set pll rate by id */
+static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f cb_f)
 {
 	struct pll_data *pll = NULL;
 	struct pll_clk_set *clkset = NULL;
 	unsigned long rate = mHz * MHZ;
 	int i = 0;
 
+	/* Find pll rate set */
 	for (i=0; i<END_PLL_ID; i++) {
 		if (rkpll_data[i].id == pll_id) {
 			pll = &rkpll_data[i];
@@ -180,6 +185,7 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 		return -1;
 	}
 
+	/* Find clock set */
 	for (i=0; i<pll->size; i++) {
 		if (pll->clkset[i].rate <= rate) {
 			clkset = &(pll->clkset[i]);
@@ -211,8 +217,9 @@ static int rkclk_pll_clk_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callba
 }
 
 
+/* Get pll rate by id */
 #define FRAC_MODE	0
-static uint32 rkclk_pll_clk_get_rate(enum rk_plls_id pll_id)
+static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 {
 	unsigned int dsmp = 0;
 	u64 rate64 = 0, frac_rate64 = 0;
@@ -530,9 +537,9 @@ void rkclk_pll_mode(int pll_id, int pll_mode)
 
 
 /*
- * rkplat clock set pll freq by id
+ * rkplat clock set pll rate by id
  */
-void rkclk_set_pll_by_id(enum rk_plls_id pll_id, uint32 mHz)
+void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
 {
 	pll_callback_f cb_f = NULL;
 
@@ -542,7 +549,7 @@ void rkclk_set_pll_by_id(enum rk_plls_id pll_id, uint32 mHz)
 		cb_f = rkclk_gpll_cb;
 	}
 
-	rkclk_pll_clk_set_rate(pll_id, mHz, cb_f);
+	rkclk_pll_set_rate(pll_id, mHz, cb_f);
 }
 
 
@@ -551,8 +558,17 @@ void rkclk_set_pll_by_id(enum rk_plls_id pll_id, uint32 mHz)
  */
 void rkclk_set_pll(void)
 {
-	rkclk_pll_clk_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
-	rkclk_pll_clk_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
+	rkclk_pll_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
+	rkclk_pll_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
+}
+
+
+/*
+ * rkplat clock get pll rate by id
+ */
+uint32 rkclk_get_pll_rate_by_id(enum rk_plls_id pll_id)
+{
+	return rkclk_pll_get_rate(pll_id);
 }
 
 
@@ -564,9 +580,9 @@ void rkclk_get_pll(void)
 	uint32 div;
 
 	/* cpu / periph / ddr freq */
-	gd->cpu_clk = rkclk_pll_clk_get_rate(APLL_ID);
-	gd->bus_clk = rkclk_pll_clk_get_rate(GPLL_ID);
-	gd->mem_clk = rkclk_pll_clk_get_rate(DPLL_ID);
+	gd->cpu_clk = rkclk_pll_get_rate(APLL_ID);
+	gd->bus_clk = rkclk_pll_get_rate(GPLL_ID);
+	gd->mem_clk = rkclk_pll_get_rate(DPLL_ID);
 
 	/* cpu aclk */
 	div = rkclk_get_cpu_aclk_div();
@@ -763,7 +779,7 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 
 	dclk_div = dclk_info & 0x0000FFFF;
 	// general pll
-	return (rkclk_pll_clk_get_rate(GPLL_ID) / dclk_div);
+	return (rkclk_pll_get_rate(GPLL_ID) / dclk_div);
 }
 
 
@@ -803,10 +819,10 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 
 
 /*
- * rkplat set sd clock src
+ * rkplat set mmc clock src
  * 0: arm pll; 1: ddr pll; 2: general pll; 3: 24M
  */
-void rkclk_set_sdclk_src(uint32 sdid, uint32 src)
+void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src)
 {
 	src &= 0x03;
 	if (0 == sdid) {
@@ -823,9 +839,9 @@ void rkclk_set_sdclk_src(uint32 sdid, uint32 src)
 
 
 /*
- * rkplat set sd/sdmmc/emmc clock src
+ * rkplat get mmc clock src rate
  */
-unsigned int rkclk_get_sdclk_src_freq(uint32 sdid)
+unsigned int rkclk_get_mmc_clk(uint32 sdid)
 {
 	uint32 con;
 	uint32 sel;
@@ -862,10 +878,10 @@ unsigned int rkclk_get_sdclk_src_freq(uint32 sdid)
 
 
 /*
- * rkplat set sd clock div
+ * rkplat set mmc clock div
  * here no check clkgate, because chip default is enable.
  */
-int rkclk_set_sdclk_div(uint32 sdid, uint32 div)
+int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div)
 {
 	if (div == 0) {
 		return -1;

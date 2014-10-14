@@ -127,15 +127,16 @@ void rkclk_pll_mode(int pll_id, int pll_mode) {}
 void rkclk_set_pll(void) {}
 void rkclk_get_pll(void) {}
 void rkclk_dump_pll(void) {}
-void rkclk_set_pll_by_id(enum rk_plls_id pll_id, uint32 mHz) {}
+void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz) {}
+uint32 rkclk_get_pll_rate_by_id(enum rk_plls_id pll_id) { return 24 * MHZ; }
 void rkclk_set_cpll_rate(uint32 pll_hz) {}
 int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz) { return 0; }
 int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
-void rkclk_set_sdclk_src(uint32 sdid, uint32 src) {}
-unsigned int rkclk_get_sdclk_src_freq(uint32 sdid) { return 24 * MHZ; }
+void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src) {}
+unsigned int rkclk_get_mmc_clk(uint32 sdid) { return 24 * MHZ; }
 int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq) { return 0; }
-int rkclk_set_sdclk_div(uint32 sdid, uint32 div) { return 0; }
+int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div) { return 0; }
 unsigned int rkclk_get_pwm_clk(uint32 pwm_id) { return 0; }
 unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id) { return 0; }
 unsigned int rkclk_get_spi_clk(uint32 spi_bus) { return 0; }
