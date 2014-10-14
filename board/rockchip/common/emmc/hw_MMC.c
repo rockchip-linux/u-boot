@@ -358,7 +358,15 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
         {
             pCard->bootSize = 1024;
         }
-
+        
+		if(pDataBuf[167] != 0x1F && (pDataBuf[166]&0x5))
+		{
+            //PRINT_E("WR_REL_SET is %x %x\n",pDataBuf[167],pDataBuf[166]); 
+			SDC_SendCommand(pCard->cardId, \
+								 (MMC4_SWITCH_FUNC | SD_NODATA_OP | SD_RSP_R1B | WAIT_PREV), \
+								 ((0x3 << 24) | (167<< 16) | (0x1F << 8)), \
+								 &status);
+		}
         #ifdef CONFIG_EMMC_PARTITION
         /*After every power up, when host uses a device in which partition(s) are configured, it must set the 
         ERASE_GROUP_DEF bit to high before issuing read, write, erase and write protect commands, because 
