@@ -480,7 +480,7 @@ struct hdmi_dev {
 	//uboot
 	unsigned char  vicdb[HDMI_VICDB_LEN];
 	unsigned char  vic_pos;
-	struct rk_hdmi_drvdata *data;
+	struct rk_hdmi_drvdata data;
 
 	const struct hdmi_video_timing *modedb;
 	unsigned short mode_len;

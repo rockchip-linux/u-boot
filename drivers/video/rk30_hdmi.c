@@ -56,7 +56,7 @@ int hdmi_init_video_para(struct hdmi_dev *hdmi_dev)
 	memset(video, 0, sizeof(struct hdmi_video_para));
 	video->vic         = hdmi_dev->video.vic;
 	video->input_mode  = VIDEO_INPUT_RGB_YCBCR_444;
-	if (hdmi_dev->data->soc_type == HDMI_SOC_RK3036)
+	if (hdmi_dev->data.soc_type == HDMI_SOC_RK3036)
 		video->input_color = VIDEO_INPUT_COLOR_RGB;
 	else
 		video->input_color = VIDEO_INPUT_COLOR_YCBCR444;
@@ -66,7 +66,7 @@ int hdmi_init_video_para(struct hdmi_dev *hdmi_dev)
 	/* 0:IT Video Format  1:CE Video Format
 	 * TODO modify according to EDID
 	 */
-	video->color_limit_range = 1;
+	video->color_limit_range = COLOR_LIMIT_RANGE_0_255;
 
 #ifdef SOURCE_ABOVE_10BIT
 	if (hdmi_dev->driver.edid.deepcolor & HDMI_COLOR_DEPTH_16BIT)
@@ -466,7 +466,7 @@ static int rk30_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	struct hdmi_video_para *vpara = &hdmi_dev->vpara;
 
 	/* Output RGB as default */
-	if (hdmi_dev->data->soc_type == HDMI_SOC_RK3036)
+	if (hdmi_dev->data.soc_type == HDMI_SOC_RK3036)
 		vpara->output_color = VIDEO_OUTPUT_RGB444;
 	/*for set DVI output mode, or not hdmi will not display,need to check again*/
 	//vpara->output_color = VIDEO_OUTPUT_RGB444;
@@ -810,9 +810,9 @@ void rk30_hdmi_probe(vidinfo_t *panel)
 	        hdmi_dev->driver.audio.rate = HDMI_AUDIO_DEFAULT_RATE;
 	        hdmi_dev->driver.audio.word_length = HDMI_AUDIO_DEFAULT_WORD_LENGTH;
 #if defined(CONFIG_RKCHIP_RK3036)
-		hdmi_dev->data->soc_type = HDMI_SOC_RK3036;
+		hdmi_dev->data.soc_type = HDMI_SOC_RK3036;
 #elif defined(CONFIG_RKCHIP_RK3128)
-		hdmi_dev->data->soc_type = HDMI_SOC_RK312X;
+		hdmi_dev->data.soc_type = HDMI_SOC_RK312X;
 #else
 		#error "PLS config chiptype for rk30_hdmi.c!"
 #endif
