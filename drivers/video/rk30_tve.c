@@ -23,16 +23,16 @@
 #include <asm/io.h>
 #include <linux/fb.h>
 #include <asm/arch/rkplat.h>
-#include "rk3036_tve.h"
+#include "rk30_tve.h"
 
 int g_tve_pos = -1;
 
-static struct rk3036_tve tve_s;
+static struct rk30_tve tve_s;
 
 #define tve_writel(offset, v)	writel(v, tve_s.reg_phy_base  + offset)
 #define tve_readl(offset)	readl(tve_s.reg_phy_base + offset)
 
-struct fb_videomode rk3036_cvbs_mode[MAX_TVE_COUNT] = {
+struct fb_videomode rk30_cvbs_mode[MAX_TVE_COUNT] = {
 	/*name	refresh	xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw			polariry				PorI		flag*/
 	{"NTSC",	60,	720,	480,	27000000,	43,	33,	19,	0,	62,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
 	{"PAL",		50,	720,	576,	27000000,	52,	29,	19,	2,	63,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
@@ -41,12 +41,12 @@ struct fb_videomode rk3036_cvbs_mode[MAX_TVE_COUNT] = {
 
 #define TVE_REG_NUM 0x300
 
-int rk3036_tve_show_reg()
+int rk30_tve_show_reg()
 {
 	int i = 0;
 	u32 val = 0;
 
-	printf("\n>>>rk3036_tve reg");
+	printf("\n>>>rk30_tve reg");
 
 	printf("\n\n\n\n--------------------------%s------------------------------------",__FUNCTION__);
 
@@ -161,11 +161,11 @@ static void tve_set_mode (int mode)
 }
 
 #if defined(CONFIG_RK_FB)
-static void rk3036_tve_init_panel(vidinfo_t *panel)
+static void rk30_tve_init_panel(vidinfo_t *panel)
 {
 	const struct fb_videomode *mode = NULL;
 	
-	mode = &rk3036_cvbs_mode[TVOUT_DEAULT];
+	mode = &rk30_cvbs_mode[TVOUT_DEAULT];
 
 	panel->screen_type = SCREEN_TVOUT; 
 	panel->vl_freq    = mode->pixclock; 
@@ -225,7 +225,7 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 #endif
 
 
-int rk3036_tve_init(vidinfo_t *panel)
+int rk30_tve_init(vidinfo_t *panel)
 {
 #if defined(CONFIG_RKCHIP_RK3036)
 	tve_s.reg_phy_base = 0x10118000 + 0x200;
@@ -236,7 +236,7 @@ int rk3036_tve_init(vidinfo_t *panel)
 	tve_s.soctype = SOC_RK312X;
 //	printf("%s start soc is 3128\n", __func__);
 #endif
-	rk3036_tve_init_panel(panel);
+	rk30_tve_init_panel(panel);
 
 	if(g_tve_pos < 0)
 	{
@@ -253,5 +253,5 @@ int rk3036_tve_init(vidinfo_t *panel)
 	dac_enable(1);
 
 
-//	rk3036_tve_show_reg();
+//	rk30_tve_show_reg();
 }

@@ -14,7 +14,7 @@ drivers/video/rockchip/transmitter/mipi_dsi.h
 #include <linux/of_gpio.h>
 #include <dt-bindings/gpio/gpio.h>
 #endif
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 #include <linux/list.h>
 #endif
 

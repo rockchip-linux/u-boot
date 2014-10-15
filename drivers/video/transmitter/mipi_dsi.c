@@ -15,7 +15,7 @@
 #ifndef CONFIG_MIPI_DSI
 #include <common.h>
 #endif
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 #include <asm/io.h>
 #include <errno.h>
 #include <malloc.h>
@@ -49,7 +49,7 @@
 *v1.3 : fix send commad's methods  
 */
 #define MIPI_DSI_VERSION_AND_TIME  "mipi_dsi v1.3 2014-04-17"
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 #define	printk(x...)	printf(x)
 #endif
 

@@ -30,11 +30,11 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if defined CONFIG_RK_3288_HDMI || defined CONFIG_RK_3036_HDMI
+#if defined(CONFIG_RK_HDMI)
 extern short g_hdmi_vic;
 #endif
 
-#ifdef CONFIG_RK3036_TVE
+#ifdef CONFIG_RK30_TVE
 extern int g_tve_pos;
 #endif
 
@@ -303,17 +303,15 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		snprintf(command_line, sizeof(command_line),
 				"%s loader.timestamp=%s", command_line, U_BOOT_TIMESTAMP);
 
-#if defined CONFIG_RK_3288_HDMI || defined CONFIG_RK_3036_HDMI
+#if defined(CONFIG_RK_HDMI)
 		snprintf(command_line, sizeof(command_line),
 				 "%s hdmi.vic=%d", command_line, g_hdmi_vic);
-		//printf("%s:g_hdmi_vic=%d\n",__func__,g_hdmi_vic);
 #endif
 
-#ifdef CONFIG_RK3036_TVE
+#ifdef CONFIG_RK30_TVE
 		snprintf(command_line, sizeof(command_line),
 				"%s tve.format=%d", command_line, g_tve_pos);
 #endif
-
 
 		char *sn = getenv("fbt_sn#");
 		if (sn != NULL) {

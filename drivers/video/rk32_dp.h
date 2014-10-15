@@ -14,6 +14,7 @@
  */
 #ifndef __RK32_DP_H
 #define __RK32_DP_H
+
 #include <common.h>
 #include <asm/io.h>
 #include <errno.h>
@@ -629,4 +630,4 @@ int rk32_edp_wait_hw_lt_done(struct rk32_edp *edp);
 enum dp_irq_type rk32_edp_get_irq_type(struct rk32_edp *edp);
 void rk32_edp_clear_hotplug_interrupts(struct rk32_edp *edp);
 
-#endif
+#endif /* __RK32_DP_H */

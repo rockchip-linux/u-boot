@@ -5,7 +5,7 @@ drivers/video/rockchip/transmitter/rk32_mipi_dsi.h
 #ifndef RK32_MIPI_DSI_H
 #define RK32_MIPI_DSI_H
 
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 #include <asm/arch/rkplat.h>
 #if defined(CONFIG_RKCHIP_RK3288)
 #define RK_GRF_VIRT			RKIO_GRF_PHYS

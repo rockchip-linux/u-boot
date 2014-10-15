@@ -134,18 +134,18 @@
 /* more config for display */
 #ifdef CONFIG_LCD
 
-#define CONFIG_RK_3036_FB
+#define CONFIG_RK30_FB
 
 #ifdef CONFIG_RK_HDMI
-#define CONFIG_RK_3036_HDMI
+#define CONFIG_RK30_HDMI
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3128)
-#define CONFIG_RK3036_TVE
+#define CONFIG_RK30_TVE
 #endif /* CONFIG_RKCHIP_RK3036 */
 
 #if defined(CONFIG_RKCHIP_RK3126)
-#define CONFIG_RK_3288_DSI
+#define CONFIG_RK32_DSI
 #endif /* CONFIG_RKCHIP_RK3126 */
 
 #undef CONFIG_UBOOT_CHARGE

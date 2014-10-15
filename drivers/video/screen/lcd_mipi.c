@@ -20,7 +20,7 @@
 #include "../transmitter/mipi_dsi.h"
 #include <linux/delay.h>
 #endif
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 #include <common.h>
 #include <asm/io.h>
 #include <errno.h>
@@ -33,14 +33,14 @@
 #include "../transmitter/mipi_dsi.h"
 #endif
 
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 #define	MIPI_SCREEN_DBG(x...)	//printf(x)
 #elif defined CONFIG_LCD_MIPI
 #define	MIPI_SCREEN_DBG(x...)	//printk(KERN_ERR x)
 #else
 #define	MIPI_SCREEN_DBG(x...)  
 #endif
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 DECLARE_GLOBAL_DATA_PTR;
 #define msleep(a) udelay(a * 1000)
 #define	printk(x...)	//printf(x)
@@ -95,7 +95,7 @@ static void rk_mipi_screen_cmd_init(struct mipi_screen *screen)
 	u8 *cmds;
 	struct list_head *screen_pos;
 	struct mipi_dcs_cmd_ctr_list  *dcs_cmd;
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 	cmds = calloc(1,0x400);
 	if(!cmds) {
 		printf("request cmds fail!\n");
@@ -168,7 +168,7 @@ static void rk_mipi_screen_cmd_init(struct mipi_screen *screen)
 		    MIPI_SCREEN_DBG("cmd type err.\n");
 	}
 
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 	free(cmds);
 #endif
 #ifdef CONFIG_LCD_MIPI
@@ -561,7 +561,7 @@ int rk_mipi_get_dsi_clk(void)
 #ifdef CONFIG_LCD_MIPI
 EXPORT_SYMBOL(rk_mipi_get_dsi_clk);
 #endif
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 #ifdef CONFIG_OF_LIBFDT
 static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 {
@@ -748,7 +748,7 @@ int rk_mipi_screen_probe(void)
 	return 0;
 }
 
-#endif /* CONFIG_RK_3288_DSI */
+#endif /* CONFIG_RK32_DSI */
 #ifdef CONFIG_LCD_MIPI
 static int __init rk_mipi_screen_probe(struct platform_device *pdev)
 {

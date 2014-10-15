@@ -114,13 +114,13 @@
 /* more config for display */
 #ifdef CONFIG_LCD
 
-#define CONFIG_RK_3288_FB
+#define CONFIG_RK32_FB
 
 #ifdef CONFIG_RK_HDMI
-#define CONFIG_RK_3288_HDMI
+#define CONFIG_RK32_HDMI
 #endif
 
-#define CONFIG_RK_3288_DSI
+#define CONFIG_RK32_DSI
 
 #undef CONFIG_UBOOT_CHARGE
 

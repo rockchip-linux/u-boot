@@ -1139,8 +1139,10 @@ static void rk312x_lcdc_cfg_bcsh(struct lcdc_device *lcdc_dev)
 		      v_BG_COLOR(0x801080));
 	lcdc_cfg_done(lcdc_dev);
 }
+
+
 /* Configure VENC for a given Mode (NTSC / PAL) */
-void rk30_lcdc_set_par(struct fb_dsp_info *fb_info,
+void rk_lcdc_set_par(struct fb_dsp_info *fb_info,
 			     vidinfo_t *vid)
 {
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
@@ -1163,7 +1165,7 @@ void rk30_lcdc_set_par(struct fb_dsp_info *fb_info,
 	/*setenv("bootdelay", "3");*/
 }
 
-int rk30_load_screen(vidinfo_t *vid)
+int rk_lcdc_load_screen(vidinfo_t *vid)
 {
 	int face = 0;
 	int msk,val;
@@ -1379,7 +1381,7 @@ int rk30_load_screen(vidinfo_t *vid)
 }
 
 /* Enable LCD and DIGITAL OUT in DSS */
-void rk30_lcdc_standby(int enable)
+void rk_lcdc_standby(int enable)
 {
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
 

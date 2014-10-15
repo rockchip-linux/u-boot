@@ -390,9 +390,9 @@ typedef struct vidinfo {
 } vidinfo_t;
 
 void init_panel_info(vidinfo_t *vid);
-void rk30_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid);
-int rk30_load_screen(vidinfo_t *vid);
-int rk30_lcdc_init(int lcdc_id);
+void rk_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid);
+int rk_lcdc_load_screen(vidinfo_t *vid);
+int rk_lcdc_init(int lcdc_id);
 void get_rk_logo_info(vidinfo_t *vid);
 
 #else

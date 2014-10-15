@@ -189,16 +189,16 @@ void lcd_ctrl_init(void *lcdbase)
 	rk_fb_parse_dt(gd->fdt_blob);
 #endif
 
-#ifdef CONFIG_RK_3288_HDMI
-	rk3288_hdmi_probe(&panel_info);
+#ifdef CONFIG_RK32_HDMI
+	rk32_hdmi_probe(&panel_info);
 #endif
-#ifdef CONFIG_RK_3036_HDMI
-	rk3036_hdmi_probe(&panel_info);
+#ifdef CONFIG_RK30_HDMI
+	rk30_hdmi_probe(&panel_info);
 #endif
-#ifdef CONFIG_RK3036_TVE
+#ifdef CONFIG_RK30_TVE
 	if(g_hdmi_noexit == 1)
 	{
-		rk3036_tve_init(&panel_info);
+		rk30_tve_init(&panel_info);
 	}
 #endif
 	init_panel_info(&panel_info);
@@ -213,13 +213,13 @@ void lcd_ctrl_init(void *lcdbase)
 	panel_info.real_freq = rkclk_lcdc_clk_set(panel_info.lcdc_id, panel_info.vl_freq);
 
 	rk_lcdc_init(panel_info.lcdc_id);
-	rk30_load_screen(&panel_info);
+	rk_lcdc_load_screen(&panel_info);
 }
 
 void lcd_enable(void)
 {
 	if (panel_info.logo_on) {
-		rk30_lcdc_set_par(&panel_info.par[0].fb_info, &panel_info);
+		rk_lcdc_set_par(&panel_info.par[0].fb_info, &panel_info);
 	}
 
 	lcd_panel_on(&panel_info);
@@ -228,13 +228,13 @@ void lcd_enable(void)
 void lcd_pandispaly(struct fb_dsp_info *info)
 {
 	if (panel_info.logo_on) {
-		rk30_lcdc_set_par(info, &panel_info);
+		rk_lcdc_set_par(info, &panel_info);
 	}
 }
 
 void lcd_standby(int enable)
 {
-	rk30_lcdc_standby(enable);
+	rk_lcdc_standby(enable);
 }
 
 /* dummy function */

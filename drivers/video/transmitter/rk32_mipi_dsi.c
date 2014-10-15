@@ -44,7 +44,7 @@
 
 #ifdef CONFIG_RK32_MIPI_DSI
 #define	MIPI_DBG(x...)	/* MIPI_DBG(KERN_INFO x) */
-#elif defined CONFIG_RK_3288_DSI
+#elif defined CONFIG_RK32_DSI
 #define	MIPI_DBG(x...)	/* */printf( x) 
 #else
 #define	MIPI_DBG(x...)  
@@ -80,7 +80,12 @@ int rk_mipi_screen_standby(u8 enable);
 
 DECLARE_GLOBAL_DATA_PTR;
 extern int rk_mipi_screen_probe(void);
-extern void writel_relaxed(uint32 val, uint32 addr);
+
+static void inline writel_relaxed(uint32 val, uint32 addr)
+{
+    *(int*)addr = val;
+}
+
 #define msleep(a) udelay(a * 1000)
 #if defined(CONFIG_RKCHIP_RK3288)
 /* 
@@ -1635,7 +1640,7 @@ static irqreturn_t rk32_mipi_dsi_irq_handler(int irq, void *data)
 	return IRQ_HANDLED;
 }
 #endif
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 int rk32_dsi_sync(void)
 {
 	/*
@@ -1746,7 +1751,7 @@ static void rk_init_phy_mode(int lcdc_id)
 		rk32_init_phy_mode(lcdc_id);
 }
 
-#ifdef CONFIG_RK_3288_DSI
+#ifdef CONFIG_RK32_DSI
 #ifdef CONFIG_OF_LIBFDT
 int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 {

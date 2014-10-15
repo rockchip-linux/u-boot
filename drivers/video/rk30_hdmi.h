@@ -1,8 +1,29 @@
-#ifndef _RK3036_HDMI_H
-#define _RK3036_HDMI_H
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * See file CREDITS for list of people who contributed to this
+ * project.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+#ifndef _RK30_HDMI_H
+#define _RK30_HDMI_H
 
 #include <asm/io.h>
-#include <asm/arch-rk32xx/io-rk3036.h>
+#include <asm/arch/rkplat.h>
 #include "rk_hdmi.h"
 
 enum PWR_MODE {
@@ -356,7 +377,7 @@ static inline int hdmi_msk_reg(struct hdmi_dev *hdmi_dev, u16 offset,
 	return ret;
 }
 
-static inline void rk3036_hdmi_reset_pclk(void)
+static inline void rk30_hdmi_reset_pclk(void)
 {
 	writel(0x00010001, RKIO_CRU_PHYS + 0x128);
 	mdelay(400);
@@ -365,4 +386,4 @@ static inline void rk3036_hdmi_reset_pclk(void)
 
 extern int rk616_hdmi_initial(void);
 
-#endif
+#endif /* _RK30_HDMI_H */
