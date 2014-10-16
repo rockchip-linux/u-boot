@@ -1434,3 +1434,23 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 	}
 }
 
+
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+/*
+ * rkplat set crypto clock
+ * here no check clkgate, because chip default is enable.
+ */
+void rkclk_set_crypto_clk(uint32 rate)
+{
+	uint32 parent = 0;
+	uint32 div;
+
+	parent = gd->arch.aclk_bus_rate_hz;
+	div = rkclk_calc_clkdiv(parent, rate, 0);
+	if (div == 0) {
+		div = 1;
+	}
+
+	cru_writel((3 << (6 + 16)) | ((div-1) << 6), CRU_CLKSELS_CON(26));
+}
+#endif /* CONFIG_SECUREBOOT_CRYPTO */

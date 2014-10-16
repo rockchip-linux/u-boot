@@ -159,5 +159,13 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz);
 uint32 rkclk_select_pll_source(uint32 clock, uint32 even);
 
 
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+/*
+ * rkplat set cryto clock
+ * here no check clkgate, because chip default is enable.
+ */
+void rkclk_set_cryto_clk(uint32 rate);
+#endif /* CONFIG_SECUREBOOT_CRYPTO */
+
 #endif	/* _RKXX_CLOCK_H */
 

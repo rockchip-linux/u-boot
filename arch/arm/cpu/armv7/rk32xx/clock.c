@@ -140,6 +140,9 @@ int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div) { return 0; }
 unsigned int rkclk_get_pwm_clk(uint32 pwm_id) { return 0; }
 unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id) { return 0; }
 unsigned int rkclk_get_spi_clk(uint32 spi_bus) { return 0; }
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+void rkclk_set_crypto_clk(uint32 rate) {}
+#endif /* CONFIG_SECUREBOOT_CRYPTO*/
 
 #endif /* CONFIG_RK_CLOCK */
 
