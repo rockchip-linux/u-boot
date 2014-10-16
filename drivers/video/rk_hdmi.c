@@ -36,6 +36,7 @@ short g_hdmi_vic = -1;
 static struct baseparamer_pos g_pos_baseparamer = {-1, -1};
 
 //struct hdmi_dev *hdmi = NULL;
+extern int g_hdmi_noexit;
 
 //#define HDMIDEBUG
 #ifdef CONFIG_RK30_TVE
@@ -1394,10 +1395,6 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 #endif
 	ret = read_baseparamer_storage(hdmi_dev, &g_pos_baseparamer);
 
-#ifdef CONFIG_RK30_TVE
-	g_tve_pos = g_pos_baseparamer.tve_pos;
-#endif
-
 	if (hdmi_dev->hd_init && !hdmi_dev->hd_init(hdmi_dev)) {
 		g_hdmi_vic = hdmi_dev->video.vic;
 		//config lcdc panel
@@ -1405,4 +1402,10 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	hdmi_init_panel(hdmi_dev, panel);
 #endif
 	}
+
+#ifdef CONFIG_RK30_TVE
+	if(g_hdmi_noexit == 1)
+	g_tve_pos = g_pos_baseparamer.tve_pos;
+#endif
+
 }
