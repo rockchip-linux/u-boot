@@ -257,6 +257,37 @@ static int rkimg_buildParameter(unsigned char *parameter, int len)
 	return len + PARAMETER_HEAD_OFFSET;
 }
 
+
+static int rkimg_checkLoaderKey(RK28BOOT_HEAD *hdr)
+{
+#define RSA_KEY_OFFSET 0x10//according to dumped data, the key is here.
+#define RSA_KEY_LEN    0x102//258, public key's length
+	char buf[RK_BLK_SIZE];
+
+	memcpy(buf, hdr + hdr->uiFlashBootOffset, RK_BLK_SIZE);
+	P_RC4((unsigned char *)buf, RK_BLK_SIZE);
+
+	if (buf[RSA_KEY_OFFSET] != 0 || buf[RSA_KEY_OFFSET + 1] != 4) {
+		FBTDBG("try to flash unsigned loader\n");
+	}
+	if (gDrmKeyInfo.publicKeyLen == 0) {
+		FBTERR("current loader unsigned, allow flash loader anyway\n");
+		return 0;
+	}
+
+#ifdef FBT_DEBUG
+	printf("dump new loader's key:\n");
+	for (i = 0; i < 32; i++) {
+		for (j = 0; j < 16; j++) {
+			printf("%02x", buf[RSA_KEY_OFFSET + i * 16 + j]);
+		}
+		printf("\n");
+	}
+#endif
+	return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
+}
+
+
 static int rkimg_make_loader_data(const char* old_loader, char* new_loader, int *new_loader_size)
 {
 	int i,j;
@@ -307,30 +338,7 @@ static int rkimg_make_loader_data(const char* old_loader, char* new_loader, int 
 	*new_loader_size = new_hdr->uiFlashBootOffset+new_hdr->uiFlashBootLen;
 	//    dump_data(new_loader, HEADINFO_SIZE);
 
-#define RSA_KEY_OFFSET 0x10//according to dumped data, the key is here.
-#define RSA_KEY_LEN    0x102//258, public key's length
-	char buf[RK_BLK_SIZE];
-	memcpy(buf, new_loader + new_hdr->uiFlashBootOffset, RK_BLK_SIZE);
-	P_RC4((unsigned char *)buf, RK_BLK_SIZE);
-
-	if (buf[RSA_KEY_OFFSET] != 0 || buf[RSA_KEY_OFFSET + 1] != 4) {
-		FBTDBG("try to flash unsigned loader\n");
-	}
-	if (gDrmKeyInfo.publicKeyLen == 0) {
-		FBTERR("current loader unsigned, allow flash loader anyway\n");
-		return 0;
-	}
-
-#ifdef FBT_DEBUG
-	printf("dump new loader's key:\n");
-	for (i = 0;i < 32;i++) {
-		for (j = 0;j < 16;j++) {
-			printf("%02x", buf[RSA_KEY_OFFSET + i * 16 + j]);
-		}
-		printf("\n");
-	}
-#endif
-	return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
+	return rkimg_checkLoaderKey(new_hdr);
 }
 
 static bool rkimg_checkBootImageSha(rk_boot_img_hdr *boothdr)
