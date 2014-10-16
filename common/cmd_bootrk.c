@@ -106,134 +106,123 @@ static int rk_bootrk_start(bootm_headers_t *images)
 }
 
 
-/* bootrk [ <addr> | <partition> ] */
-int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr)
 {
-	char *boot_source = "boot";
 	rk_boot_img_hdr *hdr = NULL;
-	const disk_partition_t* ptn;
-	bootm_headers_t images;
-	bool charge = false;
-
-	if (argc >= 2) {
-		if (!strcmp(argv[1], "charge")) {
-			charge = true;
-		} else {
-			boot_source = argv[1];
-		}
-	}
-
+	unsigned addr;
+	char *ep;
 	void *kaddr, *raddr;
+
 	kaddr = (void*)CONFIG_KERNEL_LOAD_ADDR;
 	raddr = (void*)(gd->arch.rk_boot_buf_addr);
 
-	ptn = get_disk_partition(boot_source);
-	if (ptn) {
-		unsigned long blksz = ptn->blksz;
-		unsigned sector;
-		unsigned blocks;
-		hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
-		if (hdr == NULL) {
-			FBTERR("error allocating blksz(%lu) buffer\n", blksz);
-			goto fail;
-		}
-		if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
-			FBTERR("bootrk: failed to read bootimg header\n");
-			goto fail;
-		}
-		if (memcmp(hdr->magic, BOOT_MAGIC,
-					BOOT_MAGIC_SIZE)) {
-			memset(hdr, 0, blksz);
-			hdr->kernel_addr = (uint32)kaddr;
-			hdr->ramdisk_addr = (uint32)raddr;
-
-			snprintf((char*)hdr->magic, BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
-			if (rkimage_load_image(hdr, ptn, get_disk_partition(KERNEL_NAME)) != 0) {
-				FBTERR("bootrk: bad boot or kernel image\n");
-				goto fail;
-			}
-		} else {
-			hdr->kernel_addr = (uint32)kaddr;
-			hdr->ramdisk_addr = (uint32)raddr;
-
-			sector = ptn->start + (hdr->page_size / blksz);
-			blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
-			if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
-						blocks) != 0) {
-				FBTERR("bootrk: failed to read kernel\n");
-				goto fail;
-			}
-
-			sector += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
-			blocks = DIV_ROUND_UP(hdr->ramdisk_size, blksz);
-			if (StorageReadLba(sector, (void *) hdr->ramdisk_addr, \
-						blocks) != 0) {
-				FBTERR("bootrk: failed to read ramdisk\n");
-				goto fail;
-			}
-		}
-	} else {
-		unsigned addr;
-		char *ep;
-
-		addr = simple_strtoul(boot_source, &ep, 16);
-		if (ep == boot_source || *ep != '\0') {
-			printf("'%s' does not seem to be a partition nor "
-					"an address\n", boot_source);
-			/* this is most likely due to having no
-			 * partition table in factory case, or could
-			 * be argument is wrong.  in either case, start
-			 * fastboot mode.
-			 */
-			goto fail;
-		}
-
-		hdr = malloc(sizeof(*hdr));
-		if (hdr == NULL) {
-			printf("error allocating buffer\n");
-			goto fail;
-		}
-
-		/* set this aside somewhere safe */
-		memcpy(hdr, (void *) addr, sizeof(*hdr));
-
-		if (memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE)) {
-			printf("bootrk: bad boot image magic\n");
-			goto fail;
-		}
-
-		hdr->ramdisk_addr = (int)raddr;
-		hdr->kernel_addr = (int)kaddr;
-		kaddr = (void *)(addr + hdr->page_size);
-		raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
-					hdr->page_size));
-		memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
-		memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
+	addr = simple_strtoul(ram_addr, &ep, 16);
+	if (ep == ram_addr || *ep != '\0') {
+		printf("'%s' does not seem to be a partition nor "
+				"an address\n", ram_addr);
+		/* this is most likely due to having no
+		 * partition table in factory case, or could
+		 * be argument is wrong.  in either case, start
+		 * fastboot mode.
+		 */
+		return NULL;
 	}
 
-	memset(&images, 0, sizeof(images));
-	if (rk_bootrk_start(&images)) { /*it returns 1 when failed.*/
-		puts("bootrk: failed to setup lmb!\n");
+	hdr = malloc(sizeof(rk_boot_img_hdr));
+	if (hdr == NULL) {
+		printf("error allocating buffer\n");
+		return NULL;
+	}
+	/* set this aside somewhere safe */
+	memcpy(hdr, (void *) addr, sizeof(rk_boot_img_hdr));
+
+	if (memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE)) {
+		printf("bootrk: bad boot image magic\n");
+		free(hdr);
+		return NULL;
+	}
+
+	hdr->ramdisk_addr = (int)raddr;
+	hdr->kernel_addr = (int)kaddr;
+	kaddr = (void *)(addr + hdr->page_size);
+	raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
+				hdr->page_size));
+	memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
+	memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
+
+	char* fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);
+	unsigned long unlocked = 0;
+	if (fastboot_unlocked_env) {
+		if (!strict_strtoul(fastboot_unlocked_env, 10, &unlocked)) {
+			unlocked = unlocked? 1 : 0;
+		}
+	}
+	/* boot check call SetSysData2Kernel, set sn and others information in the nanc ram,
+	 * so, after check, PLS notice do not read/write nand flash. 
+	 */
+	if (rkloader_secureCheck(hdr, unlocked)) {
+		FBTERR("bootrk: board check boot image error\n");
+		free(hdr);
+		return NULL;
+	}
+
+	return hdr;
+}
+
+
+static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn, bootm_headers_t *pimage)
+{
+	rk_boot_img_hdr *hdr = NULL;
+	unsigned long blksz = ptn->blksz;
+	unsigned sector;
+	unsigned blocks;
+	void *kaddr, *raddr;
+
+	kaddr = (void*)CONFIG_KERNEL_LOAD_ADDR;
+	raddr = (void*)(gd->arch.rk_boot_buf_addr);
+
+	hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
+	if (hdr == NULL) {
+		FBTERR("error allocating blksz(%lu) buffer\n", blksz);
+		return NULL;
+	}
+
+	if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
+		FBTERR("bootrk: failed to read bootimg header\n");
 		goto fail;
 	}
 
-	/* loader fdt */
-#ifdef CONFIG_OF_LIBFDT
-	resource_content content = rkimage_load_fdt(ptn);
-	if (!content.load_addr) {
-		printf("failed to load fdt from %s!\n", boot_source);
-#ifdef CONFIG_OF_FROM_RESOURCE
-		content = rkimage_load_fdt(get_disk_partition(RESOURCE_NAME));
-#endif
-	}
-	if (!content.load_addr) {
-		printf("failed to load fdt!\n");
-		goto fail;
+	if (memcmp(hdr->magic, BOOT_MAGIC,
+				BOOT_MAGIC_SIZE)) {
+		memset(hdr, 0, blksz);
+		hdr->kernel_addr = (uint32)kaddr;
+		hdr->ramdisk_addr = (uint32)raddr;
+
+		snprintf((char*)hdr->magic, BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
+		if (rkimage_load_image(hdr, ptn, get_disk_partition(KERNEL_NAME)) != 0) {
+			FBTERR("bootrk: bad boot or kernel image\n");
+			goto fail;
+		}
 	} else {
-		images.ft_addr = content.load_addr;
-		images.ft_len = content.content_size;
+		hdr->kernel_addr = (uint32)kaddr;
+		hdr->ramdisk_addr = (uint32)raddr;
+
+		sector = ptn->start + (hdr->page_size / blksz);
+		blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
+		if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
+					blocks) != 0) {
+			FBTERR("bootrk: failed to read kernel\n");
+			goto fail;
+		}
+
+		sector += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
+		blocks = DIV_ROUND_UP(hdr->ramdisk_size, blksz);
+		if (StorageReadLba(sector, (void *) hdr->ramdisk_addr, \
+					blocks) != 0) {
+			FBTERR("bootrk: failed to read ramdisk\n");
+			goto fail;
+		}
 	}
-#endif /* CONFIG_OF_LIBFDT */
 
 	char* fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);
 	unsigned long unlocked = 0;
@@ -250,88 +239,152 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		goto fail;
 	}
 
+	/* loader fdt */
+#ifdef CONFIG_OF_LIBFDT
+	resource_content content = rkimage_load_fdt(ptn);
+	if (!content.load_addr) {
+		printf("failed to load fdt from %s!\n", ptn->name);
+#ifdef CONFIG_OF_FROM_RESOURCE
+		content = rkimage_load_fdt(get_disk_partition(RESOURCE_NAME));
+#endif
+	}
+	if (!content.load_addr) {
+		printf("failed to load fdt!\n");
+		goto fail;
+	} else {
+		pimage->ft_addr = content.load_addr;
+		pimage->ft_len = content.content_size;
+	}
+#endif /* CONFIG_OF_LIBFDT */
+
+	return hdr;
+fail:
+	/* if booti fails, always start fastboot */
+	free(hdr); /* hdr may be NULL, but that's ok. */
+	return NULL;
+}
+
+
+static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, bool charge)
+{
+#ifdef CONFIG_CMDLINE_TAG
+	/* static just to be safe when it comes to the stack */
+	static char command_line[1024];
+	/* Use the cmdline from board_fbt_finalize_bootargs instead of
+	 * any hardcoded into u-boot.  Also, Android wants the
+	 * serial number on the command line instead of via
+	 * tags so append the serial number to the bootimg header
+	 * value and set the bootargs environment variable.
+	 * do_bootm_linux() will use the bootargs environment variable
+	 * to pass it to the kernel.  Add the bootloader
+	 * version too.
+	 */
+
+	board_fbt_finalize_bootargs(command_line, sizeof(command_line),
+			hdr->ramdisk_addr, hdr->ramdisk_size,
+			!strcmp(boot_name, RECOVERY_NAME));
+
+	// Storage Media Name
+	uint32 media = StorageGetBootMedia();
+	char *medianame = NULL;
+	if (media == BOOT_FROM_FLASH) {
+		medianame = "nand";
+	} else if (media == BOOT_FROM_EMMC) {
+		medianame = "emmc";
+	} else if (media == BOOT_FROM_SD0) {
+		medianame = "sd";
+	}
+
+	if (medianame != NULL) {
+		snprintf(command_line, sizeof(command_line),
+				"%s storagemedia=%s", command_line, medianame);
+	}
+
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+	if (StorageSDCardUpdateMode() != 0) { // sd 卡升级，进入recovery
+		snprintf(command_line, sizeof(command_line),
+				"%s %s", command_line, "sdfwupdate");
+	}
+#endif
+	if (charge) {
+		snprintf(command_line, sizeof(command_line),
+				"%s %s", command_line, "androidboot.mode=charger");
+	}
+
+	snprintf(command_line, sizeof(command_line),
+			"%s loader.timestamp=%s", command_line, U_BOOT_TIMESTAMP);
+
+#if defined(CONFIG_RK_HDMI)
+	snprintf(command_line, sizeof(command_line),
+			 "%s hdmi.vic=%d", command_line, g_hdmi_vic);
+#endif
+
+#ifdef CONFIG_RK30_TVE
+	snprintf(command_line, sizeof(command_line),
+			"%s tve.format=%d", command_line, g_tve_pos);
+#endif
+
+	char *sn = getenv("fbt_sn#");
+	if (sn != NULL) {
+		/* append serial number if it wasn't in device_info already */
+		if (!strstr(command_line, FASTBOOT_SERIALNO_BOOTARG)) {
+			snprintf(command_line, sizeof(command_line),
+					"%s %s=%s", command_line, FASTBOOT_SERIALNO_BOOTARG, sn);
+		}
+	}
+
+	command_line[sizeof(command_line) - 1] = 0;
+
+	setenv("bootargs", command_line);
+#endif /* CONFIG_CMDLINE_TAG */
+}
+
+/* bootrk [ <addr> | <partition> ] */
+int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	char *boot_source = "boot";
+	rk_boot_img_hdr *hdr = NULL;
+	const disk_partition_t* ptn = NULL;
+	bootm_headers_t images;
+	bool charge = false;
+
+	if (argc >= 2) {
+		if (!strcmp(argv[1], "charge")) {
+			charge = true;
+		} else {
+			boot_source = argv[1];
+		}
+	}
+
+	memset(&images, 0, sizeof(images));
+	if (rk_bootrk_start(&images)) { /*it returns 1 when failed.*/
+		puts("bootrk: failed to setup lmb!\n");
+		goto fail;
+	}
+
+	ptn = get_disk_partition(boot_source);
+	if (ptn) {
+		hdr = rk_load_image_from_storage(ptn, &images);
+		if (hdr == NULL) {
+			goto fail;
+		}
+	} else {
+		hdr = rk_load_image_from_ram(boot_source);
+		if (hdr == NULL) {
+			goto fail;
+		}
+	}
+
 	bootimg_print_image_hdr(hdr);
 
 	printf("kernel   @ 0x%08x (0x%08x)\n", hdr->kernel_addr, hdr->kernel_size);
 	printf("ramdisk  @ 0x%08x (0x%08x)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
 
-#ifdef CONFIG_CMDLINE_TAG
-	{
-		/* static just to be safe when it comes to the stack */
-		static char command_line[1024];
-		/* Use the cmdline from board_fbt_finalize_bootargs instead of
-		 * any hardcoded into u-boot.  Also, Android wants the
-		 * serial number on the command line instead of via
-		 * tags so append the serial number to the bootimg header
-		 * value and set the bootargs environment variable.
-		 * do_bootm_linux() will use the bootargs environment variable
-		 * to pass it to the kernel.  Add the bootloader
-		 * version too.
-		 */
-
-		board_fbt_finalize_bootargs(command_line, sizeof(command_line),
-				hdr->ramdisk_addr, hdr->ramdisk_size,
-				!strcmp(boot_source, RECOVERY_NAME));
-
-		// Storage Media Name
-		uint32 media = StorageGetBootMedia();
-		char *medianame = NULL;
-		if (media == BOOT_FROM_FLASH) {
-			medianame = "nand";
-		} else if (media == BOOT_FROM_EMMC) {
-			medianame = "emmc";
-		} else if (media == BOOT_FROM_SD0) {
-			medianame = "sd";
-		}
-
-		if (medianame != NULL) {
-			snprintf(command_line, sizeof(command_line),
-					"%s storagemedia=%s", command_line, medianame);
-		}
-
-#ifdef CONFIG_RK_SDCARD_BOOT_EN
-		if (StorageSDCardUpdateMode() != 0) { // sd 卡升级，进入recovery
-			snprintf(command_line, sizeof(command_line),
-					"%s %s", command_line, "sdfwupdate");
-		}
-#endif
-		if (charge) {
-			snprintf(command_line, sizeof(command_line),
-					"%s %s", command_line, "androidboot.mode=charger");
-		}
-
-		snprintf(command_line, sizeof(command_line),
-				"%s loader.timestamp=%s", command_line, U_BOOT_TIMESTAMP);
-
-#if defined(CONFIG_RK_HDMI)
-		snprintf(command_line, sizeof(command_line),
-				 "%s hdmi.vic=%d", command_line, g_hdmi_vic);
-#endif
-
-#ifdef CONFIG_RK30_TVE
-		snprintf(command_line, sizeof(command_line),
-				"%s tve.format=%d", command_line, g_tve_pos);
-#endif
-
-		char *sn = getenv("fbt_sn#");
-		if (sn != NULL) {
-			/* append serial number if it wasn't in device_info already */
-			if (!strstr(command_line, FASTBOOT_SERIALNO_BOOTARG)) {
-				snprintf(command_line, sizeof(command_line),
-						"%s %s=%s", command_line, FASTBOOT_SERIALNO_BOOTARG, sn);
-			}
-		}
-
-		command_line[sizeof(command_line) - 1] = 0;
-
-		setenv("bootargs", command_line);
-	}
-#endif /* CONFIG_CMDLINE_TAG */
-
 	images.ep = hdr->kernel_addr;
 	images.rd_start = hdr->ramdisk_addr;
 	images.rd_end = hdr->ramdisk_addr + hdr->ramdisk_size;
-	free(hdr);
+
+	rk_commandline_setenv(boot_source, hdr, charge);
 
 	rk_module_deinit();
 
@@ -346,9 +399,6 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif /* CONFIG_BOOTM_LINUX */
 
 fail:
-	/* if booti fails, always start fastboot */
-	free(hdr); /* hdr may be NULL, but that's ok. */
-
 	board_fbt_boot_failed(boot_source);
 
 	puts("bootrk: Control returned to monitor - resetting...\n");
