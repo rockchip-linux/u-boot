@@ -263,6 +263,7 @@ int rkidb_update_loader(bool dataLoaded);
 void rkidb_setup_space(uint32 begin_addr);
 int rkidb_get_bootloader_ver(void);
 int rkidb_get_idblk_data(void);
+int rkidb_get_rc4_flag(void);
 int rkidb_get_sn(char* buf);
 int rkidb_erase_drm_key(void);
 

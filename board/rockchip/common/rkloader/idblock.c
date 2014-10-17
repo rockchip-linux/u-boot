@@ -577,6 +577,21 @@ int rkidb_get_idblk_data(void)
 }
 
 
+int rkidb_get_rc4_flag(void)
+{
+	Sector0Info idb0_info;
+
+	if (gIdDataBuf[0] == 0xFCDC8C3B) {
+		memcpy((char *)&idb0_info, gIdDataBuf, 512);
+		GetIdblockDataNoRc4((char*)&idb0_info, 512);
+		/* id block: sector0 offset 8 is rc4 flag: 0 or 1 */
+		return idb0_info.uiRc4Flag;
+	}
+
+	return -1;
+}
+
+
 int rkidb_get_bootloader_ver(void)
 {
 	uint8 *buf = (uint8*)&gIdDataBuf[0];
