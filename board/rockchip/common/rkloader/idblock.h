@@ -86,7 +86,8 @@
 /* id block: sector0 */
 typedef PACKED1 struct _Sector0Info {	//×Ü¹²512Bytes
 	UINT	fwSig;
-	UCHAR	reserved[8];
+	UCHAR	reserved[4];
+	UINT	uiRc4Flag;		//ddr and loader bin rc4 flaf - 1:  no rc4, 0: rc4
 	USHORT	usBootCode1Offset;
 	USHORT	usBootCode2Offset;
 	UCHAR	reserved1[490];

@@ -273,13 +273,15 @@ int board_late_init(void)
 	pmic_init(0);
 	fg_init(0); /*fuel gauge init*/
 #endif
-	SecureBootCheck();
 
 	//TODO:set those buffers in a better way, and use malloc?
 	rkidb_setup_space(gd->arch.rk_global_buf_addr);
 
 	/* after setup space, get id block data first */
 	rkidb_get_idblk_data();
+
+	/* Secure boot check after idb data get */
+	SecureBootCheck();
 
 	if (rkidb_get_bootloader_ver() == 0) {
 		printf("\n#Boot ver: %s\n", bootloader_ver);
