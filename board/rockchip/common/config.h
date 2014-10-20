@@ -51,6 +51,8 @@ DECLARE_GLOBAL_DATA_PTR;
 	#define EMMC_NOT_USED_BOOT_PART
 	
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	#define NANDC_BASE_ADDR         RKIO_NANDC_PHYS
+
 	#define SDMMC_BASE_ADDR		RKIO_SDMMC_PHYS
 	#define SDIO_BASE_ADDR		RKIO_SDIO_PHYS
 	#define EMMC_BASE_ADDR		RKIO_EMMC_PHYS
@@ -59,6 +61,8 @@ DECLARE_GLOBAL_DATA_PTR;
 	#define RKPLAT_IRQ_SDIO		IRQ_SDIO
 	#define RKPLAT_IRQ_EMMC		IRQ_EMMC
 #elif defined(CONFIG_RKCHIP_RK3288)
+	#define NANDC_BASE_ADDR         RKIO_NANDC0_PHYS
+
 	#define SDMMC_BASE_ADDR		RKIO_SDMMC_PHYS
 	#define SDIO_BASE_ADDR		RKIO_SDIO0_PHYS
 	#define EMMC_BASE_ADDR		RKIO_EMMC_PHYS
@@ -67,7 +71,7 @@ DECLARE_GLOBAL_DATA_PTR;
 	#define RKPLAT_IRQ_SDIO		IRQ_SDIO0
 	#define RKPLAT_IRQ_EMMC		IRQ_EMMC
 #else
-	#error: "PLS config chip for mmc irq!"
+	#error: "PLS config chip for mmc irq and mmc base address!"
 #endif
 
 #endif
@@ -82,16 +86,16 @@ DECLARE_GLOBAL_DATA_PTR;
 #define __align(x)	__attribute__ ((aligned(x)))
 
 #ifndef __GNUC__
-#define PACKED1	__packed
+#define PACKED1		__packed
 #define PACKED2
 #else
 #define PACKED1
-#define PACKED2	__attribute__((packed))
+#define PACKED2		__attribute__((packed))
 #endif
 
 
 //¿âÍ·ÎÄ¼þ
-#define Assert(cond,msg,num)
+#define Assert(cond, msg, num)
 #define min(X, Y)				\
 	({ typeof(X) __x = (X);			\
 		typeof(Y) __y = (Y);		\
