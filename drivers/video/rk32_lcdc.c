@@ -22,372 +22,1507 @@
 #include <common.h>
 #include <lcd.h>
 #include <asm/arch/rkplat.h>
+#include "rockchip_fb.h"
 
-#define lvds_regs			RKIO_LVDS_PHYS
-
-#define LcdReadBit(addr, msk)		((regbak.addr=preg->addr)&(msk))
-#define LcdWrReg(addr, val)		preg->addr=regbak.addr=(val)
-#define LcdRdReg(addr)			(preg->addr)
-#define LcdSetBit(addr, msk)		preg->addr=((regbak.addr) |= (msk))
-#define LcdClrBit(addr, msk)		preg->addr=((regbak.addr) &= ~(msk))
-#define LcdSetRegBit(addr, msk)		preg->addr=((preg->addr) |= (msk))
-#define LcdMskReg(addr, msk, val)	(regbak.addr)&=~(msk);   preg->addr=(regbak.addr|=(val))
-#define LCDC_REG_CFG_DONE()		LcdWrReg(REG_CFG_DONE, 0x01); 
-
-
-/********************************************************************
-**                          结构定义                                *
-********************************************************************/
-/* LCDC的寄存器结构 */
-typedef volatile struct tagLCDC_REG
-{
-	/* offset 0x00~0xc0 */
-	unsigned int REG_CFG_DONE;           //0x00 REGISTER CONFIG FINISH
-	unsigned int VERSION_INFO;           //0x04
-	unsigned int SYS_CTRL;               //0x08 system control register 0
-	unsigned int SYS_CTRL1;              //0x0c system control register 1
-	unsigned int DSP_CTRL0;			//0x10 display control register 0
-	unsigned int DSP_CTRL1;			//0x14 display control register 1
-	unsigned int DSP_BG;                 //0x18 backgroundcolor
-	unsigned int MCU_CTRL;				 //0x1c MCU mode contol register
-	unsigned int INTR_CTRL0;             //0x20 Interruptctrl register0
-	unsigned int INTR_CTRL1;             //0x24 Interruptctrl register1
-	unsigned int INTR_RESERVED0;         //0x28 
-	unsigned int INTR_RESERVED1;         //0x2c
-	
-	unsigned int WIN0_CTRL0;             //0x30 win0 ctrlregister0
-	unsigned int WIN0_CTRL1;             //0x34 win0 ctrlregister1
-	unsigned int WIN0_COLOR_KEY;         //0x38 Win0 colorkey register
-	unsigned int WIN0_VIR;               //0x3c Win0 virtual stride
-	unsigned int WIN0_YRGB_MST;          //0x40 Win0 YRGB memory start address
-	unsigned int WIN0_CBR_MST;           //0x44 Win0 Cbr memory start address
-	unsigned int WIN0_ACT_INFO;          //0x48 Win0 active window width/height
-	unsigned int WIN0_DSP_INFO;          //0x4c Win0 display width/height on panel
-	unsigned int WIN0_DSP_ST;            //0x50 Win0 display start point on panel
-	unsigned int WIN0_SCL_FACTOR_YRGB;   //0x54 Win0 YRGB scaling factor 
-	unsigned int WIN0_SCL_FACTOR_CBR;    //0x58 Win0 Cbr scaling factor 
-	unsigned int WIN0_SCL_OFFSET;        //0x5c Win0 scaling start point offset
-	unsigned int WIN0_SRC_ALPHA_CTRL;    //0x60
-	unsigned int WIN0_DST_ALPHA_CTRL;    //0x64
-	unsigned int WIN0_FADING_CTRL;       //0x68
-	unsigned int WIN0_RESERVED0;         //0x6c
-	
-	unsigned int WIN1_CTRL0;             //0x70 win1 ctrlregister0
-	unsigned int WIN1_CTRL1;             //0x74 win1 ctrlregister1
-	unsigned int WIN1_COLOR_KEY;         //0x78 Win1 colorkey register
-	unsigned int WIN1_VIR;               //0x7c Win1 virtualstride
-	unsigned int WIN1_YRGB_MST;          //0x80 Win1 YRGB memory start address
-	unsigned int WIN1_CBR_MST;           //0x84 Win1 Cbr memory start address
-	unsigned int WIN1_ACT_INFO;          //0x88 Win1 active window width/height
-	unsigned int WIN1_DSP_INFO;          //0x8c Win1 display width/height on panel
-	unsigned int WIN1_DSP_ST;            //0x90 Win1 display start point on panel
-	unsigned int WIN1_SCL_FACTOR_YRGB;   //0x94 Win1 YRGB scaling factor 
-	unsigned int WIN1_SCL_FACTOR_CBR;    //0x98 Win1 Cbr scaling factor 
-	unsigned int WIN1_SCL_OFFSET;        //0x9c Win1 scaling start point offset
-	unsigned int WIN1_SRC_ALPHA_CTRL;    //0xa0
-	unsigned int WIN1_DST_ALPHA_CTRL;    //0xa4
-	unsigned int WIN1_FADING_CTRL;       //0xa8
-	unsigned int WIN1_RESERVED0;         //0xac  
-	unsigned int RESERVED2[48];          //0xb0-0x16c
-	unsigned int POST_DSP_HACT_INFO;     //0x170 posts caler down horizontal start and end
-	unsigned int POST_DSP_VACT_INFO;     //0x174 Panel active horizontal scanning start point and end point
-	unsigned int POST_SCL_FACTOR_YRGB;   //0x178 posty rgb scaling factor
-	unsigned int POST_RESERVED;          //0x17c 
-	unsigned int POST_SCL_CTRL;          //0x180 post scaling start point offset
-	unsigned int POST_DSP_VACT_INFO_F1;  //0x184 Panel active horizontal scanning start point and end point F1
-	unsigned int DSP_HTOTAL_HS_END;       //0x188 Panel scanning horizontal width and hsync pulse end point
-	unsigned int DSP_HACT_ST_END;         //0x18c Panel active horizontal scanning start/end point
-	unsigned int DSP_VTOTAL_VS_END;       //0x190 Panel scanning vertical height and vsync pulse end point
-	unsigned int DSP_VACT_ST_END;         //0x194 Panel active vertical scanning start/end point
-	unsigned int DSP_VS_ST_END_F1;        //0x198 Vertical scanning start point and vsync pulse end point of even filed in interlace mode
-	unsigned int DSP_VACT_ST_END_F1;      //0x19c Vertical scanning active start/end point of even filed in interlace mode
-	unsigned int RESERVED3[4];		//0x1a0-0x1ac
-	unsigned int BCSH_COLOR_BAR;		//0x1b0 BCSH CTRL
-	unsigned int BCSH_BCS;			//0x1b4	BCSH BCS
-	unsigned int BCSH_H;			//0x1b8 BCSH HUE
-
-} LCDC_REG, *pLCDC_REG;
+DECLARE_GLOBAL_DATA_PTR;
 
 /*******************register definition**********************/
-#define m_fpga_version (0xffff<<16)
-#define m_rtl_version  (0xffff)
 
-#define m_auto_gating_en (1<<23)
-#define m_standby_en     (1<<22)
-#define m_dma_stop       (1<<21)
-#define m_mmu_en         (1<<20)
-#define m_dma_burst_length (0x3<<18)
-#define m_mipi_out_en      (1<<15)
-#define m_edp_out_en       (1<<14)
-#define m_hdmi_out_en      (1<<13)
-#define m_rgb_out_en       (1<<12)
-#define m_edpi_wms_fs      (1<<10)
-#define m_edpi_wms_mode    (1<<9)
-#define m_edpi_halt_en     (1<<8)
-#define m_doub_ch_overlap_num (0xf<<4)
-#define m_doub_channel_en     (1<<3)
-#define m_direct_path_layer_sel (0x3<<1)
-#define m_direct_path_en       (1)
+#define REG_CFG_DONE			(0x0000)
+#define VERSION_INFO			(0x0004)
+#define m_RTL_VERSION			(0xffff<<0)
+#define m_FPGA_VERSION			(0xffff<<16)
+#define SYS_CTRL			(0x0008)
+#define v_DIRECT_PATH_EN(x)		(((x)&1)<<0)
+#define v_DIRECT_PATCH_SEL(x)		(((x)&3)<<1)
+#define v_DOUB_CHANNEL_EN(x)    	(((x)&1)<<3)
+#define v_DOUB_CH_OVERLAP_NUM(x)        (((x)&0xf)<<4)
+#define v_EDPI_HALT_EN(x)    		(((x)&1)<<8)
+#define v_EDPI_WMS_MODE(x)              (((x)&1)<<9)
+#define v_EDPI_WMS_FS(x)                (((x)&1)<<10)
+#define v_RGB_OUT_EN(x)                 (((x)&1)<<12)
+#define v_HDMI_OUT_EN(x)                (((x)&1)<<13)
+#define v_EDP_OUT_EN(x)                 (((x)&1)<<14)
+#define v_MIPI_OUT_EN(x)                (((x)&1)<<15)
+#define v_DMA_BURST_LENGTH(x) 		(((x)&3)<<18)
+#define v_MMU_EN(x)    	        	(((x)&1)<<20)
+#define v_DMA_STOP(x)                   (((x)&1)<<21)
+#define v_STANDBY_EN(x)      		(((x)&1)<<22)
+#define v_AUTO_GATING_EN(x)   		(((x)&1)<<23)
 
-#define v_auto_gating_en(x) (((x)&1)<<23)
-#define v_standby_en(x)     (((x)&1)<<22)
-#define v_dma_stop(x)       (((x)&1)<<21)
-#define v_mmu_en(x)         (((x)&1)<<20)
-#define v_dma_burst_length(x) (((x)&3)<<18)
-#define v_mipi_out_en(x)      (((x)&1)<<15)
-#define v_edp_out_en(x)       (((x)&1)<<14)
-#define v_hdmi_out_en(x)      (((x)&1)<<13)
-#define v_rgb_out_en(x)       (((x)&1)<<12)
-#define v_edpi_wms_fs(x)      (((x)&1)<<10)
-#define v_edpi_wms_mode(x)    (((x)&1)<<9)
-#define v_edpi_halt_en(x)     (((x)&1)<<8)
-#define v_doub_ch_overlap_num(x) (((x)&0xf)<<4)
-#define v_doub_channel_en(x)     (((x)&1)<<3)
-#define v_direct_path_layer_sel(x) (((x)&3)<<1)
-#define v_direct_path_en(x)       ((x)&1)
+#define m_DIRECT_PATH_EN     	        (1<<0)
+#define m_DIRECT_PATCH_SEL  		(3<<1)
+#define m_DOUB_CHANNEL_EN    		(1<<3)
+#define m_DOUB_CH_OVERLAP_NUM           (0xf<<4)
+#define m_EDPI_HALT_EN       		(1<<8)
+#define m_EDPI_WMS_MODE                 (1<<9)
+#define m_EDPI_WMS_FS                   (1<<10)
+#define m_RGB_OUT_EN                    (1<<12)
+#define m_HDMI_OUT_EN                   (1<<13)
+#define m_EDP_OUT_EN                    (1<<14)
+#define m_MIPI_OUT_EN                   (1<<15)
+#define m_DMA_BURST_LENGTH    		(3<<18)
+#define m_MMU_EN       	        	(1<<20)
+#define m_DMA_STOP			(1<<21)
+#define m_STANDBY_EN      		(1<<22)
+#define m_AUTO_GATING_EN      		(1<<23)
+#define SYS_CTRL1            		(0x000c)
+#define v_NOC_HURRY_EN(x)               (((x)&0x1 )<<0 )
+#define v_NOC_HURRY_VALUE(x)            (((x)&0x3 )<<1 )
+#define v_NOC_HURRY_THRESHOLD(x)        (((x)&0x3f)<<3 )
+#define v_NOC_QOS_EN(x)                 (((x)&0x1 )<<9 )
+#define v_NOC_WIN_QOS(x)                (((x)&0x3 )<<10)
+#define v_AXI_MAX_OUTSTANDING_EN(x)     (((x)&0x1 )<<12)
+#define v_AXI_OUTSTANDING_MAX_NUM(x)    (((x)&0x1f)<<13)
+
+#define m_NOC_HURRY_EN                  (0x1 <<0 )
+#define m_NOC_HURRY_VALUE               (0x3 <<1 )
+#define m_NOC_HURRY_THRESHOLD           (0x3f<<3 )
+#define m_NOC_QOS_EN                    (0x1 <<9 )
+#define m_NOC_WIN_QOS                   (0x3 <<10)
+#define m_AXI_MAX_OUTSTANDING_EN        (0x1 <<12)
+#define m_AXI_OUTSTANDING_MAX_NUM       (0x1f<<13)
+
+#define DSP_CTRL0               	(0x0010)
+#define v_DSP_OUT_MODE(x)       	(((x)&0x0f)<<0)
+#define v_DSP_HSYNC_POL(x)      	(((x)&1)<<4)
+#define v_DSP_VSYNC_POL(x)      	(((x)&1)<<5)
+#define v_DSP_DEN_POL(x)        	(((x)&1)<<6)
+#define v_DSP_DCLK_POL(x)       	(((x)&1)<<7)
+#define v_DSP_DCLK_DDR(x)       	(((x)&1)<<8)
+#define v_DSP_DDR_PHASE(x)      	(((x)&1)<<9)
+#define v_DSP_INTERLACE(x)      	(((x)&1)<<10)
+#define v_DSP_FIELD_POL(x)      	(((x)&1)<<11)
+#define v_DSP_BG_SWAP(x)        	(((x)&1)<<12)
+#define v_DSP_RB_SWAP(x)        	(((x)&1)<<13)
+#define v_DSP_RG_SWAP(x)        	(((x)&1)<<14)
+#define v_DSP_DELTA_SWAP(x)     	(((x)&1)<<15)
+#define v_DSP_DUMMY_SWAP(x)     	(((x)&1)<<16)
+#define v_DSP_OUT_ZERO(x)       	(((x)&1)<<17)
+#define v_DSP_BLANK_EN(x)       	(((x)&1)<<18)
+#define v_DSP_BLACK_EN(x)       	(((x)&1)<<19)
+#define v_DSP_CCIR656_AVG(x)    	(((x)&1)<<20)
+#define v_DSP_YUV_CLIP(x)       	(((x)&1)<<21)
+#define v_DSP_X_MIR_EN(x)       	(((x)&1)<<22)
+#define v_DSP_Y_MIR_EN(x)       	(((x)&1)<<23)
+#define m_DSP_OUT_MODE       		(0x0f<<0)
+#define m_DSP_HSYNC_POL       		(1<<4)
+#define m_DSP_VSYNC_POL       		(1<<5)
+#define m_DSP_DEN_POL       		(1<<6)
+#define m_DSP_DCLK_POL        		(1<<7)
+#define m_DSP_DCLK_DDR      		(1<<8)
+#define m_DSP_DDR_PHASE      		(1<<9)
+#define m_DSP_INTERLACE      		(1<<10)
+#define m_DSP_FIELD_POL      		(1<<11)
+#define m_DSP_BG_SWAP       		(1<<12)
+#define m_DSP_RB_SWAP       		(1<<13)
+#define m_DSP_RG_SWAP        		(1<<14)
+#define m_DSP_DELTA_SWAP      		(1<<15)
+#define m_DSP_DUMMY_SWAP       		(1<<16)
+#define m_DSP_OUT_ZERO       		(1<<17)
+#define m_DSP_BLANK_EN     		(1<<18)
+#define m_DSP_BLACK_EN      		(1<<19)
+#define m_DSP_CCIR656_AVG     		(1<<20)
+#define m_DSP_YUV_CLIP      		(1<<21)
+#define m_DSP_X_MIR_EN      		(1<<22)
+#define m_DSP_Y_MIR_EN      		(1<<23)
+
+#define DSP_CTRL1 			(0x0014)
+#define v_DSP_LUT_EN(x)         	(((x)&1)<<0)
+#define v_PRE_DITHER_DOWN_EN(x) 	(((x)&1)<<1)
+#define v_DITHER_DOWN_EN(x)     	(((x)&1)<<2)
+#define v_DITHER_DOWN_MODE(x)   	(((x)&1)<<3)
+#define v_DITHER_DOWN_SEL(x)    	(((x)&1)<<4)
+#define v_DITHER_UP_EN(x)		(((x)&1)<<6)
+#define v_DSP_LAYER0_SEL(x)		(((x)&3)<<8)
+#define v_DSP_LAYER1_SEL(x)		(((x)&3)<<10)
+#define v_DSP_LAYER2_SEL(x)		(((x)&3)<<12)
+#define v_DSP_LAYER3_SEL(x)		(((x)&3)<<14)
+#define m_DSP_LUT_EN          		(1<<0)
+#define m_PRE_DITHER_DOWN_EN  		(1<<1)
+#define m_DITHER_DOWN_EN      		(1<<2)
+#define m_DITHER_DOWN_MODE   		(1<<3)
+#define m_DITHER_DOWN_SEL    		(1<<4)
+#define m_DITHER_UP_EN			(1<<6)
+#define m_DSP_LAYER0_SEL		(3<<8)
+#define m_DSP_LAYER1_SEL		(3<<10)
+#define m_DSP_LAYER2_SEL		(3<<12)
+#define m_DSP_LAYER3_SEL		(3<<14)
+
+#define DSP_BG 				(0x0018)
+#define v_DSP_BG_BLUE(x)        	(((x<<2)&0x3ff)<<0)
+#define v_DSP_BG_GREEN(x)       	(((x<<2)&0x3ff)<<10)
+#define v_DSP_BG_RED(x)         	(((x<<2)&0x3ff)<<20)
+#define m_DSP_BG_BLUE        		(0x3ff<<0)
+#define m_DSP_BG_GREEN      		(0x3ff<<10)
+#define m_DSP_BG_RED        		(0x3ff<<20)
+
+#define MCU_CTRL 	        	(0x001c)
+#define v_MCU_PIX_TOTAL(x)      	(((x)&0x3f)<<0)
+#define v_MCU_CS_PST(x)         	(((x)&0xf)<<6)
+#define v_MCU_CS_PEND(x)        	(((x)&0x3f)<<10)
+#define v_MCU_RW_PST(x)         	(((x)&0xf)<<16)
+#define v_MCU_RW_PEND(x)        	(((x)&0x3f)<<20)
+#define v_MCU_CLK_SEL(x)        	(((x)&1)<<26)
+#define v_MCU_HOLD_MODE(x)      	(((x)&1)<<27)
+#define v_MCU_FRAME_ST(x)       	(((x)&1)<<28)
+#define v_MCU_RS(x)         		(((x)&1)<<29)
+#define v_MCU_BYPASS(x)         	(((x)&1)<<30)
+#define v_MCU_TYPE(x)            	(((x)&1)<<31)
+#define m_MCU_PIX_TOTAL       		(0x3f<<0)
+#define m_MCU_CS_PST          		(0xf<<6)
+#define m_MCU_CS_PEND        		(0x3f<<10)
+#define m_MCU_RW_PST          		(0xf<<16)
+#define m_MCU_RW_PEND         		(0x3f<<20)
+#define m_MCU_CLK_SEL         		(1<<26)
+#define m_MCU_HOLD_MODE       		(1<<27)
+#define m_MCU_FRAME_ST        		(1<<28)
+#define m_MCU_RS          		(1<<29)
+#define m_MCU_BYPASS          		(1<<30)
+#define m_MCU_TYPE           		((u32)1<<31)
+
+#define INTR_CTRL0 			(0x0020)
+#define v_DSP_HOLD_VALID_INTR_STS(x)    (((x)&1)<<0)
+#define v_FS_INTR_STS(x)        	(((x)&1)<<1)
+#define v_LINE_FLAG_INTR_STS(x) 	(((x)&1)<<2)
+#define v_BUS_ERROR_INTR_STS(x) 	(((x)&1)<<3)
+#define v_DSP_HOLD_VALID_INTR_EN(x)  	(((x)&1)<<4)
+#define v_FS_INTR_EN(x)         	(((x)&1)<<5)
+#define v_LINE_FLAG_INTR_EN(x)  	(((x)&1)<<6)
+#define v_BUS_ERROR_INTR_EN(x)        	(((x)&1)<<7)
+#define v_DSP_HOLD_VALID_INTR_CLR(x)    (((x)&1)<<8)
+#define v_FS_INTR_CLR(x)        	(((x)&1)<<9)
+#define v_LINE_FLAG_INTR_CLR(x)        	(((x)&1)<<10)
+#define v_BUS_ERROR_INTR_CLR(x)        	(((x)&1)<<11)
+#define v_DSP_LINE_FLAG_NUM(x)        	(((x)&0xfff)<<12)
+
+#define m_DSP_HOLD_VALID_INTR_STS     	(1<<0)
+#define m_FS_INTR_STS         		(1<<1)
+#define m_LINE_FLAG_INTR_STS  		(1<<2)
+#define m_BUS_ERROR_INTR_STS 		(1<<3)
+#define m_DSP_HOLD_VALID_INTR_EN   	(1<<4)
+#define m_FS_INTR_EN         		(1<<5)
+#define m_LINE_FLAG_INTR_EN 		(1<<6)
+#define m_BUS_ERROR_INTR_EN         	(1<<7)
+#define m_DSP_HOLD_VALID_INTR_CLR     	(1<<8)
+#define m_FS_INTR_CLR       		(1<<9)
+#define m_LINE_FLAG_INTR_CLR         	(1<<10)
+#define m_BUS_ERROR_INTR_CLR         	(1<<11)
+#define m_DSP_LINE_FLAG_NUM         	(0xfff<<12)
+
+#define INTR_CTRL1 			(0x0024)
+#define v_WIN0_EMPTY_INTR_STS(x)	(((x)&1)<<0)
+#define v_WIN1_EMPTY_INTR_STS(x)	(((x)&1)<<1)
+#define v_WIN2_EMPTY_INTR_STS(x)	(((x)&1)<<2)
+#define v_WIN3_EMPTY_INTR_STS(x)	(((x)&1)<<3)
+#define v_HWC_EMPTY_INTR_STS(x)		(((x)&1)<<4)
+#define v_POST_BUF_EMPTY_INTR_STS(x)	(((x)&1)<<5)
+#define v_PWM_GEN_INTR_STS(x)		(((x)&1)<<6)
+#define v_WIN0_EMPTY_INTR_EN(x)		(((x)&1)<<8)
+#define v_WIN1_EMPTY_INTR_EN(x)		(((x)&1)<<9)
+#define v_WIN2_EMPTY_INTR_EN(x)		(((x)&1)<<10)
+#define v_WIN3_EMPTY_INTR_EN(x)		(((x)&1)<<11)
+#define v_HWC_EMPTY_INTR_EN(x)		(((x)&1)<<12)
+#define v_POST_BUF_EMPTY_INTR_EN(x)	(((x)&1)<<13)
+#define v_PWM_GEN_INTR_EN(x)		(((x)&1)<<14)
+#define v_WIN0_EMPTY_INTR_CLR(x)	(((x)&1)<<16)
+#define v_WIN1_EMPTY_INTR_CLR(x)	(((x)&1)<<17)
+#define v_WIN2_EMPTY_INTR_CLR(x)	(((x)&1)<<18)
+#define v_WIN3_EMPTY_INTR_CLR(x)	(((x)&1)<<19)
+#define v_HWC_EMPTY_INTR_CLR(x)		(((x)&1)<<20)
+#define v_POST_BUF_EMPTY_INTR_CLR(x)	(((x)&1)<<21)
+#define v_PWM_GEN_INTR_CLR(x)		(((x)&1)<<22)
+
+#define m_WIN0_EMPTY_INTR_STS 		(1<<0)
+#define m_WIN1_EMPTY_INTR_STS 		(1<<1)
+#define m_WIN2_EMPTY_INTR_STS 		(1<<2)
+#define m_WIN3_EMPTY_INTR_STS 		(1<<3)
+#define m_HWC_EMPTY_INTR_STS 		(1<<4)
+#define m_POST_BUF_EMPTY_INTR_STS 	(1<<5)
+#define m_PWM_GEN_INTR_STS 		(1<<6)
+#define m_WIN0_EMPTY_INTR_EN 		(1<<8)
+#define m_WIN1_EMPTY_INTR_EN 		(1<<9)
+#define m_WIN2_EMPTY_INTR_EN 		(1<<10)
+#define m_WIN3_EMPTY_INTR_EN 		(1<<11)
+#define m_HWC_EMPTY_INTR_EN 		(1<<12)
+#define m_POST_BUF_EMPTY_INTR_EN 	(1<<13)
+#define m_PWM_GEN_INTR_EN 		(1<<14)
+#define m_WIN0_EMPTY_INTR_CLR 		(1<<16)
+#define m_WIN1_EMPTY_INTR_CLR 		(1<<17)
+#define m_WIN2_EMPTY_INTR_CLR 		(1<<18)
+#define m_WIN3_EMPTY_INTR_CLR 		(1<<19)
+#define m_HWC_EMPTY_INTR_CLR 		(1<<20)
+#define m_POST_BUF_EMPTY_INTR_CLR 	(1<<21)
+#define m_PWM_GEN_INTR_CLR 		(1<<22)
+
+/*win0 register*/
+#define WIN0_CTRL0 			(0x0030)
+#define v_WIN0_EN(x)			(((x)&1)<<0)
+#define v_WIN0_DATA_FMT(x)		(((x)&7)<<1)
+#define v_WIN0_FMT_10(x)		(((x)&1)<<4)
+#define v_WIN0_LB_MODE(x)		(((x)&7)<<5)
+#define v_WIN0_INTERLACE_READ(x)	(((x)&1)<<8)
+#define v_WIN0_NO_OUTSTANDING(x)	(((x)&1)<<9)
+#define v_WIN0_CSC_MODE(x)		(((x)&3)<<10)
+#define v_WIN0_RB_SWAP(x)		(((x)&1)<<12)
+#define v_WIN0_ALPHA_SWAP(x)		(((x)&1)<<13)
+#define v_WIN0_MID_SWAP(x)		(((x)&1)<<14)
+#define v_WIN0_UV_SWAP(x)		(((x)&1)<<15)
+#define v_WIN0_PPAS_ZERO_EN(x)		(((x)&1)<<16)
+#define v_WIN0_YRGB_DEFLICK(x)		(((x)&1)<<18)
+#define v_WIN0_CBR_DEFLICK(x)		(((x)&1)<<19)
+#define v_WIN0_YUV_CLIP(x)		(((x)&1)<<20)
+
+#define m_WIN0_EN 			(1<<0)
+#define m_WIN0_DATA_FMT 		(7<<1)
+#define m_WIN0_FMT_10 			(1<<4)
+#define m_WIN0_LB_MODE 			(7<<5)
+#define m_WIN0_INTERLACE_READ		(1<<8)
+#define m_WIN0_NO_OUTSTANDING 		(1<<9)
+#define m_WIN0_CSC_MODE 		(3<<10)
+#define m_WIN0_RB_SWAP 			(1<<12)
+#define m_WIN0_ALPHA_SWAP 		(1<<13)
+#define m_WIN0_MID_SWAP 		(1<<14)
+#define m_WIN0_UV_SWAP 			(1<<15)
+#define m_WIN0_PPAS_ZERO_EN     	(1<<16)
+#define m_WIN0_YRGB_DEFLICK 		(1<<18)
+#define m_WIN0_CBR_DEFLICK 		(1<<19)
+#define m_WIN0_YUV_CLIP 		(1<<20)
+
+#define WIN0_CTRL1 			(0x0034)
+#define v_WIN0_YRGB_AXI_GATHER_EN(x)	(((x)&1)<<0)
+#define v_WIN0_CBR_AXI_GATHER_EN(x)	(((x)&1)<<1)
+#define v_WIN0_BIC_COE_SEL(x)           (((x)&3)<<2)
+#define v_WIN0_VSD_YRGB_GT4(x)          (((x)&1)<<4)
+#define v_WIN0_VSD_YRGB_GT2(x)          (((x)&1)<<5)
+#define v_WIN0_VSD_CBR_GT4(x)           (((x)&1)<<6)
+#define v_WIN0_VSD_CBR_GT2(x)           (((x)&1)<<7)
+#define v_WIN0_YRGB_AXI_GATHER_NUM(x)	(((x)&0xf)<<8)
+#define v_WIN0_CBR_AXI_GATHER_NUM(x)	(((x)&7)<<12)
+#define v_WIN0_LINE_LOAD_MODE(x)	(((x)&1)<<15)
+#define v_WIN0_YRGB_HOR_SCL_MODE(x)	(((x)&3)<<16)
+#define v_WIN0_YRGB_VER_SCL_MODE(x)	(((x)&3)<<18)
+#define v_WIN0_YRGB_HSD_MODE(x)		(((x)&3)<<20)
+#define v_WIN0_YRGB_VSU_MODE(x)		(((x)&1)<<22)
+#define v_WIN0_YRGB_VSD_MODE(x)		(((x)&1)<<23)
+#define v_WIN0_CBR_HOR_SCL_MODE(x)	(((x)&3)<<24)
+#define v_WIN0_CBR_VER_SCL_MODE(x)	(((x)&3)<<26)
+#define v_WIN0_CBR_HSD_MODE(x)		(((x)&3)<<28)
+#define v_WIN0_CBR_VSU_MODE(x)		(((x)&1)<<30)
+#define v_WIN0_CBR_VSD_MODE(x)		(((x)&1)<<31)
+
+#define m_WIN0_YRGB_AXI_GATHER_EN   	(1<<0)
+#define m_WIN0_CBR_AXI_GATHER_EN        (1<<1)
+#define m_WIN0_BIC_COE_SEL              (3<<2)
+#define m_WIN0_VSD_YRGB_GT4             (1<<4)
+#define m_WIN0_VSD_YRGB_GT2             (1<<5)
+#define m_WIN0_VSD_CBR_GT4              (1<<6)
+#define m_WIN0_VSD_CBR_GT2              (1<<7)
+#define m_WIN0_YRGB_AXI_GATHER_NUM	(0xf<<8)
+#define m_WIN0_CBR_AXI_GATHER_NUM	(7<<12)
+#define m_WIN0_LINE_LOAD_MODE		(1<<15)
+#define m_WIN0_YRGB_HOR_SCL_MODE	(3<<16)
+#define m_WIN0_YRGB_VER_SCL_MODE	(3<<18)
+#define m_WIN0_YRGB_HSD_MODE		(3<<20)
+#define m_WIN0_YRGB_VSU_MODE		(1<<22)
+#define m_WIN0_YRGB_VSD_MODE		(1<<23)
+#define m_WIN0_CBR_HOR_SCL_MODE		(3<<24)
+#define m_WIN0_CBR_VER_SCL_MODE		(3<<26)
+#define m_WIN0_CBR_HSD_MODE		(3<<28)
+#define m_WIN0_CBR_VSU_MODE		((u32)1<<30)
+#define m_WIN0_CBR_VSD_MODE		((u32)1<<31)
+
+#define WIN0_COLOR_KEY			(0x0038)
+#define v_WIN0_COLOR_KEY(x)		(((x)&0x3fffffff)<<0)
+#define v_WIN0_COLOR_KEY_EN(x)		(((x)&1)<<31)
+#define m_WIN0_COLOR_KEY		(0x3fffffff<<0)
+#define m_WIN0_COLOR_KEY_EN		((u32)1<<31)
+
+#define WIN0_VIR 			(0x003c)
+#define v_WIN0_VIR_STRIDE(x)		(((x)&0x3fff)<<0)
+#define v_WIN0_VIR_STRIDE_UV(x)		(((x)&0x3fff)<<16)
+#define m_WIN0_VIR_STRIDE		(0x3fff<<0)
+#define m_WIN0_VIR_STRIDE_UV    	(0x3fff<<16)
+#define v_ARGB888_VIRWIDTH(x)		(((x)&0x3fff)<<0)
+#define v_RGB888_VIRWIDTH(x) 		(((((x*3)>>2)+((x)%3)) & 0x3fff) << 0)
+#define v_RGB565_VIRWIDTH(x)		(((x >> 1) & 0x3fff) << 0)
+#define v_YUV_VIRWIDTH(x)		(((x >> 2) & 0x3fff) << 0)
 
 
-#define m_axi_outstanding_max_num (0x1f<<13)
-#define m_axi_max_outstanding_en  (1<<12)
-#define m_noc_win_qos             (3<<10)
-#define m_noc_qos_en              (1<<9)
-#define m_noc_hurry_threshold     (0x3f<<3)
-#define m_noc_hurry_value         (0x3<<1)
-#define m_noc_hurry_en            (1)
+#define WIN0_YRGB_MST 			(0x0040)
+#define WIN0_CBR_MST 	        	(0x0044)
+#define WIN0_ACT_INFO 			(0x0048)
+#define v_WIN0_ACT_WIDTH(x)		(((x-1)&0x1fff)<<0)
+#define v_WIN0_ACT_HEIGHT(x)		(((x-1)&0x1fff)<<16)
+#define m_WIN0_ACT_WIDTH 		(0x1fff<<0)
+#define m_WIN0_ACT_HEIGHT 		(0x1fff<<16)
 
-#define v_axi_outstanding_max_num(x) (((x)&0x1f)<<13)
-#define v_axi_max_outstanding_en(x)  (((x)&1)<<12)
-#define v_noc_win_qos(x)             (((x)&3)<<10)
-#define v_noc_qos_en(x)              (((x)&1)<<9)
-#define v_noc_hurry_threshold(x)     (((x)&0x3f)<<3)
-#define v_noc_hurry_value(x)         (((x)&3)<<1)
-#define v_noc_hurry_en(x)            ((x)&1)
+#define WIN0_DSP_INFO 			(0x004c)
+#define v_WIN0_DSP_WIDTH(x)		(((x-1)&0xfff)<<0)
+#define v_WIN0_DSP_HEIGHT(x)		(((x-1)&0xfff)<<16)
+#define m_WIN0_DSP_WIDTH 		(0xfff<<0)
+#define m_WIN0_DSP_HEIGHT 		(0xfff<<16)
+
+#define WIN0_DSP_ST 			(0x0050)
+#define v_WIN0_DSP_XST(x)		(((x)&0x1fff)<<0)
+#define v_WIN0_DSP_YST(x)		(((x)&0x1fff)<<16)
+#define m_WIN0_DSP_XST 			(0x1fff<<0)
+#define m_WIN0_DSP_YST 			(0x1fff<<16)
+
+#define WIN0_SCL_FACTOR_YRGB 		(0x0054)
+#define v_WIN0_HS_FACTOR_YRGB(x)	(((x)&0xffff)<<0)
+#define v_WIN0_VS_FACTOR_YRGB(x)	(((x)&0xffff)<<16)
+#define m_WIN0_HS_FACTOR_YRGB		(0xffff<<0)
+#define m_WIN0_VS_FACTOR_YRGB		((u32)0xffff<<16)
+
+#define WIN0_SCL_FACTOR_CBR 		(0x0058)
+#define v_WIN0_HS_FACTOR_CBR(x)		(((x)&0xffff)<<0)
+#define v_WIN0_VS_FACTOR_CBR(x)		(((x)&0xffff)<<16)
+#define m_WIN0_HS_FACTOR_CBR		(0xffff<<0)
+#define m_WIN0_VS_FACTOR_CBR		((u32)0xffff<<16)
+
+#define WIN0_SCL_OFFSET 		(0x005c)
+#define v_WIN0_HS_OFFSET_YRGB(x)	(((x)&0xff)<<0)
+#define v_WIN0_HS_OFFSET_CBR(x)		(((x)&0xff)<<8)
+#define v_WIN0_VS_OFFSET_YRGB(x)	(((x)&0xff)<<16)
+#define v_WIN0_VS_OFFSET_CBR(x)		(((x)&0xff)<<24)
+
+#define m_WIN0_HS_OFFSET_YRGB		(0xff<<0)
+#define m_WIN0_HS_OFFSET_CBR		(0xff<<8)
+#define m_WIN0_VS_OFFSET_YRGB		(0xff<<16)
+#define m_WIN0_VS_OFFSET_CBR		((u32)0xff<<24)
+
+#define WIN0_SRC_ALPHA_CTRL 		(0x0060)
+#define v_WIN0_SRC_ALPHA_EN(x)		(((x)&1)<<0)
+#define v_WIN0_SRC_COLOR_M0(x)		(((x)&1)<<1)
+#define v_WIN0_SRC_ALPHA_M0(x)		(((x)&1)<<2)
+#define v_WIN0_SRC_BLEND_M0(x)		(((x)&3)<<3)
+#define v_WIN0_SRC_ALPHA_CAL_M0(x)	(((x)&1)<<5)
+#define v_WIN0_SRC_FACTOR_M0(x)		(((x)&7)<<6)
+#define v_WIN0_SRC_GLOBAL_ALPHA(x)	(((x)&0xff)<<16)
+#define v_WIN0_FADING_VALUE(x)          (((x)&0xff)<<24)
+
+#define m_WIN0_SRC_ALPHA_EN 		(1<<0)
+#define m_WIN0_SRC_COLOR_M0 		(1<<1)
+#define m_WIN0_SRC_ALPHA_M0 		(1<<2)
+#define m_WIN0_SRC_BLEND_M0		(3<<3)
+#define m_WIN0_SRC_ALPHA_CAL_M0		(1<<5)
+#define m_WIN0_SRC_FACTOR_M0		(7<<6)
+#define m_WIN0_SRC_GLOBAL_ALPHA		(0xff<<16)
+#define m_WIN0_FADING_VALUE		(0xff<<24)
+
+#define WIN0_DST_ALPHA_CTRL 		(0x0064)
+#define v_WIN0_DST_FACTOR_M0(x)		(((x)&7)<<6)
+#define m_WIN0_DST_FACTOR_M0		(7<<6)
+
+#define WIN0_FADING_CTRL 		(0x0068)
+#define v_WIN0_FADING_OFFSET_R(x)	(((x)&0xff)<<0)
+#define v_WIN0_FADING_OFFSET_G(x)	(((x)&0xff)<<8)
+#define v_WIN0_FADING_OFFSET_B(x)	(((x)&0xff)<<16)
+#define v_WIN0_FADING_EN(x)		(((x)&1)<<24)
+
+#define m_WIN0_FADING_OFFSET_R 		(0xff<<0)
+#define m_WIN0_FADING_OFFSET_G 		(0xff<<8)
+#define m_WIN0_FADING_OFFSET_B 		(0xff<<16)
+#define m_WIN0_FADING_EN		(1<<24)
+
+/*win1 register*/
+#define WIN1_CTRL0 			(0x0070)
+#define v_WIN1_EN(x)			(((x)&1)<<0)
+#define v_WIN1_DATA_FMT(x)		(((x)&7)<<1)
+#define v_WIN1_FMT_10(x)		(((x)&1)<<4)
+#define v_WIN1_LB_MODE(x)		(((x)&7)<<5)
+#define v_WIN1_INTERLACE_READ_MODE(x)	(((x)&1)<<8)
+#define v_WIN1_NO_OUTSTANDING(x)	(((x)&1)<<9)
+#define v_WIN1_CSC_MODE(x)		(((x)&3)<<10)
+#define v_WIN1_RB_SWAP(x)		(((x)&1)<<12)
+#define v_WIN1_ALPHA_SWAP(x)		(((x)&1)<<13)
+#define v_WIN1_MID_SWAP(x)		(((x)&1)<<14)
+#define v_WIN1_UV_SWAP(x)		(((x)&1)<<15)
+#define v_WIN1_PPAS_ZERO_EN(x)		(((x)&1)<<16)
+#define v_WIN1_YRGB_DEFLICK(x)		(((x)&1)<<18)
+#define v_WIN1_CBR_DEFLICK(x)		(((x)&1)<<19)
+#define v_WIN1_YUV_CLIP(x)		(((x)&1)<<20)
+
+#define m_WIN1_EN			(1<<0)
+#define m_WIN1_DATA_FMT			(7<<1)
+#define m_WIN1_FMT_10			(1<<4)
+#define m_WIN1_LB_MODE			(7<<5)
+#define m_WIN1_INTERLACE_READ_MODE 	(1<<8)
+#define m_WIN1_NO_OUTSTANDING 		(1<<9)
+#define m_WIN1_CSC_MODE 		(3<<10)
+#define m_WIN1_RB_SWAP 			(1<<12)
+#define m_WIN1_ALPHA_SWAP 		(1<<13)
+#define m_WIN1_MID_SWAP 		(1<<14)
+#define m_WIN1_UV_SWAP 			(1<<15)
+#define m_WIN1_PPAS_ZERO_EN             (1<<16)
+#define m_WIN1_YRGB_DEFLICK 		(1<<18)
+#define m_WIN1_CBR_DEFLICK 		(1<<19)
+#define m_WIN1_YUV_CLIP 		(1<<20)
+
+#define WIN1_CTRL1 			(0x0074)
+#define v_WIN1_YRGB_AXI_GATHER_EN(x)	(((x)&1)<<0)
+#define v_WIN1_CBR_AXI_GATHER_EN(x)	(((x)&1)<<1)
+#define v_WIN1_BIC_COE_SEL(x)           (((x)&3)<<2)
+#define v_WIN1_VSD_YRGB_GT4(x)          (((x)&1)<<4)
+#define v_WIN1_VSD_YRGB_GT2(x)          (((x)&1)<<5)
+#define v_WIN1_VSD_CBR_GT4(x)           (((x)&1)<<6)
+#define v_WIN1_VSD_CBR_GT2(x)           (((x)&1)<<7)
+#define v_WIN1_YRGB_AXI_GATHER_NUM(x)	(((x)&0xf)<<8)
+#define v_WIN1_CBR_AXI_GATHER_NUM(x)	(((x)&7)<<12)
+#define v_WIN1_LINE_LOAD_MODE(x)	(((x)&1)<<15)
+#define v_WIN1_YRGB_HOR_SCL_MODE(x)	(((x)&3)<<16)
+#define v_WIN1_YRGB_VER_SCL_MODE(x)	(((x)&3)<<18)
+#define v_WIN1_YRGB_HSD_MODE(x)		(((x)&3)<<20)
+#define v_WIN1_YRGB_VSU_MODE(x)		(((x)&1)<<22)
+#define v_WIN1_YRGB_VSD_MODE(x)		(((x)&1)<<23)
+#define v_WIN1_CBR_HOR_SCL_MODE(x)	(((x)&3)<<24)
+#define v_WIN1_CBR_VER_SCL_MODE(x)	(((x)&3)<<26)
+#define v_WIN1_CBR_HSD_MODE(x)		(((x)&3)<<28)
+#define v_WIN1_CBR_VSU_MODE(x)		(((x)&1)<<30)
+#define v_WIN1_CBR_VSD_MODE(x)		(((x)&1)<<31)
+
+#define m_WIN1_YRGB_AXI_GATHER_EN	(1<<0)
+#define m_WIN1_CBR_AXI_GATHER_EN	(1<<1)
+#define m_WIN1_BIC_COE_SEL              (3<<2)
+#define m_WIN1_VSD_YRGB_GT4             (1<<4)
+#define m_WIN1_VSD_YRGB_GT2             (1<<5)
+#define m_WIN1_VSD_CBR_GT4              (1<<6)
+#define m_WIN1_VSD_CBR_GT2              (1<<7)
+#define m_WIN1_YRGB_AXI_GATHER_NUM	(0xf<<8)
+#define m_WIN1_CBR_AXI_GATHER_NUM	(7<<12)
+#define m_WIN1_LINE_LOAD_MODE		(1<<15)
+#define m_WIN1_YRGB_HOR_SCL_MODE	(3<<16)
+#define m_WIN1_YRGB_VER_SCL_MODE	(3<<18)
+#define m_WIN1_YRGB_HSD_MODE		(3<<20)
+#define m_WIN1_YRGB_VSU_MODE		(1<<22)
+#define m_WIN1_YRGB_VSD_MODE		(1<<23)
+#define m_WIN1_CBR_HOR_SCL_MODE		(3<<24)
+#define m_WIN1_CBR_VER_SCL_MODE		(3<<26)
+#define m_WIN1_CBR_HSD_MODE		(3<<28)
+#define m_WIN1_CBR_VSU_MODE		(1<<30)
+#define m_WIN1_CBR_VSD_MODE		((u32)1<<31)
+
+#define WIN1_COLOR_KEY 			(0x0078)
+#define v_WIN1_COLOR_KEY(x)		(((x)&0x3fffffff)<<0)
+#define v_WIN1_COLOR_KEY_EN(x)		(((x)&1)<<31)
+#define m_WIN1_COLOR_KEY		(0x3fffffff<<0)
+#define m_WIN1_COLOR_KEY_EN		((u32)1<<31)
+
+#define WIN1_VIR 			(0x007c)
+#define v_WIN1_VIR_STRIDE(x)		(((x)&0x3fff)<<0)
+#define v_WIN1_VIR_STRIDE_UV(x)		(((x)&0x3fff)<<16)
+#define m_WIN1_VIR_STRIDE 		(0x3fff<<0)
+#define m_WIN1_VIR_STRIDE_UV 		(0x3fff<<16)
+
+#define WIN1_YRGB_MST 			(0x0080)
+#define WIN1_CBR_MST 			(0x0084)
+#define WIN1_ACT_INFO 			(0x0088)
+#define v_WIN1_ACT_WIDTH(x)		(((x-1)&0x1fff)<<0)
+#define v_WIN1_ACT_HEIGHT(x)		(((x-1)&0x1fff)<<16)
+#define m_WIN1_ACT_WIDTH		(0x1fff<<0)
+#define m_WIN1_ACT_HEIGHT		(0x1fff<<16)
+
+#define WIN1_DSP_INFO 			(0x008c)
+#define v_WIN1_DSP_WIDTH(x)		(((x-1)&0xfff)<<0)
+#define v_WIN1_DSP_HEIGHT(x)		(((x-1)&0xfff)<<16)
+#define m_WIN1_DSP_WIDTH 		(0xfff<<0)
+#define m_WIN1_DSP_HEIGHT 		(0xfff<<16)
+
+#define WIN1_DSP_ST 			(0x0090)
+#define v_WIN1_DSP_XST(x)		(((x)&0x1fff)<<0)
+#define v_WIN1_DSP_YST(x)		(((x)&0x1fff)<<16)
+#define m_WIN1_DSP_XST 			(0x1fff<<0)
+#define m_WIN1_DSP_YST 			(0x1fff<<16)
+
+#define WIN1_SCL_FACTOR_YRGB 		(0x0094)
+#define v_WIN1_HS_FACTOR_YRGB(x)	(((x)&0xffff)<<0)
+#define v_WIN1_VS_FACTOR_YRGB(x)	(((x)&0xffff)<<16)
+#define m_WIN1_HS_FACTOR_YRGB 		(0xffff<<0)
+#define m_WIN1_VS_FACTOR_YRGB 		((u32)0xffff<<16)
+
+#define WIN1_SCL_FACTOR_CBR 		(0x0098)
+#define v_WIN1_HS_FACTOR_CBR(x)		(((x)&0xffff)<<0)
+#define v_WIN1_VS_FACTOR_CBR(x)		(((x)&0xffff)<<16)
+#define m_WIN1_HS_FACTOR_CBR		(0xffff<<0)
+#define m_WIN1_VS_FACTOR_CBR		((u32)0xffff<<16)
+
+#define WIN1_SCL_OFFSET 		(0x009c)
+#define v_WIN1_HS_OFFSET_YRGB(x)	(((x)&0xff)<<0)
+#define v_WIN1_HS_OFFSET_CBR(x)		(((x)&0xff)<<8)
+#define v_WIN1_VS_OFFSET_YRGB(x)	(((x)&0xff)<<16)
+#define v_WIN1_VS_OFFSET_CBR(x)		(((x)&0xff)<<24)
+
+#define m_WIN1_HS_OFFSET_YRGB		(0xff<<0)
+#define m_WIN1_HS_OFFSET_CBR		(0xff<<8)
+#define m_WIN1_VS_OFFSET_YRGB		(0xff<<16)
+#define m_WIN1_VS_OFFSET_CBR		((u32)0xff<<24)
+
+#define WIN1_SRC_ALPHA_CTRL 		(0x00a0)
+#define v_WIN1_SRC_ALPHA_EN(x)		(((x)&1)<<0)
+#define v_WIN1_SRC_COLOR_M0(x)		(((x)&1)<<1)
+#define v_WIN1_SRC_ALPHA_M0(x)		(((x)&1)<<2)
+#define v_WIN1_SRC_BLEND_M0(x)		(((x)&3)<<3)
+#define v_WIN1_SRC_ALPHA_CAL_M0(x)	(((x)&1)<<5)
+#define v_WIN1_SRC_FACTOR_M0(x)		(((x)&7)<<6)
+#define v_WIN1_SRC_GLOBAL_ALPHA(x)	(((x)&0xff)<<16)
+#define v_WIN1_FADING_VALUE(x)          (((x)&0xff)<<24)
+
+#define m_WIN1_SRC_ALPHA_EN 		(1<<0)
+#define m_WIN1_SRC_COLOR_M0 		(1<<1)
+#define m_WIN1_SRC_ALPHA_M0 		(1<<2)
+#define m_WIN1_SRC_BLEND_M0		(3<<3)
+#define m_WIN1_SRC_ALPHA_CAL_M0		(1<<5)
+#define m_WIN1_SRC_FACTOR_M0		(7<<6)
+#define m_WIN1_SRC_GLOBAL_ALPHA		(0xff<<16)
+#define m_WIN1_FADING_VALUE		(0xff<<24)
+
+#define WIN1_DST_ALPHA_CTRL 		(0x00a4)
+#define v_WIN1_DST_FACTOR_M0(x)		(((x)&7)<<6)
+#define m_WIN1_DST_FACTOR_M0		(7<<6)
+
+#define WIN1_FADING_CTRL 		(0x00a8)
+#define v_WIN1_FADING_OFFSET_R(x)	(((x)&0xff)<<0)
+#define v_WIN1_FADING_OFFSET_G(x)	(((x)&0xff)<<8)
+#define v_WIN1_FADING_OFFSET_B(x)	(((x)&0xff)<<16)
+#define v_WIN1_FADING_EN(x)		(((x)&1)<<24)
+
+#define m_WIN1_FADING_OFFSET_R 		(0xff<<0)
+#define m_WIN1_FADING_OFFSET_G 		(0xff<<8)
+#define m_WIN1_FADING_OFFSET_B 		(0xff<<16)
+#define m_WIN1_FADING_EN		(1<<24)
+
+/*win2 register*/
+#define WIN2_CTRL0 			(0x00b0)
+#define v_WIN2_EN(x)			(((x)&1)<<0)
+#define v_WIN2_DATA_FMT(x)		(((x)&7)<<1)
+#define v_WIN2_MST0_EN(x)		(((x)&1)<<4)
+#define v_WIN2_MST1_EN(x)		(((x)&1)<<5)
+#define v_WIN2_MST2_EN(x)		(((x)&1)<<6)
+#define v_WIN2_MST3_EN(x)		(((x)&1)<<7)
+#define v_WIN2_INTERLACE_READ(x)	(((x)&1)<<8)
+#define v_WIN2_NO_OUTSTANDING(x)	(((x)&1)<<9)
+#define v_WIN2_CSC_MODE(x)		(((x)&1)<<10)
+#define v_WIN2_RB_SWAP(x)		(((x)&1)<<12)
+#define v_WIN2_ALPHA_SWAP(x)		(((x)&1)<<13)
+#define v_WIN2_ENDIAN_MODE(x)		(((x)&1)<<14)
+#define v_WIN2_LUT_EN(x)		(((x)&1)<<18)
+
+#define m_WIN2_EN 			(1<<0)
+#define m_WIN2_DATA_FMT 		(7<<1)
+#define m_WIN2_MST0_EN 			(1<<4)
+#define m_WIN2_MST1_EN 			(1<<5)
+#define m_WIN2_MST2_EN 			(1<<6)
+#define m_WIN2_MST3_EN 			(1<<7)
+#define m_WIN2_INTERLACE_READ 		(1<<8)
+#define m_WIN2_NO_OUTSTANDING 		(1<<9)
+#define m_WIN2_CSC_MODE 		(1<<10)
+#define m_WIN2_RB_SWAP 			(1<<12)
+#define m_WIN2_ALPHA_SWAP 		(1<<13)
+#define m_WIN2_ENDIAN_MODE 		(1<<14)
+#define m_WIN2_LUT_EN 			(1<<18)
+
+#define WIN2_CTRL1 			(0x00b4)
+#define v_WIN2_AXI_GATHER_EN(x)		(((x)&1)<<0)
+#define v_WIN2_AXI_GATHER_NUM(x)	(((x)&0xf)<<4)
+#define m_WIN2_AXI_GATHER_EN		(1<<0)
+#define m_WIN2_AXI_GATHER_NUM		(0xf<<4)
+
+#define WIN2_VIR0_1 			(0x00b8)
+#define v_WIN2_VIR_STRIDE0(x)		(((x)&0x1fff)<<0)
+#define v_WIN2_VIR_STRIDE1(x)		(((x)&0x1fff)<<16)
+#define m_WIN2_VIR_STRIDE0		(0x1fff<<0)
+#define m_WIN2_VIR_STRIDE1		(0x1fff<<16)
+
+#define WIN2_VIR2_3 			(0x00bc)
+#define v_WIN2_VIR_STRIDE2(x)		(((x)&0x1fff)<<0)
+#define v_WIN2_VIR_STRIDE3(x)		(((x)&0x1fff)<<16)
+#define m_WIN2_VIR_STRIDE2		(0x1fff<<0)
+#define m_WIN2_VIR_STRIDE3		(0x1fff<<16)
+
+#define WIN2_MST0 			(0x00c0)
+#define WIN2_DSP_INFO0 			(0x00c4)
+#define v_WIN2_DSP_WIDTH0(x)		(((x-1)&0xfff)<<0)
+#define v_WIN2_DSP_HEIGHT0(x)		(((x-1)&0xfff)<<16)
+#define m_WIN2_DSP_WIDTH0		(0xfff<<0)
+#define m_WIN2_DSP_HEIGHT0		(0xfff<<16)
+
+#define WIN2_DSP_ST0 			(0x00c8)
+#define v_WIN2_DSP_XST0(x)		(((x)&0x1fff)<<0)
+#define v_WIN2_DSP_YST0(x)		(((x)&0x1fff)<<16)
+#define m_WIN2_DSP_XST0			(0x1fff<<0)
+#define m_WIN2_DSP_YST0			(0x1fff<<16)
+
+#define WIN2_COLOR_KEY 			(0x00cc)
+#define v_WIN2_COLOR_KEY(x)		(((x)&0xffffff)<<0)
+#define v_WIN2_KEY_EN(x)		(((x)&1)<<24)
+#define m_WIN2_COLOR_KEY		(0xffffff<<0)
+#define m_WIN2_KEY_EN			((u32)1<<24)
 
 
-#define m_dsp_y_mir_en              (1<<23)
-#define m_dsp_x_mir_en              (1<<22)
-#define m_dsp_yuv_clip              (1<<21) 
-#define m_dsp_ccir656_avg           (1<<20)
-#define m_dsp_black_en              (1<<19)
-#define m_dsp_blank_en              (1<<18) 
-#define m_dsp_out_zero              (1<<17)
-#define m_dsp_dummy_swap            (1<<16)
-#define m_dsp_delta_swap            (1<<15)
-#define m_dsp_rg_swap               (1<<14)
-#define m_dsp_rb_swap               (1<<13)
-#define m_dsp_bg_swap               (1<<12)
-#define m_dsp_field_pol             (1<<11)  
-#define m_dsp_interlace             (1<<10)
-#define m_dsp_ddr_phase             (1<<9)
-#define m_dsp_dclk_ddr              (1<<8)
-#define m_dsp_dclk_pol              (1<<7)
-#define m_dsp_den_pol               (1<<6)
-#define m_dsp_vsync_pol             (1<<5)
-#define m_dsp_hsync_pol             (1<<4)
-#define m_dsp_out_mode              (0xf)
+#define WIN2_MST1               	(0x00d0)
+#define WIN2_DSP_INFO1 			(0x00d4)
+#define v_WIN2_DSP_WIDTH1(x)		(((x-1)&0xfff)<<0)
+#define v_WIN2_DSP_HEIGHT1(x)		(((x-1)&0xfff)<<16)
 
-#define v_dsp_y_mir_en(x)              (((x)&1)<<23)
-#define v_dsp_x_mir_en(x)              (((x)&1)<<22)
-#define v_dsp_yuv_clip(x)              (((x)&1)<<21) 
-#define v_dsp_ccir656_avg(x)           (((x)&1)<<20)
-#define v_dsp_black_en(x)              (((x)&1)<<19)
-#define v_dsp_blank_en(x)              (((x)&1)<<18) 
-#define v_dsp_out_zero(x)              (((x)&1)<<17)
-#define v_dsp_dummy_swap(x)            (((x)&1)<<16)
-#define v_dsp_delta_swap(x)            (((x)&1)<<15)
-#define v_dsp_rg_swap(x)               (((x)&1)<<14)
-#define v_dsp_rb_swap(x)               (((x)&1)<<13)
-#define v_dsp_bg_swap(x)               (((x)&1)<<12)
-#define v_dsp_field_pol(x)             (((x)&1)<<11)  
-#define v_dsp_interlace(x)             (((x)&1)<<10)
-#define v_dsp_ddr_phase(x)             (((x)&1)<<9)
-#define v_dsp_dclk_ddr(x)              (((x)&1)<<8)
-#define v_dsp_dclk_pol(x)              (((x)&1)<<7)
-#define v_dsp_den_pol(x)               (((x)&1)<<6)
-#define v_dsp_vsync_pol(x)             (((x)&1)<<5)
-#define v_dsp_hsync_pol(x)             (((x)&1)<<4)
-#define v_dsp_out_mode(x)              ((x)&0xf)
+#define m_WIN2_DSP_WIDTH1		(0xfff<<0)
+#define m_WIN2_DSP_HEIGHT1		(0xfff<<16)
+
+#define WIN2_DSP_ST1 	        	(0x00d8)
+#define v_WIN2_DSP_XST1(x)		(((x)&0x1fff)<<0)
+#define v_WIN2_DSP_YST1(x)		(((x)&0x1fff)<<16)
+
+#define m_WIN2_DSP_XST1			(0x1fff<<0)
+#define m_WIN2_DSP_YST1			(0x1fff<<16)
+
+#define WIN2_SRC_ALPHA_CTRL 		(0x00dc)
+#define v_WIN2_SRC_ALPHA_EN(x)		(((x)&1)<<0)
+#define v_WIN2_SRC_COLOR_M0(x)		(((x)&1)<<1)
+#define v_WIN2_SRC_ALPHA_M0(x)		(((x)&1)<<2)
+#define v_WIN2_SRC_BLEND_M0(x)		(((x)&3)<<3)
+#define v_WIN2_SRC_ALPHA_CAL_M0(x)	(((x)&1)<<5)
+#define v_WIN2_SRC_FACTOR_M0(x)		(((x)&7)<<6)
+#define v_WIN2_SRC_GLOBAL_ALPHA(x)	(((x)&0xff)<<16)
+#define v_WIN2_FADING_VALUE(x)          (((x)&0xff)<<24)
 
 
-#define m_dsp_layer3_sel               (3<<14)
-#define m_dsp_layer2_sel               (3<<12)
-#define m_dsp_layer1_sel               (3<<10)
-#define m_dsp_layer0_sel               (3<<8)
-#define m_dither_up_en                 (1<<6)
-#define m_dither_down_sel              (1<<4)
-#define m_dither_down_mode             (1<<3)
-#define m_dither_down_en               (1<<2)
-#define m_pre_dither_down_en           (1<<1)
-#define m_dsp_lut_en                   (1)
+#define m_WIN2_SRC_ALPHA_EN 		(1<<0)
+#define m_WIN2_SRC_COLOR_M0 		(1<<1)
+#define m_WIN2_SRC_ALPHA_M0 		(1<<2)
+#define m_WIN2_SRC_BLEND_M0		(3<<3)
+#define m_WIN2_SRC_ALPHA_CAL_M0		(1<<5)
+#define m_WIN2_SRC_FACTOR_M0		(7<<6)
+#define m_WIN2_SRC_GLOBAL_ALPHA		(0xff<<16)
+#define m_WIN2_FADING_VALUE		(0xff<<24)
 
-#define v_dsp_layer3_sel(x)                (((x)&3)<<14)
-#define v_dsp_layer2_sel(x)                (((x)&3)<<12)
-#define v_dsp_layer1_sel(x)                (((x)&3)<<10)
-#define v_dsp_layer0_sel(x)                (((x)&3)<<8)
-#define v_dither_up_en(x)                  (((x)&1)<<6)
-#define v_dither_down_sel(x)               (((x)&1)<<4)
-#define v_dither_down_mode(x)              (((x)&1)<<3)
-#define v_dither_down_en(x)                (((x)&1)<<2)
-#define v_pre_dither_down_en(x)            (((x)&1)<<1)
-#define v_dsp_lut_en(x)                    ((x)&1)
+#define WIN2_MST2 			(0x00e0)
+#define WIN2_DSP_INFO2 			(0x00e4)
+#define v_WIN2_DSP_WIDTH2(x)		(((x-1)&0xfff)<<0)
+#define v_WIN2_DSP_HEIGHT2(x)		(((x-1)&0xfff)<<16)
+
+#define m_WIN2_DSP_WIDTH2 		(0xfff<<0)
+#define m_WIN2_DSP_HEIGHT2 		(0xfff<<16)
 
 
-#define m_dsp_bg_red     (0x3f<<20)
-#define m_dsp_bg_green   (0x3f<<10)
-#define m_dsp_bg_blue    (0x3f<<0)
+#define WIN2_DSP_ST2 			(0x00e8)
+#define v_WIN2_DSP_XST2(x)		(((x)&0x1fff)<<0)
+#define v_WIN2_DSP_YST2(x)		(((x)&0x1fff)<<16)
+#define m_WIN2_DSP_XST2 		(0x1fff<<0)
+#define m_WIN2_DSP_YST2 		(0x1fff<<16)
 
-#define v_dsp_bg_red(x)     (((x)&0x3f)<<20)
-#define v_dsp_bg_green(x)   (((x)&0x3f)<<10)
-#define v_dsp_bg_blue(x)    (((x)&0x3f)<<0)
+#define WIN2_DST_ALPHA_CTRL 		(0x00ec)
+#define v_WIN2_DST_FACTOR_M0(x)		(((x)&7)<<6)
+#define m_WIN2_DST_FACTOR_M0		(7<<6)
 
+#define WIN2_MST3 			(0x00f0)
+#define WIN2_DSP_INFO3 			(0x00f4)
+#define v_WIN2_DSP_WIDTH3(x)		(((x-1)&0xfff)<<0)
+#define v_WIN2_DSP_HEIGHT3(x)		(((x-1)&0xfff)<<16)
+#define m_WIN2_DSP_WIDTH3		(0xfff<<0)
+#define m_WIN2_DSP_HEIGHT3		(0xfff<<16)
 
-#define m_win0_yuv_clip     (1<<20)
-#define m_win0_cbr_deflick  (1<<19)
-#define m_win0_yrgb_deflick  (1<<18)
-#define m_win0_ppas_zero_en  (1<<16)
-#define m_win0_uv_swap       (1<<15)
-#define m_win0_mid_swap      (1<<14)
-#define m_win0_alpha_swap    (1<<13)
-#define m_win0_rb_swap       (1<<12)
-#define m_win0_csc_mode      (3<<10)
-#define m_win0_no_outstanding (1<<9)
-#define m_win0_interlace_read  (1<<8)
-#define m_win0_lb_mode         (7<<5)
-#define m_win0_fmt_10          (1<<4)
-#define m_win0_data_fmt        (7<<1)
-#define m_win0_en              (1)
+#define WIN2_DSP_ST3 			(0x00f8)
+#define v_WIN2_DSP_XST3(x)		(((x)&0x1fff)<<0)
+#define v_WIN2_DSP_YST3(x)		(((x)&0x1fff)<<16)
+#define m_WIN2_DSP_XST3 		(0x1fff<<0)
+#define m_WIN2_DSP_YST3 		(0x1fff<<16)
 
-#define v_win0_yuv_clip(x)       (((x)&1)<<20)
-#define v_win0_cbr_deflick(x)    (((x)&1)<<19)
-#define v_win0_yrgb_deflick(x)   (((x)&1)<<18)
-#define v_win0_ppas_zero_en(x)   (((x)&1)<<16)
-#define v_win0_uv_swap(x)        (((x)&1)<<15)
-#define v_win0_mid_swap(x)       (((x)&1)<<14)
-#define v_win0_alpha_swap(x)     (((x)&1)<<13)
-#define v_win0_rb_swap(x)        (((x)&1)<<12)
-#define v_win0_csc_mode(x)       (((x)&3)<<10)
-#define v_win0_no_outstanding(x) (((x)&1)<<9)
-#define v_win0_interlace_read(x)  (((x)&1)<<8)
-#define v_win0_lb_mode(x)         (((x)&7)<<5)
-#define v_win0_fmt_10(x)          (((x)&1)<<4)
-#define v_win0_data_fmt(x)        (((x)&7)<<1)
-#define v_win0_en(x)              ((x)&1)
+#define WIN2_FADING_CTRL 		(0x00fc)
+#define v_WIN2_FADING_OFFSET_R(x)	(((x)&0xff)<<0)
+#define v_WIN2_FADING_OFFSET_G(x)	(((x)&0xff)<<8)
+#define v_WIN2_FADING_OFFSET_B(x)	(((x)&0xff)<<16)
+#define v_WIN2_FADING_EN(x)		(((x)&1)<<24)
 
+#define m_WIN2_FADING_OFFSET_R 		(0xff<<0)
+#define m_WIN2_FADING_OFFSET_G 		(0xff<<8)
+#define m_WIN2_FADING_OFFSET_B 		(0xff<<16)
+#define m_WIN2_FADING_EN		(1<<24)
 
-#define m_win0_cbr_vsd_mode        (1<<31)
-#define m_win0_cbr_vsu_mode        (1<<30)
-#define m_win0_cbr_hsd_mode        (3<<28)
-#define m_win0_cbr_ver_scl_mode    (3<<26)
-#define m_win0_cbr_hor_scl_mode    (3<<24)
-#define m_win0_yrgb_vsd_mode       (1<<23)
-#define m_win0_yrgb_vsu_mode       (1<<22)
-#define m_win0_yrgb_hsd_mode       (3<<20)
-#define m_win0_yrgb_ver_scl_mode   (3<<18)
-#define m_win0_yrgb_hor_scl_mode   (3<<16)
-#define m_win0_line_load_mode      (1<<15)
-#define m_win0_cbr_axi_gather_num  (7<<12)
-#define m_win0_yrgb_axi_gather_num (0xf<<8)
-#define m_win0_vsd_cbr_gt2         (1<<7)
-#define m_win0_vsd_cbr_gt4         (1<<6)
-#define m_win0_vsd_yrgb_gt2        (1<<5)
-#define m_win0_vsd_yrgb_gt4        (1<<4)
-#define m_win0_bic_coe_sel         (3<<2)
-#define m_win0_cbr_axi_gather_en   (1<<1)
-#define m_win0_yrgb_axi_gather_en  (1)
+/*win3 register*/
+#define WIN3_CTRL0 			(0x0100)
+#define v_WIN3_EN(x)			(((x)&1)<<0)
+#define v_WIN3_DATA_FMT(x)		(((x)&7)<<1)
+#define v_WIN3_MST0_EN(x)		(((x)&1)<<4)
+#define v_WIN3_MST1_EN(x)		(((x)&1)<<5)
+#define v_WIN3_MST2_EN(x)		(((x)&1)<<6)
+#define v_WIN3_MST3_EN(x)		(((x)&1)<<7)
+#define v_WIN3_INTERLACE_READ(x)	(((x)&1)<<8)
+#define v_WIN3_NO_OUTSTANDING(x)	(((x)&1)<<9)
+#define v_WIN3_CSC_MODE(x)		(((x)&1)<<10)
+#define v_WIN3_RB_SWAP(x)		(((x)&1)<<12)
+#define v_WIN3_ALPHA_SWAP(x)		(((x)&1)<<13)
+#define v_WIN3_ENDIAN_MODE(x)		(((x)&1)<<14)
+#define v_WIN3_LUT_EN(x)		(((x)&1)<<18)
 
-#define v_win0_cbr_vsd_mode(x)        (((x)&1)<<31)
-#define v_win0_cbr_vsu_mode(x)        (((x)&1)<<30)
-#define v_win0_cbr_hsd_mode(x)        (((x)&3)<<28)
-#define v_win0_cbr_ver_scl_mode(x)    (((x)&3)<<26)
-#define v_win0_cbr_hor_scl_mode(x)    (((x)&3)<<24)
-#define v_win0_yrgb_vsd_mode(x)       (((x)&1)<<23)
-#define v_win0_yrgb_vsu_mode(x)       (((x)&1)<<22)
-#define v_win0_yrgb_hsd_mode(x)       (((x)&3)<<20)
-#define v_win0_yrgb_ver_scl_mode(x)   (((x)&3)<<18)
-#define v_win0_yrgb_hor_scl_mode(x)   (((x)&3)<<16)
-#define v_win0_line_load_mode(x)      (((x)&1)<<15)
-#define v_win0_cbr_axi_gather_num(x)  (((x)&7)<<12)
-#define v_win0_yrgb_axi_gather_num(x) (((x)&0xf)<<8)
-#define v_win0_vsd_cbr_gt2(x)         (((x)&1)<<7)
-#define v_win0_vsd_cbr_gt4(x)         (((x)&1)<<6)
-#define v_win0_vsd_yrgb_gt2(x)        (((x)&1)<<5)
-#define v_win0_vsd_yrgb_gt4(x)        (((x)&1)<<4)
-#define v_win0_bic_coe_sel(x)         (((x)&3)<<2)
-#define v_win0_cbr_axi_gather_en(x)   (((x)&1)<<1)
-#define v_win0_yrgb_axi_gather_en(x)  ((x)&1)
+#define m_WIN3_EN 			(1<<0)
+#define m_WIN3_DATA_FMT 		(7<<1)
+#define m_WIN3_MST0_EN 			(1<<4)
+#define m_WIN3_MST1_EN 			(1<<5)
+#define m_WIN3_MST2_EN 			(1<<6)
+#define m_WIN3_MST3_EN 			(1<<7)
+#define m_WIN3_INTERLACE_READ 		(1<<8)
+#define m_WIN3_NO_OUTSTANDING 		(1<<9)
+#define m_WIN3_CSC_MODE 		(1<<10)
+#define m_WIN3_RB_SWAP 			(1<<12)
+#define m_WIN3_ALPHA_SWAP 		(1<<13)
+#define m_WIN3_ENDIAN_MODE 		(1<<14)
+#define m_WIN3_LUT_EN 			(1<<18)
 
 
-#define m_win0_key_en                 (1<<31)
-#define m_win0_key_color              (0x3fffffff)
+#define WIN3_CTRL1 			(0x0104)
+#define v_WIN3_AXI_GATHER_EN(x)		(((x)&1)<<0)
+#define v_WIN3_AXI_GATHER_NUM(x)	(((x)&0xf)<<4)
+#define m_WIN3_AXI_GATHER_EN 		(1<<0)
+#define m_WIN3_AXI_GATHER_NUM 		(0xf<<4)
 
-#define v_win0_key_en(x)                 (((x)&1)<<31)
-#define v_win0_key_color(x)              ((x)&0x3fffffff)
+#define WIN3_VIR0_1 			(0x0108)
+#define v_WIN3_VIR_STRIDE0(x)		(((x)&0x1fff)<<0)
+#define v_WIN3_VIR_STRIDE1(x)		(((x)&0x1fff)<<16)
+#define m_WIN3_VIR_STRIDE0 		(0x1fff<<0)
+#define m_WIN3_VIR_STRIDE1 		(0x1fff<<16)
 
-#define v_ARGB888_VIRWIDTH(x) 	(((x)&0x3fff)<<0)
-#define v_RGB888_VIRWIDTH(x) 	(((((x*3)>>2)+((x)%3))&0x3fff)<<0)
-#define v_RGB565_VIRWIDTH(x) 	 ((DIV_ROUND_UP(x,2)&0x3fff)<<0)
-#define v_YUV_VIRWIDTH(x)    	 ((DIV_ROUND_UP(x,4)&0x3fff)<<0)
+#define WIN3_VIR2_3 			(0x010c)
+#define v_WIN3_VIR_STRIDE2(x)		(((x)&0x1fff)<<0)
+#define v_WIN3_VIR_STRIDE3(x)		(((x)&0x1fff)<<16)
+#define m_WIN3_VIR_STRIDE2		(0x1fff<<0)
+#define m_WIN3_VIR_STRIDE3		(0x1fff<<16)
 
-#define v_act_height(x)             (((x)&0x1fff)<<16)
-#define v_act_width(x)              ((x)&0x1fff)
+#define WIN3_MST0 	        	(0x0110)
+#define WIN3_DSP_INFO0 			(0x0114)
+#define v_WIN3_DSP_WIDTH0(x)		(((x-1)&0xfff)<<0)
+#define v_WIN3_DSP_HEIGHT0(x)		(((x-1)&0xfff)<<16)
+#define m_WIN3_DSP_WIDTH0 		(0xfff<<0)
+#define m_WIN3_DSP_HEIGHT0 		(0xfff<<16)
 
-#define v_dsp_height(x)             (((x)&0xfff)<<16)
-#define v_dsp_width(x)              ((x)&0xfff)
+#define WIN3_DSP_ST0 			(0x0118)
+#define v_WIN3_DSP_XST0(x)		(((x)&0x1fff)<<0)
+#define v_WIN3_DSP_YST0(x)		(((x)&0x1fff)<<16)
+#define m_WIN3_DSP_XST0			(0x1fff<<0)
+#define m_WIN3_DSP_YST0			(0x1fff<<16)
 
-#define v_dsp_yst(x)                (((x)&0x1fff)<<16)
-#define v_dsp_xst(x)                ((x)&0x1fff)
+#define WIN3_COLOR_KEY 			(0x011c)
+#define v_WIN3_COLOR_KEY(x)		(((x)&0xffffff)<<0)
+#define v_WIN3_KEY_EN(x)		(((x)&1)<<24)
+#define m_WIN3_COLOR_KEY		(0xffffff<<0)
+#define m_WIN3_KEY_EN			((u32)1<<24)
+
+#define WIN3_MST1 			(0x0120)
+#define WIN3_DSP_INFO1 			(0x0124)
+#define v_WIN3_DSP_WIDTH1(x)		(((x-1)&0xfff)<<0)
+#define v_WIN3_DSP_HEIGHT1(x)		(((x-1)&0xfff)<<16)
+#define m_WIN3_DSP_WIDTH1 		(0xfff<<0)
+#define m_WIN3_DSP_HEIGHT1 		(0xfff<<16)
+
+#define WIN3_DSP_ST1 			(0x0128)
+#define v_WIN3_DSP_XST1(x)		(((x)&0x1fff)<<0)
+#define v_WIN3_DSP_YST1(x)		(((x)&0x1fff)<<16)
+#define m_WIN3_DSP_XST1			(0x1fff<<0)
+#define m_WIN3_DSP_YST1			(0x1fff<<16)
+
+#define WIN3_SRC_ALPHA_CTRL 		(0x012c)
+#define v_WIN3_SRC_ALPHA_EN(x)		(((x)&1)<<0)
+#define v_WIN3_SRC_COLOR_M0(x)		(((x)&1)<<1)
+#define v_WIN3_SRC_ALPHA_M0(x)		(((x)&1)<<2)
+#define v_WIN3_SRC_BLEND_M0(x)		(((x)&3)<<3)
+#define v_WIN3_SRC_ALPHA_CAL_M0(x)	(((x)&1)<<5)
+#define v_WIN3_SRC_FACTOR_M0(x)		(((x)&7)<<6)
+#define v_WIN3_SRC_GLOBAL_ALPHA(x)	(((x)&0xff)<<16)
+#define v_WIN3_FADING_VALUE(x)          (((x)&0xff)<<24)
+
+#define m_WIN3_SRC_ALPHA_EN 		(1<<0)
+#define m_WIN3_SRC_COLOR_M0 		(1<<1)
+#define m_WIN3_SRC_ALPHA_M0 		(1<<2)
+#define m_WIN3_SRC_BLEND_M0		(3<<3)
+#define m_WIN3_SRC_ALPHA_CAL_M0		(1<<5)
+#define m_WIN3_SRC_FACTOR_M0		(7<<6)
+#define m_WIN3_SRC_GLOBAL_ALPHA		(0xff<<16)
+#define m_WIN3_FADING_VALUE		(0xff<<24)
+
+#define WIN3_MST2 			(0x0130)
+#define WIN3_DSP_INFO2 			(0x0134)
+#define v_WIN3_DSP_WIDTH2(x)		(((x-1)&0xfff)<<0)
+#define v_WIN3_DSP_HEIGHT2(x)		(((x-1)&0xfff)<<16)
+#define m_WIN3_DSP_WIDTH2		(0xfff<<0)
+#define m_WIN3_DSP_HEIGHT2		(0xfff<<16)
+
+#define WIN3_DSP_ST2 			(0x0138)
+#define v_WIN3_DSP_XST2(x)		(((x)&0x1fff)<<0)
+#define v_WIN3_DSP_YST2(x)		(((x)&0x1fff)<<16)
+#define m_WIN3_DSP_XST2			(0x1fff<<0)
+#define m_WIN3_DSP_YST2			(0x1fff<<16)
+
+#define WIN3_DST_ALPHA_CTRL 		(0x013c)
+#define v_WIN3_DST_FACTOR_M0(x)		(((x)&7)<<6)
+#define m_WIN3_DST_FACTOR_M0		(7<<6)
 
 
-#define v_X_SCL_FACTOR(x)  (((x)&0xffff)<<0)
-#define v_Y_SCL_FACTOR(x)  (((x)&0xffff)<<16)
+#define WIN3_MST3 			(0x0140)
+#define WIN3_DSP_INFO3 			(0x0144)
+#define v_WIN3_DSP_WIDTH3(x)		(((x-1)&0xfff)<<0)
+#define v_WIN3_DSP_HEIGHT3(x)		(((x-1)&0xfff)<<16)
+#define m_WIN3_DSP_WIDTH3		(0xfff<<0)
+#define m_WIN3_DSP_HEIGHT3		(0xfff<<16)
 
-#define v_win0_vs_offset_cbr(x)     (((x)&0xff)<<24)
-#define v_win0_vs_offset_yrgb(x)     (((x)&0xff)<<16)
-#define v_win0_hs_offset_cbr(x)     (((x)&0xff)<<8)
-#define v_win0_hs_offset_yrgb(x)     ((x)&0xff)
+#define WIN3_DSP_ST3 			(0x0148)
+#define v_WIN3_DSP_XST3(x)		(((x)&0x1fff)<<0)
+#define v_WIN3_DSP_YST3(x)		(((x)&0x1fff)<<16)
+#define m_WIN3_DSP_XST3			(0x1fff<<0)
+#define m_WIN3_DSP_YST3			(0x1fff<<16)
 
+#define WIN3_FADING_CTRL 		(0x014c)
+#define v_WIN3_FADING_OFFSET_R(x)	(((x)&0xff)<<0)
+#define v_WIN3_FADING_OFFSET_G(x)	(((x)&0xff)<<8)
+#define v_WIN3_FADING_OFFSET_B(x)	(((x)&0xff)<<16)
+#define v_WIN3_FADING_EN(x)		(((x)&1)<<24)
 
-#define m_win0_fading_value         (0xff<<24)
-#define m_win0_src_global_alpha     (0xff<<16)
-#define m_win0_src_factor_m0        (7<<6)
-#define m_win0_src_alpha_cal_m0     (1<<5)
-#define m_win0_src_blend_m0         (3<<3)
-#define m_win0_src_alpha_m0         (1<<2)
-#define m_win0_src_color_m0         (1<<1)
-#define m_win0_src_alpha_en         (1)
-
-#define v_win0_fading_value(x)         (((x)&0xff)<<24)
-#define v_win0_src_global_alpha(x)     (((x)&0xff)<<16)
-#define v_win0_src_factor_m0(x)        (((x)&7)<<6)
-#define v_win0_src_alpha_cal_m0(x)     (((x)&1)<<5)
-#define v_win0_src_blend_m0(x)         (((x)&3)<<3)
-#define v_win0_src_alpha_m0(x)         (((x)&1)<<2)
-#define v_win0_src_color_m0(x)         (((x)&1)<<1)
-#define v_win0_src_alpha_en(x)         ((x)&1)
+#define m_WIN3_FADING_OFFSET_R 		(0xff<<0)
+#define m_WIN3_FADING_OFFSET_G 		(0xff<<8)
+#define m_WIN3_FADING_OFFSET_B 		(0xff<<16)
+#define m_WIN3_FADING_EN		(1<<24)
 
 
-#define m_win0_dst_factor_m0          (7<<6)
-#define v_win0_dst_factor_m0(x)          (((x)&7)<<6)
+/*hwc register*/
+#define HWC_CTRL0 			(0x0150)
+#define v_HWC_EN(x)			(((x)&1)<<0)
+#define v_HWC_DATA_FMT(x)		(((x)&7)<<1)
+#define v_HWC_MODE(x)			(((x)&1)<<4)
+#define v_HWC_SIZE(x)			(((x)&3)<<5)
+#define v_HWC_INTERLACE_READ(x)		(((x)&1)<<8)
+#define v_HWC_NO_OUTSTANDING(x)		(((x)&1)<<9)
+#define v_HWC_CSC_MODE(x)		(((x)&1)<<10)
+#define v_HWC_RB_SWAP(x)		(((x)&1)<<12)
+#define v_HWC_ALPHA_SWAP(x)		(((x)&1)<<13)
+#define v_HWC_ENDIAN_MODE(x)		(((x)&1)<<14)
+#define v_HWC_LUT_EN(x)			(((x)&1)<<18)
 
-#define m_layer0_fading_en             (1<<24)
-#define m_layer0_fading_offset_b       (0xff<<16)
-#define m_layer0_fading_offset_g       (0xff<<8)
-#define m_layer0_fading_offset_r       0xff
+#define m_HWC_EN			(1<<0)
+#define m_HWC_DATA_FMT			(7<<1)
+#define m_HWC_MODE			(1<<4)
+#define m_HWC_SIZE			(3<<5)
+#define m_HWC_INTERLACE_READ 		(1<<8)
+#define m_HWC_NO_OUTSTANDING		(1<<9)
+#define m_HWC_CSC_MODE			(1<<10)
+#define m_HWC_RB_SWAP			(1<<12)
+#define m_HWC_ALPHA_SWAP		(1<<13)
+#define m_HWC_ENDIAN_MODE		(1<<14)
+#define m_HWC_LUT_EN			(1<<18)
 
-#define v_layer0_fading_en(x)             (((x)&1)<<24)
-#define v_layer0_fading_offset_b(x)       (((x)&0xff)<<16)
-#define v_layer0_fading_offset_g(x)       (((x)&0xff)<<8)
-#define v_layer0_fading_offset_r(x)       ((x)&0xff)
 
-#define v_HSYNC(x)  		(((x)&0x1fff)<<0)   //hsync pulse width
-#define v_HORPRD(x) 		(((x)&0x1fff)<<16)   //horizontal period
-#define v_VSYNC(x) 		(((x)&0x1fff)<<0)
-#define v_VERPRD(x) 		(((x)&0x1fff)<<16)
+#define HWC_CTRL1 			(0x0154)
+#define v_HWC_AXI_GATHER_EN(x)		(((x)&1)<<0)
+#define v_HWC_AXI_GATHER_NUM(x)		(((x)&7)<<4)
+#define m_HWC_AXI_GATHER_EN		(1<<0)
+#define m_HWC_AXI_GATHER_NUM		(7<<4)
 
-#define v_HAEP(x) 		(((x)&0x1fff)<<0)  //horizontal active end point
-#define v_HASP(x) 		(((x)&0x1fff)<<16) //horizontal active start point
-#define v_VAEP(x) 		(((x)&0x1fff)<<0)
-#define v_VASP(x) 		(((x)&0x1fff)<<16)
+#define HWC_MST 			(0x0158)
+#define HWC_DSP_ST 			(0x015c)
+#define v_HWC_DSP_XST3(x)		(((x)&0x1fff)<<0)
+#define v_HWC_DSP_YST3(x)		(((x)&0x1fff)<<16)
+#define m_HWC_DSP_XST3			(0x1fff<<0)
+#define m_HWC_DSP_YST3			(0x1fff<<16)
+
+#define HWC_SRC_ALPHA_CTRL		(0x0160)
+#define v_HWC_SRC_ALPHA_EN(x)		(((x)&1)<<0)
+#define v_HWC_SRC_COLOR_M0(x)		(((x)&1)<<1)
+#define v_HWC_SRC_ALPHA_M0(x)		(((x)&1)<<2)
+#define v_HWC_SRC_BLEND_M0(x)		(((x)&3)<<3)
+#define v_HWC_SRC_ALPHA_CAL_M0(x)	(((x)&1)<<5)
+#define v_HWC_SRC_FACTOR_M0(x)		(((x)&7)<<6)
+#define v_HWC_SRC_GLOBAL_ALPHA(x)	(((x)&0xff)<<16)
+#define v_HWC_FADING_VALUE(x)           (((x)&0xff)<<24)
+
+#define m_HWC_SRC_ALPHA_EN 		(1<<0)
+#define m_HWC_SRC_COLOR_M0 		(1<<1)
+#define m_HWC_SRC_ALPHA_M0 		(1<<2)
+#define m_HWC_SRC_BLEND_M0		(3<<3)
+#define m_HWC_SRC_ALPHA_CAL_M0		(1<<5)
+#define m_HWC_SRC_FACTOR_M0		(7<<6)
+#define m_HWC_SRC_GLOBAL_ALPHA		(0xff<<16)
+#define m_HWC_FADING_VALUE		(0xff<<24)
+
+#define HWC_DST_ALPHA_CTRL 		(0x0164)
+#define v_HWC_DST_FACTOR_M0(x)		(((x)&7)<<6)
+#define m_HWC_DST_FACTOR_M0		(7<<6)
+
+
+#define HWC_FADING_CTRL 		(0x0168)
+#define v_HWC_FADING_OFFSET_R(x)        (((x)&0xff)<<0)
+#define v_HWC_FADING_OFFSET_G(x)        (((x)&0xff)<<8)
+#define v_HWC_FADING_OFFSET_B(x)        (((x)&0xff)<<16)
+#define v_HWC_FADING_EN(x)	        (((x)&1)<<24)
+
+#define m_HWC_FADING_OFFSET_R 	        (0xff<<0)
+#define m_HWC_FADING_OFFSET_G 	        (0xff<<8)
+#define m_HWC_FADING_OFFSET_B 	        (0xff<<16)
+#define m_HWC_FADING_EN                 (1<<24)
+
+/*post process register*/
+#define POST_DSP_HACT_INFO 		(0x0170)
+#define v_DSP_HACT_END_POST(x)		(((x)&0x1fff)<<0)
+#define v_DSP_HACT_ST_POST(x)		(((x)&0x1fff)<<16)
+#define m_DSP_HACT_END_POST		(0x1fff<<0)
+#define m_DSP_HACT_ST_POST		(0x1fff<<16)
+
+#define POST_DSP_VACT_INFO 		(0x0174)
+#define v_DSP_VACT_END_POST(x)		(((x)&0x1fff)<<0)
+#define v_DSP_VACT_ST_POST(x)		(((x)&0x1fff)<<16)
+#define m_DSP_VACT_END_POST		(0x1fff<<0)
+#define m_DSP_VACT_ST_POST		(0x1fff<<16)
+
+#define POST_SCL_FACTOR_YRGB 		(0x0178)
+#define v_POST_HS_FACTOR_YRGB(x)	(((x)&0xffff)<<0)
+#define v_POST_VS_FACTOR_YRGB(x)	(((x)&0xffff)<<16)
+#define m_POST_HS_FACTOR_YRGB		(0xffff<<0)
+#define m_POST_VS_FACTOR_YRGB		(0xffff<<16)
+
+#define POST_SCL_CTRL 			(0x0180)
+#define v_POST_HOR_SD_EN(x)		(((x)&1)<<0)
+#define v_POST_VER_SD_EN(x)		(((x)&1)<<1)
+
+#define m_POST_HOR_SD_EN		(0x1<<0)
+#define m_POST_VER_SD_EN		(0x1<<1)
+
+#define POST_DSP_VACT_INFO_F1 		(0x0184)
+#define v_DSP_VACT_END_POST_F1(x)       (((x)&0x1fff)<<0)
+#define v_DSP_VACT_ST_POST_F1(x)        (((x)&0x1fff)<<16)
+
+#define m_DSP_VACT_END_POST_F1          (0x1fff<<0)
+#define m_DSP_VACT_ST_POST_F1           (0x1fff<<16)
+
+#define DSP_HTOTAL_HS_END 		(0x0188)
+#define v_DSP_HS_PW(x)			(((x)&0x1fff)<<0)
+#define v_DSP_HTOTAL(x)			(((x)&0x1fff)<<16)
+#define m_DSP_HS_PW			(0x1fff<<0)
+#define m_DSP_HTOTAL			(0x1fff<<16)
+
+#define POST_RESERVED			0x17c
+#define DSP_HACT_ST_END 		(0x018c)
+#define v_DSP_HACT_END(x)		(((x)&0x1fff)<<0)
+#define v_DSP_HACT_ST(x)		(((x)&0x1fff)<<16)
+#define m_DSP_HACT_END			(0x1fff<<0)
+#define m_DSP_HACT_ST			(0x1fff<<16)
+
+#define DSP_VTOTAL_VS_END 		(0x0190)
+#define v_DSP_VS_PW(x)			(((x)&0x1fff)<<0)
+#define v_DSP_VTOTAL(x)			(((x)&0x1fff)<<16)
+#define m_DSP_VS_PW			(0x1fff<<0)
+#define m_DSP_VTOTAL			(0x1fff<<16)
+
+#define DSP_VACT_ST_END 		(0x0194)
+#define v_DSP_VACT_END(x)		(((x)&0x1fff)<<0)
+#define v_DSP_VACT_ST(x)		(((x)&0x1fff)<<16)
+#define m_DSP_VACT_END			(0x1fff<<0)
+#define m_DSP_VACT_ST			(0x1fff<<16)
+
+#define DSP_VS_ST_END_F1 		(0x0198)
+#define v_DSP_VS_END_F1(x)		(((x)&0x1fff)<<0)
+#define v_DSP_VS_ST_F1(x)		(((x)&0x1fff)<<16)
+#define m_DSP_VS_END_F1			(0x1fff<<0)
+#define m_DSP_VS_ST_F1			(0x1fff<<16)
+
+#define DSP_VACT_ST_END_F1 		(0x019c)
+#define v_DSP_VACT_END_F1(x)		(((x)&0x1fff)<<0)
+#define v_DSP_VAC_ST_F1(x)		(((x)&0x1fff)<<16)
+#define m_DSP_VACT_END_F1		(0x1fff<<0)
+#define m_DSP_VAC_ST_F1			(0x1fff<<16)
+
+
+/*pwm register*/
+#define PWM_CTRL 			(0x01a0)
+#define v_PWM_EN(x)			(((x)&1)<<0)
+#define v_PWM_MODE(x)		        (((x)&3)<<1)
+
+#define v_DUTY_POL(x)		        (((x)&1)<<3)
+#define v_INACTIVE_POL(x)		(((x)&1)<<4)
+#define v_OUTPUT_MODE(x)		(((x)&1)<<5)
+#define v_BL_EN(x)			(((x)&1)<<8)
+#define v_CLK_SEL(x)		        (((x)&1)<<9)
+#define v_PRESCALE(x)		        (((x)&7)<<12)
+#define v_SCALE(x)			(((x)&0xff)<<16)
+#define v_RPT(x)			(((x)&0xff)<<24)
+
+#define m_PWM_EN			(1<<0)
+#define m_PWM_MODE			(3<<1)
+
+#define m_DUTY_POL			(1<<3)
+#define m_INACTIVE_POL		        (1<<4)
+#define m_OUTPUT_MODE		        (1<<5)
+#define m_BL_EN			        (1<<8)
+#define m_CLK_SEL			(1<<9)
+#define m_PRESCALE			(7<<12)
+#define m_SCALE		        	(0xff<<16)
+#define m_RPT		           	((u32)0xff<<24)
+
+#define PWM_PERIOD_HPR 			(0x01a4)
+#define PWM_DUTY_LPR  			(0x01a8)
+#define PWM_CNT 			(0x01ac)
+
+/*BCSH register*/
+#define BCSH_COLOR_BAR 			(0x01b0)
+#define v_BCSH_EN(x)			(((x)&1)<<0)
+#define v_BCSH_COLOR_BAR_Y(x)		(((x)&0x3ff)<<2)
+#define v_BCSH_COLOR_BAR_U(x)		(((x)&0x3ff)<<12)
+#define v_BCSH_COLOR_BAR_V(x)		(((x)&0x3ff)<<22)
+
+#define m_BCSH_EN			(1<<0)
+#define m_BCSH_COLOR_BAR_Y		(0x3ff<<2)
+#define m_BCSH_COLOR_BAR_U		(0x3ff<<12)
+#define m_BCSH_COLOR_BAR_V		((u32)0x3ff<<22)
+
+#define BCSH_BCS 			(0x01b4)
+#define v_BCSH_BRIGHTNESS(x)		(((x)&0xff)<<0)	
+#define v_BCSH_CONTRAST(x)		(((x)&0x1ff)<<8)	
+#define v_BCSH_SAT_CON(x)		(((x)&0x3ff)<<20)	
+#define v_BCSH_OUT_MODE(x)		(((x)&0x3)<<30)	
+
+#define m_BCSH_BRIGHTNESS		(0xff<<0)	
+#define m_BCSH_CONTRAST			(0x1ff<<8)
+#define m_BCSH_SAT_CON			(0x3ff<<20)	
+#define m_BCSH_OUT_MODE			((u32)0x3<<30)	
+
+
+#define BCSH_H 				(0x01b8)
+#define v_BCSH_SIN_HUE(x)		(((x)&0x1ff)<<0)
+#define v_BCSH_COS_HUE(x)		(((x)&0x1ff)<<16)
+
+#define m_BCSH_SIN_HUE			(0x1ff<<0)
+#define m_BCSH_COS_HUE			(0x1ff<<16)
+
+#define CABC_CTRL0 			(0x01c0)
+#define v_CABC_EN(x)			(((x)&1)<<0)
+#define v_CABC_CALC_PIXEL_NUM(x)	(((x)&0x7fffff)<<1)
+#define v_CABC_STAGE_UP(x)		(((x)&0xff)<<24)
+#define m_CABC_EN			(1<<0)
+#define m_CABC_CALC_PIXEL_NUM		(0x7fffff<<1)
+#define m_CABC_STAGE_UP			(0xff<<24)
+
+
+#define CABC_CTRL1 			(0x01c4)
+#define v_CABC_TOTAL_NUM(x)		(((x)&0x7fffff)<<1)
+#define v_CABC_STAGE_DOWN(x)		(((x)&0xff)<<24)
+#define m_CABC_TOTAL_NUM		(0x7fffff<<1)
+#define m_CABC_STAGE_DOWN		(0xff<<24)
+
+#define CABC_GAUSS_LINE0_0 		(0x01c8)
+#define v_CABC_T_LINE0_0(x)		(((x)&0xff)<<0)
+#define v_CABC_T_LINE0_1(x)		(((x)&0xff)<<8)
+#define v_CABC_T_LINE0_2(x)		(((x)&0xff)<<16)
+#define v_CABC_T_LINE0_3(x)		(((x)&0xff)<<24)
+#define m_CABC_T_LINE0_0		(0xff<<0)
+#define m_CABC_T_LINE0_1		(0xff<<8)
+#define m_CABC_T_LINE0_2		(0xff<<16)
+#define m_CABC_T_LINE0_3		((u32)0xff<<24)
+
+#define CABC_GAUSS_LINE0_1 		(0x01cc)
+#define v_CABC_T_LINE0_4(x)		(((x)&0xff)<<0)
+#define v_CABC_T_LINE0_5(x)		(((x)&0xff)<<8)
+#define v_CABC_T_LINE0_6(x)		(((x)&0xff)<<16)
+#define m_CABC_T_LINE0_4		(0xff<<0)
+#define m_CABC_T_LINE0_5		(0xff<<8)
+#define m_CABC_T_LINE0_6		(0xff<<16)
+
+
+#define CABC_GAUSS_LINE1_0 		(0x01d0)
+#define v_CABC_T_LINE1_0(x)		(((x)&0xff)<<0)
+#define v_CABC_T_LINE1_1(x)		(((x)&0xff)<<8)
+#define v_CABC_T_LINE1_2(x)		(((x)&0xff)<<16)
+#define v_CABC_T_LINE1_3(x)		(((x)&0xff)<<24)
+#define m_CABC_T_LINE1_0		(0xff<<0)
+#define m_CABC_T_LINE1_1		(0xff<<8)
+#define m_CABC_T_LINE1_2		(0xff<<16)
+#define m_CABC_T_LINE1_3		((u32)0xff<<24)
+
+#define CABC_GAUSS_LINE1_1 		(0x01d4)
+#define v_CABC_T_LINE1_4(x)		(((x)&0xff)<<0)
+#define v_CABC_T_LINE1_5(x)		(((x)&0xff)<<8)
+#define v_CABC_T_LINE1_6(x)		(((x)&0xff)<<16)
+#define m_CABC_T_LINE1_4		(0xff<<0)
+#define m_CABC_T_LINE1_5		(0xff<<8)
+#define m_CABC_T_LINE1_6		(0xff<<16)
+
+#define CABC_GAUSS_LINE2_0 		(0x01d8)
+#define v_CABC_T_LINE2_0(x)		(((x)&0xff)<<0)
+#define v_CABC_T_LINE2_1(x)		(((x)&0xff)<<8)
+#define v_CABC_T_LINE2_2(x)		(((x)&0xff)<<16)
+#define v_CABC_T_LINE2_3(x)		(((x)&0xff)<<24)
+#define m_CABC_T_LINE2_0		(0xff<<0)
+#define m_CABC_T_LINE2_1		(0xff<<8)
+#define m_CABC_T_LINE2_2		(0xff<<16)
+#define m_CABC_T_LINE2_3		((u32)0xff<<24)
+
+#define CABC_GAUSS_LINE2_1 		(0x01dc)
+#define v_CABC_T_LINE2_4(x)		(((x)&0xff)<<0)
+#define v_CABC_T_LINE2_5(x)		(((x)&0xff)<<8)
+#define v_CABC_T_LINE2_6(x)		(((x)&0xff)<<16)
+#define m_CABC_T_LINE2_4		(0xff<<0)
+#define m_CABC_T_LINE2_5		(0xff<<8)
+#define m_CABC_T_LINE2_6		(0xff<<16)
+
+/*FRC register*/
+#define FRC_LOWER01_0 			(0x01e0)
+#define v_FRC_LOWER01_FRM0(x)		(((x)&0xffff)<<0)
+#define v_FRC_LOWER01_FRM1(x)		(((x)&0xffff)<<16)
+#define m_FRC_LOWER01_FRM0		(0xffff<<0)
+#define m_FRC_LOWER01_FRM1		((u32)0xffff<<16)
+
+#define FRC_LOWER01_1 			(0x01e4)
+#define v_FRC_LOWER01_FRM2(x)		(((x)&0xffff)<<0)
+#define v_FRC_LOWER01_FRM3(x)		(((x)&0xffff)<<16)
+#define m_FRC_LOWER01_FRM2		(0xffff<<0)
+#define m_FRC_LOWER01_FRM3		((u32)0xffff<<16)
+
+#define FRC_LOWER10_0 			(0x01e8)
+#define v_FRC_LOWER10_FRM0(x)		(((x)&0xffff)<<0)
+#define v_FRC_LOWER10_FRM1(x)		(((x)&0xffff)<<16)
+#define m_FRC_LOWER10_FRM0		(0xffff<<0)
+#define m_FRC_LOWER10_FRM1		((u32)0xffff<<16)
+
+#define FRC_LOWER10_1 			(0x01ec)
+#define v_FRC_LOWER10_FRM2(x)		(((x)&0xffff)<<0)
+#define v_FRC_LOWER10_FRM3(x)		(((x)&0xffff)<<16)
+#define m_FRC_LOWER10_FRM2		(0xffff<<0)
+#define m_FRC_LOWER10_FRM3		((u32)0xffff<<16)
+
+#define FRC_LOWER11_0 			(0x01f0)
+#define v_FRC_LOWER11_FRM0(x)		(((x)&0xffff)<<0)
+#define v_FRC_LOWER11_FRM1(x)		(((x)&0xffff)<<16)
+#define m_FRC_LOWER11_FRM0		(0xffff<<0)
+#define m_FRC_LOWER11_FRM1		((u32)0xffff<<16)
+
+#define FRC_LOWER11_1 			(0x01f4)
+#define v_FRC_LOWER11_FRM2(x)		(((x)&0xffff)<<0)
+#define v_FRC_LOWER11_FRM3(x)		(((x)&0xffff)<<16)
+#define m_FRC_LOWER11_FRM2		(0xffff<<0)
+#define m_FRC_LOWER11_FRM3		((u32)0xffff<<16)
+
+#define MMU_DTE_ADDR			(0x0300)
+#define v_MMU_DTE_ADDR(x)		(((x)&0xffffffff)<<0)
+#define m_MMU_DTE_ADDR			(0xffffffff<<0)
+
+#define MMU_STATUS			(0x0304)
+#define v_PAGING_ENABLED(x)		(((x)&1)<<0)
+#define v_PAGE_FAULT_ACTIVE(x)		(((x)&1)<<1)
+#define v_STAIL_ACTIVE(x)		(((x)&1)<<2)
+#define v_MMU_IDLE(x)			(((x)&1)<<3)
+#define v_REPLAY_BUFFER_EMPTY(x)	(((x)&1)<<4)
+#define v_PAGE_FAULT_IS_WRITE(x)	(((x)&1)<<5)
+#define v_PAGE_FAULT_BUS_ID(x)		(((x)&0x1f)<<6)
+#define m_PAGING_ENABLED		(1<<0)
+#define m_PAGE_FAULT_ACTIVE		(1<<1)
+#define m_STAIL_ACTIVE			(1<<2)
+#define m_MMU_IDLE			(1<<3)
+#define m_REPLAY_BUFFER_EMPTY		(1<<4)
+#define m_PAGE_FAULT_IS_WRITE		(1<<5)
+#define m_PAGE_FAULT_BUS_ID		(0x1f<<6)
+
+#define MMU_COMMAND			(0x0308)
+#define v_MMU_CMD(x)			(((x)&0x3)<<0)
+#define m_MMU_CMD			(0x3<<0)
+
+#define MMU_PAGE_FAULT_ADDR		(0x030c)
+#define v_PAGE_FAULT_ADDR(x)		(((x)&0xffffffff)<<0)
+#define m_PAGE_FAULT_ADDR		(0xffffffff<<0)
+
+#define MMU_ZAP_ONE_LINE		(0x0310)
+#define v_MMU_ZAP_ONE_LINE(x)		(((x)&0xffffffff)<<0)
+#define m_MMU_ZAP_ONE_LINE		(0xffffffff<<0)
+
+#define MMU_INT_RAWSTAT			(0x0314)
+#define v_PAGE_FAULT_RAWSTAT(x)		(((x)&1)<<0)
+#define v_READ_BUS_ERROR_RAWSTAT(x)	(((x)&1)<<1)
+#define m_PAGE_FAULT_RAWSTAT		(1<<0)
+#define m_READ_BUS_ERROR_RAWSTAT	(1<<1)
+
+#define MMU_INT_CLEAR			(0x0318)
+#define v_PAGE_FAULT_CLEAR(x)		(((x)&1)<<0)
+#define v_READ_BUS_ERROR_CLEAR(x)	(((x)&1)<<1)
+#define m_PAGE_FAULT_CLEAR		(1<<0)
+#define m_READ_BUS_ERROR_CLEAR		(1<<1)
+
+#define MMU_INT_MASK			(0x031c)
+#define v_PAGE_FAULT_MASK(x)		(((x)&1)<<0)
+#define v_READ_BUS_ERROR_MASK(x)	(((x)&1)<<1)
+#define m_PAGE_FAULT_MASK		(1<<0)
+#define m_READ_BUS_ERROR_MASK		(1<<1)
+
+#define MMU_INT_STATUS			(0x0320)
+#define v_PAGE_FAULT_STATUS(x)		(((x)&1)<<0)
+#define v_READ_BUS_ERROR_STATUS(x)	(((x)&1)<<1)
+#define m_PAGE_FAULT_STATUS		(1<<0)
+#define m_READ_BUS_ERROR_STATUS		(1<<1)
+
+#define MMU_AUTO_GATING			(0x0324)
+#define v_MMU_AUTO_GATING(x)		(((x)&1)<<0)
+#define m_MMU_AUTO_GATING		(1<<0)
+
+#define WIN2_LUT_ADDR 			(0x0400)
+#define WIN3_LUT_ADDR  			(0x0800)
+#define HWC_LUT_ADDR   			(0x0c00)
+#define GAMMA_LUT_ADDR 			(0x1000)
+#define MCU_BYPASS_WPORT 		(0x2200)
+#define MCU_BYPASS_RPORT 		(0x2300)
+
+#define PWM_MODE_ONE_SHOT		(0x0)
+#define PWM_MODE_CONTINUOUS		(0x1)
+#define PWM_MODE_CAPTURE		(0x2)
+
+#define REG_LEN				MMU_AUTO_GATING
+
+enum lb_mode {
+	LB_YUV_3840X5 = 0x0,
+	LB_YUV_2560X8 = 0x1,
+	LB_RGB_3840X2 = 0x2,
+	LB_RGB_2560X4 = 0x3,
+	LB_RGB_1920X5 = 0x4,
+	LB_RGB_1280X8 = 0x5
+};
+
+enum sacle_up_mode {
+	SCALE_UP_BIL = 0x0,
+	SCALE_UP_BIC = 0x1
+};
+
+enum scale_down_mode {
+	SCALE_DOWN_BIL = 0x0,
+	SCALE_DOWN_AVG = 0x1
+};
+
+/*ALPHA BLENDING MODE*/
+enum alpha_mode {               /*  Fs       Fd */
+	AB_USER_DEFINE     = 0x0,
+	AB_CLEAR    	   = 0x1,/*  0          0*/
+	AB_SRC      	   = 0x2,/*  1          0*/
+	AB_DST    	   = 0x3,/*  0          1  */
+	AB_SRC_OVER   	   = 0x4,/*  1   	    1-As''*/
+	AB_DST_OVER    	   = 0x5,/*  1-Ad''   1*/
+	AB_SRC_IN    	   = 0x6,
+	AB_DST_IN    	   = 0x7,
+	AB_SRC_OUT    	   = 0x8,
+	AB_DST_OUT    	   = 0x9,
+	AB_SRC_ATOP        = 0xa,
+	AB_DST_ATOP    	   = 0xb,
+	XOR                = 0xc,
+	AB_SRC_OVER_GLOBAL = 0xd
+}; /*alpha_blending_mode*/
+
+enum src_alpha_mode {
+	AA_STRAIGHT	   = 0x0,
+	AA_INVERSE         = 0x1
+};/*src_alpha_mode*/
+
+enum global_alpha_mode {
+	AA_GLOBAL 	  = 0x0,
+	AA_PER_PIX        = 0x1,
+	AA_PER_PIX_GLOBAL = 0x2
+};/*src_global_alpha_mode*/
+
+enum src_alpha_sel {
+	AA_SAT		= 0x0,
+	AA_NO_SAT	= 0x1
+};/*src_alpha_sel*/
+
+enum src_color_mode {
+	AA_SRC_PRE_MUL	       = 0x0,
+	AA_SRC_NO_PRE_MUL      = 0x1
+};/*src_color_mode*/
+
+enum factor_mode {
+	AA_ZERO			= 0x0,
+	AA_ONE   	   	= 0x1,
+	AA_SRC			= 0x2,
+	AA_SRC_INVERSE          = 0x3,
+	AA_SRC_GLOBAL           = 0x4
+};/*src_factor_mode  &&  dst_factor_mode*/
+
+
+struct alpha_config{
+	enum src_alpha_mode src_alpha_mode;       	/*win0_src_alpha_m0*/
+	u32 src_global_alpha_val; 			/*win0_src_global_alpha*/
+	enum global_alpha_mode src_global_alpha_mode;	/*win0_src_blend_m0*/
+	enum src_alpha_sel src_alpha_cal_m0;	 	/*win0_src_alpha_cal_m0*/
+	enum src_color_mode src_color_mode;	 	/*win0_src_color_m0*/
+	enum factor_mode src_factor_mode;	 	/*win0_src_factor_m0*/
+	enum factor_mode dst_factor_mode;     		/*win0_dst_factor_m0*/
+};
+
+struct lcdc_cabc_mode {
+	u32 pixel_num;			/* pixel precent number */
+	char stage_up;			/* up stride */
+	char stage_down;		/* down stride */
+};
+
+struct lcdc_device{
+	int node;
+	int id;
+	int soc_type;
+	int dft_win; 				/*default win for display*/
+	int regsbak[REG_LEN];
+	int regs;				/*1:standby,0:wrok*/
+};
+
+struct lcdc_device rk32_lcdc;
+
+static inline void lcdc_writel(struct lcdc_device *lcdc_dev, u32 offset, u32 v)
+{
+	u32 *_pv = (u32*)lcdc_dev->regsbak;	
+	_pv += (offset >> 2);	
+	*_pv = v;
+	writel(v, lcdc_dev->regs+offset);	
+}
+
+static inline u32 lcdc_readl(struct lcdc_device *lcdc_dev,u32 offset)
+{
+	u32 v;
+	u32 *_pv = (u32*)lcdc_dev->regsbak;
+	_pv += (offset >> 2);
+	v = readl(lcdc_dev->regs+offset);
+	*_pv = v;
+	return v;
+}
+
+static inline u32 lcdc_read_bit(struct lcdc_device *lcdc_dev,u32 offset,u32 msk)
+{
+	u32 *_pv = (u32*)lcdc_dev->regsbak;
+	u32 _v = readl(lcdc_dev->regs+offset);
+	_pv += (offset >> 2);
+	*_pv = _v;
+	_v &= msk;
+	return (_v? 1 : 0);
+}
+
+static inline void  lcdc_set_bit(struct lcdc_device *lcdc_dev, u32 offset, u32 msk)
+{
+	u32* _pv = (u32*)lcdc_dev->regsbak;	
+	_pv += (offset >> 2);				
+	(*_pv) |= msk;				
+	writel(*_pv, lcdc_dev->regs + offset);
+}
+
+static inline void lcdc_clr_bit(struct lcdc_device *lcdc_dev, u32 offset, u32 msk)
+{
+	u32* _pv = (u32*)lcdc_dev->regsbak;	
+	_pv += (offset >> 2);				
+	(*_pv) &= (~msk);				
+	writel(*_pv, lcdc_dev->regs + offset);
+}
+
+static inline void  lcdc_msk_reg(struct lcdc_device *lcdc_dev, u32 offset, u32 msk, u32 v)
+{
+	u32 *_pv = (u32*)lcdc_dev->regsbak;	
+	_pv += (offset >> 2);			
+	(*_pv) &= (~msk);				
+	(*_pv) |= v;				
+	writel(*_pv, lcdc_dev->regs + offset);	
+}
+
+static inline void lcdc_cfg_done(struct lcdc_device *lcdc_dev)
+{
+	writel(0x01, lcdc_dev->regs+REG_CFG_DONE); 
+} 
+
+#define CUBIC_PRECISE  0
+#define CUBIC_SPLINE   1
+#define CUBIC_CATROM   2
+#define CUBIC_MITCHELL 3
+
+#define CUBIC_MODE_SELETION      CUBIC_PRECISE
+
+/*****************************************************************************************************/
+#define SCALE_FACTOR_BILI_DN_FIXPOINT_SHIFT   12   /* 4.12*/
+#define SCALE_FACTOR_BILI_DN_FIXPOINT(x)      ((INT32)((x)*(1 << SCALE_FACTOR_BILI_DN_FIXPOINT_SHIFT)))
+
+#define SCALE_FACTOR_BILI_UP_FIXPOINT_SHIFT   16   /* 0.16*/
+
+#define SCALE_FACTOR_AVRG_FIXPOINT_SHIFT   16   /*0.16*/
+#define SCALE_FACTOR_AVRG_FIXPOINT(x)      ((INT32)((x)*(1 << SCALE_FACTOR_AVRG_FIXPOINT_SHIFT)))
+
+#define SCALE_FACTOR_BIC_FIXPOINT_SHIFT    16   /* 0.16*/
+#define SCALE_FACTOR_BIC_FIXPOINT(x)       ((INT32)((x)*(1 << SCALE_FACTOR_BIC_FIXPOINT_SHIFT)))
+
+#define SCALE_FACTOR_DEFAULT_FIXPOINT_SHIFT    12  /*NONE SCALE,vsd_bil*/
+#define SCALE_FACTOR_VSDBIL_FIXPOINT_SHIFT     12  /*VER SCALE DOWN BIL*/
+
+/*****************************************************************************************************/
+
+/*#define GET_SCALE_FACTOR_BILI(src, dst) ((((src) - 1) << SCALE_FACTOR_BILI_FIXPOINT_SHIFT) / ((dst) - 1))*/
+/*#define GET_SCALE_FACTOR_BIC(src, dst)  ((((src) - 1) << SCALE_FACTOR_BIC_FIXPOINT_SHIFT) / ((dst) - 1))*/
+/*modified by hpz*/
+#define GET_SCALE_FACTOR_BILI_DN(src, dst)  ((((src)*2 - 3) << (SCALE_FACTOR_BILI_DN_FIXPOINT_SHIFT-1)) / ((dst) - 1))
+#define GET_SCALE_FACTOR_BILI_UP(src, dst)  ((((src)*2 - 3) << (SCALE_FACTOR_BILI_UP_FIXPOINT_SHIFT-1)) / ((dst) - 1))
+#define GET_SCALE_FACTOR_BIC(src, dst)      ((((src)*2 - 3) << (SCALE_FACTOR_BIC_FIXPOINT_SHIFT-1)) / ((dst) - 1))
+
+/*****************************************************************/
+/*NOTE: hardware为节省开销, srcH先抽行得到 (srcH+vScaleDnMult-1)/vScaleDnMult; 然后缩放*/
+#define GET_SCALE_DN_ACT_HEIGHT(srcH, vScaleDnMult) (((srcH)+(vScaleDnMult)-1)/(vScaleDnMult))
+
+/*#define VSKIP_MORE_PRECISE*/
+
+#ifdef VSKIP_MORE_PRECISE
+#define MIN_SCALE_FACTOR_AFTER_VSKIP        1.5f
+#define GET_SCALE_FACTOR_BILI_DN_VSKIP(srcH, dstH, vScaleDnMult) \
+	(GET_SCALE_FACTOR_BILI_DN(GET_SCALE_DN_ACT_HEIGHT((srcH), (vScaleDnMult)), (dstH)))
+#else
+#define MIN_SCALE_FACTOR_AFTER_VSKIP        1
+#define GET_SCALE_FACTOR_BILI_DN_VSKIP(srcH, dstH, vScaleDnMult) \
+        ((GET_SCALE_DN_ACT_HEIGHT((srcH), (vScaleDnMult)) == (dstH))\
+                           ? (GET_SCALE_FACTOR_BILI_DN((srcH), (dstH))/(vScaleDnMult))\
+                           : GET_SCALE_FACTOR_BILI_DN(GET_SCALE_DN_ACT_HEIGHT((srcH), (vScaleDnMult)), (dstH)))
+#endif
+/*****************************************************************/
+
+
+/*ScaleFactor must >= dst/src, or pixels at end of line may be unused*/
+/*ScaleFactor must < dst/(src-1), or dst buffer may overflow*/
+/*avrg old code:       ((((dst) << SCALE_FACTOR_AVRG_FIXPOINT_SHIFT))/((src) - 1)) hxx_chgsrc*/
+/*modified by hpz:*/
+#define GET_SCALE_FACTOR_AVRG(src, dst)  ((((dst) << (SCALE_FACTOR_AVRG_FIXPOINT_SHIFT+1)))/(2*(src) - 1))
+
+/*****************************************************************************************************/
+/*Scale Coordinate Accumulate, x.16*/
+#define SCALE_COOR_ACC_FIXPOINT_SHIFT     16
+#define SCALE_COOR_ACC_FIXPOINT_ONE       (1 << SCALE_COOR_ACC_FIXPOINT_SHIFT)
+#define SCALE_COOR_ACC_FIXPOINT(x)        ((INT32)((x)*(1 << SCALE_COOR_ACC_FIXPOINT_SHIFT)))
+#define SCALE_COOR_ACC_FIXPOINT_REVERT(x) ((((x) >> (SCALE_COOR_ACC_FIXPOINT_SHIFT-1)) + 1) >> 1)
+
+#define SCALE_GET_COOR_ACC_FIXPOINT(scaleFactor, factorFixpointShift)  \
+        ((scaleFactor) << (SCALE_COOR_ACC_FIXPOINT_SHIFT - (factorFixpointShift)))
+
+
+/*****************************************************************************************************/
+/*CoarsePart of Scale Coordinate Accumulate, used for pixel mult-add factor, 0.8*/
+#define SCALE_FILTER_FACTOR_FIXPOINT_SHIFT     8
+#define SCALE_FILTER_FACTOR_FIXPOINT_ONE       (1 << SCALE_FILTER_FACTOR_FIXPOINT_SHIFT)
+#define SCALE_FILTER_FACTOR_FIXPOINT(x)        ((INT32)((x)*(1 << SCALE_FILTER_FACTOR_FIXPOINT_SHIFT)))
+#define SCALE_FILTER_FACTOR_FIXPOINT_REVERT(x) ((((x) >> (SCALE_FILTER_FACTOR_FIXPOINT_SHIFT-1)) + 1) >> 1)
+
+#define SCALE_GET_FILTER_FACTOR_FIXPOINT(coorAccumulate, coorAccFixpointShift) \
+  (((coorAccumulate)>>((coorAccFixpointShift)-SCALE_FILTER_FACTOR_FIXPOINT_SHIFT))&(SCALE_FILTER_FACTOR_FIXPOINT_ONE-1))
+
+#define SCALE_OFFSET_FIXPOINT_SHIFT            8
+#define SCALE_OFFSET_FIXPOINT(x)              ((INT32)((x)*(1 << SCALE_OFFSET_FIXPOINT_SHIFT)))
+
+u32 getHardWareVSkipLines(u32 srcH, u32 dstH)
+{
+	u32 vScaleDnMult;
+
+	if(srcH >= (u32)(4*dstH*MIN_SCALE_FACTOR_AFTER_VSKIP))
+	{
+		vScaleDnMult = 4;
+	}
+	else if(srcH >= (u32)(2*dstH*MIN_SCALE_FACTOR_AFTER_VSKIP))
+	{
+		vScaleDnMult = 2;
+	}
+	else
+	{
+		vScaleDnMult = 1;
+	}
+
+	return vScaleDnMult;
+}
+
+
+#define lvds_regs			RKIO_LVDS_PHYS
 
 #define LVDS_CH0_REG_0			0x00
 #define LVDS_CH0_REG_1			0x04
@@ -414,35 +1549,15 @@ typedef volatile struct tagLCDC_REG
 #define LVDS_CH0_EN			(0x01 << 11)
 #define LVDS_CH1_EN			(0x01 << 12)
 #define LVDS_PWRDN			(0x01 << 15)
-
-
-enum {
-	LB_YUV_3840X5 = 0x0,
-	LB_YUV_2560X8 = 0x1,
-	LB_RGB_3840X2 = 0x2,
-	LB_RGB_2560X4 = 0x3,
-	LB_RGB_1920X5 = 0x4,
-	LB_RGB_1280X8 = 0x5 
-};
-
-
-LCDC_REG *preg = NULL;  
-LCDC_REG regbak;
-
 extern int rk32_edp_enable(vidinfo_t * vid);
 extern int rk32_mipi_enable(vidinfo_t * vid);
 extern int rk32_dsi_enable(void);
 extern int rk32_dsi_sync(void);
 
-static void inline writel_relaxed(uint32 val, uint32 addr)
-{
-	*(int*)addr = val;
-}
-
 static int inline lvds_writel(uint32 offset, uint32 val)
 {
-	writel_relaxed(val, lvds_regs + offset);
-	writel_relaxed(val, lvds_regs + offset + 0x100);
+	writel(val, lvds_regs + offset);
+	writel(val, lvds_regs + offset + 0x100);
 
 	return 0;
 }
@@ -451,8 +1566,8 @@ static int rk32_lvds_disable(void)
 {
 	grf_writel(0x80008000, GRF_SOC_CON7);
 
-	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_21); /*disable tx*/
-	writel_relaxed(0xff, lvds_regs + LVDS_CFG_REG_c); /*disable pll*/
+	writel(0x00, lvds_regs + LVDS_CFG_REG_21); /*disable tx*/
+	writel(0xff, lvds_regs + LVDS_CFG_REG_c); /*disable pll*/
 	return 0;
 }
 
@@ -460,10 +1575,10 @@ static int rk32_lvds_disable(void)
 static int rk32_lvds_en(vidinfo_t *vid)
 {
 	u32 h_bp = vid->vl_hspw + vid->vl_hbpd;
-	u32 i,j, val ;
+	u32 val ;
 
 	int screen_type = SCREEN_RGB;
-    
+
 	if (vid->lcdc_id == 1) /*lcdc1 = vop little,lcdc0 = vop big*/
 		val = LVDS_SEL_VOP_LIT | (LVDS_SEL_VOP_LIT << 16);
 	else
@@ -511,8 +1626,8 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	    	lvds_writel( LVDS_CH0_REG_3, 0x46);
 	    	lvds_writel( LVDS_CH0_REG_d, 0x0a);
 	    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
-	    	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
-	    	writel_relaxed(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
+	    	writel(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
+	    	writel(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
 	
 	    	lvds_writel( 0x100, 0x7f);
 	    	lvds_writel( 0x104, 0x40);
@@ -536,9 +1651,9 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	    	lvds_writel( LVDS_CH0_REG_d, 0x0a);//0a
 	    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
 	    	//lvds_writel( 0x24,0x20);
-	    	//writel_relaxed(0x23, lvds_regs + 0x88);
-	    	writel_relaxed(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
-	    	writel_relaxed(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
+	    	//writel(0x23, lvds_regs + 0x88);
+	    	writel(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
+	    	writel(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
 	
 	    	//lvds_writel( 0x100, 0xbf);
 	    	//lvds_writel( 0x104, 0x3f);
@@ -552,182 +1667,232 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	return 0;
 }
 
-/* Configure VENC for a given Mode (NTSC / PAL) */
+static int win0_set_par(struct lcdc_device *lcdc_dev,
+			     struct fb_dsp_info *fb_info,
+			     vidinfo_t *vid)
+{
+	u32 msk,val;
+	lcdc_writel(lcdc_dev, WIN0_SCL_FACTOR_YRGB,
+		     v_WIN0_HS_FACTOR_YRGB(0x1000) |
+		     v_WIN0_VS_FACTOR_YRGB(0x1000));
+	lcdc_writel(lcdc_dev, WIN0_SCL_FACTOR_CBR,
+		     v_WIN0_HS_FACTOR_CBR(0x1000) |
+		     v_WIN0_VS_FACTOR_CBR(0x1000));
+	msk = m_WIN0_RB_SWAP | m_WIN0_ALPHA_SWAP | m_WIN0_LB_MODE |
+		m_WIN0_DATA_FMT | m_WIN0_EN;
+	val = v_WIN0_RB_SWAP(0) | v_WIN0_ALPHA_SWAP(0) | v_WIN0_LB_MODE(5) |
+		v_WIN0_DATA_FMT(vid->logo_rgb_mode) | v_WIN0_EN(1);
+	lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, msk, val);
+	msk = m_WIN0_CBR_VSU_MODE | m_WIN0_YRGB_VSU_MODE;
+	val = v_WIN0_CBR_VSU_MODE(1) | v_WIN0_YRGB_VSU_MODE(1);
+	lcdc_msk_reg(lcdc_dev, WIN0_CTRL1, msk, val);
+	val =  v_WIN0_ACT_WIDTH(fb_info->xact-1) |
+		v_WIN0_ACT_HEIGHT(fb_info->yact-1);
+	lcdc_writel(lcdc_dev, WIN0_ACT_INFO, val);
+	val = v_WIN0_DSP_XST(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) |
+		v_WIN0_DSP_YST(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd);
+	lcdc_writel(lcdc_dev, WIN0_DSP_ST, val);
+	val = v_WIN0_DSP_WIDTH(fb_info->xsize-1) | v_WIN0_DSP_HEIGHT(fb_info->ysize-1);
+	lcdc_writel(lcdc_dev, WIN0_DSP_INFO, val);
+	msk =  m_WIN0_COLOR_KEY_EN | m_WIN0_COLOR_KEY;
+	val = v_WIN0_COLOR_KEY_EN(0) | v_WIN0_COLOR_KEY(0);
+	lcdc_msk_reg(lcdc_dev, WIN0_COLOR_KEY, msk, val);
+
+	if(fb_info->xsize > 2560) {
+		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, m_WIN0_LB_MODE,
+			     v_WIN0_LB_MODE(LB_RGB_3840X2));
+	} else if(fb_info->xsize > 1920) {
+		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, m_WIN0_LB_MODE,
+			      v_WIN0_LB_MODE(LB_RGB_2560X4));
+	} else if(fb_info->xsize > 1280){
+		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, m_WIN0_LB_MODE,
+			     v_WIN0_LB_MODE(LB_RGB_1920X5));
+	} else {
+		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, m_WIN0_LB_MODE,
+			     v_WIN0_LB_MODE(LB_RGB_1280X8));
+	}
+	switch (vid->logo_rgb_mode) {
+	case ARGB888:
+		lcdc_writel(lcdc_dev, WIN0_VIR, v_ARGB888_VIRWIDTH(fb_info->xvir));
+		break;
+	case RGB888:
+		lcdc_writel(lcdc_dev, WIN0_VIR, v_RGB888_VIRWIDTH(fb_info->xvir));
+		break;
+	case RGB565:
+		lcdc_writel(lcdc_dev, WIN0_VIR, v_RGB565_VIRWIDTH(fb_info->xvir));
+		break;
+	case YUV422:
+	case YUV420:
+		lcdc_writel(lcdc_dev, WIN0_VIR, v_YUV_VIRWIDTH(fb_info->xvir));
+		if(fb_info->xsize > 1280) {
+			lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, m_WIN0_LB_MODE,
+				     v_WIN0_LB_MODE(LB_YUV_3840X5));
+		} else {
+			lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, m_WIN0_LB_MODE,
+				     v_WIN0_LB_MODE(LB_YUV_2560X8));
+		}
+		break;
+	default:
+		lcdc_writel(lcdc_dev, WIN0_VIR, v_RGB888_VIRWIDTH(fb_info->xvir));
+		break;
+	}
+	lcdc_writel(lcdc_dev, WIN0_YRGB_MST, fb_info->yaddr);
+
+	return 0;
+}
+
 void rk_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 {
-	struct layer_par *par = &vid->par[fb_info->layer_id];
-	if(par == NULL)
-		printf("%s lay_par==NULL,id=%d\n",fb_info->layer_id);
+	struct lcdc_device *lcdc_dev = &rk32_lcdc;
 
-	if(fb_info != &par->fb_info)
-		memcpy(&par->fb_info,fb_info,sizeof(struct fb_dsp_info *));
-
-	switch(fb_info->layer_id) {
-		case WIN0:
-			LcdWrReg(WIN0_SCL_FACTOR_YRGB, v_X_SCL_FACTOR(0x1000) | v_Y_SCL_FACTOR(0x1000));
-			LcdWrReg(WIN0_SCL_FACTOR_CBR,v_X_SCL_FACTOR(0x1000)| v_Y_SCL_FACTOR(0x1000));
-			LcdMskReg(WIN0_CTRL0, m_win0_rb_swap | m_win0_alpha_swap | m_win0_lb_mode | m_win0_data_fmt | m_win0_en,
-				v_win0_rb_swap(0) | v_win0_alpha_swap(0) | v_win0_lb_mode(5) | v_win0_data_fmt(vid->logo_rgb_mode) | v_win0_en(1));
-			LcdMskReg(WIN0_CTRL1, m_win0_cbr_vsu_mode | m_win0_yrgb_vsu_mode, v_win0_cbr_vsu_mode(1)| v_win0_yrgb_vsu_mode(1));
-			LcdWrReg(WIN0_ACT_INFO, v_act_width(fb_info->xact-1) | v_act_height(fb_info->yact-1));
-			LcdWrReg(WIN0_DSP_ST,
-				v_dsp_xst(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) | v_dsp_yst(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd)); 
-			LcdWrReg(WIN0_DSP_INFO, v_dsp_width(fb_info->xsize-1) | v_dsp_height(fb_info->ysize-1));
-			LcdMskReg(WIN0_COLOR_KEY, m_win0_key_en | m_win0_key_color,
-				v_win0_key_en(0) | v_win0_key_color(0));
-
-			if(fb_info->xsize > 2560) {                
-				LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_3840X2));
-			} else if(fb_info->xsize > 1920) {
-				LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_2560X4));
-			} else if(fb_info->xsize > 1280){
-				LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_1920X5));
-			} else {
-				LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_RGB_1280X8));
-			}
-			switch(vid->logo_rgb_mode) 
-			{
-				case ARGB888:
-					LcdWrReg(WIN0_VIR,v_ARGB888_VIRWIDTH(fb_info->xvir));  //zyw
-					break;
-				case RGB888:  //rgb888
-					LcdWrReg(WIN0_VIR,v_RGB888_VIRWIDTH(fb_info->xvir));
-					break;
-				case RGB565:  //rgb565
-					LcdWrReg(WIN0_VIR,v_RGB565_VIRWIDTH(fb_info->xvir));
-					break;
-				case YUV422:
-				case YUV420:   
-					LcdWrReg(WIN0_VIR,v_YUV_VIRWIDTH(fb_info->xvir));
-					if(fb_info->xsize > 1280) {
-						LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_YUV_3840X5));
-					} else {
-						LcdMskReg(WIN0_CTRL0, m_win0_lb_mode, v_win0_lb_mode(LB_YUV_2560X8));
-					}          
-					break;
-				default:
-					LcdWrReg(WIN0_VIR,v_RGB888_VIRWIDTH(fb_info->xvir));
-					break;
-			}
-			LcdWrReg(WIN0_YRGB_MST, fb_info->yaddr);
-			break;
-		case WIN1:
-			printf("%s --->WIN1 not support \n");
-			break;
-		default:
-			printf("%s --->unknow lay_id \n");
-			break;
+	fb_info->layer_id = lcdc_dev->dft_win;
+	switch (fb_info->layer_id) {
+	case WIN0:
+		win0_set_par(lcdc_dev, fb_info, vid);
+		break;
+	case WIN1:
+		printf("%s --->WIN1 not support\n", __func__);
+		break;
+	default:
+		printf("%s --->unknow lay_id \n", __func__);
+		break;
 	}
 
-	LcdWrReg(BCSH_BCS, 0xd0010000);
-	LcdWrReg(BCSH_H, 0x01000000);
-	LcdWrReg(BCSH_COLOR_BAR, 1);
-	LCDC_REG_CFG_DONE();
+	lcdc_writel(lcdc_dev, BCSH_BCS, 0xd0010000);
+	lcdc_writel(lcdc_dev, BCSH_H, 0x01000000);
+	lcdc_writel(lcdc_dev, BCSH_COLOR_BAR, 1);
+	lcdc_cfg_done(lcdc_dev);
 }
 
 
 int rk_lcdc_load_screen(vidinfo_t *vid)
 {
-	int ret = -1;
+	struct lcdc_device *lcdc_dev = &rk32_lcdc;
 	int face = 0;
+	u32 msk, val;
 	
 	vid->dp_enabled = 0;
 	vid->mipi_enabled = 0;
-	if ((vid->screen_type == SCREEN_MIPI)||(vid->screen_type == SCREEN_DUAL_MIPI))
+	if ((vid->screen_type == SCREEN_MIPI) ||
+	    (vid->screen_type == SCREEN_DUAL_MIPI))
 		vid->mipi_enabled = 1;
-	else if(vid->screen_type == SCREEN_EDP)
+	else if (vid->screen_type == SCREEN_EDP)
 		vid->dp_enabled = 1;
-	
 	if (vid->mipi_enabled) {
 		rk32_mipi_enable(vid);
 		if (vid->screen_type == SCREEN_MIPI) {
-			LcdMskReg(SYS_CTRL, m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en, v_mipi_out_en(1));
+			msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
+				m_HDMI_OUT_EN | m_RGB_OUT_EN;
+			val = v_MIPI_OUT_EN(1);
 		} else {
-			LcdMskReg(SYS_CTRL, m_mipi_out_en|m_doub_channel_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,
-				v_mipi_out_en(1)|v_doub_channel_en(1));
+			msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
+				m_HDMI_OUT_EN | m_RGB_OUT_EN |
+				m_DOUB_CHANNEL_EN;
+			val = v_MIPI_OUT_EN(1) | v_DOUB_CHANNEL_EN(1);
 		}
 	} else if (vid->dp_enabled) {
-		LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_edp_out_en(1));
-	} else if(vid->screen_type == SCREEN_HDMI){
-		LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_hdmi_out_en(1));
+		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
+			m_HDMI_OUT_EN | m_RGB_OUT_EN;
+		val = v_EDP_OUT_EN(1);
+	} else if (vid->screen_type == SCREEN_HDMI) {
+		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
+			m_HDMI_OUT_EN | m_RGB_OUT_EN;
+		val = v_HDMI_OUT_EN(1);
 	} else {
-		LcdMskReg(SYS_CTRL,m_mipi_out_en|m_edp_out_en|m_hdmi_out_en|m_rgb_out_en,v_rgb_out_en(1));
+		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
+			m_HDMI_OUT_EN | m_RGB_OUT_EN;
+		val = v_HDMI_OUT_EN(1);
 	}
-	LcdMskReg(DSP_CTRL0, m_dsp_black_en|m_dsp_blank_en|m_dsp_out_zero|m_dsp_dclk_pol|m_dsp_den_pol|m_dsp_vsync_pol|m_dsp_hsync_pol, 
-	                 v_dsp_black_en(0)|v_dsp_blank_en(0)|v_dsp_out_zero(0)|v_dsp_dclk_pol(vid->vl_clkp)
-	                 |v_dsp_den_pol(vid->vl_oep)|v_dsp_vsync_pol(vid->vl_vsp)|v_dsp_hsync_pol(vid->vl_hsp));
-	
-	switch (vid->lcd_face)
-	{
+	lcdc_msk_reg(lcdc_dev, SYS_CTRL, msk, val);
+
+	msk = m_DSP_BLACK_EN | m_DSP_BLANK_EN | m_DSP_OUT_ZERO |
+		m_DSP_DCLK_POL | m_DSP_DEN_POL | m_DSP_VSYNC_POL |
+		m_DSP_HSYNC_POL;
+	val = v_DSP_BLACK_EN(0) | v_DSP_BLANK_EN(0) | v_DSP_OUT_ZERO(0) |
+		v_DSP_DCLK_POL(vid->vl_clkp) | v_DSP_DEN_POL(vid->vl_oep) |
+		v_DSP_VSYNC_POL(vid->vl_vsp) | v_DSP_HSYNC_POL(vid->vl_hsp);
+	lcdc_msk_reg(lcdc_dev, DSP_CTRL0, msk, val);
+	switch (vid->lcd_face) {
 	case OUT_P565:
-			face = OUT_P565;
-			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(1) | v_dither_down_mode(0));
-			break;
+		face = OUT_P565;
+		msk = m_DITHER_DOWN_EN | m_DITHER_DOWN_MODE;
+		val = v_DITHER_DOWN_EN(1) | v_DITHER_DOWN_MODE(0);
+		break;
 	case OUT_P666:
-			face = OUT_P666;
-			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_down_sel,
-				v_dither_down_en(1) | v_dither_down_mode(1))|v_dither_down_sel(1);
-			break;
+		face = OUT_P666;
+		msk = m_DITHER_DOWN_EN | m_DITHER_DOWN_MODE |
+			m_DITHER_DOWN_SEL;
+		val = v_DITHER_DOWN_EN(1) | v_DITHER_DOWN_MODE(1) |
+			v_DITHER_DOWN_SEL(1);
+		break;
 	case OUT_D888_P565:
-			face = OUT_P888;
-			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode, v_dither_down_en(1) | v_dither_down_mode(0));
-			break;
+		face = OUT_P888;
+		msk = m_DITHER_DOWN_EN | m_DITHER_DOWN_MODE;
+		val = v_DITHER_DOWN_EN(1) | v_DITHER_DOWN_MODE(0);
+		break;
 	case OUT_D888_P666:
-			face = OUT_P888;
-			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_down_sel,
-				v_dither_down_en(1) | v_dither_down_mode(1)|v_dither_down_sel(1));
-			break; 
+		face = OUT_P888;
+		msk = m_DITHER_DOWN_EN | m_DITHER_DOWN_MODE |
+			m_DITHER_DOWN_SEL;
+		val = v_DITHER_DOWN_EN(1) | v_DITHER_DOWN_MODE(1) |
+			v_DITHER_DOWN_SEL(1);
+		break;
 	case OUT_P888:
-			face = OUT_P888;
-			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode | m_dither_up_en,
-				v_dither_down_en(0) | v_dither_down_mode(0) | v_dither_up_en(1));
-			break;
+		face = OUT_P888;
+		msk = m_DITHER_DOWN_EN | m_DITHER_DOWN_MODE |
+			m_DITHER_UP_EN;
+		val = v_DITHER_DOWN_EN(0) | v_DITHER_DOWN_MODE(0) |
+			v_DITHER_UP_EN(1); /*we display rgb565 ,so dither up*/
+		break;
 	default:
-			LcdMskReg(DSP_CTRL1, m_dither_down_en | m_dither_down_mode|m_dither_up_en,
-				v_dither_down_en(0) | v_dither_down_mode(0) | v_dither_up_en(0));
-			face = vid->lcd_face;
-			break;
+		face = vid->lcd_face;
+		msk = m_DITHER_DOWN_EN | m_DITHER_DOWN_MODE |
+			m_DITHER_UP_EN;
+		val = v_DITHER_DOWN_EN(0) | v_DITHER_DOWN_MODE(0) |
+			v_DITHER_UP_EN(1);
+		break;
 	}
-	
+	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, msk, val);
 	if (vid->screen_type == SCREEN_EDP || vid->screen_type == SCREEN_HDMI)
 		face = OUT_RGB_AAA;
-	//set background color to black,set swap according to the screen panel,disable blank mode
-	LcdMskReg(DSP_CTRL0, m_dsp_rg_swap | m_dsp_rb_swap | m_dsp_delta_swap | m_dsp_field_pol  | 
-	 	m_dsp_dummy_swap | m_dsp_bg_swap|m_dsp_out_mode,v_dsp_rg_swap(0) | v_dsp_rb_swap(vid->vl_swap_rb) | 
-	 	v_dsp_delta_swap(0) | v_dsp_dummy_swap(0) | v_dsp_field_pol(0) | v_dsp_bg_swap(0) | v_dsp_out_mode(face));
-	LcdWrReg(DSP_BG,0);
-	LcdWrReg(DSP_HTOTAL_HS_END,v_HSYNC(vid->vl_hspw) |
-	     v_HORPRD(vid->vl_hspw + vid->vl_hbpd + vid->vl_col + vid->vl_hfpd));
-	LcdWrReg(DSP_HACT_ST_END, v_HAEP(vid->vl_hspw + vid->vl_hbpd + vid->vl_col) |
-	     v_HASP(vid->vl_hspw + vid->vl_hbpd));
-	
-	LcdWrReg(DSP_VTOTAL_VS_END, v_VSYNC(vid->vl_vspw) |
-	      v_VERPRD(vid->vl_vspw + vid->vl_vbpd + vid->vl_row + vid->vl_vfpd));
-	LcdWrReg(DSP_VACT_ST_END,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-	      v_VASP(vid->vl_vspw + vid->vl_vbpd));
-	//  LcdWrReg(DSP_VACT_ST_END_F1,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-	//           v_VASP(vid->vl_vspw + vid->vl_vbpd));
-	
-	LcdWrReg(POST_DSP_HACT_INFO,v_HAEP(vid->vl_hspw + vid->vl_hbpd + vid->vl_col) |
-	     v_HASP(vid->vl_hspw + vid->vl_hbpd));
-	LcdWrReg(POST_DSP_VACT_INFO,  v_VAEP(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
-	      v_VASP(vid->vl_vspw + vid->vl_vbpd));
-	LcdWrReg(POST_DSP_VACT_INFO_F1, 0);
-	LcdWrReg(POST_RESERVED, 0x10001000);
-	LcdWrReg(MCU_CTRL, 0);
-	
-	// let above to take effect
-	LCDC_REG_CFG_DONE();
-	
+	msk = m_DSP_RG_SWAP | m_DSP_RB_SWAP | m_DSP_DELTA_SWAP |
+		m_DSP_FIELD_POL | m_DSP_DUMMY_SWAP | m_DSP_BG_SWAP |
+		m_DSP_OUT_MODE;
+	val = v_DSP_RG_SWAP(0) | v_DSP_RB_SWAP(vid->vl_swap_rb) |
+		v_DSP_DELTA_SWAP(0) | v_DSP_DUMMY_SWAP(0) |
+		v_DSP_FIELD_POL(0) | v_DSP_BG_SWAP(0) |
+		v_DSP_OUT_MODE(face);
+	lcdc_msk_reg(lcdc_dev, DSP_CTRL0, msk, val);
+	lcdc_writel(lcdc_dev, DSP_BG, 0);
+	val = v_DSP_HS_PW(vid->vl_hspw) | v_DSP_HTOTAL(vid->vl_hspw +
+		vid->vl_hbpd + vid->vl_col + vid->vl_hfpd);
+	lcdc_writel(lcdc_dev, DSP_HTOTAL_HS_END, val);
+	val = v_DSP_HACT_END(vid->vl_hspw + vid->vl_hbpd + vid->vl_col) |
+		v_DSP_HACT_ST(vid->vl_hspw + vid->vl_hbpd);
+	lcdc_writel(lcdc_dev, DSP_HACT_ST_END, val);
+	val = v_DSP_VTOTAL(vid->vl_vspw + vid->vl_vbpd +
+		vid->vl_row + vid->vl_vfpd) | v_DSP_VS_PW(vid->vl_vspw);
+	lcdc_writel(lcdc_dev, DSP_VTOTAL_VS_END, val);
+	val = v_DSP_VACT_END(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
+		v_DSP_VACT_ST(vid->vl_vspw + vid->vl_vbpd);
+	lcdc_writel(lcdc_dev, DSP_VACT_ST_END, val);
+	val = v_DSP_HACT_END_POST(vid->vl_hspw + vid->vl_hbpd + vid->vl_col) |
+		v_DSP_HACT_ST_POST(vid->vl_hspw + vid->vl_hbpd);
+	lcdc_writel(lcdc_dev, POST_DSP_HACT_INFO, val);
+	val = v_DSP_HACT_END_POST(vid->vl_vspw + vid->vl_vbpd + vid->vl_row)|
+	      v_DSP_HACT_ST_POST(vid->vl_vspw + vid->vl_vbpd);
+	lcdc_writel(lcdc_dev, POST_DSP_VACT_INFO, val);
+	lcdc_writel(lcdc_dev, POST_DSP_VACT_INFO_F1, 0);
+	lcdc_writel(lcdc_dev, POST_RESERVED, 0x10001000);
+	lcdc_writel(lcdc_dev, MCU_CTRL, 0);
+	lcdc_cfg_done(lcdc_dev);
 	if ((vid->screen_type == SCREEN_LVDS) ||
-		(vid->screen_type == SCREEN_DUAL_LVDS)) {
+	    (vid->screen_type == SCREEN_DUAL_LVDS)) {
 		rk32_lvds_en(vid);
 	} else if (vid->screen_type == SCREEN_EDP) {
 		rk32_edp_enable(vid);
-	} else if ((vid->screen_type == SCREEN_MIPI)
-		||(vid->screen_type == SCREEN_DUAL_MIPI)) {
-		//rk32_mipi_enable(vid);
-		//rk32_dsi_enable();
+	} else if ((vid->screen_type == SCREEN_MIPI) ||
+		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
 		rk32_dsi_sync();
 	}
 
@@ -736,26 +1901,75 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 
 
 /* Enable LCD and DIGITAL OUT in DSS */
-void rk_lcdc_standby(enable)
+void rk_lcdc_standby(int enable)
 {
-	LcdMskReg(SYS_CTRL, m_standby_en, v_standby_en(enable ? 1 : 0));
-	LCDC_REG_CFG_DONE();  
+	struct lcdc_device *lcdc_dev = &rk32_lcdc;
+
+	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_STANDBY_EN,
+		     v_STANDBY_EN(enable ? 1 : 0));
+	lcdc_cfg_done(lcdc_dev);
 }
 
+#if defined(CONFIG_OF_LIBFDT)
+static int rk32_lcdc_parse_dt(struct lcdc_device *lcdc_dev,
+				     const void *blob)
+{
+	int order = FB0_WIN0_FB1_WIN1_FB2_WIN2;
+
+	if (lcdc_dev->id == 0)
+		lcdc_dev->node  = fdt_path_offset(blob, "lcdc0");
+	else
+		lcdc_dev->node  = fdt_path_offset(blob, "lcdc1");
+	if (lcdc_dev->node < 0) {
+		debug("rk32 lcdc node is not found\n");
+		return -ENODEV;
+	}
+
+	if (!fdt_device_is_available(blob, lcdc_dev->node)) {
+		debug("device lcdc is disabled\n");
+		return -EPERM;
+	}
+
+	lcdc_dev->regs = fdtdec_get_addr(blob, lcdc_dev->node, "reg");
+	order = fdtdec_get_int(blob, lcdc_dev->node,
+			       "rockchip,fb-win-map", order);
+	lcdc_dev->dft_win = order % 10;
+
+	return 0;
+}
+#endif
 
 int rk_lcdc_init(int lcdc_id)
 {
-	preg = (lcdc_id == 1) ? RKIO_VOP_LIT_PHYS : RKIO_VOP_BIG_PHYS;  
-	grf_writel(1<<16, GRF_IO_VSEL); //LCDCIOdomain 3.3 Vvoltageselectio
-	
-	// printf(" %s vop_version = 0x%x\n",__func__,LcdRdReg(VERSION_INFO));
-	LcdMskReg(SYS_CTRL, m_auto_gating_en | m_standby_en | m_dma_stop | m_mmu_en, 
-	                v_auto_gating_en(1)|v_standby_en(0)|v_dma_stop(0)|v_mmu_en(0));	      //zyw
-	LcdMskReg(DSP_CTRL1, m_dsp_layer3_sel | m_dsp_layer2_sel | m_dsp_layer1_sel | m_dsp_layer0_sel,
-	             v_dsp_layer3_sel(3) | v_dsp_layer2_sel(2) | v_dsp_layer1_sel(1) | v_dsp_layer0_sel(0)); 
+	struct lcdc_device *lcdc_dev = &rk32_lcdc;
+	u32 msk, val;
 
-//	LcdMskReg(INT_STATUS, m_FS_INT_EN, v_FS_INT_EN(1));  
-	LCDC_REG_CFG_DONE();  // write any value to  REG_CFG_DONE let config become effective
+	lcdc_dev->soc_type = gd->arch.chiptype;
+	lcdc_dev->id = lcdc_id;
+#ifdef CONFIG_OF_LIBFDT
+	if (!lcdc_dev->node)
+		rk32_lcdc_parse_dt(lcdc_dev, gd->fdt_blob);
+#endif
+	if (lcdc_dev->node <= 0) {
+		if (lcdc_dev->id == 0)
+			lcdc_dev->regs = RKIO_VOP_BIG_PHYS;
+		else
+			lcdc_dev->regs = RKIO_VOP_LIT_PHYS;
+	}
+
+	grf_writel(1<<16, GRF_IO_VSEL); /*LCDCIOdomain 3.3 Vvoltageselectio*/
+
+	msk = m_AUTO_GATING_EN | m_STANDBY_EN |
+		m_DMA_STOP | m_MMU_EN;
+	val =  v_AUTO_GATING_EN(1) | v_STANDBY_EN(0) |
+		v_DMA_STOP(0) | v_MMU_EN(0);
+	lcdc_msk_reg(lcdc_dev, SYS_CTRL, msk, val);
+	msk = m_DSP_LAYER3_SEL | m_DSP_LAYER2_SEL|
+		m_DSP_LAYER1_SEL | m_DSP_LAYER0_SEL;
+	val = v_DSP_LAYER3_SEL(3) | v_DSP_LAYER2_SEL(2) |
+		v_DSP_LAYER1_SEL(1) | v_DSP_LAYER0_SEL(0);
+	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, msk, val);
+	lcdc_cfg_done(lcdc_dev);
 
 	return 0;
 }
