@@ -1451,6 +1451,7 @@ void rkclk_set_crypto_clk(uint32 rate)
 		div = 1;
 	}
 
+	debug("crypto clk div = %d\n", div);
 	cru_writel((3 << (6 + 16)) | ((div-1) << 6), CRU_CLKSELS_CON(26));
 }
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
