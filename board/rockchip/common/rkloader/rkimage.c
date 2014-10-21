@@ -30,9 +30,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define ALIGN(x,a)      __ALIGN_MASK((x),(typeof(x))(a)-1)
 #define __ALIGN_MASK(x,mask)    (((x)+(mask))&~(mask))
 extern uint8* g_pLoader;
-extern void P_RC4(unsigned char * buf, unsigned short len);
 extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
-extern uint32 SecureBootSignCheck(uint8 * rsaHash,uint8 *Hash , uint8 length);
 
 static int rkimg_load_image(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
@@ -258,37 +256,7 @@ static int rkimg_buildParameter(unsigned char *parameter, int len)
 }
 
 
-static int rkimg_checkLoaderKey(RK28BOOT_HEAD *hdr)
-{
-#define RSA_KEY_OFFSET 0x10//according to dumped data, the key is here.
-#define RSA_KEY_LEN    0x102//258, public key's length
-	char buf[RK_BLK_SIZE];
-
-	memcpy(buf, hdr + hdr->uiFlashBootOffset, RK_BLK_SIZE);
-	P_RC4((unsigned char *)buf, RK_BLK_SIZE);
-
-	if (buf[RSA_KEY_OFFSET] != 0 || buf[RSA_KEY_OFFSET + 1] != 4) {
-		FBTDBG("try to flash unsigned loader\n");
-	}
-	if (gDrmKeyInfo.publicKeyLen == 0) {
-		FBTERR("current loader unsigned, allow flash loader anyway\n");
-		return 0;
-	}
-
-#ifdef FBT_DEBUG
-	printf("dump new loader's key:\n");
-	for (i = 0; i < 32; i++) {
-		for (j = 0; j < 16; j++) {
-			printf("%02x", buf[RSA_KEY_OFFSET + i * 16 + j]);
-		}
-		printf("\n");
-	}
-#endif
-	return memcmp(buf + RSA_KEY_OFFSET, gDrmKeyInfo.publicKey, RSA_KEY_LEN);
-}
-
-
-static int rkimg_make_loader_data(const char* old_loader, char* new_loader, int *new_loader_size)
+static bool rkimg_make_loader_data(const char* old_loader, char* new_loader, int *new_loader_size)
 {
 	int i,j;
 	PSTRUCT_RKBOOT_ENTRY pFlashDataEntry = NULL;
@@ -312,7 +280,7 @@ static int rkimg_make_loader_data(const char* old_loader, char* new_loader, int 
 			pFlashBootEntry = pEntry;
 	}
 	if(pFlashDataEntry == NULL || pFlashBootEntry == NULL)
-		return -1;
+		return false;
 
 	// ¹¹ÔìÐÂµÄLoaderÊý¾Ý£¬ÒÔ´«¸øLoader½øÐÐ±¾µØÉý¼¶
 	new_hdr = (RK28BOOT_HEAD*)new_loader;
@@ -338,167 +306,9 @@ static int rkimg_make_loader_data(const char* old_loader, char* new_loader, int 
 	*new_loader_size = new_hdr->uiFlashBootOffset+new_hdr->uiFlashBootLen;
 	//    dump_data(new_loader, HEADINFO_SIZE);
 
-	return rkimg_checkLoaderKey(new_hdr);
+	return SecureModeVerifyLoader(new_hdr);
 }
 
-static bool rkimg_checkBootImageSha(rk_boot_img_hdr *boothdr)
-{
-	uint8_t* sha;
-	SHA_CTX ctx;
-	int size = SHA_DIGEST_SIZE > sizeof(boothdr->id) ? sizeof(boothdr->id) : SHA_DIGEST_SIZE;
-
-	void *kernel_data = (void*)boothdr + boothdr->page_size;
-	void *ramdisk_data = kernel_data + ALIGN(boothdr->kernel_size, boothdr->page_size);
-	void *second_data = 0;
-	if (boothdr->second_size) {
-		second_data = kernel_data + ALIGN(boothdr->ramdisk_size, boothdr->page_size);
-	}
-
-	FBTDBG("compute real sha\n");
-
-	SHA_init(&ctx);
-	SHA_update(&ctx, kernel_data, boothdr->kernel_size);
-	SHA_update(&ctx, &boothdr->kernel_size, sizeof(boothdr->kernel_size));
-	SHA_update(&ctx, ramdisk_data, boothdr->ramdisk_size);
-	SHA_update(&ctx, &boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
-	SHA_update(&ctx, second_data, boothdr->second_size);
-	SHA_update(&ctx, &boothdr->second_size, sizeof(boothdr->second_size));
-
-	//only rockchip's image do these.
-	SHA_update(&ctx, &boothdr->tags_addr, sizeof(boothdr->tags_addr));
-	SHA_update(&ctx, &boothdr->page_size, sizeof(boothdr->page_size));
-	SHA_update(&ctx, &boothdr->unused, sizeof(boothdr->unused));
-	SHA_update(&ctx, &boothdr->name, sizeof(boothdr->name));
-	SHA_update(&ctx, &boothdr->cmdline, sizeof(boothdr->cmdline));
-
-	sha = SHA_final(&ctx);
-
-
-#ifdef FBT_DEBUG
-	int i = 0;
-	printf("\nreal sha:\n");
-	for (i = 0;i < size;i++) {
-		printf("%02x", (char)sha[i]);
-	}
-	printf("\nsha from image header:\n");
-	for (i = 0;i < size;i++) {
-		printf("%02x", ((char*)boothdr->id)[i]);
-	}
-	printf("\n");
-#endif
-
-	return !memcmp(boothdr->id, sha, size);
-}
-
-static bool rkimg_checkBootImageSign(rk_boot_img_hdr* boothdr)
-{
-	//flash boot/recovery.
-	if (gDrmKeyInfo.publicKeyLen == 0) {
-		FBTERR("current loader unsigned, allow flash anyway\n");
-		return true;
-	}
-	if (!memcmp(boothdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE)) {
-		if (boothdr->signTag == SECURE_BOOT_SIGN_TAG) {
-			//signed image, check with signature.
-			//check sha here.
-			if (!rkimg_checkBootImageSha(boothdr)) {
-				FBTERR("sha mismatch!\n");
-				goto fail;
-			}
-			if (!SecureBootEn) {
-				FBTERR("loader sign mismatch, not allowed to flash!\n");
-				goto fail;
-			}
-			//check rsa sign here.
-			if(SecureBootSignCheck((uint8 *)boothdr->rsaHash, (uint8 *)boothdr->id,
-						boothdr->signlen) ==  FTL_OK) {
-				return true;
-			} else {
-				FBTERR("signature mismatch!\n");
-				goto fail;
-			}
-		} else {
-			FBTERR("unsigned image!\n");
-			goto fail;
-		}
-	} else {
-		FBTERR("unrecognized image format!\n");
-		goto fail;
-	}
-fail:
-	return false;
-}
-
-static bool rkimg_checkUbootImageSha(second_loader_hdr *hdr)
-{
-	uint8_t* sha;
-	SHA_CTX ctx;
-	int size = SHA_DIGEST_SIZE > hdr->hash_len ? hdr->hash_len : SHA_DIGEST_SIZE;
-
-	FBTDBG("compute real sha\n");
-
-	SHA_init(&ctx);
-	SHA_update(&ctx, (void*)hdr + sizeof(second_loader_hdr), hdr->loader_load_size);
-	SHA_update(&ctx, &hdr->loader_load_addr, sizeof(hdr->loader_load_addr));
-	SHA_update(&ctx, &hdr->loader_load_size, sizeof(hdr->loader_load_size));
-	SHA_update(&ctx, &hdr->hash_len, sizeof(hdr->hash_len));
-	sha = SHA_final(&ctx);
-
-#ifdef FBT_DEBUG
-	int i = 0;
-	printf("\nreal sha:\n");
-	for (i = 0;i < size;i++) {
-		printf("%02x", (char)sha[i]);
-	}
-	printf("\nsha from image header:\n");
-	for (i = 0;i < size;i++) {
-		printf("%02x", ((char*)hdr->hash)[i]);
-	}
-	printf("\n");
-#endif
-
-	return !memcmp(hdr->hash, sha, size);
-}
-
-
-static bool rkimg_checkUbootImageSign(second_loader_hdr* hdr)
-{
-	//flash uboot.
-	if (gDrmKeyInfo.publicKeyLen == 0) {
-		FBTERR("current loader unsigned, allow flash anyway\n");
-		return true;
-	}
-	if (!memcmp(hdr->magic, RK_UBOOT_MAGIC, sizeof(RK_UBOOT_MAGIC))) {
-		if (hdr->signTag == RK_UBOOT_SIGN_TAG) {
-			//signed image, check with signature.
-			//check sha here.
-			if (!rkimg_checkUbootImageSha(hdr)) {
-				FBTERR("sha mismatch!\n");
-				goto fail;
-			}
-			if (!SecureBootEn) {
-				FBTERR("loader sign mismatch, not allowed to flash!\n");
-				goto fail;
-			}
-			//check rsa sign here.
-			if(SecureBootSignCheck(hdr->rsaHash, hdr->hash,
-						hdr->signlen) ==  FTL_OK) {
-				return true;
-			} else {
-				FBTERR("signature mismatch!\n");
-				goto fail;
-			}
-		} else {
-			FBTERR("unsigned image!\n");
-			goto fail;
-		}
-	} else {
-		FBTERR("unrecognized image format!\n");
-		goto fail;
-	}
-fail:
-	return false;
-}
 
 int rkimage_store_image(const char *name, const disk_partition_t *ptn,
 		struct cmd_fastboot_interface *priv)
@@ -527,7 +337,7 @@ int rkimage_store_image(const char *name, const disk_partition_t *ptn,
 	{
 		//flash loader.
 		int size = 0;
-		if (rkimg_make_loader_data((char *)priv->transfer_buffer, (char *)g_pLoader, &size))
+		if (!rkimg_make_loader_data((char *)priv->transfer_buffer, (char *)g_pLoader, &size))
 		{
 			printf("make loader data failed(loader's key not match)\n");
 			goto fail;
@@ -550,12 +360,12 @@ int rkimage_store_image(const char *name, const disk_partition_t *ptn,
 	} else if (!strcmp((const char*)priv->pending_ptn->name, RECOVERY_NAME) ||
 			!strcmp((const char*)priv->pending_ptn->name, BOOT_NAME)) {
 		//flash boot/recovery.
-		if (!rkimg_checkBootImageSign((rk_boot_img_hdr *)priv->transfer_buffer)) {
+		if (!SecureModeVerifyBootImage((rk_boot_img_hdr *)priv->transfer_buffer)) {
 			goto fail;
 		}
 	} else if (!strcmp((const char*)priv->pending_ptn->name, UBOOT_NAME)) {
 		//flash uboot
-		if (!rkimg_checkUbootImageSign((second_loader_hdr *)priv->transfer_buffer)) {
+		if (!SecureModeVerifyUbootImage((second_loader_hdr *)priv->transfer_buffer)) {
 			goto fail;
 		}
 	}

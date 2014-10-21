@@ -1,7 +1,6 @@
 /*
  * (C) Copyright 2008-2014 Rockchip Electronics
- *
- * Configuation settings for the rk3xxx chip platform.
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * See file CREDITS for list of people who contributed to this
  * project.
@@ -24,6 +23,14 @@
 
 #ifndef _RK_SECUREBOOT_H_
 #define _RK_SECUREBOOT_H_
+
+
+/* Secure Boot mode */
+#define SBOOT_MODE_NS       0
+#define SBOOT_MODE_RK       1
+#define SBOOT_MODE_DX       2
+
+
 
 
 #define RKNAND_SYS_STORGAE_DATA_LEN	504
@@ -73,20 +80,21 @@ typedef struct tagDRM_KEY_INFO {
 
 extern DRM_KEY_INFO gDrmKeyInfo;
 
+extern uint32 SecureMode;
 extern uint32 SecureBootEn;
 extern uint32 SecureBootCheckOK;
 extern uint32 SecureBootLock;
 extern uint32 SecureBootLock_backup;
-
+extern BOOT_CONFIG_INFO gBootConfig;
 
 uint32 SecureBootCheck(void);
-uint32 SecureBootSignCheck(uint8 * rsaHash, uint8 *Hash, uint8 length);
-uint32 SecureBootDisable(void);
 void SecureBootUnlock(uint8 *pKey);
 void SecureBootUnlockCheck(uint8 *pKey);
 void SecureBootLockLoader(void);
 
-uint32 SetSysData2Kernel(uint32 SecureBootFlag);
+uint32 SecureBootImageSecureCheck(rk_boot_img_hdr *hdr, int unlocked);
+uint32 SecureBootSetSysData2Kernel(uint32 SecureBootFlag);
+uint32 SecureBootSecureDisable(void);
+void SecureBootSecureState2Kernel(uint32 SecureState);
 
 #endif	/* _RK_SECUREBOOT_H_ */
-

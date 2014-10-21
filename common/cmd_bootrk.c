@@ -157,14 +157,9 @@ static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr)
 			unlocked = unlocked? 1 : 0;
 		}
 	}
-	/* boot check call SetSysData2Kernel, set sn and others information in the nanc ram,
-	 * so, after check, PLS notice do not read/write nand flash. 
-	 */
-	if (rkloader_secureCheck(hdr, unlocked)) {
-		FBTERR("bootrk: board check boot image error\n");
-		free(hdr);
-		return NULL;
-	}
+
+	/* check image secure state */
+	SecureBootImageSecureCheck(hdr, unlocked);
 
 	return hdr;
 }
@@ -231,13 +226,9 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 			unlocked = unlocked? 1 : 0;
 		}
 	}
-	/* boot check call SetSysData2Kernel, set sn and others information in the nanc ram,
-	 * so, after check, PLS notice do not read/write nand flash. 
-	 */
-	if (rkloader_secureCheck(hdr, unlocked)) {
-		FBTERR("bootrk: board check boot image error\n");
-		goto fail;
-	}
+
+	/* check image secure state */
+	SecureBootImageSecureCheck(hdr, unlocked);
 
 	/* loader fdt */
 #ifdef CONFIG_OF_LIBFDT
@@ -374,6 +365,11 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			goto fail;
 		}
 	}
+
+	/* Secure boot state will set drm, sn and others information in the nanc ram,
+	 * so, after set, PLS notice do not read/write nand flash.
+	 */
+	SecureBootSecureState2Kernel(SecureBootCheckOK);
 
 	bootimg_print_image_hdr(hdr);
 

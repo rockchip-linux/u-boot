@@ -34,9 +34,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define	SECURE_BOOT_ENABLE
 #define	SECURE_BOOT_ENABLE_ALWAY
 #define	SECURE_BOOT_LOCK
-//#define	ERASE_DRM_KEY_EN
 
-//#define	SECURE_BOOT_TEST
+
 
 /* rk sdmmc boot config */
 #ifdef CONFIG_RK_SDMMC_BOOT_EN
@@ -133,12 +132,16 @@ DECLARE_GLOBAL_DATA_PTR;
 //系统相关头文件
 #include "platform/rsa.h"
 #include "platform/sha.h"
+
 #include "rkloader/parameter.h"
-#include "SecureBoot/SecureBoot.h"
 #include "rkloader/rkimage.h"
 #include "rkloader/idblock.h"
 #include "rkloader/rkloader.h"
 #include "rkloader/key.h"
+
+#include "SecureBoot/SecureBoot.h"
+#include "SecureBoot/SecureVerify.h"
+
 #include "storage/storage.h"
 
 #if defined(CONFIG_RK_SDMMC_BOOT_EN) || defined(CONFIG_RK_SDCARD_BOOT_EN)

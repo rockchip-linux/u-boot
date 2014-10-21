@@ -44,6 +44,7 @@ ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 obj-y += mediaboot/nandflash_boot.o
 endif
 obj-y += SecureBoot/SecureBoot.o
+obj-y += SecureBoot/SecureVerify.o
 obj-y += storage/storage.o
 
 
