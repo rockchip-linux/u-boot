@@ -22,19 +22,11 @@
 #include <common.h>
 #include <lcd.h>
 #include <asm/arch/rkplat.h>
+#include "rockchip_fb.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 #define COMPAT_RK312X_LCDC	"rockchip,rk312x-lcdc"
 #define COMPAT_RK3036_LCDC	"rockchip,rk3036-lcdc"
-
-#define FB_DEFAULT_ORDER			0
-#define FB0_WIN2_FB1_WIN1_FB2_WIN0		12
-#define FB0_WIN1_FB1_WIN2_FB2_WIN0		21
-#define FB0_WIN2_FB1_WIN0_FB2_WIN1		102
-#define FB0_WIN0_FB1_WIN2_FB2_WIN1		120
-#define FB0_WIN0_FB1_WIN1_FB2_WIN2		210
-#define FB0_WIN1_FB1_WIN0_FB2_WIN2		201
-#define FB0_WIN0_FB1_WIN1_FB2_WIN2_FB3_WIN3	3210
 
 #define BITS(x, bit)            	((x) << (bit))
 #define BITS_MASK(x, mask, bit) 	BITS((x) & (mask), bit)
