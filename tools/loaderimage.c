@@ -15,7 +15,7 @@
 
 #define RK_UBOOT_MAGIC        "LOADER  "
 #define RK_UBOOT_SIGN_TAG     0x4E474953
-#define RK_UBOOT_SIGN_LEN     128
+#define RK_UBOOT_SIGN_LEN     256
 typedef struct tag_second_loader_hdr
 {
 	uint8_t magic[LOADER_MAGIC_SIZE];  // "LOADER  "
@@ -27,9 +27,9 @@ typedef struct tag_second_loader_hdr
 	uint8_t hash[LOADER_HASH_SIZE];     /* sha */
 
 	uint8_t reserved[1024-32-32];
-	uint32_t signTag; //0x4E474953
-	uint32_t signlen; //128
-	uint8_t rsaHash[256];
+	uint32_t signTag; /* 0x4E474953 */
+	uint32_t signlen; /* maybe 128 or 256 */
+	uint8_t rsaHash[256]; /* maybe 128 or 256, using max size 256 */
 	uint8_t reserved2[2048-1024-256-8];
 }second_loader_hdr;
 
