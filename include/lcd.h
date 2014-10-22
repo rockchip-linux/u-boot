@@ -350,11 +350,6 @@ typedef struct vidinfo {
 	u_char  vl_swap_rb;
 	struct layer_par par[NUM_LAYERS];
 
-	void (*backlight_on)(int brightness);
-	void (*lcd_power_on)(void);
-	void (*enable_ldo)(unsigned int onoff);
-	void (*mipi_power)(void);
-
 	unsigned int lcdc_id;
 	unsigned int init_delay;
 	unsigned int power_on_delay;
@@ -366,7 +361,6 @@ typedef struct vidinfo {
 	unsigned int lvds_ttl_en;
 	unsigned int cs_setup;
 	unsigned int wr_setup;
-	unsigned int logo_on;
 	unsigned int logo_width;
 	unsigned int logo_height;
 	unsigned long logo_addr;
