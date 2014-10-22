@@ -23,7 +23,6 @@
 #include <common.h>
 #include <version.h>
 #include <errno.h>
-#include <lcd.h>
 #include <fastboot.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
@@ -35,10 +34,6 @@
 #include "../common/config.h"
 
 DECLARE_GLOBAL_DATA_PTR;
-
-#ifdef CONFIG_OF_LIBFDT
-extern int rk_fb_parse_dt(const void *blob);
-
 static ulong get_sp(void)
 {
 	ulong ret;
@@ -60,133 +55,6 @@ void board_lmb_reserve(struct lmb *lmb) {
 	//reserve 48M for kernel & 8M for nand api.
 	lmb_reserve(lmb, gd->bd->bi_dram[0].start, CONFIG_LMB_RESERVE_SIZE);
 }
-#endif /* CONFIG_OF_LIBFDT */
-
-
-#ifdef CONFIG_RK_FB
-
-#ifdef CONFIG_OF_LIBFDT
-static struct fdt_gpio_state lcd_en_gpio, lcd_cs_gpio;
-static int lcd_en_delay, lcd_cs_delay;
-static int lcd_node = 0;
-
-int rk_lcd_parse_dt(const void *blob)
-{
-	int node;
-	int lcd_en_node, lcd_cs_node;
-
-	debug("%s: parse lcd control gpio.\n", __func__);
-	lcd_node = fdt_path_offset(blob, "lcdc1");
-	if (PRMRY == fdtdec_get_int(blob, lcd_node, "rockchip,prop", 0)) {
-		printf("lcdc1 is the prmry lcd controller\n");
-	} else {
-		lcd_node = fdt_path_offset(blob, "lcdc0");
-	}
-	node = fdt_subnode_offset(blob, lcd_node, "power_ctr");
-	lcd_en_node = fdt_subnode_offset(blob, node, "lcd_en");
-	lcd_cs_node = fdt_subnode_offset(blob, node, "lcd_cs");
-	fdtdec_decode_gpio(blob, lcd_en_node, "gpios", &lcd_en_gpio);
-	lcd_en_gpio.flags = !(lcd_en_gpio.flags  & OF_GPIO_ACTIVE_LOW);
-	lcd_en_delay = fdtdec_get_int(blob, lcd_en_node, "rockchip,delay", 0);
-
-	fdtdec_decode_gpio(blob, lcd_cs_node, "gpios", &lcd_cs_gpio);
-	lcd_cs_gpio.flags = !(lcd_cs_gpio.flags & OF_GPIO_ACTIVE_LOW);
-	lcd_cs_delay = fdtdec_get_int(blob, lcd_cs_node, "rockchip,delay", 0);
-
-	return 0;
-}
-#endif /* CONFIG_OF_LIBFDT */
-
-
-void rk_backlight_ctrl(int brightness)
-{
-	debug("%s.\n", __func__);
-#ifdef CONFIG_OF_LIBFDT
-	if (!lcd_node) {
-		rk_lcd_parse_dt(gd->fdt_blob);
-	}
-#endif
-#ifdef CONFIG_RK_PWM
-	rk_pwm_config(brightness);
-#endif	
-}
-
-
-void rk_fb_init(unsigned int onoff)
-{
-	debug("%s.\n", __func__);
-#ifdef CONFIG_OF_LIBFDT
-	if (!lcd_node) {
-		rk_lcd_parse_dt(gd->fdt_blob);
-	}
-
-	if (onoff) {
-		if (lcd_en_gpio.name!=NULL) gpio_direction_output(lcd_en_gpio.gpio, lcd_en_gpio.flags);
-		mdelay(lcd_en_delay);
-		if (lcd_cs_gpio.name!=NULL) gpio_direction_output(lcd_cs_gpio.gpio, lcd_cs_gpio.flags);
-		mdelay(lcd_cs_delay);
-	} else {
-		if (lcd_cs_gpio.name!=NULL) gpio_direction_output(lcd_cs_gpio.gpio, !lcd_cs_gpio.flags);
-		mdelay(lcd_cs_delay);
-		if (lcd_en_gpio.name!=NULL) gpio_direction_output(lcd_en_gpio.gpio, !lcd_en_gpio.flags);
-		mdelay(lcd_en_delay);
-	}
-#else
-	gpio_direction_output(GPIO_BANK7 | GPIO_A4, 1);
-#endif
-}
-
-
-vidinfo_t panel_info = {
-#ifdef CONFIG_OF_LIBFDT
-	.vl_col		= CONFIG_LCD_MAX_WIDTH,
-	.vl_row		= CONFIG_LCD_MAX_HEIGHT,
-	.vl_bpix	= 4,	/* Bits per pixel, 2^5 = 32 */
-#else
-	.lcd_face	= OUT_D888_P666,
-	.vl_freq	= 71000000,
-	.vl_col		= 1280,
-	.vl_row		= 800,
-	.vl_width	= 1280,
-	.vl_height	= 800,
-	.vl_clkp	= 0,
-	.vl_hsp		= 0,
-	.vl_vsp		= 0,
-	.vl_bpix	= 4,	/* Bits per pixel, 2^5 = 32 */
-	.vl_swap_rb	= 0,
-	.lvds_format	= LVDS_8BIT_2,
-	.lvds_ttl_en	= 0,  // rk32 lvds ttl enable
-	/* Panel infomation */
-	.vl_hspw	= 10,
-	.vl_hbpd	= 100,
-	.vl_hfpd	= 18,
-
-	.vl_vspw	= 2,
-	.vl_vbpd	= 8,
-	.vl_vfpd	= 6,
-
-	.lcd_power_on	= NULL,
-	.mipi_power	= NULL,
-
-	.init_delay	= 0,
-	.power_on_delay = 0,
-	.reset_delay	= 0,
-	.pixelrepeat    = 0,
-#endif
-};
-
-
-void init_panel_info(vidinfo_t *vid)
-{
-	vid->logo_on	= 1;
-	vid->enable_ldo = rk_fb_init;
-	/* move backlight enable to fbt_preboot, for don't show logo in rockusb */
-	vid->backlight_on = NULL; /* rk_backlight_ctrl; */
-	vid->logo_rgb_mode = RGB565;
-}
-
-#endif /* CONFIG_RK_FB */
-
 
 int board_storage_init(void)
 {
