@@ -1409,3 +1409,14 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 #endif
 
 }
+
+void rk_hdmi_probe(struct vidinfo_t *panel)
+{
+#ifdef CONFIG_RK32_HDMI
+	rk32_hdmi_probe(panel);
+#endif
+#ifdef CONFIG_RK30_HDMI
+	rk30_hdmi_probe(panel);
+#endif
+}
+

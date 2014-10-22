@@ -10,4 +10,8 @@
 #define FB0_WIN1_FB1_WIN0_FB2_WIN2		201
 #define FB0_WIN0_FB1_WIN1_FB2_WIN2_FB3_WIN3	3210
 
+#if defined(CONFIG_RK_HDMI)
+extern int rk_hdmi_probe(vidinfo_t *panel);
+#endif
+
 #endif
