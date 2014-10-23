@@ -1,25 +1,10 @@
 /*
  * (C) Copyright 2008-2014 Rockchip Electronics
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * Author: Andy Yan <andy.yan@rock-chips.com>
+ * SPDX-License-Identifier:	GPL-2.0+
  */
-
+/*#define DEBUG*/
 #include <config.h>
 #include <common.h>
 #include <errno.h>
@@ -127,6 +112,7 @@ int rk_fb_pwr_ctr_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	int root = fdt_subnode_offset(blob, rk_fb->lcdc_node, "power_ctr");
 	int child;
 	struct rk_fb_pwr_ctr_list *pwr_ctr;
+	struct list_head *pos;
 	const char *name;
 	u32 val = 0;
 	int len;
@@ -152,7 +138,7 @@ int rk_fb_pwr_ctr_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 		val = fdtdec_get_int(blob, child, "rockchip,power_type", -1);
 		if (val == GPIO) {
 			pwr_ctr->pwr_ctr.type = GPIO;
-			fdtdec_decode_gpio(blob, child, name,
+			fdtdec_decode_gpio(blob, child, "gpios",
 					   &pwr_ctr->pwr_ctr.gpio);
 			pwr_ctr->pwr_ctr.atv_val =  !(pwr_ctr->pwr_ctr.gpio.flags &
 							OF_GPIO_ACTIVE_LOW);
@@ -164,7 +150,22 @@ int rk_fb_pwr_ctr_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 							"rockchip,delay", 0);
 		list_add_tail(&pwr_ctr->list, &rk_fb->pwrlist_head);
 	}
-	fdtdec_get_int(blob, root, "rockchip,debug", 0);
+#if defined(DEBUG)
+	list_for_each(pos, &rk_fb->pwrlist_head) {
+		pwr_ctr = list_entry(pos, struct rk_fb_pwr_ctr_list,
+				     list);
+		printf("pwr_ctr_name:%s\n"
+		       "pwr_type:%s\n"
+		       "gpio:0x%08x\n"
+		       "atv_val:%d\n"
+		       "delay:%d\n\n",
+		       pwr_ctr->pwr_ctr.name,
+		       (pwr_ctr->pwr_ctr.type == GPIO) ? "gpio" : "regulator",
+		       pwr_ctr->pwr_ctr.gpio.gpio,
+		       pwr_ctr->pwr_ctr.atv_val,
+		       pwr_ctr->pwr_ctr.delay);
+	}
+#endif
 
 	return 0;
 }
@@ -334,11 +335,11 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	panel_info.lcdc_id = rk_fb->lcdc_id;
 	rk_fb_pwr_ctr_parse_dt(rk_fb, blob);
 	debug("lcd timing:\n"
-	      "lcd_face=0x%x"
-	      "vl_col=%d"
-	      "vl_row=%d"
-	      "vl_freq = %d"
-	      "lvds_format=%d"
+	      "lcd_face=0x%x\n"
+	      "vl_col=%d\n"
+	      "vl_row=%d\n"
+	      "vl_freq = %d\n"
+	      "lvds_format=%d\n"
 	      "lcdc_id=%d\n",
 	      panel_info.lcd_face,
 	      panel_info.vl_col,
