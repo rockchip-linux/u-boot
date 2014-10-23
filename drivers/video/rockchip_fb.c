@@ -335,12 +335,14 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	panel_info.lcdc_id = rk_fb->lcdc_id;
 	rk_fb_pwr_ctr_parse_dt(rk_fb, blob);
 	debug("lcd timing:\n"
+	      "screen_type:%d\n"
 	      "lcd_face=0x%x\n"
 	      "vl_col=%d\n"
 	      "vl_row=%d\n"
 	      "vl_freq = %d\n"
 	      "lvds_format=%d\n"
 	      "lcdc_id=%d\n",
+	      panel_info.screen_type,
 	      panel_info.lcd_face,
 	      panel_info.vl_col,
 	      panel_info.vl_row,
