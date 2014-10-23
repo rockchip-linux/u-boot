@@ -1571,28 +1571,23 @@ static int rk32_lvds_disable(void)
 	return 0;
 }
 
-// lvds_type : 0 ttl, use lvds transmit ic;  1 lvds in rk3288
 static int rk32_lvds_en(vidinfo_t *vid)
 {
 	u32 h_bp = vid->vl_hspw + vid->vl_hbpd;
 	u32 val ;
 
-	int screen_type = SCREEN_RGB;
-
 	if (vid->lcdc_id == 1) /*lcdc1 = vop little,lcdc0 = vop big*/
 		val = LVDS_SEL_VOP_LIT | (LVDS_SEL_VOP_LIT << 16);
 	else
-		val = LVDS_SEL_VOP_LIT << 16;  // video source from vop0 = vop big
-
+		val = LVDS_SEL_VOP_LIT << 16; 
 	grf_writel(val, GRF_SOC_CON6);
 
 	val = vid->lvds_format;
-	if (screen_type == SCREEN_DUAL_LVDS)
+	if (vid->screen_type == SCREEN_DUAL_LVDS)
 		val |= LVDS_DUAL | LVDS_CH0_EN | LVDS_CH1_EN;
-	else if(screen_type == SCREEN_LVDS)
+	else if(vid->screen_type == SCREEN_LVDS)
 		val |= LVDS_CH0_EN;
-		//val |= LVDS_MSB;
-	else if (screen_type == SCREEN_RGB)
+	else if (vid->screen_type == SCREEN_RGB)
 		val |= LVDS_TTL_EN | LVDS_CH0_EN | LVDS_CH1_EN;
 
 	if (h_bp & 0x01)
@@ -1605,22 +1600,12 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	grf_writel(val, GRF_SOC_CON7);
 	grf_writel(0x0f000f00, GRF_GPIO1H_SR);
 	grf_writel(0x00ff00ff, GRF_GPIO1D_E);
-	if (screen_type == SCREEN_LVDS)
-		val = 0xbf;
-	else
-		val = 0x7f;
-
-	if(vid->lvds_ttl_en) {//  1 lvds
-		grf_writel(0x00550055, GRF_GPIO1D_IOMUX); //lcdc iomux
 	
+	if(vid->screen_type == SCREEN_RGB) {
+		grf_writel(0x00550055, GRF_GPIO1D_IOMUX);
 	    	lvds_writel( LVDS_CH0_REG_0, 0x7f);
 	    	lvds_writel( LVDS_CH0_REG_1, 0x40);
 	    	lvds_writel( LVDS_CH0_REG_2, 0x00);
-	
-	    	if (screen_type == SCREEN_RGB)
-	    		val = 0x1f;
-	    	else
-	    		val = 0x00;
 	    	lvds_writel( LVDS_CH0_REG_4, 0x3f);
 	    	lvds_writel( LVDS_CH0_REG_5, 0x3f);
 	    	lvds_writel( LVDS_CH0_REG_3, 0x46);
@@ -1628,7 +1613,6 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
 	    	writel(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
 	    	writel(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
-	
 	    	lvds_writel( 0x100, 0x7f);
 	    	lvds_writel( 0x104, 0x40);
 	    	lvds_writel( 0x108, 0x00);
@@ -1637,31 +1621,15 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	    	lvds_writel( 0x114, 0x3f);
 	    	lvds_writel( 0x134, 0x0a);
 	} else {
-	    	val  = *(int*)(lvds_regs + 0x88);
-	    	printf("0x88:0x%x\n",val);
-	
 	    	lvds_writel( LVDS_CH0_REG_0, 0xbf);
-	    	lvds_writel( LVDS_CH0_REG_1, 0x3f);//  3f
+	    	lvds_writel( LVDS_CH0_REG_1, 0x3f);
 	    	lvds_writel( LVDS_CH0_REG_2, 0xfe);
-	    	lvds_writel( LVDS_CH0_REG_3, 0x46);//0x46
+	    	lvds_writel( LVDS_CH0_REG_3, 0x46);
 	    	lvds_writel( LVDS_CH0_REG_4, 0x00);
-	    	//lvds_writel( LVDS_CH0_REG_9, 0x20);
-	    	//lvds_writel( LVDS_CH0_REG_d, 0x4b);
-	    	//lvds_writel( LVDS_CH0_REG_f, 0x0d);
 	    	lvds_writel( LVDS_CH0_REG_d, 0x0a);//0a
 	    	lvds_writel( LVDS_CH0_REG_20,0x44);/* 44:LSB  45:MSB*/
-	    	//lvds_writel( 0x24,0x20);
-	    	//writel(0x23, lvds_regs + 0x88);
 	    	writel(0x00, lvds_regs + LVDS_CFG_REG_c); /*eanble pll*/
 	    	writel(0x92, lvds_regs + LVDS_CFG_REG_21); /*enable tx*/
-	
-	    	//lvds_writel( 0x100, 0xbf);
-	    	//lvds_writel( 0x104, 0x3f);
-	    	//lvds_writel( 0x108, 0xfe);
-	    	//lvds_writel( 0x10c, 0x46); //0x46
-	    	//lvds_writel( 0x110, 0x00);
-	    	//lvds_writel( 0x114, 0x00);
-	    	//lvds_writel( 0x134, 0x0a);
 	}
 
 	return 0;
@@ -1757,7 +1725,6 @@ void rk_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 		printf("%s --->unknow lay_id \n", __func__);
 		break;
 	}
-
 	lcdc_writel(lcdc_dev, BCSH_BCS, 0xd0010000);
 	lcdc_writel(lcdc_dev, BCSH_H, 0x01000000);
 	lcdc_writel(lcdc_dev, BCSH_COLOR_BAR, 1);
@@ -1771,14 +1738,8 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	int face = 0;
 	u32 msk, val;
 	
-	vid->dp_enabled = 0;
-	vid->mipi_enabled = 0;
-	if ((vid->screen_type == SCREEN_MIPI) ||
-	    (vid->screen_type == SCREEN_DUAL_MIPI))
-		vid->mipi_enabled = 1;
-	else if (vid->screen_type == SCREEN_EDP)
-		vid->dp_enabled = 1;
-	if (vid->mipi_enabled) {
+	if (vid->screen_type == SCREEN_MIPI ||
+	    vid->screen_type == SCREEN_DUAL_MIPI) {
 		rk32_mipi_enable(vid);
 		if (vid->screen_type == SCREEN_MIPI) {
 			msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
@@ -1790,7 +1751,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 				m_DOUB_CHANNEL_EN;
 			val = v_MIPI_OUT_EN(1) | v_DOUB_CHANNEL_EN(1);
 		}
-	} else if (vid->dp_enabled) {
+	} else if (vid->screen_type == SCREEN_EDP) {
 		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
 			m_HDMI_OUT_EN | m_RGB_OUT_EN;
 		val = v_EDP_OUT_EN(1);
@@ -1798,6 +1759,10 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
 			m_HDMI_OUT_EN | m_RGB_OUT_EN;
 		val = v_HDMI_OUT_EN(1);
+	} else if (vid->screen_type == SCREEN_RGB) {
+		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
+			m_HDMI_OUT_EN | m_RGB_OUT_EN;
+		val = v_RGB_OUT_EN(1);
 	} else {
 		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
 			m_HDMI_OUT_EN | m_RGB_OUT_EN;
@@ -1887,7 +1852,8 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	lcdc_writel(lcdc_dev, MCU_CTRL, 0);
 	lcdc_cfg_done(lcdc_dev);
 	if ((vid->screen_type == SCREEN_LVDS) ||
-	    (vid->screen_type == SCREEN_DUAL_LVDS)) {
+	    (vid->screen_type == SCREEN_DUAL_LVDS) ||
+	    (vid->screen_type == SCREEN_RGB)) {
 		rk32_lvds_en(vid);
 	} else if (vid->screen_type == SCREEN_EDP) {
 		rk32_edp_enable(vid);
