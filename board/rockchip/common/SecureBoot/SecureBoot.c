@@ -68,7 +68,7 @@ void SecureBootUnlock(uint8 *pKey)
 	g_secureBootCheckBuf[0] = 0;
 	g_secureBootCheckBuf[256] = 0xFF;
 
-	if(SecureModeRSAKeyCheck(pKey) != 0) {
+	if (SecureModeRSAKeyCheck(pKey) != 0) {
 		ftl_memcpy(g_secureBootCheckBuf, pKey, 512);
 		SecureBootLock = 0;
 	}

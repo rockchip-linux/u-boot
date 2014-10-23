@@ -36,6 +36,22 @@ DECLARE_GLOBAL_DATA_PTR;
 #define	SECURE_BOOT_LOCK
 
 
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+	#define SECUREBOOT_CRYPTO_EN
+#endif
+
+#if defined(SECUREBOOT_CRYPTO_EN)
+	#if defined(CONFIG_RKCHIP_RK3128)
+		#define EFUSE_BASE_ADDR		RKIO_EFUSE_PHYS
+		#define CRYPTO_BASE_ADDR	RKIO_CRYPTO_PHYS
+	#elif defined(CONFIG_RKCHIP_RK3288)
+		#define EFUSE_BASE_ADDR		RKIO_EFUSE_1024BITS_PHYS
+		#define CRYPTO_BASE_ADDR	RKIO_CRYPTO_PHYS
+	#else
+		#error: "PLS config chip for efuse and crypto base address!"
+	#endif
+#endif /* SECUREBOOT_CRYPTO_EN */
+
 
 /* rk sdmmc boot config */
 #ifdef CONFIG_RK_SDMMC_BOOT_EN
@@ -139,6 +155,10 @@ DECLARE_GLOBAL_DATA_PTR;
 #include "rkloader/rkloader.h"
 #include "rkloader/key.h"
 
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+#include "SecureBoot/crypto.h"
+#include "SecureBoot/efuse.h"
+#endif
 #include "SecureBoot/SecureBoot.h"
 #include "SecureBoot/SecureVerify.h"
 

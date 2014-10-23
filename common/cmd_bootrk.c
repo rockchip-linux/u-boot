@@ -217,6 +217,19 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 			FBTERR("bootrk: failed to read ramdisk\n");
 			goto fail;
 		}
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+		if (hdr->second_size != 0) {
+			hdr->second_addr = hdr->ramdisk_addr + blksz * blocks;
+
+			sector += ALIGN(hdr->ramdisk_size, hdr->page_size) / blksz;
+			blocks = DIV_ROUND_UP(hdr->second_size, blksz);
+			if (StorageReadLba(sector, (void *) hdr->second_addr, \
+						blocks) != 0) {
+				FBTERR("bootrk: failed to read second\n");
+				goto fail;
+			}
+		}
+#endif /* CONFIG_SECUREBOOT_CRYPTO */
 	}
 
 	char* fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);
@@ -366,10 +379,12 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 	}
 
-	/* Secure boot state will set drm, sn and others information in the nanc ram,
-	 * so, after set, PLS notice do not read/write nand flash.
-	 */
-	SecureBootSecureState2Kernel(SecureBootCheckOK);
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+	if (SecureBootCheckOK == 0) {
+		puts("Not allow to boot no secure sign image!");
+		while(1);
+	}
+#endif /* CONFIG_SECUREBOOT_CRYPTO */
 
 	bootimg_print_image_hdr(hdr);
 
@@ -383,6 +398,11 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	rk_commandline_setenv(boot_source, hdr, charge);
 
 	rk_module_deinit();
+
+	/* Secure boot state will set drm, sn and others information in the nanc ram,
+	 * so, after set, PLS notice do not read/write nand flash.
+	 */
+	SecureBootSecureState2Kernel(SecureBootCheckOK);
 
 #ifdef CONFIG_IMPRECISE_ABORTS_CHECK
 	puts("enable imprecise aborts check.");

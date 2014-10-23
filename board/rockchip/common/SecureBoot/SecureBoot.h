@@ -31,6 +31,36 @@
 #define SBOOT_MODE_DX       2
 
 
+#ifdef SECUREBOOT_CRYPTO_EN
+
+#define PUBLIC_KEY_LEN              512         //BYTE UNIT
+#define OTP_HASH_LEN                32          //public key hash length store in efuse. BYTE UNIT
+#define OTP_HASH_ADDR               32          //BYTE UNIT
+#define OTP_SECURE_FLAG_ADDR        31          //BYTE UNIT
+
+typedef /*__packed*/ struct tagBOOT_HEADER {
+	uint32 tag;
+	uint32 version;
+	uint32 flags;
+	uint32 size;
+	uint32 reserved1[3];
+	uint16 HashBits;
+	uint16 RSABits;                /* length in bits of modulus */
+	uint32 RSA_N[64];
+	uint32 RSA_E[64];
+	uint32 RSA_C[64];
+	uint32 HashData[(8+1)*2];   //前8个用于ddr代码hash，后8个用于loader代码hash
+	//uint32 signature[64];
+} BOOT_HEADER, *PBOOT_HEADER;
+
+typedef /*__packed*/ struct tagBOOT_HASH {
+	uint32 Hash1[8];    //ddr代码hash
+	uint32 reserved1;
+	uint32 Hash2[8];   //loader代码hash
+	//uint32 reserved2;
+} BOOT_HASH, *PBOOT_HASH;
+
+#endif /* SECUREBOOT_CRYPTO_EN */
 
 
 #define RKNAND_SYS_STORGAE_DATA_LEN	504

@@ -43,6 +43,7 @@ obj-y += mediaboot/sdmmcBoot.o
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 obj-y += mediaboot/nandflash_boot.o
 endif
+obj-$(CONFIG_SECUREBOOT_CRYPTO) += SecureBoot/crypto.o SecureBoot/efuse.o
 obj-y += SecureBoot/SecureBoot.o
 obj-y += SecureBoot/SecureVerify.o
 obj-y += storage/storage.o
