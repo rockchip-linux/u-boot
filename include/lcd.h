@@ -239,42 +239,6 @@ void init_panel_info(vidinfo_t *vid);
 
 #elif defined(CONFIG_RK_FB)
 
-#define OUT_P888            0	//24bit screen,connect to lcdc D0~D23
-#define OUT_P666            1	//18bit screen,connect to lcdc D0~D17
-#define OUT_P565            2
-#define OUT_S888x           4
-#define OUT_CCIR656         6
-#define OUT_S888            8
-#define OUT_S888DUMY        12
-#define OUT_RGB_AAA	    15
-#define OUT_P16BPP4         24
-#define OUT_D888_P666       0x21	//18bit screen,connect to lcdc D2~D7, D10~D15, D18~D23
-#define OUT_D888_P565       0x22
-
-#define SCREEN_NULL        0
-#define SCREEN_RGB	   1
-#define SCREEN_LVDS	   2
-#define SCREEN_DUAL_LVDS   3
-#define SCREEN_MCU         4
-#define SCREEN_TVOUT       5
-#define SCREEN_HDMI        6
-#define SCREEN_MIPI	   7
-#define SCREEN_DUAL_MIPI   8
-#define SCREEN_EDP         9
-
-#define LVDS_8BIT_1     0
-#define LVDS_8BIT_2     1
-#define LVDS_8BIT_3     2
-#define LVDS_6BIT       3
-
-#define NO_MIRROR	0
-#define X_MIRROR    	1
-#define Y_MIRROR    	2
-#define X_Y_MIRROR    	3
-
-#define PRMRY		1		/*primary display device*/
-#define EXTEND		2		/*extend display device*/
-
 #ifdef CONFIG_RK_3168_FB
 enum exynos_fb_data_format_t {
 	RGB888 = 0,
@@ -355,8 +319,6 @@ typedef struct vidinfo {
 	unsigned int power_on_delay;
 	unsigned int reset_delay;
 	unsigned int interface_mode;
-	unsigned int mipi_enabled;
-	unsigned int dp_enabled;
 	unsigned int lvds_format;
 	unsigned int lvds_ttl_en;
 	unsigned int cs_setup;
