@@ -19,7 +19,6 @@
 #define CONFIG_MX6
 #define CONFIG_SYS_LITTLE_ENDIAN
 #define CONFIG_MACH_TYPE		4273
-#define CONFIG_SYS_HZ			1000
 
 /* Display information on boot */
 #define CONFIG_DISPLAY_CPUINFO
