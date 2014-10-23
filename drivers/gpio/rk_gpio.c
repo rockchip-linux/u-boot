@@ -130,7 +130,6 @@ int rk_gpio_irq_to_gpio(unsigned irq)
 
 static inline void rk_gpio_set_pin_level(void __iomem *regbase, unsigned int bit, eGPIOPinLevel_t level)
 {
-	rk_gpio_bit_op(regbase, GPIO_SWPORT_DDR, bit, 1);
 	rk_gpio_bit_op(regbase, GPIO_SWPORT_DR, bit, level);
 }
 
