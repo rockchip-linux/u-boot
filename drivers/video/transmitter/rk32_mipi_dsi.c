@@ -33,14 +33,16 @@
 #include <div64.h>
 #include <linux/ctype.h>
 #include <linux/math64.h>
-#include "mipi_dsi.h"
-#include "rk32_mipi_dsi.h"
-#include "mipi_dsi.h"
 #include <asm/arch/rkplat.h>
 #include <fdtdec.h>
 #include <linux/fb.h>
 #include <linux/rk_screen.h>
 #include <malloc.h>
+
+#include "../rockchip_fb.h"
+#include "mipi_dsi.h"
+#include "rk32_mipi_dsi.h"
+#include "mipi_dsi.h"
 
 #ifdef CONFIG_RK32_MIPI_DSI
 #define	MIPI_DBG(x...)	/* MIPI_DBG(KERN_INFO x) */
