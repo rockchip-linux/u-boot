@@ -1364,7 +1364,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		rk31xx_lvds_en(vid);
 	} else if ((vid->screen_type == SCREEN_MIPI)||
 		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
-#if defined(CONFIG_RK3288_DSI)
+#if defined(CONFIG_RK32_DSI)
 		rk32_mipi_enable(vid);
 #endif
 	}
