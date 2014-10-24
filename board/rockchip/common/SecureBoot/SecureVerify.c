@@ -998,6 +998,7 @@ uint32 SecureModeInit(void)
 #ifdef SECUREBOOT_CRYPTO_EN
 	if (SecureRKModeInit() == ERROR) {
 		printf("SecureRKModeInit error!\n");
+		ISetLoaderFlag(SYS_LOADER_ERR_FLAG);
 		return FTL_ERROR;
 	}
 #endif
