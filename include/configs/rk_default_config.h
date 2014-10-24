@@ -28,6 +28,10 @@
 #define HAVE_VENDOR_COMMON_LIB		y
 
 
+/* enable genreal board */
+#define CONFIG_SYS_GENERIC_BOARD
+
+
 /*
  * Supported U-boot commands
  */
