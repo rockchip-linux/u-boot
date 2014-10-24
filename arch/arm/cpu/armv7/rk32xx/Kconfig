@@ -1,13 +1,18 @@
-if ROCKCHIP
+if ROCKCHIP_ARCH32
+
+config ROCKCHIP
+	bool
 
 choice
 	prompt "rockchip platform select"
 
 config PLAT_RK32XX
 	bool "rk32xx platform"
+	select ROCKCHIP
 
 config PLAT_RK30XX
 	bool "rk30xx platform"
+	select ROCKCHIP
 
 endchoice
 

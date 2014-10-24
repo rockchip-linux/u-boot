@@ -521,8 +521,8 @@ config TARGET_COLIBRI_PXA270
 config TARGET_JORNADA
 	bool "Support jornada"
 
-config ROCKCHIP
-	bool "Support Rockchip SOC"
+config ROCKCHIP_ARCH32
+	bool "Support Rockchip arch32 SOC"
 
 config ARCH_UNIPHIER
 	bool "Panasonic UniPhier platform"
