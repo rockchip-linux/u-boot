@@ -355,7 +355,9 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 #endif /* CONFIG_OF_LIBFDT */
 
 
+#if defined(CONFIG_RK_HDMI)
 extern int g_hdmi_noexit;
+#endif
 
 void lcd_ctrl_init(void *lcdbase)
 {
@@ -373,7 +375,9 @@ void lcd_ctrl_init(void *lcdbase)
 #endif
 
 #if defined(CONFIG_RK30_TVE)
+#if defined(CONFIG_RK_HDMI)
 	if (g_hdmi_noexit == 1)
+#endif
 		rk30_tve_init(&panel_info);
 #endif
 	panel_info.logo_rgb_mode = RGB565;

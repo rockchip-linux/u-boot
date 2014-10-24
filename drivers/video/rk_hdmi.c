@@ -24,6 +24,7 @@
 #include <lcd.h>
 #include <common.h>
 #include <../board/rockchip/common/config.h>
+#include "rockchip_fb.h"
 #include "rk30_tve.h"
 
 #define PARTITION_NAME "baseparamer"

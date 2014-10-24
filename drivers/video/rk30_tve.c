@@ -23,6 +23,7 @@
 #include <asm/io.h>
 #include <linux/fb.h>
 #include <asm/arch/rkplat.h>
+#include "rockchip_fb.h"
 #include "rk30_tve.h"
 
 int g_tve_pos = -1;
