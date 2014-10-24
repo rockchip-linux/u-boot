@@ -29,7 +29,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General pll freq config */
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		1188 /* MHZ */
 
 
 /* Cpu clock source select */
@@ -117,6 +117,7 @@ static const struct pll_clk_set apll_clks[] = {
 static const struct pll_clk_set gpll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	//	aclk_div, hclk_div, pclk_div
+	_GPLL_SET_CLKS(1188000, 2, 99, 1, 1, 1, 0,	8, 2, 2),
 	_GPLL_SET_CLKS(768000, 4, 133, 1, 1, 1, 0,	6, 2, 2),
 	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 2),
 	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0,	2, 2, 2),
