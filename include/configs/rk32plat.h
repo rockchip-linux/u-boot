@@ -125,6 +125,14 @@
 
 #undef CONFIG_UBOOT_CHARGE
 
+#else
+
+#undef CONFIG_RK_FB
+#undef CONFIG_RK_PWM
+#undef CONFIG_RK_HDMI
+#undef CONFIG_CMD_BMP
+#undef CONFIG_UBOOT_CHARGE
+
 #endif /* CONFIG_LCD */
 
 
