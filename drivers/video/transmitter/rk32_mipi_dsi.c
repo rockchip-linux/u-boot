@@ -47,7 +47,7 @@
 #ifdef CONFIG_RK32_MIPI_DSI
 #define	MIPI_DBG(x...)	/* MIPI_DBG(KERN_INFO x) */
 #elif defined CONFIG_RK32_DSI
-#define	MIPI_DBG(x...)	/* */printf( x) 
+#define	MIPI_DBG(x...)	/* printf( x) */
 #else
 #define	MIPI_DBG(x...)  
 #endif
