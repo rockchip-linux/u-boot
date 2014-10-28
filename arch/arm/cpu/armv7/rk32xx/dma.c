@@ -1676,9 +1676,17 @@ int rk_pl330_dmac_deinit(int dmac_id)
 #if defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3188) \
 	|| defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
 	|| defined(CONFIG_RKCHIP_RK3288)
-	writel(0x5<<0 | 0x5<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));
+#ifdef CONFIG_RK_DMAC_0
+	writel(0x1<<2 | 0x1<<(2+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(1));
 	mdelay(1);
-	writel(0x0<<0 | 0x5<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));
+	writel(0x0<<0 | 0x1<<(2+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(1));
+#endif
+
+#ifdef CONFIG_RK_DMAC_1
+	writel(0x1<<0 | 0x1<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));
+	mdelay(1);
+	writel(0x0<<0 | 0x1<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));
+#endif
 #else
 	#error "PLS config platform for dmac deinit."
 #endif
