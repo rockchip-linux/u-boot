@@ -1321,16 +1321,29 @@ err:
 	return -1;
 }
 
+void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
+{
+	int i = 0, pos = 0,pos_edid = 0;
+	pos = hdmi_dev->mode_len;
+	while (pos--) {
+		for (i = 0; i < hdmi_dev->vic_pos; i++) {
+			if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos].vic) {
+				pos_edid = pos;
+				break;
+			}
+		}
+		if (i != hdmi_dev->vic_pos) {
+			hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
+			break;
+		}
+	}
+}
+
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
-	int i = 0, pos = 0, pos_baseparamer = 0, pos_edid = 0, pos_default = 0;
+	int i = 0, pos_baseparamer = 0,pos_default = 0;
 
 	pos_baseparamer = g_pos_baseparamer.hdmi_pos;
-	if (pos_baseparamer < 0)
-	{
-		pos = hdmi_dev->mode_len;
-		pos_default = 8;
-	}
 
 #ifdef HDMIDEBUG
 	for (i = 0; i < hdmi_dev->vic_pos; i++) {
@@ -1338,41 +1351,30 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 	}
 	printf("\n");
 #endif
-
-	//baseparamer > edid > default
-	if(pos_baseparamer >= 0)
-	{
-		hdmi_dev->video.vic = hdmi_dev->modedb[pos_baseparamer].vic;		
-		printf("%s:use baseparamer config,pos_baseparamer=%d\n",__func__, pos_baseparamer);
-	}
-	else
-	{
-		if(hdmi_dev->vic_pos > 0)
-		{
-			while (pos--) {
-				for (i = 0; i < hdmi_dev->vic_pos; i++) {
-					if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos].vic) {
-						pos_edid = pos;
-						break;
-					}
-				}
-
-				if (i != hdmi_dev->vic_pos) {
-					hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
-					printf("%s:use edid config,pos_edid=%d\n",__func__, pos_edid);
+	/*if read edid error,use default vic mode, or not check pos_baseparamer and selete best video mode*/
+	if (hdmi_dev->vic_pos > 0) {
+		if (pos_baseparamer >= 0) {
+			for(i = 0; i < hdmi_dev->vic_pos; i++) {
+				if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos_baseparamer].vic) {
 					break;
 				}
 			}
+			if (i < hdmi_dev->vic_pos) {
+				hdmi_dev->video.vic = hdmi_dev->modedb[pos_baseparamer].vic;
+				printf("use baseparamer config,pos_baseparamer=%d\n",pos_baseparamer);
+			} else {
+				hdmi_find_best_edid_mode(hdmi_dev);
+				printf("pos_baseparamer=%d,but edid not support,find best edid vic=%d\n",
+					pos_baseparamer,hdmi_dev->video.vic);
+			}
+		} else {
+			hdmi_find_best_edid_mode(hdmi_dev);
+			printf("no baseparametr,find best edid mode,vic=%d\n",hdmi_dev->video.vic);
 		}
-		else
-		{
-			hdmi_dev->video.vic = hdmi_dev->modedb[pos_default].vic;
-			printf("%s:use default config,pos_default=%d\n",__func__, pos_default);
-		}
-	
+	} else {
+		hdmi_dev->video.vic = HDMI_VIDEO_DEFAULT_MODE;
+		printf("no edid message:use default vic config:%d\n",hdmi_dev->video.vic);
 	}
-
-	printf("%s: baseparamer=%d edid = %d default=%d vic = %d\n", __func__, pos_baseparamer, pos_edid, pos_default, hdmi_dev->video.vic);
 }
 
 void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
