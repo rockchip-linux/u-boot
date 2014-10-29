@@ -374,7 +374,7 @@ void lcd_ctrl_init(void *lcdbase)
 	rk_hdmi_probe(&panel_info);
 #endif
 
-#if defined(CONFIG_RK30_TVE)
+#if defined(CONFIG_RK3036_TVE)
 #if defined(CONFIG_RK_HDMI)
 	if (g_hdmi_noexit == 1)
 #endif
