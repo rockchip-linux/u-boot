@@ -48,7 +48,7 @@
 
 
 #if defined(CONFIG_RK_HDMI)
-int rk_hdmi_probe(vidinfo_t *panel);
+void rk_hdmi_probe(vidinfo_t *panel);
 #endif
 
 #endif
