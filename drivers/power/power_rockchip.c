@@ -257,6 +257,9 @@ void shut_down(void)
 #endif
 
 		default:
+#if defined(CONFIG_POWER_FG_ADC)
+		adc_shut_down();
+#endif
 			break;
 	}
 }

@@ -24,18 +24,19 @@ typedef struct {
 	uint32	ctrl;
 } adc_battery_conf;
 
-
 struct adc_battery {
 	struct pmic *p;
 	int node;
 	struct fdt_gpio_state dc_det;
 	struct fdt_gpio_state charge_ctrl_gpios;
+	struct fdt_gpio_state pwr_hold;
 	u32 bat_table[28];
 	u32 support_ac_charge;
 	u32 support_usb_charge;
 	adc_battery_conf adc;
 	int capacity_poweron;
 	int capacity;
+	int is_pwr_hold;
 };
 struct adc_battery fg_adc;
 static int get_status(void)
@@ -84,6 +85,9 @@ static int adc_get_vol(void)
 	} while ((value&0x40) == 0);
 	value = read_XDATA32(fg_adc.adc.data);
 	voltage = (value * 3300 * (fg_adc.bat_table[4] + fg_adc.bat_table[5])) / (1024 * fg_adc.bat_table[5]);
+
+	if ((get_status() == 1) && (voltage < CONFIG_SYSTEM_ON_VOL_THRESD))
+		voltage = CONFIG_SYSTEM_ON_VOL_THRESD/1000 + 10;
 	return voltage;
 }
 static int vol_to_capacity(int BatVoltage)
@@ -123,14 +127,14 @@ static int adc_update_battery(struct pmic *p, struct pmic *bat)
 
 	battery->voltage_uV = adc_get_vol() * 1000;
 	battery->capacity = get_capacity(battery->voltage_uV);
-	battery->state_of_chrg = get_status();
+	battery->state_of_chrg = 0;
 	return 0;
 }
 
 static int adc_check_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
-	battery->state_of_chrg = get_status();
+	battery->state_of_chrg = 0;
 	return 0;
 }
 
@@ -179,9 +183,27 @@ static int rk_adcbat_parse_dt(const void *blob)
 	fg_adc.adc.stas = SARADC_BASE+4;
 	fg_adc.adc.ctrl = SARADC_BASE+8;
 
+	node = fdt_node_offset_by_compatible(blob,
+					0, "gpio-poweroff");
+	if (node < 0) {
+		fg_adc.is_pwr_hold = 0;
+		printf("can't find node(gpio-poweroff) for adc\n");
+		return 0;
+	}
+	fg_adc.is_pwr_hold = 1;
+	fdtdec_decode_gpios(blob, node, "gpios", &gpios, 1);
+	fg_adc.pwr_hold.gpio = gpios.gpio;
+	fg_adc.pwr_hold.flags = !(gpios.flags  & OF_GPIO_ACTIVE_LOW);
+
 	return 0;
 }
-
+void adc_shut_down(void)
+{
+	printf("shut downk\n");
+	if (fg_adc.is_pwr_hold == 0)
+		return;
+	gpio_direction_output(fg_adc.pwr_hold.gpio, !!fg_adc.pwr_hold.flags);
+}
 
 
 int adc_battery_init(void)
