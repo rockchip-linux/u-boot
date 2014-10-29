@@ -25,7 +25,7 @@
 #include <common.h>
 #include <../board/rockchip/common/config.h>
 #include "rockchip_fb.h"
-#include "rk30_tve.h"
+#include "rk3036_tve.h"
 
 #define PARTITION_NAME "baseparamer"
 #define DEFAULT_MODE   15 
@@ -40,15 +40,15 @@ static struct baseparamer_pos g_pos_baseparamer = {-1, -1};
 extern int g_hdmi_noexit;
 
 //#define HDMIDEBUG
-#ifdef CONFIG_RK30_TVE
+#ifdef CONFIG_RK3036_TVE
 #include <linux/fb.h>
-extern struct fb_videomode rk30_cvbs_mode [MAX_TVE_COUNT];
+extern struct fb_videomode rk3036_cvbs_mode [MAX_TVE_COUNT];
 extern int g_tve_pos;
 #endif
 
 static const struct hdmi_video_timing hdmi_mode [] = {
 		//name			refresh		xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw	polariry			                            PorI	flag	vic		2ndvic		               pixelrepeat	interface
-#ifdef CONFIG_RK30_HDMI
+#ifdef CONFIG_RK3036_HDMI
 	{ { "720x480i@60Hz",    60,	    720,    480,    27000000,   57,     19,     15,     4,      62,     3,		0,				                                1,      0   },  6,      HDMI_720x480i_60HZ_16_9,    0,          OUT_P888},
 	{ { "720x576i@50Hz",    50,	    720,	576,	27000000,	69,	    12,	    19,	    2,	    63,	    3,		0,				                                1,	    0   },  21,     HDMI_720x576i_50HZ_16_9,    0,          OUT_P888}, 
 #endif
@@ -59,7 +59,7 @@ static const struct hdmi_video_timing hdmi_mode [] = {
 	{ {	"1280x720p@30Hz",	30,		1280,	720,	74250000,	220,	1760,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	62,	    HDMI_1280x720p_30HZ_4_3,	1,		    OUT_P888},
 	{ {	"1280x720p@50Hz",	50,		1280,	720,	74250000,	220,	440,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	19,  	HDMI_1280x720p_50HZ_4_3,	1,		    OUT_P888},
 	{ {	"1280x720p@60Hz",	60,		1280,	720,	74250000,	220,	110,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	4,  	HDMI_1280x720p_60HZ_4_3,	1,		    OUT_P888},
-#ifdef CONFIG_RK30_HDMI
+#ifdef CONFIG_RK3036_HDMI
 	{ { "1920x1080i@50Hz",	50,	    1920,   1080,   74250000,   148,    528,    15,     2,      44,     5,      FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	1,	    0   },  20,     HDMI_1920x1080i_50HZ,	    1,		    OUT_P888},
 	{ { "1920x1080i@60Hz",	60,	    1920,   1080,   74250000,   148,    88,     15,     2,      44,     5,      FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	1,	    0   },  5,      HDMI_1920x1080i_60HZ,	    1,		    OUT_P888},
 #endif
@@ -292,12 +292,12 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
                 memcpy(&hdmi_dev->base_paramer_tve.type, &baseparamer_buf[24+12], sizeof(hdmi_dev->base_paramer_tve.type));
                 memcpy(&hdmi_dev->base_paramer_tve.refresh, &baseparamer_buf[24+16], sizeof(hdmi_dev->base_paramer_tve.refresh));
 
-#ifdef CONFIG_RK30_TVE
+#ifdef CONFIG_RK3036_TVE
                 for (i = 0; i < MAX_TVE_COUNT; i++) {
-                        if (hdmi_dev->base_paramer_tve.xres == rk30_cvbs_mode[i].xres &&
-                                        hdmi_dev->base_paramer_tve.yres == rk30_cvbs_mode[i].yres &&
-                                           hdmi_dev->base_paramer_tve.refresh == rk30_cvbs_mode[i].refresh &&
-                                            hdmi_dev->base_paramer_tve.interlaced == rk30_cvbs_mode[i].vmode)
+                        if (hdmi_dev->base_paramer_tve.xres == rk3036_cvbs_mode[i].xres &&
+                                        hdmi_dev->base_paramer_tve.yres == rk3036_cvbs_mode[i].yres &&
+                                           hdmi_dev->base_paramer_tve.refresh == rk3036_cvbs_mode[i].refresh &&
+                                            hdmi_dev->base_paramer_tve.interlaced == rk3036_cvbs_mode[i].vmode)
                                 break;
                 }
 
@@ -1406,20 +1406,21 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 #endif
 	}
 
-#ifdef CONFIG_RK30_TVE
+#ifdef CONFIG_RK3036_TVE
 	if(g_hdmi_noexit == 1)
 	g_tve_pos = g_pos_baseparamer.tve_pos;
 #endif
 
 }
 
-void rk_hdmi_probe(struct vidinfo_t *panel)
+
+void rk_hdmi_probe(vidinfo_t *panel)
 {
 #ifdef CONFIG_RK32_HDMI
 	rk32_hdmi_probe(panel);
 #endif
-#ifdef CONFIG_RK30_HDMI
-	rk30_hdmi_probe(panel);
+#ifdef CONFIG_RK3036_HDMI
+	rk3036_hdmi_probe(panel);
 #endif
 }
 

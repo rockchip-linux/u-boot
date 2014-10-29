@@ -131,14 +131,14 @@
 /* more config for display */
 #ifdef CONFIG_LCD
 
-#define CONFIG_RK30_FB
+#define CONFIG_RK3036_FB
 
 #ifdef CONFIG_RK_HDMI
-#define CONFIG_RK30_HDMI
+#define CONFIG_RK3036_HDMI
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3128)
-#define CONFIG_RK30_TVE
+#define CONFIG_RK3036_TVE
 #endif /* CONFIG_RKCHIP_RK3036 */
 
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)

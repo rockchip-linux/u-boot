@@ -19,8 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-#ifndef __RK30_TVE_H__
-#define __RK30_TVE_H__
+#ifndef __RK3036_TVE_H__
+#define __RK3036_TVE_H__
 
 #include <lcd.h>
 
@@ -113,7 +113,7 @@ enum {
 
 #define TVOUT_DEAULT TVOUT_CVBS_PAL
 
-struct rk30_tve {
+struct rk3036_tve {
 	u32				reg_phy_base;
 	int				soctype;
 	int				test_mode;
@@ -122,6 +122,6 @@ struct rk30_tve {
 #define RK30_TVE_REGBASE 0x10118000 + 0x200
 #define MAX_TVE_COUNT  2
 
-extern  int rk30_tve_init(vidinfo_t *panel);
+extern  int rk3036_tve_init(vidinfo_t *panel);
 
-#endif /* __RK30_TVE_H__*/
+#endif /* __RK3036_TVE_H__*/
