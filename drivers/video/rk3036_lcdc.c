@@ -1483,6 +1483,8 @@ static int rk312x_lcdc_parse_dt(struct lcdc_device *lcdc_dev,
 }
 #endif
 
+#define CPU_AXI_QOS_PRIORITY_LEVEL(h, l)        ((((h) & 3) << 2) | ((l) & 3))
+
 int rk_lcdc_init(int lcdc_id)
 {
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
@@ -1493,10 +1495,13 @@ int rk_lcdc_init(int lcdc_id)
 		rk312x_lcdc_parse_dt(lcdc_dev, gd->fdt_blob);
 #endif
 	if (lcdc_dev->node <= 0) {
-		if (lcdc_dev->soc_type == CONFIG_RK3036)
+		if (lcdc_dev->soc_type == CONFIG_RK3036) {
 			lcdc_dev->regs = 0x10118000;
-		else
+			writel(CPU_AXI_QOS_PRIORITY_LEVEL(3, 3), 0x1012f000);
+		} else {
 			lcdc_dev->regs = 0x1010e000;
+			writel(CPU_AXI_QOS_PRIORITY_LEVEL(3, 3), 0x1012f180);
+		}
 	}
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_AUTO_GATING_EN |
 		      m_LCDC_STANDBY | m_DMA_STOP, v_AUTO_GATING_EN(0)|
