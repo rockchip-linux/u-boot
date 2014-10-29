@@ -232,6 +232,7 @@ static struct rkxx_remote_key_table remote_key_table_sunchip_ff00[] = {
 	{0xf7, KEY_MUTE},
 	{0xe7, KEY_POWER},
 	{0xfc, KEY_POWER},
+	{0x63, KEY_POWER}, 
 	{0xa9, KEY_VOLUMEDOWN},
 	{0xa8, KEY_VOLUMEDOWN},
 	{0xe0, KEY_VOLUMEDOWN},
@@ -423,72 +424,74 @@ static struct rkxx_remote_key_table remote_key_table_44bb[] = {
 	{0x2f, KEY_0}, // Âà∑Êñ∞
 };
 
-static struct rkxx_remote_key_table remote_key_table_1068[] = {
-	{0x23, KEY_POWER}, // ÁîµÊ∫ê
-	{0x4b, KEY_UP}, // ‰∏ä
-	{0x4a, KEY_DOWN}, // ‰∏ã
-	{0x49, KEY_LEFT}, // Â∑¶
-	{0x48, KEY_RIGHT}, // Âè≥
-	{0x4c, KEY_REPLY}, // OK
+static struct rkxx_remote_key_table remote_key_table_1608[] = {
+        {0x23, KEY_POWER}, // µÁ‘¥
+        {0x4b, KEY_UP}, // ?
+        {0x4a, KEY_DOWN}, // ?
+        {0x49, KEY_LEFT}, // ç}
+        {0x48, KEY_RIGHT}, // Œ
+        {0x4c, KEY_REPLY}, // OK
 
-	{0x47, KEY_VOLUMEUP}, // Èü≥ÈáèÂä†
-	{0x46, KEY_VOLUMEDOWN}, // Èü≥ÈáèÂáè
-	{0x4e, KEY_HOME}, //home
-	{0x4d, KEY_BACK}, //
+        {0x47, KEY_VOLUMEUP}, // “Ù¡øÉÔ
+        {0x46, KEY_VOLUMEDOWN}, // “Ù¡øÉw
+        {0x4e, KEY_HOME}, //home
+        {0x4d, KEY_BACK}, //
 
-	{0x45, KEY_MUTE}, //mute
-	{0x44, KEY_MENU}, 
+        {0x45, KEY_MUTE}, //mute
+        {0x44, KEY_MENU},
 };
 
-// Âçé‰∏∫ ÂÆâÂæΩ V3 ÁÆÄÁâà ÂÜØÊòéÂñú@2014-7-24 11:43:37
-static struct rkxx_remote_key_table remote_key_table_cd32[] = {
-	{0x23, KEY_POWER},
-	{0x77, KEY_HOME},
-	{0x7d, KEY_SEARCH},
 
-	{0x35, KEY_UP},
-	{0x2d, KEY_DOWN},
-	{0x66, KEY_LEFT},
-	{0x3e, KEY_RIGHT},
+// ª™Œ™ ∞≤ª’ V3 ºÚ†d∑Î√˜œ≤@2014-7-24 11:43:37
+static struct rkxx_remote_key_table remote_key_table_4cb3[] = {
+        {0x23, KEY_POWER},
+        {0x77, KEY_HOME},
+        {0x7d, KEY_SEARCH},
 
-	{0x31, KEY_REPLY},
-	{0x3a, KEY_BACK},
-	{0x65, KEY_MENU},
+        {0x35, KEY_UP},
+        {0x2d, KEY_DOWN},
+        {0x66, KEY_LEFT},
+        {0x3e, KEY_RIGHT},
 
-	{0x7e, KEY_VOLUMEDOWN},
-	{0x7f, KEY_VOLUMEUP},
+        {0x31, KEY_REPLY},
+        {0x3a, KEY_BACK},
+        {0x65, KEY_MENU},
 
-	{0x6d, KEY_1},
-	{0x6c, KEY_2},
-	{0x33, KEY_3},
-	{0x71, KEY_4},
-	{0x70, KEY_5},
+        {0x7e, KEY_VOLUMEDOWN},
+        {0x7f, KEY_VOLUMEUP},
 
-	{0x37, KEY_6},
-	{0x75, KEY_7},
-	{0x74, KEY_8},
-	{0x3b, KEY_9},
-	{0x78, KEY_0},
+        {0x6d, KEY_1},
+        {0x6c, KEY_2},
+        {0x33, KEY_3},
+        {0x71, KEY_4},
+        {0x70, KEY_5},
 
-	{0x25, KEY_MINUS}, //KEY_NUMERIC_STAR
-	{0x2f, KEY_EQUAL}, //KEY_NUMERIC_POUND
-	{0x72, KEY_SETUP},
-	{0x7b, KEY_F2},
-	{0x76, KEY_F1},
-	{0x26, KEY_F3},
-	{0x69, KEY_F4},
-	{0x6a, KEY_MUTE},
+        {0x37, KEY_6},
+        {0x75, KEY_7},
+        {0x74, KEY_8},
+        {0x3b, KEY_9},
+        {0x78, KEY_0},
+
+        {0x25, KEY_MINUS}, //KEY_NUMERIC_STAR
+        {0x2f, KEY_EQUAL}, //KEY_NUMERIC_POUND
+        {0x72, KEY_SETUP},
+        {0x7b, KEY_F2},
+        {0x76, KEY_F1},
+        {0x26, KEY_F3},
+        {0x69, KEY_F4},
+        {0x6a, KEY_MUTE},
 //	{0x29, KEY_LAST},
 //	{0x7a, KEY_CHANNELUP},
 //	{0x79, KEY_CHANNELDOWN},
-	{0x63, KEY_MUTE},
+        {0x63, KEY_MUTE},
 //	{0x67, KEY_AUDIO},
-	{0x32, KEY_F2},
-	{0x6e, KEY_F1},
-	{0x7c, KEY_F3},
-	{0x3c, KEY_F4},
-	{0x22, KEY_PAGEUP},
+        {0x32, KEY_F2},
+        {0x6e, KEY_F1},
+        {0x7c, KEY_F3},
+        {0x3c, KEY_F4},
+        {0x22, KEY_PAGEUP},
 };
+
 
 static struct rkxx_remotectl_button remotectl_button[] = {
 	{
@@ -527,15 +530,15 @@ static struct rkxx_remotectl_button remotectl_button[] = {
 		.key_table = &remote_key_table_44bb[0],
 	},
 	{
-		.usercode = 0x1068,
-		.nbuttons = 12,
-		.key_table = &remote_key_table_1068[0],
-	},
+                .usercode = 0x1608,
+                .nbuttons = 12,
+                .key_table = &remote_key_table_1608[0],
+        },
 	{
-		.usercode = 0xcd32,
-		.nbuttons = 40,
-		.key_table = &remote_key_table_cd32[0],
-	},
+                .usercode = 0x4cb3,
+                .nbuttons = 40,
+                .key_table = &remote_key_table_4cb3[0],
+        },
 };
 
 static int remotectl_keybdNum_lookup(struct rkxx_remotectl_drvdata *ddata)
