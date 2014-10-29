@@ -380,7 +380,7 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 
 #ifdef CONFIG_SECUREBOOT_CRYPTO
-	if (SecureBootCheckOK == 0) {
+	if ((SecureMode != SBOOT_MODE_NS) && (SecureBootCheckOK == 0)) {
 		puts("Not allow to boot no secure sign image!");
 		while(1);
 	}
