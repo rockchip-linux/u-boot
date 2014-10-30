@@ -25,6 +25,7 @@
 #include <asm/arch/rkplat.h>
 #include "rockchip_fb.h"
 #include "rk3036_tve.h"
+#include <../board/rockchip/common/config.h>
 
 int g_tve_pos = -1;
 
@@ -168,7 +169,14 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 	
 	mode = &rk3036_cvbs_mode[TVOUT_DEAULT];
 
-	panel->screen_type = SCREEN_TVOUT; 
+	if (tve_s.test_mode) {
+		panel->screen_type = SCREEN_TVOUT_TEST;
+		printf("SCREEN_TVOUT_TEST\n");
+	} else {
+		panel->screen_type = SCREEN_TVOUT;
+		printf("SCREEN_TVOUT\n");
+	}
+
 	panel->vl_freq    = mode->pixclock; 
 	panel->vl_col     = mode->xres ;//xres
 	panel->vl_row     = mode->yres;//yres
@@ -237,6 +245,30 @@ int rk3036_tve_init(vidinfo_t *panel)
 	tve_s.soctype = SOC_RK312X;
 //	printf("%s start soc is 3128\n", __func__);
 #endif
+	int val = 0;
+	int node = 0;
+
+	if (gd->fdt_blob)
+	{
+		node = fdt_node_offset_by_compatible(gd->fdt_blob,
+			0, "rockchip,rk312x-tve");
+		if (node < 0) {
+			printf("can't find dts node for rk312x-tve\n");
+			return -ENODEV;
+		}
+
+	if (!fdt_device_is_available(gd->fdt_blob, node)) {
+		printf("rk312x-tve is disabled\n");
+		return -EPERM;
+	}
+
+	val = fdtdec_get_int(gd->fdt_blob, node, "test_mode", 0);
+	}
+	printf("\nval = %d\n", val);
+
+	tve_s.test_mode = val;
+
+
 	rk3036_tve_init_panel(panel);
 
 	if(g_tve_pos < 0)
