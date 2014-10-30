@@ -37,17 +37,17 @@ int cleanup_before_linux(void)
 #endif
 
 	/*
+	 * Turn off I-cache and invalidate it
+	 */
+	icache_disable();
+	invalidate_icache_all();
+
+	/*
 	 * turn off D-cache
 	 * dcache_disable() in turn flushes the d-cache and disables MMU
 	 */
 	dcache_disable();
 	v7_outer_cache_disable();
-
-	/*
-	 * Turn off I-cache and invalidate it
-	 */
-	icache_disable();
-	invalidate_icache_all();
 
 	/*
 	 * After D-cache is flushed and before it is disabled there may
