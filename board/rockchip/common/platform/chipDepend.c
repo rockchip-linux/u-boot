@@ -135,22 +135,38 @@ void EmmcPowerEn(char En)
 	}
 }
 
-void SDCReset(void)
+void SDCReset(uint32 sdmmcId)
 {
+	uint32 con = 0;
+
 #if defined(CONFIG_RKCHIP_RK3288)
-	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
+	if (sdmmcId == 2) {
+		con = (0x01 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
+	} else {
+		con = (0x01 << sdmmcId) | (0x01 << (sdmmcId + 16));
+	}
+	cru_writel(con, CRU_SOFTRSTS_CON(8));
 	udelay(100);
-	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(8));
+	if (sdmmcId == 2) {
+		con = (0x00 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
+	} else {
+		con = (0x00 << sdmmcId) | (0x01 << (sdmmcId + 16));
+	}
+	cru_writel(con, CRU_SOFTRSTS_CON(8));
 	udelay(200);
 #elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	cru_writel(0x01<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(5));
+	con = (0x01 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
+	cru_writel(con, CRU_SOFTRSTS_CON(5));
 	udelay(100);
-	cru_writel(0x00<<3 | 0x01<<(3+16), CRU_SOFTRSTS_CON(5));
+	con = (0x00 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
+	cru_writel(con, CRU_SOFTRSTS_CON(5));
 	udelay(200);
 #else
 	#error "PLS config platform for emmc reset!"
 #endif
-	EmmcPowerEn(1);
+	if (sdmmcId == 2) {
+		EmmcPowerEn(1);
+	}
 }
 
 int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
@@ -171,7 +187,9 @@ int32 eMMC_changemode(uint8 mode)
 void sdmmcGpioInit(uint32 ChipSel)
 {
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
-	rk_iomux_config(RK_EMMC_IOMUX);
+	if (ChipSel == 2) {
+		rk_iomux_config(RK_EMMC_IOMUX);
+	}
 #endif
 }
 
