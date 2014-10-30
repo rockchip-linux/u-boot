@@ -170,8 +170,8 @@ bool SDPAM_DMAStart(SDMMC_PORT_E nSDCPort, uint32 dstAddr, uint32 srcAddr, uint3
 		dst_addr = dstAddr;
 	}
 
-	if (rk_dma_set_buffdone_fn(DMACH_EMMC, cb_f) < 0) {
-		printf("DMACH_EMMC set buffdone fail!\n");
+	if (rk_dma_set_buffdone_fn(dmac_chn, cb_f) < 0) {
+		printf("dma ch = %d set buffdone fail!\n", dmac_chn);
 		return FALSE;
 	}
 	rk_dma_devconfig(dmac_chn, mode, src_addr);
