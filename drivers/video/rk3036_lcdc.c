@@ -665,6 +665,10 @@ enum _vop_overlay_mode {
 	VOP_YUV_DOMAIN
 };
 
+enum _vop_output_mode {
+	COLOR_RGB,
+	COLOR_YCBCR
+};
 
 #define CalScale(x, y)	             ((((u32)(x - 1)) * 0x1000) / (y - 1))
 
@@ -675,6 +679,8 @@ struct lcdc_device {
 	int dft_win; /*default win for display*/
 	int regsbak[REG_LEN];
 	int regs;
+	int output_color;
+	int overlay_mode;
 };
 
 struct lcdc_device rk312x_lcdc;
@@ -1116,20 +1122,37 @@ static int win1_set_par(struct lcdc_device *lcdc_dev,
 }
 
 
-static void rk312x_lcdc_cfg_bcsh(struct lcdc_device *lcdc_dev)
+static void rk312x_lcdc_select_bcsh(struct lcdc_device *lcdc_dev)
 {
 	int msk, val;
-	lcdc_writel(lcdc_dev, BCSH_COLOR_BAR, 0x00);
-	lcdc_writel(lcdc_dev, BCSH_BCS, 0x00808000);
-	lcdc_writel(lcdc_dev, BCSH_H, 0x00008000);
-	msk = m_BCSH_R2Y_EN | m_BCSH_R2Y_CSC_MODE |
-		m_BCSH_Y2R_EN | m_BCSH_EN | m_BCSH_OUT_MODE;
-	val = v_BCSH_R2Y_EN(1) | v_BCSH_R2Y_CSC_MODE(VOP_Y2R_CSC_MPEG) |
-                v_BCSH_Y2R_EN(0) | v_BCSH_EN(1) | v_BCSH_OUT_MODE(3);
-	lcdc_msk_reg(lcdc_dev, BCSH_CTRL, msk, val);
+	if (lcdc_dev->overlay_mode == VOP_YUV_DOMAIN) {
+		if (lcdc_dev->output_color == COLOR_YCBCR)/* bypass */
+			lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
+				     m_BCSH_Y2R_EN | m_BCSH_R2Y_EN,
+				     v_BCSH_Y2R_EN(0) | v_BCSH_R2Y_EN(0));
+	else	/* YUV2RGB */
+		lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
+			     m_BCSH_Y2R_EN | m_BCSH_Y2R_CSC_MODE |
+			     m_BCSH_R2Y_EN,
+			     v_BCSH_Y2R_EN(1) |
+			     v_BCSH_Y2R_CSC_MODE(VOP_Y2R_CSC_MPEG) |
+			     v_BCSH_R2Y_EN(0));
+	} else {	/* overlay_mode=VOP_RGB_DOMAIN */
+		if (lcdc_dev->output_color == COLOR_RGB)	/* bypass */
+			lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
+				     m_BCSH_R2Y_EN | m_BCSH_Y2R_EN,
+				     v_BCSH_R2Y_EN(1) | v_BCSH_Y2R_EN(1));
+		else	/* RGB2YUV */
+			lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
+				     m_BCSH_R2Y_EN |
+					m_BCSH_R2Y_CSC_MODE | m_BCSH_Y2R_EN,
+					v_BCSH_R2Y_EN(1) |
+					v_BCSH_R2Y_CSC_MODE(VOP_Y2R_CSC_MPEG) |
+					v_BCSH_Y2R_EN(0));
+	}
+
 	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, m_BG_COLOR,
 		      v_BG_COLOR(0x801080));
-	lcdc_cfg_done(lcdc_dev);
 }
 
 
@@ -1150,10 +1173,7 @@ void rk_lcdc_set_par(struct fb_dsp_info *fb_info,
 		win1_set_par(lcdc_dev, fb_info, vid);
 	else 
 		printf("%s --->unknow lay_id \n", __func__);
-	if ((lcdc_dev->soc_type == CONFIG_RK3128) &&
-	    ((vid->screen_type == SCREEN_HDMI) ||
-	     (vid->screen_type == SCREEN_TVOUT)))
-		rk312x_lcdc_cfg_bcsh(lcdc_dev);
+
 	/*setenv("bootdelay", "3");*/
 }
 
@@ -1162,15 +1182,36 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	int face = 0;
 	int msk,val;
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
-
-	if (vid->screen_type == SCREEN_HDMI) {
+	lcdc_dev->output_color = COLOR_RGB;
+	lcdc_dev->overlay_mode = VOP_RGB_DOMAIN;
+	switch (vid->screen_type) {
+	case SCREEN_HDMI:
         	lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL,
 			      m_HDMI_DCLK_EN, v_HDMI_DCLK_EN(1));
 		if (vid->pixelrepeat) {
 			lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL,
 				      m_CORE_CLK_DIV_EN, v_CORE_CLK_DIV_EN(1));
 		}
-    	} else if (vid->screen_type == SCREEN_TVOUT) {
+		if (gd->arch.chiptype == CONFIG_RK3128) {
+			 lcdc_msk_reg(lcdc_dev, DSP_CTRL0,
+				      m_SW_UV_OFFSET_EN,
+				      v_SW_UV_OFFSET_EN(0));
+			 msk = m_HDMI_HSYNC_POL | m_HDMI_VSYNC_POL |
+				m_HDMI_DEN_POL;
+			 val = v_HDMI_HSYNC_POL(vid->vl_hsp) |
+			       v_HDMI_VSYNC_POL(vid->vl_vsp) |
+			       v_HDMI_DEN_POL(vid->vl_oep);
+			 lcdc_msk_reg(lcdc_dev, INT_SCALER, msk, val);
+		 } else {
+			 msk = (1 << 4) | (1 << 5) | (1 << 6);
+			 val = (vid->vl_hsp << 4) |
+				 (vid->vl_vsp << 5) |
+				 (vid->vl_oep << 6);
+			 grf_writel((msk << 16)|val,GRF_SOC_CON2);
+		 }
+		break;
+	case SCREEN_TVOUT:
+	case SCREEN_TVOUT_TEST:
 		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL,
 			      m_TVE_DAC_DCLK_EN, v_TVE_DAC_DCLK_EN(1));
 		if (vid->pixelrepeat) {
@@ -1188,15 +1229,30 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		if (gd->arch.chiptype == CONFIG_RK3128)
 			lcdc_msk_reg(lcdc_dev, DSP_CTRL0, m_SW_UV_OFFSET_EN,
 				     v_SW_UV_OFFSET_EN(1));
-	} else if (vid->screen_type == SCREEN_LVDS) {
+			if (vid->screen_type == SCREEN_TVOUT_TEST)
+		/*for TVE index test,vop must ovarlay at yuv domain*/
+				lcdc_dev->overlay_mode = VOP_YUV_DOMAIN;
+				lcdc_msk_reg(lcdc_dev, DSP_CTRL0,
+					     m_SW_UV_OFFSET_EN,
+					     v_SW_UV_OFFSET_EN(1));
+
+			rk312x_lcdc_select_bcsh(lcdc_dev);
+		break;
+	case SCREEN_LVDS:
 		msk = m_LVDS_DCLK_INVERT | m_LVDS_DCLK_EN;
 		val = v_LVDS_DCLK_INVERT(1) | v_LVDS_DCLK_EN(1);
-		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, msk, val);
-	} else if(vid->screen_type == SCREEN_RGB) {
+		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, msk, val);	
+		break;
+	case SCREEN_RGB:
 		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, m_RGB_DCLK_EN |
 			      m_LVDS_DCLK_EN, v_RGB_DCLK_EN(1) | v_LVDS_DCLK_EN(1));
-	} else if(vid->screen_type == SCREEN_MIPI){
+		break;
+	case SCREEN_MIPI:
 		lcdc_msk_reg(lcdc_dev,AXI_BUS_CTRL, m_MIPI_DCLK_EN, v_MIPI_DCLK_EN(1));
+		break;
+	default:
+		printf("unsupport screen_type %d\n",vid->screen_type);
+		break;
 	}
  	
     	lcdc_msk_reg(lcdc_dev,DSP_CTRL1, m_BLACK_EN | m_BLANK_EN | m_DSP_OUT_ZERO|
@@ -1336,25 +1392,12 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		val = v_LF_INT_NUM(vid->vl_vspw + vid->vl_vbpd + vid->vl_row);
 		lcdc_msk_reg(lcdc_dev, INT_STATUS, msk, val);
 	}
-
-	if (vid->screen_type == SCREEN_HDMI) {
-		if (gd->arch.chiptype == CONFIG_RK3128) {
-			 lcdc_msk_reg(lcdc_dev, DSP_CTRL0,
-				      m_SW_UV_OFFSET_EN,
-				      v_SW_UV_OFFSET_EN(0));
-			 msk = m_HDMI_HSYNC_POL | m_HDMI_VSYNC_POL |
-				m_HDMI_DEN_POL;
-			 val = v_HDMI_HSYNC_POL(vid->vl_hsp) |
-			       v_HDMI_VSYNC_POL(vid->vl_vsp) |
-			       v_HDMI_DEN_POL(vid->vl_oep);
-			 lcdc_msk_reg(lcdc_dev, INT_SCALER, msk, val);
-		 } else {
-			 msk = (1 << 4) | (1 << 5) | (1 << 6);
-			 val = (vid->vl_hsp << 4) |
-				 (vid->vl_vsp << 5) |
-				 (vid->vl_oep << 6);
-			 grf_writel((msk << 16)|val,GRF_SOC_CON2);
-		 }
+	if ((lcdc_dev->soc_type == CONFIG_RK3128) &&
+	    ((vid->screen_type == SCREEN_HDMI) ||
+	     (vid->screen_type == SCREEN_TVOUT) ||
+	     (vid->screen_type == SCREEN_TVOUT_TEST))) {
+		lcdc_dev->output_color = COLOR_YCBCR;
+		rk312x_lcdc_select_bcsh(lcdc_dev);
 	}
 	
 	lcdc_cfg_done(lcdc_dev);
