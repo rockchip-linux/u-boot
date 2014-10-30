@@ -36,21 +36,6 @@ int cleanup_before_linux(void)
 	disable_interrupts();
 #endif
 
-#ifndef CONFIG_ROCKCHIP
-	/*
-	 * Turn off I-cache and invalidate it
-	 */
-	icache_disable();
-	invalidate_icache_all();
-
-	/*
-	 * turn off D-cache
-	 * dcache_disable() in turn flushes the d-cache and disables MMU
-	 */
-	dcache_disable();
-	v7_outer_cache_disable();
-#else
-	/* RK: Fixed kernel handing up for flush cache error. */
 	/*
 	 * turn off D-cache
 	 * dcache_disable() in turn flushes the d-cache and disables MMU
@@ -63,7 +48,6 @@ int cleanup_before_linux(void)
 	 */
 	icache_disable();
 	invalidate_icache_all();
-#endif
 
 	/*
 	 * After D-cache is flushed and before it is disabled there may
