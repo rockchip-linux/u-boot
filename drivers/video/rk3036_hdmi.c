@@ -80,11 +80,11 @@ int hdmi_init_video_para(struct hdmi_dev *hdmi_dev)
 	else
 		video->color_depth = HDMI_COLOR_DEPTH_8BIT;
 
-	if (hdmi_dev->driver.edid.ycbcr444)
+	/*if (hdmi_dev->driver.edid.ycbcr444)
 		video->output_color = VIDEO_OUTPUT_YCBCR444;
 	else if (hdmi_dev->driver.edid.ycbcr422)
 		video->output_color = VIDEO_OUTPUT_YCBCR422;
-	else
+	else*/
 		video->output_color = VIDEO_OUTPUT_RGB444;
 
 	/*For DVI, output RGB */
