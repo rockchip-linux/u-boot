@@ -20,9 +20,7 @@ SECTIONS
 	.text :
 	{
 		*(.__image_copy_start)
-#ifndef CONFIG_ROCKCHIP
 		*(.vectors)
-#endif
 		CPUDIR/start.o (.text*)
 		*(.text*)
 	}

@@ -15,7 +15,6 @@
 
 #include <config.h>
 
-#ifndef CONFIG_ROCKCHIP
 
 /*
  *************************************************************************
@@ -26,6 +25,14 @@
  */
 
 .globl _start
+
+#ifdef CONFIG_ROCKCHIP
+.globl _vector
+.globl RSA_KEY_TAG
+.globl RSA_KEY_LENGTH
+.globl RSA_KEY_DATA
+.globl LoaderTagCheck
+#endif
 
 /*
  *************************************************************************
@@ -49,6 +56,8 @@
 
 _start:
 
+#ifndef CONFIG_ROCKCHIP
+
 #ifdef CONFIG_SYS_DV_NOR_BOOT_CFG
 	.word	CONFIG_SYS_DV_NOR_BOOT_CFG
 #endif
@@ -61,6 +70,39 @@ _start:
 	ldr	pc, _not_used
 	ldr	pc, _irq
 	ldr	pc, _fiq
+
+#else
+	msr	cpsr_c, #0xd3
+        b	_vector
+
+/* For rockchip rsa key */
+RSA_KEY_TAG:
+	.word	0x4B415352
+
+RSA_KEY_LENGTH:
+	.word	0x200-0x08
+
+RSA_KEY_DATA:
+	.space	0x200-0x08
+
+LoaderTagCheck:
+	.word	0x4B415351
+
+RSA_PAD:
+	.space	20
+
+	.align	5
+
+_vector:
+	b	reset
+	ldr	pc, _undefined_instruction
+	ldr	pc, _software_interrupt
+	ldr	pc, _prefetch_abort
+	ldr	pc, _data_abort
+	ldr	pc, _not_used
+	ldr	pc, _irq
+	ldr	pc, _fiq
+#endif /* CONFIG_ROCKCHIP */
 
 /*
  *************************************************************************
@@ -291,5 +333,3 @@ fiq:
 #endif /* CONFIG_USE_IRQ */
 
 #endif	/* CONFIG_SPL_BUILD */
-
-#endif /* CONFIG_ROCKCHIP */
