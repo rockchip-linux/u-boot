@@ -51,30 +51,43 @@ struct rockchip_fb {
 struct rockchip_fb rockchip_fb;
 
 vidinfo_t panel_info = {
-	.lcd_face	= OUT_D888_P666,
-	.vl_freq	= 71000000,
-	.vl_col		= 1280,
-	.vl_row		= 800,
-	.vl_width	= 1280,
-	.vl_height	= 800,
-	.vl_clkp	= 0,
-	.vl_hsp		= 0,
-	.vl_vsp		= 0,
-	.vl_bpix	= 4,	/* Bits per pixel, 2^5 = 32 */
-	.vl_swap_rb	= 0,
-	.lvds_format	= LVDS_8BIT_2,
-	.lvds_ttl_en	= 0,
-	/* Panel infomation */
-	.vl_hspw	= 10,
-	.vl_hbpd	= 100,
-	.vl_hfpd	= 18,
+#ifdef CONFIG_OF_LIBFDT
+        .vl_col         = CONFIG_LCD_MAX_WIDTH,
+        .vl_row         = CONFIG_LCD_MAX_HEIGHT,
+        .vl_bpix        = 4,    /* Bits per pixel, 2^5 = 32 */
+#else
+        .lcd_face       = OUT_D888_P666,
+        .vl_freq        = 71000000,
+        .vl_col         = 1280,
+        .vl_row         = 800,
+        .vl_width       = 1280,
+        .vl_height      = 800,
+        .vl_clkp        = 0,
+        .vl_hsp         = 0,
+        .vl_vsp         = 0,
+        .vl_bpix        = 4,    /* Bits per pixel, 2^5 = 32 */
+        .vl_swap_rb     = 0,
+        .lvds_format    = LVDS_8BIT_2,
+        .lvds_ttl_en    = 0,  // rk32 lvds ttl enable
+        /* Panel infomation */
+        .vl_hspw        = 10,
+        .vl_hbpd        = 100,
+        .vl_hfpd        = 18,
 
-	.vl_vspw	= 2,
-	.vl_vbpd	= 8,
-	.vl_vfpd	= 6,
+        .vl_vspw        = 2,
+        .vl_vbpd        = 8,
+        .vl_vfpd        = 6,
 
-	.pixelrepeat    = 0,
+        .lcd_power_on   = NULL,
+        .mipi_power     = NULL,
+
+        .init_delay     = 0,
+        .power_on_delay = 0,
+        .reset_delay    = 0,
+        .pixelrepeat    = 0,
+#endif
 };
+
 
 void rk_backlight_ctrl(int brightness)
 {
