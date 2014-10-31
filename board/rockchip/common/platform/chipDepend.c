@@ -186,6 +186,12 @@ int32 eMMC_changemode(uint8 mode)
 
 void sdmmcGpioInit(uint32 ChipSel)
 {
+#ifdef RK_SDCARD_BOOT_EN
+	if (ChipSel == 0) {
+		rk_iomux_config(RK_SDCARD_IOMUX);
+	}
+#endif
+
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
 	if (ChipSel == 2) {
 		rk_iomux_config(RK_EMMC_IOMUX);
