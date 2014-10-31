@@ -25,7 +25,8 @@
 #include <asm/arch/rkplat.h>
 #include "rockchip_fb.h"
 #include "rk3036_tve.h"
-#include <../board/rockchip/common/config.h>
+
+DECLARE_GLOBAL_DATA_PTR;
 
 int g_tve_pos = -1;
 
