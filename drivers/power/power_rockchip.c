@@ -26,11 +26,6 @@ static const char * const fg_names[] = {
 static void set_rockchip_pmic_id(unsigned char id)
 {
 	rockchip_pmic_id = id;
-	/********set APLL CLK 600M***********/
-	#if (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
-	rkclk_set_pll_rate_by_id(APLL_ID, 600);
-	#endif
-	/**********************************/
 }
 
 unsigned char get_rockchip_pmic_id(void)
@@ -190,6 +185,12 @@ int pmic_init(unsigned char  bus)
 		return 0;
 	}
 #endif
+
+	/********set APLL CLK 600M***********/
+#if (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
+	rkclk_set_pll_rate_by_id(APLL_ID, 600);
+#endif
+	/**********************************/
 
 	return ret;
 }
