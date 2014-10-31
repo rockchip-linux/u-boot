@@ -238,5 +238,37 @@ int arch_interrupt_init (void)
 	return irq_init();
 }
 
+#else
+
+int irq_handler_enable(int irq)
+{
+	return -1;
+}
+
+int irq_handler_disable(int irq)
+{
+	return -1;
+}
+
+int irq_set_irq_type(int irq, unsigned int type)
+{
+	return -1;
+}
+
+void irq_install_handler(int irq, interrupt_handler_t *handler, void *data)
+{
+
+}
+
+void irq_uninstall_handler(int irq)
+{
+
+}
+
+int arch_interrupt_init (void)
+{
+	return -1;
+}
+
 #endif /* CONFIG_USE_IRQ */
 
