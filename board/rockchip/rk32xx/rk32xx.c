@@ -58,13 +58,26 @@ void board_lmb_reserve(struct lmb *lmb) {
 
 int board_storage_init(void)
 {
+	int ret = 0;
+
 	if (StorageInit() == 0) {
 		printf("storage init OK!\n");
-		return 0;
+		ret = 0;
 	} else {
 		printf("storage init fail!\n");
-		return -1;
+		ret = -1;
 	}
+
+	/* audi and audi-s uart2 and sdcard iomux */
+#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+#ifdef RK_SDCARD_BOOT_EN
+	if ((SdmmcGetSDCardBootMode() == 0) && (CONFIG_UART_NUM == UART_CH2)) {
+		rk_iomux_config(RK_UART2_IOMUX);
+	}
+#endif /* RK_SDCARD_BOOT_EN */
+#endif
+
+	return ret;
 }
 
 
