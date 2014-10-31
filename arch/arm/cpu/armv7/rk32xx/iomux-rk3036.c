@@ -119,6 +119,21 @@ static void rk_emmc_iomux_config(int emmc_id)
 	}
 }
 
+static void rk_sdcard_iomux_config(int sdcard_id)
+{
+	switch (sdcard_id) {
+		case RK_SDCARD_IOMUX:
+			// iomux sdcard cmd
+			grf_writel((3 << 28) | (3 << 30)| (1<<12) | (1<<14), GRF_GPIO1B_IOMUX);
+			// iomux sdcard d0 - d3, detn, clkout
+			grf_writel((0xFFF << 16) | 0x555, GRF_GPIO1C_IOMUX);
+			break;
+		default:
+			debug("sdcard id = %d iomux error!\n", sdcard_id);
+			break;
+	}
+}
+
 static void rk_hdmi_iomux_config(int hdmi_id)
 {
 	switch (hdmi_id) {
