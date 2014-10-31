@@ -1125,34 +1125,54 @@ static int win1_set_par(struct lcdc_device *lcdc_dev,
 static void rk312x_lcdc_select_bcsh(struct lcdc_device *lcdc_dev)
 {
 	int msk, val;
+	int bcsh_open;
 	if (lcdc_dev->overlay_mode == VOP_YUV_DOMAIN) {
-		if (lcdc_dev->output_color == COLOR_YCBCR)/* bypass */
+		if (lcdc_dev->output_color == COLOR_YCBCR) {/* bypass */
 			lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
 				     m_BCSH_Y2R_EN | m_BCSH_R2Y_EN,
 				     v_BCSH_Y2R_EN(0) | v_BCSH_R2Y_EN(0));
-	else	/* YUV2RGB */
-		lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
+			bcsh_open = 0;
+		} else 	{/* YUV2RGB */
+			lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
 			     m_BCSH_Y2R_EN | m_BCSH_Y2R_CSC_MODE |
 			     m_BCSH_R2Y_EN,
 			     v_BCSH_Y2R_EN(1) |
 			     v_BCSH_Y2R_CSC_MODE(VOP_Y2R_CSC_MPEG) |
 			     v_BCSH_R2Y_EN(0));
+			bcsh_open = 1;
+		}
 	} else {	/* overlay_mode=VOP_RGB_DOMAIN */
-		if (lcdc_dev->output_color == COLOR_RGB)	/* bypass */
+		if (lcdc_dev->output_color == COLOR_RGB) {	/* bypass */
 			lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
 				     m_BCSH_R2Y_EN | m_BCSH_Y2R_EN,
 				     v_BCSH_R2Y_EN(1) | v_BCSH_Y2R_EN(1));
-		else	/* RGB2YUV */
+			bcsh_open = 0;
+		} else {/* RGB2YUV */
 			lcdc_msk_reg(lcdc_dev, BCSH_CTRL,
 				     m_BCSH_R2Y_EN |
 					m_BCSH_R2Y_CSC_MODE | m_BCSH_Y2R_EN,
 					v_BCSH_R2Y_EN(1) |
 					v_BCSH_R2Y_CSC_MODE(VOP_Y2R_CSC_MPEG) |
 					v_BCSH_Y2R_EN(0));
+			bcsh_open = 1;
+		}
 	}
-
-	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, m_BG_COLOR,
-		      v_BG_COLOR(0x801080));
+	lcdc_msk_reg(lcdc_dev, DSP_CTRL0, m_SW_OVERLAY_MODE,
+		     v_SW_OVERLAY_MODE(lcdc_dev->overlay_mode));
+	if (bcsh_open) {
+		lcdc_msk_reg(lcdc_dev,
+			     BCSH_CTRL, m_BCSH_EN | m_BCSH_OUT_MODE,
+			     v_BCSH_EN(1) | v_BCSH_OUT_MODE(3));
+		lcdc_writel(lcdc_dev, BCSH_BCS,
+			    v_BCSH_BRIGHTNESS(0x00) |
+			    v_BCSH_CONTRAST(0x80) |
+			    v_BCSH_SAT_CON(0x80));
+		lcdc_writel(lcdc_dev, BCSH_H, v_BCSH_COS_HUE(0x80));
+	} else {
+		msk = m_BCSH_EN;
+		val = v_BCSH_EN(0);
+		lcdc_msk_reg(lcdc_dev, BCSH_CTRL, msk, val);
+	}
 }
 
 
@@ -1181,6 +1201,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 {
 	int face = 0;
 	int msk,val;
+	int bg_val = 0;
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
 	lcdc_dev->output_color = COLOR_RGB;
 	lcdc_dev->overlay_mode = VOP_RGB_DOMAIN;
@@ -1209,6 +1230,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 				 (vid->vl_oep << 6);
 			 grf_writel((msk << 16)|val,GRF_SOC_CON2);
 		 }
+		 bg_val = 0x801080;
 		break;
 	case SCREEN_TVOUT:
 	case SCREEN_TVOUT_TEST:
@@ -1226,17 +1248,19 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 			printf("unsupported video timing!\n");
 			return -EINVAL;
 		}
-		if (gd->arch.chiptype == CONFIG_RK3128)
+		if (vid->screen_type == SCREEN_TVOUT_TEST) {/*for TVE index test,vop must ovarlay at yuv domain*/
+			lcdc_dev->overlay_mode = VOP_YUV_DOMAIN;
 			lcdc_msk_reg(lcdc_dev, DSP_CTRL0, m_SW_UV_OFFSET_EN,
 				     v_SW_UV_OFFSET_EN(1));
-			if (vid->screen_type == SCREEN_TVOUT_TEST)
-		/*for TVE index test,vop must ovarlay at yuv domain*/
-				lcdc_dev->overlay_mode = VOP_YUV_DOMAIN;
-				lcdc_msk_reg(lcdc_dev, DSP_CTRL0,
-					     m_SW_UV_OFFSET_EN,
-					     v_SW_UV_OFFSET_EN(1));
+		} else {
+			bg_val = 0x801080;
+		}
+		if (lcdc_dev->soc_type == CONFIG_RK3128) {
+			lcdc_msk_reg(lcdc_dev, DSP_CTRL0,
+				     m_SW_UV_OFFSET_EN,
+				     v_SW_UV_OFFSET_EN(1));
+		}
 
-			rk312x_lcdc_select_bcsh(lcdc_dev);
 		break;
 	case SCREEN_LVDS:
 		msk = m_LVDS_DCLK_INVERT | m_LVDS_DCLK_EN;
@@ -1262,6 +1286,8 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		      v_DSP_RG_SWAP(0) | v_DSP_RB_SWAP(0) | v_BG_COLOR(0) |
 		      v_DSP_DELTA_SWAP(0) | v_DSP_DUMMY_SWAP(0));
 
+	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, m_BG_COLOR,
+		      v_BG_COLOR(bg_val));
 
 	switch (vid->lcd_face)
 	{
