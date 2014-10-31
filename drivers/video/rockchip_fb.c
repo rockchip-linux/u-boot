@@ -391,7 +391,7 @@ void lcd_ctrl_init(void *lcdbase)
 #if defined(CONFIG_RK_HDMI)
 	if (g_hdmi_noexit == 1)
 #endif
-		rk30_tve_init(&panel_info);
+		rk3036_tve_init(&panel_info);
 #endif
 	panel_info.logo_rgb_mode = RGB565;
 	rk_fb_pwr_enable(fb);
