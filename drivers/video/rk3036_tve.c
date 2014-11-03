@@ -167,8 +167,13 @@ static void tve_set_mode (int mode)
 static void rk3036_tve_init_panel(vidinfo_t *panel)
 {
 	const struct fb_videomode *mode = NULL;
-	
-	mode = &rk3036_cvbs_mode[TVOUT_DEAULT];
+
+	if (g_tve_pos ==1)
+		mode = &rk3036_cvbs_mode[g_tve_pos];
+	else if (g_tve_pos == 0)
+		mode = &rk3036_cvbs_mode[g_tve_pos];
+	else
+		mode = &rk3036_cvbs_mode[TVOUT_DEAULT];
 
 	if (tve_s.test_mode) {
 		panel->screen_type = SCREEN_TVOUT_TEST;
@@ -271,6 +276,16 @@ int rk3036_tve_init(vidinfo_t *panel)
 
 
 	rk3036_tve_init_panel(panel);
+
+	if(g_tve_pos < 0)
+	{
+		g_tve_pos = TVOUT_DEAULT;
+		printf("%s:use default config g_tve_pos = %d \n", __func__,g_tve_pos);
+	}
+	else
+	{
+		printf("%s:use baseparamer config g_tve_pos = %d \n", __func__,g_tve_pos);
+	}
 
 	if(g_tve_pos < 0)
 	{
