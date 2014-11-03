@@ -96,7 +96,7 @@ int hdmi_init_video_para(struct hdmi_dev *hdmi_dev)
 
 static inline void delay100us(void)
 {
-	mdelay(1);
+	__udelay(200);
 }
 
 static void rk3036_hdmi_av_mute(struct hdmi_dev *hdmi_dev, bool enable)
@@ -768,7 +768,7 @@ static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 
 	rk3036_hdmi_reset_pclk();
 	rk3036_hdmi_reset(hdmi_dev);
-	mdelay(400);
+	mdelay(10);
 
 	hdmi_dev->mode_len = 16; //1080p@60
 	hdmi_dev->read_edid = hdmi_dev_read_edid;

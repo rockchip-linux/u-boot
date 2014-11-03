@@ -380,7 +380,7 @@ static inline int hdmi_msk_reg(struct hdmi_dev *hdmi_dev, u16 offset,
 static inline void rk3036_hdmi_reset_pclk(void)
 {
 	writel(0x00010001, RKIO_CRU_PHYS + 0x128);
-	mdelay(400);
+	mdelay(10);
 	writel(0x00010000, RKIO_CRU_PHYS + 0x128);
 }
 
