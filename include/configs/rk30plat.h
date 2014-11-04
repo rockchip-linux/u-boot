@@ -47,7 +47,6 @@
 
 /* undef some module for rk chip */
 #if defined(CONFIG_RKCHIP_RK3036)
-	#undef CONFIG_MERGER_MINILOADER
 	#undef CONFIG_RK_SPI
 	#undef CONFIG_PM_SUBSYSTEM
 	#undef CONFIG_RK_PWM
@@ -56,7 +55,6 @@
 #endif /* CONFIG_RKCHIP_RK3036 */
 
 #if defined(CONFIG_RKCHIP_RK3126)
-	#undef CONFIG_MERGER_MINILOADER
 	#undef CONFIG_RK_SPI
 	#undef CONFIG_RK_PWM_REMOTE
 	#undef CONFIG_RK_DEVICEINFO
@@ -65,7 +63,6 @@
 
 #if defined(CONFIG_RKCHIP_RK3128)
 	#define CONFIG_SECUREBOOT_CRYPTO
-	#undef CONFIG_MERGER_MINILOADER
 	#undef CONFIG_RK_SPI
 #endif /* CONFIG_RKCHIP_RK3128 */
 

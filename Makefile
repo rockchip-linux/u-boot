@@ -855,25 +855,25 @@ ifdef CONFIG_ROCKCHIP
 ifdef CONFIG_RKCHIP_RK3288
 RKCHIP ?= RK3288
 # rk uboot version should consist of two digits, as 01
-RK_UBOOT_VERSION = 02
+RK_UBOOT_VERSION = 01
 endif
 
 ifdef CONFIG_RKCHIP_RK3036
 RKCHIP ?= RK3036
 # rk uboot version should consist of two digits, as 01
-RK_UBOOT_VERSION = 07
+RK_UBOOT_VERSION = 01
 endif
 
 ifdef CONFIG_RKCHIP_RK3126
 RKCHIP ?= RK312X
 # rk uboot version should consist of two digits, as 01
-RK_UBOOT_VERSION = 09
+RK_UBOOT_VERSION = 01
 endif
 
 ifdef CONFIG_RKCHIP_RK3128
 RKCHIP ?= RK312X
 # rk uboot version should consist of two digits, as 01
-RK_UBOOT_VERSION = 09
+RK_UBOOT_VERSION = 01
 endif
 
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`

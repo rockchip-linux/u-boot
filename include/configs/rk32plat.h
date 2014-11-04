@@ -48,7 +48,6 @@
 /* undef some module for rk chip */
 #if defined(CONFIG_RKCHIP_RK3288)
 	#define CONFIG_SECUREBOOT_CRYPTO
-	#undef CONFIG_MERGER_MINILOADER
 	#undef CONFIG_RK_SPI
 	#undef CONFIG_RK_PL330
 	#undef CONFIG_RK_DMAC
