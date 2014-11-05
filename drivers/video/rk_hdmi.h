@@ -484,6 +484,7 @@ struct hdmi_dev {
 
 	const struct hdmi_video_timing *modedb;
 	unsigned short mode_len;
+	unsigned int	phy_pre_emphasis;
 	//unsigned short vic;
 
 	struct hdmi_video video;

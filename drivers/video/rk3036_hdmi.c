@@ -27,6 +27,9 @@
 #include "rk_hdmi.h"
 #include "rk3036_hdmi.h"
 
+DECLARE_GLOBAL_DATA_PTR;
+
+
 static int rk3036_hdmi_show_reg(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0;
@@ -127,7 +130,21 @@ static void rk3036_hdmi_set_pwr_mode(struct hdmi_dev *hdmi_dev, int mode)
 			 __func__, hdmi_dev->driver.pwr_mode, mode);
 		rk3036_hdmi_sys_power(hdmi_dev, false);
 		hdmi_writel(hdmi_dev, PHY_DRIVER, 0xaa);
-		hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x5f);
+
+		if(hdmi_dev->phy_pre_emphasis != 0)
+		{
+			if((hdmi_dev->video.vic == HDMI_720X480P_60HZ_VIC) ||
+			(hdmi_dev->video.vic == HDMI_720X480I_60HZ_VIC) ||
+			(hdmi_dev->video.vic == HDMI_720X576P_50HZ_VIC) ||
+			(hdmi_dev->video.vic == HDMI_720X576I_50HZ_VIC))
+
+			hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, hdmi_dev->phy_pre_emphasis);
+		}
+		else
+		{
+			hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x5f);
+		}
+
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x15);
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x14);
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x10);
@@ -797,10 +814,28 @@ void rk3036_hdmi_probe(vidinfo_t *panel)
 {
 	int val = 0;
 	struct hdmi_dev *hdmi_dev = NULL;
+	int node = 0;
 
 	hdmi_dev = malloc(sizeof(struct hdmi_dev));
 	if (hdmi_dev != NULL && panel != NULL) {
 		memset(hdmi_dev, 0, sizeof(struct hdmi_dev));
+
+		if (gd->fdt_blob)
+		{
+			node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "rockchip,rk312x-hdmi");
+			if(node >= 0)
+			{
+				hdmi_dev->phy_pre_emphasis = fdtdec_get_int(gd->fdt_blob, node, "phy_pre_emphasis", 0);
+			}
+			else
+			{
+				printf("%s:can't find dts node for rk312x-hdmi\n",__func__);
+				hdmi_dev->phy_pre_emphasis = 0;
+			}
+
+			//printf("%s:phy_pre_emphasis=0x%x\n",__func__,hdmi_dev->phy_pre_emphasis);
+		}
+
 		hdmi_dev->regbase = (void *)RKIO_HDMI_PHYS;
 		hdmi_dev->hd_init = rk3036_hdmi_hardware_init;
 		hdmi_dev->read_edid = hdmi_dev_read_edid;
