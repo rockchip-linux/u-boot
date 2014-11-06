@@ -117,6 +117,7 @@ struct rk3036_tve {
 	u32				reg_phy_base;
 	int				soctype;
 	int				test_mode;
+	int				saturation;
 };
 
 #define RK30_TVE_REGBASE 0x10118000 + 0x200

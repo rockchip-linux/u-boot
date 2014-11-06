@@ -140,6 +140,9 @@ static void tve_set_mode (int mode)
 		tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_PAL) |
 			v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
 		if (tve_s.soctype == SOC_RK312X) {
+			if(tve_s.saturation != 0)
+			tve_writel(TV_SATURATION, tve_s.saturation);
+			else
 			tve_writel(TV_SATURATION, /*0x00325c40*/ 0x002b4d3c);
 			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008a0a);
 		} else {
@@ -254,6 +257,8 @@ int rk3036_tve_init(vidinfo_t *panel)
 	int val = 0;
 	int node = 0;
 
+	tve_s.saturation = 0;
+
 	if (gd->fdt_blob)
 	{
 		node = fdt_node_offset_by_compatible(gd->fdt_blob,
@@ -263,17 +268,16 @@ int rk3036_tve_init(vidinfo_t *panel)
 			return -ENODEV;
 		}
 
-	if (!fdt_device_is_available(gd->fdt_blob, node)) {
-		printf("rk312x-tve is disabled\n");
-		return -EPERM;
+		if (!fdt_device_is_available(gd->fdt_blob, node)) {
+			printf("rk312x-tve is disabled\n");
+			return -EPERM;
+		}
+
+		tve_s.test_mode = fdtdec_get_int(gd->fdt_blob, node, "test_mode", 0);
+		tve_s.saturation = fdtdec_get_int(gd->fdt_blob, node, "saturation", 0);
+
 	}
-
-	val = fdtdec_get_int(gd->fdt_blob, node, "test_mode", 0);
-	}
-	printf("\nval = %d\n", val);
-
-	tve_s.test_mode = val;
-
+	printf("test_mode=%d,saturation=0x%x\n", tve_s.test_mode, tve_s.saturation);
 
 	rk3036_tve_init_panel(panel);
 
