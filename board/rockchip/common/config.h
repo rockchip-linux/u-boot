@@ -64,7 +64,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
 	#define DRIVERS_SDMMC
 	#define EMMC_NOT_USED_BOOT_PART
-	
+#endif
+
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#define NANDC_BASE_ADDR         RKIO_NANDC_PHYS
 
@@ -87,8 +88,6 @@ DECLARE_GLOBAL_DATA_PTR;
 	#define RKPLAT_IRQ_EMMC		IRQ_EMMC
 #else
 	#error: "PLS config chip for mmc irq and mmc base address!"
-#endif
-
 #endif
 
 /* rk nand flash boot config */
