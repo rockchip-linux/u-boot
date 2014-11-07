@@ -71,7 +71,11 @@ int board_fbt_is_cold_boot(void)
  */
 int board_fbt_is_charging(void)
 {
+#ifdef CONFIG_POWER_RK
 	return is_charging();
+#else
+	return 0;
+#endif
 }
 
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
