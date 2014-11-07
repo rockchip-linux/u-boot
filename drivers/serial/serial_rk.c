@@ -299,7 +299,26 @@ static void rk_serial_setbrg(void)
 
 static int rk_serial_init(void)
 {
-	return (int)rk_uart_init(CONFIG_UART_NUM, CONFIG_BAUDRATE);
+	int ret = -1;
+
+	ret = rk_uart_init(CONFIG_UART_NUM, CONFIG_BAUDRATE);
+#ifdef DEBUG
+	if (ret == 0) {
+		rk_serial_putc('\n');
+		rk_serial_putc('r');
+		rk_serial_putc('k');
+		rk_serial_putc(' ');
+		rk_serial_putc('s');
+		rk_serial_putc('e');
+		rk_serial_putc('r');
+		rk_serial_putc('i');
+		rk_serial_putc('a');
+		rk_serial_putc('l');
+		rk_serial_putc('\n');
+	}
+#endif
+
+	return ret;
 }
 
 
