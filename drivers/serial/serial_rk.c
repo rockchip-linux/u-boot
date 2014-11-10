@@ -134,7 +134,7 @@ static inline void rk_uart_reset(volatile void *base)
 	/* UART reset, rx fifo & tx fifo reset */
 	writel(UART_RESET | RCVR_FIFO_REST | XMIT_FIFO_RESET, base + UART_SRR);
 	/* interrupt disable */
-	writel(0x00, RKIO_UART2_DBG_PHYS + UART_IER);
+	writel(0x00, base + UART_IER);
 }
 
 
