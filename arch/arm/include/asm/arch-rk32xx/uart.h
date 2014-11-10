@@ -2,26 +2,26 @@
  * (C) Copyright 2008-2014 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef __RK_UART_H
-#define __RK_UART_H
+#ifndef __RKXX_UART_H
+#define __RKXX_UART_H
+
+
+/* uart some key registers offset */
+#define UART_RBR	0x00
+#define UART_THR	0x00
+#define UART_DLL	0x00
+#define UART_DLH	0x04
+#define UART_IER	0x04
+#define UART_LCR	0x0c
+#define UART_MCR	0x10
+#define UART_USR	0x7c
+#define UART_SRR	0x88
+#define UART_SFE	0x98
+#define UART_SRT	0x9c
+#define UART_STET	0xa0
+
 
 /* UART_IER */
 #define THRE_INT_ENABLE                    (1<<7)
@@ -93,54 +93,13 @@
 #define RCVR_FIFO_REST                     (1<<1)
 #define XMIT_FIFO_RESET                    (1<<2)
 
-/* rk uart struct */
-typedef volatile struct tagUART_STRUCT {
-	uint32 UART_RBR;
-	uint32 UART_DLH;
-	uint32 UART_IIR;
-	uint32 UART_LCR;
-	uint32 UART_MCR;
-	uint32 UART_LSR;
-	uint32 UART_MSR;
-	uint32 UART_SCR;
-	uint32 RESERVED1[(0x30-0x20)/4];
-	uint32 UART_SRBR[(0x70-0x30)/4];
-	uint32 UART_FAR;
-	uint32 UART_TFR;
-	uint32 UART_RFW;
-	uint32 UART_USR;
-	uint32 UART_TFL;
-	uint32 UART_RFL;
-	uint32 UART_SRR;
-	uint32 UART_SRTS;
-	uint32 UART_SBCR;
-	uint32 UART_SDMAM;
-	uint32 UART_SFE;
-	uint32 UART_SRT;
-	uint32 UART_STET;
-	uint32 UART_HTX;
-	uint32 UART_DMASA;
-	uint32 RESERVED2[(0xf4-0xac)/4];
-	uint32 UART_CPR;
-	uint32 UART_UCV;
-	uint32 UART_CTR;
-} UART_REG, *pUART_REG;
 
-#define UART_THR	UART_RBR
-#define UART_DLL	UART_RBR
-#define UART_IER	UART_DLH
-#define UART_FCR	UART_IIR
-#define UART_STHR	UART_SRBR
+#define UART_MODE_X_DIV		16
 
-#define MODE_X_DIV	16
-
-
-#define UART_BIT5	5
-#define UART_BIT6	6
-#define UART_BIT7	7
-#define UART_BIT8	8
-
-#define UART_BYTE_TIME_OUT_CNT  0xff
+#define UART_BIT5		5
+#define UART_BIT6		6
+#define UART_BIT7		7
+#define UART_BIT8		8
 
 
 typedef enum UART_ch {
@@ -166,7 +125,6 @@ typedef enum UART_ch {
  * rk uart clock source can be 24M crystal input or gating from uart_pll_clk,
  * on uboot system we using 24M crystal input as default.
  */
-#define RK_UART_CLOCK_FREQ	CONFIG_SYS_CLK_FREQ_CRYSTAL
+#define UART_CLOCK_FREQ		CONFIG_SYS_CLK_FREQ_CRYSTAL
 
-#endif /* __RK_UART_H */
-
+#endif /* __RKXX_UART_H */

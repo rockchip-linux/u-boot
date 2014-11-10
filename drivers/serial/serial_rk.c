@@ -2,30 +2,14 @@
  * (C) Copyright 2008-2014 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
 #include <serial.h>
 #include <asm/arch/rkplat.h>
 
 
-#define RKUART_VERSION		"1.1"
+#define RKUART_VERSION		"1.2"
 
 
 static volatile void __iomem * g_rkuart_base[UART_CH_MAX] = {
@@ -57,16 +41,16 @@ static volatile void __iomem* rk_uart_get_base(eUART_ch_t ch)
 	return g_rkuart_base[ch];
 }
 
-static void rk_uart_iomux(eUART_ch_t ch)
+static inline void rk_uart_iomux(eUART_ch_t ch)
 {
 	rk_iomux_config(RK_UART0_IOMUX + ch);
 }
 
 
-static int rk_uart_set_iop(pUART_REG pbase, uint32 irda)
+static inline int rk_uart_set_iop(volatile void *base, uint32 irda)
 {
 	if ((irda == IRDA_SIR_DISABLED) || (irda == IRDA_SIR_ENSABLED)) {
-		pbase->UART_MCR = irda;
+		writel(irda, base + UART_MCR);
 		return 0;
 	}
 
@@ -74,12 +58,12 @@ static int rk_uart_set_iop(pUART_REG pbase, uint32 irda)
 }
 
 
-static int rk_uart_set_lcr(pUART_REG pbase, uint8 bytesize, uint8 parity, uint8 stopbits)
+static inline int rk_uart_set_lcr(volatile void *base, uint8 bytesize, uint8 parity, uint8 stopbits)
 {
-	uint32 lcr;
+	volatile uint32 lcr;
 	int ret = 0;
 
-	lcr = pbase->UART_LCR;
+	lcr = readl(base + UART_LCR);
 	lcr &= ~UART_DATABIT_MASK;
 	switch ( bytesize )    // byte set
 	{
@@ -127,44 +111,53 @@ static int rk_uart_set_lcr(pUART_REG pbase, uint8 bytesize, uint8 parity, uint8 
 	}
 
 	if (ret == 0) {
-		pbase->UART_LCR = lcr;
+		writel(lcr, base + UART_LCR);
 	}
 
 	return ret;
 }
 
 
-static void rk_uart_set_fifo(pUART_REG pbase)
+static inline void rk_uart_set_fifo(volatile void *base)
 {
-	pbase->UART_SFE = SHADOW_FIFI_ENABLED;
-	pbase->UART_SRT = RCVR_TRIGGER_TWO_LESS_FIFO;
-	pbase->UART_STET = TX_TRIGGER_TWO_IN_FIFO;
+	/* shadow FIFO enable */
+	writel(SHADOW_FIFI_ENABLED, base + UART_SFE);
+	/* fifo 2 less than */
+	writel(RCVR_TRIGGER_TWO_LESS_FIFO, base + UART_SRT);
+	/* 2 char in tx fifo */
+	writel(TX_TRIGGER_TWO_IN_FIFO, base + UART_STET);
 }
 
 
-static void rk_uart_reset(pUART_REG pbase)
+static inline void rk_uart_reset(volatile void *base)
 {
-	pbase->UART_SRR = UART_RESET | RCVR_FIFO_REST | XMIT_FIFO_RESET;
-	pbase->UART_IER = 0;
+	/* UART reset, rx fifo & tx fifo reset */
+	writel(UART_RESET | RCVR_FIFO_REST | XMIT_FIFO_RESET, base + UART_SRR);
+	/* interrupt disable */
+	writel(0x00, RKIO_UART2_DBG_PHYS + UART_IER);
 }
 
 
-/* Notice: if rk_uart_set_baudrate set to static function, system will be error. */
-static int rk_uart_set_baudrate(pUART_REG pbase, uint32 baudrate)
+static inline int rk_uart_set_baudrate(volatile void *base, uint32 baudrate)
 {
 	volatile uint32 rate;
+	volatile uint32 lcr;
 
 	if ((baudrate < 9600) || (baudrate > 115200)) {
 		return -1;
 	}
 
 	/* uart rate is div for 24M input clock */
-	rate = RK_UART_CLOCK_FREQ / MODE_X_DIV / baudrate;
+	rate = UART_CLOCK_FREQ / UART_MODE_X_DIV / baudrate;
 
-	pbase->UART_LCR = (pbase->UART_LCR | LCR_DLA_EN);
-	pbase->UART_DLL = rate & 0xff;
-	pbase->UART_DLH = (rate >> 8) & 0xff;
-	pbase->UART_LCR = (pbase->UART_LCR & (~LCR_DLA_EN));
+	lcr = readl(base + UART_LCR);
+	writel(lcr | LCR_DLA_EN, base + UART_LCR);
+
+	writel(rate & 0xFF, base + UART_DLL);
+	writel((rate >> 8) & 0xff, base + UART_DLH);
+
+	lcr = readl(base + UART_LCR);
+	writel(lcr & (~LCR_DLA_EN), base + UART_LCR);
 
 	return 0;
 }
@@ -172,32 +165,32 @@ static int rk_uart_set_baudrate(pUART_REG pbase, uint32 baudrate)
 
 static int rk_uart_init(eUART_ch_t ch, uint32 baudrate)
 {
-	pUART_REG pbase = (pUART_REG)rk_uart_get_base(ch);
+	volatile void *base = rk_uart_get_base(ch);
 	int val = -1;
     
-	if (pbase == NULL) {
+	if (base == NULL) {
 		return (-1);
 	}
 
 	rk_uart_iomux(ch);
-	rk_uart_reset(pbase);
+	rk_uart_reset(base);
 
-	val = rk_uart_set_iop(pbase, IRDA_SIR_DISABLED);
+	val = rk_uart_set_iop(base, IRDA_SIR_DISABLED);
 	if (val == -1) {
 		return (-1);
 	}
 
-	val = rk_uart_set_lcr(pbase, UART_BIT8, PARITY_DISABLED, ONE_STOP_BIT);
+	val = rk_uart_set_lcr(base, UART_BIT8, PARITY_DISABLED, ONE_STOP_BIT);
 	if(val == -1) {
 		return (-1);
 	}
 
-	val = rk_uart_set_baudrate(pbase, baudrate);
+	val = rk_uart_set_baudrate(base, baudrate);
 	if(val == -1) {
 		return (-1);
 	}
 
-	rk_uart_set_fifo(pbase);
+	rk_uart_set_fifo(base);
 
 	return (0);
 }
@@ -205,15 +198,15 @@ static int rk_uart_init(eUART_ch_t ch, uint32 baudrate)
 
 static int rk_uart_sendbyte(eUART_ch_t ch, uint8 byte)
 {
-	pUART_REG pbase = (pUART_REG)rk_uart_get_base(ch);
+	volatile void *base = rk_uart_get_base(ch);
 
-	if (pbase == NULL) {
+	if (base == NULL) {
 		return (-1);
 	}
 
-	while((pbase->UART_USR & UART_TRANSMIT_FIFO_NOT_FULL) == 0);
+	while((readl(base + UART_USR) & UART_TRANSMIT_FIFO_NOT_FULL) == 0);
 
-	pbase->UART_THR = byte;
+	writel(byte, base + UART_THR);
 
 	return (0);
 }
@@ -221,16 +214,16 @@ static int rk_uart_sendbyte(eUART_ch_t ch, uint8 byte)
 
 static uint8 rk_uart_recvbyte(eUART_ch_t ch)
 {
-	pUART_REG pbase = (pUART_REG)rk_uart_get_base(ch);
+	volatile void *base = rk_uart_get_base(ch);
 	volatile uint8 data = 0;
 
-	if (pbase == NULL) {
+	if (base == NULL) {
 		return 0;
 	}
 
-	while((pbase->UART_USR & UART_RECEIVE_FIFO_NOT_EMPTY) == 0);
+	while((readl(base + UART_USR) & UART_RECEIVE_FIFO_NOT_EMPTY) == 0);
  
-	data = (uint8)pbase->UART_RBR;
+	data = (uint8)readl(base + UART_RBR);
 
 	return data;
 }
@@ -238,25 +231,25 @@ static uint8 rk_uart_recvbyte(eUART_ch_t ch)
 
 static int rk_uart_set_brg(eUART_ch_t ch, uint32 baudrate)
 {
-	pUART_REG pbase = (pUART_REG)rk_uart_get_base(ch);
+	volatile void *base = rk_uart_get_base(ch);
 
-	if (pbase == NULL) {
+	if (base == NULL) {
 		return -1;
 	}
 
-	return rk_uart_set_baudrate(pbase, baudrate);
+	return rk_uart_set_baudrate(base, baudrate);
 }
 
 
 static int rk_uart_tstc(eUART_ch_t ch)
 {
-	pUART_REG pbase = (pUART_REG)rk_uart_get_base(ch);
+	volatile void *base = rk_uart_get_base(ch);
 
-	if (pbase == NULL) {
+	if (base == NULL) {
 		return -1;
 	}
 
-	return ((pbase->UART_USR & UART_RECEIVE_FIFO_NOT_EMPTY) == UART_RECEIVE_FIFO_NOT_EMPTY);
+	return ((readl(base + UART_USR) & UART_RECEIVE_FIFO_NOT_EMPTY) == UART_RECEIVE_FIFO_NOT_EMPTY);
 }
 
 
