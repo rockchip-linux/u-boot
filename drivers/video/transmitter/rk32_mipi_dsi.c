@@ -1812,17 +1812,20 @@ int rk32_mipi_enable(vidinfo_t *vid)
 	struct rk_screen *screen;
 	struct mipi_dsi_screen *dsi_screen;
 	static int id = 0;
-
+	u8 dsi_number = 0;
+	
 	rk_mipi_screen_probe();
 
-	do{
+	dsi_number = rk_mipi_get_dsi_num();
+	MIPI_DBG("dsi number is %d\n", dsi_number);
+	for(id = 0; id < dsi_number;) {
 		dsi = calloc(1, sizeof(struct dsi));
 		if(!dsi) {
 		  MIPI_DBG("request struct dsi.%d fail!\n",id);
 		  return -ENOMEM;
 		}
 
-		dsi->dsi_id = id;
+		dsi->dsi_id = id++;
 #ifdef CONFIG_OF_LIBFDT
 		rk_dsi_host_parse_dt(gd->fdt_blob,dsi);
 #endif /* #ifdef CONFIG_OF_LIBFDT */
@@ -1877,7 +1880,6 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		dsi_screen->dsi_lane = rk_mipi_get_dsi_lane();
 		dsi_screen->hs_tx_clk = rk_mipi_get_dsi_clk();	
 		dsi_screen->lcdc_id = 1;
-		dsi->dsi_id = id++;//of_alias_get_id(pdev->dev.of_node, "dsi");
 		sprintf(ops->name, "rk_mipi_dsi.%d", dsi->dsi_id);
 
 		ret = rk_mipi_dsi_probe(dsi);
@@ -1888,21 +1890,11 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		
 		if(id == 1){
 			rk_init_phy_mode(vid->lcdc_id);
-		  //rk32_init_phy_mode(dsi_screen->lcdc_id);
-		  //rk_fb_trsm_ops_register(&trsm_dsi_ops, SCREEN_MIPI);
-		  dsi0 = dsi;
+		  	dsi0 = dsi;
 		}else{   
 		  dsi1 = dsi;
 		}
-	    	//if(vid->screen_type == SCREEN_DUAL_MIPI){
-	    	if( rk_mipi_get_dsi_num() == 2 ){
-	    	    if(id==2)
-			break;
-	    	}else
-	    	    break;
-
-	}while(1);
-	
+	}	
 	rk32_dsi_enable();
 #if 0
 
