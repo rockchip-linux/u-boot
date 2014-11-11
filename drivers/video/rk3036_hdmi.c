@@ -791,6 +791,15 @@ static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 	hdmi_dev->read_edid = hdmi_dev_read_edid;
 	hdmi_dev->driver.pwr_mode = NORMAL;
 
+	//different delay for different tv or monitor
+	for(i=0; i<30; i++)
+	{
+		if(hdmi_detect_hotplug(hdmi_dev) == HDMI_HPD_ACTIVED)
+		break;
+		else
+		mdelay(10);
+	}
+
 	if (hdmi_detect_hotplug(hdmi_dev) == HDMI_HPD_ACTIVED) {
 		rk3036_hdmi_insert(hdmi_dev);
 		hdmi_parse_edid(hdmi_dev);
