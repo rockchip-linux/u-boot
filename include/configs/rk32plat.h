@@ -116,6 +116,9 @@
 
 #define CONFIG_RK32_FB
 
+/*default disable HDMI*/
+#undef CONFIG_RK_HDMI
+
 #ifdef CONFIG_RK_HDMI
 #define CONFIG_RK32_HDMI
 #endif
