@@ -104,8 +104,16 @@ static inline void delay100us(void)
 
 static void rk3036_hdmi_av_mute(struct hdmi_dev *hdmi_dev, bool enable)
 {
-	hdmi_writel(hdmi_dev, AV_MUTE,
-		    v_AUDIO_MUTE(enable) | v_VIDEO_MUTE(enable));
+	if (enable) {
+		hdmi_msk_reg(hdmi_dev, AV_MUTE,
+			     m_AVMUTE_CLEAR | m_AVMUTE_ENABLE,
+			     v_AVMUTE_CLEAR(0) | v_AVMUTE_ENABLE(1));
+	} else {
+		hdmi_msk_reg(hdmi_dev, AV_MUTE,
+			     m_AVMUTE_CLEAR | m_AVMUTE_ENABLE,
+			     v_AVMUTE_CLEAR(1) | v_AVMUTE_ENABLE(0));
+	}
+	hdmi_writel(hdmi_dev, PACKET_SEND_AUTO, m_PACKET_GCP_EN);
 }
 
 static void rk3036_hdmi_sys_power(struct hdmi_dev *hdmi_dev, bool enable)
@@ -151,13 +159,11 @@ static void rk3036_hdmi_set_pwr_mode(struct hdmi_dev *hdmi_dev, int mode)
 		hdmi_writel(hdmi_dev, PHY_CHG_PWR, 0x0f);
 		hdmi_writel(hdmi_dev, 0xce, 0x00);
 		hdmi_writel(hdmi_dev, 0xce, 0x01);
-		rk3036_hdmi_av_mute(hdmi_dev, 1);
 		rk3036_hdmi_sys_power(hdmi_dev, true);
 		break;
 	case LOWER_PWR:
 		HDMIDBG("%s change pwr_mode LOWER_PWR pwr_mode = %d, mode = %d\n",
 			 __func__, hdmi_dev->driver.pwr_mode, mode);
-		rk3036_hdmi_av_mute(hdmi_dev, 0);
 		rk3036_hdmi_sys_power(hdmi_dev, false);
 		hdmi_writel(hdmi_dev, PHY_DRIVER, 0x00);
 		hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x00);
@@ -740,11 +746,6 @@ void rk3036_hdmi_control_output(struct hdmi_dev *hdmi_dev, int enable)
 	if (enable) {
 		if (hdmi_dev->driver.pwr_mode == LOWER_PWR)
 			rk3036_hdmi_set_pwr_mode(hdmi_dev, NORMAL);
-		hdmi_readl(hdmi_dev, AV_MUTE, &mutestatus);
-		if (mutestatus && (m_AUDIO_MUTE | m_VIDEO_BLACK)) {
-			hdmi_writel(hdmi_dev, AV_MUTE,
-				    v_AUDIO_MUTE(0) | v_VIDEO_MUTE(0));
-		}
 		rk3036_hdmi_sys_power(hdmi_dev, true);
 		rk3036_hdmi_sys_power(hdmi_dev, false);
 		delay100us();
@@ -752,9 +753,16 @@ void rk3036_hdmi_control_output(struct hdmi_dev *hdmi_dev, int enable)
 		hdmi_writel(hdmi_dev, 0xce, 0x00);
 		delay100us();
 		hdmi_writel(hdmi_dev, 0xce, 0x01);
+		hdmi_readl(hdmi_dev, AV_MUTE, &mutestatus);
+		if (mutestatus && (m_AUDIO_MUTE | m_VIDEO_BLACK)) {
+			hdmi_writel(hdmi_dev, AV_MUTE,
+				    v_AUDIO_MUTE(0) | v_VIDEO_MUTE(0));
+		}
+		rk3036_hdmi_av_mute(hdmi_dev, 0);
 	} else {
 		hdmi_writel(hdmi_dev, AV_MUTE,
 			    v_AUDIO_MUTE(1) | v_VIDEO_MUTE(1));
+		rk3036_hdmi_av_mute(hdmi_dev, 1);
 	}
 }
 
