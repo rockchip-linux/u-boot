@@ -130,11 +130,11 @@ int GetPortState(key_config *key)
 
 int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 {
+	printf("checkKey\n");
+
 	*boot_rockusb = 0;
 	*boot_recovery = 0;
 	*boot_fastboot = 0;
-
-	printf("checkKey\n");
 
 	if(GetPortState(&key_rockusb))
 	{

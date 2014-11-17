@@ -165,7 +165,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 
 int board_fbt_key_pressed(void)
 {
-	int boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0; 
+	uint32 boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0;
 	enum fbt_reboot_type frt = FASTBOOT_REBOOT_UNKNOWN;
 	int vbus = GetVbus();
 	int ir_keycode = 0;
