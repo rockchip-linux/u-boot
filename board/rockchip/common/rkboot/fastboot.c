@@ -170,7 +170,10 @@ int board_fbt_key_pressed(void)
 	int vbus = GetVbus();
 	int ir_keycode = 0;
 
+#ifdef CONFIG_RK_KEY
 	checkKey((uint32 *)&boot_rockusb, (uint32 *)&boot_recovery, (uint32 *)&boot_fastboot);
+#endif
+
 #if defined(CONFIG_RK_PWM_REMOTE)
 	ir_keycode = g_ir_keycode;
 	RemotectlDeInit();

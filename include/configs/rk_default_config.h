@@ -339,6 +339,9 @@
 /* rk spi module */
 #define CONFIG_RK_SPI
 
+/* rk key module */
+#define CONFIG_RK_KEY
+
 /* rk dma config */
 #define CONFIG_RK_PL330		/* rk dma pl330 */
 #define CONFIG_RK_DMAC		/* rk dmac */

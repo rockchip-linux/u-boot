@@ -81,7 +81,7 @@ static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powe
 /*
     固定GPIOA_0口作为烧写检测口,系统部分不能使用该口
 */
-int GetPortState(key_config *key)
+static int GetPortState(key_config *key)
 {
 	uint32 tt;
 	uint32 hCnt = 0;
@@ -173,7 +173,7 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 }
 
 
-void RockusbKeyInit(key_config *key)
+static void RockusbKeyInit(key_config *key)
 {
 #if defined(CONFIG_RKCHIP_RK3036)
 	key->type = KEY_INT;
@@ -193,7 +193,7 @@ void RockusbKeyInit(key_config *key)
 #endif
 }
 
-void RecoveryKeyInit(key_config *key)
+static void RecoveryKeyInit(key_config *key)
 {
 #if defined(CONFIG_RKCHIP_RK3036)
 	key->type = KEY_NULL;
@@ -209,7 +209,7 @@ void RecoveryKeyInit(key_config *key)
 }
 
 
-void FastbootKeyInit(key_config *key)
+static void FastbootKeyInit(key_config *key)
 {
 #if defined(CONFIG_RKCHIP_RK3036)
 	key->type = KEY_NULL;
@@ -225,7 +225,7 @@ void FastbootKeyInit(key_config *key)
 }
 
 
-void PowerKeyInit(void)
+static void PowerKeyInit(void)
 {
 #ifdef CONFIG_OF_LIBFDT
 	memset(&gPowerKey, 0, sizeof(struct fdt_gpio_state));
