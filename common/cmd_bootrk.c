@@ -34,7 +34,7 @@ DECLARE_GLOBAL_DATA_PTR;
 extern short g_hdmi_vic;
 #endif
 
-#ifdef CONFIG_POWER_FG_ADC
+#if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FG_ADC)
 extern u8 g_increment;
 #endif
 
@@ -332,7 +332,7 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 			"%s tve.format=%d", command_line, g_tve_pos);
 #endif
 
-#ifdef CONFIG_POWER_FG_ADC
+#if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FG_ADC)
 	if (fg_adc_storage_flag_load() == 1) {
 		g_increment = g_increment + fg_adc_storage_load();
 	}
@@ -409,7 +409,7 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	rk_commandline_setenv(boot_source, hdr, charge);
 
-#ifdef CONFIG_POWER_FG_ADC
+#if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FG_ADC)
 	fg_adc_storage_flag_store(0);
 	fg_adc_storage_store(0);
 #endif
