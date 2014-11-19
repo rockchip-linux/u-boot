@@ -34,6 +34,10 @@ DECLARE_GLOBAL_DATA_PTR;
 extern short g_hdmi_vic;
 #endif
 
+#ifdef CONFIG_POWER_FG_ADC
+extern u8 g_increment;
+#endif
+
 #ifdef CONFIG_RK3036_TVE
 extern int g_tve_pos;
 #endif
@@ -328,6 +332,14 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 			"%s tve.format=%d", command_line, g_tve_pos);
 #endif
 
+#ifdef CONFIG_POWER_FG_ADC
+	if (fg_adc_storage_flag_load() == 1) {
+		g_increment = g_increment + fg_adc_storage_load();
+	}
+	snprintf(command_line, sizeof(command_line),
+			 "%s adc.incre=%d", command_line, g_increment);
+#endif
+
 	char *sn = getenv("fbt_sn#");
 	if (sn != NULL) {
 		/* append serial number if it wasn't in device_info already */
@@ -397,6 +409,10 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	rk_commandline_setenv(boot_source, hdr, charge);
 
+#ifdef CONFIG_POWER_FG_ADC
+	fg_adc_storage_flag_store(0);
+	fg_adc_storage_store(0);
+#endif
 	rk_module_deinit();
 
 	/* Secure boot state will set drm, sn and others information in the nanc ram,

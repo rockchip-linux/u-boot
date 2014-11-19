@@ -73,6 +73,11 @@ extern int pmic_charger_setting(int current);
 extern void rk_backlight_ctrl(int brightness);
 extern void lcd_standby(int enable);
 
+#ifdef CONFIG_POWER_FG_ADC
+u8 g_increment = 0;
+#define CHARGE_INCRE_TIME          60000
+#endif
+
 //return duration(ms).
 static inline unsigned int get_fix_duration(unsigned int base) {
 	unsigned int max = 0xFFFFFFFF / 24000;
@@ -578,6 +583,13 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int key_state = KEY_NOT_PRESSED;
 	int exit_type = NOT_EXIT;
 
+	#ifdef CONFIG_POWER_FG_ADC
+	unsigned int charge_start_time = 0;
+	unsigned int charge_last_time = 0;
+	charge_start_time = get_timer(0);
+	debug("do_charge!!!!\n");
+	#endif
+
 	while (1) {
 		//step 1: check charger state.
 		exit_type = check_charging();
@@ -585,7 +597,15 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			LOGD("should quit charge");
 			goto exit;
 		}
-
+		#ifdef CONFIG_POWER_FG_ADC
+		charge_last_time = get_timer(charge_start_time);
+		if(charge_last_time > CHARGE_INCRE_TIME && g_increment<100)
+		{
+			g_increment++;
+			charge_start_time = get_timer(0);
+			debug("increment is %d\n", g_increment);
+		}
+		#endif
 		//step 2: handle timeouts.
 		if (IS_BRIGHT(g_state.brightness)) {
 			unsigned int idle_time = get_fix_duration(g_state.screen_on_time);
@@ -653,9 +673,25 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 exit:
 	set_brightness(SCREEN_OFF, &g_state);
 	if (exit_type == EXIT_BOOT) {
+		#ifdef CONFIG_POWER_FG_ADC
+		if(fg_adc_storage_flag_load()==0)
+		{
+			debug("the increment is %d\n", g_increment);
+			g_increment = g_increment + fg_adc_storage_load();
+			debug("the increment 11111111111 is %d\n", g_increment);
+		}
+		#endif
+
 		printf("booting...\n");
 		return 1;
 	} else if (exit_type == EXIT_SHUTDOWN) {
+		#ifdef CONFIG_POWER_FG_ADC
+		g_increment = g_increment + fg_adc_storage_load();
+		fg_adc_storage_store(g_increment);
+		fg_adc_storage_load();
+		fg_adc_storage_flag_store(1);
+		fg_adc_storage_flag_load();
+		#endif
 		printf("%s :shutting down...\n", __func__);
 		shut_down();
 		LOGE("%s : not reach here: %d \n", __func__, __LINE__);

@@ -116,6 +116,41 @@ static int vol_to_capacity(int BatVoltage)
 	}
 	return capacity;
 }
+
+
+#define STORAGE_SYSDATA_SECTOR2		2 // sector2, first 8 bytes has been define.
+#define ADC_CAPACITY_OFFSET		8 // sector2, byte 8.
+#define ADC_CHARGE_FLAG_OFFSET		9 // sector2, byte 9.
+int fg_adc_storage_load(void)
+{
+	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
+	StorageSysDataLoad(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+	debug("tmp_buf[%d] is %d\n", ADC_CAPACITY_OFFSET, tmp_buf[ADC_CAPACITY_OFFSET]);
+	return tmp_buf[ADC_CAPACITY_OFFSET];
+}
+
+int fg_adc_storage_store(u8 capacity)
+{
+	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
+	tmp_buf[ADC_CAPACITY_OFFSET] = capacity;
+	StorageSysDataStore(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+}
+
+int fg_adc_storage_flag_store(bool flag)
+{
+	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
+	tmp_buf[ADC_CHARGE_FLAG_OFFSET] = flag;
+	StorageSysDataStore(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+}
+
+int fg_adc_storage_flag_load(void)
+{
+	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
+	StorageSysDataLoad(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+	debug("tmp_buf[%d] is %d\n", ADC_CHARGE_FLAG_OFFSET, tmp_buf[ADC_CHARGE_FLAG_OFFSET]);
+	return tmp_buf[ADC_CHARGE_FLAG_OFFSET];
+}
+
 static int get_capacity(int volt)
 {
 	fg_adc.capacity = vol_to_capacity(volt);
@@ -124,17 +159,24 @@ static int get_capacity(int volt)
 static int adc_update_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
-
-	battery->voltage_uV = adc_get_vol() * 1000;
+	battery->voltage_uV = adc_get_vol();
+	//printf("battery->voltage_uV is %d\n",battery->voltage_uV);
 	battery->capacity = get_capacity(battery->voltage_uV);
-	battery->state_of_chrg = 0;
+	//printf("battery->capacity is %d\n",battery->capacity);
+	if(get_status()==1)
+		battery->state_of_chrg = 2;
+	else
+		battery->state_of_chrg = 0;
 	return 0;
 }
 
 static int adc_check_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
-	battery->state_of_chrg = 0;
+	if(get_status()==1)
+		battery->state_of_chrg = 2;
+	else
+		battery->state_of_chrg = 0;
 	return 0;
 }
 
@@ -223,7 +265,7 @@ int adc_battery_init(void)
 	fg_adc.p->name = name;
 	fg_adc.p->fg = &adc_fg_ops;
 	fg_adc.p->pbat = calloc(sizeof(struct  power_battery), 1);
-
+	fg_adc_storage_load();
 	return 0;
 }
 
