@@ -551,7 +551,11 @@ int ep0_recv_setup (struct urb *urb)
 					/*return usbd_device_feature (device, le16_to_cpu (request->wIndex), */
 					/*                    request->bRequest == USB_REQ_SET_FEATURE); */
 					/* NEED TO IMPLEMENT THIS!!! */
+#if defined(CONFIG_ROCKCHIP)
 					return 0;
+#else
+					return -1;
+#endif
 				} else {
 					dbg_ep0 (1, "request %s bad wValue: %04x",
 						 USBD_DEVICE_REQUESTS
