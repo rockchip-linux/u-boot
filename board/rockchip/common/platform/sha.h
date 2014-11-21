@@ -22,7 +22,7 @@ typedef struct {
 } SHA_CTX;
 
 void SHA_init(SHA_CTX *ctx);
-void SHA_update(SHA_CTX *ctx, const void* data, unsigned long len);
+void SHA_update(SHA_CTX *ctx, const void* data, unsigned int len);
 uint8_t* SHA_final(SHA_CTX *ctx);
 
 /* Convenience method. Returns digest parameter value. */

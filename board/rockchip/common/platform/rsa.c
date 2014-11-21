@@ -695,11 +695,11 @@ static int rsapublicfunc(unsigned char *output, unsigned int *outputLen, unsigne
 }
 
 
-unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input, unsigned char *publicKey, unsigned char inputlen)
+unsigned int rsaDecodeHash(unsigned char *output, unsigned char *input, unsigned char *publicKey, unsigned char inputlen)
 {
 	unsigned char outputdata[128];
-	unsigned outputlen;
-	unsigned long rst;
+	unsigned int outputlen;
+	unsigned int rst;
 
 	memset(outputdata, 0, 80);
 	rst = rsapublicfunc(outputdata, &outputlen, input, 128, (R_RSA_PUBLIC_KEY *)publicKey);
@@ -707,10 +707,10 @@ unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input, unsigne
 	return rst;
 }
 
-unsigned long rsaCheckMD5(unsigned char *input, unsigned char *rawData, unsigned char *publicKey, unsigned char inputlen)
+unsigned int rsaCheckMD5(unsigned char *input, unsigned char *rawData, unsigned char *publicKey, unsigned char inputlen)
 {
 	unsigned char outputdata[128];
-	unsigned outputlen;
+	unsigned int outputlen;
 
 	memset(outputdata, 0, 128);
 	rsapublicfunc(outputdata, &outputlen, input, 128, (R_RSA_PUBLIC_KEY *)publicKey);

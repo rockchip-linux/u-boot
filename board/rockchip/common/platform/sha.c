@@ -238,7 +238,7 @@ void SHA_init(SHA_CTX *ctx)
 	ctx->H[4] = 0xc3d2e1f0;
 }
 
-void SHA_update(SHA_CTX *ctx, const void *data, unsigned long len)
+void SHA_update(SHA_CTX *ctx, const void *data, unsigned int len)
 {
 	unsigned int lenW = ctx->size & 63;
 

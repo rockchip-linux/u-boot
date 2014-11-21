@@ -42,7 +42,7 @@ uint8* g_pFlashInfoData;
 FlashInfo m_flashInfo;
 uint16 g_IDBlockOffset[5];
 
-extern unsigned long gIdDataBuf[512];
+extern uint32 gIdDataBuf[512];
 
 extern void P_RC4(unsigned char * buf, unsigned short len);
 

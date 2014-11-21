@@ -25,7 +25,7 @@
 #include "../config.h"
 #include <u-boot/crc.h>
 
-uint32 CRC_32CheckBuffer( unsigned char * aData, unsigned long aSize )
+uint32 CRC_32CheckBuffer(unsigned char * aData, uint32 aSize)
 {
 	uint32 crc = 0;
 	int i=0;

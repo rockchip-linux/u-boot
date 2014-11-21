@@ -196,7 +196,7 @@ enum {
 
 void P_RC4(unsigned char * buf, unsigned short len);
 void P_RC4_ext(unsigned char * buf, unsigned short len);
-uint32 CRC_32CheckBuffer(unsigned char * aData, unsigned long aSize);
+uint32 CRC_32CheckBuffer(unsigned char * aData, uint32 aSize);
 
 #endif /* _RK_CONFIG_H */
 

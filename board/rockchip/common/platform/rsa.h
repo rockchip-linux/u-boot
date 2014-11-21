@@ -75,11 +75,11 @@ typedef struct {
 	unsigned char exponent[MAX_RSA_MODULUS_LEN]; /* public exponent */
 } R_RSA_PUBLIC_KEY;
 
-typedef unsigned long NN_DIGIT;
+typedef unsigned int NN_DIGIT;
 typedef unsigned short NN_HALF_DIGIT;
 typedef unsigned char *POINTER;
 
 
-extern unsigned long rsaDecodeHash(unsigned char *output, unsigned char *input, unsigned char *publicKey, unsigned char inputlen);
-extern unsigned long rsaCheckMD5(unsigned char *input, unsigned char *rawData, unsigned char *publicKey, unsigned char inputlen);
+extern unsigned int rsaDecodeHash(unsigned char *output, unsigned char *input, unsigned char *publicKey, unsigned char inputlen);
+extern unsigned int rsaCheckMD5(unsigned char *input, unsigned char *rawData, unsigned char *publicKey, unsigned char inputlen);
 
