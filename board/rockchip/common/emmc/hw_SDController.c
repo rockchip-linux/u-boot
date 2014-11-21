@@ -224,7 +224,12 @@ static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
     }
     else*/
     {
+	/* fpga board no define CONFIG_RK_CLOCK, mmc clock should div from internal */
+#ifdef CONFIG_RK_CLOCK
         pReg->SDMMC_CLKDIV = value;
+#else
+        pReg->SDMMC_CLKDIV = suitMmcClkDiv;
+#endif
     }
     SDC_Start(pReg, (START_CMD | UPDATE_CLOCK | WAIT_PREV));
 
@@ -1198,24 +1203,26 @@ int32 SDC_ResetController(int32 cardId)
     }
 
     pReg->SDMMC_INTMASK = value;
+
+#if (EN_SD_INT || EN_SD_DATA_TRAN_INT)
 #if(SD_CARD_Support)
     if(nSDCPort == SDC0)
     {
         SDPAM_INTCRegISR(nSDCPort, _SDC0IST);
     }
-	else if(nSDCPort == SDC1)
+    else if(nSDCPort == SDC1)
     {
         SDPAM_INTCRegISR(nSDCPort, _SDC1IST);
     }
-	else if(nSDCPort == SDC2)
+    else if(nSDCPort == SDC2)
 #endif	
-	{
-	    //return SDC_FALSE;
-	    SDPAM_INTCRegISR(nSDCPort, _SDC2IST);	//eMMC controller	
-	}
+    {
+	SDPAM_INTCRegISR(nSDCPort, _SDC2IST);	//eMMC controller	
+    }
     SDPAM_INTCEnableIRQ(nSDCPort);
     pReg->SDMMC_CTRL = ENABLE_INT;
-    
+#endif
+
     return SDC_SUCCESS;
 }
 
@@ -1740,6 +1747,11 @@ int32 SDC_BusRequest(int32 cardId,
 			pBuf = gSDCInfo[nSDCPort].intInfo.pBuf;
 			while ((tranCount < totleCount) && timeOut)
 			{
+				if (pReg->SDMMC_RINISTS & (DRTO_INT | SBE_INT | EBE_INT | DCRC_INT))
+				{
+					ret = SDC_END_BIT_ERROR;
+					break;
+				}
 				if((pReg->SDMMC_RINISTS) & (RXDR_INT))
 				{
 					uint32 *pbuf32 = &pBuf[tranCount];
@@ -1856,7 +1868,9 @@ int32 SDC_BusRequest(int32 cardId,
                     pReg->SDMMC_RINISTS = SBE_INT;
                     value = 0;
                     #if !(EN_SD_DMA)
+                    #if (EN_SD_DATA_TRAN_INT)
                     value |= (RXDR_INT | TXDR_INT);
+                    #endif
                     #endif
                     #if EN_SD_INT
                     value |= (SBE_INT | FRUN_INT | DTO_INT | CD_INT);
