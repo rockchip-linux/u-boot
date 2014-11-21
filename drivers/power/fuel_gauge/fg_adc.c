@@ -39,13 +39,13 @@ struct adc_battery {
 	int is_pwr_hold;
 };
 struct adc_battery fg_adc;
-static int get_status(void)
+int adc_get_status(void)
 {
 	int ac_charging, usb_charging;
 
 	if (fg_adc.support_ac_charge == 1) {
 		if (gpio_get_value(fg_adc.dc_det.gpio) == (fg_adc.dc_det.flags ? 0x0 : 0x01))
-			ac_charging = 1;
+			ac_charging = 2;
 		else
 			ac_charging = 0;
 		return ac_charging;
@@ -85,8 +85,7 @@ static int adc_get_vol(void)
 	} while ((value&0x40) == 0);
 	value = read_XDATA32(fg_adc.adc.data);
 	voltage = (value * 3300 * (fg_adc.bat_table[4] + fg_adc.bat_table[5])) / (1024 * fg_adc.bat_table[5]);
-
-	if ((get_status() == 1) && (voltage < CONFIG_SYSTEM_ON_VOL_THRESD))
+	if (adc_get_status() == 2 && (voltage < CONFIG_SYSTEM_ON_VOL_THRESD))
 		voltage = CONFIG_SYSTEM_ON_VOL_THRESD/1000 + 10;
 	return voltage;
 }
@@ -121,34 +120,47 @@ static int vol_to_capacity(int BatVoltage)
 #define STORAGE_SYSDATA_SECTOR2		2 // sector2, first 8 bytes has been define.
 #define ADC_CAPACITY_OFFSET		8 // sector2, byte 8.
 #define ADC_CHARGE_FLAG_OFFSET		9 // sector2, byte 9.
+static int g_fg_adc_flag = 0;
 int fg_adc_storage_load(void)
 {
-	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
-	StorageSysDataLoad(STORAGE_SYSDATA_SECTOR2, tmp_buf);
-	debug("tmp_buf[%d] is %d\n", ADC_CAPACITY_OFFSET, tmp_buf[ADC_CAPACITY_OFFSET]);
-	return tmp_buf[ADC_CAPACITY_OFFSET];
+	if(g_fg_adc_flag != 0)
+	{
+		ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
+		StorageSysDataLoad(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+		debug("tmp_buf[%d] is %d\n", ADC_CAPACITY_OFFSET, tmp_buf[ADC_CAPACITY_OFFSET]);
+		return tmp_buf[ADC_CAPACITY_OFFSET];
+	}
 }
 
 int fg_adc_storage_store(u8 capacity)
 {
-	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
-	tmp_buf[ADC_CAPACITY_OFFSET] = capacity;
-	StorageSysDataStore(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+	if(g_fg_adc_flag != 0)
+	{
+		ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
+		tmp_buf[ADC_CAPACITY_OFFSET] = capacity;
+		StorageSysDataStore(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+	}
 }
 
 int fg_adc_storage_flag_store(bool flag)
 {
-	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
-	tmp_buf[ADC_CHARGE_FLAG_OFFSET] = flag;
-	StorageSysDataStore(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+	if(g_fg_adc_flag != 0)
+	{
+		ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
+		tmp_buf[ADC_CHARGE_FLAG_OFFSET] = flag;
+		StorageSysDataStore(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+	}
 }
 
 int fg_adc_storage_flag_load(void)
 {
-	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
-	StorageSysDataLoad(STORAGE_SYSDATA_SECTOR2, tmp_buf);
-	debug("tmp_buf[%d] is %d\n", ADC_CHARGE_FLAG_OFFSET, tmp_buf[ADC_CHARGE_FLAG_OFFSET]);
-	return tmp_buf[ADC_CHARGE_FLAG_OFFSET];
+	if(g_fg_adc_flag != 0)
+	{
+		ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
+		StorageSysDataLoad(STORAGE_SYSDATA_SECTOR2, tmp_buf);
+		debug("tmp_buf[%d] is %d\n", ADC_CHARGE_FLAG_OFFSET, tmp_buf[ADC_CHARGE_FLAG_OFFSET]);
+		return tmp_buf[ADC_CHARGE_FLAG_OFFSET];
+	}
 }
 
 static int get_capacity(int volt)
@@ -163,7 +175,7 @@ static int adc_update_battery(struct pmic *p, struct pmic *bat)
 	//printf("battery->voltage_uV is %d\n",battery->voltage_uV);
 	battery->capacity = get_capacity(battery->voltage_uV);
 	//printf("battery->capacity is %d\n",battery->capacity);
-	if(get_status()==1)
+	if(adc_get_status()!=0)
 		battery->state_of_chrg = 2;
 	else
 		battery->state_of_chrg = 0;
@@ -173,7 +185,7 @@ static int adc_update_battery(struct pmic *p, struct pmic *bat)
 static int adc_check_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
-	if(get_status()==1)
+	if(adc_get_status()!=0)
 		battery->state_of_chrg = 2;
 	else
 		battery->state_of_chrg = 0;
@@ -236,7 +248,7 @@ static int rk_adcbat_parse_dt(const void *blob)
 	fdtdec_decode_gpios(blob, node, "gpios", &gpios, 1);
 	fg_adc.pwr_hold.gpio = gpios.gpio;
 	fg_adc.pwr_hold.flags = !(gpios.flags  & OF_GPIO_ACTIVE_LOW);
-
+	g_fg_adc_flag = 1;
 	return 0;
 }
 void adc_shut_down(void)
@@ -260,7 +272,7 @@ int adc_battery_init(void)
 	}
 	adc_init();
 	voltage = adc_get_vol();
-	 get_status();
+	 adc_get_status();
 	fg_adc.capacity_poweron = get_capacity(voltage);
 	fg_adc.p->name = name;
 	fg_adc.p->fg = &adc_fg_ops;

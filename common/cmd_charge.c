@@ -75,7 +75,8 @@ extern void lcd_standby(int enable);
 
 #ifdef CONFIG_POWER_FG_ADC
 u8 g_increment = 0;
-#define CHARGE_INCRE_TIME          60000
+#define BIG_CHARGE_INCRE_TIME          80000
+#define LITTLE_CHARGE_INCRE_TIME       120000
 #endif
 
 //return duration(ms).
@@ -599,11 +600,19 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		#ifdef CONFIG_POWER_FG_ADC
 		charge_last_time = get_timer(charge_start_time);
-		if(charge_last_time > CHARGE_INCRE_TIME && g_increment<100)
-		{
-			g_increment++;
-			charge_start_time = get_timer(0);
-			debug("increment is %d\n", g_increment);
+		if(adc_get_status()==2){
+			if(charge_last_time > BIG_CHARGE_INCRE_TIME && g_increment<100){
+				g_increment++;
+				charge_start_time = get_timer(0);
+				debug("increment is %d\n", g_increment);
+			}
+		}
+		else if(adc_get_status()==1){
+			if(charge_last_time > LITTLE_CHARGE_INCRE_TIME && g_increment<100){
+				g_increment++;
+				charge_start_time = get_timer(0);
+				debug("usb pc increment is %d\n", g_increment);
+			}
 		}
 		#endif
 		//step 2: handle timeouts.
