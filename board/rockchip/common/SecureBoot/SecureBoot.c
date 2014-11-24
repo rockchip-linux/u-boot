@@ -127,9 +127,9 @@ uint32 SecureBootSetSysData2Kernel(uint32 SecureBootFlag)
 	gBootConfig.sdSysPartOffset =  StorageGetSDSysOffset();
 	gBootConfig.hash = JSHash((uint8*)&gBootConfig, 508);
 
+	StorageSysDataLoad(2, tmp_buf);
 	FlashSramLoadStore(&gBootConfig, 0, 1, 512);
 	FlashSramLoadStore(&gDrmKeyInfo, 512, 1, 512);
-	StorageSysDataLoad(2, tmp_buf); 
 	FlashSramLoadStore(tmp_buf, 1024, 1, 512);          // vonder info
 	FlashSramLoadStore(&gIdDataBuf[384], 1536, 1, 512);  // idblk sn info
 
