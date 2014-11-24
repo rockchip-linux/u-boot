@@ -75,8 +75,8 @@ extern void lcd_standby(int enable);
 
 #ifdef CONFIG_POWER_FG_ADC
 u8 g_increment = 0;
-#define BIG_CHARGE_INCRE_TIME          80000
-#define LITTLE_CHARGE_INCRE_TIME       120000
+#define BIG_CHARGE_INCRE_TIME          100000
+#define LITTLE_CHARGE_INCRE_TIME       300000
 #endif
 
 //return duration(ms).
