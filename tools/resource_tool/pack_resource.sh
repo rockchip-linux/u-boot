@@ -4,7 +4,7 @@ function usage()
 {
 	echo "append resources to resource image."
 	echo "usage:"
-	echo "sudo ./pack_resource <resources dir> <dst image> <old image> <resource_tool path>"
+	echo "./pack_resource <resources dir> <dst image> <old image> <resource_tool path>"
 }
 
 function die()
@@ -43,11 +43,6 @@ RESOURCES=$1
 OLD_IMAGE=$2
 IMAGE=$3
 TOOL=$4
-
-if [ `id -u` -gt 0 ];then
-	usage
-	die
-fi
 
 if [ -z "$RESOURCES" ];then
 	RESOURCES=resources
