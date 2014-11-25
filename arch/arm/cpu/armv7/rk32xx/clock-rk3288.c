@@ -846,7 +846,7 @@ void rkclk_get_pll(void)
 	gd->arch.hclk_bus_rate_hz = gd->arch.aclk_bus_rate_hz / div;
 
 	/* bus pclk */
-	div = rkclk_get_periph_pclk_div();
+	div = rkclk_get_bus_pclk_div();
 	gd->arch.pclk_bus_rate_hz = gd->arch.aclk_bus_rate_hz / div;
 }
 
