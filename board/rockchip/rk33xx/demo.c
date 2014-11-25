@@ -107,10 +107,78 @@ static void board_gic_test(void)
 }
 
 
+#ifdef CONFIG_RK_DMAC
+static struct rk_dma_client rk_dma_memcpy_client = {
+        .name = "rk-dma-memcpy",
+};
+
+#define DMA_MEM_TEST_SIZE	(1024 * 4)
+static uint32 *dma_src_addr = (uint32 *)CONFIG_RAM_PHY_END;
+static uint32 *dma_dst_addr = (uint32 *)CONFIG_RAM_PHY_END + DMA_MEM_TEST_SIZE;
+static uint32 dma_finish = 0;
+static void rk_dma_memcpy_callback(void *buf_id, int size, enum rk_dma_buffresult result)
+{
+	if (result != RK_RES_OK) {
+		printf("%s error:%d\n", __func__, result);
+	} else {
+		rk_dma_ctrl(DMACH_DMAC0_MEMTOMEM, RK_DMAOP_STOP);
+		rk_dma_ctrl(DMACH_DMAC0_MEMTOMEM, RK_DMAOP_FLUSH);
+
+		dma_finish = 1;
+		printf("%s ok\n", __func__);
+	}
+}
+
+
+static void board_dmac_test(void)
+{
+	int i = 0;
+
+	printf("rk dmac test start...\n");
+
+	for(i = 0; i < DMA_MEM_TEST_SIZE / sizeof(uint32); i++) {
+		dma_src_addr[i] = 0x55aa55aa;
+		dma_dst_addr[i] = 0x00000000;
+	}
+	dma_finish = 0;
+
+	if (rk_dma_request(DMACH_DMAC0_MEMTOMEM, &rk_dma_memcpy_client, NULL) == -EBUSY) {
+		printf("dma ch: DMACH_DMAC0_MEMTOMEM request fail!\n");
+	} else {
+		rk_dma_config(DMACH_DMAC0_MEMTOMEM, 8, 16);
+		rk_dma_set_buffdone_fn(DMACH_DMAC0_MEMTOMEM, rk_dma_memcpy_callback);
+
+		rk_dma_devconfig(DMACH_DMAC0_MEMTOMEM, RK_DMASRC_MEMTOMEM, dma_src_addr);
+		rk_dma_enqueue(DMACH_DMAC0_MEMTOMEM, NULL, dma_dst_addr, DMA_MEM_TEST_SIZE);
+		rk_dma_ctrl(DMACH_DMAC0_MEMTOMEM, RK_DMAOP_START);
+
+		printf("Waiting for dma finish.\n");
+		while(dma_finish == 0);
+
+		rk_dma_free(DMACH_DMAC0_MEMTOMEM, &rk_dma_memcpy_client);
+
+		int j = 0, k = 0;
+
+		printf("dump dma memcopy data:\n");
+		for (j = 0; j < (DMA_MEM_TEST_SIZE / sizeof(uint32) / 4); j++) {
+			for (k = 0; k < 4; k++) {
+				printf("%08x", dma_dst_addr[j * 4 + k]);
+			}
+			printf("\n");
+		}
+	}
+
+	printf("rk dmac test end\n");
+}
+#endif /* CONFIG_RK_DMAC */
+
 /* demo function list */
 static board_demo_t g_module_demo[] = {
 	{ .name = "timer",	.demo = board_timer_test },
 	{ .name = "gic",	.demo = board_gic_test },
+#ifdef CONFIG_RK_DMAC
+	{ .name = "dma",	.demo = board_dmac_test },
+#endif
 };
 #define DEMO_MODULE_MAX		(sizeof(g_module_demo)/sizeof(board_demo_t))
 
