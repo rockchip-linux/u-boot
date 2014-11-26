@@ -44,6 +44,7 @@ int rk_get_chiptype(void)
 #ifdef CONFIG_ARCH_CPU_INIT
 int arch_cpu_init(void)
 {
+	rkclk_set_pll();
 	gd->arch.chiptype = rk_get_chiptype();
 
 #if 1

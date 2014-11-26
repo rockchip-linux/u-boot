@@ -125,6 +125,11 @@ enum rk_plls_id {
 #define PLL_RESET		(1 << 5)
 #define PLL_RESET_RESUME	(0 << 5)
 
+#define PLL_MODE_MSK		(3 << 8)
+#define PLL_MODE_W_MSK		(PLL_MODE_MSK << 16)
+#define PLL_MODE_SLOW		(0 << 8)
+#define PLL_MODE_NORM		(1 << 8)
+#define PLL_MODE_DEEP		(2 << 8)
 
 
 /*******************CLKSEL0 BITS***************************/
