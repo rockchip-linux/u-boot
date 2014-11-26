@@ -48,8 +48,8 @@
 #define RKIO_SPI1_SIZE                  SZ_64K
 #define RKIO_SPI2_PHYS                  0xFF130000
 #define RKIO_SPI2_SIZE                  SZ_64K
-#define RKIO_I2C1_SENSOR_PHYS           0xFF140000
-#define RKIO_I2C1_SENSOR_SIZE           SZ_64K
+#define RKIO_I2C2_SENSOR_PHYS           0xFF140000
+#define RKIO_I2C2_SENSOR_SIZE           SZ_64K
 #define RKIO_I2C3_CAM_PHYS              0xFF150000
 #define RKIO_I2C3_CAM_SIZE              SZ_64K
 #define RKIO_I2C4_TP_PHYS               0xFF160000
@@ -111,8 +111,8 @@
 #define RKIO_DDR_PUBL1_SIZE             SZ_64K
 #define RKIO_I2C0_PMU_PHYS              0xFF650000
 #define RKIO_I2C0_PMU_SIZE              SZ_64K
-#define RKIO_I2C2_AUDIO_PHYS            0xFF660000
-#define RKIO_I2C2_AUDIO_SIZE            SZ_64K
+#define RKIO_I2C1_AUDIO_PHYS            0xFF660000
+#define RKIO_I2C1_AUDIO_SIZE            SZ_64K
 #define RKIO_DW_PWM_PHYS                0xFF670000
 #define RKIO_DW_PWM_SIZE                SZ_64K
 #define RKIO_RK_PWM_PHYS                0xFF680000
