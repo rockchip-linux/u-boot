@@ -405,7 +405,7 @@ static int initr_dataflash(void)
 #endif
 
 #ifdef CONFIG_ROCKCHIP
-int initr_rk_storage(void)
+static int initr_rk_storage(void)
 {
 	board_storage_init();
 	return 0;
