@@ -1533,7 +1533,10 @@ void mem_malloc_init(ulong start, ulong size)
 	mem_malloc_end = start + size;
 	mem_malloc_brk = start;
 
+	/* rockchip malloc pool > SZ_4M, doesn't do memset, speed up time */
+#ifndef CONFIG_ROCKCHIP
 	memset((void *)mem_malloc_start, 0, size);
+#endif
 
 	malloc_bin_reloc();
 }
