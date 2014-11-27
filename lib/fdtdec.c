@@ -12,7 +12,9 @@
 #include <linux/ctype.h>
 
 #include <asm/gpio.h>
+#ifdef CONFIG_ROCKCHIP
 #include <asm/arch/rkplat.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -67,6 +69,7 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(INFINEON_SLB9635_TPM, "infineon,slb9635-tpm"),
 	COMPAT(INFINEON_SLB9645_TPM, "infineon,slb9645-tpm"),
 	COMPAT(SAMSUNG_EXYNOS5_I2C, "samsung,exynos5-hsi2c"),
+#ifdef CONFIG_ROCKCHIP
 	COMPAT(ROCKCHIP_DSIHOST, "rockchip,rk32-dsi"),
 	COMPAT(ROCKCHIP_MIPI_INIT, "rockchip,mipi_dsi_init"),
 	COMPAT(ROCKCHIP_MIPI_PWR, "rockchip,mipi_power_ctr"),
@@ -75,6 +78,7 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(ROCKCHIP_MIPI_LCD_DT, "rockchip,display-timings"),
 	COMPAT(ROCKCHIP_MIPI_LCD_RST, "rockchip,lcd_rst"),
 	COMPAT(ROCKCHIP_MIPI_LCD_EN, "rockchip,lcd_en"),
+#endif
 	COMPAT(SANDBOX_HOST_EMULATION, "sandbox,host-emulation"),
 	COMPAT(SANDBOX_LCD_SDL, "sandbox,lcd-sdl"),
 	COMPAT(TI_TPS65090, "ti,tps65090"),

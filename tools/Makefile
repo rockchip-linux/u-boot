@@ -56,10 +56,16 @@ hostprogs-y += dumpimage mkimage
 hostprogs-$(CONFIG_FIT_SIGNATURE) += fit_info fit_check_sign
 
 # rockchip tools
-hostprogs-$(CONFIG_ROCKCHIP) += boot_merger
-hostprogs-$(CONFIG_ROCKCHIP) += loaderimage
-loaderimage-objs := sha.o loaderimage.o
+ifdef CONFIG_ROCKCHIP
+hostprogs-y += boot_merger
+hostprogs-y += loaderimage
 hostprogs-$(CONFIG_QUICK_CHECKSUM) += checksum
+
+envcrc-objs += lib/sha.o
+HOSTCFLAGS_sha.o := -pedantic
+
+loaderimage-objs := loaderimage.o lib/sha.o
+endif
 
 FIT_SIG_OBJS-$(CONFIG_FIT_SIGNATURE) := common/image-sig.o
 # Flattened device tree objects
@@ -155,7 +161,6 @@ hostprogs-$(CONFIG_STATIC_RELA) += relocate-rela
 HOSTCFLAGS_crc32.o := -pedantic
 HOSTCFLAGS_md5.o := -pedantic
 HOSTCFLAGS_sha1.o := -pedantic
-HOSTCFLAGS_sha.o := -pedantic
 HOSTCFLAGS_sha256.o := -pedantic
 
 # Don't build by default
@@ -182,7 +187,11 @@ LOGO-$(CONFIG_VIDEO_LOGO) += $(LOGO_DATA_H)
 
 # Generic logo
 ifeq ($(LOGO_BMP),)
+ifndef CONFIG_ROCKCHIP
+LOGO_BMP= $(srctree)/$(src)/logos/denx.bmp
+else
 LOGO_BMP= $(srctree)/$(src)/logos/rockchip.bmp
+endif
 
 # Use board logo and fallback to vendor
 ifneq ($(wildcard $(srctree)/$(src)/logos/$(BOARD).bmp),)
@@ -230,7 +239,6 @@ $(LOGO_H):	$(obj)/bmp_logo $(LOGO_BMP)
 
 $(LOGO_DATA_H):	$(obj)/bmp_logo $(LOGO_BMP)
 	$(obj)/bmp_logo --gen-data $(LOGO_BMP) > $@
-
 
 # Let clean descend into subdirs
 subdir- += env
