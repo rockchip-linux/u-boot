@@ -1649,7 +1649,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 	msk = m_WIN0_RB_SWAP | m_WIN0_ALPHA_SWAP | m_WIN0_LB_MODE |
 		m_WIN0_DATA_FMT | m_WIN0_EN;
 	val = v_WIN0_RB_SWAP(0) | v_WIN0_ALPHA_SWAP(0) | v_WIN0_LB_MODE(5) |
-		v_WIN0_DATA_FMT(vid->logo_rgb_mode) | v_WIN0_EN(1);
+		v_WIN0_DATA_FMT(fb_info->format) | v_WIN0_EN(1);
 	lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, msk, val);
 	msk = m_WIN0_CBR_VSU_MODE | m_WIN0_YRGB_VSU_MODE;
 	val = v_WIN0_CBR_VSU_MODE(1) | v_WIN0_YRGB_VSU_MODE(1);
@@ -1679,7 +1679,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, m_WIN0_LB_MODE,
 			     v_WIN0_LB_MODE(LB_RGB_1280X8));
 	}
-	switch (vid->logo_rgb_mode) {
+	switch (fb_info->format) {
 	case ARGB888:
 		lcdc_writel(lcdc_dev, WIN0_VIR, v_ARGB888_VIRWIDTH(fb_info->xvir));
 		break;

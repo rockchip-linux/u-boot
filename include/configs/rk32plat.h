@@ -10,7 +10,6 @@
 #ifndef __RK32PLAT_CONFIG_H
 #define __RK32PLAT_CONFIG_H
 
-
 /*
  * uboot ram config.
  */

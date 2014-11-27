@@ -1026,11 +1026,11 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
     
 #ifndef CONFIG_RK_FB
 	ushort *cmap =   configuration_get_cmap();
-
 #else
 	ushort tmpmap[256];  /* sizeof(ushort) * 256 */
 	ushort *cmap = tmpmap;
 	struct fb_dsp_info fb_info;
+	u8 format = RGB565;
 #endif
 #endif
 	ushort *cmap_base = NULL;
@@ -1055,6 +1055,27 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
 	colors = 1 << bmp_bpix;
 
+
+#if defined(CONFIG_RK_FB)
+	switch(bmp_bpix) {
+	case 8:
+	case 16:
+		bpix = 16;
+		format = RGB565;
+		break;
+	case 24:
+		bpix = 32;
+		format = ARGB888;
+		break;
+	case 32:
+		bpix = 32;
+		format = ARGB888;
+		break;
+	default:
+		printf("Error: no support this bmp bpix%d\n",bmp_bpix);
+		return -1;
+	}
+#else
 	bpix = NBITS(panel_info.vl_bpix);
 
 	if (bpix != 1 && bpix != 8 && bpix != 16 && bpix != 32) {
@@ -1075,6 +1096,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 			bpix, get_unaligned_le16(&bmp->header.bit_count));
 		return 1;
 	}
+#endif
 
 	debug("Display-bmp: %d x %d  with %d colors\n",
 		(int)width, (int)height, (int)colors);
@@ -1147,9 +1169,8 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		lcd_base = gd->fb_base; 
 	lcd_base =  ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
 
-	lcd_line_length = (width * NBITS(panel_info.vl_bpix)) / 8;
-	fb = (uchar *) (lcd_base +
-			( height - 1) * lcd_line_length);
+	lcd_line_length = (width * bpix) / 8;
+	fb = (uchar *) (lcd_base + ( height - 1) * lcd_line_length);
 #else
 	fb   = (uchar *)(lcd_base +
 		(y + height - 1) * lcd_line_length + x * bpix / 8);
@@ -1206,16 +1227,27 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		}
 		break;
 #endif /* CONFIG_BMP_16BPP */
-#if defined(CONFIG_BMP_24BMP)
+#if defined(CONFIG_BMP_24BPP)
 	case 24:
-		for (i = 0; i < height; ++i) {
-			for (j = 0; j < width; j++) {
-				*(fb++) = *(bmap++);
-				*(fb++) = *(bmap++);
-				*(fb++) = *(bmap++);
-				*(fb++) = 0;
+		if (bpix == 32) {
+			for (i = 0; i < height; ++i) {
+				for (j = 0; j < width; j++) {
+					*(fb++) = *(bmap++);
+					*(fb++) = *(bmap++);
+					*(fb++) = *(bmap++);
+					*(fb++) = 0;
+				}
+				fb -= lcd_line_length + width * (bpix / 8);
 			}
-			fb -= lcd_line_length + width * (bpix / 8);
+		} else if (bpix == 24) {
+			for (i = 0; i < height; ++i) {
+				for (j = 0; j < width; j++) {
+					*(fb++) = *(bmap++);
+					*(fb++) = *(bmap++);
+					*(fb++) = *(bmap++);
+				}
+				fb -= lcd_line_length + width * (bpix / 8);
+			}
 		}
 		break;
 #endif /* CONFIG_BMP_24BMP */
@@ -1244,7 +1276,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	fb_info.ysize = fb_info.yact;
 	fb_info.xvir = fb_info.xact;
 	fb_info.layer_id = WIN0;
-	fb_info.format = RGB565;
+	fb_info.format = format;
 	fb_info.yaddr = (int)lcd_base;
 	lcd_pandispaly(&fb_info);
 #endif

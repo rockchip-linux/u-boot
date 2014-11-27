@@ -1019,7 +1019,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 	val = v_X_SCL_FACTOR(x_scale) | v_Y_SCL_FACTOR(y_scale);
 	lcdc_writel(lcdc_dev, WIN0_SCL_FACTOR_YRGB, val);
 	msk = m_WIN0_EN | m_WIN0_FORMAT;
-	val = v_WIN0_EN(1) | v_WIN0_FORMAT(vid->logo_rgb_mode);
+	val = v_WIN0_EN(1) | v_WIN0_FORMAT(fb_info->format);
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, msk, val);
 	val = v_ACT_WIDTH(fb_info->xact) | v_ACT_HEIGHT(fb_info->yact);
 	lcdc_writel(lcdc_dev, WIN0_ACT_INFO, val);
@@ -1031,7 +1031,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 	msk = m_COLOR_KEY_EN | m_COLOR_KEY_VAL;
 	val = v_COLOR_KEY_EN(0) | v_COLOR_KEY_VAL(0);
 	lcdc_msk_reg(lcdc_dev, WIN0_COLOR_KEY, msk, val);
-	switch(vid->logo_rgb_mode) 
+	switch(fb_info->format) 
 	{
 	case ARGB888:
 	case RGB888:
@@ -1047,7 +1047,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 	default:
 		val = v_RGB888_VIRWIDTH(fb_info->xvir);
 		printf("%s unknow format:%d\n", __func__,
-		       vid->logo_rgb_mode);
+		       fb_info->format);
 		break;
 	}
 	lcdc_writel(lcdc_dev, WIN0_VIR, val);
@@ -1073,7 +1073,7 @@ static int win1_set_par(struct lcdc_device *lcdc_dev,
 		      printf("win1 don't support scale!\n");
 	}
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_WIN1_EN | m_WIN1_FORMAT, 
-		     v_WIN1_EN(1) | v_WIN1_FORMAT(vid->logo_rgb_mode));
+		     v_WIN1_EN(1) | v_WIN1_FORMAT(fb_info->format));
 
 	if (lcdc_dev->soc_type == CONFIG_RK3036) {
 		val = v_ACT_WIDTH(fb_info->xact) | v_ACT_HEIGHT(fb_info->yact);
@@ -1094,7 +1094,7 @@ static int win1_set_par(struct lcdc_device *lcdc_dev,
 	msk = m_COLOR_KEY_EN | m_COLOR_KEY_VAL;
 	val = v_COLOR_KEY_EN(0) | v_COLOR_KEY_VAL(0);
 	lcdc_msk_reg(lcdc_dev, WIN1_COLOR_KEY, msk, val);
-	switch(vid->logo_rgb_mode) 
+	switch(fb_info->format) 
 	{
 	case ARGB888:
 	case RGB888:
@@ -1109,7 +1109,7 @@ static int win1_set_par(struct lcdc_device *lcdc_dev,
 		break;
 	default:
 		val = v_RGB888_VIRWIDTH(fb_info->xvir);
-		printf("unknown format %d\n",vid->logo_rgb_mode);
+		printf("unknown format %d\n",fb_info->format);
 		break;
 	}
 	lcdc_writel(lcdc_dev, WIN1_VIR, val);

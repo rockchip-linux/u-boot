@@ -228,9 +228,9 @@
 
 /*
  * Size of malloc() pool
- * 1MB = 0x100000, 0x100000 = 1024 * 1024
+ * 1MB = 0x100000, 0x1000000 = 16 * 1024 * 1024
  */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 20))
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 24))
 
 
 /* rockchip global buffer. */
@@ -362,6 +362,8 @@
 #undef CONFIG_COMPRESS_LOGO_RLE16
 
 #define CONFIG_BMP_16BPP
+#define CONFIG_BMP_24BPP
+#define CONFIG_BMP_32BPP
 #define CONFIG_SYS_WHITE_ON_BLACK
 #define LCD_BPP				LCD_COLOR16
 
