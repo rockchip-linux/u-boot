@@ -184,11 +184,17 @@ export	HOSTARCH HOSTOS
 
 #########################################################################
 
+ifneq ($(wildcard ../toolchain/arm-eabi-4.8),)
+CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.8/bin/arm-eabi-
+endif
 ifneq ($(wildcard ../toolchain/arm-eabi-4.7),)
 CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.7/bin/arm-eabi-
 endif
 ifneq ($(wildcard ../toolchain/arm-eabi-4.6),)
 CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.6/bin/arm-eabi-
+endif
+ifneq ($(wildcard ../prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin),)
+CROSS_COMPILE   ?= $(shell pwd)/../prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
 endif
 ifneq ($(wildcard ../prebuilts/gcc/linux-x86/arm/arm-eabi-4.7/bin),)
 CROSS_COMPILE   ?= $(shell pwd)/../prebuilts/gcc/linux-x86/arm/arm-eabi-4.7/bin/arm-eabi-
