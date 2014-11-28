@@ -225,13 +225,10 @@
 #  define CONFIG_STACKSIZE_FIQ		0x1000
 #endif
 
-
 /*
  * Size of malloc() pool
- * 1MB = 0x100000, 0x1000000 = 16 * 1024 * 1024
  */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (1 << 24))
-
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + SZ_2M)
 
 /* rockchip global buffer. */
 #define CONFIG_RK_GLOBAL_BUFFER_SIZE			(SZ_4M)

@@ -203,14 +203,26 @@ bool show_resource_image(const char* image_path) {
 	resource_content image;
 	memset(&image, 0, sizeof(image));
 	snprintf(image.path, sizeof(image.path), "%s", image_path);
-	if (get_content(0, &image) && load_content(&image)) {
+	if (get_content(0, &image)) {
+		int blocks = (image.content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+		if (image.content_size > CONFIG_RK_BOOT_BUFFER_SIZE) {
+			FBTERR("Failed to bmp image too large, %d\n",
+			       image.content_size);
+			return false;
+		}
+
+		image.load_addr = gd->arch.rk_boot_buf_addr;
+		if (!load_content_data(&image, 0, image.load_addr, blocks)) {
+			return false;
+		}
 		FBTDBG("Try to show:%s\n", image_path);
 		lcd_display_bitmap_center((uint32_t)image.load_addr);
+
 		ret = true;
 	} else {
 		FBTERR("Failed to load image:%s\n", image_path);
 	}
-	free_content(&image);
 #endif
 	return ret;
 }
