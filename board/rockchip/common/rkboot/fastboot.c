@@ -343,6 +343,53 @@ void board_fbt_run_recovery_wipe_data(void)
 }
 
 
+#ifdef CONFIG_POWER_RK
+static void board_fbt_low_power_check(void)
+{
+	if (is_power_extreme_low()) {
+		while (is_charging()) {
+			FBTERR("extreme low power, charging...\n");
+			udelay(1000000); /* 1 sec */
+			if (!is_power_extreme_low()) {
+				FBTERR("extreme low power charge done\n");
+				break;
+			}
+		}
+	}
+
+	if (is_power_extreme_low()) {
+		//it should be extreme low power without charger connected.
+		FBTERR("extreme low power, shutting down...\n");
+		shut_down();
+		printf("not reach here.\n");
+	}
+}
+
+static void board_fbt_low_power_off(void)
+{
+	if (is_power_low()) {
+		if (!is_charging()) {
+			FBTERR("low power, shutting down...\n");
+#ifdef CONFIG_LCD
+			//TODO: show warning logo.
+			show_resource_image("images/battery_fail.bmp");
+
+			lcd_standby(0);
+			//TODO: set backlight in better way.
+			rk_backlight_ctrl(CONFIG_BRIGHTNESS_DIM);
+
+			udelay(1000000);//1 sec
+
+			rk_backlight_ctrl(0);
+			lcd_standby(1);
+#endif
+			shut_down();
+			printf("not reach here.\n");
+		}
+	}
+}
+#endif /* CONFIG_POWER_RK */
+
 
 /*
  * Determine if we should enter fastboot mode based on board specific
@@ -371,59 +418,24 @@ void board_fbt_preboot(void)
 	}
 
 #ifdef CONFIG_POWER_RK
-	if (is_power_extreme_low()) {
-		while (is_charging()) {
-			FBTERR("extreme low power, charging...\n");
-			udelay(1000000); /* 1 sec */
-			if (!is_power_extreme_low()) {
-				FBTERR("extreme low power charge done\n");
-				break;
-			}
-		}
-	}
-
-	if (is_power_extreme_low()) {
-		//it should be extreme low power without charger connected.
-		FBTERR("extreme low power, shutting down...\n");
-		shut_down();
-		printf("not reach here.\n");
-	}
+	board_fbt_low_power_check();
 #endif
 
 	int logo_on = 0;
+#ifdef CONFIG_LCD
 	if (gd->fdt_blob) {
 		int node = fdt_path_offset(gd->fdt_blob, "/fb");
 		logo_on = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-logo-on", 0);
 	}
 	printf("read logo_on switch from dts [%d]\n", logo_on);
 
-#ifdef CONFIG_LCD
 	if (logo_on) {
 		drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb
 	}
 #endif
 
 #ifdef CONFIG_POWER_RK
-	if (is_power_low()) {
-		if (!is_charging()) {
-			FBTERR("low power, shutting down...\n");
-#ifdef CONFIG_LCD
-			//TODO: show warning logo.
-			show_resource_image("images/battery_fail.bmp");
-
-			lcd_standby(0);
-			//TODO: set backlight in better way.
-			rk_backlight_ctrl(CONFIG_BRIGHTNESS_DIM);
-
-			udelay(1000000);//1 sec
-
-			rk_backlight_ctrl(0);
-			lcd_standby(1);
-#endif
-			shut_down();
-			printf("not reach here.\n");
-		}
-	}
+	board_fbt_low_power_off();
 #endif
 
 #ifdef CONFIG_UBOOT_CHARGE
