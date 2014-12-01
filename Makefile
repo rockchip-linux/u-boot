@@ -871,13 +871,13 @@ RK_UBOOT_VERSION = 01
 endif
 
 ifdef CONFIG_RKCHIP_RK3126
-RKCHIP ?= RK312X
+RKCHIP ?= RK3126
 # rk uboot version should consist of two digits, as 01
 RK_UBOOT_VERSION = 01
 endif
 
 ifdef CONFIG_RKCHIP_RK3128
-RKCHIP ?= RK312X
+RKCHIP ?= RK3128
 # rk uboot version should consist of two digits, as 01
 RK_UBOOT_VERSION = 01
 endif
