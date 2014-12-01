@@ -42,6 +42,7 @@ void enable_caches(void)
  * rk3188 chip info:		{0x33313042, 0x32303132, 0x31313330, 0x56313030} - 310B20121130V100
  * rk3188_plus chip info:	{0x33313042, 0x32303133, 0x30313331, 0x56313031} - 310B20130131V101
  * rk312x chip info:		{0x33313043, 0x32303134, 0x30343239, 0x56313030} - 310C20140429V100
+ * rk312xb chip info:		{0x33313044, 0x32303134, 0x30373330, 0x56313030} - 310D20140730V100
  * rk3288 chip info:		{0x33323041, 0x32303133, 0x31313136, 0x56313030} - 320A20131116V100
  */
 int rk_get_chiptype(void)
@@ -78,6 +79,12 @@ int rk_get_chiptype(void)
 			return CONFIG_RK3126;
 #else
 			return CONFIG_RK3128;
+#endif
+		}
+
+		if (chip_info[0] == 0x33313044) { // 310D
+#if defined(CONFIG_RKCHIP_RK3126)
+			return CONFIG_RK3126;
 #endif
 		}
 	} else if (chip_class == 0x3332) { // 32
@@ -121,7 +128,11 @@ int print_cpuinfo(void)
 
 #if defined(CONFIG_RKCHIP_RK3126)
 	if (gd->arch.chiptype == CONFIG_RK3126) {
-		printf("CPU: rk3126\n");
+		if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+			printf("CPU: rk3126b\n");
+		} else {
+			printf("CPU: rk3126\n");
+		}
 	}
 #endif
 

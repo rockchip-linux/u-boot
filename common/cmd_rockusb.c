@@ -78,6 +78,12 @@ static void rkusb_init_instances(void)
 	memset((void*)device_instance, 0, sizeof(struct usb_device_instance));
 	device_instance->name = rockusb_name;
 	device_instance->device_state = STATE_INIT;
+#if defined(CONFIG_RKCHIP_RK3126)
+	/* audi-b rockusb product id adjust */
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		device_descriptor.idProduct = cpu_to_le16(0x310D);
+	}
+#endif
 	device_instance->device_descriptor = &device_descriptor;
 	device_instance->bos_descriptor = &rkusb_bos_desc;
 	device_instance->event = rkusb_event_handler;
