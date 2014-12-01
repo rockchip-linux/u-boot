@@ -68,6 +68,25 @@ _bss_end_ofs:
 
 reset:
 
+#if defined(CONFIG_ROCKCHIP) && defined(CONFIG_SWITCH_EL3_TO_EL1)
+	/*
+	 * Switch to EL1 from EL3
+	 */
+	mrs	x0, CurrentEL	/* check currentEL */
+	cmp	x0, 0xc
+	b.ne	el1_start	/* currentEL != EL3 */
+
+	ldr	x0, =0xd00	/* ST, bit[11] | RW, bit[10] | HCE, bit[8] */
+	msr	scr_el3, x0
+	ldr	x0, =0x3c5	/* D, bit[9] | A, bit[8] | I, bit[7] | F, bit[6] | 0b0101 EL1h */
+	msr	spsr_el3, x0
+	ldr	x0, =el1_start
+	msr	elr_el3, x0
+	eret
+
+el1_start:
+	nop
+#endif
 	/*
 	 * Could be EL3/EL2/EL1, Initial State:
 	 * Little Endian, MMU Disabled, i/dCache Disabled
