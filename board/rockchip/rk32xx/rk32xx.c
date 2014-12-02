@@ -103,6 +103,9 @@ int board_init(void)
 int checkboard(void)
 {
 	puts("Board:\tRockchip platform Board\n");
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+	printf("Uboot as second level loader\n");
+#endif
 	return 0;
 }
 #endif

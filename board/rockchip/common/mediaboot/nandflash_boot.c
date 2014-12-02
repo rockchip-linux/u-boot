@@ -168,7 +168,7 @@ uint32 LMemApiSysDataStore(uint8 ChipSel, uint32 Index, void *Buf)
 #define RKNANDC_MAX_FREQ	(150 * MHZ)
 uint32 lMemApiInit(uint32 BaseAddr)
 {
-	printf("Uboot as second level loader\n");
+	debug("Try to init Nand Flash.\n");
 
 	gp_loader_api = (pLOADER_MEM_API_T)(*((uint32*)CONFIG_RKNAND_API_ADDR)); // get api table
 	if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000) {
