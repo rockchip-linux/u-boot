@@ -722,9 +722,15 @@ int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 	uint32 aclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
 
-	/* audi lcdc aclk from general pll div2 */
-	pll_sel = 2;
-	div = rkclk_calc_clkdiv(gd->bus_clk >> 1, aclk_hz, 0);
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		/* audi-b lcdc aclk from general pll */
+		pll_sel = 1;
+		div = rkclk_calc_clkdiv(gd->bus_clk, aclk_hz, 0);
+	} else {
+		/* audi lcdc aclk from general pll div2 */
+		pll_sel = 2;
+		div = rkclk_calc_clkdiv(gd->bus_clk >> 1, aclk_hz, 0);
+	}
 	aclk_info = (pll_sel << 16) | div;
 	debug("rk lcdc aclk config: aclk = %dHZ, pll select = %d, div = %d\n", aclk_hz, pll_sel, div);
 
