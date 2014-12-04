@@ -96,6 +96,7 @@
 /* fpga board configure */
 #ifdef CONFIG_FPGA_BOARD
 	#define CONFIG_BOARD_DEMO
+	#define CONFIG_RK_IO_TOOL
 
 	#define CONFIG_SKIP_RELOCATE_UBOOT
 	#define CONFIG_SYS_ICACHE_OFF
