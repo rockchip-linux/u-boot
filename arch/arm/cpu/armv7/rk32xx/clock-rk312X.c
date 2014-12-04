@@ -287,17 +287,26 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 {
 	uint32 pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
-	/* periph clock source select: 0: general pll, 1: codec pll, 2: general pll div 2, 3: general pll div 3 */
-	if (pll_src == PERIPH_SRC_GENERAL_PLL) {
-		pll_sel = 0;
-	} else if (pll_src == PERIPH_SRC_CODEC_PLL) {
-		pll_sel = 1;
-	} else if (pll_src == PERIPH_SRC_GENERAL_PLL_DIV2) {
-		pll_sel = 2;
-	} else if (pll_src == PERIPH_SRC_GENERAL_PLL_DIV2) {
-		pll_sel = 3;
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		/* audi-b: periph clock source : 0: general pll, 1: codec pll */
+		if (pll_src == PERIPH_SRC_CODEC_PLL) {
+			pll_sel = 1;
+		} else {
+			pll_sel = 0;
+		}
 	} else {
-		pll_sel = 2;
+		/* audi: periph clock source : 0: general pll, 1: codec pll, 2: general pll div 2, 3: general pll div 3 */
+		if (pll_src == PERIPH_SRC_GENERAL_PLL) {
+			pll_sel = 0;
+		} else if (pll_src == PERIPH_SRC_CODEC_PLL) {
+			pll_sel = 1;
+		} else if (pll_src == PERIPH_SRC_GENERAL_PLL_DIV2) {
+			pll_sel = 2;
+		} else if (pll_src == PERIPH_SRC_GENERAL_PLL_DIV2) {
+			pll_sel = 3;
+		} else {
+			pll_sel = 2;
+		}
 	}
 
 	/* periph aclk - aclk_periph = periph_clk_src / n */
@@ -355,13 +364,14 @@ static void rkclk_cpu_coreclk_set(uint32 pll_src, uint32 core_div, uint32 core_a
 {
 	uint32_t pll_sel = 0, c_div = 0, a_div, d_div;
 
-	/* core clock source select: 0: arm pll, 1: general pll div2 */
+	/*
+	 * audi: core clock source select: 0: arm pll, 1: general pll div2
+	 * audi-b: core clock source select: 0: arm pll, 1: general pll
+	 */
 	if (pll_src == CORE_SRC_ARM_PLL) {
 		pll_sel = 0;
-	} else if (pll_src == CORE_SRC_GENERAL_PLL_DIV2) {
-		pll_sel = 1;
 	} else {
-		pll_sel = 0;
+		pll_sel = 1;
 	}
 
 	/* cpu core - clk_core = core_clk_src / n */
@@ -387,17 +397,26 @@ static void rkclk_cpu_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk_di
 {
 	uint32_t pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
-	/* cpu clock source select: 0: codec pll, 1: general pll, 2: general pll div2, 3: general pll div3 */
-	if (pll_src == CPU_SRC_CODEC_PLL) {
-		pll_sel = 0;
-	} else if (pll_src == CPU_SRC_GENERAL_PLL) {
-		pll_sel = 1;
-	} else if (pll_src == CPU_SRC_GENERAL_PLL_DIV2) {
-		pll_sel = 2;
-	} else if (pll_src == CPU_SRC_GENERAL_PLL_DIV3) {
-		pll_sel = 3;
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		/* audi-b: cpu clock source select: 0: codec pll, 1: general pll */
+		if (pll_src == CPU_SRC_CODEC_PLL) {
+			pll_sel = 0;
+		} else {
+			pll_sel = 1;
+		}
 	} else {
-		pll_sel = 0;
+		/* audi: cpu clock source select: 0: codec pll, 1: general pll, 2: general pll div2, 3: general pll div3 */
+		if (pll_src == CPU_SRC_CODEC_PLL) {
+			pll_sel = 0;
+		} else if (pll_src == CPU_SRC_GENERAL_PLL) {
+			pll_sel = 1;
+		} else if (pll_src == CPU_SRC_GENERAL_PLL_DIV2) {
+			pll_sel = 2;
+		} else if (pll_src == CPU_SRC_GENERAL_PLL_DIV3) {
+			pll_sel = 3;
+		} else {
+			pll_sel = 0;
+		}
 	}
 
 	/* cpu aclk - aclk_cpu = cpu_clk_src / n */
@@ -608,16 +627,24 @@ void rkclk_get_pll(void)
 	div = rkclk_get_cpu_aclk_div();
 	con = cru_readl(CRU_CLKSELS_CON(0));
 	con = (con & CPU_SEL_PLL_MSK) >> CPU_SEL_PLL_OFF;
-	if (con == CPU_SRC_GENERAL_PLL) {
-		gd->arch.aclk_cpu_rate_hz = gd->bus_clk / div;
-	} else if (con == CPU_SRC_GENERAL_PLL_DIV2) {
-		gd->arch.aclk_cpu_rate_hz = gd->bus_clk / 2 / div;
-	} else if (con == CPU_SRC_GENERAL_PLL_DIV3) {
-		gd->arch.aclk_cpu_rate_hz = gd->bus_clk / 3 / div;
-	} else {
-		gd->arch.aclk_cpu_rate_hz = gd->pci_clk / div;
-	}
 
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		if (con == CPU_SRC_GENERAL_PLL) {
+			gd->arch.aclk_cpu_rate_hz = gd->bus_clk / div;
+		} else {
+			gd->arch.aclk_cpu_rate_hz = gd->pci_clk / div;
+		}
+	} else {
+		if (con == CPU_SRC_GENERAL_PLL) {
+			gd->arch.aclk_cpu_rate_hz = gd->bus_clk / div;
+		} else if (con == CPU_SRC_GENERAL_PLL_DIV2) {
+			gd->arch.aclk_cpu_rate_hz = gd->bus_clk / 2 / div;
+		} else if (con == CPU_SRC_GENERAL_PLL_DIV3) {
+			gd->arch.aclk_cpu_rate_hz = gd->bus_clk / 3 / div;
+		} else {
+			gd->arch.aclk_cpu_rate_hz = gd->pci_clk / div;
+		}
+	}
 	/* cpu hclk */
 	div = rkclk_get_cpu_hclk_div();
 	gd->arch.hclk_cpu_rate_hz = gd->arch.aclk_cpu_rate_hz / div;
@@ -630,14 +657,23 @@ void rkclk_get_pll(void)
 	div = rkclk_get_periph_aclk_div();
 	con = cru_readl(CRU_CLKSELS_CON(10));
 	con = (con & PERI_SEL_PLL_MSK) >> PERI_SEL_PLL_OFF;
-	if (con == PERIPH_SRC_GENERAL_PLL) {
-		gd->arch.aclk_periph_rate_hz = gd->bus_clk / div;
-	} else if (con == PERIPH_SRC_CODEC_PLL) {
-		gd->arch.aclk_periph_rate_hz = gd->pci_clk / div;
-	} else if (con == PERIPH_SRC_GENERAL_PLL_DIV3) {
-		gd->arch.aclk_periph_rate_hz = gd->bus_clk / 3 / div;
+
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		if (con == PERIPH_SRC_GENERAL_PLL) {
+			gd->arch.aclk_periph_rate_hz = gd->bus_clk / div;
+		} else {
+			gd->arch.aclk_periph_rate_hz = gd->pci_clk / div;
+		}
 	} else {
-		gd->arch.aclk_periph_rate_hz = gd->bus_clk / 2 / div;
+		if (con == PERIPH_SRC_GENERAL_PLL) {
+			gd->arch.aclk_periph_rate_hz = gd->bus_clk / div;
+		} else if (con == PERIPH_SRC_CODEC_PLL) {
+			gd->arch.aclk_periph_rate_hz = gd->pci_clk / div;
+		} else if (con == PERIPH_SRC_GENERAL_PLL_DIV3) {
+			gd->arch.aclk_periph_rate_hz = gd->bus_clk / 3 / div;
+		} else {
+			gd->arch.aclk_periph_rate_hz = gd->bus_clk / 2 / div;
+		}
 	}
 	/* periph hclk */
 	div = rkclk_get_periph_hclk_div();
@@ -692,20 +728,33 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	offset = lcdc_id * 8;
 	con = 0;
 	/* aclk pll source select */
-	if (pll_sel == 0) {
-		con |= (7 << (5 + offset + 16)) | (0 << (5 + offset));
-	} else if (pll_sel == 1) {
-		con |= (7 << (5 + offset + 16)) | (1 << (5 + offset));
-	} else if (pll_sel == 2) {
-		con |= (7 << (5 + offset + 16)) | (2 << (5 + offset));
-	} else if (pll_sel == 3) {
-		con |= (7 << (5 + offset + 16)) | (3 << (5 + offset));
-	} else if (pll_sel == 4) {
-		con |= (7 << (5 + offset + 16)) | (4 << (5 + offset));
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		/* audi-b: 0 - codec pll, 1 - general pll, 4 - usbphy 480M */
+		if (pll_sel == 0) {
+			con |= (7 << (5 + offset + 16)) | (0 << (5 + offset));
+		} else if (pll_sel == 1) {
+			con |= (7 << (5 + offset + 16)) | (1 << (5 + offset));
+		} else if (pll_sel == 4) {
+			con |= (7 << (5 + offset + 16)) | (4 << (5 + offset));
+		} else {
+			con |= (7 << (5 + offset + 16)) | (1 << (5 + offset));
+		}
 	} else {
-		con |= (7 << (5 + offset + 16)) | (2 << (5 + offset));
+		/* audi: 0 - codec pll, 1 - general pll, 2 - general pll div2, 3 - general pll div3, 4 - usbphy 480M */
+		if (pll_sel == 0) {
+			con |= (7 << (5 + offset + 16)) | (0 << (5 + offset));
+		} else if (pll_sel == 1) {
+			con |= (7 << (5 + offset + 16)) | (1 << (5 + offset));
+		} else if (pll_sel == 2) {
+			con |= (7 << (5 + offset + 16)) | (2 << (5 + offset));
+		} else if (pll_sel == 3) {
+			con |= (7 << (5 + offset + 16)) | (3 << (5 + offset));
+		} else if (pll_sel == 4) {
+			con |= (7 << (5 + offset + 16)) | (4 << (5 + offset));
+		} else {
+			con |= (7 << (5 + offset + 16)) | (2 << (5 + offset));
+		}
 	}
-
 	/* aclk div */
 	div = div ? (div - 1) : 0;
 	con |= (0x1f << (0 + offset + 16)) | (div << (0 + offset));
@@ -757,16 +806,26 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 
 	con = 0;
 	/* dclk pll source select */
-	if (pll_sel == 0) {
-		con |= (3 << (0 + 16)) | (0 << 0);
-	} else if (pll_sel == 1) {
-		con |= (3 << (0 + 16)) | (1 << 0);
-	} else if (pll_sel == 2) {
-		con |= (3 << (0 + 16)) | (2 << 0);
-	} else if (pll_sel == 3) {
-		con |= (3 << (0 + 16)) | (3 << 0);
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		/* audi-b: 0 - codec pll, 1 - general pll */
+		if (pll_sel == 0) {
+			con |= (3 << (0 + 16)) | (0 << 0);
+		} else {
+			con |= (3 << (0 + 16)) | (1 << 0);
+		}
 	} else {
-		con |= (3 << (0 + 16)) | (1 << 0);
+		/* audi: 0 - codec pll, 1 - general pll, 2 - general pll div2, 3 - general pll div3 */
+		if (pll_sel == 0) {
+			con |= (3 << (0 + 16)) | (0 << 0);
+		} else if (pll_sel == 1) {
+			con |= (3 << (0 + 16)) | (1 << 0);
+		} else if (pll_sel == 2) {
+			con |= (3 << (0 + 16)) | (2 << 0);
+		} else if (pll_sel == 3) {
+			con |= (3 << (0 + 16)) | (3 << 0);
+		} else {
+			con |= (3 << (0 + 16)) | (1 << 0);
+		}
 	}
 
 	/* dclk div */
@@ -834,15 +893,27 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 
 	nandc_id = nandc_id;
 
-	if (pllsrc == 1) {
-		con = (1 << 14) | (3 << (14 + 16));
-		parent = gd->bus_clk;
-	} else if (pllsrc == 2) {
-		con = (2 << 14) | (3 << (14 + 16));
-		parent = gd->bus_clk >> 1;
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		/*audi-b: 0: codec pll; 1: general pll;*/
+		if (pllsrc == 1) {
+			con = (1 << 14) | (3 << (14 + 16));
+			parent = gd->bus_clk;
+		} else {
+			con = (0 << 14) | (3 << (14 + 16));
+			parent = gd->pci_clk;
+		}
 	} else {
-		con = (0 << 14) | (3 << (14 + 16));
-		parent = gd->pci_clk;
+		/*audi: 0: codec pll; 1: general pll; 2: general pll div2*/
+		if (pllsrc == 1) {
+			con = (1 << 14) | (3 << (14 + 16));
+			parent = gd->bus_clk;
+		} else if (pllsrc == 2) {
+			con = (2 << 14) | (3 << (14 + 16));
+			parent = gd->bus_clk >> 1;
+		} else {
+			con = (0 << 14) | (3 << (14 + 16));
+			parent = gd->pci_clk;
+		}
 	}
 
 	div = rkclk_calc_clkdiv(parent, freq, 0);
@@ -864,6 +935,14 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src)
 {
 	src &= 0x03;
+
+	/* audi-b: 0: codec pll; 1: general pll; 3: 24M */
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		if (src == 2) {
+			src = 1;
+		}
+	}
+
 	if (0 == sdid) {
 		/* sdmmc */
 		cru_writel((src << 6) | (0x03 << (6 + 16)), CRU_CLKSELS_CON(11));
@@ -901,17 +980,30 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
 		return 0;
 	}
 
-	/* rk312x sd clk pll can be from codec pll/general pll/general pll div2/24M, defualt codec pll */
-	if (sel == 0) {
-		return gd->pci_clk;
-	} else if (sel == 1) {
-		return gd->mem_clk;
-	} else if (sel == 2) {
-		return gd->mem_clk >> 1;
-	} else if (sel == 3) {
-		return (24 * MHZ);
+	if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		/* audi-b: sd clk pll can be from codec pll/general pll/24M, defualt codec pll */
+		if (sel == 0) {
+			return gd->pci_clk;
+		} else if (sel == 1) {
+			return gd->mem_clk;
+		} else if (sel == 3) {
+			return (24 * MHZ);
+		} else {
+			return 0;
+		}
 	} else {
-		return 0;
+		/* audi: sd clk pll can be from codec pll/general pll/general pll div2/24M, defualt codec pll */
+		if (sel == 0) {
+			return gd->pci_clk;
+		} else if (sel == 1) {
+			return gd->mem_clk;
+		} else if (sel == 2) {
+			return gd->mem_clk >> 1;
+		} else if (sel == 3) {
+			return (24 * MHZ);
+		} else {
+			return 0;
+		}
 	}
 }
 
