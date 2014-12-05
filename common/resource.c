@@ -57,7 +57,30 @@ static int inline get_base_offset(void) {
 	ptn = NULL;
 #endif
 	if (!ptn) {
-		FBTERR("%s ptn not found.\n", RESOURCE_NAME);
+		FBTDBG("%s ptn not found.\n", RESOURCE_NAME);
+
+		/* if no resource partition, load logo from boot partition second data area */
+		ptn = get_disk_partition(BOOT_NAME);
+		if (ptn != NULL) {
+			unsigned long blksz = ptn->blksz;
+			int offset = 0;
+			rk_boot_img_hdr *hdr = NULL;
+
+			hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
+			if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
+				return 0;
+			}
+			//load from bootimg's second data area.
+			if (!memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) && hdr->second_size) {
+				//compute second data area's offset.
+				offset = ptn->start + (hdr->page_size / blksz);
+				offset += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
+				offset += ALIGN(hdr->ramdisk_size, hdr->page_size) / blksz;
+
+				return offset;
+			}
+		}
+
 		return 0;
 	}
 	return ptn->start;
