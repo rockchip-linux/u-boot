@@ -300,6 +300,34 @@ fail:
 	return NULL;
 }
 
+#if defined(CONFIG_KERNEL_LOGO)
+static int rk_load_kernel_logo(void)
+{
+	const char* file_path = "kernel_logo.bmp";
+	resource_content content;
+	int blocks;
+	int offset = CONFIG_RK_FB_SIZE;
+
+	memset(&content, 0, sizeof(content));
+
+	snprintf(content.path, sizeof(content.path), "%s", file_path);
+	if (!get_content(0, &content))
+		return -1;
+	content.load_addr = (void *)gd->fb_base + offset;
+
+	blocks = (content.content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+	if (content.content_size > CONFIG_RK_LCD_SIZE - offset) {
+		FBTERR("Failed to load bmp image, too large, %d\n",
+		       content.content_size);
+		return -1;
+	}
+	if (!load_content_data(&content, 0, content.load_addr, blocks)) {
+		return -1;
+	}
+
+	return offset;
+}
+#endif
 
 static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, bool charge)
 {
@@ -350,6 +378,12 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 #if defined(CONFIG_LCD) && defined(CONFIG_RK_FB_DDREND)
 	snprintf(command_line, sizeof(command_line),
 			"%s uboot_fb=0x%08lx@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
+#if defined(CONFIG_KERNEL_LOGO)
+	int offset = rk_load_kernel_logo();
+	if (offset >= 0)
+		snprintf(command_line, sizeof(command_line),
+				"%s:0x%08lx", command_line, offset);
+#endif
 #endif
 
 	snprintf(command_line, sizeof(command_line),
