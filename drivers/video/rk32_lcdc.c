@@ -1759,7 +1759,9 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
 			m_HDMI_OUT_EN | m_RGB_OUT_EN;
 		val = v_HDMI_OUT_EN(1);
-	} else if (vid->screen_type == SCREEN_RGB) {
+	} else if (vid->screen_type == SCREEN_RGB ||
+		   vid->screen_type == SCREEN_LVDS ||
+		   vid->screen_type == SCREEN_DUAL_LVDS) {
 		msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
 			m_HDMI_OUT_EN | m_RGB_OUT_EN;
 		val = v_RGB_OUT_EN(1);
