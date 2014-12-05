@@ -243,7 +243,7 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	}
 
 	/* Panel infomation */
-	panel_info.vl_bpix = 4;
+	panel_info.vl_bpix = 5;
 	panel_info.lvds_ttl_en  = 0;
 	panel_info.screen_type = fdtdec_get_int(blob, node, "screen-type", -1);
 	panel_info.lcd_face = fdtdec_get_int(blob, node, "out-face", -1);
