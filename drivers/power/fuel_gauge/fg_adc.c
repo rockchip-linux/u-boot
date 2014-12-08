@@ -37,18 +37,22 @@ struct adc_battery {
 	int capacity_poweron;
 	int capacity;
 	int is_pwr_hold;
+	int state_of_chrg;
 };
 struct adc_battery fg_adc;
-int adc_get_status(void)
+static int adc_get_status(void)
 {
 	int ac_charging, usb_charging;
 
 	if (fg_adc.support_ac_charge == 1) {
-		if (gpio_get_value(fg_adc.dc_det.gpio) == (fg_adc.dc_det.flags ? 0x0 : 0x01))
+		if (gpio_get_value(fg_adc.dc_det.gpio) == (fg_adc.dc_det.flags ? 0x0 : 0x01)){
 			ac_charging = 2;
-		else
+			return ac_charging;
+		}
+		if(fg_adc.support_usb_charge != 1){
 			ac_charging = 0;
-		return ac_charging;
+			return ac_charging;
+		}
 	}
 	if (fg_adc.support_usb_charge == 1) {
 		usb_charging = dwc_otg_check_dpdm();
@@ -56,6 +60,11 @@ int adc_get_status(void)
 	}
 
 	return 0;
+}
+
+int adc_charge_status(void)
+{
+	return fg_adc.state_of_chrg;
 }
 
 static int adc_init(void)
@@ -85,8 +94,8 @@ static int adc_get_vol(void)
 	} while ((value&0x40) == 0);
 	value = read_XDATA32(fg_adc.adc.data);
 	voltage = (value * 3300 * (fg_adc.bat_table[4] + fg_adc.bat_table[5])) / (1024 * fg_adc.bat_table[5]);
-	if (adc_get_status() == 2 && (voltage < CONFIG_SYSTEM_ON_VOL_THRESD))
-		voltage = CONFIG_SYSTEM_ON_VOL_THRESD/1000 + 10;
+	if (fg_adc.state_of_chrg == 2 && (voltage < CONFIG_SYSTEM_ON_VOL_THRESD))
+		voltage = CONFIG_SYSTEM_ON_VOL_THRESD + 10;
 	return voltage;
 }
 static int vol_to_capacity(int BatVoltage)
@@ -171,24 +180,22 @@ static int get_capacity(int volt)
 static int adc_update_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
+	
+	battery->state_of_chrg = adc_get_status();
+	fg_adc.state_of_chrg = battery->state_of_chrg;
+	//printf("fg_adc.state_of_chrg is %d\n",fg_adc.state_of_chrg);
 	battery->voltage_uV = adc_get_vol();
 	//printf("battery->voltage_uV is %d\n",battery->voltage_uV);
 	battery->capacity = get_capacity(battery->voltage_uV);
 	//printf("battery->capacity is %d\n",battery->capacity);
-	if(adc_get_status()!=0)
-		battery->state_of_chrg = 2;
-	else
-		battery->state_of_chrg = 0;
+	
 	return 0;
 }
 
 static int adc_check_battery(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
-	if(adc_get_status()!=0)
-		battery->state_of_chrg = 2;
-	else
-		battery->state_of_chrg = 0;
+	battery->state_of_chrg = adc_get_status();
 	return 0;
 }
 

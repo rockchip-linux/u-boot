@@ -600,14 +600,14 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		#ifdef CONFIG_POWER_FG_ADC
 		charge_last_time = get_timer(charge_start_time);
-		if(adc_get_status()==2){
+		if(adc_charge_status()==2){
 			if(charge_last_time > BIG_CHARGE_INCRE_TIME && g_increment<100){
 				g_increment++;
 				charge_start_time = get_timer(0);
 				debug("increment is %d\n", g_increment);
 			}
 		}
-		else if(adc_get_status()==1){
+		else if(adc_charge_status()==1){
 			if(charge_last_time > LITTLE_CHARGE_INCRE_TIME && g_increment<100){
 				g_increment++;
 				charge_start_time = get_timer(0);
