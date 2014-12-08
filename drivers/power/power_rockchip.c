@@ -11,8 +11,10 @@
 #include <power/battery.h>
 #include <asm/arch/rkplat.h>
 
-static unsigned char rockchip_pmic_id;
+DECLARE_GLOBAL_DATA_PTR;
 
+static unsigned char rockchip_pmic_id;
+struct fdt_gpio_state gpio_pwr_hold;
 static const char * const fg_names[] = {
 	"CW201X_FG",
 	"RICOH619_FG",
@@ -119,6 +121,41 @@ int is_power_extreme_low(void)
 }
 
 
+/* for no pmic init */
+static void pmic_null_init(void)
+{
+	int node;
+
+	printf("No pmic detect.\n");
+
+	gpio_pwr_hold.gpio = -1;
+
+	node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "gpio-poweroff");
+	if (node < 0) {
+		debug("No detect gpio power off.\n");
+	} else {
+		fdtdec_decode_gpio(gd->fdt_blob, node, "gpios", &gpio_pwr_hold);
+		gpio_pwr_hold.flags = !(gpio_pwr_hold.flags & OF_GPIO_ACTIVE_LOW);
+		printf("power hold: bank-%d pin-%d, active level-%d\n",\
+			RK_GPIO_BANK(gpio_pwr_hold.gpio), RK_GPIO_PIN(gpio_pwr_hold.gpio), !gpio_pwr_hold.flags);
+		gpio_direction_output(gpio_pwr_hold.gpio, !gpio_pwr_hold.flags);
+	}
+
+	/********set APLL CLK 600M***********/
+#if (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
+	rkclk_set_pll_rate_by_id(APLL_ID, 600);
+#endif
+}
+
+/* for no pmic shut down */
+static void pmic_null_shut_down(void)
+{
+	if (gpio_pwr_hold.gpio != -1) {
+		gpio_direction_output(gpio_pwr_hold.gpio, gpio_pwr_hold.flags);
+	}
+}
+
+
 int pmic_init(unsigned char  bus)
 {
 	int ret;
@@ -186,11 +223,8 @@ int pmic_init(unsigned char  bus)
 	}
 #endif
 
-	/********set APLL CLK 600M***********/
-#if (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
-	rkclk_set_pll_rate_by_id(APLL_ID, 600);
-#endif
-	/**********************************/
+	pmic_null_init();
+
 
 	return ret;
 }
@@ -258,9 +292,7 @@ void shut_down(void)
 #endif
 
 		default:
-#if defined(CONFIG_POWER_FG_ADC)
-		adc_shut_down();
-#endif
+			pmic_null_shut_down();
 			break;
 	}
 }

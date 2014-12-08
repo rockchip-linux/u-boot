@@ -36,7 +36,6 @@ struct adc_battery {
 	adc_battery_conf adc;
 	int capacity_poweron;
 	int capacity;
-	int is_pwr_hold;
 	int state_of_chrg;
 };
 struct adc_battery fg_adc;
@@ -244,26 +243,8 @@ static int rk_adcbat_parse_dt(const void *blob)
 	fg_adc.adc.stas = SARADC_BASE+4;
 	fg_adc.adc.ctrl = SARADC_BASE+8;
 
-	node = fdt_node_offset_by_compatible(blob,
-					0, "gpio-poweroff");
-	if (node < 0) {
-		fg_adc.is_pwr_hold = 0;
-		printf("can't find node(gpio-poweroff) for adc\n");
-		return 0;
-	}
-	fg_adc.is_pwr_hold = 1;
-	fdtdec_decode_gpios(blob, node, "gpios", &gpios, 1);
-	fg_adc.pwr_hold.gpio = gpios.gpio;
-	fg_adc.pwr_hold.flags = !(gpios.flags  & OF_GPIO_ACTIVE_LOW);
 	g_fg_adc_flag = 1;
 	return 0;
-}
-void adc_shut_down(void)
-{
-	printf("shut downk\n");
-	if (fg_adc.is_pwr_hold == 0)
-		return;
-	gpio_direction_output(fg_adc.pwr_hold.gpio, !!fg_adc.pwr_hold.flags);
 }
 
 
