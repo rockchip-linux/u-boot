@@ -1871,9 +1871,9 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		dsi_screen->vsync_len = screen->mode.vsync_len = vid->vl_vspw;
 		dsi_screen->x_res = screen->mode.xres = vid->vl_width;
 		dsi_screen->y_res = screen->mode.yres = vid->vl_height;
-		//dsi_screen->pin_hsync = screen->pin_hsync;
-	    	//dsi_screen->pin_vsync = screen->pin_vsync;
-		//dsi_screen->pin_den = screen->pin_den;
+		dsi_screen->pin_hsync = screen->pin_hsync = vid->vl_hsp;
+		dsi_screen->pin_vsync = screen->pin_vsync = vid->vl_vsp;
+		dsi_screen->pin_den = screen->pin_den = vid->vl_oep;
 		//dsi_screen->pin_dclk = screen->pin_dclk;
 		dsi_screen->dsi_lane = rk_mipi_get_dsi_lane();
 		//  dsi_screen->dsi_video_mode = screen->dsi_video_mode; //no sure
