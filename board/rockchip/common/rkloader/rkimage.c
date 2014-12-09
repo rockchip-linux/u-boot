@@ -36,8 +36,8 @@ static int rkimg_load_image(uint32 offset, unsigned char *load_addr, size_t *ima
 {
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
 	unsigned blocks;
-	rk_kernel_iamge *image = (rk_kernel_iamge *)buf;
-	unsigned head_offset = 8;//tag_rk_kernel_iamge's tag & size
+	rk_kernel_image *image = (rk_kernel_image *)buf;
+	unsigned head_offset = 8;//tag_rk_kernel_image's tag & size
 
 	if (StorageReadLba(offset, (void *) image, 1) != 0) {
 		printf("failed to read image header\n");

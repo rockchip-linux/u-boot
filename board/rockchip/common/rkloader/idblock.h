@@ -79,7 +79,7 @@
 #define UINT    unsigned int
 #define UCHAR   unsigned char
 #define USHORT  unsigned short
-#define BYTE   unsigned char
+#define BYTE    unsigned char
 #define PBYTE   BYTE*
 #define LPBYTE	BYTE*
 
@@ -222,36 +222,36 @@ typedef PACKED1 struct _FlashInfoCmd {
 #define HEADINFO_SIZE		512
 
 typedef PACKED1 struct _rk_time {
-	unsigned short		usYear;
-	unsigned short		usMonth;
-	unsigned short		usDate;
-	unsigned short		usHour;
-	unsigned short		usMinute;
-	unsigned short		usSecond;
+	USHORT		usYear;
+	USHORT		usMonth;
+	USHORT		usDate;
+	USHORT		usHour;
+	USHORT		usMinute;
+	USHORT		usSecond;
 }PACKED2 RK_TIME;
 
 typedef PACKED1 struct _RK28BOOT_HEAD {
-	char			szSign[BOOTSIGN_SIZE];
-	unsigned char		bMD5Check[CHECK_SIZE];
-	RK_TIME			tmCreateTime;
+	char		szSign[BOOTSIGN_SIZE];
+	UCHAR		bMD5Check[CHECK_SIZE];
+	RK_TIME		tmCreateTime;
 
-	unsigned int		uiMajorVersion;
-	unsigned int		uiMinorVersion;
+	UINT		uiMajorVersion;
+	UINT		uiMinorVersion;
 
-	unsigned int		uiUsbDataOffset;
-	unsigned int		uiUsbDataLen;
+	UINT		uiUsbDataOffset;
+	UINT		uiUsbDataLen;
 
-	unsigned int		uiUsbBootOffset;
-	unsigned int		uiUsbBootLen;
+	UINT		uiUsbBootOffset;
+	UINT		uiUsbBootLen;
 
-	unsigned int		uiFlashDataOffset;
-	unsigned int		uiFlashDataLen;
+	UINT		uiFlashDataOffset;
+	UINT		uiFlashDataLen;
 
-	unsigned int       	uiFlashBootOffset;
-	unsigned int		uiFlashBootLen;
-	unsigned char		ucRc4Flag;
+	UINT       	uiFlashBootOffset;
+	UINT		uiFlashBootLen;
+	UCHAR		ucRc4Flag;
 
-	unsigned int		MergerVersion;		// 生成Boot文件所用Merger工具的版本号(高16字节为主版本号、低16字节为副版本号)
+	UINT		MergerVersion;	// 生成Boot文件所用Merger工具的版本号(高16字节为主版本号、低16字节为副版本号)
 }PACKED2 RK28BOOT_HEAD, *PRK28BOOT_HEAD;
 
 

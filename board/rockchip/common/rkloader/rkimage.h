@@ -44,48 +44,48 @@ typedef enum {
 } ENUM_RKBOOTENTRY;
 
 typedef PACKED1 struct {
-	unsigned short usYear;
-	unsigned char  ucMonth;
-	unsigned char  ucDay;
-	unsigned char  ucHour;
-	unsigned char  ucMinute;
-	unsigned char  ucSecond;
+	uint16_t usYear;
+	uint8_t  ucMonth;
+	uint8_t  ucDay;
+	uint8_t  ucHour;
+	uint8_t  ucMinute;
+	uint8_t  ucSecond;
 } PACKED2 STRUCT_RKTIME, *PSTRUCT_RKTIME;
 
 typedef PACKED1 struct {
-	unsigned int uiTag;
-	unsigned short usSize;
-	unsigned int  dwVersion;
-	unsigned int  dwMergeVersion;
+	uint32_t uiTag;
+	uint16_t usSize;
+	uint32_t  dwVersion;
+	uint32_t  dwMergeVersion;
 	STRUCT_RKTIME stReleaseTime;
 	ENUM_RKDEVICE_TYPE emSupportChip;
-	unsigned char temp[12];
-	unsigned char ucLoaderEntryCount;
-	unsigned int dwLoaderEntryOffset;
-	unsigned char ucLoaderEntrySize;
-	unsigned char ucSignFlag;
-	unsigned char ucRc4Flag;
-	unsigned char reserved[BOOT_RESERVED_SIZE];
+	uint8_t temp[12];
+	uint8_t ucLoaderEntryCount;
+	uint32_t dwLoaderEntryOffset;
+	uint8_t ucLoaderEntrySize;
+	uint8_t ucSignFlag;
+	uint8_t ucRc4Flag;
+	uint8_t reserved[BOOT_RESERVED_SIZE];
 } PACKED2 STRUCT_RKBOOT_HEAD, *PSTRUCT_RKBOOT_HEAD;
 
 typedef PACKED1 struct {
-	unsigned char ucSize;
+	uint8_t ucSize;
 	ENUM_RKBOOTENTRY emType;
-	unsigned char szName[40];
-	unsigned int dwDataOffset;
-	unsigned int dwDataSize;
-	unsigned int dwDataDelay;//ÒÔÃëÎªµ¥Î»
+	uint8_t szName[40];
+	uint32_t dwDataOffset;
+	uint32_t dwDataSize;
+	uint32_t dwDataDelay;
 } PACKED2 STRUCT_RKBOOT_ENTRY, *PSTRUCT_RKBOOT_ENTRY;
 
 
 #define TAG_KERNEL          0x4C4E524B
 
-typedef struct tag_rk_kernel_iamge {
-	uint32  tag;
-	uint32  size;
-	char    image[1];
-	uint32  crc;
-} rk_kernel_iamge;
+typedef struct tag_rk_kernel_image {
+	uint32_t  tag;
+	uint32_t  size;
+	int8_t    image[1];
+	uint32_t  crc;
+} rk_kernel_image;
 
 
 /* Android bootimage file format */
@@ -95,31 +95,31 @@ typedef struct tag_rk_kernel_iamge {
 #define BOOT_ARGS_SIZE		512
 
 typedef struct tag_rk_boot_img_hdr {
-	unsigned char magic[BOOT_MAGIC_SIZE];
+	uint8_t magic[BOOT_MAGIC_SIZE];
 
-	unsigned int kernel_size;  /* size in bytes */
-	unsigned int kernel_addr;  /* physical load addr */
+	uint32_t kernel_size;  /* size in bytes */
+	uint32_t kernel_addr;  /* physical load addr */
 
-	unsigned int ramdisk_size; /* size in bytes */
-	unsigned int ramdisk_addr; /* physical load addr */
+	uint32_t ramdisk_size; /* size in bytes */
+	uint32_t ramdisk_addr; /* physical load addr */
 
-	unsigned int second_size;  /* size in bytes */
-	unsigned int second_addr;  /* physical load addr */
+	uint32_t second_size;  /* size in bytes */
+	uint32_t second_addr;  /* physical load addr */
 
-	unsigned int tags_addr;    /* physical addr for kernel tags */
-	unsigned int page_size;    /* flash page size we assume */
-	unsigned int unused[2];    /* future expansion: should be 0 */
+	uint32_t tags_addr;    /* physical addr for kernel tags */
+	uint32_t page_size;    /* flash page size we assume */
+	uint32_t unused[2];    /* future expansion: should be 0 */
 
-	unsigned char name[BOOT_NAME_SIZE]; /* asciiz product name */
+	uint8_t name[BOOT_NAME_SIZE]; /* asciiz product name */
 
-	unsigned char cmdline[BOOT_ARGS_SIZE];
+	uint8_t cmdline[BOOT_ARGS_SIZE];
 
-	unsigned int id[8]; /* timestamp / checksum / sha1 / etc */
+	uint32_t id[8]; /* timestamp / checksum / sha1 / etc */
 
-	unsigned char reserved[0x400-0x260];
-	unsigned long signTag; /* 0x4E474953 */
-	unsigned long signlen; /* maybe 128 or 256 */
-	unsigned char rsaHash[256]; /* maybe 128 or 256, using max size 256 */
+	uint8_t reserved[0x400-0x260];
+	uint32_t signTag; /* 0x4E474953 */
+	uint32_t signlen; /* maybe 128 or 256 */
+	uint8_t rsaHash[256]; /* maybe 128 or 256, using max size 256 */
 } rk_boot_img_hdr;
 
 
