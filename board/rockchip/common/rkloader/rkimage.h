@@ -169,6 +169,7 @@ int rkimage_handleDownload(unsigned char *buffer,
 int rkimage_partition_erase(const disk_partition_t *ptn);
 
 resource_content rkimage_load_fdt(const disk_partition_t* ptn);
+resource_content rkimage_load_fdt_ram(void *addr, size_t len);
 void rkimage_prepare_fdt(void);
 
 #endif /* RKIMAGE_H */

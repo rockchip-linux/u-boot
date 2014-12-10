@@ -703,6 +703,25 @@ resource_content rkimage_load_fdt(const disk_partition_t* ptn)
 #endif
 }
 
+
+resource_content rkimage_load_fdt_ram(void* addr, size_t len)
+{
+	resource_content content;
+	snprintf(content.path, sizeof(content.path), "%s", get_fdt_name());
+	content.load_addr = 0;
+
+#ifndef CONFIG_RESOURCE_PARTITION
+	return content;
+#else
+	if (!addr || !len)
+		return content;
+
+	get_content_ram(addr, len, &content);
+	return content;
+#endif
+}
+
+
 void rkimage_prepare_fdt(void)
 {
 	gd->fdt_blob = NULL;

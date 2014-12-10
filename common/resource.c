@@ -86,26 +86,13 @@ static int inline get_base_offset(void) {
 	return ptn->start;
 }
 
-static bool get_entry(int base_offset, const char* file_path,
+static bool get_entry_ram(resource_ptn_header header, void *table,
+		size_t table_len, const char* file_path,
 		index_tbl_entry* entry) {
 	bool ret = false;
-	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, BLOCK_SIZE);
-	char* cache = NULL;
-	resource_ptn_header header;
-	if (!base_offset) {
-		base_offset = get_base_offset();
-	}
-	if (!base_offset) {
-		FBTERR("base offset is NULL!\n");
-		goto end;
-	}
-	if (!read_storage(base_offset, buf, 1)) {
-		FBTERR("Failed to read header!\n");
-		goto end;
-	}
-	memcpy(&header, buf, sizeof(header));
 
-	if (memcmp(header.magic, RESOURCE_PTN_HDR_MAGIC, sizeof(header.magic))) {
+	if (memcmp(header.magic, RESOURCE_PTN_HDR_MAGIC,
+				sizeof(header.magic))) {
 		FBTERR("Not a resource image!\n");
 		goto end;
 	}
@@ -120,37 +107,27 @@ static bool get_entry(int base_offset, const char* file_path,
 	}
 
 	if (header.tbl_entry_num * header.tbl_entry_size <= 0xFFFF) {
-		cache = (char *)memalign(ARCH_DMA_MINALIGN, header.tbl_entry_num * header.tbl_entry_size * BLOCK_SIZE);
-		if (cache) {
-			if (!read_storage(base_offset + header.header_size, cache,
-						header.tbl_entry_num * header.tbl_entry_size)) {
-				FBTERR("Failed to read index entries!\n");
-				goto end;
-			}
-		}
+		if (!table)
+			goto end;
+		if (table_len < (header.tbl_entry_num
+				* header.tbl_entry_size * BLOCK_SIZE))
+			goto end;
 	}
 	int i;
 	for (i = 0; i < header.tbl_entry_num; i++) {
 		//TODO: support tbl_entry_size
-		if (!cache) {
-			if (!read_storage(base_offset + 
-						header.header_size + i * header.tbl_entry_size, buf, 1)) {
-				FBTERR("Failed to read index entry:%d!\n", i);
-				goto end;
-			}
-			memcpy(entry, buf, sizeof(*entry));
-		} else {
-			memcpy(entry, cache + i * header.tbl_entry_size * BLOCK_SIZE,
-					sizeof(*entry));
-		}
+		memcpy(entry, table + i * header.tbl_entry_size * BLOCK_SIZE,
+				sizeof(*entry));
 
-		if (memcmp(entry->tag, INDEX_TBL_ENTR_TAG, sizeof(entry->tag))) {
+		if (memcmp(entry->tag, INDEX_TBL_ENTR_TAG,
+					sizeof(entry->tag))) {
 			FBTERR("Something wrong with index entry:%d!\n", i);
 			goto end;
 		}
 
-		FBTDBG("Lookup entry(%d):\n\tpath:%s\n\toffset:%d\tsize:%d\n",i ,
-				entry->path, entry->content_offset, entry->content_size);
+		FBTDBG("Lookup entry(%d):\n\tpath:%s\n\toffset:%d\tsize:%d\n",
+				i, entry->path, entry->content_offset,
+				entry->content_size);
 
 		if (!strncmp(entry->path, file_path, sizeof(entry->path)))
 			break;
@@ -161,12 +138,95 @@ static bool get_entry(int base_offset, const char* file_path,
 	}
 
 	FBTDBG("Found entry:\n\tpath:%s\n\toffset:%d\tsize:%d\n",
-			entry->path, entry->content_offset, entry->content_size);
+			entry->path, entry->content_offset,
+			entry->content_size);
 
 	ret = true;
 end:
-	if (cache) {
-		free(cache);
+	return ret;
+}
+
+bool get_content_ram(void *buf, size_t len,
+		resource_content* content) {
+	bool ret = false;
+	index_tbl_entry entry;
+	resource_ptn_header header;
+	size_t header_size;
+
+	if (!buf)
+		goto end;
+
+	memcpy(&header, buf, sizeof(header));
+
+	header_size = header.header_size * BLOCK_SIZE;
+
+	if (!get_entry_ram(header, buf + header_size,
+				len - header_size,
+				content->path, &entry))
+		goto end;
+
+	content->content_offset = 0;
+	content->content_size = entry.content_size;
+	content->load_addr = buf + entry.content_offset * BLOCK_SIZE;
+
+	ret = true;
+end:
+	return ret;
+}
+
+static bool get_entry(int base_offset, const char* file_path,
+		index_tbl_entry* entry) {
+	bool ret = false;
+	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, BLOCK_SIZE);
+	char* table = NULL;
+	resource_ptn_header header;
+	if (!base_offset) {
+		base_offset = get_base_offset();
+	}
+	if (!base_offset) {
+		FBTERR("base offset is NULL!\n");
+		goto end;
+	}
+	if (!read_storage(base_offset, buf, 1)) {
+		FBTERR("Failed to read header!\n");
+		goto end;
+	}
+	memcpy(&header, buf, sizeof(header));
+
+	if (memcmp(header.magic, RESOURCE_PTN_HDR_MAGIC,
+				sizeof(header.magic))) {
+		FBTERR("Not a resource image!\n");
+		goto end;
+	}
+
+	//TODO: support header_size & tbl_entry_size
+	if (header.resource_ptn_version != RESOURCE_PTN_VERSION
+			|| header.header_size != RESOURCE_PTN_HDR_SIZE
+			|| header.index_tbl_version != INDEX_TBL_VERSION
+			|| header.tbl_entry_size != INDEX_TBL_ENTR_SIZE) {
+		FBTERR("Not supported in this version!\n");
+		goto end;
+	}
+
+	if (header.tbl_entry_num * header.tbl_entry_size <= 0xFFFF) {
+		table = (char *)memalign(ARCH_DMA_MINALIGN,
+				header.tbl_entry_num
+				* header.tbl_entry_size * BLOCK_SIZE);
+		if (!table)
+			goto end;
+		if (!read_storage(base_offset + header.header_size, table,
+					header.tbl_entry_num
+					* header.tbl_entry_size)) {
+			FBTERR("Failed to read index entries!\n");
+			goto end;
+		}
+	}
+	ret = get_entry_ram(header, table, header.tbl_entry_num
+			* header.tbl_entry_size * BLOCK_SIZE,
+			file_path, entry);
+end:
+	if (table) {
+		free(table);
 	}
 	return ret;
 }
@@ -174,13 +234,13 @@ end:
 bool get_content(int base_offset, resource_content* content) {
 	bool ret = false;
 	index_tbl_entry entry;
-    if (!base_offset) {
-        base_offset = get_base_offset();
-    }
-    if (!base_offset) {
-        FBTERR("base offset is NULL!\n");
-        goto end;
-    }
+	if (!base_offset) {
+		base_offset = get_base_offset();
+	}
+	if (!base_offset) {
+		FBTERR("base offset is NULL!\n");
+		goto end;
+	}
 	if (!get_entry(base_offset, content->path, &entry))
 		goto end;
 	content->content_offset = entry.content_offset + base_offset;
@@ -191,15 +251,16 @@ end:
 }
 
 void free_content(resource_content* content) {
-	if (content->load_addr) {
+	if (content->content_offset && content->load_addr) {
 		free(content->load_addr);
 		content->load_addr = 0;
 	}
 }
 
 bool load_content(resource_content* content) {
-	if (content->load_addr)
+	if (content->load_addr || !content->content_offset)
 		return true;
+
 	int blocks = (content->content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 	content->load_addr = (void*)memalign(ARCH_DMA_MINALIGN, blocks * BLOCK_SIZE);
 	if (!content->load_addr)
@@ -214,6 +275,9 @@ bool load_content(resource_content* content) {
 
 bool load_content_data(resource_content* content,
 		int offset_block, void* data, int blocks) {
+	if (!content->content_offset)
+		return false;
+
 	if (!read_storage(content->content_offset + offset_block, data, blocks)) {
 		return false;
 	}
@@ -235,7 +299,7 @@ bool show_resource_image(const char* image_path) {
 			return false;
 		}
 
-		image.load_addr = gd->arch.rk_boot_buf_addr;
+		image.load_addr = (void *)gd->arch.rk_boot_buf_addr;
 		if (!load_content_data(&image, 0, image.load_addr, blocks)) {
 			return false;
 		}

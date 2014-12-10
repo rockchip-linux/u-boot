@@ -110,12 +110,13 @@ static int rk_bootrk_start(bootm_headers_t *images)
 }
 
 
-static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr)
+static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr,
+		bootm_headers_t *pimage)
 {
 	rk_boot_img_hdr *hdr = NULL;
 	unsigned addr;
 	char *ep;
-	void *kaddr, *raddr;
+	void *kaddr, *raddr, *secaddr;
 
 	kaddr = (void*)CONFIG_KERNEL_LOAD_ADDR;
 	raddr = (void*)(gd->arch.rk_boot_buf_addr);
@@ -151,6 +152,9 @@ static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr)
 	kaddr = (void *)(addr + hdr->page_size);
 	raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
 				hdr->page_size));
+	secaddr = (void *)(raddr + ALIGN(hdr->ramdisk_size,
+				hdr->page_size));
+
 	memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
 	memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
 
@@ -165,7 +169,31 @@ static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr)
 	/* check image secure state */
 	SecureBootImageSecureCheck(hdr, unlocked);
 
+	/* loader fdt */
+#ifdef CONFIG_OF_LIBFDT
+	resource_content content =
+		rkimage_load_fdt_ram(secaddr, hdr->second_size);
+	if (!content.load_addr) {
+		printf("failed to load fdt from %p!\n", ram_addr);
+#ifdef CONFIG_OF_FROM_RESOURCE
+		content = rkimage_load_fdt(get_disk_partition(RESOURCE_NAME));
+#endif
+	}
+	if (!content.load_addr) {
+		printf("failed to load fdt!\n");
+		goto fail;
+	} else {
+		pimage->ft_addr = content.load_addr;
+		pimage->ft_len = content.content_size;
+	}
+#endif /* CONFIG_OF_LIBFDT */
+
 	return hdr;
+
+fail:
+	/* if booti fails, always start fastboot */
+	free(hdr); /* hdr may be NULL, but that's ok. */
+	return NULL;
 }
 
 
@@ -385,7 +413,7 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			goto fail;
 		}
 	} else {
-		hdr = rk_load_image_from_ram(boot_source);
+		hdr = rk_load_image_from_ram(boot_source, &images);
 		if (hdr == NULL) {
 			goto fail;
 		}
