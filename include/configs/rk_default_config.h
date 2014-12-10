@@ -367,6 +367,15 @@
 #define CONFIG_LCD_MAX_WIDTH		4096
 #define CONFIG_LCD_MAX_HEIGHT		2048
 
+/* rk lcd size at the end of ddr address */
+#define CONFIG_RK_FB_DDREND
+
+#ifdef CONFIG_RK_FB_DDREND
+/* rk lcd total size = fb size + kernel logo size */
+#define CONFIG_RK_LCD_SIZE		SZ_32M
+#define CONFIG_RK_FB_SIZE		SZ_16M
+#endif
+
 #define CONFIG_BRIGHTNESS_DIM		64
 
 #undef CONFIG_UBOOT_CHARGE

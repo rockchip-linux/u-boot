@@ -57,6 +57,10 @@
 #include <dm/root.h>
 #include <linux/compiler.h>
 
+#ifdef CONFIG_ROCKCHIP
+#include <asm/arch/rkplat.h>
+#endif
+
 /*
  * Pointer to initial global data area
  *
@@ -454,6 +458,15 @@ static int reserve_mmu(void)
 #ifdef CONFIG_LCD
 static int reserve_lcd(void)
 {
+	/* if defind CONFIG_RK_FB_SIZE, set fb base at the end of ddr address */
+#if defined(CONFIG_ROCKCHIP) && defined(CONFIG_RK_FB_DDREND)
+	/* using ddr end address - CONFIG_RK_LCD_SIZE */
+	gd->fb_base = (gDDR_END_ADDR - CONFIG_RK_LCD_SIZE);
+	debug("LCD base at ddr end, fb base = %08lx, size = %08lx\n", gd->fb_base, CONFIG_RK_FB_SIZE);
+
+	return 0;
+#endif
+
 #ifdef CONFIG_FB_ADDR
 	gd->fb_base = CONFIG_FB_ADDR;
 #else
