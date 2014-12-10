@@ -58,6 +58,7 @@
 #include "dma.h"
 #endif
 
+extern u64 gDDR_END_ADDR;
 
 int rk_get_chiptype(void);
 void rk_module_deinit(void);

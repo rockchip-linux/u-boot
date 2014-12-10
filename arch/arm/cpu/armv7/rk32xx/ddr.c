@@ -29,6 +29,10 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 
+/* end of ddr address */
+u64 gDDR_END_ADDR = 0;
+
+
 /**********************************************
  * Routine: dram_init
  * Description: sets uboots idea of sdram size
@@ -38,7 +42,32 @@ int dram_init(void)
 	gd->ram_size = get_ram_size(
 			(void *)CONFIG_SYS_SDRAM_BASE,
 			CONFIG_SYS_SDRAM_SIZE);
+#if defined CONFIG_RKDDR_PARAM_ADDR
+	u64* buf = (u64*)CONFIG_RKDDR_PARAM_ADDR;
+	u32 count = ((u32*)buf)[0];
+	u64 start = 0, size = 0;
+	buf ++;
 
+	if (count >= CONFIG_RK_MAX_DRAM_BANKS) {
+		gDDR_END_ADDR = PHYS_SDRAM;
+	} else {
+		int i;
+		for (i = 0; i < count; i++) {
+			start = le64_to_cpu(buf[i]);
+			size = le64_to_cpu(buf[count + i]);
+
+			if (start < CONFIG_MAX_MEM_ADDR) {
+				gDDR_END_ADDR = start + size;
+				if (gDDR_END_ADDR > CONFIG_MAX_MEM_ADDR) {
+					gDDR_END_ADDR = CONFIG_MAX_MEM_ADDR;
+					break;
+				}
+			}
+		}
+	}
+
+	printf("DDR end address %08lx\n", gDDR_END_ADDR);
+#endif
 	return 0;
 }
 
