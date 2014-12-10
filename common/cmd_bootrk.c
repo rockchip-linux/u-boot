@@ -406,6 +406,12 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif
 	rk_module_deinit();
 
+	/* Secure boot state will set drm, sn and others information in the nanc ram,
+	 * so, after set, PLS notice do not read/write nand flash.
+	 */
+	SecureBootSecureState2Kernel(SecureBootCheckOK);
+
+	/* after here, make sure no read/write storate */
 	bootimg_print_image_hdr(hdr);
 	printf("kernel   @ 0x%08x (0x%08x)\n", hdr->kernel_addr, hdr->kernel_size);
 	printf("ramdisk  @ 0x%08x (0x%08x)\n", hdr->ramdisk_addr, hdr->ramdisk_size);
@@ -413,11 +419,6 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	images.ep = hdr->kernel_addr;
 	images.rd_start = hdr->ramdisk_addr;
 	images.rd_end = hdr->ramdisk_addr + hdr->ramdisk_size;
-
-	/* Secure boot state will set drm, sn and others information in the nanc ram,
-	 * so, after set, PLS notice do not read/write nand flash.
-	 */
-	SecureBootSecureState2Kernel(SecureBootCheckOK);
 
 #ifdef CONFIG_IMPRECISE_ABORTS_CHECK
 	puts("enable imprecise aborts check.");
