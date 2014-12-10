@@ -349,7 +349,7 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 
 #ifdef CONFIG_RK_FB_DDREND
 	snprintf(command_line, sizeof(command_line),
-			"%s uboot_fb=0x%08lx@0x%08lx", command_line, gd->fb_base, CONFIG_RK_LCD_SIZE);
+			"%s uboot_fb=0x%08lx@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
 #endif
 
 	snprintf(command_line, sizeof(command_line),
