@@ -483,6 +483,15 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	 */
 	SecureBootSecureState2Kernel(SecureBootCheckOK);
 
+	/* armv8 kernel hasn't self-extracting, copy kernel to the running address */
+#ifdef CONFIG_ARM64
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
+	uint32 kernel_addr = CONFIG_RAM_PHY_START + SZ_512K;
+	memcpy(kernel_addr, hdr->kernel_addr, hdr->kernel_size);
+	hdr->kernel_addr = kernel_addr;
+#endif
+#endif /* CONFIG_ARM64 */
+
 	/* after here, make sure no read/write storate */
 	bootimg_print_image_hdr(hdr);
 	printf("kernel   @ 0x%08x (0x%08x)\n", hdr->kernel_addr, hdr->kernel_size);
