@@ -524,6 +524,10 @@ config TARGET_JORNADA
 config ROCKCHIP_ARCH32
 	bool "Support Rockchip arch32 SOC"
 
+config ROCKCHIP_ARCH64
+	bool "Support Rockchip arch64 SOC"
+	select ARM64
+
 config ARCH_UNIPHIER
 	bool "Panasonic UniPhier platform"
 
@@ -564,6 +568,8 @@ source "arch/arm/cpu/arm926ejs/versatile/Kconfig"
 source "arch/arm/cpu/armv7/zynq/Kconfig"
 
 source "arch/arm/cpu/armv7/rk32xx/Kconfig"
+
+source "arch/arm/cpu/armv8/rk33xx/Kconfig"
 
 source "board/aristainetos/Kconfig"
 source "board/BuR/kwb/Kconfig"

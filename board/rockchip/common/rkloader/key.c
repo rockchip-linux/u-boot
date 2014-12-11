@@ -56,6 +56,11 @@ int gpio_reg[]={
 	RKIO_GPIO1_PHYS,
 	RKIO_GPIO2_PHYS,
 	RKIO_GPIO3_PHYS,
+#elif defined(CONFIG_RKCHIP_RK3368)
+	RKIO_GPIO0_PHYS,
+	RKIO_GPIO1_PHYS,
+	RKIO_GPIO2_PHYS,
+	RKIO_GPIO3_PHYS,
 #else
 	#error "PLS config rk chip for key."
 #endif

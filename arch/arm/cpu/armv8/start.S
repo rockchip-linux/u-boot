@@ -20,7 +20,30 @@
 
 .globl	_start
 _start:
+	nop
 	b	reset
+
+#ifdef CONFIG_ROCKCHIP
+/* For rockchip rsa key */
+.globl	RSA_KEY_TAG
+RSA_KEY_TAG:
+	.word	0x4B415352
+
+.globl	RSA_KEY_LENGTH
+RSA_KEY_LENGTH:
+	.word	0x200-0x08
+
+.globl	RSA_KEY_DATA
+RSA_KEY_DATA:
+	.space	0x200-0x08
+
+.globl	LoaderTagCheck
+LoaderTagCheck:
+	.word	0x4B415351
+
+RSA_PAD:
+	.space	20
+#endif /* CONFIG_ROCKCHIP */
 
 	.align 3
 
@@ -44,6 +67,7 @@ _bss_end_ofs:
 	.quad	__bss_end - _start
 
 reset:
+
 	/*
 	 * Could be EL3/EL2/EL1, Initial State:
 	 * Little Endian, MMU Disabled, i/dCache Disabled
@@ -82,17 +106,33 @@ reset:
 	/*
 	 * Slave CPUs
 	 */
+#ifndef CONFIG_ROCKCHIP
 slave_cpu:
 	wfe
 	ldr	x1, =CPU_RELEASE_ADDR
 	ldr	x0, [x1]
 	cbz	x0, slave_cpu
 	br	x0			/* branch to the given address */
+#endif
 
 	/*
 	 * Master CPU
 	 */
 master_cpu:
+
+#ifdef CONFIG_ROCKCHIP
+	/*
+	 * check loader tag
+	 */
+	ldr	x0, =__loader_tag
+	ldr	w1, [x0]
+	ldr	x0, =LoaderTagCheck
+	ldr	w2, [x0]
+	cmp	w1, w2
+loop:
+	b.ne	loop			/* hang and never return */
+#endif
+
 	bl	_main
 
 /*-----------------------------------------------------------------------*/
@@ -168,3 +208,12 @@ ENTRY(c_runtime_cpu_setup)
 
 	ret
 ENDPROC(c_runtime_cpu_setup)
+
+
+#ifdef CONFIG_ROCKCHIP
+	.section .loader_tag, "axT"
+
+.globl gloader_tag
+gloader_tag:
+	.word	0x4B415351
+#endif /* CONFIG_ROCKCHIP */

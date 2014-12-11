@@ -28,7 +28,7 @@
 
 #include <asm/arch/rkplat.h>
 
-#define RKGPIO_VERSION		"1.2"
+#define RKGPIO_VERSION		"1.3"
 
 
 struct rk_gpio_bank *rk_gpio_id_to_bank(unsigned int id)
@@ -85,7 +85,7 @@ int rk_gpio_base_to_bank(unsigned base)
 }
 
 
-#ifdef CONFIG_USE_IRQ
+#if defined(CONFIG_USE_IRQ) || defined(CONFIG_ARM64)
 int rk_gpio_gpio_to_irq(unsigned gpio)
 {
 	int bank = 0, pin = 0;
@@ -325,6 +325,37 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
+#elif defined(CONFIG_RKCHIP_RK3368)
+	/*
+	 * pull setting
+	 * 2'b00: Z(Noraml operaton)
+	 * 2'b01: weak 1(pull-up)
+	 * 2'b10: weak 0(pull-down)
+	 * 2'b11: Repeater(Bus keeper)
+	 */
+	switch (type) {
+		case PullDisable:
+			val = 0;
+			break;
+		case GPIOPullUp:
+			val = 1;
+			break;
+		case GPIOPullDown:
+			val = 2;
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	if (bank->id == 0) { /* gpio0, pmu grf control */
+		base = (void __iomem *)(RKIO_PMU_GRF_PHYS + PMU_GRF_GPIO0A_P + ((gpio / 8) * 4));
+		gpio = (7 - (gpio % 8)) * 2;
+		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
+	} else { /* gpio1-gpio3, grf control */
+		base = (void __iomem *)(RKIO_GRF_PHYS + GRF_GPIO1A_P + (bank->id - 1) * 16 + ((gpio / 8) * 4));
+		gpio = (7 - (gpio % 8)) * 2;
+		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
+	}
 #elif defined(CONFIG_RKCHIP_RK3168)
 	/* rk3168 do nothing */
 
@@ -402,6 +433,40 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		}
 	} else { /* gpio1-gpio8, grf control */
 		base = (void __iomem *)((RKIO_GRF_PHYS + (GRF_GPIO1D_E - 0xC) + (bank->id - 1) * 16) + ((gpio / 8) * 4));
+		gpio = (7 - (gpio % 8)) * 2;
+		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
+	}
+#elif defined(CONFIG_RKCHIP_RK3368)
+	/*
+	 * drive slector
+	 * 2'b00: 2mA
+	 * 2'b01: 4mA
+	 * 2'b10: 8mA
+	 * 2'b11: 12mA
+	 */
+	switch (slector) {
+		case GPIODrv2mA:
+			val = 0;
+			break;
+		case GPIODrv4mA:
+			val = 1;
+			break;
+		case GPIODrv8mA:
+			val = 2;
+			break;
+		case GPIODrv12mA:
+			val = 3;
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	if (bank->id == 0) { /* gpio0, pmu grf control */
+		base = (void __iomem *)(RKIO_PMU_GRF_PHYS + PMU_GRF_GPIO0A_E + ((gpio / 8) * 4));
+		gpio = (7 - (gpio % 8)) * 2;
+		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
+	} else { /* gpio1-gpio3, grf control */
+		base = (void __iomem *)((RKIO_GRF_PHYS + GRF_GPIO1A_E + (bank->id - 1) * 16) + ((gpio / 8) * 4));
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}

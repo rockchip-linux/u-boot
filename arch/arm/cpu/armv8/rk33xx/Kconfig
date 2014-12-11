@@ -1,0 +1,24 @@
+if ROCKCHIP_ARCH64
+
+config ROCKCHIP
+	bool
+
+choice
+	prompt "rockchip platform select"
+
+config PLAT_RK33XX
+	bool "rk33xx platform"
+	select ROCKCHIP
+
+endchoice
+
+
+config SYS_CPU
+	default "armv8"
+
+config SYS_SOC
+	default "rk33xx"
+
+source "board/rockchip/rk33xx/Kconfig"
+
+endif

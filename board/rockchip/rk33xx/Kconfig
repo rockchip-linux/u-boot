@@ -1,0 +1,17 @@
+if ROCKCHIP_ARCH64
+
+config SYS_BOARD
+	default "rk33xx"
+
+config SYS_VENDOR
+	default "rockchip"
+
+
+if PLAT_RK33XX
+
+config SYS_CONFIG_NAME
+	default "rk33plat"
+
+endif
+
+endif

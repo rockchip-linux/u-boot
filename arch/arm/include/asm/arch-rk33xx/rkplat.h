@@ -1,0 +1,48 @@
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
+#ifndef __RKPLAT_H
+#define __RKPLAT_H
+
+
+#include <config.h>
+#include <common.h>
+#include <command.h>
+#include <fdtdec.h>
+#include <asm/io.h>
+#include <asm/errno.h>
+
+#include "typedef.h"
+#include "cpu.h"
+#include "io.h"
+#include "pmu.h"
+#include "grf.h"
+#include "cru.h"
+#include "irqs.h"
+#include "gpio.h"
+#include "iomux.h"
+
+#include "clock.h"
+#include "uart.h"
+#include "pwm.h"
+#include "i2c.h"
+#include "pm.h"
+
+#ifdef CONFIG_RK_PL330
+#include "pl330.h"
+#endif
+
+#ifdef CONFIG_RK_DMAC
+#include "dma.h"
+#endif
+
+extern u64 gDDR_END_ADDR;
+
+int rk_get_chiptype(void);
+void rk_module_deinit(void);
+
+
+#endif /* __RKPLAT_H */

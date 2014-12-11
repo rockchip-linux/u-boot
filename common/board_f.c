@@ -162,6 +162,7 @@ static int display_text_info(void)
 #ifdef CONFIG_MODEM_SUPPORT
 	debug("Modem Support enabled\n");
 #endif
+
 #ifdef CONFIG_USE_IRQ
 	debug("IRQ Stack: %08lx\n", IRQ_STACK_START);
 	debug("FIQ Stack: %08lx\n", FIQ_STACK_START);
@@ -775,6 +776,7 @@ static int reloc_fdt(void)
 
 static int setup_reloc(void)
 {
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
 #ifdef CONFIG_SYS_TEXT_BASE
 	gd->reloc_off = gd->relocaddr - CONFIG_SYS_TEXT_BASE;
 #endif
@@ -786,6 +788,17 @@ static int setup_reloc(void)
 	      gd->start_addr_sp);
 
 	return 0;
+#else
+	gd->reloc_off = 0;
+	memcpy(gd->new_gd, (char *)gd, sizeof(gd_t));
+
+	debug("Relocation Offset is: %08lx\n", gd->reloc_off);
+	debug("new gd at %08lx, sp at %08lx\n",
+	      (ulong)map_to_sysmem(gd->new_gd),
+	      gd->start_addr_sp);
+
+	return 0;
+#endif
 }
 
 /* ARM calls relocate_code from its crt0.S */

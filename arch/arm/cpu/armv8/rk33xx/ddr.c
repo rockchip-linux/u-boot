@@ -1,0 +1,91 @@
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
+#include <common.h>
+#include <asm/byteorder.h>
+#include <asm/arch/rkplat.h>
+
+
+DECLARE_GLOBAL_DATA_PTR;
+
+
+/* end of ddr address */
+u64 gDDR_END_ADDR = 0;
+
+
+/**********************************************
+ * Routine: dram_init
+ * Description: sets uboots idea of sdram size
+ **********************************************/
+int dram_init(void)
+{
+	gd->ram_size = get_ram_size(
+			(void *)CONFIG_SYS_SDRAM_BASE,
+			CONFIG_SYS_SDRAM_SIZE);
+#if defined CONFIG_RKDDR_PARAM_ADDR
+	u64* buf = (u64*)CONFIG_RKDDR_PARAM_ADDR;
+	u32 count = ((u32*)buf)[0];
+	u64 start = 0, size = 0;
+	buf ++;
+
+	if (count >= CONFIG_RK_MAX_DRAM_BANKS) {
+		gDDR_END_ADDR = PHYS_SDRAM;
+	} else {
+		int i;
+		for (i = 0; i < count; i++) {
+			start = le64_to_cpu(buf[i]);
+			size = le64_to_cpu(buf[count + i]);
+
+			if (start < CONFIG_MAX_MEM_ADDR) {
+				gDDR_END_ADDR = start + size;
+				if (gDDR_END_ADDR > CONFIG_MAX_MEM_ADDR) {
+					gDDR_END_ADDR = CONFIG_MAX_MEM_ADDR;
+					break;
+				}
+			}
+		}
+	}
+
+	printf("DDR end address %08lx\n", gDDR_END_ADDR);
+#endif
+	return 0;
+}
+
+
+void dram_init_banksize(void)
+{
+#if defined CONFIG_RKDDR_PARAM_ADDR
+	u64* buf = (u64 *)CONFIG_RKDDR_PARAM_ADDR;
+	u32 count = ((u32 *)buf)[0];
+	int i;
+
+	gd->bd->rk_dram[0].start = gd->bd->rk_dram[0].size = 0;
+	if (count >= CONFIG_RK_MAX_DRAM_BANKS) {
+		printf("Wrong bank count: %d(%d)\n", count, CONFIG_RK_MAX_DRAM_BANKS);
+	} else {
+		printf("Found dram banks: %d\n", count);
+
+		buf ++;
+		for (i = 0; i < count; i++) {
+			gd->bd->rk_dram[i].start = le64_to_cpu(buf[i]);
+			gd->bd->rk_dram[i].size = le64_to_cpu(buf[count + i]);
+			//TODO: add check, if start|size not valide, goto failed.
+			/*
+			if (check) {
+				gd->bd->rk_dram[0].start = gd->bd->rk_dram[0].size = 0;
+				goto failed;
+			}*/
+			printf("Adding bank:%016llx(%016llx)\n",
+					gd->bd->rk_dram[i].start,
+					gd->bd->rk_dram[i].size);
+			gd->bd->rk_dram[i+1].start = gd->bd->rk_dram[i+1].size = 0;
+		}
+	}
+#endif
+	gd->bd->bi_dram[0].start = PHYS_SDRAM;
+	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;
+}
+

@@ -142,7 +142,7 @@ struct rk_i2c {
 
 #ifdef CONFIG_I2C_MULTI_BUS
 static struct rk_i2c rki2c_base[I2C_BUS_MAX] = {
-#if defined(CONFIG_RKCHIP_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	{ .regs = (void __iomem *)(RKIO_I2C0_PMU_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C1_AUDIO_PHYS), 0 },
 	{ .regs = (void __iomem *)(RKIO_I2C2_SENSOR_PHYS), 0 },

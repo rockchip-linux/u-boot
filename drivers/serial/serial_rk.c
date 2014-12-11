@@ -13,7 +13,7 @@
 
 
 static volatile void __iomem * g_rkuart_base[UART_CH_MAX] = {
-#if defined(CONFIG_RKCHIP_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	(void __iomem *)RKIO_UART0_BT_PHYS,
 	(void __iomem *)RKIO_UART1_BB_PHYS,
 	(void __iomem *)RKIO_UART2_DBG_PHYS,

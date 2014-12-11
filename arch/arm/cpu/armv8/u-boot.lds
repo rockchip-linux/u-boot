@@ -7,6 +7,7 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
+#include <config.h>
 
 OUTPUT_FORMAT("elf64-littleaarch64", "elf64-littleaarch64", "elf64-littleaarch64")
 OUTPUT_ARCH(aarch64)
@@ -64,6 +65,15 @@ SECTIONS
 	}
 
 	_end = .;
+
+#if defined(CONFIG_ROCKCHIP)
+	. = ALIGN(8);
+
+	.loader_tag : {
+		*(.__loader_tag)
+		KEEP(*(.loader_tag));
+	}
+#endif
 
 	. = ALIGN(8);
 

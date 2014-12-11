@@ -75,7 +75,8 @@ uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
+		|| defined(CONFIG_RKCHIP_RK3368)
 	return readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
 #elif defined(CONFIG_RKCHIP_RK3036)
 	return readl(RKIO_GRF_PHYS + GRF_OS_REG4);
@@ -86,7 +87,8 @@ uint32 IReadLoaderFlag(void)
 
 void ISetLoaderFlag(uint32 flag)
 {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
+		|| defined(CONFIG_RKCHIP_RK3368)
 	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
 #elif defined(CONFIG_RKCHIP_RK3036)
 	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG4);
@@ -100,7 +102,7 @@ uint32 GetMmcCLK(uint32 nSDCPort)
 {
 	uint32 src_clk;
 
-#if defined(CONFIG_RKCHIP_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	// set general pll
 	rkclk_set_mmc_clk_src(nSDCPort, 1);
 	//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
@@ -139,7 +141,7 @@ void SDCReset(uint32 sdmmcId)
 {
 	uint32 con = 0;
 
-#if defined(CONFIG_RKCHIP_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	if (sdmmcId == 2) {
 		con = (0x01 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
 	} else {
@@ -213,6 +215,21 @@ void FW_NandDeInit(void)
 #endif
 }
 
+
+#if defined(CONFIG_RKCHIP_RK3368)
+static void rk3368_uart2usb(uint32 en)
+{
+	if (en) {
+#ifdef CONFIG_RKUART2USB_FORCE
+
+#else
+
+#endif /* CONFIG_RKUART2USB_FORCE */
+	} else {
+
+	}
+}
+#endif
 
 #if defined(CONFIG_RKCHIP_RK3288)
 static void rk3288_uart2usb(uint32 en)
@@ -294,6 +311,8 @@ void rkplat_uart2UsbEn(uint32 en)
 	rk3036_uart2usb(en);
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	rk312X_uart2usb(en);
+#elif defined(CONFIG_RKCHIP_RK3368)
+	rk3368_uart2usb(en);
 #else
 	#error "PLS config rk chip if support uart2usb."
 #endif /* CONFIG_RKPLATFORM */

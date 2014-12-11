@@ -184,6 +184,14 @@ export	HOSTARCH HOSTOS
 
 #########################################################################
 
+ifeq ($(ARCHV),aarch64)
+
+ifneq ($(wildcard ../toolchain/aarch64-linux-gnu-4.9),)
+CROSS_COMPILE   ?= $(shell pwd)/../toolchain/aarch64-linux-gnu-4.9/bin/aarch64-linux-gnu-
+endif
+
+else
+
 ifneq ($(wildcard ../toolchain/arm-eabi-4.8),)
 CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.8/bin/arm-eabi-
 endif
@@ -202,6 +210,8 @@ endif
 ifneq ($(wildcard ../prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin),)
 CROSS_COMPILE   ?= $(shell pwd)/../prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
 endif
+
+endif # ARCHV=aarch64
 
 # set default to nothing for native builds
 ifeq ($(HOSTARCH),$(ARCH))

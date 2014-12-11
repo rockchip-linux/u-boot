@@ -9,6 +9,7 @@
 #include <linux/compiler.h>
 
 
+#ifndef CONFIG_ROCKCHIP
 int interrupt_init(void)
 {
 	return 0;
@@ -23,6 +24,7 @@ int disable_interrupts(void)
 {
 	return 0;
 }
+#endif
 
 void show_regs(struct pt_regs *regs)
 {
@@ -86,6 +88,7 @@ void do_sync(struct pt_regs *pt_regs, unsigned int esr)
 	panic("Resetting CPU ...\n");
 }
 
+#ifndef CONFIG_ROCKCHIP
 /*
  * do_irq handles the Irq exception.
  */
@@ -95,6 +98,7 @@ void do_irq(struct pt_regs *pt_regs, unsigned int esr)
 	show_regs(pt_regs);
 	panic("Resetting CPU ...\n");
 }
+#endif
 
 /*
  * do_fiq handles the Fiq exception.

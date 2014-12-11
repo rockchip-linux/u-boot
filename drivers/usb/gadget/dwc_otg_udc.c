@@ -69,7 +69,7 @@
 
 
 /* usb otg base */
-#if defined(CONFIG_RKCHIP_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
 #elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG20_PHYS
@@ -363,7 +363,7 @@ uint32_t GetVbus(void)
 		/* delay more than 1ms, waiting for usb phy init */
 		mdelay(3);
 	}
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK3368)
 	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
 		/* exit suspend */
 		grf_writel(((0x1 << 0) << 16), GRF_UOC0_CON0);
@@ -1231,6 +1231,14 @@ int dwc_otg_check_dpdm(void)
 	mdelay(50);
 
 	grf_writel(((0x01<<0)<<16), GRF_UOC0_CON0); // exit suspend.
+	mdelay(105);
+#elif defined(CONFIG_RKCHIP_RK3368)
+	cru_writel(((7<<4)<<16)|(7<<4), CRU_SOFTRSTS_CON(8)); // otg phy reset
+	udelay(3);
+	cru_writel(((7<<4)<<16)|(0<<4), CRU_SOFTRSTS_CON(8));
+	mdelay(50);
+
+	grf_writel(((0x01)<<16), GRF_UOC0_CON0); // exit suspend.
 	mdelay(105);
 #else
 	#error "PLS config chiptype for usb dpdm check!"
