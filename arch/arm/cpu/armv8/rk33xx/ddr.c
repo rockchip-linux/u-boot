@@ -78,6 +78,12 @@ void dram_init_banksize(void)
 				gd->bd->rk_dram[0].start = gd->bd->rk_dram[0].size = 0;
 				goto failed;
 			}*/
+
+			/* reserve CONFIG_SYS_TEXT_BASE size for Runtime Firmware bin */
+			if ((gd->bd->rk_dram[i].start == CONFIG_RAM_PHY_START) && (gd->bd->rk_dram[i].size != 0)) {
+				gd->bd->rk_dram[i].start += (CONFIG_SYS_TEXT_BASE - CONFIG_RAM_PHY_START);
+				gd->bd->rk_dram[i].size -= (CONFIG_SYS_TEXT_BASE - CONFIG_RAM_PHY_START);
+			}
 			printf("Adding bank:%016llx(%016llx)\n",
 					gd->bd->rk_dram[i].start,
 					gd->bd->rk_dram[i].size);
