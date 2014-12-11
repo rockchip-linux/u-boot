@@ -300,7 +300,7 @@ fail:
 	return NULL;
 }
 
-#if defined(CONFIG_KERNEL_LOGO)
+#if defined(CONFIG_LCD) && defined(CONFIG_KERNEL_LOGO)
 static int rk_load_kernel_logo(void)
 {
 	const char* file_path = "kernel_logo.bmp";
@@ -376,6 +376,11 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 	}
 
 #if defined(CONFIG_LCD) && defined(CONFIG_RK_FB_DDREND)
+	/*
+	 * uboot fb commandline: uboot_logo=<size>@<address>[:<offset>]
+	 * size - fb size, address - fb address, offset - kernel bmp logo offset.
+	 * offset is optional, depend on resource image has kernel_logo.bmp.
+	 */
 	snprintf(command_line, sizeof(command_line),
 			"%s uboot_logo=0x%08lx@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
 #if defined(CONFIG_KERNEL_LOGO)
@@ -383,8 +388,8 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 	if (offset >= 0)
 		snprintf(command_line, sizeof(command_line),
 				"%s:0x%08lx", command_line, offset);
-#endif
-#endif
+#endif /* CONFIG_KERNEL_LOGO */
+#endif /* CONFIG_RK_FB_DDREND */
 
 	snprintf(command_line, sizeof(command_line),
 			"%s loader.timestamp=%s", command_line, U_BOOT_TIMESTAMP);

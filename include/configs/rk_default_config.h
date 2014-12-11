@@ -369,10 +369,11 @@
 
 /* rk lcd size at the end of ddr address */
 #define CONFIG_RK_FB_DDREND
+
+#ifdef CONFIG_RK_FB_DDREND
 /* support load bmp files for kernel logo */
 #define CONFIG_KERNEL_LOGO
 
-#ifdef CONFIG_RK_FB_DDREND
 /* rk lcd total size = fb size + kernel logo size */
 #define CONFIG_RK_LCD_SIZE		SZ_32M
 #define CONFIG_RK_FB_SIZE		SZ_16M
