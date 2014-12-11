@@ -377,7 +377,7 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 
 #if defined(CONFIG_LCD) && defined(CONFIG_RK_FB_DDREND)
 	snprintf(command_line, sizeof(command_line),
-			"%s uboot_fb=0x%08lx@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
+			"%s uboot_logo=0x%08lx@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
 #if defined(CONFIG_KERNEL_LOGO)
 	int offset = rk_load_kernel_logo();
 	if (offset >= 0)
