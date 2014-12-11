@@ -460,8 +460,8 @@ static int reserve_lcd(void)
 {
 	/* if defind CONFIG_RK_FB_SIZE, set fb base at the end of ddr address */
 #if defined(CONFIG_ROCKCHIP) && defined(CONFIG_RK_FB_DDREND)
-	/* using ddr end address - CONFIG_RK_LCD_SIZE */
-	gd->fb_base = (gDDR_END_ADDR - CONFIG_RK_LCD_SIZE);
+	/* using ddr end address - CONFIG_RK_LCD_SIZE - SZ_4M, reserve 4M for 1.5G or 3G size ddr used */
+	gd->fb_base = (gDDR_END_ADDR - CONFIG_RK_LCD_SIZE - SZ_4M);
 	debug("LCD base at ddr end, fb base = %08lx, size = %08lx\n", gd->fb_base, CONFIG_RK_FB_SIZE);
 
 	return 0;
