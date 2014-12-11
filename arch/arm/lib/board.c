@@ -45,6 +45,10 @@
 #include <miiphy.h>
 #endif
 
+#ifdef CONFIG_ROCKCHIP
+#include <asm/arch/rkplat.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 ulong monitor_flash_len;
@@ -341,6 +345,13 @@ void board_init_f(ulong bootflag)
 	debug("Top of RAM usable for U-Boot at: %08lx\n", addr);
 
 #ifdef CONFIG_LCD
+
+	/* if defind CONFIG_RK_FB_SIZE, set fb base at the end of ddr address */
+#if defined(CONFIG_ROCKCHIP) && defined(CONFIG_RK_FB_DDREND)
+	/* using ddr end address - CONFIG_RK_LCD_SIZE - SZ_4M, reserve 4M for 1.5G or 3G size ddr used */
+	gd->fb_base = (gDDR_END_ADDR - CONFIG_RK_LCD_SIZE - SZ_4M);
+	debug("LCD base at ddr end, fb base = %08lx, size = %08lx\n", gd->fb_base, CONFIG_RK_FB_SIZE);
+#else
 #ifdef CONFIG_FB_ADDR
 	gd->fb_base = CONFIG_FB_ADDR;
 #else
@@ -349,6 +360,8 @@ void board_init_f(ulong bootflag)
 	debug("Reserving %ldk for fb buffers at %08lx\n", (addr - gd->fb_base) >> 10, gd->fb_base);
 	addr = gd->fb_base;
 #endif /* CONFIG_FB_ADDR */
+#endif /* CONFIG_RK_FB_DDREND */
+
 #endif /* CONFIG_LCD */
 
 #ifdef CONFIG_ROCKCHIP
