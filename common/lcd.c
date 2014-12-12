@@ -445,9 +445,9 @@ __weak int lcd_get_size(int *line_length)
 #ifdef CONFIG_ROCKCHIP
 void lcd_enable_logo(bool enable)
 {
-    lcd_show_logo = enable;
-    if (lcd_show_logo)
-        lcd_clear();
+	lcd_show_logo = enable;
+	if (lcd_show_logo)
+		lcd_clear();
 }
 #endif
 
@@ -528,11 +528,11 @@ void lcd_clear(void)
 	debug("[LCD] Drawing the logo...\n");
 	lcd_console_address = lcd_logo();
 #else
-    if (lcd_show_logo)
-    {
-        debug("[LCD] Drawing the logo...\n");
-	    lcd_console_address = lcd_logo();
-    }
+	if (lcd_show_logo)
+	{
+		debug("[LCD] Drawing the logo...\n");
+		lcd_console_address = lcd_logo();
+	}
 #endif
 
 #ifndef CONFIG_LCD_CONSOLE_DISABLE
@@ -699,8 +699,8 @@ void bitmap_plot(int x, int y)
 	bmap = &bmp_logo_bitmap[0];
 #ifdef CONFIG_RK_FB
 	fb = (uchar *)(lcd_base);
-    if(!rk_bitmap_from_resource((unsigned short*)fb))
-        return;
+	if(!rk_bitmap_from_resource((unsigned short*)fb))
+		return;
 #else
 	fb   = (uchar *)(lcd_base + y * lcd_line_length + x * bpix / 8);
 #endif
@@ -708,14 +708,14 @@ void bitmap_plot(int x, int y)
 #ifdef CONFIG_RK_FB
 {
 #if (defined CONFIG_COMPRESS_LOGO_RLE8) || (defined CONFIG_COMPRESS_LOGO_RLE16)
-    unsigned n, index;
-    index = 0;
-    for(i=0; i<(sizeof(bmp_logo_rle)/sizeof(bmp_logo_rle[0]) - 1);)
-    {
-        n = bmp_logo_rle[i++];
-        memset(bmap + index, (uint8_t)bmp_logo_rle[i++], n);
-        index += n;
-    }
+	unsigned n, index;
+	index = 0;
+	for(i=0; i<(sizeof(bmp_logo_rle)/sizeof(bmp_logo_rle[0]) - 1);)
+	{
+		n = bmp_logo_rle[i++];
+		memset(bmap + index, (uint8_t)bmp_logo_rle[i++], n);
+		index += n;
+	}
 #endif
 }
 #endif /* rockchip fb */
@@ -1054,7 +1054,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	bmp_bpix = get_unaligned_le16(&bmp->header.bit_count);
 
 	colors = 1 << bmp_bpix;
-
 
 #if defined(CONFIG_RK_FB)
 	switch(bmp_bpix) {
