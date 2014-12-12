@@ -889,8 +889,6 @@ endif
 
 ifdef CONFIG_RKCHIP_RK3368
 RKCHIP ?= RK3368
-# rk uboot version should consist of two digits, as 01
-RK_UBOOT_VERSION = 01
 endif
 
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`
