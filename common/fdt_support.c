@@ -289,6 +289,7 @@ int fdt_chosen(void *fdt)
 
 	str = getenv("bootargs");
 	if (str) {
+#ifndef CONFIG_ROCKCHIP
 		err = fdt_setprop(fdt, nodeoffset, "bootargs", str,
 				  strlen(str) + 1);
 		if (err < 0) {
@@ -296,6 +297,31 @@ int fdt_chosen(void *fdt)
 			       fdt_strerror(err));
 			return err;
 		}
+#else
+		const char *bootargs = NULL;
+		char buf[2048];
+
+		bootargs = fdt_getprop(fdt, nodeoffset, "bootargs", NULL);
+		if (bootargs != NULL) {
+			memset(buf, 0, sizeof(buf));
+			snprintf(buf, sizeof(buf), "%s %s", bootargs, str);
+			err = fdt_setprop(fdt, nodeoffset, "bootargs", buf,
+					  strlen(buf) + 1);
+			if (err < 0) {
+				printf("WARNING: could not set bootargs %s.\n",
+				       fdt_strerror(err));
+				return err;
+			}
+		} else {
+			err = fdt_setprop(fdt, nodeoffset, "bootargs", str,
+					  strlen(str) + 1);
+			if (err < 0) {
+				printf("WARNING: could not set bootargs %s.\n",
+				       fdt_strerror(err));
+				return err;
+			}
+		}
+#endif
 	}
 
 	return fdt_fixup_stdout(fdt, nodeoffset);
