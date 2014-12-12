@@ -192,8 +192,11 @@ static int gic_handler_enable(int irq)
 
 	writel((0x1<<N), RKIO_GICD_PHYS + GICD_ISENABLER + 4 * M);
 	reg = readl(RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
+#ifdef CONFIG_FPGA_BOARD
 	writel(reg | (1 << shift), RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
-
+#else
+	writel(reg | (0x10 << shift), RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
+#endif
 	return (0);
 }
 
