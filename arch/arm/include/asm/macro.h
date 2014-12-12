@@ -78,6 +78,7 @@ lr	.req	x30
  * choose processor with all zero affinity value as the master.
  */
 .macro	branch_if_slave, xreg, slave_label
+#if !defined(CONFIG_ROCKCHIP) || defined(CONFIG_FPGA_BOARD)
 	mrs	\xreg, mpidr_el1
 	tst	\xreg, #0xff		/* Test Affinity 0 */
 	b.ne	\slave_label
@@ -90,6 +91,7 @@ lr	.req	x30
 	lsr	\xreg, \xreg, #16
 	tst	\xreg, #0xff		/* Test Affinity 3 */
 	b.ne	\slave_label
+#endif
 .endm
 
 /*
@@ -97,12 +99,16 @@ lr	.req	x30
  * choose processor with all zero affinity value as the master.
  */
 .macro	branch_if_master, xreg1, xreg2, master_label
+#if defined(CONFIG_ROCKCHIP) && !defined(CONFIG_FPGA_BOARD)
+	b	\master_label
+#else
 	mrs	\xreg1, mpidr_el1
 	lsr	\xreg2, \xreg1, #32
 	lsl	\xreg1, \xreg1, #40
 	lsr	\xreg1, \xreg1, #40
 	orr	\xreg1, \xreg1, \xreg2
 	cbz	\xreg1, \master_label
+#endif
 .endm
 
 .macro armv8_switch_to_el2_m, xreg1
