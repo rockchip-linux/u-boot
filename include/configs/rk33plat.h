@@ -44,11 +44,17 @@
  * notice: CONFIG_SYS_TEXT_BASE must be an immediate,
  * so if CONFIG_RAM_PHY_START is changed, also update CONFIG_SYS_TEXT_BASE define.
  *
- * CONFIG_SYS_TEXT_BASE = CONFIG_RAM_PHY_START + SZ_2M
+ * uboot as first level, CONFIG_SYS_TEXT_BASE = CONFIG_RAM_PHY_START
+ * uboot as second level, CONFIG_SYS_TEXT_BASE = CONFIG_RAM_PHY_START + SZ_2M
  *    Resersed 2M space for Runtime Firmware bin.
  *
  */
-#define CONFIG_SYS_TEXT_BASE    0x00200000 /* Resersed 2M space Runtime Firmware bin. */
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+	#define CONFIG_SYS_TEXT_BASE    0x00200000 /* Resersed 2M space Runtime Firmware bin. */
+#else
+	#define CONFIG_SYS_TEXT_BASE    0x00000000
+#endif
+
 
 
 /*
