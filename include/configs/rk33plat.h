@@ -65,7 +65,7 @@
 #undef CONFIG_IMPRECISE_ABORTS_CHECK
 
 /* el3 switch to el1 disable */
-#undef CONFIG_SWITCH_EL3_TO_EL1
+#define CONFIG_SWITCH_EL3_TO_EL1
 
 /* do_nonsec_virt_switch when enter kernel */
 #define CONFIG_ARMV8_SWITCH_TO_EL1
