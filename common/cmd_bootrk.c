@@ -303,7 +303,7 @@ fail:
 #if defined(CONFIG_LCD) && defined(CONFIG_KERNEL_LOGO)
 static int rk_load_kernel_logo(void)
 {
-	const char* file_path = "kernel_logo.bmp";
+	const char* file_path = "logo_kernel.bmp";
 	resource_content content;
 	int blocks;
 	int offset = CONFIG_RK_FB_SIZE;
