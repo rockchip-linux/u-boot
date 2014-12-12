@@ -71,7 +71,9 @@
 #undef CONFIG_IMPRECISE_ABORTS_CHECK
 
 /* el3 switch to el1 disable */
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
 #define CONFIG_SWITCH_EL3_TO_EL1
+#endif
 
 /* do_nonsec_virt_switch when enter kernel */
 #define CONFIG_ARMV8_SWITCH_TO_EL1
