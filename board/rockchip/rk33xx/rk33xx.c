@@ -106,6 +106,20 @@ int arch_early_init_r(void)
 }
 #endif
 
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+static secure_timer_init(void)
+{
+#define STIMER_LOADE_COUNT0		0x00
+#define STIMER_LOADE_COUNT1		0x04
+#define STIMER_CURRENT_VALUE0		0x08
+#define STIMER_CURRENT_VALUE1		0x0C
+#define STIMER_CONTROL_REG		0x10
+
+	writel(0xffffffff, RKIO_SECURE_TIMER_2CH_PHYS + 0x20 + STIMER_LOADE_COUNT0);
+	/* auto reload & enable the timer */
+	writel(0x01, RKIO_SECURE_TIMER_2CH_PHYS + 0x20  + STIMER_CONTROL_REG);
+}
+#endif
 
 #ifdef CONFIG_BOARD_LATE_INIT
 extern char bootloader_ver[24];
@@ -149,6 +163,9 @@ int board_late_init(void)
 		setenv("fbt_sn#", tmp_buf);
 	}
 
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+	secure_timer_init();
+#endif
 	board_fbt_preboot();
 
 	return 0;
