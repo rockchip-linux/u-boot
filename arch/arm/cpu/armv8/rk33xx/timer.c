@@ -85,11 +85,19 @@ static inline unsigned long get_current_timer_value(void)
 {
 	unsigned long now = rk_timer_get_curr_count();
 
+#ifdef CONFIG_RKTIMER_INCREMENTER
 	if (now >= gd->arch.lastinc) {
 		gd->arch.tbl += (now - gd->arch.lastinc);
 	} else {/* count up timer underflow */
 		gd->arch.tbl += (TIMER_LOAD_VAL - gd->arch.lastinc + now + 1);
 	}
+#else
+	if (gd->arch.lastinc >= now) {
+		gd->arch.tbl -= (gd->arch.lastinc - now);
+	} else {/* count down timer underflow */
+		gd->arch.tbl -= (TIMER_LOAD_VAL + gd->arch.lastinc - now);
+	}
+#endif
 	gd->arch.lastinc = now;
 
 	return gd->arch.tbl;
@@ -118,7 +126,15 @@ void reset_timer_masked(void)
  */
 unsigned long get_timer(unsigned long base)
 {
+#ifdef CONFIG_RKTIMER_INCREMENTER
 	return get_timer_masked() - base;
+#else
+	if (base == 0) {
+		return get_timer_masked();
+	} else {
+		return (base - get_timer_masked());
+	}
+#endif
 }
 
 
@@ -127,7 +143,15 @@ unsigned long get_timer(unsigned long base)
  */
 unsigned long get_usec_timer(unsigned long base)
 {
+#ifdef CONFIG_RKTIMER_INCREMENTER
 	return (tcount_to_usec(get_current_timer_value()) - base);
+#else
+	if (base == 0) {
+		return tcount_to_usec(get_current_timer_value());
+	} else {
+		return (base - tcount_to_usec(get_current_timer_value()));
+	}
+#endif
 }
 
 
@@ -139,12 +163,19 @@ void __udelay(unsigned long usec)
 
 	while (tmo > 0)	{ /* loop till event */
 		now = rk_timer_get_curr_count();
+#ifdef CONFIG_RKTIMER_INCREMENTER
 		if (now > last) {
 			tmo -= (now - last);
 		} else { /* count up timer overflow */
 			tmo -= (TIMER_LOAD_VAL - last + now + 1);
 		}
-
+#else
+		if (last >= now) {
+			tmo -= (last - now);
+		} else { /* count down timer overflow */
+			tmo -= (TIMER_LOAD_VAL + last - now);
+		}
+#endif
 		last = now;
 	}
 }
