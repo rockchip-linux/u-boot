@@ -29,8 +29,8 @@ typedef struct _board_demo_t {
  */
 static void board_timer_test(void)
 {
-	int ts, delay;
-	uint32 TimeOutBase = 0;
+	uint64_t ts;
+	int delay;
 
 	printf("Timer test start.\n");
 
