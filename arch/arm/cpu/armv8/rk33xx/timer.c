@@ -55,7 +55,7 @@ static inline void rk_timer_init(void)
 
 
 /* calculate the equivalent tick value of the timer count */
-static inline unsigned long long tcount_to_tick(unsigned long long tcount)
+static inline uint64_t tcount_to_tick(uint64_t tcount)
 {
 	tcount *= CONFIG_SYS_HZ;
 	do_div(tcount, TIMER_FREQ);
@@ -64,7 +64,7 @@ static inline unsigned long long tcount_to_tick(unsigned long long tcount)
 }
 
 /* calculate the equivalent tick value of the timer count */
-static inline unsigned long long tcount_to_usec(unsigned long long tcount)
+static inline uint64_t tcount_to_usec(uint64_t tcount)
 {
 	tcount *= (CONFIG_SYS_HZ * 1000);
 	do_div(tcount, TIMER_FREQ);
@@ -73,7 +73,7 @@ static inline unsigned long long tcount_to_usec(unsigned long long tcount)
 }
 
 /* calculate the equivalent timer count of the usec value */
-static inline unsigned long long usec_to_tcount(unsigned long long usec)
+static inline uint64_t usec_to_tcount(uint64_t usec)
 {
 	usec *= TIMER_FREQ;
 	do_div(usec, 1000000);
@@ -124,7 +124,7 @@ void reset_timer_masked(void)
 /*
  * timer without interrupts
  */
-unsigned long get_timer(unsigned long base)
+ulong get_timer(ulong base)
 {
 #ifdef CONFIG_RKTIMER_INCREMENTER
 	return get_timer_masked() - base;
@@ -141,7 +141,7 @@ unsigned long get_timer(unsigned long base)
 /*
  * get usec timer value
  */
-unsigned long get_usec_timer(unsigned long base)
+uint64_t get_usec_timer(uint64_t base)
 {
 #ifdef CONFIG_RKTIMER_INCREMENTER
 	return (tcount_to_usec(get_current_timer_value()) - base);
@@ -181,17 +181,17 @@ void __udelay(unsigned long usec)
 }
 
 
-unsigned long get_timer_masked(void)
+ulong get_timer_masked(void)
 {
 	return tcount_to_tick(get_current_timer_value());
 }
 
 
 /*
- * This function is derived from PowerPC code (read timebase as long long).
+ * This function is derived from PowerPC code (read timebase as long).
  * On ARM it just returns the timer value.
  */
-unsigned long long get_ticks(void)
+uint64_t get_ticks(void)
 {
 	return get_timer(0);
 }
