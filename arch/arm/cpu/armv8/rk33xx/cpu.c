@@ -54,6 +54,11 @@ int arch_cpu_init(void)
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON10);
 #endif
 
+#if defined(CONFIG_RKCHIP_RK3368)
+	/* pwm select rk solution */
+	grf_writel((0x01 << 12) | (0x01 << (12 + 16)), GRF_SOC_CON15);
+#endif
+
 	return 0;
 }
 #endif
