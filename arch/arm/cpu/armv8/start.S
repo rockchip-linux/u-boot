@@ -68,25 +68,6 @@ _bss_end_ofs:
 
 reset:
 
-#if defined(CONFIG_ROCKCHIP) && defined(CONFIG_SWITCH_EL3_TO_EL1)
-	/*
-	 * Switch to EL1 from EL3
-	 */
-	mrs	x0, CurrentEL	/* check currentEL */
-	cmp	x0, 0xc
-	b.ne	el1_start	/* currentEL != EL3 */
-
-	ldr	x0, =0xd00	/* ST, bit[11] | RW, bit[10] | HCE, bit[8] */
-	msr	scr_el3, x0
-	ldr	x0, =0x3c5	/* D, bit[9] | A, bit[8] | I, bit[7] | F, bit[6] | 0b0101 EL1h */
-	msr	spsr_el3, x0
-	ldr	x0, =el1_start
-	msr	elr_el3, x0
-	eret
-
-el1_start:
-	nop
-#endif
 	/*
 	 * Could be EL3/EL2/EL1, Initial State:
 	 * Little Endian, MMU Disabled, i/dCache Disabled
@@ -100,6 +81,9 @@ el1_start:
 	msr	cptr_el3, xzr			/* Enable FP/SIMD */
 	ldr	x0, =COUNTER_FREQUENCY
 	msr	cntfrq_el0, x0			/* Initialize CNTFRQ */
+#ifdef CONFIG_ROCKCHIP
+	msr	cntvoff_el2, xzr		/* clear cntvoff_el2 for kernel */
+#endif
 	b	0f
 2:	msr	vbar_el2, x0
 	mov	x0, #0x33ff
@@ -158,6 +142,30 @@ loop:
 
 WEAK(lowlevel_init)
 	mov	x29, lr			/* Save LR */
+
+#if defined(CONFIG_ROCKCHIP)
+
+	/* switch to el1 secure */
+#if defined(CONFIG_SWITCH_EL3_TO_EL1)
+	/*
+	 * Switch to EL1 from EL3
+	 */
+	mrs	x0, CurrentEL	/* check currentEL */
+	cmp	x0, 0xc
+	b.ne	el1_start	/* currentEL != EL3 */
+
+	ldr	x0, =0xd00	/* ST, bit[11] | RW, bit[10] | HCE, bit[8] */
+	msr	scr_el3, x0
+	ldr	x0, =0x3c5	/* D, bit[9] | A, bit[8] | I, bit[7] | F, bit[6] | 0b0101 EL1h */
+	msr	spsr_el3, x0
+	ldr	x0, =el1_start
+	msr	elr_el3, x0
+	eret
+
+el1_start:
+	nop
+#endif /* CONFIG_SWITCH_EL3_TO_EL1 */
+#endif /* CONFIG_ROCKCHIP */
 
 #if defined(CONFIG_GICV2) || defined(CONFIG_GICV3)
 	branch_if_slave x0, 1f
