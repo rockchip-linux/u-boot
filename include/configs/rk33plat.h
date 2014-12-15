@@ -63,12 +63,7 @@
 #include <configs/rk_default_config.h>
 
 /* cache disable */
-#define CONFIG_SYS_ICACHE_OFF
 #define CONFIG_SYS_DCACHE_OFF
-#define CONFIG_SYS_L2CACHE_OFF
-
-/* aborts check disable */
-#undef CONFIG_IMPRECISE_ABORTS_CHECK
 
 /* el3 switch to el1 disable */
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
