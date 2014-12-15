@@ -41,6 +41,23 @@ int rk_get_chiptype(void)
 }
 
 
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+static secure_timer_init(void)
+{
+#define STIMER_LOADE_COUNT0		0x00
+#define STIMER_LOADE_COUNT1		0x04
+#define STIMER_CURRENT_VALUE0		0x08
+#define STIMER_CURRENT_VALUE1		0x0C
+#define STIMER_CONTROL_REG		0x10
+
+	writel(0xffffffff, RKIO_SECURE_TIMER_2CH_PHYS + 0x20 + STIMER_LOADE_COUNT0);
+	writel(0xffffffff, RKIO_SECURE_TIMER_2CH_PHYS + 0x20 + STIMER_LOADE_COUNT1);
+	/* auto reload & enable the timer */
+	writel(0x01, RKIO_SECURE_TIMER_2CH_PHYS + 0x20  + STIMER_CONTROL_REG);
+}
+#endif
+
+
 #ifdef CONFIG_ARCH_CPU_INIT
 int arch_cpu_init(void)
 {
@@ -59,6 +76,9 @@ int arch_cpu_init(void)
 	grf_writel((0x01 << 12) | (0x01 << (12 + 16)), GRF_SOC_CON15);
 #endif
 
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+	secure_timer_init();
+#endif
 	return 0;
 }
 #endif
