@@ -249,7 +249,7 @@ static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f
 	}
 
 	/* PLL enter normal-mode */
-	cru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, PLL_CONS(pll_id, 3));
+	cru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, PLL_CONS(pll_id, 3));
 
 	return 0;
 }
