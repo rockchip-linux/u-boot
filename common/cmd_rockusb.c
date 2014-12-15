@@ -867,7 +867,7 @@ void rkusb_handle_response(void)
 
 
 #ifdef CONFIG_ROCKUSB_TIMEOUT_CHECK
-static uint32 TimeOutBase = 0;
+static uint64_t TimeOutBase = 0;
 static inline int rkusb_timeout_check(int flag)
 {
 	/* TV Box: usb default as host, so Vbus always is high,
