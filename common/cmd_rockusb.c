@@ -336,7 +336,12 @@ static void FW_GetChipVer(void)
 	/* notice here chip version should the same as rk tools RKBOOT/*.ini config */
 	current_urb->buffer[0] = 0;
 	memset(chip_info, 0, sizeof(chip_info));
+#if defined(CONFIG_RKCHIP_RK3368)
+	chip_info[0] = 0x33333041; // 330A
+#else
 	ftl_memcpy(chip_info, (uint8*)(RKIO_ROM_CHIP_VER_ADDR), 16);
+#endif
+
 #if defined(CONFIG_RKCHIP_RK3036)
 	chip_info[0] = 0x33303341; // 303A
 #endif

@@ -23,6 +23,12 @@ void enable_caches(void)
  */
 int rk_get_chiptype(void)
 {
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+	/* second level bootrom is secure */
+#if defined(CONFIG_RKCHIP_RK3368)
+	return CONFIG_RK3368;
+#endif
+#else
 	unsigned int chip_info[4];
 	unsigned int chip_class;
 
@@ -38,6 +44,7 @@ int rk_get_chiptype(void)
 	}
 
 	return RKCHIP_UNKNOWN;
+#endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
 }
 
 
