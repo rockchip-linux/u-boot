@@ -109,6 +109,9 @@ U_BOOT_ENV_CALLBACK(baudrate, on_baudrate);
 	void name(void)						\
 		__attribute__((weak, alias("serial_null")));
 
+#ifdef CONFIG_ROCKCHIP
+serial_initfunc(rk30_serial_initialize);
+#else
 serial_initfunc(mpc8xx_serial_initialize);
 serial_initfunc(ns16550_serial_initialize);
 serial_initfunc(pxa_serial_initialize);
@@ -154,11 +157,11 @@ serial_initfunc(mxc_serial_initialize);
 serial_initfunc(pl01x_serial_initialize);
 serial_initfunc(sa1100_serial_initialize);
 serial_initfunc(sh_serial_initialize);
-serial_initfunc(rk30_serial_initialize);
 serial_initfunc(arm_dcc_initialize);
 serial_initfunc(mxs_auart_initialize);
 serial_initfunc(arc_serial_initialize);
 serial_initfunc(uniphier_serial_initialize);
+#endif /* CONFIG_ROCKCHIP */
 
 /**
  * serial_register() - Register serial driver with serial driver core
@@ -204,6 +207,9 @@ void serial_register(struct serial_device *dev)
  */
 void serial_initialize(void)
 {
+#ifdef CONFIG_ROCKCHIP
+	rk30_serial_initialize();
+#else
 	mpc8xx_serial_initialize();
 	ns16550_serial_initialize();
 	pxa_serial_initialize();
@@ -249,11 +255,11 @@ void serial_initialize(void)
 	pl01x_serial_initialize();
 	sa1100_serial_initialize();
 	sh_serial_initialize();
-	rk30_serial_initialize();
 	arm_dcc_initialize();
 	mxs_auart_initialize();
 	arc_serial_initialize();
 	uniphier_serial_initialize();
+#endif /* CONFIG_ROCKCHIP */
 
 	serial_assign(default_serial_console()->name);
 }
