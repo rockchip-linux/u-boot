@@ -120,7 +120,7 @@
 #define CONFIG_BOOTDELAY		0
 
 /* mmc using dma */
-#undef CONFIG_RK_MMC_DMA
+#define CONFIG_RK_MMC_DMA
 #define CONFIG_RK_MMC_IDMAC	/* internal dmac */
 
 
