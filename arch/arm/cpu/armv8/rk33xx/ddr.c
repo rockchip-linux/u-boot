@@ -25,12 +25,15 @@ int dram_init(void)
 	gd->ram_size = get_ram_size(
 			(void *)CONFIG_SYS_SDRAM_BASE,
 			CONFIG_SYS_SDRAM_SIZE);
-#if defined CONFIG_RKDDR_PARAM_ADDR
+
+#if defined(CONFIG_RKDDR_PARAM_ADDR)
 	u64* buf = (u64*)CONFIG_RKDDR_PARAM_ADDR;
 	u32 count = ((u32*)buf)[0];
 	u64 start = 0, size = 0;
-	buf ++;
 
+	printf("\n");
+
+	buf ++;
 	if (count >= CONFIG_RK_MAX_DRAM_BANKS) {
 		gDDR_END_ADDR = PHYS_SDRAM;
 	} else {
@@ -38,7 +41,7 @@ int dram_init(void)
 		for (i = 0; i < count; i++) {
 			start = le64_to_cpu(buf[i]);
 			size = le64_to_cpu(buf[count + i]);
-
+			printf("DDR bank:%016llx(%016llx)\n", start, size);
 			if (start < CONFIG_MAX_MEM_ADDR) {
 				gDDR_END_ADDR = start + size;
 				if (gDDR_END_ADDR > CONFIG_MAX_MEM_ADDR) {
@@ -57,7 +60,7 @@ int dram_init(void)
 
 void dram_init_banksize(void)
 {
-#if defined CONFIG_RKDDR_PARAM_ADDR
+#if defined(CONFIG_RKDDR_PARAM_ADDR)
 	u64* buf = (u64 *)CONFIG_RKDDR_PARAM_ADDR;
 	u32 count = ((u32 *)buf)[0];
 	int i;
@@ -91,6 +94,7 @@ void dram_init_banksize(void)
 		}
 	}
 #endif
+
 	gd->bd->bi_dram[0].start = PHYS_SDRAM;
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;
 }
