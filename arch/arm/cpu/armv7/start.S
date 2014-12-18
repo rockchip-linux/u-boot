@@ -226,7 +226,7 @@ ENDPROC(cpu_init_crit)
 
 
 #ifdef CONFIG_ROCKCHIP
-	.section .loader_tag, "axT"
+	.section .loader_tag, "ax"
 
 .globl gloader_tag
 gloader_tag:
