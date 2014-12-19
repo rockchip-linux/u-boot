@@ -74,7 +74,7 @@ int arch_cpu_init(void)
 	rkclk_set_pll();
 	gd->arch.chiptype = rk_get_chiptype();
 
-#if !defined(CONFIG_FPGA_BOARD) && !defined(CONFIG_SECOND_LEVEL_BOOTLOADER)
+#if defined(CONFIG_FPGA_BOARD) || !defined(CONFIG_SECOND_LEVEL_BOOTLOADER)
 	/* ddr space set no secure mode */
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON8);
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON9);
