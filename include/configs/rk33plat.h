@@ -13,10 +13,6 @@
 #include <asm/arch/io.h>
 
 
-/* enable debug when develop */
-#define DEBUG
-
-
 /* rk gic400 is GICV2 */
 #define CONFIG_GICV2
 #define GICD_BASE			RKIO_GICD_PHYS
