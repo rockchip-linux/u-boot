@@ -186,8 +186,11 @@ export	HOSTARCH HOSTOS
 
 ifeq ($(ARCHV),aarch64)
 
-ifneq ($(wildcard ../toolchain/aarch64-linux-gnu-4.9),)
-CROSS_COMPILE   ?= $(shell pwd)/../toolchain/aarch64-linux-gnu-4.9/bin/aarch64-linux-gnu-
+ifneq ($(wildcard ../toolchain/aarch64-linux-android-4.9),)
+CROSS_COMPILE   ?= $(shell pwd)/../toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+endif
+ifneq ($(wildcard ../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin),)
+CROSS_COMPILE   ?= $(shell pwd)/../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 endif
 
 else
