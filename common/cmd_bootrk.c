@@ -427,6 +427,21 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 #endif /* CONFIG_CMDLINE_TAG */
 }
 
+#ifdef CONFIG_ARM64
+static int rk_adjust_kernel_address(rk_boot_img_hdr *hdr)
+{
+	/* armv8 kernel hasn't self-extracting, copy kernel to the running address */
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
+	uint32 kernel_addr = CONFIG_RAM_PHY_START + (CONFIG_SYS_TEXT_BASE - CONFIG_RAM_PHY_START) + SZ_512K;
+
+	memcpy(kernel_addr, hdr->kernel_addr, hdr->kernel_size);
+
+	hdr->kernel_addr = kernel_addr;
+#endif
+}
+#endif
+
+
 /* bootrk [ <addr> | <partition> ] */
 int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -476,21 +491,17 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	fg_adc_storage_flag_store(0);
 	fg_adc_storage_store(0);
 #endif
+
+#ifdef CONFIG_ARM64
+	rk_adjust_kernel_address(hdr);
+#endif /* CONFIG_ARM64 */
+
 	rk_module_deinit();
 
 	/* Secure boot state will set drm, sn and others information in the nanc ram,
 	 * so, after set, PLS notice do not read/write nand flash.
 	 */
 	SecureBootSecureState2Kernel(SecureBootCheckOK);
-
-	/* armv8 kernel hasn't self-extracting, copy kernel to the running address */
-#ifdef CONFIG_ARM64
-#ifndef CONFIG_SKIP_RELOCATE_UBOOT
-	uint32 kernel_addr = CONFIG_RAM_PHY_START + (CONFIG_SYS_TEXT_BASE - CONFIG_RAM_PHY_START) + SZ_512K;
-	memcpy(kernel_addr, hdr->kernel_addr, hdr->kernel_size);
-	hdr->kernel_addr = kernel_addr;
-#endif
-#endif /* CONFIG_ARM64 */
 
 	/* after here, make sure no read/write storate */
 	bootimg_print_image_hdr(hdr);
