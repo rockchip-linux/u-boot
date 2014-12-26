@@ -52,6 +52,9 @@
 #endif
 
 
+/* kernel load to the running address */
+#define CONFIG_KERNEL_RUNNING_ADDR	(CONFIG_SYS_TEXT_BASE + SZ_512K)
+
 
 /*
  * rk plat default configs.
@@ -66,8 +69,6 @@
 /* do_nonsec_virt_switch when enter kernel */
 #define CONFIG_ARMV8_SWITCH_TO_EL1
 
-/* kernel load to the running address */
-#define CONFIG_KERNEL_RUNNING_ADDR	(CONFIG_SYS_TEXT_BASE + SZ_512K)
 
 /* undef some module for rk chip */
 #if defined(CONFIG_RKCHIP_RK3368)
