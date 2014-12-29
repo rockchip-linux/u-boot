@@ -102,6 +102,19 @@ int arch_cpu_init(void)
 {
 	gd->arch.chiptype = rk_get_chiptype();
 
+	/* read latency configure */
+#if defined(CONFIG_RKCHIP_RK3288)
+	writel(0x34, 0xffac0000 + 0x14);
+	writel(0x34, 0xffac0080 + 0x14);
+#endif
+
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	writel(0x3f, 0x10128000 + 0x14);
+#endif
+
+#if defined(CONFIG_RKCHIP_RK3036)
+	writel(0x80, 0x10128000 + 0x14);
+#endif
 	return 0;
 }
 #endif
