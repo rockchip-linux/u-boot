@@ -1654,13 +1654,13 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 	msk = m_WIN0_CBR_VSU_MODE | m_WIN0_YRGB_VSU_MODE;
 	val = v_WIN0_CBR_VSU_MODE(1) | v_WIN0_YRGB_VSU_MODE(1);
 	lcdc_msk_reg(lcdc_dev, WIN0_CTRL1, msk, val);
-	val =  v_WIN0_ACT_WIDTH(fb_info->xact-1) |
-		v_WIN0_ACT_HEIGHT(fb_info->yact-1);
+	val =  v_WIN0_ACT_WIDTH(fb_info->xact) |
+		v_WIN0_ACT_HEIGHT(fb_info->yact);
 	lcdc_writel(lcdc_dev, WIN0_ACT_INFO, val);
 	val = v_WIN0_DSP_XST(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) |
 		v_WIN0_DSP_YST(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd);
 	lcdc_writel(lcdc_dev, WIN0_DSP_ST, val);
-	val = v_WIN0_DSP_WIDTH(fb_info->xsize-1) | v_WIN0_DSP_HEIGHT(fb_info->ysize-1);
+	val = v_WIN0_DSP_WIDTH(fb_info->xsize) | v_WIN0_DSP_HEIGHT(fb_info->ysize);
 	lcdc_writel(lcdc_dev, WIN0_DSP_INFO, val);
 	msk =  m_WIN0_COLOR_KEY_EN | m_WIN0_COLOR_KEY;
 	val = v_WIN0_COLOR_KEY_EN(0) | v_WIN0_COLOR_KEY(0);
