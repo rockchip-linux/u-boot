@@ -1034,6 +1034,8 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 	switch(fb_info->format) 
 	{
 	case ARGB888:
+		val = v_ARGB888_VIRWIDTH(fb_info->xvir);
+		break;
 	case RGB888:
 		val = v_RGB888_VIRWIDTH(fb_info->xvir);
 		break;
