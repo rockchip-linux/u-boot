@@ -28,6 +28,9 @@ typedef struct global_data {
 	unsigned long flags;
 	unsigned int baudrate;
 	unsigned long cpu_clk;	/* CPU clock in Hz!		*/
+#ifdef CONFIG_ROCKCHIP
+	unsigned long cpul_clk;	/* CPU clock in Hz!		*/
+#endif
 	unsigned long bus_clk;
 	/* We cannot bracket this with CONFIG_PCI due to mpc5xxx */
 	unsigned long pci_clk;

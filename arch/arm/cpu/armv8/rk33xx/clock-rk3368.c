@@ -13,7 +13,8 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 /* ARM/General/Codec pll freq config */
-#define CONFIG_RKCLK_APLL_FREQ		816 /* MHZ */
+#define CONFIG_RKCLK_APLLB_FREQ		816 /* MHZ */
+#define CONFIG_RKCLK_APLLL_FREQ		600 /* MHZ */
 #define CONFIG_RKCLK_GPLL_FREQ		297 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		384 /* MHZ */
 
@@ -154,6 +155,7 @@ static const struct pll_clk_set cpll_clks[] = {
 
 static struct pll_data rkpll_data[END_PLL_ID] = {
 	SET_PLL_DATA(APLLB_ID, apll_clks, ARRAY_SIZE(apll_clks)),
+	SET_PLL_DATA(APLLL_ID, apll_clks, ARRAY_SIZE(apll_clks)),
 	SET_PLL_DATA(DPLL_ID, NULL, 0),
 	SET_PLL_DATA(CPLL_ID, cpll_clks, ARRAY_SIZE(cpll_clks)),
 	SET_PLL_DATA(GPLL_ID, gpll_clks, ARRAY_SIZE(gpll_clks)),
@@ -582,7 +584,8 @@ void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
  */
 void rkclk_set_pll(void)
 {
-	rkclk_pll_set_rate(APLLB_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
+	rkclk_pll_set_rate(APLLB_ID, CONFIG_RKCLK_APLLB_FREQ, rkclk_apll_cb);
+	rkclk_pll_set_rate(APLLL_ID, CONFIG_RKCLK_APLLL_FREQ, NULL);
 	rkclk_pll_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
 	rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
 }
@@ -606,6 +609,7 @@ void rkclk_get_pll(void)
 
 	/* cpu / periph / ddr freq */
 	gd->cpu_clk = rkclk_pll_get_rate(APLLB_ID);
+	gd->cpul_clk = rkclk_pll_get_rate(APLLL_ID);
 	gd->bus_clk = rkclk_pll_get_rate(GPLL_ID);
 	gd->mem_clk = rkclk_pll_get_rate(DPLL_ID);
 	gd->pci_clk = rkclk_pll_get_rate(CPLL_ID);
@@ -643,7 +647,10 @@ void rkclk_dump_pll(void)
 {
 	printf("CPU's clock information:\n");
 
-	printf("    arm pll = %ldHZ", gd->cpu_clk);
+	printf("    arm pll big = %ldHZ", gd->cpu_clk);
+	printf("\n");
+
+	printf("    arm pll little = %ldHZ", gd->cpul_clk);
 	printf("\n");
 
 	printf("    periph pll = %ldHZ", gd->bus_clk);
