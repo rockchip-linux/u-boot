@@ -84,6 +84,9 @@ int arch_cpu_init(void)
 #if defined(CONFIG_RKCHIP_RK3368)
 	/* pwm select rk solution */
 	grf_writel((0x01 << 12) | (0x01 << (12 + 16)), GRF_SOC_CON15);
+
+	/* ddr read latency configure */
+	writel(0x34, 0xffac0000 + 0x14);
 #endif
 
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
