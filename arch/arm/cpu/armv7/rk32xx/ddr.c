@@ -46,30 +46,31 @@ int dram_init(void)
 #if defined(CONFIG_RKDDR_PARAM_ADDR)
 	u64* buf = (u64*)CONFIG_RKDDR_PARAM_ADDR;
 	u32 count = ((u32*)buf)[0];
-	u64 start = 0, size = 0;
+	u64 start = 0, end = 0, size = 0;
 
 	printf("\n");
 
 	buf ++;
 	if (count >= CONFIG_RK_MAX_DRAM_BANKS) {
-		gDDR_END_ADDR = PHYS_SDRAM;
+		end = PHYS_SDRAM;
 	} else {
 		int i;
 		for (i = 0; i < count; i++) {
 			start = le64_to_cpu(buf[i]);
 			size = le64_to_cpu(buf[count + i]);
-			printf("DDR bank:%016llx(%016llx)\n", start, size);
 			if (start < CONFIG_MAX_MEM_ADDR) {
-				gDDR_END_ADDR = start + size;
-				if (gDDR_END_ADDR > CONFIG_MAX_MEM_ADDR) {
-					gDDR_END_ADDR = CONFIG_MAX_MEM_ADDR;
+				end = start + size;
+				if (end > CONFIG_MAX_MEM_ADDR) {
+					end = CONFIG_MAX_MEM_ADDR;
 					break;
 				}
 			}
 		}
 	}
 
-	printf("DDR end address %08lx\n", gDDR_END_ADDR);
+	gDDR_END_ADDR = end;
+
+	printf("DDR End Address:%016llx\n", gDDR_END_ADDR);
 #endif
 	return 0;
 }
