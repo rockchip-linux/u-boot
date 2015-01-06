@@ -29,6 +29,9 @@ struct arch_global_data {
 
 #ifdef CONFIG_ROCKCHIP
 	unsigned long	chiptype;
+#ifdef CONFIG_RK_FB_DDREND
+	unsigned long	ddr_end;
+#endif
 
 #ifdef CONFIG_RK_CLOCK
 	/* "static data" needed by rk's clock.c */
