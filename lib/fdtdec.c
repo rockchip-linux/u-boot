@@ -586,7 +586,12 @@ int fdtdec_decode_gpios(const void *blob, int node, const char *prop_name,
 		             fdt_node_offset_by_phandle(blob, fdt32_to_cpu(cell[0])), 
 		             "reg", 0);
 		reg = (u32 *)prop1->data;
+		/* fixed aarch64 gpio io base error */
+#ifdef CONFIG_ROCKCHIP_ARCH64
+		gpio_dts = fdt32_to_cpu(cell[1]) | fdt32_to_cpu(reg[1]);
+#else
 		gpio_dts = fdt32_to_cpu(cell[1]) | fdt32_to_cpu(reg[0]);
+#endif
 		/* change dts gpio to rk uboot gpio */
 #ifdef CONFIG_RK_GPIO
 		gpio[i].gpio = rk_gpio_base_to_bank(gpio_dts & RK_GPIO_BANK_MASK) | (gpio_dts & RK_GPIO_PIN_MASK);
