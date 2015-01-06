@@ -33,6 +33,18 @@
 	.globl	reset
 
 reset:
+/*
+ * check loader tag
+ */
+#ifdef CONFIG_ROCKCHIP
+	ldr	r0, =__loader_tag
+	ldr	r1, [r0]
+	ldr	r0, =LoaderTagCheck
+	ldr	r0, [r0]
+	cmp	r1, r0
+	movne	pc, r14
+#endif
+
 	bl	save_boot_params
 	/*
 	 * disable interrupts (FIQ and IRQ), also set the cpu to SVC32 mode,
@@ -45,18 +57,6 @@ reset:
 	orrne	r0, r0, #0x13		@ set SVC mode
 	orr	r0, r0, #0xc0		@ disable FIQ and IRQ
 	msr	cpsr,r0
-
-/*
- * check loader tag
- */
-#ifdef CONFIG_ROCKCHIP
-	ldr	r0, =__loader_tag
-	ldr	r1, [r0]
-	ldr	r0, =LoaderTagCheck
-	ldr	r0, [r0]
-	cmp	r1, r0
-	movne	pc, r14
-#endif
 
 /*
  * Setup vector:
