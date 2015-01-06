@@ -68,6 +68,22 @@ _bss_end_ofs:
 
 reset:
 
+#ifdef CONFIG_ROCKCHIP
+	/*
+	 * check loader tag
+	 */
+	ldr	x0, =__loader_tag
+	ldr	w1, [x0]
+	ldr	x0, =LoaderTagCheck
+	ldr	w2, [x0]
+	cmp	w1, w2
+	b.eq	checkok
+
+	ret	/* return to maskrom or miniloader */
+
+checkok:
+#endif
+
 	/*
 	 * Could be EL3/EL2/EL1, Initial State:
 	 * Little Endian, MMU Disabled, i/dCache Disabled
@@ -122,19 +138,6 @@ slave_cpu:
 	 * Master CPU
 	 */
 master_cpu:
-
-#ifdef CONFIG_ROCKCHIP
-	/*
-	 * check loader tag
-	 */
-	ldr	x0, =__loader_tag
-	ldr	w1, [x0]
-	ldr	x0, =LoaderTagCheck
-	ldr	w2, [x0]
-	cmp	w1, w2
-loop:
-	b.ne	loop			/* hang and never return */
-#endif
 
 	bl	_main
 
