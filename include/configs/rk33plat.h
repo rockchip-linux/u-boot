@@ -61,9 +61,6 @@
  */
 #include <configs/rk_default_config.h>
 
-/* cache disable */
-#define CONFIG_SYS_DCACHE_OFF
-
 /* el3 switch to el1 disable */
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
 #define CONFIG_SWITCH_EL3_TO_EL1
