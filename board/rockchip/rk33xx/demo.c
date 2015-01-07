@@ -243,6 +243,36 @@ static void board_gzip_test(void)
 #endif /* CONFIG_GZIP */
 
 
+#ifdef CONFIG_RK_GPIO
+static void powerkey_gpio_irq_isr(void)
+{
+	printf("power key gpio irq isr\n");
+	udelay(20000);
+}
+
+#define POWER_KEY_GPIO	(GPIO_BANK0 | GPIO_A2)
+static inline void board_gpio_irq_test(void)
+{
+	int gpio_irq;
+
+	printf("powerkey gpio irq test start...\n");
+
+	gpio_irq = gpio_to_irq(POWER_KEY_GPIO);
+	irq_install_handler(gpio_irq, powerkey_gpio_irq_isr, NULL);
+	irq_set_irq_type(gpio_irq, IRQ_TYPE_LEVEL_LOW);
+	irq_handler_enable(gpio_irq);
+
+	printf("gpio demo: loop 10s for powerkey gpio irq test.\n");
+	udelay(10 * 1000 *1000);
+
+	irq_uninstall_handler(gpio_irq);
+	irq_handler_disable(gpio_irq);
+
+	printf("powerkey gpio irq test end\n");
+}
+#endif /* CONFIG_RK_GPIO */
+
+
 /* demo function list */
 static board_demo_t g_module_demo[] = {
 	{ .name = "timer",	.demo = board_timer_test },
@@ -252,6 +282,9 @@ static board_demo_t g_module_demo[] = {
 #endif
 #ifdef CONFIG_GZIP
 	{ .name = "gzip",	.demo = board_gzip_test },
+#endif
+#ifdef CONFIG_RK_GPIO
+	{ .name = "gpio",	.demo = board_gpio_irq_test },
 #endif
 };
 #define DEMO_MODULE_MAX		(sizeof(g_module_demo)/sizeof(board_demo_t))
