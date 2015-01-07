@@ -20,11 +20,7 @@
 #define MAX_GPIO_NUM		(NUM_GROUP * GPIO_BANKS)
 
 /* if define irq, PIN_BASE start from NR_GIC_IRQS */
-#ifdef CONFIG_USE_IRQ
-	#define PIN_BASE	NR_GIC_IRQS
-#else
-	#define PIN_BASE	0
-#endif /* CONFIG_USE_RKIRQ */
+#define PIN_BASE		NR_GIC_IRQS
 
 #define INVALID_GPIO        	-1
 
