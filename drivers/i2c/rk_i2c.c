@@ -135,7 +135,7 @@
 
 
 struct rk_i2c {
-	void __iomem		*regs;
+	uint32_t		regs;
 	unsigned int		speed;
 };
 
@@ -143,21 +143,21 @@ struct rk_i2c {
 #ifdef CONFIG_I2C_MULTI_BUS
 static struct rk_i2c rki2c_base[I2C_BUS_MAX] = {
 #if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	{ .regs = (void __iomem *)(RKIO_I2C0_PMU_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C1_AUDIO_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C2_SENSOR_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C3_CAM_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C4_TP_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C5_HDMI_PHYS), 0 }
+	{ .regs = (uint32_t)RKIO_I2C0_PMU_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C1_AUDIO_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C2_SENSOR_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C3_CAM_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C4_TP_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C5_HDMI_PHYS, 0 }
 #elif defined(CONFIG_RKCHIP_RK3036)
-	{ .regs = (void __iomem *)(RKIO_I2C0_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C1_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C2_PHYS), 0 },
+	{ .regs = (uint32_t)RKIO_I2C0_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C1_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C2_PHYS, 0 },
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	{ .regs = (void __iomem *)(RKIO_I2C0_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C1_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C2_PHYS), 0 },
-	{ .regs = (void __iomem *)(RKIO_I2C3_PHYS), 0 },
+	{ .regs = (uint32_t)RKIO_I2C0_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C1_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C2_PHYS, 0 },
+	{ .regs = (uint32_t)RKIO_I2C3_PHYS, 0 },
 #else
 	#error "PLS config chiptype for i2c base!"
 #endif
@@ -639,7 +639,7 @@ int i2c_get_bus_num_fdt(int bus_addr)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(rki2c_base); i++) {
-		if ((void __iomem *)bus_addr  == rki2c_base[i].regs)
+		if ((uint32_t)bus_addr == rki2c_base[i].regs)
 			return i;
 	}
 
