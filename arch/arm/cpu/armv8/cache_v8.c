@@ -31,7 +31,7 @@ static void mmu_setup(void)
 
 	/* Setup an identity-mapping for all spaces */
 	for (i = 0; i < (PGTABLE_SIZE >> 3); i++) {
-		set_pgtable_section(page_table, i, i << SECTION_SHIFT,
+		set_pgtable_section(page_table, (u64)i, (u64)i << SECTION_SHIFT,
 				    MT_DEVICE_NGNRNE);
 	}
 
@@ -41,7 +41,7 @@ static void mmu_setup(void)
 		ulong end = bd->bi_dram[i].start + bd->bi_dram[i].size;
 		for (j = start >> SECTION_SHIFT;
 		     j < end >> SECTION_SHIFT; j++) {
-			set_pgtable_section(page_table, j, j << SECTION_SHIFT,
+			set_pgtable_section(page_table, (u64)j, (u64)j << SECTION_SHIFT,
 					    MT_NORMAL);
 		}
 	}
