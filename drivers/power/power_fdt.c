@@ -62,6 +62,39 @@ int fdt_get_i2c_info(const void* blob, int node, u32 *pbus, u32 *paddr)
 	u32 addr;
 	u32 i2c_bus, i2c_addr, i2c_iobase;
 
+#ifdef CONFIG_ROCKCHIP_ARCH64
+	uint32_t *cell = NULL;
+	int addrcells = 0;
+
+	/* Note: i2c device address should be 32bit size */
+	cell = fdt_getprop(blob, node, "reg", NULL);
+	addr = (fdt_addr_t)fdt32_to_cpu(*cell);
+	i2c_addr = (u32)addr;
+	debug("i2c address = 0x%x\n", i2c_addr);
+
+	parent = fdt_parent_offset(blob, node);
+	if (parent < 0) {
+		debug("%s: Cannot find node parent\n", __func__);
+		return -1;
+	}
+	nd = fdt_parent_offset(blob, parent);
+	if (nd < 0) {
+		addrcells = 1;
+	} else {
+		addrcells = fdt_address_cells(blob, nd);
+	}
+
+	cell = fdt_getprop(blob, parent, "reg", NULL);
+	if (addrcells == 2) {
+		cell++;
+	}
+	addr = (u32)fdt32_to_cpu(*cell);
+	i2c_iobase = (u32)addr;
+	debug("i2c iobase = 0x%08x\n", i2c_iobase);
+
+	i2c_bus = i2c_get_bus_num_fdt(i2c_iobase);
+	debug("i2c bus = %d\n", i2c_bus);
+#else
 	addr = (u32)fdtdec_get_addr(blob, node, "reg");
 	i2c_addr = addr;
 
@@ -72,6 +105,7 @@ int fdt_get_i2c_info(const void* blob, int node, u32 *pbus, u32 *paddr)
 	}
 	i2c_iobase = fdtdec_get_addr(blob, parent, "reg");
 	i2c_bus = i2c_get_bus_num_fdt(i2c_iobase);
+#endif /* CONFIG_ROCKCHIP_ARCH64 */
 
 	*pbus = i2c_bus;
 	*paddr = i2c_addr;
