@@ -62,10 +62,10 @@ static int cw201x_i2c_probe(u32 bus, u32 addr)
 static int cw201x_parse_dt(const void* blob)
 {
 	int err;
-	int node, parent;
-	u32 i2c_bus_addr, bus;
+	int node;
+	u32 bus, addr;
 	int ret;
-	fdt_addr_t addr;
+
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_CW201X);
 	if (node < 0) {
@@ -78,14 +78,12 @@ static int cw201x_parse_dt(const void* blob)
 		return -1;
 	}
 	
-	addr = fdtdec_get_addr(blob, node, "reg");
-	parent = fdt_parent_offset(blob, node);
-	if (parent < 0) {
-		debug("%s: Cannot find node parent\n", __func__);
-		return -1;
+	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
+	if (ret < 0) {
+		debug("fg cw201x get fdt i2c failed\n");
+		return ret;
 	}
-	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+
 	ret = cw201x_i2c_probe(bus, addr);
 	if (ret < 0) {
 		debug("fg cw201x i2c probe failed\n");

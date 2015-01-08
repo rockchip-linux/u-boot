@@ -85,10 +85,10 @@ static int ricoh619_i2c_probe(u32 bus, u32 addr)
 }
 int ricoh619_parse_dt(const void* blob)
 {
-	int node, parent, nd;
-	u32 i2c_bus_addr, bus;
+	int node, nd;
+	u32 bus, addr;
 	int ret;
-	fdt_addr_t addr;
+
 	node = fdt_node_offset_by_compatible(blob, 0,
 					COMPAT_RICOH_RICOH619);
 	if (node < 0) {
@@ -96,19 +96,16 @@ int ricoh619_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
-	if (!fdt_device_is_available(blob,node)) {
+	if (!fdt_device_is_available(blob, node)) {
 		debug("device ricoh619 is disabled\n");
 		return -1;
 	}
-	
-	addr = fdtdec_get_addr(blob, node, "reg");
-	parent = fdt_parent_offset(blob, node);
-	if (parent < 0) {
-		debug("%s: Cannot find node parent\n", __func__);
-		return -1;
+	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
+	if (ret < 0) {
+		debug("pmic ricoh619 get fdt i2c failed\n");
+		return ret;
 	}
-	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+
 	ret = ricoh619_i2c_probe(bus, addr);
 	if (ret < 0) {
 		debug("pmic ricoh619 i2c probe failed\n");
@@ -126,8 +123,8 @@ int ricoh619_parse_dt(const void* blob)
 	ricoh619.pmic->bus = bus;
 	debug("ricoh619 i2c_bus:%d addr:0x%02x\n", ricoh619.pmic->bus,
 		ricoh619.pmic->hw.i2c.addr);
+
 	return 0;
-	 
 }
 
 int pmic_ricoh619_init(unsigned char bus)

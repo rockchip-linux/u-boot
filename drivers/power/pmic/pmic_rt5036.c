@@ -51,11 +51,10 @@ static int rt5036_i2c_probe(u32 bus, u32 addr)
 
 static int rt5036_parse_dt(const void* blob)
 {
-	int node, parent, nd;
-	u32 i2c_bus_addr, bus;
+	int node, nd;
+	u32 bus, addr;
 	int ret;
-	fdt_addr_t addr;
-	struct fdt_gpio_state gpios[2];
+
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_RT5036);
 	if (node < 0) {
@@ -68,16 +67,12 @@ static int rt5036_parse_dt(const void* blob)
 		return -1;
 	}
 	
-	addr = fdtdec_get_addr(blob, node, "reg");
-	/*fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);*/
-	
-	parent = fdt_parent_offset(blob, node);
-	if (parent < 0) {
-		printf("%s: Cannot find node parent\n", __func__);
-		return -1;
+	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
+	if (ret < 0) {
+		debug("pmic rt5036 get fdt i2c failed\n");
+		return ret;
 	}
-	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+
 	ret = rt5036_i2c_probe(bus, addr);
 	if (ret < 0) {
 		printf("pmic rt5036 i2c probe failed\n");
@@ -93,8 +88,8 @@ static int rt5036_parse_dt(const void* blob)
 	rt5036.pmic->bus = bus;
 	printf("rt5036 i2c_bus:%d addr:0x%02x\n", rt5036.pmic->bus,
 		rt5036.pmic->hw.i2c.addr);
+
 	return 0;
-	 
 }
 
 static int rt5036_pre_init(unsigned char bus,uchar addr)

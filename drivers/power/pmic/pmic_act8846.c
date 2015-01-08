@@ -210,11 +210,11 @@ static int act8846_i2c_probe(u32 bus ,u32 addr)
 
 static int act8846_parse_dt(const void* blob)
 {
-	int node, parent, nd;
-	u32 i2c_bus_addr, bus;
-	int ret;
-	fdt_addr_t addr;
+	int node, nd;
 	struct fdt_gpio_state gpios[2];
+	u32 bus, addr;
+	int ret;
+
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ACTIVE_ACT8846);
 	if (node < 0) {
@@ -222,19 +222,17 @@ static int act8846_parse_dt(const void* blob)
 		return -ENODEV;
 	}
 
-	if (!fdt_device_is_available(blob,node)) {
+	if (!fdt_device_is_available(blob, node)) {
 		debug("device act8846 is disabled\n");
 		return -1;
 	}
-	addr = fdtdec_get_addr(blob, node, "reg");
-	
-	parent = fdt_parent_offset(blob, node);
-	if (parent < 0) {
-		debug("%s: Cannot find node parent\n", __func__);
-		return -1;
+
+	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
+	if (ret < 0) {
+		debug("pmic act8846 get fdt i2c failed\n");
+		return ret;
 	}
-	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+
 	ret = act8846_i2c_probe(bus, addr);
 	if (ret < 0) {
 		debug("pmic act8846 i2c probe failed\n");
@@ -247,15 +245,17 @@ static int act8846_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, act8846_reg_matches,
 					ACT8846_NUM_REGULATORS);
+
+	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
+
 	act8846.pmic = pmic_alloc();
 	act8846.node = node;
 	act8846.pmic->hw.i2c.addr = addr;
 	act8846.pmic->bus = bus;
-	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
 	act8846.pwr_hold.gpio = gpios[1].gpio;
 	act8846.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
+
 	return 0;
-	 
 }
 
 

@@ -179,11 +179,11 @@ static int act8931_i2c_probe(u32 bus ,u32 addr)
 
 static int act8931_parse_dt(const void* blob)
 {
-	int node, parent, nd;
-	u32 i2c_bus_addr, bus;
-	int ret;
-	fdt_addr_t addr;
+	int node, nd;
 	struct fdt_gpio_state gpios[2];
+	u32 bus, addr;
+	int ret;
+
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ACTIVE_ACT8931);
 	if (node < 0) {
@@ -195,15 +195,12 @@ static int act8931_parse_dt(const void* blob)
 		debug("device act8931 is disabled\n");
 		return -1;
 	}
-	addr = fdtdec_get_addr(blob, node, "reg");
-	
-	parent = fdt_parent_offset(blob, node);
-	if (parent < 0) {
-		debug("%s: Cannot find node parent\n", __func__);
-		return -1;
+	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
+	if (ret < 0) {
+		debug("pmic act8931 get fdt i2c failed\n");
+		return ret;
 	}
-	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+
 	ret = act8931_i2c_probe(bus, addr);
 	if (ret < 0) {
 		debug("pmic act8931 i2c probe failed\n");
@@ -216,15 +213,17 @@ static int act8931_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, act8931_reg_matches,
 					ACT8931_NUM_REGULATORS);
+
+	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
+
 	act8931.pmic = pmic_alloc();
 	act8931.node = node;
 	act8931.pmic->hw.i2c.addr = addr;
 	act8931.pmic->bus = bus;
-	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
 	act8931.pwr_hold.gpio = gpios[1].gpio;
 	act8931.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
+
 	return 0;
-	 
 }
 
 

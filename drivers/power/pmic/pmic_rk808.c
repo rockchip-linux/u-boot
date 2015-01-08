@@ -120,11 +120,11 @@ static int rk808_i2c_probe(u32 bus, u32 addr)
 
 static int rk808_parse_dt(const void* blob)
 {
-	int node, parent, nd;
-	u32 i2c_bus_addr, bus;
-	int ret;
-	fdt_addr_t addr;
+	int node, nd;
 	struct fdt_gpio_state gpios[2];
+	u32 bus, addr;
+	int ret;
+
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_RK808);
 	if (node < 0) {
@@ -137,16 +137,12 @@ static int rk808_parse_dt(const void* blob)
 		return -1;
 	}
 	
-	addr = fdtdec_get_addr(blob, node, "reg");
-	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
-	
-	parent = fdt_parent_offset(blob, node);
-	if (parent < 0) {
-		debug("%s: Cannot find node parent\n", __func__);
-		return -1;
+	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
+	if (ret < 0) {
+		debug("pmic rk808 get fdt i2c failed\n");
+		return ret;
 	}
-	i2c_bus_addr = fdtdec_get_addr(blob, parent, "reg");
-	bus = i2c_get_bus_num_fdt(i2c_bus_addr);
+
 	ret = rk808_i2c_probe(bus, addr);
 	if (ret < 0) {
 		debug("pmic rk808 i2c probe failed\n");
@@ -159,6 +155,9 @@ static int rk808_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, rk808_reg_matches,
 					RK808_NUM_REGULATORS);
+
+	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
+
 	rk808.pmic = pmic_alloc();
 	rk808.node = node;
 	rk808.pmic->hw.i2c.addr = addr;
@@ -167,8 +166,8 @@ static int rk808_parse_dt(const void* blob)
 	rk808.pwr_hold.flags = !(gpios[1].flags  & OF_GPIO_ACTIVE_LOW);
 	debug("rk808 i2c_bus:%d addr:0x%02x\n", rk808.pmic->bus,
 		rk808.pmic->hw.i2c.addr);
+
 	return 0;
-	 
 }
 
 int pmic_rk808_init(unsigned char bus)
