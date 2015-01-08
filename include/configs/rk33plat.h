@@ -81,8 +81,6 @@
 	#undef CONFIG_RK_PWM_REMOTE
 
 	#undef CONFIG_LCD
-	#undef CONFIG_POWER
-	#undef CONFIG_POWER_RK
 	#undef CONFIG_PM_SUBSYSTEM
 #endif
 
