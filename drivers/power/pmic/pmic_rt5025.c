@@ -75,7 +75,7 @@ static int rt5025_parse_dt(const void* blob)
 		return ret;
 	}
 
-	nd = fdt_get_regulator_node(blob, node);
+	nd = fdt_parent_offset(blob, node);
 	if (nd < 0)
 		printf("%s: Cannot find regulators\n", __func__);
 	else
