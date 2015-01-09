@@ -73,17 +73,13 @@ static int rt5036_parse_dt(const void* blob)
 		return ret;
 	}
 
-	ret = rt5036_i2c_probe(bus, addr);
-	if (ret < 0) {
+	nd = rt5036_i2c_probe(bus, addr);
+	if (nd < 0) {
 		printf("pmic rt5036 i2c probe failed\n");
-		return ret;
+		return -1;
 	}
 
-	nd = fdt_parent_offset(blob, node);
-	if (nd < 0)
-		printf("%s: Cannot find regulators\n", __func__);
-	else
-		fdt_regulator_match(blob, nd, rt5036_reg_matches,
+	fdt_regulator_match(blob, nd, rt5036_reg_matches,
 					RT5036_NUM_REGULATORS);
 	
 	rt5036.pmic = pmic_alloc();

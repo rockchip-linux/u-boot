@@ -69,17 +69,13 @@ static int rt5025_parse_dt(const void* blob)
 		return ret;
 	}
 
-	ret = rt5025_i2c_probe(bus, addr);
-	if (ret < 0) {
+	nd = rt5025_i2c_probe(bus, addr);
+	if (nd < 0) {
 		printf("pmic rt5025 i2c probe failed\n");
-		return ret;
+		return -1;
 	}
 
-	nd = fdt_parent_offset(blob, node);
-	if (nd < 0)
-		printf("%s: Cannot find regulators\n", __func__);
-	else
-		fdt_regulator_match(blob, nd, rt5025_reg_matches,
+	fdt_regulator_match(blob, nd, rt5025_reg_matches,
 					RT5025_NUM_REGULATORS);
 	
 	rt5025.pmic = pmic_alloc();

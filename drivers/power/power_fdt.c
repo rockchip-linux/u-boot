@@ -58,7 +58,7 @@ int fdt_get_regulator_node(const void * blob, int node)
 
 int fdt_get_i2c_info(const void* blob, int node, u32 *pbus, u32 *paddr)
 {
-	int parent, nd;
+	int parent;
 	u32 addr;
 	u32 i2c_bus, i2c_addr, i2c_iobase;
 
@@ -110,5 +110,5 @@ int fdt_get_i2c_info(const void* blob, int node, u32 *pbus, u32 *paddr)
 	*pbus = i2c_bus;
 	*paddr = i2c_addr;
 
-	return 0;
+	return parent;
 }
