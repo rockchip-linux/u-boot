@@ -639,6 +639,8 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 	/*get the lcd rst & en status*/
     node = fdtdec_next_compatible(blob, 0, COMPAT_ROCKCHIP_MIPI_PWR);
     if(node < 0){
+	screen->lcd_rst_gpio = INVALID_GPIO;
+	screen->lcd_en_gpio = INVALID_GPIO;
         MIPI_SCREEN_DBG("Can not get node of COMPAT_ROCKCHIP_MIPI_PWR\n");
     }else{	
 	#if 0
