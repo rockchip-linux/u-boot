@@ -30,9 +30,14 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General/Codec pll freq config */
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
+
+#ifdef CONFIG_PRODUCT_BOX
+#define CONFIG_RKCLK_GPLL_FREQ		300 /* MHZ */
+#define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
+#else
 #define CONFIG_RKCLK_GPLL_FREQ		297 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		384 /* MHZ */
-
+#endif
 
 /* Cpu clock source select */
 #define CPU_SRC_ARM_PLL			0
@@ -182,7 +187,11 @@ static const struct pll_clk_set gpll_clks[] = {
 static const struct pll_clk_set cpll_clks[] = {
 	//rate, nr, nf, no
 	_CPLL_SET_CLKS(798000, 2, 133, 2),
+#ifdef CONFIG_PRODUCT_BOX
+	_CPLL_SET_CLKS(594000, 1, 198, 8),
+#else
 	_CPLL_SET_CLKS(594000, 2, 198, 4),
+#endif
 	_CPLL_SET_CLKS(384000, 2, 128, 4),
 };
 
@@ -272,6 +281,11 @@ static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f
 
 	cru_writel(clkset->pllcon0, PLL_CONS(pll_id, 0));
 	cru_writel(clkset->pllcon1, PLL_CONS(pll_id, 1));
+#ifdef CONFIG_PRODUCT_BOX
+if (pll_id == CPLL_ID)
+		cru_writel(0, PLL_CONS(pll_id, 2));
+	else	
+#endif
 	cru_writel(clkset->pllcon2, PLL_CONS(pll_id, 2));
 
 	clk_loop_delayus(5);
@@ -1186,7 +1200,11 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
  * 0 - codec pll, 1 - general pll
  */
 /* lcdc0 as prmry (LCD) and lcdc1 as extend (HDMI) */
+#ifdef CONFIG_PRODUCT_BOX
+#define RK3288_LIMIT_PLL_VIO0	(594*MHZ)//(410*MHZ)
+#else
 #define RK3288_LIMIT_PLL_VIO0	(410*MHZ)
+#endif
 #define RK3288_LIMIT_PLL_VIO1	(350*MHZ)
 
 static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dclk_div)
@@ -1208,6 +1226,11 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dcl
 
 		div = vio_limit_freq / rate_hz;
 		pll_hz = div * rate_hz;
+#ifdef CONFIG_PRODUCT_BOX
+	if (pll_hz == CONFIG_RKCLK_CPLL_FREQ * MHZ)
+			rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
+		else
+#endif
 		rkclk_set_cpll_rate(pll_hz);
 
 		pll_hz = rkclk_pll_get_rate(CPLL_ID);

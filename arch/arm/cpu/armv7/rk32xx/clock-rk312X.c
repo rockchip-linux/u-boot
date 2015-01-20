@@ -28,7 +28,12 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General pll freq config */
+#ifdef CONFIG_PRODUCT_BOX
+#define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
+#else
 #define CONFIG_RKCLK_APLL_FREQ		300 /* MHZ */
+#endif
+
 #define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		400 /* MHZ */
 
