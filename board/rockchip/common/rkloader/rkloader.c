@@ -240,6 +240,13 @@ int rkloader_run_misc_cmd(void)
 		do_bootrk(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
 #endif
 		return false;
+	} else if (!strcmp(bmsg->command, "boot-factory")) {
+                printf("got factory cmd from misc.\n");
+#ifdef CONFIG_CMD_BOOTRK
+                char *const boot_cmd[] = {"bootrk", "factory"};
+                do_bootrk(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
+#endif
+		return false;
 	} else if((!strcmp(bmsg->command, "bootloader")) ||
 			(!strcmp(bmsg->command, "loader"))) {
 		printf("got bootloader cmd from misc.\n");

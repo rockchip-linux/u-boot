@@ -157,6 +157,8 @@ typedef struct tag_second_loader_hdr
 #define SYSTEM_NAME     "system"
 #define BACKUP_NAME     "backup"
 #define RESOURCE_NAME   "resource"
+#define LOGO_NAME       "logo"
+#define FACTORY_NAME    "factory"
 
 
 int rkimage_load_image(rk_boot_img_hdr *hdr, const disk_partition_t *boot_ptn, \
