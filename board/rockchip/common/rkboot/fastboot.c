@@ -184,6 +184,9 @@ int board_fbt_key_pressed(void)
 		frt = FASTBOOT_REBOOT_RECOVERY;
 	} else if ((boot_rockusb && (vbus!=0)) || (ir_keycode  == KEY_HOME)) {
 		printf("rockusb key pressed.\n");
+#if defined(CONFIG_RK_PWM_REMOTE)
+		RemotectlDeInit();//close remote intterrupt  after rockusb key pressed
+#endif
 		/* rockusb key press, set flag = 1 for rockusb timeout check */
 		if (do_rockusb(NULL, 1, 0, NULL) == 1) {
 			/* if rockusb return 1, boot recovery */
@@ -464,6 +467,13 @@ void board_fbt_preboot(void)
 		mdelay(100);
 		rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
 	}
+#endif
+
+#ifdef CONFIG_RK_PWM_REMOTE
+	if ((frt == FASTBOOT_REBOOT_UNKNOWN) || (frt == FASTBOOT_REBOOT_NORMAL)) {
+		frt = board_fbt_key_pressed();
+	}
+	RemotectlDeInit();
 #endif
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {

@@ -131,6 +131,10 @@ int arch_early_init_r(void)
 #endif
 #endif /* CONFIG_RK_DMAC*/
 
+#ifdef CONFIG_RK_PWM_REMOTE
+	RemotectlInit();
+#endif
+
 	return 0;
 }
 #endif
@@ -148,9 +152,6 @@ int board_late_init(void)
 
 	load_disk_partitions();
 
-#ifdef CONFIG_RK_PWM_REMOTE
-        RemotectlInit();
-#endif
 	rkimage_prepare_fdt();
 	key_init();
 #ifdef CONFIG_POWER_RK

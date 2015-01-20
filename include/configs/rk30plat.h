@@ -130,7 +130,6 @@
 
 #define CONFIG_RK3036_FB
 
-#undef CONFIG_RK_HDMI
 #ifdef CONFIG_RK_HDMI
 #define CONFIG_RK3036_HDMI
 #endif

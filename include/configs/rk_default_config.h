@@ -233,6 +233,10 @@
  * Size of malloc() pool
  */
 #define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + SZ_2M)
+/*
+* bmp max size
+*/
+#define CONFIG_MAX_BMP_BLOCKS		(SZ_8M / BLOCK_SIZE)
 
 /* rockchip global buffer. */
 #define CONFIG_RK_GLOBAL_BUFFER_SIZE			(SZ_4M)
@@ -352,7 +356,11 @@
 
 #define CONFIG_RK_FB
 #define CONFIG_RK_PWM
+
+/* rk box use hdmi display */
+#ifdef CONFIG_PRODUCT_BOX
 #define CONFIG_RK_HDMI
+#endif
 
 #define CONFIG_LCD_LOGO
 #define CONFIG_LCD_BMP_RLE8
