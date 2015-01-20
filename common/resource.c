@@ -287,10 +287,30 @@ bool load_content_data(resource_content* content,
 bool show_resource_image(const char* image_path) {
 	bool ret = false;
 #ifdef CONFIG_LCD
+	bmp_image_t *bmp = NULL;
+	const disk_partition_t* ptn = get_disk_partition(LOGO_NAME);
 	resource_content image;
 	memset(&image, 0, sizeof(image));
 	snprintf(image.path, sizeof(image.path), "%s", image_path);
-	if (get_content(0, &image)) {
+
+	if(ptn)
+	{
+		//bmp = (void*)memalign(ARCH_DMA_MINALIGN, CONFIG_MAX_BMP_BLOCKS * BLOCK_SIZE);
+		bmp = (void *)gd->arch.rk_boot_buf_addr;
+		read_storage(ptn->start, bmp, CONFIG_MAX_BMP_BLOCKS);
+		printf("bmp image at 0x%lx, sign:%c%c\n", bmp, bmp->header.signature[0], bmp->header.signature[1]);
+	}
+
+	if(ptn && bmp && bmp->header.signature[0] == 'B' && bmp->header.signature[1] == 'M')
+	{
+		printf("%s:show logo.bmp from logo partition\n",__func__);
+		lcd_display_bitmap_center((uint32_t)bmp);
+		ret = true;
+	}
+	else
+	{
+		if (get_content(0, &image)) {
+		printf("%s:show logo from resource or boot partition\n",__func__);
 		int blocks = (image.content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 		if (image.content_size > CONFIG_RK_BOOT_BUFFER_SIZE) {
@@ -307,9 +327,11 @@ bool show_resource_image(const char* image_path) {
 		lcd_display_bitmap_center((uint32_t)image.load_addr);
 
 		ret = true;
-	} else {
-		FBTERR("Failed to load image:%s\n", image_path);
+		} else {
+			FBTERR("Failed to load image:%s\n", image_path);
+		}
 	}
+
 #endif
 	return ret;
 }

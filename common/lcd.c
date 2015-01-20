@@ -1155,10 +1155,12 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	splash_align_axis(&y, panel_info.vl_row, height);
 #endif /* CONFIG_SPLASH_SCREEN_ALIGN */
 
+#ifndef CONFIG_PRODUCT_BOX
 	if ((x + width) > pwidth)
 		width = pwidth - x;
 	if ((y + height) > panel_info.vl_row)
 		height = panel_info.vl_row - y;
+#endif
 
   	bmap = (uchar *)bmp + get_unaligned_le32(&bmp->header.data_offset);
 #if defined(CONFIG_RK_FB)
@@ -1267,12 +1269,22 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		break;
 	};
 #if defined(CONFIG_RK_FB)
+#ifdef CONFIG_PRODUCT_BOX
+	fb_info.xpos = 0;
+	fb_info.ypos = 0;
+	fb_info.xact = width;
+	fb_info.yact = height;
+	fb_info.xsize = panel_info.vl_col;
+	fb_info.ysize = panel_info.vl_row;
+#else
 	fb_info.xpos = x;
 	fb_info.ypos = y;
 	fb_info.xact = width;
 	fb_info.yact = height;
 	fb_info.xsize = fb_info.xact;
 	fb_info.ysize = fb_info.yact;
+#endif
+	
 	fb_info.xvir = fb_info.xact;
 	fb_info.layer_id = WIN0;
 	fb_info.format = format;
