@@ -1237,7 +1237,9 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	case SCREEN_TVOUT:
 	case SCREEN_TVOUT_TEST:
 		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL,
-			      m_TVE_DAC_DCLK_EN, v_TVE_DAC_DCLK_EN(1));
+			      m_TVE_DAC_DCLK_EN | m_HDMI_DCLK_EN,
+			      v_TVE_DAC_DCLK_EN(1) |
+			      v_HDMI_DCLK_EN(1));
 		if (vid->pixelrepeat) {
 			lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL,
 				      m_CORE_CLK_DIV_EN, v_CORE_CLK_DIV_EN(1));
@@ -1287,6 +1289,9 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		      v_BLANK_EN(0) | v_DSP_OUT_ZERO(0) | v_DSP_BG_SWAP(0) |
 		      v_DSP_RG_SWAP(0) | v_DSP_RB_SWAP(0) | v_BG_COLOR(0) |
 		      v_DSP_DELTA_SWAP(0) | v_DSP_DUMMY_SWAP(0));
+
+	if (gd->arch.chiptype == CONFIG_RK3036)
+	    bg_val = 0;
 
 	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, m_BG_COLOR,
 		      v_BG_COLOR(bg_val));

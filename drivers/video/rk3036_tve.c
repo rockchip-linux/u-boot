@@ -25,6 +25,7 @@
 #include <asm/arch/rkplat.h>
 #include "rockchip_fb.h"
 #include "rk3036_tve.h"
+#include <../board/rockchip/common/config.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -125,7 +126,10 @@ static void tve_set_mode (int mode)
 			v_Y_SYNC_ON(1) | v_PIC_MODE(mode));
 		tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_NTSC) | v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
 		tve_writel(TV_SATURATION, 0x0052543C);
+		if(tve_s.test_mode)
 		tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008300);
+		else
+		tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00007900);
 		
 		tve_writel(TV_FREQ_SC,	0x21F07BD7);
 		tve_writel(TV_SYNC_TIMING, 0x00C07a81);
@@ -144,7 +148,10 @@ static void tve_set_mode (int mode)
 			tve_writel(TV_SATURATION, tve_s.saturation);
 			else
 			tve_writel(TV_SATURATION, /*0x00325c40*/ 0x002b4d3c);
+			if(tve_s.test_mode)
 			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008a0a);
+			else
+			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x0000800a);
 		} else {
 			tve_writel(TV_SATURATION, /*0x00325c40*/ 0x00386346);
 			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008b00);
@@ -245,6 +252,9 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 
 int rk3036_tve_init(vidinfo_t *panel)
 {
+	int val = 0;
+	int node = 0;
+
 #if defined(CONFIG_RKCHIP_RK3036)
 	tve_s.reg_phy_base = 0x10118000 + 0x200;
 	tve_s.soctype = SOC_RK3036;
@@ -252,11 +262,6 @@ int rk3036_tve_init(vidinfo_t *panel)
 #elif defined(CONFIG_RKCHIP_RK3128)
 	tve_s.reg_phy_base = 0x1010e000 + 0x200;
 	tve_s.soctype = SOC_RK312X;
-//	printf("%s start soc is 3128\n", __func__);
-#endif
-	int val = 0;
-	int node = 0;
-
 	tve_s.saturation = 0;
 
 	if (gd->fdt_blob)
@@ -278,6 +283,8 @@ int rk3036_tve_init(vidinfo_t *panel)
 
 	}
 	printf("test_mode=%d,saturation=0x%x\n", tve_s.test_mode, tve_s.saturation);
+//	printf("%s start soc is 3128\n", __func__);
+#endif
 
 	rk3036_tve_init_panel(panel);
 

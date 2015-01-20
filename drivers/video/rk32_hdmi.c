@@ -216,6 +216,9 @@ static void hdmi_dev_init(struct hdmi_dev *hdmi_dev)
 	//lcdc source select
 	//grf_writel(HDMI_SEL_LCDC(0), GRF_SOC_CON6);	
 
+	//set edid gpio to high Z mode
+	grf_writel(0xF << 22, GRF_GPIO7C_P);
+	
 	// reset hdmi
 	writel((1 << 9) | (1 << 25), RKIO_CRU_PHYS + 0x01d4);
 	udelay(1);

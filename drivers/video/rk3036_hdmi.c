@@ -26,6 +26,7 @@
 
 #include "rk_hdmi.h"
 #include "rk3036_hdmi.h"
+#include <../board/rockchip/common/config.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
