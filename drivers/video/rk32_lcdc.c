@@ -1553,6 +1553,7 @@ extern int rk32_edp_enable(vidinfo_t * vid);
 extern int rk32_mipi_enable(vidinfo_t * vid);
 extern int rk32_dsi_enable(void);
 extern int rk32_dsi_sync(void);
+extern int rk32_dsi_disable(void);
 
 static int inline lvds_writel(uint32 offset, uint32 val)
 {
@@ -1872,7 +1873,13 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 void rk_lcdc_standby(int enable)
 {
 	struct lcdc_device *lcdc_dev = &rk32_lcdc;
-
+	if(enable == 0) {
+		rk32_dsi_enable();
+		rk32_dsi_sync();
+	}
+	else {
+		rk32_dsi_disable();
+	}
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_STANDBY_EN,
 		     v_STANDBY_EN(enable ? 1 : 0));
 	lcdc_cfg_done(lcdc_dev);
