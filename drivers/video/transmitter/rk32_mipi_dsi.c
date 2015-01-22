@@ -1679,7 +1679,17 @@ static int dwc_phy_test_rd(struct dsi *dsi, unsigned char test_code)
     return val;
 }
 #endif
-static int rk32_dsi_enable(void)
+int rk32_dsi_disable(void)
+{
+	MIPI_DBG("rk32_dsi_disable-------\n");
+	rk_mipi_screen_standby(1);
+	dsi_power_off(0);
+	if (rk_mipi_get_dsi_num() == 2)
+		dsi_power_off(1);
+	return 0;
+}
+
+int rk32_dsi_enable(void)
 {
 	MIPI_DBG("rk32_dsi_enable-------\n");
 	/*
