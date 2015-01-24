@@ -88,6 +88,41 @@ vidinfo_t panel_info = {
 #endif
 };
 
+void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
+{
+    screen->type        = vid->screen_type;
+    screen->face        = vid->lcd_face;
+   screen->color_mode   = vid->color_mode;
+   //screen->dsp_lut    = ?
+   //screen->cabc_lut   = ?
+   screen->mode.hsync_len   = vid->vl_hspw;
+   screen->mode.left_margin = vid->vl_hbpd;
+   screen->mode.xres        = vid->vl_col;
+   screen->mode.right_margin= vid->vl_hfpd;
+   
+   screen->mode.vsync_len   = vid->vl_vspw;
+   screen->mode.upper_margin= vid->vl_vbpd;
+   screen->mode.yres        = vid->vl_row;
+   screen->mode.left_margin = vid->vl_vfpd;
+   screen->mode.vmode       = vid->vmode;
+
+   screen->pin_hsync        = vid->vl_hsp;
+   screen->pin_vsync        = vid->vl_vsp;
+   screen->pin_dclk         = vid->vl_clkp;
+   screen->pin_den          = vid->vl_oep;
+
+   screen->overscan.left    = 0;
+   screen->overscan.right   = 0;
+   screen->overscan.top     = 0;
+   screen->overscan.bottom  = 0;
+   screen->swap_gb          = 0;
+   screen->swap_rb          = 0;
+   screen->swap_rg          = 0;
+   screen->swap_delta       = 0;
+   screen->swap_dumy        = 0;
+   screen->x_mirror         = 0;
+   screen->y_mirror         = 0;
+}
 
 void rk_backlight_ctrl(int brightness)
 {
@@ -246,6 +281,7 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	panel_info.vl_bpix = 5;
 	panel_info.lvds_ttl_en  = 0;
 	panel_info.screen_type = fdtdec_get_int(blob, node, "screen-type", -1);
+	panel_info.color_mode = fdtdec_get_int(blob, node, "color-mode", 0);
 	panel_info.lcd_face = fdtdec_get_int(blob, node, "out-face", -1);
 	if (panel_info.lcd_face == (uchar)-1) {
 		debug("Can't get out-face set to OUT_D888_P666 for default\n");

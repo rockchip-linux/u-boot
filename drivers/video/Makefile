@@ -45,6 +45,7 @@ obj-$(CONFIG_FORMIKE) += formike.o
 obj-$(CONFIG_RK_FB) += rockchip_fb.o
 obj-$(CONFIG_RK32_FB) +=  rk32_lcdc.o rk32_dp.o rk32_dp_reg.o
 obj-$(CONFIG_RK3036_FB) +=  rk3036_lcdc.o
+obj-$(CONFIG_RK33_FB) +=  rk3368_lcdc.o rk31xx_lvds.o
 obj-$(CONFIG_RK_HDMI) += rk_hdmi.o
 obj-$(CONFIG_RK32_HDMI) +=  rk32_hdmi.o
 obj-$(CONFIG_RK3036_HDMI) +=  rk3036_hdmi.o

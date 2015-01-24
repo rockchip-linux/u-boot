@@ -21,7 +21,7 @@
  */
 #ifndef _SCREEN_H
 #define _SCREEN_H
-
+#include <linux/fb.h>
 typedef enum _REFRESH_STAGE {
 	REFRESH_PRE = 0,
 	REFRESH_END,
@@ -65,7 +65,12 @@ struct rk29lcd_info {
 	int (*io_disable)(void);
 };
 
-
+struct overscan {
+	unsigned char left;
+	unsigned char top;
+	unsigned char right;
+	unsigned char bottom;
+};
 /* Screen description 
 *type:LVDS,RGB,MIPI,MCU
 *lvds_fromat:lvds data format,set it if the screen is lvds
@@ -76,6 +81,7 @@ struct rk_screen {
 	u16 type;
 	u16 lvds_format; 
 	u16 face;
+	u16 color_mode;
 	u8 lcdc_id;   
 	u8 screen_id; 
 	struct fb_videomode mode;
@@ -86,12 +92,14 @@ struct rk_screen {
 	u16 x_mirror;
 	u16 y_mirror;
 	int interlace;
+	int pixelrepeat; //For 480i/576i format, pixel is repeated twice.
 	u16 width;
 	u16 height;
 	u8  ft;
-	int *dsp_lut; 
+	int *dsp_lut;
+	int *cabc_lut;
 
-#if defined(CONFIG_MFD_RK616)
+#if defined(CONFIG_MFD_RK616) || defined(CONFIG_LCDC_RK312X)
 	u32 pll_cfg_val;  //bellow are for jettaB
 	u32 frac;
 	u16 scl_vst;
@@ -128,6 +136,7 @@ struct rk_screen {
 	int xsize; //horizontal and vertical display size on he screen,they can be changed by application
 	int ysize;
 	struct rk_screen *ext_screen;
+	struct overscan overscan;
 	/* Operation function*/
 	int (*init)(void);
 	int (*standby)(u8 enable);
@@ -135,7 +144,7 @@ struct rk_screen {
 	int (*scandir)(u16 dir);
 	int (*disparea)(u8 area);
 	int (*sscreen_get)(struct rk_screen *screen, u8 resolution);
-	int (*sscreen_set)(struct rk_screen *screen, bool type);// 1: use scaler 0:bypass
+	int (*sscreen_set)(struct rk_screen *screen, bool type);
 };
 
 struct rk29fb_info {
