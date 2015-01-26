@@ -514,7 +514,12 @@ static bool writeFile(FILE* outFile, const char* path, bool fix) {
 		goto end;
 	if (fix) {
 		fixSize = ((size - 1) / SMALL_PACKET + 1) * SMALL_PACKET;
+		uint32_t tmp = fixSize % ENTRY_ALIGN;
+		tmp = tmp ? (ENTRY_ALIGN - tmp): 0;
+		fixSize +=tmp;
 		memset(gBuf, 0, fixSize);
+	} else {
+		memset(gBuf, 0, size+ENTRY_ALIGN);
 	}
 	if (!fread(gBuf, size, 1, inFile))
 		goto end;
@@ -531,14 +536,13 @@ static bool writeFile(FILE* outFile, const char* path, bool fix) {
 			fixSize -= SMALL_PACKET;
 		}
 	} else {
+		uint32_t tmp = size % ENTRY_ALIGN;
+		tmp = tmp ? (ENTRY_ALIGN - tmp): 0;
+		size +=tmp;
 		P_RC4(gBuf, size);
 	}
 
 	if (!fwrite(gBuf, size, 1, outFile))
-		goto end;
-	uint32_t tmp = size % ENTRY_ALIGN;
-	tmp = tmp ? (ENTRY_ALIGN - tmp): 0;
-	if (tmp && !fwrite(gBuf, tmp, 1, outFile))
 		goto end;
 	ret = true;
 end:
