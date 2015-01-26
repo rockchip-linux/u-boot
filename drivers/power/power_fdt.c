@@ -65,6 +65,7 @@ int fdt_get_i2c_info(const void* blob, int node, u32 *pbus, u32 *paddr)
 #ifdef CONFIG_ROCKCHIP_ARCH64
 	uint32_t *cell = NULL;
 	int addrcells = 0;
+	int nd;
 
 	/* Note: i2c device address should be 32bit size */
 	cell = fdt_getprop(blob, node, "reg", NULL);
