@@ -19,7 +19,7 @@
 #define CONFIG_RAM_PHY_END		(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE)
 
 /* reserve iomap memory. */
-#define CONFIG_MAX_MEM_ADDR		0xFF000000
+#define CONFIG_MAX_MEM_ADDR		0xFE000000
 
 
 /*
