@@ -1452,13 +1452,14 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 void rk_lcdc_standby(int enable)
 {
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
-
+#if defined(CONFIG_RK32_DSI)
 	if(enable == 0) {
 		rk32_dsi_enable();
 	}
 	else if(enable == 1) {
 		rk32_dsi_disable();
 	}
+#endif
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_LCDC_STANDBY,
 		     v_LCDC_STANDBY(enable ? 1 : 0));
 	lcdc_cfg_done(lcdc_dev);
