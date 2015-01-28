@@ -113,7 +113,7 @@
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
-#if 0
+#ifdef CONFIG_RK_UMS_BOOT_EN
 /* dwc otg */
 #define CONFIG_USB_DWC_HCD
 /* echi */

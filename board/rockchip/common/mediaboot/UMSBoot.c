@@ -10,17 +10,13 @@ Modified:
 Revision:   1.00
 ********************************************************************************
 ********************************************************************************/
-#include <common.h>
-#include <part.h>
+#include "../config.h"
 #include <usb.h>
-#include <asm/arch/typedef.h>
 #include <asm/arch/usbhost.h>
-#include <asm/arch/gpio.h>
 #include "UMSBoot.h"
 
 struct rkusb_hcd_cfg *rkusb_active_hcd = NULL;
 
-#ifdef CONFIG_RK_UMS_BOOT_EN
 #define UMS_BOOT_PART_SIZE	1024
 #define UMS_BOOT_PART_OFFSET	64
 #define UMS_FW_PART_OFFSET	8192
@@ -241,4 +237,7 @@ uint32 UMSGetCapacity(uint8 ChipSel)
 	return ERROR;
 }
 
-#endif
+uint32 UMSGetBootMode(void)
+{
+	return g_umsboot_mode;
+}

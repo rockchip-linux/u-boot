@@ -98,7 +98,7 @@
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
-#if 1
+#ifdef CONFIG_RK_UMS_BOOT_EN
 #define CONFIG_CMD_USB
 #define CONFIG_USB_STORAGE
 #define CONFIG_PARTITIONS

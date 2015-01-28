@@ -83,6 +83,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #endif
 
 
+/* rk ums boot config */
+#ifdef CONFIG_RK_UMS_BOOT_EN
+	#define RK_UMS_BOOT_EN
+#endif
+
+
 #define __packed	__attribute__((packed))
 #define __align(x)	__attribute__ ((aligned(x)))
 

@@ -40,7 +40,7 @@ obj-y += emmc/hw_SDM.o
 obj-y += emmc/hw_SDOsAdapt.o
 obj-y += emmc/hw_SDPlatAdapt.o
 obj-y += mediaboot/sdmmcBoot.o
-obj-y += mediaboot/UMSBoot.o
+obj-$(CONFIG_RK_UMS_BOOT_EN) += mediaboot/UMSBoot.o
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 obj-y += mediaboot/nandflash_boot.o
 endif

@@ -365,6 +365,8 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 		medianame = "emmc";
 	} else if (media == BOOT_FROM_SD0) {
 		medianame = "sd";
+	} else if (media == BOOT_FROM_UMS) {
+		medianame = "ums";
 	}
 
 	if (medianame != NULL) {
@@ -378,6 +380,14 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 				"%s %s", command_line, "sdfwupdate");
 	}
 #endif
+
+#ifdef CONFIG_RK_UMS_BOOT_EN
+	if (StorageUMSUpdateMode() != 0) { // ums update
+		snprintf(command_line, sizeof(command_line),
+				"%s %s", command_line, "usbfwupdate");
+	}
+#endif
+
 	if (charge) {
 		snprintf(command_line, sizeof(command_line),
 				"%s %s", command_line, "androidboot.mode=charger");
