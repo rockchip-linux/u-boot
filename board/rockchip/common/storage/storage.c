@@ -126,8 +126,36 @@ MEM_FUN_T sd0FunOp =
 };
 #endif
 
+#ifdef CONFIG_RK_UMS_BOOT_EN
+MEM_FUN_T UMSFunOp =
+{
+	0,
+	BOOT_FROM_UMS,
+	0,
+	UMSInit,
+	NULL,
+	UMSReadPBA,
+	NULL,
+	UMSReadLBA,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	UMSGetCapacity,
+	NULL,
+	NULL,
+};
+#endif
+
 static MEM_FUN_T *memFunTab[] = 
 {
+#ifdef CONFIG_RK_UMS_BOOT_EN
+	&UMSFunOp,
+#endif
+
 #ifdef RK_SDCARD_BOOT_EN
 	&sd0FunOp,
 #endif

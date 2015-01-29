@@ -159,6 +159,10 @@ DECLARE_GLOBAL_DATA_PTR;
 #include "mediaboot/nandflash_boot.h"
 #endif
 
+#ifdef CONFIG_RK_UMS_BOOT_EN
+#include "mediaboot/UMSBoot.h"
+#endif
+
 // by cmy
 #define SYS_LOADER_REBOOT_FLAG		0x5242C300  //高24是TAG,低8位是标记
 #define SYS_KERNRL_REBOOT_FLAG		0xC3524200  //高24是TAG,低8位是标记

@@ -15,11 +15,12 @@ obj-$(CONFIG_USB_SL811HS) += sl811-hcd.o
 obj-$(CONFIG_USB_OHCI_S3C24XX) += ohci-s3c24xx.o
 obj-$(CONFIG_USB_OHCI_EP93XX) += ohci-ep93xx.o
 
+# dwc2
+obj-$(CONFIG_USB_DWC_HCD) += dwc_hcd.o
+
 # echi
 obj-$(CONFIG_USB_EHCI) += ehci-hcd.o
 obj-$(CONFIG_USB_EHCI_RK) += ehci-rk.o
-obj-$(CONFIG_USB_DWC_HCD) += dwc_hcd.o
-
 obj-$(CONFIG_USB_EHCI_ARMADA100) += ehci-armada100.o utmi-armada100.o
 obj-$(CONFIG_USB_EHCI_ATMEL) += ehci-atmel.o
 ifdef CONFIG_MPC512X

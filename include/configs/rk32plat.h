@@ -98,15 +98,13 @@
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
-#if 0
-/* dwc otg */
-#define CONFIG_USB_DWC_HCD
-/* echi */
-#undef CONFIG_USB_EHCI
-#undef CONFIG_USB_EHCI_RK
-
+#if 1
 #define CONFIG_CMD_USB
 #define CONFIG_USB_STORAGE
+#define CONFIG_PARTITIONS
+/* #define CONFIG_USB_DWC_HCD */
+#define CONFIG_USB_EHCI
+#define CONFIG_USB_EHCI_RK
 #endif
 
 
