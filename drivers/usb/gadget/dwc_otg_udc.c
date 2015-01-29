@@ -650,6 +650,25 @@ void udc_unset_nak(int epid)
 	/* noop */
 }
 
+char fixed_csw[13] __attribute__((aligned(ARCH_DMA_MINALIGN))) =
+	{'U','S','B','S', 0, 0, 0, 0, 0, 0, 0, 0, 1};
+
+static bool dwc_otg_fix_test_ready(int len, void *buf)
+{
+	int i;
+	bool ret = FW_StorageGetValid();
+
+	if(ret == 0) {//low formating... & received TUR command
+		printf("...\n");
+		for (i = 4; i < 8; i++)
+			fixed_csw[i] = *((char *)buf + i);
+		WriteBulkEndpoint(13, &fixed_csw);
+		ReadBulkEndpoint(31, buf);
+	}
+
+	return ret;
+}
+
 static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 {
 	usbdbg("-> Entering device setup\n");
@@ -940,6 +959,8 @@ static void dwc_otg_epn_rx(uint32_t len)
 			//get available size for next xfer.
 			remaining_space = urb->buffer_length - urb->actual_length;
 			usbdbg("buffer_length:%d, actual_length:%x, len:%x\n", urb->buffer_length, urb->actual_length, len);
+			if (!dwc_otg_fix_test_ready(len, urb->buffer))
+				return;
 			len = len <= remaining_space ? len : remaining_space;
 		}
 		urb->status = RECV_OK;
