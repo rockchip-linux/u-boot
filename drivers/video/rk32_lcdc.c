@@ -1873,13 +1873,17 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 void rk_lcdc_standby(int enable)
 {
 	struct lcdc_device *lcdc_dev = &rk32_lcdc;
-	if(enable == 0) {
-		rk32_dsi_enable();
-		rk32_dsi_sync();
+#if defined(CONFIG_RK32_DSI)
+	if ((panel_info.screen_type == SCREEN_MIPI)||
+			   (panel_info.screen_type == SCREEN_DUAL_MIPI)) {
+		if (enable == 0) {
+			rk32_dsi_enable();
+			rk32_dsi_sync();
+		} else if (enable == 1) {
+			rk32_dsi_disable();
+		}
 	}
-	else {
-		rk32_dsi_disable();
-	}
+#endif
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_STANDBY_EN,
 		     v_STANDBY_EN(enable ? 1 : 0));
 	lcdc_cfg_done(lcdc_dev);
