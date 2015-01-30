@@ -1453,11 +1453,13 @@ void rk_lcdc_standby(int enable)
 {
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
 #if defined(CONFIG_RK32_DSI)
-	if(enable == 0) {
-		rk32_dsi_enable();
-	}
-	else if(enable == 1) {
-		rk32_dsi_disable();
+	if ((panel_info.screen_type == SCREEN_MIPI)||
+			   (panel_info.screen_type == SCREEN_DUAL_MIPI)) {
+		if (enable == 0) {
+			rk32_dsi_enable();
+		} else if (enable == 1) {
+			rk32_dsi_disable();
+		}
 	}
 #endif
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_LCDC_STANDBY,
