@@ -17,24 +17,13 @@
 int ehci_hcd_init(int index, enum usb_init_type init,
 		struct ehci_hccr **hccr, struct ehci_hcor **hcor)
 {
-	if (!rkusb_active_hcd->enable)
-		return -ENODEV;
-
 	if (init == USB_INIT_DEVICE)
 		return -ENODEV;
-
-	/* USB hardware init */
-	if (rkusb_active_hcd->hw_init)
-		rkusb_active_hcd->hw_init();
-	/* TODO: Power enable for ehci hcd 1.2V, external 5V power */
-	/* Enable VBus */
-	if (rkusb_active_hcd->gpio_vbus)
-		gpio_direction_output(rkusb_active_hcd->gpio_vbus, 1);
 	
 	*hccr = (struct ehci_hccr *)(rkusb_active_hcd->regbase);
 	*hcor = (struct ehci_hcor *)(rkusb_active_hcd->regbase + 0x10);
 
-	printf("%d index %d,complete\n", index);
+	printf("ehci_hcd_init index %d,complete\n", index);
 	return 0;
 }
 

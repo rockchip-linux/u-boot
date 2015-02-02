@@ -108,22 +108,20 @@
 
 #endif /* CONFIG_CMD_FASTBOOT */
 
-
 /*
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
 #ifdef CONFIG_RK_UMS_BOOT_EN
-/* dwc otg */
+#if (defined(CONFIG_RKCHIP_RK3128) || \
+     defined(CONFIG_RKCHIP_RK3126) ) && \
+     defined(RKUSB_UMS_BOOT_FROM_HOST1)
+#define CONFIG_USB_EHCI
+#define CONFIG_USB_EHCI_RK
+#else
 #define CONFIG_USB_DWC_HCD
-/* echi */
-#undef CONFIG_USB_EHCI
-#undef CONFIG_USB_EHCI_RK
-
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
 #endif
-
+#endif
 
 /* more config for display */
 #ifdef CONFIG_LCD

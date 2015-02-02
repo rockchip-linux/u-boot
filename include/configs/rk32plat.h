@@ -93,20 +93,18 @@
 
 #endif /* CONFIG_CMD_FASTBOOT */
 
-
 /*
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
 #ifdef CONFIG_RK_UMS_BOOT_EN
-#define CONFIG_CMD_USB
-#define CONFIG_USB_STORAGE
-#define CONFIG_PARTITIONS
-/* #define CONFIG_USB_DWC_HCD */
+#if defined(RKUSB_UMS_BOOT_FROM_OTG) || defined(RKUSB_UMS_BOOT_FROM_HOST2)
+#define CONFIG_USB_DWC_HCD
+#elif defined(RKUSB_UMS_BOOT_FROM_HOST1) || (RKUSB_UMS_BOOT_FROM_HSIC)
 #define CONFIG_USB_EHCI
 #define CONFIG_USB_EHCI_RK
 #endif
-
+#endif
 
 /* more config for display */
 #ifdef CONFIG_LCD

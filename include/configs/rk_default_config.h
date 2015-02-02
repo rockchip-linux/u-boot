@@ -260,6 +260,30 @@
 #define CONFIG_RK_FLASH_BOOT_EN
 #endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
 
+/*
+ * USB Host support, default no using
+ * Please first select USB host controller if you want to use UMS Boot
+ * Up to one USB host controller could be selected to enable for booting 
+ * from USB Mass Storage device.
+ */
+/* Select up to one from these four */
+#undef RKUSB_UMS_BOOT_FROM_OTG
+#undef RKUSB_UMS_BOOT_FROM_HOST1
+#undef RKUSB_UMS_BOOT_FROM_HOST2
+#undef RKUSB_UMS_BOOT_FROM_HSIC
+
+#define RKUSB_UMS_BOOT_CNT (defined(RKUSB_UMS_BOOT_FROM_OTG) + \
+			    defined(RKUSB_UMS_BOOT_FROM_HOST1) +\
+			    defined(RKUSB_UMS_BOOT_FROM_HOST2) + \
+			    defined(RKUSB_UMS_BOOT_FROM_HSIC))
+#if (RKUSB_UMS_BOOT_CNT == 1)
+#define CONFIG_RK_UMS_BOOT_EN
+#define CONFIG_CMD_USB
+#define CONFIG_USB_STORAGE
+#define CONFIG_PARTITIONS
+#elif (RKUSB_UMS_BOOT_SEL > 1)
+#error "Up to 1 USB host controller could be selected"
+#endif
 
 /* 
  * allow to flash loader when check sign failed. should undef this in release version.

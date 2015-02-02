@@ -26,26 +26,28 @@ static int usb_stor_curr_dev = -1; /* current device */
 static uint32 g_umsboot_mode = 0;
 extern unsigned long gIdDataBuf[512];
 
-static struct rkusb_hcd_cfg rkusb_hcds[] = {
+static struct rkusb_hcd_cfg rkusb_hcd[] = {
 #if defined(CONFIG_RKCHIP_RK3288)
-#if defined(CONFIG_USB_EHCI_RK)
+#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
 	{
 		.name = "ehci-host",
 		.enable = true,
 		.regbase = (void *)RKIO_USBHOST0_EHCI_PHYS,
 		.gpio_vbus = GPIO_BANK0 | GPIO_B6,
 	},
+#elif defined(RKUSB_UMS_BOOT_FROM_HSIC)
 	{
 		.name = "ehci-hsic",
 		.enable = true,
 		.regbase = (void *)RKIO_HSIC_PHYS,
 	},
-#elif defined(CONFIG_USB_DWC_HCD)
+#elif defined(RKUSB_UMS_BOOT_FROM_HOST2)
 	{
 		.name = "dwc2-host",
 		.enable = true,
 		.regbase = (void *)RKIO_USBHOST1_PHYS,
 	},
+#elif defined(RKUSB_UMS_BOOT_FROM_OTG)
 	{
 		.name = "dwc2-otg",
 		.enable = true,
@@ -53,49 +55,56 @@ static struct rkusb_hcd_cfg rkusb_hcds[] = {
 	},
 #endif
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-#if defined(CONFIG_USB_EHCI_RK)
+#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
 	{
-		.name = "dwc2-host",
+		.name = "ehci-host",
 		.enable = true,
-		.regbase = (void *)RK32_EHCI_BASE,
+		.regbase = (void *)RKIO_USBHOST_EHCI_PHYS,
 	},
-#elif defined(CONFIG_USB_DWC_HCD)
-	{
-		.name = "dwc2-otg",
-		.enable = true,
-		.regbase = (void *)RK32_HSIC_BASE,
-	},
-#endif
-#elif defined(CONFIG_RKCHIP_RK3036)
-	{
-		.name = "dwc2-host",
-		.enable = true,
-		.regbase = (void *)RKIO_USBHOST20_PHYS,
-	},
+#elif defined(RKUSB_UMS_BOOT_FROM_OTG)
 	{
 		.name = "dwc2-otg",
 		.enable = true,
 		.regbase = (void *)RKIO_USBOTG20_PHYS,
 	},
-#else
-	#error "PLS config chiptype for usb hcd!"
+#endif
+#elif defined(CONFIG_RKCHIP_RK3036)
+#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
+
+	{
+		.name = "dwc2-host",
+		.enable = true,
+		.regbase = (void *)RKIO_USBHOST20_PHYS,
+	},
+#elif defined(RKUSB_UMS_BOOT_FROM_OTG)
+	{
+		.name = "dwc2-otg",
+		.enable = true,
+		.regbase = (void *)RKIO_USBOTG20_PHYS,
+	},
+#endif
 #endif
 };
 
-inline int rk_usb_lookup(char *name) {
-	int n = ARRAY_SIZE(rkusb_hcds);
+inline int rk_usb_host_lookup() {
+	int n = ARRAY_SIZE(rkusb_hcd);
+	const char *name = NULL;
 
-	if (name == NULL)
+	printf("%d USB controller selected\n", n);
+
+	if (!n) {
+		printf("No USB controller selected\n");
 		return -1;
-
-	while (n--) {
-		if (!strcmp(name, rkusb_hcds[n].name)) {
-			rkusb_active_hcd = &rkusb_hcds[n];
-			return 0;
-		}
 	}
 
-	return -1;
+	if (!rkusb_hcd[0].regbase || !rkusb_hcd[0].enable || !rkusb_hcd[0].name) {
+		printf("Controller not enabled regbase addr %p, parameter err\n",
+		       rkusb_hcd[0].regbase);
+		return -1;
+	}
+
+	rkusb_active_hcd = &rkusb_hcd[0];
+	return 0;
 }
 
 /* 
@@ -146,11 +155,21 @@ uint32 UMSInit(uint32 ChipSel)
 	uint ret = -1;
 
 	/* Select active USB controller */
-	if (rk_usb_lookup("ehci-host")) {
+	if (rk_usb_host_lookup()) {
 		printf("Could not find USB controller\n");
 		return ret;
 	}
-	
+
+	/* USB hardware init */
+	if (rkusb_active_hcd->hw_init)
+		rkusb_active_hcd->hw_init();
+	/* Enable VBus */
+	if (rkusb_active_hcd->gpio_vbus)
+		gpio_direction_output(rkusb_active_hcd->gpio_vbus, 1);
+
+	printf("Boot from usb device %d @ %p \n", rkusb_active_hcd->name,
+	       rkusb_active_hcd->regbase);
+
 	if (usb_init() >= 0) {
 		/* Try to recognize storage devices immediately */
 		usb_stor_curr_dev = usb_stor_scan(1);
