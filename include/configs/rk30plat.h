@@ -108,20 +108,49 @@
 
 #endif /* CONFIG_CMD_FASTBOOT */
 
+
+#ifdef CONFIG_RK_UMS_BOOT_EN
+/*
+ * USB Host support, default no using
+ * Please first select USB host controller if you want to use UMS Boot
+ * Up to one USB host controller could be selected to enable for booting
+ * from USB Mass Storage device.
+ *
+ * PLS define a host controller from:
+ *	RKUSB_UMS_BOOT_FROM_OTG
+ *	RKUSB_UMS_BOOT_FROM_HOST1
+ *	RKUSB_UMS_BOOT_FROM_HOST2
+ *
+ * First define the host controller here
+ */
+
+/* Check UMS Boot Host define */
+#define RKUSB_UMS_BOOT_CNT (defined(RKUSB_UMS_BOOT_FROM_OTG) + \
+			    defined(RKUSB_UMS_BOOT_FROM_HOST1) + \
+			    defined(RKUSB_UMS_BOOT_FROM_HOST2)
+
+#if (RKUSB_UMS_BOOT_CNT == 0)
+	#error "PLS Select a USB host controller!"
+#elif (RKUSB_UMS_BOOT_CNT > 1)
+	#error "Only one USB host controller can be selected!"
+#else
+	#define CONFIG_CMD_USB
+	#define CONFIG_USB_STORAGE
+#endif
+
+
 /*
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
-#ifdef CONFIG_RK_UMS_BOOT_EN
-#if (defined(CONFIG_RKCHIP_RK3128) || \
-     defined(CONFIG_RKCHIP_RK3126) ) && \
-     defined(RKUSB_UMS_BOOT_FROM_HOST1)
-#define CONFIG_USB_EHCI
-#define CONFIG_USB_EHCI_RK
-#else
-#define CONFIG_USB_DWC_HCD
+#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
+	#define CONFIG_USB_EHCI
+	#define CONFIG_USB_EHCI_RK
+#elif defined(RKUSB_UMS_BOOT_FROM_HOST2) || defined(RKUSB_UMS_BOOT_FROM_OTG)
+	#define CONFIG_USB_DWC_HCD
 #endif
-#endif
+#endif /* CONFIG_RK_UMS_BOOT_EN */
+
 
 /* more config for display */
 #ifdef CONFIG_LCD
