@@ -3,19 +3,6 @@ if ROCKCHIP_ARCH32
 config ROCKCHIP
 	bool
 
-choice 
-	prompt "rockchip product select"
-
-config	PRODUCT_MID
-	bool "MID"
-	select ROCKCHIP
-
-config	PRODUCT_BOX
-	bool "BOX"
-	select ROCKCHIP
-
-endchoice
-
 choice
 	prompt "rockchip platform select"
 

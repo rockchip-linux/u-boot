@@ -3,11 +3,16 @@
 
 2.  Configure the rk platform
     rockchip support for uboot chip set configs as:
-        configs\rk3288_defconfig
-        configs\rk3036_defconfig
-        configs\rk3126_defconfig
-        configs\rk3128_defconfig
-	configs\rk3368_defconfig
+	MID product:
+        	configs\rk3288_defconfig
+        	configs\rk3126_defconfig
+        	configs\rk3128_defconfig
+		configs\rk3368_defconfig
+	BOX product:
+        	configs\rk3036_box_defconfig
+		configs\rk3128_box_defconfig
+		configs\rk3128_box_uart0_defconfig
+		configs\rk3288_box_defconfig	
 
     example:
         make rk3288_defconfig	-	Command to configure rk3288 platform for uboot.
