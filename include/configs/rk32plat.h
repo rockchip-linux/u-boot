@@ -124,6 +124,7 @@
 #else
 	#define CONFIG_CMD_USB
 	#define CONFIG_USB_STORAGE
+	#define CONFIG_PARTITIONS
 #endif
 
 
