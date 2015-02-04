@@ -130,7 +130,7 @@
 /* Check UMS Boot Host define */
 #define RKUSB_UMS_BOOT_CNT (defined(RKUSB_UMS_BOOT_FROM_OTG) + \
 			    defined(RKUSB_UMS_BOOT_FROM_HOST1) + \
-			    defined(RKUSB_UMS_BOOT_FROM_HOST2)
+			    defined(RKUSB_UMS_BOOT_FROM_HOST2))
 
 #if (RKUSB_UMS_BOOT_CNT == 0)
 	#error "PLS Select a USB host controller!"
