@@ -75,11 +75,12 @@ uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-		|| defined(CONFIG_RKCHIP_RK3368)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	return readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
 #elif defined(CONFIG_RKCHIP_RK3036)
 	return readl(RKIO_GRF_PHYS + GRF_OS_REG4);
+#elif defined(CONFIG_RKCHIP_RK3368)
+	return readl(RKIO_PMU_GRF_PHYS + PMU_GRF_OS_REG0);
 #else
 	#error "PLS config rk chip for loader flag."
 #endif
@@ -87,7 +88,7 @@ uint32 IReadLoaderFlag(void)
 
 void ISetLoaderFlag(uint32 flag)
 {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
+#if defined(CONFIG_RKCHIP_RK3288)
 	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
@@ -97,6 +98,8 @@ void ISetLoaderFlag(uint32 flag)
 	}
 #elif defined(CONFIG_RKCHIP_RK3036)
 	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG4);
+#elif defined(CONFIG_RKCHIP_RK3368)
+	writel(flag, RKIO_PMU_GRF_PHYS + PMU_GRF_OS_REG0);
 #else
 	#error "PLS config rk chip for loader flag."
 #endif
