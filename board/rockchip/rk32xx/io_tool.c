@@ -139,7 +139,7 @@ static int do_io_tool(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 	index++;
 
-	addr = simple_strtoul(argv[addr], NULL, 0);
+	addr = simple_strtoul(argv[index], NULL, 0);
 	if (((iosize == 2) && (addr & 1)) || ((iosize == 4) && (addr & 3))) {
 		printf("Badly aligned <addr> for access size\n");
 		return -1;
