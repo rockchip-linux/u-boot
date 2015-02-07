@@ -133,7 +133,7 @@
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
-#if defined(RKUSB_UMS_BOOT_FROM_HOST1) || (RKUSB_UMS_BOOT_FROM_HSIC)
+#if defined(RKUSB_UMS_BOOT_FROM_HOST1) || defined(RKUSB_UMS_BOOT_FROM_HSIC)
 	#define CONFIG_USB_EHCI
 	#define CONFIG_USB_EHCI_RK
 #elif defined(RKUSB_UMS_BOOT_FROM_HOST2) || defined(RKUSB_UMS_BOOT_FROM_OTG)
