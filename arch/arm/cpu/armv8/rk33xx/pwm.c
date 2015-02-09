@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -14,8 +14,6 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #define COMPAT_ROCKCHIP_BL "pwm-backlight"
-
-
 
 
 #define RK_PWM_DISABLE                  (0 << 0) 
@@ -92,6 +90,7 @@ static int rk_bl_parse_dt(const void *blob)
 	u32 data[3];
 	int len;
 	int pwm_node;
+
 	bl.node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_BL);
 	if (bl.node < 0) {
@@ -116,7 +115,27 @@ static int rk_bl_parse_dt(const void *blob)
 	bl.id = data[1];
 	bl.period = data[2];
 	pwm_node = fdt_node_offset_by_phandle(blob, data[0]);
-	bl.base = fdtdec_get_addr(blob, pwm_node, "reg");
+{
+	uint32_t *cell = NULL;
+	int addrcells = 0;
+	int parent;
+	uint32_t addr;
+
+	parent = fdt_parent_offset(blob, pwm_node);
+	if (parent < 0) {
+		addrcells = 1;
+	} else {
+		addrcells = fdt_address_cells(blob, parent);
+	}
+
+	cell = fdt_getprop(blob, pwm_node, "reg", NULL);
+	if (addrcells == 2) {
+		cell++;
+	}
+	addr = (u32)fdt32_to_cpu(*cell);
+	bl.base = (u32)addr;
+	debug("bl base = 0x%08x\n", bl.base);
+}
 	fdt_getprop(blob, bl.node, "brightness-levels", &len);
 	bl.max_brightness = len / sizeof(u32);
 	bl.levels = malloc(len);
@@ -146,6 +165,7 @@ int rk_pwm_config(int brightness)
 	int id = 0;
 	int duty_ns,period_ns;
 	int ret;
+
 	if (!bl.node) {
 #ifdef CONFIG_OF_LIBFDT
 		ret = rk_bl_parse_dt(gd->fdt_blob);
@@ -166,14 +186,12 @@ int rk_pwm_config(int brightness)
 
 	if (brightness < 0)
 		brightness = bl.dft_brightness;
-	printf("%s:brightness:%d\n", __func__,brightness);
+	debug("%s: brightness: %d\n", __func__, brightness);
 	brightness = bl.levels[brightness];
 	duty_ns = (brightness * bl.period)/bl.max_brightness;
 	period_ns = bl.period;
 	id = bl.id;
-	if (gd->arch.chiptype == CONFIG_RK3288)
-    		grf_writel(0x00010001, 0x024c);/*use rk pwm*/
-	on   =  RK_PWM_ENABLE ;
+	on   =  RK_PWM_ENABLE;
 	conf = PWM_OUTPUT_LEFT|PWM_LP_DISABLE|
 	                    PWM_CONTINUMOUS|PWM_DUTY_POSTIVE|PWM_INACTIVE_NEGATIVE;
 	
@@ -223,8 +241,8 @@ int rk_pwm_config(int brightness)
 	 */
 
 	conf |= (prescale << RK_PWM_PRESCALE);
-	write_pwm_reg(&bl, PWM_REG_DUTY,dc);//0x1900);// dc);
-	write_pwm_reg(&bl, PWM_REG_PERIOD,pv);//0x5dc0);//pv);
+	write_pwm_reg(&bl, PWM_REG_DUTY,dc);
+	write_pwm_reg(&bl, PWM_REG_PERIOD,pv);
 	write_pwm_reg(&bl, PWM_REG_CNTR,0);
 	write_pwm_reg(&bl, PWM_REG_CTRL,on|conf);
 
