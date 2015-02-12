@@ -303,6 +303,32 @@ static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 }
 
 
+static inline uint32 rkclk_gcd(uint32 numerator, uint32 denominator)
+{
+        uint32 a, b;
+
+        if (!numerator || !denominator) {
+                return 0;
+	}
+
+        if (numerator > denominator) {
+                a = numerator;
+                b = denominator;
+        } else {
+                a = denominator;
+                b = numerator;
+        }
+
+        while (b != 0) {
+                int r = b;
+                b = a % b;
+                a = r;
+        }
+
+        return a;
+}
+
+
 #define PLL_FREF_MIN_KHZ	(269)
 #define PLL_FREF_MAX_KHZ	(2200*1000)
 
@@ -416,7 +442,7 @@ static int rkclk_cal_pll_set(uint32 fin_khz, uint32 fout_khz, uint32 *nr_set, ui
 /*
  * rkplat clock set npll
  */
-int rkclk_npll_set_rate(uint32 pll_hz)
+int rkclk_set_npll_rate(uint32 pll_hz)
 {
 	struct pll_clk_set *clkset = NULL;
 	uint32 no, nr, nf;
@@ -988,14 +1014,61 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 }
 
 
+#define RK3368_LIMIT_NPLL	(1250*MHZ)
+
+static uint32 rkclk_lcdc_dclk_to_npll(uint32 lcdc_id, uint32 rate_hz, uint32 *dclk_div)
+{
+	struct pll_clk_set *clkset = NULL;
+	uint32 pll_hz, div = 1;
+	int i = 0;
+
+	/* Find npll from npll_clks set */
+	for (i=0; i<ARRAY_SIZE(npll_clks); i++) {
+		pll_hz = npll_clks[i].rate;
+		if ((pll_hz % rate_hz) == 0) {
+			if (pll_hz == rate_hz) {
+				div = 1;
+
+				goto end;
+			} else if ((pll_hz % (rate_hz * 2)) == 0) {
+				div = pll_hz / rate_hz;
+
+				goto end;
+			} else {
+				continue;
+			}
+		}
+	}
+
+	/* if not suitable rate in npll_clks table, auto calc rate */
+	div = RK3368_LIMIT_NPLL / rate_hz;
+	/* div should be even */
+	if ((div % 2) != 0) {
+		div = div - 1;
+	}
+
+	pll_hz = div * rate_hz;
+	rkclk_set_npll_rate(pll_hz);
+	pll_hz = rkclk_pll_get_rate(NPLL_ID);
+
+end:
+	debug("npll set: pll rate = %d, div = %d\n", pll_hz, div);
+	*dclk_div = div;
+
+	return pll_hz;
+}
+
+
 int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
 	uint32 dclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
 
-	/* audi lcdc dclk from general pll */
-	pll_sel = 1;
-	div = rkclk_calc_clkdiv(gd->bus_clk, dclk_hz, 0);
+	/* maybach lcdc dclk from npll */
+	pll_sel = 2;
+	div = 1;
+	rkclk_lcdc_dclk_to_npll(lcdc_id, dclk_hz, &div);
+
 	dclk_info = (pll_sel << 16) | div;
 	debug("rk lcdc dclk set: dclk = %dHZ, pll select = %d, div = %d\n", dclk_hz, pll_sel, div);
 
@@ -1020,8 +1093,8 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	dclk_info = rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
 
 	dclk_div = dclk_info & 0x0000FFFF;
-	// general pll
-	return (rkclk_pll_get_rate(GPLL_ID) / dclk_div);
+	// npll
+	return (rkclk_pll_get_rate(NPLL_ID) / dclk_div);
 }
 
 
