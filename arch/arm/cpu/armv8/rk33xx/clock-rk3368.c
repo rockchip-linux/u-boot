@@ -909,6 +909,9 @@ static uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
 }
 
 
+#define VIO_ACLK_MAX	(400 * MHZ)
+#define VIO_HCLK_MAX	(100 * MHZ)
+
 /*
  * rkplat lcdc aclk config
  * lcdc_id (lcdc id select) : 0 - lcdc0
@@ -945,13 +948,19 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 }
 
 
-int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
+/*
+ * rkplat lcdc aclk config
+ * lcdc_id (lcdc id select) : 0 - lcdc0
+ * pll_sel (lcdc dclk source pll select) : 0 - codec pll, 1 - general pll, 2 - USBPHY pll
+ * div (lcdc aclk div from pll) : 0x01 - 0x100
+ */
+static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 {
 	uint32 aclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
 
-	/* lcdc aclk from general pll */
-	pll_sel = 1;
+	/* lcdc aclk from codec pll */
+	pll_sel = 0;
 	div = rkclk_calc_clkdiv(gd->bus_clk, aclk_hz, 0);
 	aclk_info = (pll_sel << 16) | div;
 	debug("rk lcdc aclk config: aclk = %dHZ, pll select = %d, div = %d\n", aclk_hz, pll_sel, div);
@@ -962,11 +971,7 @@ int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 }
 
 
-/*
- * rkplat vio hclk config from aclk vio0
- * div (lcdc hclk div from aclk) : 0x01 - 0x20
- */
-static int rkclk_vio_hclk_set(uint32 lcdc_id, uint32 div)
+static int rkclk_lcdc_hclk_config(uint32 lcdc_id, uint32 div)
 {
 	uint32 con = 0;
 
@@ -978,6 +983,24 @@ static int rkclk_vio_hclk_set(uint32 lcdc_id, uint32 div)
 
 	return 0;
 }
+
+
+/*
+ * rkplat vio hclk config from aclk vio0
+ * div (lcdc hclk div from aclk) : 0x01 - 0x20
+ */
+static int rkclk_lcdc_hclk_set(uint32 lcdc_id, uint32 hclk_hz)
+{
+	uint32 div;
+
+	div = rkclk_calc_clkdiv(VIO_ACLK_MAX, VIO_HCLK_MAX, 0);
+	debug("rk lcdc hclk config: hclk = %dHZ, div = %d\n", hclk_hz, div);
+
+	rkclk_lcdc_hclk_config(lcdc_id, div);
+
+	return 0;
+}
+
 
 /*
  * rkplat lcdc dclk config
@@ -1059,7 +1082,7 @@ end:
 }
 
 
-int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
+static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
 	uint32 dclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
@@ -1089,7 +1112,8 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	uint32 dclk_div;
 	uint32 dclk_info = 0;
 
-	rkclk_lcdc_aclk_set(lcdc_id, 300 * MHZ);
+	rkclk_lcdc_aclk_set(lcdc_id, VIO_ACLK_MAX);
+	rkclk_lcdc_hclk_set(lcdc_id, VIO_HCLK_MAX);
 	dclk_info = rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
 
 	dclk_div = dclk_info & 0x0000FFFF;
