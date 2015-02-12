@@ -52,9 +52,9 @@ void rkclk_dump_pll(void);
 
 
 /*
- * rkplat clock set codec pll
+ * rkplat clock set npll
  */
-void rkclk_set_cpll_rate(uint32 pll_hz);
+int rkclk_set_npll_rate(uint32 pll_hz);
 
 
 /*

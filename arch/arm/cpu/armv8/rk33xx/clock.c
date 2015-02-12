@@ -108,6 +108,7 @@ void rkclk_set_pll(void) {}
 void rkclk_get_pll(void) {}
 void rkclk_dump_pll(void) {}
 void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz) {}
+int rkclk_npll_set_rate(uint32 pll_hz) { return -1; }
 uint32 rkclk_get_pll_rate_by_id(enum rk_plls_id pll_id) { return 24 * MHZ; }
 int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz) { return 0; }
 int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }

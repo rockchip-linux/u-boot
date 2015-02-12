@@ -97,6 +97,15 @@ struct pll_clk_set {
 	.rst_dly	= ((nr*500)/24+1), \
 }
 
+#define _NPLL_SET_CLKS(khz, nr, nf, no, nb) \
+{ \
+	.rate		= khz * KHZ, \
+	.pllcon0	= PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no), \
+	.pllcon1	= PLL_CLKF_SET(nf), \
+	.pllcon2	= PLL_CLK_BWADJ_SET(nb-1), \
+	.rst_dly	= ((nr*500)/24+1), \
+}
+
 struct pll_data {
 	u32 id;
 	u32 size;
@@ -150,6 +159,16 @@ static const struct pll_clk_set cpll_clks[] = {
 	_CPLL_SET_CLKS(798000, 2, 133, 2),
 	_CPLL_SET_CLKS(594000, 2, 198, 4),
 	_CPLL_SET_CLKS(384000, 2, 128, 4),
+};
+
+
+/*
+ * npll clock table, should be from high to low
+ * 1188000 is low jitter for hdmi 4K.
+ */
+static const struct pll_clk_set npll_clks[] = {
+	//rate, nr, nf, no, nb
+	_NPLL_SET_CLKS(1188000,  1,  99,  2,  1),
 };
 
 
@@ -281,6 +300,180 @@ static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 		/* deep slow mode */
 		return 32768;
 	}
+}
+
+
+#define PLL_FREF_MIN_KHZ	(269)
+#define PLL_FREF_MAX_KHZ	(2200*1000)
+
+#define PLL_FVCO_MIN_KHZ	(440*1000)
+#define PLL_FVCO_MAX_KHZ	(2200*1000)
+
+#define PLL_FOUT_MIN_KHZ	(27500)
+#define PLL_FOUT_MAX_KHZ	(2200*1000)
+
+
+#define PLL_NF_MAX		(4096)
+#define PLL_NR_MAX		(64)
+#define PLL_NO_MAX		(16)
+
+/*
+ * rkplat rkclk_cal_pll_set
+ * fin_hz: parent freq
+ * fout_hz: child freq which request
+ * nr, nf, no: pll set
+ *
+ */
+static int rkclk_cal_pll_set(uint32 fin_khz, uint32 fout_khz, uint32 *nr_set, uint32 *nf_set, uint32 *no_set)
+{
+	uint32 nr, nf, no, nonr;
+	uint32 nr_out, nf_out, no_out;
+	uint32 YFfenzi;
+	uint32 YFfenmu;
+	uint32 fref, fvco, fout;
+	uint32 gcd_val = 0;
+	uint32 n;
+
+	if (!fin_khz || !fout_khz || fout_khz == fin_khz) {
+		return -1;
+	}
+
+	nr_out = PLL_NR_MAX + 1;
+	no_out = 0;
+
+//	printf("rkclk_cal_pll_set fin_khz = %u, fout_khz = %u\n", fin_khz, fout_khz);
+	gcd_val = rkclk_gcd(fin_khz, fout_khz);
+//	printf("gcd_val = %d\n", gcd_val);
+	YFfenzi = fout_khz / gcd_val;
+	YFfenmu = fin_khz / gcd_val;
+//	printf("YFfenzi = %d, YFfenmu = %d\n", YFfenzi, YFfenmu);
+
+	for (n = 1; ; n++) {
+		nf = YFfenzi * n;
+		nonr = YFfenmu * n;
+		if ((nf > PLL_NF_MAX) || (nonr > (PLL_NO_MAX * PLL_NR_MAX))) {
+			break;
+		}
+		for (no = 1; no <= PLL_NO_MAX; no++) {
+			if (!(no == 1 || !(no % 2))) {
+				continue;
+			}
+			if (nonr % no) {
+				continue;
+			}
+
+			nr = nonr / no;
+			if (nr > PLL_NR_MAX) {
+				continue;
+			}
+
+			fref = fin_khz / nr;
+//			printf("fref = %u, PLL_FREF_MAX_KHZ = %u\n", fref, PLL_FREF_MAX_KHZ);
+			if (fref < PLL_FREF_MIN_KHZ || fref > PLL_FREF_MAX_KHZ) {
+			       continue;
+			}
+
+			fvco = fref * nf;
+//			printf("fvco = %u, PLL_FVCO_MAX_KHZ = %u\n", fvco, PLL_FVCO_MAX_KHZ);
+			if (fvco < PLL_FVCO_MIN_KHZ || fvco > PLL_FVCO_MAX_KHZ) {
+				continue;
+			}
+
+			fout = fvco / no;
+//			printf("fout = %u, PLL_FOUT_MAX_KHZ = %u\n", fout, PLL_FOUT_MAX_KHZ);
+			if (fout < PLL_FOUT_MIN_KHZ || fout > PLL_FOUT_MAX_KHZ) {
+				continue;
+			}
+
+			/* output all available PLL settings */
+//			printf("rate = %luKHZ, \tnr = %d, \tnf = %d, \tno = %d\n", fout_khz, nr, nf, no);
+
+			/* select the best from all available PLL settings */
+			if ((no > no_out) || ((no == no_out) && (nr < nr_out))) {
+				nr_out = nr;
+				nf_out = nf;
+				no_out = no;
+			}
+		}
+	}
+
+	/* output the best PLL setting */
+	if ((nr_out <= PLL_NR_MAX) && (no_out > 0)) {
+//		printf("nr_out = %d, \tnf_out = %d, \tno_out = %d\n", nr_out, nf_out, no_out);
+		if (nr_set && nf_set && no_set) {
+			*nr_set = nr_out;
+			*nf_set = nf_out;
+			*no_set = no_out;
+		}
+
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+
+/*
+ * rkplat clock set npll
+ */
+int rkclk_npll_set_rate(uint32 pll_hz)
+{
+	struct pll_clk_set *clkset = NULL;
+	uint32 no, nr, nf;
+	uint32 pllcon0, pllcon1, pllcon2, rst_dly;
+	int i = 0;
+
+	/* Find npll from npll_clks set */
+	for (i=0; i<ARRAY_SIZE(npll_clks); i++) {
+		if (npll_clks[i].rate == pll_hz) {
+			clkset = &npll_clks[i];
+			break;
+		}
+	}
+
+	if (clkset != NULL) {
+		// if request npll rate in the npll_clks set
+		pllcon0 = clkset->pllcon0;
+		pllcon1 = clkset->pllcon1;
+		pllcon2 = clkset->pllcon2;
+		rst_dly = clkset->rst_dly;
+	} else {
+		// calcurate the request npll rate set
+		if (rkclk_cal_pll_set(24000000/KHZ, pll_hz/KHZ, &nr, &nf, &no) == 0) {
+//			printf("pll_hz = %d, nr = %d, nf = %d, no = %d\n", pll_hz, nr, nf, no);
+
+			/* pll con set */
+			pllcon0 = PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no);
+			pllcon1	= PLL_CLKF_SET(nf);
+			pllcon2	= PLL_CLK_BWADJ_SET(nf >> 1);
+			rst_dly = (nr*500)/24+1;
+		} else {
+			// calcurate error.
+			return -1;
+		}
+	}
+
+	/* PLL enter slow-mode */
+	cru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, PLL_CONS(NPLL_ID, 3));
+	/* enter rest */
+	cru_writel((PLL_RESET | PLL_RESET_W_MSK), PLL_CONS(NPLL_ID, 3));
+
+	cru_writel(pllcon0, PLL_CONS(NPLL_ID, 0));
+	cru_writel(pllcon1, PLL_CONS(NPLL_ID, 1));
+	cru_writel(pllcon2, PLL_CONS(NPLL_ID, 2));
+
+	clk_loop_delayus(5);
+	/* return form rest */
+	cru_writel(PLL_RESET_RESUME | PLL_RESET_W_MSK, PLL_CONS(NPLL_ID, 3));
+
+	clk_loop_delayus(rst_dly);
+	/* waiting for pll lock */
+	rkclk_pll_wait_lock(NPLL_ID);
+
+	/* PLL enter normal-mode */
+	cru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, PLL_CONS(NPLL_ID, 3));
+
+	return 0;
 }
 
 
