@@ -282,11 +282,14 @@ static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f
 	cru_writel(clkset->pllcon0, PLL_CONS(pll_id, 0));
 	cru_writel(clkset->pllcon1, PLL_CONS(pll_id, 1));
 #ifdef CONFIG_PRODUCT_BOX
-if (pll_id == CPLL_ID)
+	if (pll_id == CPLL_ID) {
 		cru_writel(0, PLL_CONS(pll_id, 2));
-	else	
-#endif
+	} else {
+		cru_writel(clkset->pllcon2, PLL_CONS(pll_id, 2));
+	}
+#else
 	cru_writel(clkset->pllcon2, PLL_CONS(pll_id, 2));
+#endif
 
 	clk_loop_delayus(5);
 	/* return form rest */
@@ -1201,7 +1204,7 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
  */
 /* lcdc0 as prmry (LCD) and lcdc1 as extend (HDMI) */
 #ifdef CONFIG_PRODUCT_BOX
-#define RK3288_LIMIT_PLL_VIO0	(594*MHZ)//(410*MHZ)
+#define RK3288_LIMIT_PLL_VIO0	(594*MHZ)
 #else
 #define RK3288_LIMIT_PLL_VIO0	(410*MHZ)
 #endif
@@ -1227,11 +1230,14 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dcl
 		div = vio_limit_freq / rate_hz;
 		pll_hz = div * rate_hz;
 #ifdef CONFIG_PRODUCT_BOX
-	if (pll_hz == CONFIG_RKCLK_CPLL_FREQ * MHZ)
+		if (pll_hz == CONFIG_RKCLK_CPLL_FREQ * MHZ) {
 			rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
-		else
-#endif
+		} else {
+			rkclk_set_cpll_rate(pll_hz);
+		}
+#else
 		rkclk_set_cpll_rate(pll_hz);
+#endif
 
 		pll_hz = rkclk_pll_get_rate(CPLL_ID);
 		/* codec pll rate reconfig, so we should set new rate to gd->pci_clk */
