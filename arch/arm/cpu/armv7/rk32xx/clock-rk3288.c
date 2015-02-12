@@ -1026,7 +1026,7 @@ static int rkclk_cal_pll_set(uint32 fin_khz, uint32 fout_khz, uint32 *nr_set, ui
 //			printf("rate = %luKHZ, \tnr = %d, \tnf = %d, \tno = %d\n", fout_khz, nr, nf, no);
 
 			/* select the best from all available PLL settings */
-			if ((nr < nr_out) || ((nr == nr_out) && (no > no_out))) {
+			if ((no > no_out) || ((no == no_out) && (nr < nr_out))) {
 				nr_out = nr;
 				nf_out = nf;
 				no_out = no;
