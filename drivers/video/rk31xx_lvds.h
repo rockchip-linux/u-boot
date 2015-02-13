@@ -133,8 +133,8 @@ enum {
 #define RK312X_GRF_LVDS_CON0 0x00150
 
 struct rk_lvds_device {
-	int    regbase;
-	int    ctrl_reg;
+	u32    regbase;
+	u32    ctrl_reg;
 	bool   sys_state;
 	int    soc_type;
 };

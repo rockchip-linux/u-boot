@@ -272,7 +272,8 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	phandle = fdt_getprop_u32_default(blob, "/display-timings",
 					  "native-mode", -1);
 	node = fdt_node_offset_by_phandle(blob, phandle);
-	if (node <= 0) {
+	/*if (node <= 0) { need check*/
+	if (logo_on < 0) {
 		debug("rk_fb: Can't get device node for display-timings\n");
 		return -ENODEV;
 	}

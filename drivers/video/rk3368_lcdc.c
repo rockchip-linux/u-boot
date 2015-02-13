@@ -747,10 +747,12 @@ int rk_lcdc_init(int lcdc_id)
             lcdc_dev->regs = RKIO_VOP_PHYS;
 	    }
 	}
+	lcdc_dev->regs = RKIO_VOP_PHYS;
 	// set vop qos to highest priority
+	/*
 	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0408);//need check
 	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0008);
-
+    */
     /*pmu grf need check*/
 	//grf_writel(1<<16, GRF_IO_VSEL); /*LCDCIOdomain 3.3 Vvoltageselectio*/
 
@@ -779,7 +781,7 @@ int rk_lcdc_init(int lcdc_id)
 	lcdc_writel(lcdc_dev, FRC_LOWER11_0, 0xdeb77deb);
 	lcdc_writel(lcdc_dev, FRC_LOWER11_1, 0xed7bb7de);
 	lcdc_cfg_done(lcdc_dev);
-
+    /*main_loop();*/
 	return 0;
 }
 

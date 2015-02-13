@@ -1750,8 +1750,8 @@ struct lcdc_device{
 	int id;
 	int soc_type;
 	int dft_win; 				/*default win for display*/
-	int regsbak[REG_LEN];
-	int regs;				/*1:standby,0:wrok*/
+	u32 regsbak[REG_LEN];
+	u32 regs;				/*1:standby,0:wrok*/
 	int output_color;
 	int overlay_mode;	
 };

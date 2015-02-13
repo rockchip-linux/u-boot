@@ -80,7 +80,7 @@
 	#undef CONFIG_RK_DEVICEINFO
 	#undef CONFIG_RK_PWM_REMOTE
 
-	#undef CONFIG_LCD
+	/*#undef CONFIG_LCD*/
 	#undef CONFIG_PM_SUBSYSTEM
 #endif
 

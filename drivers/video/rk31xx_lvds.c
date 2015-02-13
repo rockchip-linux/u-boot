@@ -141,7 +141,8 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 		val |= v_RK3368_LVDSMODE_EN(0) | v_RK3368_MIPIPHY_TTL_EN(1) |
 			v_RK3368_MIPIPHY_LANE0_EN(1) |
 			v_RK3368_MIPIDPI_FORCEX_EN(1);
-		grf_writel(val, GRF_SOC_CON7_LVDS);
+		//grf_writel(val, GRF_SOC_CON7_LVDS);
+		writel(0xffff8068, 0xff77041c);
     } else {/*31xx*/
     	/*grf_writel(0xfff35555, GRF_GPIO2B_IOMUX);
     	grf_writel(0x00ff0055, GRF_GPIO2C_IOMUX);
@@ -173,7 +174,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 	lvds_writel(lvds, MIPIPHY_REGE0, val);
 
 	rk31xx_lvds_pwr_on(vid);
-		
+
 }
 
 int rk31xx_lvds_enable(vidinfo_t *vid)
