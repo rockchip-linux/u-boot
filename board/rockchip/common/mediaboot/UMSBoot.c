@@ -108,7 +108,7 @@ void inno_usb_phy_reset(void)
 }
 
 /*************************************************************/
-void rk_usb_host_lookup(void) {
+int rk_usb_host_lookup(void) {
 	int n = ARRAY_SIZE(rkusb_hcd);
 
 	printf("%d USB controller selected, name %s\n", n, rkusb_hcd[0].name);
@@ -125,6 +125,8 @@ void rk_usb_host_lookup(void) {
 	}
 
 	rkusb_active_hcd = &rkusb_hcd[0];
+
+	return 0;
 }
 
 /* 

@@ -17,7 +17,7 @@ Revision:   1.00
 #define     UMS_UPDATE		(2)	// UMS update
 
 /******************************************************************************/
-void rk_usb_host_lookup(void);
+int rk_usb_host_lookup(void);
 void inno_usb_phy_reset(void);
 /******************************************************************************/
 
