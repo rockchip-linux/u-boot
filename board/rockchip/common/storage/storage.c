@@ -139,13 +139,13 @@ MEM_FUN_T UMSFunOp =
 	UMSReadLBA,
 	NULL,
 	NULL,
-	NULL,
+	UMSReadFlashInfo,
 	NULL,
 	NULL,
 	NULL,
 	NULL,
 	UMSGetCapacity,
-	NULL,
+	UMSSysDataLoad,
 	NULL,
 };
 #endif

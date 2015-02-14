@@ -263,6 +263,14 @@ uint32 UMSReadLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec)
 	return 0;
 }
 
+uint32 UMSSysDataLoad(uint8 ChipSel, uint32 LBA, void *pbuf)
+{
+	uint32 ret = FTL_ERROR;
+
+	ret = __UMSReadLBA(usb_stor_curr_dev, UMS_SYS_PART_OFFSET + LBA, pbuf, 1);
+	return ret;
+}
+
 void UMSReadID(uint8 ChipSel, void *buf)
 {
 	uint8 * pbuf = buf;
@@ -275,7 +283,8 @@ void UMSReadID(uint8 ChipSel, void *buf)
 
 void UMSReadFlashInfo(void *buf)
 {
-	;
+	pFLASH_INFO pInfo = (pFLASH_INFO)buf;
+	pInfo->BlockSize = UMS_BOOT_PART_SIZE;
 }
 
 uint32 UMSGetCapacity(uint8 ChipSel)
