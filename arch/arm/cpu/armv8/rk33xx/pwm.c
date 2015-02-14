@@ -115,27 +115,9 @@ static int rk_bl_parse_dt(const void *blob)
 	bl.id = data[1];
 	bl.period = data[2];
 	pwm_node = fdt_node_offset_by_phandle(blob, data[0]);
-{
-	uint32_t *cell = NULL;
-	int addrcells = 0;
-	int parent;
-	uint32_t addr;
 
-	parent = fdt_parent_offset(blob, pwm_node);
-	if (parent < 0) {
-		addrcells = 1;
-	} else {
-		addrcells = fdt_address_cells(blob, parent);
-	}
-
-	cell = fdt_getprop(blob, pwm_node, "reg", NULL);
-	if (addrcells == 2) {
-		cell++;
-	}
-	addr = (u32)fdt32_to_cpu(*cell);
-	bl.base = (u32)addr;
+	bl.base = fdtdec_get_reg(blob, pwm_node);
 	debug("bl base = 0x%08x\n", bl.base);
-}
 	fdt_getprop(blob, bl.node, "brightness-levels", &len);
 	bl.max_brightness = len / sizeof(u32);
 	bl.levels = malloc(len);
