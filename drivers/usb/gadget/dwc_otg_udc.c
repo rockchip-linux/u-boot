@@ -1222,8 +1222,17 @@ int dwc_otg_check_dpdm(void)
 	volatile unsigned int * otg_dctl;
 	volatile unsigned int * otg_gotgctl;
 	volatile unsigned int * otg_hprt0;
+	volatile unsigned int otg_gusbcfg;
+
 	int bus_status = 0;
 	char *OtgReg = RKIO_USBOTG_BASE;
+#if defined(RKUSB_UMS_BOOT_FROM_OTG)
+	otg_gusbcfg = *(unsigned int * )(OtgReg+0x0c);
+	if (otg_gusbcfg & (1 << 29)) {
+		printf("%s GUSBCFG 0x%08x, HOST MODE\n", __func__, otg_gusbcfg);
+		return 0;
+	}
+#endif
 
 #if defined(CONFIG_RKCHIP_RK3288)
 	cru_writel(((7<<4)<<16)|(7<<4), CRU_SOFTRSTS_CON(8)); // otg0 phy reset

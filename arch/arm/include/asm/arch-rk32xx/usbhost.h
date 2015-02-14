@@ -25,12 +25,13 @@
 
 extern struct rkusb_hcd_cfg *rkusb_active_hcd;
 
-static struct rkusb_hcd_cfg {
+struct rkusb_hcd_cfg {
 	bool enable;
 	void* regbase;
 	int gpio_vbus;
 	char *name;
 	void (*hw_init)(void);
+	void (*hw_deinit)(void);
 };
 
 #endif

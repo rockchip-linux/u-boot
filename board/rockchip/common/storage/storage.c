@@ -133,7 +133,7 @@ MEM_FUN_T UMSFunOp =
 	BOOT_FROM_UMS,
 	0,
 	UMSInit,
-	NULL,
+	UMSReadID,
 	UMSReadPBA,
 	NULL,
 	UMSReadLBA,

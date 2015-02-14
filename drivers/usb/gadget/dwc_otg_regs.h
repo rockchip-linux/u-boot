@@ -26,37 +26,37 @@
 #ifndef __DWC_OTG_REGS_H__
 #define __DWC_OTG_REGS_H__
 
-typedef volatile struct tagCORE_REG 
-{
-	uint32_t gotgctl; 
+#define MAX_EPS_CHANNELS 16
+
+typedef volatile struct tagCORE_REG {
+	uint32_t gotgctl;
 	uint32_t gotgint;
 	uint32_t gahbcfg;
-	uint32_t gusbcfg; 
-	uint32_t grstctl; 
-	uint32_t gintsts; 
-	uint32_t gintmsk; 
-	uint32_t grxstsr; 
-	uint32_t grxstsp; 
-	uint32_t grxfsiz; 
-	uint32_t gnptxfsiz; 
-	uint32_t gnptxsts; 
-	uint32_t gi2cctl; 
+	uint32_t gusbcfg;
+	uint32_t grstctl;
+	uint32_t gintsts;
+	uint32_t gintmsk;
+	uint32_t grxstsr;
+	uint32_t grxstsp;
+	uint32_t grxfsiz;
+	uint32_t gnptxfsiz;
+	uint32_t gnptxsts;
+	uint32_t gi2cctl;
 	uint32_t gpvndctl;
-	uint32_t ggpio; 
-	uint32_t guid; 
+	uint32_t ggpio;
+	uint32_t guid;
 	uint32_t gsnpsid;
-	uint32_t ghwcfg1; 
+	uint32_t ghwcfg1;
 	uint32_t ghwcfg2;
 	uint32_t ghwcfg3;
 	uint32_t ghwcfg4;
 	uint32_t RESERVED1[(0x100-0x54)/4];
 	uint32_t hptxfsiz;
-	uint32_t dptxfsiz_dieptxf[15]; 
+	uint32_t dptxfsiz_dieptxf[15];
 	uint32_t RESERVED2[(0x400-0x140)/4];
 } CORE_REG, *pCORE_REG;
 
-typedef volatile struct tagCHANNEL_REG
-{
+typedef volatile struct tagCHANNEL_REG {
 	uint32_t hccharn;
 	uint32_t hcspltn;
 	uint32_t hcintn;
@@ -64,18 +64,17 @@ typedef volatile struct tagCHANNEL_REG
 	uint32_t hctsizn;
 	uint32_t hcdman;
 	uint32_t reserved[2];
-}HC_REG, *pHC_REG;
+} HC_REG, *pHC_REG;
 
-//Host Mode Register Structures
-typedef volatile struct tagHOST_REG 
-{
-	uint32_t hcfg;		  
-	uint32_t hfir;		  
-	uint32_t hfnum; 
+/* Host Mode Register Structures */
+typedef volatile struct tagHOST_REG {
+	uint32_t hcfg;
+	uint32_t hfir;
+	uint32_t hfnum;
 	uint32_t reserved40C;
-	uint32_t hptxsts;	  
-	uint32_t haint;	  
-	uint32_t haintmsk;	  
+	uint32_t hptxsts;
+	uint32_t haint;
+	uint32_t haintmsk;
 	uint32_t RESERVED1[(0x440-0x41c)/4];
 	uint32_t hprt;
 	uint32_t RESERVED2[(0x500-0x444)/4];
@@ -83,48 +82,45 @@ typedef volatile struct tagHOST_REG
 	uint32_t RESERVED3[(0x800-0x580)/4];
 } HOST_REG, *pHOST_REG;
 
-//Device IN ep reg
-typedef volatile struct tagIN_EP_REG 
-{
+/* Device IN ep reg */
+typedef volatile struct tagIN_EP_REG {
 	uint32_t DiEpCtl;
-	uint32_t reserved04;	
-	uint32_t DiEpInt; 
-	uint32_t reserved0C;	
-	uint32_t DiEpTSiz; 
-	uint32_t DiEpDma; 
+	uint32_t reserved04;
+	uint32_t DiEpInt;
+	uint32_t reserved0C;
+	uint32_t DiEpTSiz;
+	uint32_t DiEpDma;
 	uint32_t DTXFSTS;
-	uint32_t DiEpDmaB; 
-}IN_EP_REG, *pIN_EP_REG;
+	uint32_t DiEpDmaB;
+} IN_EP_REG, *pIN_EP_REG;
 
-typedef volatile struct tagOUT_EP_REG 
-{
-	uint32_t DoEpCtl; 
-	uint32_t DoEpFn; 
-	uint32_t DoEpInt; 
-	uint32_t reserved0C;	
-	uint32_t DoEpTSiz; 
-	uint32_t DoEpDma; 
+typedef volatile struct tagOUT_EP_REG {
+	uint32_t DoEpCtl;
+	uint32_t DoEpFn;
+	uint32_t DoEpInt;
+	uint32_t reserved0C;
+	uint32_t DoEpTSiz;
+	uint32_t DoEpDma;
 	uint32_t reserved18;
 	uint32_t DoEpDmaB0;
-}OUT_EP_REG, *pOUT_EP_REG;
+} OUT_EP_REG, *pOUT_EP_REG;
 
 
-//Device Mode Registers Structures
-typedef volatile struct tagDEVICE_REG 
-{
-	uint32_t dcfg; 
-	uint32_t dctl; 
-	uint32_t dsts; 
-	uint32_t unused;		
-	uint32_t diepmsk; 
-	uint32_t doepmsk;	
-	uint32_t daint;	
-	uint32_t daintmsk; 
-	uint32_t dtknqr1;	
-	uint32_t dtknqr2;	
-	uint32_t dvbusdis;		
+/* Device Mode Registers Structures */
+typedef volatile struct tagDEVICE_REG {
+	uint32_t dcfg;
+	uint32_t dctl;
+	uint32_t dsts;
+	uint32_t unused;
+	uint32_t diepmsk;
+	uint32_t doepmsk;
+	uint32_t daint;
+	uint32_t daintmsk;
+	uint32_t dtknqr1;
+	uint32_t dtknqr2;
+	uint32_t dvbusdis;
 	uint32_t dvbuspulse;
-	uint32_t dtknqr3_dthrctl;	
+	uint32_t dtknqr3_dthrctl;
 	uint32_t dtknqr4_fifoemptymsk;
 	uint32_t RESERVED1[(0x900-0x838)/4];
 
@@ -133,72 +129,63 @@ typedef volatile struct tagDEVICE_REG
 	OUT_EP_REG OutEp[16];
 	//0xb00~0xcff:ep out reg
 	uint32_t RESERVED8[(0xe00-0xd00)/4];
-} DEVICE_REG, *pDEVICE_REG; 
+} DEVICE_REG, *pDEVICE_REG;
 
-typedef volatile struct tagPOWER_CLOCK_CTRL 
-{
+typedef volatile struct tagPOWER_CLOCK_CTRL {
 	uint32_t PCGCR;
 	uint32_t RESERVED[(0x1000-0xe04)/4];
-}POWER_CLOCK_CTRL, *pPOWER_CLOCK_CTRL;
+} POWER_CLOCK_CTRL, *pPOWER_CLOCK_CTRL;
 
-typedef volatile struct tagFIFO
-{
+typedef volatile struct tagFIFO {
 	uint32_t dataPort;
 	uint32_t RESERVED[(0x1000-0x004)/4];
-}FIFO, *pFIFO;
+} FIFO, *pFIFO;
 
-typedef volatile struct tagUSB_OTG_REG 
-{
-	CORE_REG Core; 
-	HOST_REG Host; 
+typedef volatile struct tagUSB_OTG_REG {
+	CORE_REG Core;
+	HOST_REG Host;
 	DEVICE_REG Device;
 	POWER_CLOCK_CTRL ClkGate;
 	FIFO Fifo[16];
 	uint32_t RESERVED[(0x40000-0x11000)/4];
-}USB_OTG_REG, *pUSB_OTG_REG;
+} USB_OTG_REG, *pUSB_OTG_REG;
 
-//1寄存器位结构定义
-typedef union tagDESC_STS_DATA
-{
+typedef union tagDESC_STS_DATA {
 	uint32_t d32;
-	struct 
-	{
-		unsigned byte : 16;
-		unsigned reserved16_22 : 7;
-		unsigned mtrf : 1;              //Multiple Transfer
-		unsigned sr : 1;                //Setup packet Received
-		unsigned ioc : 1;               //Interrupt On Complete
-		unsigned sp : 1;                //short Packet
-		#define LAST        0x01
-		unsigned l : 1;                 //Last
-		#define SUCCESS     0x00
-		#define BUFERR      0x03
-		unsigned sts : 2;               //received Status
-		#define HOST_READY  0x00
-		#define DMA_BUSY    0x01
-		#define DMA_DONE    0x02
-		#define HOST_BUSY   0x03
-		unsigned bs : 2;                //Buffer Status
-	}b;
-}DESC_STS_DATA, *pDESC_STS_DATA;
+	struct {
+		unsigned byte:	16;
+		unsigned reserved16_22:	7;
+		unsigned mtrf:	1;		/* Multiple Transfer */
+		unsigned sr:	1;		/* Setup packet Received */
+		unsigned ioc:	1;		/* Interrupt On Complete */
+		unsigned sp:	1;		/* Short Packet */
+#define LAST	0x01
+		unsigned l:	1;			 /* Last */
+#define SUCCESS	0x00
+#define BUFERR	0x03
+		unsigned sts:	2;		 /* Received Status */
+#define HOST_READY	0x00
+#define DMA_BUSY	0x01
+#define DMA_DONE	0x02
+#define HOST_BUSY	0x03
+		unsigned bs:	2;		/* Buffer Status */
+	};
+} DESC_STS_DATA, *pDESC_STS_DATA;
 
-//基于描述符DMA的数据结构
-typedef struct tagDWC_OTG_DMA_DESC
-{
+typedef struct tagDWC_OTG_DMA_DESC {
 	DESC_STS_DATA status;
 	uint32_t *buf;
-}DMA_DESC, *pDMA_DESC;
+} DMA_DESC, *pDMA_DESC;
 
 /**
  * This union represents the bit fields of the Core OTG Control
  * and status Register (GOTGCTL).  Set the bits using the bit
  * fields then write the <i>d32</i> value to the register.
  */
-typedef union tagGOTGCTL_DATA                  //*
-{
-	/** raw register data */
+typedef union tagGOTGCTL_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
+	/* register bits */
 	struct {
 		unsigned sesreqscs : 1;
 		unsigned sesreq : 1;
@@ -214,7 +201,7 @@ typedef union tagGOTGCTL_DATA                  //*
 		unsigned bsesvld : 1;
 		unsigned currmod : 1;
 		unsigned reserved21_31 : 11;
-	} b;
+	};
 } GOTGCTL_DATA;
 
 /**
@@ -222,37 +209,34 @@ typedef union tagGOTGCTL_DATA                  //*
  * (GOTGINT).  Set/clear the bits using the bit fields then write the <i>d32</i>
  * value to the register.
  */
-typedef union tagGOTGINT_DATA                  //*
-{
-	/** raw register data */
+typedef union tagGOTGINT_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
-	struct
-	{
+	/* register bits */
+	struct {
 		unsigned reserved0_1 : 2;
 
-		/** Session End Detected */
+		/* Session End Detected */
 		unsigned sesenddet : 1;
 
 		unsigned reserved3_7 : 5;
 
-		/** Session Request Success status Change */
+		/* Session Request Success status Change */
 		unsigned sesreqsucstschng : 1;
-		/** Host Negotiation Success status Change */
+		/* Host Negotiation Success status Change */
 		unsigned hstnegsucstschng : 1;
 
 		unsigned reserver10_16 : 7;
 
-		/** Host Negotiation Detected */
+		/* Host Negotiation Detected */
 		unsigned hstnegdet : 1;
-		/** A-Device Timeout Change */
+		/* A-Device Timeout Change */
 		unsigned adevtoutchng : 1;
-		/** Debounce Done */
+		/* Debounce Done */
 		unsigned dbncedone : 1;
 
 		unsigned reserved31_20 : 12;
-
-	} b;
+	};
 } GOTGINT_DATA;
 
 
@@ -261,13 +245,11 @@ typedef union tagGOTGINT_DATA                  //*
  * Register (GAHBCFG).  Set/clear the bits using the bit fields then
  * write the <i>d32</i> value to the register.
  */
-typedef union tagGAHBCFG_DATA                  //*
-{
-	/** raw register data */
+typedef union tagGAHBCFG_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
-	struct
-	{
+	/* register bits */
+	struct {
 		unsigned glblintrmsk : 1;
 #define DWC_GAHBCFG_GLBINT_ENABLE		1
 
@@ -286,7 +268,7 @@ typedef union tagGAHBCFG_DATA                  //*
 #define DWC_GAHBCFG_TXFEMPTYLVL_EMPTY		1
 #define DWC_GAHBCFG_TXFEMPTYLVL_HALFEMPTY	0
 		unsigned reserved9_31 : 23;
-	} b;
+	};
 } GAHBCFG_DATA;
 
 /**
@@ -294,13 +276,11 @@ typedef union tagGAHBCFG_DATA                  //*
  * Register (GUSBCFG).  Set the bits using the bit fields then write
  * the <i>d32</i> value to the register.
  */
-typedef union tagGUSBCFG_DATA                  //*
-{
-        /** raw register data */
-        uint32_t d32;
-        /** register bits */
-        struct
-        {
+typedef union tagGUSBCFG_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
+	struct {
 		unsigned toutcal : 3;
 		unsigned phyif : 1;
 		unsigned ulpiutmisel : 1;
@@ -323,7 +303,7 @@ typedef union tagGUSBCFG_DATA                  //*
 		unsigned forcehstmode: 1;
 		unsigned forcedevmode: 1;
 		unsigned cortxpkt: 1;
-        } b;
+	};
 } GUSBCFG_DATA;
 
 /**
@@ -331,14 +311,12 @@ typedef union tagGUSBCFG_DATA                  //*
  * (GRSTCTL).  Set/clear the bits using the bit fields then write the
  * <i>d32</i> value to the register.
  */
-typedef union tagGRSTCTL_DATA                  //*
-{
-        /** raw register data */
-        uint32_t d32;
-        /** register bits */
-        struct
-        {
-		/** Core Soft Reset (CSftRst) (Device and Host)
+typedef union tagGRSTCTL_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
+	struct {
+		/* Core Soft Reset (CSftRst) (Device and Host)
 		 *
 		 * The application can flush the control logic in the
 		 * entire core using this bit. This bit resets the
@@ -374,14 +352,14 @@ typedef union tagGRSTCTL_DATA                  //*
 		 * of the core.
 		 */
 		unsigned csftrst : 1;
-		/** Hclk Soft Reset
+		/* Hclk Soft Reset
 		 *
 		 * The application uses this bit to reset the control logic in
 		 * the AHB clock domain. Only AHB clock domain pipelines are
 		 * reset.
 		 */
 		unsigned hsftrst : 1;
-		/** Host Frame Counter Reset (Host Only)<br>
+		/* Host Frame Counter Reset (Host Only)<br>
 		 *
 		 * The application can reset the (micro)frame number
 		 * counter inside the core, using this bit. When the
@@ -390,11 +368,11 @@ typedef union tagGRSTCTL_DATA                  //*
 		 * number of 0.
 		 */
 		unsigned frmcntrrst : 1;
-		/** In Token Sequence Learning Queue Flush
+		/* In Token Sequence Learning Queue Flush
 		 * (INTknQFlsh) (Device Only)
 		 */
 		unsigned intknqflsh : 1;
-		/** RxFIFO Flush (RxFFlsh) (Device and Host)
+		/* RxFIFO Flush (RxFFlsh) (Device and Host)
 		 *
 		 * The application can flush the entire Receive FIFO
 		 * using this bit.	<p>The application must first
@@ -409,7 +387,7 @@ typedef union tagGRSTCTL_DATA                  //*
 		 * to clear.
 		 */
 		unsigned rxfflsh : 1;
-		/** TxFIFO Flush (TxFFlsh) (Device and Host).
+		/* TxFIFO Flush (TxFFlsh) (Device and Host).
 		 *
 		 * This bit is used to selectively flush a single or
 		 * all transmit FIFOs.	The application must first
@@ -425,7 +403,7 @@ typedef union tagGRSTCTL_DATA                  //*
 		 */
 		unsigned txfflsh : 1;
 
-		/** TxFIFO Number (TxFNum) (Device and Host).
+		/* TxFIFO Number (TxFNum) (Device and Host).
 		 *
 		 * This is the FIFO number which needs to be flushed,
 		 * using the TxFIFO Flush bit. This field should not
@@ -441,15 +419,15 @@ typedef union tagGRSTCTL_DATA                  //*
 		 *	   Transmit Periodic FIFOs in the core
 		 */
 		unsigned txfnum : 5;
-		/** Reserved */
+		/* Reserved */
 		unsigned reserved11_29 : 19;
-		/** DMA Request Signal.	 Indicated DMA request is in
+		/* DMA Request Signal.	 Indicated DMA request is in
 		 * probress.  Used for debug purpose. */
 		unsigned dmareq : 1;
-		/** AHB Master Idle.  Indicates the AHB Master State
+		/* AHB Master Idle.  Indicates the AHB Master State
 		 * Machine is in IDLE condition. */
 		unsigned ahbidle : 1;
-        } b;
+	};
 } GRSTCTL_DATA;
 
 /**
@@ -457,13 +435,11 @@ typedef union tagGRSTCTL_DATA                  //*
  * Register (GINTMSK).  Set/clear the bits using the bit fields then
  * write the <i>d32</i> value to the register.
  */
-typedef union tagGINTMSK_DATA                  //*
-{
-    /** raw register data */
-    uint32_t d32;
-    /** register bits */
-    struct
-    {
+typedef union tagGINTMSK_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
+	struct {
 		unsigned curmod : 1;
 		unsigned modemis : 1;
 		unsigned otgint : 1;
@@ -491,21 +467,19 @@ typedef union tagGINTMSK_DATA                  //*
 		unsigned disconnint : 1;
 		unsigned sessreqint : 1;
 		unsigned wkupint : 1;
-    } b;
+	};
 } GINTMSK_DATA;
 /**
  * This union represents the bit fields of the Core Interrupt Register
  * (GINTSTS).  Set/clear the bits using the bit fields then write the
  * <i>d32</i> value to the register.
  */
-typedef union tagGINTSTS_DATA                  //*
-{
-	/** raw register data */
+typedef union tagGINTSTS_DATA {
+	/* raw register data */
 	uint32_t d32;
 #define DWC_SOF_INTR_MASK 0x0008
-	/** register bits */
-	struct
-	{
+	/* register bits */
+	struct {
 #define DWC_HOST_MODE 1
 		unsigned curmod : 1;
 		unsigned modemis : 1;
@@ -534,7 +508,7 @@ typedef union tagGINTSTS_DATA                  //*
 		unsigned disconnint : 1;
 		unsigned sessreqint : 1;
 		unsigned wkupint : 1;
-	} b;
+	};
 } GINTSTS_DATA;
 
 /**
@@ -542,11 +516,10 @@ typedef union tagGINTSTS_DATA                  //*
  * Pop Registers (GRXSTSR, GRXSTSP) Read the register into the <i>d32</i>
  * element then read out the bits using the <i>b</i>it elements.
  */
-typedef union tagGRXSTSH_DATA
-{
-	/** raw register data */
+typedef union tagGRXSTSH_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
+	/* register bits */
 	struct {
 		unsigned chnum : 4;
 		unsigned bcnt : 11;
@@ -559,7 +532,7 @@ typedef union tagGRXSTSH_DATA
 #define DWC_GRXSTS_PKTSTS_CH_HALTED		  0x7
 
 		unsigned reserved : 11;
-	} b;
+	};
 } GRXSTSH_DATA;
 
 /**
@@ -567,16 +540,31 @@ typedef union tagGRXSTSH_DATA
  * GNPTXFSIZ, DPTXFSIZn). Read the register into the <i>d32</i> element then
  * read out the bits using the <i>b</i>it elements.
  */
-typedef union tagFIFOSIZE_DATA
-{
-	/** raw register data */
+
+typedef union tagTXFIFOSIZE_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
+	/* register bits */
 	struct {
-		unsigned startaddr : 16;
-		unsigned depth : 16;
-	} b;
-} FIFOSIZE_DATA;
+		unsigned nptxfstaddr:16;
+		unsigned nptxfdep:16;
+#define DWC2_NPTXFIFO_DEPTH 0x80
+	};
+} TXFIFOSIZE_DATA;
+
+typedef union tagRXFIFOSIZE_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
+	/*The value in this fieles is in terms of 32-bit words size.
+	 */
+	struct {
+		unsigned rxfdep:16;
+#define DWC2_RXFIFO_DEPTH 0x200
+		unsigned reserved:16;
+	};
+} RXFIFOSIZE_DATA;
+
 
 /**
  * This union represents the bit fields in the Non-Periodic Transmit
@@ -584,15 +572,14 @@ typedef union tagFIFOSIZE_DATA
  * <i>d32</i> element then read out the bits using the <i>b</i>it
  * elements.
  */
-typedef union tagGNPTXSTS_DATA
-{
-	/** raw register data */
+typedef union tagGNPTXSTS_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
+	/* register bits */
 	struct {
 		unsigned nptxfspcavail : 16;
 		unsigned nptxqspcavail : 8;
-		/** Top of the Non-Periodic Transmit Request Queue
+		/* Top of the Non-Periodic Transmit Request Queue
 		 *	- bit 24 - Terminate (Last entry for the selected
 		 *	  channel/EP)
 		 *	- bits 26:25 - Token Type
@@ -606,7 +593,7 @@ typedef union tagGNPTXSTS_DATA
 		unsigned nptxqtop_token : 2;
 		unsigned nptxqtop_chnep : 4;
 		unsigned reserved : 1;
-        } b;
+	};
 } GNPTXSTS_DATA;
 
 /**
@@ -614,11 +601,10 @@ typedef union tagGNPTXSTS_DATA
  * Register.  Read the register into the <i>d32</i> element then read
  * out the bits using the <i>b</i>it elements.
  */
-typedef union tagHWCFG1_DATA
-{
-	/** raw register data */
+typedef union tagHWCFG1_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
+	/* register bits */
 	struct {
 		unsigned ep_dir0 : 2;
 		unsigned ep_dir1 : 2;
@@ -636,7 +622,7 @@ typedef union tagHWCFG1_DATA
 		unsigned ep_dir13 : 2;
 		unsigned ep_dir14 : 2;
 		unsigned ep_dir15 : 2;
-	} b;
+	};
 } HWCFG1_DATA;
 
 /**
@@ -644,11 +630,10 @@ typedef union tagHWCFG1_DATA
  * Register.  Read the register into the <i>d32</i> element then read
  * out the bits using the <i>b</i>it elements.
  */
-typedef union tagHWCFG2_DATA
-{
-	/** raw register data */
+typedef union tagHWCFG2_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
+	/* register bits */
 	struct {
 		/* GHWCFG2 */
 		unsigned op_mode : 3;
@@ -678,7 +663,7 @@ typedef union tagHWCFG2_DATA
 		unsigned host_perio_tx_q_depth : 2;
 		unsigned dev_token_q_depth : 5;
 		unsigned reserved31 : 1;
-	} b;
+	};
 } HWCFG2_DATA;
 
 /**
@@ -686,11 +671,10 @@ typedef union tagHWCFG2_DATA
  * Register.  Read the register into the <i>d32</i> element then read
  * out the bits using the <i>b</i>it elements.
  */
-typedef union tagHWCFG3_DATA                   //*
-{
-	/** raw register data */
+typedef union tagHWCFG3_DATA {
+	/* raw register data */
 	uint32_t d32;
-	/** register bits */
+	/* register bits */
 	struct {
 		/* GHWCFG3 */
 		unsigned xfer_size_cntr_width : 4;
@@ -702,7 +686,7 @@ typedef union tagHWCFG3_DATA                   //*
 		unsigned synch_reset_type : 1;
 		unsigned reserved15_12 : 4;
 		unsigned dfifo_depth : 16;
-	} b;
+	};
 } HWCFG3_DATA;
 
 /**
@@ -710,11 +694,10 @@ typedef union tagHWCFG3_DATA                   //*
  * Register.  Read the register into the <i>d32</i> element then read
  * out the bits using the <i>b</i>it elements.
  */
-typedef union tagHWCFG4_DATA                   //*
-{
-        /** raw register data */
-        uint32_t d32;
-        /** register bits */
+typedef union tagHWCFG4_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
 	struct {
 		unsigned num_dev_perio_in_ep : 4;
 		unsigned power_optimiz : 1;
@@ -730,7 +713,7 @@ typedef union tagHWCFG4_DATA                   //*
 		unsigned num_in_eps : 4;
 		unsigned reserved31_30 : 2;
 
-        } b;
+	};
 } HWCFG4_DATA;
 
 /**
@@ -738,67 +721,63 @@ typedef union tagHWCFG4_DATA                   //*
  * Read the register into the <i>d32</i> member then set/clear the bits using
  * the <i>b</i>it elements. Write the <i>d32</i> member to the hcfg register.
  */
-typedef union tagHCFG_DATA
-{
-        /** raw register data */
-        uint32_t d32;
+typedef union tagHCFG_DATA {
+	/* raw register data */
+	uint32_t d32;
 
-        /** register bits */
+	/* register bits */
 	struct {
-		/** FS/LS Phy Clock Select */
+		/* FS/LS Phy Clock Select */
 		unsigned fslspclksel : 2;
 #define DWC_HCFG_30_60_MHZ 0
 #define DWC_HCFG_48_MHZ	   1
 #define DWC_HCFG_6_MHZ	   2
 
-		/** FS/LS Only Support */
+		/* FS/LS Only Support */
 		unsigned fslssupp : 1;
-		} b;
+	} b;
 } HCFG_DATA;
 
 /**
  * This union represents the bit fields in the Host Frame Remaing/Number
  * Register.
  */
-typedef union tagHFIR_DATA
-{
-        /** raw register data */
-        uint32_t d32;
+typedef union tagHFIR_DATA {
+	/* raw register data */
+	uint32_t d32;
 
-        /** register bits */
-        struct {
+	/* register bits */
+	struct {
 		unsigned frint : 16;
 		unsigned reserved : 16;
-        } b;
+	};
 } HFIR_DATA;
 
 /**
  * This union represents the bit fields in the Host Frame Remaing/Number
  * Register.
  */
-typedef union tagHFNUM_DATA
-{
-        /** raw register data */
-        uint32_t d32;
+typedef union tagHFNUM_DATA {
+	/* raw register data */
+	uint32_t d32;
 
-        /** register bits */
-        struct {
+	/* register bits */
+	struct {
 		unsigned frnum : 16;
 #define DWC_HFNUM_MAX_FRNUM 0x3FFF
 		unsigned frrem : 16;
-        } b;
+	};
 } HFNUM_DATA;
 
-typedef union tagHPTXSTS_DATA
-{
-	/** raw register data */
+typedef union tagHPTXSTS_DATA {
+	/* raw register data */
 	uint32_t d32;
 
-	/** register bits */
+	/* register bits */
 	struct {
 		unsigned ptxfspcavail : 16;
 		unsigned ptxqspcavail : 8;
-		/** Top of the Periodic Transmit Request Queue
+		/* Top of the Periodic Transmit Request Queue
 		 *	- bit 24 - Terminate (last entry for the selected channel)
 		 *	- bits 26:25 - Token Type
 		 *	  - 2'b00 - Zero length
@@ -811,7 +790,7 @@ typedef union tagHPTXSTS_DATA
 		unsigned ptxqtop_token : 2;
 		unsigned ptxqtop_chnum : 4;
 		unsigned ptxqtop_odd : 1;
-	} b;
+	};
 } HPTXSTS_DATA;
 
 /**
@@ -820,12 +799,11 @@ typedef union tagHPTXSTS_DATA
  * bits using the <i>b</i>it elements. Write the <i>d32</i> member to the
  * hprt0 register.
  */
-typedef union tagHPRT0_DATA
-{
-        /** raw register data */
-        uint32_t d32;
-        /** register bits */
-        struct {
+typedef union tagHPRT0_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
+	struct {
 		unsigned prtconnsts : 1;
 		unsigned prtconndet : 1;
 		unsigned prtena : 1;
@@ -844,19 +822,18 @@ typedef union tagHPRT0_DATA
 #define DWC_HPRT0_PRTSPD_FULL_SPEED 1
 #define DWC_HPRT0_PRTSPD_LOW_SPEED	2
 		unsigned reserved19_31 : 13;
-        } b;
+	};
 } HPRT0_DATA;
 
 /**
  * This union represents the bit fields in the Host All Interrupt
  * Register.
  */
-typedef union tagHAINT_DATA
-{
-        /** raw register data */
-        uint32_t d32;
-        /** register bits */
-        struct {
+typedef union tagHAINT_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
+	struct {
 		unsigned ch0 : 1;
 		unsigned ch1 : 1;
 		unsigned ch2 : 1;
@@ -875,7 +852,7 @@ typedef union tagHAINT_DATA
 		unsigned ch15 : 1;
 		unsigned reserved : 16;
 	} b;
-        struct {
+	struct {
 		unsigned chint : 16;
 		unsigned reserved : 16;
 	} b2;
@@ -885,12 +862,11 @@ typedef union tagHAINT_DATA
  * This union represents the bit fields in the Host All Interrupt
  * Register.
  */
-typedef union tagHAINTMSK_DATA
-{
-        /** raw register data */
-        uint32_t d32;
-        /** register bits */
-        struct {
+typedef union tagHAINTMSK_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
+	struct {
 		unsigned ch0 : 1;
 		unsigned ch1 : 1;
 		unsigned ch2 : 1;
@@ -909,7 +885,7 @@ typedef union tagHAINTMSK_DATA
 		unsigned ch15 : 1;
 		unsigned reserved : 16;
 	} b;
-        struct {
+	struct {
 		unsigned chint : 16;
 		unsigned reserved : 16;
 	} b2;
@@ -921,34 +897,33 @@ typedef union tagHAINTMSK_DATA
  * bits using the <i>b</i>it elements. Write the <i>d32</i> member to the
  * hcchar register.
  */
-typedef union tagHCCHAR_DATA
-{
-        /** raw register data */
-        uint32_t d32;
+typedef union tagHCCHAR_DATA {
+	/* raw register data */
+	uint32_t d32;
 
-        /** register bits */
+	/* register bits */
 	struct {
-		/** Maximum packet size in bytes */
+		/* Maximum packet size in bytes */
 		unsigned mps : 11;
 
-		/** Endpoint number */
+		/* Endpoint number */
 		unsigned epnum : 4;
 
-		/** 0: OUT, 1: IN */
+		/* 0: OUT, 1: IN */
 		unsigned epdir : 1;
 
 		unsigned reserved : 1;
 
-		/** 0: Full/high speed device, 1: Low speed device */
+		/* 0: Full/high speed device, 1: Low speed device */
 		unsigned lspddev : 1;
 
-		/** 0: Control, 1: Isoc, 2: Bulk, 3: Intr */
+		/* 0: Control, 1: Isoc, 2: Bulk, 3: Intr */
 		unsigned eptype : 2;
 
-		/** Packets per frame for periodic transfers. 0 is reserved. */
+		/* Packets per frame for periodic transfers. 0 is reserved. */
 		unsigned multicnt : 2;
 
-		/** Device address */
+		/* Device address */
 		unsigned devaddr : 7;
 
 		/**
@@ -957,43 +932,42 @@ typedef union tagHCCHAR_DATA
 		 */
 		unsigned oddfrm : 1;
 
-		/** Channel disable */
+		/* Channel disable */
 		unsigned chdis : 1;
 
-		/** Channel enable */
+		/* Channel enable */
 		unsigned chen : 1;
-	} b;
+	};
 } HCCHAR_DATA;
 
-typedef union tagHCSPLT_DATA
-{
-        /** raw register data */
-        uint32_t d32;
+typedef union tagHCSPLT_DATA {
+	/* raw register data */
+	uint32_t d32;
 
-        /** register bits */
+	/* register bits */
 	struct {
-		/** Port Address */
+		/* Port Address */
 		unsigned prtaddr : 7;
 
-		/** Hub Address */
+		/* Hub Address */
 		unsigned hubaddr : 7;
 
-		/** Transaction Position */
+		/* Transaction Position */
 		unsigned xactpos : 2;
 #define DWC_HCSPLIT_XACTPOS_MID 0
 #define DWC_HCSPLIT_XACTPOS_END 1
 #define DWC_HCSPLIT_XACTPOS_BEGIN 2
 #define DWC_HCSPLIT_XACTPOS_ALL 3
 
-		/** Do Complete Split */
+		/* Do Complete Split */
 		unsigned compsplt : 1;
 
-		/** Reserved */
+		/* Reserved */
 		unsigned reserved : 14;
 
-		/** Split Enble */
+		/* Split Enble */
 		unsigned spltena : 1;
-	} b;
+	};
 } HCSPLT_DATA;
 
 
@@ -1001,37 +975,36 @@ typedef union tagHCSPLT_DATA
  * This union represents the bit fields in the Host All Interrupt
  * Register.
  */
-typedef union tagHCINT_DATA
-{
-        /** raw register data */
-        uint32_t d32;
-        /** register bits */
+typedef union tagHCINT_DATA {
+	/* raw register data */
+	uint32_t d32;
+	/* register bits */
 	struct {
-		/** Transfer Complete */
+		/* Transfer Complete */
 		unsigned xfercomp : 1;
-		/** Channel Halted */
+		/* Channel Halted */
 		unsigned chhltd : 1;
-		/** AHB Error */
+		/* AHB Error */
 		unsigned ahberr : 1;
-		/** STALL Response Received */
+		/* STALL Response Received */
 		unsigned stall : 1;
-		/** NAK Response Received */
+		/* NAK Response Received */
 		unsigned nak : 1;
-		/** ACK Response Received */
+		/* ACK Response Received */
 		unsigned ack : 1;
-		/** NYET Response Received */
+		/* NYET Response Received */
 		unsigned nyet : 1;
-		/** Transaction Err */
+		/* Transaction Err */
 		unsigned xacterr : 1;
-		/** Babble Error */
+		/* Babble Error */
 		unsigned bblerr : 1;
-		/** Frame Overrun */
+		/* Frame Overrun */
 		unsigned frmovrun : 1;
-		/** Data Toggle Error */
+		/* Data Toggle Error */
 		unsigned datatglerr : 1;
-		/** Reserved */
+		/* Reserved */
 		unsigned reserved : 21;
-	} b;
+	};
 } HCINT_DATA;
 
 /**
@@ -1040,17 +1013,16 @@ typedef union tagHCINT_DATA
  * bits using the <i>b</i>it elements. Write the <i>d32</i> member to the
  * hcchar register.
  */
-typedef union tagHCTSIZ_DATA
-{
-        /** raw register data */
-        uint32_t d32;
+typedef union tagHCTSIZ_DATA {
+	/* raw register data */
+	uint32_t d32;
 
-        /** register bits */
-        struct {
-		/** Total transfer size in bytes */
+	/* register bits */
+	struct {
+		/* Total transfer size in bytes */
 		unsigned xfersize : 19;
 
-		/** Data packets to transfer */
+		/* Data packets to transfer */
 		unsigned pktcnt : 10;
 
 		/**
@@ -1067,9 +1039,14 @@ typedef union tagHCTSIZ_DATA
 #define DWC_HCTSIZ_MDATA 3
 #define DWC_HCTSIZ_SETUP 3
 
-		/** Do PING protocol when 1 */
+#define PID_DATA0 0
+#define PID_DATA1 2
+#define PID_DATA2 1
+#define PID_MDATA 3
+#define PID_SETUP 3
+		/* Do PING protocol when 1 */
 		unsigned dopng : 1;
-        } b;
+	};
 } HCTSIZ_DATA;
 
 /**
@@ -1078,14 +1055,13 @@ typedef union tagHCTSIZ_DATA
  * bits using the <i>b</i>it elements. Write the <i>d32</i> member to the
  * hcintmsk register.
  */
-typedef union tagHCINTMSK_DATA
-{
-        /** raw register data */
-        uint32_t d32;
+typedef union tagHCINTMSK_DATA {
+	/* raw register data */
+	uint32_t d32;
 
-        /** register bits */
-        struct {
-		unsigned xfercompl : 1;
+	/* register bits */
+	struct {
+		unsigned xfercomp : 1;
 		unsigned chhltd : 1;
 		unsigned ahberr : 1;
 		unsigned stall : 1;
@@ -1097,7 +1073,7 @@ typedef union tagHCINTMSK_DATA
 		unsigned frmovrun : 1;
 		unsigned datatglerr : 1;
 		unsigned reserved : 21;
-	} b;
+	};
 } HCINTMSK_DATA;
 
 
@@ -1106,31 +1082,28 @@ typedef union tagHCINTMSK_DATA
  * Register. Read the register into the <i>d32</i> member then set/clear the
  * bits using the <i>b</i>it elements.
  */
-typedef union tagPCGCCTL_DATA
-{
-	/** raw register data */
+typedef union tagPCGCCTL_DATA {
+	/* raw register data */
 	uint32_t d32;
 
-	/** register bits */
+	/* register bits */
 	struct {
-		/** Stop Pclk */
+		/* Stop Pclk */
 		unsigned stoppclk : 1;
-		/** Gate Hclk */
+		/* Gate Hclk */
 		unsigned gatehclk : 1;
-		/** Power Clamp */
+		/* Power Clamp */
 		unsigned pwrclmp : 1;
-		/** Reset Power Down Modules */
+		/* Reset Power Down Modules */
 		unsigned rstpdwnmodule : 1;
-		/** PHY Suspended */
+		/* PHY Suspended */
 		unsigned physuspended : 1;
 
 		unsigned reserved : 27;
-	} b;
+	};
 } PCGCCTL_DATA;
 
-//设备请求结构
-typedef struct _device_request
-{
+typedef struct _device_request {
 	uint8_t 	bmRequestType;
 	uint8_t 	bRequest;
 	uint16_t	wValue;
@@ -1138,13 +1111,16 @@ typedef struct _device_request
 	uint16_t	wLength;
 } DEVICE_REQUEST_T;
 
+typedef enum {
+	EPDIR_OUT = 0,
+	EPDIR_IN,
+} ep_dir_t;
 
 struct dwc_ctrl {
 	pUSB_OTG_REG otgReg;	/* R/O registers, not need for volatile */
 	int rootdev;
-	int datatoggle[2];
 	uint16_t portreset;
-	int ntds;
+	void *align_buf;
 };
 
 #endif /* __DWC_OTG_REGS_H__ */

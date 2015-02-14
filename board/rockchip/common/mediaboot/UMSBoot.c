@@ -52,6 +52,7 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 		.name = "dwc2-otg",
 		.enable = true,
 		.regbase = (void *)RKIO_USBOTG_PHYS,
+		.gpio_vbus = GPIO_BANK0 | GPIO_B4,
 	},
 #endif
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
@@ -66,6 +67,8 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 		.name = "dwc2-otg",
 		.enable = true,
 		.regbase = (void *)RKIO_USBOTG20_PHYS,
+		.gpio_vbus = GPIO_BANK2 | GPIO_B6,
+		.hw_init = inno_usb_phy_reset,
 	},
 #endif
 #elif defined(CONFIG_RKCHIP_RK3036)
@@ -75,22 +78,40 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 		.name = "dwc2-host",
 		.enable = true,
 		.regbase = (void *)RKIO_USBHOST20_PHYS,
+		.hw_init = inno_usb_phy_reset,
 	},
 #elif defined(RKUSB_UMS_BOOT_FROM_OTG)
 	{
 		.name = "dwc2-otg",
 		.enable = true,
 		.regbase = (void *)RKIO_USBOTG20_PHYS,
+		.hw_init = inno_usb_phy_reset,
 	},
 #endif
 #endif
 };
 
-inline int rk_usb_host_lookup() {
-	int n = ARRAY_SIZE(rkusb_hcd);
-	const char *name = NULL;
+void inno_usb_phy_reset(void)
+{
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	/* Phy PLL recovering */
+	grf_writel(0x00030001, GRF_UOC0_CON0);
+	mdelay(10);
+	grf_writel(0x00030002, GRF_UOC0_CON0);
+#endif
+#if defined(CONFIG_RKCHIP_RK3036)
+	/* Phy PLL recovering */
+	grf_writel(0x00030001, GRF_UOC0_CON5);
+	mdelay(10);
+	grf_writel(0x00030002, GRF_UOC0_CON5);
+#endif
+}
 
-	printf("%d USB controller selected\n", n);
+/*************************************************************/
+void rk_usb_host_lookup(void) {
+	int n = ARRAY_SIZE(rkusb_hcd);
+
+	printf("%d USB controller selected, name %s\n", n, rkusb_hcd[0].name);
 
 	if (!n) {
 		printf("No USB controller selected\n");
@@ -104,7 +125,6 @@ inline int rk_usb_host_lookup() {
 	}
 
 	rkusb_active_hcd = &rkusb_hcd[0];
-	return 0;
 }
 
 /* 
@@ -127,7 +147,7 @@ static int __UMSReadLBA(uint8 index, uint32 LBA, void *pbuf, uint32 nSec)
 	return ERROR;
 }
 
-static uint32 __UMSWriteLBA(uint8 index, uint32 LBA, void *pbuf, uint32 nSec)
+static __maybe_unused uint32 __UMSWriteLBA(uint8 index, uint32 LBA, void *pbuf, uint32 nSec)
 {
 	unsigned long blk  = LBA;
 	unsigned long cnt  = nSec;
@@ -148,7 +168,23 @@ static uint32 __UMSGetCapacity(uint8 index)
 
 	return stor_dev->lba;
 }
+
 /************************************************************/
+static void UMSDeInit(uint32 ChipSel)
+{
+	printf("Deinit USB Host\n");
+
+	usb_stop();
+
+	/* Disable VBus */
+	if (rkusb_active_hcd->gpio_vbus)
+		gpio_direction_output(rkusb_active_hcd->gpio_vbus, 0);
+
+	/* USB hardware deinit */
+	if (rkusb_active_hcd->hw_deinit)
+		rkusb_active_hcd->hw_deinit();
+
+}
 
 uint32 UMSInit(uint32 ChipSel)
 {
@@ -167,7 +203,7 @@ uint32 UMSInit(uint32 ChipSel)
 	if (rkusb_active_hcd->gpio_vbus)
 		gpio_direction_output(rkusb_active_hcd->gpio_vbus, 1);
 
-	printf("Boot from usb device %d @ %p \n", rkusb_active_hcd->name,
+	printf("Boot from usb device %s @ %p \n", rkusb_active_hcd->name,
 	       rkusb_active_hcd->regbase);
 
 	if (usb_init() >= 0) {
@@ -175,32 +211,24 @@ uint32 UMSInit(uint32 ChipSel)
 		usb_stor_curr_dev = usb_stor_scan(1);
 		if (usb_stor_curr_dev >= 0) {
 			__UMSReadLBA(usb_stor_curr_dev, UMS_BOOT_PART_OFFSET, gIdDataBuf, 4);
-			if(gIdDataBuf[0] == 0xFCDC8C3B)
-			{
-				if(0 == gIdDataBuf[128+104/4]) // ums…˝º∂
-				{
+			if (gIdDataBuf[0] == 0xFCDC8C3B) {
+				if (0 == gIdDataBuf[128+104/4]) {
+					/* UMS Updata */
 					g_umsboot_mode = UMS_UPDATE;
 					printf("UMS Update.\n");
-				}
-				else if(1 == gIdDataBuf[128+104/4])// ums‘À––
-				{
+				} else if (1 == gIdDataBuf[128+104/4]) {
+					/* UMS Run */
 					g_umsboot_mode = UMS_BOOT;
 					printf("UMS Boot.\n");
 				}
-				ret = 0;
-			} else {
-				ret = -1;
+				return 0;
 			}
 		}
 			
 	}
 
-	return ret;
-}
-
-uint32 UMSDeInit(uint32 ChipSel)
-{
-	return 0;
+	UMSDeInit(0);
+	return -1;
 }
 
 uint32 UMSReadPBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec)
