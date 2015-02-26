@@ -228,13 +228,21 @@ void FW_NandDeInit(void)
 static void rk3368_uart2usb(uint32 en)
 {
 	if (en) {
+		grf_writel(0x34000000, GRF_UOC1_CON4); // usbphy bypass disable and otg enable.
+
+		/* if define force enable usb to uart, maybe usb function will be affected */
 #ifdef CONFIG_RKUART2USB_FORCE
-
+		grf_writel(0x007f0055, GRF_UOC0_CON0); // usb phy enter suspend
+		grf_writel(0x34003000, GRF_UOC1_CON4); // usb uart enable.
 #else
-
+		con = grf_readl(GRF_SOC_STATUS15);
+		if (!(con & (1<<23)) && (con & (1<<26))) { // detect id and bus
+			grf_writel(0x007f0055, GRF_UOC0_CON0); // usb phy enter suspend
+			grf_writel(0x34003000, GRF_UOC1_CON4); // usb uart enable.
+		}
 #endif /* CONFIG_RKUART2USB_FORCE */
 	} else {
-
+		grf_writel(0x34000000, GRF_UOC1_CON4); // usb uart disable
 	}
 }
 #endif
