@@ -300,7 +300,7 @@ static void rk312X_uart2usb(uint32 en)
 		grf_writel(0x34003000, GRF_UOC1_CON4); // usb uart enable.
 #else
 		con = grf_readl(GRF_SOC_STATUS0);
-		if (!(con & (1<<7)) && (con & (1<<10))) { // detect id and bus
+		if (!(con & (1<<5)) && (con & (1<<8))) { // detect id and bus
 			grf_writel(0x007f0055, GRF_UOC0_CON0); // usb phy enter suspend
 			grf_writel(0x34003000, GRF_UOC1_CON4); // usb uart enable.
 		}
