@@ -292,7 +292,7 @@ static void rk3036_uart2usb(uint32 en)
 static void rk312X_uart2usb(uint32 en)
 {
 	if (en) {
-		grf_writel(0x34000000, GRF_UOC0_CON0); // usbphy0 bypass disable and otg enable.
+		grf_writel(0x34000000, GRF_UOC1_CON4); // usbphy bypass disable and otg enable.
 
 		/* if define force enable usb to uart, maybe usb function will be affected */
 #ifdef CONFIG_RKUART2USB_FORCE
@@ -306,7 +306,7 @@ static void rk312X_uart2usb(uint32 en)
 		}
 #endif /* CONFIG_RKUART2USB_FORCE */
 	} else {
-		grf_writel(0x34000000, GRF_UOC0_CON0); // usb uart disable
+		grf_writel(0x34000000, GRF_UOC1_CON4); // usb uart disable
 	}
 }
 #endif
