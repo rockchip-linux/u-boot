@@ -262,6 +262,7 @@ static int rk3368_lcdc_post_cfg(struct lcdc_device *lcdc_dev, struct rk_screen *
 		post_dsp_vact_st_f1 = 0;
 		post_dsp_vact_end_f1 = 0;
 	}
+
 	/*DBG(1, "post:xsize=%d,ysize=%d,xpos=%d",
 	    screen->post_xsize, screen->post_ysize, screen->xpos);
 	DBG(1, ",ypos=%d,hsd_en=%d,h_fac=%d,vsd_en=%d,v_fac=%d\n",
@@ -308,6 +309,11 @@ static int rk3368_config_timing(struct lcdc_device *lcdc_dev, struct rk_screen *
 
 	h_total = hsync_len + left_margin + x_res + right_margin;
 	v_total = vsync_len + upper_margin + y_res + lower_margin;
+	/*need check,depend on user define*/
+        screen->overscan.left = 100;
+        screen->overscan.right = 100;
+        screen->overscan.top = 100;
+        screen->overscan.bottom = 100;
 
 	screen->post_dsp_stx = x_res * (100 - screen->overscan.left) / 200;
 	screen->post_dsp_sty = y_res * (100 - screen->overscan.top) / 200;
@@ -319,12 +325,10 @@ static int rk3368_config_timing(struct lcdc_device *lcdc_dev, struct rk_screen *
 	mask = m_DSP_HS_PW | m_DSP_HTOTAL;
 	val = v_DSP_HS_PW(hsync_len) | v_DSP_HTOTAL(h_total);
 	lcdc_msk_reg(lcdc_dev, DSP_HTOTAL_HS_END, mask, val);
-
 	mask = m_DSP_HACT_END | m_DSP_HACT_ST;
 	val = v_DSP_HACT_END(hsync_len + left_margin + x_res) |
 	    v_DSP_HACT_ST(hsync_len + left_margin);
 	lcdc_msk_reg(lcdc_dev, DSP_HACT_ST_END, mask, val);
-
 	if (screen->mode.vmode == FB_VMODE_INTERLACED) {
 		/* First Field Timing */
 		mask = m_DSP_VS_PW | m_DSP_VTOTAL;
@@ -677,12 +681,11 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	    (vid->screen_type == SCREEN_RGB)) {
 		rk31xx_lvds_enable(vid);
 	} else if (vid->screen_type == SCREEN_EDP) {
-		/*rk32_edp_enable(vid);*/
+		rk32_edp_enable(vid);
 	} else if ((vid->screen_type == SCREEN_MIPI) ||
 		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
-		/*rk32_dsi_sync();*/
+		rk32_mipi_enable(vid);
 	}
-
 	return 0;
 }
 
@@ -729,6 +732,16 @@ static int rk32_lcdc_parse_dt(struct lcdc_device *lcdc_dev,
 }
 #endif
 
+int rk3368_lcdc_read_def_cfg(struct lcdc_device *lcdc_dev)
+{
+        int reg = 0;
+
+        for (reg = 0; reg < REG_LEN; reg += 4)
+                lcdc_readl_backup(lcdc_dev, reg);
+
+        return 0;
+}
+
 #define CPU_AXI_QOS_PRIORITY_LEVEL(h, l)        ((((h) & 3) << 2) | ((l) & 3))
 
 int rk_lcdc_init(int lcdc_id)
@@ -748,6 +761,8 @@ int rk_lcdc_init(int lcdc_id)
 	    }
 	}
 	lcdc_dev->regs = RKIO_VOP_PHYS;
+
+        rk3368_lcdc_read_def_cfg(lcdc_dev);
 	// set vop qos to highest priority
 	/*
 	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0408);//need check
@@ -780,8 +795,9 @@ int rk_lcdc_init(int lcdc_id)
 	lcdc_writel(lcdc_dev, FRC_LOWER10_1, 0x5aa56969);
 	lcdc_writel(lcdc_dev, FRC_LOWER11_0, 0xdeb77deb);
 	lcdc_writel(lcdc_dev, FRC_LOWER11_1, 0xed7bb7de);
+
 	lcdc_cfg_done(lcdc_dev);
-    /*main_loop();*/
+        /*main_loop();*/
 	return 0;
 }
 
