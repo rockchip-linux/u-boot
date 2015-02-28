@@ -132,6 +132,9 @@ enum {
 #define GRF_SOC_CON7_LVDS	0x041c
 #define RK312X_GRF_LVDS_CON0 0x00150
 
+#define GRF_SOC_CON15_LVDS      0x043c
+#define v_RK3368_FORCE_JETAG(x) (BITS_MASK(x, 1, 13) | BITS_EN(1, 13))
+
 struct rk_lvds_device {
 	u32    regbase;
 	u32    ctrl_reg;
@@ -160,10 +163,18 @@ static inline u32 lvds_readl(struct rk_lvds_device *lvds, u32 offset)
 	return readl(lvds->regbase + offset);
 }
 
+static inline int lvds_dsi_writel(struct rk_lvds_device *lvds,
+				  u32 offset, u32 val)
+{
+	writel(val, lvds->ctrl_reg + offset);
+
+	return 0;
+}
+
 static inline u32 lvds_phy_lock(struct rk_lvds_device *lvds)
 {
 	u32 val = 0;
-	val = readl(lvds->ctrl_reg);
+	val = readl(lvds->ctrl_reg + 0x10);
 	return (val & 0x01);
 }
 

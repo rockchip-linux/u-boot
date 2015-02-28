@@ -137,12 +137,14 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 			pinctrl_select_state(lvds->pins->p,
 					     lvds->pins->default_state);
 #endif
+                lvds_dsi_writel(lvds, 0x0, 0x4);/*set clock lane enable*/
 		/* enable lvds mode */
 		val |= v_RK3368_LVDSMODE_EN(0) | v_RK3368_MIPIPHY_TTL_EN(1) |
 			v_RK3368_MIPIPHY_LANE0_EN(1) |
 			v_RK3368_MIPIDPI_FORCEX_EN(1);
-		//grf_writel(val, GRF_SOC_CON7_LVDS);
-		writel(0xffff8068, 0xff77041c);
+		grf_writel(val, GRF_SOC_CON7_LVDS);
+		val = v_RK3368_FORCE_JETAG(0);
+		grf_writel(val, GRF_SOC_CON15_LVDS);
     } else {/*31xx*/
     	/*grf_writel(0xfff35555, GRF_GPIO2B_IOMUX);
     	grf_writel(0x00ff0055, GRF_GPIO2C_IOMUX);
@@ -179,17 +181,10 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 
 int rk31xx_lvds_enable(vidinfo_t *vid)
 {
-   rk31xx_lvds.soc_type = gd->arch.chiptype;
-
-    /*if ((rk31xx_lvds.soc_type == CONFIG_RK3126) ||
-        (rk31xx_lvds.soc_type == CONFIG_RK3128)) {
-	    rk31xx_lvds.regbase = 0x20038000;
-	    rk31xx_lvds.ctrl_reg = 0x101100b0;
-	} else */if (rk31xx_lvds.soc_type == CONFIG_RK3368) {
+        rk31xx_lvds.soc_type = gd->arch.chiptype;
         rk31xx_lvds.regbase = 0xff968000;
-	    rk31xx_lvds.ctrl_reg = 0xff9600b0;
-	}
-
+        rk31xx_lvds.ctrl_reg = 0xff9600a0;
+        rk31xx_lvds.soc_type = CONFIG_RK3368;
 	switch (vid->screen_type) {
 	case SCREEN_LVDS:
 		rk31xx_output_lvds(vid);
