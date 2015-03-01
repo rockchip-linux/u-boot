@@ -699,13 +699,20 @@ static int rk_pwm_remotectl_hw_init(struct rkxx_remotectl_drvdata *ddata)
 	return 0;
 }
 
+#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	#define PWM_REMOTE_BASE		RKIO_PWM_PHYS
+#elif defined(CONFIG_RKCHIP_RK3288)
+	#define PWM_REMOTE_BASE		RKIO_RK_PWM_PHYS
+#else
+	#error "PLS config rk chip for pwm remote base."
+#endif
 
 void remotectlInitInDriver(void)
 {
 	printf("remotectl v0.1\n");
 	ddata = &data;
 	ddata->state = RMC_PRELOAD;
-	ddata->base = RKIO_PWM_PHYS + 0x30; // PWM3
+	ddata->base = PWM_REMOTE_BASE + 0x30; // PWM3
 
 	rk_pwm_remotectl_hw_init(ddata);
 }

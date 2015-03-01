@@ -256,6 +256,14 @@ static void PowerKeyInit(void)
 }
 
 #ifdef CONFIG_RK_PWM_REMOTE
+#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	#define IRQ_PWM_REMOTE	IRQ_PWM
+#elif defined(CONFIG_RKCHIP_RK3288)
+	#define IRQ_PWM_REMOTE	IRQ_RK_PWM
+#else
+	#error "PLS config rk chip for pwm remote irq."
+#endif
+
 extern int g_ir_keycode;
 extern int remotectl_do_something(void);
 extern void remotectlInitInDriver(void);
@@ -275,8 +283,8 @@ int RemotectlInit(void)
 	remotectlInitInDriver();
 	rk_iomux_config(RK_PWM3_IOMUX);
 	//install the irq hander for PWM irq.
-	irq_install_handler(IRQ_PWM, remotectl_do_something, NULL);
-	irq_handler_enable(IRQ_PWM);
+	irq_install_handler(IRQ_PWM_REMOTE, remotectl_do_something, NULL);
+	irq_handler_enable(IRQ_PWM_REMOTE);
 
 	return 0;
 }
@@ -284,8 +292,8 @@ int RemotectlInit(void)
 int RemotectlDeInit(void)
 {
 	//uninstall and disable PWM irq.
-	irq_uninstall_handler(IRQ_PWM);
-	irq_handler_disable(IRQ_PWM);
+	irq_uninstall_handler(IRQ_PWM_REMOTE);
+	irq_handler_disable(IRQ_PWM_REMOTE);
 
 	return 0;
 }
