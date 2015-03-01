@@ -48,25 +48,18 @@
 /* undef some module for rk chip */
 #if defined(CONFIG_RKCHIP_RK3036)
 	#undef CONFIG_RK_UMS_BOOT_EN
-	#undef CONFIG_RK_SPI
-	#undef CONFIG_PM_SUBSYSTEM
-	#undef CONFIG_RK_PWM
 	#undef CONFIG_POWER
 	#undef CONFIG_POWER_RK
 #endif /* CONFIG_RKCHIP_RK3036 */
 
 #if defined(CONFIG_RKCHIP_RK3126)
 	#undef CONFIG_RK_UMS_BOOT_EN
-	#undef CONFIG_RK_SPI
-	#undef CONFIG_RK_PWM_REMOTE
-	#undef CONFIG_RK_DEVICEINFO
-	#undef CONFIG_RK_HDMI
 #endif /* CONFIG_RKCHIP_RK3126 */
 
 #if defined(CONFIG_RKCHIP_RK3128)
 	#define CONFIG_SECUREBOOT_CRYPTO
+
 	#undef CONFIG_RK_UMS_BOOT_EN
-	#undef CONFIG_RK_SPI
 #endif /* CONFIG_RKCHIP_RK3128 */
 
 

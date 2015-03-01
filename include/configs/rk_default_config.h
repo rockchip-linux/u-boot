@@ -316,20 +316,23 @@
 #define CONFIG_OF_FROM_RESOURCE		/* fdt from resource */
 
 
+#ifndef CONFIG_PRODUCT_BOX
 /* rk pm management module */
 #define CONFIG_PM_SUBSYSTEM
+#endif
 
 
 /* LCDC console */
 #define CONFIG_LCD
 
 
+#ifdef CONFIG_PRODUCT_BOX
 /* rk deviceinfo partition */
 #define CONFIG_RK_DEVICEINFO
 
-
 /* rk pwm remote ctrl */
 #define CONFIG_RK_PWM_REMOTE
+#endif
 
 
 /*
@@ -363,7 +366,7 @@
 #define CONFIG_SYS_I2C_SPEED	100000
 
 /* rk spi module */
-#define CONFIG_RK_SPI
+#undef CONFIG_RK_SPI
 
 /* rk key module */
 #define CONFIG_RK_KEY
@@ -376,9 +379,10 @@
 #ifdef CONFIG_LCD
 
 #define CONFIG_RK_FB
+#ifndef CONFIG_PRODUCT_BOX
 #define CONFIG_RK_PWM
+#endif
 
-/* rk box use hdmi display */
 #ifdef CONFIG_PRODUCT_BOX
 #define CONFIG_RK_HDMI
 #endif

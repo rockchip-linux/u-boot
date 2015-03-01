@@ -47,12 +47,10 @@
 /* undef some module for rk chip */
 #if defined(CONFIG_RKCHIP_RK3288)
 	#define CONFIG_SECUREBOOT_CRYPTO
+
 	#undef CONFIG_RK_UMS_BOOT_EN
-	#undef CONFIG_RK_SPI
 	#undef CONFIG_RK_PL330
 	#undef CONFIG_RK_DMAC
-	#undef CONFIG_RK_DEVICEINFO
-	#undef CONFIG_RK_PWM_REMOTE
 #endif
 
 /* mod it to enable console commands.	*/
