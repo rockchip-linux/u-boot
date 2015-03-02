@@ -32,6 +32,11 @@
 #define RUN_IN_UBOOT
 static struct rk32_edp rk32_edp;
 
+#if (defined(CONFIG_RKCHIP_RK3288))
+#define cpu_is_rk3288() 1
+#else
+#define cpu_is_rk3288() 0
+#endif
 static int rk32_edp_clk_enable(struct rk32_edp *edp)
 {
 	u32 val;
@@ -53,21 +58,41 @@ static int rk32_edp_clk_disable(struct rk32_edp *edp)
 	return 0;
 }
 
+#define RK3368_GRF_SOC_CON4	0x410
 static int rk32_edp_pre_init(void)
 {
 	u32 val;
-	val = GRF_EDP_REF_CLK_SEL_INTER |
-		(GRF_EDP_REF_CLK_SEL_INTER << 16);
-	writel(val, RKIO_GRF_PHYS + 0x0274);
 
-	val = 0x80008000;
-	writel(val, RKIO_CRU_PHYS + 0x0d0); /*select 24m*/
-	val = 0x80008000;
-	writel(val, RKIO_CRU_PHYS + 0x01d0); /*reset edp*/
-	udelay(1);
-	val = 0x80000000;
-	writel(val, RKIO_CRU_PHYS + 0x01d0);
-	udelay(1);
+	if (cpu_is_rk3288()) {
+		val = GRF_EDP_REF_CLK_SEL_INTER |
+			(GRF_EDP_REF_CLK_SEL_INTER << 16);
+		writel(val, RKIO_GRF_PHYS + 0x0274);
+
+		val = 0x80008000;
+		writel(val, RKIO_CRU_PHYS + 0x0d0); /*select 24m*/
+		val = 0x80008000;
+		writel(val, RKIO_CRU_PHYS + 0x01d0); /*reset edp*/
+		udelay(1);
+		val = 0x80000000;
+		writel(val, RKIO_CRU_PHYS + 0x01d0);
+		udelay(1);
+	}
+	else {
+		val = 0x01 | (0x01 << 16);
+		writel(val, RKIO_GRF_PHYS + RK3368_GRF_SOC_CON4);
+
+		val = (0x01 << 26) | (0x01 << 10);
+		writel(val, RKIO_CRU_PHYS + 0x0031c);
+		udelay(20);
+		val = (0x01 << 26) | (0x0 << 10);
+		writel(val, RKIO_CRU_PHYS + 0x0031c);
+
+		val = (0x01 << 31) | (0x01 << 15);
+		writel(val, RKIO_CRU_PHYS + 0x00318);
+		udelay(20);
+		val = (0x01 << 31) | (0x0 << 15);
+		writel(val, RKIO_CRU_PHYS + 0x00318);
+	}
 	return 0;
 }
 
@@ -75,12 +100,13 @@ static int rk32_edp_init_edp(struct rk32_edp *edp)
 {
 	u32 val = 0;
 	vidinfo_t *vid = edp->vid;
-	if (vid->lcdc_id == 1)  /*select lcdc*/
-		val = EDP_SEL_VOP_LIT | (EDP_SEL_VOP_LIT << 16);
-	else
-		val = EDP_SEL_VOP_LIT << 16;
-	writel(val, RKIO_GRF_PHYS + 0x025c);
-
+	if (cpu_is_rk3288()) {
+		if (vid->lcdc_id == 1)  /*select lcdc*/
+			val = EDP_SEL_VOP_LIT | (EDP_SEL_VOP_LIT << 16);
+		else
+			val = EDP_SEL_VOP_LIT << 16;
+		writel(val, RKIO_GRF_PHYS + 0x025c);
+	}
 	
 	rk32_edp_reset(edp);
 	rk32_edp_init_refclk(edp);
