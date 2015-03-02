@@ -204,7 +204,7 @@
 #define CONFIG_RK33_HDMI
 #endif
 
-#define CONFIG_RK33_DSI
+#define CONFIG_RK32_DSI
 
 #undef CONFIG_UBOOT_CHARGE
 

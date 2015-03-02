@@ -18,6 +18,10 @@ drivers/video/rockchip/transmitter/rk32_mipi_dsi.h
 #define RK312x_CRU_PHYS			RKIO_CRU_PHYS
 
 #define RK312x_GRF_SOC_CON6             GRF_LVDS_CON0
+
+#elif (defined(CONFIG_RKCHIP_RK3368))
+#define RK3368_CRU_PHYS			RKIO_CRU_PHYS
+
 #endif
 #else
 #include <linux/rockchip/grf.h>
