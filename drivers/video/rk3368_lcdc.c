@@ -684,7 +684,9 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		rk32_edp_enable(vid);
 	} else if ((vid->screen_type == SCREEN_MIPI) ||
 		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
+#if defined(CONFIG_RK32_DSI)
 		rk32_mipi_enable(vid);
+#endif
 	}
 	return 0;
 }
@@ -694,6 +696,17 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 void rk_lcdc_standby(int enable)
 {
 	struct lcdc_device *lcdc_dev = &rk33_lcdc;
+#if defined(CONFIG_RK32_DSI)
+	if ((panel_info.screen_type == SCREEN_MIPI)||
+		(panel_info.screen_type == SCREEN_DUAL_MIPI)) {
+		if (enable == 0) {
+			rk32_dsi_enable();
+		} else if (enable == 1) {
+			rk32_dsi_disable();
+		}
+	}
+#endif
+
 	if(enable == 0) {
 		//rk32_dsi_enable();
 		//rk32_dsi_sync();
