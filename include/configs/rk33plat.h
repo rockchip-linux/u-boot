@@ -78,7 +78,6 @@
 	#undef CONFIG_RK_PL330
 	#undef CONFIG_RK_DMAC
 
-	#undef CONFIG_LCD
 	#undef CONFIG_PM_SUBSYSTEM
 #endif
 
