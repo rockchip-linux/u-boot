@@ -755,7 +755,7 @@ int rk3368_lcdc_read_def_cfg(struct lcdc_device *lcdc_dev)
         return 0;
 }
 
-#define CPU_AXI_QOS_PRIORITY_LEVEL(h, l)        ((((h) & 3) << 2) | ((l) & 3))
+#define CPU_AXI_QOS_PRIORITY_LEVEL(h, l)        ((((h) & 3) << 8) | ((l) & 3))
 
 int rk_lcdc_init(int lcdc_id)
 {
@@ -776,13 +776,11 @@ int rk_lcdc_init(int lcdc_id)
 	lcdc_dev->regs = RKIO_VOP_PHYS;
 
         rk3368_lcdc_read_def_cfg(lcdc_dev);
-	// set vop qos to highest priority
-	/*
-	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0408);//need check
-	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0008);
-    */
-    /*pmu grf need check*/
+	/*set vop qos to highest priority*/
+	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0308);
+
 	//grf_writel(1<<16, GRF_IO_VSEL); /*LCDCIOdomain 3.3 Vvoltageselectio*/
+        writel(0x20 << 16, VOP_PMU_GRF_BASE + VOP_PMUGRF_SOC_CON0);
 
 	msk = m_AUTO_GATING_EN | m_STANDBY_EN |
 		m_DMA_STOP | m_MMU_EN;

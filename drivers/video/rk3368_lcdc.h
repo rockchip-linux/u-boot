@@ -1649,6 +1649,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define PMUGRF_SOC_CON0_VOP		(0x0100)
 
+
+#define VOP_PMU_GRF_BASE                (0xff738000)
+#define VOP_PMUGRF_SOC_CON0             (0x100)
 enum lb_mode {
 	LB_YUV_3840X5 = 0x0,
 	LB_YUV_2560X8 = 0x1,
