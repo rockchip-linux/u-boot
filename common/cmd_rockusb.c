@@ -69,6 +69,61 @@ static void rkusb_event_handler (struct usb_device_instance *device,
 	}
 }
 
+/* utility function for converting char* to wide string used by USB */
+static void str2wide (char *str, u16 * wide)
+{
+	int i;
+	for (i = 0; i < strlen (str) && str[i]; i++){
+		#if defined(__LITTLE_ENDIAN)
+			wide[i] = (u16) str[i];
+		#elif defined(__BIG_ENDIAN)
+			wide[i] = ((u16)(str[i])<<8);
+		#else
+			#error "__LITTLE_ENDIAN or __BIG_ENDIAN undefined"
+		#endif
+	}
+}
+
+static void rkusb_init_strings(void)
+{
+	struct usb_string_descriptor *string;
+
+	rkusb_string_table[STR_LANG] = (struct usb_string_descriptor *)wstr_lang;
+
+	string = (struct usb_string_descriptor *) wstr_manufacturer;
+	string->bLength = sizeof(wstr_manufacturer);
+	string->bDescriptorType = USB_DT_STRING;
+	str2wide(CONFIG_USBD_MANUFACTURER, string->wData);
+	rkusb_string_table[STR_MANUFACTURER] = string;
+
+	string = (struct usb_string_descriptor *) wstr_product;
+	string->bLength = sizeof(wstr_product);
+	string->bDescriptorType = USB_DT_STRING;
+	str2wide(CONFIG_USBD_PRODUCT_NAME, string->wData);
+	rkusb_string_table[STR_PRODUCT] = string;
+
+	string = (struct usb_string_descriptor *) wstr_serial;
+	string->bLength = sizeof(wstr_serial);
+	string->bDescriptorType = USB_DT_STRING;
+	str2wide(serial_number, string->wData);
+	rkusb_string_table[STR_SERIAL] = string;
+
+	string = (struct usb_string_descriptor *) wstr_configuration;
+	string->bLength = sizeof(wstr_configuration);
+	string->bDescriptorType = USB_DT_STRING;
+	str2wide(CONFIG_USBD_CONFIGURATION_STR, string->wData);
+	rkusb_string_table[STR_CONFIGURATION] = string;
+
+	string = (struct usb_string_descriptor *) wstr_interface;
+	string->bLength = sizeof(wstr_interface);
+	string->bDescriptorType = USB_DT_STRING;
+	str2wide(CONFIG_USBD_INTERFACE_STR, string->wData);
+	rkusb_string_table[STR_INTERFACE] = string;
+
+	/* Now, initialize the string table for ep0 handling */
+	usb_strings = rkusb_string_table;
+}
+
 /* fastboot_init has to be called before this fn to get correct serial string */
 static void rkusb_init_instances(void)
 {
@@ -936,6 +991,7 @@ int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		return ret;
 	}
 
+	rkusb_init_strings();
 	rkusb_init_instances();
 
 	udc_startup_events(device_instance);

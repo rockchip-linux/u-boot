@@ -135,10 +135,19 @@ static struct cmd_rockusb_interface usbcmd __attribute__((aligned(ARCH_DMA_MINAL
 static void rkusb_handle_response(void);
 static void rkusb_init_endpoints(void);
 
+/* USB Descriptor Strings */
+static char serial_number[] = "123456789abcdef"; /* what should be the length ?, 33 ? */
+static __attribute__ ((aligned(4))) u8 wstr_lang[4] = {4, USB_DT_STRING, 0x9, 0x4};
+static __attribute__ ((aligned(4))) u8 wstr_manufacturer[2 + 2*(sizeof(CONFIG_USBD_MANUFACTURER)-1)];
+static __attribute__ ((aligned(4))) u8 wstr_product[2 + 2*(sizeof(CONFIG_USBD_PRODUCT_NAME)-1)];
+static __attribute__ ((aligned(4))) u8 wstr_serial[2 + 2*(sizeof(serial_number) - 1)];
+static __attribute__ ((aligned(4))) u8 wstr_configuration[2 + 2*(sizeof(CONFIG_USBD_CONFIGURATION_STR)-1)];
+static __attribute__ ((aligned(4))) u8 wstr_interface[2 + 2*(sizeof(CONFIG_USBD_INTERFACE_STR)-1)];
+
 static u8 rockusb_name[] = "rockchip_rockusb";
 /* defined and used by gadget/ep0.c */
 extern struct usb_string_descriptor **usb_strings;
-static char serial_number[]="123456789abcdef"; /* what should be the length ?, 33 ? */
+
 /* USB descriptors */
 static struct usb_device_descriptor device_descriptor = {
     .bLength = sizeof(struct usb_device_descriptor),
@@ -216,6 +225,7 @@ static struct usb_bos_descriptor rkusb_bos_desc = {
 static struct usb_interface_descriptor interface_descriptors[NUM_INTERFACES];
 static struct usb_endpoint_descriptor *ep_descriptor_ptrs[NUM_ENDPOINTS];
 
+static struct usb_string_descriptor *rkusb_string_table[STR_COUNT];
 static struct usb_device_instance device_instance[1];
 static struct usb_bus_instance bus_instance[1];
 static struct usb_configuration_instance config_instance[NUM_CONFIGS];
