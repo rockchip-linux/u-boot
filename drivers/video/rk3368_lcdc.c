@@ -125,14 +125,14 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_ARGB888_VIRWIDTH(fb_info->xvir));
 		break;
 	case RGB888:
-		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_ARGB888_VIRWIDTH(fb_info->xvir));
+		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_RGB888_VIRWIDTH(fb_info->xvir));
 		break;
 	case RGB565:
-		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_ARGB888_VIRWIDTH(fb_info->xvir));
+		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_RGB565_VIRWIDTH(fb_info->xvir));
 		break;
 	case YUV422:
 	case YUV420:
-		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_ARGB888_VIRWIDTH(fb_info->xvir));
+		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_YUV_VIRWIDTH(fb_info->xvir));
 		if(fb_info->xsize > 1280) {
 			lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, m_WIN0_LB_MODE,
 				     v_WIN0_LB_MODE(LB_YUV_3840X5));
