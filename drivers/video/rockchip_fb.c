@@ -263,12 +263,15 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 {
 	int node;
 	int phandle;
+	/* logo_on flag has been checked in the function board_fbt_preboot() */
+#if 0
 	int logo_on;
-
 	node = fdt_node_offset_by_compatible(blob, 0, COMPAT_ROCKCHIP_FB);
+
 	logo_on = fdtdec_get_int(blob, node, "rockchip,uboot-logo-on", 0);
 	if (logo_on <= 0)
 		return -EPERM;
+#endif
 	phandle = fdt_getprop_u32_default(blob, "/display-timings",
 					  "native-mode", -1);
 	node = fdt_node_offset_by_phandle(blob, phandle);
