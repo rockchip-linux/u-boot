@@ -103,6 +103,7 @@ clock-names = "clk_mipi_24m", "pclk_mipi_dsi";
 */
 #define cpu_is_rk3288() 1
 #define cpu_is_rk312x() 0
+#define cpu_is_rk3368() 0
 
 int rk32_mipi_dsi_clk_enable(struct dsi *dsi)
 {
@@ -132,6 +133,7 @@ int rk32_mipi_dsi_clk_disable(struct dsi *dsi)
 #elif (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
 #define cpu_is_rk3288() 0
 #define cpu_is_rk312x() 1
+#define cpu_is_rk3368() 0
 
 int rk32_mipi_dsi_clk_enable(struct dsi *dsi)
 {
