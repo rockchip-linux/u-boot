@@ -15,8 +15,8 @@ DECLARE_GLOBAL_DATA_PTR;
 /* ARM/General/Codec pll freq config */
 #define CONFIG_RKCLK_APLLB_FREQ		816 /* MHZ */
 #define CONFIG_RKCLK_APLLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		297 /* MHZ */
-#define CONFIG_RKCLK_CPLL_FREQ		384 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		576 /* MHZ */
+#define CONFIG_RKCLK_CPLL_FREQ		400 /* MHZ */
 
 
 /* Cpu clock source select */
@@ -146,9 +146,8 @@ static const struct pll_clk_set apll_clks[] = {
 /* gpll clock table, should be from high to low */
 static const struct pll_clk_set gpll_clks[] = {
 	//rate, nr, nf, no,	aclk_peri_div, hclk_peri_div, pclk_peri_div,	aclk_bus_div, hclk_bus_div, pclk_bus_div
-	_GPLL_SET_CLKS(768000, 1,  64, 2,    2, 2, 4,				2, 2, 4),
 	_GPLL_SET_CLKS(594000, 2, 198, 4,    2, 2, 4,				2, 2, 4),
-	_GPLL_SET_CLKS(300000, 1,  50, 4,    1, 2, 4,				1, 2, 4),
+	_GPLL_SET_CLKS(576000, 1,  48, 2,    2, 2, 4,				2, 2, 4),
 	_GPLL_SET_CLKS(297000, 2, 198, 8,    1, 2, 4,				1, 2, 4),
 };
 
@@ -156,9 +155,8 @@ static const struct pll_clk_set gpll_clks[] = {
 /* cpll clock table, should be from high to low */
 static const struct pll_clk_set cpll_clks[] = {
 	//rate, nr, nf, no
-	_CPLL_SET_CLKS(798000, 2, 133, 2),
 	_CPLL_SET_CLKS(594000, 2, 198, 4),
-	_CPLL_SET_CLKS(384000, 2, 128, 4),
+	_CPLL_SET_CLKS(400000, 3, 200, 4),
 };
 
 
