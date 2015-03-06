@@ -176,7 +176,6 @@ int board_fbt_key_pressed(void)
 
 #if defined(CONFIG_RK_PWM_REMOTE)
 	ir_keycode = g_ir_keycode;
-	RemotectlDeInit();
 #endif
 	printf("vbus = %d\n", vbus);
 	if((boot_recovery && (vbus==0)) || (ir_keycode  == KEY_POWER)) {
