@@ -97,23 +97,42 @@ int rk_get_chiptype(void)
 }
 
 
+/* cpu axi qos priority */
+#define CPU_AXI_QOS_PRIORITY    0x08
+#define CPU_AXI_QOS_PRIORITY_LEVEL(h, l) \
+	((((h) & 3) << 8) | (((h) & 3) << 2) | ((l) & 3))
+
 #ifdef CONFIG_ARCH_CPU_INIT
 int arch_cpu_init(void)
 {
 	gd->arch.chiptype = rk_get_chiptype();
 
-	/* read latency configure */
 #if defined(CONFIG_RKCHIP_RK3288)
+	/* read latency configure */
 	writel(0x34, 0xffac0000 + 0x14);
 	writel(0x34, 0xffac0080 + 0x14);
+
+	/* set vop qos to highest priority */
+	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0408);
+	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0008);
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	/* read latency configure */
 	writel(0x3f, 0x10128000 + 0x14);
+
+	/* set lcdc cpu axi qos priority level */
+	#define	CPU_AXI_QOS_PRIORITY_BASE	0x1012f180
+	writel(CPU_AXI_QOS_PRIORITY_LEVEL(3, 3), CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3036)
+	/* read latency configure */
 	writel(0x80, 0x10128000 + 0x14);
+
+	/* set lcdc cpu axi qos priority level */
+	#define	CPU_AXI_QOS_PRIORITY_BASE	0x1012f000
+	writel(CPU_AXI_QOS_PRIORITY_LEVEL(3, 3), CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
 #endif
 	return 0;
 }
