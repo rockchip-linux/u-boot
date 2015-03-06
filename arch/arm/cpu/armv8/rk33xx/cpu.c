@@ -68,6 +68,12 @@ static secure_timer_init(void)
 #endif
 
 
+/* cpu axi qos priority */
+#define CPU_AXI_QOS_PRIORITY    0x08
+#define CPU_AXI_QOS_PRIORITY_LEVEL(h, l) \
+	((((h) & 3) << 8) | (((h) & 3) << 2) | ((l) & 3))
+
+
 #ifdef CONFIG_ARCH_CPU_INIT
 int arch_cpu_init(void)
 {
@@ -87,6 +93,10 @@ int arch_cpu_init(void)
 
 	/* ddr read latency configure */
 	writel(0x34, 0xffac0000 + 0x14);
+
+	/* set lcdc cpu axi qos priority level */
+	#define	CPU_AXI_QOS_PRIORITY_BASE	0xffad0300
+	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
 #endif
 
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
