@@ -463,7 +463,7 @@ void board_fbt_preboot(void)
 	if (logo_on) {
 		lcd_enable_logo(true);
 		lcd_standby(0);
-		mdelay(100);
+		//mdelay(100);
 		rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
 	}
 #endif
