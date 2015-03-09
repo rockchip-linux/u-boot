@@ -258,7 +258,7 @@ static void PowerKeyInit(void)
 #ifdef CONFIG_RK_PWM_REMOTE
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#define IRQ_PWM_REMOTE	IRQ_PWM
-#elif defined(CONFIG_RKCHIP_RK3288)
+#elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	#define IRQ_PWM_REMOTE	IRQ_RK_PWM
 #else
 	#error "PLS config rk chip for pwm remote irq."

@@ -701,7 +701,7 @@ static int rk_pwm_remotectl_hw_init(struct rkxx_remotectl_drvdata *ddata)
 
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#define PWM_REMOTE_BASE		RKIO_PWM_PHYS
-#elif defined(CONFIG_RKCHIP_RK3288)
+#elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	#define PWM_REMOTE_BASE		RKIO_RK_PWM_PHYS
 #else
 	#error "PLS config rk chip for pwm remote base."
