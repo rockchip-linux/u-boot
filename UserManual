@@ -1,5 +1,25 @@
 1.  Toolchain
     Toolchain is define by CROSS_COMPILE in the file Makefile now, you modify or add your default toolchain path.
+    RK uboot default set toolchain as:
+	ifeq ($(ARCHV),aarch64)
+
+	ifneq ($(wildcard ../toolchain/aarch64-linux-android-4.9),)
+	CROSS_COMPILE   ?= $(shell pwd)/../toolchain/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+	endif
+	ifneq ($(wildcard ../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin),)
+	CROSS_COMPILE   ?= $(shell pwd)/../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+	endif
+
+	else
+
+	ifneq ($(wildcard ../toolchain/arm-eabi-4.8),)
+	CROSS_COMPILE   ?= $(shell pwd)/../toolchain/arm-eabi-4.8/bin/arm-eabi-
+	endif
+	ifneq ($(wildcard ../prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin),)
+	CROSS_COMPILE   ?= $(shell pwd)/../prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+	endif
+
+	endif # ARCHV=aarch64
 
 2.  Configure the rk platform
     rockchip support for uboot chip set configs as:
@@ -13,6 +33,7 @@
 		configs\rk3128_box_defconfig
 		configs\rk3128_box_uart0_defconfig
 		configs\rk3288_box_defconfig	
+		configs\rk3368_box_defconfig
 
     example:
         make rk3288_defconfig	-	Command to configure rk3288 platform for uboot.
@@ -40,7 +61,7 @@
     support RK3288,RK3036,RK3126,RK3128,RK3368.
 
 7.  Storage
-    support emmc, sdcard and nand flash.
+    support emmc, sdcard, nand flash and ums.
 
 8.  configure file
     rk uboot configure files as:
@@ -54,9 +75,10 @@
 
 10. rockusb mode
     rk rockusb mode is using for down rk other images, such as kernel.img and so on.
+    Press VOL+ key to enter rockusb when rksdk board poweron.
 
 11. Fastboot
-    Android fastboot, all command as:
+    Android fastboot, Press VOL- key to enter fastboot when rksdk board poweron. all command as:
         fastboot support below command
         fastboot getvar version
         fastboot getvar version-bootloader
