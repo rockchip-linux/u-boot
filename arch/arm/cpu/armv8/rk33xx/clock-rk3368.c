@@ -31,10 +31,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define BUS_SRC_GENERAL_PLL		1
 #define BUS_SRC_CODEC_PLL		0
 
-/* DDR clock source select */
-#define DDR_SRC_DDR_PLL			0
-#define DDR_SRC_GENERAL_PLL		1
-
 
 struct pll_clk_set {
 	unsigned long	rate;
@@ -134,28 +130,30 @@ struct pll_data {
  *
  */
 
-/* apll clock table, should be from high to low */
-static const struct pll_clk_set apll_clks[] = {
+/* apllb clock table, should be from high to low */
+static const struct pll_clk_set apllb_clks[] = {
 	//rate, nr, nf, no,			a53_div, axi_div, atclk, pclk_dbg
-	_APLL_SET_CLKS(1008000,1, 84, 2,	1, 4, 4, 4),
-	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 4, 4, 4),
-	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 4, 4, 4),
+	_APLL_SET_CLKS(1008000,1, 84, 2,	1, 2, 4, 4),
+	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 2, 3, 3),
+};
+
+/* aplll clock table, should be from high to low */
+static const struct pll_clk_set aplll_clks[] = {
+	//rate, nr, nf, no,			a53_div, axi_div, atclk, pclk_dbg
+	_APLL_SET_CLKS(600000, 1, 50, 2,	1, 2, 3, 3),
 };
 
 
 /* gpll clock table, should be from high to low */
 static const struct pll_clk_set gpll_clks[] = {
 	//rate, nr, nf, no,	aclk_peri_div, hclk_peri_div, pclk_peri_div,	aclk_bus_div, hclk_bus_div, pclk_bus_div
-	_GPLL_SET_CLKS(594000, 2, 198, 4,    2, 2, 4,				2, 2, 4),
-	_GPLL_SET_CLKS(576000, 1,  48, 2,    2, 2, 4,				2, 2, 4),
-	_GPLL_SET_CLKS(297000, 2, 198, 8,    1, 2, 4,				1, 2, 4),
+	_GPLL_SET_CLKS(576000, 1,  48, 2,	2, 2, 4,			2, 2, 4),
 };
 
 
 /* cpll clock table, should be from high to low */
 static const struct pll_clk_set cpll_clks[] = {
 	//rate, nr, nf, no
-	_CPLL_SET_CLKS(594000, 2, 198, 4),
 	_CPLL_SET_CLKS(400000, 3, 200, 4),
 };
 
@@ -170,10 +168,9 @@ static const struct pll_clk_set npll_clks[] = {
 };
 
 
-static struct pll_data rkpll_data[END_PLL_ID] = {
-	SET_PLL_DATA(APLLB_ID, apll_clks, ARRAY_SIZE(apll_clks)),
-	SET_PLL_DATA(APLLL_ID, apll_clks, ARRAY_SIZE(apll_clks)),
-	SET_PLL_DATA(DPLL_ID, NULL, 0),
+static struct pll_data rkpll_data[] = {
+	SET_PLL_DATA(APLLB_ID, apllb_clks, ARRAY_SIZE(apllb_clks)),
+	SET_PLL_DATA(APLLL_ID, aplll_clks, ARRAY_SIZE(aplll_clks)),
 	SET_PLL_DATA(CPLL_ID, cpll_clks, ARRAY_SIZE(cpll_clks)),
 	SET_PLL_DATA(GPLL_ID, gpll_clks, ARRAY_SIZE(gpll_clks)),
 };
@@ -225,7 +222,7 @@ static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f
 	int i = 0;
 
 	/* Find pll rate set */
-	for (i=0; i<END_PLL_ID; i++) {
+	for (i=0; i<ARRAY_SIZE(rkpll_data); i++) {
 		if (rkpll_data[i].id == pll_id) {
 			pll = &rkpll_data[i];
 			break;
@@ -510,7 +507,7 @@ static void rkclk_bus_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk_di
 	uint32 pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
 	/* pd bus clock source select: 0: codec pll, 1: general pll */
-	if (pll_src == 0) {
+	if (pll_src == PERIPH_SRC_CODEC_PLL) {
 		pll_sel = PDBUS_ACLK_SEL_CPLL;
 	} else {
 		pll_sel = PDBUS_ACLK_SEL_GPLL;
@@ -541,7 +538,7 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 	uint32 pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
 	/* periph clock source select: 0: codec pll, 1: general pll */
-	if (pll_src == 0) {
+	if (pll_src == PERIPH_SRC_CODEC_PLL) {
 		pll_sel = PERI_SEL_CPLL;
 	} else {
 		pll_sel = PERI_SEL_GPLL;
@@ -603,7 +600,7 @@ static void rkclk_core_b_clk_set(uint32 pll_src, uint32 a53_core_b_div, uint32 a
 	uint32_t pll_sel = 0, a53_div = 0, axi_div = 0, dbg_div = 0, atclk_div = 0;
 
 	/* cpu clock source select: 0: arm pll, 1: general pll */
-	if (pll_src == 0) {
+	if (pll_src == CPU_SRC_ARM_PLL) {
 		pll_sel = CORE_B_SEL_APLL;
 	} else {
 		pll_sel = CORE_B_SEL_GPLL;
@@ -629,10 +626,50 @@ static void rkclk_core_b_clk_set(uint32 pll_src, uint32 a53_core_b_div, uint32 a
 			| (CORE_B_ATB_DIV_W_MSK | (atclk_div << CORE_B_ATB_DIV_OFF)), CRU_CLKSELS_CON(1));
 }
 
-
-static void rkclk_apll_cb(struct pll_clk_set *clkset)
+static void rkclk_apllb_cb(struct pll_clk_set *clkset)
 {
 	rkclk_core_b_clk_set(CPU_SRC_ARM_PLL, clkset->a53_core_div, clkset->axi_core_div, clkset->dbg_core_div, clkset->atclk_core_div);
+}
+
+
+/*
+ * rkplat clock set cpu clock from arm pll
+ * 	when call this function, make sure pll is in slow mode
+ */
+static void rkclk_core_l_clk_set(uint32 pll_src, uint32 a53_core_l_div, uint32 aclkm_core_l_div, uint32 dbg_core_l_div, uint32 atclk_core_l_div)
+{
+	uint32_t pll_sel = 0, a53_div = 0, axi_div = 0, dbg_div = 0, atclk_div = 0;
+
+	/* cpu clock source select: 0: arm pll, 1: general pll */
+	if (pll_src == CPU_SRC_ARM_PLL) {
+		pll_sel = CORE_L_SEL_APLL;
+	} else {
+		pll_sel = CORE_L_SEL_GPLL;
+	}
+
+	/* a53 core clock div: clk_core = clk_src / (div_con + 1) */
+	a53_div = (a53_core_l_div == 0) ? 1 : (a53_core_l_div - 1);
+
+	/* aclkm core axi clock div: clk = clk_src / (div_con + 1) */
+	axi_div = (aclkm_core_l_div == 0) ? 1 : (aclkm_core_l_div - 1);
+
+	/* pclk dbg core axi clock div: clk = clk_src / (div_con + 1) */
+	dbg_div = (dbg_core_l_div == 0) ? 1 : (dbg_core_l_div - 1);
+
+	/* pclk dbg core axi clock div: clk = clk_src / (div_con + 1) */
+	atclk_div = (atclk_core_l_div == 0) ? 1 : (atclk_core_l_div - 1);
+
+	cru_writel((CORE_L_SEL_PLL_MSK | pll_sel)
+			| (CORE_L_CLK_DIV_W_MSK | (a53_div << CORE_L_CLK_DIV_OFF))
+			| (CORE_L_AXI_CLK_DIV_W_MSK | (axi_div << CORE_L_AXI_CLK_DIV_OFF)), CRU_CLKSELS_CON(2));
+
+	cru_writel((DEBUG_L_PCLK_DIV_W_MSK | (dbg_div << DEBUG_L_PCLK_DIV_OFF))
+			| (CORE_L_ATB_DIV_W_MSK | (atclk_div << CORE_L_ATB_DIV_OFF)), CRU_CLKSELS_CON(3));
+}
+
+static void rkclk_aplll_cb(struct pll_clk_set *clkset)
+{
+	rkclk_core_l_clk_set(CPU_SRC_ARM_PLL, clkset->a53_core_div, clkset->axi_core_div, clkset->dbg_core_div, clkset->atclk_core_div);
 }
 
 
@@ -787,7 +824,9 @@ void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
 	pll_callback_f cb_f = NULL;
 
 	if (APLLB_ID == pll_id) {
-		cb_f = rkclk_apll_cb;
+		cb_f = rkclk_apllb_cb;
+	} else if (APLLL_ID == pll_id) {
+		cb_f = rkclk_aplll_cb;
 	} else if (GPLL_ID == pll_id) {
 		cb_f = rkclk_gpll_cb;
 	}
@@ -801,8 +840,8 @@ void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
  */
 void rkclk_set_pll(void)
 {
-	rkclk_pll_set_rate(APLLB_ID, CONFIG_RKCLK_APLLB_FREQ, rkclk_apll_cb);
-	rkclk_pll_set_rate(APLLL_ID, CONFIG_RKCLK_APLLL_FREQ, NULL);
+	rkclk_pll_set_rate(APLLB_ID, CONFIG_RKCLK_APLLB_FREQ, rkclk_apllb_cb);
+	rkclk_pll_set_rate(APLLL_ID, CONFIG_RKCLK_APLLL_FREQ, rkclk_aplll_cb);
 	rkclk_pll_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
 	rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
 }
@@ -883,30 +922,6 @@ void rkclk_dump_pll(void)
 }
 
 
-/*
- * rkplat pll select and clock div calcate
- * clock: device request freq HZ
- * even: if div needs even
- * return value:
- * high 16bit: 0 - codec pll, 1 - general pll
- * low 16bit : div
- */
-static uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
-{
-	uint32 div = 0, gdiv = 0, cdiv = 0;
-	uint32 pll_sel = 0; // 0: general pll, 1: codec pll
-
-	gdiv = rkclk_calc_clkdiv(gd->bus_clk, clock, even); // general pll div
-	cdiv = rkclk_calc_clkdiv(gd->pci_clk, clock, even); // codec pll div
-
-	pll_sel = (gd->bus_clk / gdiv) >= (gd->pci_clk / cdiv);
-
-	div = pll_sel ? gdiv : cdiv;
-
-	return (pll_sel << 16) | div;
-}
-
-
 #define VIO_ACLK_MAX	(400 * MHZ)
 #define VIO_HCLK_MAX	(100 * MHZ)
 
@@ -945,13 +960,6 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	return 0;
 }
 
-
-/*
- * rkplat lcdc aclk config
- * lcdc_id (lcdc id select) : 0 - lcdc0
- * pll_sel (lcdc dclk source pll select) : 0 - codec pll, 1 - general pll, 2 - USBPHY pll
- * div (lcdc aclk div from pll) : 0x01 - 0x100
- */
 static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 {
 	uint32 aclk_info = 0;
@@ -981,7 +989,6 @@ static int rkclk_lcdc_hclk_config(uint32 lcdc_id, uint32 div)
 
 	return 0;
 }
-
 
 /*
  * rkplat vio hclk config from aclk vio0
@@ -1034,9 +1041,7 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	return 0;
 }
 
-
-#define RK3368_LIMIT_NPLL	(1250*MHZ)
-
+#define RK3368_LIMIT_NPLL	(1250 * MHZ)
 static uint32 rkclk_lcdc_dclk_to_npll(uint32 lcdc_id, uint32 rate_hz, uint32 *dclk_div)
 {
 	struct pll_clk_set *clkset = NULL;
@@ -1078,7 +1083,6 @@ end:
 
 	return pll_hz;
 }
-
 
 static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
