@@ -471,10 +471,12 @@ config TARGET_VEXPRESS_AEMV8A
 config TARGET_LS2085A_EMU
 	bool "Support ls2085a_emu"
 	select ARM64
+	select ARMV8_MULTIENTRY
 
 config TARGET_LS2085A_SIMU
 	bool "Support ls2085a_simu"
 	select ARM64
+	select ARMV8_MULTIENTRY
 
 config TARGET_LS1021AQDS
 	bool "Support ls1021aqds_nor"
@@ -533,8 +535,6 @@ config ARCH_UNIPHIER
 
 endchoice
 
-source "arch/arm/cpu/armv8/Kconfig"
-
 source "arch/arm/cpu/arm926ejs/davinci/Kconfig"
 
 source "arch/arm/cpu/armv7/exynos/Kconfig"
@@ -568,6 +568,8 @@ source "arch/arm/cpu/arm926ejs/versatile/Kconfig"
 source "arch/arm/cpu/armv7/zynq/Kconfig"
 
 source "arch/arm/cpu/armv7/rk32xx/Kconfig"
+
+source "arch/arm/cpu/armv8/Kconfig"
 
 source "arch/arm/cpu/armv8/rk33xx/Kconfig"
 

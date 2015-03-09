@@ -120,24 +120,21 @@ checkok:
 	/* Processor specific initialization */
 	bl	lowlevel_init
 
+#ifdef CONFIG_ARMV8_MULTIENTRY
 	branch_if_master x0, x1, master_cpu
 
 	/*
 	 * Slave CPUs
 	 */
-#ifndef CONFIG_ROCKCHIP
 slave_cpu:
 	wfe
 	ldr	x1, =CPU_RELEASE_ADDR
 	ldr	x0, [x1]
 	cbz	x0, slave_cpu
 	br	x0			/* branch to the given address */
-#endif
-
-	/*
-	 * Master CPU
-	 */
 master_cpu:
+	/* On the master CPU */
+#endif /* CONFIG_ARMV8_MULTIENTRY */
 
 	bl	_main
 
@@ -169,6 +166,15 @@ el1_start:
 	nop
 #endif /* CONFIG_SWITCH_EL3_TO_EL1 */
 #endif /* CONFIG_ROCKCHIP */
+
+#ifndef CONFIG_ARMV8_MULTIENTRY
+	/*
+	 * For single-entry systems the lowlevel init is very simple.
+	 */
+	ldr	x0, =GICD_BASE
+	bl	gic_init_secure
+
+#else /* CONFIG_ARMV8_MULTIENTRY is set */
 
 #if defined(CONFIG_GICV2) || defined(CONFIG_GICV3)
 	branch_if_slave x0, 1f
@@ -206,6 +212,8 @@ el1_start:
 #ifdef CONFIG_ARMV8_SWITCH_TO_EL1
 	bl	armv8_switch_to_el1
 #endif
+
+#endif /* CONFIG_ARMV8_MULTIENTRY */
 
 2:
 	mov	lr, x29			/* Restore LR */
