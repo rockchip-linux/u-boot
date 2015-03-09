@@ -78,13 +78,17 @@ void rk_pm_enter(v_pm_cb_f module_pm_conf)
 	/* pll enter slow mode */
 	rkclk_pll_mode(CPLL_ID, RKCLK_PLL_MODE_SLOW);
 	rkclk_pll_mode(GPLL_ID, RKCLK_PLL_MODE_SLOW);
-	rkclk_pll_mode(APLL_ID, RKCLK_PLL_MODE_SLOW);
+	rkclk_pll_mode(NPLL_ID, RKCLK_PLL_MODE_SLOW);
+	rkclk_pll_mode(APLLL_ID, RKCLK_PLL_MODE_SLOW);
+	rkclk_pll_mode(APLLB_ID, RKCLK_PLL_MODE_SLOW);
 
 	/* cpu enter wfi mode */
 	wfi();
 
 	/* pll enter nornal mode */
-	rkclk_pll_mode(APLL_ID, RKCLK_PLL_MODE_NORMAL);
+	rkclk_pll_mode(APLLB_ID, RKCLK_PLL_MODE_NORMAL);
+	rkclk_pll_mode(APLLL_ID, RKCLK_PLL_MODE_NORMAL);
+	rkclk_pll_mode(NPLL_ID, RKCLK_PLL_MODE_NORMAL);
 	rkclk_pll_mode(GPLL_ID, RKCLK_PLL_MODE_NORMAL);
 	rkclk_pll_mode(CPLL_ID, RKCLK_PLL_MODE_NORMAL);
 
