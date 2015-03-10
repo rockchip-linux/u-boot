@@ -140,6 +140,7 @@ static void rk3036_hdmi_set_pwr_mode(struct hdmi_dev *hdmi_dev, int mode)
 		rk3036_hdmi_sys_power(hdmi_dev, false);
 		hdmi_writel(hdmi_dev, PHY_DRIVER, 0xaa);
 
+		hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x5f);
 		if(hdmi_dev->phy_pre_emphasis != 0)
 		{
 			if((hdmi_dev->video.vic == HDMI_720X480P_60HZ_VIC) ||
@@ -148,10 +149,6 @@ static void rk3036_hdmi_set_pwr_mode(struct hdmi_dev *hdmi_dev, int mode)
 			(hdmi_dev->video.vic == HDMI_720X576I_50HZ_VIC))
 
 			hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, hdmi_dev->phy_pre_emphasis);
-		}
-		else
-		{
-			hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x5f);
 		}
 
 		hdmi_writel(hdmi_dev, PHY_SYS_CTL,0x15);
