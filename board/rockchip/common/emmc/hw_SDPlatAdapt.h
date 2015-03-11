@@ -44,8 +44,6 @@ uint32   SDPAM_IOMUX_DetGPIO(SDMMC_PORT_E nSDCPort);
 void   SDPAM_ControlPower(SDMMC_PORT_E nSDCPort, uint32 enable);
 uint32   SDPAM_IsCardPresence(SDMMC_PORT_E nSDCPort);
 
-int32 eMMC_changemode(uint8 mode);
-
 
 #endif //end of #ifndef _SDPAM_H_
 

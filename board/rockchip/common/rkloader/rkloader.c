@@ -171,7 +171,6 @@ static int dispose_bootloader_cmd(struct bootloader_message *msg,
 			if(reboot)
 			{
 				PRINT_I("reboot\n");
-				//DRVDelayMs(10);
 				ISetLoaderFlag(SYS_LOADER_REBOOT_FLAG | BOOT_NORMAL);
 				reset_cpu(0);
 			}

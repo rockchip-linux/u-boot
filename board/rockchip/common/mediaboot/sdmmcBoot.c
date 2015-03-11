@@ -44,6 +44,8 @@ void SdmmcSDMInit(void)
 	ftl_memset(gSdCardInfoTbl, 0, sizeof(gSdCardInfoTbl));
 }
 
+
+#ifndef EMMC_NOT_USED_BOOT_PART
 void emmc_dev_reset(void)
 {
 	EmmcPowerEn(0);
@@ -51,6 +53,7 @@ void emmc_dev_reset(void)
 	EmmcPowerEn(1);
 	DRVDelayMs(1);
 }
+#endif
 
 
 uint32 SdmmcReinit(uint32 ChipSel)
@@ -516,7 +519,7 @@ uint32 BootFromSdCard(uint8 ChipSel)
 
 	return ret;
 }
-#endif
+#endif /* RK_SDCARD_BOOT_EN */
 
-#endif
+#endif /* DRIVERS_SDMMC */
 

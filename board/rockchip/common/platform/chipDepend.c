@@ -49,18 +49,6 @@ void DRVDelayMs(uint32 count)
 }
 
 
-/***************************************************************************
-函数描述:延时
-入口参数:s数
-出口参数:
-调用函数:
-***************************************************************************/
-void DRVDelayS(uint32 count)
-{
-	while (count--)
-		DRVDelayMs(1000);
-}
-
 
 uint32 CacheFlushDRegion(uint32 adr, uint32 size)
 {
@@ -185,14 +173,6 @@ int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
 	rkclk_set_mmc_clk_div(sdmmcId, div);
 }
 
-//mode=1  changemode to normal mode;
-//mode=0  changemode to boot mode
-int32 eMMC_changemode(uint8 mode)
-{ 
-#ifdef RK_SDMMC_BOOT_EN    
-	eMMC_SetDataHigh();
-#endif
-}
 
 void sdmmcGpioInit(uint32 ChipSel)
 {

@@ -27,7 +27,6 @@
 
 extern void DRVDelayUs(uint32 count);
 extern void DRVDelayMs(uint32 count);
-extern void DRVDelayS(uint32 count);
 
 extern void ISetLoaderFlag(uint32 flag);
 extern uint32 IReadLoaderFlag(void);
