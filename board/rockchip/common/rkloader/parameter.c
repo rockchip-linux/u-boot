@@ -355,8 +355,12 @@ static void ParseLine(PBootInfo pboot_info, char *line)
 		strcpy( pboot_info->fdt_name, line );
 		//printf("FDT_NAME: %s\n", pboot_info->fdt_name);
 	}
-	else if (!memcmp(line, "UART", strlen("UART"))) {
-		rkplat_uart2UsbEn(1);
+	else if (!memcmp(line, "USBUART:", strlen("USBUART:"))) {
+		line += strlen("USBUART:");
+		EATCHAR(line, ' ');
+		if(!memcmp(line, "enable", strlen("enable"))) {
+			rkplat_uart2UsbEn(1);
+		}
 	}
 	else
 		printf("Unknow param: %s!\n", line);
