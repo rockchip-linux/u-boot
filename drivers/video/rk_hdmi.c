@@ -68,7 +68,7 @@ static const struct hdmi_video_timing hdmi_mode [] = {
 	{ {	"1920x1080p@30Hz",	30,		1920,	1080,	74250000,	148,	88,	    36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	34,	    HDMI_1920x1080p_30HZ_4_3,	1,		    OUT_P888},
 	{ {	"1920x1080p@50Hz",	50,		1920,	1080,	148500000,	148,	528,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	31,  	HDMI_1920x1080p_50HZ_4_3,	1,		    OUT_P888},
 	{ {	"1920x1080p@60Hz",	60,		1920,	1080,	148500000,	148,	88,	    36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	16,  	HDMI_1920x1080p_60HZ_4_3,	1,		    OUT_P888},		
-#ifdef CONFIG_RK32_HDMI
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	{ {	"3840x2160p@24Hz",	24,		3840,	2160,	297000000,	296,	1276,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	93,	    HDMI_3840x2160p_24HZ_4_3,	1,		    OUT_P888},
 	{ {	"3840x2160p@25Hz",	25,		3840,	2160,	297000000,	296,	1056,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	94,	    HDMI_3840x2160p_25HZ_4_3,	1,		    OUT_P888},
 	{ {	"3840x2160p@30Hz", 	30,		3840,	2160,	297000000,	296,	176,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	95,	    HDMI_3840x2160p_30HZ_4_3,	1,		    OUT_P888},
@@ -91,7 +91,13 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	}
 	mode = &(timing->mode);
 	panel->pixelrepeat = !timing->pixelrepeat;
-	panel->screen_type = SCREEN_HDMI; 
+	panel->screen_type = SCREEN_HDMI;
+	if (hdmi_dev->video.color_input > HDMI_COLOR_RGB_16_235) {
+		panel->color_mode = COLOR_YCBCR;
+		panel->vl_swap_rb = 1;
+	} else {
+		panel->color_mode = COLOR_RGB;
+	}
 	panel->vl_freq    = mode->pixclock; 
 	panel->vl_col     = mode->xres ;//xres
 	panel->vl_row     = mode->yres;//yres
@@ -1416,7 +1422,7 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 
 void rk_hdmi_probe(vidinfo_t *panel)
 {
-#ifdef CONFIG_RK32_HDMI
+#if defined(CONFIG_RK_HDMIV2)
 	rk32_hdmi_probe(panel);
 #endif
 #ifdef CONFIG_RK3036_HDMI

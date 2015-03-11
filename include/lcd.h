@@ -265,7 +265,10 @@ enum lay_id {
 	WIN1,
 	NUM_LAYERS,
 };
-
+enum {
+	COLOR_RGB = 0,
+	COLOR_YCBCR,
+};
 
 struct fb_dsp_info{
 	enum lay_id layer_id;

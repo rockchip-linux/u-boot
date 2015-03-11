@@ -146,7 +146,7 @@
 #define CONFIG_RK32_FB
 
 #ifdef CONFIG_RK_HDMI
-#define CONFIG_RK32_HDMI
+#define CONFIG_RK_HDMIV2
 #endif
 
 #define CONFIG_RK32_DSI

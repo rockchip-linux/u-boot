@@ -51,6 +51,22 @@ typedef enum HDMI_EDID_ERRORCODE
 	E_HDMI_EDID_NOMEMORY
 }HDMI_EDID_ErrorCode;
 
+enum rk_hdmi_feature {
+	SUPPORT_480I_576I	=	(1 << 0),
+	SUPPORT_1080I		=	(1 << 1),
+	SUPPORT_DEEP_10BIT	=	(1 << 2),
+	SUPPORT_DEEP_12BIT	=	(1 << 3),
+	SUPPORT_DEEP_16BIT	=	(1 << 4),
+	SUPPORT_4K		=	(1 << 5),
+	SUPPORT_4K_4096		=	(1 << 6),
+	SUPPORT_TMDS_600M	=	(1 << 7),
+	SUPPORT_YUV420		=	(1 << 8),
+	SUPPORT_CEC		=	(1 << 9),
+	SUPPORT_HDCP		=	(1 << 10),
+	SUPPORT_HDCP2		=	(1 << 11),
+	SUPPORT_YCBCR_INPUT	=	(1 << 12),
+};
+
 enum {
 	INPUT_IIS,
 	INPUT_SPDIF
@@ -238,9 +254,9 @@ enum hdmi_video_color_mode {
 	HDMI_COLOR_AUTO	= 0,
 	HDMI_COLOR_RGB_0_255,
 	HDMI_COLOR_RGB_16_235,
-	HDMI_COLOR_YCbCr444,
-	HDMI_COLOR_YCbCr422,
-	HDMI_COLOR_YCbCr420
+	HDMI_COLOR_YCBCR444,
+	HDMI_COLOR_YCBCR422,
+	HDMI_COLOR_YCBCR420
 };
 
 /* HDMI Video Color Depth */
@@ -471,7 +487,7 @@ struct rk_hdmi_drvdata  {
 struct hdmi_dev {
 	void   		   *regbase;
 	struct hdmi    driver;
-
+	int		feature;
 	unsigned long  pixelclk;
 	unsigned long  tmdsclk;
 	unsigned int   pixelrepeat;
@@ -565,6 +581,7 @@ struct hdmi_dev {
 #define HDMI_VIDEO_EXT					(1 << 8)
 #define HDMI_VIDEO_3D					(2 << 8)
 #define HDMI_VIDEO_DVI					(3 << 8)
+#define HDMI_VIDEO_YUV420				(4 << 8)
 #define HDMI_VIC_MASK					(0xFF)
 #define HDMI_TYPE_MASK					(0xFF << 8)
 #define HDMI_MAX_ID	4

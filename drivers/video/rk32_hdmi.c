@@ -217,12 +217,19 @@ static void hdmi_dev_init(struct hdmi_dev *hdmi_dev)
 	//grf_writel(HDMI_SEL_LCDC(0), GRF_SOC_CON6);	
 
 	//set edid gpio to high Z mode
-	grf_writel(0xF << 22, GRF_GPIO7C_P);
-	
 	// reset hdmi
-	writel((1 << 9) | (1 << 25), RKIO_CRU_PHYS + 0x01d4);
+	#ifdef CONFIG_RKCHIP_RK3288
+	grf_writel(0xF << 22, GRF_GPIO7C_P);
+	val = 0x01d4;
+	#endif
+	#ifdef CONFIG_RKCHIP_RK3368
+	grf_writel(0xF << 20, GRF_GPIO3D_P);
+	val = 0x031c;
+	#endif
+	// reset hdmi
+	writel((1 << 9) | (1 << 25), RKIO_CRU_PHYS + val);
 	udelay(1);
-	writel((0 << 9) | (1 << 25), RKIO_CRU_PHYS + 0x01d4);
+	writel((0 << 9) | (1 << 25), RKIO_CRU_PHYS + val);
 
 	rk32_hdmi_powerdown(hdmi_dev);
 
@@ -345,7 +352,7 @@ static int rk32_hdmi_video_packetizer(struct hdmi_dev *hdmi_dev, struct hdmi_vid
 	unsigned char output_select = 0;
 	unsigned char remap_size = 0;
 
-	if(vpara->color_output == HDMI_COLOR_YCbCr422) {
+	if(vpara->color_output == HDMI_COLOR_YCBCR422) {
 		switch (vpara->color_output_depth) {
 			case 8:
 				remap_size = YCC422_16BIT;
@@ -421,7 +428,7 @@ static int rk32_hdmi_video_sampler(struct hdmi_dev *hdmi_dev, struct hdmi_video 
 {
 	int map_code = 0;
 	
-	if (vpara->color_input == HDMI_COLOR_YCbCr422) {
+	if (vpara->color_input == HDMI_COLOR_YCBCR422) {
 		/* YCC422 mapping is discontinued - only map 1 is supported */
 		switch (vpara->color_output_depth) {
 		case 8:
@@ -435,6 +442,23 @@ static int rk32_hdmi_video_sampler(struct hdmi_dev *hdmi_dev, struct hdmi_video 
 			break;
 		default:
 			map_code = VIDEO_YCBCR422_8BIT;
+			break;
+		}
+	} else if (vpara->color_input == HDMI_COLOR_YCBCR420 ||
+		   vpara->color_input == HDMI_COLOR_YCBCR444) {
+		switch (vpara->color_output_depth) {
+		case 10:
+			map_code = VIDEO_YCBCR444_10BIT;
+			break;
+		case 12:
+			map_code = VIDEO_YCBCR444_12BIT;
+			break;
+		case 16:
+			map_code = VIDEO_YCBCR444_16BIT;
+			break;
+		case 8:
+		default:
+			map_code = VIDEO_YCBCR444_8BIT;
 			break;
 		}
 	} else {
@@ -453,7 +477,7 @@ static int rk32_hdmi_video_sampler(struct hdmi_dev *hdmi_dev, struct hdmi_video 
 			map_code = VIDEO_RGB444_8BIT;
 			break;
 		}
-		map_code += (vpara->color_input == HDMI_COLOR_YCbCr444) ? 8 : 0;
+		map_code += (vpara->color_input == HDMI_COLOR_YCBCR444) ? 8 : 0;
 	}
 
 	//Set Data enable signal from external and set video sample input mapping
@@ -479,11 +503,11 @@ static void hdmi_dev_config_avi(struct hdmi_dev *hdmi_dev, struct hdmi_video *vp
 	unsigned char rgb_quan_range = AVI_QUANTIZATION_RANGE_DEFAULT;
 
 	//Set AVI infoFrame Data byte1
-	if(vpara->color_output == HDMI_COLOR_YCbCr444)
+	if(vpara->color_output == HDMI_COLOR_YCBCR444)
 		y1y0 = AVI_COLOR_MODE_YCBCR444;
-	else if(vpara->color_output == HDMI_COLOR_YCbCr422)
+	else if(vpara->color_output == HDMI_COLOR_YCBCR422)
 		y1y0 = AVI_COLOR_MODE_YCBCR422;
-	else if(vpara->color_output == HDMI_COLOR_YCbCr420)
+	else if(vpara->color_output == HDMI_COLOR_YCBCR420)
 		y1y0 = AVI_COLOR_MODE_YCBCR420;
 	else
 		y1y0 = AVI_COLOR_MODE_RGB;
@@ -708,6 +732,9 @@ static int hdmi_dev_control_output(struct hdmi_dev *hdmi_dev, int enable)
 //		//unmute audio
 //		hdmi_msk_reg(hdmi_dev, FC_AUDSCONF, m_AUD_PACK_SAMPFIT, v_AUD_PACK_SAMPFIT(0));
 		hdmi_writel(hdmi_dev, FC_DBGFORCE, 0x00);
+		hdmi_msk_reg(hdmi_dev, FC_GCP,
+			     m_FC_SET_AVMUTE | m_FC_CLR_AVMUTE,
+			     v_FC_SET_AVMUTE(0) | v_FC_CLR_AVMUTE(1));
 	} else {
 		if(enable & HDMI_VIDEO_MUTE) {
 			hdmi_msk_reg(hdmi_dev, FC_DBGFORCE, m_FC_FORCEVIDEO, v_FC_FORCEVIDEO(1));
@@ -724,13 +751,12 @@ static int hdmi_dev_insert(struct hdmi_dev *hdmi_dev)
 {
 	HDMIDBG("%s\n", __FUNCTION__);
 
-	hdmi_writel(hdmi_dev, MC_CLKDIS, 0x0);
+	hdmi_writel(hdmi_dev, MC_CLKDIS, m_HDCPCLK_DISABLE);
 	//mute audio
 //	hdmi_msk_reg(hdmi_dev, FC_AUDSCONF, m_AUD_PACK_SAMPFIT, v_AUD_PACK_SAMPFIT(0x0F));
 
     return HDMI_ERROR_SUCESS;
 }
-
 
 static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
@@ -748,17 +774,39 @@ static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 	hdmi_dev->video.color_output = HDMI_COLOR_RGB_0_255;
 	hdmi_dev->video.color_output_depth = 8;
 	
-
-	hdmi_dev_init(hdmi_dev);	
+	#ifdef CONFIG_RKCHIP_RK3288
+	hdmi_dev->feature = SUPPORT_4K | SUPPORT_TMDS_600M;
+	#endif
+	#ifdef CONFIG_RKCHIP_RK3368
+	hdmi_dev->feature = SUPPORT_4K |
+			    SUPPORT_4K_4096 |
+			    SUPPORT_YUV420 |
+			    SUPPORT_YCBCR_INPUT;
+	printf("rk3368\n");
+	#endif
+	hdmi_dev_init(hdmi_dev);
 	if (hdmi_dev_detect_hotplug(hdmi_dev)) {
 		hdmi_dev_insert(hdmi_dev);
 		hdmi_parse_edid(hdmi_dev);
 		hdmi_find_best_mode(hdmi_dev);
+		if (hdmi_dev->video.sink_hdmi &&
+		    (hdmi_dev->feature & SUPPORT_YUV420)) {
+			if (hdmi_dev->driver.edid.ycbcr444)
+				hdmi_dev->video.color_output = HDMI_COLOR_YCBCR444;
+			else if (hdmi_dev->driver.edid.ycbcr444)
+				hdmi_dev->video.color_output = HDMI_COLOR_YCBCR422;
+				printf("YCBCR\n");
+		}
+		if (hdmi_dev->video.color_output == HDMI_COLOR_YCBCR444 ||
+		    hdmi_dev->video.color_output == HDMI_COLOR_YCBCR422)
+			hdmi_dev->video.color_input = HDMI_COLOR_YCBCR444;
+		else if (hdmi_dev->video.color_output == HDMI_COLOR_YCBCR420)
+			hdmi_dev->video.color_input = HDMI_COLOR_YCBCR420;
 		hdmi_dev_config_video(hdmi_dev, &hdmi_dev->video);
 		hdmi_dev_control_output(hdmi_dev, HDMI_AV_UNMUTE);
 
 		ret = 0;
-	}else {
+	} else {
 		printf("Hdmi Devices Not Exist.\n");
 	}
 

@@ -116,7 +116,7 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
    screen->overscan.top     = 0;
    screen->overscan.bottom  = 0;
    screen->swap_gb          = 0;
-   screen->swap_rb          = 0;
+   screen->swap_rb          = vid->vl_swap_rb;
    screen->swap_rg          = 0;
    screen->swap_delta       = 0;
    screen->swap_dumy        = 0;

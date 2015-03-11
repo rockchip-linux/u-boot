@@ -576,7 +576,10 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		break;
 	case SCREEN_HDMI:
 		/*face = OUT_RGB_AAA;*/
-		lcdc_dev->overlay_mode = VOP_YUV_DOMAIN;
+		if (screen->color_mode == COLOR_RGB)
+                        lcdc_dev->overlay_mode = VOP_RGB_DOMAIN;
+                else
+                        lcdc_dev->overlay_mode = VOP_YUV_DOMAIN;
 		mask = m_HDMI_OUT_EN  | m_RGB_OUT_EN;
 		val = v_HDMI_OUT_EN(1) | v_RGB_OUT_EN(0);
 		lcdc_msk_reg(lcdc_dev, SYS_CTRL, mask, val);
