@@ -1073,11 +1073,11 @@ static uint32 rkclk_lcdc_dclk_to_npll(uint32 lcdc_id, uint32 rate_hz, uint32 *dc
 		div = div - 1;
 	}
 
+end:
 	pll_hz = div * rate_hz;
 	rkclk_set_npll_rate(pll_hz);
 	pll_hz = rkclk_pll_get_rate(NPLL_ID);
 
-end:
 	debug("npll set: pll rate = %d, div = %d\n", pll_hz, div);
 	*dclk_div = div;
 
