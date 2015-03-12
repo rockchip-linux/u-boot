@@ -1743,8 +1743,10 @@ enum _vop_overlay_mode {
 	VOP_YUV_DOMAIN
 };
 
-#define COLOR_RGB	0
-#define COLOR_YCBCR	1
+enum _vop_output_mode {
+	COLOR_RGB = 0,
+	COLOR_YCBCR,
+};
 
 #define REG_LEN				MMU_AUTO_GATING
 
@@ -1992,7 +1994,7 @@ static inline int lcdc_grf_writel(struct regmap *base,
 	((INT32)((x) * (1 << SCALE_OFFSET_FIXPOINT_SHIFT)))
 
 
-u32 rk3368_get_hard_ware_vskiplines(u32 srch, u32 dsth)
+static inline u32 rk3368_get_hard_ware_vskiplines(u32 srch, u32 dsth)
 {
 	u32 vscalednmult;
 

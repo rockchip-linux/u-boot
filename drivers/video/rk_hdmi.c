@@ -32,6 +32,10 @@
 #ifdef CONFIG_RK32_FB
 #include "rk32_lcdc.h"
 #endif
+#ifdef CONFIG_RK33_FB
+#include "rk3368_lcdc.h"
+#endif
+
 
 #define PARTITION_NAME "baseparamer"
 #define DEFAULT_MODE   15 
