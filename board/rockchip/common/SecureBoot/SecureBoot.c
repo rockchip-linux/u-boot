@@ -175,9 +175,9 @@ uint32 SecureBootSecureDisable(void)
 }
 
 
-uint32 SecureBootImageSecureCheck(rk_boot_img_hdr *hdr, int unlocked)
+uint32 SecureBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 {
-	return SecureModeBootImageSecureCheck(hdr, unlocked);
+	return SecureModeBootImageCheck(hdr, unlocked);
 }
 
 

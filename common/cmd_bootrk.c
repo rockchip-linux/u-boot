@@ -170,8 +170,18 @@ static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr,
 		}
 	}
 
-	/* check image secure state */
-	SecureBootImageSecureCheck(hdr, unlocked);
+	/* check image */
+	if (SecureBootImageCheck(hdr, unlocked) == false) {
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+		if ((SecureMode != SBOOT_MODE_NS) && (SecureBootCheckOK == 0)) {
+			puts("Not allow to boot no secure sign image!");
+			while(1);
+		}
+#endif /* CONFIG_SECUREBOOT_CRYPTO */
+
+		/* if image check error, boot fail */
+		board_fbt_boot_failed("ramdisk");
+	}
 
 	/* loader fdt */
 #ifdef CONFIG_OF_LIBFDT
@@ -280,8 +290,18 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 		}
 	}
 
-	/* check image secure state */
-	SecureBootImageSecureCheck(hdr, unlocked);
+	/* check image */
+	if (SecureBootImageCheck(hdr, unlocked) == false) {
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+		if ((SecureMode != SBOOT_MODE_NS) && (SecureBootCheckOK == 0)) {
+			puts("Not allow to boot no secure sign image!");
+			while(1);
+		}
+#endif /* CONFIG_SECUREBOOT_CRYPTO */
+
+		/* if image check error, boot fail */
+		board_fbt_boot_failed(ptn->name);
+	}
 
 	/* loader fdt */
 #ifdef CONFIG_OF_LIBFDT
@@ -481,13 +501,6 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			goto fail;
 		}
 	}
-
-#ifdef CONFIG_SECUREBOOT_CRYPTO
-	if ((SecureMode != SBOOT_MODE_NS) && (SecureBootCheckOK == 0)) {
-		puts("Not allow to boot no secure sign image!");
-		while(1);
-	}
-#endif /* CONFIG_SECUREBOOT_CRYPTO */
 
 	rk_commandline_setenv(boot_source, hdr, charge);
 

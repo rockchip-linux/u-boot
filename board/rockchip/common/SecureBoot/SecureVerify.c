@@ -110,40 +110,41 @@ static bool SecureNSModeUbootImageShaCheck(second_loader_hdr *hdr)
 
 static bool SecureNSModeVerifyUbootImageSign(second_loader_hdr* hdr)
 {
-	if (gDrmKeyInfo.publicKeyLen == 0) {
-		PRINT_I("NS Mode allow flash unsigned loader.\n");
-		return true;
-	}
-
 	/* verify uboot iamge. */
 	if (memcmp(hdr->magic, RK_UBOOT_MAGIC, sizeof(RK_UBOOT_MAGIC)) != 0) {
 		PRINT_E("unrecognized image format!\n");
 		return false;
 	}
 
-	if (hdr->signTag != RK_UBOOT_SIGN_TAG) {
-		PRINT_E("unsigned image!\n");
-		return false;
-	}
-
-	if (!SecureBootEn) {
-		PRINT_E("loader sign mismatch, not allowed to flash!\n");
+	/* check image sha, make sure image is ok. */
+	if (!SecureNSModeUbootImageShaCheck(hdr)) {
+		printf("uboot sha mismatch!\n");
 		return false;
 	}
 
 	/* signed image, check with signature. */
-	/* check sha here. */
-	if (!SecureNSModeUbootImageShaCheck(hdr)) {
-		PRINT_E("sha mismatch!\n");
-		return false;
+	if (SecureBootEn) {
+		if (gDrmKeyInfo.publicKeyLen == 0) { // check loader publickey
+			PRINT_I("NS Mode allow flash unsigned loader.\n");
+			return false;
+		}
+
+		if (hdr->signTag != RK_UBOOT_SIGN_TAG) { // check image sign tag
+			PRINT_E("unsigned image!\n");
+			return false;
+		}
+
+		/* check rsa sign here. */
+		if (SecureNSModeSignCheck(hdr->rsaHash, hdr->hash, hdr->signlen)) {
+			return true;
+		} else {
+			PRINT_E("signature mismatch!\n");
+			return false;
+		}
 	}
-	/* check rsa sign here. */
-	if (SecureNSModeSignCheck(hdr->rsaHash, hdr->hash, hdr->signlen)) {
-		return true;
-	} else {
-		PRINT_E("signature mismatch!\n");
-		return false;
-	}
+
+	/* secureboot disable */
+	return true;
 }
 
 
@@ -191,67 +192,74 @@ static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 
 static bool SecureNSModeVerifyBootImageSign(rk_boot_img_hdr* boothdr)
 {
-	if (gDrmKeyInfo.publicKeyLen == 0) {
-		PRINT_I("NS Mode allow flash unsigned loader.\n");
-		return true;
-	}
-
 	/* verify boot/recovery image */
 	if (memcmp(boothdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) != 0) {
 		return false;
 	}
 
-	if (boothdr->signTag != SECURE_BOOT_SIGN_TAG) {
-		return false;
-	}
-
-	if (!SecureBootEn) {
-		PRINT_E("loader sign mismatch, not allowed to flash!\n");
+	/* check image sha, make sure image is ok. */
+	if (!SecureNSModeBootImageShaCheck(boothdr)) {
+		printf("boot/recovery image sha mismatch!\n");
 		return false;
 	}
 
 	/* signed image, check with signature. */
-	/* check sha here. */
-	if (!SecureNSModeBootImageShaCheck(boothdr)) {
-		PRINT_E("sha mismatch!\n");
-		return false;
+	if (SecureBootEn) {
+		if (gDrmKeyInfo.publicKeyLen == 0) { // check loader publickey
+			PRINT_I("NS Mode allow flash unsigned loader.\n");
+			return false;
+		}
+
+		if (boothdr->signTag != SECURE_BOOT_SIGN_TAG) { // check image sign tag
+			return false;
+		}
+
+		/* check rsa sign here. */
+		if (SecureNSModeSignCheck((uint8 *)boothdr->rsaHash, (uint8 *)boothdr->id, boothdr->signlen)) {
+			return true;
+		} else {
+			PRINT_E("signature mismatch!\n");
+			return false;
+		}
 	}
-	/* check rsa sign here. */
-	if (SecureNSModeSignCheck((uint8 *)boothdr->rsaHash, (uint8 *)boothdr->id, boothdr->signlen)) {
-		return true;
-	} else {
-		PRINT_E("signature mismatch!\n");
-		return false;
-	}
+
+	/* secureboot disable */
+	return true;
 }
 
 
-static bool SecureNSModeBootImageSecureCheck(rk_boot_img_hdr *hdr, int unlocked)
+static bool SecureNSModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 {
 	rk_boot_img_hdr *boothdr = (rk_boot_img_hdr *)hdr;
 
 	SecureBootCheckOK = 0;
 
+	/* if boot/recovery not include kernel */
 	if (memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) != 0) {
+		return true;
+	}
+
+	/* check image sha, make sure image is ok. */
+	if (!SecureNSModeBootImageShaCheck(boothdr)) {
+		printf("boot/recovery image sha mismatch!\n");
 		return false;
 	}
 
+	/* signed image, check with signature. */
 	if (!unlocked && SecureBootEn && (boothdr->signTag == SECURE_BOOT_SIGN_TAG))
 	{
 		if (SecureNSModeSignCheck(boothdr->rsaHash, (uint8 *)boothdr->id, boothdr->signlen))
 		{
 			SecureBootCheckOK = 1;
-			return true;
 		}
 		else
 		{
 			SecureBootCheckOK = 0;
 			PRINT_E("SecureNSModeSignCheck failed\n");
-			return false;
 		}
 	}
 
-	return false;
+	return true;
 }
 
 
@@ -745,7 +753,7 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 }
 
 
-static bool SecureRKModeBootImageSecureCheck(rk_boot_img_hdr *boothdr, int unlocked)
+static bool SecureRKModeBootImageCheck(rk_boot_img_hdr *boothdr, int unlocked)
 {
 	SecureBootCheckOK = 0;
 
@@ -955,15 +963,15 @@ bool SecureModeVerifyBootImage(rk_boot_img_hdr* boothdr)
 }
 
 
-bool SecureModeBootImageSecureCheck(rk_boot_img_hdr *hdr, int unlocked)
+bool SecureModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 {
 #ifdef SECUREBOOT_CRYPTO_EN
 	if (SecureMode == SBOOT_MODE_RK) {
-		return SecureRKModeBootImageSecureCheck(hdr, unlocked);
+		return SecureRKModeBootImageCheck(hdr, unlocked);
 	}
 #endif
 
-	return SecureNSModeBootImageSecureCheck(hdr, unlocked);
+	return SecureNSModeBootImageCheck(hdr, unlocked);
 }
 
 

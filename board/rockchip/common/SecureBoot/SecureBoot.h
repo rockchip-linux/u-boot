@@ -122,7 +122,7 @@ void SecureBootUnlock(uint8 *pKey);
 void SecureBootUnlockCheck(uint8 *pKey);
 void SecureBootLockLoader(void);
 
-uint32 SecureBootImageSecureCheck(rk_boot_img_hdr *hdr, int unlocked);
+uint32 SecureBootImageCheck(rk_boot_img_hdr *hdr, int unlocked);
 uint32 SecureBootSetSysData2Kernel(uint32 SecureBootFlag);
 uint32 SecureBootSecureDisable(void);
 void SecureBootSecureState2Kernel(uint32 SecureState);
