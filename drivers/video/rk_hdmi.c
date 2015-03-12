@@ -19,13 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
+#include <common.h>
 #include <malloc.h>
 #include "rk_hdmi.h"
 #include <lcd.h>
-#include <common.h>
 #include <../board/rockchip/common/config.h>
 #include "rockchip_fb.h"
-#include "rk3036_tve.h"
+
+#ifdef CONFIG_RK3036_FB
+#include "rk3036_lcdc.h"
+#endif
+#ifdef CONFIG_RK32_FB
+#include "rk32_lcdc.h"
+#endif
 
 #define PARTITION_NAME "baseparamer"
 #define DEFAULT_MODE   15 
@@ -36,12 +42,13 @@
 short g_hdmi_vic = -1;
 static struct baseparamer_pos g_pos_baseparamer = {-1, -1};
 
-//struct hdmi_dev *hdmi = NULL;
 extern int g_hdmi_noexit;
 
 //#define HDMIDEBUG
 #ifdef CONFIG_RK3036_TVE
 #include <linux/fb.h>
+#include "rk3036_tve.h"
+
 extern struct fb_videomode rk3036_cvbs_mode [MAX_TVE_COUNT];
 extern int g_tve_pos;
 #endif
