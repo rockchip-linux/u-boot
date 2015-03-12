@@ -80,6 +80,7 @@ static bool SecureNSModeSignCheck(uint8 * rsaHash, uint8 *Hash, uint8 length)
 
 static bool SecureNSModeUbootImageShaCheck(second_loader_hdr *hdr)
 {
+#ifndef SECUREBOOT_CRYPTO_EN
 	uint8_t *sha;
 	SHA_CTX ctx;
 	int size = SHA_DIGEST_SIZE > hdr->hash_len ? hdr->hash_len : SHA_DIGEST_SIZE;
@@ -90,6 +91,25 @@ static bool SecureNSModeUbootImageShaCheck(second_loader_hdr *hdr)
 	SHA_update(&ctx, &hdr->loader_load_size, sizeof(hdr->loader_load_size));
 	SHA_update(&ctx, &hdr->hash_len, sizeof(hdr->hash_len));
 	sha = SHA_final(&ctx);
+#else
+	uint32 size;
+	uint8 *sha;
+	uint32 hwDataHash[8];
+
+	size = hdr->loader_load_size + sizeof(hdr->loader_load_size) \
+		 + sizeof(hdr->loader_load_addr) + sizeof(hdr->hash_len);
+
+	CryptoSHAInit(size, 160);
+	/* rockchip's second level image. */
+	CryptoSHAStart((uint32 *)((void *)hdr + sizeof(second_loader_hdr)), hdr->loader_load_size);
+	CryptoSHAStart((uint32 *)&hdr->loader_load_addr, sizeof(hdr->loader_load_addr));
+	CryptoSHAStart((uint32 *)&hdr->loader_load_size, sizeof(hdr->loader_load_size));
+	CryptoSHAStart((uint32 *)&hdr->hash_len, sizeof(hdr->hash_len));
+
+	CryptoSHAEnd(hwDataHash);
+
+	sha = (char *)hwDataHash;
+#endif
 
 #if 0
 	int i = 0;
@@ -150,6 +170,7 @@ static bool SecureNSModeVerifyUbootImageSign(second_loader_hdr* hdr)
 
 static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 {
+#ifndef SECUREBOOT_CRYPTO_EN
 	uint8_t *sha;
 	SHA_CTX ctx;
 	int size = SHA_DIGEST_SIZE > sizeof(boothdr->id) ? sizeof(boothdr->id) : SHA_DIGEST_SIZE;
@@ -172,6 +193,38 @@ static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 	SHA_update(&ctx, &boothdr->cmdline, sizeof(boothdr->cmdline));
 
 	sha = SHA_final(&ctx);
+#else
+	uint32 size;
+	uint8 *sha;
+	uint32 hwDataHash[8];
+
+	size = boothdr->kernel_size + sizeof(boothdr->kernel_size) \
+		+ boothdr->ramdisk_size + sizeof(boothdr->ramdisk_size) \
+		+ boothdr->second_size + sizeof(boothdr->second_size) \
+		+ sizeof(boothdr->tags_addr) + sizeof(boothdr->page_size) \
+		+ sizeof(boothdr->unused) + sizeof(boothdr->name) + sizeof(boothdr->cmdline);
+
+	CryptoSHAInit(size, 160);
+
+	/* Android image. */
+	CryptoSHAStart((uint32 *)boothdr->kernel_addr, boothdr->kernel_size);
+	CryptoSHAStart((uint32 *)&boothdr->kernel_size, sizeof(boothdr->kernel_size));
+	CryptoSHAStart((uint32 *)boothdr->ramdisk_addr, boothdr->ramdisk_size);
+	CryptoSHAStart((uint32 *)&boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
+	CryptoSHAStart((uint32 *)boothdr->second_addr, boothdr->second_size);
+	CryptoSHAStart((uint32 *)&boothdr->second_size, sizeof(boothdr->second_size));
+
+	/* only rockchip's image add. */
+	CryptoSHAStart((uint32 *)&boothdr->tags_addr, sizeof(boothdr->tags_addr));
+	CryptoSHAStart((uint32 *)&boothdr->page_size, sizeof(boothdr->page_size));
+	CryptoSHAStart((uint32 *)&boothdr->unused, sizeof(boothdr->unused));
+	CryptoSHAStart((uint32 *)&boothdr->name, sizeof(boothdr->name));
+	CryptoSHAStart((uint32 *)&boothdr->cmdline, sizeof(boothdr->cmdline));
+
+	CryptoSHAEnd(hwDataHash);
+
+	sha = (char*)hwDataHash;
+#endif
 
 #if 0
 	int i = 0;
