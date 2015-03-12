@@ -109,6 +109,7 @@ static bool SecureNSModeUbootImageShaCheck(second_loader_hdr *hdr)
 	CryptoSHAEnd(hwDataHash);
 
 	sha = (char *)hwDataHash;
+	size = SHA_DIGEST_SIZE > hdr->hash_len ? hdr->hash_len : SHA_DIGEST_SIZE;
 #endif
 
 #if 0
@@ -224,6 +225,7 @@ static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 	CryptoSHAEnd(hwDataHash);
 
 	sha = (char*)hwDataHash;
+	size = SHA_DIGEST_SIZE > sizeof(boothdr->id) ? sizeof(boothdr->id) : SHA_DIGEST_SIZE;
 #endif
 
 #if 0
