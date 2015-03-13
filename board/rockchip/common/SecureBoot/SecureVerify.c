@@ -934,6 +934,7 @@ static uint32 SecureRKModeInit(void)
 	if (0xFF == flag) {
 		secure = 1;
 	}
+	CryptoInit();
 #elif defined(CONFIG_RKCHIP_RK3288)
 	/* rk3288 efuse read word unit */
 	uint32 flag = 0;
@@ -941,13 +942,13 @@ static uint32 SecureRKModeInit(void)
 	if (flag & 0x01) {
 		secure = 1;
 	}
+	CryptoInit();
 #endif
 
 	if (secure != 0) {
 		SecureMode = SBOOT_MODE_RK;
 		printf("Secure Boot Mode: 0x%x\n", SecureMode);
 
-		CryptoInit();
 		StorageReadFlashInfo((uint8 *)&g_FlashInfo);
 
 		i = 0;
