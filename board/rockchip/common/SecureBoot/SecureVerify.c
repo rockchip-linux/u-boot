@@ -291,6 +291,24 @@ static bool SecureNSModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 
 	/* if boot/recovery not include kernel */
 	if (memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) != 0) {
+		uint32 crc32 = 0;
+
+		debug("%s: Kernel image CRC32 check...\n", __func__);
+		crc32 = CRC_32CheckBuffer((uint8 *)hdr->kernel_addr, hdr->kernel_size + 4);
+		if (!crc32) {
+			printf("kernel image CRC32 failed!\n");
+			return false;
+		}
+		debug("Kernel CRC32 check ok.\n");
+
+		debug("%s: Boot image CRC32 check...\n", __func__);
+		crc32 = CRC_32CheckBuffer((uint8 *)hdr->ramdisk_addr, hdr->ramdisk_size + 4);
+		if (!crc32) {
+			printf("Boot image CRC32 failed!\n");
+			return false;
+		}
+		debug("Boot CRC32 check ok.\n");
+
 		return true;
 	}
 
