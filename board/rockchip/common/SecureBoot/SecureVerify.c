@@ -291,6 +291,8 @@ static bool SecureNSModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 
 	/* if boot/recovery not include kernel */
 	if (memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) != 0) {
+		/* if soft crc32 checking kernel and boot image enable, it will take time */
+#ifdef CONFIG_BOOTRK_RK_IMAGE_CHECK
 		uint32 crc32 = 0;
 
 		debug("%s: Kernel image CRC32 check...\n", __func__);
@@ -308,15 +310,18 @@ static bool SecureNSModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 			return false;
 		}
 		debug("Boot CRC32 check ok.\n");
-
+#endif /* CONFIG_BOOTRK_RK_IMAGE_CHECK */
 		return true;
 	}
 
+	/* if sha checking boot image, it will take time */
+#if defined(CONFIG_BOOTRK_OTA_IMAGE_CHECK) || defined(SECUREBOOT_CRYPTO_EN)
 	/* check image sha, make sure image is ok. */
 	if (!SecureNSModeBootImageShaCheck(boothdr)) {
 		printf("boot/recovery image sha mismatch!\n");
 		return false;
 	}
+#endif
 
 	/* signed image, check with signature. */
 	if (!unlocked && SecureBootEn && (boothdr->signTag == SECURE_BOOT_SIGN_TAG))

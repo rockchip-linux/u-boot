@@ -262,6 +262,15 @@
 
 
 /*
+ * boot image: rk mode and ota mode check
+ * rk mode - crc32 check kernel and boot image
+ * ota mode - sha check boot image
+ */
+#undef CONFIG_BOOTRK_RK_IMAGE_CHECK
+#undef CONFIG_BOOTRK_OTA_IMAGE_CHECK
+
+
+/*
  * USB Host support, default no using
  * Please first select USB host controller if you want to use UMS Boot
  * Up to one USB host controller could be selected to enable for booting
