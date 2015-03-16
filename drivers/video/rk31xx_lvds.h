@@ -129,6 +129,11 @@ enum {
 #define v_LANE1_EN(x)           BITS_MASK(x, 1, 6)
 #define v_LANE0_EN(x)           BITS_MASK(x, 1, 7)
 
+#define LVDS_PMUGRF_BASE         0xff738000
+#define LVDS_PMUGRF_GPIO0B_IOMUX 0x4
+#define LVDS_PMUGRF_GPIO0C_IOMUX 0x8
+#define LVDS_PMUGRF_GPIO0D_IOMUX 0xc
+
 #define GRF_SOC_CON7_LVDS	0x041c
 #define RK312X_GRF_LVDS_CON0 0x00150
 
@@ -169,6 +174,17 @@ static inline int lvds_dsi_writel(struct rk_lvds_device *lvds,
 	writel(val, lvds->ctrl_reg + offset);
 
 	return 0;
+}
+
+static int u32 lvds_pmugrf_readl(u32 offset)
+{
+        return readl(LVDS_PMUGRF_BASE + offset);
+}
+
+static int u32 lvds_pmugrf_writel(u32 offset, u32 val)
+{
+        writel(val, LVDS_PMUGRF_BASE + offset);
+        return 0;
 }
 
 static inline u32 lvds_phy_lock(struct rk_lvds_device *lvds)
