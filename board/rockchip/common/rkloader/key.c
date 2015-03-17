@@ -316,21 +316,9 @@ int rkkey_power_state(void)
 #ifdef CONFIG_OF_LIBFDT
 static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powerkey_gpio)
 {
-	int adc_node, key_node, powerkey_node;
+	int powerkey_node;
 
-	adc_node = fdt_path_offset(blob, "/adc");
-	if (adc_node < 0) {
-		printf("no adc node\n");
-		return -1;
-	}
-
-	key_node = fdt_subnode_offset(blob, adc_node, "key");
-	if (key_node < 0) {
-		printf("no key node\n");
-		return -1;
-	}
-
-	powerkey_node = fdt_subnode_offset(blob, key_node, "power-key");
+	powerkey_node = fdt_path_offset(blob, "/adc/key/power-key");
 	if (powerkey_node < 0) {
 		printf("no power key node\n");
 		return -1;
