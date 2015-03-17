@@ -11,7 +11,6 @@
  */
 
 #include <config.h>
-#include <version.h>
 #include <asm/global_data.h>
 #include <asm/processor.h>
 #include <asm/processor-flags.h>

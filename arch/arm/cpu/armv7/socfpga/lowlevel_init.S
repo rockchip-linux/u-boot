@@ -5,7 +5,6 @@
  */
 
 #include <config.h>
-#include <version.h>
 
 /* Save the parameter pass in by previous boot loader */
 .global save_boot_params
