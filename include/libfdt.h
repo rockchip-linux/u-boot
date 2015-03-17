@@ -806,6 +806,30 @@ int fdt_node_offset_by_prop_value(const void *fdt, int startoffset,
  */
 int fdt_node_offset_by_phandle(const void *fdt, uint32_t phandle);
 
+#ifdef CONFIG_ROCKCHIP
+/**
+ * fdt_node_offset_by_phandle_node - find the node with a given phandle and node
+ * @fdt: pointer to the device tree blob
+ * @phandle: phandle value
+ * @node: start node value
+ *
+ * fdt_node_offset_by_phandle_node() returns the offset of the node
+ * which has the given phandle value.  If there is more than one node
+ * in the tree with the given phandle (an invalid tree), results are
+ * undefined.
+ *
+ * returns:
+ *	structure block offset of the located node (>= 0), on success
+ *	-FDT_ERR_NOTFOUND, no node with that phandle exists
+ *	-FDT_ERR_BADPHANDLE, given phandle value was invalid (0 or -1)
+ *	-FDT_ERR_BADMAGIC,
+ *	-FDT_ERR_BADVERSION,
+ *	-FDT_ERR_BADSTATE,
+ *	-FDT_ERR_BADSTRUCTURE, standard meanings
+ */
+int fdt_node_offset_by_phandle_node(const void *fdt, int node, uint32_t phandle);
+#endif /* CONFIG_ROCKCHIP */
+
 /**
  * fdt_node_check_compatible: check a node's compatible property
  * @fdt: pointer to the device tree blob
@@ -1709,6 +1733,9 @@ int fdt_find_regions(const void *fdt, char * const inc[], int inc_count,
 		     char * const exc_prop[], int exc_prop_count,
 		     struct fdt_region region[], int max_regions,
 		     char *path, int path_len, int add_string_tab);
+
+#ifdef CONFIG_ROCKCHIP
 int fdt_device_is_available(const void *blob, int node);
+#endif /* CONFIG_ROCKCHIP */
 
 #endif /* _LIBFDT_H */
