@@ -122,13 +122,20 @@ int board_late_init(void)
 #ifdef CONFIG_RK_PWM_REMOTE
         RemotectlInit();
 #endif
+	debug("rkimage_prepare_fdt\n");
 	rkimage_prepare_fdt();
+
+	debug("key_init\n");
 	key_init();
+
 #ifdef CONFIG_POWER_RK
+	debug("pmic_init\n");
 	pmic_init(0);
+	debug("fg_init\n");
 	fg_init(0); /*fuel gauge init*/
 #endif
 
+	debug("idb init\n");
 	//TODO:set those buffers in a better way, and use malloc?
 	rkidb_setup_space(gd->arch.rk_global_buf_addr);
 
@@ -149,6 +156,7 @@ int board_late_init(void)
 		setenv("fbt_sn#", tmp_buf);
 	}
 
+	debug("fbt preboot\n");
 	board_fbt_preboot();
 
 	return 0;
