@@ -576,6 +576,7 @@ int fdtdec_get_bool(const void *blob, int node, const char *prop_name)
 	return cell != NULL;
 }
 
+
 /**
  * Decode a list of GPIOs from an FDT. This creates a list of GPIOs with no
  * terminating item.
@@ -619,10 +620,26 @@ int fdtdec_decode_gpios(const void *blob, int node, const char *prop_name,
 	const u32 *reg;
 	u32 gpio_dts;
 
+	/* Fist find rk pinctrl node, prepare for decode gpio */
+	static int pinctrl_node = -1;
+	if (pinctrl_node < 0) {
+		pinctrl_node = fdt_path_offset(blob, "/pinctrl");
+		if (pinctrl_node < 0) {
+			printf("%s: pinctrl node can't find by path: /pinctrl", __func__);
+			return -FDT_ERR_NOTFOUND;
+		}
+	}
+
         for (i = 0; i < len; i++, cell += 3) {
-		prop1 = fdt_get_property(blob, 
+#if 0
+		prop1 = fdt_get_property(blob,
 		             fdt_node_offset_by_phandle(blob, fdt32_to_cpu(cell[0])), 
 		             "reg", 0);
+#else
+		prop1 = fdt_get_property(blob,
+		             fdt_node_offset_by_phandle_node(blob, pinctrl_node, fdt32_to_cpu(cell[0])),
+		             "reg", 0);
+#endif
 		reg = (u32 *)prop1->data;
 		/* fixed aarch64 gpio io base error */
 #ifdef CONFIG_ROCKCHIP_ARCH64
