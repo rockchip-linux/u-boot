@@ -16,9 +16,10 @@
 #ifndef _RK31XX_LVDS_H_
 #define _RK31XX_LVDS_H_
 
-#include <linux/rk_screen.h>
 #include <common.h>
 #include <lcd.h>
+#include <asm/io.h>
+#include <linux/rk_screen.h>
 #include <asm/arch/rkplat.h>
 
 #define BITS(x, bit)            ((x) << (bit))
@@ -176,12 +177,12 @@ static inline int lvds_dsi_writel(struct rk_lvds_device *lvds,
 	return 0;
 }
 
-static int u32 lvds_pmugrf_readl(u32 offset)
+static inline u32 lvds_pmugrf_readl(u32 offset)
 {
         return readl(LVDS_PMUGRF_BASE + offset);
 }
 
-static int u32 lvds_pmugrf_writel(u32 offset, u32 val)
+static inline u32 lvds_pmugrf_writel(u32 offset, u32 val)
 {
         writel(val, LVDS_PMUGRF_BASE + offset);
         return 0;
