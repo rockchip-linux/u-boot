@@ -84,7 +84,7 @@ $Log: hw_SDConfig.h,v $
 #define MMCHS_26_FPP_FREQ     (25000)  //高速模式只支持最大26M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大26MHz
 
 #if defined(EN_SD_DMA) || (EN_SDC_INTERAL_DMA)
-#define MMCHS_52_FPP_FREQ     (40000)  //高速模式能支持最大52M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大52MHz
+#define MMCHS_52_FPP_FREQ     (50000)  //高速模式能支持最大52M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大52MHz
 #else
 #define MMCHS_52_FPP_FREQ     (40000)  //高速模式能支持最大52M的HS-MMC卡，在高速模式下的工作频率，单位KHz，协议规定最大52MHz
 #endif
