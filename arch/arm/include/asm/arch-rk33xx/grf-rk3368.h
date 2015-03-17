@@ -17,7 +17,7 @@
 #define GRF_GPIO1D_IOMUX        0x000c
 #define GRF_GPIO2A_IOMUX        0x0010
 #define GRF_GPIO2B_IOMUX        0x0014
-#define GRF_GPIO2C_IOMUX        0x0015
+#define GRF_GPIO2C_IOMUX        0x0018
 #define GRF_GPIO2D_IOMUX        0x001c
 #define GRF_GPIO3A_IOMUX        0x0020
 #define GRF_GPIO3B_IOMUX        0x0024
