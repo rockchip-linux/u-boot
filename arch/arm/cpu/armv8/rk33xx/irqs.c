@@ -83,6 +83,8 @@ static inline int irq_init(void)
 		g_irq_handler[i].m_func = NULL;
 	}
 
+	gic_get_cpumask();
+
 	/* gic irq init */
 #if !defined(CONFIG_ARM64)
 	/* armv8 gic init has init when lowlevel_init done */

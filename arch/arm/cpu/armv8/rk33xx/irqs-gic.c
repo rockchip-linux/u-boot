@@ -171,6 +171,28 @@ static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
 }
 
 
+static uint8 g_gic_cpumask = 1;
+static void gic_get_cpumask(void)
+{
+	uint32 mask, i;
+
+	for (i = mask = 0; i < 32; i += 4) {
+		mask = readl(RKIO_GICD_PHYS + GICD_ITARGETSR + i);
+		mask |= mask >> 16;
+		mask |= mask >> 8;
+		if (mask)
+			break;
+	}
+
+	if (!mask) {
+		printf("GIC CPU mask not found.\n");
+	}
+
+	g_gic_cpumask = mask;
+	debug("GIC CPU mask = 0x%x\n", gic_get_cpumask);
+}
+
+
 /* enable irq handler */
 static int gic_handler_enable(int irq)
 {
@@ -192,11 +214,8 @@ static int gic_handler_enable(int irq)
 
 	writel((0x1<<N), RKIO_GICD_PHYS + GICD_ISENABLER + 4 * M);
 	reg = readl(RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
-#ifdef CONFIG_FPGA_BOARD
-	writel(reg | (1 << shift), RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
-#else
-	writel(reg | (0x10 << shift), RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
-#endif
+	writel(reg | (g_gic_cpumask << shift), RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
+
 	return (0);
 }
 
