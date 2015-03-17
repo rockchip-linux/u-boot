@@ -180,6 +180,8 @@ static bool get_entry(int base_offset, const char* file_path,
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, BLOCK_SIZE);
 	char* table = NULL;
 	resource_ptn_header header;
+
+	debug("get_entry: base_offset = 0x%x\n", base_offset);
 	if (!base_offset) {
 		base_offset = get_base_offset();
 	}
@@ -198,7 +200,6 @@ static bool get_entry(int base_offset, const char* file_path,
 		FBTERR("Not a resource image!\n");
 		goto end;
 	}
-
 	//TODO: support header_size & tbl_entry_size
 	if (header.resource_ptn_version != RESOURCE_PTN_VERSION
 			|| header.header_size != RESOURCE_PTN_HDR_SIZE
@@ -224,6 +225,7 @@ static bool get_entry(int base_offset, const char* file_path,
 	ret = get_entry_ram(header, table, header.tbl_entry_num
 			* header.tbl_entry_size * BLOCK_SIZE,
 			file_path, entry);
+
 end:
 	if (table) {
 		free(table);
@@ -234,6 +236,8 @@ end:
 bool get_content(int base_offset, resource_content* content) {
 	bool ret = false;
 	index_tbl_entry entry;
+
+	debug("get_content: base_offset = 0x%x\n", base_offset);
 	if (!base_offset) {
 		base_offset = get_base_offset();
 	}
@@ -265,6 +269,8 @@ bool load_content(resource_content* content) {
 	content->load_addr = (void*)memalign(ARCH_DMA_MINALIGN, blocks * BLOCK_SIZE);
 	if (!content->load_addr)
 		return false;
+
+	debug("load_content: load_addr = 0x%x\n", content->load_addr);
 	if (!load_content_data(content, 0,
 				content->load_addr, blocks)) {
 		free_content(content);
@@ -295,38 +301,37 @@ bool show_resource_image(const char* image_path) {
 
 	if(ptn)
 	{
-		//bmp = (void*)memalign(ARCH_DMA_MINALIGN, CONFIG_MAX_BMP_BLOCKS * BLOCK_SIZE);
 		bmp = (void *)gd->arch.rk_boot_buf_addr;
 		read_storage(ptn->start, bmp, CONFIG_MAX_BMP_BLOCKS);
-		printf("bmp image at 0x%lx, sign:%c%c\n", bmp, bmp->header.signature[0], bmp->header.signature[1]);
+		debug("bmp image at 0x%lx, sign:%c%c\n", bmp, bmp->header.signature[0], bmp->header.signature[1]);
 	}
 
 	if(ptn && bmp && bmp->header.signature[0] == 'B' && bmp->header.signature[1] == 'M')
 	{
-		printf("%s:show logo.bmp from logo partition\n",__func__);
+		debug("%s:show logo.bmp from logo partition\n", __func__);
 		lcd_display_bitmap_center((uint32_t)bmp);
 		ret = true;
 	}
 	else
 	{
 		if (get_content(0, &image)) {
-		printf("%s:show logo from resource or boot partition\n",__func__);
-		int blocks = (image.content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+			debug("%s:show logo from resource or boot partition\n", __func__);
+			int blocks = (image.content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-		if (image.content_size > CONFIG_RK_BOOT_BUFFER_SIZE) {
-			FBTERR("Failed to bmp image too large, %d\n",
-			       image.content_size);
-			return false;
-		}
+			if (image.content_size > CONFIG_RK_BOOT_BUFFER_SIZE) {
+				FBTERR("Failed to bmp image too large, %d\n",
+				       image.content_size);
+				return false;
+			}
 
-		image.load_addr = (void *)gd->arch.rk_boot_buf_addr;
-		if (!load_content_data(&image, 0, image.load_addr, blocks)) {
-			return false;
-		}
-		FBTDBG("Try to show:%s\n", image_path);
-		lcd_display_bitmap_center((uint32_t)image.load_addr);
+			image.load_addr = (void *)gd->arch.rk_boot_buf_addr;
+			if (!load_content_data(&image, 0, image.load_addr, blocks)) {
+				return false;
+			}
+			FBTDBG("Try to show:%s\n", image_path);
+			lcd_display_bitmap_center((uint32_t)image.load_addr);
 
-		ret = true;
+			ret = true;
 		} else {
 			FBTERR("Failed to load image:%s\n", image_path);
 		}
