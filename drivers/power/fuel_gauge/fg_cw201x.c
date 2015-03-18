@@ -13,7 +13,7 @@ DECLARE_GLOBAL_DATA_PTR;
 static int state_of_chrg = 0;
 #define CW201X_I2C_ADDR		0x62
 #define CW201X_I2C_CH		0
-#define CW201X_I2C_SPEED	100000
+#define CW201X_I2C_SPEED	200000
 
 #define REG_VERSION             0x0
 #define REG_VCELL               0x2

@@ -5,7 +5,7 @@
 
 #define COMPAT_ROCKCHIP_RK808  "rockchip,rk808"
 #define RK808_I2C_ADDR 		0x1b
-#define RK808_I2C_SPEED		100000
+#define RK808_I2C_SPEED		200000
 #define RK808_NUM_REGULATORS	14
 
 struct pmic_rk808 {

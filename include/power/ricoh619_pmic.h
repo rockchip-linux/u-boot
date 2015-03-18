@@ -5,7 +5,7 @@
 
 #define COMPAT_RICOH_RICOH619  "ricoh,ricoh619"
 #define RICOH619_I2C_ADDR 	0x32
-#define RICOH619_I2C_SPEED	100000
+#define RICOH619_I2C_SPEED	200000
 #define RICOH619_NUM_REGULATORS	17
 
 #define PSWR_REG                0x07
