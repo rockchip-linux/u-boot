@@ -451,9 +451,9 @@ void lcd_pandispaly(struct fb_dsp_info *info)
 	rk_lcdc_set_par(info, &panel_info);
 }
 
-void lcd_standby(int enable)
+void lcd_standby(int enable, int mode)
 {
-	rk_lcdc_standby(enable);
+	rk_lcdc_standby(enable, mode);
 }
 
 /* dummy function */

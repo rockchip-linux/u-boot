@@ -373,7 +373,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 
 
 /* Enable LCD and DIGITAL OUT in DSS */
-void rk_lcdc_standby(int enable)
+void rk_lcdc_standby(int enable, int mode)
 {
 	struct lcdc_device *lcdc_dev = &rk32_lcdc;
 #if defined(CONFIG_RK32_DSI)

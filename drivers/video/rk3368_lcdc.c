@@ -25,10 +25,10 @@
 struct lcdc_device rk33_lcdc;
 
 extern int rk31xx_lvds_enable(vidinfo_t * vid);
-//extern int rk32_edp_enable(vidinfo_t * vid);
-//extern int rk32_mipi_enable(vidinfo_t * vid);
-//extern int rk32_dsi_enable(void);
-//extern int rk32_dsi_sync(void);
+extern int rk32_edp_enable(vidinfo_t * vid);
+extern int rk32_mipi_enable(vidinfo_t * vid);
+extern int rk32_dsi_enable(void);
+extern int rk32_dsi_disable(void);
 
 static int rk3368_lcdc_csc_mode(struct lcdc_device *lcdc_dev,
 				 struct fb_dsp_info *fb_info,
@@ -696,12 +696,13 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 
 
 /* Enable LCD and DIGITAL OUT in DSS */
-void rk_lcdc_standby(int enable)
+void rk_lcdc_standby(int enable, int mode)
 {
 	struct lcdc_device *lcdc_dev = &rk33_lcdc;
+
 #if defined(CONFIG_RK32_DSI)
-	if ((panel_info.screen_type == SCREEN_MIPI)||
-		(panel_info.screen_type == SCREEN_DUAL_MIPI)) {
+	if (((panel_info.screen_type == SCREEN_MIPI) ||
+		(panel_info.screen_type == SCREEN_DUAL_MIPI)) && (mode == 1)) {
 		if (enable == 0) {
 			rk32_dsi_enable();
 		} else if (enable == 1) {
@@ -710,13 +711,6 @@ void rk_lcdc_standby(int enable)
 	}
 #endif
 
-	if(enable == 0) {
-		//rk32_dsi_enable();
-		//rk32_dsi_sync();
-	}
-	else {
-		//rk32_dsi_disable();
-	}
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_STANDBY_EN,
 		     v_STANDBY_EN(enable ? 1 : 0));
 	lcdc_cfg_done(lcdc_dev);

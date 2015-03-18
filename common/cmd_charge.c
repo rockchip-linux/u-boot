@@ -71,7 +71,7 @@ extern int rkkey_power_state(void);
 extern int is_charging(void);
 extern int pmic_charger_setting(int current);
 extern void rk_backlight_ctrl(int brightness);
-extern void lcd_standby(int enable);
+extern void lcd_standby(int enable, int mode);
 
 #ifdef CONFIG_POWER_FG_ADC
 u8 g_increment = 0;
@@ -156,14 +156,14 @@ void do_set_brightness(int brightness, int old_brightness) {
 	LOGD("set_brightness: %d -> %d", old_brightness, brightness);
 	if (IS_BRIGHT(brightness)) {
 		if (!IS_BRIGHT(old_brightness)) {
-			lcd_standby(0);
+			lcd_standby(0, 1);
 			mdelay(100);
 		}
 		rk_backlight_ctrl(brightness == SCREEN_BRIGHT ? -1 : CONFIG_BRIGHTNESS_DIM);
 	} else {
 		rk_backlight_ctrl(0);
 		if (IS_BRIGHT(old_brightness)) {
-			lcd_standby(1);
+			lcd_standby(1, 1);
 		}
 	}
 }
