@@ -18,21 +18,56 @@ struct pmic_rk818 rk818;
 
 int support_dc_chg;
 
+const static int buck_set_vol_base_addr[] = {
+	RK818_BUCK1_ON_REG,
+	RK818_BUCK2_ON_REG,
+	RK818_BUCK3_CONFIG_REG,
+	RK818_BUCK4_ON_REG,
+};
+#define rk818_BUCK_SET_VOL_REG(x) (buck_set_vol_base_addr[x])
+
+const static int ldo_set_vol_base_addr[] = {
+	RK818_LDO1_ON_VSEL_REG,
+	RK818_LDO2_ON_VSEL_REG,
+	RK818_LDO3_ON_VSEL_REG,
+	RK818_LDO4_ON_VSEL_REG,
+	RK818_LDO5_ON_VSEL_REG,
+	RK818_LDO6_ON_VSEL_REG,
+	RK818_LDO7_ON_VSEL_REG,
+	RK818_LDO8_ON_VSEL_REG,
+	RK818_BOOST_LDO9_ON_VSEL_REG,
+};
+
+#define rk818_LDO_SET_VOL_REG(x) (ldo_set_vol_base_addr[x - 4])
+
+const static int ldo_voltage_map[] = {
+	  1800, 1900, 2000, 2100, 2200,  2300,  2400, 2500, 2600,
+	  2700, 2800, 2900, 3000, 3100, 3200,3300, 3400,
+};
+const static int ldo3_voltage_map[] = {
+	 800, 900, 1000, 1100, 1200,  1300, 1400, 1500, 1600,
+	 1700, 1800, 1900,  2000,2100,  2200,  2500,
+};
+const static int ldo6_voltage_map[] = {
+	 800, 900, 1000, 1100, 1200,  1300, 1400, 1500, 1600,
+	 1700, 1800, 1900,  2000,2100,  2200,  2300,2400,2500,
+};
+
 static struct fdt_regulator_match rk818_reg_matches[] = {
-	{ .prop = "rk_dcdc1",},
-	{ .prop = "rk_dcdc2",},
-	{ .prop = "rk_dcdc3",},
-	{ .prop = "rk_dcdc4",},
-	{ .prop = "rk_ldo1", },
-	{ .prop = "rk_ldo2", },
-	{ .prop = "rk_ldo3", },
-	{ .prop = "rk_ldo4", },
-	{ .prop = "rk_ldo5", },
-	{ .prop = "rk_ldo6", },
-	{ .prop = "rk_ldo7", },
-	{ .prop = "rk_ldo8", },
-	{ .prop = "rk_ldo9", },
-	{ .prop = "rk_ldo10",},
+	{ .prop = "rk818_dcdc1",},
+	{ .prop = "rk818_dcdc2",},
+	{ .prop = "rk818_dcdc3",},
+	{ .prop = "rk818_dcdc4",},
+	{ .prop = "rk818_ldo1", },
+	{ .prop = "rk818_ldo2", },
+	{ .prop = "rk818_ldo3", },
+	{ .prop = "rk818_ldo4", },
+	{ .prop = "rk818_ldo5", },
+	{ .prop = "rk818_ldo6", },
+	{ .prop = "rk818_ldo7", },
+	{ .prop = "rk818_ldo8", },
+	{ .prop = "rk818_ldo9", },
+	{ .prop = "rk818_ldo10",},
 };
 
 static int rk818_i2c_probe(u32 bus, u32 addr)
@@ -54,12 +89,118 @@ static int rk818_i2c_probe(u32 bus, u32 addr)
 	
 }
 
+static int rk818_regulator_enable(int num_regulator)
+{
+
+	if (num_regulator < 4)
+		i2c_reg_write(RK818_I2C_ADDR, RK818_DCDC_EN_REG,
+			i2c_reg_read(RK818_I2C_ADDR, RK818_DCDC_EN_REG) |(1 << num_regulator)); //enable dcdc
+	else if (num_regulator == 12)
+		i2c_reg_write(RK818_I2C_ADDR, RK818_DCDC_EN_REG,
+			i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG) |(1 << 5)); //enable ldo9
+	else if (num_regulator == 13)
+		i2c_reg_write(RK818_I2C_ADDR, RK818_DCDC_EN_REG,
+			i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG) |(1 << 6)); //enable ldo10
+	else
+	 	i2c_reg_write(RK818_I2C_ADDR, RK818_LDO_EN_REG,
+			i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG) |(1 << (num_regulator -4))); //enable ldo
+
+	DEBUG("1 %s %d dcdc_en = %08x ldo_en =%08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG), i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG));
+
+	 return 0;
+}
+
+static int rk818_dcdc_select_min_voltage(int min_uV, int max_uV ,int num_regulator)
+{
+	u16 vsel =0;
+	
+	if (num_regulator == 0 || num_regulator ==  1){
+		if (min_uV < 700000)
+		vsel = 0;
+		else if (min_uV <= 1500000)
+		vsel = ((min_uV - 700000) / 12500) ;
+		else
+		return -EINVAL;
+	}
+	else if (num_regulator ==3){
+		if (min_uV < 1800000)
+		vsel = 0;
+		else if (min_uV <= 3300000)
+		vsel = ((min_uV - 1800000) / 100000) ;
+		else
+		return -EINVAL;
+	}
+	return vsel;
+}
+
+static int rk818_regulator_set_voltage(int num_regulator,
+				  int min_uV, int max_uV)
+{
+	const int *vol_map;
+	int min_vol = min_uV / 1000;
+	u16 val;
+	int ret = 0,num =0;
+
+	if (num_regulator < 4){
+		if (num_regulator == 2)
+			return 0;
+		val = rk818_dcdc_select_min_voltage(min_uV,max_uV,num_regulator);	
+		i2c_reg_write(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator),
+			(i2c_reg_read(RK818_I2C_ADDR,rk818_BUCK_SET_VOL_REG(num_regulator) & 0x3f )) | val);
+		DEBUG("1 %s %d dcdc_vol = %08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator)));
+		return 0;
+	}else if (num_regulator == 6){
+	vol_map = ldo3_voltage_map;
+	num = 15;
+	}
+	else if (num_regulator == 9 || num_regulator == 10){
+	vol_map = ldo6_voltage_map;
+	num = 17;
+	}
+	else {
+	vol_map = ldo_voltage_map;
+	num = 16;
+	}
+
+	if (min_vol < vol_map[0] ||
+	    min_vol > vol_map[num])
+		return -EINVAL;
+
+	for (val = 0; val <= num; val++){
+		if (vol_map[val] >= min_vol)
+			break;
+        }
+
+	if (num_regulator == 12) {
+		i2c_reg_write(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator),
+			((i2c_reg_read(RK818_I2C_ADDR,rk818_LDO_SET_VOL_REG(num_regulator) & (~0x1f))) | val));
+	}
+	else
+		i2c_reg_write(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator),
+			((i2c_reg_read(RK818_I2C_ADDR,rk818_LDO_SET_VOL_REG(num_regulator) & (~0x3f) )) | val));
+	
+	DEBUG("1 %s %d %d ldo_vol =%08x\n", __func__, num_regulator, val, i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)));
+
+	return 0;
+
+}
+
+static int rk818_set_regulator_init(struct fdt_regulator_match *matches, int num_matches)
+{
+	int ret;
+	int volt;
+
+	ret = rk818_regulator_set_voltage(num_matches, matches->min_uV, matches->max_uV);
+	ret = rk818_regulator_enable(num_matches);
+	return ret;
+}
+
 static int rk818_parse_dt(const void* blob)
 {
 	int node, nd;
 	struct fdt_gpio_state gpios[2];
 	u32 bus, addr;
-	int ret;
+	int ret, i;
 
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_RK818);
@@ -69,19 +210,19 @@ static int rk818_parse_dt(const void* blob)
 	}
 
 	if (!fdt_device_is_available(blob,node)) {
-		debug("device rk818 is disabled\n");
+		printf("device rk818 is disabled\n");
 		return -1;
 	}
 	
 	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
 	if (ret < 0) {
-		debug("pmic rk818 get fdt i2c failed\n");
+		printf("pmic rk818 get fdt i2c failed\n");
 		return ret;
 	}
 
 	ret = rk818_i2c_probe(bus, addr);
 	if (ret < 0) {
-		debug("pmic rk818 i2c probe failed\n");
+		printf("pmic rk818 i2c probe failed\n");
 		return ret;
 	}
 	
@@ -91,6 +232,11 @@ static int rk818_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, rk818_reg_matches,
 					RK818_NUM_REGULATORS);
+	
+	for (i = 0; i < RK818_NUM_REGULATORS; i++) {
+		if (rk818_reg_matches[i].boot_on && (rk818_reg_matches[i].min_uV == rk818_reg_matches[i].max_uV))
+			ret = rk818_set_regulator_init(&rk818_reg_matches[i], i);
+	}
 
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
 	support_dc_chg = fdtdec_get_int(blob, node, "rk818,support_dc_chg",0);
@@ -99,7 +245,7 @@ static int rk818_parse_dt(const void* blob)
 	rk818.node = node;
 	rk818.pmic->hw.i2c.addr = addr;
 	rk818.pmic->bus = bus;
-	debug("rk818 i2c_bus:%d addr:0x%02x\n", rk818.pmic->bus,
+	DEBUG("rk818 i2c_bus:%d addr:0x%02x\n", rk818.pmic->bus,
 		rk818.pmic->hw.i2c.addr);
 
 	return 0;
@@ -107,7 +253,7 @@ static int rk818_parse_dt(const void* blob)
 
 static int rk818_pre_init(unsigned char bus,uchar addr)
 {
-	debug("%s,line=%d\n", __func__,__LINE__);
+	DEBUG("%s,line=%d\n", __func__,__LINE__);
 	 
 	i2c_set_bus_num(bus);
 	i2c_init(RK818_I2C_SPEED, addr);
