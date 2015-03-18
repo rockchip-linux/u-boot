@@ -141,22 +141,40 @@ int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size)
 			lmb_reserve(lmb, (ulong)of_start, of_len);
 			disable_relocation = 1;
 		} else if (desired_addr) {
+#ifndef CONFIG_ROCKCHIP
 			of_start =
 			    (void *)(ulong) lmb_alloc_base(lmb, of_len, 0x1000,
 							   (ulong)desired_addr);
+#else
+			of_start =
+			    (void *)(ulong) lmb_alloc_base(lmb, of_len, 0x200000,
+							   (ulong)desired_addr);
+#endif
 			if (of_start == NULL) {
 				puts("Failed using fdt_high value for Device Tree");
 				goto error;
 			}
 		} else {
+#ifndef CONFIG_ROCKCHIP
 			of_start =
 			    (void *)(ulong) lmb_alloc(lmb, of_len, 0x1000);
+#else
+			of_start =
+			    (void *)(ulong) lmb_alloc(lmb, of_len, 0x200000);
+#endif
 		}
 	} else {
+#ifndef CONFIG_ROCKCHIP
 		of_start =
 		    (void *)(ulong) lmb_alloc_base(lmb, of_len, 0x1000,
 						   getenv_bootm_mapsize()
 						   + getenv_bootm_low());
+#else
+		of_start =
+		    (void *)(ulong) lmb_alloc_base(lmb, of_len, 0x200000,
+						   getenv_bootm_mapsize()
+						   + getenv_bootm_low());
+#endif
 	}
 
 	if (of_start == NULL) {
