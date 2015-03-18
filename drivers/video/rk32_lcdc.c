@@ -377,8 +377,8 @@ void rk_lcdc_standby(int enable, int mode)
 {
 	struct lcdc_device *lcdc_dev = &rk32_lcdc;
 #if defined(CONFIG_RK32_DSI)
-	if ((panel_info.screen_type == SCREEN_MIPI)||
-			   (panel_info.screen_type == SCREEN_DUAL_MIPI)) {
+	if (((panel_info.screen_type == SCREEN_MIPI) ||
+			   (panel_info.screen_type == SCREEN_DUAL_MIPI)) && (mode == 1)) {
 		if (enable == 0) {
 			rk32_dsi_enable();
 			rk32_dsi_sync();
