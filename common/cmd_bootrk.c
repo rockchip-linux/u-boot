@@ -358,6 +358,7 @@ fail:
 }
 
 #if defined(CONFIG_LCD) && defined(CONFIG_KERNEL_LOGO)
+static int g_rk_fb_size = -1;
 static int rk_load_kernel_logo(void)
 {
 	const char* file_path = "logo_kernel.bmp";
@@ -365,9 +366,13 @@ static int rk_load_kernel_logo(void)
 	int blocks;
 	int offset = CONFIG_RK_FB_SIZE;
 
+	debug("loader kernel logo from resource.\n");
+	g_rk_fb_size = -1;
 	memset(&content, 0, sizeof(content));
 
 	snprintf(content.path, sizeof(content.path), "%s", file_path);
+
+	/* kernel logo default load from resource */
 	if (!get_content(0, &content))
 		return -1;
 	content.load_addr = (void *)gd->fb_base + offset;
@@ -381,6 +386,8 @@ static int rk_load_kernel_logo(void)
 	if (!load_content_data(&content, 0, content.load_addr, blocks)) {
 		return -1;
 	}
+
+	g_rk_fb_size = CONFIG_RK_FB_SIZE;
 
 	return offset;
 }
@@ -451,10 +458,9 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 	snprintf(command_line, sizeof(command_line),
 			"%s uboot_logo=0x%08lx@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
 #if defined(CONFIG_KERNEL_LOGO)
-	int offset = rk_load_kernel_logo();
-	if (offset >= 0)
+	if (g_rk_fb_size != -1)
 		snprintf(command_line, sizeof(command_line),
-				"%s:0x%08lx", command_line, offset);
+				"%s:0x%08lx", command_line, g_rk_fb_size);
 #endif /* CONFIG_KERNEL_LOGO */
 #endif /* CONFIG_RK_FB_DDREND */
 
@@ -530,6 +536,9 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			goto fail;
 		}
 	}
+#if defined(CONFIG_LCD) && defined(CONFIG_KERNEL_LOGO)
+	rk_load_kernel_logo();
+#endif
 
 	rk_commandline_setenv(boot_source, hdr, charge);
 
