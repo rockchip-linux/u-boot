@@ -478,9 +478,6 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 #endif
 
 #if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FG_ADC)
-	if (fg_adc_storage_flag_load() == 1) {
-		g_increment = g_increment + fg_adc_storage_load();
-	}
 	snprintf(command_line, sizeof(command_line),
 			 "%s adc.incre=%d", command_line, g_increment);
 #endif
@@ -540,12 +537,16 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	rk_load_kernel_logo();
 #endif
 
-	rk_commandline_setenv(boot_source, hdr, charge);
-
 #if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FG_ADC)
+	if (fg_adc_storage_flag_load() == 1) {
+		g_increment = g_increment + fg_adc_storage_load();
+	}
+
 	fg_adc_storage_flag_store(0);
 	fg_adc_storage_store(0);
 #endif
+
+	rk_commandline_setenv(boot_source, hdr, charge);
 
 	rk_module_deinit();
 
