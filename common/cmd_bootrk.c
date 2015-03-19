@@ -94,7 +94,9 @@ static void boot_start_lmb(bootm_headers_t *images)
 	lmb_add(&images->lmb, (phys_addr_t)mem_start, mem_size);
 
 	arch_lmb_reserve(&images->lmb);
+	debug("\n");
 	board_lmb_reserve(&images->lmb);
+	debug("\n");
 }
 #else
 #define lmb_reserve(lmb, base, size)
@@ -218,6 +220,12 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 	unsigned sector;
 	unsigned blocks;
 	void *kaddr, *raddr;
+#ifdef CONFIG_OF_LIBFDT
+	resource_content content;
+
+	/* init set content.addr = NULL */
+	content.load_addr = NULL;
+#endif
 
 #ifdef CONFIG_KERNEL_RUNNING_ADDR
 	kaddr = (void*)CONFIG_KERNEL_RUNNING_ADDR;
@@ -278,7 +286,27 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 				FBTERR("bootrk: failed to read second\n");
 				goto fail;
 			}
+
+			/* load fdt from boot image sencode address */
+			#ifdef CONFIG_OF_LIBFDT
+			debug("Try to load fdt from second address.\n");
+			content = rkimage_load_fdt_ram(hdr->second_addr, hdr->second_size);
+			if (!content.load_addr) {
+				printf("failed to load fdt from second address %p!\n", hdr->second_addr);
+			}
+			#endif /* CONFIG_OF_LIBFDT */
 		}
+#else
+		#ifdef CONFIG_OF_LIBFDT
+		if (hdr->second_size != 0) {
+			/* load fdt from boot image */
+			debug("Try to load fdt from %s.\n", ptn->name);
+			content = rkimage_load_fdt(ptn);
+			if (!content.load_addr) {
+				printf("failed to load fdt from %s!\n", ptn->name);
+			}
+		}
+		#endif /* CONFIG_OF_LIBFDT */
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 	}
 
@@ -294,7 +322,7 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 	if (SecureBootImageCheck(hdr, unlocked) == false) {
 #ifdef CONFIG_SECUREBOOT_CRYPTO
 		if ((SecureMode != SBOOT_MODE_NS) && (SecureBootCheckOK == 0)) {
-			puts("Not allow to boot no secure sign image!");
+			puts("Not allow to boot no secure sign image!\n");
 			while(1);
 		}
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
@@ -303,17 +331,17 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 		board_fbt_boot_failed(ptn->name);
 	}
 
-	/* loader fdt */
+	/* loader fdt from resource if content.load_addr == NULL */
 #ifdef CONFIG_OF_LIBFDT
-	resource_content content = rkimage_load_fdt(ptn);
 	if (!content.load_addr) {
-		printf("failed to load fdt from %s!\n", ptn->name);
-#ifdef CONFIG_OF_FROM_RESOURCE
+		#ifdef CONFIG_OF_FROM_RESOURCE
+		puts("load fdt from resouce.\n");
 		content = rkimage_load_fdt(get_disk_partition(RESOURCE_NAME));
-#endif
+		#endif
 	}
+
 	if (!content.load_addr) {
-		printf("failed to load fdt!\n");
+		puts("failed to load fdt!\n");
 		goto fail;
 	} else {
 		pimage->ft_addr = content.load_addr;
@@ -322,6 +350,7 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 #endif /* CONFIG_OF_LIBFDT */
 
 	return hdr;
+
 fail:
 	/* if booti fails, always start fastboot */
 	free(hdr); /* hdr may be NULL, but that's ok. */
