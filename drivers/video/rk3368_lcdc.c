@@ -30,18 +30,26 @@ extern int rk32_mipi_enable(vidinfo_t * vid);
 extern int rk32_dsi_enable(void);
 extern int rk32_dsi_disable(void);
 
+#ifndef pr_info
+#define pr_info(args...)  debug(args)
+#endif
+#ifndef pr_err
+#define  pr_err(args...)  debug(args)
+#endif
 static int rk3368_lcdc_csc_mode(struct lcdc_device *lcdc_dev,
 				 struct fb_dsp_info *fb_info,
 				 vidinfo_t *vid)
 {
-    u32 csc_mode = 0;
+        u32 csc_mode = 0;
+        struct rk_screen *screen = lcdc_dev->screen;
+
 	if (lcdc_dev->overlay_mode == VOP_YUV_DOMAIN) {
 		switch (fb_info->format) {
 		case ARGB888:
 		case RGB888:
 		case RGB565:
-			if ((vid->vl_col < 1280) &&
-			    (vid->vl_row < 720)) {
+			if ((screen->mode.xres < 1280) &&
+			    (screen->mode.yres < 720)) {
 				csc_mode = VOP_R2Y_CSC_BT601;
 			} else {
 				csc_mode = VOP_R2Y_CSC_BT709;
@@ -62,89 +70,605 @@ static int rk3368_lcdc_csc_mode(struct lcdc_device *lcdc_dev,
 	return csc_mode;
 }
 
-static int win0_set_par(struct lcdc_device *lcdc_dev,
-			     struct fb_dsp_info *fb_info,
-			     vidinfo_t *vid)
+static int rk3368_lcdc_vid_to_win(struct fb_dsp_info *fb_info, struct rk_lcdc_win *win)
 {
-	u32 mask,val;
-	u32 csc_mode;
-	u32 off;
+        win->area[0].format = fb_info->format;//is config format;
+        win->area[0].xact   = fb_info->xact;
+        win->area[0].yact   = fb_info->yact;
+        win->area[0].xsize  = fb_info->xsize;
+        win->area[0].ysize  = fb_info->ysize;
+        win->area[0].xpos   = fb_info->xpos;
+        win->area[0].ypos   = fb_info->ypos;
+        printf("format=%d,xact=%d,yact=%d,xsize=%d,vsize=%d,xpos=%d,ypos=%d\n",
+                fb_info->format,fb_info->xact,fb_info->yact,fb_info->xsize,
+                fb_info->ysize,fb_info->xpos,fb_info->ypos);
 
-	off = fb_info->layer_id * 0x40;;
-	csc_mode = rk3368_lcdc_csc_mode(lcdc_dev, fb_info, vid);
+        return 0;
+}
 
-	mask = m_WIN0_EN | m_WIN0_DATA_FMT | m_WIN0_FMT_10 |
-	    m_WIN0_LB_MODE | m_WIN0_RB_SWAP | m_WIN0_X_MIRROR |
-	    m_WIN0_Y_MIRROR | m_WIN0_CSC_MODE;
-	val = v_WIN0_EN(1) |
-	    v_WIN0_DATA_FMT(fb_info->format) |
-	    v_WIN0_FMT_10(0) |
-	    v_WIN0_LB_MODE(5) |
-	    v_WIN0_RB_SWAP(0) |
-	    v_WIN0_X_MIRROR(0) |
-	    v_WIN0_Y_MIRROR(0) |
-	    v_WIN0_CSC_MODE(csc_mode);
-	lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, mask, val);
+static int rk3368_lcdc_calc_scl_fac(struct rk_lcdc_win *win)
+{
+	u16 srcW = 0;
+	u16 srcH = 0;
+	u16 dstW = 0;
+	u16 dstH = 0;
+	u16 yrgb_srcW = 0;
+	u16 yrgb_srcH = 0;
+	u16 yrgb_dstW = 0;
+	u16 yrgb_dstH = 0;
+	u32 yrgb_vscalednmult = 0;
+	u32 yrgb_xscl_factor = 0;
+	u32 yrgb_yscl_factor = 0;
+	u8 yrgb_vsd_bil_gt2 = 0;
+	u8 yrgb_vsd_bil_gt4 = 0;
 
-	val = v_WIN0_ACT_WIDTH(fb_info->xact) |
-	    v_WIN0_ACT_HEIGHT(fb_info->yact);
-	lcdc_writel(lcdc_dev, WIN0_ACT_INFO + off, val);
+	u16 cbcr_srcW = 0;
+	u16 cbcr_srcH = 0;
+	u16 cbcr_dstW = 0;
+	u16 cbcr_dstH = 0;
+	u32 cbcr_vscalednmult = 0;
+	u32 cbcr_xscl_factor = 0;
+	u32 cbcr_yscl_factor = 0;
+	u8 cbcr_vsd_bil_gt2 = 0;
+	u8 cbcr_vsd_bil_gt4 = 0;
+	u8 yuv_fmt = 0;
 
-	val = v_WIN0_DSP_WIDTH(fb_info->xsize) |
-	    v_WIN0_DSP_HEIGHT(fb_info->ysize);
-	lcdc_writel(lcdc_dev, WIN0_DSP_INFO + off, val);
+	srcW = win->area[0].xact;
+	srcH = win->area[0].yact;
+	dstW = win->area[0].xsize;
+	dstH = win->area[0].ysize;
 
-	val = v_WIN0_DSP_XST(fb_info->xpos + vid->vl_hspw + vid->vl_hbpd) |
-	    v_WIN0_DSP_YST(fb_info->ypos + vid->vl_vspw + vid->vl_vbpd);
-	lcdc_writel(lcdc_dev, WIN0_DSP_ST + off, val);
-
-	val = v_WIN0_HS_FACTOR_YRGB(0x1000) |
-	    v_WIN0_VS_FACTOR_YRGB(0x1000);
-	lcdc_writel(lcdc_dev, WIN0_SCL_FACTOR_YRGB + off, val);
-
-	val = v_WIN0_HS_FACTOR_CBR(0x1000) |
-	    v_WIN0_VS_FACTOR_CBR(0x1000);
-	lcdc_writel(lcdc_dev, WIN0_SCL_FACTOR_CBR + off, val);
-
-	if(fb_info->xsize > 2560) {
-		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, m_WIN0_LB_MODE,
-			     v_WIN0_LB_MODE(LB_RGB_3840X2));
-	} else if(fb_info->xsize > 1920) {
-		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, m_WIN0_LB_MODE,
-			      v_WIN0_LB_MODE(LB_RGB_2560X4));
-	} else if(fb_info->xsize > 1280){
-		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, m_WIN0_LB_MODE,
-			     v_WIN0_LB_MODE(LB_RGB_1920X5));
-	} else {
-		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, m_WIN0_LB_MODE,
-			     v_WIN0_LB_MODE(LB_RGB_1280X8));
+	/*yrgb scl mode */
+	yrgb_srcW = srcW;
+	yrgb_srcH = srcH;
+	yrgb_dstW = dstW;
+	yrgb_dstH = dstH;
+	if ((yrgb_dstW * 8 <= yrgb_srcW) || (yrgb_dstH * 8 <= yrgb_srcH)) {
+		pr_err("ERROR: yrgb scale exceed 8,");
+		pr_err("srcW=%d,srcH=%d,dstW=%d,dstH=%d\n",
+		       yrgb_srcW, yrgb_srcH, yrgb_dstW, yrgb_dstH);
 	}
-	
-	switch (fb_info->format) {
-	case ARGB888:
-		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_ARGB888_VIRWIDTH(fb_info->xvir));
-		break;
-	case RGB888:
-		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_RGB888_VIRWIDTH(fb_info->xvir));
-		break;
-	case RGB565:
-		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_RGB565_VIRWIDTH(fb_info->xvir));
-		break;
+	if (yrgb_srcW < yrgb_dstW)
+		win->yrgb_hor_scl_mode = SCALE_UP;
+	else if (yrgb_srcW > yrgb_dstW)
+		win->yrgb_hor_scl_mode = SCALE_DOWN;
+	else
+		win->yrgb_hor_scl_mode = SCALE_NONE;
+
+	if (yrgb_srcH < yrgb_dstH)
+		win->yrgb_ver_scl_mode = SCALE_UP;
+	else if (yrgb_srcH > yrgb_dstH)
+		win->yrgb_ver_scl_mode = SCALE_DOWN;
+	else
+		win->yrgb_ver_scl_mode = SCALE_NONE;
+
+	/*cbcr scl mode */
+	switch (win->area[0].format) {
 	case YUV422:
+		cbcr_srcW = srcW / 2;
+		cbcr_dstW = dstW;
+		cbcr_srcH = srcH;
+		cbcr_dstH = dstH;
+		yuv_fmt = 1;
+		break;
 	case YUV420:
-		lcdc_writel(lcdc_dev, WIN0_VIR + off, v_YUV_VIRWIDTH(fb_info->xvir));
-		if(fb_info->xsize > 1280) {
-			lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, m_WIN0_LB_MODE,
-				     v_WIN0_LB_MODE(LB_YUV_3840X5));
-		} else {
-			lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, m_WIN0_LB_MODE,
-				     v_WIN0_LB_MODE(LB_YUV_2560X8));
+		cbcr_srcW = srcW / 2;
+		cbcr_dstW = dstW;
+		cbcr_srcH = srcH / 2;
+		cbcr_dstH = dstH;
+		yuv_fmt = 1;
+		break;
+	case YUV444:
+		cbcr_srcW = srcW;
+		cbcr_dstW = dstW;
+		cbcr_srcH = srcH;
+		cbcr_dstH = dstH;
+		yuv_fmt = 1;
+		break;
+	default:
+		cbcr_srcW = 0;
+		cbcr_dstW = 0;
+		cbcr_srcH = 0;
+		cbcr_dstH = 0;
+		yuv_fmt = 0;
+		break;
+	}
+	if (yuv_fmt) {
+		if ((cbcr_dstW * 8 <= cbcr_srcW) ||
+		    (cbcr_dstH * 8 <= cbcr_srcH)) {
+			pr_err("ERROR: cbcr scale exceed 8,");
+			pr_err("srcW=%d,srcH=%d,dstW=%d,dstH=%d\n", cbcr_srcW,
+			       cbcr_srcH, cbcr_dstW, cbcr_dstH);
+		}
+	}
+
+	if (cbcr_srcW < cbcr_dstW)
+		win->cbr_hor_scl_mode = SCALE_UP;
+	else if (cbcr_srcW > cbcr_dstW)
+		win->cbr_hor_scl_mode = SCALE_DOWN;
+	else
+		win->cbr_hor_scl_mode = SCALE_NONE;
+
+	if (cbcr_srcH < cbcr_dstH)
+		win->cbr_ver_scl_mode = SCALE_UP;
+	else if (cbcr_srcH > cbcr_dstH)
+		win->cbr_ver_scl_mode = SCALE_DOWN;
+	else
+		win->cbr_ver_scl_mode = SCALE_NONE;
+
+	/*DBG(1, "srcW:%d>>srcH:%d>>dstW:%d>>dstH:%d>>\n"
+	    "yrgb:src:W=%d>>H=%d,dst:W=%d>>H=%d,H_mode=%d,V_mode=%d\n"
+	    "cbcr:src:W=%d>>H=%d,dst:W=%d>>H=%d,H_mode=%d,V_mode=%d\n", srcW,
+	    srcH, dstW, dstH, yrgb_srcW, yrgb_srcH, yrgb_dstW, yrgb_dstH,
+	    win->yrgb_hor_scl_mode, win->yrgb_ver_scl_mode, cbcr_srcW,
+	    cbcr_srcH, cbcr_dstW, cbcr_dstH, win->cbr_hor_scl_mode,
+	    win->cbr_ver_scl_mode);*/
+
+	/*line buffer mode */
+	if ((win->area[0].format == YUV422) ||
+	    (win->area[0].format == YUV420)) {
+		if (win->cbr_hor_scl_mode == SCALE_DOWN) {
+			if ((cbcr_dstW > VOP_INPUT_MAX_WIDTH / 2) ||
+			    (cbcr_dstW == 0))
+				pr_err("ERROR cbcr_dstW = %d,exceeds 2048\n",
+				       cbcr_dstW);
+			else if (cbcr_dstW > 1280)
+				win->win_lb_mode = LB_YUV_3840X5;
+			else
+				win->win_lb_mode = LB_YUV_2560X8;
+		} else {	/*SCALE_UP or SCALE_NONE */
+			if ((cbcr_srcW > VOP_INPUT_MAX_WIDTH / 2) ||
+			    (cbcr_srcW == 0))
+				pr_err("ERROR cbcr_srcW = %d,exceeds 2048\n",
+				       cbcr_srcW);
+			else if (cbcr_srcW > 1280)
+				win->win_lb_mode = LB_YUV_3840X5;
+			else
+				win->win_lb_mode = LB_YUV_2560X8;
+		}
+	} else {
+		if (win->yrgb_hor_scl_mode == SCALE_DOWN) {
+			if ((yrgb_dstW > VOP_INPUT_MAX_WIDTH) ||
+			    (yrgb_dstW == 0))
+				pr_err("ERROR yrgb_dstW = %d\n", yrgb_dstW);
+			else if (yrgb_dstW > 2560)
+				win->win_lb_mode = LB_RGB_3840X2;
+			else if (yrgb_dstW > 1920)
+				win->win_lb_mode = LB_RGB_2560X4;
+			else if (yrgb_dstW > 1280)
+				win->win_lb_mode = LB_RGB_1920X5;
+			else
+				win->win_lb_mode = LB_RGB_1280X8;
+		} else {	/*SCALE_UP or SCALE_NONE */
+			if ((yrgb_srcW > VOP_INPUT_MAX_WIDTH) ||
+			    (yrgb_srcW == 0))
+				pr_err("ERROR yrgb_srcW = %d\n", yrgb_srcW);
+			else if (yrgb_srcW > 2560)
+				win->win_lb_mode = LB_RGB_3840X2;
+			else if (yrgb_srcW > 1920)
+				win->win_lb_mode = LB_RGB_2560X4;
+			else if (yrgb_srcW > 1280)
+				win->win_lb_mode = LB_RGB_1920X5;
+			else
+				win->win_lb_mode = LB_RGB_1280X8;
+		}
+	}
+	debug("win->win_lb_mode = %d;\n", win->win_lb_mode);
+
+	/*vsd/vsu scale ALGORITHM */
+	win->yrgb_hsd_mode = SCALE_DOWN_BIL;	/*not to specify */
+	win->cbr_hsd_mode = SCALE_DOWN_BIL;	/*not to specify */
+	win->yrgb_vsd_mode = SCALE_DOWN_BIL;	/*not to specify */
+	win->cbr_vsd_mode = SCALE_DOWN_BIL;	/*not to specify */
+	switch (win->win_lb_mode) {
+	case LB_YUV_3840X5:
+	case LB_YUV_2560X8:
+	case LB_RGB_1920X5:
+	case LB_RGB_1280X8:
+		win->yrgb_vsu_mode = SCALE_UP_BIC;
+		win->cbr_vsu_mode = SCALE_UP_BIC;
+		break;
+	case LB_RGB_3840X2:
+		if (win->yrgb_ver_scl_mode != SCALE_NONE)
+			pr_err("ERROR : not allow yrgb ver scale\n");
+		if (win->cbr_ver_scl_mode != SCALE_NONE)
+			pr_err("ERROR : not allow cbcr ver scale\n");
+		break;
+	case LB_RGB_2560X4:
+		win->yrgb_vsu_mode = SCALE_UP_BIL;
+		win->cbr_vsu_mode = SCALE_UP_BIL;
+		break;
+	default:
+		pr_info("%s:un supported win_lb_mode:%d\n",
+			__func__, win->win_lb_mode);
+		break;
+	}
+	if (win->mirror_en == 1) {	/*interlace mode must bill */
+		win->yrgb_vsd_mode = SCALE_DOWN_BIL;
+	}
+
+	if ((win->yrgb_ver_scl_mode == SCALE_DOWN) &&
+	    (win->area[0].fbdc_en == 1)) {
+		/*in this pattern,use bil mode,not support souble scd,
+		use avg mode, support double scd, but aclk should be
+		bigger than dclk,aclk>>dclk */
+		if (yrgb_srcH >= 2 * yrgb_dstH) {
+			pr_err("ERROR : fbdc mode,not support y scale down:");
+			pr_err("srcH[%d] > 2 *dstH[%d]\n",
+			       yrgb_srcH, yrgb_dstH);
+		}
+	}
+	debug("yrgb:hsd=%d,vsd=%d,vsu=%d;cbcr:hsd=%d,vsd=%d,vsu=%d\n",
+	    win->yrgb_hsd_mode, win->yrgb_vsd_mode, win->yrgb_vsu_mode,
+	    win->cbr_hsd_mode, win->cbr_vsd_mode, win->cbr_vsu_mode);
+
+	/*SCALE FACTOR */
+
+	/*(1.1)YRGB HOR SCALE FACTOR */
+	switch (win->yrgb_hor_scl_mode) {
+	case SCALE_NONE:
+		yrgb_xscl_factor = (1 << SCALE_FACTOR_DEFAULT_FIXPOINT_SHIFT);
+		break;
+	case SCALE_UP:
+		yrgb_xscl_factor = GET_SCALE_FACTOR_BIC(yrgb_srcW, yrgb_dstW);
+		break;
+	case SCALE_DOWN:
+		switch (win->yrgb_hsd_mode) {
+		case SCALE_DOWN_BIL:
+			yrgb_xscl_factor =
+			    GET_SCALE_FACTOR_BILI_DN(yrgb_srcW, yrgb_dstW);
+			break;
+		case SCALE_DOWN_AVG:
+			yrgb_xscl_factor =
+			    GET_SCALE_FACTOR_AVRG(yrgb_srcW, yrgb_dstW);
+			break;
+		default:
+			pr_info(
+				"%s:un supported yrgb_hsd_mode:%d\n", __func__,
+			       win->yrgb_hsd_mode);
+			break;
 		}
 		break;
 	default:
-		lcdc_writel(lcdc_dev, WIN0_VIR, v_RGB888_VIRWIDTH(fb_info->xvir));
+		pr_info("%s:un supported yrgb_hor_scl_mode:%d\n",
+			__func__, win->yrgb_hor_scl_mode);
+		break;
+	}			/*win->yrgb_hor_scl_mode */
+
+	/*(1.2)YRGB VER SCALE FACTOR */
+	switch (win->yrgb_ver_scl_mode) {
+	case SCALE_NONE:
+		yrgb_yscl_factor = (1 << SCALE_FACTOR_DEFAULT_FIXPOINT_SHIFT);
+		break;
+	case SCALE_UP:
+		switch (win->yrgb_vsu_mode) {
+		case SCALE_UP_BIL:
+			yrgb_yscl_factor =
+			    GET_SCALE_FACTOR_BILI_UP(yrgb_srcH, yrgb_dstH);
+			break;
+		case SCALE_UP_BIC:
+			if (yrgb_srcH < 3) {
+				pr_err("yrgb_srcH should be");
+				pr_err(" greater than 3 !!!\n");
+			}
+			yrgb_yscl_factor = GET_SCALE_FACTOR_BIC(yrgb_srcH,
+								yrgb_dstH);
+			break;
+		default:
+			pr_info("%s:un support yrgb_vsu_mode:%d\n",
+				__func__, win->yrgb_vsu_mode);
+			break;
+		}
+		break;
+	case SCALE_DOWN:
+		switch (win->yrgb_vsd_mode) {
+		case SCALE_DOWN_BIL:
+			yrgb_vscalednmult =
+			    rk3368_get_hard_ware_vskiplines(yrgb_srcH,
+							    yrgb_dstH);
+			yrgb_yscl_factor =
+			    GET_SCALE_FACTOR_BILI_DN_VSKIP(yrgb_srcH, yrgb_dstH,
+							   yrgb_vscalednmult);
+			if (yrgb_yscl_factor >= 0x2000) {
+				pr_err("yrgb_yscl_factor should be ");
+				pr_err("less than 0x2000,yrgb_yscl_factor=%4x;\n",
+				       yrgb_yscl_factor);
+			}
+			if (yrgb_vscalednmult == 4) {
+				yrgb_vsd_bil_gt4 = 1;
+				yrgb_vsd_bil_gt2 = 0;
+			} else if (yrgb_vscalednmult == 2) {
+				yrgb_vsd_bil_gt4 = 0;
+				yrgb_vsd_bil_gt2 = 1;
+			} else {
+				yrgb_vsd_bil_gt4 = 0;
+				yrgb_vsd_bil_gt2 = 0;
+			}
+			break;
+		case SCALE_DOWN_AVG:
+			yrgb_yscl_factor = GET_SCALE_FACTOR_AVRG(yrgb_srcH,
+								 yrgb_dstH);
+			break;
+		default:
+			pr_info("%s:un support yrgb_vsd_mode:%d\n",
+				__func__, win->yrgb_vsd_mode);
+			break;
+		}		/*win->yrgb_vsd_mode */
+		break;
+	default:
+		pr_info("%s:un supported yrgb_ver_scl_mode:%d\n",
+			__func__, win->yrgb_ver_scl_mode);
 		break;
 	}
+	win->scale_yrgb_x = yrgb_xscl_factor;
+	win->scale_yrgb_y = yrgb_yscl_factor;
+	win->vsd_yrgb_gt4 = yrgb_vsd_bil_gt4;
+	win->vsd_yrgb_gt2 = yrgb_vsd_bil_gt2;
+	debug("yrgb:h_fac=%d, v_fac=%d,gt4=%d, gt2=%d\n", yrgb_xscl_factor,
+	    yrgb_yscl_factor, yrgb_vsd_bil_gt4, yrgb_vsd_bil_gt2);
+
+	/*(2.1)CBCR HOR SCALE FACTOR */
+	switch (win->cbr_hor_scl_mode) {
+	case SCALE_NONE:
+		cbcr_xscl_factor = (1 << SCALE_FACTOR_DEFAULT_FIXPOINT_SHIFT);
+		break;
+	case SCALE_UP:
+		cbcr_xscl_factor = GET_SCALE_FACTOR_BIC(cbcr_srcW, cbcr_dstW);
+		break;
+	case SCALE_DOWN:
+		switch (win->cbr_hsd_mode) {
+		case SCALE_DOWN_BIL:
+			cbcr_xscl_factor =
+			    GET_SCALE_FACTOR_BILI_DN(cbcr_srcW, cbcr_dstW);
+			break;
+		case SCALE_DOWN_AVG:
+			cbcr_xscl_factor =
+			    GET_SCALE_FACTOR_AVRG(cbcr_srcW, cbcr_dstW);
+			break;
+		default:
+			pr_info("%s:un support cbr_hsd_mode:%d\n",
+				__func__, win->cbr_hsd_mode);
+			break;
+		}
+		break;
+	default:
+		pr_info("%s:un supported cbr_hor_scl_mode:%d\n",
+			__func__, win->cbr_hor_scl_mode);
+		break;
+	}			/*win->cbr_hor_scl_mode */
+
+	/*(2.2)CBCR VER SCALE FACTOR */
+	switch (win->cbr_ver_scl_mode) {
+	case SCALE_NONE:
+		cbcr_yscl_factor = (1 << SCALE_FACTOR_DEFAULT_FIXPOINT_SHIFT);
+		break;
+	case SCALE_UP:
+		switch (win->cbr_vsu_mode) {
+		case SCALE_UP_BIL:
+			cbcr_yscl_factor =
+			    GET_SCALE_FACTOR_BILI_UP(cbcr_srcH, cbcr_dstH);
+			break;
+		case SCALE_UP_BIC:
+			if (cbcr_srcH < 3) {
+				pr_err("cbcr_srcH should be ");
+				pr_err("greater than 3 !!!\n");
+			}
+			cbcr_yscl_factor = GET_SCALE_FACTOR_BIC(cbcr_srcH,
+								cbcr_dstH);
+			break;
+		default:
+			pr_info("%s:un support cbr_vsu_mode:%d\n",
+				__func__, win->cbr_vsu_mode);
+			break;
+		}
+		break;
+	case SCALE_DOWN:
+		switch (win->cbr_vsd_mode) {
+		case SCALE_DOWN_BIL:
+			cbcr_vscalednmult =
+			    rk3368_get_hard_ware_vskiplines(cbcr_srcH,
+							    cbcr_dstH);
+			cbcr_yscl_factor =
+			    GET_SCALE_FACTOR_BILI_DN_VSKIP(cbcr_srcH, cbcr_dstH,
+							   cbcr_vscalednmult);
+			if (cbcr_yscl_factor >= 0x2000) {
+				pr_err("cbcr_yscl_factor should be less ");
+				pr_err("than 0x2000,cbcr_yscl_factor=%4x;\n",
+				       cbcr_yscl_factor);
+			}
+
+			if (cbcr_vscalednmult == 4) {
+				cbcr_vsd_bil_gt4 = 1;
+				cbcr_vsd_bil_gt2 = 0;
+			} else if (cbcr_vscalednmult == 2) {
+				cbcr_vsd_bil_gt4 = 0;
+				cbcr_vsd_bil_gt2 = 1;
+			} else {
+				cbcr_vsd_bil_gt4 = 0;
+				cbcr_vsd_bil_gt2 = 0;
+			}
+			break;
+		case SCALE_DOWN_AVG:
+			cbcr_yscl_factor = GET_SCALE_FACTOR_AVRG(cbcr_srcH,
+								 cbcr_dstH);
+			break;
+		default:
+			pr_info("%s:un support cbr_vsd_mode:%d\n",
+				__func__, win->cbr_vsd_mode);
+			break;
+		}
+		break;
+	default:
+		pr_info("%s:un supported cbr_ver_scl_mode:%d\n",
+			__func__, win->cbr_ver_scl_mode);
+		break;
+	}
+	win->scale_cbcr_x = cbcr_xscl_factor;
+	win->scale_cbcr_y = cbcr_yscl_factor;
+	win->vsd_cbr_gt4 = cbcr_vsd_bil_gt4;
+	win->vsd_cbr_gt2 = cbcr_vsd_bil_gt2;
+
+	debug("cbcr:h_fac=%d,v_fac=%d,gt4=%d,gt2=%d\n", cbcr_xscl_factor,
+	    cbcr_yscl_factor, cbcr_vsd_bil_gt4, cbcr_vsd_bil_gt2);
+	return 0;
+}
+
+
+static int rk3368_win_0_1_reg_update(struct lcdc_device *lcdc_dev,
+                                            struct rk_lcdc_win *win,
+                                            int win_id)
+{
+	unsigned int mask, val, off;
+
+	off = win_id * 0x40;
+	if (win->state == 1) {
+		mask = m_WIN0_EN | m_WIN0_DATA_FMT | m_WIN0_FMT_10 |
+		    m_WIN0_LB_MODE | m_WIN0_RB_SWAP | m_WIN0_X_MIRROR |
+		    m_WIN0_Y_MIRROR | m_WIN0_CSC_MODE |m_WIN0_UV_SWAP;
+		val = v_WIN0_EN(win->state) |
+		    v_WIN0_DATA_FMT(win->area[0].format) |
+		    v_WIN0_FMT_10(win->fmt_10) |
+		    v_WIN0_LB_MODE(win->win_lb_mode) |
+		    v_WIN0_RB_SWAP(0) |
+		    v_WIN0_X_MIRROR(win->mirror_en) |
+		    v_WIN0_Y_MIRROR(win->mirror_en) |
+		    v_WIN0_CSC_MODE(win->csc_mode) |
+		    v_WIN0_UV_SWAP(0);
+		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, mask, val);
+
+		mask = m_WIN0_BIC_COE_SEL |
+		    m_WIN0_VSD_YRGB_GT4 | m_WIN0_VSD_YRGB_GT2 |
+		    m_WIN0_VSD_CBR_GT4 | m_WIN0_VSD_CBR_GT2 |
+		    m_WIN0_YRGB_HOR_SCL_MODE | m_WIN0_YRGB_VER_SCL_MODE |
+		    m_WIN0_YRGB_HSD_MODE | m_WIN0_YRGB_VSU_MODE |
+		    m_WIN0_YRGB_VSD_MODE | m_WIN0_CBR_HOR_SCL_MODE |
+		    m_WIN0_CBR_VER_SCL_MODE | m_WIN0_CBR_HSD_MODE |
+		    m_WIN0_CBR_VSU_MODE | m_WIN0_CBR_VSD_MODE;
+		val = v_WIN0_BIC_COE_SEL(win->bic_coe_el) |
+		    v_WIN0_VSD_YRGB_GT4(win->vsd_yrgb_gt4) |
+		    v_WIN0_VSD_YRGB_GT2(win->vsd_yrgb_gt2) |
+		    v_WIN0_VSD_CBR_GT4(win->vsd_cbr_gt4) |
+		    v_WIN0_VSD_CBR_GT2(win->vsd_cbr_gt2) |
+		    v_WIN0_YRGB_HOR_SCL_MODE(win->yrgb_hor_scl_mode) |
+		    v_WIN0_YRGB_VER_SCL_MODE(win->yrgb_ver_scl_mode) |
+		    v_WIN0_YRGB_HSD_MODE(win->yrgb_hsd_mode) |
+		    v_WIN0_YRGB_VSU_MODE(win->yrgb_vsu_mode) |
+		    v_WIN0_YRGB_VSD_MODE(win->yrgb_vsd_mode) |
+		    v_WIN0_CBR_HOR_SCL_MODE(win->cbr_hor_scl_mode) |
+		    v_WIN0_CBR_VER_SCL_MODE(win->cbr_ver_scl_mode) |
+		    v_WIN0_CBR_HSD_MODE(win->cbr_hsd_mode) |
+		    v_WIN0_CBR_VSU_MODE(win->cbr_vsu_mode) |
+		    v_WIN0_CBR_VSD_MODE(win->cbr_vsd_mode);
+		lcdc_msk_reg(lcdc_dev, WIN0_CTRL1 + off, mask, val);
+		val = v_WIN0_VIR_STRIDE(win->area[0].y_vir_stride);
+		lcdc_writel(lcdc_dev, WIN0_VIR + off, val);
+
+		val = v_WIN0_ACT_WIDTH(win->area[0].xact) |
+		    v_WIN0_ACT_HEIGHT(win->area[0].yact);
+		lcdc_writel(lcdc_dev, WIN0_ACT_INFO + off, val);
+
+		val = v_WIN0_DSP_WIDTH(win->area[0].xsize) |
+		    v_WIN0_DSP_HEIGHT(win->area[0].ysize);
+		lcdc_writel(lcdc_dev, WIN0_DSP_INFO + off, val);
+
+		val = v_WIN0_DSP_XST(win->area[0].dsp_stx) |
+		    v_WIN0_DSP_YST(win->area[0].dsp_sty);
+		lcdc_writel(lcdc_dev, WIN0_DSP_ST + off, val);
+
+		val = v_WIN0_HS_FACTOR_YRGB(win->scale_yrgb_x) |
+		    v_WIN0_VS_FACTOR_YRGB(win->scale_yrgb_y);
+		lcdc_writel(lcdc_dev, WIN0_SCL_FACTOR_YRGB + off, val);
+
+		val = v_WIN0_HS_FACTOR_CBR(win->scale_cbcr_x) |
+		    v_WIN0_VS_FACTOR_CBR(win->scale_cbcr_y);
+		lcdc_writel(lcdc_dev, WIN0_SCL_FACTOR_CBR + off, val);
+
+		mask = m_WIN0_SRC_ALPHA_EN;
+		val = v_WIN0_SRC_ALPHA_EN(0);
+		lcdc_msk_reg(lcdc_dev, WIN0_SRC_ALPHA_CTRL + off,
+			     mask, val);
+	} else {
+		mask = m_WIN0_EN;
+		val = v_WIN0_EN(win->state);
+		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0 + off, mask, val);
+	}
+	return 0;
+}
+
+static int dsp_x_pos(int mirror_en, struct rk_screen *screen,
+		     struct rk_lcdc_win_area *area)
+{
+	int pos;
+
+	if (screen->x_mirror && mirror_en)
+		pr_err("not support both win and global mirror\n");
+
+	if ((!mirror_en) && (!screen->x_mirror))
+		pos = area->xpos + screen->mode.left_margin +
+			screen->mode.hsync_len;
+	else
+		pos = screen->mode.xres - area->xpos -
+			area->xsize + screen->mode.left_margin +
+			screen->mode.hsync_len;
+
+	return pos;
+}
+
+static int dsp_y_pos(int mirror_en, struct rk_screen *screen,
+		     struct rk_lcdc_win_area *area)
+{
+	int pos;
+
+	if (screen->y_mirror && mirror_en)
+		pr_err("not support both win and global mirror\n");
+	if (screen->mode.vmode == FB_VMODE_NONINTERLACED) {
+		if ((!mirror_en) && (!screen->y_mirror))
+			pos = area->ypos + screen->mode.upper_margin +
+				screen->mode.vsync_len;
+		else
+			pos = screen->mode.yres - area->ypos -
+				area->ysize + screen->mode.upper_margin +
+				screen->mode.vsync_len;
+	} else if (screen->mode.vmode == FB_VMODE_INTERLACED) {
+		pos = area->ypos / 2 + screen->mode.upper_margin +
+			screen->mode.vsync_len;
+		area->ysize /= 2;
+	}
+
+	return pos;
+}
+
+static int win0_set_par(struct lcdc_device *lcdc_dev,
+			   struct fb_dsp_info *fb_info,
+			   vidinfo_t *vid)
+{
+        struct rk_lcdc_win *win;
+	struct rk_screen *screen = lcdc_dev->screen;
+
+	rk3368_lcdc_vid_to_win(fb_info, win);
+	win->csc_mode = rk3368_lcdc_csc_mode(lcdc_dev, fb_info, vid);
+	win->state = 1;
+	win->mirror_en = 0;
+	win->area[0].dsp_stx = dsp_x_pos(win->mirror_en, screen, &win->area[0]);
+	win->area[0].dsp_sty = dsp_y_pos(win->mirror_en, screen, &win->area[0]);
+
+	rk3368_lcdc_calc_scl_fac(win);
+	
+	switch (fb_info->format) {
+	case ARGB888:
+		win->area[0].y_vir_stride = v_ARGB888_VIRWIDTH(fb_info->xvir);
+		break;
+	case RGB888:
+		win->area[0].y_vir_stride = v_RGB888_VIRWIDTH(fb_info->xvir);
+		break;
+	case RGB565:
+		win->area[0].y_vir_stride = v_RGB565_VIRWIDTH(fb_info->xvir);
+		break;
+	default:
+		win->area[0].y_vir_stride = v_RGB888_VIRWIDTH(fb_info->xvir);
+		break;
+	}
+	rk3368_win_0_1_reg_update(lcdc_dev, win, fb_info->layer_id);
 	lcdc_writel(lcdc_dev, WIN0_YRGB_MST, fb_info->yaddr);
 
 	return 0;
@@ -155,11 +679,6 @@ void rk_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 	struct lcdc_device *lcdc_dev = &rk33_lcdc;
 
 	fb_info->layer_id = lcdc_dev->dft_win;
-
-	if (vid->vmode) {//need check
-		fb_info->ysize /= 2;
-		fb_info->ypos  /= 2;
-	}
 	
 	switch (fb_info->layer_id) {
 	case WIN0:
@@ -497,8 +1016,8 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	int face = 0;
 	u16 dclk_ddr = 0;
 
-    screen = kzalloc(sizeof(struct rk_screen), GFP_KERNEL);
-    rk_fb_vidinfo_to_screen(vid, screen);
+        screen = lcdc_dev->screen;
+        rk_fb_vidinfo_to_screen(vid, screen);
 	lcdc_dev->overlay_mode = VOP_RGB_DOMAIN;
 	switch (screen->face) {
 	case OUT_P565:
@@ -764,6 +1283,7 @@ int rk_lcdc_init(int lcdc_id)
 	if (!lcdc_dev->node)
 		rk32_lcdc_parse_dt(lcdc_dev, gd->fdt_blob);
 #endif
+        lcdc_dev->screen = kzalloc(sizeof(struct rk_screen), GFP_KERNEL);
 	if (lcdc_dev->node <= 0) {
 	    if (lcdc_dev->soc_type == CONFIG_RK3368) {
             lcdc_dev->regs = RKIO_VOP_PHYS;
