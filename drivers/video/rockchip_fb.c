@@ -263,6 +263,7 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 {
 	int node;
 	int phandle;
+
 	/* logo_on flag has been checked in the function board_fbt_preboot() */
 #if 0
 	int logo_on;
@@ -272,11 +273,23 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	if (logo_on <= 0)
 		return -EPERM;
 #endif
+
+	/* 0: for fdt running time save */
+#if 0
 	phandle = fdt_getprop_u32_default(blob, "/display-timings",
 					  "native-mode", -1);
 	node = fdt_node_offset_by_phandle(blob, phandle);
+#else
+	node = fdt_path_offset(blob, "/display-timings");
+	if (node < 0) {
+		printf("rk fb dt: can't find node '/display-timings'\n");
+		return -ENODEV;
+	}
+	phandle = fdt_getprop_u32_default_node(blob, node, 0, "native-mode", -1);
+	node = fdt_node_offset_by_phandle_node(blob, node, phandle);
+#endif
 	if (node <= 0) {
-		debug("rk_fb: Can't get device node for display-timings\n");
+		printf("rk fb dt: can't get device node for display-timings\n");
 		return -ENODEV;
 	}
 
@@ -415,8 +428,9 @@ void lcd_ctrl_init(void *lcdbase)
 {
 	struct rockchip_fb *fb = &rockchip_fb;
 #if  defined(CONFIG_OF_LIBFDT)
+	debug("rk fb parse dt start.\n");
 	int ret = rk_fb_parse_dt(fb, gd->fdt_blob);
-
+	debug("rk fb parse dt end.\n");
 	if (ret < 0)
 		return;
 
