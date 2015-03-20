@@ -163,7 +163,9 @@ int rk_pwm_config(int brightness)
 	int ret;
 	if (!bl.node) {
 #ifdef CONFIG_OF_LIBFDT
+		debug("rk pwm parse dt start.\n");
 		ret = rk_bl_parse_dt(gd->fdt_blob);
+		debug("rk pwm parse dt end.\n");
 		if (ret < 0)
 			return ret;
 #endif
