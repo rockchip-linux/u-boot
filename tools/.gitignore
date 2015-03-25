@@ -22,6 +22,7 @@
 /gdb/gdbsend
 /loaderimage
 /boot_merger
+/trust_merger
 /checksum
 
 /lib/

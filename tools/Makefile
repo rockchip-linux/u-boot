@@ -59,13 +59,14 @@ hostprogs-$(CONFIG_FIT_SIGNATURE) += fit_info fit_check_sign
 ifdef CONFIG_ROCKCHIP
 hostprogs-y += boot_merger
 hostprogs-y += loaderimage
+hostprogs-$(CONFIG_MERGER_TRUSTIMAGE) += trust_merger
 hostprogs-$(CONFIG_QUICK_CHECKSUM) += checksum
 
 envcrc-objs += lib/sha.o
 HOSTCFLAGS_sha.o := -pedantic
 
 loaderimage-objs := loaderimage.o lib/sha.o
-endif
+endif # CONFIG_ROCKCHIP
 
 FIT_SIG_OBJS-$(CONFIG_FIT_SIGNATURE) := common/image-sig.o
 # Flattened device tree objects
