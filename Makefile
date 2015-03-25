@@ -1381,6 +1381,8 @@ distclean: mrproper
 	   -maxdepth 1 \( -name "*.img" -o -name "*.bin" \) \
 	   -type f -print | xargs rm -f
 	@rm -f boards.cfg
+	@rm -f $(srctree)/tools/boot_merger $(srctree)/tools/loaderimage
+	@rm -f $(srctree)/tools/checksum $(srctree)/tools/trust_merger
 
 backup:
 	F=`basename $(srctree)` ; cd .. ; \
