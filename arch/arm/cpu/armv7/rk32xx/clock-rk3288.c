@@ -1274,6 +1274,9 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 		uint32 pll_hz;
 		uint32 hclk_div;
 
+		/* rk3288 eco chip, also set lcdc1 aclk for isp aclk0 and aclk1 should same source */
+		rkclk_lcdc_aclk_config(1, pll_src, aclk_div);
+
 		if (pll_src == 0) {
 			pll_hz = rkclk_pll_get_rate(CPLL_ID);
 		} else {
