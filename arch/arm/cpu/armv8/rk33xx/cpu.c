@@ -51,27 +51,67 @@ int rk_get_chiptype(void)
 }
 
 
-#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
-static secure_timer_init(void)
-{
-#define STIMER_LOADE_COUNT0		0x00
-#define STIMER_LOADE_COUNT1		0x04
-#define STIMER_CURRENT_VALUE0		0x08
-#define STIMER_CURRENT_VALUE1		0x0C
-#define STIMER_CONTROL_REG		0x10
+#if defined(CONFIG_RKCHIP_RK3368)
+	#define RKIO_SECURE_TIMER_BASE		(RKIO_SECURE_TIMER_2CH_PHYS + 0x20)
 
-	writel(0xffffffff, RKIO_SECURE_TIMER_2CH_PHYS + 0x20 + STIMER_LOADE_COUNT0);
-	writel(0xffffffff, RKIO_SECURE_TIMER_2CH_PHYS + 0x20 + STIMER_LOADE_COUNT1);
-	/* auto reload & enable the timer */
-	writel(0x01, RKIO_SECURE_TIMER_2CH_PHYS + 0x20  + STIMER_CONTROL_REG);
-}
+	#define RKIO_DDR_LATENCY_BASE		(0xffac0000 + 0x14)
+	#define DDR_READ_LATENCY_VALUE		(0x34)
+
+	#define	RKIO_CPU_AXI_QOS_PRIORITY_BASE	0xffad0300
+	#define CPU_AXI_QOS_PRIORITY    	0x08
+	#define QOS_PRIORITY_LEVEL_H		2
+	#define QOS_PRIORITY_LEVEL_L		2
+#else
+	#error "PLS config platform for secure/latency/qos!"
 #endif
 
 
+/* secure parameter init */
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+static void inline secure_parameter_init(void)
+{
+	/* secure timer init */
+	#define STIMER_LOADE_COUNT0		0x00
+	#define STIMER_LOADE_COUNT1		0x04
+	#define STIMER_CURRENT_VALUE0		0x08
+	#define STIMER_CURRENT_VALUE1		0x0C
+	#define STIMER_CONTROL_REG		0x10
+
+	writel(0xffffffff, RKIO_SECURE_TIMER_BASE + STIMER_LOADE_COUNT0);
+	writel(0xffffffff, RKIO_SECURE_TIMER_BASE + STIMER_LOADE_COUNT1);
+	/* auto reload & enable the timer */
+	writel(0x01, RKIO_SECURE_TIMER_BASE  + STIMER_CONTROL_REG);
+
+#if defined(CONFIG_RKCHIP_RK3368)
+	/* ddr space set no secure mode */
+	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON8);
+	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON9);
+	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON10);
+#else
+	#error "PLS config platform for secure parameter init!"
+#endif
+}
+#endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
+
+
+/* ddr read latency configure */
+static void inline ddr_read_latency_config(void)
+{
+	writel(DDR_READ_LATENCY_VALUE, RKIO_DDR_LATENCY_BASE);
+}
+
+
 /* cpu axi qos priority */
-#define CPU_AXI_QOS_PRIORITY    0x08
 #define CPU_AXI_QOS_PRIORITY_LEVEL(h, l) \
 	((((h) & 3) << 8) | (((h) & 3) << 2) | ((l) & 3))
+static void inline cpu_axi_qos_prority_level_config(void)
+{
+	uint32_t level;
+
+	/* set lcdc cpu axi qos priority level */
+	level = CPU_AXI_QOS_PRIORITY_LEVEL(QOS_PRIORITY_LEVEL_H, QOS_PRIORITY_LEVEL_L);
+	writel(level, RKIO_CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
+}
 
 
 #ifdef CONFIG_ARCH_CPU_INIT
@@ -80,28 +120,17 @@ int arch_cpu_init(void)
 	rkclk_set_pll();
 	gd->arch.chiptype = rk_get_chiptype();
 
-#if defined(CONFIG_FPGA_BOARD) || !defined(CONFIG_SECOND_LEVEL_BOOTLOADER)
-	/* ddr space set no secure mode */
-	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON8);
-	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON9);
-	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON10);
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+	secure_parameter_init();
 #endif
+	ddr_read_latency_config();
+	cpu_axi_qos_prority_level_config();
 
 #if defined(CONFIG_RKCHIP_RK3368)
 	/* pwm select rk solution */
 	grf_writel((0x01 << 12) | (0x01 << (12 + 16)), GRF_SOC_CON15);
+#endif /* CONFIG_RKCHIP_RK3368 */
 
-	/* ddr read latency configure */
-	writel(0x34, 0xffac0000 + 0x14);
-
-	/* set lcdc cpu axi qos priority level */
-	#define	CPU_AXI_QOS_PRIORITY_BASE	0xffad0300
-	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
-#endif
-
-#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
-	secure_timer_init();
-#endif
 	return 0;
 }
 #endif
