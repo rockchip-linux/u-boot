@@ -51,8 +51,8 @@ static int rkimg_load_image(uint32 offset, unsigned char *load_addr, size_t *ima
 	//image not align to blk size, so should memcpy some.
 	ftl_memcpy((void *)load_addr, image->image, RK_BLK_SIZE - head_offset);
 
-	//read the rest blks.
-	blocks = DIV_ROUND_UP(*image_size, RK_BLK_SIZE);
+	//read the rest blks: load image block = image size + (8 + 4)bytes, for head and crc32.
+	blocks = DIV_ROUND_UP(*image_size + (8 + 4), RK_BLK_SIZE);
 	if (rkloader_CopyFlash2Memory((uint32) load_addr + RK_BLK_SIZE - head_offset, 
 				offset + 1, blocks - 1) != 0) {
 		printf("failed to read image\n");

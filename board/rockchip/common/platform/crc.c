@@ -27,19 +27,20 @@
 
 uint32 CRC_32CheckBuffer(unsigned char * aData, uint32 aSize)
 {
-	uint32 crc = 0;
+	uint32 crc_check = 0, crc_calc = 0;
 	int i=0;
-	if( aSize <= 4 )
-	{
+	if(aSize <= 4) {
 		return 0;
 	}
 	aSize -= 4;
 
 	for(i=3; i>=0; i--)
-		crc = (crc<<8)+(*(aData+aSize+i));
+		crc_check = (crc_check<<8)+(*(aData+aSize+i));
 
-	if( crc32(0, aData, aSize) == crc )
-		return crc;
+	crc_calc = crc32(0, aData, aSize);
+	debug("rk crc32 check: crc_check = 0x%x, crc_calc = 0x%x\n", crc_check, crc_calc);
+	if(crc_calc == crc_check)
+		return crc_check;
 
 	return 0;
 }
