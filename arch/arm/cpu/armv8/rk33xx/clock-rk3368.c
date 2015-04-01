@@ -964,10 +964,13 @@ static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 {
 	uint32 aclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
+	uint32 pll_rate = 0;
 
 	/* lcdc aclk from codec pll */
 	pll_sel = 0;
-	div = rkclk_calc_clkdiv(gd->bus_clk, aclk_hz, 0);
+	pll_rate = gd->pci_clk;
+
+	div = rkclk_calc_clkdiv(pll_rate, aclk_hz, 0);
 	aclk_info = (pll_sel << 16) | div;
 	debug("rk lcdc aclk config: aclk = %dHZ, pll select = %d, div = %d\n", aclk_hz, pll_sel, div);
 
