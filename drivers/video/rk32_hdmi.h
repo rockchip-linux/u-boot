@@ -1438,6 +1438,7 @@ enum TERM_RESIS{
 struct phy_mpll_config_tab 
 {
 	u32 pix_clock;
+	u32 tmdsclock;
 	u8 pix_repet;
 	u8 color_depth;
 	u16 prep_div;

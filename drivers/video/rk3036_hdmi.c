@@ -143,10 +143,14 @@ static void rk3036_hdmi_set_pwr_mode(struct hdmi_dev *hdmi_dev, int mode)
 		hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, 0x5f);
 		if(hdmi_dev->phy_pre_emphasis != 0)
 		{
-			if((hdmi_dev->video.vic == HDMI_720X480P_60HZ_VIC) ||
-			(hdmi_dev->video.vic == HDMI_720X480I_60HZ_VIC) ||
-			(hdmi_dev->video.vic == HDMI_720X576P_50HZ_VIC) ||
-			(hdmi_dev->video.vic == HDMI_720X576I_50HZ_VIC))
+			if((hdmi_dev->video.vic == HDMI_720X480P_60HZ_4_3) ||
+			   (hdmi_dev->video.vic == HDMI_720X480I_60HZ_4_3) ||
+			   (hdmi_dev->video.vic == HDMI_720X480P_60HZ_16_9) ||
+			   (hdmi_dev->video.vic == HDMI_720X480I_60HZ_16_9) ||
+			   (hdmi_dev->video.vic == HDMI_720X576P_50HZ_4_3) ||
+			   (hdmi_dev->video.vic == HDMI_720X576I_50HZ_4_3) ||
+			   (hdmi_dev->video.vic == HDMI_720X576P_50HZ_16_9) ||
+			   (hdmi_dev->video.vic == HDMI_720X576I_50HZ_16_9))
 
 			hdmi_writel(hdmi_dev, PHY_PRE_EMPHASIS, hdmi_dev->phy_pre_emphasis);
 		}
@@ -369,14 +373,14 @@ static int rk3036_hdmi_video_csc(struct hdmi_dev *hdmi_dev,
 	}
 
 	switch (vpara->vic) {
-	case HDMI_720x480i_60HZ_4_3:
-	case HDMI_720x576i_50HZ_4_3:
-	case HDMI_720x480p_60HZ_4_3:
-	case HDMI_720x576p_50HZ_4_3:
-	case HDMI_720x480i_60HZ_16_9:
-	case HDMI_720x576i_50HZ_16_9:
-	case HDMI_720x480p_60HZ_16_9:
-	case HDMI_720x576p_50HZ_16_9:
+	case HDMI_720X480I_60HZ_4_3:
+	case HDMI_720X576I_50HZ_4_3:
+	case HDMI_720X480P_60HZ_4_3:
+	case HDMI_720X576P_50HZ_4_3:
+	case HDMI_720X480I_60HZ_16_9:
+	case HDMI_720X576I_50HZ_16_9:
+	case HDMI_720X480P_60HZ_16_9:
+	case HDMI_720X576P_50HZ_16_9:
 		if (vpara->input_color == VIDEO_INPUT_COLOR_RGB
 		    && vpara->output_color >= VIDEO_OUTPUT_YCBCR444) {
 			csc_mode = CSC_RGB_0_255_TO_ITU601_16_235_8BIT;
@@ -464,7 +468,10 @@ static void rk3036_hdmi_config_avi(struct hdmi_dev *hdmi_dev,
 	    ACTIVE_ASPECT_RATE_SAME_AS_CODED_FRAME;
 	info[6] = 0;
 	info[7] = vic;
-	if ((vic == HDMI_720X480I_60HZ_VIC) || (vic == HDMI_720X576I_50HZ_VIC))
+	if ((vic == HDMI_720X480I_60HZ_4_3) ||
+	    (vic == HDMI_720X480I_60HZ_16_9) ||
+	    (vic == HDMI_720X576I_50HZ_4_3) ||
+	    (vic == HDMI_720X576I_50HZ_16_9))
 		info[8] = 1;
 	else
 		info[8] = 0;
@@ -834,23 +841,6 @@ void rk3036_hdmi_probe(vidinfo_t *panel)
 	hdmi_dev = malloc(sizeof(struct hdmi_dev));
 	if (hdmi_dev != NULL && panel != NULL) {
 		memset(hdmi_dev, 0, sizeof(struct hdmi_dev));
-
-		if (gd->fdt_blob)
-		{
-			node = fdt_node_offset_by_compatible(gd->fdt_blob, -1, "rockchip,rk312x-hdmi");
-			if(node >= 0)
-			{
-				hdmi_dev->phy_pre_emphasis = fdtdec_get_int(gd->fdt_blob, node, "phy_pre_emphasis", 0);
-			}
-			else
-			{
-				printf("%s:can't find dts node for rk312x-hdmi\n",__func__);
-				hdmi_dev->phy_pre_emphasis = 0;
-			}
-
-			//printf("%s:phy_pre_emphasis=0x%x\n",__func__,hdmi_dev->phy_pre_emphasis);
-		}
-
 		hdmi_dev->regbase = (void *)RKIO_HDMI_PHYS;
 		hdmi_dev->hd_init = rk3036_hdmi_hardware_init;
 		hdmi_dev->read_edid = hdmi_dev_read_edid;
@@ -861,8 +851,12 @@ void rk3036_hdmi_probe(vidinfo_t *panel)
 	        hdmi_dev->driver.audio.word_length = HDMI_AUDIO_DEFAULT_WORD_LENGTH;
 #if defined(CONFIG_RKCHIP_RK3036)
 		hdmi_dev->data.soc_type = HDMI_SOC_RK3036;
+		hdmi_dev->feature = SUPPORT_480I_576I;
+		strcpy(hdmi_dev->compatible, "rockchip,rk3036-hdmi");
 #elif defined(CONFIG_RKCHIP_RK3128)
 		hdmi_dev->data.soc_type = HDMI_SOC_RK312X;
+		hdmi_dev->feature = SUPPORT_480I_576I;
+		strcpy(hdmi_dev->compatible, "rockchip,rk312x-hdmi");
 #else
 		#error "PLS config chiptype for rk3036_hdmi.c!"
 #endif

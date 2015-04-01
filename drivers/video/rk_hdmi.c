@@ -38,7 +38,6 @@
 
 
 #define PARTITION_NAME "baseparamer"
-#define DEFAULT_MODE   15 
 
 #ifndef OUT_P888
 #define OUT_P888 0 
@@ -57,35 +56,35 @@ extern struct fb_videomode rk3036_cvbs_mode [MAX_TVE_COUNT];
 extern int g_tve_pos;
 #endif
 
-static const struct hdmi_video_timing hdmi_mode [] = {
-		//name			refresh		xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw	polariry			                            PorI	flag	vic		2ndvic		               pixelrepeat	interface
-#ifdef CONFIG_RK3036_HDMI
-	{ { "720x480i@60Hz",    60,	    720,    480,    27000000,   57,     19,     15,     4,      62,     3,		0,				                                1,      0   },  6,      HDMI_720x480i_60HZ_16_9,    0,          OUT_P888},
-	{ { "720x576i@50Hz",    50,	    720,	576,	27000000,	69,	    12,	    19,	    2,	    63,	    3,		0,				                                1,	    0   },  21,     HDMI_720x576i_50HZ_16_9,    0,          OUT_P888}, 
-#endif
-	{ {	"720x480p@60Hz",	60,		720,	480,	27000000,	60,	    16,	    30,	    9,	    62,  	6,		0,				                                0,	    0	},	2,  	HDMI_720x480p_60HZ_16_9,	1,		    OUT_P888},
-	{ {	"720x576p@50Hz",	50,		720,	576,	27000000,	68,	    12,	    39,	    5,	    64,	    5,		0,				                                0,	    0	},	17,  	HDMI_720x576p_50HZ_16_9,	1,		    OUT_P888},
-	{ {	"1280x720p@24Hz",	24,		1280,	720,	59400000,	220,	1760,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	60,	    HDMI_1280x720p_24HZ_4_3,	1,		    OUT_P888},
-	{ {	"1280x720p@25Hz",	25,		1280,	720,	74250000,	220,	2420,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	61,	    HDMI_1280x720p_25HZ_4_3,	1,		    OUT_P888},
-	{ {	"1280x720p@30Hz",	30,		1280,	720,	74250000,	220,	1760,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	62,	    HDMI_1280x720p_30HZ_4_3,	1,		    OUT_P888},
-	{ {	"1280x720p@50Hz",	50,		1280,	720,	74250000,	220,	440,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	19,  	HDMI_1280x720p_50HZ_4_3,	1,		    OUT_P888},
-	{ {	"1280x720p@60Hz",	60,		1280,	720,	74250000,	220,	110,	20,	    5,	    40,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	4,  	HDMI_1280x720p_60HZ_4_3,	1,		    OUT_P888},
-#ifdef CONFIG_RK3036_HDMI
-	{ { "1920x1080i@50Hz",	50,	    1920,   1080,   74250000,   148,    528,    15,     2,      44,     5,      FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	1,	    0   },  20,     HDMI_1920x1080i_50HZ,	    1,		    OUT_P888},
-	{ { "1920x1080i@60Hz",	60,	    1920,   1080,   74250000,   148,    88,     15,     2,      44,     5,      FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	1,	    0   },  5,      HDMI_1920x1080i_60HZ,	    1,		    OUT_P888},
-#endif
-	{ {	"1920x1080p@24Hz",	24,		1920,	1080,	74250000,	148,	638,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	32,	    HDMI_1920x1080p_24HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@25Hz",	25,		1920,	1080,	74250000,	148,	528,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	33,	    HDMI_1920x1080p_25HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@30Hz",	30,		1920,	1080,	74250000,	148,	88,	    36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	34,	    HDMI_1920x1080p_30HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@50Hz",	50,		1920,	1080,	148500000,	148,	528,	36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	31,  	HDMI_1920x1080p_50HZ_4_3,	1,		    OUT_P888},
-	{ {	"1920x1080p@60Hz",	60,		1920,	1080,	148500000,	148,	88,	    36,	    4,	    44,	    5,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	16,  	HDMI_1920x1080p_60HZ_4_3,	1,		    OUT_P888},		
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	{ {	"3840x2160p@24Hz",	24,		3840,	2160,	297000000,	296,	1276,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	93,	    HDMI_3840x2160p_24HZ_4_3,	1,		    OUT_P888},
-	{ {	"3840x2160p@25Hz",	25,		3840,	2160,	297000000,	296,	1056,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	94,	    HDMI_3840x2160p_25HZ_4_3,	1,		    OUT_P888},
-	{ {	"3840x2160p@30Hz", 	30,		3840,	2160,	297000000,	296,	176,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	95,	    HDMI_3840x2160p_30HZ_4_3,	1,		    OUT_P888},
-//	{ {	"3840x2160p@50Hz",	50,		3840,	2160,	594000000,	296,	1056,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	96,	    HDMI_3840x2160p_50HZ_4_3,	1,		    OUT_P888},
-//	{ {	"3840x2160p@60Hz",	60,		3840,	2160,	594000000,	296,	176,	72,	    8,	    88,	    10,	    FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	    0	},	97,	    HDMI_3840x2160p_60HZ_4_3,	1,		    OUT_P888},
-#endif
+static const struct hdmi_video_timing hdmi_mode[] = {
+/*		name			refresh	xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw			polariry			PorI	flag		vic		2ndvic		pixelrepeat	interface */
+
+	{ {	"720x480i@60Hz",	60,	720,    480,    27000000,	57,     19,	15,     4,	62,     3,			0,				1,      0	},	6,	HDMI_720X480I_60HZ_16_9,	2,	OUT_P888},
+	{ {	"720x576i@50Hz",	50,	720,	576,	27000000,	69,	12,	19,	2,	63,	3,			0,				1,	0	},	21,	HDMI_720X576I_50HZ_16_9,	2,	OUT_P888},
+	{ {	"720x480p@60Hz",	60,	720,	480,	27000000,	60,	16,	30,	9,	62,	6,			0,				0,	0	},	2,	HDMI_720X480P_60HZ_16_9,	1,	OUT_P888},
+	{ {	"720x576p@50Hz",	50,	720,	576,	27000000,	68,	12,	39,	5,	64,	5,			0,				0,	0	},	17,	HDMI_720X576P_50HZ_16_9,	1,	OUT_P888},
+	{ {	"1280x720p@24Hz",	24,	1280,	720,	59400000,	220,	1760,	20,	5,	40,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	60,	HDMI_1280X720P_24HZ_4_3,	1,	OUT_P888},
+	{ {	"1280x720p@25Hz",	25,	1280,	720,	74250000,	220,	2420,	20,	5,	40,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	61,	HDMI_1280X720P_25HZ_4_3,	1,	OUT_P888},
+	{ {	"1280x720p@30Hz",	30,	1280,	720,	74250000,	220,	1760,	20,	5,	40,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	62,	HDMI_1280X720P_30HZ_4_3,	1,	OUT_P888},
+	{ {	"1280x720p@50Hz",	50,	1280,	720,	74250000,	220,	440,	20,	5,	40,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	19,	HDMI_1280X720P_50HZ_4_3,	1,	OUT_P888},
+	{ {	"1280x720p@60Hz",	60,	1280,	720,	74250000,	220,	110,	20,	5,	40,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	4,	HDMI_1280X720P_60HZ_4_3,	1,	OUT_P888},
+	{ {	"1920x1080i@50Hz",	50,	1920,	1080,	74250000,	148,	528,	15,	2,	44,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	1,	0	},	20,	0,				1,	OUT_P888},
+	{ {	"1920x1080i@60Hz",	60,	1920,	1080,	74250000,	148,	88,	15,	2,	44,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	1,	0	},	5,	0,				1,	OUT_P888},
+	{ {	"1920x1080p@24Hz",	24,	1920,	1080,	74250000,	148,	638,	36,	4,	44,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	32,	HDMI_1920X1080P_24HZ_4_3,	1,	OUT_P888},
+	{ {	"1920x1080p@25Hz",	25,	1920,	1080,	74250000,	148,	528,	36,	4,	44,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	33,	HDMI_1920X1080P_25HZ_4_3,	1,	OUT_P888},
+	{ {	"1920x1080p@30Hz",	30,	1920,	1080,	74250000,	148,	88,	36,	4,	44,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	34,	HDMI_1920X1080P_30HZ_4_3,	1,	OUT_P888},
+	{ {	"1920x1080p@50Hz",	50,	1920,	1080,	148500000,	148,	528,	36,	4,	44,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	31,	HDMI_1920X1080P_50HZ_4_3,	1,	OUT_P888},
+	{ {	"1920x1080p@60Hz",	60,	1920,	1080,	148500000,	148,	88,	36,	4,	44,	5,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	16,	HDMI_1920X1080P_60HZ_4_3,	1,	OUT_P888},
+	{ {	"3840x2160p@24Hz",	24,	3840,	2160,	297000000,	296,	1276,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	93,	HDMI_3840X2160P_24HZ_4_3,	1,	OUT_P888},
+	{ {	"3840x2160p@25Hz",	25,	3840,	2160,	297000000,	296,	1056,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	94,	HDMI_3840X2160P_25HZ_4_3,	1,	OUT_P888},
+	{ {	"3840x2160p@30Hz",	30,	3840,	2160,	297000000,	296,	176,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	95,	HDMI_3840X2160P_30HZ_4_3,	1,	OUT_P888},
+	{ {	"4096x2160p@24Hz",	24,	4096,	2160,	297000000,	296,	1020,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	98,	0,				1,	OUT_P888},
+	{ {	"4096x2160p@25Hz",	25,	4096,	2160,	297000000,	128,	968,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	99,	0,				1,	OUT_P888},
+	{ {	"4096x2160p@30Hz",	30,	4096,	2160,	297000000,	128,	88,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	100,	0,				1,	OUT_P888},
+	{ {	"3840x2160p@50Hz",	50,	3840,	2160,	594000000,	296,	1056,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	96,	HDMI_3840X2160P_50HZ_4_3,	1,	OUT_P888},
+	{ {	"3840x2160p@60Hz",	60,	3840,	2160,	594000000,	296,	176,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	97,	HDMI_3840X2160P_60HZ_4_3,	1,	OUT_P888},
+	{ {	"4096x2160p@50Hz",	50,	4096,	2160,	594000000,	128,	968,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	101,	0,				1,	OUT_P888},
+	{ {	"4096x2160p@60Hz",	60,	4096,	2160,	594000000,	128,	88,	72,	8,	88,	10,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	0,	0	},	102,	0,				1,	OUT_P888},
 };
 
 #if defined(CONFIG_RK_FB)
@@ -103,6 +102,10 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	mode = &(timing->mode);
 	panel->pixelrepeat = !timing->pixelrepeat;
 	panel->screen_type = SCREEN_HDMI;
+	if (hdmi_dev->vic & HDMI_VIDEO_YUV420)
+		panel->lcd_face = OUT_YUV_420;
+	else
+		panel->lcd_face = OUT_P888;
 	if (hdmi_dev->video.color_input > HDMI_COLOR_RGB_16_235) {
 		panel->color_mode = COLOR_YCBCR;
 		panel->vl_swap_rb = 1;
@@ -162,6 +165,56 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 }
 #endif
 
+static int hdmi_feature_filter(struct hdmi_dev *hdmi_dev,
+			       struct hdmi_video_timing *modedb)
+{
+	if ((hdmi_dev->feature & SUPPORT_4K) == 0 &&
+	    modedb->mode.xres >= 3840)
+		return 1;
+	if ((hdmi_dev->feature & SUPPORT_4K_4096) == 0 &&
+	    modedb->mode.xres == 4096)
+		return 1;
+	if ((hdmi_dev->feature & SUPPORT_1080I) == 0 &&
+	    modedb->mode.xres == 1920 &&
+	    modedb->mode.vmode == FB_VMODE_INTERLACED)
+		return 1;
+	if ((hdmi_dev->feature & SUPPORT_480I_576I) == 0 &&
+	    modedb->mode.xres == 720 &&
+	    modedb->mode.vmode == FB_VMODE_INTERLACED)
+		return 1;
+	return 0;
+}
+
+static int hdmi_parse_dts(struct hdmi_dev *hdmi_dev)
+{
+	int node;
+
+	hdmi_dev->defaultmode = 0;
+	if (gd->fdt_blob) {
+		node = fdt_node_offset_by_compatible(gd->fdt_blob, 0,
+						     hdmi_dev->compatible);
+		if (node < 0) {
+			printf("can't find dts node for hdmi\n");
+			return -EPERM;
+		}
+	
+		if (!fdt_device_is_available(gd->fdt_blob, node)) {
+			printf("hdmi is disabled\n");
+			return -EPERM;
+		}
+
+		hdmi_dev->defaultmode =
+				fdtdec_get_int(gd->fdt_blob, node,
+					       "rockchip,defaultmode",
+					       0);
+		hdmi_dev->phy_pre_emphasis =
+				fdtdec_get_int(gd->fdt_blob, node,
+					       "phy_pre_emphasis", 0);
+	}
+//	printf("%s default mode is %d\n", __func__, hdmi_dev->defaultmode);
+//	printf("%s:phy_pre_emphasis=0x%x\n",__func__,hdmi_dev->phy_pre_emphasis);
+}
+
 DECLARE_GLOBAL_DATA_PTR;
 #ifdef CONFIG_RK_DEVICEINFO
 static int inline read_deviceinfo_storage(struct hdmi_dev *hdmi_dev) 
@@ -184,37 +237,33 @@ static int inline read_deviceinfo_storage(struct hdmi_dev *hdmi_dev)
 	memset(p_deviceinfo, 0, 4096);
 	memset(p_baseparamer, 0, 4096);
 
-
-	if (gd->fdt_blob)
-	{
-			node = fdt_node_offset_by_compatible(gd->fdt_blob,
-					0, "rockchip,deviceinfo");
-			if (node < 0) {
-				printf("can't find dts node for deviceinfo\n");
-				return -ENODEV;
+	if (gd->fdt_blob) {
+		node = fdt_node_offset_by_compatible(gd->fdt_blob,
+				0, "rockchip,deviceinfo");
+		if (node < 0) {
+			printf("can't find dts node for deviceinfo\n");
+			return -ENODEV;
+		}
+	
+		if (!fdt_device_is_available(gd->fdt_blob, node)) {
+			printf("device deviceinfo is disabled\n");
+			return -EPERM;
+		}
+	
+		deviceinfo_reserve_on = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-deviceinfo-on", 0);
+		if(deviceinfo_reserve_on) {
+			if (fdtdec_get_int_array(gd->fdt_blob, node, "reg", reg, 2)) {
+				printf("Cannot decode reg\n");
+				return -EINVAL;
 			}
-
-			if (!fdt_device_is_available(gd->fdt_blob, node)) {
-				printf("device deviceinfo is disabled\n");
-				return -EPERM;
-			}
-
-			deviceinfo_reserve_on = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-deviceinfo-on", 0);
-			if(deviceinfo_reserve_on)
-			{
-				if (fdtdec_get_int_array(gd->fdt_blob, node, "reg", reg, 2)) {
-					printf("Cannot decode reg\n");
-					return -EINVAL;
-				}
-
-				p_deviceinfo = reg[0];
-				size = reg[1];
-				p_baseparamer = p_deviceinfo + size / 2;
-
-				//printf("%s:deviceinfo_reserve_on=%d,reg[0]=0x%x,reg[1]=0x%x\n",__func__, deviceinfo_reserve_on, reg[0], reg[1]);
-				printf("%s:p_deviceinfo=0x%p,p_baseparamer=0x%p\n", __func__, p_deviceinfo, p_baseparamer);
-			}
-
+	
+			p_deviceinfo = reg[0];
+			size = reg[1];
+			p_baseparamer = p_deviceinfo + size / 2;
+	
+			//printf("%s:deviceinfo_reserve_on=%d,reg[0]=0x%x,reg[1]=0x%x\n",__func__, deviceinfo_reserve_on, reg[0], reg[1]);
+			printf("%s:p_deviceinfo=0x%p,p_baseparamer=0x%p\n", __func__, p_deviceinfo, p_baseparamer);
+		}
 	}
 
 	ptn_deviceinfo = get_disk_partition("deviceinfo");
@@ -261,6 +310,7 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
 	int node = 0;
 	int len = 0;
 	int reg[2] = {0,0};
+	struct hdmi_video_timing *modedb;
 
 	if (!hdmi_dev)
 		goto err;
@@ -286,6 +336,9 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
 
 		
 		for (i = 0; i < hdmi_dev->mode_len; i++) {
+			modedb = &(hdmi_dev->modedb[i]);
+			if (hdmi_feature_filter(hdmi_dev, modedb))
+				continue;
 			if (hdmi_dev->base_paramer_hdmi.xres == hdmi_dev->modedb[i].mode.xres &&
 					hdmi_dev->base_paramer_hdmi.yres == hdmi_dev->modedb[i].mode.yres &&
 					   hdmi_dev->base_paramer_hdmi.refresh == hdmi_dev->modedb[i].mode.refresh &&
@@ -990,76 +1043,76 @@ static int hdmi_edid_parse_cea_sdb(struct hdmi_dev *hdmi_dev, unsigned char *buf
 	IEEEOUI <<= 8;
 	IEEEOUI += buf[1];
 	HDMIDBG("[EDID-CEA] IEEEOUI is 0x%08x.\n", IEEEOUI);
-	if (IEEEOUI == 0x0c03)
+	if (IEEEOUI == 0x0c03) {
 		pedid->sink_hdmi = 1;
-
-	if (count > 5) {
-		pedid->deepcolor = (buf[6] >> 3) & 0x0F;
-		supports_ai = buf[6] >> 7;
-		dc_48bit = (buf[6] >> 6) & 0x1;
-		dc_36bit = (buf[6] >> 5) & 0x1;
-		dc_30bit = (buf[6] >> 4) & 0x1;
-		dc_y444 = (buf[6] >> 3) & 0x1;
-		HDMIDBG("[EDID-CEA] supports_ai %d\n"
-			"dc_48bit %d dc_36bit %d dc_30bit %d dc_y444 %d\n",
-			supports_ai,
-			dc_48bit, dc_36bit, dc_30bit, dc_y444);
-	}
-	if (count > 6)
-		pedid->maxtmdsclock = buf[7] * 5000000;
-
-	if (count > 7) {
-		pedid->latency_fields_present = (buf[8] & 0x80) ? 1 : 0;
-		pedid->i_latency_fields_present = (buf[8] & 0x40) ? 1 : 0;
-		pedid->video_present = (buf[8] & 0x20) ? 1 : 0;
-	}
-
-	cur_offset = 9;
-	if (count >= cur_offset) {
-		if (pedid->latency_fields_present == 1) {
-			pedid->video_latency = buf[cur_offset++];
-			pedid->audio_latency = buf[cur_offset++];
+		if (count > 5) {
+			pedid->deepcolor = (buf[6] >> 3) & 0x0F;
+			supports_ai = buf[6] >> 7;
+			dc_48bit = (buf[6] >> 6) & 0x1;
+			dc_36bit = (buf[6] >> 5) & 0x1;
+			dc_30bit = (buf[6] >> 4) & 0x1;
+			dc_y444 = (buf[6] >> 3) & 0x1;
+			HDMIDBG("[EDID-CEA] supports_ai %d\n"
+				"dc_48bit %d dc_36bit %d dc_30bit %d dc_y444 %d\n",
+				supports_ai,
+				dc_48bit, dc_36bit, dc_30bit, dc_y444);
 		}
-		if (count >= cur_offset && pedid->i_latency_fields_present) {
-			pedid->interlaced_video_latency = buf[cur_offset++];
-			pedid->interlaced_audio_latency = buf[cur_offset++];
+		if (count > 6)
+			pedid->maxtmdsclock = buf[7] * 5000000;
+
+		if (count > 7) {
+			pedid->latency_fields_present = (buf[8] & 0x80) ? 1 : 0;
+			pedid->i_latency_fields_present = (buf[8] & 0x40) ? 1 : 0;
+			pedid->video_present = (buf[8] & 0x20) ? 1 : 0;
 		}
-	}
 
-	if (pedid->video_present == 0)
-		return E_HDMI_EDID_SUCCESS;
-
-	if (count >= cur_offset) {
-		pedid->support_3d = (buf[cur_offset++] & 0x80) ? 1 : 0;
-
-		len_4k = (buf[cur_offset] >> 5) & 0x07;
-		len_3d = buf[cur_offset] & 0x1F;
-		cur_offset++;
-	}
-	if (count >= cur_offset && len_4k > 0) {
-		for (i = 0; i < len_4k; i++) {
-		#ifndef HDMI_VERSION_2
-			vic = buf[cur_offset + i] & 0x7f;
-			if (vic > 0 && vic < 5)
-				vic = (vic == 4) ? 98 : (96 - vic);
-			HDMIDBG("[EDID-CEA] %02x VID %d native %d\n",
-					buf[cur_offset + i],
-					vic,
-					buf[cur_offset + i] >> 7);
-		#else
-			vic = buf[cur_offset + i] & 0xff;
-			HDMIDBG("[EDID-CEA] %02x VID %d native %d\n",
-					buf[cur_offset + i], vic);
-		#endif
-			if (vic) {
-				hdmi_add_vic(hdmi_dev, vic);
-				//mode = hdmi_vic_to_videomode(vic);
-				//if (mode)
-				//	hdmi_add_videomode(mode,
-				//			   &pedid->modelist);
+		cur_offset = 9;
+		if (count >= cur_offset) {
+			if (pedid->latency_fields_present == 1) {
+				pedid->video_latency = buf[cur_offset++];
+				pedid->audio_latency = buf[cur_offset++];
+			}
+			if (count >= cur_offset && pedid->i_latency_fields_present) {
+				pedid->interlaced_video_latency = buf[cur_offset++];
+				pedid->interlaced_audio_latency = buf[cur_offset++];
 			}
 		}
-		cur_offset += i;
+
+		if (pedid->video_present == 0)
+			return E_HDMI_EDID_SUCCESS;
+	
+		if (count >= cur_offset) {
+			pedid->support_3d = (buf[cur_offset++] & 0x80) ? 1 : 0;
+	
+			len_4k = (buf[cur_offset] >> 5) & 0x07;
+			len_3d = buf[cur_offset] & 0x1F;
+			cur_offset++;
+		}
+		if (count >= cur_offset && len_4k > 0) {
+			for (i = 0; i < len_4k; i++) {
+			#ifndef HDMI_VERSION_2
+				vic = buf[cur_offset + i] & 0x7f;
+				if (vic > 0 && vic < 5)
+					vic = (vic == 4) ? 98 : (96 - vic);
+				HDMIDBG("[EDID-CEA] %02x VID %d native %d\n",
+						buf[cur_offset + i],
+						vic,
+						buf[cur_offset + i] >> 7);
+			#else
+				vic = buf[cur_offset + i] & 0xff;
+				HDMIDBG("[EDID-CEA] %02x VID %d native %d\n",
+						buf[cur_offset + i], vic);
+			#endif
+				if (vic) {
+					hdmi_add_vic(hdmi_dev, vic);
+					//mode = hdmi_vic_to_videomode(vic);
+					//if (mode)
+					//	hdmi_add_videomode(mode,
+					//			   &pedid->modelist);
+				}
+			}
+			cur_offset += i;
+		}
 	}
 
 /* TODO Daisen wait to add
@@ -1070,73 +1123,36 @@ static int hdmi_edid_parse_cea_sdb(struct hdmi_dev *hdmi_dev, unsigned char *buf
 	return E_HDMI_EDID_SUCCESS;
 }
 
-static int hdmi_edid_parse_3dinfo(struct hdmi_dev *hdmi_dev, unsigned char *buf/*, struct list_head *head*/)
+static void hdmi_edid_parse_yuv420cmdb(struct hdmi_dev *hdmi_dev,
+				       unsigned char *buf,
+				       int count)
 {
-	int i, len = 0, format_3d, vic_mask;
-	unsigned char offset = 2/*, vic_2d, structure_3d*/;
-	//struct list_head *pos;
-	
-	if(buf[1] & 0xF0) {
-		len = (buf[1] & 0xF0) >> 4;
-		for(i = 0; i < len; i++) {
-			if (buf[offset])
-				hdmi_add_vic(hdmi_dev, 96 - buf[offset++]);
-		}
-	}
-	
-	if(buf[0] & 0x80) {
-		//3d supported
-		len += (buf[0] & 0x0F) + 2;
-		if( ( (buf[0] & 0x60) == 0x40) || ( (buf[0] & 0x60) == 0x20) ) {
-			format_3d = buf[offset++] << 8;
-			format_3d |= buf[offset++];
-		}
-		if( (buf[0] & 0x60) == 0x40)
-			vic_mask = 0xFFFF;
-		else {
-			vic_mask  = buf[offset++] << 8;
-			vic_mask |= buf[offset++];
-		}
+	int i, j, yuv420_mask, vic;
 
-		//for(i = 0; i < 16; i++) {
-		//	if(vic_mask & (1 << i)) {
-				//j = 0;
-				//for (pos = (head)->next; pos != (head); pos = pos->next) {
-					//j++;
-					//if(j == i) {
-						//modelist = list_entry(pos, struct display_modelist, list);
-						//modelist->format_3d = format_3d;
-						//break;
-					//}
-				//}
-		//	}
-		//}
-		//while(offset < len) {
-			//vic_2d = (buf[offset] & 0xF0) >> 4;
-			//structure_3d = (buf[offset++] & 0x0F);
-			//j = 0;
-			//for (pos = (head)->next; pos != (head); pos = pos->next) {
-				//j++;
-				//if(j == vic_2d) {
-					//modelist = list_entry(pos, struct display_modelist, list);
-					//modelist->format_3d = format_3d;
-					//if(structure_3d & 0x80)
-					//modelist->detail_3d = (buf[offset++] & 0xF0) >> 4;
-					//break;
-				//}
-			//}
-		//}
+	for (i = 0; i < count - 1; i++) {
+		HDMIDBG("vic which support yuv420 mode is %x\n", buf[i]);
+		yuv420_mask |= buf[i] << (8 * i);
 	}
-	
-	return 0;
+	for (i = 0; i < 32; i++) {
+		if (yuv420_mask & (1 << i)) {
+			for (j = 0; j < hdmi_dev->vic_pos; j++) {
+				if (j == i) {
+					vic = hdmi_dev->vicdb[j] |
+					      HDMI_VIDEO_YUV420;
+					hdmi_add_vic(hdmi_dev, vic);
+					break;
+				}
+			}
+		}
+	}
 }
 
 // Parse CEA 861 Serial Extension.
 static int hdmi_edid_parse_extensions_cea(struct hdmi_dev *hdmi_dev, unsigned char *buf)
 {
-	unsigned int ddc_offset, /*native_dtd_num,*/ cur_offset = 4, buf_offset;
-	unsigned int /*underscan_support, */baseaudio_support;
-	unsigned int tag, IEEEOUI = 0, count;
+	unsigned int ddc_offset, cur_offset = 4, buf_offset;
+	unsigned int baseaudio_support;
+	unsigned int tag, IEEEOUI = 0, count, i;
 	struct hdmi_edid *pedid = NULL;
 	
 	if(buf == NULL || hdmi_dev == NULL)
@@ -1179,49 +1195,40 @@ static int hdmi_edid_parse_extensions_cea(struct hdmi_dev *hdmi_dev, unsigned ch
 			case 0x03:	// Vendor Specific Data Block
 				HDMIDBG("[EDID-CEA] It is a Vendor Specific Data Block.\n");
 				hdmi_edid_parse_cea_sdb(hdmi_dev, buf + cur_offset, pedid);
-#if 0
-				IEEEOUI = buf[cur_offset + 3];
-				IEEEOUI <<= 8;
-				IEEEOUI += buf[cur_offset + 2];
-				IEEEOUI <<= 8;
-				IEEEOUI += buf[cur_offset + 1];
-				HDMIDBG("[EDID-CEA] IEEEOUI is 0x%08x.\n", IEEEOUI);
-				if(IEEEOUI == 0x0c03)
-					pedid->sink_hdmi = 1;
-				pedid->cecaddress = buf[cur_offset + 5];
-				pedid->cecaddress |= buf[cur_offset + 4] << 8;
-
-				if(count > 6)
-					pedid->deepcolor = (buf[cur_offset + 6] >> 3) & 0x0F;					
-				if(count > 7) {
-					pedid->maxtmdsclock = buf[cur_offset + 7] * 5000000;
-					HDMIDBG("[EDID-CEA] maxtmdsclock is %d.\n", pedid->maxtmdsclock);
-				}
-				if(count > 8) {
-					pedid->fields_present = buf[cur_offset + 8];
-					HDMIDBG("[EDID-CEA] fields_present is 0x%02x.\n", pedid->fields_present);
-				}
-				buf_offset = cur_offset + 9;		
-				if(pedid->fields_present & 0x80)
-				{
-					pedid->video_latency = buf[buf_offset++];
-					pedid->audio_latency = buf[buf_offset++];
-				}
-				if(pedid->fields_present & 0x40)
-				{
-					pedid->interlaced_video_latency = buf[buf_offset++];
-					pedid->interlaced_audio_latency = buf[buf_offset++];
-				}
-				if(pedid->fields_present & 0x20) {
-					hdmi_edid_parse_3dinfo(hdmi_dev, buf + buf_offset);
-				}
-#endif
 				break;		
 			case 0x05:	// VESA DTC Data Block
 				HDMIDBG("[EDID-CEA] It is a VESA DTC Data Block.\n");
 				break;
 			case 0x07:	// Use Extended Tag
-				HDMIDBG("[EDID-CEA] It is a Use Extended Tag Data Block.\n");
+				HDMIDBG("[EDID-CEA] Use Extended Tag Data Block %02x.\n",
+					buf[cur_offset + 1]);
+				switch (buf[cur_offset + 1]) {
+				case 0x00:
+					HDMIDBG("[CEA] Video Capability Data Block\n");
+					HDMIDBG("value is %02x\n", buf[cur_offset + 2]);
+					break;
+				case 0x05:
+					HDMIDBG("[CEA] Colorimetry Data Block\n");
+					HDMIDBG("value is %02x\n", buf[cur_offset + 2]);
+					break;
+				case 0x0e:
+					HDMIDBG("[CEA] YCBCR 4:2:0 Video Data Block\n");
+					for (i = 0; i < count - 1; i++) {
+						HDMIDBG("mode is %d\n",
+							buf[cur_offset + 2 + i]);
+						IEEEOUI = buf[cur_offset + 2 + i] |
+							  HDMI_VIDEO_YUV420;
+						hdmi_add_vic(hdmi_dev, IEEEOUI);
+					}
+					break;
+				case 0x0f:
+					HDMIDBG("[CEA] YCBCR 4:2:0 Capability Map Data\n");
+					hdmi_edid_parse_yuv420cmdb(hdmi_dev,
+								   &buf[cur_offset + 2],
+								   count);
+//					pedid->ycbcr420 = 1;
+					break;
+				}
 				break;
 			default:
 				HDMIDBG("[EDID-CEA] unkowned data block tag.\n");
@@ -1305,7 +1312,7 @@ int hdmi_parse_edid(struct hdmi_dev *hdmi_dev)
 	for(trytimes = 0; trytimes < 3; trytimes++) {
 		memset(buf, 0 , HDMI_EDID_BLOCK_SIZE);
 		if (hdmi_dev->read_edid(hdmi_dev, 0, buf) == 0) {
-			rc = hdmi_edid_parse_base(hdmi_dev, buf, &extendblock);
+			rc = hdmi_edid_parse_base(hdmi_dev,buf, &extendblock);
 			if (rc) 
 				printf("[HDMI] parse edid base block error-%d\n", rc);
 			else
@@ -1341,16 +1348,34 @@ err:
 void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0, pos = 0,pos_edid = 0;
+	struct hdmi_video_timing *modedb;
+
 	pos = hdmi_dev->mode_len;
 	while (pos--) {
-		for (i = 0; i < hdmi_dev->vic_pos; i++) {
-			if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos].vic) {
-				pos_edid = pos;
-				break;
+		modedb = &(hdmi_dev->modedb[pos]);
+		if (hdmi_feature_filter(hdmi_dev, modedb))
+			continue;
+		if (hdmi_dev->defaultmode) {
+			for (i = 0; i < hdmi_dev->vic_pos; i++) {
+				if (hdmi_dev->defaultmode & HDMI_VIC_MASK == hdmi_dev->vicdb[i])
+					break;
+			}
+		} else {
+			for (i = 0; i < hdmi_dev->vic_pos; i++) {
+				if ((hdmi_dev->vicdb[i] & HDMI_VIC_MASK) == hdmi_dev->modedb[pos].vic) {
+					if ((hdmi_dev->feature & SUPPORT_TMDS_600M) == 0 &&
+					    (hdmi_dev->vicdb[i] & HDMI_VIDEO_YUV420) == 0 &&
+					    hdmi_dev->modedb[pos].mode.pixclock > 340000000)
+						continue;
+					else {
+						pos_edid = pos;
+						break;
+					}
+				}
 			}
 		}
 		if (i != hdmi_dev->vic_pos) {
-			hdmi_dev->video.vic = hdmi_dev->modedb[pos].vic;
+			hdmi_dev->vic = hdmi_dev->vicdb[i];
 			break;
 		}
 	}
@@ -1364,12 +1389,16 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 
 #ifdef HDMIDEBUG
 	for (i = 0; i < hdmi_dev->vic_pos; i++) {
-		printf("%d ", hdmi_dev->vicdb[i]);
+		printf("%d", hdmi_dev->vicdb[i] & HDMI_VIC_MASK);
+		if (hdmi_dev->vicdb[i] & HDMI_VIDEO_YUV420)
+			printf("(yuv420)");
+		printf(" ");
 	}
 	printf("\n");
 #endif
 	/*if read edid error,use default vic mode, or not check pos_baseparamer and selete best video mode*/
 	if (hdmi_dev->vic_pos > 0) {
+		hdmi_dev->video.sink_hdmi = hdmi_dev->driver.edid.sink_hdmi;
 		if (pos_baseparamer >= 0) {
 			for(i = 0; i < hdmi_dev->vic_pos; i++) {
 				if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos_baseparamer].vic) {
@@ -1377,20 +1406,44 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 				}
 			}
 			if (i < hdmi_dev->vic_pos) {
-				hdmi_dev->video.vic = hdmi_dev->modedb[pos_baseparamer].vic;
+				hdmi_dev->vic = hdmi_dev->modedb[pos_baseparamer].vic;
 				printf("use baseparamer config,pos_baseparamer=%d\n",pos_baseparamer);
 			} else {
 				hdmi_find_best_edid_mode(hdmi_dev);
 				printf("pos_baseparamer=%d,but edid not support,find best edid vic=%d\n",
-					pos_baseparamer,hdmi_dev->video.vic);
+					pos_baseparamer,hdmi_dev->vic);
 			}
 		} else {
 			hdmi_find_best_edid_mode(hdmi_dev);
-			printf("no baseparametr,find best edid mode,vic=%d\n",hdmi_dev->video.vic);
+			printf("no baseparametr,find best edid mode,vic=%d\n",hdmi_dev->vic);
 		}
 	} else {
-		hdmi_dev->video.vic = HDMI_VIDEO_DEFAULT_MODE;
-		printf("no edid message:use default vic config:%d\n",hdmi_dev->video.vic);
+		if (hdmi_dev->defaultmode)
+			hdmi_dev->vic = hdmi_dev->defaultmode;
+		else
+			hdmi_dev->vic = HDMI_VIDEO_DEFAULT_MODE;
+		printf("no edid message:use default vic config:%d\n",hdmi_dev->vic);
+	}
+	
+	hdmi_dev->video.vic = hdmi_dev->vic & HDMI_VIC_MASK;
+	printf("hdmi_dev->video.vic is %d\n", hdmi_dev->video.vic);
+	if (hdmi_dev->video.sink_hdmi == 0) {
+		hdmi_dev->video.color_output = HDMI_COLOR_RGB_0_255;
+		hdmi_dev->video.color_input = HDMI_COLOR_RGB_0_255;
+	} else {
+		if (hdmi_dev->feature & SUPPORT_YCBCR_INPUT) {
+			if (hdmi_dev->driver.edid.ycbcr444)
+				hdmi_dev->video.color_output = HDMI_COLOR_YCBCR444;
+			else if (hdmi_dev->driver.edid.ycbcr444)
+				hdmi_dev->video.color_output = HDMI_COLOR_YCBCR422;
+
+			if (hdmi_dev->video.color_output > HDMI_COLOR_RGB_16_235)
+				hdmi_dev->video.color_input = HDMI_COLOR_YCBCR444;
+		}
+	}
+	if (hdmi_dev->vic & HDMI_VIDEO_YUV420) {
+		hdmi_dev->video.color_output = HDMI_COLOR_YCBCR420;
+		hdmi_dev->video.color_input = HDMI_COLOR_YCBCR420;
 	}
 }
 
@@ -1406,7 +1459,7 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	hdmi_dev->modedb = hdmi_mode;
 	hdmi_dev->mode_len = sizeof(hdmi_mode) / sizeof(hdmi_mode[0]);
 	//default out res
-	hdmi_dev->video.vic = hdmi_dev->modedb[DEFAULT_MODE].vic;
+	hdmi_parse_dts(hdmi_dev);
 
 #ifdef CONFIG_RK_DEVICEINFO
 	ret = read_deviceinfo_storage(hdmi_dev);
@@ -1416,7 +1469,7 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	ret = read_baseparamer_storage(hdmi_dev, &g_pos_baseparamer);
 
 	if (hdmi_dev->hd_init && !hdmi_dev->hd_init(hdmi_dev)) {
-		g_hdmi_vic = hdmi_dev->video.vic;
+		g_hdmi_vic = hdmi_dev->vic;
 		//config lcdc panel
 #if defined(CONFIG_RK_FB)
 	hdmi_init_panel(hdmi_dev, panel);
@@ -1429,7 +1482,6 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 #endif
 
 }
-
 
 void rk_hdmi_probe(vidinfo_t *panel)
 {
