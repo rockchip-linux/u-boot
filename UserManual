@@ -29,10 +29,9 @@
         	configs\rk3128_defconfig
 		configs\rk3368_defconfig
 	BOX product:
+		configs\rk3288_box_defconfig
         	configs\rk3036_box_defconfig
 		configs\rk3128_box_defconfig
-		configs\rk3128_box_uart0_defconfig
-		configs\rk3288_box_defconfig	
 		configs\rk3368_box_defconfig
 
     example:
@@ -51,11 +50,12 @@
         RK3288UbootLoader_V2.17.01.bin
 
     if uboot as second level bootloader, rk uboot just a image, such as:
-	uboot.img
-    define CONFIG_SECOND_LEVEL_BOOTLOADER configure uboot as second level bootloader,
+	uboot.img				-	second level bootloader
+    uboot as second level bootloader configure by define CONFIG_SECOND_LEVEL_BOOTLOADER
+
     if define CONFIG_MERGER_MINILOADER, rk uboot will merge mini loader bin which as first level bootloader, such as:
         RK3288MiniLoaderAll(L)_V2.19.bin	-	fist level bootloader
-	uboot.img				-	second level bootloader
+
     if define CONFIG_MERGER_TRUSTIMAGE, rk uboot will merge trust image bin, such as:
         trustimage.bin				-	trustfirmware image bootloader
 
