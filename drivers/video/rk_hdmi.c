@@ -334,27 +334,28 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
 		memcpy(&hdmi_dev->base_paramer_hdmi.type, &baseparamer_buf[12], sizeof(hdmi_dev->base_paramer_hdmi.type));
 		memcpy(&hdmi_dev->base_paramer_hdmi.refresh, &baseparamer_buf[16], sizeof(hdmi_dev->base_paramer_hdmi.refresh));
 
-		
-		for (i = 0; i < hdmi_dev->mode_len; i++) {
-			modedb = &(hdmi_dev->modedb[i]);
-			if (hdmi_feature_filter(hdmi_dev, modedb))
-				continue;
-			if (hdmi_dev->base_paramer_hdmi.xres == hdmi_dev->modedb[i].mode.xres &&
-					hdmi_dev->base_paramer_hdmi.yres == hdmi_dev->modedb[i].mode.yres &&
-					   hdmi_dev->base_paramer_hdmi.refresh == hdmi_dev->modedb[i].mode.refresh &&
-					    hdmi_dev->base_paramer_hdmi.interlaced == hdmi_dev->modedb[i].mode.vmode)
-				break;
+		if ((hdmi_dev->base_paramer_hdmi.interlaced & HDMI_VIDEO_YUV420) &&
+		    !(hdmi_dev->feature & SUPPORT_YUV420)) {
+			printf("hdmi device not support yuv420\n");
+		} else {
+			for (i = 0; i < hdmi_dev->mode_len; i++) {
+				modedb = &(hdmi_dev->modedb[i]);
+				if (hdmi_feature_filter(hdmi_dev, modedb))
+					continue;
+				if (hdmi_dev->base_paramer_hdmi.xres == hdmi_dev->modedb[i].mode.xres &&
+				    hdmi_dev->base_paramer_hdmi.yres == hdmi_dev->modedb[i].mode.yres &&
+				    hdmi_dev->base_paramer_hdmi.refresh == hdmi_dev->modedb[i].mode.refresh &&
+				    (hdmi_dev->base_paramer_hdmi.interlaced & 0xff) == hdmi_dev->modedb[i].mode.vmode)
+					break;
+			}
+	
+			if (i != hdmi_dev->mode_len) {
+				printf("preset hdmi resolution is %dx%d@%d-%d,i=%d\n", hdmi_dev->base_paramer_hdmi.xres, hdmi_dev->base_paramer_hdmi.yres, hdmi_dev->base_paramer_hdmi.refresh, hdmi_dev->base_paramer_hdmi.interlaced, i);
+				id->hdmi_pos = i;
+			} else {
+				printf("hdmi baseparamer %dx%d@%d-%d\n", hdmi_dev->base_paramer_hdmi.xres, hdmi_dev->base_paramer_hdmi.yres, hdmi_dev->base_paramer_hdmi.refresh, hdmi_dev->base_paramer_hdmi.interlaced);
+			}
 		}
-
-		if (i != hdmi_dev->mode_len) {
-			printf("preset hdmi resolution is %dx%d@%d-%d,i=%d\n", hdmi_dev->base_paramer_hdmi.xres, hdmi_dev->base_paramer_hdmi.yres, hdmi_dev->base_paramer_hdmi.refresh, hdmi_dev->base_paramer_hdmi.interlaced, i);
-			id->hdmi_pos = i;
-		}
-		else
-		{
-			printf("hdmi baseparamer %dx%d@%d-%d\n", hdmi_dev->base_paramer_hdmi.xres, hdmi_dev->base_paramer_hdmi.yres, hdmi_dev->base_paramer_hdmi.refresh, hdmi_dev->base_paramer_hdmi.interlaced);
-		}
-
 
 		memcpy(&hdmi_dev->base_paramer_tve.xres, &baseparamer_buf[24+0], sizeof(hdmi_dev->base_paramer_tve.xres));
                 memcpy(&hdmi_dev->base_paramer_tve.yres, &baseparamer_buf[24+4], sizeof(hdmi_dev->base_paramer_tve.yres));
@@ -1401,12 +1402,18 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 		hdmi_dev->video.sink_hdmi = hdmi_dev->driver.edid.sink_hdmi;
 		if (pos_baseparamer >= 0) {
 			for(i = 0; i < hdmi_dev->vic_pos; i++) {
-				if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos_baseparamer].vic) {
-					break;
+				if (hdmi_dev->base_paramer_hdmi.interlaced & HDMI_VIDEO_YUV420) {
+					if (hdmi_dev->vicdb[i] == (hdmi_dev->modedb[pos_baseparamer].vic | HDMI_VIDEO_YUV420) ||
+					    hdmi_dev->vicdb[i] == (hdmi_dev->modedb[pos_baseparamer].vic_2nd | HDMI_VIDEO_YUV420))
+						break;
+				} else {
+					if (hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos_baseparamer].vic ||
+					    hdmi_dev->vicdb[i] == hdmi_dev->modedb[pos_baseparamer].vic_2nd)
+						break;
 				}
 			}
 			if (i < hdmi_dev->vic_pos) {
-				hdmi_dev->vic = hdmi_dev->modedb[pos_baseparamer].vic;
+				hdmi_dev->vic = hdmi_dev->vicdb[i];
 				printf("use baseparamer config,pos_baseparamer=%d\n",pos_baseparamer);
 			} else {
 				hdmi_find_best_edid_mode(hdmi_dev);
