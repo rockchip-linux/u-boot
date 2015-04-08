@@ -57,4 +57,4 @@ void rk_hdmi_probe(vidinfo_t *panel);
 extern void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen);
 #endif
 
-void lcd_standby(int enable, int mode);
+void lcd_standby(int enable);

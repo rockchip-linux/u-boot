@@ -1729,10 +1729,13 @@ static int dwc_phy_test_rd(struct dsi *dsi, unsigned char test_code)
 int rk32_dsi_disable(void)
 {
 	MIPI_DBG("rk32_dsi_disable-------\n");
-	rk_mipi_screen_standby(1);
-	dsi_power_off(0);
-	if (rk_mipi_get_dsi_num() == 2)
-		dsi_power_off(1);
+	if (dsi0->clk_on) {
+		dsi0->clk_on = 0;
+		rk_mipi_screen_standby(1);
+		dsi_power_off(0);
+		if (rk_mipi_get_dsi_num() == 2)
+			dsi_power_off(1);
+	}
 	return 0;
 }
 
@@ -1745,27 +1748,32 @@ int rk32_dsi_enable(void)
 	rk_init_phy_mode(dsi0->screen.lcdc_id);
 	*/
 
-	dsi_init(0, 0);
-	if (rk_mipi_get_dsi_num() ==2)
-		dsi_init(1, 0);
+	if (!dsi0->clk_on) {
+		dsi_init(0, 0);
+		if (rk_mipi_get_dsi_num() == 2)
+			dsi_init(1, 0);
 
-	rk_mipi_screen_standby(0);
+		rk_mipi_screen_standby(0);
 
-	/*
-		After the core reset, DPI waits for the first VSYNC active transition to start signal sampling, including
-		pixel data, and preventing image transmission in the middle of a frame.
-	*/
-	dsi_is_enable(0, 0);
-	if (rk_mipi_get_dsi_num() ==2)
-		dsi_is_enable(1, 0);  
+		/*
+		After the core reset, DPI waits for the first VSYNC active
+		transition to start signal sampling, includingpixel data,
+		and preventing image transmission in the middle of a frame.
+		*/
+		dsi_is_enable(0, 0);
+		if (rk_mipi_get_dsi_num() == 2)
+			dsi_is_enable(1, 0);
 
-	dsi_enable_video_mode(0, 1);
-	if (rk_mipi_get_dsi_num() == 2)
-		dsi_enable_video_mode(1, 1);
+		dsi_enable_video_mode(0, 1);
+		if (rk_mipi_get_dsi_num() == 2)
+			dsi_enable_video_mode(1, 1);
 
-	dsi_is_enable(0, 1);
-	if (rk_mipi_get_dsi_num() ==2)
-		dsi_is_enable(1, 1);
+		dsi_is_enable(0, 1);
+		if (rk_mipi_get_dsi_num() == 2)
+			dsi_is_enable(1, 1);
+
+		dsi0->clk_on = 1;
+	}
 
 	return 0;
 }

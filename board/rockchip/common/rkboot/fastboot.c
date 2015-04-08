@@ -46,7 +46,7 @@ extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fa
 extern void rk_backlight_ctrl(int brightness);
 extern int lcd_enable_logo(bool enable);
 extern int drv_lcd_init(void);
-extern void lcd_standby(int enable, int mode);
+extern void lcd_standby(int enable);
 #endif
 extern int is_charging(void);
 extern void powerOn(void);
@@ -376,14 +376,14 @@ static void board_fbt_low_power_off(void)
 			//TODO: show warning logo.
 			show_resource_image("images/battery_fail.bmp");
 
-			lcd_standby(0, 0);
+			lcd_standby(0);
 			//TODO: set backlight in better way.
 			rk_backlight_ctrl(CONFIG_BRIGHTNESS_DIM);
 
 			udelay(1000000);//1 sec
 
 			rk_backlight_ctrl(0);
-			lcd_standby(1, 0);
+			lcd_standby(1);
 #endif
 			shut_down();
 			printf("not reach here.\n");
@@ -462,7 +462,7 @@ void board_fbt_preboot(void)
 #ifdef CONFIG_LCD
 	if (logo_on) {
 		lcd_enable_logo(true);
-		lcd_standby(0, 0);
+		lcd_standby(0);
 		//mdelay(100);
 		rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
 	}

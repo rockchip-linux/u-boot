@@ -635,12 +635,12 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 }
 
 /* Enable LCD and DIGITAL OUT in DSS */
-void rk_lcdc_standby(int enable, int mode)
+void rk_lcdc_standby(int enable)
 {
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
 #if defined(CONFIG_RK32_DSI)
 	if (((panel_info.screen_type == SCREEN_MIPI) ||
-			   (panel_info.screen_type == SCREEN_DUAL_MIPI)) && (mode == 1)) {
+			   (panel_info.screen_type == SCREEN_DUAL_MIPI))) {
 		if (enable == 0) {
 			rk32_dsi_enable();
 		} else if (enable == 1) {
