@@ -102,6 +102,10 @@ int arch_early_init_r(void)
 #endif
 #endif /* CONFIG_RK_DMAC*/
 
+#ifdef CONFIG_RK_MCU
+	rk_mcu_init();
+#endif
+
 	return 0;
 }
 #endif

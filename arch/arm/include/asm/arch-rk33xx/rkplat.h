@@ -41,6 +41,9 @@
 
 int rk_get_chiptype(void);
 void rk_module_deinit(void);
+#ifdef CONFIG_RK_MCU
+void rk_mcu_init(void);
+#endif
 
 
 #endif /* __RKPLAT_H */

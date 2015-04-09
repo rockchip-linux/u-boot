@@ -18,3 +18,5 @@ obj-$(CONFIG_RK_PL330)	+= pl330.o
 obj-$(CONFIG_RK_DMAC)	+= dma.o
 
 obj-$(CONFIG_RK_PWM)   += pwm.o
+
+obj-$(CONFIG_RK_MCU)   += mcu.o
