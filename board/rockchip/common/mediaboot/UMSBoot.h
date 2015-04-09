@@ -17,10 +17,6 @@ Revision:   1.00
 #define     UMS_UPDATE		(2)	// UMS update
 
 /******************************************************************************/
-int rk_usb_host_lookup(void);
-void inno_usb_phy_reset(void);
-/******************************************************************************/
-
 extern uint32 UMSInit(uint32 ChipSel);
 extern uint32 UMSReadPBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec);
 extern uint32 UMSReadLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec);

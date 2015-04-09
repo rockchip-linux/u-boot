@@ -26,6 +26,9 @@ static int usb_stor_curr_dev = -1; /* current device */
 static uint32 g_umsboot_mode = 0;
 extern unsigned long gIdDataBuf[512];
 
+static void inno_usb_phy_reset(void);
+static int rk_usb_host_lookup(void);
+
 static struct rkusb_hcd_cfg rkusb_hcd[] = {
 #if defined(CONFIG_RKCHIP_RK3288)
 #if defined(RKUSB_UMS_BOOT_FROM_HOST1)
@@ -88,10 +91,12 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 		.hw_init = inno_usb_phy_reset,
 	},
 #endif
+#else
+	#error: "PLS config chip for UMS!"
 #endif
 };
 
-void inno_usb_phy_reset(void)
+static void inno_usb_phy_reset(void)
 {
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	/* Phy PLL recovering */
@@ -107,8 +112,8 @@ void inno_usb_phy_reset(void)
 #endif
 }
 
-/*************************************************************/
-int rk_usb_host_lookup(void) {
+static int rk_usb_host_lookup(void)
+{
 	int n = ARRAY_SIZE(rkusb_hcd);
 
 	printf("%d USB controller selected, name %s\n", n, rkusb_hcd[0].name);
