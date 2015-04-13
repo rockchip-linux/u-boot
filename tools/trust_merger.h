@@ -52,7 +52,7 @@ extern bool gDebug;
 #define DEF_BL32_PATH       "bl32.bin"
 #define DEF_BL33_PATH       "bl33.bin"
 
-#define DEF_OUT_PATH        "TrustImage.img"
+#define DEF_OUT_PATH        "trust.img"
 
 #define DEF_CONFIG_FILE     "CONFIG.ini"
 
