@@ -57,7 +57,7 @@
         RK3288MiniLoaderAll(L)_V2.19.bin	-	fist level bootloader
 
     if define CONFIG_MERGER_TRUSTIMAGE, rk uboot will merge trust image bin, such as:
-        trustimage.bin				-	trustfirmware image bootloader
+        trust.img				-	trustfirmware image bootloader
 
 6.  Chipset
     support RK3288,RK3036,RK3126,RK3128,RK3368.
