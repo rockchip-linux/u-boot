@@ -104,7 +104,7 @@ static int rk818_regulator_enable(int num_regulator)
 	 	i2c_reg_write(RK818_I2C_ADDR, RK818_LDO_EN_REG,
 			i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG) |(1 << (num_regulator -4))); //enable ldo
 
-	DEBUG("1 %s %d dcdc_en = %08x ldo_en =%08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG), i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG));
+	debug("1 %s %d dcdc_en = %08x ldo_en =%08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG), i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG));
 
 	 return 0;
 }
@@ -146,7 +146,7 @@ static int rk818_regulator_set_voltage(int num_regulator,
 		val = rk818_dcdc_select_min_voltage(min_uV,max_uV,num_regulator);	
 		i2c_reg_write(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator),
 			(i2c_reg_read(RK818_I2C_ADDR,rk818_BUCK_SET_VOL_REG(num_regulator) & 0x3f )) | val);
-		DEBUG("1 %s %d dcdc_vol = %08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator)));
+		debug("1 %s %d dcdc_vol = %08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator)));
 		return 0;
 	}else if (num_regulator == 6){
 	vol_map = ldo3_voltage_map;
@@ -178,7 +178,7 @@ static int rk818_regulator_set_voltage(int num_regulator,
 		i2c_reg_write(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator),
 			((i2c_reg_read(RK818_I2C_ADDR,rk818_LDO_SET_VOL_REG(num_regulator) & (~0x3f) )) | val));
 	
-	DEBUG("1 %s %d %d ldo_vol =%08x\n", __func__, num_regulator, val, i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)));
+	debug("1 %s %d %d ldo_vol =%08x\n", __func__, num_regulator, val, i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)));
 
 	return 0;
 
@@ -244,7 +244,7 @@ static int rk818_parse_dt(const void* blob)
 	rk818.node = node;
 	rk818.pmic->hw.i2c.addr = addr;
 	rk818.pmic->bus = bus;
-	DEBUG("rk818 i2c_bus:%d addr:0x%02x\n", rk818.pmic->bus,
+	debug("rk818 i2c_bus:%d addr:0x%02x\n", rk818.pmic->bus,
 		rk818.pmic->hw.i2c.addr);
 
 	return 0;
@@ -252,7 +252,7 @@ static int rk818_parse_dt(const void* blob)
 
 static int rk818_pre_init(unsigned char bus,uchar addr)
 {
-	DEBUG("%s,line=%d\n", __func__,__LINE__);
+	debug("%s,line=%d\n", __func__,__LINE__);
 	 
 	i2c_set_bus_num(bus);
 	i2c_init(RK818_I2C_SPEED, addr);
