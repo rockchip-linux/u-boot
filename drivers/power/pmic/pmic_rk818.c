@@ -5,7 +5,6 @@
  *  for sample
  */
 
-#define DEBUG
 #include <common.h>
 #include <power/rk818_pmic.h>
 #include <power/rockchip_power.h>
