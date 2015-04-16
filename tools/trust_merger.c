@@ -434,7 +434,7 @@ static bool unpacktrust(char *path)
 		goto end;
 	}
 
-	if (getFileSize(FileSrc, &FileSize) == false) {
+	if (getFileSize(path, &FileSize) == false) {
 		printf("File Size failed!\n");
 		goto end;
 	}
