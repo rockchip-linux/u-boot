@@ -1120,7 +1120,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
   	bmap = (uchar *)bmp + get_unaligned_le32(&bmp->header.data_offset);
 #if defined(CONFIG_RK_FB)
 	if((int)lcd_base == gd->fb_base)
-		lcd_base += width*height*2; 
+		lcd_base += width * height * bpix >> 3;
 	else 
 		lcd_base = gd->fb_base; 
 	lcd_base =  ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
