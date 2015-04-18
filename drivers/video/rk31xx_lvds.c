@@ -138,11 +138,11 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 
                 val = lvds_pmugrf_readl(LVDS_PMUGRF_GPIO0C_IOMUX);
                 val |= 0xFFFF5555;/*lcdc data 12 13 14 15 16 17 18 19*/
-                lvds_pmugrf_writel(LVDS_PMUGRF_GPIO0B_IOMUX, val);
+                lvds_pmugrf_writel(LVDS_PMUGRF_GPIO0C_IOMUX, val);
 
                 val = lvds_pmugrf_readl(LVDS_PMUGRF_GPIO0D_IOMUX);
                 val |= 0xFFFF5555;/*lcdc data 20 21 22 23 HSYNC VSYNC DEN DCLK*/
-                lvds_pmugrf_writel(LVDS_PMUGRF_GPIO0B_IOMUX, val);
+                lvds_pmugrf_writel(LVDS_PMUGRF_GPIO0D_IOMUX, val);
 
                 lvds_dsi_writel(lvds, 0x0, 0x4);/*set clock lane enable*/
 		/* enable lvds mode */
