@@ -132,16 +132,13 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 	struct rk_lvds_device *lvds = &rk31xx_lvds;
         if (lvds->soc_type == CONFIG_RK3368) {
                 /* iomux to lcdc */
-                val = lvds_pmugrf_readl(LVDS_PMUGRF_GPIO0B_IOMUX);
-                val |= 0xf0005000;/*lcdc data 11 10*/
+                val = 0xf0005000;/*lcdc data 11 10*/
                 lvds_pmugrf_writel(LVDS_PMUGRF_GPIO0B_IOMUX, val);
 
-                val = lvds_pmugrf_readl(LVDS_PMUGRF_GPIO0C_IOMUX);
-                val |= 0xFFFF5555;/*lcdc data 12 13 14 15 16 17 18 19*/
+                val = 0xFFFF5555;/*lcdc data 12 13 14 15 16 17 18 19*/
                 lvds_pmugrf_writel(LVDS_PMUGRF_GPIO0C_IOMUX, val);
 
-                val = lvds_pmugrf_readl(LVDS_PMUGRF_GPIO0D_IOMUX);
-                val |= 0xFFFF5555;/*lcdc data 20 21 22 23 HSYNC VSYNC DEN DCLK*/
+                val = 0xFFFF5555;/*lcdc data 20 21 22 23 HSYNC VSYNC DEN DCLK*/
                 lvds_pmugrf_writel(LVDS_PMUGRF_GPIO0D_IOMUX, val);
 
                 lvds_dsi_writel(lvds, 0x0, 0x4);/*set clock lane enable*/
