@@ -1054,16 +1054,16 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		break;
 	case OUT_P888:
 		face = OUT_P888;
-		mask = m_DITHER_DOWN_EN | m_DITHER_UP_EN;
-		val = v_DITHER_DOWN_EN(0) | v_DITHER_UP_EN(0);
+		mask = m_DITHER_DOWN_EN;
+		val = v_DITHER_DOWN_EN(0);
 		lcdc_msk_reg(lcdc_dev, DSP_CTRL1, mask, val);
 		break;
 	case OUT_YUV_420:
 		/*yuv420 output prefer yuv domain overlay */
 		face = OUT_YUV_420;
 		dclk_ddr = 1;
-		mask = m_DITHER_DOWN_EN | m_DITHER_UP_EN;
-		val = v_DITHER_DOWN_EN(0) | v_DITHER_UP_EN(0);
+		mask = m_DITHER_DOWN_EN;
+		val = v_DITHER_DOWN_EN(0);
 		lcdc_msk_reg(lcdc_dev, DSP_CTRL1, mask, val);
 		break;
 	default:
@@ -1140,8 +1140,8 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		val = v_EDP_OUT_EN(1) | v_RGB_OUT_EN(0);
 		lcdc_msk_reg(lcdc_dev, SYS_CTRL, mask, val);
 		/*because edp have to sent aaa fmt */
-		mask = m_DITHER_DOWN_EN | m_DITHER_UP_EN;
-		val = v_DITHER_DOWN_EN(0) | v_DITHER_UP_EN(0);
+		mask = m_DITHER_DOWN_EN;
+		val = v_DITHER_DOWN_EN(0);
 
 		mask |= m_EDP_HSYNC_POL | m_EDP_VSYNC_POL |
 		    m_EDP_DEN_POL | m_EDP_DCLK_POL;
@@ -1301,10 +1301,12 @@ int rk_lcdc_init(int lcdc_id)
 	val =  v_AUTO_GATING_EN(0) | v_STANDBY_EN(0) |
 		v_DMA_STOP(0) | v_MMU_EN(0);
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, msk, val);
-	msk = m_DSP_LAYER3_SEL | m_DSP_LAYER2_SEL|
-		m_DSP_LAYER1_SEL | m_DSP_LAYER0_SEL;
+	msk = m_DSP_LAYER3_SEL | m_DSP_LAYER2_SEL |
+		m_DSP_LAYER1_SEL | m_DSP_LAYER0_SEL |
+		m_DITHER_UP_EN;
 	val = v_DSP_LAYER3_SEL(3) | v_DSP_LAYER2_SEL(2) |
-		v_DSP_LAYER1_SEL(1) | v_DSP_LAYER0_SEL(0);
+		v_DSP_LAYER1_SEL(1) | v_DSP_LAYER0_SEL(0) |
+		v_DITHER_UP_EN(1);
 	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, msk, val);
 
 	lcdc_writel(lcdc_dev, CABC_GAUSS_LINE0_0, 0x15110903);
