@@ -591,6 +591,9 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	debug("do_charge!!!!\n");
 	#endif
 
+	/* enbale fb buffer flip */
+	lcd_enable_flip(true);
+
 	while (1) {
 		//step 1: check charger state.
 		exit_type = check_charging();
@@ -680,6 +683,8 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		udelay(50000);// 50ms.
 	}
 exit:
+	/* disable fb buffer flip */
+	lcd_enable_flip(false);
 	set_brightness(SCREEN_OFF, &g_state);
 	if (exit_type == EXIT_BOOT) {
 		#ifdef CONFIG_POWER_FG_ADC

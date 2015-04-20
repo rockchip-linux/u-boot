@@ -130,6 +130,7 @@ int lcd_line_length;
 char lcd_is_enabled = 0;
 #ifdef CONFIG_ROCKCHIP
 char lcd_show_logo = 0;
+bool lcd_flip = false;
 #endif
 
 #ifndef CONFIG_LCD_CONSOLE_DISABLE
@@ -416,6 +417,11 @@ void lcd_enable_logo(bool enable)
 	if (lcd_show_logo)
 		lcd_clear();
 }
+
+void lcd_enable_flip(bool enable)
+{
+	lcd_flip = enable;
+}
 #endif
 
 int drv_lcd_init(void)
@@ -540,6 +546,9 @@ static int lcd_init(void *lcdbase)
 
 	lcd_get_size(&lcd_line_length);
 	lcd_is_enabled = 1;
+#ifdef CONFIG_ROCKCHIP
+	lcd_flip = false;
+#endif
 	lcd_clear();
 	lcd_enable();
 
@@ -1119,10 +1128,15 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
   	bmap = (uchar *)bmp + get_unaligned_le32(&bmp->header.data_offset);
 #if defined(CONFIG_RK_FB)
-	if((int)lcd_base == gd->fb_base)
-		lcd_base += width * height * bpix >> 3;
-	else 
-		lcd_base = gd->fb_base; 
+	/* rk charge mode, enable fb flip */
+	if (lcd_flip) {
+		if((int)lcd_base == gd->fb_base)
+			lcd_base += width * height * bpix >> 3;
+		else
+			lcd_base = gd->fb_base;
+	} else {
+		lcd_base = gd->fb_base;
+	}
 	lcd_base =  ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
 
 	lcd_line_length = (width * bpix) / 8;

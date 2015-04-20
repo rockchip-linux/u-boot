@@ -376,8 +376,11 @@ void	lcd_printf(const char *fmt, ...);
 void	lcd_clear(void);
 int	lcd_display_bitmap(ulong bmp_image, int x, int y);
 
+#ifdef CONFIG_ROCKCHIP
 int lcd_display_bitmap_center(ulong bmp_image);
 void lcd_enable_logo(bool enable);
+void lcd_enable_flip(bool enable);
+#endif
 
 /**
  * Get the width of the LCD in pixels
