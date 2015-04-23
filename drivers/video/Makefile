@@ -50,6 +50,7 @@ obj-$(CONFIG_RK_HDMI) += rk_hdmi.o
 obj-$(CONFIG_RK_HDMIV2) +=  rk32_hdmi.o
 obj-$(CONFIG_RK3036_HDMI) +=  rk3036_hdmi.o
 obj-$(CONFIG_RK3036_TVE) += rk3036_tve.o
+obj-$(CONFIG_RK1000_TVE) += rk1000_tve.o
 obj-$(CONFIG_RK_FB) +=  screen/
 obj-$(CONFIG_RK_FB) +=  transmitter/
 obj-$(CONFIG_AM335X_LCD) += am335x-fb.o

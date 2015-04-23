@@ -905,6 +905,7 @@ static int hdmi_dev_insert(struct hdmi_dev *hdmi_dev)
     return HDMI_ERROR_SUCESS;
 }
 
+int g_hdmi_noexit = 0;
 static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
 	int ret = -1;
@@ -933,6 +934,7 @@ static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 		ret = 0;
 	} else {
 		printf("Hdmi Devices Not Exist.\n");
+		g_hdmi_noexit = 1;
 	}
 
 	return ret;

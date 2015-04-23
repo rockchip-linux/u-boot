@@ -204,6 +204,8 @@
 #define CONFIG_RK_HDMIV2
 #endif
 
+#undef CONFIG_RK1000_TVE
+
 #define CONFIG_RK32_DSI
 
 #undef CONFIG_UBOOT_CHARGE

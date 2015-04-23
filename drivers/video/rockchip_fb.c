@@ -446,6 +446,16 @@ void lcd_ctrl_init(void *lcdbase)
 #endif
 		rk3036_tve_init(&panel_info);
 #endif
+
+
+#if defined(CONFIG_RK1000_TVE)
+#if defined(CONFIG_RK_HDMI)
+	if (g_hdmi_noexit == 1)
+#endif
+		//rk3368_tve_init(&panel_info);
+		rk1000_tve_init_panel(&panel_info);
+#endif
+
 	panel_info.logo_rgb_mode = RGB565;
 	rk_fb_pwr_enable(fb);
 	panel_info.real_freq = rkclk_lcdc_clk_set(panel_info.lcdc_id,
@@ -453,6 +463,18 @@ void lcd_ctrl_init(void *lcdbase)
 	rk_lcdc_init(panel_info.lcdc_id);
 
 	rk_lcdc_load_screen(&panel_info);
+
+
+#if defined(CONFIG_RK1000_TVE)
+#if defined(CONFIG_RK_HDMI)
+	if (g_hdmi_noexit == 1)
+#endif
+		//rk3368_tve_init(&panel_info);
+		rk1000_tve_init(&panel_info);
+
+#endif
+
+	
 }
 
 void lcd_enable(void)
