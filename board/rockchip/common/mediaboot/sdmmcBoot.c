@@ -96,6 +96,12 @@ uint32 SdmmcInit(uint32 ChipSel)
 	int count =0;
 	uint32 ioctlParam[5] = {0,0,0,0,0};
 
+#if defined(RK_SDCARD_BOOT_EN) && defined(CONFIG_RKCHIP_RK3126)
+	/* disable force iomux to jtag */
+	if (ChipSel == 0) {
+		grf_writel((1 << (8 + 16)) | (0 << 8), GRF_SOC_CON0);
+	}
+#endif
 	ret1 = SdmmcReinit(ChipSel);
 	if(ret1 == SDM_SUCCESS)  //¿¨ÄÜÊ¶±ð
 	{
@@ -134,6 +140,12 @@ uint32 SdmmcInit(uint32 ChipSel)
 			}
 			else
 			{
+#if defined(RK_SDCARD_BOOT_EN) && defined(CONFIG_RKCHIP_RK3126)
+				/* enable force iomux to jtag */
+				if (ChipSel == 0) {
+					grf_writel((1 << (8 + 16)) | (1 << 8), GRF_SOC_CON0);
+				}
+#endif
 				ret1 = -1;
 			}
 		}

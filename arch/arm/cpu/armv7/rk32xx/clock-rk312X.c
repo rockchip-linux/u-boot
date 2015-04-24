@@ -990,7 +990,7 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
 		if (sel == 0) {
 			return gd->pci_clk;
 		} else if (sel == 1) {
-			return gd->mem_clk;
+			return gd->bus_clk;
 		} else if (sel == 3) {
 			return (24 * MHZ);
 		} else {
@@ -1001,9 +1001,9 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
 		if (sel == 0) {
 			return gd->pci_clk;
 		} else if (sel == 1) {
-			return gd->mem_clk;
+			return gd->bus_clk;
 		} else if (sel == 2) {
-			return gd->mem_clk >> 1;
+			return gd->bus_clk >> 1;
 		} else if (sel == 3) {
 			return (24 * MHZ);
 		} else {
