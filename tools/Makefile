@@ -62,9 +62,7 @@ hostprogs-y += loaderimage
 hostprogs-$(CONFIG_MERGER_TRUSTIMAGE) += trust_merger
 hostprogs-$(CONFIG_QUICK_CHECKSUM) += checksum
 
-envcrc-objs += lib/sha.o
-HOSTCFLAGS_sha.o := -pedantic
-
+trust_merger-objs := trust_merger.o lib/sha2.o
 loaderimage-objs := loaderimage.o lib/sha.o
 endif # CONFIG_ROCKCHIP
 

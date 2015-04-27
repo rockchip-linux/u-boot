@@ -1,4 +1,5 @@
 
+#include <sha2.h>
 #include "trust_merger.h"
 
 bool gDebug =
@@ -7,6 +8,25 @@ bool gDebug =
 #else
 	false;
 #endif /* DEBUG */
+
+
+/* trust image has TRUSTIMAGE_MAX_NUM backups */
+#define TRUSTIMAGE_MAX_NUM	2
+#define TRUSTIMAGE_MAX_SIZE	(2 * 1024 * 1024)
+
+
+/* config sha and rsa */
+#define SHA_SEL_256		2
+#define SHA_SEL_160		1
+#define SHA_SEL_NONE		0
+
+#define RSA_SEL_2048		2
+#define RSA_SEL_1024		1
+#define RSA_SEL_NONE		0
+
+#define SHA_SEL_DEFAULT		SHA_SEL_256
+#define RSA_SEL_DEFAULT		RSA_SEL_2048
+
 
 static char* gConfigPath = NULL;
 static OPT_T gOpts;
@@ -270,6 +290,31 @@ static inline bool getFileSize(const char *path, uint32_t* size)
 }
 
 
+#define SHA256_CHECK_SZ		((uint32_t)(256 * 1024))
+static bool bl3xHash256(uint8_t *pHash, uint8_t *pData, uint32_t nDataSize)
+{
+	sha256_ctx ctx;
+	uint32_t nHashSize, nHasHashSize;
+
+	if (!pHash || !pData || !nDataSize) {
+		return false;
+	}
+
+	nHasHashSize = 0;
+
+	sha256_begin(&ctx);
+	while (nDataSize > 0) {
+		nHashSize = (nDataSize >= SHA256_CHECK_SZ) ? SHA256_CHECK_SZ : nDataSize;
+		sha256_hash(&ctx, pData + nHasHashSize, nHashSize);
+		nHasHashSize += nHashSize;
+		nDataSize -= nHashSize;
+	}
+	sha256_end(&ctx, pHash);
+
+	return true;
+}
+
+
 static bool mergetrust(void)
 {
 	FILE		*outFile = NULL;
@@ -281,7 +326,8 @@ static bool mergetrust(void)
 	uint32_t	filesize[BL_MAX_SEC] = {0};
 	uint32_t	imagesize[BL_MAX_SEC] = {0};
 	bool		ret = false;
-	uint32_t	i;
+	uint32_t	i, n;
+	uint8_t		*outBuf = NULL, *pbuf = NULL;
 
 	if (!initOpts())
 		return false;
@@ -324,6 +370,9 @@ static bool mergetrust(void)
 	memcpy(&pHead->tag, TRUST_HEAD_TAG, 4);
 	pHead->version = (getBCD(gOpts.major) << 8) | getBCD(gOpts.minor);
 	pHead->flags = 0;
+	pHead->flags |= (SHA_SEL_DEFAULT << 0);
+	pHead->flags |= (RSA_SEL_DEFAULT << 4);
+
 	SignOffset = sizeof(TRUST_HEADER) + SrcFileNum * sizeof(COMPONENT_DATA);
 	LOGD("trust bin sign offset = %d\n", SignOffset);
 	pHead->size = (SrcFileNum<<16) | (SignOffset>>2);
@@ -362,6 +411,8 @@ static bool mergetrust(void)
 		}
 	}
 
+	/* 0 for TRUSTIMAGE_MAX_NUM backups */
+#if 0
 	/* save trust head to out file */
 	if (!fwrite(gBuf, TRUST_HEADER_SIZE, 1, outFile))
 		goto end;
@@ -382,11 +433,70 @@ static bool mergetrust(void)
 				goto end;
 		}
 	}
+#else
+	/* check bin size */
+	if (OutFileSize > TRUSTIMAGE_MAX_SIZE) {
+		LOGE("Merge trust image: trust bin size overfull.\n");
+		goto end;
+	}
+
+	/* malloc buffer */
+	pbuf = outBuf = calloc(TRUSTIMAGE_MAX_SIZE, TRUSTIMAGE_MAX_NUM);
+	if (!outBuf) {
+		LOGE("Merge trust image: calloc buffer error.\n");
+		goto end;
+	}
+	memset(outBuf, 0, (TRUSTIMAGE_MAX_SIZE * TRUSTIMAGE_MAX_NUM));
+
+	/* save trust head data */
+	memcpy(pbuf, gBuf, TRUST_HEADER_SIZE);
+	pbuf += TRUST_HEADER_SIZE;
+
+	uint8_t *pHashData = NULL;
+	pComponentData = (COMPONENT_DATA *)(outBuf + sizeof(TRUST_HEADER));
+
+	/* save trust bl3x bin */
+	for (i = BL30_SEC; i < BL_MAX_SEC; i++) {
+		if (gOpts.bl3x[i].sec != false) {
+			FILE *inFile = fopen(gOpts.bl3x[i].path, "rb");
+			if (!inFile)
+				goto end;
+
+			memset(gBuf, 0, imagesize[i]);
+			if (!fread(gBuf, filesize[i], 1, inFile))
+				goto end;
+			fclose(inFile);
+
+			/* bl3x bin hash256 */
+			pHashData = (uint8_t *)&pComponentData->HashData[0];
+			bl3xHash256(pHashData, gBuf, imagesize[i]);
+			memcpy(pbuf, gBuf, imagesize[i]);
+
+			pComponentData++;
+			pbuf += imagesize[i];
+		}
+	}
+
+	/* copy other (TRUSTIMAGE_MAX_NUM - 1) backup bin */
+	for(n = 1; n < TRUSTIMAGE_MAX_NUM; n++) {
+		memcpy(outBuf + TRUSTIMAGE_MAX_SIZE * n, outBuf, TRUSTIMAGE_MAX_SIZE);
+	}
+
+	/* save date to file */
+	if (!fwrite(outBuf, TRUSTIMAGE_MAX_SIZE * TRUSTIMAGE_MAX_NUM, 1, outFile)) {
+		LOGE("Merge trust image: write file error.\n");
+		goto end;
+	}
+#endif
 
 	ret = true;
+
 end:
+	if (outBuf)
+		free(outBuf);
 	if (outFile)
 		fclose(outFile);
+
 	return ret;
 }
 
