@@ -129,6 +129,9 @@ int arch_cpu_init(void)
 #if defined(CONFIG_RKCHIP_RK3368)
 	/* pwm select rk solution */
 	grf_writel((0x01 << 12) | (0x01 << (12 + 16)), GRF_SOC_CON15);
+
+	/* enable force to jtag */
+	grf_writel((0x01 << 13) | (0x01 << (13 + 16)), GRF_SOC_CON15);
 #endif /* CONFIG_RKCHIP_RK3368 */
 
 	return 0;
