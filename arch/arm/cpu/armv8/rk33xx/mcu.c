@@ -8,6 +8,10 @@
 #include <asm/arch/rkplat.h>
 
 
+/* Max MCU's SRAM value is 8K, begin at (RKIO_IMEM_PHYS + 4K) */
+#define MCU_SRAM_ADDR_BASE	(RKIO_IMEM_PHYS + (1024*4))
+
+
 void rk_mcu_init(void)
 {
 	uint32_t pll_src, div;
@@ -15,6 +19,10 @@ void rk_mcu_init(void)
 	debug("rk mcu init\n");
 
 #if defined(CONFIG_RKCHIP_RK3368)
+	//mcu sam memory map to internel ram
+	grf_writel((0xF << (4 + 16)) | ((MCU_SRAM_ADDR_BASE >> 28) << 4), GRF_SOC_CON14);
+	grf_writel((0xFFFF << (0 + 16)) | ((MCU_SRAM_ADDR_BASE >> 12) << 0), GRF_SOC_CON11);
+
 	//mcu clk: select gpll as source clock and div = 6
 	pll_src = 1;
 	div = (6 - 1);
