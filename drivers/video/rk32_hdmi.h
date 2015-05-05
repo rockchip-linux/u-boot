@@ -1250,6 +1250,40 @@ enum {
 #define	HDCPREG_DPK5			0x7817
 #define	HDCPREG_DPK6			0x7818
 
+#define HDCP2REG_BASE			0x7900
+#define HDCP2REG_ID			0x7900
+#define HDCP2REG_CTRL			0x7904
+	#define m_HDCP2_HDP_OVR_VAL	(1 << 5)
+	#define m_HDCP2_HDP_OVR_EN	(1 << 4)
+	#define m_HDCP2_FORCE		(1 << 2)
+	#define m_HDCP2_OVR_EN		(1 << 1)
+	#define m_HDCP2_SWITCH_EN	(1 << 0)
+
+	#define v_HDCP2_HDP_OVR_VAL(n)	(((n)&0x01) << 5)
+	#define v_HDCP2_HDP_OVR_EN(n)	(((n)&0x01) << 4)
+	#define v_HDCP2_FORCE(n)	(((n)&0x01) << 2)
+	#define v_HDCP2_OVR_EN(n)	(((n)&0x01) << 1)
+	#define v_HDCP2_SWITCH_EN(n)	(((n)&0x01) << 0)
+#define HDCP2REG_CTRL1			0x7905
+	#define m_HDCP2_CD_VAL		(0xf << 4)
+	#define m_HDCP2_CD_EN		(1 << 3)
+	#define m_HDCP2_AVMUTE_OVR_VAL	(1 << 1)
+	#define m_HDCP2_AVMUTE_OVR_EN	(1 << 0)
+
+	#define v_HDCP2_CD_VAL(n)		(((n)&0x0f) << 4)
+	#define v_HDCP2_CD_EN(n)		(((n)&0x01) << 3)
+	#define v_HDCP2_AVMUTE_OVR_VAL(n)	(((n)&0x01) << 1)
+	#define v_HDCP2_AVMUTE_OVR_EN(n)	(((n)&0x01) << 0)
+#define HDCP2REG_STAS			0x7908
+#define HDCP2REG_MASK			0x790c
+#define HDCP2REG_STAT			0x790d
+#define HDCP2REG_MUTE			0x790e
+	#define m_HDCP2_CAPABLE		(1 << 0)
+	#define m_HDCP2_NOTCAPABLE	(1 << 1)
+	#define m_HDCP2_AUTH_LOST	(1 << 2)
+	#define m_HDCP2_AUTH_OK		(1 << 3)
+	#define m_HDCP2_AUTH_FAIL	(1 << 4)
+	#define m_HDCP2_DECRYPTED_CHG	(1 << 5)
 
 /*CEC Engine Registers*/
 #define CEC_ENGINE_BASE			0x7d00

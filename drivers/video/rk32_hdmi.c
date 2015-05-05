@@ -333,7 +333,7 @@ static int rk32_hdmi_video_frameComposer(struct hdmi_dev *hdmi_dev, struct hdmi_
 		hsync_pol = 1;
 	if (timing->mode.sync & FB_SYNC_VERT_HIGH_ACT)
 		vsync_pol = 1;
-	printf("hsync_pol %d vsync_pol %d",hsync_pol, vsync_pol);
+	printf("hsync_pol %d vsync_pol %d\n",hsync_pol, vsync_pol);
 	hdmi_msk_reg(hdmi_dev, A_HDCPCFG0, m_ENCRYPT_BYPASS | m_HDMI_DVI,
 		v_ENCRYPT_BYPASS(1) | v_HDMI_DVI(vpara->sink_hdmi));	//cfg to bypass hdcp data encrypt
 	hdmi_msk_reg(hdmi_dev, FC_INVIDCONF, m_FC_VSYNC_POL | m_FC_HSYNC_POL | m_FC_DE_POL | m_FC_HDMI_DVI | m_FC_INTERLACE_MODE,
@@ -385,6 +385,11 @@ static int rk32_hdmi_video_frameComposer(struct hdmi_dev *hdmi_dev, struct hdmi_
 
 	hdmi_writel(hdmi_dev, FC_PRCONF, v_FC_PR_FACTOR(timing->pixelrepeat));
 	
+	hdmi_msk_reg(hdmi_dev, A_VIDPOLCFG,
+		     m_DATAEN_POL | m_VSYNC_POL | m_HSYNC_POL,
+		     v_DATAEN_POL(de_pol) |
+		     v_VSYNC_POL(vsync_pol) |
+		     v_HSYNC_POL(hsync_pol));
 	return 0;
 }
 
@@ -784,6 +789,88 @@ static int hdmi_dev_config_video(struct hdmi_dev *hdmi_dev, struct hdmi_video *v
 	return 0;
 }
 
+static void hdcp_load_key(struct hdmi_dev *hdmi_dev)
+{
+	struct hdcp_keys *key = hdmi_dev->keys;
+	int i, value;
+
+	/* Disable decryption logic */
+	hdmi_writel(hdmi_dev, HDCPREG_RMCTL, 0);
+	/* Poll untile DPK write is allowed */
+	do {
+		value = hdmi_readl(hdmi_dev, HDCPREG_RMSTS);
+	} while ((value & m_DPK_WR_OK_STS) == 0);
+
+	/* write unencryped AKSV */
+	hdmi_writel(hdmi_dev, HDCPREG_DPK6, 0);
+	hdmi_writel(hdmi_dev, HDCPREG_DPK5, 0);
+	hdmi_writel(hdmi_dev, HDCPREG_DPK4, key->KSV[4]);
+	hdmi_writel(hdmi_dev, HDCPREG_DPK3, key->KSV[3]);
+	hdmi_writel(hdmi_dev, HDCPREG_DPK2, key->KSV[2]);
+	hdmi_writel(hdmi_dev, HDCPREG_DPK1, key->KSV[1]);
+	hdmi_writel(hdmi_dev, HDCPREG_DPK0, key->KSV[0]);
+	/* Poll untile DPK write is allowed */
+	do {
+		value = hdmi_readl(hdmi_dev, HDCPREG_RMSTS);
+	} while ((value & m_DPK_WR_OK_STS) == 0);
+
+	hdmi_writel(hdmi_dev, HDCPREG_RMCTL, 1);
+	hdmi_writel(hdmi_dev, HDCPREG_SEED1, key->seeds[0]);
+	hdmi_writel(hdmi_dev, HDCPREG_SEED0, key->seeds[1]);
+
+	/* write private key */
+	for (i = 0; i < HDCP_PRIVATE_KEY_SIZE; i += 7) {
+		hdmi_writel(hdmi_dev, HDCPREG_DPK6, key->devicekey[i + 6]);
+		hdmi_writel(hdmi_dev, HDCPREG_DPK5, key->devicekey[i + 5]);
+		hdmi_writel(hdmi_dev, HDCPREG_DPK4, key->devicekey[i + 4]);
+		hdmi_writel(hdmi_dev, HDCPREG_DPK3, key->devicekey[i + 3]);
+		hdmi_writel(hdmi_dev, HDCPREG_DPK2, key->devicekey[i + 2]);
+		hdmi_writel(hdmi_dev, HDCPREG_DPK1, key->devicekey[i + 1]);
+		hdmi_writel(hdmi_dev, HDCPREG_DPK0, key->devicekey[i]);
+
+		do {
+			value = hdmi_readl(hdmi_dev, HDCPREG_RMSTS);
+		} while ((value & m_DPK_WR_OK_STS) == 0);
+	}
+}
+
+static void hdmi_dev_hdcp_start(struct hdmi_dev *hdmi_dev)
+{
+	if (!hdmi_dev->hdcp_enable || hdmi_dev->keys == NULL)
+		return;
+	#ifdef CONFIG_RKCHIP_RK3368
+	hdmi_msk_reg(hdmi_dev, HDCP2REG_CTRL,
+		     m_HDCP2_OVR_EN | m_HDCP2_FORCE,
+		     v_HDCP2_OVR_EN(1) | v_HDCP2_FORCE(0));
+	hdmi_writel(hdmi_dev, HDCP2REG_MASK, 0xff);
+	hdmi_writel(hdmi_dev, HDCP2REG_MUTE, 0xff);
+	#endif
+
+	hdmi_msk_reg(hdmi_dev, FC_INVIDCONF,
+		     m_FC_HDCP_KEEPOUT, v_FC_HDCP_KEEPOUT(1));
+	hdmi_msk_reg(hdmi_dev, A_HDCPCFG0,
+		     m_HDMI_DVI, v_HDMI_DVI(hdmi_dev->video.sink_hdmi));
+	hdmi_writel(hdmi_dev, A_OESSWCFG, 0x40);
+	hdmi_msk_reg(hdmi_dev, A_HDCPCFG0,
+		     m_ENCRYPT_BYPASS | m_FEATURE11_EN | m_SYNC_RI_CHECK,
+		     v_ENCRYPT_BYPASS(0) | v_FEATURE11_EN(0) |
+		     v_SYNC_RI_CHECK(1));
+	hdmi_msk_reg(hdmi_dev, A_HDCPCFG1,
+		     m_ENCRYPT_DISBALE | m_PH2UPSHFTENC,
+		     v_ENCRYPT_DISBALE(0) | v_PH2UPSHFTENC(1));
+	/* Reset HDCP Engine */
+	hdmi_msk_reg(hdmi_dev, A_HDCPCFG1,
+		     m_HDCP_SW_RST, v_HDCP_SW_RST(0));
+	hdcp_load_key(hdmi_dev);
+//	hdmi_writel(hdmi_dev, A_APIINTMSK, 0x00);
+	hdmi_msk_reg(hdmi_dev, A_HDCPCFG0, m_RX_DETECT, v_RX_DETECT(1));
+
+	hdmi_msk_reg(hdmi_dev, MC_CLKDIS,
+		     m_HDCPCLK_DISABLE, v_HDCPCLK_DISABLE(0));
+
+	printf("%s success\n", __func__);
+}
+
 static int hdmi_dev_control_output(struct hdmi_dev *hdmi_dev, int enable)
 {
 	if(enable == HDMI_AV_UNMUTE) {
@@ -840,6 +927,7 @@ static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 		hdmi_parse_edid(hdmi_dev);
 		hdmi_find_best_mode(hdmi_dev);
 		hdmi_dev_config_video(hdmi_dev, &hdmi_dev->video);
+		hdmi_dev_hdcp_start(hdmi_dev);
 		hdmi_dev_control_output(hdmi_dev, HDMI_AV_UNMUTE);
 
 		ret = 0;

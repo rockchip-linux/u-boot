@@ -483,6 +483,19 @@ struct rk_hdmi_drvdata  {
 	u32 reversed;
 };
 
+#define HDCP_KEY_IDB_OFFSET	62
+#define HDCP_PRIVATE_KEY_SIZE	280
+#define HDCP_KEY_SHA_SIZE	20
+#define HDCP_KEY_SIZE		308
+#define HDCP_KEY_SEED_SIZE	2
+
+struct hdcp_keys {
+	u8 KSV[8];
+	u8 devicekey[HDCP_PRIVATE_KEY_SIZE];
+	u8 sha1[HDCP_KEY_SHA_SIZE];
+	u8 seeds[HDCP_KEY_SEED_SIZE];
+};
+
 #define HDMI_VICDB_LEN 50
 struct hdmi_dev {
 	void   		   *regbase;
@@ -495,6 +508,10 @@ struct hdmi_dev {
 	unsigned int	defaultmode;
 	char		compatible[32];
 	int		vic;
+	
+	//hdcp
+	unsigned int	hdcp_enable;
+	struct hdcp_keys *keys;
 	//uboot
 	unsigned int  vicdb[HDMI_VICDB_LEN];
 	unsigned char  vic_pos;

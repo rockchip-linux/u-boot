@@ -207,12 +207,39 @@ static int hdmi_parse_dts(struct hdmi_dev *hdmi_dev)
 				fdtdec_get_int(gd->fdt_blob, node,
 					       "rockchip,defaultmode",
 					       0);
+		hdmi_dev->hdcp_enable =
+				fdtdec_get_int(gd->fdt_blob, node,
+					       "rockchip,hdcp_enable",
+					       0);
 		hdmi_dev->phy_pre_emphasis =
 				fdtdec_get_int(gd->fdt_blob, node,
 					       "phy_pre_emphasis", 0);
 	}
 //	printf("%s default mode is %d\n", __func__, hdmi_dev->defaultmode);
 //	printf("%s:phy_pre_emphasis=0x%x\n",__func__,hdmi_dev->phy_pre_emphasis);
+}
+
+static void hdmi_read_hdcp_key(struct hdmi_dev *hdmi_dev)
+{
+	if (!hdmi_dev->hdcp_enable)
+		return;
+	hdmi_dev->keys = malloc(HDCP_KEY_SIZE +
+				HDCP_KEY_SEED_SIZE);
+	memset(hdmi_dev->keys, 0, HDCP_KEY_SIZE +
+				  HDCP_KEY_SEED_SIZE);
+	rkidb_get_hdcp_key(hdmi_dev->keys, HDCP_KEY_IDB_OFFSET,
+			   HDCP_KEY_SIZE +
+			   HDCP_KEY_SEED_SIZE);
+	if (hdmi_dev->keys->KSV[0] == 0x00 &&
+	    hdmi_dev->keys->KSV[1] == 0x00 &&
+	    hdmi_dev->keys->KSV[2] == 0x00 &&
+	    hdmi_dev->keys->KSV[3] == 0x00 &&
+	    hdmi_dev->keys->KSV[4] == 0x00) {
+	    	printf("Invalid hdcp key\n");
+	    	free(hdmi_dev->keys);
+	    	hdmi_dev->keys = NULL;
+	    	hdmi_dev->hdcp_enable = 0;
+	}
 }
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -1467,7 +1494,7 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	hdmi_dev->mode_len = sizeof(hdmi_mode) / sizeof(hdmi_mode[0]);
 	//default out res
 	hdmi_parse_dts(hdmi_dev);
-
+	hdmi_read_hdcp_key(hdmi_dev);
 #ifdef CONFIG_RK_DEVICEINFO
 	ret = read_deviceinfo_storage(hdmi_dev);
 	if(ret)

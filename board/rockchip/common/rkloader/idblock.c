@@ -633,6 +633,20 @@ int rkidb_get_sn(char* buf)
 	return true;
 }
 
+int rkidb_get_hdcp_key(char* buf, int offset, int size)
+{
+	uint8 *pidbbuf = (uint8 *)gIdDataBuf;
+	int i;
+
+	pidbbuf += IDBLOCK_SIZE * IDBLOCK_SN;
+	if (size <= 0 || size > IDBLOCK_SIZE ||
+	    offset <=0 || offset > IDBLOCK_SIZE) {
+		printf("parameter error.\n");
+		return false;
+	}
+	memcpy(buf, pidbbuf + offset, size);
+	return true;
+}
 
 int rkidb_erase_drm_key(void)
 {

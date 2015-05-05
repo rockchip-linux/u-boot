@@ -266,6 +266,6 @@ int rkidb_get_idblk_data(void);
 int rkidb_get_rc4_flag(void);
 int rkidb_get_sn(char* buf);
 int rkidb_erase_drm_key(void);
-
+int rkidb_get_hdcp_key(char* buf, int offset, int size);
 #endif /* RKIDBLOCK_H */
 
