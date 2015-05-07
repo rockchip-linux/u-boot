@@ -109,7 +109,7 @@
 #endif
 
 /* mod it to enable console commands.	*/
-#define CONFIG_BOOTDELAY		0
+#define CONFIG_BOOTDELAY		3
 
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
@@ -204,7 +204,9 @@
 #define CONFIG_RK_HDMIV2
 #endif
 
-#undef CONFIG_RK1000_TVE
+#ifdef CONFIG_PRODUCT_BOX
+#define CONFIG_RK1000_TVE
+#endif
 
 #define CONFIG_RK32_DSI
 

@@ -148,7 +148,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 			v_RK3368_MIPIDPI_FORCEX_EN(1);
 		grf_writel(val, GRF_SOC_CON7_LVDS);
 		val = v_RK3368_FORCE_JETAG(0);
-		grf_writel(val, GRF_SOC_CON15_LVDS);
+		//grf_writel(val, GRF_SOC_CON15_LVDS);
     } else {/*31xx*/
     	/*grf_writel(0xfff35555, GRF_GPIO2B_IOMUX);
     	grf_writel(0x00ff0055, GRF_GPIO2C_IOMUX);
@@ -168,6 +168,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
     	        v_MIPITTL_LANE3_EN(1);
     	grf_writel(val, GRF_SOC_CON1);
     }
+	
 	/* enable lane */
 	lvds_writel(lvds, MIPIPHY_REG0, 0x7f);
 	val = v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) | v_LANE3_EN(1) |
@@ -180,6 +181,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 	lvds_writel(lvds, MIPIPHY_REGE0, val);
 
 	rk31xx_lvds_pwr_on(vid);
+
 
 }
 

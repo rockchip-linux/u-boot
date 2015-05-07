@@ -311,7 +311,7 @@
 
 
 /* rk io command tool */
-#undef CONFIG_RK_IO_TOOL
+#define CONFIG_RK_IO_TOOL
 
 
 /* rockusb */

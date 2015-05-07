@@ -17,13 +17,16 @@
 static int bus_num = 1;
 
 int g_tve_pos = -1;
+#if  defined(CONFIG_OF_LIBFDT)
+struct fdt_gpio_state rst_gpios;
+#endif
 
 struct fb_videomode rk1000_cvbs_mode[MAX_TVE_COUNT] = {
 	/*name	refresh	xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw			polariry				PorI		flag*/
 	//{"NTSC",	60,	720,	480,	27000000,	43,	33,	19,	0,	62,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
 	//{"PAL",		50,	720,	576,	27000000,	52,	29,	19,	2,	63,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
-	{"NTSC", 60, 720, 480, 27000000, 116, 16, 25, 14, 6, 6, 0, 0, 0},
-	{"PAL", 50, 720, 576, 27000000, 126, 12, 37, 6, 6, 6, 0, 0, 0},
+	{"NTSC", 60, 720, 480, 27000000, 116, 16, 25, 14, 6, 6, 0, 1, 0},
+	{"PAL", 50, 720, 576, 27000000, 126, 12, 37, 6, 6, 6, 0, 1, 0},
 };
 
 
@@ -100,7 +103,7 @@ void rk1000_tve_init_panel(vidinfo_t *panel)
 	panel->vl_width   = mode->xres;
 	panel->vl_height  = mode->yres;
 	//sync polarity
-	panel->vl_clkp = 1;
+	panel->vl_clkp = 0;
 	if(FB_SYNC_HOR_HIGH_ACT & mode->sync)
 		panel->vl_hsp  = 1;
 	else
@@ -124,6 +127,31 @@ void rk1000_tve_init_panel(vidinfo_t *panel)
 
 }
 #endif
+static int rk1000_parse_dt(const void* blob)
+{
+	int node, nd;
+	
+	u32 bus, addr;
+	int ret, i;
+
+	node = fdt_node_offset_by_compatible(blob,
+					0, "rockchip,rk1000_control");
+	if (node < 0) {
+		printf("can't find dts node for rk1000\n");
+		return -ENODEV;
+	}
+
+	if (!fdt_device_is_available(blob,node)) {
+		printf("device rk1000 is disabled\n");
+		return -1;
+	}
+		
+	fdtdec_decode_gpio(blob, node, "gpio-reset", &rst_gpios);
+
+	printf("-----%d---%d---\n",rst_gpios.gpio,rst_gpios.flags);
+	
+	return 0;
+}
 
 int rk1000_tve_init(vidinfo_t *panel)
 {
@@ -138,21 +166,30 @@ int rk1000_tve_init(vidinfo_t *panel)
 	unsigned char Tv_encoder_regs_ntsc[] = {0x00, 0x00, 0x00, 0x03, 0x00, 0x00};
         unsigned char Tv_encoder_control_regs_ntsc[] = {0x43, 0x01};
 
+	#if  defined(CONFIG_OF_LIBFDT)
+	debug("rk fb parse dt start.\n");
+	int ret = rk1000_parse_dt(gd->fdt_blob);
+	if (ret < 0){
+		printf("parse rk1000 dts error!\n");
+		return -1;
+	}
+
+	#endif
+
+    
 	//init i2c
 	i2c_set_bus_num(bus_num);
 	i2c_init(200*1000, 1);
-
-	
+				
 	grf_writel(0xffff1500, GRF_GPIO2C_IOMUX);
 	cru_writel(cru_readl(0x16c)|0x80008000,0x16c);
 
-	//printf("==== %x\n",cru_readl(0x16c));
-	//printf("==== %x\n",grf_readl(GRF_GPIO2C_IOMUX));
-
-	gpio_direction_output((GPIO_BANK0 | GPIO_A1),0);
+	//gpio_direction_output((GPIO_BANK0 | GPIO_A1),0);
+	gpio_direction_output(rst_gpios.gpio,!rst_gpios.flags);
 	mdelay(100);
 	
-	gpio_direction_output((GPIO_BANK0 | GPIO_A1),1);
+	//gpio_direction_output((GPIO_BANK0 | GPIO_A1),1);
+	gpio_direction_output(rst_gpios.gpio,rst_gpios.flags);
 
 	/* reg[0x00] = 0x88, --> ADC_CON
 	   reg[0x01] = 0x0d, --> CODEC_CON
@@ -165,7 +202,6 @@ int rk1000_tve_init(vidinfo_t *panel)
 	//rk1000 power down output dac
 	data[0] = 0x07;
 	rk1000_write_reg(0x42, 0x03, data, 1);
-
 
 	if (g_tve_pos ==1) 
 	{

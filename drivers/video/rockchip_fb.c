@@ -452,7 +452,6 @@ void lcd_ctrl_init(void *lcdbase)
 #if defined(CONFIG_RK_HDMI)
 	if (g_hdmi_noexit == 1)
 #endif
-		//rk3368_tve_init(&panel_info);
 		rk1000_tve_init_panel(&panel_info);
 #endif
 
@@ -464,15 +463,14 @@ void lcd_ctrl_init(void *lcdbase)
 
 	rk_lcdc_load_screen(&panel_info);
 
-
 #if defined(CONFIG_RK1000_TVE)
 #if defined(CONFIG_RK_HDMI)
 	if (g_hdmi_noexit == 1)
 #endif
-		//rk3368_tve_init(&panel_info);
 		rk1000_tve_init(&panel_info);
 
 #endif
+
 
 	
 }
