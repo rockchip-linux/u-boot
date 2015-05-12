@@ -51,6 +51,14 @@
 #define PRMRY					1
 #define EXTEND					2
 
+struct rockchip_fb {
+	int node;
+	int lcdc_node;
+	int lcdc_id;
+	struct list_head pwrlist_head;
+};
+
+
 #if defined(CONFIG_RK_HDMI)
 void rk_hdmi_probe(vidinfo_t *panel);
 #endif
@@ -58,3 +66,7 @@ extern void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen);
 #endif
 
 void lcd_standby(int enable);
+int rk_fb_pwr_enable(struct rockchip_fb *fb);
+int rk_fb_pwr_enable(struct rockchip_fb *fb);
+
+
