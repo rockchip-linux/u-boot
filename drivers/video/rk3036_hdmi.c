@@ -788,7 +788,7 @@ static void rk3036_hdmi_reset(struct hdmi_dev *hdmi_dev)
 	rk3036_hdmi_set_pwr_mode(hdmi_dev, LOWER_PWR);
 }
 
-int g_hdmi_noexit = 0;
+extern int g_hdmi_noexit;
 static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
 	int i = 5, ret = -1, val = 0;

@@ -43,24 +43,25 @@
 #define OUT_P888 0 
 #endif
 short g_hdmi_vic = -1;
+int g_hdmi_noexit = 0;
 static struct baseparamer_pos g_pos_baseparamer = {-1, -1};
 
-extern int g_hdmi_noexit;
 
 //#define HDMIDEBUG
-#ifdef CONFIG_RK3036_TVE
+#if defined(CONFIG_RK3036_TVE) || defined(CONFIG_RK1000_TVE)
 #include <linux/fb.h>
 #include "rk3036_tve.h"
 
+#if defined(CONFIG_RK3036_TVE)
 extern struct fb_videomode rk3036_cvbs_mode [MAX_TVE_COUNT];
-extern int g_tve_pos;
 #endif
-#if defined (CONFIG_RK1000_TVE)
-#include <linux/fb.h>
-#include "rk3036_tve.h"
+#if defined(CONFIG_RK1000_TVE)
 extern struct fb_videomode rk1000_cvbs_mode [MAX_TVE_COUNT];
+#endif
+
 extern int g_tve_pos;
 #endif
+
 static const struct hdmi_video_timing hdmi_mode[] = {
 /*		name			refresh	xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw			polariry			PorI	flag		vic		2ndvic		pixelrepeat	interface */
 
