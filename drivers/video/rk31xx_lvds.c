@@ -148,7 +148,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 			v_RK3368_MIPIDPI_FORCEX_EN(1);
 		grf_writel(val, GRF_SOC_CON7_LVDS);
 		val = v_RK3368_FORCE_JETAG(0);
-		//grf_writel(val, GRF_SOC_CON15_LVDS);
+		grf_writel(val, GRF_SOC_CON15_LVDS);
     } else {/*31xx*/
     	/*grf_writel(0xfff35555, GRF_GPIO2B_IOMUX);
     	grf_writel(0x00ff0055, GRF_GPIO2C_IOMUX);

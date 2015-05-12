@@ -109,7 +109,7 @@
 #endif
 
 /* mod it to enable console commands.	*/
-#define CONFIG_BOOTDELAY		3
+#define CONFIG_BOOTDELAY		0
 
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
