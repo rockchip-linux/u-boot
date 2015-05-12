@@ -352,7 +352,7 @@ static void board_fbt_low_power_check(void)
 		while (is_charging()) {
 			FBTERR("extreme low power, charging...\n");
 			udelay(1000000); /* 1 sec */
-			if (!is_power_extreme_low()) {
+			if (!is_power_low()) {
 				FBTERR("extreme low power charge done\n");
 				break;
 			}

@@ -5,6 +5,7 @@
  *  for sample
  */
 
+#define DEBUG
 #include <common.h>
 #include <power/rk818_pmic.h>
 #include <power/rockchip_power.h>
@@ -16,6 +17,24 @@ DECLARE_GLOBAL_DATA_PTR;
 struct pmic_rk818 rk818;
 
 int support_dc_chg;
+
+enum rk818_regulator {
+	RK818_DCDC1=0,
+	RK818_DCDC2,
+	RK818_DCDC3,
+	RK818_DCDC4,
+	RK818_LDO1,
+	RK818_LDO2,
+	RK818_LDO3,
+	RK818_LDO4,
+	RK818_LDO5,
+	RK818_LDO6,
+	RK818_LDO7,
+	RK818_LDO8,
+	RK818_LDO9,
+	RK818_LDO10,
+	RK818_end
+};
 
 const static int buck_set_vol_base_addr[] = {
 	RK818_BUCK1_ON_REG,
@@ -88,7 +107,29 @@ static int rk818_i2c_probe(u32 bus, u32 addr)
 	
 }
 
-static int rk818_regulator_enable(int num_regulator)
+int rk818_regulator_disable(int num_regulator)
+{
+
+	if (num_regulator < 4)
+		i2c_reg_write(RK818_I2C_ADDR, RK818_DCDC_EN_REG,
+			i2c_reg_read(RK818_I2C_ADDR, RK818_DCDC_EN_REG) &(~(1 << num_regulator))); //enable dcdc
+	else if (num_regulator == 12)
+		i2c_reg_write(RK818_I2C_ADDR, RK818_DCDC_EN_REG,
+			i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG) &(~(1 << 5))); //enable ldo9
+	else if (num_regulator == 13)
+		i2c_reg_write(RK818_I2C_ADDR, RK818_DCDC_EN_REG,
+			i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG) &(~(1 << 6))); //enable ldo10
+	else
+	 	i2c_reg_write(RK818_I2C_ADDR, RK818_LDO_EN_REG,
+			i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG) &(~(1 << (num_regulator -4)))); //enable ldo
+
+	DEBUG("1 %s %d dcdc_en = %08x ldo_en =%08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG), i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG));
+
+	 return 0;
+}
+
+
+int rk818_regulator_enable(int num_regulator)
 {
 
 	if (num_regulator < 4)
@@ -104,7 +145,7 @@ static int rk818_regulator_enable(int num_regulator)
 	 	i2c_reg_write(RK818_I2C_ADDR, RK818_LDO_EN_REG,
 			i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG) |(1 << (num_regulator -4))); //enable ldo
 
-	debug("1 %s %d dcdc_en = %08x ldo_en =%08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG), i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG));
+	DEBUG("1 %s %d dcdc_en = %08x ldo_en =%08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR,RK818_DCDC_EN_REG), i2c_reg_read(RK818_I2C_ADDR,RK818_LDO_EN_REG));
 
 	 return 0;
 }
@@ -146,7 +187,7 @@ static int rk818_regulator_set_voltage(int num_regulator,
 		val = rk818_dcdc_select_min_voltage(min_uV,max_uV,num_regulator);	
 		i2c_reg_write(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator),
 			(i2c_reg_read(RK818_I2C_ADDR,rk818_BUCK_SET_VOL_REG(num_regulator) & 0x3f )) | val);
-		debug("1 %s %d dcdc_vol = %08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator)));
+		DEBUG("1 %s %d dcdc_vol = %08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator)));
 		return 0;
 	}else if (num_regulator == 6){
 	vol_map = ldo3_voltage_map;
@@ -178,7 +219,7 @@ static int rk818_regulator_set_voltage(int num_regulator,
 		i2c_reg_write(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator),
 			((i2c_reg_read(RK818_I2C_ADDR,rk818_LDO_SET_VOL_REG(num_regulator) & (~0x3f) )) | val));
 	
-	debug("1 %s %d %d ldo_vol =%08x\n", __func__, num_regulator, val, i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)));
+	DEBUG("1 %s %d %d ldo_vol =%08x\n", __func__, num_regulator, val, i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)));
 
 	return 0;
 
@@ -244,7 +285,7 @@ static int rk818_parse_dt(const void* blob)
 	rk818.node = node;
 	rk818.pmic->hw.i2c.addr = addr;
 	rk818.pmic->bus = bus;
-	debug("rk818 i2c_bus:%d addr:0x%02x\n", rk818.pmic->bus,
+	DEBUG("rk818 i2c_bus:%d addr:0x%02x\n", rk818.pmic->bus,
 		rk818.pmic->hw.i2c.addr);
 
 	return 0;
@@ -252,7 +293,7 @@ static int rk818_parse_dt(const void* blob)
 
 static int rk818_pre_init(unsigned char bus,uchar addr)
 {
-	debug("%s,line=%d\n", __func__,__LINE__);
+	DEBUG("%s,line=%d\n", __func__,__LINE__);
 	 
 	i2c_set_bus_num(bus);
 	i2c_init(RK818_I2C_SPEED, addr);
@@ -301,4 +342,31 @@ void pmic_rk818_shut_down(void)
 	i2c_reg_write(rk818.pmic->hw.i2c.addr, RK818_DEVCTRL_REG, (reg |(0x1 <<0)));
 
 }
+
+void pmic_rk818_power_init(void){
+	rk818_regulator_disable(RK818_LDO1);
+	rk818_regulator_disable(RK818_LDO2);
+	rk818_regulator_disable(RK818_LDO8);
+}
+
+void pmic_rk818_power_on(void){
+	rk818_regulator_enable(RK818_LDO4);
+	rk818_regulator_enable(RK818_LDO6);
+	//rk818_regulator_enable(RK818_LDO9);
+	//rk818_regulator_enable(RK818_LDO10);
+	
+	//gpio_direction_output(LCD_EN_PIN,1);
+	// mipi wakeup need 120ms
+	//mdelay(120);
+}
+
+void pmic_rk818_power_off(void){
+	//gpio_direction_output(LCD_EN_PIN,0);
+
+	rk818_regulator_disable(RK818_LDO6);
+	rk818_regulator_disable(RK818_LDO4);	
+	//rk818_regulator_disable(RK818_LDO9);
+	//rk818_regulator_disable(RK818_LDO10);
+}
+
 

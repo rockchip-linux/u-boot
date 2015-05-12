@@ -58,6 +58,20 @@ int get_power_bat_status(struct battery *battery)
 	return 0;
 }
 
+/*
+return 0: bat exist
+return 1: bat no exit
+*/
+int is_exist_battery(void)
+{
+	int ret;
+	struct battery battery;
+	memset(&battery,0, sizeof(battery));
+	ret = get_power_bat_status(&battery);
+	if (ret < 0)
+		return 0;
+	return battery.isexistbat;
+}
 
 /*
 return 0: no charger
@@ -104,7 +118,7 @@ int is_power_low(void)
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
 		return 0;
-	return (battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ? 1:0;	
+	return ((battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ||(battery.capacity<CONFIG_SYSTEM_ON_CAPACITY_THRESD))? 1:0;	
 }
 
 
@@ -296,4 +310,28 @@ void shut_down(void)
 			break;
 	}
 }
+
+// shutdown no use ldo
+void power_pmic_init(void){
+	
+#if defined(CONFIG_POWER_RK818)
+	pmic_rk818_power_init();
+#endif
+}
+
+// by wakeup open ldo
+void power_on_pmic(void){	
+#if defined(CONFIG_POWER_RK818)
+	pmic_rk818_power_on();
+#endif
+}
+
+
+// by wakeup close ldo
+void power_off_pmic(void){
+#if defined(CONFIG_POWER_RK818)
+	pmic_rk818_power_off();
+#endif		
+}
+
 

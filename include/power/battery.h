@@ -16,6 +16,7 @@ struct battery {
 	unsigned int voltage_uV;
 
 	unsigned int state;
+	unsigned int isexistbat;
 };
 
 int power_bat_init(unsigned char bus);
