@@ -397,12 +397,11 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
 
 #ifdef CONFIG_RK3036_TVE
                 for (i = 0; i < MAX_TVE_COUNT; i++) {
-                      if (hdmi_dev->base_paramer_tve.xres == rk3036_cvbs_mode[i].xres &&
+			if (hdmi_dev->base_paramer_tve.xres == rk3036_cvbs_mode[i].xres &&
                                         hdmi_dev->base_paramer_tve.yres == rk3036_cvbs_mode[i].yres &&
                                            hdmi_dev->base_paramer_tve.refresh == rk3036_cvbs_mode[i].refresh &&
                                             hdmi_dev->base_paramer_tve.interlaced == rk3036_cvbs_mode[i].vmode)
-                	}
-
+		}
 
                 if (i != MAX_TVE_COUNT) {
                         printf("preset tve resolution is %dx%d@%d-%d,i=%d\n", hdmi_dev->base_paramer_tve.xres, hdmi_dev->base_paramer_tve.yres, hdmi_dev->base_paramer_tve.refresh, hdmi_dev->base_paramer_tve.interlaced, i);
@@ -415,7 +414,7 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
 #endif
 
 #ifdef CONFIG_RK1000_TVE
-      for (i = 0; i < MAX_TVE_COUNT; i++) {
+		for (i = 0; i < MAX_TVE_COUNT; i++) {
                         if (hdmi_dev->base_paramer_tve.xres == rk1000_cvbs_mode[i].xres &&
                                         hdmi_dev->base_paramer_tve.yres == rk1000_cvbs_mode[i].yres &&
                                            hdmi_dev->base_paramer_tve.refresh == rk1000_cvbs_mode[i].refresh &&
@@ -432,9 +431,6 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
                         printf("tve baseparamer %dx%d@%d-%d\n", hdmi_dev->base_paramer_tve.xres, hdmi_dev->base_paramer_tve.yres, hdmi_dev->base_paramer_tve.refresh, hdmi_dev->base_paramer_tve.interlaced);
                 }
 #endif
-
-
-
     }
 	
 #if 0
@@ -1536,9 +1532,9 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 #endif
 	}
 
-#if (defined CONFIG_RK3036_TVE) || (defined CONFIG_RK1000_TVE)
+#if defined(CONFIG_RK3036_TVE) || defined(CONFIG_RK1000_TVE)
 	if(g_hdmi_noexit == 1)
-	g_tve_pos = g_pos_baseparamer.tve_pos;
+		g_tve_pos = g_pos_baseparamer.tve_pos;
 #endif
 
 }

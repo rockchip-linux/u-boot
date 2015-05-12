@@ -1,7 +1,5 @@
 #include <common.h>
 #include <asm/io.h>
-//#include <asm/arch/rk30_memap.h>
-//#include <asm/arch/rk30_drivers.h>
 #include <lcd.h>
 #include <linux/fb.h>
 #include <asm/arch/rkplat.h>
@@ -216,5 +214,4 @@ int rk1000_tve_init(vidinfo_t *panel)
 		rk1000_write_reg(0x40, 3, Tv_encoder_control_regs_ntsc, sizeof(Tv_encoder_control_regs_ntsc));		
 	
 	}
-
 }

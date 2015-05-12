@@ -447,7 +447,6 @@ void lcd_ctrl_init(void *lcdbase)
 		rk3036_tve_init(&panel_info);
 #endif
 
-
 #if defined(CONFIG_RK1000_TVE)
 #if defined(CONFIG_RK_HDMI)
 	if (g_hdmi_noexit == 1)
@@ -470,9 +469,6 @@ void lcd_ctrl_init(void *lcdbase)
 		rk1000_tve_init(&panel_info);
 
 #endif
-
-
-	
 }
 
 void lcd_enable(void)

@@ -168,7 +168,6 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
     	        v_MIPITTL_LANE3_EN(1);
     	grf_writel(val, GRF_SOC_CON1);
     }
-	
 	/* enable lane */
 	lvds_writel(lvds, MIPIPHY_REG0, 0x7f);
 	val = v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) | v_LANE3_EN(1) |
@@ -181,7 +180,6 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 	lvds_writel(lvds, MIPIPHY_REGE0, val);
 
 	rk31xx_lvds_pwr_on(vid);
-
 
 }
 
