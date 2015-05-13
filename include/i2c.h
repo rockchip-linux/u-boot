@@ -316,7 +316,7 @@ static inline u8 i2c_reg_read(u8 addr, u8 reg)
 #endif
 
 #ifdef DEBUG
-	//printf("%s: addr=0x%02x, reg=0x%02x\n", __func__, addr, reg);
+	printf("%s: addr=0x%02x, reg=0x%02x\n", __func__, addr, reg);
 #endif
 
 	i2c_read(addr, reg, 1, &buf, 1);
@@ -332,8 +332,8 @@ static inline void i2c_reg_write(u8 addr, u8 reg, u8 val)
 #endif
 
 #ifdef DEBUG
-	//printf("%s: addr=0x%02x, reg=0x%02x, val=0x%02x\n",
-	//       __func__, addr, reg, val);
+	printf("%s: addr=0x%02x, reg=0x%02x, val=0x%02x\n",
+	       __func__, addr, reg, val);
 #endif
 
 	i2c_write(addr, reg, 1, &val, 1);
