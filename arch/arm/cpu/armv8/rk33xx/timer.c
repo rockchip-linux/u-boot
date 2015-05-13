@@ -204,36 +204,3 @@ ulong get_tbclk(void)
 {
 	return CONFIG_SYS_HZ;
 }
-
-int timer1_init(uint64_t count)
-{
-	//1 s interrupt
-	writel(1*CONFIG_SYS_CLK_FREQ, RKIO_TIMER0_6CH_PHYS+0x20);
-	/* auto reload & enable the timer */
-	writel(0x05, RKIO_TIMER0_6CH_PHYS+0x20+0x10);
-
-	writel(0x01, RKIO_TIMER0_6CH_PHYS+0x20+0x18);
-
-	return 0;
-}
-
-void timer1_irq_init(void(*function)(void))
-{
-	irq_install_handler(IRQ_TIMER0_6CH_1, function, NULL);
-			/* default enable all gpio group interrupt */
-	irq_handler_enable(IRQ_TIMER0_6CH_1);
-}
-
-void timer1_irq_deinit(void)
-{
-	irq_handler_disable(IRQ_TIMER0_6CH_1);
-	irq_uninstall_handler(IRQ_TIMER0_6CH_1);
-}
-
-uint32 rk_timer1_get_curr_count(void)
-{
-	return readl(RKIO_TIMER0_6CH_PHYS+0x20+ TIMER_CURR_VALUE);
-}
-
-
-

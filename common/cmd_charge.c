@@ -87,7 +87,7 @@ u8 g_increment = 0;
 #define LITTLE_CHARGE_INCRE_TIME       300000
 #endif
 
-int timer_interrupt_wakeup=0;
+int timer_interrupt_wakeup = 0;
 
 //return duration(ms).
 static inline unsigned int get_fix_duration(unsigned int base) {
@@ -586,11 +586,51 @@ static inline void set_brightness(int brightness, screen_state* state) {
 	state->brightness = brightness;
 }
 
+#ifdef CONFIG_CHARGE_TIMER_WAKEUP
+#if defined(CONFIG_RKCHIP_RK3368)
+	#define RK_CHARGE_TIMER_BASE		(RKIO_TIMER0_6CH_PHYS+0x20)
+	#define RK_CHARGE_TIMER_IRQ		IRQ_TIMER0_6CH_1
+#else
+	#error "PLS config charge time wakeup for chip plat"
+#endif
+
+int timer1_init(uint64_t count)
+{
+	//1 s interrupt
+	writel(1*CONFIG_SYS_CLK_FREQ, RK_CHARGE_TIMER_BASE);
+	/* auto reload & enable the timer */
+	writel(0x05, RK_CHARGE_TIMER_BASE+0x10);
+
+	writel(0x01, RK_CHARGE_TIMER_BASE+0x18);
+
+	return 0;
+}
+
+void timer1_irq_init(void(*function)(void))
+{
+	irq_install_handler(RK_CHARGE_TIMER_IRQ, function, NULL);
+			/* default enable all gpio group interrupt */
+	irq_handler_enable(RK_CHARGE_TIMER_IRQ);
+}
+
+void timer1_irq_deinit(void)
+{
+	irq_handler_disable(RK_CHARGE_TIMER_IRQ);
+	irq_uninstall_handler(RK_CHARGE_TIMER_IRQ);
+}
+
+uint32 rk_timer1_get_curr_count(void)
+{
+	return readl(RK_CHARGE_TIMER_BASE+0x08);
+}
+
 void rk_timer1_isr(void){
 	//printf("rk_timer1_isr########\n");
-	timer_interrupt_wakeup=1;
-	writel(0x01, RKIO_TIMER0_6CH_PHYS+0x20+0x18);
+	timer_interrupt_wakeup = 1;
+	writel(0x01, RK_CHARGE_TIMER_BASE+0x18);
 }
+#endif /* CONFIG_CHARGE_TIMER_WAKEUP */
+
 extern struct rockchip_fb rockchip_fb;
 
 int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -618,10 +658,15 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	charge_start_time = get_timer(0);
 	debug("do_charge!!!!\n");
 	#endif
+
+#ifdef CONFIG_CHARGE_DEEP_SLEEP
+#ifdef CONFIG_CHARGE_TIMER_WAKEUP
 	//timer 1s wakeup cpu
 	timer1_init(CONFIG_SYS_CLK_FREQ);
+#endif
 	//close no use power
 	power_pmic_init();
+#endif /* CONFIG_CHARGE_DEEP_SLEEP */
 
 	/* enbale fb buffer flip */
 	lcd_enable_flip(true);
@@ -711,21 +756,25 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			//goto sleep, and wait for wakeup by power-key.
 			set_brightness(SCREEN_OFF, &g_state);
 			//printf("wakeup gpio init and sleep.\n");
-			timer_interrupt_wakeup=0;
+			timer_interrupt_wakeup = 0;
 			//close some ldo
 			power_off_pmic();
+#ifdef CONFIG_CHARGE_TIMER_WAKEUP
 			//timer enable
 			timer1_irq_init(rk_timer1_isr);
+#endif
 			rk_pm_wakeup_gpio_init();
 			rk_pm_enter(NULL);
 			rk_pm_wakeup_gpio_deinit();
+#ifdef CONFIG_CHARGE_TIMER_WAKEUP
 			timer1_irq_deinit();
+#endif
 			//close some ldo
   			power_on_pmic();
 			
 			mdelay(10);
 			if(!timer_interrupt_wakeup){
-				g_state.screen_on_time =0;
+				g_state.screen_on_time = 0;
 				if(brightness_status)
 					brightness = SCREEN_BRIGHT;
 				else
