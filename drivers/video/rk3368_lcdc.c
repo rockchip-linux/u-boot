@@ -23,6 +23,9 @@
 
 /*******************register definition**********************/
 struct lcdc_device rk33_lcdc;
+extern struct rockchip_fb rockchip_fb;
+// LCD en status
+int lcdEnstatus=-1;
 
 extern int rk31xx_lvds_enable(vidinfo_t * vid);
 extern int rk32_edp_enable(vidinfo_t * vid);
@@ -1245,9 +1248,16 @@ void rk_lcdc_standby(int enable)
 	if (((panel_info.screen_type == SCREEN_MIPI) ||
 		(panel_info.screen_type == SCREEN_DUAL_MIPI))) {
 		if (enable == 0) {
+			//the lcd power enable if lcd power seted disable 
+			if(lcdEnstatus)
+				rk_fb_pwr_enable(&rockchip_fb);
 			rk32_dsi_enable();
+			
 		} else if (enable == 1) {
 			rk32_dsi_disable();
+			//when lcd standby power off lcd 
+			rk_fb_pwr_disable(&rockchip_fb);
+			lcdEnstatus=1;
 		}
 	}
 #endif

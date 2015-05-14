@@ -476,15 +476,7 @@ void lcd_pandispaly(struct fb_dsp_info *info)
 
 void lcd_standby(int enable)
 {
-	if(enable)
-		rk_fb_pwr_disable(&rockchip_fb);
-	else{
-		rk_fb_pwr_enable(&rockchip_fb);
-		// mipi wakeup need 120ms
-		mdelay(120);
-	}
-	
-	rk_lcdc_standby(enable);	
+	rk_lcdc_standby(enable);			
 }
 
 /* dummy function */
