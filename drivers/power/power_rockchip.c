@@ -118,7 +118,11 @@ int is_power_low(void)
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
 		return 0;
-	return ((battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ||(battery.capacity<CONFIG_SYSTEM_ON_CAPACITY_THRESD))? 1:0;	
+#if defined(CONFIG_POWER_RK818)
+	return ((battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ||(battery.capacity<CONFIG_SYSTEM_ON_CAPACITY_THRESD))? 1:0;
+#else
+ 	return (battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ? 1:0;
+#endif
 }
 
 

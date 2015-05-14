@@ -79,8 +79,6 @@ extern uint32 rk_timer1_get_curr_count(void);
 extern int rk818_regulator_enable(int num_regulator);
 extern int rk818_regulator_disable(int num_regulator);
 
-extern struct rockchip_fb rockchip_fb;
-
 #ifdef CONFIG_POWER_FG_ADC
 u8 g_increment = 0;
 #define BIG_CHARGE_INCRE_TIME          100000
@@ -631,7 +629,6 @@ void rk_timer1_isr(void){
 }
 #endif /* CONFIG_CHARGE_TIMER_WAKEUP */
 
-extern struct rockchip_fb rockchip_fb;
 
 int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -678,7 +675,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			LOGD("should quit charge");
 			goto exit;
 		}
-
+		
 		if(!timer_interrupt_wakeup){
 			if(batt_status.capacity>BRIGHT_MAXLOW_BATTERY_CAPACITY){
 				brightness = SCREEN_BRIGHT;

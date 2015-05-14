@@ -239,9 +239,6 @@
 #if defined(CONFIG_POWER) && defined(CONFIG_POWER_RK)
 
 #define CONFIG_POWER_I2C
-#define CONFIG_SCREEN_ON_VOL_THRESD	3000
-#define CONFIG_SYSTEM_ON_VOL_THRESD	3600
-#define CONFIG_SYSTEM_ON_CAPACITY_THRESD  5
 
 /********************************** charger and pmic driver ********************************/
 #undef CONFIG_POWER_RK_SAMPLE
@@ -256,7 +253,16 @@
 #undef CONFIG_BATTERY_RK_SAMPLE
 #undef CONFIG_BATTERY_BQ27541
 #undef CONFIG_BATTERY_RICOH619
+/*******************************************************************************/
 
+#if defined(CONFIG_POWER_RK818)
+#define CONFIG_SCREEN_ON_VOL_THRESD	3000
+#define CONFIG_SYSTEM_ON_VOL_THRESD	3600
+#define CONFIG_SYSTEM_ON_CAPACITY_THRESD  5
+#else
+#define CONFIG_SCREEN_ON_VOL_THRESD	0
+#define CONFIG_SYSTEM_ON_VOL_THRESD	0
+#endif 
 #endif /* CONFIG_POWER */
 
 #endif /* __RK33PLAT_CONFIG_H */
