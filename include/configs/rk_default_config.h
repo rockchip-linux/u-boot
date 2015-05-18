@@ -326,7 +326,7 @@
 #define RK_BLK_SIZE			512
 
 /* rk mtd block size */
-#define CONFIG_MAX_PARTITIONS		16
+#define CONFIG_MAX_PARTITIONS		20
 
 
 /* fdt and rk resource support */
