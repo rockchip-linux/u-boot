@@ -145,11 +145,11 @@ static int gm7122_parse_dt(const void* blob)
 	}
 		
 	err=fdtdec_decode_gpio(blob, node, "gpio-reset", &gm7122_tve.io_reset);
-	if(err>0)
+	if(err>=0)
 		gpio_direction_output(gm7122_tve.io_reset.gpio, !gm7122_tve.io_reset.flags);
 
 	err=fdtdec_decode_gpio(blob, node, "gpio-sleep", &gm7122_tve.io_sleep);
-	if(err>0)
+	if(err>=0)
 		gpio_direction_output(gm7122_tve.io_sleep.gpio, gm7122_tve.io_sleep.flags);
 	
 	return 0;
