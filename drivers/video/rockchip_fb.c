@@ -447,6 +447,14 @@ void lcd_ctrl_init(void *lcdbase)
 		rk1000_tve_init_panel(&panel_info);
 #endif
 
+#if defined(CONFIG_GM7122_TVE)
+#if defined(CONFIG_RK_HDMI)
+	if (g_hdmi_noexit == 1)
+#endif
+		gm7122_tve_init_panel(&panel_info);
+		
+#endif
+
 	panel_info.logo_rgb_mode = RGB565;
 	rk_fb_pwr_enable(fb);
 	panel_info.real_freq = rkclk_lcdc_clk_set(panel_info.lcdc_id,
@@ -462,6 +470,15 @@ void lcd_ctrl_init(void *lcdbase)
 		rk1000_tve_init(&panel_info);
 
 #endif
+
+#if defined(CONFIG_GM7122_TVE)
+#if defined(CONFIG_RK_HDMI)
+	if (g_hdmi_noexit == 1)
+#endif
+		gm7122_tve_init(&panel_info);
+
+#endif
+
 }
 
 void lcd_enable(void)
