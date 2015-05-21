@@ -650,7 +650,10 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 
 	rk3368_lcdc_vid_to_win(fb_info, win);
 	win->csc_mode = rk3368_lcdc_csc_mode(lcdc_dev, fb_info, vid);
-	win->state = 1;
+	if (fb_info->yaddr)
+		win->state = 1;
+	else
+		win->state = 0;
 	win->mirror_en = 0;
 	win->area[0].dsp_stx = dsp_x_pos(win->mirror_en, screen, &win->area[0]);
 	win->area[0].dsp_sty = dsp_y_pos(win->mirror_en, screen, &win->area[0]);
