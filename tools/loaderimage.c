@@ -169,7 +169,9 @@ int main (int argc, char *argv[])
 		strcpy((char *)hdr.magic, RK_UBOOT_MAGIC);
 		hdr.loader_load_addr = CONFIG_SYS_TEXT_BASE;
 		hdr.loader_load_size = size;
-		fread(buf + sizeof(second_loader_hdr), size, 1, fi);
+		if (!fread(buf + sizeof(second_loader_hdr), size, 1, fi)) {
+			exit (EXIT_FAILURE);
+		}
 		hdr.crc32 = crc32((uint8_t *)buf + sizeof(second_loader_hdr), size);
 		printf("crc = 0x%08x\n", hdr.crc32);
 
@@ -193,8 +195,12 @@ int main (int argc, char *argv[])
 	}else if (mode == MODE_UNPACK){
 		printf("unpack input %s \n", argv[2]);
 		memset(&hdr, 0, sizeof(second_loader_hdr));
-		fread(&hdr, sizeof(second_loader_hdr), 1, fi);
-		fread(buf, hdr.loader_load_size, 1, fi);
+		if(!fread(&hdr, sizeof(second_loader_hdr), 1, fi)) {
+			exit (EXIT_FAILURE);
+		}
+		if(!fread(buf, hdr.loader_load_size, 1, fi)) {
+			exit (EXIT_FAILURE);
+		}
 		fwrite(buf, hdr.loader_load_size, 1, fo);
 		printf("unpack %s success! \n", argv[3]);
 	}

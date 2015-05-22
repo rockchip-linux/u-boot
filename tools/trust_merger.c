@@ -76,10 +76,14 @@ static inline void fixPath(char* path)
 
 static bool parseVersion(FILE* file)
 {
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_MAJOR "=%d", &gOpts.major) != 1)
 		return false;
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_MINOR "=%d", &gOpts.minor) != 1)
 		return false;
 	LOGD("major:%d, minor:%d\n", gOpts.major, gOpts.minor);
@@ -100,7 +104,9 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 	pbl3x = &gOpts.bl3x[bl3x_id];
 
 	/* SEC */
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_SEC "=%d", &pbl3x->sec) != 1)
 		return false;
 	LOGD("bl3%d sec: %d\n", bl3x_id, pbl3x->sec);
@@ -108,7 +114,9 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 		return true;
 
 	/* PATH */
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_PATH "=%s", buf) != 1)
 		return false;
 	fixPath(buf);
@@ -116,14 +124,18 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 	LOGD("bl3%d path:%s\n", bl3x_id, pbl3x->path);
 
 	/* ADDR */
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_ADDR "=%s", buf) != 1)
 		return false;
 	pbl3x->addr = strtoul(buf, NULL, 16);
 	LOGD("bl3%d addr:0x%x\n", bl3x_id, pbl3x->addr);
 
 	pos = ftell(file);
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 
 	return true;
 }
@@ -131,7 +143,9 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 
 static bool parseOut(FILE* file)
 {
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_OUT_PATH "=%[^\r^\n]", gOpts.outPath) != 1)
 		return false;
 	fixPath(gOpts.outPath);
@@ -196,7 +210,9 @@ static bool parseOpts(void)
 
 	LOGD("start parse\n");
 
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		goto end;
+	}
 	while(fscanf(file, "%s", buf) == 1) {
 		if (!strcmp(buf, SEC_VERSION)) {
 			versionOk = parseVersion(file);
@@ -240,7 +256,9 @@ static bool parseOpts(void)
 			LOGE("unknown sec: %s!\n", buf);
 			goto end;
 		}
-		SCANF_EAT(file);
+		if (SCANF_EAT(file) != 0) {
+			goto end;
+		}
 	}
 
 	if (bl30ok && bl31ok && bl32ok && bl33ok && outOk)

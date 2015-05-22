@@ -143,7 +143,9 @@ static inline void fixPath(char* path) {
 }
 
 static bool parseChip(FILE* file) {
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_NAME "=%s", gOpts.chip) != 1) {
 		return false;
 	}
@@ -152,10 +154,14 @@ static bool parseChip(FILE* file) {
 }
 
 static bool parseVersion(FILE* file) {
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_MAJOR "=%d", &gOpts.major) != 1)
 		return false;
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_MINOR "=%d", &gOpts.minor) != 1)
 		return false;
 	LOGD("major:%d, minor:%d\n", gOpts.major, gOpts.minor);
@@ -166,7 +172,9 @@ static bool parse471(FILE* file) {
 	int i, index, pos;
 	char buf[MAX_LINE_LEN];
 
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_NUM "=%d", &gOpts.code471Num) != 1)
 		return false;
 	LOGD("num:%d\n", gOpts.code471Num);
@@ -176,7 +184,9 @@ static bool parse471(FILE* file) {
 		return false;
 	gOpts.code471Path = (line_t*) malloc(sizeof(line_t) * gOpts.code471Num);
 	for (i=0; i<gOpts.code471Num; i++) {
-		SCANF_EAT(file);
+		if (SCANF_EAT(file) != 0) {
+			return false;
+		}
 		if (fscanf(file, OPT_PATH "%d=%[^\r^\n]", &index, buf)
 				!= 2)
 			return false;
@@ -186,7 +196,9 @@ static bool parse471(FILE* file) {
 		LOGD("path%i:%s\n", index, gOpts.code471Path[index]);
 	}
 	pos = ftell(file);
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_SLEEP "=%d", &gOpts.code471Sleep) != 1)
 		fseek(file, pos, SEEK_SET);
 	LOGD("sleep:%d\n", gOpts.code471Sleep);
@@ -197,7 +209,9 @@ static bool parse472(FILE* file) {
 	int i, index, pos;
 	char buf[MAX_LINE_LEN];
 
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_NUM "=%d", &gOpts.code472Num) != 1)
 		return false;
 	LOGD("num:%d\n", gOpts.code472Num);
@@ -207,7 +221,9 @@ static bool parse472(FILE* file) {
 		return false;
 	gOpts.code472Path = (line_t*) malloc(sizeof(line_t) * gOpts.code472Num);
 	for (i=0; i<gOpts.code472Num; i++) {
-		SCANF_EAT(file);
+		if (SCANF_EAT(file) != 0) {
+			return false;
+		}
 		if (fscanf(file, OPT_PATH "%d=%[^\r^\n]", &index, buf)
 				!= 2)
 			return false;
@@ -217,7 +233,9 @@ static bool parse472(FILE* file) {
 		LOGD("path%i:%s\n", index, gOpts.code472Path[index]);
 	}
 	pos = ftell(file);
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_SLEEP "=%d", &gOpts.code472Sleep) != 1)
 		fseek(file, pos, SEEK_SET);
 	LOGD("sleep:%d\n", gOpts.code472Sleep);
@@ -229,7 +247,9 @@ static bool parseLoader(FILE* file) {
 	char buf[MAX_LINE_LEN];
 	char buf2[MAX_LINE_LEN];
 
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	pos = ftell(file);
 	if (fscanf(file, OPT_NUM "=%d", &gOpts.loaderNum) != 1) {
 		fseek(file, pos, SEEK_SET);
@@ -244,7 +264,9 @@ static bool parseLoader(FILE* file) {
 		return false;
 	gOpts.loader = (name_entry*) malloc(sizeof(name_entry) * gOpts.loaderNum);
 	for (i=0; i<gOpts.loaderNum; i++) {
-		SCANF_EAT(file);
+		if (SCANF_EAT(file) != 0) {
+			return false;
+		}
 		if (fscanf(file, OPT_LOADER_NAME "%d=%s", &index, buf)
 				!= 2)
 			return false;
@@ -253,7 +275,9 @@ static bool parseLoader(FILE* file) {
 		LOGD("name%d:%s\n", index, gOpts.loader[index].name);
 	}
 	for (i=0; i<gOpts.loaderNum; i++) {
-		SCANF_EAT(file);
+		if (SCANF_EAT(file) != 0) {
+			return false;
+		}
 		if (fscanf(file, "%[^=]=%[^\r^\n]", buf, buf2)
 				!= 2)
 			return false;
@@ -273,7 +297,9 @@ static bool parseLoader(FILE* file) {
 }
 
 static bool parseOut(FILE* file) {
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		return false;
+	}
 	if (fscanf(file, OPT_OUT_PATH "=%[^\r^\n]", gOpts.outPath) != 1)
 		return false;
 	fixPath(gOpts.outPath);
@@ -339,7 +365,9 @@ static bool parseOpts(void) {
 
 	LOGD("start parse\n");
 
-	SCANF_EAT(file);
+	if (SCANF_EAT(file) != 0) {
+		goto end;
+	}
 	while(fscanf(file, "%s", buf) == 1) {
 		if (!strcmp(buf, SEC_CHIP)) {
 			chipOk = parseChip(file);
@@ -383,7 +411,9 @@ static bool parseOpts(void) {
 			LOGE("unknown sec: %s!\n", buf);
 			goto end;
 		}
-		SCANF_EAT(file);
+		if (SCANF_EAT(file) != 0) {
+			goto end;
+		}
 	}
 
 	if (chipOk && versionOk && code471Ok && code472Ok
