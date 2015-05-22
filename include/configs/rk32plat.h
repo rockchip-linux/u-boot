@@ -151,7 +151,7 @@
 
 #define CONFIG_RK32_DSI
 
-#undef CONFIG_UBOOT_CHARGE
+#define CONFIG_UBOOT_CHARGE
 
 #else
 
@@ -179,6 +179,10 @@
 #define CONFIG_POWER_I2C
 #define CONFIG_SCREEN_ON_VOL_THRESD	0
 #define CONFIG_SYSTEM_ON_VOL_THRESD	0
+
+#define CONFIG_RK818_SCREEN_ON_VOL_THRESD	3000
+#define CONFIG_RK818_SYSTEM_ON_VOL_THRESD	3600
+#define CONFIG_RK818_SYSTEM_ON_CAPACITY_THRESD  5
 
 /********************************** charger and pmic driver ********************************/
 #undef CONFIG_POWER_RK_SAMPLE

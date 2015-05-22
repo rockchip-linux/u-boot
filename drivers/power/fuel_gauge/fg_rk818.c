@@ -180,7 +180,7 @@ static  int32_t abs_int(int32_t x)
 static void dc_gpio_init(void)
 {
 	int value=0; 
-
+#if CONFIG_RKCHIP_RK3368
 	grf_writel((0x0 << 12) | (0x1 << (12 + 16)), GRF_SOC_CON15);
 	
 	//io mux
@@ -190,7 +190,7 @@ static void dc_gpio_init(void)
 	pmugrf_writel((0x01 << 2) | (0x3 << (2+ 16)),PMU_GRF_GPIO0C_P);
 	
 	grf_writel((0x1 << 12) | (0x1 << (12 + 16)), GRF_SOC_CON15);
-
+#endif
 	return 0;
 }
 
