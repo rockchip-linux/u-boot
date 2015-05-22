@@ -213,7 +213,7 @@ void FW_SorageLowFormat(void)
 {
 	if(FWLowFormatEn)
 	{
-		if(gpMemFun->LowFormat)
+		if(gpMemFun->LowFormat && !SecureBootLock)
 		{
 			gpMemFun->Valid = 0;
 			gpMemFun->LowFormat();
@@ -413,7 +413,7 @@ int StorageEraseBlock(uint32 blkIndex, uint32 nblk, uint8 mod)
 {
 	int Status = FTL_OK;
 
-	if(gpMemFun->Erase)
+	if(gpMemFun->Erase && !SecureBootLock)
 	{
 		Status = gpMemFun->Erase(0, blkIndex, nblk, mod);
 	}
