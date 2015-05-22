@@ -2,25 +2,8 @@
  * (C) Copyright 2008-2014 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
-
 #include <common.h>
 #include <malloc.h>
 #include <ubi_uboot.h>
@@ -47,10 +30,6 @@
         debug("\n");\
     }while(0);
 
-
-#define spin_lock_init(...)
-#define spin_lock_irqsave(...)
-#define spin_unlock_irqrestore(...)
 
 /**
  * struct rk_pl330_dmac - Logical representation of a PL330 DMAC.
@@ -123,11 +102,17 @@ static LIST_HEAD(dmac_list);
 /* All channels to peripherals in the platform */
 static LIST_HEAD(chan_list);
 
+#if 0
+#define spin_lock_init(...)
+#define spin_lock_irqsave(...)
+#define spin_unlock_irqrestore(...)
+
 /*
  * Since we add resources(DMACs and Channels) to the global pool,
  * we need to guard access to the resources using a global lock
  */
 static DEFINE_SPINLOCK(res_lock);
+#endif
 
 /* Returns the channel with ID 'id' in the chan_list */
 static struct rk_pl330_chan *id_to_chan(const enum dma_ch id)
@@ -1022,7 +1007,7 @@ int rk_dma_setflags(enum dma_ch id, unsigned int options)
 
 	spin_unlock_irqrestore(&res_lock, flags);
 
-	return 0;
+	return ret;
 }
 
 
@@ -1120,13 +1105,13 @@ static inline void *rk_pl330_dmac_get_base(int dmac_id)
 {
 #ifdef CONFIG_RK_DMAC_0
 	if (dmac_id == 0) {
-		return RK_DMAC0_BASE;
+		return (void *)RK_DMAC0_BASE;
 	}
 #endif
 
 #ifdef CONFIG_RK_DMAC_1
 	if (dmac_id == 1) {
-		return RK_DMAC1_BASE;
+		return (void *)RK_DMAC1_BASE;
 	}
 #endif
 
@@ -1135,8 +1120,12 @@ static inline void *rk_pl330_dmac_get_base(int dmac_id)
 
 
 /* dmac pl330 info */
+#ifdef CONFIG_RK_DMAC_0
 static struct pl330_info	*g_pl330_info_0 = NULL;
+#endif
+#ifdef CONFIG_RK_DMAC_1
 static struct pl330_info	*g_pl330_info_1 = NULL;
+#endif
 
 static inline struct pl330_info *rk_pl330_dmac_get_info(int dmac_id)
 {

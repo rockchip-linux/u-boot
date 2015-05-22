@@ -157,7 +157,7 @@ uint32_t fdtdec_get_reg(const void *blob, int node)
 	uint32_t addr;
 
 	/* note: here iobase reg should use 2 cells */
-	cell = fdt_getprop(blob, node, "reg", NULL);
+	cell = (uint32_t *)fdt_getprop(blob, node, "reg", NULL);
 	cell++;
 	addr = (u32)fdt32_to_cpu(*cell);
 

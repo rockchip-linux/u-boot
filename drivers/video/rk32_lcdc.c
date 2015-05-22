@@ -66,6 +66,7 @@ static int inline lvds_writel(uint32 offset, uint32 val)
 	return 0;
 }
 
+#if 0
 static int rk32_lvds_disable(void)
 {
 	grf_writel(0x80008000, GRF_SOC_CON7);
@@ -74,6 +75,7 @@ static int rk32_lvds_disable(void)
 	writel(0xff, lvds_regs + LVDS_CFG_REG_c); /*disable pll*/
 	return 0;
 }
+#endif
 
 static int rk32_lvds_en(vidinfo_t *vid)
 {

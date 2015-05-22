@@ -29,10 +29,10 @@
 extern uint32 lMemApiInit(uint32 BaseAddr);
 extern void LMemApiReadId(uint8 chipSel, void *pbuf);
 extern void LMemApiFlashInfo(void *pbuf);
-extern uint32 LMemApiReadPba(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec);
-extern uint32 LMemApiWritePba(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec);
-extern uint32 LMemApiReadLba(uint8 ChipSel, uint32 LBA ,void *pbuf, uint16 nSec);
-extern uint32 LMemApiWriteLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec, uint16 mode);
+extern uint32 LMemApiReadPba(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec);
+extern uint32 LMemApiWritePba(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec);
+extern uint32 LMemApiReadLba(uint8 ChipSel, uint32 LBA ,void *pbuf, uint32 nSec);
+extern uint32 LMemApiWriteLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint32 mode);
 extern uint32 LMemApiGetCapacity(uint8 ChipSel);
 extern uint32 LMemApiSysDataLoad(uint8 ChipSel, uint32 Index, void *Buf);
 extern uint32 LMemApiSysDataStore(uint8 ChipSel, uint32 Index, void *Buf);

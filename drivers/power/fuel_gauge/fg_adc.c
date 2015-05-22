@@ -17,6 +17,10 @@ DECLARE_GLOBAL_DATA_PTR;
 #define write_XDATA(address, value)	(*((uint16 volatile*)(address)) = value)
 #define write_XDATA32(address, value)	(*((uint32 volatile*)(address)) = value)
 
+extern void DRVDelayUs(uint32 count);
+extern uint32 StorageSysDataLoad(uint32 Index, void *Buf);
+extern uint32 StorageSysDataStore(uint32 Index, void *Buf);
+
 typedef struct {
 	uint32	index;
 	uint32	data;
@@ -99,12 +103,12 @@ static int adc_get_vol(void)
 }
 static int vol_to_capacity(int BatVoltage)
 {
-	int capacity;
-	int charge_level;
+	int capacity = 0;
+	int charge_level = 0;
 	int  *p;
 	int i;
 
-	p = fg_adc.bat_table;
+	p = (int *)fg_adc.bat_table;
 	if (0 == charge_level) {
 		if (BatVoltage >=  (p[2*BATT_NUM + 5])) {
 			capacity = 100;
@@ -138,6 +142,8 @@ int fg_adc_storage_load(void)
 		debug("tmp_buf[%d] is %d\n", ADC_CAPACITY_OFFSET, tmp_buf[ADC_CAPACITY_OFFSET]);
 		return tmp_buf[ADC_CAPACITY_OFFSET];
 	}
+
+	return 0;
 }
 
 int fg_adc_storage_store(u8 capacity)
@@ -148,6 +154,8 @@ int fg_adc_storage_store(u8 capacity)
 		tmp_buf[ADC_CAPACITY_OFFSET] = capacity;
 		StorageSysDataStore(STORAGE_SYSDATA_SECTOR2, tmp_buf);
 	}
+
+	return 0;
 }
 
 int fg_adc_storage_flag_store(bool flag)
@@ -158,6 +166,8 @@ int fg_adc_storage_flag_store(bool flag)
 		tmp_buf[ADC_CHARGE_FLAG_OFFSET] = flag;
 		StorageSysDataStore(STORAGE_SYSDATA_SECTOR2, tmp_buf);
 	}
+
+	return 0;
 }
 
 int fg_adc_storage_flag_load(void)
@@ -169,6 +179,8 @@ int fg_adc_storage_flag_load(void)
 		debug("tmp_buf[%d] is %d\n", ADC_CHARGE_FLAG_OFFSET, tmp_buf[ADC_CHARGE_FLAG_OFFSET]);
 		return tmp_buf[ADC_CHARGE_FLAG_OFFSET];
 	}
+
+	return 0;
 }
 
 static int get_capacity(int volt)
@@ -206,14 +218,6 @@ static struct power_fg adc_fg_ops = {
 static int rk_adcbat_parse_dt(const void *blob)
 {
 	int node;
-	struct fdt_gpio_state dc_det_gpios;
-	struct fdt_gpio_state charge_ctrl_gpios;
-	u32 support_ac_charge;
-	u32 support_usb_charge;
-	int err;
-
-	struct fdt_gpio_state gpios;
-
 
 	node = fdt_node_offset_by_compatible(blob,
 					0, "rk30-adc-battery");
@@ -234,7 +238,7 @@ static int rk_adcbat_parse_dt(const void *blob)
 	fg_adc.support_usb_charge  =
 		fdtdec_get_int(blob, node, "is_usb_charge", 1);
 
-	err = fdtdec_get_int_array(blob, node, "bat_table", fg_adc.bat_table,
+	fdtdec_get_int_array(blob, node, "bat_table", fg_adc.bat_table,
 				   ARRAY_SIZE(fg_adc.bat_table));
 
 	fg_adc.p = pmic_alloc();

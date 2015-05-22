@@ -427,7 +427,6 @@ static int rk_i2c_write(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len, uc
 	uint bytes_remain_len = b_len + r_len + 1;
 	uint bytes_tranfered_len = 0;
 	uint words_tranfered_len = 0;
-	uint con = 0;
 	uint txdata;
 	uint i, j;
 

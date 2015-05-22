@@ -1,25 +1,8 @@
 /*
  * (C) Copyright 2008-2014 Rockchip Electronics
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
- * Configuation settings for the rk3xxx chip platform.
- *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <asm/io.h>
 #include "../config.h"
@@ -50,7 +33,7 @@ void DRVDelayMs(uint32 count)
 
 
 
-uint32 CacheFlushDRegion(uint32 adr, uint32 size)
+void CacheFlushDRegion(uint32 adr, uint32 size)
 {
 #ifndef CONFIG_SYS_DCACHE_OFF
 	flush_cache(adr, size);
@@ -167,10 +150,11 @@ void SDCReset(uint32 sdmmcId)
 	}
 }
 
-int32 SCUSelSDClk(uint32 sdmmcId, uint32 div)
+
+int SCUSelSDClk(uint32 sdmmcId, uint32 div)
 {
 	debug("SCUSelSDClk: sd id = %d, div = %d\n", sdmmcId, div);
-	rkclk_set_mmc_clk_div(sdmmcId, div);
+	return rkclk_set_mmc_clk_div(sdmmcId, div);
 }
 
 
@@ -195,11 +179,25 @@ void FW_NandDeInit(void)
 	if(gpMemFun->flag == BOOT_FROM_FLASH) {
 		FtlDeInit();
 		FlashDeInit();
+
+		return;
 	}
 #endif
 
-#if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
-	SdmmcDeInit();
+#if defined(RK_SDMMC_BOOT_EN)
+	if(gpMemFun->flag == BOOT_FROM_EMMC) {
+		SdmmcDeInit(2);
+
+		return;
+	}
+#endif
+
+#if defined(RK_SDCARD_BOOT_EN)
+	if (gpMemFun->flag == BOOT_FROM_SD0) {
+		SdmmcDeInit(0);
+
+		return;
+	}
 #endif
 }
 

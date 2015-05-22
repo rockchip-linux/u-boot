@@ -86,10 +86,10 @@ extern uint32 StorageSDCardUpdateMode(void);
 
 //local memory operation function
 typedef uint32 (*Memory_Init)(uint32 BaseAddr);
-typedef uint32 (*Memory_ReadPba)(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec);
-typedef uint32 (*Memory_WritePba)(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec);
-typedef uint32 (*Memory_ReadLba)(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec);
-typedef uint32 (*Memory_WriteLba)(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec, uint16 mode);
+typedef uint32 (*Memory_ReadPba)(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec);
+typedef uint32 (*Memory_WritePba)(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec);
+typedef uint32 (*Memory_ReadLba)(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec);
+typedef uint32 (*Memory_WriteLba)(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint32 mode);
 typedef uint32 (*Memory_Erase)(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod);
 typedef void (*Memory_ReadID)(uint8 ChipSel, void *buf);
 typedef void (*Memory_ReadInfo)(void *buf);

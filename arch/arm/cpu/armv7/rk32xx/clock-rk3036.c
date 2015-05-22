@@ -106,7 +106,7 @@ struct pll_data {
 }
 
 
-static const struct pll_clk_set apll_clks[] = {
+static struct pll_clk_set apll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, 
 	//	_core_div, _core_peri_div, _core_aclk_civ, _cpu_aclk_div, _cpu_hclk_div, _cpu_pclk_div
 	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 4, 4, 4, 2, 2),
@@ -114,7 +114,7 @@ static const struct pll_clk_set apll_clks[] = {
 };
 
 
-static const struct pll_clk_set gpll_clks[] = {
+static struct pll_clk_set gpll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	//	aclk_div, hclk_div, pclk_div
 	_GPLL_SET_CLKS(1188000, 2, 99, 1, 1, 1, 0,	8, 2, 2),
@@ -771,7 +771,6 @@ int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
  */
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
-	uint32 pll_src;
 	uint32 dclk_div;
 	uint32 dclk_info = 0;
 
@@ -937,7 +936,7 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 
 	con =  cru_readl(CRU_CLKSELS_CON(25));
 	sel = (con >> 8) & 0x3;
-	div = con & 0x7F + 1;
+	div = (con & 0x7F) + 1;
 
 	/* rk3036 sd clk pll can be from arm pll/ddr pll/general pll, defualt general pll */
 	if (sel == 0) {

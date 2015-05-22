@@ -116,6 +116,7 @@ static int gpio_irq_set_type(int gpio_irq, unsigned int type)
 }
 
 
+#if 0
 /**
  * ACK gpio interrupt
  */
@@ -137,6 +138,8 @@ static int gpio_irq_ack(int gpio_irq)
 
 	return 0;
 }
+#endif
+
 
 /**
  * Enable gpio interrupt

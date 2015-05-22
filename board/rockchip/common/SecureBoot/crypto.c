@@ -171,10 +171,10 @@ int32 CryptoRSAStart(uint32 *AddrM, uint32 *AddrN, uint32 *AddrE, uint32 *AddrC)
 {
 	CryptoReg->CRYPTO_INTSTS = (0x1<<5);  //clean PKA Done Interrupt
 
-	memcpy(&CryptoReg->CRYPTO_PKA_M, AddrM, 256);
-	memcpy(&CryptoReg->CRYPTO_PKA_N, AddrN, 256);
-	memcpy(&CryptoReg->CRYPTO_PKA_E, AddrE, 256);
-	memcpy(&CryptoReg->CRYPTO_PKA_C, AddrC, 256);
+	memcpy((void *)&CryptoReg->CRYPTO_PKA_M, (void *)AddrM, 256);
+	memcpy((void *)&CryptoReg->CRYPTO_PKA_N, (void *)AddrN, 256);
+	memcpy((void *)&CryptoReg->CRYPTO_PKA_E, (void *)AddrE, 256);
+	memcpy((void *)&CryptoReg->CRYPTO_PKA_C, (void *)AddrC, 256);
 
 	while(CryptoReg->CRYPTO_CTRL & 0x10);
 
@@ -222,7 +222,6 @@ int32 CryptoRSACheck(void)
 int32 CryptoRSAVerify(BOOT_HEADER *pHead, uint32 SigOffset)
 {
 	int32 ret;
-	uint32 rsaResult[8];
 
 	CryptoRSAInit((uint32*)((uint32)pHead + SigOffset), pHead->RSA_N, pHead->RSA_E, pHead->RSA_C);
 	CryptoSHAInit(SigOffset, 256);

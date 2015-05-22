@@ -325,7 +325,7 @@ static int rk32_hdmi_video_frameComposer(struct hdmi_dev *hdmi_dev, struct hdmi_
 		vpara->color_output_depth = 8;
 		hdmi_dev->tmdsclk = mode->pixclock;
 	}
-	printf("tmdsclk is %d\n", hdmi_dev->tmdsclk);
+	printf("tmdsclk is %lu\n", hdmi_dev->tmdsclk);
 	hdmi_dev->pixelclk = mode->pixclock;
 	hdmi_dev->pixelrepeat = timing->pixelrepeat;
 	hdmi_dev->colordepth = vpara->color_output_depth;
@@ -964,7 +964,7 @@ void rk32_hdmi_probe(vidinfo_t *panel)
 
 		rk_hdmi_register(hdmi_dev, panel);
 	}else {
-		printf("%s: hdmi_dev %#x  panel %#x\n", __func__, hdmi_dev, panel);
+		printf("%s: hdmi_dev 0x%p  panel 0x%p\n", __func__, hdmi_dev, panel);
 	}
 
 	free(hdmi_dev);

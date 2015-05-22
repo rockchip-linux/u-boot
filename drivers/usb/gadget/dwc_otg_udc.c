@@ -30,6 +30,7 @@
 #include <usbdevice.h>
 #include <usb/dwc_otg_udc.h>
 #include <asm/arch/rkplat.h>
+#include "ep0.h"
 #include "dwc_otg_regs.h"
 
 
@@ -148,7 +149,7 @@ static volatile uint16_t	BulkEpSize;
 
 
 static void udc_stall_ep(uint32_t ep_num);
-static void dwc_otg_epn_rx(uint32_t);
+static void dwc_otg_epn_rx(uint32_t len);
 static void dwc_otg_epn_tx(struct usb_endpoint_instance *endpoint);
 
 extern void rkplat_uart2UsbEn(uint32 en);
@@ -156,6 +157,7 @@ extern void rkplat_uart2UsbEn(uint32 en);
 extern uint32_t SecureBootLock;
 extern uint32_t SecureBootLock_backup;
 
+extern uint32 FW_StorageGetValid(void);
 
 /**************************************************************************
 读取端点数据
@@ -164,7 +166,7 @@ static void ReadEndpoint0(uint16_t len, void *buf)
 {
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
-	flush_cache((uint32_t)buf, (uint32_t)len);
+	flush_cache((unsigned long)buf, (unsigned long)len);
 	OtgReg->Device.OutEp[0].DoEpDma = (uint32_t)buf;
 	OtgReg->Device.OutEp[0].DoEpTSiz = Ep0PktSize | (1<<29) | (1<<19);
 	/* Active ep, Clr Nak, endpoint enable */
@@ -175,7 +177,7 @@ static void ReadEndpoint0(uint16_t len, void *buf)
 /**************************************************************************
 写端点
 ***************************************************************************/
-static void WriteEndpoint0(uint16_t len, void* buf)
+static void WriteEndpoint0(uint16_t len, void *buf)
 {
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	const uint32 gnptxsts = OtgReg->Core.gnptxsts;
@@ -335,7 +337,7 @@ static void ControlInPacket(void)
 		if (length > Ep0PktSize)
 			length = Ep0PktSize;
 
-		WriteEndpoint0(length, Ep0Buf);
+		WriteEndpoint0(length, (void *)Ep0Buf);
 		ControlData.pData += length;
 		ControlData.wLength -= length;
 		if (ControlData.wLength == 0)
@@ -466,7 +468,7 @@ void UdcInit(void)
 
 static void ep0in_ack(void)
 {
-	WriteEndpoint0(0, NULL);
+	WriteEndpoint0(0, (void *)NULL);
 }
 
 static void set_address(void)
@@ -479,7 +481,7 @@ static void set_address(void)
 
 void HaltBulkEndpoint(uint8 ep_num)
 {
-	uint32 regBak,count;
+	uint32 count;
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	switch(ep_num) {
@@ -560,7 +562,6 @@ void HaltBulkEndpoint(uint8 ep_num)
 	default:
 		printf("Invalid bulk ep num!\n");
 	}
-
 }
 
 void clear_feature(uint8 ep_num)
@@ -591,6 +592,7 @@ void clear_feature(uint8 ep_num)
 /***************************************************************************
 返回stall应答
 ***************************************************************************/
+#if 0
 static void stall_ep0(void)
 {
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
@@ -598,6 +600,7 @@ static void stall_ep0(void)
 	OtgReg->Device.OutEp[0].DoEpCtl |= 1<<21;  //send OUT0 stall handshack
 	OtgReg->Device.InEp[0].DiEpCtl |= 1<<21;   //send IN0 stall handshack
 }
+#endif
 
 static void set_configuration(void)
 {
@@ -672,8 +675,8 @@ static bool dwc_otg_fix_test_ready(int len, void *buf)
 static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 {
 	usbdbg("-> Entering device setup\n");
-	ftl_memcpy(&ep0_urb->device_request, Ep0Buf, 8);
-	ftl_memcpy(&ControlData.DeviceRequest, Ep0Buf, 8);
+	memcpy((void *)&ep0_urb->device_request, (void *)Ep0Buf, 8);
+	memcpy((void *)&ControlData.DeviceRequest, (void *)Ep0Buf, 8);
 
 	/* Try to process setup packet */
 	if (ep0_recv_setup(ep0_urb)) {
@@ -729,7 +732,7 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 		
 		usbdbg("urb->buffer %p, buffer_length %d, actual_length %d\n",
 			ep0_urb->buffer,ep0_urb->buffer_length, ep0_urb->actual_length);
-		ftl_memcpy(Ep0Buf, ep0_urb->buffer, ep0_urb->actual_length);
+		memcpy((void *)Ep0Buf, (void *)ep0_urb->buffer, ep0_urb->actual_length);
 		
 		//WriteEndpoint0(ep0_urb->actual_length, Ep0Buf);
 		ControlData.pData = (uint8_t*)&Ep0Buf[0];
@@ -744,10 +747,7 @@ static void dwc_otg_setup(struct usb_endpoint_instance *endpoint)
 static void dwc_otg_enum_done_intr(void)
 {
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
-	struct usb_endpoint_instance *endpoint;
 
-	endpoint = &udc_device->bus->endpoint_array[1];
-	
 	BulkEpSize = FS_BULK_TX_SIZE;
 	switch ((OtgReg->Device.dsts>>1) & 0x03)
 	{
@@ -765,7 +765,7 @@ static void dwc_otg_enum_done_intr(void)
 			break;
 	}
 	OtgReg->Device.dctl |= 1<<8;               //clear global IN NAK
-	ReadEndpoint0(Ep0PktSize, Ep0Buf);
+	ReadEndpoint0(Ep0PktSize, (void *)Ep0Buf);
 	OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl = (1<<28) | (1<<15) | (2<<18) | (BULK_IN_EP<<22);
 }
 
@@ -851,7 +851,7 @@ static void dwc_otg_out_intr(void)
 					//	Ep0OutPacket(len);
 					//usberr("ep0 out packet receive");
 					}
-					ReadEndpoint0(Ep0PktSize, Ep0Buf);
+					ReadEndpoint0(Ep0PktSize, (void *)Ep0Buf);
 				}
 				else
 				{
@@ -876,7 +876,7 @@ static void dwc_otg_out_intr(void)
 			{
 				OtgReg->Device.OutEp[i].DoEpInt=0x08;
 				dwc_otg_setup(udc_device->bus->endpoint_array);
-				ReadEndpoint0(Ep0PktSize, Ep0Buf);
+				ReadEndpoint0(Ep0PktSize, (void *)Ep0Buf);
 			}
 			if ((event & 0x20) != 0)        //StsPhseRcvd
 			{
@@ -959,9 +959,9 @@ static void dwc_otg_epn_rx(uint32_t len)
 			//get available size for next xfer.
 			remaining_space = urb->buffer_length - urb->actual_length;
 			usbdbg("buffer_length:%d, actual_length:%x, len:%x\n", urb->buffer_length, urb->actual_length, len);
-			if (!dwc_otg_fix_test_ready(len, urb->buffer))
+			if (!dwc_otg_fix_test_ready(len, (void *)urb->buffer))
 				return;
-			len = len <= remaining_space ? len : remaining_space;
+			len = (len <= remaining_space) ? len : remaining_space;
 		}
 		urb->status = RECV_OK;
 		usbd_rcv_complete(endpoint, len, 0);
@@ -1064,7 +1064,7 @@ void udc_connect(void)
 	UdcInit();
 	OtgReg->Device.dctl &= ~0x02;	//soft connect
 
-	irq_install_handler(IRQ_USB_OTG, udc_irq, NULL);
+	irq_install_handler(IRQ_USB_OTG, (interrupt_handler_t *)udc_irq, (void *)NULL);
 	irq_handler_enable(IRQ_USB_OTG);
 
 	usbdbg("OtgReg->Core.grstctl = 0x%08x\n", OtgReg->Core.grstctl);

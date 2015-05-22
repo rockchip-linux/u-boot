@@ -32,6 +32,10 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define RKPM_VERSION		"1.1"
 
+#ifdef CONFIG_OF_LIBFDT
+extern struct fdt_gpio_state *rkkey_get_powerkey(void);
+#endif
+
 
 /*
  * rkpm wakeup gpio init
@@ -50,7 +54,7 @@ void rk_pm_wakeup_gpio_init(void)
 	irq = gpio_to_irq(wakeup_gpio);
 	if (irq != INVALID_GPIO) {
 		/* gpio pin just use to wakeup, no need isr handle */
-		irq_install_handler(irq, -1, NULL);
+		irq_install_handler(irq, (interrupt_handler_t *)-1, NULL);
 		irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
 		irq_handler_enable(irq);
 	}

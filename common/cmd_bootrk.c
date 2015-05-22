@@ -188,7 +188,7 @@ static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr,
 	/* loader fdt */
 #ifdef CONFIG_OF_LIBFDT
 	resource_content content =
-		rkimage_load_fdt_ram(secaddr, hdr->second_size);
+		rkimage_load_fdt_ram((void *)secaddr, hdr->second_size);
 	if (!content.load_addr) {
 		printf("failed to load fdt from %p!\n", ram_addr);
 #ifdef CONFIG_OF_FROM_RESOURCE
@@ -290,9 +290,9 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 			/* load fdt from boot image sencode address */
 			#ifdef CONFIG_OF_LIBFDT
 			debug("Try to load fdt from second address.\n");
-			content = rkimage_load_fdt_ram(hdr->second_addr, hdr->second_size);
+			content = rkimage_load_fdt_ram((void *)(hdr->second_addr), hdr->second_size);
 			if (!content.load_addr) {
-				printf("failed to load fdt from second address %p!\n", hdr->second_addr);
+				printf("failed to load fdt from second address %u!\n", hdr->second_addr);
 			}
 			#endif /* CONFIG_OF_LIBFDT */
 		}
@@ -328,7 +328,7 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 
 		/* if image check error, boot fail */
-		board_fbt_boot_failed(ptn->name);
+		board_fbt_boot_failed((const char *)ptn->name);
 	}
 
 	/* loader fdt from resource if content.load_addr == NULL */
@@ -456,11 +456,11 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 	 * offset is optional, depend on resource image has kernel_logo.bmp.
 	 */
 	snprintf(command_line, sizeof(command_line),
-			"%s uboot_logo=0x%08lx@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
+			"%s uboot_logo=0x%08x@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
 #if defined(CONFIG_KERNEL_LOGO)
 	if (g_rk_fb_size != -1)
 		snprintf(command_line, sizeof(command_line),
-				"%s:0x%08lx", command_line, g_rk_fb_size);
+				"%s:0x%08x", command_line, g_rk_fb_size);
 #endif /* CONFIG_KERNEL_LOGO */
 #endif /* CONFIG_RK_FB_DDREND */
 

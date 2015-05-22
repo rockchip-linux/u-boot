@@ -5,6 +5,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
+#include <malloc.h>
 #include <fdtdec.h>
 #include <asm/io.h>
 #include <asm/arch/rkplat.h>
@@ -20,8 +21,6 @@ static char *bc_string[USB_BC_TYPE_MAX] = {
 	"Charging Downstream Port",
 	"UNKNOW"
 };
-
-static enum bc_port_type usb_charger_status = USB_BC_TYPE_DISCNT;
 
 static enum usb_bc_t gusb_bc_type = USB_BC_UNKNOW;
 
@@ -315,14 +314,14 @@ static inline void uoc_init_inno(const void *blob, int np)
 static int usb_battery_charger_init_fdt(const void *blob)
 {
 	int usb_bc_node = -1;
-	const void *prop;
+	const char *prop;
 
 	usb_bc_node = fdt_path_offset(blob, "/dwc-control-usb/usb_bc");
 	if (usb_bc_node < 0) {
 		printf("usb bc: can find node by path: /dwc-control-usb/usb_bc\n");
 		return -1;
 	}
-	prop = fdt_getprop(blob, usb_bc_node, "compatible", NULL);
+	prop = (char *)fdt_getprop(blob, usb_bc_node, "compatible", NULL);
 	if (!prop)
 		return -1;
 	debug("usb bc node compatible: %s\n", prop);
@@ -356,11 +355,11 @@ static void usb_battery_charger_init(void)
 
 		gusb_bc_type = USB_BC_UNKNOW;
 
-		usb_bc_max = (INNO_BC_MAX > SYNOP_BC_MAX) ? INNO_BC_MAX : SYNOP_BC_MAX;
+		usb_bc_max = ((INNO_BC_MAX - SYNOP_BC_MAX) > 0) ? INNO_BC_MAX : SYNOP_BC_MAX;
 		usb_bc_max = (usb_bc_max > RK_BC_MAX) ? usb_bc_max : RK_BC_MAX;
-		debug("usb bc init: usb bc max = %d\n", usb_bc_max);
+		debug("usb bc init: usb bc max = %u\n", usb_bc_max);
 
-		pBC_UOC_FIELDS = malloc(usb_bc_max * sizeof(uoc_field_t));
+		pBC_UOC_FIELDS = (uoc_field_t *)malloc(usb_bc_max * sizeof(uoc_field_t));
 		if (pBC_UOC_FIELDS == NULL) {
 			printf("BC_UOC_FIELDS malloc error!\n");
 			return;

@@ -339,7 +339,7 @@ EXT SDC_INFO_T    gSDCInfo[SDC_MAX];
 
 
 void eMMCcallback(void);
-
+void eMMC_SetDataHigh(void);
 
 #endif //end of #ifndef _SDC_H_
 

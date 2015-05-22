@@ -312,10 +312,6 @@ struct dsi {
 int rk_mipi_get_dsi_clk(void);
 int rk_mipi_get_dsi_num(void);
 int rk_mipi_get_dsi_lane(void);
-static int rk32_mipi_power_down_DDR(void);
-static int rk32_mipi_power_up_DDR(void);
-static void rk32_init_phy_mode(int lcdc_id);
-static void rk_init_phy_mode(int lcdc_id);
 
 
 #endif /* end of RK32_MIPI_DSI_H */

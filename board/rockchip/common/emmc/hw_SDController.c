@@ -682,10 +682,10 @@ static void _SDCISTHandle(SDMMC_PORT_E nSDCPort)
     volatile uint32  value = 0;
     pSDC_REG_T       pReg = pSDCReg(nSDCPort);
     uint32           data = 0;
-    uint32          * pbuf32 ;
+#if !(EN_SD_DMA)
+    uint32          * pbuf32;
     uint32          count;
     SDC_INT_INFO_T   * p_intInfo = &gSDCInfo[nSDCPort].intInfo;   
-#if !(EN_SD_DMA)
     volatile uint32 *pFIFO = pSDCFIFOADDR(nSDCPort);
     uint32 i = 0;
 #endif
@@ -892,11 +892,8 @@ void _SDC2IST(void)
 /****************************************************************/
 void SDC_Init(uint32 CardId)
 {
-    volatile uint32  value = 0;
-    pSDC_REG_T       pReg = NULL;
     SDMMC_PORT_E     nSDCPort = SDC_MAX;
-    int32            timeOut = 0;
-    uint32          clkvalue, clkdiv;
+    uint32           clkvalue, clkdiv;
     
     if(CardId == 0)
     {
@@ -1316,6 +1313,7 @@ int32 SDC_WaitCardBusy(int32 cardId)
     return _WaitCardBusy(nSDCPort);
 }
 
+#if (EN_SDC_INTERAL_DMA)
 static int32 SDC_StartCmd(pSDC_REG_T        pReg, uint32 cmd)
 {
     int32 timeOut = 20000;
@@ -1333,7 +1331,6 @@ static int32 SDC_StartCmd(pSDC_REG_T        pReg, uint32 cmd)
 }
 
 
-#if (EN_SDC_INTERAL_DMA)
 static int32 SDC_SetIDMADesc(SDMMC_PORT_E SDCPort, uint32 buffer, uint32  BufSize)
 {
     pSDC_INFO_T     pSDC= &gSDCInfo[SDCPort];
@@ -1372,7 +1369,6 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
 {
     pSDC_REG_T      pReg = pSDCReg(nSDCPort);
     pSDC_INFO_T     pSDC= &gSDCInfo[nSDCPort];
-    uint32          SlaveIntMask;
     uint32          timeout  = DataLen*500; //最长一个512需要等250ms 
     volatile uint32 value;
 
@@ -1481,14 +1477,15 @@ int32 SDC_BusRequest(int32 cardId,
     pSDC_REG_T      pReg = pSDCReg(nSDCPort);
     int32           ret = SDC_SUCCESS;
     int32           timeOut = 0;
+#if !(EN_SD_DMA)
     uint32          tranCount = 0;
     uint32          totleCount = 0;
     uint32          i,count;
     uint32          *pBuf;
-    pFunc           cb;
     volatile uint32 *pFIFO = pSDCFIFOADDR(nSDCPort);
-    
-    //uint8   *tempbuf;
+#endif
+    pFunc           cb;
+
     //eMMC_printk(4, "SDC_BusRequest 111%s  %d\n", __FILE__,__LINE__);
     
     //PRINT_E( "EMMC CMD=%d arg = 0x%x len=0x%x\n",cmd&0x3f,cmdArg,dataLen);
@@ -1777,7 +1774,6 @@ int32 SDC_BusRequest(int32 cardId,
         }
 		//PRINT_E("totleCount %d tranCount %d %d %d\n",totleCount,tranCount,timeOut,RkldTimerGetTick());
 		#endif
-       // uint8 *tempbuf = (uint8 *)pDataBuf;
         timeOut = 100 * dataLen + 250000; // 1ms read 20 sector, 1 sector timeout set 50ms + 250ms
         while ((!((pReg->SDMMC_RINISTS) & (DTO_INT | SBE_INT))) &&  timeOut)
         {

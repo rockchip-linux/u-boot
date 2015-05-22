@@ -165,7 +165,7 @@ struct pll_data {
  */
 
 /* apll clock table, should be from high to low */
-static const struct pll_clk_set apll_clks[] = {
+static struct pll_clk_set apll_clks[] = {
 	//rate, nr, nf, no,		a12_div, mp_div, m0_div,	l2, atclk, pclk_dbg
 	_APLL_SET_CLKS(1008000,1, 84, 2,	1, 4, 2,		2, 4, 4),
 	_APLL_SET_CLKS(816000, 1, 68, 2,	1, 4, 2,		2, 4, 4),
@@ -174,7 +174,7 @@ static const struct pll_clk_set apll_clks[] = {
 
 
 /* gpll clock table, should be from high to low */
-static const struct pll_clk_set gpll_clks[] = {
+static struct pll_clk_set gpll_clks[] = {
 	//rate, nr, nf, no,	aclk_peri_div, hclk_peri_div, pclk_peri_div,	axi_bus_div, aclk_bus_div, hclk_bus_div, pclk_bus_div
 	_GPLL_SET_CLKS(768000, 1,  64, 2,    2, 2, 4,				1, 2, 2, 4),
 	_GPLL_SET_CLKS(594000, 2, 198, 4,    2, 2, 4,				1, 2, 2, 4),
@@ -184,7 +184,7 @@ static const struct pll_clk_set gpll_clks[] = {
 
 
 /* cpll clock table, should be from high to low */
-static const struct pll_clk_set cpll_clks[] = {
+static struct pll_clk_set cpll_clks[] = {
 	//rate, nr, nf, no
 	_CPLL_SET_CLKS(798000, 2, 133, 2),
 #ifdef CONFIG_PRODUCT_BOX
@@ -542,43 +542,6 @@ static void rkclk_cpu_l2dbgatclk_set(uint32 l2ram_div, uint32 atclk_core_div, ui
 			| ((0x1f << (9 + 16)) | (pclk_dbg_div << 9)), CRU_CLKSELS_CON(37));
 }
 
-
-/*
- * rkplat clock set ddr clock from ddr pll
- * 	when call this function, make sure pll is in slow mode
- */
-static void rkclk_ddr_clk_set(uint32 pll_src, uint32 ddr_div)
-{
-	uint32_t pll_sel = 0, div = 0;
-
-	/* cpu clock source select: 0: ddr pll, 1: general pll */
-	if (pll_src == 0) {
-		pll_sel = 0;
-	} else {
-		pll_sel = 1;
-	}
-
-	/* ddrphy clk - clk_ddr_src:clk_ddrphy */
-	switch (ddr_div)
-	{
-		case CLK_DIV_1:
-			div = 0;
-			break;
-		case CLK_DIV_2:
-			div = 1;
-			break;
-		case CLK_DIV_4:
-			div = 2;
-			break;
-		default:
-			div = 0;
-			break;
-	}
-
-	cru_writel((0x01 << (8 + 16) | (pll_sel << 8)) | ((0x03 << (0 + 16)) | (div << 0)), CRU_CLKSELS_CON(26));
-}
-
-
 static void rkclk_apll_cb(struct pll_clk_set *clkset)
 {
 	rkclk_cpu_coreclk_set(CPU_SRC_ARM_PLL, clkset->a12_core_div, clkset->aclk_core_mp_div, clkset->aclk_core_m0_div);
@@ -590,12 +553,6 @@ static void rkclk_gpll_cb(struct pll_clk_set *clkset)
 {
 	rkclk_bus_ahpclk_set(BUS_SRC_GENERAL_PLL, clkset->axi_bus_div, clkset->aclk_bus_div, clkset->hclk_bus_div, clkset->pclk_bus_div);
 	rkclk_periph_ahpclk_set(PERIPH_SRC_GENERAL_PLL, clkset->aclk_peri_div, clkset->hclk_peri_div, clkset->pclk_peri_div);
-}
-
-
-static void rkclk_dpll_cb(struct pll_clk_set *clkset)
-{
-	rkclk_ddr_clk_set(DDR_SRC_DDR_PLL, clkset->a12_core_div);
 }
 
 
@@ -893,30 +850,6 @@ void rkclk_dump_pll(void)
 }
 
 
-/*
- * rkplat pll select and clock div calcate
- * clock: device request freq HZ
- * even: if div needs even
- * return value:
- * high 16bit: 0 - codec pll, 1 - general pll
- * low 16bit : div
- */
-static uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
-{
-	uint32 div = 0, gdiv = 0, cdiv = 0;
-	uint32 pll_sel = 0; // 0: general pll, 1: codec pll
-
-	gdiv = rkclk_calc_clkdiv(gd->bus_clk, clock, even); // general pll div
-	cdiv = rkclk_calc_clkdiv(gd->pci_clk, clock, even); // codec pll div
-
-	pll_sel = (gd->bus_clk / gdiv) >= (gd->pci_clk / cdiv);
-
-	div = pll_sel ? gdiv : cdiv;
-
-	return (pll_sel << 16) | div;
-}
-
-
 static inline uint32 rkclk_gcd(uint32 numerator, uint32 denominator)
 {
         uint32 a, b;
@@ -966,8 +899,8 @@ static inline uint32 rkclk_gcd(uint32 numerator, uint32 denominator)
  */
 static int rkclk_cal_pll_set(uint32 fin_khz, uint32 fout_khz, uint32 *nr_set, uint32 *nf_set, uint32 *no_set)
 {
-	uint32 nr, nf, no, nonr;
-	uint32 nr_out, nf_out, no_out;
+	uint32 nr = 0, nf = 0, no = 0, nonr = 0;
+	uint32 nr_out = 0, nf_out = 0, no_out = 0;
 	uint32 YFfenzi;
 	uint32 YFfenmu;
 	uint32 fref, fvco, fout;
@@ -1058,8 +991,8 @@ static int rkclk_cal_pll_set(uint32 fin_khz, uint32 fout_khz, uint32 *nr_set, ui
  */
 void rkclk_set_cpll_rate(uint32 pll_hz)
 {
-	uint32 no, nr, nf;
-	uint32 pllcon;
+	uint32 no = 0, nr = 0, nf = 0;
+	uint32 pllcon = 0;
 
 	if (rkclk_cal_pll_set(24000000/KHZ, pll_hz/KHZ, &nr, &nf, &no) == 0) {
 //		printf("pll_hz = %d, nr = %d, nf = %d, no = %d\n", pll_hz, nr, nf, no);
@@ -1072,10 +1005,10 @@ void rkclk_set_cpll_rate(uint32 pll_hz)
 		pllcon = PLL_CLKR_SET(nr) | PLL_CLKOD_SET(no);
 		cru_writel(pllcon, PLL_CONS(CPLL_ID, 0));
 
-		pllcon	= PLL_CLKF_SET(nf);
+		pllcon = PLL_CLKF_SET(nf);
 		cru_writel(pllcon, PLL_CONS(CPLL_ID, 1));
 
-		pllcon	= PLL_CLK_BWADJ_SET(nf >> 1);
+		pllcon = PLL_CLK_BWADJ_SET(nf >> 1);
 		cru_writel(pllcon, PLL_CONS(CPLL_ID, 2));
 
 		clk_loop_delayus(5);
@@ -1456,7 +1389,7 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 
 	con = cru_readl(CRU_CLKSELS_CON(25));
 	sel = (con >> (7 + 8 * spi_bus)) & 0x1;
-	div = (con >> (0 + 8 * spi_bus)) & 0x7F + 1;
+	div = ((con >> (0 + 8 * spi_bus)) & 0x7F) + 1;
 
 	/* rk3288 sd clk pll can be from codec pll/general pll, defualt codec pll */
 	if (sel == 0) {

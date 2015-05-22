@@ -270,7 +270,7 @@ bool load_content(resource_content* content) {
 	if (!content->load_addr)
 		return false;
 
-	debug("load_content: load_addr = 0x%x\n", content->load_addr);
+	debug("load_content: load_addr = 0x%p\n", content->load_addr);
 	if (!load_content_data(content, 0,
 				content->load_addr, blocks)) {
 		free_content(content);
@@ -303,7 +303,7 @@ bool show_resource_image(const char* image_path) {
 	{
 		bmp = (void *)gd->arch.rk_boot_buf_addr;
 		read_storage(ptn->start, bmp, CONFIG_MAX_BMP_BLOCKS);
-		debug("bmp image at 0x%lx, sign:%c%c\n", bmp, bmp->header.signature[0], bmp->header.signature[1]);
+		debug("bmp image at 0x%p, sign:%c%c\n", bmp, bmp->header.signature[0], bmp->header.signature[1]);
 	}
 
 	if(ptn && bmp && bmp->header.signature[0] == 'B' && bmp->header.signature[1] == 'M')

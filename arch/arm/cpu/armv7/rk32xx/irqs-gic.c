@@ -101,6 +101,7 @@ static int gic_irq_set_trig(int irq, eINT_TRIG ntrig)
 	return 0; 
 }
 
+#if 0
 /* irq set pending */
 static int gic_irq_set_pending(int irq)
 {
@@ -153,7 +154,7 @@ static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
 
 	return 0; 
 }
-
+#endif
 
 /* enable irq handler */
 static int gic_handler_enable(int irq)

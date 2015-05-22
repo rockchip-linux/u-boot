@@ -66,6 +66,13 @@ extern struct fb_videomode cvbs_mode [MAX_TVE_COUNT];
 extern int g_tve_pos;
 #endif
 
+#if defined(CONFIG_RK_HDMIV2)
+extern void rk32_hdmi_probe(vidinfo_t *panel);
+#endif
+#ifdef CONFIG_RK3036_HDMI
+extern void rk3036_hdmi_probe(vidinfo_t *panel);
+#endif
+
 static const struct hdmi_video_timing hdmi_mode[] = {
 /*		name			refresh	xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw			polariry			PorI	flag		vic		2ndvic		pixelrepeat	interface */
 
@@ -227,6 +234,8 @@ static int hdmi_parse_dts(struct hdmi_dev *hdmi_dev)
 	}
 //	printf("%s default mode is %d\n", __func__, hdmi_dev->defaultmode);
 //	printf("%s:phy_pre_emphasis=0x%x\n",__func__,hdmi_dev->phy_pre_emphasis);
+
+	return 0;
 }
 
 static void hdmi_read_hdcp_key(struct hdmi_dev *hdmi_dev)
@@ -237,7 +246,7 @@ static void hdmi_read_hdcp_key(struct hdmi_dev *hdmi_dev)
 				HDCP_KEY_SEED_SIZE);
 	memset(hdmi_dev->keys, 0, HDCP_KEY_SIZE +
 				  HDCP_KEY_SEED_SIZE);
-	rkidb_get_hdcp_key(hdmi_dev->keys, HDCP_KEY_IDB_OFFSET,
+	rkidb_get_hdcp_key((char *)hdmi_dev->keys, HDCP_KEY_IDB_OFFSET,
 			   HDCP_KEY_SIZE +
 			   HDCP_KEY_SEED_SIZE);
 	if (hdmi_dev->keys->KSV[0] == 0x00 &&
@@ -256,16 +265,14 @@ DECLARE_GLOBAL_DATA_PTR;
 #ifdef CONFIG_RK_DEVICEINFO
 static int inline read_deviceinfo_storage(struct hdmi_dev *hdmi_dev) 
 {
-	int i, ret = 0;
+	int ret = 0;
 	const disk_partition_t* ptn_deviceinfo;
 	char deviceinfo_buf[8 * RK_BLK_SIZE];
-	char *p_deviceinfo = CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE;
-	char *p_baseparamer =  CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000;//4K
-	char *p = p_deviceinfo;
+	char *p_deviceinfo = (char *)(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE);
+	char *p_baseparamer =  (char *)(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000);//4K
 	int deviceinfo_reserve_on = 0;
 	int size = 0;
 	int node = 0;
-	int len = 0;
 	int reg[2] = {0,0};
 
 	if (!hdmi_dev)
@@ -289,12 +296,12 @@ static int inline read_deviceinfo_storage(struct hdmi_dev *hdmi_dev)
 	
 		deviceinfo_reserve_on = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-deviceinfo-on", 0);
 		if(deviceinfo_reserve_on) {
-			if (fdtdec_get_int_array(gd->fdt_blob, node, "reg", reg, 2)) {
+			if (fdtdec_get_int_array(gd->fdt_blob, node, "reg", (u32 *)reg, 2)) {
 				printf("Cannot decode reg\n");
 				return -EINVAL;
 			}
 	
-			p_deviceinfo = reg[0];
+			p_deviceinfo = (char *)reg[0];
 			size = reg[1];
 			p_baseparamer = p_deviceinfo + size / 2;
 	
@@ -340,13 +347,7 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
 	int i, ret = 0;
 	const disk_partition_t* ptn_baseparamer;
 	char baseparamer_buf[8 * RK_BLK_SIZE];
-	char *p_baseparamer =  CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000;//4K
-	char *p = p_baseparamer;
-	int deviceinfo_reserve_on = 0;
-	int size = 0;
-	int node = 0;
-	int len = 0;
-	int reg[2] = {0,0};
+	char *p_baseparamer = (char *)(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000);//4K
 	struct hdmi_video_timing *modedb;
 
 	if (!hdmi_dev)
@@ -376,7 +377,7 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
 			printf("hdmi device not support yuv420\n");
 		} else {
 			for (i = 0; i < hdmi_dev->mode_len; i++) {
-				modedb = &(hdmi_dev->modedb[i]);
+				modedb = (struct hdmi_video_timing *)&(hdmi_dev->modedb[i]);
 				if (hdmi_feature_filter(hdmi_dev, modedb))
 					continue;
 				if (hdmi_dev->base_paramer_hdmi.xres == hdmi_dev->modedb[i].mode.xres &&
@@ -1105,10 +1106,12 @@ static int hdmi_edid_parse_cea_sdb(struct hdmi_dev *hdmi_dev, unsigned char *buf
 {
 	unsigned int count = 0, cur_offset = 0, i = 0;
 	unsigned int IEEEOUI = 0;
+#ifdef HDMIDEBUG
 	unsigned int supports_ai, dc_48bit, dc_36bit, dc_30bit, dc_y444;
-	unsigned int len_3d, len_4k;
+#endif
+//	unsigned int len_3d;
+	unsigned int len_4k = 0;
 	unsigned char vic = 0;
-	const struct fb_videomode *mode;
 
 	count = buf[0] & 0x1F;
 	IEEEOUI = buf[3];
@@ -1121,6 +1124,7 @@ static int hdmi_edid_parse_cea_sdb(struct hdmi_dev *hdmi_dev, unsigned char *buf
 		pedid->sink_hdmi = 1;
 		if (count > 5) {
 			pedid->deepcolor = (buf[6] >> 3) & 0x0F;
+#ifdef HDMIDEBUG
 			supports_ai = buf[6] >> 7;
 			dc_48bit = (buf[6] >> 6) & 0x1;
 			dc_36bit = (buf[6] >> 5) & 0x1;
@@ -1130,6 +1134,7 @@ static int hdmi_edid_parse_cea_sdb(struct hdmi_dev *hdmi_dev, unsigned char *buf
 				"dc_48bit %d dc_36bit %d dc_30bit %d dc_y444 %d\n",
 				supports_ai,
 				dc_48bit, dc_36bit, dc_30bit, dc_y444);
+#endif
 		}
 		if (count > 6)
 			pedid->maxtmdsclock = buf[7] * 5000000;
@@ -1159,10 +1164,10 @@ static int hdmi_edid_parse_cea_sdb(struct hdmi_dev *hdmi_dev, unsigned char *buf
 			pedid->support_3d = (buf[cur_offset++] & 0x80) ? 1 : 0;
 	
 			len_4k = (buf[cur_offset] >> 5) & 0x07;
-			len_3d = buf[cur_offset] & 0x1F;
+//			len_3d = buf[cur_offset] & 0x1F;
 			cur_offset++;
 		}
-		if (count >= cur_offset && len_4k > 0) {
+		if (count >= cur_offset && (len_4k > 0)) {
 			for (i = 0; i < len_4k; i++) {
 			#ifndef HDMI_VERSION_2
 				vic = buf[cur_offset + i] & 0x7f;
@@ -1201,7 +1206,7 @@ static void hdmi_edid_parse_yuv420cmdb(struct hdmi_dev *hdmi_dev,
 				       unsigned char *buf,
 				       int count)
 {
-	int i, j, yuv420_mask, vic;
+	int i, j, yuv420_mask = 0, vic;
 
 	for (i = 0; i < count - 1; i++) {
 		HDMIDBG("vic which support yuv420 mode is %x\n", buf[i]);
@@ -1224,7 +1229,7 @@ static void hdmi_edid_parse_yuv420cmdb(struct hdmi_dev *hdmi_dev,
 // Parse CEA 861 Serial Extension.
 static int hdmi_edid_parse_extensions_cea(struct hdmi_dev *hdmi_dev, unsigned char *buf)
 {
-	unsigned int ddc_offset, cur_offset = 4, buf_offset;
+	unsigned int ddc_offset, cur_offset = 4;
 	unsigned int baseaudio_support;
 	unsigned int tag, IEEEOUI = 0, count, i;
 	struct hdmi_edid *pedid = NULL;
@@ -1421,17 +1426,17 @@ err:
 
 void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
 {
-	int i = 0, pos = 0,pos_edid = 0;
+	int i = 0, pos = 0;
 	struct hdmi_video_timing *modedb;
 
 	pos = hdmi_dev->mode_len;
 	while (pos--) {
-		modedb = &(hdmi_dev->modedb[pos]);
+		modedb = (struct hdmi_video_timing *)&(hdmi_dev->modedb[pos]);
 		if (hdmi_feature_filter(hdmi_dev, modedb))
 			continue;
 		if (hdmi_dev->defaultmode) {
 			for (i = 0; i < hdmi_dev->vic_pos; i++) {
-				if (hdmi_dev->defaultmode & HDMI_VIC_MASK == hdmi_dev->vicdb[i])
+				if (hdmi_dev->defaultmode & (HDMI_VIC_MASK == hdmi_dev->vicdb[i]))
 					break;
 			}
 		} else {
@@ -1442,7 +1447,6 @@ void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
 					    hdmi_dev->modedb[pos].mode.pixclock > 340000000)
 						continue;
 					else {
-						pos_edid = pos;
 						break;
 					}
 				}
@@ -1457,7 +1461,7 @@ void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
 
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
-	int i = 0, pos_baseparamer = 0,pos_default = 0;
+	int i = 0, pos_baseparamer = 0;
 
 	pos_baseparamer = g_pos_baseparamer.hdmi_pos;
 

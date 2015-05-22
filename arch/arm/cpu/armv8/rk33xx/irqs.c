@@ -25,7 +25,7 @@ static struct s_irq_handler g_irq_handler[NR_IRQS_MAXNUM];
 static inline void generic_handle_irq(int irq, void *data)
 {
 	/* if g_irq_handler[irq].m_func == -1, gpio pin irq has no server handler */ 
-	if ((g_irq_handler[irq].m_func != NULL) && (g_irq_handler[irq].m_func != -1)) {
+	if ((g_irq_handler[irq].m_func != NULL) && (g_irq_handler[irq].m_func != (interrupt_handler_t *)-1)) {
 		g_irq_handler[irq].m_func(data);
 	}
 }

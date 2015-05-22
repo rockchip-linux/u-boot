@@ -121,7 +121,7 @@ struct pll_data {
 }
 
 
-static const struct pll_clk_set apll_clks[] = {
+static struct pll_clk_set apll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, 
 	//	_core_div, _core_aclk_civ, _dbg_pclk_div, _cpu_aclk_div, _cpu_hclk_div, _cpu_pclk_div
 	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 4, 4, 4, 2, 2),
@@ -130,7 +130,7 @@ static const struct pll_clk_set apll_clks[] = {
 };
 
 
-static const struct pll_clk_set gpll_clks[] = {
+static struct pll_clk_set gpll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	//	aclk_div, hclk_div, pclk_div
 	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 2),
@@ -139,7 +139,7 @@ static const struct pll_clk_set gpll_clks[] = {
 
 
 /* cpll clock table, should be from high to low */
-static const struct pll_clk_set cpll_clks[] = {
+static struct pll_clk_set cpll_clks[] = {
 	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac
 	_CPLL_SET_CLKS(798000, 2, 133, 2, 1, 1, 0),
 	_CPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0),
@@ -872,7 +872,6 @@ int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
  */
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
-	uint32 pll_src;
 	uint32 dclk_div;
 	uint32 dclk_info = 0;
 

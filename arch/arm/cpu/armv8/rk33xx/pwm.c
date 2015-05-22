@@ -126,7 +126,7 @@ static int rk_bl_parse_dt(const void *blob)
 		return -ENOMEM;
 	}
 	if (fdtdec_get_int_array(blob, bl.node, "brightness-levels",
-		bl.levels, len >> 2 )) {
+		(u32 *)bl.levels, len >> 2)) {
 		printf("Cannot decode brightness-levels\n");
 		return -EINVAL;
 	}
@@ -143,8 +143,7 @@ int rk_pwm_config(int brightness)
 	u64 val, div, clk_rate;
 	unsigned long prescale = 0, pv, dc;
 	u32 on;
-	int conf=0;
-	int id = 0;
+	int conf = 0;
 	int duty_ns,period_ns;
 	int ret;
 
@@ -174,7 +173,6 @@ int rk_pwm_config(int brightness)
 	brightness = bl.levels[brightness];
 	duty_ns = (brightness * bl.period)/bl.max_brightness;
 	period_ns = bl.period;
-	id = bl.id;
 	on   =  RK_PWM_ENABLE;
 	conf = PWM_OUTPUT_LEFT|PWM_LP_DISABLE|
 	                    PWM_CONTINUMOUS|PWM_DUTY_POSTIVE|PWM_INACTIVE_NEGATIVE;

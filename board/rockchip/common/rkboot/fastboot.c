@@ -29,6 +29,7 @@
 #include <asm/io.h>
 
 #include <power/pmic.h>
+#include <power/battery.h>
 #include <asm/arch/rkplat.h>
 #include "../config.h"
 #include <linux/input.h>

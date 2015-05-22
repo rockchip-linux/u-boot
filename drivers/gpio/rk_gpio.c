@@ -64,7 +64,7 @@ static int rk_gpio_base_to_id(unsigned int base)
 	int index;
 
 	for(index = 0; index < ARRAY_SIZE(rk_gpio_banks); index++) {
-		if (rk_gpio_banks[index].regbase == base)
+		if (rk_gpio_banks[index].regbase == (void __iomem *)base)
 			return index;
 	}
 
@@ -371,7 +371,7 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 	 * 1: pull up/down disable
 	*/
 	val = (type == PullDisable) ? 1 : 0;
-	base = RKIO_GRF_PHYS + GRF_GPIO0L_PULL + bank->id * 8 + ((gpio / 16) * 4);
+	base = (void __iomem *)(RKIO_GRF_PHYS + GRF_GPIO0L_PULL + bank->id * 8 + ((gpio / 16) * 4));
 	gpio = gpio % 16;
 	__raw_writel((1 << (16 + gpio)) | (val << gpio), base);
 #else
@@ -388,9 +388,10 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 {
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	void __iomem *base;
 	u32 val;
-
+#endif
 	if (bank == NULL) {
 		return -1;
 	}

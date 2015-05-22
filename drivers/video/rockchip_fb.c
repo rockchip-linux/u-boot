@@ -4,7 +4,7 @@
  * Author: Andy Yan <andy.yan@rock-chips.com>
  * SPDX-License-Identifier:	GPL-2.0+
  */
-/*#define DEBUG*/
+
 #include <config.h>
 #include <common.h>
 #include <errno.h>
@@ -153,7 +153,9 @@ int rk_fb_pwr_ctr_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	int root = fdt_subnode_offset(blob, rk_fb->lcdc_node, "power_ctr");
 	int child;
 	struct rk_fb_pwr_ctr_list *pwr_ctr;
+#if defined(DEBUG)
 	struct list_head *pos;
+#endif
 	const char *name;
 	u32 val = 0;
 	int len;

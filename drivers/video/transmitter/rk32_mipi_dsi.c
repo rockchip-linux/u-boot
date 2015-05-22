@@ -1780,10 +1780,10 @@ int rk32_dsi_enable(void)
 
 static void rk32_init_phy_mode(int lcdc_id)
 { 
-	int val0 = 0, val1 = 0;
-
 	MIPI_DBG("rk32_init_phy_mode----------lcdc_id=%d\n",lcdc_id);
 #if defined(CONFIG_RKCHIP_RK3288)
+	int val0 = 0, val1 = 0;
+
 	//D-PHY mode select
 	if( rk_mipi_get_dsi_num() ==1 ){
 	

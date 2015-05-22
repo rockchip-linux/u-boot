@@ -7,6 +7,7 @@
 #ifndef	_DRIVER_TYPEDEF_H
 #define _DRIVER_TYPEDEF_H
 
+#include <common.h>
 
 #ifndef		TRUE
 #  define	TRUE    1
@@ -28,37 +29,39 @@
 #  define	ERROR	!0
 #endif
 
-typedef int 	BOOL;
+typedef bool		BOOL;
 
-typedef	unsigned char		uint8;
-typedef	signed char		int8;
-typedef	unsigned short		uint16;
-typedef	signed short		int16;
-typedef unsigned int            uint32;
-typedef	signed int 		int32;
-typedef	unsigned long 		uint64;
-typedef	signed long 		int64;
 
-typedef unsigned int		UINT32;
-typedef unsigned short		UINT16;
-typedef unsigned char 		UINT8;
-typedef long			INT32;
-typedef short			INT16;
-typedef char			INT8;
+typedef	uint8_t			uint8;
+typedef	int8_t			int8;
+typedef	uint16_t		uint16;
+typedef	int16_t			int16;
+typedef uint32_t		uint32;
+typedef	int32_t			int32;
+typedef	uint64_t		uint64;
+typedef	int64_t			int64;
 
-typedef unsigned char		INT8U;
-typedef signed	char   		INT8S;
-typedef unsigned short		INT16U;
-typedef signed	short  		INT16S;
-typedef int 	  		INT32S;
-typedef unsigned int 	  	INT32U;
+typedef uint8_t 		UINT8;
+typedef uint16_t		UINT16;
+typedef uint32_t		UINT32;
+
+typedef int8_t			INT8;
+typedef int16_t			INT16;
+typedef int32_t			INT32;
+
+typedef uint8_t			INT8U;
+typedef int8_t   		INT8S;
+typedef uint16_t		INT16U;
+typedef int16_t  		INT16S;
+typedef int32_t 	  	INT32S;
+typedef uint32_t   		INT32U;
 
 typedef unsigned char		BYTE;
+typedef unsigned long		ULONG;
 
-
-typedef volatile unsigned int	REG32;
-typedef volatile unsigned short	REG16;
 typedef volatile unsigned char	REG8;
+typedef volatile unsigned short	REG16;
+typedef volatile unsigned int	REG32;
 
 typedef volatile unsigned int	data_t;
 typedef volatile unsigned int*	addr_t;

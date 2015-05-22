@@ -93,7 +93,6 @@ EXPORT_SYMBOL(del_dsi_ops);
 
 int dsi_probe_current_chip(unsigned int id) {
 	int ret = 0;
-	int id_dummy;
 	struct mipi_dsi_ops *ops = NULL;
 
 	if(id > (MAX_DSI_CHIPS - 1))
@@ -111,7 +110,6 @@ int dsi_probe_current_chip(unsigned int id) {
 	 * id as 0x3133302B. I mask the 0-bit here for passing the physical
 	 * dsi id test.
 	 */
-        id_dummy = ops->id & ~0x1;
 	if(id == ops->id) {
 		printk("load mipi dsi chip:%s id:%08x\n", ops->name, ops->id);
 		printk("%s\n", MIPI_DSI_VERSION_AND_TIME);

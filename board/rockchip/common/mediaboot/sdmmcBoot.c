@@ -36,7 +36,7 @@ typedef struct SDCardInfoTag
 static uint32 gsdboot_mode = 0;
 #endif
 static SD_Card_Info gSdCardInfoTbl[3];
-static uint32	sdmmc_Data[(1024*8*4/4)]; __attribute__((aligned(ARCH_DMA_MINALIGN)));
+static uint32	sdmmc_Data[(1024*8*4/4)] __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
 
 void SdmmcSDMInit(void)
@@ -91,9 +91,7 @@ EMMC_INIT_retry:
 
 uint32 SdmmcInit(uint32 ChipSel)
 {
-	int32  ret1 = SDM_SUCCESS;
-	int32 ret;
-	int count =0;
+	int32 ret1 = SDM_SUCCESS;
 	uint32 ioctlParam[5] = {0,0,0,0,0};
 
 #if defined(RK_SDCARD_BOOT_EN)
@@ -213,10 +211,7 @@ uint32 SdmmcBootWritePBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec )
 {
 	uint32 i;
 	uint16 len;
-	uint8 pageSizeRaw;
 	uint8 pageSizeLimit;
-	uint32 BlockOffset;
-	uint16 PageOffset;
 	uint32 *pDataBuf = pbuf;
 
 	pageSizeLimit = 32;
@@ -265,18 +260,11 @@ uint32 SdmmcBootWritePBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec )
 	return 0;
 }
 
-uint32 SdmmcBootReadPBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec )
+uint32 SdmmcBootReadPBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec)
 {
 	uint32 i;
-	uint32 ret;
 	uint16 len;
-	uint8 pageSizeRaw;
 	uint8 pageSizeLimit;
-	uint32 BlockOffset;
-	uint16 PageOffset;
-	uint16 PageAlignOffset;
-	uint16 idblk_flag = 0;
-	uint16 read_len;
 	uint32 *pDataBuf = pbuf;
 
 	pageSizeLimit = 32;
@@ -362,7 +350,7 @@ ReadRetry:
 	return (iret);
 }
 
-uint32 SdmmcBootWriteLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint16 mode)
+uint32 SdmmcBootWriteLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint32 mode)
 {
 	uint32 iret = FTL_OK;
 

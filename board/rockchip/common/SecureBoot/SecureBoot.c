@@ -57,8 +57,10 @@ uint32 SecureBootCheck(void)
 
 	SecureModeInit();
 
-	printf("SecureBootEn = %lx, SecureBootLock = %lx\n", SecureBootEn, SecureBootLock);
+	printf("SecureBootEn = %u, SecureBootLock = %u\n", SecureBootEn, SecureBootLock);
 	SecureBootLock_backup = SecureBootLock;
+
+	return 0;
 }
 
 

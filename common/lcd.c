@@ -131,6 +131,8 @@ char lcd_is_enabled = 0;
 #ifdef CONFIG_ROCKCHIP
 char lcd_show_logo = 0;
 bool lcd_flip = false;
+
+extern void lcd_pandispaly(struct fb_dsp_info *info);
 #endif
 
 #ifndef CONFIG_LCD_CONSOLE_DISABLE
@@ -1133,11 +1135,11 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		if((int)lcd_base == gd->fb_base)
 			lcd_base += width * height * bpix >> 3;
 		else
-			lcd_base = gd->fb_base;
+			lcd_base = (void *)gd->fb_base;
 	} else {
-		lcd_base = gd->fb_base;
+		lcd_base = (void *)gd->fb_base;
 	}
-	lcd_base =  ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
+	lcd_base = (void *) ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
 
 	lcd_line_length = (width * bpix) / 8;
 	fb = (uchar *) (lcd_base + ( height - 1) * lcd_line_length);

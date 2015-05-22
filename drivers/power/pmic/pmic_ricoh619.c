@@ -53,11 +53,6 @@ int ricoh619_check_charge(void)
 	return ret;
 }
 
-static int pmic_charger_state(struct pmic *p, int state, int current)
-{
-	return 0;
-}
-
 
 int ricoh619_poll_pwr_key_sta(void)
 {

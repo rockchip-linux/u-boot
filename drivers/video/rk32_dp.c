@@ -51,12 +51,12 @@ static int rk32_edp_clk_enable(struct rk32_edp *edp)
 	return 0;
 }
 
+#ifndef RUN_IN_UBOOT
 static int rk32_edp_clk_disable(struct rk32_edp *edp)
 {
-	
-
 	return 0;
 }
+#endif /* #ifndef RUN_IN_UBOOT */
 
 #define RK3368_GRF_SOC_CON4	0x410
 static int rk32_edp_pre_init(void)
@@ -122,6 +122,8 @@ static int rk32_edp_init_edp(struct rk32_edp *edp)
 	return 0;
 }
 
+
+#ifndef RUN_IN_UBOOT
 static int rk32_edp_detect_hpd(struct rk32_edp *edp)
 {
 	int timeout_loop = 0;
@@ -142,7 +144,6 @@ static int rk32_edp_detect_hpd(struct rk32_edp *edp)
 	return 0;
 }
 
-#ifndef RUN_IN_UBOOT
 static int rk32_edp_read_edid(struct rk32_edp *edp)
 {
 	unsigned char edid[EDID_LENGTH * 2];
@@ -354,34 +355,6 @@ static int rk32_edp_training_pattern_dis(struct rk32_edp *edp)
 	return 0;
 }
 
-#else
-static  int rk32_edp_handle_edid(struct rk32_edp * edp)
-{
-	return 0;
-}
-
-static int rk32_edp_enable_rx_to_enhanced_mode(struct rk32_edp *edp,
-						bool enable)
-{
-	return 0;
-}
-
-void rk32_edp_rx_control(struct rk32_edp *edp, bool enable)
-{
-	
-}
-
-int rk32_edp_is_enhanced_mode_available(struct rk32_edp * edp)
-{
-	return 0;
-}
-
-static int rk32_edp_training_pattern_dis(struct rk32_edp *edp)
-{
-	return 0;
-}
-
-#endif
 static void rk32_edp_disable_rx_zmux(struct rk32_edp *edp)
 {
 	/*rk32_edp_write_byte_to_dpcd(edp,
@@ -410,8 +383,6 @@ static int rk32_edp_set_enhanced_mode(struct rk32_edp *edp)
 
 	return 0;
 }
-
-
 
 static void rk32_edp_set_lane_lane_pre_emphasis(struct rk32_edp *edp,
 					int pre_emphasis, int lane)
@@ -870,6 +841,7 @@ reduce_link_rate:
 	rk32_edp_reduce_link_rate(edp);
 	return -EIO;
 }
+#endif /* #ifndef RUN_IN_UBOOT */
 
 static int rk32_edp_get_max_rx_bandwidth(struct rk32_edp *edp,
 					u8 *bandwidth)
@@ -911,8 +883,6 @@ static int rk32_edp_get_max_rx_lane_count(struct rk32_edp *edp,
 
 static int rk32_edp_init_training(struct rk32_edp *edp)
 {
-	int retval;
-
 	/*
 	 * MACRO_RST must be applied after the PLL_LOCK to avoid
 	 * the DP inter pair skew issue for at least 10 us
@@ -920,8 +890,8 @@ static int rk32_edp_init_training(struct rk32_edp *edp)
 	rk32_edp_reset_macro(edp);
 
 	
-	retval = rk32_edp_get_max_rx_bandwidth(edp, &edp->link_train.link_rate);
-	retval = rk32_edp_get_max_rx_lane_count(edp, &edp->link_train.lane_count);
+	rk32_edp_get_max_rx_bandwidth(edp, &edp->link_train.link_rate);
+	rk32_edp_get_max_rx_lane_count(edp, &edp->link_train.lane_count);
 	debug( "max link rate:%d.%dGps max number of lanes:%d\n",
 			edp->link_train.link_rate * 27/100,
 			edp->link_train.link_rate*27%100,
@@ -946,11 +916,11 @@ static int rk32_edp_init_training(struct rk32_edp *edp)
 	}
 
 	rk32_edp_analog_power_ctr(edp, 1);
-	
 
 	return 0;
 }
 
+#ifndef RUN_IN_UBOOT
 static int rk32_edp_sw_link_training(struct rk32_edp *edp)
 {
 	int retval = 0;
@@ -986,7 +956,7 @@ static int rk32_edp_sw_link_training(struct rk32_edp *edp)
 
 	return retval;
 }
-
+#endif /* #ifndef RUN_IN_UBOOT */
 
 static int rk32_edp_hw_link_training(struct rk32_edp *edp)
 {
@@ -1101,6 +1071,7 @@ static int rk32_edp_config_video(struct rk32_edp *edp,
 	return retval;
 }
 
+#ifndef RUN_IN_UBOOT
 static int rk32_edp_enable_scramble(struct rk32_edp *edp, bool enable)
 {
 	u8 data;
@@ -1138,7 +1109,7 @@ static int rk32_edp_enable_scramble(struct rk32_edp *edp, bool enable)
 
 	return 0;
 }
-
+#endif /* #ifndef RUN_IN_UBOOT */
 
 int rk32_edp_enable(vidinfo_t *vid)
 {
@@ -1178,11 +1149,9 @@ int rk32_edp_enable(vidinfo_t *vid)
 		printf( "unable to config video\n");
 
 	return ret;
-
-
-	
 }
-	
+
+#ifndef RUN_IN_UBOOT
 static int  rk32_edp_disable(void )
 {
 	struct rk32_edp *edp = &rk32_edp;
@@ -1193,4 +1162,4 @@ static int  rk32_edp_disable(void )
 	
 	return 0;
 }
-
+#endif /* #ifndef RUN_IN_UBOOT */

@@ -235,7 +235,7 @@ static bool GenericIDBData(PBYTE pIDBlockData, UINT *needIdSectorNum)
 
 	//cmy: 使用新的loader代码更新IDBlock的数据
 	hdr = (RK28BOOT_HEAD*)g_pLoader;
-	pSec0->reserved[4] = hdr->ucRc4Flag;
+	pSec0->uiRc4Flag = hdr->ucRc4Flag;
 
 	PRINT_I("update loader data\n");
 
@@ -514,7 +514,7 @@ void rkidb_setup_space(uint32 begin_addr)
 	g_pFlashInfoData = (uint8*)next;
 	next += 2048;
 	if ((next - begin_addr) > CONFIG_RK_GLOBAL_BUFFER_SIZE) {
-		printf("CONFIG_RK_GLOBAL_BUFFER_SIZE too small:%d < %lu\n",
+		printf("CONFIG_RK_GLOBAL_BUFFER_SIZE too small:0x%08x < 0x%08x\n",
 				CONFIG_RK_GLOBAL_BUFFER_SIZE, (next - begin_addr));
 		while(1);
 	}
@@ -636,7 +636,6 @@ int rkidb_get_sn(char* buf)
 int rkidb_get_hdcp_key(char* buf, int offset, int size)
 {
 	uint8 *pidbbuf = (uint8 *)gIdDataBuf;
-	int i;
 
 	pidbbuf += IDBLOCK_SIZE * IDBLOCK_SN;
 	if (size <= 0 || size > IDBLOCK_SIZE ||

@@ -1005,7 +1005,7 @@ int rk_dma_setflags(enum dma_ch id, unsigned int options)
 
 	spin_unlock_irqrestore(&res_lock, flags);
 
-	return 0;
+	return ret;
 }
 
 
@@ -1103,13 +1103,13 @@ static inline void *rk_pl330_dmac_get_base(int dmac_id)
 {
 #ifdef CONFIG_RK_DMAC_0
 	if (dmac_id == 0) {
-		return RK_DMAC0_BASE;
+		return (void *)RK_DMAC0_BASE;
 	}
 #endif
 
 #ifdef CONFIG_RK_DMAC_1
 	if (dmac_id == 1) {
-		return RK_DMAC1_BASE;
+		return (void *)RK_DMAC1_BASE;
 	}
 #endif
 
@@ -1118,8 +1118,12 @@ static inline void *rk_pl330_dmac_get_base(int dmac_id)
 
 
 /* dmac pl330 info */
+#ifdef CONFIG_RK_DMAC_0
 static struct pl330_info	*g_pl330_info_0 = NULL;
+#endif
+#ifdef CONFIG_RK_DMAC_1
 static struct pl330_info	*g_pl330_info_1 = NULL;
+#endif
 
 static inline struct pl330_info *rk_pl330_dmac_get_info(int dmac_id)
 {

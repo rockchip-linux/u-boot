@@ -13,6 +13,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#if defined(CONFIG_POWER_FG_ADC)
+extern int adc_battery_init(void);
+#endif
+
 static unsigned char rockchip_pmic_id;
 struct fdt_gpio_state gpio_pwr_hold;
 static const char * const fg_names[] = {

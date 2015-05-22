@@ -144,7 +144,7 @@ static __attribute__ ((aligned(4))) u8 wstr_serial[2 + 2*(sizeof(serial_number) 
 static __attribute__ ((aligned(4))) u8 wstr_configuration[2 + 2*(sizeof(CONFIG_USBD_CONFIGURATION_STR)-1)];
 static __attribute__ ((aligned(4))) u8 wstr_interface[2 + 2*(sizeof(CONFIG_USBD_INTERFACE_STR)-1)];
 
-static u8 rockusb_name[] = "rockchip_rockusb";
+static char rockusb_name[] = "rockchip_rockusb";
 /* defined and used by gadget/ep0.c */
 extern struct usb_string_descriptor **usb_strings;
 

@@ -118,6 +118,7 @@ static int gic_irq_set_trig(int irq, eINT_TRIG ntrig)
 	return 0; 
 }
 
+#if 0
 /* irq set pending */
 static int gic_irq_set_pending(int irq)
 {
@@ -169,7 +170,7 @@ static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
 
 	return 0; 
 }
-
+#endif
 
 static uint8 g_gic_cpumask = 1;
 static void gic_get_cpumask(void)

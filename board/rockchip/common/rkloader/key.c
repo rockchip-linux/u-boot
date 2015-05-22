@@ -68,20 +68,27 @@ int gpio_reg[]={
 
 extern void DRVDelayUs(uint32 us);
 
+#if !defined(CONFIG_RKCHIP_RK3036)
 static gpio_conf	charge_state_gpio;
 static gpio_conf	power_hold_gpio;
+#endif
 
 static key_config	key_rockusb;
 static key_config	key_recovery;
 static key_config	key_fastboot;
+#if !defined(CONFIG_RKCHIP_RK3036)
 static key_config	key_power;
+#endif
+#ifdef CONFIG_RK_PWM_REMOTE
 static key_config	key_remote;
+#endif
 
+#if !defined(CONFIG_RKCHIP_RK3036)
 #ifdef CONFIG_OF_LIBFDT
 static struct fdt_gpio_state	gPowerKey;
 static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powerkey_gpio);
 #endif
-
+#endif /* !defined(CONFIG_RKCHIP_RK3036) */
 
 /*
     固定GPIOA_0口作为烧写检测口,系统部分不能使用该口
@@ -198,11 +205,9 @@ static void RockusbKeyInit(key_config *key)
 #endif
 }
 
+#if !defined(CONFIG_RKCHIP_RK3036)
 static void RecoveryKeyInit(key_config *key)
 {
-#if defined(CONFIG_RKCHIP_RK3036)
-	key->type = KEY_NULL;
-#else
 	key->type = KEY_AD;
 	key->key.adc.index = KEY_ADC_CN;
 	key->key.adc.keyValueLow = 0;
@@ -210,15 +215,11 @@ static void RecoveryKeyInit(key_config *key)
 	key->key.adc.data = SARADC_BASE;
 	key->key.adc.stas = SARADC_BASE+4;
 	key->key.adc.ctrl = SARADC_BASE+8;
-#endif
 }
 
 
 static void FastbootKeyInit(key_config *key)
 {
-#if defined(CONFIG_RKCHIP_RK3036)
-	key->type = KEY_NULL;
-#else
 	key->type = KEY_AD;
 	key->key.adc.index = KEY_ADC_CN;
 	key->key.adc.keyValueLow = 170;
@@ -226,7 +227,6 @@ static void FastbootKeyInit(key_config *key)
 	key->key.adc.data = SARADC_BASE;
 	key->key.adc.stas = SARADC_BASE+4;
 	key->key.adc.ctrl = SARADC_BASE+8;
-#endif
 }
 
 
@@ -238,10 +238,7 @@ static void PowerKeyInit(void)
 #endif
 
 	//power_hold_gpio.name
-#if defined(CONFIG_RKCHIP_RK3036)
-	key_power.type = KEY_NULL;
-	key_power.key.ioint.name = NULL;
-#else
+
 	key_power.type = KEY_INT;
 	key_power.key.ioint.name = "power_key";
 #ifdef CONFIG_OF_LIBFDT
@@ -252,8 +249,9 @@ static void PowerKeyInit(void)
 	key_power.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key_power.key.ioint.pressed_state = 0;
 	key_power.key.ioint.press_time = 0;
-#endif
 }
+#endif /* !defined(CONFIG_RKCHIP_RK3036) */
+
 
 #ifdef CONFIG_RK_PWM_REMOTE
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
@@ -283,7 +281,7 @@ int RemotectlInit(void)
 	remotectlInitInDriver();
 	rk_iomux_config(RK_PWM3_IOMUX);
 	//install the irq hander for PWM irq.
-	irq_install_handler(IRQ_PWM_REMOTE, remotectl_do_something, NULL);
+	irq_install_handler(IRQ_PWM_REMOTE, (interrupt_handler_t *)remotectl_do_something, NULL);
 	irq_handler_enable(IRQ_PWM_REMOTE);
 
 	return 0;
@@ -297,21 +295,18 @@ int RemotectlDeInit(void)
 
 	return 0;
 }
+#endif /* CONFIG_RK_PWM_REMOTE */
 
-#endif
-
+#if !defined(CONFIG_RKCHIP_RK3036)
 int rkkey_power_state(void)
 {
-#if !defined(CONFIG_RKCHIP_RK3036)
 #ifdef CONFIG_POWER_RK
 	if (get_rockchip_pmic_id() == PMIC_ID_RICOH619)
 		return ricoh619_poll_pwr_key_sta();
 	else
 #endif
 		return GetPortState(&key_power);
-#endif
 }
-
 
 #ifdef CONFIG_OF_LIBFDT
 static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powerkey_gpio)
@@ -339,7 +334,8 @@ struct fdt_gpio_state *rkkey_get_powerkey(void)
 
 	return NULL;
 }
-#endif
+#endif /* CONFIG_OF_LIBFDT */
+#endif /* !defined(CONFIG_RKCHIP_RK3036) */
 
 void key_init(void)
 {

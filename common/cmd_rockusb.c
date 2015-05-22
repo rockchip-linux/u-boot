@@ -343,7 +343,7 @@ void FW_ReadID(void)
 		return;
 	}
 
-	StorageReadId(current_urb->buffer);
+	StorageReadId((void *)current_urb->buffer);
 	current_urb->actual_length = 5;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
 	usbcmd.csw.Status = CSW_GOOD;
@@ -388,13 +388,13 @@ static void FW_GetChipVer(void)
 		RKUSBERR("%s: current_urb NULL", __func__);
 		return;
 	}
-	/* notice here chip version should the same as rk tools RKBOOT/*.ini config */
+	/* notice here chip version should the same as rk tools *.ini config of RKBOOT */
 	current_urb->buffer[0] = 0;
 	memset(chip_info, 0, sizeof(chip_info));
 #if defined(CONFIG_RKCHIP_RK3368)
 	chip_info[0] = 0x33333041; // 330A
 #else
-	ftl_memcpy(chip_info, (uint8*)(RKIO_ROM_CHIP_VER_ADDR), 16);
+	memcpy((void *)chip_info, (void *)(RKIO_ROM_CHIP_VER_ADDR), 16);
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3036)
@@ -403,7 +403,7 @@ static void FW_GetChipVer(void)
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	chip_info[0] = 0x33313241; // 312A
 #endif
-	ftl_memcpy(current_urb->buffer, chip_info, 16);
+	memcpy((void *)current_urb->buffer, (void *)chip_info, 16);
 	current_urb->actual_length = 16;
 		
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
@@ -430,7 +430,7 @@ static void FW_TestBadBlock(void)
 	for (i=0; i<16; i++)
 		TestResult[i] = 0;
     
-	ftl_memcpy(current_urb->buffer, TestResult, 64);
+	memcpy((void *)current_urb->buffer, (void *)TestResult, 64);
 	current_urb->actual_length = 64;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
 	usbcmd.csw.Status = CSW_GOOD;
@@ -573,9 +573,9 @@ static void FW_GetFlashInfo(void)
 	RKUSBINFO("%s \n", __func__);
 	current_urb = ep->tx_urb;
 
-	StorageReadFlashInfo(current_urb->buffer);
+	StorageReadFlashInfo((void *)current_urb->buffer);
 
-	ftl_memcpy(current_urb->buffer, current_urb->buffer, 11);
+	memcpy((void *)current_urb->buffer, (void *)current_urb->buffer, 11);
 	current_urb->actual_length = 11;
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
 	usbcmd.csw.Status = CSW_GOOD;
@@ -736,24 +736,26 @@ void do_rockusb_cmd(void)
 
 void rkusb_handle_datarx(void)
 {
-	struct usb_endpoint_instance *ep=&endpoint_instance[1];
+	struct usb_endpoint_instance *ep = &endpoint_instance[1];
 	struct urb *current_urb = ep->rcv_urb;
 	uint8_t *rxdata_buf = NULL;
 	uint32_t rxdata_blocks = 0;
 	uint32_t transfer_length;
 	uint32_t rx_blocks = 0;
-	uint32_t block_length;
+	uint32_t block_length ;
     
 	if(usbcmd.cmnd == K_FW_WRITE_10)
 		block_length = 528;
 	else if(usbcmd.cmnd == K_FW_LBA_WRITE_10)
 		block_length = 512;
+	else
+		block_length = 512;
 
 	// updatea varilables
 	if(current_urb->actual_length) { // data received
 		usbcmd.d_bytes += current_urb->actual_length;
-		rxdata_buf = current_urb->buffer;
-		rxdata_blocks = current_urb->actual_length/block_length;
+		rxdata_buf = (uint8_t *)current_urb->buffer;
+		rxdata_blocks = current_urb->actual_length / block_length;
 
 		current_urb->actual_length = 0;
 		usbcmd.rxbuf_num ++;
@@ -764,10 +766,10 @@ void rkusb_handle_datarx(void)
 	// read next packet from usb
 	if(usbcmd.d_bytes < usbcmd.d_size) {
 		transfer_length = usbcmd.d_size - usbcmd.d_bytes;
-		rx_blocks = transfer_length/block_length;
+		rx_blocks = transfer_length / block_length;
 		if(rx_blocks > RKUSB_BUFFER_BLOCK_MAX)
 			rx_blocks = RKUSB_BUFFER_BLOCK_MAX;
-		transfer_length = rx_blocks*block_length;
+		transfer_length = rx_blocks * block_length;
         
 //		RKUSBINFO("read next packet %x\n", transfer_length);
 		current_urb->buffer_length = transfer_length;
@@ -794,7 +796,7 @@ void rkusb_handle_datarx(void)
 		}
 		else if(usbcmd.cmnd == K_FW_LBA_WRITE_10) {
 			if(usbcmd.lba >= 0xFFFFFF00) {
-				UsbStorageSysDataStore(usbcmd.lba - 0xFFFFFF00, rxdata_blocks, (uint32_t *)rxdata_buf);
+				UsbStorageSysDataStore(usbcmd.lba - 0xFFFFFF00, rxdata_blocks, (uint32 *)rxdata_buf);
 				usbcmd.lba += rxdata_blocks;
 			}
 			else if(usbcmd.lba == 0xFFFFF000) {
@@ -862,7 +864,7 @@ start:
 		}
 		else if(usbcmd.cmnd == K_FW_LBA_READ_10) {
 			if(usbcmd.lba >= 0xFFFFFF00)
-				UsbStorageSysDataLoad(usbcmd.pre_read.pre_lba - 0xFFFFFF00, pre_blocks, (uint32_t *)usbcmd.pre_read.pre_buffer);
+				UsbStorageSysDataLoad(usbcmd.pre_read.pre_lba - 0xFFFFFF00, pre_blocks, (uint32 *)usbcmd.pre_read.pre_buffer);
 			else if(usbcmd.lba == 0xFFFFF000)
 				SecureBootUnlockCheck(usbcmd.pre_read.pre_buffer);
 			else

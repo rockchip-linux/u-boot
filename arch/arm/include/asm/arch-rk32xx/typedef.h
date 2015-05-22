@@ -2,27 +2,12 @@
  * (C) Copyright 2008-2014 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
- * See file CREDITS for list of people who contributed to this
- * project.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
- * MA 02111-1307 USA
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #ifndef	_DRIVER_TYPEDEF_H
 #define _DRIVER_TYPEDEF_H
 
+#include <common.h>
 
 #ifndef		TRUE
 #  define	TRUE    1
@@ -44,42 +29,39 @@
 #  define	ERROR	!0
 #endif
 
-typedef int 	BOOL;
+typedef bool		BOOL;
 
 
-typedef	unsigned char		uint8;
-typedef	signed char		int8;
-typedef	unsigned short		uint16;
-typedef	signed short		int16;
-typedef unsigned long           uint32;
-typedef	signed long		int32;
-typedef	unsigned long long	uint64;
-typedef	signed long long	int64;
+typedef	uint8_t			uint8;
+typedef	int8_t			int8;
+typedef	uint16_t		uint16;
+typedef	int16_t			int16;
+typedef uint32_t		uint32;
+typedef	int32_t			int32;
+typedef	uint64_t		uint64;
+typedef	int64_t			int64;
 
-typedef unsigned long		UINT32;
-typedef unsigned short		UINT16;
-typedef unsigned char 		UINT8;
-typedef long			INT32;
-typedef short			INT16;
-typedef char			INT8;
+typedef uint8_t 		UINT8;
+typedef uint16_t		UINT16;
+typedef uint32_t		UINT32;
 
-typedef unsigned char		INT8U;
-typedef signed	char   		INT8S;
-typedef unsigned short		INT16U;
-typedef signed	short  		INT16S;
-typedef int 	  		INT32S;
-typedef unsigned long   	INT32U;
+typedef int8_t			INT8;
+typedef int16_t			INT16;
+typedef int32_t			INT32;
 
-typedef unsigned long		L32U;
-typedef signed	long		L32S;
+typedef uint8_t			INT8U;
+typedef int8_t   		INT8S;
+typedef uint16_t		INT16U;
+typedef int16_t  		INT16S;
+typedef int32_t 	  	INT32S;
+typedef uint32_t   		INT32U;
 
 typedef unsigned char		BYTE;
 typedef unsigned long		ULONG;
 
-
-typedef volatile unsigned int	REG32;
-typedef volatile unsigned short	REG16;
 typedef volatile unsigned char	REG8;
+typedef volatile unsigned short	REG16;
+typedef volatile unsigned int	REG32;
 
 typedef volatile unsigned int	data_t;
 typedef volatile unsigned int*	addr_t;

@@ -29,10 +29,11 @@
     }while(0);
 
 
+#if 0
 #define spin_lock_init(...)
 #define spin_lock_irqsave(...)
 #define spin_unlock_irqrestore(...)
-
+#endif
 
 /* Register and Bit field Definitions */
 #define DS			0x0
@@ -1703,14 +1704,14 @@ updt_exit:
 int pl330_chan_ctrl(void *ch_id, enum pl330_chan_op op)
 {
 	struct pl330_thread *thrd = ch_id;
-	struct pl330_dmac *pl330;
+//	struct pl330_dmac *pl330;
 	unsigned long flags;
 	int ret = 0, active;
 
 	if (!thrd || thrd->free || thrd->dmac->state == DYING) {
 		return -EINVAL;
 	}
-	pl330 = thrd->dmac;
+//	pl330 = thrd->dmac;
 
 	spin_lock_irqsave(&pl330->lock, flags);
 
@@ -1901,7 +1902,7 @@ static inline void _free_event(struct pl330_thread *thrd, int ev)
 void pl330_release_channel(void *ch_id)
 {
 	struct pl330_thread *thrd = ch_id;
-	struct pl330_dmac *pl330;
+//	struct pl330_dmac *pl330;
 	unsigned long flags;
 
 	if (!thrd || thrd->free) {
@@ -1913,7 +1914,7 @@ void pl330_release_channel(void *ch_id)
 	_callback(thrd->req[1 - thrd->lstenq].r, PL330_ERR_ABORT);
 	_callback(thrd->req[thrd->lstenq].r, PL330_ERR_ABORT);
 
-	pl330 = thrd->dmac;
+//	pl330 = thrd->dmac;
 
 	spin_lock_irqsave(&pl330->lock, flags);
 	_free_event(thrd, thrd->ev);
@@ -2056,7 +2057,6 @@ static int dmac_alloc_resources(struct pl330_dmac *pl330)
 int pl330_add(struct pl330_info *pi)
 {
 	struct pl330_dmac *pl330;
-	void __iomem *regs;
 	int i, ret;
 
 	if (!pi) {
@@ -2075,8 +2075,6 @@ int pl330_add(struct pl330_info *pi)
 	if (pi->dmac_reset) {
 		pi->dmac_reset(pi);
 	}
-
-	regs = pi->base;
 
 	/* Check if we can handle this DMAC */
 	if ((get_id(pi, PERIPH_ID) & 0xfffff) != PERIPH_ID_VAL

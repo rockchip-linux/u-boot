@@ -9,8 +9,8 @@
 //µ±Ç°°æ±¾:1.00
 $Log: hw_SDPlatAdapt.c,v $
 ****************************************************************/
-
 #include "sdmmc_config.h"
+#include "../config.h"
 
 #ifdef DRIVERS_SDMMC
 
@@ -170,7 +170,7 @@ bool SDPAM_DMAStart(SDMMC_PORT_E nSDCPort, uint32 dstAddr, uint32 srcAddr, uint3
 		dst_addr = dstAddr;
 	}
 
-	if (rk_dma_set_buffdone_fn(dmac_chn, cb_f) < 0) {
+	if (rk_dma_set_buffdone_fn(dmac_chn, (rk_dma_cbfn_t)cb_f) < 0) {
 		printf("dma ch = %d set buffdone fail!\n", dmac_chn);
 		return FALSE;
 	}
@@ -272,11 +272,11 @@ uint32   SDPAM_INTCRegISR(SDMMC_PORT_E nSDCPort, pFunc Routine)
 	return TRUE;
 #else
 	if (nSDCPort == SDC0) {
-		irq_install_handler(RKPLAT_IRQ_SDMMC, Routine, NULL);
+		irq_install_handler(RKPLAT_IRQ_SDMMC, (interrupt_handler_t *)Routine, NULL);
 	} else if (nSDCPort == SDC1) {
-		irq_install_handler(RKPLAT_IRQ_SDIO, Routine, NULL);
+		irq_install_handler(RKPLAT_IRQ_SDIO, (interrupt_handler_t *)Routine, NULL);
 	} else {
-		irq_install_handler(RKPLAT_IRQ_EMMC, Routine, NULL);
+		irq_install_handler(RKPLAT_IRQ_EMMC, (interrupt_handler_t *)Routine, NULL);
 	}
     return TRUE;
 #endif

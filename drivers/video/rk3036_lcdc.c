@@ -21,6 +21,11 @@
  */
 #include "rk3036_lcdc.h"
 
+#if defined(CONFIG_RK32_DSI)
+extern int rk32_mipi_enable(vidinfo_t * vid);
+extern int rk32_dsi_disable(void);
+extern int rk32_dsi_enable(void);
+#endif
 struct lcdc_device rk312x_lcdc;
 
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)

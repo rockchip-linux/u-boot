@@ -463,7 +463,7 @@ static int reserve_lcd(void)
 #if defined(CONFIG_ROCKCHIP) && defined(CONFIG_RK_FB_DDREND)
 	/* using ddr end address - CONFIG_RK_LCD_SIZE - SZ_4M, reserve 4M for 1.5G or 3G size ddr used */
 	gd->fb_base = (gd->arch.ddr_end - CONFIG_RK_LCD_SIZE - SZ_4M);
-	debug("LCD base at ddr end, fb base = %08lx, size = %08lx\n", gd->fb_base, CONFIG_RK_FB_SIZE);
+	debug("LCD base at ddr end, fb base = %08lx, size = %08x\n", gd->fb_base, CONFIG_RK_FB_SIZE);
 
 	return 0;
 #endif
@@ -496,13 +496,13 @@ static int reserve_global_buffers(void)
 {
 	/* reserve rk global buffer */
 	gd->relocaddr -= CONFIG_RK_GLOBAL_BUFFER_SIZE;
-	gd->arch.rk_global_buf_addr = map_sysmem(gd->relocaddr, CONFIG_RK_GLOBAL_BUFFER_SIZE);
+	gd->arch.rk_global_buf_addr = (unsigned long)map_sysmem(gd->relocaddr, CONFIG_RK_GLOBAL_BUFFER_SIZE);
 	debug("Reserving %dk for rk global buffer at %08lx\n",
 			CONFIG_RK_GLOBAL_BUFFER_SIZE >> 10, gd->arch.rk_global_buf_addr);
 
 	/* reserve rk boot buffer */
 	gd->relocaddr -= CONFIG_RK_BOOT_BUFFER_SIZE;
-	gd->arch.rk_boot_buf_addr = map_sysmem(gd->relocaddr, CONFIG_RK_BOOT_BUFFER_SIZE);
+	gd->arch.rk_boot_buf_addr = (unsigned long)map_sysmem(gd->relocaddr, CONFIG_RK_BOOT_BUFFER_SIZE);
 	debug("Reserving %dk for rk boot buffer at %08lx\n",
 			CONFIG_RK_BOOT_BUFFER_SIZE >> 10, gd->arch.rk_boot_buf_addr);
 
@@ -513,7 +513,7 @@ static int reserve_global_buffers(void)
 
 	/* reserve fastboot log buffer */
 	gd->relocaddr -= CONFIG_FASTBOOT_LOG_SIZE;
-	gd->arch.fastboot_log_buf_addr = map_sysmem(gd->relocaddr, CONFIG_FASTBOOT_LOG_SIZE);
+	gd->arch.fastboot_log_buf_addr = (unsigned long)map_sysmem(gd->relocaddr, CONFIG_FASTBOOT_LOG_SIZE);
 	debug("Reserving %dk for fastboot log buffer at %08lx\n",
 			CONFIG_FASTBOOT_LOG_SIZE >> 10, gd->arch.fastboot_log_buf_addr);
 #endif /* CONFIG_CMD_FASTBOOT */

@@ -27,8 +27,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-
 #define RKRESET_VERSION		"1.3"
+
+extern void FW_NandDeInit(void);
 
 
 void rk_module_deinit(void)

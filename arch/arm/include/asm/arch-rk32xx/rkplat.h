@@ -30,6 +30,7 @@
 #include <config.h>
 #include <common.h>
 #include <command.h>
+#include <malloc.h>
 #include <fdtdec.h>
 #include <asm/io.h>
 #include <asm/errno.h>

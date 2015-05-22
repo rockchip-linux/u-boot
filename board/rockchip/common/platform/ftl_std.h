@@ -29,6 +29,7 @@
 int ftl_memcmp(void *str1, void *str2, unsigned int count);
 void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int size);
 int ftl_memcmp(void *str1, void *str2, unsigned int count);
+void * ftl_memset(void *s, int c, unsigned int n);
 
 #endif	/* _FTL_STD_H_ */
 

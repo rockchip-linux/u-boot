@@ -145,7 +145,7 @@ void copy_config (struct urb *urb, void *data, int max_length,
 	/*dbg_ep0(1, "actual: %d buf: %d max_buf: %d length: %d available: %d", */
 	/*        urb->actual_length, urb->buffer_length, max_buf, length, available); */
 
-	memcpy (urb->buffer + urb->actual_length, data, length);
+	memcpy ((void *)(urb->buffer + urb->actual_length), data, length);
 	urb->actual_length += length;
 
 	dbg_ep0 (3,

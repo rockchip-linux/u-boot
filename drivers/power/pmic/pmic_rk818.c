@@ -178,7 +178,7 @@ static int rk818_regulator_set_voltage(int num_regulator,
 	const int *vol_map;
 	int min_vol = min_uV / 1000;
 	u16 val;
-	int ret = 0,num =0;
+	int num =0;
 
 	if (num_regulator < 4){
 		if (num_regulator == 2)
@@ -189,16 +189,16 @@ static int rk818_regulator_set_voltage(int num_regulator,
 		debug("1 %s %d dcdc_vol = %08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator)));
 		return 0;
 	}else if (num_regulator == 6){
-	vol_map = ldo3_voltage_map;
-	num = 15;
+		vol_map = ldo3_voltage_map;
+		num = 15;
 	}
 	else if (num_regulator == 9 || num_regulator == 10){
-	vol_map = ldo6_voltage_map;
-	num = 17;
+		vol_map = ldo6_voltage_map;
+		num = 17;
 	}
 	else {
-	vol_map = ldo_voltage_map;
-	num = 16;
+		vol_map = ldo_voltage_map;
+		num = 16;
 	}
 
 	if (min_vol < vol_map[0] ||
@@ -221,13 +221,11 @@ static int rk818_regulator_set_voltage(int num_regulator,
 	debug("1 %s %d %d ldo_vol =%08x\n", __func__, num_regulator, val, i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)));
 
 	return 0;
-
 }
 
 static int rk818_set_regulator_init(struct fdt_regulator_match *matches, int num_matches)
 {
 	int ret;
-	int volt;
 
 	ret = rk818_regulator_set_voltage(num_matches, matches->min_uV, matches->max_uV);
 	ret = rk818_regulator_enable(num_matches);

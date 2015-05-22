@@ -132,7 +132,7 @@ uint32 rkclk_select_pll_source(uint32 clock, uint32 even);
  * rkplat set cryto clock
  * here no check clkgate, because chip default is enable.
  */
-void rkclk_set_cryto_clk(uint32 rate);
+void rkclk_set_crypto_clk(uint32 rate);
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 
 

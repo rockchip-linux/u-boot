@@ -18,6 +18,7 @@ Revision:   1.00
 #define     SDMMC_SDCARD_UPDATE		(2)	// SD card update
 #endif
 extern uint32 SdmmcInit(uint32 sdcId);
+extern uint32 SdmmcDeInit(uint32 ChipSel);
 extern void SdmmcReadID(uint8 chip, void *buf);
 
 extern void SdmmcReadFlashInfo(void *buf);
@@ -26,7 +27,7 @@ extern uint32  SdmmcBootReadPBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nS
 extern uint32  SdmmcBootWritePBA(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec);
 extern void SdmmcCheckIdBlock(void);
 extern uint32 SdmmcBootReadLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec);
-extern uint32 SdmmcBootWriteLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint16 mode);
+extern uint32 SdmmcBootWriteLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint32 mode);
 extern uint32 SdmmcGetCapacity(uint8 ChipSel);
 
 extern uint32 SdmmcSysDataLoad(uint8 ChipSel, uint32 Index, void *Buf);
@@ -42,4 +43,3 @@ extern uint32 BootFromSdCard(uint8 ChipSel);
 #endif
 
 #endif /* _SDMMC_BOOT_H */
-

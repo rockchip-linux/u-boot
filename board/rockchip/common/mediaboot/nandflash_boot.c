@@ -66,7 +66,7 @@ uint32 LMemApiErase(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod)
 	return ret;
 }
 
-uint32 LMemApiReadPba(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec)
+uint32 LMemApiReadPba(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec)
 {
 	int ret = FTL_ERROR;
 
@@ -77,7 +77,7 @@ uint32 LMemApiReadPba(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec)
 	return ret;
 }
 
-uint32 LMemApiWritePba(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec)
+uint32 LMemApiWritePba(uint8 ChipSel, uint32 PBA, void *pbuf, uint32 nSec)
 {
 	int ret = FTL_ERROR;
 
@@ -88,7 +88,7 @@ uint32 LMemApiWritePba(uint8 ChipSel, uint32 PBA, void *pbuf, uint16 nSec)
 	return ret;
 }
 
-uint32 LMemApiReadLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec)
+uint32 LMemApiReadLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec)
 {
 	int ret = FTL_ERROR;
 
@@ -98,7 +98,7 @@ uint32 LMemApiReadLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec)
 	return ret;
 }
 
-uint32 LMemApiWriteLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint16 nSec, uint16 mode)
+uint32 LMemApiWriteLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint32 mode)
 {
 	int ret = FTL_ERROR;
 

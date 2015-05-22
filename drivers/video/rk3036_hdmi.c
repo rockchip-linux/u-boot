@@ -30,7 +30,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-
+#if 0
 static int rk3036_hdmi_show_reg(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0;
@@ -52,6 +52,7 @@ static int rk3036_hdmi_show_reg(struct hdmi_dev *hdmi_dev)
 
 	return 0;
 }
+#endif
 
 int hdmi_init_video_para(struct hdmi_dev *hdmi_dev)
 {
@@ -444,7 +445,7 @@ static void rk3036_hdmi_config_avi(struct hdmi_dev *hdmi_dev,
 				  unsigned char vic, unsigned char output_color)
 {
 	int i;
-	int avi_color_mode;
+	int avi_color_mode = AVI_COLOR_MODE_RGB;
 	char info[SIZE_AVI_INFOFRAME];
 
 	memset(info, 0, SIZE_AVI_INFOFRAME);
@@ -488,7 +489,7 @@ static void rk3036_hdmi_config_avi(struct hdmi_dev *hdmi_dev,
 
 static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 {
-	int value,val;
+	int val;
 	struct fb_videomode *mode = NULL;
 	struct hdmi_video_timing *timing = NULL;
 	struct hdmi_video_para *vpara = &hdmi_dev->vpara;
@@ -539,6 +540,8 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	}
 	hdmi_dev->tmdsclk = mode->pixclock;
 #else
+	int value;
+
 	value = v_EXTERANL_VIDEO(1) | v_INETLACE(mode->vmode);
 	if (mode->sync & FB_SYNC_HOR_HIGH_ACT)
 		value |= v_HSYNC_POLARITY(1);
@@ -599,6 +602,7 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	return 0;
 }
 
+#if 0
 static void rk3036_hdmi_config_aai(struct hdmi_dev *hdmi_dev)
 {
 	int i;
@@ -700,7 +704,6 @@ static int rk3036_hdmi_config_audio(struct hdmi_dev *hdmi_dev,
 	return 0;
 }
 
-#if 0
 int rk3036_hdmi_removed(struct hdmi *hdmi_drv)
 {
 
@@ -791,7 +794,7 @@ static void rk3036_hdmi_reset(struct hdmi_dev *hdmi_dev)
 extern int g_hdmi_noexit;
 static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
-	int i = 5, ret = -1, val = 0;
+	int i = 5, ret = -1;
 
 	if (!hdmi_dev)
 		return ret;
@@ -834,9 +837,7 @@ static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 
 void rk3036_hdmi_probe(vidinfo_t *panel)
 {
-	int val = 0;
 	struct hdmi_dev *hdmi_dev = NULL;
-	int node = 0;
 
 	hdmi_dev = malloc(sizeof(struct hdmi_dev));
 	if (hdmi_dev != NULL && panel != NULL) {
@@ -864,7 +865,7 @@ void rk3036_hdmi_probe(vidinfo_t *panel)
 		rk_hdmi_register(hdmi_dev, panel);
 		 
 	}else {
-		printf("%s: hdmi_dev %#x  panel %#x\n", __func__, hdmi_dev, panel);
+		printf("%s: hdmi_dev 0x%p  panel 0x%p\n", __func__, hdmi_dev, panel);
 	}
 
 	free(hdmi_dev);

@@ -1,4 +1,9 @@
-
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * Author: Andy Yan <andy.yan@rock-chips.com>
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef __ROCKCHIP_H__
 #define __ROCKCHIP_H__
 #include <linux/fb.h>
@@ -63,10 +68,12 @@ struct rockchip_fb {
 void rk_hdmi_probe(vidinfo_t *panel);
 #endif
 extern void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen);
-#endif
 
 void lcd_standby(int enable);
-int rk_fb_pwr_enable(struct rockchip_fb *fb);
-int rk_fb_pwr_enable(struct rockchip_fb *fb);
+void rk_lcdc_standby(int enable);
+void lcd_pandispaly(struct fb_dsp_info *info);
 
+int rk_fb_pwr_enable(struct rockchip_fb *fb);
+int rk_fb_pwr_disable(struct rockchip_fb *fb);
 
+#endif /* __ROCKCHIP_H__ */

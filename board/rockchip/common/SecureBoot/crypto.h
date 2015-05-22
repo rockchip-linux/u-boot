@@ -29,6 +29,7 @@ extern int32 CryptoSHAInit(uint32 MsgLen, int hash_bits);
 extern int32 CryptoSHAStart(uint32 *data, uint32 DataLen);
 extern int32 CryptoSHAEnd(uint32 *result);
 extern int32 CryptoSHACheck(uint32 *InHash);
+extern int32 CryptoRSAEnd(uint32 *result);
 extern int32 CryptoRSAInit(uint32 *AddrM, uint32 *AddrN, uint32 *AddrE, uint32 *AddrC);
 extern int32 CryptoRSAStart(uint32 *AddrM, uint32 *AddrN, uint32 *AddrE, uint32 *AddrC);
 extern int32 CryptoRSACheck(void);

@@ -57,9 +57,11 @@ static void _SD_DecodeCSD(uint32 *pCSD, pSDM_CARD_INFO_T pCard)
     uint32           c_size = 0;
     uint32           c_size_mult = 0;
     uint32           read_bl_len = 0;
+#if 0
     uint32           taac = 0;
     uint32           nsac = 0;
     uint32           r2w_factor = 0;
+#endif
     uint32           transfer_rate_unit[4] = {10, 100, 1000, 10000};
     uint32           time_value[16] = {10/*reserved*/, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80};
 
@@ -80,10 +82,11 @@ static void _SD_DecodeCSD(uint32 *pCSD, pSDM_CARD_INFO_T pCard)
     {
         //reserved
     }
+#if 0
     taac       = (pCSD[3] >> 16) & 0xFF;            //[119:112]
     nsac       = (pCSD[3] >> 8) & 0xFF;             //[111:104]
     r2w_factor = (0x1 << ((pCSD[0] >> 26) & 0x7)); //[28:26]
-    
+#endif
     pCard->tran_speed = transfer_rate_unit[pCSD[3] & 0x3]*time_value[(pCSD[3] >> 3) & 0x7]; //[103:96]
     pCard->dsr_imp    = (pCSD[2] >> 12) & 0x1;             //[76]
     pCard->ccc        = (uint16)((pCSD[2] >> 20) & 0xFFF); //[95:84]

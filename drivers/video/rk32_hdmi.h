@@ -1509,4 +1509,5 @@ static inline int hdmi_msk_reg(struct hdmi_dev *hdmi_dev, u16 offset, u32 msk, u
         return ret;
 }
 
+extern void rk32_hdmi_probe(vidinfo_t *panel);
 #endif /* _RK32_HDMI_H */

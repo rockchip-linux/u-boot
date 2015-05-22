@@ -7,6 +7,9 @@
 #include <malloc.h>
 #include <search.h>
 #include <errno.h>
+#include <asm/arch/rkplat.h>
+
+DECLARE_GLOBAL_DATA_PTR;
 
 char *env_name_spec = "RK STORAGE";
 
@@ -18,7 +21,8 @@ env_t *env_ptr;
 
 DEFINE_CACHE_ALIGN_BUFFER(char, env_buf, CONFIG_ENV_SIZE);
 
-DECLARE_GLOBAL_DATA_PTR;
+extern uint32 StorageUbootDataStore(uint32 Index, void *Buf);
+extern uint32 StorageUbootDataLoad(uint32 Index, void *Buf);
 
 #if !defined(CONFIG_ENV_OFFSET)
 #define CONFIG_ENV_OFFSET           0

@@ -50,7 +50,7 @@
 
 /* rk gpio banks data only for gpio driver module */
 #ifdef RK_GPIO_DRIVER_MODULE
-#define RK_GPIO_BANK(ID)			\
+#define RK_GPIO_BANK_REGISTER(ID)			\
 	{								\
 		.regbase = (unsigned char __iomem *) RKIO_GPIO##ID##_PHYS, \
 		.id = ID,	\
@@ -59,15 +59,15 @@
 	}
 
 static struct rk_gpio_bank rk_gpio_banks[GPIO_BANKS] = {
-	RK_GPIO_BANK(0),
-	RK_GPIO_BANK(1),
-	RK_GPIO_BANK(2),
-	RK_GPIO_BANK(3),
-	RK_GPIO_BANK(4),
-	RK_GPIO_BANK(5),
-	RK_GPIO_BANK(6),
-	RK_GPIO_BANK(7),
-	RK_GPIO_BANK(8)
+	RK_GPIO_BANK_REGISTER(0),
+	RK_GPIO_BANK_REGISTER(1),
+	RK_GPIO_BANK_REGISTER(2),
+	RK_GPIO_BANK_REGISTER(3),
+	RK_GPIO_BANK_REGISTER(4),
+	RK_GPIO_BANK_REGISTER(5),
+	RK_GPIO_BANK_REGISTER(6),
+	RK_GPIO_BANK_REGISTER(7),
+	RK_GPIO_BANK_REGISTER(8)
 };
 #endif /* RK_GPIO_BANKS_DATA */
 

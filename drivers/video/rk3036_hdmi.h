@@ -391,5 +391,6 @@ static inline void rk3036_hdmi_reset_pclk(void)
 }
 
 extern int rk616_hdmi_initial(void);
+extern void rk3036_hdmi_probe(vidinfo_t *panel);
 
 #endif /* _RK3036_HDMI_H */

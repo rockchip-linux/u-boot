@@ -66,7 +66,6 @@ static void _RegisterCard(pSDM_CARD_INFO_T pCardInfo)
 /****************************************************************/
 static uint32 _IsCardRegistered(int32 cardId, uint32* pPort)
 {
-    uint32 i;
     *pPort = SDM_MAX_MANAGER_PORT;
     if(gSDMDriver[cardId].cardInfo.cardId == cardId)
     {
@@ -685,13 +684,13 @@ static int32 _IdentifyCard(int32 cardId)
                 {
                     /* SDIO-SDHC/SD2.0 Combo Card */
                     //SDIOHC_SD20_ComboInit(&cardInfo);
-                    cardInfo.type == UNKNOW_CARD;
+                    cardInfo.type = UNKNOW_CARD;
                 }
                 else if ((mp == 0) && (nf > 0) && (status & 0xFFFF00))
                 {
                     /* SDIO-only Card */
                     //SDIO_OnlyInit(&cardInfo);
-                    cardInfo.type == UNKNOW_CARD;
+                    cardInfo.type = UNKNOW_CARD;
                 }
                 else if(mp == 1)
                 {
@@ -729,13 +728,13 @@ static int32 _IdentifyCard(int32 cardId)
                 {
                     /* SDIO-SD1.X Combo Card */
                     //SDIO_SD1X_ComboInit(&cardInfo);
-                    cardInfo.type == UNKNOW_CARD;
+                    cardInfo.type = UNKNOW_CARD;
                 }
                 else if ((mp == 0) && (nf > 0) && (status & 0xFFFF00))
                 {
                     /* SDIO-only Card */
                     //SDIO_OnlyInit(&cardInfo);
-                    cardInfo.type == UNKNOW_CARD;
+                    cardInfo.type = UNKNOW_CARD;
                 }
                 else if (mp == 1)
                 {
