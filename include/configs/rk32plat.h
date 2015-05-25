@@ -151,7 +151,7 @@
 
 #define CONFIG_RK32_DSI
 
-#define CONFIG_UBOOT_CHARGE
+#undef CONFIG_UBOOT_CHARGE
 
 #else
 
