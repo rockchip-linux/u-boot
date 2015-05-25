@@ -179,7 +179,6 @@ static  int32_t abs_int(int32_t x)
 
 static void dc_gpio_init(void)
 {
-	int value=0; 
 #if CONFIG_RKCHIP_RK3368
 	grf_writel((0x0 << 12) | (0x1 << (12 + 16)), GRF_SOC_CON15);
 	
@@ -191,7 +190,7 @@ static void dc_gpio_init(void)
 	
 	grf_writel((0x1 << 12) | (0x1 << (12 + 16)), GRF_SOC_CON15);
 #endif
-	return 0;
+	return;
 }
 
 
@@ -368,8 +367,6 @@ static int rk_battery_voltage(struct battery_info *di)
 {
 	int ret;
 	int voltage_now = 0;
-	int voltage_accurate = 0;
-	int current_now=0;
 	u8 buf;
 	int temp;
 
@@ -390,12 +387,10 @@ static int rk_battery_voltage(struct battery_info *di)
 }
 static int rk_battery_ocvVoltage(struct battery_info *di)
 {
-	int ret;
 	int voltage_now = 0;
 	int voltage_ocv = 0;
 	int current_now=0;
-	u8 buf;
-	int temp;
+	
 	voltage_now=rk_battery_voltage(di);
 	if(voltage_now<0){
 		DBG( "read viltage error!");
@@ -553,7 +548,6 @@ static int _voltage_to_capacity(struct battery_info *di, int voltage)
 	u32 *ocv_table;
 	int ocv_size;
 	u32 tmp;
-	int i=0;
 
 	ocv_table = di->ocv_table;
 	ocv_size = di->ocv_size;
@@ -747,10 +741,9 @@ static void power_on_save(struct battery_info *di, int voltage)
 {
 	u8 buf;
 	u8 save_soc;
-	u8 def_dod0_st = 0;
 
 	/*default status=0*/
-	battery_write(DOD0_ST_REG, &di->dod0_status);
+	battery_write(DOD0_ST_REG, (u8*)(&di->dod0_status));
 
 	battery_read(NON_ACT_TIMER_CNT_REG, &buf);
 	if (_is_first_poweron(di) || buf > 30) { /* first power-on or power off time > 30min */
@@ -774,10 +767,10 @@ static void power_on_save(struct battery_info *di, int voltage)
 				save_soc = di->dod0_level;
 			save_level(di, save_soc);
 			/*save for kernel*/
-			battery_write(DOD0_ST_REG, &di->dod0_status);
-			battery_write(DOD0_CAP_REG, &di->dod0_capacity);
-			battery_write(DOD0_LVL_REG, &di->dod0_level);
-			battery_write(DOD0_TEMP_REG, &di->temp_soc);
+			battery_write(DOD0_ST_REG, (u8*)(&di->dod0_status));
+			battery_write(DOD0_CAP_REG, (u8*)(&di->dod0_capacity));
+			battery_write(DOD0_LVL_REG, (u8*)(&di->dod0_level));
+			battery_write(DOD0_TEMP_REG, (u8*)(&di->temp_soc));
 
 			DBG("<%s>UPDATE-FCC POWER ON : dod0_voltage = %d, dod0_capacity = %d ", __func__, di->dod0_voltage, di->dod0_capacity);
 		}
@@ -856,8 +849,6 @@ static void set_charge_current(struct battery_info *di, int charge_current)
 */
 static void  rk818_charger_setting(struct battery_info *di, int charger_st)
 {
-	unsigned int dc_state = 0;
-
 	if((charger_st>USB_CHARGE)&&(!is_bat_exist(di))){
 			set_charge_current(di, ILIM_2000MA);
 			return;
@@ -1015,8 +1006,6 @@ static u8 get_charge_status(struct battery_info *di)
 
 static void do_finish_work(struct battery_info *di)
 {
-	u32 sec;/*unit: s*/
-
 	_capacity_init(di, di->fcc);
 	if (di->real_soc < 100){
 		di->real_soc=100;
@@ -1199,8 +1188,6 @@ static int rk818_battery_parse_dt(struct battery_info *di, void const *blob)
 	int len;
 	int err;
 	const char *prop;
-	int fcc_capacity;
-	int flags;
 	struct fdt_gpio_state gpioflags;
 
 	DBG("<%s>.\n",__func__);

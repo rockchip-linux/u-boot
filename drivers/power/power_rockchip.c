@@ -13,6 +13,12 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#if defined(CONFIG_POWER_RK818)
+	extern void pmic_rk818_power_init(void);
+	extern void pmic_rk818_power_on(void);
+	extern void pmic_rk818_power_off(void);	
+#endif
+
 #if defined(CONFIG_POWER_FG_ADC)
 extern int adc_battery_init(void);
 #endif

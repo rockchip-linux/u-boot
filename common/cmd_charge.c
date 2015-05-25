@@ -78,6 +78,9 @@ extern void lcd_standby(int enable);
 extern uint32 rk_timer1_get_curr_count(void);
 extern int rk818_regulator_enable(int num_regulator);
 extern int rk818_regulator_disable(int num_regulator);
+extern void power_pmic_init(void);
+extern void power_on_pmic(void);
+extern void power_off_pmic(void);
 
 #ifdef CONFIG_POWER_FG_ADC
 u8 g_increment = 0;
@@ -606,7 +609,7 @@ int timer1_init(uint64_t count)
 
 void timer1_irq_init(void(*function)(void))
 {
-	irq_install_handler(RK_CHARGE_TIMER_IRQ, function, NULL);
+	irq_install_handler(RK_CHARGE_TIMER_IRQ, (interrupt_handler_t *)function, NULL);
 			/* default enable all gpio group interrupt */
 	irq_handler_enable(RK_CHARGE_TIMER_IRQ);
 }
@@ -646,8 +649,6 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	int brightness_status=0;
 	int key_state = KEY_NOT_PRESSED;
 	int exit_type = NOT_EXIT;
-	int IsExistBat=0;
-	int status;
 
 	#ifdef CONFIG_POWER_FG_ADC
 	unsigned int charge_start_time = 0;
