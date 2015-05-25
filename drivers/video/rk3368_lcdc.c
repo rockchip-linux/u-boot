@@ -893,8 +893,8 @@ static int rk3368_config_timing(struct lcdc_device *lcdc_dev, struct rk_screen *
 		    m_WIN0_INTERLACE_READ | m_WIN0_YRGB_DEFLICK |
 		    m_WIN0_CBR_DEFLICK;
 		val =
-		    v_WIN0_INTERLACE_READ(1) | v_WIN0_YRGB_DEFLICK(1) |
-		    v_WIN0_CBR_DEFLICK(1);
+		    v_WIN0_INTERLACE_READ(1) | v_WIN0_YRGB_DEFLICK(0) |
+		    v_WIN0_CBR_DEFLICK(0);
 		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0, mask, val);
 
 		mask =
@@ -919,7 +919,7 @@ static int rk3368_config_timing(struct lcdc_device *lcdc_dev, struct rk_screen *
 
 		mask = m_DSP_LINE_FLAG0_NUM;
 		val =
-		    v_DSP_LINE_FLAG0_NUM(vsync_len + upper_margin + y_res / 2);
+		    v_DSP_LINE_FLAG0_NUM(vact_end_f1);
 		lcdc_msk_reg(lcdc_dev, LINE_FLAG, mask, val);
 	} else {
 		mask = m_DSP_VS_PW | m_DSP_VTOTAL;
