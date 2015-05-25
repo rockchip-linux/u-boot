@@ -68,7 +68,7 @@ int fdt_get_i2c_info(const void* blob, int node, u32 *pbus, u32 *paddr)
 	int nd;
 
 	/* Note: i2c device address should be 32bit size */
-	cell = fdt_getprop(blob, node, "reg", NULL);
+	cell = (uint32_t *)fdt_getprop(blob, node, "reg", NULL);
 	addr = (fdt_addr_t)fdt32_to_cpu(*cell);
 	i2c_addr = (u32)addr;
 	debug("i2c address = 0x%x\n", i2c_addr);
@@ -85,7 +85,7 @@ int fdt_get_i2c_info(const void* blob, int node, u32 *pbus, u32 *paddr)
 		addrcells = fdt_address_cells(blob, nd);
 	}
 
-	cell = fdt_getprop(blob, parent, "reg", NULL);
+	cell = (uint32_t *)fdt_getprop(blob, parent, "reg", NULL);
 	if (addrcells == 2) {
 		cell++;
 	}

@@ -1918,14 +1918,6 @@ static inline void lcdc_cfg_done(struct lcdc_device *lcdc_dev)
 	//dsb(sy);
 }
 
-static inline int lcdc_grf_writel(struct regmap *base,
-				  u32 offset, u32 val)
-{
-	regmap_write(base, offset, val);
-	//dsb(sy);
-
-	return 0;
-}
 
 #define CUBIC_PRECISE  0
 #define CUBIC_SPLINE   1
@@ -2067,4 +2059,4 @@ static inline u32 rk3368_get_hard_ware_vskiplines(u32 srch, u32 dsth)
 
 	return vscalednmult;
 }
-#endif
+#endif /* RK3368_LCDC_H_ */

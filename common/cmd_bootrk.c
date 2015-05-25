@@ -121,9 +121,9 @@ static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr,
 	void *kaddr, *raddr, *secaddr;
 
 #ifdef CONFIG_KERNEL_RUNNING_ADDR
-	kaddr = (void*)CONFIG_KERNEL_RUNNING_ADDR;
+	kaddr = (void*)(unsigned long)CONFIG_KERNEL_RUNNING_ADDR;
 #else
-	kaddr = (void*)CONFIG_KERNEL_LOAD_ADDR;
+	kaddr = (void*)(unsigned long)CONFIG_KERNEL_LOAD_ADDR;
 #endif
 	raddr = (void*)(gd->arch.rk_boot_buf_addr);
 
@@ -145,7 +145,7 @@ static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr,
 		return NULL;
 	}
 	/* set this aside somewhere safe */
-	memcpy(hdr, (void *) addr, sizeof(rk_boot_img_hdr));
+	memcpy(hdr, (void *)(unsigned long) addr, sizeof(rk_boot_img_hdr));
 
 	if (memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE)) {
 		printf("bootrk: bad boot image magic\n");
@@ -153,16 +153,16 @@ static rk_boot_img_hdr * rk_load_image_from_ram(char *ram_addr,
 		return NULL;
 	}
 
-	hdr->ramdisk_addr = (int)raddr;
-	hdr->kernel_addr = (int)kaddr;
-	kaddr = (void *)(addr + hdr->page_size);
-	raddr = (void *)(kaddr + ALIGN(hdr->kernel_size,
+	hdr->ramdisk_addr = (uint32_t)(unsigned long)raddr;
+	hdr->kernel_addr = (uint32_t)(unsigned long)kaddr;
+	kaddr = (void *)(unsigned long)(addr + hdr->page_size);
+	raddr = (void *)(unsigned long)(kaddr + ALIGN(hdr->kernel_size,
 				hdr->page_size));
-	secaddr = (void *)(raddr + ALIGN(hdr->ramdisk_size,
+	secaddr = (void *)(unsigned long)(raddr + ALIGN(hdr->ramdisk_size,
 				hdr->page_size));
 
-	memmove((void *)hdr->kernel_addr, kaddr, hdr->kernel_size);
-	memmove((void *)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
+	memmove((void *)(unsigned long)hdr->kernel_addr, kaddr, hdr->kernel_size);
+	memmove((void *)(unsigned long)hdr->ramdisk_addr, raddr, hdr->ramdisk_size);
 
 	char* fastboot_unlocked_env = getenv(FASTBOOT_UNLOCKED_ENV_NAME);
 	unsigned long unlocked = 0;
@@ -228,9 +228,9 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 #endif
 
 #ifdef CONFIG_KERNEL_RUNNING_ADDR
-	kaddr = (void*)CONFIG_KERNEL_RUNNING_ADDR;
+	kaddr = (void*)(unsigned long)CONFIG_KERNEL_RUNNING_ADDR;
 #else
-	kaddr = (void*)CONFIG_KERNEL_LOAD_ADDR;
+	kaddr = (void*)(unsigned long)CONFIG_KERNEL_LOAD_ADDR;
 #endif
 	raddr = (void*)(gd->arch.rk_boot_buf_addr);
 
@@ -248,8 +248,8 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 	if (memcmp(hdr->magic, BOOT_MAGIC,
 				BOOT_MAGIC_SIZE)) {
 		memset(hdr, 0, blksz);
-		hdr->kernel_addr = (uint32)kaddr;
-		hdr->ramdisk_addr = (uint32)raddr;
+		hdr->kernel_addr = (uint32)(unsigned long)kaddr;
+		hdr->ramdisk_addr = (uint32)(unsigned long)raddr;
 
 		snprintf((char*)hdr->magic, BOOT_MAGIC_SIZE, "%s\n", "RKIMAGE!");
 		if (rkimage_load_image(hdr, ptn, get_disk_partition(KERNEL_NAME)) != 0) {
@@ -257,12 +257,12 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 			goto fail;
 		}
 	} else {
-		hdr->kernel_addr = (uint32)kaddr;
-		hdr->ramdisk_addr = (uint32)raddr;
+		hdr->kernel_addr = (uint32)(unsigned long)kaddr;
+		hdr->ramdisk_addr = (uint32)(unsigned long)raddr;
 
 		sector = ptn->start + (hdr->page_size / blksz);
 		blocks = DIV_ROUND_UP(hdr->kernel_size, blksz);
-		if (StorageReadLba(sector, (void *) hdr->kernel_addr, \
+		if (StorageReadLba(sector, (void *)(unsigned long) hdr->kernel_addr, \
 					blocks) != 0) {
 			FBTERR("bootrk: failed to read kernel\n");
 			goto fail;
@@ -270,7 +270,7 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 
 		sector += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
 		blocks = DIV_ROUND_UP(hdr->ramdisk_size, blksz);
-		if (StorageReadLba(sector, (void *) hdr->ramdisk_addr, \
+		if (StorageReadLba(sector, (void *)(unsigned long) hdr->ramdisk_addr, \
 					blocks) != 0) {
 			FBTERR("bootrk: failed to read ramdisk\n");
 			goto fail;
@@ -281,7 +281,7 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 
 			sector += ALIGN(hdr->ramdisk_size, hdr->page_size) / blksz;
 			blocks = DIV_ROUND_UP(hdr->second_size, blksz);
-			if (StorageReadLba(sector, (void *) hdr->second_addr, \
+			if (StorageReadLba(sector, (void *)(unsigned long) hdr->second_addr, \
 						blocks) != 0) {
 				FBTERR("bootrk: failed to read second\n");
 				goto fail;

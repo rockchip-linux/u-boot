@@ -159,8 +159,8 @@ void lcd_sync(void)
 	int line_length;
 
 	if (lcd_flush_dcache)
-		flush_dcache_range((u32)lcd_base,
-			(u32)(lcd_base + lcd_get_size(&line_length)));
+		flush_dcache_range((u32)(unsigned long)lcd_base,
+			(u32)(unsigned long)(lcd_base + lcd_get_size(&line_length)));
 #elif defined(CONFIG_SANDBOX) && defined(CONFIG_VIDEO_SANDBOX_SDL)
 	static ulong last_sync;
 
@@ -776,7 +776,7 @@ void bitmap_plot(int x, int y)
 		fb_info.xvir = fb_info.xact;
 		fb_info.layer_id = WIN0;
 		fb_info.format = RGB565;
-		fb_info.yaddr = (int)lcd_base;
+		fb_info.yaddr = (u32)(unsigned long)lcd_base;
 		lcd_pandispaly(&fb_info);
 	}
 #endif
@@ -1132,7 +1132,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 #if defined(CONFIG_RK_FB)
 	/* rk charge mode, enable fb flip */
 	if (lcd_flip) {
-		if((int)lcd_base == gd->fb_base)
+		if((unsigned long)lcd_base == gd->fb_base)
 			lcd_base += width * height * bpix >> 3;
 		else
 			lcd_base = (void *)gd->fb_base;
@@ -1259,7 +1259,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	fb_info.xvir = fb_info.xact;
 	fb_info.layer_id = WIN0;
 	fb_info.format = format;
-	fb_info.yaddr = (int)lcd_base;
+	fb_info.yaddr = (u32)(unsigned long)lcd_base;
 	lcd_pandispaly(&fb_info);
 #endif
 

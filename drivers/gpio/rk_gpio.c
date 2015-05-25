@@ -59,7 +59,7 @@ struct rk_gpio_bank *rk_gpio_get_bank(unsigned gpio)
 }
 
 
-static int rk_gpio_base_to_id(unsigned int base)
+static int rk_gpio_base_to_id(unsigned long base)
 {
 	int index;
 
@@ -68,7 +68,7 @@ static int rk_gpio_base_to_id(unsigned int base)
 			return index;
 	}
 
-	debug("rk_gpio_base_to_id error base = 0x%x!\n", base);
+	debug("rk_gpio_base_to_id error base = 0x%lx!\n", base);
 	return -1;
 }
 
@@ -348,11 +348,11 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 	}
 
 	if (bank->id == 0) { /* gpio0, pmu grf control */
-		base = (void __iomem *)(RKIO_PMU_GRF_PHYS + PMU_GRF_GPIO0A_P + ((gpio / 8) * 4));
+		base = (void __iomem *)(unsigned long)(RKIO_PMU_GRF_PHYS + PMU_GRF_GPIO0A_P + ((gpio / 8) * 4));
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	} else { /* gpio1-gpio3, grf control */
-		base = (void __iomem *)(RKIO_GRF_PHYS + GRF_GPIO1A_P + (bank->id - 1) * 16 + ((gpio / 8) * 4));
+		base = (void __iomem *)(unsigned long)(RKIO_GRF_PHYS + GRF_GPIO1A_P + (bank->id - 1) * 16 + ((gpio / 8) * 4));
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
@@ -463,11 +463,11 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 	}
 
 	if (bank->id == 0) { /* gpio0, pmu grf control */
-		base = (void __iomem *)(RKIO_PMU_GRF_PHYS + PMU_GRF_GPIO0A_E + ((gpio / 8) * 4));
+		base = (void __iomem *)(unsigned long)(RKIO_PMU_GRF_PHYS + PMU_GRF_GPIO0A_E + ((gpio / 8) * 4));
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	} else { /* gpio1-gpio3, grf control */
-		base = (void __iomem *)((RKIO_GRF_PHYS + GRF_GPIO1A_E + (bank->id - 1) * 16) + ((gpio / 8) * 4));
+		base = (void __iomem *)(unsigned long)((RKIO_GRF_PHYS + GRF_GPIO1A_E + (bank->id - 1) * 16) + ((gpio / 8) * 4));
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}

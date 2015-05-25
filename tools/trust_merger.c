@@ -1,4 +1,4 @@
-
+#include <sys/stat.h>
 #include <sha2.h>
 #include "trust_merger.h"
 
@@ -31,7 +31,7 @@ bool gDebug =
 static char* gConfigPath = NULL;
 static OPT_T gOpts;
 #define BL3X_FILESIZE_MAX	(512 * 1024)
-static char gBuf[BL3X_FILESIZE_MAX];
+static uint8_t gBuf[BL3X_FILESIZE_MAX];
 
 const uint8_t gBl3xID[BL_MAX_SEC][4] = {
 	{'B', 'L', '3', '0'},
@@ -76,16 +76,20 @@ static inline void fixPath(char* path)
 
 static bool parseVersion(FILE* file)
 {
+	int d = 0;
+
 	if (SCANF_EAT(file) != 0) {
 		return false;
 	}
-	if (fscanf(file, OPT_MAJOR "=%d", &gOpts.major) != 1)
+	if (fscanf(file, OPT_MAJOR "=%d", &d) != 1)
 		return false;
+	gOpts.major = (uint16_t)d;
 	if (SCANF_EAT(file) != 0) {
 		return false;
 	}
-	if (fscanf(file, OPT_MINOR "=%d", &gOpts.minor) != 1)
+	if (fscanf(file, OPT_MINOR "=%d", &d) != 1)
 		return false;
+	gOpts.minor = (uint16_t)d;
 	LOGD("major:%d, minor:%d\n", gOpts.major, gOpts.minor);
 	return true;
 }
@@ -94,6 +98,7 @@ static bool parseVersion(FILE* file)
 static bool parseBL3x(FILE* file, int bl3x_id)
 {
 	int pos;
+	int sec;
 	char buf[MAX_LINE_LEN];
 	bl_entry_t *pbl3x = NULL;
 
@@ -107,8 +112,9 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 	if (SCANF_EAT(file) != 0) {
 		return false;
 	}
-	if (fscanf(file, OPT_SEC "=%d", &pbl3x->sec) != 1)
+	if (fscanf(file, OPT_SEC "=%d", &sec) != 1)
 		return false;
+	pbl3x->sec = sec;
 	LOGD("bl3%d sec: %d\n", bl3x_id, pbl3x->sec);
 	if (pbl3x->sec == false)
 		return true;
@@ -133,6 +139,9 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 	LOGD("bl3%d addr:0x%x\n", bl3x_id, pbl3x->addr);
 
 	pos = ftell(file);
+	if (pos < 0) {
+		return false;
+	}
 	if (SCANF_EAT(file) != 0) {
 		return false;
 	}

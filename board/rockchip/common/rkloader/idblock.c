@@ -329,7 +329,7 @@ static int get_rk28boot(uint8 * pLoader, bool dataLoaded)
 
 	if (!dataLoaded)
 	{
-		if(rkloader_CopyFlash2Memory((int32)pLoader, misc_part->start+96, BYTE2SECTOR(nBootSize)))
+		if(rkloader_CopyFlash2Memory((uint32)(unsigned long)pLoader, misc_part->start+96, BYTE2SECTOR(nBootSize)))
 			return -3;
 	}
 
@@ -500,22 +500,26 @@ Exit_update:
 
 void rkidb_setup_space(uint32 begin_addr)
 {
-	uint32 next = 0;
+	unsigned long begin = 0;
+	unsigned long next = 0;
 
-	g_32secbuf = (uint8*)begin_addr;
-	next += 32*528;
-	g_cramfs_check_buf = (uint8*)begin_addr;
-	g_pIDBlock = (uint8*)begin_addr;
-	next = begin_addr + 2048*528;
-	g_pLoader = (uint8*)next;
-	next += 1024*1024;
-	g_pReadBuf = (uint8*)next;
-	next += MAX_WRITE_SECTOR*528;
-	g_pFlashInfoData = (uint8*)next;
+	begin = (unsigned long)begin_addr;
+	next = 0;
+
+	g_32secbuf = (uint8 *)begin;
+	next += (32 * 528);
+	g_cramfs_check_buf = (uint8 *)begin;
+	g_pIDBlock = (uint8 *)begin;
+	next = begin + (2048 * 528);
+	g_pLoader = (uint8 *)next;
+	next += (1024 * 1024);
+	g_pReadBuf = (uint8 *)next;
+	next += (MAX_WRITE_SECTOR * 528);
+	g_pFlashInfoData = (uint8 *)next;
 	next += 2048;
-	if ((next - begin_addr) > CONFIG_RK_GLOBAL_BUFFER_SIZE) {
-		printf("CONFIG_RK_GLOBAL_BUFFER_SIZE too small:0x%08x < 0x%08x\n",
-				CONFIG_RK_GLOBAL_BUFFER_SIZE, (next - begin_addr));
+	if ((next - begin) > CONFIG_RK_GLOBAL_BUFFER_SIZE) {
+		printf("CONFIG_RK_GLOBAL_BUFFER_SIZE too small:0x%08x < 0x%08lx\n",
+				CONFIG_RK_GLOBAL_BUFFER_SIZE, (next - begin));
 		while(1);
 	}
 }

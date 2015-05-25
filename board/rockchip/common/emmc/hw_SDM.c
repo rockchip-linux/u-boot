@@ -1252,7 +1252,7 @@ int32 SDM_IOCtrl(uint32 cmd, void *param)
             }
             else if(cmd == SDM_IOCTR_GET_PSN)
             {
-                pTmp[1] = (uint32)NULL;//
+                pTmp[1] = (uint32)(unsigned long)NULL;//
             }
             else
             {
@@ -1390,7 +1390,7 @@ int32 SDM_IOCtrl(uint32 cmd, void *param)
             }
             else
             {
-                pTmp[1] = (uint32)NULL;
+                pTmp[1] = (uint32)(unsigned long)NULL;
                 ret = SDM_CARD_CLOSED;
             }
             break;

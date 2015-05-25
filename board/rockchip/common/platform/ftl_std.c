@@ -40,7 +40,7 @@ void * ftl_memset(void *s, int c, unsigned int n)
 ***************************************************************************/
 void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int size)
 {
-	if(((int)pvTo & 0x3)||((int)pvForm & 0x3)) {
+	if(((unsigned long)pvTo & 0x3)||((unsigned long)pvForm & 0x3)) {
 		int i;
 		char * pTo = (char *)pvTo;
 		char * pForm = (char *)pvForm;

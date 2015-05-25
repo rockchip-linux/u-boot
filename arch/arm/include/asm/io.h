@@ -141,15 +141,15 @@ static inline void __raw_readsl(unsigned long addr, void *data, int longlen)
 #define __iormb()	dmb()
 #define __iowmb()	dmb()
 
-#define writeb(v,c)	({ u8  __v = v; __iowmb(); __arch_putb(__v,c); __v; })
-#define writew(v,c)	({ u16 __v = v; __iowmb(); __arch_putw(__v,c); __v; })
-#define writel(v,c)	({ u32 __v = v; __iowmb(); __arch_putl(__v,c); __v; })
-#define writeq(v,c)	({ u64 __v = v; __iowmb(); __arch_putq(__v,c); __v; })
+#define writeb(v,c)	({ u8  __v = v; __iowmb(); __arch_putb(__v,(unsigned long)c); __v; })
+#define writew(v,c)	({ u16 __v = v; __iowmb(); __arch_putw(__v,(unsigned long)c); __v; })
+#define writel(v,c)	({ u32 __v = v; __iowmb(); __arch_putl(__v,(unsigned long)c); __v; })
+#define writeq(v,c)	({ u64 __v = v; __iowmb(); __arch_putq(__v,(unsigned long)c); __v; })
 
-#define readb(c)	({ u8  __v = __arch_getb(c); __iormb(); __v; })
-#define readw(c)	({ u16 __v = __arch_getw(c); __iormb(); __v; })
-#define readl(c)	({ u32 __v = __arch_getl(c); __iormb(); __v; })
-#define readq(c)	({ u64 __v = __arch_getq(c); __iormb(); __v; })
+#define readb(c)	({ u8  __v = __arch_getb((unsigned long)c); __iormb(); __v; })
+#define readw(c)	({ u16 __v = __arch_getw((unsigned long)c); __iormb(); __v; })
+#define readl(c)	({ u32 __v = __arch_getl((unsigned long)c); __iormb(); __v; })
+#define readq(c)	({ u64 __v = __arch_getq((unsigned long)c); __iormb(); __v; })
 
 /*
  * The compiler seems to be incapable of optimising constants

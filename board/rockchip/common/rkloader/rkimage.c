@@ -53,7 +53,7 @@ static int rkimg_load_image(uint32 offset, unsigned char *load_addr, size_t *ima
 
 	//read the rest blks: load image block = image size + (8 + 4)bytes, for head and crc32.
 	blocks = DIV_ROUND_UP(*image_size + (8 + 4), RK_BLK_SIZE);
-	if (rkloader_CopyFlash2Memory((uint32) load_addr + RK_BLK_SIZE - head_offset, 
+	if (rkloader_CopyFlash2Memory((uint32)(unsigned long) load_addr + RK_BLK_SIZE - head_offset, 
 				offset + 1, blocks - 1) != 0) {
 		printf("failed to read image\n");
 		return -1;
@@ -70,14 +70,14 @@ int rkimage_load_image(rk_boot_img_hdr *hdr, const disk_partition_t *boot_ptn, \
 	if(!boot_ptn || !kernel_ptn) {
 		return -1;
 	}
-	if (rkimg_load_image(boot_ptn->start, (unsigned char *)hdr->ramdisk_addr, \
+	if (rkimg_load_image(boot_ptn->start, (unsigned char *)(unsigned long)hdr->ramdisk_addr, \
 				&image_size) != 0) {
 		printf("load boot image failed\n");
 		return -1;
 	}
 	hdr->ramdisk_size = image_size;
 
-	if (rkimg_load_image(kernel_ptn->start, (unsigned char *)hdr->kernel_addr, \
+	if (rkimg_load_image(kernel_ptn->start, (unsigned char *)(unsigned long)hdr->kernel_addr, \
 				&image_size) != 0) {
 		printf("load kernel image failed\n");
 		return -1;
@@ -164,7 +164,7 @@ static int unsparse(unsigned char *source,
 						" write(sector=%lu,clen=%llu)\n",
 						chunk->chunk_sz, header->blk_sz, sector, clen);
 
-				if (rkloader_CopyMemory2Flash((uint32)source, sector, blkcnt)) {
+				if (rkloader_CopyMemory2Flash((uint32)(unsigned long)source, sector, blkcnt)) {
 					printf("sparse: block write to sector %lu"
 							" of %llu bytes (%ld blkcnt) failed\n",
 							sector, clen, blkcnt);
@@ -224,7 +224,7 @@ static int rkimg_store_image(const disk_partition_t *ptn, void *image_start_ptr,
 	}
 
 	blocks = DIV_ROUND_UP(d_bytes, RK_BLK_SIZE);
-	return rkloader_CopyMemory2Flash((uint32)image_start_ptr, ptn->start, blocks);
+	return rkloader_CopyMemory2Flash((uint32)(unsigned long)image_start_ptr, ptn->start, blocks);
 }
 
 

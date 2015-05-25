@@ -31,10 +31,10 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define SARADC_BASE             RKIO_SARADC_PHYS
 
-#define read_XDATA(address) 		(*((uint16 volatile*)(address)))
-#define read_XDATA32(address)		(*((uint32 volatile*)(address)))
-#define write_XDATA(address, value) 	(*((uint16 volatile*)(address)) = value)
-#define write_XDATA32(address, value)	(*((uint32 volatile*)(address)) = value)
+#define read_XDATA(address) 		(*((uint16 volatile*)(unsigned long)(address)))
+#define read_XDATA32(address)		(*((uint32 volatile*)(unsigned long)(address)))
+#define write_XDATA(address, value) 	(*((uint16 volatile*)(unsigned long)(address)) = value)
+#define write_XDATA32(address, value)	(*((uint32 volatile*)(unsigned long)(address)) = value)
 
 int gpio_reg[]={
 #if defined(CONFIG_RKCHIP_RK3288)

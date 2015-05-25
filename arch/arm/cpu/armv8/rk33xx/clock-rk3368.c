@@ -168,7 +168,7 @@ static const struct pll_clk_set npll_clks[] = {
 };
 
 
-static struct pll_data rkpll_data[] = {
+static const struct pll_data rkpll_data[] = {
 	SET_PLL_DATA(APLLB_ID, apllb_clks, ARRAY_SIZE(apllb_clks)),
 	SET_PLL_DATA(APLLL_ID, aplll_clks, ARRAY_SIZE(aplll_clks)),
 	SET_PLL_DATA(CPLL_ID, cpll_clks, ARRAY_SIZE(cpll_clks)),
@@ -216,7 +216,7 @@ static void rkclk_pll_set_mode(enum rk_plls_id pll_id, int pll_mode)
 /* Set pll rate by id */
 static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f cb_f)
 {
-	struct pll_data *pll = NULL;
+	const struct pll_data *pll = NULL;
 	struct pll_clk_set *clkset = NULL;
 	unsigned long rate = mHz * MHZ;
 	int i = 0;
@@ -348,7 +348,7 @@ static inline uint32 rkclk_gcd(uint32 numerator, uint32 denominator)
 static int rkclk_cal_pll_set(uint32 fin_khz, uint32 fout_khz, uint32 *nr_set, uint32 *nf_set, uint32 *no_set)
 {
 	uint32 nr, nf, no, nonr;
-	uint32 nr_out, nf_out, no_out;
+	uint32 nr_out = 0, nf_out = 0, no_out = 0;
 	uint32 YFfenzi;
 	uint32 YFfenmu;
 	uint32 fref, fvco, fout;
@@ -439,7 +439,7 @@ static int rkclk_cal_pll_set(uint32 fin_khz, uint32 fout_khz, uint32 *nr_set, ui
  */
 int rkclk_set_npll_rate(uint32 pll_hz)
 {
-	struct pll_clk_set *clkset = NULL;
+	const struct pll_clk_set *clkset = NULL;
 	uint32 no, nr, nf;
 	uint32 pllcon0, pllcon1, pllcon2, rst_dly;
 	int i = 0;
@@ -1047,7 +1047,6 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 #define RK3368_LIMIT_NPLL	(1250 * MHZ)
 static uint32 rkclk_lcdc_dclk_to_npll(uint32 lcdc_id, uint32 rate_hz, uint32 *dclk_div)
 {
-	struct pll_clk_set *clkset = NULL;
 	uint32 pll_hz, div = 1;
 	int i = 0;
 
@@ -1113,7 +1112,6 @@ static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
  */
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
-	uint32 pll_src;
 	uint32 dclk_div;
 	uint32 dclk_info = 0;
 

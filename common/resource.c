@@ -309,7 +309,7 @@ bool show_resource_image(const char* image_path) {
 	if(ptn && bmp && bmp->header.signature[0] == 'B' && bmp->header.signature[1] == 'M')
 	{
 		debug("%s:show logo.bmp from logo partition\n", __func__);
-		lcd_display_bitmap_center((uint32_t)bmp);
+		lcd_display_bitmap_center((uint32_t)(unsigned long)bmp);
 		ret = true;
 	}
 	else
@@ -329,7 +329,7 @@ bool show_resource_image(const char* image_path) {
 				return false;
 			}
 			FBTDBG("Try to show:%s\n", image_path);
-			lcd_display_bitmap_center((uint32_t)image.load_addr);
+			lcd_display_bitmap_center((uint32_t)(unsigned long)image.load_addr);
 
 			ret = true;
 		} else {

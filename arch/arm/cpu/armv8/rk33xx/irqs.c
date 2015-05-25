@@ -48,7 +48,7 @@ static inline void irq_handler(void)
 	/* here we use gic id checking, not include gpio pin irq */
 	if (nintid < NR_GIC_IRQS) {
 		if (g_irq_handler[nintid].m_func != NULL) {
-			g_irq_handler[nintid].m_func((void *)nintid);
+			g_irq_handler[nintid].m_func((void *)(unsigned long)nintid);
 		}
 	}
 	
@@ -177,11 +177,11 @@ int irq_set_irq_type(int irq, unsigned int type)
 void irq_install_handler(int irq, interrupt_handler_t *handler, void *data)
 {
 	if (irq >= NR_IRQS_MAXNUM || !handler) {
-		debug("irq_install_handle error: irq = %d, handler = 0x%08x, data = 0x%08x.\n", irq, (unsigned int)handler, (unsigned int)data);
+		debug("irq_install_handle error: irq = %d, handler = 0x%p, data = 0x%p.\n", irq, handler, data);
 		return ;
 	}
 
-	debug("irq_install_handler: irq = %d, handler = 0x%08x, data = 0x%08x.\n", irq, (unsigned int)handler, (unsigned int)data);
+	debug("irq_install_handler: irq = %d, handler = 0x%p, data = 0x%p.\n", irq, handler, data);
 
 	if (g_irq_handler[irq].m_func != handler) {
 		g_irq_handler[irq].m_func = handler;

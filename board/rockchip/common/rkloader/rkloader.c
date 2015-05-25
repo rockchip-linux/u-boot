@@ -59,7 +59,7 @@ int32 rkloader_CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_
 int32 rkloader_CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE * MaxFlashReadSize);
-	uint8 * pSdram = (uint8*)dest_addr;
+	uint8 * pSdram = (uint8 *)(unsigned long)dest_addr;
 	uint16 sec = 0;
 	uint32 LBA = src_addr;
 	uint32 remain_sec = total_sec;
@@ -89,7 +89,7 @@ int rkloader_CopyMemory2Flash(uint32 src_addr, uint32 dest_offset, int sectors)
 	{
 		sec = (remain_sec>32)?32:remain_sec;
 
-		if(StorageWriteLba(dest_offset, (void *)src_addr, sec, 0) != 0)
+		if(StorageWriteLba(dest_offset, (void *)(unsigned long)src_addr, sec, 0) != 0)
 		{
 			return -2;
 		}
@@ -309,7 +309,7 @@ int rkloader_set_bootloader_msg(struct bootloader_message* bmsg)
 		return -1;
 	}
 
-	return rkloader_CopyMemory2Flash((uint32)buf, ptn->start + MISC_COMMAND_OFFSET,
+	return rkloader_CopyMemory2Flash((uint32)(unsigned long)buf, ptn->start + MISC_COMMAND_OFFSET,
 			DIV_ROUND_UP(sizeof(struct bootloader_message), RK_BLK_SIZE));
 }
 

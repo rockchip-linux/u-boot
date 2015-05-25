@@ -167,7 +167,7 @@ static void ReadEndpoint0(uint16_t len, void *buf)
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
 	flush_cache((unsigned long)buf, (unsigned long)len);
-	OtgReg->Device.OutEp[0].DoEpDma = (uint32_t)buf;
+	OtgReg->Device.OutEp[0].DoEpDma = (uint32_t)(unsigned long)buf;
 	OtgReg->Device.OutEp[0].DoEpTSiz = Ep0PktSize | (1<<29) | (1<<19);
 	/* Active ep, Clr Nak, endpoint enable */
 	OtgReg->Device.OutEp[0].DoEpCtl = (1<<15) | (1<<26) | (1<<31);
@@ -185,7 +185,7 @@ static void WriteEndpoint0(uint16_t len, void *buf)
 	if (((gnptxsts & 0xffff) >= (len+3)/4) && (((gnptxsts >> 16) & 0xff) > 0))
 	{
 		OtgReg->Device.InEp[0].DiEpTSiz = len | (1<<19);
-		OtgReg->Device.InEp[0].DiEpDma = (uint32_t)buf;
+		OtgReg->Device.InEp[0].DiEpDma = (uint32_t)(unsigned long)buf;
 		/* Ep enable & clear NAK */
 		OtgReg->Device.InEp[0].DiEpCtl = (1<<26) | (1<<31);
 	}
@@ -199,8 +199,8 @@ static void ReadBulkEndpoint(uint32_t len, void *buf)
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 	uint32_t regBak;
 
-	flush_cache((uint32_t)buf, (uint32_t)len);
-	OtgReg->Device.OutEp[BULK_OUT_EP].DoEpDma = (uint32_t)buf;
+	flush_cache((uint32_t)(unsigned long)buf, (uint32_t)len);
+	OtgReg->Device.OutEp[BULK_OUT_EP].DoEpDma = (uint32_t)(unsigned long)buf;
 	// OtgReg->Device.OutEp[BULK_OUT_EP].DoEpTSiz = BulkEpSize | (1<<19);
 	regBak = 0x20000 | (((len+BulkEpSize-1)/BulkEpSize)<<19);
 	OtgReg->Device.OutEp[BULK_OUT_EP].DoEpTSiz = regBak;
@@ -220,7 +220,7 @@ static void WriteBulkEndpoint(uint32_t len, void* buf)
 	//if ((OtgReg->Device.InEp[BULK_IN_EP].DTXFSTS & 0xffff) >= (len+3)/4)
 	{
 		OtgReg->Device.InEp[BULK_IN_EP].DiEpTSiz = len | (((len+BulkEpSize-1)/BulkEpSize)<<19);
-		OtgReg->Device.InEp[BULK_IN_EP].DiEpDma = (uint32_t)buf;
+		OtgReg->Device.InEp[BULK_IN_EP].DiEpDma = (uint32_t)(unsigned long)buf;
 		regBak = ((OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl & (1<<16))==0)?(1<<28):(1<<29);
 		regBak |= (1<<15)|(2<<18)|(BULK_IN_EP<<22)|BulkEpSize; //endpoint enable
 		regBak |= (1ul<<26)|(1ul<<31);

@@ -676,7 +676,7 @@ int sha2(unsigned char hval[], unsigned long size,
                                 const unsigned char data[], unsigned long len)
 {   sha2_ctx    cx[1];
 
-    if(sha2_begin(size, cx) == SHA2_GOOD)
+    if(sha2_begin(cx, size) == SHA2_GOOD)
     {
         sha2_hash(cx, data, len); sha2_end(cx, hval); return SHA2_GOOD;
     }

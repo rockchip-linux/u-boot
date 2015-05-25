@@ -620,7 +620,7 @@ static int dsp_x_pos(int mirror_en, struct rk_screen *screen,
 static int dsp_y_pos(int mirror_en, struct rk_screen *screen,
 		     struct rk_lcdc_win_area *area)
 {
-	int pos;
+	int pos = 0;
 
 	if (screen->y_mirror && mirror_en)
 		pr_err("not support both win and global mirror\n");

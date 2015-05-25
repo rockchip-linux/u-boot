@@ -179,11 +179,11 @@ static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 	SHA_init(&ctx);
 
 	/* Android image */
-	SHA_update(&ctx, (void *)boothdr->kernel_addr, boothdr->kernel_size);
+	SHA_update(&ctx, (void *)(unsigned long)boothdr->kernel_addr, boothdr->kernel_size);
 	SHA_update(&ctx, &boothdr->kernel_size, sizeof(boothdr->kernel_size));
-	SHA_update(&ctx, (void *)boothdr->ramdisk_addr, boothdr->ramdisk_size);
+	SHA_update(&ctx, (void *)(unsigned long)boothdr->ramdisk_addr, boothdr->ramdisk_size);
 	SHA_update(&ctx, &boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
-	SHA_update(&ctx, (void *)boothdr->second_addr, boothdr->second_size);
+	SHA_update(&ctx, (void *)(unsigned long)boothdr->second_addr, boothdr->second_size);
 	SHA_update(&ctx, &boothdr->second_size, sizeof(boothdr->second_size));
 
 	/* rockchip's image add information. */
@@ -1026,7 +1026,7 @@ bool SecureModeVerifyUbootImage(second_loader_hdr *pHead)
 bool SecureModeVerifyBootImage(rk_boot_img_hdr* boothdr)
 {
 	/* hdr read from storage, adjust hdr kernel/ramdisk/second address. */
-	boothdr->kernel_addr = (uint32_t)((void *)boothdr + boothdr->page_size);
+	boothdr->kernel_addr = (uint32_t)((unsigned long)(void *)boothdr + boothdr->page_size);
 	boothdr->ramdisk_addr = boothdr->kernel_addr + ALIGN(boothdr->kernel_size, boothdr->page_size);
 	if (boothdr->second_size) {
 		boothdr->second_addr = boothdr->ramdisk_addr + ALIGN(boothdr->ramdisk_size, boothdr->page_size);

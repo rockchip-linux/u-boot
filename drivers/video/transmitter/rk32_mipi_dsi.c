@@ -86,7 +86,7 @@ extern int rk_mipi_screen_probe(void);
 
 static void inline writel_relaxed(uint32 val, uint32 addr)
 {
-    *(int*)addr = val;
+	writel(val, addr);
 }
 
 #define msleep(a) udelay(a * 1000)
@@ -1859,20 +1859,20 @@ int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 
 	if (cpu_is_rk3288()) {
 		/* fdtdec_get_addr_size(blob,node,"reg",&length); */
-		dsi->host.membase = (void __iomem *)fdtdec_get_int(blob, node, "reg", -1);
+		dsi->host.membase = (void __iomem *)(unsigned long)fdtdec_get_int(blob, node, "reg", -1);
 		/* fdt_getprop(blob, node, "reg", &length); */
 		MIPI_DBG("dsi->host.membase 0x%08lx.\n", (unsigned long)dsi->host.membase);
 	} else if (cpu_is_rk312x()) {
 		fdtdec_get_int_array(blob, node, "reg", mipi_regs, 4);
-		dsi->host.membase = (void __iomem *)mipi_regs[0];
+		dsi->host.membase = (void __iomem *)(unsigned long)mipi_regs[0];
 		MIPI_DBG("dsi->host.membase 0x%08lx.\n", (unsigned long)dsi->host.membase);
-		dsi->phy.membase = (void __iomem *)mipi_regs[2];
+		dsi->phy.membase = (void __iomem *)(unsigned long)mipi_regs[2];
 		MIPI_DBG("dsi->phy.membase 0x%08lx.\n", (unsigned long)dsi->phy.membase);
 	} else if (cpu_is_rk3368()) {
 		fdtdec_get_int_array(blob, node, "reg", mipi_regs, 8);
-		dsi->host.membase = (void __iomem *)mipi_regs[1];
+		dsi->host.membase = (void __iomem *)(unsigned long)mipi_regs[1];
 		MIPI_DBG("dsi->host.membase 0x%08lx.\n", (unsigned long)dsi->host.membase);
-		dsi->phy.membase = (void __iomem *)mipi_regs[5];
+		dsi->phy.membase = (void __iomem *)(unsigned long)mipi_regs[5];
 		MIPI_DBG("dsi->phy.membase 0x%08lx.\n", (unsigned long)dsi->phy.membase);
 
 	}

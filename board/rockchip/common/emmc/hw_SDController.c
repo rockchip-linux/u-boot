@@ -1338,7 +1338,7 @@ static int32 SDC_SetIDMADesc(SDMMC_PORT_E SDCPort, uint32 buffer, uint32  BufSiz
     PSDMMC_DMA_DESC pDesc = (PSDMMC_DMA_DESC)&pSDC->IDMADesc[0];
     uint32 i, size;
 
-    pReg->SDMMC_DBADDR = (uint32)pDesc;
+    pReg->SDMMC_DBADDR = (uint32)(unsigned long)pDesc;
     for (i=0; i<MAX_DESC_NUM_IDMAC; i++, pDesc++)
     {
         size = MIN(MAX_BUFF_SIZE_IDMAC, BufSize);    
@@ -1350,7 +1350,7 @@ static int32 SDC_SetIDMADesc(SDMMC_PORT_E SDCPort, uint32 buffer, uint32  BufSiz
         if (0 == BufSize)
             break;
         buffer += size;
-        pDesc->desc3 = (uint32)(pDesc+1);
+        pDesc->desc3 = (uint32)(unsigned long)(pDesc+1);
     }
     
 	SDPAM_FlushCache((void*)&pSDC->IDMADesc[0], i*16);
@@ -1372,7 +1372,7 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
     uint32          timeout  = DataLen*500; //最长一个512需要等250ms 
     volatile uint32 value;
 
-    SDC_SetIDMADesc(nSDCPort,(uint32)pDataBuf, DataLen);
+    SDC_SetIDMADesc(nSDCPort,(uint32)(unsigned long)pDataBuf, DataLen);
 
     pReg->SDMMC_CTRL |= CTRL_USE_IDMAC;
     pReg->SDMMC_BMOD |= (BMOD_DE | BMOD_FB);

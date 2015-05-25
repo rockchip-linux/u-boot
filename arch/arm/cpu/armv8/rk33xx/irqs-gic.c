@@ -190,7 +190,7 @@ static void gic_get_cpumask(void)
 	}
 
 	g_gic_cpumask = mask;
-	debug("GIC CPU mask = 0x%x\n", gic_get_cpumask);
+	debug("GIC CPU mask = 0x%p\n", gic_get_cpumask);
 }
 
 
@@ -266,6 +266,7 @@ static int gic_set_irq_type(int irq, unsigned int type)
 }
 
 
+#if !defined(CONFIG_ARM64)
 /**
  * gic interrupt init
  */
@@ -294,6 +295,7 @@ static void gic_irq_init(void)
 	int_enable_nosecure_signal();
 	int_enable_distributor();
 }
+#endif
 
 static struct irq_chip gic_irq_chip = {
 	.name			= (const char*)"gic",
