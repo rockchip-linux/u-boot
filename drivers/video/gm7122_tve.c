@@ -29,7 +29,6 @@ int tve_readl(int reg)
 	int	i;
 	uchar	data;
 	int	retval = -1;
-	int	old_bus_num;
 
 	for (i = 0; i < MAX_I2C_RETRY; ++i) {
 		if (!i2c_read(I2C_ADDRESS, reg, 1, &data, 1)) {
@@ -52,7 +51,6 @@ int tve_writel(int reg, uchar data)
 {
 	int	i;
 	int	retval = -1;
-	int	old_bus_num;
 
 	for (i = 0; i < MAX_I2C_RETRY; ++i) {
 		if (!i2c_write(I2C_ADDRESS, reg, 1, &data, 1)) {
@@ -126,11 +124,8 @@ void gm7122_tve_init_panel(vidinfo_t *panel)
 #endif
 static int gm7122_parse_dt(const void* blob)
 {
-	int node, nd;
+	int node;
 	int err=0;
-	
-	u32 bus, addr;
-	int ret, i;
 
 	node = fdt_node_offset_by_compatible(blob,
 					0, "gm7122_tve");
@@ -157,9 +152,6 @@ static int gm7122_parse_dt(const void* blob)
 
 int gm7122_tve_init(vidinfo_t *panel)
 {
-	int i = 0, val;
-
-
 	//IOmux lcdc data 12 13 14 15 16 17 18 19 become GPIO
 	writel(0xffff0000,PMUGRF_BASE+0x08);	
 
@@ -219,5 +211,7 @@ int gm7122_tve_init(vidinfo_t *panel)
 	}else{
 		printf("Don't surport mode!!!\n");
 	}
+
+	return 0;
 	
 }

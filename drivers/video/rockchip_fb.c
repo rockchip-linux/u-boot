@@ -21,6 +21,15 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define COMPAT_ROCKCHIP_FB		"rockchip,rk-fb"
 
+#if defined(CONFIG_RK1000_TVE)
+extern void rk1000_tve_init_panel(vidinfo_t *panel);
+extern int rk1000_tve_init(vidinfo_t *panel);
+#endif
+
+#if defined(CONFIG_GM7122_TVE)
+extern void gm7122_tve_init_panel(vidinfo_t *panel);
+extern int gm7122_tve_init(vidinfo_t *panel);
+#endif
 
 #define GPIO		0
 #define REGULATOR	1

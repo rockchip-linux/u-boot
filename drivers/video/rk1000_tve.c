@@ -33,7 +33,6 @@ int rk1000_read_reg(int i2c_addr, int reg)
 	int	i;
 	uchar	data;
 	int	retval = -1;
-	int	old_bus_num;
 
 	for (i = 0; i < MAX_I2C_RETRY; ++i) {
 		if (!i2c_read(i2c_addr, reg, 1, &data, 1)) {
@@ -56,7 +55,6 @@ int rk1000_write_reg(int i2c_addr, int reg, uchar *data, uint len)
 {
 	int	i;
 	int	retval = -1;
-	int	old_bus_num;
 
 	for (i = 0; i < MAX_I2C_RETRY; ++i) {
 		if (!i2c_write(i2c_addr, reg, 1, data, len)) {
@@ -127,10 +125,7 @@ void rk1000_tve_init_panel(vidinfo_t *panel)
 #endif
 static int rk1000_parse_dt(const void* blob)
 {
-	int node, nd;
-	
-	u32 bus, addr;
-	int ret, i;
+	int node;
 
 	node = fdt_node_offset_by_compatible(blob,
 					0, "rockchip,rk1000_control");
@@ -153,8 +148,6 @@ static int rk1000_parse_dt(const void* blob)
 
 int rk1000_tve_init(vidinfo_t *panel)
 {
-	int i = 0, val;
-
 	//rk1000_tve_init_panel(panel);
 	//PAL
 	unsigned char tv_encoder_regs_pal[] = {0x06, 0x00, 0x00, 0x03, 0x00, 0x00};
@@ -195,11 +188,11 @@ int rk1000_tve_init(vidinfo_t *panel)
 	   reg[0x03] = 0x00, --> TVE_CON
 	 */
 	char data[4] = {0x88, 0x00, 0x22, 0x00};
-	rk1000_write_reg(0x40, 0, data, 4);
+	rk1000_write_reg(0x40, 0, (uchar*)data, 4);
 	
 	//rk1000 power down output dac
 	data[0] = 0x07;
-	rk1000_write_reg(0x42, 0x03, data, 1);
+	rk1000_write_reg(0x42, 0x03, (uchar*)data, 1);
 
 	if (g_tve_pos ==1) 
 	{
@@ -214,4 +207,8 @@ int rk1000_tve_init(vidinfo_t *panel)
 		rk1000_write_reg(0x40, 3, Tv_encoder_control_regs_ntsc, sizeof(Tv_encoder_control_regs_ntsc));		
 	
 	}
+
+	return 0;
 }
+
+
