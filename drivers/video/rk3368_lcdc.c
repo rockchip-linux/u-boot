@@ -645,36 +645,37 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 			   struct fb_dsp_info *fb_info,
 			   vidinfo_t *vid)
 {
-        struct rk_lcdc_win *win;
+	struct rk_lcdc_win win;
 	struct rk_screen *screen = lcdc_dev->screen;
 
-	rk3368_lcdc_vid_to_win(fb_info, win);
-	win->csc_mode = rk3368_lcdc_csc_mode(lcdc_dev, fb_info, vid);
+	memset(&win, 0, sizeof(struct rk_lcdc_win));
+	rk3368_lcdc_vid_to_win(fb_info, &win);
+	win.csc_mode = rk3368_lcdc_csc_mode(lcdc_dev, fb_info, vid);
 	if (fb_info->yaddr)
-		win->state = 1;
+		win.state = 1;
 	else
-		win->state = 0;
-	win->mirror_en = 0;
-	win->area[0].dsp_stx = dsp_x_pos(win->mirror_en, screen, &win->area[0]);
-	win->area[0].dsp_sty = dsp_y_pos(win->mirror_en, screen, &win->area[0]);
+		win.state = 0;
+	win.mirror_en = 0;
+	win.area[0].dsp_stx = dsp_x_pos(win.mirror_en, screen, win.area);
+	win.area[0].dsp_sty = dsp_y_pos(win.mirror_en, screen, win.area);
 
-	rk3368_lcdc_calc_scl_fac(win);
+	rk3368_lcdc_calc_scl_fac(&win);
 	
 	switch (fb_info->format) {
 	case ARGB888:
-		win->area[0].y_vir_stride = v_ARGB888_VIRWIDTH(fb_info->xvir);
+		win.area[0].y_vir_stride = v_ARGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	case RGB888:
-		win->area[0].y_vir_stride = v_RGB888_VIRWIDTH(fb_info->xvir);
+		win.area[0].y_vir_stride = v_RGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	case RGB565:
-		win->area[0].y_vir_stride = v_RGB565_VIRWIDTH(fb_info->xvir);
+		win.area[0].y_vir_stride = v_RGB565_VIRWIDTH(fb_info->xvir);
 		break;
 	default:
-		win->area[0].y_vir_stride = v_RGB888_VIRWIDTH(fb_info->xvir);
+		win.area[0].y_vir_stride = v_RGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	}
-	rk3368_win_0_1_reg_update(lcdc_dev, win, fb_info->layer_id);
+	rk3368_win_0_1_reg_update(lcdc_dev, &win, fb_info->layer_id);
 	lcdc_writel(lcdc_dev, WIN0_YRGB_MST, fb_info->yaddr);
 
 	return 0;
