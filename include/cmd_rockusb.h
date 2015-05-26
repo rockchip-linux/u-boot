@@ -1,4 +1,9 @@
-
+/*
+ * (C) Copyright 2008-2015 Rockchip Electronics
+ * Kever Yang 2014.03.31
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef ROCKUSB_H
 #define ROCKUSB_H
 
@@ -331,4 +336,4 @@ extern void FW_SorageLowFormatEn(int en);
 
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
-#endif
+#endif /* ROCKUSB_H */

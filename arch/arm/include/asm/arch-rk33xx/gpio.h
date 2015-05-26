@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -9,7 +9,6 @@
 
 #include "rkplat.h"
 
-/* 定义GPIO相关寄存器偏移地址 */
 #define GPIO_SWPORT_DR		0x00
 #define GPIO_SWPORT_DDR		0x04
 #define GPIO_INTEN		0x30
@@ -195,6 +194,5 @@ int gpio_set_value(unsigned gpio, int value);
 int gpio_get_value(unsigned gpio);
 int gpio_direction_output(unsigned gpio, int value);
 int gpio_direction_input(unsigned gpio);
-
 
 #endif	/* __RKXX_GPIO_H */

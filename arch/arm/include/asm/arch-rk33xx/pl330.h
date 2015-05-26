@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -201,6 +201,5 @@ extern void *pl330_request_channel(const struct pl330_info *pi);
 extern int pl330_chan_status(void *ch_id, struct pl330_chanstatus *pstatus);
 extern int pl330_chan_ctrl(void *ch_id, enum pl330_chan_op op);
 extern int pl330_submit_req(void *ch_id, struct pl330_req *r);
-
 
 #endif	/* __PL330_CORE_H */

@@ -1,7 +1,7 @@
 /*
  * Default Configuration for Rockchip Platform
  *
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -290,14 +290,12 @@
  *	RKUSB_UMS_BOOT_FROM_OTG
  *	RKUSB_UMS_BOOT_FROM_HOST1
  *	RKUSB_UMS_BOOT_FROM_HOST2
- *	RKUSB_UMS_BOOT_FROM_HSIC
  *
  * Default all are disable, define in each plat.h
  */
 #undef RKUSB_UMS_BOOT_FROM_OTG
 #undef RKUSB_UMS_BOOT_FROM_HOST1
 #undef RKUSB_UMS_BOOT_FROM_HOST2
-#undef RKUSB_UMS_BOOT_FROM_HSIC
 
 
 /* 

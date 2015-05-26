@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -1683,6 +1683,4 @@ int rk_pl330_dmac_deinit(int dmac_id)
 }
 
 
-
 #endif /* CONFIG_RK_DMAC */
-

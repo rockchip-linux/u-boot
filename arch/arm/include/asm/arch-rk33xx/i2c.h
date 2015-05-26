@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -24,14 +24,3 @@ typedef enum rk_i2c_bus_ch {
 
 
 #endif /* _RKXX_I2C_H_ */
-
-
-
-
-
-
-
-
-
-
-

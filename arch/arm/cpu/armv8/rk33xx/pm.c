@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -111,4 +111,3 @@ void rk_pm_wakeup_gpio_init(void) {}
 void rk_pm_enter(v_pm_cb_f module_pm_conf) {}
 
 #endif /* CONFIG_PM_SUBSYSTEM */
-

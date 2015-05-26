@@ -1,7 +1,7 @@
 /*
  * Configuation settings for the rk312x chip platform.
  *
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -104,7 +104,6 @@
  *	RKUSB_UMS_BOOT_FROM_OTG
  *	RKUSB_UMS_BOOT_FROM_HOST1
  *	RKUSB_UMS_BOOT_FROM_HOST2
- *	RKUSB_UMS_BOOT_FROM_HSIC
  *
  * First define the host controller here
  */
@@ -113,8 +112,7 @@
 /* Check UMS Boot Host define */
 #define RKUSB_UMS_BOOT_CNT (defined(RKUSB_UMS_BOOT_FROM_OTG) + \
 			    defined(RKUSB_UMS_BOOT_FROM_HOST1) + \
-			    defined(RKUSB_UMS_BOOT_FROM_HOST2) + \
-			    defined(RKUSB_UMS_BOOT_FROM_HSIC))
+			    defined(RKUSB_UMS_BOOT_FROM_HOST2))
 
 #if (RKUSB_UMS_BOOT_CNT == 0)
 	#error "PLS Select a USB host controller!"
@@ -131,7 +129,7 @@
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
-#if defined(RKUSB_UMS_BOOT_FROM_HOST1) || defined(RKUSB_UMS_BOOT_FROM_HSIC)
+#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
 	#define CONFIG_USB_EHCI
 	#define CONFIG_USB_EHCI_RK
 #elif defined(RKUSB_UMS_BOOT_FROM_HOST2) || defined(RKUSB_UMS_BOOT_FROM_OTG)

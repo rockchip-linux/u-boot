@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -40,7 +40,7 @@
 #define IRQ_USB_OTG                     RKXX_IRQ(23)
 #define IRQ_USB_HOST_EHCI               RKXX_IRQ(24)
 #define IRQ_USB_HOST_OHCI               RKXX_IRQ(25)
-#define IRQ_HSIC                        RKXX_IRQ(26)
+
 #define IRQ_GMAC                        RKXX_IRQ(27)
 #define IRQ_GMAC_PMT                    RKXX_IRQ(28)
 #define IRQ_SFC                         RKXX_IRQ(29)

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2014 Rockchip Electronics
+ * (C) Copyright 2008-2015 Rockchip Electronics
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -73,7 +73,7 @@ typedef volatile unsigned int*	addr_t;
 
 /* void callback function type */
 typedef void (* v_callback_f)(void);
-typedef void (* pFunc)(void);	//定义函数指针, 用于调用绝对地址
+typedef void (* pFunc)(void);
 
 
 #endif  /*_DRIVER_TYPEDEF_H */

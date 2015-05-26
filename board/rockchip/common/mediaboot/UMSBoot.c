@@ -38,12 +38,6 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 		.regbase = (void *)RKIO_USBHOST0_EHCI_PHYS,
 		.gpio_vbus = GPIO_BANK0 | GPIO_B6,
 	},
-#elif defined(RKUSB_UMS_BOOT_FROM_HSIC)
-	{
-		.name = "ehci-hsic",
-		.enable = true,
-		.regbase = (void *)RKIO_HSIC_PHYS,
-	},
 #elif defined(RKUSB_UMS_BOOT_FROM_HOST2)
 	{
 		.name = "dwc2-host",
