@@ -14,6 +14,10 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_POWER_RK818)
+#define CONFIG_RK818_SCREEN_ON_VOL_THRESD	3000
+#define CONFIG_RK818_SYSTEM_ON_VOL_THRESD	3600
+#define CONFIG_RK818_SYSTEM_ON_CAPACITY_THRESD  5
+
 	extern void pmic_rk818_power_init(void);
 	extern void pmic_rk818_power_on(void);
 	extern void pmic_rk818_power_off(void);	
