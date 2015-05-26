@@ -178,12 +178,10 @@
 #define NEW_FCC_REG0			0xE9
 
 #define NON_ACT_TIMER_CNT_REG_SAVE 	0xEA
-
-#define	DOD0_TEMP_REG			0XEB		
-#define	DOD0_CAP_REG			0XEC	
-#define	DOD0_ST_REG			0XED	
-#define	DOD0_LVL_REG			0XEE	
-
+#define CV_VOL_VALID_REG		0xEB
+#define REBOOT_CNT_REG			0xEC
+#define PCB_IOFFSET_REG			0xED
+#define MISC_MARK_REG			0xEE
 
 struct pmic_rk818 {
 	struct pmic *pmic;
