@@ -24,7 +24,6 @@ struct rkusb_hcd_cfg *rkusb_active_hcd = NULL;
 
 static int usb_stor_curr_dev = -1; /* current device */
 static uint32 g_umsboot_mode = 0;
-extern unsigned long gIdDataBuf[512];
 
 static void inno_usb_phy_reset(void);
 static int rk_usb_host_lookup(void);
@@ -90,6 +89,7 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 #endif
 };
 
+__maybe_unused
 static void inno_usb_phy_reset(void)
 {
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)

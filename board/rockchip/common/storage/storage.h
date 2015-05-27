@@ -64,7 +64,7 @@ extern  uint32 UsbStorageSysDataStore(uint32 offset, uint32 len, uint32 *Buf);
 extern  uint32 StorageSDCardUpdateMode(void);
 #endif
 #ifdef RK_UMS_BOOT_EN
-extern uint32 StorageSDCardUpdateMode(void);
+extern uint32 StorageUMSUpdateMode(void);
 #endif
 
 //local memory operation function
