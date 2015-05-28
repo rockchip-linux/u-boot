@@ -79,7 +79,7 @@ typedef volatile struct tagHOST_REG {
 	uint32_t hprt;
 	uint32_t RESERVED2[(0x500-0x444)/4];
 	HC_REG hchn[16];
-	uint32_t RESERVED3[(0x800-0x704)/4];
+	uint32_t RESERVED3[(0x800-0x700)/4];
 } HOST_REG, *pHOST_REG;
 
 /* Device IN ep reg */
