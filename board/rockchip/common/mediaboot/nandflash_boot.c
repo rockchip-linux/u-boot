@@ -153,7 +153,7 @@ uint32 lMemApiInit(uint32 BaseAddr)
 {
 	debug("Try to init Nand Flash.\n");
 
-	gp_loader_api = (pLOADER_MEM_API_T)((unsigned long)CONFIG_RKNAND_API_ADDR); // get api table
+	gp_loader_api = (pLOADER_MEM_API_T)(*((unsigned long *)CONFIG_RKNAND_API_ADDR)); // get api table
 	if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000) {
 		// nand and emmc support
 		if((gp_loader_api->id == 1) || (gp_loader_api->id == 2)) {
