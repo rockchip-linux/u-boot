@@ -1432,7 +1432,7 @@ int pl330_submit_req(void *ch_id, struct pl330_req *r)
 	struct pl330_dmac *pl330;
 	struct pl330_info *pi;
 	struct _xfer_spec xs;
-	unsigned long flags;
+	unsigned long flags = 0;
 	void __iomem *regs;
 	unsigned idx;
 	u32 ccr;
@@ -1525,7 +1525,7 @@ static void pl330_dotask(unsigned long data)
 {
 	struct pl330_dmac *pl330 = (struct pl330_dmac *) data;
 	struct pl330_info *pi = pl330->pinfo;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int i;
 
 	spin_lock_irqsave(&pl330->lock, flags);
@@ -1589,7 +1589,7 @@ int pl330_update(const struct pl330_info *pi)
 {
 	struct _pl330_req *rqdone;
 	struct pl330_dmac *pl330;
-	unsigned long flags;
+	unsigned long flags = 0;
 	void __iomem *regs;
 	u32 val;
 	int id, ev, ret = 0;
@@ -1705,7 +1705,7 @@ int pl330_chan_ctrl(void *ch_id, enum pl330_chan_op op)
 {
 	struct pl330_thread *thrd = ch_id;
 //	struct pl330_dmac *pl330;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int ret = 0, active;
 
 	if (!thrd || thrd->free || thrd->dmac->state == DYING) {
@@ -1836,7 +1836,7 @@ void *pl330_request_channel(const struct pl330_info *pi)
 {
 	struct pl330_thread *thrd = NULL;
 	struct pl330_dmac *pl330;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int chans, i;
 
 	if (!pi || !pi->pl330_data) {
@@ -1903,7 +1903,7 @@ void pl330_release_channel(void *ch_id)
 {
 	struct pl330_thread *thrd = ch_id;
 //	struct pl330_dmac *pl330;
-	unsigned long flags;
+	unsigned long flags = 0;
 
 	if (!thrd || thrd->free) {
 		return;

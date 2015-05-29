@@ -538,7 +538,7 @@ static inline int rk_pl330_submit(struct rk_pl330_chan *ch,
 static void rk_pl330_rq(struct rk_pl330_chan *ch,
 	struct pl330_req *r, enum pl330_op_err err)
 {
-	unsigned long flags;
+	unsigned long flags = 0;
 	struct rk_pl330_xfer *xfer;
 	struct pl330_xfer *xl;
 	enum rk_dma_buffresult res;
@@ -612,7 +612,7 @@ int rk_dma_ctrl(enum dma_ch id, enum rk_chan_op op)
 	struct rk_pl330_xfer *xfer;
 	enum pl330_chan_op pl330op;
 	struct rk_pl330_chan *ch;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int idx, ret;
 
 	spin_lock_irqsave(&res_lock, flags);
@@ -722,7 +722,7 @@ int rk_dma_enqueue_ring(enum dma_ch id, void *token,
 {
 	struct rk_pl330_chan *ch;
 	struct rk_pl330_xfer *xfer;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int idx, ret = 0;
 	
 	spin_lock_irqsave(&res_lock, flags);
@@ -804,7 +804,7 @@ int rk_dma_request(enum dma_ch id,
 {
 	struct rk_pl330_dmac *dmac;
 	struct rk_pl330_chan *ch;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int ret = 0;
 
 	spin_lock_irqsave(&res_lock, flags);
@@ -869,7 +869,7 @@ int rk_dma_free(enum dma_ch id, struct rk_dma_client *client)
 {
 	struct rk_pl330_chan *ch;
 	struct rk_pl330_xfer *xfer;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int ret = 0;
 	unsigned idx;
 
@@ -952,7 +952,7 @@ free_exit:
 int rk_dma_config(enum dma_ch id, int xferunit, int brst_len)
 {
 	struct rk_pl330_chan *ch;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int i, ret = 0;
 
 	spin_lock_irqsave(&res_lock, flags);
@@ -993,7 +993,7 @@ cfg_exit:
 int rk_dma_setflags(enum dma_ch id, unsigned int options)
 {
 	struct rk_pl330_chan *ch;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int ret = 0;
 
 	spin_lock_irqsave(&res_lock, flags);
@@ -1014,7 +1014,7 @@ int rk_dma_setflags(enum dma_ch id, unsigned int options)
 int rk_dma_set_buffdone_fn(enum dma_ch id, rk_dma_cbfn_t rtn)
 {
 	struct rk_pl330_chan *ch;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int ret = 0;
 
 	spin_lock_irqsave(&res_lock, flags);
@@ -1036,7 +1036,7 @@ int rk_dma_devconfig(enum dma_ch id, enum rk_dmasrc source,
 			  unsigned long address)
 {
 	struct rk_pl330_chan *ch;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int ret = 0;
 
 	spin_lock_irqsave(&res_lock, flags);
@@ -1586,7 +1586,7 @@ int rk_pl330_dmac_deinit(int dmac_id)
 	struct rk_pl330_dmac *dmac, *d;
 	struct rk_pl330_chan *ch, *ch_bak;
 	struct pl330_info *pl330_info = NULL;
-	unsigned long flags;
+	unsigned long flags = 0;
 	int del, found;
 
 	debug("%s, dmac_id = %d\n", __func__, dmac_id);
