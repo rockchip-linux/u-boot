@@ -144,7 +144,7 @@ static void rk_sdcard_iomux_config(int sdcard_id)
 	switch (sdcard_id) {
 		case RK_SDCARD_IOMUX:
 			// sdcard dectn, cmd, clkout, d0 - d3
-			grf_writel((0x1FFFF << 16) | 0x15555, GRF_GPIO6A_IOMUX);
+			grf_writel((0x1FFFF << 16) | 0x15555, GRF_GPIO6C_IOMUX);
 			break;
 		default:
 			debug("sdcard id = %d iomux error!\n", sdcard_id);
