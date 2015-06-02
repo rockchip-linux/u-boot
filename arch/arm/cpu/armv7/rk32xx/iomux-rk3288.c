@@ -167,3 +167,30 @@ static void rk_hdmi_iomux_config(int hdmi_id)
 			break;
 	}
 }
+
+
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+#define RK_FORCE_SELECT_JTAG	(grf_readl(GRF_SOC_CON0) & (1 << 12))
+static uint32 grf_gpio6c_iomux = 0;
+
+__maybe_unused
+void rk_iomux_sdcard_save(void)
+{
+	debug("rk save sdcard iomux config.\n");
+	grf_gpio6c_iomux = grf_readl(GRF_GPIO6C_IOMUX) & 0x1FFFF;
+	debug("grf gpio6c iomux = 0x%08x\n", grf_gpio6c_iomux);
+
+	if (RK_FORCE_SELECT_JTAG) {
+		debug("Force select jtag from sdcard io.\n");
+	}
+}
+
+
+__maybe_unused
+void rk_iomux_sdcard_restore(void)
+{
+	debug("rk restore sdcard iomux config.\n");
+	grf_writel((0x1FFFF << 16) | grf_gpio6c_iomux, GRF_GPIO6C_IOMUX);
+	debug("grf gpio6c iomux = 0x%08x\n", grf_readl(GRF_GPIO6C_IOMUX) & 0x1FFFF);
+}
+#endif /* CONFIG_RK_SDCARD_BOOT_EN */

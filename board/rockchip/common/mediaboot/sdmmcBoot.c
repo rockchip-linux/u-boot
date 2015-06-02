@@ -100,6 +100,7 @@ uint32 SdmmcInit(uint32 ChipSel)
 		/* disable force iomux to jtag */
 		grf_writel((1 << (8 + 16)) | (0 << 8), GRF_SOC_CON0);
 #endif
+		rk_iomux_sdcard_save();
 	}
 #endif /* RK_SDCARD_BOOT_EN */
 
@@ -141,16 +142,11 @@ uint32 SdmmcInit(uint32 ChipSel)
 			}
 			else
 			{
-#if defined(RK_SDCARD_BOOT_EN)
-				if (ChipSel == 0) {
+				rk_iomux_sdcard_restore();
 #if defined(CONFIG_RKCHIP_RK3126)
-					/* enable force iomux to jtag */
-					grf_writel((1 << (8 + 16)) | (1 << 8), GRF_SOC_CON0);
+				/* enable force iomux to jtag */
+				grf_writel((1 << (8 + 16)) | (1 << 8), GRF_SOC_CON0);
 #endif
-					/* iomux to uart debug */
-					rk_iomux_config(RK_UART_DBG_IOMUX);
-				}
-#endif /* RK_SDCARD_BOOT_EN */
 				ret1 = -1;
 			}
 		}
@@ -165,6 +161,16 @@ uint32 SdmmcInit(uint32 ChipSel)
 
 		return ret1;
 	}
+
+#if defined(RK_SDCARD_BOOT_EN)
+	if (ChipSel == 0) {
+		rk_iomux_sdcard_restore();
+#if defined(CONFIG_RKCHIP_RK3126)
+		/* enable force iomux to jtag */
+		grf_writel((1 << (8 + 16)) | (1 << 8), GRF_SOC_CON0);
+#endif
+	}
+#endif /* RK_SDCARD_BOOT_EN */
 
 	return ERROR;
 }

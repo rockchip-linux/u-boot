@@ -48,6 +48,9 @@ enum iomux_id {
 
 
 void rk_iomux_config(int iomux_id);
-
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+void rk_iomux_sdcard_save(void);
+void rk_iomux_sdcard_restore(void);
+#endif /* CONFIG_RK_SDCARD_BOOT_EN */
 
 #endif /* _RKXX_IOMUX_H_ */

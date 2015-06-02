@@ -140,3 +140,34 @@ static void rk_hdmi_iomux_config(int hdmi_id)
 			break;
 	}
 }
+
+
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+#define RK_FORCE_SELECT_JTAG	(grf_readl(GRF_SOC_CON0) & (1 << 8))
+static uint32 grf_gpio1b_iomux = 0, grf_gpio1c_iomux = 0;
+
+__maybe_unused
+void rk_iomux_sdcard_save(void)
+{
+	debug("rk save sdcard iomux config.\n");
+	grf_gpio1b_iomux = grf_readl(GRF_GPIO1B_IOMUX) & ((3<<12) | (3<<14));
+	grf_gpio1c_iomux = grf_readl(GRF_GPIO1C_IOMUX) & 0xFFF;
+	debug("grf gpio1b iomux = 0x%08x\n", grf_gpio1b_iomux);
+	debug("grf gpio1c iomux = 0x%08x\n", grf_gpio1c_iomux);
+
+	if (RK_FORCE_SELECT_JTAG) {
+		debug("Force select jtag from sdcard io.\n");
+	}
+}
+
+
+__maybe_unused
+void rk_iomux_sdcard_restore(void)
+{
+	debug("rk restore sdcard iomux config.\n");
+	grf_writel((3 << 28) | (3 << 30) | grf_gpio1b_iomux, GRF_GPIO1B_IOMUX);
+	grf_writel((0xFFF << 16) | grf_gpio1c_iomux, GRF_GPIO1C_IOMUX);
+	debug("grf gpio1b iomux = 0x%08x\n", grf_readl(GRF_GPIO1B_IOMUX) & ((3<<12) | (3<<14)));
+	debug("grf gpio1c iomux = 0x%08x\n", grf_readl(GRF_GPIO1C_IOMUX) & 0xFFF);
+}
+#endif /* CONFIG_RK_SDCARD_BOOT_EN */
