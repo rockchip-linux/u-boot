@@ -111,11 +111,10 @@ int arch_early_init_r(void)
 #endif
 
 
-#ifdef CONFIG_BOARD_LATE_INIT
-extern char bootloader_ver[24];
-int board_late_init(void)
+#define RAMDISK_ZERO_COPY_SETTING	"0xffffffffffffffff=n\0"
+static void board_init_adjust_env(void)
 {
-	debug("board_late_init\n");
+	bool change = false;
 
 	char *s = getenv("bootdelay");
 	if (s != NULL) {
@@ -126,16 +125,54 @@ int board_late_init(void)
 #if (CONFIG_BOOTDELAY <= 0)
 		if (bootdelay > 0) {
 			setenv("bootdelay", simple_itoa(0));
+			change = true;
 			debug("setenv: bootdelay = 0\n");
 		}
 #else
 		if (bootdelay != CONFIG_BOOTDELAY) {
 			setenv("bootdelay", simple_itoa(CONFIG_BOOTDELAY));
+			change = true;
 			debug("setenv: bootdelay = %d\n", CONFIG_BOOTDELAY);
 		}
 #endif
 	}
-	setenv("bootcmd", CONFIG_BOOTCOMMAND);
+
+	s = getenv("bootcmd");
+	if (s != NULL) {
+		debug("getenv: bootcmd = %s\n", s);
+		if (strcmp(s, CONFIG_BOOTCOMMAND) != 0) {
+			setenv("bootcmd", CONFIG_BOOTCOMMAND);
+			change = true;
+			debug("setenv: bootcmd = %s\n", CONFIG_BOOTCOMMAND);
+		}
+	}
+
+	s = getenv("initrd_high");
+	if (s != NULL) {
+		debug("getenv: initrd_high = %s\n", s);
+		if (strcmp(s, RAMDISK_ZERO_COPY_SETTING) != 0) {
+			setenv("initrd_high", RAMDISK_ZERO_COPY_SETTING);
+			change = true;
+			debug("setenv: initrd_high = %s\n", RAMDISK_ZERO_COPY_SETTING);
+		}
+	}
+
+	if (change) {
+#ifdef CONFIG_CMD_SAVEENV
+		debug("board init saveenv.\n");
+		saveenv();
+#endif
+	}
+}
+
+
+#ifdef CONFIG_BOARD_LATE_INIT
+extern char bootloader_ver[24];
+int board_late_init(void)
+{
+	debug("board_late_init\n");
+
+	board_init_adjust_env();
 
 	load_disk_partitions();
 
