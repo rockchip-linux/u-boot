@@ -432,7 +432,7 @@ int drv_lcd_init(void)
 	int rc;
 
 	lcd_base = map_sysmem(gd->fb_base, 0);
-
+	lcd_show_logo = 1;
 	lcd_init(lcd_base);		/* LCD initialization */
 
 	/* Device initialization */
@@ -552,7 +552,7 @@ static int lcd_init(void *lcdbase)
 	lcd_flip = false;
 #endif
 	lcd_clear();
-	lcd_enable();
+	//lcd_enable();
 
 #ifndef CONFIG_LCD_CONSOLE_DISABLE
 	/* Initialize the console */
