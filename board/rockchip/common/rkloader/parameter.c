@@ -346,7 +346,7 @@ static void ParseLine(PBootInfo pboot_info, char *line)
 		}
 	}
 	else
-		printf("Unknow param: %s!\n", line);
+		;//printf("Unknow param: %s!\n", line);
 }
 
 //
