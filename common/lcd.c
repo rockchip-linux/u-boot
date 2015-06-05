@@ -416,8 +416,8 @@ __weak int lcd_get_size(int *line_length)
 void lcd_enable_logo(bool enable)
 {
 	lcd_show_logo = enable;
-	if (lcd_show_logo)
-		lcd_clear();
+	//if (lcd_show_logo)
+	//	lcd_clear();
 }
 
 void lcd_enable_flip(bool enable)

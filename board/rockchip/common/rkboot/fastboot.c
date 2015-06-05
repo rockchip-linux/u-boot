@@ -416,6 +416,7 @@ void board_fbt_preboot(void)
 	printf("read logo_on switch from dts [%d]\n", logo_on);
 
 	if (logo_on) {
+		lcd_enable_logo(true);
 		drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb
 	}
 #endif
@@ -434,6 +435,7 @@ void board_fbt_preboot(void)
 		if (logo_on && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
 			//boot from charge animation.
 			frt = FASTBOOT_REBOOT_NORMAL;
+			lcd_clear();
 		}
 #else
 		return fbt_run_charge();
@@ -445,7 +447,7 @@ void board_fbt_preboot(void)
 
 #ifdef CONFIG_LCD
 	if (logo_on) {
-		lcd_enable_logo(true);
+		//lcd_enable_logo(true);
 		lcd_standby(0);
 		//mdelay(100);
 		rk_backlight_ctrl(-1); /*use defaut brightness in dts*/

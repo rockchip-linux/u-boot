@@ -494,7 +494,7 @@ void lcd_ctrl_init(void *lcdbase)
 
 void lcd_enable(void)
 {
-	rk_lcdc_set_par(&panel_info.par[0].fb_info, &panel_info);
+	//rk_lcdc_set_par(&panel_info.par[0].fb_info, &panel_info);
 }
 
 void lcd_pandispaly(struct fb_dsp_info *info)
