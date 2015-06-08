@@ -66,15 +66,21 @@ static const struct phy_mpll_config_tab PHY_MPLL_TABLE[] = {
 	{297000000,	297000000,	0,	8,	0,	0,	0,
 		1,	0,	0,	0,	0,	0,	3},
 	{297000000,	371250000,	0,	10,	1,	3,	1,
-		5,	0,	3,	0,	7,	0,	3},
+		5,	1,	3,	1,	7,	0,	3},
 	{297000000,	445500000,	0,	12,	2,	3,	1,
-		1,	2,	2,	0,	7,	0,	3},
-	{297000000,	594000000,	0,	16,	1,	3,	1,
+		1,	2,	0,	1,	7,	0,	3},
+	{297000000,	594000000,	0,	16,	3,	3,	1,
 		1,	3,	1,	0,	0,	0,	3},
 /*	{594000000,	297000000,	0,	8,	0,	0,	0,
 		1,	3,	3,	1,	0,	0,	3},*/
 	{594000000,	297000000,	0,	8,	0,	0,	0,
 		1,	0,	1,	0,	0,	0,	3},
+	{594000000,	371250000,	0,	10,	1,	3,	1,
+		5,	0,	3,	0,	7,	0,	3},
+	{594000000,	445500000,	0,	12,	2,	3,	1,
+		1,	2,	1,	1,	7,	0,	3},
+	{594000000,	594000000,	0,	16,	3,	3,	1,
+		1,	3,	3,	0,	0,	0,	3},
 	{594000000,	594000000,	0,	8,	0,	3,	1,
 		1,	3,	3,	0,	0,	0,	3},
 };
@@ -678,31 +684,21 @@ static int rk32_hdmi_config_phy(struct hdmi_dev *hdmi_dev)
 		rk32_hdmi_write_phy(hdmi_dev, PHYTX_PLLCURRCTRL, v_MPLL_PROP_CNTRL(phy_mpll->prop_cntrl) | v_MPLL_INT_CNTRL(phy_mpll->int_cntrl));
 		rk32_hdmi_write_phy(hdmi_dev, PHYTX_PLLGMPCTRL, v_MPLL_GMP_CNTRL(phy_mpll->gmp_cntrl));
 	}
-	if(hdmi_dev->pixelclk <= 74250000) {
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL, v_OVERRIDE(1) | v_SLOPEBOOST(0)
-			| v_TX_SYMON(1) | v_TX_TRAON(0) | v_TX_TRBON(0) | v_CLK_SYMON(1));
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS, v_TX_TERM(R100_Ohms));
-	}
-	else if(hdmi_dev->pixelclk <= 148500000) {
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL, v_OVERRIDE(1) | v_SLOPEBOOST(2)
-			| v_TX_SYMON(1) | v_TX_TRAON(0) | v_TX_TRBON(0) | v_CLK_SYMON(1));
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS, v_TX_TERM(R100_Ohms));
-	}
-	else if(hdmi_dev->pixelclk <= 297000000) {
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL, v_OVERRIDE(1) | v_SLOPEBOOST(2)
-			| v_TX_SYMON(1) | v_TX_TRAON(0) | v_TX_TRBON(0) | v_CLK_SYMON(1));
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS, v_TX_TERM(R100_Ohms));
-	}
-	else if(hdmi_dev->pixelclk > 297000000) {
-		//TODO Daisen wait to add and modify
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL, v_OVERRIDE(1) | v_SLOPEBOOST(3)
-			| v_TX_SYMON(1) | v_TX_TRAON(0) | v_TX_TRBON(1) | v_CLK_SYMON(1));
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS, v_TX_TERM(R100_Ohms));
-	}
-	if(hdmi_dev->pixelclk < 297000000)
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL, v_SUP_TXLVL(18) | v_SUP_CLKLVL(17));
+	rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS,
+					  v_TX_TERM(R50_Ohms));
+	rk32_hdmi_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL,
+				  v_OVERRIDE(1) | v_SLOPEBOOST(0) |
+				  v_TX_SYMON(1) | v_TX_TRAON(0) |
+				  v_TX_TRBON(0) | v_CLK_SYMON(1));
+	if (hdmi_dev->tmdsclk > 340000000)
+		rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL,
+					  v_SUP_TXLVL(9) | v_SUP_CLKLVL(17));
+	else if (hdmi_dev->tmdsclk > 165000000)
+		rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL,
+					  v_SUP_TXLVL(14) | v_SUP_CLKLVL(17));
 	else
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL, v_SUP_TXLVL(14) | v_SUP_CLKLVL(13));
+		rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL,
+					  v_SUP_TXLVL(18) | v_SUP_CLKLVL(17));
 
 	rk32_hdmi_write_phy(hdmi_dev, 0x05, 0x8000);
 
