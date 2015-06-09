@@ -39,6 +39,11 @@ static void mmu_setup(void)
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
 		ulong start = bd->bi_dram[i].start;
 		ulong end = bd->bi_dram[i].start + bd->bi_dram[i].size;
+#ifdef CONFIG_ROCKCHIP
+		if (end < SECTION_SIZE) {
+			end = SECTION_SIZE;
+		}
+#endif /* CONFIG_ROCKCHIP */
 		for (j = start >> SECTION_SHIFT;
 		     j < end >> SECTION_SHIFT; j++) {
 			set_pgtable_section(page_table, (u64)j, (u64)j << SECTION_SHIFT,
@@ -124,10 +129,17 @@ void dcache_disable(void)
 	if (!(sctlr & CR_C))
 		return;
 
+#ifndef CONFIG_ROCKCHIP
 	set_sctlr(sctlr & ~(CR_C|CR_M));
 
 	flush_dcache_all();
 	__asm_invalidate_tlb_all();
+#else
+	flush_dcache_all();
+	__asm_invalidate_tlb_all();
+
+	set_sctlr(sctlr & ~(CR_C|CR_M));
+#endif /* CONFIG_ROCKCHIP */
 }
 
 int dcache_status(void)
