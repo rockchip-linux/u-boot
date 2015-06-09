@@ -112,6 +112,8 @@
 #define CONFIG_RK_MMC_DMA
 #define CONFIG_RK_MMC_IDMAC	/* internal dmac */
 
+/* mmc using ddr mode */
+#define CONFIG_RK_MMC_DDR_MODE
 
 /* more config for rockusb */
 #ifdef CONFIG_CMD_ROCKUSB

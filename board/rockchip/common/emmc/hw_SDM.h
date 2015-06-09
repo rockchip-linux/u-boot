@@ -36,6 +36,8 @@ no message
 #define SDM_INVALID_CARDID    (-1)           //ÎÞÐ§µÄcardId
 #define SDM_WIDE_BUS_MODE     (1 << 0)       //for debug
 #define SDM_HIGH_SPEED_MODE   (1 << 1)       //for debug 
+#define SDM_DDR_SPEED_MODE    (1 << 2)       //for debug 
+#define SDM_HS200_SPEED_MODE   (1 << 3)       //for debug 
 
 /*
 #if ((SD_FPP_FREQ/1000) < (FREQ_HCLK_MAX/8))

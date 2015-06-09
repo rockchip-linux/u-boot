@@ -117,6 +117,8 @@ void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src) {}
 unsigned int rkclk_get_mmc_clk(uint32 sdid) { return 24 * MHZ; }
 int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq) { return 0; }
 int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div) { return 0; }
+int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num) { return 0; }
+int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq) { return 0; }
 unsigned int rkclk_get_pwm_clk(uint32 pwm_id) { return 0; }
 unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id) { return 0; }
 unsigned int rkclk_get_spi_clk(uint32 spi_bus) { return 0; }

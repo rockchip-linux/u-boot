@@ -158,6 +158,26 @@ int SCUSelSDClk(uint32 sdmmcId, uint32 div)
 }
 
 
+int32 SCUSetSDClkFreq(uint32 sdmmcId, uint32 freq)
+{
+#if defined(CONFIG_RK_MMC_DDR_MODE)
+	debug("SCUSetSDClkFreq: sd id = %d, freq = %d\n", sdmmcId, freq);
+	return rkclk_set_mmc_clk_freq(sdmmcId, freq);
+#else
+    return 0;
+#endif
+}
+
+int32 SCUSetTuning(uint32 sdmmcId, uint32 degree, uint32 DelayNum)
+{
+#if defined(CONFIG_RK_MMC_DDR_MODE)
+    debug("SCUSetTuning: degree = %d, DelayNum = %d\n", degree, DelayNum);
+    return rkclk_set_mmc_tuning(sdmmcId, degree, DelayNum);
+#else
+        return -1;
+#endif
+}
+
 void sdmmcGpioInit(uint32 ChipSel)
 {
 #ifdef RK_SDCARD_BOOT_EN

@@ -130,6 +130,66 @@ void   SDPAM_SetMmcClkDiv(SDMMC_PORT_E nSDCPort, uint32 div)
 #endif
 }
 
+/****************************************************************/
+//函数名:SDPAM_SetTuning
+//描述:设置tuning值
+//参数说明:
+//        
+//返回值:
+//相关全局变量:
+//注意:
+/****************************************************************/
+int32 SDPAM_SetTuning(SDMMC_PORT_E nSDCPort, uint32 degree, uint32 DelayNum)
+{
+    if (degree > 3 || DelayNum > 255)
+    {   
+        return SDM_PARAM_ERROR;
+    }
+
+     if(nSDCPort == SDC0)
+    {
+        return SDM_PARAM_ERROR;
+    }
+    else if (nSDCPort == SDC1)
+    {
+        return SDM_PARAM_ERROR;
+    }
+    else
+    {
+        return SCUSetTuning(2, degree, DelayNum);
+    }
+}
+
+
+/****************************************************************/
+//函数名:SDPAM_SetMmcClkDiv
+//描述:设置SCU上mmc_clk_div的分频值
+//参数说明:nSDCPort   输入参数   端口号
+//         div        输入参数   分频值
+//返回值:返回当前AHB总线频率，单位KHz
+//相关全局变量:
+//注意:
+/****************************************************************/
+int32  SDPAM_SetSrcFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
+{
+#if SDMMC_NO_PLATFORM
+    return 0;
+#else
+    if(nSDCPort == SDC0)
+    {
+        return SCUSetSDClkFreq(0, freqKHz*1000)/1000;
+    }
+    else if (nSDCPort == SDC1)
+    {
+        return SCUSetSDClkFreq(1, freqKHz*1000)/1000;
+    }
+    else
+    {
+        return SCUSetSDClkFreq(2, freqKHz*1000)/1000;
+    }
+#endif
+}
+
 #if EN_SD_DMA
 /****************************************************************/
 //函数名:SDPAM_DMAStart

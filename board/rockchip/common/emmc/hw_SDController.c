@@ -147,7 +147,7 @@ static int32 _ControlClock(SDMMC_PORT_E nSDCPort, uint32 enable)
 //相关全局变量:
 //注意:freqKHz不能为0，如果想关闭时钟，就调用SDC_ControlClock
 /****************************************************************/
-#if 1
+#if (!EN_EMMC_DDR_MODE)
 //根据RK29修改
 static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
 {
@@ -254,12 +254,12 @@ static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
 {
     volatile uint32 value = 0;
     pSDC_REG_T      pReg = pSDCReg(nSDCPort);
-    uint32          suitMmcClkDiv = 0;
-    uint32          suitCclkInDiv = 0;
-    uint32          ahbFreq = SDPAM_GetAHBFreq(nSDCPort);
+    int32           ClkInFreq;
+    uint32          suitCclkInDiv;
     int32           timeOut = 0;
     int32           ret = SDC_SUCCESS;
-
+    uint32          bDDRMode = 0;
+    
     if (freqKHz == 0)//频率不能为0，否则后面会出现除数为0
     {
         return SDC_PARAM_ERROR;
@@ -271,72 +271,28 @@ static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
         return ret;
     }
 
-#if 0
-    minMmcClkDiv = ahbFreq/50000 + (((ahbFreq%50000) > 0) ? 1:0);
-    Assert((minMmcClkDiv <= 8),"_ChangeFreq:max mmc_clk_div error\n", ahbFreq);
-    
-    minFreqOffset    = 0xFFFFFFFF;
-    suitMmcClkDiv    = 0;
-    suitCclkInDiv    = 0;
-    
-    for(mmcClkDiv = minMmcClkDiv; mmcClkDiv <= 8; mmcClkDiv++)
-    {
-        cclkInDiv = ahbFreq/(mmcClkDiv*freqKHz)
-                    + (((ahbFreq%(mmcClkDiv*freqKHz)) > 0) ? 1:0);
-        if (((cclkInDiv & 0x1) == 1) && (cclkInDiv != 1))
-        {
-            cclkInDiv++;  //除了1分频，保证是偶数倍
-        }
-        if(cclkInDiv > 510)
-        {
-            continue;
-        }
+    bDDRMode = (pReg->SDMMC_UHS_REG>>16) & 0x1;
+    (bDDRMode)? ( suitCclkInDiv = 2) : ( suitCclkInDiv = 1);    //DDR mode 控制器内部需2分频
 
-        newCardFreq = (ahbFreq/(mmcClkDiv*cclkInDiv))\
-                       + (((ahbFreq%(mmcClkDiv*cclkInDiv)) > 0) ? 1:0);
-        if ((newCardFreq <= freqKHz) && ((freqKHz - newCardFreq) < minFreqOffset))
-        {
-            suitMmcClkDiv    = mmcClkDiv;
-            suitCclkInDiv    = cclkInDiv;
-            minFreqOffset    = (freqKHz - newCardFreq);
-            if(minFreqOffset == 0)
-            {
-                break;
-            }
-        }
+    ClkInFreq = SDPAM_SetSrcFreq(nSDCPort, freqKHz*suitCclkInDiv);
+    if (ClkInFreq <= 0)
+        return SDC_PARAM_ERROR;
+
+    if (ClkInFreq > (freqKHz*suitCclkInDiv))
+    {
+        suitCclkInDiv = (ClkInFreq+freqKHz-1)/freqKHz ;
     }
     
-    Assert(((suitMmcClkDiv != 0) \
-            && (suitCclkInDiv != 0)\
-            && (suitMmcClkDiv <= 8)\
-            && (suitCclkInDiv <= 510)),\
-            "_ChangeFreq:no find suitable value\n", ahbFreq);
-#else
-    if(freqKHz <= 400)
+    if (((suitCclkInDiv & 0x1) == 1) && (suitCclkInDiv != 1))
     {
-        suitMmcClkDiv = 8;
-        suitCclkInDiv = ((SDPAM_MAX_AHB_FREQ*1000)/(freqKHz << 3)) + ((((SDPAM_MAX_AHB_FREQ*1000)%(freqKHz << 3)) > 0) ? 1:0);
-        if (((suitCclkInDiv & 0x1) == 1) && (suitCclkInDiv != 1))
-        {
-            suitCclkInDiv++;  //除了1分频，保证是偶数倍
-        }
-        Assert((suitCclkInDiv <= 510), "_ChangeFreq:no find suitable value\n", ahbFreq);
-        if(suitCclkInDiv > 510)
-        {
-            return SDC_SDC_ERROR;
-        }
+        suitCclkInDiv++;  //除了1分频，保证是偶数倍
     }
-    else
+    if(suitCclkInDiv > 510)
     {
-        suitMmcClkDiv = ahbFreq/freqKHz + (((ahbFreq%freqKHz) > 0) ? 1:0);
-        if(suitMmcClkDiv > 8)
-        {
-            suitMmcClkDiv = 8;
-        }
-        suitCclkInDiv = 1;
+        return SDC_SDC_ERROR;
     }
-#endif
-    
+
+    debug("_ChangeFreq: freqKHz = %d, ClkInFreq = %d, CclkInDiv = %d\n", freqKHz, ClkInFreq, suitCclkInDiv);
     //wait previous start to clear
     timeOut = 1000;
     while (((value = pReg->SDMMC_CMD) & START_CMD) && (timeOut > 0))
@@ -348,18 +304,17 @@ static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
     {
         return SDC_SDC_ERROR;
     }
-    
-    if(suitCclkInDiv == 1)
-    {
-        value = 0;
-    }
-    else
-    {
-        value = (suitCclkInDiv >> 1);
-    }
-    pReg->SDMMC_CLKDIV = value;
-    SDC_Start(pReg, (START_CMD | UPDATE_CLOCK | WAIT_PREV));
 
+    {
+    /* fpga board no define CONFIG_RK_CLOCK, mmc clock should div from internal */
+#ifdef CONFIG_RK_CLOCK
+        pReg->SDMMC_CLKDIV = (suitCclkInDiv >> 1);
+#else
+        pReg->SDMMC_CLKDIV = ((SDPAM_GetAHBFreq(nSDCPort)+freqKHz-1)/freqKHz+1)>>1;
+#endif
+    }
+    
+    SDC_Start(pReg, (START_CMD | UPDATE_CLOCK | WAIT_PREV));
     //wait until current start clear
     timeOut = 1000;
     while (((value = pReg->SDMMC_CMD) & START_CMD) && (timeOut > 0))
@@ -371,7 +326,6 @@ static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
     {
         return SDC_SDC_ERROR;
     }
-    SDPAM_SetMmcClkDiv(nSDCPort, suitMmcClkDiv);
 
     return _ControlClock(nSDCPort, TRUE);
 }
@@ -1296,6 +1250,53 @@ int32 SDC_ControlPower(int32 cardId, uint32 enable)
     return SDC_SUCCESS;
 }
 
+/*
+Name:       SDC_SetDDRTuning
+Desc:       
+Param:      
+Return:     
+Global: 
+Note:   
+Author: 
+Log:
+*/
+int32 SDC_SetDDRTuning(int32 cardId, uint32 step)
+{
+    uint32 DelayNum;
+
+    DelayNum = step * 10;
+    
+    return SDPAM_SetTuning(cardId, 0, DelayNum);
+}
+
+/*
+Name:       SDC_SetDDRMode
+Desc:       
+Param:      
+Return:     
+Global: 
+Note:   
+Author: 
+Log:
+*/
+int32 SDC_SetDDRMode(int32 cardId, uint32 enable)
+{
+    SDMMC_PORT_E nSDCPort = (SDMMC_PORT_E)cardId;
+    pSDC_REG_T   pReg = pSDCReg(nSDCPort);
+    int32        ret = SDC_SUCCESS;
+
+    pReg->SDMMC_UHS_REG = pReg->SDMMC_UHS_REG | ((enable & 0x1) << 16);
+    pReg->SDMMC_EMMC_DDR_REG |= (1<<0);
+    if (enable)
+    {
+        ret = _ChangeFreq(nSDCPort, gSDCInfo[nSDCPort].cardFreq);
+        if (ret != SDC_SUCCESS)
+            debug("SetDDRMode ERR\n");
+    }
+    
+    return ret;
+}
+
 /****************************************************************/
 //函数名:SDC_WaitCardBusy
 //描述:等待指定的卡busy完成
@@ -1391,34 +1392,44 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
         SDOAM_Delay(1);
         if((--timeout) == 0 || pSDC->ErrorStat != SDC_SUCCESS) 
             break;
-    } while ((pReg->SDMMC_RINISTS & (CD_INT | DTO_INT)) != (CD_INT | DTO_INT));
+
+        value = pReg->SDMMC_RINISTS;
+        if (value & (RE_INT|RCRC_INT|RTO_INT|SBE_INT|EBE_INT|DRTO_INT|DCRC_INT))    //error happen may be no DTO_INT
+            break;
+        
+    } while ((value & (CD_INT | DTO_INT)) != (CD_INT | DTO_INT));
     
     if(timeout==0)
     {
 		//PRINT_E("SDC_RequestIDMA timeout %d error\n",timeout);
+		debug("SDC ERR: data timeout 0x%x\n", value);
         pSDC->ErrorStat = SDC_RESP_TIMEOUT;
     }
     
     value = pReg->SDMMC_RINISTS;
-    if (value & RTO_INT)
+    if (value & (RE_INT|RCRC_INT))
     {
-        pSDC->ErrorStat = SDC_RESP_TIMEOUT;
+        pSDC->ErrorStat = SDC_RESP_ERROR;
+    }
+    else if (value & RTO_INT)
+    {
+        pSDC->ErrorStat |= SDC_RESP_TIMEOUT;
     }
     else if (value & SBE_INT)
     {
-        pSDC->ErrorStat = SDC_START_BIT_ERROR;
+        pSDC->ErrorStat |= SDC_START_BIT_ERROR;
     }
     else if (value & EBE_INT)
     {
-        pSDC->ErrorStat = SDC_END_BIT_ERROR;
+        pSDC->ErrorStat |= SDC_END_BIT_ERROR;
     }
     else if (value & DRTO_INT)
     {
-        pSDC->ErrorStat = SDC_DATA_READ_TIMEOUT;
+        pSDC->ErrorStat |= SDC_DATA_READ_TIMEOUT;
     }
     else if (value & DCRC_INT) 
     {
-        pSDC->ErrorStat = SDC_DATA_CRC_ERROR;
+        pSDC->ErrorStat |= SDC_DATA_CRC_ERROR;
     }
 
     pReg->SDMMC_RINISTS = 0xFFFFFFFF;
@@ -1433,6 +1444,11 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
     if((cmd & SD_OP_MASK) == SD_WRITE_OP && (pSDC->ErrorStat == SDC_SUCCESS))
     {
         pSDC->ErrorStat = _WaitCardBusy(nSDCPort);
+    }
+
+    if (pSDC->ErrorStat != SDC_SUCCESS)
+    {
+        debug("SDC ERR: 0x%x\n", pSDC->ErrorStat);
     }
     
     return pSDC->ErrorStat;

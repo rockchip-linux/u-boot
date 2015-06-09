@@ -296,6 +296,66 @@ static int32 _MMCSetPatition(pSDM_CARD_INFO_T pCard, uint8* pExtCSD)
 }
 #endif
 
+/*
+Name:       _MMCDoTuning
+Desc:       
+Param:      
+Return:     
+Global: 
+Note:   
+Author: 
+Log:
+*/
+int32 _MMCDoTuning(pSDM_CARD_INFO_T pCard)
+{
+    int32 ret = SDM_FALSE;
+
+    
+    if (pCard->workMode & SDM_DDR_SPEED_MODE)
+    {
+        uint8 DataBuf[512];
+        uint32           status = 0;
+        int32 start = -1, end = -1, step;
+
+        for (step=0; step<16; step++)
+        {
+            int32 ret1;
+            
+            SDC_SetDDRTuning(pCard->cardId, step);
+            ret1 = SDC_BusRequest(pCard->cardId, 
+                                (MMC4_SEND_EXT_CSD | SD_READ_OP | SD_RSP_R1 | WAIT_PREV), 
+                                0, 
+                                &status, 
+                                512, 
+                                512, 
+                                DataBuf); 
+            if (ret1 == SDM_SUCCESS)
+            {
+                end = step;
+                if (-1 == start)
+                {
+                    start = step;
+                }
+
+            }
+            else
+            {
+                if (-1 != start)
+                    break;
+            }
+        }
+
+        debug("MMCDoTuning: start=%d, end=%d\n", start, end);
+        if (-1 != start)
+        {
+            step = (start + end + 1)/2;
+            SDC_SetDDRTuning(pCard->cardId, step);
+            ret = SDM_SUCCESS;
+        }
+    }
+
+    return ret;
+}
 
 /****************************************************************/
 //函数名:MMC_SwitchFunction
@@ -315,6 +375,8 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
     int32            ret = SDM_SUCCESS;
     uint8           *pDataBuf;
     uint32           retry_time = 0;
+//    int testpos;
+    uint8           DDRMode = 0;
 
     if(pCard->specVer < MMC_SPEC_VER_40)
     {
@@ -422,6 +484,12 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
                         {
                             pCard->tran_speed = MMCHS_52_FPP_FREQ;
                             pCard->workMode |= SDM_HIGH_SPEED_MODE;
+                            #if (EN_EMMC_DDR_MODE)
+                            if ((pDataBuf[196] & 0x4)) //  Dual Data Rate
+                            {
+                                DDRMode = 0x4;
+                            }
+                            #endif               
                         }
                     }
                     else  // 26M
@@ -550,12 +618,19 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
         }
         else if(wide == BUS_WIDTH_1_BIT)
         {
+            value = 0x0;
             break;
         }
-        
+
+        if (wide != BUS_WIDTH_8_BIT)
+        {
+            DDRMode = 0;    //控制器只支持8线 DDR 模式
+        }
+
+        debug("EMMC BUS mode: 0x%x\n", (value | DDRMode));
         ret = SDC_SendCommand(pCard->cardId, \
                              (MMC4_SWITCH_FUNC | SD_NODATA_OP | SD_RSP_R1B | WAIT_PREV), \
-                             ((0x3 << 24) | (183 << 16) | (value << 8)), \
+                             ((0x3 << 24) | (183 << 16) | ((value | DDRMode)  << 8)), \
                              &status);
         if ((SDC_SUCCESS != ret) || (status & (0x1 << 7)))
         {
@@ -566,7 +641,15 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
         {
             break;
         }
+        
         pCard->workMode |= SDM_WIDE_BUS_MODE;
+        if (DDRMode)
+        {
+            SDC_SetDDRMode(pCard->cardId, 1);
+            pCard->workMode |= SDM_DDR_SPEED_MODE;
+            _MMCDoTuning(pCard);
+        }
+        
         break;
     }while(1);
     return;

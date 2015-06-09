@@ -86,6 +86,19 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid);
  */
 int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div);
 
+/*
+ * rkplat set sd clock freq, from source input
+ * sdid:	sdmmc/sdio/emmc id
+ * freq:	sd clock freq
+ */
+int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq);
+/*
+ * rkplat set sd clock div, from source input
+ * sdid:	sdmmc/sdio/emmc id
+ * degree:  tuning degree 0/1/2/3
+ * delay_num: tuning delay_num 0~255
+ */
+int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num);
 
 /*
  * rkplat get PWM clock

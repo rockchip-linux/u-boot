@@ -72,6 +72,11 @@ $Log: hw_SDConfig.h,v $
 
 #endif /* CONFIG_RK_MMC_DMA */
 
+#if defined(CONFIG_RK_MMC_DDR_MODE)
+#define EN_EMMC_DDR_MODE      (1) 
+#else
+#define EN_EMMC_DDR_MODE      (0) 
+#endif /* CONFIG_RK_MMC_DDR_MODE */
 
 #define EN_SD_PRINTF          (0)      //是否允许SD驱动内部调试信息打印，1:开启打印，0:关闭打印
 #define DEBOUNCE_TIME         (25)     //卡拔插的消抖动时间,单位ms

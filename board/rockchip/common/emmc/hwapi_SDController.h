@@ -55,6 +55,8 @@ int32 SDC_EnableSdioInt(int32 cardId, pFunc cb);
 int32 SDC_DisableSdioInt(int32 cardId);
 int32 SDC_ControlClock(int32 cardId, uint32 enable);
 int32 SDC_ControlPower(int32 cardId, uint32 enable);
+int32 SDC_SetDDRMode(int32 cardId, uint32 enable);
+int32 SDC_SetDDRTuning(int32 cardId, uint32 step);
 int32 SDC_WaitCardBusy(int32 cardId);
 int32 SDC_BusRequest(int32 cardId,
                              uint32 cmd,
