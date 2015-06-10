@@ -1028,56 +1028,57 @@ int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div)
  */
 int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 {
-    uint32 src_freqs[4];
-    uint32 src_div = 0;
-    uint32 clksel = 0;
+	uint32 src_freqs[4];
+	uint32 src_div = 0;
+	uint32 clksel = 0;
 
-    /*
-    * rkplat set mmc clock src
-    * 0: codec pll; 1: general pll; 2: general pll div2; 3: 24M
-    */
-    src_freqs[0] = gd->pci_clk/2;
-    src_freqs[1] = gd->bus_clk/2;
-    src_freqs[2] = 0;
-    src_freqs[3] = (24 * MHZ)/2;
+	/*
+	 * rkplat set mmc clock src
+	 * 0: codec pll; 1: general pll; 2: general pll div2; 3: 24M
+	 */
+	src_freqs[0] = gd->pci_clk / 2;
+	src_freqs[1] = gd->bus_clk / 2;
+	src_freqs[2] = 0;
+	src_freqs[3] = (24 * MHZ) / 2;
 
-    if (freq <= (12 * MHZ))
-    {
-        clksel = 3;         //select 24 MHZ
-        src_div =(src_freqs[3]+freq-1)/freq;
-        if ((( src_div & 0x1) == 1) && ( src_div != 1))
-             src_div++;
-    }
-    else
-    {
-        uint32 i, div, clk_freq, pre_clk_freq = 0;
-        /*select best src clock*/
-        for (i=0; i<2; i++)
-        {
-            if (0 == src_freqs[i])
-                continue;
-            div = (src_freqs[i]+freq-1)/freq;
-            if (((div & 0x1) == 1) && (div != 1))
-                div++;
-            clk_freq = src_freqs[i]/div;
-            if (clk_freq > pre_clk_freq)
-            {
-                pre_clk_freq = clk_freq;
-                clksel = i;
-                src_div = div;
-            }
-        }
-    }
+	if (freq <= (12 * MHZ))
+	{
+		clksel = 3;         //select 24 MHZ
+		src_div = (src_freqs[3] + freq - 1) / freq;
+		if (((src_div & 0x1) == 1) && (src_div != 1))
+			src_div++;
+	}
+	else
+	{
+		uint32 i, div, clk_freq, pre_clk_freq = 0;
+		/*select best src clock*/
+		for (i=0; i<3; i++)
+		{
+			if (0 == src_freqs[i])
+				continue;
 
-    debug("rkclk_set_mmc_clk_freq: sdid = %d, clksel = %d, src_div = %d\n", sdid, clksel, src_div);
-    if (0 == src_div)
-        return 0;
+			div = (src_freqs[i] + freq - 1) / freq;
+			if (((div & 0x1) == 1) && (div != 1))
+				div++;
+			clk_freq = src_freqs[i]/div;
+			if (clk_freq > pre_clk_freq)
+			{
+				pre_clk_freq = clk_freq;
+				clksel = i;
+				src_div = div;
+			}
+		}
+	}
 
-    src_div &= 0x3F;    //Max div is 0x3F
-    rkclk_set_mmc_clk_src(sdid, clksel);
-    rkclk_set_mmc_clk_div(sdid, src_div);
+	debug("rkclk_set_mmc_clk_freq: sdid = %d, clksel = %d, src_div = %d\n", sdid, clksel, src_div);
+	if (0 == src_div)
+		return 0;
+
+	src_div &= 0x3F;    //Max div is 0x3F
+	rkclk_set_mmc_clk_src(sdid, clksel);
+	rkclk_set_mmc_clk_div(sdid, src_div);
         
-	return src_freqs[clksel]/src_div;
+	return (src_freqs[clksel] / src_div);
 }
 
 /*
@@ -1092,9 +1093,10 @@ int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num)
 
 	if (2 == sdid) {
 		/* emmc */
-		cru_writel(((0x1ul<<0)<<16) | (1<<0), 0x1d8);
-		cru_writel((((1<<10)|(0xff<<2)|(3<<0))<<16)|(1<<10)|(delay_num<<2)|(degree<<0), 0x1dc);
-		cru_writel(((0x1ul<<0)<<16) | (0<<0), 0x1d8);
+		cru_writel(((0x1ul<<0)<<16) | (1<<0), CRU_EMMC_CON0);
+		cru_writel((((1<<10)|(0xff<<2)|(3<<0))<<16)|(1<<10)|(delay_num<<2)|(degree<<0), CRU_EMMC_CON1);
+		cru_writel(((0x1ul<<0)<<16) | (0<<0), CRU_EMMC_CON0);
+
 		return 0;
 	} else {
 		return -1;

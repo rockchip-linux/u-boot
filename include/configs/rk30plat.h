@@ -61,11 +61,7 @@
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
 #define CONFIG_RK_MMC_EDMAC		/* external mac */
-
-/* mmc using ddr mode */
-#if !defined(CONFIG_RKCHIP_RK3036)
-#define CONFIG_RK_MMC_DDR_MODE
-#endif
+#define CONFIG_RK_MMC_DDR_MODE		/* mmc using ddr mode */
 
 /* more config for rockusb */
 #ifdef CONFIG_CMD_ROCKUSB
