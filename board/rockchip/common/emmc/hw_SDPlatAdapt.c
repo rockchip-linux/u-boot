@@ -25,10 +25,8 @@ $Log: hw_SDPlatAdapt.c,v $
 /****************************************************************/
 void   SDPAM_FlushCache(void *adr, uint32 size)
 {
-#if(EN_SD_DMA)
-#ifdef MMUCACHE_ENABLE
-	CacheFlushDRegion((uint32)adr,(uint32)size);
-#endif
+#if (EN_SD_DMA || EN_SDC_INTERAL_DMA)
+	CacheFlushDRegion((uint32)(unsigned long)adr,(uint32)size);
 #endif
 }
 
@@ -44,6 +42,14 @@ void   SDPAM_FlushCache(void *adr, uint32 size)
 void   SDPAM_CleanCache(void *adr, uint32 size)
 {
 
+}
+
+
+void   SDPAM_InvalidateCache(void *adr, uint32 size)
+{
+#if (EN_SD_DMA || EN_SDC_INTERAL_DMA)
+	CacheInvalidateDRegion((uint32)(unsigned long)adr, (uint32)size);
+#endif
 }
 
 /****************************************************************/

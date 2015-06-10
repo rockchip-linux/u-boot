@@ -12,6 +12,7 @@ extern void DRVDelayUs(uint32 count);
 extern void DRVDelayMs(uint32 count);
 
 extern void CacheFlushDRegion(uint32 adr, uint32 size);
+extern void CacheInvalidateDRegion(uint32 adr, uint32 size);
 
 extern void ISetLoaderFlag(uint32 flag);
 extern uint32 IReadLoaderFlag(void);

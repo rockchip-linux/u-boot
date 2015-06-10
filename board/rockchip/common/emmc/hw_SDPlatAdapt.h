@@ -27,6 +27,7 @@ $Log: hw_SDPlatAdapt.h,v $
 /****************************************************************/
 void   SDPAM_FlushCache(void *adr, uint32 size);
 void   SDPAM_CleanCache(void *adr, uint32 size);
+void   SDPAM_InvalidateCache(void *adr, uint32 size);
 uint32 SDPAM_GetAHBFreq(SDMMC_PORT_E nSDCPort);
 void   SDPAM_SDCClkEnable(SDMMC_PORT_E nSDCPort, uint32 enable);
 void   SDPAM_SDCReset(SDMMC_PORT_E nSDCPort);

@@ -41,6 +41,14 @@ void CacheFlushDRegion(uint32 adr, uint32 size)
 }
 
 
+void CacheInvalidateDRegion(uint32 adr, uint32 size)
+{
+#ifndef CONFIG_SYS_DCACHE_OFF
+	invalidate_dcache_range((unsigned long)adr, (unsigned long)adr + size);
+#endif
+}
+
+
 //定义Loader启动异常类型
 //系统中设置指定的sdram值为该标志，重启即可进入rockusb
 //系统启动失败标志

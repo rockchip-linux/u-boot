@@ -1353,11 +1353,11 @@ static int32 SDC_SetIDMADesc(SDMMC_PORT_E SDCPort, uint32 buffer, uint32  BufSiz
         buffer += size;
         pDesc->desc3 = (uint32)(unsigned long)(pDesc+1);
     }
-    
-	SDPAM_FlushCache((void*)&pSDC->IDMADesc[0], i*16);
 
     pDesc->desc0 |= DescLastDesc;
     pDesc->desc0 &= ~DescDisInt;
+
+    SDPAM_FlushCache((void*)&pSDC->IDMADesc[0], (i + 1)*sizeof(SDMMC_DMA_DESC));
 
     return 0;
 }
@@ -1373,6 +1373,11 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
     uint32          timeout  = DataLen*500; //最长一个512需要等250ms 
     volatile uint32 value;
 
+    if((cmd & SD_OP_MASK) == SD_WRITE_OP) {
+        SDPAM_FlushCache(pDataBuf, DataLen);
+    } else {
+	SDPAM_InvalidateCache(pDataBuf, DataLen);
+    }
     SDC_SetIDMADesc(nSDCPort,(uint32)(unsigned long)pDataBuf, DataLen);
 
     pReg->SDMMC_CTRL |= CTRL_USE_IDMAC;
@@ -1437,10 +1442,6 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
     pReg->SDMMC_CTRL &= ~CTRL_USE_IDMAC;
 	pReg->SDMMC_BMOD &= ~BMOD_DE;
     //pSDC->IDMAOn = 0;
-	if((cmd & SD_OP_MASK) == SD_READ_OP)
-	{
-		SDPAM_FlushCache((void*)&pSDC->IDMADesc[0], DataLen);
-	}
     if((cmd & SD_OP_MASK) == SD_WRITE_OP && (pSDC->ErrorStat == SDC_SUCCESS))
     {
         pSDC->ErrorStat = _WaitCardBusy(nSDCPort);
@@ -1844,8 +1845,6 @@ int32 SDC_BusRequest(int32 cardId,
                 pReg->SDMMC_CTRL = value;
             }
 #endif
-        	//读完成后要flush cache
-        	SDPAM_FlushCache(pDataBuf, dataLen);
     
             value = pReg->SDMMC_RINISTS;
             //Assert(!((value & SBE_INT) && (!(value & DRTO_INT))), "SDC_BusRequest:start bit error but not timeout\n", value);
