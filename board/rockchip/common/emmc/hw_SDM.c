@@ -217,6 +217,7 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
     int32            handleRet = SDM_SUCCESS;  //出错处理的返回值
     uint32           repeatCount = 0;
     uint32           status = 0;
+    uint32           bStopCmd = 0;
 
     while (repeatCount < SDM_CMD_RESENT_COUNT)
     {
@@ -231,13 +232,14 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
         }
         else
         {
-            uint32 PreDefined = 0;
+
+            bStopCmd = 1;
             if(gSDMDriver[cardId].cardInfo.type & eMMC2G && gSDMDriver[cardId].cardInfo.bootSize)
             {
                 ret = SDC_BusRequest(cardId, (SD_SET_BLOCK_COUNT | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV), blockCount, &status, 0, 0, NULL);
                 if (ret == SDC_SUCCESS)
                 {
-                    PreDefined = 1;
+                    bStopCmd = 0;
                 } 
             }
             ret = SDC_ReadBlockData(cardId, 
@@ -246,21 +248,15 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
                                     &status, 
                                     (blockCount << 9), 
                                     pBuf);
-            if(ret == SDC_SUCCESS && PreDefined == 0)
+            if((bStopCmd == 1) && (ret == SDC_SUCCESS))
             {
                //SDOAM_Delay(200);  //hcy 09-06-12发现CMMB的变态大卡，在多块读完后发送STOP命令，如果这边没有延时，也就是如果STOP跟数据结束相隔太短，卡工作会不正常，
                                    //表现出来的现象是:读写都没报错，只是读到的数据不是我们想要的数据。原本想读大卡CA部分第4扇区的数据，结果读到的是大卡内自带存储
                                    //空间内的第4个扇区开始的数据，而且存储区的第4扇区会被修改成全0，后面的扇区不会。
-                ret = SDC_SendCommand(cardId, (SD_STOP_TRANSMISSION | SD_NODATA_OP | SD_RSP_R1B | STOP_CMD | NO_WAIT_PREV), 0, &status);
-                if (ret == SDC_RESP_TIMEOUT)
+               handleRet = SDC_SendCommand(cardId, (SD_STOP_TRANSMISSION | SD_NODATA_OP | SD_RSP_R1B | STOP_CMD | NO_WAIT_PREV), 0, &status);
+                if (handleRet != SDC_SUCCESS)
                 {
-                    eMMC_printk(1,"HANDLING:Send STOP cmd timeout\n","");
-                    ret = SDC_RESP_TIMEOUT;
-                    break;
-                }
-                else
-                {
-                    break;
+                    eMMC_printk(1,"HANDLING:Send STOP cmd err:0x%x\n",handleRet);
                 }
             }
         }
@@ -269,48 +265,24 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
         {
             break;
         }
-        else if (ret == SDC_START_BIT_ERROR)
+        else if ((ret == SDC_START_BIT_ERROR)
+            ||(ret == SDC_END_BIT_ERROR) 
+            ||(ret == SDC_DATA_READ_TIMEOUT)
+            ||(ret == SDC_DATA_CRC_ERROR))
         {
-            eMMC_printk(1,"HANDLING:SDC_START_BIT_ER\n","");
-            repeatCount++;
-            handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));  //频率降2MHz
-            if(handleRet != SDC_SUCCESS)
-            {
-                break;
-            }
-            continue;
-        }
-        else if ((ret == SDC_END_BIT_ERROR) || (ret == SDC_DATA_READ_TIMEOUT))
-        {
-            eMMC_printk(1,"HANDLING:%s DataEr handle\n", ((ret == SDC_END_BIT_ERROR) ? "SDC_END_BIT_ER" : "SDC_DATA_READ_TIMEOUT"));
             handleRet = _DataErrorHandle(cardId);
-            if (handleRet == SDM_SUCCESS)
-            {
-                eMMC_printk(1,"HANDLING:DataEr handle success, ReSend Read cmd\n","");
-                repeatCount++;
-                handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));  //频率降2MHz
-                if(handleRet != SDC_SUCCESS)
-                {
-                    break;
-                }
-                continue;
-            }
-            else
-            {
-                //其他错误，直接返回
-                break;
-            }
-        }
-        else if (ret == SDC_DATA_CRC_ERROR)
-        {
-            eMMC_printk(1,"HANDLING:DATA CRC ER ReSend Read cmd\n","");
-            //重发
-            repeatCount++;
-            handleRet = SDC_UpdateCardFreq(cardId, (gSDMDriver[cardId].cardInfo.tran_speed - 2000));  //频率降2MHz
             if(handleRet != SDC_SUCCESS)
             {
                 break;
             }
+            
+            handleRet = SDC_UpdateCardFreq(cardId, gSDMDriver[cardId].cardInfo.tran_speed-2000);  //频率降2MHz
+            if(handleRet != SDC_SUCCESS)
+            {
+                break;
+            }
+            repeatCount++;
+            gSDMDriver[cardId].cardInfo.tran_speed -= 2000;
             continue;
         }
         else if (ret == SDC_RESP_TIMEOUT)
@@ -332,28 +304,19 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
         else if ((ret == SDC_RESP_CRC_ERROR) || (ret == SDC_RESP_ERROR))
         {
             //回复出错不管，只要数据不出错都没问题
+            handleRet = _DataErrorHandle(cardId);
             ret = SDM_SUCCESS;
             break;
         }
         else
         {
             //其他错误，直接返回
+            handleRet = _DataErrorHandle(cardId);
             break;
         }
     }
-    if ((repeatCount == SDM_CMD_RESENT_COUNT) && (ret != SDM_SUCCESS))
-    {
-        ret = SDM_FALSE;
-    }
 
-    if(handleRet == SDM_SUCCESS)
-    {
-        return ret;
-    }
-    else
-    {
-        return handleRet;
-    }
+    return ret;
 }
 
 /****************************************************************/

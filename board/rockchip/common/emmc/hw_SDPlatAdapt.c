@@ -147,11 +147,6 @@ void   SDPAM_SetMmcClkDiv(SDMMC_PORT_E nSDCPort, uint32 div)
 /****************************************************************/
 int32 SDPAM_SetTuning(SDMMC_PORT_E nSDCPort, uint32 degree, uint32 DelayNum)
 {
-    if (degree > 3 || DelayNum > 255)
-    {   
-        return SDM_PARAM_ERROR;
-    }
-
      if(nSDCPort == SDC0)
     {
         return SDM_PARAM_ERROR;

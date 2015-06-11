@@ -121,6 +121,7 @@ $Log: hw_SDController.h,v $
 #define R_EXPECT          (1 << 6)     //response expected from card
 
 /* SDMMC status Register */
+#define STATUS_BUSY         (1 << 10)   //state-machine is busy
 #define DATA_BUSY         (1 << 9)     //Card busy
 #define FIFO_FULL         (1 << 3)     //FIFO is full status
 #define FIFO_EMPTY        (1 << 2)     //FIFO is empty status

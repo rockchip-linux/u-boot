@@ -147,110 +147,8 @@ static int32 _ControlClock(SDMMC_PORT_E nSDCPort, uint32 enable)
 //相关全局变量:
 //注意:freqKHz不能为0，如果想关闭时钟，就调用SDC_ControlClock
 /****************************************************************/
-#if (!EN_EMMC_DDR_MODE)
-//根据RK29修改
-static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
-{
-    volatile uint32 value = 0;
-    pSDC_REG_T      pReg = pSDCReg(nSDCPort);
-    uint32          suitMmcClkDiv = 0;
-    uint32          suitCclkInDiv = 0;
-    uint32          ahbFreq = SDPAM_GetAHBFreq(nSDCPort);
-    int32           timeOut = 0;
-    int32           ret = SDC_SUCCESS;
-    uint32          secondFreq;
-
-    if (freqKHz == 0)//频率不能为0，否则后面会出现除数为0
-    {
-        return SDC_PARAM_ERROR;
-    }
-
-    ret = _ControlClock(nSDCPort, FALSE);
-    if(ret != SDC_SUCCESS)
-    {
-        return ret;
-    }
-
-
-    //先保证SDMMC控制器工作cclk_in不超过52MHz，否则后面设置寄存器会跑飞掉
-    suitMmcClkDiv = ahbFreq/MMCHS_52_FPP_FREQ + ( ((ahbFreq%MMCHS_52_FPP_FREQ)>0) ? 1: 0 );
-    if(freqKHz < 12000) //低频下, 外面供给的clk就不能太高,不然cmd和数据的hold time不够
-    {
-        suitMmcClkDiv = ahbFreq/freqKHz;
-        suitMmcClkDiv &= 0xFE;//偶数分频
-    }
-    
-    if(suitMmcClkDiv > 0x3E)
-    {
-        suitMmcClkDiv = 0x3E;
-    }
-    
-    secondFreq = ahbFreq/suitMmcClkDiv;
-    suitCclkInDiv = (secondFreq/freqKHz) + ( ((secondFreq%freqKHz)>0)?1:0 );
-    if (((suitCclkInDiv & 0x1) == 1) && (suitCclkInDiv != 1))
-    {
-        suitCclkInDiv++;  //除了1分频，保证是偶数倍
-    }
-    Assert((suitCclkInDiv <= 510), "_ChangeFreq:no find suitable value\n", ahbFreq);
-    if(suitCclkInDiv > 510)
-    {
-        return SDC_SDC_ERROR;
-    }
-
-    
-    //wait previous start to clear
-    timeOut = 1000;
-    while (((value = pReg->SDMMC_CMD) & START_CMD) && (timeOut > 0))
-    {
-        SDOAM_Delay(1);
-        timeOut--;
-    }
-    if(timeOut == 0)
-    {
-        return SDC_SDC_ERROR;
-    }
-    
-    if(suitCclkInDiv == 1)
-    {
-        value = 0;
-    }
-    else
-    {
-        value = (suitCclkInDiv >> 1);
-    }
-    /*if(freqKHz>400)
-    {
-        pReg->SDMMC_CLKDIV = 0;
-    }
-    else*/
-    {
-	/* fpga board no define CONFIG_RK_CLOCK, mmc clock should div from internal */
-#ifdef CONFIG_RK_CLOCK
-        pReg->SDMMC_CLKDIV = value;
-#else
-        pReg->SDMMC_CLKDIV = suitMmcClkDiv;
-#endif
-    }
-    SDC_Start(pReg, (START_CMD | UPDATE_CLOCK | WAIT_PREV));
-
-    //wait until current start clear
-    timeOut = 1000;
-    while (((value = pReg->SDMMC_CMD) & START_CMD) && (timeOut > 0))
-    {
-        SDOAM_Delay(1);
-        timeOut--;
-    }
-    if(timeOut == 0)
-    {
-        return SDC_SDC_ERROR;
-    }
-    SDPAM_SetMmcClkDiv(nSDCPort, suitMmcClkDiv);
-
-    return _ControlClock(nSDCPort, TRUE);
-}
-
-#else
-static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
+#if (EN_EMMC_DDR_MODE)
+static int32 _ChangeMmcFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
 {
     volatile uint32 value = 0;
     pSDC_REG_T      pReg = pSDCReg(nSDCPort);
@@ -331,6 +229,112 @@ static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
 }
 
 #endif
+static int32 _ChangeFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz)
+{
+    volatile uint32 value = 0;
+    pSDC_REG_T      pReg = pSDCReg(nSDCPort);
+    uint32          suitMmcClkDiv = 0;
+    uint32          suitCclkInDiv = 0;
+    uint32          ahbFreq;
+    int32           timeOut = 0;
+    int32           ret = SDC_SUCCESS;
+    uint32          secondFreq;
+
+    #if (EN_EMMC_DDR_MODE)
+    if (2 == nSDCPort)
+        return _ChangeMmcFreq(nSDCPort, freqKHz);
+    #endif
+
+    if (freqKHz == 0)//频率不能为0，否则后面会出现除数为0
+    {
+        return SDC_PARAM_ERROR;
+    }
+
+    ret = _ControlClock(nSDCPort, FALSE);
+    if(ret != SDC_SUCCESS)
+    {
+        return ret;
+    }
+
+    ahbFreq = SDPAM_GetAHBFreq(nSDCPort);
+    //先保证SDMMC控制器工作cclk_in不超过52MHz，否则后面设置寄存器会跑飞掉
+    suitMmcClkDiv = ahbFreq/MMCHS_52_FPP_FREQ + ( ((ahbFreq%MMCHS_52_FPP_FREQ)>0) ? 1: 0 );
+    if(freqKHz < 12000) //低频下, 外面供给的clk就不能太高,不然cmd和数据的hold time不够
+    {
+        suitMmcClkDiv = ahbFreq/freqKHz;
+        suitMmcClkDiv &= 0xFE;//偶数分频
+    }
+    
+    if(suitMmcClkDiv > 0x3E)
+    {
+        suitMmcClkDiv = 0x3E;
+    }
+    
+    secondFreq = ahbFreq/suitMmcClkDiv;
+    suitCclkInDiv = (secondFreq/freqKHz) + ( ((secondFreq%freqKHz)>0)?1:0 );
+    if (((suitCclkInDiv & 0x1) == 1) && (suitCclkInDiv != 1))
+    {
+        suitCclkInDiv++;  //除了1分频，保证是偶数倍
+    }
+    Assert((suitCclkInDiv <= 510), "_ChangeFreq:no find suitable value\n", ahbFreq);
+    if(suitCclkInDiv > 510)
+    {
+        return SDC_SDC_ERROR;
+    }
+
+    
+    //wait previous start to clear
+    timeOut = 1000;
+    while (((value = pReg->SDMMC_CMD) & START_CMD) && (timeOut > 0))
+    {
+        SDOAM_Delay(1);
+        timeOut--;
+    }
+    if(timeOut == 0)
+    {
+        return SDC_SDC_ERROR;
+    }
+    
+    if(suitCclkInDiv == 1)
+    {
+        value = 0;
+    }
+    else
+    {
+        value = (suitCclkInDiv >> 1);
+    }
+    /*if(freqKHz>400)
+    {
+        pReg->SDMMC_CLKDIV = 0;
+    }
+    else*/
+    {
+	/* fpga board no define CONFIG_RK_CLOCK, mmc clock should div from internal */
+#ifdef CONFIG_RK_CLOCK
+        pReg->SDMMC_CLKDIV = value;
+#else
+        pReg->SDMMC_CLKDIV = suitMmcClkDiv;
+#endif
+    }
+    SDC_Start(pReg, (START_CMD | UPDATE_CLOCK | WAIT_PREV));
+
+    //wait until current start clear
+    timeOut = 1000;
+    while (((value = pReg->SDMMC_CMD) & START_CMD) && (timeOut > 0))
+    {
+        SDOAM_Delay(1);
+        timeOut--;
+    }
+    if(timeOut == 0)
+    {
+        return SDC_SDC_ERROR;
+    }
+    SDPAM_SetMmcClkDiv(nSDCPort, suitMmcClkDiv);
+
+    return _ControlClock(nSDCPort, TRUE);
+}
+
+
 
 extern void FlashCsTest(uint8 data);
 extern void rkNand_cond_resched(void);
@@ -1213,8 +1217,9 @@ int32 SDC_UpdateCardFreq(int32 cardId, uint32 freqKHz)
 int32 SDC_ControlClock(int32 cardId, uint32 enable)
 {
     SDMMC_PORT_E nSDCPort = (SDMMC_PORT_E)cardId;
-    uint32 clkvalue, clkdiv;
 
+    #if (!EN_EMMC_DDR_MODE)
+    uint32 clkvalue, clkdiv;
     //ensure that there are no data or command transfers in progress
     if(!enable)
     {
@@ -1230,6 +1235,7 @@ int32 SDC_ControlClock(int32 cardId, uint32 enable)
         }  
         SDPAM_SetMmcClkDiv(nSDCPort, clkdiv);
     }
+    #endif
     return _ControlClock(nSDCPort, enable);
 }
 
@@ -1399,7 +1405,7 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
             break;
 
         value = pReg->SDMMC_RINISTS;
-        if (value & (RE_INT|RCRC_INT|RTO_INT|SBE_INT|EBE_INT|DRTO_INT|DCRC_INT))    //error happen may be no DTO_INT
+        if (value & (RE_INT|RCRC_INT|RTO_INT|SBE_INT|EBE_INT|DRTO_INT|DCRC_INT))    //if error happen may be no DTO_INT
             break;
         
     } while ((value & (CD_INT | DTO_INT)) != (CD_INT | DTO_INT));
@@ -1507,19 +1513,25 @@ int32 SDC_BusRequest(int32 cardId,
     
     //PRINT_E( "EMMC CMD=%d arg = 0x%x len=0x%x\n",cmd&0x3f,cmdArg,dataLen);
     //ensure the card is not busy due to any previous data transfer command
-    if (!(cmd & STOP_CMD))
+    if (cmd & WAIT_PREV)
+    {
+        if (pReg->SDMMC_STATUS & DATA_BUSY)
+        {
+            debug("DATA_BUSY:cmd=0x%x, pReg->SDMMC_CMD=0x%x\n", (cmd & 0x3f), pReg->SDMMC_CMD);
+            return SDC_BUSY_TIMEOUT;
+        }
+    }
+
+    if ((cmd & STOP_CMD) || (cmd & DATA_EXPECT))
     {
         //清除FIFO
-        value = pReg->SDMMC_STATUS;
-        if (!(value & FIFO_EMPTY))
+        if (!(pReg->SDMMC_STATUS & FIFO_EMPTY))
         {
-            value = pReg->SDMMC_CTRL;
-            value |= FIFO_RESET;
-            pReg->SDMMC_CTRL = value;
+            pReg->SDMMC_CTRL |= FIFO_RESET;
             timeOut = 100000;
             while (((value = pReg->SDMMC_CTRL) & (FIFO_RESET)) && (timeOut > 0))
             {
-                SDOAM_Delay(1);
+                //SDOAM_Delay(1);
                 timeOut--;
             }
             if(timeOut == 0)
@@ -1529,16 +1541,7 @@ int32 SDC_BusRequest(int32 cardId,
             }
         }
     }
-    
-    if (cmd & WAIT_PREV)
-    {
-        value = pReg->SDMMC_STATUS;
-        if (value & DATA_BUSY)
-        {
-            eMMC_printk(3, "SDC_BusRequest:  CMD=%d DATA BUSY  %d\n",cmd&0x3f,__LINE__);
-            return SDC_BUSY_TIMEOUT;
-        }
-    }
+
     Assert(!(((value = pReg->SDMMC_STATUS) & DATA_BUSY) && (cmd & WAIT_PREV)), "SDC_BusRequest:busy error\n", value);
     Assert(!(((value = pReg->SDMMC_STATUS) & 0x3FFE0000) && (!(cmd & STOP_CMD))), "SDC_BusRequest:+FIFO not empty\n", value);
     Assert(!((value = pReg->SDMMC_CMD) & START_CMD), "SDC_BusRequest:start bit != 0\n", value);

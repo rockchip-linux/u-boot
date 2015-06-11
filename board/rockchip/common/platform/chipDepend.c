@@ -106,7 +106,7 @@ uint32 GetMmcCLK(uint32 nSDCPort)
 	#error "PLS config platform for emmc clock get!"
 #endif
 	src_clk = src_clk / KHZ;
-	debug("GetMmcCLK: sd clk = %d\n", src_clk);
+	debug("GetMmcCLK: sd %d, clk = %d\n", nSDCPort,src_clk);
 	return src_clk;
 }
 
