@@ -1164,7 +1164,7 @@ void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src)
 	src &= 0x03;
 	if (0 == sdid) {
 		/* sdmmc */
-		cru_writel((src << 6) | (0x03 << (8 + 16)), CRU_CLKSELS_CON(50));
+		cru_writel((src << 8) | (0x03 << (8 + 16)), CRU_CLKSELS_CON(50));
 	} else if (1 == sdid) {
 		/* sdio0 */
 		cru_writel((src << 8) | (0x03 << (8 + 16)), CRU_CLKSELS_CON(48));
