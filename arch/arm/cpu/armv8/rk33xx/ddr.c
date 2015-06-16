@@ -61,7 +61,11 @@ void dram_init_banksize(void)
 	u32 count = ((u32 *)buf)[0];
 	int i;
 
-	gd->bd->rk_dram[0].start = gd->bd->rk_dram[0].size = 0;
+	for (i = 0; i < CONFIG_RK_MAX_DRAM_BANKS; i++) {
+		gd->bd->rk_dram[i].start = 0;
+		gd->bd->rk_dram[i].size = 0;
+	}
+
 	if (count >= CONFIG_RK_MAX_DRAM_BANKS) {
 		printf("Wrong bank count: %d(%d)\n", count, CONFIG_RK_MAX_DRAM_BANKS);
 	} else {
@@ -86,10 +90,23 @@ void dram_init_banksize(void)
 			printf("Adding bank:%016llx(%016llx)\n",
 					gd->bd->rk_dram[i].start,
 					gd->bd->rk_dram[i].size);
-			gd->bd->rk_dram[i+1].start = gd->bd->rk_dram[i+1].size = 0;
+			gd->bd->rk_dram[i+1].start = 0;
+			gd->bd->rk_dram[i+1].size = 0;
 		}
+#ifdef CONFIG_RK_TRUSTOS
+		printf("Bank0 reserve memory for trust os.\n");
+		for (i = count; i > 1; i--) {
+			gd->bd->rk_dram[i+1].start = gd->bd->rk_dram[i].start;
+			gd->bd->rk_dram[i+1].size = gd->bd->rk_dram[i].size;
+		}
+
+		gd->bd->rk_dram[1].start = CONFIG_RAM_SOS_END;
+		gd->bd->rk_dram[1].size = gd->bd->rk_dram[0].size - (CONFIG_RAM_SOS_END - CONFIG_RAM_PHY_START);
+
+		gd->bd->rk_dram[0].size = CONFIG_RAM_SOS_START - gd->bd->rk_dram[0].start;
+#endif /* CONFIG_RK_TRUSTOS */
 	}
-#endif
+#endif /* CONFIG_RKDDR_PARAM_ADDR */
 
 	gd->bd->bi_dram[0].start = PHYS_SDRAM;
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;

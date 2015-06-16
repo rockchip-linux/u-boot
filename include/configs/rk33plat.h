@@ -31,6 +31,14 @@
 #define CONFIG_RAM_PHY_SIZE		SZ_128M
 #define CONFIG_RAM_PHY_END		(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE)
 
+/*
+ * bl32 trust os ram config, trust os depend on config CONFIG_RK_TRUSTOS.
+ */
+#define CONFIG_RAM_SOS_START		CONFIG_RAM_PHY_END
+#define CONFIG_RAM_SOS_SIZE		SZ_64M
+#define CONFIG_RAM_SOS_END		(CONFIG_RAM_SOS_START + CONFIG_RAM_SOS_SIZE)
+
+
 /* reserve iomap memory. */
 #define CONFIG_MAX_MEM_ADDR		0xFF000000
 
@@ -71,6 +79,7 @@
 #if defined(CONFIG_RKCHIP_RK3368)
 	#define CONFIG_RK_MCU
 	#undef CONFIG_SECUREBOOT_CRYPTO
+	#undef CONFIG_RK_TRUSTOS
 
 	#undef CONFIG_RK_UMS_BOOT_EN
 	#undef CONFIG_RK_PL330

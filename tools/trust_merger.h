@@ -1,3 +1,11 @@
+/*
+ * Rockchip trust image generator
+ *
+ * (C) Copyright 2008-2015 Rockchip Electronics
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef TRUST_MERGER_H
 #define TRUST_MERGER_H
 
@@ -8,18 +16,8 @@
 #include <memory.h>
 #include <stdbool.h>
 
-//#define DEBUG
 
-extern bool gDebug;
-
-#define LOGE(fmt, args...) fprintf(stderr, "E: [%s] "fmt, __func__, ##args)
-#define LOGD(fmt, args...) do {\
-	if (gDebug) \
-		fprintf(stderr, "D: [%s] "fmt, __func__, ##args); \
-} while (0)
-
-
-#define VERSION             "2015-03-23 15:39:23"
+#define VERSION             "v1.0 (2015-06-15)"
 
 
 /* config file */
@@ -43,6 +41,7 @@ extern bool gDebug;
 #define OPT_VERSION         "--version"
 #define OPT_MERGE           "--pack"
 #define OPT_UNPACK          "--unpack"
+#define OPT_SUBFIX          "--subfix"
 
 
 #define DEF_MAJOR           0
@@ -54,7 +53,7 @@ extern bool gDebug;
 
 #define DEF_OUT_PATH        "trust.img"
 
-#define DEF_CONFIG_FILE     "CONFIG.ini"
+#define DEF_CONFIG_FILE     "RKTRUST.ini"
 
 
 #define MAX_LINE_LEN        256

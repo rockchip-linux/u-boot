@@ -1,13 +1,31 @@
+/*
+ * Rockchip trust image generator
+ *
+ * (C) Copyright 2008-2015 Rockchip Electronics
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #include <sys/stat.h>
 #include <sha2.h>
 #include "trust_merger.h"
 
-bool gDebug =
+
+//#define DEBUG
+
+static bool gDebug =
 #ifdef DEBUG
 	true;
 #else
 	false;
 #endif /* DEBUG */
+
+
+#define LOGE(fmt, args...) fprintf(stderr, "E: [%s] "fmt, __func__, ##args)
+#define LOGD(fmt, args...) do {\
+	if (gDebug) \
+		fprintf(stderr, "D: [%s] "fmt, __func__, ##args); \
+} while (0)
 
 
 /* trust image has TRUSTIMAGE_MAX_NUM backups */
@@ -32,6 +50,7 @@ static char* gConfigPath = NULL;
 static OPT_T gOpts;
 #define BL3X_FILESIZE_MAX	(512 * 1024)
 static uint8_t gBuf[BL3X_FILESIZE_MAX];
+static bool gSubfix = false;
 
 const uint8_t gBl3xID[BL_MAX_SEC][4] = {
 	{'B', 'L', '3', '0'},
@@ -112,31 +131,48 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 	if (SCANF_EAT(file) != 0) {
 		return false;
 	}
-	if (fscanf(file, OPT_SEC "=%d", &sec) != 1)
+	if (fscanf(file, OPT_SEC "=%d", &sec) != 1) {
 		return false;
+	}
+	if ((gSubfix == true) && (bl3x_id == BL32_SEC)) {
+		if (sec == 0) {
+			sec = 1;
+			printf("BL3%d adjust sec from 0 to 1\n", bl3x_id);
+		}
+	}
 	pbl3x->sec = sec;
 	LOGD("bl3%d sec: %d\n", bl3x_id, pbl3x->sec);
-	if (pbl3x->sec == false)
-		return true;
 
 	/* PATH */
 	if (SCANF_EAT(file) != 0) {
 		return false;
 	}
-	if (fscanf(file, OPT_PATH "=%s", buf) != 1)
-		return false;
-	fixPath(buf);
-	strcpy(pbl3x->path, buf);
-	LOGD("bl3%d path:%s\n", bl3x_id, pbl3x->path);
+	memset(buf, 0, MAX_LINE_LEN);
+	if (fscanf(file, OPT_PATH "=%s", buf) != 1) {
+		if (pbl3x->sec != false)
+			return false;
+	} else {
+		if (strlen(buf) != 0) {
+			fixPath(buf);
+			strcpy(pbl3x->path, buf);
+			LOGD("bl3%d path:%s\n", bl3x_id, pbl3x->path);
+		}
+	}
 
 	/* ADDR */
 	if (SCANF_EAT(file) != 0) {
 		return false;
 	}
-	if (fscanf(file, OPT_ADDR "=%s", buf) != 1)
-		return false;
-	pbl3x->addr = strtoul(buf, NULL, 16);
-	LOGD("bl3%d addr:0x%x\n", bl3x_id, pbl3x->addr);
+	memset(buf, 0, MAX_LINE_LEN);
+	if (fscanf(file, OPT_ADDR "=%s", buf) != 1) {
+		if (pbl3x->sec != false)
+			return false;
+	} else {
+		if (strlen(buf) != 0) {
+			pbl3x->addr = strtoul(buf, NULL, 16);
+			LOGD("bl3%d addr:0x%x\n", bl3x_id, pbl3x->addr);
+		}
+	}
 
 	pos = ftell(file);
 	if (pos < 0) {
@@ -637,6 +673,7 @@ static void printHelp(void)
 	printf("\t" OPT_VERBOSE "\t\tDisplay more runtime informations.\n");
 	printf("\t" OPT_HELP "\t\t\tDisplay this information.\n");
 	printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
+	printf("\t" OPT_SUBFIX "\t\tSpec subfix.\n");
 }
 
 
@@ -660,6 +697,9 @@ int main(int argc, char** argv)
 			merge = true;
 		} else if (!strcmp(OPT_UNPACK, argv[i])) {
 			merge = false;
+		} else if (!strcmp(OPT_SUBFIX, argv[i])) {
+			gSubfix = true;
+			printf("trust_merger: Spec subfix!\n");
 		} else {
 			if (optPath) {
 				fprintf(stderr, "only need one path arg, but we have:\n%s\n%s.\n", optPath, argv[i]);
