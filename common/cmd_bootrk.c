@@ -32,6 +32,10 @@ extern int do_bootm_linux(int flag, int argc, char *argv[],
 		        bootm_headers_t *images);
 #endif
 
+#if defined(CONFIG_POWER_RK818)
+extern bool is_rk81x_fg_init(void);
+#endif
+
 extern int rkimage_load_image(rk_boot_img_hdr *hdr,
 		const disk_partition_t *boot_ptn, const disk_partition_t *kernel_ptn);
 
@@ -429,6 +433,12 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 	}
 #endif
 
+#ifdef CONFIG_POWER_RK818
+	if (is_rk81x_fg_init() != 0) {
+		snprintf(command_line, sizeof(command_line),
+				"%s %s", command_line, "loader_charged");
+	}
+#endif
 	if (charge) {
 		snprintf(command_line, sizeof(command_line),
 				"%s %s", command_line, "androidboot.mode=charger");
