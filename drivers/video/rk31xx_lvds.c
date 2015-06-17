@@ -143,7 +143,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 
                 lvds_dsi_writel(lvds, 0x0, 0x4);/*set clock lane enable*/
 		/* enable lvds mode */
-		val |= v_RK3368_LVDSMODE_EN(0) | v_RK3368_MIPIPHY_TTL_EN(1) |
+		val = v_RK3368_LVDSMODE_EN(0) | v_RK3368_MIPIPHY_TTL_EN(1) |
 			v_RK3368_MIPIPHY_LANE0_EN(1) |
 			v_RK3368_MIPIDPI_FORCEX_EN(1);
 		grf_writel(val, GRF_SOC_CON7_LVDS);
