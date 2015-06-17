@@ -39,7 +39,7 @@ static const int MMC_debug = 0;
 
 #ifdef DRIVERS_SDMMC
 
-uint32          uncachebuf[128];
+uint32          uncachebuf[128] __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
 /*******************************
 ≥ß…ÃID±Ì
