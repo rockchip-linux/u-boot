@@ -104,7 +104,7 @@ static void _SD_DecodeCSD(uint32 *pCSD, pSDM_CARD_INFO_T pCard)
 static void _SD_SwitchFunction(pSDM_CARD_INFO_T pCard)
 {
     HOST_BUS_WIDTH_E wide = BUS_WIDTH_INVALID;
-    uint32           data[(512/(8*4))];    //不知道会不会太大，导致栈溢出
+    uint32           data[(512/(8*4))] __attribute__((aligned(ARCH_DMA_MINALIGN)));
     uint8           *pDataBuf = (uint8 *)data;
     uint8            tmp = 0;
     uint32           status = 0;
