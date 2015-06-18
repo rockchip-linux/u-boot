@@ -312,7 +312,7 @@ int32 _MMCDoTuning(pSDM_CARD_INFO_T pCard)
     
     if (pCard->workMode & SDM_DDR_SPEED_MODE)
     {
-        uint8 DataBuf[512];
+        uint8 DataBuf[512] __attribute__((aligned(ARCH_DMA_MINALIGN)));
         uint32           status = 0;
         int32 start = -1, end = -1, step;
 
