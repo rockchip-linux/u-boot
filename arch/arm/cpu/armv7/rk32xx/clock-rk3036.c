@@ -969,6 +969,23 @@ int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num)
 	}
 }
 
+/*
+ * rkplat disable mmc clock tuning
+ */
+int rkclk_disable_mmc_tuning(uint32 sdid)
+{
+	if (2 == sdid) {
+		/* emmc */
+		cru_writel(((0x1ul<<0)<<16) | (1<<0), CRU_EMMC_CON0);
+		cru_writel((((1<<10)|(0xff<<2)|(3<<0))<<16)|(0<<10)|(0<<2)|(0<<0), CRU_EMMC_CON1);
+		cru_writel(((0x1ul<<0)<<16) | (0<<0), CRU_EMMC_CON0);
+
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
 
 /*
  * rkplat get PWM clock, from pclk_bus

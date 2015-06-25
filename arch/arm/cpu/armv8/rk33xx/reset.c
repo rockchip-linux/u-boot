@@ -40,6 +40,9 @@ void rk_module_deinit(void)
 	rk_pl330_dmac_deinit(1);
 #endif
 #endif /* CONFIG_RK_DMAC*/
+
+	/* emmc disable tunning */
+	rkclk_disable_mmc_tuning(2);
 }
 
 

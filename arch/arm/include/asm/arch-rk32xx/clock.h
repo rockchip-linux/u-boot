@@ -101,6 +101,11 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq);
 int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num);
 
 /*
+ * rkplat disable mmc clock tuning
+ */
+int rkclk_disable_mmc_tuning(uint32 sdid);
+
+/*
  * rkplat get PWM clock
  * id:		pwm id
  */
