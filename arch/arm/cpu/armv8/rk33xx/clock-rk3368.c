@@ -154,7 +154,7 @@ static const struct pll_clk_set gpll_clks[] = {
 /* cpll clock table, should be from high to low */
 static const struct pll_clk_set cpll_clks[] = {
 	//rate, nr, nf, no
-	_CPLL_SET_CLKS(400000, 3, 200, 4),
+	_CPLL_SET_CLKS(400000, 1, 100, 6),
 };
 
 
