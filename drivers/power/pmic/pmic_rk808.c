@@ -16,6 +16,59 @@ DECLARE_GLOBAL_DATA_PTR;
 
 struct pmic_rk808 rk808;
 
+
+enum rk808_regulator {
+	RK808_DCDC1=0,
+	RK808_DCDC2,
+	RK808_DCDC3,
+	RK808_DCDC4,
+	RK808_LDO1,
+	RK808_LDO2,
+	RK808_LDO3,
+	RK808_LDO4,
+	RK808_LDO5,
+	RK808_LDO6,
+	RK808_LDO7,
+	RK808_LDO8,
+	RK808_LDO9,
+	RK808_LDO10,
+	RK808_end
+};
+
+const static int buck_set_vol_base_addr[] = {
+	RK808_BUCK1_ON_REG,
+	RK808_BUCK2_ON_REG,
+	RK808_BUCK3_CONFIG_REG,
+	RK808_BUCK4_ON_REG,
+};
+#define rk808_BUCK_SET_VOL_REG(x) (buck_set_vol_base_addr[x])
+
+const static int ldo_set_vol_base_addr[] = {
+	RK808_LDO1_ON_VSEL_REG,
+	RK808_LDO2_ON_VSEL_REG,
+	RK808_LDO3_ON_VSEL_REG,
+	RK808_LDO4_ON_VSEL_REG,
+	RK808_LDO5_ON_VSEL_REG,
+	RK808_LDO6_ON_VSEL_REG,
+	RK808_LDO7_ON_VSEL_REG,
+	RK808_LDO8_ON_VSEL_REG,
+};
+
+#define rk808_LDO_SET_VOL_REG(x) (ldo_set_vol_base_addr[x - 4])
+
+const static int ldo_voltage_map[] = {
+	  1800, 1900, 2000, 2100, 2200,  2300,  2400, 2500, 2600,
+	  2700, 2800, 2900, 3000, 3100, 3200,3300, 3400,
+};
+const static int ldo3_voltage_map[] = {
+	 800, 900, 1000, 1100, 1200,  1300, 1400, 1500, 1600,
+	 1700, 1800, 1900,  2000,2100,  2200,  2500,
+};
+const static int ldo6_voltage_map[] = {
+	 800, 900, 1000, 1100, 1200,  1300, 1400, 1500, 1600,
+	 1700, 1800, 1900,  2000,2100,  2200,  2300,2400,2500,
+};
+
 static struct fdt_regulator_match rk808_reg_matches[] = {
 	{ .prop = "rk_dcdc1",},
 	{ .prop = "rk_dcdc2",},
@@ -118,13 +171,134 @@ static int rk808_i2c_probe(u32 bus, u32 addr)
 	
 }
 
+int rk808_regulator_disable(int num_regulator)
+{
+
+	if (num_regulator < 4)
+		i2c_reg_write(RK808_I2C_ADDR, RK808_DCDC_EN_REG,
+			i2c_reg_read(RK808_I2C_ADDR, RK808_DCDC_EN_REG) &(~(1 << num_regulator))); /*enable dcdc*/
+	else if (num_regulator == 12)
+		i2c_reg_write(RK808_I2C_ADDR, RK808_DCDC_EN_REG,
+			i2c_reg_read(RK808_I2C_ADDR,RK808_DCDC_EN_REG) &(~(1 << 5))); /*enable switch1*/
+	else if (num_regulator == 13)
+		i2c_reg_write(RK808_I2C_ADDR, RK808_DCDC_EN_REG,
+			i2c_reg_read(RK808_I2C_ADDR,RK808_DCDC_EN_REG) &(~(1 << 6))); /*enable switch2*/
+	else
+	 	i2c_reg_write(RK808_I2C_ADDR, RK808_LDO_EN_REG,
+			i2c_reg_read(RK808_I2C_ADDR,RK808_LDO_EN_REG) &(~(1 << (num_regulator -4)))); /*enable ldo*/
+
+	debug("1 %s %d dcdc_en = %08x ldo_en =%08x\n", __func__, num_regulator, i2c_reg_read(RK808_I2C_ADDR,RK808_DCDC_EN_REG), i2c_reg_read(RK808_I2C_ADDR,RK808_LDO_EN_REG));
+
+	 return 0;
+}
+
+
+int rk808_regulator_enable(int num_regulator)
+{
+
+	if (num_regulator < 4)
+		i2c_reg_write(RK808_I2C_ADDR, RK808_DCDC_EN_REG,
+			i2c_reg_read(RK808_I2C_ADDR, RK808_DCDC_EN_REG) |(1 << num_regulator)); /*enable dcdc*/
+	else if (num_regulator == 12)
+		i2c_reg_write(RK808_I2C_ADDR, RK808_DCDC_EN_REG,
+			i2c_reg_read(RK808_I2C_ADDR,RK808_DCDC_EN_REG) |(1 << 5)); /*enable switch1*/
+	else if (num_regulator == 13)
+		i2c_reg_write(RK808_I2C_ADDR, RK808_DCDC_EN_REG,
+			i2c_reg_read(RK808_I2C_ADDR,RK808_DCDC_EN_REG) |(1 << 6)); /*enable switch2*/
+	else
+	 	i2c_reg_write(RK808_I2C_ADDR, RK808_LDO_EN_REG,
+			i2c_reg_read(RK808_I2C_ADDR,RK808_LDO_EN_REG) |(1 << (num_regulator -4))); /*enable ldo*/
+
+	debug("1 %s %d dcdc_en = %08x ldo_en =%08x\n", __func__, num_regulator, i2c_reg_read(RK808_I2C_ADDR,RK808_DCDC_EN_REG), i2c_reg_read(RK808_I2C_ADDR,RK808_LDO_EN_REG));
+
+	 return 0;
+}
+
+static int rk808_dcdc_select_min_voltage(int min_uV, int max_uV ,int num_regulator)
+{
+	u16 vsel =0;
+	
+	if (num_regulator == 0 || num_regulator ==  1){
+		if (min_uV < 712500)
+		vsel = 0;
+		else if (min_uV <= 1500000)
+		vsel = ((min_uV - 712500) / 12500) ;
+		else
+		return -EINVAL;
+	}
+	else if (num_regulator ==3){
+		if (min_uV < 1800000)
+		vsel = 0;
+		else if (min_uV <= 3300000)
+		vsel = ((min_uV - 1800000) / 100000) ;
+		else
+		return -EINVAL;
+	}
+	return vsel;
+}
+
+static int rk808_regulator_set_voltage(int num_regulator,
+				  int min_uV, int max_uV)
+{
+	const int *vol_map;
+	int min_vol = min_uV / 1000;
+	u16 val;
+	int num =0;
+
+	if (num_regulator < 4) {
+		if (num_regulator == 2)
+			return 0;
+		val = rk808_dcdc_select_min_voltage(min_uV,max_uV,num_regulator);	
+		i2c_reg_write(RK808_I2C_ADDR, rk808_BUCK_SET_VOL_REG(num_regulator),
+			(i2c_reg_read(RK808_I2C_ADDR,rk808_BUCK_SET_VOL_REG(num_regulator) & 0x3f )) | val);
+		debug("1 %s %d dcdc_vol = %08x\n", __func__, num_regulator, i2c_reg_read(RK808_I2C_ADDR, rk808_BUCK_SET_VOL_REG(num_regulator)));
+		return 0;
+	} else if (num_regulator == 12 || num_regulator == 13) {
+		return 0;
+	} else if (num_regulator == 6) {
+		vol_map = ldo3_voltage_map;
+		num = 15;
+	} else if (num_regulator == 9 || num_regulator == 10) {
+		vol_map = ldo6_voltage_map;
+		num = 17;
+	} else {
+		vol_map = ldo_voltage_map;
+		num = 16;
+	}
+
+	if (min_vol < vol_map[0] ||
+	    min_vol > vol_map[num])
+		return -EINVAL;
+
+	for (val = 0; val <= num; val++){
+		if (vol_map[val] >= min_vol)
+			break;
+        }
+	i2c_reg_write(RK808_I2C_ADDR, rk808_LDO_SET_VOL_REG(num_regulator),
+		((i2c_reg_read(RK808_I2C_ADDR,rk808_LDO_SET_VOL_REG(num_regulator) & (~0x3f) )) | val));
+	
+	debug("1 %s %d %d ldo_vol =%08x\n", __func__, num_regulator, val, i2c_reg_read(RK808_I2C_ADDR, rk808_LDO_SET_VOL_REG(num_regulator)));
+
+	return 0;
+}
+
+static int rk808_set_regulator_init(struct fdt_regulator_match *matches, int num_matches)
+{
+	int ret;
+
+	ret = rk808_regulator_set_voltage(num_matches, matches->min_uV, matches->max_uV);
+	ret = rk808_regulator_enable(num_matches);
+	return ret;
+}
+
 static int rk808_parse_dt(const void* blob)
 {
 	int node, nd;
 	struct fdt_gpio_state gpios[2];
 	u32 bus, addr;
 	int ret;
-
+	int i;
+	
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ROCKCHIP_RK808);
 	if (node < 0) {
@@ -155,6 +329,11 @@ static int rk808_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, rk808_reg_matches,
 					RK808_NUM_REGULATORS);
+
+	for (i = 0; i < RK808_NUM_REGULATORS; i++) {
+		if (rk808_reg_matches[i].boot_on && (rk808_reg_matches[i].min_uV == rk808_reg_matches[i].max_uV))
+			ret = rk808_set_regulator_init(&rk808_reg_matches[i], i);
+	}
 
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
 
