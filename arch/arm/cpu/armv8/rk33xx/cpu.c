@@ -130,6 +130,9 @@ int arch_cpu_init(void)
 	/* pwm select rk solution */
 	grf_writel((0x01 << 12) | (0x01 << (12 + 16)), GRF_SOC_CON15);
 
+	/* select 32KHz clock source */
+	pmugrf_writel((1 << (7 + 16)) | (0 << 7), PMU_GRF_SOC_CON0);
+
 	/* enable force to jtag */
 	grf_writel((0x01 << 13) | (0x01 << (13 + 16)), GRF_SOC_CON15);
 #endif /* CONFIG_RKCHIP_RK3368 */
