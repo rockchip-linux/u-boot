@@ -94,6 +94,11 @@ uint32 SdmmcInit(uint32 ChipSel)
 	int32 ret1 = SDM_SUCCESS;
 	uint32 ioctlParam[5] = {0,0,0,0,0};
 
+	if (ChipSel == 2) {
+		/* emmc disable tunning */
+		rkclk_disable_mmc_tuning(2);
+	}
+
 #if defined(RK_SDCARD_BOOT_EN)
 	if (ChipSel == 0) {
 #if defined(CONFIG_RKCHIP_RK3126)

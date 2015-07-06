@@ -348,8 +348,8 @@ int32 _MMCDoTuning(pSDM_CARD_INFO_T pCard)
         if (-1 != start)
         {
             step = (start + end + 1)/2;
-            if ((end-1)> step)          //选择窗口靠后的点采样
-                step = end-1;
+            if ((end-2)> step)          //选择窗口靠后的点采样
+                step = end-2;
             SDC_SetDDRTuning(pCard->cardId, step);
             ret = SDM_SUCCESS;
         }
