@@ -176,18 +176,27 @@ static int32 _ResponseTimeoutHandle(int32 cardId)
 static int32 _DataErrorHandle(int32 cardId)
 {
     uint32 status  = 0;
-    int32  ret = SDM_SUCCESS;
+    int32  handleRet, ret = SDM_SUCCESS;
 
     ret = SDC_SendCommand(cardId, (SD_STOP_TRANSMISSION | SD_NODATA_OP | SD_RSP_R1B | STOP_CMD | NO_WAIT_PREV), 0, &status);
     if (ret == SDC_RESP_TIMEOUT)
     {
-        SDOAM_Printf("HANDLING:Send STOP cmd timeout\n");
-        SDOAM_Printf("HANDLING:card presence but timeout\n");
-        ret = SDC_RESP_TIMEOUT;
+        //PRINT_E("_DataErrorHandle STOP cmd timeout\n","");
+        //ret = SDC_RESP_TIMEOUT;
+        handleRet = SDC_SendCommand(cardId, (SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 | NO_WAIT_PREV), (gSDMDriver[cardId].cardInfo.rca << 16), &status);
+        if (handleRet == SDC_RESP_TIMEOUT)
+        {
+            PRINT_E("_DataErrorHandle SEND STATUS timeout \n", "");
+            ret = SDC_RESP_TIMEOUT;
+        }
+        else
+        {
+            ret = SDM_SUCCESS;
+        }
     }
     else if ((ret == SDC_SUCCESS) || (ret == SDC_RESP_ERROR) || (ret == SDC_RESP_CRC_ERROR))
     {
-        SDOAM_Printf("HANDLING:Send STOP cmd not timeout, ReSend cmd\n");
+        //SDOAM_Printf("HANDLING:Send STOP cmd not timeout, ReSend cmd\n");
         //STOP command 成功或response错误，都认为是正确的重发
         ret = SDM_SUCCESS;
     }
@@ -273,16 +282,23 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
             handleRet = _DataErrorHandle(cardId);
             if(handleRet != SDC_SUCCESS)
             {
+                PRINT_E("_DataErrorHandle handleRet=0x%x\n", handleRet);
                 break;
             }
-            
-            handleRet = SDC_UpdateCardFreq(cardId, gSDMDriver[cardId].cardInfo.tran_speed-2000);  //频率降2MHz
-            if(handleRet != SDC_SUCCESS)
+
+            if ((gSDMDriver[cardId].cardInfo.tran_speed-4000) <= 0)
             {
                 break;
             }
+            
+            handleRet = SDC_UpdateCardFreq(cardId, gSDMDriver[cardId].cardInfo.tran_speed-4000);  //频率降4MHz
+            if(handleRet != SDC_SUCCESS)
+            {
+                PRINT_E("SDC_UpdateCardFreq handleRet=0x%x\n", handleRet);
+                break;
+            }
             repeatCount++;
-            gSDMDriver[cardId].cardInfo.tran_speed -= 2000;
+            gSDMDriver[cardId].cardInfo.tran_speed -= 4000;
             continue;
         }
         else if (ret == SDC_RESP_TIMEOUT)
