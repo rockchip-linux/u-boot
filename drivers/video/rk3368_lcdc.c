@@ -73,23 +73,7 @@ static int rk3368_lcdc_csc_mode(struct lcdc_device *lcdc_dev,
 	return csc_mode;
 }
 
-static int rk3368_lcdc_vid_to_win(struct fb_dsp_info *fb_info, struct rk_lcdc_win *win)
-{
-        win->area[0].format = fb_info->format;//is config format;
-        win->area[0].xact   = fb_info->xact;
-        win->area[0].yact   = fb_info->yact;
-        win->area[0].xsize  = fb_info->xsize;
-        win->area[0].ysize  = fb_info->ysize;
-        win->area[0].xpos   = fb_info->xpos;
-        win->area[0].ypos   = fb_info->ypos;
-        printf("format=%d,xact=%d,yact=%d,xsize=%d,vsize=%d,xpos=%d,ypos=%d\n",
-                fb_info->format,fb_info->xact,fb_info->yact,fb_info->xsize,
-                fb_info->ysize,fb_info->xpos,fb_info->ypos);
-
-        return 0;
-}
-
-static int rk3368_lcdc_calc_scl_fac(struct rk_lcdc_win *win)
+static int rk3368_lcdc_calc_scl_fac(struct rk_lcdc_win *win, struct rk_screen *screen)
 {
 	u16 srcW = 0;
 	u16 srcH = 0;
@@ -117,7 +101,14 @@ static int rk3368_lcdc_calc_scl_fac(struct rk_lcdc_win *win)
 	u8 yuv_fmt = 0;
 
 	srcW = win->area[0].xact;
-	srcH = win->area[0].yact;
+	if ((screen->mode.vmode == FB_VMODE_INTERLACED) &&
+	    (win->area[0].yact == 2 * win->area[0].ysize)) {
+		srcH = win->area[0].yact / 2;
+		yrgb_vsd_bil_gt2 = 1;
+		cbcr_vsd_bil_gt2 = 1;
+	} else {
+		srcH = win->area[0].yact;
+	}
 	dstW = win->area[0].xsize;
 	dstH = win->area[0].ysize;
 
@@ -286,10 +277,14 @@ static int rk3368_lcdc_calc_scl_fac(struct rk_lcdc_win *win)
 			__func__, win->win_lb_mode);
 		break;
 	}
-	if (win->mirror_en == 1) {	/*interlace mode must bill */
+	if (win->mirror_en == 1) {
 		win->yrgb_vsd_mode = SCALE_DOWN_BIL;
 	}
-
+	if (screen->mode.vmode == FB_VMODE_INTERLACED) {
+		/*interlace mode must bill */
+		win->yrgb_vsd_mode = SCALE_DOWN_BIL;
+		win->cbr_vsd_mode = SCALE_DOWN_BIL;
+	}
 	if ((win->yrgb_ver_scl_mode == SCALE_DOWN) &&
 	    (win->area[0].fbdc_en == 1)) {
 		/*in this pattern,use bil mode,not support souble scd,
@@ -649,7 +644,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 	struct rk_screen *screen = lcdc_dev->screen;
 
 	memset(&win, 0, sizeof(struct rk_lcdc_win));
-	rk3368_lcdc_vid_to_win(fb_info, &win);
+	rk_fb_vidinfo_to_win(fb_info, &win);
 	win.csc_mode = rk3368_lcdc_csc_mode(lcdc_dev, fb_info, vid);
 	if (fb_info->yaddr)
 		win.state = 1;
@@ -659,7 +654,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 	win.area[0].dsp_stx = dsp_x_pos(win.mirror_en, screen, win.area);
 	win.area[0].dsp_sty = dsp_y_pos(win.mirror_en, screen, win.area);
 
-	rk3368_lcdc_calc_scl_fac(&win);
+	rk3368_lcdc_calc_scl_fac(&win, screen);
 	
 	switch (fb_info->format) {
 	case ARGB888:

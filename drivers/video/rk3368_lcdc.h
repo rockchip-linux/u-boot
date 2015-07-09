@@ -1792,53 +1792,6 @@ struct lcdc_cabc_mode {
 	u16 global_su;
 };
 
-struct rk_lcdc_win_area {
-	u16 format;
-	u16 xpos;		/*start point in panel  --->LCDC_WINx_DSP_ST*/
-	u16 ypos;
-	u16 xsize;		/* display window width/height  -->LCDC_WINx_DSP_INFO*/
-	u16 ysize;
-	u16 xact;		/*origin display window size -->LCDC_WINx_ACT_INFO*/
-	u16 yact;
-	u16 dsp_stx;
-	u16 dsp_sty;
-	u8 fbdc_en;
-	u16 y_vir_stride;
-};
-
-struct rk_lcdc_win {
-	u8 state;
-	u8 fmt_10;
-
-	u32 scale_yrgb_x;
-	u32 scale_yrgb_y;
-	u32 scale_cbcr_x;
-	u32 scale_cbcr_y;
-
-	u8 win_lb_mode;
-
-	u8 bic_coe_el;
-	u8 yrgb_hor_scl_mode;//h 01:scale up ;10:down
-	u8 yrgb_ver_scl_mode;//v 01:scale up ;10:down
-	u8 yrgb_hsd_mode;//h scale down mode
-	u8 yrgb_vsu_mode;//v scale up mode
-	u8 yrgb_vsd_mode;//v scale down mode
-	u8 cbr_hor_scl_mode;
-	u8 cbr_ver_scl_mode;
-	u8 cbr_hsd_mode;
-	u8 cbr_vsu_mode;
-	u8 cbr_vsd_mode;
-	u8 vsd_yrgb_gt4;
-	u8 vsd_yrgb_gt2;
-	u8 vsd_cbr_gt4;
-	u8 vsd_cbr_gt2;
-
-	u8  mirror_en;
-	u8 csc_mode;
-	struct rk_lcdc_win_area area[1];
-};
-
-
 static inline void lcdc_writel(struct lcdc_device *lcdc_dev, u32 offset, u32 v)
 {
 	u32 *_pv = (u32 *)lcdc_dev->regsbak;

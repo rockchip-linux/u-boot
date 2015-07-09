@@ -63,12 +63,57 @@ struct rockchip_fb {
 	struct list_head pwrlist_head;
 };
 
+struct rk_lcdc_win_area {
+	u16 format;
+	u16 xpos;		/*start point in panel  --->LCDC_WINx_DSP_ST*/
+	u16 ypos;
+	u16 xsize;		/* display window width/height  -->LCDC_WINx_DSP_INFO*/
+	u16 ysize;
+	u16 xact;		/*origin display window size -->LCDC_WINx_ACT_INFO*/
+	u16 yact;
+	u16 dsp_stx;
+	u16 dsp_sty;
+	u8 fbdc_en;
+	u16 y_vir_stride;
+};
+
+struct rk_lcdc_win {
+	u8 state;
+	u8 fmt_10;
+
+	u32 scale_yrgb_x;
+	u32 scale_yrgb_y;
+	u32 scale_cbcr_x;
+	u32 scale_cbcr_y;
+
+	u8 win_lb_mode;
+
+	u8 bic_coe_el;
+	u8 yrgb_hor_scl_mode;//h 01:scale up ;10:down
+	u8 yrgb_ver_scl_mode;//v 01:scale up ;10:down
+	u8 yrgb_hsd_mode;//h scale down mode
+	u8 yrgb_vsu_mode;//v scale up mode
+	u8 yrgb_vsd_mode;//v scale down mode
+	u8 cbr_hor_scl_mode;
+	u8 cbr_ver_scl_mode;
+	u8 cbr_hsd_mode;
+	u8 cbr_vsu_mode;
+	u8 cbr_vsd_mode;
+	u8 vsd_yrgb_gt4;
+	u8 vsd_yrgb_gt2;
+	u8 vsd_cbr_gt4;
+	u8 vsd_cbr_gt2;
+
+	u8  mirror_en;
+	u8 csc_mode;
+	struct rk_lcdc_win_area area[1];
+};
 
 #if defined(CONFIG_RK_HDMI)
 void rk_hdmi_probe(vidinfo_t *panel);
 #endif
 extern void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen);
-
+extern int rk_fb_vidinfo_to_win(struct fb_dsp_info *fb_info, struct rk_lcdc_win *win);
 void lcd_standby(int enable);
 void rk_lcdc_standby(int enable);
 void lcd_pandispaly(struct fb_dsp_info *info);

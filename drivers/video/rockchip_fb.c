@@ -90,6 +90,22 @@ vidinfo_t panel_info = {
 #endif
 };
 
+int rk_fb_vidinfo_to_win(struct fb_dsp_info *fb_info, struct rk_lcdc_win *win)
+{
+        win->area[0].format = fb_info->format;//is config format;
+        win->area[0].xact   = fb_info->xact;
+        win->area[0].yact   = fb_info->yact;
+        win->area[0].xsize  = fb_info->xsize;
+        win->area[0].ysize  = fb_info->ysize;
+        win->area[0].xpos   = fb_info->xpos;
+        win->area[0].ypos   = fb_info->ypos;
+        debug("format=%d,xact=%d,yact=%d,xsize=%d,vsize=%d,xpos=%d,ypos=%d\n",
+                fb_info->format,fb_info->xact,fb_info->yact,fb_info->xsize,
+                fb_info->ysize,fb_info->xpos,fb_info->ypos);
+
+        return 0;
+}
+
 void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
 {
     screen->type        = vid->screen_type;
