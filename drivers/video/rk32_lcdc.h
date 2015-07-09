@@ -30,6 +30,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 /*******************register definition**********************/
+#define VOP_INPUT_MAX_WIDTH 3840 /*4096 for MAYBACH*/
 
 #define REG_CFG_DONE			(0x0000)
 #define VERSION_INFO			(0x0004)
@@ -1290,6 +1291,12 @@ enum scale_down_mode {
 	SCALE_DOWN_AVG = 0x1
 };
 
+enum
+{
+	SCALE_NONE = 0x0,
+	SCALE_UP   = 0x1,
+	SCALE_DOWN = 0x2
+};
 /*ALPHA BLENDING MODE*/
 enum alpha_mode {               /*  Fs       Fd */
 	AB_USER_DEFINE     = 0x0,
@@ -1365,6 +1372,7 @@ struct lcdc_device {
 	int dft_win; 				/*default win for display*/
 	int regsbak[REG_LEN];
 	int regs;				/*1:standby,0:wrok*/
+	struct rk_screen *screen;
 };
 
 static inline void lcdc_writel(struct lcdc_device *lcdc_dev, u32 offset, u32 v)
@@ -1506,4 +1514,23 @@ static inline void lcdc_cfg_done(struct lcdc_device *lcdc_dev)
 #define SCALE_OFFSET_FIXPOINT_SHIFT            8
 #define SCALE_OFFSET_FIXPOINT(x)              ((INT32)((x)*(1 << SCALE_OFFSET_FIXPOINT_SHIFT)))
 
+u32 getHardWareVSkipLines(u32 srcH, u32 dstH)
+{
+    u32 vScaleDnMult;
+
+    if(srcH >= (u32)(4*dstH*MIN_SCALE_FACTOR_AFTER_VSKIP))
+    {
+        vScaleDnMult = 4;
+    }
+    else if(srcH >= (u32)(2*dstH*MIN_SCALE_FACTOR_AFTER_VSKIP))
+    {
+        vScaleDnMult = 2;
+    }
+    else
+    {
+        vScaleDnMult = 1;
+    }
+
+    return vScaleDnMult;
+}
 #endif /* RK32_LCDC_H_ */
