@@ -1514,7 +1514,7 @@ static inline void lcdc_cfg_done(struct lcdc_device *lcdc_dev)
 #define SCALE_OFFSET_FIXPOINT_SHIFT            8
 #define SCALE_OFFSET_FIXPOINT(x)              ((INT32)((x)*(1 << SCALE_OFFSET_FIXPOINT_SHIFT)))
 
-u32 getHardWareVSkipLines(u32 srcH, u32 dstH)
+static inline u32 getHardWareVSkipLines(u32 srcH, u32 dstH)
 {
     u32 vScaleDnMult;
 
