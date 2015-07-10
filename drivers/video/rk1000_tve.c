@@ -86,8 +86,10 @@ void rk1000_tve_init_panel(vidinfo_t *panel)
 		mode = &rk1000_cvbs_mode[g_tve_pos];
 	else if (g_tve_pos == 0)
 		mode = &rk1000_cvbs_mode[g_tve_pos];
-	else
+	else {
 		mode = &rk1000_cvbs_mode[TVOUT_DEAULT];
+		g_tve_pos = TVOUT_DEAULT;
+	}
 
 	
 	panel->screen_type = SCREEN_RGB;//SCREEN_TVOUT;

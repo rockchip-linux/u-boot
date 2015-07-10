@@ -209,7 +209,7 @@
 #endif
 
 #ifdef CONFIG_PRODUCT_BOX
-#undef CONFIG_RK1000_TVE
+#define CONFIG_RK1000_TVE
 #undef CONFIG_GM7122_TVE
 #endif
 
