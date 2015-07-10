@@ -1344,10 +1344,6 @@ enum factor_mode {
 	AA_SRC_GLOBAL           = 0x4
 };/*src_factor_mode  &&  dst_factor_mode*/
 
-enum _vop_output_mode {
-        COLOR_RGB = 0,
-        COLOR_YCBCR,
-};
 
 struct alpha_config {
 	enum src_alpha_mode src_alpha_mode;       	/*win0_src_alpha_m0*/

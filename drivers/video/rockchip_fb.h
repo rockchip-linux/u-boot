@@ -56,6 +56,16 @@
 #define PRMRY					1
 #define EXTEND					2
 
+enum _vop_overlay_mode {
+	VOP_RGB_DOMAIN,
+	VOP_YUV_DOMAIN
+};
+
+enum _vop_output_mode {
+	COLOR_RGB,
+	COLOR_YCBCR
+};
+
 struct rockchip_fb {
 	int node;
 	int lcdc_node;

@@ -26,6 +26,7 @@
 #include <../board/rockchip/common/config.h>
 #include "rockchip_fb.h"
 
+#if 0
 #ifdef CONFIG_RK3036_FB
 #include "rk3036_lcdc.h"
 #endif
@@ -35,7 +36,7 @@
 #ifdef CONFIG_RK33_FB
 #include "rk3368_lcdc.h"
 #endif
-
+#endif
 
 #define PARTITION_NAME "baseparamer"
 

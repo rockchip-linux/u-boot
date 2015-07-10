@@ -1750,16 +1750,6 @@ enum _vop_format {
 	VOP_FORMAT_YCBCR444
 };
 
-enum _vop_overlay_mode {
-	VOP_RGB_DOMAIN,
-	VOP_YUV_DOMAIN
-};
-
-enum _vop_output_mode {
-	COLOR_RGB = 0,
-	COLOR_YCBCR,
-};
-
 #define REG_LEN				MMU_AUTO_GATING
 
 struct lcdc_device{

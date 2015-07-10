@@ -664,16 +664,6 @@ enum _vop_hwc_size {
 	VOP_HWC_SIZE_64
 };
 
-enum _vop_overlay_mode {
-	VOP_RGB_DOMAIN,
-	VOP_YUV_DOMAIN
-};
-
-enum _vop_output_mode {
-	COLOR_RGB,
-	COLOR_YCBCR
-};
-
 #define CalScale(x, y)	             ((((u32)(x - 1)) * 0x1000) / (y - 1))
 
 
