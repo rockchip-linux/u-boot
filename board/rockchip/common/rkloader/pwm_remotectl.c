@@ -599,39 +599,39 @@ int remotectl_do_something(void)
 				ddata->scandata = 0;
 				ddata->count = 0;
 				ddata->state = RMC_USERCODE;
-			}else{
+			} else {
 				ddata->state = RMC_PRELOAD;
-			}   
+			}
+
 			break;
 		}
 
 		case RMC_USERCODE: {
-			
 			g_ir_flag_signal = 1;
-		if ((RK_PWM_TIME_BIT1_MIN < ddata->period) &&
-		    (ddata->period < RK_PWM_TIME_BIT1_MAX))
-			ddata->scandata |= (0x01 << ddata->count);
-		ddata->count++;
-			if (ddata->count == 0x10){//16 bit user code
+			if ((RK_PWM_TIME_BIT1_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT1_MAX))
+				ddata->scandata |= (0x01 << ddata->count);
+			ddata->count++;
+			if (ddata->count == 0x10) {//16 bit user code
 				printf("remote usercode1 = 0x%x\n",((ddata->scandata)&0xFFFF));
-			if (remotectl_keybdNum_lookup(ddata)) {
-				ddata->state = RMC_GETDATA;
-				ddata->scandata = 0;
-				ddata->count = 0;
-			} else {
-				ddata->state = RMC_PRELOAD;
+				if (remotectl_keybdNum_lookup(ddata)) {
+					ddata->state = RMC_GETDATA;
+					ddata->scandata = 0;
+					ddata->count = 0;
+				} else {
+					ddata->state = RMC_PRELOAD;
+				}
 			}
+
+			break;
 		}
-	}
-	break;
+
 		case RMC_GETDATA: {
 			g_ir_flag_signal = 1;
-		if ((RK_PWM_TIME_BIT1_MIN < ddata->period) &&
-		    (ddata->period < RK_PWM_TIME_BIT1_MAX))
-			ddata->scandata |= (0x01<<ddata->count);
-		ddata->count++;
-		if (ddata->count < 0x10)
-			return;
+			if ((RK_PWM_TIME_BIT1_MIN < ddata->period) && (ddata->period < RK_PWM_TIME_BIT1_MAX))
+				ddata->scandata |= (0x01<<ddata->count);
+			ddata->count++;
+			if (ddata->count < 0x10)
+				return 0;
 			printf("RMC_GETDATA=%x\n", (ddata->scandata>>8));
 			if ((ddata->scandata&0x0ff) ==
 					((~ddata->scandata >> 8) & 0x0ff)) {
@@ -646,6 +646,7 @@ int remotectl_do_something(void)
 			} else {
 				ddata->state = RMC_PRELOAD;
 			}
+
 			break;
 		}
 	

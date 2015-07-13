@@ -274,7 +274,7 @@ static int inline read_deviceinfo_storage(struct hdmi_dev *hdmi_dev)
 	int deviceinfo_reserve_on = 0;
 	int size = 0;
 	int node = 0;
-	int reg[2] = {0,0};
+	u32 reg[2] = {0,0};
 
 	if (!hdmi_dev)
 		goto err;
@@ -302,7 +302,7 @@ static int inline read_deviceinfo_storage(struct hdmi_dev *hdmi_dev)
 				return -EINVAL;
 			}
 	
-			p_deviceinfo = (char *)reg[0];
+			p_deviceinfo = (char *)(unsigned long)reg[0];
 			size = reg[1];
 			p_baseparamer = p_deviceinfo + size / 2;
 	
