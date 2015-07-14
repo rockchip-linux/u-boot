@@ -602,7 +602,7 @@ int fdt_get_string_index(const void *fdt, int node, const char *property,
 		index--;
 	}
 
-	return FDT_ERR_NOTFOUND;
+	return -FDT_ERR_NOTFOUND;
 }
 
 int fdt_get_string(const void *fdt, int node, const char *property,
