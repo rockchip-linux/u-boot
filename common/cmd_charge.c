@@ -646,7 +646,6 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	unsigned int anim_time = 0;
 	int brightness = SCREEN_DIM;
-	int brightness_status=0;
 	int key_state = KEY_NOT_PRESSED;
 	int exit_type = NOT_EXIT;
 
@@ -676,17 +675,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			LOGD("should quit charge");
 			goto exit;
 		}
-		
-		if(!timer_interrupt_wakeup){
-			if(batt_status.capacity>BRIGHT_MAXLOW_BATTERY_CAPACITY){
-				brightness = SCREEN_BRIGHT;
-				brightness_status=1;
-			}else{
-				brightness_status=0;
-				brightness = SCREEN_DIM;
-			}
-		}
-			
+	
 		#ifdef CONFIG_POWER_FG_ADC
 		charge_last_time = get_timer(charge_start_time);
 		if(adc_charge_status()==2){
@@ -729,15 +718,14 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			LOGD("key pressed state:%d", key_state);
 		}
 		if (key_state == KEY_SHORT_PRESSED) {
-			if(brightness_status)
-				brightness = IS_BRIGHT(g_state.brightness)? SCREEN_OFF : SCREEN_BRIGHT;
-			else
-				brightness = IS_BRIGHT(g_state.brightness)? SCREEN_OFF : SCREEN_DIM;
-			
+
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
-			if (IS_BRIGHT(brightness)) {
-				brightness = SCREEN_OFF;
-			}
+
+	        if(batt_status.capacity>BRIGHT_MAXLOW_BATTERY_CAPACITY)
+				brightness = IS_BRIGHT(brightness)? SCREEN_OFF : SCREEN_BRIGHT;
+			else
+				brightness = IS_BRIGHT(brightness)? SCREEN_OFF:  SCREEN_DIM;
+
 #endif
 		} else if(key_state == KEY_LONG_PRESSED){
 			//long pressed key, continue bootting.
@@ -772,11 +760,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			
 			mdelay(10);
 			if(!timer_interrupt_wakeup){
-				g_state.screen_on_time = 0;
-				if(brightness_status)
-					brightness = SCREEN_BRIGHT;
-				else
-					brightness = SCREEN_DIM;
+				g_state.screen_on_time = 0;			
 			}
 		}
 #endif
