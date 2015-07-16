@@ -655,6 +655,9 @@ void rk_lcdc_standby(int enable)
 #endif
 	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_LCDC_STANDBY,
 		     v_LCDC_STANDBY(enable ? 1 : 0));
+	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, m_DSP_OUT_ZERO | m_BLACK_EN,
+			v_DSP_OUT_ZERO(enable ? 1 : 0) | v_BLACK_EN(enable ? 1 : 0));
+	lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, m_IO_PAD_CLK, v_IO_PAD_CLK(enable ? 1 : 0));
 	lcdc_cfg_done(lcdc_dev);
 }
 
