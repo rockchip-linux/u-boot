@@ -120,10 +120,18 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	mode = &(timing->mode);
 	panel->pixelrepeat = !timing->pixelrepeat;
 	panel->screen_type = SCREEN_HDMI;
-	if (hdmi_dev->vic & HDMI_VIDEO_YUV420)
-		panel->lcd_face = OUT_YUV_420;
-	else
-		panel->lcd_face = OUT_P888;
+	if (hdmi_dev->vic & HDMI_VIDEO_YUV420) {
+		if (hdmi_dev->video.color_output_depth == 10)
+			panel->lcd_face = OUT_YUV_420_10BIT;
+		else
+			panel->lcd_face = OUT_YUV_420;
+		
+	} else {
+		if (hdmi_dev->video.color_output_depth == 10)
+			panel->lcd_face = OUT_P101010;
+		else
+			panel->lcd_face = OUT_P888;
+	}
 	if (hdmi_dev->video.color_input > HDMI_COLOR_RGB_16_235) {
 		panel->color_mode = COLOR_YCBCR;
 		panel->vl_swap_rb = 1;
@@ -1463,6 +1471,7 @@ void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0, pos_baseparamer = 0;
+	int deepcolor;
 
 	pos_baseparamer = g_pos_baseparamer.hdmi_pos;
 
@@ -1516,19 +1525,31 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 		hdmi_dev->video.color_output = HDMI_COLOR_RGB_0_255;
 		hdmi_dev->video.color_input = HDMI_COLOR_RGB_0_255;
 	} else {
-		if (hdmi_dev->feature & SUPPORT_YCBCR_INPUT) {
-			if (hdmi_dev->driver.edid.ycbcr444)
-				hdmi_dev->video.color_output = HDMI_COLOR_YCBCR444;
-			else if (hdmi_dev->driver.edid.ycbcr444)
-				hdmi_dev->video.color_output = HDMI_COLOR_YCBCR422;
+		if (hdmi_dev->driver.edid.ycbcr444)
+			hdmi_dev->video.color_output = HDMI_COLOR_YCBCR444;
+		else if (hdmi_dev->driver.edid.ycbcr444)
+			hdmi_dev->video.color_output = HDMI_COLOR_YCBCR422;
 
-			if (hdmi_dev->video.color_output > HDMI_COLOR_RGB_16_235)
-				hdmi_dev->video.color_input = HDMI_COLOR_YCBCR444;
+		if (hdmi_dev->vic & HDMI_VIDEO_YUV420) {
+			hdmi_dev->video.color_output = HDMI_COLOR_YCBCR420;
+			hdmi_dev->video.color_input = HDMI_COLOR_YCBCR420;
+			deepcolor = hdmi_dev->driver.edid.deepcolor_420;
+		} else {
+			deepcolor = hdmi_dev->driver.edid.deepcolor;
 		}
-	}
-	if (hdmi_dev->vic & HDMI_VIDEO_YUV420) {
-		hdmi_dev->video.color_output = HDMI_COLOR_YCBCR420;
-		hdmi_dev->video.color_input = HDMI_COLOR_YCBCR420;
+
+		if (hdmi_dev->feature & SUPPORT_YCBCR_INPUT) {
+			if (hdmi_dev->video.color_output == HDMI_COLOR_YCBCR444 ||
+			    hdmi_dev->video.color_output == HDMI_COLOR_YCBCR422)
+				hdmi_dev->video.color_input = HDMI_COLOR_YCBCR444;
+			else if (hdmi_dev->video.color_output == HDMI_COLOR_YCBCR420)
+				hdmi_dev->video.color_input = HDMI_COLOR_YCBCR420;
+		}
+		if ((hdmi_dev->feature & SUPPORT_DEEP_10BIT) &&
+		    (deepcolor & HDMI_DEEP_COLOR_30BITS))
+			hdmi_dev->video.color_output_depth = 10;
+		else
+			hdmi_dev->video.color_output_depth = 8;
 	}
 }
 

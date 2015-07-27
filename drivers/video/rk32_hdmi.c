@@ -325,12 +325,16 @@ static int rk32_hdmi_video_frameComposer(struct hdmi_dev *hdmi_dev, struct hdmi_
 		break;
 	}
 
-	// Now we limit to hdmi 1.4b standard.
-	if(mode->pixclock <= 340000000 && hdmi_dev->tmdsclk > 340000000)
-	{
+	if (hdmi_dev->tmdsclk > 594000000) {
 		vpara->color_output_depth = 8;
 		hdmi_dev->tmdsclk = mode->pixclock;
 	}
+	// Now we limit to hdmi 1.4b standard.
+//	if(mode->pixclock <= 340000000 && hdmi_dev->tmdsclk > 340000000)
+//	{
+//		vpara->color_output_depth = 8;
+//		hdmi_dev->tmdsclk = mode->pixclock;
+//	}
 	printf("tmdsclk is %lu\n", hdmi_dev->tmdsclk);
 	hdmi_dev->pixelclk = mode->pixclock;
 	hdmi_dev->pixelrepeat = timing->pixelrepeat;
@@ -727,12 +731,164 @@ static int rk32_hdmi_config_phy(struct hdmi_dev *hdmi_dev)
 	return 0;
 }
 
+
+static const char coeff_csc[][24] = {
+		/*   G		R	    B		Bias
+		     A1    |	A2     |    A3     |	A4    |
+		     B1    |    B2     |    B3     |    B4    |
+		     C1    |    C2     |    C3     |    C4    | */
+	{	/* CSC_RGB_0_255_TO_RGB_16_235_8BIT */
+		0x36, 0xf7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40,		/*G*/
+		0x00, 0x00, 0x36, 0xf7, 0x00, 0x00, 0x00, 0x40,		/*R*/
+		0x00, 0x00, 0x00, 0x00, 0x36, 0xf7, 0x00, 0x40,		/*B*/
+	},
+	{	/* CSC_RGB_0_255_TO_RGB_16_235_10BIT */
+		0x36, 0xf7, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,		/*G*/
+		0x00, 0x00, 0x36, 0xf7, 0x00, 0x00, 0x01, 0x00,		/*R*/
+		0x00, 0x00, 0x00, 0x00, 0x36, 0xf7, 0x01, 0x00,		/*B*/
+	},
+	{	/* CSC_RGB_0_255_TO_ITU601_16_235_8BIT */
+		0x20, 0x40, 0x10, 0x80, 0x06, 0x40, 0x00, 0x40,		/*Y*/
+		0xe8, 0x80, 0x1c, 0x00, 0xfb, 0x80, 0x02, 0x00,		/*Cr*/
+		0xed, 0x80, 0xf6, 0x80, 0x1c, 0x00, 0x02, 0x00,		/*Cb*/
+	},
+	{	/* CSC_RGB_0_255_TO_ITU601_16_235_10BIT */
+		0x20, 0x40, 0x10, 0x80, 0x06, 0x40, 0x01, 0x00,		/*Y*/
+		0xe8, 0x80, 0x1c, 0x00, 0xfb, 0x80, 0x08, 0x00,		/*Cr*/
+		0xed, 0x80, 0xf6, 0x80, 0x1c, 0x00, 0x08, 0x00,		/*Cb*/
+	},
+	{	/* CSC_RGB_0_255_TO_ITU709_16_235_8BIT */
+		0x27, 0x40, 0x0b, 0xc0, 0x04, 0x00, 0x00, 0x40,		/*Y*/
+		0xe6, 0x80, 0x1c, 0x00, 0xfd, 0x80, 0x02, 0x00,		/*Cr*/
+		0xea, 0x40, 0xf9, 0x80, 0x1c, 0x00, 0x02, 0x00,		/*Cb*/
+	},
+	{	/* CSC_RGB_0_255_TO_ITU709_16_235_10BIT */
+		0x27, 0x40, 0x0b, 0xc0, 0x04, 0x00, 0x01, 0x00,		/*Y*/
+		0xe6, 0x80, 0x1c, 0x00, 0xfd, 0x80, 0x08, 0x00,		/*Cr*/
+		0xea, 0x40, 0xf9, 0x80, 0x1c, 0x00, 0x08, 0x00,		/*Cb*/
+	},
+		/* Y		Cr	    Cb		Bias */
+	{	/* CSC_ITU601_16_235_TO_RGB_0_255_8BIT */
+		0x20, 0x00, 0x69, 0x26, 0x74, 0xfd, 0x01, 0x0e,		/*G*/
+		0x20, 0x00, 0x2c, 0xdd, 0x00, 0x00, 0x7e, 0x9a,		/*R*/
+		0x20, 0x00, 0x00, 0x00, 0x38, 0xb4, 0x7e, 0x3b,		/*B*/
+	},
+	{	/* CSC_ITU709_16_235_TO_RGB_0_255_8BIT */
+		0x20, 0x00, 0x71, 0x06, 0x7a, 0x02, 0x00, 0xa7,		/*G*/
+		0x20, 0x00, 0x32, 0x64, 0x00, 0x00, 0x7e, 0x6d,		/*R*/
+		0x20, 0x00, 0x00, 0x00, 0x3b, 0x61, 0x7e, 0x25,		/*B*/
+	},
+};
+
+static int rk32_hdmi_video_csc(struct hdmi_dev *hdmi_dev,
+			       struct hdmi_video *vpara)
+{
+	int i, mode, interpolation, decimation, csc_scale;
+	const char *coeff = NULL;
+	unsigned char color_depth = 0;
+
+	if (vpara->color_input == vpara->color_output) {
+		hdmi_msk_reg(hdmi_dev, MC_FLOWCTRL,
+			     m_FEED_THROUGH_OFF, v_FEED_THROUGH_OFF(0));
+		return 0;
+	}
+
+	if (vpara->color_input == HDMI_COLOR_YCBCR422 &&
+	    vpara->color_output != HDMI_COLOR_YCBCR422 &&
+	    vpara->color_output != HDMI_COLOR_YCBCR420) {
+		interpolation = 1;
+		hdmi_msk_reg(hdmi_dev, CSC_CFG,
+			     m_CSC_INTPMODE, v_CSC_INTPMODE(interpolation));
+	}
+
+	if ((vpara->color_input == HDMI_COLOR_RGB_0_255 ||
+	     vpara->color_input == HDMI_COLOR_YCBCR444) &&
+	     vpara->color_output == HDMI_COLOR_YCBCR422) {
+		decimation = 1;
+		hdmi_msk_reg(hdmi_dev, CSC_CFG,
+			     m_CSC_DECIMODE, v_CSC_DECIMODE(decimation));
+	}
+
+	switch (vpara->vic) {
+	case HDMI_720X480I_60HZ_4_3:
+	case HDMI_720X576I_50HZ_4_3:
+	case HDMI_720X480P_60HZ_4_3:
+	case HDMI_720X576P_50HZ_4_3:
+	case HDMI_720X480I_60HZ_16_9:
+	case HDMI_720X576I_50HZ_16_9:
+	case HDMI_720X480P_60HZ_16_9:
+	case HDMI_720X576P_50HZ_16_9:
+		if (vpara->color_input == HDMI_COLOR_RGB_0_255 &&
+		    vpara->color_output >= HDMI_COLOR_YCBCR444) {
+			mode = CSC_RGB_0_255_TO_ITU601_16_235_8BIT;
+			csc_scale = 0;
+		} else if (vpara->color_input >= HDMI_COLOR_YCBCR444 &&
+			   vpara->color_output == HDMI_COLOR_RGB_0_255) {
+			mode = CSC_ITU601_16_235_TO_RGB_0_255_8BIT;
+			csc_scale = 1;
+		}
+		break;
+	default:
+		if (vpara->color_input == HDMI_COLOR_RGB_0_255 &&
+		    vpara->color_output >= HDMI_COLOR_YCBCR444) {
+			mode = CSC_RGB_0_255_TO_ITU709_16_235_8BIT;
+			csc_scale = 0;
+		} else if (vpara->color_input >= HDMI_COLOR_YCBCR444 &&
+			   vpara->color_output == HDMI_COLOR_RGB_0_255) {
+			mode = CSC_ITU709_16_235_TO_RGB_0_255_8BIT;
+			csc_scale = 1;
+		}
+		break;
+	}
+
+	if ((vpara->color_input == HDMI_COLOR_RGB_0_255) &&
+	    (vpara->color_output == HDMI_COLOR_RGB_16_235)) {
+		mode = CSC_RGB_0_255_TO_RGB_16_235_8BIT;
+		csc_scale = 0;
+	}
+
+	switch (vpara->color_output_depth) {
+	case 10:
+		color_depth = COLOR_DEPTH_30BIT;
+		mode += 1;
+		break;
+	case 12:
+		color_depth = COLOR_DEPTH_36BIT;
+		mode += 2;
+		break;
+	case 16:
+		color_depth = COLOR_DEPTH_48BIT;
+		mode += 3;
+		break;
+	case 8:
+	default:
+		color_depth = COLOR_DEPTH_24BIT;
+		break;
+	}
+
+	coeff = coeff_csc[mode];
+	for (i = 0; i < 24; i++)
+		hdmi_writel(hdmi_dev, CSC_COEF_A1_MSB + i, coeff[i]);
+
+	hdmi_msk_reg(hdmi_dev, CSC_SCALE,
+		     m_CSC_SCALE, v_CSC_SCALE(csc_scale));
+	/*config CSC_COLOR_DEPTH*/
+	hdmi_msk_reg(hdmi_dev, CSC_SCALE,
+		     m_CSC_COLOR_DEPTH, v_CSC_COLOR_DEPTH(color_depth));
+
+	/* enable CSC */
+	hdmi_msk_reg(hdmi_dev, MC_FLOWCTRL,
+		     m_FEED_THROUGH_OFF, v_FEED_THROUGH_OFF(1));
+
+	return 0;
+}
 static int hdmi_dev_config_video(struct hdmi_dev *hdmi_dev, struct hdmi_video *vpara)
 {
 	int vic;
 
-	HDMIDBG("%s vic %d 3dformat %d\n", __FUNCTION__, vpara->vic, vpara->format_3d);
-		
+	printf("%s vic %d color_output %d color_output_depth %d\n",
+		__FUNCTION__, vpara->vic, vpara->color_output, vpara->color_output_depth);
+
 	// force output black
 	if (vpara->color_output == HDMI_COLOR_RGB_0_255) {
 		hdmi_writel(hdmi_dev, FC_DBGTMDS2, 0x00);	/*R*/
@@ -759,8 +915,8 @@ static int hdmi_dev_config_video(struct hdmi_dev *hdmi_dev, struct hdmi_video *v
 	if (rk32_hdmi_video_packetizer(hdmi_dev, vpara) < 0)
 		return -1;
 	//Color space convert
-	//if (rk32_hdmi_video_csc(hdmi_dev, vpara) < 0)
-	//	return -1;
+	if (rk32_hdmi_video_csc(hdmi_dev, vpara) < 0)
+		return -1;
 	if (rk32_hdmi_video_sampler(hdmi_dev, vpara) < 0)
 		return -1;
 
@@ -947,7 +1103,9 @@ void rk32_hdmi_probe(vidinfo_t *panel)
 		hdmi_dev->hd_init = rk32_hdmi_hardware_init;
 		hdmi_dev->read_edid = hdmi_dev_read_edid;
 		#ifdef CONFIG_RKCHIP_RK3288
-		hdmi_dev->feature = SUPPORT_4K | SUPPORT_TMDS_600M;
+		hdmi_dev->feature = SUPPORT_4K |
+				    SUPPORT_DEEP_10BIT |
+				    SUPPORT_TMDS_600M;
 		strcpy(hdmi_dev->compatible, "rockchip,rk3288-hdmi");
 		#endif
 		#ifdef CONFIG_RKCHIP_RK3368
