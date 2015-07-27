@@ -912,10 +912,17 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		break;
 	case OUT_P888:
 		face = OUT_P888;
-		msk = m_DITHER_DOWN_EN | m_DITHER_DOWN_MODE |
-			m_DITHER_UP_EN;
-		val = v_DITHER_DOWN_EN(0) | v_DITHER_DOWN_MODE(0) |
-			v_DITHER_UP_EN(1); /*we display rgb565 ,so dither up*/
+		msk = m_DITHER_DOWN_EN | m_DITHER_UP_EN |
+		      m_PRE_DITHER_DOWN_EN;
+		val = v_DITHER_DOWN_EN(0) | v_DITHER_UP_EN(1) |
+		      v_PRE_DITHER_DOWN_EN(1);
+		break;
+	case OUT_P101010:
+		face = OUT_P101010;
+		msk = m_DITHER_DOWN_EN | m_DITHER_UP_EN |
+		      m_PRE_DITHER_DOWN_EN;
+		val = v_DITHER_DOWN_EN(0) | v_DITHER_UP_EN(1) |
+		    v_PRE_DITHER_DOWN_EN(0);
 		break;
 	default:
 		face = vid->lcd_face;
@@ -927,7 +934,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	}
 	lcdc_msk_reg(lcdc_dev, DSP_CTRL1, msk, val);
 	if (vid->screen_type == SCREEN_EDP || vid->screen_type == SCREEN_HDMI)
-		face = OUT_RGB_AAA;
+		face = OUT_P101010;
 	msk = m_DSP_RG_SWAP | m_DSP_RB_SWAP | m_DSP_DELTA_SWAP |
 		m_DSP_FIELD_POL | m_DSP_DUMMY_SWAP | m_DSP_BG_SWAP |
 		m_DSP_OUT_MODE;
