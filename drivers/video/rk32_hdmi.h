@@ -58,6 +58,7 @@ enum {
 #define HDMI_SCL_RATE		(100*1000)
 #define DDC_I2C_EDID_ADDR	0x50	// 0xA0/2 = 0x50
 #define DDC_I2C_SEG_ADDR	0x30	// 0x60/2 = 0x30
+#define DDC_I2C_SCDC_ADDR	0x54	/* 0xa8/2 = 0x54 */
 
 /*Register and Field Descriptions*/
 /*Identification Registers*/

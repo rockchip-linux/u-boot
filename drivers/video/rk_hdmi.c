@@ -1111,7 +1111,7 @@ static int hdmi_edid_parse_cea_sad(unsigned char *buf, struct hdmi_edid *pedid)
 }
 
 /* Parse CEA Vendor Specific Data Block */
-static int hdmi_edid_parse_cea_sdb(struct hdmi_dev *hdmi_dev, unsigned char *buf, struct hdmi_edid *pedid)
+static int hdmi_edid_parse_cea_vsdb(struct hdmi_dev *hdmi_dev, unsigned char *buf, struct hdmi_edid *pedid)
 {
 	unsigned int count = 0, cur_offset = 0, i = 0;
 	unsigned int IEEEOUI = 0;
@@ -1201,6 +1201,32 @@ static int hdmi_edid_parse_cea_sdb(struct hdmi_dev *hdmi_dev, unsigned char *buf
 			}
 			cur_offset += i;
 		}
+	} else if (IEEEOUI == 0xc45dd8) {
+		pedid->sink_hdmi = 1;
+		pedid->hf_vsdb_version = buf[4];
+		if (pedid->hf_vsdb_version == 1) {
+			/*compliant with HDMI Specification 2.0*/
+			pedid->maxtmdsclock =
+				buf[5] * 5000000;
+			HDMIDBG("[CEA] maxtmdsclock is %d.\n",
+				pedid->maxtmdsclock);
+			pedid->scdc_present = buf[6] >> 7;
+			pedid->rr_capable =
+				(buf[6]&0x40) >> 6;
+			pedid->lte_340mcsc_scramble =
+				(buf[6]&0x08) >> 3;
+			pedid->independent_view =
+				(buf[6]&0x04) >> 2;
+			pedid->dual_view =
+				(buf[6]&0x02) >> 1;
+			pedid->osd_disparity_3d =
+				buf[6] & 0x01;
+			pedid->deepcolor_420 =
+				(buf[7] & 0x7) << 1;
+		} else {
+			printf("hf_vsdb_version = %d\n",
+			       pedid->hf_vsdb_version);
+		}
 	}
 
 /* TODO Daisen wait to add
@@ -1282,7 +1308,7 @@ static int hdmi_edid_parse_extensions_cea(struct hdmi_dev *hdmi_dev, unsigned ch
 				break;
 			case 0x03:	// Vendor Specific Data Block
 				HDMIDBG("[EDID-CEA] It is a Vendor Specific Data Block.\n");
-				hdmi_edid_parse_cea_sdb(hdmi_dev, buf + cur_offset, pedid);
+				hdmi_edid_parse_cea_vsdb(hdmi_dev, buf + cur_offset, pedid);
 				break;		
 			case 0x05:	// VESA DTC Data Block
 				HDMIDBG("[EDID-CEA] It is a VESA DTC Data Block.\n");
@@ -1451,11 +1477,14 @@ void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
 		} else {
 			for (i = 0; i < hdmi_dev->vic_pos; i++) {
 				if ((hdmi_dev->vicdb[i] & HDMI_VIC_MASK) == hdmi_dev->modedb[pos].vic) {
-					if ((hdmi_dev->feature & SUPPORT_TMDS_600M) == 0 &&
-					    (hdmi_dev->vicdb[i] & HDMI_VIDEO_YUV420) == 0 &&
-					    hdmi_dev->modedb[pos].mode.pixclock > 340000000)
-						continue;
-					else {
+					if (hdmi_dev->modedb[pos].mode.pixclock > 340000000 &&
+					    (hdmi_dev->feature & SUPPORT_TMDS_600M) == 0) {
+						if ((hdmi_dev->feature & SUPPORT_YUV420) &&
+						    (hdmi_dev->vicdb[i] & HDMI_VIDEO_YUV420))
+							break;
+						else
+							continue;
+					} else {
 						break;
 					}
 				}
