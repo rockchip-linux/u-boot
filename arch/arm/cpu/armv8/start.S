@@ -211,15 +211,6 @@ el1_start:
 #endif /* CONFIG_SWITCH_EL3_TO_EL1 */
 #endif /* CONFIG_ROCKCHIP */
 
-#ifndef CONFIG_ARMV8_MULTIENTRY
-	/*
-	 * For single-entry systems the lowlevel init is very simple.
-	 */
-	ldr	x0, =GICD_BASE
-	bl	gic_init_secure
-
-#else /* CONFIG_ARMV8_MULTIENTRY is set */
-
 #if defined(CONFIG_GICV2) || defined(CONFIG_GICV3)
 	branch_if_slave x0, 1f
 	ldr	x0, =GICD_BASE
@@ -232,7 +223,6 @@ el1_start:
 	ldr	x0, =GICD_BASE
 	ldr	x1, =GICC_BASE
 	bl	gic_init_secure_percpu
-#endif
 #endif
 
 	branch_if_master x0, x1, 2f
