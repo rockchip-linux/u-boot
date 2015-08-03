@@ -348,10 +348,6 @@ fdt_addr_t fdtdec_get_addr(const void *blob, int node,
 fdt_addr_t fdtdec_get_addr_size(const void *blob, int node,
 		const char *prop_name, fdt_size_t *sizep);
 
-#ifdef CONFIG_ROCKCHIP_ARCH64
-uint32_t fdtdec_get_reg(const void *blob, int node);
-#endif
-
 /**
  * Look up a 32-bit integer property in a node and return it. The property
  * must have at least 4 bytes of data. The value of the first cell is
