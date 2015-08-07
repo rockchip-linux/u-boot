@@ -841,9 +841,11 @@ void rk_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 int rk_lcdc_load_screen(vidinfo_t *vid)
 {
 	struct lcdc_device *lcdc_dev = &rk32_lcdc;
+	struct rk_screen *screen =  lcdc_dev->screen;
 	int face = 0;
 	u32 msk, val;
-	
+
+	rk_fb_vidinfo_to_screen(vid, screen);
 	if (vid->screen_type == SCREEN_MIPI ||
 	    vid->screen_type == SCREEN_DUAL_MIPI) {
 		rk32_mipi_enable(vid);
