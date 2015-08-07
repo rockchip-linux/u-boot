@@ -84,6 +84,22 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 		.hw_init = inno_usb_phy_reset,
 	},
 #endif
+#elif defined(CONFIG_RKCHIP_RK3368)
+#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
+	{
+		.name = "ehci",
+		.enable = true,
+		.regbase = (void *)RKIO_USBHOST_PHYS,
+		.gpio_vbus = GPIO_BANK0 | GPIO_A4,
+	},
+#elif defined(RKUSB_UMS_BOOT_FROM_OTG)
+	{
+		.name = "dwc2-otg",
+		.enable = true,
+		.regbase = (void *)RKIO_USBOTG_PHYS,
+		.gpio_vbus = GPIO_BANK0 | GPIO_D1,
+	},
+#endif
 #else
 	#error: "PLS config chip for UMS!"
 #endif
