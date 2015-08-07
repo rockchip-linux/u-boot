@@ -12,7 +12,13 @@
 #define I2C_ADDRESS    0x40
 #define TV_I2C_ADDRESS 0x42
 
+#ifdef CONFIG_RKCHIP_RK3368
 static int bus_num = 1;
+#endif
+
+#ifdef CONFIG_RKCHIP_RK3288
+static int bus_num = 4;
+#endif
 
 int g_tve_pos = -1;
 #if  defined(CONFIG_OF_LIBFDT)
@@ -173,9 +179,19 @@ int rk1000_tve_init(vidinfo_t *panel)
 	//init i2c
 	i2c_set_bus_num(bus_num);
 	i2c_init(200*1000, 1);
-				
+
+	/*for rk3368*/
+	#ifdef  CONFIG_RKCHIP_RK3368
 	grf_writel(0xffff1500, GRF_GPIO2C_IOMUX);
 	cru_writel(cru_readl(0x16c)|0x80008000,0x16c);
+	#endif
+	/*for rk3288*/
+	#ifdef	CONFIG_RKCHIP_RK3288
+	grf_writel(0xffff1a40, GRF_SOC_CON7);
+	grf_writel(grf_readl(GRF_GPIO7CL_IOMUX)|(1<<4)|(1<<8)|(1<<20)|(1<<24), GRF_GPIO7CL_IOMUX);
+	grf_writel(grf_readl(GRF_GPIO6B_IOMUX)|(1<<0)|(1<<16), GRF_GPIO6B_IOMUX);
+	writel(0x00071f1f,0xff890008);
+	#endif
 
 	//gpio_direction_output((GPIO_BANK0 | GPIO_A1),0);
 	gpio_direction_output(rst_gpios.gpio,!rst_gpios.flags);

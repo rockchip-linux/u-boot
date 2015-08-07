@@ -153,6 +153,10 @@
 
 #endif /* CONFIG_LCD */
 
+#ifdef CONFIG_PRODUCT_BOX
+#define CONFIG_RK1000_TVE
+#undef CONFIG_GM7122_TVE
+#endif
 
 /* more config for charge */
 #ifdef CONFIG_UBOOT_CHARGE
