@@ -99,7 +99,7 @@ static int rk32_lvds_en(vidinfo_t *vid)
 	else if(vid->screen_type == SCREEN_LVDS)
 		val |= LVDS_CH0_EN;
 	else if (vid->screen_type == SCREEN_RGB)
-		val |= LVDS_TTL_EN | LVDS_CH0_EN | LVDS_CH1_EN;
+		val = LVDS_TTL_EN | LVDS_CH0_EN | LVDS_CH1_EN;
 
 	if (h_bp & 0x01)
 		val |= LVDS_START_PHASE_RST_1;
