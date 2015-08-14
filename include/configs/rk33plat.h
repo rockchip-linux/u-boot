@@ -51,7 +51,11 @@
  * Resersed 2M space(0 - 2M) for Runtime ARM Firmware bin, such as bl30/bl31/bl32 and so on.
  *
  */
-#define CONFIG_SYS_TEXT_BASE    	0x00200000 /* Resersed 2M space Runtime Firmware bin. */
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+       #define CONFIG_SYS_TEXT_BASE    0x00200000 /* Resersed 2M space Runtime Firmware bin. */
+#else
+       #define CONFIG_SYS_TEXT_BASE    0x00000000
+#endif
 
 
 /* kernel load to the running address */
@@ -112,6 +116,11 @@
 	#undef CONFIG_RK_IOMUX
 	#undef CONFIG_RK_I2C
 	#undef CONFIG_RK_KEY
+#endif
+
+/* if uboot as first level loader, no start mcu. */
+#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+	#undef CONFIG_RK_MCU
 #endif
 
 /* mod it to enable console commands.	*/

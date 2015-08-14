@@ -9,9 +9,7 @@ PLATFORM_RELFLAGS += -fno-common -ffixed-x18
 PF_CPPFLAGS_ARMV8 := $(call cc-option, -march=armv8-a)
 ifdef CONFIG_ROCKCHIP
 PF_CPPFLAGS_ARMV8 += $(call cc-option, -fno-pic)
-ifdef CONFIG_FPGA_BOARD
 PF_CPPFLAGS_ARMV8 += $(call cc-option, -mgeneral-regs-only)
-endif # CONFIG_FPGA_BOARD
 endif # CONFIG_ROCKCHIP
 
 PF_NO_UNALIGNED := $(call cc-option, -mstrict-align)
