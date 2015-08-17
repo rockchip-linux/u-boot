@@ -144,6 +144,44 @@ fdt_addr_t fdtdec_get_addr(const void *blob, int node,
 	return fdtdec_get_addr_size(blob, node, prop_name, NULL);
 }
 
+#ifdef CONFIG_ROCKCHIP_ARCH64
+uint32_t fdtdec_get_reg(const void *blob, int node)
+{
+/* rk aarch64 iobase address using 2 cells, 0 for speed up boot time */
+#if 0
+	uint32_t *cell = NULL;
+	int addrcells = 0;
+	int parent;
+	uint32_t addr;
+
+	parent = fdt_parent_offset(blob, node);
+	if (parent < 0) {
+		addrcells = 1;
+	} else {
+		addrcells = fdt_address_cells(blob, parent);
+	}
+
+	cell = fdt_getprop(blob, node, "reg", NULL);
+	if (addrcells == 2) {
+		cell++;
+	}
+	addr = (u32)fdt32_to_cpu(*cell);
+
+	return addr;
+#else
+	uint32_t *cell = NULL;
+	uint32_t addr;
+
+	/* note: here iobase reg should use 2 cells */
+	cell = (uint32_t *)fdt_getprop(blob, node, "reg", NULL);
+	cell++;
+	addr = (u32)fdt32_to_cpu(*cell);
+
+	return addr;
+#endif
+}
+#endif
+
 uint64_t fdtdec_get_uint64(const void *blob, int node, const char *prop_name,
 		uint64_t default_val)
 {

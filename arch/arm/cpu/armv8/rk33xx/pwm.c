@@ -116,7 +116,7 @@ static int rk_bl_parse_dt(const void *blob)
 	bl.period = data[2];
 	pwm_node = fdt_node_offset_by_phandle(blob, data[0]);
 
-	bl.base = fdtdec_get_addr(blob, pwm_node, "reg");
+	bl.base = fdtdec_get_reg(blob, pwm_node);
 	debug("bl base = 0x%08x\n", bl.base);
 	fdt_getprop(blob, bl.node, "brightness-levels", &len);
 	bl.max_brightness = len / sizeof(u32);
