@@ -482,6 +482,10 @@ dwc2_transfer(struct usb_device *dev, unsigned long pipe, int size,
 	if (do_copy && (dir == EPDIR_OUT))
 		memcpy(aligned_buf, data_buf, size);
 
+	if (dir == EPDIR_OUT)
+		flush_dcache_range(aligned_buf, aligned_buf +
+				   roundup(size, ARCH_DMA_MINALIGN));
+
 	writel(hctsiz.d32, &reg->Host.hchn[ch_num].hctsizn);
 	writel((uint32_t)aligned_buf, &reg->Host.hchn[ch_num].hcdman);
 	writel(hcchar.d32, &reg->Host.hchn[ch_num].hccharn);
@@ -491,6 +495,10 @@ dwc2_transfer(struct usb_device *dev, unsigned long pipe, int size,
 	if (ret >= 0) {
 		/* Calculate actual transferred length */
 		transferred = (dir == EPDIR_IN) ? inpkt_length - ret : ret;
+
+		if (dir == EPDIR_IN)
+			invalidate_dcache_range(aligned_buf, aligned_buf +
+				roundup(transferred, ARCH_DMA_MINALIGN));
 
 		if (do_copy && (dir == EPDIR_IN))
 			memcpy(data_buf, aligned_buf, transferred);
@@ -505,6 +513,7 @@ dwc2_transfer(struct usb_device *dev, unsigned long pipe, int size,
 		printf("%s Transfer stop code: %d\n", __func__, ret);
 		return ret;
 	}
+
 	return transferred;
 }
 
