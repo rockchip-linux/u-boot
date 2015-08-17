@@ -279,7 +279,7 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 			/* load fdt from boot image sencode address */
 			#ifdef CONFIG_OF_LIBFDT
 			debug("Try to load fdt from second address.\n");
-			content = rkimage_load_fdt_ram((void *)(hdr->second_addr), hdr->second_size);
+			content = rkimage_load_fdt_ram((void *)(unsigned long)(hdr->second_addr), hdr->second_size);
 			if (!content.load_addr) {
 				printf("failed to load fdt from second address %u!\n", hdr->second_addr);
 			}

@@ -96,12 +96,14 @@ int32 CryptoSHAStart(uint32 *data, uint32 DataLen)
 	if (DataLen == 0) {
 		return 0;
 	}
+	/* flush data, fix cache data error */
+	flush_cache((unsigned long)data, DataLen);
 
 	while (CryptoReg->CRYPTO_CTRL & 0x08); // wait last complete
 
 	CryptoReg->CRYPTO_INTSTS = (0x1<<4); // Hash Done Interrupt
 
-	CryptoReg->CRYPTO_HRDMAS = (uint32)data;
+	CryptoReg->CRYPTO_HRDMAS = (uint32)(unsigned long)data;
 
 	CryptoReg->CRYPTO_HRDMAL = ((DataLen+3)>>2);
 
@@ -207,9 +209,9 @@ int32 CryptoRSAVerify(BOOT_HEADER *pHead, uint32 SigOffset)
 {
 	int32 ret;
 
-	CryptoRSAInit((uint32*)((uint32)pHead + SigOffset), pHead->RSA_N, pHead->RSA_E, pHead->RSA_C);
+	CryptoRSAInit((uint32 *)((unsigned long)pHead + SigOffset), pHead->RSA_N, pHead->RSA_E, pHead->RSA_C);
 	CryptoSHAInit(SigOffset, 256);
-	CryptoSHAStart((uint32 *)pHead, SigOffset);
+	CryptoSHAStart((uint32 *)(unsigned long)pHead, SigOffset);
 
 	ret = CryptoRSACheck();
 	if (0 != ret)
@@ -234,7 +236,7 @@ static void CryptoHashPrint(char *hash)
 
 
 #define HASH_TEST_SIZE	512
-static uint8 crypto_data_test[HASH_TEST_SIZE];
+static uint8 crypto_data_test[HASH_TEST_SIZE] __attribute__((aligned(ARCH_DMA_MINALIGN)));
 static uint32 crypto_size_test = 0x55aa;
 
 static void CryptoHWCheckOK(void)
@@ -251,7 +253,7 @@ static void CryptoHWCheckOK(void)
 	SHA_init(&ctx);
 	SHA_update(&ctx, (uint32 *)crypto_data_test, HASH_TEST_SIZE);
 	SHA_update(&ctx, (uint32 *)&crypto_size_test, sizeof(crypto_size_test));
-	dataHash = (uint8_t *)SHA_final(&ctx);
+	dataHash = (char *)SHA_final(&ctx);
 
 	printf("Soft hash data:\n");
 	CryptoHashPrint(dataHash);
@@ -263,7 +265,7 @@ static void CryptoHWCheckOK(void)
 	CryptoSHAStart((uint32 *)crypto_data_test, HASH_TEST_SIZE);
 	CryptoSHAStart((uint32 *)&crypto_size_test, sizeof(crypto_size_test));
 	CryptoSHAEnd(hwDataHash);
-	dataHash = hwDataHash;
+	dataHash = (char *)(unsigned long)hwDataHash;
 
 	printf("Crypto hash data:\n");
 	CryptoHashPrint(dataHash);

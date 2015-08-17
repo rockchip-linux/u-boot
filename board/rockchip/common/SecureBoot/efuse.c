@@ -53,7 +53,7 @@ int32 EfuseRead(void *buff, uint32 addr, uint32 size)
 	return 0;
 }
 
-#elif defined(CONFIG_RKCHIP_RK3288)
+#elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 
 #define EFUSE_CSB       0x1
 #define EFUSE_STROBE    0x2

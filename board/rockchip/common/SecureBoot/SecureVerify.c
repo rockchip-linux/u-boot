@@ -192,11 +192,11 @@ static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 	CryptoSHAInit(size, 160);
 
 	/* Android image. */
-	CryptoSHAStart((uint32 *)boothdr->kernel_addr, boothdr->kernel_size);
+	CryptoSHAStart((uint32 *)(unsigned long)boothdr->kernel_addr, boothdr->kernel_size);
 	CryptoSHAStart((uint32 *)&boothdr->kernel_size, sizeof(boothdr->kernel_size));
-	CryptoSHAStart((uint32 *)boothdr->ramdisk_addr, boothdr->ramdisk_size);
+	CryptoSHAStart((uint32 *)(unsigned long)boothdr->ramdisk_addr, boothdr->ramdisk_size);
 	CryptoSHAStart((uint32 *)&boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
-	CryptoSHAStart((uint32 *)boothdr->second_addr, boothdr->second_size);
+	CryptoSHAStart((uint32 *)(unsigned long)boothdr->second_addr, boothdr->second_size);
 	CryptoSHAStart((uint32 *)&boothdr->second_size, sizeof(boothdr->second_size));
 
 	/* only rockchip's image add. */
@@ -551,7 +551,7 @@ static bool SecureRKModeVerifyLoader(RK28BOOT_HEAD *hdr)
 	BOOT_HEADER *pKeyHead = (BOOT_HEADER *)keybuf;
 	int i;
 
-	debug("Loader Head: hdr = 0x%x, flash data offset = 0x%x\n", (uint32)hdr, hdr->uiFlashDataOffset);
+	debug("Loader Head: hdr = 0x%x, flash data offset = 0x%x\n", (uint32)(unsigned long)hdr, hdr->uiFlashDataOffset);
 
 	memcpy(keybuf, (void *)hdr + hdr->uiFlashDataOffset, RK_BLK_SIZE * 4);
 	for (i = 0; i < 4; i++) {
@@ -767,11 +767,11 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 	CryptoSHAInit(size, 160);
 
 	/* Android image. */
-	CryptoSHAStart((uint32 *)boothdr->kernel_addr, boothdr->kernel_size);
+	CryptoSHAStart((uint32 *)(unsigned long)boothdr->kernel_addr, boothdr->kernel_size);
 	CryptoSHAStart((uint32 *)&boothdr->kernel_size, sizeof(boothdr->kernel_size));
-	CryptoSHAStart((uint32 *)boothdr->ramdisk_addr, boothdr->ramdisk_size);
+	CryptoSHAStart((uint32 *)(unsigned long)boothdr->ramdisk_addr, boothdr->ramdisk_size);
 	CryptoSHAStart((uint32 *)&boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
-	CryptoSHAStart((uint32 *)boothdr->second_addr, boothdr->second_size);
+	CryptoSHAStart((uint32 *)(unsigned long)boothdr->second_addr, boothdr->second_size);
 	CryptoSHAStart((uint32 *)&boothdr->second_size, sizeof(boothdr->second_size));
 
 	/* only rockchip's image add. */
@@ -924,8 +924,8 @@ static uint32 SecureRKModeInit(void)
 		secure = 1;
 	}
 	CryptoInit();
-#elif defined(CONFIG_RKCHIP_RK3288)
-	/* rk3288 efuse read word unit */
+#elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
+	/* rk3288/rk3368 efuse read word unit */
 	uint32 flag = 0;
 	EfuseRead(&flag, 0X00, 4);
 	if (flag & 0x01) {

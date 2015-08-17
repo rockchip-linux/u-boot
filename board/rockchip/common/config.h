@@ -30,6 +30,9 @@ DECLARE_GLOBAL_DATA_PTR;
 	#elif defined(CONFIG_RKCHIP_RK3288)
 		#define EFUSE_BASE_ADDR		RKIO_EFUSE_1024BITS_PHYS
 		#define CRYPTO_BASE_ADDR	RKIO_CRYPTO_PHYS
+	#elif defined(CONFIG_RKCHIP_RK3368)
+		#define EFUSE_BASE_ADDR		RKIO_EFUSE_1024BITS_PHYS
+		#define CRYPTO_BASE_ADDR	RKIO_CRYPTO_PHYS
 	#else
 		#error: "PLS config chip for efuse and crypto base address!"
 	#endif
