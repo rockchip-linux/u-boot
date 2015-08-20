@@ -344,7 +344,7 @@ uint32 StorageUbootDataStore(uint32 Index, void *Buf)
 	return StorageSysDataStore(Index + UBOOT_SYS_DATA_OFFSET, Buf);
 }
 
-uint32 UsbStorageSysDataLoad(uint32 offset, uint32 len, uint32 *Buf)
+uint32 StorageVendorSysDataLoad(uint32 offset, uint32 len, uint32 *Buf)
 {
 	uint32 ret = FTL_ERROR;
 	uint32 i;
@@ -363,7 +363,7 @@ uint32 UsbStorageSysDataLoad(uint32 offset, uint32 len, uint32 *Buf)
 	return ret;
 }
 
-uint32 UsbStorageSysDataStore(uint32 offset, uint32 len, uint32 *Buf)
+uint32 StorageVendorSysDataStore(uint32 offset, uint32 len, uint32 *Buf)
 {
 	uint32 ret = FTL_ERROR;
 	uint32 i;

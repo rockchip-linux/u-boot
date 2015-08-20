@@ -780,7 +780,7 @@ void rkusb_handle_datarx(void)
 		}
 		else if(usbcmd.cmnd == K_FW_LBA_WRITE_10) {
 			if(usbcmd.lba >= 0xFFFFFF00) {
-				UsbStorageSysDataStore(usbcmd.lba - 0xFFFFFF00, rxdata_blocks, (uint32 *)rxdata_buf);
+				StorageVendorSysDataStore(usbcmd.lba - 0xFFFFFF00, rxdata_blocks, (uint32 *)rxdata_buf);
 				usbcmd.lba += rxdata_blocks;
 			}
 			else if(usbcmd.lba == 0xFFFFF000) {
@@ -848,7 +848,7 @@ start:
 		}
 		else if(usbcmd.cmnd == K_FW_LBA_READ_10) {
 			if(usbcmd.lba >= 0xFFFFFF00)
-				UsbStorageSysDataLoad(usbcmd.pre_read.pre_lba - 0xFFFFFF00, pre_blocks, (uint32 *)usbcmd.pre_read.pre_buffer);
+				StorageVendorSysDataLoad(usbcmd.pre_read.pre_lba - 0xFFFFFF00, pre_blocks, (uint32 *)usbcmd.pre_read.pre_buffer);
 			else if(usbcmd.lba == 0xFFFFF000)
 				SecureBootUnlockCheck(usbcmd.pre_read.pre_buffer);
 			else

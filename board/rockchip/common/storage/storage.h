@@ -58,8 +58,8 @@ extern  uint32 StorageGetSDFwOffset(void);
 extern  uint32 StorageGetSDSysOffset(void);
 extern  int StorageReadId(void *pbuf);
 extern  int32 StorageInit(void);
-extern  uint32 UsbStorageSysDataLoad(uint32 offset, uint32 len, uint32 *Buf);
-extern  uint32 UsbStorageSysDataStore(uint32 offset, uint32 len, uint32 *Buf);
+extern  uint32 StorageVendorSysDataLoad(uint32 offset, uint32 len, uint32 *Buf);
+extern  uint32 StorageVendorSysDataStore(uint32 offset, uint32 len, uint32 *Buf);
 #ifdef RK_SDCARD_BOOT_EN
 extern  uint32 StorageSDCardUpdateMode(void);
 #endif
