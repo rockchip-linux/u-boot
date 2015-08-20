@@ -334,12 +334,12 @@ uint32 StorageSysDataStore(uint32 Index, void *Buf)
 
 
 #define UBOOT_SYS_DATA_OFFSET 64
-uint32 StorageUbootDataLoad(uint32 Index, void *Buf)
+uint32 StorageUbootSysDataLoad(uint32 Index, void *Buf)
 {
 	return StorageSysDataLoad(Index + UBOOT_SYS_DATA_OFFSET, Buf);
 }
 
-uint32 StorageUbootDataStore(uint32 Index, void *Buf)
+uint32 StorageUbootSysDataStore(uint32 Index, void *Buf)
 {
 	return StorageSysDataStore(Index + UBOOT_SYS_DATA_OFFSET, Buf);
 }

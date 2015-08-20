@@ -21,8 +21,8 @@ env_t *env_ptr;
 
 DEFINE_CACHE_ALIGN_BUFFER(char, env_buf, CONFIG_ENV_SIZE);
 
-extern uint32 StorageUbootDataStore(uint32 Index, void *Buf);
-extern uint32 StorageUbootDataLoad(uint32 Index, void *Buf);
+extern uint32 StorageUbootSysDataStore(uint32 Index, void *Buf);
+extern uint32 StorageUbootSysDataLoad(uint32 Index, void *Buf);
 
 #if !defined(CONFIG_ENV_OFFSET)
 #define CONFIG_ENV_OFFSET           0
@@ -47,7 +47,7 @@ static inline int write_env(unsigned long size,
 
 	for (i = 0;i < blk_cnt;i++)
 	{
-		if(StorageUbootDataStore(blk_start + i,
+		if(StorageUbootSysDataStore(blk_start + i,
 				(void*)buffer + i * RK_BLK_SIZE))
 		{
 			printf("write_env failed at %d\n", blk_start + i);
@@ -92,7 +92,7 @@ static inline int read_env(unsigned long size,
 
 	for (i = 0;i < blk_cnt;i++)
 	{
-		if(StorageUbootDataLoad(blk_start + i, 
+		if(StorageUbootSysDataLoad(blk_start + i, 
 				(void*)buffer + i * RK_BLK_SIZE))
 		{
 			printf("read_env failed at %d\n", blk_start + i);
