@@ -123,7 +123,7 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
    screen->mode.yres        = vid->vl_row;
    screen->mode.lower_margin= vid->vl_vfpd;
    screen->mode.vmode       = vid->vmode;
-
+   screen->mode.pixclock    = vid->real_freq;
    screen->pin_hsync        = vid->vl_hsp;
    screen->pin_vsync        = vid->vl_vsp;
    screen->pin_dclk         = vid->vl_clkp;

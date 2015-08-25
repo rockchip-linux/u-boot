@@ -26,7 +26,7 @@ struct lcdc_device rk33_lcdc;
 extern struct rockchip_fb rockchip_fb;
 // LCD en status
 int lcdEnstatus=-1;
-
+#define EARLY_TIME 500 /*us*/
 extern int rk31xx_lvds_enable(vidinfo_t * vid);
 extern int rk32_edp_enable(vidinfo_t * vid);
 extern int rk32_mipi_enable(vidinfo_t * vid);
@@ -827,15 +827,15 @@ static int rk3368_config_timing(struct lcdc_device *lcdc_dev, struct rk_screen *
 	u32 mask, val;
 	u16 h_total, v_total;
 	u16 vact_end_f1, vact_st_f1, vs_end_f1, vs_st_f1;
-
+	u32 frame_time;
 	h_total = hsync_len + left_margin + x_res + right_margin;
 	v_total = vsync_len + upper_margin + y_res + lower_margin;
+	frame_time = 1000 * v_total * h_total / (screen->mode.pixclock / 1000);
 	/*need check,depend on user define*/
         screen->overscan.left = 100;
         screen->overscan.right = 100;
         screen->overscan.top = 100;
         screen->overscan.bottom = 100;
-
 	screen->post_dsp_stx = x_res * (100 - screen->overscan.left) / 200;
 	screen->post_dsp_sty = y_res * (100 - screen->overscan.top) / 200;
 	screen->post_xsize = x_res *
@@ -915,7 +915,8 @@ static int rk3368_config_timing(struct lcdc_device *lcdc_dev, struct rk_screen *
 		mask = m_DSP_LINE_FLAG0_NUM | m_DSP_LINE_FLAG1_NUM;
 		val =
 		    v_DSP_LINE_FLAG0_NUM(vact_end_f1) |
-		    v_DSP_LINE_FLAG1_NUM(vact_end_f1);
+		    v_DSP_LINE_FLAG1_NUM(vact_end_f1 -
+					 EARLY_TIME * v_total / frame_time);
 		lcdc_msk_reg(lcdc_dev, LINE_FLAG, mask, val);
 	} else {
 		mask = m_DSP_VS_PW | m_DSP_VTOTAL;
@@ -961,7 +962,8 @@ static int rk3368_config_timing(struct lcdc_device *lcdc_dev, struct rk_screen *
 
 		mask = m_DSP_LINE_FLAG0_NUM | m_DSP_LINE_FLAG1_NUM;
 		val = v_DSP_LINE_FLAG0_NUM(vsync_len + upper_margin + y_res) |
-			v_DSP_LINE_FLAG1_NUM(vsync_len + upper_margin + y_res);
+			v_DSP_LINE_FLAG1_NUM(vsync_len + upper_margin + y_res -
+					     EARLY_TIME * v_total / frame_time);
 		lcdc_msk_reg(lcdc_dev, LINE_FLAG, mask, val);
 	}
 	rk3368_lcdc_post_cfg(lcdc_dev, screen);
