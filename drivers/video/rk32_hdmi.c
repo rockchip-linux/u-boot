@@ -683,7 +683,7 @@ static int rk32_hdmi_video_packetizer(struct hdmi_dev *hdmi_dev, struct hdmi_vid
 				break;
 			case 8:
 			default:
-				color_depth = COLOR_DEPTH_24BIT;
+				color_depth = COLOR_DEPTH_24BIT_DEFAULT;
 				output_select = OUT_FROM_8BIT_BYPASS;
 				break;
 		}
