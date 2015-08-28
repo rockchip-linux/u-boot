@@ -82,7 +82,7 @@
 /* undef some module for rk chip */
 #if defined(CONFIG_RKCHIP_RK3368)
 	#define CONFIG_RK_MCU
-	#undef CONFIG_SECUREBOOT_CRYPTO
+	#define CONFIG_SECUREBOOT_CRYPTO
 	#undef CONFIG_RK_TRUSTOS
 
 	#undef CONFIG_RK_UMS_BOOT_EN
@@ -122,6 +122,13 @@
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
 	#undef CONFIG_RK_MCU
 #endif
+
+/* ARMv8 RSA key in ram, MiniLoader copy RSA KEY to fixed address */
+#if defined(CONFIG_SECOND_LEVEL_BOOTLOADER) && defined(CONFIG_SECUREBOOT_CRYPTO)
+#define CONFIG_SECURE_RSA_KEY_IN_RAM
+#define CONFIG_SECURE_RSA_KEY_ADDR	(CONFIG_RKNAND_API_ADDR + SZ_2K)
+#endif /* CONFIG_SECUREBOOT_CRYPTO */
+
 
 /* mod it to enable console commands.	*/
 #define CONFIG_BOOTDELAY		0

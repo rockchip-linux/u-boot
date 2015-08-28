@@ -488,6 +488,7 @@ static uint32 g_rsa_key_buf[528];
 #define SecureSHACheck(InHash)			CryptoSHACheck(InHash)
 #define SecureRSAVerify(pHead, SigOffset)	CryptoRSAVerify(pHead, SigOffset)
 
+#if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
 static int32 SecureRKModeChkPubkey(uint32 *pKey)
 {
 	uint32 hash[8];         //max 256bit
@@ -543,6 +544,49 @@ static int32 SecureRKModeGetRSAKey(void)
 
 	return 0;
 }
+
+#else
+
+static int32 SecureRKModeGetRSAKey(void)
+{
+	BOOT_HEADER *pRSAKey_head = (BOOT_HEADER *)CONFIG_SECURE_RSA_KEY_ADDR;
+
+	if (pRSAKey_head->tag != 0x4B415352) {
+		return -1;
+	}
+
+	printf("Secure Boot find rsa key in ram.\n");
+
+	memset((void *)g_rsa_key_buf, 0, sizeof(g_rsa_key_buf));
+	memcpy((void *)g_rsa_key_buf, (void *)CONFIG_SECURE_RSA_KEY_ADDR, sizeof(BOOT_HEADER));
+
+#if 0
+{
+	int j = 0, k = 0;
+	char *buf = (char *)g_rsa_key_buf;
+
+	printf("dump new loader's key:\n");
+	for (j = 0; j < 2048 / 16; j++) {
+		for (k = 0; k < 16; k++) {
+			printf("%02x", buf[j * 16 + k]);
+		}
+		printf("\n");
+	}
+}
+#endif
+
+	return 0;
+}
+
+static int32 SecureRKModeChkPubkey(uint32 *pKey)
+{
+	BOOT_HEADER *pkeyHead = (BOOT_HEADER *)g_rsa_key_buf;
+	uint32 size = sizeof(pkeyHead->RSA_N) + sizeof(pkeyHead->RSA_E) + sizeof(pkeyHead->RSA_C);
+
+	// compare rsa key
+	return memcmp((uint8 *)&pKey, (uint8 *)&pkeyHead->RSA_N, size);
+}
+#endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
 
 
 static bool SecureRKModeVerifyLoader(RK28BOOT_HEAD *hdr)
@@ -909,13 +953,16 @@ static bool SecureRKModeKeyCheck(uint8 *pKey)
 
 static uint32 SecureRKModeInit(void)
 {
+#if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
 	BOOT_HEADER *pHead = (BOOT_HEADER *)g_rsa_key_buf;
-	uint32 secure = 0;
 	uint32 i = 0;
 	int32 ret;
+#endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
+	uint32 secure = 0;
 
 	/* check efuse secure flag */
 	secure = 0;
+#if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
 #if defined(CONFIG_RKCHIP_RK3128)
 	/* rk3128 efuse read char unit */
 	uint8 flag = 0;
@@ -934,10 +981,18 @@ static uint32 SecureRKModeInit(void)
 	CryptoInit();
 #endif
 
+#else
+	if (SecureRKModeGetRSAKey() == 0) {
+		secure = 1;
+	}
+	CryptoInit();
+#endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
+
 	if (secure != 0) {
 		SecureMode = SBOOT_MODE_RK;
 		printf("Secure Boot Mode: 0x%x\n", SecureMode);
 
+#if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
 		StorageReadFlashInfo((uint8 *)&g_FlashInfo);
 
 		i = 0;
@@ -959,6 +1014,7 @@ static uint32 SecureRKModeInit(void)
 		if (i >= 16) {
 			return ERROR;
 		}
+#endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
 
 		/* config drm information */
 		SecureBootEn = 1;
