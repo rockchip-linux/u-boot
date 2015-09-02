@@ -185,7 +185,7 @@ static int rk818_regulator_set_voltage(int num_regulator,
 			return 0;
 		val = rk818_dcdc_select_min_voltage(min_uV,max_uV,num_regulator);	
 		i2c_reg_write(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator),
-			(i2c_reg_read(RK818_I2C_ADDR,rk818_BUCK_SET_VOL_REG(num_regulator) & 0x3f )) | val);
+			(i2c_reg_read(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator)) & 0x3f) | val);
 		debug("1 %s %d dcdc_vol = %08x\n", __func__, num_regulator, i2c_reg_read(RK818_I2C_ADDR, rk818_BUCK_SET_VOL_REG(num_regulator)));
 		return 0;
 	}else if (num_regulator == 6){
@@ -212,11 +212,11 @@ static int rk818_regulator_set_voltage(int num_regulator,
 
 	if (num_regulator == 12) {
 		i2c_reg_write(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator),
-			((i2c_reg_read(RK818_I2C_ADDR,rk818_LDO_SET_VOL_REG(num_regulator) & (~0x1f))) | val));
+			((i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)) & (~0x1f)) | val));
 	}
 	else
 		i2c_reg_write(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator),
-			((i2c_reg_read(RK818_I2C_ADDR,rk818_LDO_SET_VOL_REG(num_regulator) & (~0x3f) )) | val));
+			((i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)) & (~0x3f)) | val));
 	
 	debug("1 %s %d %d ldo_vol =%08x\n", __func__, num_regulator, val, i2c_reg_read(RK818_I2C_ADDR, rk818_LDO_SET_VOL_REG(num_regulator)));
 
