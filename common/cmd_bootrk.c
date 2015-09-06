@@ -16,7 +16,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CONFIG_RK_HDMI)
-extern short g_hdmi_vic;
+extern int g_hdmi_vic;
 #endif
 
 #if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FG_ADC)

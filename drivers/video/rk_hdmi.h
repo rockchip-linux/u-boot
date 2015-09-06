@@ -620,6 +620,7 @@ struct hdmi_dev {
 #define HDMI_VIDEO_3D					(2 << 8)
 #define HDMI_VIDEO_DVI					(3 << 8)
 #define HDMI_VIDEO_YUV420				(4 << 8)
+#define HDMI_UBOOT_NOT_INIT				(1 << 16)
 #define HDMI_VIC_MASK					(0xFF)
 #define HDMI_TYPE_MASK					(0xFF << 8)
 #define HDMI_MAX_ID	4

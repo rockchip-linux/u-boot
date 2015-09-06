@@ -43,7 +43,7 @@
 #ifndef OUT_P888
 #define OUT_P888 0 
 #endif
-short g_hdmi_vic = -1;
+int g_hdmi_vic = -1;
 int g_hdmi_noexit = 0;
 static struct baseparamer_pos g_pos_baseparamer = {-1, -1};
 
@@ -66,6 +66,7 @@ extern struct fb_videomode cvbs_mode [MAX_TVE_COUNT];
 
 extern int g_tve_pos;
 #endif
+
 
 #if defined(CONFIG_RK_HDMIV2)
 extern void rk32_hdmi_probe(vidinfo_t *panel);
@@ -1609,6 +1610,9 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 #if defined(CONFIG_RK_FB)
 	hdmi_init_panel(hdmi_dev, panel);
 #endif
+	} else {
+		g_hdmi_vic = hdmi_mode[g_pos_baseparamer.hdmi_pos].vic |
+			HDMI_UBOOT_NOT_INIT;
 	}
 
 #if defined(CONFIG_RK3036_TVE) || defined(CONFIG_RK1000_TVE)|| defined(CONFIG_GM7122_TVE)
