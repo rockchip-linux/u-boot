@@ -12,66 +12,35 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define SARADC_BASE             RKIO_SARADC_PHYS
+#if defined(CONFIG_RKCHIP_RK3036)
+#define SARADC_BASE             	(-1)
+#else
+#define SARADC_BASE             	RKIO_SARADC_PHYS
+#endif
 
 #define read_XDATA(address) 		(*((uint16 volatile*)(unsigned long)(address)))
 #define read_XDATA32(address)		(*((uint32 volatile*)(unsigned long)(address)))
 #define write_XDATA(address, value) 	(*((uint16 volatile*)(unsigned long)(address)) = value)
 #define write_XDATA32(address, value)	(*((uint32 volatile*)(unsigned long)(address)) = value)
 
-int gpio_reg[]={
-#if defined(CONFIG_RKCHIP_RK3288)
-	RKIO_GPIO0_PHYS,
-	RKIO_GPIO1_PHYS,
-	RKIO_GPIO2_PHYS,
-	RKIO_GPIO3_PHYS,
-	RKIO_GPIO4_PHYS,
-	RKIO_GPIO5_PHYS,
-	RKIO_GPIO6_PHYS,
-	RKIO_GPIO7_PHYS,
-	RKIO_GPIO8_PHYS
-#elif defined(CONFIG_RKCHIP_RK3036)
-	RKIO_GPIO0_PHYS,
-	RKIO_GPIO1_PHYS,
-	RKIO_GPIO2_PHYS
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	RKIO_GPIO0_PHYS,
-	RKIO_GPIO1_PHYS,
-	RKIO_GPIO2_PHYS,
-	RKIO_GPIO3_PHYS,
-#elif defined(CONFIG_RKCHIP_RK3368)
-	RKIO_GPIO0_PHYS,
-	RKIO_GPIO1_PHYS,
-	RKIO_GPIO2_PHYS,
-	RKIO_GPIO3_PHYS,
-#else
-	#error "PLS config rk chip for key."
-#endif
-};
 
-extern void DRVDelayUs(uint32 us);
+__maybe_unused static gpio_conf		charge_state_gpio;
+__maybe_unused static gpio_conf		power_hold_gpio;
 
-#if !defined(CONFIG_RKCHIP_RK3036)
-static gpio_conf	charge_state_gpio;
-static gpio_conf	power_hold_gpio;
-#endif
+__maybe_unused static key_config	key_rockusb;
+__maybe_unused static key_config	key_recovery;
+__maybe_unused static key_config	key_fastboot;
+__maybe_unused static key_config	key_power;
 
-static key_config	key_rockusb;
-static key_config	key_recovery;
-static key_config	key_fastboot;
-#if !defined(CONFIG_RKCHIP_RK3036)
-static key_config	key_power;
-#endif
 #ifdef CONFIG_RK_PWM_REMOTE
-static key_config	key_remote;
+__maybe_unused static key_config	key_remote;
 #endif
 
-#if !defined(CONFIG_RKCHIP_RK3036)
 #ifdef CONFIG_OF_LIBFDT
-static struct fdt_gpio_state	gPowerKey;
-static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powerkey_gpio);
+__maybe_unused static struct fdt_gpio_state	gPowerKey;
+__maybe_unused static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powerkey_gpio);
 #endif
-#endif /* !defined(CONFIG_RKCHIP_RK3036) */
+
 
 /*
     固定GPIOA_0口作为烧写检测口,系统部分不能使用该口
@@ -131,89 +100,66 @@ int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot)
 	*boot_recovery = 0;
 	*boot_fastboot = 0;
 
-	if(GetPortState(&key_rockusb))
-	{
+	if(GetPortState(&key_rockusb)) {
 		*boot_rockusb = 1;
-		//printf("rockusb key is pressed\n");
 	}
-	if(GetPortState(&key_recovery))
-	{
+	if(GetPortState(&key_recovery)) {
 		*boot_recovery = 1;
-		//printf("recovery key is pressed\n");
 	}
-	if(GetPortState(&key_fastboot))
-	{
+	if(GetPortState(&key_fastboot)) {
 		*boot_fastboot = 1;
-		//printf("fastboot key is pressed\n");
 	}
-
-#if defined(CONFIG_RK_PWM_REMOTE)
-#if 0 /* 0: no need delay */
-	int i, ir_keycode = 0;
-	extern int g_ir_keycode;
-
-	for(i=0; i<1000; i++)
-	{
-		ir_keycode = g_ir_keycode;
-		if(ir_keycode != 0) {
-			break;
-		}
-		udelay(1000);
-	}
-	printf("%s: delay %dus\n", __func__, i*1000);
-#endif
-#endif
 
 	return 0;
 }
 
 
-static void RockusbKeyInit(key_config *key)
+__maybe_unused static void RockusbKeyInit(void)
 {
 #if defined(CONFIG_RKCHIP_RK3036)
-	key->type = KEY_INT;
-	key->key.ioint.name = "rockusb_key";
-	key->key.ioint.gpio = (GPIO_BANK2 | GPIO_B0);
-	key->key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
-	key->key.ioint.pressed_state = 0;
-	key->key.ioint.press_time = 0;
+	key_rockusb.type = KEY_INT;
+	key_rockusb.key.ioint.name = "rockusb_key";
+	key_rockusb.key.ioint.gpio = (GPIO_BANK2 | GPIO_B0);
+	key_rockusb.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
+	key_rockusb.key.ioint.pressed_state = 0;
+	key_rockusb.key.ioint.press_time = 0;
 #else
-	key->type = KEY_AD;
-	key->key.adc.index = KEY_ADC_CN;
-	key->key.adc.keyValueLow = 0;
-	key->key.adc.keyValueHigh= 30;
-	key->key.adc.data = SARADC_BASE;
-	key->key.adc.stas = SARADC_BASE+4;
-	key->key.adc.ctrl = SARADC_BASE+8;
+	key_rockusb.type = KEY_AD;
+	key_rockusb.key.adc.index = KEY_ADC_CN;
+	key_rockusb.key.adc.keyValueLow = 0;
+	key_rockusb.key.adc.keyValueHigh= 30;
+	key_rockusb.key.adc.data = SARADC_BASE;
+	key_rockusb.key.adc.stas = SARADC_BASE+4;
+	key_rockusb.key.adc.ctrl = SARADC_BASE+8;
 #endif
 }
 
-#if !defined(CONFIG_RKCHIP_RK3036)
-static void RecoveryKeyInit(key_config *key)
+
+__maybe_unused static void RecoveryKeyInit(void)
 {
-	key->type = KEY_AD;
-	key->key.adc.index = KEY_ADC_CN;
-	key->key.adc.keyValueLow = 0;
-	key->key.adc.keyValueHigh= 30;
-	key->key.adc.data = SARADC_BASE;
-	key->key.adc.stas = SARADC_BASE+4;
-	key->key.adc.ctrl = SARADC_BASE+8;
+	key_recovery.type = KEY_AD;
+	key_recovery.key.adc.index = KEY_ADC_CN;
+	key_recovery.key.adc.keyValueLow = 0;
+	key_recovery.key.adc.keyValueHigh= 30;
+	key_recovery.key.adc.data = SARADC_BASE;
+	key_recovery.key.adc.stas = SARADC_BASE+4;
+	key_recovery.key.adc.ctrl = SARADC_BASE+8;
 }
 
 
-static void FastbootKeyInit(key_config *key)
+__maybe_unused static void FastbootKeyInit(void)
 {
-	key->type = KEY_AD;
-	key->key.adc.index = KEY_ADC_CN;
-	key->key.adc.keyValueLow = 170;
-	key->key.adc.keyValueHigh= 180;
-	key->key.adc.data = SARADC_BASE;
-	key->key.adc.stas = SARADC_BASE+4;
-	key->key.adc.ctrl = SARADC_BASE+8;
+	key_fastboot.type = KEY_AD;
+	key_fastboot.key.adc.index = KEY_ADC_CN;
+	key_fastboot.key.adc.keyValueLow = 170;
+	key_fastboot.key.adc.keyValueHigh= 180;
+	key_fastboot.key.adc.data = SARADC_BASE;
+	key_fastboot.key.adc.stas = SARADC_BASE+4;
+	key_fastboot.key.adc.ctrl = SARADC_BASE+8;
 }
 
 
-static void PowerKeyInit(void)
+__maybe_unused static void PowerKeyInit(void)
 {
 #ifdef CONFIG_OF_LIBFDT
 	memset(&gPowerKey, 0, sizeof(struct fdt_gpio_state));
@@ -233,8 +179,20 @@ static void PowerKeyInit(void)
 	key_power.key.ioint.pressed_state = 0;
 	key_power.key.ioint.press_time = 0;
 }
-#endif /* !defined(CONFIG_RKCHIP_RK3036) */
 
+
+__maybe_unused static void PowerHoldGpioInit(void)
+{
+
+}
+
+__maybe_unused static void ChargeStateGpioInit(void)
+{
+	charge_state_gpio.name = "charge_state";
+	charge_state_gpio.flags = 0;
+	charge_state_gpio.gpio = (GPIO_BANK0 | GPIO_B0);
+	gpio_direction_input(charge_state_gpio.gpio);
+}
 
 #ifdef CONFIG_RK_PWM_REMOTE
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
@@ -249,12 +207,10 @@ extern int g_ir_keycode;
 extern int remotectl_do_something(void);
 extern void remotectlInitInDriver(void);
 
-extern unsigned int rkclk_get_pwm_clk(uint32 pwm_id);
-
 
 int RemotectlInit(void)
 {
-	key_remote.type = KYE_REMOTE;
+	key_remote.type = KEY_REMOTE;
 	key_remote.key.ioint.name = NULL;
 	key_remote.key.ioint.gpio = (GPIO_BANK0 | GPIO_D3);
 	key_remote.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
@@ -280,7 +236,7 @@ int RemotectlDeInit(void)
 }
 #endif /* CONFIG_RK_PWM_REMOTE */
 
-#if !defined(CONFIG_RKCHIP_RK3036)
+
 int rkkey_power_state(void)
 {
 #ifdef CONFIG_POWER_RK
@@ -318,45 +274,41 @@ struct fdt_gpio_state *rkkey_get_powerkey(void)
 	return NULL;
 }
 #endif /* CONFIG_OF_LIBFDT */
-#endif /* !defined(CONFIG_RKCHIP_RK3036) */
+
 
 void key_init(void)
 {
-#if defined(CONFIG_RKCHIP_RK3036)
-	RockusbKeyInit(&key_rockusb);
-#else
-	charge_state_gpio.name = "charge_state";
-	charge_state_gpio.flags = 0;
-	charge_state_gpio.gpio = (GPIO_BANK0 | GPIO_B0);
-	gpio_direction_input(charge_state_gpio.gpio);
+	memset(&key_rockusb, 0, sizeof(key_config));
+	memset(&key_recovery, 0, sizeof(key_config));
+	memset(&key_fastboot, 0, sizeof(key_config));
+	memset(&key_power, 0, sizeof(key_config));
 
-	//power_hold_gpio.name
+	memset(&power_hold_gpio, 0, sizeof(gpio_conf));
+	memset(&charge_state_gpio, 0, sizeof(gpio_conf));
 
-	RockusbKeyInit(&key_rockusb);
-	FastbootKeyInit(&key_fastboot);
-	RecoveryKeyInit(&key_recovery);
+	RockusbKeyInit();
+#if !defined(CONFIG_RKCHIP_RK3036)
+	FastbootKeyInit();
+	RecoveryKeyInit();
 	PowerKeyInit();
+
+	ChargeStateGpioInit();
+	PowerHoldGpioInit();
 #endif
 }
 
 
 void powerOn(void)
 {
-#if defined(CONFIG_RKCHIP_RK3036)
-	/* no power hold */
-#else
-	if(power_hold_gpio.name != NULL)
+	if (power_hold_gpio.name != NULL) {
 		gpio_direction_output(power_hold_gpio.gpio, power_hold_gpio.flags);
-#endif
+	}
 }
 
 void powerOff(void)
 {
-#if defined(CONFIG_RKCHIP_RK3036)
-	/* no power hold */
-#else
-	if(power_hold_gpio.name != NULL)
+	if (power_hold_gpio.name != NULL) {
 		gpio_direction_output(power_hold_gpio.gpio, !power_hold_gpio.flags);
-#endif
+	}
 }
 

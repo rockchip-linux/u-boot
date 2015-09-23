@@ -21,7 +21,7 @@ typedef enum{
 	KEY_NULL,
 	KEY_AD,      // AD°´¼ü
 	KEY_INT,
-	KYE_REMOTE,
+	KEY_REMOTE,
 }KEY_TYPE;
 
 typedef struct
