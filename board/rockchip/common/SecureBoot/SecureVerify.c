@@ -965,9 +965,10 @@ static uint32 SecureRKModeInit(void)
 		SecureBootLock = 1;
 
 		if (StorageSysDataLoad(1, &gDrmKeyInfo) == FTL_OK) {
-			if (gDrmKeyInfo.drmtag != 0x4B4D5244) {
+			if ((gDrmKeyInfo.drmtag != 0x4B4D5244) || (gDrmKeyInfo.publicKeyLen == 0)) {
 				gDrmKeyInfo.drmtag = 0x4B4D5244;
 				gDrmKeyInfo.drmLen = 504;
+				gDrmKeyInfo.publicKeyLen = 0x200;
 				gDrmKeyInfo.keyBoxEnable = 1;
 				gDrmKeyInfo.drmKeyLen = 0;
 				gDrmKeyInfo.secureBootLock = 1;
