@@ -1287,7 +1287,7 @@ static int rk32_lcdc_parse_dt(struct lcdc_device *lcdc_dev,
 		return -EPERM;
 	}
 
-	lcdc_dev->regs = fdtdec_get_addr(blob, lcdc_dev->node, "reg");
+	lcdc_dev->regs = fdtdec_get_reg(blob, lcdc_dev->node);
 	order = fdtdec_get_int(blob, lcdc_dev->node,
 			       "rockchip,fb-win-map", order);
 	lcdc_dev->dft_win = order % 10;
