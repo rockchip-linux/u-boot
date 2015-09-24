@@ -32,7 +32,7 @@ function append_resource()
 		cp -r $RESOURCES $TMP_DIR
 	fi
 	echo
-	$TOOL --pack --root=$TMP_DIR --image=$IMAGE `find $TMP_DIR -type f` 
+	$TOOL --pack --root=$TMP_DIR --image=$IMAGE `find $TMP_DIR -type f|sort`
 	echo
 	echo "Packed resources:"
 	$TOOL --unpack --verbose --image=$IMAGE $TMP_DIR 2>&1|grep entry|sed "s/^.*://"|xargs echo
