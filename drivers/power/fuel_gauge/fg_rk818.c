@@ -1574,7 +1574,7 @@ static int rk81x_bat_parse_dt(struct battery_info *di, void const *blob)
 		return -EINVAL;
 	}
 
-	di->ocv_table = calloc(sizeof(len), 1);
+	di->ocv_table = calloc(len, 1);
 	if (!di->ocv_table) {
 		printf("%s: No available memory for ocv_table allocation!\n",
 		       __func__);
