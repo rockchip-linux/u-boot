@@ -196,6 +196,7 @@
 /* rk ddr information */
 #define CONFIG_RK_MAX_DRAM_BANKS	8 /* rk ddr max banks */
 #define CONFIG_RKDDR_PARAM_ADDR		(CONFIG_RAM_PHY_START + SZ_32M) /* rk ddr banks address and size */
+#define CONFIG_RKTRUST_PARAM_ADDR	(CONFIG_RAM_PHY_START + SZ_32M + SZ_2M) /* rk trust os banks address and size */
 
 
 /*
