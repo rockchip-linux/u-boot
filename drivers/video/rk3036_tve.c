@@ -187,9 +187,11 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 
 	if (tve_s.test_mode) {
 		panel->screen_type = SCREEN_TVOUT_TEST;
+		panel->color_mode = COLOR_YCBCR;
 		printf("SCREEN_TVOUT_TEST\n");
 	} else {
 		panel->screen_type = SCREEN_TVOUT;
+		panel->color_mode = COLOR_RGB;
 		printf("SCREEN_TVOUT\n");
 	}
 
