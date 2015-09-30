@@ -620,7 +620,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	    ((vid->screen_type == SCREEN_HDMI) ||
 	     (vid->screen_type == SCREEN_TVOUT) ||
 	     (vid->screen_type == SCREEN_TVOUT_TEST))) {
-		lcdc_dev->output_color = COLOR_YCBCR;
+		lcdc_dev->output_color = vid->color_mode;
 		rk312x_lcdc_select_bcsh(lcdc_dev);
 	}
 	
