@@ -56,45 +56,12 @@ static int rk3036_hdmi_show_reg(struct hdmi_dev *hdmi_dev)
 
 int hdmi_init_video_para(struct hdmi_dev *hdmi_dev)
 {
-	struct hdmi_video_para *video = &hdmi_dev->vpara;
+	hdmi_dev->video.color_input = HDMI_COLOR_RGB_0_255;
+	hdmi_dev->video.sink_hdmi = OUTPUT_HDMI;
+	hdmi_dev->video.format_3d = HDMI_3D_NONE;
 
-	memset(video, 0, sizeof(struct hdmi_video_para));
-	video->vic         = hdmi_dev->video.vic;
-	video->input_mode  = VIDEO_INPUT_RGB_YCBCR_444;
-	if (hdmi_dev->data.soc_type == HDMI_SOC_RK3036)
-		video->input_color = VIDEO_INPUT_COLOR_RGB;
-	else
-		video->input_color = VIDEO_INPUT_COLOR_YCBCR444;
-	video->output_mode = OUTPUT_HDMI;
-	video->format_3d   = HDMI_3D_NONE;	/* TODO modify according to EDID if need */
-	//video->pixel_repet = 0;
-	/* 0:IT Video Format  1:CE Video Format
-	 * TODO modify according to EDID
-	 */
-	video->color_limit_range = COLOR_LIMIT_RANGE_0_255;
-
-#ifdef SOURCE_ABOVE_10BIT
-	if (hdmi_dev->driver.edid.deepcolor & HDMI_COLOR_DEPTH_16BIT)
-		video->color_depth = HDMI_COLOR_DEPTH_16BIT;
-	else if (hdmi_dev->driver.edid.deepcolor & HDMI_COLOR_DEPTH_12BIT)
-		video->color_depth = HDMI_COLOR_DEPTH_12BIT;
-	else
-#endif
-	if (hdmi_dev->driver.edid.deepcolor & HDMI_COLOR_DEPTH_10BIT)
-		video->color_depth = HDMI_COLOR_DEPTH_10BIT;
-	else
-		video->color_depth = HDMI_COLOR_DEPTH_8BIT;
-
-	/*if (hdmi_dev->driver.edid.ycbcr444)
-		video->output_color = VIDEO_OUTPUT_YCBCR444;
-	else if (hdmi_dev->driver.edid.ycbcr422)
-		video->output_color = VIDEO_OUTPUT_YCBCR422;
-	else*/
-		video->output_color = VIDEO_OUTPUT_RGB444;
-
-	/*For DVI, output RGB */
-	if (hdmi_dev->driver.edid.sink_hdmi == 0)
-		video->output_color = VIDEO_OUTPUT_RGB444;
+	hdmi_dev->video.color_output = HDMI_COLOR_RGB_0_255;
+	hdmi_dev->video.color_output_depth = 8;
 
 	return 0;
 }
@@ -346,31 +313,21 @@ static const char coeff_csc[][24] = {
 	0x00, 0x00, 0x00, 0x00, 0x03, 0x6F, 0x00, 0x10},
 };
 static int rk3036_hdmi_video_csc(struct hdmi_dev *hdmi_dev,
-				        struct hdmi_video_para *vpara)
+				 struct hdmi_video *vpara)
 {
-	int value,i,csc_mode,c0_c2_change,auto_csc,csc_enable;
+	int value,i,csc_mode = 0,c0_c2_change,auto_csc = 0,csc_enable = 0;
 	const char *coeff = NULL;
 
 	/* Enable or disalbe color space convert */
-	printf("input_color=%d,output_color=%d\n",vpara->input_color, vpara->output_color);
-	if (vpara->input_color == vpara->output_color) {
-		if ((vpara->input_color >= VIDEO_INPUT_COLOR_YCBCR444) ||
-		  ((vpara->input_color == VIDEO_INPUT_COLOR_RGB) &&
-		  (vpara->color_limit_range == COLOR_LIMIT_RANGE_0_255))) {
-			value = v_SOF_DISABLE;
-			hdmi_writel(hdmi_dev, VIDEO_CONTRL3, value);
-			hdmi_msk_reg(hdmi_dev, VIDEO_CONTRL,
-				     m_VIDEO_AUTO_CSC | m_VIDEO_C0_C2_EXCHANGE,
-				     v_VIDEO_AUTO_CSC(AUTO_CSC_DISABLE) |
-				     v_VIDEO_C0_C2_EXCHANGE(C0_C2_CHANGE_DISABLE));
-			return 0;
-		} else if ((vpara->input_color == VIDEO_INPUT_COLOR_RGB) &&
-			   (vpara->color_limit_range == COLOR_LIMIT_RANGE_16_235)) {
-			csc_mode = CSC_RGB_0_255_TO_RGB_16_235_8BIT;
-			auto_csc = AUTO_CSC_DISABLE;
-			c0_c2_change = C0_C2_CHANGE_DISABLE;
-			csc_enable = v_CSC_ENABLE;
-		}
+	printf("input_color=%d,output_color=%d\n",vpara->color_input, vpara->color_output);
+	if (vpara->color_input == vpara->color_output) {
+		value = v_SOF_DISABLE | v_COLOR_DEPTH_NOT_INDICATED(1);
+		hdmi_writel(hdmi_dev, VIDEO_CONTRL3, value);
+		hdmi_msk_reg(hdmi_dev, VIDEO_CONTRL,
+			     m_VIDEO_AUTO_CSC | m_VIDEO_C0_C2_SWAP,
+			     v_VIDEO_AUTO_CSC(AUTO_CSC_DISABLE) |
+			     v_VIDEO_C0_C2_SWAP(C0_C2_CHANGE_DISABLE));
+		return 0;
 	}
 
 	switch (vpara->vic) {
@@ -382,14 +339,16 @@ static int rk3036_hdmi_video_csc(struct hdmi_dev *hdmi_dev,
 	case HDMI_720X576I_50HZ_16_9:
 	case HDMI_720X480P_60HZ_16_9:
 	case HDMI_720X576P_50HZ_16_9:
-		if (vpara->input_color == VIDEO_INPUT_COLOR_RGB
-		    && vpara->output_color >= VIDEO_OUTPUT_YCBCR444) {
+		if (((vpara->color_input == HDMI_COLOR_RGB_0_255) ||
+		     (vpara->color_input == HDMI_COLOR_RGB_16_235)) &&
+		    vpara->color_output >= HDMI_COLOR_YCBCR444) {
 			csc_mode = CSC_RGB_0_255_TO_ITU601_16_235_8BIT;
 			auto_csc = AUTO_CSC_DISABLE;
 			c0_c2_change = C0_C2_CHANGE_DISABLE;
 			csc_enable = v_CSC_ENABLE;
-		} else if (vpara->input_color >= VIDEO_OUTPUT_YCBCR444
-			   && vpara->output_color == VIDEO_OUTPUT_RGB444) {
+		} else if (vpara->color_input >= HDMI_COLOR_YCBCR444 &&
+			   ((vpara->color_output == HDMI_COLOR_RGB_0_255) ||
+			   (vpara->color_output == HDMI_COLOR_RGB_16_235))) {
 #ifdef AUTO_DEFINE_CSC
 			csc_mode = CSC_ITU601_16_235_TO_RGB_0_255_8BIT;
 			auto_csc = AUTO_CSC_ENABLE;
@@ -404,21 +363,24 @@ static int rk3036_hdmi_video_csc(struct hdmi_dev *hdmi_dev,
 		}
 		break;
 	default:
-		if (vpara->input_color == VIDEO_INPUT_COLOR_RGB
-		    && vpara->output_color >= VIDEO_OUTPUT_YCBCR444) {
+		if (((vpara->color_input == HDMI_COLOR_RGB_0_255) ||
+		     (vpara->color_input == HDMI_COLOR_RGB_16_235)) &&
+		    vpara->color_output >= HDMI_COLOR_YCBCR444) {
 			csc_mode = CSC_RGB_0_255_TO_ITU709_16_235_8BIT;
 			auto_csc = AUTO_CSC_DISABLE;
 			c0_c2_change = C0_C2_CHANGE_DISABLE;
 			csc_enable = v_CSC_ENABLE;
-		} else if (vpara->input_color >= VIDEO_OUTPUT_YCBCR444
-			   && vpara->output_color == VIDEO_OUTPUT_RGB444) {
+		} else if (vpara->color_input >= HDMI_COLOR_YCBCR444 &&
+			   ((vpara->color_output == HDMI_COLOR_RGB_0_255) ||
+			   (vpara->color_output == HDMI_COLOR_RGB_16_235))) {
 #ifdef AUTO_DEFINE_CSC
 			csc_mode = CSC_ITU709_16_235_TO_RGB_0_255_8BIT;
 			auto_csc = AUTO_CSC_ENABLE;
 			c0_c2_change = C0_C2_CHANGE_DISABLE;
 			csc_enable = v_CSC_DISABLE;
 #else
-			csc_mode = CSC_ITU601_16_235_TO_RGB_0_255_8BIT;//CSC_ITU709_16_235_TO_RGB_0_255_8BIT;
+			/*CSC_ITU709_16_235_TO_RGB_0_255_8BIT;*/
+			csc_mode = CSC_ITU601_16_235_TO_RGB_0_255_8BIT;
 			auto_csc = AUTO_CSC_DISABLE;
 			c0_c2_change = C0_C2_CHANGE_ENABLE;
 			csc_enable = v_CSC_ENABLE;
@@ -428,15 +390,16 @@ static int rk3036_hdmi_video_csc(struct hdmi_dev *hdmi_dev,
 	}
 
 	coeff = coeff_csc[csc_mode];
-	for (i = 0; i < 24; i++) {
+	for (i = 0; i < 24; i++)
 		hdmi_writel(hdmi_dev, VIDEO_CSC_COEF+i, coeff[i]);
-	}
 
-	value = v_SOF_DISABLE | csc_enable;
+	value = v_SOF_DISABLE | csc_enable | v_COLOR_DEPTH_NOT_INDICATED(1);
 	hdmi_writel(hdmi_dev, VIDEO_CONTRL3, value);
 	hdmi_msk_reg(hdmi_dev, VIDEO_CONTRL,
-		     m_VIDEO_AUTO_CSC | m_VIDEO_C0_C2_EXCHANGE,
-		     v_VIDEO_AUTO_CSC(auto_csc) | v_VIDEO_C0_C2_EXCHANGE(c0_c2_change));
+		     m_VIDEO_AUTO_CSC |
+		     m_VIDEO_C0_C2_SWAP,
+		     v_VIDEO_AUTO_CSC(auto_csc) |
+		     v_VIDEO_C0_C2_SWAP(c0_c2_change));
 
 	return 0;
 }
@@ -455,11 +418,12 @@ static void rk3036_hdmi_config_avi(struct hdmi_dev *hdmi_dev,
 	info[2] = 0x0D;
 	info[3] = info[0] + info[1] + info[2];
 
-	if (output_color == VIDEO_OUTPUT_RGB444)
+	if ((output_color == HDMI_COLOR_RGB_0_255) ||
+	    (output_color == HDMI_COLOR_RGB_16_235))
 		avi_color_mode = AVI_COLOR_MODE_RGB;
-	else if(output_color == VIDEO_OUTPUT_YCBCR444)
+	else if (output_color == HDMI_COLOR_YCBCR444)
 		avi_color_mode = AVI_COLOR_MODE_YCBCR444;
-	else if(output_color == VIDEO_OUTPUT_YCBCR422)
+	else if (output_color == HDMI_COLOR_YCBCR422)
 		avi_color_mode = AVI_COLOR_MODE_YCBCR422;
 
 	info[4] = (avi_color_mode << 5);
@@ -492,14 +456,7 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	int val;
 	struct fb_videomode *mode = NULL;
 	struct hdmi_video_timing *timing = NULL;
-	struct hdmi_video_para *vpara = &hdmi_dev->vpara;
-
-	/* Output RGB as default */
-	if (hdmi_dev->data.soc_type == HDMI_SOC_RK3036)
-		vpara->output_color = VIDEO_OUTPUT_RGB444;
-	/*for set DVI output mode, or not hdmi will not display,need to check again*/
-	//vpara->output_color = VIDEO_OUTPUT_RGB444;
-	//vpara->output_mode = 0;
+	struct hdmi_video *vpara = &hdmi_dev->video;
 
 	if (hdmi_dev->driver.pwr_mode == LOWER_PWR)
 		rk3036_hdmi_set_pwr_mode(hdmi_dev, NORMAL);
@@ -512,12 +469,12 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 		    v_VIDEO_INPUT_FORMAT(VIDEO_INPUT_SDR_RGB444) |
 		    v_DE_EXTERNAL);
 	val = v_VIDEO_INPUT_BITS(VIDEO_INPUT_8BITS) |
-		    v_VIDEO_OUTPUT_FORMAT(vpara->output_color & 0x3) |
-		    v_VIDEO_INPUT_CSP(vpara->input_color && 0x1);
+		    v_VIDEO_OUTPUT_FORMAT((vpara->color_output - 2) & 0x3) |
+		    v_VIDEO_INPUT_CSP((vpara->color_input - 2) & 0x1);
 	hdmi_writel(hdmi_dev, VIDEO_CONTRL2,val);
 
 	/* Set HDMI Mode */
-	hdmi_writel(hdmi_dev, HDCP_CTRL, v_HDMI_DVI(vpara->output_mode));
+	hdmi_writel(hdmi_dev, HDCP_CTRL, v_HDMI_DVI(vpara->sink_hdmi));
 
 	/* Enable or disalbe color space convert */
 	rk3036_hdmi_video_csc(hdmi_dev, vpara);
@@ -586,9 +543,9 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	hdmi_writel(hdmi_dev, VIDEO_EXT_VDURATION, value & 0xFF);
 #endif
 
-	if (vpara->output_mode == OUTPUT_HDMI) {
+	if (vpara->sink_hdmi == OUTPUT_HDMI) {
 		rk3036_hdmi_config_avi(hdmi_dev, vpara->vic,
-				      vpara->output_color);
+				       vpara->color_output);
 		printf("sucess output HDMI.\n");
 	} else {
 		printf("sucess output DVI.\n");
@@ -817,10 +774,10 @@ static int rk3036_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 	}
 
 	if (hdmi_detect_hotplug(hdmi_dev) == HDMI_HPD_ACTIVED) {
+		hdmi_init_video_para(hdmi_dev);
 		rk3036_hdmi_insert(hdmi_dev);
 		hdmi_parse_edid(hdmi_dev);
 		hdmi_find_best_mode(hdmi_dev);
-		hdmi_init_video_para(hdmi_dev);
 		rk3036_hdmi_set_pwr_mode(hdmi_dev, LOWER_PWR);
 		rk3036_hdmi_config_video(hdmi_dev);
 		//rk3036_hdmi_config_audio(hdmi_dev, &hdmi_dev->driver.audio);

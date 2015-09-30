@@ -89,29 +89,6 @@ enum {
 #define HDMI_AUDIO_DEFAULT_RATE			HDMI_AUDIO_FS_44100
 #define HDMI_AUDIO_DEFAULT_WORD_LENGTH	HDMI_AUDIO_WORD_LENGTH_16bit
 
-enum {
-	VIDEO_INPUT_RGB_YCBCR_444 = 0,
-	VIDEO_INPUT_YCBCR422,
-	VIDEO_INPUT_YCBCR422_EMBEDDED_SYNC,
-	VIDEO_INPUT_2X_CLOCK,
-	VIDEO_INPUT_2X_CLOCK_EMBEDDED_SYNC,
-	VIDEO_INPUT_RGB444_DDR,
-	VIDEO_INPUT_YCBCR422_DDR
-};
-
-enum {
-	VIDEO_OUTPUT_RGB444 = 0,
-	VIDEO_OUTPUT_YCBCR444,
-	VIDEO_OUTPUT_YCBCR422,
-	VIDEO_OUTPUT_YCBCR420
-};
-
-enum {
-	VIDEO_INPUT_COLOR_RGB = 0,
-	VIDEO_INPUT_COLOR_YCBCR444,
-	VIDEO_INPUT_COLOR_YCBCR422,
-	VIDEO_INPUT_COLOR_YCBCR420
-};
 /********************************************************************
 **                          ½á¹¹¶¨Òå                                *
 ********************************************************************/
@@ -426,25 +403,6 @@ struct hdmi_property {
 	void *priv;
 };
 
-/* RK HDMI Video Configure Parameters */
-struct hdmi_video_para {
-	int vic;
-	int input_mode;			/* input video data interface */
-	int input_color;		/* input video color mode */
-	int output_mode;		/* output hdmi or dvi */
-	int output_color;		/* output video color mode */
-	unsigned char format_3d;	/* output 3d format */
-	unsigned char color_depth;	/* color depth: 8bit; 10bit;
-					 * 12bit; 16bit;
-					 */
-	unsigned char pixel_repet;	/* pixel repettion */
-	unsigned char pixel_pack_phase;	/* pixel packing default phase */
-	unsigned char color_limit_range;	/* quantization range
-						 * 0: full range(0~255)
-						 * 1:limit range(16~235)
-						 */
-};
-
 // HDMI Information
 struct hdmi {
 	int id;						//HDMI id
@@ -532,8 +490,6 @@ struct hdmi_dev {
 	//unsigned short vic;
 
 	struct hdmi_video video;
-	//3036
-	struct hdmi_video_para vpara; 
 
 	char *pname;    //the partition name of save hdmi res
 	struct HW_BASE_PARAMETER base_paramer_hdmi;

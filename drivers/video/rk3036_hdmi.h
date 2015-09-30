@@ -64,6 +64,29 @@ enum {
 	CSC_RGB_0_255_TO_RGB_16_235_8BIT,	/* RGB 0-255 input to RGB 16-235 output that is 8bit clolor depth */
 };
 
+enum {
+	VIDEO_INPUT_RGB_YCBCR_444 = 0,
+	VIDEO_INPUT_YCBCR422,
+	VIDEO_INPUT_YCBCR422_EMBEDDED_SYNC,
+	VIDEO_INPUT_2X_CLOCK,
+	VIDEO_INPUT_2X_CLOCK_EMBEDDED_SYNC,
+	VIDEO_INPUT_RGB444_DDR,
+	VIDEO_INPUT_YCBCR422_DDR
+};
+
+enum {
+	VIDEO_OUTPUT_RGB444 = 0,
+	VIDEO_OUTPUT_YCBCR444,
+	VIDEO_OUTPUT_YCBCR422,
+	VIDEO_OUTPUT_YCBCR420
+};
+
+enum {
+	VIDEO_INPUT_COLOR_RGB = 0,
+	VIDEO_INPUT_COLOR_YCBCR444,
+	VIDEO_INPUT_COLOR_YCBCR422,
+	VIDEO_INPUT_COLOR_YCBCR420
+};
 //#ifdef RK616_USE_MCLK_12M
 //#define HDMI_SYS_FREG_CLK        12000000
 //#else
@@ -127,17 +150,25 @@ enum {
 	REVERT,
 	VIDEO_INPUT_8BITS
 };
+
 #define VIDEO_CONTRL			0x03
-#define m_VIDEO_AUTO_CSC	  (1 << 7)
-#define v_VIDEO_AUTO_CSC(n)	  (n << 7)
-#define m_VIDEO_C0_C2_EXCHANGE	  (1 << 0)
-#define v_VIDEO_C0_C2_EXCHANGE(n) (n << 0)
+#define m_VIDEO_AUTO_CSC		(1 << 7)
+#define v_VIDEO_AUTO_CSC(n)		(n << 7)
+#define m_VIDEO_C0_C2_SWAP		(1 << 0)
+#define v_VIDEO_C0_C2_SWAP(n)		(n << 0)
 
 #define VIDEO_CONTRL3			0x04
+#define m_COLOR_DEPTH_NOT_INDICATED (1 << 4)
 #define m_SOF			(1 << 3)
+#define m_COLOR_RANGE		(1 << 2)
 #define m_CSC			(1 << 0)
+#define v_COLOR_DEPTH_NOT_INDICATED(n) ((n) << 4) /*1: Force GCP CD[3:0] zero
+						    0: GCP CD[3:0] according
+						       color depth*/
 #define v_SOF_ENABLE		(0 << 3)
 #define v_SOF_DISABLE		(1 << 3)
+#define v_COLOR_RANGE_FULL	(1 << 2)
+#define v_COLOR_RANGE_LIMITED	(0 << 2)
 #define v_CSC_ENABLE		1
 #define v_CSC_DISABLE		0
 
