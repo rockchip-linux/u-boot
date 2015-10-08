@@ -199,6 +199,10 @@
 #define CONFIG_RKTRUST_PARAM_ADDR	(CONFIG_RAM_PHY_START + SZ_32M + SZ_2M) /* rk trust os banks address and size */
 
 
+/* rk hdmi device information buffer (start: 128M - size: 8K) */
+#define CONFIG_RKHDMI_PARAM_ADDR	CONFIG_RAM_PHY_END
+
+
 /*
  * SDRAM Memory Map
  * Even though we use two CS all the memory

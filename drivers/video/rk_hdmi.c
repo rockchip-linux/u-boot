@@ -278,8 +278,8 @@ static int inline read_deviceinfo_storage(struct hdmi_dev *hdmi_dev)
 	int ret = 0;
 	const disk_partition_t* ptn_deviceinfo;
 	char deviceinfo_buf[8 * RK_BLK_SIZE] __attribute__((aligned(ARCH_DMA_MINALIGN)));
-	char *p_deviceinfo = (char *)(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE);
-	char *p_baseparamer =  (char *)(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000);//4K
+	char *p_deviceinfo = (char *)(CONFIG_RKHDMI_PARAM_ADDR);
+	char *p_baseparamer =  (char *)(CONFIG_RKHDMI_PARAM_ADDR + 0x1000);//4K
 	int deviceinfo_reserve_on = 0;
 	int size = 0;
 	int node = 0;
