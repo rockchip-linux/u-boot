@@ -413,7 +413,7 @@ void board_fbt_preboot(void)
 
 #ifdef CONFIG_UBOOT_CHARGE
 	//check charge mode when no key pressed.
-	if ((((frt == FASTBOOT_REBOOT_NORMAL) || (frt == FASTBOOT_REBOOT_UNKNOWN)) && board_fbt_is_charging()) \
+	if (((frt == FASTBOOT_REBOOT_UNKNOWN) && board_fbt_is_charging()) \
 		|| (frt == FASTBOOT_REBOOT_CHARGE)) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
