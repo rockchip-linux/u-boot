@@ -35,20 +35,10 @@ extern void lcd_standby(int enable);
 extern int is_charging(void);
 extern void powerOn(void);
 
-static int g_cold_boot = 0;
-
 #if defined(CONFIG_RK_PWM_REMOTE)
 extern int g_ir_keycode;
 #endif
 
-
-/**
- * return 1 if is a cold boot.
- */
-int board_fbt_is_cold_boot(void)
-{
-	return g_cold_boot;
-}
 
 /**
  * return 1 if is charging.
@@ -93,10 +83,6 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 
 	uint32_t loader_flag = IReadLoaderFlag();
 	int reboot_mode = loader_flag ? (loader_flag & 0xFF) : BOOT_NORMAL;
-
-	if (!g_cold_boot) {
-		g_cold_boot = !loader_flag;
-	}
 
 	//set to non-0.
 	ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG | reboot_mode);
@@ -427,9 +413,8 @@ void board_fbt_preboot(void)
 
 #ifdef CONFIG_UBOOT_CHARGE
 	//check charge mode when no key pressed.
-	int cold_boot = board_fbt_is_cold_boot();
-	if ((cold_boot && board_fbt_is_charging())
-			|| frt == FASTBOOT_REBOOT_CHARGE) {
+	if ((((frt == FASTBOOT_REBOOT_NORMAL) || (frt == FASTBOOT_REBOOT_UNKNOWN)) && board_fbt_is_charging()) \
+		|| (frt == FASTBOOT_REBOOT_CHARGE)) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
 		if (logo_on && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
