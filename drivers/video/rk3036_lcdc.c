@@ -146,7 +146,7 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 	u32 val = 0;
 	struct rk_lvds_device *lvds = &rk31xx_lvds;
 
-	grf_writel(0xfff35555, GRF_GPIO2B_IOMUX);
+	grf_writel(0xffff5555, GRF_GPIO2B_IOMUX);
 	grf_writel(0x00ff0055, GRF_GPIO2C_IOMUX);
 	grf_writel(0x77771111, GRF_GPIO2C_IOMUX2);
 	grf_writel(0x700c1004, GRF_GPIO2D_IOMUX);
