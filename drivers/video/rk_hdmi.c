@@ -357,24 +357,17 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
 	int i, ret = 0;
 	const disk_partition_t* ptn_baseparamer;
 	char baseparamer_buf[8 * RK_BLK_SIZE] __attribute__((aligned(ARCH_DMA_MINALIGN)));
-	char *p_baseparamer = (char *)(CONFIG_RAM_PHY_START + CONFIG_RAM_PHY_SIZE + 0x1000);//4K
 	struct hdmi_video_timing *modedb;
 
 	if (!hdmi_dev)
 		goto err;
 
-	memset(p_baseparamer, 0, 4096);
-
 	ptn_baseparamer = get_disk_partition("baseparamer");
-	if (ptn_baseparamer)
-	{
-		if (StorageReadLba(ptn_baseparamer->start, baseparamer_buf, 8) < 0)
-		{
+	if (ptn_baseparamer) {
+		if (StorageReadLba(ptn_baseparamer->start, baseparamer_buf, 8) < 0) {
 			printf("%s: Failed Read baseparamer Partition data\n", __func__);
 			goto err;
 		}
-
-		memcpy(p_baseparamer, baseparamer_buf, sizeof(baseparamer_buf));
 
 		memcpy(&hdmi_dev->base_paramer_hdmi.xres, &baseparamer_buf[0], sizeof(hdmi_dev->base_paramer_hdmi.xres));
 		memcpy(&hdmi_dev->base_paramer_hdmi.yres, &baseparamer_buf[4], sizeof(hdmi_dev->base_paramer_hdmi.yres));
@@ -466,20 +459,7 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
                         printf("tve baseparamer %dx%d@%d-%d\n", hdmi_dev->base_paramer_tve.xres, hdmi_dev->base_paramer_tve.yres, hdmi_dev->base_paramer_tve.refresh, hdmi_dev->base_paramer_tve.interlaced);
                 }
 #endif
-    }
-	
-#if 0
-	p = p_baseparamer;
-	for(i=0; i<4096; i++)
-	{
-			printf("%x ",*p);
-			if((i > 0) && (i % 32)== 0)
-			printf("\nnum=%d\n",i/32);
-			p++;
 	}
-	printf("\n");
-#endif
-
 
 err:
 	return ret;
