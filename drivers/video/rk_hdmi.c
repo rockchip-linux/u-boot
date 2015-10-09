@@ -214,7 +214,7 @@ static int hdmi_feature_filter(struct hdmi_dev *hdmi_dev,
 
 static int hdmi_parse_dts(struct hdmi_dev *hdmi_dev)
 {
-	int node;
+	int node, val;
 
 	hdmi_dev->defaultmode = 0;
 	if (gd->fdt_blob) {
@@ -241,6 +241,16 @@ static int hdmi_parse_dts(struct hdmi_dev *hdmi_dev)
 		hdmi_dev->phy_pre_emphasis =
 				fdtdec_get_int(gd->fdt_blob, node,
 					       "phy_pre_emphasis", 0);
+
+		if (fdt_getprop(gd->fdt_blob, node,
+				"rockchip,phy_table", &val)) {
+			hdmi_dev->phy_table_size =
+				val / sizeof(struct hdmi_dev_phy_para);
+			fdtdec_get_int_array_count(gd->fdt_blob, node,
+						   "rockchip,phy_table",
+						   (u32 *)hdmi_dev->phy_table,
+						   val / sizeof(u32));
+		}
 	}
 //	printf("%s default mode is %d\n", __func__, hdmi_dev->defaultmode);
 //	printf("%s:phy_pre_emphasis=0x%x\n",__func__,hdmi_dev->phy_pre_emphasis);

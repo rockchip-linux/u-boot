@@ -462,20 +462,30 @@ struct hdcp_keys {
 	u8 seeds[HDCP_KEY_SEED_SIZE];
 };
 
+struct hdmi_dev_phy_para {
+	u32 maxfreq;
+	int pre_emphasis;
+	int slopeboost;
+	int clk_level;
+	int data0_level;
+	int data1_level;
+	int data2_level;
+};
+
 #define HDMI_VICDB_LEN 50
 struct hdmi_dev {
-	void   		   *regbase;
-	struct hdmi    driver;
+	void		*regbase;
+	struct hdmi	driver;
 	int		feature;
-	unsigned long  pixelclk;
-	unsigned long  tmdsclk;
-	unsigned int   pixelrepeat;
-	unsigned char  colordepth;
+	unsigned long	pixelclk;
+	unsigned long	tmdsclk;
+	unsigned int	pixelrepeat;
+	unsigned char	colordepth;
 	unsigned int	defaultmode;
 	char		compatible[32];
 	int		vic;
 	int		tmdsclk_ratio_change;
-	
+
 	//hdcp
 	unsigned int	hdcp_enable;
 	struct hdcp_keys *keys;
@@ -486,8 +496,10 @@ struct hdmi_dev {
 
 	const struct hdmi_video_timing *modedb;
 	unsigned short mode_len;
+	
 	unsigned int	phy_pre_emphasis;
-	//unsigned short vic;
+	struct hdmi_dev_phy_para *phy_table;
+	int		phy_table_size;
 
 	struct hdmi_video video;
 

@@ -1001,19 +1001,20 @@ static int rk32_hdmi_config_phy(struct hdmi_dev *hdmi_dev)
 				    v_MPLL_GMP_CNTRL(phy_mpll->gmp_cntrl));
 	}
 
-	rk32_hdmi_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL,
-			    v_OVERRIDE(1) | v_SLOPEBOOST(0) |
-			    v_TX_SYMON(1) | v_TX_TRAON(0) |
-			    v_TX_TRBON(0) | v_CLK_SYMON(1));
-	if (hdmi_dev->tmdsclk > 340000000) {
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS,
-				    v_TX_TERM(R50_OHMS));
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL,
-				    v_SUP_TXLVL(9) | v_SUP_CLKLVL(17));
-	} else {
-		rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS,
-				    v_TX_TERM(R100_OHMS));
-		if (hdmi_dev->tmdsclk > 165000000)
+	if (hdmi_dev->phy_table) {
+		for (i = 0; i < hdmi_dev->phy_table_size; i++)
+			if (hdmi_dev->tmdsclk <= hdmi_dev->phy_table[i].maxfreq)
+				break;
+	}
+	if (i == hdmi_dev->phy_table_size) {
+		rk32_hdmi_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL,
+				    v_OVERRIDE(1) | v_SLOPEBOOST(0) |
+				    v_TX_SYMON(1) | v_CLK_SYMON(1) |
+				    v_PREEMPHASIS(0));
+		if (hdmi_dev->tmdsclk > 340000000)
+			rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL,
+					    v_SUP_TXLVL(9) | v_SUP_CLKLVL(17));
+		else if (hdmi_dev->tmdsclk > 165000000)
 			rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL,
 					    v_SUP_TXLVL(14) |
 					    v_SUP_CLKLVL(17));
@@ -1021,7 +1022,22 @@ static int rk32_hdmi_config_phy(struct hdmi_dev *hdmi_dev)
 			rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL,
 					    v_SUP_TXLVL(18) |
 					    v_SUP_CLKLVL(17));
+	} else {
+		stat = v_OVERRIDE(1) | v_TX_SYMON(1) | v_CLK_SYMON(1) |
+		       v_PREEMPHASIS(hdmi_dev->phy_table[i].pre_emphasis) |
+		       v_SLOPEBOOST(hdmi_dev->phy_table[i].slopeboost);
+		rk32_hdmi_write_phy(hdmi_dev, PHYTX_CLKSYMCTRL, stat);
+
+		stat = v_SUP_CLKLVL(hdmi_dev->phy_table[i].clk_level) |
+		       v_SUP_TXLVL(hdmi_dev->phy_table[i].data0_level);
+		rk32_hdmi_write_phy(hdmi_dev, PHYTX_VLEVCTRL, stat);
 	}
+	if (hdmi_dev->tmdsclk > 340000000)
+		rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS,
+				    v_TX_TERM(R50_OHMS));
+	else
+		rk32_hdmi_write_phy(hdmi_dev, PHYTX_TERM_RESIS,
+				    v_TX_TERM(R100_OHMS));
 	/* rk32_hdmi_write_phy(hdmi_dev, 0x05, 0x8000); */
 
 	if (hdmi_dev->tmdsclk_ratio_change)
@@ -1031,6 +1047,7 @@ static int rk32_hdmi_config_phy(struct hdmi_dev *hdmi_dev)
 
 	/* check if the PHY PLL is locked */
 	#define PHY_TIMEOUT	10000
+	i = 0;
 	while (i++ < PHY_TIMEOUT) {
 		if ((i % 100) == 0) {
 			stat = hdmi_readl(hdmi_dev, PHY_STAT0);
