@@ -468,10 +468,16 @@ static int rk3036_hdmi_config_video(struct hdmi_dev *hdmi_dev)
 	hdmi_writel(hdmi_dev, VIDEO_CONTRL1,
 		    v_VIDEO_INPUT_FORMAT(VIDEO_INPUT_SDR_RGB444) |
 		    v_DE_EXTERNAL);
-	val = v_VIDEO_INPUT_BITS(VIDEO_INPUT_8BITS) |
-		    v_VIDEO_OUTPUT_FORMAT((vpara->color_output - 2) & 0x3) |
-		    v_VIDEO_INPUT_CSP((vpara->color_input - 2) & 0x1);
-	hdmi_writel(hdmi_dev, VIDEO_CONTRL2,val);
+	val = v_VIDEO_INPUT_BITS(VIDEO_INPUT_8BITS);
+	if (vpara->color_output < HDMI_COLOR_YCBCR444)
+		val |= v_VIDEO_OUTPUT_FORMAT(VIDEO_INPUT_COLOR_RGB);
+	else
+		val |= v_VIDEO_OUTPUT_FORMAT((vpara->color_output - 2) & 0x3);
+	if (vpara->color_input < HDMI_COLOR_YCBCR444)
+		val |= v_VIDEO_INPUT_CSP(VIDEO_INPUT_COLOR_RGB);
+	else
+		val |= v_VIDEO_INPUT_CSP(VIDEO_INPUT_COLOR_YCBCR444);
+	hdmi_writel(hdmi_dev, VIDEO_CONTRL2, val);
 
 	/* Set HDMI Mode */
 	hdmi_writel(hdmi_dev, HDCP_CTRL, v_HDMI_DVI(vpara->sink_hdmi));
