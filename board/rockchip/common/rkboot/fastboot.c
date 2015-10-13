@@ -39,6 +39,9 @@ extern void powerOn(void);
 extern int g_ir_keycode;
 #endif
 
+#ifdef CONFIG_LCD
+int g_logo_on_state = 0;
+#endif
 
 /**
  * return 1 if is charging.
@@ -393,17 +396,19 @@ void board_fbt_preboot(void)
 	board_fbt_low_power_check();
 #endif
 
-	int logo_on = 0;
 #ifdef CONFIG_LCD
+	/* logo state defautl init = 0 */
+	g_logo_on_state = 0;
+
 	if (gd->fdt_blob) {
 		int node = fdt_path_offset(gd->fdt_blob, "/fb");
-		logo_on = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-logo-on", 0);
+		g_logo_on_state = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-logo-on", 0);
 	}
-	printf("read logo_on switch from dts [%d]\n", logo_on);
+	printf("read logo on state from dts [%d]\n", g_logo_on_state);
 
-	if (logo_on) {
+	if (g_logo_on_state != 0) {
 		lcd_enable_logo(true);
-		drv_lcd_init();   //move backlight enable to board_init_r, for don't show logo in rockusb
+		drv_lcd_init();
 	}
 #endif
 
@@ -417,7 +422,7 @@ void board_fbt_preboot(void)
 		|| (frt == FASTBOOT_REBOOT_CHARGE)) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
-		if (logo_on && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
+		if ((g_logo_on_state != 0) && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
 			//boot from charge animation.
 			frt = FASTBOOT_REBOOT_NORMAL;
 			lcd_clear();
@@ -431,7 +436,7 @@ void board_fbt_preboot(void)
 	powerOn();
 
 #ifdef CONFIG_LCD
-	if (logo_on) {
+	if (g_logo_on_state != 0) {
 		//lcd_enable_logo(true);
 		lcd_standby(0);
 		//mdelay(100);

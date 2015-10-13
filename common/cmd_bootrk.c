@@ -15,6 +15,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_LCD
+extern int g_logo_on_state;
+#endif
+
 #if defined(CONFIG_RK_HDMI)
 extern int g_hdmi_vic;
 #endif
@@ -450,13 +454,15 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 	 * size - fb size, address - fb address, offset - kernel bmp logo offset.
 	 * offset is optional, depend on resource image has kernel_logo.bmp.
 	 */
-	snprintf(command_line, sizeof(command_line),
-			"%s uboot_logo=0x%08x@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
-#if defined(CONFIG_KERNEL_LOGO)
-	if (g_rk_fb_size != -1)
+	if (g_logo_on_state != 0) {
 		snprintf(command_line, sizeof(command_line),
-				"%s:0x%08x", command_line, g_rk_fb_size);
+				"%s uboot_logo=0x%08x@0x%08lx", command_line, CONFIG_RK_LCD_SIZE, gd->fb_base);
+#if defined(CONFIG_KERNEL_LOGO)
+		if (g_rk_fb_size != -1)
+			snprintf(command_line, sizeof(command_line),
+					"%s:0x%08x", command_line, g_rk_fb_size);
 #endif /* CONFIG_KERNEL_LOGO */
+	}
 #endif /* CONFIG_RK_FB_DDREND */
 
 	snprintf(command_line, sizeof(command_line),
@@ -529,7 +535,10 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 	}
 #if defined(CONFIG_LCD) && defined(CONFIG_KERNEL_LOGO)
-	rk_load_kernel_logo();
+	/* if uboot logo enable, load logo */
+	if (g_logo_on_state != 0) {
+		rk_load_kernel_logo();
+	}
 #endif
 
 #if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FG_ADC)
