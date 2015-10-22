@@ -1250,21 +1250,98 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 }
 
 /*
+ * rk mmc clock source
+ * 0: codec pll; 1: general pll; 2: 24M
+ */
+enum {
+	MMC_CODEC_PLL = 0,
+	MMC_GENERAL_PLL = 1,
+	MMC_24M_PLL = 2,
+
+	MMC_MAX_PLL
+};
+
+/* 0: codec pll; 1: general pll; 2: 24M */
+static inline uint32 rkclk_mmc_pll_sel2set(uint32 pll_sel)
+{
+	uint32 pll_set;
+
+	switch (pll_sel) {
+		case MMC_CODEC_PLL:
+			pll_set = 0;
+			break;
+		case MMC_GENERAL_PLL:
+			pll_set = 1;
+			break;
+		case MMC_24M_PLL:
+			pll_set = 2;
+			break;
+		default:
+			pll_set = 2;
+			break;
+	}
+
+	return pll_set;
+}
+
+static inline uint32 rkclk_mmc_pll_set2sel(uint32 pll_set)
+{
+	if (pll_set == 0) {
+		return MMC_CODEC_PLL;
+	} else if (pll_set == 1) {
+		return MMC_GENERAL_PLL;
+	} else if (pll_set == 2) {
+		return MMC_24M_PLL;
+	} else {
+		return MMC_MAX_PLL;
+	}
+}
+
+static inline uint32 rkclk_mmc_pll_sel2rate(uint32 pll_sel)
+{
+	if (pll_sel == MMC_CODEC_PLL) {
+		return gd->pci_clk;
+	} else if (pll_sel == MMC_GENERAL_PLL) {
+		return gd->bus_clk;
+	} else if (pll_sel == MMC_24M_PLL) {
+		return (24 * MHZ);
+	} else {
+		return 0;
+	}
+}
+
+static inline uint32 rkclk_mmc_pll_rate2sel(uint32 pll_rate)
+{
+	if (pll_rate == gd->pci_clk) {
+		return MMC_CODEC_PLL;
+	} else if (pll_rate == gd->bus_clk) {
+		return MMC_GENERAL_PLL;
+	} else if (pll_rate == (24 * MHZ)) {
+		return MMC_24M_PLL;
+	} else {
+		return MMC_MAX_PLL;
+	}
+}
+
+/*
  * rkplat set mmc clock source
  * 0: codec pll; 1: general pll; 2: 24M
  */
 void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src)
 {
-	src &= 0x03;
+	uint32 set = 0;
+
+	set = rkclk_mmc_pll_sel2set(src);
+
 	if (0 == sdid) {
 		/* sdmmc */
-		cru_writel((src << 6) | (0x03 << (6 + 16)), CRU_CLKSELS_CON(11));
+		cru_writel((set << 6) | (0x03 << (6 + 16)), CRU_CLKSELS_CON(11));
 	} else if (1 == sdid) {
 		/* sdio0 */
-		cru_writel((src << 6) | (0x03 << (6 + 16)), CRU_CLKSELS_CON(12));
+		cru_writel((set << 6) | (0x03 << (6 + 16)), CRU_CLKSELS_CON(12));
 	} else if (2 == sdid) {
 		/* emmc */
-		cru_writel((src << 14) | (0x03 << (14 + 16)), CRU_CLKSELS_CON(12));
+		cru_writel((set << 14) | (0x03 << (14 + 16)), CRU_CLKSELS_CON(12));
 	}
 }
 
@@ -1280,29 +1357,20 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
 	if (0 == sdid) {
 		/* sdmmc */
 		con =  cru_readl(CRU_CLKSELS_CON(11));
-		sel = (con >> 6) & 0x3;
+		sel = rkclk_mmc_pll_set2sel((con >> 6) & 0x3);
 	} else if (1 == sdid) {
 		/* sdio0 */
 		con =  cru_readl(CRU_CLKSELS_CON(12));
-		sel = (con >> 6) & 0x3;
+		sel = rkclk_mmc_pll_set2sel((con >> 6) & 0x3);
 	} else if (2 == sdid) {
 		/* emmc */
 		con =  cru_readl(CRU_CLKSELS_CON(12));
-		sel = (con >> 14) & 0x3;
+		sel = rkclk_mmc_pll_set2sel((con >> 14) & 0x3);
 	} else {
 		return 0;
 	}
 
-	/* rk3288 sd clk pll can be from 24M/general pll/codec pll, defualt 24M */
-	if (sel == 0) {
-		return gd->pci_clk;
-	} else if (sel == 1) {
-		return gd->bus_clk;
-	} else if (sel == 2) {
-		return (24 * MHZ);
-	} else {
-		return 0;
-	}
+	return rkclk_mmc_pll_sel2rate(sel);
 }
 
 
@@ -1352,7 +1420,7 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 
 	if (freq <= (12 * MHZ))
 	{
-		clksel = 2;         //select 24 MHZ
+		clksel = MMC_24M_PLL;         //select 24 MHZ
 		src_div = (src_freqs[2] + freq - 1) / freq;
 		if (((src_div & 0x1) == 1) && (src_div != 1))
 			src_div++;
@@ -1373,7 +1441,7 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 			if (clk_freq > pre_clk_freq)
 			{
 				pre_clk_freq = clk_freq;
-				clksel = i;
+				clksel = rkclk_mmc_pll_rate2sel(src_freqs[i] * 2);
 				src_div = div;
 			}
 		}
@@ -1387,7 +1455,7 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 	rkclk_set_mmc_clk_src(sdid, clksel);
 	rkclk_set_mmc_clk_div(sdid, src_div);
 
-	return (src_freqs[clksel] / src_div);
+	return (rkclk_mmc_pll_sel2rate(clksel) / 2 / src_div);
 }
 
 
