@@ -389,7 +389,11 @@ static int rkimg_handleDirectDownload(unsigned char *buffer,
 	FBTDBG("direct download, size:%d, offset:%lld, rest:%lld\n",
 			size, priv->d_direct_offset, priv->d_direct_size - write_len);
 
-	if(StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->start,
+	/**
+	 * Don't know why, but sometimes sparse image would have zero size blocks...
+	 * After ignore it, everything seems fine...
+	 */
+	if(blocks && StorageWriteLba(priv->d_direct_offset + priv->pending_ptn->start,
 				buffer, blocks, 0)) {
 		FBTDBG("rkimg_handleDirectDownload failed\n");
 		return -1;
