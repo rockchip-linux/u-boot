@@ -487,7 +487,8 @@ struct urb {
 	urb_send_status_t status;
 	int data;
 
-	u16 buffer_data[URB_BUF_SIZE];	/* data received (OUT) or being sent (IN) */
+	/* data received (OUT) or being sent (IN) */
+	u16 buffer_data[URB_BUF_SIZE] __attribute__((aligned(ARCH_DMA_MINALIGN)));
 };
 
 /* Endpoint configuration

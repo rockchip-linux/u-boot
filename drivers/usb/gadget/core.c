@@ -542,7 +542,7 @@ struct urb *usbd_alloc_urb (struct usb_device_instance *device,
 {
 	struct urb *urb;
 
-	if (!(urb = (struct urb *) malloc (sizeof (struct urb)))) {
+	if (!(urb = (struct urb *) memalign (ARCH_DMA_MINALIGN, sizeof (struct urb)))) {
 		usberr (" F A T A L:  malloc(%zu) FAILED!!!!",
 			sizeof (struct urb));
 		return NULL;
