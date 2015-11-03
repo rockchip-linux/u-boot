@@ -1,3 +1,8 @@
+/*
+ * (C) Copyright 2008-2014 Rockchip Electronics
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef __RT5025_PMIC_H__
 #define __RT5025_PMIC_H__
 #include <power/pmic.h>

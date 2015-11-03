@@ -1,8 +1,10 @@
 /*
- *  Copyright (C) 2012 rockchips
- *  zhangqing < zhangqing@rock-chips.com >
+ * Copyright (C) 2012 rockchips
+ * zhangqing < zhangqing@rock-chips.com >
  * andy <yxj@rock-chips.com>
- *  for sample
+ * for sample
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>

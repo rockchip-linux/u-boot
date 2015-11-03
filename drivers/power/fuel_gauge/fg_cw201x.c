@@ -1,3 +1,8 @@
+/*
+ * (C) Copyright 2008-2015 Rockchip Electronics
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #include <common.h>
 #include <malloc.h>
 #include <fdtdec.h>

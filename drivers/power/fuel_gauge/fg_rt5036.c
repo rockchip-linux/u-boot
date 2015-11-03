@@ -2,6 +2,8 @@
  *  Copyright (C) 2013 rockchips
  *  zhangqing< zhangqing@rock-chips.com >
  *  for battery driver sample
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
