@@ -1,6 +1,7 @@
 /*
- * (C) Copyright 2014 Kever Yang , Fuzhou Rockchip Electronic Ltd.Co
+ * (C) Copyright 2014 Kever Yang, Fuzhou Rockchip Electronic Ltd.Co
  *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>

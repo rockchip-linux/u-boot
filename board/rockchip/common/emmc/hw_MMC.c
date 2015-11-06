@@ -1,14 +1,8 @@
-/****************************************************************
-//    CopyRight(C) 2008 by Rock-Chip Fuzhou
-//      All Rights Reserved
-//文件名:hw_MMC.c
-//描述:MMC protocol implement
-//作者:hcy
-//创建日期:2008-11-08
-//更改记录:
-//当前版本:1.00
-$Log: hw_MMC.c,v $
-****************************************************************/
+/*
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #include "sdmmc_config.h"
 
 //#define CONFIG_EMMC_PARTITION

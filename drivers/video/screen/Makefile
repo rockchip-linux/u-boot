@@ -1,5 +1,5 @@
 #
-# (C) Copyright 2000-2007
+# (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 #
 # SPDX-License-Identifier:	GPL-2.0+

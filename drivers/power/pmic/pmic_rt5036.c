@@ -1,7 +1,8 @@
 /*
- *  Copyright (C) 2012 rockchips
- *  zhangqing < zhangqing@rock-chips.com >
- *  for sample
+ * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * zhangqing < zhangqing@rock-chips.com >
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #define DEBUG

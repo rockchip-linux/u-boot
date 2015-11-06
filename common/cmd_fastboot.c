@@ -1,4 +1,6 @@
 /*
+ * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
  * Copyright (C) 2011 Google, Inc.
  *
  * Copyright (C) 2010 Texas Instruments

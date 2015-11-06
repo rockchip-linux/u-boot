@@ -1,3 +1,8 @@
+/*
+ * (C) Copyright 2008-2014 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef _SHA256_H
 #define _SHA256_H
 

@@ -1,3 +1,8 @@
+/*
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef _PMIC_ACT8931_H_
 #define _PMIC_ACT8931_H_
 

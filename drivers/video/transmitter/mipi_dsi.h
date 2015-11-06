@@ -1,6 +1,12 @@
 /*
-drivers/video/rockchip/transmitter/mipi_dsi.h
-*/
+ * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * drivers/video/rockchip/transmitter/mipi_dsi.h
+ * author: libing@rock-chips.com
+ * create date: 2014-04-10
+ * debug /sys/kernel/debug/mipidsi*
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef MIPI_DSI_H_
 #define MIPI_DSI_H_
 

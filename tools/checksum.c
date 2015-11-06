@@ -1,3 +1,8 @@
+/*
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #include <sys/stat.h>
 #include <stdio.h>
 #include <stdint.h>

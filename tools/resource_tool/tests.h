@@ -1,3 +1,8 @@
+/*
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 typedef struct {
     char     path[MAX_INDEX_ENTRY_PATH_LEN];
     uint32_t content_offset;//blocks, offset of resource content.

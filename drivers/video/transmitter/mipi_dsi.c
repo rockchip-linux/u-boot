@@ -1,16 +1,10 @@
 /*
- * Copyright (C) 2013 ROCKCHIP, Inc.
+ * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
  * drivers/video/display/transmitter/mipi_dsi.c
  * author: hhb@rock-chips.com
  * create date: 2013-01-17
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #ifndef CONFIG_MIPI_DSI
 #include <common.h>

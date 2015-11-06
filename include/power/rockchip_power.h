@@ -1,3 +1,8 @@
+/*
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef __ROCKCHIP_PMIC_H_
 #define __ROCKCHIP_PMIC_H_
 #include <power/pmic.h>

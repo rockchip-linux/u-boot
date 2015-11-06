@@ -1,3 +1,8 @@
+/*
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef RK3368_LCDC_H_
 #define RK3368_LCDC_H_
 #include <common.h>

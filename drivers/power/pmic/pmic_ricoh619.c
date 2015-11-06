@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2012 rockchips
+ *  Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
  * yxj <yxj@rock-chips.com>
  * 
  */

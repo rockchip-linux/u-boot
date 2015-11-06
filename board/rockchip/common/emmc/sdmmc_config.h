@@ -1,14 +1,8 @@
-/******************************************************************/
-/*	Copyright (C)  ROCK-CHIPS FUZHOU . All Rights Reserved.  	  */
-/*******************************************************************
-File    :   driver.h
-Desc    :   包含驱动层的所有驱动头文件，
-            驱动.c文件中应只包含这一个头文件。
-Author  :   rk28 driver
-Date    :   2008-11-18
-Notes   :   
-$Log: drivers.h,v $
-********************************************************************/
+/*
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #ifndef _EMMC_CONFIG_H
 #define _EMMC_CONFIG_H
 

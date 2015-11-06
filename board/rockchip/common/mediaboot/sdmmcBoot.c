@@ -1,15 +1,8 @@
-/********************************************************************************
-*********************************************************************************
-			COPYRIGHT (c)   2004 BY ROCK-CHIP FUZHOU
-				--  ALL RIGHTS RESERVED  --
-
-File Name:  flash.C
-Author:     XUESHAN LIN
-Created:    1st Dec 2008
-Modified:
-Revision:   1.00
-********************************************************************************
-********************************************************************************/
+/*
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
 #include	"../emmc/sdmmc_config.h"
 
 #ifdef  DRIVERS_SDMMC

@@ -10,6 +10,8 @@
  *
  * DDC is a Trademark of VESA (Video Electronics Standard Association).
  *
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file COPYING in the main directory of this archive
  * for more details.

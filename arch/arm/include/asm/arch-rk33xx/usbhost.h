@@ -1,5 +1,7 @@
 /*
- * (C) Copyright 2008-2015 Rockchip Electronics
+ * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 #ifndef _USBHOST_H_
 #define _USBHOST_H_

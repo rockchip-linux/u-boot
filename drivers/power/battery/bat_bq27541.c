@@ -1,7 +1,8 @@
 /*
- *  Copyright (C) 2012 rockchip Electronics
+ *  Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
  *  zyw <zyw@rock-chips.com>
- * 
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include <common.h>
