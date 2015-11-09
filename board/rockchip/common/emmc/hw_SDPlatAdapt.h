@@ -1,8 +1,14 @@
-/*
- * (C) Copyright 2008-2015 Rockchip Electronics
- *
- * SPDX-License-Identifier:	GPL-2.0+
- */
+/****************************************************************
+//    CopyRight(C) 2008 by Rock-Chip Fuzhou
+//      All Rights Reserved
+//文件名:hw_SDPlatAdapt.h
+//描述:RK28 SD/MMC driver Platform adaptation head file
+//作者:hcy
+//创建日期:2008-11-08
+//更改记录:
+//当前版本:1.00
+$Log: hw_SDPlatAdapt.h,v $
+****************************************************************/
 #ifdef DRIVERS_SDMMC
 
 #ifndef _SDPAM_H_

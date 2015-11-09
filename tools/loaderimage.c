@@ -1,8 +1,3 @@
-/*
- * (C) Copyright 2008-2015 Rockchip Electronics
- *
- * SPDX-License-Identifier:	GPL-2.0+
- */
 #include "compiler.h"
 #include <version.h>
 #include <sha.h>
