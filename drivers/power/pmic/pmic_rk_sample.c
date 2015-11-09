@@ -1,9 +1,7 @@
 /*
- * Copyright (C) 2012 rockchips
- * zyw < zyw@rock-chips.com >
- * for sample
- *
- * SPDX-License-Identifier:	GPL-2.0+
+ *  Copyright (C) 2012 rockchips
+ *  zyw < zyw@rock-chips.com >
+ *  for sample
  */
 
 #include <common.h>

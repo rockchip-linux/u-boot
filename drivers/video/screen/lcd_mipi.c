@@ -3,8 +3,14 @@
  * drivers/video/rockchip/screen/lcd_mipi.c
  * author: libing@rock-chips.com
  * create date: 2014-04-10
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- * SPDX-License-Identifier:	GPL-2.0+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #ifndef CONFIG_LCD_MIPI

@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2012 rockchips
- * zyw < zyw@rock-chips.com >
+ *  Copyright (C) 2012 rockchips
+ *  zyw < zyw@rock-chips.com >
  * yxj <yxj@rock-chips.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
+ * 
  */
 
 /*#define DEBUG*/

@@ -1,8 +1,3 @@
-/*
- * (C) Copyright 2008-2014 Rockchip Electronics
- *
- * SPDX-License-Identifier:	GPL-2.0+
- */
 #include <common.h>
 #include <asm/io.h>
 #include <lcd.h>

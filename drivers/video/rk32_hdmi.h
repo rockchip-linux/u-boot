@@ -1,7 +1,6 @@
 /*
  * (C) Copyright 2008-2014 Rockchip Electronics
  *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 #ifndef _RK32_HDMI_H
 #define _RK32_HDMI_H
