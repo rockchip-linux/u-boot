@@ -42,10 +42,10 @@ extern  uint32	FW_StorageGetValid(void);
 extern  uint32	FW_GetCurEraseBlock(void);
 extern  uint32	FW_GetTotleBlk(void);
 
-extern  int StorageWriteLba(uint32 LBA, void *pbuf, uint16 nSec, uint16 mode);
-extern  int StorageReadLba(uint32 LBA, void *pbuf, uint16 nSec);
-extern  int StorageReadPba(uint32 PBA, void *pbuf, uint16 nSec);
-extern  int StorageWritePba(uint32 PBA, void *pbuf, uint16 nSec);
+extern  int StorageWriteLba(uint32 LBA, void *pbuf, uint32 nSec, uint16 mode);
+extern  int StorageReadLba(uint32 LBA, void *pbuf, uint32 nSec);
+extern  int StorageReadPba(uint32 PBA, void *pbuf, uint32 nSec);
+extern  int StorageWritePba(uint32 PBA, void *pbuf, uint32 nSec);
 extern  uint32 StorageGetCapacity(void);
 extern  uint32 StorageSysDataLoad(uint32 Index, void *Buf);
 extern  uint32 StorageSysDataStore(uint32 Index, void *Buf);
@@ -121,8 +121,8 @@ typedef PACKED1  struct  _FLASH_INFO//ÐèÒª¼Ó__packed»ò×ÅÉùÃ÷Ê±4¶ÔÆë²»È»³ÌÐò¿ÉÄÜÔ
 
 //for nand
 typedef uint32 (*Memory_GetBlkSize)(void);
-typedef uint32 (*Memory_FlashReadLba)(uint8 ChipSel, uint32 LBA, uint16 nSec, void *pbuf);
-typedef uint32 (*Memory_FlashWriteLba)(uint8 ChipSel, uint32 LBA, uint16 nSec, void *pbuf);
+typedef uint32 (*Memory_FlashReadLba)(uint8 ChipSel, uint32 LBA, uint32 nSec, void *pbuf);
+typedef uint32 (*Memory_FlashWriteLba)(uint8 ChipSel, uint32 LBA, uint32 nSec, void *pbuf);
 typedef uint32 (*Memory_ftl_deinit)(void);
 typedef uint32 (*Memory_flash_deinit)(void);
 typedef void   (*uart_Trace)(const char* Format, ...);

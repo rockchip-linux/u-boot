@@ -247,7 +247,7 @@ uint32 FW_GetTotleBlk(void)
 	return totle;
 }
 
-int StorageReadPba(uint32 PBA, void *pbuf, uint16 nSec)
+int StorageReadPba(uint32 PBA, void *pbuf, uint32 nSec)
 {
 	int ret = FTL_ERROR;
 
@@ -259,7 +259,7 @@ int StorageReadPba(uint32 PBA, void *pbuf, uint16 nSec)
 	return ret;
 }
 
-int StorageWritePba(uint32 PBA, void *pbuf, uint16 nSec)
+int StorageWritePba(uint32 PBA, void *pbuf, uint32 nSec)
 {
 	int ret = FTL_ERROR;
 
@@ -271,7 +271,7 @@ int StorageWritePba(uint32 PBA, void *pbuf, uint16 nSec)
 	return ret;
 }
 
-int StorageReadLba(uint32 LBA, void *pbuf, uint16 nSec)
+int StorageReadLba(uint32 LBA, void *pbuf, uint32 nSec)
 {
 	int ret = FTL_ERROR;
 
@@ -283,7 +283,7 @@ int StorageReadLba(uint32 LBA, void *pbuf, uint16 nSec)
 	return ret;
 }
 
-int StorageWriteLba(uint32 LBA, void *pbuf, uint16 nSec, uint16 mode)
+int StorageWriteLba(uint32 LBA, void *pbuf, uint32 nSec, uint16 mode)
 {
 	int ret = FTL_ERROR;
 
