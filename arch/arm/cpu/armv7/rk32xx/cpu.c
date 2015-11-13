@@ -99,6 +99,9 @@ int arch_cpu_init(void)
 	/* set vop qos to highest priority */
 	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0408);
 	writel(CPU_AXI_QOS_PRIORITY_LEVEL(2, 2), 0xffad0008);
+
+	/* use rk pwm */
+	grf_writel(0x00010001, 0x024c);
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)

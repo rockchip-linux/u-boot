@@ -144,8 +144,8 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
 
 void rk_backlight_ctrl(int brightness)
 {
-#ifdef CONFIG_RK_PWM
-	rk_pwm_config(brightness);
+#ifdef CONFIG_RK_PWM_BL
+	rk_pwm_bl_config(brightness);
 #endif
 }
 

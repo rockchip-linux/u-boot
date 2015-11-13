@@ -28,7 +28,6 @@
 
 #include "clock.h"
 #include "uart.h"
-#include "pwm.h"
 #include "i2c.h"
 #include "pm.h"
 

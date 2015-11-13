@@ -132,4 +132,6 @@ void lcd_pandispaly(struct fb_dsp_info *info);
 int rk_fb_pwr_enable(struct rockchip_fb *fb);
 int rk_fb_pwr_disable(struct rockchip_fb *fb);
 
+int rk_pwm_bl_config(int brightness);
+
 #endif /* __ROCKCHIP_H__ */

@@ -163,7 +163,7 @@
 #else
 
 #undef CONFIG_RK_FB
-#undef CONFIG_RK_PWM
+#undef CONFIG_RK_PWM_BL
 #undef CONFIG_RK_HDMI
 #undef CONFIG_CMD_BMP
 #undef CONFIG_UBOOT_CHARGE

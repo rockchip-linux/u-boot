@@ -54,5 +54,6 @@ obj-$(CONFIG_RK1000_TVE) += rk1000_tve.o
 obj-$(CONFIG_GM7122_TVE) += gm7122_tve.o
 obj-$(CONFIG_RK_FB) +=  screen/
 obj-$(CONFIG_RK_FB) +=  transmitter/
+obj-$(CONFIG_RK_PWM_BL) +=  backlight/
 obj-$(CONFIG_AM335X_LCD) += am335x-fb.o
 obj-$(CONFIG_VIDEO_PARADE) += parade.o

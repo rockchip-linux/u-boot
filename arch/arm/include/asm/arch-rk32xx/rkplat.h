@@ -31,7 +31,6 @@
 
 #include "clock.h"
 #include "uart.h"
-#include "pwm.h"
 #include "rk_i2c.h"
 #include "pm.h"
 

@@ -402,7 +402,7 @@
 
 #define CONFIG_RK_FB
 #ifndef CONFIG_PRODUCT_BOX
-#define CONFIG_RK_PWM
+#define CONFIG_RK_PWM_BL
 #endif
 
 #ifdef CONFIG_PRODUCT_BOX
