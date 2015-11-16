@@ -182,8 +182,10 @@ int board_late_init(void)
 	debug("rkimage_prepare_fdt\n");
 	rkimage_prepare_fdt();
 
+#ifdef CONFIG_RK_KEY
 	debug("key_init\n");
 	key_init();
+#endif
 
 #ifdef CONFIG_POWER_RK
 	debug("pmic_init\n");

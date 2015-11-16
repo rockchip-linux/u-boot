@@ -433,7 +433,9 @@ void board_fbt_preboot(void)
 	}
 #endif //CONFIG_UBOOT_CHARGE
 
+#ifdef CONFIG_RK_KEY
 	powerOn();
+#endif
 
 #ifdef CONFIG_LCD
 	if (g_logo_on_state != 0) {
