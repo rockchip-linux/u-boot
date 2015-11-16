@@ -1446,7 +1446,7 @@ void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
 			continue;
 		if (hdmi_dev->defaultmode) {
 			for (i = 0; i < hdmi_dev->vic_pos; i++) {
-				if (hdmi_dev->defaultmode & (HDMI_VIC_MASK == hdmi_dev->vicdb[i]))
+				if (hdmi_dev->defaultmode == hdmi_dev->vicdb[i])
 					break;
 			}
 		} else {
