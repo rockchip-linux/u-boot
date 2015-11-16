@@ -11,3 +11,4 @@
 #ccflags-y += -DDEBUG
 
 obj-$(CONFIG_PWM_IMX) += pwm-imx.o pwm-imx-util.o
+obj-$(CONFIG_RK_PWM) += rk_pwm.o

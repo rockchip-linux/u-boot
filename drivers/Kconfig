@@ -22,6 +22,8 @@ source "drivers/tpm/Kconfig"
 
 source "drivers/i2c/Kconfig"
 
+source "drivers/pwm/Kconfig"
+
 source "drivers/spi/Kconfig"
 
 source "drivers/gpio/Kconfig"
