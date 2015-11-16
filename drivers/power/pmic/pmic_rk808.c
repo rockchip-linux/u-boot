@@ -332,6 +332,7 @@ static int rk808_parse_dt(const void* blob)
 					RK808_NUM_REGULATORS);
 
 	for (i = 0; i < RK808_NUM_REGULATORS; i++) {
+		regulator_init_pmic_matches[i].name = rk808_reg_matches[i].name;
 		if (rk808_reg_matches[i].boot_on && (rk808_reg_matches[i].min_uV == rk808_reg_matches[i].max_uV))
 			ret = rk808_set_regulator_init(&rk808_reg_matches[i], i);
 	}

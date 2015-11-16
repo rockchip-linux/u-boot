@@ -12,12 +12,15 @@
 #include <errno.h>
 #include <power/act8846_pmic.h>
 #include <asm/arch/rkplat.h>
+#include <power/rockchip_power.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 struct pmic_act8846 act8846;
 
-static struct fdt_regulator_match act8846_reg_matches[] = {
+struct regulator_init_reg_name regulator_init_pmic_matches[20];
+
+struct fdt_regulator_match act8846_reg_matches[] = {
 	{ .prop = "act_dcdc1" ,.min_uV = 1200000, .max_uV = 1200000, .boot_on =1},
 	{ .prop = "act_dcdc2" ,.min_uV = 3300000, .max_uV = 3300000, .boot_on = 1},
 	{ .prop = "act_dcdc3", .min_uV = 700000, .max_uV = 1500000, .boot_on = 1},
@@ -214,7 +217,7 @@ static int act8846_parse_dt(const void* blob)
 	int node, nd;
 	struct fdt_gpio_state gpios[2];
 	u32 bus, addr;
-	int ret;
+	int ret, i;
 
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_ACTIVE_ACT8846);
@@ -246,6 +249,9 @@ static int act8846_parse_dt(const void* blob)
 	else
 		fdt_regulator_match(blob, nd, act8846_reg_matches,
 					ACT8846_NUM_REGULATORS);
+
+	for (i = 0; i < ACT8846_NUM_REGULATORS; i++)
+		regulator_init_pmic_matches[i].name = act8846_reg_matches[i].name;
 
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
 

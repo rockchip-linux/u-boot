@@ -181,6 +181,8 @@
 #define CONFIG_POWER_RK818
 #define CONFIG_POWER_ACT8846
 
+#define CONFIG_POWER_PWM_REGULATOR
+
 #define CONFIG_POWER_FG_CW201X
 
 /********************************** battery driver ********************************/

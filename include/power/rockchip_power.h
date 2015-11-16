@@ -53,5 +53,14 @@ int fg_rt5036_init(unsigned char bus, uchar addr);
 
 int ricoh619_poll_pwr_key_sta(void);
 
+struct regulator_init_reg_name {
+	const char *name;
+};
+
+extern struct regulator_init_reg_name regulator_init_pmic_matches[20];
+extern struct regulator_init_reg_name regulator_init_pwm_matches[3];
+
+int regulator_register_check(int num_matches);
+
 
 #endif /* __ROCKCHIP_PMIC_H_ */

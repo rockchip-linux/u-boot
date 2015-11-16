@@ -272,6 +272,7 @@ static int rk818_parse_dt(const void* blob)
 					RK818_NUM_REGULATORS);
 	
 	for (i = 0; i < RK818_NUM_REGULATORS; i++) {
+		regulator_init_pmic_matches[i].name = rk818_reg_matches[i].name;
 		if (rk818_reg_matches[i].boot_on && (rk818_reg_matches[i].min_uV == rk818_reg_matches[i].max_uV))
 			ret = rk818_set_regulator_init(&rk818_reg_matches[i], i);
 	}

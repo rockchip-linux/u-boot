@@ -121,4 +121,8 @@ int pmic_charger_setting(int current);
 void shut_down(void);
 int fg_init(unsigned char bus);
 
+#if defined(CONFIG_POWER_PWM_REGULATOR)
+int pwm_regulator_init(void);
+#endif
+
 #endif /* __CORE_PMIC_H_ */
