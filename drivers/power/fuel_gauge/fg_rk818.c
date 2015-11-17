@@ -1667,6 +1667,8 @@ int fg_rk818_init(unsigned char bus, uchar addr)
 	i2c_set_bus_num(bus);
 	i2c_init(RK818_I2C_SPEED, addr);
 
+	if (!gd->fdt_blob)
+		return -1;
 	ret = rk81x_bat_parse_dt(di, gd->fdt_blob);
 	if (ret < 0) {
 		printf("rk81x_bat_parse_dt failed!\n");

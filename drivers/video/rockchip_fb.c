@@ -449,6 +449,8 @@ void lcd_ctrl_init(void *lcdbase)
 	struct rockchip_fb *fb = &rockchip_fb;
 #if  defined(CONFIG_OF_LIBFDT)
 	debug("rk fb parse dt start.\n");
+	if (!gd->fdt_blob)
+		return;
 	int ret = rk_fb_parse_dt(fb, gd->fdt_blob);
 	debug("rk fb parse dt end.\n");
 	if (ret < 0)

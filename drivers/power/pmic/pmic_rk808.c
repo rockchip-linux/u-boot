@@ -355,6 +355,9 @@ int pmic_rk808_init(unsigned char bus)
 {
 	int ret;
 	if (!rk808.pmic) {
+		if (!gd->fdt_blob)
+			return -1;
+
 		ret = rk808_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;

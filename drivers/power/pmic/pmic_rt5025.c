@@ -111,6 +111,9 @@ int pmic_rt5025_init(unsigned char bus)
 {
 	int ret;
 	if (!rt5025.pmic) {
+		if (!gd->fdt_blob)
+			return -1;
+
 		ret = rt5025_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;

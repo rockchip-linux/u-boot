@@ -163,7 +163,8 @@ __maybe_unused static void PowerKeyInit(void)
 {
 #ifdef CONFIG_OF_LIBFDT
 	memset(&gPowerKey, 0, sizeof(struct fdt_gpio_state));
-	rkkey_parse_powerkey_dt(gd->fdt_blob, &gPowerKey);
+	if (gd->fdt_blob != NULL)
+		rkkey_parse_powerkey_dt(gd->fdt_blob, &gPowerKey);
 #endif
 
 	//power_hold_gpio.name

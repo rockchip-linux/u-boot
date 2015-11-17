@@ -126,6 +126,9 @@ int pmic_ricoh619_init(unsigned char bus)
 {
 	int ret;
 	if (!ricoh619.pmic) {
+		if (!gd->fdt_blob)
+			return -1;
+
 		ret = ricoh619_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;

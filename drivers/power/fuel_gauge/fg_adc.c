@@ -263,6 +263,8 @@ int adc_battery_init(void)
 	int ret;
 	int voltage;
 	if (!fg_adc.p) {
+		if (!gd->fdt_blob)
+			return -1;
 		ret = rk_adcbat_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;

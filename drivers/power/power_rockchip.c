@@ -163,17 +163,18 @@ static void pmic_null_init(void)
 
 	gpio_pwr_hold.gpio = -1;
 
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "gpio-poweroff");
-	if (node < 0) {
-		debug("No detect gpio power off.\n");
-	} else {
-		fdtdec_decode_gpio(gd->fdt_blob, node, "gpios", &gpio_pwr_hold);
-		gpio_pwr_hold.flags = !(gpio_pwr_hold.flags & OF_GPIO_ACTIVE_LOW);
-		printf("power hold: bank-%d pin-%d, active level-%d\n",\
-			RK_GPIO_BANK(gpio_pwr_hold.gpio), RK_GPIO_PIN(gpio_pwr_hold.gpio), !gpio_pwr_hold.flags);
-		gpio_direction_output(gpio_pwr_hold.gpio, !gpio_pwr_hold.flags);
+	if (gd->fdt_blob != NULL) {
+		node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "gpio-poweroff");
+		if (node < 0) {
+			debug("No detect gpio power off.\n");
+		} else {
+			fdtdec_decode_gpio(gd->fdt_blob, node, "gpios", &gpio_pwr_hold);
+			gpio_pwr_hold.flags = !(gpio_pwr_hold.flags & OF_GPIO_ACTIVE_LOW);
+			printf("power hold: bank-%d pin-%d, active level-%d\n",\
+				RK_GPIO_BANK(gpio_pwr_hold.gpio), RK_GPIO_PIN(gpio_pwr_hold.gpio), !gpio_pwr_hold.flags);
+			gpio_direction_output(gpio_pwr_hold.gpio, !gpio_pwr_hold.flags);
+		}
 	}
-
 	/********set APLL CLK 600M***********/
 #if (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
 	rkclk_set_pll_rate_by_id(APLL_ID, 600);

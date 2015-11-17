@@ -232,6 +232,9 @@ int pmic_act8931_init(unsigned char bus)
 {
 	int ret;
 	if (!act8931.pmic) {
+		if (!gd->fdt_blob)
+			return -1;
+
 		ret = act8931_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;

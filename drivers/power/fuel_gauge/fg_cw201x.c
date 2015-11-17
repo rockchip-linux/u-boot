@@ -251,6 +251,9 @@ int fg_cw201x_init(unsigned char bus)
 	static const char name[] = "CW201X_FG";
 	int ret;
 	if (!cw.p) {
+		if (!gd->fdt_blob)
+			return -1;
+
 		ret = cw201x_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;

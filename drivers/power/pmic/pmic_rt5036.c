@@ -119,6 +119,9 @@ int pmic_rt5036_init(unsigned char bus)
 {
 	int ret;
 	if (!rt5036.pmic) {
+		if (!gd->fdt_blob)
+			return -1;
+
 		ret = rt5036_parse_dt(gd->fdt_blob);
 		if (ret < 0)
 			return ret;
