@@ -18,8 +18,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 struct pmic_act8846 act8846;
 
-struct regulator_init_reg_name regulator_init_pmic_matches[20];
-
 struct fdt_regulator_match act8846_reg_matches[] = {
 	{ .prop = "act_dcdc1" ,.min_uV = 1200000, .max_uV = 1200000, .boot_on =1},
 	{ .prop = "act_dcdc2" ,.min_uV = 3300000, .max_uV = 3300000, .boot_on = 1},

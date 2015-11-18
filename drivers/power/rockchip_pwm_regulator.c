@@ -18,8 +18,10 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define COMPAT_ROCKCHIP_PWM	"rockchip_pwm_regulator"
 #define PWM_NUM_REGULATORS	2
+int pwm_max_volt[2];
+int pwm_coefficient[2];
 
-struct regulator_init_reg_name regulator_init_pwm_matches[3];
+struct regulator_init_reg_name regulator_init_pwm_matches[MAX_PWM_NUM];
 
 struct pwm_regulator {
 	int period;
@@ -44,7 +46,7 @@ int regulator_register_check(int num_matches)
 {
 	int i, ret = 0;
 
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < MAX_DCDC_NUM; i++) {
 		if (strcmp(regulator_init_pwm_matches[num_matches].name, regulator_init_pmic_matches[i].name) == 0) {
 			printf("ERROR:regulator_register_check:this name %s is used,not init it.\n",
 					regulator_init_pwm_matches[num_matches].name);
@@ -69,8 +71,6 @@ static int pwm_regulator_set_rate(int rate, int pwm_id)
 static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 		int min_uV, int max_uV)
 {
-	int max = pwm.max_voltage;
-	int coefficient = pwm.coefficient;
 	u32 size = pwm.pwm_vol_map_count;
 	u32 i, vol, pwm_value;
 	int ret = 0;
@@ -91,10 +91,9 @@ static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 			break;
 	}
 	vol =  pwm.volt_table[i];
-	pwm.pwm_voltage = vol;
 
 	/* VDD12 = 1.40 - 0.455*D , DÎªPWMÕ¼¿Õ±È*/
-	pwm_value = (max-vol) / coefficient / 10;
+	pwm_value = (pwm_max_volt[num_matches] - vol) / pwm_coefficient[num_matches] / 10;
 	/*pwm_value %, coefficient *1000*/
 
 	if (pwm_regulator_set_rate(pwm_value, pwm_id) != 0) {
@@ -102,8 +101,8 @@ static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 		return -1;
 	}
 
-	printf("set pwm voltage ok,pwm_id =%d vol=%d,pwm_value=%d %d\n", pwm_id, vol,
-				pwm_value, pwm.pwm_voltage);
+	printf("set pwm voltage ok,pwm_id =%d vol=%d,pwm_value=%d\n", pwm_id, vol,
+				pwm_value);
 
 	return 0;
 }
@@ -114,6 +113,7 @@ static int pwm_regulator_parse_dt(const void *blob)
 	int ret = 0, i, length;
 	u32 pwm0_data[3];
 	int pwm_count = 0, pwm_id[2];
+	int pwm_init_volt[2];
 
 	pwm_node[0] = fdt_node_offset_by_compatible(blob,
 			0, COMPAT_ROCKCHIP_PWM);
@@ -145,13 +145,12 @@ static int pwm_regulator_parse_dt(const void *blob)
 		return -ENODEV;
 	}
 
-	pwm.coefficient = fdtdec_get_int(blob, pwm_node[0], "rockchip,pwm_coefficient", 0);
-	pwm.max_voltage = fdtdec_get_int(blob, pwm_node[0], "rockchip,pwm_max_voltage", 0);
-	pwm.init_voltage = fdtdec_get_int(blob, pwm_node[0], "rockchip,pwm_voltage", 0);
-
 	for (i = 0 ; i < pwm_count; i++) {
 		pwm_id[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_id", 0);
 		pwm_nd[i] = fdt_get_regulator_node(blob, pwm_node[i]);
+		pwm_init_volt[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_voltage", 0);
+		pwm_coefficient[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_coefficient", 0);
+		pwm_max_volt[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_max_voltage", 0);
 		if (pwm_nd[i] < 0)
 			printf("Cannot find regulators\n");
 		else
@@ -159,7 +158,7 @@ static int pwm_regulator_parse_dt(const void *blob)
 
 		regulator_init_pwm_matches[i].name = pwm_reg_matches[i].name;
 		if (pwm_reg_matches[i].boot_on)
-			ret = pwm_regulator_set_voltage(pwm_id[i], i, pwm.init_voltage, pwm.init_voltage);
+			ret = pwm_regulator_set_voltage(pwm_id[i], i, pwm_init_volt[i], pwm_init_volt[i]);
 		if (pwm_reg_matches[i].boot_on && (pwm_reg_matches[i].min_uV == pwm_reg_matches[i].max_uV))
 			ret = pwm_regulator_set_voltage(pwm_id[i], i, pwm_reg_matches[i].min_uV, pwm_reg_matches[i].max_uV);
 	}

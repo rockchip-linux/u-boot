@@ -57,8 +57,12 @@ struct regulator_init_reg_name {
 	const char *name;
 };
 
-extern struct regulator_init_reg_name regulator_init_pmic_matches[20];
-extern struct regulator_init_reg_name regulator_init_pwm_matches[3];
+#define MAX_DCDC_NUM			5
+#define MAX_REGULATOR_NUM		20
+#define MAX_PWM_NUM			3
+
+extern struct regulator_init_reg_name regulator_init_pmic_matches[MAX_REGULATOR_NUM];
+extern struct regulator_init_reg_name regulator_init_pwm_matches[MAX_PWM_NUM];
 
 int regulator_register_check(int num_matches);
 

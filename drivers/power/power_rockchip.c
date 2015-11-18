@@ -14,6 +14,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+struct regulator_init_reg_name regulator_init_pmic_matches[MAX_REGULATOR_NUM];
+
 #if defined(CONFIG_POWER_RK818)
 #define CONFIG_RK818_SCREEN_ON_VOL_THRESD	3000
 #define CONFIG_RK818_SYSTEM_ON_VOL_THRESD	3600
@@ -193,6 +195,10 @@ static void pmic_null_shut_down(void)
 int pmic_init(unsigned char  bus)
 {
 	int ret;
+	int i;
+
+	for (i = 0; i < MAX_DCDC_NUM; i++)
+		regulator_init_pmic_matches[i].name = "NULL";
 
 #if defined(CONFIG_POWER_RICOH619)
 	ret = pmic_ricoh619_init(bus);
