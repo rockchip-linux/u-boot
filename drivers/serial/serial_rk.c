@@ -142,8 +142,14 @@ static inline int rk_uart_set_baudrate(volatile void *base, uint32 baudrate)
 {
 	volatile uint32 rate;
 	volatile uint32 lcr;
+	const unsigned long baudrate_table[] = CONFIG_SYS_BAUDRATE_TABLE;
+	int i;
 
-	if ((baudrate < 9600) || (baudrate > 115200)) {
+	for (i = 0; i < ARRAY_SIZE(baudrate_table); ++i) {
+		if (baudrate == baudrate_table[i])
+			break;
+	}
+	if (i == ARRAY_SIZE(baudrate_table)) {
 		return -1;
 	}
 

@@ -109,9 +109,11 @@
 /*
  * select serial console configuration
  */
+#ifndef CONFIG_BAUDRATE
 #define CONFIG_BAUDRATE			115200
+#endif
 /* valid baudrates */
-#define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200 }
+#define CONFIG_SYS_BAUDRATE_TABLE	{ 9600, 19200, 38400, 57600, 115200, 1500000 }
 
 
 /* input clock of PLL: has 24MHz input clock at rk30xx */
