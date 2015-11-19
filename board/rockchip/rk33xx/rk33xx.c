@@ -190,6 +190,10 @@ int board_late_init(void)
 #ifdef CONFIG_POWER_RK
 	debug("pmic_init\n");
 	pmic_init(0);
+#if defined(CONFIG_POWER_PWM_REGULATOR)
+	debug("pwm_regulator_init\n");
+	pwm_regulator_init();
+#endif
 	debug("fg_init\n");
 	fg_init(0); /*fuel gauge init*/
 #if defined(CONFIG_POWER_PWM_REGULATOR)
