@@ -24,30 +24,42 @@ void enable_caches(void)
 /*
  * rk3368 chip info:		{0x33333041, 0x32303134, 0x30393238, 0x56313030} - 330A20140928V100
  */
-int rk_get_chiptype(void)
+int rk_get_bootrom_chip_version(unsigned int chip_info[])
 {
+	if (chip_info == NULL)
+		return -1;
+
 #ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
-	/* second level bootrom is secure */
+	/* bootrom is secure, second level can't read */
 #if defined(CONFIG_RKCHIP_RK3368)
-	return CONFIG_RK3368;
+	chip_info[0] = 0x33333041;
+	chip_info[3] = 0x56313030;
+#else
+	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
 #endif
 #else
+	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
+#endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
+
+	return 0;
+}
+
+int rk_get_chiptype(void)
+{
 	unsigned int chip_info[4];
 	unsigned int chip_class;
 
 	memset(chip_info, 0, sizeof(chip_info));
-	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
+	rk_get_bootrom_chip_version(chip_info);
 
 	chip_class = (chip_info[0] & 0xFFFF0000) >> 16;
 	if (chip_class == 0x3333) { // 33
 		if (chip_info[0] == 0x33333041) { // 330A
 			return CONFIG_RK3368;
 		}
-
 	}
 
 	return RKCHIP_UNKNOWN;
-#endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
 }
 
 

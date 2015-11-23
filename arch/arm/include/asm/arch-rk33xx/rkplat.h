@@ -40,6 +40,7 @@
 #endif
 
 int rk_get_chiptype(void);
+int rk_get_bootrom_chip_version(unsigned int chip_info[]);
 void rk_module_deinit(void);
 #ifdef CONFIG_RK_MCU
 void rk_mcu_init(void);

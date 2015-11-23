@@ -43,6 +43,7 @@
 #endif
 
 int rk_get_chiptype(void);
+int rk_get_bootrom_chip_version(unsigned int chip_info[]);
 void rk_module_deinit(void);
 
 #endif /* __RKPLAT_H */

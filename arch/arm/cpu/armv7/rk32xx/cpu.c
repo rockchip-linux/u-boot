@@ -29,13 +29,28 @@ void enable_caches(void)
  * rk312xb chip info:		{0x33313044, 0x32303134, 0x30373330, 0x56313030} - 310D20140730V100
  * rk3288 chip info:		{0x33323041, 0x32303133, 0x31313136, 0x56313030} - 320A20131116V100
  */
+int rk_get_bootrom_chip_version(unsigned int chip_info[])
+{
+	if (chip_info == NULL)
+		return -1;
+
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+	/* bootrom is secure, second level can't read */
+	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
+#else
+	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
+#endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
+
+	return 0;
+}
+
 int rk_get_chiptype(void)
 {
 	unsigned int chip_info[4];
 	unsigned int chip_class;
 
 	memset(chip_info, 0, sizeof(chip_info));
-	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
+	rk_get_bootrom_chip_version(chip_info);
 
 	chip_class = (chip_info[0] & 0xFFFF0000) >> 16;
 	if (chip_class == 0x3330) { // 30
