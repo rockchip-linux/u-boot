@@ -525,17 +525,21 @@ int rkidb_get_idblk_data(void)
 	// else if emmc or sdcard, has been get when sdmmc init.
 	if (StorageGetBootMedia() == BOOT_FROM_FLASH) {
 		uint32 index;
-		int idbCount = FindAllIDB();
+		int idboffset = 0;
 		uint8 *psrc, *pdst;
 
-		if (idbCount <= 0) {
+		/* First find idb block */
+		if (g_FlashInfo.BlockSize)
+			g_id_block_size = g_FlashInfo.BlockSize;
+		/* Find idb start from block 2 */
+		if (FindIDBlock(&m_flashInfo, 2, &idboffset) < 0) {
 			printf("id block not found.\n");
 			return false;
 		}
 
 		memset((void*)g_pIDBlock, 0, SECTOR_OFFSET * IDBLOCK_NUM);
 
-		if (StorageReadPba(g_IDBlockOffset[0] * g_FlashInfo.BlockSize,
+		if (StorageReadPba(idboffset * g_FlashInfo.BlockSize,
 					(void*)g_pIDBlock, IDBLOCK_NUM) != ERR_SUCCESS) {
 			printf("read id block error.\n");
 			return false;
