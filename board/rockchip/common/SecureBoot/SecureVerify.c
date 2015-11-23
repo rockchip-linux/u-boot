@@ -495,7 +495,7 @@ static int32 SecureRKModeChkPubkey(uint32 *pKey)
 	uint32 HashOTP[OTP_HASH_LEN/4];
 
 	/* Get the public key HASH from the Efuse */
-	EfuseRead(HashOTP, OTP_HASH_ADDR, OTP_HASH_LEN);
+	EfuseRead(SECURE_EFUSE_BASE_ADDR, HashOTP, OTP_HASH_ADDR, OTP_HASH_LEN);
 
 	SecureSHAInit(PUBLIC_KEY_LEN, 256);
 	SecureSHAUpdate(pKey, PUBLIC_KEY_LEN);
@@ -966,7 +966,7 @@ static uint32 SecureRKModeInit(void)
 #if defined(CONFIG_RKCHIP_RK3128)
 	/* rk3128 efuse read char unit */
 	uint8 flag = 0;
-	EfuseRead(&flag, 0X1F, 1);
+	EfuseRead(SECURE_EFUSE_BASE_ADDR, &flag, 0X1F, 1);
 	if (0xFF == flag) {
 		secure = 1;
 	}
@@ -974,7 +974,7 @@ static uint32 SecureRKModeInit(void)
 #elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	/* rk3288/rk3368 efuse read word unit */
 	uint32 flag = 0;
-	EfuseRead(&flag, 0X00, 4);
+	EfuseRead(SECURE_EFUSE_BASE_ADDR, &flag, 0X00, 4);
 	if (flag & 0x01) {
 		secure = 1;
 	}

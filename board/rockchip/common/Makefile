@@ -29,11 +29,8 @@ obj-$(CONFIG_RK_UMS_BOOT_EN) += mediaboot/UMSBoot.o
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 obj-y += mediaboot/nandflash_boot.o
 endif
-ifdef CONFIG_SECURE_RSA_KEY_IN_RAM
+obj-$(CONFIG_RK_EFUSE) += SecureBoot/efuse.o
 obj-$(CONFIG_SECUREBOOT_CRYPTO) += SecureBoot/crypto.o
-else
-obj-$(CONFIG_SECUREBOOT_CRYPTO) += SecureBoot/crypto.o SecureBoot/efuse.o
-endif
 obj-y += SecureBoot/SecureBoot.o
 obj-y += SecureBoot/SecureVerify.o
 obj-y += storage/storage.o

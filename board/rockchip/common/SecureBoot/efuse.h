@@ -10,6 +10,8 @@
 
 /*
  * efuse read api
+ * base: efuse io base address.
+ *
  * buff: void unit, the data buffer for read.
  *	 rk3128: char unit
  *	 rk3288: word uint
@@ -22,7 +24,7 @@
  *	 rk3128: size = size is real efuse size
  *	 rk3288: size = size / 4, change to word unit
  */
-extern int32 EfuseRead(void *buff, uint32 addr, uint32 size);
+extern int32 EfuseRead(void *base, void *buff, uint32 addr, uint32 size);
 
 #endif
 

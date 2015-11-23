@@ -7,7 +7,7 @@
 #include "../config.h"
 #include "efuse.h"
 
-#if defined(CONFIG_RKCHIP_RK3128)
+#if defined(CONFIG_RKEFUSE_V1)
 
 #define READ_SKIP_BITS      64
 #define EFUSE_SIZE_BITS     512
@@ -20,15 +20,15 @@
 #define EFUSE_PGMEN         0x8
 
 
-int32 EfuseRead(void *buff, uint32 addr, uint32 size)
+int32 EfuseRead(void *base, void *buff, uint32 addr, uint32 size)
 {
 	volatile uint32 *CtrlReg;
 	volatile uint32 *DoutReg;
 	uint8 *data;
 	int32 i;
 
-	CtrlReg = (volatile uint32 *)EFUSE_BASE_ADDR;
-	DoutReg = (volatile uint32 *)(EFUSE_BASE_ADDR + 4);
+	CtrlReg = (volatile uint32 *)base;
+	DoutReg = (volatile uint32 *)(base + 4);
 	/* char unit */
 	data = (uint8 *)buff;
 
@@ -53,7 +53,7 @@ int32 EfuseRead(void *buff, uint32 addr, uint32 size)
 	return 0;
 }
 
-#elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
+#elif defined(CONFIG_RKEFUSE_V2)
 
 #define EFUSE_CSB       0x1
 #define EFUSE_STROBE    0x2
@@ -66,15 +66,15 @@ int32 EfuseRead(void *buff, uint32 addr, uint32 size)
 #define EFUSE_SIZE_BITS   1024
 #define EFUSE_SIZE_WORDS  (EFUSE_SIZE_BITS/8)
 
-int32 EfuseRead(void *buff, uint32 addr, uint32 size)
+int32 EfuseRead(void *base, void *buff, uint32 addr, uint32 size)
 {
 	volatile uint32 *CtrlReg;
 	volatile uint32 *DoutReg;
 	uint32 *data;
 	int32 i;
 
-	CtrlReg = (volatile uint32 *)EFUSE_BASE_ADDR;
-	DoutReg = (volatile uint32 *)(EFUSE_BASE_ADDR + 4);
+	CtrlReg = (volatile uint32 *)(unsigned long)base;
+	DoutReg = (volatile uint32 *)((unsigned long)base + 4);
 	/* word unit */
 	data = (uint32 *)buff;
 	addr = addr / 4;
@@ -105,5 +105,5 @@ int32 EfuseRead(void *buff, uint32 addr, uint32 size)
 }
 
 #else
-	#error: "PLS: config chip for efuse read api function!"
+	#error: "PLS config efuse version for chip type!"
 #endif

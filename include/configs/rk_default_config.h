@@ -398,6 +398,9 @@
 /* rk pwm module */
 #define CONFIG_RK_PWM
 
+/* rk efuse module */
+#define CONFIG_RK_EFUSE
+
 /* rk dma config */
 #define CONFIG_RK_PL330		/* rk dma pl330 */
 #define CONFIG_RK_DMAC		/* rk dmac */

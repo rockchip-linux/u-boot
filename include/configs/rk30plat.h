@@ -58,6 +58,11 @@
 /* mod it to enable console commands.	*/
 #define CONFIG_BOOTDELAY		0
 
+/* efuse version */
+#ifdef CONFIG_RK_EFUSE
+	#define CONFIG_RKEFUSE_V1
+#endif
+
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
 #define CONFIG_RK_MMC_EDMAC		/* external mac */
