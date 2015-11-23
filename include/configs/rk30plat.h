@@ -178,7 +178,11 @@
 /* more config for display */
 #ifdef CONFIG_LCD
 
+#if defined(CONFIG_RKCHIP_RK3228)
+#define CONFIG_RK3228_FB
+#else
 #define CONFIG_RK3036_FB
+#endif
 
 #ifdef CONFIG_RK_HDMI
 #define CONFIG_RK3036_HDMI
