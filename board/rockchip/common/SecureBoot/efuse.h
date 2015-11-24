@@ -24,7 +24,8 @@
  *	 rk3128: size = size is real efuse size
  *	 rk3288: size = size / 4, change to word unit
  */
-extern int32 EfuseRead(void *base, void *buff, uint32 addr, uint32 size);
+extern int32 SecureEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
+extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
 
 #endif
 
