@@ -196,10 +196,6 @@ int board_late_init(void)
 #endif
 	debug("fg_init\n");
 	fg_init(0); /*fuel gauge init*/
-#if defined(CONFIG_POWER_PWM_REGULATOR)
-	debug("pwm_regulator_init\n");
-	pwm_regulator_init();
-#endif
 #endif
 
 	debug("idb init\n");

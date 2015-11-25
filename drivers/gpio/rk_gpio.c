@@ -340,6 +340,31 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
+#elif defined(CONFIG_RKCHIP_RK3228)
+	/*
+	 * pull setting
+	 * 2'b00: Z(Noraml operaton)
+	 * 2'b01: weak 1(pull-up)
+	 * 2'b10: weak 0(pull-down)
+	 * 2'b11: Repeater(Bus keeper)
+	 */
+	switch (type) {
+	case PullDisable:
+		val = 0;
+		break;
+	case GPIOPullUp:
+		val = 1;
+		break;
+	case GPIOPullDown:
+		val = 2;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	base = (void __iomem *)(unsigned long)(RKIO_GRF_PHYS + GRF_GPIO0A_P + bank->id * 16 + ((gpio / 8) * 4));
+	gpio = (7 - (gpio % 8)) * 2;
+	__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 #elif defined(CONFIG_RKCHIP_RK3168)
 	/* rk3168 do nothing */
 
@@ -372,10 +397,6 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 {
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	void __iomem *base;
-	u32 val;
-#endif
 	if (bank == NULL) {
 		return -1;
 	}
@@ -385,7 +406,14 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		return -1;
 	}
 
-#if defined(CONFIG_RKCHIP_RK3288)
+#if defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3036) \
+	|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	/* no drive config */
+
+#elif defined(CONFIG_RKCHIP_RK3288)
+	void __iomem *base;
+	u32 val;
+
 	/*
 	 * drive slector
 	 * 2'b00: 2mA
@@ -422,6 +450,9 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
 #elif defined(CONFIG_RKCHIP_RK3368)
+	void __iomem *base;
+	u32 val;
+
 	/*
 	 * drive slector
 	 * 2'b00: 2mA
@@ -455,9 +486,37 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
-#elif defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3036) \
-	|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	/* no drive config */
+#elif defined(CONFIG_RKCHIP_RK3228)
+	void __iomem *base;
+	u32 val;
+
+	/*
+	 * drive slector
+	 * 2'b00: 2mA
+	 * 2'b01: 4mA
+	 * 2'b10: 8mA
+	 * 2'b11: 12mA
+	 */
+	switch (slector) {
+	case GPIODrv2mA:
+		val = 0;
+		break;
+	case GPIODrv4mA:
+		val = 1;
+		break;
+	case GPIODrv8mA:
+		val = 2;
+		break;
+	case GPIODrv12mA:
+		val = 3;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	base = (void __iomem *)(unsigned long)((RKIO_GRF_PHYS + GRF_GPIO0A_E + bank->id * 16) + ((gpio / 8) * 4));
+	gpio = (7 - (gpio % 8)) * 2;
+	__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 #else
 	/* check chip if support gpio drive slector */
 	#error "PLS config platform for gpio driver."

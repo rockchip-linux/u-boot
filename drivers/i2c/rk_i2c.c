@@ -136,7 +136,8 @@ static struct rk_i2c rki2c_base[I2C_BUS_MAX] = {
 	{ .regs = (uint32_t)RKIO_I2C0_PHYS, 0 },
 	{ .regs = (uint32_t)RKIO_I2C1_PHYS, 0 },
 	{ .regs = (uint32_t)RKIO_I2C2_PHYS, 0 },
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
+	|| defined(CONFIG_RKCHIP_RK3228)
 	{ .regs = (uint32_t)RKIO_I2C0_PHYS, 0 },
 	{ .regs = (uint32_t)RKIO_I2C1_PHYS, 0 },
 	{ .regs = (uint32_t)RKIO_I2C2_PHYS, 0 },

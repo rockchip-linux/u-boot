@@ -18,6 +18,8 @@
 	#include "cru-rk3036.h"
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#include "cru-rk312X.h"
+#elif defined(CONFIG_RKCHIP_RK3228)
+	#include "cru-rk3228.h"
 #else
 	#error "PLS config cru-rkxx.h!"
 #endif

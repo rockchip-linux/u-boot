@@ -100,6 +100,8 @@ static uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even
 	#include "clock-rk3036.c"
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#include "clock-rk312X.c"
+#elif defined(CONFIG_RKCHIP_RK3228)
+	#include "clock-rk3228.c"
 #else
 	#error "PLS config chiptype for clock-rkxx.c!"
 #endif

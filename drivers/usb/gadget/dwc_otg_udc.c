@@ -58,7 +58,8 @@
 /* usb otg base */
 #if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
-#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
+	|| defined(CONFIG_RKCHIP_RK3228)
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG20_PHYS
 #else
 	#error "PLS config chiptype for usb otg base!"
@@ -361,6 +362,13 @@ uint32_t GetVbus(void)
 	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
 		/* exit suspend */
 		grf_writel(((0x1 << 0) << 16), GRF_UOC0_CON0);
+		/* delay more than 1ms, waiting for usb phy init */
+		mdelay(3);
+	}
+#elif defined(CONFIG_RKCHIP_RK3228)
+	if (grf_readl(GRF_USBPHY0_CON0) & (0x01 << 1)) {
+		/* exit suspend */
+		grf_writel(((0x1 << 1) << 16), GRF_USBPHY0_CON0);
 		/* delay more than 1ms, waiting for usb phy init */
 		mdelay(3);
 	}

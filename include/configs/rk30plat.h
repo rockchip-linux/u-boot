@@ -54,18 +54,43 @@
 	#undef CONFIG_RK_UMS_BOOT_EN
 #endif /* CONFIG_RKCHIP_RK3128 */
 
+#if defined(CONFIG_RKCHIP_RK3228)
+	#undef CONFIG_MERGER_MINILOADER
+	#define CONFIG_SECUREBOOT_CRYPTO
+
+	#undef CONFIG_RK_UMS_BOOT_EN
+	#undef CONFIG_PM_SUBSYSTEM
+	#undef CONFIG_LCD
+#endif /* CONFIG_RKCHIP_RK3228 */
+
+
+/* rk3228 RSA key in ram, MiniLoader copy RSA KEY to fixed address */
+#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_SECOND_LEVEL_BOOTLOADER) && defined(CONFIG_SECUREBOOT_CRYPTO)
+#define CONFIG_SECURE_RSA_KEY_IN_RAM
+#define CONFIG_SECURE_RSA_KEY_ADDR	(CONFIG_RKNAND_API_ADDR + SZ_2K)
+#endif /* CONFIG_SECUREBOOT_CRYPTO */
+#endif
 
 /* mod it to enable console commands.	*/
 #define CONFIG_BOOTDELAY		0
 
 /* efuse version */
 #ifdef CONFIG_RK_EFUSE
+#if defined(CONFIG_RKCHIP_RK3228)
+	#define CONFIG_RKEFUSE_V2
+#else
 	#define CONFIG_RKEFUSE_V1
+#endif
 #endif
 
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
+#if defined(CONFIG_RKCHIP_RK3228)
+#define CONFIG_RK_MMC_IDMAC            /* internal dmac */
+#else
 #define CONFIG_RK_MMC_EDMAC		/* external mac */
+#endif
 #undef CONFIG_RK_MMC_DDR_MODE		/* mmc using ddr mode */
 
 /* more config for rockusb */
@@ -80,6 +105,8 @@
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x301A
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x310C
+#elif defined(CONFIG_RKCHIP_RK3228)
+	#define CONFIG_USBD_PRODUCTID_ROCKUSB   0x320B
 #else
 	#error "PLS config rk chip for rockusb PID!"
 #endif
