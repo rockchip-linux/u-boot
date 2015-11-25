@@ -42,6 +42,14 @@
 #include "dma.h"
 #endif
 
+#ifdef CONFIG_RK_PSCI
+#include "psci.h"
+#endif
+
+#ifdef CONFIG_RK_DCF
+void dram_freq_init(void);
+#endif
+
 int rk_get_chiptype(void);
 int rk_get_bootrom_chip_version(unsigned int chip_info[]);
 void rk_module_deinit(void);

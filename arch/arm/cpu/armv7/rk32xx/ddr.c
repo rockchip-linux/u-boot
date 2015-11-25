@@ -11,6 +11,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define COMPAT_ROCKCHIP_DRAM "rockchip,rk3228-dram"
 
 struct trust_parameter {
 	uint32_t version;
@@ -200,3 +201,192 @@ void dram_init_banksize(void)
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;
 }
 
+#ifdef CONFIG_RK_DCF
+struct ddr_timing {
+	uint32_t freq;
+	uint32_t dram_spd_bin;
+	uint32_t sr_idle;
+	uint32_t pd_idle;
+	uint32_t dram_dll_disb_freq;
+	uint32_t phy_dll_disb_freq;
+	uint32_t dram_odt_disb_freq;
+	uint32_t phy_odt_disb_freq;
+	uint32_t ddr3_drv;
+	uint32_t ddr3_odt;
+	uint32_t lpddr3_drv;
+	uint32_t lpddr3_odt;
+	uint32_t lpddr2_drv;
+	uint32_t phy_ddr3_clk_drv;
+	uint32_t phy_ddr3_cmd_drv;
+	uint32_t phy_ddr3_dqs_drv;
+	uint32_t phy_ddr3_odt;
+	uint32_t phy_lp23_clk_drv;
+	uint32_t phy_lp23_cmd_drv;
+	uint32_t phy_lp23_dqs_drv;
+	uint32_t phy_lp3_odt;
+};
+
+struct ddr_timing __attribute__((aligned(64))) dram_timing;
+
+static int rk_dram_parse_dt(const void *blob)
+{
+	int node, freq, phandle, timing_node;
+	int ret;
+	const char *cell;
+
+	if(!blob)
+		return -1;
+
+	node = fdt_node_offset_by_compatible(blob,
+					     0, COMPAT_ROCKCHIP_DRAM);
+	if (node < 0) {
+		debug("can't find dts node for dram\n");
+		return -ENODEV;
+	}
+
+	cell = fdt_getprop(blob, node, "status", NULL);
+	if ((cell != NULL) && (strcmp(cell, "okay") != 0)) {
+		debug("status of dram node is disabled\n");
+		return -ENODEV;
+	}
+
+	freq = fdtdec_get_int(blob, node, "dram_freq", -1);
+	if (freq == -1) {
+		debug("Cannot decode DRAM property dram_freq\n");
+		return -ENODEV;
+	}
+	dram_timing.freq = freq;
+
+	phandle = fdtdec_get_int(blob, node, "rockchip,dram_timing", -1);
+
+	if (phandle == -1) {
+		debug("Cannot decode DRAM property rockchip,dram_timing\n");
+		return -ENODEV;
+	}
+	timing_node = fdt_node_offset_by_phandle(blob, phandle);
+	ret = 0;
+	dram_timing.dram_spd_bin = fdtdec_get_int(blob, timing_node,
+						  "dram_spd_bin", -1);
+	if (dram_timing.dram_spd_bin == -1)
+		ret = -1;
+	dram_timing.sr_idle = fdtdec_get_int(blob, timing_node, "sr_idle", -1);
+	if (dram_timing.sr_idle == -1)
+		ret = -1;
+	dram_timing.pd_idle = fdtdec_get_int(blob, timing_node, "pd_idle", -1);
+	if (dram_timing.pd_idle == -1)
+		ret = -1;
+
+	dram_timing.dram_dll_disb_freq = fdtdec_get_int(blob, timing_node,
+							"dram_dll_disb_freq",
+							-1);
+	if (dram_timing.dram_dll_disb_freq == -1)
+		ret = -1;
+
+	dram_timing.phy_dll_disb_freq = fdtdec_get_int(blob, timing_node,
+						       "phy_dll_disb_freq",
+						       -1);
+	if (dram_timing.phy_dll_disb_freq == -1)
+		ret = -1;
+
+	dram_timing.dram_odt_disb_freq = fdtdec_get_int(blob, timing_node,
+							"dram_odt_disb_freq",
+							-1);
+	if (dram_timing.dram_odt_disb_freq == -1)
+		ret = -1;
+
+	dram_timing.phy_odt_disb_freq = fdtdec_get_int(blob, timing_node,
+						       "phy_odt_disb_freq",
+						       -1);
+	if (dram_timing.phy_odt_disb_freq == -1)
+		ret = -1;
+
+	dram_timing.ddr3_drv = fdtdec_get_int(blob, timing_node, "ddr3_drv",
+					      -1);
+	if (dram_timing.ddr3_drv == -1)
+		ret = -1;
+
+	dram_timing.ddr3_odt = fdtdec_get_int(blob, timing_node, "ddr3_odt",
+					      -1);
+	if (dram_timing.ddr3_odt == -1)
+		ret = -1;
+
+	dram_timing.lpddr3_drv = fdtdec_get_int(blob, timing_node,
+						"lpddr3_drv", -1);
+	if (dram_timing.lpddr3_drv == -1)
+		ret = -1;
+
+	dram_timing.lpddr3_odt = fdtdec_get_int(blob, timing_node,
+						"lpddr3_odt", -1);
+	if (dram_timing.lpddr3_odt == -1)
+		ret = -1;
+
+	dram_timing.lpddr2_drv = fdtdec_get_int(blob, timing_node,
+						"lpddr2_drv", -1);
+	if (dram_timing.lpddr2_drv == -1)
+		ret = -1;
+
+	dram_timing.phy_ddr3_clk_drv = fdtdec_get_int(blob, timing_node,
+						 "phy_ddr3_clk_drv", -1);
+	if (dram_timing.phy_ddr3_clk_drv == -1)
+		ret = -1;
+
+	dram_timing.phy_ddr3_cmd_drv = fdtdec_get_int(blob, timing_node,
+						 "phy_ddr3_cmd_drv", -1);
+	if (dram_timing.phy_ddr3_cmd_drv == -1)
+		ret = -1;
+
+	dram_timing.phy_ddr3_dqs_drv = fdtdec_get_int(blob, timing_node,
+						 "phy_ddr3_dqs_drv", -1);
+	if (dram_timing.phy_ddr3_dqs_drv == -1)
+		ret = -1;
+
+	dram_timing.phy_ddr3_odt = fdtdec_get_int(blob, timing_node,
+						  "phy_ddr3_odt", -1);
+	if (dram_timing.phy_ddr3_odt == -1)
+		ret = -1;
+
+	dram_timing.phy_lp23_clk_drv = fdtdec_get_int(blob, timing_node,
+						 "phy_lp23_clk_drv", -1);
+	if (dram_timing.phy_lp23_clk_drv == -1)
+		ret = -1;
+
+	dram_timing.phy_lp23_cmd_drv = fdtdec_get_int(blob, timing_node,
+						 "phy_lp23_cmd_drv", -1);
+	if (dram_timing.phy_lp23_cmd_drv == -1)
+		ret = -1;
+
+	dram_timing.phy_lp23_dqs_drv = fdtdec_get_int(blob, timing_node,
+						 "phy_lp23_dqs_drv", -1);
+	if (dram_timing.phy_lp23_dqs_drv == -1)
+		ret = -1;
+
+	dram_timing.phy_lp3_odt = fdtdec_get_int(blob, timing_node,
+						 "phy_lp3_odt", -1);
+	if (dram_timing.phy_lp3_odt == -1)
+		ret = -1;
+
+	if (ret)
+		return ENODEV;
+	else
+		return 0;
+}
+
+void dram_freq_init(void)
+{
+#ifdef CONFIG_RK_PSCI
+	uint32_t ret;
+
+	if (0 == rk_dram_parse_dt(gd->fdt_blob)) {
+		flush_cache((uint32)&dram_timing.freq, sizeof(dram_timing));
+		printf("DRAM: dram freq:%dMHz\n", dram_timing.freq / 1000000);
+		ret = invoke_psci_fn(PSCI_SIP_DDR_FREQ,
+				     dram_timing.freq / 1000000,
+				     (uint32)&dram_timing.dram_spd_bin, 0);
+		if(ret)
+			printf("DRAM: dram freq init error\n");
+	} else {
+		debug("DRAM: can't found dram parameter for dts\n");
+	}
+#endif /* CONFIG_RK_PSCI */
+}
+#endif /* CONFIG_RK_DCF */

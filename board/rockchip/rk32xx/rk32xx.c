@@ -198,6 +198,10 @@ int board_late_init(void)
 	fg_init(0); /*fuel gauge init*/
 #endif
 
+#if defined(CONFIG_RK_DCF)
+	dram_freq_init();
+#endif
+
 	debug("idb init\n");
 	//TODO:set those buffers in a better way, and use malloc?
 	rkidb_setup_space(gd->arch.rk_global_buf_addr);
