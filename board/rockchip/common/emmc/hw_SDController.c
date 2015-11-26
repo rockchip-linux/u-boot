@@ -1380,6 +1380,7 @@ static int32 SDC_RequestIDMA(SDMMC_PORT_E nSDCPort,
     }
     SDC_SetIDMADesc(nSDCPort,(uint32)(unsigned long)pDataBuf, DataLen);
 
+    pReg->SDMMC_CTRL |= CTRL_IDMAC_RESET; /* idmac reset */
     pReg->SDMMC_CTRL |= CTRL_USE_IDMAC;
     pReg->SDMMC_BMOD |= (BMOD_DE | BMOD_FB);
     //pReg->SDMMC_FIFOTH = (SD_MSIZE_1 | (RX_WMARK << RX_WMARK_SHIFT) | (TX_WMARK << TX_WMARK_SHIFT));
