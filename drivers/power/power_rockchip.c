@@ -272,17 +272,14 @@ int pmic_init(unsigned char  bus)
 
 int fg_init(unsigned char bus)
 {
-	int ret;
 #if defined(CONFIG_POWER_FG_CW201X)
-	ret = fg_cw201x_init(bus);
-	if(ret >= 0) {
+	if (fg_cw201x_init(bus) >= 0) {
 		printf("fg:cw201x\n");
 		return 0;
 	}
 #endif
 #if defined(CONFIG_POWER_FG_ADC)
-	ret = adc_battery_init();
-	if (ret >= 0) {
+	if (adc_battery_init() >= 0) {
 		printf("fg:adc-battery\n");
 		return 0;
 	}

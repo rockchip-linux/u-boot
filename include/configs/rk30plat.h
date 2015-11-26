@@ -192,7 +192,7 @@
 #define CONFIG_SCREEN_ON_VOL_THRESD	0
 #define CONFIG_SYSTEM_ON_VOL_THRESD	0
 
-/********************************** charger and pmic driver ********************************/
+/******** pmic driver ********/
 #undef CONFIG_POWER_RK_SAMPLE
 #define CONFIG_POWER_RICOH619
 #define CONFIG_POWER_RK808
@@ -204,13 +204,17 @@
 
 #define CONFIG_POWER_PWM_REGULATOR
 
+/* if box product, undefine fg and battery */
+#ifndef CONFIG_PRODUCT_BOX
+/******** charger driver ********/
 #define CONFIG_POWER_FG_CW201X
 #define CONFIG_POWER_FG_ADC
 
-/********************************** battery driver ********************************/
+/******** battery driver ********/
 #undef CONFIG_BATTERY_RK_SAMPLE
 #undef CONFIG_BATTERY_BQ27541
 #undef CONFIG_BATTERY_RICOH619
+#endif /* CONFIG_PRODUCT_BOX */
 
 #endif /* CONFIG_POWER */
 
