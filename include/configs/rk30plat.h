@@ -62,7 +62,6 @@
 
 	#undef CONFIG_RK_UMS_BOOT_EN
 	#undef CONFIG_PM_SUBSYSTEM
-	#undef CONFIG_LCD
 #endif /* CONFIG_RKCHIP_RK3228 */
 
 
