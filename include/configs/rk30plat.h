@@ -185,8 +185,12 @@
 #endif
 
 #ifdef CONFIG_RK_HDMI
+#if defined(CONFIG_RKCHIP_RK3228)
+#define CONFIG_RK_HDMIV2
+#else
 #define CONFIG_RK3036_HDMI
 #endif
+#endif /* CONFIG_RK_HDMI */
 
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3128)
 #undef CONFIG_RK3036_TVE

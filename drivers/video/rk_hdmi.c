@@ -95,7 +95,7 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 {
 	struct hdmi_video_timing *timing = NULL;
 	const struct fb_videomode *mode = NULL;
-	const struct hdmi_video *vpara = &hdmi_dev->video; 
+	const struct hdmi_video *vpara = &hdmi_dev->video;
 
 	timing = (struct hdmi_video_timing *)hdmi_vic2timing(hdmi_dev, vpara->vic);
 	if(timing == NULL) {
@@ -103,14 +103,13 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 		return ;
 	}
 	mode = &(timing->mode);
-	panel->pixelrepeat = !timing->pixelrepeat;
+	panel->pixelrepeat = timing->pixelrepeat - 1;
 	panel->screen_type = SCREEN_HDMI;
 	if (hdmi_dev->vic & HDMI_VIDEO_YUV420) {
 		if (hdmi_dev->video.color_output_depth == 10)
 			panel->lcd_face = OUT_YUV_420_10BIT;
 		else
 			panel->lcd_face = OUT_YUV_420;
-		
 	} else {
 		if (hdmi_dev->video.color_output_depth == 10)
 			panel->lcd_face = OUT_P101010;
@@ -230,6 +229,7 @@ static int hdmi_parse_dts(struct hdmi_dev *hdmi_dev)
 				"rockchip,phy_table", &val)) {
 			hdmi_dev->phy_table_size =
 				val / sizeof(struct hdmi_dev_phy_para);
+			hdmi_dev->phy_table = malloc(val);
 			fdtdec_get_int_array_count(gd->fdt_blob, node,
 						   "rockchip,phy_table",
 						   (u32 *)hdmi_dev->phy_table,

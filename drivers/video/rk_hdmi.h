@@ -19,9 +19,11 @@ enum {
 };
 
 enum {
-	HDMI_SOC_RK3036,
+	HDMI_SOC_RK3036 = 0,
 	HDMI_SOC_RK312X,
-	HDMI_SOC_RK3288
+	HDMI_SOC_RK3288,
+	HDMI_SOC_RK3368,
+	HDMI_SOC_RK3228
 };
 
 typedef enum HDMI_EDID_ERRORCODE
@@ -459,8 +461,10 @@ struct hdmi_dev_phy_para {
 #define HDMI_VICDB_LEN 50
 struct hdmi_dev {
 	void		*regbase;
+	void		*phybase;
 	struct hdmi	driver;
 	int		feature;
+	int		soctype;
 	unsigned long	pixelclk;
 	unsigned long	tmdsclk;
 	unsigned int	pixelrepeat;
