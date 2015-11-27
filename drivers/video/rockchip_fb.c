@@ -129,10 +129,10 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
    screen->pin_dclk         = vid->vl_clkp;
    screen->pin_den          = vid->vl_oep;
 
-   screen->overscan.left    = 0;
-   screen->overscan.right   = 0;
-   screen->overscan.top     = 0;
-   screen->overscan.bottom  = 0;
+   screen->overscan.left    = 100;
+   screen->overscan.right   = 100;
+   screen->overscan.top     = 100;
+   screen->overscan.bottom  = 100;
    screen->swap_gb          = 0;
    screen->swap_rb          = vid->vl_swap_rb;
    screen->swap_rg          = 0;
