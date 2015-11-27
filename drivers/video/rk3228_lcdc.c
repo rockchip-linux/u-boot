@@ -710,6 +710,13 @@ static int vop_vop_post_cfg(struct vop_device *vop_dev,
 	u16 post_dsp_vact_st_f1, post_dsp_vact_end_f1;
 	u16 post_h_fac, post_v_fac;
 
+	screen->post_dsp_stx = x_res * (100 - screen->overscan.left) / 200;
+	screen->post_dsp_sty = y_res * (100 - screen->overscan.top) / 200;
+	screen->post_xsize = x_res *
+		(screen->overscan.left + screen->overscan.right) / 200;
+	screen->post_ysize = y_res *
+		(screen->overscan.top + screen->overscan.bottom) / 200;
+
 	h_total = screen->mode.hsync_len + screen->mode.left_margin +
 	    x_res + screen->mode.right_margin;
 	v_total = screen->mode.vsync_len + screen->mode.upper_margin +
