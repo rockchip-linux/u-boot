@@ -197,6 +197,9 @@ int arch_cpu_init(void)
 	grf_writel((0xf<<16) | (0xf<<0), GRF_COM_IOMUX); /* pwm select PWMx_1 */
 	grf_writel(((1<<27) | (1<<24)) | ((1<<11) | (1<<8)), GRF_COM_IOMUX); /* uart select uartx_1 */
 
+	/* hdmi phy clock source select HDMIPHY clock out */
+	cru_writel((1<<29) | (0<<13), CRU_MISC_CON);
+
 	rk3228_chiptype_check();
 
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
