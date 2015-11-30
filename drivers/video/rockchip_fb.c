@@ -128,6 +128,7 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
    screen->pin_vsync        = vid->vl_vsp;
    screen->pin_dclk         = vid->vl_clkp;
    screen->pin_den          = vid->vl_oep;
+   screen->pixelrepeat      = vid->pixelrepeat;
 
    screen->overscan.left    = 100;
    screen->overscan.right   = 100;
