@@ -404,7 +404,8 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
                                         hdmi_dev->base_paramer_tve.yres == rk3036_cvbs_mode[i].yres &&
                                            hdmi_dev->base_paramer_tve.refresh == rk3036_cvbs_mode[i].refresh &&
                                             hdmi_dev->base_paramer_tve.interlaced == rk3036_cvbs_mode[i].vmode)
-		}
+                                        break;
+				}
 
                 if (i != MAX_TVE_COUNT) {
                         printf("preset tve resolution is %dx%d@%d-%d,i=%d\n", hdmi_dev->base_paramer_tve.xres, hdmi_dev->base_paramer_tve.yres, hdmi_dev->base_paramer_tve.refresh, hdmi_dev->base_paramer_tve.interlaced, i);
