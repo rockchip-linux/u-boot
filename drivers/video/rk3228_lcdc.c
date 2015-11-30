@@ -633,7 +633,6 @@ static int dsp_y_pos(int mirror_en, struct rk_screen *screen,
 	} else if (screen->mode.vmode == FB_VMODE_INTERLACED) {
 		pos = area->ypos / 2 + screen->mode.upper_margin +
 			screen->mode.vsync_len;
-		area->ysize /= 2;
 	}
 
 	return pos;
