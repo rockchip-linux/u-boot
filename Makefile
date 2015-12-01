@@ -903,7 +903,15 @@ RKCHIP ?= RK3368
 endif
 
 ifdef CONFIG_RKCHIP_RK3228
-RKCHIP ?= RK3228
+ifdef CONFIG_RK3228A
+RKCHIP ?= RK3228A
+endif
+ifdef CONFIG_RK3228B
+RKCHIP ?= RK3228B
+endif
+ifdef CONFIG_RK3229
+RKCHIP ?= RK3229
+endif
 endif
 
 RKCHIP ?= `sed -n "/CHIP=/s/CHIP=//p" RKBOOT.ini|tr -d '\r'`

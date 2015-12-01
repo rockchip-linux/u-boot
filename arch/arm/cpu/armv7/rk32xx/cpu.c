@@ -106,7 +106,7 @@ int rk_get_chiptype(void)
 #if defined(CONFIG_RKCHIP_RK3228)
 #define RK3228A_TAG	1
 #define RK3228B_TAG	2
-#define RK3228C_TAG	3
+#define RK3229_TAG	3
 extern void ISetLoaderFlag(uint32 flag);
 extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
 
@@ -134,8 +134,8 @@ static inline void rk3228_chiptype_check(void)
 			/* soft reset */
 			writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
 		}
-#elif defined(CONFIG_RK3228C)
-		if (flag != RK3228C_TAG) {
+#elif defined(CONFIG_RK3229)
+		if (flag != RK3229_TAG) {
 			ISetLoaderFlag(0xEF08A53C);
 
 			/* pll enter slow mode */
@@ -272,14 +272,12 @@ int print_cpuinfo(void)
 
 #if defined(CONFIG_RKCHIP_RK3228)
 	if (gd->arch.chiptype == CONFIG_RK3228) {
-#if defined(CONFIG_RK3228A)
-		printf("CPU: rk3228a\n");
-#elif defined(CONFIG_RK3228B)
+#if defined(CONFIG_RK3229)
+		printf("CPU: rk3229\n");
+#elif defined(CONFIG_RK322B)
 		printf("CPU: rk3228b\n");
-#elif defined(CONFIG_RK3228C)
-		printf("CPU: rk3228c\n");
 #else
-		printf("CPU: rk3228\n");
+		printf("CPU: rk3228a\n");
 #endif
 	}
 #endif
