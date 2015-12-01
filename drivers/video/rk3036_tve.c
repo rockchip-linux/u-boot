@@ -32,7 +32,7 @@ struct fb_videomode rk3036_cvbs_mode[MAX_TVE_COUNT] = {
 
 #define TVE_REG_NUM 0x28
 
-int rk3036_tve_show_reg()
+int rk3036_tve_show_reg(void)
 {
 	int i = 0;
 	u32 val = 0;
@@ -290,6 +290,7 @@ int rk3036_tve_init(vidinfo_t *panel)
 	tve_s.soctype = SOC_RK3228;
 	tve_s.saturation = 0;
 	tve_s.vdacbase = 0x12020000;
+#endif
 
 	if (gd->fdt_blob)
 	{
@@ -315,7 +316,6 @@ int rk3036_tve_init(vidinfo_t *panel)
 	}
 	printf("test_mode=%d,saturation=0x%x\n", tve_s.test_mode, tve_s.saturation);
 //	printf("%s start soc is 3128\n", __func__);
-#endif
 
 	rk3036_tve_init_panel(panel);
 
