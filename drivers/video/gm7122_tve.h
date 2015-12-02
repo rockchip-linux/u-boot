@@ -355,4 +355,7 @@ struct gm7122tve {
 
 #define MAX_TVE_COUNT  2
 
+extern void gm7122_tve_init_panel(vidinfo_t *panel);
+extern int gm7122_tve_init(vidinfo_t *panel);
+
 #endif
