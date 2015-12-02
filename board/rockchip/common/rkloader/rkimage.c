@@ -224,7 +224,7 @@ int rkimage_partition_erase(const disk_partition_t *ptn)
 static int rkimg_buildParameter(unsigned char *parameter, int len)
 {
 	int i;
-	uint32 crc = crc32(0, parameter, len);
+	uint32 crc = crc32_rk(0, parameter, len);
 	for(i=0; i<4; i++)
 	{
 		parameter[len + i] = crc&0xFF;

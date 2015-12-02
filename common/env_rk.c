@@ -76,7 +76,7 @@ int saveenv(void)
 		return -1;
 	}
 
-	env_new->crc = crc32(0, env_new->data, ENV_SIZE);
+	env_new->crc = crc32_rk(0, env_new->data, ENV_SIZE);
 	printf("Writing env to storage... \n");
 	if (write_env(CONFIG_ENV_SIZE, CONFIG_ENV_OFFSET, (u_char *)env_new)) {
 		puts("failed\n");
@@ -118,7 +118,7 @@ static int env_append(const char *buf, int check)
 
         	memcpy(&crc, &ep->crc, sizeof(crc));
 
-		if (crc32(0, ep->data, ENV_SIZE) != crc) {
+		if (crc32_rk(0, ep->data, ENV_SIZE) != crc) {
 			return 0;
 		}
 	}

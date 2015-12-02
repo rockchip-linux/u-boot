@@ -25,4 +25,8 @@ uint32_t crc32_no_comp (uint32_t, const unsigned char *, uint);
 void crc32_wd_buf(const unsigned char *input, uint ilen,
 		    unsigned char *output, uint chunk_sz);
 
+#ifdef CONFIG_ROCKCHIP
+uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
+#endif
+
 #endif /* _UBOOT_CRC_H */

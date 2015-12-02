@@ -57,6 +57,7 @@ obj-y += errno.o
 obj-y += display_options.o
 obj-$(CONFIG_BCH) += bch.o
 obj-y += crc32.o
+obj-$(CONFIG_ROCKCHIP) += crc32_rk.o
 obj-y += ctype.o
 obj-y += div64.o
 obj-y += hang.o

@@ -7,7 +7,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <config.h>
+#include <u-boot/crc.h>
 
+extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
 
 #define SZ_4M                           0x00400000
 #define SZ_16M                          0x01000000
@@ -85,7 +87,7 @@ int main (int argc, char *argv[])
 		offset += read_blocks;
 		blocks -= read_blocks;
 #ifndef CONFIG_QUICK_CHECKSUM
-		crc_array[crc_counts] = crc32(0, buf, read_blocks * RK_BLK_SIZE);
+		crc_array[crc_counts] = crc32_rk(0, buf, read_blocks * RK_BLK_SIZE);
 		printf("offset:0x%08x, blocks:0x%08x, crc:0x%08lx\n",
 				offset, read_blocks, crc_array[crc_counts]);
 		crc_counts++;
@@ -102,7 +104,7 @@ int main (int argc, char *argv[])
 #ifndef CONFIG_QUICK_CHECKSUM
 	//3:compute whole checksum
 	checksum = (crc_counts == 1)? crc_array[0] :
-		crc32(0, (unsigned char*)crc_array, sizeof(uint32_t) * crc_counts);
+		crc32_rk(0, (unsigned char*)crc_array, sizeof(uint32_t) * crc_counts);
 	printf("whole checksum:0x%08lx\n", checksum);
 	free(crc_array);
 #else
