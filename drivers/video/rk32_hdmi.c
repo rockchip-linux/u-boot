@@ -1031,13 +1031,15 @@ static void hdmi_dev_config_avi(struct hdmi_dev *hdmi_dev,
 		colorimetry = AVI_COLORIMETRY_ITU709;
 	}
 
-	if (vpara->color_output_depth > 8) {
+	if (vpara->colorimetry > HDMI_COLORIMETRY_ITU709) {
 		colorimetry = AVI_COLORIMETRY_EXTENDED;
-		ext_colorimetry = 6;
+		ext_colorimetry = vpara->colorimetry;
 	} else if (vpara->color_output == HDMI_COLOR_RGB_16_235 ||
 		   vpara->color_output == HDMI_COLOR_RGB_0_255) {
 		colorimetry = AVI_COLORIMETRY_NO_DATA;
 		ext_colorimetry = 0;
+	} else if (vpara->colorimetry != HDMI_COLORIMETRY_NO_DATA) {
+		colorimetry = vpara->colorimetry;
 	}
 
 	hdmi_writel(hdmi_dev, FC_AVICONF1,

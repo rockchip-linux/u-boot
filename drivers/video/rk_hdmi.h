@@ -239,6 +239,20 @@ enum hdmi_deep_color {
 	HDMI_DEEP_COLOR_48BITS = 0x8,
 };
 
+enum hdmi_colorimetry {
+	HDMI_COLORIMETRY_NO_DATA = 0,
+	HDMI_COLORIMETRY_SMTPE_170M,
+	HDMI_COLORIMETRY_ITU709,
+	HDMI_COLORIMETRY_EXTEND_XVYCC_601,
+	HDMI_COLORIMETRY_EXTEND_XVYCC_709,
+	HDMI_COLORIMETRY_EXTEND_SYCC_601,
+	HDMI_COLORIMETRY_EXTEND_ADOBE_YCC601,
+	HDMI_COLORIMETRY_EXTEND_ADOBE_RGB,
+	HDMI_COLORIMETRY_EXTEND_BT_2020_YCC_C, /*constant luminance*/
+	HDMI_COLORIMETRY_EXTEND_BT_2020_YCC,
+	HDMI_COLORIMETRY_EXTEND_BT_2020_RGB,
+};
+
 // HDMI Audio Type
 enum hdmi_audio_type {
 	HDMI_AUDIO_NLPCM = 0,
@@ -312,6 +326,7 @@ struct hdmi_video {
 	unsigned int color_input;			// Input video color mode
 	unsigned int color_output;			// Output video color mode
 	unsigned int color_output_depth;	// Output video Color Depth
+	unsigned int colorimetry;	/* Output Colorimetry */
 	unsigned int sink_hdmi;				// Output signal is DVI or HDMI
 	unsigned int format_3d;				// Output 3D mode
 };
