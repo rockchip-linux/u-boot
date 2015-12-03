@@ -578,16 +578,6 @@ static int vop_win_0_1_reg_update(struct vop_device *vop_dev,
 		vop_writel(vop_dev, WIN0_SCL_FACTOR_CBR + off, val);
 		val = V_WIN0_SRC_ALPHA_EN(0);
 		vop_msk_reg(vop_dev, WIN0_SRC_ALPHA_CTRL + off, val);
-
-		if (vop_dev->screen->mode.vmode & FB_VMODE_INTERLACED) {
-			if (win->area[0].yact == 2 * win->area[0].ysize)
-				val = V_WIN0_YRGB_DEFLICK(0) |
-					V_WIN0_CBR_DEFLICK(0);
-			else
-				val = V_WIN0_YRGB_DEFLICK(1) |
-					V_WIN0_CBR_DEFLICK(1);
-			vop_msk_reg(vop_dev, WIN0_CTRL0, val);
-		}
 	} else {
 		val = V_WIN0_EN(win->state);
 		vop_msk_reg(vop_dev, WIN0_CTRL0 + off, val);
@@ -870,23 +860,6 @@ static int vop_config_timing(struct vop_device *vop_dev,
 		vop_msk_reg(vop_dev, DSP_VACT_ST_END_F1, val);
 		vop_msk_reg(vop_dev, DSP_CTRL0,
 			    V_DSP_INTERLACE(1) | V_DSP_FIELD_POL(0));
-		val = V_WIN0_INTERLACE_READ(1) | V_WIN0_YRGB_DEFLICK(0) |
-		    V_WIN0_CBR_DEFLICK(0);
-		vop_msk_reg(vop_dev, WIN0_CTRL0, val);
-
-		val = V_WIN1_INTERLACE_READ(1) | V_WIN1_YRGB_DEFLICK(0) |
-			V_WIN1_CBR_DEFLICK(0);
-		vop_msk_reg(vop_dev, WIN1_CTRL0, val);
-
-		val = V_WIN2_INTERLACE_READ(1);
-		vop_msk_reg(vop_dev, WIN2_CTRL0, val);
-
-		val = V_WIN3_INTERLACE_READ(1);
-		vop_msk_reg(vop_dev, WIN3_CTRL0, val);
-
-		val = V_HWC_INTERLACE_READ(1);
-		vop_msk_reg(vop_dev, HWC_CTRL0, val);
-
 		val = V_DSP_LINE_FLAG_NUM_0(vact_end_f1) |
 			V_DSP_LINE_FLAG_NUM_1(vact_end_f1);
 		vop_msk_reg(vop_dev, LINE_FLAG, val);
@@ -900,24 +873,6 @@ static int vop_config_timing(struct vop_device *vop_dev,
 
 		vop_msk_reg(vop_dev, DSP_CTRL0, V_DSP_INTERLACE(0) |
 			    V_DSP_FIELD_POL(0));
-
-		val = V_WIN0_INTERLACE_READ(0) | V_WIN0_YRGB_DEFLICK(0) |
-			V_WIN0_CBR_DEFLICK(0);
-		vop_msk_reg(vop_dev, WIN0_CTRL0, val);
-
-		val = V_WIN1_INTERLACE_READ(0) | V_WIN1_YRGB_DEFLICK(0) |
-			V_WIN1_CBR_DEFLICK(0);
-		vop_msk_reg(vop_dev, WIN1_CTRL0, val);
-
-		val = V_WIN2_INTERLACE_READ(0);
-		vop_msk_reg(vop_dev, WIN2_CTRL0, val);
-
-		val = V_WIN3_INTERLACE_READ(0);
-		vop_msk_reg(vop_dev, WIN3_CTRL0, val);
-
-		val = V_HWC_INTERLACE_READ(0);
-		vop_msk_reg(vop_dev, HWC_CTRL0, val);
-
 		val = V_DSP_LINE_FLAG_NUM_0(vsync_len + upper_margin + y_res) |
 			V_DSP_LINE_FLAG_NUM_1(vsync_len + upper_margin + y_res);
 		vop_msk_reg(vop_dev, LINE_FLAG, val);
