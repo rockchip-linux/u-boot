@@ -359,7 +359,6 @@ static void FW_LowFormatSysDisk(void)
 出口参数:无
 调用函数:无
 ***************************************************************************/
-extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
 static void FW_GetChipVer(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[2];
@@ -383,27 +382,7 @@ static void FW_GetChipVer(void)
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	chip_info[0] = 0x33313241; // 312A
 #elif defined(CONFIG_RKCHIP_RK3228)
-{
-	uint8 flag = 0;
-
-	FtEfuseRead((void *)(unsigned long)RKIO_EFUSE_256BITS_PHYS, &flag, 5, 1);
-	flag = (flag>>2) & 0x3;
-	if (flag == 1)
-		chip_info[0] = 0x33323241; /* 322A */
-	else if (flag == 2)
-		chip_info[0] = 0x33323242; /* 322B */
-	else if (flag == 3)
-		chip_info[0] = 0x33323239; /* 3229 */
-	else {
-	#ifdef CONFIG_RK3229
-		chip_info[0] = 0x33323239; /* 3229 */
-	#elif CONFIG_RK3228B
-		chip_info[0] = 0x33323242; /* 322B */
-	#else
-		chip_info[0] = 0x33323241; /* 322A */
-	#endif
-	}
-}
+	chip_info[0] = 0x33323241; /* 322A */
 #endif
 	memcpy((void *)current_urb->buffer, (void *)chip_info, 16);
 	current_urb->actual_length = 16;

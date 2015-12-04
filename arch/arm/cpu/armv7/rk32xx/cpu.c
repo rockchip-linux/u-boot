@@ -103,50 +103,6 @@ int rk_get_chiptype(void)
 	return RKCHIP_UNKNOWN;
 }
 
-#if defined(CONFIG_RKCHIP_RK3228)
-#define RK3228A_TAG	1
-#define RK3228B_TAG	2
-#define RK3229_TAG	3
-extern void ISetLoaderFlag(uint32 flag);
-extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
-
-static inline void rk3228_chiptype_check(void)
-{
-	uint8 flag = 0;
-
-	FtEfuseRead((void *)(unsigned long)RKIO_EFUSE_256BITS_PHYS, &flag, 5, 1);
-	flag = (flag>>2) & 0x3;
-	if (flag != 0) {
-#if defined(CONFIG_RK3228A)
-		if (flag != RK3228A_TAG) {
-			ISetLoaderFlag(0xEF08A53C);
-			/* pll enter slow mode */
-			writel(PLL_MODE_SLOW(APLL_ID) | PLL_MODE_SLOW(CPLL_ID) | PLL_MODE_SLOW(GPLL_ID), RKIO_GRF_PHYS + CRU_MODE_CON);
-			/* soft reset */
-			writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
-		}
-#elif defined(CONFIG_RK3228B)
-		if (flag != RK3228B_TAG) {
-			ISetLoaderFlag(0xEF08A53C);
-
-			/* pll enter slow mode */
-			writel(PLL_MODE_SLOW(APLL_ID) | PLL_MODE_SLOW(CPLL_ID) | PLL_MODE_SLOW(GPLL_ID), RKIO_GRF_PHYS + CRU_MODE_CON);
-			/* soft reset */
-			writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
-		}
-#elif defined(CONFIG_RK3229)
-		if (flag != RK3229_TAG) {
-			ISetLoaderFlag(0xEF08A53C);
-
-			/* pll enter slow mode */
-			writel(PLL_MODE_SLOW(APLL_ID) | PLL_MODE_SLOW(CPLL_ID) | PLL_MODE_SLOW(GPLL_ID), RKIO_GRF_PHYS + CRU_MODE_CON);
-			/* soft reset */
-			writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
-		}
-#endif
-	}
-}
-#endif
 
 /* cpu axi qos priority */
 #define CPU_AXI_QOS_PRIORITY    0x08
@@ -199,8 +155,6 @@ int arch_cpu_init(void)
 
 	/* hdmi phy clock source select HDMIPHY clock out */
 	cru_writel((1<<29) | (0<<13), CRU_MISC_CON);
-
-	rk3228_chiptype_check();
 
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
 	/* emmc sdmmc sdio set secure mode */
@@ -272,13 +226,7 @@ int print_cpuinfo(void)
 
 #if defined(CONFIG_RKCHIP_RK3228)
 	if (gd->arch.chiptype == CONFIG_RK3228) {
-#if defined(CONFIG_RK3229)
-		printf("CPU: rk3229\n");
-#elif defined(CONFIG_RK322B)
-		printf("CPU: rk3228b\n");
-#else
-		printf("CPU: rk3228a\n");
-#endif
+		printf("CPU: rk3228\n");
 	}
 #endif
 
