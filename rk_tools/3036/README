@@ -1,0 +1,10 @@
+build and flash evb_rk3036 board uboot image step:
+1. CROSS_COMPILE=arm-eabi-  make O=evb_3036 evb-rk3036_defconfig all
+2. ./rk_tools/3036/evb_mkimage.sh
+3. ./rk_tools/3036/flash.sh
+
+build and flash kylin board uboot image step:
+1. CROSS_COMPILE=arm-eabi-  make O=kylin kylin-rk3036_defconfig all
+2. ./rk_tools/3036/kylin_mkimage.sh
+3. ./rk_tools/3036/flash.sh
+
