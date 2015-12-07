@@ -415,6 +415,7 @@
 
 #ifdef CONFIG_PRODUCT_BOX
 #define CONFIG_RK_HDMI
+#define CONFIG_RK_TVE
 #endif
 
 #define CONFIG_LCD_LOGO

@@ -229,7 +229,7 @@
 #define CONFIG_RK_HDMIV2
 #endif
 
-#ifdef CONFIG_PRODUCT_BOX
+#ifdef CONFIG_RK_TVE
 #define CONFIG_RK1000_TVE
 #undef CONFIG_GM7122_TVE
 #endif
@@ -243,6 +243,7 @@
 #undef CONFIG_RK_FB
 #undef CONFIG_RK_PWM_BL
 #undef CONFIG_RK_HDMI
+#undef CONFIG_RK_TVE
 #undef CONFIG_CMD_BMP
 #undef CONFIG_UBOOT_CHARGE
 

@@ -191,9 +191,9 @@
 #endif
 #endif /* CONFIG_RK_HDMI */
 
-#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK3228)
+#ifdef CONFIG_RK_TVE
 #define CONFIG_RK3036_TVE
-#endif /* CONFIG_RKCHIP_RK3036 */
+#endif /* CONFIG_RK_TVE */
 
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 #define CONFIG_RK32_DSI
@@ -206,6 +206,7 @@
 #undef CONFIG_RK_FB
 #undef CONFIG_RK_PWM_BL
 #undef CONFIG_RK_HDMI
+#undef CONFIG_RK_TVE
 #undef CONFIG_CMD_BMP
 #undef CONFIG_UBOOT_CHARGE
 

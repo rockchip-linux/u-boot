@@ -144,6 +144,11 @@
 #define CONFIG_RK_HDMIV2
 #endif
 
+#ifdef CONFIG_RK_TVE
+#define CONFIG_RK1000_TVE
+#undef CONFIG_GM7122_TVE
+#endif
+
 #define CONFIG_RK32_DSI
 
 #undef CONFIG_UBOOT_CHARGE
@@ -153,15 +158,12 @@
 #undef CONFIG_RK_FB
 #undef CONFIG_RK_PWM_BL
 #undef CONFIG_RK_HDMI
+#undef CONFIG_RK_TVE
 #undef CONFIG_CMD_BMP
 #undef CONFIG_UBOOT_CHARGE
 
 #endif /* CONFIG_LCD */
 
-#ifdef CONFIG_PRODUCT_BOX
-#define CONFIG_RK1000_TVE
-#undef CONFIG_GM7122_TVE
-#endif
 
 /* more config for charge */
 #ifdef CONFIG_UBOOT_CHARGE
