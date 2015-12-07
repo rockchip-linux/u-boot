@@ -4,10 +4,10 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-#include "rk3228_lcdc.h"
+#include "rk322x_lcdc.h"
 
 /*******************register definition**********************/
-struct vop_device rk3228_vop;
+struct vop_device rk322x_vop;
 
 #ifndef pr_info
 #define pr_info(args...)  debug(args)
@@ -670,7 +670,7 @@ static int win0_set_par(struct vop_device *vop_dev,
 
 void rk_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 {
-	struct vop_device *vop_dev = &rk3228_vop;
+	struct vop_device *vop_dev = &rk322x_vop;
 
 	fb_info->layer_id = vop_dev->dft_win;
 
@@ -919,7 +919,7 @@ static void vop_bcsh_path_sel(struct vop_device *vop_dev)
 
 int rk_lcdc_load_screen(vidinfo_t *vid)
 {
-	struct vop_device *vop_dev = &rk3228_vop;
+	struct vop_device *vop_dev = &rk322x_vop;
 	struct rk_screen *screen;
 	uint64_t val = 0;
 	int face = 0;
@@ -960,7 +960,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		break;
 	default:
 		/*
-		 * rk3228 only support hdmi or tvout, default set hdmi output
+		 * rk322x only support hdmi or tvout, default set hdmi output
 		 * if screen type is unknown.
 		 */
 		dev_err(vop_dev->dev, "un supported interface!\n");
@@ -1015,7 +1015,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 /* Enable LCD and DIGITAL OUT in DSS */
 void rk_lcdc_standby(int enable)
 {
-	struct vop_device *vop_dev = &rk3228_vop;
+	struct vop_device *vop_dev = &rk322x_vop;
 
 	vop_msk_reg(vop_dev, SYS_CTRL, V_VOP_STANDBY_EN(!!enable));
 	vop_cfg_done(vop_dev);
@@ -1028,7 +1028,7 @@ static int rk32_vop_parse_dt(struct vop_device *vop_dev, const void *blob)
 
 	vop_dev->node  = fdt_path_offset(blob, "lcdc0");
 	if (vop_dev->node < 0) {
-		debug("rk3228 lcdc node is not found\n");
+		debug("rk322x lcdc node is not found\n");
 		return -ENODEV;
 	}
 
@@ -1059,7 +1059,7 @@ int vop_vop_read_def_cfg(struct vop_device *vop_dev)
 
 int rk_lcdc_init(int vop_id)
 {
-	struct vop_device *vop_dev = &rk3228_vop;
+	struct vop_device *vop_dev = &rk322x_vop;
 	uint64_t val;
 
 	vop_dev->soc_type = gd->arch.chiptype;

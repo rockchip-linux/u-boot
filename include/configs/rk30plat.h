@@ -178,7 +178,7 @@
 #ifdef CONFIG_LCD
 
 #if defined(CONFIG_RKCHIP_RK322X)
-#define CONFIG_RK3228_FB
+#define CONFIG_RK322X_FB
 #else
 #define CONFIG_RK3036_FB
 #endif
