@@ -106,7 +106,7 @@ static void tve_set_mode (int mode)
 {
 //	printf("%s mode %d\n", __FUNCTION__, mode);
 
-	if (tve_s.soctype != SOC_RK3228) {
+	if (tve_s.soctype != SOC_RK322X) {
 		tve_writel(TV_RESET, v_RESET(1));
 		udelay(100);
 		tve_writel(TV_RESET, v_RESET(0));
@@ -121,7 +121,7 @@ static void tve_set_mode (int mode)
 			   v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) |
 			   v_LUMA_FILTER_UPSAMPLE(1) | v_CSC_PATH(3));
 
-	if (tve_s.soctype == SOC_RK3228) {
+	if (tve_s.soctype == SOC_RK322X) {
 		tve_writel(TV_LUMA_FILTER0, 0x02ff0001);
 		tve_writel(TV_LUMA_FILTER1, 0xf40200fe);
 		tve_writel(TV_LUMA_FILTER2, 0xF332d910);
@@ -163,7 +163,7 @@ static void tve_set_mode (int mode)
 				tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008a0a);
 			else
 				tve_writel(TV_BRIGHTNESS_CONTRAST, 0x0000800a);
-		} else if (tve_s.soctype == SOC_RK3228) {
+		} else if (tve_s.soctype == SOC_RK322X) {
 			tve_writel(TV_SATURATION, 0x00305b46);
 			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00009900);
 		} else {
@@ -181,7 +181,7 @@ static void tve_set_mode (int mode)
 			udelay(100);
 			tve_writel(TV_ADJ_TIMING, (0xa << 28) | 0x06c00800 | 0x80);
 			tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
-		} else if (tve_s.soctype == SOC_RK3228) {
+		} else if (tve_s.soctype == SOC_RK322X) {
 			tve_writel(TV_ADJ_TIMING, (0xd << 28) |
 					0x06c00800 | 0x80);
 		} else {
@@ -206,7 +206,7 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 		panel->screen_type = SCREEN_TVOUT_TEST;
 		panel->color_mode = COLOR_YCBCR;
 		printf("SCREEN_TVOUT_TEST\n");
-	} else if (tve_s.soctype == SOC_RK3228) {
+	} else if (tve_s.soctype == SOC_RK322X) {
 		panel->screen_type = SCREEN_TVOUT;
 		panel->color_mode = COLOR_YCBCR;
 		printf("SCREEN_TVOUT\n");
@@ -287,7 +287,7 @@ int rk3036_tve_init(vidinfo_t *panel)
 	tve_s.saturation = 0;
 #elif defined(CONFIG_RKCHIP_RK3228)
 	tve_s.reg_phy_base = 0x20050000 + 0x3e00;
-	tve_s.soctype = SOC_RK3228;
+	tve_s.soctype = SOC_RK322X;
 	tve_s.saturation = 0;
 	tve_s.vdacbase = 0x12020000;
 #endif
@@ -298,9 +298,9 @@ int rk3036_tve_init(vidinfo_t *panel)
 			0, "rockchip,rk312x-tve");
 		if (node < 0) {
 			printf("can't find dts node for rk312x-tve\n");
-			node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "rockchip,rk3228-tve");
+			node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "rockchip,rk322x-tve");
 			if (node < 0) {
-				printf("can't find dts node for rk3228-tve\n");
+				printf("can't find dts node for rk322x-tve\n");
 				return -ENODEV;
 			}
 		}
