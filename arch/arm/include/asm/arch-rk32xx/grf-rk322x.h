@@ -4,8 +4,8 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef __RK3228_GRF_H
-#define __RK3228_GRF_H
+#ifndef __RK322X_GRF_H
+#define __RK322X_GRF_H
 
 #include <asm/io.h>
 
@@ -264,4 +264,4 @@
 #define grf_writel(v, offset)	do { writel(v, RKIO_GRF_PHYS + offset); } while (0)
 
 
-#endif /* __RK3228_GRF_H */
+#endif /* __RK322X_GRF_H */

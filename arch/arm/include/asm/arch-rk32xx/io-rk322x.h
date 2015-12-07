@@ -4,8 +4,8 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef __RK3228_IO_H
-#define __RK3228_IO_H
+#ifndef __RK322X_IO_H
+#define __RK322X_IO_H
 
 
 /*
@@ -103,4 +103,4 @@
 #define RKIO_ROM_CHIP_VER_SIZE		16
 
 
-#endif /* __RK3228_IO_H */
+#endif /* __RK322X_IO_H */

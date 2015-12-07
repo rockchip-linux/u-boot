@@ -110,7 +110,7 @@ typedef enum UART_ch {
 	UART_CH3,
 	UART_CH4,
 #elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-		|| defined(CONFIG_RKCHIP_RK3228)
+		|| defined(CONFIG_RKCHIP_RK322X)
 	UART_CH0,
 	UART_CH1,
 	UART_CH2,

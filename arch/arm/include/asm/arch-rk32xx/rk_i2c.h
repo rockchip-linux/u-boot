@@ -20,7 +20,7 @@ typedef enum rk_i2c_bus_ch {
 	I2C_BUS_CH0,
 	I2C_BUS_CH1,
 	I2C_BUS_CH2,
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK322X)
 	I2C_BUS_CH0,
 	I2C_BUS_CH1,
 	I2C_BUS_CH2,

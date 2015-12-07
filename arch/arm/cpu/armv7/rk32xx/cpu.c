@@ -28,7 +28,7 @@ void enable_caches(void)
  * rk312x chip info:		{0x33313043, 0x32303134, 0x30343239, 0x56313030} - 310C20140429V100
  * rk312xb chip info:		{0x33313044, 0x32303134, 0x30373330, 0x56313030} - 310D20140730V100
  * rk3288 chip info:		{0x33323041, 0x32303133, 0x31313136, 0x56313030} - 320A20131116V100
- * rk3228 chip info:		{0x33323042, 0x32303135, 0x31313136, 0x56313030} - 320B20151116V100
+ * rk322x chip info:		{0x33323042, 0x32303135, 0x31313136, 0x56313030} - 320B20151116V100
  */
 int rk_get_bootrom_chip_version(unsigned int chip_info[])
 {
@@ -37,7 +37,7 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 
 #ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 	/* bootrom is secure, second level can't read */
-#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK322X)
 	chip_info[0] = 0x33323042;
 #else
 	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
@@ -96,7 +96,7 @@ int rk_get_chiptype(void)
 			return CONFIG_RK3288;
 		}
 		if (chip_info[0] == 0x33323042) { /* 320B */
-			return CONFIG_RK3228;
+			return CONFIG_RK322X;
 		}
 	}
 
@@ -145,7 +145,7 @@ int arch_cpu_init(void)
 	writel(CPU_AXI_QOS_PRIORITY_LEVEL(3, 3), CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
 #endif
 
-#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK322X)
 	/* use rk pwm */
 	grf_writel((1<<16) | (1<<0), GRF_SOC_CON2);
 
@@ -162,7 +162,7 @@ int arch_cpu_init(void)
 	/* otg set secure mode */
 	writel((1 << (7 + 16)) | (0 << 7), RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON2);
 #endif
-#endif /* CONFIG_RKCHIP_RK3228 */
+#endif /* CONFIG_RKCHIP_RK322X */
 
 	return 0;
 }
@@ -224,9 +224,9 @@ int print_cpuinfo(void)
 	}
 #endif
 
-#if defined(CONFIG_RKCHIP_RK3228)
-	if (gd->arch.chiptype == CONFIG_RK3228) {
-		printf("CPU: rk3228\n");
+#if defined(CONFIG_RKCHIP_RK322X)
+	if (gd->arch.chiptype == CONFIG_RK322X) {
+		printf("CPU: rk322x\n");
 	}
 #endif
 

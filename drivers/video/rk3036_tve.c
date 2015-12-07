@@ -59,7 +59,7 @@ static void dac_enable(int enable)
 	u32 grfreg = 0;
 
 //	printf("%s enable %d\n", __FUNCTION__, enable);
-#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK322X)
 	tve_dac_writel(VDAC_VDAC2, v_CUR_CTR(0x15));
 	tve_dac_writel(VDAC_VDAC3, v_CAB_EN(0));
 #endif
@@ -74,7 +74,7 @@ static void dac_enable(int enable)
 		#endif
 		val |= mask << 16;
 
-		#if defined(CONFIG_RKCHIP_RK3228)
+		#if defined(CONFIG_RKCHIP_RK322X)
 			val = 0x70;
 		#endif
 	} else {
@@ -87,7 +87,7 @@ static void dac_enable(int enable)
 		#endif
 		val |= mask << 16;
 
-		#if defined(CONFIG_RKCHIP_RK3228)
+		#if defined(CONFIG_RKCHIP_RK322X)
 			val = v_CUR_REG(0x7) | m_DR_PWR_DOWN | m_BG_PWR_DOWN;
 		#endif
 	}
@@ -285,7 +285,7 @@ int rk3036_tve_init(vidinfo_t *panel)
 	tve_s.reg_phy_base = 0x1010e000 + 0x200;
 	tve_s.soctype = SOC_RK312X;
 	tve_s.saturation = 0;
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 	tve_s.reg_phy_base = 0x20050000 + 0x3e00;
 	tve_s.soctype = SOC_RK322X;
 	tve_s.saturation = 0;

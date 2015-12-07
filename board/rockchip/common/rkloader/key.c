@@ -12,7 +12,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK322X)
 #define SARADC_BASE             	(-1)
 #else
 #define SARADC_BASE             	RKIO_SARADC_PHYS
@@ -123,7 +123,7 @@ __maybe_unused static void RockusbKeyInit(void)
 	key_rockusb.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key_rockusb.key.ioint.pressed_state = 0;
 	key_rockusb.key.ioint.press_time = 0;
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 	key_rockusb.type = KEY_INT;
 	key_rockusb.key.ioint.name = "rockusb_key";
 	key_rockusb.key.ioint.gpio = (GPIO_BANK3 | GPIO_D1);
@@ -204,7 +204,7 @@ __maybe_unused static void ChargeStateGpioInit(void)
 
 #ifdef CONFIG_RK_PWM_REMOTE
 #if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-	|| defined(CONFIG_RKCHIP_RK3228)
+	|| defined(CONFIG_RKCHIP_RK322X)
 	#define IRQ_PWM_REMOTE	IRQ_PWM
 #elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	#define IRQ_PWM_REMOTE	IRQ_RK_PWM
@@ -296,7 +296,7 @@ void key_init(void)
 	memset(&charge_state_gpio, 0, sizeof(gpio_conf));
 
 	RockusbKeyInit();
-#if !(defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3228))
+#if !(defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK322X))
 	FastbootKeyInit();
 	RecoveryKeyInit();
 	PowerKeyInit();

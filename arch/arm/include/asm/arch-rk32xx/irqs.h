@@ -88,8 +88,8 @@ typedef volatile struct tagGICC_REG {
 	#include "irqs-rk3036.h"
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#include "irqs-rk312X.h"
-#elif defined(CONFIG_RKCHIP_RK3228)
-	#include "irqs-rk3228.h"
+#elif defined(CONFIG_RKCHIP_RK322X)
+	#include "irqs-rk322x.h"
 #else
 	#error "PLS config irqs-rkxx.h!"
 #endif

@@ -61,7 +61,7 @@ struct rk_gpio_bank {
 	#include "gpio-rk3288.h"
 #elif defined(CONFIG_RKCHIP_RK3036)
 	#include "gpio-rk3036.h"
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK322X)
 	#include "gpio-rk312X.h"
 #else
 	#error "PLS config gpio-rkxx.h!"

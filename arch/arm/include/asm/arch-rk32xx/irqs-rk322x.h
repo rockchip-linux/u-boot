@@ -4,8 +4,8 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef __RK3228_IRQS_H
-#define __RK3228_IRQS_H
+#ifndef __RK322X_IRQS_H
+#define __RK322X_IRQS_H
 
 #define FIQ_START                       0
 
@@ -94,4 +94,4 @@
 
 #define NR_IRQS_MAXNUM			(NR_GIC_IRQS + NR_GPIO_IRQS)
 
-#endif /* __RK3228_IRQS_H */
+#endif /* __RK322X_IRQS_H */

@@ -60,7 +60,7 @@ uint32 IReadLoaderFlag(void)
 	return readl(RKIO_GRF_PHYS + GRF_OS_REG4);
 #elif defined(CONFIG_RKCHIP_RK3368)
 	return readl(RKIO_PMU_GRF_PHYS + PMU_GRF_OS_REG0);
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 	return readl(RKIO_GRF_PHYS + GRF_OS_REG0);
 #else
 	#error "PLS config rk chip for loader flag."
@@ -81,7 +81,7 @@ void ISetLoaderFlag(uint32 flag)
 	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG4);
 #elif defined(CONFIG_RKCHIP_RK3368)
 	writel(flag, RKIO_PMU_GRF_PHYS + PMU_GRF_OS_REG0);
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG0);
 #else
 	#error "PLS config rk chip for loader flag."
@@ -93,7 +93,7 @@ uint32 GetMmcCLK(uint32 nSDCPort)
 {
 	uint32 src_clk;
 
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK322X)
 	// set general pll
 	rkclk_set_mmc_clk_src(nSDCPort, 1);
 	//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
@@ -148,7 +148,7 @@ void SDCReset(uint32 sdmmcId)
 	cru_writel(con, CRU_SOFTRSTS_CON(8));
 	udelay(200);
 #elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-	|| defined(CONFIG_RKCHIP_RK3228)
+	|| defined(CONFIG_RKCHIP_RK322X)
 	con = (0x01 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
 	cru_writel(con, CRU_SOFTRSTS_CON(5));
 	udelay(100);
@@ -340,7 +340,7 @@ void rkplat_uart2UsbEn(uint32 en)
 	rk312X_uart2usb(en);
 #elif defined(CONFIG_RKCHIP_RK3368)
 	rk3368_uart2usb(en);
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 	/* no support uart to usb */
 #else
 	#error "PLS config rk chip if support uart2usb."

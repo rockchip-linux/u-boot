@@ -54,7 +54,7 @@
 	#undef CONFIG_RK_UMS_BOOT_EN
 #endif /* CONFIG_RKCHIP_RK3128 */
 
-#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK322X)
 	#undef CONFIG_MERGER_MINILOADER
 	#define CONFIG_SECUREBOOT_CRYPTO
 	#define CONFIG_RK_PSCI
@@ -62,11 +62,11 @@
 
 	#undef CONFIG_RK_UMS_BOOT_EN
 	#undef CONFIG_PM_SUBSYSTEM
-#endif /* CONFIG_RKCHIP_RK3228 */
+#endif /* CONFIG_RKCHIP_RK322X */
 
 
-/* rk3228 RSA key in ram, MiniLoader copy RSA KEY to fixed address */
-#if defined(CONFIG_RKCHIP_RK3228)
+/* rk322x RSA key in ram, MiniLoader copy RSA KEY to fixed address */
+#if defined(CONFIG_RKCHIP_RK322X)
 #if defined(CONFIG_SECOND_LEVEL_BOOTLOADER) && defined(CONFIG_SECUREBOOT_CRYPTO)
 #define CONFIG_SECURE_RSA_KEY_IN_RAM
 #define CONFIG_SECURE_RSA_KEY_ADDR	(CONFIG_RKNAND_API_ADDR + SZ_2K)
@@ -78,7 +78,7 @@
 
 /* efuse version */
 #ifdef CONFIG_RK_EFUSE
-#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK322X)
 	#define CONFIG_RKEFUSE_V2
 #else
 	#define CONFIG_RKEFUSE_V1
@@ -87,7 +87,7 @@
 
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
-#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK322X)
 #define CONFIG_RK_MMC_IDMAC            /* internal dmac */
 #else
 #define CONFIG_RK_MMC_EDMAC		/* external mac */
@@ -106,7 +106,7 @@
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x301A
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x310C
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB   0x320B
 #else
 	#error "PLS config rk chip for rockusb PID!"
@@ -177,14 +177,14 @@
 /* more config for display */
 #ifdef CONFIG_LCD
 
-#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK322X)
 #define CONFIG_RK3228_FB
 #else
 #define CONFIG_RK3036_FB
 #endif
 
 #ifdef CONFIG_RK_HDMI
-#if defined(CONFIG_RKCHIP_RK3228)
+#if defined(CONFIG_RKCHIP_RK322X)
 #define CONFIG_RK_HDMIV2
 #else
 #define CONFIG_RK3036_HDMI

@@ -340,7 +340,7 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 	/*
 	 * pull setting
 	 * 2'b00: Z(Noraml operaton)
@@ -486,7 +486,7 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 	void __iomem *base;
 	u32 val;
 

@@ -4,8 +4,8 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef __RK3228_CRU_H
-#define __RK3228_CRU_H
+#ifndef __RK322X_CRU_H
+#define __RK322X_CRU_H
 
 
 enum rk_plls_id {
@@ -229,4 +229,4 @@ enum rk_plls_id {
 #define CLK_GATE_W_MSK(i)		(1 << (((i) % 16) + 16))
 
 
-#endif /* __RK3228_CRU_H */
+#endif /* __RK322X_CRU_H */

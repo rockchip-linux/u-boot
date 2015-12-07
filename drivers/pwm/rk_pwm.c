@@ -59,7 +59,7 @@ void __iomem *rk_pwm_get_base(unsigned pwm_id)
 {
 #if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	return (void __iomem *)(unsigned long)(RKIO_RK_PWM_PHYS + pwm_id * 0x10);
-#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3228) \
+#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK322X) \
 		|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	return (void __iomem *)(unsigned long)(RKIO_PWM_PHYS + pwm_id * 0x10);
 #else

@@ -80,7 +80,7 @@ typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
 	#define RK_DMAC1_IRQ0		IRQ_DMAC_PERI0
 	#define RK_DMAC1_IRQ1		IRQ_DMAC_PERI1
 #elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-		|| defined(CONFIG_RKCHIP_RK3228)
+		|| defined(CONFIG_RKCHIP_RK322X)
 	#define RK_PL330_DMAC_MAX	1
 	#define CONFIG_RK_DMAC_0	/* dmac 0 */
 
@@ -259,7 +259,7 @@ enum dma_ch {
 	DMACH_MAX,
 };
 
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 enum dma_ch {
 	DMACH_I2S2_2CH_TX,
 	DMACH_I2S2_2CH_RX,

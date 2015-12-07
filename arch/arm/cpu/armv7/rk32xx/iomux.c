@@ -17,8 +17,8 @@
 	#include "iomux-rk3036.c"
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	#include "iomux-rk312X.c"
-#elif defined(CONFIG_RKCHIP_RK3228)
-	#include "iomux-rk3228.c"
+#elif defined(CONFIG_RKCHIP_RK322X)
+	#include "iomux-rk322x.c"
 #else
 	#error "PLS config iomux-rk32xx.c!"
 #endif

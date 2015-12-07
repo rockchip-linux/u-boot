@@ -1337,7 +1337,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 		[31] = DMACH_MAX,
 	},
 };
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S2_2CH_TX,
@@ -1722,7 +1722,7 @@ int rk_pl330_dmac_deinit(int dmac_id)
 	writel(0x0<<0 | 0x1<<(2+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(1));
 #endif
 
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 
 #ifdef CONFIG_RK_DMAC_0
 	writel(0x1<<0 | 0x1<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));

@@ -119,7 +119,7 @@ static void rk_emmc_iomux_config(int emmc_id)
 		/* emmc data0-7 */
 		grf_writel((0xFFFF << 16) | 0xAAAA, GRF_GPIO1D_IOMUX);
 		/* emmc emmc rstn out, pwren, emmc clkout */
-		/* note: here no iomux emmc cmd for maskrom has do it for rk3228 */
+		/* note: here no iomux emmc cmd for maskrom has do it for rk322x */
 		grf_writel((3<<30) | (2<<14), GRF_GPIO1C_IOMUX);
 		grf_writel((3<<26) | (3<<30) | (2<<10) | (2<<14), GRF_GPIO2A_IOMUX);
 		break;

@@ -112,7 +112,7 @@ struct pll_data {
 
 
 
-/*		rk3228 pll notice
+/*		rk322x pll notice
  *
  * Fref = Fin / nr
  * Fvco = Fin * nf / nr
@@ -722,7 +722,7 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	rkclk_lcdc_aclk_set(lcdc_id, VIO_ACLK_MAX);
 	rkclk_lcdc_hclk_set(lcdc_id, VIO_HCLK_MAX);
 
-	/* rk3228 dclk from hdmi pll which config in hdmi module */
+	/* rk322x dclk from hdmi pll which config in hdmi module */
 
 	return 0;
 }
@@ -1046,7 +1046,7 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 	sel = (con >> 7) & 0x1;
 	div = ((con >> 0) & 0x7F) + 1;
 
-	/* rk3228 spi clk pll can be from codec pll/general pll, default codec pll */
+	/* rk322x spi clk pll can be from codec pll/general pll, default codec pll */
 	if (sel == 0)
 		return gd->pci_clk / div;
 	else
@@ -1064,7 +1064,7 @@ void rkclk_set_crypto_clk(uint32 rate)
 	uint32 parent = 0;
 	uint32 div;
 
-	/* rk3228 crypto clk pll can be from codec pll/general pll, default codec pll */
+	/* rk322x crypto clk pll can be from codec pll/general pll, default codec pll */
 	if ((cru_readl(CRU_CLKSELS_CON(24)) & (1 << 5)) != 0)
 		parent = gd->bus_clk;
 	else
