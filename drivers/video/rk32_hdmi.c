@@ -574,7 +574,7 @@ static int rockchip_hdmiv2_write_phy(struct hdmi_dev *hdmi_dev,
 
 static void rk32_hdmi_powerdown(struct hdmi_dev *hdmi_dev)
 {
-	if (hdmi_dev->soctype != HDMI_SOC_RK3228) {
+	if (hdmi_dev->soctype != HDMI_SOC_RK322X) {
 		hdmi_msk_reg(hdmi_dev, PHY_CONF0,
 			     m_PDDQ_SIG | m_TXPWRON_SIG | m_ENHPD_RXSENSE_SIG,
 			     v_PDDQ_SIG(1) | v_TXPWRON_SIG(0) |
@@ -630,12 +630,12 @@ static void hdmi_dev_init(struct hdmi_dev *hdmi_dev)
 	val = 0x031c;
 	shift = 9;
 	#endif
-	#ifdef CONFIG_RKCHIP_RK3228
+	#ifdef CONFIG_RKCHIP_RK322X
 	grf_writel(0xf000a000, GRF_GPIO0A_IOMUX);
 	grf_writel(0xF << 28, GRF_GPIO0A_P);
 	grf_writel(0x40004000, GRF_GPIO0B_IOMUX);
-	grf_writel(RK3228_DDC_MASK_EN, GRF_SOC_CON2);
-	grf_writel(RK3228_IO_3V_DOMAIN, GRF_SOC_CON6);
+	grf_writel(RK322X_DDC_MASK_EN, GRF_SOC_CON2);
+	grf_writel(RK322X_IO_3V_DOMAIN, GRF_SOC_CON6);
 	val = 0x128;
 	shift = 0;
 	#endif
@@ -643,7 +643,7 @@ static void hdmi_dev_init(struct hdmi_dev *hdmi_dev)
 	writel((1 << shift) | (1 << (shift + 16)), RKIO_CRU_PHYS + val);
 	udelay(1);
 	writel((1 << (shift + 16)), RKIO_CRU_PHYS + val);
-	if (hdmi_dev->soctype == HDMI_SOC_RK3228) {
+	if (hdmi_dev->soctype == HDMI_SOC_RK322X) {
 		rockchip_hdmiv2_write_phy(hdmi_dev, 0x00, 0x00);
 		udelay(10);
 		rockchip_hdmiv2_write_phy(hdmi_dev, 0x00, 0xc0);
@@ -1109,18 +1109,18 @@ static int hdmi_dev_config_vsi(struct hdmi_dev *hdmi_dev,
 }
 
 #define PHY_TIMEOUT	10000
-#define RK3228_PLL_POWER_DOWN	((1 << 12) | (1 << 28))
-#define RK3228_PLL_POWER_UP	(1 << 28)
-#define RK3228_PLL_PDATA_DEN	(1 << 27)
-#define RK3228_PLL_PDATA_EN	((1 << 11) | (1 << 27))
+#define RK322X_PLL_POWER_DOWN	((1 << 12) | (1 << 28))
+#define RK322X_PLL_POWER_UP	(1 << 28)
+#define RK322X_PLL_PDATA_DEN	(1 << 27)
+#define RK322X_PLL_PDATA_EN	((1 << 11) | (1 << 27))
 
-static int rk3228_set_phy(struct hdmi_dev *hdmi_dev)
+static int ext_phy_config(struct hdmi_dev *hdmi_dev)
 {
 	int stat = 0, i = 0, temp;
 	const struct ext_pll_config_tab *phy_ext = NULL;
 
-	grf_writel(RK3228_PLL_POWER_DOWN |
-		   RK3228_PLL_PDATA_DEN,
+	grf_writel(RK322X_PLL_POWER_DOWN |
+		   RK322X_PLL_PDATA_DEN,
 		   GRF_SOC_CON2);
 
 	if (hdmi_dev->tmdsclk_ratio_change &&
@@ -1243,7 +1243,7 @@ static int rk3228_set_phy(struct hdmi_dev *hdmi_dev)
 		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY_PPLL_BW, 0x10);
 	}
 
-	grf_writel(RK3228_PLL_POWER_UP, GRF_SOC_CON2);
+	grf_writel(RK322X_PLL_POWER_UP, GRF_SOC_CON2);
 	if (hdmi_dev->tmdsclk_ratio_change)
 		mdelay(100);
 	else
@@ -1267,7 +1267,7 @@ static int rk3228_set_phy(struct hdmi_dev *hdmi_dev)
 		return -1;
 	}
 
-	grf_writel(RK3228_PLL_PDATA_EN, GRF_SOC_CON2);
+	grf_writel(RK322X_PLL_PDATA_EN, GRF_SOC_CON2);
 	return 0;
 }
 
@@ -1276,8 +1276,8 @@ static int rk32_hdmi_config_phy(struct hdmi_dev *hdmi_dev)
 	int stat = 0, i = 0;
 	const struct phy_mpll_config_tab *phy_mpll = NULL;
 
-	if (hdmi_dev->soctype == HDMI_SOC_RK3228)
-		return rk3228_set_phy(hdmi_dev);
+	if (hdmi_dev->soctype == HDMI_SOC_RK322X)
+		return ext_phy_config(hdmi_dev);
 
 	hdmi_msk_reg(hdmi_dev, PHY_I2CM_DIV,
 		     m_PHY_I2CM_FAST_STD, v_PHY_I2CM_FAST_STD(0));
@@ -1771,15 +1771,15 @@ void rk32_hdmi_probe(vidinfo_t *panel)
 				    SUPPORT_YCBCR_INPUT;
 		strcpy(hdmi_dev->compatible, "rockchip,rk3368-hdmi");
 		#endif
-		#ifdef CONFIG_RKCHIP_RK3228
+		#ifdef CONFIG_RKCHIP_RK322X
 		hdmi_dev->phybase = (void *)RKIO_HDMI_PHY_PHYS;
-		hdmi_dev->soctype = HDMI_SOC_RK3228;
+		hdmi_dev->soctype = HDMI_SOC_RK322X;
 		hdmi_dev->feature = SUPPORT_4K |
 				    SUPPORT_4K_4096 |
 				    SUPPORT_YCBCR_INPUT |
 				    SUPPORT_1080I |
 				    SUPPORT_480I_576I;
-		strcpy(hdmi_dev->compatible, "rockchip,rk3228-hdmi");
+		strcpy(hdmi_dev->compatible, "rockchip,rk322x-hdmi");
 		#endif
 		rk_hdmi_register(hdmi_dev, panel);
 	} else {
