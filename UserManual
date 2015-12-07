@@ -33,6 +33,7 @@
         	configs\rk3036_box_defconfig
 		configs\rk3128_box_defconfig
 		configs\rk3368_box_defconfig
+		configs\rk322x_box_defconfig
 
     example:
         make rk3288_defconfig	-	Command to configure rk3288 platform for uboot.
@@ -40,6 +41,9 @@
 3.  Build
 	make			-	Command to make rk aarch32 uboot bin.
 	make ARCHV=aarch64	-	Command to make rk aarch64 uboot bin.
+
+	mkv7.sh			-	shell to make rk aarch32 uboot bin.
+	mkv8.sh			-	Command to make rk aarch64 uboot bin.
 
 4.  Clean
 	make clean
@@ -50,17 +54,17 @@
         RK3288UbootLoader_V2.17.01.bin
 
     if uboot as second level bootloader, rk uboot just a image, such as:
-	uboot.img				-	second level bootloader
+	uboot.img			-	second level bootloader
     uboot as second level bootloader configure by define CONFIG_SECOND_LEVEL_BOOTLOADER
 
     if define CONFIG_MERGER_MINILOADER, rk uboot will merge mini loader bin which as first level bootloader, such as:
-        RK3288MiniLoaderAll(L)_V2.19.bin	-	fist level bootloader
+        RK3288MiniLoaderAll_V2.19.bin	-	fist level bootloader
 
     if define CONFIG_MERGER_TRUSTIMAGE, rk uboot will merge trust image bin, such as:
-        trust.img				-	trustfirmware image bootloader
+        trust.img			-	trustfirmware image bootloader
 
 6.  Chipset
-    support RK3288,RK3036,RK3126,RK3128,RK3368.
+    support RK3288,RK3036,RK3126,RK3128,RK3368,RK322x.
 
 7.  Storage
     support emmc, sdcard, nand flash and ums.
@@ -68,7 +72,7 @@
 8.  configure file
     rk uboot configure files as:
         include\configs\rk_default_config.h	-	define all rk default module, just a common file.
-        include\configs\rk30plat.h		-	define detail configure for rk30 plat: rk3036, rk3126, rk3128
+        include\configs\rk30plat.h		-	define detail configure for rk30 plat: rk3036, rk3126, rk3128, rk322x
         include\configs\rk32plat.h		-	define detail configure for rk32 plat: rk3288
         include\configs\rk33plat.h		-	define detail configure for rk33 plat: rk3368
 
