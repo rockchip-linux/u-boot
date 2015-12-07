@@ -11,7 +11,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define COMPAT_ROCKCHIP_DRAM "rockchip,rk3228-dram"
+#define COMPAT_ROCKCHIP_DRAM "rockchip,rk322x-dram"
 
 struct trust_parameter {
 	uint32_t version;
