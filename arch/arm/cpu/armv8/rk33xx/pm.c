@@ -30,9 +30,8 @@ void rk_pm_wakeup_gpio_init(void)
 	struct fdt_gpio_state * gpio_dt = NULL;
 
 	gpio_dt = rkkey_get_powerkey();
-	if (gpio_dt != NULL) {
+	if (gpio_dt != NULL)
 		wakeup_gpio = gpio_dt->gpio;
-	}
 #endif
 	irq = gpio_to_irq(wakeup_gpio);
 	if (irq != INVALID_GPIO) {
@@ -54,9 +53,8 @@ void rk_pm_wakeup_gpio_deinit(void)
 	struct fdt_gpio_state * gpio_dt = NULL;
 
 	gpio_dt = rkkey_get_powerkey();
-	if (gpio_dt != NULL) {
+	if (gpio_dt != NULL)
 		wakeup_gpio = gpio_dt->gpio;
-	}
 #endif
 	irq = gpio_to_irq(wakeup_gpio);
 	if (irq != INVALID_GPIO) {
@@ -75,9 +73,8 @@ void rk_pm_enter(v_pm_cb_f module_pm_conf)
 	/* disable exceptions */
 	disable_interrupts();
 
-	if (module_pm_conf != NULL) {
+	if (module_pm_conf != NULL)
 		module_pm_conf(0);
-	}
 
 	/* pll enter slow mode */
 	rkclk_pll_mode(CPLL_ID, RKCLK_PLL_MODE_SLOW);
@@ -97,9 +94,8 @@ void rk_pm_enter(v_pm_cb_f module_pm_conf)
 	rkclk_pll_mode(CPLL_ID, RKCLK_PLL_MODE_NORMAL);
 
 
-	if (module_pm_conf != NULL) {
+	if (module_pm_conf != NULL)
 		module_pm_conf(1);
-	}
 
 	/* enable exceptions */
 	enable_interrupts();

@@ -91,16 +91,16 @@ struct pll_data {
 
 
 static struct pll_clk_set apll_clks[] = {
-	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, 
-	//	_core_div, _core_peri_div, _core_aclk_civ, _cpu_aclk_div, _cpu_hclk_div, _cpu_pclk_div
+	/* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
+		_core_div, _core_peri_div, _core_aclk_civ, _cpu_aclk_div, _cpu_hclk_div, _cpu_pclk_div */
 	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 4, 4, 4, 2, 2),
 	_APLL_SET_CLKS(600000, 1, 75, 3, 1, 1, 0,	1, 4, 2, 4, 2, 2),
 };
 
 
 static struct pll_clk_set gpll_clks[] = {
-	//_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
-	//	aclk_div, hclk_div, pclk_div
+	/* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
+		aclk_div, hclk_div, pclk_div */
 	_GPLL_SET_CLKS(1188000, 2, 99, 1, 1, 1, 0,	8, 2, 2),
 	_GPLL_SET_CLKS(768000, 4, 133, 1, 1, 1, 0,	6, 2, 2),
 	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 2),
@@ -121,14 +121,12 @@ static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 	int delay = 24000000;
 
 	while (delay > 0) {
-		if ((cru_readl(PLL_CONS(pll_id, 1)) & (0x1 << PLL_LOCK_SHIFT))) {
+		if ((cru_readl(PLL_CONS(pll_id, 1)) & (0x1 << PLL_LOCK_SHIFT)))
 			break;
-		}
 		delay--;
 	}
-	if (delay == 0) {
-		while(1);
-	}
+	if (delay == 0)
+		do {} while (1);
 }
 
 
@@ -154,32 +152,30 @@ static void rkclk_pll_set_mode(enum rk_plls_id pll_id, int pll_mode)
 /* Set pll rate by id */
 static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f cb_f)
 {
-	struct pll_data *pll = NULL;
+	const struct pll_data *pll = NULL;
 	struct pll_clk_set *clkset = NULL;
 	unsigned long rate = mHz * MHZ;
 	int i = 0;
 
 	/* Find pll rate set */
-	for (i=0; i<END_PLL_ID; i++) {
+	for (i = 0; i < END_PLL_ID; i++) {
 		if (rkpll_data[i].id == pll_id) {
 			pll = &rkpll_data[i];
 			break;
 		}
 	}
-	if ((pll == NULL) || (pll->clkset == NULL)) {
+	if ((pll == NULL) || (pll->clkset == NULL))
 		return -1;
-	}
 
 	/* Find clock set */
-	for (i=0; i<pll->size; i++) {
+	for (i = 0; i < pll->size; i++) {
 		if (pll->clkset[i].rate <= rate) {
 			clkset = &(pll->clkset[i]);
 			break;
 		}
 	}
-	if (clkset == NULL) {
+	if (clkset == NULL)
 		return -1;
-	}
 
 	/* PLL enter slow-mode */
 	cru_writel(PLL_MODE_SLOW(pll_id), CRU_MODE_CON);
@@ -191,9 +187,8 @@ static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f
 
 	/* delay for pll setup */
 	rkclk_pll_wait_lock(pll_id);
-	if (cb_f != NULL) {
+	if (cb_f != NULL)
 		cb_f(clkset);
-	}
 
 	/* PLL enter normal-mode */
 	cru_writel(PLL_MODE_NORM(pll_id), CRU_MODE_CON);
@@ -214,21 +209,19 @@ static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 	con = cru_readl(CRU_MODE_CON);
 	con = con & PLL_MODE_MSK(pll_id);
 	con = con >> (pll_id*4);
-	if (con == 0) {
-		/* slow mode */
-		return (24 * MHZ);
-	} else if (con == 1) {
-		/* normal mode */
+	if (con == 0) /* slow mode */
+		return 24 * MHZ;
+	else if (con == 1) { /* normal mode */
 		u32 pll_con0 = cru_readl(PLL_CONS(pll_id, 0));
 		u32 pll_con1 = cru_readl(PLL_CONS(pll_id, 1));
 		u32 pll_con2 = cru_readl(PLL_CONS(pll_id, 2));
 
-		//integer mode
+		/* integer mode */
 		rate64 = (u64)(24 * MHZ) * PLL_GET_FBDIV(pll_con0);
 		do_div(rate64, PLL_GET_REFDIV(pll_con1));
 
 		if (FRAC_MODE == dsmp) {
-			//fractional mode
+			/* fractional mode */
 			frac_rate64 = (u64)(24 * MHZ) * PLL_GET_FRAC(pll_con2);
 			do_div(frac_rate64, PLL_GET_REFDIV(pll_con1));
 			rate64 += frac_rate64 >> 24;
@@ -237,10 +230,8 @@ static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 		do_div(rate64, PLL_GET_POSTDIV2(pll_con1));
 
 		return rate64;
-	} else {
-		/* deep slow mode */
+	} else /* deep slow mode */
 		return 32768;
-	}
 }
 
 
@@ -253,52 +244,49 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 	uint32 pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
 	/* periph clock source select: 0: arm pll, 1: ddr pll, 2: general pll */
-	if (pll_src == PERIPH_SRC_ARM_PLL) {
+	if (pll_src == PERIPH_SRC_ARM_PLL)
 		pll_sel = 0;
-	} else if (pll_src == PERIPH_SRC_DDR_PLL){
+	else if (pll_src == PERIPH_SRC_DDR_PLL)
 		pll_sel = 1;
-	} else {
+	else
 		pll_sel = 2;
-	}
 
 	/* periph aclk - aclk_periph = periph_clk_src / n */
 	a_div = aclk_div ? (aclk_div - 1) : 1;
 
 	/* periph hclk - aclk_periph:hclk_periph */
-	switch (hclk_div)
-	{
-		case CLK_DIV_1:
-			h_div = 0;
-			break;
-		case CLK_DIV_2:
-			h_div = 1;
-			break;
-		case CLK_DIV_4:
-			h_div = 2;
-			break;
-		default:
-			h_div = 1;
-			break;
+	switch (hclk_div) {
+	case CLK_DIV_1:
+		h_div = 0;
+		break;
+	case CLK_DIV_2:
+		h_div = 1;
+		break;
+	case CLK_DIV_4:
+		h_div = 2;
+		break;
+	default:
+		h_div = 1;
+		break;
 	}
 
 	/* periph pclk - aclk_periph:pclk_periph */
-	switch (pclk_div)
-	{
-		case CLK_DIV_1:
-			p_div = 0;
-			break;
-		case CLK_DIV_2:
-			p_div = 1;
-			break;
-		case CLK_DIV_4:
-			p_div = 2;
-			break;
-		case CLK_DIV_8:
-			p_div = 3;
-			break;
-		default:
-			p_div = 2;
-			break;
+	switch (pclk_div) {
+	case CLK_DIV_1:
+		p_div = 0;
+		break;
+	case CLK_DIV_2:
+		p_div = 1;
+		break;
+	case CLK_DIV_4:
+		p_div = 2;
+		break;
+	case CLK_DIV_8:
+		p_div = 3;
+		break;
+	default:
+		p_div = 2;
+		break;
 	}
 
 	cru_writel((PERI_SEL_PLL_W_MSK | (pll_sel << PERI_SEL_PLL_OFF))
@@ -317,11 +305,10 @@ static void rkclk_cpu_coreclk_set(uint32 pll_src, uint32 core_div, uint32 core_p
 	uint32_t pll_sel = 0, c_div = 0, p_div = 0, a_div;
 
 	/* cpu clock source select: 0: arm pll, 1: general pll */
-	if (pll_src == CPU_SRC_ARM_PLL) {
+	if (pll_src == CPU_SRC_ARM_PLL)
 		pll_sel = 0;
-	} else {
+	else
 		pll_sel = 1;
-	}
 
 	/* cpu core - clk_core = core_clk_src / n */
 	c_div = core_div ? (core_div - 1) : 0;
@@ -349,13 +336,12 @@ static void rkclk_cpu_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk_di
 	uint32_t pll_sel = 0, a_div = 0, h_div = 0, p_div = 0;
 
 	/* cpu clock source select: 0: arm pll, 1: ddr pll, 2: general pll */
-	if (pll_src == CPU_SRC_ARM_PLL) {
+	if (pll_src == CPU_SRC_ARM_PLL)
 		pll_sel = 0;
-	} else if (pll_src == CPU_SRC_DDR_PLL){
+	else if (pll_src == CPU_SRC_DDR_PLL)
 		pll_sel = 1;
-	} else {
+	else
 		pll_sel = 2;
-	}
 
 	/* cpu aclk - aclk_cpu = core_clk_src / n */
 	a_div = aclk_div - 1;
@@ -381,11 +367,10 @@ static void rkclk_apll_cb(struct pll_clk_set *clkset)
 #if 0
 	rkclk_cpu_ahpclk_set(CPU_SRC_ARM_PLL, clkset->aclk_div, clkset->hclk_div, clkset->pclk_div);
 #else
-	if (CONFIG_RKCLK_GPLL_FREQ > 300) {
+	if (CONFIG_RKCLK_GPLL_FREQ > 300)
 		rkclk_cpu_ahpclk_set(CPU_SRC_GENERAL_PLL, 4, 2, 2);
-	} else {
+	else
 		rkclk_cpu_ahpclk_set(CPU_SRC_GENERAL_PLL, 2, 2, 2);
-	}
 #endif
 }
 
@@ -398,11 +383,11 @@ static void rkclk_gpll_cb(struct pll_clk_set *clkset)
 
 	/* set module clock default div from general pll */
 	/* nandc default clock div */
-	if (CONFIG_RKCLK_GPLL_FREQ > 300) {
+	if (CONFIG_RKCLK_GPLL_FREQ > 300)
 		div = 4;
-	} else {
+	else
 		div = 2;
-	}
+
 	con = (((div - 1) << 10) | (0x1f << (10 + 16)));
 	cru_writel(con, CRU_CLKSELS_CON(16));
 
@@ -464,20 +449,19 @@ static uint32 rkclk_get_periph_hclk_div(void)
 	uint32 con, div;
 
 	con = cru_readl(CRU_CLKSELS_CON(10));
-	switch ((con & PERI_HCLK_DIV_MSK) >> PERI_HCLK_DIV_OFF)
-	{
-		case 0:
-			div = CLK_DIV_1;
-			break;
-		case 1:
-			div = CLK_DIV_2;
-			break;
-		case 2:
-			div = CLK_DIV_4;
-			break;
-		default:
-			div = CLK_DIV_2;
-			break;
+	switch ((con & PERI_HCLK_DIV_MSK) >> PERI_HCLK_DIV_OFF) {
+	case 0:
+		div = CLK_DIV_1;
+		break;
+	case 1:
+		div = CLK_DIV_2;
+		break;
+	case 2:
+		div = CLK_DIV_4;
+		break;
+	default:
+		div = CLK_DIV_2;
+		break;
 	}
 
 	return div;
@@ -489,23 +473,22 @@ static uint32 rkclk_get_periph_pclk_div(void)
 	uint32 con, div;
 
 	con = cru_readl(CRU_CLKSELS_CON(10));
-	switch ((con & PERI_PCLK_DIV_MSK) >> PERI_PCLK_DIV_OFF)
-	{
-		case 0:
-			div = CLK_DIV_1;
-			break;
-		case 1:
-			div = CLK_DIV_2;
-			break;
-		case 2:
-			div = CLK_DIV_4;
-			break;
-		case 3:
-			div = CLK_DIV_8;
-			break;
-		default:
-			div = CLK_DIV_4;
-			break;
+	switch ((con & PERI_PCLK_DIV_MSK) >> PERI_PCLK_DIV_OFF) {
+	case 0:
+		div = CLK_DIV_1;
+		break;
+	case 1:
+		div = CLK_DIV_2;
+		break;
+	case 2:
+		div = CLK_DIV_4;
+		break;
+	case 3:
+		div = CLK_DIV_8;
+		break;
+	default:
+		div = CLK_DIV_4;
+		break;
 	}
 
 	return div;
@@ -528,11 +511,12 @@ void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
 {
 	pll_callback_f cb_f = NULL;
 
-	if (APLL_ID == pll_id) {
+	if (APLL_ID == pll_id)
 		cb_f = rkclk_apll_cb;
-	} else if (GPLL_ID == pll_id) {
+	else if (GPLL_ID == pll_id)
 		cb_f = rkclk_gpll_cb;
-	}
+	else
+		cb_f = NULL;
 
 	rkclk_pll_set_rate(pll_id, mHz, cb_f);
 }
@@ -573,13 +557,13 @@ void rkclk_get_pll(void)
 	div = rkclk_get_cpu_aclk_div();
 	int con = cru_readl(CRU_CLKSELS_CON(0));
 	con = (con & CPU_SEL_PLL_MSK) >> CPU_SEL_PLL_OFF;
-	if (con == CPU_SRC_GENERAL_PLL) {
+	if (con == CPU_SRC_GENERAL_PLL)
 		gd->arch.aclk_cpu_rate_hz = gd->bus_clk / div;
-	} else if (con == CPU_SRC_DDR_PLL) {
+	else if (con == CPU_SRC_DDR_PLL)
 		gd->arch.aclk_cpu_rate_hz = gd->mem_clk / div;
-	} else {
+	else
 		gd->arch.aclk_cpu_rate_hz = gd->cpu_clk / div;
-	}
+
 	/* cpu hclk */
 	div = rkclk_get_cpu_hclk_div();
 	gd->arch.hclk_cpu_rate_hz = gd->arch.aclk_cpu_rate_hz / div;
@@ -634,9 +618,10 @@ void rkclk_dump_pll(void)
 static uint32 rkclk_calc_pll_and_div(uint32 clock, uint32 even)
 {
 	uint32 div = 0, gdiv = 0;
-	uint32 pll_sel = 2; // 2: general pll
+	uint32 pll_sel = 2; /* 2: general pll */
 
-	gdiv = rkclk_calc_clkdiv(gd->bus_clk, clock, even); // general pll div
+	/* general pll div */
+	gdiv = rkclk_calc_clkdiv(gd->bus_clk, clock, even);
 
 	div = gdiv;
 
@@ -654,19 +639,17 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
 	uint32 con = 0;
 
-	if (lcdc_id > 0) {
+	if (lcdc_id > 1)
 		return -1;
-	}
 
 	con = 0;
 	/* aclk pll source select */
-	if (pll_sel == 0) {
+	if (pll_sel == 0)
 		con |= (3 << (14 + 16)) | (0 << 14);
-	} else if (pll_sel == 1) {
+	else if (pll_sel == 1)
 		con |= (3 << (14 + 16)) | (1 << 14);
-	} else {
+	else
 		con |= (3 << (14 + 16)) | (2 << 14);
-	}
 
 	/* aclk div */
 	div = div ? (div - 1) : 0;
@@ -706,19 +689,17 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
 	uint32 con = 0;
 
-	if (lcdc_id > 0) {
+	if (lcdc_id > 1)
 		return -1;
-	}
 
 	con = 0;
 	/* dclk pll source select */
-	if (pll_sel == 0) {
+	if (pll_sel == 0)
 		con |= (3 << (0 + 16)) | (0 << 0);
-	} else if (pll_sel == 1) {
+	else if (pll_sel == 1)
 		con |= (3 << (0 + 16)) | (1 << 0);
-	} else {
+	else
 		con |= (3 << (0 + 16)) | (2 << 0);
-	}
 
 	/* dclk div */
 	div = div ? (div - 1) : 0;
@@ -791,9 +772,9 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 	}
 
 	div = rkclk_calc_clkdiv(parent, freq, 0);
-	if (div == 0) {
+	if (div == 0)
 		div = 1;
-	}
+
 	con |= (((div - 1) << 10) | (0x1f << (10 + 16)));
 	cru_writel(con, CRU_CLKSELS_CON(16));
 
@@ -809,16 +790,12 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src)
 {
 	src &= 0x03;
-	if (0 == sdid) {
-		/* sdmmc */
+	if (0 == sdid) /* sdmmc */
 		cru_writel((src << 8) | (0x03 << (8 + 16)), CRU_CLKSELS_CON(12));
-	} else if (1 == sdid) {
-		/* sdio0 */
+	else if (1 == sdid) /* sdio0 */
 		cru_writel((src << 10) | (0x03 << (10 + 16)), CRU_CLKSELS_CON(12));
-	} else if (2 == sdid) {
-		/* emmc */
+	else if (2 == sdid) /* emmc */
 		cru_writel((src << 12) | (0x03 << (12 + 16)), CRU_CLKSELS_CON(12));
-	}
 }
 
 
@@ -830,16 +807,13 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
 	uint32 con;
 	uint32 sel;
 
-	if (0 == sdid) {
-		/* sdmmc */
+	if (0 == sdid) { /* sdmmc */
 		con =  cru_readl(CRU_CLKSELS_CON(12));
 		sel = (con >> 8) & 0x3;
-	} else if (1 == sdid) {
-		/* sdio0 */
+	} else if (1 == sdid) { /* sdio0 */
 		con =  cru_readl(CRU_CLKSELS_CON(12));
 		sel = (con >> 10) & 0x3;
-	} else if (2 == sdid) {
-		/* emmc */
+	} else if (2 == sdid) { /* emmc */
 		con =  cru_readl(CRU_CLKSELS_CON(12));
 		sel = (con >> 12) & 0x3;
 	} else {
@@ -847,17 +821,16 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
 	}
 
 	/* rk3036 sd clk pll can be from arm pll/ddr pll/general pll/24M, defualt general pll */
-	if (sel == 0) {
+	if (sel == 0)
 		return gd->cpu_clk;
-	} else if (sel == 1) {
+	else if (sel == 1)
 		return gd->mem_clk;
-	} else if (sel == 2) {
+	else if (sel == 2)
 		return gd->bus_clk;
-	} else if (sel == 3) {
+	else if (sel == 3)
 		return (24 * MHZ);
-	} else {
+	else
 		return 0;
-	}
 }
 
 
@@ -867,22 +840,17 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
  */
 int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div)
 {
-	if (div == 0) {
+	if (div == 0)
 		return -1;
-	}
 
-	if (0 == sdid) {
-		/* sdmmc */
-		cru_writel(((0x3Ful<<0)<<16) | ((div-1)<<0), CRU_CLKSELS_CON(11));
-	} else if (1 == sdid) {
-		/* sdio0 */
-		cru_writel(((0x3Ful<<8)<<16) | ((div-1)<<8), CRU_CLKSELS_CON(11));
-	} else if (2 == sdid) {
-		/* emmc */
-		cru_writel(((0x3Ful<<0)<<16) | ((div-1)<<0), CRU_CLKSELS_CON(12));
-	} else {
+	if (0 == sdid) /* sdmmc */
+		cru_writel(((0x3Ful << 0) << 16) | ((div - 1) << 0), CRU_CLKSELS_CON(11));
+	else if (1 == sdid) /* sdio0 */
+		cru_writel(((0x3Ful << 8) << 16) | ((div - 1) << 8), CRU_CLKSELS_CON(11));
+	else if (2 == sdid) /* emmc */
+		cru_writel(((0x3Ful << 0) << 16) | ((div - 1) << 0), CRU_CLKSELS_CON(12));
+	else
 		return -1;
-	}
 
 	return 0;
 }
@@ -907,19 +875,15 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 	src_freqs[2] = gd->bus_clk / 2;
 	src_freqs[3] = (24 * MHZ) / 2;
 
-	if (freq <= (12 * MHZ))
-	{
-		clksel = 3;         //select 24 MHZ
+	if (freq <= (12 * MHZ)) {
+		clksel = 3; /* select 24 MHZ */
 		src_div = (src_freqs[3] + freq - 1) / freq;
 		if (((src_div & 0x1) == 1) && (src_div != 1))
 			src_div++;
-	}
-	else
-	{
+	} else {
 		uint32 i, div, clk_freq, pre_clk_freq = 0;
 		/*select best src clock*/
-		for (i=0; i<3; i++)
-		{
+		for (i = 0; i < 3; i++) {
 			if (0 == src_freqs[i])
 				continue;
 
@@ -927,8 +891,7 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 			if (((div & 0x1) == 1) && (div != 1))
 				div++;
 			clk_freq = src_freqs[i]/div;
-			if (clk_freq > pre_clk_freq)
-			{
+			if (clk_freq > pre_clk_freq) {
 				pre_clk_freq = clk_freq;
 				clksel = i;
 				src_div = div;
@@ -940,33 +903,36 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 	if (0 == src_div)
 		return 0;
 
-	src_div &= 0x3F;    //Max div is 0x3F
+	src_div &= 0x3F;    /* Max div is 0x3F */
 	rkclk_set_mmc_clk_src(sdid, clksel);
 	rkclk_set_mmc_clk_div(sdid, src_div);
 
-	return (src_freqs[clksel] / src_div);
+	return src_freqs[clksel] / src_div;
 }
 
 /*
  * rkplat set mmc clock tuning
- * 
+ *
  */
 int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num)
 {
-	if (degree > 3 || delay_num > 255) {
-		return -1;
-	}
+	uint32 con;
 
-	if (2 == sdid) {
-		/* emmc */
-		cru_writel(((0x1ul<<0)<<16) | (1<<0), CRU_EMMC_CON0);
-		cru_writel((((1<<10)|(0xff<<2)|(3<<0))<<16)|(1<<10)|(delay_num<<2)|(degree<<0), CRU_EMMC_CON1);
-		cru_writel(((0x1ul<<0)<<16) | (0<<0), CRU_EMMC_CON0);
-
-		return 0;
-	} else {
+	if (degree > 3 || delay_num > 255)
 		return -1;
-	}
+
+	if (2 != sdid)
+		return -1;
+
+	/* emmc */
+	con = ((0x1ul << 0) << 16) | (1 << 0);
+	cru_writel(con, CRU_EMMC_CON0);
+	con = (((1 << 10) | (0xff << 2) | (3 << 0)) << 16) | (1 << 10) | (delay_num << 2) | (degree << 0);
+	cru_writel(con, CRU_EMMC_CON1);
+	con = ((0x1ul << 0) << 16) | (0 << 0);
+	cru_writel(con, CRU_EMMC_CON0);
+
+	return 0;
 }
 
 /*
@@ -974,16 +940,20 @@ int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num)
  */
 int rkclk_disable_mmc_tuning(uint32 sdid)
 {
-	if (2 == sdid) {
-		/* emmc */
-		cru_writel(((0x1ul<<0)<<16) | (1<<0), CRU_EMMC_CON0);
-		cru_writel((((1<<10)|(0xff<<2)|(3<<0))<<16)|(0<<10)|(0<<2)|(0<<0), CRU_EMMC_CON1);
-		cru_writel(((0x1ul<<0)<<16) | (0<<0), CRU_EMMC_CON0);
+	uint32 con;
 
-		return 0;
-	} else {
+	if (2 != sdid)
 		return -1;
-	}
+
+	/* emmc */
+	con = ((0x1ul << 0) << 16) | (1 << 0);
+	cru_writel(con, CRU_EMMC_CON0);
+	con = (((1 << 10) | (0xff << 2) | (3 << 0)) << 16) | (0 << 10) | (0 << 2) | (0 << 0);
+	cru_writel(con, CRU_EMMC_CON1);
+	con = ((0x1ul << 0) << 16) | (0 << 0);
+	cru_writel(con, CRU_EMMC_CON0);
+
+	return 0;
 }
 
 
@@ -1022,14 +992,13 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 	div = (con & 0x7F) + 1;
 
 	/* rk3036 sd clk pll can be from arm pll/ddr pll/general pll, defualt general pll */
-	if (sel == 0) {
+	if (sel == 0)
 		return gd->cpu_clk / div;
-	} else if (sel == 1) {
+	else if (sel == 1)
 		return gd->mem_clk / div;
-	} else if (sel == 2) {
+	else if (sel == 2)
 		return gd->bus_clk / div;
-	} else {
+	else
 		return 0;
-	}
 }
 

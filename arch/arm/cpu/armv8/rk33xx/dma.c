@@ -118,9 +118,8 @@ static struct rk_pl330_chan *id_to_chan(const enum dma_ch id)
 	struct rk_pl330_chan *ch;
 
 	list_for_each_entry(ch, &chan_list, node) {
-		if (ch->id == id) {
+		if (ch->id == id)
 			return ch;
-		}
 	}
 
 	return NULL;
@@ -132,15 +131,13 @@ static void chan_add(const enum dma_ch id)
 	struct rk_pl330_chan *ch = id_to_chan(id);
 
 	/* Return if the channel already exists */
-	if (ch) {
+	if (ch)
 		return;
-	}
 
 	ch = malloc(sizeof(*ch));
 	/* Return silently to work with other channels */
-	if (!ch) {
+	if (!ch)
 		return;
-	}
 	ch->id = id;
 	ch->dmac = NULL;
 
@@ -150,9 +147,8 @@ static void chan_add(const enum dma_ch id)
 /* If the channel is not yet acquired by any client */
 static bool chan_free(struct rk_pl330_chan *ch)
 {
-	if (!ch) {
+	if (!ch)
 		return false;
-	}
 
 	/* Channel points to some DMAC only when it's acquired */
 	return ch->dmac ? false : true;
@@ -168,15 +164,12 @@ static unsigned iface_of_dmac(struct rk_pl330_dmac *dmac, enum dma_ch ch_id)
 	int i;
 
 	/* Discount invalid markers */
-	if (ch_id == DMACH_MAX) {
+	if (ch_id == DMACH_MAX)
 		return 0;
-	}
 
-	for (i = 0; i < PL330_MAX_PERI; i++) {
-		if (id[i] == ch_id) {
+	for (i = 0; i < PL330_MAX_PERI; i++)
+		if (id[i] == ch_id)
 			return i + 1;
-		}
-	}
 
 	return 0;
 }
@@ -206,9 +199,8 @@ static unsigned ch_onlyby_dmac(struct rk_pl330_dmac *dmac)
 		p = id[i];
 		ch = id_to_chan(p);
 
-		if (p == DMACH_MAX || !chan_free(ch)) {
+		if (p == DMACH_MAX || !chan_free(ch))
 			continue;
-		}
 
 		found = 0;
 		list_for_each_entry(d, &dmac_list, node) {
@@ -217,9 +209,8 @@ static unsigned ch_onlyby_dmac(struct rk_pl330_dmac *dmac)
 				break;
 			}
 		}
-		if (!found) {
+		if (!found)
 			count++;
-		}
 	}
 
 	return count;
@@ -249,20 +240,16 @@ static unsigned suitablility(struct rk_pl330_dmac *dmac,
 
 	s = MIN_SUIT;
 	/* If all the DMAC channel threads are busy */
-	if (dmac_busy(dmac)) {
+	if (dmac_busy(dmac))
 		return s;
-	}
 
-	for (i = 0; i < PL330_MAX_PERI; i++) {
-		if (id[i] == ch->id) {
+	for (i = 0; i < PL330_MAX_PERI; i++)
+		if (id[i] == ch->id)
 			break;
-		}
-	}
 
 	/* If the 'dmac' can't talk to 'ch' */
-	if (i == PL330_MAX_PERI) {
+	if (i == PL330_MAX_PERI)
 		return s;
-	}
 
 	s = MAX_SUIT;
 	list_for_each_entry(d, &dmac_list, node) {
@@ -275,9 +262,8 @@ static unsigned suitablility(struct rk_pl330_dmac *dmac,
 			break;
 		}
 	}
-	if (s) {
+	if (s)
 		return s;
-	}
 
 	s = 100;
 
@@ -299,13 +285,11 @@ static struct rk_pl330_dmac *map_chan_to_dmac(struct rk_pl330_chan *ch)
 	list_for_each_entry(d, &dmac_list, node) {
 		sn = suitablility(d, ch);
 
-		if (sn == MAX_SUIT) {
+		if (sn == MAX_SUIT)
 			return d;
-		}
 
-		if (sn > sl) {
+		if (sn > sl)
 			dmac = d;
-		}
 	}
 
 	return dmac;
@@ -344,9 +328,8 @@ static inline void del_from_queue(struct rk_pl330_xfer *xfer)
 	struct rk_pl330_chan *ch;
 	int found;
 
-	if (!xfer) {
+	if (!xfer)
 		return;
-	}
 
 	ch = xfer->chan;
 
@@ -358,25 +341,22 @@ static inline void del_from_queue(struct rk_pl330_xfer *xfer)
 			break;
 		}
 
-	if (!found) {
+	if (!found)
 		return;
-	}
 
 	/* If xfer is last entry in the queue */
-	if (xfer->node.next == &ch->xfer_list) {
+	if (xfer->node.next == &ch->xfer_list)
 		t = list_entry(ch->xfer_list.next,
 				struct rk_pl330_xfer, node);
-	} else {
+	else
 		t = list_entry(xfer->node.next,
 				struct rk_pl330_xfer, node);
-	}
 
 	/* If there was only one node left */
-	if (t == xfer) {
+	if (t == xfer)
 		ch->xfer_head = NULL;
-	} else if (ch->xfer_head == xfer) {
+	else if (ch->xfer_head == xfer)
 		ch->xfer_head = t;
-	}
 
 	list_del(&xfer->node);
 }
@@ -391,22 +371,19 @@ static struct rk_pl330_xfer *get_from_queue(struct rk_pl330_chan *ch,
 {
 	struct rk_pl330_xfer *xfer = ch->xfer_head;
 
-	if (!xfer) {
+	if (!xfer)
 		return NULL;
-	}
 
 	/* If xfer is last entry in the queue */
-	if (xfer->node.next == &ch->xfer_list) {
+	if (xfer->node.next == &ch->xfer_list)
 		ch->xfer_head = list_entry(ch->xfer_list.next,
 					struct rk_pl330_xfer, node);
-	} else {
+	else
 		ch->xfer_head = list_entry(xfer->node.next,
 					struct rk_pl330_xfer, node);
-	}
 
-	if (pluck || !(ch->options & RK_DMAF_CIRCULAR)) {
+	if (pluck || !(ch->options & RK_DMAF_CIRCULAR))
 		del_from_queue(xfer);
-	}
 
 	return xfer;
 }
@@ -417,24 +394,21 @@ static inline void add_to_queue(struct rk_pl330_chan *ch,
 	struct pl330_xfer *xt;
 
 	/* If queue empty */
-	if (ch->xfer_head == NULL) {
+	if (ch->xfer_head == NULL)
 		ch->xfer_head = xfer;
-	}
 
 	xt = &ch->xfer_head->px;
 	/* If the head already submitted (CIRCULAR head) */
 	if (ch->options & RK_DMAF_CIRCULAR &&
-		(xt == ch->req[0].x || xt == ch->req[1].x)) {
+		(xt == ch->req[0].x || xt == ch->req[1].x))
 		ch->xfer_head = xfer;
-	}
 
 	/* If this is a resubmission, it should go at the head */
 	if (front) {
 		ch->xfer_head = xfer;
 		list_add(&xfer->node, &ch->xfer_list);
-	} else {
+	} else
 		list_add_tail(&xfer->node, &ch->xfer_list);
-	}
 }
 
 static inline void _finish_off(struct rk_pl330_xfer *xfer,
@@ -442,22 +416,19 @@ static inline void _finish_off(struct rk_pl330_xfer *xfer,
 {
 	struct rk_pl330_chan *ch;
 
-	if (!xfer) {
+	if (!xfer)
 		return;
-	}
 
 	ch = xfer->chan;
 
 	/* Do callback */
 
-	if (ch->callback_fn) {
+	if (ch->callback_fn)
 		ch->callback_fn(xfer->token, xfer->px.bytes, res);
-	}
 
 	/* Force Free or if buffer is not needed anymore */
-	if (ffree || !(ch->options & RK_DMAF_CIRCULAR)) {
+	if (ffree || !(ch->options & RK_DMAF_CIRCULAR))
 		free(xfer);
-	}
 }
 
 static inline int rk_pl330_submit(struct rk_pl330_chan *ch,
@@ -467,9 +438,8 @@ static inline int rk_pl330_submit(struct rk_pl330_chan *ch,
 	int ret = 0;
 
 	/* If already submitted */
-	if (r->x) {
+	if (r->x)
 		return 0;
-	}
 
 	xfer = get_from_queue(ch, 0);
 
@@ -488,9 +458,8 @@ static inline int rk_pl330_submit(struct rk_pl330_chan *ch,
 			bl /= burst;
 
 			/* src/dst_burst_len can't be more than 16 */
-			if (bl > 16) {
+			if (bl > 16)
 				bl = 16;
-			}
 
 			while (bl > 1) {
 				if (!(bytes % (bl * burst)))
@@ -502,9 +471,8 @@ static inline int rk_pl330_submit(struct rk_pl330_chan *ch,
 		} else {
 #ifdef CONFIG_RK_MMC_EDMAC
 			/* mmc using pll330 dma */
-			if (ch->id == DMACH_EMMC) {
+			if (ch->id == DMACH_EMMC)
 				ch->rqcfg.brst_len = 16;
-			}
 #endif
 		}
 
@@ -679,7 +647,6 @@ int rk_dma_ctrl(enum dma_ch id, enum rk_chan_op op)
 
 	/* Flush the whole queue */
 	if (pl330op == PL330_OP_FLUSH) {
-
 		if (ch->req[1 - idx].x) {
 			xfer = container_of(ch->req[1 - idx].x,
 					struct rk_pl330_xfer, px);
@@ -696,7 +663,6 @@ int rk_dma_ctrl(enum dma_ch id, enum rk_chan_op op)
 		/* Finish off the remaining in the queue */
 		xfer = ch->xfer_head;
 		while (xfer) {
-
 			del_from_queue(xfer);
 
 			spin_unlock_irqrestore(&res_lock, flags);
@@ -966,17 +932,15 @@ int rk_dma_config(enum dma_ch id, int xferunit, int brst_len)
 	while (xferunit != (1 << i))
 		i++;
 
-	if (xferunit > 8) {
+	if (xferunit > 8)
 		goto cfg_exit;
-	} else {
+	else
 		ch->rqcfg.brst_size = i;
-	}
 
-	if (brst_len > 16) {
+	if (brst_len > 16)
 		goto cfg_exit;
-	} else {
+	else
 		ch->rqcfg.brst_len = brst_len;
-	}
 
 cfg_exit:
 	spin_unlock_irqrestore(&res_lock, flags);
@@ -1102,15 +1066,13 @@ int rk_dma_getposition(enum dma_ch id, dma_addr_t *src, dma_addr_t *dst)
 static inline void *rk_pl330_dmac_get_base(int dmac_id)
 {
 #ifdef CONFIG_RK_DMAC_0
-	if (dmac_id == 0) {
+	if (dmac_id == 0)
 		return (void *)RK_DMAC0_BASE;
-	}
 #endif
 
 #ifdef CONFIG_RK_DMAC_1
-	if (dmac_id == 1) {
+	if (dmac_id == 1)
 		return (void *)RK_DMAC1_BASE;
-	}
 #endif
 
 	return NULL;
@@ -1128,15 +1090,13 @@ static struct pl330_info	*g_pl330_info_1 = NULL;
 static inline struct pl330_info *rk_pl330_dmac_get_info(int dmac_id)
 {
 #ifdef CONFIG_RK_DMAC_0
-	if (dmac_id == 0) {
+	if (dmac_id == 0)
 		return g_pl330_info_0;
-	}
 #endif
 
 #ifdef CONFIG_RK_DMAC_1
-	if (dmac_id == 1) {
+	if (dmac_id == 1)
 		return g_pl330_info_1;
-	}
 #endif
 
 	return NULL;
@@ -1240,15 +1200,13 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 static inline struct rk_pl330_platdata *rk_pl330_dmac_get_pd(int dmac_id)
 {
 #ifdef CONFIG_RK_DMAC_0
-	if (dmac_id == 0) {
+	if (dmac_id == 0)
 		return &g_dmac0_pdata;
-	}
 #endif
 
 #ifdef CONFIG_RK_DMAC_1
-	if (dmac_id == 1) {
+	if (dmac_id == 1)
 		return &g_dmac1_pdata;
-	}
 #endif
 
 	return NULL;
@@ -1258,21 +1216,20 @@ static inline struct rk_pl330_platdata *rk_pl330_dmac_get_pd(int dmac_id)
 static void rk_pl330_dmac_isr(void *data)
 {
 	uint32 isr_src = (uint32) data;
-	
-	switch (isr_src)
-	{
+
+	switch (isr_src) {
 #ifdef CONFIG_RK_DMAC_0
-		case RK_DMAC0_IRQ0:
-		case RK_DMAC0_IRQ1:
-			pl330_update(g_pl330_info_0);
-			break;
+	case RK_DMAC0_IRQ0:
+	case RK_DMAC0_IRQ1:
+		pl330_update(g_pl330_info_0);
+		break;
 #endif /* CONFIG_RK_DMAC_0 */
 
 #ifdef CONFIG_RK_DMAC_1
-		case RK_DMAC1_IRQ0:
-		case RK_DMAC1_IRQ1:
-			pl330_update(g_pl330_info_1);
-			break;
+	case RK_DMAC1_IRQ0:
+	case RK_DMAC1_IRQ1:
+		pl330_update(g_pl330_info_1);
+		break;
 #endif /* CONFIG_RK_DMAC_1 */
 	}
 }
@@ -1343,11 +1300,9 @@ int rk_pl330_dmac_init(int dmac_id)
 	/* Create a channel for each peripheral in the DMAC
 	 * that is, if it doesn't already exist
 	 */
-	for (i = 0; i < PL330_MAX_PERI; i++) {
-		if (rk_pl330_dmac->peri[i] != DMACH_MAX) {
+	for (i = 0; i < PL330_MAX_PERI; i++)
+		if (rk_pl330_dmac->peri[i] != DMACH_MAX)
 			chan_add(rk_pl330_dmac->peri[i]);
-		}
-	}
 
 	/* global info */
 	if (dmac_id == 0) {
@@ -1424,11 +1379,10 @@ int rk_pl330_dmac_deinit(int dmac_id)
 	/* Remove all Channels that are managed only by this DMAC */
 	list_for_each_entry_safe(ch, ch_bak, &chan_list, node) {
 		/* Only channels that are handled by this DMAC */
-		if (iface_of_dmac(dmac, ch->id)) {
+		if (iface_of_dmac(dmac, ch->id))
 			del = 1;
-		} else {
+		else
 			continue;
-		}
 
 		/* Don't remove if some other DMAC has it too */
 		list_for_each_entry(d, &dmac_list, node) {

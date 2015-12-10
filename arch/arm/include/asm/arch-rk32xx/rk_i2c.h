@@ -32,15 +32,3 @@ typedef enum rk_i2c_bus_ch {
 } rk_i2c_bus_ch_t;
 
 #endif /* _RK_I2C_H_ */
-
-
-
-
-
-
-
-
-
-
-
-

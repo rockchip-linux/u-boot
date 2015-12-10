@@ -21,16 +21,16 @@ void rk_module_deinit(void)
 #ifdef CONFIG_RK_I2C
 
 #if defined(CONFIG_RKCHIP_RK3288)
-	// soft reset i2c0 - i2c5
-	writel(0x3f<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
+	/* soft reset i2c0 - i2c5 */
+	writel(0x3f << 10 | 0x3f << (10 + 16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
 	mdelay(1);
-	writel(0x00<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
+	writel(0x00 << 10 | 0x3f << (10 + 16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
 #elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
 	|| defined(CONFIG_RKCHIP_RK322X)
-	// soft reset i2c0 - i2c3
-	writel(0x7<<11 | 0x7<<(11+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
+	/* soft reset i2c0 - i2c3 */
+	writel(0x7 << 11 | 0x7 << (11 + 16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
 	mdelay(1);
-	writel(0x00<<11 | 0x7<<(11+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
+	writel(0x00 << 11 | 0x7 << (11 + 16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
 #else
 	#error "PLS config platform for i2c reset!"
 #endif
@@ -101,4 +101,3 @@ void reset_cpu(ulong ignored)
 	#error "PLS config platform for reset.c!"
 #endif /* CONFIG_RKPLATFORM */
 }
-

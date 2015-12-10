@@ -53,9 +53,9 @@ typedef struct
 
 typedef struct {
 	KEY_TYPE type;
-	union{ 
-		adc_conf    adc;    
-		int_conf    ioint;    
+	union{
+		adc_conf    adc;
+		int_conf    ioint;
 	}key;
 }key_config;
 

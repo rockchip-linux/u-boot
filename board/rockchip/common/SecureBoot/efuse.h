@@ -28,4 +28,3 @@ extern int32 SecureEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
 extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
 
 #endif
-

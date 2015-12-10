@@ -8,17 +8,10 @@
 #ifndef _SDPAM_H_
 #define _SDPAM_H_
 
-#define SDMMC_NO_PLATFORM    0    //指示当前是不是只用SDMMC的代码，其他模块的代码都不用，1:只有SDMMC模块，0:用到其他模块
 
-#if SDMMC_NO_PLATFORM
-#define SDPAM_MAX_AHB_FREQ   166   //MHz
-#else
-#define SDPAM_MAX_AHB_FREQ   200//FREQ_HCLK_MAX
-#endif
-
-/****************************************************************/
-//对外函数声明
-/****************************************************************/
+/****************************************************************
+			对外函数声明
+****************************************************************/
 void   SDPAM_FlushCache(void *adr, uint32 size);
 void   SDPAM_CleanCache(void *adr, uint32 size);
 void   SDPAM_InvalidateCache(void *adr, uint32 size);
@@ -42,6 +35,6 @@ void   SDPAM_ControlPower(SDMMC_PORT_E nSDCPort, uint32 enable);
 uint32   SDPAM_IsCardPresence(SDMMC_PORT_E nSDCPort);
 
 
-#endif //end of #ifndef _SDPAM_H_
+#endif /* end of #ifndef _SDPAM_H_ */
 
-#endif //end of #ifdef DRIVERS_SDMMC
+#endif /* end of #ifdef DRIVERS_SDMMC */

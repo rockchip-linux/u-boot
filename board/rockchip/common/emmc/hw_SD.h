@@ -8,12 +8,12 @@
 #ifndef _SDP_API_H_
 #define _SDP_API_H_
 
-/****************************************************************/
-//对外函数声明
-/****************************************************************/
+/****************************************************************
+			对外函数声明
+****************************************************************/
 void   SD1X_Init(void *pCardInfo);
 void   SD20_Init(void *pCardInfo);
 
-#endif //end of #ifndef _SDP_API_H
+#endif /* end of #ifndef _SDP_API_H */
 
-#endif //end of #ifdef DRIVERS_SDMMC
+#endif /* end of #ifdef DRIVERS_SDMMC */

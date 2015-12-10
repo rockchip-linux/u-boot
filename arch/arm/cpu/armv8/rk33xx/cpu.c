@@ -53,10 +53,9 @@ int rk_get_chiptype(void)
 	rk_get_bootrom_chip_version(chip_info);
 
 	chip_class = (chip_info[0] & 0xFFFF0000) >> 16;
-	if (chip_class == 0x3333) { // 33
-		if (chip_info[0] == 0x33333041) { // 330A
+	if (chip_class == 0x3333) { /* RK33 */
+		if (chip_info[0] == 0x33333041) /* 330A */
 			return CONFIG_RK3368;
-		}
 	}
 
 	return RKCHIP_UNKNOWN;
@@ -70,7 +69,7 @@ int rk_get_chiptype(void)
 	#define DDR_READ_LATENCY_VALUE		(0x34)
 
 	#define	RKIO_CPU_AXI_QOS_PRIORITY_BASE	0xffad0300
-	#define CPU_AXI_QOS_PRIORITY    	0x08
+	#define CPU_AXI_QOS_PRIORITY		0x08
 	#define QOS_PRIORITY_LEVEL_H		2
 	#define QOS_PRIORITY_LEVEL_L		2
 #else
@@ -80,7 +79,7 @@ int rk_get_chiptype(void)
 
 /* secure parameter init */
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
-static void inline secure_parameter_init(void)
+static inline void secure_parameter_init(void)
 {
 	/* secure timer init */
 	#define STIMER_LOADE_COUNT0		0x00
@@ -107,7 +106,7 @@ static void inline secure_parameter_init(void)
 
 
 /* ddr read latency configure */
-static void inline ddr_read_latency_config(void)
+static inline void ddr_read_latency_config(void)
 {
 	writel(DDR_READ_LATENCY_VALUE, RKIO_DDR_LATENCY_BASE);
 }
@@ -116,7 +115,7 @@ static void inline ddr_read_latency_config(void)
 /* cpu axi qos priority */
 #define CPU_AXI_QOS_PRIORITY_LEVEL(h, l) \
 	((((h) & 3) << 8) | (((h) & 3) << 2) | ((l) & 3))
-static void inline cpu_axi_qos_prority_level_config(void)
+static inline void cpu_axi_qos_prority_level_config(void)
 {
 	uint32_t level;
 
@@ -157,14 +156,12 @@ int arch_cpu_init(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
-	if (gd->arch.chiptype == RKCHIP_UNKNOWN) {
+	if (gd->arch.chiptype == RKCHIP_UNKNOWN)
 		rk_get_chiptype();
-	}
 
 #if defined(CONFIG_RKCHIP_RK3368)
-	if (gd->arch.chiptype == CONFIG_RK3368) {
+	if (gd->arch.chiptype == CONFIG_RK3368)
 		printf("CPU: rk3368\n");
-	}
 #endif
 
 	rkclk_get_pll();
@@ -173,4 +170,3 @@ int print_cpuinfo(void)
 	return 0;
 }
 #endif
-

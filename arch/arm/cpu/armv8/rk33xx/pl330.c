@@ -336,9 +336,8 @@ struct pl330_dmac {
 
 static inline void _callback(struct pl330_req *r, enum pl330_op_err err)
 {
-	if (r && r->xfer_cb) {
+	if (r && r->xfer_cb)
 		r->xfer_cb(r->token, err);
-	}
 }
 
 static inline bool _queue_empty(struct pl330_thread *thrd)
@@ -358,11 +357,10 @@ static inline bool is_manager(struct pl330_thread *thrd)
 	struct pl330_dmac *pl330 = thrd->dmac;
 
 	/* MANAGER is indexed at the end */
-	if (thrd->id == pl330->pinfo->pcfg.num_chan) {
+	if (thrd->id == pl330->pinfo->pcfg.num_chan)
 		return true;
-	} else {
+	else
 		return false;
-	}
 }
 
 /* If manager of the thread is in Non-Secure mode */
@@ -394,9 +392,8 @@ static inline u32 get_revision(u32 periph_id)
 static inline u32 _emit_ADDH(unsigned dry_run, u8 buf[],
 		enum pl330_dst da, u16 val)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAADDH;
-	}
 
 	buf[0] = CMD_DMAADDH;
 	buf[0] |= (da << 1);
@@ -410,9 +407,8 @@ static inline u32 _emit_ADDH(unsigned dry_run, u8 buf[],
 
 static inline u32 _emit_END(unsigned dry_run, u8 buf[])
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAEND;
-	}
 
 	buf[0] = CMD_DMAEND;
 
@@ -423,9 +419,8 @@ static inline u32 _emit_END(unsigned dry_run, u8 buf[])
 
 static inline u32 _emit_FLUSHP(unsigned dry_run, u8 buf[], u8 peri)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAFLUSHP;
-	}
 
 	buf[0] = CMD_DMAFLUSHP;
 
@@ -440,17 +435,15 @@ static inline u32 _emit_FLUSHP(unsigned dry_run, u8 buf[], u8 peri)
 
 static inline u32 _emit_LD(unsigned dry_run, u8 buf[],	enum pl330_cond cond)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMALD;
-	}
 
 	buf[0] = CMD_DMALD;
 
-	if (cond == SINGLE) {
+	if (cond == SINGLE)
 		buf[0] |= (0 << 1) | (1 << 0);
-	} else if (cond == BURST) {
+	else if (cond == BURST)
 		buf[0] |= (1 << 1) | (1 << 0);
-	}
 
 	PL330_DBGCMD_DUMP(SZ_DMALD, "\tDMALD%c\n",
 		cond == SINGLE ? 'S' : (cond == BURST ? 'B' : 'A'));
@@ -461,15 +454,13 @@ static inline u32 _emit_LD(unsigned dry_run, u8 buf[],	enum pl330_cond cond)
 static inline u32 _emit_LDP(unsigned dry_run, u8 buf[],
 		enum pl330_cond cond, u8 peri)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMALDP;
-	}
 
 	buf[0] = CMD_DMALDP;
 
-	if (cond == BURST) {
+	if (cond == BURST)
 		buf[0] |= (1 << 1);
-	}
 
 	peri &= 0x1f;
 	peri <<= 3;
@@ -484,15 +475,13 @@ static inline u32 _emit_LDP(unsigned dry_run, u8 buf[],
 static inline u32 _emit_LP(unsigned dry_run, u8 buf[],
 		unsigned loop, u8 cnt)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMALP;
-	}
 
 	buf[0] = CMD_DMALP;
 
-	if (loop) {
+	if (loop)
 		buf[0] |= (1 << 1);
-	}
 
 	cnt--; /* DMAC increments by 1 internally */
 	buf[1] = cnt;
@@ -517,25 +506,21 @@ static inline u32 _emit_LPEND(unsigned dry_run, u8 buf[],
 	unsigned loop = arg->loop;
 	u8 bjump = arg->bjump;
 
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMALPEND;
-	}
 
 	buf[0] = CMD_DMALPEND;
 
-	if (loop) {
+	if (loop)
 		buf[0] |= (1 << 2);
-	}
 
-	if (!forever) {
+	if (!forever)
 		buf[0] |= (1 << 4);
-	}
 
-	if (cond == SINGLE) {
+	if (cond == SINGLE)
 		buf[0] |= (0 << 1) | (1 << 0);
-	} else if (cond == BURST) {
+	else if (cond == BURST)
 		buf[0] |= (1 << 1) | (1 << 0);
-	}
 
 	buf[1] = bjump;
 
@@ -550,9 +535,8 @@ static inline u32 _emit_LPEND(unsigned dry_run, u8 buf[],
 
 static inline u32 _emit_KILL(unsigned dry_run, u8 buf[])
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAKILL;
-	}
 
 	buf[0] = CMD_DMAKILL;
 
@@ -562,9 +546,8 @@ static inline u32 _emit_KILL(unsigned dry_run, u8 buf[])
 static inline u32 _emit_MOV(unsigned dry_run, u8 buf[],
 		enum dmamov_dst dst, u32 val)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAMOV;
-	}
 
 	buf[0] = CMD_DMAMOV;
 	buf[1] = dst;
@@ -578,9 +561,8 @@ static inline u32 _emit_MOV(unsigned dry_run, u8 buf[],
 
 static inline u32 _emit_NOP(unsigned dry_run, u8 buf[])
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMANOP;
-	}
 
 	buf[0] = CMD_DMANOP;
 
@@ -591,9 +573,8 @@ static inline u32 _emit_NOP(unsigned dry_run, u8 buf[])
 
 static inline u32 _emit_RMB(unsigned dry_run, u8 buf[])
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMARMB;
-	}
 
 	buf[0] = CMD_DMARMB;
 
@@ -604,9 +585,8 @@ static inline u32 _emit_RMB(unsigned dry_run, u8 buf[])
 
 static inline u32 _emit_SEV(unsigned dry_run, u8 buf[], u8 ev)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMASEV;
-	}
 
 	buf[0] = CMD_DMASEV;
 
@@ -621,17 +601,15 @@ static inline u32 _emit_SEV(unsigned dry_run, u8 buf[], u8 ev)
 
 static inline u32 _emit_ST(unsigned dry_run, u8 buf[], enum pl330_cond cond)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAST;
-	}
 
 	buf[0] = CMD_DMAST;
 
-	if (cond == SINGLE) {
+	if (cond == SINGLE)
 		buf[0] |= (0 << 1) | (1 << 0);
-	} else if (cond == BURST) {
+	else if (cond == BURST)
 		buf[0] |= (1 << 1) | (1 << 0);
-	}
 
 	PL330_DBGCMD_DUMP(SZ_DMAST, "\tDMAST%c\n",
 		cond == SINGLE ? 'S' : (cond == BURST ? 'B' : 'A'));
@@ -642,15 +620,13 @@ static inline u32 _emit_ST(unsigned dry_run, u8 buf[], enum pl330_cond cond)
 static inline u32 _emit_STP(unsigned dry_run, u8 buf[],
 		enum pl330_cond cond, u8 peri)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMASTP;
-	}
 
 	buf[0] = CMD_DMASTP;
 
-	if (cond == BURST) {
+	if (cond == BURST)
 		buf[0] |= (1 << 1);
-	}
 
 	peri &= 0x1f;
 	peri <<= 3;
@@ -664,9 +640,8 @@ static inline u32 _emit_STP(unsigned dry_run, u8 buf[],
 
 static inline u32 _emit_STZ(unsigned dry_run, u8 buf[])
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMASTZ;
-	}
 
 	buf[0] = CMD_DMASTZ;
 
@@ -687,9 +662,8 @@ static inline u32 _emit_WFE(unsigned dry_run, u8 buf[], u8 ev,
 	ev <<= 3;
 	buf[1] = ev;
 
-	if (invalidate) {
+	if (invalidate)
 		buf[1] |= (1 << 1);
-	}
 
 	PL330_DBGCMD_DUMP(SZ_DMAWFE, "\tDMAWFE %u%s\n",
 		ev >> 3, invalidate ? ", I" : "");
@@ -700,19 +674,17 @@ static inline u32 _emit_WFE(unsigned dry_run, u8 buf[], u8 ev,
 static inline u32 _emit_WFP(unsigned dry_run, u8 buf[],
 		enum pl330_cond cond, u8 peri)
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAWFP;
-	}
 
 	buf[0] = CMD_DMAWFP;
 
-	if (cond == SINGLE) {
+	if (cond == SINGLE)
 		buf[0] |= (0 << 1) | (0 << 0);
-	} else if (cond == BURST) {
+	else if (cond == BURST)
 		buf[0] |= (1 << 1) | (0 << 0);
-	} else {
+	else
 		buf[0] |= (0 << 1) | (1 << 0);
-	}
 
 	peri &= 0x1f;
 	peri <<= 3;
@@ -726,9 +698,8 @@ static inline u32 _emit_WFP(unsigned dry_run, u8 buf[],
 
 static inline u32 _emit_WMB(unsigned dry_run, u8 buf[])
 {
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAWMB;
-	}
 
 	buf[0] = CMD_DMAWMB;
 
@@ -750,9 +721,8 @@ static inline u32 _emit_GO(unsigned dry_run, u8 buf[],
 	u32 addr = arg->addr;
 	unsigned ns = arg->ns;
 
-	if (dry_run) {
+	if (dry_run)
 		return SZ_DMAGO;
-	}
 
 	buf[0] = CMD_DMAGO;
 	buf[0] |= (ns << 1);
@@ -776,15 +746,14 @@ static bool _until_dmac_idle(struct pl330_thread *thrd)
 
 	do {
 		/* Until Manager is Idle */
-		if (!(readl(regs + DBGSTATUS) & DBG_BUSY)) {
+		if (!(readl(regs + DBGSTATUS) & DBG_BUSY))
 			break;
-		}
+
 		cpu_relax();
 	} while ((TimeOut = get_timer(TimeOutBase)) < loops);
 
-	if (TimeOut > loops) {
+	if (TimeOut > loops)
 		return true;
-	}
 
 	return false;
 }
@@ -839,11 +808,10 @@ static inline u32 _state(struct pl330_thread *thrd)
 	void __iomem *regs = thrd->dmac->pinfo->base;
 	u32 val;
 
-	if (is_manager(thrd)) {
+	if (is_manager(thrd))
 		val = readl(regs + DS) & 0xf;
-	} else {
+	else
 		val = readl(regs + CS(thrd->id)) & 0xf;
-	}
 
 	switch (val) {
 	case DS_ST_STOP:
@@ -900,9 +868,8 @@ static inline bool _req_active(struct pl330_thread *thrd,
 	void __iomem *regs = thrd->dmac->pinfo->base;
 	u32 buf = req->mc_bus, pc = readl(regs + CPC(thrd->id));
 
-	if (IS_FREE(req)) {
+	if (IS_FREE(req))
 		return false;
-	}
 
 	return (pc >= buf && pc <= buf + req->mc_len) ? true : false;
 }
@@ -910,13 +877,11 @@ static inline bool _req_active(struct pl330_thread *thrd,
 /* Returns 0 if the thread is inactive, ID of active req + 1 otherwise */
 static inline unsigned _thrd_active(struct pl330_thread *thrd)
 {
-	if (_req_active(thrd, &thrd->req[0])) {
+	if (_req_active(thrd, &thrd->req[0]))
 		return 1; /* First req active */
-	}
 
-	if (_req_active(thrd, &thrd->req[1])) {
+	if (_req_active(thrd, &thrd->req[1]))
 		return 2; /* Second req active */
-	}
 
 	return 0;
 }
@@ -926,16 +891,14 @@ static void _stop(struct pl330_thread *thrd)
 	void __iomem *regs = thrd->dmac->pinfo->base;
 	u8 insn[6] = {0, 0, 0, 0, 0, 0};
 
-	if (_state(thrd) == PL330_STATE_FAULT_COMPLETING) {
+	if (_state(thrd) == PL330_STATE_FAULT_COMPLETING)
 		UNTIL(thrd, PL330_STATE_FAULTING | PL330_STATE_KILLING);
-	}
 
 	/* Return if nothing needs to be done */
 	if (_state(thrd) == PL330_STATE_COMPLETING
 		  || _state(thrd) == PL330_STATE_KILLING
-		  || _state(thrd) == PL330_STATE_STOPPED) {
+		  || _state(thrd) == PL330_STATE_STOPPED)
 		return;
-	}
 
 	_emit_KILL(0, insn);
 
@@ -957,42 +920,37 @@ static bool _trigger(struct pl330_thread *thrd)
 	int idx;
 
 	/* Return if already ACTIVE */
-	if (_state(thrd) != PL330_STATE_STOPPED) {
+	if (_state(thrd) != PL330_STATE_STOPPED)
 		return true;
-	}
 
 	idx = 1 - thrd->lstenq;
 	if (!IS_FREE(&thrd->req[idx])) {
 		req = &thrd->req[idx];
 	} else {
 		idx = thrd->lstenq;
-		if (!IS_FREE(&thrd->req[idx])) {
+		if (!IS_FREE(&thrd->req[idx]))
 			req = &thrd->req[idx];
-		} else {
+		else
 			req = NULL;
-		}
 	}
 
 	/* Return if no request */
-	if (!req || !req->r) {
+	if (!req || !req->r)
 		return true;
-	}
 
 	r = req->r;
 
-	if (r->cfg) {
+	if (r->cfg)
 		ns = r->cfg->nonsecure ? 1 : 0;
-	} else if (readl(regs + CS(thrd->id)) & CS_CNS) {
+	else if (readl(regs + CS(thrd->id)) & CS_CNS)
 		ns = 1;
-	} else {
+	else
 		ns = 0;
-	}
 
 	/* See 'Abort Sources' point-4 at Page 2-25 */
-	if (_manager_ns(thrd) && !ns) {
+	if (_manager_ns(thrd) && !ns)
 		rk_pl330_dev_info("%s:%d Recipe for ABORT!\n",
 			__func__, __LINE__);
-	}
 
 	go.chan = thrd->id;
 	go.addr = req->mc_bus;
@@ -1014,9 +972,8 @@ static bool _start(struct pl330_thread *thrd)
 	case PL330_STATE_FAULT_COMPLETING:
 		UNTIL(thrd, PL330_STATE_FAULTING | PL330_STATE_KILLING);
 
-		if (_state(thrd) == PL330_STATE_KILLING) {
+		if (_state(thrd) == PL330_STATE_KILLING)
 			UNTIL(thrd, PL330_STATE_STOPPED)
-		}
 
 	case PL330_STATE_FAULTING:
 		_stop(thrd);
@@ -1263,9 +1220,8 @@ static inline int _loop(unsigned dry_run, u8 buf[],
 	}
 
 	*bursts = lcnt1 * cyc;
-	if (lcnt0) {
+	if (lcnt0)
 		*bursts *= lcnt0;
-	}
 
 	return off;
 }
@@ -1336,14 +1292,12 @@ static int _setup_req(unsigned dry_run, struct pl330_thread *thrd,
 	off += _emit_MOV(dry_run, &buf[off], CCR, pxs->ccr);
 
 	x = pxs->r->x;
-
 	if (!pxs->r->infiniteloop) {
 		do {
 			/* Error if xfer length is not aligned at burst size */
-			if (x->bytes % (BRST_SIZE(pxs->ccr)
-						* BRST_LEN(pxs->ccr))) {
+			if (x->bytes % (BRST_SIZE(pxs->ccr) *
+					BRST_LEN(pxs->ccr)))
 				return -EINVAL;
-			}
 
 			pxs->x = x;
 			off += _setup_xfer(dry_run, &buf[off], pxs);
@@ -1357,14 +1311,14 @@ static int _setup_req(unsigned dry_run, struct pl330_thread *thrd,
 		off += _emit_END(dry_run, &buf[off]);
 	} else {
 		/* Error if xfer length is not aligned at burst size */
-		if (x->bytes % (BRST_SIZE(pxs->ccr) * BRST_LEN(pxs->ccr))) {
+		if (x->bytes % (BRST_SIZE(pxs->ccr) * BRST_LEN(pxs->ccr)))
 			return -EINVAL;
-		}
 
 		pxs->x = x;
 		off += _setup_xfer_infiniteloop(dry_run, &buf[off],
 						pxs, thrd->ev);
 	}
+
 	return off;
 }
 
@@ -1372,24 +1326,19 @@ static inline u32 _prepare_ccr(const struct pl330_reqcfg *rqc)
 {
 	u32 ccr = 0;
 
-	if (rqc->src_inc) {
+	if (rqc->src_inc)
 		ccr |= CC_SRCINC;
-	}
 
-	if (rqc->dst_inc) {
+	if (rqc->dst_inc)
 		ccr |= CC_DSTINC;
-	}
 
 	/* We set same protection levels for Src and DST for now */
-	if (rqc->privileged) {
+	if (rqc->privileged)
 		ccr |= CC_SRCPRI | CC_DSTPRI;
-	}
-	if (rqc->nonsecure) {
+	if (rqc->nonsecure)
 		ccr |= CC_SRCNS | CC_DSTNS;
-	}
-	if (rqc->insnaccess) {
+	if (rqc->insnaccess)
 		ccr |= CC_SRCIA | CC_DSTIA;
-	}
 
 	ccr |= (((rqc->brst_len - 1) & 0xf) << CC_SRCBRSTLEN_SHFT);
 	ccr |= (((rqc->brst_len - 1) & 0xf) << CC_DSTBRSTLEN_SHFT);
@@ -1414,11 +1363,10 @@ static inline bool _is_valid(u32 ccr)
 	scctl = (ccr >> CC_SRCCCTRL_SHFT) & CC_SRCCCTRL_MASK;
 
 	if (dcctl == DINVALID1 || dcctl == DINVALID2
-			|| scctl == SINVALID1 || scctl == SINVALID2) {
+			|| scctl == SINVALID1 || scctl == SINVALID2)
 		return false;
-	} else {
+	else
 		return true;
-	}
 }
 
 /*
@@ -1439,9 +1387,8 @@ int pl330_submit_req(void *ch_id, struct pl330_req *r)
 	int ret = 0;
 
 	/* No Req or Unacquired Channel or DMAC */
-	if (!r || !thrd || thrd->free) {
+	if (!r || !thrd || thrd->free)
 		return -EINVAL;
-	}
 
 	pl330 = thrd->dmac;
 	pi = pl330->pinfo;
@@ -1471,11 +1418,11 @@ int pl330_submit_req(void *ch_id, struct pl330_req *r)
 	/* Use last settings, if not provided */
 	if (r->cfg) {
 		/* Prefer Secure Channel */
-		if (!_manager_ns(thrd)) {
+		if (!_manager_ns(thrd))
 			r->cfg->nonsecure = 0;
-		} else {
+		else
 			r->cfg->nonsecure = 1;
-		}
+
 		ccr = _prepare_ccr(r->cfg);
 	} else {
 		ccr = readl(regs + CC(thrd->id));
@@ -1496,9 +1443,8 @@ int pl330_submit_req(void *ch_id, struct pl330_req *r)
 
 	/* First dry run to check if req is acceptable */
 	ret = _setup_req(1, thrd, idx, &xs);
-	if (ret < 0) {
+	if (ret < 0)
 		goto xfer_exit;
-	}
 
 	if (ret > pi->mcbufsz / 2) {
 		rk_pl330_dev_info("%s:%d Trying increasing mcbufsz\n",
@@ -1519,7 +1465,6 @@ xfer_exit:
 
 	return ret;
 }
-
 
 static void pl330_dotask(unsigned long data)
 {
@@ -1556,11 +1501,10 @@ static void pl330_dotask(unsigned long data)
 
 			_stop(thrd);
 
-			if (readl(regs + FSC) & (1 << thrd->id)) {
+			if (readl(regs + FSC) & (1 << thrd->id))
 				err = PL330_ERR_FAIL;
-			} else {
+			else
 				err = PL330_ERR_ABORT;
-			}
 
 			spin_unlock_irqrestore(&pl330->lock, flags);
 
@@ -1594,9 +1538,8 @@ int pl330_update(const struct pl330_info *pi)
 	u32 val;
 	int id, ev, ret = 0;
 
-	if (!pi || !pi->pl330_data) {
+	if (!pi || !pi->pl330_data)
 		return 0;
-	}
 
 	regs = pi->base;
 	pl330 = pi->pl330_data;
@@ -1604,11 +1547,10 @@ int pl330_update(const struct pl330_info *pi)
 	spin_lock_irqsave(&pl330->lock, flags);
 
 	val = readl(regs + FSM) & 0x1;
-	if (val) {
+	if (val)
 		pl330->dmac_tbd.reset_mngr = true;
-	} else {
+	else
 		pl330->dmac_tbd.reset_mngr = false;
-	}
 
 	val = readl(regs + FSC) & ((1 << pi->pcfg.num_chan) - 1);
 	pl330->dmac_tbd.reset_chan |= val;
@@ -1642,9 +1584,8 @@ int pl330_update(const struct pl330_info *pi)
 			int active;
 
 			/* Clear the event */
-			if (inten & (1 << ev)) {
+			if (inten & (1 << ev))
 				writel(1 << ev, regs + INTCLR);
-			}
 
 			ret = 1;
 
@@ -1653,9 +1594,8 @@ int pl330_update(const struct pl330_info *pi)
 			thrd = &pl330->channels[id];
 
 			active = _thrd_active(thrd);
-			if (!active) { /* Aborted */
+			if (!active) /* Aborted */
 				continue;
-			}
 
 			active -= 1;
 
@@ -1692,14 +1632,12 @@ updt_exit:
 			|| pl330->dmac_tbd.reset_mngr
 			|| pl330->dmac_tbd.reset_chan) {
 		ret = 1;
-		if (pl330->dotask != NULL) {
+		if (pl330->dotask != NULL)
 			pl330->dotask((uint32)pl330);
-		}
 	}
 
 	return ret;
 }
-
 
 int pl330_chan_ctrl(void *ch_id, enum pl330_chan_op op)
 {
@@ -1708,9 +1646,9 @@ int pl330_chan_ctrl(void *ch_id, enum pl330_chan_op op)
 	unsigned long flags = 0;
 	int ret = 0, active;
 
-	if (!thrd || thrd->free || thrd->dmac->state == DYING) {
+	if (!thrd || thrd->free || thrd->dmac->state == DYING)
 		return -EINVAL;
-	}
+
 //	pl330 = thrd->dmac;
 
 	spin_lock_irqsave(&pl330->lock, flags);
@@ -1755,7 +1693,6 @@ int pl330_chan_ctrl(void *ch_id, enum pl330_chan_op op)
 	return ret;
 }
 
-
 int pl330_chan_status(void *ch_id, struct pl330_chanstatus *pstatus)
 {
 	struct pl330_thread *thrd = ch_id;
@@ -1765,27 +1702,24 @@ int pl330_chan_status(void *ch_id, struct pl330_chanstatus *pstatus)
 	int active;
 	u32 val;
 
-	if (!pstatus || !thrd || thrd->free) {
+	if (!pstatus || !thrd || thrd->free)
 		return -EINVAL;
-	}
 
 	pl330 = thrd->dmac;
 	pi = pl330->pinfo;
 	regs = pi->base;
 
 	/* The client should remove the DMAC and add again */
-	if (pl330->state == DYING) {
+	if (pl330->state == DYING)
 		pstatus->dmac_halted = true;
-	} else {
+	else
 		pstatus->dmac_halted = false;
-	}
 
 	val = readl(regs + FSC);
-	if (val & (1 << thrd->id)) {
+	if (val & (1 << thrd->id))
 		pstatus->faulting = true;
-	} else {
+	else
 		pstatus->faulting = false;
-	}
 
 	active = _thrd_active(thrd);
 
@@ -1814,12 +1748,11 @@ static inline int _alloc_event(struct pl330_thread *thrd)
 	struct pl330_info *pi = pl330->pinfo;
 	int ev;
 
-	for (ev = 0; ev < pi->pcfg.num_events; ev++) {
+	for (ev = 0; ev < pi->pcfg.num_events; ev++)
 		if (pl330->events[ev] == -1) {
 			pl330->events[ev] = thrd->id;
 			return ev;
 		}
-	}
 
 	return -1;
 }
@@ -1839,15 +1772,13 @@ void *pl330_request_channel(const struct pl330_info *pi)
 	unsigned long flags = 0;
 	int chans, i;
 
-	if (!pi || !pi->pl330_data) {
+	if (!pi || !pi->pl330_data)
 		return NULL;
-	}
 
 	pl330 = pi->pl330_data;
 
-	if (pl330->state == DYING) {
+	if (pl330->state == DYING)
 		return NULL;
-	}
 
 	chans = pi->pcfg.num_chan;
 
@@ -1875,7 +1806,6 @@ void *pl330_request_channel(const struct pl330_info *pi)
 
 	return thrd;
 }
-
 
 /* Release an event */
 static inline void _free_event(struct pl330_thread *thrd, int ev)
@@ -1905,9 +1835,8 @@ void pl330_release_channel(void *ch_id)
 //	struct pl330_dmac *pl330;
 	unsigned long flags = 0;
 
-	if (!thrd || thrd->free) {
+	if (!thrd || thrd->free)
 		return;
-	}
 
 	_stop(thrd);
 
@@ -1921,7 +1850,6 @@ void pl330_release_channel(void *ch_id)
 	thrd->free = true;
 	spin_unlock_irqrestore(&pl330->lock, flags);
 }
-
 
 /* Initialize the structure for PL330 configuration, that can be used
  * by the client driver the make best use of the DMAC
@@ -1955,11 +1883,10 @@ static void read_dmac_config(struct pl330_info *pi)
 	}
 
 	val = readl(regs + CR0);
-	if (val & CR0_BOOT_MAN_NS) {
+	if (val & CR0_BOOT_MAN_NS)
 		pi->pcfg.mode |= DMAC_MODE_NS;
-	} else {
+	else
 		pi->pcfg.mode &= ~DMAC_MODE_NS;
-	}
 
 	val = readl(regs + CR0) >> CR0_NUM_EVENTS_SHIFT;
 	val &= CR0_NUM_EVENTS_MASK;
@@ -2001,9 +1928,8 @@ static int dmac_alloc_threads(struct pl330_dmac *pl330)
 
 	/* Allocate 1 Manager and 'chans' Channel threads */
 	pl330->channels = (struct pl330_thread *)malloc((1 + chans) * sizeof(*thrd));
-	if (!pl330->channels) {
+	if (!pl330->channels)
 		return -ENOMEM;
-	}
 	memset(pl330->channels, 0, sizeof(*thrd));
 
 	/* Init Channel threads */
@@ -2059,22 +1985,19 @@ int pl330_add(struct pl330_info *pi)
 	struct pl330_dmac *pl330;
 	int i, ret;
 
-	if (!pi) {
+	if (!pi)
 		return -EINVAL;
-	}
 
 	/* If already added */
-	if (pi->pl330_data) {
+	if (pi->pl330_data)
 		return -EINVAL;
-	}
 
 	/*
 	 * If the SoC can perform reset on the DMAC, then do it
 	 * before reading its configuration.
 	 */
-	if (pi->dmac_reset) {
+	if (pi->dmac_reset)
 		pi->dmac_reset(pi);
-	}
 
 	/* Check if we can handle this DMAC */
 	if ((get_id(pi, PERIPH_ID) & 0xfffff) != PERIPH_ID_VAL
@@ -2110,14 +2033,12 @@ int pl330_add(struct pl330_info *pi)
 	INIT_LIST_HEAD(&pl330->req_done);
 
 	/* Use default MC buffer size if not provided */
-	if (!pi->mcbufsz) {
+	if (!pi->mcbufsz)
 		pi->mcbufsz = MCODE_BUFF_PER_REQ * 2;
-	}
 
 	/* Mark all events as free */
-	for (i = 0; i < pi->pcfg.num_events; i++) {
+	for (i = 0; i < pi->pcfg.num_events; i++)
 		pl330->events[i] = -1;
-	}
 
 	/* Allocate resources needed by the DMAC */
 	ret = dmac_alloc_resources(pl330);
@@ -2132,7 +2053,6 @@ int pl330_add(struct pl330_info *pi)
 
 	return 0;
 }
-
 
 static int dmac_free_threads(struct pl330_dmac *pl330)
 {

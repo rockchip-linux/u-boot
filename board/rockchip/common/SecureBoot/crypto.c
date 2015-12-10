@@ -7,9 +7,8 @@
 #include "../config.h"
 #include "SecureBoot.h"
 
-#ifdef SECUREBOOT_CRYPTO_EN
 
-// CRIPTO registers
+/* CRIPTO registers */
 typedef volatile struct tagCRYPTO_STRUCT {
 	uint32 CRYPTO_INTSTS;
 	uint32 CRYPTO_INTENA;
@@ -19,8 +18,8 @@ typedef volatile struct tagCRYPTO_STRUCT {
 	uint32 CRYPTO_BTDMAS;
 	uint32 CRYPTO_BRDMAL;
 	uint32 CRYPTO_HRDMAS;
-	uint32 CRYPTO_HRDMAL;   // in word
-	uint32 reserved0[(0x80-0x24)/4];
+	uint32 CRYPTO_HRDMAL;   /* in word */
+	uint32 reserved0[(0x80 - 0x24) / 4];
 
 	uint32 CRYPTO_AES_CTRL;
 	uint32 CRYPTO_AES_STS;
@@ -29,7 +28,7 @@ typedef volatile struct tagCRYPTO_STRUCT {
 	uint32 CRYPTO_AES_IV[4];
 	uint32 CRYPTO_AES_KEY[8];
 	uint32 CRYPTO_AES_CNT[4];
-	uint32 reserved1[(0x100-0xe8)/4];
+	uint32 reserved1[(0x100 - 0xe8) / 4];
 
 	uint32 CRYPTO_TDES_CTRL;
 	uint32 CRYPTO_TDES_STS;
@@ -39,30 +38,30 @@ typedef volatile struct tagCRYPTO_STRUCT {
 	uint32 CRYPTO_TDES_KEY1[2];
 	uint32 CRYPTO_TDES_KEY2[2];
 	uint32 CRYPTO_TDES_KEY3[2];
-	uint32 reserved2[(0x180-0x138)/4];
+	uint32 reserved2[(0x180 - 0x138) / 4];
 
 	uint32 CRYPTO_HASH_CTRL;
 	uint32 CRYPTO_HASH_STS;
-	uint32 CRYPTO_HASH_MSG_LEN; // in byte
+	uint32 CRYPTO_HASH_MSG_LEN; /* in byte */
 	uint32 CRYPTO_HASH_DOUT[8];
 	uint32 CRYPTO_HASH_SEED[5];
-	uint32 reserved3[(0x200-0x1c0)/4];
+	uint32 reserved3[(0x200 - 0x1c0) / 4];
 
 	uint32 CRYPTO_TRNG_CTRL;
 	uint32 CRYPTO_TRNG_DOUT[8];
-	uint32 reserved4[(0x280-0x224)/4];
+	uint32 reserved4[(0x280 - 0x224) / 4];
 
 	uint32 CRYPTO_PKA_CTRL;
-	uint32 reserved5[(0x400-0x284)/4];
+	uint32 reserved5[(0x400 - 0x284) / 4];
 
 	uint32 CRYPTO_PKA_M;
-	uint32 reserved6[(0x500-0x404)/4];
+	uint32 reserved6[(0x500 - 0x404) / 4];
 
 	uint32 CRYPTO_PKA_C;
-	uint32 reserved7[(0x600-0x504)/4];
+	uint32 reserved7[(0x600 - 0x504) / 4];
 
 	uint32 CRYPTO_PKA_N;
-	uint32 reserved8[(0x700-0x604)/4];
+	uint32 reserved8[(0x700 - 0x604) / 4];
 
 	uint32 CRYPTO_PKA_E;
 } CRYPTO_REG, *pCRYPTO_REG;
@@ -73,18 +72,15 @@ typedef volatile struct tagCRYPTO_STRUCT {
 int32 CryptoSHAInit(uint32 MsgLen, int hash_bits)
 {
 	CryptoReg->CRYPTO_HASH_MSG_LEN = MsgLen;
-	if(hash_bits == 256)
-	{
-		CryptoReg->CRYPTO_HASH_CTRL = 0x0a; // sha256 & byte swap
-		CryptoReg->CRYPTO_CONF &= ~(1<<5);      
+	if (hash_bits == 256) {
+		CryptoReg->CRYPTO_HASH_CTRL = 0x0a; /* sha256 & byte swap */
+		CryptoReg->CRYPTO_CONF &= ~(1 << 5);
+	} else {
+		CryptoReg->CRYPTO_CONF |= (1 << 5); /* sha160 input byte swap */
+		CryptoReg->CRYPTO_HASH_CTRL = 0x08; /* sha160 & byte swap */
 	}
-	else
-	{
-		CryptoReg->CRYPTO_CONF |= (1<<5); // sha160 input byte swap
-		CryptoReg->CRYPTO_HASH_CTRL = 0x08; // sha160 & byte swap
-	}
-	CryptoReg->CRYPTO_CTRL = (1<<6)|((1<<6)<<16);
-	while (CryptoReg->CRYPTO_CTRL & (1<<6));
+	CryptoReg->CRYPTO_CTRL = (1 << 6) | ((1 << 6) << 16);
+	do {} while (CryptoReg->CRYPTO_CTRL & (1 << 6));
 
 	return 0;
 }
@@ -92,22 +88,25 @@ int32 CryptoSHAInit(uint32 MsgLen, int hash_bits)
 
 int32 CryptoSHAStart(uint32 *data, uint32 DataLen)
 {
-	// if data len = 0, return, fixed crypto handup
-	if (DataLen == 0) {
+	/* if data len = 0, return, fixed crypto handup */
+	if (DataLen == 0)
 		return 0;
-	}
+
 	/* flush data, fix cache data error */
 	flush_cache((unsigned long)data, DataLen);
 
-	while (CryptoReg->CRYPTO_CTRL & 0x08); // wait last complete
+	/* wait last complete */
+	do {} while (CryptoReg->CRYPTO_CTRL & 0x08);
 
-	CryptoReg->CRYPTO_INTSTS = (0x1<<4); // Hash Done Interrupt
+	/* Hash Done Interrupt */
+	CryptoReg->CRYPTO_INTSTS = (0x1 << 4);
 
 	CryptoReg->CRYPTO_HRDMAS = (uint32)(unsigned long)data;
 
-	CryptoReg->CRYPTO_HRDMAL = ((DataLen+3)>>2);
+	CryptoReg->CRYPTO_HRDMAL = ((DataLen + 3) >> 2);
 
-	CryptoReg->CRYPTO_CTRL = (0x8<<16 | 0x8); //write 1 to start. When finishes, the core will clear it
+	/* write 1 to start. When finishes, the core will clear it */
+	CryptoReg->CRYPTO_CTRL = (0x8 << 16 | 0x8);
 
 	return 0;
 }
@@ -117,12 +116,14 @@ int32 CryptoSHAEnd(uint32 *result)
 {
 	int32 i;
 
-	while (CryptoReg->CRYPTO_CTRL & 0x08);	// wait last complete
+	/* wait last complete */
+	do {} while (CryptoReg->CRYPTO_CTRL & 0x08);
 
-	while(!CryptoReg->CRYPTO_HASH_STS); //When HASH finishes, it will be HIGH, And it will not be LOW until it restart 
+	/* When HASH finishes, it will be HIGH, And it will not be LOW until it restart */
+	do {} while (!CryptoReg->CRYPTO_HASH_STS);
 
-	// read back 256bit output data
-	for(i = 0; i < 8; i ++)
+	/* read back 256bit output data */
+	for (i = 0; i < 8; i++)
 		*result++ = CryptoReg->CRYPTO_HASH_DOUT[i];
 
 	return 0;
@@ -133,21 +134,23 @@ int32 CryptoSHACheck(uint32 *InHash)
 {
 	uint32 dataHash[8];
 
-	// Hash the DATA
+	/* Hash the DATA */
 	CryptoSHAEnd(dataHash);
-	// cpmpare the result with hash of data
+	/* cpmpare the result with hash of data */
 	return memcmp(InHash, dataHash, 32);
 }
 
 
 static inline int32 CryptoRSAConfig(void)
 {
-	CryptoReg->CRYPTO_PKA_CTRL = 2;     // 2048bit It specifies the bits of N in PKA calculation
+	/* 2048bit It specifies the bits of N in PKA calculation */
+	CryptoReg->CRYPTO_PKA_CTRL = 2;
 
-	CryptoReg->CRYPTO_CTRL = (0xc0<<16)| 0xc0;   // flush SHA & RSA
+	/* flush SHA & RSA */
+	CryptoReg->CRYPTO_CTRL = (0xc0 << 16) | 0xc0;
 	CryptoReg->CRYPTO_INTSTS = 0xffffffff;
 
-	while (CryptoReg->CRYPTO_CTRL & 0x90); 
+	do {} while (CryptoReg->CRYPTO_CTRL & 0x90);
 
 	return 0;
 }
@@ -155,16 +158,18 @@ static inline int32 CryptoRSAConfig(void)
 
 int32 CryptoRSAStart(uint32 *AddrM, uint32 *AddrN, uint32 *AddrE, uint32 *AddrC)
 {
-	CryptoReg->CRYPTO_INTSTS = (0x1<<5);  //clean PKA Done Interrupt
+	/* clean PKA Done Interrupt */
+	CryptoReg->CRYPTO_INTSTS = (0x1<<5);
 
 	memcpy((void *)&CryptoReg->CRYPTO_PKA_M, (void *)AddrM, 256);
 	memcpy((void *)&CryptoReg->CRYPTO_PKA_N, (void *)AddrN, 256);
 	memcpy((void *)&CryptoReg->CRYPTO_PKA_E, (void *)AddrE, 256);
 	memcpy((void *)&CryptoReg->CRYPTO_PKA_C, (void *)AddrC, 256);
 
-	while(CryptoReg->CRYPTO_CTRL & 0x10);
+	do {} while (CryptoReg->CRYPTO_CTRL & 0x10);
 
-	CryptoReg->CRYPTO_CTRL = (0x10<<16) | 0x10;     //Starts/initializes PKA
+	/* Starts/initializes PKA */
+	CryptoReg->CRYPTO_CTRL = (0x10<<16) | 0x10;
 
 	return 0;
 }
@@ -174,10 +179,11 @@ int32 CryptoRSAEnd(uint32 *result)
 {
 	int32 i;
 
-	while(CryptoReg->CRYPTO_CTRL & 0x10); //wait PKA Done
+	/* wait PKA Done */
+	do {} while (CryptoReg->CRYPTO_CTRL & 0x10);
 
-	// read back 256bit output data
-	for(i = 0; i < 8; i ++)
+	/* read back 256bit output data */
+	for (i = 0; i < 8; i++)
 		*result++ = *((uint32 *)(&CryptoReg->CRYPTO_PKA_M + i));
 
 	return 0;
@@ -197,10 +203,10 @@ int32 CryptoRSACheck(void)
 	uint32 dataHash[8];
 	uint32 rsaResult[8];
 
-	// Hash the DATA
+	/* Hash the DATA */
 	CryptoSHAEnd(dataHash);
 	CryptoRSAEnd(rsaResult);
-	// cpmpare the result with hash of data
+	/* cpmpare the result with hash of data */
 	return memcmp(rsaResult, dataHash, 32);
 }
 
@@ -228,9 +234,8 @@ static void CryptoHashPrint(char *hash)
 {
 	int k = 0;
 
-	for (k = 0; k < 20; k++) {
+	for (k = 0; k < 20; k++)
 		printf("%02x", hash[k]);
-	}
 	printf("\n");
 }
 
@@ -245,9 +250,8 @@ static void CryptoHWCheckOK(void)
 	uint32 size;
 	int i;
 
-	for (i = 0; i < HASH_TEST_SIZE; i++) {
+	for (i = 0; i < HASH_TEST_SIZE; i++)
 		crypto_data_test[i] = i;
-	}
 
 	SHA_CTX ctx;
 	SHA_init(&ctx);
@@ -281,5 +285,3 @@ void CryptoInit(void)
 	CryptoHWCheckOK();
 #endif
 }
-
-#endif /* SECUREBOOT_CRYPTO_EN */

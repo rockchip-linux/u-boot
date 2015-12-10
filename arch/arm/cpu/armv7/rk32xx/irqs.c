@@ -26,10 +26,10 @@ static struct s_irq_handler g_irq_handler[NR_IRQS_MAXNUM];
 /* general interrupt server handler for gpio chip */
 static inline void generic_handle_irq(int irq, void *data)
 {
-	/* if g_irq_handler[irq].m_func == -1, gpio pin irq has no server handler */ 
-	if ((g_irq_handler[irq].m_func != NULL) && (g_irq_handler[irq].m_func != (interrupt_handler_t *)-1)) {
+	/* m_func == -1 for gpio pin irq has no server handler */
+	if ((g_irq_handler[irq].m_func != NULL)
+			&& (g_irq_handler[irq].m_func != (interrupt_handler_t *)-1))
 		g_irq_handler[irq].m_func(data);
-	}
 }
 
 
@@ -45,7 +45,7 @@ static inline void generic_handle_irq(int irq, void *data)
 /* get interrupt id */
 static inline uint32 gic_irq_getid(void)
 {
-	return (g_giccReg->icciar&0x3ff); /* bit9 - bit0*/
+	return g_giccReg->icciar & 0x3ff; /* bit9 - bit0*/
 }
 
 /* finish interrupt server */
@@ -61,13 +61,11 @@ static inline void irq_handler(void)
 	uint32 nintid = gic_irq_getid();
 
 	/* here we use gic id checking, not include gpio pin irq */
-	if (nintid < NR_GIC_IRQS) {
-		if (g_irq_handler[nintid].m_func != NULL) {
-			g_irq_handler[nintid].m_func((void *)nintid);
-		}
-	}
-	
-	gic_irq_finish_server(nintid); 
+	if (nintid < NR_GIC_IRQS)
+		if (g_irq_handler[nintid].m_func != NULL) \
+			g_irq_handler[nintid].m_func((void *)(unsigned long)nintid);
+
+	gic_irq_finish_server(nintid);
 }
 
 
@@ -81,22 +79,19 @@ static inline int irq_init(void)
 	 * So irq_init shoule be initialized after bss data initialized.
 	 */
 	if (!(gd->flags & GD_FLG_RELOC)) {
-		debug("irq_init: interrupt should be initialized after relocation and bss data done.\n");
+		debug("interrupt should be initialized after relocation and bss data done.\n");
 		return -1;
 	}
 
-	debug("rk irq version: %s\n", RKIRQ_VERSION);
-
 	if (gd->flags & GD_FLG_IRQINIT) {
-		debug("irq_init: irq has been initialized.\n");
+		debug("rk irq has been initialized.\n");
 		return 0;
 	}
 	gd->flags |= GD_FLG_IRQINIT;
 
-	debug("irq_init: irq initialized.\n");
-	for (i = 0; i < NR_IRQS_MAXNUM; i++) {
+	debug("rk irq version: %s, initialized.\n", RKIRQ_VERSION);
+	for (i = 0; i < NR_IRQS_MAXNUM; i++)
 		g_irq_handler[i].m_func = NULL;
-	}
 
 	/* gic irq init */
 	gic_irq_init();
@@ -122,40 +117,34 @@ void enable_imprecise_aborts(void)
 /* enable irq handler */
 int irq_handler_enable(int irq)
 {
-	if (irq >= NR_IRQS_MAXNUM) {
-		return (-1);
-	}
+	if (irq >= NR_IRQS_MAXNUM)
+		return -1;
 
-	debug("irq_handler_enable: irq = %d.\n", irq);
-	if (irq < NR_GIC_IRQS) {
+	if (irq < NR_GIC_IRQS)
 		gic_irq_chip.irq_enable(irq);
-	} else {
 #ifdef CONFIG_RK_GPIO
+	else
 		gpio_irq_chip.irq_enable(irq);
 #endif
-	}
 
-	return (0);
+	return 0;
 }
 
 
 /* disable irq handler */
 int irq_handler_disable(int irq)
 {
-	if (irq >= NR_IRQS_MAXNUM) {
-		return (-1);
-	}
+	if (irq >= NR_IRQS_MAXNUM)
+		return -1;
 
-	debug("irq_handler_disable: irq = %d.\n", irq);
-	if (irq < NR_GIC_IRQS) {
+	if (irq < NR_GIC_IRQS)
 		gic_irq_chip.irq_disable(irq);
-	} else {
 #ifdef CONFIG_RK_GPIO
+	else
 		gpio_irq_chip.irq_disable(irq);
 #endif
-	}
-	
-	return (0);
+
+	return 0;
 }
 
 
@@ -166,20 +155,17 @@ int irq_handler_disable(int irq)
  */
 int irq_set_irq_type(int irq, unsigned int type)
 {
-	if (irq >= NR_IRQS_MAXNUM) {
-		return (-1);
-	}
+	if (irq >= NR_IRQS_MAXNUM)
+		return -1;
 
-	debug("irq_set_irq_type: irq = %d.\n", irq);
-	if (irq < NR_GIC_IRQS) {
+	if (irq < NR_GIC_IRQS)
 		gic_irq_chip.irq_set_type(irq, type);
-	} else {
 #ifdef CONFIG_RK_GPIO
+	else
 		gpio_irq_chip.irq_set_type(irq, type);
 #endif
-	}
 
-	return (0);
+	return 0;
 }
 
 
@@ -187,37 +173,32 @@ int irq_set_irq_type(int irq, unsigned int type)
 void irq_install_handler(int irq, interrupt_handler_t *handler, void *data)
 {
 	if (irq >= NR_IRQS_MAXNUM || !handler) {
-		debug("irq_install_handle error: irq = %d, handler = 0x%08x, data = 0x%08x.\n", irq, (unsigned int)handler, (unsigned int)data);
-		return ;
+		printf("error: irq = %d, handler = 0x%p, data = 0x%p.\n", irq, handler, data);
+		return;
 	}
 
-	debug("irq_install_handler: irq = %d, handler = 0x%08x, data = 0x%08x.\n", irq, (unsigned int)handler, (unsigned int)data);
-
-	if (g_irq_handler[irq].m_func != handler) {
+	if (g_irq_handler[irq].m_func != handler)
 		g_irq_handler[irq].m_func = handler;
-	}
 }
 
 
 /* interrupt uninstall handler */
 void irq_uninstall_handler(int irq)
 {
-	if (irq >= NR_IRQS_MAXNUM) {
-		return ;
-	}
+	if (irq >= NR_IRQS_MAXNUM)
+		return;
 
-	debug("irq_uninstall_handler: irq = %d.\n", irq);
 	g_irq_handler[irq].m_func = NULL;
 }
 
 
-void do_irq (struct pt_regs *pt_regs)
+void do_irq(struct pt_regs *pt_regs)
 {
 	irq_handler();
 }
 
 
-int arch_interrupt_init (void)
+int arch_interrupt_init(void)
 {
 	return irq_init();
 }
@@ -249,7 +230,7 @@ void irq_uninstall_handler(int irq)
 
 }
 
-int arch_interrupt_init (void)
+int arch_interrupt_init(void)
 {
 	return -1;
 }

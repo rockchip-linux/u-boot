@@ -43,7 +43,7 @@
 	make ARCHV=aarch64	-	Command to make rk aarch64 uboot bin.
 
 	mkv7.sh			-	shell to make rk aarch32 uboot bin.
-	mkv8.sh			-	Command to make rk aarch64 uboot bin.
+	mkv8.sh			-	shell to make rk aarch64 uboot bin.
 
 4.  Clean
 	make clean

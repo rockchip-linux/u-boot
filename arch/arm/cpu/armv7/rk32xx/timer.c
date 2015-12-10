@@ -87,11 +87,11 @@ static inline unsigned long get_current_timer_value(void)
 {
 	unsigned long now = rk_timer_get_curr_count();
 
-	if (gd->arch.lastinc >= now) {
+	if (gd->arch.lastinc >= now)
 		gd->arch.tbl -= (gd->arch.lastinc - now);
-	} else {/* count down timer underflow */
+	else /* count down timer underflow */
 		gd->arch.tbl -= (TIMER_LOAD_VAL + gd->arch.lastinc - now);
-	}
+
 	gd->arch.lastinc = now;
 
 	return gd->arch.tbl;
@@ -100,7 +100,7 @@ static inline unsigned long get_current_timer_value(void)
 /* nothing really to do with interrupts, just starts up a counter. */
 int timer_init(void)
 {
-	rk_timer_init();  
+	rk_timer_init();
 	reset_timer_masked();
 
 	return 0;
@@ -121,11 +121,10 @@ void reset_timer_masked(void)
  */
 unsigned long get_timer(unsigned long base)
 {
-	if (base == 0) {
+	if (base == 0)
 		return get_timer_masked();
-	} else {
+	else
 		return (base - get_timer_masked());
-	}
 }
 
 
@@ -134,11 +133,10 @@ unsigned long get_timer(unsigned long base)
  */
 unsigned long get_usec_timer(unsigned long base)
 {
-	if (base == 0) {
+	if (base == 0)
 		return tcount_to_usec(get_current_timer_value());
-	} else {
+	else
 		return (base - tcount_to_usec(get_current_timer_value()));
-	}
 }
 
 
@@ -152,11 +150,10 @@ void __udelay(unsigned long usec)
 
 	while (tmo > 0)	{ /* loop till event */
 		now = rk_timer_get_curr_count();
-		if (last >= now) {
+		if (last >= now)
 			tmo -= (last - now);
-		} else { /* count down timer overflow */
+		else /* count down timer overflow */
 			tmo -= (TIMER_LOAD_VAL + last - now);
-		}
 
 		last = now;
 	}

@@ -86,17 +86,15 @@ static inline unsigned long get_current_timer_value(void)
 	unsigned long now = rk_timer_get_curr_count();
 
 #ifdef CONFIG_RKTIMER_INCREMENTER
-	if (now >= gd->arch.lastinc) {
+	if (now >= gd->arch.lastinc)
 		gd->arch.tbl += (now - gd->arch.lastinc);
-	} else {/* count up timer underflow */
+	else /* count up timer underflow */
 		gd->arch.tbl += (TIMER_LOAD_VAL - gd->arch.lastinc + now + 1);
-	}
 #else
-	if (gd->arch.lastinc >= now) {
+	if (gd->arch.lastinc >= now)
 		gd->arch.tbl -= (gd->arch.lastinc - now);
-	} else {/* count down timer underflow */
+	else /* count down timer underflow */
 		gd->arch.tbl -= (TIMER_LOAD_VAL + gd->arch.lastinc - now);
-	}
 #endif
 	gd->arch.lastinc = now;
 
@@ -106,7 +104,7 @@ static inline unsigned long get_current_timer_value(void)
 /* nothing really to do with interrupts, just starts up a counter. */
 int timer_init(void)
 {
-	rk_timer_init();  
+	rk_timer_init();
 	reset_timer_masked();
 
 	return 0;
@@ -129,11 +127,10 @@ ulong get_timer(ulong base)
 #ifdef CONFIG_RKTIMER_INCREMENTER
 	return get_timer_masked() - base;
 #else
-	if (base == 0) {
+	if (base == 0)
 		return get_timer_masked();
-	} else {
+	else
 		return (base - get_timer_masked());
-	}
 #endif
 }
 
@@ -146,11 +143,10 @@ uint64_t get_usec_timer(uint64_t base)
 #ifdef CONFIG_RKTIMER_INCREMENTER
 	return (tcount_to_usec(get_current_timer_value()) - base);
 #else
-	if (base == 0) {
+	if (base == 0)
 		return tcount_to_usec(get_current_timer_value());
-	} else {
+	else
 		return (base - tcount_to_usec(get_current_timer_value()));
-	}
 #endif
 }
 
@@ -164,17 +160,15 @@ void __udelay(unsigned long usec)
 	while (tmo > 0)	{ /* loop till event */
 		now = rk_timer_get_curr_count();
 #ifdef CONFIG_RKTIMER_INCREMENTER
-		if (now > last) {
+		if (now > last)
 			tmo -= (now - last);
-		} else { /* count up timer overflow */
+		else /* count up timer overflow */
 			tmo -= (TIMER_LOAD_VAL - last + now + 1);
-		}
 #else
-		if (last >= now) {
+		if (last >= now)
 			tmo -= (last - now);
-		} else { /* count down timer overflow */
+		else /* count down timer overflow */
 			tmo -= (TIMER_LOAD_VAL + last - now);
-		}
 #endif
 		last = now;
 	}

@@ -64,13 +64,12 @@ Cpu highest frequency is 1 GHz
 #define LPJ_1000MHZ  100UL
 
 static void clk_loop_delayus(uint32_t us)
-{   
+{
 	volatile uint32_t i;
 
 	/* copro seems to need some delay between reading and writing */
-	for (i = 0; i < LPJ_1000MHZ * us; i++) {
-		nop();
-	}
+	for (i = 0; i < LPJ_1000MHZ * us; i++)
+		asm volatile("nop");
 }
 
 /*
@@ -86,9 +85,8 @@ static uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even
 
 	div = (clk_parent + (clk_child - 1)) / clk_child;
 
-	if (even) {
+	if (even)
 		div += (div % 2);
-	}
 
 	return div;
 }

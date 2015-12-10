@@ -9,20 +9,17 @@
 #include <asm/arch/rkplat.h>
 
 
-typedef enum INT_TRIG
-{
+typedef enum INT_TRIG {
 	INT_LEVEL_TRIG,
 	INT_EDGE_TRIG
 } eINT_TRIG;
 
-typedef enum INT_SECURE
-{
+typedef enum INT_SECURE {
 	INT_SECURE,
 	INT_NOSECURE
 } eINT_SECURE;
 
-typedef enum INT_SIGTYPE
-{
+typedef enum INT_SIGTYPE {
 	INT_SIGTYPE_IRQ,
 	INT_SIGTYPE_FIQ
 } eINT_SIGTYPE;
@@ -68,21 +65,18 @@ static int gic_irq_set_trig(int irq, eINT_TRIG ntrig)
 {
 	uint32 M, N;
 
-	if (irq >= NR_GIC_IRQS) {
-		return (-1);
-	}
+	if (irq >= NR_GIC_IRQS)
+		return -1;
 
-	debug("gic_irq_set_trig: irq = %d, ntrig = %d.\n", irq, ntrig);
 	M = irq / 16;
 	N = irq % 16;
 
-	if(ntrig == INT_LEVEL_TRIG) {
-		g_gicdReg->icdicfr[M] &= (~(1<<(2*N+1)));   
-	} else {  
-		g_gicdReg->icdicfr[M] |= (1<<(2*N+1));
-	}
+	if (ntrig == INT_LEVEL_TRIG)
+		g_gicdReg->icdicfr[M] &= (~(1 << (2 * N + 1)));
+	else
+		g_gicdReg->icdicfr[M] |= (1 << (2 * N + 1));
 
-	return 0; 
+	return 0;
 }
 
 #if 0
@@ -91,16 +85,14 @@ static int gic_irq_set_pending(int irq)
 {
 	uint32 M, N;
 
-	if (irq >= NR_GIC_IRQS) {
-		return (-1);
-	}
+	if (irq >= NR_GIC_IRQS)
+		return -1;
 
-	debug("gic_irq_handler_pending: irq = %d.\n", irq);
 	M = irq / 32;
 	N = irq % 32;
-	g_gicdReg->icdispr[M] = (0x1<<N);
+	g_gicdReg->icdispr[M] = (0x1 << N);
 
-	return 0; 
+	return 0;
 }
 
 
@@ -109,17 +101,16 @@ static int gic_irq_clear_pending(int irq)
 {
 	uint32 M, N;
 
-	if (irq >= NR_GIC_IRQS) {
-		return (-1);
-	}
+	if (irq >= NR_GIC_IRQS)
+		return -1;
 
 	debug("gic_irq_clear_pending: irq = %d.\n", irq);
 	M = irq / 32;
 	N = irq % 32;
 
-	g_gicdReg->icdicpr[M] = (0x1<<N);
+	g_gicdReg->icdicpr[M] = (0x1 << N);
 
-	return 0; 
+	return 0;
 }
 
 
@@ -127,16 +118,14 @@ static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
 {
 	uint32 M, N;
 
-	if (irq >= NR_GIC_IRQS) {
-		return (-1);
-	}
+	if (irq >= NR_GIC_IRQS)
+		return -1;
 
-	debug("gic_irq_set_secure: irq = %d, nsecure = %d.\n", irq, nsecure);
 	M = irq / 32;
 	N = irq % 32;
-	g_gicdReg->icdiser[M] |= (nsecure)<<(N);
+	g_gicdReg->icdiser[M] |= nsecure << N;
 
-	return 0; 
+	return 0;
 }
 #endif
 
@@ -147,18 +136,16 @@ static int gic_handler_enable(int irq)
 	uint32 offset = (irq / 4);
 	uint32 M, N;
 
-	if (irq >= NR_GIC_IRQS) {
-		return (-1);
-	}
+	if (irq >= NR_GIC_IRQS)
+		return -1;
 
-	debug("gic_handler_enable: irq = %d.\n", irq);
 	M = irq / 32;
 	N = irq % 32;
 	g_giccReg->iccicr &= (~0x08);
-	g_gicdReg->icdiser[M] = (0x1<<N);
+	g_gicdReg->icdiser[M] = (0x1 << N);
 	g_gicdReg->itargetsr[offset] |= (1 << shift);
 
-	return (0);
+	return 0;
 }
 
 
@@ -167,16 +154,14 @@ static int gic_handler_disable(int irq)
 {
 	uint32 M, N;
 
-	if (irq >= NR_GIC_IRQS) {
-		return (-1);
-	}
+	if (irq >= NR_GIC_IRQS)
+		return -1;
 
-	debug("gic_handler_disable: irq = %d.\n", irq);
 	M = irq / 32;
 	N = irq % 32;
 	g_gicdReg->icdicer[M] = (0x1<<N);
 
-	return (0);
+	return 0;
 }
 
 /**
@@ -189,16 +174,16 @@ static int gic_set_irq_type(int irq, unsigned int type)
 	unsigned int int_type;
 
 	switch (type) {
-		case IRQ_TYPE_EDGE_RISING:
-		case IRQ_TYPE_EDGE_FALLING:
-			int_type = INT_EDGE_TRIG;
-			break;
-		case IRQ_TYPE_LEVEL_HIGH:
-		case IRQ_TYPE_LEVEL_LOW:
-			int_type = INT_LEVEL_TRIG;
-			break;
-		default:
-			return -1;
+	case IRQ_TYPE_EDGE_RISING:
+	case IRQ_TYPE_EDGE_FALLING:
+		int_type = INT_EDGE_TRIG;
+		break;
+	case IRQ_TYPE_LEVEL_HIGH:
+	case IRQ_TYPE_LEVEL_LOW:
+		int_type = INT_LEVEL_TRIG;
+		break;
+	default:
+		return -1;
 	}
 
 	gic_irq_set_trig(irq, int_type);
@@ -219,7 +204,7 @@ static void gic_irq_init(void)
 	/* disable signalling the interrupt */
 	g_giccReg->iccicr = 0x00;
 	g_gicdReg->icddcr = 0x00;
-		                              
+
 	g_gicdReg->icdicer[0] = 0xFFFFFFFF;
 	g_gicdReg->icdicer[1] = 0xFFFFFFFF;
 	g_gicdReg->icdicer[2] = 0xFFFFFFFF;
@@ -233,11 +218,10 @@ static void gic_irq_init(void)
 }
 
 static struct irq_chip gic_irq_chip = {
-	.name			= (const char*)"gic",
+	.name			= (const char *)"gic",
 
 	.irq_disable		= gic_handler_disable,
 	.irq_enable		= gic_handler_enable,
 
 	.irq_set_type		= gic_set_irq_type,
 };
-

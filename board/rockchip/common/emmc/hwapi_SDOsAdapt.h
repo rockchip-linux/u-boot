@@ -8,8 +8,8 @@
 #ifndef _SDOAM_H_
 #define _SDOAM_H_
 
-typedef uint32*   pEVENT;
-typedef uint32*   pMUTEX;
+typedef uint32	*pEVENT;
+typedef uint32	*pMUTEX;
 
 #define MSG_CARD_INSERT    (0x1)
 #define MSG_CARD_REMOVE    (0x2)
@@ -19,9 +19,9 @@ typedef uint32*   pMUTEX;
 #define SDOAM_Memcmp ftl_memcmp
 #define SDOAM_Memset ftl_memset
 
-/****************************************************************/
-//对外函数声明
-/****************************************************************/
+/****************************************************************
+			对外函数声明
+****************************************************************/
 //void  *SDOAM_Malloc(uint32 nSize);
 //void   SDOAM_Free(void *ptr);
 //void   SDOAM_Printf(const char *fmt, ...);
@@ -42,6 +42,6 @@ char  *SDOAM_Strcat(uint8 *dest, uint8 *src);
 /* only used for SDT */
 //int32  SDOAM_Memcmp(void *dest, void *src, uint32 count);
 
-#endif //end of #ifndef _SDOAM_H_
+#endif /* end of #ifndef _SDOAM_H_ */
 
-#endif //end of #ifdef DRIVERS_SDMMC
+#endif /* end of #ifdef DRIVERS_SDMMC */

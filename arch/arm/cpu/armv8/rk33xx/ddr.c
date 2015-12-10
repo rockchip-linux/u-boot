@@ -23,13 +23,13 @@ int dram_init(void)
 			CONFIG_SYS_SDRAM_SIZE);
 
 #if defined(CONFIG_RKDDR_PARAM_ADDR)
-	u64* buf = (u64*)CONFIG_RKDDR_PARAM_ADDR;
-	u32 count = ((u32*)buf)[0];
+	u64 *buf = (u64 *)CONFIG_RKDDR_PARAM_ADDR;
+	u32 count = ((u32 *)buf)[0];
 	u64 start = 0, end = 0, size = 0;
 
 	debug("\n");
 
-	buf ++;
+	buf++;
 	if (count >= CONFIG_RK_MAX_DRAM_BANKS) {
 		end = PHYS_SDRAM;
 	} else {
@@ -57,7 +57,7 @@ int dram_init(void)
 void dram_init_banksize(void)
 {
 #if defined(CONFIG_RKDDR_PARAM_ADDR)
-	u64* buf = (u64 *)CONFIG_RKDDR_PARAM_ADDR;
+	u64 *buf = (u64 *)CONFIG_RKDDR_PARAM_ADDR;
 	u32 count = ((u32 *)buf)[0];
 	int i;
 
@@ -71,11 +71,11 @@ void dram_init_banksize(void)
 	} else {
 		printf("Found dram banks: %d\n", count);
 
-		buf ++;
+		buf++;
 		for (i = 0; i < count; i++) {
 			gd->bd->rk_dram[i].start = le64_to_cpu(buf[i]);
 			gd->bd->rk_dram[i].size = le64_to_cpu(buf[count + i]);
-			//TODO: add check, if start|size not valide, goto failed.
+			/* TODO: add check, if start|size not valide, goto failed. */
 			/*
 			if (check) {
 				gd->bd->rk_dram[0].start = gd->bd->rk_dram[0].size = 0;
@@ -111,4 +111,3 @@ void dram_init_banksize(void)
 	gd->bd->bi_dram[0].start = PHYS_SDRAM;
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;
 }
-

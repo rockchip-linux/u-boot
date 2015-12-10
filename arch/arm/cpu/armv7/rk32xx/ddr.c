@@ -18,14 +18,14 @@ struct trust_parameter {
 	uint32_t checksum;
 
 	struct {
-		char name[8];	//tee.mem
+		char name[8];	/* tee.mem */
 		uint64_t base;
 		uint32_t size;
 		uint32_t flags;
 	} tee_mem;
 
 	struct {
-		char name[8];	//drm.mem
+		char name[8];	/* drm.mem */
 		uint64_t base;
 		uint32_t size;
 		uint32_t flags;
@@ -55,9 +55,9 @@ static void trust_param_print(struct trust_parameter *param)
 	debug("Trust parameter information:\n");
 	debug("	version = 0x%08x\n", param->version);
 	debug("	checksum = 0x%08x\n", param->checksum);
-	debug("	tee: base = 0x%08llx, size = 0x%08x, flags = 0x%08x\n",
+	debug("	tee: base = 0x%08llx, size = 0x%08x, flags = 0x%08x\n", \
 		param->tee_mem.base, param->tee_mem.size, param->tee_mem.flags);
-	debug("	drm: base = 0x%08llx, size = 0x%08x, flags = 0x%08x\n",
+	debug("	drm: base = 0x%08llx, size = 0x%08x, flags = 0x%08x\n", \
 		param->drm_mem.base, param->drm_mem.size, param->drm_mem.flags);
 }
 
@@ -109,13 +109,13 @@ int dram_init(void)
 			CONFIG_SYS_SDRAM_SIZE);
 
 #if defined(CONFIG_RKDDR_PARAM_ADDR)
-	u64* buf = (u64*)CONFIG_RKDDR_PARAM_ADDR;
-	u32 count = ((u32*)buf)[0];
+	u64 *buf = (u64 *)CONFIG_RKDDR_PARAM_ADDR;
+	u32 count = ((u32 *)buf)[0];
 	u64 start = 0, end = 0, size = 0;
 
 	debug("\n");
 
-	buf ++;
+	buf++;
 	if (count >= CONFIG_RK_MAX_DRAM_BANKS) {
 		end = PHYS_SDRAM;
 	} else {
@@ -143,7 +143,7 @@ int dram_init(void)
 void dram_init_banksize(void)
 {
 #if defined(CONFIG_RKDDR_PARAM_ADDR)
-	u64* buf = (u64 *)CONFIG_RKDDR_PARAM_ADDR;
+	u64 *buf = (u64 *)CONFIG_RKDDR_PARAM_ADDR;
 	u32 count = ((u32 *)buf)[0];
 	int i;
 
@@ -157,11 +157,11 @@ void dram_init_banksize(void)
 	} else {
 		printf("Found dram banks: %d\n", count);
 
-		buf ++;
+		buf++;
 		for (i = 0; i < count; i++) {
 			gd->bd->rk_dram[i].start = le64_to_cpu(buf[i]);
 			gd->bd->rk_dram[i].size = le64_to_cpu(buf[count + i]);
-			//TODO: add check, if start|size not valide, goto failed.
+			/* TODO: add check, if start|size not valide, goto failed. */
 			/*
 			if (check) {
 				gd->bd->rk_dram[0].start = gd->bd->rk_dram[0].size = 0;
@@ -187,12 +187,10 @@ void dram_init_banksize(void)
 		if (checksum == trust_param->checksum) {
 			printf("Reserve memory for trust os.\n");
 			trust_param_print(trust_param);
-			if (trust_param->tee_mem.flags != 0) {
+			if (trust_param->tee_mem.flags != 0)
 				dram_bank_reserve(trust_param->tee_mem.base, trust_param->tee_mem.size);
-			}
-			if (trust_param->drm_mem.flags != 0) {
+			if (trust_param->drm_mem.flags != 0)
 				dram_bank_reserve(trust_param->drm_mem.base, trust_param->drm_mem.size);
-			}
 		}
 	}
 #endif /* CONFIG_RKDDR_PARAM_ADDR */
@@ -382,7 +380,7 @@ void dram_freq_init(void)
 		ret = invoke_psci_fn(PSCI_SIP_DDR_FREQ,
 				     dram_timing.freq / 1000000,
 				     (uint32)&dram_timing.dram_spd_bin, 0);
-		if(ret)
+		if (ret)
 			printf("DRAM: dram freq init error\n");
 	} else {
 		debug("DRAM: can't found dram parameter for dts\n");

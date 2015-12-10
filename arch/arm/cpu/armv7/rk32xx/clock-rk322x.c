@@ -249,11 +249,9 @@ static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 	con = cru_readl(CRU_MODE_CON);
 	con = con & PLL_MODE_MSK(pll_id);
 	con = con >> (pll_id*4);
-	if (con == 0) {
-		/* slow mode */
+	if (con == 0) /* slow mode */
 		return 24 * MHZ;
-	} else if (con == 1) {
-		/* normal mode */
+	else if (con == 1) { /* normal mode */
 		u32 pll_con0 = cru_readl(PLL_CONS(pll_id, 0));
 		u32 pll_con1 = cru_readl(PLL_CONS(pll_id, 1));
 		u32 pll_con2 = cru_readl(PLL_CONS(pll_id, 2));
@@ -272,10 +270,8 @@ static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 		do_div(rate64, PLL_GET_POSTDIV2(pll_con1));
 
 		return rate64;
-	} else {
-		/* deep slow mode */
+	} else /* deep slow mode */
 		return 32768;
-	}
 }
 
 
@@ -642,9 +638,8 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
 	uint32 con = 0;
 
-	if (lcdc_id > 0) {
+	if (lcdc_id > 0)
 		return -1;
-	}
 
 	con = 0;
 
@@ -748,9 +743,8 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 	}
 
 	div = rkclk_calc_clkdiv(parent, freq, 0);
-	if (div == 0) {
+	if (div == 0)
 		div = 1;
-	}
 	con |= (((div - 1) << 8) | (0x1f << (8 + 16)));
 	cru_writel(con, CRU_CLKSELS_CON(2));
 
@@ -850,16 +844,12 @@ void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src)
 
 	set = rkclk_mmc_pll_sel2set(src);
 
-	if (0 == sdid) {
-		/* sdmmc */
+	if (0 == sdid) /* sdmmc */
 		cru_writel((set << 8) | (0x03 << (8 + 16)), CRU_CLKSELS_CON(11));
-	} else if (1 == sdid) {
-		/* sdio0 */
+	else if (1 == sdid) /* sdio0 */
 		cru_writel((set << 10) | (0x03 << (10 + 16)), CRU_CLKSELS_CON(11));
-	} else if (2 == sdid) {
-		/* emmc */
+	else if (2 == sdid) /* emmc */
 		cru_writel((set << 12) | (0x03 << (12 + 16)), CRU_CLKSELS_CON(11));
-	}
 }
 
 
@@ -871,16 +861,13 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
 	uint32 con;
 	uint32 sel;
 
-	if (0 == sdid) {
-		/* sdmmc */
+	if (0 == sdid) { /* sdmmc */
 		con =  cru_readl(CRU_CLKSELS_CON(11));
 		sel = rkclk_mmc_pll_set2sel((con >> 8) & 0x3);
-	} else if (1 == sdid) {
-		/* sdio0 */
+	} else if (1 == sdid) { /* sdio0 */
 		con =  cru_readl(CRU_CLKSELS_CON(11));
 		sel = rkclk_mmc_pll_set2sel((con >> 10) & 0x3);
-	} else if (2 == sdid) {
-		/* emmc */
+	} else if (2 == sdid) { /* emmc */
 		con =  cru_readl(CRU_CLKSELS_CON(11));
 		sel = rkclk_mmc_pll_set2sel((con >> 12) & 0x3);
 	} else {
@@ -900,18 +887,14 @@ int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div)
 	if (div == 0)
 		return -1;
 
-	if (0 == sdid) {
-		/* sdmmc */
-		cru_writel(((0xFFul<<0)<<16) | ((div-1)<<0), CRU_CLKSELS_CON(11));
-	} else if (1 == sdid) {
-		/* sdio0 */
-		cru_writel(((0xFFul<<0)<<16) | ((div-1)<<0), CRU_CLKSELS_CON(12));
-	} else if (2 == sdid) {
-		/* emmc */
-		cru_writel(((0xFFul<<8)<<16) | ((div-1)<<8), CRU_CLKSELS_CON(12));
-	} else {
+	if (0 == sdid) /* sdmmc */
+		cru_writel(((0xFFul << 0) << 16) | ((div - 1) << 0), CRU_CLKSELS_CON(11));
+	else if (1 == sdid) /* sdio0 */
+		cru_writel(((0xFFul << 0) << 16) | ((div - 1) << 0), CRU_CLKSELS_CON(12));
+	else if (2 == sdid) /* emmc */
+		cru_writel(((0xFFul << 8) << 16) | ((div - 1) << 8), CRU_CLKSELS_CON(12));
+	else
 		return -1;
-	}
 
 	return 0;
 }
@@ -948,7 +931,7 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 			if (0 == src_freqs[i])
 				continue;
 
-			div = (src_freqs[i]+freq-1)/freq;
+			div = (src_freqs[i] + freq - 1) / freq;
 			if (((div & 0x1) == 1) && (div != 1))
 				div++;
 			clk_freq = src_freqs[i] / div;
@@ -977,19 +960,23 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
  */
 int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num)
 {
+	uint32 con;
+
 	if (degree > 3 || delay_num > 255)
 		return -1;
 
-	if (2 == sdid) {
-		/* emmc */
-		cru_writel(((0x1ul<<0)<<16) | (1<<0), CRU_EMMC_CON0);
-		cru_writel((((1<<10)|(0xff<<2)|(3<<0))<<16)|(1<<10)|(delay_num<<2)|(degree<<0), CRU_EMMC_CON1);
-		cru_writel(((0x1ul<<0)<<16) | (0<<0), CRU_EMMC_CON0);
-
-		return 0;
-	} else {
+	if (2 != sdid)
 		return -1;
-	}
+
+	/* emmc */
+	con = ((0x1ul << 0) << 16) | (1 << 0);
+	cru_writel(con, CRU_EMMC_CON0);
+	con = (((1 << 10) | (0xff << 2) | (3 << 0)) << 16) | (1 << 10) | (delay_num << 2) | (degree << 0);
+	cru_writel(con, CRU_EMMC_CON1);
+	con = ((0x1ul << 0) << 16) | (0 << 0);
+	cru_writel(con, CRU_EMMC_CON0);
+
+	return 0;
 }
 
 /*
@@ -997,16 +984,20 @@ int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num)
  */
 int rkclk_disable_mmc_tuning(uint32 sdid)
 {
-	if (2 == sdid) {
-		/* emmc */
-		cru_writel(((0x1ul<<0)<<16) | (1<<0), CRU_EMMC_CON0);
-		cru_writel((((1<<10)|(0xff<<2)|(3<<0))<<16)|(0<<10)|(0<<2)|(0<<0), CRU_EMMC_CON1);
-		cru_writel(((0x1ul<<0)<<16) | (0<<0), CRU_EMMC_CON0);
+	uint32 con;
 
-		return 0;
-	} else {
+	if (2 != sdid)
 		return -1;
-	}
+
+	/* emmc */
+	con = ((0x1ul << 0) << 16) | (1 << 0);
+	cru_writel(con, CRU_EMMC_CON0);
+	con = (((1 << 10) | (0xff << 2) | (3 << 0)) << 16) | (0 << 10) | (0 << 2) | (0 << 0);
+	cru_writel(con, CRU_EMMC_CON1);
+	con = ((0x1ul << 0) << 16) | (0 << 0);
+	cru_writel(con, CRU_EMMC_CON0);
+
+	return 0;
 }
 
 /*
@@ -1075,6 +1066,6 @@ void rkclk_set_crypto_clk(uint32 rate)
 		div = 1;
 
 	debug("crypto clk div = %d\n", div);
-	cru_writel((0x1F << (0 + 16)) | ((div-1) << 0), CRU_CLKSELS_CON(24));
+	cru_writel((0x1F << (0 + 16)) | ((div - 1) << 0), CRU_CLKSELS_CON(24));
 }
 #endif /* CONFIG_SECUREBOOT_CRYPTO */

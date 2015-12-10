@@ -58,27 +58,22 @@ int rk_get_chiptype(void)
 	rk_get_bootrom_chip_version(chip_info);
 
 	chip_class = (chip_info[0] & 0xFFFF0000) >> 16;
-	if (chip_class == 0x3330) { // 30
-		if (chip_info[0] == 0x33303041) { // 300A
+	if (chip_class == 0x3330) { /* RK30 */
+		if (chip_info[0] == 0x33303041) /* 300A */
 			return CONFIG_RK3066;
-		}
-		if (chip_info[0] == 0x33303042) { // 300B
+		if (chip_info[0] == 0x33303042) /* 300B */
 			return CONFIG_RK3168;
-		}
-		if (chip_info[0] == 0x33303141) { // 301A
+		if (chip_info[0] == 0x33303141) /* 301A */
 			return CONFIG_RK3036;
-		}
-	} else if (chip_class == 0x3331) { // 31
-		if (chip_info[0] == 0x33313042) { // 310B
-			if ((chip_info[1] == 0x32303132) && (chip_info[2] == 0x31313330) && (chip_info[3] == 0x56313030)) {
+	} else if (chip_class == 0x3331) { /* RK31 */
+		if (chip_info[0] == 0x33313042) { /* 310B */
+			if (chip_info[3] == 0x56313030)
 				return CONFIG_RK3188;
-			}
-			if ((chip_info[1] == 0x32303133) && (chip_info[2] == 0x30313331) && (chip_info[3] == 0x56313031)) {
+			if (chip_info[3] == 0x56313031)
 				return CONFIG_RK3188_PLUS;
-			}
 		}
 
-		if (chip_info[0] == 0x33313043) { // 310C
+		if (chip_info[0] == 0x33313043) { /* 310C */
 #if defined(CONFIG_RKCHIP_RK3126)
 			return CONFIG_RK3126;
 #else
@@ -86,18 +81,15 @@ int rk_get_chiptype(void)
 #endif
 		}
 
-		if (chip_info[0] == 0x33313044) { // 310D
 #if defined(CONFIG_RKCHIP_RK3126)
+		if (chip_info[0] == 0x33313044) /* 310D */
 			return CONFIG_RK3126;
 #endif
-		}
-	} else if (chip_class == 0x3332) { // 32
-		if (chip_info[0] == 0x33323041) { // 320A
+	} else if (chip_class == 0x3332) { /* 32 */
+		if (chip_info[0] == 0x33323041) /* 320A */
 			return CONFIG_RK3288;
-		}
-		if (chip_info[0] == 0x33323042) { /* 320B */
+		if (chip_info[0] == 0x33323042) /* 320B */
 			return CONFIG_RK322X;
-		}
 	}
 
 	return RKCHIP_UNKNOWN;
@@ -147,14 +139,15 @@ int arch_cpu_init(void)
 
 #if defined(CONFIG_RKCHIP_RK322X)
 	/* use rk pwm */
-	grf_writel((1<<16) | (1<<0), GRF_SOC_CON2);
+	grf_writel((1 << 16) | (1 << 0), GRF_SOC_CON2);
 
-	/* grf iomux select */
-	grf_writel((0xf<<16) | (0xf<<0), GRF_COM_IOMUX); /* pwm select PWMx_1 */
-	grf_writel(((1<<27) | (1<<24)) | ((1<<11) | (1<<8)), GRF_COM_IOMUX); /* uart select uartx_1 */
+	/* pwm select PWMx_1 */
+	grf_writel((0xf << 16) | (0xf << 0), GRF_COM_IOMUX);
+	/* uart select uartx_1 */
+	grf_writel(((1 << 27) | (1 << 24)) | ((1 << 11) | (1 << 8)), GRF_COM_IOMUX);
 
 	/* hdmi phy clock source select HDMIPHY clock out */
-	cru_writel((1<<29) | (0<<13), CRU_MISC_CON);
+	cru_writel((1 << 29) | (0 << 13), CRU_MISC_CON);
 
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
 	/* emmc sdmmc sdio set secure mode */
@@ -172,62 +165,53 @@ int arch_cpu_init(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
-	if (gd->arch.chiptype == RKCHIP_UNKNOWN) {
+	if (gd->arch.chiptype == RKCHIP_UNKNOWN)
 		rk_get_chiptype();
-	}
 
 #if defined(CONFIG_RKCHIP_RK3036)
-	if (gd->arch.chiptype == CONFIG_RK3036) {
+	if (gd->arch.chiptype == CONFIG_RK3036)
 		printf("CPU: rk3036\n");
-	}
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3066)
-	if (gd->arch.chiptype == CONFIG_RK3066) {
+	if (gd->arch.chiptype == CONFIG_RK3066)
 		printf("CPU: rk3066\n");
-	}
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3126)
 	if (gd->arch.chiptype == CONFIG_RK3126) {
-		if (grf_readl(GRF_CHIP_TAG) == 0x3136) {
+		if (grf_readl(GRF_CHIP_TAG) == 0x3136)
 			printf("CPU: rk3126b\n");
-		} else {
+		else
 			printf("CPU: rk3126\n");
-		}
 	}
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3128)
-	if (gd->arch.chiptype == CONFIG_RK3128) {
+	if (gd->arch.chiptype == CONFIG_RK3128)
 		printf("CPU: rk3128\n");
-	}
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3168)
-	if (gd->arch.chiptype == CONFIG_RK3168) {
+	if (gd->arch.chiptype == CONFIG_RK3168)
 		printf("CPU: rk3168\n");
-	}
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3188)
-	if (gd->arch.chiptype == CONFIG_RK3188) {
+	if (gd->arch.chiptype == CONFIG_RK3188)
 		printf("CPU: rk3188\n");
-	} else if (gd->arch.chiptype == CONFIG_RK3188_PLUS) {
+	else if (gd->arch.chiptype == CONFIG_RK3188_PLUS)
 		printf("CPU: rk3188 plus\n");
-	}
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3288)
-	if (gd->arch.chiptype == CONFIG_RK3288) {
+	if (gd->arch.chiptype == CONFIG_RK3288)
 		printf("CPU: rk3288\n");
-	}
 #endif
 
 #if defined(CONFIG_RKCHIP_RK322X)
-	if (gd->arch.chiptype == CONFIG_RK322X) {
+	if (gd->arch.chiptype == CONFIG_RK322X)
 		printf("CPU: rk322x\n");
-	}
 #endif
 
 	rkclk_get_pll();
@@ -236,4 +220,3 @@ int print_cpuinfo(void)
 	return 0;
 }
 #endif
-

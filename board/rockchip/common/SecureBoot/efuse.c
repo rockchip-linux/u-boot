@@ -12,7 +12,7 @@
 #define READ_SKIP_BITS      64
 #define EFUSE_SIZE_BITS     512
 #define EFUSE_ADDR(n)       ((n)<<7)
-#define EFUSE_SIZE_BYTES    (EFUSE_SIZE_BITS/8) 
+#define EFUSE_SIZE_BYTES    (EFUSE_SIZE_BITS/8)
 
 //#define EFUSE_CSB         0x1
 #define EFUSE_AEN           0x2
@@ -35,17 +35,18 @@ static inline int32 EfuseReadByteMode(void *base, void *buff, uint32 addr, uint3
 	*CtrlReg = EFUSE_RDEN;
 
 	/* read data, char unit */
-	for(i = 0; i < size; i++, addr++)
-	{
-		*CtrlReg = EFUSE_RDEN | EFUSE_ADDR(addr); 
+	for (i = 0; i < size; i++, addr++) {
+		*CtrlReg = EFUSE_RDEN | EFUSE_ADDR(addr);
 		DRVDelayUs(1);
 		*CtrlReg |= EFUSE_AEN;
 		DRVDelayUs(1);
 		*data++ = *DoutReg;
-		*CtrlReg = EFUSE_RDEN | EFUSE_ADDR(addr); //AEN to Address hold time 10ns
+		/* AEN to Address hold time 10ns */
+		*CtrlReg = EFUSE_RDEN | EFUSE_ADDR(addr);
 	}
 
-	DRVDelayUs(1);  //AEN to RDEN signal hold time 100ns                        
+	/* AEN to Address hold time 100ns */
+	DRVDelayUs(1);
 	*CtrlReg = 0;
 	DRVDelayUs(1);
 
@@ -88,21 +89,20 @@ static inline int32 EfuseReadByteMode(void *base, void *buff, uint32 addr, uint3
 	/* byte unit */
 	data = (uint8 *)buff;
 
-	*CtrlReg = EFUSE_CSB;       //Active low chip select
+	*CtrlReg = EFUSE_CSB; /* Active low chip select */
 	DRVDelayUs(1);
 	*CtrlReg = EFUSE_PGENB | EFUSE_LOAD;
 	DRVDelayUs(1);
 
 	/* read data, word unit */
-	for(i = 0; i < size; i++)
-	{
+	for (i = 0; i < size; i++) {
 		*CtrlReg = EFUSE_PGENB | EFUSE_LOAD | EFUSE_ADDR(addr + i);
-		DRVDelayUs(1); //A[7:0] to STROBE setup time in read mode MIN 25ns
+		DRVDelayUs(1); /* A[7:0] to STROBE setup time in read mode MIN 25ns */
 		*CtrlReg |= EFUSE_STROBE;
-		DRVDelayUs(1); //DQ[7:0] delay time after STROBE high MAX 8ns
+		DRVDelayUs(1); /* DQ[7:0] delay time after STROBE high MAX 8ns */
 
-		*data++ = *DoutReg; //port0:8*32, port1:32*32
-		*CtrlReg &= ~EFUSE_STROBE; //A[7:0] to STROBE hold time MIN 3ns
+		*data++ = *DoutReg; /* port0:8*32, port1:32*32 */
+		*CtrlReg &= ~EFUSE_STROBE; /* A[7:0] to STROBE hold time MIN 3ns */
 	}
 
 	*CtrlReg = EFUSE_CSB;
@@ -126,21 +126,20 @@ static inline int32 EfuseReadWordMode(void *base, void *buff, uint32 addr, uint3
 	addr = addr / 4;
 	size = size / 4;
 
-	*CtrlReg = EFUSE_CSB;       //Active low chip select
+	*CtrlReg = EFUSE_CSB; /* Active low chip select */
 	DRVDelayUs(1);
-	*CtrlReg = EFUSE_PGENB | EFUSE_LOAD; 
+	*CtrlReg = EFUSE_PGENB | EFUSE_LOAD;
 	DRVDelayUs(1);
 
 	/* read data, word unit */
-	for(i = 0; i < size; i++)
-	{
+	for (i = 0; i < size; i++) {
 		*CtrlReg = EFUSE_PGENB | EFUSE_LOAD | EFUSE_ADDR(addr + i);
-		DRVDelayUs(1); //A[7:0] to STROBE setup time in read mode MIN 25ns
+		DRVDelayUs(1); /* A[7:0] to STROBE setup time in read mode MIN 25ns */
 		*CtrlReg |= EFUSE_STROBE;
-		DRVDelayUs(1); //DQ[7:0] delay time after STROBE high MAX 8ns
+		DRVDelayUs(1); /* DQ[7:0] delay time after STROBE high MAX 8ns */
 
-		*data++ = *DoutReg; //port0:8*32, port1:32*32
-		*CtrlReg &= ~EFUSE_STROBE; //A[7:0] to STROBE hold time MIN 3ns
+		*data++ = *DoutReg; /* port0:8*32, port1:32*32 */
+		*CtrlReg &= ~EFUSE_STROBE; /* A[7:0] to STROBE hold time MIN 3ns */
 	}
 
 	*CtrlReg = EFUSE_CSB;

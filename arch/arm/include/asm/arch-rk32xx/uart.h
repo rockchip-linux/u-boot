@@ -30,9 +30,9 @@
 #define DISABLE_MODEM_STATUS_INT           (0)
 #define ENABLE_RECEIVER_LINE_STATUS_INT    (1<<2)
 #define DISABLE_RECEIVER_LINE_STATUS_INT   (0)
-#define ENABLE_TRANSMIT_HOLDING_EM_INT     (1<<1) //Enable Transmit Holding Register Empty Interrupt.
+#define ENABLE_TRANSMIT_HOLDING_EM_INT     (1<<1) /* Enable Transmit Holding Register Empty Interrupt. */
 #define DISABLE_TRANSMIT_HOLDING_EM_INT    (0)
-#define ENABLE_RECEIVER_DATA_INT           (1)   //Enable Received Data Available Interrupt.
+#define ENABLE_RECEIVER_DATA_INT           (1) /* Enable Received Data Available Interrupt. */
 #define DISABLE_RECEIVER_DATA_INT          (0)
 
 /* UART_IIR */
@@ -122,7 +122,7 @@ typedef enum UART_ch {
 } eUART_ch_t;
 
 
-/* 		config rk uart input clock
+/*		config rk uart input clock
  * rk uart clock source can be 24M crystal input or gating from uart_pll_clk,
  * on uboot system we using 24M crystal input as default.
  */

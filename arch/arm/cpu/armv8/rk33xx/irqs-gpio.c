@@ -35,22 +35,22 @@ static void rk_gpio_irq_ack(void __iomem *regbase, unsigned int bit)
 static void rk_gpio_set_intr_type(void __iomem *regbase, unsigned int bit, eGPIOIntType_t type)
 {
 	switch (type) {
-		case GPIOLevelLow:
-			rk_gpio_bit_op(regbase, GPIO_INT_POLARITY, bit, 0);
-			rk_gpio_bit_op(regbase, GPIO_INTTYPE_LEVEL, bit, 0);
-			break;
-		case GPIOLevelHigh:
-			rk_gpio_bit_op(regbase, GPIO_INTTYPE_LEVEL, bit, 0);
-			rk_gpio_bit_op(regbase, GPIO_INT_POLARITY, bit, 1);
-			break;
-		case GPIOEdgelFalling:
-			rk_gpio_bit_op(regbase, GPIO_INTTYPE_LEVEL, bit, 1);
-			rk_gpio_bit_op(regbase, GPIO_INT_POLARITY, bit, 0);
-			break;
-		case GPIOEdgelRising:
-			rk_gpio_bit_op(regbase, GPIO_INTTYPE_LEVEL, bit, 1);
-			rk_gpio_bit_op(regbase, GPIO_INT_POLARITY, bit, 1);
-			break;
+	case GPIOLevelLow:
+		rk_gpio_bit_op(regbase, GPIO_INT_POLARITY, bit, 0);
+		rk_gpio_bit_op(regbase, GPIO_INTTYPE_LEVEL, bit, 0);
+		break;
+	case GPIOLevelHigh:
+		rk_gpio_bit_op(regbase, GPIO_INTTYPE_LEVEL, bit, 0);
+		rk_gpio_bit_op(regbase, GPIO_INT_POLARITY, bit, 1);
+		break;
+	case GPIOEdgelFalling:
+		rk_gpio_bit_op(regbase, GPIO_INTTYPE_LEVEL, bit, 1);
+		rk_gpio_bit_op(regbase, GPIO_INT_POLARITY, bit, 0);
+		break;
+	case GPIOEdgelRising:
+		rk_gpio_bit_op(regbase, GPIO_INTTYPE_LEVEL, bit, 1);
+		rk_gpio_bit_op(regbase, GPIO_INT_POLARITY, bit, 1);
+		break;
 	}
 }
 
@@ -64,30 +64,28 @@ static int gpio_irq_set_type(int gpio_irq, unsigned int type)
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
 	eGPIOIntType_t int_type = 0;
 
-	if (bank == NULL) {
+	if (bank == NULL)
 		return -1;
-	}
 
 	gpio &= RK_GPIO_PIN_MASK;
-	if (gpio >= bank->ngpio) {
+	if (gpio >= bank->ngpio)
 		return -1;
-	}
 
 	switch (type) {
-		case IRQ_TYPE_EDGE_RISING:
-			int_type = GPIOEdgelRising;
-			break;
-		case IRQ_TYPE_EDGE_FALLING:
-			int_type = GPIOEdgelFalling;
-			break;
-		case IRQ_TYPE_LEVEL_HIGH:
-			int_type = GPIOLevelHigh;
-			break;
-		case IRQ_TYPE_LEVEL_LOW:
-			int_type = GPIOLevelLow;
-			break;
-		default:
-			return -EINVAL;
+	case IRQ_TYPE_EDGE_RISING:
+		int_type = GPIOEdgelRising;
+		break;
+	case IRQ_TYPE_EDGE_FALLING:
+		int_type = GPIOEdgelFalling;
+		break;
+	case IRQ_TYPE_LEVEL_HIGH:
+		int_type = GPIOLevelHigh;
+		break;
+	case IRQ_TYPE_LEVEL_LOW:
+		int_type = GPIOLevelLow;
+		break;
+	default:
+		return -EINVAL;
 	}
 
 	/* Before set intrrupt type, gpio must set input */
@@ -108,14 +106,12 @@ static int gpio_irq_ack(int gpio_irq)
 	int gpio = rk_gpio_irq_to_gpio(gpio_irq);
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
 
-	if (bank == NULL) {
+	if (bank == NULL)
 		return -1;
-	}
 
 	gpio &= RK_GPIO_PIN_MASK;
-	if (gpio >= bank->ngpio) {
+	if (gpio >= bank->ngpio)
 		return -1;
-	}
 
 	rk_gpio_irq_ack(bank->regbase, offset_to_bit(gpio));
 
@@ -132,14 +128,12 @@ static int gpio_irq_enable(int gpio_irq)
 	int gpio = rk_gpio_irq_to_gpio(gpio_irq);
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
 
-	if (bank == NULL) {
+	if (bank == NULL)
 		return -1;
-	}
 
 	gpio &= RK_GPIO_PIN_MASK;
-	if (gpio >= bank->ngpio) {
+	if (gpio >= bank->ngpio)
 		return -1;
-	}
 
 	rk_gpio_irq_unmask(bank->regbase, offset_to_bit(gpio));
 
@@ -155,14 +149,12 @@ static int gpio_irq_disable(int gpio_irq)
 	int gpio = rk_gpio_irq_to_gpio(gpio_irq);
 	struct rk_gpio_bank *bank = rk_gpio_get_bank(gpio);
 
-	if (bank == NULL) {
+	if (bank == NULL)
 		return -1;
-	}
 
 	gpio &= RK_GPIO_PIN_MASK;
-	if (gpio >= bank->ngpio) {
+	if (gpio >= bank->ngpio)
 		return -1;
-	}
 
 	rk_gpio_irq_mask(bank->regbase, offset_to_bit(gpio));
 
@@ -205,9 +197,8 @@ static void gpio_irq_handler(int irq)
 
 		isr &= ~(1 << pin);
 
-		if (!unmasked) {
+		if (!unmasked)
 			rk_gpio_irq_unmask(bank->regbase, offset_to_bit(pin));
-		}
 	}
 }
 
@@ -237,7 +228,7 @@ static void gpio_irq_init(void)
 
 
 static struct irq_chip gpio_irq_chip = {
-	.name			= (const char*)"gpio",
+	.name			= (const char *)"gpio",
 
 	.irq_disable		= gpio_irq_disable,
 	.irq_enable		= gpio_irq_enable,

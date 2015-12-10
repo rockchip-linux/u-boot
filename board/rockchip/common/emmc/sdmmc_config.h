@@ -21,5 +21,4 @@
 #include    "hw_SDM.h"
 #include    "hwapi_SDM.h"
 
-#endif
-
+#endif /* _EMMC_CONFIG_H */
