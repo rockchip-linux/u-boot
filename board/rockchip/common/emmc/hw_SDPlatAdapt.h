@@ -23,6 +23,7 @@ int32  SDPAM_SetSrcFreq(SDMMC_PORT_E nSDCPort, uint32 freqKHz);
 int32 SDPAM_SetTuning(SDMMC_PORT_E nSDCPort, uint32 degree, uint32 DelayNum);
 #if EN_SD_DMA
 bool SDPAM_DMAInit(SDMMC_PORT_E nSDCPort);
+bool SDPAM_DMADeInit(SDMMC_PORT_E nSDCPort);
 bool SDPAM_DMAStart(SDMMC_PORT_E nSDCPort, uint32 dstAddr, uint32 srcAddr, uint32 size, bool rw, pFunc cb_f);
 bool SDPAM_DMAStop(SDMMC_PORT_E nSDCPort, bool rw);
 #endif

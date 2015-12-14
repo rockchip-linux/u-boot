@@ -182,6 +182,9 @@ uint32 SdmmcDeInit(uint32 ChipSel)
 	}
 #endif
 
+#if EN_SD_DMA
+	SDPAM_DMADeInit(ChipSel);
+#endif
 	return ret;
 }
 
@@ -304,10 +307,10 @@ ReadRetry:
 	}
 	iret = SDM_Read(ChipSel, LBA + gSdCardInfoTbl[ChipSel].FwPartOffset, nSec, pbuf);
 	if (iret != FTL_OK && try_count > 0) {
+		printf("SDM_Read FLT_ERROR, LBA = %x, iret = %x\n", LBA, iret);
 		SdmmcDeInit(ChipSel);
 		SdmmcInit(ChipSel);
 		try_count--;
-		printf("SDM_Read FLT_ERROR, LBA = %x, iret = %x\n", LBA, iret);
 		goto ReadRetry;
 	}
 

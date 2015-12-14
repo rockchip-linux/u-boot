@@ -271,6 +271,30 @@ bool SDPAM_DMAInit(SDMMC_PORT_E nSDCPort)
 
 	return TRUE;
 }
+
+bool SDPAM_DMADeInit(SDMMC_PORT_E nSDCPort)
+{
+	struct rk_dma_client *dma_client = NULL;
+	uint32 dmac_chn = 0;
+
+	if (nSDCPort == SDC0) {
+		dma_client = &rk_dma_sd_client;
+		dmac_chn = DMACH_SDMMC;
+	} else if (nSDCPort == SDC1) {
+		dma_client = &rk_dma_sdio_client;
+		dmac_chn = DMACH_SDIO;
+	} else {
+		dma_client = &rk_dma_emmc_client;
+		dmac_chn = DMACH_EMMC;
+	}
+
+	if(rk_dma_free(dmac_chn, dma_client) < 0) {
+		printf("Dmac free ch = %d fail!\n", dmac_chn);
+		return FALSE;
+	}
+
+	return TRUE;
+}
 #endif /* EN_SD_DMA */
 
 /****************************************************************
