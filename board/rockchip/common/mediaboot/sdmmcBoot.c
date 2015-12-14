@@ -55,9 +55,8 @@ uint32 SdmmcReinit(uint32 ChipSel)
 	uint32 retry = 2;
 
 #if EN_SD_DMA
-	if (SDPAM_DMAInit(ChipSel) == 0) {
+	if (SDPAM_DMAInit(ChipSel) == 0)
 		return -1;
-	}
 #endif
 
 	SDM_Init(ChipSel);
@@ -73,9 +72,8 @@ EMMC_INIT_retry:
 		goto EMMC_INIT_retry;
 	}
 	PRINT_E("SdmmcInit = %x %x\n", ChipSel, ret1);
-	if (ret1 == SDM_SUCCESS) { /* 卡能识别 */
+	if (ret1 == SDM_SUCCESS) /* 卡能识别 */
 		SDM_Open(ChipSel);
-	}
 
 	return ret1;
 }
@@ -106,7 +104,7 @@ uint32 SdmmcInit(uint32 ChipSel)
 		ioctlParam[1] = 0; /* capbility */
 		ret1 = SDM_IOCtrl(SDM_IOCTR_GET_BOOT_CAPABILITY, ioctlParam);
 		gSdCardInfoTbl[ChipSel].BootCapSize = ioctlParam[1];
-		PRINT_E("BootCapSize=%lx\n", gSdCardInfoTbl[ChipSel].BootCapSize);
+		PRINT_I("BootCapSize = %lx\n", gSdCardInfoTbl[ChipSel].BootCapSize);
 
 		gSdCardInfoTbl[ChipSel].BootCapSize = 0;
 
@@ -114,7 +112,7 @@ uint32 SdmmcInit(uint32 ChipSel)
 		ioctlParam[1] = 0; /* capbility */
 		ret1 = SDM_IOCtrl(SDM_IOCTR_GET_CAPABILITY, ioctlParam);
 		gSdCardInfoTbl[ChipSel].UserCapSize = ioctlParam[1];
-		PRINT_E("UserCapSize=%lx\n", gSdCardInfoTbl[ChipSel].UserCapSize);
+		PRINT_I("UserCapSize = %lx\n", gSdCardInfoTbl[ChipSel].UserCapSize);
 
 		/* id blk data */
 		ret1 = SDM_Read(ChipSel, SD_CARD_BOOT_PART_OFFSET, 4, gIdDataBuf);
@@ -122,12 +120,12 @@ uint32 SdmmcInit(uint32 ChipSel)
 		if (ChipSel == 0) {
 			if (gIdDataBuf[0] == 0xFCDC8C3B) {
 				gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET;
-				if (0 == gIdDataBuf[128+104/4]) { /* sd卡升级 */
+				if (0 == gIdDataBuf[128 + 104 / 4]) { /* sd卡升级 */
 					gsdboot_mode = SDMMC_SDCARD_UPDATE;
-					printf("SDCard Update.\n");
-				} else if (1 == gIdDataBuf[128+104/4]) { /* sd 卡运行 */
+					PRINT_E("SDCard Update.\n");
+				} else if (1 == gIdDataBuf[128 + 104 / 4]) { /* sd 卡运行 */
 					gsdboot_mode = SDMMC_SDCARD_BOOT;
-					printf("SDCard Boot.\n");
+					PRINT_E("SDCard Boot.\n");
 				}
 			} else {
 				gsdboot_mode = 0;
@@ -145,7 +143,7 @@ uint32 SdmmcInit(uint32 ChipSel)
 			gSdCardInfoTbl[ChipSel].FwPartOffset = SD_CARD_FW_PART_OFFSET;
 		}
 #endif /* EMMC_NOT_USED_BOOT_PART */
-		PRINT_E("FwPartOffset = %lx, %x\n", gSdCardInfoTbl[ChipSel].FwPartOffset, gSdCardInfoTbl[ChipSel].BootCapSize);
+		PRINT_I("FwPartOffset = %lx, %x\n", gSdCardInfoTbl[ChipSel].FwPartOffset, gSdCardInfoTbl[ChipSel].BootCapSize);
 		gSdCardInfoTbl[ChipSel].Valid = 1;
 
 		return ret1;
@@ -307,7 +305,7 @@ ReadRetry:
 	}
 	iret = SDM_Read(ChipSel, LBA + gSdCardInfoTbl[ChipSel].FwPartOffset, nSec, pbuf);
 	if (iret != FTL_OK && try_count > 0) {
-		printf("SDM_Read FLT_ERROR, LBA = %x, iret = %x\n", LBA, iret);
+		PRINT_E("SDM_Read FLT_ERROR, LBA = %x, iret = %x\n", LBA, iret);
 		SdmmcDeInit(ChipSel);
 		SdmmcInit(ChipSel);
 		try_count--;
@@ -376,14 +374,14 @@ uint32 SdmmcSysDataLoad(uint8 ChipSel, uint32 Index, void *Buf)
 {
 	uint32 ret = FTL_ERROR;
 
-	PRINT_E("SdmmcSysDataLoad: %x, %x\n", ChipSel, Index);
+	PRINT_I("SdmmcSysDataLoad: %x, %x\n", ChipSel, Index);
 	if (gSdCardInfoTbl[ChipSel].FwPartOffset == SD_CARD_FW_PART_OFFSET) {
 #ifndef EMMC_NOT_USED_BOOT_PART
 		if (gSdCardInfoTbl[ChipSel].BootCapSize > 0)
 			EmmcSetBootPart(ChipSel, EMMC_BOOT_PART, EMMC_DATA_PART);
 #endif
 		ret = SDM_Read(ChipSel, SD_CARD_SYS_PART_OFFSET + Index, 1, Buf);
-		PRINT_E("SdmmcSysDataLoad: %x, %x ret = %x\n", ChipSel, Index, ret);
+		PRINT_I("SdmmcSysDataLoad: %x, %x ret = %x\n", ChipSel, Index, ret);
 	}
 
 	return ret;
@@ -393,14 +391,14 @@ uint32 SdmmcSysDataStore(uint8 ChipSel, uint32 Index, void *Buf)
 {
 	uint32 ret = FTL_ERROR;
 
-	PRINT_E("SdmmcSysDataStore: %x, %x\n", ChipSel, Index);
+	PRINT_I("SdmmcSysDataStore: %x, %x\n", ChipSel, Index);
 	if (gSdCardInfoTbl[ChipSel].FwPartOffset == SD_CARD_FW_PART_OFFSET) {
 #ifndef EMMC_NOT_USED_BOOT_PART
 		if (gSdCardInfoTbl[ChipSel].BootCapSize > 0)
 			EmmcSetBootPart(ChipSel, EMMC_BOOT_PART, EMMC_DATA_PART);
 #endif
 		ret = SDM_Write(ChipSel, SD_CARD_SYS_PART_OFFSET + Index, 1, Buf);
-		PRINT_E("SdmmcSysDataStore: %x, %x ret = %x\n", ChipSel, Index, ret);
+		PRINT_I("SdmmcSysDataStore: %x, %x ret = %x\n", ChipSel, Index, ret);
 	}
 
 	return ret;

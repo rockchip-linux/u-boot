@@ -190,7 +190,7 @@ bool SDPAM_DMAStart(SDMMC_PORT_E nSDCPort, uint32 dstAddr, uint32 srcAddr, uint3
 	}
 
 	if (rk_dma_set_buffdone_fn(dmac_chn, (rk_dma_cbfn_t)cb_f) < 0) {
-		printf("dma ch = %d set buffdone fail!\n", dmac_chn);
+		PRINT_E("dma ch = %d set buffdone fail!\n", dmac_chn);
 		return FALSE;
 	}
 	rk_dma_devconfig(dmac_chn, mode, src_addr);
@@ -260,12 +260,12 @@ bool SDPAM_DMAInit(SDMMC_PORT_E nSDCPort)
 	}
 
 	if (rk_dma_request(dmac_chn, dma_client, NULL) < 0) {
-		printf("Dmac request ch = %d fail!\n", dmac_chn);
+		PRINT_E("Dmac request ch = %d fail!\n", dmac_chn);
 		return FALSE;
 	}
 
 	if (rk_dma_config(dmac_chn, 4, 16) < 0) {
-		printf("Dmac ch = %d config fail!\n", dmac_chn);
+		PRINT_E("Dmac ch = %d config fail!\n", dmac_chn);
 		return FALSE;
 	}
 
@@ -288,8 +288,8 @@ bool SDPAM_DMADeInit(SDMMC_PORT_E nSDCPort)
 		dmac_chn = DMACH_EMMC;
 	}
 
-	if(rk_dma_free(dmac_chn, dma_client) < 0) {
-		printf("Dmac free ch = %d fail!\n", dmac_chn);
+	if (rk_dma_free(dmac_chn, dma_client) < 0) {
+		PRINT_E("Dmac free ch = %d fail!\n", dmac_chn);
 		return FALSE;
 	}
 

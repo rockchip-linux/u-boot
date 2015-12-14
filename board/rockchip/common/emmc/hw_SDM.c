@@ -151,13 +151,13 @@ static int32 _DataErrorHandle(int32 cardId)
 			(SD_STOP_TRANSMISSION | SD_NODATA_OP | SD_RSP_R1B | STOP_CMD | NO_WAIT_PREV),
 			0, &status);
 	if (ret == SDC_RESP_TIMEOUT) {
-		//PRINT_E("_DataErrorHandle STOP cmd timeout\n", "");
+		//PRINT_E("_DataErrorHandle STOP cmd timeout\n");
 		handleRet = SDC_SendCommand(cardId,
 				(SD_SEND_STATUS | SD_NODATA_OP | SD_RSP_R1 | NO_WAIT_PREV),
 				(gSDMDriver[cardId].cardInfo.rca << 16),
 				&status);
 		if (handleRet == SDC_RESP_TIMEOUT) {
-			PRINT_E("_DataErrorHandle SEND STATUS timeout \n", "");
+			PRINT_E("_DataErrorHandle SEND STATUS timeout\n");
 			ret = SDC_RESP_TIMEOUT;
 		} else {
 			ret = SDM_SUCCESS;
@@ -238,7 +238,7 @@ static int32 _SDMMC_Read(int32 cardId, uint32 dataAddr, uint32 blockCount, void 
 				|| (ret == SDC_DATA_CRC_ERROR)) {
 			handleRet = _DataErrorHandle(cardId);
 			if (handleRet != SDC_SUCCESS) {
-				PRINT_E("_DataErrorHandle handleRet=0x%x\n", handleRet);
+				PRINT_E("_DataErrorHandle handleRet = 0x%x\n", handleRet);
 				break;
 			}
 
@@ -664,31 +664,31 @@ static int32 _IdentifyCard(int32 cardId)
 		_RegisterFunction(&cardInfo);
 		_RegisterCard(&cardInfo);
 #if 0
-		PRINT_E("MSG:Card Identify SUCCESS\n", "");
+		PRINT_I("MSG:Card Identify SUCCESS\n", "");
 		if (cardInfo.type & SDIO) {
 			if (cardInfo.type & (SDHC | SD20 | SD1X))
-				PRINT_E("MSG:SDIO Combo Card\n", "");
+				PRINT_I("MSG:SDIO Combo Card\n", "");
 			else
-				PRINT_E("MSG:SDIO only Card\n", "");
+				PRINT_I("MSG:SDIO only Card\n", "");
 		} else {
 			if (cardInfo.type & SDHC)
-				PRINT_E("MSG:SDHC Card\n", "");
+				PRINT_I("MSG:SDHC Card\n", "");
 			if (cardInfo.type & SD20)
-				PRINT_E("MSG:SD2.0 Card\n", "");
+				PRINT_I("MSG:SD2.0 Card\n", "");
 			if (cardInfo.type & SD1X)
-				PRINT_E("MSG:SD1.x Card\n", "");
+				PRINT_I("MSG:SD1.x Card\n", "");
 			if (cardInfo.type & MMC4)
-				PRINT_E("MSG:MMC4 Card\n", "");
+				PRINT_I("MSG:MMC4 Card\n", "");
 			if (cardInfo.type & MMC)
-				PRINT_E("MSG:MMC Card\n", "");
+				PRINT_I("MSG:MMC Card\n", "");
 			if (cardInfo.type & eMMC2G)
-				PRINT_E("MSG:eMMC2G Card\n", "");
+				PRINT_I("MSG:eMMC2G Card\n", "");
 		}
-		PRINT_E("MSG:Manufacture Data:%d.%d\n", cardInfo.year, cardInfo.month);
+		PRINT_I("MSG:Manufacture Data:%d.%d\n", cardInfo.year, cardInfo.month);
 		if (cardInfo.workMode & SDM_WIDE_BUS_MODE)
-			PRINT_E("MSG:Use Wide bus mode\n", "");
+			PRINT_I("MSG:Use Wide bus mode\n", "");
 		if (cardInfo.workMode & SDM_HIGH_SPEED_MODE)
-			PRINT_E("MSG:Use High speed mode\n", "");
+			PRINT_I("MSG:Use High speed mode\n", "");
 #endif
 		return SDM_SUCCESS;
 	}
@@ -919,7 +919,7 @@ int32 SDM_Read(int32 cardId, uint32 blockNum, uint32 blockCount, void *pBuf)
 		ret = SDM_CARD_CLOSED;
 	}
 	if (ret != SDM_SUCCESS) {
-		PRINT_E("SDM_Read error=%lx ret=%x\n", blockNum, ret);
+		PRINT_E("SDM_Read error = 0x%x ret = 0x%x\n", blockNum, ret);
 		//SDM_Close(cardId);
 	}
 	SDOAM_ReleaseMutex(pSDMDriver->mutex);
@@ -991,7 +991,7 @@ int32 SDM_Write(int32 cardId, uint32 blockNum, uint32 blockCount, void *pBuf)
 		ret = SDM_CARD_CLOSED;
 	}
 	if (ret != SDM_SUCCESS) {
-		PRINT_E("SDM_Write error=%lx ret=%x\n", blockNum, ret);
+		PRINT_E("SDM_Write error = 0x%x ret = 0x%x\n", blockNum, ret);
 		//SDM_Close(cardId);
 	}
 	SDOAM_ReleaseMutex(pSDMDriver->mutex);

@@ -100,7 +100,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #endif
 
 
-//库头文件
+/* 库头文件 */
 #define Assert(cond, msg, num)
 #define min(X, Y)				\
 	({ typeof(X) __x = (X);			\
@@ -124,7 +124,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define PRINT_I		PRINTF
 #define PRINT_D		PRINTF
-#define PRINT_E		PRINTF
+#define PRINT_E		printf /* for print error information */
 #define PRINT_W		PRINTF
 #define RkPrintf	PRINTF
 
@@ -132,11 +132,11 @@ DECLARE_GLOBAL_DATA_PTR;
 #include <common.h>
 #include <asm/arch/rkplat.h>
 
-//平台相关头文件
+/* 平台相关头文件 */
 #include "platform/ftl_std.h"
 #include "platform/chipDepend.h"
 
-//系统相关头文件
+/* 系统相关头文件 */
 #include "platform/rsa.h"
 #include "platform/sha.h"
 
@@ -170,31 +170,29 @@ DECLARE_GLOBAL_DATA_PTR;
 #include "mediaboot/UMSBoot.h"
 #endif
 
-// by cmy
-#define SYS_LOADER_REBOOT_FLAG		0x5242C300  //高24是TAG,低8位是标记
-#define SYS_KERNRL_REBOOT_FLAG		0xC3524200  //高24是TAG,低8位是标记
+#define SYS_LOADER_REBOOT_FLAG		0x5242C300  /* 高24是TAG,低8位是标记 */
+#define SYS_KERNRL_REBOOT_FLAG		0xC3524200  /* 高24是TAG,低8位是标记 */
 #define SYS_LOADER_ERR_FLAG		0X1888AAFF
 
 enum {
 	BOOT_NORMAL = 0,
 	BOOT_LOADER,     /* enter loader rockusb mode */
-	BOOT_MASKROM,    /* enter maskrom rockusb mode*/
+	BOOT_MASKROM,    /* enter maskrom rockusb mode */
 	BOOT_RECOVER,    /* enter recover */
 	BOOT_NORECOVER,  /* do not enter recover */
 	BOOT_WINCE,      /* FOR OTHER SYSTEM */
 	BOOT_WIPEDATA,   /* enter recover and wipe data. */
 	BOOT_WIPEALL,    /* enter recover and wipe all data. */
-	BOOT_CHECKIMG,   /* check firmware img with backup part(in loader mode)*/
-	BOOT_FASTBOOT,   
-	BOOT_SECUREBOOT_DISABLE,  
+	BOOT_CHECKIMG,   /* check firmware img with backup part(in loader mode) */
+	BOOT_FASTBOOT,
+	BOOT_SECUREBOOT_DISABLE,
 	BOOT_CHARGING,
-	BOOT_MAX         /* MAX VALID BOOT TYPE.*/
+	BOOT_MAX         /* MAX VALID BOOT TYPE. */
 };
 
 
-void P_RC4(unsigned char * buf, unsigned short len);
-void P_RC4_ext(unsigned char * buf, unsigned short len);
-uint32 CRC_32CheckBuffer(unsigned char * aData, uint32 aSize);
+void P_RC4(unsigned char *buf, unsigned short len);
+void P_RC4_ext(unsigned char *buf, unsigned short len);
+uint32 CRC_32CheckBuffer(unsigned char *aData, uint32 aSize);
 
 #endif /* _RK_CONFIG_H */
-

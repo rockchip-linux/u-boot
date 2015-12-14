@@ -13,21 +13,20 @@ extern  uint32   RSA_KEY_LENGTH;
 extern  uint32   RSA_KEY_DATA;
 static	uint16   *RSK_KEY;
 
-extern void P_RC4(unsigned char * buf, unsigned short len);
+extern void P_RC4(unsigned char *buf, unsigned short len);
 
 
 static bool SecureNSModeVerifyLoader(RK28BOOT_HEAD *hdr)
 {
-#define RSA_KEY_OFFSET 0x10//according to dumped data, the key is here.
-#define RSA_KEY_LEN    0x102//258, public key's length
+#define RSA_KEY_OFFSET 0x10 /* according to dumped data, the key is here. */
+#define RSA_KEY_LEN    0x102 /* 258, public key's length */
 	char buf[RK_BLK_SIZE];
 
 	memcpy(buf, (void *)hdr + hdr->uiFlashBootOffset, RK_BLK_SIZE);
 	P_RC4((unsigned char *)buf, RK_BLK_SIZE);
 
-	if (buf[RSA_KEY_OFFSET] != 0 || buf[RSA_KEY_OFFSET + 1] != 4) {
+	if (buf[RSA_KEY_OFFSET] != 0 || buf[RSA_KEY_OFFSET + 1] != 4)
 		PRINT_I("Unsigned loader!\n");
-	}
 	if (gDrmKeyInfo.publicKeyLen == 0) {
 		PRINT_I("NS Mode allow flash unsigned loader.\n");
 		return true;
@@ -36,9 +35,8 @@ static bool SecureNSModeVerifyLoader(RK28BOOT_HEAD *hdr)
 #if 0
 	printf("dump new loader's key:\n");
 	for (i = 0; i < 32; i++) {
-		for (j = 0; j < 16; j++) {
+		for (j = 0; j < 16; j++)
 			printf("%02x", buf[RSA_KEY_OFFSET + i * 16 + j]);
-		}
 		printf("\n");
 	}
 #endif
@@ -47,12 +45,12 @@ static bool SecureNSModeVerifyLoader(RK28BOOT_HEAD *hdr)
 }
 
 
-static bool SecureNSModeSignCheck(uint8 * rsaHash, uint8 *Hash, uint8 length)
+static bool SecureNSModeSignCheck(uint8 *rsaHash, uint8 *Hash, uint8 length)
 {
 	uint8  decodedHash[40];
-    
-	if(0 == rsaDecodeHash(decodedHash, rsaHash, (uint8*)RSK_KEY, length)) {
-		if(0 == memcmp(Hash, decodedHash, 20)) {
+
+	if (0 == rsaDecodeHash(decodedHash, rsaHash, (uint8 *)RSK_KEY, length)) {
+		if (0 == memcmp(Hash, decodedHash, 20)) {
 			PRINT_I("Sign OK\n");
 			return true;
 		}
@@ -67,7 +65,7 @@ static bool SecureNSModeUbootImageShaCheck(second_loader_hdr *hdr)
 #ifndef SECUREBOOT_CRYPTO_EN
 	uint8_t *sha;
 	SHA_CTX ctx;
-	int size = SHA_DIGEST_SIZE > hdr->hash_len ? hdr->hash_len : SHA_DIGEST_SIZE;
+	int size = (SHA_DIGEST_SIZE > hdr->hash_len) ? hdr->hash_len : SHA_DIGEST_SIZE;
 
 	SHA_init(&ctx);
 	SHA_update(&ctx, (void *)hdr + sizeof(second_loader_hdr), hdr->loader_load_size);
@@ -93,19 +91,17 @@ static bool SecureNSModeUbootImageShaCheck(second_loader_hdr *hdr)
 	CryptoSHAEnd(hwDataHash);
 
 	sha = (uint8 *)hwDataHash;
-	size = SHA_DIGEST_SIZE > hdr->hash_len ? hdr->hash_len : SHA_DIGEST_SIZE;
+	size = (SHA_DIGEST_SIZE > hdr->hash_len) ? hdr->hash_len : SHA_DIGEST_SIZE;
 #endif
 
 #if 0
 	int i = 0;
 	printf("\nreal sha:\n");
-	for (i = 0;i < size;i++) {
+	for (i = 0; i < size; i++)
 		printf("%02x", (char)sha[i]);
-	}
 	printf("\nsha from image header:\n");
-	for (i = 0;i < size;i++) {
-		printf("%02x", ((char*)hdr->hash)[i]);
-	}
+	for (i = 0; i < size; i++)
+		printf("%02x", ((char *)hdr->hash)[i]);
 	printf("\n");
 #endif
 
@@ -113,7 +109,7 @@ static bool SecureNSModeUbootImageShaCheck(second_loader_hdr *hdr)
 }
 
 
-static bool SecureNSModeVerifyUbootImageSign(second_loader_hdr* hdr)
+static bool SecureNSModeVerifyUbootImageSign(second_loader_hdr *hdr)
 {
 	/* verify uboot iamge. */
 	if (memcmp(hdr->magic, RK_UBOOT_MAGIC, sizeof(RK_UBOOT_MAGIC)) != 0) {
@@ -123,18 +119,18 @@ static bool SecureNSModeVerifyUbootImageSign(second_loader_hdr* hdr)
 
 	/* check image sha, make sure image is ok. */
 	if (!SecureNSModeUbootImageShaCheck(hdr)) {
-		printf("uboot sha mismatch!\n");
+		PRINT_E("uboot sha mismatch!\n");
 		return false;
 	}
 
 	/* signed image, check with signature. */
 	if (SecureBootEn) {
-		if (gDrmKeyInfo.publicKeyLen == 0) { // check loader publickey
-			PRINT_I("NS Mode allow flash unsigned loader.\n");
+		if (gDrmKeyInfo.publicKeyLen == 0) { /* check loader publickey */
+			PRINT_E("NS Mode allow flash unsigned loader.\n");
 			return false;
 		}
 
-		if (hdr->signTag != RK_UBOOT_SIGN_TAG) { // check image sign tag
+		if (hdr->signTag != RK_UBOOT_SIGN_TAG) { /* check image sign tag */
 			PRINT_E("unsigned image!\n");
 			return false;
 		}
@@ -158,7 +154,7 @@ static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 #ifndef SECUREBOOT_CRYPTO_EN
 	uint8_t *sha;
 	SHA_CTX ctx;
-	int size = SHA_DIGEST_SIZE > sizeof(boothdr->id) ? sizeof(boothdr->id) : SHA_DIGEST_SIZE;
+	int size = (SHA_DIGEST_SIZE > sizeof(boothdr->id)) ? sizeof(boothdr->id) : SHA_DIGEST_SIZE;
 
 	SHA_init(&ctx);
 
@@ -215,13 +211,11 @@ static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 #if 0
 	int i = 0;
 	printf("\nreal sha:\n");
-	for (i = 0;i < size;i++) {
+	for (i = 0; i < size; i++)
 		printf("%02x", (char)sha[i]);
-	}
 	printf("\nsha from image header:\n");
-	for (i = 0;i < size;i++) {
-		printf("%02x", ((char*)boothdr->id)[i]);
-	}
+	for (i = 0; i < size; i++)
+		printf("%02x", ((char *)boothdr->id)[i]);
 	printf("\n");
 #endif
 
@@ -232,24 +226,25 @@ static bool SecureNSModeBootImageShaCheck(rk_boot_img_hdr *boothdr)
 static bool SecureNSModeVerifyBootImageSign(rk_boot_img_hdr* boothdr)
 {
 	/* verify boot/recovery image */
-	if (memcmp(boothdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) != 0) {
+	if (memcmp(boothdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) != 0)
 		return false;
-	}
 
 	/* check image sha, make sure image is ok. */
 	if (!SecureNSModeBootImageShaCheck(boothdr)) {
-		printf("boot/recovery image sha mismatch!\n");
+		PRINT_E("boot or recovery image sha mismatch!\n");
 		return false;
 	}
 
 	/* signed image, check with signature. */
 	if (SecureBootEn) {
-		if (gDrmKeyInfo.publicKeyLen == 0) { // check loader publickey
-			PRINT_I("NS Mode allow flash unsigned loader.\n");
+		/* check loader publickey */
+		if (gDrmKeyInfo.publicKeyLen == 0) {
+			PRINT_E("NS Mode allow flash unsigned loader.\n");
 			return false;
 		}
 
-		if (boothdr->signTag != SECURE_BOOT_SIGN_TAG) { // check image sign tag
+		/* check image sign tag */
+		if (boothdr->signTag != SECURE_BOOT_SIGN_TAG) {
 			return false;
 		}
 
@@ -282,7 +277,7 @@ static bool SecureNSModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 		debug("%s: Kernel image CRC32 check...\n", __func__);
 		crc32 = CRC_32CheckBuffer((unsigned char *)(unsigned long)hdr->kernel_addr, hdr->kernel_size + 4);
 		if (!crc32) {
-			printf("kernel image CRC32 failed!\n");
+			PRINT_E("kernel image CRC32 failed!\n");
 			return false;
 		}
 		debug("Kernel CRC32 check ok.\n");
@@ -290,7 +285,7 @@ static bool SecureNSModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 		debug("%s: Boot image CRC32 check...\n", __func__);
 		crc32 = CRC_32CheckBuffer((unsigned char *)(unsigned long)hdr->ramdisk_addr, hdr->ramdisk_size + 4);
 		if (!crc32) {
-			printf("Boot image CRC32 failed!\n");
+			PRINT_E("Boot image CRC32 failed!\n");
 			return false;
 		}
 		debug("Boot CRC32 check ok.\n");
@@ -302,20 +297,16 @@ static bool SecureNSModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 #if defined(CONFIG_BOOTRK_OTA_IMAGE_CHECK) || defined(SECUREBOOT_CRYPTO_EN)
 	/* check image sha, make sure image is ok. */
 	if (!SecureNSModeBootImageShaCheck(boothdr)) {
-		printf("boot/recovery image sha mismatch!\n");
+		PRINT_E("boot or recovery image sha mismatch!\n");
 		return false;
 	}
 #endif
 
 	/* signed image, check with signature. */
-	if (!unlocked && SecureBootEn && (boothdr->signTag == SECURE_BOOT_SIGN_TAG))
-	{
-		if (SecureNSModeSignCheck(boothdr->rsaHash, (uint8 *)boothdr->id, boothdr->signlen))
-		{
+	if (!unlocked && SecureBootEn && (boothdr->signTag == SECURE_BOOT_SIGN_TAG)) {
+		if (SecureNSModeSignCheck(boothdr->rsaHash, (uint8 *)boothdr->id, boothdr->signlen)) {
 			SecureBootCheckOK = 1;
-		}
-		else
-		{
+		} else {
 			SecureBootCheckOK = 0;
 			PRINT_E("SecureNSModeSignCheck failed\n");
 		}
@@ -328,7 +319,7 @@ static bool SecureNSModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 static void SecureNSModeLockLoader(void)
 {
 	if (RSK_KEY[0] == 0X400) {
-		if(gDrmKeyInfo.secureBootLock == 0) {
+		if (gDrmKeyInfo.secureBootLock == 0) {
 			gDrmKeyInfo.secureBootLock = 1;
 			gDrmKeyInfo.secureBootLockKey = 0;
 			StorageSysDataStore(1, &gDrmKeyInfo);
@@ -339,7 +330,7 @@ static void SecureNSModeLockLoader(void)
 
 static bool SecureNSModeKeyCheck(uint8 *pKey)
 {
-	if (rsaCheckMD5(pKey, pKey+256, (uint8 *)gDrmKeyInfo.publicKey, 128) == 0) {
+	if (rsaCheckMD5(pKey, pKey + 256, (uint8 *)gDrmKeyInfo.publicKey, 128) == 0) {
 		return true;
 	}
 
@@ -364,24 +355,20 @@ static void SecureNSModeInit(void)
 	printf("RSA_KEY_DATA============================================\n");
 }
 #endif
-	if((RSK_KEY[0] != 0X400))
-	{
+	if ((RSK_KEY[0] != 0X400)) {
 		SecureBootEn = 0;
 		RkPrintf("unsigned!\n");
 	}
 
 	SecureBootLock = 0;
 
-	if(StorageSysDataLoad(1, &gDrmKeyInfo) == FTL_OK)
-	{
+	if (StorageSysDataLoad(1, &gDrmKeyInfo) == FTL_OK) {
 		updataFlag = 0;
 		SecureBootLock = gDrmKeyInfo.secureBootLock;
-		if(SecureBootLock != 1) {
+		if (SecureBootLock != 1)
 			SecureBootLock = 0;
-		}
 
-		if(gDrmKeyInfo.drmtag != 0x4B4D5244)
-		{
+		if (gDrmKeyInfo.drmtag != 0x4B4D5244) {
 			gDrmKeyInfo.drmtag = 0x4B4D5244;
 			gDrmKeyInfo.drmLen = 504;
 			gDrmKeyInfo.keyBoxEnable = 0;
@@ -392,18 +379,16 @@ static void SecureNSModeInit(void)
 			updataFlag = 1;
 		}
 
-		if(RSK_KEY[0] == 0X400)
-		{
+		if (RSK_KEY[0] == 0X400) {
 #ifdef SECURE_BOOT_SET_LOCK_ALWAY
-			if(gDrmKeyInfo.secureBootLock == 0)
-			{
+			if (gDrmKeyInfo.secureBootLock == 0) {
 				gDrmKeyInfo.secureBootLock = 1;
 				gDrmKeyInfo.secureBootLockKey = 0;
 				updataFlag = 1;
 			}
 #endif
-			if(gDrmKeyInfo.publicKeyLen == 0)
-			{//没有公钥，是第一次才开启keyBoxEnable,
+			if (gDrmKeyInfo.publicKeyLen == 0) {
+				/* 没有公钥，是第一次才开启keyBoxEnable */
 				gDrmKeyInfo.publicKeyLen = 0x100;
 				ftl_memcpy(gDrmKeyInfo.publicKey, RSK_KEY, 0x104);
 				updataFlag = 1;
@@ -414,64 +399,50 @@ static void SecureNSModeInit(void)
 #ifdef SECURE_BOOT_LOCK
 				gDrmKeyInfo.secureBootLock = 1;
 #endif
-			}
-			else if(memcmp(gDrmKeyInfo.publicKey, RSK_KEY, 0x100) != 0)
-			{   //如果已经存在公钥，并且公钥被替换了，那么关闭
-				if(memcmp(gDrmKeyInfo.publicKey + 4, RSK_KEY, 0x100) == 0)
-				{
+			} else if (memcmp(gDrmKeyInfo.publicKey, RSK_KEY, 0x100) != 0) {
+				/* 如果已经存在公钥，并且公钥被替换了，那么关闭 */
+				if (memcmp(gDrmKeyInfo.publicKey + 4, RSK_KEY, 0x100) == 0) {
 					ftl_memcpy(gDrmKeyInfo.publicKey, RSK_KEY, 0x104);
 					updataFlag = 1;
-				}
-				else
-				{
-					gDrmKeyInfo.keyBoxEnable = 0; //暂时不启用这个功能
+				} else {
+					gDrmKeyInfo.keyBoxEnable = 0; /* 暂时不启用这个功能 */
 					SecureBootEn = 0;
 					RkPrintf("E:pKey!\n");
 				}
 			}
 		}
 
-		if(updataFlag)
-		{
+		if (updataFlag) {
 			updataFlag = 0;
-			if(FTL_ERROR == StorageSysDataStore(1, &gDrmKeyInfo))
-			{
-				;// TODO:SysDataStore异常处理
+			if (FTL_ERROR == StorageSysDataStore(1, &gDrmKeyInfo)) {
+				;/* TODO:SysDataStore异常处理 */
 			}
 		}
 	}
 
-	if(StorageSysDataLoad(0, &gBootConfig) == FTL_OK)
-	{
+	if (StorageSysDataLoad(0, &gBootConfig) == FTL_OK) {
 		updataFlag = 0;
-		if(gBootConfig.bootTag != 0x44535953)
-		{
+		if (gBootConfig.bootTag != 0x44535953) {
 			gBootConfig.bootTag = 0x44535953;
 			gBootConfig.bootLen = 504;
-			gBootConfig.bootMedia = 0;// TODO: boot 选择
+			gBootConfig.bootMedia = 0; /* TODO: boot 选择 */
 			gBootConfig.BootPart = 0;
-			gBootConfig.secureBootEn = 0;//SecureBootEn; 默认disable
+			gBootConfig.secureBootEn = 0; /* SecureBootEn, 默认disable */
 			updataFlag = 1;
-		}
-		else
-		{
+		} else {
 #ifndef SECURE_BOOT_ENABLE_ALWAY
-			if(gBootConfig.secureBootEn == 0)
+			if (gBootConfig.secureBootEn == 0)
 				SecureBootEn = 0;
 #endif
 		}
 
-		if(updataFlag)
-		{
+		if (updataFlag) {
 			updataFlag = 0;
-			if(FTL_ERROR == StorageSysDataStore(0, &gBootConfig))
-			{
-				;// TODO:SysDataStore异常处理
+			if (FTL_ERROR == StorageSysDataStore(0, &gBootConfig)) {
+				;/* TODO:SysDataStore异常处理 */
 			}
 		}
-	}
-	else
-	{
+	} else {
 		RkPrintf("no sys part.\n");
 		SecureBootEn = 0;
 	}
@@ -491,8 +462,8 @@ static uint32 g_rsa_key_buf[528];
 #if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
 static int32 SecureRKModeChkPubkey(uint32 *pKey)
 {
-	uint32 hash[8];         //max 256bit
-	uint32 HashOTP[OTP_HASH_LEN/4];
+	uint32 hash[8];	/* max 256bit */
+	uint32 HashOTP[OTP_HASH_LEN / 4];
 
 	/* Get the public key HASH from the Efuse */
 	SecureEfuseRead((void *)(unsigned long)SECURE_EFUSE_BASE_ADDR, HashOTP, OTP_HASH_ADDR, OTP_HASH_LEN);
@@ -501,8 +472,8 @@ static int32 SecureRKModeChkPubkey(uint32 *pKey)
 	SecureSHAUpdate(pKey, PUBLIC_KEY_LEN);
 	SecureSHAFinish(hash);
 
-	// compare the result with Efuse data
-	return memcmp((uint8 *)&hash, (uint8 *)&HashOTP, OTP_HASH_LEN);     //audi, audis only check 64bit
+	/* compare the result with Efuse data */
+	return memcmp((uint8 *)&hash, (uint8 *)&HashOTP, OTP_HASH_LEN); /* audi, audis only check 64bit */
 }
 
 
@@ -512,16 +483,14 @@ static int32 SecureRKModeGetRSAKey(void)
 
 	if (g_rsa_key_buf[0] == 0xb86d753c) {
 		for (i = 0; i < 4; i++) {
-			P_RC4((uint8 *)(g_rsa_key_buf+132*i), 512);
-			if (i > 0) {
-				memcpy(g_rsa_key_buf+128*i, g_rsa_key_buf+132*i, 512);
-			}
+			P_RC4((uint8 *)(g_rsa_key_buf + 132 * i), 512);
+			if (i > 0)
+				memcpy(g_rsa_key_buf + 128 * i, g_rsa_key_buf + 132 * i, 512);
 		}
 	} else if (g_rsa_key_buf[0] == 0x4B415352) {
 		for (i = 0; i < 4; i++) {
-			if (i > 0) {
-				memcpy(g_rsa_key_buf+128*i, g_rsa_key_buf+132*i, 512);
-			}
+			if (i > 0)
+				memcpy(g_rsa_key_buf + 128 * i, g_rsa_key_buf + 132 * i, 512);
 		}
 	} else {
 		return -1;
@@ -534,9 +503,8 @@ static int32 SecureRKModeGetRSAKey(void)
 
 	printf("dump new loader's key:\n");
 	for (j = 0; j < 2048 / 16; j++) {
-		for (k = 0; k < 16; k++) {
+		for (k = 0; k < 16; k++)
 			printf("%02x", buf[j * 16 + k]);
-		}
 		printf("\n");
 	}
 }
@@ -555,7 +523,7 @@ static int32 SecureRKModeGetRSAKey(void)
 		return -1;
 	}
 
-	printf("Secure Boot find rsa key in ram.\n");
+	PRINT_E("Secure Boot find rsa key in ram.\n");
 
 	memset((void *)g_rsa_key_buf, 0, sizeof(g_rsa_key_buf));
 	memcpy((void *)g_rsa_key_buf, (void *)CONFIG_SECURE_RSA_KEY_ADDR, sizeof(BOOT_HEADER));
@@ -567,9 +535,8 @@ static int32 SecureRKModeGetRSAKey(void)
 
 	printf("dump new loader's key:\n");
 	for (j = 0; j < 2048 / 16; j++) {
-		for (k = 0; k < 16; k++) {
+		for (k = 0; k < 16; k++)
 			printf("%02x", buf[j * 16 + k]);
-		}
 		printf("\n");
 	}
 }
@@ -583,7 +550,7 @@ static int32 SecureRKModeChkPubkey(uint32 *pKey)
 	BOOT_HEADER *pkeyHead = (BOOT_HEADER *)g_rsa_key_buf;
 	uint32 size = sizeof(pkeyHead->RSA_N) + sizeof(pkeyHead->RSA_E) + sizeof(pkeyHead->RSA_C);
 
-	// compare rsa key
+	/* compare rsa key */
 	return memcmp((uint8 *)&pKey, (uint8 *)&pkeyHead->RSA_N, size);
 }
 #endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
@@ -595,12 +562,12 @@ static bool SecureRKModeVerifyLoader(RK28BOOT_HEAD *hdr)
 	BOOT_HEADER *pKeyHead = (BOOT_HEADER *)keybuf;
 	int i;
 
-	debug("Loader Head: hdr = 0x%x, flash data offset = 0x%x\n", (uint32)(unsigned long)hdr, hdr->uiFlashDataOffset);
+	debug("Loader Head: hdr = 0x%x, flash data offset = 0x%x\n", \
+			(uint32)(unsigned long)hdr, hdr->uiFlashDataOffset);
 
 	memcpy(keybuf, (void *)hdr + hdr->uiFlashDataOffset, RK_BLK_SIZE * 4);
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 		P_RC4((unsigned char *)keybuf + RK_BLK_SIZE * i, RK_BLK_SIZE);
-	}
 #if 0
 {
 	int j = 0, k = 0;
@@ -608,18 +575,16 @@ static bool SecureRKModeVerifyLoader(RK28BOOT_HEAD *hdr)
 
 	printf("dump new loader's key:\n");
 	for (j = 0; j < (2048 / 16); j++) {
-		for (k = 0; k < 16; k++) {
+		for (k = 0; k < 16; k++)
 			printf("%02x", buf[j * 16 + k]);
-		}
 		printf("\n");
 	}
 }
 #endif
 
 	/* check new loader key */
-	if ((pKeyHead->tag == 0x4B415352) && (SecureRKModeChkPubkey(pKeyHead->RSA_N) == 0)) {
+	if ((pKeyHead->tag == 0x4B415352) && (SecureRKModeChkPubkey(pKeyHead->RSA_N) == 0))
 		return true;
-	}
 
 	return false;
 }
@@ -644,9 +609,8 @@ static bool SecureRKModeVerifyUbootImage(second_loader_hdr *uboothdr)
 		uboothdr->magic, uboothdr->signTag, uboothdr->hash_len);
 
 	printf("Second Loader Head: hash data:\n");
-	for (k = 0; k < uboothdr->hash_len; k++) {
+	for (k = 0; k < uboothdr->hash_len; k++)
 		printf("%02x", buf[k]);
-	}
 	printf("\n");
 
 	printf("Loader addr = 0x%x, size = 0x%x\n", uboothdr->loader_load_addr, uboothdr->loader_load_size);
@@ -654,14 +618,12 @@ static bool SecureRKModeVerifyUbootImage(second_loader_hdr *uboothdr)
 #endif
 
 	/* verify uboot iamge. */
-	if (memcmp(uboothdr->magic, RK_UBOOT_MAGIC, sizeof(RK_UBOOT_MAGIC)) != 0) {
+	if (memcmp(uboothdr->magic, RK_UBOOT_MAGIC, sizeof(RK_UBOOT_MAGIC)) != 0)
 		return false;
-	}
 
 	if ((uboothdr->signTag != RK_UBOOT_SIGN_TAG) \
-			&& (uboothdr->hash_len != 20) && (uboothdr->hash_len != 32)) {
+			&& (uboothdr->hash_len != 20) && (uboothdr->hash_len != 32))
 		return false;
-	}
 
 #if 0
 {
@@ -678,9 +640,8 @@ static bool SecureRKModeVerifyUbootImage(second_loader_hdr *uboothdr)
 	char *buf = dataHash;
 
 	printf("Soft Calc Image hash data:\n");
-	for (k = 0; k < uboothdr->hash_len; k++) {
+	for (k = 0; k < uboothdr->hash_len; k++)
 		printf("%02x", buf[k]);
-	}
 	printf("\n");
 }
 #endif
@@ -707,24 +668,20 @@ static bool SecureRKModeVerifyUbootImage(second_loader_hdr *uboothdr)
 	char *buf = dataHash;
 
 	printf("Crypto Calc Image hash data:\n");
-	for (k = 0; k < uboothdr->hash_len; k++) {
+	for (k = 0; k < uboothdr->hash_len; k++)
 		printf("%02x", buf[k]);
-	}
 	printf("\n");
 }
 #endif
 
 	/* check the hash of image */
-	if (memcmp(uboothdr->hash, hwDataHash, uboothdr->hash_len) != 0) {
+	if (memcmp(uboothdr->hash, hwDataHash, uboothdr->hash_len) != 0)
 		return false;
-	}
 
 	/* check the sign of hash */
-	for (i = 0; i < 20; i++) {
-		if (rsahash[19-i] != dataHash[i]) {
+	for (i = 0; i < 20; i++)
+		if (rsahash[19-i] != dataHash[i])
 			return false;
-		}
-	}
 
 	return true;
 }
@@ -748,9 +705,8 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 	printf("Boot Image Head: magic = %s, sign tag = 0x%x\n", boothdr->magic, boothdr->signTag);
 
 	printf("Boot Image Head: hash data:\n");
-	for (k = 0; k < sizeof(boothdr->id); k++) {
+	for (k = 0; k < sizeof(boothdr->id); k++)
 		printf("%02x", buf[k]);
-	}
 	printf("\n");
 
 	printf("kernel addr = 0x%x, size = 0x%x\n", boothdr->kernel_addr, boothdr->kernel_size);
@@ -760,13 +716,11 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 #endif
 
 	/* verify boot/recovery image */
-	if (memcmp(boothdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) != 0) {
+	if (memcmp(boothdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) != 0)
 		return false;
-	}
 
-	if (boothdr->signTag != SECURE_BOOT_SIGN_TAG) {
+	if (boothdr->signTag != SECURE_BOOT_SIGN_TAG)
 		return false;
-	}
 #if 0
 {
 	SHA_CTX ctx;
@@ -794,9 +748,8 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 	char *buf = dataHash;
 
 	printf("Soft Calc Image hash data:\n");
-	for (k = 0; k < sizeof(boothdr->id); k++) {
+	for (k = 0; k < sizeof(boothdr->id); k++)
 		printf("%02x", buf[k]);
-	}
 	printf("\n");
 }
 #endif
@@ -807,7 +760,7 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 		+ sizeof(boothdr->tags_addr) + sizeof(boothdr->page_size) \
 		+ sizeof(boothdr->unused) + sizeof(boothdr->name) + sizeof(boothdr->cmdline);
 
-	CryptoRSAInit((uint32*)(boothdr->rsaHash), pkeyHead->RSA_N, pkeyHead->RSA_E, pkeyHead->RSA_C);
+	CryptoRSAInit((uint32 *)(boothdr->rsaHash), pkeyHead->RSA_N, pkeyHead->RSA_E, pkeyHead->RSA_C);
 	CryptoSHAInit(size, 160);
 
 	/* Android image. */
@@ -836,24 +789,20 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 	char *buf = dataHash;
 
 	printf("Crypto Calc Image hash data:\n");
-	for (k = 0; k < sizeof(boothdr->id); k++) {
+	for (k = 0; k < sizeof(boothdr->id); k++)
 		printf("%02x", buf[k]);
-	}
 	printf("\n");
 }
 #endif
 
 	/* check the hash of image */
-	if (memcmp(boothdr->id, hwDataHash, sizeof(boothdr->id)) != 0) {
+	if (memcmp(boothdr->id, hwDataHash, sizeof(boothdr->id)) != 0)
 		return false;
-	}
 
 	/* check the sign of hash */
-	for (i = 0; i < 20; i++) {
-		if (rsahash[19-i] != dataHash[i]) {
+	for (i = 0; i < 20; i++)
+		if (rsahash[19 - i] != dataHash[i])
 			return false;
-		}
-	}
 
 	return true;
 }
@@ -899,9 +848,8 @@ static bool SecureRKModeKeyCheck(uint8 *pKey)
 
 	printf("dump usb key:\n");
 	for (j = 0; j < 512 / 16; j++) {
-		for (k = 0; k < 16; k++) {
+		for (k = 0; k < 16; k++)
 			printf("%02x", buf[j * 16 + k]);
-		}
 		printf("\n");
 	}
 }
@@ -909,14 +857,13 @@ static bool SecureRKModeKeyCheck(uint8 *pKey)
 
 #if 0
 	printf("source: \n");
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i < 32; i++)
 		printf("%02x", pKey[256+i]);
-	}
 	printf("\n");
 #endif
 
 	/* swap */
-	for(i = 0; i< 256 / 2; i++) {
+	for(i = 0; i < 256 / 2; i++) {
 		swap = pKey[i];
 		pKey[i] = pKey[256 - i - 1];
 		pKey[256 - i - 1] = swap;
@@ -927,9 +874,8 @@ static bool SecureRKModeKeyCheck(uint8 *pKey)
 
 #if 0
 	printf("calc result: \n");
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i < 32; i++)
 		printf("%02x", rsahash[31-i]);
-	}
 	printf("\n");
 #endif
 
@@ -967,53 +913,48 @@ static uint32 SecureRKModeInit(void)
 	/* rk3128 efuse read char unit */
 	uint8 flag = 0;
 	SecureEfuseRead((void *)(unsigned long)SECURE_EFUSE_BASE_ADDR, &flag, 0X1F, 1);
-	if (0xFF == flag) {
+	if (0xFF == flag)
 		secure = 1;
-	}
+
 	CryptoInit();
 #elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
 	/* rk3288/rk3368 efuse read word unit */
 	uint32 flag = 0;
 	SecureEfuseRead((void *)(unsigned long)SECURE_EFUSE_BASE_ADDR, &flag, 0X00, 4);
-	if (flag & 0x01) {
+	if (flag & 0x01)
 		secure = 1;
-	}
+
 	CryptoInit();
 #endif
 
 #else
-	if (SecureRKModeGetRSAKey() == 0) {
+	if (SecureRKModeGetRSAKey() == 0)
 		secure = 1;
-	}
+
 	CryptoInit();
 #endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
 
 	if (secure != 0) {
 		SecureMode = SBOOT_MODE_RK;
-		printf("Secure Boot Mode: 0x%x\n", SecureMode);
+		PRINT_E("Secure Boot Mode: 0x%x\n", SecureMode);
 
 #if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
 		StorageReadFlashInfo((uint8 *)&g_FlashInfo);
 
 		i = 0;
-		if (StorageGetBootMedia() == BOOT_FROM_FLASH) {
+		if (StorageGetBootMedia() == BOOT_FROM_FLASH)
 			i = 2;
-		}
-		for (; i<16; i++) {
-			PRINT_E("SecureInit %x\n", i * g_FlashInfo.BlockSize + 4);
+		for (; i < 16; i++) {
+			PRINT_I("SecureInit %x\n", i * g_FlashInfo.BlockSize + 4);
 			ret = StorageReadPba(i * g_FlashInfo.BlockSize + 4, g_rsa_key_buf, 4);
-			if (ret == FTL_OK) {
-				if (SecureRKModeGetRSAKey() == 0) {
-					if ((pHead->tag == 0x4B415352) && (SecureRKModeChkPubkey(pHead->RSA_N) == 0)) {
+			if (ret == FTL_OK)
+				if (SecureRKModeGetRSAKey() == 0)
+					if ((pHead->tag == 0x4B415352) && (SecureRKModeChkPubkey(pHead->RSA_N) == 0))
 						break;
-					}
-				}
-			}
 		}
 		/* check key error */
-		if (i >= 16) {
+		if (i >= 16)
 			return ERROR;
-		}
 #endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
 
 		/* config drm information */
@@ -1043,9 +984,8 @@ static uint32 SecureRKModeInit(void)
 bool SecureModeVerifyLoader(RK28BOOT_HEAD *hdr)
 {
 #ifdef SECUREBOOT_CRYPTO_EN
-	if (SecureMode == SBOOT_MODE_RK) {
+	if (SecureMode == SBOOT_MODE_RK)
 		return SecureRKModeVerifyLoader(hdr);
-	}
 #endif
 
 	return SecureNSModeVerifyLoader(hdr);
@@ -1055,28 +995,25 @@ bool SecureModeVerifyLoader(RK28BOOT_HEAD *hdr)
 bool SecureModeVerifyUbootImage(second_loader_hdr *pHead)
 {
 #ifdef SECUREBOOT_CRYPTO_EN
-	if (SecureMode == SBOOT_MODE_RK) {
+	if (SecureMode == SBOOT_MODE_RK)
 		return SecureRKModeVerifyUbootImage(pHead);
-	}
 #endif
 
 	return SecureNSModeVerifyUbootImageSign(pHead);
 }
 
 
-bool SecureModeVerifyBootImage(rk_boot_img_hdr* boothdr)
+bool SecureModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 {
 	/* hdr read from storage, adjust hdr kernel/ramdisk/second address. */
 	boothdr->kernel_addr = (uint32_t)((unsigned long)(void *)boothdr + boothdr->page_size);
 	boothdr->ramdisk_addr = boothdr->kernel_addr + ALIGN(boothdr->kernel_size, boothdr->page_size);
-	if (boothdr->second_size) {
+	if (boothdr->second_size)
 		boothdr->second_addr = boothdr->ramdisk_addr + ALIGN(boothdr->ramdisk_size, boothdr->page_size);
-	}
 
 #ifdef SECUREBOOT_CRYPTO_EN
-	if (SecureMode == SBOOT_MODE_RK) {
+	if (SecureMode == SBOOT_MODE_RK)
 		return SecureRKModeVerifyBootImage(boothdr);
-	}
 #endif
 
 	return SecureNSModeVerifyBootImageSign(boothdr);
@@ -1086,9 +1023,8 @@ bool SecureModeVerifyBootImage(rk_boot_img_hdr* boothdr)
 bool SecureModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 {
 #ifdef SECUREBOOT_CRYPTO_EN
-	if (SecureMode == SBOOT_MODE_RK) {
+	if (SecureMode == SBOOT_MODE_RK)
 		return SecureRKModeBootImageCheck(hdr, unlocked);
-	}
 #endif
 
 	return SecureNSModeBootImageCheck(hdr, unlocked);
@@ -1098,9 +1034,8 @@ bool SecureModeBootImageCheck(rk_boot_img_hdr *hdr, int unlocked)
 bool SecureModeRSAKeyCheck(uint8 *pKey)
 {
 #ifdef SECUREBOOT_CRYPTO_EN
-	if (SecureMode == SBOOT_MODE_RK) {
+	if (SecureMode == SBOOT_MODE_RK)
 		return SecureRKModeKeyCheck(pKey);
-	}
 #endif
 
 	return SecureNSModeKeyCheck(pKey);
@@ -1110,9 +1045,8 @@ bool SecureModeRSAKeyCheck(uint8 *pKey)
 void SecureModeLockLoader(void)
 {
 #ifdef SECUREBOOT_CRYPTO_EN
-	if (SecureMode == SBOOT_MODE_RK) {
+	if (SecureMode == SBOOT_MODE_RK)
 		return SecureRKModeLockLoader();
-	}
 #endif
 
 	return SecureNSModeLockLoader();
@@ -1125,15 +1059,14 @@ uint32 SecureModeInit(void)
 
 #ifdef SECUREBOOT_CRYPTO_EN
 	if (SecureRKModeInit() == ERROR) {
-		printf("SecureRKModeInit error!\n");
+		PRINT_E("SecureRKModeInit error!\n");
 		ISetLoaderFlag(SYS_LOADER_ERR_FLAG);
 		return FTL_ERROR;
 	}
 #endif
 
-	if (SecureMode == SBOOT_MODE_NS) {
+	if (SecureMode == SBOOT_MODE_NS)
 		SecureNSModeInit();
-	}
 
 	return FTL_OK;
 }
