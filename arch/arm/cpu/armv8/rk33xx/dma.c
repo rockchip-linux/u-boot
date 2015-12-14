@@ -31,10 +31,6 @@
     }while(0);
 
 
-#define spin_lock_init(...)
-#define spin_lock_irqsave(...)
-#define spin_unlock_irqrestore(...)
-
 /**
  * struct rk_pl330_dmac - Logical representation of a PL330 DMAC.
  * @busy_chan: Number of channels currently busy.
@@ -106,11 +102,17 @@ static LIST_HEAD(dmac_list);
 /* All channels to peripherals in the platform */
 static LIST_HEAD(chan_list);
 
+#if 0
+#define spin_lock_init(...)
+#define spin_lock_irqsave(...)
+#define spin_unlock_irqrestore(...)
+
 /*
  * Since we add resources(DMACs and Channels) to the global pool,
  * we need to guard access to the resources using a global lock
  */
 static DEFINE_SPINLOCK(res_lock);
+#endif
 
 /* Returns the channel with ID 'id' in the chan_list */
 static struct rk_pl330_chan *id_to_chan(const enum dma_ch id)
@@ -1215,7 +1217,7 @@ static inline struct rk_pl330_platdata *rk_pl330_dmac_get_pd(int dmac_id)
 
 static void rk_pl330_dmac_isr(void *data)
 {
-	uint32 isr_src = (uint32) data;
+	uint32 isr_src = (uint32)(unsigned long) data;
 
 	switch (isr_src) {
 #ifdef CONFIG_RK_DMAC_0
