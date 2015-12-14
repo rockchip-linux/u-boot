@@ -734,12 +734,12 @@ int rk_dma_enqueue_ring(enum dma_ch id, void *token,
 
 	if (!ch->req[idx].x) {
 		ch->req[idx].infiniteloop = numofblock;
-		if(numofblock)
+		if (numofblock)
 			ch->req[idx].infiniteloop_sev = sev;
 		rk_pl330_submit(ch, &ch->req[idx]);
 	} else {
 		ch->req[1 - idx].infiniteloop = numofblock;
-		if(numofblock)
+		if (numofblock)
 			ch->req[1 - idx].infiniteloop_sev = sev;
 		rk_pl330_submit(ch, &ch->req[1 - idx]);
 	}
@@ -801,6 +801,7 @@ int rk_dma_request(enum dma_ch id,
 	ch->rqcfg.dcctl = DCCTRL0; /* Noncacheable and nonbufferable */
 	ch->rqcfg.privileged = 0;
 	ch->rqcfg.insnaccess = 0;
+	ch->rqcfg.pcfg = &dmac->pi->pcfg;
 
 	/* Set invalid direction */
 	ch->req[0].rqtype = DEVTODEV;
@@ -1196,7 +1197,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 		[5] = DMACH_UART2_DBG_RX,
 		[6] = DMACH_MAX,
 		[7] = DMACH_MAX,
-		[8] = DMACH_MAX,
+		[8] = DMACH_DMAC0_MEMTOMEM,
 		[9] = DMACH_MAX,
 		[10] = DMACH_MAX,
 		[11] = DMACH_MAX,
@@ -1281,7 +1282,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 		[15] = DMACH_I2S_8CH_TX,
 		[16] = DMACH_MAX,
 		[17] = DMACH_MAX,
-		[18] = DMACH_DMAC2_MEMTOMEM,
+		[18] = DMACH_DMAC0_MEMTOMEM,
 		[19] = DMACH_MAX,
 		[20] = DMACH_MAX,
 		[21] = DMACH_MAX,
@@ -1318,7 +1319,7 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 		[15] = DMACH_I2S1_8CH_TX,
 		[16] = DMACH_MAX,
 		[17] = DMACH_MAX,
-		[18] = DMACH_DMAC2_MEMTOMEM,
+		[18] = DMACH_DMAC0_MEMTOMEM,
 		[19] = DMACH_MAX,
 		[20] = DMACH_MAX,
 		[21] = DMACH_MAX,
@@ -1360,7 +1361,7 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 		[11] = DMACH_SPI0_RX,
 		[12] = DMACH_SPI1_TX,
 		[13] = DMACH_SPI1_RX,
-		[14] = DMACH_DMAC1_MEMTOMEM,
+		[14] = DMACH_MAX,
 		[15] = DMACH_MAX,
 		[16] = DMACH_MAX,
 		[17] = DMACH_MAX,

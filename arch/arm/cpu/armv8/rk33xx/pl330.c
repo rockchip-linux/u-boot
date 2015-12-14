@@ -1633,7 +1633,7 @@ updt_exit:
 			|| pl330->dmac_tbd.reset_chan) {
 		ret = 1;
 		if (pl330->dotask != NULL)
-			pl330->dotask((uint32)pl330);
+			pl330->dotask((uint32)(unsigned long)pl330);
 	}
 
 	return ret;
@@ -1967,7 +1967,7 @@ static int dmac_alloc_resources(struct pl330_dmac *pl330)
 			__func__, __LINE__);
 		return -ENOMEM;
 	}
-	pl330->mcode_bus = (uint32)pl330->mcode_cpu;
+	pl330->mcode_bus = (uint32)(unsigned long)pl330->mcode_cpu;
 
 	ret = dmac_alloc_threads(pl330);
 	if (ret) {
