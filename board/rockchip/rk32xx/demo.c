@@ -65,7 +65,7 @@ static void board_timer_test(void)
 #if defined(CONFIG_RKCHIP_RK3288)
 #define DEMO_TIMER_BASE		(RKIO_TIMER_6CH_PHYS + 0x20)
 #define DEMO_TIMER_IRQ		IRQ_TIMER_6CH_1
-#elif defined(CONFIG_RKCHIP_RK3228)
+#elif defined(CONFIG_RKCHIP_RK322X)
 #define DEMO_TIMER_BASE		(RKIO_TIMER_6CH_PHYS + 0x20)
 #define DEMO_TIMER_IRQ		IRQ_TIMER1
 #elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
@@ -225,6 +225,29 @@ static void board_dmac_test(void)
 #endif /* CONFIG_RK_DMAC */
 
 
+static void board_emmc_test(void)
+{
+	printf("rk emmc test start...\n");
+
+	void *buff = (void *)(CONFIG_RAM_PHY_END + SZ_128M);
+	uint32 blocks;
+	uint32 start;
+
+	start = 0;
+	blocks = 1024;
+	printf("Read LBA = 0x%08x, blocks = 0x%08x\n", start, blocks);
+	StorageReadLba(start, buff, blocks);
+
+	/* rk emmc max blocks = 0xFFFF (32M) */
+	start = 0;
+	blocks = (SZ_32M + SZ_1M) / 512;
+	printf("Read LBA = 0x%08x, blocks = 0x%08x\n", start, blocks);
+	StorageReadLba(start, buff, blocks);
+
+	printf("rk emmc test end\n");
+}
+
+
 /* demo function list */
 static board_demo_t g_module_demo[] = {
 	{ .name = "timer",	.demo = board_timer_test },
@@ -235,6 +258,7 @@ static board_demo_t g_module_demo[] = {
 #ifdef CONFIG_RK_DMAC
 	{ .name = "dma",	.demo = board_dmac_test },
 #endif
+	{ .name = "emmc",	.demo = board_emmc_test },
 };
 #define DEMO_MODULE_MAX		(sizeof(g_module_demo)/sizeof(board_demo_t))
 

@@ -215,6 +215,29 @@ static void board_dmac_test(void)
 #endif /* CONFIG_RK_DMAC */
 
 
+static void board_emmc_test(void)
+{
+	printf("rk emmc test start...\n");
+
+	void *buff = (void *)(CONFIG_RAM_PHY_END + SZ_128M);
+	uint32 blocks;
+	uint32 start;
+
+	start = 0;
+	blocks = 1024;
+	printf("Read LBA = 0x%08x, blocks = 0x%08x\n", start, blocks);
+	StorageReadLba(start, buff, blocks);
+
+	/* rk emmc max blocks = 0xFFFF (32M) */
+	start = 0;
+	blocks = (SZ_32M + SZ_1M) / 512;
+	printf("Read LBA = 0x%08x, blocks = 0x%08x\n", start, blocks);
+	StorageReadLba(start, buff, blocks);
+
+	printf("rk emmc test end\n");
+}
+
+
 #ifdef CONFIG_GZIP
 static int rk_load_zimage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
@@ -292,6 +315,7 @@ static board_demo_t g_module_demo[] = {
 #ifdef CONFIG_RK_DMAC
 	{ .name = "dma",	.demo = board_dmac_test },
 #endif
+	{ .name = "emmc",	.demo = board_emmc_test },
 #ifdef CONFIG_GZIP
 	{ .name = "gzip",	.demo = board_gzip_test },
 #endif
