@@ -462,12 +462,22 @@ static void reconfig_usbd(struct s3c_udc *dev)
 	/* 10. Unmask device IN EP common interrupts*/
 	writel(DIEPMSK_INIT, &reg->diepmsk);
 
+#if 0
 	/* 11. Set Rx FIFO Size (in 32-bit words) */
 	writel(RX_FIFO_SIZE >> 2, &reg->grxfsiz);
 
 	/* 12. Set Non Periodic Tx FIFO Size */
 	writel((NPTX_FIFO_SIZE >> 2) << 16 | ((RX_FIFO_SIZE >> 2)) << 0,
 	       &reg->gnptxfsiz);
+#else
+	/* 11. Set Rx FIFO Size (in 32-bit words) */
+	writel(0x00000210, &reg->grxfsiz);
+
+	/* 12. Set Non Periodic Tx FIFO Size */
+	writel(0x00100210, &reg->gnptxfsiz);
+	writel(0x01000220, &reg->dieptxf[0]);
+	writel(0x00100320, &reg->dieptxf[1]);
+#endif
 
 	for (i = 1; i < S3C_MAX_HW_ENDPOINTS; i++)
 		writel((PTX_FIFO_SIZE >> 2) << 16 |
@@ -556,8 +566,8 @@ static int s3c_ep_enable(struct usb_ep *_ep,
 	}
 
 	/* hardware _could_ do smaller, but driver doesn't */
-	if ((desc->bmAttributes == USB_ENDPOINT_XFER_BULK
-	     && le16_to_cpu(get_unaligned(&desc->wMaxPacketSize)) !=
+	if ((desc->bmAttributes == USB_ENDPOINT_XFER_BULK &&
+	     le16_to_cpu(get_unaligned(&desc->wMaxPacketSize)) >
 	     ep_maxpacket(ep)) || !get_unaligned(&desc->wMaxPacketSize)) {
 
 		debug("%s: bad %s maxpacket\n", __func__, _ep->name);

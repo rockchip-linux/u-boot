@@ -110,7 +110,7 @@ static int setdma_rx(struct s3c_ep *ep, struct s3c_request *req)
 
 	ctrl =  readl(&reg->out_endp[ep_num].doepctl);
 
-	writel((unsigned int) ep->dma_buf, &reg->out_endp[ep_num].doepdma);
+	writel((unsigned long) ep->dma_buf, &reg->out_endp[ep_num].doepdma);
 	writel(DOEPT_SIZ_PKT_CNT(pktcnt) | DOEPT_SIZ_XFER_SIZE(length),
 	       &reg->out_endp[ep_num].doeptsiz);
 	writel(DEPCTL_EPENA|DEPCTL_CNAK|ctrl, &reg->out_endp[ep_num].doepctl);
@@ -237,7 +237,7 @@ static void complete_rx(struct s3c_udc *dev, u8 ep_num)
 		   __func__, ep_num, req->req.actual, req->req.length,
 		   is_short, ep_tsr, xfer_size);
 
-	if (is_short || req->req.actual == req->req.length) {
+	if (is_short || req->req.actual <= req->req.length) {
 		if (ep_num == EP0_CON && dev->ep0state == DATA_STATE_RECV) {
 			debug_cond(DEBUG_OUT_EP != 0, "	=> Send ZLP\n");
 			s3c_udc_ep0_zlp(dev);
