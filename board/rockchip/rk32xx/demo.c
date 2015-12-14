@@ -11,7 +11,6 @@
 #endif /* CONFIG_OF_LIBFDT */
 #include <asm/arch/rkplat.h>
 
-#include <u-boot/zlib.h>
 #include "../common/config.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -63,8 +62,19 @@ static void board_timer_test(void)
  *	gic function module test
  * using timer for interrupt api test
  */
-#define DEMO_TIMER_BASE		(RKIO_TIMER0_6CH_PHYS + 0x20)
-#define DEMO_TIMER_IRQ		IRQ_TIMER0_6CH_1
+#if defined(CONFIG_RKCHIP_RK3288)
+#define DEMO_TIMER_BASE		(RKIO_TIMER_6CH_PHYS + 0x20)
+#define DEMO_TIMER_IRQ		IRQ_TIMER_6CH_1
+#elif defined(CONFIG_RKCHIP_RK3228)
+#define DEMO_TIMER_BASE		(RKIO_TIMER_6CH_PHYS + 0x20)
+#define DEMO_TIMER_IRQ		IRQ_TIMER1
+#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+#define DEMO_TIMER_BASE		(RKIO_TIMER_PHYS + 0x20)
+#define DEMO_TIMER_IRQ		IRQ_TIMER1
+#else
+	#error "PLS config timer for gic demo!"
+#endif
+
 
 #define DEMO_TIMER_LOADE_COUNT0		0x00
 #define DEMO_TIMER_LOADE_COUNT1		0x04
@@ -146,7 +156,7 @@ static struct rk_dma_client rk_dma_memcpy_client = {
 };
 
 #define DMA_TEST_MEM2MEM_CH	DMACH_DMAC2_MEMTOMEM
-#define DMA_MEM_TEST_SIZE	(1024 * 4)
+#define DMA_MEM_TEST_SIZE	(1024 * 1024 * 48)
 static uint32 *dma_src_addr = (uint32 *)(CONFIG_RAM_PHY_END + SZ_128M);
 static uint32 *dma_dst_addr = (uint32 *)(CONFIG_RAM_PHY_END + SZ_128M + DMA_MEM_TEST_SIZE);
 static volatile uint32 dma_finish;
@@ -215,73 +225,6 @@ static void board_dmac_test(void)
 #endif /* CONFIG_RK_DMAC */
 
 
-#ifdef CONFIG_GZIP
-static int rk_load_zimage(uint32 offset, unsigned char *load_addr, size_t *image_size)
-{
-	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
-	unsigned blocks;
-	rk_kernel_image *image = (rk_kernel_image *)buf;
-	unsigned head_offset = 8;//tag_rk_kernel_image's tag & size
-
-	if (StorageReadLba(offset, (void *) image, 1) != 0) {
-		printf("failed to read image header\n");
-		return -1;
-	}
-	if(image->tag != TAG_KERNEL) {
-		printf("bad image magic.\n");
-		return -1;
-	}
-	*image_size = image->size;
-	//image not align to blk size, so should memcpy some.
-	memcpy((void *)load_addr, image->image, RK_BLK_SIZE - head_offset);
-
-	//read the rest blks.
-	blocks = DIV_ROUND_UP(*image_size, RK_BLK_SIZE);
-	if (rkloader_CopyFlash2Memory((uint32) load_addr + RK_BLK_SIZE - head_offset,
-				offset + 1, blocks - 1) != 0) {
-		printf("failed to read image\n");
-		return -1;
-	}
-
-	return 0;
-}
-
-
-static void board_gzip_test(void)
-{
-	const disk_partition_t* ptn = NULL;
-	void *kaddr = 0, *laddr = 0;
-	size_t ksize = 0;
-
-	printf("rk gzip uncompress test start...\n");
-
-	kaddr = (void*)CONFIG_KERNEL_LOAD_ADDR;
-#ifndef CONFIG_SKIP_RELOCATE_UBOOT
-	laddr = (void*)(CONFIG_RAM_PHY_START + (CONFIG_SYS_TEXT_BASE - CONFIG_RAM_PHY_START) + SZ_512K);
-#else
-	laddr = (void*)(SZ_128M);
-#endif
-	ptn = get_disk_partition(KERNEL_NAME);
-	if (ptn == NULL) {
-		printf("kernel partition error!\n");
-		return ;
-	}
-	if (rk_load_zimage(ptn->start, kaddr, &ksize) != 0) {
-		printf("load kernel image failed!\n");
-		return ;
-	}
-
-	printf("Uncompressing Kernel zImage ...\n");
-	if (gunzip(laddr, SZ_32M, kaddr, &ksize) != 0) {
-		puts("GUNZIP: uncompress, out-of-mem or overwrite error\n");
-		return ;
-	}
-
-	printf("rk gzip uncompress test end\n");
-}
-#endif /* CONFIG_GZIP */
-
-
 /* demo function list */
 static board_demo_t g_module_demo[] = {
 	{ .name = "timer",	.demo = board_timer_test },
@@ -291,9 +234,6 @@ static board_demo_t g_module_demo[] = {
 #endif
 #ifdef CONFIG_RK_DMAC
 	{ .name = "dma",	.demo = board_dmac_test },
-#endif
-#ifdef CONFIG_GZIP
-	{ .name = "gzip",	.demo = board_gzip_test },
 #endif
 };
 #define DEMO_MODULE_MAX		(sizeof(g_module_demo)/sizeof(board_demo_t))
