@@ -15,7 +15,7 @@ obj-$(CONFIG_TWL6030_POWER)	+= twl6030.o
 obj-$(CONFIG_PALMAS_POWER)	+= palmas.o
 
 obj-$(CONFIG_POWER) += power_core.o
-ifdef CONFIG_POWER_RK
+ifdef CONFIG_RK_POWER
 obj-$(CONFIG_OF_LIBFDT) += power_fdt.o
 obj-y += power_rockchip.o
 endif

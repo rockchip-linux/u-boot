@@ -404,6 +404,9 @@
 /* rk dma config */
 #define CONFIG_RK_PL330_DMAC	/* rk pl330 dmac */
 
+/* rk power config */
+#define CONFIG_RK_POWER
+
 /* rk display module */
 #ifdef CONFIG_LCD
 
@@ -451,10 +454,6 @@
 #undef CONFIG_UBOOT_CHARGE
 
 #endif /* CONFIG_LCD */
-
-/* rk power config */
-#define CONFIG_POWER
-#define CONFIG_POWER_RK
 
 
 #endif /* __RK_DEFAULT_CONFIG_H */

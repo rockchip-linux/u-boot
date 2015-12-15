@@ -48,7 +48,7 @@ int g_logo_on_state = 0;
  */
 int board_fbt_is_charging(void)
 {
-#ifdef CONFIG_POWER_RK
+#ifdef CONFIG_RK_POWER
 	return is_charging();
 #else
 	return 0;
@@ -318,7 +318,7 @@ void board_fbt_run_recovery_wipe_data(void)
 }
 
 
-#ifdef CONFIG_POWER_RK
+#ifdef CONFIG_RK_POWER
 static void board_fbt_low_power_check(void)
 {
 	if (is_power_extreme_low()) {
@@ -363,7 +363,7 @@ static void board_fbt_low_power_off(void)
 		}
 	}
 }
-#endif /* CONFIG_POWER_RK */
+#endif /* CONFIG_RK_POWER */
 
 
 /*
@@ -392,7 +392,7 @@ void board_fbt_preboot(void)
 		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NORMAL);
 	}
 
-#ifdef CONFIG_POWER_RK
+#ifdef CONFIG_RK_POWER
 	board_fbt_low_power_check();
 #endif
 
@@ -412,7 +412,7 @@ void board_fbt_preboot(void)
 	}
 #endif
 
-#ifdef CONFIG_POWER_RK
+#ifdef CONFIG_RK_POWER
 	board_fbt_low_power_off();
 #endif
 

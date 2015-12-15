@@ -108,8 +108,7 @@
 	#undef CONFIG_RK_FLASH_BOOT_EN
 	#undef CONFIG_RK_UMS_BOOT_EN
 	#undef CONFIG_LCD
-	#undef CONFIG_POWER
-	#undef CONFIG_POWER_RK
+	#undef CONFIG_RK_POWER
 	#undef CONFIG_PM_SUBSYSTEM
 	#undef CONFIG_RK_CLOCK
 	#undef CONFIG_RK_IOMUX
@@ -262,32 +261,45 @@
 
 
 /* more config for power */
-#if defined(CONFIG_POWER) && defined(CONFIG_POWER_RK)
+#ifdef CONFIG_RK_POWER
 
+#define CONFIG_POWER
 #define CONFIG_POWER_I2C
+
+#define CONFIG_POWER_PMIC
+/* if box product, undefine fg and battery */
+#ifndef CONFIG_PRODUCT_BOX
+#define CONFIG_POWER_FG
+#define CONFIG_POWER_BAT
+#endif /* CONFIG_PRODUCT_BOX */
+
 #define CONFIG_SCREEN_ON_VOL_THRESD	0
 #define CONFIG_SYSTEM_ON_VOL_THRESD	0
 
+/******** pwm regulator driver ********/
+#define CONFIG_POWER_PWM_REGULATOR
+
 /******** pmic driver ********/
+#ifdef CONFIG_POWER_PMIC
 #undef CONFIG_POWER_RK_SAMPLE
 #define CONFIG_POWER_RICOH619
 #define CONFIG_POWER_RK808
 #define CONFIG_POWER_RK818
 #define CONFIG_POWER_ACT8846
+#endif /* CONFIG_POWER_PMIC */
 
-#define CONFIG_POWER_PWM_REGULATOR
-
-/* if box product, undefine fg and battery */
-#ifndef CONFIG_PRODUCT_BOX
 /******** charger driver ********/
+#ifdef CONFIG_POWER_FG
 #define CONFIG_POWER_FG_CW201X
+#endif /* CONFIG_POWER_FG */
 
 /******** battery driver ********/
+#ifdef CONFIG_POWER_BAT
 #undef CONFIG_BATTERY_RK_SAMPLE
 #undef CONFIG_BATTERY_BQ27541
 #undef CONFIG_BATTERY_RICOH619
-#endif /* CONFIG_PRODUCT_BOX */
+#endif /* CONFIG_POWER_BAT */
 
-#endif /* CONFIG_POWER */
+#endif /* CONFIG_RK_POWER */
 
 #endif /* __RK33PLAT_CONFIG_H */

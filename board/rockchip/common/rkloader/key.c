@@ -248,7 +248,7 @@ int RemotectlDeInit(void)
 
 int rkkey_power_state(void)
 {
-#ifdef CONFIG_POWER_RK
+#ifdef CONFIG_RK_POWER
 	if (get_rockchip_pmic_id() == PMIC_ID_RICOH619)
 		return ricoh619_poll_pwr_key_sta();
 	else

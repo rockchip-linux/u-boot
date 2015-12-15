@@ -182,7 +182,7 @@ int board_late_init(void)
 	key_init();
 #endif
 
-#ifdef CONFIG_POWER_RK
+#ifdef CONFIG_RK_POWER
 	debug("pmic_init\n");
 	pmic_init(0);
 #if defined(CONFIG_POWER_PWM_REGULATOR)
@@ -191,7 +191,7 @@ int board_late_init(void)
 #endif
 	debug("fg_init\n");
 	fg_init(0); /*fuel gauge init*/
-#endif
+#endif /* CONFIG_RK_POWER */
 
 #if defined(CONFIG_RK_DCF)
 	dram_freq_init();
