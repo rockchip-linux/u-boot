@@ -4,8 +4,8 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef	__RK_DMA_PL330_H_
-#define	__RK_DMA_PL330_H_
+#ifndef	__RK_DMA_PL330_H__
+#define	__RK_DMA_PL330_H__
 
 
 #define RK_DMAF_AUTOSTART		(1 << 0)
@@ -398,4 +398,7 @@ extern int rk_dma_set_buffdone_fn(unsigned int, rk_dma_cbfn_t rtn);
 extern int rk_pl330_dmac_init(int dmac_id);
 extern int rk_pl330_dmac_deinit(int dmac_id);
 
-#endif	/* __RK_DMA_PL330_H_ */
+extern void rk_pl330_dmac_init_all(void);
+extern void rk_pl330_dmac_deinit_all(void);
+
+#endif	/* __RK_DMA_PL330_H__ */

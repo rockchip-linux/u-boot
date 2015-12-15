@@ -34,11 +34,8 @@
 #include "rk_i2c.h"
 #include "pm.h"
 
-#ifdef CONFIG_RK_PL330
+#ifdef CONFIG_RK_PL330_DMAC
 #include "pl330.h"
-#endif
-
-#ifdef CONFIG_RK_DMAC
 #include "dma.h"
 #endif
 

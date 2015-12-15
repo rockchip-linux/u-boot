@@ -86,8 +86,7 @@
 	#undef CONFIG_RK_TRUSTOS
 
 	#undef CONFIG_RK_UMS_BOOT_EN
-	#undef CONFIG_RK_PL330
-	#undef CONFIG_RK_DMAC
+	#undef CONFIG_RK_PL330_DMAC
 #endif
 
 /* fpga board configure */

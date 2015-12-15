@@ -12,23 +12,19 @@
 
 #include <asm/arch/rkplat.h>
 
-/* if rk dmac define */
-#ifdef CONFIG_RK_DMAC
-
-#define RK_DMA_PL330_VERSION	"1.1"
+#define RK_DMA_PL330_VERSION	"1.4"
 
 #define rk_dma_dev_err(...) \
-    do\
-    {\
-        printf(__VA_ARGS__);\
-        printf("\n");\
-    }while(0);
+	do { \
+		printf(__VA_ARGS__); \
+		printf("\n"); \
+	} while(0);
+
 #define rk_dma_dev_info(...) \
-    do\
-    {\
-        debug(__VA_ARGS__);\
-        debug("\n");\
-    }while(0);
+	do { \
+		debug(__VA_ARGS__); \
+		debug("\n"); \
+	} while(0);
 
 
 /**
@@ -1445,7 +1441,7 @@ static inline struct rk_pl330_platdata *rk_pl330_dmac_get_pd(int dmac_id)
 
 static void rk_pl330_dmac_isr(void *data)
 {
-	uint32 isr_src = (uint32) data;
+	uint32 isr_src = (uint32)(unsigned long) data;
 
 	switch (isr_src) {
 #ifdef CONFIG_RK_DMAC_0
@@ -1692,4 +1688,27 @@ int rk_pl330_dmac_deinit(int dmac_id)
 }
 
 
-#endif /* CONFIG_RK_DMAC */
+void rk_pl330_dmac_init_all(void)
+{
+#ifdef CONFIG_RK_DMAC_0
+	if (rk_pl330_dmac_init(0) != 0)
+		rk_dma_dev_err("rk pl330 dmac0 init fail!\n");
+#endif
+#ifdef CONFIG_RK_DMAC_1
+	if (rk_pl330_dmac_init(1) != 0)
+		rk_dma_dev_err("rk pl330 dmac1 init fail!\n");
+#endif
+}
+
+
+void rk_pl330_dmac_deinit_all(void)
+{
+#ifdef CONFIG_RK_DMAC_0
+	if (rk_pl330_dmac_deinit(0) != 0)
+		rk_dma_dev_err("rk pl330 dmac0 deinit fail!\n");
+#endif
+#ifdef CONFIG_RK_DMAC_1
+	if (rk_pl330_dmac_deinit(1) != 0)
+		rk_dma_dev_err("rk pl330 dmac1 deinit fail!\n");
+#endif
+}

@@ -39,7 +39,7 @@
 #if defined(CONFIG_RK_MMC_DMA)
 
 /* external mac */
-#if defined(CONFIG_RK_MMC_EDMAC) && defined(CONFIG_RK_PL330) && defined(CONFIG_RK_DMAC)
+#if defined(CONFIG_RK_MMC_EDMAC) && defined(CONFIG_RK_PL330_DMAC)
 #define EN_SD_DMA             (1) /* 是否用DMA来进行数据传输，1:DMA方式，0:中断方式 */
 #define EN_SD_INT             (1) /* 是否采用中断发生来查询一些SDMMC控制器的重要位，1:用中断方式，0:用轮询方式，目前就算用轮询方式，卡检测还是设成中断的 */
 #else

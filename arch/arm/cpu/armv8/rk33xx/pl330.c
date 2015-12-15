@@ -13,8 +13,6 @@
 #include <asm/unaligned.h>
 #include <asm/arch/rkplat.h>
 
-#ifdef CONFIG_RK_PL330
-
 #define rk_pl330_dev_err(...) \
     do\
     {\
@@ -2099,4 +2097,3 @@ void pl330_del(struct pl330_info *pi)
 	free(pl330);
 	pi->pl330_data = NULL;
 }
-#endif /* CONFIG_RK_PL330 */

@@ -402,8 +402,7 @@
 #define CONFIG_RK_EFUSE
 
 /* rk dma config */
-#define CONFIG_RK_PL330		/* rk dma pl330 */
-#define CONFIG_RK_DMAC		/* rk dmac */
+#define CONFIG_RK_PL330_DMAC	/* rk pl330 dmac */
 
 /* rk display module */
 #ifdef CONFIG_LCD

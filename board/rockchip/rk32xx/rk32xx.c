@@ -97,14 +97,9 @@ int arch_early_init_r(void)
 	enable_interrupts();
 
 	/* rk pl330 dmac init */
-#ifdef CONFIG_RK_DMAC
-#ifdef CONFIG_RK_DMAC_0
-	rk_pl330_dmac_init(0);
-#endif
-#ifdef CONFIG_RK_DMAC_1
-	rk_pl330_dmac_init(1);
-#endif
-#endif /* CONFIG_RK_DMAC*/
+#ifdef CONFIG_RK_PL330_DMAC
+	rk_pl330_dmac_init_all();
+#endif /* CONFIG_RK_PL330_DMAC */
 
 #ifdef CONFIG_RK_PWM_REMOTE
 	RemotectlInit();

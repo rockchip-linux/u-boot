@@ -14,6 +14,5 @@ obj-y   += iomux.o
 obj-y   += reset.o
 obj-y	+= pm.o
 
-obj-$(CONFIG_RK_PL330)	+= pl330.o
-obj-$(CONFIG_RK_DMAC)	+= dma.o
+obj-$(CONFIG_RK_PL330_DMAC)	+= pl330.o dma.o
 obj-$(CONFIG_RK_PSCI)	+= psci.o

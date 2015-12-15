@@ -150,7 +150,7 @@ static inline void board_gpio_irq_test(void)
 #endif /* CONFIG_RK_GPIO */
 
 
-#ifdef CONFIG_RK_DMAC
+#ifdef CONFIG_RK_PL330_DMAC
 static struct rk_dma_client rk_dma_memcpy_client = {
         .name = "rk-dma-memcpy",
 };
@@ -222,7 +222,7 @@ static void board_dmac_test(void)
 
 	printf("rk dmac test end\n");
 }
-#endif /* CONFIG_RK_DMAC */
+#endif /* CONFIG_RK_PL330_DMAC */
 
 
 static void board_emmc_test(void)
@@ -255,7 +255,7 @@ static board_demo_t g_module_demo[] = {
 #ifdef CONFIG_RK_GPIO
 	{ .name = "gic-gpio",	.demo = board_gpio_irq_test },
 #endif
-#ifdef CONFIG_RK_DMAC
+#ifdef CONFIG_RK_PL330_DMAC
 	{ .name = "dma",	.demo = board_dmac_test },
 #endif
 	{ .name = "emmc",	.demo = board_emmc_test },
