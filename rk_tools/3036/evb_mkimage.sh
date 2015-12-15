@@ -8,6 +8,5 @@ rm ${LOADER}
 
 echo Generating ${LOADER}...
 evb_3036/tools/mkimage -T rksd -d evb_3036/spl/u-boot-spl.bin ${LOCAL_PATH}/out
-dd if=/dev/zero of=${LOADER} count=64
 cat ${LOCAL_PATH}/out evb_3036/u-boot-dtb.bin >> ${LOADER}
 echo Done...

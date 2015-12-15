@@ -24,7 +24,6 @@ while ! sudo lsusb -d 2207: ; do sleep .5; done
 
 echo "Flashing ${LOADER}..."
 
-truncate -s "%4M" ${LOADER}
 sudo ${LOCAL_PATH}/upgrade_tool db ${LOCAL_PATH}/rk3036_boot.bin
-sudo ${LOCAL_PATH}/upgrade_tool wl 0 ${LOADER}
+sudo ${LOCAL_PATH}/upgrade_tool wl 64 ${LOADER}
 sudo ${LOCAL_PATH}/upgrade_tool rd
