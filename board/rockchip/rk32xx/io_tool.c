@@ -10,12 +10,12 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 
-static void iomem_read(void __iomem *addr, int len, int iosize)
+static void iomem_read(void __iomem *addr, unsigned long len, unsigned int iosize)
 {
 	int i;
 
 	while (len) {
-		printf("0x%08x: ", addr);
+		printf("0x%08lx: ", (unsigned long)addr);
 		i = 0;
 		while(i < 16 && len) {
 			switch (iosize) {
@@ -38,7 +38,7 @@ static void iomem_read(void __iomem *addr, int len, int iosize)
 }
 
 
-static void iomem_write(void __iomem *addr, int len, int iosize, unsigned int value)
+static void iomem_write(void __iomem *addr, unsigned long len, unsigned int iosize, unsigned int value)
 {
 	switch (iosize) {
 		case 1:
@@ -79,26 +79,28 @@ static void iomem_show_help(void)
 	printf("Examples:\n");
 	printf("    io -2 -r 200 -l 100 	Reads 100 bytes from addr 200\n");
 	printf("    io -1 -w 0x1000 0x12	Writes 0x12 to location 0x1000\n");
+	printf("    io -1 -w 0x200 -l 0x10 0x12	Writes 0x12 start = 0x200, len = 0x10\n");
 	printf("\n");
 }
 
 
 
-static int do_io_tool(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_io_tool(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
-	unsigned int addr = 0;
-	int iosize = 0;
-	int len = 0;
+	unsigned long addr = 0;
+	unsigned long len = 0;
+	unsigned int iosize = 0;
 	unsigned int value = 0;
-	int rw;
-	int index = 0;
+	unsigned int rw;
+	unsigned int index = 0;
 
-	if (argc <= 3) {
+	if (argc < 4) {
 		iomem_show_help();
 		return -1;
 	}
 
-	index = 1;
+	/* size */
+	index = 1; /* 1 */
 	if (!strcmp(argv[index], "-1")) {
 		iosize = 1;
 	} else if (!strcmp(argv[index], "-2")) {
@@ -109,8 +111,13 @@ static int do_io_tool(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		iomem_show_help();
 		return -1;
 	}
-	index++;
 
+	/* r/w */
+	index = 2;  /* 2 */
+	if (index >= argc) {
+		iomem_show_help();
+		return -1;
+	}
 	if (!strcmp(argv[index], "-r")) {
 		rw = 0;
 	} else if (!strcmp(argv[index], "-w")) {
@@ -119,34 +126,50 @@ static int do_io_tool(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		iomem_show_help();
 		return -1;
 	}
-	index++;
 
+	/* address */
+	index = 3;  /* 3 */
+	if (index >= argc) {
+		iomem_show_help();
+		return -1;
+	}
 	addr = simple_strtoul(argv[index], NULL, 0);
 	if (((iosize == 2) && (addr & 1)) || ((iosize == 4) && (addr & 3))) {
 		printf("Badly aligned <addr> for access size\n");
 		return -1;
 	}
-	index++;
 
+	/* len */
+	index = 4; /* 4 */
 	len = 0;
-	if (!strcmp(argv[index], "-l")) {
-		index++;
+	if ((argc > 4) && !strcmp(argv[index], "-l")) {
+		index++;  /* 5 */
+		if (index >= argc) {
+			iomem_show_help();
+			return -1;
+		}
 		len = simple_strtoul(argv[index], NULL, 0);
-		index++;
 		if ((iosize == 2 && (len & 1)) || (iosize == 4 && (len & 3))) {
 			printf("Badly aligned <size> for access size\n");
 			return -1;
 		}
-	} 
+		index++;  /* 6 */
+	}
 	if (!len) {
 		len = iosize;
 	}
 
+	/* read or write */
 	if (rw == 0) {
-		iomem_read(addr, len, iosize);
+		iomem_read((void __iomem *)addr, len, iosize);
 	} else {
+		/* value */
+		if (index >= argc) {
+			iomem_show_help();
+			return -1;
+		}
 		value = simple_strtoul(argv[index], NULL, 0);
-		iomem_write(addr, len, iosize, value);
+		iomem_write((void __iomem *)addr, len, iosize, value);
 	}
 
 	return 0;
