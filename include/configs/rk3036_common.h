@@ -11,7 +11,6 @@
 #define CONFIG_SYS_NO_FLASH
 #define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_ENV_IS_NOWHERE
-#define CONFIG_ENV_SIZE			0x2000
 #define CONFIG_SYS_MAXARGS		16
 #define CONFIG_BAUDRATE			115200
 #define CONFIG_SYS_MALLOC_LEN		(32 << 20)
@@ -83,7 +82,7 @@
 #define CONFIG_FASTBOOT_FLASH
 #define CONFIG_FASTBOOT_FLASH_MMC_DEV		0
 #define CONFIG_FASTBOOT_BUF_ADDR	(CONFIG_SYS_SDRAM_BASE \
-					+ SDRAM_BANK_SIZE)
+					+ SDRAM_BANK_SIZE / 2)
 #define CONFIG_FASTBOOT_BUF_SIZE		0x07000000
 #define CONFIG_USB_GADGET_VBUS_DRAW		0
 #define CONFIG_SYS_CACHELINE_SIZE		64
@@ -92,28 +91,67 @@
 #define CONFIG_G_DNL_PRODUCT_NUM		0x0006
 
 #ifndef CONFIG_SPL_BUILD
-#include <config_distro_defaults.h>
+#define CONFIG_CMD_GPT
+#define CONFIG_RANDOM_UUID
 
-#define ENV_MEM_LAYOUT_SETTINGS \
-	"scriptaddr=0x60000000\0" \
-	"pxefile_addr_r=0x60100000\0" \
-	"fdt_addr_r=0x61f00000\0" \
-	"kernel_addr_r=0x62000000\0" \
-	"ramdisk_addr_r=0x64000000\0"
+#define CONFIG_OF_LIBFDT
+#define CONFIG_CMDLINE_EDITING
+#define CONFIG_AUTO_COMPLETE
+#define CONFIG_BOOTDELAY     2
+#define CONFIG_SYS_LONGHELP
+#define CONFIG_MENU
+#define CONFIG_DOS_PARTITION
+#define CONFIG_EFI_PARTITION
+#define CONFIG_SUPPORT_RAW_INITRD
+#define CONFIG_SYS_HUSH_PARSER
 
-/* First try to boot from SD (index 0), then eMMC (index 1 */
-#define BOOT_TARGET_DEVICES(func) \
-	func(MMC, mmc, 0) \
-	func(MMC, mmc, 1)
+#define CONFIG_ENV_SIZE                 (32 << 10)
+#undef CONFIG_ENV_IS_NOWHERE
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SYS_MMC_ENV_DEV          0
+#define CONFIG_SYS_MMC_ENV_PART         2
+#define CONFIG_ENV_OFFSET               8064
+#define CONFIG_ENV_OFFSET_REDUND        (CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE / 512)
+#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
 
-#include <config_distro_bootcmd.h>
+/* We use reserved partition to store env now, so it should match env configs */
+#define PARTS_DEFAULT \
+	"uuid_disk=${uuid_gpt_disk};" \
+        "name=loader,start=32K,size=4000K,uuid=${uuid_gpt_loader};" \
+        "name=reserved,size=64K,uuid=${uuid_gpt_reserved};" \
+        "name=misc,size=4M,uuid=${uuid_gpt_misc};" \
+        "name=recovery,size=32M,uuid=${uuid_gpt_recovery};" \
+        "name=boot-a,size=32M,uuid=${uuid_gpt_boot-a};" \
+        "name=boot-b,size=32M,uuid=${uuid_gpt_boot-b};" \
+        "name=system-a,size=818M,uuid=${uuid_gpt_system-a};" \
+        "name=system-b,size=818M,uuid=${uuid_gpt_system-b};" \
+        "name=vendor-a,size=50M,uuid=${uuid_gpt_vendor-a};" \
+        "name=vendor-b,size=50M,uuid=${uuid_gpt_vendor-b};" \
+        "name=cache,size=100M,uuid=${uuid_gpt_cache};" \
+        "name=metadata,size=16M,uuid=${uuid_gpt_metadata};" \
+        "name=persist,size=4M,uuid=${uuid_gpt_persist};" \
+        "name=userdata,size=-,uuid=${uuid_gpt_userdata};\0" \
 
 /* Linux fails to load the fdt if it's loaded above 512M on a evb-rk3036 board,
  * so limit the fdt reallocation to that */
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	"fdt_high=0x7fffffff\0" \
-	ENV_MEM_LAYOUT_SETTINGS \
-	BOOTENV
+	"fdt_high=0x1fffffff\0" \
+	"partitions=" PARTS_DEFAULT \
+
+#define CONFIG_BOOTCOMMAND \
+	"if mmc rescan; then " \
+		"echo SD/MMC found...;" \
+		"gpt write mmc 0 ${partitions}; mmc rescan;" \
+		"mmc read 65000000 14000 4000; bootm 65000000;" \
+	"fi;" \
+
 #endif
 
+#define CONFIG_ANDROID_BOOT_IMAGE
+#define CONFIG_INITRD_TAG
+#define CONFIG_SETUP_MEMORY_TAGS
+#define CONFIG_CMDLINE_TAG
+#define CONFIG_SYS_BOOTPARAMS_LEN   (64*1024)
+#define CONFIG_BOARD_LATE_INIT
+#define CONFIG_PREBOOT
 #endif

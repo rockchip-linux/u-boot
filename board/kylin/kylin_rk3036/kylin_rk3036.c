@@ -10,6 +10,11 @@
 #include <asm/arch/uart.h>
 #include <asm/arch/sdram_rk3036.h>
 
+#ifdef CONFIG_USB_GADGET
+#include <usb.h>
+#include <usb/s3c_udc.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 void get_ddr_config(struct rk3036_ddr_config *config)
@@ -26,6 +31,34 @@ void get_ddr_config(struct rk3036_ddr_config *config)
 
 	/* 16bit bw */
 	config->bw = 1;
+}
+
+#define GRF_BASE			0x20008000
+#define GRF_OS_REG0			0x01c8
+#define ROCKCHIP_BOOT_MODE_FASTBOOT	1
+
+bool fastboot_requested(void)
+{
+	int val = readl(GRF_BASE + GRF_OS_REG0);
+	writel(GRF_BASE + GRF_OS_REG0, 0);
+	if (ROCKCHIP_BOOT_MODE_FASTBOOT == val) {
+		printf("fastboot mode requested!\n");
+		return true;
+	}
+
+	return false;
+}
+
+static void go_fastboot(void)
+{
+	setenv("preboot", "setenv preboot; fastboot usb0");
+}
+
+int board_late_init(void)
+{
+	if (fastboot_requested())
+		go_fastboot();
+	return 0;
 }
 
 int board_init(void)
@@ -47,3 +80,29 @@ void enable_caches(void)
 	dcache_enable();
 }
 #endif
+
+#ifdef CONFIG_USB_GADGET
+#define RKIO_GRF_PHYS				0x20008000
+#define RKIO_USBOTG_BASE			0x10180000
+#define RK_USB_PHY_CONTROL			0x10180e00
+
+static struct s3c_plat_otg_data rk_otg_data = {
+	.regs_phy	= RKIO_GRF_PHYS,
+	.regs_otg	= RKIO_USBOTG_BASE,
+	.usb_phy_ctrl	= RK_USB_PHY_CONTROL,
+	.usb_gusbcfg	= 0x00001408
+};
+
+int board_usb_init(int index, enum usb_init_type init)
+{
+	debug("%s: performing s3c_udc_probe\n", __func__);
+	return s3c_udc_probe(&rk_otg_data);
+}
+
+int board_usb_cleanup(int index, enum usb_init_type init)
+{
+	debug("%s\n", __func__);
+	return 0;
+}
+#endif
+
