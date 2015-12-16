@@ -21,9 +21,9 @@ struct regulator_init_reg_name regulator_init_pmic_matches[MAX_REGULATOR_NUM];
 #define CONFIG_RK818_SYSTEM_ON_VOL_THRESD	3600
 #define CONFIG_RK818_SYSTEM_ON_CAPACITY_THRESD  5
 
-	extern void pmic_rk818_power_init(void);
-	extern void pmic_rk818_power_on(void);
-	extern void pmic_rk818_power_off(void);	
+extern void pmic_rk818_power_init(void);
+extern void pmic_rk818_power_on(void);
+extern void pmic_rk818_power_off(void);
 #endif
 
 #if defined(CONFIG_POWER_FG_ADC)
@@ -42,7 +42,7 @@ static const char * const fg_names[] = {
 };
 
 
-static void set_rockchip_pmic_id(unsigned char id)
+__maybe_unused static void set_rockchip_pmic_id(unsigned char id)
 {
 	rockchip_pmic_id = id;
 }
@@ -131,14 +131,17 @@ int is_power_low(void)
 {
 	int ret;
 	struct battery battery;
-	memset(&battery,0, sizeof(battery));
+	memset(&battery, 0, sizeof(battery));
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
 		return 0;
-	if(rockchip_pmic_id==PMIC_ID_RK818)
-		return ((battery.voltage_uV < CONFIG_RK818_SYSTEM_ON_VOL_THRESD) ||(battery.capacity<CONFIG_RK818_SYSTEM_ON_CAPACITY_THRESD))? 1:0;
+#if defined(CONFIG_POWER_RK818)
+	if (rockchip_pmic_id == PMIC_ID_RK818)
+		return ((battery.voltage_uV < CONFIG_RK818_SYSTEM_ON_VOL_THRESD) \
+			|| (battery.capacity < CONFIG_RK818_SYSTEM_ON_CAPACITY_THRESD)) ? 1 : 0;
 	else
- 		return (battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ? 1:0;
+#endif
+		return (battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ? 1 : 0;
 
 }
 
@@ -148,11 +151,11 @@ int is_power_extreme_low(void)
 {
 	int ret;
 	struct battery battery;
-	memset(&battery,0, sizeof(battery));
+	memset(&battery, 0, sizeof(battery));
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
 		return 0;
-	return (battery.voltage_uV < CONFIG_SCREEN_ON_VOL_THRESD) ? 1:0;
+	return (battery.voltage_uV < CONFIG_SCREEN_ON_VOL_THRESD) ? 1 : 0;
 }
 
 
@@ -162,7 +165,7 @@ static void pmic_null_init(void)
 	int node;
 
 	printf("No pmic detect.\n");
-
+	set_rockchip_pmic_id(PMIC_ID_UNKNOW);
 	gpio_pwr_hold.gpio = -1;
 
 	if (gd->fdt_blob != NULL) {
@@ -194,7 +197,7 @@ static void pmic_null_shut_down(void)
 
 int pmic_init(unsigned char  bus)
 {
-	int ret;
+	int ret = -1;
 	int i;
 
 	for (i = 0; i < MAX_DCDC_NUM; i++)
@@ -264,7 +267,6 @@ int pmic_init(unsigned char  bus)
 #endif
 
 	pmic_null_init();
-
 
 	return ret;
 }
