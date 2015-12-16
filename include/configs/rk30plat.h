@@ -227,9 +227,9 @@
 #define CONFIG_POWER
 #define CONFIG_POWER_I2C
 
-#define CONFIG_POWER_PMIC
 /* if box product, undefine fg and battery */
 #ifndef CONFIG_PRODUCT_BOX
+#define CONFIG_POWER_PMIC
 #define CONFIG_POWER_FG
 #define CONFIG_POWER_BAT
 #endif /* CONFIG_PRODUCT_BOX */
