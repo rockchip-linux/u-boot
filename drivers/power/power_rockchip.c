@@ -41,6 +41,9 @@ static const char * const fg_names[] = {
 	"RT5036_FG",
 };
 
+/* rockchip first i2c node as parent for pmic */
+int g_i2c_node = 0;
+#define COMPAT_ROCKCHIP_I2C	"rockchip,rk30-i2c"
 
 __maybe_unused static void set_rockchip_pmic_id(unsigned char id)
 {
@@ -202,6 +205,14 @@ int pmic_init(unsigned char  bus)
 
 	for (i = 0; i < MAX_DCDC_NUM; i++)
 		regulator_init_pmic_matches[i].name = "NULL";
+
+	/* detect first i2c node as parent for pmic detect */
+	g_i2c_node = 0;
+	if (gd->fdt_blob) {
+		g_i2c_node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, COMPAT_ROCKCHIP_I2C);
+		if (g_i2c_node < 0)
+			g_i2c_node = 0;
+	}
 
 #if defined(CONFIG_POWER_RICOH619)
 	ret = pmic_ricoh619_init(bus);

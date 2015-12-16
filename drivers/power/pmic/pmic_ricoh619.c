@@ -8,8 +8,8 @@
 #include <common.h>
 #include <fdtdec.h>
 #include <power/battery.h>
-#include <power/ricoh619_pmic.h>
 #include <power/rockchip_power.h>
+#include <power/ricoh619_pmic.h>
 #include <errno.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -84,7 +84,7 @@ int ricoh619_parse_dt(const void* blob)
 	u32 bus, addr;
 	int ret;
 
-	node = fdt_node_offset_by_compatible(blob, 0,
+	node = fdt_node_offset_by_compatible(blob, g_i2c_node,
 					COMPAT_RICOH_RICOH619);
 	if (node < 0) {
 		printf("can't find dts node for ricoh619\n");

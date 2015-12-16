@@ -7,9 +7,9 @@
  */
 
 #include <common.h>
-#include <power/rk818_pmic.h>
-#include <power/rockchip_power.h>
 #include <errno.h>
+#include <power/rockchip_power.h>
+#include <power/rk818_pmic.h>
 #include <asm/arch/rkplat.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -241,7 +241,7 @@ static int rk818_parse_dt(const void* blob)
 	int ret, i;
 
 	node = fdt_node_offset_by_compatible(blob,
-					0, COMPAT_ROCKCHIP_RK818);
+					g_i2c_node, COMPAT_ROCKCHIP_RK818);
 	if (node < 0) {
 		printf("can't find dts node for rk818\n");
 		return -ENODEV;

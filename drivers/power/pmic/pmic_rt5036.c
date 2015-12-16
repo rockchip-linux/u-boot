@@ -7,9 +7,9 @@
 
 #define DEBUG
 #include <common.h>
-#include <power/rt5036_pmic.h>
-#include <power/rockchip_power.h>
 #include <errno.h>
+#include <power/rockchip_power.h>
+#include <power/rt5036_pmic.h>
 #include <asm/arch/rkplat.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -57,7 +57,7 @@ static int rt5036_parse_dt(const void* blob)
 	int ret;
 
 	node = fdt_node_offset_by_compatible(blob,
-					0, COMPAT_ROCKCHIP_RT5036);
+					g_i2c_node, COMPAT_ROCKCHIP_RT5036);
 	if (node < 0) {
 		printf("can't find dts node for rt5036\n");
 		return -ENODEV;

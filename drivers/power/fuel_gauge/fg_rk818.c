@@ -1552,7 +1552,7 @@ static int rk81x_bat_parse_dt(struct battery_info *di, void const *blob)
 	int err;
 	const char *prop;
 
-	parent = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk818");
+	parent = fdt_node_offset_by_compatible(blob, g_i2c_node, "rockchip,rk818");
 	if (parent < 0) {
 		printf("Could not find rockchip,rk818 node!\n");
 		return -ENODEV;

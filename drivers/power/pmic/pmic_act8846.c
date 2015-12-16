@@ -10,9 +10,9 @@
 #include <common.h>
 #include <fdtdec.h>
 #include <errno.h>
+#include <power/rockchip_power.h>
 #include <power/act8846_pmic.h>
 #include <asm/arch/rkplat.h>
-#include <power/rockchip_power.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -218,7 +218,7 @@ static int act8846_parse_dt(const void* blob)
 	int ret, i;
 
 	node = fdt_node_offset_by_compatible(blob,
-					0, COMPAT_ACTIVE_ACT8846);
+					g_i2c_node, COMPAT_ACTIVE_ACT8846);
 	if (node < 0) {
 		printf("can't find dts node for act8846\n");
 		return -ENODEV;

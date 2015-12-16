@@ -19,6 +19,9 @@ enum pmic_id {
 	
 };
 
+/* rockchip first i2c node as parent for pmic */
+extern int g_i2c_node;
+
 unsigned char get_rockchip_pmic_id(void);
 int dwc_otg_check_dpdm(void);
 int is_charging(void);

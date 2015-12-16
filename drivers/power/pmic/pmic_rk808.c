@@ -8,9 +8,9 @@
 
 /*#define DEBUG*/
 #include <common.h>
+#include <errno.h>
 #include <power/rk808_pmic.h>
 #include <power/rockchip_power.h>
-#include <errno.h>
 #include <asm/arch/rkplat.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -301,7 +301,7 @@ static int rk808_parse_dt(const void* blob)
 	int i;
 	
 	node = fdt_node_offset_by_compatible(blob,
-					0, COMPAT_ROCKCHIP_RK808);
+					g_i2c_node, COMPAT_ROCKCHIP_RK808);
 	if (node < 0) {
 		printf("can't find dts node for rk808\n");
 		return -ENODEV;

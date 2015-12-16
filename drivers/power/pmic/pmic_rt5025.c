@@ -8,9 +8,9 @@
 
 #define DEBUG
 #include <common.h>
-#include <power/rt5025_pmic.h>
-#include <power/rockchip_power.h>
 #include <errno.h>
+#include <power/rockchip_power.h>
+#include <power/rt5025_pmic.h>
 #include <asm/arch/rkplat.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -53,7 +53,7 @@ static int rt5025_parse_dt(const void* blob)
 	u32 bus, addr;
 	int ret;
 	node = fdt_node_offset_by_compatible(blob,
-					0, COMPAT_ROCKCHIP_RT5025);
+					g_i2c_node, COMPAT_ROCKCHIP_RT5025);
 	if (node < 0) {
 		printf("can't find dts node for rt5025\n");
 		return -ENODEV;

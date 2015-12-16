@@ -9,6 +9,7 @@
 #include <common.h>
 #include <fdtdec.h>
 #include <errno.h>
+#include <power/rockchip_power.h>
 #include <power/act8931_pmic.h>
 #include <asm/arch/rkplat.h>
 
@@ -186,7 +187,7 @@ static int act8931_parse_dt(const void* blob)
 	int ret;
 
 	node = fdt_node_offset_by_compatible(blob,
-					0, COMPAT_ACTIVE_ACT8931);
+					g_i2c_node, COMPAT_ACTIVE_ACT8931);
 	if (node < 0) {
 		printf("can't find dts node for act8931\n");
 		return -ENODEV;
