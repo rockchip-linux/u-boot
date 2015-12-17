@@ -181,18 +181,18 @@
  * from USB Mass Storage device.
  *
  * PLS define a host controler from:
- *	RKUSB_UMS_BOOT_FROM_OTG
- *	RKUSB_UMS_BOOT_FROM_HOST1
- *	RKUSB_UMS_BOOT_FROM_HOST2
+ *	RKUSB_UMS_BOOT_FROM_DWC2_OTG
+ *	RKUSB_UMS_BOOT_FROM_EHCI_HOST1
+ *	RKUSB_UMS_BOOT_FROM_DWC2_HOST
  *
  * First define the host controller here
  */
 
 
 /* Check UMS Boot Host define */
-#define RKUSB_UMS_BOOT_CNT (defined(RKUSB_UMS_BOOT_FROM_OTG) + \
-			    defined(RKUSB_UMS_BOOT_FROM_HOST1) + \
-			    defined(RKUSB_UMS_BOOT_FROM_HOST2))
+#define RKUSB_UMS_BOOT_CNT (defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG) + \
+			    defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1) + \
+			    defined(RKUSB_UMS_BOOT_FROM_DWC2_HOST))
 
 #if (RKUSB_UMS_BOOT_CNT == 0)
 	#error "PLS Select a USB host controller!"
@@ -209,10 +209,10 @@
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
-#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
+#if defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1)
 	#define CONFIG_USB_EHCI
 	#define CONFIG_USB_EHCI_RK
-#elif defined(RKUSB_UMS_BOOT_FROM_HOST2) || defined(RKUSB_UMS_BOOT_FROM_OTG)
+#elif defined(RKUSB_UMS_BOOT_FROM_DWC2_HOST) || defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG)
 	#define CONFIG_USB_DWC_HCD
 #endif
 #endif /* CONFIG_RK_UMS_BOOT_EN */

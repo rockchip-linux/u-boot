@@ -286,25 +286,6 @@
 #undef CONFIG_BOOTRK_RK_IMAGE_CHECK
 #undef CONFIG_BOOTRK_OTA_IMAGE_CHECK
 
-
-/*
- * USB Host support, default no using
- * Please first select USB host controller if you want to use UMS Boot
- * Up to one USB host controller could be selected to enable for booting
- * from USB Mass Storage device.
- *
- * PLS define a host controller from:
- *	RKUSB_UMS_BOOT_FROM_OTG
- *	RKUSB_UMS_BOOT_FROM_HOST1
- *	RKUSB_UMS_BOOT_FROM_HOST2
- *
- * Default all are disable, define in each plat.h
- */
-#undef RKUSB_UMS_BOOT_FROM_OTG
-#undef RKUSB_UMS_BOOT_FROM_HOST1
-#undef RKUSB_UMS_BOOT_FROM_HOST2
-
-
 /* 
  * allow to flash loader when check sign failed. should undef this in release version.
  */

@@ -23,20 +23,20 @@ static int rk_usb_host_lookup(void);
 
 static struct rkusb_hcd_cfg rkusb_hcd[] = {
 #if defined(CONFIG_RKCHIP_RK3288)
-#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
+#if defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1)
 	{
 		.name = "ehci-host",
 		.enable = true,
 		.regbase = (void *)RKIO_USBHOST0_EHCI_PHYS,
 		.gpio_vbus = GPIO_BANK0 | GPIO_B6,
 	},
-#elif defined(RKUSB_UMS_BOOT_FROM_HOST2)
+#elif defined(RKUSB_UMS_BOOT_FROM_DWC2_HOST)
 	{
 		.name = "dwc2-host",
 		.enable = true,
 		.regbase = (void *)RKIO_USBHOST1_PHYS,
 	},
-#elif defined(RKUSB_UMS_BOOT_FROM_OTG)
+#elif defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG)
 	{
 		.name = "dwc2-otg",
 		.enable = true,
@@ -45,13 +45,13 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 	},
 #endif
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
+#if defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1)
 	{
 		.name = "ehci-host",
 		.enable = true,
 		.regbase = (void *)RKIO_USBHOST_EHCI_PHYS,
 	},
-#elif defined(RKUSB_UMS_BOOT_FROM_OTG)
+#elif defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG)
 	{
 		.name = "dwc2-otg",
 		.enable = true,
@@ -61,7 +61,7 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 	},
 #endif
 #elif defined(CONFIG_RKCHIP_RK3036)
-#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
+#if defined(RKUSB_UMS_BOOT_FROM_DWC2_HOST)
 
 	{
 		.name = "dwc2-host",
@@ -69,7 +69,7 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 		.regbase = (void *)RKIO_USBHOST20_PHYS,
 		.hw_init = inno_usb_phy_reset,
 	},
-#elif defined(RKUSB_UMS_BOOT_FROM_OTG)
+#elif defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG)
 	{
 		.name = "dwc2-otg",
 		.enable = true,
@@ -78,14 +78,14 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 	},
 #endif
 #elif defined(CONFIG_RKCHIP_RK3368)
-#if defined(RKUSB_UMS_BOOT_FROM_HOST1)
+#if defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1)
 	{
-		.name = "ehci",
+		.name = "ehci-host",
 		.enable = true,
 		.regbase = (void *)RKIO_USBHOST_PHYS,
 		.gpio_vbus = GPIO_BANK0 | GPIO_A4,
 	},
-#elif defined(RKUSB_UMS_BOOT_FROM_OTG)
+#elif defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG)
 	{
 		.name = "dwc2-otg",
 		.enable = true,
