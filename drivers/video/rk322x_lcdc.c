@@ -860,8 +860,10 @@ static int vop_config_timing(struct vop_device *vop_dev,
 		vop_msk_reg(vop_dev, DSP_VACT_ST_END_F1, val);
 		vop_msk_reg(vop_dev, DSP_CTRL0,
 			    V_DSP_INTERLACE(1) | V_DSP_FIELD_POL(0));
-		val = V_DSP_LINE_FLAG_NUM_0(vact_end_f1) |
-			V_DSP_LINE_FLAG_NUM_1(vact_end_f1);
+		val = V_DSP_LINE_FLAG_NUM_0(lower_margin ?
+					    vact_end_f1 : vact_end_f1 - 1);
+		val |= V_DSP_LINE_FLAG_NUM_1(lower_margin ?
+					     vact_end_f1 : vact_end_f1 - 1);
 		vop_msk_reg(vop_dev, LINE_FLAG, val);
 	} else {
 		val = V_DSP_VS_END(vsync_len) | V_DSP_VTOTAL(v_total);
