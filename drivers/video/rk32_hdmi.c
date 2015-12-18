@@ -802,7 +802,9 @@ static int rk32_hdmi_video_framecomposer(struct hdmi_dev *hdmi_dev,
 	hdmi_writel(hdmi_dev, FC_CTRLDUR, 12);
 	hdmi_writel(hdmi_dev, FC_EXCTRLDUR, 32);
 
-	hdmi_writel(hdmi_dev, FC_PRCONF, v_FC_PR_FACTOR(timing->pixelrepeat));
+	hdmi_writel(hdmi_dev, FC_PRCONF,
+		    v_FC_PR_FACTOR(timing->pixelrepeat) |
+		    v_FC_PR_FACTOR_OUT(timing->pixelrepeat - 1));
 
 	hdmi_msk_reg(hdmi_dev, A_VIDPOLCFG,
 		     m_DATAEN_POL | m_VSYNC_POL | m_HSYNC_POL,
