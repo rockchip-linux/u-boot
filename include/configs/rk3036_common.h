@@ -121,12 +121,12 @@
         "name=reserved,size=64K,uuid=${uuid_gpt_reserved};" \
         "name=misc,size=4M,uuid=${uuid_gpt_misc};" \
         "name=recovery,size=32M,uuid=${uuid_gpt_recovery};" \
-        "name=boot-a,size=32M,uuid=${uuid_gpt_boot-a};" \
-        "name=boot-b,size=32M,uuid=${uuid_gpt_boot-b};" \
-        "name=system-a,size=818M,uuid=${uuid_gpt_system-a};" \
-        "name=system-b,size=818M,uuid=${uuid_gpt_system-b};" \
-        "name=vendor-a,size=50M,uuid=${uuid_gpt_vendor-a};" \
-        "name=vendor-b,size=50M,uuid=${uuid_gpt_vendor-b};" \
+        "name=boot_a,size=32M,uuid=${uuid_gpt_boot_a};" \
+        "name=boot_b,size=32M,uuid=${uuid_gpt_boot_b};" \
+        "name=system_a,size=818M,uuid=${uuid_gpt_system_a};" \
+        "name=system_b,size=818M,uuid=${uuid_gpt_system_b};" \
+        "name=vendor_a,size=50M,uuid=${uuid_gpt_vendor_a};" \
+        "name=vendor_b,size=50M,uuid=${uuid_gpt_vendor_b};" \
         "name=cache,size=100M,uuid=${uuid_gpt_cache};" \
         "name=metadata,size=16M,uuid=${uuid_gpt_metadata};" \
         "name=persist,size=4M,uuid=${uuid_gpt_persist};" \
