@@ -225,10 +225,17 @@ static void boot_prep_linux(bootm_headers_t *images)
 		if (BOOTM_ENABLE_MEMORY_TAGS)
 			setup_memory_tags(gd->bd);
 		if (BOOTM_ENABLE_INITRD_TAG) {
+#ifdef CONFIG_SYS_BOOT_RAMDISK_HIGH
+			if (images->initrd_start && images->initrd_end) {
+				setup_initrd_tag(gd->bd, images->initrd_start,
+						 images->initrd_end);
+			}
+#else
 			if (images->rd_start && images->rd_end) {
 				setup_initrd_tag(gd->bd, images->rd_start,
 						 images->rd_end);
 			}
+#endif
 		}
 		setup_board_tags(&params);
 		setup_end_tag(gd->bd);
