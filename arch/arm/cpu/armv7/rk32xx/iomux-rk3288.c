@@ -19,10 +19,10 @@ static void rk_pwm_iomux_config(int pwm_id)
 		grf_writel((1 << 18) | (1 << 2), GRF_GPIO7A_IOMUX);
 		break;
 	case RK_PWM2_IOMUX:
-		grf_writel((1 << 24) | (1 << 8), GRF_GPIO7CH_IOMUX);
+		grf_writel((3 << 24) | (3 << 8), GRF_GPIO7CH_IOMUX);
 		break;
 	case RK_PWM3_IOMUX:
-		grf_writel((1 << 16) | 1, GRF_GPIO7CH_IOMUX);
+		grf_writel((7 << 28) | (3 << 12), GRF_GPIO7CH_IOMUX);
 		break;
 	default:
 		debug("pwm id = %d iomux error!\n", pwm_id);
@@ -38,16 +38,16 @@ static void rk_i2c_iomux_config(int i2c_id)
 		pmu_writel(pmu_readl(0x8c) | 1, 0x8c);
 		break;
 	case RK_I2C1_IOMUX:
-		grf_writel((1 << 26) | (1 << 24) | (1 << 10) | (1 << 8), GRF_GPIO8A_IOMUX);
-		break;
-	case RK_I2C2_IOMUX:
 		grf_writel((1 << 20) | (1 << 18) | (1 << 4) | (1 << 2), GRF_GPIO6B_IOMUX);
 		break;
+	case RK_I2C2_IOMUX:
+		grf_writel((1 << 26) | (1 << 24) | (1 << 10) | (1 << 8), GRF_GPIO8A_IOMUX);
+		break;
 	case RK_I2C3_IOMUX:
-		grf_writel((1 << 20) | (1 << 18) | (1 << 2) | 1, GRF_GPIO2C_IOMUX);
+		grf_writel((1 << 18) | (1 << 16) | (1 << 2) | 1, GRF_GPIO2C_IOMUX);
 		break;
 	case RK_I2C4_IOMUX:
-		grf_writel((1 << 28) | (1 << 26) | (1 << 12) | (1 << 10), GRF_GPIO1D_IOMUX);
+		grf_writel((1 << 24) | (1 << 20) | (1 << 8) | (1 << 4), GRF_GPIO7CL_IOMUX);
 		break;
 	case RK_I2C5_IOMUX:
 		grf_writel((3 << 28) | (1 << 12), GRF_GPIO7CL_IOMUX);
@@ -105,16 +105,17 @@ static void rk_uart_iomux_config(int uart_id)
 {
 	switch (uart_id) {
 	case RK_UART_BT_IOMUX:
-		grf_writel((0x55 << 16) | 0x55, GRF_GPIO4C_IOMUX);
+		grf_writel((0x5 << 16) | 0x5, GRF_GPIO4C_IOMUX);
 		break;
 	case RK_UART_BB_IOMUX:
-		grf_writel((0xff << 16) | 0x55, GRF_GPIO5B_IOMUX);
+		grf_writel((0xf << 16) | 0x05, GRF_GPIO5B_IOMUX);
 		break;
 	case RK_UART_DBG_IOMUX:
 		grf_writel((3 << 28) | (3 << 24) | (1 << 12) | (1 << 8), GRF_GPIO7CH_IOMUX);
 		break;
 	case RK_UART_GPS_IOMUX:
-		grf_writel((0xff << 16) | 0x55, GRF_GPIO7B_IOMUX);
+		grf_writel((0x3 << 30) | (0x1 << 14), GRF_GPIO7A_IOMUX);
+		grf_writel((0x3 << 16) | (0x1 << 0), GRF_GPIO7B_IOMUX);
 		break;
 	case RK_UART_EXP_IOMUX:
 		grf_writel((0xff << 24) | (0xff << 8), GRF_GPIO5B_IOMUX);
