@@ -93,6 +93,40 @@ static struct rkusb_hcd_cfg rkusb_hcd[] = {
 		.gpio_vbus = GPIO_BANK0 | GPIO_D1,
 	},
 #endif
+#elif defined(CONFIG_RKCHIP_RK322X)
+#if defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1)
+	{
+		.name = "ehci-host",
+		.enable = true,
+		.regbase = (void *)RKIO_USBHOST0_PHYS,
+		.gpio_vbus = GPIO_BANK3 | GPIO_C4,
+		.hw_init = inno_usb_phy_reset,
+	},
+#elif defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST2)
+	{
+		.name = "ehci-host",
+		.enable = true,
+		.regbase = (void *)RKIO_USBHOST1_PHYS,
+		.gpio_vbus = GPIO_BANK3 | GPIO_C4,
+		.hw_init = inno_usb_phy_reset,
+	},
+#elif defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST3)
+	{
+		.name = "ehci-host",
+		.enable = true,
+		.regbase = (void *)RKIO_USBHOST2_PHYS,
+		.gpio_vbus = GPIO_BANK3 | GPIO_C4,
+		.hw_init = inno_usb_phy_reset,
+	},
+#elif defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG)
+	{
+		.name = "dwc2-otg",
+		.enable = true,
+		.regbase = (void *)RKIO_USBOTG20_PHYS,
+		.gpio_vbus = GPIO_BANK3 | GPIO_C6,
+		.hw_init = inno_usb_phy_reset,
+	},
+#endif
 #else
 	#error: "PLS config chip for UMS!"
 #endif
@@ -112,6 +146,26 @@ static void inno_usb_phy_reset(void)
 	grf_writel(0x00030001, GRF_UOC0_CON5);
 	mdelay(10);
 	grf_writel(0x00030002, GRF_UOC0_CON5);
+#endif
+#if defined(CONFIG_RKCHIP_RK322X)
+	/* Phy PLL recovering */
+#if defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1)
+	grf_writel(0x00030001, GRF_USBPHY0_CON1);
+	mdelay(10);
+	grf_writel(0x00030002, GRF_USBPHY0_CON1);
+#elif defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST2)
+	grf_writel(0x00030001, GRF_USBPHY1_CON0);
+	mdelay(10);
+	grf_writel(0x00030002, GRF_USBPHY1_CON0);
+#elif defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST3)
+	grf_writel(0x00030001, GRF_USBPHY1_CON1);
+	mdelay(10);
+	grf_writel(0x00030002, GRF_USBPHY1_CON1);
+#elif defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG)
+	grf_writel(0x00030001, GRF_USBPHY0_CON0);
+	mdelay(10);
+	grf_writel(0x00030002, GRF_USBPHY0_CON0);
+#endif
 #endif
 }
 
