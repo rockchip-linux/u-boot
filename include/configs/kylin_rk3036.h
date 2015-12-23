@@ -10,6 +10,8 @@
 #include <linux/sizes.h>
 #include <configs/rk3036_common.h>
 
+#define PRODUCT_NAME			"Rockchip Kylin"
+#define BOOTLOADER_VERSION		"RK3036_BOOTLOADER_V4"
 #define DEFAULT_SERIAL_NUMBER		"0123456789ABCDEF"
 
 #ifndef CONFIG_SPL_BUILD
@@ -48,6 +50,7 @@
 
 #define BOOTARGS \
 	"androidboot.serialno=" DEFAULT_SERIAL_NUMBER \
+	" androidboot.bootloader=" BOOTLOADER_VERSION \
 	"\0"
 
 #undef CONFIG_EXTRA_ENV_SETTINGS

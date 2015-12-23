@@ -126,7 +126,20 @@ static struct usb_gadget_strings *fastboot_strings[] = {
 
 static void rx_handler_command(struct usb_ep *ep, struct usb_request *req);
 static int strcmp_l1(const char *s1, const char *s2);
+static int fastboot_tx_write_str(const char *buffer);
 
+void fastboot_info(const char *fmt, ...)
+{
+	char response[FASTBOOT_RESPONSE_LEN];
+	va_list args;
+
+	va_start(args, fmt);
+	strncpy(response, "INFO", 4);
+	vscnprintf(response + 4, FASTBOOT_RESPONSE_LEN - 4 - 1, fmt, args);
+	va_end(args);
+
+	fastboot_tx_write_str(response);
+}
 
 void fastboot_fail(char *response, const char *reason)
 {
@@ -345,6 +358,11 @@ static void compl_do_reset(struct usb_ep *ep, struct usb_request *req)
 	do_reset(NULL, 0, 0, NULL);
 }
 
+int __weak fb_locked(void)
+{
+	return -1;
+}
+
 int __weak fb_set_reboot_flag(void)
 {
 	return -ENOSYS;
@@ -509,6 +527,11 @@ static void cb_download(struct usb_ep *ep, struct usb_request *req)
 	char response[FASTBOOT_RESPONSE_LEN];
 	unsigned int max;
 
+	if (fb_locked() > 0) {
+		fastboot_tx_write_str("FAILdevice locked");
+		return;
+	}
+
 	strsep(&cmd, ":");
 	download_size = simple_strtoul(cmd, NULL, 16);
 	download_bytes = 0;
@@ -548,6 +571,11 @@ static void do_bootm_on_complete(struct usb_ep *ep, struct usb_request *req)
 
 static void cb_boot(struct usb_ep *ep, struct usb_request *req)
 {
+	if (fb_locked() > 0) {
+		fastboot_tx_write_str("FAILdevice locked");
+		return;
+	}
+
 	fastboot_func->in_req->complete = do_bootm_on_complete;
 	fastboot_tx_write_str("OKAY");
 }
@@ -568,6 +596,11 @@ static void cb_flash(struct usb_ep *ep, struct usb_request *req)
 {
 	char *cmd = req->buf;
 	char response[FASTBOOT_RESPONSE_LEN];
+
+	if (fb_locked() > 0) {
+		fastboot_tx_write_str("FAILdevice locked");
+		return;
+	}
 
 	strsep(&cmd, ":");
 	if (!cmd) {
@@ -595,6 +628,12 @@ static void cb_flash(struct usb_ep *ep, struct usb_request *req)
 static void cb_oem(struct usb_ep *ep, struct usb_request *req)
 {
 	char *cmd = req->buf;
+
+	if (fb_locked() > 0) {
+		fastboot_tx_write_str("FAILdevice locked");
+		return;
+	}
+
 #ifdef CONFIG_FASTBOOT_FLASH_MMC_DEV
 	if (strncmp("format", cmd + 4, 6) == 0) {
 		char cmdbuf[32];
@@ -619,6 +658,11 @@ static void cb_erase(struct usb_ep *ep, struct usb_request *req)
 {
 	char *cmd = req->buf;
 	char response[FASTBOOT_RESPONSE_LEN];
+
+	if (fb_locked() > 0) {
+		fastboot_tx_write_str("FAILdevice locked");
+		return;
+	}
 
 	strsep(&cmd, ":");
 	if (!cmd) {
@@ -663,10 +707,10 @@ static const struct cmd_dispatch_info cmd_dispatch_info[] = {
 	},
 #ifdef CONFIG_FASTBOOT_FLASH
 	{
-		.cmd = "flash",
+		.cmd = "flash:",
 		.cb = cb_flash,
 	}, {
-		.cmd = "erase",
+		.cmd = "erase:",
 		.cb = cb_erase,
 	},
 #endif

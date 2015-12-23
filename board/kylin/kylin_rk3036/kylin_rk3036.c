@@ -6,11 +6,13 @@
 
 #include <common.h>
 #include <config.h>
+
+#include <android_image.h>
 #include <dm.h>
+#include <fastboot.h>
+#include <image.h>
 #include <memalign.h>
 #include <part.h>
-#include <image.h>
-#include <android_image.h>
 #include <asm/io.h>
 #include <asm/arch/uart.h>
 #include <asm/arch-rockchip/grf_rk3036.h>
@@ -280,10 +282,10 @@ static int slot_get_bootable(void)
 	slot_get_part(0, &part_a);
 	slot_get_part(1, &part_b);
 
-	if (slot_is_bootable(&part_a) < 0)
+	if (slot_is_bootable(&part_a) >= 0)
 		slot = 0;
 
-	if (slot_is_bootable(&part_b) < 0) {
+	if (slot_is_bootable(&part_b) >= 0) {
 		if (SLOT_IS_ERR(slot))
 			slot = 1;
 		if (part_b.attr.fields.priority > part_a.attr.fields.priority)
@@ -381,9 +383,102 @@ static int strcmp_l1(const char *s1, const char *s2)
 	return strncmp(s1, s2, strlen(s1));
 }
 
+int fb_locked(void)
+{
+	return getenv_yesno("fb_lock");
+}
+
+#define FASTBOOT_ENABLE_UNLOCK 0
+int fb_lock(int lock)
+{
+#if FASTBOOT_ENABLE_UNLOCK
+	if (!lock && fb_locked())
+		return -1;
+#endif
+
+	setenv("fb_lock", lock ? "1" : "0");
+	saveenv();
+	return 1;
+}
+
+void fb_getvar_all(char* response, size_t chars_left)
+{
+	fastboot_info("product: " PRODUCT_NAME);
+	fastboot_info("bootloader-version: " BOOTLOADER_VERSION);
+	fastboot_info("version-baseband: N/A");
+	fastboot_info("variant: ");
+	fastboot_info("off-mode-charge: 0");
+	fastboot_info("battery-voltage: 0mV");
+	fastboot_info("battery-soc-ok: yes");
+	fastboot_info("secure: %s", fb_locked() ? "yes" : "no");
+	fastboot_info("unlocked: %s", !fb_locked() ? "yes" : "no");
+	fastboot_info("slot-suffixes: " ALL_SLOTS);
+	fastboot_info("current-slot: %s", SLOT_NAME(slot_get_current()));
+
+	if (dev_desc) {
+		slot_partition part;
+		disk_partition_t info;
+		int i;
+		int slot;
+
+		for (i = 1; i < GPT_ENTRY_NUMBERS; i++) {
+			if (get_partition_info_efi(dev_desc, i, &info) < 0)
+				break;
+			fastboot_info("partition-size:%s: %016lx", info.name, info.size);
+			fastboot_info("partition-type:%s: raw", info.name);
+
+			if (strcmp_l1("boot", (const char *)info.name) != 0)
+				continue;
+
+			slot = !!strcmp(SLOT_BOOT_A, (const char *)info.name);
+
+			slot_get_part(slot, &part);
+
+			fastboot_info("slot-successful:%s: %s", info.name,
+					part.attr.fields.successful ? "yes" : "no");
+			fastboot_info("slot-unbootable:%s: %s", info.name,
+					slot_is_bootable(&part) < 0 ? "yes" : "no");
+			fastboot_info("slot-retry-count:%s: %d", info.name,
+					part.attr.fields.tries);
+		}
+	}
+}
+
 int fb_getvar(char *cmd, char* response, size_t chars_left)
 {
-	if (!strcmp_l1("has-slot:", cmd)) {
+	if (!strcmp_l1("version", cmd)) {
+		strncat(response, "0.4", chars_left);
+	} else if (!strcmp_l1("bootloader-version", cmd)) {
+		strncat(response, BOOTLOADER_VERSION, chars_left);
+	} else if (!strcmp_l1("all", cmd)) {
+		fb_getvar_all(response, chars_left);
+	} else if (!strcmp_l1("product", cmd)) {
+		strncat(response, PRODUCT_NAME, chars_left);
+	} else if (!strcmp_l1("bootloader-version", cmd)) {
+		strncat(response, BOOTLOADER_VERSION, chars_left);
+	} else if (!strcmp_l1("version-baseband", cmd)) {
+		strncat(response, "N/A", chars_left);
+	} else if (!strcmp_l1("variant", cmd)) {
+		strncat(response, "\0", chars_left);
+	} else if (!strcmp_l1("off-mode-charge", cmd)) {
+		strncat(response, "0", chars_left);
+	} else if (!strcmp_l1("battery-voltage", cmd)) {
+		strncat(response, "0mV", chars_left);
+	} else if (!strcmp_l1("battery-soc-ok", cmd)) {
+		strncat(response, "yes", chars_left);
+	} else if (!strcmp_l1("secure", cmd)) {
+		strncat(response, fb_locked() ? "yes" : "no", chars_left);
+	} else if (!strcmp_l1("unlocked", cmd)) {
+		strncat(response, !fb_locked() ? "yes" : "no", chars_left);
+	} else if (!strcmp_l1("partition-type:", cmd)) {
+		strncat(response, "raw", chars_left);
+	} else if (!strcmp_l1("downloadsize", cmd) ||
+			!strcmp_l1("max-download-size", cmd)) {
+		char str_num[12];
+
+		sprintf(str_num, "0x%08x", CONFIG_FASTBOOT_BUF_SIZE);
+		strncat(response, str_num, chars_left);
+	} else if (!strcmp_l1("has-slot:", cmd)) {
 		strsep(&cmd, ":");
 		if (slot_has_slot(cmd, 0) < 0 || slot_has_slot(cmd, 1) < 0)
 			strncat(response, "no", chars_left);
@@ -417,7 +512,9 @@ int fb_getvar(char *cmd, char* response, size_t chars_left)
 		strncat(response, simple_itoa(part.attr.fields.tries), chars_left);
 	} else if (!strcmp_l1("current-slot", cmd)) {
 		strncat(response, SLOT_NAME(slot_get_current()), chars_left);
-	}
+	} else
+		return -1;
+
 	return 0;
 }
 
@@ -435,11 +532,25 @@ int fb_unknown_command(char *cmd, char* response, size_t chars_left)
 			strcpy(response, "OKAY");
 		} else
 			strcpy(response, "FAIL");
+	} else if (!strcmp_l1("flashing", cmd)) {
+		strsep(&cmd, " ");
 
-		return 0;
-	}
+		if (!strcmp_l1("get_unlock_ability", cmd)) {
+			strcpy(response, "OKAY0");
+		} else if (!strcmp_l1("unlock_critical", cmd)) {
+			strcpy(response, "OKAY");
+		} else if (!strcmp_l1("lock_critical", cmd)) {
+			strcpy(response, "FAIL");
+		} else if (!strcmp_l1("unlock", cmd)) {
+			strcpy(response, (fb_lock(0) < 0) ? "FAIL" : "OKAY");
+		} else if (!strcmp_l1("lock", cmd)) {
+			strcpy(response, (fb_lock(1) < 0) ? "FAIL" : "OKAY");
+		} else
+			return -1;
+	} else
+		return -1;
 
-	return -1;
+	return 0;
 }
 
 int board_init(void)
