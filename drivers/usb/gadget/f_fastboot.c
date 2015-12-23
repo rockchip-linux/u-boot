@@ -390,7 +390,7 @@ static void cb_getvar(struct usb_ep *ep, struct usb_request *req)
 	if (!strcmp_l1("version", cmd)) {
 		strncat(response, FASTBOOT_VERSION, chars_left);
 	} else if (!strcmp_l1("bootloader-version", cmd)) {
-		strncat(response, U_BOOT_VERSION, chars_left);
+		strncat(response, "RK3036_BOOTLOADER_V1", chars_left);
 	} else if (!strcmp_l1("downloadsize", cmd) ||
 		!strcmp_l1("max-download-size", cmd)) {
 		char str_num[12];
