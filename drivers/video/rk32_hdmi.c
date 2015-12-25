@@ -693,24 +693,34 @@ static int rk32_hdmi_video_framecomposer(struct hdmi_dev *hdmi_dev,
 		hdmi_dev->tmdsclk = mode->pixclock / 2;
 	else
 		hdmi_dev->tmdsclk = mode->pixclock;
-	switch (vpara->color_output_depth) {
-	case 10:
-		hdmi_dev->tmdsclk += hdmi_dev->tmdsclk / 4;
-		break;
-	case 12:
-		hdmi_dev->tmdsclk += hdmi_dev->tmdsclk / 2;
-		break;
-	case 16:
-		hdmi_dev->tmdsclk += hdmi_dev->tmdsclk;
-		break;
-	case 8:
-	default:
-		break;
+	if (vpara->color_output != HDMI_COLOR_YCBCR422) {
+		switch (vpara->color_output_depth) {
+		case 10:
+			hdmi_dev->tmdsclk += hdmi_dev->tmdsclk / 4;
+			break;
+		case 12:
+			hdmi_dev->tmdsclk += hdmi_dev->tmdsclk / 2;
+			break;
+		case 16:
+			hdmi_dev->tmdsclk += hdmi_dev->tmdsclk;
+			break;
+		case 8:
+		default:
+			break;
+		}
+	} else if (vpara->color_output_depth > 12) {
+		/* YCbCr422 mode only support up to 12bit */
+		vpara->color_output_depth = 12;
 	}
 
-	if (hdmi_dev->tmdsclk > 594000000) {
+	if ((hdmi_dev->tmdsclk > 594000000) ||
+	    (hdmi_dev->tmdsclk > 340000000 &&
+	     hdmi_dev->tmdsclk > hdmi_dev->driver.edid.maxtmdsclock)) {
 		vpara->color_output_depth = 8;
-		hdmi_dev->tmdsclk = mode->pixclock;
+		if (vpara->color_input == HDMI_COLOR_YCBCR420)
+			hdmi_dev->tmdsclk = mode->pixclock / 2;
+		else
+			hdmi_dev->tmdsclk = mode->pixclock;
 	}
 	printf("pixel clk is %u tmds clk is %lu\n",
 	       mode->pixclock, hdmi_dev->tmdsclk);
@@ -721,7 +731,13 @@ static int rk32_hdmi_video_framecomposer(struct hdmi_dev *hdmi_dev,
 
 	hdmi_dev->pixelclk = mode->pixclock;
 	hdmi_dev->pixelrepeat = timing->pixelrepeat;
-	hdmi_dev->colordepth = vpara->color_output_depth;
+	/* hdmi_dev->colordepth is used for find pll config.
+	 * For YCbCr422, tmdsclk is same on all color depth.
+	 */
+	if (vpara->color_output == HDMI_COLOR_YCBCR422)
+		hdmi_dev->colordepth = 8;
+	else
+		hdmi_dev->colordepth = vpara->color_output_depth;
 
 	hdmi_msk_reg(hdmi_dev, FC_INVIDCONF,
 		     m_FC_HDCP_KEEPOUT, v_FC_HDCP_KEEPOUT(1));
@@ -817,7 +833,7 @@ static int rk32_hdmi_video_framecomposer(struct hdmi_dev *hdmi_dev,
 static int rk32_hdmi_video_packetizer(struct hdmi_dev *hdmi_dev,
 				      struct hdmi_video *vpara)
 {
-	unsigned char color_depth = 0;
+	unsigned char color_depth = COLOR_DEPTH_24BIT_DEFAULT;
 	unsigned char output_select = 0;
 	unsigned char remap_size = 0;
 
@@ -861,12 +877,10 @@ static int rk32_hdmi_video_packetizer(struct hdmi_dev *hdmi_dev,
 			output_select = OUT_FROM_8BIT_BYPASS;
 			break;
 		}
-
-		/*Config Color Depth*/
-		hdmi_msk_reg(hdmi_dev, VP_PR_CD,
-			     m_COLOR_DEPTH, v_COLOR_DEPTH(color_depth));
 	}
-
+	/*Config Color Depth*/
+	hdmi_msk_reg(hdmi_dev, VP_PR_CD,
+		     m_COLOR_DEPTH, v_COLOR_DEPTH(color_depth));
 	/*Config pixel repettion*/
 	hdmi_msk_reg(hdmi_dev, VP_PR_CD, m_DESIRED_PR_FACTOR,
 		     v_DESIRED_PR_FACTOR(hdmi_dev->pixelrepeat - 1));
