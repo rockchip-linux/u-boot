@@ -919,6 +919,11 @@ static void vop_bcsh_path_sel(struct vop_device *vop_dev)
 	}
 }
 
+uint8 rockchip_get_cpu_version(void)
+{
+	return rk_get_cpu_version();
+}
+
 int rk_lcdc_load_screen(vidinfo_t *vid)
 {
 	struct vop_device *vop_dev = &rk322x_vop;
@@ -933,14 +938,49 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 
 	switch (screen->face) {
 	case OUT_P888:
+		if (rockchip_get_cpu_version()) {
+			face = OUT_P101010;
+			val = V_DITHER_DOWN_EN(0) | V_DITHER_UP_EN(0)
+				| V_PRE_DITHER_DOWN_EN(1);
+			break;
+		}
+
 		face = OUT_P888;
-		val = V_DITHER_DOWN_EN(0);
+		val = V_DITHER_DOWN_EN(0) | V_DITHER_UP_EN(0)
+			| V_PRE_DITHER_DOWN_EN(0);
 		break;
 	case OUT_YUV_420:
-		/*yuv420 output prefer yuv domain overlay */
-		face = OUT_YUV_420;
-		dclk_ddr = 1;
-		val = V_DITHER_DOWN_EN(0);
+		if (rockchip_get_cpu_version()) {
+			face = OUT_YUV_420;
+			val = V_DITHER_DOWN_EN(0) | V_DITHER_UP_EN(0)
+				| V_PRE_DITHER_DOWN_EN(1);
+			break;
+		}
+		dev_err(vop_dev->dev,
+				"This chip can't supported screen face[%d]\n",
+				screen->face);
+		break;
+	case OUT_YUV_420_10BIT:
+		if (rockchip_get_cpu_version()) {
+			face = OUT_YUV_420;
+			val = V_DITHER_DOWN_EN(0) | V_DITHER_UP_EN(0)
+				| V_PRE_DITHER_DOWN_EN(0);
+			break;
+		}
+		dev_err(vop_dev->dev,
+				"This chip can't supported screen face[%d]\n",
+				screen->face);
+		break;
+	case OUT_P101010:
+		if (rockchip_get_cpu_version()) {
+			face = OUT_P101010;
+			val = V_DITHER_DOWN_EN(0) | V_DITHER_UP_EN(0)
+				| V_PRE_DITHER_DOWN_EN(0);
+			break;
+		}
+		dev_err(vop_dev->dev,
+				"This chip can't supported screen face[%d]\n",
+				screen->face);
 		break;
 	default:
 		dev_err(vop_dev->dev, "un supported interface!\n");
