@@ -129,6 +129,28 @@ static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
 }
 #endif
 
+static uint8 g_gic_cpumask = 1;
+static uint32 gic_get_cpumask(void)
+{
+	uint32 mask = 0, i;
+
+	for (i = mask = 0; i < 32; i += 4) {
+		mask = g_gicdReg->itargetsr[i];
+		mask |= mask >> 16;
+		mask |= mask >> 8;
+		if (mask)
+			break;
+	}
+
+	if (!mask)
+		printf("GIC CPU mask not found.\n");
+
+	debug("GIC CPU mask = 0x%08x\n", mask);
+
+	return mask;
+}
+
+
 /* enable irq handler */
 static int gic_handler_enable(int irq)
 {
@@ -143,7 +165,8 @@ static int gic_handler_enable(int irq)
 	N = irq % 32;
 	g_giccReg->iccicr &= (~0x08);
 	g_gicdReg->icdiser[M] = (0x1 << N);
-	g_gicdReg->itargetsr[offset] |= (1 << shift);
+	g_gicdReg->itargetsr[offset] &= ~(0xFF << shift);
+	g_gicdReg->itargetsr[offset] |= (g_gic_cpumask << shift);
 
 	return 0;
 }
@@ -215,6 +238,9 @@ static void gic_irq_init(void)
 	int_enable_secure_signal();
 	int_enable_nosecure_signal();
 	int_enable_distributor();
+
+	g_gic_cpumask = gic_get_cpumask();
+	printf("GIC CPU mask = 0x%08x\n", g_gic_cpumask);
 }
 
 static struct irq_chip gic_irq_chip = {

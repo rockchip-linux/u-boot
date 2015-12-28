@@ -201,7 +201,9 @@ static int gic_handler_enable(int irq)
 
 	writel(0x1 << N, RKIO_GICD_PHYS + GICD_ISENABLER + 4 * M);
 	reg = readl(RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
-	writel(reg | (g_gic_cpumask << shift), RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
+	reg &= ~(0xFF << shift);
+	reg |= (g_gic_cpumask << shift);
+	writel(reg, RKIO_GICD_PHYS + GICD_ITARGETSR + 4 * offset);
 
 	return 0;
 }
