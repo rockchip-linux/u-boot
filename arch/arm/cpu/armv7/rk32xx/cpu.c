@@ -10,6 +10,11 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_RK_EFUSE
+extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
+#endif
+
+
 #ifndef CONFIG_SYS_DCACHE_OFF
 void enable_caches(void)
 {
@@ -95,6 +100,26 @@ int rk_get_chiptype(void)
 	return RKCHIP_UNKNOWN;
 }
 
+/* get cpu eco version */
+static uint8 rk_get_cpu_eco_version(void)
+{
+	uint8 cpu_version;
+
+	cpu_version = 0;
+#ifdef CONFIG_RK_EFUSE
+#if defined(CONFIG_RKCHIP_RK322X)
+	FtEfuseRead((void *)(unsigned long)RKIO_EFUSE_256BITS_PHYS, &cpu_version, 6, 1);
+	cpu_version = (cpu_version >> 4) & 0x3;
+#endif
+#endif /* CONFIG_RK_EFUSE */
+
+	return cpu_version;
+}
+
+uint8 rk_get_cpu_version(void)
+{
+	return (uint8)gd->arch.cpuversion;
+}
 
 /* cpu axi qos priority */
 #define CPU_AXI_QOS_PRIORITY    0x08
@@ -213,6 +238,10 @@ int print_cpuinfo(void)
 	if (gd->arch.chiptype == CONFIG_RK322X)
 		printf("CPU: rk322x\n");
 #endif
+
+	/* get cpu eco version */
+	gd->arch.cpuversion = rk_get_cpu_eco_version();
+	printf("cpu version = %ld\n", gd->arch.cpuversion);
 
 	rkclk_get_pll();
 	rkclk_dump_pll();

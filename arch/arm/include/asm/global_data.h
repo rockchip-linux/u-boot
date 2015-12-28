@@ -29,6 +29,7 @@ struct arch_global_data {
 
 #ifdef CONFIG_ROCKCHIP
 	unsigned long	chiptype;
+	unsigned long	cpuversion;
 #ifdef CONFIG_RK_FB_DDREND
 	unsigned long	ddr_end;
 #endif
