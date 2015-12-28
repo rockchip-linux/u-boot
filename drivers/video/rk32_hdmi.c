@@ -1795,6 +1795,9 @@ void rk32_hdmi_probe(vidinfo_t *panel)
 				    SUPPORT_YCBCR_INPUT |
 				    SUPPORT_1080I |
 				    SUPPORT_480I_576I;
+		if (rk_get_cpu_version())
+			hdmi_dev->feature |= SUPPORT_YUV420 |
+					     SUPPORT_DEEP_10BIT;
 		strcpy(hdmi_dev->compatible, "rockchip,rk322x-hdmi");
 		#endif
 		rk_hdmi_register(hdmi_dev, panel);
