@@ -102,8 +102,10 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 				frt = FASTBOOT_REBOOT_NORMAL;
 				break;
 			case BOOT_LOADER:
+#ifdef CONFIG_CMD_ROCKUSB
 				printf("reboot to rockusb.\n");
 				do_rockusb(NULL, 0, 0, NULL);
+#endif
 				break;
 #ifdef CONFIG_CMD_FASTBOOT
 			case BOOT_FASTBOOT:
@@ -159,11 +161,13 @@ int board_fbt_key_pressed(void)
 #if defined(CONFIG_RK_PWM_REMOTE)
 		RemotectlDeInit();//close remote intterrupt  after rockusb key pressed
 #endif
+#ifdef CONFIG_CMD_ROCKUSB
 		/* rockusb key press, set flag = 1 for rockusb timeout check */
 		if (do_rockusb(NULL, 1, 0, NULL) == 1) {
 			/* if rockusb return 1, boot recovery */
 			frt = FASTBOOT_REBOOT_RECOVERY;
 		}
+#endif
 #ifdef CONFIG_CMD_FASTBOOT
 	} else if(boot_fastboot && (vbus!=0)) {
 		printf("fastboot key pressed.\n");
@@ -209,8 +213,10 @@ void board_fbt_boot_failed(const char* boot)
 		do_bootrk(NULL, 0, ARRAY_SIZE(boot_cmd), boot_cmd);
 	}  
 #endif
+#ifdef CONFIG_CMD_ROCKUSB
 	printf("try to start rockusb\n");
 	do_rockusb(NULL, 0, 0, NULL);
+#endif
 }
 
 
