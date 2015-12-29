@@ -125,7 +125,11 @@ static inline bool pmu_power_domain_is_on(enum pmu_power_domain_st pd)
 
 static inline void pmu_set_power_domain(enum pmu_power_domain pd)
 {
-	writel((1<<pd), RKIO_PMU_PHYS + PMU_PWRDN_CON);
+	uint32 con;
+
+	con = readl(RKIO_PMU_PHYS + PMU_PWRDN_CON);
+	con |= (1 << pd);
+	writel(con, RKIO_PMU_PHYS + PMU_PWRDN_CON);
 }
 
 
