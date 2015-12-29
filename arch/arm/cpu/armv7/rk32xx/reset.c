@@ -14,9 +14,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define RKRESET_VERSION		"1.3"
 
 extern void FW_NandDeInit(void);
+extern void SDCReset(uint32 sdmmcId);
 
-
-void rk_module_deinit(void)
+static void rk_i2c_deinit(void)
 {
 #ifdef CONFIG_RK_I2C
 
@@ -36,14 +36,31 @@ void rk_module_deinit(void)
 #endif
 
 #endif /* CONFIG_RK_I2C */
+}
+
+static void rk_mmc_deinit(void)
+{
+#ifdef CONFIG_RK_SDCARD_BOOT_EN
+	SDCReset(0);
+	irq_handler_disable(IRQ_SDMMC);
+#endif
+	/* emmc disable tunning */
+	rkclk_disable_mmc_tuning(2);
+}
+
+
+void rk_module_deinit(void)
+{
+	/* i2c deinit */
+	rk_i2c_deinit();
+
+	/* mmc deinit */
+	rk_mmc_deinit();
 
 	/* rk pl330 dmac deinit */
 #ifdef CONFIG_RK_PL330_DMAC
 	rk_pl330_dmac_deinit_all();
 #endif /* CONFIG_RK_PL330_DMAC */
-
-	/* emmc disable tunning */
-	rkclk_disable_mmc_tuning(2);
 }
 
 
