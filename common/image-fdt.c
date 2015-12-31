@@ -379,6 +379,10 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 				       (long)fdt_addr);
 			}
 			break;
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+		case IMAGE_FORMAT_ANDROID:
+			goto no_fdt;
+#endif
 		default:
 			puts("ERROR: Did not find a cmdline Flattened Device Tree\n");
 			goto no_fdt;
