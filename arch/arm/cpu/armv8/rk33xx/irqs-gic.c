@@ -112,9 +112,9 @@ static int gic_irq_set_trig(int irq, eINT_TRIG ntrig)
 	return 0;
 }
 
-#if 0
+
 /* irq set pending */
-static int gic_irq_set_pending(int irq)
+__maybe_unused static int gic_irq_set_pending(int irq)
 {
 	uint32 M, N;
 
@@ -130,14 +130,13 @@ static int gic_irq_set_pending(int irq)
 
 
 /* irq clear pending */
-static int gic_irq_clear_pending(int irq)
+__maybe_unused static int gic_irq_clear_pending(int irq)
 {
 	uint32 M, N;
 
 	if (irq >= NR_GIC_IRQS)
 		return -1;
 
-	debug("gic_irq_clear_pending: irq = %d.\n", irq);
 	M = irq / 32;
 	N = irq % 32;
 	writel(0x1 << N, RKIO_GICD_PHYS + GICD_ICPENDR + 4 * M);
@@ -146,7 +145,7 @@ static int gic_irq_clear_pending(int irq)
 }
 
 
-static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
+__maybe_unused static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
 {
 	uint32 M, N;
 
@@ -159,7 +158,7 @@ static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
 
 	return 0;
 }
-#endif
+
 
 static uint8 g_gic_cpumask = 1;
 static void gic_get_cpumask(void)
