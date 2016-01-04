@@ -39,6 +39,9 @@
 	"mmcpart=5\0" \
 	"loadaddr=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 
+#define CONFIG_BOARD_LATE_INIT
+#define CONFIG_PREBOOT
+
 #define CONFIG_ANDROID_BOOT_IMAGE
 #define CONFIG_SYS_HUSH_PARSER
 
