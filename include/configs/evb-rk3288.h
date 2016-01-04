@@ -43,5 +43,28 @@
 #undef CONFIG_EXTRA_ENV_SETTINGS
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"partitions=" PARTS_DEFAULT \
+	"mmcdev=0\0" \
+	"mmcpart=5\0" \
+	"loadaddr=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+
+#define CONFIG_ANDROID_BOOT_IMAGE
+#define CONFIG_SYS_BOOT_RAMDISK_HIGH
+#define CONFIG_SYS_HUSH_PARSER
+
+#undef CONFIG_BOOTCOMMAND
+#define CONFIG_BOOTCOMMAND \
+	"mmc dev ${mmcdev}; if mmc rescan; then " \
+		"part start mmc ${mmcdev} ${mmcpart} boot_start;" \
+		"part size mmc ${mmcdev} ${mmcpart} boot_size;" \
+		"mmc read ${loadaddr} ${boot_start} ${boot_size};" \
+		"bootm start ${loadaddr}; bootm ramdisk;" \
+		"bootm prep; bootm go;" \
+	"fi;" \
+
+/* Enable atags */
+#define CONFIG_SYS_BOOTPARAMS_LEN	(64*1024)
+#define CONFIG_INITRD_TAG
+#define CONFIG_SETUP_MEMORY_TAGS
+#define CONFIG_CMDLINE_TAG
 
 #endif
