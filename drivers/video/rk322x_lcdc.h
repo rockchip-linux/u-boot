@@ -1262,8 +1262,7 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define OUT_CCIR656_MODE_2              7
 
 #define ARGB888_VIRWIDTH(x)		(((x) & 0x3fff) << 0)
-#define RGB888_VIRWIDTH(x)		(((((x * 3) >> 2) + \
-						((x) % 3)) & 0x3fff) << 0)
+#define RGB888_VIRWIDTH(x)		((((x) * 3 + 3) >> 2) & 0x3fff)
 #define RGB565_VIRWIDTH(x)		(((x >> 1) & 0x3fff) << 0)
 #define YUV_VIRWIDTH(x)			(((x >> 2) & 0x3fff) << 0)
 

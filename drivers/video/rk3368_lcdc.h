@@ -438,7 +438,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define m_WIN0_VIR_STRIDE_UV			(0xffff<<16)
 
 #define v_ARGB888_VIRWIDTH(x)		(((x)&0x3fff)<<0)
-#define v_RGB888_VIRWIDTH(x) 		(((((x*3)>>2)+((x)%3)) & 0x3fff) << 0)
+#define v_RGB888_VIRWIDTH(x) 		((((x) * 3 + 3) >> 2) & 0x3fff)
 #define v_RGB565_VIRWIDTH(x)		(((x >> 1) & 0x3fff) << 0)
 #define v_YUV_VIRWIDTH(x)		(((x >> 2) & 0x3fff) << 0)
 

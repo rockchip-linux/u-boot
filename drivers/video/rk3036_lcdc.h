@@ -260,7 +260,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define v_CBBR_VIR(x)           BITS_MASK(x, 0x1fff, 16)
 
 #define v_ARGB888_VIRWIDTH(x)	BITS_MASK(x, 0x1fff, 0)
-#define v_RGB888_VIRWIDTH(x) 	BITS_MASK(((x*3)>>2)+((x)%3), 0x1fff, 0)
+#define v_RGB888_VIRWIDTH(x) 	BITS_MASK(((x) * 3 + 3) >> 2, 0x1fff, 0)
 #define v_RGB565_VIRWIDTH(x)	BITS_MASK(DIV_ROUND_UP(x, 2), 0x1fff, 0)
 #define v_YUV_VIRWIDTH(x)	BITS_MASK(DIV_ROUND_UP(x, 4), 0x1fff, 0)
 #define v_CBCR_VIR(x)		BITS_MASK(x, 0x1fff, 16)
