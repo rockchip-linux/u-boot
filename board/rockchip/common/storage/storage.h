@@ -61,10 +61,12 @@ extern  int32 StorageInit(void);
 extern  uint32 StorageVendorSysDataLoad(uint32 offset, uint32 len, uint32 *Buf);
 extern  uint32 StorageVendorSysDataStore(uint32 offset, uint32 len, uint32 *Buf);
 #ifdef RK_SDCARD_BOOT_EN
-extern  uint32 StorageSDCardUpdateMode(void);
+extern  bool StorageSDCardUpdateMode(void);
+extern	bool StorageSDCardBootMode(void);
 #endif
 #ifdef RK_UMS_BOOT_EN
-extern uint32 StorageUMSUpdateMode(void);
+extern	bool StorageUMSUpdateMode(void);
+extern	bool StorageUMSBootMode(void);
 #endif
 
 //local memory operation function

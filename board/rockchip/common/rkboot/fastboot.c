@@ -128,12 +128,21 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 		}
 	}
 
+	/* Normal boot mode */
+	if (reboot_mode == BOOT_NORMAL) {
 #ifdef CONFIG_RK_SDCARD_BOOT_EN
-	if ((reboot_mode == BOOT_NORMAL) && (StorageSDCardUpdateMode() != 0)) {
-		// Normal boot mode, when detect sd card update£¬audo entern recovery
-		frt = FASTBOOT_REBOOT_RECOVERY;
-	}
+		if (StorageSDCardUpdateMode()) {
+			/* detect sd card update, audo entern recovery */
+			frt = FASTBOOT_REBOOT_RECOVERY;
+		}
 #endif
+#ifdef CONFIG_RK_UMS_BOOT_EN
+		if (StorageUMSUpdateMode()) {
+			/* detect ums update, audo entern recovery */
+			frt = FASTBOOT_REBOOT_RECOVERY;
+		}
+#endif
+	}
 
 	return frt;
 }
@@ -461,14 +470,14 @@ void board_fbt_preboot(void)
 
 	if (frt == FASTBOOT_REBOOT_RECOVERY) {
 		FBTDBG("\n%s: starting recovery img because of reboot flag\n", __func__);
-		return board_fbt_run_recovery();
+		board_fbt_run_recovery();
 	} else if (frt == FASTBOOT_REBOOT_RECOVERY_WIPE_DATA) {
 		FBTDBG("\n%s: starting recovery img to wipe data "
 				"because of reboot flag\n", __func__);
 		/* we've not initialized most of our state so don't
 		 * save env in this case
 		 */
-		return board_fbt_run_recovery_wipe_data();
+		board_fbt_run_recovery_wipe_data();
 	}
 #ifdef CONFIG_CMD_FASTBOOT
 	else if (frt == FASTBOOT_REBOOT_FASTBOOT) {

@@ -451,25 +451,37 @@ int StorageReadId(void *pbuf)
 }
 
 #ifdef RK_SDCARD_BOOT_EN
-uint32 StorageSDCardUpdateMode(void)
+bool StorageSDCardUpdateMode(void)
 {
 	if ((StorageGetBootMedia() == BOOT_FROM_SD0) && (SdmmcGetSDCardBootMode() == SDMMC_SDCARD_UPDATE))
-	{
-		return 1;
-	}
+		return true;
 
-	return 0;
+	return false;
+}
+
+bool StorageSDCardBootMode(void)
+{
+	if ((StorageGetBootMedia() == BOOT_FROM_SD0) && (SdmmcGetSDCardBootMode() == SDMMC_SDCARD_BOOT))
+		return true;
+
+	return false;
 }
 #endif
 
 #ifdef RK_UMS_BOOT_EN
-uint32 StorageUMSUpdateMode(void)
+bool StorageUMSUpdateMode(void)
 {
 	if ((StorageGetBootMedia() == BOOT_FROM_UMS) && (UMSGetBootMode() == UMS_UPDATE))
-	{
-		return 1;
-	}
+		return true;
 
-	return 0;
+	return false;
+}
+
+bool StorageUMSBootMode(void)
+{
+	if ((StorageGetBootMedia() == BOOT_FROM_UMS) && (UMSGetBootMode() == UMS_BOOT))
+		return true;
+
+	return false;
 }
 #endif

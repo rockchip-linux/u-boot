@@ -424,14 +424,14 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 	}
 
 #ifdef CONFIG_RK_SDCARD_BOOT_EN
-	if (StorageSDCardUpdateMode() != 0) { // sd ¿¨Éý¼¶£¬½øÈërecovery
+	if (StorageSDCardUpdateMode()) { /* sdcard undate */
 		snprintf(command_line, sizeof(command_line),
 				"%s %s", command_line, "sdfwupdate");
 	}
 #endif
 
 #ifdef CONFIG_RK_UMS_BOOT_EN
-	if (StorageUMSUpdateMode() != 0) { // ums update
+	if (StorageUMSUpdateMode()) { /* ums update */
 		snprintf(command_line, sizeof(command_line),
 				"%s %s", command_line, "usbfwupdate");
 	}
