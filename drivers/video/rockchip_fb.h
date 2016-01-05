@@ -91,6 +91,7 @@ struct rk_lcdc_win_area {
 struct rk_lcdc_win {
 	u8 state;
 	u8 fmt_10;
+	u8 rb_swap;
 
 	u32 scale_yrgb_x;
 	u32 scale_yrgb_y;
@@ -116,6 +117,8 @@ struct rk_lcdc_win {
 	u8 vsd_cbr_gt2;
 
 	u8  mirror_en;
+	u8 xmirror;
+	u8 ymirror;
 	u8 csc_mode;
 	struct rk_lcdc_win_area area[1];
 };

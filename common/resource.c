@@ -287,7 +287,11 @@ bool show_resource_image(const char* image_path) {
 
 	if(ptn)
 	{
+#ifdef CONFIG_DIRECT_LOGO
+		bmp = lcd_get_buffer();
+#else
 		bmp = (void *)gd->arch.rk_boot_buf_addr;
+#endif
 		read_storage(ptn->start, bmp, CONFIG_MAX_BMP_BLOCKS);
 		debug("bmp image at 0x%p, sign:%c%c\n", bmp, bmp->header.signature[0], bmp->header.signature[1]);
 	}
@@ -310,7 +314,11 @@ bool show_resource_image(const char* image_path) {
 				return false;
 			}
 
+#ifdef CONFIG_DIRECT_LOGO
+			image.load_addr = lcd_get_buffer();
+#else
 			image.load_addr = (void *)gd->arch.rk_boot_buf_addr;
+#endif
 			if (!load_content_data(&image, 0, image.load_addr, blocks)) {
 				return false;
 			}

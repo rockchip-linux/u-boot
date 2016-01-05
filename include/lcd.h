@@ -279,6 +279,8 @@ struct fb_dsp_info{
 	u16 yact;
 	u16 xvir;       //virtual width/height     -->LCDC_WINx_VIR
 	u16 yvir;
+	u8 xmirror;
+	u8 ymirror;
 };
 struct layer_par {
 	int id;

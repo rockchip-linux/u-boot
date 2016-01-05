@@ -412,6 +412,17 @@ __weak int lcd_get_size(int *line_length)
 	return *line_length * panel_info.vl_row;
 }
 
+void *lcd_get_buffer(void)
+{
+	void *buffer = (void *)gd->fb_base;
+	int offset = CONFIG_RK_FB_SIZE;
+
+	if (lcd_flip && lcd_base <= buffer + offset)
+		return buffer + offset;
+
+	return buffer;
+}
+
 #ifdef CONFIG_ROCKCHIP
 void lcd_enable_logo(bool enable)
 {
@@ -1130,6 +1141,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
   	bmap = (uchar *)bmp + get_unaligned_le32(&bmp->header.data_offset);
 #if defined(CONFIG_RK_FB)
+#ifndef CONFIG_DIRECT_LOGO
 	/* rk charge mode, enable fb flip */
 	if (lcd_flip) {
 		if((unsigned long)lcd_base == gd->fb_base)
@@ -1139,6 +1151,11 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	} else {
 		lcd_base = (void *)gd->fb_base;
 	}
+#else
+	lcd_base = (void *)bmap;
+	fb_info.ymirror = 1;
+	goto display;
+#endif
 	lcd_base = (void *) ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
 
 	lcd_line_length = (width * bpix) / 8;
@@ -1228,6 +1245,9 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		break;
 	};
 #if defined(CONFIG_RK_FB)
+#ifdef CONFIG_DIRECT_LOGO
+display:
+#endif
 #ifdef CONFIG_PRODUCT_BOX
 	fb_info.xpos = 0;
 	fb_info.ypos = 0;

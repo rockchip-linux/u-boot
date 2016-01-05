@@ -524,7 +524,6 @@ static int vop_win_0_1_reg_update(struct vop_device *vop_dev,
 {
 	unsigned int off;
 	uint64_t val;
-
 	off = win_id * 0x40;
 
 	if (win->state == 1) {
@@ -533,9 +532,9 @@ static int vop_win_0_1_reg_update(struct vop_device *vop_dev,
 			V_WIN0_DATA_FMT(win->area[0].format) |
 			V_WIN0_FMT_10(win->fmt_10) |
 			V_WIN0_LB_MODE(win->win_lb_mode) |
-			V_WIN0_RB_SWAP(0) |
-			V_WIN0_X_MIR_EN(win->mirror_en) |
-			V_WIN0_Y_MIR_EN(win->mirror_en) |
+			V_WIN0_RB_SWAP(win->rb_swap) |
+			V_WIN0_X_MIR_EN(win->xmirror) |
+			V_WIN0_Y_MIR_EN(win->ymirror) |
 			V_WIN0_UV_SWAP(0);
 		vop_msk_reg(vop_dev, WIN0_CTRL0 + off, val);
 		val = V_WIN0_BIC_COE_SEL(win->bic_coe_el) |
@@ -634,6 +633,7 @@ static int win0_set_par(struct vop_device *vop_dev,
 {
 	struct rk_lcdc_win win;
 	struct rk_screen *screen = vop_dev->screen;
+	u32 y_addr = fb_info->yaddr;
 
 	memset(&win, 0, sizeof(struct rk_lcdc_win));
 	rk_fb_vidinfo_to_win(fb_info, &win);
@@ -645,7 +645,6 @@ static int win0_set_par(struct vop_device *vop_dev,
 	win.mirror_en = 0;
 	win.area[0].dsp_stx = dsp_x_pos(win.mirror_en, screen, win.area);
 	win.area[0].dsp_sty = dsp_y_pos(win.mirror_en, screen, win.area);
-
 	vop_vop_calc_scl_fac(&win, screen);
 
 	switch (fb_info->format) {
@@ -653,6 +652,7 @@ static int win0_set_par(struct vop_device *vop_dev,
 		win.area[0].y_vir_stride = ARGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	case RGB888:
+		win.rb_swap = 1;
 		win.area[0].y_vir_stride = RGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	case RGB565:
@@ -662,8 +662,13 @@ static int win0_set_par(struct vop_device *vop_dev,
 		win.area[0].y_vir_stride = RGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	}
+	if (fb_info->ymirror) {
+		win.ymirror = 1;
+		y_addr += win.area[0].y_vir_stride * 4 * win.area[0].yact;
+	}
+
 	vop_win_0_1_reg_update(vop_dev, &win, fb_info->layer_id);
-	vop_writel(vop_dev, WIN0_YRGB_MST, fb_info->yaddr);
+	vop_writel(vop_dev, WIN0_YRGB_MST, y_addr);
 
 	return 0;
 }

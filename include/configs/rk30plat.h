@@ -31,7 +31,6 @@
  */
 #define CONFIG_SYS_TEXT_BASE    	0x60000000
 
-
 /*
  * rk plat default configs.
  */
@@ -193,6 +192,7 @@
 
 #if defined(CONFIG_RKCHIP_RK322X)
 #define CONFIG_RK322X_FB
+#define CONFIG_DIRECT_LOGO
 #else
 #define CONFIG_RK3036_FB
 #endif
