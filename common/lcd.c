@@ -1033,8 +1033,8 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		format = RGB565;
 		break;
 	case 24:
-		bpix = 32;
-		format = ARGB888;
+		bpix = 24;
+		format = RGB888;
 		break;
 	case 32:
 		bpix = 32;
@@ -1201,25 +1201,13 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 #endif /* CONFIG_BMP_16BPP */
 #if defined(CONFIG_BMP_24BPP)
 	case 24:
-		if (bpix == 32) {
-			for (i = 0; i < height; ++i) {
-				for (j = 0; j < width; j++) {
-					*(fb++) = *(bmap++);
-					*(fb++) = *(bmap++);
-					*(fb++) = *(bmap++);
-					*(fb++) = 0;
-				}
-				fb -= lcd_line_length + width * (bpix / 8);
+		for (i = 0; i < height; ++i) {
+			for (j = 0; j < width; j++) {
+				*(fb++) = *(bmap++);
+				*(fb++) = *(bmap++);
+				*(fb++) = *(bmap++);
 			}
-		} else if (bpix == 24) {
-			for (i = 0; i < height; ++i) {
-				for (j = 0; j < width; j++) {
-					*(fb++) = *(bmap++);
-					*(fb++) = *(bmap++);
-					*(fb++) = *(bmap++);
-				}
-				fb -= lcd_line_length + width * (bpix / 8);
-			}
+			fb -= lcd_line_length + width * (bpix / 8);
 		}
 		break;
 #endif /* CONFIG_BMP_24BMP */
