@@ -912,12 +912,17 @@ UBOOTVERSION := $(UBOOTVERSION)$(if $(RKCHIP),-$(RKCHIP))$(if $(RK_UBOOT_VERSION
 
 RK_SUBFIX = $(if $(RK_UBOOT_VERSION),.$(RK_UBOOT_VERSION)).bin
 
+ifdef CONFIG_MERGER_TRUSTOS
+RK_TOS_BIN ?= `sed -n "/TOS=/s/TOS=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r'`
+endif
+
 RKLoader_uboot.bin: u-boot.bin
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini &&) \
 	$(if $(CONFIG_MERGER_TRUSTIMAGE), ./tools/trust_merger $(if $(CONFIG_RK_TRUSTOS), --subfix) \
 							./tools/rk_tools/RKTRUST/$(RKCHIP)TRUST.ini &&) \
-	./tools/loaderimage --pack u-boot.bin uboot.img
+	$(if $(CONFIG_MERGER_TRUSTOS), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img &&) \
+	./tools/loaderimage --pack --uboot u-boot.bin uboot.img
 else
 	./tools/boot_merger --subfix "$(RK_SUBFIX)" ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
 endif # CONFIG_SECOND_LEVEL_BOOTLOADER

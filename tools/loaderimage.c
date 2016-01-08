@@ -12,55 +12,76 @@
 
 extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
 
-#define MODE_PACK             0
-#define MODE_UNPACK           1
-#define UBOOT_NUM             4
-#define UBOOT_MAX_SIZE        1024*1024
-#define U_BOOT_VERSION_STRING U_BOOT_VERSION " (" U_BOOT_DATE " - " \
-	U_BOOT_TIME ")" CONFIG_IDENT_STRING
+/* pack or unpack */
+#define MODE_PACK		0
+#define MODE_UNPACK		1
 
-#define LOADER_MAGIC_SIZE     16
-#define LOADER_HASH_SIZE      32
-#define CMD_LINE_SIZE         512
+/* image type */
+#define IMAGE_UBOOT		0
+#define IMAGE_TRUST		1
 
-#define RK_UBOOT_MAGIC        "LOADER  "
-#define RK_UBOOT_SIGN_TAG     0x4E474953
-#define RK_UBOOT_SIGN_LEN     256
-typedef struct tag_second_loader_hdr
-{
-	uint8_t magic[LOADER_MAGIC_SIZE];  // "LOADER  "
+/* magic and hash size */
+#define LOADER_MAGIC_SIZE	16
+#define LOADER_HASH_SIZE	32
 
-	uint32_t loader_load_addr;           /* physical load addr ,default is 0x60000000*/
-	uint32_t loader_load_size;           /* size in bytes */
-	uint32_t crc32;                      /* crc32 */
-	uint32_t hash_len;                   /* 20 or 32 , 0 is no hash*/
-	uint8_t hash[LOADER_HASH_SIZE];     /* sha */
+/* uboot image config */
+#define UBOOT_NAME		"uboot"
+#define UBOOT_NUM		4
+#define UBOOT_MAX_SIZE		1024 * 1024
+#define UBOOT_VERSION_STRING	U_BOOT_VERSION " (" U_BOOT_DATE " - " \
+				U_BOOT_TIME ")" CONFIG_IDENT_STRING
+
+#define RK_UBOOT_MAGIC		"LOADER  "
+#define RK_UBOOT_RUNNING_ADDR	CONFIG_SYS_TEXT_BASE
+
+/* trust image config */
+#define TRUST_NAME		"trustos"
+#define TRUST_NUM		4
+#define TRUST_MAX_SIZE		1024 * 1024
+#define TRUST_VERSION_STRING	"Trust os"
+
+#define RK_TRUST_MAGIC		"TOS     "
+#define RK_TRUST_RUNNING_ADDR	(CONFIG_RAM_PHY_START + SZ_128M + SZ_4M)
+
+typedef struct tag_second_loader_hdr {
+	uint8_t magic[LOADER_MAGIC_SIZE];	/* magic */
+
+	uint32_t loader_load_addr;		/* physical load addr */
+	uint32_t loader_load_size;		/* size in bytes */
+	uint32_t crc32;				/* crc32 */
+	uint32_t hash_len;			/* 20 or 32 , 0 is no hash*/
+	uint8_t hash[LOADER_HASH_SIZE];		/* sha */
 
 	uint8_t reserved[1024-32-32];
-	uint32_t signTag; /* 0x4E474953 */
-	uint32_t signlen; /* maybe 128 or 256 */
-	uint8_t rsaHash[256]; /* maybe 128 or 256, using max size 256 */
+	uint32_t signTag;			/* 0x4E474953 */
+	uint32_t signlen;			/* maybe 128 or 256 */
+	uint8_t rsaHash[256];			/* maybe 128 or 256, using max size 256 */
 	uint8_t reserved2[2048-1024-256-8];
-}second_loader_hdr;
+} second_loader_hdr;
 
 
 void usage(const char *prog)
 {
-	fprintf(stderr, "Usage: %s [--pack|--unpack] file\n", prog);
+	fprintf(stderr, "Usage: %s [--pack|--unpack] [--uboot|--trustos] file_in file_out\n", prog);
 }
 
 int main (int argc, char *argv[])
 {
-	int	mode, size, i;
-	FILE	*fi, *fo;
-	second_loader_hdr hdr;
-	char *buf = 0;
+	int			mode, image;
+	int			max_size, max_num;
+	int			size, i;
+	uint32_t		loader_addr;
+	char			*magic, *version, *name;
+	FILE			*fi, *fo;
+	second_loader_hdr	hdr;
+	char 			*buf = 0;
 
-	if (argc < 4) {
+	if (argc < 5) {
 		usage(argv[0]);
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
+	/* pack or unpack */
 	if (!strcmp(argv[1], "--pack"))
 		mode = MODE_PACK;
 	else if (!strcmp(argv[1], "--unpack"))
@@ -70,54 +91,85 @@ int main (int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	fi = fopen(argv[2], "rb");
+	/* uboot or trust */
+	if (!strcmp(argv[2], "--uboot")) {
+		image = IMAGE_UBOOT;
+	} else if (!strcmp(argv[2], "--trustos")) {
+		image = IMAGE_TRUST;
+	} else {
+		usage(argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	/* config image information */
+	if (image == IMAGE_UBOOT) {
+		name = UBOOT_NAME;
+		magic = RK_UBOOT_MAGIC;
+		version = UBOOT_VERSION_STRING;
+		max_size = UBOOT_MAX_SIZE;
+		max_num = UBOOT_NUM;
+		loader_addr = RK_UBOOT_RUNNING_ADDR;
+	} else if (image == IMAGE_TRUST) {
+		name = TRUST_NAME;
+		magic = RK_TRUST_MAGIC;
+		version = TRUST_VERSION_STRING;
+		max_size = TRUST_MAX_SIZE;
+		max_num = TRUST_NUM;
+		loader_addr = RK_TRUST_RUNNING_ADDR;
+	} else {
+		exit(EXIT_FAILURE);
+	}
+
+	/* file in */
+	fi = fopen(argv[3], "rb");
 	if (!fi) {
-		perror(argv[2]);
-		exit (EXIT_FAILURE);
+		perror(argv[3]);
+		exit(EXIT_FAILURE);
 	}
 
-	fo = fopen(argv[3], "wb");
+	/* file out */
+	fo = fopen(argv[4], "wb");
 	if (!fo) {
-		perror(argv[3]);
+		perror(argv[4]);
 		exit (EXIT_FAILURE);
 	}
 
-	buf = calloc(UBOOT_MAX_SIZE, UBOOT_NUM);
+	buf = calloc(max_size, max_num);
 	if (!buf) {
-		perror(argv[3]);
+		perror(argv[4]);
 		exit (EXIT_FAILURE);
 	}
-	//memset(buf, 0, UBOOT_NUM*UBOOT_MAX_SIZE);
-	if(mode == MODE_PACK){
-		printf("pack input %s \n", argv[2]);
-		fseek( fi, 0, SEEK_END );
+
+	if (mode == MODE_PACK) {
+		printf("pack input %s \n", argv[3]);
+		fseek(fi, 0, SEEK_END);
 		size = ftell(fi);
-		fseek( fi, 0, SEEK_SET );
-		printf("pack file size:%d \n", size);
-		if(size > UBOOT_MAX_SIZE - sizeof(second_loader_hdr)){
-			perror(argv[3]);
+		fseek(fi, 0, SEEK_SET);
+		printf("pack file size: %d \n", size);
+		if (size > max_size - sizeof(second_loader_hdr)) {
+			perror(argv[4]);
 			exit (EXIT_FAILURE);
 		}
 		memset(&hdr, 0, sizeof(second_loader_hdr));
-		strcpy((char *)hdr.magic, RK_UBOOT_MAGIC);
-		hdr.loader_load_addr = CONFIG_SYS_TEXT_BASE;
+		strcpy((char *)hdr.magic, magic);
+		hdr.loader_load_addr = loader_addr;
 		hdr.loader_load_size = size;
-		if (!fread(buf + sizeof(second_loader_hdr), size, 1, fi)) {
+		if (!fread(buf + sizeof(second_loader_hdr), size, 1, fi))
 			exit (EXIT_FAILURE);
-		}
+
 		hdr.crc32 = crc32_rk(0, (const unsigned char *)buf + sizeof(second_loader_hdr), size);
 		printf("crc = 0x%08x\n", hdr.crc32);
 
 #ifndef CONFIG_SECUREBOOT_SHA256
 		SHA_CTX ctx;
-		uint8_t* sha;
+		uint8_t *sha;
 		hdr.hash_len = (SHA_DIGEST_SIZE > LOADER_HASH_SIZE) ? LOADER_HASH_SIZE : SHA_DIGEST_SIZE;
 		SHA_init(&ctx);
 		SHA_update(&ctx, buf + sizeof(second_loader_hdr), size);
 		SHA_update(&ctx, &hdr.loader_load_addr, sizeof(hdr.loader_load_addr));
 		SHA_update(&ctx, &hdr.loader_load_size, sizeof(hdr.loader_load_size));
 		SHA_update(&ctx, &hdr.hash_len, sizeof(hdr.hash_len));
-		sha = (uint8_t*)SHA_final(&ctx);
+		sha = (uint8_t *)SHA_final(&ctx);
 		memcpy(hdr.hash, sha, hdr.hash_len);
 #else
 		sha256_context ctx;
@@ -135,24 +187,25 @@ int main (int argc, char *argv[])
 		memcpy(hdr.hash, hash, hdr.hash_len);
 #endif /* CONFIG_SECUREBOOT_SHA256 */
 
-		printf("uboot version:%s\n",U_BOOT_VERSION_STRING);
+		printf("%s version: %s\n", name, version);
 		memcpy(buf, &hdr, sizeof(second_loader_hdr));
-		for(i=0; i<UBOOT_NUM; i++){
-			fwrite(buf, UBOOT_MAX_SIZE, 1, fo);
-		}
-		printf("pack %s success! \n", argv[3]);
-	}else if (mode == MODE_UNPACK){
-		printf("unpack input %s \n", argv[2]);
+		for(i = 0; i < max_num; i++)
+			fwrite(buf, max_size, 1, fo);
+
+		printf("pack %s success! \n", argv[4]);
+	} else if (mode == MODE_UNPACK) {
+		printf("unpack input %s \n", argv[3]);
 		memset(&hdr, 0, sizeof(second_loader_hdr));
-		if(!fread(&hdr, sizeof(second_loader_hdr), 1, fi)) {
+		if (!fread(&hdr, sizeof(second_loader_hdr), 1, fi))
 			exit (EXIT_FAILURE);
-		}
-		if(!fread(buf, hdr.loader_load_size, 1, fi)) {
+
+		if (!fread(buf, hdr.loader_load_size, 1, fi))
 			exit (EXIT_FAILURE);
-		}
+
 		fwrite(buf, hdr.loader_load_size, 1, fo);
-		printf("unpack %s success! \n", argv[3]);
+		printf("unpack %s success! \n", argv[4]);
 	}
+
 	free(buf);
 	fclose(fi);
 	fclose(fo);
