@@ -34,7 +34,9 @@
 #ifndef _SHA2_H
 #define _SHA2_H
 
+#ifdef USE_HOSTCC
 #include <limits.h>
+#endif
 
 /*  Defines for suffixes to 32 and 64 bit unsigned numeric values   */
 
@@ -43,6 +45,7 @@
 #define n_u32(p)    sfx_hi(0x##p,s_u32)
 #define n_u64(p)    sfx_hi(0x##p,s_u64)
 
+#ifdef USE_HOSTCC
 /* define an unsigned 32-bit type */
 
 #if UINT_MAX == 0xffffffff
@@ -69,6 +72,16 @@
 #else
 #error Please define sha2_64t as an unsigned 64 bit type in sha2.h
 #endif
+
+#else
+#include <common.h>
+
+  typedef uint32_t	sha2_32t;
+  #define s_u32	u
+
+  typedef uint64_t	sha2_64t;   /* a somewhat dangerous guess */
+  #define s_u64	ull
+#endif /* USE_HOSTCC */
 
 #if defined(__cplusplus)
 extern "C"

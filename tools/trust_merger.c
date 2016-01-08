@@ -7,7 +7,9 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <sys/stat.h>
+#include <config.h>
 #include <sha2.h>
+#include <u-boot/sha256.h>
 #include "trust_merger.h"
 
 
@@ -34,7 +36,8 @@ static bool gDebug =
 
 
 /* config sha and rsa */
-#define SHA_SEL_256		2
+#define SHA_SEL_256		3
+#define SHA_SEL_256_RK		2
 #define SHA_SEL_160		1
 #define SHA_SEL_NONE		0
 
@@ -42,7 +45,12 @@ static bool gDebug =
 #define RSA_SEL_1024		1
 #define RSA_SEL_NONE		0
 
+/* only rk3368 using rk sha256 mode for miniloader */
+#if defined(CONFIG_RKCHIP_RK3368)
+#define SHA_SEL_DEFAULT		SHA_SEL_256_RK
+#else
 #define SHA_SEL_DEFAULT		SHA_SEL_256
+#endif
 #define RSA_SEL_DEFAULT		RSA_SEL_2048
 
 
@@ -356,7 +364,6 @@ static inline bool getFileSize(const char *path, uint32_t* size)
 #define SHA256_CHECK_SZ		((uint32_t)(256 * 1024))
 static bool bl3xHash256(uint8_t *pHash, uint8_t *pData, uint32_t nDataSize)
 {
-	sha256_ctx ctx;
 	uint32_t nHashSize, nHasHashSize;
 
 	if (!pHash || !pData || !nDataSize) {
@@ -364,6 +371,9 @@ static bool bl3xHash256(uint8_t *pHash, uint8_t *pData, uint32_t nDataSize)
 	}
 
 	nHasHashSize = 0;
+
+#if (SHA_SEL_DEFAULT == SHA_SEL_256_RK)
+	sha256_ctx ctx;
 
 	sha256_begin(&ctx);
 	while (nDataSize > 0) {
@@ -373,7 +383,18 @@ static bool bl3xHash256(uint8_t *pHash, uint8_t *pData, uint32_t nDataSize)
 		nDataSize -= nHashSize;
 	}
 	sha256_end(&ctx, pHash);
+#else
+	sha256_context ctx;
 
+	sha256_starts(&ctx);
+	while (nDataSize > 0) {
+		nHashSize = (nDataSize >= SHA256_CHECK_SZ) ? SHA256_CHECK_SZ : nDataSize;
+		sha256_update(&ctx, pData + nHasHashSize, nHashSize);
+		nHasHashSize += nHashSize;
+		nDataSize -= nHashSize;
+	}
+	sha256_finish(&ctx, pHash);
+#endif
 	return true;
 }
 

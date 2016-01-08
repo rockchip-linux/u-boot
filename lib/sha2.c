@@ -81,9 +81,10 @@
 #define SHA_384
 #define SHA_512
 
+#ifdef USE_HOSTCC
 #include <string.h>     /* for memcpy() etc.        */
 #include <stdlib.h>     /* for _lrotr with VC++     */
-
+#endif
 
 #include <sha2.h>
 
@@ -184,7 +185,7 @@
 #define rotr32(x,n)   (((x) >> n) | ((x) << (32 - n)))
 
 #if !defined(bswap_32)
-#define bswap_32(x) (rotr32((x), 24) & 0x00ff00ff | rotr32((x), 8) & 0xff00ff00)
+#define bswap_32(x) ((rotr32((x), 24) & 0x00ff00ff) | (rotr32((x), 8) & 0xff00ff00))
 #endif
 
 #if (PLATFORM_BYTE_ORDER == SHA_LITTLE_ENDIAN)
