@@ -63,7 +63,7 @@ hostprogs-$(CONFIG_MERGER_TRUSTIMAGE) += trust_merger
 hostprogs-$(CONFIG_QUICK_CHECKSUM) += checksum
 
 trust_merger-objs := trust_merger.o lib/sha2.o
-loaderimage-objs := loaderimage.o lib/sha.o lib/crc32_rk.o
+loaderimage-objs := loaderimage.o lib/sha.o lib/sha256.o lib/crc32_rk.o
 checksum-objs := checksum.o lib/crc32_rk.o
 endif # CONFIG_ROCKCHIP
 

@@ -73,16 +73,25 @@ int32 CryptoSHAInit(uint32 MsgLen, int hash_bits)
 {
 	CryptoReg->CRYPTO_HASH_MSG_LEN = MsgLen;
 	if (hash_bits == 256) {
-		CryptoReg->CRYPTO_HASH_CTRL = 0x0a; /* sha256 & byte swap */
+		CryptoReg->CRYPTO_HASH_CTRL = 0x0a; /* sha256 & out byte swap */
 		CryptoReg->CRYPTO_CONF &= ~(1 << 5);
 	} else {
 		CryptoReg->CRYPTO_CONF |= (1 << 5); /* sha160 input byte swap */
-		CryptoReg->CRYPTO_HASH_CTRL = 0x08; /* sha160 & byte swap */
+		CryptoReg->CRYPTO_HASH_CTRL = 0x08; /* sha160 & out byte swap */
 	}
 	CryptoReg->CRYPTO_CTRL = (1 << 6) | ((1 << 6) << 16);
 	do {} while (CryptoReg->CRYPTO_CTRL & (1 << 6));
 
 	return 0;
+}
+
+
+void CryptoSHAInputByteSwap(int en)
+{
+	if (en)
+		CryptoReg->CRYPTO_CONF |= (1 << 5); /* sha256 input byte swap */
+	else
+		CryptoReg->CRYPTO_CONF &= ~(1 << 5);
 }
 
 

@@ -5,7 +5,9 @@
  */
 #include "compiler.h"
 #include <version.h>
+#include <config.h>
 #include <sha.h>
+#include <u-boot/sha256.h>
 #include <u-boot/crc.h>
 
 extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
@@ -106,6 +108,7 @@ int main (int argc, char *argv[])
 		hdr.crc32 = crc32_rk(0, (const unsigned char *)buf + sizeof(second_loader_hdr), size);
 		printf("crc = 0x%08x\n", hdr.crc32);
 
+#ifndef CONFIG_SECUREBOOT_SHA256
 		SHA_CTX ctx;
 		uint8_t* sha;
 		hdr.hash_len = (SHA_DIGEST_SIZE > LOADER_HASH_SIZE) ? LOADER_HASH_SIZE : SHA_DIGEST_SIZE;
@@ -116,6 +119,21 @@ int main (int argc, char *argv[])
 		SHA_update(&ctx, &hdr.hash_len, sizeof(hdr.hash_len));
 		sha = (uint8_t*)SHA_final(&ctx);
 		memcpy(hdr.hash, sha, hdr.hash_len);
+#else
+		sha256_context ctx;
+		uint8_t hash[LOADER_HASH_SIZE];
+
+		memset(hash, 0, LOADER_HASH_SIZE);
+
+		hdr.hash_len = 32; /* sha256 */
+		sha256_starts(&ctx);
+		sha256_update(&ctx, (void *)buf + sizeof(second_loader_hdr), size);
+		sha256_update(&ctx, (void *)&hdr.loader_load_addr, sizeof(hdr.loader_load_addr));
+		sha256_update(&ctx, (void *)&hdr.loader_load_size, sizeof(hdr.loader_load_size));
+		sha256_update(&ctx, (void *)&hdr.hash_len, sizeof(hdr.hash_len));
+		sha256_finish(&ctx, hash);
+		memcpy(hdr.hash, hash, hdr.hash_len);
+#endif /* CONFIG_SECUREBOOT_SHA256 */
 
 		printf("uboot version:%s\n",U_BOOT_VERSION_STRING);
 		memcpy(buf, &hdr, sizeof(second_loader_hdr));

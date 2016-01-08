@@ -101,10 +101,17 @@ typedef struct tag_rk_boot_img_hdr {
 
 	uint32_t id[8]; /* timestamp / checksum / sha1 / etc */
 
-	uint8_t reserved[0x400-0x260];
+	/* Add for sha256 and sha512 */
+	uint32_t unused2[3];    /* future expansion: should be 0 */
+	uint32_t sha_flag;      /* sha flag: 256 or 512 */
+	uint32_t sha[16];  /* sha data */
+
+	uint8_t reserved[0x400-0x260-0x50];
+	/* start at 1K offset */
 	uint32_t signTag; /* 0x4E474953 */
 	uint32_t signlen; /* maybe 128 or 256 */
 	uint8_t rsaHash[256]; /* maybe 128 or 256, using max size 256 */
+	uint8_t rsaHash2[256]; /* 256 */
 } rk_boot_img_hdr;
 
 

@@ -11,6 +11,7 @@
 #include "SecureBoot.h"
 
 extern int32 CryptoSHAInit(uint32 MsgLen, int hash_bits);
+extern void CryptoSHAInputByteSwap(int en);
 extern int32 CryptoSHAStart(uint32 *data, uint32 DataLen);
 extern int32 CryptoSHAEnd(uint32 *result);
 extern int32 CryptoSHACheck(uint32 *InHash);

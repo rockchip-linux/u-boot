@@ -41,6 +41,8 @@
 /* Command definition */
 #include <config_cmd_default.h>
 
+#define CONFIG_SHA256
+
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB
 #undef CONFIG_SOURCE

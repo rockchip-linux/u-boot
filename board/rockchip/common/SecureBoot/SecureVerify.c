@@ -5,6 +5,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include "../config.h"
+#include <u-boot/sha256.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -627,17 +628,29 @@ static bool SecureRKModeVerifyUbootImage(second_loader_hdr *uboothdr)
 
 #if 0
 {
-	SHA_CTX ctx;
+	if (uboothdr->hash_len == 20) {
+		SHA_CTX ctx;
 
-	SHA_init(&ctx);
-	SHA_update(&ctx, (void *)uboothdr + sizeof(second_loader_hdr), uboothdr->loader_load_size);
-	SHA_update(&ctx, &uboothdr->loader_load_addr, sizeof(uboothdr->loader_load_addr));
-	SHA_update(&ctx, &uboothdr->loader_load_size, sizeof(uboothdr->loader_load_size));
-	SHA_update(&ctx, &uboothdr->hash_len, sizeof(uboothdr->hash_len));
-	dataHash = SHA_final(&ctx);
+		SHA_init(&ctx);
+		SHA_update(&ctx, (void *)uboothdr + sizeof(second_loader_hdr), uboothdr->loader_load_size);
+		SHA_update(&ctx, &uboothdr->loader_load_addr, sizeof(uboothdr->loader_load_addr));
+		SHA_update(&ctx, &uboothdr->loader_load_size, sizeof(uboothdr->loader_load_size));
+		SHA_update(&ctx, &uboothdr->hash_len, sizeof(uboothdr->hash_len));
+		dataHash = SHA_final(&ctx);
+	} else {
+		sha256_context ctx;
+
+		sha256_starts(&ctx);
+		sha256_update(&ctx, (void *)(unsigned long)uboothdr + sizeof(second_loader_hdr), uboothdr->loader_load_size);
+		sha256_update(&ctx, (void *)(unsigned long)&uboothdr->loader_load_addr, sizeof(uboothdr->loader_load_addr));
+		sha256_update(&ctx, (void *)(unsigned long)&uboothdr->loader_load_size, sizeof(uboothdr->loader_load_size));
+		sha256_update(&ctx, (void *)(unsigned long)&uboothdr->hash_len, sizeof(uboothdr->hash_len));
+		sha256_finish(&ctx, (void *)(unsigned long)hwDataHash);
+		dataHash = (uint8 *)hwDataHash;
+	}
 
 	int k = 0;
-	char *buf = dataHash;
+	char *buf = (char *)(unsigned long)dataHash;
 
 	printf("Soft Calc Image hash data:\n");
 	for (k = 0; k < uboothdr->hash_len; k++)
@@ -650,7 +663,13 @@ static bool SecureRKModeVerifyUbootImage(second_loader_hdr *uboothdr)
 		 + sizeof(uboothdr->loader_load_addr) + sizeof(uboothdr->hash_len);
 
 	CryptoRSAInit((uint32 *)(uboothdr->rsaHash), pkeyHead->RSA_N, pkeyHead->RSA_E, pkeyHead->RSA_C);
-	CryptoSHAInit(size, 160);
+	if (uboothdr->hash_len == 20) {
+		CryptoSHAInit(size, 160);
+	} else {
+		CryptoSHAInit(size, 256);
+		CryptoSHAInputByteSwap(1);
+	}
+
 	/* rockchip's second level image. */
 	CryptoSHAStart((uint32 *)((void *)uboothdr + sizeof(second_loader_hdr)), uboothdr->loader_load_size);
 	CryptoSHAStart((uint32 *)&uboothdr->loader_load_addr, sizeof(uboothdr->loader_load_addr));
@@ -665,7 +684,7 @@ static bool SecureRKModeVerifyUbootImage(second_loader_hdr *uboothdr)
 #if 0
 {
 	int k = 0;
-	char *buf = dataHash;
+	uint8 *buf = dataHash;
 
 	printf("Crypto Calc Image hash data:\n");
 	for (k = 0; k < uboothdr->hash_len; k++)
@@ -679,8 +698,8 @@ static bool SecureRKModeVerifyUbootImage(second_loader_hdr *uboothdr)
 		return false;
 
 	/* check the sign of hash */
-	for (i = 0; i < 20; i++)
-		if (rsahash[19-i] != dataHash[i])
+	for (i = 0; i < uboothdr->hash_len; i++)
+		if (rsahash[uboothdr->hash_len - 1 - i] != dataHash[i])
 			return false;
 
 	return true;
@@ -700,15 +719,24 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 #if 0
 {
 	int k = 0;
-	char *buf = boothdr->id;
 
-	printf("Boot Image Head: magic = %s, sign tag = 0x%x\n", boothdr->magic, boothdr->signTag);
+	printf("Boot Image Head: magic = %s, sign tag = 0x%x, sha flag = %d\n",
+			boothdr->magic, boothdr->signTag, boothdr->sha_flag);
 
 	printf("Boot Image Head: hash data:\n");
-	for (k = 0; k < sizeof(boothdr->id); k++)
-		printf("%02x", buf[k]);
-	printf("\n");
+	if (boothdr->sha_flag == 256) {
+		char *buf = (char *)(unsigned long)boothdr->sha;
 
+		for (k = 0; k < 32; k++)
+			printf("%02x", buf[k]);
+		printf("\n");
+	} else {
+		char *buf = (char *)(unsigned long)boothdr->id;
+
+		for (k = 0; k < sizeof(boothdr->id); k++)
+			printf("%02x", buf[k]);
+		printf("\n");
+	}
 	printf("kernel addr = 0x%x, size = 0x%x\n", boothdr->kernel_addr, boothdr->kernel_size);
 	printf("ramdisk addr = 0x%x, size = 0x%x\n", boothdr->ramdisk_addr, boothdr->ramdisk_size);
 	printf("second addr = 0x%x, size = 0x%x\n", boothdr->second_addr, boothdr->second_size);
@@ -721,31 +749,55 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 
 	if (boothdr->signTag != SECURE_BOOT_SIGN_TAG)
 		return false;
+
 #if 0
 {
-	SHA_CTX ctx;
+	if (boothdr->sha_flag == 256) {
+		sha256_context ctx;
 
-	SHA_init(&ctx);
+		sha256_starts(&ctx);
+		/* Android image */
+		sha256_update(&ctx, (void *)(unsigned long)boothdr->kernel_addr, boothdr->kernel_size);
+		sha256_update(&ctx, (void *)(unsigned long)&boothdr->kernel_size, sizeof(boothdr->kernel_size));
+		sha256_update(&ctx, (void *)(unsigned long)boothdr->ramdisk_addr, boothdr->ramdisk_size);
+		sha256_update(&ctx, (void *)(unsigned long)&boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
+		sha256_update(&ctx, (void *)(unsigned long)boothdr->second_addr, boothdr->second_size);
+		sha256_update(&ctx, (void *)(unsigned long)&boothdr->second_size, sizeof(boothdr->second_size));
 
-	/* Android image */
-	SHA_update(&ctx, (void *)boothdr->kernel_addr, boothdr->kernel_size);
-	SHA_update(&ctx, &boothdr->kernel_size, sizeof(boothdr->kernel_size));
-	SHA_update(&ctx, (void *)boothdr->ramdisk_addr, boothdr->ramdisk_size);
-	SHA_update(&ctx, &boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
-	SHA_update(&ctx, (void *)boothdr->second_addr, boothdr->second_size);
-	SHA_update(&ctx, &boothdr->second_size, sizeof(boothdr->second_size));
+		/* rockchip's image add information. */
+		sha256_update(&ctx, (void *)(unsigned long)&boothdr->tags_addr, sizeof(boothdr->tags_addr));
+		sha256_update(&ctx, (void *)(unsigned long)&boothdr->page_size, sizeof(boothdr->page_size));
+		sha256_update(&ctx, (void *)(unsigned long)&boothdr->unused, sizeof(boothdr->unused));
+		sha256_update(&ctx, (void *)(unsigned long)&boothdr->name, sizeof(boothdr->name));
+		sha256_update(&ctx, (void *)(unsigned long)&boothdr->cmdline, sizeof(boothdr->cmdline));
+		sha256_finish(&ctx, (void *)(unsigned long)hwDataHash);
 
-	/* rockchip's image add information. */
-	SHA_update(&ctx, &boothdr->tags_addr, sizeof(boothdr->tags_addr));
-	SHA_update(&ctx, &boothdr->page_size, sizeof(boothdr->page_size));
-	SHA_update(&ctx, &boothdr->unused, sizeof(boothdr->unused));
-	SHA_update(&ctx, &boothdr->name, sizeof(boothdr->name));
-	SHA_update(&ctx, &boothdr->cmdline, sizeof(boothdr->cmdline));
+		dataHash = (uint8 *)hwDataHash;
+	} else {
+		SHA_CTX ctx;
 
-	dataHash = SHA_final(&ctx);
+		SHA_init(&ctx);
+
+		/* Android image */
+		SHA_update(&ctx, (void *)boothdr->kernel_addr, boothdr->kernel_size);
+		SHA_update(&ctx, &boothdr->kernel_size, sizeof(boothdr->kernel_size));
+		SHA_update(&ctx, (void *)boothdr->ramdisk_addr, boothdr->ramdisk_size);
+		SHA_update(&ctx, &boothdr->ramdisk_size, sizeof(boothdr->ramdisk_size));
+		SHA_update(&ctx, (void *)boothdr->second_addr, boothdr->second_size);
+		SHA_update(&ctx, &boothdr->second_size, sizeof(boothdr->second_size));
+
+		/* rockchip's image add information. */
+		SHA_update(&ctx, &boothdr->tags_addr, sizeof(boothdr->tags_addr));
+		SHA_update(&ctx, &boothdr->page_size, sizeof(boothdr->page_size));
+		SHA_update(&ctx, &boothdr->unused, sizeof(boothdr->unused));
+		SHA_update(&ctx, &boothdr->name, sizeof(boothdr->name));
+		SHA_update(&ctx, &boothdr->cmdline, sizeof(boothdr->cmdline));
+
+		dataHash = SHA_final(&ctx);
+	}
 
 	int k = 0;
-	char *buf = dataHash;
+	uint8 *buf = dataHash;
 
 	printf("Soft Calc Image hash data:\n");
 	for (k = 0; k < sizeof(boothdr->id); k++)
@@ -760,8 +812,14 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 		+ sizeof(boothdr->tags_addr) + sizeof(boothdr->page_size) \
 		+ sizeof(boothdr->unused) + sizeof(boothdr->name) + sizeof(boothdr->cmdline);
 
-	CryptoRSAInit((uint32 *)(boothdr->rsaHash), pkeyHead->RSA_N, pkeyHead->RSA_E, pkeyHead->RSA_C);
-	CryptoSHAInit(size, 160);
+	if (boothdr->sha_flag == 256) {
+		CryptoRSAInit((uint32 *)(boothdr->rsaHash2), pkeyHead->RSA_N, pkeyHead->RSA_E, pkeyHead->RSA_C);
+		CryptoSHAInit(size, 256);
+		CryptoSHAInputByteSwap(1);
+	} else {
+		CryptoRSAInit((uint32 *)(boothdr->rsaHash), pkeyHead->RSA_N, pkeyHead->RSA_E, pkeyHead->RSA_C);
+		CryptoSHAInit(size, 160);
+	}
 
 	/* Android image. */
 	CryptoSHAStart((uint32 *)(unsigned long)boothdr->kernel_addr, boothdr->kernel_size);
@@ -786,23 +844,39 @@ static bool SecureRKModeVerifyBootImage(rk_boot_img_hdr *boothdr)
 #if 0
 {
 	int k = 0;
-	char *buf = dataHash;
+	uint8 *buf = dataHash;
 
 	printf("Crypto Calc Image hash data:\n");
-	for (k = 0; k < sizeof(boothdr->id); k++)
-		printf("%02x", buf[k]);
-	printf("\n");
+	if (boothdr->sha_flag == 256) {
+		for (k = 0; k < 32; k++)
+			printf("%02x", buf[k]);
+		printf("\n");
+	} else {
+		for (k = 0; k < sizeof(boothdr->id); k++)
+			printf("%02x", buf[k]);
+		printf("\n");
+	}
 }
 #endif
 
 	/* check the hash of image */
-	if (memcmp(boothdr->id, hwDataHash, sizeof(boothdr->id)) != 0)
-		return false;
-
-	/* check the sign of hash */
-	for (i = 0; i < 20; i++)
-		if (rsahash[19 - i] != dataHash[i])
+	if (boothdr->sha_flag == 256) {
+		if (memcmp(boothdr->sha, hwDataHash, 32) != 0)
 			return false;
+
+		/* check the sign of hash */
+		for (i = 0; i < 32; i++)
+			if (rsahash[31 - i] != dataHash[i])
+				return false;
+	} else {
+		if (memcmp(boothdr->id, hwDataHash, sizeof(boothdr->id)) != 0)
+			return false;
+
+		/* check the sign of hash */
+		for (i = 0; i < 20; i++)
+			if (rsahash[19 - i] != dataHash[i])
+				return false;
+	}
 
 	return true;
 }
