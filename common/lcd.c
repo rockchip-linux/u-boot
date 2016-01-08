@@ -1152,9 +1152,13 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		lcd_base = (void *)gd->fb_base;
 	}
 #else
-	lcd_base = (void *)bmap;
-	fb_info.ymirror = 1;
-	goto display;
+	if (bmp_bpix == 24 || bmp_bpix == 32) {
+		lcd_base = (void *)bmap;
+		fb_info.ymirror = 1;
+		goto display;
+	} else {
+		lcd_base = bmap + width * height * bpix / 8;
+	}
 #endif
 	lcd_base = (void *) ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
 
