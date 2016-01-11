@@ -625,7 +625,7 @@ void rkclk_dump_pll(void)
 }
 
 
-#define VIO_ACLK_MAX	(300 * MHZ)
+#define VIO_ACLK_MAX	(500 * MHZ)
 #define VIO_HCLK_MAX	(150 * MHZ)
 
 /*
