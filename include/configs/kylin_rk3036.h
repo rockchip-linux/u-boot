@@ -11,6 +11,17 @@
 
 #ifndef CONFIG_SPL_BUILD
 
+/* Store env in emmc */
+#undef CONFIG_ENV_SIZE
+#define CONFIG_ENV_SIZE                 (32 << 10)
+#undef CONFIG_ENV_IS_NOWHERE
+#define CONFIG_ENV_IS_IN_MMC
+#define CONFIG_SYS_MMC_ENV_DEV          0
+#define CONFIG_SYS_MMC_ENV_PART         0
+#define CONFIG_ENV_OFFSET               (4032 << 10)
+#define CONFIG_ENV_OFFSET_REDUND        (CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE)
+#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
+
 /* Enable gpt partition table */
 #define CONFIG_CMD_GPT
 #define CONFIG_RANDOM_UUID
