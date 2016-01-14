@@ -49,6 +49,7 @@
 	"mmcdev=0\0" \
 	"mmcpart=5\0" \
 	"loadaddr=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+	"bootargs=earlyprintk console=ttyS2,115200n8\0" \
 
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_PREBOOT
