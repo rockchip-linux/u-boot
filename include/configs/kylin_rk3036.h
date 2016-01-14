@@ -47,9 +47,11 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"partitions=" PARTS_DEFAULT \
 	"mmcdev=0\0" \
-	"mmcpart=5\0" \
+	"mmcpkr=5\0" \
+	"mmcprd=12\0" \
 	"loadaddr=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
-	"bootargs=earlyprintk console=ttyS2,115200n8\0" \
+	"rd_loadaddr=0x68000000\0" \
+	"bootargs=earlyprintk console=ttyS2,115200n8 rw root=/dev/ram0\0" \
 
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_PREBOOT
@@ -61,11 +63,13 @@
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
 	"mmc dev ${mmcdev}; if mmc rescan; then " \
-		"part start mmc ${mmcdev} ${mmcpart} boot_start;" \
-		"part size mmc ${mmcdev} ${mmcpart} boot_size;" \
-		"mmc read ${loadaddr} ${boot_start} ${boot_size};" \
-		"bootm start ${loadaddr}; bootm ramdisk;" \
-		"bootm prep; bootm go;" \
+		"part start mmc ${mmcdev} ${mmcpkr} kern_start;" \
+		"part size mmc ${mmcdev} ${mmcpkr} kern_size;" \
+		"part start mmc ${mmcdev} ${mmcprd} rd_start;" \
+		"part size mmc ${mmcdev} ${mmcprd} rd_size;" \
+		"mmc read ${loadaddr} ${kern_start} ${kern_size};" \
+		"mmc read ${rd_loadaddr} ${rd_start} ${rd_size};" \
+		"bootm ${loadaddr} ${rd_loadaddr}:${rd_size};" \
 	"fi;" \
 
 /* Enable atags */
