@@ -36,6 +36,9 @@
  */
 #include <configs/rk_default_config.h>
 
+/* config for sha256 image check */
+#define CONFIG_SECUREBOOT_SHA256
+
 /* undef some module for rk chip */
 #if defined(CONFIG_RKCHIP_RK3288)
 	#define CONFIG_SECUREBOOT_CRYPTO
