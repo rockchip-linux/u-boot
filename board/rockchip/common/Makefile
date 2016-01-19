@@ -26,9 +26,7 @@ obj-y += emmc/hw_SDOsAdapt.o
 obj-y += emmc/hw_SDPlatAdapt.o
 obj-y += mediaboot/sdmmcBoot.o
 obj-$(CONFIG_RK_UMS_BOOT_EN) += mediaboot/UMSBoot.o
-ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
-obj-y += mediaboot/nandflash_boot.o
-endif
+obj-$(CONFIG_RK_FLASH_BOOT_EN) += mediaboot/nandflash_boot.o
 obj-$(CONFIG_RK_EFUSE) += SecureBoot/efuse.o
 obj-$(CONFIG_SECUREBOOT_CRYPTO) += SecureBoot/crypto.o
 obj-y += SecureBoot/SecureBoot.o

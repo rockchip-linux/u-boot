@@ -473,7 +473,7 @@ extern uint16 g_IDBlockOffset[];
 
 int rkidb_get_idblk_data(void)
 {
-#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+#if defined(CONFIG_RK_FLASH_BOOT_EN)
 	/* if storage media is nand, get id block data,
 	   else if emmc or sdcard, has been get when sdmmc init. */
 	if (StorageGetBootMedia() == BOOT_FROM_FLASH) {
@@ -503,7 +503,7 @@ int rkidb_get_idblk_data(void)
 		for (index = 0; index < IDBLOCK_NUM; index++)
 			memcpy(pdst + IDBLOCK_SIZE * index, psrc + SECTOR_OFFSET * index, IDBLOCK_SIZE);
 	}
-#endif
+#endif /* CONFIG_RK_FLASH_BOOT_EN */
 	/* some block rc4 decode */
 	GetIdblockDataNoRc4((char *)&gIdDataBuf[128 * 2], 512);
 	GetIdblockDataNoRc4((char *)&gIdDataBuf[128 * 3], 512);
