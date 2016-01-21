@@ -1,0 +1,10 @@
+build and flash evb_rk3036 board uboot image step:
+1. ./rk_tools/3036/make.sh evb
+2. ./rk_tools/3036/mkimage.sh
+3. ./rk_tools/3036/flash.sh
+
+build and flash kylin board uboot image step:
+1. ./rk_tools/3036/make.sh kylin
+2. ./rk_tools/3036/mkimage.sh
+3. ./rk_tools/3036/flash.sh
+
