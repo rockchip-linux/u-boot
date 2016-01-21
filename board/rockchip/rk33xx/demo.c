@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -63,8 +63,8 @@ static void board_timer_test(void)
  *	gic function module test
  * using timer for interrupt api test
  */
-#define DEMO_TIMER_BASE		(RKIO_TIMER0_6CH_PHYS + 0x20)
-#define DEMO_TIMER_IRQ		IRQ_TIMER0_6CH_1
+#define DEMO_TIMER_BASE		(RKIO_TIMER_BASE + 0x20 * 3)
+#define DEMO_TIMER_IRQ		RKIRQ_TIMER3
 
 #define DEMO_TIMER_LOADE_COUNT0		0x00
 #define DEMO_TIMER_LOADE_COUNT1		0x04

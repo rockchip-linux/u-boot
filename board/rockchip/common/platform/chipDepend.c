@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -54,37 +54,16 @@ void CacheInvalidateDRegion(uint32 adr, uint32 size)
 //系统启动失败标志
 uint32 IReadLoaderFlag(void)
 {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	return readl(RKIO_PMU_PHYS + PMU_SYS_REG0);
-#elif defined(CONFIG_RKCHIP_RK3036)
-	return readl(RKIO_GRF_PHYS + GRF_OS_REG4);
-#elif defined(CONFIG_RKCHIP_RK3368)
-	return readl(RKIO_PMU_GRF_PHYS + PMU_GRF_OS_REG0);
-#elif defined(CONFIG_RKCHIP_RK322X)
-	return readl(RKIO_GRF_PHYS + GRF_OS_REG0);
-#else
-	#error "PLS config rk chip for loader flag."
-#endif
+	return readl(RKIO_LOADER_FLAG_REG);
 }
 
 void ISetLoaderFlag(uint32 flag)
 {
-#if defined(CONFIG_RKCHIP_RK3288)
-	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	writel(flag, RKIO_PMU_PHYS + PMU_SYS_REG0);
+	writel(flag, RKIO_LOADER_FLAG_REG);
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	// if set maskrom flag, also set GRF REG0 for ddr driver.
-	if (flag == 0xEF08A53C) {
+	if (flag == 0xEF08A53C)
 		writel(flag, RKIO_GRF_PHYS + GRF_OS_REG0);
-	}
-#elif defined(CONFIG_RKCHIP_RK3036)
-	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG4);
-#elif defined(CONFIG_RKCHIP_RK3368)
-	writel(flag, RKIO_PMU_GRF_PHYS + PMU_GRF_OS_REG0);
-#elif defined(CONFIG_RKCHIP_RK322X)
-	writel(flag, RKIO_GRF_PHYS + GRF_OS_REG0);
-#else
-	#error "PLS config rk chip for loader flag."
 #endif
 }
 

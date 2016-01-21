@@ -5,7 +5,7 @@
  * (C) Copyright 2009
  * Vipin Kumar, ST Micoelectronics, vipin.kumar@st.com.
  *
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -55,15 +55,9 @@
 #endif
 
 
-/* usb otg base */
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
-#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-	|| defined(CONFIG_RKCHIP_RK322X)
-	#define RKIO_USBOTG_BASE	RKIO_USBOTG20_PHYS
-#else
-	#error "PLS config chiptype for usb otg base!"
-#endif
+#ifndef RKIO_USBOTG_BASE
+	#error "PLS config usb otg base!"
+#endif /* RKIO_USBOTG_BASE */
 
 
 #define	BULK_IN_EP			0x01

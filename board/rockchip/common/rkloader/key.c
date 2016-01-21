@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -12,11 +12,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK322X)
-#define SARADC_BASE             	(-1)
-#else
-#define SARADC_BASE             	RKIO_SARADC_PHYS
-#endif
+#define SARADC_BASE             	RKIO_SARADC_BASE
 
 #define read_XDATA(address) 		(*((uint16 volatile*)(unsigned long)(address)))
 #define read_XDATA32(address)		(*((uint32 volatile*)(unsigned long)(address)))
@@ -203,14 +199,9 @@ __maybe_unused static void ChargeStateGpioInit(void)
 }
 
 #ifdef CONFIG_RK_PWM_REMOTE
-#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-	|| defined(CONFIG_RKCHIP_RK322X)
-	#define IRQ_PWM_REMOTE	IRQ_PWM
-#elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	#define IRQ_PWM_REMOTE	IRQ_RK_PWM
-#else
-	#error "PLS config rk chip for pwm remote irq."
-#endif
+
+#define IRQ_PWM_REMOTE		RKIRQ_PWM_REMOTE
+
 
 extern int g_ir_keycode;
 extern int remotectl_do_something(void);

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -100,21 +100,6 @@
 #define UART_BIT6		6
 #define UART_BIT7		7
 #define UART_BIT8		8
-
-
-typedef enum UART_ch {
-#if defined(CONFIG_RKCHIP_RK3368)
-	UART_CH0,
-	UART_CH1,
-	UART_CH2,
-	UART_CH3,
-	UART_CH4,
-#else
-	#error "PLS config chip type for uart ch!"
-#endif
-
-	UART_CH_MAX
-} eUART_ch_t;
 
 
 /*		config rk uart input clock

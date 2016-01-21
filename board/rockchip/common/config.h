@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -19,21 +19,14 @@ DECLARE_GLOBAL_DATA_PTR;
 #define	SECURE_BOOT_LOCK
 
 
+/* secure config */
 #ifdef CONFIG_SECUREBOOT_CRYPTO
 	#define SECUREBOOT_CRYPTO_EN
 #endif
 
 #if defined(SECUREBOOT_CRYPTO_EN)
-	#if defined(CONFIG_RKCHIP_RK3128)
-		#define SECURE_EFUSE_BASE_ADDR	RKIO_EFUSE_PHYS
-		#define CRYPTO_BASE_ADDR	RKIO_CRYPTO_PHYS
-	#elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368) \
-		|| defined(CONFIG_RKCHIP_RK322X)
-		#define SECURE_EFUSE_BASE_ADDR	RKIO_EFUSE_1024BITS_PHYS
-		#define CRYPTO_BASE_ADDR	RKIO_CRYPTO_PHYS
-	#else
-		#error: "PLS config chip for efuse and crypto base address!"
-	#endif
+	#define SECURE_EFUSE_BASE_ADDR	RKIO_SECUREEFUSE_BASE
+	#define CRYPTO_BASE_ADDR	RKIO_CRYPTO_BASE
 #endif /* SECUREBOOT_CRYPTO_EN */
 
 
@@ -50,30 +43,15 @@ DECLARE_GLOBAL_DATA_PTR;
 	#define EMMC_NOT_USED_BOOT_PART
 #endif
 
-#if defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-	|| defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK322X)
-	#define NANDC_BASE_ADDR         RKIO_NANDC_PHYS
 
-	#define SDMMC_BASE_ADDR		RKIO_SDMMC_PHYS
-	#define SDIO_BASE_ADDR		RKIO_SDIO_PHYS
-	#define EMMC_BASE_ADDR		RKIO_EMMC_PHYS
+#define NANDC_BASE_ADDR         RKIO_NANDC_BASE
+#define SDMMC_BASE_ADDR		RKIO_SDMMC_BASE
+#define SDIO_BASE_ADDR		RKIO_SDIO_BASE
+#define EMMC_BASE_ADDR		RKIO_EMMC_BASE
 
-	#define RKPLAT_IRQ_SDMMC	IRQ_SDMMC
-	#define RKPLAT_IRQ_SDIO		IRQ_SDIO
-	#define RKPLAT_IRQ_EMMC		IRQ_EMMC
-#elif defined(CONFIG_RKCHIP_RK3288)
-	#define NANDC_BASE_ADDR         RKIO_NANDC0_PHYS
-
-	#define SDMMC_BASE_ADDR		RKIO_SDMMC_PHYS
-	#define SDIO_BASE_ADDR		RKIO_SDIO0_PHYS
-	#define EMMC_BASE_ADDR		RKIO_EMMC_PHYS
-
-	#define RKPLAT_IRQ_SDMMC	IRQ_SDMMC
-	#define RKPLAT_IRQ_SDIO		IRQ_SDIO0
-	#define RKPLAT_IRQ_EMMC		IRQ_EMMC
-#else
-	#error: "PLS config chip for mmc irq and mmc base address!"
-#endif
+#define RKPLAT_IRQ_SDMMC	RKIRQ_SDMMC
+#define RKPLAT_IRQ_SDIO		RKIRQ_SDIO
+#define RKPLAT_IRQ_EMMC		RKIRQ_EMMC
 
 
 /* rk nand flash boot config */

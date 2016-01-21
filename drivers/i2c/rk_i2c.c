@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -11,7 +11,7 @@
 #include <asm/arch/rkplat.h>
 
 
-#define RKI2C_VERSION		"1.2"
+#define RKI2C_VERSION		"1.3"
 
 /* i2c debug information config */
 //#define RKI2C_DEBUG_INFO
@@ -125,26 +125,14 @@ struct rk_i2c {
 
 #ifdef CONFIG_I2C_MULTI_BUS
 static struct rk_i2c rki2c_base[I2C_BUS_MAX] = {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	{ .regs = (uint32_t)RKIO_I2C0_PMU_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C1_AUDIO_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C2_SENSOR_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C3_CAM_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C4_TP_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C5_HDMI_PHYS, 0 }
-#elif defined(CONFIG_RKCHIP_RK3036)
-	{ .regs = (uint32_t)RKIO_I2C0_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C1_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C2_PHYS, 0 },
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-	|| defined(CONFIG_RKCHIP_RK322X)
-	{ .regs = (uint32_t)RKIO_I2C0_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C1_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C2_PHYS, 0 },
-	{ .regs = (uint32_t)RKIO_I2C3_PHYS, 0 },
-#else
-	#error "PLS config chiptype for i2c base!"
-#endif
+	{ .regs = (uint32_t)RKIO_I2C0_BASE, 0 },
+	{ .regs = (uint32_t)RKIO_I2C1_BASE, 0 },
+	{ .regs = (uint32_t)RKIO_I2C2_BASE, 0 },
+	{ .regs = (uint32_t)RKIO_I2C3_BASE, 0 },
+	{ .regs = (uint32_t)RKIO_I2C4_BASE, 0 },
+	{ .regs = (uint32_t)RKIO_I2C5_BASE, 0 },
+	{ .regs = (uint32_t)RKIO_I2C6_BASE, 0 },
+	{ .regs = (uint32_t)RKIO_I2C7_BASE, 0 }
 };
 #endif
 
@@ -167,7 +155,7 @@ static inline void *rk_i2c_get_base(void)
 }
 
 
-static inline void rk_i2c_iomux(rk_i2c_bus_ch_t bus_id)
+static inline void rk_i2c_iomux(eI2C_ch_t bus_id)
 {
 	rk_iomux_config(RK_I2C0_IOMUX + bus_id);
 }

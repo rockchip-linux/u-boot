@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -9,7 +9,7 @@
 #include <asm/io.h>
 #include <asm/arch/rkplat.h>
 
-#define RKPWM_VERSION			"1.0"
+#define RKPWM_VERSION			"1.1"
 
 /* PWM registers  */
 #define PWM_REG_CNTR			0x00
@@ -57,17 +57,7 @@
 
 void __iomem *rk_pwm_get_base(unsigned pwm_id)
 {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	return (void __iomem *)(unsigned long)(RKIO_RK_PWM_PHYS + pwm_id * 0x10);
-#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK322X) \
-		|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	return (void __iomem *)(unsigned long)(RKIO_PWM_PHYS + pwm_id * 0x10);
-#else
-	#error "Please define pwm base for chip type!"
-#endif
-
-	printf("invalid pwm id %d\n", pwm_id);
-	return NULL;
+	return (void __iomem *)(unsigned long)(RKIO_PWM_BASE + pwm_id * 0x10);
 }
 
 

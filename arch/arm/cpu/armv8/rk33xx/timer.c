@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -11,14 +11,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define RKTIMER_VERSION		"1.3"
+#define RKTIMER_VERSION		"1.4"
 
-
-#if defined(CONFIG_RKCHIP_RK3368)
-#define TIMER_REG_BASE			RKIO_TIMER0_6CH_PHYS
-#else
-	#error "Please define timer base for chip type!"
-#endif
+/* timer base */
+#define TIMER_REG_BASE			RKIO_TIMER_BASE
 
 
 /* rk timer register offset */

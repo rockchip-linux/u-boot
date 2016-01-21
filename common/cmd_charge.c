@@ -2,7 +2,7 @@
  * (C) Copyright 2001
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -574,12 +574,9 @@ static inline void set_brightness(int brightness, screen_state* state) {
 }
 
 #ifdef CONFIG_CHARGE_TIMER_WAKEUP
-#if defined(CONFIG_RKCHIP_RK3368)
-	#define RK_CHARGE_TIMER_BASE		(RKIO_TIMER0_6CH_PHYS+0x20)
-	#define RK_CHARGE_TIMER_IRQ		IRQ_TIMER0_6CH_1
-#else
-	#error "PLS config charge time wakeup for chip plat"
-#endif
+
+#define RK_CHARGE_TIMER_BASE		(RKIO_TIMER_BASE + 0x20)
+#define RK_CHARGE_TIMER_IRQ		RKIRQ_TIMER1
 
 int timer1_init(uint64_t count)
 {

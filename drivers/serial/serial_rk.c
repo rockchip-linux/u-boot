@@ -9,24 +9,18 @@
 #include <asm/arch/rkplat.h>
 
 
-#define RKUART_VERSION		"1.2"
+#define RKUART_VERSION		"1.3"
 
-
+/* io base config */
 static volatile void __iomem *g_rkuart_base[UART_CH_MAX] = {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	(void __iomem *)RKIO_UART0_BT_PHYS,
-	(void __iomem *)RKIO_UART1_BB_PHYS,
-	(void __iomem *)RKIO_UART2_DBG_PHYS,
-	(void __iomem *)RKIO_UART3_GPS_PHYS,
-	(void __iomem *)RKIO_UART4_EXP_PHYS
-#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-	|| defined(CONFIG_RKCHIP_RK322X)
-	(void __iomem *)RKIO_UART0_PHYS,
-	(void __iomem *)RKIO_UART1_PHYS,
-	(void __iomem *)RKIO_UART2_PHYS
-#else
-	#error "PLS config chip type for uart base!"
-#endif
+	(void __iomem *)RKIO_UART0_BASE,
+	(void __iomem *)RKIO_UART1_BASE,
+	(void __iomem *)RKIO_UART2_BASE,
+	(void __iomem *)RKIO_UART3_BASE,
+	(void __iomem *)RKIO_UART4_BASE,
+	(void __iomem *)RKIO_UART5_BASE,
+	(void __iomem *)RKIO_UART6_BASE,
+	(void __iomem *)RKIO_UART7_BASE
 };
 
 

@@ -1,7 +1,7 @@
 /*
  * spi driver for rockchip
  *
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -308,16 +308,14 @@ struct spi_slave *spi_setup_slave(unsigned int bus, unsigned int cs,
 
 	switch (bus) {
 	case 0:
-		regs = (void __iomem *)SPI0_BASE_ADDR;
+		regs = (void __iomem *)RKIO_SPI0_BASE;
 		break;
 	case 1:
-		regs = (void __iomem *)SPI1_BASE_ADDR;
+		regs = (void __iomem *)RKIO_SPI1_BASE;
 		break;
-#if defined(CONFIG_RKCHIP_RK3288)
 	case 2:
-		regs = (void __iomem *)SPI2_BASE_ADDR;
+		regs = (void __iomem *)RKIO_SPI2_BASE;
 		break;
-#endif
 	default:
 		printf("SPI error: unsupported bus %i. \
 			Supported busses 0 - 1\n", bus);
