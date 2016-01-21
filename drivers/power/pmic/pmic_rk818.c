@@ -88,6 +88,23 @@ static struct fdt_regulator_match rk818_reg_matches[] = {
 	{ .prop = "rk818_ldo10",},
 };
 
+static struct fdt_regulator_match rk818_reg1_matches[] = {
+	{ .prop = "DCDC_REG1",},
+	{ .prop = "DCDC_REG2",},
+	{ .prop = "DCDC_REG3",},
+	{ .prop = "DCDC_REG4",},
+	{ .prop = "LDO_REG1", },
+	{ .prop = "LDO_REG2", },
+	{ .prop = "LDO_REG3", },
+	{ .prop = "LDO_REG4", },
+	{ .prop = "LDO_REG5", },
+	{ .prop = "LDO_REG6", },
+	{ .prop = "LDO_REG7", },
+	{ .prop = "LDO_REG8", },
+	{ .prop = "LDO_REG9", },
+	{ .prop = "SWITCH_REG",},
+};
+
 static int rk818_i2c_probe(u32 bus, u32 addr)
 {
 	char val;
@@ -239,6 +256,9 @@ static int rk818_parse_dt(const void* blob)
 	struct fdt_gpio_state gpios[2];
 	u32 bus, addr;
 	int ret, i;
+	struct fdt_regulator_match *reg_match;
+	const char *prop;
+	int temp_node;
 
 	node = fdt_node_offset_by_compatible(blob,
 					g_i2c_node, COMPAT_ROCKCHIP_RK818);
@@ -263,18 +283,32 @@ static int rk818_parse_dt(const void* blob)
 		printf("pmic rk818 i2c probe failed\n");
 		return ret;
 	}
-	
+
 	nd = fdt_get_regulator_node(blob, node);
 	if (nd < 0)
 		printf("%s: Cannot find regulators\n", __func__);
-	else
-		fdt_regulator_match(blob, nd, rk818_reg_matches,
-					RK818_NUM_REGULATORS);
-	
+	else {
+		fdt_for_each_subnode(blob, temp_node, nd) {
+			prop = fdt_getprop(blob, temp_node,
+					   "regulator-compatible", NULL);
+			if (prop)
+				break;
+		}
+
+		if (prop)
+			reg_match = rk818_reg_matches;
+		else
+			reg_match = rk818_reg1_matches;
+
+		fdt_regulator_match(blob, nd, reg_match,
+				    RK818_NUM_REGULATORS);
+	}
+
 	for (i = 0; i < RK818_NUM_REGULATORS; i++) {
-		regulator_init_pmic_matches[i].name = rk818_reg_matches[i].name;
-		if (rk818_reg_matches[i].boot_on && (rk818_reg_matches[i].min_uV == rk818_reg_matches[i].max_uV))
-			ret = rk818_set_regulator_init(&rk818_reg_matches[i], i);
+		regulator_init_pmic_matches[i].name = reg_match[i].name;
+		if (reg_match[i].boot_on &&
+		    (reg_match[i].min_uV == reg_match[i].max_uV))
+			ret = rk818_set_regulator_init(&reg_match[i], i);
 	}
 
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
