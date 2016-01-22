@@ -971,55 +971,44 @@ static bool SecureRKModeKeyCheck(uint8 *pKey)
 	return false;
 }
 
-static uint32 SecureRKModeInit(void)
+
+static uint32 SecureRKModeRSAKeyInit(uint32 *secure)
 {
-#if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
+	uint32 SecureEn = 0;
+
+#if defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
+	/* Get RSAKey in sdram which miniloader offer */
+	if (SecureRKModeGetRSAKey() == 0)
+		SecureEn = 1;
+
+	*secure = SecureEn;
+#else
 	BOOT_HEADER *pHead = (BOOT_HEADER *)g_rsa_key_buf;
 	uint32 i = 0;
 	int32 ret;
-#endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
-	uint32 secure = 0;
 
-	/* check efuse secure flag */
-	secure = 0;
-#if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
-#if defined(CONFIG_RKCHIP_RK3128)
-	/* rk3128 efuse read char unit */
+#if defined(CONFIG_RKEFUSE_V1)
+	/* efuse v1 read char unit */
 	uint8 flag = 0;
 	SecureEfuseRead((void *)(unsigned long)SECURE_EFUSE_BASE_ADDR, &flag, 0X1F, 1);
 	if (0xFF == flag)
-		secure = 1;
-
-	CryptoInit();
-#elif defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	/* rk3288/rk3368 efuse read word unit */
+		SecureEn = 1;
+#elif defined(CONFIG_RKEFUSE_V2)
+	/* efuse v2 read word unit */
 	uint32 flag = 0;
 	SecureEfuseRead((void *)(unsigned long)SECURE_EFUSE_BASE_ADDR, &flag, 0X00, 4);
 	if (flag & 0x01)
-		secure = 1;
-
-	CryptoInit();
+		SecureEn = 1;
 #endif
-
-#else
-	if (SecureRKModeGetRSAKey() == 0)
-		secure = 1;
-
-	CryptoInit();
-#endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
-
-	if (secure != 0) {
-		SecureMode = SBOOT_MODE_RK;
-		PRINT_E("Secure Boot Mode: 0x%x\n", SecureMode);
-
-#if !defined(CONFIG_SECURE_RSA_KEY_IN_RAM)
+	*secure = SecureEn;
+	if (SecureEn != 0) {
 		StorageReadFlashInfo((uint8 *)&g_FlashInfo);
-
-		i = 0;
 		if (StorageGetBootMedia() == BOOT_FROM_FLASH)
 			i = 2;
+		else
+			i = 0;
 		for (; i < 16; i++) {
-			PRINT_I("SecureInit %x\n", i * g_FlashInfo.BlockSize + 4);
+			PRINT_I("SecureRKModeRSAKeyInit %x\n", i * g_FlashInfo.BlockSize + 4);
 			ret = StorageReadPba(i * g_FlashInfo.BlockSize + 4, g_rsa_key_buf, 4);
 			if (ret == FTL_OK)
 				if (SecureRKModeGetRSAKey() == 0)
@@ -1027,14 +1016,37 @@ static uint32 SecureRKModeInit(void)
 						break;
 		}
 		/* check key error */
-		if (i >= 16)
+		if (i >= 16) {
+			PRINT_E("SecureRKMode RSAKey Init error!\n");
 			return ERROR;
+		}
+	}
 #endif /* CONFIG_SECURE_RSA_KEY_IN_RAM */
 
-		/* config drm information */
+	return OK;
+}
+
+
+static uint32 SecureRKModeInit(void)
+{
+	uint32 secure = 0;
+
+	/* crypto init */
+	CryptoInit();
+
+	/* check secure flag */
+	if (SecureRKModeRSAKeyInit(&secure) == ERROR)
+		return ERROR;
+
+	if (secure != 0) {
+		SecureMode = SBOOT_MODE_RK;
+		PRINT_E("Secure Boot Mode: 0x%x\n", SecureMode);
+
+		/* set SecureBoot enable and lock flag */
 		SecureBootEn = 1;
 		SecureBootLock = 1;
 
+		/* config drm information */
 		if (StorageSysDataLoad(1, &gDrmKeyInfo) == FTL_OK) {
 			if ((gDrmKeyInfo.drmtag != 0x4B4D5244) || (gDrmKeyInfo.publicKeyLen == 0)) {
 				gDrmKeyInfo.drmtag = 0x4B4D5244;
