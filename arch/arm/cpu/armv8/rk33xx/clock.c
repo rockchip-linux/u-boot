@@ -10,7 +10,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define RKCLOCK_VERSION		"1.2"
+#define RKCLOCK_VERSION		"1.3"
 
 
 #ifdef CONFIG_RK_CLOCK
@@ -106,10 +106,7 @@ void rkclk_set_pll(void) {}
 void rkclk_get_pll(void) {}
 void rkclk_dump_pll(void) {}
 void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz) {}
-int rkclk_npll_set_rate(uint32 pll_hz) { return -1; }
 uint32 rkclk_get_pll_rate_by_id(enum rk_plls_id pll_id) { return 24 * MHZ; }
-int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz) { return 0; }
-int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
 void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src) {}
 uint32 rkclk_get_mmc_clk(uint32 sdid) { return 24 * MHZ; }
@@ -125,5 +122,8 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus) { return 0; }
 #ifdef CONFIG_SECUREBOOT_CRYPTO
 void rkclk_set_crypto_clk(uint32 rate) {}
 #endif /* CONFIG_SECUREBOOT_CRYPTO*/
+void rkcru_cpu_soft_reset(void) {}
+void rkcru_mmc_soft_reset(uint32 sdmmcId) {}
+void rkcru_i2c_soft_reset(void) {}
 
 #endif /* CONFIG_RK_CLOCK */

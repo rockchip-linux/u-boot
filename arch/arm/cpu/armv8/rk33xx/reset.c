@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -11,25 +11,14 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define RKRESET_VERSION		"1.3"
+#define RKRESET_VERSION		"1.4"
 
 extern void FW_NandDeInit(void);
 
 
 void rk_module_deinit(void)
 {
-#ifdef CONFIG_RK_I2C
-
-#if defined(CONFIG_RKCHIP_RK3368)
-	/* soft reset i2c0 - i2c5 */
-	writel(0x3f<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
-	mdelay(1);
-	writel(0x00<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
-#else
-	#error "PLS config platform for i2c reset!"
-#endif
-
-#endif /* CONFIG_RK_I2C */
+	rkcru_i2c_soft_reset();
 
 	/* rk pl330 dmac deinit */
 #ifdef CONFIG_RK_PL330_DMAC
@@ -68,17 +57,6 @@ void reset_cpu(ulong ignored)
 	icache_disable();
 #endif
 
-#if defined(CONFIG_RKCHIP_RK3368)
-	/* pll enter slow mode */
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(APLLB_ID, 3));
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(APLLL_ID, 3));
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(GPLL_ID, 3));
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(CPLL_ID, 3));
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(NPLL_ID, 3));
-
-	/* soft reset */
-	writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
-#else
-	#error "PLS config platform for reset.c!"
-#endif /* CONFIG_RKPLATFORM */
+	/* cpu soft reset */
+	rkcru_cpu_soft_reset();
 }

@@ -94,37 +94,9 @@ void EmmcPowerEn(char En)
 
 void SDCReset(uint32 sdmmcId)
 {
-	uint32 con = 0;
-
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368)
-	if (sdmmcId == 2) {
-		con = (0x01 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
-	} else {
-		con = (0x01 << sdmmcId) | (0x01 << (sdmmcId + 16));
-	}
-	cru_writel(con, CRU_SOFTRSTS_CON(8));
-	udelay(100);
-	if (sdmmcId == 2) {
-		con = (0x00 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
-	} else {
-		con = (0x00 << sdmmcId) | (0x01 << (sdmmcId + 16));
-	}
-	cru_writel(con, CRU_SOFTRSTS_CON(8));
-	udelay(200);
-#elif defined(CONFIG_RKCHIP_RK3036) || defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-	|| defined(CONFIG_RKCHIP_RK322X)
-	con = (0x01 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
-	cru_writel(con, CRU_SOFTRSTS_CON(5));
-	udelay(100);
-	con = (0x00 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
-	cru_writel(con, CRU_SOFTRSTS_CON(5));
-	udelay(200);
-#else
-	#error "PLS config platform for emmc reset!"
-#endif
-	if (sdmmcId == 2) {
+	rkcru_mmc_soft_reset(sdmmcId);
+	if (sdmmcId == 2)
 		EmmcPowerEn(1);
-	}
 }
 
 

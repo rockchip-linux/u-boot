@@ -52,12 +52,6 @@ void rkclk_dump_pll(void);
 
 
 /*
- * rkplat clock set npll
- */
-int rkclk_set_npll_rate(uint32 pll_hz);
-
-
-/*
  * rkplat set nandc clock
  * nandc_id:	nandc id
  * freq:	nandc max freq request.
@@ -96,6 +90,7 @@ int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div);
  * freq:	sd clock freq
  */
 int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq);
+
 /*
  * rkplat set sd clock div, from source input
  * sdid:	sdmmc/sdio/emmc id
@@ -108,6 +103,7 @@ int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num);
  * rkplat disable mmc clock tuning
  */
 int rkclk_disable_mmc_tuning(uint32 sdid);
+
 
 /*
  * rkplat get PWM clock
@@ -139,16 +135,6 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus);
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz);
 
 
-/*
- * rkplat pll select by clock
- * clock: device request freq HZ
- * return value:
- * high 16bit:		clock source select
- * low 16bit :		div
- */
-uint32 rkclk_select_pll_source(uint32 clock, uint32 even);
-
-
 #ifdef CONFIG_SECUREBOOT_CRYPTO
 /*
  * rkplat set cryto clock
@@ -157,5 +143,21 @@ uint32 rkclk_select_pll_source(uint32 clock, uint32 even);
 void rkclk_set_crypto_clk(uint32 rate);
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 
+/*
+ * cpu soft reset
+ */
+void rkcru_cpu_soft_reset(void);
+
+
+/*
+ * mmc soft reset
+ */
+void rkcru_mmc_soft_reset(uint32 sdmmcId);
+
+
+/*
+ * i2c soft reset
+ */
+void rkcru_i2c_soft_reset(void);
 
 #endif	/* _RKXX_CLOCK_H */

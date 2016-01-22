@@ -1455,3 +1455,56 @@ void rkclk_set_crypto_clk(uint32 rate)
 	cru_writel((3 << (14 + 16)) | ((div - 1) << 14), CRU_CLKSELS_CON(10));
 }
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
+
+
+/*
+ * cpu soft reset
+ */
+void rkcru_cpu_soft_reset(void)
+{
+	/* pll enter slow mode */
+	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(APLLB_ID, 3));
+	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(APLLL_ID, 3));
+	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(GPLL_ID, 3));
+	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(CPLL_ID, 3));
+	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(NPLL_ID, 3));
+
+	/* soft reset */
+	writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
+}
+
+
+/*
+ * mmc soft reset
+ */
+void rkcru_mmc_soft_reset(uint32 sdmmcId)
+{
+	uint32 con = 0;
+
+	if (sdmmcId == 2) {
+		con = (0x01 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
+	} else {
+		con = (0x01 << sdmmcId) | (0x01 << (sdmmcId + 16));
+	}
+	cru_writel(con, CRU_SOFTRSTS_CON(8));
+	udelay(100);
+	if (sdmmcId == 2) {
+		con = (0x00 << (sdmmcId + 1)) | (0x01 << (sdmmcId + 1 + 16));
+	} else {
+		con = (0x00 << sdmmcId) | (0x01 << (sdmmcId + 16));
+	}
+	cru_writel(con, CRU_SOFTRSTS_CON(8));
+	udelay(200);
+}
+
+
+/*
+ * i2c soft reset
+ */
+void rkcru_i2c_soft_reset(void)
+{
+	/* soft reset i2c0 - i2c5 */
+	writel(0x3f<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
+	mdelay(1);
+	writel(0x00<<10 | 0x3f<<(10+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(2));
+}
