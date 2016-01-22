@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -157,14 +157,7 @@ uint32 lMemApiInit(uint32 BaseAddr)
 	if((gp_loader_api->tag & 0xFFFF0000) == 0x4e460000) {
 		// nand and emmc support
 		if((gp_loader_api->id == 1) || (gp_loader_api->id == 2)) {
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368) \
-	|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK322X)
-			rkclk_set_nandc_div(0, 1, RKNANDC_MAX_FREQ);
-#elif defined(CONFIG_RKCHIP_RK3036)
-			rkclk_set_nandc_div(0, 2, RKNANDC_MAX_FREQ);
-#else
-			#error "PLS config platform for nandc freq!"
-#endif
+			rkclk_set_nandc_freq_from_gpll(0, RKNANDC_MAX_FREQ);
 			return 0;
 		} else {
 			return -1;

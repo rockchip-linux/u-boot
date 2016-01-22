@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -753,7 +753,7 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
  * nandc_id:	nandc id
  * 0: arm pll; 1: ddr pll; 2: general pll;
  */
-int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
+static int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 {
 	uint32 parent = 0;
 	uint con = 0, div = 0;
@@ -782,6 +782,12 @@ int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq)
 	return 0;
 }
 
+int rkclk_set_nandc_freq_from_gpll(uint32 nandc_id, uint32 freq)
+{
+	/* nandc clock from gpll */
+	return rkclk_set_nandc_div(nandc_id, 2, freq);
+}
+
 
 /*
  * rkplat set mmc clock src
@@ -802,7 +808,7 @@ void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src)
 /*
  * rkplat get mmc clock src rate
  */
-unsigned int rkclk_get_mmc_clk(uint32 sdid)
+uint32 rkclk_get_mmc_clk(uint32 sdid)
 {
 	uint32 con;
 	uint32 sel;
@@ -831,6 +837,18 @@ unsigned int rkclk_get_mmc_clk(uint32 sdid)
 		return (24 * MHZ);
 	else
 		return 0;
+}
+
+
+/*
+ * rkplat get mmc clock rate from gpll
+ */
+uint32 rkclk_get_mmc_freq_from_gpll(uint32 sdid)
+{
+	/* set general pll */
+	rkclk_set_mmc_clk_src(sdid, 2);
+
+	return rkclk_get_mmc_clk(sdid);
 }
 
 

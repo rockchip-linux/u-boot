@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -112,8 +112,9 @@ int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz) { return 0; }
 int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
 void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src) {}
-unsigned int rkclk_get_mmc_clk(uint32 sdid) { return 24 * MHZ; }
-int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq) { return 0; }
+uint32 rkclk_get_mmc_clk(uint32 sdid) { return 24 * MHZ; }
+uint32 rkclk_get_mmc_freq_from_gpll(uint32 sdid) { return 24 * MHZ; }
+int rkclk_set_nandc_freq_from_gpll(uint32 nandc_id, uint32 freq) { return 0; }
 int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div) { return 0; }
 int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num) { return 0; }
 int rkclk_disable_mmc_tuning(uint32 sdid) { return 0; }

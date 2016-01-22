@@ -72,22 +72,7 @@ uint32 GetMmcCLK(uint32 nSDCPort)
 {
 	uint32 src_clk;
 
-#if defined(CONFIG_RKCHIP_RK3288) || defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK322X)
-	// set general pll
-	rkclk_set_mmc_clk_src(nSDCPort, 1);
-	//rk32 emmc src generall pll, emmc automic divide setting freq to 1/2, for get the right freq, we divide this freq to 1/2
-	src_clk = rkclk_get_mmc_clk(nSDCPort) / 2;
-#elif defined(CONFIG_RKCHIP_RK3036)
-	// set general pll
-	rkclk_set_mmc_clk_src(nSDCPort, 2);
-	src_clk = rkclk_get_mmc_clk(nSDCPort);
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	// set general pll
-	rkclk_set_mmc_clk_src(nSDCPort, 1);
-	src_clk = rkclk_get_mmc_clk(nSDCPort);
-#else
-	#error "PLS config platform for emmc clock get!"
-#endif
+	src_clk = rkclk_get_mmc_freq_from_gpll(nSDCPort);
 	src_clk = src_clk / KHZ;
 	debug("GetMmcCLK: sd %d, clk = %d\n", nSDCPort,src_clk);
 	return src_clk;

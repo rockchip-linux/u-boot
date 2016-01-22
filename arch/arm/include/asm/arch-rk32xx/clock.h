@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -57,12 +57,11 @@ void rkclk_set_cpll_rate(uint32 pll_hz);
 
 
 /*
- * rkplat set nandc clock div
+ * rkplat set nandc clock
  * nandc_id:	nandc id
- * pllsrc: 	nandc clock src;
  * freq:	nandc max freq request.
  */
-int rkclk_set_nandc_div(uint32 nandc_id, uint32 pllsrc, uint32 freq);
+int rkclk_set_nandc_freq_from_gpll(uint32 nandc_id, uint32 freq);
 
 
 /*
@@ -76,7 +75,12 @@ void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src);
  * rkplat get sd/sdmmc/emmc clock source freq
  * sdid:	sdmmc/sdio/emmc id
  */
-unsigned int rkclk_get_mmc_clk(uint32 sdid);
+uint32 rkclk_get_mmc_clk(uint32 sdid);
+
+/*
+ * rkplat get mmc clock rate from gpll
+ */
+uint32 rkclk_get_mmc_freq_from_gpll(uint32 sdid);
 
 /*
  * rkplat set sd clock div, from source input
