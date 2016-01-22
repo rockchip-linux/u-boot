@@ -370,6 +370,11 @@ static int strcmp_l1(const char *s1, const char *s2)
 	return strncmp(s1, s2, strlen(s1));
 }
 
+int __weak fb_getvar(char *cmd, char* response, size_t chars_left)
+{
+	return -1;
+}
+
 static void cb_getvar(struct usb_ep *ep, struct usb_request *req)
 {
 	char *cmd = req->buf;
@@ -386,6 +391,9 @@ static void cb_getvar(struct usb_ep *ep, struct usb_request *req)
 		fastboot_tx_write_str("FAILmissing var");
 		return;
 	}
+
+	if (!fb_getvar(cmd, response, chars_left))
+		goto end;
 
 	if (!strcmp_l1("version", cmd)) {
 		strncat(response, FASTBOOT_VERSION, chars_left);
@@ -416,6 +424,8 @@ static void cb_getvar(struct usb_ep *ep, struct usb_request *req)
 		error("unknown variable: %s\n", cmd);
 		strcpy(response, "FAILVariable not implemented");
 	}
+
+end:
 	fastboot_tx_write_str(response);
 }
 
@@ -666,6 +676,25 @@ static const struct cmd_dispatch_info cmd_dispatch_info[] = {
 	},
 };
 
+int __weak fb_unknown_command(char *cmd, char* response, size_t chars_left)
+{
+	return -1;
+}
+
+static void cb_unknown(struct usb_ep *ep, struct usb_request *req)
+{
+	char *cmd = req->buf;
+	char response[FASTBOOT_RESPONSE_LEN];
+
+	if (fb_unknown_command(cmd, response, FASTBOOT_RESPONSE_LEN) < 0) {
+		error("unknown command: %s\n", cmd);
+		fastboot_tx_write_str("FAILunknown command");
+		return;
+	}
+
+	fastboot_tx_write_str(response);
+}
+
 static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 {
 	char *cmdbuf = req->buf;
@@ -675,6 +704,8 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 	if (req->status != 0 || req->length == 0)
 		return;
 
+	func_cb = cb_unknown;
+
 	for (i = 0; i < ARRAY_SIZE(cmd_dispatch_info); i++) {
 		if (!strcmp_l1(cmd_dispatch_info[i].cmd, cmdbuf)) {
 			func_cb = cmd_dispatch_info[i].cb;
@@ -682,18 +713,13 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 		}
 	}
 
-	if (!func_cb) {
-		error("unknown command: %s\n", cmdbuf);
-		fastboot_tx_write_str("FAILunknown command");
+	if (req->actual < req->length) {
+		u8 *buf = (u8 *)req->buf;
+		buf[req->actual] = 0;
+		func_cb(ep, req);
 	} else {
-		if (req->actual < req->length) {
-			u8 *buf = (u8 *)req->buf;
-			buf[req->actual] = 0;
-			func_cb(ep, req);
-		} else {
-			error("buffer overflow\n");
-			fastboot_tx_write_str("FAILbuffer overflow");
-		}
+		error("buffer overflow\n");
+		fastboot_tx_write_str("FAILbuffer overflow");
 	}
 
 	*cmdbuf = '\0';

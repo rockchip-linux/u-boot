@@ -5,12 +5,18 @@
  */
 
 #include <common.h>
+#include <config.h>
 #include <dm.h>
+#include <memalign.h>
+#include <part.h>
+#include <image.h>
+#include <android_image.h>
 #include <asm/io.h>
 #include <asm/arch/uart.h>
 #include <asm/arch-rockchip/grf_rk3036.h>
 #include <asm/arch/sdram_rk3036.h>
 #include <asm/gpio.h>
+#include <linux/ctype.h>
 
 #ifdef CONFIG_USB_GADGET
 #include <usb.h>
@@ -20,22 +26,9 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #define GRF_BASE	0x20008000
+static struct rk3036_grf * const grf = (void *)GRF_BASE;
 
-void get_ddr_config(struct rk3036_ddr_config *config)
-{
-	/* K4B4G1646Q config */
-	config->ddr_type = 3;
-	config->rank = 1;
-	config->cs0_row = 15;
-	config->cs1_row = 15;
-
-	/* 8bank */
-	config->bank = 3;
-	config->col = 10;
-
-	/* 16bit bw */
-	config->bw = 1;
-}
+static block_dev_desc_t *dev_desc = NULL;
 
 #define FASTBOOT_KEY_GPIO 93
 
@@ -48,42 +41,411 @@ int fastboot_key_pressed(void)
 
 #define ROCKCHIP_BOOT_MODE_FASTBOOT	0x5242C309
 
+int fb_set_reboot_flag(void)
+{
+	writel(ROCKCHIP_BOOT_MODE_FASTBOOT, &grf->os_reg[4]);
+	return 0;
+}
+
+#define SLOT_A			"_a"
+#define SLOT_B			"_b"
+#define SLOT_BOOT_A		"boot" SLOT_A
+#define SLOT_BOOT_B		"boot" SLOT_B
+#define SLOT_PART_NAME(slot)	(!slot ? SLOT_BOOT_A : SLOT_BOOT_B)
+#define SLOT_IS_ERR(slot)	(slot < 0 || slot > 1)
+#define SLOT_NAME(slot) \
+	(SLOT_IS_ERR(slot) ? "ERROR" : (!slot ? SLOT_A : SLOT_B))
+#define SLOT_OTHER(slot)	(!slot)
+#define SLOT_INDEX(name)	(name ? name[1] - 'a' : 0)
+#define ALL_SLOTS		SLOT_A "," SLOT_B
+
+typedef union _slot_attributes {
+	struct {
+		u64 required_to_function:1;
+		u64 no_block_io_protocol:1;
+		u64 legacy_bios_bootable:1;
+		u64 priority:4;
+		u64 tries:4;
+		u64 successful:1;
+		u64 reserved:36;
+		u64 type_guid_specific:16;
+	} fields;
+	unsigned long long raw;
+} __packed slot_attributes;
+
+typedef struct _slot_partition {
+	int		part;
+	lbaint_t	start;
+	lbaint_t	size;
+	uchar		name[PARTNAME_SZ + 1];
+	slot_attributes	attr;
+} slot_partition;
+
+static int slot_has_slot(const char *part, int slot)
+{
+	disk_partition_t info;
+	char slot_name[PARTNAME_SZ / 2];
+
+	snprintf(slot_name, sizeof(slot_name), "%s%s", part, SLOT_NAME(slot));
+
+	if (!dev_desc)
+		return -1;
+
+	if (get_partition_info_efi_by_name(dev_desc, slot_name, &info) < 0)
+		return -1;
+
+	return 1;
+}
+
+static void gpt_to_slot(gpt_entry *gpt_pte, int part, slot_partition *slot_part)
+{
+        int i;
+        for (i = 0; i < PARTNAME_SZ; i++) {
+                u8 c;
+                c = gpt_pte[part].partition_name[i] & 0xff;
+                c = (c && !isprint(c)) ? '.' : c;
+                slot_part->name[i] = c;
+        }
+        slot_part->name[PARTNAME_SZ] = 0;
+
+	slot_part->part = part;
+	slot_part->attr.raw = gpt_pte[part].attributes.raw;
+	slot_part->start = (lbaint_t)le64_to_cpu(gpt_pte[part].starting_lba);
+	slot_part->size = (lbaint_t)le64_to_cpu(gpt_pte[part].ending_lba) + 1
+		- slot_part->start;
+}
+
+static int slot_is_bootable(slot_partition *slot_part)
+{
+	slot_attributes *attr = &slot_part->attr;
+
+	if ((attr->fields.successful || attr->fields.tries) &&
+	    attr->fields.priority)
+		return 1;
+
+	attr->fields.priority = 0;
+	return -1;
+}
+
+static int slot_get_part(int slot,
+		  slot_partition *slot_part)
+{
+	ALLOC_CACHE_ALIGN_BUFFER_PAD(gpt_header, gpt_head, 1,
+			dev_desc->blksz);
+	gpt_entry *gpt_pte = NULL;
+	int ret = 0;
+	int i;
+
+	ret = gpt_verify_headers(dev_desc, gpt_head,
+			&gpt_pte);
+	if (ret)
+		return -1;
+
+	for (i = 0; i < GPT_ENTRY_NUMBERS; i++) {
+		gpt_to_slot(gpt_pte, i, slot_part);
+
+		if (strcmp(SLOT_PART_NAME(slot),
+			   (const char *)slot_part->name) == 0) {
+			/* matched */
+			printf("Slot-%d:(s:%d, t:%d, p:%d)\n",
+			       slot, slot_part->attr.fields.successful,
+			       slot_part->attr.fields.tries,
+			       slot_part->attr.fields.priority);
+			return 1;
+		}
+	}
+
+	return -1;
+}
+
+static int slot_apply(slot_partition slot_part)
+{
+	ALLOC_CACHE_ALIGN_BUFFER_PAD(gpt_header, gpt_head, 1,
+			dev_desc->blksz);
+	gpt_entry *gpt_pte = NULL;
+	int ret = 0;
+
+	ret = gpt_verify_headers(dev_desc, gpt_head,
+			&gpt_pte);
+	if (ret)
+		return -1;
+
+	if (gpt_pte[slot_part.part].attributes.raw == slot_part.attr.raw)
+		return 0;
+
+	gpt_pte[slot_part.part].attributes.raw = slot_part.attr.raw;
+
+	printf("Apply attr for part-%d(s:%d, t:%d, p:%d)\n",
+			slot_part.part, slot_part.attr.fields.successful,
+			slot_part.attr.fields.tries,
+			slot_part.attr.fields.priority);
+
+	gpt_head->my_lba = cpu_to_le64(1);
+	gpt_head->alternate_lba = cpu_to_le64(dev_desc->lba - 1);
+	gpt_head->partition_entry_lba = cpu_to_le64(2);
+	gpt_head->header_crc32 = 0;
+
+	return write_gpt_table(dev_desc, gpt_head, gpt_pte);
+}
+
+static int slot_set_active(int slot, int active)
+{
+	slot_partition slot_part;
+	int ret = 0;
+
+	ret = slot_get_part(slot, &slot_part);
+	if (ret < 0)
+		return -1;
+
+	printf("%s:%s, active:%d\n", __func__, SLOT_NAME(slot), active);
+
+	if (active) {
+		slot_part.attr.fields.priority = 15;
+		slot_part.attr.fields.tries = 7;
+	} else {
+		slot_part.attr.fields.priority = 0;
+		slot_part.attr.fields.tries = 0;
+	}
+
+	ret = slot_apply(slot_part);
+	if (ret < 0)
+		return -1;
+
+	if (!active)
+		return 0;
+
+	ret = slot_get_part(SLOT_OTHER(slot), &slot_part);
+	if (ret < 0)
+		return -1;
+
+	if (slot_part.attr.fields.priority)
+		slot_part.attr.fields.priority = 14;
+
+	ret = slot_apply(slot_part);
+	if (ret < 0)
+		return -1;
+
+	return 0;
+}
+
+static int slot_image_size(int slot)
+{
+	ALLOC_CACHE_ALIGN_BUFFER_PAD(struct andr_img_hdr, hdr, 1,
+			dev_desc->blksz);
+	slot_partition slot_part;
+	int ret = 0;
+
+	ret = slot_get_part(slot, &slot_part);
+	if (ret < 0)
+		return -1;
+
+	if (dev_desc->block_read(0, slot_part.start, 2, hdr) < 0) {
+		printf("Error reading blocks\n");
+		return -1;
+	}
+
+	return android_image_get_end(hdr) - (ulong)hdr;
+}
+
+static int slot_check(int slot)
+{
+	ALLOC_CACHE_ALIGN_BUFFER_PAD(struct andr_img_hdr, hdr, 1,
+			dev_desc->blksz);
+	slot_partition slot_part;
+	int ret = 0;
+
+	ret = slot_get_part(slot, &slot_part);
+	if (ret < 0)
+		return -1;
+
+	if (dev_desc->block_read(0, slot_part.start, 2, hdr) < 0) {
+		printf("Error reading blocks\n");
+		return -1;
+	}
+
+	ret = android_image_check_header(hdr);
+	if (ret)
+		return -1;
+
+	return 0;
+}
+
+static int slot_get_bootable(void)
+{
+	int slot = -1;
+	slot_partition part_a, part_b;
+
+	part_a.attr.raw = part_b.attr.raw = 0;
+
+	slot_get_part(0, &part_a);
+	slot_get_part(1, &part_b);
+
+	if (slot_is_bootable(&part_a) < 0)
+		slot = 0;
+
+	if (slot_is_bootable(&part_b) < 0) {
+		if (SLOT_IS_ERR(slot))
+			slot = 1;
+		if (part_b.attr.fields.priority > part_a.attr.fields.priority)
+			slot = 1;
+	}
+
+	slot_apply(part_a);
+	slot_apply(part_b);
+
+	printf("%s: %s\n", __func__, SLOT_NAME(slot));
+	return slot;
+}
+
+static int slot_get_current(void)
+{
+	int slot = -1;
+
+	do {
+		slot = slot_get_bootable();
+
+		if (SLOT_IS_ERR(slot))
+			return -1;
+
+		if (slot_check(slot) < 0) {
+			slot_set_active(slot, 0);
+			continue;
+		}
+	} while (SLOT_IS_ERR(slot));
+
+	printf("%s: %s\n", __func__, SLOT_NAME(slot));
+	return slot;
+}
+
+static int slot_boot(int slot)
+{
+	slot_partition slot_part;
+	char buf[128];
+	int ret;
+
+	ret = slot_get_part(slot, &slot_part);
+	if (ret < 0)
+		return -1;
+
+	if (slot_part.attr.fields.tries)
+		slot_part.attr.fields.tries -= 1;
+
+	slot_apply(slot_part);
+
+	snprintf(buf, sizeof(buf), "%lx", slot_part.start);
+	setenv("boot_start", buf);
+	snprintf(buf, sizeof(buf), "%lx",
+		 slot_image_size(slot) / dev_desc->blksz);
+	setenv("boot_size", buf);
+
+	setenv("slot_suffix", SLOT_NAME(slot));
+	run_command("env set bootargs $android_bootargs "
+			"androidboot.slot_suffix=$slot_suffix\0", 0);
+
+	run_command("mmc read ${loadaddr} ${boot_start} ${boot_size};" \
+			"bootm start ${loadaddr}; bootm ramdisk;" \
+			"bootm prep; bootm go;\0", 0);
+	return 0;
+}
+
 int board_late_init(void)
 {
-	struct rk3036_grf * const grf = (void *)GRF_BASE;
 	int boot_mode = readl(&grf->os_reg[4]);
 
 	/* Clear boot mode */
 	writel(0, &grf->os_reg[4]);
 
+	dev_desc = get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+	if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN)
+		dev_desc = NULL;
+
 	if (boot_mode == ROCKCHIP_BOOT_MODE_FASTBOOT ||
 	    fastboot_key_pressed()) {
-		printf("enter fastboot!\n");
-		setenv("preboot", "setenv preboot; fastboot usb0");
+		run_command("echo Enter fastboot!; fastboot 0;", 0);
+	}
+
+	if (dev_desc) {
+		int slot = slot_get_current();
+
+		if (!SLOT_IS_ERR(slot))
+			slot_boot(slot);
 	}
 
 	return 0;
+}
+
+static int strcmp_l1(const char *s1, const char *s2)
+{
+	if (!s1 || !s2)
+		return -1;
+	return strncmp(s1, s2, strlen(s1));
+}
+
+int fb_getvar(char *cmd, char* response, size_t chars_left)
+{
+	if (!strcmp_l1("has-slot:", cmd)) {
+		strsep(&cmd, ":");
+		if (slot_has_slot(cmd, 0) < 0 || slot_has_slot(cmd, 1) < 0)
+			strncat(response, "no", chars_left);
+		else
+			strncat(response, "yes", chars_left);
+	} else if (!strcmp_l1("slot-suffixes", cmd)) {
+		strncat(response, ALL_SLOTS, chars_left);
+	} else if (!strcmp_l1("slot-successful:", cmd)) {
+		slot_partition part;
+
+		strsep(&cmd, ":");
+		if (slot_get_part(SLOT_INDEX(cmd), &part) < 0 ||
+		    !part.attr.fields.successful)
+			strncat(response, "no", chars_left);
+		else
+			strncat(response, "yes", chars_left);
+	} else if (!strcmp_l1("slot-unbootable:", cmd)) {
+		slot_partition part;
+
+		strsep(&cmd, ":");
+		if (slot_get_part(SLOT_INDEX(cmd), &part) < 0 &&
+		    slot_is_bootable(&part) < 0)
+			strncat(response, "yes", chars_left);
+		else
+			strncat(response, "no", chars_left);
+	} else if (!strcmp_l1("slot-retry-count:", cmd)) {
+		slot_partition part;
+
+		strsep(&cmd, ":");
+		slot_get_part(SLOT_INDEX(cmd), &part);
+		strncat(response, simple_itoa(part.attr.fields.tries), chars_left);
+	} else if (!strcmp_l1("current-slot", cmd)) {
+		strncat(response, SLOT_NAME(slot_get_current()), chars_left);
+	}
+	return 0;
+}
+
+int fb_unknown_command(char *cmd, char* response, size_t chars_left)
+{
+	if (!strcmp_l1("set_active:", cmd)) {
+		if (!dev_desc) {
+			strcpy(response, "FAILinvalid mmc device");
+			return -1;
+		}
+
+		strsep(&cmd, ":");
+		if (!strcmp_l1(SLOT_A, cmd) || !strcmp_l1(SLOT_B, cmd)) {
+			slot_set_active(SLOT_INDEX(cmd), 1);
+			strcpy(response, "OKAY");
+		} else
+			strcpy(response, "FAIL");
+
+		return 0;
+	}
+
+	return -1;
 }
 
 int board_init(void)
 {
 	return 0;
 }
-
-int dram_init(void)
-{
-	gd->ram_size = sdram_size();
-
-	return 0;
-}
-
-#ifndef CONFIG_SYS_DCACHE_OFF
-void enable_caches(void)
-{
-	/* Enable D-cache. I-cache is already enabled in start.S */
-	dcache_enable();
-}
-#endif
 
 #ifdef CONFIG_USB_GADGET
 #define RKIO_GRF_PHYS				0x20008000
@@ -110,3 +472,17 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 }
 #endif
 
+int dram_init(void)
+{
+	gd->ram_size = sdram_size();
+
+	return 0;
+}
+
+#ifndef CONFIG_SYS_DCACHE_OFF
+void enable_caches(void)
+{
+	/* Enable D-cache. I-cache is already enabled in start.S */
+	dcache_enable();
+}
+#endif

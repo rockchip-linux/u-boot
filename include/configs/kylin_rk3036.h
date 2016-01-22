@@ -10,6 +10,8 @@
 #include <linux/sizes.h>
 #include <configs/rk3036_common.h>
 
+#define DEFAULT_SERIAL_NUMBER		"0123456789ABCDEF"
+
 #ifndef CONFIG_SPL_BUILD
 
 /* Store env in emmc */
@@ -44,12 +46,16 @@
 	"name=persist,size=4M,uuid=${uuid_gpt_persist};" \
 	"name=userdata,size=-,uuid=${uuid_gpt_userdata};\0" \
 
+#define BOOTARGS \
+	"androidboot.serialno=" DEFAULT_SERIAL_NUMBER \
+	"\0"
+
 #undef CONFIG_EXTRA_ENV_SETTINGS
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"partitions=" PARTS_DEFAULT \
-	"mmcdev=0\0" \
-	"mmcpart=5\0" \
 	"loadaddr=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
+	"android_bootargs=" BOOTARGS \
+	"serial#=" DEFAULT_SERIAL_NUMBER "\0" \
 
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_PREBOOT
@@ -59,13 +65,8 @@
 
 #undef CONFIG_BOOTCOMMAND
 #define CONFIG_BOOTCOMMAND \
-	"mmc dev ${mmcdev}; if mmc rescan; then " \
-		"part start mmc ${mmcdev} ${mmcpart} boot_start;" \
-		"part size mmc ${mmcdev} ${mmcpart} boot_size;" \
-		"mmc read ${loadaddr} ${boot_start} ${boot_size};" \
-		"bootm start ${loadaddr}; bootm ramdisk;" \
-		"bootm prep; bootm go;" \
-	"fi;" \
+	"echo Failed to boot, enter fastboot...;" \
+	"fastboot 0;reset;" \
 
 /* Enable atags */
 #define CONFIG_SYS_BOOTPARAMS_LEN	(64*1024)
