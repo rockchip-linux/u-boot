@@ -1,7 +1,7 @@
 /*
  * Configuation settings for the rk33xx chip platform.
  *
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -40,7 +40,7 @@
 
 
 /* reserve iomap memory. */
-#define CONFIG_MAX_MEM_ADDR		0xFF000000
+#define CONFIG_MAX_MEM_ADDR		RKIO_IOMEMORYMAP_START
 
 
 /*
