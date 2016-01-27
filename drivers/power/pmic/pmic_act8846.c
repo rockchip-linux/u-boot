@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * Copyright (C) 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * zyw < zyw@rock-chips.com >
  * yxj <yxj@rock-chips.com>
  *
@@ -220,7 +220,7 @@ static int act8846_parse_dt(const void* blob)
 	node = fdt_node_offset_by_compatible(blob,
 					g_i2c_node, COMPAT_ACTIVE_ACT8846);
 	if (node < 0) {
-		printf("can't find dts node for act8846\n");
+		debug("can't find dts node for act8846\n");
 		return -ENODEV;
 	}
 

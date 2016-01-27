@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * Copyright (C) 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * zhangqing < zhangqing@rock-chips.com >
  * andy <yxj@rock-chips.com>
  *
@@ -47,7 +47,7 @@ int regulator_register_check(int num_matches)
 
 	for (i = 0; i < MAX_DCDC_NUM; i++) {
 		if (strcmp(regulator_init_pwm_matches[num_matches].name, regulator_init_pmic_matches[i].name) == 0) {
-			printf("ERROR:regulator_register_check:this name %s is used,not init it.\n",
+			printf("DCDC %s has been used, pwm regulator not init it.\n",
 					regulator_init_pwm_matches[num_matches].name);
 			ret = -ENODEV;
 			return ret;
@@ -76,7 +76,6 @@ static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 
 	ret = regulator_register_check(num_matches);
 	if (ret < 0) {
-		printf("ERROR:not support pwm set voltage\n");
 		return ret;
 	}
 

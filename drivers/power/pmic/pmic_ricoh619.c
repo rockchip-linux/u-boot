@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *  Copyright (C) 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * yxj <yxj@rock-chips.com>
  * 
  */
@@ -87,7 +87,7 @@ int ricoh619_parse_dt(const void* blob)
 	node = fdt_node_offset_by_compatible(blob, g_i2c_node,
 					COMPAT_RICOH_RICOH619);
 	if (node < 0) {
-		printf("can't find dts node for ricoh619\n");
+		debug("can't find dts node for ricoh619\n");
 		return -ENODEV;
 	}
 

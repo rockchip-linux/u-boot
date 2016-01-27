@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -718,21 +718,23 @@ void rkimage_prepare_fdt(void)
 #ifdef CONFIG_RESOURCE_PARTITION
 	resource_content content = rkimage_load_fdt(get_disk_partition(BOOT_NAME));
 	if (!content.load_addr) {
-		printf("failed to prepare fdt from boot!\n");
+		debug("Failed to prepare fdt from boot!\n");
 	} else {
+		printf("Load FDT from boot image.\n");
+
 		gd->fdt_blob = content.load_addr;
 		gd->fdt_size = content.content_size;
-		FBTDBG("prepare fdt from recovery:%p(%d)\n", gd->fdt_blob, gd->fdt_size);
 		return;
 	}
 #ifdef CONFIG_OF_FROM_RESOURCE
 	content = rkimage_load_fdt(get_disk_partition(RESOURCE_NAME));
 	if (!content.load_addr) {
-		printf("failed to prepare fdt from resource!\n");
+		debug("Failed to prepare fdt from resource!\n");
 	} else {
+		printf("Load FDT from resource image.\n");
+
 		gd->fdt_blob = content.load_addr;
 		gd->fdt_size = content.content_size;
-		FBTDBG("prepare fdt from resource:%p(%d)\n", gd->fdt_blob, gd->fdt_size);
 		return;
 	}
 #endif

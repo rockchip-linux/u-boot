@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ *  Copyright (C) 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * zhangqing <zhangqing@rock-chips.com>
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -189,7 +189,7 @@ static int act8931_parse_dt(const void* blob)
 	node = fdt_node_offset_by_compatible(blob,
 					g_i2c_node, COMPAT_ACTIVE_ACT8931);
 	if (node < 0) {
-		printf("can't find dts node for act8931\n");
+		debug("can't find dts node for act8931\n");
 		return -ENODEV;
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * Copyright (C) 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * zhangqing < zhangqing@rock-chips.com >
  * andy <yxj@rock-chips.com>
  *
@@ -263,24 +263,24 @@ static int rk818_parse_dt(const void* blob)
 	node = fdt_node_offset_by_compatible(blob,
 					g_i2c_node, COMPAT_ROCKCHIP_RK818);
 	if (node < 0) {
-		printf("can't find dts node for rk818\n");
+		debug("can't find dts node for rk818\n");
 		return -ENODEV;
 	}
 
 	if (!fdt_device_is_available(blob,node)) {
-		printf("device rk818 is disabled\n");
+		debug("device rk818 is disabled\n");
 		return -1;
 	}
 	
 	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
 	if (ret < 0) {
-		printf("pmic rk818 get fdt i2c failed\n");
+		debug("pmic rk818 get fdt i2c failed\n");
 		return ret;
 	}
 
 	ret = rk818_i2c_probe(bus, addr);
 	if (ret < 0) {
-		printf("pmic rk818 i2c probe failed\n");
+		debug("pmic rk818 i2c probe failed\n");
 		return ret;
 	}
 

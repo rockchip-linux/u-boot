@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * Copyright (C) 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * zhangqing < zhangqing@rock-chips.com >
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -59,7 +59,7 @@ static int rt5036_parse_dt(const void* blob)
 	node = fdt_node_offset_by_compatible(blob,
 					g_i2c_node, COMPAT_ROCKCHIP_RT5036);
 	if (node < 0) {
-		printf("can't find dts node for rt5036\n");
+		debug("can't find dts node for rt5036\n");
 		return -ENODEV;
 	}
 
@@ -76,7 +76,7 @@ static int rt5036_parse_dt(const void* blob)
 
 	nd = rt5036_i2c_probe(bus, addr);
 	if (nd < 0) {
-		printf("pmic rt5036 i2c probe failed\n");
+		debug("pmic rt5036 i2c probe failed\n");
 		return -1;
 	}
 

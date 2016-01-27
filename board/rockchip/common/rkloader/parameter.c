@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -375,7 +375,7 @@ const disk_partition_t* get_disk_partition(const char *name)
 {
 	int part_index = find_mtd_part(&gBootInfo.cmd_mtd, name);
 	if (part_index < 0) {
-		printf("failed to find part: '%s'\n", name);
+		debug("Failed to find part: '%s'\n", name);
 		return NULL;
 	}
 	return &gBootInfo.cmd_mtd.parts[part_index];

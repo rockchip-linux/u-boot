@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * Copyright (C) 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * zyw < zyw@rock-chips.com >
  * andy <yxj@rock-chips.com>
  *
@@ -303,7 +303,7 @@ static int rk808_parse_dt(const void* blob)
 	node = fdt_node_offset_by_compatible(blob,
 					g_i2c_node, COMPAT_ROCKCHIP_RK808);
 	if (node < 0) {
-		printf("can't find dts node for rk808\n");
+		debug("can't find dts node for rk808\n");
 		return -ENODEV;
 	}
 

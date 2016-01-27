@@ -2,7 +2,7 @@
  * (C) Copyright 2001
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
@@ -285,8 +285,8 @@ bool show_resource_image(const char* image_path) {
 	memset(&image, 0, sizeof(image));
 	snprintf(image.path, sizeof(image.path), "%s", image_path);
 
-	if(ptn)
-	{
+	if (ptn) {
+		printf("Find logo from partition %s\n", LOGO_NAME);
 #ifdef CONFIG_DIRECT_LOGO
 		bmp = lcd_get_buffer();
 #else
@@ -296,14 +296,11 @@ bool show_resource_image(const char* image_path) {
 		debug("bmp image at 0x%p, sign:%c%c\n", bmp, bmp->header.signature[0], bmp->header.signature[1]);
 	}
 
-	if(ptn && bmp && bmp->header.signature[0] == 'B' && bmp->header.signature[1] == 'M')
-	{
+	if (ptn && bmp && bmp->header.signature[0] == 'B' && bmp->header.signature[1] == 'M') {
 		debug("%s:show logo.bmp from logo partition\n", __func__);
 		lcd_display_bitmap_center((uint32_t)(unsigned long)bmp);
 		ret = true;
-	}
-	else
-	{
+	} else {
 		if (get_content(0, &image)) {
 			debug("%s:show logo from resource or boot partition\n", __func__);
 			int blocks = (image.content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
