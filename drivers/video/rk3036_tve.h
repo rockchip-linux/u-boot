@@ -127,15 +127,28 @@ enum {
 #define TVOUT_DEAULT TVOUT_CVBS_PAL
 
 struct rk3036_tve {
-	u32				reg_phy_base;
-	int				soctype;
-	int				test_mode;
-	int				saturation;
-	int				vdacbase;
+	u32	reg_phy_base;
+	int	soctype;
+	int	test_mode;
+	int	saturation;
+	int	vdacbase;
+	int	brightcontrast;
+	int	adjtiming;
+	int	lumafilter0;
+	int	lumafilter1;
+	int	lumafilter2;
+	int	daclevel;
 };
 
 #define RK30_TVE_REGBASE 0x10118000 + 0x200
 #define MAX_TVE_COUNT  2
+
+#ifdef TVEDEBUG
+#define TVEDBG(format, ...) \
+		printf("TVE: " format, ## __VA_ARGS__)
+#else
+#define TVEDBG(format, ...)
+#endif
 
 extern  int rk3036_tve_init(vidinfo_t *panel);
 

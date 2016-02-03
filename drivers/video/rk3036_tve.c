@@ -60,16 +60,16 @@ static void dac_enable(int enable)
 
 //	printf("%s enable %d\n", __FUNCTION__, enable);
 #if defined(CONFIG_RKCHIP_RK322X)
-	tve_dac_writel(VDAC_VDAC2, v_CUR_CTR(0x15));
+	tve_dac_writel(VDAC_VDAC2, v_CUR_CTR(tve_s.daclevel));
 	tve_dac_writel(VDAC_VDAC3, v_CAB_EN(0));
 #endif
 	if (enable) {
 		mask = m_VBG_EN | m_DAC_EN | m_DAC_GAIN;
 		#if defined(CONFIG_RKCHIP_RK3128)
-			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(0x3a);
+			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(tve_s.daclevel);
 			grfreg = GRF_TVE_CON0;
 		#elif defined(CONFIG_RKCHIP_RK3036)
-			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(0x3e);
+			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(tve_s.daclevel);
 			grfreg = GRF_SOC_CON3;
 		#endif
 		val |= mask << 16;
@@ -121,15 +121,9 @@ static void tve_set_mode (int mode)
 			   v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) |
 			   v_LUMA_FILTER_UPSAMPLE(1) | v_CSC_PATH(3));
 
-	if (tve_s.soctype == SOC_RK322X) {
-		tve_writel(TV_LUMA_FILTER0, 0x02ff0001);
-		tve_writel(TV_LUMA_FILTER1, 0xf40200fe);
-		tve_writel(TV_LUMA_FILTER2, 0xF332d910);
-	} else {
-		tve_writel(TV_LUMA_FILTER0, 0x02ff0000);
-		tve_writel(TV_LUMA_FILTER1, 0xF40202fd);
-		tve_writel(TV_LUMA_FILTER2, 0xF332d919);
-	}
+	tve_writel(TV_LUMA_FILTER0, tve_s.lumafilter0);
+	tve_writel(TV_LUMA_FILTER1, tve_s.lumafilter1);
+	tve_writel(TV_LUMA_FILTER2, tve_s.lumafilter2);
 
 	if(mode == TVOUT_CVBS_NTSC) {
 		tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(1) |
@@ -154,39 +148,19 @@ static void tve_set_mode (int mode)
 			v_YPP_MODE(1) | v_Y_SYNC_ON(1) | v_PIC_MODE(mode));
 		tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_PAL) |
 			v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
-		if (tve_s.soctype == SOC_RK312X) {
-			if(tve_s.saturation != 0)
-				tve_writel(TV_SATURATION, tve_s.saturation);
-			else
-				tve_writel(TV_SATURATION, /*0x00325c40*/ 0x002b4d3c);
-			if(tve_s.test_mode)
-				tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008a0a);
-			else
-				tve_writel(TV_BRIGHTNESS_CONTRAST, 0x0000800a);
-		} else if (tve_s.soctype == SOC_RK322X) {
-			tve_writel(TV_SATURATION, 0x00305b46);
-			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00009900);
-		} else {
-			tve_writel(TV_SATURATION, /*0x00325c40*/ 0x00386346);
-			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008b00);
-		}
+
+		tve_writel(TV_SATURATION, tve_s.saturation);
+		tve_writel(TV_BRIGHTNESS_CONTRAST, tve_s.brightcontrast);
 
 		tve_writel(TV_FREQ_SC,	0x2A098ACB);
 		tve_writel(TV_SYNC_TIMING, 0x00C28381);
 		tve_writel(TV_ADJ_TIMING, (0xc << 28) | 0x06c00800 | 0x80);
 		tve_writel(TV_ACT_ST,	0x001500F6);
 		tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
-		if (tve_s.soctype == SOC_RK312X) {
-			tve_writel(TV_ADJ_TIMING, (0xa << 28) | 0x06c00800 | 0x80);
-			udelay(100);
-			tve_writel(TV_ADJ_TIMING, (0xa << 28) | 0x06c00800 | 0x80);
-			tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
-		} else if (tve_s.soctype == SOC_RK322X) {
-			tve_writel(TV_ADJ_TIMING, (0xd << 28) |
-					0x06c00800 | 0x80);
-		} else {
-			tve_writel(TV_ADJ_TIMING, (0xa << 28) | 0x06c00800 | 0x80);
-		}
+
+		tve_writel(TV_ADJ_TIMING, tve_s.adjtiming);
+		tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
+
 	}
 }
 
@@ -310,11 +284,46 @@ int rk3036_tve_init(vidinfo_t *panel)
 			return -EPERM;
 		}
 
-		tve_s.test_mode = fdtdec_get_int(gd->fdt_blob, node, "test_mode", 0);
-		tve_s.saturation = fdtdec_get_int(gd->fdt_blob, node, "saturation", 0);
+		if (tve_s.soctype == SOC_RK312X)
+			tve_s.test_mode = fdtdec_get_int(gd->fdt_blob, node, "test_mode", 0);
 
+		tve_s.saturation = fdtdec_get_int(gd->fdt_blob, node, "saturation", 0);
+		if (tve_s.saturation == 0)
+			return -ENODEV;
+
+		tve_s.brightcontrast = fdtdec_get_int(gd->fdt_blob, node, "brightcontrast", 0);
+		if (tve_s.brightcontrast == 0)
+			return -ENODEV;
+
+		tve_s.adjtiming = fdtdec_get_int(gd->fdt_blob, node, "adjtiming", 0);
+		if (tve_s.adjtiming == 0)
+			return -ENODEV;
+
+		tve_s.lumafilter0 = fdtdec_get_int(gd->fdt_blob, node, "lumafilter0", 0);
+		if (tve_s.lumafilter0 == 0)
+			return -ENODEV;
+
+		tve_s.lumafilter1 = fdtdec_get_int(gd->fdt_blob, node, "lumafilter1", 0);
+		if (tve_s.lumafilter1 == 0)
+			return -ENODEV;
+
+		tve_s.lumafilter2 = fdtdec_get_int(gd->fdt_blob, node, "lumafilter2", 0);
+		if (tve_s.lumafilter2 == 0)
+			return -ENODEV;
+
+		tve_s.daclevel = fdtdec_get_int(gd->fdt_blob, node, "daclevel", 0);
+		if (tve_s.daclevel == 0)
+			return -ENODEV;
+
+		TVEDBG("tve_s.test_mode = 0x%x\n", tve_s.test_mode);
+		TVEDBG("tve_s.saturation = 0x%x\n", tve_s.saturation);
+		TVEDBG("tve_s.brightcontrast = 0x%x\n", tve_s.brightcontrast);
+		TVEDBG("tve_s.adjtiming = 0x%x\n", tve_s.adjtiming);
+		TVEDBG("tve_s.lumafilter0 = 0x%x\n", tve_s.lumafilter0);
+		TVEDBG("tve_s.lumafilter1 = 0x%x\n", tve_s.lumafilter1);
+		TVEDBG("tve_s.lumafilter2 = 0x%x\n", tve_s.lumafilter2);
+		TVEDBG("tve_s.daclevel = 0x%x\n", tve_s.daclevel);
 	}
-	printf("test_mode=%d,saturation=0x%x\n", tve_s.test_mode, tve_s.saturation);
 //	printf("%s start soc is 3128\n", __func__);
 
 	rk3036_tve_init_panel(panel);
