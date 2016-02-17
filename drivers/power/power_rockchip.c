@@ -248,6 +248,12 @@ int pmic_init(unsigned char  bus)
 		printf("pmic:rk818\n");
 		return 0;
 	}
+	ret = pmic_rk816_init(bus);
+	if (ret >= 0) {
+		set_rockchip_pmic_id(PMIC_ID_RK816);
+		printf("pmic:rk816\n");
+		return 0;
+	}
 #endif
 
 #if defined(CONFIG_POWER_RT5025)
