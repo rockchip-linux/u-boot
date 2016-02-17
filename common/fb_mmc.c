@@ -115,9 +115,25 @@ void fb_mmc_flash_write(const char *cmd, unsigned int session_id,
 	}
 
 	if (strcmp(cmd, CONFIG_FASTBOOT_GPT_NAME) == 0) {
+		if (strncmp(download_buffer, "uuid_disk=", 10) == 0) {
+			char cmdbuf[32];
+
+			setenv("alt_partitions", download_buffer);
+
+			sprintf(cmdbuf, "gpt write mmc %x $alt_partitions",
+					CONFIG_FASTBOOT_FLASH_MMC_DEV);
+			if (run_command(cmdbuf, 0))
+				fastboot_fail(response_str, "invalid GPT partition");
+			else
+				fastboot_okay(response_str, "");
+
+			return;
+		}
+
 		printf("%s: updating MBR, Primary and Backup GPT(s)\n",
 		       __func__);
 		if (is_valid_gpt_buf(dev_desc, download_buffer)) {
+
 			printf("%s: invalid GPT - refusing to write to flash\n",
 			       __func__);
 			fastboot_fail(response_str, "invalid GPT partition");
