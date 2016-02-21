@@ -328,6 +328,8 @@ int pmic_rk816_init(unsigned char bus)
 	if (ret < 0)
 		return ret;
 
+	fg_rk816_init(rk816.pmic->bus, rk816.pmic->hw.i2c.addr);
+
 	return 0;
 }
 

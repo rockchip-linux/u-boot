@@ -36,6 +36,7 @@ static const char * const fg_names[] = {
 	"CW201X_FG",
 	"RICOH619_FG",
 	"RK818_FG",
+	"RK816_FG",
 	"RT5025_FG",
 	"RK-ADC-FG",
 	"RT5036_FG",

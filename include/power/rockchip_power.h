@@ -54,6 +54,7 @@ void pmic_act8931_shut_down(void);
 int fg_cw201x_init(unsigned char bus);
 int fg_ricoh619_init(unsigned char bus,uchar addr);
 int fg_rk818_init(unsigned char bus,uchar addr);
+int fg_rk816_init(unsigned char bus, uchar addr);
 int fg_rt5025_init(unsigned char bus, uchar addr);
 int fg_rt5036_init(unsigned char bus, uchar addr);
 
