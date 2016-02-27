@@ -147,6 +147,16 @@
 		pinctrl-0 = <&uart2_xfer>;
 	};
 
+	efuse: efuse@20090000 {
+		compatible = "rockchip,rk3036-efuse";
+		reg = <0x20090000 0x20>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		clocks = <&cru PCLK_EFUSE>;
+		clock-names = "pclk_efuse";
+		status = "disabled";
+	};
+
 	pwm0: pwm@20050000 {
 		compatible = "rockchip,rk2928-pwm";
 		reg = <0x20050000 0x10>;

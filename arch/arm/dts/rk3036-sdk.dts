@@ -35,6 +35,10 @@
 	};
 };
 
+&efuse {
+	status = "okay";
+};
+
 &usb_host {
 	status = "okay";
 };
