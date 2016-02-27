@@ -75,6 +75,12 @@ config CROS_EC_SPI
 	  provides a faster and more robust interface than I2C but the bugs
 	  are less interesting.
 
+config EFUSE_RK3036
+	bool "Rk3036 efuse support"
+	depends on MISC && CONFIG_ROCKCHIP_RK3036
+	help
+	  Select this to enable a efuse for rk3036 devices.
+
 config FSL_SEC_MON
 	bool "Enable FSL SEC_MON Driver"
 	help

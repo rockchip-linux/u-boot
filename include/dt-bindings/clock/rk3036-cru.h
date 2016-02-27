@@ -77,6 +77,7 @@
 #define PCLK_PERI		363
 #define PCLK_DDRUPCTL		364
 #define PCLK_WDT		368
+#define PCLK_EFUSE		368
 
 /* hclk gates */
 #define HCLK_OTG0		449
