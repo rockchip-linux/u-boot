@@ -33,6 +33,15 @@ static struct rk3036_grf * const grf = (void *)GRF_BASE;
 
 static block_dev_desc_t *dev_desc = NULL;
 
+#define RECOVERY_KEY_GPIO 87
+
+int recovery_key_pressed(void)
+{
+	gpio_request(RECOVERY_KEY_GPIO, "recovery_key");
+	gpio_direction_input(RECOVERY_KEY_GPIO);
+	return !gpio_get_value(RECOVERY_KEY_GPIO);
+}
+
 #define FASTBOOT_KEY_GPIO 93
 
 int fastboot_key_pressed(void)
@@ -366,6 +375,12 @@ int board_late_init(void)
 	    fastboot_key_pressed()) {
 		run_command("echo Enter fastboot!; fastboot 0;", 0);
 	}
+
+	if (recovery_key_pressed()) {
+		setenv("bootdelay", "2");
+		return 0;
+	}
+	setenv("bootdelay", "0");
 
 	if (dev_desc) {
 		int slot = slot_get_current();
