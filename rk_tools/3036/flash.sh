@@ -20,7 +20,7 @@ fi
 
 echo "Waiting for rockchip device..."
 
-while ! sudo lsusb -d 2207: ; do sleep .5; done
+while ! sudo lsusb -d 2207:301a ; do sleep .5; done
 
 echo "Flashing ${LOADER}..."
 

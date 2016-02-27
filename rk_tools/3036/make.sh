@@ -1,5 +1,5 @@
 #!/bin/bash
-export CROSS_COMPILE=arm-eabi-
+export CROSS_COMPILE=arm-linux-gnueabihf-
 
 BOARD=${1:-kylin}
 
