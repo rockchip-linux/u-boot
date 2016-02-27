@@ -17,6 +17,7 @@
 #include <asm/arch/uart.h>
 #include <asm/arch-rockchip/grf_rk3036.h>
 #include <asm/arch/sdram_rk3036.h>
+#include <asm/arch/timer.h>
 #include <asm/gpio.h>
 #include <linux/ctype.h>
 
@@ -555,6 +556,7 @@ int fb_unknown_command(char *cmd, char* response, size_t chars_left)
 
 int board_init(void)
 {
+	rockchip_timer_init();
 	return 0;
 }
 
