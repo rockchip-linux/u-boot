@@ -12,6 +12,7 @@
 #include <fastboot.h>
 #include <image.h>
 #include <memalign.h>
+#include <misc.h>
 #include <part.h>
 #include <asm/io.h>
 #include <asm/arch/uart.h>
@@ -351,12 +352,55 @@ static int slot_boot(int slot)
 	setenv("boot_size", buf);
 
 	setenv("slot_suffix", SLOT_NAME(slot));
-	run_command("env set bootargs $android_bootargs "
-			"androidboot.slot_suffix=$slot_suffix\0", 0);
+
+	setenv("bootloader", BOOTLOADER_VERSION);
+
+	run_command("env set bootargs "
+			"androidboot.serialno=${serial#} "
+			"androidboot.bootloader=${bootloader} "
+			"androidboot.slot_suffix=${slot_suffix}\0", 0);
 
 	run_command("mmc read ${loadaddr} ${boot_start} ${boot_size};" \
 			"bootm start ${loadaddr}; bootm ramdisk;" \
 			"bootm prep; bootm go;\0", 0);
+	return 0;
+}
+
+static const char hex_asc[] = "0123456789abcdef";
+#define hex_asc_lo(x)   hex_asc[((x) & 0x0f)]
+#define hex_asc_hi(x)   hex_asc[((x) & 0xf0) >> 4]
+
+static inline char *pack_hex_byte(char *buf, u8 byte)
+{
+	*buf++ = hex_asc_hi(byte);
+	*buf++ = hex_asc_lo(byte);
+        return buf;
+}
+
+int setup_serialno(void)
+{
+#define SERIAL_NUMBER_LEN 16
+
+	struct udevice *dev;
+	char serialno[SERIAL_NUMBER_LEN + 1];
+	char buf[SERIAL_NUMBER_LEN >> 1];
+	int ret, i;
+
+	/* the first misc device will be used */
+	ret = uclass_first_device(UCLASS_MISC, &dev);
+	if (ret || !dev)
+		return -1;
+	ret = misc_read(dev, 7, &buf, sizeof(buf));
+	if (ret || !buf[0])
+		return -1;
+
+	memset(serialno, 0, sizeof(serialno));
+
+	for (i = 0; i < sizeof(buf); i++) {
+		pack_hex_byte(serialno + i*2, buf[i]);
+	}
+
+	setenv("serial#", serialno);
 	return 0;
 }
 
@@ -366,6 +410,9 @@ int board_late_init(void)
 
 	/* Clear boot mode */
 	writel(0, &grf->os_reg[4]);
+
+	if (setup_serialno() < 0)
+		printf("Failed to set serialno, use default one!\n");
 
 	dev_desc = get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
 	if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN)
@@ -572,6 +619,7 @@ int fb_unknown_command(char *cmd, char* response, size_t chars_left)
 int board_init(void)
 {
 	rockchip_timer_init();
+
 	return 0;
 }
 
