@@ -411,6 +411,11 @@ static void SecureNSModeInit(void)
 					RkPrintf("E:pKey!\n");
 				}
 			}
+			else if(SecureBootEn && (gDrmKeyInfo.keyBoxEnable == 0))
+			{
+				gDrmKeyInfo.keyBoxEnable = 1;
+				updataFlag = 1;
+			}
 		}
 
 		if (updataFlag) {
