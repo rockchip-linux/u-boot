@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -50,6 +50,8 @@
  */
 #if defined(CONFIG_RKCHIP_RK3368)
 	#include "irqs-rk3368.h"
+#elif defined(CONFIG_RKCHIP_RK3366)
+	#include "irqs-rk3366.h"
 #else
 	#error "PLS config irqs-rkxx.h!"
 #endif

@@ -18,7 +18,7 @@ void rk_mcu_init(void)
 
 	debug("rk mcu init\n");
 
-#if defined(CONFIG_RKCHIP_RK3368)
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	/* mcu sam memory map to internel ram */
 	grf_writel((0xF << (4 + 16)) | ((MCU_SRAM_ADDR_BASE >> 28) << 4), GRF_SOC_CON14);
 	grf_writel((0xFFFF << (0 + 16)) | ((MCU_SRAM_ADDR_BASE >> 12) << 0), GRF_SOC_CON11);

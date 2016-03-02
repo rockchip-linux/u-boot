@@ -171,7 +171,7 @@ void FW_NandDeInit(void)
 }
 
 
-#if defined(CONFIG_RKCHIP_RK3368)
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 static void rk3368_uart2usb(uint32 en)
 {
 	if (en) {
@@ -274,7 +274,7 @@ void rkplat_uart2UsbEn(uint32 en)
 	rk3036_uart2usb(en);
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	rk312X_uart2usb(en);
-#elif defined(CONFIG_RKCHIP_RK3368)
+#elif defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	rk3368_uart2usb(en);
 #elif defined(CONFIG_RKCHIP_RK322X)
 	/* no support uart to usb */

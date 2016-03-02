@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -55,7 +55,7 @@ typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
 
 
 /* rk dmac platform configure */
-#if defined(CONFIG_RKCHIP_RK3368)
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	#define RK_PL330_DMAC_MAX	2
 	#define CONFIG_RK_DMAC_0	/* dmac 0 */
 	#define CONFIG_RK_DMAC_1	/* dmac 1 */
@@ -124,6 +124,40 @@ enum dma_ch {
 
 	/* END Marker, also used to denote a reserved channel */
 	DMACH_MAX,
+};
+
+#elif defined(CONFIG_RKCHIP_RK3366)
+
+enum dma_ch {
+	DMACH_I2S_8CH_TX,
+	DMACH_I2S_8CH_RX,
+	DMACH_PWM,
+	DMACH_SPDIF_8CH_TX,
+	DMACH_UART2_DBG_TX,
+	DMACH_UART2_DBG_RX,
+	DMACH_I2S_2CH_TX,
+	DMACH_I2S_2CH_RX,
+
+	DMACH_UART0_BT_TX,
+	DMACH_UART0_BT_RX,
+	DMACH_UART3_GPS_TX,
+	DMACH_UART3_GPS_RX,
+	DMACH_SPI0_TX,
+	DMACH_SPI0_RX,
+	DMACH_SPI1_TX,
+	DMACH_SPI1_RX,
+
+	DMACH_DMAC0_MEMTOMEM,
+	DMACH_DMAC1_MEMTOMEM,
+	DMACH_DMAC2_MEMTOMEM,
+	DMACH_DMAC3_MEMTOMEM,
+	DMACH_DMAC4_MEMTOMEM,
+	DMACH_DMAC5_MEMTOMEM,
+	DMACH_DMAC6_MEMTOMEM,
+	DMACH_DMAC7_MEMTOMEM,
+
+	/* END Marker, also used to denote a reserved channel */
+	DMACH_MAX = 31,
 };
 
 #else

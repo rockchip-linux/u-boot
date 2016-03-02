@@ -48,7 +48,7 @@ struct arch_global_data {
 	unsigned long	aclk_bus_rate_hz;
 	unsigned long	pclk_bus_rate_hz;
 	unsigned long	hclk_bus_rate_hz;
-#elif defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK322X)
+#elif defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK322X) || defined(CONFIG_RKCHIP_RK3366)
 	unsigned long	aclk_periph_rate_hz;
 	unsigned long	pclk_periph_rate_hz;
 	unsigned long	hclk_periph_rate_hz;

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -15,6 +15,8 @@
 
 #if defined(CONFIG_RKCHIP_RK3368)
 	#include "grf-rk3368.h"
+#elif defined(CONFIG_RKCHIP_RK3366)
+	#include "grf-rk3366.h"
 #else
 	#error "PLS config grf-rkxx.h!"
 #endif

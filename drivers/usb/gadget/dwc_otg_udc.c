@@ -352,7 +352,8 @@ uint32_t GetVbus(void)
 		/* delay more than 1ms, waiting for usb phy init */
 		mdelay(3);
 	}
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK3368)
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
+		|| defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
 		/* exit suspend */
 		grf_writel(((0x1 << 0) << 16), GRF_UOC0_CON0);

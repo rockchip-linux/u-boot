@@ -94,6 +94,8 @@ static uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even
 
 #if defined(CONFIG_RKCHIP_RK3368)
 	#include "clock-rk3368.c"
+#elif defined(CONFIG_RKCHIP_RK3366)
+	#include "clock-rk3366.c"
 #else
 	#error "PLS config chiptype for clock-rkxx.c!"
 #endif

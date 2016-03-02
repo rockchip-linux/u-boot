@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -1104,7 +1104,7 @@ static inline struct pl330_info *rk_pl330_dmac_get_info(int dmac_id)
 
 #ifdef CONFIG_RK_DMAC_0
 
-#if defined(CONFIG_RKCHIP_RK3368)
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 static struct rk_pl330_platdata g_dmac0_pdata = {
 	.peri = {
 		[0] = DMACH_I2S_8CH_TX,
@@ -1171,6 +1171,44 @@ static struct rk_pl330_platdata g_dmac1_pdata = {
 		[14] = DMACH_SPI1_RX,
 		[15] = DMACH_SPI2_TX,
 		[16] = DMACH_SPI2_RX,
+		[17] = DMACH_MAX,
+		[18] = DMACH_MAX,
+		[19] = DMACH_MAX,
+		[20] = DMACH_MAX,
+		[21] = DMACH_MAX,
+		[22] = DMACH_MAX,
+		[23] = DMACH_MAX,
+		[24] = DMACH_MAX,
+		[25] = DMACH_MAX,
+		[26] = DMACH_MAX,
+		[27] = DMACH_MAX,
+		[28] = DMACH_MAX,
+		[29] = DMACH_MAX,
+		[30] = DMACH_MAX,
+		[31] = DMACH_MAX,
+	},
+};
+
+#elif defined(CONFIG_RKCHIP_RK3366)
+static struct rk_pl330_platdata g_dmac1_pdata = {
+	.peri = {
+		[0] = DMACH_MAX,
+		[1] = DMACH_UART0_BT_TX,
+		[2] = DMACH_UART0_BT_RX,
+		[3] = DMACH_MAX,
+		[4] = DMACH_MAX,
+		[5] = DMACH_MAX,
+		[6] = DMACH_MAX,
+		[7] = DMACH_UART3_GPS_TX,
+		[8] = DMACH_UART3_GPS_RX,
+		[9] = DMACH_MAX,
+		[10] = DMACH_MAX,
+		[11] = DMACH_SPI0_TX,
+		[12] = DMACH_SPI0_RX,
+		[13] = DMACH_SPI1_TX,
+		[14] = DMACH_SPI1_RX,
+		[15] = DMACH_MAX,
+		[16] = DMACH_MAX,
 		[17] = DMACH_MAX,
 		[18] = DMACH_MAX,
 		[19] = DMACH_MAX,
@@ -1423,7 +1461,7 @@ int rk_pl330_dmac_deinit(int dmac_id)
 	spin_unlock_irqrestore(&res_lock, flags);
 
 	// soft reset dmac0 and dmac1
-#if defined(CONFIG_RKCHIP_RK3368)
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 #ifdef CONFIG_RK_DMAC_0
 	writel(0x1<<2 | 0x1<<(2+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(1));
 	mdelay(1);

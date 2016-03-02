@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -309,7 +309,7 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
-#elif defined(CONFIG_RKCHIP_RK3368)
+#elif defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	/*
 	 * pull setting
 	 * 2'b00: Z(Noraml operaton)
@@ -449,7 +449,7 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
-#elif defined(CONFIG_RKCHIP_RK3368)
+#elif defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	void __iomem *base;
 	u32 val;
 

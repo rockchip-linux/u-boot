@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -23,6 +23,7 @@ void enable_caches(void)
 
 /*
  * rk3368 chip info:		{0x33333041, 0x32303134, 0x30393238, 0x56313030} - 330A20140928V100
+ * rk3366 chip info:		{0x33333042, 0x32303135, 0x30363234, 0x56313030} - 330B20150624V100
  */
 int rk_get_bootrom_chip_version(unsigned int chip_info[])
 {
@@ -33,6 +34,9 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 	/* bootrom is secure, second level can't read */
 #if defined(CONFIG_RKCHIP_RK3368)
 	chip_info[0] = 0x33333041;
+	chip_info[3] = 0x56313030;
+#elif defined(CONFIG_RKCHIP_RK3366)
+	chip_info[0] = 0x33333042;
 	chip_info[3] = 0x56313030;
 #else
 	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
@@ -56,6 +60,8 @@ int rk_get_chiptype(void)
 	if (chip_class == 0x3333) { /* RK33 */
 		if (chip_info[0] == 0x33333041) /* 330A */
 			return CONFIG_RK3368;
+		if (chip_info[0] == 0x33333042) /* 330B */
+			return CONFIG_RK3366;
 	}
 
 	return RKCHIP_UNKNOWN;
@@ -72,6 +78,8 @@ int rk_get_chiptype(void)
 	#define CPU_AXI_QOS_PRIORITY		0x08
 	#define QOS_PRIORITY_LEVEL_H		2
 	#define QOS_PRIORITY_LEVEL_L		2
+#elif defined(CONFIG_RKCHIP_RK3366)
+	#define RKIO_SECURE_TIMER_BASE		(RKIO_SECURE_TIMER_2CH_PHYS + 0x20)
 #else
 	#error "PLS config platform for secure/latency/qos!"
 #endif
@@ -93,7 +101,7 @@ static inline void secure_parameter_init(void)
 	/* auto reload & enable the timer */
 	writel(0x01, RKIO_SECURE_TIMER_BASE  + STIMER_CONTROL_REG);
 
-#if defined(CONFIG_RKCHIP_RK3368)
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	/* ddr space set no secure mode */
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON8);
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON9);
@@ -105,6 +113,7 @@ static inline void secure_parameter_init(void)
 #endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
 
 
+#if !defined(CONFIG_FPGA_BOARD) && defined(CONFIG_RKCHIP_RK3368)
 /* ddr read latency configure */
 static inline void ddr_read_latency_config(void)
 {
@@ -123,6 +132,7 @@ static inline void cpu_axi_qos_prority_level_config(void)
 	level = CPU_AXI_QOS_PRIORITY_LEVEL(QOS_PRIORITY_LEVEL_H, QOS_PRIORITY_LEVEL_L);
 	writel(level, RKIO_CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
 }
+#endif
 
 
 #ifdef CONFIG_ARCH_CPU_INIT
@@ -134,8 +144,11 @@ int arch_cpu_init(void)
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
 	secure_parameter_init();
 #endif
+
+#if !defined(CONFIG_FPGA_BOARD) && defined(CONFIG_RKCHIP_RK3368)
 	ddr_read_latency_config();
 	cpu_axi_qos_prority_level_config();
+#endif
 
 #if defined(CONFIG_RKCHIP_RK3368)
 	/* pwm select rk solution */
@@ -162,6 +175,11 @@ int print_cpuinfo(void)
 #if defined(CONFIG_RKCHIP_RK3368)
 	if (gd->arch.chiptype == CONFIG_RK3368)
 		printf("CPU: rk3368\n");
+#endif
+
+#if defined(CONFIG_RKCHIP_RK3366)
+	if (gd->arch.chiptype == CONFIG_RK3366)
+		printf("CPU: rk3366\n");
 #endif
 
 	rkclk_get_pll();
