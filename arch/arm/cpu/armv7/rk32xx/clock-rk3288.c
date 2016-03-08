@@ -600,22 +600,7 @@ static uint32 rkclk_get_bus_pclk_div(void)
 	uint32 con, div;
 
 	con = cru_readl(CRU_CLKSELS_CON(1));
-	switch ((con & PDBUS_PCLK_DIV_MSK) >> PDBUS_PCLK_DIV_OFF) {
-	case 0:
-		div = CLK_DIV_1;
-		break;
-	case 1:
-		div = CLK_DIV_2;
-		break;
-	case 2:
-		div = CLK_DIV_4;
-		break;
-	case 3:
-		div = CLK_DIV_8;
-		break;
-	default:
-		div = CLK_DIV_4;
-	}
+	div = ((con & PDBUS_PCLK_DIV_MSK) >> PDBUS_PCLK_DIV_OFF) + 1;
 
 	return div;
 }
