@@ -22,7 +22,7 @@
 #define RKIO_SPI0_PHYS                  0xFF110000
 #define RKIO_SPI1_PHYS                  0xFF120000
 #define RKIO_SPI2_PHYS                  0xFF130000
-#define RKIO_I2C2_SENSOR_PHYS           0xFF140000
+#define RKIO_I2C2_SENSOR_PHYS           0xFF660000
 #define RKIO_I2C3_CAM_PHYS              0xFF150000
 #define RKIO_I2C4_TP_PHYS               0xFF160000
 #define RKIO_I2C5_HDMI_PHYS             0xFF170000
@@ -56,7 +56,7 @@
 #define RKIO_DDR_PCTL1_PHYS             0xFF630000
 #define RKIO_DDR_PUBL1_PHYS             0xFF640000
 #define RKIO_I2C0_PMU_PHYS              0xFF650000
-#define RKIO_I2C1_AUDIO_PHYS            0xFF660000
+#define RKIO_I2C1_AUDIO_PHYS            0xFF140000
 #define RKIO_DW_PWM_PHYS                0xFF670000
 #define RKIO_RK_PWM_PHYS                0xFF680000
 #define RKIO_UART2_DBG_PHYS             0xFF690000

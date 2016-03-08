@@ -290,7 +290,7 @@ static int rk_i2c_send_stop_bit(struct rk_i2c *i2c)
 		udelay(1);
 	}
 	if (TimeOut <= 0) {
-		printf("I2C Send Start Bit Timeout\n");
+		printf("I2C Send Stop Bit Timeout\n");
 		rk_i2c_show_regs(i2c);
 		return I2C_ERROR_TIMEOUT;
 	}
