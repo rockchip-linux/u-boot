@@ -20,7 +20,7 @@ struct s_irq_handler {
 	void (*m_func)(void *data);
 };
 
-static struct s_irq_handler g_irq_handler[NR_IRQS_MAXNUM];
+static struct s_irq_handler g_irq_handler[NR_IRQS];
 
 
 /* general interrupt server handler for gpio chip */
@@ -90,7 +90,7 @@ static inline int irq_init(void)
 	gd->flags |= GD_FLG_IRQINIT;
 
 	debug("rk irq version: %s, initialized.\n", RKIRQ_VERSION);
-	for (i = 0; i < NR_IRQS_MAXNUM; i++)
+	for (i = 0; i < NR_IRQS; i++)
 		g_irq_handler[i].m_func = NULL;
 
 	/* gic irq init */
@@ -117,7 +117,7 @@ void enable_imprecise_aborts(void)
 /* enable irq handler */
 int irq_handler_enable(int irq)
 {
-	if (irq >= NR_IRQS_MAXNUM)
+	if (irq >= NR_IRQS)
 		return -1;
 
 	if (irq < NR_GIC_IRQS)
@@ -134,7 +134,7 @@ int irq_handler_enable(int irq)
 /* disable irq handler */
 int irq_handler_disable(int irq)
 {
-	if (irq >= NR_IRQS_MAXNUM)
+	if (irq >= NR_IRQS)
 		return -1;
 
 	if (irq < NR_GIC_IRQS)
@@ -155,7 +155,7 @@ int irq_handler_disable(int irq)
  */
 int irq_set_irq_type(int irq, unsigned int type)
 {
-	if (irq >= NR_IRQS_MAXNUM)
+	if (irq >= NR_IRQS)
 		return -1;
 
 	if (irq < NR_GIC_IRQS)
@@ -172,7 +172,7 @@ int irq_set_irq_type(int irq, unsigned int type)
 /* irq interrupt install handle */
 void irq_install_handler(int irq, interrupt_handler_t *handler, void *data)
 {
-	if (irq >= NR_IRQS_MAXNUM || !handler) {
+	if (irq >= NR_IRQS || !handler) {
 		printf("error: irq = %d, handler = 0x%p, data = 0x%p.\n", irq, handler, data);
 		return;
 	}
@@ -185,7 +185,7 @@ void irq_install_handler(int irq, interrupt_handler_t *handler, void *data)
 /* interrupt uninstall handler */
 void irq_uninstall_handler(int irq)
 {
-	if (irq >= NR_IRQS_MAXNUM)
+	if (irq >= NR_IRQS)
 		return;
 
 	g_irq_handler[irq].m_func = NULL;

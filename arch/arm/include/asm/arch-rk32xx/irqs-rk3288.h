@@ -131,10 +131,6 @@
 
 #define NR_GIC_IRQS                     (5 * 32)
 #define NR_GPIO_IRQS                    (9 * 32)
-#define NR_BOARD_IRQS                   64
-#define NR_IRQS                         (NR_GIC_IRQS + NR_GPIO_IRQS + NR_BOARD_IRQS)
-
-
-#define NR_IRQS_MAXNUM			(NR_GIC_IRQS + NR_GPIO_IRQS)
+#define NR_IRQS                         (NR_GIC_IRQS + NR_GPIO_IRQS)
 
 #endif /* __RK3288_IRQS_H */
