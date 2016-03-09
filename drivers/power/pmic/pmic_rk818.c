@@ -256,7 +256,7 @@ static int rk818_parse_dt(const void* blob)
 	struct fdt_gpio_state gpios[2];
 	u32 bus, addr;
 	int ret, i;
-	struct fdt_regulator_match *reg_match;
+	struct fdt_regulator_match *reg_match = NULL;
 	const char *prop;
 	int temp_node;
 

@@ -85,9 +85,6 @@ static int dbg_enable;
 
 /* DC ADC */
 #define DC_ADC_TRIGGER		150
-
-#define read_reg32(addr)	(*((uint32 volatile*)(addr)))
-#define write_reg32(addr, v)	(*((uint32 volatile*)(addr)) = v)
 #define SARADC_BASE             RKIO_SARADC_PHYS
 
 /***********************************************************/
@@ -178,6 +175,16 @@ struct rk816_fg {
 
 struct rk816_fg rk816_fg;
 /**************************************************************/
+static inline void write_reg32(unsigned long addr, uint32_t val)
+{
+	*(volatile uint32_t *)addr = val;
+}
+
+static inline uint32_t read_reg32(unsigned long addr)
+{
+	return *(volatile uint32_t *)addr;
+}
+
 static int saradc_init(void)
 {
 	uint32 value, timeout = 0;
