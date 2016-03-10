@@ -95,6 +95,9 @@ typedef enum SPI_ch {
 	#define RKIRQ_TIMER2		IRQ_TIMER0_6CH_2
 	#define RKIRQ_TIMER3		IRQ_TIMER0_6CH_3
 
+	/* secure timer */
+	#define RKIO_SECURE_TIMER_BASE	(RKIO_SECURE_TIMER_2CH_PHYS + 0x20)
+
 	/* uart */
 	#define RKIO_UART0_BASE		RKIO_UART0_BT_PHYS
 	#define RKIO_UART1_BASE		RKIO_UART1_BB_PHYS
@@ -161,6 +164,9 @@ typedef enum SPI_ch {
 	#define RKIRQ_TIMER1		IRQ_TIMER_6CH_1
 	#define RKIRQ_TIMER2		IRQ_TIMER_6CH_2
 	#define RKIRQ_TIMER3		IRQ_TIMER_6CH_3
+
+	/* secure timer */
+	#define RKIO_SECURE_TIMER_BASE	(RKIO_SECURE_TIMER_2CH_PHYS + 0x20)
 
 	/* uart */
 	#define RKIO_UART0_BASE		RKIO_UART0_BT_PHYS

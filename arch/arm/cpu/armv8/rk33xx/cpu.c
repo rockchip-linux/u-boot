@@ -69,8 +69,6 @@ int rk_get_chiptype(void)
 
 
 #if defined(CONFIG_RKCHIP_RK3368)
-	#define RKIO_SECURE_TIMER_BASE		(RKIO_SECURE_TIMER_2CH_PHYS + 0x20)
-
 	#define RKIO_DDR_LATENCY_BASE		(0xffac0000 + 0x14)
 	#define DDR_READ_LATENCY_VALUE		(0x34)
 
@@ -78,10 +76,6 @@ int rk_get_chiptype(void)
 	#define CPU_AXI_QOS_PRIORITY		0x08
 	#define QOS_PRIORITY_LEVEL_H		2
 	#define QOS_PRIORITY_LEVEL_L		2
-#elif defined(CONFIG_RKCHIP_RK3366)
-	#define RKIO_SECURE_TIMER_BASE		(RKIO_SECURE_TIMER_2CH_PHYS + 0x20)
-#else
-	#error "PLS config platform for secure/latency/qos!"
 #endif
 
 
