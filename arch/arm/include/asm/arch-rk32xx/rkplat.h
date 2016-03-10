@@ -157,6 +157,8 @@ typedef enum SPI_ch {
 	/* crypto */
 	#define RKIO_CRYPTO_BASE	RKIO_CRYPTO_PHYS
 
+	/* boot information for kernel */
+	#define RKIO_BOOTINFO_BASE	(RKIO_NANDC_BASE + 0x1000)
 #elif defined(CONFIG_RKCHIP_RK3036)
 	/* Loader Flag regiseter */
 	#define RKIO_LOADER_FLAG_REG	(RKIO_GRF_PHYS + GRF_OS_REG4)
@@ -221,6 +223,8 @@ typedef enum SPI_ch {
 	/* efuse */
 	#define RKIO_FTEFUSE_BASE	RKIO_EFUSE_PHYS
 
+	/* boot information for kernel */
+	#define RKIO_BOOTINFO_BASE	(RKIO_NANDC_BASE + 0x1000)
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	/* Loader Flag regiseter */
 	#define RKIO_LOADER_FLAG_REG	(RKIO_PMU_PHYS + PMU_SYS_REG0)
@@ -288,6 +292,9 @@ typedef enum SPI_ch {
 
 	/* crypto */
 	#define RKIO_CRYPTO_BASE	RKIO_CRYPTO_PHYS
+
+	/* boot information for kernel */
+	#define RKIO_BOOTINFO_BASE	(RKIO_NANDC_BASE + 0x1000)
 #elif  defined(CONFIG_RKCHIP_RK322X)
 	/* Loader Flag regiseter */
 	#define RKIO_LOADER_FLAG_REG	(RKIO_GRF_PHYS + GRF_OS_REG0)
@@ -355,6 +362,9 @@ typedef enum SPI_ch {
 
 	/* crypto */
 	#define RKIO_CRYPTO_BASE	RKIO_CRYPTO_PHYS
+
+	/* boot information for kernel */
+	#define RKIO_BOOTINFO_BASE	(RKIO_NANDC_BASE + 0x1000)
 #else
 	#error "PLS config chiptype for hardware!"
 #endif

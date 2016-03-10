@@ -43,6 +43,8 @@ DECLARE_GLOBAL_DATA_PTR;
 	#define EMMC_NOT_USED_BOOT_PART
 #endif
 
+/* loader save information for kernel in ram */
+#define BOOTINFO_RAM_BASE	RKIO_BOOTINFO_BASE
 
 #define NANDC_BASE_ADDR         RKIO_NANDC_BASE
 #define SDMMC_BASE_ADDR		RKIO_SDMMC_BASE

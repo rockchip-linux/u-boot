@@ -74,7 +74,7 @@ void SecureBootLockLoader(void)
 
 static void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 length)
 {
-	uint8 *pSramAddr = (uint8 *)(NANDC_BASE_ADDR + 0x1000);
+	uint8 *pSramAddr = (uint8 *)BOOTINFO_RAM_BASE;
 
 	if (dir == 0)
 	{
