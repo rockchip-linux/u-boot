@@ -23,7 +23,7 @@
 /*
  * rkplat clock set pll mode
  */
-void rkclk_pll_mode(int pll_id, int pll_mode);
+void rkclk_pll_mode(int pll_mode);
 
 /*
  * rkplat clock set pll rate by id

@@ -101,7 +101,7 @@ static uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even
 
 #else
 
-void rkclk_pll_mode(int pll_id, int pll_mode) {}
+void rkclk_pll_mode(int pll_mode) {}
 void rkclk_set_pll(void) {}
 void rkclk_get_pll(void) {}
 void rkclk_dump_pll(void) {}

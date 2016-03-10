@@ -782,9 +782,21 @@ static uint32 rkclk_get_periph_pclk_div(void)
 /*
  * rkplat clock set pll mode
  */
-void rkclk_pll_mode(int pll_id, int pll_mode)
+void rkclk_pll_mode(int pll_mode)
 {
-	rkclk_pll_set_mode(pll_id, pll_mode);
+	if (pll_mode == RKCLK_PLL_MODE_NORMAL) {
+		rkclk_pll_set_mode(APLLL_ID, pll_mode);
+		rkclk_pll_set_mode(APLLB_ID, pll_mode);
+		rkclk_pll_set_mode(CPLL_ID, pll_mode);
+		rkclk_pll_set_mode(GPLL_ID, pll_mode);
+		rkclk_pll_set_mode(NPLL_ID, pll_mode);
+	} else {
+		rkclk_pll_set_mode(CPLL_ID, pll_mode);
+		rkclk_pll_set_mode(GPLL_ID, pll_mode);
+		rkclk_pll_set_mode(NPLL_ID, pll_mode);
+		rkclk_pll_set_mode(APLLL_ID, pll_mode);
+		rkclk_pll_set_mode(APLLB_ID, pll_mode);
+	}
 }
 
 
@@ -1463,11 +1475,7 @@ void rkclk_set_crypto_clk(uint32 rate)
 void rkcru_cpu_soft_reset(void)
 {
 	/* pll enter slow mode */
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(APLLB_ID, 3));
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(APLLL_ID, 3));
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(GPLL_ID, 3));
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(CPLL_ID, 3));
-	cru_writel(((0x00 << 8) && (0x03 << 24)), PLL_CONS(NPLL_ID, 3));
+	rkclk_pll_mode(RKCLK_PLL_MODE_SLOW);
 
 	/* soft reset */
 	writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
