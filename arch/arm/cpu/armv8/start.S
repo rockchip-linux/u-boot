@@ -225,6 +225,23 @@ el1_start:
 	bl	gic_init_secure_percpu
 #endif
 
+#if defined(CONFIG_ROCKCHIP)
+	/*
+	 * Setting HCR_EL2.TGE AMO IMO FMO for exception rounting to EL2
+	 */
+	mrs	x0, CurrentEL	/* check currentEL */
+	cmp	x0, 0x8
+	b.ne	endseting	/* currentEL != EL2 */
+
+	mrs	x9, hcr_el2
+	orr	x9, x9, #(7 << 3)	/* HCR_EL2.AMO IMO FMO set */
+	orr	x9, x9, #(1 << 27)	/* HCR_EL2.TGE set */
+	msr	hcr_el2, x9
+
+endseting:
+	nop
+#endif /* CONFIG_ROCKCHIP */
+
 	branch_if_master x0, x1, 2f
 
 	/*

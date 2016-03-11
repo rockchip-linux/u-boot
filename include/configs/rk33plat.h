@@ -72,9 +72,6 @@
 #define CONFIG_SWITCH_EL3_TO_EL1
 #endif
 
-/* do_nonsec_virt_switch when enter kernel */
-#define CONFIG_ARMV8_SWITCH_TO_EL1
-
 /* icache enable when start to kernel */
 #define CONFIG_ICACHE_ENABLE_FOR_KERNEL
 
