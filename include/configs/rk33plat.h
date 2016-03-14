@@ -12,11 +12,12 @@
 
 #include <asm/arch/io.h>
 
-/* gic config */
-#ifdef CONFIG_GICV2
+
+/* rk gic400 is GICV2 */
+#define CONFIG_GICV2
 #define GICD_BASE			RKIO_GICD_PHYS
 #define GICC_BASE			RKIO_GICC_PHYS
-#endif /* CONFIG_GICV2 */
+
 
 /* Generic Timer Definitions */
 #define COUNTER_FREQUENCY		CONFIG_SYS_CLK_FREQ_CRYSTAL
