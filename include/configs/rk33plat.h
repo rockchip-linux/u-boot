@@ -13,11 +13,19 @@
 #include <asm/arch/io.h>
 
 
-/* rk gic400 is GICV2 */
-#define CONFIG_GICV2
-#define GICD_BASE			RKIO_GICD_PHYS
-#define GICC_BASE			RKIO_GICC_PHYS
+/* gic and rk timer version */
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
+	#define CONFIG_GICV2
+	#define CONFIG_RKTIMER_V2
+#else
+	#error "PLS config rk chip for GIC and TIMER version!"
+#endif
 
+/* gic base */
+#if defined(CONFIG_GICV2)
+	#define GICD_BASE		RKIO_GICD_PHYS
+	#define GICC_BASE		RKIO_GICC_PHYS
+#endif /* CONFIG_GICV2 */
 
 /* Generic Timer Definitions */
 #define COUNTER_FREQUENCY		CONFIG_SYS_CLK_FREQ_CRYSTAL
