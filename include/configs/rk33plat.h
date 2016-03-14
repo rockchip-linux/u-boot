@@ -14,7 +14,7 @@
 
 
 /* gic and rk timer version */
-#if defined(CONFIG_RKCHIP_RK3368) || (CONFIG_RKCHIP_RK3366)
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	#define CONFIG_GICV2
 	#define CONFIG_RKTIMER_V2
 #else
@@ -22,8 +22,8 @@
 #endif
 
 #ifdef CONFIG_GICV2
-#define GICD_BASE			RKIO_GICD_PHYS
-#define GICC_BASE			RKIO_GICC_PHYS
+	#define GICD_BASE		RKIO_GICD_PHYS
+	#define GICC_BASE		RKIO_GICC_PHYS
 #endif /* CONFIG_GICV2 */
 
 /* Generic Timer Definitions */
