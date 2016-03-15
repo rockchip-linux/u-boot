@@ -18,7 +18,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 /* rk timer register offset */
-#ifdef CONFIG_RKTIMER_V2
 #define RK_TIMER_LOADE_COUNT0		0x00
 #define RK_TIMER_LOADE_COUNT1		0x04
 #define RK_TIMER_CURRENT_VALUE0		0x08
@@ -30,10 +29,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TIMER_LOADE_COUNT		RK_TIMER_LOADE_COUNT0
 #define TIMER_CURR_VALUE		RK_TIMER_CURRENT_VALUE0
 
+
 #define TIMER_CTRL_REG			RK_TIMER_CONTROL_REG
 #define TIMER_LOAD_VAL			0xffffffff
-#endif /* CONFIG_RKTIMER_V2 */
-
 /* rk timer clock source is from 24M crystal input */
 #define TIMER_FREQ			CONFIG_SYS_CLK_FREQ
 

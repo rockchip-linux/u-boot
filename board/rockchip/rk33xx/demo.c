@@ -66,7 +66,6 @@ static void board_timer_test(void)
 #define DEMO_TIMER_BASE		(RKIO_TIMER_BASE + 0x20 * 3)
 #define DEMO_TIMER_IRQ		RKIRQ_TIMER3
 
-#ifdef CONFIG_RKTIMER_V2
 #define DEMO_TIMER_LOADE_COUNT0		0x00
 #define DEMO_TIMER_LOADE_COUNT1		0x04
 #define DEMO_TIMER_CURRENT_VALUE0	0x08
@@ -80,7 +79,6 @@ static void board_timer_test(void)
 
 #define DEMO_TIMER_CTRL_REG		DEMO_TIMER_CONTROL_REG
 #define DEMO_TIMER_LOAD_VAL		0x00FFFFFF
-#endif /* CONFIG_RKTIMER_V2 */
 
 static void board_timer_isr(void)
 {
