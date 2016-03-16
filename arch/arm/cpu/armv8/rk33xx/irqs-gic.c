@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -24,61 +24,6 @@ typedef enum INT_SIGTYPE {
 	INT_SIGTYPE_FIQ
 } eINT_SIGTYPE;
 
-
-static inline void int_set_prio_filt(uint32 nprio)
-{
-	writel((nprio & 0xff), RKIO_GICC_PHYS + GICC_PMR);
-}
-
-/*
- * Global enable of the Interrupt Distributor
- * Enables forwarding of both Group1 and Group0 pending interrupts from the Distributor to the CPU interfaces
- */
-static inline void int_enable_distributor(void)
-{
-	writel(0x03, RKIO_GICD_PHYS + GICD_CTLR);
-}
-
-/*
- * Global disable of the Interrupt Distributor
- * Disables forwarding of both Group1 and Group0 pending interrupts from the Distributor to the CPU interfaces
- */
-static inline void int_disable_distributor(void)
-{
-	writel(0x00, RKIO_GICD_PHYS + GICD_CTLR);
-}
-
-static inline void int_enable_secure_signal(void)
-{
-	uint32 reg;
-
-	reg = readl(RKIO_GICC_PHYS + GICC_CTLR);
-	writel(reg | 0x01, RKIO_GICC_PHYS + GICC_CTLR);
-}
-
-static inline void int_disable_secure_signal(void)
-{
-	uint32 reg;
-
-	reg = readl(RKIO_GICC_PHYS + GICC_CTLR);
-	writel(reg & (~0x01), RKIO_GICC_PHYS + GICC_CTLR);
-}
-
-static inline void int_enable_nosecure_signal(void)
-{
-	uint32 reg;
-
-	reg = readl(RKIO_GICC_PHYS + GICC_CTLR);
-	writel(reg | 0x02, RKIO_GICC_PHYS + GICC_CTLR);
-}
-
-static inline void int_disable_nosecure_signal(void)
-{
-	uint32 reg;
-
-	reg = readl(RKIO_GICC_PHYS + GICC_CTLR);
-	writel(reg & (~0x02), RKIO_GICC_PHYS + GICC_CTLR);
-}
 
 /* get interrupt id */
 static inline uint32 gic_irq_getid(void)
@@ -250,37 +195,6 @@ static int gic_set_irq_type(int irq, unsigned int type)
 	return 0;
 }
 
-
-#if !defined(CONFIG_ARM64)
-/**
- * gic interrupt init
- */
-static void gic_irq_init(void)
-{
-	uint32 reg;
-
-	debug("gic_irq_init.\n");
-
-	/* end of interrupt */
-	writel(NR_GIC_IRQS, RKIO_GICC_PHYS + GICC_EOIR);
-	/* disable signalling the interrupt */
-	writel(0x00, RKIO_GICC_PHYS + GICC_CTLR);
-	writel(0x00, RKIO_GICD_PHYS + GICD_CTLR);
-
-	writel(0xFFFFFFFF, RKIO_GICD_PHYS + GICD_ICENABLER);
-	writel(0xFFFFFFFF, RKIO_GICD_PHYS + GICD_ICENABLER + 4);
-	writel(0xFFFFFFFF, RKIO_GICD_PHYS + GICD_ICENABLER + 8);
-	writel(0xFFFFFFFF, RKIO_GICD_PHYS + GICD_ICENABLER + 12);
-
-	reg = readl(RKIO_GICD_PHYS + GICD_ICFGR + 12);
-	writel(reg & (~(1 << 1)), RKIO_GICD_PHYS + GICD_ICFGR + 12);
-
-	int_set_prio_filt(0xff);
-	int_enable_secure_signal();
-	int_enable_nosecure_signal();
-	int_enable_distributor();
-}
-#endif
 
 static struct irq_chip gic_irq_chip = {
 	.name			= (const char *)"gic",

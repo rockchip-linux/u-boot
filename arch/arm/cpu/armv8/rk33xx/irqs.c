@@ -81,10 +81,7 @@ static inline int irq_init(void)
 	gic_get_cpumask();
 
 	/* gic irq init */
-#if !defined(CONFIG_ARM64)
-	/* armv8 gic init has init when lowlevel_init done */
-	gic_irq_init();
-#endif
+	/* gic has been init in Start.S */
 
 	/* gpio irq init */
 #ifdef CONFIG_RK_GPIO
