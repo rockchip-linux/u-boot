@@ -8,40 +8,7 @@
 #define __RKXX_IRQS_H
 
 #include <common.h>
-
-
-/* gic v2 register offset */
-
-/* Distributor interface definitions */
-#define GICD_CTLR		0x0000
-#define GICD_TYPER		0x0004
-#define GICD_IGROUPR		0x0080
-#define GICD_ISENABLER		0x0100
-#define GICD_ICENABLER		0x0180
-#define GICD_ISPENDR		0x0200
-#define GICD_ICPENDR		0x0280
-#define GICD_ISACTIVER		0x0300
-#define GICD_ICACTIVER		0x0380
-#define GICD_IPRIORITYR		0x0400
-#define GICD_ITARGETSR		0x0800
-#define GICD_ICFGR		0x0C00
-#define GICD_SGIR		0x0F00
-#define GICD_CPENDSGIR		0x0F10
-#define GICD_SPENDSGIR		0x0F20
-
-
-/* Physical CPU Interface registers */
-#define GICC_CTLR		0x0000
-#define GICC_PMR		0x0004
-#define GICC_BPR		0x0008
-#define GICC_IAR		0x000C
-#define GICC_EOIR		0x0010
-#define GICC_RPR		0x0014
-#define GICC_HPPIR		0x0018
-#define GICC_AHPPIR		0x0028
-#define GICC_IIDR		0x00FC
-#define GICC_DIR		0x1000
-#define GICC_PRIODROP           GICC_EOIR
+#include <asm/gic.h>
 
 
 /*
