@@ -118,9 +118,6 @@ int mmc_send_status(struct mmc *mmc, int timeout)
 	if (!mmc_host_is_spi(mmc))
 		cmd.cmdarg = mmc->rca << 16;
 
-#ifdef CONFIG_ROCKCHIP
-	timeout = timeout * 100;
-#endif
 	do {
 		err = mmc_send_cmd(mmc, &cmd, NULL);
 		if (!err) {
@@ -135,17 +132,11 @@ int mmc_send_status(struct mmc *mmc, int timeout)
 #endif
 				return COMM_ERR;
 			}
-		} else if (--retries < 0) {
-#ifdef CONFIG_ROCKCHIP
-			printf("mmc send status retry fail!\n");
-#endif
+		} else if (--retries < 0)
 			return err;
-		}
-#ifdef CONFIG_ROCKCHIP
-		udelay(10);
-#else
+
 		udelay(1000);
-#endif
+
 	} while (timeout--);
 
 #ifdef CONFIG_MMC_TRACE
