@@ -123,6 +123,7 @@
 	#define CONFIG_SYS_DCACHE_OFF
 	#define CONFIG_SYS_L2CACHE_OFF
 	#define CONFIG_RKTIMER_INCREMENTER
+	#define CONFIG_RUNNING_SECURE_WORLD
 
 	#undef CONFIG_RK_PL330_DMAC
 	#undef CONFIG_RK_MCU
@@ -143,6 +144,7 @@
 
 /* if uboot as first level loader, no start mcu. */
 #ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+	#define CONFIG_RUNNING_SECURE_WORLD
 	#undef CONFIG_RK_MCU
 #endif
 

@@ -30,7 +30,7 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 	if (chip_info == NULL)
 		return -1;
 
-#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+#ifndef CONFIG_RUNNING_SECURE_WORLD
 	/* bootrom is secure, second level can't read */
 #if defined(CONFIG_RKCHIP_RK3368)
 	chip_info[0] = 0x33333041;
@@ -43,7 +43,7 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 #endif
 #else
 	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
-#endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
+#endif /* CONFIG_RUNNING_SECURE_WORLD */
 
 	return 0;
 }
@@ -80,21 +80,9 @@ int rk_get_chiptype(void)
 
 
 /* secure parameter init */
-#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+#ifdef CONFIG_RUNNING_SECURE_WORLD
 static inline void secure_parameter_init(void)
 {
-	/* secure timer init */
-	#define STIMER_LOADE_COUNT0		0x00
-	#define STIMER_LOADE_COUNT1		0x04
-	#define STIMER_CURRENT_VALUE0		0x08
-	#define STIMER_CURRENT_VALUE1		0x0C
-	#define STIMER_CONTROL_REG		0x10
-
-	writel(0xffffffff, RKIO_SECURE_TIMER_BASE + STIMER_LOADE_COUNT0);
-	writel(0xffffffff, RKIO_SECURE_TIMER_BASE + STIMER_LOADE_COUNT1);
-	/* auto reload & enable the timer */
-	writel(0x01, RKIO_SECURE_TIMER_BASE  + STIMER_CONTROL_REG);
-
 #if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	/* ddr space set no secure mode */
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON8);
@@ -104,7 +92,7 @@ static inline void secure_parameter_init(void)
 	#error "PLS config platform for secure parameter init!"
 #endif
 }
-#endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
+#endif /* CONFIG_RUNNING_SECURE_WORLD */
 
 
 #if !defined(CONFIG_FPGA_BOARD) && defined(CONFIG_RKCHIP_RK3368)
@@ -135,7 +123,7 @@ int arch_cpu_init(void)
 	rkclk_set_pll();
 	gd->arch.chiptype = rk_get_chiptype();
 
-#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+#ifdef CONFIG_RUNNING_SECURE_WORLD
 	secure_parameter_init();
 #endif
 
