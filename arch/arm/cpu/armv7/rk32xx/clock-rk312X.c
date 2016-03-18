@@ -972,7 +972,8 @@ uint32 rkclk_get_mmc_freq_from_gpll(uint32 sdid)
 	/* set general pll */
 	rkclk_set_mmc_clk_src(sdid, 1);
 
-	return rkclk_get_mmc_clk(sdid);
+	/* emmc automic divide freq to 1/2, so here divide freq to 1/2 */
+	return rkclk_get_mmc_clk(sdid) / 2;
 }
 
 
