@@ -121,7 +121,7 @@ static struct pll_clk_set gpll_clks[] = {
 	 * _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	 *	aclk_div, hclk_div, pclk_div
 	 */
-	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 2),
+	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	6, 2, 2),
 	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0,	2, 2, 2),
 };
 
