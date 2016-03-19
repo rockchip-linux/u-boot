@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -96,6 +96,8 @@ static uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even
 	#include "clock-rk3368.c"
 #elif defined(CONFIG_RKCHIP_RK3366)
 	#include "clock-rk3366.c"
+#elif defined(CONFIG_RKCHIP_RK3399)
+	#include "clock-rk3399.c"
 #else
 	#error "PLS config chiptype for clock-rkxx.c!"
 #endif
@@ -110,6 +112,7 @@ void rkclk_dump_pll(void) {}
 void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz) {}
 uint32 rkclk_get_pll_rate_by_id(enum rk_plls_id pll_id) { return 24 * MHZ; }
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz) { return 0; }
+uint32 rkclk_get_sdhci_emmc_clk(void) { return 24 * MHZ; }
 void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src) {}
 uint32 rkclk_get_mmc_clk(uint32 sdid) { return 24 * MHZ; }
 uint32 rkclk_get_mmc_freq_from_gpll(uint32 sdid) { return 24 * MHZ; }

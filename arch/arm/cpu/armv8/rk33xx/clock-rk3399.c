@@ -1,0 +1,1412 @@
+/*
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
+ * Peter, Software Engineering, <superpeter.cai@gmail.com>.
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
+#include <common.h>
+#include <asm/io.h>
+#include <div64.h>
+#include <asm/arch/rkplat.h>
+
+
+#define pmucru_readl(offset)		readl(RKIO_PMU_CRU_PHYS + offset)
+#define pmucru_writel(v, offset)	do { writel(v, RKIO_PMU_CRU_PHYS + offset); } while (0)
+
+
+/* ARM/General/Codec pll freq config */
+#define RKCLK_APLLL_FREQ_KHZ		600000
+#define RKCLK_GPLL_FREQ_KHZ		600000
+#define RKCLK_CPLL_FREQ_KHZ		800000
+#define RKCLK_VPLL_FREQ_KHZ		1200000
+
+#define RKCLK_PPLL_FREQ_KHZ		700000
+
+/* ahp periph_h */
+#define ACLK_PERIHP_KHZ			150000
+#define HCLK_PERIHP_KHZ			75000
+#define PCLK_PERIHP_KHZ			37500
+
+/* ahp periph_l 0 */
+#define ACLK_PERILP0_KHZ		100000
+#define HCLK_PERILP0_KHZ		100000
+#define PCLK_PERILP0_KHZ		50000
+
+/* ahp periph_l 1 */
+#define HCLK_PERILP1_KHZ		100000
+#define PCLK_PERILP1_KHZ		50000
+
+/* Cpu clock source select */
+#define CPU_SRC_ARM_PLLL		0
+#define CPU_SRC_ARM_PLLB		1
+#define CPU_SRC_DDR_PLL			2
+#define CPU_SRC_GENERAL_PLL		3
+
+/* Periph_h clock source select */
+#define PERIPH_H_SRC_GENERAL_PLL	1
+#define PERIPH_H_SRC_CODEC_PLL		0
+
+/* Periph_l clock source select */
+#define PERIPH_L_SRC_GENERAL_PLL	1
+#define PERIPH_L_SRC_CODEC_PLL		0
+
+struct pll_clk_set {
+	unsigned long	rate;
+	u32	pllcon0;
+	u32	pllcon1;
+	u32	pllcon2;
+	u32	pllcon3;
+	u32	rst_dly; /* us */
+
+	u8	arm_core_div;
+	u8	axi_core_div;
+	u8	atclk_core_div;
+	u8	pclk_dbg_div;
+};
+
+
+#define _APLL_SET_CLKS(_khz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, \
+	_arm_core_div, _aclkm_core_div, _atclk_core_div, _pclk_dbg_div) \
+{ \
+	.rate	= _khz,	\
+	.pllcon0 = PLL_SET_FBDIV(_fbdiv),	\
+	.pllcon1 = PLL_SET_POSTDIV1(_postdiv1) | PLL_SET_POSTDIV2(_postdiv2) | PLL_SET_REFDIV(_refdiv), \
+	.pllcon2 = PLL_SET_FRAC(_frac),	\
+	.pllcon3 = PLL_SET_DSMPD(_dsmpd), \
+        .arm_core_div = CLK_DIV_##_arm_core_div, \
+	.axi_core_div = CLK_DIV_##_aclkm_core_div, \
+	.atclk_core_div = CLK_DIV_##_atclk_core_div, \
+	.pclk_dbg_div = CLK_DIV_##_pclk_dbg_div, \
+	.rst_dly = 0, \
+}
+
+
+#define _PLL_SET_CLKS(_khz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac) \
+{ \
+	.rate	= _khz, \
+	.pllcon0 = PLL_SET_FBDIV(_fbdiv),	\
+	.pllcon1 = PLL_SET_POSTDIV1(_postdiv1) | PLL_SET_POSTDIV2(_postdiv2) | PLL_SET_REFDIV(_refdiv), \
+	.pllcon2 = PLL_SET_FRAC(_frac),	\
+	.pllcon3 = PLL_SET_DSMPD(_dsmpd), \
+}
+
+
+struct pll_data {
+	u32 id;
+	u32 size;
+	struct pll_clk_set *clkset;
+};
+
+#define SET_PLL_DATA(_pll_id, _table, _size) \
+{\
+	.id = (_pll_id), \
+	.size = (_size), \
+	.clkset = (_table), \
+}
+
+
+/* 		rk3399 pll notice 		*/
+static struct pll_clk_set apll_clks[] = {
+	/*
+	 * _khz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
+	 *	_arm_core_div, _aclkm_core_div, _atclk_core_div, _pclk_dbg_div
+	 */
+	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 2, 3, 3),
+	_APLL_SET_CLKS(600000, 1, 75, 3, 1, 1, 0,	1, 2, 2, 2),
+};
+
+
+static struct pll_clk_set gpll_clks[] = {
+	/*
+	 * _khz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac
+	 */
+	_PLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0),
+};
+
+
+/* cpll clock table, should be from high to low */
+static struct pll_clk_set cpll_clks[] = {
+	/* _khz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
+	_PLL_SET_CLKS(800000, 6, 400, 2, 1, 1, 0),
+};
+
+
+/* vpll clock table, should be from high to low */
+static struct pll_clk_set vpll_clks[] = {
+	/* _khz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
+	_PLL_SET_CLKS(1188000, 2,  99, 1, 1, 1, 0),
+};
+
+
+/* ppll clock table, should be from high to low */
+static struct pll_clk_set ppll_clks[] = {
+	/* _khz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
+	_PLL_SET_CLKS(676000, 3,  169, 2, 1, 1, 0),
+};
+
+static struct pll_data rkpll_data[END_PLL_ID] = {
+	SET_PLL_DATA(APLLL_ID, apll_clks, ARRAY_SIZE(apll_clks)),
+	SET_PLL_DATA(APLLB_ID, NULL, 0),
+	SET_PLL_DATA(DPLL_ID, NULL, 0),
+	SET_PLL_DATA(CPLL_ID, cpll_clks, ARRAY_SIZE(cpll_clks)),
+	SET_PLL_DATA(GPLL_ID, gpll_clks, ARRAY_SIZE(gpll_clks)),
+	SET_PLL_DATA(NPLL_ID, NULL, 0),
+	SET_PLL_DATA(VPLL_ID, vpll_clks, ARRAY_SIZE(vpll_clks)),
+
+	SET_PLL_DATA(PPLL_ID, ppll_clks, ARRAY_SIZE(ppll_clks)),
+};
+
+
+/* Waiting for pll locked by pll id */
+static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
+{
+	/* delay for pll lock */
+	if (pll_id == PPLL_ID) {
+		do {
+			if (pmucru_readl(PMUCRU_PLL_CON(0, 2)) & (1 << PLL_LOCK_SHIFT))
+				break;
+			clk_loop_delayus(1);
+		} while (1);
+	} else {
+		do {
+			if (cru_readl(CRU_PLL_CON(pll_id, 2)) & (1 << PLL_LOCK_SHIFT))
+				break;
+			clk_loop_delayus(1);
+		} while (1);
+	}
+}
+
+
+/* Set pll mode by id, normal mode or slow mode */
+static void rkclk_pll_set_mode(enum rk_plls_id pll_id, int pll_mode)
+{
+	if (pll_mode == RKCLK_PLL_MODE_NORMAL) {
+		/* PLL enter normal-mode */
+		if (pll_id == PPLL_ID)
+			pmucru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, PMUCRU_PLL_CON(0, 3));
+		else
+			cru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+	} else if (pll_mode == RKCLK_PLL_MODE_SLOW) {
+		/* PLL enter slow-mode */
+		if (pll_id == PPLL_ID)
+			pmucru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, PMUCRU_PLL_CON(0, 3));
+		else
+			cru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+	} else {
+		/* PLL enter deep slow-mode */
+		if (pll_id == PPLL_ID)
+			pmucru_writel(PLL_MODE_DEEP_SLOW | PLL_MODE_W_MSK, PMUCRU_PLL_CON(0, 3));
+		else
+			cru_writel(PLL_MODE_DEEP_SLOW | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+	}
+}
+
+
+/* Set pll rate by id */
+static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 kHz, pll_callback_f cb_f)
+{
+	const struct pll_data *pll = NULL;
+	struct pll_clk_set *clkset = NULL;
+	unsigned long rate = kHz;
+	int i = 0;
+
+	/* Find pll rate set */
+	for (i = 0; i < END_PLL_ID; i++) {
+		if (rkpll_data[i].id == pll_id) {
+			pll = &rkpll_data[i];
+			break;
+		}
+	}
+	if ((pll == NULL) || (pll->clkset == NULL))
+		return -1;
+
+	/* Find clock set */
+	for (i = 0; i < pll->size; i++) {
+		if (pll->clkset[i].rate <= rate) {
+			clkset = &(pll->clkset[i]);
+			break;
+		}
+	}
+	if (clkset == NULL)
+		return -1;
+
+	if (pll_id == PPLL_ID) {
+		/* PLL enter slow-mode */
+		pmucru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, PMUCRU_PLL_CON(0, 3));
+
+		/* pll config */
+		pmucru_writel(clkset->pllcon0, PMUCRU_PLL_CON(0, 0));
+		pmucru_writel(clkset->pllcon1, PMUCRU_PLL_CON(0, 1));
+		pmucru_writel(clkset->pllcon2, PMUCRU_PLL_CON(0, 2));
+		pmucru_writel(clkset->pllcon3, PMUCRU_PLL_CON(0, 3));
+
+		/* delay for pll setup */
+		rkclk_pll_wait_lock(pll_id);
+
+		if (cb_f != NULL)
+			cb_f(clkset);
+
+		/* PLL enter normal-mode */
+		pmucru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, PMUCRU_PLL_CON(0, 3));
+	} else {
+		/* PLL enter slow-mode */
+		cru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+
+		/* pll config */
+		cru_writel(clkset->pllcon0, CRU_PLL_CON(pll_id, 0));
+		cru_writel(clkset->pllcon1, CRU_PLL_CON(pll_id, 1));
+		cru_writel(clkset->pllcon2, CRU_PLL_CON(pll_id, 2));
+		cru_writel(clkset->pllcon3, CRU_PLL_CON(pll_id, 3));
+
+		/* delay for pll setup */
+		rkclk_pll_wait_lock(pll_id);
+
+		if (cb_f != NULL)
+			cb_f(clkset);
+
+		/* PLL enter normal-mode */
+		cru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+	}
+
+	return 0;
+}
+
+
+/* Get pll rate by id */
+#define FRAC_MODE	0
+static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
+{
+	uint32 con, pll_con0, pll_con1, pll_con2, dsmp;
+
+	if (pll_id == PPLL_ID) {
+		con = pmucru_readl(PMUCRU_PLL_CON(0, 3)) & PLL_MODE_MSK;
+		pll_con0 = pmucru_readl(PMUCRU_PLL_CON(0, 0));
+		pll_con1 = pmucru_readl(PMUCRU_PLL_CON(0, 1));
+		pll_con2 = pmucru_readl(PMUCRU_PLL_CON(0, 2));
+		dsmp = PLL_GET_DSMPD(pmucru_readl(PMUCRU_PLL_CON(0, 3)));
+	} else {
+		con = cru_readl(CRU_PLL_CON(pll_id, 3)) & PLL_MODE_MSK;
+		pll_con0 = cru_readl(CRU_PLL_CON(pll_id, 0));
+		pll_con1 = cru_readl(CRU_PLL_CON(pll_id, 1));
+		pll_con2 = cru_readl(CRU_PLL_CON(pll_id, 2));
+		dsmp = PLL_GET_DSMPD(cru_readl(CRU_PLL_CON(pll_id, 3)));
+	}
+
+	if (con == PLL_MODE_SLOW) { /* slow mode */
+		return 24 * MHZ;
+	} else if (con == PLL_MODE_NORM) { /* normal mode */
+		u64 rate64 = 0, frac_rate64 = 0;
+
+		/* integer mode */
+		rate64 = (u64)(24 * MHZ) * PLL_GET_FBDIV(pll_con0);
+		do_div(rate64, PLL_GET_REFDIV(pll_con1));
+
+		if (FRAC_MODE == dsmp) {
+			/* fractional mode */
+			frac_rate64 = (u64)(24 * MHZ) * PLL_GET_FRAC(pll_con2);
+			do_div(frac_rate64, PLL_GET_REFDIV(pll_con1));
+			rate64 += frac_rate64 >> 24;
+		}
+		do_div(rate64, PLL_GET_POSTDIV1(pll_con1));
+		do_div(rate64, PLL_GET_POSTDIV2(pll_con1));
+
+		return rate64;
+	} else { /* deep slow mode */
+		return 32768;
+	}
+}
+
+
+
+/*
+ * rkplat clock set periph_h bus clock from codec pll or general pll
+ * 	when call this function, make sure pll is in slow mode
+ */
+static void rkclk_perihp_ahpclk_set(uint32 pll_src)
+{
+	uint32 pll_sel = 0, clk_parent_khz;
+	uint32 a_div = 0, h_div = 0, p_div = 0;
+
+	/* periph_h bus clock source select: 0: codec pll, 1: general pll */
+	if (pll_src == PERIPH_H_SRC_CODEC_PLL) {
+		pll_sel = PERIPH_SEL_CPLL;
+		clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	} else {
+		pll_sel = PERIPH_SEL_GPLL;
+		clk_parent_khz = RKCLK_GPLL_FREQ_KHZ;
+	}
+
+	/* periph_h bus aclk - aclk = clk_src / (aclk_div_con + 1) */
+	a_div = rkclk_calc_clkdiv(clk_parent_khz, ACLK_PERIHP_KHZ, 0);
+	a_div = a_div ? (a_div - 1) : 0;
+
+	/* periph_h bus hclk -  hclk = clk_src / (hclk_div_con + 1) */
+	h_div = rkclk_calc_clkdiv(ACLK_PERIHP_KHZ, HCLK_PERIHP_KHZ, 0);
+	h_div = h_div ? (h_div - 1) : 0;
+
+	/* periph_h bus pclk - pclk = clk_src / (pclk_div_con + 1) */
+	p_div = rkclk_calc_clkdiv(ACLK_PERIHP_KHZ, PCLK_PERIHP_KHZ, 0);
+	p_div = p_div ? (p_div - 1) : 0;
+
+	cru_writel((PERIPH_SEL_PLL_W_MSK | pll_sel)
+			| (PERIPH_PCLK_DIV_W_MSK | (p_div << PERIPH_PCLK_DIV_OFF))
+			| (PERIPH_HCLK_DIV_W_MSK | (h_div << PERIPH_HCLK_DIV_OFF))
+			| (PERIPH_ACLK_DIV_W_MSK | (a_div << PERIPH_ACLK_DIV_OFF)), CRU_CLKSELS_CON(14));
+}
+
+/*
+ * rkplat clock set periph_l clock from general pll
+ * 	when call this function, make sure pll is in slow mode
+ */
+static void rkclk_perilp_ahpclk_set(uint32 pll_src)
+{
+	uint32 pll_sel = 0, clk_parent_khz;
+	uint32 a_div = 0, h_div = 0, p_div = 0;
+
+	/* periph_l0 bus clock source select: 0: codec pll, 1: general pll */
+	if (pll_src == PERIPH_H_SRC_CODEC_PLL) {
+		pll_sel = PERIPH_SEL_CPLL;
+		clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	} else {
+		pll_sel = PERIPH_SEL_GPLL;
+		clk_parent_khz = RKCLK_GPLL_FREQ_KHZ;
+	}
+
+	/* periph_l0 bus aclk - aclk = clk_src / (aclk_div_con + 1) */
+	a_div = rkclk_calc_clkdiv(clk_parent_khz, ACLK_PERILP0_KHZ, 0);
+	a_div = a_div ? (a_div - 1) : 0;
+
+	/* periph_l0 bus hclk -  hclk = aclk / (hclk_div_con + 1) */
+	h_div = rkclk_calc_clkdiv(ACLK_PERILP0_KHZ, HCLK_PERILP0_KHZ, 0);
+	h_div = h_div ? (h_div - 1) : 0;
+
+	/* periph_l0 bus pclk - pclk = aclk / (pclk_div_con + 1) */
+	p_div = rkclk_calc_clkdiv(ACLK_PERILP0_KHZ, PCLK_PERILP0_KHZ, 0);
+	p_div = p_div ? (p_div - 1) : 0;
+
+	/* perilp_l0 */
+	cru_writel((PERIPH_SEL_PLL_W_MSK | pll_sel)
+			| (PERIPH_PCLK_DIV_W_MSK | (p_div << PERIPH_PCLK_DIV_OFF))
+			| (PERIPH_HCLK_DIV_W_MSK | (h_div << PERIPH_HCLK_DIV_OFF))
+			| (PERIPH_ACLK_DIV_W_MSK | (a_div << PERIPH_ACLK_DIV_OFF)), CRU_CLKSELS_CON(23));
+
+	/* periph_l1 bus clock source select: 0: codec pll, 1: general pll */
+	if (pll_src == PERIPH_L_SRC_CODEC_PLL) {
+		pll_sel = PERI_L1_SEL_CPLL;
+		clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	} else {
+		pll_sel = PERI_L1_SEL_GPLL;
+		clk_parent_khz = RKCLK_GPLL_FREQ_KHZ;
+	}
+
+	/* periph_l1 bus hclk -  hclk = clk_src / (hclk_div_con + 1) */
+	h_div = rkclk_calc_clkdiv(clk_parent_khz, HCLK_PERILP1_KHZ, 0);
+	h_div = h_div ? (h_div - 1) : 0;
+
+	/* periph_l1 bus pclk - pclk = hclk / (pclk_div_con + 1) */
+	p_div = rkclk_calc_clkdiv(HCLK_PERILP1_KHZ, PCLK_PERILP1_KHZ, 0);
+	p_div = p_div ? (p_div - 1) : 0;
+
+	/* perilp_l1 */
+	cru_writel((PERI_L1_SEL_PLL_W_MSK | pll_sel)
+			| (PERI_L1_PCLK_DIV_W_MSK | (p_div << PERI_L1_PCLK_DIV_OFF))
+			| (PERI_L1_HCLK_DIV_W_MSK | (h_div << PERI_L1_HCLK_DIV_OFF)), CRU_CLKSELS_CON(25));
+}
+
+static void rkclk_gpll_cb(struct pll_clk_set *clkset)
+{
+	rkclk_perihp_ahpclk_set(PERIPH_H_SRC_GENERAL_PLL);
+	rkclk_perilp_ahpclk_set(PERIPH_L_SRC_GENERAL_PLL);
+}
+
+
+/*
+ * rkplat clock set cpu clock from arm pll
+ * 	when call this function, make sure pll is in slow mode
+ */
+static void rkclk_core_clk_set(uint32 pll_src, uint32 a53_core_div, uint32 aclkm_core_div, uint32 atclk_core_div, uint32 dbg_core_div)
+{
+	uint32_t pll_sel, a53_div = 0, axi_div = 0, dbg_div = 0, atclk_div = 0;
+
+	/* core clock source select: 0: aplll, 1: apllb, 2: dpll, 3: general pll */
+	if (pll_src == CPU_SRC_ARM_PLLL)
+		pll_sel = CORE_SEL_APLLL;
+	else if (pll_src == CPU_SRC_ARM_PLLB)
+		pll_sel = CORE_SEL_APLLB;
+	else if (pll_src == CPU_SRC_DDR_PLL)
+		pll_sel = CORE_SEL_DPLL;
+	else
+		pll_sel = CORE_SEL_GPLL;
+
+	/* a53 core clock div: clk_core = clk_src / (div_con + 1) */
+	a53_div = a53_core_div ? (a53_core_div - 1) : 0;
+
+	/* aclkm core axi clock div: clk = clk_src / (div_con + 1) */
+	axi_div = aclkm_core_div ? (aclkm_core_div - 1) : 0;
+
+	/* pclk dbg core axi clock div: clk = clk_src / (div_con + 1) */
+	dbg_div = dbg_core_div ? (dbg_core_div - 1) : 0;
+
+	/* atclk core axi clock div: clk = clk_src / (div_con + 1) */
+	atclk_div = atclk_core_div ? (atclk_core_div - 1) : 0;
+
+	cru_writel((CORE_SEL_PLL_W_MSK | pll_sel)
+			| (CORE_CLK_DIV_W_MSK | (a53_div << CORE_CLK_DIV_OFF))
+			| (CORE_AXI_CLK_DIV_W_MSK | (axi_div << CORE_AXI_CLK_DIV_OFF)), CRU_CLKSELS_CON(0));
+
+	cru_writel((DEBUG_PCLK_DIV_W_MSK | (dbg_div << DEBUG_PCLK_DIV_OFF))
+			| (CORE_ATB_DIV_W_MSK | (atclk_div << CORE_ATB_DIV_OFF)), CRU_CLKSELS_CON(1));
+}
+
+static void rkclk_aplll_cb(struct pll_clk_set *clkset)
+{
+	rkclk_core_clk_set(CPU_SRC_ARM_PLLL, clkset->arm_core_div, clkset->axi_core_div, clkset->atclk_core_div, clkset->pclk_dbg_div);
+}
+
+
+static uint32 rkclk_get_periph_h_aclk_div(void)
+{
+	uint32 con, div;
+
+	con = cru_readl(CRU_CLKSELS_CON(14));
+	div = ((con & PERIPH_ACLK_DIV_MSK) >> PERIPH_ACLK_DIV_OFF) + 1;
+
+	return div;
+}
+
+static uint32 rkclk_get_periph_h_hclk_div(void)
+{
+	uint32 con, div;
+
+	con = cru_readl(CRU_CLKSELS_CON(14));
+	div = ((con & PERIPH_HCLK_DIV_MSK) >> PERIPH_HCLK_DIV_OFF) + 1;
+
+	return div;
+}
+
+static uint32 rkclk_get_periph_h_pclk_div(void)
+{
+	uint32 con, div;
+
+	con = cru_readl(CRU_CLKSELS_CON(14));
+	div = ((con & PERIPH_PCLK_DIV_MSK) >> PERIPH_PCLK_DIV_OFF) + 1;
+
+	return div;
+}
+
+
+static uint32 rkclk_get_periph_l0_aclk_div(void)
+{
+	uint32 con, div;
+
+	con = cru_readl(CRU_CLKSELS_CON(23));
+	div = ((con & PERIPH_ACLK_DIV_MSK) >> PERIPH_ACLK_DIV_OFF) + 1;
+
+	return div;
+}
+
+static uint32 rkclk_get_periph_l0_hclk_div(void)
+{
+	uint32 con, div;
+
+	con = cru_readl(CRU_CLKSELS_CON(23));
+	div = ((con & PERIPH_HCLK_DIV_MSK) >> PERIPH_HCLK_DIV_OFF) + 1;
+
+	return div;
+}
+
+static uint32 rkclk_get_periph_l0_pclk_div(void)
+{
+	uint32 con, div;
+
+	con = cru_readl(CRU_CLKSELS_CON(23));
+	div = ((con & PERIPH_PCLK_DIV_MSK) >> PERIPH_PCLK_DIV_OFF) + 1;
+
+	return div;
+}
+
+
+static uint32 rkclk_get_periph_l1_hclk_div(void)
+{
+	uint32 con, div;
+
+	con = cru_readl(CRU_CLKSELS_CON(25));
+	div = ((con & PERI_L1_HCLK_DIV_MSK) >> PERI_L1_HCLK_DIV_OFF) + 1;
+
+	return div;
+}
+
+static uint32 rkclk_get_periph_l1_pclk_div(void)
+{
+	uint32 con, div;
+
+	con = cru_readl(CRU_CLKSELS_CON(25));
+	div = ((con & PERI_L1_PCLK_DIV_MSK) >> PERI_L1_PCLK_DIV_OFF) + 1;
+
+	return div;
+}
+
+
+static void rkclk_default_init(void)
+{
+	uint32 div, pll_sel, clk_parent_khz, clk_child_khz;
+
+	/* Fix maskrom cru setting error */
+	cru_writel(0xFFFF4101, CRU_CLKSELS_CON(12));
+	cru_writel(0xFFFF033F, CRU_CLKSELS_CON(56));
+	/* hsicphy clock select USB_480M pll */
+	cru_writel(0x00030003, CRU_CLKSELS_CON(19));
+
+	/* aclk_emmc: select cpll and div = 8 */
+	pll_sel = 0;
+	clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	clk_child_khz = 100000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+
+	cru_writel((0x1 << 23) | (0x1F << 16) | (pll_sel << 7) | (div << 0), CRU_CLKSELS_CON(21));
+
+	/* emmc : select cpll and div = 4 */
+	pll_sel = 0;
+	clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	clk_child_khz = 200000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+	cru_writel((0x7 << 24) | (0x7F << 16) | (pll_sel << 8) | (div << 0), CRU_CLKSELS_CON(22));
+
+	/* crypto: select cpll and div = 16 */
+	pll_sel = 0;
+	clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	clk_child_khz = 100000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0), CRU_CLKSELS_CON(24));
+	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0), CRU_CLKSELS_CON(26));
+
+	/* pwm: select cpll and div = 16 */
+	pll_sel = 1;
+	clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	clk_child_khz = 100000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0), CRU_CLKSELS_CON(51));
+	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0), CRU_CLKSELS_CON(52));
+
+	/* spi: select cpll and div */
+	pll_sel = 0;
+	clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	clk_child_khz = 50000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+
+	cru_writel((0x1 << 31) | (0x7F << 24) | (pll_sel << 15) | (div << 8), CRU_CLKSELS_CON(58));
+	cru_writel((0x1 << 31) | (0x7F << 24) | (pll_sel << 15) | (div << 8), CRU_CLKSELS_CON(59));
+	cru_writel((0x1 << 23) | (0x7F << 16) | (pll_sel << 7) | (div << 0), CRU_CLKSELS_CON(59));
+	cru_writel((0x1 << 31) | (0x7F << 24) | (pll_sel << 15) | (div << 8), CRU_CLKSELS_CON(60));
+	cru_writel((0x1 << 23) | (0x7F << 16) | (pll_sel << 7) | (div << 0), CRU_CLKSELS_CON(60));
+
+	/* i2c(1-2-3-5-6-7): select cpll and div */
+	pll_sel = 0;
+	clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
+	clk_child_khz = 50000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+	cru_writel((0x1 << 31) | (0x7F << 24) | (pll_sel << 15) | (div << 8), CRU_CLKSELS_CON(61));
+	cru_writel((0x1 << 23) | (0x7F << 16) | (pll_sel << 7) | (div << 0), CRU_CLKSELS_CON(61));
+	cru_writel((0x1 << 31) | (0x7F << 24) | (pll_sel << 15) | (div << 8), CRU_CLKSELS_CON(62));
+	cru_writel((0x1 << 23) | (0x7F << 16) | (pll_sel << 7) | (div << 0), CRU_CLKSELS_CON(62));
+	cru_writel((0x1 << 31) | (0x7F << 24) | (pll_sel << 15) | (div << 8), CRU_CLKSELS_CON(63));
+	cru_writel((0x1 << 23) | (0x7F << 16) | (pll_sel << 7) | (div << 0), CRU_CLKSELS_CON(63));
+
+	/* i2c(0-4-8): from ppll and div */
+	clk_parent_khz = RKCLK_PPLL_FREQ_KHZ;
+	clk_child_khz = 50000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+	pmucru_writel((0x7F << 16) | (div << 0), PMUCRU_CLKSELS_CON(2));
+	pmucru_writel((0x7F << 24) | (div << 8), PMUCRU_CLKSELS_CON(2));
+	pmucru_writel((0x7F << 16) | (div << 0), PMUCRU_CLKSELS_CON(3));
+
+	/* saradc clock from perilp1 */
+	clk_parent_khz = PCLK_PERILP1_KHZ;
+	clk_child_khz = 1000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+
+	cru_writel((0xFF << 24) | (div << 8), CRU_CLKSELS_CON(26));
+}
+
+
+/*
+ * rkplat clock set pll mode
+ */
+void rkclk_pll_mode(int pll_mode)
+{
+	if (pll_mode == RKCLK_PLL_MODE_NORMAL) {
+		rkclk_pll_set_mode(APLLL_ID, pll_mode);
+		rkclk_pll_set_mode(APLLB_ID, pll_mode);
+		rkclk_pll_set_mode(CPLL_ID, pll_mode);
+		rkclk_pll_set_mode(GPLL_ID, pll_mode);
+		rkclk_pll_set_mode(NPLL_ID, pll_mode);
+		rkclk_pll_set_mode(VPLL_ID, pll_mode);
+
+		rkclk_pll_set_mode(PPLL_ID, pll_mode);
+	} else {
+		rkclk_pll_set_mode(PPLL_ID, pll_mode);
+
+		rkclk_pll_set_mode(CPLL_ID, pll_mode);
+		rkclk_pll_set_mode(GPLL_ID, pll_mode);
+		rkclk_pll_set_mode(NPLL_ID, pll_mode);
+		rkclk_pll_set_mode(VPLL_ID, pll_mode);
+		rkclk_pll_set_mode(APLLB_ID, pll_mode);
+		rkclk_pll_set_mode(APLLL_ID, pll_mode);
+	}
+}
+
+
+/*
+ * rkplat clock set pll rate by id
+ */
+void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 kHz)
+{
+	pll_callback_f cb_f = NULL;
+
+	if (APLLL_ID == pll_id)
+		cb_f = rkclk_aplll_cb;
+	else if (GPLL_ID == pll_id)
+		cb_f = rkclk_gpll_cb;
+	else
+		cb_f = NULL;
+
+	rkclk_pll_set_rate(pll_id, kHz, cb_f);
+}
+
+
+/*
+ * rkplat clock set for arm and general pll
+ */
+void rkclk_set_pll(void)
+{
+	rkclk_default_init();
+
+	rkclk_pll_set_rate(APLLL_ID, RKCLK_APLLL_FREQ_KHZ, rkclk_aplll_cb);
+	rkclk_pll_set_rate(GPLL_ID, RKCLK_GPLL_FREQ_KHZ, rkclk_gpll_cb);
+	rkclk_pll_set_rate(CPLL_ID, RKCLK_CPLL_FREQ_KHZ, NULL);
+	rkclk_pll_set_rate(VPLL_ID, RKCLK_VPLL_FREQ_KHZ, NULL);
+
+	rkclk_pll_set_rate(PPLL_ID, RKCLK_PPLL_FREQ_KHZ, NULL);
+}
+
+
+/*
+ * rkplat clock get pll rate by id
+ */
+uint32 rkclk_get_pll_rate_by_id(enum rk_plls_id pll_id)
+{
+	return rkclk_pll_get_rate(pll_id);
+}
+
+
+/*
+ * rkplat clock get arm pll, general pll and so on
+ */
+void rkclk_get_pll(void)
+{
+	uint32 div;
+
+	/* cpu / periph / ddr freq */
+	gd->cpu_clk = rkclk_pll_get_rate(APLLL_ID);
+	gd->bus_clk = rkclk_pll_get_rate(GPLL_ID);
+	gd->mem_clk = rkclk_pll_get_rate(DPLL_ID);
+	gd->pci_clk = rkclk_pll_get_rate(CPLL_ID);
+
+	/* periph_h aclk */
+	div = rkclk_get_periph_h_aclk_div();
+	gd->arch.aclk_periph_h_rate_hz = gd->bus_clk / div;
+
+	/* periph_h hclk */
+	div = rkclk_get_periph_h_hclk_div();
+	gd->arch.hclk_periph_h_rate_hz = gd->arch.aclk_periph_h_rate_hz / div;
+
+	/* periph_h pclk */
+	div = rkclk_get_periph_h_pclk_div();
+	gd->arch.pclk_periph_h_rate_hz = gd->arch.aclk_periph_h_rate_hz / div;
+
+	/* periph_l0 aclk */
+	div = rkclk_get_periph_l0_aclk_div();
+	gd->arch.aclk_periph_l0_rate_hz = gd->bus_clk / div;
+
+	/* periph_l0 hclk */
+	div = rkclk_get_periph_l0_hclk_div();
+	gd->arch.hclk_periph_l0_rate_hz = gd->arch.aclk_periph_l0_rate_hz / div;
+
+	/* periph_l0 pclk */
+	div = rkclk_get_periph_l0_pclk_div();
+	gd->arch.pclk_periph_l0_rate_hz = gd->arch.aclk_periph_l0_rate_hz / div;
+
+	/* periph_l1 hclk */
+	div = rkclk_get_periph_l1_hclk_div();
+	gd->arch.hclk_periph_l1_rate_hz = gd->bus_clk / div;
+
+	/* periph_l1 pclk */
+	div = rkclk_get_periph_l1_pclk_div();
+	gd->arch.pclk_periph_l1_rate_hz = gd->arch.hclk_periph_l1_rate_hz / div;
+}
+
+
+/*
+ * rkplat clock dump pll information
+ */
+void rkclk_dump_pll(void)
+{
+	printf("CPU's clock information:\n");
+
+	printf("    aplll = %ldHZ\n", gd->cpu_clk);
+
+	printf("    apllb = %dHZ\n", rkclk_pll_get_rate(APLLB_ID));
+
+	printf("    gpll = %ldHZ\n", gd->bus_clk);
+	printf("               aclk_periph_h = %ldHZ, hclk_periph_h = %ldHZ, pclk_periph_h = %ldHZ\n",
+		gd->arch.aclk_periph_h_rate_hz, gd->arch.hclk_periph_h_rate_hz, gd->arch.pclk_periph_h_rate_hz);
+	printf("               aclk_periph_l0 = %ldHZ, hclk_periph_l0 = %ldHZ, pclk_periph_l0 = %ldHZ\n",
+		gd->arch.aclk_periph_l0_rate_hz, gd->arch.hclk_periph_l0_rate_hz, gd->arch.pclk_periph_l0_rate_hz);
+	printf("               hclk_periph_l1 = %ldHZ, pclk_periph_l1 = %ldHZ\n",
+		gd->arch.hclk_periph_l1_rate_hz, gd->arch.pclk_periph_l1_rate_hz);
+
+	printf("    cpll = %ldHZ\n", gd->pci_clk);
+
+	printf("    dpll = %ldHZ\n", gd->mem_clk);
+
+	printf("    vpll = %dHZ\n", rkclk_pll_get_rate(VPLL_ID));
+
+	printf("    npll = %dHZ\n", rkclk_pll_get_rate(NPLL_ID));
+
+	printf("    ppll = %dHZ\n", rkclk_pll_get_rate(PPLL_ID));
+}
+
+
+#define VIO_ACLK_MAX	(400 * MHZ)
+#define VIO_HCLK_MAX	(100 * MHZ)
+
+/*
+ * rkplat lcdc aclk config
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * pll_sel (lcdc aclk source pll select) : 0 - vpll, 1 - cpll, 2 - gpll, 3 - npll
+ * div (lcdc aclk div from pll) : 0x01 - 0x20
+ */
+static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+{
+	uint32 con = 0;
+
+	if (lcdc_id > 1)
+		return -1;
+
+	/* aclk div */
+	div = (div - 1) & 0x1f;
+	con = (0x1f << (0 + 16)) | (div << 0);
+
+	/* aclk pll source select */
+	if (pll_sel == 0)
+		con |= (3 << (6 + 16)) | (0 << 6);
+	else if (pll_sel == 1)
+		con |= (3 << (6 + 16)) | (1 << 6);
+	else if (pll_sel == 2)
+		con |= (3 << (6 + 16)) | (2 << 6);
+	else
+		con |= (3 << (6 + 16)) | (3 << 6);
+
+	if (lcdc_id == 0)
+		cru_writel(con, CRU_CLKSELS_CON(47));
+	else
+		cru_writel(con, CRU_CLKSELS_CON(48));
+
+	return 0;
+}
+
+static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
+{
+	uint32 aclk_info = 0;
+	uint32 pll_sel = 0, div = 0;
+	uint32 pll_rate = 0;
+
+	/* lcdc aclk from codec pll */
+	pll_sel = 0;
+	pll_rate = gd->pci_clk;
+
+	div = rkclk_calc_clkdiv(pll_rate, aclk_hz, 0);
+	aclk_info = (pll_sel << 16) | div;
+	debug("rk lcdc aclk config: aclk = %dHZ, pll select = %d, div = %d\n", aclk_hz, pll_sel, div);
+
+	rkclk_lcdc_aclk_config(lcdc_id, pll_sel, div);
+
+	return aclk_info;
+}
+
+
+static int rkclk_lcdc_hclk_config(uint32 lcdc_id, uint32 div)
+{
+	uint32 con = 0;
+
+	if (lcdc_id > 1)
+		return -1;
+
+	/* hclk div */
+	div = (div - 1) & 0x1f;
+	con = (0x1f << (8 + 16)) | (div << 8);
+
+	if (lcdc_id == 0)
+		cru_writel(con, CRU_CLKSELS_CON(47));
+	else
+		cru_writel(con, CRU_CLKSELS_CON(48));
+
+	return 0;
+}
+
+/*
+ * rkplat vio hclk config from aclk vio0 vop1
+ * div (lcdc hclk div from aclk) : 0x01 - 0x20
+ */
+static int rkclk_lcdc_hclk_set(uint32 lcdc_id, uint32 hclk_hz)
+{
+	uint32 div;
+
+	div = rkclk_calc_clkdiv(VIO_ACLK_MAX, VIO_HCLK_MAX, 0);
+	debug("rk lcdc hclk config: hclk = %dHZ, div = %d\n", hclk_hz, div);
+
+	rkclk_lcdc_hclk_config(lcdc_id, div);
+
+	return 0;
+}
+
+
+/*
+ * rkplat lcdc dclk config
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * pll_sel (lcdc dclk source pll select) : 0 - vpll, 1 - cpll, 2 - gpll
+ * div (lcdc dclk div from pll) : 0x01 - 0x100
+ */
+static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+{
+	uint32 con = 0;
+
+	if (lcdc_id > 1)
+		return -1;
+
+	con = 0;
+
+	/* dclk pll source select */
+	if (pll_sel == 0)
+		con |= (3 << (8 + 16)) | (0 << 8);
+	else if (pll_sel == 1)
+		con |= (3 << (8 + 16)) | (1 << 8);
+	else
+		con |= (3 << (8 + 16)) | (2 << 8);
+
+	/* dclk div */
+	div = (div - 1) & 0xff;
+	con |= (0xff << (0 + 16)) | (div << 0);
+
+	if (lcdc_id == 0)
+		cru_writel(con, CRU_CLKSELS_CON(49));
+	else
+		cru_writel(con, CRU_CLKSELS_CON(50));
+
+	return 0;
+}
+
+
+static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
+{
+	uint32 dclk_info = 0;
+	uint32 pll_sel = 0, div = 0;
+	uint32 clk_parent;
+
+	/* lcdc dclk from vpll */
+	pll_sel = 0;
+	clk_parent = rkclk_pll_get_rate(VPLL_ID);
+	div = rkclk_calc_clkdiv(clk_parent, dclk_hz, 0);
+	dclk_info = (pll_sel << 16) | div;
+	debug("rk lcdc dclk set: dclk = %dHZ, pll select = %d, div = %d\n", dclk_hz, pll_sel, div);
+
+	rkclk_lcdc_dclk_config(lcdc_id, pll_sel, div);
+
+	return dclk_info;
+}
+
+
+/*
+ * rkplat lcdc dclk and aclk parent pll source
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * dclk_hz: dclk rate
+ * return dclk rate
+ */
+int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
+{
+	uint32 dclk_div;
+	uint32 dclk_info = 0;
+
+	rkclk_lcdc_aclk_set(lcdc_id, VIO_ACLK_MAX);
+	rkclk_lcdc_hclk_set(lcdc_id, VIO_HCLK_MAX);
+	dclk_info = rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
+
+	dclk_div = dclk_info & 0x0000FFFF;
+	return rkclk_pll_get_rate(VPLL_ID) / dclk_div;
+}
+
+
+uint32 rkclk_get_sdhci_emmc_clk(void)
+{
+	uint32 con;
+	uint32 sel;
+	uint32 div;
+
+	con =  cru_readl(CRU_CLKSELS_CON(22));
+
+	sel = (con >> 8) & 0x7;
+	div = ((con >> 0) & 0x7F) + 1;
+
+	if (sel == 0)
+		return gd->pci_clk / div;
+	else if (sel == 1)
+		return gd->bus_clk / div;
+	else if (sel == 2)
+		return rkclk_pll_get_rate(NPLL_ID) / div;
+	else if (sel == 3)
+		return (480 * MHZ) / div;
+	else
+		return (24 * MHZ) / div;
+}
+
+
+/*
+ * rk mmc clock source
+ * 0: cpll; 1: gpll; 2: npll, 3: ppll, 4: usbphy 480M; 5: 24M
+ */
+enum {
+	MMC_CODEC_PLL = 0,
+	MMC_GENERAL_PLL = 1,
+	MMC_USBPHY_PLL = 4,
+	MMC_24M_PLL = 5,
+
+	MMC_MAX_PLL
+};
+
+/* 0: cpll; 1: gpll; 2: npll, 3: ppll, 4: usbphy 480M; 5: 24M */
+static inline uint32 rkclk_mmc_pll_sel2set(uint32 pll_sel)
+{
+	uint32 pll_set;
+
+	switch (pll_sel) {
+	case MMC_CODEC_PLL:
+		pll_set = 0;
+		break;
+	case MMC_GENERAL_PLL:
+		pll_set = 1;
+		break;
+	case MMC_USBPHY_PLL:
+		pll_set = 4;
+		break;
+	case MMC_24M_PLL:
+		pll_set = 5;
+		break;
+	default:
+		pll_set = 5;
+		break;
+	}
+
+	return pll_set;
+}
+
+static inline uint32 rkclk_mmc_pll_set2sel(uint32 pll_set)
+{
+	if (pll_set == 0)
+		return MMC_CODEC_PLL;
+	else if (pll_set == 1)
+		return MMC_GENERAL_PLL;
+	else if (pll_set == 4)
+		return MMC_USBPHY_PLL;
+	else if (pll_set == 5)
+		return MMC_24M_PLL;
+	else
+		return MMC_24M_PLL;
+}
+
+static inline uint32 rkclk_mmc_pll_sel2rate(uint32 pll_sel)
+{
+	if (pll_sel == MMC_CODEC_PLL)
+		return gd->pci_clk;
+	else if (pll_sel == MMC_GENERAL_PLL)
+		return gd->bus_clk;
+	else if (pll_sel == MMC_USBPHY_PLL)
+		return (480 * MHZ);
+	else
+		return (24 * MHZ);
+}
+
+static inline uint32 rkclk_mmc_pll_rate2sel(uint32 pll_rate)
+{
+	if (pll_rate == gd->pci_clk)
+		return MMC_CODEC_PLL;
+	else if (pll_rate == gd->bus_clk)
+		return MMC_GENERAL_PLL;
+	else if (pll_rate == (480 * MHZ))
+		return MMC_USBPHY_PLL;
+	else if (pll_rate == (24 * MHZ))
+		return MMC_24M_PLL;
+	else
+		return MMC_24M_PLL;
+}
+
+/*
+ * rkplat set mmc clock source
+ * 0: cpll; 1: gpll; 2: npll, 3: ppll, 4: usbphy 480M; 5: 24M
+ */
+void rkclk_set_mmc_clk_src(uint32 sdid, uint32 src)
+{
+	uint32 set = 0;
+
+	set = rkclk_mmc_pll_sel2set(src);
+
+	if (0 == sdid) /* sdmmc */
+		cru_writel((set << 8) | (0x7 << (8 + 16)), CRU_CLKSELS_CON(16));
+	else if (1 == sdid) /* sdio0 */
+		cru_writel((set << 8) | (0x7 << (8 + 16)), CRU_CLKSELS_CON(15));
+}
+
+
+/*
+ * rkplat get mmc clock rate
+ */
+uint32 rkclk_get_mmc_clk(uint32 sdid)
+{
+	uint32 con;
+	uint32 sel;
+
+	if (0 == sdid) { /* sdmmc */
+		con =  cru_readl(CRU_CLKSELS_CON(16));
+		sel = rkclk_mmc_pll_set2sel((con >> 8) & 0x7);
+	} else if (1 == sdid) { /* sdio0 */
+		con =  cru_readl(CRU_CLKSELS_CON(15));
+		sel = rkclk_mmc_pll_set2sel((con >> 8) & 0x7);
+	} else {
+		return 0;
+	}
+
+	return rkclk_mmc_pll_sel2rate(sel);
+}
+
+
+/*
+ * rkplat get mmc clock rate from gpll
+ */
+uint32 rkclk_get_mmc_freq_from_gpll(uint32 sdid)
+{
+	/* set general pll */
+	rkclk_set_mmc_clk_src(sdid, 1);
+
+	/* emmc automic divide freq to 1/2, so here divide this to 1/2 */
+	return rkclk_get_mmc_clk(sdid) / 2;
+}
+
+
+/*
+ * rkplat set mmc clock div
+ * here no check clkgate, because chip default is enable.
+ */
+int rkclk_set_mmc_clk_div(uint32 sdid, uint32 div)
+{
+	if (div == 0)
+		return -1;
+
+	if (0 == sdid) /* sdmmc */
+		cru_writel(((0x7Ful << 0) << 16) | ((div - 1) << 0), CRU_CLKSELS_CON(16));
+	else if (1 == sdid) /* sdio0 */
+		cru_writel(((0x7Ful << 0) << 16) | ((div - 1) << 0), CRU_CLKSELS_CON(15));
+	else
+		return -1;
+
+	return 0;
+}
+
+
+/*
+ * rkplat set mmc clock freq
+ * here no check clkgate, because chip default is enable.
+ */
+int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
+{
+	uint32 src_freqs[4];
+	uint32 src_div = 0;
+	uint32 clksel = 0;
+
+	src_freqs[0] = gd->pci_clk / 2;
+	src_freqs[1] = gd->bus_clk / 2;
+	src_freqs[2] = (480 * MHZ) / 2;
+	src_freqs[3] = (24 * MHZ) / 2;
+
+	if (freq <= (12 * MHZ)) {
+		clksel = MMC_24M_PLL; /* select 24 MHZ */
+		src_div = (src_freqs[3] + freq - 1) / freq;
+		if (((src_div & 0x1) == 1) && (src_div != 1))
+			src_div++;
+	} else {
+		uint32 i, div, clk_freq, pre_clk_freq = 0;
+		/*select best src clock*/
+		for (i = 0; i < 3; i++) {
+			if (0 == src_freqs[i])
+				continue;
+
+			div = (src_freqs[i] + freq - 1) / freq;
+			if (((div & 0x1) == 1) && (div != 1))
+				div++;
+			clk_freq = src_freqs[i] / div;
+			if (clk_freq > pre_clk_freq) {
+				pre_clk_freq = clk_freq;
+				clksel = rkclk_mmc_pll_rate2sel(src_freqs[i] * 2);
+				src_div = div;
+			}
+		}
+	}
+
+	debug("rkclk_set_mmc_clk_freq: sdid = %d, clksel = %d, src_div = %d\n", sdid, clksel, src_div);
+	if (0 == src_div)
+		return 0;
+
+	src_div &= 0x7F;    /* Max div is 0x7F */
+	rkclk_set_mmc_clk_src(sdid, clksel);
+	rkclk_set_mmc_clk_div(sdid, src_div);
+
+	return rkclk_mmc_pll_sel2rate(clksel) / 2 / src_div;
+}
+
+/*
+ * rkplat set mmc clock tuning
+ *
+ */
+int rkclk_set_mmc_tuning(uint32 sdid, uint32 degree, uint32 delay_num)
+{
+	return 0;
+}
+
+/*
+ * rkplat disable mmc clock tuning
+ */
+int rkclk_disable_mmc_tuning(uint32 sdid)
+{
+	return 0;
+}
+
+
+/*
+ * rkplat get PWM clock, from pclk_bus
+ * here no check clkgate, because chip default is enable.
+ */
+unsigned int rkclk_get_pwm_clk(uint32 pwm_id)
+{
+	uint32 con = 0;
+	uint32 sel = 0;
+	uint32 div = 1;
+
+	if (pwm_id == 0)
+		con = cru_readl(CRU_CLKSELS_CON(51));
+	else
+		con = cru_readl(CRU_CLKSELS_CON(52));
+
+	sel = (con >> 6) & 0x3;
+	div = ((con >> 0) & 0x1F) + 1;
+
+	/* pwm clk pll can be from codec pll/general pll, default codec pll */
+	if (sel == 0)
+		return rkclk_pll_get_rate(VPLL_ID) / div;
+	else if (sel == 1)
+		return gd->pci_clk / div;
+	else
+		return gd->bus_clk / div;
+}
+
+
+/*
+ * rkplat get I2C clock
+ */
+unsigned int rkclk_get_i2c_clk(uint32 i2c_bus_id)
+{
+	uint32 con = 0;
+	uint32 sel = 0;
+	uint32 div = 1;
+
+	if ((i2c_bus_id == 0) || (i2c_bus_id == 4) || (i2c_bus_id == 8)) {
+		uint32 pmu_pll;
+
+		pmu_pll = rkclk_pll_get_rate(PPLL_ID);
+		if (i2c_bus_id == 0) {
+			con = pmucru_readl(PMUCRU_CLKSELS_CON(2));
+			div = ((con >> 0) & 0x7F) + 1;
+		} else if (i2c_bus_id == 4) {
+			con = pmucru_readl(PMUCRU_CLKSELS_CON(3));
+			div = ((con >> 0) & 0x7F) + 1;
+		} else if (i2c_bus_id == 8) {
+			con = pmucru_readl(PMUCRU_CLKSELS_CON(2));
+			div = ((con >> 8) & 0x7F) + 1;
+		}
+
+		return pmu_pll / div;
+	} else {
+		if (i2c_bus_id == 1) {
+			con = cru_readl(CRU_CLKSELS_CON(61));
+			sel = (con >> 7) & 0x1;
+			div = ((con >> 0) & 0x7F) + 1;
+		} else if (i2c_bus_id == 2) {
+			con = cru_readl(CRU_CLKSELS_CON(62));
+			sel = (con >> 7) & 0x1;
+			div = ((con >> 0) & 0x7F) + 1;
+		} else if (i2c_bus_id == 3) {
+			con = cru_readl(CRU_CLKSELS_CON(63));
+			sel = (con >> 7) & 0x1;
+			div = ((con >> 0) & 0x7F) + 1;
+		} else if (i2c_bus_id == 5) {
+			con = cru_readl(CRU_CLKSELS_CON(61));
+			sel = (con >> 15) & 0x1;
+			div = ((con >> 8) & 0x7F) + 1;
+		} else if (i2c_bus_id == 6) {
+			con = cru_readl(CRU_CLKSELS_CON(62));
+			sel = (con >> 15) & 0x1;
+			div = ((con >> 8) & 0x7F) + 1;
+		} else if (i2c_bus_id == 7) {
+			con = cru_readl(CRU_CLKSELS_CON(63));
+			sel = (con >> 15) & 0x1;
+			div = ((con >> 8) & 0x7F) + 1;
+		}
+
+		/* i2c clk pll can be from codec pll/general pll, default codec pll */
+		if (sel == 0)
+			return gd->pci_clk / div;
+		else
+			return gd->bus_clk / div;
+	}
+}
+
+
+/*
+ * rkplat get spi clock, spi0-2 from  cpll or gpll
+ * here no check clkgate, because chip default is enable.
+ */
+unsigned int rkclk_get_spi_clk(uint32 spi_bus)
+{
+	uint32 con = 0;
+	uint32 sel = 0;
+	uint32 div = 1;
+
+	if (spi_bus == 0) {
+		con = cru_readl(CRU_CLKSELS_CON(59));
+		sel = (con >> 7) & 0x1;
+		div = ((con >> 0) & 0x7F) + 1;
+	} else if (spi_bus == 1) {
+		con = cru_readl(CRU_CLKSELS_CON(59));
+		sel = (con >> 15) & 0x1;
+		div = ((con >> 8) & 0x7F) + 1;
+	} else if (spi_bus == 2) {
+		con = cru_readl(CRU_CLKSELS_CON(60));
+		sel = (con >> 7) & 0x1;
+		div = ((con >> 0) & 0x7F) + 1;
+	} else if (spi_bus == 4) {
+		con = cru_readl(CRU_CLKSELS_CON(60));
+		sel = (con >> 15) & 0x1;
+		div = ((con >> 8) & 0x7F) + 1;
+	} else if (spi_bus == 5) {
+		con = cru_readl(CRU_CLKSELS_CON(58));
+		sel = (con >> 15) & 0x1;
+		div = ((con >> 8) & 0x7F) + 1;
+	} else {
+		return 0;
+	}
+
+	/* spi clk pll can be from codec pll/general pll, default codec pll */
+	if (sel == 0)
+		return gd->pci_clk / div;
+	else
+		return gd->bus_clk / div;
+}
+
+
+#ifdef CONFIG_SECUREBOOT_CRYPTO
+/*
+ * rkplat set crypto clock
+ * here no check clkgate, because chip default is enable.
+ */
+void rkclk_set_crypto_clk(uint32 rate)
+{
+	uint32 parent = 0;
+	uint32 div = 1;
+
+	/* parent select codec pll */
+	parent = gd->pci_clk;
+	div = rkclk_calc_clkdiv(parent, rate, 0);
+	div = div ? (div - 1) : 0;
+
+	debug("crypto clk div = %d\n", div);
+	cru_writel((3 << 22) | (0x1F << 16) | (0 << 6) | (div << 0), CRU_CLKSELS_CON(24));
+	cru_writel((3 << 22) | (0x1F << 16) | (0 << 6) | (div << 0), CRU_CLKSELS_CON(26));
+}
+#endif /* CONFIG_SECUREBOOT_CRYPTO */
+
+
+/*
+ * cpu soft reset
+ */
+void rkcru_cpu_soft_reset(void)
+{
+	/* PLL enter slow-mode */
+	rkclk_pll_mode(RKCLK_PLL_MODE_SLOW);
+
+	/* soft reset */
+	cru_writel(0xfdb9, CRU_GLB_SRST_FST);
+}
+
+
+/*
+ * mmc soft reset
+ */
+void rkcru_mmc_soft_reset(uint32 sdmmcId)
+{
+	uint32 con = 0;
+
+	if (sdmmcId == 1) {
+		con = (0x01 << 9) | (0x01 << (9 + 16));
+	} else {
+		con = (0x01 << 10) | (0x01 << (10 + 16));
+	}
+	cru_writel(con, CRU_SOFTRSTS_CON(7));
+	udelay(100);
+	if (sdmmcId == 1) {
+		con = (0x01 << 9) | (0x01 << (9 + 16));
+	} else {
+		con = (0x01 << 10) | (0x01 << (10 + 16));
+	}
+	cru_writel(con, CRU_SOFTRSTS_CON(7));
+	udelay(200);
+}
+
+
+/*
+ * i2c soft reset
+ */
+void rkcru_i2c_soft_reset(void)
+{
+	/* soft reset i2c0 4 8 */
+	pmucru_writel(0x7<<12 | 0x7<<(12+16), PMUCRU_SOFTRSTS_CON(1));
+	mdelay(1);
+	pmucru_writel(0x0<<12 | 0x7<<(12+16), PMUCRU_SOFTRSTS_CON(1));
+
+	/* soft reset i2c1 2 3 5 6 7 */
+	writel(0x3f<<9 | 0x3f<<(9+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(14));
+	mdelay(1);
+	writel(0x00<<9 | 0x3f<<(9+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(14));
+}

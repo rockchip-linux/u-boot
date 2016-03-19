@@ -28,13 +28,26 @@ typedef enum INT_SIGTYPE {
 /* get interrupt id */
 static inline uint32 gic_irq_getid(void)
 {
+#if defined(CONFIG_GICV2)
 	return readl(RKIO_GICC_PHYS + GICC_IAR) & 0x3ff; /* bit9 - bit0*/
+#elif defined(CONFIG_GICV3)
+	u64 irqstat;
+
+	asm volatile("mrs %0, " __stringify(ICC_IAR1_EL1) : "=r" (irqstat));
+	return (uint32)irqstat & 0x3ff;
+#endif
 }
 
 /* finish interrupt server */
 static inline void gic_irq_finish_server(uint32 nintid)
 {
+#if defined(CONFIG_GICV2)
 	writel(nintid, RKIO_GICC_PHYS + GICC_EOIR);
+#elif defined(CONFIG_GICV3)
+	asm volatile("msr " __stringify(ICC_EOIR1_EL1) ", %0" : : "r" ((u64)nintid));
+	asm volatile("msr " __stringify(ICC_DIR_EL1) ", %0" : : "r" ((u64)nintid));
+	isb();
+#endif
 }
 
 static int gic_irq_set_trig(int irq, eINT_TRIG ntrig)
@@ -104,7 +117,7 @@ __maybe_unused static int gic_irq_set_secure(int irq, eINT_SECURE nsecure)
 	return 0;
 }
 
-
+#if defined(CONFIG_GICV2)
 static uint8 g_gic_cpumask = 1;
 static void gic_get_cpumask(void)
 {
@@ -120,15 +133,17 @@ static void gic_get_cpumask(void)
 
 	if (!mask)
 		printf("GIC CPU mask not found.\n");
+	else
+		g_gic_cpumask = mask;
 
-	g_gic_cpumask = mask;
-	debug("GIC CPU mask = 0x%p\n", gic_get_cpumask);
+	printf("GIC CPU mask = 0x%08x\n", g_gic_cpumask);
 }
-
+#endif
 
 /* enable irq handler */
 static int gic_handler_enable(int irq)
 {
+#if defined(CONFIG_GICV2)
 	uint32 shift = (irq % 4) * 8;
 	uint32 offset = (irq / 4);
 	uint32 M, N;
@@ -148,6 +163,17 @@ static int gic_handler_enable(int irq)
 	reg &= ~(0xFF << shift);
 	reg |= (g_gic_cpumask << shift);
 	writel(reg, RKIO_GICD_PHYS + GICD_ITARGETSRn + 4 * offset);
+#elif defined(CONFIG_GICV3)
+	uint32 M, N;
+
+	if (irq >= NR_GIC_IRQS)
+		return -1;
+
+	M = irq / 32;
+	N = irq % 32;
+
+	writel(0x1 << N, RKIO_GICD_PHYS + GICD_ISENABLERn + 4 * M);
+#endif
 
 	return 0;
 }

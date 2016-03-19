@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -85,6 +85,30 @@ static MEM_FUN_T emmcFunOp =
 };
 #endif
 
+#ifdef RK_SDHCI_BOOT_EN
+static MEM_FUN_T emmcFunOp =
+{
+	3,
+	BOOT_FROM_EMMC,
+	0,
+	SdhciInit,
+	SdhciReadID,
+	SdhciBootReadPBA,
+	SdhciBootWritePBA,
+	SdhciBootReadLBA,
+	SdhciBootWriteLBA,
+	SdhciBootErase,
+	SdhciReadFlashInfo,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	SdhciGetCapacity,
+	SdhciSysDataLoad,
+	SdhciSysDataStore,
+};
+#endif
+
 #ifdef RK_SDCARD_BOOT_EN
 MEM_FUN_T sd0FunOp = 
 {
@@ -143,7 +167,7 @@ static MEM_FUN_T *memFunTab[] =
 	&sd0FunOp,
 #endif
 
-#ifdef RK_SDMMC_BOOT_EN
+#if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDHCI_BOOT_EN)
 	&emmcFunOp,
 #endif
 

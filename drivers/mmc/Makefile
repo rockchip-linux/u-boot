@@ -20,6 +20,7 @@ obj-$(CONFIG_MXS_MMC) += mxsmmc.o
 obj-$(CONFIG_OMAP_HSMMC) += omap_hsmmc.o
 obj-$(CONFIG_PXA_MMC_GENERIC) += pxa_mmc_gen.o
 obj-$(CONFIG_SDHCI) += sdhci.o
+obj-$(CONFIG_RK_SDHCI) += rk_sdhci.o
 obj-$(CONFIG_BCM2835_SDHCI) += bcm2835_sdhci.o
 obj-$(CONFIG_KONA_SDHCI) += kona_sdhci.o
 obj-$(CONFIG_S3C_SDI) += s3c_sdi.o

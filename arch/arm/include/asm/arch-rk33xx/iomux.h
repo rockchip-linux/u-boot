@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -21,6 +21,9 @@ enum iomux_id {
 	RK_I2C3_IOMUX,
 	RK_I2C4_IOMUX,
 	RK_I2C5_IOMUX,
+	RK_I2C6_IOMUX,
+	RK_I2C7_IOMUX,
+	RK_I2C8_IOMUX,
 	RK_SPI0_CS0_IOMUX,
 	RK_SPI0_CS1_IOMUX,
 	RK_SPI1_CS0_IOMUX,

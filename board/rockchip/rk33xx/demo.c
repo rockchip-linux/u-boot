@@ -80,6 +80,21 @@ static void board_timer_test(void)
 
 	#define DEMO_TIMER_CTRL_REG		DEMO_TIMER_CONTROL_REG
 	#define DEMO_TIMER_LOAD_VAL		0x00FFFFFF
+#elif defined(CONFIG_RKTIMER_V3)
+	#define DEMO_TIMER_LOADE_COUNT0		0x00
+	#define DEMO_TIMER_LOADE_COUNT1		0x04
+	#define DEMO_TIMER_CURRENT_VALUE0	0x08
+	#define DEMO_TIMER_CURRENT_VALUE1	0x0C
+	#define DEMO_TIMER_LOADE_COUNT2		0x10
+	#define DEMO_TIMER_LOADE_COUNT3		0x14
+	#define DEMO_TIMER_INTSTATUS		0x18
+	#define DEMO_TIMER_CONTROL_REG		0x1C
+
+	#define DEMO_TIMER_LOADE_COUNT		DEMO_TIMER_LOADE_COUNT0
+	#define DEMO_TIMER_CURR_VALUE		DEMO_TIMER_CURRENT_VALUE0
+
+	#define DEMO_TIMER_CTRL_REG		DEMO_TIMER_CONTROL_REG
+	#define DEMO_TIMER_LOAD_VAL		0x00FFFFFF
 #else
 	#error	"PLS define rk timer version."
 #endif /* CONFIG_RKTIMER_V2 */
@@ -224,20 +239,34 @@ static void board_emmc_test(void)
 	printf("rk emmc test start...\n");
 
 	void *buff = (void *)(CONFIG_RAM_PHY_END + SZ_128M);
+	void *data = (void *)(CONFIG_RAM_PHY_END + SZ_128M + SZ_32M);
 	uint32 blocks;
 	uint32 start;
 
 	start = 0;
-	blocks = 1024;
+	blocks = 20;
+
+	memset(data, 0x5A, blocks * 512);
+	memset(buff, 0x00, blocks * 512);
+	printf("Write LBA = 0x%08x, blocks = 0x%08x\n", start, blocks);
+	StorageWriteLba(start, data, blocks, 0);
+
 	printf("Read LBA = 0x%08x, blocks = 0x%08x\n", start, blocks);
 	StorageReadLba(start, buff, blocks);
 
+	printf("Emmc Read/Write \n");
+	if (memcmp(data, buff, blocks * 512) != 0)
+		printf("ERROR!\n");
+	else
+		printf("OK!\n");
+
+#if 0
 	/* rk emmc max blocks = 0xFFFF (32M) */
 	start = 0;
 	blocks = (SZ_32M + SZ_1M) / 512;
 	printf("Read LBA = 0x%08x, blocks = 0x%08x\n", start, blocks);
 	StorageReadLba(start, buff, blocks);
-
+#endif
 	printf("rk emmc test end\n");
 }
 

@@ -1,7 +1,7 @@
 /*
  * Configuation settings for the rk33xx chip platform.
  *
- * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -17,6 +17,9 @@
 #if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	#define CONFIG_GICV2
 	#define CONFIG_RKTIMER_V2
+#elif defined(CONFIG_RKCHIP_RK3399)
+	#define CONFIG_GICV3
+	#define CONFIG_RKTIMER_V3
 #else
 	#error "PLS config rk chip for GIC and TIMER version!"
 #endif
@@ -25,6 +28,10 @@
 #if defined(CONFIG_GICV2)
 	#define GICD_BASE		RKIO_GICD_PHYS
 	#define GICC_BASE		RKIO_GICC_PHYS
+#elif defined(CONFIG_GICV3)
+	#define GICC_BASE		RKIO_GICC_PHYS
+	#define GICD_BASE		RKIO_GICD_PHYS
+	#define GICR_BASE		RKIO_GICR_PHYS
 #endif /* CONFIG_GICV2 */
 
 /* Generic Timer Definitions */
@@ -113,8 +120,33 @@
 	#undef CONFIG_PM_SUBSYSTEM
 #endif
 
+#if defined(CONFIG_RKCHIP_RK3399)
+	#define CONFIG_SECUREBOOT_SHA256
+	#define CONFIG_RKTIMER_INCREMENTER
+	#define CONFIG_RK_SDHCI_BOOT_EN
+
+	#undef CONFIG_RK_MCU
+	#undef CONFIG_RK_PL330_DMAC
+	#undef CONFIG_SECUREBOOT_CRYPTO
+	#undef CONFIG_MERGER_MINILOADER
+	#undef CONFIG_MERGER_TRUSTIMAGE
+	#undef CONFIG_RK_SDMMC_BOOT_EN
+	#undef CONFIG_RK_SDCARD_BOOT_EN
+	#undef CONFIG_RK_FLASH_BOOT_EN
+	#undef CONFIG_RK_UMS_BOOT_EN
+	#undef CONFIG_CMD_ROCKUSB
+	#undef CONFIG_CMD_FASTBOOT
+	#undef CONFIG_USB_DEVICE
+	#undef CONFIG_RK_UDC
+	#undef CONFIG_LCD
+	#undef CONFIG_RK_POWER
+	#undef CONFIG_PM_SUBSYSTEM
+	#undef CONFIG_RK_I2C
+#endif
+
 /* fpga board configure */
 #ifdef CONFIG_FPGA_BOARD
+	#define DEBUG
 	#define CONFIG_BOARD_DEMO
 	#define CONFIG_RK_IO_TOOL
 
@@ -161,6 +193,15 @@
 /* efuse version */
 #ifdef CONFIG_RK_EFUSE
 	#define CONFIG_RKEFUSE_V2
+#endif
+
+/* sdhci config */
+#ifdef CONFIG_RK_SDHCI_BOOT_EN
+	#define CONFIG_MMC
+	#define CONFIG_GENERIC_MMC
+	#define CONFIG_PARTITIONS
+	#define CONFIG_SDHCI
+	#define CONFIG_RK_SDHCI
 #endif
 
 /* mmc using dma */

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -61,6 +61,8 @@ struct rk_gpio_bank {
 	#include "gpio-rk3368.h"
 #elif defined(CONFIG_RKCHIP_RK3366)
 	#include "gpio-rk3366.h"
+#elif defined(CONFIG_RKCHIP_RK3399)
+	#include "gpio-rk3399.h"
 #else
 	#error "PLS config gpio-rkxx.h!"
 #endif

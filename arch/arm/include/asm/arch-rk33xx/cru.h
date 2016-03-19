@@ -16,6 +16,8 @@
 	#include "cru-rk3368.h"
 #elif defined(CONFIG_RKCHIP_RK3366)
 	#include "cru-rk3366.h"
+#elif defined(CONFIG_RKCHIP_RK3399)
+	#include "cru-rk3399.h"
 #else
 	#error "PLS config cru-rkxx.h!"
 #endif

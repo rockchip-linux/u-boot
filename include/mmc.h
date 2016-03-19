@@ -14,35 +14,53 @@
 #include <linux/compiler.h>
 #include <part.h>
 
-#define SD_VERSION_SD	0x20000
-#define SD_VERSION_3	(SD_VERSION_SD | 0x300)
-#define SD_VERSION_2	(SD_VERSION_SD | 0x200)
-#define SD_VERSION_1_0	(SD_VERSION_SD | 0x100)
-#define SD_VERSION_1_10	(SD_VERSION_SD | 0x10a)
-#define MMC_VERSION_MMC		0x10000
-#define MMC_VERSION_UNKNOWN	(MMC_VERSION_MMC)
-#define MMC_VERSION_1_2		(MMC_VERSION_MMC | 0x102)
-#define MMC_VERSION_1_4		(MMC_VERSION_MMC | 0x104)
-#define MMC_VERSION_2_2		(MMC_VERSION_MMC | 0x202)
-#define MMC_VERSION_3		(MMC_VERSION_MMC | 0x300)
-#define MMC_VERSION_4		(MMC_VERSION_MMC | 0x400)
-#define MMC_VERSION_4_1		(MMC_VERSION_MMC | 0x401)
-#define MMC_VERSION_4_2		(MMC_VERSION_MMC | 0x402)
-#define MMC_VERSION_4_3		(MMC_VERSION_MMC | 0x403)
-#define MMC_VERSION_4_41	(MMC_VERSION_MMC | 0x429)
-#define MMC_VERSION_4_5		(MMC_VERSION_MMC | 0x405)
+/* SD/MMC version bits; 8 flags, 8 major, 8 minor, 8 change */
+#define SD_VERSION_SD	(1U << 31)
+#define MMC_VERSION_MMC	(1U << 30)
+
+#define MAKE_SDMMC_VERSION(a, b, c)	\
+	((((u32)(a)) << 16) | ((u32)(b) << 8) | (u32)(c))
+#define MAKE_SD_VERSION(a, b, c)	\
+	(SD_VERSION_SD | MAKE_SDMMC_VERSION(a, b, c))
+#define MAKE_MMC_VERSION(a, b, c)	\
+	(MMC_VERSION_MMC | MAKE_SDMMC_VERSION(a, b, c))
+
+#define EXTRACT_SDMMC_MAJOR_VERSION(x)	\
+	(((u32)(x) >> 16) & 0xff)
+#define EXTRACT_SDMMC_MINOR_VERSION(x)	\
+	(((u32)(x) >> 8) & 0xff)
+#define EXTRACT_SDMMC_CHANGE_VERSION(x)	\
+	((u32)(x) & 0xff)
+
+#define SD_VERSION_3		MAKE_SD_VERSION(3, 0, 0)
+#define SD_VERSION_2		MAKE_SD_VERSION(2, 0, 0)
+#define SD_VERSION_1_0		MAKE_SD_VERSION(1, 0, 0)
+#define SD_VERSION_1_10		MAKE_SD_VERSION(1, 10, 0)
+
+#define MMC_VERSION_UNKNOWN	MAKE_MMC_VERSION(0, 0, 0)
+#define MMC_VERSION_1_2		MAKE_MMC_VERSION(1, 2, 0)
+#define MMC_VERSION_1_4		MAKE_MMC_VERSION(1, 4, 0)
+#define MMC_VERSION_2_2		MAKE_MMC_VERSION(2, 2, 0)
+#define MMC_VERSION_3		MAKE_MMC_VERSION(3, 0, 0)
+#define MMC_VERSION_4		MAKE_MMC_VERSION(4, 0, 0)
+#define MMC_VERSION_4_1		MAKE_MMC_VERSION(4, 1, 0)
+#define MMC_VERSION_4_2		MAKE_MMC_VERSION(4, 2, 0)
+#define MMC_VERSION_4_3		MAKE_MMC_VERSION(4, 3, 0)
+#define MMC_VERSION_4_41	MAKE_MMC_VERSION(4, 4, 1)
+#define MMC_VERSION_4_5		MAKE_MMC_VERSION(4, 5, 0)
+#define MMC_VERSION_5_0		MAKE_MMC_VERSION(5, 0, 0)
 
 #define MMC_MODE_HS		(1 << 0)
 #define MMC_MODE_HS_52MHz	(1 << 1)
 #define MMC_MODE_4BIT		(1 << 2)
 #define MMC_MODE_8BIT		(1 << 3)
 #define MMC_MODE_SPI		(1 << 4)
-#define MMC_MODE_HC		(1 << 5)
-#define MMC_MODE_DDR_52MHz	(1 << 6)
+#define MMC_MODE_DDR_52MHz	(1 << 5)
 
 #define SD_DATA_4BIT	0x00040000
 
-#define IS_SD(x) (x->version & SD_VERSION_SD)
+#define IS_SD(x)	((x)->version & SD_VERSION_SD)
+#define IS_MMC(x)	((x)->version & MMC_VERSION_MMC)
 
 #define MMC_DATA_READ		1
 #define MMC_DATA_WRITE		2
@@ -51,8 +69,7 @@
 #define UNUSABLE_ERR		-17 /* Unusable Card */
 #define COMM_ERR		-18 /* Communications Error */
 #define TIMEOUT			-19
-#define IN_PROGRESS		-20 /* operation is in progress */
-#define SWITCH_ERR		-21 /* Card reports failure to switch mode */
+#define SWITCH_ERR		-20 /* Card reports failure to switch mode */
 
 #define MMC_CMD_GO_IDLE_STATE		0
 #define MMC_CMD_SEND_OP_COND		1
@@ -87,6 +104,7 @@
 #define SD_CMD_SEND_RELATIVE_ADDR	3
 #define SD_CMD_SWITCH_FUNC		6
 #define SD_CMD_SEND_IF_COND		8
+#define SD_CMD_SWITCH_UHS18V		11
 
 #define SD_CMD_APP_SET_BUS_WIDTH	6
 #define SD_CMD_ERASE_WR_BLK_START	32
@@ -103,7 +121,12 @@
 #define OCR_VOLTAGE_MASK	0x007FFF80
 #define OCR_ACCESS_MODE		0x60000000
 
-#define SECURE_ERASE		0x80000000
+#define MMC_ERASE_ARG		0x00000000
+#define MMC_SECURE_ERASE_ARG	0x80000000
+#define MMC_TRIM_ARG		0x00000001
+#define MMC_DISCARD_ARG		0x00000003
+#define MMC_SECURE_TRIM1_ARG	0x80000001
+#define MMC_SECURE_TRIM2_ARG	0x80008000
 
 #define MMC_STATUS_MASK		(~0x0206BF7F)
 #define MMC_STATUS_SWITCH_ERROR	(1 << 7)
@@ -146,10 +169,16 @@
 /*
  * EXT_CSD fields
  */
+#define EXT_CSD_ENH_START_ADDR		136	/* R/W */
+#define EXT_CSD_ENH_SIZE_MULT		140	/* R/W */
 #define EXT_CSD_GP_SIZE_MULT		143	/* R/W */
+#define EXT_CSD_PARTITION_SETTING	155	/* R/W */
 #define EXT_CSD_PARTITIONS_ATTRIBUTE	156	/* R/W */
+#define EXT_CSD_MAX_ENH_SIZE_MULT	157	/* R */
 #define EXT_CSD_PARTITIONING_SUPPORT	160	/* RO */
 #define EXT_CSD_RST_N_FUNCTION		162	/* R/W */
+#define EXT_CSD_WR_REL_PARAM		166	/* R */
+#define EXT_CSD_WR_REL_SET		167	/* R/W */
 #define EXT_CSD_RPMB_MULT		168	/* RO */
 #define EXT_CSD_ERASE_GROUP_DEF		175	/* R/W */
 #define EXT_CSD_BOOT_BUS_WIDTH		177
@@ -197,6 +226,16 @@
 #define EXT_CSD_BOOT_BUS_WIDTH_RESET(x)	(x << 2)
 #define EXT_CSD_BOOT_BUS_WIDTH_WIDTH(x)	(x)
 
+#define EXT_CSD_PARTITION_SETTING_COMPLETED	(1 << 0)
+
+#define EXT_CSD_ENH_USR		(1 << 0)	/* user data area is enhanced */
+#define EXT_CSD_ENH_GP(x)	(1 << ((x)+1))	/* GP part (x+1) is enhanced */
+
+#define EXT_CSD_HS_CTRL_REL	(1 << 0)	/* host controlled WR_REL_SET */
+
+#define EXT_CSD_WR_DATA_REL_USR		(1 << 0)	/* user data area WR_REL */
+#define EXT_CSD_WR_DATA_REL_GP(x)	(1 << ((x)+1))	/* GP part (x+1) WR_REL */
+
 #define R1_ILLEGAL_COMMAND		(1 << 22)
 #define R1_APP_CMD			(1 << 5)
 
@@ -220,6 +259,7 @@
 #define MMCPART_NOAVAILABLE	(0xff)
 #define PART_ACCESS_MASK	(0x7)
 #define PART_SUPPORT		(0x1)
+#define ENHNCD_SUPPORT		(0x2)
 #define PART_ENH_ATTRIB		(0x1f)
 
 /* Maximum block size for MMC */
@@ -298,22 +338,49 @@ struct mmc {
 	uint csd[4];
 	uint cid[4];
 	ushort rca;
+	u8 part_support;
+	u8 part_attr;
+	u8 wr_rel_set;
 	char part_config;
 	char part_num;
 	uint tran_speed;
 	uint read_bl_len;
 	uint write_bl_len;
-	uint erase_grp_size;
+	uint erase_grp_size;	/* in 512-byte sectors */
+	uint hc_wp_grp_size;	/* in 512-byte sectors */
 	u64 capacity;
 	u64 capacity_user;
 	u64 capacity_boot;
 	u64 capacity_rpmb;
 	u64 capacity_gp[4];
+	u64 enh_user_start;
+	u64 enh_user_size;
 	block_dev_desc_t block_dev;
 	char op_cond_pending;	/* 1 if we are waiting on an op_cond command */
 	char init_in_progress;	/* 1 if we have done mmc_start_init() */
 	char preinit;		/* start init as early as possible */
-	uint op_cond_response;	/* the response byte from the last op_cond */
+	int ddr_mode;
+};
+
+struct mmc_hwpart_conf {
+	struct {
+		uint enh_start;	/* in 512-byte sectors */
+		uint enh_size;	/* in 512-byte sectors, if 0 no enh area */
+		unsigned wr_rel_change : 1;
+		unsigned wr_rel_set : 1;
+	} user;
+	struct {
+		uint size;	/* in 512-byte sectors */
+		unsigned enhanced : 1;
+		unsigned wr_rel_change : 1;
+		unsigned wr_rel_set : 1;
+	} gp_part[4];
+};
+
+enum mmc_hwpart_conf_mode {
+	MMC_HWPART_CONF_CHECK,
+	MMC_HWPART_CONF_SET,
+	MMC_HWPART_CONF_COMPLETE,
 };
 
 int mmc_register(struct mmc *mmc);
@@ -328,6 +395,8 @@ int mmc_set_dev(int dev_num);
 void print_mmc_devices(char separator);
 int get_mmc_num(void);
 int mmc_switch_part(int dev_num, unsigned int part_num);
+int mmc_hwpart_config(struct mmc *mmc, const struct mmc_hwpart_conf *conf,
+		      enum mmc_hwpart_conf_mode mode);
 int mmc_getcd(struct mmc *mmc);
 int board_mmc_getcd(struct mmc *mmc);
 int mmc_getwp(struct mmc *mmc);
@@ -385,8 +454,10 @@ struct mmc *mmc_spi_init(uint bus, uint cs, uint speed, uint mode);
 int mmc_legacy_init(int verbose);
 #endif
 
+void board_mmc_power_init(void);
 int board_mmc_init(bd_t *bis);
 int cpu_mmc_init(bd_t *bis);
+int mmc_get_env_addr(struct mmc *mmc, int copy, u32 *env_addr);
 
 /* Set block count limit because of 16 bit register limit on some hardware*/
 #ifndef CONFIG_SYS_MMC_MAX_BLK_COUNT

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -227,6 +227,78 @@ typedef enum SPI_ch {
 
 	/* boot information for kernel */
 	#define RKIO_BOOTINFO_BASE	(RKIO_NANDC_BASE + 0x1000)
+#elif defined(CONFIG_RKCHIP_RK3399)
+	/* Loader Flag regiseter */
+	#define RKIO_LOADER_FLAG_REG	(RKIO_PMU_GRF_PHYS + PMU_GRF_OS_REG0)
+
+	/* usb otg */
+	#define RKIO_USBOTG_BASE	RKIO_USBOTG0_PHYS
+
+	/* timer */
+	#define RKIO_TIMER_BASE		RKIO_TIMER0_6CH_PHYS
+	#define RKIRQ_TIMER0		(IRQ_TIMER + 0)
+	#define RKIRQ_TIMER1		(IRQ_TIMER + 1)
+	#define RKIRQ_TIMER2		(IRQ_TIMER + 2)
+	#define RKIRQ_TIMER3		(IRQ_TIMER + 3)
+
+	/* secure timer */
+	#define RKIO_SECURE_TIMER_BASE	(RKIO_STIMER0_6CH_PHYS + 0x20)
+
+	/* uart */
+	#define RKIO_UART0_BASE		RKIO_UART0_PHYS
+	#define RKIO_UART1_BASE		RKIO_UART1_PHYS
+	#define RKIO_UART2_BASE		RKIO_UART2_PHYS
+	#define RKIO_UART3_BASE		RKIO_UART3_PHYS
+	#define RKIO_UART4_BASE		RKIO_UART4_PHYS
+	#define RKIO_UART5_BASE		0
+	#define RKIO_UART6_BASE		0
+	#define RKIO_UART7_BASE		0
+
+	/* i2c */
+	#define RKIO_I2C0_BASE		RKIO_I2C0_PHYS
+	#define RKIO_I2C1_BASE		RKIO_I2C1_PHYS
+	#define RKIO_I2C2_BASE		RKIO_I2C2_PHYS
+	#define RKIO_I2C3_BASE		RKIO_I2C3_PHYS
+	#define RKIO_I2C4_BASE		RKIO_I2C4_PHYS
+	#define RKIO_I2C5_BASE		RKIO_I2C5_PHYS
+	#define RKIO_I2C6_BASE		RKIO_I2C6_PHYS
+	#define RKIO_I2C7_BASE		RKIO_I2C7_PHYS
+
+	/* spi */
+	#define RKIO_SPI0_BASE		RKIO_SPI0_PHYS
+	#define RKIO_SPI1_BASE		RKIO_SPI1_PHYS
+	#define RKIO_SPI2_BASE		RKIO_SPI2_PHYS
+	#define RKIO_SPI3_BASE		RKIO_SPI3_PHYS
+	#define RKIO_SPI4_BASE		RKIO_SPI4_PHYS
+	#define RKIO_SPI5_BASE		RKIO_SPI5_PHYS
+	#define RKIO_SPI6_BASE		0
+	#define RKIO_SPI7_BASE		0
+
+	/* pwm */
+	#define RKIO_PWM_BASE		RKIO_PWM_PHYS
+	#define RKIRQ_PWM_REMOTE	IRQ_PWM
+
+	/* saradc */
+	#define RKIO_SARADC_BASE	RKIO_SARADC_PHYS
+
+	/* storage */
+	#define RKIO_SDMMC_BASE		RKIO_SDMMC_PHYS
+	#define RKIO_SDIO_BASE		RKIO_SDIO_PHYS
+	#define RKIO_EMMC_BASE		RKIO_EMMC_PHYS
+
+	#define RKIRQ_SDMMC		IRQ_SDMMC
+	#define RKIRQ_SDIO		IRQ_SDIO
+	#define RKIRQ_EMMC		IRQ_EMMCCORE
+
+	/* efuse */
+	#define RKIO_FTEFUSE_BASE	RKIO_EFUSE0_PHYS
+	#define RKIO_SECUREEFUSE_BASE	RKIO_EFUSE1_PHYS
+
+	/* crypto */
+	#define RKIO_CRYPTO_BASE	RKIO_CRYPTO0_PHYS
+
+	/* boot information for kernel */
+	#define RKIO_BOOTINFO_BASE	RKIO_IMEM1_PHYS
 #else
 	#error "PLS config chiptype for hardware!"
 #endif
@@ -242,5 +314,8 @@ void rk_module_deinit(void);
 void rk_mcu_init(void);
 #endif
 
+#ifdef CONFIG_RK_SDHCI
+int rk_sdhci_init(u32 regbase, u32 emmc_freq);
+#endif
 
 #endif /* __RKPLAT_H */

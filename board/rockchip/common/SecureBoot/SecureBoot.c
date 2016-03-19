@@ -74,6 +74,8 @@ void SecureBootLockLoader(void)
 
 static void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 length)
 {
+/* rk3399 TODO */
+#if !defined(CONFIG_RKCHIP_RK3399)
 	uint8 *pSramAddr = (uint8 *)BOOTINFO_RAM_BASE;
 
 	if (dir == 0)
@@ -84,6 +86,7 @@ static void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 len
 	{
 		ftl_memcpy(pSramAddr + offset, pBuf, length);
 	}
+#endif
 }
 
 static uint32 JSHashBase(uint8 * buf, uint32 len, uint32 hash)

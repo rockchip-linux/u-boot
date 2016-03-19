@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -57,6 +57,12 @@ void rkclk_dump_pll(void);
  * freq:	nandc max freq request.
  */
 int rkclk_set_nandc_freq_from_gpll(uint32 nandc_id, uint32 freq);
+
+
+/*
+ * rkplat get sdhci mmc clock
+ */
+uint32 rkclk_get_sdhci_emmc_clk(void);
 
 
 /*

@@ -78,7 +78,9 @@ static inline int irq_init(void)
 	for (i = 0; i < NR_IRQS; i++)
 		g_irq_handler[i].m_func = NULL;
 
+#if defined(CONFIG_GICV2)
 	gic_get_cpumask();
+#endif
 
 	/* gic irq init */
 	/* gic has been init in Start.S */

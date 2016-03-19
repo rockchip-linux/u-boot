@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -24,6 +24,7 @@ void enable_caches(void)
 /*
  * rk3368 chip info:		{0x33333041, 0x32303134, 0x30393238, 0x56313030} - 330A20140928V100
  * rk3366 chip info:		{0x33333042, 0x32303135, 0x30363234, 0x56313030} - 330B20150624V100
+ * rk3399 chip info:		{0x33333043, 0x32303136, 0x30313138, 0x56313030} - 330B20160118V100
  */
 int rk_get_bootrom_chip_version(unsigned int chip_info[])
 {
@@ -37,6 +38,9 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 	chip_info[3] = 0x56313030;
 #elif defined(CONFIG_RKCHIP_RK3366)
 	chip_info[0] = 0x33333042;
+	chip_info[3] = 0x56313030;
+#elif defined(CONFIG_RKCHIP_RK3399)
+	chip_info[0] = 0x33333043;
 	chip_info[3] = 0x56313030;
 #else
 	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
@@ -62,6 +66,8 @@ int rk_get_chiptype(void)
 			return CONFIG_RK3368;
 		if (chip_info[0] == 0x33333042) /* 330B */
 			return CONFIG_RK3366;
+		if (chip_info[0] == 0x33333043) /* 330C */
+			return CONFIG_RK3399;
 	}
 
 	return RKCHIP_UNKNOWN;
@@ -88,6 +94,14 @@ static inline void secure_parameter_init(void)
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON8);
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON9);
 	writel(0xffff0000, RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON10);
+#elif defined(CONFIG_RKCHIP_RK3399)
+	/* ddr space set no secure mode */
+	writel(0xffff0000, RKIO_PMU_SGRF_PHYS + SGRF_SOC_CON8);
+	writel(0xffff0000, RKIO_PMU_SGRF_PHYS + SGRF_SOC_CON9);
+	writel(0xffff0000, RKIO_PMU_SGRF_PHYS + SGRF_SOC_CON10);
+
+	/* emmc master secure setting */
+	writel(((3 << 7) << 16) | (0 << 7), RKIO_PMU_SGRF_PHYS + SGRF_SOC_CON7);
 #else
 	#error "PLS config platform for secure parameter init!"
 #endif
@@ -143,6 +157,13 @@ int arch_cpu_init(void)
 	grf_writel((0x01 << 13) | (0x01 << (13 + 16)), GRF_SOC_CON15);
 #endif /* CONFIG_RKCHIP_RK3368 */
 
+#if defined(CONFIG_RKCHIP_RK3399)
+	/* emmc core clock multiplier set not support */
+	grf_writel((0x00 << 0) | (0xFF << (0 + 16)), GRF_EMMCCORE_CON(11));
+
+	/* pwm3 select A mode */
+	pmugrf_writel((1 << (5 + 16)) | (0 << 5), PMU_GRF_SOC_CON0);
+#endif
 	return 0;
 }
 #endif
@@ -162,6 +183,11 @@ int print_cpuinfo(void)
 #if defined(CONFIG_RKCHIP_RK3366)
 	if (gd->arch.chiptype == CONFIG_RK3366)
 		printf("CPU: rk3366\n");
+#endif
+
+#if defined(CONFIG_RKCHIP_RK3399)
+	if (gd->arch.chiptype == CONFIG_RK3366)
+		printf("CPU: rk3399\n");
 #endif
 
 	rkclk_get_pll();

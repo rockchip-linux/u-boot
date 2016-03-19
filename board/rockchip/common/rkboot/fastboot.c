@@ -151,8 +151,12 @@ int board_fbt_key_pressed(void)
 {
 	uint32 boot_rockusb = 0, boot_recovery = 0, boot_fastboot = 0;
 	enum fbt_reboot_type frt = FASTBOOT_REBOOT_UNKNOWN;
-	int vbus = GetVbus();
+	int vbus = 0;
 	int ir_keycode = 0;
+
+#ifdef CONFIG_CMD_ROCKUSB
+	vbus = GetVbus();
+#endif
 
 #ifdef CONFIG_RK_KEY
 	checkKey((uint32 *)&boot_rockusb, (uint32 *)&boot_recovery, (uint32 *)&boot_fastboot);

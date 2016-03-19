@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -276,7 +276,7 @@ void rkplat_uart2UsbEn(uint32 en)
 	rk312X_uart2usb(en);
 #elif defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	rk3368_uart2usb(en);
-#elif defined(CONFIG_RKCHIP_RK322X)
+#elif defined(CONFIG_RKCHIP_RK322X) || defined(CONFIG_RKCHIP_RK3399)
 	/* no support uart to usb */
 #else
 	#error "PLS config rk chip if support uart2usb."
