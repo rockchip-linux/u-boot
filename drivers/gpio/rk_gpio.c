@@ -227,6 +227,7 @@ int gpio_set_value(unsigned gpio, int value)
 }
 
 
+#ifdef CONFIG_RK_GPIO_EXT_FUNC
 /**
  * Set gpio pull up or down mode
  */
@@ -524,3 +525,4 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 
 	return 0;
 }
+#endif /* CONFIG_RK_GPIO_EXT_FUNC */

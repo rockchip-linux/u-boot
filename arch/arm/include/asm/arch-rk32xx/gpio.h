@@ -195,8 +195,10 @@ struct rk_gpio_bank *rk_gpio_get_bank(unsigned gpio);
 struct rk_gpio_bank *rk_gpio_id_to_bank(unsigned int id);
 int rk_gpio_base_to_bank(unsigned base);
 
+#ifdef CONFIG_RK_GPIO_EXT_FUNC
 int gpio_pull_updown(unsigned gpio, enum GPIOPullType type);
 int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector);
+#endif /* CONFIG_RK_GPIO_EXT_FUNC */
 int gpio_set_value(unsigned gpio, int value);
 int gpio_get_value(unsigned gpio);
 int gpio_direction_output(unsigned gpio, int value);
