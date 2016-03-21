@@ -411,8 +411,10 @@ int board_late_init(void)
 	/* Clear boot mode */
 	writel(0, &grf->os_reg[4]);
 
-	if (setup_serialno() < 0)
+	if (setup_serialno() < 0) {
+		setenv("serial#", DEFAULT_SERIAL_NUMBER);
 		printf("Failed to set serialno, use default one!\n");
+	}
 
 	dev_desc = get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
 	if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN)

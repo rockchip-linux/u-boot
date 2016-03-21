@@ -58,7 +58,6 @@
 	"partitions=" PARTS_DEFAULT \
 	"loadaddr=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
 	"android_bootargs=" BOOTARGS \
-	"serial#=" DEFAULT_SERIAL_NUMBER "\0" \
 
 #define CONFIG_BOARD_LATE_INIT
 #define CONFIG_PREBOOT
@@ -76,8 +75,12 @@
 #define CONFIG_INITRD_TAG
 #define CONFIG_SETUP_MEMORY_TAGS
 #define CONFIG_CMDLINE_TAG
+
+/* Serial number */
 #define CONFIG_MISC
 #define CONFIG_EFUSE_RK3036
+
+#define CONFIG_CMD_ENV_FLAGS
 
 #endif
 
