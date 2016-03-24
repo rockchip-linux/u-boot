@@ -48,31 +48,29 @@ static int GetPortState(key_config *key)
 	adc_conf* adc = &key->key.adc;
 	int_conf* ioint = &key->key.ioint;
 
-	if(key->type == KEY_AD)
-	{
-		// TODO: clk没有配置
-		for(tt = 0; tt < 10; tt++)
-		{
-			// read special gpio port value.
+	if (key->type == KEY_AD) {
+		/* TODO: clk没有配置 */
+		for (tt = 0; tt < 10; tt++) {
+			/* read special gpio port value. */
 			uint32 value;
 			uint32 timeout = 0;
 
-			write_XDATA32( adc->ctrl, 0);
-			DRVDelayUs(1);
-			write_XDATA32( adc->ctrl, 0x0028|(adc->index));
-			DRVDelayUs(1);
+			write_XDATA32(adc->ctrl, 0);
+			DRVDelayUs(5);
+			write_XDATA32(adc->ctrl, 0x0028 | (adc->index));
+			DRVDelayUs(5);
 			do {
 				value = read_XDATA32(adc->ctrl);
 				timeout++;
-			} while((value&0x40) == 0);
+			} while((value & 0x40) == 0);
 			value = read_XDATA32(adc->data);
 			//printf("adc key = %d\n",value);
 			//DRVDelayUs(1000);
-			if( value<=adc->keyValueHigh && value>=adc->keyValueLow)
+			if ((value <= adc->keyValueHigh) && (value >= adc->keyValueLow))
 				hCnt++;
 		}
-		write_XDATA32( adc->ctrl, 0);
-		return (hCnt>8);
+		write_XDATA32(adc->ctrl, 0);
+		return (hCnt > 8);
 	} else if (key->type == KEY_INT) {
 		int state;
 
@@ -130,10 +128,10 @@ __maybe_unused static void RockusbKeyInit(void)
 	key_rockusb.type = KEY_AD;
 	key_rockusb.key.adc.index = KEY_ADC_CN;
 	key_rockusb.key.adc.keyValueLow = 0;
-	key_rockusb.key.adc.keyValueHigh= 30;
-	key_rockusb.key.adc.data = SARADC_BASE;
-	key_rockusb.key.adc.stas = SARADC_BASE+4;
-	key_rockusb.key.adc.ctrl = SARADC_BASE+8;
+	key_rockusb.key.adc.keyValueHigh = 30;
+	key_rockusb.key.adc.data = SARADC_BASE + 0;
+	key_rockusb.key.adc.stas = SARADC_BASE + 4;
+	key_rockusb.key.adc.ctrl = SARADC_BASE + 8;
 #endif
 }
 
@@ -143,10 +141,10 @@ __maybe_unused static void RecoveryKeyInit(void)
 	key_recovery.type = KEY_AD;
 	key_recovery.key.adc.index = KEY_ADC_CN;
 	key_recovery.key.adc.keyValueLow = 0;
-	key_recovery.key.adc.keyValueHigh= 30;
-	key_recovery.key.adc.data = SARADC_BASE;
-	key_recovery.key.adc.stas = SARADC_BASE+4;
-	key_recovery.key.adc.ctrl = SARADC_BASE+8;
+	key_recovery.key.adc.keyValueHigh = 30;
+	key_recovery.key.adc.data = SARADC_BASE + 0;
+	key_recovery.key.adc.stas = SARADC_BASE + 4;
+	key_recovery.key.adc.ctrl = SARADC_BASE + 8;
 }
 
 
@@ -155,10 +153,10 @@ __maybe_unused static void FastbootKeyInit(void)
 	key_fastboot.type = KEY_AD;
 	key_fastboot.key.adc.index = KEY_ADC_CN;
 	key_fastboot.key.adc.keyValueLow = 170;
-	key_fastboot.key.adc.keyValueHigh= 180;
-	key_fastboot.key.adc.data = SARADC_BASE;
-	key_fastboot.key.adc.stas = SARADC_BASE+4;
-	key_fastboot.key.adc.ctrl = SARADC_BASE+8;
+	key_fastboot.key.adc.keyValueHigh = 180;
+	key_fastboot.key.adc.data = SARADC_BASE + 0;
+	key_fastboot.key.adc.stas = SARADC_BASE + 4;
+	key_fastboot.key.adc.ctrl = SARADC_BASE + 8;
 }
 
 
