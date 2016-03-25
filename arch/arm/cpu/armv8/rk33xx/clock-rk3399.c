@@ -36,6 +36,9 @@
 #define HCLK_PERILP1_KHZ		100000
 #define PCLK_PERILP1_KHZ		50000
 
+/* pclk_pmu */
+#define PCLK_PMU_KHZ			50000
+
 /* Cpu clock source select */
 #define CPU_SRC_ARM_PLLL		0
 #define CPU_SRC_ARM_PLLB		1
@@ -464,6 +467,17 @@ static void rkclk_aplll_cb(struct pll_clk_set *clkset)
 }
 
 
+static void rkclk_ppll_cb(struct pll_clk_set *clkset)
+{
+	uint32 p_div = 0;
+
+	/*  pmu pclk - pclk = clk_src / (pclk_div_con + 1) */
+	p_div = rkclk_calc_clkdiv(RKCLK_PPLL_FREQ_KHZ, PCLK_PMU_KHZ, 0);
+	p_div = p_div ? (p_div - 1) : 0;
+
+	pmucru_writel((0x1F << (0 + 16)) | (p_div << 0), PMUCRU_CLKSELS_CON(0));
+}
+
 static uint32 rkclk_get_periph_h_aclk_div(void)
 {
 	uint32 con, div;
@@ -586,16 +600,6 @@ static void rkclk_default_init(void)
 	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0), CRU_CLKSELS_CON(24));
 	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0), CRU_CLKSELS_CON(26));
 
-	/* pwm: select cpll and div = 16 */
-	pll_sel = 1;
-	clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
-	clk_child_khz = 100000; /* KHZ */
-
-	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
-	div = div ? (div - 1) : 0;
-	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0), CRU_CLKSELS_CON(51));
-	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0), CRU_CLKSELS_CON(52));
-
 	/* spi: select cpll and div */
 	pll_sel = 0;
 	clk_parent_khz = RKCLK_CPLL_FREQ_KHZ;
@@ -702,7 +706,7 @@ void rkclk_set_pll(void)
 	rkclk_pll_set_rate(CPLL_ID, RKCLK_CPLL_FREQ_KHZ, NULL);
 	rkclk_pll_set_rate(VPLL_ID, RKCLK_VPLL_FREQ_KHZ, NULL);
 
-	rkclk_pll_set_rate(PPLL_ID, RKCLK_PPLL_FREQ_KHZ, NULL);
+	rkclk_pll_set_rate(PPLL_ID, RKCLK_PPLL_FREQ_KHZ, rkclk_ppll_cb);
 }
 
 
@@ -1212,24 +1216,15 @@ int rkclk_disable_mmc_tuning(uint32 sdid)
 unsigned int rkclk_get_pwm_clk(uint32 pwm_id)
 {
 	uint32 con = 0;
-	uint32 sel = 0;
 	uint32 div = 1;
+	uint32 pmu_pll;
 
-	if (pwm_id == 0)
-		con = cru_readl(CRU_CLKSELS_CON(51));
-	else
-		con = cru_readl(CRU_CLKSELS_CON(52));
-
-	sel = (con >> 6) & 0x3;
+	/* from pclk_pmu */
+	pmu_pll = rkclk_pll_get_rate(PPLL_ID);
+	con = pmucru_readl(PMUCRU_CLKSELS_CON(0));
 	div = ((con >> 0) & 0x1F) + 1;
 
-	/* pwm clk pll can be from codec pll/general pll, default codec pll */
-	if (sel == 0)
-		return rkclk_pll_get_rate(VPLL_ID) / div;
-	else if (sel == 1)
-		return gd->pci_clk / div;
-	else
-		return gd->bus_clk / div;
+	return pmu_pll / div;
 }
 
 
