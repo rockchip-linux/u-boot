@@ -139,9 +139,7 @@
 	#undef CONFIG_USB_DEVICE
 	#undef CONFIG_RK_UDC
 	#undef CONFIG_LCD
-	#undef CONFIG_RK_POWER
 	#undef CONFIG_PM_SUBSYSTEM
-	#undef CONFIG_RK_I2C
 #endif
 
 /* fpga board configure */
