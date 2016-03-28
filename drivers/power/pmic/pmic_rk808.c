@@ -287,8 +287,12 @@ static int rk808_set_regulator_init(struct fdt_regulator_match *matches, int num
 {
 	int ret;
 
-	ret = rk808_regulator_set_voltage(num_matches, matches->min_uV, matches->max_uV);
-	ret = rk808_regulator_enable(num_matches);
+	if (matches->min_uV == matches->max_uV)
+		ret = rk808_regulator_set_voltage(num_matches, matches->min_uV,
+						  matches->max_uV);
+	if (matches->boot_on)
+		ret = rk808_regulator_enable(num_matches);
+
 	return ret;
 }
 
@@ -333,7 +337,9 @@ static int rk808_parse_dt(const void* blob)
 
 	for (i = 0; i < RK808_NUM_REGULATORS; i++) {
 		regulator_init_pmic_matches[i].name = rk808_reg_matches[i].name;
-		if (rk808_reg_matches[i].boot_on && (rk808_reg_matches[i].min_uV == rk808_reg_matches[i].max_uV))
+		if (rk808_reg_matches[i].boot_on ||
+		    (rk808_reg_matches[i].min_uV ==
+		    rk808_reg_matches[i].max_uV))
 			ret = rk808_set_regulator_init(&rk808_reg_matches[i], i);
 	}
 
@@ -369,9 +375,6 @@ int pmic_rk808_init(unsigned char bus)
 	charger_init(0);
 	i2c_init(RK808_I2C_SPEED, rk808.pmic->hw.i2c.addr);
 	i2c_set_bus_speed(RK808_I2C_SPEED);
-	i2c_reg_write(0x1b,0x23,i2c_reg_read(0x1b,0x23)|0x60);
-	i2c_reg_write(0x1b,0x45,0x02);
-	i2c_reg_write(0x1b,0x24,i2c_reg_read(0x1b,0x24)|0x28);
 
     return 0;
 }
