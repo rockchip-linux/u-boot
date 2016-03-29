@@ -16,6 +16,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #define COMPAT_ROCKCHIP_PWM	"rockchip_pwm_regulator"
+#define COMPAT_PWM_REGULATOR	"pwm-regulator"
 #define PWM_NUM_REGULATORS	2
 int pwm_max_volt[2];
 int pwm_coefficient[2];
@@ -79,28 +80,35 @@ static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 		return ret;
 	}
 
-	if (min_uV < pwm.volt_table[0] || max_uV > pwm.volt_table[size-1]) {
-		printf("voltage_map voltage is out of table\n");
-		return -EINVAL;
+	if (!pwm.volt_table) {
+		pwm_value = (pwm_reg_matches[num_matches].max_uV - min_uV) /
+			     ((pwm_reg_matches[num_matches].max_uV -
+			     pwm_reg_matches[num_matches].min_uV) / 100);
+	} else {
+		if (min_uV < pwm.volt_table[0] ||
+		    max_uV > pwm.volt_table[size-1]) {
+			printf("voltage_map voltage is out of table\n");
+			return -EINVAL;
+		}
+
+		for (i = 0; i < size; i++) {
+			if (pwm.volt_table[i] >= min_uV)
+				break;
+		}
+		vol =  pwm.volt_table[i];
+
+		/* VDD12 = 1.40 - 0.455*D , pwm duty*/
+		pwm_value = (pwm_max_volt[num_matches] - vol) /
+			     pwm_coefficient[num_matches] / 10;
+		/*pwm_value %, coefficient *1000*/
 	}
-
-	for (i = 0; i < size; i++) {
-		if (pwm.volt_table[i] >= min_uV)
-			break;
-	}
-	vol =  pwm.volt_table[i];
-
-	/* VDD12 = 1.40 - 0.455*D , DÎªPWMÕ¼¿Õ±È*/
-	pwm_value = (pwm_max_volt[num_matches] - vol) / pwm_coefficient[num_matches] / 10;
-	/*pwm_value %, coefficient *1000*/
-
 	if (pwm_regulator_set_rate(pwm_value, pwm_id) != 0) {
 		printf("fail to set pwm rate,pwm_value=%d\n", pwm_value);
 		return -1;
 	}
 
-	printf("set pwm voltage ok,pwm_id =%d vol=%d,pwm_value=%d\n", pwm_id, vol,
-				pwm_value);
+	printf("set pwm voltage ok,pwm_id =%d vol=%d,pwm_value=%d\n",
+	       pwm_id, min_uV, pwm_value);
 
 	return 0;
 }
@@ -116,15 +124,27 @@ static int pwm_regulator_parse_dt(const void *blob)
 	pwm_node[0] = fdt_node_offset_by_compatible(blob,
 			0, COMPAT_ROCKCHIP_PWM);
 	if (pwm_node[0] < 0) {
-		printf("can't find dts node for pwm0\n");
-		return -ENODEV;
+		pwm_node[0] = fdt_node_offset_by_compatible(blob,
+			0, COMPAT_PWM_REGULATOR);
+		if (pwm_node[0] < 0) {
+			printf("can't find dts node for pwm0\n");
+			return -ENODEV;
+		}
 	}
 	pwm_count = 1;
 
 	pwm_node[1] = fdt_node_offset_by_compatible(blob,
 			pwm_node[0], COMPAT_ROCKCHIP_PWM);
-	if (pwm_node[1] >= 0)
+	if (pwm_node[1] < 0) {
+		pwm_node[1] = fdt_node_offset_by_compatible(blob,
+			pwm_node[0], COMPAT_PWM_REGULATOR);
+		if (pwm_node[1] < 0)
+			printf("can't find dts node for pwm1\n");
+		else
+			pwm_count = 2;
+	} else {
 		pwm_count = 2;
+	}
 
 	if (fdtdec_get_int_array(blob, pwm_node[0], "pwms", pwm0_data,
 			ARRAY_SIZE(pwm0_data))) {
@@ -140,7 +160,7 @@ static int pwm_regulator_parse_dt(const void *blob)
 	if (fdtdec_get_int_array(blob, pwm_node[0], "rockchip,pwm_voltage_map",
 			(u32 *)pwm.volt_table, pwm.pwm_vol_map_count)) {
 		debug("Cannot decode PWM property pwms\n");
-		return -ENODEV;
+		goto pwm_regulator;
 	}
 
 	for (i = 0 ; i < pwm_count; i++) {
@@ -159,6 +179,30 @@ static int pwm_regulator_parse_dt(const void *blob)
 			ret = pwm_regulator_set_voltage(pwm_id[i], i, pwm_init_volt[i], pwm_init_volt[i]);
 		if (pwm_reg_matches[i].boot_on && (pwm_reg_matches[i].min_uV == pwm_reg_matches[i].max_uV))
 			ret = pwm_regulator_set_voltage(pwm_id[i], i, pwm_reg_matches[i].min_uV, pwm_reg_matches[i].max_uV);
+	}
+	return ret;
+
+pwm_regulator:
+	for (i = 0 ; i < pwm_count; i++) {
+		pwm_id[i] = fdtdec_get_int(blob, pwm_node[i],
+					   "rockchip,pwm_id", 0);
+		pwm_init_volt[i] = fdtdec_get_int(blob,
+						  pwm_node[i],
+						  "rockchip,pwm_voltage",
+						  0);
+		fdt_get_regulator_init_data(blob,
+					    pwm_node[i],
+					    &pwm_reg_matches[i]);
+		regulator_init_pwm_matches[i].name = pwm_reg_matches[i].name;
+		if (pwm_reg_matches[i].boot_on)
+			ret = pwm_regulator_set_voltage(pwm_id[i], i,
+							pwm_init_volt[i],
+							pwm_init_volt[i]);
+		if (pwm_reg_matches[i].boot_on &&
+		    (pwm_reg_matches[i].min_uV == pwm_reg_matches[i].max_uV))
+			ret = pwm_regulator_set_voltage(pwm_id[i], i,
+						pwm_reg_matches[i].min_uV,
+						pwm_reg_matches[i].max_uV);
 	}
 	return ret;
 }

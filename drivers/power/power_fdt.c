@@ -10,7 +10,8 @@
 #include <fdtdec.h>
 
 
-static int fdt_get_regulator_init_data(const void *blob, int node, struct fdt_regulator_match *match)
+int fdt_get_regulator_init_data(const void *blob, int node,
+				struct fdt_regulator_match *match)
 {
 	match->name = fdt_getprop(blob, node, "regulator-name", NULL);
 	match->min_uV = fdtdec_get_int(blob, node, "regulator-min-microvolt", 0);

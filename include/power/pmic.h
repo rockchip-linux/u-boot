@@ -108,6 +108,8 @@ int fdt_regulator_match(const void *blob, int node,
 		struct fdt_regulator_match *matches, int num_matches);
 int fdt_get_regulator_node(const void * blob, int node);
 int fdt_get_i2c_info(const void* blob, int node, u32 *pbus, u32 *paddr);
+int fdt_get_regulator_init_data(const void *blob, int node,
+				struct fdt_regulator_match *match);
 #endif
 
 #define pmic_i2c_addr (p->hw.i2c.addr)
