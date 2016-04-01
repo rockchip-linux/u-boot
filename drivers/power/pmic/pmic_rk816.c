@@ -49,16 +49,16 @@ static int rk816_ldo_set_vol_base_addr[] = {
 #define rk816_LDO_SET_VOL_REG(x) (rk816_ldo_set_vol_base_addr[x - 4])
 
 static struct fdt_regulator_match rk816_reg_matches[] = {
-	{ .prop = "rk816_dcdc1",},
-	{ .prop = "rk816_dcdc2",},
-	{ .prop = "rk816_dcdc3",},
-	{ .prop = "rk816_dcdc4",},
-	{ .prop = "rk816_ldo1", },
-	{ .prop = "rk816_ldo2", },
-	{ .prop = "rk816_ldo3", },
-	{ .prop = "rk816_ldo4", },
-	{ .prop = "rk816_ldo5", },
-	{ .prop = "rk816_ldo6", },
+	{ .prop = "RK816_DCDC1",},
+	{ .prop = "RK816_DCDC2",},
+	{ .prop = "RK816_DCDC3",},
+	{ .prop = "RK816_DCDC4",},
+	{ .prop = "RK816_LDO1", },
+	{ .prop = "RK816_LDO2", },
+	{ .prop = "RK816_LDO3", },
+	{ .prop = "RK816_LDO4", },
+	{ .prop = "RK816_LDO5", },
+	{ .prop = "RK816_LDO6", },
 };
 
 static struct fdt_regulator_match rk816_reg1_matches[] = {
@@ -264,20 +264,20 @@ static int rk816_parse_dt(const void *blob)
 		return -ENODEV;
 	} else {
 		fdt_for_each_subnode(blob, temp_node, nd) {
-		prop = fdt_getprop(blob, temp_node,
-				   "regulator-compatible",
-				   NULL);
+			prop = fdt_getprop(blob, temp_node,
+					   "regulator-compatible",
+					   NULL);
+			if (prop)
+				break;
+		}
+
 		if (prop)
-			break;
-	}
+			reg_match = rk816_reg_matches;
+		else
+			reg_match = rk816_reg1_matches;
 
-	if (prop)
-		reg_match = rk816_reg_matches;
-	else
-		reg_match = rk816_reg1_matches;
-
-	fdt_regulator_match(blob, nd, reg_match,
-			    RK816_NUM_REGULATORS);
+		fdt_regulator_match(blob, nd, reg_match,
+				    RK816_NUM_REGULATORS);
 	}
 
 	for (i = 0; i < RK816_NUM_REGULATORS; i++) {
