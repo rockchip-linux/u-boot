@@ -642,6 +642,7 @@ static void rk816_bat_not_first_pwron(struct battery_info *di)
 	u8 init_soc;
 	int prev_cap, ocv_cap, ocv_soc, ocv_vol;
 
+	di->fcc = rk816_bat_get_fcc(di);
 	init_soc = rk816_bat_get_dsoc(di);
 	prev_cap = rk816_bat_get_prev_cap(di);
 
@@ -767,7 +768,6 @@ static void rk816_bat_fg_init(struct battery_info *di)
 	di->current_avg = rk816_bat_get_avg_current(di);
 	di->linek = rk816_bat_calc_linek(di);
 	di->finish_base = get_timer(0);
-	di->fcc = rk816_bat_get_fcc(di);
 	di->init_dsoc = di->dsoc;
 }
 
@@ -1054,6 +1054,9 @@ static void rk816_bat_smooth_charge(struct battery_info *di)
 {
 	u8 chg_st = rk816_bat_get_chrg_status(di);
 
+	if (di->state_of_chrg == NO_CHARGER)
+		goto out;
+
 	/*check rsoc and dsoc*/
 	di->remain_cap = rk816_bat_get_coulomb_cap(di);
 	di->rsoc = rk816_bat_get_rsoc(di);
@@ -1078,7 +1081,7 @@ static void rk816_bat_smooth_charge(struct battery_info *di)
 		if ((di->dsoc >= 100) && (di->init_dsoc != 100))
 			di->dsoc = 99;
 	}
-
+out:
 	rk816_bat_save_dsoc(di, di->dsoc);
 	rk816_bat_save_cap(di, di->remain_cap);
 	rk816_bat_debug_info(di);
@@ -1161,7 +1164,6 @@ static int rk816_bat_parse_dt(struct battery_info *di, void const *blob)
 	}
 
 	di->design_cap = fdtdec_get_int(blob, node, "design_capacity", -1);
-	di->fcc = di->design_cap;
 	if (di->design_cap < 0) {
 		printf("read design_capacity error\n");
 		return -EINVAL;
