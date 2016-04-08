@@ -14,11 +14,11 @@
 
 void rk_mcu_init(void)
 {
-	uint32_t pll_src, div;
-
 	debug("rk mcu init\n");
 
 #if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
+	uint32_t pll_src, div;
+
 	/* mcu sam memory map to internel ram */
 #ifdef CONFIG_RKCHIP_RK3368
 	grf_writel((0xF << (4 + 16)) | ((MCU_SRAM_ADDR_BASE >> 28) << 4), GRF_SOC_CON14);
@@ -35,6 +35,22 @@ void rk_mcu_init(void)
 
 	/* mcu dereset, for start running */
 	cru_writel(0x30000000, CRU_SOFTRSTS_CON(1));
+
+#elif CONFIG_RKCHIP_RK3399
+	/*
+	 * 1. mem remap related sgrf operation, so moved it to miniloader;
+	 * 2. moved clock configuration to clock-rk3399.c
+	 */
+#ifdef CONFIG_PERILP_MCU
+	/* perilp m0 dereset */
+	cru_writel(0x00160000, CRU_SOFTRSTS_CON(11));
+#endif
+
+#ifdef CONFIG_PMU_MCU
+	/* pmu m0 dereset */
+	writel(0x002c0000, RKIO_PMU_CRU_PHYS + PMUCRU_SOFTRSTS_CON(0));
+#endif
+
 #else
 	#error "PLS config chiptype for mcu init!"
 #endif

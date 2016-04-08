@@ -646,6 +646,29 @@ static void rkclk_default_init(void)
 	div = div ? (div - 1) : 0;
 
 	cru_writel((0xFF << 24) | (div << 8), CRU_CLKSELS_CON(26));
+
+#ifdef CONFIG_RK_MCU
+#ifdef CONFIG_PERILP_MCU
+	/* peril m0 clk = 300MHz, select gpll as the source clock */
+	clk_parent_khz = RKCLK_GPLL_FREQ_KHZ;
+	clk_child_khz = 300000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+
+	cru_writel((1 << 31) | (0x1F << 24) | (1 << 15) | (div << 8), CRU_CLKSELS_CON(24));
+#endif
+#ifdef CONFIG_PMU_MCU
+	/* pmu m0 clk = 150MHz: select ppll as the source clock */
+	clk_parent_khz = RKCLK_PPLL_FREQ_KHZ;
+	clk_child_khz = 150000; /* KHZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_khz, clk_child_khz, 1);
+	div = div ? (div - 1) : 0;
+
+	pmucru_writel((1 << 31) | (0x1F << 24) | (0 << 15) | (div << 8), PMUCRU_CLKSELS_CON(0));
+#endif
+#endif
 }
 
 
