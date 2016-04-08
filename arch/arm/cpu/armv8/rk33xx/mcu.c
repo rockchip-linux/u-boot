@@ -20,8 +20,13 @@ void rk_mcu_init(void)
 
 #if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	/* mcu sam memory map to internel ram */
+#ifdef CONFIG_RKCHIP_RK3368
 	grf_writel((0xF << (4 + 16)) | ((MCU_SRAM_ADDR_BASE >> 28) << 4), GRF_SOC_CON14);
 	grf_writel((0xFFFF << (0 + 16)) | ((MCU_SRAM_ADDR_BASE >> 12) << 0), GRF_SOC_CON11);
+#elif CONFIG_RKCHIP_RK3366
+	grf_writel((0xF << (4 + 16)) | ((MCU_SRAM_ADDR_BASE >> 28) << 4), PMU_GRF_SOC_CON7);
+	grf_writel((0xFFFF << (0 + 16)) | ((MCU_SRAM_ADDR_BASE >> 12) << 0), PMU_GRF_SOC_CON4);
+#endif
 
 	/* mcu clk: select gpll as source clock and div = 6 */
 	pll_src = 1;
