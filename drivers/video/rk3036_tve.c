@@ -23,6 +23,12 @@ static struct rk3036_tve tve_s;
 #define tve_dac_writel(offset, v)   writel(v, tve_s.vdacbase + offset)
 #define tve_dac_readl(offset)	readl(tve_s.vdacbase + offset)
 
+#define RK322X_VDAC_STANDARD 0x15
+
+#ifdef CONFIG_RK_EFUSE
+extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
+#endif
+
 struct fb_videomode rk3036_cvbs_mode[MAX_TVE_COUNT] = {
 	/*name	refresh	xres	yres	pixclock	h_bp	h_fp	v_bp	v_fp	h_pw	v_pw			polariry				PorI		flag*/
 	{"NTSC",	60,	720,	480,	27000000,	43,	33,	19,	0,	62,	3,	FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,	FB_VMODE_INTERLACED,	0},
@@ -246,10 +252,28 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 }
 #endif
 
+static uint8 rk_get_vdac_value(void)
+{
+	uint8 value = 0;
+
+#ifdef CONFIG_RK_EFUSE
+#if defined(CONFIG_RKCHIP_RK322X)
+	FtEfuseRead((void *)(unsigned long)RKIO_EFUSE_256BITS_PHYS, &value, 29, 1);
+	value = (value >> 3) & 0x1f;
+#endif
+#endif /* CONFIG_RK_EFUSE */
+	if (value > 0)
+		value += 5;
+	TVEDBG("%s value = 0x%x\n", __func__, value);
+
+	return value;
+}
+
 
 int rk3036_tve_init(vidinfo_t *panel)
 {
 	int node = 0;
+	int dac_value, getvdac;
 
 #if defined(CONFIG_RKCHIP_RK3036)
 	tve_s.reg_phy_base = 0x10118000 + 0x200;
@@ -311,9 +335,23 @@ int rk3036_tve_init(vidinfo_t *panel)
 		if (tve_s.lumafilter2 == 0)
 			return -ENODEV;
 
-		tve_s.daclevel = fdtdec_get_int(gd->fdt_blob, node, "daclevel", 0);
-		if (tve_s.daclevel == 0)
+		dac_value = fdtdec_get_int(gd->fdt_blob, node, "daclevel", 0);
+		if (dac_value == 0)
 			return -ENODEV;
+
+		tve_s.daclevel = dac_value;
+
+		if (tve_s.soctype == SOC_RK322X) {
+			getvdac = rk_get_vdac_value();
+			if (getvdac > 0) {
+				tve_s.daclevel = dac_value + getvdac - RK322X_VDAC_STANDARD;
+				if (tve_s.daclevel > 0x3f ||
+				    tve_s.daclevel < 0) {
+					printf("rk322x daclevel error!\n");
+					tve_s.daclevel = dac_value;
+				}
+			}
+		}
 
 		TVEDBG("tve_s.test_mode = 0x%x\n", tve_s.test_mode);
 		TVEDBG("tve_s.saturation = 0x%x\n", tve_s.saturation);
