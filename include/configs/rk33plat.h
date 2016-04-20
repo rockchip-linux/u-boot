@@ -254,18 +254,21 @@
  *	RKUSB_UMS_BOOT_FROM_DWC2_OTG
  *	RKUSB_UMS_BOOT_FROM_DWC2_HOST
  *	RKUSB_UMS_BOOT_FROM_EHCI_HOST1
+ *	RKUSB_UMS_BOOT_FROM_EHCI_HOST2
  *
  * First define the host controller here
  */
 #undef RKUSB_UMS_BOOT_FROM_DWC2_OTG
 #undef RKUSB_UMS_BOOT_FROM_DWC2_HOST
 #undef RKUSB_UMS_BOOT_FROM_EHCI_HOST1
+#undef RKUSB_UMS_BOOT_FROM_EHCI_HOST2
 
 
 /* Check UMS Boot Host define */
 #define RKUSB_UMS_BOOT_CNT (defined(RKUSB_UMS_BOOT_FROM_DWC2_OTG) + \
 			    defined(RKUSB_UMS_BOOT_FROM_DWC2_HOST) + \
-			    defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1))
+			    defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1) + \
+			    defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST2))
 
 #if (RKUSB_UMS_BOOT_CNT == 0)
 	#error "PLS Select a USB host controller!"
@@ -278,7 +281,8 @@
  * USB Host support, default no using
  * please first check plat if you want to using usb host
  */
-#if defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1)
+#if defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST1) ||\
+	defined(RKUSB_UMS_BOOT_FROM_EHCI_HOST2)
 	/* ehci host */
 	#define CONFIG_USB_EHCI
 	#define CONFIG_USB_EHCI_RK
