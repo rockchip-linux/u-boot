@@ -14,7 +14,6 @@
 #include <linux/sizes.h>
 #include <asm/unaligned.h>
 #include <usb/udc.h>
-
 #include <usb_defs.h>
 
 #if defined(CONFIG_RK_UDC)
@@ -47,10 +46,10 @@
 #define	K_FW_GET_CHIP_VER		0x1B
 #define	K_FW_LOW_FORMAT			0x1C
 #define	K_FW_SET_RESET_FLAG		0x1E
-#define	K_FW_SPI_READ_10		0x21  
-#define	K_FW_SPI_WRITE_10		0x22  
+#define	K_FW_SPI_READ_10		0x21
+#define	K_FW_SPI_WRITE_10		0x22
 
-#define	K_FW_SESSION			0X30 // ADD BY HSL.
+#define	K_FW_SESSION			0X30
 #define	K_FW_RESET			0xff
 /* Bulk-only data structures */
 
@@ -93,7 +92,7 @@
  * is 18 bit length, we cut the transfer into smaller pieces
  * block size = 0x200/0x210
  */
-#define RKUSB_BUFFER_BLOCK_MAX 0x80//0x20
+#define RKUSB_BUFFER_BLOCK_MAX 0x80
 
 #define	USB_DEVICE_CLASS_VENDOR_SPECIFIC	0xFF
 #define	USB_SUBCLASS_CODE_SCSI			0x06
@@ -118,7 +117,11 @@
 #define	NUM_INTERFACES	1
 #define	NUM_ENDPOINTS	2
 #define RKUSB_ENDPOINT_BULKIN 1
-#define RKUSB_ENDPOINT_BULKOUT 2
+#ifdef CONFIG_RK_DWC3_UDC
+	#define RKUSB_ENDPOINT_BULKOUT 1
+#else
+	#define RKUSB_ENDPOINT_BULKOUT 2
+#endif
 #define	RX_EP_INDEX	2
 #define	TX_EP_INDEX	1
 
@@ -126,7 +129,7 @@
 #define FW_WR_MODE_LBA       1
 #define FW_WR_MODE_SDRAM     2
 #define FW_WR_MODE_SPI       3
-#define FW_WR_MODE_SESSION   4	
+#define FW_WR_MODE_SESSION   4
 
 #define SYS_LOADER_ERR_FLAG      0X1888AAFF
 
@@ -137,8 +140,7 @@ struct _rkusb_config_desc {
 };
 static struct cmd_rockusb_interface usbcmd __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
-static void rkusb_handle_response(void);
-static void rkusb_init_endpoints(void);
+
 
 /* USB Descriptor Strings */
 static char serial_number[] = "123456789abcdef"; /* what should be the length ?, 33 ? */
@@ -149,7 +151,7 @@ static __attribute__ ((aligned(4))) u8 wstr_serial[2 + 2*(sizeof(serial_number) 
 static __attribute__ ((aligned(4))) u8 wstr_configuration[2 + 2*(sizeof(CONFIG_USBD_CONFIGURATION_STR)-1)];
 static __attribute__ ((aligned(4))) u8 wstr_interface[2 + 2*(sizeof(CONFIG_USBD_INTERFACE_STR)-1)];
 
-static char rockusb_name[] = "rockchip_rockusb";
+
 /* defined and used by gadget/ep0.c */
 extern struct usb_string_descriptor **usb_strings;
 
@@ -165,78 +167,82 @@ static struct usb_device_descriptor device_descriptor = {
     .idVendor =     cpu_to_le16(CONFIG_USBD_VENDORID),
     .idProduct =        cpu_to_le16(CONFIG_USBD_PRODUCTID_ROCKUSB),
     .bcdDevice =        cpu_to_le16(RKUSB_BCD_DEVICE),
-    .iManufacturer =    0,//STR_MANUFACTURER,
-    .iProduct =     0,//STR_PRODUCT,
-    .iSerialNumber =    0,//STR_SERIAL,
+    .iManufacturer =    0,
+    .iProduct =     0,
+    .iSerialNumber =    0,
     .bNumConfigurations =   NUM_CONFIGS
 };
 
 static struct _rkusb_config_desc rkusb_config_desc = {
-    .configuration_desc = {
-        .bLength = sizeof(struct usb_configuration_descriptor),
-        .bDescriptorType = USB_DT_CONFIG,
-        .wTotalLength = cpu_to_le16(sizeof(struct _rkusb_config_desc)),
-        .bNumInterfaces = NUM_INTERFACES,
-        .bConfigurationValue = 1,
-        .iConfiguration = 0,//STR_CONFIGURATION,
-        .bmAttributes = BMATTRIBUTE_RESERVED,//BMATTRIBUTE_SELF_POWERED | 
-        .bMaxPower = RKUSB_MAXPOWER,
+	.configuration_desc = {
+		.bLength = sizeof(struct usb_configuration_descriptor),
+		.bDescriptorType = USB_DT_CONFIG,
+		.wTotalLength = cpu_to_le16(sizeof(struct _rkusb_config_desc)),
+		.bNumInterfaces = NUM_INTERFACES,
+		.bConfigurationValue = 1,
+		.iConfiguration = 0,
+		.bmAttributes = BMATTRIBUTE_RESERVED,
+		.bMaxPower = RKUSB_MAXPOWER,
     },
-    .interface_desc = {
-        .bLength  = sizeof(struct usb_interface_descriptor),
-        .bDescriptorType = USB_DT_INTERFACE,
-        .bInterfaceNumber = 0,
-        .bAlternateSetting = 0,
-        .bNumEndpoints = NUM_ENDPOINTS,
-        .bInterfaceClass = USB_DEVICE_CLASS_VENDOR_SPECIFIC,
-        .bInterfaceSubClass = USB_SUBCLASS_CODE_SCSI,
-        .bInterfaceProtocol = 0x05,
-        .iInterface = 0,//STR_INTERFACE,
+	.interface_desc = {
+		.bLength  = sizeof(struct usb_interface_descriptor),
+		.bDescriptorType = USB_DT_INTERFACE,
+		.bInterfaceNumber = 0,
+		.bAlternateSetting = 0,
+		.bNumEndpoints = NUM_ENDPOINTS,
+		.bInterfaceClass = USB_DEVICE_CLASS_VENDOR_SPECIFIC,
+		.bInterfaceSubClass = USB_SUBCLASS_CODE_SCSI,
+		.bInterfaceProtocol = 0x05,
+		.iInterface = 0,
     },
-    .endpoint_desc = {
-        {
-            .bLength = sizeof(struct usb_endpoint_descriptor),
-            .bDescriptorType = USB_DT_ENDPOINT,
-            /* XXX: can't the address start from 0x1, currently
-                seeing problem with "epinfo" */
-            .bEndpointAddress = RKUSB_ENDPOINT_BULKOUT | USB_DIR_OUT,
-            .bmAttributes = USB_ENDPOINT_XFER_BULK,
-            .wMaxPacketSize = 0x200,
-            .bInterval = 0x00,
-        },
-        {
-            .bLength = sizeof(struct usb_endpoint_descriptor),
-            .bDescriptorType = USB_DT_ENDPOINT,
-            /* XXX: can't the address start from 0x1, currently
-                seeing problem with "epinfo" */
-            .bEndpointAddress = RKUSB_ENDPOINT_BULKIN | USB_DIR_IN,
-            .bmAttributes = USB_ENDPOINT_XFER_BULK,
-            .wMaxPacketSize = 0x200,
-            .bInterval = 0x00,
-        },
-    },
+	.endpoint_desc = {
+		{
+			.bLength = sizeof(struct usb_endpoint_descriptor),
+			.bDescriptorType = USB_DT_ENDPOINT,
+			/* XXX: can't the address start from 0x1, currently
+			    seeing problem with "epinfo" */
+			.bEndpointAddress = RKUSB_ENDPOINT_BULKOUT | USB_DIR_OUT,
+			.bmAttributes = USB_ENDPOINT_XFER_BULK,
+			.wMaxPacketSize = 0x200,
+			.bInterval = 0x00,
+		},
+		{
+			.bLength = sizeof(struct usb_endpoint_descriptor),
+			.bDescriptorType = USB_DT_ENDPOINT,
+			/* XXX: can't the address start from 0x1, currently
+			    seeing problem with "epinfo" */
+			.bEndpointAddress = RKUSB_ENDPOINT_BULKIN | USB_DIR_IN,
+			.bmAttributes = USB_ENDPOINT_XFER_BULK,
+			.wMaxPacketSize = 0x200,
+			.bInterval = 0x00,
+		},
+	},
 };
+#ifdef CONFIG_RK_UDC
+	static struct usb_bos_descriptor rkusb_bos_desc = {
+		.bLength = (sizeof (struct usb_bos_descriptor) - 3),
+		.bDescriptorType = USB_DESCRIPTOR_TYPE_BOS,
+		.wTotalLength = sizeof (struct usb_bos_descriptor),
+		.bNumDeviceCaps = 0x01,
+		.bCapHeaderLength = (sizeof (struct usb_bos_descriptor) - 5),
+		.bCapabilityType = USB_DT_DEVICE_CAPABILITY,
+		.bDevCapabilityType = 0
+	};
+#endif
 
-static struct usb_bos_descriptor rkusb_bos_desc = {
-	.bLength = (sizeof (struct usb_bos_descriptor) - 3),
-	.bDescriptorType = USB_DESCRIPTOR_TYPE_BOS,
-	.wTotalLength = sizeof (struct usb_bos_descriptor),
-	.bNumDeviceCaps = 0x01,
-	.bCapHeaderLength = (sizeof (struct usb_bos_descriptor) - 5),
-	.bCapabilityType = USB_DT_DEVICE_CAPABILITY,
-	.bDevCapabilityType = 0
-};
-
-static struct usb_interface_descriptor interface_descriptors[NUM_INTERFACES];
-static struct usb_endpoint_descriptor *ep_descriptor_ptrs[NUM_ENDPOINTS];
 
 static struct usb_string_descriptor *rkusb_string_table[STR_COUNT];
-static struct usb_device_instance device_instance[1];
-static struct usb_bus_instance bus_instance[1];
-static struct usb_configuration_instance config_instance[NUM_CONFIGS];
-static struct usb_interface_instance interface_instance[NUM_INTERFACES];
-static struct usb_alternate_instance alternate_instance[NUM_INTERFACES];
-static struct usb_endpoint_instance endpoint_instance[NUM_ENDPOINTS + 1];
+#ifdef CONFIG_RK_UDC
+	static char rockusb_name[] = "rockchip_rockusb";
+	static struct usb_interface_descriptor interface_descriptors[NUM_INTERFACES];
+	static struct usb_endpoint_descriptor *ep_descriptor_ptrs[NUM_ENDPOINTS];
+	static struct usb_device_instance device_instance[1];
+	static struct usb_bus_instance bus_instance[1];
+	static struct usb_configuration_instance config_instance[NUM_CONFIGS];
+	static struct usb_interface_instance interface_instance[NUM_INTERFACES];
+	static struct usb_alternate_instance alternate_instance[NUM_INTERFACES];
+	static struct usb_endpoint_instance endpoint_instance[NUM_ENDPOINTS + 1];
+#endif
 /* USB specific */
 
 /* Command Block Wrapper */
@@ -278,13 +284,18 @@ struct bulk_cs_wrap {
 /*******************************************************************
 CSW·µ»Ø×´Ì¬Öµ
 *******************************************************************/
-#define	CSW_GOOD		0x00		//ÃüÁîÍ¨¹ý
-#define	CSW_FAIL		0x01		//ÃüÁîÊ§°Ü
+#define	CSW_GOOD		0x00
+#define	CSW_FAIL		0x01
 
 struct cmd_rockusb_preread {
 	uint8_t *pre_buffer;
 	uint32_t pre_lba;
 	uint32_t pre_blocks;
+};
+struct giveback_data{
+	void *buf;
+	int status;
+	uint32_t actual;
 };
 struct cmd_rockusb_interface {
 	uint8_t cmd;
@@ -294,10 +305,9 @@ struct cmd_rockusb_interface {
 	uint8_t *tx_buffer[2];
 	uint8_t rxbuf_num;
 	uint8_t txbuf_num;
-   
-	/* 
+	/*
 	 * Download size, if download has to be done. This can be checked to find
-	 * whether next packet is a command or a data 
+	 * whether next packet is a command or a data
 	 */
 	uint32_t d_size;
 
@@ -307,7 +317,7 @@ struct cmd_rockusb_interface {
 	/* Download status, < 0 when error, > 0 when complete */
 	uint32_t d_status;
 
-    	/* Upload size, if download has to be done */
+	/* Upload size, if download has to be done */
 	uint32_t u_size;
 
 	/* Data uploaded so far */
@@ -316,24 +326,29 @@ struct cmd_rockusb_interface {
 	uint32_t lba;
 	uint32_t cmnd;
 	uint32_t imgwr_mode;
-	
 	uint16_t data_size;
 	uint32_t data_size_from_cmnd;
 	uint32_t tag;
 	uint32_t residue;
 	uint32_t usb_amount_left;
-
+	uint32_t transfer_size;
+	int 	 transfer_status;
+	uint32_t receive_size;
+	int 	 receive_status;
 	uint32_t reset_flag;
-
+	struct giveback_data rx_giveback;
+	struct giveback_data tx_giveback;
 	struct bulk_cs_wrap csw __attribute__((aligned(ARCH_DMA_MINALIGN)));
 	struct fsg_bulk_cb_wrap cbw __attribute__((aligned(ARCH_DMA_MINALIGN)));
 	struct cmd_rockusb_preread pre_read __attribute__((aligned(ARCH_DMA_MINALIGN)));
 };
 
 /* Declare functions */
-//extern uint32_t SecureBootLock;
 extern void FW_SorageLowFormatEn(int en);
 
+#ifdef CONFIG_RK_UDC
+static void rkusb_init_endpoints(void);
+#endif
 int do_rockusb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 
 #endif /* ROCKUSB_H */

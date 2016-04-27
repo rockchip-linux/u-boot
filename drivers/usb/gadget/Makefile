@@ -30,6 +30,7 @@ else
 ifdef CONFIG_USB_DEVICE
 obj-y += core.o
 obj-y += ep0.o
+obj-$(CONFIG_RK_DWC3_UDC) += dwc3_ep0.o dwc3_rk_udc.o
 obj-$(CONFIG_DW_UDC) += designware_udc.o
 obj-$(CONFIG_RK_UDC) += dwc_otg_udc.o
 obj-$(CONFIG_MPC885_FAMILY) += mpc8xx_udc.o

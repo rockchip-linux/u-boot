@@ -160,6 +160,8 @@ typedef enum SPI_ch {
 
 	/* usb otg */
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG_PHYS
+	/* usb3 */
+	#define RKIO_USB3_BASE		RKIO_USB3_PHYS
 
 	/* timer */
 	#define RKIO_TIMER_BASE		RKIO_TIMER_6CH_PHYS
@@ -233,6 +235,8 @@ typedef enum SPI_ch {
 
 	/* usb otg */
 	#define RKIO_USBOTG_BASE	RKIO_USBOTG0_PHYS
+	/*usb3*/
+	#define RKIO_USB3_BASE		RKIO_USBOTG0_PHYS
 
 	/* timer */
 	#define RKIO_TIMER_BASE		RKIO_TIMER0_6CH_PHYS

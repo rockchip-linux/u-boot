@@ -78,4 +78,9 @@
 #define SGRF_SOC_CON21		0x8054
 #define SGRF_SOC_CON22		0x8058
 
+/* usb3 otg control */
+#define GRF_USB3OTG0_CON0	0x2430
+#define GRF_SIG_DETECT_CLR	0xe3d0
+#define GRF_SIG_DETECT_STATUS	0xe3e0
+
 #endif /* __RK3399_GRF_H */

@@ -55,7 +55,7 @@ void *kmem_cache_alloc(struct kmem_cache *obj, int flag);
 #define add_wait_queue(...)	do { } while (0)
 #define remove_wait_queue(...)	do { } while (0)
 
-#define KERNEL_VERSION(a,b,c)	(((a) << 16) + ((b) << 8) + (c))
+#define KERNEL_VERSION(a, b, c)	(((a) << 16) + ((b) << 8) + (c))
 
 /*
  * ..and if you can't take the strict
@@ -63,23 +63,25 @@ void *kmem_cache_alloc(struct kmem_cache *obj, int flag);
  *
  * Or not use min/max at all, of course.
  */
-#define min_t(type,x,y) \
-	({ type __x = (x); type __y = (y); __x < __y ? __x: __y; })
-#define max_t(type,x,y) \
-	({ type __x = (x); type __y = (y); __x > __y ? __x: __y; })
+#define min_t(type, x, y) \
+	({ type __x = (x); type __y = (y); __x < __y ? __x : __y; })
+#define max_t(type, x, y) \
+	({ type __x = (x); type __y = (y); __x > __y ? __x : __y; })
 
 #ifndef BUG
 #define BUG() do { \
 	printf("U-Boot BUG at %s:%d!\n", __FILE__, __LINE__); \
 } while (0)
 
-#define BUG_ON(condition) do { if (condition) BUG(); } while(0)
+#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
 #endif /* BUG */
 
 #define WARN_ON(x) if (x) {printf("WARNING in %s line %d\n" \
 				  , __FILE__, __LINE__); }
 
 #define PAGE_SIZE	4096
+
+#define IS_ALIGNED(x, a)		(((x) & ((typeof(x))(a) - 1)) == 0)
 
 /**
  * upper_32_bits - return MSB bits 32-63 of a number if little endian, or
@@ -128,7 +130,7 @@ static inline void led_trigger_event(struct led_trigger *trigger,
 /* include/linux/log2.h */
 static inline int is_power_of_2(unsigned long n)
 {
-	return (n != 0 && ((n & (n - 1)) == 0));
+	return n != 0 && ((n & (n - 1)) == 0);
 }
 
 /* uapi/linux/limits.h */
@@ -385,6 +387,8 @@ typedef unsigned long dmaaddr_t;
 
 #define IRQ_NONE 0
 #define IRQ_HANDLED 1
+#define IRQ_WAKE_THREAD 2
+
 
 #define dev_set_drvdata(dev, data) do {} while (0)
 

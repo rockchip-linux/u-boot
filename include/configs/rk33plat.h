@@ -120,11 +120,11 @@
 	#undef CONFIG_PM_SUBSYSTEM
 #endif
 
+
 #if defined(CONFIG_RKCHIP_RK3399)
 	#define CONFIG_SECUREBOOT_SHA256
 	#define CONFIG_RKTIMER_INCREMENTER
 	#define CONFIG_RK_SDHCI_BOOT_EN
-
 	#undef CONFIG_RK_MCU
 	#undef CONFIG_PERILP_MCU
 	#undef CONFIG_PMU_MCU
@@ -136,12 +136,13 @@
 	#undef CONFIG_RK_SDCARD_BOOT_EN
 	#undef CONFIG_RK_FLASH_BOOT_EN
 	#undef CONFIG_RK_UMS_BOOT_EN
-	#undef CONFIG_CMD_ROCKUSB
-	#undef CONFIG_CMD_FASTBOOT
-	#undef CONFIG_USB_DEVICE
-	#undef CONFIG_RK_UDC
 	#undef CONFIG_LCD
 	#undef CONFIG_PM_SUBSYSTEM
+	#undef CONFIG_CMD_FASTBOOT
+	#if (defined(CONFIG_CMD_ROCKUSB) || defined(CONFIG_CMD_FASTBOOT))
+		#undef CONFIG_RK_UDC
+		#define CONFIG_RK_DWC3_UDC
+	#endif
 #endif
 
 /* fpga board configure */
@@ -208,6 +209,10 @@
 #define CONFIG_RK_MMC_DMA
 #define CONFIG_RK_MMC_IDMAC	/* internal dmac */
 #undef CONFIG_RK_MMC_DDR_MODE	/* mmc using ddr mode */
+#if (defined(CONFIG_CMD_ROCKUSB) || defined(CONFIG_CMD_FASTBOOT))
+	#define CONFIG_USBD_MANUFACTURER	"Rockchip"
+	#define CONFIG_USBD_PRODUCT_NAME	"rk30xx"
+#endif
 
 /* more config for rockusb */
 #ifdef CONFIG_CMD_ROCKUSB
@@ -221,6 +226,8 @@
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x330A
 #elif defined(CONFIG_RKCHIP_RK3366)
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x330B
+#elif defined(CONFIG_RKCHIP_RK3399)
+	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x330C
 #else
 	#error "PLS config rk chip for rockusb PID!"
 #endif
@@ -232,8 +239,7 @@
 #ifdef CONFIG_CMD_FASTBOOT
 
 #define CONFIG_USBD_PRODUCTID_FASTBOOT	0x0006
-#define CONFIG_USBD_MANUFACTURER	"Rockchip"
-#define CONFIG_USBD_PRODUCT_NAME	"rk30xx"
+
 
 #define FASTBOOT_PRODUCT_NAME		"fastboot" /* Fastboot product name */
 
@@ -241,6 +247,11 @@
 #define CONFIG_FASTBOOT_LOG_SIZE	(SZ_2M)
 
 #endif /* CONFIG_CMD_FASTBOOT */
+
+#ifdef CONFIG_RK_DWC3_UDC
+	#define CONFIG_USB_DWC3
+	#define CONFIG_USB_DWC3_GADGET
+#endif
 
 
 #ifdef CONFIG_RK_UMS_BOOT_EN

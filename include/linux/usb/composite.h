@@ -26,6 +26,16 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 #include <usb/lin_gadget_compat.h>
+/*
+ * USB function drivers should return USB_GADGET_DELAYED_STATUS if they
+ * wish to delay the data/status stages of the control transfer till they
+ * are ready. The control transfer will then be kept from completing till
+ * all the function drivers that requested for USB_GADGET_DELAYED_STAUS
+ * invoke usb_composite_setup_continue().
+ */
+#define	USB_GADGET_DELAYED_STATUS	0x7fff /* Impossibly large value */
+
+
 
 struct usb_configuration;
 
@@ -319,7 +329,7 @@ struct usb_composite_dev {
 	/* private: */
 	/* internals */
 	unsigned int			suspended:1;
-	struct usb_device_descriptor __aligned(CONFIG_SYS_CACHELINE_SIZE) desc;
+	struct usb_device_descriptor __aligned(ARCH_DMA_MINALIGN) desc;
 	struct list_head		configs;
 	struct usb_composite_driver	*driver;
 	u8				next_string_id;

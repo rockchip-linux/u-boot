@@ -19,6 +19,7 @@
 #define __LINUX_USB_GADGET_H
 
 #include <errno.h>
+#include <common.h>
 #include <linux/compat.h>
 #include <linux/list.h>
 
@@ -85,6 +86,7 @@ struct usb_request {
 	unsigned		length;
 	dma_addr_t		dma;
 
+	unsigned		stream_id:16;
 	unsigned		no_interrupt:1;
 	unsigned		zero:1;
 	unsigned		short_not_ok:1;
@@ -121,6 +123,7 @@ struct usb_ep_ops {
 	int (*dequeue) (struct usb_ep *ep, struct usb_request *req);
 
 	int (*set_halt) (struct usb_ep *ep, int value);
+	int (*set_wedge)(struct usb_ep *ep);
 	int (*fifo_status) (struct usb_ep *ep);
 	void (*fifo_flush) (struct usb_ep *ep);
 };
@@ -146,9 +149,29 @@ struct usb_ep {
 	const struct usb_ep_ops	*ops;
 	struct list_head	ep_list;
 	unsigned		maxpacket:16;
+	unsigned		maxpacket_limit:16;
+	unsigned		max_streams:16;
+	unsigned		maxburst:5;
+	const struct usb_endpoint_descriptor	*desc;
+	const struct usb_ss_ep_comp_descriptor	*comp_desc;
 };
 
 /*-------------------------------------------------------------------------*/
+
+/**
+ * usb_ep_set_maxpacket_limit - set maximum packet size limit for endpoint
+ * @ep:the endpoint being configured
+ * @maxpacket_limit:value of maximum packet size limit
+ *
+ * This function shoud be used only in UDC drivers to initialize endpoint
+ * (usually in probe function).
+ */
+static inline void usb_ep_set_maxpacket_limit(struct usb_ep *ep,
+					      unsigned maxpacket_limit)
+{
+	ep->maxpacket_limit = maxpacket_limit;
+	ep->maxpacket = maxpacket_limit;
+}
 
 /**
  * usb_ep_enable - configure endpoint, making it usable
@@ -396,6 +419,7 @@ static inline void usb_ep_fifo_flush(struct usb_ep *ep)
 /*-------------------------------------------------------------------------*/
 
 struct usb_gadget;
+struct usb_gadget_driver;
 
 /* the rest of the api to the controller hardware: device operations,
  * which don't involve endpoints (or i/o).
@@ -409,6 +433,9 @@ struct usb_gadget_ops {
 	int	(*pullup) (struct usb_gadget *, int is_on);
 	int	(*ioctl)(struct usb_gadget *,
 				unsigned code, unsigned long param);
+	int	(*udc_start)(struct usb_gadget *,
+			     struct usb_gadget_driver *);
+	int	(*udc_stop)(struct usb_gadget *);
 };
 
 /**
@@ -459,6 +486,8 @@ struct usb_gadget {
 	struct usb_ep			*ep0;
 	struct list_head		ep_list;	/* of usb_ep */
 	enum usb_device_speed		speed;
+	enum usb_device_speed		max_speed;
+	enum usb_device_state		state;
 	unsigned			is_dualspeed:1;
 	unsigned			is_otg:1;
 	unsigned			is_a_peripheral:1;
@@ -467,6 +496,7 @@ struct usb_gadget {
 	unsigned			a_alt_hnp_support:1;
 	const char			*name;
 	struct device			dev;
+	unsigned			quirk_ep_out_aligned_size:1;
 };
 
 static inline void set_gadget_data(struct usb_gadget *gadget, void *data)
@@ -753,6 +783,7 @@ static inline int usb_gadget_disconnect(struct usb_gadget *gadget)
  * power is maintained.
  */
 struct usb_gadget_driver {
+	char			*function;
 	enum usb_device_speed	speed;
 	int			(*bind)(struct usb_gadget *);
 	void			(*unbind)(struct usb_gadget *);
@@ -761,6 +792,7 @@ struct usb_gadget_driver {
 	void			(*disconnect)(struct usb_gadget *);
 	void			(*suspend)(struct usb_gadget *);
 	void			(*resume)(struct usb_gadget *);
+	void			(*reset)(struct usb_gadget *);
 };
 
 
@@ -801,6 +833,10 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver);
  */
 int usb_gadget_unregister_driver(struct usb_gadget_driver *driver);
 
+int usb_add_gadget_udc_release(struct device *parent,
+		struct usb_gadget *gadget, void (*release)(struct device *dev));
+int usb_add_gadget_udc(struct device *parent, struct usb_gadget *gadget);
+void usb_del_gadget_udc(struct usb_gadget *gadget);
 /*-------------------------------------------------------------------------*/
 
 /* utility to simplify dealing with string descriptors */
@@ -847,6 +883,35 @@ int usb_gadget_config_buf(const struct usb_config_descriptor *config,
 	void *buf, unsigned buflen, const struct usb_descriptor_header **desc);
 
 /*-------------------------------------------------------------------------*/
+/* utility to simplify map/unmap of usb_requests to/from DMA */
+
+extern int usb_gadget_map_request(struct usb_gadget *gadget,
+				  struct usb_request *req, int is_in);
+
+extern void usb_gadget_unmap_request(struct usb_gadget *gadget,
+				     struct usb_request *req, int is_in);
+
+/*-------------------------------------------------------------------------*/
+
+/* utility to set gadget state properly */
+
+extern void usb_gadget_set_state(struct usb_gadget *gadget,
+				 enum usb_device_state state);
+
+/*-------------------------------------------------------------------------*/
+
+/* utility to tell udc core that the bus reset occurs */
+extern void usb_gadget_udc_reset(struct usb_gadget *gadget,
+				 struct usb_gadget_driver *driver);
+
+/*-------------------------------------------------------------------------*/
+
+/* utility to give requests back to the gadget layer */
+
+extern void usb_gadget_giveback_request(struct usb_ep *ep,
+					struct usb_request *req);
+
+/*-------------------------------------------------------------------------*/
 
 /* utility wrapping a simple endpoint selection policy */
 
@@ -855,6 +920,6 @@ extern struct usb_ep *usb_ep_autoconfig(struct usb_gadget *,
 
 extern void usb_ep_autoconfig_reset(struct usb_gadget *);
 
-extern int usb_gadget_handle_interrupts(void);
+extern int usb_gadget_handle_interrupts(int index);
 
 #endif	/* __LINUX_USB_GADGET_H */

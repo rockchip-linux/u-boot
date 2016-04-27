@@ -34,9 +34,14 @@ struct g_dnl_bind_callback {
 };
 
 int g_dnl_bind_fixup(struct usb_device_descriptor *, const char *);
+int g_dnl_get_board_bcd_device_number(int gcnum);
 int g_dnl_board_usb_cable_connected(void);
 int g_dnl_register(const char *s);
 void g_dnl_unregister(void);
 void g_dnl_set_serialnumber(char *);
+
+bool g_dnl_detach(void);
+void g_dnl_trigger_detach(void);
+void g_dnl_clear_detach(void);
 
 #endif /* __G_DOWNLOAD_H_ */
