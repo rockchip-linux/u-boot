@@ -330,6 +330,8 @@ void shut_down(void)
 #if defined(CONFIG_POWER_RK818)
 		case PMIC_ID_RK818:
 			pmic_rk818_shut_down();
+			break;
+		case PMIC_ID_RK816:
 			pmic_rk816_shut_down();
 			break;
 #endif

@@ -344,3 +344,26 @@ void pmic_rk816_shut_down(void)
 		      (reg | (0x1 << 0)));
 }
 
+int pmic_rk816_poll_pwrkey_stat(void)
+{
+	u8 buf;
+
+	i2c_set_bus_num(rk816.pmic->bus);
+	i2c_init(RK816_I2C_SPEED, rk816.pmic->hw.i2c.addr);
+	i2c_set_bus_speed(RK816_I2C_SPEED);
+
+	buf = i2c_reg_read(rk816.pmic->hw.i2c.addr, RK816_INT_STS_REG1);
+	/* rising, clear falling */
+	if (buf & (1 << 6))
+		i2c_reg_write(rk816.pmic->hw.i2c.addr,
+			      RK816_INT_STS_REG1, (1 << 5));
+	/* falling, clear rising */
+	if (buf & (1 << 5))
+		i2c_reg_write(rk816.pmic->hw.i2c.addr,
+			      RK816_INT_STS_REG1, (1 << 6));
+
+	buf = i2c_reg_read(rk816.pmic->hw.i2c.addr, RK816_INT_STS_REG1);
+
+	return (buf & (1 << 5));
+}
+

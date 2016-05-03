@@ -59,6 +59,7 @@ int fg_rt5025_init(unsigned char bus, uchar addr);
 int fg_rt5036_init(unsigned char bus, uchar addr);
 
 int ricoh619_poll_pwr_key_sta(void);
+int pmic_rk816_poll_pwrkey_stat(void);
 
 struct regulator_init_reg_name {
 	const char *name;

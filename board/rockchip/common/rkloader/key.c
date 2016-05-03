@@ -237,9 +237,11 @@ int RemotectlDeInit(void)
 
 int rkkey_power_state(void)
 {
-#if defined(CONFIG_RK_POWER) && defined(CONFIG_POWER_RICOH619)
+#if defined(CONFIG_RK_POWER) && defined(CONFIG_POWER_RICOH619) && defined(CONFIG_POWER_RK818)
 	if (get_rockchip_pmic_id() == PMIC_ID_RICOH619)
 		return ricoh619_poll_pwr_key_sta();
+	else if (get_rockchip_pmic_id() == PMIC_ID_RK816)
+		return pmic_rk816_poll_pwrkey_stat();
 	else
 #endif
 		return GetPortState(&key_power);
