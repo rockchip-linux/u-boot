@@ -40,9 +40,9 @@ static void mmu_setup(void)
 		ulong start = bd->bi_dram[i].start;
 		ulong end = bd->bi_dram[i].start + bd->bi_dram[i].size;
 #ifdef CONFIG_ROCKCHIP
-		if (end < SECTION_SIZE) {
-			end = SECTION_SIZE;
-		}
+		debug("start = 0x%08lx, end = 0x%08lx\n", start, end);
+		end = ((end + SECTION_SIZE - 1) / SECTION_SIZE) * SECTION_SIZE;
+		debug("start = 0x%08lx, end = 0x%08lx\n", start, end);
 #endif /* CONFIG_ROCKCHIP */
 		for (j = start >> SECTION_SHIFT;
 		     j < end >> SECTION_SHIFT; j++) {
