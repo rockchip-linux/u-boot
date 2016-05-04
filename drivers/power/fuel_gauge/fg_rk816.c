@@ -24,6 +24,8 @@ static int dbg_enable;
 		} \
 	} while (0)
 
+#define BAT_INFO(fmt, args...) printf("rk816-bat: "fmt, ##args)
+
 /* THERMAL_REG */
 #define TEMP_105C		(0x02 << 2)
 #define TEMP_115C		(0x03 << 2)
@@ -47,6 +49,8 @@ static int dbg_enable;
 
 /* GGSTS */
 #define BAT_CON			(1 << 4)
+#define VOL_INSTANT		(1 << 0)
+#define VOL_AVG			(0 << 0)
 
 /* TS_CTRL_REG */
 #define GG_EN			(1 << 7)
@@ -123,6 +127,7 @@ struct battery_info {
 	int		dc_type;
 	int		dc_det_adc;
 	ulong		finish_base;
+	ulong		vol_mode_base;
 	u8		calc_dsoc;
 	u8		calc_rsoc;
 	int		meet_soc;
@@ -243,15 +248,32 @@ static int rk816_bat_get_dsoc(struct  battery_info *di)
 	return rk816_bat_read(RK816_SOC_REG);
 }
 
-static int rk816_bat_enable_gauge(struct battery_info *di)
+static void rk816_bat_set_vol_instant_mode(struct battery_info *di)
+{
+	u8 val;
+
+	val = rk816_bat_read(RK816_GGSTS);
+	val |= VOL_INSTANT;
+	rk816_bat_write(RK816_GGSTS, val);
+}
+
+static void rk816_bat_set_vol_avg_mode(struct battery_info *di)
+{
+	u8 val;
+
+	val = rk816_bat_read(RK816_GGSTS);
+	val &= ~0x01;
+	val |= VOL_AVG;
+	rk816_bat_write(RK816_GGSTS, val);
+}
+
+static void rk816_bat_enable_gauge(struct battery_info *di)
 {
 	u8 val;
 
 	val = rk816_bat_read(RK816_TS_CTRL_REG);
 	val |= GG_EN;
 	rk816_bat_write(RK816_TS_CTRL_REG, val);
-
-	return 0;
 }
 
 static int rk816_bat_get_vcalib0(struct battery_info *di)
@@ -334,13 +356,13 @@ static int rk816_bat_get_avg_voltage(struct battery_info *di)
 
 static int rk816_bat_get_est_voltage(struct battery_info *di)
 {
-	int vol, curr;
+	int est_vol, vol, curr;
 
 	vol = rk816_bat_get_avg_voltage(di);
 	curr = rk816_bat_get_avg_current(di);
-	vol = vol - (di->bat_res * curr / 1000);
+	est_vol = vol - (di->bat_res * curr / 1000);
 
-	return vol;
+	return (est_vol > 2800) ? est_vol : vol;
 }
 
 static u8 rk816_bat_finish_ma(int fcc)
@@ -614,7 +636,7 @@ static void rk816_bat_first_pwron(struct battery_info *di)
 	rk816_bat_init_capacity(di, di->nac);
 	di->rsoc = rk816_bat_get_rsoc(di);
 
-	printf("FirstPowerOn: soc=%d\n", di->dsoc);
+	BAT_INFO("first power on: soc=%d\n", di->dsoc);
 }
 
 static bool is_rk816_bat_ocv_valid(struct battery_info *di)
@@ -622,17 +644,44 @@ static bool is_rk816_bat_ocv_valid(struct battery_info *di)
 	return rk816_bat_get_pwroff_min(di) >= 30 ? true : false;
 }
 
+static int rk816_bat_get_usb_state(struct battery_info *di)
+{
+	int charger_type;
+
+	switch (dwc_otg_check_dpdm()) {
+	case 0:
+		charger_type = NO_CHARGER;
+		break;
+	case 1:
+	case 3:
+		charger_type = USB_CHARGER;
+		break;
+	case 2:
+		charger_type = AC_CHARGER;
+		break;
+	default:
+		charger_type = NO_CHARGER;
+	}
+
+	return charger_type;
+}
+
 static void rk816_bat_set_initialized_state(struct battery_info *di)
 {
 	u8 val;
+	int vol, charger;
 
 	val = rk816_bat_read(RK816_MISC_MARK_REG);
 	val &= ~0x08;
 	rk816_bat_write(RK816_MISC_MARK_REG, val);
+	vol = rk816_bat_get_est_voltage(di);
+	charger = rk816_bat_get_usb_state(di);
 #ifdef CONFIG_UBOOT_CHARGE
-	if (rk816_bat_get_est_voltage(di) < CONFIG_SYSTEM_ON_VOL_THRESD) {
+	if ((vol < CONFIG_SYSTEM_ON_VOL_THRESD) || (charger != NO_CHARGER)) {
 		val |= 0x08;
 		rk816_bat_write(RK816_MISC_MARK_REG, val);
+		BAT_INFO("rk816 fuel gauge initialized... estv=%d, ch=%d\n",
+			 vol, charger);
 	}
 #endif
 }
@@ -652,7 +701,8 @@ static void rk816_bat_not_first_pwron(struct battery_info *di)
 		ocv_cap = rk816_bat_vol_to_cap(di, ocv_vol);
 		prev_cap = ocv_cap;
 		if (abs(ocv_soc - init_soc) >= di->max_soc_offset) {
-			printf("soc: %d --> %d\n", init_soc, ocv_soc);
+			BAT_INFO("trigger max soc offset, soc: %d -> %d\n",
+				 init_soc, ocv_soc);
 			init_soc = ocv_soc;
 		}
 	}
@@ -661,10 +711,12 @@ static void rk816_bat_not_first_pwron(struct battery_info *di)
 	di->nac = prev_cap;
 	rk816_bat_init_capacity(di, di->nac);
 	rk816_bat_set_initialized_state(di);
-	printf("dsoc=%d rsoc=%d cap=%d min=%d v=%d ov=%d\n",
-	       di->dsoc, di->rsoc, di->remain_cap, di->pwroff_min,
-	       rk816_bat_get_avg_voltage(di), rk816_bat_get_ocv_voltage(di)
-	       );
+	BAT_INFO("dl=%d rl=%d cap=%d m=%d v=%d ov=%d c=%d pl=%d ch=%d\n",
+		 di->dsoc, di->rsoc, di->remain_cap, di->pwroff_min,
+		 rk816_bat_get_avg_voltage(di), rk816_bat_get_ocv_voltage(di),
+		 rk816_bat_get_avg_current(di), rk816_bat_get_dsoc(di),
+		 rk816_bat_get_usb_state(di)
+		 );
 }
 
 static bool is_rk816_bat_first_poweron(struct battery_info *di)
@@ -758,6 +810,7 @@ static void rk816_bat_init_poffset(struct battery_info *di)
 static void rk816_bat_fg_init(struct battery_info *di)
 {
 	rk816_bat_enable_gauge(di);
+	rk816_bat_set_vol_instant_mode(di);
 	rk816_bat_init_voltage_kb(di);
 	rk816_bat_init_poffset(di);
 	rk816_bat_init_rsoc(di);
@@ -768,6 +821,7 @@ static void rk816_bat_fg_init(struct battery_info *di)
 	di->current_avg = rk816_bat_get_avg_current(di);
 	di->linek = rk816_bat_calc_linek(di);
 	di->finish_base = get_timer(0);
+	di->vol_mode_base = get_timer(0);
 	di->init_dsoc = di->dsoc;
 }
 
@@ -803,28 +857,6 @@ static void rk816_bat_charger_setting(struct battery_info *di, int charger)
 
 		old_charger = charger;
 	}
-}
-
-static int rk816_bat_get_usb_state(struct battery_info *di)
-{
-	int charger_type;
-
-	switch (dwc_otg_check_dpdm()) {
-	case 0:
-		charger_type = NO_CHARGER;
-		break;
-	case 1:
-	case 3:
-		charger_type = USB_CHARGER;
-		break;
-	case 2:
-		charger_type = AC_CHARGER;
-		break;
-	default:
-		charger_type = NO_CHARGER;
-	}
-
-	return charger_type;
 }
 
 static int rk816_bat_get_dc_state(struct battery_info *di)
@@ -1053,6 +1085,11 @@ static void rk816_bat_linek_algorithm(struct battery_info *di)
 static void rk816_bat_smooth_charge(struct battery_info *di)
 {
 	u8 chg_st = rk816_bat_get_chrg_status(di);
+
+	if (di->vol_mode_base && get_timer(di->vol_mode_base) > SEC_PLUS * 10) {
+		rk816_bat_set_vol_avg_mode(di);
+		di->vol_mode_base = 0;
+	}
 
 	if (di->state_of_chrg == NO_CHARGER)
 		goto out;
