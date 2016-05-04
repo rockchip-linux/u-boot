@@ -701,15 +701,12 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			LOGD("key pressed state:%d", key_state);
 		}
 		if (key_state == KEY_SHORT_PRESSED) {
-
-#ifdef CONFIG_CHARGE_DEEP_SLEEP
-
-	        if(batt_status.capacity>BRIGHT_MAXLOW_BATTERY_CAPACITY)
-				brightness = IS_BRIGHT(brightness)? SCREEN_OFF : SCREEN_BRIGHT;
+			if (batt_status.capacity > BRIGHT_MAXLOW_BATTERY_CAPACITY)
+				brightness = IS_BRIGHT(brightness) ?
+						SCREEN_OFF : SCREEN_BRIGHT;
 			else
-				brightness = IS_BRIGHT(brightness)? SCREEN_OFF:  SCREEN_DIM;
-
-#endif
+				brightness = IS_BRIGHT(brightness) ?
+						SCREEN_OFF : SCREEN_DIM;
 		} else if(key_state == KEY_LONG_PRESSED){
 			//long pressed key, continue bootting.
 			if (handle_exit_charge() < 0) {
