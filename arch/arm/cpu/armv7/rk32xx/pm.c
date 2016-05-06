@@ -19,6 +19,9 @@ DECLARE_GLOBAL_DATA_PTR;
 extern struct fdt_gpio_state *rkkey_get_powerkey(void);
 #endif
 
+extern void rkkey_set_wfi_pwrkey_state(int pressed);
+extern int rkkey_get_wfi_pwrkey_state(void);
+extern int rkkey_power_state(void);
 
 /*
  * rkpm wakeup gpio init
@@ -81,8 +84,19 @@ void rk_pm_enter(v_pm_cb_f module_pm_conf)
 	rkclk_pll_mode(GPLL_ID, RKCLK_PLL_MODE_SLOW);
 	rkclk_pll_mode(APLL_ID, RKCLK_PLL_MODE_SLOW);
 
-	/* cpu enter wfi mode */
-	wfi();
+	/* not pressed before, so wfi */
+	if (!rkkey_get_wfi_pwrkey_state()) {
+		wfi();
+		/* mark pressed state to notifier framework */
+		rkkey_set_wfi_pwrkey_state(rkkey_power_state());
+
+	/*
+	 * if pressed before, not wfi and release key which
+	 * allow framework to report a short key pressed event
+	 */
+	} else {
+		rkkey_set_wfi_pwrkey_state(0);
+	}
 
 	/* pll enter nornal mode */
 	rkclk_pll_mode(APLL_ID, RKCLK_PLL_MODE_NORMAL);
