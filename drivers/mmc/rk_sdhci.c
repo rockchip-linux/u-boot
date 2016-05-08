@@ -26,6 +26,7 @@ int rk_sdhci_init(u32 regbase, u32 emmc_freq)
 	host->name = "rk_sdhci";
 	host->ioaddr = (void *)(unsigned long)regbase;
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
+	host->quirks = SDHCI_QUIRK_WAIT_SEND_CMD;
 
 	add_sdhci(host, emmc_freq, EMMC_MIN_FREQ);
 
