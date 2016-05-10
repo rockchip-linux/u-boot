@@ -9,7 +9,7 @@
 
 
 /* rk io map base start */
-#define RKIO_IOMEMORYMAP_START          0xFF000000
+#define RKIO_IOMEMORYMAP_START          0xFE000000
 
 
 /*
