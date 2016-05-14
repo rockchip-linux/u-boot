@@ -552,12 +552,12 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	rk_commandline_setenv(boot_source, hdr, charge);
 
-	rk_module_deinit();
-
 	/* Secure boot state will set drm, sn and others information in the nanc ram,
 	 * so, after set, PLS notice do not read/write nand flash.
 	 */
 	SecureBootSecureState2Kernel(SecureBootCheckOK);
+
+	rk_module_deinit();
 
 	/* after here, make sure no read/write storate */
 	bootimg_print_image_hdr(hdr);
