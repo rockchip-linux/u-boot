@@ -94,99 +94,82 @@
 */
 /**********************************************************************/
 
-#define CHRG_COMP_REG1			0x99
-#define CHRG_COMP_REG2			0x9A
-#define SUP_STS_REG			0xA0
-#define USB_CTRL_REG			0xA1
-#define CHRG_CTRL_REG1			0xA3
-#define CHRG_CTRL_REG2			0xA4
-#define CHRG_CTRL_REG3			0xA5
-#define BAT_CTRL_REG			0xA6
-#define BAT_HTS_TS1_REG			0xA8
-#define BAT_LTS_TS1_REG			0xA9
-#define BAT_HTS_TS2_REG			0xAA
-#define BAT_LTS_TS2_REG			0xAB
-
-
-#define TS_CTRL_REG			0xAC
-#define ADC_CTRL_REG			0xAD
-
-#define ON_SOURCE			0xAE
-#define OFF_SOURCE			0xAF
-
-#define GGCON				0xB0
-#define GGSTS				0xB1
-#define FRAME_SMP_INTERV_REG		0xB2
-#define AUTO_SLP_CUR_THR_REG		0xB3
-
-#define GASCNT_CAL_REG3			0xB4
-#define GASCNT_CAL_REG2			0xB5
-#define GASCNT_CAL_REG1			0xB6
-#define GASCNT_CAL_REG0			0xB7
-#define GASCNT3				0xB8
-#define GASCNT2				0xB9
-#define GASCNT1				0xBA
-#define GASCNT0				0xBB
-
-#define BAT_CUR_AVG_REGH		0xBC
-#define BAT_CUR_AVG_REGL		0xBD
-
-#define TS1_ADC_REGH			0xBE
-#define TS1_ADC_REGL			0xBF
-#define TS2_ADC_REGH			0xC0
-#define TS2_ADC_REGL			0xC1
-
-#define BAT_OCV_REGH			0xC2
-#define BAT_OCV_REGL			0xC3
-#define BAT_VOL_REGH			0xC4
-#define BAT_VOL_REGL			0xC5
-
-#define RELAX_ENTRY_THRES_REGH		0xC6
-#define RELAX_ENTRY_THRES_REGL		0xC7
-#define RELAX_EXIT_THRES_REGH		0xC8
-#define RELAX_EXIT_THRES_REGL		0xC9
-
-#define RELAX_VOL1_REGH			0xCA
-#define RELAX_VOL1_REGL			0xCB
-#define RELAX_VOL2_REGH			0xCC
-#define RELAX_VOL2_REGL			0xCD
-
-#define BAT_CUR_R_CALC_REGH		0xCE
-#define BAT_CUR_R_CALC_REGL		0xCF
-#define BAT_VOL_R_CALC_REGH		0xD0
-#define BAT_VOL_R_CALC_REGL		0xD1
-
-#define CAL_OFFSET_REGH			0xD2
-#define CAL_OFFSET_REGL			0xD3
-
-#define NON_ACT_TIMER_CNT_REG		0xD4
-
-#define VCALIB0_REGH			0xD5
-#define VCALIB0_REGL			0xD6
-#define VCALIB1_REGH			0xD7
-#define VCALIB1_REGL			0xD8
-
-#define IOFFSET_REGH			0xDD
-#define IOFFSET_REGL			0xDE
+#define RK818_CHRG_COMP_REG1			0x99
+#define RK818_CHRG_COMP_REG2			0x9A
+#define RK818_SUP_STS_REG			0xA0
+#define RK818_USB_CTRL_REG			0xA1
+#define RK818_CHRG_CTRL_REG1			0xA3
+#define RK818_CHRG_CTRL_REG2			0xA4
+#define RK818_CHRG_CTRL_REG3			0xA5
+#define RK818_BAT_CTRL_REG			0xA6
+#define RK818_BAT_HTS_TS1_REG			0xA8
+#define RK818_BAT_LTS_TS1_REG			0xA9
+#define RK818_BAT_HTS_TS2_REG			0xAA
+#define RK818_BAT_LTS_TS2_REG			0xAB
+#define RK818_TS_CTRL_REG			0xAC
+#define RK818_ADC_CTRL_REG			0xAD
+#define RK818_ON_SOURCE_REG			0xAE
+#define RK818_OFF_SOURCE_REG			0xAF
+#define RK818_GGCON_REG				0xB0
+#define RK818_GGSTS_REG				0xB1
+#define RK818_FRAME_SMP_INTERV_REG		0xB2
+#define RK818_AUTO_SLP_CUR_THR_REG		0xB3
+#define RK818_GASCNT_CAL_REG3			0xB4
+#define RK818_GASCNT_CAL_REG2			0xB5
+#define RK818_GASCNT_CAL_REG1			0xB6
+#define RK818_GASCNT_CAL_REG0			0xB7
+#define RK818_GASCNT_REG3			0xB8
+#define RK818_GASCNT_REG2			0xB9
+#define RK818_GASCNT_REG1			0xBA
+#define RK818_GASCNT_REG0			0xBB
+#define RK818_BAT_CUR_AVG_REGH			0xBC
+#define RK818_BAT_CUR_AVG_REGL			0xBD
+#define RK818_TS1_ADC_REGH			0xBE
+#define RK818_TS1_ADC_REGL			0xBF
+#define RK818_TS2_ADC_REGH			0xC0
+#define RK818_TS2_ADC_REGL			0xC1
+#define RK818_BAT_OCV_REGH			0xC2
+#define RK818_BAT_OCV_REGL			0xC3
+#define RK818_BAT_VOL_REGH			0xC4
+#define RK818_BAT_VOL_REGL			0xC5
+#define RK818_RELAX_ENTRY_THRES_REGH		0xC6
+#define RK818_RELAX_ENTRY_THRES_REGL		0xC7
+#define RK818_RELAX_EXIT_THRES_REGH		0xC8
+#define RK818_RELAX_EXIT_THRES_REGL		0xC9
+#define RK818_RELAX_VOL1_REGH			0xCA
+#define RK818_RELAX_VOL1_REGL			0xCB
+#define RK818_RELAX_VOL2_REGH			0xCC
+#define RK818_RELAX_VOL2_REGL			0xCD
+#define RK818_BAT_CUR_R_CALC_REGH		0xCE
+#define RK818_BAT_CUR_R_CALC_REGL		0xCF
+#define RK818_BAT_VOL_R_CALC_REGH		0xD0
+#define RK818_BAT_VOL_R_CALC_REGL		0xD1
+#define RK818_CAL_OFFSET_REGH			0xD2
+#define RK818_CAL_OFFSET_REGL			0xD3
+#define RK818_NON_ACT_TIMER_CNT_REG		0xD4
+#define RK818_VCALIB0_REGH			0xD5
+#define RK818_VCALIB0_REGL			0xD6
+#define RK818_VCALIB1_REGH			0xD7
+#define RK818_VCALIB1_REGL			0xD8
+#define RK818_IOFFSET_REGH			0xDD
+#define RK818_IOFFSET_REGL			0xDE
 /*0xE0 ~0xF2  data register,*/
-#define SOC_REG				0xE0
-#define REMAIN_CAP_REG3			0xE1
-#define REMAIN_CAP_REG2			0xE2
-#define REMAIN_CAP_REG1			0xE3
-#define REMAIN_CAP_REG0			0xE4
-
-#define UPDAT_LEVE_REG			0xE5
-
-#define NEW_FCC_REG3			0xE6
-#define NEW_FCC_REG2			0xE7
-#define NEW_FCC_REG1			0xE8
-#define NEW_FCC_REG0			0xE9
-
-#define NON_ACT_TIMER_CNT_REG_SAVE 	0xEA
-#define CV_VOL_VALID_REG		0xEB
-#define REBOOT_CNT_REG			0xEC
-#define PCB_IOFFSET_REG			0xED
-#define MISC_MARK_REG			0xEE
+#define RK818_SOC_REG				0xE0
+#define RK818_REMAIN_CAP_REG3			0xE1
+#define RK818_REMAIN_CAP_REG2			0xE2
+#define RK818_REMAIN_CAP_REG1			0xE3
+#define RK818_REMAIN_CAP_REG0			0xE4
+#define RK818_UPDAT_LEVE_REG			0xE5
+#define RK818_NEW_FCC_REG3			0xE6
+#define RK818_NEW_FCC_REG2			0xE7
+#define RK818_NEW_FCC_REG1			0xE8
+#define RK818_NEW_FCC_REG0			0xE9
+#define RK818_NON_ACT_TIMER_CNT_SAVE_REG 	0xEA
+#define RK818_CV_VOL_VALID_REG			0xEB
+#define RK818_REBOOT_CNT_REG			0xEC
+#define RK818_POFFSET_REG			0xED
+#define RK818_MISC_MARK_REG			0xEE
+#define RK818_HALT_CNT_REG			0xEF
 
 struct pmic_rk818 {
 	struct pmic *pmic;
