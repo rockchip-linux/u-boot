@@ -164,7 +164,11 @@ static int pwm_regulator_parse_dt(const void *blob)
 	}
 
 	for (i = 0 ; i < pwm_count; i++) {
-		pwm_id[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_id", 0);
+		pwm_id[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_id", -1);
+		if (pwm_id[i] < 0) {
+			printf("Cannot find regulator pwm id\n");
+			continue;
+		}
 		pwm_nd[i] = fdt_get_regulator_node(blob, pwm_node[i]);
 		pwm_init_volt[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_voltage", 0);
 		pwm_coefficient[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_coefficient", 0);
@@ -185,7 +189,11 @@ static int pwm_regulator_parse_dt(const void *blob)
 pwm_regulator:
 	for (i = 0 ; i < pwm_count; i++) {
 		pwm_id[i] = fdtdec_get_int(blob, pwm_node[i],
-					   "rockchip,pwm_id", 0);
+					   "rockchip,pwm_id", -1);
+		if (pwm_id[i] < 0) {
+			printf("Cannot find regulator pwm id\n");
+			continue;
+		}
 		pwm_init_volt[i] = fdtdec_get_int(blob,
 						  pwm_node[i],
 						  "rockchip,pwm_voltage",
