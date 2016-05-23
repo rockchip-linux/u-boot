@@ -65,14 +65,25 @@ void rkusb_event_handler_for_dwc3(int nEvent)
 		break;
 	case 4:/* DEVICE_CLEAR_FEATURE */
 		usbcmd.status = RKUSB_STATUS_IDLE;
-		if (param & 0x1) {
+		/* in ep */
+		if (param == 0) {
 			usbcmd.txbuf_num = 0;
 			usbcmd.tx_giveback.status = SEND_FINISHED_OK;
 			usbcmd.tx_giveback.actual = 0;
 		}
-		if (param & 0x10) {
+		/* out ep */
+		if (param == 0x1) {
 			usbcmd.rxbuf_num = 0;
 			rkusb_read_bulk_ep(31);
+		}
+		/* in and out ep */
+		if (param == 0x10) {
+			usbcmd.txbuf_num = 0;
+			usbcmd.tx_giveback.status = SEND_FINISHED_OK;
+			usbcmd.tx_giveback.actual = 0;
+			
+			usbcmd.rxbuf_num = 0;
+			rkusb_read_bulk_ep(31);	
 		}
 	default:
 		break;

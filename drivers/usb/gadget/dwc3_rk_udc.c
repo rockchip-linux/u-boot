@@ -3137,18 +3137,21 @@ void rk_dwc3_startup(struct rk_dwc3_udc_instance *device)
 int rockusb_clear_feature(struct dwc3 *dwc, u32 wIndex)
 {
 	int ret = -1;
-	if (wIndex & 0x1) {/* in ep */
-		/* 1.set ep halt */
-		ret = dwc3_gadget_ep_set_halt(private_data.in_ep, 1);
-		/* 2.set ep disable */
+	if (wIndex==0) {/* in ep */
 		ret = dwc3_gadget_ep_disable(private_data.in_ep);
-		/* 3.clear tx fifo */
-		ret = dwc3_send_gadget_generic_command(dwc, DWC3_DGCMD_SELECTED_FIFO_FLUSH, 1 << 4);
-		/* 4.set ep enable */
+		ret = dwc3_send_gadget_generic_command(dwc, DWC3_DGCMD_SELECTED_FIFO_FLUSH, 1 << 5);
 		ret = dwc3_gadget_ep_enable(private_data.in_ep, global_rk_instance.endpoint_desc[1]);
 	}
-	if (wIndex & 0x10) {/* out ep */
-		ret = dwc3_gadget_ep_set_halt(private_data.out_ep, 1);
+	if (wIndex==0x1) {/* out ep */
+		ret = dwc3_gadget_ep_disable(private_data.out_ep);
+		ret = dwc3_send_gadget_generic_command(dwc, DWC3_DGCMD_SELECTED_FIFO_FLUSH, 0);
+		ret = dwc3_gadget_ep_enable(private_data.out_ep, global_rk_instance.endpoint_desc[0]);
+	}
+	if (wIndex==0x10) {/*  in and out ep */
+		ret = dwc3_gadget_ep_disable(private_data.in_ep);
+		ret = dwc3_send_gadget_generic_command(dwc, DWC3_DGCMD_SELECTED_FIFO_FLUSH, 1 << 5);
+		ret = dwc3_gadget_ep_enable(private_data.in_ep, global_rk_instance.endpoint_desc[1]);
+		
 		ret = dwc3_gadget_ep_disable(private_data.out_ep);
 		ret = dwc3_send_gadget_generic_command(dwc, DWC3_DGCMD_SELECTED_FIFO_FLUSH, 0);
 		ret = dwc3_gadget_ep_enable(private_data.out_ep, global_rk_instance.endpoint_desc[0]);
@@ -3209,9 +3212,8 @@ uint32_t GetVbus(void)
 
 void ClearVbus(void)
 {
-	uint32_t vbus ;
 #if defined(CONFIG_RKCHIP_RK3399)
-
+	uint32_t vbus ;
     vbus = grf_readl(GRF_SIG_DETECT_CLR);
 	vbus |= (1 << 3);
     grf_writel(vbus, GRF_SIG_DETECT_CLR);
