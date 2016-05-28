@@ -17,10 +17,6 @@ DECLARE_GLOBAL_DATA_PTR;
 struct regulator_init_reg_name regulator_init_pmic_matches[MAX_REGULATOR_NUM];
 
 #if defined(CONFIG_POWER_RK818)
-#define CONFIG_RK818_SCREEN_ON_VOL_THRESD	3000
-#define CONFIG_RK818_SYSTEM_ON_VOL_THRESD	3600
-#define CONFIG_RK818_SYSTEM_ON_CAPACITY_THRESD  5
-
 extern void pmic_rk818_power_init(void);
 extern void pmic_rk818_power_on(void);
 extern void pmic_rk818_power_off(void);
@@ -139,14 +135,7 @@ int is_power_low(void)
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
 		return 0;
-#if defined(CONFIG_POWER_RK818)
-	if (rockchip_pmic_id == PMIC_ID_RK818)
-		return ((battery.voltage_uV < CONFIG_RK818_SYSTEM_ON_VOL_THRESD) \
-			|| (battery.capacity < CONFIG_RK818_SYSTEM_ON_CAPACITY_THRESD)) ? 1 : 0;
-	else
-#endif
-		return (battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ? 1 : 0;
-
+	return (battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ? 1 : 0;
 }
 
 
