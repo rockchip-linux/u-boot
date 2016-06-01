@@ -69,6 +69,11 @@ void rk_iomux_config(int iomux_id)
 	case RK_HDMI_IOMUX:
 		rk_hdmi_iomux_config(iomux_id);
 		break;
+#ifdef CONFIG_RK_GMAC
+	case RK_GMAC_IOMUX:
+		rk_gmac_iomux_config(iomux_id);
+		break;
+#endif
 	default:
 		printf("RK have not this iomux id!\n");
 		break;

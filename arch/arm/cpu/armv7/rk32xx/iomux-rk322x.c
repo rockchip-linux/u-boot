@@ -161,6 +161,35 @@ static void rk_hdmi_iomux_config(int hdmi_id)
 	}
 }
 
+#ifdef CONFIG_RK_GMAC
+static void rk_gmac_iomux_config(int gmac_id)
+{
+	switch (gmac_id) {
+	case RK_GMAC_IOMUX:
+		/* txd0: gpio2c3, txd1: gpio2c2, txd2: gpio2c6, txd3: gpio2c7 */
+		/* rxd0: gpio2c1, rxd1: gpio2c0, rxd2: gpio2c5, rxd3: gpio2c4 */
+		/* mdc: gpio2d1, rxdv: gpio2b0, rxer:  gpio2b7, clk: gpio2b6 */
+		/* txen: gpio2b5, mdio: gpio2b4, rxclk:  gpio2b3, crs: gpio2b2 */
+		/* col: gpio2d0, txclk: gpio2b1 */
+
+		/* gmac txd0 - txd3/rxd0 - rxd3 */
+		grf_writel((0xFFFF << 16) | (0x5a55 << 0), GRF_GPIO2C_IOMUX);
+		/* gmac rxer/clk/txen/mdio/rxclk/crs/txclk/rxdv/mdc, col not set */
+		grf_writel((0xFFFF << 16) | (0x5555 << 0), GRF_GPIO2B_IOMUX);
+		grf_writel((0xC << 16) | (0x4 << 0), GRF_GPIO2D_IOMUX);
+
+		/* gmac gpio drive config here */
+		/* gmac txd0 - txd3 / txen / txclk drive set 12mA */
+		grf_writel((0xF0F0 << 16) | (0xF0F0 << 0), GRF_GPIO2C_E); /* gpio2c7 gpio2c6 gpio2c2 gpio2c3 */
+		grf_writel((0x3 << 26) | (0x3 << 10), GRF_GPIO2B_E); /* gpio2b5 */
+		grf_writel((0x3 << 18) | (0x3 << 2), GRF_GPIO2B_E); /* gpio2b1 */
+		break;
+	default:
+		debug("gmac id = %d iomux error!\n", gmac_id);
+		break;
+	}
+}
+#endif /* CONFIG_RK_GMAC */
 
 #ifdef CONFIG_RK_SDCARD_BOOT_EN
 #define RK_FORCE_SELECT_JTAG	(grf_readl(GRF_SOC_CON0) & (1 << 8))

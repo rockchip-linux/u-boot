@@ -37,6 +37,7 @@ enum iomux_id {
 	RK_EMMC_IOMUX,
 	RK_SDCARD_IOMUX,
 	RK_HDMI_IOMUX,
+	RK_GMAC_IOMUX,
 };
 
 

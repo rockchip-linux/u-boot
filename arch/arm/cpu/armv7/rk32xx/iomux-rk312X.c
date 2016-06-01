@@ -141,6 +141,30 @@ static void rk_hdmi_iomux_config(int hdmi_id)
 	}
 }
 
+#ifdef CONFIG_RK_GMAC
+static void rk_gmac_iomux_config(int gmac_id)
+{
+	switch (gmac_id) {
+	case RK_GMAC_IOMUX:
+		/* txd0: gpio2c3, txd1: gpio2c2, txd2: gpio2c6, txd3: gpio2c7 */
+		/* rxd0: gpio2c1, rxd1: gpio2c0, rxd2: gpio2c5, rxd3: gpio2c4 */
+		/* mdc: gpio2d1, rxdv: gpio2b0, rxer:  gpio2b7, clk: gpio2b6 */
+		/* txen: gpio2b5, mdio: gpio2b4, rxclk:  gpio2b3, crs: gpio2b2 */
+		/* col: gpio2d0, txclk: gpio2b1 */
+
+		/* gmac txd0 - txd3/rxd0 - rxd3 */
+		grf_writel((0xFF << 16) | (0xFF << 0), GRF_GPIO2C_IOMUX);
+		grf_writel((0x7777 << 16) | (0x4444 << 0), GRF_GPIO2C_IOMUX2);
+		/* gmac rxer/clk/txen/mdio/rxclk/crs/txclk/rxdv/mdc, col not set */
+		grf_writel((0xFFFF << 16) | (0xFFFF << 0), GRF_GPIO2B_IOMUX);
+		grf_writel((0x3 << 18) | (0x3 << 2), GRF_GPIO2D_IOMUX);
+		break;
+	default:
+		debug("gmac id = %d iomux error!\n", gmac_id);
+		break;
+	}
+}
+#endif /* CONFIG_RK_GMAC */
 
 #ifdef CONFIG_RK_SDCARD_BOOT_EN
 #define RK_FORCE_SELECT_JTAG	(grf_readl(GRF_SOC_CON0) & (1 << 8))
