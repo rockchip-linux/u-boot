@@ -23,6 +23,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CONFIG_RKCLK_CPLL_FREQ		384 /* MHZ */
 #endif
 
+#define CONFIG_RKCLK_NPLL_FREQ		500 /* MHZ */
+
 /* Cpu clock source select */
 #define CPU_SRC_ARM_PLL			0
 #define CPU_SRC_GENERAL_PLL		1
@@ -179,12 +181,18 @@ static struct pll_clk_set cpll_clks[] = {
 	_CPLL_SET_CLKS(384000, 2, 128, 4),
 };
 
+/* npll clock table, should be from high to low */
+static struct pll_clk_set npll_clks[] = {
+	/* rate, nr, nf, no */
+	_CPLL_SET_CLKS(500000, 3, 125, 2),
+};
 
 static struct pll_data rkpll_data[END_PLL_ID] = {
 	SET_PLL_DATA(APLL_ID, apll_clks, ARRAY_SIZE(apll_clks)),
 	SET_PLL_DATA(DPLL_ID, NULL, 0),
 	SET_PLL_DATA(CPLL_ID, cpll_clks, ARRAY_SIZE(cpll_clks)),
 	SET_PLL_DATA(GPLL_ID, gpll_clks, ARRAY_SIZE(gpll_clks)),
+	SET_PLL_DATA(NPLL_ID, npll_clks, ARRAY_SIZE(npll_clks)),
 };
 
 
@@ -1515,6 +1523,52 @@ void rkclk_set_crypto_clk(uint32 rate)
 }
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 
+
+#ifdef CONFIG_RK_GMAC
+/*
+ * rkplat set gmac clock
+ * mode: 0 - rmii, 1 - rgmii
+ * rmii gmac clock 50MHZ from rk pll, rgmii gmac clock 125MHZ from PHY
+ */
+void rkclk_set_gmac_clk(uint32_t mode)
+{
+	if (mode == 0) { /* rmii mode */
+		uint32 clk_parent, clk_child;
+		uint32 div;
+
+		clk_parent = CONFIG_RKCLK_NPLL_FREQ * MHZ;
+		clk_child = 50 * MHZ;
+		div = rkclk_calc_clkdiv(clk_parent, clk_child, 1);
+		if (div == 0)
+			div = 1;
+
+		debug("gmac rmii mode, clock from new pll, div = %d\n", div);
+
+		/* gmac from new pll */
+		cru_writel((0x1F << (8 + 16)) | (0x3 << (0 + 16)) | ((div - 1) << 8) | (0 << 0), CRU_CLKSELS_CON(21));
+
+		rkclk_pll_set_rate(NPLL_ID, CONFIG_RKCLK_NPLL_FREQ, NULL);
+
+		/* clock enable: mac_rx/mac_ref/mac_refout */
+		cru_writel((1 << 19) | (1 << 18) | (1 << 16) | (0 << 3) | (0 << 2) | (0 << 0), CRU_CLKGATES_CON(5));
+		/* clock enable: mac_tx */
+		cru_writel((1 << 17) | (0 << 1), CRU_CLKGATES_CON(5));
+
+		/* select internal divider clock from pll */
+		cru_writel((1 << 20) | (0 << 4), CRU_CLKSELS_CON(21));
+	} else { /* rgmii mode */
+		debug("gmac rgmii mode, clock from PHY.\n");
+
+		/* clock disable: mac_rx/mac_ref/mac_refout */
+		cru_writel((1 << 19) | (1 << 18) | (1 << 16) | (1 << 3) | (1 << 2) | (1 << 0), CRU_CLKGATES_CON(5));
+		/* clock enable: mac_tx */
+		cru_writel((1 << 17) | (0 << 1), CRU_CLKGATES_CON(5));
+
+		/* select external input clock from PHY */
+		cru_writel((1 << 20) | (1 << 4), CRU_CLKSELS_CON(21));
+	}
+}
+#endif
 
 /*
  * cpu soft reset

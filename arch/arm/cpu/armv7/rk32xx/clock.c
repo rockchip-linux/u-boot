@@ -127,6 +127,9 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus) { return 0; }
 #ifdef CONFIG_SECUREBOOT_CRYPTO
 void rkclk_set_crypto_clk(uint32 rate) {}
 #endif /* CONFIG_SECUREBOOT_CRYPTO*/
+#ifdef CONFIG_RK_GMAC
+void rkclk_set_gmac_clk(uint32_t mode) {}
+#endif /* CONFIG_RK_GMAC */
 void rkcru_cpu_soft_reset(void) {}
 void rkcru_mmc_soft_reset(uint32 sdmmcId) {}
 void rkcru_i2c_soft_reset(void) {}

@@ -1090,6 +1090,50 @@ void rkclk_set_crypto_clk(uint32 rate)
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 
 
+#ifdef CONFIG_RK_GMAC
+/*
+ * rkplat set gmac clock
+ * mode: 0 - rmii, 1 - rgmii
+ * rmii gmac clock 50MHZ from rk pll, rgmii gmac clock 125MHZ from PHY
+ */
+void rkclk_set_gmac_clk(uint32_t mode)
+{
+	if (mode == 0) { /* rmii mode */
+		uint32 clk_parent, clk_child;
+		uint32 div;
+
+		clk_parent = CONFIG_RKCLK_CPLL_FREQ * MHZ;
+		clk_child = 50 * MHZ;
+		div = rkclk_calc_clkdiv(clk_parent, clk_child, 1);
+		if (div == 0)
+			div = 1;
+
+		debug("gmac rmii mode, clock from codec pll, div = %d\n", div);
+
+		/* gmac from codec pll */
+		cru_writel((0x1 << 23) | (0x1F << 16) | (0 << 7) | ((div - 1) << 0), CRU_CLKSELS_CON(5));
+
+		/* clock enable: mac_rx/mac_ref/mac_refout */
+		cru_writel((1 << 21) | (1 << 20) | (1 << 19) | (0 << 5) | (0 << 4) | (0 << 3), CRU_CLKGATES_CON(5));
+		/* clock enable: mac_tx */
+		cru_writel((1 << 22) | (0 << 6), CRU_CLKGATES_CON(5));
+
+		/* select internal divider clock from pll */
+		cru_writel((1 << 21) | (0 << 5), CRU_CLKSELS_CON(5));
+	} else { /* rgmii mode */
+		debug("gmac rgmii mode, clock from PHY.\n");
+
+		/* clock disable: mac_rx/mac_ref/mac_refout */
+		cru_writel((1 << 21) | (1 << 20) | (1 << 19) | (1 << 5) | (1 << 4) | (1 << 3), CRU_CLKGATES_CON(5));
+		/* clock enable: mac_tx */
+		cru_writel((1 << 22) | (0 << 6), CRU_CLKGATES_CON(5));
+
+		/* select external input clock from PHY */
+		cru_writel((1 << 21) | (1 << 5), CRU_CLKSELS_CON(5));
+	}
+}
+#endif
+
 /*
  * cpu soft reset
  */

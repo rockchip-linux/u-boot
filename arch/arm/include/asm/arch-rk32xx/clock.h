@@ -142,6 +142,14 @@ void rkclk_set_crypto_clk(uint32 rate);
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 
 
+#ifdef CONFIG_RK_GMAC
+/*
+ * rkplat set gmac clock
+ * mode: 0 - rmii, 1 - rgmii
+ * rmii gmac clock 50MHZ from rk pll, rgmii gmac clock 125MHZ from PHY
+ */
+void rkclk_set_gmac_clk(uint32_t mode);
+#endif /* CONFIG_RK_GMAC */
 /*
  * cpu soft reset
  */
