@@ -250,6 +250,7 @@ int rkidb_get_bootloader_ver(void);
 int rkidb_get_idblk_data(void);
 int rkidb_get_rc4_flag(void);
 int rkidb_get_sn(char *buf);
+bool rkidb_get_mac_address(char *macaddr);
 int rkidb_erase_drm_key(void);
 int rkidb_get_hdcp_key(char *buf, int offset, int size);
 

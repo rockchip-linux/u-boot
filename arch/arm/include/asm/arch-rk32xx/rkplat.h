@@ -157,6 +157,9 @@ typedef enum SPI_ch {
 	/* crypto */
 	#define RKIO_CRYPTO_BASE	RKIO_CRYPTO_PHYS
 
+	/* Ethernet */
+	#define RKIO_GMAC_BASE		RKIO_GMAC_PHYS
+
 	/* boot information for kernel */
 	#define RKIO_BOOTINFO_BASE	(RKIO_NANDC_BASE + 0x1000)
 #elif defined(CONFIG_RKCHIP_RK3036)
@@ -293,6 +296,9 @@ typedef enum SPI_ch {
 	/* crypto */
 	#define RKIO_CRYPTO_BASE	RKIO_CRYPTO_PHYS
 
+	/* Ethernet */
+	#define RKIO_GMAC_BASE		RKIO_GMAC_PHYS
+
 	/* boot information for kernel */
 	#define RKIO_BOOTINFO_BASE	(RKIO_NANDC_BASE + 0x1000)
 #elif  defined(CONFIG_RKCHIP_RK322X)
@@ -363,6 +369,9 @@ typedef enum SPI_ch {
 	/* crypto */
 	#define RKIO_CRYPTO_BASE	RKIO_CRYPTO_PHYS
 
+	/* Ethernet */
+	#define RKIO_GMAC_BASE		RKIO_GMAC_PHYS
+
 	/* boot information for kernel */
 	#define RKIO_BOOTINFO_BASE	(RKIO_NANDC_BASE + 0x1000)
 #else
@@ -382,6 +391,8 @@ int rk_get_chiptype(void);
 uint8 rk_get_cpu_version(void);
 int rk_get_bootrom_chip_version(unsigned int chip_info[]);
 void rk_module_deinit(void);
-
+#ifdef CONFIG_RK_GMAC
+int rk_gmac_initialize(bd_t *bis);
+#endif
 
 #endif /* __RKPLAT_H */

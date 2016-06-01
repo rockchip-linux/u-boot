@@ -42,6 +42,7 @@
 #include <config_cmd_default.h>
 
 #define CONFIG_SHA256
+#define CONFIG_LIB_RAND
 
 #undef CONFIG_GZIP
 #undef CONFIG_ZLIB
@@ -386,6 +387,9 @@
 
 /* rk dma config */
 #define CONFIG_RK_PL330_DMAC	/* rk pl330 dmac */
+
+/* Ethernet support */
+#undef CONFIG_RK_GMAC
 
 /* rk power config */
 #define CONFIG_RK_POWER

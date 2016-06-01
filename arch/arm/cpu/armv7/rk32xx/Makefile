@@ -16,3 +16,4 @@ obj-y	+= pm.o
 
 obj-$(CONFIG_RK_PL330_DMAC)	+= pl330.o dma.o
 obj-$(CONFIG_RK_PSCI)	+= psci.o
+obj-$(CONFIG_RK_GMAC)	+= gmac.o

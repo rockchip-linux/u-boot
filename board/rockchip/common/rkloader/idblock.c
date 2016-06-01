@@ -577,6 +577,29 @@ int rkidb_get_sn(char* buf)
 	return true;
 }
 
+bool rkidb_get_mac_address(char *macaddr)
+{
+	uint32 size, i;
+	Sector3Info *pSec3;
+	uint8 *pidbbuf = (uint8 *)gIdDataBuf;
+
+	pSec3 = (Sector3Info *)(pidbbuf + IDBLOCK_SIZE * IDBLOCK_SN);
+
+	size = pSec3->macSize;
+	if (size != 6) {
+		PRINT_E("empty mac address.\n");
+		return false;
+	}
+	strncpy(macaddr, (char *)pSec3->macAddr, size);
+
+	printf("mac address:");
+	for (i = 0; i < 6; i++)
+		printf(" %2x", macaddr[i]);
+	printf("\n");
+
+	return true;
+}
+
 int rkidb_get_hdcp_key(char *buf, int offset, int size)
 {
 	uint8 *pidbbuf = (uint8 *)gIdDataBuf;

@@ -40,16 +40,25 @@
 #if defined(CONFIG_RKCHIP_RK3036)
 	#undef CONFIG_RK_UMS_BOOT_EN
 	#undef CONFIG_RK_POWER
+
+	#undef CONFIG_CMD_NET
+	#undef CONFIG_RK_GMAC
 #endif /* CONFIG_RKCHIP_RK3036 */
 
 #if defined(CONFIG_RKCHIP_RK3126)
 	#undef CONFIG_RK_UMS_BOOT_EN
+
+	#undef CONFIG_CMD_NET
+	#undef CONFIG_RK_GMAC
 #endif /* CONFIG_RKCHIP_RK3126 */
 
 #if defined(CONFIG_RKCHIP_RK3128)
 	#define CONFIG_SECUREBOOT_CRYPTO
 
 	#undef CONFIG_RK_UMS_BOOT_EN
+
+	#undef CONFIG_CMD_NET
+	#undef CONFIG_RK_GMAC
 #endif /* CONFIG_RKCHIP_RK3128 */
 
 #if defined(CONFIG_RKCHIP_RK322X)
@@ -61,6 +70,9 @@
 
 	#undef CONFIG_RK_UMS_BOOT_EN
 	#undef CONFIG_PM_SUBSYSTEM
+
+	#undef CONFIG_CMD_NET
+	#undef CONFIG_RK_GMAC
 #endif /* CONFIG_RKCHIP_RK322X */
 
 
@@ -92,6 +104,21 @@
 #define CONFIG_RK_MMC_EDMAC		/* external mac */
 #endif
 #undef CONFIG_RK_MMC_DDR_MODE		/* mmc using ddr mode */
+
+/* net command support */
+#ifdef CONFIG_CMD_NET
+#define CONFIG_CMD_PING
+#endif
+
+/* Ethernet support */
+#ifdef CONFIG_RK_GMAC
+#define CONFIG_DESIGNWARE_ETH		/* GMAC can use designware driver */
+#define CONFIG_DW_AUTONEG
+#define CONFIG_PHY_REALTEK
+#define CONFIG_PHY_ADDR		1
+#define CONFIG_RGMII			/* RGMII PHY management		*/
+#define CONFIG_PHYLIB
+#endif
 
 /* more config for rockusb */
 #ifdef CONFIG_CMD_ROCKUSB

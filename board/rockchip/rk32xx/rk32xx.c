@@ -225,3 +225,66 @@ int board_late_init(void)
 }
 #endif
 
+
+#ifdef CONFIG_CMD_NET
+/*
+ * Initializes on-chip ethernet controllers.
+ * to override, implement board_eth_init()
+ */
+int board_eth_init(bd_t *bis)
+{
+	__maybe_unused int rc;
+
+	debug("board_eth_init\n");
+
+#ifdef CONFIG_RK_GMAC
+	char macaddr[6];
+	char ethaddr[20];
+	char *env_str = NULL;
+
+	memset(ethaddr, sizeof(ethaddr), 0);
+	env_str = getenv("ethaddr");
+	if (rkidb_get_mac_address(macaddr) == true) {
+		sprintf(ethaddr, "%02X:%02X:%02X:%02X:%02X:%02X",
+			macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]);
+
+		printf("mac address: %s\n", ethaddr);
+
+		if (env_str == NULL)
+			setenv ((char *)"ethaddr", (char *)ethaddr);
+		else if (strncmp(env_str, ethaddr, strlen(ethaddr)) != 0)
+			setenv ((char *)"ethaddr", (char *)ethaddr);
+	} else {
+		uint16_t v;
+
+		v = (rand() & 0xfeff) | 0x0200;
+		macaddr[0] = (v >> 8) & 0xff;
+		macaddr[1] = v & 0xff;
+		v = rand();
+		macaddr[2] = (v >> 8) & 0xff;
+		macaddr[3] = v & 0xff;
+		v = rand();
+		macaddr[4] = (v >> 8) & 0xff;
+		macaddr[5] = v & 0xff;
+
+		sprintf(ethaddr, "%02X:%02X:%02X:%02X:%02X:%02X",
+			macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]);
+
+		if (env_str == NULL) {
+			printf("mac address: %s\n", ethaddr);
+			setenv ((char *)"ethaddr", (char *)ethaddr);
+		} else {
+			printf("mac address: %s\n", env_str);
+		}
+	}
+
+	rc = rk_gmac_initialize(bis);
+	if (rc < 0) {
+		printf("rockchip: failed to initialize gmac\n");
+		return rc;
+	}
+#endif /* CONFIG_RK_GMAC */
+
+	return 0;
+}
+#endif
