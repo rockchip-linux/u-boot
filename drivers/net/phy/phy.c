@@ -34,16 +34,16 @@
 static int genphy_config_advert(struct phy_device *phydev)
 {
 	u32 advertise;
-	int oldadv, adv;
+	int oldadv, adv, bmsr;
 	int err, changed = 0;
 
-	/* Only allow advertising what
-	 * this PHY supports */
+	/* Only allow advertising what this PHY supports */
 	phydev->advertising &= phydev->supported;
 	advertise = phydev->advertising;
 
 	/* Setup standard advertisement */
-	oldadv = adv = phy_read(phydev, MDIO_DEVAD_NONE, MII_ADVERTISE);
+	adv = phy_read(phydev, MDIO_DEVAD_NONE, MII_ADVERTISE);
+	oldadv = adv;
 
 	if (adv < 0)
 		return adv;
@@ -75,29 +75,40 @@ static int genphy_config_advert(struct phy_device *phydev)
 		changed = 1;
 	}
 
+	bmsr = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
+	if (bmsr < 0)
+		return bmsr;
+
+	/* Per 802.3-2008, Section 22.2.4.2.16 Extended status all
+	 * 1000Mbits/sec capable PHYs shall have the BMSR_ESTATEN bit set to a
+	 * logical 1.
+	 */
+	if (!(bmsr & BMSR_ESTATEN))
+		return changed;
+
 	/* Configure gigabit if it's supported */
+	adv = phy_read(phydev, MDIO_DEVAD_NONE, MII_CTRL1000);
+	oldadv = adv;
+
+	if (adv < 0)
+		return adv;
+
+	adv &= ~(ADVERTISE_1000FULL | ADVERTISE_1000HALF);
+
 	if (phydev->supported & (SUPPORTED_1000baseT_Half |
 				SUPPORTED_1000baseT_Full)) {
-		oldadv = adv = phy_read(phydev, MDIO_DEVAD_NONE, MII_CTRL1000);
-
-		if (adv < 0)
-			return adv;
-
-		adv &= ~(ADVERTISE_1000FULL | ADVERTISE_1000HALF);
 		if (advertise & SUPPORTED_1000baseT_Half)
 			adv |= ADVERTISE_1000HALF;
 		if (advertise & SUPPORTED_1000baseT_Full)
 			adv |= ADVERTISE_1000FULL;
-
-		if (adv != oldadv) {
-			err = phy_write(phydev, MDIO_DEVAD_NONE, MII_CTRL1000,
-					adv);
-
-			if (err < 0)
-				return err;
-			changed = 1;
-		}
 	}
+
+	if (adv != oldadv)
+		changed = 1;
+
+	err = phy_write(phydev, MDIO_DEVAD_NONE, MII_CTRL1000, adv);
+	if (err < 0)
+		return err;
 
 	return changed;
 }
@@ -113,7 +124,7 @@ static int genphy_config_advert(struct phy_device *phydev)
 static int genphy_setup_forced(struct phy_device *phydev)
 {
 	int err;
-	int ctl = 0;
+	int ctl = BMCR_ANRESTART;
 
 	phydev->pause = phydev->asym_pause = 0;
 
@@ -220,7 +231,8 @@ int genphy_update_link(struct phy_device *phydev)
 	if (phydev->link && mii_reg & BMSR_LSTATUS)
 		return 0;
 
-	if ((mii_reg & BMSR_ANEGCAPABLE) && !(mii_reg & BMSR_ANEGCOMPLETE)) {
+	if ((phydev->autoneg == AUTONEG_ENABLE) &&
+	    !(mii_reg & BMSR_ANEGCOMPLETE)) {
 		int i = 0;
 
 		printf("%s Waiting for PHY auto negotiation to complete",
@@ -276,7 +288,7 @@ int genphy_parse_link(struct phy_device *phydev)
 	int mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
 
 	/* We're using autonegotiation */
-	if (phydev->supported & SUPPORTED_Autoneg) {
+	if (phydev->autoneg == AUTONEG_ENABLE) {
 		u32 lpa = 0;
 		int gblpa = 0;
 		u32 estatus = 0;
@@ -367,8 +379,6 @@ int genphy_config(struct phy_device *phydev)
 	int val;
 	u32 features;
 
-	/* For now, I'll claim that the generic driver supports
-	 * all possible port types */
 	features = (SUPPORTED_TP | SUPPORTED_MII
 			| SUPPORTED_AUI | SUPPORTED_FIBRE |
 			SUPPORTED_BNC);
@@ -407,8 +417,8 @@ int genphy_config(struct phy_device *phydev)
 			features |= SUPPORTED_1000baseX_Half;
 	}
 
-	phydev->supported = features;
-	phydev->advertising = features;
+	phydev->supported &= features;
+	phydev->advertising &= features;
 
 	genphy_config_aneg(phydev);
 
@@ -432,7 +442,9 @@ static struct phy_driver genphy_driver = {
 	.uid		= 0xffffffff,
 	.mask		= 0xffffffff,
 	.name		= "Generic PHY",
-	.features	= 0,
+	.features	= PHY_GBIT_FEATURES | SUPPORTED_MII |
+			  SUPPORTED_AUI | SUPPORTED_FIBRE |
+			  SUPPORTED_BNC,
 	.config		= genphy_config,
 	.startup	= genphy_startup,
 	.shutdown	= genphy_shutdown,
@@ -490,6 +502,30 @@ int phy_register(struct phy_driver *drv)
 	return 0;
 }
 
+int phy_set_supported(struct phy_device *phydev, u32 max_speed)
+{
+	/* The default values for phydev->supported are provided by the PHY
+	 * driver "features" member, we want to reset to sane defaults first
+	 * before supporting higher speeds.
+	 */
+	phydev->supported &= PHY_DEFAULT_FEATURES;
+
+	switch (max_speed) {
+	default:
+		return -ENOTSUPP;
+	case SPEED_1000:
+		phydev->supported |= PHY_1000BT_FEATURES;
+		/* fall through */
+	case SPEED_100:
+		phydev->supported |= PHY_100BT_FEATURES;
+		/* fall through */
+	case SPEED_10:
+		phydev->supported |= PHY_10BT_FEATURES;
+	}
+
+	return 0;
+}
+
 static int phy_probe(struct phy_device *phydev)
 {
 	int err = 0;
@@ -531,7 +567,7 @@ static struct phy_driver *get_phy_driver(struct phy_device *phydev,
 }
 
 static struct phy_device *phy_device_create(struct mii_dev *bus, int addr,
-					    int phy_id,
+					    u32 phy_id,
 					    phy_interface_t interface)
 {
 	struct phy_device *dev;
@@ -548,7 +584,7 @@ static struct phy_device *phy_device_create(struct mii_dev *bus, int addr,
 	memset(dev, 0, sizeof(*dev));
 
 	dev->duplex = -1;
-	dev->link = 1;
+	dev->link = 0;
 	dev->interface = interface;
 
 	dev->autoneg = AUTONEG_ENABLE;
@@ -648,7 +684,7 @@ static struct phy_device *get_phy_device_by_mask(struct mii_dev *bus,
 		if (phydev)
 			return phydev;
 	}
-	printf("Phy not found\n");
+	printf("Phy %d not found\n", ffs(phy_mask) - 1);
 	return phy_device_create(bus, ffs(phy_mask) - 1, 0xffffffff, interface);
 }
 
@@ -672,6 +708,9 @@ int phy_reset(struct phy_device *phydev)
 	int timeout = 500;
 	int devad = MDIO_DEVAD_NONE;
 
+	if (phydev->flags & PHY_FLAG_BROKEN_RESET)
+		return 0;
+
 #ifdef CONFIG_PHYLIB_10G
 	/* If it's 10G, we need to issue reset through one of the MMDs */
 	if (is_10g_interface(phydev->interface)) {
@@ -682,15 +721,7 @@ int phy_reset(struct phy_device *phydev)
 	}
 #endif
 
-	reg = phy_read(phydev, devad, MII_BMCR);
-	if (reg < 0) {
-		debug("PHY status read failed\n");
-		return -1;
-	}
-
-	reg |= BMCR_RESET;
-
-	if (phy_write(phydev, devad, MII_BMCR, reg) < 0) {
+	if (phy_write(phydev, devad, MII_BMCR, BMCR_RESET) < 0) {
 		debug("PHY reset failed\n");
 		return -1;
 	}
@@ -703,6 +734,7 @@ int phy_reset(struct phy_device *phydev)
 	 * auto-clearing).  This should happen within 0.5 seconds per the
 	 * IEEE spec.
 	 */
+	reg = phy_read(phydev, devad, MII_BMCR);
 	while ((reg & BMCR_RESET) && timeout--) {
 		reg = phy_read(phydev, devad, MII_BMCR);
 
@@ -740,11 +772,13 @@ struct phy_device *phy_find_by_mask(struct mii_dev *bus, unsigned phy_mask,
 		phy_interface_t interface)
 {
 	/* Reset the bus */
-	if (bus->reset)
+	if (bus->reset) {
 		bus->reset(bus);
 
-	/* Wait 15ms to make sure the PHY has come out of hard reset */
-	udelay(15000);
+		/* Wait 15ms to make sure the PHY has come out of hard reset */
+		udelay(15000);
+	}
+
 	return get_phy_device_by_mask(bus, phy_mask, interface);
 }
 
@@ -752,7 +786,7 @@ void phy_connect_dev(struct phy_device *phydev, struct eth_device *dev)
 {
 	/* Soft Reset the PHY */
 	phy_reset(phydev);
-	if (phydev->dev) {
+	if (phydev->dev && phydev->dev != dev) {
 		printf("%s:%d is connected to %s.  Reconnecting to %s\n",
 				phydev->bus->name, phydev->addr,
 				phydev->dev->name, dev->name);
@@ -785,15 +819,12 @@ int phy_startup(struct phy_device *phydev)
 	return 0;
 }
 
-static int __board_phy_config(struct phy_device *phydev)
+__weak int board_phy_config(struct phy_device *phydev)
 {
 	if (phydev->drv->config)
 		return phydev->drv->config(phydev);
 	return 0;
 }
-
-int board_phy_config(struct phy_device *phydev)
-	__attribute__((weak, alias("__board_phy_config")));
 
 int phy_config(struct phy_device *phydev)
 {
