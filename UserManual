@@ -67,6 +67,9 @@
     if define CONFIG_MERGER_TRUSTIMAGE, rk uboot will merge trust image bin, such as:
         trust.img			-	trustfirmware image bootloader
 
+    if define CONFIG_RK_TOS_WITH_TA,    rk uboot will merge with ta trust image bin, such as:
+        rk322x_tee_ta_v1.4.bin          -       with ta trust image bin
+
 6.  Chipset
     support RK3288,RK3036,RK3126,RK3128,RK3368,RK322x,RK3366,RK3399.
 

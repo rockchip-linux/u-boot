@@ -921,7 +921,11 @@ UBOOTVERSION := $(UBOOTVERSION)$(if $(RKCHIP),-$(RKCHIP))$(if $(RK_UBOOT_VERSION
 RK_SUBFIX = $(if $(RK_UBOOT_VERSION),.$(RK_UBOOT_VERSION)).bin
 
 ifdef CONFIG_MERGER_TRUSTOS
+ifdef CONFIG_RK_TOS_WITH_TA
+RK_TOS_BIN ?= `sed -n "/TOSTA=/s/TOSTA=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r'`
+else
 RK_TOS_BIN ?= `sed -n "/TOS=/s/TOS=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r'`
+endif
 endif
 
 RKLoader_uboot.bin: u-boot.bin
