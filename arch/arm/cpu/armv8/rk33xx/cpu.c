@@ -31,7 +31,7 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 	if (chip_info == NULL)
 		return -1;
 
-#ifndef CONFIG_RUNNING_SECURE_WORLD
+#if defined(CONFIG_NORMAL_WORLD)
 	/* bootrom is secure, second level can't read */
 #if defined(CONFIG_RKCHIP_RK3368)
 	chip_info[0] = 0x33333041;
@@ -42,12 +42,10 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 #elif defined(CONFIG_RKCHIP_RK3399)
 	chip_info[0] = 0x33333043;
 	chip_info[3] = 0x56313030;
-#else
-	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
 #endif
 #else
 	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
-#endif /* CONFIG_RUNNING_SECURE_WORLD */
+#endif /* CONFIG_NORMAL_WORLD */
 
 	return 0;
 }
@@ -86,7 +84,7 @@ int rk_get_chiptype(void)
 
 
 /* secure parameter init */
-#ifdef CONFIG_RUNNING_SECURE_WORLD
+#if !defined(CONFIG_NORMAL_WORLD)
 static inline void secure_parameter_init(void)
 {
 #if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
@@ -106,7 +104,7 @@ static inline void secure_parameter_init(void)
 	#error "PLS config platform for secure parameter init!"
 #endif
 }
-#endif /* CONFIG_RUNNING_SECURE_WORLD */
+#endif /* CONFIG_NORMAL_WORLD */
 
 
 #if !defined(CONFIG_FPGA_BOARD) && defined(CONFIG_RKCHIP_RK3368)
@@ -137,7 +135,7 @@ int arch_cpu_init(void)
 	rkclk_set_pll();
 	gd->arch.chiptype = rk_get_chiptype();
 
-#ifdef CONFIG_RUNNING_SECURE_WORLD
+#if !defined(CONFIG_NORMAL_WORLD)
 	secure_parameter_init();
 #endif
 
