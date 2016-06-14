@@ -7,13 +7,47 @@
 #include <common.h>
 #include <dm.h>
 #include <ram.h>
+#include <asm/arch/periph.h>
+#include <asm/arch/timer.h>
 #include <asm/io.h>
+#include <asm/gpio.h>
+#include <dm/pinctrl.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 int board_init(void)
 {
+struct udevice *pinctrl;
+	int ret;
+
+	rockchip_timer_init();
+
+	ret = uclass_get_device(UCLASS_PINCTRL, 0, &pinctrl);
+	if (ret) {
+		debug("%s: Cannot find pinctrl device\n", __func__);
+		goto err;
+	}
+	ret = pinctrl_request_noflags(pinctrl, PERIPH_ID_SDCARD);
+	if (ret) {
+		debug("%s: Failed to set up SD card\n", __func__);
+		goto err;
+	}
+
+	/* Enable debug UART */
+	ret = pinctrl_request_noflags(pinctrl, PERIPH_ID_UART_DBG);
+	if (ret) {
+		debug("%s: Failed to set up console UART\n", __func__);
+		goto err;
+	}
+
 	return 0;
+err:
+	printf("board_init: Error %d\n", ret);
+
+	/* No way to report error here */
+	hang();
+
+	return -1;
 }
 
 int dram_init(void)

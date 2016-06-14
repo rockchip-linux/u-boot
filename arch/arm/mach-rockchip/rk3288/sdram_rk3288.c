@@ -799,6 +799,7 @@ static int setup_sdram(struct udevice *dev)
 static int rk3288_dmc_probe(struct udevice *dev)
 {
 	struct dram_info *priv = dev_get_priv(dev);
+#if 0
 	struct regmap *map;
 	int ret;
 
@@ -847,6 +848,22 @@ static int rk3288_dmc_probe(struct udevice *dev)
 	priv->info.base = 0;
 	priv->info.size = sdram_size_mb(priv->pmu) << 20;
 
+#else
+#define RK_DDR_PARAM_ADDR (32 << 20)
+	struct rk_ddr_param {
+		u32 bank_cnt;
+		u64 start;
+		u64 size;
+	} *ddr_param;
+
+	ddr_param = (struct rk_ddr_param *)RK_DDR_PARAM_ADDR;
+
+	if (ddr_param->bank_cnt == 1) {
+		priv->info.base = ddr_param->start;
+		priv->info.size = ddr_param->size;
+	}
+
+#endif
 	return 0;
 }
 
