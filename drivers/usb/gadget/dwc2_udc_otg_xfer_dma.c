@@ -237,7 +237,7 @@ static void complete_rx(struct dwc2_udc *dev, u8 ep_num)
 		   __func__, ep_num, req->req.actual, req->req.length,
 		   is_short, ep_tsr, xfer_size);
 
-	if (is_short || req->req.actual == req->req.length) {
+	if (is_short || req->req.actual <= req->req.length) {
 		if (ep_num == EP0_CON && dev->ep0state == DATA_STATE_RECV) {
 			debug_cond(DEBUG_OUT_EP != 0, "	=> Send ZLP\n");
 			dwc2_udc_ep0_zlp(dev);
