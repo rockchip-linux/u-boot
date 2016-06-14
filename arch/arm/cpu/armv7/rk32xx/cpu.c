@@ -40,16 +40,16 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 	if (chip_info == NULL)
 		return -1;
 
-#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
-	/* bootrom is secure, second level can't read */
+#if defined(CONFIG_NORMAL_WORLD)
+	/* bootrom is secure, normal world can't read */
 #if defined(CONFIG_RKCHIP_RK322X)
 	chip_info[0] = 0x33323042;
-#else
-	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
+#elif defined(CONFIG_RKCHIP_RK3288)
+	chip_info[0] = 0x33323041;
 #endif
 #else
 	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
-#endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
+#endif /* CONFIG_NORMAL_WORLD */
 
 	return 0;
 }
@@ -174,7 +174,7 @@ int arch_cpu_init(void)
 	/* hdmi phy clock source select HDMIPHY clock out */
 	cru_writel((1 << 29) | (0 << 13), CRU_MISC_CON);
 
-#ifndef CONFIG_SECOND_LEVEL_BOOTLOADER
+#if !defined(CONFIG_NORMAL_WORLD)
 	/* emmc sdmmc sdio set secure mode */
 	writel((3 << (1 + 16)) | (0 << 1), RKIO_SECURE_GRF_PHYS + SGRF_SOC_CON2);
 	/* otg set secure mode */

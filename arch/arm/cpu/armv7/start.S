@@ -145,9 +145,9 @@ ENTRY(cpu_init_cp15)
 	mcr     p15, 0, r0, c7, c5, 4	@ ISB
 
 	/*
-	 * Invalidate L2 Latency
+	 * Invalidate RK3288 L2 Latency, can't be set in normal world
 	 */
-#if defined(CONFIG_RKCHIP_RK3288)
+#if defined(CONFIG_RKCHIP_RK3288) && !defined(CONFIG_NORMAL_WORLD)
 	mrc	p15, 1, r0, c9, c0, 2	@ Read L2 Control Register
 	bic	r0, r0, #0x000000FF	@ clear bit 17:0
 	bic	r0, r0, #0x0000FF00	@ clear bit 17:0

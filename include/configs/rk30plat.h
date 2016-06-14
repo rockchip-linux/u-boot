@@ -77,13 +77,15 @@
 #endif /* CONFIG_RKCHIP_RK322X */
 
 
-/* rk322x RSA key in ram, MiniLoader copy RSA KEY to fixed address */
-#if defined(CONFIG_RKCHIP_RK322X)
-#if defined(CONFIG_SECOND_LEVEL_BOOTLOADER) && defined(CONFIG_SECUREBOOT_CRYPTO)
-#define CONFIG_SECURE_RSA_KEY_IN_RAM
-#define CONFIG_SECURE_RSA_KEY_ADDR	(CONFIG_RKNAND_API_ADDR + SZ_2K)
+/* if working normal world, secure efuse can't read,
+ * MiniLoader copy RSA KEY to sdram for uboot.
+ */
+#if defined(CONFIG_SECUREBOOT_CRYPTO)
+#if defined(CONFIG_SECOND_LEVEL_BOOTLOADER) && defined(CONFIG_NORMAL_WORLD)
+	#define CONFIG_SECURE_RSA_KEY_IN_RAM
+	#define CONFIG_SECURE_RSA_KEY_ADDR	(CONFIG_RKNAND_API_ADDR + SZ_2K)
+#endif /* CONFIG_NORMAL_WORLD && CONFIG_SECOND_LEVEL_BOOTLOADER */
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
-#endif
 
 /* mod it to enable console commands.	*/
 #define CONFIG_BOOTDELAY		0
