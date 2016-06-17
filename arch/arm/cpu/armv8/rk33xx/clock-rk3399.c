@@ -865,7 +865,7 @@ static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 	uint32 pll_rate = 0;
 
 	/* lcdc aclk from codec pll */
-	pll_sel = 0;
+	pll_sel = 1;
 	pll_rate = gd->pci_clk;
 
 	div = rkclk_calc_clkdiv(pll_rate, aclk_hz, 0);
