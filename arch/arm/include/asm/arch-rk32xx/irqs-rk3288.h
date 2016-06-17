@@ -84,7 +84,7 @@
 #define IRQ_TIMER_6CH_0                 RKXX_IRQ(66)
 #define IRQ_TIMER_6CH_1                 RKXX_IRQ(67)
 #define IRQ_TIMER_6CH_2                 RKXX_IRQ(68)
-#define IRQ_TIMER_6CH_3                 RKXX_IRQ(68)
+#define IRQ_TIMER_6CH_3                 RKXX_IRQ(69)
 #define IRQ_TIMER_6CH_4                 RKXX_IRQ(70)
 #define IRQ_TIMER_6CH_5                 RKXX_IRQ(71)
 #define IRQ_TIMER_2CH_0                 RKXX_IRQ(72)
