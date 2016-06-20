@@ -25,6 +25,14 @@ ENTRY(lowlevel_init)
 	mov	r8, sp
 #endif
 
+#ifndef CONFIG_SYS_DCACHE_OFF
+	/*
+	 * Default enable TTBCR1 and TTBCR0
+	 */
+	mrc	p15, 0, r0, c2, c0, 2	@ TTBCR (Translation Table Base Control Register)
+	bic	r0, r0, #0x30		@ enable TTBR1 and TTBR0
+	mcr	p15, 0, r0, c2, c0, 2
+#endif
 
 	/*
 	 * Save the old lr(passed in ip) and the current lr to stack
