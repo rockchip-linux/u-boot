@@ -1044,6 +1044,16 @@ void usbphy_tunning(void)
 	mdelay(10);
 	grf_writel(0x00030002, GRF_UOC0_CON5);
 #endif
+#if defined(CONFIG_RKCHIP_RK3366)
+	/* open HS pre-emphasize to increase HS slew rate for each port */
+	grf_writel(0xffff851f, GRF_USBPHY_CON0);
+	grf_writel(0xffff68c8, GRF_USBPHY_CON7);
+	grf_writel(0xffff851f, GRF_USBPHY_CON12);
+	grf_writel(0xffff68c8, GRF_USBPHY_CON19);
+
+	/* compensation current tuning reference relate to ODT and etc */
+	grf_writel(0xffff026e, GRF_USBPHY_CON3);
+#endif
 }
 /* Turn on the USB connection by enabling the pullup resistor */
 void udc_connect(void)
