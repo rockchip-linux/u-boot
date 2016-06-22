@@ -513,6 +513,9 @@ struct hdmi_dev {
 	int (*hd_init) (struct hdmi_dev *hdmi_dev);
 	int (*read_edid)(struct hdmi_dev *hdmi_dev, int block, unsigned char *buff);
 	int (*enableoutput)(struct hdmi_dev *hdmi_dev, int enable);
+
+	//gpio pull
+	int io_pullup;
 };
 //extern struct hdmi_dev *hdmi;
 

@@ -1585,6 +1585,7 @@ struct phy_mpll_config_tab {
 	#define EXT_PHY_AUTO_R75_OHMS			(1 << 2)
 	#define EXT_PHY_AUTO_R100_OHMS			(2 << 2)
 	#define EXT_PHY_AUTO_ROPEN_CIRCUIT		(3 << 2)
+	#define EXT_PHY_AUTO_R150_OHMS			((1 << 7) | (1 << 4))
 
 #define EXT_PHY_TERM_RESIS_MANUAL_CLK	0xfb
 #define EXT_PHY_TERM_RESIS_MANUAL_D2	0xfc

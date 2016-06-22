@@ -1241,16 +1241,32 @@ static int ext_phy_config(struct hdmi_dev *hdmi_dev)
 				  ((stat >> 8) & 0xff) | 0x80);
 	rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY_TERM_CAL_DIV_L,
 				  stat & 0xff);
-	if (hdmi_dev->tmdsclk > 340000000)
+	if (hdmi_dev->tmdsclk > 340000000) {
 		stat = EXT_PHY_AUTO_R100_OHMS;
-	else if (hdmi_dev->tmdsclk > 200000000)
-		stat = EXT_PHY_AUTO_R50_OHMS;
-	else
+	} else if (hdmi_dev->tmdsclk > 200000000) {
+		if (hdmi_dev->io_pullup > 0)
+			stat = EXT_PHY_AUTO_R150_OHMS;
+		else
+			stat = EXT_PHY_AUTO_R50_OHMS;
+	} else {
 		stat = EXT_PHY_AUTO_ROPEN_CIRCUIT;
-	rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY_TERM_RESIS_AUTO,
-				  stat | 0x20);
-	rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY_TERM_CAL,
-				  (stat >> 8) & 0xff);
+	}
+
+
+	if (stat & EXT_PHY_TERM_CAL_EN_MASK) {
+		rockchip_hdmiv2_write_phy(hdmi_dev, 0xfc,
+					  stat & 0x7f);
+		rockchip_hdmiv2_write_phy(hdmi_dev, 0xfd,
+					  stat & 0x7f);
+		rockchip_hdmiv2_write_phy(hdmi_dev, 0xfe,
+					  stat & 0x7f);
+	} else {
+		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY_TERM_RESIS_AUTO,
+					  stat | 0x20);
+		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY_TERM_CAL,
+					  (stat >> 8) & 0xff);
+	}
+
 	if (hdmi_dev->tmdsclk > 200000000)
 		stat = 0;
 	else
@@ -1753,6 +1769,9 @@ static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 
 		ret = 0;
 	} else {
+		if ((hdmi_dev->soctype == HDMI_SOC_RK322X) &&
+		    (hdmi_dev->io_pullup > 0))
+			gpio_direction_output(hdmi_dev->io_pullup, 0);
 		printf("Hdmi Devices Not Exist.\n");
 		g_hdmi_noexit = 1;
 	}
