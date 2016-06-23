@@ -412,10 +412,11 @@ __weak int lcd_get_size(int *line_length)
 	return *line_length * panel_info.vl_row;
 }
 
+#ifdef CONFIG_ROCKCHIP
 void *lcd_get_buffer(void)
 {
 	void *buffer = (void *)gd->fb_base;
-	int offset = CONFIG_RK_FB_SIZE;
+	unsigned long offset = CONFIG_RK_FB_SIZE;
 
 	if (lcd_flip && lcd_base <= buffer + offset)
 		return buffer + offset;
@@ -423,7 +424,6 @@ void *lcd_get_buffer(void)
 	return buffer;
 }
 
-#ifdef CONFIG_ROCKCHIP
 void lcd_enable_logo(bool enable)
 {
 	lcd_show_logo = enable;
