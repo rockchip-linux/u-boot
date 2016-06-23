@@ -282,7 +282,7 @@ int rk_fb_pwr_disable(struct rockchip_fb *fb)
 
 int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 {
-	int node;
+	int node, screen_node;
 	int phandle;
 
 	/* logo_on flag has been checked in the function board_fbt_preboot() */
@@ -301,7 +301,16 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 					  "native-mode", -1);
 	node = fdt_node_offset_by_phandle(blob, phandle);
 #else
+#if defined(CONFIG_RKCHIP_RK3399)
+	screen_node = fdt_node_offset_by_compatible(blob, 0, "rockchip,screen");
+	if (screen_node < 0) {
+		debug("Can't find rk_screen device node");
+		return screen_node;
+	}
+	node = fdt_subnode_offset(blob, screen_node, "display-timings");
+#else
 	node = fdt_path_offset(blob, "/display-timings");
+#endif
 	if (node < 0) {
 		printf("rk fb dt: can't find node '/display-timings'\n");
 		return -ENODEV;
@@ -523,7 +532,7 @@ void lcd_pandispaly(struct fb_dsp_info *info)
 
 void lcd_standby(int enable)
 {
-	rk_lcdc_standby(enable);			
+	rk_lcdc_standby(enable);
 }
 
 /* dummy function */
