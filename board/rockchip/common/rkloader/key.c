@@ -152,7 +152,7 @@ __maybe_unused static void FastbootKeyInit(void)
 {
 	key_fastboot.type = KEY_AD;
 	key_fastboot.key.adc.index = KEY_ADC_CN;
-	key_fastboot.key.adc.keyValueLow = 170;
+	key_fastboot.key.adc.keyValueLow = 160;
 	key_fastboot.key.adc.keyValueHigh = 180;
 	key_fastboot.key.adc.data = SARADC_BASE + 0;
 	key_fastboot.key.adc.stas = SARADC_BASE + 4;
