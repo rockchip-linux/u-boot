@@ -38,6 +38,39 @@
 #define GRF_GPIO4C_P		0xe068
 #define GRF_GPIO4D_P		0xe06c
 
+/* cpu control */
+#define GRF_CPU_CON0		0xa000
+#define GRF_CPU_CON1		0xa004
+#define GRF_CPU_CON2		0xa008
+#define GRF_CPU_CON3		0xa00c
+
+/* cpu status */
+#define GRF_CPU_STATUS0		0xa080
+#define GRF_CPU_STATUS1		0xa084
+#define GRF_CPU_STATUS2		0xa088
+#define GRF_CPU_STATUS3		0xa08c
+#define GRF_CPU_STATUS4		0xa090
+#define GRF_CPU_STATUS5		0xa094
+
+/* Soc control */
+#define GRF_SOC_CON0		0xe200
+#define GRF_SOC_CON1		0xe204
+#define GRF_SOC_CON2		0xe208
+#define GRF_SOC_CON3		0xe20c
+#define GRF_SOC_CON4		0xe210
+#define GRF_SOC_CON5		0xe214
+#define GRF_SOC_CON7		0xe21c
+#define GRF_SOC_CON8		0xe220
+#define GRF_SOC_CON9		0xe224
+
+/* Soc status */
+#define GRF_SOC_STATUS0		0xe2a0
+#define GRF_SOC_STATUS1		0xe2a4
+#define GRF_SOC_STATUS2		0xe2a8
+#define GRF_SOC_STATUS3		0xe2ac
+#define GRF_SOC_STATUS4		0xe2b0
+#define GRF_SOC_STATUS5		0xe2b4
+
 /* usb phy control */
 #define GRF_USB20PHY0_CON(i)	(0xe450 + ((i) * 4))
 #define GRF_USB20PHY1_CON(i)	(0xe460 + ((i) * 4))

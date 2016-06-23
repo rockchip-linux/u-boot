@@ -9,7 +9,7 @@
 
 
 /* SPI */
-#define IRQ_EMMC			43
+#define IRQ_EMMCCORE			43
 
 #define IRQ_GPIO0                       46
 #define IRQ_GPIO1                       47
