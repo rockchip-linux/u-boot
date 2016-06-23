@@ -175,10 +175,14 @@ DECLARE_GLOBAL_DATA_PTR;
  * LINE_FLAG: Line flag config register
  * VOP_STATUS: vop status register
  * BLANKING_VALUE: Register0000 Abstract
+ * MCU_BYPASS_PORT: Mcu bypass value
  * WIN0_DSP_BG: Win0 layer background color
  * WIN1_DSP_BG: Win1 layer background color
  * WIN2_DSP_BG: Win2 layer background color
  * WIN3_DSP_BG: Win3 layer background color
+ * YUV2YUV_WIN: YUV to YUV win
+ * YUV2YUV_POST: Post YUV to YUV
+ * AUTO_GATING_EN: Auto gating enable
  * DBG_PERF_LATENCY_CTRL0: Axi performance latency module contrl register0
  * DBG_PERF_RD_MAX_LATENCY_NUM0: Read max latency number
  * DBG_PERF_RD_LATENCY_THR_NUM0: The number of bigger than configed
@@ -207,7 +211,7 @@ DECLARE_GLOBAL_DATA_PTR;
  * DBG_PRE_REG0: Vop debug pre register0
  * DBG_PRE_RESERVED: Vop debug pre register1 reserved
  * DBG_POST_REG0: Vop debug post register0
- * DBG_POST_RESERVED: Vop debug post register1 reserved
+ * DBG_POST_REG1: Vop debug
  * DBG_DATAO: debug data output path
  * DBG_DATAO_2: debug data output path 2
  * WIN2_LUT_ADDR: Win2 lut base address
@@ -247,6 +251,7 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define SYS_CTRL			0x00000008
 #define  V_DIRECT_PATH_EN(x)			VAL_MASK(x, 1, 0)
 #define  V_DIRECT_PATH_LAYER_SEL(x)		VAL_MASK(x, 2, 1)
+#define  V_MIPI_DUAL_CHANNEL_EN(x)		VAL_MASK(x, 1, 3)
 #define  V_EDPI_HALT_EN(x)			VAL_MASK(x, 1, 8)
 #define  V_EDPI_WMS_MODE(x)			VAL_MASK(x, 1, 9)
 #define  V_EDPI_WMS_FS(x)			VAL_MASK(x, 1, 10)
@@ -256,10 +261,14 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_EDP_OUT_EN(x)			VAL_MASK(x, 1, 14)
 #define  V_MIPI_OUT_EN(x)			VAL_MASK(x, 1, 15)
 #define  V_OVERLAY_MODE(x)			VAL_MASK(x, 1, 16)
+/* rk322x only */
 #define  V_FS_SAME_ADDR_MASK_EN(x)		VAL_MASK(x, 1, 17)
 #define  V_POST_LB_MODE(x)			VAL_MASK(x, 1, 18)
 #define  V_WIN23_PRI_OPT_MODE(x)		VAL_MASK(x, 1, 19)
+/* rk322x only */
 #define  V_VOP_MMU_EN(x)			VAL_MASK(x, 1, 20)
+/* rk3399 only */
+#define  V_VOP_FIELD_TVE_TIMING_POL(x)		VAL_MASK(x, 1, 20)
 #define  V_VOP_DMA_STOP(x)			VAL_MASK(x, 1, 21)
 #define  V_VOP_STANDBY_EN(x)			VAL_MASK(x, 1, 22)
 #define  V_AUTO_GATING_EN(x)			VAL_MASK(x, 1, 23)
@@ -281,11 +290,15 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_AXI_OUTSTANDING_MAX_NUM(x)		VAL_MASK(x, 5, 13)
 #define  V_NOC_HURRY_W_MODE(x)			VAL_MASK(x, 2, 20)
 #define  V_NOC_HURRY_W_VALUE(x)			VAL_MASK(x, 2, 22)
+#define  V_REG_DONE_FRM(x)			VAL_MASK(x, 1, 24)
 #define  V_DSP_FP_STANDBY(x)			VAL_MASK(x, 1, 31)
 #define DSP_CTRL0			0x00000010
 #define  V_DSP_OUT_MODE(x)			VAL_MASK(x, 4, 0)
 #define  V_SW_CORE_DCLK_SEL(x)			VAL_MASK(x, 1, 4)
+/* rk322x */
 #define  V_SW_HDMI_CLK_I_SEL(x)			VAL_MASK(x, 1, 5)
+/* rk3399 */
+#define  V_P2I_EN(x)				VAL_MASK(x, 1, 5)
 #define  V_DSP_DCLK_DDR(x)			VAL_MASK(x, 1, 8)
 #define  V_DSP_DDR_PHASE(x)			VAL_MASK(x, 1, 9)
 #define  V_DSP_INTERLACE(x)			VAL_MASK(x, 1, 10)
@@ -302,6 +315,8 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_DSP_YUV_CLIP(x)			VAL_MASK(x, 1, 21)
 #define  V_DSP_X_MIR_EN(x)			VAL_MASK(x, 1, 22)
 #define  V_DSP_Y_MIR_EN(x)			VAL_MASK(x, 1, 23)
+/* rk3399 only */
+#define  V_SW_TVE_OUTPUT_SEL(x)			VAL_MASK(x, 1, 25)
 #define  V_DSP_FIELD(x)				VAL_MASK(x, 1, 31)
 #define DSP_CTRL1			0x00000014
 #define  V_DSP_LUT_EN(x)			VAL_MASK(x, 1, 0)
@@ -332,9 +347,9 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_MIPI_DEN_POL(x)			VAL_MASK(x, 1, 30)
 #define  V_MIPI_DCLK_POL(x)			VAL_MASK(x, 1, 31)
 #define DSP_BG				0x00000018
-#define  V_DSP_BG_BLUE(x)			VAL_MASK(x, 8, 0)
-#define  V_DSP_BG_GREEN(x)			VAL_MASK(x, 8, 8)
-#define  V_DSP_BG_RED(x)			VAL_MASK(x, 8, 16)
+#define  V_DSP_BG_BLUE(x)			VAL_MASK(x, 10, 0)
+#define  V_DSP_BG_GREEN(x)			VAL_MASK(x, 10, 10)
+#define  V_DSP_BG_RED(x)			VAL_MASK(x, 10, 20)
 #define MCU_CTRL			0x0000001c
 #define  V_MCU_PIX_TOTAL(x)			VAL_MASK(x, 6, 0)
 #define  V_MCU_CS_PST(x)			VAL_MASK(x, 4, 6)
@@ -379,6 +394,8 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_WIN0_MID_SWAP(x)			VAL_MASK(x, 1, 14)
 #define  V_WIN0_UV_SWAP(x)			VAL_MASK(x, 1, 15)
 #define  V_WIN0_HW_PRE_MUL_EN(x)		VAL_MASK(x, 1, 16)
+/* rk3399 only */
+#define  V_WIN0_YUYV(x)				VAL_MASK(x, 1, 17)
 #define  V_WIN0_YRGB_DEFLICK(x)			VAL_MASK(x, 1, 18)
 #define  V_WIN0_CBR_DEFLICK(x)			VAL_MASK(x, 1, 19)
 #define  V_WIN0_YUV_CLIP(x)			VAL_MASK(x, 1, 20)
@@ -474,6 +491,8 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_WIN1_MID_SWAP(x)			VAL_MASK(x, 1, 14)
 #define  V_WIN1_UV_SWAP(x)			VAL_MASK(x, 1, 15)
 #define  V_WIN1_HW_PRE_MUL_EN(x)		VAL_MASK(x, 1, 16)
+/* rk3399 only */
+#define  V_WIN1_YUYV(x)				VAL_MASK(x, 1, 17)
 #define  V_WIN1_YRGB_DEFLICK(x)			VAL_MASK(x, 1, 18)
 #define  V_WIN1_CBR_DEFLICK(x)			VAL_MASK(x, 1, 19)
 #define  V_WIN1_YUV_CLIP(x)			VAL_MASK(x, 1, 20)
@@ -556,7 +575,7 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define WIN2_CTRL0			0x000000b0
 #define  V_WIN2_EN(x)				VAL_MASK(x, 1, 0)
 #define  V_WIN2_INTERLACE_READ(x)		VAL_MASK(x, 1, 1)
-#define  V_WIN2_CSC_MODE(x)			VAL_MASK(x, 1, 2)
+#define  V_WIN2_CSC_MODE(x)			VAL_MASK(x, 2, 2)
 #define  V_WIN2_MST0_EN(x)			VAL_MASK(x, 1, 4)
 #define  V_WIN2_DATA_FMT0(x)			VAL_MASK(x, 2, 5)
 #define  V_WIN2_MST1_EN(x)			VAL_MASK(x, 1, 8)
@@ -648,7 +667,7 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define WIN3_CTRL0			0x00000100
 #define  V_WIN3_EN(x)				VAL_MASK(x, 1, 0)
 #define  V_WIN3_INTERLACE_READ(x)		VAL_MASK(x, 1, 1)
-#define  V_WIN3_CSC_MODE(x)			VAL_MASK(x, 1, 2)
+#define  V_WIN3_CSC_MODE(x)			VAL_MASK(x, 2, 2)
 #define  V_WIN3_MST0_EN(x)			VAL_MASK(x, 1, 4)
 #define  V_WIN3_DATA_FMT0(x)			VAL_MASK(x, 2, 5)
 #define  V_WIN3_MST1_EN(x)			VAL_MASK(x, 1, 8)
@@ -743,7 +762,7 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_HWC_MODE(x)				VAL_MASK(x, 1, 4)
 #define  V_HWC_SIZE(x)				VAL_MASK(x, 2, 5)
 #define  V_HWC_INTERLACE_READ(x)		VAL_MASK(x, 1, 8)
-#define  V_HWC_CSC_MODE(x)			VAL_MASK(x, 1, 10)
+#define  V_HWC_CSC_MODE(x)			VAL_MASK(x, 2, 10)
 #define  V_HWC_RB_SWAP(x)			VAL_MASK(x, 1, 12)
 #define  V_HWC_ALPHA_SWAP(x)			VAL_MASK(x, 1, 13)
 #define  V_HWC_ENDIAN_SWAP(x)			VAL_MASK(x, 1, 14)
@@ -794,6 +813,7 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define POST_SCL_CTRL			0x00000180
 #define  V_POST_HOR_SD_EN(x)			VAL_MASK(x, 1, 0)
 #define  V_POST_VER_SD_EN(x)			VAL_MASK(x, 1, 1)
+#define  V_DSP_OUT_RGB_YUV(x)			VAL_MASK(x, 1, 2)
 #define POST_DSP_VACT_INFO_F1		0x00000184
 #define  V_DSP_VACT_END_POST(x)			VAL_MASK(x, 13, 0)
 #define  V_DSP_VACT_ST_POST(x)			VAL_MASK(x, 13, 16)
@@ -853,8 +873,8 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_BCSH_R2Y_CSC_MODE(x)			VAL_MASK(x, 1, 6)
 #define CABC_CTRL0			0x000001c0
 #define  V_CABC_EN(x)				VAL_MASK(x, 1, 0)
-#define  V_PWM_CONFIG_MODE(x)			VAL_MASK(x, 2, 1)
-#define  V_CABC_HANDLE_EN(x)			VAL_MASK(x, 1, 3)
+#define  V_CABC_HANDLE_EN(x)			VAL_MASK(x, 1, 1)
+#define  V_PWM_CONFIG_MODE(x)			VAL_MASK(x, 2, 2)
 #define  V_CABC_CALC_PIXEL_NUM(x)		VAL_MASK(x, 23, 4)
 #define CABC_CTRL1			0x000001c4
 #define  V_CABC_LUT_EN(x)			VAL_MASK(x, 1, 0)
@@ -863,6 +883,8 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_CABC_STAGE_DOWN(x)			VAL_MASK(x, 8, 0)
 #define  V_CABC_STAGE_UP(x)			VAL_MASK(x, 9, 8)
 #define  V_CABC_STAGE_UP_MODE(x)		VAL_MASK(x, 1, 19)
+#define  V_MAX_SCALE_CFG_VALUE(x) 		VAL_MASK(x, 9, 20)
+#define  V_MAX_SCALE_CFG_ENABLE(x) 		VAL_MASK(x, 1, 31)
 #define CABC_CTRL3			0x000001cc
 #define  V_CABC_GLOBAL_DN(x)			VAL_MASK(x, 8, 0)
 #define  V_CABC_GLOBAL_DN_LIMIT_EN(x)		VAL_MASK(x, 1, 8)
@@ -996,6 +1018,9 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_INTR_EN_WIN3_EMPTY(x)		VAL_MASK(x, 1, 9)
 #define  V_INTR_EN_HWC_EMPTY(x)			VAL_MASK(x, 1, 10)
 #define  V_INTR_EN_POST_BUF_EMPTY(x)		VAL_MASK(x, 1, 11)
+/* rk3399 only */
+#define  V_INTR_EN_FS_FIELD(x)			VAL_MASK(x, 1, 12)
+/* rk322x only */
 #define  V_INTR_EN_PWM_GEN(x)			VAL_MASK(x, 1, 12)
 #define  V_INTR_EN_DSP_HOLD_VALID(x)		VAL_MASK(x, 1, 13)
 #define  V_INTR_EN_MMU(x)			VAL_MASK(x, 1, 14)
@@ -1014,6 +1039,9 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_INT_CLR_WIN3_EMPTY(x)		VAL_MASK(x, 1, 9)
 #define  V_INT_CLR_HWC_EMPTY(x)			VAL_MASK(x, 1, 10)
 #define  V_INT_CLR_POST_BUF_EMPTY(x)		VAL_MASK(x, 1, 11)
+/* rk3399 only */
+#define  V_INT_CLR_FS_FIELD(x)			VAL_MASK(x, 1, 12)
+/* rk322x only */
 #define  V_INT_CLR_PWM_GEN(x)			VAL_MASK(x, 1, 12)
 #define  V_INT_CLR_DSP_HOLD_VALID(x)		VAL_MASK(x, 1, 13)
 #define  V_INT_CLR_MMU(x)			VAL_MASK(x, 1, 14)
@@ -1032,6 +1060,9 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_INT_STATUS_WIN3_EMPTY(x)		VAL_MASK(x, 1, 9)
 #define  V_INT_STATUS_HWC_EMPTY(x)		VAL_MASK(x, 1, 10)
 #define  V_INT_STATUS_POST_BUF_EMPTY(x)		VAL_MASK(x, 1, 11)
+/* rk3399 only */
+#define  V_INT_STATUS_FS_FIELD(x)		VAL_MASK(x, 1, 12)
+/* rk322x only */
 #define  V_INT_STATUS_PWM_GEN(x)		VAL_MASK(x, 1, 12)
 #define  V_INT_STATUS_DSP_HOLD_VALID(x)		VAL_MASK(x, 1, 13)
 #define  V_INT_STATUS_MMU(x)			VAL_MASK(x, 1, 14)
@@ -1049,6 +1080,9 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_INT_RAW_STATUS_WIN3_EMPTY(x)		VAL_MASK(x, 1, 9)
 #define  V_INT_RAW_STATUS_HWC_EMPTY(x)		VAL_MASK(x, 1, 10)
 #define  V_INT_RAW_STATUS_POST_BUF_EMPTY(x)	VAL_MASK(x, 1, 11)
+/* rk3399 only */
+#define  V_INT_RAW_STATUS_FS_FIELD(x)		VAL_MASK(x, 1, 12)
+/* rk322x only */
 #define  V_INT_RAW_STATUS_PWM_GEN(x)		VAL_MASK(x, 1, 12)
 #define  V_INT_RAW_STATUS_DSP_HOLD_VALID(x)	VAL_MASK(x, 1, 13)
 #define  V_INT_RAW_STATUS_MMU(x)		VAL_MASK(x, 1, 14)
@@ -1084,6 +1118,9 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_INT_CLR_AFBCD2_HREG_AXI_RRESP(x)	VAL_MASK(x, 1, 9)
 #define  V_INT_CLR_AFBCD3_HREG_DEC_RESP(x)	VAL_MASK(x, 1, 10)
 #define  V_INT_CLR_AFBCD3_HREG_AXI_RRESP(x)	VAL_MASK(x, 1, 11)
+#define  V_INT_CLR_WB_YRGB_FIFO_FULL(x)		VAL_MASK(x, 1, 12)
+#define  V_INT_CLR_WB_UV_FIFO_FULL(x)		VAL_MASK(x, 1, 13)
+#define  V_INT_CLR_WB_DMA_FINISH(x)		VAL_MASK(x, 1, 14)
 #define  V_INT_CLR_VFP(x)			VAL_MASK(x, 1, 15)
 #define INTR_STATUS1			0x00000298
 #define  V_INT_STATUS_FBCD0(x)			VAL_MASK(x, 1, 0)
@@ -1098,6 +1135,9 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_INT_STATUS_AFBCD2_HREG_AXI_RRESP(x)	VAL_MASK(x, 1, 9)
 #define  V_INT_STATUS_AFBCD3_HREG_DEC_RESP(x)	VAL_MASK(x, 1, 10)
 #define  V_INT_STATUS_AFBCD4_HREG_DEC_RESP(x)	VAL_MASK(x, 1, 11)
+#define  V_INT_STATUS_WB_YRGB_FIFO_FULL(x)	VAL_MASK(x, 1, 12)
+#define  V_INT_STATUS_WB_UV_FIFO_FULL(x)	VAL_MASK(x, 1, 13)
+#define  V_INT_STATUS_WB_DMA_FINISH(x)		VAL_MASK(x, 1, 14)
 #define  V_INT_STATUS_VFP(x)			VAL_MASK(x, 1, 15)
 #define INTR_RAW_STATUS1		0x0000029c
 #define  V_INT_RAW_STATUS_FBCD0(x)		VAL_MASK(x, 1, 0)
@@ -1112,6 +1152,9 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_INT_RAW_STATUS_AFBCD2_HREG_AXI_RRESP(x)	VAL_MASK(x, 1, 9)
 #define  V_INT_RAW_STATUS_AFBCD3_HREG_DEC_RESP(x)	VAL_MASK(x, 1, 10)
 #define  V_INT_RAW_STATUS_AFBCD3_HREG_AXI_RRESP(x)	VAL_MASK(x, 1, 11)
+#define  V_INT_RAW_STATUS_WB_YRGB_FIFO_FULL(x)	VAL_MASK(x, 1, 12)
+#define  V_INT_RAW_STATUS_WB_UV_FIFO_FULL(x)	VAL_MASK(x, 1, 13)
+#define  V_INT_RAW_STATUS_WB_DMA_FINISH(x)	VAL_MASK(x, 1, 14)
 #define  V_INT_RAW_STATUS_VFP(x)		VAL_MASK(x, 1, 15)
 #define LINE_FLAG			0x000002a0
 #define  V_DSP_LINE_FLAG_NUM_0(x)		VAL_MASK(x, 13, 0)
@@ -1125,24 +1168,24 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define  V_BLANKING_VALUE_CONFIG_EN(x)		VAL_MASK(x, 1, 24)
 #define MCU_BYPASS_PORT			0x000002ac
 #define WIN0_DSP_BG			0x000002b0
-#define  V_WIN0_DSP_BG_BLUE(x)			VAL_MASK(x, 8, 0)
-#define  V_WIN0_DSP_BG_GREEN(x)			VAL_MASK(x, 8, 8)
-#define  V_WIN0_DSP_BG_RED(x)			VAL_MASK(x, 8, 16)
+#define  V_WIN0_DSP_BG_BLUE(x)			VAL_MASK(x, 10, 0)
+#define  V_WIN0_DSP_BG_GREEN(x)			VAL_MASK(x, 10, 10)
+#define  V_WIN0_DSP_BG_RED(x)			VAL_MASK(x, 10, 20)
 #define  V_WIN0_BG_EN(x)			VAL_MASK(x, 1, 31)
 #define WIN1_DSP_BG			0x000002b4
-#define  V_WIN1_DSP_BG_BLUE(x)			VAL_MASK(x, 8, 0)
-#define  V_WIN1_DSP_BG_GREEN(x)			VAL_MASK(x, 8, 8)
-#define  V_WIN1_DSP_BG_RED(x)			VAL_MASK(x, 8, 16)
+#define  V_WIN1_DSP_BG_BLUE(x)			VAL_MASK(x, 10, 0)
+#define  V_WIN1_DSP_BG_GREEN(x)			VAL_MASK(x, 10, 10)
+#define  V_WIN1_DSP_BG_RED(x)			VAL_MASK(x, 10, 20)
 #define  V_WIN1_BG_EN(x)			VAL_MASK(x, 1, 31)
 #define WIN2_DSP_BG			0x000002b8
-#define  V_WIN2_DSP_BG_BLUE(x)			VAL_MASK(x, 8, 0)
-#define  V_WIN2_DSP_BG_GREEN(x)			VAL_MASK(x, 8, 8)
-#define  V_WIN2_DSP_BG_RED(x)			VAL_MASK(x, 8, 16)
+#define  V_WIN2_DSP_BG_BLUE(x)			VAL_MASK(x, 10, 0)
+#define  V_WIN2_DSP_BG_GREEN(x)			VAL_MASK(x, 10, 10)
+#define  V_WIN2_DSP_BG_RED(x)			VAL_MASK(x, 10, 20)
 #define  V_WIN2_BG_EN(x)			VAL_MASK(x, 1, 31)
 #define WIN3_DSP_BG			0x000002bc
-#define  V_WIN3_DSP_BG_BLUE(x)			VAL_MASK(x, 8, 0)
-#define  V_WIN3_DSP_BG_GREEN(x)			VAL_MASK(x, 8, 8)
-#define  V_WIN3_DSP_BG_RED(x)			VAL_MASK(x, 8, 16)
+#define  V_WIN3_DSP_BG_BLUE(x)			VAL_MASK(x, 10, 0)
+#define  V_WIN3_DSP_BG_GREEN(x)			VAL_MASK(x, 10, 10)
+#define  V_WIN3_DSP_BG_RED(x)			VAL_MASK(x, 10, 20)
 #define  V_WIN3_BG_EN(x)			VAL_MASK(x, 1, 31)
 #define YUV2YUV_WIN			0x000002c0
 #define  V_WIN0_YUV2YUV_EN(x)			VAL_MASK(x, 1, 0)
@@ -1245,6 +1288,18 @@ static inline u64 val_mask(int val, u64 msk, int shift)
 #define POST_YUV2YUV_Y2R_COE		0x00000480
 #define POST_YUV2YUV_3x3_COE		0x000004a0
 #define POST_YUV2YUV_R2Y_COE		0x000004c0
+#define WIN0_YUV2YUV_Y2R		0x000004e0
+#define WIN0_YUV2YUV_R2R		0x00000500
+#define WIN0_YUV2YUV_R2Y		0x00000520
+#define WIN1_YUV2YUV_Y2R		0x00000540
+#define WIN1_YUV2YUV_R2R		0x00000560
+#define WIN1_YUV2YUV_R2Y		0x00000580
+#define WIN2_YUV2YUV_Y2R		0x000005a0
+#define WIN2_YUV2YUV_R2R		0x000005c0
+#define WIN2_YUV2YUV_R2Y		0x000005e0
+#define WIN3_YUV2YUV_Y2R		0x00000600
+#define WIN3_YUV2YUV_R2R		0x00000620
+#define WIN3_YUV2YUV_R2Y		0x00000640
 #define WIN2_LUT_ADDR			0x00001000
 #define  V_WIN2_LUT_ADDR(x)			VAL_MASK(x, 32, 0)
 #define WIN3_LUT_ADDR			0x00001400

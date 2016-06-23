@@ -127,7 +127,6 @@
 	#undef CONFIG_PERILP_MCU
 	#undef CONFIG_PMU_MCU
 	#undef CONFIG_RK_PL330_DMAC
-	#undef CONFIG_LCD
 	#undef CONFIG_PM_SUBSYSTEM
 	#undef CONFIG_CMD_FASTBOOT
 	#if (defined(CONFIG_CMD_ROCKUSB) || defined(CONFIG_CMD_FASTBOOT))
@@ -302,8 +301,16 @@
 
 /* more config for display */
 #ifdef CONFIG_LCD
+#if defined(CONFIG_RKCHIP_RK3399)
+#define CONFIG_RK322X_FB
+#define CONFIG_DIRECT_LOGO
+#undef CONFIG_RK_TVE
+#undef CONFIG_RK_HDMI
+#endif
 
+#if defined(CONFIG_RKCHIP_RK3368)
 #define CONFIG_RK33_FB
+#endif
 
 #ifdef CONFIG_RK_HDMI
 #define CONFIG_RK_HDMIV2
