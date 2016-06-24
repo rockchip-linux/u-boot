@@ -27,6 +27,15 @@
 #elif (defined(CONFIG_RKCHIP_RK3368))
 #define RK3368_CRU_PHYS			RKIO_CRU_PHYS
 
+#elif (defined(CONFIG_RKCHIP_RK3399))
+#define RK_GRF_VIRT			RKIO_GRF_PHYS
+#define RK3399_CRU_PHYS			RKIO_CRU_PHYS
+
+#define RK3399_GRF_CON7		0xe21c
+#define RK3399_GRF_CON20	0x6250
+#define RK3399_GRF_CON22	0x6258
+#define RK3399_GRF_CON23	0x625c
+#define RK3399_GRF_CON24	0x6260
 #endif
 #else
 #include <linux/rockchip/grf.h>
