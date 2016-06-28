@@ -30,6 +30,8 @@ typedef struct global_data {
 	unsigned long cpu_clk;	/* CPU clock in Hz!		*/
 #ifdef CONFIG_ROCKCHIP
 	unsigned long cpul_clk;	/* CPU clock in Hz!		*/
+	unsigned long fb_offset;/* Address offset of kernel logo */
+	int uboot_logo;		/* uboot logo state*/
 #endif
 	unsigned long bus_clk;
 	/* We cannot bracket this with CONFIG_PCI due to mpc5xxx */

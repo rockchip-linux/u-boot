@@ -131,6 +131,9 @@ enum fdt_status {
 };
 int fdt_set_node_status(void *fdt, int nodeoffset,
 			enum fdt_status status, unsigned int error_code);
+#ifdef CONFIG_ROCKCHIP
+int fdt_update_reserved_memory(void *blob, char *name, u64 start, u64 size);
+#endif
 static inline int fdt_status_okay(void *fdt, int nodeoffset)
 {
 	return fdt_set_node_status(fdt, nodeoffset, FDT_STATUS_OKAY, 0);

@@ -423,6 +423,7 @@ void board_fbt_preboot(void)
 		int node = fdt_path_offset(gd->fdt_blob, "/fb");
 		g_logo_on_state = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-logo-on", 0);
 	}
+	gd->uboot_logo = g_logo_on_state;
 	printf("read logo on state from dts [%d]\n", g_logo_on_state);
 
 	if (g_logo_on_state != 0) {

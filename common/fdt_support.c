@@ -494,6 +494,38 @@ int fdt_fixup_memory(void *blob, u64 start, u64 size)
 	return fdt_fixup_memory_banks(blob, &start, &size, 1);
 }
 
+#ifdef CONFIG_ROCKCHIP
+int fdt_update_reserved_memory(void *blob, char *name, u64 start, u64 size)
+{
+	int nodeoffset, len, err;
+	u8 tmp[16]; /* Up to 64-bit address + 64-bit size */
+
+#if 0
+	/*name is rockchip_logo*/
+	nodeoffset = fdt_find_or_add_subnode(blob, 0, "reserved-memory");
+	if (nodeoffset < 0)
+		return nodeoffset;
+	printf("hjc>>reserved-memory>>%s, nodeoffset:%d\n", __func__, nodeoffset);
+	nodeoffset = fdt_find_or_add_subnode(blob, nodeoffset, name);
+	if (nodeoffset < 0)
+		return nodeoffset;
+#else
+	nodeoffset = fdt_node_offset_by_compatible(blob, 0, name);
+	if (nodeoffset < 0)
+		debug("Can't find nodeoffset: %d\n", nodeoffset);
+#endif
+	len = fdt_pack_reg(blob, tmp, &start, &size, 1);
+	err = fdt_setprop(blob, nodeoffset, "reg", tmp, len);
+	if (err < 0) {
+		printf("WARNING: could not set %s %s.\n",
+				"reg", fdt_strerror(err));
+		return err;
+	}
+
+	return nodeoffset;
+}
+#endif
+
 void fdt_fixup_ethernet(void *fdt)
 {
 	int node, i, j;

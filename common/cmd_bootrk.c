@@ -381,6 +381,7 @@ static int rk_load_kernel_logo(void)
 	}
 
 	g_rk_fb_size = CONFIG_RK_FB_SIZE;
+	gd->fb_offset = g_rk_fb_size;
 
 	return offset;
 }
