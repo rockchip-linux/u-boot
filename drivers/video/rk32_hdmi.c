@@ -10,7 +10,8 @@
 #include <asm/arch/rkplat.h>
 #include "rk32_hdmi.h"
 
-#define HDMI_SEL_LCDC(x)    ((((x)&1)<<4)|(1<<20))
+#define HDMI_SEL_LCDC(x, bit)  ((((x) & 1) << bit) | (1 << (16 + bit)))
+#define GRF_SOC_CON20 0x6250
 
 static const struct phy_mpll_config_tab PHY_MPLL_TABLE[] = {
 	/*tmdsclk = (pixclk / ref_cntrl ) * (fbdiv2 * fbdiv1) / nctrl / tmdsmhl
@@ -639,6 +640,13 @@ static void hdmi_dev_init(struct hdmi_dev *hdmi_dev)
 	val = 0x128;
 	shift = 0;
 	#endif
+
+	#ifdef CONFIG_RKCHIP_RK3399
+	val = 0x440;
+	shift = 4;
+	grf_writel(HDMI_SEL_LCDC(0, 6), GRF_SOC_CON20);
+	#endif
+
 	/* reset hdmi */
 	writel((1 << shift) | (1 << (shift + 16)), RKIO_CRU_PHYS + val);
 	udelay(1);

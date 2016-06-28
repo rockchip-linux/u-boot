@@ -305,7 +305,6 @@
 #define CONFIG_DIRECT_LOGO
 #define CONFIG_OF_BOARD_SETUP
 #undef CONFIG_RK_TVE
-#undef CONFIG_RK_HDMI
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3368)

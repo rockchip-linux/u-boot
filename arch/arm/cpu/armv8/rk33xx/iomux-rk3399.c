@@ -140,6 +140,10 @@ static void rk_sdcard_iomux_config(int sdcard_id)
 static void rk_hdmi_iomux_config(int hdmi_id)
 {
 	switch (hdmi_id) {
+	case RK_HDMI_IOMUX:
+		/* hdmii2c_sda, hdmii2c_scl hdmi_cecinout */
+		grf_writel((3 << 30) | (3 << 18) | (3 << 16) | (1 << 14) | (3 << 2) | (3 << 0), GRF_GPIO4C_IOMUX);
+		break;
 	default:
 		debug("hdmi id = %d iomux error!\n", hdmi_id);
 		break;
