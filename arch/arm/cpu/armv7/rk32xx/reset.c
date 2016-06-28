@@ -15,6 +15,59 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern void FW_NandDeInit(void);
 
+#if defined(CONFIG_RKCHIP_RK322X)
+void rk322x_cru_divide_adjust_for_kernel(void)
+{
+	uint32 con;
+
+	/* bus */
+	con =  cru_readl(CRU_CLKSELS_CON(0));
+	cru_writel(((con & (~(0x1f << 8))) | (0x3 << 8)) | (0x1f << 24), CRU_CLKSELS_CON(0));
+
+	/* nandc */
+	con =  cru_readl(CRU_CLKSELS_CON(2));
+	cru_writel(((con & (~(0x1f << 8))) | (0x5 << 8)) | (0x1f << 24), CRU_CLKSELS_CON(2));
+
+	/* peri */
+	con =  cru_readl(CRU_CLKSELS_CON(10));
+	cru_writel(((con & (~(0x1f << 0))) | (0x3 << 0)) | (0x1f << 16), CRU_CLKSELS_CON(10));
+
+	/* rga */
+	con =  cru_readl(CRU_CLKSELS_CON(22));
+	cru_writel(((con & (~(0x1f << 0))) | (0x3 << 0)) | (0x1f << 16), CRU_CLKSELS_CON(22));
+	con =  cru_readl(CRU_CLKSELS_CON(33));
+	cru_writel(((con & (~(0x1f << 8))) | (0x3 << 8)) | (0x1f << 24), CRU_CLKSELS_CON(33));
+
+	/* cabac */
+	con =  cru_readl(CRU_CLKSELS_CON(28));
+	cru_writel(((con & (~(0x1f << 8))) | (0x3 << 8)) | (0x1f << 24), CRU_CLKSELS_CON(28));
+
+	/*rkved*/
+	con =  cru_readl(CRU_CLKSELS_CON(28));
+	cru_writel(((con & (~(0x1f << 0))) | (0x3 << 0)) | (0x1f << 16), CRU_CLKSELS_CON(28));
+	con =  cru_readl(CRU_CLKSELS_CON(34));
+	cru_writel(((con & (~(0x1f << 8))) | (0x3 << 8)) | (0x1f << 24), CRU_CLKSELS_CON(34));
+
+	/* iep */
+	con =  cru_readl(CRU_CLKSELS_CON(29));
+	cru_writel(((con & (~(0x1f << 0))) | (0x3 << 0)) | (0x1f << 16), CRU_CLKSELS_CON(29));
+
+	/*vpu*/
+	con =  cru_readl(CRU_CLKSELS_CON(32));
+	cru_writel(((con & (~(0x1f << 0))) | (0x3 << 0)) | (0x1f << 16), CRU_CLKSELS_CON(32));
+
+	/* vop */
+#if 0
+	con =  cru_readl(CRU_CLKSELS_CON(33));
+	cru_writel(((con & (~(0x1f << 0))) | (0x3 << 0)) | (0x1f << 16), CRU_CLKSELS_CON(33));
+#endif
+
+	/* gpu */
+	con =  cru_readl(CRU_CLKSELS_CON(34));
+	cru_writel(((con & (~(0x1f << 0))) | (0x3 << 0)) | (0x1f << 16), CRU_CLKSELS_CON(34));
+}
+#endif /* CONFIG_RKCHIP_RK322X */
+
 
 void rk_module_deinit(void)
 {
@@ -32,6 +85,10 @@ void rk_module_deinit(void)
 #endif
 	/* emmc disable tunning */
 	rkclk_disable_mmc_tuning(2);
+
+#if defined(CONFIG_RKCHIP_RK322X)
+	rk322x_cru_divide_adjust_for_kernel();
+#endif
 }
 
 

@@ -135,9 +135,9 @@ enum rk_plls_id {
 #define BUS_SEL_PLL_OFF			13
 #define BUS_SEL_PLL_W_MSK		(0x3 << (13 + 16))
 #define BUS_SEL_PLL_MSK			(0x3 << 13)
-#define BUS_SEL_CPLL			(0 << 7)
-#define BUS_SEL_GPLL			(1 << 7)
-#define BUS_SEL_HDMIPHYPLL		(2 << 7)
+#define BUS_SEL_CPLL			(0 << 13)
+#define BUS_SEL_GPLL			(1 << 13)
+#define BUS_SEL_HDMIPHYPLL		(2 << 13)
 
 /* bus aclk clock div: clk = clk_src / (div_con + 1) */
 #define BUS_ACLK_DIV_OFF		8
