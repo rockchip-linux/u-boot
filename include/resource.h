@@ -52,5 +52,7 @@ bool get_content_ram(void *buf, size_t len,
 		resource_content* content);
 
 bool show_resource_image(const char* image_path);
+struct bmp_header *get_bmp_header(const char *bmp_name);
+int load_bmp_content(const char *logo, void *bmp, int size);
 
 #endif //RESOURCE_H

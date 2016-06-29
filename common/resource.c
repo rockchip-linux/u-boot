@@ -17,6 +17,7 @@
 #include <resource.h>
 #include <fastboot.h>
 #include <malloc.h>
+#include <bmp_layout.h>
 #include <../board/rockchip/common/config.h>
 
 #include <fdt_support.h>
@@ -274,6 +275,61 @@ bool load_content_data(resource_content* content,
 		return false;
 	}
 	return true;
+}
+
+struct bmp_header *get_bmp_header(const char *bmp_name)
+{
+	const disk_partition_t *ptn = get_disk_partition(LOGO_NAME);
+	struct bmp_header *bmp;
+
+	bmp = malloc(BLOCK_SIZE);
+	if (!bmp)
+		return NULL;
+
+	if (ptn) {
+		if (read_storage(ptn->start, bmp, 1))
+			goto free_bmp;
+
+	} else {
+		resource_content image;
+
+		memset(&image, 0, sizeof(image));
+		snprintf(image.path, sizeof(image.path), "%s", bmp_name);
+		get_content(0, &image);
+
+		image.load_addr = bmp;
+		if (!load_content_data(&image, 0, image.load_addr, 1))
+			goto free_bmp;
+	}
+
+	return bmp;
+
+free_bmp:
+	free(bmp);
+	return NULL;
+}
+
+int load_bmp_content(const char *logo, void *bmp, int size)
+{
+	const disk_partition_t *ptn = get_disk_partition(LOGO_NAME);
+	int blocks = roundup(size, BLOCK_SIZE) / BLOCK_SIZE;
+
+	if (ptn) {
+		read_storage(ptn->start, bmp, blocks);
+	} else {
+		resource_content image;
+
+		memset(&image, 0, sizeof(image));
+		snprintf(image.path, sizeof(image.path), "%s", logo);
+
+		get_content(0, &image);
+
+		image.load_addr = bmp;
+		if (!load_content_data(&image, 0, image.load_addr, blocks))
+			return -1;
+	}
+
+	return 0;
 }
 
 bool show_resource_image(const char* image_path) {
