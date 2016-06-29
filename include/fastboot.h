@@ -64,6 +64,9 @@
 #include <common.h>
 #include <command.h>
 #include <part.h>
+#ifdef CONFIG_RK_DWC3_UDC
+#include <usb/dwc3_rk_udc.h>
+#endif
 
 /* This is the interface file between the common cmd_fastboot.c and
    the board specific support.
@@ -221,6 +224,14 @@ struct cmd_fastboot_interface {
 	int flag_sparse;
 	sparse_header_t sparse_header;
 	int sparse_cur_chunk;
+#if defined(CONFIG_RK_DWC3_UDC)
+	u8 tx_buffer[512];
+	u8 rx_buffer[512];
+	uint8_t rxbuf_num;
+	uint8_t txbuf_num;
+	struct dwc3_giveback_data rx_giveback;
+	struct dwc3_giveback_data tx_giveback;
+#endif
 };
 
 /* Status values */

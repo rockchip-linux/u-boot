@@ -122,9 +122,8 @@ static int rockusb_set_alt(struct usb_gadget *gadget)
 		ret = -EINVAL;
 		goto err;
 	}
-	privData->out_req->length = global_rk_instance.rx_tx_buffer_size;
+	privData->out_req->length = global_rk_instance.rx_buffer_size;
 	privData->out_req->buf = global_rk_instance.rx_buffer[0];
-	memset(privData->out_req->buf, 0, privData->out_req->length);
 
 	privData->out_req2 = rockusb_start_ep(privData->out_ep);
 	if (!privData->out_req2) {
@@ -132,9 +131,8 @@ static int rockusb_set_alt(struct usb_gadget *gadget)
 		ret = -EINVAL;
 		goto err;
 	}
-	privData->out_req2->length = global_rk_instance.rx_tx_buffer_size;
+	privData->out_req2->length = global_rk_instance.rx_buffer_size;
 	privData->out_req2->buf = global_rk_instance.rx_buffer[1];
-	memset(privData->out_req2->buf, 0, privData->out_req2->length);
 
 	privData->out_req->complete = privData->out_req2->complete = NULL;
 	ret = usb_ep_enable(privData->in_ep, global_rk_instance.endpoint_desc[1]);
@@ -148,9 +146,8 @@ static int rockusb_set_alt(struct usb_gadget *gadget)
 		ret = -EINVAL;
 		goto err;
 	}
-	privData->in_req->length = global_rk_instance.rx_tx_buffer_size;
+	privData->in_req->length = global_rk_instance.tx_buffer_size;
 	privData->in_req->buf = global_rk_instance.tx_buffer[0];
-	memset(privData->in_req->buf, 0, privData->in_req->length);
 
 	privData->in_req2 = rockusb_start_ep(privData->in_ep);
 	if (!privData->in_req2) {
@@ -158,9 +155,8 @@ static int rockusb_set_alt(struct usb_gadget *gadget)
 		ret = -EINVAL;
 		goto err;
 	}
-	privData->in_req2->length = global_rk_instance.rx_tx_buffer_size;
+	privData->in_req2->length = global_rk_instance.tx_buffer_size;
 	privData->in_req2->buf = global_rk_instance.tx_buffer[1];
-	memset(privData->in_req2->buf, 0, privData->in_req2->length);
 
 	privData->in_req->complete = privData->in_req2->complete = NULL;
 	global_rk_instance.connected = 1;

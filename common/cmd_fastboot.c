@@ -124,6 +124,7 @@ int(foo[4], 36) * 2)
 /* USB specific */
 
 #include <usb_defs.h>
+#include <usb/udc.h>
 
 #if defined(CONFIG_PPC)
 #include <usb/mpc8xx_udc.h>
@@ -137,6 +138,9 @@ int(foo[4], 36) * 2)
 #include <usb/spr_udc.h>
 #elif defined(CONFIG_RK_UDC)
 #include <usb/dwc_otg_udc.h>
+#elif defined(CONFIG_RK_DWC3_UDC)
+#include <dwc3-uboot.h>
+#include <usb/dwc3_rk_udc.h>
 #endif
 
 #if defined (CONFIG_OMAP)
@@ -162,8 +166,12 @@ int(foo[4], 36) * 2)
 #define	NUM_CONFIGS	1
 #define	NUM_INTERFACES	1
 #define	NUM_ENDPOINTS	2
+#ifdef CONFIG_RK_DWC3_UDC
+	#define	RX_EP_INDEX	1
+#else
+	#define	RX_EP_INDEX	2
+#endif
 
-#define	RX_EP_INDEX	2
 #define	TX_EP_INDEX	1
 
 struct _fbt_config_desc {
@@ -174,7 +182,9 @@ struct _fbt_config_desc {
 
 static void fbt_handle_response(void);
 
+#ifdef CONFIG_RK_UDC
 static u8 fastboot_name[] = "rk_fastboot";
+#endif
 /* defined and used by gadget/ep0.c */
 extern struct usb_string_descriptor **usb_strings;
 
@@ -235,6 +245,7 @@ static struct _fbt_config_desc fbt_config_desc = {
 			   seeing problem with "epinfo" */
 			.bEndpointAddress = RX_EP_INDEX | USB_DIR_OUT,
 			.bmAttributes =	USB_ENDPOINT_XFER_BULK,
+			.wMaxPacketSize = 0x200,
 			.bInterval = 0xFF,
 		},
 		{
@@ -244,22 +255,26 @@ static struct _fbt_config_desc fbt_config_desc = {
 			   seeing problem with "epinfo" */
 			.bEndpointAddress = TX_EP_INDEX | USB_DIR_IN,
 			.bmAttributes = USB_ENDPOINT_XFER_BULK,
+			.wMaxPacketSize = 0x200,
 			.bInterval = 0xFF,
 		},
 	},
 };
-
+#ifdef CONFIG_RK_UDC
 static struct usb_interface_descriptor interface_descriptors[NUM_INTERFACES];
 static struct usb_endpoint_descriptor *ep_descriptor_ptrs[NUM_ENDPOINTS];
+#endif
 
 static struct usb_string_descriptor *fbt_string_table[STR_COUNT];
+
+#ifdef CONFIG_RK_UDC
 static struct usb_device_instance device_instance[1];
 static struct usb_bus_instance bus_instance[1];
 static struct usb_configuration_instance config_instance[NUM_CONFIGS];
 static struct usb_interface_instance interface_instance[NUM_INTERFACES];
 static struct usb_alternate_instance alternate_instance[NUM_INTERFACES];
 static struct usb_endpoint_instance endpoint_instance[NUM_ENDPOINTS + 1];
-
+#endif
 /* FASBOOT specific */
 
 /* U-boot version */
@@ -278,7 +293,100 @@ extern void suspend_usb(void);
 extern int is_usbd_high_speed(void);
 extern void board_fbt_run_recovery_wipe_data(void);
 
+#ifdef CONFIG_RK_UDC
 static void fbt_init_endpoints(void);
+#endif
+
+static void fbt_init_strings(void);
+
+#ifdef CONFIG_RK_DWC3_UDC
+
+int fbt_write_bulk_ep(uint32_t nLen, void *buf)
+{
+	priv.tx_giveback.status = SEND_IN_PROGRESS;
+	priv.tx_giveback.actual = 0;
+	priv.tx_giveback.buf = NULL;
+	return RK_Dwc3WriteBulkEndpoint(nLen, buf);
+}
+
+int fbt_read_bulk_ep(uint32_t nLen, void *buf)
+{
+	priv.rx_giveback.status = RECV_READY;
+	priv.rx_giveback.actual = 0;
+	priv.rx_giveback.buf = NULL;
+	return RK_Dwc3ReadBulkEndpoint(nLen, buf);
+}
+
+void fbt_event_handler_for_dwc3(int nEvent)
+{
+	int event = nEvent & 0xffff;
+	FBTINFO("@fbt_event_handler_for_dwc3   %d\n", event);
+	switch (event) {
+	case 1:/* Device_Reset */
+	case 5:/* Device_Disconnect */
+		priv.configured = 0;
+		break;
+	case 2:/* DEVICE_CONFIGURED */
+		priv.configured = 1;
+		priv.txbuf_num = 0;
+		priv.rxbuf_num = 0;
+		priv.tx_giveback.status = SEND_FINISHED_OK;
+		priv.tx_giveback.actual = 0;
+		fbt_read_bulk_ep(FASTBOOT_COMMAND_SIZE, priv.rx_buffer);
+		break;
+	case 3:/* DEVICE_ADDRESS_ASSIGNED */
+		break;
+	case 4:/* DEVICE_CLEAR_FEATURE */
+	default:
+		break;
+	}
+}
+
+void fbt_dwc3_rx_handler(int status, uint32_t actual, void *buf)
+{
+	if (status) {
+		priv.rx_giveback.status = RECV_ERROR;
+	} else {
+		priv.rx_giveback.status = RECV_OK;
+		priv.rx_giveback.actual = actual;
+		priv.rx_giveback.buf = buf;
+	}
+}
+
+void fbt_dwc3_tx_handler(int status, uint32_t actual, void *buf)
+{
+	if (status) {
+		priv.tx_giveback.status = SEND_FINISHED_ERROR;
+	} else {
+		priv.tx_giveback.status = SEND_FINISHED_OK;
+		priv.tx_giveback.actual = actual;
+		priv.tx_giveback.buf = buf;
+	}
+}
+
+void fbt_init_dwc3_udc_instance(struct rk_dwc3_udc_instance *instance)
+{
+	int i;
+	memset(instance, 0, sizeof(*instance));
+	instance->device_desc = &device_descriptor;
+	instance->config_desc = (void *)&fbt_config_desc;
+	instance->interface_desc = &fbt_config_desc.interface_desc;
+	for (i = 0; i < NUM_ENDPOINTS; i++) {
+		instance->endpoint_desc[i] = &fbt_config_desc.endpoint_desc[i];
+		instance->rx_buffer[i] = priv.rx_buffer;
+		instance->tx_buffer[i] = priv.tx_buffer;
+	}
+	instance->rx_buffer_size = 512;
+	instance->tx_buffer_size = 512;
+	fbt_init_strings();
+	for (i = 0; i < STR_COUNT; i++)
+		instance->string_desc[i] = fbt_string_table[i];
+	instance->device_event = fbt_event_handler_for_dwc3;
+	instance->rx_handler = fbt_dwc3_rx_handler;
+	instance->tx_handler = fbt_dwc3_tx_handler;
+}
+#endif
+
 
 /* USB specific */
 
@@ -337,7 +445,7 @@ static void fbt_init_strings(void)
 	/* Now, initialize the string table for ep0 handling */
 	usb_strings = fbt_string_table;
 }
-
+#ifdef CONFIG_RK_UDC
 void fbt_receive_firstcmd(void)
 {
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
@@ -426,7 +534,6 @@ static void fbt_init_instances(void)
 	endpoint_instance[0].tx_attributes = USB_ENDPOINT_XFER_CONTROL;
 	/* XXX: following statement to done along with other endpoints
 	   at another place ? */
-	//udc_setup_ep(device_instance, 0, &endpoint_instance[0]);//setup ep0 reg in UdcInit()
 
 	for (i = 1; i <= NUM_ENDPOINTS; i++) {
 		endpoint_instance[i].endpoint_address =
@@ -498,7 +605,6 @@ static void fbt_init_endpoints(void)
 			le16_to_cpu(ep_descriptor_ptrs[i - 1]->wMaxPacketSize);
 		endpoint_instance[i].rcv_packetSize =
 			le16_to_cpu(ep_descriptor_ptrs[i - 1]->wMaxPacketSize);
-		//udc_setup_ep(device_instance, i, &endpoint_instance[i]);//setup epi reg in UdcInit()
 	}
 }
 
@@ -531,6 +637,7 @@ static struct urb *next_urb(struct usb_device_instance *device,
 	}
 	return current_urb;
 }
+#endif
 
 static void fbt_wait_usb_fifo_flush(void)
 {
@@ -653,7 +760,7 @@ static int fbt_handle_erase(char *cmdbuf)
 
 	FBTDBG("Erasing partition '%s':\n", ptn->name);
 
-	FBTDBG("\tstart blk %u, blk_cnt %u\n", ptn->start,
+	FBTDBG("\tstart blk %llu, blk_cnt %llu\n", ptn->start,
 			ptn->size);
 
 	err = board_fbt_handle_erase(ptn);
@@ -686,6 +793,8 @@ static int fbt_handle_flash(char *cmdbuf, int check_unlock)
 	}
 
 	ptn = board_fbt_get_partition(name);
+	if (ptn)
+		FBTDBG("name=%s,start=%llx,size=%llx\n", ptn->name, ptn->start, ptn->size);
 	if (!board_fbt_handle_flash(name, ptn, &priv)) {
 		sprintf(priv.response, "OKAY");
 
@@ -1255,6 +1364,7 @@ static void fbt_handle_boot(const char *cmdbuf)
 /* XXX: Replace magic number & strings with macros */
 static int fbt_rx_process(unsigned char *buffer, int length)
 {
+#ifdef CONFIG_RK_UDC
 	struct usb_endpoint_instance *ep;
 	char *cmdbuf;
 	int clear_cmd_buf;
@@ -1301,13 +1411,11 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 		}
 		if (priv.d_status < 0) {
 			/* transfer error */
-			//TODO: maybe use some error str(convert from d_status)
 			strcpy(priv.response, "FAILDownload error");
 		} else {
 			/* transfer complete */
 			strcpy(priv.response, "OKAY");
 		}
-		//        priv.d_bytes = priv.d_size;
 		priv.d_size = 0;
 		priv.flag |= FASTBOOT_FLAG_RESPONSE;
 
@@ -1400,7 +1508,6 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 
 		FBTDBG("starting download of %d bytes\n", d_size);
 
-		//we should receive whole image for those partitions.
 		priv.d_legacy = !priv.pending_ptn_name[0] ||
 			(!strcmp(priv.pending_ptn_name, RECOVERY_NAME) ||
 			 !strcmp(priv.pending_ptn_name, BOOT_NAME) ||
@@ -1418,10 +1525,8 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 				&& !priv.pending_ptn) {
 			FBTERR("download large image with \"-u\" option\n");
 			sprintf(priv.response, "FAILnot support \"-u\" option");
-			//what if they use "fastboot getvar partition-type" before flash with -u?
 		} else if (d_size >= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE &&
 				priv.d_legacy) {
-			//image size too large for legacy download.
 			FBTERR("%s image too large\n", priv.pending_ptn_name);
 			sprintf(priv.response, "FAILdata too large");
 		} else if (d_size == 0) {
@@ -1436,8 +1541,8 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 			priv.d_size = d_size;
 			sprintf(priv.response, "DATA%08llx", priv.d_size);
 
-			//we will check boot/recovery's sha, so need a big buffer to recv whole image.
-			// usb dwc_udc controller can receive 0x20000byte data for once
+			/* we will check boot/recovery's sha, so need a big buffer to recv whole image.
+			 usb dwc_udc controller can receive 0x20000byte data for once */
 			priv.transfer_buffer_size = USB_MAX_TRANS_SIZE;
 			/*priv.d_legacy? CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE :
 			  CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;*/
@@ -1464,18 +1569,207 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 	priv.flag |= FASTBOOT_FLAG_RESPONSE;
 	priv.executing_command = 0;
 	return clear_cmd_buf;
+#else
+	char *cmdbuf;
+	int clear_cmd_buf;
+	u8 *data_buffer = NULL;
+	if (priv.d_size) {
+		if (length > priv.transfer_buffer_size) {
+			FBTERR("buffer overflow when do receive\n");
+			length = priv.transfer_buffer_size;
+		}
+		data_buffer = buffer;
+
+		if (priv.d_bytes + length < priv.d_size) {
+			int buffer_length = priv.d_size - priv.d_bytes - length;
+			if (buffer_length > priv.transfer_buffer_size)
+				buffer_length = priv.transfer_buffer_size;
+			if (priv.d_legacy)
+				fbt_read_bulk_ep(buffer_length, (u8 *)buffer + length);
+			else
+				fbt_read_bulk_ep(buffer_length, priv.buffer[buffer == priv.transfer_buffer]);
+			FBTDBG("buffer %p, len %x..\n", buffer, length);
+		}
+		if (!priv.d_legacy)
+			board_fbt_handle_download(data_buffer, length, &priv);
+
+		priv.d_bytes += length;
+
+		if (priv.d_bytes < priv.d_size && !priv.d_status) {
+			/* don't clear cmd buf because we've replaced it
+			 * with our transfer buffer.  we'll clear it at
+			 * the end of the download.
+			 */
+			return 0;
+		}
+
+		if (priv.d_status < 0 && priv.d_bytes < priv.d_size) {
+			FBTDBG("Failed to download, d_bytes:%lld d_size:%lld, length:%d\n",
+					priv.d_bytes, priv.d_size, length);
+			priv.d_bytes += length;
+			return 0;
+		}
+		if (priv.d_status < 0) {
+			/* transfer error */
+			strcpy(priv.response, "FAILDownload error");
+		} else {
+			/* transfer complete */
+			strcpy(priv.response, "OKAY");
+		}
+		priv.d_size = 0;
+		priv.flag |= FASTBOOT_FLAG_RESPONSE;
+
+		FBTDBG("downloaded %llu bytes\n", priv.d_bytes);
+
+		/* clear the cmd buf from last time */
+		return 1;
+	}
+
+	/* command */
+	cmdbuf = (char *)buffer;
+	clear_cmd_buf = 1;
+
+	/* Generic failed response */
+	strcpy(priv.response, "FAIL");
+
+	cmdbuf[FASTBOOT_COMMAND_SIZE - 1] = 0;
+
+	/* dwc_otg controller use the buffer directory,
+	 * controller dma master write 4-byte align data to buffer,
+	 * may corrupt the origin data
+	 */
+	if (length < FASTBOOT_COMMAND_SIZE)
+		cmdbuf[length] = 0;
+
+	FBTDBG("cmdbuf = (%s)\n", cmdbuf);
+	priv.executing_command = 1;
+
+	/* %fastboot getvar: <var_name> */
+	if (memcmp(cmdbuf, "getvar:", 7) == 0) {
+		FBTDBG("getvar\n");
+		fbt_handle_getvar(cmdbuf);
+	}
+
+	/* %fastboot oem <cmd> */
+	else if (memcmp(cmdbuf, "oem ", 4) == 0) {
+		FBTDBG("oem\n");
+		fbt_handle_oem(cmdbuf);
+	}
+
+	/* %fastboot erase <partition_name> */
+	else if (memcmp(cmdbuf, "erase:", 6) == 0) {
+		FBTDBG("erase\n");
+		fbt_handle_erase(cmdbuf);
+	}
+
+	/* %fastboot flash:<partition_name> */
+	else if (memcmp(cmdbuf, "flash:", 6) == 0) {
+		FBTDBG("flash\n");
+		fbt_handle_flash(cmdbuf, 1);
+		priv.pending_ptn = NULL;
+	}
+
+	/* %fastboot reboot
+	 * %fastboot reboot-bootloader
+	 */
+	else if (memcmp(cmdbuf, "reboot", 6) == 0) {
+		FBTDBG("reboot or reboot-bootloader\n");
+		fbt_handle_reboot(cmdbuf);
+	}
+
+	/* %fastboot continue */
+	else if (strcmp(cmdbuf, "continue") == 0) {
+		FBTDBG("continue\n");
+		strcpy(priv.response, "OKAY");
+		priv.exit = 1;
+	}
+
+	/* %fastboot boot <kernel> [ <ramdisk> ] */
+	else if (memcmp(cmdbuf, "boot", 4) == 0) {
+		FBTDBG("boot\n");
+		fbt_handle_boot(cmdbuf);
+	}
+
+	/* Sent as part of a '%fastboot flash <partname>' command
+	 * This sends the data over with byte count:
+	 * %download:<num_bytes>
+	 */
+	else if (memcmp(cmdbuf, "download:", 9) == 0) {
+		FBTDBG("download\n");
+
+		/* XXX: need any check for size & bytes ? */
+		int d_size = simple_strtoul(cmdbuf + 9, NULL, 16);
+		priv.d_bytes = 0;
+		priv.d_status = 0;
+
+		FBTDBG("starting download of %d bytes\n", d_size);
+
+		priv.d_legacy = !priv.pending_ptn_name[0] ||
+			 (!strcmp(priv.pending_ptn_name, RECOVERY_NAME) ||
+			 !strcmp(priv.pending_ptn_name, BOOT_NAME) ||
+			 !strcmp(priv.pending_ptn_name, LOADER_NAME) ||
+			 !strcmp(priv.pending_ptn_name, PARAMETER_NAME) ||
+			 !strcmp(priv.pending_ptn_name, RESOURCE_NAME) ||
+			 !strcmp(priv.pending_ptn_name, UBOOT_NAME));
+
+		FBTDBG("legacy download? %d\n", priv.d_legacy);
+
+		if (!priv.unlocked) {
+			FBTERR("download: failed, device is locked\n");
+			sprintf(priv.response, "FAILdevice is locked");
+		} else if (d_size > CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH && !priv.pending_ptn) {
+			FBTERR("download large image with \"-u\" option\n");
+			sprintf(priv.response, "FAILnot support \"-u\" option");
+		} else if (d_size >= CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE && priv.d_legacy) {
+			FBTERR("%s image too large\n", priv.pending_ptn_name);
+			sprintf(priv.response, "FAILdata too large");
+		} else if (d_size == 0) {
+			strcpy(priv.response, "FAILdata invalid size");
+			/* maybe board side can handle this.
+			   } else if (d_size > priv.transfer_buffer_size) {
+			   d_size = 0;
+			   strcpy(priv.response, "FAILdata too large");
+			   */
+		} else {
+			int buffer_length;
+			priv.d_size = d_size;
+			sprintf(priv.response, "DATA%08llx", priv.d_size);
+
+			/* we will check boot/recovery's sha, so need a big buffer to recv whole image.
+			 usb dwc_udc controller can receive 0x20000byte data for once */
+			priv.transfer_buffer_size = USB_MAX_TRANS_SIZE;
+			/*priv.d_legacy? CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE :
+			  CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE_EACH;*/
+			/* as an optimization, replace the builtin
+			 * urb->buffer and urb->buffer_length with our
+			 * own so we don't have to do extra copy.
+			 */
+			buffer_length = priv.transfer_buffer_size > priv.d_size ? priv.d_size : priv.transfer_buffer_size;
+
+			/* don't poison the cmd buffer because
+			 * we've replaced it with our
+			 * transfer buffer for the download.
+			 */
+			clear_cmd_buf = 0;
+			fbt_read_bulk_ep(buffer_length, priv.transfer_buffer);
+		}
+	}
+	priv.flag |= FASTBOOT_FLAG_RESPONSE;
+	priv.executing_command = 0;
+	return clear_cmd_buf;
+
+#endif
 }
 
 static void fbt_handle_rx(void)
 {
+#ifdef CONFIG_RK_UDC
 	struct usb_endpoint_instance *ep = &endpoint_instance[1];
 
 	/* XXX: Or update status field, if so,
 	   "usbd_rcv_complete" [gadget/core.c] also need to be modified */
 	if (ep->rcv_urb->actual_length) {
-		//FBTDBG("rx length: %u\n", ep->rcv_urb->actual_length);
-		if (fbt_rx_process((unsigned char*)ep->rcv_urb->buffer,
-					ep->rcv_urb->actual_length)) {
+		if (fbt_rx_process((unsigned char *)ep->rcv_urb->buffer, ep->rcv_urb->actual_length)) {
 			/* Poison the command buffer so there's no confusion
 			 * when we receive the next one.  fastboot commands
 			 * are sent w/o NULL termination so we don't want
@@ -1483,16 +1777,28 @@ static void fbt_handle_rx(void)
 			 * Also, it is assumed that at the time of creation of
 			 * urb it is poisoned.
 			 */
-			memset((void*)ep->rcv_urb->buffer, 0, FASTBOOT_COMMAND_SIZE);
+			memset((void *)ep->rcv_urb->buffer, 0, FASTBOOT_COMMAND_SIZE);
 			ep->rcv_urb->actual_length = 0;
 			resume_usb(ep, FASTBOOT_COMMAND_SIZE);
 		}
 		fbt_handle_response();
 	}
+#else
+	if (priv.rx_giveback.actual) {
+		if (fbt_rx_process((unsigned char *)priv.rx_giveback.buf,
+					priv.rx_giveback.actual)) {
+			memset(priv.rx_giveback.buf, 0, FASTBOOT_COMMAND_SIZE);
+			priv.rx_giveback.actual = 0;
+			fbt_read_bulk_ep(FASTBOOT_COMMAND_SIZE, priv.rx_buffer);
+		}
+		fbt_handle_response();
+	}
+#endif
 }
 
 static void fbt_response_process(void)
 {
+#ifdef CONFIG_RK_UDC
 	struct usb_endpoint_instance *ep = &endpoint_instance[2];
 	struct urb *current_urb = NULL;
 	unsigned char *dest = NULL;
@@ -1504,7 +1810,7 @@ static void fbt_response_process(void)
 		return;
 	}
 
-	dest = (unsigned char*)current_urb->buffer + current_urb->actual_length;
+	dest = (unsigned char *)current_urb->buffer + current_urb->actual_length;
 	n = MIN(64, strlen(priv.response));
 	memcpy(dest, priv.response, n);
 	current_urb->actual_length += n;
@@ -1515,6 +1821,18 @@ static void fbt_response_process(void)
 	 */
 	if (ep->last == 0)
 		udc_endpoint_write(ep);
+#else
+	unsigned char *dest = NULL;
+	int n;
+
+	dest = (unsigned char *)priv.tx_buffer;
+	n = MIN(64, strlen(priv.response));
+	memcpy(dest, priv.response, n);
+
+	if (priv.tx_giveback.status == SEND_FINISHED_OK) {
+		fbt_write_bulk_ep(n, priv.tx_buffer);
+	}
+#endif
 }
 
 static void fbt_handle_response(void)
@@ -1545,7 +1863,7 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	priv.flag |= FASTBOOT_FLAG_HAS_RUN;
 
 	FBTDBG("Starting fastboot protocol\n");
-
+#ifdef CONFIG_RK_UDC
 	fbt_init_endpoint_ptrs();
 
 	ret = udc_init();
@@ -1564,7 +1882,6 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	priv.pending_ptn = NULL;
 	priv.pending_ptn_name[0] = '\0';
-	//load key here.
 	SecureBootCheck();
 
 	while (1) {
@@ -1581,7 +1898,7 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 		}
 #ifdef CONFIG_CTRLC
 		priv.exit |= ctrlc();
-#endif //CONFIG_CTRLC
+#endif
 		if (priv.exit) {
 			FBTINFO("fastboot end\n");
 			break;
@@ -1589,6 +1906,47 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	}
 	do_reset(NULL, 0, 0, NULL);
 out:
+#else
+	struct rk_dwc3_udc_instance device;
+	unsigned long elapsed;
+	FBTINFO("<<Dwc3>> do_fastboot come in.\n");
+	fbt_init_dwc3_udc_instance(&device);
+
+	rk_dwc3_startup(&device);
+	ret = rk_dwc3_connect();
+	if (ret) {
+		FBTERR("<<Dwc3>> rk_dwc3_connect failed.\n");
+		goto Exit_DoFastboot;
+	}
+	FBTDBG("<<Dwc3>> fastboot initialized.\n");
+	priv.pending_ptn = NULL;
+	priv.pending_ptn_name[0] = '\0';
+	SecureBootCheck();
+	while (1) {
+		dwc3_uboot_handle_interrupt();
+		if (priv.configured) {
+			fbt_handle_rx();
+			if (priv.unlock_pending_start_time) {
+				/* check if unlock pending should expire */
+				elapsed = get_timer(priv.unlock_pending_start_time);
+				if (elapsed > (FASTBOOT_UNLOCK_TIMEOUT_SECS * 1000)) {
+					FBTDBG("unlock pending expired\n");
+					priv.unlock_pending_start_time = 0;
+				}
+			}
+		}
+#ifdef CONFIG_CTRLC
+		priv.exit |= ctrlc();
+#endif
+		if (priv.exit) {
+			FBTINFO("fastboot end\n");
+			break;
+		}
+	}
+	do_reset(NULL, 0, 0, NULL);
+Exit_DoFastboot:
+	rk_dwc3_disconnect();
+#endif
 	return ret;
 }
 
@@ -1623,4 +1981,4 @@ int fbt_send_info(const char *info)
 {
 	return fbt_log(info, strlen(info), true);
 }
-#endif //CONFIG_FASTBOOT_LOG
+#endif

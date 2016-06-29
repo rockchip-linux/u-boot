@@ -51,7 +51,8 @@ struct rk_dwc3_udc_instance{
 	struct usb_string_descriptor    *string_desc[6];
 	void *rx_buffer[2];
 	void *tx_buffer[2];
-	__u32 rx_tx_buffer_size;
+	__u32 rx_buffer_size;
+	__u32 tx_buffer_size;
 	__u8 bos_desc[8];
 	__u32 whole_config_size;
 	__u8 whole_config_desc[100];
@@ -60,10 +61,18 @@ struct rk_dwc3_udc_instance{
 	void (*tx_handler)(int status, uint32_t actual, void *buf);
 	__u8 connected;
 	__u8 suspended;
+	__u8 rx_current_buffer;
+	__u8 tx_current_buffer;
+};
+struct dwc3_giveback_data{
+	void *buf;
+	int status;
+	uint32_t actual;
 };
 
-int RK_Dwc3ReadBulkEndpoint(uint32_t nLen, uint8_t *pIndex);
-int RK_Dwc3WriteBulkEndpoint(uint32_t nLen, uint8_t *pIndex);
+
+int RK_Dwc3ReadBulkEndpoint(uint32_t nLen, void *buffer);
+int RK_Dwc3WriteBulkEndpoint(uint32_t nLen, void *buffer);
 void rk_dwc3_startup(struct rk_dwc3_udc_instance *device);
 int rk_dwc3_connect(void);
 void rk_dwc3_disconnect(void);

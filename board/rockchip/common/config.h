@@ -98,7 +98,6 @@ DECLARE_GLOBAL_DATA_PTR;
 #define MIN(x, y)  min(x, y)
 #define MAX(x, y)  max(x, y)
 
-
 #ifdef DEBUG_FLASH
 #define	PRINTF		printf
 #else

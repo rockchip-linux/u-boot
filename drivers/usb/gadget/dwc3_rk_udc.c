@@ -3102,10 +3102,11 @@ void rk_dwc3_startup(struct rk_dwc3_udc_instance *device)
 	global_rk_instance.interface_desc = device->interface_desc;
 	for (i = 0; i < 2; i++) {
 		global_rk_instance.endpoint_desc[i] = device->endpoint_desc[i];
-		global_rk_instance.rx_buffer[i] = device->rx_buffer[i];
-		global_rk_instance.tx_buffer[i] = device->tx_buffer[i];
+		global_rk_instance.rx_buffer[i] = NULL;
+		global_rk_instance.tx_buffer[i] = NULL;
 	}
-	global_rk_instance.rx_tx_buffer_size = device->rx_tx_buffer_size;
+	global_rk_instance.rx_buffer_size = 0;
+	global_rk_instance.tx_buffer_size = 0;
 	for (i = 0; i < 6; i++)
 		global_rk_instance.string_desc[i] = device->string_desc[i];
 	bos_desc.bLength = sizeof(struct usb_bos_descriptor);
@@ -3131,6 +3132,8 @@ void rk_dwc3_startup(struct rk_dwc3_udc_instance *device)
 	global_rk_instance.tx_handler = device->tx_handler;
 	global_rk_instance.connected = 0;
 	global_rk_instance.suspended = 0;
+	global_rk_instance.rx_current_buffer = 0;
+	global_rk_instance.tx_current_buffer = 0;
 	DWC_PRINT("rk_dwc3_startup out.\n");
 }
 
@@ -3159,39 +3162,43 @@ int rockusb_clear_feature(struct dwc3 *dwc, u32 wIndex)
 	return ret;
 }
 
-int RK_Dwc3ReadBulkEndpoint(uint32_t nLen, uint8_t *pIndex)
+int RK_Dwc3ReadBulkEndpoint(uint32_t nLen, void *buffer)
 {
 	int ret = -1;
-	if (pIndex) {
-		if (*pIndex) {
+	if (buffer) {
+		if (global_rk_instance.rx_current_buffer) {
 			private_data.out_req2->length = nLen;
+			private_data.out_req2->buf = buffer;
 			dwc3_invalidate_cache((long)private_data.out_req2->buf, nLen);
 			ret = dwc3_gadget_ep_queue(private_data.out_ep, private_data.out_req2, 0xFF);
-			*pIndex = 0;
+			global_rk_instance.rx_current_buffer = 0;
 		} else {
 			private_data.out_req->length = nLen;
+			private_data.out_req->buf = buffer;
 			dwc3_invalidate_cache((long)private_data.out_req->buf, nLen);
 			ret = dwc3_gadget_ep_queue(private_data.out_ep, private_data.out_req, 0xFF);
-			*pIndex = 1;
+			global_rk_instance.rx_current_buffer = 1;
 		}
 	}
 	return ret;
 }
 
-int RK_Dwc3WriteBulkEndpoint(uint32_t nLen, uint8_t *pIndex)
+int RK_Dwc3WriteBulkEndpoint(uint32_t nLen, void *buffer)
 {
 	int ret = -1;
-	if (pIndex) {
-		if (*pIndex) {
+	if (buffer) {
+		if (global_rk_instance.tx_current_buffer) {
 			private_data.in_req2->length = nLen;
+			private_data.in_req2->buf = buffer;
 			dwc3_flush_cache((long)private_data.in_req2->buf, nLen);
 			ret = dwc3_gadget_ep_queue(private_data.in_ep, private_data.in_req2, 0xFF);
-			*pIndex = 0;
+			global_rk_instance.tx_current_buffer = 0;
 		} else {
 			private_data.in_req->length = nLen;
+			private_data.in_req->buf = buffer;
 			dwc3_flush_cache((long)private_data.in_req->buf, nLen);
 			ret = dwc3_gadget_ep_queue(private_data.in_ep, private_data.in_req, 0xFF);
-			*pIndex = 1;
+			global_rk_instance.tx_current_buffer = 1;
 		}
 	}
 	return ret;

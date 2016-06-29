@@ -26,20 +26,20 @@ static uint64_t TimeOutBase;
 #ifdef CONFIG_RK_DWC3_UDC
 static void rkusb_init_strings(void);
 
-int rkusb_write_bulk_ep(uint32_t nLen)
+int rkusb_write_bulk_ep(uint32_t nLen, void *buf)
 {
 	usbcmd.tx_giveback.status = SEND_IN_PROGRESS;
 	usbcmd.tx_giveback.actual = 0;
 	usbcmd.tx_giveback.buf = NULL;
-	return RK_Dwc3WriteBulkEndpoint(nLen, &usbcmd.txbuf_num);
+	return RK_Dwc3WriteBulkEndpoint(nLen, buf);
 }
 
-int rkusb_read_bulk_ep(uint32_t nLen)
+int rkusb_read_bulk_ep(uint32_t nLen, void *buf)
 {
 	usbcmd.rx_giveback.status = RECV_READY;
 	usbcmd.rx_giveback.actual = 0;
 	usbcmd.rx_giveback.buf = NULL;
-	return RK_Dwc3ReadBulkEndpoint(nLen, &usbcmd.rxbuf_num);
+	return RK_Dwc3ReadBulkEndpoint(nLen, buf);
 }
 
 void rkusb_event_handler_for_dwc3(int nEvent)
@@ -58,7 +58,8 @@ void rkusb_event_handler_for_dwc3(int nEvent)
 		usbcmd.rxbuf_num = 0;
 		usbcmd.tx_giveback.status = SEND_FINISHED_OK;
 		usbcmd.tx_giveback.actual = 0;
-		rkusb_read_bulk_ep(31);
+		rkusb_read_bulk_ep(31, usbcmd.rx_buffer[usbcmd.rxbuf_num]);
+		usbcmd.rxbuf_num = (usbcmd.rxbuf_num + 1) % 2;
 		break;
 	case 3:/* DEVICE_ADDRESS_ASSIGNED */
 		usbcmd.status = RKUSB_STATUS_IDLE;
@@ -74,7 +75,8 @@ void rkusb_event_handler_for_dwc3(int nEvent)
 		/* out ep */
 		if (param == 0x1) {
 			usbcmd.rxbuf_num = 0;
-			rkusb_read_bulk_ep(31);
+			rkusb_read_bulk_ep(31, usbcmd.rx_buffer[usbcmd.rxbuf_num]);
+			usbcmd.rxbuf_num = (usbcmd.rxbuf_num + 1) % 2;
 		}
 		/* in and out ep */
 		if (param == 0x10) {
@@ -83,7 +85,8 @@ void rkusb_event_handler_for_dwc3(int nEvent)
 			usbcmd.tx_giveback.actual = 0;
 			
 			usbcmd.rxbuf_num = 0;
-			rkusb_read_bulk_ep(31);	
+			rkusb_read_bulk_ep(31, usbcmd.rx_buffer[usbcmd.rxbuf_num]);
+			usbcmd.rxbuf_num = (usbcmd.rxbuf_num + 1) % 2;
 		}
 	default:
 		break;
@@ -131,7 +134,8 @@ void init_dwc3_udc_instance(struct rk_dwc3_udc_instance *instance)
 		instance->rx_buffer[i] = usbcmd.rx_buffer[i];
 		instance->tx_buffer[i] = usbcmd.tx_buffer[i];
 	}
-	instance->rx_tx_buffer_size = CONFIG_RK_BOOT_BUFFER_SIZE>>2;
+	instance->rx_buffer_size = CONFIG_RK_BOOT_BUFFER_SIZE>>2;
+	instance->tx_buffer_size = CONFIG_RK_BOOT_BUFFER_SIZE>>2;
 	rkusb_init_strings();
 	for (i = 0; i < STR_COUNT; i++)
 		instance->string_desc[i] = rkusb_string_table[i];
@@ -840,8 +844,10 @@ static int rkusb_send_csw(void)
 	csw->Signature = cpu_to_le32(USB_BULK_CS_SIG);
 	csw->Tag = usbcmd.cbw.Tag;
 	memcpy(usbcmd.tx_buffer[usbcmd.txbuf_num], (u8 *)&usbcmd.csw, 13);
-	rkusb_write_bulk_ep(13);
-	rkusb_read_bulk_ep(31);
+	rkusb_write_bulk_ep(13, usbcmd.tx_buffer[usbcmd.txbuf_num]);
+	usbcmd.txbuf_num = (usbcmd.txbuf_num + 1) % 2;
+	rkusb_read_bulk_ep(31, usbcmd.rx_buffer[usbcmd.rxbuf_num]);
+	usbcmd.rxbuf_num = (usbcmd.rxbuf_num + 1) % 2;
 
 	usbcmd.status = RKUSB_STATUS_IDLE;
 
@@ -972,7 +978,8 @@ void rkusb_handle_datarx(void)
 			rx_blocks = RKUSB_BUFFER_BLOCK_MAX;
 		transfer_length = rx_blocks * block_length;
 
-		rkusb_read_bulk_ep(transfer_length);
+		rkusb_read_bulk_ep(transfer_length, usbcmd.rx_buffer[usbcmd.rxbuf_num]);
+		usbcmd.rxbuf_num = (usbcmd.rxbuf_num + 1) % 2;
 		usbcmd.status = RKUSB_STATUS_RXDATA;
 	} else {
 		usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
@@ -1105,7 +1112,8 @@ start:
 		usbcmd.lba += tx_blocks;
 		usbcmd.pre_read.pre_blocks -= tx_blocks;
 		RKUSBINFO("rkusb_write_bulk_ep buffer %p, len %x\n", usbcmd.tx_buffer[usbcmd.txbuf_num], txdata_size);
-		rkusb_write_bulk_ep(txdata_size);
+		rkusb_write_bulk_ep(txdata_size, usbcmd.tx_buffer[usbcmd.txbuf_num]);
+		usbcmd.txbuf_num = (usbcmd.txbuf_num + 1) % 2;
 	}
 
 	if (usbcmd.u_size == usbcmd.u_bytes) {
@@ -1223,7 +1231,8 @@ static void rkusb_handle_response(void)
 	switch (usbcmd.status) {
 	case RKUSB_STATUS_TXDATA:
 		RKUSBINFO("rkusb_write_bulk_ep %x\n", usbcmd.transfer_size);
-		rkusb_write_bulk_ep(usbcmd.transfer_size);
+		rkusb_write_bulk_ep(usbcmd.transfer_size, usbcmd.tx_buffer[usbcmd.txbuf_num]);
+		usbcmd.txbuf_num = (usbcmd.txbuf_num + 1) % 2;
 		usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
 		usbcmd.csw.Status = CSW_GOOD;
 		usbcmd.status = RKUSB_STATUS_CSW;

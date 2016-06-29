@@ -19,6 +19,10 @@
 #if defined(CONFIG_RK_UDC)
 #include <usb/dwc_otg_udc.h>
 #endif
+#ifdef CONFIG_RK_DWC3_UDC
+#include <usb/dwc3_rk_udc.h>
+#endif
+
 
 /*******************************************************************
 ¹Ì¼þÉý¼¶ÃüÁî¼¯
@@ -292,11 +296,7 @@ struct cmd_rockusb_preread {
 	uint32_t pre_lba;
 	uint32_t pre_blocks;
 };
-struct giveback_data{
-	void *buf;
-	int status;
-	uint32_t actual;
-};
+
 struct cmd_rockusb_interface {
 	uint8_t cmd;
 	uint8_t status;
@@ -336,8 +336,10 @@ struct cmd_rockusb_interface {
 	uint32_t receive_size;
 	int 	 receive_status;
 	uint32_t reset_flag;
-	struct giveback_data rx_giveback;
-	struct giveback_data tx_giveback;
+#ifdef CONFIG_RK_DWC3_UDC
+	struct dwc3_giveback_data rx_giveback;
+	struct dwc3_giveback_data tx_giveback;
+#endif
 	struct bulk_cs_wrap csw __attribute__((aligned(ARCH_DMA_MINALIGN)));
 	struct fsg_bulk_cb_wrap cbw __attribute__((aligned(ARCH_DMA_MINALIGN)));
 	struct cmd_rockusb_preread pre_read __attribute__((aligned(ARCH_DMA_MINALIGN)));
