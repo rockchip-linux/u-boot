@@ -26,8 +26,11 @@ extern void fbt_fastboot_init(void);
 extern uint32 GetVbus(void);
 extern void rkloader_change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
 extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
+
+#ifdef CONFIG_RK_PWM_BL
+extern int rk_pwm_bl_config(int brightness);
+#endif
 #ifdef CONFIG_LCD
-extern void rk_backlight_ctrl(int brightness);
 extern int lcd_enable_logo(bool enable);
 extern int drv_lcd_init(void);
 extern void lcd_standby(int enable);
@@ -370,11 +373,16 @@ static void board_fbt_low_power_off(void)
 
 			lcd_standby(0);
 			//TODO: set backlight in better way.
-			rk_backlight_ctrl(CONFIG_BRIGHTNESS_DIM);
+
+#ifdef CONFIG_RK_PWM_BL
+			rk_pwm_bl_config(CONFIG_BRIGHTNESS_DIM);
+#endif
 
 			udelay(1000000);//1 sec
 
-			rk_backlight_ctrl(0);
+#ifdef CONFIG_RK_PWM_BL
+			rk_pwm_bl_config(0);
+#endif
 			lcd_standby(1);
 #endif
 			shut_down();
@@ -462,7 +470,10 @@ void board_fbt_preboot(void)
 		//lcd_enable_logo(true);
 		lcd_standby(0);
 		//mdelay(100);
-		rk_backlight_ctrl(-1); /*use defaut brightness in dts*/
+#ifdef CONFIG_RK_PWM_BL
+		/* use defaut brightness in dts */
+		rk_pwm_bl_config(-1);
+#endif
 	}
 #endif
 

@@ -59,7 +59,9 @@
 extern int rkkey_power_state(void);
 extern int is_charging(void);
 extern int pmic_charger_setting(int current);
-extern void rk_backlight_ctrl(int brightness);
+#ifdef CONFIG_RK_PWM_BL
+extern int rk_pwm_bl_config(int brightness);
+#endif
 extern void lcd_standby(int enable);
 extern uint32 rk_timer1_get_curr_count(void);
 extern int rk818_regulator_enable(int num_regulator);
@@ -173,9 +175,14 @@ void do_set_brightness(int brightness, int old_brightness) {
 			lcd_standby(0);
 			mdelay(100);
 		}
-		rk_backlight_ctrl(brightness == SCREEN_BRIGHT ? -1 : CONFIG_BRIGHTNESS_DIM);
+
+#ifdef CONFIG_RK_PWM_BL
+		rk_pwm_bl_config(brightness == SCREEN_BRIGHT ? -1 : CONFIG_BRIGHTNESS_DIM);
+#endif
 	} else {
-		rk_backlight_ctrl(0);
+#ifdef CONFIG_RK_PWM_BL
+		rk_pwm_bl_config(0);
+#endif
 		if (IS_BRIGHT(old_brightness)) {
 			lcd_standby(1);
 		}

@@ -143,13 +143,6 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
    screen->y_mirror         = 0;
 }
 
-void rk_backlight_ctrl(int brightness)
-{
-#ifdef CONFIG_RK_PWM_BL
-	rk_pwm_bl_config(brightness);
-#endif
-}
-
 #ifdef CONFIG_OF_LIBFDT
 int rk_fb_find_lcdc_node_dt(struct rockchip_fb *fb,
 			    const void *blob)
