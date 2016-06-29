@@ -456,7 +456,7 @@ static int reserve_mmu(void)
 }
 #endif
 
-#ifdef CONFIG_LCD
+#if defined(CONFIG_LCD) || defined(CONFIG_ROCKCHIP_DISPLAY)
 static int reserve_lcd(void)
 {
 	/* if defind CONFIG_RK_FB_SIZE, set fb base at the end of ddr address */
@@ -989,7 +989,7 @@ static init_fnc_t init_sequence_f[] = {
 		defined(CONFIG_ARM)
 	reserve_mmu,
 #endif
-#ifdef CONFIG_LCD
+#if defined(CONFIG_LCD) || defined(CONFIG_ROCKCHIP_DISPLAY)
 	reserve_lcd,
 #endif
 #ifdef CONFIG_ROCKCHIP

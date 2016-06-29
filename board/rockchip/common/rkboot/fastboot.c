@@ -31,15 +31,22 @@ extern int rk_pwm_bl_config(int brightness);
 #endif
 #ifdef CONFIG_LCD
 extern int drv_lcd_init(void);
+#ifdef CONFIG_RK_FB
 extern void lcd_standby(int enable);
+#endif
 #endif
 
 #if defined(CONFIG_RK_PWM_REMOTE)
 extern int g_ir_keycode;
 #endif
 
-#ifdef CONFIG_LCD
+#if defined(CONFIG_LCD) || defined(CONFIG_ROCKCHIP_DISPLAY)
 int g_logo_on_state = 0;
+int g_is_new_display = 0;
+#endif
+#ifdef CONFIG_ROCKCHIP_DISPLAY
+extern int rockchip_display_init(void);
+extern void rockchip_show_logo(void);
 #endif
 
 #ifdef CONFIG_UBOOT_CHARGE
@@ -373,6 +380,7 @@ static void board_fbt_low_power_off(void)
 		if (!is_charging()) {
 			FBTERR("low power, shutting down...\n");
 #ifdef CONFIG_LCD
+#ifdef CONFIG_RK_FB
 			//TODO: show warning logo.
 			show_resource_image("images/battery_fail.bmp");
 
@@ -389,6 +397,7 @@ static void board_fbt_low_power_off(void)
 			rk_pwm_bl_config(0);
 #endif
 			lcd_standby(1);
+#endif
 #endif
 			shut_down();
 			printf("not reach here.\n");
@@ -441,21 +450,37 @@ void board_fbt_preboot(void)
 	board_fbt_low_power_check();
 #endif
 
-#ifdef CONFIG_LCD
+#if defined(CONFIG_LCD) || defined(CONFIG_ROCKCHIP_DISPLAY)
 	/* logo state defautl init = 0 */
 	g_logo_on_state = 0;
+	g_is_new_display = 1;
 
 	if (gd->fdt_blob) {
-		int node = fdt_path_offset(gd->fdt_blob, "/fb");
-		g_logo_on_state = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-logo-on", 0);
-	}
-	gd->uboot_logo = g_logo_on_state;
-	printf("read logo on state from dts [%d]\n", g_logo_on_state);
+		int node = fdt_path_offset(gd->fdt_blob, "/display-subsystem");
 
-	if (g_logo_on_state != 0) {
-		lcd_enable_logo(true);
-		drv_lcd_init();
+		if (node < 0) {
+#if defined(CONFIG_LCD)
+			g_is_new_display = 0;
+			node = fdt_path_offset(gd->fdt_blob, "/fb");
+			g_logo_on_state = fdtdec_get_int(gd->fdt_blob, node, "rockchip,uboot-logo-on", 0);
+			if (g_logo_on_state != 0) {
+				lcd_enable_logo(true);
+				drv_lcd_init();
+			}
+#else
+			printf("failed to found display node\n");
+#endif
+		}
+#if defined(CONFIG_ROCKCHIP_DISPLAY)
+		else if (!rockchip_display_init()) {
+			g_logo_on_state = 1;
+		}
+#endif
 	}
+
+	gd->uboot_logo = g_logo_on_state;
+
+	printf("read logo on state from dts [%d]\n", g_logo_on_state);
 #endif
 
 #ifdef CONFIG_RK_POWER
@@ -500,13 +525,27 @@ void board_fbt_preboot(void)
 	powerOn();
 #endif
 
-#ifdef CONFIG_LCD
+#if defined(CONFIG_LCD) || defined(CONFIG_ROCKCHIP_DISPLAY)
 	if (g_logo_on_state != 0) {
-		lcd_standby(0);
+#ifdef CONFIG_ROCKCHIP_DISPLAY
+		if (g_is_new_display) {
+			rockchip_show_logo();
 #ifdef CONFIG_RK_PWM_BL
-		/* use defaut brightness in dts */
-		rk_pwm_bl_config(-1);
+			rk_pwm_bl_config(-1);
 #endif
+		} else
+#endif
+		{
+#ifdef CONFIG_LCD
+#ifdef CONFIG_RK_FB
+			lcd_standby(0);
+#ifdef CONFIG_RK_PWM_BL
+			/* use defaut brightness in dts */
+			rk_pwm_bl_config(-1);
+#endif
+#endif
+#endif
+		}
 	}
 #endif
 

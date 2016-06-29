@@ -344,7 +344,7 @@ void board_init_f(ulong bootflag)
 	addr &= ~(4096 - 1);
 	debug("Top of RAM usable for U-Boot at: %08lx\n", addr);
 
-#ifdef CONFIG_LCD
+#if defined(CONFIG_LCD) || defined(CONFIG_ROCKCHIP_DISPLAY)
 
 	/* if defind CONFIG_RK_FB_SIZE, set fb base at the end of ddr address */
 #if defined(CONFIG_ROCKCHIP) && defined(CONFIG_RK_FB_DDREND)

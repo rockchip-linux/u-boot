@@ -15,8 +15,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifdef CONFIG_LCD
+#if defined(CONFIG_LCD) || defined(CONFIG_ROCKCHIP_DISPLAY)
 extern int g_logo_on_state;
+extern int g_is_new_display;
 #endif
 #ifdef CONFIG_UBOOT_CHARGE
 extern int android_charge_mode;
@@ -544,7 +545,7 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 #if defined(CONFIG_LCD) && defined(CONFIG_KERNEL_LOGO)
 	/* if uboot logo enable, load logo */
-	if (g_logo_on_state != 0) {
+	if (g_logo_on_state != 0 && !g_is_new_display) {
 		rk_load_kernel_logo();
 	}
 #endif
