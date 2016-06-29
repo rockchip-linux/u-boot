@@ -41,6 +41,8 @@ obj-$(CONFIG_VIDEO_SM501) += sm501.o
 obj-$(CONFIG_VIDEO_SMI_LYNXEM) += smiLynxEM.o videomodes.o
 obj-$(CONFIG_VIDEO_TEGRA) += tegra.o
 obj-$(CONFIG_VIDEO_VCXK) += bus_vcxk.o
+obj-$(CONFIG_ROCKCHIP_DISPLAY) += rockchip_display.o rockchip_crtc.o \
+			rockchip_connector.o bmp_helper.o
 obj-$(CONFIG_FORMIKE) += formike.o
 obj-$(CONFIG_RK_FB) += rockchip_fb.o
 obj-$(CONFIG_RK32_FB) +=  rk32_lcdc.o rk32_dp.o rk32_dp_reg.o

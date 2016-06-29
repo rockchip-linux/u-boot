@@ -1,0 +1,41 @@
+/*
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:	GPL-2.0+
+ */
+
+#include <config.h>
+#include <common.h>
+#include <errno.h>
+#include <malloc.h>
+#include <fdtdec.h>
+#include <fdt_support.h>
+#include <resource.h>
+#include <asm/arch/rkplat.h>
+#include <asm/unaligned.h>
+#include <linux/list.h>
+
+#include "rockchip_display.h"
+#include "rockchip_crtc.h"
+#include "rockchip_connector.h"
+
+static const struct rockchip_crtc g_crtc[] = {
+};
+
+const struct rockchip_crtc *
+rockchip_get_crtc(const void *blob, int crtc_node)
+{
+	const char *name;
+	int i;
+
+	fdt_get_string(blob, crtc_node, "compatible", &name);
+
+	for (i = 0; i < ARRAY_SIZE(g_crtc); i++) {
+		if (!strcmp(name, g_crtc[i].compatible))
+			break;
+	}
+	if (i >= ARRAY_SIZE(g_crtc))
+		return NULL;
+
+	return &g_crtc[i];
+}
