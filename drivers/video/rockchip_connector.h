@@ -54,4 +54,11 @@ struct rockchip_connector_funcs {
 
 const struct rockchip_connector *
 rockchip_get_connector(const void *blob, int connector_node);
+
+#ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
+struct dw_mipi_dsi_plat_data;
+extern const struct rockchip_connector_funcs rockchip_dw_mipi_dsi_funcs;
+extern const struct dw_mipi_dsi_plat_data rk3288_mipi_dsi_drv_data;
+extern const struct dw_mipi_dsi_plat_data rk3399_mipi_dsi_drv_data;
+#endif
 #endif
