@@ -28,7 +28,10 @@
 
 #include "clock.h"
 #include "uart.h"
+
+#ifdef CONFIG_PM_SUBSYSTEM
 #include "pm.h"
+#endif
 
 #ifdef CONFIG_RK_PL330_DMAC
 #include "pl330.h"

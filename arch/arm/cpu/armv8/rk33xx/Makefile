@@ -12,7 +12,7 @@ obj-y	+= irqs.o
 obj-y	+= ddr.o
 obj-y   += iomux.o
 obj-y   += reset.o
-obj-y	+= pm.o
 
+obj-$(CONFIG_PM_SUBSYSTEM)	+= pm.o
 obj-$(CONFIG_RK_PL330_DMAC)	+= pl330.o dma.o
 obj-$(CONFIG_RK_MCU)   += mcu.o

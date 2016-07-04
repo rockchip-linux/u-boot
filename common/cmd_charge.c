@@ -753,9 +753,11 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			//timer enable
 			timer1_irq_init(rk_timer1_isr);
 #endif
+#ifdef CONFIG_PM_SUBSYSTEM
 			rk_pm_wakeup_gpio_init();
 			rk_pm_enter(NULL);
 			rk_pm_wakeup_gpio_deinit();
+#endif
 #ifdef CONFIG_CHARGE_TIMER_WAKEUP
 			timer1_irq_deinit();
 #endif

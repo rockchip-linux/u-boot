@@ -10,10 +10,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-
-#ifdef CONFIG_PM_SUBSYSTEM
-
-#define RKPM_VERSION		"1.1"
+#define RKPM_VERSION		"1.2"
 
 #ifdef CONFIG_OF_LIBFDT
 extern struct fdt_gpio_state *rkkey_get_powerkey(void);
@@ -110,10 +107,3 @@ void rk_pm_enter(v_pm_cb_f module_pm_conf)
 	/* enable exceptions */
 	enable_interrupts();
 }
-
-#else
-
-void rk_pm_wakeup_gpio_init(void) {}
-void rk_pm_enter(v_pm_cb_f module_pm_conf) {}
-
-#endif /* CONFIG_PM_SUBSYSTEM */
