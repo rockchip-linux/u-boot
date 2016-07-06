@@ -141,6 +141,14 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus);
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz);
 
 
+/*
+ * rkclk_lcdc_dclk_pll_sel
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * pll_sel (lcdc dclk source pll select) : 0 - vpll, 1 - cpll, 2 - gpll
+ */
+int rkclk_lcdc_dclk_pll_sel(uint32 lcdc_id, uint32 pll_sel);
+
+
 #ifdef CONFIG_SECUREBOOT_CRYPTO
 /*
  * rkplat set cryto clock

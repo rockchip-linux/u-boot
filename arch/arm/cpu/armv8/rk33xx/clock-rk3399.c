@@ -331,6 +331,180 @@ static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 }
 
 
+#define MIN_FOUTVCO_FREQ	(800 * MHZ)
+#define MAX_FOUTVCO_FREQ	(2000 * MHZ)
+
+
+struct rk_pll_set {
+	/* fbdiv postdiv1 refdiv postdiv2 dsmpd frac */
+	uint32_t fbdiv;
+	uint32_t postdiv1;
+	uint32_t refdiv;
+	uint32_t postdiv2;
+	uint32_t dsmpd;
+	uint32_t frac;
+};
+
+static inline uint32 rkclk_gcd(uint32 numerator, uint32 denominator)
+{
+	uint32 a, b;
+
+	if (!numerator || !denominator)
+		return 0;
+
+	if (numerator > denominator) {
+		a = numerator;
+		b = denominator;
+	} else {
+		a = denominator;
+		b = numerator;
+	}
+
+	while (b != 0) {
+		int r = b;
+		b = a % b;
+		a = r;
+	}
+
+	return a;
+}
+
+
+static int rkclk_cal_postdiv(uint32_t fout_hz, uint32_t *postdiv1, uint32_t *postdiv2, uint32_t *foutvco)
+{
+	unsigned long freq;
+
+	if (fout_hz < MIN_FOUTVCO_FREQ) {
+		for (*postdiv1 = 1; *postdiv1 <= 7; (*postdiv1)++)
+			for (*postdiv2 = 1; *postdiv2 <= 7; (*postdiv2)++) {
+				freq = fout_hz * (*postdiv1) * (*postdiv2);
+				if ((freq >= MIN_FOUTVCO_FREQ) && (freq <= MAX_FOUTVCO_FREQ)) {
+					*foutvco = freq;
+					return 0;
+				}
+			}
+		printf("CANNOT FINE postdiv1/2 to make fout in range from 400M to 1600M,fout = %u\n", fout_hz);
+	} else {
+		*postdiv1 = 1;
+		*postdiv2 = 1;
+	}
+
+	return 0;
+}
+
+/*
+ * rkplat rkclk_cal_pll_set
+ * fin_hz: parent freq
+ * fout_hz: child freq which request
+ * refdiv fb postdiv1 postdiv2: pll set
+ *
+ */
+static int rkclk_cal_pll_set(uint32_t fin_hz, uint32_t fout_hz, struct rk_pll_set *pll_set)
+{
+	uint32_t gcd, foutvco = fout_hz;
+	uint64_t fin_64, frac_64;
+	uint32_t frac, postdiv1, postdiv2;
+
+	rkclk_cal_postdiv(fout_hz, &postdiv1, &postdiv2, &foutvco);
+	pll_set->postdiv1 = postdiv1;
+	pll_set->postdiv2 = postdiv2;
+
+	if ((fin_hz / MHZ * MHZ == fin_hz) && (fout_hz / MHZ * MHZ == fout_hz)) {
+		fin_hz /= MHZ;
+		foutvco /= MHZ;
+		gcd = rkclk_gcd(fin_hz, foutvco);
+		pll_set->refdiv = fin_hz / gcd;
+		pll_set->fbdiv = foutvco / gcd;
+
+		pll_set->frac = 0;
+		pll_set->dsmpd = 1;
+
+		debug("fin=%u, fout=%u, gcd=%u, refdiv=%u, fbdiv=%u, postdiv1=%u, postdiv2=%u, frac=%u\n",
+			fin_hz, fout_hz, gcd, pll_set->refdiv, pll_set->fbdiv,
+			pll_set->postdiv1, pll_set->postdiv2, pll_set->frac);
+	} else {
+		debug("frac div running, fin_hz=%u, fout_hz=%u, fin_INT_mhz=%u, fout_INT_mhz=%u\n",
+			 fin_hz, fout_hz, fin_hz / MHZ * MHZ, fout_hz / MHZ * MHZ);
+		debug("******frac get postdiv1=%u, postdiv2=%u, foutvco=%u\n",
+			 pll_set->postdiv1, pll_set->postdiv2, foutvco);
+		gcd = rkclk_gcd(fin_hz / MHZ, foutvco / MHZ);
+		pll_set->refdiv = fin_hz / MHZ / gcd;
+		pll_set->fbdiv = foutvco / MHZ / gcd;
+		debug("******frac get refdiv=%u, fbdiv=%u\n", pll_set->refdiv, pll_set->fbdiv);
+
+		pll_set->frac = 0;
+		pll_set->dsmpd = 1;
+
+		frac = (foutvco % MHZ);
+		fin_64 = fin_hz;
+		do_div(fin_64, (uint64_t)pll_set->refdiv);
+		frac_64 = (uint64_t)frac << 24;
+		do_div(frac_64, fin_64);
+		pll_set->frac = (uint32_t)frac_64;
+		if (pll_set->frac > 0)
+			pll_set->dsmpd = 0;
+		debug("frac=%x\n", pll_set->frac);
+	}
+
+	return 0;
+}
+
+
+/*
+ * rkplat clock set vpll
+ */
+int rkclk_set_vpll_rate(uint32_t pll_hz)
+{
+	const struct pll_clk_set *clkset = NULL;
+	struct rk_pll_set pll_set;
+	uint32_t pllcon0, pllcon1, pllcon2, pllcon3;
+	uint32_t i;
+
+	/* Find request vpll from vpll_clks set */
+	for (i = 0; i < ARRAY_SIZE(vpll_clks); i++) {
+		if (vpll_clks[i].rate == pll_hz) {
+			clkset = &vpll_clks[i];
+			break;
+		}
+	}
+
+	if (clkset != NULL) {
+		/* if request vpll rate in the vpll_clks set */
+		pllcon0 = clkset->pllcon0;
+		pllcon1 = clkset->pllcon1;
+		pllcon2 = clkset->pllcon2;
+		pllcon3 = clkset->pllcon3;
+	} else {
+		/* calcurate the request vpll rate set */
+		if (rkclk_cal_pll_set(24000000, pll_hz, &pll_set) == 0) {
+			/* pll con set */
+			pllcon0 = PLL_SET_FBDIV(pll_set.fbdiv);
+			pllcon1 = PLL_SET_POSTDIV1(pll_set.postdiv1) | PLL_SET_POSTDIV2(pll_set.postdiv2) | PLL_SET_REFDIV(pll_set.refdiv);
+			pllcon2 = PLL_SET_FRAC(pll_set.frac);
+			pllcon3 = PLL_SET_DSMPD(pll_set.dsmpd);
+		} else { /* calcurate error. */
+			return -1;
+		}
+	}
+
+	/* PLL enter slow-mode */
+	cru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, CRU_PLL_CON(VPLL_ID, 3));
+
+	/* pll config */
+	cru_writel(pllcon0, CRU_PLL_CON(VPLL_ID, 0));
+	cru_writel(pllcon1, CRU_PLL_CON(VPLL_ID, 1));
+	cru_writel(pllcon2, CRU_PLL_CON(VPLL_ID, 2));
+	cru_writel(pllcon3, CRU_PLL_CON(VPLL_ID, 3));
+
+	/* delay for pll setup */
+	rkclk_pll_wait_lock(VPLL_ID);
+
+	/* PLL enter normal-mode */
+	cru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, CRU_PLL_CON(VPLL_ID, 3));
+
+	return 0;
+}
+
 
 /*
  * rkplat clock set periph_h bus clock from codec pll or general pll
@@ -839,12 +1013,9 @@ void rkclk_dump_pll(void)
  * pll_sel (lcdc aclk source pll select) : 0 - vpll, 1 - cpll, 2 - gpll, 3 - npll
  * div (lcdc aclk div from pll) : 0x01 - 0x20
  */
-static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+static void rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
 	uint32 con = 0;
-
-	if (lcdc_id > 1)
-		return -1;
 
 	/* aclk div */
 	div = (div - 1) & 0x1f;
@@ -864,8 +1035,6 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 		cru_writel(con, CRU_CLKSELS_CON(47));
 	else
 		cru_writel(con, CRU_CLKSELS_CON(48));
-
-	return 0;
 }
 
 static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
@@ -873,6 +1042,9 @@ static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 	uint32 aclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
 	uint32 pll_rate = 0;
+
+	if (lcdc_id > 1)
+		return -1;
 
 	/* lcdc aclk from codec pll */
 	pll_sel = 1;
@@ -888,12 +1060,9 @@ static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 }
 
 
-static int rkclk_lcdc_hclk_config(uint32 lcdc_id, uint32 div)
+static void rkclk_lcdc_hclk_config(uint32 lcdc_id, uint32 div)
 {
 	uint32 con = 0;
-
-	if (lcdc_id > 1)
-		return -1;
 
 	/* hclk div */
 	div = (div - 1) & 0x1f;
@@ -903,8 +1072,6 @@ static int rkclk_lcdc_hclk_config(uint32 lcdc_id, uint32 div)
 		cru_writel(con, CRU_CLKSELS_CON(47));
 	else
 		cru_writel(con, CRU_CLKSELS_CON(48));
-
-	return 0;
 }
 
 /*
@@ -914,6 +1081,9 @@ static int rkclk_lcdc_hclk_config(uint32 lcdc_id, uint32 div)
 static int rkclk_lcdc_hclk_set(uint32 lcdc_id, uint32 hclk_hz)
 {
 	uint32 div;
+
+	if (lcdc_id > 1)
+		return -1;
 
 	div = rkclk_calc_clkdiv(VIO_ACLK_MAX, VIO_HCLK_MAX, 0);
 	debug("rk lcdc hclk config: hclk = %dHZ, div = %d\n", hclk_hz, div);
@@ -930,14 +1100,9 @@ static int rkclk_lcdc_hclk_set(uint32 lcdc_id, uint32 hclk_hz)
  * pll_sel (lcdc dclk source pll select) : 0 - vpll, 1 - cpll, 2 - gpll
  * div (lcdc dclk div from pll) : 0x01 - 0x100
  */
-static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
+static void rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 {
 	uint32 con = 0;
-
-	if (lcdc_id > 1)
-		return -1;
-
-	con = 0;
 
 	/* dclk pll source select */
 	if (pll_sel == 0)
@@ -955,26 +1120,82 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 		cru_writel(con, CRU_CLKSELS_CON(49));
 	else
 		cru_writel(con, CRU_CLKSELS_CON(50));
+}
 
-	return 0;
+
+static uint32 rkclk_lcdc_dclk_pll_src(uint32 lcdc_id)
+{
+	uint32 pll_sel = 0;
+
+	/* lcdc dclk source pll : 0 - vpll, 1 - cpll, 2 - gpll */
+	if (lcdc_id == 0)
+		pll_sel = (cru_readl(CRU_CLKSELS_CON(49)) >> 8) & 0x3;
+	else
+		pll_sel = (cru_readl(CRU_CLKSELS_CON(50)) >> 8) & 0x3;
+
+	return pll_sel;
 }
 
 
 static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
 	uint32 dclk_info = 0;
-	uint32 pll_sel = 0, div = 0;
+	uint32 pll_sel = 0, pll_rate = 0, div = 0;
 
-	/* lcdc dclk from vpll */
-	pll_sel = 0;
-	div = 1;
-	rkclk_pll_set_rate(VPLL_ID, dclk_hz, NULL);
+	if (lcdc_id > 1)
+		return -1;
+
+	pll_sel = rkclk_lcdc_dclk_pll_src(lcdc_id);
+
+	if (pll_sel == 0) {
+		/* lcdc dclk from vpll */
+		div = 1;
+		rkclk_set_vpll_rate(dclk_hz);
+	} else if (pll_sel == 1) {
+		/* lcdc dclk from cpll */
+		pll_rate = gd->pci_clk;
+		div = rkclk_calc_clkdiv(pll_rate, dclk_hz, 0);
+	} else {
+		/* lcdc dclk from gpll */
+		pll_rate = gd->bus_clk;
+		div = rkclk_calc_clkdiv(pll_rate, dclk_hz, 0);
+	}
 	dclk_info = (pll_sel << 16) | div;
-	debug("rk lcdc dclk set: dclk = %dHZ, pll select = %d, div = %d\n", dclk_hz, pll_sel, div);
+	printf("rk lcdc - %d dclk set: dclk = %dHZ, pll select = %d, div = %d\n", lcdc_id, dclk_hz, pll_sel, div);
 
 	rkclk_lcdc_dclk_config(lcdc_id, pll_sel, div);
 
 	return dclk_info;
+}
+
+
+/*
+ * rkclk_lcdc_dclk_pll_sel
+ * lcdc_id (lcdc id select) : 0 - lcdc0, 1 - lcdc1
+ * pll_sel (lcdc dclk source pll select) : 0 - vpll, 1 - cpll, 2 - gpll
+ */
+__maybe_unused
+int rkclk_lcdc_dclk_pll_sel(uint32 lcdc_id, uint32 pll_sel)
+{
+	uint32 con = 0;
+
+	if (lcdc_id > 1)
+		return -1;
+
+	/* dclk pll source select */
+	if (pll_sel == 0)
+		con |= (3 << (8 + 16)) | (0 << 8);
+	else if (pll_sel == 1)
+		con |= (3 << (8 + 16)) | (1 << 8);
+	else
+		con |= (3 << (8 + 16)) | (2 << 8);
+
+	if (lcdc_id == 0)
+		cru_writel(con, CRU_CLKSELS_CON(49));
+	else
+		cru_writel(con, CRU_CLKSELS_CON(50));
+
+	return 0;
 }
 
 
@@ -988,13 +1209,23 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
 	uint32 dclk_div;
 	uint32 dclk_info = 0;
+	uint32 pll_rate = 0, pll_sel = 0;
 
 	rkclk_lcdc_aclk_set(lcdc_id, VIO_ACLK_MAX);
 	rkclk_lcdc_hclk_set(lcdc_id, VIO_HCLK_MAX);
 	dclk_info = rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
 
 	dclk_div = dclk_info & 0x0000FFFF;
-	return rkclk_pll_get_rate(VPLL_ID) / dclk_div;
+	pll_sel = (dclk_info & 0xFFFF0000) >> 16;
+
+	if (pll_sel == 0)
+		pll_rate = rkclk_pll_get_rate(VPLL_ID);
+	else if (pll_sel == 1)
+		pll_rate = rkclk_pll_get_rate(CPLL_ID);
+	else
+		pll_rate = rkclk_pll_get_rate(GPLL_ID);
+
+	return  pll_rate / dclk_div;
 }
 
 
