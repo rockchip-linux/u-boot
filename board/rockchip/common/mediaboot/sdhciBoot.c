@@ -5,8 +5,10 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include "../config.h"
-#include <mmc.h>
 #include "sdhciBoot.h"
+
+#include "../sdhci/mmc.h"
+#include "../sdhci/sdhci.h"
 
 #define SDHCI_EMMC_DEV_ID		0
 #define EMMC_BOOT_PART_SIZE		1024
@@ -16,17 +18,13 @@
 
 
 static uint32 Sdhci_Data[(1024 * 8 * 4 / 4)] __attribute__((aligned(ARCH_DMA_MINALIGN)));
-static block_dev_desc_t *gblock_dev = NULL;
 static uint32 UserCapSize = 0;
 
 static uint32 sdhci_block_read(uint32 blk_start, uint32 blk_cnt, void *pbuf)
 {
 	uint32 n;
 
-	if (gblock_dev == NULL)
-		return -1;
-
-	n = gblock_dev->block_read(SDHCI_EMMC_DEV_ID, blk_start, blk_cnt, pbuf);
+	n = block_mmc_read(SDHCI_EMMC_DEV_ID, blk_start, blk_cnt, pbuf);
 
 	return (n == blk_cnt) ? 0 : -1;
 }
@@ -35,10 +33,7 @@ static uint32 sdhci_block_write(uint32 blk_start, uint32 blk_cnt, void *pbuf)
 {
 	uint32 n;
 
-	if (gblock_dev == NULL)
-		return -1;
-
-	n = gblock_dev->block_write(SDHCI_EMMC_DEV_ID, blk_start, blk_cnt, pbuf);
+	n = block_mmc_write(SDHCI_EMMC_DEV_ID, blk_start, blk_cnt, pbuf);
 
 	return (n == blk_cnt) ? 0 : -1;
 }
@@ -46,28 +41,16 @@ static uint32 sdhci_block_write(uint32 blk_start, uint32 blk_cnt, void *pbuf)
 
 uint32 SdhciInit(uint32 ChipSel)
 {
-	uint32 emmc_freq;
-
-	emmc_freq = rkclk_get_sdhci_emmc_clk();
-
-	printf("sdhci emmc input clock = %d\n", emmc_freq);
-
-	if (rk_sdhci_init(EMMC_BASE_ADDR, emmc_freq) < 0) {
-		printf("SdhciInit Error!\n");
-		return -1;
-	}
-
-	gblock_dev = mmc_get_dev(SDHCI_EMMC_DEV_ID);
-	if (gblock_dev == NULL) {
-		printf("Error: can't find mmc device.\n");
+    if (0 != mmc_init(ChipSel)) {
+		printf("SdhciInit%d Error!\n", ChipSel);
 		return -1;
 	}
 
 	/* Total block size */
-	UserCapSize = (uint32)gblock_dev->lba;
+	UserCapSize = mmc_get_capacity(ChipSel);
 
 	/* Read id blk data */
-	gblock_dev->block_read(SDHCI_EMMC_DEV_ID, SD_CARD_BOOT_PART_OFFSET, 4, gIdDataBuf);
+	block_mmc_read(SDHCI_EMMC_DEV_ID, SD_CARD_BOOT_PART_OFFSET, 4, gIdDataBuf);
 
 	debug("Total block = 0x%08x, FwPartOffset = 0x%08x\n", UserCapSize, (uint32)SD_CARD_BOOT_PART_OFFSET);
 

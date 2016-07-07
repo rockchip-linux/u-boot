@@ -183,14 +183,20 @@
 	#define CONFIG_RKEFUSE_V2
 #endif
 
+
 /* sdhci config */
 #ifdef CONFIG_RK_SDHCI_BOOT_EN
-	#define CONFIG_MMC
-	#define CONFIG_GENERIC_MMC
-	#define CONFIG_PARTITIONS
-	#define CONFIG_SDHCI
-	#define CONFIG_RK_SDHCI
+	/* general sdhci driver */
+	#undef CONFIG_MMC
+	#undef CONFIG_GENERIC_MMC
+	#undef CONFIG_PARTITIONS
+	#undef CONFIG_SDHCI
+	#undef CONFIG_RK_SDHCI
+
+	/* rk arasan sdhci driver */
+	#define CONFIG_RK_AR_SDHCI
 #endif
+
 
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA

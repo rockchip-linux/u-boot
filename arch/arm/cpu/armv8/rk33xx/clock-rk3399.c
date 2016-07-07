@@ -1021,6 +1021,35 @@ uint32 rkclk_get_sdhci_emmc_clk(void)
 		return (24 * MHZ) / div;
 }
 
+uint32 rkclk_set_sdhci_emmc_clk(uint32 clock)
+{
+    uint32 clk_base, pll_sel, div;
+
+    if (clock == 0)
+        return 0;
+
+    if (clock <= 24000000) {
+        clk_base =  24000000;
+        pll_sel = 0x4;          //xin_24m
+    }
+    else {
+        clk_base = RKCLK_CPLL_FREQ_HZ;
+        pll_sel = 0x0;
+    }
+
+    div = (clk_base+clock-1)/clock;
+    if (((div & 0x1) == 1) && (div != 1))
+        div++;
+
+    if ( div > 0x7f)
+        div = 0x7f;
+
+    //printf("set_sdhci_clk clock:%d,clk_base:%d,div:%d\n", clock, clk_base, div);
+
+    cru_writel((0x7 << 24) | (0x7F << 16) | (pll_sel << 8) | ((div-1) << 0), CRU_CLKSELS_CON(22));
+    //return (clk_base+div-1)/div;
+    return clk_base/div;
+}
 
 /*
  * rk mmc clock source
