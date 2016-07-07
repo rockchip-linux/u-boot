@@ -252,7 +252,16 @@ static int rkkey_parse_powerkey_dt(const void *blob, struct fdt_gpio_state *powe
 {
 	int powerkey_node;
 
+#if 0
 	powerkey_node = fdt_path_offset(blob, "/adc/key/power-key");
+#else
+	powerkey_node = fdt_node_offset_by_compatible(blob, -1, "rockchip,key");
+	if (powerkey_node < 0) {
+		printf("no key node\n");
+		return -1;
+	}
+	powerkey_node = fdt_subnode_offset(blob, powerkey_node, "power-key");
+#endif
 	if (powerkey_node < 0) {
 		printf("no power key node\n");
 		return -1;
