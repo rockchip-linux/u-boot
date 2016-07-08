@@ -1565,11 +1565,11 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 			else if (hdmi_dev->video.color_output == HDMI_COLOR_YCBCR420)
 				hdmi_dev->video.color_input = HDMI_COLOR_YCBCR420;
 		}
-		if ((hdmi_dev->feature & SUPPORT_DEEP_10BIT) &&
+		/*if ((hdmi_dev->feature & SUPPORT_DEEP_10BIT) &&
 		    (deepcolor & HDMI_DEEP_COLOR_30BITS))
 			hdmi_dev->video.color_output_depth = 10;
-		else
-			hdmi_dev->video.color_output_depth = 8;
+		else*/
+		hdmi_dev->video.color_output_depth = 8;
 	}
 }
 
