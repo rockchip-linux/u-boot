@@ -1433,27 +1433,20 @@ SdhciHost *new_mem_sdhci_host(void *ioaddr, int platform_info,
 	return host;
 }
 
-uint32_t mmc_get_capacity(uint32_t cardId)
+uint32_t mmc_get_capacity(void)
 {
     SdhciHost *host;
-
-    if (2 != cardId)
-        return 0;
 
     host = mmc_get_host();
 
     return (host->mmc_ctrlr.media->capacity>>9);
 }
 
-int mmc_init(uint32_t    cardId)
+int mmc_init(void)
 {
     int32  ret = -1;
     SdhciHost *host = NULL;
 
-    if (3 != cardId)
-        return -1;
-
-    //sdmmcGpioInit(cardId);
     __mmc_debug = 0;
     __mmc_trace = 0;
 

@@ -41,13 +41,13 @@ static uint32 sdhci_block_write(uint32 blk_start, uint32 blk_cnt, void *pbuf)
 
 uint32 SdhciInit(uint32 ChipSel)
 {
-    if (0 != mmc_init(ChipSel)) {
+	if (0 != mmc_init()) {
 		printf("SdhciInit%d Error!\n", ChipSel);
 		return -1;
 	}
 
 	/* Total block size */
-	UserCapSize = mmc_get_capacity(ChipSel);
+	UserCapSize = mmc_get_capacity();
 
 	/* Read id blk data */
 	block_mmc_read(SDHCI_EMMC_DEV_ID, SD_CARD_BOOT_PART_OFFSET, 4, gIdDataBuf);

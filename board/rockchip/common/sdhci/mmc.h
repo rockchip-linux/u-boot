@@ -354,9 +354,9 @@ lba_t block_mmc_fill_write(BlockDevOps *me, lba_t start, lba_t count,
 
 int mmc_retune(MmcCtrlr *ctrlr);
 
-int mmc_init(uint32_t cardId);
+int mmc_init(void);
 
-uint32_t mmc_get_capacity(uint32_t cardId);
+uint32_t mmc_get_capacity(void);
 
 // Debug functions.
 extern int __mmc_debug, __mmc_trace;
