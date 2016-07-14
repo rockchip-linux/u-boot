@@ -11,13 +11,13 @@ enum pmic_id {
 	PMIC_ID_UNKNOW,
 	PMIC_ID_RICOH619,
 	PMIC_ID_ACT8846,
+	PMIC_ID_RK805,
 	PMIC_ID_RK808,
 	PMIC_ID_RK816,
 	PMIC_ID_RK818,
 	PMIC_ID_RT5025,
 	PMIC_ID_RT5036,
 	PMIC_ID_ACT8931,
-	
 };
 
 /* rockchip first i2c node as parent for pmic */
@@ -31,6 +31,7 @@ int pmic_act8846_init(unsigned char bus);
 int pmic_ricoh619_init(unsigned char bus);
 int pmic_rk808_init(unsigned char bus);
 int pmic_rk816_init(unsigned char bus);
+char *pmic_get_rk8xx_id(unsigned char bus);
 int pmic_rk818_init(unsigned char bus);
 int pmic_rt5025_init(unsigned char bus);
 int pmic_rt5036_init(unsigned char bus);

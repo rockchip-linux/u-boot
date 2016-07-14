@@ -8,6 +8,12 @@
 #include <power/pmic.h>
 #include <fdtdec.h>
 
+#define COMPAT_ROCKCHIP_RK805		"rockchip,rk805"
+#define RK805_NUM_REGULATORS		7
+#define RK805_I2C_ADDR			0x18
+#define RK805_DCDC_EN_REG		0x23
+#define RK805_LDO_EN_REG		0x27
+
 #define COMPAT_ROCKCHIP_RK816		"rockchip,rk816"
 #define RK816_I2C_ADDR			0x1a
 #define RK816_I2C_SPEED			200000
@@ -167,6 +173,20 @@
 struct pmic_rk816 {
 	struct pmic *pmic;
 	int node;	/*device tree node*/
+	char *name;
+	struct fdt_regulator_match *reg_match;
+	struct fdt_regulator_match *reg1_match;
+	int reg_nums;
+	int (*pre_init_regulator)(unsigned char bus, uchar addr);
+	int (*enable_regulator)(int id);
+	int (*disable_regulator)(int id);
+	int (*fg_init)(unsigned char bus, uchar addr);
+};
+
+struct of_device_id {
+	const char name[32];
+	const char compatible[32];
+	const void *data;
 };
 
 #endif

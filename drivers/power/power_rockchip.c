@@ -192,6 +192,7 @@ int pmic_init(unsigned char  bus)
 {
 	int ret = -1;
 	int i;
+	char *pmic_name;
 
 	for (i = 0; i < MAX_DCDC_NUM; i++)
 		regulator_init_pmic_matches[i].name = "NULL";
@@ -238,10 +239,16 @@ int pmic_init(unsigned char  bus)
 		printf("pmic:rk818\n");
 		return 0;
 	}
+
 	ret = pmic_rk816_init(bus);
 	if (ret >= 0) {
-		set_rockchip_pmic_id(PMIC_ID_RK816);
-		printf("pmic:rk816\n");
+		pmic_name = pmic_get_rk8xx_id(bus);
+		if (!strcmp(pmic_name, "rk816"))
+			set_rockchip_pmic_id(PMIC_ID_RK816);
+		else if (!strcmp(pmic_name, "rk805"))
+			set_rockchip_pmic_id(PMIC_ID_RK805);
+
+		printf("pmic:%s\n", pmic_name);
 		return 0;
 	}
 #endif
@@ -321,6 +328,7 @@ void shut_down(void)
 			pmic_rk818_shut_down();
 			break;
 		case PMIC_ID_RK816:
+		case PMIC_ID_RK805:
 			pmic_rk816_shut_down();
 			break;
 #endif
