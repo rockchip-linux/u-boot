@@ -86,7 +86,6 @@ struct pmic *pmic_alloc(void)
 		printf("%s: No available memory for allocation!\n", __func__);
 		return NULL;
 	}
-	memset(p, 0, sizeof(struct pmic));
 
 	list_add_tail(&p->list, &pmic_list);
 
