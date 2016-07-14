@@ -9,7 +9,7 @@
 /*******************register definition**********************/
 struct vop_device rk322x_vop;
 #if defined(CONFIG_RKCHIP_RK3399)
-//extern int rk32_edp_enable(vidinfo_t * vid);
+extern int rk32_edp_enable(vidinfo_t * vid);
 extern int rk32_mipi_enable(vidinfo_t * vid);
 extern int rk32_dsi_enable(void);
 extern int rk32_dsi_sync(void);
@@ -1148,7 +1148,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	vop_cfg_done(vop_dev);
 #if defined(CONFIG_RKCHIP_RK3399)
 	if (vid->screen_type == SCREEN_EDP) {
-		//rk32_edp_enable(vid);
+		rk32_edp_enable(vid);
 	} else if ((vid->screen_type == SCREEN_MIPI) ||
 		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
 		rk32_mipi_enable(vid);

@@ -31,6 +31,29 @@ static struct rk32_edp rk32_edp;
 #else
 #define cpu_is_rk3288() 0
 #endif
+
+#if (defined(CONFIG_RKCHIP_RK3399))
+#define cpu_is_rk3399() 1
+#else
+#define cpu_is_rk3399() 0
+#endif
+
+#if defined(CONFIG_RKCHIP_RK3399)
+static int rk32_edp_clk_enable(struct rk32_edp *edp)
+{
+	u32 val;
+
+	/* pclk_edp_en : bit 11 */
+	val = 0x08000000;
+	writel(val, RKIO_CRU_PHYS + 0x032c);
+
+	/* pclk_edp_ctrl_en : bit 13 */
+	val = 0x20000000;
+	writel(val, RKIO_CRU_PHYS + 0x0380);
+
+	return 0;
+}
+#else
 static int rk32_edp_clk_enable(struct rk32_edp *edp)
 {
 	u32 val;
@@ -44,6 +67,7 @@ static int rk32_edp_clk_enable(struct rk32_edp *edp)
 	writel(val,RKIO_CRU_PHYS + 0x16c); /*open gate clk_edp_24M clk_edp*/
 	return 0;
 }
+#endif
 
 #ifndef RUN_IN_UBOOT
 static int rk32_edp_clk_disable(struct rk32_edp *edp)
@@ -70,8 +94,14 @@ static int rk32_edp_pre_init(void)
 		val = 0x80000000;
 		writel(val, RKIO_CRU_PHYS + 0x01d0);
 		udelay(1);
-	}
-	else {
+	} else if (cpu_is_rk3399()) {
+		val = (0x01 << 29) | (0x01 << 13);
+		writel(val, RKIO_CRU_PHYS + 0x0444);
+		udelay(20);
+
+		val = (0x01 << 29) | (0x00 << 13);
+		writel(val, RKIO_CRU_PHYS + 0x0444);
+	} else {
 		val = 0x01 | (0x01 << 16);
 		writel(val, RKIO_GRF_PHYS + RK3368_GRF_SOC_CON4);
 
@@ -101,7 +131,14 @@ static int rk32_edp_init_edp(struct rk32_edp *edp)
 			val = EDP_SEL_VOP_LIT << 16;
 		writel(val, RKIO_GRF_PHYS + 0x025c);
 	}
-	
+
+	if (cpu_is_rk3399()) {
+		if (vid->lcdc_id == 1)  /*select lcdc*/
+			val = EDP_SEL_VOP_LIT | (EDP_SEL_VOP_LIT << 16);
+		else
+			val = EDP_SEL_VOP_LIT << 16;
+		writel(val, RKIO_GRF_PHYS + 0x6250);
+	}
 	rk32_edp_reset(edp);
 	rk32_edp_init_refclk(edp);
 	rk32_edp_init_interrupt(edp);
@@ -1109,6 +1146,7 @@ int rk32_edp_enable(vidinfo_t *vid)
 {
 	int ret = 0;
 	struct rk32_edp *edp = &rk32_edp;
+
 	edp->regs = 0xff970000;
 	edp->vid = vid;
 	edp->video_info.h_sync_polarity	= 0;

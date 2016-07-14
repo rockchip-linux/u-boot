@@ -326,6 +326,7 @@
 #endif
 
 #define CONFIG_RK32_DSI
+#define CONFIG_RK3399_EDP
 
 #undef CONFIG_UBOOT_CHARGE
 
