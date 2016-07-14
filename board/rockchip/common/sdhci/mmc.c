@@ -42,7 +42,7 @@
 
 //#define CONFIG_MMC_H400
 #define CONFIG_MMC_CLK_MAX      100*1000*1000
-#define CONFIG_ENHANCE_STROBE 
+//#define CONFIG_ENHANCE_STROBE 
 
 
 /* Set block count limit because of 16 bit register limit on some hardware*/
@@ -629,13 +629,9 @@ static int mmc_select_hs400(MmcMedia *media)
 	      media->ctrlr->bus_width == 8))
 		return 0;
 
-	/* Reduce frequency to HS frequency */
-	mmc_set_clock(media->ctrlr, MMC_CLOCK_52MHZ);
-
 	/* Switch card to HS mode */
     err = mmc_switch(media, EXT_CSD_CMD_SET_NORMAL,
                  EXT_CSD_HS_TIMING, 1);
-
 	if (err) {
 		mmc_error("switch to high-speed from hs200 failed, err:%d\n", err);
 		return err;
@@ -643,6 +639,8 @@ static int mmc_select_hs400(MmcMedia *media)
 
 	/* Set host controller to HS timing */
 	mmc_set_timing(media->ctrlr, MMC_TIMING_MMC_HS);
+	/* Reduce frequency to HS frequency */
+	mmc_set_clock(media->ctrlr, MMC_CLOCK_52MHZ);
 
 	/* Switch card to DDR */
 	err = mmc_switch(media, EXT_CSD_CMD_SET_NORMAL,
@@ -812,13 +810,13 @@ static int mmc_change_freq(MmcMedia *media)
 		return err;
 			
 	/* Now check to see that it worked */
-	err = mmc_send_ext_csd(media->ctrlr, ext_csd);
+	/*err = mmc_send_ext_csd(media->ctrlr, ext_csd);
 	if (err)
-		return err;
+		return err;*/
 
 	/* No high-speed support */
-	if (!ext_csd[EXT_CSD_HS_TIMING])
-		return 0;
+	//if (!ext_csd[EXT_CSD_HS_TIMING])
+	//	return 0;
 
 	/* High Speed is set, there are types: HS200, 52MHz, 26MHz */
     if (cardtype & MMC_HS_HS400ES)
@@ -1142,7 +1140,7 @@ static int mmc_startup(MmcMedia *media)
 		return err;
 
 	/* Restrict card's capabilities by what the host can do */
-	media->caps &= media->ctrlr->caps;
+	//media->caps &= media->ctrlr->caps;
 
 	if (IS_SD(media)) {
 		if (media->caps & MMC_MODE_4BIT) {
@@ -1215,7 +1213,8 @@ static int mmc_startup(MmcMedia *media)
 				clock = MMC_CLOCK_26MHZ;
 		}
 	}
-	mmc_set_clock(media->ctrlr, clock);
+
+    mmc_set_clock(media->ctrlr, clock);
 
     if (media->caps & MMC_MODE_HS_200MHz) {
         err = mmc_hs200_tuning(media->ctrlr);

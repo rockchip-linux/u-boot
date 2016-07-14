@@ -74,42 +74,30 @@ uint64_t timer_us(uint64_t base)
 
 int sdhci_config_phy(uint32_t clock)
 {
-    
     u32 timeout;
-
-    if (clock <= MMC_CLOCK_26MHZ)
-        return 0;
 
     //disalbe dll
     grf_writel(((1<<1)<<16)|(0<<1),  GRF_EMMCPHY_CON(6));
- 
-    if (clock >= MMC_CLOCK_200MHZ) {
-        //Select the frequency range of DLL operation:200MHZ
-        grf_writel(((0x3<<12)<<16) | (0x0<<12),  GRF_EMMCPHY_CON(0));
 
-        //disable output tap delay
-        grf_writel(((1<<11)<<16)|(0<<11),  GRF_EMMCPHY_CON(0));
-
+    if (!(grf_readl(GRF_EMMCPHY_CON(0)) & (1<<11))) {
         //output tap delay select
-        grf_writel(((0xf<<7)<<16)|(0x4<<7),  GRF_EMMCPHY_CON(0));
+        grf_writel(((0xf<<7)<<16)|(0x6<<7),  GRF_EMMCPHY_CON(0));
 
         //enable output tap delay
         grf_writel(((1<<11)<<16)|(1<<11),  GRF_EMMCPHY_CON(0));
     }
-    else {
-        if (grf_readl(GRF_EMMCPHY_CON(0)) & ((1<<11))) {
-            //disable output tap delay
-            grf_writel(((1<<11)<<16)|(0<<11),  GRF_EMMCPHY_CON(0));
-        }
 
-        if (clock > MMC_CLOCK_52MHZ) {
-            //Select the frequency range of DLL operation:100MHZ
-            grf_writel(((0x3<<12)<<16) | (0x2<<12),  GRF_EMMCPHY_CON(0));
-        }
-        else if (clock > MMC_CLOCK_26MHZ) {
-            //Select the frequency range of DLL operation:50MHZ
-            grf_writel(((0x3<<12)<<16) | (0x1<<12),  GRF_EMMCPHY_CON(0));
-        }
+    if (clock >= MMC_CLOCK_200MHZ) {
+        //Select the frequency range of DLL operation:200MHZ
+        grf_writel(((0x3<<12)<<16) | (0x0<<12),  GRF_EMMCPHY_CON(0));
+    }
+    else if (clock > MMC_CLOCK_52MHZ) {
+        //Select the frequency range of DLL operation:100MHZ
+        grf_writel(((0x3<<12)<<16) | (0x2<<12),  GRF_EMMCPHY_CON(0));
+    }
+    else if (clock > MMC_CLOCK_26MHZ) {
+        //Select the frequency range of DLL operation:50MHZ
+        grf_writel(((0x3<<12)<<16) | (0x1<<12),  GRF_EMMCPHY_CON(0));
     }
 
     //enalbe dll
@@ -558,19 +546,23 @@ void sdhci_set_uhs_signaling(SdhciHost *host, unsigned int timing)
 	/* Select Bus Speed Mode for host */
 	ctrl_2 &= ~SDHCI_CTRL_UHS_MASK;
 	if ((timing == MMC_TIMING_MMC_HS200) ||
-	    (timing == MMC_TIMING_UHS_SDR104))
+     (timing == MMC_TIMING_UHS_SDR104))
 		ctrl_2 |= SDHCI_CTRL_UHS_SDR104;
-	else if (timing == MMC_TIMING_UHS_SDR12)
+	else if ((timing == MMC_TIMING_UHS_SDR12) ||
+            (timing == MMC_TIMING_LEGACY))
 		ctrl_2 |= SDHCI_CTRL_UHS_SDR12;
 	else if (timing == MMC_TIMING_UHS_SDR25)
 		ctrl_2 |= SDHCI_CTRL_UHS_SDR25;
-	else if (timing == MMC_TIMING_UHS_SDR50)
-		ctrl_2 |= SDHCI_CTRL_UHS_SDR50;
+	else if ((timing == MMC_TIMING_UHS_SDR50) || 
+            (timing == MMC_TIMING_MMC_HS)) {
+        ctrl_2 |= SDHCI_CTRL_UHS_SDR50;
+    }
 	else if ((timing == MMC_TIMING_UHS_DDR50) ||
 		 (timing == MMC_TIMING_MMC_DDR52))
 		ctrl_2 |= SDHCI_CTRL_UHS_DDR50;
-	else if (timing == MMC_TIMING_MMC_HS400)
-		ctrl_2 |= SDHCI_CTRL_HS400; /* Non-standard */
+	else if (timing == MMC_TIMING_MMC_HS400) {
+        ctrl_2 |= SDHCI_CTRL_HS400; /* Non-standard */
+    }
 
     sdhci_writew(host, ctrl_2 | SDHCI_CTRL_VDD_180 | SDHCI_CTRL_DRV_TYPE_A, SDHCI_HOST_CONTROL2);
     mmc_debug("host ctrl_2:0x%x\n", sdhci_readw(host, SDHCI_HOST_CONTROL2));
@@ -871,6 +863,7 @@ static void sdhci_set_ios(MmcCtrlr *mmc_ctrlr)
     if ((mmc_ctrlr->timing == MMC_TIMING_MMC_HS400) ||
         (mmc_ctrlr->timing == MMC_TIMING_MMC_HS200) ||
         (mmc_ctrlr->timing == MMC_TIMING_MMC_DDR52) ||
+        (mmc_ctrlr->timing == MMC_TIMING_MMC_HS)    ||
         (mmc_ctrlr->timing == MMC_TIMING_UHS_SDR50) ||
         (mmc_ctrlr->timing == MMC_TIMING_UHS_SDR104) ||
         (mmc_ctrlr->timing == MMC_TIMING_UHS_DDR50) ||
