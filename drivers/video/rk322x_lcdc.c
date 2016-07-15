@@ -22,6 +22,7 @@ extern int rk32_dsi_disable(void);
 #define  pr_err(args...)  debug(args)
 #endif
 
+#if defined(CONFIG_RKCHIP_RK3399)
 static const u32 csc_r2y_bt709_full_10[12] = {
 	0x00bb, 0x0275, 0x003f, 0x10200,
 	0xff99, 0xfea5, 0x01c2, 0x80200,
@@ -55,6 +56,7 @@ static void vop_load_csc_table(struct vop_device *vop_dev, u32 offset,
 		vop_load_csc_table(dev, \
 				   WIN0_YUV2YUV_##mode + 0x60 * win_id, \
 				   table)
+#endif
 
 static int vop_vop_csc_mode(struct vop_device *vop_dev,
 			    struct fb_dsp_info *fb_info,
@@ -1065,6 +1067,20 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 			V_DITHER_DOWN_MODE(0);
 		break;
 #endif
+		case OUT_YUV_422:
+			face = OUT_YUV_422;
+			val = V_DITHER_DOWN_EN(0) | V_DITHER_UP_EN(1) |
+				V_PRE_DITHER_DOWN_EN(1) |
+				V_DITHER_DOWN_SEL(0) |
+				V_DITHER_DOWN_MODE(0);
+			break;
+		case OUT_YUV_422_10BIT:
+			face = OUT_YUV_422;
+			val = V_DITHER_DOWN_EN(0) | V_DITHER_UP_EN(1) |
+				V_PRE_DITHER_DOWN_EN(0) |
+				V_DITHER_DOWN_SEL(0) |
+				V_DITHER_DOWN_MODE(0);
+			break;
 	case OUT_P101010:
 #ifdef CONFIG_RKCHIP_RK322X
 		if (rk_get_cpu_version()) {
@@ -1116,6 +1132,12 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 #endif
 		val = V_HDMI_OUT_EN(1) | V_SW_UV_OFFSET_EN(0);
 		vop_msk_reg(vop_dev, SYS_CTRL, val);
+			val = V_HDMI_HSYNC_POL(screen->pin_hsync) |
+				V_HDMI_VSYNC_POL(screen->pin_vsync) |
+				V_HDMI_DEN_POL(screen->pin_den) |
+				V_HDMI_DCLK_POL(screen->pin_dclk);
+			/*hsync vsync den dclk polo,dither */
+			vop_msk_reg(vop_dev, DSP_CTRL1, val);
 		break;
 	case SCREEN_RGB:
 	case SCREEN_LVDS:
@@ -1125,10 +1147,22 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	case SCREEN_MIPI:
 		val = V_MIPI_OUT_EN(1);
 		vop_msk_reg(vop_dev, SYS_CTRL, val);
+			val = V_MIPI_HSYNC_POL(screen->pin_hsync) |
+				V_MIPI_VSYNC_POL(screen->pin_vsync) |
+				V_MIPI_DEN_POL(screen->pin_den) |
+				V_MIPI_DCLK_POL(screen->pin_dclk);
+			/*hsync vsync den dclk polo,dither */
+			vop_msk_reg(vop_dev, DSP_CTRL1, val);
 		break;
 	case SCREEN_DUAL_MIPI:
 		val = V_MIPI_OUT_EN(1) | V_MIPI_DUAL_CHANNEL_EN(1);
 		vop_msk_reg(vop_dev, SYS_CTRL, val);
+			val = V_MIPI_HSYNC_POL(screen->pin_hsync) |
+				V_MIPI_VSYNC_POL(screen->pin_vsync) |
+				V_MIPI_DEN_POL(screen->pin_den) |
+				V_MIPI_DCLK_POL(screen->pin_dclk);
+			/*hsync vsync den dclk polo,dither */
+			vop_msk_reg(vop_dev, DSP_CTRL1, val);
 		break;
 	case SCREEN_EDP:
 #if defined(CONFIG_RKCHIP_RK3399)
@@ -1138,7 +1172,34 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 #endif
 		val = V_EDP_OUT_EN(1);
 		vop_msk_reg(vop_dev, SYS_CTRL, val);
+			val = V_EDP_HSYNC_POL(screen->pin_hsync) |
+				V_EDP_VSYNC_POL(screen->pin_vsync) |
+				V_EDP_DEN_POL(screen->pin_den) |
+				V_EDP_DCLK_POL(screen->pin_dclk);
+			/*hsync vsync den dclk polo,dither */
+			vop_msk_reg(vop_dev, DSP_CTRL1, val);
 		break;
+#if defined(CONFIG_RKCHIP_RK3399)
+		case SCREEN_DP:
+			dclk_ddr = 0;
+			if ((vop_dev->soc_type == CONFIG_RK3399) &&
+			    ((screen->face == OUT_P888) ||
+			     (screen->face == OUT_P101010))) {
+				if (vop_dev->id == 0)
+					face = OUT_P101010;
+				else
+					face = OUT_P888;
+			}
+			val = V_DP_OUT_EN(1);
+			vop_msk_reg(vop_dev, SYS_CTRL, val);
+			val = V_DP_HSYNC_POL(screen->pin_hsync) |
+				V_DP_VSYNC_POL(screen->pin_vsync) |
+				V_DP_DEN_POL(screen->pin_den) |
+				V_DP_DCLK_POL(screen->pin_dclk);
+			/*hsync vsync den dclk polo,dither */
+			vop_msk_reg(vop_dev, DSP_CTRL1, val);
+			break;
+#endif
 	default:
 		dev_err(vop_dev->dev, "un supported interface[%d]!\n",
 			screen->type);
@@ -1146,12 +1207,6 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 
 
 	}
-	val = V_HDMI_HSYNC_POL(screen->pin_hsync) |
-		V_HDMI_VSYNC_POL(screen->pin_vsync) |
-		V_HDMI_DEN_POL(screen->pin_den) |
-		V_HDMI_DCLK_POL(screen->pin_dclk);
-	/*hsync vsync den dclk polo,dither */
-	vop_msk_reg(vop_dev, DSP_CTRL1, val);
 
 	if (screen->color_mode == COLOR_RGB)
 		vop_dev->overlay_mode = VOP_RGB_DOMAIN;

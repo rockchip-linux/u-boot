@@ -275,7 +275,7 @@ int rk_fb_pwr_disable(struct rockchip_fb *fb)
 
 int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 {
-	int node, screen_node;
+	int node;
 	int phandle;
 
 	/* logo_on flag has been checked in the function board_fbt_preboot() */
@@ -295,6 +295,7 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	node = fdt_node_offset_by_phandle(blob, phandle);
 #else
 #if defined(CONFIG_RKCHIP_RK3399)
+	int screen_node;
 	screen_node = fdt_node_offset_by_compatible(blob, 0, "rockchip,screen");
 	if (screen_node < 0) {
 		debug("Can't find rk_screen device node");
