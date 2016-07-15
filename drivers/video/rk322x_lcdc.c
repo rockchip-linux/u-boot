@@ -21,6 +21,41 @@ extern int rk32_dsi_disable(void);
 #ifndef pr_err
 #define  pr_err(args...)  debug(args)
 #endif
+
+static const u32 csc_r2y_bt709_full_10[12] = {
+	0x00bb, 0x0275, 0x003f, 0x10200,
+	0xff99, 0xfea5, 0x01c2, 0x80200,
+	0x01c2, 0xfe68, 0xffd7, 0x80200,
+};
+
+static void vop_load_csc_table(struct vop_device *vop_dev, u32 offset,
+			       const u32 *table)
+{
+	u32 csc_val;
+
+	csc_val = table[1] << 16 | table[0];
+	vop_writel(vop_dev, offset, csc_val);
+	csc_val = table[4] << 16 | table[2];
+	vop_writel(vop_dev, offset + 4, csc_val);
+	csc_val = table[6] << 16 | table[5];
+	vop_writel(vop_dev, offset + 8, csc_val);
+	csc_val = table[9] << 16 | table[8];
+	vop_writel(vop_dev, offset + 0xc, csc_val);
+	csc_val = table[10];
+	vop_writel(vop_dev, offset + 0x10, csc_val);
+	csc_val = table[3];
+	vop_writel(vop_dev, offset + 0x14, csc_val);
+	csc_val = table[7];
+	vop_writel(vop_dev, offset + 0x18, csc_val);
+	csc_val = table[11];
+	vop_writel(vop_dev, offset + 0x1c, csc_val);
+}
+
+#define LOAD_CSC(dev, mode, table, win_id) \
+		vop_load_csc_table(dev, \
+				   WIN0_YUV2YUV_##mode + 0x60 * win_id, \
+				   table)
+
 static int vop_vop_csc_mode(struct vop_device *vop_dev,
 			    struct fb_dsp_info *fb_info,
 			    vidinfo_t *vid)
@@ -637,6 +672,7 @@ static int win0_set_par(struct vop_device *vop_dev,
 			struct fb_dsp_info *fb_info,
 			vidinfo_t *vid)
 {
+	uint64_t val;
 	struct rk_lcdc_win win;
 	struct rk_screen *screen = vop_dev->screen;
 	u32 y_addr = fb_info->yaddr;
@@ -675,6 +711,13 @@ static int win0_set_par(struct vop_device *vop_dev,
 
 	vop_win_0_1_reg_update(vop_dev, &win, fb_info->layer_id);
 	vop_writel(vop_dev, WIN0_YRGB_MST, y_addr);
+#if defined(CONFIG_RKCHIP_RK3399)
+	if (vop_dev->overlay_mode == VOP_YUV_DOMAIN) {
+		val = V_WIN0_YUV2YUV_R2Y_EN(1);
+		vop_msk_reg(vop_dev, YUV2YUV_WIN, val);
+		LOAD_CSC(vop_dev, R2Y, csc_r2y_bt709_full_10, 0);
+	}
+#endif
 
 	return 0;
 }
