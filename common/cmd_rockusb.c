@@ -1352,6 +1352,12 @@ static void rkusb_reset_check(void)
 		usbcmd.reset_flag = 0;
 		mdelay(10);
 		reset_cpu(0);
+	} else if (usbcmd.reset_flag == 0x01) {
+		/* force to reboot to system, no check loader mode */
+		usbcmd.reset_flag = 0;
+		ISetLoaderFlag(SYS_LOADER_REBOOT_FLAG | BOOT_NORECOVER);
+		mdelay(10);
+		reset_cpu(0);
 	}
 }
 

@@ -61,6 +61,7 @@ int board_fbt_is_charging(void)
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 {
 	int boot = BOOT_NORMAL;
+
 	switch(frt) {
 		case FASTBOOT_REBOOT_BOOTLOADER:
 			boot = BOOT_LOADER;
@@ -74,13 +75,16 @@ void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 		case FASTBOOT_REBOOT_RECOVERY_WIPE_DATA:
 			boot = BOOT_WIPEDATA;
 			break;
+		case FASTBOOT_REBOOT_NORECOVER:
+			boot = BOOT_NORECOVER;
+			break;
 		default:
-			printf("unknown reboot type %d\n", frt);
-			frt = BOOT_NORMAL;
+			if (frt != FASTBOOT_REBOOT_NORMAL)
+				printf("unknown reboot type %d\n", frt);
 			break;
 	}
 
-	ISetLoaderFlag(SYS_LOADER_REBOOT_FLAG|boot);
+	ISetLoaderFlag(SYS_LOADER_REBOOT_FLAG | boot);
 }
 
 enum fbt_reboot_type board_fbt_get_reboot_type(void)
@@ -115,6 +119,10 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 				frt = FASTBOOT_REBOOT_FASTBOOT;
 				break;
 #endif
+			case BOOT_NORECOVER:
+				printf("reboot to no recover.\n");
+				frt = FASTBOOT_REBOOT_NORECOVER;
+				break;
 			case BOOT_RECOVER:
 				frt = FASTBOOT_REBOOT_RECOVERY;
 				break;
