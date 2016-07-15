@@ -1,11 +1,11 @@
 /*
- * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-#ifndef _RK3XXX_CPU_H
-#define _RK3XXX_CPU_H
+#ifndef _RKXX_CPU_H
+#define _RKXX_CPU_H
 
 /* define rockchip cpu chiptype */
 #define RKCHIP_UNKNOWN		0
@@ -21,6 +21,9 @@
 #define ROCKCHIP_CPU_RK319X	0x31900000
 #define ROCKCHIP_CPU_RK3288	0x32880000
 #define ROCKCHIP_CPU_RK322X	0x32280000
+#define ROCKCHIP_CPU_RK3368	0x33680000
+#define ROCKCHIP_CPU_RK3366	0x33660000
+#define ROCKCHIP_CPU_RK3399	0x33990000
 
 /* rockchip cpu type */
 #define CONFIG_RK3036           (ROCKCHIP_CPU_RK3036 | 0x00)    /* rk3036 chip */
@@ -32,5 +35,8 @@
 #define CONFIG_RK3188_PLUS	(ROCKCHIP_CPU_RK3188 | 0x10)	/* rk3188 plus chip */
 #define CONFIG_RK3288		(ROCKCHIP_CPU_RK3288 | 0x00)	/* rk3288 chip */
 #define CONFIG_RK322X		(ROCKCHIP_CPU_RK322X | 0x00)	/* rk328x chip */
+#define CONFIG_RK3368           (ROCKCHIP_CPU_RK3368 | 0x00)    /* rk3368 chip */
+#define CONFIG_RK3366           (ROCKCHIP_CPU_RK3366 | 0x00)    /* rk3366 chip */
+#define CONFIG_RK3399           (ROCKCHIP_CPU_RK3399 | 0x00)    /* rk3399 chip */
 
-#endif	/* _RK3XXX_CPU_H */
+#endif	/* _RKXX_CPU_H */

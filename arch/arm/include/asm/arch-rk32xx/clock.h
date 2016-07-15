@@ -7,7 +7,7 @@
 #ifndef _RKXX_CLOCK_H
 #define _RKXX_CLOCK_H
 
-#include <asm/arch/typedef.h>
+#include <asm/rk-common/typedef.h>
 
 
 /* config cpu and general clock in MHZ */

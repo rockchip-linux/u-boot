@@ -20,7 +20,6 @@
 #include <linux/compiler.h>
 
 #include <asm/arch/rkplat.h>
-#include <asm/arch/usbhost.h>
 #include "../gadget/dwc_otg_regs.h"
 #include "ehci.h"
 

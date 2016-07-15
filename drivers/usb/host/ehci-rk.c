@@ -6,10 +6,8 @@
 
 #include <common.h>
 #include <usb.h>
-
+#include <asm/arch/rkplat.h>
 #include "ehci.h"
-#include <asm/arch/gpio.h>
-#include <asm/arch/usbhost.h>
 
 /*
  * Create the appropriate control structures to manage

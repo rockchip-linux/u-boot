@@ -5,7 +5,7 @@
  */
 #include "../config.h"
 #include <usb.h>
-#include <asm/arch/usbhost.h>
+#include <asm/arch/rkplat.h>
 #include "UMSBoot.h"
 
 struct rkusb_hcd_cfg *rkusb_active_hcd = NULL;
