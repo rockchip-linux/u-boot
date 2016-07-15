@@ -1825,6 +1825,18 @@ void rk32_hdmi_probe(vidinfo_t *panel)
 					     SUPPORT_DEEP_10BIT;
 		strcpy(hdmi_dev->compatible, "rockchip,rk322x-hdmi");
 		#endif
+		#ifdef CONFIG_RKCHIP_RK3399
+		hdmi_dev->soctype = HDMI_SOC_RK3399;
+		hdmi_dev->feature = SUPPORT_4K |
+				    SUPPORT_4K_4096 |
+				    SUPPORT_YCBCR_INPUT |
+				    SUPPORT_1080I |
+				    SUPPORT_480I_576I |
+				    SUPPORT_YUV420 |
+				    SUPPORT_DEEP_10BIT;
+		strcpy(hdmi_dev->compatible, "rockchip,rk3399-hdmi");
+		#endif
+
 		rk_hdmi_register(hdmi_dev, panel);
 	} else {
 		printf("%s: hdmi_dev 0x%p  panel 0x%p\n",
