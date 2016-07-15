@@ -220,6 +220,8 @@ int rk32_mipi_dsi_clk_enable(struct dsi *dsi)
 	else
 		val = (0x1 << 18) | (0x1 << 17) | (0x0 << 2) | (0x0 << 1);
 	writel(val, RK3399_CRU_PHYS + 0x0374);
+
+	return 0;
 }
 
 int rk32_mipi_dsi_clk_disable(struct dsi *dsi)
@@ -240,6 +242,8 @@ int rk32_mipi_dsi_clk_disable(struct dsi *dsi)
 	/* clk_mipidphy_cfg */
 	val = (0x1 << 31) | (0x1 << 15);
 	writel(val, RK3399_CRU_PHYS + 0x032c);
+
+	return 0;
 }
 
 #else
@@ -1984,7 +1988,6 @@ int rk_dsi_host_parse_dt(const void *blob, struct dsi *dsi)
 
 int rk32_mipi_enable(vidinfo_t *vid)
 {
-	int ret = 0;
 	struct dsi *dsi;
 	struct mipi_dsi_ops *ops;
 	struct rk_screen *screen;
