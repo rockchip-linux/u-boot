@@ -28,9 +28,6 @@ __maybe_unused static key_config	key_recovery;
 __maybe_unused static key_config	key_fastboot;
 __maybe_unused static key_config	key_power;
 
-#ifdef CONFIG_RK_PWM_REMOTE
-__maybe_unused static key_config	key_remote;
-#endif
 
 #ifdef CONFIG_OF_LIBFDT
 __maybe_unused static struct fdt_gpio_state	gPowerKey;
@@ -198,9 +195,6 @@ __maybe_unused static void ChargeStateGpioInit(void)
 
 #ifdef CONFIG_RK_PWM_REMOTE
 
-#define IRQ_PWM_REMOTE		RKIRQ_PWM_REMOTE
-
-
 extern int g_ir_keycode;
 extern int remotectl_do_something(void);
 extern void remotectlInitInDriver(void);
@@ -208,18 +202,10 @@ extern void remotectlInitInDriver(void);
 
 int RemotectlInit(void)
 {
-	key_remote.type = KEY_REMOTE;
-	key_remote.key.ioint.name = NULL;
-	key_remote.key.ioint.gpio = (GPIO_BANK0 | GPIO_D3);
-	key_remote.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
-	key_remote.key.ioint.pressed_state = 0;
-	key_remote.key.ioint.press_time = 0;
-
 	remotectlInitInDriver();
-	rk_iomux_config(RK_PWM3_IOMUX);
 	//install the irq hander for PWM irq.
-	irq_install_handler(IRQ_PWM_REMOTE, (interrupt_handler_t *)remotectl_do_something, NULL);
-	irq_handler_enable(IRQ_PWM_REMOTE);
+	irq_install_handler(RK_PWM_REMOTE_IRQ, (interrupt_handler_t *)remotectl_do_something, NULL);
+	irq_handler_enable(RK_PWM_REMOTE_IRQ);
 
 	return 0;
 }
@@ -227,8 +213,8 @@ int RemotectlInit(void)
 int RemotectlDeInit(void)
 {
 	//uninstall and disable PWM irq.
-	irq_uninstall_handler(IRQ_PWM_REMOTE);
-	irq_handler_disable(IRQ_PWM_REMOTE);
+	irq_uninstall_handler(RK_PWM_REMOTE_IRQ);
+	irq_handler_disable(RK_PWM_REMOTE_IRQ);
 
 	return 0;
 }

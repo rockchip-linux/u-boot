@@ -135,7 +135,11 @@ typedef enum SPI_ch {
 
 	/* pwm */
 	#define RKIO_PWM_BASE		RKIO_RK_PWM_PHYS
-	#define RKIRQ_PWM_REMOTE	IRQ_RK_PWM
+
+	/* pwm remote */
+	#define RK_PWM_REMOTE_ID	3
+	#define RK_PWM_REMOTE_IOBASE	(RKIO_RK_PWM_PHYS + 0x10 * RK_PWM_REMOTE_ID)
+	#define RK_PWM_REMOTE_IRQ	IRQ_RK_PWM
 
 	/* saradc */
 	#define RKIO_SARADC_BASE	RKIO_SARADC_PHYS
@@ -210,7 +214,11 @@ typedef enum SPI_ch {
 
 	/* pwm */
 	#define RKIO_PWM_BASE		RKIO_RK_PWM_PHYS
-	#define RKIRQ_PWM_REMOTE	IRQ_RK_PWM
+
+	/* pwm remote */
+	#define RK_PWM_REMOTE_ID	3
+	#define RK_PWM_REMOTE_IOBASE	(RKIO_RK_PWM_PHYS + 0x10 * RK_PWM_REMOTE_ID)
+	#define RK_PWM_REMOTE_IRQ	IRQ_RK_PWM
 
 	/* saradc */
 	#define RKIO_SARADC_BASE	RKIO_SARADC_PHYS
@@ -283,9 +291,13 @@ typedef enum SPI_ch {
 	#define RKIO_SPI6_BASE		0
 	#define RKIO_SPI7_BASE		0
 
-	/* pwm */
-	#define RKIO_PWM_BASE		RKIO_PWM_PHYS
-	#define RKIRQ_PWM_REMOTE	IRQ_PWM
+        /* pwm */
+        #define RKIO_PWM_BASE           RKIO_PWM_PHYS
+
+        /* pwm remote */
+        #define RK_PWM_REMOTE_ID        3
+        #define RK_PWM_REMOTE_IOBASE    (RKIO_PWM_BASE + 0x10 * RK_PWM_REMOTE_ID)
+        #define RK_PWM_REMOTE_IRQ       IRQ_PWM
 
 	/* saradc */
 	#define RKIO_SARADC_BASE	RKIO_SARADC_PHYS
