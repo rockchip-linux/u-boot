@@ -184,7 +184,7 @@ int print_cpuinfo(void)
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3399)
-	if (gd->arch.chiptype == CONFIG_RK3366)
+	if (gd->arch.chiptype == CONFIG_RK3399)
 		printf("CPU: rk3399\n");
 #endif
 
