@@ -1676,9 +1676,9 @@ void rkcru_mmc_soft_reset(uint32 sdmmcId)
 	cru_writel(con, CRU_SOFTRSTS_CON(7));
 	udelay(100);
 	if (sdmmcId == 1) {
-		con = (0x01 << 9) | (0x01 << (9 + 16));
+		con = (0x00 << 9) | (0x01 << (9 + 16));
 	} else {
-		con = (0x01 << 10) | (0x01 << (10 + 16));
+		con = (0x00 << 10) | (0x01 << (10 + 16));
 	}
 	cru_writel(con, CRU_SOFTRSTS_CON(7));
 	udelay(200);
