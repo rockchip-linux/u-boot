@@ -1006,9 +1006,9 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 #if !defined(CONFIG_MCC200)
     
 #ifndef CONFIG_RK_FB
-	ushort *cmap =   configuration_get_cmap();
+	ushort *cmap = configuration_get_cmap();
 #else
-	ushort tmpmap[256];  /* sizeof(ushort) * 256 */
+	static ushort tmpmap[256];  /* sizeof(ushort) * 256 */
 	ushort *cmap = tmpmap;
 	struct fb_dsp_info fb_info;
 	u8 format = RGB565;
@@ -1023,6 +1023,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	unsigned long width, height, byte_width;
 	unsigned long pwidth = panel_info.vl_col;
 	unsigned colors, bpix, bmp_bpix;
+
 	if (!bmp || !(bmp->header.signature[0] == 'B' &&
 		bmp->header.signature[1] == 'M')) {
 		printf("Error: no valid bmp image at %lx, sign:%s\n", bmp_image, bmp->header.signature);
@@ -1248,6 +1249,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	default:
 		break;
 	};
+
 #if defined(CONFIG_RK_FB)
 #ifdef CONFIG_DIRECT_LOGO
 display:
@@ -1267,7 +1269,7 @@ display:
 	fb_info.xsize = fb_info.xact;
 	fb_info.ysize = fb_info.yact;
 #endif
-	
+
 	fb_info.xvir = fb_info.xact;
 	fb_info.layer_id = WIN0;
 	fb_info.format = format;
