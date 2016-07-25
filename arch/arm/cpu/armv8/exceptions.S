@@ -18,29 +18,35 @@
  * to the stack frame.
  */
 .macro	exception_entry
-	stp	x0, x1, [sp, #-16]!
-	stp	x2, x3, [sp, #-16]!
-	stp	x4, x5, [sp, #-16]!
-	stp	x6, x7, [sp, #-16]!
-	stp	x8, x9, [sp, #-16]!
-	stp	x10, x11, [sp, #-16]!
-	stp	x12, x13, [sp, #-16]!
-	stp	x14, x15, [sp, #-16]!
-	stp	x16, x17, [sp, #-16]!
-	stp	x18, x30, [sp, #-16]!
+	stp	x29, x30, [sp, #-16]!
+	stp	x27, x28, [sp, #-16]!
+	stp	x25, x26, [sp, #-16]!
+	stp	x23, x24, [sp, #-16]!
+	stp	x21, x22, [sp, #-16]!
+	stp	x19, x20, [sp, #-16]!
+	stp	x17, x18, [sp, #-16]!
+	stp	x15, x16, [sp, #-16]!
+	stp	x13, x14, [sp, #-16]!
+	stp	x11, x12, [sp, #-16]!
+	stp	x9, x10, [sp, #-16]!
+	stp	x7, x8, [sp, #-16]!
+	stp	x5, x6, [sp, #-16]!
+	stp	x3, x4, [sp, #-16]!
+	stp	x1, x2, [sp, #-16]!
 
 	/* Could be running at EL3/EL2/EL1 */
 	switch_el x11, 3f, 2f, 1f
-3:	mrs	x0, esr_el3
-	mrs	x1, elr_el3
+3:	mrs	x1, esr_el3
+	mrs	x2, elr_el3
 	b	0f
-2:	mrs	x0, esr_el2
-	mrs	x1, elr_el2
+2:	mrs	x1, esr_el2
+	mrs	x2, elr_el2
 	b	0f
-1:	mrs	x0, esr_el1
-	mrs	x1, elr_el1
+1:	mrs	x1, esr_el1
+	mrs	x2, elr_el1
 0:
-	stp	x0, x1, [sp, #-16]!
+	stp	x2, x0, [sp, #-16]!
+	mov	x0, sp
 .endm
 
 /*
@@ -49,32 +55,31 @@
  * from the stack frame.
  */
 .macro	exception_exit
-	ldp	x0, x1, [sp], #16
-
-	ldp	x18, x30, [sp], #16
-	ldp	x16, x17, [sp], #16
-	ldp	x14, x15, [sp], #16
-	ldp	x12, x13, [sp], #16
-	ldp	x10, x11, [sp], #16
+	ldp	x2, x0, [sp],#16
 
 	/* Could be running at EL3/EL2/EL1 */
 	switch_el x11, 3f, 2f, 1f
-3:	msr	esr_el3, x0
-	msr	elr_el3, x1
+3:	msr	elr_el3, x2
 	b	0f
-2:	msr	esr_el2, x0
-	msr	elr_el2, x1
+2:	msr	elr_el2, x2
 	b	0f
-1:	msr	esr_el1, x0
-	msr	elr_el1, x1
+1:	msr	elr_el1, x2
 0:
-
-	ldp	x8, x9, [sp], #16
-	ldp	x6, x7, [sp], #16
-	ldp	x4, x5, [sp], #16
-	ldp	x2, x3, [sp], #16
-	ldp	x0, x1, [sp], #16
-
+	ldp	x1, x2, [sp],#16
+	ldp	x3, x4, [sp],#16
+	ldp	x5, x6, [sp],#16
+	ldp	x7, x8, [sp],#16
+	ldp	x9, x10, [sp],#16
+	ldp	x11, x12, [sp],#16
+	ldp	x13, x14, [sp],#16
+	ldp	x15, x16, [sp],#16
+	ldp	x17, x18, [sp],#16
+	ldp	x19, x20, [sp],#16
+	ldp	x21, x22, [sp],#16
+	ldp	x23, x24, [sp],#16
+	ldp	x25, x26, [sp],#16
+	ldp	x27, x28, [sp],#16
+	ldp	x29, x30, [sp],#16
 	eret
 .endm
 
