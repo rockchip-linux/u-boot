@@ -490,6 +490,12 @@ void lcd_ctrl_init(void *lcdbase)
 
 	panel_info.logo_rgb_mode = RGB565;
 	rk_fb_pwr_enable(fb);
+#if defined(CONFIG_RKCHIP_RK3399)
+	if (panel_info.screen_type == SCREEN_HDMI)
+		rkclk_lcdc_dclk_pll_sel(panel_info.lcdc_id, 0);
+	else
+		rkclk_lcdc_dclk_pll_sel(panel_info.lcdc_id, 1);
+#endif
 	panel_info.real_freq = rkclk_lcdc_clk_set(panel_info.lcdc_id,
 						  panel_info.vl_freq);
 	rk_lcdc_init(panel_info.lcdc_id);
