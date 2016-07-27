@@ -60,6 +60,11 @@
 #define PRMRY					1
 #define EXTEND					2
 
+#define NO_DUAL		0
+#define ONE_DUAL	1
+#define DUAL		2
+#define DUAL_LCD	3
+
 enum _vop_overlay_mode {
 	VOP_RGB_DOMAIN,
 	VOP_YUV_DOMAIN

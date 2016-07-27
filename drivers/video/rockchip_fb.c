@@ -278,15 +278,9 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	int node;
 	int phandle;
 
-	/* logo_on flag has been checked in the function board_fbt_preboot() */
-#if 0
-	int logo_on;
 	node = fdt_node_offset_by_compatible(blob, 0, COMPAT_ROCKCHIP_FB);
-
-	logo_on = fdtdec_get_int(blob, node, "rockchip,uboot-logo-on", 0);
-	if (logo_on <= 0)
-		return -EPERM;
-#endif
+	panel_info.dual_lcd_enabled =
+		fdtdec_get_int(blob, node, "rockchip,disp-mode", 0);
 
 	/* 0: for fdt running time save */
 #if 0
@@ -491,7 +485,9 @@ void lcd_ctrl_init(void *lcdbase)
 	panel_info.logo_rgb_mode = RGB565;
 	rk_fb_pwr_enable(fb);
 #if defined(CONFIG_RKCHIP_RK3399)
-	if (panel_info.screen_type == SCREEN_HDMI)
+	if ((panel_info.screen_type == SCREEN_HDMI) ||
+	    (panel_info.dual_lcd_enabled == NO_DUAL) ||
+	    (panel_info.dual_lcd_enabled == ONE_DUAL))
 		rkclk_lcdc_dclk_pll_sel(panel_info.lcdc_id, 0);
 	else
 		rkclk_lcdc_dclk_pll_sel(panel_info.lcdc_id, 1);
