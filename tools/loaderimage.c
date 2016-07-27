@@ -153,9 +153,12 @@ int main (int argc, char *argv[])
 		memset(&hdr, 0, sizeof(second_loader_hdr));
 		strcpy((char *)hdr.magic, magic);
 		hdr.loader_load_addr = loader_addr;
-		hdr.loader_load_size = size;
 		if (!fread(buf + sizeof(second_loader_hdr), size, 1, fi))
 			exit (EXIT_FAILURE);
+
+		/* Aligned size to 4-byte, Rockchip HW Crypto need 4-byte align */
+		size = (((size + 3) >> 2 ) << 2);
+		hdr.loader_load_size = size;
 
 		hdr.crc32 = crc32_rk(0, (const unsigned char *)buf + sizeof(second_loader_hdr), size);
 		printf("crc = 0x%08x\n", hdr.crc32);
