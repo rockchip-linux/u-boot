@@ -1091,4 +1091,11 @@ void add_sdhci(SdhciHost *host)
 	host->mmc_ctrlr.b_max = 65535;
 }
 
+void sdhci_reset_clock(void)
+{
+    SdhciHost *host = (SdhciHost *)mmc_get_host();
+
+    sdhci_set_clock(host, host->clock);
+}
+
 #endif

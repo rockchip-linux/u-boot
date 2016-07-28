@@ -372,4 +372,6 @@ void add_sdhci(SdhciHost *host);
 
 uint64_t timer_us(uint64_t base);
 
+void sdhci_reset_clock(void);
+
 #endif
