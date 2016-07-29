@@ -1371,7 +1371,7 @@ static int rk818_bat_parse_dt(struct battery_info *di, void const *blob)
 		      SAMPLE_RES_DIV1 : SAMPLE_RES_DIV2;
 	di->max_soc_offset = fdtdec_get_int(blob, node, "max_soc_offset", 70);
 	di->virtual_power = fdtdec_get_int(blob, node, "virtual_power", 0);
-	if (is_rk818_bat_exist(di))
+	if (!is_rk818_bat_exist(di))
 		di->virtual_power = 1;
 	di->bat_res = fdtdec_get_int(blob, node, "bat_res", 135);
 	if (!fdtdec_decode_gpio(blob, node, "dc_det_gpio", &di->dc_det)) {
