@@ -418,6 +418,7 @@ static void board_fbt_low_power_off(void)
 void board_fbt_preboot(void)
 {
 	enum fbt_reboot_type frt;
+	__maybe_unused bool charge_enable = false;
 
 #ifdef CONFIG_CMD_FASTBOOT
 	/* need to init this ASAP so we know the unlocked state */
@@ -425,9 +426,16 @@ void board_fbt_preboot(void)
 #endif
 
 	frt = board_fbt_get_reboot_type();
+	/* cold boot */
+	if (frt == FASTBOOT_REBOOT_UNKNOWN)
+		charge_enable = true;
+	/* no spec reboot type, check key press */
 	if ((frt == FASTBOOT_REBOOT_UNKNOWN) || (frt == FASTBOOT_REBOOT_NORMAL)) {
 		FBTDBG("\n%s: no spec reboot type, check key press.\n", __func__);
 		frt = board_fbt_key_pressed();
+		/* detect key press, disable charge */
+		if (frt != FASTBOOT_REBOOT_UNKNOWN)
+			charge_enable = false;
 	} else {
 		//clear reboot type.
 		board_fbt_set_reboot_type(FASTBOOT_REBOOT_NORMAL);
@@ -459,9 +467,11 @@ void board_fbt_preboot(void)
 #endif
 
 #ifdef CONFIG_UBOOT_CHARGE
-	//check charge mode when no key pressed.
-	if (((frt == FASTBOOT_REBOOT_UNKNOWN) && board_fbt_is_charging()) \
-		|| (frt == FASTBOOT_REBOOT_CHARGE)) {
+	/* enter charge mode:
+	 * 1. reboot charge mode
+	 * 2. cold boot and detect charger insert
+	 */
+	if ((charge_enable && board_fbt_is_charging()) || (frt == FASTBOOT_REBOOT_CHARGE)) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
 		if ((g_logo_on_state != 0) && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
