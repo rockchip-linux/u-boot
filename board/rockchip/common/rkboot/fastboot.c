@@ -11,32 +11,28 @@
 #include <version.h>
 #include <asm/io.h>
 
+#include <lcd.h>
 #include <power/pmic.h>
 #include <power/battery.h>
+#include <linux/input.h>
 #include <asm/arch/rkplat.h>
 #include "../config.h"
-#include <linux/input.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CONFIG_CMD_FASTBOOT
 extern void fbt_fastboot_init(void);
 #endif
-
+#ifdef CONFIG_CMD_ROCKUSB
 extern uint32 GetVbus(void);
-extern void rkloader_change_cmd_for_recovery(PBootInfo boot_info , char * rec_cmd );
-extern int checkKey(uint32* boot_rockusb, uint32* boot_recovery, uint32* boot_fastboot);
-
+#endif
 #ifdef CONFIG_RK_PWM_BL
 extern int rk_pwm_bl_config(int brightness);
 #endif
 #ifdef CONFIG_LCD
-extern int lcd_enable_logo(bool enable);
 extern int drv_lcd_init(void);
 extern void lcd_standby(int enable);
 #endif
-extern int is_charging(void);
-extern void powerOn(void);
 
 #if defined(CONFIG_RK_PWM_REMOTE)
 extern int g_ir_keycode;
@@ -46,6 +42,8 @@ extern int g_ir_keycode;
 int g_logo_on_state = 0;
 #endif
 
+
+#ifdef CONFIG_UBOOT_CHARGE
 /**
  * return 1 if is charging.
  */
@@ -57,6 +55,7 @@ int board_fbt_is_charging(void)
 	return 0;
 #endif
 }
+#endif
 
 void board_fbt_set_reboot_type(enum fbt_reboot_type frt)
 {
@@ -183,13 +182,14 @@ int board_fbt_key_pressed(void)
 	ir_keycode = g_ir_keycode;
 #endif
 	printf("vbus = %d\n", vbus);
-	if((boot_recovery && (vbus==0)) || (ir_keycode  == KEY_POWER)) {
+	if ((boot_recovery && (vbus == 0)) || (ir_keycode == KEY_POWER)) {
 		printf("recovery key pressed.\n");
 		frt = FASTBOOT_REBOOT_RECOVERY;
-	} else if ((boot_rockusb && (vbus!=0)) || (ir_keycode  == KEY_HOME)) {
+	} else if ((boot_rockusb && (vbus != 0)) || (ir_keycode == KEY_HOME)) {
 		printf("rockusb key pressed.\n");
 #if defined(CONFIG_RK_PWM_REMOTE)
-		RemotectlDeInit();//close remote intterrupt  after rockusb key pressed
+		/* close remote intterrupt after rockusb key pressed */
+		RemotectlDeInit();
 #endif
 #ifdef CONFIG_CMD_ROCKUSB
 		/* rockusb key press, set flag = 1 for rockusb timeout check */
@@ -199,11 +199,11 @@ int board_fbt_key_pressed(void)
 		}
 #endif
 #ifdef CONFIG_CMD_FASTBOOT
-	} else if(boot_fastboot && (vbus!=0)) {
+	} else if (boot_fastboot && (vbus != 0)) {
 		printf("fastboot key pressed.\n");
 		frt = FASTBOOT_REBOOT_FASTBOOT;
 #endif
-	} else if(ir_keycode == KEY_DOWN) {
+	} else if (ir_keycode == KEY_DOWN) {
 		printf("recovery wipe data key pressed.\n");
 		frt = FASTBOOT_REBOOT_RECOVERY_WIPE_DATA;
 	}
@@ -218,7 +218,7 @@ int board_fbt_key_pressed(void)
 void board_fbt_finalize_bootargs(char* args, int buf_sz,
 		int ramdisk_addr, int ramdisk_sz, int recovery)
 {
-	char recv_cmd[2]={0};
+	char recv_cmd[2] = {0};
 
 	rkloader_fixInitrd(&gBootInfo, ramdisk_addr, ramdisk_sz);
 	if (recovery) {
@@ -306,20 +306,6 @@ const disk_partition_t* board_fbt_get_partition(const char* name)
 }
 
 
-#ifdef CONFIG_CMD_CHARGE_ANIM
-static void board_fbt_run_charge(void)
-{
-	char *const boot_charge_cmd[] = {"bootrk", "charge"};
-#ifdef CONFIG_CMD_BOOTRK
-	do_bootrk(NULL, 0, ARRAY_SIZE(boot_charge_cmd), boot_charge_cmd);
-#endif
-
-	/* returns if boot.img is bad */
-	FBTERR("\nfastboot: Error: Invalid boot img\n");
-}
-#endif
-
-
 static void board_fbt_run_recovery(void)
 {
 #ifdef CONFIG_CMD_BOOTRK
@@ -338,8 +324,7 @@ void board_fbt_run_recovery_wipe_data(void)
 
 	FBTDBG("Rebooting into recovery to do wipe_data\n");
 
-	if (!board_fbt_get_partition("misc"))
-	{
+	if (!board_fbt_get_partition("misc")) {
 		FBTERR("not found misc partition, just run recovery.\n");
 		board_fbt_run_recovery();
 	}
@@ -369,7 +354,7 @@ static void board_fbt_low_power_check(void)
 	}
 
 	if (is_power_extreme_low()) {
-		//it should be extreme low power without charger connected.
+		/* it should be extreme low power without charger connected. */
 		FBTERR("extreme low power, shutting down...\n");
 		shut_down();
 		printf("not reach here.\n");
@@ -392,7 +377,7 @@ static void board_fbt_low_power_off(void)
 			rk_pwm_bl_config(CONFIG_BRIGHTNESS_DIM);
 #endif
 
-			udelay(1000000);//1 sec
+			udelay(1000000); /* 1 sec */
 
 #ifdef CONFIG_RK_PWM_BL
 			rk_pwm_bl_config(0);
@@ -479,8 +464,6 @@ void board_fbt_preboot(void)
 			frt = FASTBOOT_REBOOT_NORMAL;
 			lcd_clear();
 		}
-#else
-		return fbt_run_charge();
 #endif
 	}
 #endif //CONFIG_UBOOT_CHARGE
@@ -491,9 +474,7 @@ void board_fbt_preboot(void)
 
 #ifdef CONFIG_LCD
 	if (g_logo_on_state != 0) {
-		//lcd_enable_logo(true);
 		lcd_standby(0);
-		//mdelay(100);
 #ifdef CONFIG_RK_PWM_BL
 		/* use defaut brightness in dts */
 		rk_pwm_bl_config(-1);
