@@ -1005,6 +1005,12 @@ void rkusb_handle_datarx(void)
 				usbcmd.lba += rxdata_blocks;
 			} else if (usbcmd.lba == 0xFFFFF000) {
 				SecureBootUnlock(rxdata_buf);
+			} else if ((usbcmd.lba & 0xFFFF0000) == 0xFFF00000) {
+				iRet = vendor_storage_write(*(uint16 *)rxdata_buf, rxdata_buf+8, *(uint16 *)(rxdata_buf+4));
+				if (iRet == -1) {
+					RKUSBERR("vendor_storage_write failed,err=%d\n", iRet);
+				}
+				usbcmd.lba += rxdata_blocks;
 			} else if (SecureBootLock == 0) {
 				iRet = StorageWriteLba(usbcmd.lba, rxdata_buf, rxdata_blocks, usbcmd.imgwr_mode);
 				if (iRet != FTL_OK) {
@@ -1142,7 +1148,19 @@ start:
 				StorageVendorSysDataLoad(usbcmd.pre_read.pre_lba - 0xFFFFFF00, pre_blocks, (uint32 *)usbcmd.pre_read.pre_buffer);
 			else if (usbcmd.lba == 0xFFFFF000)
 				SecureBootUnlockCheck(usbcmd.pre_read.pre_buffer);
-			else {
+			else if ((usbcmd.lba & 0xFFFF0000) == 0xFFF00000) {
+				uint16_t req_id = (usbcmd.lba & 0xFFFF);
+				uint8 *p_buf = usbcmd.pre_read.pre_buffer;
+				iRet = vendor_storage_read(req_id, p_buf + 8, usbcmd.u_size - 8);
+				if (iRet == -1) {
+					RKUSBERR("vendor_storage_read failed,err=%d\n", iRet);
+				} else {
+					p_buf[0] = (uint32_t)(req_id & 0xFF);
+					p_buf[1] = (uint32_t)((req_id >> 8) & 0xFF);
+					p_buf[4] = (uint32_t)(iRet & 0xFF);
+					p_buf[5] = (uint32_t)((iRet >> 8) & 0xFF);
+				}
+			} else {
 				iRet = StorageReadLba(usbcmd.pre_read.pre_lba, usbcmd.pre_read.pre_buffer, pre_blocks);
 				if (iRet != FTL_OK) {
 					RKUSBERR("StorageReadLba failed,err=%d\n", iRet);

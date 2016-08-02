@@ -34,6 +34,31 @@
 #define     SPARE_LEN           (32*8*2/4)               //校验数据长度
 #define     PAGE_LEN            (DATA_LEN+SPARE_LEN)    //每个数据单位的长度
 
+#define EMMC_VENDOR_PART_START		(1024 * 7)
+#define NAND_VENDOR_PART_START		0
+#define VENDOR_PART_NUM			4
+#define VENDOR_TAG			0x524B5644
+#define VENDOR_PART_SIZE		128
+
+struct vendor_item {
+	u16  id;
+	u16  offset;
+	u16  size;
+	u16  flag;
+};
+
+struct vendor_info {
+	u32	tag;
+	u32	version;
+	u16	next_index;
+	u16	item_num;
+	u16	free_offset;
+	u16	free_size;
+	struct	vendor_item item[126]; /* 126 * 8*/
+	u8	data[VENDOR_PART_SIZE * 512 - 1024 - 8];
+	u32	hash;
+	u32	version2;
+};
 
 extern  void    FW_ReIntForUpdate(void);
 extern  void	FW_SorageLowFormat(void);
@@ -164,6 +189,9 @@ typedef struct LOADER_MEM_API_Tag
 EXT MEM_FUN_T * gpMemFun;
 EXT uint32 gIdDataBuf[512] __attribute__((aligned(ARCH_DMA_MINALIGN)));
 EXT FLASH_INFO g_FlashInfo __attribute__((aligned(ARCH_DMA_MINALIGN)));
+int vendor_storage_init(void);
+int vendor_storage_read(u32 id, void *pbuf, u32 size);
+int vendor_storage_write(u32 id, void *pbuf, u32 size);
 
 #endif
 

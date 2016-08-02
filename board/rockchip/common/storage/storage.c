@@ -190,6 +190,7 @@ int32 StorageInit(void)
 		{
 			memFunTab[memdev]->Valid = 1;
 			StorageReadFlashInfo((uint8*)&g_FlashInfo);
+			vendor_storage_init();
 			return 0;
 		}
 	}
@@ -509,3 +510,153 @@ bool StorageUMSBootMode(void)
 	return false;
 }
 #endif
+
+static struct vendor_info g_vendor;
+
+static int vendor_ops(u8 *buffer, u32 addr, u32 n_sec, int write)
+{
+	int ret = -1;
+	uint16 media = StorageGetBootMedia();
+#if defined(RK_SDHCI_BOOT_EN)
+	if (media == BOOT_FROM_EMMC) {
+		if (write)
+			ret = sdhci_block_write(addr + EMMC_VENDOR_PART_START,
+						n_sec, buffer);
+		else
+			ret = sdhci_block_read(addr + EMMC_VENDOR_PART_START,
+						n_sec, buffer);
+	}
+#endif
+
+#if defined(RK_SDMMC_BOOT_EN)
+	if (media == BOOT_FROM_EMMC) {
+		if (write)
+			ret = SDM_Write(gpMemFun->id,
+					addr + EMMC_VENDOR_PART_START,
+					n_sec, buffer);
+		else
+			ret = SDM_Read(gpMemFun->id,
+				       addr + EMMC_VENDOR_PART_START,
+				       n_sec, buffer);
+	}
+#endif
+
+#if defined(RK_FLASH_BOOT_EN)
+	if (media == BOOT_FROM_EMMC) {
+		if (write)
+			ret = gpMemFun->WriteLba(0x10,
+					addr + NAND_VENDOR_PART_START,
+					buffer, n_sec, 0);
+		else
+			ret = gpMemFun->ReadLba(0x10,
+					addr + NAND_VENDOR_PART_START,
+					buffer, n_sec);
+	}
+#endif
+	return ret;
+}
+
+int vendor_storage_init(void)
+{
+	u32 i, max_ver, max_index;
+	u8 *p_buf;
+
+	max_ver = 0;
+	max_index = 0;
+	for (i = 0; i < VENDOR_PART_NUM; i++) {
+		/* read first 512 bytes */
+		p_buf = (u8 *)&g_vendor;
+		if (vendor_ops(p_buf, VENDOR_PART_SIZE * i, 1, 0))
+			return -1;
+		/* read last 512 bytes */
+		p_buf += (VENDOR_PART_SIZE - 1) * 512;
+		if (vendor_ops(p_buf, VENDOR_PART_SIZE * (i + 1) - 1, 1, 0))
+			return -1;
+
+		if (g_vendor.tag == VENDOR_TAG &&
+		    g_vendor.version2 == g_vendor.version) {
+			if (max_ver < g_vendor.version) {
+				max_index = i;
+				max_ver = g_vendor.version;
+			}
+		}
+	}
+	if (max_ver) {
+		if (vendor_ops((u8 *)&g_vendor, VENDOR_PART_SIZE * max_index,
+				VENDOR_PART_SIZE, 0))
+			return -1;
+	} else {
+		memset(&g_vendor, 0, sizeof(g_vendor));
+		g_vendor.version = 1;
+		g_vendor.tag = VENDOR_TAG;
+		g_vendor.version2 = g_vendor.version;
+		g_vendor.free_offset = 0;
+		g_vendor.free_size = sizeof(g_vendor.data);
+	}
+	return 0;
+}
+
+int vendor_storage_read(u32 id, void *pbuf, u32 size)
+{
+	u32 i;
+
+	for (i = 0; i < g_vendor.item_num; i++) {
+		if (g_vendor.item[i].id == id) {
+			if (size > g_vendor.item[i].size)
+				size = g_vendor.item[i].size;
+			memcpy(pbuf,
+			       &g_vendor.data[g_vendor.item[i].offset],
+			       size);
+			return size;
+		}
+	}
+	return (-1);
+}
+
+int vendor_storage_write(u32 id, void *pbuf, u32 size)
+{
+	u32 i, next_index, algin_size;
+	struct vendor_item *item;
+
+	next_index = g_vendor.next_index;
+	algin_size = (size + 0x3F) & (~0x3F); /* algin to 64 bytes*/
+
+	for (i = 0; i < g_vendor.item_num; i++) {
+		if (g_vendor.item[i].id == id) {
+			if (size > algin_size)
+				return -1;
+			memcpy(&g_vendor.data[g_vendor.item[i].offset],
+			       pbuf,
+			       size);
+			g_vendor.item[i].size = size;
+			g_vendor.version++;
+			g_vendor.version2 = g_vendor.version;
+			g_vendor.next_index++;
+			if (g_vendor.next_index >= VENDOR_PART_NUM)
+				g_vendor.next_index = 0;
+			vendor_ops((u8 *)&g_vendor, VENDOR_PART_SIZE * next_index,
+					VENDOR_PART_SIZE, 1);
+			return 0;
+		}
+	}
+
+	if (g_vendor.free_size >= algin_size) {
+		item = &g_vendor.item[g_vendor.item_num];
+		item->id = id;
+		item->offset = g_vendor.free_offset;
+		item->size = size;
+		g_vendor.free_offset += algin_size;
+		g_vendor.free_size -= algin_size;
+		memcpy(&g_vendor.data[item->offset], pbuf, size);
+		g_vendor.item_num++;
+		g_vendor.version++;
+		g_vendor.version2 = g_vendor.version;
+		g_vendor.next_index++;
+		if (g_vendor.next_index >= VENDOR_PART_NUM)
+			g_vendor.next_index = 0;
+		vendor_ops((u8 *)&g_vendor, VENDOR_PART_SIZE * next_index,
+				VENDOR_PART_SIZE, 1);
+		return 0;
+	}
+	return(-1);
+}

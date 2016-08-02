@@ -20,7 +20,7 @@
 static uint32 Sdhci_Data[(1024 * 8 * 4 / 4)] __attribute__((aligned(ARCH_DMA_MINALIGN)));
 static uint32 UserCapSize = 0;
 
-static uint32 sdhci_block_read(uint32 blk_start, uint32 blk_cnt, void *pbuf)
+int32 sdhci_block_read(uint32 blk_start, uint32 blk_cnt, void *pbuf)
 {
 	uint32 n;
 
@@ -29,7 +29,7 @@ static uint32 sdhci_block_read(uint32 blk_start, uint32 blk_cnt, void *pbuf)
 	return (n == blk_cnt) ? 0 : -1;
 }
 
-static uint32 sdhci_block_write(uint32 blk_start, uint32 blk_cnt, void *pbuf)
+int32 sdhci_block_write(uint32 blk_start, uint32 blk_cnt, void *pbuf)
 {
 	uint32 n;
 

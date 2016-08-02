@@ -21,5 +21,7 @@ extern uint32 SdhciSysDataLoad(uint8 ChipSel, uint32 Index, void *Buf);
 extern uint32 SdhciSysDataStore(uint8 ChipSel, uint32 Index, void *Buf);
 extern uint32 SdhciGetFwOffset(uint8 ChipSel);
 extern uint32 SdhciGetSysOffset(uint8 ChipSel);
+int32 sdhci_block_write(uint32 blk_start, uint32 blk_cnt, void *pbuf);
+int32 sdhci_block_read(uint32 blk_start, uint32 blk_cnt, void *pbuf);
 
 #endif /* _SDHCI_BOOT_H */
