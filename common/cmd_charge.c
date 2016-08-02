@@ -78,12 +78,6 @@ u8 g_increment = 0;
 
 int timer_interrupt_wakeup = 0;
 
-//return duration(ms).
-static inline unsigned int get_fix_duration(unsigned int base) {
-	unsigned int max = 0xFFFFFFFF / 24000;
-	unsigned int now = get_timer(0);
-	return base > now? base - now : max + (base - now) + 1;
-}
 
 /***************board spec ops, maybe move these out of here.***************/
 //define this when we dont have a worked battery.
@@ -149,7 +143,7 @@ int power_key_pressed(void) {
 		if (power_pressed) {
 			//still pressing
 #define LONG_PRESSED_TIME 2000 //2s
-			if (get_fix_duration(power_pressed_time) >= LONG_PRESSED_TIME) {
+			if (get_timer(power_pressed_time) >= LONG_PRESSED_TIME) {
 				//long pressed.
 				power_pressed_state = KEY_LONG_PRESSED;
 			}
@@ -660,8 +654,8 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	unsigned int charge_start_time = 0;
 	unsigned int charge_last_time = 0;
 	charge_start_time = get_timer(0);
-	debug("do_charge!!!!\n");
 	#endif
+	printf("do_charge!!!!\n");
 
 #ifdef CONFIG_CHARGE_DEEP_SLEEP
 #ifdef CONFIG_CHARGE_TIMER_WAKEUP
@@ -702,7 +696,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		#endif
 		//step 2: handle timeouts.
 		if (IS_BRIGHT(g_state.brightness)) {
-			unsigned int idle_time = get_fix_duration(g_state.screen_on_time);
+			unsigned int idle_time = get_timer(g_state.screen_on_time);
 			//printf("idle_time:%ld\n", idle_time);
 			if (idle_time > SCREEN_OFF_TIMEOUT) {
 				LOGD("screen off");
@@ -774,7 +768,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		//step 5:step anim when screen is on.
 		if (IS_BRIGHT(brightness)) {
 			//do anim when screen is on.
-			unsigned int duration = get_fix_duration(anim_time) * 1000;
+			unsigned int duration = get_timer(anim_time) * 1000;
 			if (!IS_BRIGHT(g_state.brightness)
 					|| duration >= get_delay(&g_state)) {
 				anim_time = get_timer(0);

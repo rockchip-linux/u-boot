@@ -382,12 +382,16 @@ void pmic_rk818_shut_down(void)
 void pmic_rk818_power_init(void){
 	rk818_regulator_disable(RK818_LDO1);
 	rk818_regulator_disable(RK818_LDO2);
+#ifndef CONFIG_RKCHIP_RK3399
 	rk818_regulator_disable(RK818_LDO8);
+#endif
 }
 
 void pmic_rk818_power_on(void){
+#ifndef CONFIG_RKCHIP_RK3399
 	rk818_regulator_enable(RK818_LDO4);
 	rk818_regulator_enable(RK818_LDO6);
+#endif
 	//rk818_regulator_enable(RK818_LDO9);
 	//rk818_regulator_enable(RK818_LDO10);
 	
@@ -398,9 +402,10 @@ void pmic_rk818_power_on(void){
 
 void pmic_rk818_power_off(void){
 	//gpio_direction_output(LCD_EN_PIN,0);
-
+#ifndef CONFIG_RKCHIP_RK3399
 	rk818_regulator_disable(RK818_LDO6);
-	rk818_regulator_disable(RK818_LDO4);	
+	rk818_regulator_disable(RK818_LDO4);
+#endif
 	//rk818_regulator_disable(RK818_LDO9);
 	//rk818_regulator_disable(RK818_LDO10);
 }

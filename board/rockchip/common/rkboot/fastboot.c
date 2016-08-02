@@ -42,6 +42,11 @@ extern int g_ir_keycode;
 int g_logo_on_state = 0;
 #endif
 
+#ifdef CONFIG_UBOOT_CHARGE
+int android_charge_mode = 0;
+#endif
+
+
 
 #ifdef CONFIG_UBOOT_CHARGE
 /**
@@ -95,6 +100,7 @@ enum fbt_reboot_type board_fbt_get_reboot_type(void)
 
 	/* Feedback reboot mode to the kernel. */
 	ISetLoaderFlag(SYS_KERNRL_REBOOT_FLAG | reboot_mode);
+
 
 	if (SYS_LOADER_ERR_FLAG == loader_flag) {
 		loader_flag = SYS_LOADER_REBOOT_FLAG | BOOT_LOADER;
@@ -404,6 +410,11 @@ void board_fbt_preboot(void)
 {
 	enum fbt_reboot_type frt;
 	__maybe_unused bool charge_enable = false;
+#ifdef CONFIG_UBOOT_CHARGE
+	int charge_node;			/*device node*/
+	int uboot_charge_on = 0;
+	int android_charge_on = 0;
+#endif
 
 #ifdef CONFIG_CMD_FASTBOOT
 	/* need to init this ASAP so we know the unlocked state */
@@ -452,11 +463,24 @@ void board_fbt_preboot(void)
 #endif
 
 #ifdef CONFIG_UBOOT_CHARGE
+	charge_node = fdt_node_offset_by_compatible(gd->fdt_blob,
+						0, "rockchip,uboot-charge");
+	if (charge_node < 0) {
+		debug("can't find dts node for uboot-charge\n");
+		uboot_charge_on = 1;
+		android_charge_on = 0;
+	} else {
+		uboot_charge_on = fdtdec_get_int(gd->fdt_blob, charge_node, "rockchip,uboot-charge-on", 0);
+		android_charge_on = fdtdec_get_int(gd->fdt_blob, charge_node, "rockchip,android-charge-on", 0);
+	}
+
+
 	/* enter charge mode:
 	 * 1. reboot charge mode
 	 * 2. cold boot and detect charger insert
 	 */
-	if ((charge_enable && board_fbt_is_charging()) || (frt == FASTBOOT_REBOOT_CHARGE)) {
+	if ((uboot_charge_on == 1 && charge_enable && board_fbt_is_charging()) \
+		|| (frt == FASTBOOT_REBOOT_CHARGE)) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
 		if ((g_logo_on_state != 0) && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
@@ -466,6 +490,10 @@ void board_fbt_preboot(void)
 		}
 #endif
 	}
+	if ((android_charge_on == 1 && charge_enable && board_fbt_is_charging()) \
+		|| (frt == FASTBOOT_REBOOT_CHARGE)) {
+			android_charge_mode = 1;
+		}
 #endif //CONFIG_UBOOT_CHARGE
 
 #ifdef CONFIG_RK_KEY
