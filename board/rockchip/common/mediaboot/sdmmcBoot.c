@@ -64,7 +64,9 @@ uint32 SdmmcReinit(uint32 ChipSel)
 	sdmmcGpioInit(ChipSel);
 
 EMMC_INIT_retry:
-	eMMC_SetDataHigh();
+	if (2 == ChipSel)
+		eMMC_SetDataHigh();
+
 	ioctlParam[0] = ChipSel;
 	ret1 = SDM_IOCtrl(SDM_IOCTRL_REGISTER_CARD, ioctlParam);
 	if (ret1 != SDM_SUCCESS && retry > 0) {

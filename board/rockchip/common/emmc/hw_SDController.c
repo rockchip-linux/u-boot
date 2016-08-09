@@ -70,7 +70,7 @@ static int32 SDC_ResetFIFO(pSDC_REG_T pReg)
 
 void eMMC_SetDataHigh(void)
 {
-	SDC_ResetFIFO(pSDCReg(0));
+	//SDC_ResetFIFO(pSDCReg(0));
 	SDC_ResetFIFO(pSDCReg(2));
 }
 
