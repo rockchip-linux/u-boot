@@ -700,6 +700,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 {
 	struct rk_lcdc_win win;
 	struct rk_screen *screen = lcdc_dev->screen;
+	u32 y_addr = fb_info->yaddr;
 
 	memset(&win, 0, sizeof(struct rk_lcdc_win));
 	rk_fb_vidinfo_to_win(fb_info, &win);
@@ -728,7 +729,9 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 		break;
 	}
 	rk3288_win_0_1_reg_update(lcdc_dev, &win, fb_info->layer_id);
-	lcdc_writel(lcdc_dev, WIN0_YRGB_MST, fb_info->yaddr);
+	if (screen->y_mirror)
+		y_addr += win.area[0].y_vir_stride * 4 * win.area[0].yact;
+	lcdc_writel(lcdc_dev, WIN0_YRGB_MST, y_addr);
 #if 0	
 	lcdc_writel(lcdc_dev, WIN0_SCL_FACTOR_YRGB,
 		     v_WIN0_HS_FACTOR_YRGB(0x1000) |
@@ -802,6 +805,16 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 void rk_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 {
 	struct lcdc_device *lcdc_dev = &rk32_lcdc;
+	struct rk_screen *screen = lcdc_dev->screen;
+	u16 post_dsp_vact_st,post_dsp_vact_end, v_total;
+	u32 msk, val;
+
+	if (fb_info->ymirror)
+		screen->y_mirror = !screen->y_mirror;
+	msk = m_DSP_Y_MIR_EN;
+	val = v_DSP_Y_MIR_EN(screen->y_mirror);
+
+	lcdc_msk_reg(lcdc_dev, DSP_CTRL0, msk, val);
 
 	fb_info->layer_id = lcdc_dev->dft_win;
 	switch (fb_info->layer_id) {
