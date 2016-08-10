@@ -586,7 +586,7 @@ static int rk3288_win_0_1_reg_update(struct lcdc_device *lcdc_dev,
 			v_WIN0_DATA_FMT(win->area[0].format) |
 			v_WIN0_FMT_10(win->fmt_10) | 
 			v_WIN0_LB_MODE(win->win_lb_mode) | 
-			v_WIN0_RB_SWAP(0) |
+			v_WIN0_RB_SWAP(win->rb_swap) |
 			v_WIN0_UV_SWAP(0);
 		lcdc_msk_reg(lcdc_dev, WIN0_CTRL0+off, mask,val);	
 	
@@ -719,6 +719,7 @@ static int win0_set_par(struct lcdc_device *lcdc_dev,
 		win.area[0].y_vir_stride = v_ARGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	case RGB888:
+		win.rb_swap = 1;
 		win.area[0].y_vir_stride = v_RGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	case RGB565:
