@@ -10,7 +10,10 @@
 
 /* Max MCU's SRAM value is 8K, begin at (RKIO_IMEM_PHYS + 4K) */
 #define MCU_SRAM_ADDR_BASE	(RKIO_IMEM_PHYS + (1024*4))
-
+/* exsram may using by mcu to accessing dram(0x0-0x20000000) */
+#define MCU_EXSRAM_ADDR_BASE	(0)
+/* experi no used, reserved value = 0 */
+#define MCU_EXPERI_ADDR_BASE	(0)
 
 void rk_mcu_init(void)
 {
@@ -23,6 +26,12 @@ void rk_mcu_init(void)
 #ifdef CONFIG_RKCHIP_RK3368
 	grf_writel((0xF << (4 + 16)) | ((MCU_SRAM_ADDR_BASE >> 28) << 4), GRF_SOC_CON14);
 	grf_writel((0xFFFF << (0 + 16)) | ((MCU_SRAM_ADDR_BASE >> 12) << 0), GRF_SOC_CON11);
+
+	grf_writel((0xF << (8 + 16)) | ((MCU_EXSRAM_ADDR_BASE >> 28) << 8), GRF_SOC_CON14);
+	grf_writel((0xFFFF << (0 + 16)) | ((MCU_EXSRAM_ADDR_BASE >> 12) << 0), GRF_SOC_CON12);
+
+	grf_writel((0xF << (0xc + 16)) | ((MCU_EXPERI_ADDR_BASE >> 28) << 0xc), GRF_SOC_CON14);
+	grf_writel((0xFFFF << (0 + 16)) | ((MCU_EXPERI_ADDR_BASE >> 12) << 0), GRF_SOC_CON13);
 #elif CONFIG_RKCHIP_RK3366
 	grf_writel((0xF << (4 + 16)) | ((MCU_SRAM_ADDR_BASE >> 28) << 4), PMU_GRF_SOC_CON7);
 	grf_writel((0xFFFF << (0 + 16)) | ((MCU_SRAM_ADDR_BASE >> 12) << 0), PMU_GRF_SOC_CON4);
