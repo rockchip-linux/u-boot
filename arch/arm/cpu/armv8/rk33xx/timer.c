@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008 Fuzhou Rockchip Electronics Co., Ltd
+ * (C) Copyright 2008-2016 Fuzhou Rockchip Electronics Co., Ltd
  * Peter, Software Engineering, <superpeter.cai@gmail.com>.
  *
  * SPDX-License-Identifier:	GPL-2.0+
@@ -11,10 +11,10 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define RKTIMER_VERSION		"1.5"
+#define RKTIMER_VERSION		"1.4"
 
 /* timer base */
-#define TIMER_REG_BASE		RKIO_TIMER_BASE
+#define TIMER_REG_BASE			RKIO_TIMER_BASE
 
 
 /* rk timer register offset */
@@ -53,76 +53,149 @@ DECLARE_GLOBAL_DATA_PTR;
 #endif /* CONFIG_RKTIMER_V2 */
 
 /* rk timer clock source is from 24M crystal input */
-#define TIMER_CLOCK		CONFIG_SYS_CLK_FREQ
+#define TIMER_FREQ			CONFIG_SYS_CLK_FREQ
 
-#define TICKS_PER_HZ		(TIMER_CLOCK / CONFIG_SYS_HZ)
-#define TICKS_TO_HZ(x)		((x) / TICKS_PER_HZ)
-
-#define COUNT_TO_USEC(x)	((x) / 24) /* count / ((TIMER_CLOCK / 1000) / 1000) */
-#define USEC_TO_COUNT(x)	((x) * 24) /* usec * (TIMER_CLOCK / 1000) / 1000 */
 
 /* rockchip timer is decrementing timer */
 static inline uint32 rk_timer_get_curr_count(void)
 {
-	/*
-	 * The hardware timer counts down, therefore we invert to
-	 * produce an incrementing timer.
-	 */
-#ifdef CONFIG_RKTIMER_INCREMENTER
 	return readl(TIMER_REG_BASE + TIMER_CURR_VALUE);
-#else
-	return ~readl(TIMER_REG_BASE + TIMER_CURR_VALUE);
-#endif
 }
 
-/* init timer register */
-int timer_init(void)
+static inline void rk_timer_init(void)
 {
 	writel(TIMER_LOAD_VAL, TIMER_REG_BASE + TIMER_LOADE_COUNT);
 	/* auto reload & enable the timer */
 	writel(0x01, TIMER_REG_BASE + TIMER_CTRL_REG);
-
-	return 0;
 }
 
-/* timer without interrupts */
-ulong get_timer(ulong base)
+
+/* calculate the equivalent tick value of the timer count */
+static inline uint64_t tcount_to_tick(uint64_t tcount)
 {
-	return get_timer_masked() - base;
+	tcount *= CONFIG_SYS_HZ;
+	do_div(tcount, TIMER_FREQ);
+
+	return tcount;
 }
 
-ulong get_timer_masked(void)
+/* calculate the equivalent tick value of the timer count */
+static inline uint64_t tcount_to_usec(uint64_t tcount)
 {
-	/* current tick value */
-	ulong now = TICKS_TO_HZ(rk_timer_get_curr_count());
+	tcount *= (CONFIG_SYS_HZ * 1000);
+	do_div(tcount, TIMER_FREQ);
 
-	if (now >= gd->arch.lastinc)	/* normal (non rollover) */
+	return tcount;
+}
+
+/* calculate the equivalent timer count of the usec value */
+static inline uint64_t usec_to_tcount(uint64_t usec)
+{
+	usec *= TIMER_FREQ;
+	do_div(usec, 1000000);
+
+	return usec;
+}
+
+static inline unsigned long get_current_timer_value(void)
+{
+	unsigned long now = rk_timer_get_curr_count();
+
+#ifdef CONFIG_RKTIMER_INCREMENTER
+	if (now >= gd->arch.lastinc)
 		gd->arch.tbl += (now - gd->arch.lastinc);
-	else {
-		/* rollover */
-		gd->arch.tbl += (TICKS_TO_HZ(TIMER_LOAD_VAL)
-				- gd->arch.lastinc) + now;
-	}
+	else /* count up timer underflow */
+		gd->arch.tbl += (TIMER_LOAD_VAL - gd->arch.lastinc + now + 1);
+#else
+	if (gd->arch.lastinc >= now)
+		gd->arch.tbl -= (gd->arch.lastinc - now);
+	else /* count down timer underflow */
+		gd->arch.tbl -= (TIMER_LOAD_VAL + gd->arch.lastinc - now);
+#endif
 	gd->arch.lastinc = now;
 
 	return gd->arch.tbl;
 }
 
+/* nothing really to do with interrupts, just starts up a counter. */
+int timer_init(void)
+{
+	rk_timer_init();
+	reset_timer_masked();
+
+	return 0;
+}
+
+
+void reset_timer_masked(void)
+{
+	/* reset time, capture current incrementer value time */
+	gd->arch.lastinc = rk_timer_get_curr_count();	/* Monotonic incrementing timer */
+	gd->arch.tbl = 0;	/* start "advancing" time stamp from 0 */
+}
+
+
+/*
+ * timer without interrupts
+ */
+ulong get_timer(ulong base)
+{
+#ifdef CONFIG_RKTIMER_INCREMENTER
+	return get_timer_masked() - base;
+#else
+	if (base == 0)
+		return get_timer_masked();
+	else
+		return (base - get_timer_masked());
+#endif
+}
+
+
+/*
+ * get usec timer value
+ */
+uint64_t get_usec_timer(uint64_t base)
+{
+#ifdef CONFIG_RKTIMER_INCREMENTER
+	return (tcount_to_usec(get_current_timer_value()) - base);
+#else
+	if (base == 0)
+		return tcount_to_usec(get_current_timer_value());
+	else
+		return (base - tcount_to_usec(get_current_timer_value()));
+#endif
+}
+
+
 /* delay x useconds */
 void __udelay(unsigned long usec)
 {
-	long tmo = USEC_TO_COUNT(usec);
-	ulong now, last = rk_timer_get_curr_count();
+	long tmo = (long)usec_to_tcount(usec); /* delay tick */
+	unsigned long now, last = rk_timer_get_curr_count(); /* last tick */
 
-	while (tmo > 0) {
+	while (tmo > 0)	{ /* loop till event */
 		now = rk_timer_get_curr_count();
-		if (now > last)	/* normal (non rollover) */
-			tmo -= now - last;
-		else		/* rollover */
-			tmo -= TIMER_LOAD_VAL - last + now;
+#ifdef CONFIG_RKTIMER_INCREMENTER
+		if (now > last)
+			tmo -= (now - last);
+		else /* count up timer overflow */
+			tmo -= (TIMER_LOAD_VAL - last + now + 1);
+#else
+		if (last >= now)
+			tmo -= (last - now);
+		else /* count down timer overflow */
+			tmo -= (TIMER_LOAD_VAL + last - now);
+#endif
 		last = now;
 	}
 }
+
+
+ulong get_timer_masked(void)
+{
+	return tcount_to_tick(get_current_timer_value());
+}
+
 
 /*
  * This function is derived from PowerPC code (read timebase as long).
