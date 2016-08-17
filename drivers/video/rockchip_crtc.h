@@ -26,4 +26,10 @@ struct rockchip_crtc_funcs {
 
 const struct rockchip_crtc *
 rockchip_get_crtc(const void *blob, int crtc_node);
+
+#ifdef CONFIG_ROCKCHIP_VOP
+struct vop_data;
+extern const struct rockchip_crtc_funcs rockchip_vop_funcs;
+extern const struct vop_data rk3399_vop;
+#endif
 #endif

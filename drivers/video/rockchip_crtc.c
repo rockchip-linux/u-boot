@@ -20,6 +20,18 @@
 #include "rockchip_connector.h"
 
 static const struct rockchip_crtc g_crtc[] = {
+#ifdef CONFIG_ROCKCHIP_VOP
+	{
+		.compatible = "rockchip,rk3399-vop-big",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk3399_vop,
+	},
+	{
+		.compatible = "rockchip,rk3399-vop-lit",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk3399_vop,
+	},
+#endif
 };
 
 const struct rockchip_crtc *
