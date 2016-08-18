@@ -386,7 +386,7 @@ static int display_logo(struct display_state *state)
 	crtc_state->src_y = 0;
 	crtc_state->ymirror = logo->ymirror;
 
-	crtc_state->dma_addr = (unsigned long)logo->mem + logo->offset;
+	crtc_state->dma_addr = logo->mem + logo->offset;
 	crtc_state->xvir = ALIGN(crtc_state->src_w * logo->bpp, 32) >> 5;
 
 	if (logo->mode == ROCKCHIP_DISPLAY_FULLSCREEN) {
@@ -554,7 +554,7 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 		logo->offset = get_unaligned_le32(&header->data_offset);
 		logo->ymirror = 1;
 	}
-	logo->mem = dst;
+	logo->mem = (u32)(unsigned long)dst;
 
 	memcpy(&logo_cache->logo, logo, sizeof(*logo));
 
@@ -664,4 +664,76 @@ err_free:
 		free(s);
 	}
 	return -ENODEV;
+}
+
+void rockchip_display_fixup(void *blob)
+{
+	const struct rockchip_connector_funcs *conn_funcs;
+	const struct rockchip_crtc_funcs *crtc_funcs;
+	const struct rockchip_connector *conn;
+	const struct rockchip_crtc *crtc;
+	struct display_state *s;
+	u32 offset;
+	int node;
+	char path[100];
+	int ret;
+
+	if (!get_display_size())
+		return;
+
+	node = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
+					       (u64)memory_start,
+					       (u64)get_display_size());
+	if (node < 0) {
+		printf("failed to add drm-loader-logo memory\n");
+		return;
+	}
+
+	list_for_each_entry(s, &rockchip_display_list, head) {
+		conn = s->conn_state.connector;
+		if (!conn)
+			continue;
+		conn_funcs = conn->funcs;
+		if (!conn_funcs) {
+			printf("failed to get exist connector\n");
+			continue;
+		}
+
+		crtc = s->crtc_state.crtc;
+		if (!crtc)
+			continue;
+
+		crtc_funcs = crtc->funcs;
+		if (!crtc_funcs) {
+			printf("failed to get exist crtc\n");
+			continue;
+		}
+
+		if (crtc_funcs->fixup_dts)
+			crtc_funcs->fixup_dts(s, blob);
+
+		if (conn_funcs->fixup_dts)
+			conn_funcs->fixup_dts(s, blob);
+
+		ret = fdt_get_path(s->blob, s->node, path, sizeof(path));
+		if (ret < 0) {
+			printf("failed to get route path[%s], ret=%d\n",
+			       path, ret);
+			continue;
+		}
+
+#define FDT_SET_U32(name, val) \
+		do_fixup_by_path_u32(blob, path, name, val, 1);
+
+		offset = s->logo.offset + s->logo.mem - memory_start;
+		FDT_SET_U32("logo,offset", offset);
+		FDT_SET_U32("logo,width", s->logo.width);
+		FDT_SET_U32("logo,height", s->logo.height);
+		FDT_SET_U32("logo,bpp", s->logo.bpp);
+		FDT_SET_U32("video,hdisplay", s->conn_state.mode.hdisplay);
+		FDT_SET_U32("video,vdisplay", s->conn_state.mode.vdisplay);
+		FDT_SET_U32("video,vrefresh",
+			    drm_mode_vrefresh(&s->conn_state.mode));
+#undef FDT_SET_U32
+	}
 }
