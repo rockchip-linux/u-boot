@@ -56,6 +56,36 @@ DECLARE_GLOBAL_DATA_PTR;
 #define PWM_REG_PERIOD			PWM_REG_HRC  /* Period Register */
 #define PWM_REG_DUTY			PWM_REG_LRC  /* Dutby Cycle Register */
 
+#ifdef RK_VOP_PWM
+#define VOP_PWM_REG_CTRL		0x00
+#define VOP_PWM_REG_CNTR		0x0c
+#endif
+
+static const uint32_t rk_pwm_compat_phys[][2] = {
+	{RK_PWM0, RKIO_PWM0_PHYS},
+	{RK_PWM1, RKIO_PWM1_PHYS},
+	{RK_PWM2, RKIO_PWM2_PHYS},
+	{RK_PWM3, RKIO_PWM3_PHYS},
+#ifdef	RKIO_PWM4_PHYS
+	{RK_PWM4, RKIO_PWM4_PHYS},
+#endif
+#ifdef	RKIO_VOP0_PWM_PHYS
+	{RK_VOP0_PWM, RKIO_VOP0_PWM_PHYS},
+#endif
+#ifdef	RKIO_VOP1_PWM_PHYS
+	{RK_VOP1_PWM, RKIO_VOP1_PWM_PHYS},
+#endif
+};
+
+int rk_pwm_get_id_by_phys(uint32_t base)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(rk_pwm_compat_phys); i++) {
+		if (base == rk_pwm_compat_phys[i][1])
+			return rk_pwm_compat_phys[i][0];
+	}
+	return -1;
+}
 
 struct pwm_bl {
 	u32 base;
@@ -73,6 +103,11 @@ struct pwm_bl bl;
 static void write_pwm_reg(struct pwm_bl *bl, int reg, int val)
 {
 	writel(val, bl->base + reg);
+}
+
+static int get_pwm_id(uint32_t base)
+{
+	return rk_pwm_get_id_by_phys(base);
 }
 
 static inline u64 div64_u64(u64 dividend, u64 divisor)
@@ -113,7 +148,6 @@ static int rk_bl_parse_dt(const void *blob)
 		return -ENODEV;
 	}
 
-	bl.id = data[1];
 	bl.period = data[2];
 	pwm_node = fdt_node_offset_by_phandle(blob, data[0]);
 #ifdef CONFIG_ROCKCHIP_ARCH64
@@ -121,7 +155,8 @@ static int rk_bl_parse_dt(const void *blob)
 #else
 	bl.base = fdtdec_get_addr(blob, pwm_node, "reg");
 #endif
-	debug("bl base = 0x%08x\n", bl.base);
+	bl.id = get_pwm_id(bl.base);
+	debug("bl id = %d, base= 0x%x\n", bl.id, bl.base);
 	fdt_getprop(blob, bl.node, "brightness-levels", &len);
 	bl.max_brightness = len / sizeof(u32);
 	bl.levels = malloc(len);
@@ -162,7 +197,7 @@ int rk_pwm_bl_config(int brightness)
 		if (ret < 0)
 			return ret;
 #endif
-		rk_iomux_config(RK_PWM0_IOMUX+bl.id);
+		rk_iomux_config(bl.id);
 		gpio_direction_output(bl.bl_en.gpio, bl.bl_en.flags);
 	}
 
@@ -228,8 +263,16 @@ int rk_pwm_bl_config(int brightness)
 	conf |= (prescale << RK_PWM_PRESCALE);
 	write_pwm_reg(&bl, PWM_REG_DUTY, dc);
 	write_pwm_reg(&bl, PWM_REG_PERIOD, pv);
-	write_pwm_reg(&bl, PWM_REG_CNTR, 0);
-	write_pwm_reg(&bl, PWM_REG_CTRL, on|conf);
+	#ifdef RK_VOP_PWM
+	if (bl.id >= RK_VOP0_PWM) {
+		write_pwm_reg(&bl, VOP_PWM_REG_CNTR, 0);
+		write_pwm_reg(&bl, VOP_PWM_REG_CTRL, on|conf);
+	} else
+	#endif
+	{
+		write_pwm_reg(&bl, PWM_REG_CNTR, 0);
+		write_pwm_reg(&bl, PWM_REG_CTRL, on|conf);
+	}
 
 	return 0;
 }

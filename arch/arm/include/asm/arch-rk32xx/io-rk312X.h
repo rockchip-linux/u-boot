@@ -93,5 +93,10 @@
 #define RKIO_ROM_CHIP_VER_ADDR		(RKIO_ROM_PHYS + 0x3FF0)
 #define RKIO_ROM_CHIP_VER_SIZE		16
 
+/* define for pwm configuration */
+#define RKIO_PWM0_PHYS                  (RKIO_PWM_PHYS + 0x00)
+#define RKIO_PWM1_PHYS                  (RKIO_PWM_PHYS + 0x10)
+#define RKIO_PWM2_PHYS                  (RKIO_PWM_PHYS + 0x20)
+#define RKIO_PWM3_PHYS                  (RKIO_PWM_PHYS + 0x30)
 
 #endif /* __RK312X_IO_H */

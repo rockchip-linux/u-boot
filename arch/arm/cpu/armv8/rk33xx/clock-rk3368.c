@@ -1395,12 +1395,30 @@ int rkclk_disable_mmc_tuning(uint32 sdid)
 }
 
 /*
- * rkplat get PWM clock, from pclk_bus
+ * rkplat get PWM clock
+ * pwm[0~3] from pclk_bus
+ * vop0_pwm from xin24m
  * here no check clkgate, because chip default is enable.
  */
 unsigned int rkclk_get_pwm_clk(uint32 pwm_id)
 {
-	return gd->arch.pclk_bus_rate_hz;
+	uint32 rate = 0;
+
+	switch (pwm_id) {
+	case RK_PWM0:
+	case RK_PWM1:
+	case RK_PWM2:
+	case RK_PWM3:
+		/* from pclk_pmu */
+		rate = gd->arch.pclk_bus_rate_hz;
+		break;
+	case RK_VOP0_PWM:
+		rate = 24 * MHZ;
+		break;
+	default:
+		break;
+	}
+	return rate;
 }
 
 

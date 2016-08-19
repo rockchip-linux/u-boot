@@ -29,6 +29,8 @@ void rk_iomux_config(int iomux_id)
 	case RK_PWM2_IOMUX:
 	case RK_PWM3_IOMUX:
 	case RK_PWM4_IOMUX:
+	case RK_VOP0_PWM_IOMUX:
+	case RK_VOP1_PWM_IOMUX:
 		rk_pwm_iomux_config(iomux_id);
 		break;
 	case RK_I2C0_IOMUX:

@@ -22,6 +22,9 @@ static void rk_pwm_iomux_config(int pwm_id)
 	case RK_PWM3_IOMUX:
 		grf_writel((3 << (12 + 16)) | (3 << 12), GRF_GPIO3D_IOMUX);
 		break;
+	case RK_VOP0_PWM_IOMUX:
+		grf_writel((3 << 16) | 3, GRF_GPIO3B_IOMUX);
+		break;
 	default:
 		debug("pwm id = %d iomux error!\n", pwm_id);
 		break;

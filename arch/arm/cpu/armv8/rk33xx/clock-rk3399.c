@@ -1505,19 +1505,43 @@ int rkclk_disable_mmc_tuning(uint32 sdid)
 
 
 /*
- * rkplat get PWM clock, from pclk_bus
+ * rkplat get PWM clock
+ * pwm[0~3] from pclk_bus
+ * vop0/1_pwm from vpll, cpll, or gpll
  * here no check clkgate, because chip default is enable.
  */
 unsigned int rkclk_get_pwm_clk(uint32 pwm_id)
 {
 	uint32 con = 0;
 	uint32 div = 1;
-	uint32 pmu_pll;
+	uint32 pll_sel = 0;
+	uint32 pmu_pll = 0;
 
-	/* from pclk_pmu */
-	pmu_pll = rkclk_pll_get_rate(PPLL_ID);
-	con = pmucru_readl(PMUCRU_CLKSELS_CON(0));
-	div = ((con >> 0) & 0x1F) + 1;
+	switch (pwm_id) {
+	case RK_PWM0:
+	case RK_PWM1:
+	case RK_PWM2:
+	case RK_PWM3:
+		/* from pclk_pmu */
+		pmu_pll = rkclk_pll_get_rate(PPLL_ID);
+		con = pmucru_readl(PMUCRU_CLKSELS_CON(0));
+		div = ((con >> 0) & 0x1F) + 1;
+		break;
+	case RK_VOP0_PWM:
+	case RK_VOP1_PWM:
+		con = cru_readl(CRU_CLKSELS_CON(pwm_id - RK_VOP0_PWM + 51));
+		pll_sel = (con >> 6) & 0x3;
+		div = ((con >> 0) & 0x1F) + 1;
+		if (0 == pll_sel)
+			pmu_pll = rkclk_pll_get_rate(VPLL_ID);
+		else if (1 == pll_sel)
+			pmu_pll = rkclk_pll_get_rate(CPLL_ID);
+		else
+			pmu_pll = rkclk_pll_get_rate(GPLL_ID);
+		break;
+	default:
+		break;
+	}
 
 	return pmu_pll / div;
 }

@@ -28,6 +28,7 @@
 #include "irqs.h"
 #include "gpio.h"
 #include "iomux.h"
+#include "pwm.h"
 
 #include "clock.h"
 

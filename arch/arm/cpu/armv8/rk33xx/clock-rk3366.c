@@ -1125,14 +1125,47 @@ int rkclk_disable_mmc_tuning(uint32 sdid)
 
 
 /*
- * rkplat get PWM clock, from pclk_bus
+ * rkplat get PWM clock
+ * pwm[0~3] from pclk_bus
+ * vop0_pwm from xin24m, cpll, gpll, or npll
  * here no check clkgate, because chip default is enable.
  */
 unsigned int rkclk_get_pwm_clk(uint32 pwm_id)
 {
-	return gd->arch.pclk_bus_rate_hz;
-}
+	uint32 con = 0;
+	uint32 div = 1;
+	uint32 pll_sel = 0;
+	uint32 pmu_pll = 0;
+	uint32 rate = 0;
 
+	switch (pwm_id) {
+	case RK_PWM0:
+	case RK_PWM1:
+	case RK_PWM2:
+	case RK_PWM3:
+		/* from pclk_pmu */
+		rate = gd->arch.pclk_bus_rate_hz;
+		break;
+	case RK_VOP0_PWM:
+		con = cru_readl(CRU_CLKSELS_CON(23));
+		pll_sel = (con >> 6) & 0x3;
+		div = ((con >> 0) & 0x1F) + 1;
+		if (0 == pll_sel)
+			pmu_pll = 24 * MHZ;
+		else if (1 == pll_sel)
+			pmu_pll = rkclk_pll_get_rate(CPLL_ID);
+		else if (2 == pll_sel)
+			pmu_pll = rkclk_pll_get_rate(GPLL_ID);
+		else
+			pmu_pll = rkclk_pll_get_rate(NPLL_ID);
+		rate = pmu_pll / div;
+		break;
+	default:
+		break;
+	}
+
+	return rate;
+}
 
 /*
  * rkplat get I2C clock, I2c0 and i2c1 from pclk_cpu, I2c2 and i2c3 from pclk_periph
