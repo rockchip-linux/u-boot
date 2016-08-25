@@ -15,7 +15,7 @@
 
 
 /* ARM/General/Codec pll freq config */
-#define RKCLK_APLLL_FREQ_HZ		600000000
+#define RKCLK_APLLL_FREQ_HZ		816000000
 #define RKCLK_GPLL_FREQ_HZ		600000000
 #define RKCLK_CPLL_FREQ_HZ		800000000
 
@@ -113,7 +113,7 @@ static struct pll_clk_set apll_clks[] = {
 	 * _hz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	 *	_arm_core_div, _aclkm_core_div, _atclk_core_div, _pclk_dbg_div
 	 */
-	_APLL_SET_CLKS(816000000, 1, 68, 2, 1, 1, 0,	1, 2, 3, 3),
+	_APLL_SET_CLKS(816000000, 1, 68, 2, 1, 1, 0,	1, 4, 6, 6),
 	_APLL_SET_CLKS(600000000, 1, 75, 3, 1, 1, 0,	1, 2, 2, 2),
 };
 
