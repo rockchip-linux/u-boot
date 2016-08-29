@@ -1227,126 +1227,111 @@ static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length
 		return -ENOMEM;
 	}
 	memcpy(regs,cmds,length);
-	
+
 	liTmp	= length - 2;
 	type	= regs[1];
-	
-	switch(type)
-	{
-		case DTYPE_DCS_SWRITE_0P:
-			rk32_dsi_set_bits(dsi, regs[0], dcs_sw_0p_tx);
-			data = regs[2] << 8 | type;
-			break;
-		
-		case DTYPE_DCS_SWRITE_1P:
-			rk32_dsi_set_bits(dsi, regs[0], dcs_sw_1p_tx);
-			data = regs[2] << 8 | type;
-			data |= regs[3] << 16;
-			break;
-		    
-		case DTYPE_DCS_LWRITE: 
-			rk32_dsi_set_bits(dsi, regs[0], dcs_lw_tx);
-		
-			for(i = 0; i < liTmp; i++){
-			    regs[i] = regs[i+2];
-		    }
-		
-			for(i = 0; i < liTmp; i++) {
-				j = i % 4;
-				
-				data |= regs[i] << (j * 8);
-				if(j == 3 || ((i + 1) == liTmp)) {
-					if(rk32_dsi_get_bits(dsi, gen_pld_w_full) == 1) {
-						MIPI_TRACE("gen_pld_w_full :%d\n", i);
-						break;
-					}
-					
-					rk32_dsi_set_bits(dsi, data, GEN_PLD_DATA);
-					MIPI_DBG("write GEN_PLD_DATA:%d, %08x\n", i, data);
-					data = 0;
-				}
-			}
-			
-			data = type;	
-			data |= (liTmp & 0xffff) << 8;
-			
-			break;
-			
-		case DTYPE_GEN_LWRITE:
-			rk32_dsi_set_bits(dsi, regs[0], gen_lw_tx);
-			
-			for(i = 0; i < liTmp; i++){
-				regs[i] = regs[i+2];
-			}
-			
-			for(i = 0; i < liTmp; i++) {
-				j = i % 4;
-				
-				data |= regs[i] << (j * 8);
-				if(j == 3 || ((i + 1) == liTmp)) {
-					if(rk32_dsi_get_bits(dsi, gen_pld_w_full) == 1) {
-						MIPI_TRACE("gen_pld_w_full :%d\n", i);
-						break;
-					}
-					
-					rk32_dsi_set_bits(dsi, data, GEN_PLD_DATA);
-					MIPI_DBG("write GEN_PLD_DATA:%d, %08x\n", i, data);
-					data = 0;
-				}
-			}
-		
-			data = (dsi->vid << 6) | type;		
-			data |= (liTmp & 0xffff) << 8;
-			break;
-	
-		case DTYPE_GEN_SWRITE_2P:
-			
-			rk32_dsi_set_bits(dsi, regs[0], gen_sw_2p_tx);
-			for(i = 0; i < liTmp; i++){
-			    regs[i] = regs[i+2];
-			}
-			
-			for(i = 0; i < liTmp; i++) {
-				j = i % 4;
-				data |= regs[i] << (j * 8);
-				if(j == 3 || ((i + 1) == liTmp)) {
-					if(rk32_dsi_get_bits(dsi, gen_pld_w_full) == 1) {
-						MIPI_TRACE("gen_pld_w_full :%d\n", i);
-						break;
-					}
-					
-					rk32_dsi_set_bits(dsi, data, GEN_PLD_DATA);
-					MIPI_DBG("write GEN_PLD_DATA:%d, %08x\n", i, data);
-					data = 0;
-				}
-			}
-			data = type;		
-			data |= (liTmp & 0xffff) << 8;
 
-			break;
-			
-		case DTYPE_GEN_SWRITE_1P:
-			rk32_dsi_set_bits(dsi, regs[0], gen_sw_1p_tx);
-			data = type;
-			data |= regs[2] << 8;
-			data |= regs[3] << 16;
-			break;
-			
-		case DTYPE_GEN_SWRITE_0P:
-			rk32_dsi_set_bits(dsi, regs[0], gen_sw_0p_tx);
-			data = type;
-			data |= regs[2] << 8;
-			break;
+	switch(type) {
+	case DTYPE_DCS_SWRITE_0P:
+		rk32_dsi_set_bits(dsi, regs[0], dcs_sw_0p_tx);
+		data = regs[2] << 8 | type;
+		break;
+	case DTYPE_DCS_SWRITE_1P:
+		rk32_dsi_set_bits(dsi, regs[0], dcs_sw_1p_tx);
+		data = regs[2] << 8 | type;
+		data |= regs[3] << 16;
+		break;
+	case DTYPE_DCS_LWRITE:
+		rk32_dsi_set_bits(dsi, regs[0], dcs_lw_tx);
+		for(i = 0; i < liTmp; i++)
+			regs[i] = regs[i+2];
 
-		default:
-			MIPI_DBG("0x%x:this type not suppport!\n", type);
+		for(i = 0; i < liTmp; i++) {
+			j = i % 4;
+			data |= regs[i] << (j * 8);
+			if(j == 3 || ((i + 1) == liTmp)) {
+				if(rk32_dsi_get_bits(dsi, gen_pld_w_full) == 1) {
+					MIPI_TRACE("gen_pld_w_full :%d\n", i);
+					break;
+				}
+
+				rk32_dsi_set_bits(dsi, data, GEN_PLD_DATA);
+				MIPI_DBG("write GEN_PLD_DATA:%d, %08x\n", i, data);
+				data = 0;
+			}
+		}
+		data = type;
+		data |= (liTmp & 0xffff) << 8;
+		break;
+	case DTYPE_GEN_LWRITE:
+		rk32_dsi_set_bits(dsi, regs[0], gen_lw_tx);
+		for (i = 0; i < liTmp; i++)
+			regs[i] = regs[i+2];
+
+		for (i = 0; i < liTmp; i++) {
+			j = i % 4;
+			data |= regs[i] << (j * 8);
+			if (j == 3 || ((i + 1) == liTmp)) {
+				if (rk32_dsi_get_bits(dsi, gen_pld_w_full) == 1) {
+					MIPI_TRACE("gen_pld_w_full :%d\n", i);
+					break;
+				}
+				rk32_dsi_set_bits(dsi, data, GEN_PLD_DATA);
+				data = 0;
+			}
+		}
+		data = (dsi->vid << 6) | type;
+		data |= (liTmp & 0xffff) << 8;
+		break;
+	case DTYPE_GEN_SWRITE_2P: /* one command and one parameter */
+		rk32_dsi_set_bits(dsi, regs[0], gen_sw_2p_tx);
+		if (liTmp <= 2) {
+		/* It is used for normal Generic Short WRITE Packet with 2 parameters. */
+			data = type;
+			data |= regs[2] << 8;	/* dcs command */
+			data |= regs[3] << 16;	/* parameter of command */
+			break;
+		}
+
+		/* The below is used for Generic Short WRITE Packet with 2 parameters
+		 * that more than 2 parameters. Though it is illegal dcs command, we can't
+		 * make sure the users do not send that command.
+		 */
+		for (i = 0; i < liTmp; i++)
+			regs[i] = regs[i+2];
+
+		for (i = 0; i < liTmp; i++) {
+			j = i % 4;
+			data |= regs[i] << (j * 8);
+			if (j == 3 || ((i + 1) == liTmp)) {
+				if (rk32_dsi_get_bits(dsi, gen_pld_w_full) == 1) {
+					break;
+				}
+				rk32_dsi_set_bits(dsi, data, GEN_PLD_DATA);
+				data = 0;
+			}
+		}
+		data = type;
+		data |= (liTmp & 0xffff) << 8;
+		break;
+	case DTYPE_GEN_SWRITE_1P: /* one command without parameter */
+		rk32_dsi_set_bits(dsi, regs[0], gen_sw_1p_tx);
+		data = type;
+		data |= regs[2] << 8;
+		break;
+	case DTYPE_GEN_SWRITE_0P: /* nop packet without command and parameter */
+		rk32_dsi_set_bits(dsi, regs[0], gen_sw_0p_tx);
+		data =  type;
+		break;
+	default:
+		break;
 	}
 
 	MIPI_DBG("%d command sent in %s size:%d\n", __LINE__, regs[0] ? "LP mode" : "HS mode", liTmp);
-	
+
 	MIPI_DBG("write GEN_HDR:%08x\n", data);
 	rk32_dsi_set_bits(dsi, data, GEN_HDR);
-	
+
 	i = 10;
 	while(!rk32_dsi_get_bits(dsi, gen_cmd_empty) && i--) {
 		MIPI_DBG(".");
