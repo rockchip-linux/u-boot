@@ -312,7 +312,10 @@ static int rk816_set_regulator_init(struct fdt_regulator_match *matches, int id)
 {
 	int ret = 0;
 
-	if (matches->min_uV == matches->max_uV) {
+	if (matches->init_uV) {
+		ret = rk816_regulator_set_voltage(id, matches->init_uV,
+						  matches->init_uV);
+	} else if (matches->min_uV == matches->max_uV) {
 		debug("%s: regulagor.%d fix uv\n", __func__, id);
 		ret = rk816_regulator_set_voltage(id, matches->min_uV,
 						  matches->max_uV);
@@ -321,6 +324,7 @@ static int rk816_set_regulator_init(struct fdt_regulator_match *matches, int id)
 		debug("%s: regulagor.%d boot on\n", __func__, id);
 		ret = rk816_regulator_enable(id);
 	}
+
 	return ret;
 }
 
@@ -467,8 +471,7 @@ static int rk816_parse_dt(const void *blob)
 
 	for (i = 0; i < rk8xx->reg_nums; i++) {
 		regulator_init_pmic_matches[i].name = reg_match[i].name;
-		if (reg_match[i].boot_on || (reg_match[i].min_uV == reg_match[i].max_uV))
-			ret = rk816_set_regulator_init(&reg_match[i], i);
+		ret = rk816_set_regulator_init(&reg_match[i], i);
 	}
 
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);

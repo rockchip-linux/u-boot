@@ -304,11 +304,15 @@ static int rk808_set_regulator_init(struct fdt_regulator_match *matches, int num
 {
 	int ret;
 
-	if (matches->min_uV == matches->max_uV)
+	if (matches->init_uV)
+		ret = rk808_regulator_set_voltage(num_matches, matches->init_uV,
+						  matches->init_uV);
+	else if (matches->min_uV == matches->max_uV)
 		ret = rk808_regulator_set_voltage(num_matches, matches->min_uV,
 						  matches->max_uV);
 	if (matches->boot_on)
 		ret = rk808_regulator_enable(num_matches);
+
 
 	return ret;
 }
@@ -369,10 +373,7 @@ static int rk808_parse_dt(const void* blob)
 
 	for (i = 0; i < RK808_NUM_REGULATORS; i++) {
 		regulator_init_pmic_matches[i].name = reg_match[i].name;
-		if (reg_match[i].boot_on ||
-		    (reg_match[i].min_uV ==
-		    reg_match[i].max_uV))
-			ret = rk808_set_regulator_init(&reg_match[i], i);
+		ret = rk808_set_regulator_init(&reg_match[i], i);
 	}
 
 	fdtdec_decode_gpios(blob, node, "gpios", gpios, 2);
