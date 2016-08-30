@@ -16,7 +16,8 @@ int fdt_get_regulator_init_data(const void *blob, int node,
 	match->name = fdt_getprop(blob, node, "regulator-name", NULL);
 	match->min_uV = fdtdec_get_int(blob, node, "regulator-min-microvolt", 0);
 	match->max_uV = fdtdec_get_int(blob, node, "regulator-max-microvolt", 0);
-	
+	match->init_uV = fdtdec_get_int(blob, node, "regulator-init-microvolt", 0);
+
 	if (fdt_get_property(blob, node, "regulator-boot-on", NULL))
 			match->boot_on = 1;
 	else

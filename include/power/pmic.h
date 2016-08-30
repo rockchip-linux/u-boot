@@ -89,6 +89,7 @@ struct fdt_regulator_match {
 	int min_uV;
 	int max_uV;
 	int boot_on;
+	int init_uV;
 };
 
 int pmic_init(unsigned char bus);
