@@ -16,6 +16,7 @@
 
 #include <common.h>
 #include <malloc.h>
+#include <fdtdec.h>
 #include <dwc3-uboot.h>
 #include <asm/dma-mapping.h>
 #include <linux/ioport.h>
@@ -28,6 +29,8 @@
 #include "io.h"
 
 #include "linux-compat.h"
+
+DECLARE_GLOBAL_DATA_PTR;
 
 static LIST_HEAD(dwc3_list);
 /* -------------------------------------------------------------------------- */
@@ -390,6 +393,11 @@ static void dwc3_phy_setup(struct dwc3 *dwc)
 	if (dwc->dis_u2_susphy_quirk)
 		reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
 
+	if (dwc->usb2_phyif_utmi_width == 16) {
+		reg &= ~DWC3_GUSB2PHYCFG_USBTRDTIM_MASK;
+		reg |= DWC3_GUSB2PHYCFG_USBTRDTIM_16BIT;
+		reg |= DWC3_GUSB2PHYCFG_PHYIF_16BIT;
+	}
 	dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
 
 	mdelay(100);
@@ -623,6 +631,8 @@ int dwc3_uboot_init(struct dwc3_device *dwc3_dev)
 	int			ret;
 
 	void			*mem;
+	const void *blob = gd->fdt_blob;
+	int node;
 
 	mem = devm_kzalloc(dev, sizeof(*dwc) + DWC3_ALIGN_MASK, GFP_KERNEL);
 	if (!mem)
@@ -683,6 +693,14 @@ int dwc3_uboot_init(struct dwc3_device *dwc3_dev)
 		| (dwc->is_utmi_l1_suspend << 4);
 
 	dwc->index = dwc3_dev->index;
+
+	node = fdt_node_offset_by_compatible(blob, -1,
+			"rockchip,rk3399-xhci");
+	if (node < 0)
+		debug("%s dwc3 node not found\n", __func__);
+	else
+		dwc->usb2_phyif_utmi_width =
+			fdtdec_get_int(blob, node, "snps,phyif-utmi-bits", -1);
 
 	dwc3_cache_hwparams(dwc);
 
