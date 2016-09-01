@@ -178,6 +178,8 @@ static int pwm_regulator_parse_dt(const void *blob)
 		else
 			fdt_regulator_match(blob, pwm_nd[i], pwm_reg_matches, PWM_NUM_REGULATORS);
 
+		if (pwm_init_volt[i] == 0)
+			pwm_init_volt[i] = pwm_reg_matches[i].init_uV;
 		regulator_init_pwm_matches[i].name = pwm_reg_matches[i].name;
 		if (pwm_reg_matches[i].boot_on)
 			ret = pwm_regulator_set_voltage(pwm_id[i], i, pwm_init_volt[i], pwm_init_volt[i]);
@@ -201,6 +203,8 @@ pwm_regulator:
 		fdt_get_regulator_init_data(blob,
 					    pwm_node[i],
 					    &pwm_reg_matches[i]);
+		if (pwm_init_volt[i] == 0)
+			pwm_init_volt[i] = pwm_reg_matches[i].init_uV;
 		regulator_init_pwm_matches[i].name = pwm_reg_matches[i].name;
 		if (pwm_reg_matches[i].boot_on)
 			ret = pwm_regulator_set_voltage(pwm_id[i], i,
