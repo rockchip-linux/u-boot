@@ -156,10 +156,13 @@ static void rk_mipi_screen_cmd_init(struct mipi_screen *screen)
 				MIPI_SCREEN_DBG("dsi is err.");
 			}
 			msleep(dcs_cmd->dcs_cmd.delay);
-			
 		}
 		else
 		    MIPI_SCREEN_DBG("cmd type err.\n");
+#ifdef CONFIG_RK32_DSI
+		free(dcs_cmd->dcs_cmd.cmds);
+		dcs_cmd->dcs_cmd.cmds = NULL;
+#endif
 	}
 
 #ifdef CONFIG_RK32_DSI
@@ -560,7 +563,6 @@ EXPORT_SYMBOL(rk_mipi_get_dsi_clk);
 static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 {
 	struct mipi_dcs_cmd_ctr_list  *dcs_cmd;
-	u32 i,cmds[20];
 	int length;
 	int err;
 	int node;
@@ -656,23 +658,25 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 			MIPI_SCREEN_DBG("dcs_cmd.dsi_id=%02x\n",dcs_cmd->dcs_cmd.dsi_id);
 
 			fdt_getprop(blob, noffset, "rockchip,cmd", &length);
-			dcs_cmd->dcs_cmd.cmd_len = length / sizeof(u32) ;
-			err = fdtdec_get_int_array(blob, noffset, "rockchip,cmd", cmds, dcs_cmd->dcs_cmd.cmd_len);
-			MIPI_SCREEN_DBG("length=%d,cmd_len = %d  err = %d\n",length,dcs_cmd->dcs_cmd.cmd_len,err);
+			dcs_cmd->dcs_cmd.cmd_len = length / sizeof(u32);
 
-			for (i = 0; i < (length / sizeof(u32)); i++) {  
-				MIPI_SCREEN_DBG("cmd[%d]=0x%08x, ",i+1,cmds[i]);
-				dcs_cmd->dcs_cmd.cmds[i] = cmds[i];
+			dcs_cmd->dcs_cmd.cmds = calloc(1, CMD_LEN_MAX);
+			if (!dcs_cmd->dcs_cmd.cmds) {
+				printf("calloc cmds fail!\n");
+				return -ENOMEM;
 			}
-			MIPI_SCREEN_DBG("\n");
 
+			err = fdtdec_get_int_array(blob, noffset,
+						   "rockchip,cmd",
+						   dcs_cmd->dcs_cmd.cmds,
+						   dcs_cmd->dcs_cmd.cmd_len);
 			dcs_cmd->dcs_cmd.delay = fdtdec_get_int(blob, noffset, "rockchip,cmd_delay", -1);
 			MIPI_SCREEN_DBG("dcs_cmd.delay=%d\n",dcs_cmd->dcs_cmd.delay);
 
 			list_add_tail(&dcs_cmd->list, &screen->cmdlist_head);
 		}
 	}
-	return 0; 
+	return 0;
 }
 #endif /* CONFIG_OF_LIBFDT */
 
