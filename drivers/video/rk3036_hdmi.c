@@ -416,6 +416,14 @@ static void rk3036_hdmi_config_avi(struct hdmi_dev *hdmi_dev,
 					      4) |
 	    ACTIVE_ASPECT_RATE_SAME_AS_CODED_FRAME;
 	info[6] = 0;
+	if (vic == HDMI_720X480P_60HZ_16_9)
+		vic = HDMI_720X480P_60HZ_4_3;
+	else if (vic == HDMI_720X480I_60HZ_16_9)
+		vic = HDMI_720X480I_60HZ_4_3;
+	else if (vic == HDMI_720X576P_50HZ_16_9)
+		vic = HDMI_720X576P_50HZ_4_3;
+	else if (vic == HDMI_720X576I_50HZ_16_9)
+		vic = HDMI_720X576I_50HZ_4_3;
 	info[7] = vic;
 	if ((vic == HDMI_720X480I_60HZ_4_3) ||
 	    (vic == HDMI_720X480I_60HZ_16_9) ||
