@@ -103,6 +103,14 @@ config SPL_LIBGENERIC_SUPPORT
 config SPL_SERIAL_SUPPORT
 	default y
 
+config ROCKCHIP_SPL
+	bool "Use Rockchip's SPL binary"
+	select ROCKCHIP_SPL_BACK_TO_BROM
+	help
+	  Rockchip has provide a SPL binary to configure DDR device instead of
+	  open source u-boot-spl binary, which can autodetect DDR deivce type and
+	  initialize.
+
 source "board/chipspark/popmetal_rk3288/Kconfig"
 
 source "board/firefly/firefly-rk3288/Kconfig"
