@@ -292,14 +292,14 @@ static int rk816_regulator_set_voltage(int id, int min_uV, int max_uV)
 			return 0;
 		ret = i2c_reg_read(rk8xx->pmic->hw.i2c.addr,
 				   rk816_BUCK_SET_VOL_REG(id));
-		ret = ret & RK816_VOLT_MASK;
+		ret = ret & (~RK816_VOLT_MASK);
 		i2c_reg_write(rk8xx->pmic->hw.i2c.addr,
 			      rk816_BUCK_SET_VOL_REG(id), ret | val);
 		debug("0 %s %d dcdc_vol = %08x\n", __func__, id, ret);
 	} else {
 		ret = i2c_reg_read(rk8xx->pmic->hw.i2c.addr,
 				   rk816_LDO_SET_VOL_REG(id));
-		ret = ret & RK816_VOLT_MASK;
+		ret = ret & (~RK816_VOLT_MASK);
 		i2c_reg_write(rk8xx->pmic->hw.i2c.addr,
 			      rk816_LDO_SET_VOL_REG(id), ret | val);
 		debug("1 %s %d %d ldo_vol =%08x\n", __func__, id, val, ret);
