@@ -15,6 +15,7 @@
 #include <asm/arch/pmu_rk3288.h>
 #include <asm/arch/qos_rk3288.h>
 #include <asm/arch/boot_mode.h>
+#include <asm/arch/timer.h>
 #include <asm/gpio.h>
 #include <dm/pinctrl.h>
 #include <dt-bindings/clock/rk3288-cru.h>
@@ -116,6 +117,8 @@ int board_init(void)
 #ifdef CONFIG_ROCKCHIP_SPL_BACK_TO_BROM
 	struct udevice *pinctrl;
 	int ret;
+
+	rockchip_timer_init();
 
 	/*
 	 * We need to implement sdcard iomux here for the further
