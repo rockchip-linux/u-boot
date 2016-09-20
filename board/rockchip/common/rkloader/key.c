@@ -47,6 +47,9 @@ static int GetPortState(key_config *key)
 
 	if (key->type == KEY_AD) {
 		/* TODO: clk√ª”–≈‰÷√ */
+#if defined(CONFIG_RKCHIP_RK322XH)
+		rkclk_set_saradc_clk();
+#endif
 		for (tt = 0; tt < 10; tt++) {
 			/* read special gpio port value. */
 			uint32 value;

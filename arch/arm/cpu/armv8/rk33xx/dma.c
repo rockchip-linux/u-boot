@@ -1142,7 +1142,44 @@ static struct rk_pl330_platdata g_dmac0_pdata = {
 	},
 };
 
-#else 
+#elif defined(CONFIG_RKCHIP_RK322XH)
+static struct rk_pl330_platdata g_dmac0_pdata = {
+	.peri = {
+		[0] = DMACH_I2S2_2CH_TX,
+		[1] = DMACH_I2S2_2CH_RX,
+		[2] = DMACH_UART0_TX,
+		[3] = DMACH_UART0_RX,
+		[4] = DMACH_UART1_TX,
+		[5] = DMACH_UART1_RX,
+		[6] = DMACH_UART2_TX,
+		[7] = DMACH_UART2_RX,
+		[8] = DMACH_SPI_TX,
+		[9] = DMACH_SPI_RX,
+		[10] = DMACH_SPDIF_TX,
+		[11] = DMACH_I2S0_8CH_TX,
+		[12] = DMACH_I2S0_8CH_RX,
+		[13] = DMACH_PWM_TX,
+		[14] = DMACH_I2S1_8CH_TX,
+		[15] = DMACH_I2S1_8CH_TX,
+		[16] = DMACH_PDM_TX,
+		[17] = DMACH_MAX,
+		[18] = DMACH_MAX,
+		[19] = DMACH_DMAC0_MEMTOMEM,
+		[20] = DMACH_MAX,
+		[21] = DMACH_MAX,
+		[22] = DMACH_MAX,
+		[23] = DMACH_MAX,
+		[24] = DMACH_MAX,
+		[25] = DMACH_MAX,
+		[26] = DMACH_MAX,
+		[27] = DMACH_MAX,
+		[28] = DMACH_MAX,
+		[29] = DMACH_MAX,
+		[30] = DMACH_MAX,
+		[31] = DMACH_MAX,
+	},
+};
+#else
 	#error "Please config rk chip for dmac0."
 #endif
 
@@ -1473,6 +1510,15 @@ int rk_pl330_dmac_deinit(int dmac_id)
 	mdelay(1);
 	writel(0x0<<0 | 0x1<<(0+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(4));
 #endif
+
+#elif defined(CONFIG_RKCHIP_RK322XH)
+
+#ifdef CONFIG_RK_DMAC_0
+	writel(0x1<<8 | 0x1<<(8+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(3));
+	mdelay(1);
+	writel(0x0<<8 | 0x1<<(8+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(3));
+#endif
+
 #else
 	#error "PLS config platform for dmac deinit."
 #endif

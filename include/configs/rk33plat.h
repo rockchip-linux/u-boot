@@ -14,7 +14,7 @@
 
 
 /* gic and rk timer version */
-#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
+#if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366) || defined(CONFIG_RKCHIP_RK322XH)
 	#define CONFIG_GICV2
 	#define CONFIG_RKTIMER_V2
 #elif defined(CONFIG_RKCHIP_RK3399)
@@ -133,6 +133,22 @@
 	#endif
 #endif
 
+#if defined(CONFIG_RKCHIP_RK322XH)
+	#undef CONFIG_RK_MCU
+
+	#define CONFIG_SECUREBOOT_CRYPTO
+	#define CONFIG_SECUREBOOT_SHA256
+	#undef CONFIG_RK_TRUSTOS
+
+	#undef CONFIG_RK_FLASH_BOOT_EN
+	#undef CONFIG_RK_UMS_BOOT_EN
+
+	#undef CONFIG_RK_PL330_DMAC
+
+	#undef CONFIG_MERGER_MINILOADER
+	#undef CONFIG_LCD
+#endif
+
 /* fpga board configure */
 #ifdef CONFIG_FPGA_BOARD
 	#define DEBUG
@@ -222,6 +238,8 @@
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x330B
 #elif defined(CONFIG_RKCHIP_RK3399)
 	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x330C
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	#define CONFIG_USBD_PRODUCTID_ROCKUSB	0x320C
 #else
 	#error "PLS config rk chip for rockusb PID!"
 #endif
@@ -312,6 +330,10 @@
 #define CONFIG_DIRECT_LOGO
 #define CONFIG_OF_BOARD_SETUP
 #undef CONFIG_RK_TVE
+#endif
+
+#if defined(CONFIG_RKCHIP_RK322XH)
+/* todo: add lcd config here */
 #endif
 
 #ifdef CONFIG_ROCKCHIP_DISPLAY

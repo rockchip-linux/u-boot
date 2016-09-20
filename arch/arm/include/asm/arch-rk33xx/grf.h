@@ -19,6 +19,8 @@
 	#include "grf-rk3366.h"
 #elif defined(CONFIG_RKCHIP_RK3399)
 	#include "grf-rk3399.h"
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	#include "grf-rk322xh.h"
 #else
 	#error "PLS config grf-rkxx.h!"
 #endif

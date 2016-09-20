@@ -98,6 +98,8 @@ static uint32 rkclk_calc_clkdiv(uint32 clk_parent, uint32 clk_child, uint32 even
 	#include "clock-rk3366.c"
 #elif defined(CONFIG_RKCHIP_RK3399)
 	#include "clock-rk3399.c"
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	#include "clock-rk322xh.c"
 #else
 	#error "PLS config chiptype for clock-rkxx.c!"
 #endif
@@ -131,5 +133,6 @@ void rkclk_set_crypto_clk(uint32 rate) {}
 void rkcru_cpu_soft_reset(void) {}
 void rkcru_mmc_soft_reset(uint32 sdmmcId) {}
 void rkcru_i2c_soft_reset(void) {}
+void rkclk_set_saradc_clk(void) {}
 
 #endif /* CONFIG_RK_CLOCK */

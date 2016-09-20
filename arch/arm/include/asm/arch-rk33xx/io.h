@@ -18,6 +18,8 @@
 	#include "io-rk3366.h"
 #elif defined(CONFIG_RKCHIP_RK3399)
 	#include "io-rk3399.h"
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	#include "io-rk322xh.h"
 #else
 	#error "PLS config io-rkxx.h!"
 #endif

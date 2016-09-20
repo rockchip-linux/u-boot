@@ -321,6 +321,82 @@ typedef enum SPI_ch {
 
 	/* boot information for kernel */
 	#define RKIO_BOOTINFO_BASE	RKIO_IMEM1_PHYS
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	/* Loader Flag regiseter */
+	#define RKIO_LOADER_FLAG_REG	(RKIO_GRF_PHYS + GRF_OS_REG0)
+
+	/* usb otg */
+	#define RKIO_USBOTG_BASE	RKIO_USB2_OTG_PHYS
+
+	/* timer */
+	#define RKIO_TIMER_BASE		RKIO_TIMER0_6CH_PHYS
+	#define RKIRQ_TIMER0		IRQ_TIMER0_6CH_0
+	#define RKIRQ_TIMER1		IRQ_TIMER0_6CH_1
+	#define RKIRQ_TIMER2		IRQ_TIMER0_6CH_2
+	#define RKIRQ_TIMER3		IRQ_TIMER0_6CH_3
+
+	/* secure timer */
+	#define RKIO_SECURE_TIMER_BASE	(RKIO_SECURE_TIMER_2CH_PHYS + 0x20)
+
+	/* uart */
+	#define RKIO_UART0_BASE		RKIO_UART0_PHYS
+	#define RKIO_UART1_BASE		RKIO_UART1_PHYS
+	#define RKIO_UART2_BASE		RKIO_UART2_PHYS
+	#define RKIO_UART3_BASE		0
+	#define RKIO_UART4_BASE		0
+	#define RKIO_UART5_BASE		0
+	#define RKIO_UART6_BASE		0
+	#define RKIO_UART7_BASE		0
+
+	/* i2c */
+	#define RKIO_I2C0_BASE		RKIO_I2C0_PHYS
+	#define RKIO_I2C1_BASE		RKIO_I2C1_PHYS
+	#define RKIO_I2C2_BASE		RKIO_I2C2_PHYS
+	#define RKIO_I2C3_BASE		RKIO_I2C3_PHYS
+	#define RKIO_I2C4_BASE		0
+	#define RKIO_I2C5_BASE		0
+	#define RKIO_I2C6_BASE		0
+	#define RKIO_I2C7_BASE		0
+
+	/* spi */
+	#define RKIO_SPI0_BASE		RKIO_SPI_PHYS
+	#define RKIO_SPI1_BASE		0
+	#define RKIO_SPI2_BASE		0
+	#define RKIO_SPI3_BASE		0
+	#define RKIO_SPI4_BASE		0
+	#define RKIO_SPI5_BASE		0
+	#define RKIO_SPI6_BASE		0
+	#define RKIO_SPI7_BASE		0
+
+	/* pwm */
+	#define RKIO_PWM_BASE		RKIO_PWM_PHYS
+
+	/* pwm remote */
+	#define RK_PWM_REMOTE_ID	3
+	#define RK_PWM_REMOTE_IOBASE	(RKIO_PWM_PHYS + 0x10 * RK_PWM_REMOTE_ID)
+	#define RK_PWM_REMOTE_IRQ	IRQ_RK_PWM
+
+	/* saradc */
+	#define RKIO_SARADC_BASE	RKIO_SARADC_PHYS
+
+	/* storage */
+	#define RKIO_SDMMC_BASE		RKIO_SDMMC_PHYS
+	#define RKIO_SDIO_BASE		RKIO_SDIO_PHYS
+	#define RKIO_EMMC_BASE		RKIO_EMMC_PHYS
+
+	#define RKIRQ_SDMMC		IRQ_SDMMC
+	#define RKIRQ_SDIO		IRQ_SDIO
+	#define RKIRQ_EMMC		IRQ_EMMC
+
+	/* efuse */
+	#define RKIO_FTEFUSE_BASE	RKIO_EFUSE_NS_PHYS
+	#define RKIO_SECUREEFUSE_BASE	RKIO_EFUSE_S_PHYS
+
+	/* crypto */
+	#define RKIO_CRYPTO_BASE	RKIO_CRYPTO_PHYS
+
+	/* boot information for kernel */
+	#define RKIO_BOOTINFO_BASE	RKIO_IMEM_PHYS
 #else
 	#error "PLS config chiptype for hardware!"
 #endif

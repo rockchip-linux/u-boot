@@ -21,6 +21,8 @@
 	#include "irqs-rk3366.h"
 #elif defined(CONFIG_RKCHIP_RK3399)
 	#include "irqs-rk3399.h"
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	#include "irqs-rk322xh.h"
 #else
 	#error "PLS config irqs-rkxx.h!"
 #endif

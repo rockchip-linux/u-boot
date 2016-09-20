@@ -20,6 +20,8 @@
 	#include "pmu-rk3366.h"
 #elif defined(CONFIG_RKCHIP_RK3399)
 	#include "pmu-rk3399.h"
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	#include "pmu-rk322xh.h"
 #else
 	#error "PLS config pmu-rkxx.h!"
 #endif

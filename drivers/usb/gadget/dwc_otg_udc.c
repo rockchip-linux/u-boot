@@ -367,6 +367,13 @@ uint32_t GetVbus(void)
 		/* delay more than 1ms, waiting for usb phy init */
 		mdelay(3);
 	}
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	if (readl(RKIO_USB2PHY_GRF_PHYS + USB2PHY_GRF_CON(0)) & (0x01 << 1)) {
+		/* exit suspend */
+		writel(((0x1 << 1) << 16), RKIO_USB2PHY_GRF_PHYS + USB2PHY_GRF_CON(0));
+		/* delay more than 1ms, waiting for usb phy init */
+		mdelay(3);
+	}
 #else
 	#error "PLS config chiptype for usb vbus check!"
 #endif

@@ -13,6 +13,8 @@
 
 #if defined(CONFIG_RKCHIP_RK3126)
 #define KEY_ADC_CN		2
+#elif defined(CONFIG_RKCHIP_RK322XH)
+#define KEY_ADC_CN		0
 #else
 #define KEY_ADC_CN		1
 #endif

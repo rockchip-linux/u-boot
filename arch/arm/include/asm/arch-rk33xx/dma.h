@@ -71,6 +71,18 @@ typedef int  (*rk_dma_opfn_t)(enum rk_chan_op);
 	#define RK_DMAC0_IRQ1		IRQ_DMAC_BUS1
 	#define RK_DMAC1_IRQ0		IRQ_DMAC_PERI0
 	#define RK_DMAC1_IRQ1		IRQ_DMAC_PERI1
+
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	#define RK_PL330_DMAC_MAX	1
+	#define CONFIG_RK_DMAC_0	/* dmac 0 */
+
+#ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+	#define RK_DMAC0_BASE		RKIO_DMAC_BUS_PHYS /* default is security dma bus */
+#else
+	#define RK_DMAC0_BASE		RKIO_SECURITY_DMAC_BUS_PHYS /* default is security dma bus */
+#endif
+
+	#define RK_DMAC0_IRQ0		IRQ_DMAC_BUS
 #else
 	#error "Please config platform for dmac."
 #endif
@@ -160,6 +172,45 @@ enum dma_ch {
 	DMACH_MAX = 31,
 };
 
+#elif defined(CONFIG_RKCHIP_RK322XH)
+
+enum dma_ch {
+	DMACH_I2S2_2CH_TX,
+	DMACH_I2S2_2CH_RX,
+	DMACH_UART0_TX,
+	DMACH_UART0_RX,
+	DMACH_UART1_TX,
+	DMACH_UART1_RX,
+	DMACH_UART2_TX,
+	DMACH_UART2_RX,
+	DMACH_SPI_TX,
+	DMACH_SPI_RX,
+	DMACH_SPDIF_TX,
+	DMACH_I2S0_8CH_TX,
+	DMACH_I2S0_8CH_RX,
+	DMACH_PWM_TX,
+	DMACH_I2S1_8CH_TX,
+	DMACH_I2S1_8CH_RX,
+	DMACH_PDM_TX,
+	DMACH_DMAC0_MEMTOMEM,
+	DMACH_DMAC1_MEMTOMEM,
+	DMACH_DMAC2_MEMTOMEM,
+	DMACH_DMAC3_MEMTOMEM,
+	DMACH_DMAC4_MEMTOMEM,
+	DMACH_DMAC5_MEMTOMEM,
+	DMACH_DMAC6_MEMTOMEM,
+	DMACH_DMAC7_MEMTOMEM,
+	DMACH_DMAC8_MEMTOMEM,
+	DMACH_DMAC9_MEMTOMEM,
+	DMACH_DMAC10_MEMTOMEM,
+	DMACH_DMAC11_MEMTOMEM,
+	DMACH_DMAC12_MEMTOMEM,
+	DMACH_DMAC13_MEMTOMEM,
+	DMACH_DMAC14_MEMTOMEM,
+
+	/* END Marker, also used to denote a reserved channel */
+	DMACH_MAX,
+};
 #else
 	#error "Please config platform for dmac."
 #endif

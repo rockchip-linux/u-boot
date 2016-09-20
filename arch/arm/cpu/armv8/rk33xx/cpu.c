@@ -25,6 +25,7 @@ void enable_caches(void)
  * rk3368 chip info:		{0x33333041, 0x32303134, 0x30393238, 0x56313030} - 330A20140928V100
  * rk3366 chip info:		{0x33333042, 0x32303135, 0x30363234, 0x56313030} - 330B20150624V100
  * rk3399 chip info:		{0x33333043, 0x32303136, 0x30313138, 0x56313030} - 330B20160118V100
+ * rk322xh chip info:		{0x33323043, 0x32303136, 0x31313031, 0x56313030} - 320C20161101V100
  */
 int rk_get_bootrom_chip_version(unsigned int chip_info[])
 {
@@ -41,6 +42,9 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 	chip_info[3] = 0x56313030;
 #elif defined(CONFIG_RKCHIP_RK3399)
 	chip_info[0] = 0x33333043;
+	chip_info[3] = 0x56313030;
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	chip_info[0] = 0x33323043;
 	chip_info[3] = 0x56313030;
 #endif
 #else
@@ -66,6 +70,9 @@ int rk_get_chiptype(void)
 			return CONFIG_RK3366;
 		if (chip_info[0] == 0x33333043) /* 330C */
 			return CONFIG_RK3399;
+	} else if (chip_class == 0x3332) { /* RK322XH */
+		if (chip_info[0] == 0x33323043) /* 320C */
+			return CONFIG_RK322XH;
 	}
 
 	return RKCHIP_UNKNOWN;
@@ -162,6 +169,11 @@ int arch_cpu_init(void)
 	/* pwm3 select A mode */
 	pmugrf_writel((1 << (5 + 16)) | (0 << 5), PMU_GRF_SOC_CON0);
 #endif
+
+#if defined(CONFIG_RKCHIP_RK322XH)
+	/* enable force to jtag, jtag_tclk/tms iomuxed with sdmmc0_d2/d3 */
+	grf_writel((0x01 << 12) | (0x01 << (12 + 16)), GRF_SOC_CON4);
+#endif /* CONFIG_RKCHIP_RK322XH */
 	return 0;
 }
 #endif
@@ -190,6 +202,11 @@ int print_cpuinfo(void)
 #if defined(CONFIG_RKCHIP_RK3399)
 	if (gd->arch.chiptype == CONFIG_RK3399)
 		printf("CPU: rk3399\n");
+#endif
+
+#if defined(CONFIG_RKCHIP_RK322XH)
+	if (gd->arch.chiptype == CONFIG_RK322XH)
+		printf("CPU: rk322xh\n");
 #endif
 
 	rkclk_get_pll();

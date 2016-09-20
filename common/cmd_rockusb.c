@@ -525,6 +525,8 @@ static void FW_GetChipVer(void)
 	chip_info[0] = 0x33323241;
 #elif defined(CONFIG_RKCHIP_RK3366)
 	chip_info[0] = 0x33333042;
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	chip_info[0] = 0x33323248;
 #endif
 	memcpy((void *)current_urb->buffer, (void *)chip_info, 16);
 	current_urb->actual_length = 16;

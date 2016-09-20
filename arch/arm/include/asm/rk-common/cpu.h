@@ -24,6 +24,7 @@
 #define ROCKCHIP_CPU_RK3368	0x33680000
 #define ROCKCHIP_CPU_RK3366	0x33660000
 #define ROCKCHIP_CPU_RK3399	0x33990000
+#define ROCKCHIP_CPU_RK322XH	0x320C0000 /* infiniti */
 
 /* rockchip cpu type */
 #define CONFIG_RK3036           (ROCKCHIP_CPU_RK3036 | 0x00)    /* rk3036 chip */
@@ -38,5 +39,6 @@
 #define CONFIG_RK3368           (ROCKCHIP_CPU_RK3368 | 0x00)    /* rk3368 chip */
 #define CONFIG_RK3366           (ROCKCHIP_CPU_RK3366 | 0x00)    /* rk3366 chip */
 #define CONFIG_RK3399           (ROCKCHIP_CPU_RK3399 | 0x00)    /* rk3399 chip */
+#define CONFIG_RK322XH		(ROCKCHIP_CPU_RK322XH | 0x00)	/* rk322xh chip */
 
 #endif	/* _RKXX_CPU_H */

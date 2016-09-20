@@ -174,4 +174,13 @@ void rkcru_mmc_soft_reset(uint32 sdmmcId);
  */
 void rkcru_i2c_soft_reset(void);
 
+
+#if defined(CONFIG_RKCHIP_RK322XH)
+/*
+ * rkplat set sar-adc clock
+ * here no check clkgate, because chip default is enable.
+ */
+void rkclk_set_saradc_clk(void);
+#endif
+
 #endif	/* _RKXX_CLOCK_H */

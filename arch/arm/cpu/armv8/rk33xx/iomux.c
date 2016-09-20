@@ -16,6 +16,8 @@
 	#include "iomux-rk3366.c"
 #elif defined(CONFIG_RKCHIP_RK3399)
 	#include "iomux-rk3399.c"
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	#include "iomux-rk322xh.c"
 #else
 	#error "PLS config iomux-rkxx.c!"
 #endif

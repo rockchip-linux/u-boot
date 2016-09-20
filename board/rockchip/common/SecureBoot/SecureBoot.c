@@ -74,8 +74,6 @@ void SecureBootLockLoader(void)
 
 static void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 length)
 {
-/* rk3399 TODO */
-#if !defined(CONFIG_RKCHIP_RK3399)
 	uint8 *pSramAddr = (uint8 *)BOOTINFO_RAM_BASE;
 
 	if (dir == 0)
@@ -86,7 +84,6 @@ static void FlashSramLoadStore(void *pBuf, uint32 offset, uint32 dir, uint32 len
 	{
 		ftl_memcpy(pSramAddr + offset, pBuf, length);
 	}
-#endif
 }
 
 static uint32 JSHashBase(uint8 * buf, uint32 len, uint32 hash)
@@ -117,10 +114,13 @@ uint32 SecureBootSetSysData2Kernel(uint32 SecureBootFlag)
 	gBootConfig.hash = JSHash((uint8*)&gBootConfig, 508);
 
 	StorageSysDataLoad(2, tmp_buf);
+/* rk3399 and rk322xh don't save boot info in SRAM for kernel */
+#if !defined(CONFIG_RKCHIP_RK3399) && !defined(CONFIG_RKCHIP_RK322XH)
 	FlashSramLoadStore(&gBootConfig, 0, 1, 512);
 	FlashSramLoadStore(&gDrmKeyInfo, 512, 1, 512);
 	FlashSramLoadStore(tmp_buf, 1024, 1, 512);          // vonder info
 	FlashSramLoadStore(&gIdDataBuf[384], 1536, 1, 512);  // idblk sn info
+#endif
 
 	return 0;
 }
