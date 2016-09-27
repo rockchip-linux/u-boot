@@ -1431,6 +1431,7 @@ struct vop_device {
 	u32 regs;				/*1:standby,0:wrok*/
 	int output_color;
 	int overlay_mode;
+	int cabc_mode;
 	struct rk_screen *screen;
 };
 

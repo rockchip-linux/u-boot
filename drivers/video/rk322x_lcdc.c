@@ -1296,6 +1296,8 @@ static int rk32_vop_parse_dt(struct vop_device *vop_dev, const void *blob)
 	order = fdtdec_get_int(blob, vop_dev->node,
 			       "rockchip,fb-win-map", order);
 	vop_dev->dft_win = order % 10;
+	vop_dev->cabc_mode = fdtdec_get_int(blob, vop_dev->node,
+				"rockchip,cabc_mode", 0);
 
 	return 0;
 }
@@ -1355,6 +1357,13 @@ int rk_lcdc_init(int vop_id)
 	vop_writel(vop_dev, FRC_LOWER10_1, 0x5aa56969);
 	vop_writel(vop_dev, FRC_LOWER11_0, 0xdeb77deb);
 	vop_writel(vop_dev, FRC_LOWER11_1, 0xed7bb7de);
+
+	if (vop_dev->cabc_mode == 1) {
+		vop_writel(vop_dev, CABC_CTRL0, 0x03000009);
+		vop_writel(vop_dev, CABC_CTRL1, 0x03000001);
+		vop_writel(vop_dev, CABC_CTRL2, 0x001100ff);
+		vop_writel(vop_dev, CABC_CTRL3, 0x00000100);
+	}
 
 	vop_cfg_done(vop_dev);
 	return 0;
