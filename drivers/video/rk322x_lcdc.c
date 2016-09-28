@@ -1277,11 +1277,14 @@ void rk_lcdc_standby(int enable)
 }
 
 #if defined(CONFIG_OF_LIBFDT)
-static int rk32_vop_parse_dt(struct vop_device *vop_dev, const void *blob)
+static int rk32_vop_parse_dt(struct vop_device *vop_dev, const void *blob, int vop_id)
 {
 	int order = FB0_WIN0_FB1_WIN1_FB2_WIN2;
 
-	vop_dev->node  = fdt_path_offset(blob, "lcdc0");
+	if (vop_id == 0)
+		vop_dev->node  = fdt_path_offset(blob, "lcdc0");
+	else
+		vop_dev->node  = fdt_path_offset(blob, "lcdc1");
 	if (vop_dev->node < 0) {
 		debug("rk322x lcdc node is not found\n");
 		return -ENODEV;
@@ -1323,7 +1326,7 @@ int rk_lcdc_init(int vop_id)
 	vop_dev->id = vop_id;
 #ifdef CONFIG_OF_LIBFDT
 	if (!vop_dev->node)
-		rk32_vop_parse_dt(vop_dev, gd->fdt_blob);
+		rk32_vop_parse_dt(vop_dev, gd->fdt_blob, vop_id);
 #endif
 	vop_dev->screen = kzalloc(sizeof(*vop_dev->screen), GFP_KERNEL);
 #ifdef 	CONFIG_RKCHIP_RK322X
