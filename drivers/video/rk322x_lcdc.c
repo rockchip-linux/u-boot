@@ -1166,9 +1166,12 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		break;
 	case SCREEN_EDP:
 #if defined(CONFIG_RKCHIP_RK3399)
-		if ((vop_dev->soc_type == CONFIG_RK3399) &&
-		    (vop_dev->id == 0))
-			face = OUT_P101010;
+		if (vop_dev->soc_type == CONFIG_RK3399) {
+			if (vop_dev->id == 0)
+				face = OUT_P101010;
+			else
+				face = OUT_P888;
+		}
 #endif
 		val = V_EDP_OUT_EN(1);
 		vop_msk_reg(vop_dev, SYS_CTRL, val);
