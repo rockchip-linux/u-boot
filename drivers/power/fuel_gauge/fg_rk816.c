@@ -613,9 +613,15 @@ static int rk816_bat_get_fcc(struct battery_info *di)
 	return val;
 }
 
-static int rk816_bat_get_pwroff_min(struct battery_info *di)
+static u8 rk816_bat_get_pwroff_min(struct battery_info *di)
 {
-	return rk816_bat_read(RK816_NON_ACT_TIMER_CNT_REG);
+	u8 cur, last;
+
+	cur = rk816_bat_read(RK816_NON_ACT_TIMER_CNT_REG);
+	last = rk816_bat_read(RK816_NON_ACT_TIMER_CNT_SAVE_REG);
+	rk816_bat_write(RK816_NON_ACT_TIMER_CNT_SAVE_REG, cur);
+
+	return (cur != last) ? cur : 0;
 }
 
 static int rk816_bat_get_coulomb_cap(struct battery_info *di)
