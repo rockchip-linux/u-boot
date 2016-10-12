@@ -14,6 +14,7 @@ extern int rk32_mipi_enable(vidinfo_t * vid);
 extern int rk32_dsi_enable(void);
 extern int rk32_dsi_sync(void);
 extern int rk32_dsi_disable(void);
+//extern int rk32_dsi_refresh(int xpos, int ypos, int xsize, int ysize);
 #endif
 #ifndef pr_info
 #define pr_info(args...)  debug(args)
@@ -975,6 +976,17 @@ static void vop_bcsh_path_sel(struct vop_device *vop_dev)
 	}
 }
 
+int vop_wms_refresh(struct vop_device *vop_dev)
+{
+	vop_msk_reg_nobak(vop_dev, SYS_CTRL, V_EDPI_WMS_FS(1));
+	vop_msk_reg(vop_dev, SYS_CTRL, V_EDPI_WMS_MODE(0));
+	vop_msk_reg(vop_dev, SYS_CTRL, V_EDPI_WMS_MODE(1));
+
+	//rk32_dsi_refresh(0, 0, vop_dev->screen->xsize, vop_dev->screen->ysize);
+
+	return 0;
+}
+
 int rk_lcdc_load_screen(vidinfo_t *vid)
 {
 	struct vop_device *vop_dev = &rk322x_vop;
@@ -1259,11 +1271,12 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	} else if ((vid->screen_type == SCREEN_MIPI) ||
 		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
 		rk32_mipi_enable(vid);
+		if (vop_dev->screen->refresh_mode == SCREEN_CMD_MODE)
+			vop_wms_refresh(vop_dev);
 	}
 #endif
 	return 0;
 }
-
 
 /* Enable LCD and DIGITAL OUT in DSS */
 void rk_lcdc_standby(int enable)
@@ -1378,5 +1391,8 @@ int rk_lcdc_init(int vop_id)
 	}
 
 	vop_cfg_done(vop_dev);
+
+	if (vop_dev->screen->refresh_mode == SCREEN_CMD_MODE)
+		vop_msk_reg(vop_dev, SYS_CTRL, V_EDPI_WMS_MODE(1));
 	return 0;
 }

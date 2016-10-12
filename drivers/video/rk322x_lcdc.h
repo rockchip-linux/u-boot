@@ -1518,6 +1518,15 @@ static inline void  vop_msk_reg(struct vop_device *vop_dev, u32 offset, u64 v)
 	writel(*_pv, vop_dev->regs + offset);
 }
 
+static inline void vop_msk_reg_nobak(struct vop_device *vop_dev,
+				     u32 offset, u64 v)
+{
+	u32 *_pv = (u32 *)vop_dev->regsbak;
+
+	_pv += (offset >> 2);
+	writel((*_pv & (~(v >> 32))) | (u32)v, vop_dev->regs + offset);
+}
+
 static inline void vop_mask_writel(struct vop_device *vop_dev, u32 offset,
 				   u32 mask, u32 v)
 {
