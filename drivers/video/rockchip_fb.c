@@ -129,6 +129,7 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
    screen->pin_dclk         = vid->vl_clkp;
    screen->pin_den          = vid->vl_oep;
    screen->pixelrepeat      = vid->pixelrepeat;
+   screen->refresh_mode	    = vid->refresh_mode;
 
    screen->overscan.left    = 100;
    screen->overscan.right   = 100;
@@ -315,6 +316,7 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	panel_info.vl_bpix = 5;
 	panel_info.lvds_ttl_en  = 0;
 	panel_info.screen_type = fdtdec_get_int(blob, node, "screen-type", -1);
+	panel_info.refresh_mode = fdtdec_get_int(blob, node, "refresh-mode", 0);
 	panel_info.color_mode = fdtdec_get_int(blob, node, "color-mode", 0);
 	panel_info.lcd_face = fdtdec_get_int(blob, node, "out-face", -1);
 	if (panel_info.lcd_face == (uchar)-1) {

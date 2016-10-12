@@ -6,6 +6,10 @@
 #ifndef _SCREEN_H
 #define _SCREEN_H
 #include <linux/fb.h>
+
+#define SCREEN_VIDEO_MODE	0
+#define SCREEN_CMD_MODE		1
+
 typedef enum _REFRESH_STAGE {
 	REFRESH_PRE = 0,
 	REFRESH_END,
@@ -64,6 +68,7 @@ struct overscan {
 struct rk_screen {
 	u16 type;
 	u16 lvds_format; 
+	u16 refresh_mode;
 	u16 face;
 	u16 color_mode;
 	u8 lcdc_id;   
