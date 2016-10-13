@@ -457,8 +457,7 @@ void board_fbt_preboot(void)
 
 	if (gd->fdt_blob) {
 		int node = fdt_path_offset(gd->fdt_blob, "/display-subsystem");
-
-		if (!fdt_device_is_available(gd->fdt_blob, node)) {
+		if (!fdt_device_is_available(gd->fdt_blob, node) || node < 0) {
 #if defined(CONFIG_LCD)
 			g_is_new_display = 0;
 			node = fdt_path_offset(gd->fdt_blob, "/fb");
