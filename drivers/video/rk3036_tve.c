@@ -377,19 +377,9 @@ int rk3036_tve_init(vidinfo_t *panel)
 		printf("%s:use baseparamer config g_tve_pos = %d \n", __func__,g_tve_pos);
 	}
 
-	if(g_tve_pos < 0)
-	{
-		g_tve_pos = TVOUT_DEAULT;
-		printf("%s:use default config g_tve_pos = %d \n", __func__,g_tve_pos);
-	}
-	else
-	{
-		printf("%s:use baseparamer config g_tve_pos = %d \n", __func__,g_tve_pos);
-	}
-
 	dac_enable(0);
 	tve_set_mode(g_tve_pos);
 	dac_enable(1);
-//	rk3036_tve_show_reg();
+
 	return 0;
 }
