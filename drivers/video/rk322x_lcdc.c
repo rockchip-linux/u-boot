@@ -1118,6 +1118,12 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		else
 			val |= V_SW_TVE_MODE(0);
 		vop_msk_reg(vop_dev, SYS_CTRL, val);
+		val = V_HDMI_HSYNC_POL(screen->pin_hsync) |
+			V_HDMI_VSYNC_POL(screen->pin_vsync) |
+			V_HDMI_DEN_POL(screen->pin_den) |
+			V_HDMI_DCLK_POL(screen->pin_dclk);
+		/* DSP_CTRL1: hsync vsync den dclk polarity,dither */
+		vop_msk_reg(vop_dev, DSP_CTRL1, val);
 		break;
 	case SCREEN_HDMI:
 #if defined(CONFIG_RKCHIP_RK3399)
