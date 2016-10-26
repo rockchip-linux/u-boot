@@ -212,6 +212,11 @@ struct mipi_dsi_ops {
 	int (*power_down)(void *);
 };
 
+enum {
+	VIDEO_MODE = 0,
+	COMMAND_MODE,
+};
+
 /* Screen description */
 struct mipi_dsi_screen {
 
@@ -242,7 +247,7 @@ struct mipi_dsi_screen {
 
 	/* MIPI DSI */
 	u8 dsi_lane;
-	u8 dsi_video_mode;
+	u16 refresh_mode;
 	u32 hs_tx_clk;
 	struct rk_screen *screen;
 

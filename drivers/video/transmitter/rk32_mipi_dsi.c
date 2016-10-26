@@ -1061,6 +1061,11 @@ static int rk32_mipi_dsi_host_init(struct dsi *dsi)
 	//rk32_dsi_set_bits(dsi, 1, frame_bta_ack_en);
 	rk32_dsi_set_bits(dsi, 1, phy_enableclk);
 	rk32_dsi_set_bits(dsi, 0, phy_tx_triggers);
+
+	if (screen->refresh_mode == COMMAND_MODE) {
+		rk32_dsi_set_bits(dsi, screen->x_res, edpi_cmd_size);
+		rk32_dsi_set_bits(dsi, 1, tear_fx_en);
+	}
 	//rk32_dsi_set_bits(dsi, 1, phy_txexitulpslan);
 	//rk32_dsi_set_bits(dsi, 1, phy_txexitulpsclk);
 	return 0;
@@ -1713,6 +1718,7 @@ static irqreturn_t rk32_mipi_dsi_irq_handler(int irq, void *data)
 #ifdef CONFIG_RK32_DSI
 int rk32_dsi_sync(void)
 {
+	u16 opt;
 	/*
 		After the core reset, DPI waits for the first VSYNC active transition to start signal sampling, including
 		pixel data, and preventing image transmission in the middle of a frame.
@@ -1721,9 +1727,12 @@ int rk32_dsi_sync(void)
     if (rk_mipi_get_dsi_num() ==2)
 	dsi_is_enable(1, 0); 
 
-	dsi_enable_video_mode(0, 1);
-	if (rk_mipi_get_dsi_num() == 2)
-		dsi_enable_video_mode(1, 1);
+	opt = dsi0->screen.refresh_mode;
+	if (opt != COMMAND_MODE) {
+		dsi_enable_video_mode(0, 1);
+		if (rk_mipi_get_dsi_num() == 2)
+			dsi_enable_video_mode(1, 1);
+	}
 
     dsi_is_enable(0, 1);
     if (rk_mipi_get_dsi_num() ==2)
@@ -1747,6 +1756,66 @@ static int dwc_phy_test_rd(struct dsi *dsi, unsigned char test_code)
     return val;
 }
 #endif
+int rk32_dsi_refresh(int xpos, int ypos, int xsize, int ysize)
+{
+	unsigned int x0 = xpos;
+	unsigned int y0 = ypos;
+	unsigned int x1 = x0 + xsize - 1;
+	unsigned int y1 = y0 + ysize - 1;
+
+	unsigned char x0_MSB = ((x0 >> 8) & 0xff);
+	unsigned char x0_LSB = (x0 & 0xff);
+	unsigned char x1_MSB = ((x1 >> 8) & 0xff);
+	unsigned char x1_LSB = (x1 & 0xff);
+	unsigned char y0_MSB = ((y0 >> 8) & 0xff);
+	unsigned char y0_LSB = (y0 & 0xff);
+	unsigned char y1_MSB = ((y1 >> 8) & 0xff);
+	unsigned char y1_LSB = (y1 & 0xff);
+
+	unsigned char set_col_cmd[7] = {0};
+	unsigned char set_page_cmd[7] = {0};
+	unsigned char wms[3] = {0};
+	u32 len;
+
+	set_col_cmd[0] = HSDT;
+	set_col_cmd[1] = 0x39;
+	set_col_cmd[2] = 0x2a;
+	set_col_cmd[3] = x0_MSB;
+	set_col_cmd[4] = x0_LSB;
+	set_col_cmd[5] = x1_MSB;
+	set_col_cmd[6] = x1_LSB;
+
+	len = ARRAY_SIZE(set_col_cmd);
+	rk32_mipi_dsi_send_packet(dsi0, set_col_cmd, len);
+	if (rk_mipi_get_dsi_num() == 2)
+		rk32_mipi_dsi_send_packet(dsi1, set_col_cmd, len);
+
+	set_page_cmd[0] = HSDT;
+	set_page_cmd[1] = 0x39;
+	set_page_cmd[2] = 0x2b;
+	set_page_cmd[3] = y0_MSB;
+	set_page_cmd[4] = y0_LSB;
+	set_page_cmd[5] = y1_MSB;
+	set_page_cmd[6] = y1_LSB;
+
+	len = ARRAY_SIZE(set_page_cmd);
+	rk32_mipi_dsi_send_packet(dsi0, set_page_cmd, len);
+	if (rk_mipi_get_dsi_num() == 2)
+		rk32_mipi_dsi_send_packet(dsi1, set_page_cmd, len);
+
+	/* write_memory_start */
+	wms[0] = HSDT;
+	wms[1] = 0x39;
+	wms[2] = 0x2C;
+
+	len = ARRAY_SIZE(wms);
+	rk32_mipi_dsi_send_packet(dsi0, wms, len);
+	if (rk_mipi_get_dsi_num() == 2)
+		rk32_mipi_dsi_send_packet(dsi1, wms, len);
+
+	return 0;
+}
+
 int rk32_dsi_disable(void)
 {
 	MIPI_DBG("rk32_dsi_disable-------\n");
@@ -1762,6 +1831,7 @@ int rk32_dsi_disable(void)
 
 int rk32_dsi_enable(void)
 {
+	u16 opt;
 	MIPI_DBG("rk32_dsi_enable-------\n");
 	/*
 	rk_fb_get_prmry_screen(dsi0->screen.screen);
@@ -1785,10 +1855,12 @@ int rk32_dsi_enable(void)
 		if (rk_mipi_get_dsi_num() == 2)
 			dsi_is_enable(1, 0);
 
-		dsi_enable_video_mode(0, 1);
-		if (rk_mipi_get_dsi_num() == 2)
-			dsi_enable_video_mode(1, 1);
-
+		opt = dsi0->screen.refresh_mode;
+		if (opt != COMMAND_MODE) {
+			dsi_enable_video_mode(0, 1);
+			if (rk_mipi_get_dsi_num() == 2)
+				dsi_enable_video_mode(1, 1);
+		}
 		dsi_is_enable(0, 1);
 		if (rk_mipi_get_dsi_num() == 2)
 			dsi_is_enable(1, 1);
@@ -2046,7 +2118,7 @@ int rk32_mipi_enable(vidinfo_t *vid)
 		dsi_screen->pin_den = screen->pin_den = vid->vl_oep;
 		//dsi_screen->pin_dclk = screen->pin_dclk;
 		dsi_screen->dsi_lane = rk_mipi_get_dsi_lane();
-		//  dsi_screen->dsi_video_mode = screen->dsi_video_mode; //no sure
+		dsi_screen->refresh_mode = screen->refresh_mode = vid->refresh_mode;
 		dsi_screen->dsi_lane = rk_mipi_get_dsi_lane();
 		dsi_screen->hs_tx_clk = rk_mipi_get_dsi_clk();	
 		dsi_screen->lcdc_id = 1;
