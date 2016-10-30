@@ -7,12 +7,14 @@
 #include <common.h>
 #include <clk.h>
 #include <dm.h>
+#include <debug_uart.h>
 #include <ram.h>
 #include <syscon.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/periph.h>
 #include <asm/arch/pmu_rk3288.h>
+#include <asm/arch/grf_rk3288.h>
 #include <asm/arch/boot_mode.h>
 #include <asm/arch/timer.h>
 #include <asm/gpio.h>
@@ -96,6 +98,19 @@ err:
 
 int dram_init(void)
 {
+#if CONFIG_TARGET_VIRTUAL_RK3288
+	/* Enable early UART on the RK3288 */
+#define GRF_BASE	0xff770000
+	struct rk3288_grf * const grf = (void *)GRF_BASE;
+
+	rk_clrsetreg(&grf->gpio5b_iomux, GPIO5B1_MASK << GPIO5B1_SHIFT |
+		     GPIO5B0_MASK << GPIO5B0_SHIFT,
+		     GPIO5B1_UART1BB_SOUT << GPIO5B1_SHIFT |
+		     GPIO5B0_UART1BB_SIN << GPIO5B0_SHIFT);
+	debug_uart_init();
+	printf("\n");
+#endif
+
 	struct ram_info ram;
 	struct udevice *dev;
 	int ret;
@@ -112,6 +127,10 @@ int dram_init(void)
 	}
 	debug("SDRAM base=%lx, size=%x\n", ram.base, ram.size);
 	gd->ram_size = ram.size;
+
+#if CONFIG_TARGET_VIRTUAL_RK3288
+	gd->ram_size = SDRAM_SIZE;
+#endif
 
 	return 0;
 }

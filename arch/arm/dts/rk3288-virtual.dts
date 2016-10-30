@@ -1,0 +1,21 @@
+/*
+ * (C) Copyright 2016 Rockchip Electronics Co., Ltd
+ *
+ * SPDX-License-Identifier:     GPL-2.0+ X11
+ */
+
+/dts-v1/;
+#include "rk3288.dtsi"
+
+/ {
+	model = "Virtual-RK3288";
+	compatible = "virtual-rk3288,virtual-rk3288", "rockchip,rk3288";
+
+	chosen {
+		stdout-path = &uart1;
+	};
+};
+
+&uart1 {
+	status = "okay";
+};

@@ -1,0 +1,22 @@
+# BUild u-booot
+
+	CROSS_COMPILE=arm-linux-gnueabihf- make evb-rk3288_defconfig all
+
+	tools/mkimage -n rk3288 -T rksd -d u-boot-spl-dtb.bin out
+	cat u-boot-dtb.bin >> out
+	sudo dd if=out of=/dev/sdb seek=64 conv=notrunc
+
+
+
+# BUild u-booot for cpu3
+
+	CROSS_COMPILE=arm-linux-gnueabihf- make virtual-rk3288_defconfig all
+
+	tools/mkimage -n rk3288 -T rksd -d u-boot-spl-dtb.bin out
+	cat u-boot-dtb.bin >> out
+	sudo dd if=out of=/dev/sdb seek=64 conv=notrunc
+
+
+
+dcache off; fatload mmc 0:6 0x50000000 u-boot-dtb.bin ; rk_load_uboot 3 0x50000000; boot
+dcache off; fatload mmc (sd or emmc):(part) (uboot_text_addr) (uboot file name) ; rk_load_uboot (cpu id)  (uboot_text_addr); boot

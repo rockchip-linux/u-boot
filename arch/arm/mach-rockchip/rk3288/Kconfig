@@ -57,6 +57,11 @@ config TARGET_ROCK2
 	  space for a real-time-clock battery. There is also an expansion
 	  interface which provides access to many pins.
 
+config TARGET_VIRTUAL_RK3288
+	bool "virtual rk3288"
+	help
+	  Virtual rk3288.
+
 config ROCKCHIP_FAST_SPL
 	bool "Change the CPU to full speed in SPL"
 	depends on TARGET_CHROMEBOOK_JERRY
@@ -105,5 +110,7 @@ source "board/rockchip/evb_rk3288/Kconfig"
 source "board/rockchip/fennec_rk3288/Kconfig"
 
 source "board/rockchip/miniarm_rk3288/Kconfig"
+
+source "board/rockchip/virtual_rk3288/Kconfig"
 
 endif
