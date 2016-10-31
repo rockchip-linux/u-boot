@@ -54,11 +54,11 @@ static bool gDebug =
 #define RSA_SEL_DEFAULT		RSA_SEL_2048
 
 
-static char* gConfigPath = NULL;
+static char *gConfigPath;
 static OPT_T gOpts;
 #define BL3X_FILESIZE_MAX	(512 * 1024)
 static uint8_t gBuf[BL3X_FILESIZE_MAX];
-static bool gSubfix = false;
+static bool gSubfix;
 
 const uint8_t gBl3xID[BL_MAX_SEC][4] = {
 	{'B', 'L', '3', '0'},
@@ -77,22 +77,22 @@ static inline uint32_t getBCD(uint16_t value)
 		return 0;
 	}
 
-	for(i=0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 		tmp[i] = (((value/10)%10)<<4) | (value%10);
 		value /= 100;
 	}
 	ret = ((uint16_t)(tmp[1] << 8)) | tmp[0];
 
-	LOGD("ret:%x\n",ret);
+	LOGD("ret:%x\n", ret);
 	return ret&0xFF;
 }
 
 
-static inline void fixPath(char* path)
+static inline void fixPath(char *path)
 {
 	int i, len = strlen(path);
 
-	for(i=0; i<len; i++) {
+	for (i = 0; i < len; i++) {
 		if (path[i] == '\\')
 			path[i] = '/';
 		else if (path[i] == '\r' || path[i] == '\n')
@@ -101,7 +101,7 @@ static inline void fixPath(char* path)
 }
 
 
-static bool parseVersion(FILE* file)
+static bool parseVersion(FILE *file)
 {
 	int d = 0;
 
@@ -122,7 +122,7 @@ static bool parseVersion(FILE* file)
 }
 
 
-static bool parseBL3x(FILE* file, int bl3x_id)
+static bool parseBL3x(FILE *file, int bl3x_id)
 {
 	int pos;
 	int sec;
@@ -142,7 +142,7 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 	if (fscanf(file, OPT_SEC "=%d", &sec) != 1) {
 		return false;
 	}
-	if ((gSubfix == true) && (bl3x_id == BL32_SEC)) {
+	if ((gSubfix) && (bl3x_id == BL32_SEC)) {
 		if (sec == 0) {
 			sec = 1;
 			printf("BL3%d adjust sec from 0 to 1\n", bl3x_id);
@@ -157,7 +157,7 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 	}
 	memset(buf, 0, MAX_LINE_LEN);
 	if (fscanf(file, OPT_PATH "=%s", buf) != 1) {
-		if (pbl3x->sec != false)
+		if (pbl3x->sec)
 			return false;
 	} else {
 		if (strlen(buf) != 0) {
@@ -173,7 +173,7 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 	}
 	memset(buf, 0, MAX_LINE_LEN);
 	if (fscanf(file, OPT_ADDR "=%s", buf) != 1) {
-		if (pbl3x->sec != false)
+		if (pbl3x->sec)
 			return false;
 	} else {
 		if (strlen(buf) != 0) {
@@ -194,7 +194,7 @@ static bool parseBL3x(FILE* file, int bl3x_id)
 }
 
 
-static bool parseOut(FILE* file)
+static bool parseOut(FILE *file)
 {
 	if (SCANF_EAT(file) != 0) {
 		return false;
@@ -208,28 +208,28 @@ static bool parseOut(FILE* file)
 }
 
 
-void printOpts(FILE* out)
+void printOpts(FILE *out)
 {
 	fprintf(out, SEC_BL30 "\n" OPT_SEC "=%d\n", gOpts.bl3x[BL30_SEC].sec);
-	if (gOpts.bl3x[BL30_SEC].sec != false) {
+	if (gOpts.bl3x[BL30_SEC].sec) {
 		fprintf(out, OPT_PATH "=%s\n", gOpts.bl3x[BL30_SEC].path);
 		fprintf(out, OPT_ADDR "=0x%08x\n", gOpts.bl3x[BL30_SEC].addr);
 	}
 
 	fprintf(out, SEC_BL31 "\n" OPT_SEC "=%d\n", gOpts.bl3x[BL31_SEC].sec);
-	if (gOpts.bl3x[BL31_SEC].sec != false) {
+	if (gOpts.bl3x[BL31_SEC].sec) {
 		fprintf(out, OPT_PATH "=%s\n", gOpts.bl3x[BL31_SEC].path);
 		fprintf(out, OPT_ADDR "=0x%08x\n", gOpts.bl3x[BL31_SEC].addr);
 	}
 
 	fprintf(out, SEC_BL32 "\n" OPT_SEC "=%d\n", gOpts.bl3x[BL32_SEC].sec);
-	if (gOpts.bl3x[BL32_SEC].sec != false) {
+	if (gOpts.bl3x[BL32_SEC].sec) {
 		fprintf(out, OPT_PATH "=%s\n", gOpts.bl3x[BL32_SEC].path);
 		fprintf(out, OPT_ADDR "=0x%08x\n", gOpts.bl3x[BL32_SEC].addr);
 	}
 
 	fprintf(out, SEC_BL33 "\n" OPT_SEC "=%d\n", gOpts.bl3x[BL33_SEC].sec);
-	if (gOpts.bl3x[BL33_SEC].sec != false) {
+	if (gOpts.bl3x[BL33_SEC].sec) {
 		fprintf(out, OPT_PATH "=%s\n", gOpts.bl3x[BL33_SEC].path);
 		fprintf(out, OPT_ADDR "=0x%08x\n", gOpts.bl3x[BL33_SEC].addr);
 	}
@@ -240,8 +240,8 @@ void printOpts(FILE* out)
 
 static bool parseOpts(void)
 {
-	FILE* file = NULL;
-	char* configPath = (gConfigPath == NULL)? DEF_CONFIG_FILE: gConfigPath;
+	FILE *file = NULL;
+	char *configPath = (gConfigPath == NULL) ? DEF_CONFIG_FILE : gConfigPath;
 	bool bl30ok = false, bl31ok = false, bl32ok = false, bl33ok = false;
 	bool outOk = false;
 	bool versionOk = false;
@@ -251,7 +251,7 @@ static bool parseOpts(void)
 	file = fopen(configPath, "r");
 	if (!file) {
 		fprintf(stderr, "config(%s) not found!\n", configPath);
-		if (configPath == (char*)DEF_CONFIG_FILE) {
+		if (configPath == (char *)DEF_CONFIG_FILE) {
 			file = fopen(DEF_CONFIG_FILE, "w");
 			if (file) {
 				fprintf(stderr, "create defconfig\n");
@@ -266,7 +266,7 @@ static bool parseOpts(void)
 	if (SCANF_EAT(file) != 0) {
 		goto end;
 	}
-	while(fscanf(file, "%s", buf) == 1) {
+	while (fscanf(file, "%s", buf) == 1) {
 		if (!strcmp(buf, SEC_VERSION)) {
 			versionOk = parseVersion(file);
 			if (!versionOk) {
@@ -325,7 +325,7 @@ end:
 
 bool initOpts(void)
 {
-	//set default opts
+
 	memset(&gOpts, 0, sizeof(gOpts));
 
 	gOpts.major = DEF_MAJOR;
@@ -349,7 +349,7 @@ bool initOpts(void)
 }
 
 
-static inline bool getFileSize(const char *path, uint32_t* size)
+static inline bool getFileSize(const char *path, uint32_t *size)
 {
 	struct stat st;
 
@@ -360,6 +360,109 @@ static inline bool getFileSize(const char *path, uint32_t* size)
 	return true;
 }
 
+void fill_file(FILE *file, char ch, uint32_t fill_size)
+{
+	uint8_t fill_buffer[1024];
+	uint32_t cur_write;
+
+	memset(fill_buffer, ch, 1024);
+	while (fill_size > 0) {
+		cur_write = (fill_size >= 1024) ? 1024 : fill_size;
+		fwrite(fill_buffer, 1, cur_write, file);
+		fill_size -= cur_write;
+	}
+}
+
+bool filter_elf(uint32_t index, uint8_t *pMeta, uint32_t *pMetaNum, bool *bElf)
+{
+	bool ret = false;
+	FILE *file = NULL;
+	uint8_t *file_buffer = NULL;
+	uint32_t file_size, read_size, i;
+	Elf32_Ehdr *pElfHeader32;
+	Elf32_Phdr *pElfProgram32;
+	Elf64_Ehdr *pElfHeader64;
+	Elf64_Phdr *pElfProgram64;
+	bl_entry_t *pEntry = (bl_entry_t *)(pMeta + sizeof(bl_entry_t)*(*pMetaNum));
+	LOGD("index=%d,file=%s\n", index, gOpts.bl3x[index].path);
+
+	if (!getFileSize(gOpts.bl3x[index].path, &file_size))
+		goto exit_fileter_elf;
+	file = fopen(gOpts.bl3x[index].path, "rb");
+	if (!file) {
+		LOGE("open file(%s) failed\n", gOpts.bl3x[index].path);
+		goto exit_fileter_elf;
+	}
+	file_buffer = malloc(file_size);
+	if (!file_buffer)
+		goto exit_fileter_elf;
+	read_size = fread(file_buffer, 1, file_size, file);
+	if (read_size != file_size)
+		goto exit_fileter_elf;
+
+	if (*((uint32_t *)file_buffer) != ELF_MAGIC) {
+		ret = true;
+		*bElf = false;
+		goto exit_fileter_elf;
+	}
+	*bElf = true;
+	if (file_buffer[5] != 1) {/*only support little endian*/
+		goto exit_fileter_elf;
+	}
+	if (*((uint16_t *)(file_buffer+EI_NIDENT)) != 2) {/*only support executable case*/
+		goto exit_fileter_elf;
+	}
+
+	if (file_buffer[4] == 2) {
+		pElfHeader64 = (Elf64_Ehdr *)file_buffer;
+		for (i = 0; i < pElfHeader64->e_phnum; i++) {
+			pElfProgram64 = (Elf64_Phdr *)(file_buffer+pElfHeader64->e_phoff+i*pElfHeader64->e_phentsize);
+			if (pElfProgram64->p_type == 1) {/*PT_LOAD*/
+				pEntry->id = gOpts.bl3x[index].id;
+				strcpy(pEntry->path, gOpts.bl3x[index].path);
+				pEntry->size = (uint32_t)pElfProgram64->p_filesz;
+				pEntry->offset = (uint32_t)pElfProgram64->p_offset;
+				pEntry->align_size = DO_ALIGN(pEntry->size, ENTRY_ALIGN);
+				pEntry->addr = (uint32_t)pElfProgram64->p_vaddr;
+				if (pEntry->align_size > BL3X_FILESIZE_MAX) {
+					LOGE("elf_file %s too large,segment=%d.\n", pEntry->path, i);
+					goto exit_fileter_elf;
+				}
+				LOGD("bl3%d: filesize = %d, imagesize = %d, segment=%d\n", index, pEntry->size, pEntry->align_size, i);
+				pEntry++;
+				(*pMetaNum)++;
+			}
+		}
+
+	} else {
+		pElfHeader32 = (Elf32_Ehdr *)file_buffer;
+		for (i = 0; i < pElfHeader32->e_phnum; i++) {
+			pElfProgram32 = (Elf32_Phdr *)(file_buffer+pElfHeader32->e_phoff+i*pElfHeader32->e_phentsize);
+			if (pElfProgram32->p_type == 1) {/*PT_LOAD*/
+				pEntry->id = gOpts.bl3x[index].id;
+				strcpy(pEntry->path, gOpts.bl3x[index].path);
+				pEntry->size = pElfProgram32->p_filesz;
+				pEntry->offset = pElfProgram32->p_offset;
+				pEntry->align_size = DO_ALIGN(pEntry->size, ENTRY_ALIGN);
+				pEntry->addr = pElfProgram32->p_vaddr;
+				if (pEntry->align_size > BL3X_FILESIZE_MAX) {
+					LOGE("elf_file %s too large,segment=%d.\n", pEntry->path, i);
+					goto exit_fileter_elf;
+				}
+				LOGD("bl3%d: filesize = %d, imagesize = %d, segment=%d\n", index, pEntry->size, pEntry->align_size, i);
+				pEntry++;
+				(*pMetaNum)++;
+			}
+		}
+	}
+	ret = true;
+exit_fileter_elf:
+	if (file)
+		fclose(file);
+	if (file_buffer)
+		free(file_buffer);
+	return ret;
+}
 
 #define SHA256_CHECK_SZ		((uint32_t)(256 * 1024))
 static bool bl3xHash256(uint8_t *pHash, uint8_t *pData, uint32_t nDataSize)
@@ -403,16 +506,14 @@ static bool mergetrust(void)
 {
 	FILE		*outFile = NULL;
 	uint32_t 	OutFileSize;
-	uint32_t	SrcFileNum, SignOffset;
+	uint32_t	SrcFileNum, SignOffset, nComponentNum;
 	TRUST_HEADER	*pHead = NULL;
 	COMPONENT_DATA	*pComponentData = NULL;
 	TRUST_COMPONENT	*pComponent = NULL;
-	uint32_t	filesize[BL_MAX_SEC] = {0};
-	uint32_t	imagesize[BL_MAX_SEC] = {0};
-	bool		ret = false;
+	bool		ret = false, bElf;
 	uint32_t	i, n;
-	uint8_t		*outBuf = NULL, *pbuf = NULL;
-
+	uint8_t		*outBuf = NULL, *pbuf = NULL, *pMetaBuf = NULL;
+	bl_entry_t *pEntry = NULL;
 	if (!initOpts())
 		return false;
 
@@ -421,30 +522,39 @@ static bool mergetrust(void)
 		printOpts(stdout);
 		printf("---------------\n\n");
 	}
+	pMetaBuf = malloc(sizeof(bl_entry_t) * 32);
+	if (!pMetaBuf) {
+		LOGE("Merge trust image: malloc buffer error.\n");
+		goto end;
+	}
 
-	SrcFileNum = 0;
+	nComponentNum = SrcFileNum = 0;
 	for (i = BL30_SEC; i < BL_MAX_SEC; i++) {
-		filesize[i] = 0;
-		imagesize[i] = 0;
-
-		if (gOpts.bl3x[i].sec != false) {
-			if (!getFileSize(gOpts.bl3x[i].path, &filesize[i])) {
-				LOGE("open %s file failed\n", gOpts.bl3x[i].path);
+		if (gOpts.bl3x[i].sec) {
+			if (!filter_elf(i, pMetaBuf, &nComponentNum, &bElf)) {
+				LOGE("filter_elf %s file failed\n", gOpts.bl3x[i].path);
 				goto end;
 			}
-
-			imagesize[i] = ENTRY_ALIGN * ((filesize[i] + ENTRY_ALIGN - 1) / ENTRY_ALIGN);
-			if (imagesize[i] > BL3X_FILESIZE_MAX) {
-				LOGE("file %s too large.\n", gOpts.bl3x[i].path);
-				goto end;
+			if (!bElf) {
+				pEntry = (bl_entry_t *)(pMetaBuf + sizeof(bl_entry_t) * nComponentNum);
+				pEntry->id = gOpts.bl3x[i].id;
+				strcpy(pEntry->path, gOpts.bl3x[i].path);
+				getFileSize(pEntry->path, &pEntry->size);
+				pEntry->offset = 0;
+				pEntry->align_size = DO_ALIGN(pEntry->size, ENTRY_ALIGN);
+				pEntry->addr = gOpts.bl3x[i].addr;
+				if (pEntry->align_size > BL3X_FILESIZE_MAX) {
+					LOGE("file %s too large.\n", gOpts.bl3x[i].path);
+					goto end;
+				}
+				LOGD("bl3%d: filesize = %d, imagesize = %d\n", i, pEntry->size, pEntry->align_size);
+				pEntry++;
+				nComponentNum++;
 			}
 
-			LOGD("bl3%d: filesize = %d, imagesize = %d\n", i, filesize[i], imagesize[i]);
-
-			SrcFileNum++;
 		}
 	}
-	LOGD("bl3x bin sec = %d\n", SrcFileNum);
+	LOGD("bl3x bin sec = %d\n", nComponentNum);
 
 	/* 2048bytes for head */
 	memset(gBuf, 0, TRUST_HEADER_SIZE);
@@ -457,30 +567,30 @@ static bool mergetrust(void)
 	pHead->flags |= (SHA_SEL_DEFAULT << 0);
 	pHead->flags |= (RSA_SEL_DEFAULT << 4);
 
-	SignOffset = sizeof(TRUST_HEADER) + SrcFileNum * sizeof(COMPONENT_DATA);
+	SignOffset = sizeof(TRUST_HEADER) + nComponentNum * sizeof(COMPONENT_DATA);
 	LOGD("trust bin sign offset = %d\n", SignOffset);
-	pHead->size = (SrcFileNum<<16) | (SignOffset>>2);
+	pHead->size = (nComponentNum<<16) | (SignOffset>>2);
 
 	pComponent = (TRUST_COMPONENT *)(gBuf + SignOffset + SIGNATURE_SIZE);
 	pComponentData = (COMPONENT_DATA *)(gBuf + sizeof(TRUST_HEADER));
 
 	OutFileSize = TRUST_HEADER_SIZE;
-	for (i = BL30_SEC; i < BL_MAX_SEC; i++) {
-		if (gOpts.bl3x[i].sec != false) {
-			/* bl3x load and run address */
-			pComponentData->LoadAddr = gOpts.bl3x[i].addr;
+	pEntry = (bl_entry_t *)pMetaBuf;
+	for (i = 0; i < nComponentNum; i++) {
+		/* bl3x load and run address */
+		pComponentData->LoadAddr = pEntry->addr;
 
-			pComponent->ComponentID = gOpts.bl3x[i].id;
-			pComponent->StorageAddr = (OutFileSize >> 9);
-			pComponent->ImageSize = (imagesize[i] >> 9);
+		pComponent->ComponentID = pEntry->id;
+		pComponent->StorageAddr = (OutFileSize >> 9);
+		pComponent->ImageSize = (pEntry->align_size >> 9);
 
-			LOGD("bl3%d: LoadAddr = 0x%08x, StorageAddr = %d, ImageSize = %d\n",\
-				i, pComponentData->LoadAddr, pComponent->StorageAddr, pComponent->ImageSize);
+		LOGD("bl3%c: LoadAddr = 0x%08x, StorageAddr = %d, ImageSize = %d\n",\
+			(char)((pEntry->id & 0xFF000000) >> 24), pComponentData->LoadAddr, pComponent->StorageAddr, pComponent->ImageSize);
 
-			OutFileSize += imagesize[i];
-			pComponentData++;
-			pComponent++;
-		}
+		OutFileSize += pEntry->align_size;
+		pComponentData++;
+		pComponent++;
+		pEntry++;
 	}
 
 	/* create out file */
@@ -503,7 +613,7 @@ static bool mergetrust(void)
 
 	/* save trust bl3x bin */
 	for (i = BL30_SEC; i < BL_MAX_SEC; i++) {
-		if (gOpts.bl3x[i].sec != false) {
+		if (gOpts.bl3x[i].sec) {
 			FILE *inFile = fopen(gOpts.bl3x[i].path, "rb");
 			if (!inFile)
 				goto end;
@@ -540,29 +650,30 @@ static bool mergetrust(void)
 	pComponentData = (COMPONENT_DATA *)(outBuf + sizeof(TRUST_HEADER));
 
 	/* save trust bl3x bin */
-	for (i = BL30_SEC; i < BL_MAX_SEC; i++) {
-		if (gOpts.bl3x[i].sec != false) {
-			FILE *inFile = fopen(gOpts.bl3x[i].path, "rb");
-			if (!inFile)
-				goto end;
+	pEntry = (bl_entry_t *)pMetaBuf;
+	for (i = 0; i < nComponentNum; i++) {
+		FILE *inFile = fopen(pEntry->path, "rb");
+		if (!inFile)
+			goto end;
 
-			memset(gBuf, 0, imagesize[i]);
-			if (!fread(gBuf, filesize[i], 1, inFile))
-				goto end;
-			fclose(inFile);
+		memset(gBuf, 0, pEntry->align_size);
+		fseek(inFile, pEntry->offset, SEEK_SET);
+		if (!fread(gBuf, pEntry->size, 1, inFile))
+			goto end;
+		fclose(inFile);
 
-			/* bl3x bin hash256 */
-			pHashData = (uint8_t *)&pComponentData->HashData[0];
-			bl3xHash256(pHashData, gBuf, imagesize[i]);
-			memcpy(pbuf, gBuf, imagesize[i]);
+		/* bl3x bin hash256 */
+		pHashData = (uint8_t *)&pComponentData->HashData[0];
+		bl3xHash256(pHashData, gBuf, pEntry->align_size);
+		memcpy(pbuf, gBuf, pEntry->align_size);
 
-			pComponentData++;
-			pbuf += imagesize[i];
-		}
+		pComponentData++;
+		pbuf += pEntry->align_size;
+		pEntry++;
 	}
 
 	/* copy other (TRUSTIMAGE_MAX_NUM - 1) backup bin */
-	for(n = 1; n < TRUSTIMAGE_MAX_NUM; n++) {
+	for (n = 1; n < TRUSTIMAGE_MAX_NUM; n++) {
 		memcpy(outBuf + TRUSTIMAGE_MAX_SIZE * n, outBuf, TRUSTIMAGE_MAX_SIZE);
 	}
 
@@ -576,16 +687,27 @@ static bool mergetrust(void)
 	ret = true;
 
 end:
+/*
+	for (i = BL30_SEC; i < BL_MAX_SEC; i++) {
+		if (gOpts.bl3x[i].sec != false) {
+			if (gOpts.bl3x[i].is_elf) {
+				if (stat(gOpts.bl3x[i].path, &st) >= 0)
+					remove(gOpts.bl3x[i].path);
+			}
+		}
+	}
+*/
+	if (pMetaBuf)
+		free(pMetaBuf);
 	if (outBuf)
 		free(outBuf);
 	if (outFile)
 		fclose(outFile);
-
 	return ret;
 }
 
 
-static int saveDatatoFile(char* FileName, void *pBuf, uint32_t size)
+static int saveDatatoFile(char *FileName, void *pBuf, uint32_t size)
 {
 	FILE   *OutFile = NULL;
 	int ret = -1;
@@ -635,7 +757,7 @@ static bool unpacktrust(char *path)
 	printf("File Size = %d\n", FileSize);
 
 	pBuf = (uint8_t *)malloc(FileSize);
-	if(1 != fread(pBuf, FileSize, 1, FileSrc)) {
+	if (1 != fread(pBuf, FileSize, 1, FileSrc)) {
 		printf("read input file failed!\n");
 		goto end;
 	}
@@ -656,7 +778,7 @@ static bool unpacktrust(char *path)
 	pComponent = (TRUST_COMPONENT *)(pBuf + SignOffset + SIGNATURE_SIZE);
 	pComponentData = (COMPONENT_DATA *)(pBuf + sizeof(TRUST_HEADER));
 
-	for (i=0; i<SrcFileNum; i++) {
+	for (i = 0; i < SrcFileNum; i++) {
 		printf("Component %d:\n", i);
 
 		memcpy(str, &pComponent->ComponentID, 4);
@@ -664,7 +786,6 @@ static bool unpacktrust(char *path)
 		printf("ComponentID:%s\n", str);
 		printf("StorageAddr:0x%x\n", pComponent->StorageAddr);
 		printf("ImageSize:0x%x\n", pComponent->ImageSize);
-
 		printf("LoadAddr:0x%x\n", pComponentData->LoadAddr);
 
 		saveDatatoFile(str, pBuf+(pComponent->StorageAddr<<9), pComponent->ImageSize<<9);
@@ -698,14 +819,14 @@ static void printHelp(void)
 }
 
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	bool merge = true;
-	char* optPath = NULL;
+	char *optPath = NULL;
 	int i;
 
 	gConfigPath = NULL;
-	for(i=1; i<argc; i++) {
+	for (i = 1; i < argc; i++) {
 		if (!strcmp(OPT_VERBOSE, argv[i])) {
 			gDebug = true;
 		} else if (!strcmp(OPT_HELP, argv[i])) {

@@ -18,6 +18,7 @@
 
 
 #define VERSION             "v1.0 (2015-06-15)"
+#define DO_ALIGN(a, b)	(((a) > 0) ? ((((a) - 1) / (b) + 1) * (b)) : (a))
 
 
 /* config file */
@@ -69,28 +70,31 @@ enum {
 	BL_MAX_SEC
 };
 
-typedef char line_t[MAX_LINE_LEN];
 
-typedef struct {
+
+typedef struct{
 	bool		sec;
 	uint32_t	id;
 	char		path[MAX_LINE_LEN];
 	uint32_t	addr;
+	uint32_t	offset;
+	uint32_t	size;
+	uint32_t	align_size;
 } bl_entry_t;
 
-typedef struct {
+typedef struct{
 	uint16_t	major;
 	uint16_t	minor;
 	bl_entry_t	bl3x[BL_MAX_SEC];
-	line_t        	outPath;
+	char	outPath[MAX_LINE_LEN];
 } OPT_T;
 
 
 #define TRUST_HEAD_TAG			"BL3X"
-#define SIGNATURE_SIZE			256	//signature size, unit is byte
+#define SIGNATURE_SIZE			256
 #define TRUST_HEADER_SIZE		2048
 
-typedef struct tagTRUST_HEADER {
+typedef struct{
 	uint32_t tag;
 	uint32_t version;
 	uint32_t flags;
@@ -102,19 +106,77 @@ typedef struct tagTRUST_HEADER {
 } TRUST_HEADER, *PTRUST_HEADER;
 
 
-typedef struct tagCOMPONENT_DATA {
+typedef struct{
 	uint32_t HashData[8];
 	uint32_t LoadAddr;
 	uint32_t reserved[3];
 } COMPONENT_DATA, *PCOMPONENT_DATA;
 
 
-typedef struct tagTRUST_COMPONENT {
+typedef struct{
 	uint32_t ComponentID;
 	uint32_t StorageAddr;
 	uint32_t ImageSize;
 	uint32_t reserved;
 } TRUST_COMPONENT, *PTRUST_COMPONENT;
 
+#define EI_NIDENT	16
+#define ELF_MAGIC 0x464c457f
+
+typedef struct{
+	uint8_t	e_ident[EI_NIDENT];
+	uint16_t	e_type;
+	uint16_t	e_machine;
+	uint32_t	e_version;
+	uint32_t	e_entry;  /* Entry point */
+	uint32_t	e_phoff;
+	uint32_t	e_shoff;
+	uint32_t	e_flags;
+	uint16_t	e_ehsize;
+	uint16_t	e_phentsize;
+	uint16_t	e_phnum;
+	uint16_t	e_shentsize;
+	uint16_t	e_shnum;
+	uint16_t	e_shstrndx;
+} Elf32_Ehdr;
+
+typedef struct{
+	uint8_t	e_ident[EI_NIDENT];	/* ELF "magic number" */
+	uint16_t e_type;
+	uint16_t e_machine;
+	uint32_t e_version;
+	uint64_t e_entry;		/* Entry point virtual address */
+	uint64_t e_phoff;		/* Program header table file offset */
+	uint64_t e_shoff;		/* Section header table file offset */
+	uint32_t e_flags;
+	uint16_t e_ehsize;
+	uint16_t e_phentsize;
+	uint16_t e_phnum;
+	uint16_t e_shentsize;
+	uint16_t e_shnum;
+	uint16_t e_shstrndx;
+} Elf64_Ehdr;
+
+typedef struct{
+	uint32_t	p_type;
+	uint32_t	p_offset;
+	uint32_t	p_vaddr;
+	uint32_t	p_paddr;
+	uint32_t	p_filesz;
+	uint32_t	p_memsz;
+	uint32_t	p_flags;
+	uint32_t	p_align;
+} Elf32_Phdr;
+
+typedef struct{
+	uint32_t p_type;
+	uint32_t p_flags;
+	uint64_t p_offset;		/* Segment file offset */
+	uint64_t p_vaddr;		/* Segment virtual address */
+	uint64_t p_paddr;		/* Segment physical address */
+	uint64_t p_filesz;		/* Segment size in file */
+	uint64_t p_memsz;		/* Segment size in memory */
+	uint64_t p_align;		/* Segment alignment, file & memory */
+} Elf64_Phdr;
 
 #endif /* TRUST_MERGER_H */
