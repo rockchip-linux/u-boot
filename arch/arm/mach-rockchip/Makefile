@@ -10,7 +10,7 @@ obj-$(CONFIG_ROCKCHIP_RK3288) += rk3288-board-spl.o
 obj-$(CONFIG_ROCKCHIP_SPL_BACK_TO_BROM) += save_boot_param.o
 else
 obj-$(CONFIG_ROCKCHIP_RK3288) += rk3288-board.o
-obj-$(CONFIG_ROCKCHIP_RK3288) += virtual_uboot.o
+obj-$(CONFIG_ROCKCHIP_RK3288) += irqs.o virtual_uboot.o timer_demo.o
 obj-$(CONFIG_ROCKCHIP_RK3036) += rk3036-board.o
 endif
 ifndef CONFIG_ARM64
