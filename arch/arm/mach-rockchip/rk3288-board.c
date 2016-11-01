@@ -59,9 +59,32 @@ int board_late_init(void)
 	return rk_board_late_init();
 }
 
+#define FASTBOOT_KEY_GPIO 57
+
 int board_init(void)
 {
-#ifdef CONFIG_ROCKCHIP_SPL_BACK_TO_BROM
+#if CONFIG_TARGET_VIRTUAL_RK3288
+	/* Setup timer */
+	rockchip_timer_init();
+
+	/* Disable Dcache */
+	dcache_disable();
+
+	/*
+	int val = 0;
+	gpio_request(FASTBOOT_KEY_GPIO, "fastboot_key");
+	gpio_direction_output(FASTBOOT_KEY_GPIO, val);
+
+	while(1) {
+		udelay(1000 * 1000);
+		val = !val;
+		gpio_set_value(FASTBOOT_KEY_GPIO, val);
+	}
+	*/
+
+	return 0;
+
+#elif CONFIG_ROCKCHIP_SPL_BACK_TO_BROM
 	struct udevice *pinctrl;
 	int ret;
 
