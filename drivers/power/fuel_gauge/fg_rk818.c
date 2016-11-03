@@ -883,6 +883,7 @@ static void rk818_bat_fg_init(struct battery_info *di)
 	}
 
 	rk818_bat_init_chrg_config(di);
+	di->dsoc = rk818_bat_get_dsoc(di);
 	di->voltage_avg = rk818_bat_get_avg_voltage(di);
 	di->voltage_ocv = rk818_bat_get_ocv_voltage(di);
 	di->current_avg = rk818_bat_get_avg_current(di);
@@ -1272,8 +1273,9 @@ static int rk818_bat_update(struct pmic *p, struct pmic *bat)
 		rk818_bat_smooth_charge(&rk818_fg.di);
 	}
 
-	/* bat exist and fg init success: report data */
-	if (!rk818_fg.di.virtual_power && rk818_fg.di.voltage_k) {
+	/* bat exist, fg init success(dts pass) and uboot charge: report data */
+	if (!rk818_fg.di.virtual_power && rk818_fg.di.voltage_k &&
+	    rk818_bat_is_initialized(&rk818_fg.di)) {
 		battery->voltage_uV = rk818_bat_get_est_voltage(&rk818_fg.di);
 		battery->capacity = rk818_fg.di.dsoc;
 	} else {
