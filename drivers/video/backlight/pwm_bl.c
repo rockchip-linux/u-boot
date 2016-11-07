@@ -197,7 +197,7 @@ int rk_pwm_bl_config(int brightness)
 		if (ret < 0)
 			return ret;
 #endif
-		rk_iomux_config(bl.id);
+		rk_iomux_config(bl.id + RK_PWM0_IOMUX);
 		gpio_direction_output(bl.bl_en.gpio, bl.bl_en.flags);
 	}
 
