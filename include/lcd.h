@@ -334,14 +334,15 @@ typedef struct vidinfo {
 	unsigned int vmode;//interlace mode
 	unsigned int color_mode;
 	u16 refresh_mode;
-    
+	unsigned int x_mirror;
+	unsigned int y_mirror;
+
 	/* parent clock name(MPLL, EPLL or VPLL) */
 	unsigned int pclk_name;
 	/* ratio value for source clock from parent clock. */
 	unsigned int sclk_div;
 
 	unsigned int dual_lcd_enabled;
-		
 
     	u_char screen_type;
     	u_char lvds_ch_nr;

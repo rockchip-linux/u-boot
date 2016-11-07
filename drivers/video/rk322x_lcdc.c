@@ -707,9 +707,14 @@ static int win0_set_par(struct vop_device *vop_dev,
 		win.area[0].y_vir_stride = RGB888_VIRWIDTH(fb_info->xvir);
 		break;
 	}
-	if (fb_info->ymirror) {
-		win.ymirror = 1;
+	if (screen->y_mirror && fb_info->ymirror) {
+		printf("unspoort enable screen and win ymirror\n");
+		return -EINVAL;
+	}
+
+	if (screen->y_mirror || fb_info->ymirror) {
 		y_addr += win.area[0].y_vir_stride * 4 * win.area[0].yact;
+		win.ymirror = !!fb_info->ymirror;
 	}
 
 	vop_win_0_1_reg_update(vop_dev, &win, fb_info->layer_id);

@@ -140,8 +140,8 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
    screen->swap_rg          = 0;
    screen->swap_delta       = 0;
    screen->swap_dumy        = 0;
-   screen->x_mirror         = 0;
-   screen->y_mirror         = 0;
+   screen->x_mirror         = !!vid->x_mirror;
+   screen->y_mirror         = !!vid->y_mirror;
 }
 
 #ifdef CONFIG_OF_LIBFDT
@@ -278,6 +278,7 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 {
 	int node;
 	int phandle;
+	int rotate_mode;
 
 	node = fdt_node_offset_by_compatible(blob, 0, COMPAT_ROCKCHIP_FB);
 	panel_info.dual_lcd_enabled =
@@ -417,6 +418,9 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 		printf("no lcdc found\n");
 		return node;
 	}
+	rotate_mode = fdtdec_get_int(blob, node, "rockchip,mirror", 0);
+	panel_info.x_mirror = rotate_mode & X_MIRROR;
+	panel_info.y_mirror = rotate_mode & Y_MIRROR;
 	panel_info.lcdc_id = rk_fb->lcdc_id;
 	rk_fb_pwr_ctr_parse_dt(rk_fb, blob);
 	debug("lcd timing:\n"
