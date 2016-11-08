@@ -912,6 +912,7 @@ static void rk816_bat_fg_init(struct battery_info *di)
 	rk816_bat_init_voltage_kb(di);
 	rk816_bat_init_poffset(di);
 	rk816_bat_clr_initialized_state(di);
+	di->dsoc = rk816_bat_get_dsoc(di);
 
 	/* it's better to init fg in kernel,
 	 * so avoid init in uboot as far as possible
@@ -926,7 +927,6 @@ static void rk816_bat_fg_init(struct battery_info *di)
 	}
 
 	rk816_bat_init_chrg_config(di);
-	di->dsoc = rk816_bat_get_dsoc(di);
 	di->voltage_avg = rk816_bat_get_avg_voltage(di);
 	di->voltage_ocv = rk816_bat_get_ocv_voltage(di);
 	di->current_avg = rk816_bat_get_avg_current(di);
