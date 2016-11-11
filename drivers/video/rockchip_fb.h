@@ -72,8 +72,13 @@ enum _vop_overlay_mode {
 
 enum _vop_output_mode {
 	COLOR_RGB,
-	COLOR_YCBCR
+	COLOR_YCBCR,
+	COLOR_YCBCR_BT709,
+	COLOR_YCBCR_BT2020,
+	COLOR_YCBCR_BT601F
 };
+
+#define IS_YUV_COLOR(x)                ((x) >= COLOR_YCBCR)
 
 struct rockchip_fb {
 	int node;
