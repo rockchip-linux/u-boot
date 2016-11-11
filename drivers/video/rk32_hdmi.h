@@ -1592,8 +1592,80 @@ struct phy_mpll_config_tab {
 #define EXT_PHY_TERM_RESIS_MANUAL_D1	0xfd
 #define EXT_PHY_TERM_RESIS_MANUAL_D0	0xfe
 
+#define BIT(x)			(1 << (x))
+
 #define RK322X_DDC_MASK_EN	((3 << 13) | (3 << (13 + 16)))
 #define RK322X_IO_3V_DOMAIN	((7 << 4) | (7 << (4 + 16)))
+
+#define RK322XH_DDC_MASK_EN	((3 << 10) | (3 << (10 + 16)))
+#define RK322XH_IO_CTRL_BY_GRF	(0xf0000000 | BIT(13) | BIT(14) | BIT(15))
+#define RK322XH_IO_CTRL_BY_HDMI	(0xf0000000 | BIT(13))
+#define RK322XH_IO_5V_DOMAIN	((3 << 9) | (3 << (9 + 16)))
+#define RK322XH_IO_3V_DOMAIN	(7 << (9 + 16))
+#define RK322XH_HPD_3V		(BIT(8 + 16) | BIT(13 + 16))
+#define RK322XH_PLL_POWER_DOWN	(BIT(8) | BIT(8 + 16))
+#define RK322XH_PLL_POWER_UP	BIT(8 + 16)
+#define RK322XH_PLL_PDATA_DEN	BIT(7 + 16)
+#define RK322XH_PLL_PDATA_EN	(BIT(7) | BIT(7 + 16))
+
+#define RK1108_IO_5V_DOMAIN	(BIT(10) | BIT(10 + 16))
+#define RK1108_PLL_POWER_DOWN	(BIT(14) | BIT(14 + 16))
+#define RK1108_PLL_POWER_UP	BIT(14 + 16)
+#define RK1108_PLL_PDATA_DEN	BIT(13 + 16)
+#define RK1108_PLL_PDATA_EN	(BIT(13) | BIT(13 + 16))
+#define RK1108_SCL_READ_EN	(BIT(9) | BIT(9 + 16))
+#define RK1108_SDA_READ_EN	(BIT(8) | BIT(8 + 16))
+#define RK1108_DDC_MASK_EN	(BIT(15) | BIT(15 + 16))
+
+/* PHY Defined for RK1108 */
+#define EXT_PHY1_CTRL1			0x01
+#define EXT_PHY1_CTRL2			0x02
+#define EXT_PHY1_INT_MASK		0x03
+#define EXT_PHY1_INT_STAT		0x04
+#define EXT_PHY1_ESD_INT1_MASK		0x05
+#define EXT_PHY1_ESD_INT1_STAT		0x06
+#define EXT_PHY1_ESD_INT2_MASK		0x07
+#define EXT_PHY1_ESD_INT2_STAT		0x08
+#define EXT_PHY1_PLL_CTRL		0xa0
+#define EXT_PHY1_PLL_PRE_DIVIDER	0xa1
+#define EXT_PHY1_PLL_SPM_CTRL		0xa2
+#define EXT_PHY1_PLL_FB_DIVIDER		0xa3
+#define EXT_PHY1_TMDSCLK_DIVIDER	0xa4
+#define EXT_PHY1_PCLK_DIVIDER1		0xa5
+#define EXT_PHY1_PCLK_DIVIDER2		0xa6
+#define EXT_PHY1_PLL_BW_CTRL1		0xa7
+#define EXT_PHY1_PLL_BW_CTRL2		0xa9
+#define EXT_PHY1_PPLL_CTRL		0xaa
+#define EXT_PHY1_PPLL_DIVIDER1		0xab
+#define EXT_PHY1_PPLL_DIVIDER2		0xac
+#define EXT_PHY1_PPLL_DIVIDER3		0xad
+#define EXT_PHY1_PPLL_BW_CTRL		0xae
+#define EXT_PHY1_PPLL_STAT		0xaf
+#define EXT_PHY1_BANDGAP_CTRL		0xb0
+#define EXT_PHY1_TMDS_CTRL		0xb2
+#define EXT_PHY1_TMDS_PHASE1		0xb3
+#define EXT_PHY1_TMDS_PHASE2		0xb4
+#define EXT_PHY1_TMDS_CLK_LEVEL		0xb5
+#define EXT_PHY1_TMDS_D2_LEVEL		0xb6
+#define EXT_PHY1_TMDS_D1_LEVEL		0xb7
+#define EXT_PHY1_TMDS_D0_LEVEL		0xb8
+#define EXT_PHY1_PREEMPHASIS_MODE	0xb9
+#define EXT_PHY1_PREEMPHASIS_CTRL	0xba
+#define EXT_PHY1_PREEMPHASIS_D2		0xbb
+#define EXT_PHY1_PREEMPHASIS_D1		0xbc
+#define EXT_PHY1_PREEMPHASIS_D0		0xbd
+#define EXT_PHY1_DELAY_PATH_EN		0xbe
+#define EXT_PHY1_DELAY_MODE1		0xbf
+#define EXT_PHY1_DELAY_MODE2		0xc0
+#define EXT_PHY1_DELAY_TIME1		0xc1
+#define EXT_PHY1_DELAY_TIME2		0xc2
+#define EXT_PHY1_TERM_CAL_CTRL1		0xc5
+#define EXT_PHY1_TERM_CAL_CTRL2		0xc6
+#define EXT_PHY1_TERM_RESIS_AUTO	0xc7
+#define EXT_PHY1_ESD_CLK		0xc8
+#define EXT_PHY1_ESD_D2			0xc9
+#define EXT_PHY1_ESD_D1			0xca
+#define EXT_PHY1_ESD_D0			0xcb
 
 struct ext_pll_config_tab {
 	u32	pix_clock;
