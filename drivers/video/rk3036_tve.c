@@ -81,7 +81,7 @@ static void dac_enable(int enable)
 		val |= mask << 16;
 
 		#if defined(CONFIG_RKCHIP_RK322X)
-			val = 0x70;
+			val = v_CUR_REG(tve_s.dac1level) | v_DR_PWR_DOWN(0) | v_BG_PWR_DOWN(0);
 		#endif
 	} else {
 		mask = m_VBG_EN | m_DAC_EN;
@@ -94,7 +94,7 @@ static void dac_enable(int enable)
 		val |= mask << 16;
 
 		#if defined(CONFIG_RKCHIP_RK322X)
-			val = v_CUR_REG(0x7) | m_DR_PWR_DOWN | m_BG_PWR_DOWN;
+			val = v_CUR_REG(tve_s.dac1level) | m_DR_PWR_DOWN | m_BG_PWR_DOWN;
 		#endif
 	}
 
@@ -354,6 +354,11 @@ int rk3036_tve_init(vidinfo_t *panel)
 			}
 		}
 
+		if (tve_s.soctype == SOC_RK322X) {
+			tve_s.dac1level = fdtdec_get_int(gd->fdt_blob, node, "dac1level", 0);
+			if (tve_s.dac1level == 0)
+				return -ENODEV;
+		}
 		TVEDBG("tve_s.test_mode = 0x%x\n", tve_s.test_mode);
 		TVEDBG("tve_s.saturation = 0x%x\n", tve_s.saturation);
 		TVEDBG("tve_s.brightcontrast = 0x%x\n", tve_s.brightcontrast);

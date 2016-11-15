@@ -138,6 +138,7 @@ struct rk3036_tve {
 	int	lumafilter1;
 	int	lumafilter2;
 	int	daclevel;
+	int	dac1level;
 };
 
 #define RK30_TVE_REGBASE 0x10118000 + 0x200
