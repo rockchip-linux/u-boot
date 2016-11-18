@@ -145,7 +145,6 @@
 
 	#undef CONFIG_RK_PL330_DMAC
 
-	#undef CONFIG_MERGER_MINILOADER
 	#undef CONFIG_LCD
 #endif
 
