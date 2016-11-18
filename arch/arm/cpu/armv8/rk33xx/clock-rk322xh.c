@@ -633,6 +633,7 @@ static int rkclk_vop_aclk_set(uint32 aclk_hz)
 
 #define VIO_ACLK_MAX	(300 * MHZ)
 #define VIO_HCLK_MAX	(100 * MHZ)
+#define HDMIPHY_CLK_FREQ	(594 * MHZ)
 
 /*
  * rkplat lcdc aclk config
@@ -723,13 +724,6 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 
 	/* dclk pll source select */
 	con = (3 << (0 + 16)) | (pll_sel << 0);
-
-	/* dclk select integer div */
-	con = (0x1 << (2 + 16)) | (0 << 2);
-
-	/* dclk integer div */
-	con = (0xff << (8 + 16)) | ((div - 1) << 8);
-
 	cru_writel(con, CRU_CLKSELS_CON(40));
 
 	return 0;
@@ -738,20 +732,15 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 
 static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
-	uint32 dclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
-	uint32 clk_parent;
 
-	/* lcdc dclk from cpll */
-	pll_sel = 2;
-	clk_parent = gd->pci_clk;
-	div = rkclk_calc_clkdiv(clk_parent, dclk_hz, 0);
-	dclk_info = (pll_sel << 16) | div;
+	/* vop_dclk src select hdmiphy */
+	pll_sel = 1;
 	debug("rk lcdc dclk set: dclk = %dHZ, pll select = %d, div = %d\n", dclk_hz, pll_sel, div);
 
 	rkclk_lcdc_dclk_config(lcdc_id, pll_sel, div);
 
-	return dclk_info;
+	return 0;
 }
 
 
@@ -763,15 +752,11 @@ static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
  */
 int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
-	uint32 dclk_div;
-	uint32 dclk_info = 0;
-
 	rkclk_lcdc_aclk_set(lcdc_id, VIO_ACLK_MAX);
 	rkclk_lcdc_hclk_set(lcdc_id, VIO_HCLK_MAX);
-	dclk_info = rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
+	rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
 
-	dclk_div = dclk_info & 0x0000FFFF;
-	return gd->pci_clk / dclk_div;
+	return HDMIPHY_CLK_FREQ;
 }
 
 
