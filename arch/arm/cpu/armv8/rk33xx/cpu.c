@@ -173,6 +173,9 @@ int arch_cpu_init(void)
 #if defined(CONFIG_RKCHIP_RK322XH)
 	/* enable force to jtag, jtag_tclk/tms iomuxed with sdmmc0_d2/d3 */
 	grf_writel((0x01 << 12) | (0x01 << (12 + 16)), GRF_SOC_CON4);
+
+	/* hdmi phy clock source select HDMIPHY clock out */
+	cru_writel((1 << (13 + 16)) | (0 << 13), CRU_MISC_CON);
 #endif /* CONFIG_RKCHIP_RK322XH */
 	return 0;
 }
