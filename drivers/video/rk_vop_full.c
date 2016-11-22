@@ -1031,6 +1031,12 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 			val = V_PRE_DITHER_DOWN_EN(0);
 			vop_msk_reg(vop_dev, DSP_CTRL1, val);
 		}
+		val = V_HDMI_HSYNC_POL(screen->pin_hsync) |
+			V_HDMI_VSYNC_POL(screen->pin_vsync) |
+			V_HDMI_DEN_POL(screen->pin_den) |
+			V_HDMI_DCLK_POL(screen->pin_dclk);
+		/* hsync vsync den dclk polo,dither */
+		vop_msk_reg(vop_dev, DSP_CTRL1, val);
 		break;
 	case SCREEN_RGB:
 	case SCREEN_LVDS:
