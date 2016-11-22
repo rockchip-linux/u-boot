@@ -1021,6 +1021,12 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		else
 			val |= V_SW_TVE_MODE(0);
 		vop_msk_reg(vop_dev, SYS_CTRL, val);
+		val = V_HDMI_HSYNC_POL(screen->pin_hsync) |
+			V_HDMI_VSYNC_POL(screen->pin_vsync) |
+			V_HDMI_DEN_POL(screen->pin_den) |
+			V_HDMI_DCLK_POL(screen->pin_dclk);
+		/* hsync vsync den dclk polo,dither */
+		vop_msk_reg(vop_dev, DSP_CTRL1, val);
 		break;
 	case SCREEN_HDMI:
 		val = V_HDMI_OUT_EN(1) | V_SW_UV_OFFSET_EN(0);
