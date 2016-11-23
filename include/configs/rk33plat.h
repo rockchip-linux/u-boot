@@ -144,8 +144,6 @@
 	#undef CONFIG_RK_UMS_BOOT_EN
 
 	#undef CONFIG_RK_PL330_DMAC
-
-	#undef CONFIG_LCD
 #endif
 
 /* fpga board configure */
@@ -332,7 +330,11 @@
 #endif
 
 #if defined(CONFIG_RKCHIP_RK322XH)
-/* todo: add lcd config here */
+#define CONFIG_RK_VOP_FULL_FB
+#define CONFIG_DIRECT_LOGO
+#define CONFIG_RK_HDMI
+#define CONFIG_RK3036_TVE
+#undef CONFIG_RK_TVE
 #endif
 
 #ifdef CONFIG_ROCKCHIP_DISPLAY
@@ -355,8 +357,10 @@
 #undef CONFIG_GM7122_TVE
 #endif
 
+#if !defined(CONFIG_RKCHIP_RK322XH)
 #define CONFIG_RK32_DSI
 #define CONFIG_RK3399_EDP
+#endif
 
 #undef CONFIG_UBOOT_CHARGE
 
