@@ -65,7 +65,7 @@ static void dac_enable(int enable)
 	u32 grfreg = 0;
 
 //	printf("%s enable %d\n", __FUNCTION__, enable);
-#if defined(CONFIG_RKCHIP_RK322X)
+#if defined(CONFIG_RKCHIP_RK322X) || defined(CONFIG_RKCHIP_RK322XH)
 	tve_dac_writel(VDAC_VDAC2, v_CUR_CTR(tve_s.daclevel));
 	tve_dac_writel(VDAC_VDAC3, v_CAB_EN(0));
 #endif
@@ -80,7 +80,7 @@ static void dac_enable(int enable)
 		#endif
 		val |= mask << 16;
 
-		#if defined(CONFIG_RKCHIP_RK322X)
+		#if defined(CONFIG_RKCHIP_RK322X) || defined(CONFIG_RKCHIP_RK322XH)
 			val = v_CUR_REG(tve_s.dac1level) | v_DR_PWR_DOWN(0) | v_BG_PWR_DOWN(0);
 		#endif
 	} else {
@@ -93,7 +93,7 @@ static void dac_enable(int enable)
 		#endif
 		val |= mask << 16;
 
-		#if defined(CONFIG_RKCHIP_RK322X)
+		#if defined(CONFIG_RKCHIP_RK322X) || defined(CONFIG_RKCHIP_RK322XH)
 			val = v_CUR_REG(tve_s.dac1level) | m_DR_PWR_DOWN | m_BG_PWR_DOWN;
 		#endif
 	}
@@ -112,7 +112,8 @@ static void tve_set_mode (int mode)
 {
 //	printf("%s mode %d\n", __FUNCTION__, mode);
 
-	if (tve_s.soctype != SOC_RK322X) {
+	if (tve_s.soctype != SOC_RK322X &&
+	    tve_s.soctype != SOC_RK322XH) {
 		tve_writel(TV_RESET, v_RESET(1));
 		udelay(100);
 		tve_writel(TV_RESET, v_RESET(0));
@@ -187,7 +188,8 @@ static void rk3036_tve_init_panel(vidinfo_t *panel)
 		panel->color_mode = COLOR_YCBCR;
 		printf("SCREEN_TVOUT_TEST\n");
 	} else if (tve_s.soctype == SOC_RK322X ||
-		   tve_s.soctype == SOC_RK312X) {
+		   tve_s.soctype == SOC_RK312X ||
+		   tve_s.soctype == SOC_RK322XH) {
 		panel->screen_type = SCREEN_TVOUT;
 		panel->color_mode = COLOR_YCBCR;
 		printf("SCREEN_TVOUT\n");
@@ -289,6 +291,10 @@ int rk3036_tve_init(vidinfo_t *panel)
 	tve_s.soctype = SOC_RK322X;
 	tve_s.saturation = 0;
 	tve_s.vdacbase = 0x12020000;
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	tve_s.reg_phy_base = 0xff370000 + 0x3e00;
+	tve_s.soctype = SOC_RK322XH;
+	tve_s.vdacbase = 0xff420000;
 #endif
 
 	if (gd->fdt_blob)
@@ -354,7 +360,8 @@ int rk3036_tve_init(vidinfo_t *panel)
 			}
 		}
 
-		if (tve_s.soctype == SOC_RK322X) {
+		if (tve_s.soctype == SOC_RK322X ||
+		    tve_s.soctype == SOC_RK322XH) {
 			tve_s.dac1level = fdtdec_get_int(gd->fdt_blob, node, "dac1level", 0);
 			if (tve_s.dac1level == 0)
 				return -ENODEV;

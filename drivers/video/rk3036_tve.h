@@ -121,7 +121,8 @@ enum {
 enum {
 	SOC_RK3036 = 0,
 	SOC_RK312X,
-	SOC_RK322X
+	SOC_RK322X,
+	SOC_RK322XH
 };
 
 #define TVOUT_DEAULT TVOUT_CVBS_PAL
@@ -131,7 +132,7 @@ struct rk3036_tve {
 	int	soctype;
 	int	test_mode;
 	int	saturation;
-	int	vdacbase;
+	u32	vdacbase;
 	int	brightcontrast;
 	int	adjtiming;
 	int	lumafilter0;
