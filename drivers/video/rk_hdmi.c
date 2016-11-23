@@ -117,7 +117,10 @@ static void hdmi_init_panel(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 			panel->lcd_face = OUT_P888;
 	}
 	if (hdmi_dev->video.color_input > HDMI_COLOR_RGB_16_235) {
-		panel->color_mode = COLOR_YCBCR;
+		if (mode->xres > 720 && mode->yres > 576)
+			panel->color_mode = COLOR_YCBCR_BT709;
+		else
+			panel->color_mode = COLOR_YCBCR;
 		if (!(hdmi_dev->vic & HDMI_VIDEO_YUV420))
 			panel->vl_swap_rb = 1;
 	} else {

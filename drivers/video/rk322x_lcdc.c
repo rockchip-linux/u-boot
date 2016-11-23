@@ -946,7 +946,7 @@ static void vop_bcsh_path_sel(struct vop_device *vop_dev)
 
 	vop_msk_reg(vop_dev, SYS_CTRL, V_OVERLAY_MODE(vop_dev->overlay_mode));
 	if (vop_dev->overlay_mode == VOP_YUV_DOMAIN) {
-		if (vop_dev->output_color == COLOR_YCBCR)	/* bypass */
+		if (IS_YUV_COLOR(vop_dev->output_color))	/* bypass */
 			vop_msk_reg(vop_dev, BCSH_CTRL,
 				    V_BCSH_Y2R_EN(0) | V_BCSH_R2Y_EN(0));
 		else		/* YUV2RGB */
