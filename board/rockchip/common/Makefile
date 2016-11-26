@@ -34,5 +34,5 @@ obj-$(CONFIG_SECUREBOOT_CRYPTO) += SecureBoot/crypto.o
 obj-y += SecureBoot/SecureBoot.o
 obj-y += SecureBoot/SecureVerify.o
 obj-y += storage/storage.o
-
-
+obj-$(CONFIG_RK_NVME_BOOT_EN) += nvme/pcie_cdns.o
+obj-$(CONFIG_RK_NVME_BOOT_EN) += nvme/pcie.o
