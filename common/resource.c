@@ -332,7 +332,7 @@ int load_bmp_content(const char *logo, void *bmp, int size)
 	return 0;
 }
 
-bool show_resource_image(const char* image_path) {
+bool _show_resource_image(const char* image_path) {
 	bool ret = false;
 #ifdef CONFIG_LCD
 	bmp_image_t *bmp = NULL;
@@ -386,5 +386,19 @@ bool show_resource_image(const char* image_path) {
 
 #endif
 	return ret;
+}
+
+#ifdef CONFIG_ROCKCHIP_DISPLAY
+extern int g_is_new_display;
+extern bool rockchip_show_bmp(const char *bmp);
+#endif
+
+bool show_resource_image(const char *image_path)
+{
+#ifdef CONFIG_ROCKCHIP_DISPLAY
+	if (g_is_new_display)
+		return rockchip_show_bmp(image_path);
+#endif
+	return _show_resource_image(image_path);
 }
 

@@ -157,6 +157,14 @@ int power_key_pressed(void) {
 #endif
 }
 
+#ifdef CONFIG_ROCKCHIP_DISPLAY
+extern int g_is_new_display;
+extern bool rockchip_show_bmp(const char *bmp);
+#else
+static int g_is_new_display;
+static bool rockchip_show_bmp(const char *bmp) {};
+#endif
+
 /**
  * set new brightness.
  */
@@ -165,7 +173,7 @@ void do_set_brightness(int brightness, int old_brightness) {
 		return;
 	LOGD("set_brightness: %d -> %d", old_brightness, brightness);
 	if (IS_BRIGHT(brightness)) {
-		if (!IS_BRIGHT(old_brightness)) {
+		if (!IS_BRIGHT(old_brightness) && !g_is_new_display) {
 			lcd_standby(0);
 			mdelay(100);
 		}
@@ -178,7 +186,10 @@ void do_set_brightness(int brightness, int old_brightness) {
 		rk_pwm_bl_config(0);
 #endif
 		if (IS_BRIGHT(old_brightness)) {
-			lcd_standby(1);
+			if (g_is_new_display)
+				rockchip_show_bmp(NULL);
+			else
+				lcd_standby(1);
 		}
 	}
 }
