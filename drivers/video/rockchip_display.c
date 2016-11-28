@@ -315,6 +315,8 @@ static int display_enable(struct display_state *state)
 
 	connector_panel_power_on(state);
 
+	state->is_enable = true;
+
 	return 0;
 unprepare_crtc:
 	if (crtc_funcs->unprepare)
@@ -349,6 +351,7 @@ static int display_disable(struct display_state *state)
 
 	connector_panel_power_off(state);
 	state->is_enable = 0;
+	state->is_init = 0;
 
 	return 0;
 }
