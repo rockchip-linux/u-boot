@@ -299,6 +299,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	VOP_WIN_SET(vop, src_alpha_ctl, 0);
 
 	VOP_WIN_SET(vop, enable, 1);
+	vop_cfg_done(vop);
 
 	return 0;
 }
