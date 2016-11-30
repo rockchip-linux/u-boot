@@ -281,6 +281,8 @@ static int display_enable(struct display_state *state)
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	int ret = 0;
 
+	connector_panel_power_on(state);
+
 	display_init(state);
 
 	if (!state->is_init)
@@ -312,8 +314,6 @@ static int display_enable(struct display_state *state)
 		if (ret)
 			goto disable_crtc;
 	}
-
-	connector_panel_power_on(state);
 
 	state->is_enable = true;
 
