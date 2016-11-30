@@ -144,6 +144,8 @@ struct display_state {
 	int node;
 	const char *ulogo_name;
 	const char *klogo_name;
+	int logo_mode;
+	int charge_logo_mode;
 	bmp_image_t *ubmp;
 	bmp_image_t *kbmp;
 	void *mem_base;

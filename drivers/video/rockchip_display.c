@@ -575,6 +575,7 @@ void rockchip_show_bmp(const char *bmp)
 	}
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
+		s->logo.mode = s->charge_logo_mode;
 		if (load_bmp_logo(&s->logo, bmp))
 			continue;
 		display_logo(s);
@@ -586,6 +587,7 @@ void rockchip_show_logo(void)
 	struct display_state *s;
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
+		s->logo.mode = s->logo_mode;
 		if (load_bmp_logo(&s->logo, s->ulogo_name)) {
 			printf("failed to display uboot logo\n");
 			continue;
@@ -603,6 +605,7 @@ int rockchip_display_init(void)
 	const struct rockchip_connector *conn;
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
+	const char *name;
 
 	route = fdt_path_offset(blob, "/display-subsystem/route");
 	if (route < 0) {
@@ -646,6 +649,16 @@ int rockchip_display_init(void)
 		INIT_LIST_HEAD(&s->head);
 		fdt_get_string(blob, child, "logo,uboot", &s->ulogo_name);
 		fdt_get_string(blob, child, "logo,kernel", &s->klogo_name);
+		fdt_get_string(blob, child, "logo,mode", &name);
+		if (!strcmp(name, "fullscreen"))
+			s->logo_mode = ROCKCHIP_DISPLAY_FULLSCREEN;
+		else
+			s->logo_mode = ROCKCHIP_DISPLAY_CENTER;
+		fdt_get_string(blob, child, "charge_logo,mode", &name);
+		if (!strcmp(name, "fullscreen"))
+			s->charge_logo_mode = ROCKCHIP_DISPLAY_FULLSCREEN;
+		else
+			s->charge_logo_mode = ROCKCHIP_DISPLAY_CENTER;
 
 		s->blob = blob;
 		s->conn_state.node = conn_node;
