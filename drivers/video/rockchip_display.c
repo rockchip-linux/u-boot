@@ -613,9 +613,15 @@ int rockchip_display_init(void)
 		return -ENODEV;
 	}
 
+	if (!fdt_device_is_available(blob, route))
+		return -ENODEV;
+
 	init_display_buffer();
 
 	fdt_for_each_subnode(blob, child, route) {
+		if (!fdt_device_is_available(blob, child))
+			continue;
+
 		phandle = fdt_getprop_u32_default_node(blob, child, 0,
 						       "connect", -1);
 		if (!phandle < 0)
