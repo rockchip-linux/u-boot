@@ -30,6 +30,9 @@ static LIST_HEAD(logo_cache_list);
 static unsigned long memory_start;
 static unsigned long memory_end;
 
+extern const struct drm_display_mode *
+rockchip_get_display_mode_from_panel(const void *blob, int panel_node);
+
 static void init_display_buffer(void)
 {
 	memory_start = gd->fb_base;
@@ -62,6 +65,42 @@ static bool can_direct_logo(int bpp)
 	return bpp == 24 || bpp == 32;
 }
 
+static int get_panel_node(struct display_state *state, int conn_node)
+{
+	const void *blob = state->blob;
+	int panel, ports, port, ep, remote, ph, nodedepth;
+
+	panel = fdt_subnode_offset(blob, conn_node, "panel");
+	if (panel > 0)
+		return panel;
+
+	ports = fdt_subnode_offset(blob, conn_node, "ports");
+	if (ports < 0)
+		return -ENODEV;
+
+	fdt_for_each_subnode(blob, port, ports) {
+		fdt_for_each_subnode(blob, ep, port) {
+			ph = fdt_getprop_u32_default_node(blob, ep, 0,
+							  "remote-endpoint", 0);
+			if (!ph)
+				continue;
+
+			remote = fdt_node_offset_by_phandle(blob, ph);
+
+			nodedepth = fdt_node_depth(blob, remote);
+			if (nodedepth < 2)
+				continue;
+
+			panel = fdt_supernode_atdepth_offset(blob, remote,
+							     nodedepth - 2,
+							     NULL);
+			break;
+		}
+	}
+
+	return panel;
+}
+
 static int connector_panel_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -70,7 +109,7 @@ static int connector_panel_init(struct display_state *state)
 	int conn_node = conn_state->node;
 	int panel;
 
-	panel = fdt_subnode_offset(blob, conn_node, "panel");
+	panel = get_panel_node(state, conn_node);
 	if (panel < 0) {
 		debug("failed to find panel node\n");
 		return -ENODEV;
@@ -140,9 +179,9 @@ static int display_get_timing(struct display_state *state)
 	int hfront_porch, hback_porch, hsync_len;
 	int vfront_porch, vback_porch, vsync_len;
 	int val, flags = 0;
-	int panel, timing, phandle, native_mode;
+	int panel, timing, phandle, native_mode, ports;
 
-	panel = fdt_subnode_offset(blob, conn_node, "panel");
+	panel = get_panel_node(state, conn_node);
 	if (panel < 0) {
 		printf("failed to find panel node\n");
 		return -ENODEV;
@@ -150,8 +189,14 @@ static int display_get_timing(struct display_state *state)
 
 	timing = fdt_subnode_offset(blob, panel, "display-timings");
 	if (timing < 0) {
-		printf("failed to find timing node\n");
-		return -ENXIO;
+		struct drm_display_mode *m;
+		m = rockchip_get_display_mode_from_panel(blob, panel);
+		if (!m) {
+			printf("failed to find timing node\n");
+			return -ENXIO;
+		}
+		memcpy(mode, m, sizeof(*m));
+		return 0;
 	}
 
 	phandle = fdt_getprop_u32_default_node(blob, timing, 0,
