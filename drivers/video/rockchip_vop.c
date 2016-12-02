@@ -114,6 +114,7 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, vact_st_end, val);
 	VOP_CTRL_SET(vop, vpost_st_end, val);
 	VOP_CTRL_SET(vop, standby, 1);
+	VOP_CTRL_SET(vop, line_flag_num[0], vact_end - 3);
 	vop_cfg_done(vop);
 
 	return 0;
