@@ -1,0 +1,7 @@
+menu "RK Common Config"
+        depends on PLAT_RK30XX
+
+config RM_RAMDISK_LOAD
+	tristate "loader root from flash for linux"
+	default n
+endmenu

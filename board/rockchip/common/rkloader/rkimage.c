@@ -55,13 +55,14 @@ int rkimage_load_image(rk_boot_img_hdr *hdr, const disk_partition_t *boot_ptn, \
 	if(!boot_ptn || !kernel_ptn) {
 		return -1;
 	}
+#if !defined(CONFIG_RM_RAMDISK_LOAD)
 	if (rkimg_load_image(boot_ptn->start, (unsigned char *)(unsigned long)hdr->ramdisk_addr, \
 				&image_size) != 0) {
 		printf("load boot image failed\n");
 		return -1;
 	}
 	hdr->ramdisk_size = image_size;
-
+#endif
 	if (rkimg_load_image(kernel_ptn->start, (unsigned char *)(unsigned long)hdr->kernel_addr, \
 				&image_size) != 0) {
 		printf("load kernel image failed\n");
