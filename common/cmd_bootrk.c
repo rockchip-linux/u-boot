@@ -394,6 +394,27 @@ static int rk_load_kernel_logo(void)
 }
 #endif
 
+#if defined(CONFIG_RK_DEVICEINFO)
+static bool g_is_devinfo_load;
+
+static bool rk_load_devinfo(void)
+{
+	int ret;
+	const disk_partition_t *ptn_devinfo;
+	u8 *addr = (u8 *)(CONFIG_RKHDMI_PARAM_ADDR);
+
+	ptn_devinfo = get_disk_partition("deviceinfo");
+	if (!ptn_devinfo)
+		return false;
+
+	ret = StorageReadLba(ptn_devinfo->start, addr, 16);
+	if (ret < 0)
+		return false;
+
+	return true;
+}
+#endif
+
 static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, bool charge)
 {
 #ifdef CONFIG_CMDLINE_TAG
@@ -472,6 +493,13 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 #endif /* CONFIG_KERNEL_LOGO */
 	}
 #endif /* CONFIG_RK_FB_DDREND */
+
+#if defined(CONFIG_RK_DEVICEINFO)
+	if (g_is_devinfo_load)
+		snprintf(command_line, sizeof(command_line),
+			 "%s stb_devinfo=0x%08x@0x%08x",
+			 command_line, SZ_8K, CONFIG_RKHDMI_PARAM_ADDR);
+#endif /* CONFIG_RK_DEVICEINFO*/
 
 	snprintf(command_line, sizeof(command_line),
 			"%s loader.timestamp=%s", command_line, U_BOOT_TIMESTAMP);
@@ -552,6 +580,11 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	if (g_logo_on_state != 0 && !g_is_new_display) {
 		rk_load_kernel_logo();
 	}
+#endif
+
+#if defined(CONFIG_RK_DEVICEINFO)
+	/* load devinfo */
+	g_is_devinfo_load = rk_load_devinfo();
 #endif
 
 #if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FG_ADC)
