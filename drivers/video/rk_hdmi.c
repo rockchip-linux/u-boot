@@ -1512,6 +1512,32 @@ static void hdmi_check_edid_mode(struct hdmi_dev *hdmi_dev)
 	}
 }
 
+static int hdmi_find_nearest_mode(struct hdmi_dev *hdmi_dev, int pos)
+{
+	int i, j, vic;
+	struct hdmi_video_timing *modedb;
+
+	for (i = hdmi_dev->mode_len - 1; i >= 0; i--) {
+		modedb = (struct hdmi_video_timing *)&hdmi_dev->modedb[i];
+		if (hdmi_feature_filter(hdmi_dev, modedb))
+			continue;
+		if (modedb->mode.xres == hdmi_dev->modedb[pos].mode.xres &&
+		    modedb->mode.yres == hdmi_dev->modedb[pos].mode.yres) {
+			for (j = 0; j < hdmi_dev->vic_pos; j++) {
+				vic = hdmi_dev->vicdb[j] & HDMI_VIC_MASK;
+				if (vic == modedb->vic ||
+				    vic == modedb->vic_2nd)
+				break;
+			}
+			if (j != hdmi_dev->vic_pos) {
+				hdmi_dev->vic = hdmi_dev->vicdb[j];
+				return 0;
+			}
+		}
+	}
+	return -1;
+}
+
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0, pos_baseparamer = 0;
@@ -1547,10 +1573,13 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 			if (i < hdmi_dev->vic_pos) {
 				hdmi_dev->vic = hdmi_dev->vicdb[i];
 				printf("use baseparamer config,pos_baseparamer=%d\n",pos_baseparamer);
-			} else {
+			} else if (hdmi_find_nearest_mode(hdmi_dev, pos_baseparamer)) {
 				hdmi_find_best_edid_mode(hdmi_dev);
 				printf("pos_baseparamer=%d,but edid not support,find best edid vic=%d\n",
 					pos_baseparamer,hdmi_dev->vic);
+			} else {
+				printf("pos_baseparamer=%d,but edid not support,find nearest edid vic=%d\n",
+				       pos_baseparamer,hdmi_dev->vic);
 			}
 		} else {
 			hdmi_find_best_edid_mode(hdmi_dev);
