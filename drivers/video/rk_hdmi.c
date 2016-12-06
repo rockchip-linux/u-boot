@@ -1491,11 +1491,33 @@ void hdmi_find_best_edid_mode(struct hdmi_dev *hdmi_dev)
 	}
 }
 
+static void hdmi_check_edid_mode(struct hdmi_dev *hdmi_dev)
+{
+	int i, j, vic;
+	struct hdmi_video_timing *modedb = NULL;
+
+	for (i = 0; i < hdmi_dev->vic_pos; i++) {
+		vic = hdmi_dev->vicdb[i] & 0xff;
+		for (j = 0; j < hdmi_dev->mode_len; j++) {
+			modedb = (struct hdmi_video_timing *)&hdmi_dev->modedb[j];
+			if (vic == modedb->vic || vic == modedb->vic_2nd)
+				break;
+		}
+		if (j == hdmi_dev->mode_len)
+			continue;
+		if (modedb->mode.pixclock > 340000000 &&
+		    hdmi_dev->driver.edid.maxtmdsclock < 340000000 &&
+		    !(hdmi_dev->vicdb[i] & HDMI_VIDEO_YUV420))
+			hdmi_dev->vicdb[i] |= HDMI_VIDEO_YUV420;
+	}
+}
+
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0, pos_baseparamer = 0;
 	int deepcolor;
 
+	hdmi_check_edid_mode(hdmi_dev);
 	pos_baseparamer = g_pos_baseparamer.hdmi_pos;
 
 #ifdef HDMIDEBUG
