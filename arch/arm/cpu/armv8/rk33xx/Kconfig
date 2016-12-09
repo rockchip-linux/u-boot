@@ -21,4 +21,6 @@ config SYS_SOC
 
 source "board/rockchip/rk33xx/Kconfig"
 
+source "board/rockchip/common/Kconfig"
+
 endif
