@@ -1160,6 +1160,19 @@ static int hdmi_dev_config_vsi(struct hdmi_dev *hdmi_dev,
 	return 0;
 }
 
+static uint8 rk_get_efuse_flag(void)
+{
+       uint8 value = 0;
+
+#ifdef CONFIG_RK_EFUSE
+#if defined(CONFIG_RKCHIP_RK322X)
+       FtEfuseRead((void *)(unsigned long)RKIO_EFUSE_256BITS_PHYS, &value, 29, 1);
+       value = value & 2;
+#endif
+#endif /* CONFIG_RK_EFUSE */
+       return value;
+}
+
 #define PHY_TIMEOUT	10000
 #define RK322X_PLL_POWER_DOWN	((1 << 12) | (1 << 28))
 #define RK322X_PLL_POWER_UP	(1 << 28)
@@ -1406,6 +1419,17 @@ static int ext_phy_config(struct hdmi_dev *hdmi_dev)
 			rockchip_hdmiv2_write_phy(hdmi_dev,
 						  EXT_PHY_PPLL_PRE_DIVIDER,
 						  stat);
+               } else if (hdmi_dev->tmdsclk == 27000000 &&
+                          rk_get_efuse_flag()) {
+                       rockchip_hdmiv2_write_phy(hdmi_dev,
+                                                 EXT_PHY_PPLL_POST_DIVIDER,
+                                                 0x00);
+                       rockchip_hdmiv2_write_phy(hdmi_dev,
+                                                 EXT_PHY_PPLL_PRE_DIVIDER,
+                                                 0xe1);
+                       rockchip_hdmiv2_write_phy(hdmi_dev,
+                                                 EXT_PHY_PPLL_FB_DIVIDER,
+                                                 10);
 		} else {
 			stat = ((phy_ext->ppll_no / 2) - 1) << 4;
 			rockchip_hdmiv2_write_phy(hdmi_dev,
