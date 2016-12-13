@@ -25,6 +25,20 @@ struct rockchip_panel {
 	const struct drm_display_mode *mode;
 };
 
+static const struct drm_display_mode auo_b125han03_mode = {
+	.clock = 141000,
+	.hdisplay = 1920,
+	.hsync_start = 1920 + 88,
+	.hsync_end = 1920 + 88 + 60,
+	.htotal = 1920 + 88 + 60 + 36,
+	.vdisplay = 1080,
+	.vsync_start = 1080 + 12,
+	.vsync_end = 1080 + 12 + 4,
+	.vtotal = 1080 + 12 + 4 + 20,
+	.vrefresh = 60,
+	.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC,
+};
+
 static const struct drm_display_mode lg_lp079qx1_sp0v_mode = {
 	.clock = 200000,
 	.hdisplay = 1536,
@@ -41,8 +55,11 @@ static const struct drm_display_mode lg_lp079qx1_sp0v_mode = {
 
 static const struct rockchip_panel g_panel[] = {
 	{
-	 .compatible = "lg,lp079qx1-sp0v",
-	 .mode = &lg_lp079qx1_sp0v_mode,
+		.compatible = "lg,lp079qx1-sp0v",
+		.mode = &lg_lp079qx1_sp0v_mode,
+	}, {
+		.compatible = "auo,b125han03",
+		.mode = &auo_b125han03_mode,
 	},
 };
 
