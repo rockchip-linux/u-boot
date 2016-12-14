@@ -36,3 +36,5 @@ obj-y += SecureBoot/SecureVerify.o
 obj-y += storage/storage.o
 obj-$(CONFIG_RK_NVME_BOOT_EN) += nvme/pcie_cdns.o
 obj-$(CONFIG_RK_NVME_BOOT_EN) += nvme/pcie.o
+obj-$(CONFIG_RK_NVME_BOOT_EN) += nvme/nvme.o
+obj-$(CONFIG_RK_NVME_BOOT_EN) += nvme/nvme_test.o
