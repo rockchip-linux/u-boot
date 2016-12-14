@@ -9,6 +9,7 @@
 
 #include <bmp_layout.h>
 #include <drm_modes.h>
+#include <edid.h>
 
 enum data_format {
 	ROCKCHIP_FMT_ARGB8888 = 0,
@@ -68,6 +69,7 @@ struct connector_state {
 
 	struct fdt_gpio_state enable_gpio;
 	struct drm_display_mode mode;
+	u8 edid[EDID_SIZE * 4];
 	int output_mode;
 	int type;
 };

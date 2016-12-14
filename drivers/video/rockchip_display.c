@@ -171,7 +171,9 @@ int drm_mode_vrefresh(const struct drm_display_mode *mode)
 
 static int display_get_timing(struct display_state *state)
 {
+	const struct rockchip_connector *conn = state->conn_state.connector;
 	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
 	struct drm_display_mode *mode = &conn_state->mode;
 	const void *blob = state->blob;
 	int conn_node = conn_state->node;
@@ -180,7 +182,18 @@ static int display_get_timing(struct display_state *state)
 	int vfront_porch, vback_porch, vsync_len;
 	int val, flags = 0;
 	int panel, timing, phandle, native_mode, ports;
+	bool has_edid = false;
 
+	if (conn_funcs->get_edid && !conn_funcs->get_edid(state)) {
+		int panel_bits_per_colourp;
+
+		if (!edid_get_timing((void *)&conn_state->edid,
+				     sizeof(conn_state->edid), mode,
+				     &panel_bits_per_colourp)) {
+			has_edid = true;
+			goto done;
+		}
+	}
 	panel = get_panel_node(state, conn_node);
 	if (panel < 0) {
 		printf("failed to find panel node\n");
@@ -241,6 +254,20 @@ static int display_get_timing(struct display_state *state)
 	mode->clock = pixelclock / 1000;
 	mode->flags = flags;
 
+done:
+	if (has_edid)
+		edid_print_info((void *)&conn_state->edid);
+
+	printf("Detailed mode clock %u kHz, flags[%x]\n"
+	       "    H: %04d %04d %04d %04d\n"
+	       "    V: %04d %04d %04d %04d\n",
+	       mode->clock, mode->flags,
+	       mode->hdisplay, mode->hsync_start,
+	       mode->hsync_end, mode->htotal,
+	       mode->vdisplay, mode->vsync_start,
+	       mode->vsync_end, mode->vtotal);
+	printf("Using display timing from %s\n", has_edid ? "edid" : "dts");
+
 	return 0;
 }
 
@@ -259,6 +286,9 @@ static int display_init(struct display_state *state)
 		printf("failed to find connector or crtc functions\n");
 		return -ENXIO;
 	}
+
+	/* enable panel's power, so connector's init can works */
+	connector_panel_power_on(state);
 
 	if (conn_funcs->init) {
 		ret = conn_funcs->init(state);
@@ -325,8 +355,6 @@ static int display_enable(struct display_state *state)
 	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	int ret = 0;
-
-	connector_panel_power_on(state);
 
 	display_init(state);
 

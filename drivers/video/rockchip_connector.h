@@ -37,6 +37,13 @@ struct rockchip_connector_funcs {
 	 */
 	int (*get_timing)(struct display_state *state);
 	/*
+	 * Optional, if implement it, need fill the edid data:
+	 *     state->conn_state->edid
+	 * Returns:
+	 *   0 means success, else means failed
+	 */
+	int (*get_edid)(struct display_state *state);
+	/*
 	 * call before crtc enable.
 	 */
 	int (*prepare)(struct display_state *state);
