@@ -16,6 +16,7 @@
 #include <fdtdec.h>
 #include <linux/ctype.h>
 #include <linux/string.h>
+#include <drm_modes.h>
 
 int edid_check_info(struct edid1_info *edid_info)
 {
@@ -66,28 +67,19 @@ int edid_get_ranges(struct edid1_info *edid, unsigned int *hmin,
 	return -1;
 }
 
-/* Set all parts of a timing entry to the same value */
-static void set_entry(struct timing_entry *entry, u32 value)
-{
-	entry->min = value;
-	entry->typ = value;
-	entry->max = value;
-}
-
 /**
  * decode_timing() - Decoding an 18-byte detailed timing record
  *
  * @buf:	Pointer to EDID detailed timing record
  * @timing:	Place to put timing
  */
-static void decode_timing(u8 *buf, struct display_timing *timing)
+static void decode_timing(u8 *buf, struct drm_display_mode *mode)
 {
 	uint x_mm, y_mm;
 	unsigned int ha, hbl, hso, hspw, hborder;
 	unsigned int va, vbl, vso, vspw, vborder;
+	u8 misc;
 
-	/* Edid contains pixel clock in terms of 10KHz */
-	set_entry(&timing->pixelclock, (buf[0] + (buf[1] << 8)) * 10000);
 	x_mm = (buf[12] + ((buf[14] & 0xf0) << 4));
 	y_mm = (buf[13] + ((buf[14] & 0x0f) << 8));
 	ha = (buf[2] + ((buf[4] & 0xf0) << 4));
@@ -100,29 +92,35 @@ static void decode_timing(u8 *buf, struct display_timing *timing)
 	vso = ((buf[10] >> 4) + ((buf[11] & 0x0c) << 2));
 	vspw = ((buf[10] & 0x0f) + ((buf[11] & 0x03) << 4));
 	vborder = buf[16];
+	misc = buf[17];
 
-	set_entry(&timing->hactive, ha);
-	set_entry(&timing->hfront_porch, hso);
-	set_entry(&timing->hback_porch, hbl - hso - hspw);
-	set_entry(&timing->hsync_len, hspw);
+	/* Edid contains pixel clock in terms of 10KHz */
+	mode->clock = (buf[0] + (buf[1] << 8)) * 10;
+	mode->hdisplay = ha;
+	mode->hsync_start = ha + hso;
+	mode->hsync_end = ha + hso + hspw;
+	mode->htotal = ha + hbl;
+	mode->vdisplay = va;
+	mode->vsync_start = va + vso;
+	mode->vsync_end = va + vso + vspw;
+	mode->vtotal = va + vbl;
+	mode->flags = (misc & DRM_EDID_PT_HSYNC_POSITIVE) ?
+		DRM_MODE_FLAG_PHSYNC : DRM_MODE_FLAG_NHSYNC;
+	mode->flags |= (misc & DRM_EDID_PT_VSYNC_POSITIVE) ?
+		DRM_MODE_FLAG_PVSYNC : DRM_MODE_FLAG_NVSYNC;
 
-	set_entry(&timing->vactive, va);
-	set_entry(&timing->vfront_porch, vso);
-	set_entry(&timing->vback_porch, vbl - vso - vspw);
-	set_entry(&timing->vsync_len, vspw);
-
-	debug("Detailed mode clock %u Hz, %d mm x %d mm\n"
-	      "               %04x %04x %04x %04x hborder %x\n"
-	      "               %04x %04x %04x %04x vborder %x\n",
-	      timing->pixelclock.typ,
-	      x_mm, y_mm,
-	      ha, ha + hso, ha + hso + hspw,
-	      ha + hbl, hborder,
-	      va, va + vso, va + vso + vspw,
-	      va + vbl, vborder);
+	debug("Detailed mode clock %u kHz, %d mm x %d mm, flags[%x]\n"
+	      "     %04d %04d %04d %04d hborder %d\n"
+	      "     %04d %04d %04d %04d vborder %d\n",
+	      mode->clock,
+	      x_mm, y_mm, mode->flags,
+	      mode->hdisplay, mode->hsync_start, mode->hsync_end,
+	      mode->htotal, hborder,
+	      mode->vdisplay, mode->vsync_start, mode->vsync_end,
+	      mode->vtotal, vborder);
 }
 
-int edid_get_timing(u8 *buf, int buf_size, struct display_timing *timing,
+int edid_get_timing(u8 *buf, int buf_size, struct drm_display_mode *mode,
 		    int *panel_bits_per_colourp)
 {
 	struct edid1_info *edid = (struct edid1_info *)buf;
@@ -146,7 +144,7 @@ int edid_get_timing(u8 *buf, int buf_size, struct display_timing *timing,
 
 		desc = &edid->monitor_details.descriptor[i];
 		if (desc->zero_flag_1 != 0) {
-			decode_timing((u8 *)desc, timing);
+			decode_timing((u8 *)desc, mode);
 			timing_done = true;
 			break;
 		}

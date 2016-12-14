@@ -267,7 +267,7 @@ int edid_get_ranges(struct edid1_info *edid, unsigned int *hmin,
 		    unsigned int *hmax, unsigned int *vmin,
 		    unsigned int *vmax);
 
-struct display_timing;
+struct drm_display_mode;
 
 /**
  * edid_get_timing() - Get basic digital display parameters
@@ -280,7 +280,7 @@ struct display_timing;
  *			-1 if not available
  * @return 0 if timings are OK, -ve on error
  */
-int edid_get_timing(u8 *buf, int buf_size, struct display_timing *timing,
+int edid_get_timing(u8 *buf, int buf_size, struct drm_display_mode *mode,
 		    int *panel_bits_per_colourp);
 
 #endif /* __EDID_H_ */
