@@ -677,6 +677,142 @@ static void analogix_dp_init_dp(struct analogix_dp_device *dp)
 	analogix_dp_init_aux(dp);
 }
 
+static unsigned char analogix_dp_calc_edid_check_sum(unsigned char *edid_data)
+{
+	int i;
+	unsigned char sum = 0;
+
+	for (i = 0; i < EDID_BLOCK_LENGTH; i++)
+		sum = sum + edid_data[i];
+
+	return sum;
+}
+
+static int analogix_dp_read_edid(struct analogix_dp_device *dp)
+{
+	unsigned char *edid = dp->edid;
+	unsigned int extend_block = 0;
+	unsigned char sum;
+	unsigned char test_vector;
+	int retval;
+
+	/*
+	 * EDID device address is 0x50.
+	 * However, if necessary, you must have set upper address
+	 * into E-EDID in I2C device, 0x30.
+	 */
+
+	/* Read Extension Flag, Number of 128-byte EDID extension blocks */
+	retval = analogix_dp_read_byte_from_i2c(dp, I2C_EDID_DEVICE_ADDR,
+						EDID_EXTENSION_FLAG,
+						&extend_block);
+	if (retval)
+		return retval;
+
+	if (extend_block > 0) {
+		debug("EDID data includes a single extension!\n");
+
+		/* Read EDID data */
+		retval = analogix_dp_read_bytes_from_i2c(dp,
+						I2C_EDID_DEVICE_ADDR,
+						EDID_HEADER_PATTERN,
+						EDID_BLOCK_LENGTH,
+						&edid[EDID_HEADER_PATTERN]);
+		if (retval != 0) {
+			pr_err("EDID Read failed!\n");
+			return -EIO;
+		}
+		sum = analogix_dp_calc_edid_check_sum(edid);
+		if (sum != 0) {
+			pr_err("EDID bad checksum!\n");
+			return -EIO;
+		}
+
+		/* Read additional EDID data */
+		retval = analogix_dp_read_bytes_from_i2c(dp,
+				I2C_EDID_DEVICE_ADDR,
+				EDID_BLOCK_LENGTH,
+				EDID_BLOCK_LENGTH,
+				&edid[EDID_BLOCK_LENGTH]);
+		if (retval != 0) {
+			pr_err("EDID Read failed!\n");
+			return -EIO;
+		}
+		sum = analogix_dp_calc_edid_check_sum(&edid[EDID_BLOCK_LENGTH]);
+		if (sum != 0) {
+			pr_err("EDID bad checksum!\n");
+			return -EIO;
+		}
+
+		analogix_dp_read_byte_from_dpcd(dp, DP_TEST_REQUEST,
+						&test_vector);
+		if (test_vector & DP_TEST_LINK_EDID_READ) {
+			analogix_dp_write_byte_to_dpcd(dp,
+				DP_TEST_EDID_CHECKSUM,
+				edid[EDID_BLOCK_LENGTH + EDID_CHECKSUM]);
+			analogix_dp_write_byte_to_dpcd(dp,
+				DP_TEST_RESPONSE,
+				DP_TEST_EDID_CHECKSUM_WRITE);
+		}
+	} else {
+		pr_info("EDID data does not include any extensions.\n");
+
+		/* Read EDID data */
+		retval = analogix_dp_read_bytes_from_i2c(dp,
+				I2C_EDID_DEVICE_ADDR, EDID_HEADER_PATTERN,
+				EDID_BLOCK_LENGTH, &edid[EDID_HEADER_PATTERN]);
+		if (retval != 0) {
+			pr_err("EDID Read failed!\n");
+			return -EIO;
+		}
+		sum = analogix_dp_calc_edid_check_sum(edid);
+		if (sum != 0) {
+			pr_err("EDID bad checksum!\n");
+			return -EIO;
+		}
+
+		analogix_dp_read_byte_from_dpcd(dp, DP_TEST_REQUEST,
+						&test_vector);
+		if (test_vector & DP_TEST_LINK_EDID_READ) {
+			analogix_dp_write_byte_to_dpcd(dp,
+				DP_TEST_EDID_CHECKSUM, edid[EDID_CHECKSUM]);
+			analogix_dp_write_byte_to_dpcd(dp,
+				DP_TEST_RESPONSE, DP_TEST_EDID_CHECKSUM_WRITE);
+		}
+	}
+
+	debug("EDID Read success!\n");
+	return 0;
+}
+
+static int analogix_dp_handle_edid(struct analogix_dp_device *dp)
+{
+	u8 buf[12];
+	int i, try = 5;
+	int retval;
+
+retry:
+	/* Read DPCD DP_DPCD_REV~RECEIVE_PORT1_CAP_1 */
+	retval = analogix_dp_read_bytes_from_dpcd(dp, DP_DPCD_REV, 12, buf);
+
+	if (retval && try--) {
+		mdelay(10);
+		goto retry;
+	}
+
+	if (retval)
+		return retval;
+
+	/* Read EDID */
+	for (i = 0; i < 3; i++) {
+		retval = analogix_dp_read_edid(dp);
+		if (!retval)
+			break;
+	}
+
+	return retval;
+}
+
 const struct rockchip_dp_chip_data rk3399_analogix_edp_drv_data = {
 	.lcdsel_grf_reg = 0x6250,
 	.lcdsel_big = 0 | BIT(21),
@@ -699,7 +835,6 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	int dp_node = conn_state->node;
 	struct analogix_dp_device *dp;
 	struct analogix_dp_plat_data *plat_data;
-	int panel;
 
 	dp = malloc(sizeof(*dp));
 	if (!dp)
@@ -724,24 +859,46 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	conn_state->type = DRM_MODE_CONNECTOR_eDP;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 
+	if (pdata->chip_type == RK3399_EDP) {
+		/*
+		 * reset edp controller.
+		 */
+		writel(0x20002000, RKIO_CRU_PHYS + 0x444);
+		mdelay(10);
+		writel(0x20000000, RKIO_CRU_PHYS + 0x444);
+		mdelay(10);
+	}
+
+	analogix_dp_init_dp(dp);
+
 	return 0;
 }
 
 static void rockchip_analogix_dp_deinit(struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-
 	/* TODO */
+}
+
+static int rockchip_analogix_dp_get_edid(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct analogix_dp_device *dp = conn_state->private;
+	int ret;
+
+	ret = analogix_dp_handle_edid(dp);
+	if (ret)
+		return ret;
+	memcpy(&conn_state->edid, &dp->edid, sizeof(dp->edid));
+
+	return 0;
 }
 
 static int rockchip_analogix_dp_prepare(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	struct analogix_dp_device *dp = conn_state->private;
 	struct crtc_state *crtc_state = &state->crtc_state;
 	const struct rockchip_connector *connector = conn_state->connector;
 	const struct rockchip_dp_chip_data *pdata = connector->data;
-	int ret;
 	u32 val;
 
 	if (crtc_state->crtc_id)
@@ -752,17 +909,6 @@ static int rockchip_analogix_dp_prepare(struct display_state *state)
 	writel(val, RKIO_GRF_PHYS + pdata->lcdsel_grf_reg);
 
 	debug("vop %s output to edp\n", (crtc_state->crtc_id) ? "LIT" : "BIG");
-
-	if (pdata->chip_type == RK3399_EDP) {
-		/*
-		 * reset edp controller.
-		 */
-		writel(0x20002000, RKIO_CRU_PHYS + 0x444);
-		mdelay(10);
-		writel(0x20000000, RKIO_CRU_PHYS + 0x444);
-	}
-
-	analogix_dp_init_dp(dp);
 
 	return 0;
 }
@@ -777,7 +923,7 @@ static int rockchip_analogix_dp_enable(struct display_state *state)
 					 dp->video_info.max_link_rate);
 	if (ret) {
 		pr_err("unable to do link train\n");
-		return;
+		return 0;
 	}
 
 	analogix_dp_enable_scramble(dp, 1);
@@ -805,6 +951,7 @@ static int rockchip_analogix_dp_disable(struct display_state *state)
 const struct rockchip_connector_funcs rockchip_analogix_dp_funcs = {
 	.init = rockchip_analogix_dp_init,
 	.deinit = rockchip_analogix_dp_deinit,
+	.get_edid = rockchip_analogix_dp_get_edid,
 	.prepare = rockchip_analogix_dp_prepare,
 	.enable = rockchip_analogix_dp_enable,
 	.disable = rockchip_analogix_dp_disable,
