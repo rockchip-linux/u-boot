@@ -70,6 +70,7 @@ struct connector_state {
 	struct fdt_gpio_state enable_gpio;
 	struct drm_display_mode mode;
 	u8 edid[EDID_SIZE * 4];
+	int bus_format;
 	int output_mode;
 	int type;
 };

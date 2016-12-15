@@ -14,6 +14,7 @@
 #include <fdt_support.h>
 #include <linux/list.h>
 #include <linux/compat.h>
+#include <linux/media-bus-format.h>
 #include <malloc.h>
 #include <resource.h>
 
@@ -184,6 +185,15 @@ static int display_get_timing(struct display_state *state)
 	int panel, timing, phandle, native_mode, ports;
 	bool has_edid = false;
 
+	panel = get_panel_node(state, conn_node);
+	if (panel < 0) {
+		printf("failed to find panel node\n");
+		return -ENODEV;
+	}
+
+	conn_state->bus_format = fdtdec_get_int(blob, panel, "bus-format",
+						MEDIA_BUS_FMT_RBG888_1X24);
+
 	if (conn_funcs->get_edid && !conn_funcs->get_edid(state)) {
 		int panel_bits_per_colourp;
 
@@ -193,11 +203,6 @@ static int display_get_timing(struct display_state *state)
 			has_edid = true;
 			goto done;
 		}
-	}
-	panel = get_panel_node(state, conn_node);
-	if (panel < 0) {
-		printf("failed to find panel node\n");
-		return -ENODEV;
 	}
 
 	timing = fdt_subnode_offset(blob, panel, "display-timings");
@@ -260,12 +265,14 @@ done:
 
 	printf("Detailed mode clock %u kHz, flags[%x]\n"
 	       "    H: %04d %04d %04d %04d\n"
-	       "    V: %04d %04d %04d %04d\n",
+	       "    V: %04d %04d %04d %04d\n"
+	       "bus_format: %x\n",
 	       mode->clock, mode->flags,
 	       mode->hdisplay, mode->hsync_start,
 	       mode->hsync_end, mode->htotal,
 	       mode->vdisplay, mode->vsync_start,
-	       mode->vsync_end, mode->vtotal);
+	       mode->vsync_end, mode->vtotal,
+	       conn_state->bus_format);
 	printf("Using display timing from %s\n", has_edid ? "edid" : "dts");
 
 	return 0;
