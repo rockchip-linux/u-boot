@@ -1724,3 +1724,31 @@ void rkcru_i2c_soft_reset(void)
 	mdelay(1);
 	writel(0x00<<9 | 0x3f<<(9+16), RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(14));
 }
+
+/*
+ * PCIe soft reset
+ */
+void rkcru_pcie_soft_reset(enum pcie_reset_id id, u32 val)
+{
+	if (id == PCIE_RESET_PHY) {
+		writel((0x1 << 23) | (val << 7),
+			RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(8));
+	} else if (id == PCIE_RESET_ACLK) {
+		writel((0x1 << 16) | (val << 0),
+			RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(8));
+	} else if (id == PCIE_RESET_PCLK) {
+		writel((0x1 << 17) | (val << 1),
+			RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(8));
+	} else if (id == PCIE_RESET_PM) {
+		writel((0x1 << 22) | (val << 6),
+			RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(8));
+	} else if (id == PCIE_RESET_NOFATAL) {
+		if (val)
+			val = 0xf;
+
+		writel((0xf << 18) | (val << 2),
+			RKIO_CRU_PHYS + CRU_SOFTRSTS_CON(8));
+	} else {
+		printf("%s: incorrect reset ops\n", __func__);
+	}
+}

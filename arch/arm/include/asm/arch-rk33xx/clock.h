@@ -19,6 +19,20 @@
 #define RKCLK_PLL_MODE_SLOW		0
 #define RKCLK_PLL_MODE_NORMAL		1
 
+/*
+ * N.B PCIE_RESET_NOFATAL stands for:
+ * PCIE_RESET_MGMT_STICKY
+ * PCIE_RESET_CORE
+ * PCIE_RESET_MGMT
+ * PCIE_RESET_PIPE
+ */
+enum pcie_reset_id {
+	PCIE_RESET_PHY = 1,
+	PCIE_RESET_ACLK,
+	PCIE_RESET_PCLK,
+	PCIE_RESET_PM,
+	PCIE_RESET_NOFATAL,
+};
 
 /*
  * rkplat clock set pll mode
@@ -181,6 +195,13 @@ void rkcru_i2c_soft_reset(void);
  * here no check clkgate, because chip default is enable.
  */
 void rkclk_set_saradc_clk(void);
+#endif
+
+#if defined(CONFIG_RKCHIP_RK3399)
+/*
+ * PCIe soft reset
+ */
+void rkcru_pcie_soft_reset(enum pcie_reset_id id, u32 val);
 #endif
 
 #endif	/* _RKXX_CLOCK_H */
