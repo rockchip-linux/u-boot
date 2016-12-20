@@ -144,7 +144,20 @@ int arch_cpu_init(void)
 	grf_writel(0x00010001, 0x024c);
 #endif
 
-#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+#if defined(CONFIG_RKCHIP_RK3126)
+	/* read latency configure */
+	writel(0x3f, 0x10128000 + 0x14);
+
+	/* set lcdc cpu axi qos priority level */
+	#define	CPU_AXI_QOS_PRIORITY_BASE	0x1012f180
+	writel(CPU_AXI_QOS_PRIORITY_LEVEL(3, 3), CPU_AXI_QOS_PRIORITY_BASE +
+	       CPU_AXI_QOS_PRIORITY);
+
+	/* set GPIO1_C1 iomux to gpio, default sdcard_detn */
+	grf_writel(0x00040000, 0x0c0);
+#endif
+
+#if defined(CONFIG_RKCHIP_RK3128)
 	/* read latency configure */
 	writel(0x3f, 0x10128000 + 0x14);
 
