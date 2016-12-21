@@ -44,6 +44,7 @@ struct power_fg {
 };
 
 struct power_chrg {
+	int state_of_charger;
 	int (*chrg_type) (struct pmic *p);
 	int (*chrg_bat_present) (struct pmic *p);
 	int (*chrg_state) (struct pmic *p, int state, int current);
@@ -123,6 +124,7 @@ int check_charge(void);
 int pmic_charger_setting(int current);
 void shut_down(void);
 int fg_init(unsigned char bus);
+void plat_charger_init(void);
 
 #if defined(CONFIG_POWER_PWM_REGULATOR)
 int pwm_regulator_init(void);

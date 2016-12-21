@@ -58,6 +58,7 @@ int fg_rk818_init(unsigned char bus,uchar addr);
 int fg_rk816_init(unsigned char bus, uchar addr);
 int fg_rt5025_init(unsigned char bus, uchar addr);
 int fg_rt5036_init(unsigned char bus, uchar addr);
+int charger_bq25700_init(void);
 
 int ricoh619_poll_pwr_key_sta(void);
 int pmic_rk816_poll_pwrkey_stat(void);

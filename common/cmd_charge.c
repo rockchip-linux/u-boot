@@ -215,20 +215,23 @@ int check_charging(void) {
 #ifdef MOCK_CHARGER
 	return NOT_EXIT;
 #endif
+	struct power_chrg chrg;
 	/*if (!is_charging()) {
 		LOGD("charger disconnceted.");
 		return EXIT_SHUTDOWN;
 	}*/
 	get_power_bat_status(&batt_status);
-
+	get_power_charger_status(&chrg);
+	printf("chrg.state_of_charger === %d\n", chrg.state_of_charger);
 	// if no exist bat but charging 
-	if((batt_status.state_of_chrg)&&(!batt_status.isexistbat))
+	if ((batt_status.state_of_chrg || chrg.state_of_charger) &&
+	    (!batt_status.isexistbat))
 	{
 		printf("charging but no exist batterry!.");
 		return EXIT_BOOT;
 	}
 	
-	if(!batt_status.state_of_chrg)
+	if (!batt_status.state_of_chrg && !chrg.state_of_charger)
 	{
 		printf("pmic not charging.");
 		pmic_charger_setting(0);

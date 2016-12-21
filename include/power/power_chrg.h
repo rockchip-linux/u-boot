@@ -23,5 +23,4 @@ enum {
 	CHARGE,
 	NORMAL,
 };
-
 #endif /* __POWER_CHARGER_H_ */

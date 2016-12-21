@@ -191,6 +191,8 @@ int board_late_init(void)
 #endif
 	debug("fg_init\n");
 	fg_init(0); /*fuel gauge init*/
+	debug("charger init\n");
+	plat_charger_init();
 #endif /* CONFIG_RK_POWER */
 
 	debug("idb init\n");

@@ -399,6 +399,7 @@
 #ifndef CONFIG_PRODUCT_BOX
 #define CONFIG_POWER_FG
 #define CONFIG_POWER_BAT
+#define CONFIG_POWER_CHARGER
 #endif /* CONFIG_PRODUCT_BOX */
 
 #define CONFIG_SCREEN_ON_VOL_THRESD	0
@@ -417,6 +418,10 @@
 #endif /* CONFIG_POWER_PMIC */
 
 /******** charger driver ********/
+#ifdef CONFIG_POWER_CHARGER
+#define CONFIG_CHARGER_BQ25700
+#endif
+
 #ifdef CONFIG_POWER_FG
 #define CONFIG_POWER_FG_CW201X
 #endif /* CONFIG_POWER_FG */

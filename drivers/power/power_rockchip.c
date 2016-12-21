@@ -41,6 +41,10 @@ static const char * const fg_names[] = {
 	"EC_FG",
 };
 
+static const char * const charger_names[] = {
+	"BQ25700_CHARGER",
+};
+
 /* rockchip first i2c node as parent for pmic */
 int g_i2c_node = 0;
 #define COMPAT_ROCKCHIP_I2C	"rockchip,rk30-i2c"
@@ -78,6 +82,30 @@ int get_power_bat_status(struct battery *battery)
 	return 0;
 }
 
+int get_power_charger_status(struct power_chrg *chrg)
+{
+	int i;
+	struct pmic *p_chrg = NULL;
+	for (i = 0; i < ARRAY_SIZE(charger_names); i++) {
+		p_chrg = pmic_get(charger_names[i]);
+		if (p_chrg)
+			break;
+	}
+
+	if (p_chrg) {
+		if (p_chrg->chrg->chrg_type)
+			p_chrg->chrg->chrg_type(p_chrg);
+			chrg->state_of_charger =
+				p_chrg->chrg->state_of_charger;
+	} else {
+		printf("no charger found\n");
+		return -ENODEV;
+	}
+
+	return 0;
+}
+
+
 /*
 return 0: bat exist
 return 1: bat no exit
@@ -101,7 +129,16 @@ int is_charging(void)
 {
 	int ret;
 	struct battery battery;
+	struct power_chrg chrg;
+
 	memset(&battery,0, sizeof(battery));
+	memset(&chrg, 0, sizeof(chrg));
+
+	get_power_charger_status(&chrg);
+
+	if (chrg.state_of_charger)
+		return chrg.state_of_charger;
+
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
 		return 0;
@@ -314,6 +351,13 @@ int fg_init(unsigned char bus)
 	}
 #endif
 	return 0;
+}
+
+void plat_charger_init(void)
+{
+#if	defined(CONFIG_CHARGER_BQ25700)
+	charger_bq25700_init();
+#endif
 }
 
 void shut_down(void)
