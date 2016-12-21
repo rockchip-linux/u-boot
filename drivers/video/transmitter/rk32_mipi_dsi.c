@@ -75,6 +75,7 @@ static int rk32_mipi_dsi_enable_video_mode(void *arg, u32 enable);
 static int rk32_mipi_dsi_enable_command_mode(void *arg, u32 enable);
 static int rk32_mipi_dsi_is_enable(void *arg, u32 enable);
 int rk_mipi_screen_standby(u8 enable);
+void rockchip_screen_dpishutd(void);
 
 DECLARE_GLOBAL_DATA_PTR;
 extern int rk_mipi_screen_probe(void);
@@ -1215,6 +1216,78 @@ static int rk32_mipi_dsi_is_active(void *arg)
 	return rk32_dsi_get_bits(dsi, shutdownz);
 }
 
+static void rockchip_dsi_dpishutdn(struct dsi *dsi, int status)
+{
+	int val = 0;
+#if defined(CONFIG_RKCHIP_RK3399)
+	int offset = 0;
+#endif
+
+	if (status) {
+		if (dsi->ops.id == DSI_RK312x) {
+#if (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
+			val = 1 << 20 | 1 << 4;
+			writel_relaxed(val, RK_GRF_VIRT + RK312x_GRF_SOC_CON6);
+#endif
+		} else if (dsi->ops.id == DSI_RK3288) {
+#if defined(CONFIG_RKCHIP_RK3288)
+			if(dsi->dsi_id == 0)
+				val = 1 << 23 | 1 << 7;
+			else
+				val = 1 << 26 | 1 << 10;
+			writel_relaxed(val, RK_GRF_VIRT + RK3288_GRF_SOC_CON6);
+#endif
+		} else if (dsi->ops.id == DSI_RK3368) {
+#if defined(CONFIG_RKCHIP_RK3368)
+			val = 1 << 18 | 1 << 2;
+			writel_relaxed(val, RK_GRF_VIRT + RK3368_GRF_SOC_CON6);
+#endif
+		} else if (dsi->ops.id == DSI_RK3399) {
+#if defined(CONFIG_RKCHIP_RK3399)
+			if(dsi->dsi_id == 0) {
+				val = 1 << 30 | 1 << 14;
+				offset = RK3399_GRF_CON9;
+			} else {
+				val = 1 << 18 | 1 << 2;
+				offset = RK3399_GRF_CON20;
+			}
+			writel_relaxed(val, RK_GRF_VIRT + offset);
+#endif
+		}
+	} else {
+		if (dsi->ops.id == DSI_RK312x) {
+#if (defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128))
+			val = 1 << 20 | 0 << 4;
+			writel_relaxed(val, RK_GRF_VIRT + RK312x_GRF_SOC_CON6);
+#endif
+		} else if (dsi->ops.id == DSI_RK3288) {
+#if defined(CONFIG_RKCHIP_RK3288)
+			if(dsi->dsi_id == 0)
+				val = 1 << 23 | 0 << 7;
+			else
+				val = 1 << 26 | 0 << 10;
+			writel_relaxed(val, RK_GRF_VIRT + RK3288_GRF_SOC_CON6);
+#endif
+		} else if (dsi->ops.id == DSI_RK3368) {
+#if defined(CONFIG_RKCHIP_RK3368)
+			val = 1 << 18 | 0 << 2;
+			writel_relaxed(val, RK_GRF_VIRT + RK3368_GRF_SOC_CON6);
+#endif
+		} else if (dsi->ops.id == DSI_RK3399) {
+#if defined(CONFIG_RKCHIP_RK3399)
+			if(dsi->dsi_id == 0) {
+				val = 1 << 30 | 0 << 14;
+				offset = RK3399_GRF_CON9;
+			} else {
+				val = 1 << 18 | 0 << 2;
+				offset = RK3399_GRF_CON20;
+			}
+			writel_relaxed(val, RK_GRF_VIRT + offset);
+#endif
+		}
+	}
+}
+
 static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length)
 {
 	struct dsi *dsi = arg;
@@ -1328,6 +1401,14 @@ static int rk32_mipi_dsi_send_packet(void *arg, unsigned char cmds[], u32 length
 		rk32_dsi_set_bits(dsi, regs[0], gen_sw_0p_tx);
 		data =  type;
 		break;
+	case DTYPE_DPI_SHUT_DOWN:
+		rockchip_dsi_dpishutdn(dsi, 1);
+		free(regs);
+		return 0;
+	case DTYPE_DPI_TURN_ON:
+		rockchip_dsi_dpishutdn(dsi, 0);
+		free(regs);
+		return 0;
 	default:
 		break;
 	}
@@ -1858,8 +1939,11 @@ int rk32_dsi_enable(void)
 		opt = dsi0->screen.refresh_mode;
 		if (opt != COMMAND_MODE) {
 			dsi_enable_video_mode(0, 1);
-			if (rk_mipi_get_dsi_num() == 2)
+			rockchip_screen_dpishutd();
+			if (rk_mipi_get_dsi_num() == 2) {
 				dsi_enable_video_mode(1, 1);
+				rockchip_screen_dpishutd();
+			}
 		}
 		dsi_is_enable(0, 1);
 		if (rk_mipi_get_dsi_num() == 2)
