@@ -369,6 +369,10 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	      gd->malloc_ptr / 1024);
 #endif
 
+#ifdef CONFIG_SPL_ATF_SUPPORT
+	bl31_entry();
+#endif
+
 	debug("loaded - jumping to U-Boot...\n");
 	spl_board_prepare_for_boot();
 	jump_to_image_no_args(&spl_image);
