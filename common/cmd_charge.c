@@ -69,6 +69,7 @@ extern int rk818_regulator_disable(int num_regulator);
 extern void power_pmic_init(void);
 extern void power_on_pmic(void);
 extern void power_off_pmic(void);
+extern bool board_fbt_exit_uboot_charge(void);
 
 #ifdef CONFIG_POWER_FG_ADC
 u8 g_increment = 0;
@@ -738,6 +739,12 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 						SCREEN_OFF : SCREEN_DIM;
 		} else if(key_state == KEY_LONG_PRESSED){
 			//long pressed key, continue bootting.
+			if (handle_exit_charge() < 0) {
+				continue;
+			}
+			exit_type = EXIT_BOOT;
+			goto exit;
+		} else if (board_fbt_exit_uboot_charge()) {
 			if (handle_exit_charge() < 0) {
 				continue;
 			}

@@ -26,6 +26,8 @@ extern void pmic_rk818_power_off(void);
 extern int adc_battery_init(void);
 #endif
 
+extern int low_power_level;
+
 static unsigned char rockchip_pmic_id;
 struct fdt_gpio_state gpio_pwr_hold;
 static const char * const fg_names[] = {
@@ -36,6 +38,7 @@ static const char * const fg_names[] = {
 	"RT5025_FG",
 	"RK-ADC-FG",
 	"RT5036_FG",
+	"EC_FG",
 };
 
 /* rockchip first i2c node as parent for pmic */
@@ -125,7 +128,6 @@ int pmic_charger_setting(int current)
 	return 0;
 }
 
-
 /*system on thresd*/
 int is_power_low(void)
 {
@@ -135,6 +137,10 @@ int is_power_low(void)
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
 		return 0;
+
+	if (battery.capacity < low_power_level)
+		return 1;
+
 	return (battery.voltage_uV < CONFIG_SYSTEM_ON_VOL_THRESD) ? 1 : 0;
 }
 
@@ -300,6 +306,12 @@ int fg_init(unsigned char bus)
 		return 0;
 	}
 
+#endif
+#if defined(CONFIG_BATTERY_EC)
+	if (ec_battery_init() >= 0) {
+		printf("fg:ec-battery\n");
+		return 0;
+	}
 #endif
 	return 0;
 }

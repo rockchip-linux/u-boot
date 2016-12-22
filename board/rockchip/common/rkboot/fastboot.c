@@ -53,7 +53,8 @@ extern void rockchip_show_logo(void);
 int android_charge_mode = 0;
 #endif
 
-
+int low_power_level = 0;
+int exit_uboot_charge_level = 0;
 
 #ifdef CONFIG_UBOOT_CHARGE
 /**
@@ -406,6 +407,20 @@ static void board_fbt_low_power_off(void)
 }
 #endif /* CONFIG_RK_POWER */
 
+bool board_fbt_exit_uboot_charge(void)
+{
+	int ret;
+	struct battery battery;
+	memset(&battery, 0, sizeof(battery));
+	ret = get_power_bat_status(&battery);
+	if (ret < 0)
+		return false;
+	if (exit_uboot_charge_level > 0 &&
+	    battery.capacity > exit_uboot_charge_level)
+		return true;
+
+	return false;
+}
 
 /*
  * Determine if we should enter fastboot mode based on board specific
@@ -482,10 +497,6 @@ void board_fbt_preboot(void)
 	printf("read logo on state from dts [%d]\n", g_logo_on_state);
 #endif
 
-#ifdef CONFIG_RK_POWER
-	board_fbt_low_power_off();
-#endif
-
 #ifdef CONFIG_UBOOT_CHARGE
 	charge_node = fdt_node_offset_by_compatible(gd->fdt_blob,
 						0, "rockchip,uboot-charge");
@@ -493,11 +504,25 @@ void board_fbt_preboot(void)
 		debug("can't find dts node for uboot-charge\n");
 		uboot_charge_on = 1;
 		android_charge_on = 0;
+		low_power_level = 0;
+		exit_uboot_charge_level = 0;
 	} else {
 		uboot_charge_on = fdtdec_get_int(gd->fdt_blob, charge_node, "rockchip,uboot-charge-on", 0);
 		android_charge_on = fdtdec_get_int(gd->fdt_blob, charge_node, "rockchip,android-charge-on", 0);
+		low_power_level =
+			fdtdec_get_int(gd->fdt_blob, charge_node,
+				       "rockchip,uboot-low-power-level", 0);
+		exit_uboot_charge_level =
+			fdtdec_get_int(gd->fdt_blob, charge_node,
+				       "rockchip,uboot-exit-charge-level", 0);
 	}
+#endif
 
+#ifdef CONFIG_RK_POWER
+	board_fbt_low_power_off();
+#endif
+
+#ifdef CONFIG_UBOOT_CHARGE
 
 	/* enter charge mode:
 	 * 1. reboot charge mode
