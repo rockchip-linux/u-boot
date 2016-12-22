@@ -846,7 +846,6 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	rk_fb_vidinfo_to_screen(vid, screen);
 	if (vid->screen_type == SCREEN_MIPI ||
 	    vid->screen_type == SCREEN_DUAL_MIPI) {
-		rk32_mipi_enable(vid);
 		if (vid->screen_type == SCREEN_MIPI) {
 			msk = m_MIPI_OUT_EN | m_EDP_OUT_EN |
 				m_HDMI_OUT_EN | m_RGB_OUT_EN;
@@ -979,6 +978,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		rk32_edp_enable(vid);
 	} else if ((vid->screen_type == SCREEN_MIPI) ||
 		   (vid->screen_type == SCREEN_DUAL_MIPI)) {
+		rk32_mipi_enable(vid);
 		rk32_dsi_sync();
 	}
 
