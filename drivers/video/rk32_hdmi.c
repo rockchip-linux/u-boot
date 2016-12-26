@@ -1181,7 +1181,7 @@ static uint8 rk_get_efuse_flag(void)
 
 static int ext_phy1_config(struct hdmi_dev *hdmi_dev)
 {
-	int stat = 0, i = 0, temp;
+	int stat = 0, i = 0, temp = 0;
 	const struct ext_pll_config_tab *phy_ext = NULL;
 
 	if (hdmi_dev->soctype == HDMI_SOC_RK1108)
@@ -1334,6 +1334,42 @@ static int ext_phy1_config(struct hdmi_dev *hdmi_dev)
 					  hdmi_dev->phy_table[i].data1_level);
 		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY1_TMDS_D0_LEVEL,
 					  hdmi_dev->phy_table[i].data0_level);
+	}
+	/* bit[7:6] of reg c8/c9/ca/c8 is ESD detect threshold:
+	 * 00 - 340mV
+	 * 01 - 280mV
+	 * 10 - 260mV
+	 * 11 - 240mV
+	 * default is 240mV, now we set it to 340mV
+	 */
+	rockchip_hdmiv2_write_phy(hdmi_dev, 0xc8, 0);
+	rockchip_hdmiv2_write_phy(hdmi_dev, 0xc9, 0);
+	rockchip_hdmiv2_write_phy(hdmi_dev, 0xca, 0);
+	rockchip_hdmiv2_write_phy(hdmi_dev, 0xcb, 0);
+	if (hdmi_dev->tmdsclk > 340000000) {
+		/* Set termination resistor to 100ohm */
+		stat = 75000000 / 100000;
+		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY1_TERM_CAL_CTRL1,
+					  ((stat >> 8) & 0xff) | 0x80);
+		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY1_TERM_CAL_CTRL2,
+					  stat & 0xff);
+		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY1_TERM_RESIS_AUTO,
+					  3 << 1);
+		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY1_TERM_CAL_CTRL1,
+					  ((stat >> 8) & 0xff));
+	} else if (hdmi_dev->tmdsclk > 165000000) {
+		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY1_TERM_CAL_CTRL1,
+					  0x81);
+		/* clk termination resistor is 50ohm
+		 * data termination resistor is 150ohm
+		 */
+		rockchip_hdmiv2_write_phy(hdmi_dev, 0xc8, 0x30);
+		rockchip_hdmiv2_write_phy(hdmi_dev, 0xc9, 0x10);
+		rockchip_hdmiv2_write_phy(hdmi_dev, 0xca, 0x10);
+		rockchip_hdmiv2_write_phy(hdmi_dev, 0xcb, 0x10);
+	} else {
+		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY1_TERM_CAL_CTRL1,
+					  0x81);
 	}
 	if (hdmi_dev->soctype == HDMI_SOC_RK1108)
 		grf_writel(RK1108_PLL_POWER_UP, GRF_SOC_CON4);
