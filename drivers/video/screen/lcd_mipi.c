@@ -666,7 +666,7 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 			fdt_getprop(blob, noffset, "rockchip,cmd", &length);
 			dcs_cmd->dcs_cmd.cmd_len = length / sizeof(u32);
 
-			dcs_cmd->dcs_cmd.cmds = calloc(1, CMD_LEN_MAX);
+			dcs_cmd->dcs_cmd.cmds = calloc(1, length);
 			if (!dcs_cmd->dcs_cmd.cmds) {
 				printf("calloc cmds fail!\n");
 				return -ENOMEM;
