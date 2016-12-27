@@ -214,7 +214,12 @@
 /* mmc using dma */
 #define CONFIG_RK_MMC_DMA
 #define CONFIG_RK_MMC_IDMAC	/* internal dmac */
-#undef CONFIG_RK_MMC_DDR_MODE	/* mmc using ddr mode */
+
+#if defined(CONFIG_RKCHIP_RK322XH)
+	#define CONFIG_RK_MMC_DDR_MODE	/* mmc using ddr mode */
+#else
+	#undef CONFIG_RK_MMC_DDR_MODE	/* mmc using ddr mode */
+#endif
 
 #if (defined(CONFIG_CMD_ROCKUSB) || defined(CONFIG_CMD_FASTBOOT))
 	#define CONFIG_USBD_MANUFACTURER	"Rockchip"
