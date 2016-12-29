@@ -9,10 +9,10 @@
 #ifndef __NVME_H
 #define __NVME_H
 
-extern int nvme_init(void);
-extern int nvme_write(uint8 *buf, uint32 lba, uint32 nsec);
-extern int nvme_read(uint8 *buf, uint32 lba, uint32 nsec);
+extern u32 nvme_init(u32 base);
+extern u32 nvme_write(u8 chip, u32 lba, void *buf, u32 nsec, u32 mode);
+extern u32 nvme_read(u8 chip, u32 lba, void *buf, u32 nsec);
 extern int nvme_flush(void);
-extern int nvme_get_capacity(void);
-
+extern u32 nvme_get_capacity(u8);
+extern void nvme_read_flash_info(void *buf);
 #endif /* __NVME_H */

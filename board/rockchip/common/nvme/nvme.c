@@ -498,6 +498,7 @@ enum {
  */
 static __aligned(4096) unsigned char prp_page_pool[MAX_REQ_SECTOR];
 static __aligned(4096) unsigned char prp_small_pool[256];
+static __aligned(512) u8 *tbuf;;
 
 #define NVME_CAP_MQES(cap)	((cap) & 0xffff)
 #define NVME_CAP_TIMEOUT(cap)	(((cap) >> 24) & 0xff)
@@ -1146,7 +1147,7 @@ static int nvme_setup_prps(struct nvme_rw_command *cmd,
 	return total_len;
 }
 
-int nvme_get_capacity(void)
+u32 nvme_get_capacity(u8 chip)
 {
 	if (ssd_dev.ncap <= 0)
 		return -EINVAL;
@@ -1206,11 +1207,21 @@ static int __nvme_write(u8 *buf, u32 lba, u32 nsec)
 	return status;
 }
 
-int nvme_write(u8 *buf, u32 lba, u32 nsec)
+u32 nvme_write(u8 chip, u32 lba, void *src, u32 nsec, u32 mode)
 {
 	struct nvme_queue *nvmeq = ssd_dev.queues[1];
 	int err;
 	int req_size;
+	u8 *buf = (u8 *)src;
+	bool is_aligned = true;
+
+	if ((u32)(unsigned long)buf & 0x1ff) {
+		printf("nvme_write: buf no aligned to sector\n");
+		tbuf = (u8 *)(gd->arch.ddr_end - CONFIG_RK_LCD_SIZE - SZ_16M);
+		buf = tbuf;
+		is_aligned = false;
+		memcpy((u32 *)tbuf, (u32 *)src, nsec * 512);
+	}
 
 	req_size = min(MAX_REQ_SECTOR, nvmeq->dev->max_hw_sectors);
 
@@ -1230,7 +1241,13 @@ int nvme_write(u8 *buf, u32 lba, u32 nsec)
 		break;
 	}
 
-	return err;
+	if (!is_aligned)
+		memset((u32 *)tbuf, 0, nsec * 512);
+
+	if (err)
+		return err;
+	else
+		return nvme_flush();
 }
 
 static int __nvme_read(u8 *buf, u32 lba, u32 nsec)
@@ -1241,6 +1258,8 @@ static int __nvme_read(u8 *buf, u32 lba, u32 nsec)
 	unsigned total_len;
 	struct nvme_queue *nvmeq;
 
+	CacheInvalidateDRegion((u32)(unsigned long)buf,
+			       (nsec << ssd_dev.lba_shift));
 	nvmeq = ssd_dev.queues[1];
 	memset(&cmd, 0, sizeof(cmd));
 	length = nsec << ssd_dev.lba_shift;
@@ -1266,11 +1285,20 @@ static int __nvme_read(u8 *buf, u32 lba, u32 nsec)
 	return status;
 }
 
-int nvme_read(u8 *buf, u32 lba, u32 nsec)
+u32 nvme_read(u8 chip, u32 lba, void *dst, u32 nsec)
 {
 	struct nvme_queue *nvmeq = ssd_dev.queues[1];
 	int err;
 	int req_size;
+	u8 *buf = (u8 *)dst;
+	bool is_aligned = true;
+
+	if ((u32)(unsigned long)buf & 0x1ff) {
+		printf("nvme_read: buf no aligned to sector\n");
+		tbuf = (u8 *)(gd->arch.ddr_end - CONFIG_RK_LCD_SIZE - SZ_16M);
+		buf = tbuf;
+		is_aligned = false;
+	}
 
 	req_size = min(MAX_REQ_SECTOR, nvmeq->dev->max_hw_sectors);
 
@@ -1288,6 +1316,10 @@ int nvme_read(u8 *buf, u32 lba, u32 nsec)
 
 		err = __nvme_read(buf, lba, nsec);
 		break;
+	}
+	if (!is_aligned) {
+		memcpy((u32 *)dst, (u32 *)tbuf, nsec * 512);
+		memset((u32 *)tbuf, 0, nsec * 512);
 	}
 
 	return err;
@@ -1373,10 +1405,27 @@ out:
 	return res;
 }
 
-int nvme_init(void)
+void nvme_read_flash_info(void *buf)
+{
+	pFLASH_INFO pInfo = (pFLASH_INFO)buf;
+
+	pInfo->BlockSize = 1024;
+	pInfo->ECCBits = 0;
+	pInfo->FlashSize = 536870912;
+	pInfo->PageSize = 4;
+	pInfo->AccessTime = 40;
+	pInfo->ManufacturerName = 0;
+	pInfo->FlashMask = 0;
+	if (pInfo->FlashSize)
+		pInfo->FlashMask = 1;
+}
+
+u32 nvme_init(u32 base)
 {
 	int result;
 	struct nvme_dev *dev;
+
+	printf("%s\n", __func__);
 
 	dev = &ssd_dev;
 	memset(dev, 0, sizeof(struct nvme_dev));

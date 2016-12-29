@@ -26,13 +26,13 @@ int nvme_test(void)
 
 	printf("start nvme test, sector number = %d\n", SECTOR_NUM);
 
-	err = nvme_init();
+	err = nvme_init(0);
 	if (err) {
 		printf("nvmee_test: fail to init nvme\n");
 		return err;
 	}
 
-	err = nvme_get_capacity();
+	err = nvme_get_capacity(0);
 	if (err < 0) {
 		printf("nvme_test: fail to get capacity \n");
 		return err;
@@ -44,7 +44,7 @@ retry:
 	memset(rbuf, 0x0, sizeof(u8) * 512 * SECTOR_NUM);
 
 	ts = get_timer(0);
-	err = nvme_write(wbuf, 0, SECTOR_NUM);
+	err = nvme_write(0, 0, wbuf, SECTOR_NUM, 0);
 	if (err) {
 		printf("fail to write nvme\n");
 		return err;
@@ -55,7 +55,7 @@ retry:
 	       (SECTOR_NUM >> 1) / time_elapsed);
 
 	ts = get_timer(0);
-	err = nvme_read(rbuf, 0, SECTOR_NUM);
+	err = nvme_read(0, 0, rbuf, SECTOR_NUM);
 	if (err) {
 		printf("fail to read nvme\n");
 		return err;
