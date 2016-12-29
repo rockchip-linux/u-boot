@@ -14,6 +14,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 static int dbg_enable;
+static bool fixed_resource;
 #define DBG(args...) \
 	do { \
 		if (dbg_enable) { \
@@ -454,6 +455,7 @@ static int rockchip_pcie_init_port(struct rockchip_pcie *rockchip)
 {
 	u32 status;
 	u32 timeout;
+	u32 reg;
 
 	/* assert aclk_rst */
 	rkcru_pcie_soft_reset(PCIE_RESET_ACLK, 1);
@@ -496,7 +498,19 @@ static int rockchip_pcie_init_port(struct rockchip_pcie *rockchip)
 	rockchip_pcie_write(rockchip, PCIE_CLIENT_LINK_TRAIN_ENABLE,
 			    PCIE_CLIENT_CONFIG);
 
-	gpio_direction_output(rockchip->gpio.gpio, rockchip->gpio.flags);
+	if (!fixed_resource) {
+		gpio_direction_output(rockchip->gpio.gpio, rockchip->gpio.flags);
+	} else {
+		#ifdef CONFIG_RKCHIP_RK3399
+		/* GPIO3 A7 output high level */
+		printf("pcie_cdns: warning: double check your reset io\n");
+		reg = readl(0xff788000);
+		reg |= BIT(7);
+		writel(reg, 0xff788000);
+		#else
+		DBG_ERR("please do the correct reset ops for pcie_cdns\n");
+		#endif
+	}
 
 	timeout = 2000;
 	while (timeout--) {
@@ -672,11 +686,14 @@ static int rockchip_pcie_parse_dt(struct rockchip_pcie *rockchip)
 {
 	int node = -1;
 	int i;
+	u32 reg;
 	struct fdt_resource res_axi, res_apb;
+	struct pcie_bus *pbus = rockchip->bus;
 
 	if (!gd->fdt_blob) {
-		DBG_ERR("rockchip_pcie_parse_dt: gd->fdt_blob\n");
-		return -EINVAL;
+		DBG_ERR("rockchip_pcie_parse_dt: gd->fdt_blob no found\n");
+		fixed_resource = true;
+		goto do_fixed;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(compat); i++) {
@@ -710,15 +727,39 @@ static int rockchip_pcie_parse_dt(struct rockchip_pcie *rockchip)
 		return -ENOMEM;
 	}
 
-	rockchip->axi_base = res_axi.start;
-	rockchip->apb_base = res_apb.start;
-	rockchip->axi_size = res_axi.end - res_axi.start + 1;
+do_fixed:
+	if (fixed_resource) {
+		#ifdef CONFIG_RKCHIP_RK3399
+		rockchip->axi_base = 0xf8000000;
+		rockchip->apb_base = 0xfd000000;
+		rockchip->axi_size = 0x2000000;
+		#else
+		DBG_ERR("please assign your PCIe resource\n");
+		return -EINVAL;
+		#endif
+	} else {
+		rockchip->axi_base = res_axi.start;
+		rockchip->apb_base = res_apb.start;
+		rockchip->axi_size = res_axi.end - res_axi.start + 1;
+	}
 
 	DBG("rockchip->axi_base = 0x%x\n", rockchip->axi_base);
 	DBG("rockchip->apb_base = 0x%x\n", rockchip->apb_base);
 	DBG("rockchip->axi_size = 0x%x\n", rockchip->axi_size);
 
-	if (!strcmp(compat[i], "rockchip,rk3399-pcie")) {
+	if (fixed_resource) {
+		#ifdef CONFIG_RKCHIP_RK3399
+		rockchip->phy->reg_base = RKIO_GRF_PHYS;
+		rockchip->phy->rst_addr = RKIO_CRU_PHYS + 0x420;
+		rockchip->phy->pcie_conf = 0xe220;
+		rockchip->phy->pcie_status = 0xe2a4;
+		rockchip->rst_addr = RKIO_CRU_PHYS + 0x420;
+		rockchip->bus->msi_base = 0xfee30040;
+		#else
+		DBG_ERR("please assign your PCIe resource\n");
+		return -EINVAL;
+		#endif
+	} else if (!strcmp(compat[i], "rockchip,rk3399-pcie")) {
 		rockchip->phy->reg_base = RKIO_GRF_PHYS;
 		rockchip->phy->rst_addr = RKIO_CRU_PHYS + 0x420;
 		rockchip->phy->pcie_conf = 0xe220;
@@ -730,12 +771,41 @@ static int rockchip_pcie_parse_dt(struct rockchip_pcie *rockchip)
 		return -EINVAL;
 	}
 
+	if (fixed_resource)
+		goto fixed_rst;
+
 	fdtdec_decode_gpio(gd->fdt_blob, node, "ep-gpios", &rockchip->gpio);
 	rockchip->gpio.flags = !(rockchip->gpio.flags & OF_GPIO_ACTIVE_LOW);
 	gpio_direction_output(rockchip->gpio.gpio, !rockchip->gpio.flags);
 	pcie_decode_regions(rockchip->bus, gd->fdt_blob, node);
-
 	return 0;
+
+fixed_rst:
+	#ifdef CONFIG_RKCHIP_RK3399
+	/* set GPIO3 A7 as output low now*/
+	printf("pcie_cdns: warning: double check your PCIe reset gpio!\n");
+	writel((0x3 << 30) | (0x0 << 14), RKIO_GRF_PHYS + 0xe010);
+	reg = readl(0xff788000 + 0x4);
+	reg |= BIT(7);
+	writel(reg, 0xff788000 + 0x4);
+	reg = readl(0xff788000);
+	reg &= ~BIT(7);
+	writel(reg, 0xff788000);
+
+	pbus->regions[0].flags = PCI_REGION_MEM;
+	pbus->regions[0].phys_start = 0xfa000000;
+	pbus->regions[0].bus_start = 0xfa000000;
+	pbus->regions[0].size = 0x600000;
+	pbus->regions[1].flags = PCI_REGION_IO;
+	pbus->regions[1].phys_start = 0xfa600000;
+	pbus->regions[1].bus_start = 0xfa600000;
+	pbus->regions[1].size = 0x100000;
+	pbus->region_count = 2;
+	return 0;
+	#else
+	DBG_ERR("please assign the fixed_rst\n");
+	return -EINVAL;
+	#endif
 }
 
 struct pcie_ops bus_ops = {
