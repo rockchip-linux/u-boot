@@ -1075,10 +1075,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	else
 		val |= V_SW_P2I_EN(0);
 	vop_msk_reg(vop_dev, DSP_CTRL0, val);
-		if (screen->mode.vmode & FB_VMODE_INTERLACED)
-			vop_msk_reg(vop_dev, SYS_CTRL1, V_REG_DONE_FRM(1));
-		else
-			vop_msk_reg(vop_dev, SYS_CTRL1, V_REG_DONE_FRM(0));
+	vop_msk_reg(vop_dev, SYS_CTRL1, V_REG_DONE_FRM(0));
 	/* BG color */
 	if (vop_dev->overlay_mode == VOP_YUV_DOMAIN)
 		val = V_DSP_BG_BLUE(0x200) | V_DSP_BG_GREEN(0x40) |
