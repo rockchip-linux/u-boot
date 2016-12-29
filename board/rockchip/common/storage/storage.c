@@ -14,6 +14,7 @@
 
 #include "../config.h"
 #include "storage.h"
+#include "../nvme/nvme.h"
 
 static MEM_FUN_T nullFunOp =
 {
@@ -133,6 +134,31 @@ MEM_FUN_T sd0FunOp =
 };
 #endif
 
+#ifdef CONFIG_RK_NVME_BOOT_EN
+static MEM_FUN_T nvmeFunOp =
+{
+	0,
+	BOOT_FROM_NVME,
+	0,
+	nvme_init,
+	NULL,
+	NULL,
+	NULL,
+	nvme_read,
+	nvme_write,
+	NULL,
+	nvme_read_flash_info,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	nvme_get_capacity,
+	NULL,
+	NULL,
+};
+
+#endif
+
 #ifdef RK_UMS_BOOT_EN
 MEM_FUN_T UMSFunOp =
 {
@@ -173,6 +199,10 @@ static MEM_FUN_T *memFunTab[] =
 
 #ifdef RK_FLASH_BOOT_EN
 	&NandFunOp,
+#endif
+
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	&nvmeFunOp,
 #endif
 };
 #define MAX_MEM_DEV	(sizeof(memFunTab)/sizeof(MEM_FUN_T *))

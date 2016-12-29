@@ -24,6 +24,7 @@
 #define     BOOT_FROM_SD1     (1<<3)
 #define     BOOT_FROM_SPI     (1<<4)
 #define     BOOT_FROM_UMS     (1<<5)
+#define     BOOT_FROM_NVME    (1<<6)
 
 #define     FTL_OK                  0
 #define     FTL_ERROR               -1
