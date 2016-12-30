@@ -15,8 +15,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 /* ARM/General/Codec/New pll freq config */
-#define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		576 /* MHZ */
+#define CONFIG_RKCLK_APLL_FREQ		816 /* MHZ */
+#define CONFIG_RKCLK_APLL_FREQ_HIGH	1200 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		800 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
 #define CONFIG_RKCLK_NPLL_FREQ		594 /* MHZ */
 
@@ -129,6 +130,7 @@ static struct pll_clk_set apll_clks[] = {
 	 * _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	 *	_core_div, _core_aclk_m_civ, _core_pclk_dbg_div
 	 */
+	_APLL_SET_CLKS(1200000, 1, 150, 3, 1, 1, 0,	1, 2, 4),
 	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 2, 3),
 	_APLL_SET_CLKS(600000, 1, 75, 3, 1, 1, 0,	1, 2, 2),
 };
@@ -139,6 +141,7 @@ static struct pll_clk_set gpll_clks[] = {
 	 * _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	 *	aclk_peri_div, hclk_peri_div, pclk_peri_div,	aclk_bus_div, hclk_bus_div, pclk_bus_div
 	 */
+	_GPLL_SET_CLKS(800000, 1, 100, 3, 1, 1, 0,	6, 2, 2,	6, 2, 2),
 	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 2,	4, 2, 2),
 	_GPLL_SET_CLKS(576000, 1, 96, 4, 1, 1, 0,	4, 2, 2,	4, 2, 2),
 	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0,	2, 2, 2,	2, 2, 2),
@@ -504,6 +507,13 @@ void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
 	rkclk_pll_set_rate(pll_id, mHz, cb_f);
 }
 
+/*
+ * rkplat clock set apll a high frequency
+ */
+void rkclk_set_apll_high(void)
+{
+	rkclk_pll_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ_HIGH, rkclk_apll_cb);
+}
 
 /*
  * rkplat clock set for arm and general pll
@@ -570,6 +580,7 @@ void rkclk_get_pll(void)
  */
 void rkclk_dump_pll(void)
 {
+	rkclk_get_pll();
 	printf("CPU's clock information:\n");
 
 	printf("    arm pll = %ldHZ", gd->cpu_clk);

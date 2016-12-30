@@ -313,6 +313,7 @@ static int rk816_set_regulator_init(struct fdt_regulator_match *matches, int id)
 	int ret = 0;
 
 	if (matches->init_uV) {
+		printf("%s %s init uV:%d\n", __func__, matches->name, matches->init_uV);
 		ret = rk816_regulator_set_voltage(id, matches->init_uV,
 						  matches->init_uV);
 	} else if (matches->min_uV == matches->max_uV) {

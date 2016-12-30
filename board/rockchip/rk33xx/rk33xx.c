@@ -18,6 +18,12 @@
 #include "../common/config.h"
 
 DECLARE_GLOBAL_DATA_PTR;
+
+void __weak rkclk_set_apll_high(void)
+{
+
+}
+
 static ulong get_sp(void)
 {
 	ulong ret;
@@ -189,6 +195,8 @@ int board_late_init(void)
 	debug("pwm_regulator_init\n");
 	pwm_regulator_init();
 #endif
+	rkclk_set_apll_high();
+	rkclk_dump_pll();
 	debug("fg_init\n");
 	fg_init(0); /*fuel gauge init*/
 	debug("charger init\n");
