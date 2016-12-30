@@ -364,12 +364,13 @@ err:
 /*
  * return preset res position
  */
-static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct baseparamer_pos *id)
+static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct baseparamer_pos *id, vidinfo_t *panel)
 {
 	int i, ret = 0;
 	const disk_partition_t* ptn_baseparamer;
 	char baseparamer_buf[8 * RK_BLK_SIZE] __attribute__((aligned(ARCH_DMA_MINALIGN)));
 	struct hdmi_video_timing *modedb;
+	unsigned short overscan_min;
 
 	if (!hdmi_dev)
 		goto err;
@@ -415,6 +416,46 @@ static int inline read_baseparamer_storage(struct hdmi_dev *hdmi_dev, struct bas
                 memcpy(&hdmi_dev->base_paramer_tve.interlaced, &baseparamer_buf[24+8], sizeof(hdmi_dev->base_paramer_tve.interlaced));
                 memcpy(&hdmi_dev->base_paramer_tve.type, &baseparamer_buf[24+12], sizeof(hdmi_dev->base_paramer_tve.type));
                 memcpy(&hdmi_dev->base_paramer_tve.refresh, &baseparamer_buf[24+16], sizeof(hdmi_dev->base_paramer_tve.refresh));
+                memcpy(&panel->overscan, &baseparamer_buf[500], sizeof(panel->overscan));
+                memcpy(&panel->left, &baseparamer_buf[500 + 2], sizeof(panel->left));
+                memcpy(&panel->right, &baseparamer_buf[500 + 4], sizeof(panel->right));
+                memcpy(&panel->top, &baseparamer_buf[500 + 6], sizeof(panel->top));
+                memcpy(&panel->bottom, &baseparamer_buf[500 + 8], sizeof(panel->bottom));
+                printf("left = %d, right = %d, top = %d, bottom = %d, overscan = %d\n",
+		        panel->left, panel->right, panel->top, panel->bottom, panel->overscan);
+		if (panel->overscan > 1000)
+			panel->overscan = 1000;
+		else if (panel->overscan < 100)
+			panel->overscan = 100;
+
+		overscan_min = panel->overscan * 5 / 10;
+
+		if ((panel->left > panel->overscan) ||
+			(panel->left == 0))
+			panel->left = panel->overscan;
+		else if (panel->left < overscan_min)
+			panel->left = overscan_min;
+
+		if ((panel->right > panel->overscan) ||
+			(panel->right == 0))
+			panel->right = panel->overscan;
+		else if (panel->right < overscan_min)
+			panel->right = overscan_min;
+
+		if ((panel->top > panel->overscan) ||
+			(panel->top == 0))
+			panel->top = panel->overscan;
+		else if (panel->top < overscan_min)
+			panel->top = overscan_min;
+
+		if ((panel->bottom > panel->overscan) ||
+			(panel->bottom == 0))
+			panel->bottom = panel->overscan;
+		else if (panel->bottom < overscan_min)
+			panel->bottom = overscan_min;
+
+		printf("panel->left = %d , panel->right = %d ,panel->top = %d, panel->bottom = %d, panel->overscan = %d\n",
+			panel->left, panel->right, panel->top, panel->bottom, panel->overscan);
 
 #ifdef CONFIG_RK3036_TVE
                 for (i = 0; i < MAX_TVE_COUNT; i++) {
@@ -1646,7 +1687,7 @@ void rk_hdmi_register(struct hdmi_dev *hdmi_dev, vidinfo_t *panel)
 	if(ret)
 	printf("%s:fail to read deviceinfo\n",__func__);
 #endif
-	ret = read_baseparamer_storage(hdmi_dev, &g_pos_baseparamer);
+	ret = read_baseparamer_storage(hdmi_dev, &g_pos_baseparamer, panel);
 
 	if (hdmi_dev->hd_init && !hdmi_dev->hd_init(hdmi_dev)) {
 		g_hdmi_vic = hdmi_dev->vic;

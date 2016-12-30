@@ -577,18 +577,13 @@ static int dsp_y_pos(int mirror_en, struct rk_screen *screen,
 
 	if (screen->y_mirror && mirror_en)
 		pr_err("not support both win and global mirror\n");
-	if (screen->mode.vmode == FB_VMODE_NONINTERLACED) {
-		if ((!mirror_en) && (!screen->y_mirror))
-			pos = area->ypos + screen->mode.upper_margin +
-				screen->mode.vsync_len;
-		else
-			pos = screen->mode.yres - area->ypos -
-				area->ysize + screen->mode.upper_margin +
-				screen->mode.vsync_len;
-	} else if (screen->mode.vmode == FB_VMODE_INTERLACED) {
-		pos = area->ypos / 2 + screen->mode.upper_margin +
+	if ((!mirror_en) && (!screen->y_mirror))
+		pos = area->ypos + screen->mode.upper_margin +
 			screen->mode.vsync_len;
-	}
+	else
+		pos = screen->mode.yres - area->ypos -
+			area->ysize + screen->mode.upper_margin +
+			screen->mode.vsync_len;
 
 	return pos;
 }
@@ -634,6 +629,7 @@ static int win_full_set_par(struct vop_device *vop_dev,
 	struct rk_lcdc_win win;
 	struct rk_screen *screen = vop_dev->screen;
 	u32 y_addr = fb_info->yaddr;
+	u32 top, bottom, left, right;
 
 	memset(&win, 0, sizeof(struct rk_lcdc_win));
 	rk_fb_vidinfo_to_win(fb_info, &win);
@@ -642,6 +638,19 @@ static int win_full_set_par(struct vop_device *vop_dev,
 	else
 		win.state = 0;
 	win.mirror_en = 0;
+	left = screen->mode.xres * (vid->overscan - vid->left) / (vid->overscan * 2);
+	right = screen->mode.xres * (vid->overscan - vid->right) / (vid->overscan * 2);
+	top = screen->mode.yres * (vid->overscan - vid->top) / (vid->overscan * 2);
+	bottom = screen->mode.yres * (vid->overscan - vid->bottom) / (vid->overscan * 2);
+
+	win.area[0].xpos += left;
+	win.area[0].ypos += top;
+	win.area[0].xsize -= left + right;
+	win.area[0].ysize -= top + bottom;
+	debug("xpos = %d , ypos = %d, xsize = %d, ysize = %d\n",
+	      win.area[0].xpos, win.area[0].ypos,
+	      win.area[0].xsize, win.area[0].ysize);
+
 	win.area[0].dsp_stx = dsp_x_pos(win.mirror_en, screen, win.area);
 	win.area[0].dsp_sty = dsp_y_pos(win.mirror_en, screen, win.area);
 	vop_vop_calc_scl_fac(&win, screen);
@@ -667,7 +676,7 @@ static int win_full_set_par(struct vop_device *vop_dev,
 	}
 
 	if (screen->y_mirror || fb_info->ymirror) {
-		y_addr += win.area[0].y_vir_stride * 4 * win.area[0].yact;
+		y_addr += win.area[0].y_vir_stride * 4 * (win.area[0].yact - 1);
 		win.ymirror = fb_info->ymirror;
 	}
 	vop_win_csc_mode(vop_dev, fb_info, vop_dev->overlay_mode,

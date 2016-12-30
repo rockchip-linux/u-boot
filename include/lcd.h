@@ -346,7 +346,11 @@ typedef struct vidinfo {
 
     	u_char screen_type;
     	u_char lvds_ch_nr;
-
+	unsigned short overscan;
+	unsigned short left;
+	unsigned short top;
+	unsigned short right;
+	unsigned short bottom;
 } vidinfo_t;
 
 void init_panel_info(vidinfo_t *vid);

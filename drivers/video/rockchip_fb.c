@@ -87,6 +87,11 @@ vidinfo_t panel_info = {
         .power_on_delay = 0,
         .reset_delay    = 0,
         .pixelrepeat    = 0,
+        .overscan       = 100,
+        .left           = 100,
+        .top            = 100,
+        .right          = 100,
+        .bottom         = 100,
 #endif
 };
 
