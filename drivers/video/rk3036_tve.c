@@ -306,7 +306,11 @@ int rk3036_tve_init(vidinfo_t *panel)
 			node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "rockchip,rk322x-tve");
 			if (node < 0) {
 				printf("can't find dts node for rk322x-tve\n");
-				return -ENODEV;
+				node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "rockchip,rk322xh-tve");
+				if (node < 0) {
+					printf("can't find dts node for rk322xh-tve\n");
+					return -ENODEV;
+				}
 			}
 		}
 
