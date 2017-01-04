@@ -112,7 +112,11 @@ static int FindSerialBlocks(uint8 *NFBlockState, int iNFBlockLen, int iBegin, in
 /* 寻找ID Block，该块在位于最前面的20个好块中若能找到，则是我们的片子，否则便是其它公司或者新片 */
 static int FindIDBlock(FlashInfo *pFlashInfo, int iStart, int *iPos)
 {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, ucSpareData, 4 * 528, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, ucSpareData, 4 * 528);
+#endif
 	int iRet = ERR_SUCCESS;
 	int i = FindSerialBlocks(pFlashInfo->BlockState, MAX_BLOCK_SEARCH/*MAX_BLOCK_STATE*/, iStart, 1);
 
@@ -616,7 +620,11 @@ int rkidb_get_hdcp_key(char *buf, int offset, int size)
 
 int rkidb_erase_drm_key(void)
 {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
+#endif
 	memset(buf, 0, RK_BLK_SIZE);
 	StorageSysDataStore(1, buf);
 	gDrmKeyInfo.publicKeyLen = 0;

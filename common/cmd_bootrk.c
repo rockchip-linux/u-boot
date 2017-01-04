@@ -230,7 +230,11 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 #endif
 	raddr = (void*)(gd->arch.rk_boot_buf_addr);
 
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	hdr = memalign(SZ_4K, blksz << 2);
+#else
 	hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
+#endif
 	if (hdr == NULL) {
 		FBTERR("error allocating blksz(%lu) buffer\n", blksz);
 		return NULL;

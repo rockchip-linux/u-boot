@@ -19,7 +19,11 @@ extern void* ftl_memcpy(void* pvTo, const void* pvForm, unsigned int  size);
 
 static int rkimg_load_image(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
+#endif
 	unsigned blocks;
 	rk_kernel_image *image = (rk_kernel_image *)buf;
 	unsigned head_offset = 8;//tag_rk_kernel_image's tag & size
@@ -670,7 +674,11 @@ resource_content rkimage_load_fdt(const disk_partition_t* ptn)
 		unsigned long blksz = ptn->blksz;
 		int offset = 0;
 		rk_boot_img_hdr *hdr = NULL;
+#ifdef CONFIG_RK_NVME_BOOT_EN
+		hdr = memalign(SZ_4K, blksz << 2);
+#else
 		hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
+#endif
 		if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
 			return content;
 		}

@@ -53,7 +53,11 @@ static int inline get_base_offset(void) {
 			int offset = 0;
 			rk_boot_img_hdr *hdr = NULL;
 
+#ifdef CONFIG_RK_NVME_BOOT_EN
+			hdr = memalign(SZ_4K, blksz << 2);
+#else
 			hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
+#endif
 			if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
 				return 0;
 			}
@@ -164,7 +168,11 @@ end:
 static bool get_entry(int base_offset, const char* file_path,
 		index_tbl_entry* entry) {
 	bool ret = false;
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, buf, BLOCK_SIZE, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, BLOCK_SIZE);
+#endif
 	char* table = NULL;
 	resource_ptn_header header;
 
@@ -197,9 +205,14 @@ static bool get_entry(int base_offset, const char* file_path,
 	}
 
 	if (header.tbl_entry_num * header.tbl_entry_size <= 0xFFFF) {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+		table = (char *)memalign(SZ_4K, header.tbl_entry_num *
+				header.tbl_entry_size * BLOCK_SIZE);
+#else
 		table = (char *)memalign(ARCH_DMA_MINALIGN,
 				header.tbl_entry_num
 				* header.tbl_entry_size * BLOCK_SIZE);
+#endif
 		if (!table)
 			goto end;
 		if (!read_storage(base_offset + header.header_size, table,
@@ -253,7 +266,11 @@ bool load_content(resource_content* content) {
 		return true;
 
 	int blocks = (content->content_size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	content->load_addr = (void*)memalign(SZ_4K, blocks * BLOCK_SIZE);
+#else
 	content->load_addr = (void*)memalign(ARCH_DMA_MINALIGN, blocks * BLOCK_SIZE);
+#endif
 	if (!content->load_addr)
 		return false;
 

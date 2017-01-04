@@ -42,7 +42,11 @@ int32 rkloader_CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_
 #define MaxFlashReadSize  128  //64KB
 int32 rkloader_CopyFlash2Memory(uint32 dest_addr, uint32 src_addr, uint32 total_sec)
 {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE * MaxFlashReadSize, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE * MaxFlashReadSize);
+#endif
 	uint8 * pSdram = (uint8 *)(unsigned long)dest_addr;
 	uint16 sec = 0;
 	uint32 LBA = src_addr;
@@ -201,8 +205,13 @@ void rkloader_change_cmd_for_recovery(PBootInfo boot_info, char * rec_cmd)
 int rkloader_run_misc_cmd(void)
 {
 	struct bootloader_message *bmsg = NULL;
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
+			RK_BLK_SIZE) * RK_BLK_SIZE, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
 			RK_BLK_SIZE) * RK_BLK_SIZE);
+#endif
 	const disk_partition_t *ptn = get_disk_partition(MISC_NAME);
 	
 	if (!ptn) {
@@ -284,8 +293,13 @@ void rkloader_fixInitrd(PBootInfo pboot_info, int ramdisk_addr, int ramdisk_sz)
 
 int rkloader_set_bootloader_msg(struct bootloader_message* bmsg)
 {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
+			RK_BLK_SIZE) * RK_BLK_SIZE, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, DIV_ROUND_UP(sizeof(struct bootloader_message),
 			RK_BLK_SIZE) * RK_BLK_SIZE);
+#endif
 	memcpy(buf, bmsg, sizeof(struct bootloader_message));
 	const disk_partition_t *ptn = get_disk_partition(MISC_NAME);
 	if (!ptn) {

@@ -13,15 +13,23 @@ uint32  SecureBootCheckOK;
 uint32  SecureBootLock;
 uint32  SecureBootLock_backup;
 
+#ifdef CONFIG_RK_NVME_BOOT_EN
+BOOT_CONFIG_INFO gBootConfig __attribute__((aligned(SZ_4K)));
+DRM_KEY_INFO gDrmKeyInfo __attribute__((aligned(SZ_4K)));
+#else
 BOOT_CONFIG_INFO gBootConfig __attribute__((aligned(ARCH_DMA_MINALIGN)));
 DRM_KEY_INFO gDrmKeyInfo __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
+#endif
 
 #ifdef ERASE_DRM_KEY_EN
 void SecureBootEraseDrmKey(void)
 {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, buf, 512, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, 512);
-
+#endif
 	printf("erase drm key for debug!\n");
 	memset(buf, 0, 512);
 	StorageSysDataStore(1, buf);
@@ -105,8 +113,11 @@ static uint32 JSHash(uint8 * buf, uint32 len)
 
 uint32 SecureBootSetSysData2Kernel(uint32 SecureBootFlag)
 {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, tmp_buf, 512, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, tmp_buf, 512);
-
+#endif
 	gBootConfig.secureBootEn = SecureBootFlag;
 	gBootConfig.sdPartOffset = StorageGetSDFwOffset();
 	gBootConfig.bootMedia = StorageGetBootMedia();

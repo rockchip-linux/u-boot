@@ -386,8 +386,12 @@ int load_disk_partitions(void)
 	int i = 0;
 	int ret = -1;
 	cmdline_mtd_partition *cmd_mtd;
-	PLoaderParam param = (PLoaderParam)memalign(ARCH_DMA_MINALIGN, MAX_LOADER_PARAM * PARAMETER_NUM);
-
+	PLoaderParam param;
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	param = (PLoaderParam)memalign(SZ_4K, MAX_LOADER_PARAM * PARAMETER_NUM);
+#else
+	param = (PLoaderParam)memalign(ARCH_DMA_MINALIGN, MAX_LOADER_PARAM * PARAMETER_NUM);
+#endif
 	if (!GetParam(0, param)) {
 		ParseParam(&gBootInfo, param->parameter, param->length);
 		cmd_mtd = &(gBootInfo.cmd_mtd);

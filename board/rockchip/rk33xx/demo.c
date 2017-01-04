@@ -274,7 +274,11 @@ static void board_emmc_test(void)
 #ifdef CONFIG_GZIP
 static int rk_load_zimage(uint32 offset, unsigned char *load_addr, size_t *image_size)
 {
+#ifdef CONFIG_RK_NVME_BOOT_EN
+	ALLOC_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE, SZ_4K);
+#else
 	ALLOC_CACHE_ALIGN_BUFFER(u8, buf, RK_BLK_SIZE);
+#endif
 	unsigned blocks;
 	rk_kernel_image *image = (rk_kernel_image *)buf;
 	unsigned head_offset = 8;//tag_rk_kernel_image's tag & size
