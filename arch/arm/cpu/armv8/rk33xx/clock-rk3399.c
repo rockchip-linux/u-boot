@@ -174,19 +174,19 @@ static struct pll_data rkpll_data[END_PLL_ID] = {
 /* Waiting for pll locked by pll id */
 static void rkclk_pll_wait_lock(enum rk_plls_id pll_id)
 {
+	volatile unsigned int val;
+
 	/* delay for pll lock */
 	if (pll_id == PPLL_ID) {
 		do {
-			if (pmucru_readl(PMUCRU_PLL_CON(0, 2)) & (1 << PLL_LOCK_SHIFT))
-				break;
+			val = pmucru_readl(PMUCRU_PLL_CON(0, 2)) & (1 << PLL_LOCK_SHIFT);
 			clk_loop_delayus(1);
-		} while (1);
+		} while (!val);
 	} else {
 		do {
-			if (cru_readl(CRU_PLL_CON(pll_id, 2)) & (1 << PLL_LOCK_SHIFT))
-				break;
+			val = cru_readl(CRU_PLL_CON(pll_id, 2)) & (1 << PLL_LOCK_SHIFT);
 			clk_loop_delayus(1);
-		} while (1);
+		} while (!val);
 	}
 }
 
@@ -912,7 +912,6 @@ void rkclk_set_pll(void)
 	rkclk_pll_set_rate(APLLL_ID, RKCLK_APLLL_FREQ_HZ, rkclk_aplll_cb);
 	rkclk_pll_set_rate(GPLL_ID, RKCLK_GPLL_FREQ_HZ, rkclk_gpll_cb);
 	rkclk_pll_set_rate(CPLL_ID, RKCLK_CPLL_FREQ_HZ, NULL);
-
 	rkclk_pll_set_rate(PPLL_ID, RKCLK_PPLL_FREQ_HZ, rkclk_ppll_cb);
 }
 
