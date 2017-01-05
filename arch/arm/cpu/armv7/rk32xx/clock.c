@@ -61,15 +61,25 @@ Cpu highest frequency is 1 GHz
 1 cycle = 1/1 ns
 1 us = 1000 ns = 1000 * 1 cycles = 1000 cycles
 *****************************************************************************/
-#define LPJ_1000MHZ  100UL
+static inline uint64_t arch_counter_get_cntpct(void)
+{
+	uint64_t cval;
+
+	isb();
+	asm volatile ("mrrc p15, 0, %Q0, %R0, c14" : "=r" (cval));
+
+	return cval;
+}
 
 static void clk_loop_delayus(uint32_t us)
 {
-	volatile uint32_t i;
+	uint64_t orig;
+	uint64_t to_wait = 24 * us;
 
-	/* copro seems to need some delay between reading and writing */
-	for (i = 0; i < LPJ_1000MHZ * us; i++)
-		asm volatile("nop");
+	/* Note: u32 math is way more than enough for our small delays */
+	orig = arch_counter_get_cntpct();
+	while (arch_counter_get_cntpct() - orig <= to_wait)
+		;
 }
 
 /*
