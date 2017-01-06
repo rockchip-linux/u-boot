@@ -122,6 +122,11 @@ static int connector_panel_init(struct display_state *state)
 	}
 
 	fdtdec_decode_gpio(blob, panel, "enable-gpios", enable_gpio);
+
+	conn_state->delay_prepare = fdtdec_get_int(blob, panel,
+						   "delay,prepare", 0);
+	conn_state->delay_unprepare = fdtdec_get_int(blob, panel,
+						     "delay,unprepare", 0);
 	/*
 	 * keep panel blank on init.
 	 */
@@ -135,12 +140,14 @@ void connector_panel_power_on(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 
 	fdtdec_set_gpio(&conn_state->enable_gpio, 1);
+	mdelay(conn_state->delay_prepare);
 }
 
 void connector_panel_power_off(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 
+	mdelay(conn_state->delay_unprepare);
 	fdtdec_set_gpio(&conn_state->enable_gpio, 0);
 }
 
