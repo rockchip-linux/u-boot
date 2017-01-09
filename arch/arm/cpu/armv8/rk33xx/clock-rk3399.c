@@ -449,33 +449,44 @@ static int rkclk_cal_pll_set(uint32_t fin_hz, uint32_t fout_hz, struct rk_pll_se
 	return 0;
 }
 
-
 /*
- * rkplat clock set vpll
+ * rkplat clock set pll with any frequency
  */
-int rkclk_set_vpll_rate(uint32_t pll_hz)
+int rkclk_pll_set_any_freq(enum rk_plls_id pll_id, uint32_t pll_hz)
 {
+	const struct pll_data *pll = NULL;
 	const struct pll_clk_set *clkset = NULL;
 	struct rk_pll_set pll_set;
 	uint32_t pllcon0, pllcon1, pllcon2, pllcon3;
 	uint32_t i;
 
-	/* Find request vpll from vpll_clks set */
-	for (i = 0; i < ARRAY_SIZE(vpll_clks); i++) {
-		if (vpll_clks[i].rate == pll_hz) {
-			clkset = &vpll_clks[i];
+	debug("%s, pll_id[%d], freq=%d\n", __func__, pll_id, pll_hz);
+	/* Find pll rate set */
+	for (i = 0; i < END_PLL_ID; i++) {
+		if (rkpll_data[i].id == pll_id) {
+			pll = &rkpll_data[i];
+			break;
+		}
+	}
+	if ((pll == NULL) || (pll->clkset == NULL))
+		return -1;
+
+	/* Find clock set */
+	for (i = 0; i < pll->size; i++) {
+		if (pll->clkset[i].rate == pll_hz) {
+			clkset = &(pll->clkset[i]);
 			break;
 		}
 	}
 
 	if (clkset != NULL) {
-		/* if request vpll rate in the vpll_clks set */
+		/* if request pll rate in the pll_clks set */
 		pllcon0 = clkset->pllcon0;
 		pllcon1 = clkset->pllcon1;
 		pllcon2 = clkset->pllcon2;
 		pllcon3 = clkset->pllcon3;
 	} else {
-		/* calcurate the request vpll rate set */
+		/* calcurate the request pll rate set */
 		if (rkclk_cal_pll_set(24000000, pll_hz, &pll_set) == 0) {
 			/* pll con set */
 			pllcon0 = PLL_SET_FBDIV(pll_set.fbdiv);
@@ -487,24 +498,43 @@ int rkclk_set_vpll_rate(uint32_t pll_hz)
 		}
 	}
 
-	/* PLL enter slow-mode */
-	cru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, CRU_PLL_CON(VPLL_ID, 3));
+	if (pll_id == PPLL_ID) {
+		/* PLL enter slow-mode */
+		pmucru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, PMUCRU_PLL_CON(0, 3));
 
-	/* pll config */
-	cru_writel(pllcon0, CRU_PLL_CON(VPLL_ID, 0));
-	cru_writel(pllcon1, CRU_PLL_CON(VPLL_ID, 1));
-	cru_writel(pllcon2, CRU_PLL_CON(VPLL_ID, 2));
-	cru_writel(pllcon3, CRU_PLL_CON(VPLL_ID, 3));
+		/* pll config */
+		pmucru_writel(pllcon0, PMUCRU_PLL_CON(0, 0));
+		pmucru_writel(pllcon1, PMUCRU_PLL_CON(0, 1));
+		pmucru_writel(pllcon2, PMUCRU_PLL_CON(0, 2));
+		pmucru_writel(pllcon3, PMUCRU_PLL_CON(0, 3));
 
-	/* delay for pll setup */
-	rkclk_pll_wait_lock(VPLL_ID);
+		/* delay for pll setup */
+		rkclk_pll_wait_lock(pll_id);
 
-	/* PLL enter normal-mode */
-	cru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, CRU_PLL_CON(VPLL_ID, 3));
+		/* PLL enter normal-mode */
+		pmucru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, PMUCRU_PLL_CON(0, 3));
+	} else {
+		/* PLL enter slow-mode */
+		cru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+
+		/* pll config */
+		cru_writel(pllcon0, CRU_PLL_CON(pll_id, 0));
+		cru_writel(pllcon1, CRU_PLL_CON(pll_id, 1));
+		cru_writel(pllcon2, CRU_PLL_CON(pll_id, 2));
+		cru_writel(pllcon3, CRU_PLL_CON(pll_id, 3));
+
+		/* delay for pll setup */
+		rkclk_pll_wait_lock(pll_id);
+
+		/* PLL enter normal-mode */
+		cru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+	}
+
+	/* update struct gd */
+	rkclk_get_pll();
 
 	return 0;
 }
-
 
 /*
  * rkplat clock set periph_h bus clock from codec pll or general pll
@@ -1045,9 +1075,15 @@ static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 	if (lcdc_id > 1)
 		return -1;
 
+#ifdef CONFIG_RK_VOP_DUAL_ANY_FREQ_PLL
+	/* lcdc aclk from gpll */
+	pll_sel = 2;
+	pll_rate = gd->bus_clk;
+#else
 	/* lcdc aclk from codec pll */
 	pll_sel = 1;
 	pll_rate = gd->pci_clk;
+#endif
 
 	div = rkclk_calc_clkdiv(pll_rate, aclk_hz, 0);
 	aclk_info = (pll_sel << 16) | div;
@@ -1149,11 +1185,16 @@ static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 	if (pll_sel == 0) {
 		/* lcdc dclk from vpll */
 		div = 1;
-		rkclk_set_vpll_rate(dclk_hz);
+		rkclk_pll_set_any_freq(VPLL_ID, dclk_hz);
 	} else if (pll_sel == 1) {
 		/* lcdc dclk from cpll */
+#ifdef CONFIG_RK_VOP_DUAL_ANY_FREQ_PLL
+		div = 1;
+		rkclk_pll_set_any_freq(CPLL_ID, dclk_hz);
+#else
 		pll_rate = gd->pci_clk;
 		div = rkclk_calc_clkdiv(pll_rate, dclk_hz, 0);
+#endif
 	} else {
 		/* lcdc dclk from gpll */
 		pll_rate = gd->bus_clk;
@@ -1263,8 +1304,13 @@ uint32 rkclk_set_sdhci_emmc_clk(uint32 clock)
 		clk_base =  24000000;
 		pll_sel = 0x4; /* xin_24m */
 	} else {
+#ifdef CONFIG_RK_VOP_DUAL_ANY_FREQ_PLL
+		clk_base = gd->bus_clk;
+		pll_sel = 0x1; /* gpll */
+#else
 		clk_base = gd->pci_clk;
 		pll_sel = 0x0; /* cpll */
+#endif
 	}
 
 	div = (clk_base + clock - 1) / clock;
@@ -1445,7 +1491,11 @@ int32 rkclk_set_mmc_clk_freq(uint32 sdid, uint32 freq)
 	uint32 src_div = 0;
 	uint32 clksel = 0;
 
+#ifdef	CONFIG_RK_VOP_DUAL_ANY_FREQ_PLL
+	src_freqs[0] = 0;
+#else
 	src_freqs[0] = gd->pci_clk / 2;
+#endif
 	src_freqs[1] = gd->bus_clk / 2;
 	src_freqs[2] = (480 * MHZ) / 2;
 	src_freqs[3] = (24 * MHZ) / 2;
@@ -1651,22 +1701,32 @@ unsigned int rkclk_get_spi_clk(uint32 spi_bus)
 
 #ifdef CONFIG_SECUREBOOT_CRYPTO
 /*
- * rkplat set crypto clock
+ * rkplat set crypto clock, pll_sel: 0: cpll, 1: gpll, 2: ppll
  * here no check clkgate, because chip default is enable.
  */
 void rkclk_set_crypto_clk(uint32 rate)
 {
 	uint32 parent = 0;
 	uint32 div = 1;
+	uint32 pll_sel = 0;
 
+#ifdef	CONFIG_RK_VOP_DUAL_ANY_FREQ_PLL
+	/* parent select gpll */
+	pll_sel = 1;
+	parent = gd->bus_clk;
+#else
 	/* parent select codec pll */
+	pll_sel = 0;
 	parent = gd->pci_clk;
+#endif
 	div = rkclk_calc_clkdiv(parent, rate, 0);
 	div = div ? (div - 1) : 0;
 
 	debug("crypto clk div = %d\n", div);
-	cru_writel((3 << 22) | (0x1F << 16) | (0 << 6) | (div << 0), CRU_CLKSELS_CON(24));
-	cru_writel((3 << 22) | (0x1F << 16) | (0 << 6) | (div << 0), CRU_CLKSELS_CON(26));
+	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0),
+		   CRU_CLKSELS_CON(24));
+	cru_writel((3 << 22) | (0x1F << 16) | (pll_sel << 6) | (div << 0),
+		   CRU_CLKSELS_CON(26));
 }
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 
