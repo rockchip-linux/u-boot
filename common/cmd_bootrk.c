@@ -420,6 +420,10 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 #ifdef CONFIG_CMDLINE_TAG
 	/* static just to be safe when it comes to the stack */
 	static char command_line[1024];
+	uint32 media = StorageGetBootMedia();
+	/* Storage Media Name */
+	char *medianame = NULL;
+
 	/* Use the cmdline from board_fbt_finalize_bootargs instead of
 	 * any hardcoded into u-boot.  Also, Android wants the
 	 * serial number on the command line instead of via
@@ -434,22 +438,20 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 			hdr->ramdisk_addr, hdr->ramdisk_size,
 			!strcmp(boot_name, RECOVERY_NAME));
 
-	// Storage Media Name
-	uint32 media = StorageGetBootMedia();
-	char *medianame = NULL;
-	if (media == BOOT_FROM_FLASH) {
+	if (media == BOOT_FROM_FLASH)
 		medianame = "nand";
-	} else if (media == BOOT_FROM_EMMC) {
+	else if (media == BOOT_FROM_EMMC)
 		medianame = "emmc";
-	} else if (media == BOOT_FROM_SD0) {
+	else if (media == BOOT_FROM_SD0)
 		medianame = "sd";
-	} else if (media == BOOT_FROM_UMS) {
+	else if (media == BOOT_FROM_UMS)
 		medianame = "ums";
-	}
+	else if (media == BOOT_FROM_NVME)
+		medianame = "nvme";
 
 	if (medianame != NULL) {
 		snprintf(command_line, sizeof(command_line),
-				"%s storagemedia=%s", command_line, medianame);
+			 "%s storagemedia=%s", command_line, medianame);
 	}
 
 #ifdef CONFIG_RK_SDCARD_BOOT_EN
