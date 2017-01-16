@@ -26,8 +26,13 @@ extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
 
 /* uboot image config */
 #define UBOOT_NAME		"uboot"
+#ifdef CONFIG_RK_NVME_BOOT_EN
+#define UBOOT_NUM		2
+#define UBOOT_MAX_SIZE		512 * 1024
+#else
 #define UBOOT_NUM		4
 #define UBOOT_MAX_SIZE		1024 * 1024
+#endif
 #define UBOOT_VERSION_STRING	U_BOOT_VERSION " (" U_BOOT_DATE " - " \
 				U_BOOT_TIME ")" CONFIG_IDENT_STRING
 
