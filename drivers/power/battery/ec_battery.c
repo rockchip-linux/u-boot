@@ -45,6 +45,7 @@ static int ec_battery_update(struct pmic *p, struct pmic *bat)
 	struct battery *battery = bat->pbat->bat;
 	u8 buf[13] = {0};
 	int rem_cap, full_cap, soc, vol, status;
+	static u16 i = 0;
 
 	i2c_set_bus_num(bat->bus);
 	i2c_init(200000, bat->hw.i2c.addr);
@@ -72,6 +73,8 @@ static int ec_battery_update(struct pmic *p, struct pmic *bat)
 			battery->isexistbat = EC_IS_BATTERY_IN(status);
 		}
 	}
+	if ((i++) % 2000 == 0)
+		printf("ec_battery: capacity = %d\n", battery->capacity);
 
 	return 0;
 }
@@ -109,19 +112,19 @@ int ec_battery_init(void)
 	blob = gd->fdt_blob;
 	node = fdt_node_offset_by_compatible(blob, 0, "rockchip,ec-battery");
 	if (node < 0) {
-		debug("can't find dts node for ec-battery\n");
+		printf("can't find dts node for ec-battery\n");
 		return -ENODEV;
 	}
 
 	ret = fdt_get_i2c_info(blob, node, &bus, &addr);
 	if (ret < 0) {
-		debug("ec battery get fdt i2c failed\n");
+		printf("ec battery get fdt i2c failed\n");
 		return ret;
 	}
 
 	ret = ec_battery_i2c_probe(bus, addr);
 	if (ret < 0) {
-		debug("ec battery i2c probe failed\n");
+		printf("ec battery i2c probe failed\n");
 		return ret;
 	}
 
