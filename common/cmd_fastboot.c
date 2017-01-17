@@ -1513,7 +1513,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 			 !strcmp(priv.pending_ptn_name, BOOT_NAME) ||
 			 !strcmp(priv.pending_ptn_name, LOADER_NAME) ||
 			 !strcmp(priv.pending_ptn_name, PARAMETER_NAME) ||
-			 !strcmp(priv.pending_ptn_name, RESOURCE_NAME) ||
+			 //!strcmp(priv.pending_ptn_name, RESOURCE_NAME) ||
 			 !strcmp(priv.pending_ptn_name, UBOOT_NAME));
 
 		FBTDBG("legacy download? %d\n", priv.d_legacy);
@@ -1709,7 +1709,7 @@ static int fbt_rx_process(unsigned char *buffer, int length)
 			 !strcmp(priv.pending_ptn_name, BOOT_NAME) ||
 			 !strcmp(priv.pending_ptn_name, LOADER_NAME) ||
 			 !strcmp(priv.pending_ptn_name, PARAMETER_NAME) ||
-			 !strcmp(priv.pending_ptn_name, RESOURCE_NAME) ||
+			 //!strcmp(priv.pending_ptn_name, RESOURCE_NAME) ||
 			 !strcmp(priv.pending_ptn_name, UBOOT_NAME));
 
 		FBTDBG("legacy download? %d\n", priv.d_legacy);
