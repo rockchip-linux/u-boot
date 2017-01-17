@@ -59,6 +59,7 @@ int android_charge_mode = 0;
 
 int low_power_level = 0;
 int exit_uboot_charge_level = 0;
+int uboot_brightness = 1;
 
 #ifdef CONFIG_UBOOT_CHARGE
 /**
@@ -534,6 +535,9 @@ void board_fbt_preboot(void)
 		exit_uboot_charge_level =
 			fdtdec_get_int(gd->fdt_blob, charge_node,
 				       "rockchip,uboot-exit-charge-level", 0);
+		uboot_brightness =
+			fdtdec_get_int(gd->fdt_blob, charge_node,
+				       "rockchip,uboot-charge-brightness", 1);
 	}
 #endif
 
