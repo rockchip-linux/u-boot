@@ -130,6 +130,7 @@
 		#undef CONFIG_RK_UDC
 		#define CONFIG_RK_DWC3_UDC
 	#endif
+	#define CONFIG_RK_GPIO_EXT_FUNC
 #endif
 
 #if defined(CONFIG_RKCHIP_RK322XH)

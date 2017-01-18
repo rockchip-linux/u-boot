@@ -341,6 +341,39 @@ int gpio_pull_updown(unsigned gpio, enum GPIOPullType type)
 		gpio = (7 - (gpio % 8)) * 2;
 		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
 	}
+
+#elif defined(CONFIG_RKCHIP_RK3399)
+	/*
+	 * pull setting
+	 * 2'b00: Z(Noraml operaton)
+	 * 2'b01: weak 1(pull-up)
+	 * 2'b10: weak 0(pull-down)
+	 * 2'b11: Repeater(Bus keeper)
+	 */
+	switch (type) {
+		case PullDisable:
+			val = 0;
+			break;
+		case GPIOPullUp:
+			val = 1;
+			break;
+		case GPIOPullDown:
+			val = 2;
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	if (bank->id == 0 || bank->id == 1) { /* gpio0, pmu grf control */
+		base = (void __iomem *)(unsigned long)(RKIO_PMU_GRF_PHYS + PMU_GRF_GPIO0A_P + (bank->id) * 16 + ((gpio / 8) * 4));
+		gpio = (gpio % 8) * 2;
+		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
+	} else { /* gpio2-gpio4, grf control */
+		base = (void __iomem *)(unsigned long)(RKIO_GRF_PHYS + GRF_GPIO2A_P + (bank->id - 2) * 16 + ((gpio / 8) * 4));
+		gpio = (gpio % 8) * 2;
+		__raw_writel((0x3 << (16 + gpio)) | (val << gpio), base);
+	}
+
 #elif defined(CONFIG_RKCHIP_RK322X) || defined(CONFIG_RKCHIP_RK322XH)
 	/*
 	 * pull setting
@@ -408,7 +441,7 @@ int gpio_drive_slector(unsigned gpio, enum GPIODriveSlector slector)
 	}
 
 #if defined(CONFIG_RKCHIP_RK3066) || defined(CONFIG_RKCHIP_RK3168) || defined(CONFIG_RKCHIP_RK3036) \
-	|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	|| defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) || defined(CONFIG_RKCHIP_RK3399)
 	/* no drive config */
 
 #elif defined(CONFIG_RKCHIP_RK3288)
