@@ -78,6 +78,41 @@ int rk_get_chiptype(void)
 	return RKCHIP_UNKNOWN;
 }
 
+#ifdef CONFIG_RK_EFUSE
+#define	EFUSE_NS_SIZE_BITS	256
+struct efuse_ns_info {
+	uint32 flag;
+	uint32 len;
+	uint32 reserved[6];
+	char data[EFUSE_NS_SIZE_BITS / 8];
+};
+#endif
+
+/* get cpu eco version */
+static uint8 rk_get_cpu_eco_version(void)
+{
+	uint8 cpu_version;
+
+	cpu_version = 0;
+#ifdef CONFIG_RK_EFUSE
+#if defined(CONFIG_RKCHIP_RK322XH)
+	struct efuse_ns_info *efuse_ns;
+
+	efuse_ns = (struct efuse_ns_info *)(CONFIG_EFUSE_NS_INFO_ADDR);
+	if (efuse_ns->flag != 0x524f434b)
+		return 0;
+	cpu_version = efuse_ns->data[26];
+	cpu_version = (cpu_version >> 3) & 0x7;
+#endif
+#endif /* CONFIG_RK_EFUSE */
+
+	return cpu_version;
+}
+
+uint8 rk_get_cpu_version(void)
+{
+	return (uint8)gd->arch.cpuversion;
+}
 
 #if defined(CONFIG_RKCHIP_RK3368)
 	#define RKIO_DDR_LATENCY_BASE		(0xffac0000 + 0x14)
@@ -211,6 +246,10 @@ int print_cpuinfo(void)
 	if (gd->arch.chiptype == CONFIG_RK322XH)
 		printf("CPU: rk322xh\n");
 #endif
+
+	/* get cpu eco version */
+	gd->arch.cpuversion = rk_get_cpu_eco_version();
+	printf("cpu version = %ld\n", gd->arch.cpuversion);
 
 	rkclk_get_pll();
 	rkclk_dump_pll();

@@ -193,6 +193,9 @@
 /* efuse version */
 #ifdef CONFIG_RK_EFUSE
 	#define CONFIG_RKEFUSE_V2
+
+	/* store the content of efuse non-secure */
+	#define CONFIG_EFUSE_NS_INFO_ADDR	(CONFIG_RAM_PHY_START + SZ_1M + SZ_1K * 60)
 #endif
 
 

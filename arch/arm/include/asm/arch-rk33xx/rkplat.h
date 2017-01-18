@@ -406,6 +406,7 @@ typedef enum SPI_ch {
 **                     api function                          *
 **************************************************************/
 int rk_get_chiptype(void);
+uint8 rk_get_cpu_version(void);
 int rk_get_bootrom_chip_version(unsigned int chip_info[]);
 void rk_module_deinit(void);
 #ifdef CONFIG_RK_MCU
