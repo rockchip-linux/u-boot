@@ -113,6 +113,24 @@ static const struct ext_pll_config_tab EXT_PLL_TABLE[] = {
 		1},
 };
 
+static const struct ext_pll_config_tab RK322XH_V1_PLL_TABLE[] = {
+	{27000000,	27000000,	8,	1,	90,	3,	2,
+		2,	10,	3,	3,	4,	0,	18,	80,
+		8},
+	{27000000,	33750000,	10,	1,	90,	1,	3,
+		3,	10,	3,	3,	4,	0,	1,	80,
+		8},
+	{59400000,	59400000,	8,	1,	99,	3,	1,
+		1,	1,	3,	3,	4,	0,	18,	80,
+		8},
+	{59400000,	74250000,	10,	1,	99,	0,	3,
+		3,	1,	3,	3,	4,	0,	18,	80,
+		8},
+	{74250000,	74250000,	8,	1,	99,	1,	2,
+		2,	1,	2,	3,	4,	0,	18,	80,
+		8},
+};
+
 /* ddc i2c master reset */
 static void rockchip_hdmiv2_i2cm_reset(struct hdmi_dev *hdmi_dev)
 {
@@ -366,20 +384,33 @@ static void rockchip_hdmiv2_scdc_set_tmds_rate(struct hdmi_dev *hdmi_dev)
 }
 
 static const struct ext_pll_config_tab *get_phy_ext_tab(
-		unsigned int pixclock, unsigned int tmdsclk,
-		char colordepth)
+		struct hdmi_dev *hdmi_dev)
 {
-	int i;
+	const struct ext_pll_config_tab *ext_pll[2];
+	int i, j, table, size[2];
 
-	if (pixclock == 0)
+	if (!hdmi_dev || hdmi_dev->pixelclk == 0)
 		return NULL;
-	HDMIDBG("%s pixClock %u tmdsclk %u colorDepth %d\n",
-		__func__, pixclock, tmdsclk, colordepth);
-	for (i = 0; i < ARRAY_SIZE(EXT_PLL_TABLE); i++) {
-		if ((EXT_PLL_TABLE[i].pix_clock == pixclock) &&
-		    (EXT_PLL_TABLE[i].tmdsclock == tmdsclk) &&
-		    (EXT_PLL_TABLE[i].color_depth == colordepth))
-			return &EXT_PLL_TABLE[i];
+	HDMIDBG(2, "%s pixClock %u tmdsclk %u colorDepth %d\n",
+		__func__, (u32)hdmi_dev->pixelclk, hdmi_dev->tmdsclk,
+		hdmi_dev->colordepth);
+	ext_pll[1] = RK322XH_V1_PLL_TABLE;
+	size[1] =  ARRAY_SIZE(RK322XH_V1_PLL_TABLE);
+	ext_pll[0] = EXT_PLL_TABLE;
+	size[0] = ARRAY_SIZE(EXT_PLL_TABLE);
+
+	if (hdmi_dev->soctype == HDMI_SOC_RK322XH &&
+	    rk_get_cpu_version())
+		table = 1;
+	else
+		table = 0;
+	for (j = table; j >= 0; j--) {
+		for (i = 0; i < size[j]; i++) {
+			if ((ext_pll[j][i].pix_clock == hdmi_dev->pixelclk) &&
+			    (ext_pll[j][i].tmdsclock == hdmi_dev->tmdsclk) &&
+			    (ext_pll[j][i].color_depth == hdmi_dev->colordepth))
+				return &ext_pll[j][i];
+		}
 	}
 	return NULL;
 }
@@ -1204,9 +1235,7 @@ static int ext_phy1_config(struct hdmi_dev *hdmi_dev)
 	rockchip_hdmiv2_write_phy(hdmi_dev, 0xa0, 0x04);
 #endif
 	/* config the required PHY I2C register */
-	phy_ext = get_phy_ext_tab(hdmi_dev->pixelclk,
-				  hdmi_dev->tmdsclk,
-				  hdmi_dev->colordepth);
+	phy_ext = get_phy_ext_tab(hdmi_dev);
 	if (phy_ext) {
 #ifndef SRC_DCK
 		stat = (phy_ext->vco_div_5 & 1) << 1;
@@ -1418,9 +1447,7 @@ static int ext_phy_config(struct hdmi_dev *hdmi_dev)
 		rockchip_hdmiv2_scdc_set_tmds_rate(hdmi_dev);
 
 	/* config the required PHY I2C register */
-	phy_ext = get_phy_ext_tab(hdmi_dev->pixelclk,
-				  hdmi_dev->tmdsclk,
-				  hdmi_dev->colordepth);
+	phy_ext = get_phy_ext_tab(hdmi_dev);
 	if (phy_ext) {
 		stat = ((phy_ext->pll_nf >> 1) & EXT_PHY_PLL_FB_BIT8_MASK) |
 		       ((phy_ext->vco_div_5 & 1) << 5) |
