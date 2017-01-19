@@ -41,6 +41,7 @@ void rk_iomux_config(int iomux_id)
 	case RK_I2C3_IOMUX:
 	case RK_I2C4_IOMUX:
 	case RK_I2C6_IOMUX:
+	case RK_I2C7_IOMUX:
 		rk_i2c_iomux_config(iomux_id);
 		break;
 	case RK_UART0_IOMUX:

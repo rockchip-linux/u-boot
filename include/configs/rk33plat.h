@@ -132,6 +132,7 @@
 	#endif
 	#define CONFIG_RK_GPIO_EXT_FUNC
 	#define CONFIG_CHARGE_LED
+	#define CONFIG_POWER_FUSB302
 #endif
 
 #if defined(CONFIG_RKCHIP_RK322XH)
