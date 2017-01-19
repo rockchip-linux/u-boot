@@ -11,6 +11,7 @@
 #include <power/rockchip_power.h>
 #include <power/battery.h>
 #include <asm/arch/rkplat.h>
+#include <fastboot.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -390,7 +391,12 @@ int fg_init(unsigned char bus)
 
 void plat_charger_init(void)
 {
-#if	defined(CONFIG_CHARGER_BQ25700)
+#if defined(CONFIG_UBOOT_CHARGE) && defined(CONFIG_POWER_FUSB302)
+	get_exit_uboot_charge_level();
+	if (!board_fbt_exit_uboot_charge())
+		fusb302_init();
+#endif
+#if defined(CONFIG_CHARGER_BQ25700)
 	charger_bq25700_init();
 #endif
 }

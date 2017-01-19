@@ -379,6 +379,21 @@ static void board_fbt_low_power_check(void)
 	}
 }
 
+void get_exit_uboot_charge_level(void)
+{
+	int charge_node;
+	charge_node = fdt_node_offset_by_compatible(gd->fdt_blob,
+						0, "rockchip,uboot-charge");
+	if (charge_node < 0) {
+		printf("can't find dts node for uboot-charge\n");
+		exit_uboot_charge_level = 0;
+	} else {
+		exit_uboot_charge_level =
+			fdtdec_get_int(gd->fdt_blob, charge_node,
+				       "rockchip,uboot-exit-charge-level", 0);
+	}
+}
+
 static void board_fbt_low_power_off(void)
 {
 	if (is_power_low()) {
