@@ -131,6 +131,7 @@
 		#define CONFIG_RK_DWC3_UDC
 	#endif
 	#define CONFIG_RK_GPIO_EXT_FUNC
+	#define CONFIG_CHARGE_LED
 #endif
 
 #if defined(CONFIG_RKCHIP_RK322XH)

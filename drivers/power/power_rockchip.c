@@ -59,6 +59,41 @@ unsigned char get_rockchip_pmic_id(void)
 	return rockchip_pmic_id;
 }
 
+void charge_led_enable(int enable)
+{
+	const void *blob;
+	struct fdt_gpio_state led1_enable_gpio, led2_enable_gpio;
+	int node, subnode1, subnode2;
+
+	blob = gd->fdt_blob;
+	node = fdt_node_offset_by_compatible(blob, 0, "gpio-leds");
+	if (node < 0) {
+		debug("can't find dts node for gpio-leds\n");
+		return;
+	}
+
+	subnode1 = fdt_subnode_offset(blob, node, "led@1");
+	if (subnode1 < 0) {
+		debug("can't find dts node for led@1\n");
+	} else {
+		fdtdec_decode_gpio(blob, subnode1, "gpios", &led1_enable_gpio);
+		if (gpio_is_valid(led1_enable_gpio.gpio)) {
+			printf("charge led1 %d\n", enable);
+			gpio_direction_output(led1_enable_gpio.gpio, enable);
+		}
+	}
+
+	subnode2 = fdt_subnode_offset(blob, node, "led@2");
+	if (subnode2 < 0) {
+		debug("can't find dts node for led@1\n");
+	} else {
+		fdtdec_decode_gpio(blob, subnode2, "gpios", &led2_enable_gpio);
+		if (gpio_is_valid(led2_enable_gpio.gpio)) {
+			printf("charge led2 %d\n", enable);
+			gpio_direction_output(led2_enable_gpio.gpio, enable);
+		}
+	}
+}
 
 int get_power_bat_status(struct battery *battery)
 {

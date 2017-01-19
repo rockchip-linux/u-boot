@@ -36,6 +36,10 @@ extern void lcd_standby(int enable);
 #endif
 #endif
 
+#ifdef CONFIG_CHARGE_LED
+extern void charge_led_enable(int enable);
+#endif
+
 #if defined(CONFIG_RK_PWM_REMOTE)
 extern int g_ir_keycode;
 #endif
@@ -532,11 +536,17 @@ void board_fbt_preboot(void)
 		|| (frt == FASTBOOT_REBOOT_CHARGE)) {
 #ifdef CONFIG_CMD_CHARGE_ANIM
 		char *charge[] = { "charge" };
+#ifdef CONFIG_CHARGE_LED
+		charge_led_enable(1);
+#endif
 		if ((g_logo_on_state != 0) && do_charge(NULL, 0, ARRAY_SIZE(charge), charge)) {
 			//boot from charge animation.
 			frt = FASTBOOT_REBOOT_NORMAL;
 			lcd_clear();
 		}
+#ifdef CONFIG_CHARGE_LED
+		charge_led_enable(0);
+#endif
 #endif
 	}
 	if ((android_charge_on == 1 && charge_enable && board_fbt_is_charging()) \
