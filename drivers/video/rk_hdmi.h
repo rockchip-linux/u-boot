@@ -488,6 +488,7 @@ struct hdmi_dev {
 	unsigned int	pixelrepeat;
 	unsigned char	colordepth;
 	unsigned int	defaultmode;
+	unsigned int	defaultdepth;
 	char		compatible[32];
 	int		vic;
 	int		tmdsclk_ratio_change;

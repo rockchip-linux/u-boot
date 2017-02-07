@@ -205,6 +205,7 @@ static int hdmi_parse_dts(struct hdmi_dev *hdmi_dev)
 	struct fdt_gpio_state pull_up;
 
 	hdmi_dev->defaultmode = 0;
+	hdmi_dev->defaultdepth = 8;
 	if (gd->fdt_blob) {
 		node = fdt_node_offset_by_compatible(gd->fdt_blob, 0,
 						     hdmi_dev->compatible);
@@ -222,6 +223,10 @@ static int hdmi_parse_dts(struct hdmi_dev *hdmi_dev)
 				fdtdec_get_int(gd->fdt_blob, node,
 					       "rockchip,defaultmode",
 					       0);
+		hdmi_dev->defaultdepth =
+				fdtdec_get_int(gd->fdt_blob, node,
+					       "rockchip,defaultdepth",
+					       8);
 		hdmi_dev->hdcp_enable =
 				fdtdec_get_int(gd->fdt_blob, node,
 					       "rockchip,hdcp_enable",
@@ -1660,11 +1665,12 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 			else if (hdmi_dev->video.color_output == HDMI_COLOR_YCBCR420)
 				hdmi_dev->video.color_input = HDMI_COLOR_YCBCR420;
 		}
-		/*if ((hdmi_dev->feature & SUPPORT_DEEP_10BIT) &&
-		    (deepcolor & HDMI_DEEP_COLOR_30BITS))
+		if ((hdmi_dev->feature & SUPPORT_DEEP_10BIT) &&
+		    (deepcolor & HDMI_DEEP_COLOR_30BITS) &&
+		    hdmi_dev->defaultdepth == 10)
 			hdmi_dev->video.color_output_depth = 10;
-		else*/
-		hdmi_dev->video.color_output_depth = 8;
+		else
+			hdmi_dev->video.color_output_depth = 8;
 	}
 }
 
