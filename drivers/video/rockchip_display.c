@@ -34,6 +34,10 @@ static unsigned long memory_end;
 extern const struct drm_display_mode *
 rockchip_get_display_mode_from_panel(const void *blob, int panel_node);
 
+#ifdef CONFIG_RK_PWM_BL
+extern int rk_pwm_bl_config(int brightness);
+#endif
+
 static void init_display_buffer(void)
 {
 	memory_start = gd->fb_base;
@@ -127,6 +131,10 @@ static int connector_panel_init(struct display_state *state)
 						   "delay,prepare", 0);
 	conn_state->delay_unprepare = fdtdec_get_int(blob, panel,
 						     "delay,unprepare", 0);
+	conn_state->delay_enable = fdtdec_get_int(blob, panel,
+						   "delay,enable", 0);
+	conn_state->delay_disable = fdtdec_get_int(blob, panel,
+						     "delay,disable", 0);
 	conn_state->bus_format = fdtdec_get_int(blob, panel, "bus-format",
 						MEDIA_BUS_FMT_RBG888_1X24);
 	/*
@@ -134,10 +142,15 @@ static int connector_panel_init(struct display_state *state)
 	 */
 	gpio_direction_output(enable_gpio->gpio,
 			      !!(enable_gpio->flags & OF_GPIO_ACTIVE_LOW));
+#ifdef CONFIG_RK_PWM_BL
+	rk_pwm_bl_config(0);
+#endif
+	printf("delay prepare[%d] unprepare[%d] enable[%d] disable[%d]\n", conn_state->delay_prepare, conn_state->delay_unprepare, conn_state->delay_enable, conn_state->delay_disable);
+
 	return 0;
 }
 
-void connector_panel_power_on(struct display_state *state)
+void connector_panel_power_prepare(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 
@@ -145,12 +158,32 @@ void connector_panel_power_on(struct display_state *state)
 	mdelay(conn_state->delay_prepare);
 }
 
-void connector_panel_power_off(struct display_state *state)
+void connector_panel_power_on(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+#ifdef CONFIG_RK_PWM_BL
+	mdelay(conn_state->delay_enable);
+	rk_pwm_bl_config(-1);
+#endif
+}
+
+void connector_panel_power_unprepare(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 
 	mdelay(conn_state->delay_unprepare);
 	fdtdec_set_gpio(&conn_state->enable_gpio, 0);
+}
+
+void connector_panel_power_off(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+#ifdef CONFIG_RK_PWM_BL
+	rk_pwm_bl_config(0);
+	mdelay(conn_state->delay_disable);
+#endif
 }
 
 int drm_mode_vrefresh(const struct drm_display_mode *mode)
@@ -311,8 +344,8 @@ static int display_init(struct display_state *state)
 		return -ENXIO;
 	}
 
-	/* enable panel's power, so connector's init can works */
-	connector_panel_power_on(state);
+	/* prepare panel's power, so connector's init can works */
+	connector_panel_power_prepare(state);
 
 	if (conn_funcs->init) {
 		ret = conn_funcs->init(state);
@@ -411,6 +444,7 @@ static int display_enable(struct display_state *state)
 		if (ret)
 			goto disable_crtc;
 	}
+	connector_panel_power_on(state);
 
 	state->is_enable = true;
 
@@ -440,13 +474,15 @@ static int display_disable(struct display_state *state)
 	if (!state->is_enable)
 		return 0;
 
+	connector_panel_power_off(state);
+
 	if (crtc_funcs->disable)
 		crtc_funcs->disable(state);
 
 	if (conn_funcs->disable)
 		conn_funcs->disable(state);
 
-	connector_panel_power_off(state);
+	connector_panel_power_unprepare(state);
 	state->is_enable = 0;
 	state->is_init = 0;
 

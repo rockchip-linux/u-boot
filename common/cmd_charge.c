@@ -183,14 +183,15 @@ void do_set_brightness(int brightness, int old_brightness) {
 		rk_pwm_bl_config(brightness == SCREEN_BRIGHT ? -1 : CONFIG_BRIGHTNESS_DIM);
 #endif
 	} else {
-#ifdef CONFIG_RK_PWM_BL
-		rk_pwm_bl_config(0);
-#endif
 		if (IS_BRIGHT(old_brightness)) {
-			if (g_is_new_display)
+			if (g_is_new_display) {
 				rockchip_show_bmp(NULL);
-			else
+			} else {
+				#ifdef CONFIG_RK_PWM_BL
+				rk_pwm_bl_config(0);
+				#endif
 				lcd_standby(1);
+			}
 		}
 	}
 }

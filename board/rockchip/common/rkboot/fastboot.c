@@ -579,9 +579,6 @@ void board_fbt_preboot(void)
 #ifdef CONFIG_ROCKCHIP_DISPLAY
 		if (g_is_new_display) {
 			rockchip_show_logo();
-#ifdef CONFIG_RK_PWM_BL
-			rk_pwm_bl_config(-1);
-#endif
 		} else
 #endif
 		{
