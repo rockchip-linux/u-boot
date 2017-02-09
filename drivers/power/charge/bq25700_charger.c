@@ -97,6 +97,9 @@ static u32 bq25700_find_idx(u32 value, enum bq25700_table_ids id)
 static int bq25700_charger_status(struct pmic *p)
 {
 	u16 value;
+#if defined(CONFIG_POWER_FUSB302)
+	static u16 charge_flag;
+#endif
 
 	i2c_set_bus_num(p->bus);
 	i2c_init(BQ25700_I2C_SPEED, 0);
@@ -106,8 +109,13 @@ static int bq25700_charger_status(struct pmic *p)
 	p->chrg->state_of_charger = value >> 15;
 
 #if defined(CONFIG_POWER_FUSB302)
-	if (!p->chrg->state_of_charger)
+	if (p->chrg->state_of_charger)
+		charge_flag = 1;
+	else if (!p->chrg->state_of_charger && charge_flag == 1)
+	{
 		typec_discharge();
+		charge_flag = 0;
+	}
 #endif
 
 	return value >> 15;
