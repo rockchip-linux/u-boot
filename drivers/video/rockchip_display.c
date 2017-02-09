@@ -127,6 +127,8 @@ static int connector_panel_init(struct display_state *state)
 						   "delay,prepare", 0);
 	conn_state->delay_unprepare = fdtdec_get_int(blob, panel,
 						     "delay,unprepare", 0);
+	conn_state->bus_format = fdtdec_get_int(blob, panel, "bus-format",
+						MEDIA_BUS_FMT_RBG888_1X24);
 	/*
 	 * keep panel blank on init.
 	 */
@@ -279,9 +281,6 @@ static int display_get_timing(struct display_state *state)
 	printf("failed to find display timing\n");
 	return -ENODEV;
 done:
-	conn_state->bus_format = fdtdec_get_int(blob, panel, "bus-format",
-						MEDIA_BUS_FMT_RBG888_1X24);
-
 	printf("Detailed mode clock %u kHz, flags[%x]\n"
 	       "    H: %04d %04d %04d %04d\n"
 	       "    V: %04d %04d %04d %04d\n"
