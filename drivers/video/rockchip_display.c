@@ -177,52 +177,18 @@ int drm_mode_vrefresh(const struct drm_display_mode *mode)
 	return refresh;
 }
 
-static int display_get_timing(struct display_state *state)
+static int display_get_timing_from_dts(int panel, const void *blob,
+				       struct drm_display_mode *mode)
 {
-	const struct rockchip_connector *conn = state->conn_state.connector;
-	struct connector_state *conn_state = &state->conn_state;
-	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
-	struct drm_display_mode *mode = &conn_state->mode;
-	const void *blob = state->blob;
-	int conn_node = conn_state->node;
+	int timing, phandle, native_mode;
 	int hactive, vactive, pixelclock;
 	int hfront_porch, hback_porch, hsync_len;
 	int vfront_porch, vback_porch, vsync_len;
 	int val, flags = 0;
-	int panel, timing, phandle, native_mode, ports;
-	bool has_edid = false;
-
-	panel = get_panel_node(state, conn_node);
-	if (panel < 0) {
-		printf("failed to find panel node\n");
-		return -ENODEV;
-	}
-
-	conn_state->bus_format = fdtdec_get_int(blob, panel, "bus-format",
-						MEDIA_BUS_FMT_RBG888_1X24);
-
-	if (conn_funcs->get_edid && !conn_funcs->get_edid(state)) {
-		int panel_bits_per_colourp;
-
-		if (!edid_get_timing((void *)&conn_state->edid,
-				     sizeof(conn_state->edid), mode,
-				     &panel_bits_per_colourp)) {
-			has_edid = true;
-			goto done;
-		}
-	}
 
 	timing = fdt_subnode_offset(blob, panel, "display-timings");
-	if (timing < 0) {
-		struct drm_display_mode *m;
-		m = rockchip_get_display_mode_from_panel(blob, panel);
-		if (!m) {
-			printf("failed to find timing node\n");
-			return -ENXIO;
-		}
-		memcpy(mode, m, sizeof(*m));
-		return 0;
-	}
+	if (timing < 0)
+		return -ENODEV;
 
 	phandle = fdt_getprop_u32_default_node(blob, timing, 0,
 					       "native-mode", -1);
@@ -266,9 +232,55 @@ static int display_get_timing(struct display_state *state)
 	mode->clock = pixelclock / 1000;
 	mode->flags = flags;
 
+	return 0;
+}
+
+static int display_get_timing(struct display_state *state)
+{
+	const struct rockchip_connector *conn = state->conn_state.connector;
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
+	struct drm_display_mode *mode = &conn_state->mode;
+	const struct drm_display_mode *m;
+	const void *blob = state->blob;
+	int conn_node = conn_state->node;
+	int panel;
+
+	panel = get_panel_node(state, conn_node);
+	if (panel < 0) {
+		printf("failed to find panel node\n");
+		return -ENODEV;
+	}
+
+	if (!display_get_timing_from_dts(panel, blob, mode)) {
+		printf("Using display timing dts\n");
+		goto done;
+	}
+
+	m = rockchip_get_display_mode_from_panel(blob, panel);
+	if (m) {
+		printf("Using display timing from compatible panel driver\n");
+		memcpy(mode, m, sizeof(*m));
+		goto done;
+	}
+
+	if (conn_funcs->get_edid && !conn_funcs->get_edid(state)) {
+		int panel_bits_per_colourp;
+
+		if (!edid_get_timing((void *)&conn_state->edid,
+				     sizeof(conn_state->edid), mode,
+				     &panel_bits_per_colourp)) {
+			printf("Using display timing from edid\n");
+			edid_print_info((void *)&conn_state->edid);
+			goto done;
+		}
+	}
+
+	printf("failed to find display timing\n");
+	return -ENODEV;
 done:
-	if (has_edid)
-		edid_print_info((void *)&conn_state->edid);
+	conn_state->bus_format = fdtdec_get_int(blob, panel, "bus-format",
+						MEDIA_BUS_FMT_RBG888_1X24);
 
 	printf("Detailed mode clock %u kHz, flags[%x]\n"
 	       "    H: %04d %04d %04d %04d\n"
@@ -280,7 +292,6 @@ done:
 	       mode->vdisplay, mode->vsync_start,
 	       mode->vsync_end, mode->vtotal,
 	       conn_state->bus_format);
-	printf("Using display timing from %s\n", has_edid ? "edid" : "dts");
 
 	return 0;
 }
