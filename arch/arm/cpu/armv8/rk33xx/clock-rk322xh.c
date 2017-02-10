@@ -15,7 +15,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 /* ARM/General/Codec/New pll freq config */
-#define CONFIG_RKCLK_APLL_FREQ		816 /* MHZ */
+#define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
 #define CONFIG_RKCLK_APLL_FREQ_HIGH	1200 /* MHZ */
 #define CONFIG_RKCLK_GPLL_FREQ		800 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
