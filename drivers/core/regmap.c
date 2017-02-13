@@ -39,6 +39,16 @@ static struct regmap *regmap_alloc_count(int count)
 }
 
 #if CONFIG_IS_ENABLED(OF_PLATDATA)
+u64 fdtdec_get_number(const u32 *ptr, unsigned int cells)
+{
+	u64 number = 0;
+
+	while (cells--)
+		number = (number << 32) | (*ptr++);
+
+	return number;
+}
+
 int regmap_init_mem_platdata(struct udevice *dev, u32 *reg, int count,
 			     struct regmap **mapp)
 {
@@ -48,13 +58,19 @@ int regmap_init_mem_platdata(struct udevice *dev, u32 *reg, int count,
 	map = regmap_alloc_count(count);
 	if (!map)
 		return -ENOMEM;
-
+#ifdef CONFIG_ARM64
+	map->base = fdtdec_get_number(reg, 2);
+	for (range = map->range; count > 0; reg += 4, range++, count--) {
+		range->start = fdtdec_get_number(reg, 2);
+		range->size = fdtdec_get_number(reg + 2, 2);
+	}
+#else
 	map->base = *reg;
 	for (range = map->range; count > 0; reg += 2, range++, count--) {
 		range->start = *reg;
 		range->size = reg[1];
 	}
-
+#endif
 	*mapp = map;
 
 	return 0;
