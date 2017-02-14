@@ -708,6 +708,14 @@ void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
  */
 void rkclk_set_pll(void)
 {
+	/*
+	 * init timer7 for core, which will be used in following
+	 * clk_loop_delayus().
+	 */
+	writel(0, 0xFF810000 + 0x30);
+	writel(0xFFFFFFFF, 0xFF810000 + 0x20);
+	writel(1, 0xFF810000 + 0x30);
+
 	rkclk_pll_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
 	rkclk_pll_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
 	rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
