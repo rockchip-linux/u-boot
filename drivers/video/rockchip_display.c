@@ -721,11 +721,10 @@ void rockchip_show_logo(void)
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
 		s->logo.mode = s->logo_mode;
-		if (load_bmp_logo(&s->logo, s->ulogo_name)) {
+		if (load_bmp_logo(&s->logo, s->ulogo_name))
 			printf("failed to display uboot logo\n");
-			continue;
-		}
-		display_logo(s);
+		else
+			display_logo(s);
 		if (load_bmp_logo(&s->logo, s->klogo_name))
 			printf("failed to display kernel logo\n");
 	}
