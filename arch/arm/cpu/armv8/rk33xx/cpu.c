@@ -244,7 +244,11 @@ int print_cpuinfo(void)
 
 #if defined(CONFIG_RKCHIP_RK322XH)
 	if (gd->arch.chiptype == CONFIG_RK322XH)
+	#if defined(CONFIG_RKCHIP_RK3328)
+		printf("CPU: rk3328\n");
+	#else
 		printf("CPU: rk322xh\n");
+	#endif
 #endif
 
 	/* get cpu eco version */
