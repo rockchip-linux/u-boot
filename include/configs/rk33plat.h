@@ -146,6 +146,7 @@
 	#undef CONFIG_RK_UMS_BOOT_EN
 
 	#undef CONFIG_RK_PL330_DMAC
+	#undef CONFIG_MERGER_MINILOADER
 #endif
 
 /* fpga board configure */
