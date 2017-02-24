@@ -727,8 +727,7 @@ static bool mergeBoot(void) {
 	{
 		char* subfix = strstr(gOpts.outPath, OUT_SUBFIX);
 		char version[MAX_LINE_LEN];
-		snprintf(version, sizeof(version), "_V%d.%02d%s", gOpts.major,
-				gOpts.minor, gSubfix);
+		snprintf(version, sizeof(version), "%s", gSubfix);
 		if (subfix && !strcmp(subfix, OUT_SUBFIX)) {
 			subfix[0] = '\0';
 		}
