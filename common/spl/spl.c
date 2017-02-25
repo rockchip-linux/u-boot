@@ -175,12 +175,7 @@ int spl_init(void)
 	int ret;
 
 	debug("spl_init()\n");
-/*
- * with CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN we set malloc_base and
- * malloc_limit in spl_relocate_stack_gd
- */
-#if defined(CONFIG_SYS_MALLOC_F_LEN) && \
-	!defined(CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN)
+#if defined(CONFIG_SYS_MALLOC_F_LEN)
 #ifdef CONFIG_MALLOC_F_ADDR
 	gd->malloc_base = CONFIG_MALLOC_F_ADDR;
 #endif
