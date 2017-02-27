@@ -130,7 +130,7 @@ static struct pll_clk_set apll_clks[] = {
 	 * _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 	 *	_core_div, _core_aclk_m_civ, _core_pclk_dbg_div
 	 */
-	_APLL_SET_CLKS(1200000, 1, 150, 3, 1, 1, 0,	1, 2, 4),
+	_APLL_SET_CLKS(1200000, 1, 50, 1, 1, 1, 0,	1, 2, 8),
 	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 2, 3),
 	_APLL_SET_CLKS(600000, 1, 75, 3, 1, 1, 0,	1, 2, 2),
 };
