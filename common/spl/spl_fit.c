@@ -178,10 +178,7 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 	if (image_info) {
 		image_info->load_addr = load_addr;
 		image_info->size = length;
-		if (entry == -1UL)
-			image_info->entry_point = load_addr;
-		else
-			image_info->entry_point = entry;
+		image_info->entry_point = entry;
 	}
 
 	return 0;
@@ -196,6 +193,7 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	struct spl_image_info image_info;
 	int node, images;
 	int base_offset, align_len = ARCH_DMA_MINALIGN - 1;
+	int index = 0;
 
 	/*
 	 * Figure out where the external images start. This is the base for the
@@ -240,6 +238,11 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	if (node < 0) {
 		debug("could not find firmware image, trying loadables...\n");
 		node = spl_fit_get_image_node(fit, images, "loadables", 0);
+		/*
+		 * If we pick the U-Boot image from "loadables", start at
+		 * the second image when later loading additional images.
+		 */
+		index = 1;
 	}
 	if (node < 0) {
 		debug("%s: Cannot find u-boot image node: %d\n",
@@ -264,6 +267,27 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	 */
 	image_info.load_addr = spl_image->load_addr + spl_image->size;
 	spl_load_fit_image(info, sector, fit, base_offset, node, &image_info);
+
+	/* Now check if there are more images for us to load */
+	for (; ; index++) {
+		node = spl_fit_get_image_node(fit, images, "loadables", index);
+		if (node < 0)
+			break;
+
+		spl_load_fit_image(info, sector, fit, base_offset, node,
+				   &image_info);
+
+		/*
+		 * If the "firmware" image did not provide an entry point,
+		 * use the first valid entry point from the loadables.
+		 */
+		if (spl_image->entry_point == -1UL &&
+		    image_info.entry_point != -1UL)
+			spl_image->entry_point = image_info.entry_point;
+	}
+
+	if (spl_image->entry_point == -1UL || spl_image->entry_point == 0)
+		spl_image->entry_point = spl_image->load_addr;
 
 	return 0;
 }
