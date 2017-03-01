@@ -55,14 +55,13 @@ static int spl_fit_find_config_node(const void *fdt)
 	return -1;
 }
 
-static int spl_fit_select_index(const void *fit, int images, int *offsetp,
-				const char *type, int index)
+static int spl_fit_get_image_node(const void *fit, int images,
+				  const char *type, int index)
 {
 	const char *name, *str;
 	int node, conf_node;
 	int len, i;
 
-	*offsetp = 0;
 	conf_node = spl_fit_find_config_node(fit);
 	if (conf_node < 0) {
 #ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
@@ -99,10 +98,7 @@ static int spl_fit_select_index(const void *fit, int images, int *offsetp,
 		return -EINVAL;
 	}
 
-	*offsetp = fdt_getprop_u32(fit, node, "data-offset");
-	len = fdt_getprop_u32(fit, node, "data-size");
-
-	return len;
+	return node;
 }
 
 static int get_aligned_image_offset(struct spl_load_info *info, int offset)
@@ -188,15 +184,22 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	if (count == 0)
 		return -EIO;
 
-	/* find the firmware image to load */
+	/* find the node holding the images information */
 	images = fdt_path_offset(fit, FIT_IMAGES_PATH);
 	if (images < 0) {
 		debug("%s: Cannot find /images node: %d\n", __func__, images);
 		return -1;
 	}
-	node = fdt_first_subnode(fit, images);
+
+	/* find the U-Boot image */
+	node = spl_fit_get_image_node(fit, images, "firmware", 0);
 	if (node < 0) {
-		debug("%s: Cannot find first image node: %d\n", __func__, node);
+		debug("could not find firmware image, trying loadables...\n");
+		node = spl_fit_get_image_node(fit, images, "loadables", 0);
+	}
+	if (node < 0) {
+		debug("%s: Cannot find u-boot image node: %d\n",
+		      __func__, node);
 		return -1;
 	}
 
@@ -238,10 +241,13 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 	memcpy(dst, src, data_size);
 
 	/* Figure out which device tree the board wants to use */
-	fdt_len = spl_fit_select_index(fit, images, &fdt_offset,
-				       FIT_FDT_PROP, 0);
-	if (fdt_len < 0)
-		return fdt_len;
+	node = spl_fit_get_image_node(fit, images, FIT_FDT_PROP, 0);
+	if (node < 0) {
+		debug("%s: cannot find FDT node\n", __func__);
+		return node;
+	}
+	fdt_offset = fdt_getprop_u32(fit, node, "data-offset");
+	fdt_len = fdt_getprop_u32(fit, node, "data-size");
 
 	/*
 	 * Read the device tree and place it after the image. There may be
