@@ -25,6 +25,7 @@ struct regulator_init_reg_name regulator_init_pwm_matches[MAX_PWM_NUM];
 
 struct pwm_regulator {
 	int period;
+	int polarity;
 	unsigned int pwm_vol_map_count;
 	unsigned int coefficient;
 	unsigned int init_voltage;
@@ -62,7 +63,6 @@ static int pwm_regulator_set_rate(int rate, int pwm_id)
 	int duty_cycle;
 
 	duty_cycle = (rate * (pwm.period) / 100) ;
-	pwm_init(pwm_id, 0, 0);
 	pwm_config(pwm_id, duty_cycle, pwm.period);
 
 	return 0;
@@ -81,7 +81,7 @@ static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 	}
 
 	if (!pwm.volt_table) {
-		pwm_value = (pwm_reg_matches[num_matches].max_uV - min_uV) /
+		pwm_value = (min_uV - pwm_reg_matches[num_matches].min_uV) /
 			     ((pwm_reg_matches[num_matches].max_uV -
 			     pwm_reg_matches[num_matches].min_uV) / 100);
 	} else {
@@ -98,8 +98,9 @@ static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 		vol =  pwm.volt_table[i];
 
 		/* VDD12 = 1.40 - 0.455*D , pwm duty*/
-		pwm_value = (pwm_max_volt[num_matches] - vol) /
-			     pwm_coefficient[num_matches] / 10;
+		pwm_value = (pwm_reg_matches[i].max_uV - vol) /
+			    ((pwm_reg_matches[num_matches].max_uV -
+			     pwm_reg_matches[num_matches].min_uV) / 100);
 		/*pwm_value %, coefficient *1000*/
 	}
 	if (pwm_regulator_set_rate(pwm_value, pwm_id) != 0) {
@@ -117,7 +118,7 @@ static int pwm_regulator_parse_dt(const void *blob)
 {
 	int pwm_node[2], pwm_nd[2];
 	int ret = 0, i, length;
-	u32 pwm0_data[3];
+	u32 pwm0_data[4];
 	int pwm_count = 0, pwm_id[2];
 	int pwm_init_volt[2];
 
@@ -152,6 +153,7 @@ static int pwm_regulator_parse_dt(const void *blob)
 		return -ENODEV;
 	}
 	pwm.period = pwm0_data[2];
+	pwm.polarity = pwm0_data[3];
 
 	fdt_getprop(blob, pwm_node[0], "rockchip,pwm_voltage_map", &length);
 	pwm.pwm_vol_map_count = length / sizeof(u32);
@@ -169,6 +171,7 @@ static int pwm_regulator_parse_dt(const void *blob)
 			printf("Cannot find regulator pwm id\n");
 			continue;
 		}
+		pwm_init(pwm_id[i], 0, pwm.polarity);
 		pwm_nd[i] = fdt_get_regulator_node(blob, pwm_node[i]);
 		pwm_init_volt[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_voltage", 0);
 		pwm_coefficient[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_coefficient", 0);
@@ -196,6 +199,7 @@ pwm_regulator:
 			printf("Cannot find regulator pwm id\n");
 			continue;
 		}
+		pwm_init(pwm_id[i], 0, pwm.polarity);
 		pwm_init_volt[i] = fdtdec_get_int(blob,
 						  pwm_node[i],
 						  "rockchip,pwm_voltage",

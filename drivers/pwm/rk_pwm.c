@@ -53,7 +53,7 @@
 
 #define PWMPCR_MIN_PERIOD		0x0001
 #define PWMPCR_MAX_PERIOD		0xFFFF
-
+int enable_conf = 0;
 
 void __iomem *rk_pwm_get_base(unsigned pwm_id)
 {
@@ -76,7 +76,10 @@ int pwm_init(int pwm_id, int div, int invert)
 
 	debug("pwm init id = %d\n", pwm_id);
 
-	invert = invert;
+	if (invert)
+		enable_conf |= PWM_DUTY_NEGATIVE | PWM_INACTIVE_POSTIVE;
+	else
+		enable_conf |= PWM_DUTY_POSTIVE | PWM_INACTIVE_NEGATIVE;
 	div = div;
 
 	rk_iomux_config(RK_PWM0_IOMUX + pwm_id);
@@ -103,7 +106,7 @@ int pwm_config(int pwm_id, int duty_ns, int period_ns)
 
 	on   = RK_PWM_ENABLE;
 	conf = PWM_OUTPUT_LEFT|PWM_LP_DISABLE|
-			PWM_CONTINUMOUS|PWM_DUTY_POSTIVE|PWM_INACTIVE_NEGATIVE;
+			PWM_CONTINUMOUS | enable_conf;
 	/*
 	 * Find pv, dc and prescale to suit duty_ns and period_ns. This is done
 	 * according to formulas described below:
