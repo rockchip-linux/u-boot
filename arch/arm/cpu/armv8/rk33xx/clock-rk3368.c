@@ -1496,7 +1496,7 @@ void rkcru_cpu_soft_reset(void)
 	rkclk_pll_mode(RKCLK_PLL_MODE_SLOW);
 
 	/* soft reset */
-	writel(0xeca8, RKIO_CRU_PHYS + CRU_GLB_SRST_SND);
+	cru_writel(0xfdb9, CRU_GLB_SRST_FST);
 }
 
 
