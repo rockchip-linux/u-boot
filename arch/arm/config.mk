@@ -103,7 +103,7 @@ PLATFORM_LIBS := arch/arm/lib/eabi_compat.o \
 endif
 
 # needed for relocation
-LDFLAGS_u-boot += -pie
+LDFLAGS_u-boot += -N -pie
 
 #
 # FIXME: binutils versions < 2.22 have a bug in the assembler where
