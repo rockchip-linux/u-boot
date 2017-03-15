@@ -17,6 +17,7 @@
 #include <asm/arch/grf_rk3288.h>
 #include <dm/pinctrl.h>
 #include <dt-bindings/clock/rk3288-cru.h>
+#include <power/regulator.h>
 #include "designware.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -78,6 +79,22 @@ static int gmac_rockchip_probe(struct udevice *dev)
 	struct rk3288_grf *grf;
 	struct clk clk;
 	int ret;
+
+#if defined(CONFIG_DM_REGULATOR)
+	struct udevice *phy_supply;
+
+	ret = device_get_supply_regulator(dev, "phy-supply",
+					  &phy_supply);
+	if (ret) {
+		debug("%s: No phy supply\n", dev->name);
+	} else {
+		ret = regulator_set_enable(phy_supply, true);
+		if (ret) {
+			puts("Error enabling phy supply\n");
+			return ret;
+		}
+	}
+#endif
 
 	ret = clk_get_by_index(dev, 0, &clk);
 	if (ret)
