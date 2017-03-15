@@ -1495,7 +1495,11 @@ void rkcru_cpu_soft_reset(void)
 	/* pll enter slow mode */
 	rkclk_pll_mode(RKCLK_PLL_MODE_SLOW);
 
-	/* soft reset */
+	/* cold reset
+	 * make sure CRU_GLB_RST_CON to be default value
+	 * before to set global reset.
+	 */
+	cru_writel(0x0000, CRU_GLB_RST_CON);
 	cru_writel(0xfdb9, CRU_GLB_SRST_FST);
 }
 
