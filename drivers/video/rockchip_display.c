@@ -22,6 +22,7 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
+#include "rockchip_phy.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 static LIST_HEAD(rockchip_display_list);
@@ -104,6 +105,45 @@ static int get_panel_node(struct display_state *state, int conn_node)
 	}
 
 	return panel;
+}
+
+static int connector_phy_init(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	int conn_node = conn_state->node;
+	const void *blob = state->blob;
+	const struct rockchip_phy *phy;
+	int phy_node, phandle;
+
+	phandle = fdt_getprop_u32_default_node(blob, conn_node, 0,
+					       "phys", -1);
+	if (phandle < 0) {
+		printf("failed to find phy node\n");
+		return 0;
+	}
+
+	phy_node = fdt_node_offset_by_phandle(blob, phandle);
+	if (phy_node < 0) {
+		printf("failed to find phy node\n");
+		return phy_node;
+	}
+
+	phy = rockchip_get_phy(blob, phy_node);
+	if (!phy) {
+		printf("failed to find phy driver\n");
+		return 0;
+	}
+
+	conn_state->phy_node = phy_node;
+
+	if (!phy->funcs || !phy->funcs->init ||
+	    phy->funcs->init(state)) {
+		printf("failed to init phy driver\n");
+		return -EINVAL;
+	}
+
+	conn_state->phy = phy;
+	return 0;
 }
 
 static int connector_panel_init(struct display_state *state)
@@ -806,6 +846,7 @@ int rockchip_display_init(void)
 		s->crtc_state.crtc_id = get_crtc_id(blob, connect);
 		s->node = child;
 
+		connector_phy_init(s);
 		connector_panel_init(s);
 		list_add_tail(&s->head, &rockchip_display_list);
 	}
