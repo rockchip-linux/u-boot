@@ -22,4 +22,8 @@ struct rockchip_phy {
 
 const struct rockchip_phy *
 rockchip_get_phy(const void *blob, int phy_node);
+
+#ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
+extern const struct rockchip_phy_funcs rockchip_inno_mipi_dphy_funcs;
+#endif
 #endif

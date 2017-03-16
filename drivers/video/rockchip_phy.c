@@ -21,6 +21,12 @@
 #include "rockchip_phy.h"
 
 static const struct rockchip_phy g_phy[] = {
+#ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
+	{
+	 .compatible = "rockchip,rk3368-mipi-dphy",
+	 .funcs = &rockchip_inno_mipi_dphy_funcs,
+	},
+#endif
 };
 
 const struct rockchip_phy *rockchip_get_phy(const void *blob, int phy_node)
