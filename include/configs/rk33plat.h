@@ -346,6 +346,7 @@
 #define CONFIG_DIRECT_LOGO
 #define CONFIG_RK_HDMI
 #define CONFIG_RK3036_TVE
+#undef CONFIG_LOGO_HASH_CHECK
 #undef CONFIG_RK_TVE
 #endif
 

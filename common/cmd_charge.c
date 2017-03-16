@@ -71,6 +71,8 @@ extern void power_on_pmic(void);
 extern void power_off_pmic(void);
 extern bool board_fbt_exit_uboot_charge(void);
 
+extern int uboot_brightness;
+
 #ifdef CONFIG_POWER_FG_ADC
 u8 g_increment = 0;
 #define BIG_CHARGE_INCRE_TIME          100000
@@ -183,14 +185,15 @@ void do_set_brightness(int brightness, int old_brightness) {
 		rk_pwm_bl_config(brightness == SCREEN_BRIGHT ? -1 : CONFIG_BRIGHTNESS_DIM);
 #endif
 	} else {
-#ifdef CONFIG_RK_PWM_BL
-		rk_pwm_bl_config(0);
-#endif
 		if (IS_BRIGHT(old_brightness)) {
-			if (g_is_new_display)
+			if (g_is_new_display) {
 				rockchip_show_bmp(NULL);
-			else
+			} else {
+				#ifdef CONFIG_RK_PWM_BL
+				rk_pwm_bl_config(0);
+				#endif
 				lcd_standby(1);
+			}
 		}
 	}
 }
@@ -786,7 +789,7 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 #endif
 
 		//step 5:step anim when screen is on.
-		if (IS_BRIGHT(brightness)) {
+		if (uboot_brightness && IS_BRIGHT(brightness)) {
 			//do anim when screen is on.
 			unsigned int duration = get_timer(anim_time) * 1000;
 			if (!IS_BRIGHT(g_state.brightness)
@@ -797,7 +800,10 @@ int do_charge(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 
 		//step 6:set brightness state.
-		set_brightness(brightness, &g_state);
+		if (uboot_brightness)
+			set_brightness(brightness, &g_state);
+		else
+			set_brightness(SCREEN_OFF, &g_state);
 
 		//udelay(100);// 50ms.
 	}

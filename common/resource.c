@@ -13,15 +13,16 @@
 #include <common.h>
 #include <command.h>
 #include <linux/sizes.h>
-
 #include <resource.h>
 #include <fastboot.h>
 #include <malloc.h>
 #include <bmp_layout.h>
 #include <../board/rockchip/common/config.h>
-
 #include <fdt_support.h>
 #include <lcd.h>
+#ifdef CONFIG_LOGO_HASH_CHECK
+#include <u-boot/sha256.h>
+#endif
 
 static bool inline read_storage(lbaint_t offset, void* buf, uint16_t blocks) {
 #if 1
@@ -349,6 +350,50 @@ int load_bmp_content(const char *logo, void *bmp, int size)
 	return 0;
 }
 
+#ifdef CONFIG_LOGO_HASH_CHECK
+static int bmp_hash256_check(bmp_image_t *bmp)
+{
+	unsigned long file_size = 0;
+        uint32 hwDataHash[8];
+	char temp[4];
+	uint32 storeDataHash[8];
+	int ret;
+	int loop;
+	uchar *bmap;
+
+	if (!bmp || (bmp->header.signature[0] != 'B')
+		 || (bmp->header.signature[1] != 'M')) {
+		return -1;
+	}
+	file_size = le32_to_cpu(bmp->header.file_size);
+	bmap = (uchar *)bmp + file_size;
+	if (file_size) {
+		CryptoSHAInit(file_size, 256);
+		CryptoSHAInputByteSwap(1);
+		CryptoSHAStart((uint32 *)bmp, file_size);
+		CryptoSHAEnd(hwDataHash);
+	}
+
+	/* read store hash data */
+	memcpy(storeDataHash, bmap, sizeof(storeDataHash));
+
+	/* compare hw hash data and store hash data */
+	ret = memcmp(storeDataHash, hwDataHash, sizeof(storeDataHash));
+	if (ret != 0) {
+		debug("hash cmp ret=0x%x\n", ret);
+		debug("swap hash %x,  %x,  %x,  %x,  %x,  %x,  %x,  %x \n",
+                        hwDataHash[0], hwDataHash[1], hwDataHash[2], hwDataHash[3],
+                        hwDataHash[4], hwDataHash[5], hwDataHash[6], hwDataHash[7]);
+		debug("store hash %x,  %x,  %x,  %x,  %x,  %x,  %x,  %x \n",
+                        storeDataHash[0], storeDataHash[1], storeDataHash[2],
+			storeDataHash[3], storeDataHash[4], storeDataHash[5],
+			storeDataHash[6], storeDataHash[7]);
+
+	}
+	return ret;
+}
+#endif
+
 bool _show_resource_image(const char* image_path) {
 	bool ret = false;
 #ifdef CONFIG_LCD
@@ -359,17 +404,35 @@ bool _show_resource_image(const char* image_path) {
 	snprintf(image.path, sizeof(image.path), "%s", image_path);
 
 	if (ptn) {
-		printf("Find logo from partition %s\n", LOGO_NAME);
 #ifdef CONFIG_DIRECT_LOGO
 		bmp = lcd_get_buffer();
 #else
 		bmp = (void *)gd->arch.rk_boot_buf_addr;
 #endif
 		read_storage(ptn->start, bmp, CONFIG_MAX_BMP_BLOCKS);
-		debug("bmp image at 0x%p, sign:%c%c\n", bmp, bmp->header.signature[0], bmp->header.signature[1]);
+		debug("bmp image at 0x%p, sign:%c%c\n", bmp, bmp->header.signature[0],
+		      bmp->header.signature[1]);
+#ifdef CONFIG_LOGO_HASH_CHECK
+		if (bmp_hash256_check(bmp) == 0) {
+			;
+		} else {
+			/*
+			#ifdef CONFIG_DIRECT_LOGO
+			bmp = lcd_get_buffer();
+			#else
+			bmp = (void *)gd->arch.rk_boot_buf_addr;
+			#endif
+			read_storage(ptn->start + 0x8000, bmp, CONFIG_MAX_BMP_BLOCKS);
+			printf("read logo bak\n");
+			*/
+			bmp->header.signature[0] = 'E';
+			printf("Logo bmp hash check error\n");
+		}
+#endif
 	}
 
 	if (ptn && bmp && bmp->header.signature[0] == 'B' && bmp->header.signature[1] == 'M') {
+		printf("Find logo from partition %s\n", LOGO_NAME);
 		debug("%s:show logo.bmp from logo partition\n", __func__);
 		lcd_display_bitmap_center((uint32_t)(unsigned long)bmp);
 		ret = true;

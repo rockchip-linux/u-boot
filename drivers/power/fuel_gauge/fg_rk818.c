@@ -1274,8 +1274,7 @@ static int rk818_bat_update(struct pmic *p, struct pmic *bat)
 	}
 
 	/* bat exist, fg init success(dts pass) and uboot charge: report data */
-	if (!rk818_fg.di.virtual_power && rk818_fg.di.voltage_k &&
-	    rk818_bat_is_initialized(&rk818_fg.di)) {
+	if (!rk818_fg.di.virtual_power && rk818_fg.di.voltage_k) {
 		battery->voltage_uV = rk818_bat_get_est_voltage(&rk818_fg.di);
 		battery->capacity = rk818_fg.di.dsoc;
 	} else {

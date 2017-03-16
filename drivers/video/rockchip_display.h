@@ -72,6 +72,8 @@ struct connector_state {
 	u8 edid[EDID_SIZE * 4];
 	int delay_prepare;
 	int delay_unprepare;
+	int delay_enable;
+	int delay_disable;
 	int bus_format;
 	int output_mode;
 	int type;

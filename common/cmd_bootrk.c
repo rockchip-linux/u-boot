@@ -521,6 +521,9 @@ static void rk_commandline_setenv(const char *boot_name, rk_boot_img_hdr *hdr, b
 			 "%s adc.incre=%d", command_line, g_increment);
 #endif
 
+	snprintf(command_line, sizeof(command_line),
+			 "%s SecureBootCheckOk=%d", command_line, SecureBootCheckOK);
+
 	char *sn = getenv("fbt_sn#");
 	if (sn != NULL) {
 		/* append serial number if it wasn't in device_info already */
