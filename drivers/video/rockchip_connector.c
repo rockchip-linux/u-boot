@@ -26,6 +26,10 @@ static const struct rockchip_connector g_connector[] = {
 	 .funcs = &rockchip_dw_mipi_dsi_funcs,
 	 .data = &rk3288_mipi_dsi_drv_data,
 	},{
+	 .compatible = "rockchip,rk3368-mipi-dsi",
+	 .funcs = &rockchip_dw_mipi_dsi_funcs,
+	 .data = &rk3368_mipi_dsi_drv_data,
+	},{
 	 .compatible = "rockchip,rk3399-mipi-dsi",
 	 .funcs = &rockchip_dw_mipi_dsi_funcs,
 	 .data = &rk3399_mipi_dsi_drv_data,

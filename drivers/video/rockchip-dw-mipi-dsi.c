@@ -289,6 +289,8 @@ struct dw_mipi_dsi_plat_data {
 	u32 grf_dsi0_mode;
 	u32 grf_dsi0_mode_reg;
 	unsigned int max_data_lanes;
+	u32 max_bit_rate_per_lane;
+	bool has_vop_sel;
 };
 
 struct dw_mipi_dsi {
@@ -746,6 +748,7 @@ const struct dw_mipi_dsi_plat_data rk3288_mipi_dsi_drv_data = {
 	.dsi0_en_bit = RK3288_DSI0_SEL_VOP_LIT,
 	.dsi1_en_bit = RK3288_DSI1_SEL_VOP_LIT,
 	.grf_switch_reg = RK3288_GRF_SOC_CON6,
+	.max_bit_rate_per_lane = 1500000000,
 	.max_data_lanes = 4,
 };
 
@@ -755,6 +758,15 @@ const struct dw_mipi_dsi_plat_data rk3399_mipi_dsi_drv_data = {
 	.grf_switch_reg = RK3399_GRF_SOC_CON19,
 	.grf_dsi0_mode = RK3399_GRF_DSI_MODE,
 	.grf_dsi0_mode_reg = RK3399_GRF_SOC_CON22,
+	.max_bit_rate_per_lane = 1500000000,
+	.max_data_lanes = 4,
+};
+
+const struct dw_mipi_dsi_plat_data rk3368_mipi_dsi_drv_data = {
+	.grf_dsi0_mode = RK3399_GRF_DSI_MODE,
+	.grf_dsi0_mode_reg = RK3399_GRF_SOC_CON22,
+	.max_data_lanes = 4,
+	.max_bit_rate_per_lane = 1000000000,
 	.max_data_lanes = 4,
 };
 
@@ -827,6 +839,7 @@ static int rockchip_dw_mipi_dsi_prepare(struct display_state *state)
 
 	dw_mipi_dsi_clk_enable(dsi);
 
+	rockchip_phy_power_on(state);
 	dw_mipi_dsi_init(dsi);
 	dw_mipi_dsi_dpi_config(dsi, dsi->mode);
 	dw_mipi_dsi_packet_handler_config(dsi);
@@ -855,17 +868,20 @@ static int rockchip_dw_mipi_dsi_enable(struct display_state *state)
 		writel(pdata->grf_dsi0_mode,
 		       RKIO_GRF_PHYS + pdata->grf_dsi0_mode_reg);
 
-	dw_mipi_dsi_phy_init(dsi);
+	if (!conn_state->phy)
+		dw_mipi_dsi_phy_init(dsi);
 	dw_mipi_dsi_wait_for_two_frames(dsi);
 
 	dw_mipi_dsi_set_mode(dsi, DW_MIPI_DSI_VID_MODE);
 
-	if (crtc_state->crtc_id)
-		val = pdata->dsi0_en_bit | (pdata->dsi0_en_bit << 16);
-	else
-		val = pdata->dsi0_en_bit << 16;
+	if (pdata->grf_switch_reg) {
+		if (crtc_state->crtc_id)
+			val = pdata->dsi0_en_bit | (pdata->dsi0_en_bit << 16);
+		else
+			val = pdata->dsi0_en_bit << 16;
 
-	writel(val, RKIO_GRF_PHYS + pdata->grf_switch_reg);
+		writel(val, RKIO_GRF_PHYS + pdata->grf_switch_reg);
+	}
 	debug("vop %s output to dsi0\n", (crtc_state->crtc_id) ? "LIT" : "BIG");
 
 	return 0;
