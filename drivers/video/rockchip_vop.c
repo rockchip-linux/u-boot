@@ -28,7 +28,6 @@ static int rockchip_vop_init(struct display_state *state)
 	struct drm_display_mode *mode = &conn_state->mode;
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct vop_data *vop_data = crtc->data;
-	const struct vop_reg_data *init_table = vop_data->init_table;
 	struct vop *vop;
 	u16 hsync_len = mode->hsync_end - mode->hsync_start;
 	u16 hdisplay = mode->hdisplay;
@@ -52,13 +51,18 @@ static int rockchip_vop_init(struct display_state *state)
 					    crtc_state->node, "reg");
 	vop->regsbak = malloc(vop_data->reg_len);
 	vop->win = vop_data->win;
+	vop->win_offset = vop_data->win_offset;
 	vop->ctrl = vop_data->ctrl;
+	vop->line_flag = vop_data->line_flag;
+	vop->version = vop_data->version;
 
+#ifdef CONFIG_RKCHIP_RK3399
 	/* Set Dclk pll parent */
 	if (conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
 		rkclk_lcdc_dclk_pll_sel(crtc_state->crtc_id, 0);
 	else
 		rkclk_lcdc_dclk_pll_sel(crtc_state->crtc_id, 1);
+#endif
 
 	/* Set aclk hclk and dclk */
 	rate = rkclk_lcdc_clk_set(crtc_state->crtc_id, mode->clock * 1000);
@@ -68,8 +72,10 @@ static int rockchip_vop_init(struct display_state *state)
 	}
 	memcpy(vop->regsbak, vop->regs, vop_data->reg_len);
 
-	for (i = 0; i < vop_data->table_size; i++)
-		vop_writel(vop, init_table[i].offset, init_table[i].value);
+	VOP_CTRL_SET(vop, global_regdone_en, 1);
+	VOP_CTRL_SET(vop, win_gate[0], 1);
+	VOP_CTRL_SET(vop, win_gate[1], 1);
+	VOP_CTRL_SET(vop, dsp_blank, 0);
 
 	val = 0x8;
 	val |= (mode->flags & DRM_MODE_FLAG_NHSYNC) ? 0 : 1;
@@ -135,7 +141,7 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, vact_st_end, val);
 	VOP_CTRL_SET(vop, vpost_st_end, val);
 	VOP_CTRL_SET(vop, standby, 1);
-	VOP_CTRL_SET(vop, line_flag_num[0], vact_end - 3);
+	VOP_LINE_FLAG_SET(vop, line_flag_num[0], vact_end - 3);
 	vop_cfg_done(vop);
 
 	return 0;

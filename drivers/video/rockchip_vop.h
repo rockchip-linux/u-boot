@@ -6,24 +6,62 @@
 
 #ifndef _ROCKCHIP_VOP_H_
 #define _ROCKCHIP_VOP_H_
+/*
+ * major: IP major vertion, used for IP structure
+ * minor: big feature change under same structure
+ */
+#define VOP_VERSION(major, minor)	((major) << 8 | (minor))
+#define VOP_MAJOR(version) 	((version) >> 8)
+#define VOP_MINOR(version) 	((version) & 0xff)
+
+#define VOP_REG_SUPPORT(vop, reg) \
+		(!reg.major || (reg.major == VOP_MAJOR(vop->version) && \
+		reg.begin_minor <= VOP_MINOR(vop->version) && \
+		reg.end_minor >= VOP_MINOR(vop->version) && \
+		reg.mask))
+
+#define VOP_WIN_SUPPORT(vop, win, name) \
+		VOP_REG_SUPPORT(vop, win->phy->name)
+
+#define VOP_CTRL_SUPPORT(vop, name) \
+		VOP_REG_SUPPORT(vop, vop->ctrl->name)
 
 #define __REG_SET(x, off, mask, shift, v, write_mask) \
 		vop_mask_write(x, off, mask, shift, v, write_mask)
 
-#define REG_SET(x, reg, v) \
-		__REG_SET(x, reg.offset, reg.mask, reg.shift, v, reg.write_mask)
-#define REG_SET_MASK(x, reg, mask, v) \
-		__REG_SET(x, reg.offset, mask, reg.shift, v, reg.write_mask)
+#define _REG_SET(vop, name, off, reg, mask, v) \
+	do { \
+		if (VOP_REG_SUPPORT(vop, reg)) \
+			__REG_SET(vop, off + reg.offset, mask, reg.shift, \
+				  v, reg.write_mask); \
+		else \
+			debug("Warning: not support "#name"\n"); \
+	} while(0)
+
+#define REG_SET(x, name, off, reg, v) \
+		_REG_SET(x, name, off, reg, reg.mask, v)
+#define REG_SET_MASK(x, name, off, reg, mask, v, relaxed) \
+		_REG_SET(x, name, off, reg, reg.mask & mask, v)
 
 #define VOP_WIN_SET(x, name, v) \
-		REG_SET(x, (x)->win->name, v)
+		REG_SET(x, name, x->win_offset, x->win->name, v)
+#define VOP_WIN_SET_EXT(x, ext, name, v) \
+		REG_SET(x, name, x->win_offset, x->win->ext->name, v)
 #define VOP_SCL_SET(x, name, v) \
-		REG_SET(x, (x)->win->scl->name, v)
+		REG_SET(x, name, x->win_offset, x->win->scl->name, v)
 #define VOP_SCL_SET_EXT(x, name, v) \
-		REG_SET(x, (x)->win->scl->ext->name, v)
+		REG_SET(x, name, x->win_offset, x->win->scl->ext->name, v)
 
 #define VOP_CTRL_SET(x, name, v) \
-		REG_SET(x, (x)->ctrl->name, v)
+		REG_SET(x, name, 0, (x)->ctrl->name, v)
+#define VOP_LINE_FLAG_SET(x, name, v) \
+		REG_SET(x, name, 0, (x)->line_flag->name, v)
+
+#define VOP_CTRL_GET(x, name) \
+		vop_read_reg(x, 0, &vop->ctrl->name)
+
+#define VOP_WIN_GET(x, name) \
+		vop_read_reg(x, vop->win->offset, &vop->win->name)
 
 enum alpha_mode {
 	ALPHA_STRAIGHT,
@@ -168,39 +206,67 @@ struct vop_reg_data {
 };
 
 struct vop_reg {
-	uint32_t offset;
-	uint32_t shift;
 	uint32_t mask;
-	bool write_mask;
+	uint32_t offset:12;
+	uint32_t shift:5;
+	uint32_t begin_minor:4;
+	uint32_t end_minor:4;
+	uint32_t major:3;
+	uint32_t write_mask:1;
 };
 
 struct vop_ctrl {
 	struct vop_reg standby;
-	struct vop_reg data_blank;
-	struct vop_reg gate_en;
-	struct vop_reg mmu_en;
+	struct vop_reg htotal_pw;
+	struct vop_reg hact_st_end;
+	struct vop_reg vtotal_pw;
+	struct vop_reg vact_st_end;
+	struct vop_reg vact_st_end_f1;
+	struct vop_reg vs_st_end_f1;
+	struct vop_reg hpost_st_end;
+	struct vop_reg vpost_st_end;
+	struct vop_reg vpost_st_end_f1;
+	struct vop_reg post_scl_factor;
+	struct vop_reg post_scl_ctrl;
+	struct vop_reg dsp_interlace;
+	struct vop_reg global_regdone_en;
+	struct vop_reg auto_gate_en;
+	struct vop_reg post_lb_mode;
+	struct vop_reg dsp_layer_sel;
+	struct vop_reg overlay_mode;
+	struct vop_reg core_dclk_div;
+	struct vop_reg dclk_ddr;
+	struct vop_reg p2i_en;
 	struct vop_reg rgb_en;
 	struct vop_reg edp_en;
 	struct vop_reg hdmi_en;
 	struct vop_reg mipi_en;
-	struct vop_reg out_mode;
-	struct vop_reg dsp_layer_sel;
-	struct vop_reg dither_down;
-	struct vop_reg dither_up;
+	struct vop_reg dp_en;
 	struct vop_reg pin_pol;
 	struct vop_reg rgb_pin_pol;
 	struct vop_reg hdmi_pin_pol;
 	struct vop_reg edp_pin_pol;
 	struct vop_reg mipi_pin_pol;
+	struct vop_reg dp_pin_pol;
 
-	struct vop_reg htotal_pw;
-	struct vop_reg hact_st_end;
-	struct vop_reg vtotal_pw;
-	struct vop_reg vact_st_end;
-	struct vop_reg hpost_st_end;
-	struct vop_reg vpost_st_end;
+	struct vop_reg dither_up;
+	struct vop_reg dither_down;
 
-	struct vop_reg line_flag_num[2];
+	struct vop_reg dsp_out_yuv;
+	struct vop_reg dsp_data_swap;
+	struct vop_reg dsp_ccir656_avg;
+	struct vop_reg dsp_black;
+	struct vop_reg dsp_blank;
+	struct vop_reg dsp_outzero;
+	struct vop_reg dsp_lut_en;
+
+	struct vop_reg out_mode;
+
+	struct vop_reg xmirror;
+	struct vop_reg ymirror;
+	struct vop_reg dsp_background;
+
+	struct vop_reg win_gate[4];
 	struct vop_reg cfg_done;
 };
 
@@ -251,16 +317,23 @@ struct vop_win {
 	struct vop_reg uv_mst;
 	struct vop_reg yrgb_vir;
 	struct vop_reg uv_vir;
+	struct vop_reg alpha_mode;
+	struct vop_reg alpha_en;
 
 	struct vop_reg dst_alpha_ctl;
 	struct vop_reg src_alpha_ctl;
 };
 
+struct vop_line_flag {
+	struct vop_reg line_flag_num[2];
+};
+
 struct vop_data {
-	const struct vop_reg_data *init_table;
-	unsigned int table_size;
+	uint32_t version;
 	const struct vop_ctrl *ctrl;
 	const struct vop_win *win;
+	const struct vop_line_flag *line_flag;
+	int win_offset;
 	int reg_len;
 };
 
@@ -268,8 +341,11 @@ struct vop {
 	u32 *regsbak;
 	void *regs;
 
+	uint32_t version;
 	const struct vop_ctrl *ctrl;
 	const struct vop_win *win;
+	const struct vop_line_flag *line_flag;
+	int win_offset;
 };
 
 static inline void vop_writel(struct vop *vop, uint32_t offset, uint32_t v)
