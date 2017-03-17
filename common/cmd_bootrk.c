@@ -359,12 +359,59 @@ fail:
 
 #if defined(CONFIG_LCD) && defined(CONFIG_KERNEL_LOGO)
 static int g_rk_fb_size = -1;
+#ifdef CONFIG_SINGLE_LOGO
+#include <bmp_layout.h>
+static int rk_load_kernel_logo_ext(void)
+{
+	bool ret = false;
+#ifdef CONFIG_LCD
+	bmp_image_t *bmp = NULL;
+	const disk_partition_t* ptn = get_disk_partition(LOGO_NAME);
+
+	if (ptn) {
+		debug("Find kernel logo from partition %s\n", LOGO_NAME);
+		bmp = (void *)gd->fb_base + CONFIG_RK_FB_SIZE;
+		StorageReadLba(ptn->start, bmp, CONFIG_MAX_BMP_BLOCKS);
+		debug("bmp image at 0x%p, sign:%c%c\n", bmp, bmp->header.signature[0],
+			bmp->header.signature[1]);
+
+		if (bmp->header.file_size > CONFIG_RK_LCD_SIZE - CONFIG_RK_FB_SIZE) {
+			FBTERR("Failed to load bmp image, too large, %d\n",
+					bmp->header.file_size );
+			return false;
+		}
+	}
+
+	if (ptn && bmp && bmp->header.signature[0] == 'B' && bmp->header.signature[1] == 'M') {
+		debug("%s:show logo.bmp from logo partition\n", __func__);
+		lcd_display_bitmap_center((uint32_t)(unsigned long)bmp);
+		ret = true;
+
+		g_rk_fb_size = CONFIG_RK_FB_SIZE;
+		gd->fb_offset = g_rk_fb_size;
+	}
+#endif
+	return ret;
+}
+#endif
+
 static int rk_load_kernel_logo(void)
 {
+#ifdef CONFIG_SINGLE_LOGO
+	const char* file_path = "logo.bmp";
+#else
 	const char* file_path = "logo_kernel.bmp";
+#endif
 	resource_content content;
 	int blocks;
 	int offset = CONFIG_RK_FB_SIZE;
+
+#ifdef CONFIG_SINGLE_LOGO
+	if (rk_load_kernel_logo_ext() == true) {
+		printf("load kernel logo from logo partition.\n");
+		return CONFIG_RK_FB_SIZE;
+	}
+#endif
 
 	debug("loader kernel logo from resource.\n");
 	g_rk_fb_size = -1;
