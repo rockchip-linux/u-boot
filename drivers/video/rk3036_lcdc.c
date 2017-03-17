@@ -10,7 +10,7 @@ extern int rk32_mipi_enable(vidinfo_t * vid);
 extern int rk32_dsi_disable(void);
 extern int rk32_dsi_enable(void);
 #endif
-struct lcdc_device rk312x_lcdc;
+static struct lcdc_device rk312x_lcdc;
 
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 

@@ -44,7 +44,7 @@ extern int rk32_dsi_disable(void);
 #define  pr_err(args...)  debug(args)
 #endif
 
-struct lcdc_device rk32_lcdc;
+static struct lcdc_device rk32_lcdc;
 
 
 static int inline lvds_writel(uint32 offset, uint32 val)
