@@ -16,7 +16,7 @@
 
 /* ARM/General/Codec pll freq config */
 #define RKCLK_APLLL_FREQ_HZ		816000000
-#define RKCLK_GPLL_FREQ_HZ		600000000
+#define RKCLK_GPLL_FREQ_HZ		800000000
 #define RKCLK_CPLL_FREQ_HZ		800000000
 
 #define RKCLK_PPLL_FREQ_HZ		700000000
@@ -122,6 +122,7 @@ static struct pll_clk_set gpll_clks[] = {
 	/*
 	 * _hz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac
 	 */
+	_PLL_SET_CLKS(800000000, 6, 400, 2, 1, 1, 0),
 	_PLL_SET_CLKS(594000000, 2, 99, 2, 1, 1, 0),
 };
 
@@ -884,6 +885,15 @@ static void rkclk_default_init(void)
 	pmucru_writel((1 << 31) | (0x1F << 24) | (0 << 15) | (div << 8), PMUCRU_CLKSELS_CON(0));
 #endif
 #endif
+
+	/* cci clock from gpll */
+	clk_parent_hz = RKCLK_GPLL_FREQ_HZ;
+	clk_child_hz = 100000000; /* HZ */
+
+	div = rkclk_calc_clkdiv(clk_parent_hz, clk_child_hz, 1);
+	div = div ? (div - 1) : 0;
+
+	cru_writel((0x1f1f << 16) | (div << 0) | (div << 8), CRU_CLKSELS_CON(5));
 }
 
 
