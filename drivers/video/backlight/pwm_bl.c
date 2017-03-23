@@ -61,6 +61,11 @@ DECLARE_GLOBAL_DATA_PTR;
 #define VOP_PWM_REG_CNTR		0x0c
 #endif
 
+enum pwm_polarity {
+	PWM_POLARITY_NORMAL,
+	PWM_POLARITY_INVERSED,
+};
+
 static const uint32_t rk_pwm_compat_phys[][2] = {
 	{RK_PWM0, RKIO_PWM0_PHYS},
 	{RK_PWM1, RKIO_PWM1_PHYS},
@@ -96,6 +101,7 @@ struct pwm_bl {
 	unsigned int	period;		/* in nanoseconds */
 	unsigned int max_brightness;
 	unsigned int dft_brightness;
+	enum pwm_polarity polarity;
 	int *levels;
 };
 
@@ -123,8 +129,8 @@ static int get_pclk_pwm(uint32 pwm_id)
 #ifdef CONFIG_OF_LIBFDT
 static int rk_bl_parse_dt(const void *blob)
 {
-	u32 data[3];
-	int len;
+	u32 data[4] = {0};
+	int len, arg_counts;
 	int pwm_node;
 
 	bl.node = fdt_node_offset_by_compatible(blob,
@@ -141,14 +147,19 @@ static int rk_bl_parse_dt(const void *blob)
 	}
 	fdtdec_decode_gpio(blob, bl.node, "enable-gpios", &bl.bl_en);
 	bl.bl_en.flags = !(bl.bl_en.flags  & OF_GPIO_ACTIVE_LOW);
+
+	arg_counts = fdtdec_get_int_array_count(blob, bl.node, "pwms", data,
+						ARRAY_SIZE(data));
 	if (fdtdec_get_int_array(blob, bl.node, "pwms", data,
-			ARRAY_SIZE(data))) {
+			arg_counts)) {
 		debug("Cannot decode PWM property pwms\n");
 		bl.status = 0;
 		return -ENODEV;
 	}
 
 	bl.period = data[2];
+	bl.polarity = data[3];
+
 	pwm_node = fdt_node_offset_by_phandle(blob, data[0]);
 #ifdef CONFIG_ROCKCHIP_ARCH64
 	bl.base = fdtdec_get_reg(blob, pwm_node);
@@ -216,8 +227,12 @@ int rk_pwm_bl_config(int brightness)
 	duty_ns = (brightness * bl.period)/bl.max_brightness;
 	period_ns = bl.period;
 	on   =  RK_PWM_ENABLE;
-	conf = PWM_OUTPUT_LEFT|PWM_LP_DISABLE|
-			PWM_CONTINUMOUS|PWM_DUTY_POSTIVE|PWM_INACTIVE_NEGATIVE;
+	conf = PWM_OUTPUT_LEFT|PWM_LP_DISABLE|PWM_CONTINUMOUS;
+
+	if (bl.polarity == PWM_POLARITY_INVERSED)
+		conf |= PWM_DUTY_NEGATIVE | PWM_INACTIVE_POSTIVE;
+	else
+		conf |= PWM_DUTY_POSTIVE | PWM_INACTIVE_NEGATIVE;
 
 	/*
 	 * Find pv, dc and prescale to suit duty_ns and period_ns. This is done
