@@ -218,22 +218,24 @@ int check_charging(void) {
 #ifdef MOCK_CHARGER
 	return NOT_EXIT;
 #endif
+	int ret;
 	struct power_chrg chrg;
 	/*if (!is_charging()) {
 		LOGD("charger disconnceted.");
 		return EXIT_SHUTDOWN;
 	}*/
 	get_power_bat_status(&batt_status);
-	get_power_charger_status(&chrg);
+	ret = get_power_charger_status(&chrg);
 	// if no exist bat but charging
-	if ((batt_status.state_of_chrg || chrg.state_of_charger) &&
+	if ((batt_status.state_of_chrg || (!ret && chrg.state_of_charger)) &&
 	    (!batt_status.isexistbat))
 	{
 		printf("charging but no exist batterry!.");
 		return EXIT_BOOT;
 	}
 
-	if (!batt_status.state_of_chrg && !chrg.state_of_charger)
+	if (!batt_status.state_of_chrg &&
+	    (ret == -ENODEV || !chrg.state_of_charger))
 	{
 		printf("pmic not charging.");
 		pmic_charger_setting(0);
@@ -501,7 +503,6 @@ static bool show_image(void) {
 			|| current_conf >= level_conf_num || current_conf < 0
 			|| current_index >= level_confs[current_conf].num
 			|| current_index < 0) {
-		LOGE("Inval params!");
 		return false;
 	}
 

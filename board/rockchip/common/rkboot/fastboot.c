@@ -59,6 +59,7 @@ int android_charge_mode = 0;
 
 int low_power_level = 0;
 int exit_uboot_charge_level = 0;
+int exit_uboot_charge_voltage = 0;
 int uboot_brightness = 1;
 
 #ifdef CONFIG_UBOOT_CHARGE
@@ -430,13 +431,28 @@ static void board_fbt_low_power_off(void)
 bool board_fbt_exit_uboot_charge(void)
 {
 	int ret;
+	static int n = 0;
 	struct battery battery;
 	memset(&battery, 0, sizeof(battery));
 	ret = get_power_bat_status(&battery);
 	if (ret < 0)
 		return false;
+	if (exit_uboot_charge_level > 0 && n == 0)
+		printf("capacity == %d, exit_uboot_cap == %d\n",
+		       battery.capacity, exit_uboot_charge_level);
+	if (exit_uboot_charge_voltage > 0 && n == 0)
+		printf("bat_voltage == %d, exit_uboot_voltage == %d\n",
+                       battery.voltage_uV, exit_uboot_charge_voltage);
+
+	if (n++ >= 500)
+		n = 0;
+
 	if (exit_uboot_charge_level > 0 &&
 	    battery.capacity > exit_uboot_charge_level)
+		return true;
+
+	if (exit_uboot_charge_voltage > 0 &&
+            battery.voltage_uV > exit_uboot_charge_voltage)
 		return true;
 
 	return false;
@@ -526,6 +542,7 @@ void board_fbt_preboot(void)
 		android_charge_on = 0;
 		low_power_level = 0;
 		exit_uboot_charge_level = 0;
+		exit_uboot_charge_voltage = 0;
 	} else {
 		uboot_charge_on = fdtdec_get_int(gd->fdt_blob, charge_node, "rockchip,uboot-charge-on", 0);
 		android_charge_on = fdtdec_get_int(gd->fdt_blob, charge_node, "rockchip,android-charge-on", 0);
@@ -535,6 +552,9 @@ void board_fbt_preboot(void)
 		exit_uboot_charge_level =
 			fdtdec_get_int(gd->fdt_blob, charge_node,
 				       "rockchip,uboot-exit-charge-level", 0);
+		exit_uboot_charge_voltage =
+                        fdtdec_get_int(gd->fdt_blob, charge_node,
+                                       "rockchip,uboot-exit-charge-voltage", 0);
 		uboot_brightness =
 			fdtdec_get_int(gd->fdt_blob, charge_node,
 				       "rockchip,uboot-charge-brightness", 1);

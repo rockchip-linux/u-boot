@@ -914,14 +914,19 @@ static void rk818_bat_charger_setting(struct battery_info *di, int charger)
 
 	/* charger changed */
 	if (old_charger != charger) {
-		if (charger == NO_CHARGER)
+		if (charger == NO_CHARGER) {
+			printf("rk818_bat_charger_setting NO_CHARGER\n");
 			rk818_bat_set_current(ILIM_450MA);
-		else if (charger == USB_CHARGER)
+		} else if (charger == USB_CHARGER) {
+			printf("rk818_bat_charger_setting USB_CHARGER\n");
 			rk818_bat_set_current(ILIM_450MA);
-		else if (charger == DC_CHARGER || charger == AC_CHARGER)
+		} else if (charger == DC_CHARGER || charger == AC_CHARGER) {
+			printf("rk818_bat_charger_setting DC_CHARGER charge_cur_input=%d\n",
+			       CHRG_CUR_INPUT[di->chrg_cur_input]);
 			rk818_bat_set_current(di->chrg_cur_input);
-		else
+		} else {
 			BAT_INFO("charger setting error %d\n", charger);
+		}
 
 		old_charger = charger;
 	}
