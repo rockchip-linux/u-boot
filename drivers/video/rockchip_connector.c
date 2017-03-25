@@ -44,6 +44,10 @@ static const struct rockchip_connector g_connector[] = {
 	 .compatible = "rockchip,rk3399-edp",
 	 .funcs = &rockchip_analogix_dp_funcs,
 	 .data = &rk3399_analogix_edp_drv_data,
+	},{
+	 .compatible = "rockchip,rk3368-edp",
+	 .funcs = &rockchip_analogix_dp_funcs,
+	 .data = &rk3368_analogix_edp_drv_data,
 	},
 #endif
 };

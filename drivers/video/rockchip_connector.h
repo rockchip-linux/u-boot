@@ -73,6 +73,7 @@ extern const struct dw_mipi_dsi_plat_data rk3399_mipi_dsi_drv_data;
 struct rockchip_dp_chip_data;
 extern const struct rockchip_connector_funcs rockchip_analogix_dp_funcs;
 extern const struct rockchip_dp_chip_data rk3399_analogix_edp_drv_data;
+extern const struct rockchip_dp_chip_data rk3368_analogix_edp_drv_data;
 extern const struct rockchip_dp_chip_data rk3288_analogix_dp_drv_data;
 #endif
 #endif
