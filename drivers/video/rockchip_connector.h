@@ -76,4 +76,10 @@ extern const struct rockchip_dp_chip_data rk3399_analogix_edp_drv_data;
 extern const struct rockchip_dp_chip_data rk3368_analogix_edp_drv_data;
 extern const struct rockchip_dp_chip_data rk3288_analogix_dp_drv_data;
 #endif
+#ifdef CONFIG_ROCKCHIP_DW_HDMI
+struct dw_hdmi_dsi_plat_data;
+extern const struct rockchip_connector_funcs rockchip_dw_hdmi_funcs;
+extern const struct dw_hdmi_plat_data rk3399_hdmi_drv_data;
+extern const struct dw_hdmi_plat_data rk3288_hdmi_drv_data;
+#endif
 #endif
