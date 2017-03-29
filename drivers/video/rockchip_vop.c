@@ -21,6 +21,11 @@
 #include "rockchip_connector.h"
 #include "rockchip_vop.h"
 
+static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
+{
+	return us * mode->clock / mode->htotal / 1000;
+}
+
 static int rockchip_vop_init(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -140,6 +145,8 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, vpost_st_end, val);
 	VOP_CTRL_SET(vop, standby, 1);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[0], vact_end - 3);
+	VOP_LINE_FLAG_SET(vop, line_flag_num[1],
+			  vact_end - us_to_vertical_line(mode, 1000));
 	vop_cfg_done(vop);
 
 	return 0;
