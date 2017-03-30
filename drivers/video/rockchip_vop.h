@@ -6,6 +6,9 @@
 
 #ifndef _ROCKCHIP_VOP_H_
 #define _ROCKCHIP_VOP_H_
+
+#define BIT(x) (1 << (x))
+
 /*
  * major: IP major vertion, used for IP structure
  * minor: big feature change under same structure
@@ -328,6 +331,8 @@ struct vop_line_flag {
 	struct vop_reg line_flag_num[2];
 };
 
+#define VOP_FEATURE_OUTPUT_10BIT	BIT(0)
+
 struct vop_data {
 	uint32_t version;
 	const struct vop_ctrl *ctrl;
@@ -335,6 +340,7 @@ struct vop_data {
 	const struct vop_line_flag *line_flag;
 	int win_offset;
 	int reg_len;
+	u64 feature;
 };
 
 struct vop {

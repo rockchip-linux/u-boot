@@ -156,6 +156,7 @@ static const struct vop_line_flag rk3288_vop_line_flag = {
 
 const struct vop_data rk3288_vop = {
 	.version = VOP_VERSION(3, 1),
+	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
 	.line_flag = &rk3288_vop_line_flag,
@@ -190,6 +191,7 @@ const struct vop_data rk3366_vop = {
 
 const struct vop_data rk3399_vop_big = {
 	.version = VOP_VERSION(3, 5),
+	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
 	.line_flag = &rk3366_vop_line_flag,
@@ -206,6 +208,7 @@ const struct vop_data rk3399_vop_lit = {
 
 const struct vop_data rk322x_vop = {
 	.version = VOP_VERSION(3, 7),
+	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
 	.line_flag = &rk3366_vop_line_flag,
@@ -265,6 +268,7 @@ static const struct vop_line_flag rk3328_vop_line_flag = {
 
 const struct vop_data rk3328_vop = {
 	.version = VOP_VERSION(3, 8),
+	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3328_ctrl_data,
 	.win = &rk3288_win01_data,
 	.win_offset = 0xd0,

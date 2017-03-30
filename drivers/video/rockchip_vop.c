@@ -102,11 +102,9 @@ static int rockchip_vop_init(struct display_state *state)
 	default:
 		printf("unsupport connector_type[%d]\n", conn_state->type);
 	}
-	/*
-	 * TODO: use vop feature is the better way to judge out_mode
-	 */
-	if (crtc_state->crtc_id == 1 &&
-	    conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA)
+
+	if (conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
+	    !(vop_data->feature & VOP_FEATURE_OUTPUT_10BIT))
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
 	switch (conn_state->bus_format) {
