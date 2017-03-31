@@ -15,7 +15,11 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define BQ25700_ID	0x25700
+#define BQ25703_ID	0x25703
+
 #define COMPAT_BQ25700	"ti,bq25700"
+#define COMPAT_BQ25703	"ti,bq25703"
 
 #define BQ25700_I2C_SPEED			100000
 #define BQ25700_CHARGE_CURRENT_1500MA		0x5C0
@@ -31,6 +35,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define BQ25700_CHARGERSTAUS_REG	0x20
 #define BQ25700_INPUTVOLTAGE_REG	0x3D
 #define BQ25700_INPUTCURREN_REG		0x3F
+
+#define BQ25703_CHARGEOPTION0_REG	0x00
+#define BQ25703_CHARGECURREN_REG	0x02
+#define BQ25703_CHARGERSTAUS_REG	0x20
+#define BQ25703_INPUTVOLTAGE_REG	0x0A
+#define BQ25703_INPUTCURREN_REG		0x0E
 
 enum bq25700_table_ids {
 	/* range tables */
@@ -49,6 +59,7 @@ struct bq25700 {
 	int node;
 	struct fdt_gpio_state typec0_enable_gpio, typec1_enable_gpio;
 	u32 ichg;
+	u32 chip_id;
 };
 
 struct bq25700_range {
@@ -121,6 +132,42 @@ static int bq25700_charger_status(struct pmic *p)
 	return value >> 15;
 }
 
+static int bq25703_charger_status(struct pmic *p)
+{
+	u16 value;
+	#if defined(CONFIG_POWER_FUSB302)
+	static u16 charge_flag;
+	#endif
+
+	i2c_set_bus_num(p->bus);
+	i2c_init(BQ25700_I2C_SPEED, 0);
+	i2c_read(p->hw.i2c.addr, BQ25703_CHARGERSTAUS_REG, 1,
+		 (u8 *)&value, 2);
+
+	p->chrg->state_of_charger = value >> 15;
+
+	#if defined(CONFIG_POWER_FUSB302)
+	if (p->chrg->state_of_charger) {
+		charge_flag = 1;
+	} else {
+		if (!p->chrg->state_of_charger && charge_flag == 1) {
+			typec_discharge();
+			charge_flag = 0;
+		}
+	}
+	#endif
+
+	return value >> 15;
+}
+
+static int bq257xx_charger_status(struct pmic *p)
+{
+	if (charger.chip_id == BQ25700_ID)
+		bq25700_charger_status(p);
+	else
+		bq25703_charger_status(p);
+}
+
 static void bq25700_charger_current_init(struct pmic *p)
 {
 	u16 charge_current = BQ25700_CHARGE_CURRENT_1500MA;
@@ -171,9 +218,61 @@ static void bq25700_charger_current_init(struct pmic *p)
 			  (u8 *)&charge_current, 2);
 }
 
+static void bq25703_charger_current_init(struct pmic *p)
+{
+	u16 charge_current = BQ25700_CHARGE_CURRENT_1500MA;
+	u16 sdp_inputcurrent = BQ25700_SDP_INPUT_CURRENT_500MA;
+	u16 dcp_inputcurrent = BQ25700_DCP_INPUT_CURRENT_1500MA;
+	u32 pd_inputcurrent = 0;
+	u16 vol_idx, cur_idx, pd_inputvol;
+
+	u16 temp;
+
+	i2c_read(p->hw.i2c.addr, BQ25703_CHARGEOPTION0_REG, 1,
+		 (u8 *)&temp, 2);
+	temp &= (~WATCHDOG_ENSABLE);
+	i2c_write(p->hw.i2c.addr, BQ25703_CHARGEOPTION0_REG, 1,
+		  (u8 *)&temp, 2);
+
+	#if defined(CONFIG_POWER_FUSB302)
+	if (!get_pd_output_val(&pd_inputvol, &pd_inputcurrent)) {
+		printf("%s pd charge input vol:%dmv current:%dma\n",
+		       __func__, pd_inputvol, pd_inputcurrent);
+		vol_idx = bq25700_find_idx((pd_inputvol - 1280) * 1000,
+					   TBL_INPUTVOL);
+		cur_idx = bq25700_find_idx(pd_inputcurrent * 1000,
+					   TBL_INPUTCUR);
+		cur_idx  = cur_idx << 8;
+		vol_idx = vol_idx << 6;
+		if (pd_inputcurrent != 0) {
+			i2c_write(p->hw.i2c.addr, BQ25703_INPUTCURREN_REG, 1,
+				  (u8 *)&cur_idx, 2);
+			i2c_write(p->hw.i2c.addr, BQ25703_INPUTVOLTAGE_REG, 1,
+				  (u8 *)&vol_idx, 2);
+			charge_current = bq25700_find_idx(charger.ichg,
+							  TBL_ICHG);
+			charge_current = charge_current << 8;
+		}
+	}
+	#endif
+
+	if (pd_inputcurrent == 0) {
+		if (dwc_otg_check_dpdm() > 1)
+			i2c_write(p->hw.i2c.addr, BQ25703_INPUTCURREN_REG, 1,
+				  (u8 *)&dcp_inputcurrent, 2);
+		else
+		i2c_write(p->hw.i2c.addr, BQ25703_INPUTCURREN_REG, 1,
+			  (u8 *)&sdp_inputcurrent, 2);
+	}
+
+	if (bq25703_charger_status(p))
+		i2c_write(p->hw.i2c.addr, BQ25703_CHARGECURREN_REG, 1,
+			  (u8 *)&charge_current, 2);
+}
+
 static struct power_chrg bq25700_charger_ops = {
 	.state_of_charger = 0,
-	.chrg_type =  bq25700_charger_status,
+	.chrg_type =  bq257xx_charger_status,
 };
 
 static int bq25700_i2c_probe(u32 bus, u32 addr)
@@ -191,16 +290,26 @@ static int bq25700_i2c_probe(u32 bus, u32 addr)
 
 static int bq25700_parse_dt(const void *blob)
 {
-	int node;
+	int node, node1;
 	u32 bus, addr;
 	int ret, port_num;
 
 	node = fdt_node_offset_by_compatible(blob,
 					0, COMPAT_BQ25700);
-	if (node < 0) {
+
+	node1 = fdt_node_offset_by_compatible(blob,
+					      0, COMPAT_BQ25703);
+
+	if ((node < 0) && (node1 < 0)) {
 		printf("Can't find dts node for charger bq25700\n");
 		return -ENODEV;
 	}
+
+	if (node < 0) {
+		node = node1;
+		charger.chip_id = BQ25700_ID;
+	} else
+		charger.chip_id = BQ25703_ID;
 
 	if (!fdt_device_is_available(blob, node)) {
 		printf("device bq25700 is disabled\n");
@@ -268,7 +377,9 @@ int charger_bq25700_init(void)
 	charger.p->chrg = &bq25700_charger_ops;
 	charger.p->pbat = calloc(sizeof(struct  power_battery), 1);
 
-	bq25700_charger_current_init(charger.p);
-
+	if (charger.chip_id == BQ25700_ID)
+		bq25700_charger_current_init(charger.p);
+	else
+		bq25703_charger_current_init(charger.p);
 	return 0;
 }
