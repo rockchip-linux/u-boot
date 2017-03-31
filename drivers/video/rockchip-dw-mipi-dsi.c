@@ -18,6 +18,7 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
+#include "rockchip_phy.h"
 #include "rockchip-dw-mipi-dsi.h"
 
 #define MSEC_PER_SEC    1000L
@@ -473,15 +474,15 @@ static int dw_mipi_dsi_get_lane_bps(struct dw_mipi_dsi *dsi)
 
 	mpclk = DIV_ROUND_UP(dsi->mode->clock, MSEC_PER_SEC);
 	if (mpclk) {
-		/* take 1 / 0.8, since mbps must big than bandwidth of RGB */
-		tmp = mpclk * (bpp / dsi->lanes) * 4 / 3;
+		/* take 1 / 0.9, since mbps must big than bandwidth of RGB */
+		tmp = mpclk * (bpp / dsi->lanes) * 10 / 9;
 		if (tmp < max_mbps)
 			target_mbps = tmp;
 		else
 			printf("DPHY clock frequency is out of range\n");
 	}
 
-	pllref = DIV_ROUND_UP(24 * MHZ/* pllref clk rate */, USEC_PER_SEC);
+	pllref = DIV_ROUND_UP(24 * MHZ, USEC_PER_SEC);
 	tmp = pllref;
 
 	for (i = 1; i < 6; i++) {
@@ -723,8 +724,8 @@ static void dw_mipi_dsi_vertical_timing_config(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_dphy_timing_config(struct dw_mipi_dsi *dsi)
 {
-	dsi_write(dsi, DSI_PHY_TMR_CFG, PHY_HS2LP_TIME(0x40)
-		  | PHY_LP2HS_TIME(0x40) | MAX_RD_TIME(10000));
+	dsi_write(dsi, DSI_PHY_TMR_CFG, PHY_HS2LP_TIME(0x14)
+		  | PHY_LP2HS_TIME(0x10) | MAX_RD_TIME(10000));
 
 	dsi_write(dsi, DSI_PHY_TMR_LPCLK_CFG, PHY_CLKHS2LP_TIME(0x40)
 		  | PHY_CLKLP2HS_TIME(0x40));
@@ -748,7 +749,13 @@ const struct dw_mipi_dsi_plat_data rk3288_mipi_dsi_drv_data = {
 	.dsi0_en_bit = RK3288_DSI0_SEL_VOP_LIT,
 	.dsi1_en_bit = RK3288_DSI1_SEL_VOP_LIT,
 	.grf_switch_reg = RK3288_GRF_SOC_CON6,
+	.max_data_lanes = 4,
 	.max_bit_rate_per_lane = 1500000000,
+	.has_vop_sel = true,
+};
+
+const struct dw_mipi_dsi_plat_data rk3368_mipi_dsi_drv_data = {
+	.max_bit_rate_per_lane = 1000000000,
 	.max_data_lanes = 4,
 };
 
@@ -758,16 +765,9 @@ const struct dw_mipi_dsi_plat_data rk3399_mipi_dsi_drv_data = {
 	.grf_switch_reg = RK3399_GRF_SOC_CON19,
 	.grf_dsi0_mode = RK3399_GRF_DSI_MODE,
 	.grf_dsi0_mode_reg = RK3399_GRF_SOC_CON22,
+	.max_data_lanes = 4,
 	.max_bit_rate_per_lane = 1500000000,
-	.max_data_lanes = 4,
-};
-
-const struct dw_mipi_dsi_plat_data rk3368_mipi_dsi_drv_data = {
-	.grf_dsi0_mode = RK3399_GRF_DSI_MODE,
-	.grf_dsi0_mode_reg = RK3399_GRF_SOC_CON22,
-	.max_data_lanes = 4,
-	.max_bit_rate_per_lane = 1000000000,
-	.max_data_lanes = 4,
+	.has_vop_sel = true,
 };
 
 static int dw_mipi_dsi_clk_enable(struct dw_mipi_dsi *dsi)
@@ -812,8 +812,6 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 	FDT_GET_INT(dsi->mode_flags, "dsi,mode_flags");
 	FDT_GET_INT(dsi->channel, "reg");
 
-	dsi->lanes = 4;
-
 	return 0;
 }
 
@@ -833,13 +831,18 @@ static int rockchip_dw_mipi_dsi_prepare(struct display_state *state)
 
 	dsi->mode = &conn_state->mode;
 
-	ret = dw_mipi_dsi_get_lane_bps(dsi);
-	if (ret < 0)
-		return ret;
-
 	dw_mipi_dsi_clk_enable(dsi);
 
 	rockchip_phy_power_on(state);
+
+	if (conn_state->phy) {
+		dsi->lane_mbps = rockchip_phy_get_data(state);
+	} else {
+		ret = dw_mipi_dsi_get_lane_bps(dsi);
+		if (ret < 0)
+			return ret;
+	}
+
 	dw_mipi_dsi_init(dsi);
 	dw_mipi_dsi_dpi_config(dsi, dsi->mode);
 	dw_mipi_dsi_packet_handler_config(dsi);
@@ -873,6 +876,9 @@ static int rockchip_dw_mipi_dsi_enable(struct display_state *state)
 	dw_mipi_dsi_wait_for_two_frames(dsi);
 
 	dw_mipi_dsi_set_mode(dsi, DW_MIPI_DSI_VID_MODE);
+
+	if (!pdata->has_vop_sel)
+		return 0;
 
 	if (pdata->grf_switch_reg) {
 		if (crtc_state->crtc_id)
