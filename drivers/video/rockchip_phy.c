@@ -49,9 +49,7 @@ const struct rockchip_phy *rockchip_get_phy(const void *blob, int phy_node)
 int rockchip_phy_power_on(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	int conn_node = conn_state->node;
-	const void *blob = state->blob;
-	const struct rockchip_phy *phy = state->conn_state.phy;
+	const struct rockchip_phy *phy = conn_state->phy;
 
 	if (!phy || !phy->funcs || !phy->funcs->power_on) {
 		printf("%s: failed to find phy power on funcs\n", __func__);
@@ -61,12 +59,10 @@ int rockchip_phy_power_on(struct display_state *state)
 	return phy->funcs->power_on(state);
 }
 
-void rockchip_phy_power_off(struct display_state *state)
+int rockchip_phy_power_off(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	int conn_node = conn_state->node;
-	const void *blob = state->blob;
-	const struct rockchip_phy *phy = state->conn_state.phy;
+	const struct rockchip_phy *phy = conn_state->phy;
 
 	if (!phy || !phy->funcs || !phy->funcs->power_off) {
 		printf("%s: failed to find phy power_off funcs\n", __func__);
@@ -74,4 +70,17 @@ void rockchip_phy_power_off(struct display_state *state)
 	}
 
 	return phy->funcs->power_off(state);
+}
+
+int rockchip_phy_get_data(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_phy *phy = conn_state->phy;
+
+	if (!phy || !phy->funcs || !phy->funcs->get_data) {
+		printf("%s: failed to find phy get_data funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return phy->funcs->get_data(state);
 }
