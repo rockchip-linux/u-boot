@@ -134,7 +134,6 @@ int get_power_charger_status(struct power_chrg *chrg)
 			chrg->state_of_charger =
 				p_chrg->chrg->state_of_charger;
 	} else {
-		printf("no charger found\n");
 		return -ENODEV;
 	}
 
@@ -170,9 +169,9 @@ int is_charging(void)
 	memset(&battery,0, sizeof(battery));
 	memset(&chrg, 0, sizeof(chrg));
 
-	get_power_charger_status(&chrg);
+	ret = get_power_charger_status(&chrg);
 
-	if (chrg.state_of_charger)
+	if (!ret && chrg.state_of_charger)
 		return chrg.state_of_charger;
 
 	ret = get_power_bat_status(&battery);

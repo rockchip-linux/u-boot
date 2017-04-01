@@ -31,6 +31,7 @@ struct rockchip_dp_chip_data {
 	u32	lcdsel_big;
 	u32	lcdsel_lit;
 	u32	chip_type;
+	bool	has_vop_sel;
 };
 
 static void
@@ -818,6 +819,7 @@ const struct rockchip_dp_chip_data rk3399_analogix_edp_drv_data = {
 	.lcdsel_big = 0 | BIT(21),
 	.lcdsel_lit = BIT(5) | BIT(21),
 	.chip_type = RK3399_EDP,
+	.has_vop_sel = true,
 };
 
 const struct rockchip_dp_chip_data rk3288_analogix_dp_drv_data = {
@@ -825,6 +827,12 @@ const struct rockchip_dp_chip_data rk3288_analogix_dp_drv_data = {
 	.lcdsel_big = 0 | BIT(21),
 	.lcdsel_lit = BIT(5) | BIT(21),
 	.chip_type = RK3288_DP,
+	.has_vop_sel = true,
+};
+
+const struct rockchip_dp_chip_data rk3368_analogix_edp_drv_data = {
+	.chip_type = RK3368_EDP,
+	.has_vop_sel = false,
 };
 
 static int rockchip_analogix_dp_init(struct display_state *state)
@@ -867,6 +875,17 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 		mdelay(10);
 		writel(0x20000000, RKIO_CRU_PHYS + 0x444);
 		mdelay(10);
+	} else if (pdata->chip_type == RK3368_EDP) {
+		/* edp ref clk sel */
+		writel(0x00010001, RKIO_GRF_PHYS + 0x410);
+		/* edp 24m clock domain software reset */
+		writel(0x80008000, RKIO_CRU_PHYS + 0x318);
+		udelay(20);
+		writel(0x80000000, RKIO_CRU_PHYS + 0x318);
+		/* edp ctrl apb bus software reset */
+		writel(0x04000400, RKIO_CRU_PHYS + 0x31c);
+		udelay(20);
+		writel(0x04000000, RKIO_CRU_PHYS + 0x31c);
 	}
 
 	analogix_dp_init_dp(dp);
@@ -900,6 +919,9 @@ static int rockchip_analogix_dp_prepare(struct display_state *state)
 	const struct rockchip_connector *connector = conn_state->connector;
 	const struct rockchip_dp_chip_data *pdata = connector->data;
 	u32 val;
+
+	if (!pdata->has_vop_sel)
+		return 0;
 
 	if (crtc_state->crtc_id)
 		val = pdata->lcdsel_lit;

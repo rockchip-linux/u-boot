@@ -63,9 +63,12 @@ struct panel {
 
 struct connector_state {
 	int node;
+	int phy_node;
 	const struct rockchip_connector *connector;
+	const struct rockchip_phy *phy;
 
 	void *private;
+	void *phy_private;
 
 	struct fdt_gpio_state enable_gpio;
 	struct drm_display_mode mode;

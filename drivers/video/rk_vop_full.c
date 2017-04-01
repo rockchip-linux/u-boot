@@ -7,7 +7,7 @@
 #include "rk_vop_full.h"
 
 /*******************register definition**********************/
-struct vop_device rk_vop_full;
+static struct vop_device rk_vop_full;
 #ifndef pr_info
 #define pr_info(args...)  debug(args)
 #endif

@@ -6,7 +6,7 @@
 #include "rk3368_lcdc.h"
 
 /*******************register definition**********************/
-struct lcdc_device rk33_lcdc;
+static struct lcdc_device rk33_lcdc;
 extern struct rockchip_fb rockchip_fb;
 // LCD en status
 int lcdEnstatus=-1;

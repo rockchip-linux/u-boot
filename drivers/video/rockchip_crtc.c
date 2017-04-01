@@ -22,14 +22,37 @@
 static const struct rockchip_crtc g_crtc[] = {
 #ifdef CONFIG_ROCKCHIP_VOP
 	{
+		.compatible = "rockchip,rk3036-vop",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk3036_vop,
+	}, {
+		.compatible = "rockchip,rk3288-vop",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk3288_vop,
+	}, {
+		.compatible = "rockchip,rk3368-vop",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk3368_vop,
+	}, {
+		.compatible = "rockchip,rk3366-vop",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk3366_vop,
+	}, {
 		.compatible = "rockchip,rk3399-vop-big",
 		.funcs = &rockchip_vop_funcs,
-		.data = &rk3399_vop,
-	},
-	{
+		.data = &rk3399_vop_big,
+	}, {
 		.compatible = "rockchip,rk3399-vop-lit",
 		.funcs = &rockchip_vop_funcs,
-		.data = &rk3399_vop,
+		.data = &rk3399_vop_lit,
+	}, {
+		.compatible = "rockchip,rk322x-vop",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk322x_vop,
+	}, {
+		.compatible = "rockchip,rk3328-vop",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk3328_vop,
 	},
 #endif
 };

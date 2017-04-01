@@ -7,7 +7,7 @@
 #include "rk322x_lcdc.h"
 
 /*******************register definition**********************/
-struct vop_device rk322x_vop;
+static struct vop_device rk322x_vop;
 #if defined(CONFIG_RKCHIP_RK3399)
 extern int rk32_edp_enable(vidinfo_t * vid);
 extern int rk32_mipi_enable(vidinfo_t * vid);
