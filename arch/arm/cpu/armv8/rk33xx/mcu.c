@@ -8,8 +8,8 @@
 #include <asm/arch/rkplat.h>
 
 
-/* Max MCU's SRAM value is 8K, begin at (RKIO_IMEM_PHYS + 4K) */
-#define MCU_SRAM_ADDR_BASE	(RKIO_IMEM_PHYS + (1024*4))
+/* Max MCU's SRAM value is 8K, begin at (RKIO_IMEM_PHYS + 8K) */
+#define MCU_SRAM_ADDR_BASE	(RKIO_IMEM_PHYS + (1024*8))
 /* exsram may using by mcu to accessing dram(0x0-0x20000000) */
 #define MCU_EXSRAM_ADDR_BASE	(0)
 /* experi no used, reserved value = 0 */
