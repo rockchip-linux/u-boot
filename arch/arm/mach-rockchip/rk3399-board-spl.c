@@ -157,6 +157,8 @@ void secure_timer_init(void)
 }
 
 #define GRF_EMMCCORE_CON11 0xff77f02c
+#define SGRF_DDR_RGN_CON16 0xff330040
+#define SGRF_SLV_SECURE_CON4 0xff33e3d0
 void board_init_f(ulong dummy)
 {
 	struct udevice *pinctrl;
@@ -192,6 +194,9 @@ void board_init_f(ulong dummy)
 	debug_uart_init();
 	printascii("U-Boot SPL board init");
 #endif
+
+	rk_clrsetreg(SGRF_DDR_RGN_CON16, 0x1FF, 0x200);
+	rk_clrreg(SGRF_SLV_SECURE_CON4, 0x2000);
 	/*  Emmc clock generator: disable the clock multipilier */
 	rk_clrreg(GRF_EMMCCORE_CON11, 0x0ff);
 
