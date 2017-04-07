@@ -14,6 +14,15 @@
 /* struct pwm_ops: Operations for the PWM uclass */
 struct pwm_ops {
 	/**
+	 * set_invert() - Set the PWM invert
+	 *
+	 * @dev:        PWM device to update
+	 * @channel:    PWM channel to update
+	 * @polarity:  PWM invert polarity
+	 * @return 0 if OK, -ve on error
+	 */
+	int (*set_invert)(struct udevice *dev, uint channel, uint polarity);
+	/**
 	 * set_config() - Set the PWM configuration
 	 *
 	 * @dev:	PWM device to update
