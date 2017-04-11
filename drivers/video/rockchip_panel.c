@@ -54,6 +54,7 @@ static const struct rockchip_panel g_panel[] = {
 		.funcs = &panel_simple_funcs,
 	}, {
 		.compatible = "simple-panel-dsi",
+		.funcs = &rockchip_dsi_panel_funcs,
 	}, {
 		.compatible = "lg,lp079qx1-sp0v",
 		.funcs = &panel_simple_funcs,
