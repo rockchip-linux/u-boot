@@ -347,7 +347,7 @@ static void inno_mipi_dphy_lane_timing_init(struct inno_mipi_dphy *inno,
 	data.t_clk_pre = DIV_ROUND_UP(txbyteclkhs * timing.clkpre, NSEC_PER_USEC);
 	data.t_wakup_h = 0x3;
 	data.t_wakup_l = 0xff;
-	data.t_lpx = DIV_ROUND_UP(txbyteclkhs * timing.lpx, NSEC_PER_USEC) - 2;
+	data.t_lpx = txbyteclkhs * timing.lpx / NSEC_PER_USEC;
 
 	/* txclkesc domain */
 	data.t_ta_go = DIV_ROUND_UP(txclkesc * timing.tago, NSEC_PER_USEC);
@@ -376,8 +376,6 @@ static void inno_mipi_dphy_pll_init(struct inno_mipi_dphy *inno)
 			printf("DPHY clock frequency is out of range\n");
 	}
 
-	debug("mpclk=%d, target_mbps=%d\n", mpclk, target_mbps);
-
 	pllref = DIV_ROUND_UP(12 * MHZ, USEC_PER_SEC);
 	tmp = pllref;
 
@@ -395,7 +393,7 @@ static void inno_mipi_dphy_pll_init(struct inno_mipi_dphy *inno)
 			break;
 	}
 
-	inno->lane_mbps = pllref / prediv * fbdiv;
+	inno->lane_mbps = pllref * fbdiv / prediv;
 
 	val = FBDIV_8(fbdiv >> 8) | PREDIV(prediv);
 	inno_write(inno, INNO_PHY_PLL_CTRL_0, val);
@@ -403,8 +401,8 @@ static void inno_mipi_dphy_pll_init(struct inno_mipi_dphy *inno)
 	val = FBDIV_7_0(fbdiv);
 	inno_write(inno, INNO_PHY_PLL_CTRL_1, val);
 
-	debug("MIPI-PHY: fin=%d, fout=%d, prediv=%d, fbdiv=%d\n",
-	      pllref, inno->lane_mbps, prediv, fbdiv);
+	printf("MIPI-PHY: fin=%d, fout=%d, prediv=%d, fbdiv=%d\n",
+	       pllref, inno->lane_mbps, prediv, fbdiv);
 }
 
 static inline void inno_mipi_dphy_reset(struct inno_mipi_dphy *inno)
