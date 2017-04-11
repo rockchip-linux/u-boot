@@ -51,13 +51,16 @@ static const struct drm_display_mode lg_lp079qx1_sp0v_mode = {
 static const struct rockchip_panel g_panel[] = {
 	{
 		.compatible = "simple-panel",
+		.funcs = &panel_simple_funcs,
 	}, {
 		.compatible = "simple-panel-dsi",
 	}, {
 		.compatible = "lg,lp079qx1-sp0v",
+		.funcs = &panel_simple_funcs,
 		.data = &lg_lp079qx1_sp0v_mode,
 	}, {
 		.compatible = "auo,b125han03",
+		.funcs = &panel_simple_funcs,
 		.data = &auo_b125han03_mode,
 	},
 };

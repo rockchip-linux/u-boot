@@ -49,6 +49,7 @@ obj-$(CONFIG_ROCKCHIP_MIPI_DSI)	+= rockchip_mipi_dsi.o
 obj-$(CONFIG_ROCKCHIP_DW_MIPI_DSI) += rockchip-dw-mipi-dsi.o rockchip-inno-mipi-dphy.o
 obj-$(CONFIG_ROCKCHIP_ANALOGIX_DP) += rockchip_analogix_dp.o rockchip_analogix_dp_reg.o
 obj-$(CONFIG_ROCKCHIP_DW_HDMI) += dw_hdmi/
+obj-$(CONFIG_ROCKCHIP_PANEL) += panel_simple.o
 obj-$(CONFIG_FORMIKE) += formike.o
 obj-$(CONFIG_RK_FB) += rockchip_fb.o
 obj-$(CONFIG_RK32_FB) +=  rk32_lcdc.o rk32_dp.o rk32_dp_reg.o
