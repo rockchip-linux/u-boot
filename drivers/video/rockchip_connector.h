@@ -7,6 +7,8 @@
 #ifndef _ROCKCHIP_CONNECTOR_H_
 #define _ROCKCHIP_CONNECTOR_H_
 
+#include "rockchip_mipi_dsi.h"
+
 struct rockchip_connector {
 	char compatible[30];
 
@@ -57,6 +59,9 @@ struct rockchip_connector_funcs {
 	 * Save data to dts, then you can share data to kernel space.
 	 */
 	int (*fixup_dts)(struct display_state *state, void *blob);
+	/* transmit a DSI packet */
+	ssize_t (*transfer)(struct display_state *state,
+			    const struct mipi_dsi_msg *msg);
 };
 
 const struct rockchip_connector *

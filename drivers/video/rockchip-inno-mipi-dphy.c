@@ -18,8 +18,8 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip-dw-mipi-dsi.h"
 #include "rockchip_phy.h"
+#include "rockchip_mipi_dsi.h"
 
 #define MSEC_PER_SEC	1000L
 #define USEC_PER_MSEC	1000L
