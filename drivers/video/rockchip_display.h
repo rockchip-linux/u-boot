@@ -55,10 +55,11 @@ struct crtc_state {
 
 };
 
-struct panel {
+struct panel_state {
 	int node;
 
-	int enable_flags;
+	const struct rockchip_panel *panel;
+	void *private;
 };
 
 struct connector_state {
@@ -70,13 +71,8 @@ struct connector_state {
 	void *private;
 	void *phy_private;
 
-	struct fdt_gpio_state enable_gpio;
 	struct drm_display_mode mode;
 	u8 edid[EDID_SIZE * 4];
-	int delay_prepare;
-	int delay_unprepare;
-	int delay_enable;
-	int delay_disable;
 	int bus_format;
 	int output_mode;
 	int type;
@@ -113,6 +109,7 @@ struct display_state {
 	struct logo_info logo;
 	struct crtc_state crtc_state;
 	struct connector_state conn_state;
+	struct panel_state panel_state;
 	int enable;
 	int is_init;
 	int is_enable;

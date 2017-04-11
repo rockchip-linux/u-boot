@@ -18,12 +18,7 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-
-struct rockchip_panel {
-	char compatible[30];
-
-	const struct drm_display_mode *mode;
-};
+#include "rockchip_panel.h"
 
 static const struct drm_display_mode auo_b125han03_mode = {
 	.clock = 146900,
@@ -55,28 +50,121 @@ static const struct drm_display_mode lg_lp079qx1_sp0v_mode = {
 
 static const struct rockchip_panel g_panel[] = {
 	{
+		.compatible = "simple-panel",
+	}, {
+		.compatible = "simple-panel-dsi",
+	}, {
 		.compatible = "lg,lp079qx1-sp0v",
-		.mode = &lg_lp079qx1_sp0v_mode,
+		.data = &lg_lp079qx1_sp0v_mode,
 	}, {
 		.compatible = "auo,b125han03",
-		.mode = &auo_b125han03_mode,
+		.data = &auo_b125han03_mode,
 	},
 };
 
 const struct drm_display_mode *
-rockchip_get_display_mode_from_panel(const void *blob, int panel_node)
+rockchip_get_display_mode_from_panel(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->data)
+		return NULL;
+
+	return (const struct drm_display_mode *)panel->data;
+}
+
+const struct rockchip_panel *rockchip_get_panel(const void *blob, int node)
 {
 	const char *name;
 	int i;
 
-	fdt_get_string(blob, panel_node, "compatible", &name);
+	fdt_get_string(blob, node, "compatible", &name);
 
-	for (i = 0; i < ARRAY_SIZE(g_panel); i++) {
+	for (i = 0; i < ARRAY_SIZE(g_panel); i++)
 		if (!strcmp(name, g_panel[i].compatible))
 			break;
-	}
+
 	if (i >= ARRAY_SIZE(g_panel))
 		return NULL;
 
-	return g_panel[i].mode;
+	return &g_panel[i];
+}
+
+int rockchip_panel_init(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->init) {
+		printf("%s: failed to find panel init funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return panel->funcs->init(state);
+}
+
+void rockchip_panel_deinit(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->deinit) {
+		printf("%s: failed to find panel deinit funcs\n", __func__);
+		return;
+	}
+
+	panel->funcs->deinit(state);
+}
+
+int rockchip_panel_prepare(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->prepare) {
+		printf("%s: failed to find panel prepare funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return panel->funcs->prepare(state);
+}
+
+int rockchip_panel_unprepare(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->unprepare) {
+		printf("%s: failed to find panel unprepare funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return panel->funcs->unprepare(state);
+}
+
+int rockchip_panel_enable(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->enable) {
+		printf("%s: failed to find panel prepare funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return panel->funcs->enable(state);
+}
+
+int rockchip_panel_disable(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->disable) {
+		printf("%s: failed to find panel disable funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return panel->funcs->disable(state);
 }

@@ -23,6 +23,7 @@
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
+#include "rockchip_panel.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 static LIST_HEAD(rockchip_display_list);
@@ -31,9 +32,6 @@ static LIST_HEAD(logo_cache_list);
 #define MEMORY_POOL_SIZE CONFIG_RK_LCD_SIZE
 static unsigned long memory_start;
 static unsigned long memory_end;
-
-extern const struct drm_display_mode *
-rockchip_get_display_mode_from_panel(const void *blob, int panel_node);
 
 #ifdef CONFIG_RK_PWM_BL
 extern int rk_pwm_bl_config(int brightness);
@@ -149,81 +147,41 @@ static int connector_phy_init(struct display_state *state)
 static int connector_panel_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
+	struct panel_state *panel_state = &state->panel_state;
 	const void *blob = state->blob;
-	struct fdt_gpio_state *enable_gpio = &conn_state->enable_gpio;
 	int conn_node = conn_state->node;
-	int panel;
+	const struct rockchip_panel *panel;
+	int panel_node;
+	int ret;
 
-	panel = get_panel_node(state, conn_node);
-	if (panel < 0) {
-		debug("failed to find panel node\n");
+	panel_node = get_panel_node(state, conn_node);
+	if (panel_node < 0) {
+		printf("failed to find panel node\n");
 		return -ENODEV;
 	}
 
-	if (!fdt_device_is_available(blob, panel)) {
-		debug("panel is disabled\n");
-		return -EPERM;
+	if (!fdt_device_is_available(blob, panel_node)) {
+		printf("panel is disabled\n");
+		return -ENODEV;
 	}
 
-	fdtdec_decode_gpio(blob, panel, "enable-gpios", enable_gpio);
+	panel_state->node = panel_node;
 
-	conn_state->delay_prepare = fdtdec_get_int(blob, panel,
-						   "delay,prepare", 0);
-	conn_state->delay_unprepare = fdtdec_get_int(blob, panel,
-						     "delay,unprepare", 0);
-	conn_state->delay_enable = fdtdec_get_int(blob, panel,
-						   "delay,enable", 0);
-	conn_state->delay_disable = fdtdec_get_int(blob, panel,
-						     "delay,disable", 0);
-	conn_state->bus_format = fdtdec_get_int(blob, panel, "bus-format",
-						MEDIA_BUS_FMT_RBG888_1X24);
-	/*
-	 * keep panel blank on init.
-	 */
-	gpio_direction_output(enable_gpio->gpio,
-			      !!(enable_gpio->flags & OF_GPIO_ACTIVE_LOW));
-#ifdef CONFIG_RK_PWM_BL
-	rk_pwm_bl_config(0);
-#endif
-	printf("delay prepare[%d] unprepare[%d] enable[%d] disable[%d]\n", conn_state->delay_prepare, conn_state->delay_unprepare, conn_state->delay_enable, conn_state->delay_disable);
+	panel = rockchip_get_panel(blob, panel_node);
+	if (!panel) {
+		printf("failed to find panel driver\n");
+		return 0;
+	}
+
+	panel_state->panel = panel;
+
+	ret = rockchip_panel_init(state);
+	if (ret) {
+		printf("failed to init panel driver\n");
+		return ret;
+	}
 
 	return 0;
-}
-
-void connector_panel_power_prepare(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-
-	fdtdec_set_gpio(&conn_state->enable_gpio, 1);
-	mdelay(conn_state->delay_prepare);
-}
-
-void connector_panel_power_on(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-
-#ifdef CONFIG_RK_PWM_BL
-	mdelay(conn_state->delay_enable);
-	rk_pwm_bl_config(-1);
-#endif
-}
-
-void connector_panel_power_unprepare(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-
-	mdelay(conn_state->delay_unprepare);
-	fdtdec_set_gpio(&conn_state->enable_gpio, 0);
-}
-
-void connector_panel_power_off(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-
-#ifdef CONFIG_RK_PWM_BL
-	rk_pwm_bl_config(0);
-	mdelay(conn_state->delay_disable);
-#endif
 }
 
 int drm_mode_vrefresh(const struct drm_display_mode *mode)
@@ -332,12 +290,14 @@ static int display_get_timing(struct display_state *state)
 		goto done;
 	}
 
-	m = rockchip_get_display_mode_from_panel(blob, panel);
+	m = rockchip_get_display_mode_from_panel(state);
 	if (m) {
 		printf("Using display timing from compatible panel driver\n");
 		memcpy(mode, m, sizeof(*m));
 		goto done;
 	}
+
+	rockchip_panel_prepare(state);
 
 	if (conn_funcs->get_edid && !conn_funcs->get_edid(state)) {
 		int panel_bits_per_colourp;
@@ -384,13 +344,10 @@ static int display_init(struct display_state *state)
 		return -ENXIO;
 	}
 
-	/* prepare panel's power, so connector's init can works */
-	connector_panel_power_prepare(state);
-
 	if (conn_funcs->init) {
 		ret = conn_funcs->init(state);
 		if (ret)
-			return ret;
+			goto deinit_panel;
 	}
 	/*
 	 * support hotplug, but not connect;
@@ -398,32 +355,34 @@ static int display_init(struct display_state *state)
 	if (conn_funcs->detect) {
 		ret = conn_funcs->detect(state);
 		if (!ret)
-			goto deinit_conn;
+			goto deinit;
 	}
 
 	if (conn_funcs->get_timing) {
 		ret = conn_funcs->get_timing(state);
 		if (ret)
-			goto deinit_conn;
+			goto deinit;
 	} else {
 		ret = display_get_timing(state);
 		if (ret)
-			goto deinit_conn;
+			goto deinit;
 	}
 
 	if (crtc_funcs->init) {
 		ret = crtc_funcs->init(state);
 		if (ret)
-			goto deinit_conn;
+			goto deinit;
 	}
 
 	state->is_init = 1;
 
 	return 0;
 
-deinit_conn:
+deinit:
 	if (conn_funcs->deinit)
 		conn_funcs->deinit(state);
+deinit_panel:
+	rockchip_panel_deinit(state);
 	return ret;
 }
 
@@ -473,6 +432,8 @@ static int display_enable(struct display_state *state)
 			goto unprepare_crtc;
 	}
 
+	rockchip_panel_prepare(state);
+
 	if (crtc_funcs->enable) {
 		ret = crtc_funcs->enable(state);
 		if (ret)
@@ -484,7 +445,8 @@ static int display_enable(struct display_state *state)
 		if (ret)
 			goto disable_crtc;
 	}
-	connector_panel_power_on(state);
+
+	rockchip_panel_enable(state);
 
 	state->is_enable = true;
 
@@ -514,7 +476,7 @@ static int display_disable(struct display_state *state)
 	if (!state->is_enable)
 		return 0;
 
-	connector_panel_power_off(state);
+	rockchip_panel_disable(state);
 
 	if (crtc_funcs->disable)
 		crtc_funcs->disable(state);
@@ -522,7 +484,8 @@ static int display_disable(struct display_state *state)
 	if (conn_funcs->disable)
 		conn_funcs->disable(state);
 
-	connector_panel_power_unprepare(state);
+	rockchip_panel_unprepare(state);
+
 	state->is_enable = 0;
 	state->is_init = 0;
 
@@ -601,7 +564,7 @@ static int get_crtc_id(const void *blob, int connect)
 
 	phandle = fdt_getprop_u32_default_node(blob, connect, 0,
 					       "remote-endpoint", -1);
-	if (!phandle)
+	if (phandle < 0)
 		goto err;
 	remote = fdt_node_offset_by_phandle(blob, phandle);
 
@@ -796,7 +759,7 @@ int rockchip_display_init(void)
 
 		phandle = fdt_getprop_u32_default_node(blob, child, 0,
 						       "connect", -1);
-		if (!phandle < 0)
+		if (phandle < 0)
 			continue;
 
 		connect = fdt_node_offset_by_phandle(blob, phandle);
