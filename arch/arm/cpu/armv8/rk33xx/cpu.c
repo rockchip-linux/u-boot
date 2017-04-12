@@ -227,6 +227,8 @@ int print_cpuinfo(void)
 	if (gd->arch.chiptype == CONFIG_RK3368)
 	#if defined(CONFIG_RKCHIP_PX5)
 		printf("CPU: px5\n");
+	#elif defined(CONFIG_RKCHIP_RK3368H)
+		printf("CPU: rk3368h\n");
 	#else
 		printf("CPU: rk3368\n");
 	#endif
