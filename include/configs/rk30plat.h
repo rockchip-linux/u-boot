@@ -50,6 +50,7 @@
 
 	#undef CONFIG_CMD_NET
 	#undef CONFIG_RK_GMAC
+	#define CONFIG_MERGER_TRUSTOS
 #endif /* CONFIG_RKCHIP_RK3126 */
 
 #if defined(CONFIG_RKCHIP_RK3128)
