@@ -16,3 +16,7 @@
 	.space 0x4         /* space for the 'RK33' */
 #endif
 	b reset
+
+#if defined(CONFIG_ROCKCHIP_RK3399) && defined(CONFIG_SPL_BUILD)
+	.space 0x4000         /* space for the ATF data */
+#endif
