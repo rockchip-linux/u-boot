@@ -50,6 +50,13 @@ static const struct rockchip_connector g_connector[] = {
 	 .data = &rk3368_analogix_edp_drv_data,
 	},
 #endif
+#ifdef CONFIG_ROCKCHIP_LVDS
+	{
+	 .compatible = "rockchip,rk33xx-lvds",
+	 .funcs = &rockchip_lvds_funcs,
+	 .data = &rk33xx_lvds_drv_data,
+	},
+#endif
 #ifdef CONFIG_ROCKCHIP_DW_HDMI
 	{
 	 .compatible = "rockchip,rk3288-dw-hdmi",
