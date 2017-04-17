@@ -8,6 +8,7 @@
 
 /*******************register definition**********************/
 static struct vop_device rk_vop_full;
+#define EARLY_TIME 500 /*us*/
 #ifndef pr_info
 #define pr_info(args...)  debug(args)
 #endif
@@ -841,9 +842,11 @@ static int vop_config_timing(struct vop_device *vop_dev,
 	u64 val;
 	u16 h_total, v_total;
 	u16 vact_end_f1, vact_st_f1, vs_end_f1, vs_st_f1;
+	u32 frame_time;
 
 	h_total = hsync_len + left_margin + x_res + right_margin;
 	v_total = vsync_len + upper_margin + y_res + lower_margin;
+	frame_time = 1000 * v_total * h_total / (screen->mode.pixclock / 1000);
 
 	val = V_DSP_HS_END(hsync_len) | V_DSP_HTOTAL(h_total);
 	vop_msk_reg(vop_dev, DSP_HTOTAL_HS_END, val);
@@ -881,8 +884,8 @@ static int vop_config_timing(struct vop_device *vop_dev,
 			    V_DSP_INTERLACE(1) | V_DSP_FIELD_POL(0));
 		val = V_DSP_LINE_FLAG_NUM_0(lower_margin ?
 					    vact_end_f1 : vact_end_f1 - 1);
-		val |= V_DSP_LINE_FLAG_NUM_1(lower_margin ?
-					     vact_end_f1 : vact_end_f1 - 1);
+		val |= V_DSP_LINE_FLAG_NUM_1(vact_end_f1 -
+					     EARLY_TIME * v_total / frame_time);
 		vop_msk_reg(vop_dev, LINE_FLAG, val);
 	} else {
 		val = V_DSP_VS_END(vsync_len) | V_DSP_VTOTAL(v_total);
@@ -895,7 +898,8 @@ static int vop_config_timing(struct vop_device *vop_dev,
 		vop_msk_reg(vop_dev, DSP_CTRL0, V_DSP_INTERLACE(0) |
 			    V_DSP_FIELD_POL(0));
 		val = V_DSP_LINE_FLAG_NUM_0(vsync_len + upper_margin + y_res) |
-			V_DSP_LINE_FLAG_NUM_1(vsync_len + upper_margin + y_res);
+			V_DSP_LINE_FLAG_NUM_1(vsync_len + upper_margin + y_res -
+					      EARLY_TIME * v_total / frame_time);
 		vop_msk_reg(vop_dev, LINE_FLAG, val);
 	}
 	vop_vop_post_cfg(vop_dev, screen);
