@@ -275,6 +275,8 @@ static int rockchip_lvds_init(struct display_state *state)
 	const char *name;
 	int i;
 	struct fdt_resource lvds_phy, lvds_ctrl;
+	struct panel_state *panel_state = &state->panel_state;
+	int panel_node = panel_state->node;
 
 	lvds = malloc(sizeof(*lvds));
 	if (!lvds)
@@ -300,8 +302,8 @@ static int rockchip_lvds_init(struct display_state *state)
 	lvds->ctrl_reg = lvds_ctrl.start;
 	lvds->pdata = pdata;
 
-	fdt_get_string(state->blob, lvds_node, "rockchip,output", &name);
-	if (fdt_get_string(state->blob, lvds_node, "rockchip,output", &name))
+	fdt_get_string(state->blob, panel_node, "rockchip,output", &name);
+	if (fdt_get_string(state->blob, panel_node, "rockchip,output", &name))
 		/* default set it as output rgb */
 		lvds->output = DISPLAY_OUTPUT_RGB;
 	else
@@ -311,7 +313,7 @@ static int rockchip_lvds_init(struct display_state *state)
 		free(lvds);
 		return lvds->output;
 	}
-	if (fdt_get_string(state->blob, lvds_node, "rockchip,data-mapping",
+	if (fdt_get_string(state->blob, panel_node, "rockchip,data-mapping",
 			   &name))
 		/* default set it as format jeida */
 		lvds->format = LVDS_FORMAT_JEIDA;
@@ -323,7 +325,7 @@ static int rockchip_lvds_init(struct display_state *state)
 		free(lvds);
 		return lvds->format;
 	}
-	i = fdtdec_get_int(state->blob, lvds_node, "rockchip,data-width", 24);
+	i = fdtdec_get_int(state->blob, panel_node, "rockchip,data-width", 24);
 	if (i == 24) {
 		lvds->format |= LVDS_24BIT;
 	} else if (i == 18) {
@@ -333,7 +335,8 @@ static int rockchip_lvds_init(struct display_state *state)
 		free(lvds);
 		return -EINVAL;
 	}
-
+	printf("LVDS: data mapping: %s, data-width:%d, format:%d,\n",
+		name, i, lvds->format);
 	conn_state->private = lvds;
 	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
