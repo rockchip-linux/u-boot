@@ -13,7 +13,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General pll freq config */
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		1188 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		594 /* MHZ */
 
 
 /* Cpu clock source select */
@@ -93,8 +93,8 @@ struct pll_data {
 static struct pll_clk_set apll_clks[] = {
 	/* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 		_core_div, _core_peri_div, _core_aclk_civ, _cpu_aclk_div, _cpu_hclk_div, _cpu_pclk_div */
-	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 4, 4, 4, 2, 2),
-	_APLL_SET_CLKS(600000, 1, 75, 3, 1, 1, 0,	1, 4, 2, 4, 2, 2),
+	_APLL_SET_CLKS(816000, 1, 68, 2, 1, 1, 0,	1, 4, 4, 8, 2, 2),
+	_APLL_SET_CLKS(600000, 1, 75, 3, 1, 1, 0,	1, 4, 2, 8, 2, 2),
 };
 
 
@@ -368,7 +368,7 @@ static void rkclk_apll_cb(struct pll_clk_set *clkset)
 	rkclk_cpu_ahpclk_set(CPU_SRC_ARM_PLL, clkset->aclk_div, clkset->hclk_div, clkset->pclk_div);
 #else
 	if (CONFIG_RKCLK_GPLL_FREQ > 300)
-		rkclk_cpu_ahpclk_set(CPU_SRC_GENERAL_PLL, 4, 2, 2);
+		rkclk_cpu_ahpclk_set(CPU_SRC_GENERAL_PLL, 8, 2, 2);
 	else
 		rkclk_cpu_ahpclk_set(CPU_SRC_GENERAL_PLL, 2, 2, 2);
 #endif
