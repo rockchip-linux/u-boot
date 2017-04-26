@@ -19,6 +19,7 @@
 #define RK816_I2C_SPEED			200000
 #define RK816_NUM_REGULATORS		10
 
+#define RK816_LDO_VSEL_MASK             0x1f
 #define RK816_VOLT_MASK			0x3f
 #define RK816_SECONDS_REG		0x00
 
