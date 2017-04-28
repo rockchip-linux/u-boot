@@ -333,6 +333,9 @@ static int rk816_pre_init_ldo(unsigned char bus, uchar addr)
 {
 	rk816_regulator_disable(9);
 
+	/* disable boost5v and otg_en */
+	i2c_reg_write(rk8xx->pmic->hw.i2c.addr, RK816_DCDC_EN_REG2, 0x60);
+
 	return 0;
 }
 
