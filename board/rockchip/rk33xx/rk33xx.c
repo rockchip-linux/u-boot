@@ -235,6 +235,10 @@ int board_late_init(void)
 extern void rockchip_display_fixup(void *blob);
 #endif
 
+#if defined(CONFIG_RK_DEVICEINFO)
+extern bool g_is_devinfo_load;
+#endif
+
 #if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
 void ft_board_setup(void *blob, bd_t * bd)
 {
@@ -257,6 +261,14 @@ void ft_board_setup(void *blob, bd_t * bd)
 		size = CONFIG_RK_FB_SIZE;
 
 	fdt_update_reserved_memory(blob, "rockchip,fb-logo", start, size);
+
+#if defined(CONFIG_RK_DEVICEINFO)
+	if (g_is_devinfo_load)
+		fdt_update_reserved_memory(blob, "rockchip,stb-devinfo",
+					   CONFIG_RKHDMI_PARAM_ADDR,
+					   SZ_8K);
+#endif
+
 #endif
 #endif
 }

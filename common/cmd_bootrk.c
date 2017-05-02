@@ -443,7 +443,7 @@ static int rk_load_kernel_logo(void)
 #endif
 
 #if defined(CONFIG_RK_DEVICEINFO)
-static bool g_is_devinfo_load;
+bool g_is_devinfo_load;
 
 static bool rk_load_devinfo(void)
 {
