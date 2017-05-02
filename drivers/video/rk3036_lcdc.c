@@ -129,8 +129,15 @@ static void rk31xx_output_lvttl(vidinfo_t *vid)
 {
 	u32 val = 0;
 	struct rk_lvds_device *lvds = &rk31xx_lvds;
+	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
 
-	grf_writel(0xffff5555, GRF_GPIO2B_IOMUX);
+	if (lcdc_dev->sync_mode == TTL_DEN_MODE)
+		grf_writel(0xffff5541, GRF_GPIO2B_IOMUX);
+	else if (lcdc_dev->sync_mode == TTL_HVSYNC_MODE)
+		grf_writel(0xffff5515, GRF_GPIO2B_IOMUX);
+	else
+		grf_writel(0xffff5555, GRF_GPIO2B_IOMUX);
+
 	grf_writel(0x00ff0055, GRF_GPIO2C_IOMUX);
 	grf_writel(0x77771111, GRF_GPIO2C_IOMUX2);
 	grf_writel(0x700c1004, GRF_GPIO2D_IOMUX);
@@ -672,6 +679,9 @@ static int rk312x_lcdc_parse_dt(struct lcdc_device *lcdc_dev,
 	order = fdtdec_get_int(blob, lcdc_dev->node,
 			       "rockchip,fb-win-map", order);
 	lcdc_dev->dft_win = order % 10;
+
+	lcdc_dev->sync_mode = fdtdec_get_int(blob, lcdc_dev->node,
+			       "rockchip,ttl-sync-mode", TTL_DEFAULT_MODE);
 
 	return 0;
 }

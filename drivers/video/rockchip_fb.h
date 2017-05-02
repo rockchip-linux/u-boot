@@ -65,6 +65,10 @@
 #define DUAL		2
 #define DUAL_LCD	3
 
+#define	TTL_DEFAULT_MODE	0
+#define	TTL_HVSYNC_MODE		1
+#define	TTL_DEN_MODE		2
+
 enum _vop_overlay_mode {
 	VOP_RGB_DOMAIN,
 	VOP_YUV_DOMAIN

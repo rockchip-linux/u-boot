@@ -659,6 +659,7 @@ struct lcdc_device {
 	int regs;
 	int output_color;
 	int overlay_mode;
+	int sync_mode;
 };
 
 
