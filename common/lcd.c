@@ -1158,6 +1158,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		fb_info.ymirror = 1;
 		goto display;
 	} else {
+		fb_info.ymirror = 0;
 		lcd_base = bmap + width * height * bpix / 8;
 	}
 #endif
