@@ -32,6 +32,7 @@ void enable_caches(void)
  * rk3188_plus chip info:	{0x33313042, 0x32303133, 0x30313331, 0x56313031} - 310B20130131V101
  * rk312x chip info:		{0x33313043, 0x32303134, 0x30343239, 0x56313030} - 310C20140429V100
  * rk312xb chip info:		{0x33313044, 0x32303134, 0x30373330, 0x56313030} - 310D20140730V100
+ * rk3126c chip info:		{0x33313044, 0x32303137, 0x30343137, 0x56323030} - 310D20170417V200
  * rk3288 chip info:		{0x33323041, 0x32303133, 0x31313136, 0x56313030} - 320A20131116V100
  * rk322x chip info:		{0x33323042, 0x32303135, 0x31313136, 0x56313030} - 320B20151116V100
  */
@@ -46,6 +47,8 @@ int rk_get_bootrom_chip_version(unsigned int chip_info[])
 	chip_info[0] = 0x33323042;
 #elif defined(CONFIG_RKCHIP_RK3288)
 	chip_info[0] = 0x33323041;
+#elif defined(CONFIG_RKCHIP_RK3126)
+	chip_info[0] = 0x33313044;
 #endif
 #else
 	memcpy((char *)chip_info, (char *)RKIO_ROM_CHIP_VER_ADDR, RKIO_ROM_CHIP_VER_SIZE);
