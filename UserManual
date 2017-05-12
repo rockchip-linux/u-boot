@@ -23,24 +23,48 @@
 
 2.  Configure the rk platform
     rockchip support for uboot chip set configs as:
-	MID product:
-        	configs\rk3288_defconfig
-        	configs\rk3126_defconfig
-        	configs\rk3128_defconfig
+
+	[MID product]:
+	  1. Without Security:
+		configs\rk3126_defconfig
+		configs\rk3128_defconfig
+		configs\rk3288_defconfig
+
+	  2. With Security:
+		configs\rk3126_secure_defconfig
+		configs\rk3288_secure_defconfig
 		configs\rk3368_defconfig
 		configs\rk3368h_defconfig
 		configs\rk3366_defconfig
 		configs\rk3399_defconfig
-	BOX product:
-		configs\rk3288_box_defconfig
-        	configs\rk3036_box_defconfig
+
+	[BOX product]:
+	  1. Without Security:
+		configs\rk3036_box_defconfig
 		configs\rk3128_box_defconfig
-		configs\rk3368_box_defconfig
+		configs\rk3288_box_defconfig
+
+	  2. With Security:
 		configs\rk322x_box_defconfig
-		configs\rk3366_box_defconfig
-		configs\rk3399_box_defconfig
 		configs\rk322xh_box_defconfig
+		configs\rk3288_box_secure_defconfig
 		configs\rk3328_box_defconfig
+		configs\rk3366_box_defconfig
+		configs\rk3368_box_defconfig
+		configs\rk3399_box_defconfig
+
+	[Linux product]:
+		configs\rk3399_linux_defconfig
+
+	Introduction:
+	  1. What's "Security" ?
+	     It means ARM TrustZone technology. For Rockchip platforms, we usually generate a "trust.img" file.
+
+	  2. What's difference between rk3368_defconfig and rk3368h_defconfig ?
+	     rk3368_defconfig is used only for kernel 3.10 while rk3368h_defconfig only for kenrel-4.4 .
+
+	  3. The defconfig with name "secure" means the platform applies ARM TrustZone technology, For example:
+	     'rk3126_defconfig' is not applied with ARM TrustZon technology, but 'rk3126_secure_defconfig' is applied.
 
     example:
         make rk3288_defconfig	-	Command to configure rk3288 platform for uboot.
