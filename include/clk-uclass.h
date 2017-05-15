@@ -77,6 +77,23 @@ struct clk_ops {
 	 */
 	ulong (*set_rate)(struct clk *clk, ulong rate);
 	/**
+	 * clk_get_phase() - Get the phase shift of a clock signal.
+	 *
+	 * @clk:	The clock to manipulate.
+	 * @return the phase shift of a clock node in degrees,
+	 *		otherwise returns -ve error code.
+	 */
+	int (*get_phase)(struct clk *clk);
+
+	/**
+	 * clk_set_rate() - Adjust the phase shift of a clock signal.
+	 *
+	 * @clk:	The clock to manipulate.
+	 * @degrees:	Numberof degrees the signal is shifted.
+	 * @return 0 on success, or -ve error code.
+	 */
+	int (*set_phase)(struct clk *clk, int degrees);
+	/**
 	 * enable() - Enable a clock.
 	 *
 	 * @clk:	The clock to manipulate.

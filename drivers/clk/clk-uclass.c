@@ -165,6 +165,26 @@ ulong clk_set_rate(struct clk *clk, ulong rate)
 	return ops->set_rate(clk, rate);
 }
 
+int clk_get_phase(struct clk *clk)
+{
+	struct clk_ops *ops = clk_dev_ops(clk->dev);
+
+	if (!ops->get_phase)
+		return -ENOSYS;
+
+	return ops->get_phase(clk);
+}
+
+int clk_set_phase(struct clk *clk, int degrees)
+{
+	struct clk_ops *ops = clk_dev_ops(clk->dev);
+
+	if (!ops->set_phase)
+		return -ENOSYS;
+
+	return ops->set_phase(clk, degrees);
+}
+
 int clk_enable(struct clk *clk)
 {
 	struct clk_ops *ops = clk_dev_ops(clk->dev);
