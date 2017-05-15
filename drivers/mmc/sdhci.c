@@ -389,6 +389,9 @@ static int sdhci_set_clock(struct mmc *mmc, unsigned int clock)
 
 	clk |= SDHCI_CLOCK_CARD_EN;
 	sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
+
+	host->clock = clock;
+
 	return 0;
 }
 
