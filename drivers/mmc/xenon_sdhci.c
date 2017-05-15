@@ -318,7 +318,7 @@ static void xenon_mask_cmd_conflict_err(struct sdhci_host *host)
 static void xenon_sdhci_set_ios_post(struct sdhci_host *host)
 {
 	struct xenon_sdhci_priv *priv = host->mmc->priv;
-	uint speed = host->mmc->tran_speed;
+	uint speed = host->mmc->clock;
 	int pwr_18v = 0;
 
 	if ((sdhci_readb(host, SDHCI_POWER_CONTROL) & ~SDHCI_POWER_ON) ==

@@ -1449,7 +1449,7 @@ static bool mmc_can_card_busy(struct mmc *)
 static int mmc_startup(struct mmc *mmc)
 {
 	int err, i;
-	uint mult, freq;
+	uint mult, freq, tran_speed;
 	u64 cmult, csize, capacity;
 	struct mmc_cmd cmd;
 	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
@@ -1545,7 +1545,7 @@ static int mmc_startup(struct mmc *mmc)
 	freq = fbase[(cmd.response[0] & 0x7)];
 	mult = multipliers[((cmd.response[0] >> 3) & 0xf)];
 
-	mmc->tran_speed = freq * mult;
+	tran_speed = freq * mult;
 
 	mmc->dsr_imp = ((cmd.response[1] >> 12) & 0x1);
 	mmc->read_bl_len = 1 << ((cmd.response[1] >> 16) & 0xf);
@@ -1792,11 +1792,11 @@ static int mmc_startup(struct mmc *mmc)
 			return err;
 
 		if (mmc->card_caps & MMC_MODE_HS)
-			mmc->tran_speed = 50000000;
+			tran_speed = 50000000;
 		else
-			mmc->tran_speed = 25000000;
+			tran_speed = 25000000;
 
-		mmc_set_clock(mmc, mmc->tran_speed);
+		mmc_set_clock(mmc, tran_speed);
 	}
 
 	/* Fix the block length for DDR mode */
