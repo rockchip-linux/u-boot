@@ -384,6 +384,26 @@ static int dwmci_setup_bus(struct dwmci_host *host, u32 freq)
 }
 
 #ifdef CONFIG_DM_MMC_OPS
+static bool dwmci_card_busy(struct udevice *dev)
+{
+	struct mmc *mmc = mmc_get_mmc_dev(dev);
+#else
+static bool dwmci_card_busy(struct mmc *mmc)
+{
+#endif
+	u32 status;
+	struct dwmci_host *host = (struct dwmci_host *)mmc->priv;
+
+	/*
+	 * Check the busy bit which is low when DAT[3:0]
+	 * (the data lines) are 0000
+	 */
+	status = dwmci_readl(host, DWMCI_STATUS);
+
+	return !!(status & DWMCI_BUSY);
+}
+
+#ifdef CONFIG_DM_MMC_OPS
 static int dwmci_set_ios(struct udevice *dev)
 {
 	struct mmc *mmc = mmc_get_mmc_dev(dev);
@@ -475,12 +495,14 @@ int dwmci_probe(struct udevice *dev)
 }
 
 const struct dm_mmc_ops dm_dwmci_ops = {
+	.card_busy	= dwmci_card_busy,
 	.send_cmd	= dwmci_send_cmd,
 	.set_ios	= dwmci_set_ios,
 };
 
 #else
 static const struct mmc_ops dwmci_ops = {
+	.card_busy	= dwmci_card_busy,
 	.send_cmd	= dwmci_send_cmd,
 	.set_ios	= dwmci_set_ios,
 	.init		= dwmci_init,
