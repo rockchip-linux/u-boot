@@ -794,7 +794,7 @@ static ulong rk3399_mmc_set_clk(struct rk3399_cru *cru,
 		break;
 	case SCLK_EMMC:
 		/* Select aclk_emmc source from GPLL */
-		src_clk_div = GPLL_HZ / aclk_emmc;
+		src_clk_div = DIV_ROUND_UP(GPLL_HZ, aclk_emmc);
 		assert(src_clk_div - 1 < 31);
 
 		rk_clrsetreg(&cru->clksel_con[21],
@@ -803,7 +803,7 @@ static ulong rk3399_mmc_set_clk(struct rk3399_cru *cru,
 			     (src_clk_div - 1) << ACLK_EMMC_DIV_CON_SHIFT);
 
 		/* Select clk_emmc source from GPLL too */
-		src_clk_div = GPLL_HZ / set_rate;
+		src_clk_div = DIV_ROUND_UP(GPLL_HZ, set_rate);
 		assert(src_clk_div - 1 < 127);
 
 		rk_clrsetreg(&cru->clksel_con[22],
