@@ -180,6 +180,7 @@ struct dwmci_host {
 	 * @freq:	Frequency the host is trying to achieve
 	 */
 	unsigned int (*get_mmc_clk)(struct dwmci_host *host, uint freq);
+	int (*execute_tuning)(struct dwmci_host *host, u32 opcode);
 #ifndef CONFIG_BLK
 	struct mmc_config cfg;
 #endif

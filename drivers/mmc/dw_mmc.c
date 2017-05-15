@@ -404,6 +404,22 @@ static bool dwmci_card_busy(struct mmc *mmc)
 }
 
 #ifdef CONFIG_DM_MMC_OPS
+static int dwmci_execute_tuning(struct udevice *dev, u32 opcode)
+{
+	struct mmc *mmc = mmc_get_mmc_dev(dev);
+#else
+static int dwmci_execute_tuning(struct mmc *mmc, u32 opcode)
+{
+#endif
+	struct dwmci_host *host = (struct dwmci_host *)mmc->priv;
+
+	if (!host->execute_tuning)
+		return -EIO;
+
+	return host->execute_tuning(host, opcode);
+}
+
+#ifdef CONFIG_DM_MMC_OPS
 static int dwmci_set_ios(struct udevice *dev)
 {
 	struct mmc *mmc = mmc_get_mmc_dev(dev);
@@ -498,6 +514,7 @@ const struct dm_mmc_ops dm_dwmci_ops = {
 	.card_busy	= dwmci_card_busy,
 	.send_cmd	= dwmci_send_cmd,
 	.set_ios	= dwmci_set_ios,
+	.execute_tuning	= dwmci_execute_tuning,
 };
 
 #else
@@ -506,6 +523,7 @@ static const struct mmc_ops dwmci_ops = {
 	.send_cmd	= dwmci_send_cmd,
 	.set_ios	= dwmci_set_ios,
 	.init		= dwmci_init,
+	.execute_tuning	= dwmci_execute_tuning,
 };
 #endif
 
