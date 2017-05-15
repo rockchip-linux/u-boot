@@ -158,7 +158,10 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 	static unsigned int cmd_timeout = SDHCI_CMD_DEFAULT_TIMEOUT;
 
 	sdhci_writel(host, SDHCI_INT_ALL_MASK, SDHCI_INT_STATUS);
-	mask = SDHCI_CMD_INHIBIT | SDHCI_DATA_INHIBIT;
+	mask = SDHCI_CMD_INHIBIT;
+
+	if (data)
+		mask |= SDHCI_DATA_INHIBIT;
 
 	/* We shouldn't wait for data inihibit for stop commands, even
 	   though they might use busy signaling */
@@ -199,6 +202,13 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 		flags |= SDHCI_CMD_INDEX;
 	if (data)
 		flags |= SDHCI_CMD_DATA;
+
+	if (cmd->cmdidx == MMC_SEND_TUNING_BLOCK ||
+	    cmd->cmdidx == MMC_SEND_TUNING_BLOCK_HS200) {
+		mask &= ~SDHCI_INT_RESPONSE;
+		mask |= SDHCI_INT_DATA_AVAIL;
+		flags |= SDHCI_CMD_DATA;
+	}
 
 	/* Set Transfer mode regarding to data flag */
 	if (data != 0) {
@@ -558,6 +568,108 @@ static int sdhci_init(struct mmc *mmc)
 	return 0;
 }
 
+static int sdhci_send_tuning(struct sdhci_host *host, u32 opcode)
+{
+	struct mmc_cmd cmd;
+
+	cmd.cmdidx = opcode;
+	cmd.resp_type = MMC_RSP_R1;
+	cmd.cmdarg = 0;
+	/*
+	 * In response to CMD19, the card sends 64 bytes of tuning
+	 * block to the Host Controller. So we set the block size
+	 * to 64 here.
+	 */
+	if (opcode == MMC_SEND_TUNING_BLOCK_HS200 &&
+	    host->mmc->bus_width == MMC_BUS_WIDTH_8BIT)
+		sdhci_writew(host, SDHCI_MAKE_BLKSZ(7, 128), SDHCI_BLOCK_SIZE);
+	else
+		sdhci_writew(host, SDHCI_MAKE_BLKSZ(7, 64), SDHCI_BLOCK_SIZE);
+
+	/*
+	 * The tuning block is sent by the card to the host controller.
+	 * So we set the TRNS_READ bit in the Transfer Mode register.
+	 * This also takes care of setting DMA Enable and Multi Block
+	 * Select in the same register to 0.
+	 */
+	sdhci_writew(host, SDHCI_TRNS_READ, SDHCI_TRANSFER_MODE);
+
+#ifdef CONFIG_DM_MMC_OPS
+	return sdhci_send_command(host->mmc->dev, &cmd, NULL);
+#else
+	return sdhci_send_command(host->mmc, &cmd, NULL);
+#endif
+}
+
+#define MAX_TUNING_LOOP 40
+static int __sdhci_execute_tuning(struct sdhci_host *host, u32 opcode)
+{
+	int i;
+	int ret;
+
+	/*
+	 * Issue opcode repeatedly till Execute Tuning is set to 0 or the number
+	 * of loops reaches 40 times.
+	 */
+	for (i = 0; i < MAX_TUNING_LOOP; i++) {
+		u16 ctrl;
+
+		ret = sdhci_send_tuning(host, opcode);
+
+		if (ret)
+			return ret;
+
+		ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
+		if (!(ctrl & SDHCI_CTRL_EXEC_TUNING)) {
+			if (ctrl & SDHCI_CTRL_TUNED_CLK)
+				/* Tuning successfully */
+				return 0;
+			break;
+		}
+	}
+
+	return -ETIMEDOUT;
+}
+
+#ifdef CONFIG_DM_MMC_OPS
+static int sdhci_execute_tuning(struct udevice *dev, u32 opcode)
+{
+	struct mmc *mmc = mmc_get_mmc_dev(dev);
+#else
+static int sdhci_execute_tuning(struct mmc *mmc, u32 opcode)
+{
+#endif
+	struct sdhci_host *host = mmc->priv;
+	u16 ctrl;
+
+	/*
+	 * The Host Controller needs tuning in case of SDR104 and DDR50
+	 * mode, and for SDR50 mode when Use Tuning for SDR50 is set in
+	 * the Capabilities register.
+	 * If the Host Controller supports the HS200 mode then the
+	 * tuning function has to be executed.
+	 */
+	switch (mmc->timing) {
+	/* HS400 tuning is done in HS200 mode */
+	case MMC_TIMING_MMC_HS400:
+		return -EINVAL;
+	case MMC_TIMING_MMC_HS200:
+		/*
+		 * Periodic re-tuning for HS400 is not expected to be needed, so
+		 * disable it here.
+		 */
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	ctrl = sdhci_readw(host, SDHCI_HOST_CONTROL2);
+	ctrl |= SDHCI_CTRL_EXEC_TUNING;
+	sdhci_writew(host, ctrl, SDHCI_HOST_CONTROL2);
+
+	return __sdhci_execute_tuning(host, opcode);
+}
+
 #ifdef CONFIG_DM_MMC_OPS
 int sdhci_probe(struct udevice *dev)
 {
@@ -570,6 +682,7 @@ const struct dm_mmc_ops sdhci_ops = {
 	.card_busy	= sdhci_card_busy,
 	.send_cmd	= sdhci_send_command,
 	.set_ios	= sdhci_set_ios,
+	.execute_tuning = sdhci_execute_tuning,
 };
 #else
 static const struct mmc_ops sdhci_ops = {
@@ -577,6 +690,7 @@ static const struct mmc_ops sdhci_ops = {
 	.send_cmd	= sdhci_send_command,
 	.set_ios	= sdhci_set_ios,
 	.init		= sdhci_init,
+	.execute_tuning = sdhci_execute_tuning,
 };
 #endif
 
