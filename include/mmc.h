@@ -434,6 +434,21 @@ struct mmc {
 	uint has_init;
 	int high_capacity;
 	uint bus_width;
+	uint timing;
+
+#define MMC_TIMING_LEGACY	0
+#define MMC_TIMING_MMC_HS	1
+#define MMC_TIMING_SD_HS	2
+#define MMC_TIMING_UHS_SDR12	3
+#define MMC_TIMING_UHS_SDR25	4
+#define MMC_TIMING_UHS_SDR50	5
+#define MMC_TIMING_UHS_SDR104	6
+#define MMC_TIMING_UHS_DDR50	7
+#define MMC_TIMING_MMC_DDR52	8
+#define MMC_TIMING_MMC_HS200	9
+#define MMC_TIMING_MMC_HS400	10
+#define MMC_TIMING_MMC_HS400ES	11
+
 	uint clock;
 	uint card_caps;
 	uint ocr;
@@ -492,6 +507,40 @@ enum mmc_hwpart_conf_mode {
 	MMC_HWPART_CONF_SET,
 	MMC_HWPART_CONF_COMPLETE,
 };
+
+static inline bool mmc_card_hs(struct mmc *mmc)
+{
+	return (mmc->timing == MMC_TIMING_MMC_HS) ||
+		(mmc->timing == MMC_TIMING_SD_HS);
+}
+
+static inline bool mmc_card_ddr(struct mmc *mmc)
+{
+	return (mmc->timing == MMC_TIMING_UHS_DDR50) ||
+		(mmc->timing == MMC_TIMING_MMC_DDR52) ||
+		(mmc->timing == MMC_TIMING_MMC_HS400) ||
+		(mmc->timing == MMC_TIMING_MMC_HS400ES);
+}
+
+static inline bool mmc_card_hs200(struct mmc *mmc)
+{
+	return mmc->timing == MMC_TIMING_MMC_HS200;
+}
+
+static inline bool mmc_card_ddr52(struct mmc *mmc)
+{
+	return mmc->timing == MMC_TIMING_MMC_DDR52;
+}
+
+static inline bool mmc_card_hs400(struct mmc *mmc)
+{
+	return mmc->timing == MMC_TIMING_MMC_HS400;
+}
+
+static inline bool mmc_card_hs400es(struct mmc *mmc)
+{
+	return mmc->timing == MMC_TIMING_MMC_HS400ES;
+}
 
 struct mmc *mmc_create(const struct mmc_config *cfg, void *priv);
 

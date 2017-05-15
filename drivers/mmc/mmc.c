@@ -318,6 +318,12 @@ ulong mmc_bread(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt,
 	return blkcnt;
 }
 
+static void mmc_set_timing(struct mmc *mmc, uint timing)
+{
+	mmc->timing = timing;
+	mmc_set_ios(mmc);
+}
+
 static int mmc_go_idle(struct mmc *mmc)
 {
 	struct mmc_cmd cmd;
@@ -1734,6 +1740,7 @@ int mmc_start_init(struct mmc *mmc)
 	mmc->ddr_mode = 0;
 	mmc_set_bus_width(mmc, 1);
 	mmc_set_clock(mmc, 1);
+	mmc_set_timing(mmc, MMC_TIMING_LEGACY);
 
 	/* Reset the Card */
 	err = mmc_go_idle(mmc);
