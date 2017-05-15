@@ -85,6 +85,8 @@
 #define MMC_CMD_SET_BLOCKLEN		16
 #define MMC_CMD_READ_SINGLE_BLOCK	17
 #define MMC_CMD_READ_MULTIPLE_BLOCK	18
+#define MMC_SEND_TUNING_BLOCK		19
+#define MMC_SEND_TUNING_BLOCK_HS200	21
 #define MMC_CMD_SET_BLOCK_COUNT         23
 #define MMC_CMD_WRITE_SINGLE_BLOCK	24
 #define MMC_CMD_WRITE_MULTIPLE_BLOCK	25
@@ -387,6 +389,17 @@ struct dm_mmc_ops {
 	 * @return 0 if write-enabled, 1 if write-protected, -ve on error
 	 */
 	int (*get_wp)(struct udevice *dev);
+
+	/**
+	 * execute_tuning() - Find the optimal sampling point of a data
+	 *			input signals.
+	 *
+	 * @dev:	Device to check
+	 * @opcode:	The tuning command opcode value is different
+	 *		for SD and eMMC cards
+	 * @return 0 if write-enabled, 1 if write-protected, -ve on error
+	 */
+	int (*execute_tuning)(struct udevice *dev, u32 opcode);
 };
 
 #define mmc_get_ops(dev)        ((struct dm_mmc_ops *)(dev)->driver->ops)
@@ -413,6 +426,7 @@ struct mmc_ops {
 	int (*init)(struct mmc *mmc);
 	int (*getcd)(struct mmc *mmc);
 	int (*getwp)(struct mmc *mmc);
+	int (*execute_tuning)(struct udevice *dev, u32 opcode);
 };
 #endif
 
@@ -451,6 +465,11 @@ struct mmc {
 	uint has_init;
 	int high_capacity;
 	uint bus_width;
+
+#define MMC_BUS_WIDTH_1BIT	1
+#define MMC_BUS_WIDTH_4BIT	4
+#define MMC_BUS_WIDTH_8BIT	8
+
 	uint timing;
 
 #define MMC_TIMING_LEGACY	0
@@ -467,6 +486,12 @@ struct mmc {
 #define MMC_TIMING_MMC_HS400ES	11
 
 	uint clock;
+
+#define MMC_HIGH_26_MAX_DTR	26000000
+#define MMC_HIGH_52_MAX_DTR	52000000
+#define MMC_HIGH_DDR_MAX_DTR	52000000
+#define MMC_HS200_MAX_DTR	200000000
+
 	uint card_caps;
 	uint ocr;
 	uint dsr;
@@ -558,6 +583,8 @@ static inline bool mmc_card_hs400es(struct mmc *mmc)
 {
 	return mmc->timing == MMC_TIMING_MMC_HS400ES;
 }
+
+int mmc_send_tuning(struct mmc *mmc, u32 opcode);
 
 struct mmc *mmc_create(const struct mmc_config *cfg, void *priv);
 
