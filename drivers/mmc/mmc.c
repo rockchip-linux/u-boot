@@ -795,6 +795,27 @@ static int mmc_select_hs(struct mmc *mmc)
 	return ret;
 }
 
+static int mmc_select_hs_ddr(struct mmc *mmc)
+{
+	u32 ext_csd_bits;
+	int err = 0;
+
+	if (mmc->bus_width == MMC_BUS_WIDTH_1BIT)
+		return 0;
+
+	ext_csd_bits = (mmc->bus_width == MMC_BUS_WIDTH_8BIT) ?
+			EXT_CSD_DDR_BUS_WIDTH_8 : EXT_CSD_DDR_BUS_WIDTH_4;
+
+	err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+			 EXT_CSD_BUS_WIDTH, ext_csd_bits);
+	if (err)
+		return err;
+
+	mmc_set_timing(mmc, MMC_TIMING_MMC_DDR52);
+
+	return 0;
+}
+
 #ifndef CONFIG_SPL_BUILD
 static int mmc_select_hs200(struct mmc *mmc)
 {
@@ -941,8 +962,11 @@ static int mmc_change_freq(struct mmc *mmc)
 
 	if (mmc_card_hs200(mmc))
 		err = mmc_hs200_tuning(mmc);
-	else
+	else if (!mmc_card_hs400es(mmc)) {
 		err = mmc_select_bus_width(mmc) > 0 ? 0 : err;
+		if (!err && avail_type & EXT_CSD_CARD_TYPE_DDR_52)
+			err = mmc_select_hs_ddr(mmc);
+	}
 
 	return err;
 }
