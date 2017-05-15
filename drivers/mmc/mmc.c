@@ -1156,6 +1156,19 @@ static void mmc_set_ios(struct mmc *mmc)
 	if (mmc->cfg->ops->set_ios)
 		mmc->cfg->ops->set_ios(mmc);
 }
+
+static bool mmc_card_busy(struct mmc *mmc)
+{
+	if (!mmc->cfg->ops->card_busy)
+		return -ENOSYS;
+
+	return mmc->cfg->ops->card_busy(mmc);
+}
+
+static bool mmc_can_card_busy(struct mmc *)
+{
+	return !!mmc->cfg->ops->card_busy;
+}
 #endif
 
 void mmc_set_clock(struct mmc *mmc, uint clock)

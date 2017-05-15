@@ -357,6 +357,14 @@ struct dm_mmc_ops {
 			struct mmc_data *data);
 
 	/**
+	 * card_busy() - Query the card device status
+	 *
+	 * @dev:	Device to update
+	 * @return true if card device is busy
+	 */
+	bool (*card_busy)(struct udevice *dev);
+
+	/**
 	 * set_ios() - Set the I/O speed/width for an MMC device
 	 *
 	 * @dev:	Device to update
@@ -390,12 +398,15 @@ int dm_mmc_get_cd(struct udevice *dev);
 int dm_mmc_get_wp(struct udevice *dev);
 
 /* Transition functions for compatibility */
+bool mmc_card_busy(struct mmc *mmc);
+bool mmc_can_card_busy(struct mmc *mmc);
 int mmc_set_ios(struct mmc *mmc);
 int mmc_getcd(struct mmc *mmc);
 int mmc_getwp(struct mmc *mmc);
 
 #else
 struct mmc_ops {
+	bool (*card_busy)(struct mmc *mmc);
 	int (*send_cmd)(struct mmc *mmc,
 			struct mmc_cmd *cmd, struct mmc_data *data);
 	int (*set_ios)(struct mmc *mmc);
