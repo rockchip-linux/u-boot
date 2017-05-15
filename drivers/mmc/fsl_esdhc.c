@@ -400,7 +400,7 @@ esdhc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 #if defined(CONFIG_FSL_USDHC)
 	esdhc_write32(&regs->mixctrl,
 	(esdhc_read32(&regs->mixctrl) & 0xFFFFFF80) | (xfertyp & 0x7F)
-			| (mmc->ddr_mode ? XFERTYP_DDREN : 0));
+			| (mmc_card_ddr(mmc) ? XFERTYP_DDREN : 0));
 	esdhc_write32(&regs->xfertyp, xfertyp & 0xFFFF0000);
 #else
 	esdhc_write32(&regs->xfertyp, xfertyp);
@@ -541,7 +541,7 @@ static void set_sysctl(struct mmc *mmc, uint clock)
 		if ((sdhc_clk / (div * pre_div)) <= clock)
 			break;
 
-	pre_div >>= mmc->ddr_mode ? 2 : 1;
+	pre_div >>= mmc_card_ddr(mmc) ? 2 : 1;
 	div -= 1;
 
 	clk = (pre_div << 8) | (div << 4);

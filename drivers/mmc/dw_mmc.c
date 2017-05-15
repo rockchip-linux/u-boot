@@ -432,7 +432,7 @@ static int dwmci_set_ios(struct mmc *mmc)
 	dwmci_writel(host, DWMCI_CTYPE, ctype);
 
 	regs = dwmci_readl(host, DWMCI_UHS_REG);
-	if (mmc->ddr_mode)
+	if (mmc_card_ddr(mmc))
 		regs |= DWMCI_DDR_MODE;
 	else
 		regs &= ~DWMCI_DDR_MODE;

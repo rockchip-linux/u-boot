@@ -38,7 +38,7 @@ static void print_mmcinfo(struct mmc *mmc)
 	print_size(mmc->capacity, "\n");
 
 	printf("Bus Width: %d-bit%s\n", mmc->bus_width,
-			mmc->ddr_mode ? " DDR" : "");
+			mmc_card_ddr(mmc) ? " DDR" : "");
 
 	puts("Erase Group Size: ");
 	print_size(((u64)mmc->erase_grp_size) << 9, "\n");

@@ -237,7 +237,7 @@ static void xenon_mmc_phy_set(struct sdhci_host *host)
 	sdhci_writew(host, var, SDHCI_CLOCK_CONTROL);
 
 	var = sdhci_readl(host, EMMC_PHY_FUNC_CONTROL);
-	if (host->mmc->ddr_mode) {
+	if (mmc_card_ddr(host->mmc)) {
 		var |= (DQ_DDR_MODE_MASK << DQ_DDR_MODE_SHIFT) | CMD_DDR_MODE;
 	} else {
 		var &= ~((DQ_DDR_MODE_MASK << DQ_DDR_MODE_SHIFT) |
@@ -329,7 +329,7 @@ static void xenon_sdhci_set_ios_post(struct sdhci_host *host)
 	if (IS_SD(host->mmc)) {
 		/* SD/SDIO */
 		if (pwr_18v) {
-			if (host->mmc->ddr_mode)
+			if (mmc_card_ddr(host->mmc))
 				priv->timing = MMC_TIMING_UHS_DDR50;
 			else if (speed <= 25000000)
 				priv->timing = MMC_TIMING_UHS_SDR25;
@@ -343,7 +343,7 @@ static void xenon_sdhci_set_ios_post(struct sdhci_host *host)
 		}
 	} else {
 		/* eMMC */
-		if (host->mmc->ddr_mode)
+		if (mmc_card_ddr(host->mmc))
 			priv->timing = MMC_TIMING_MMC_DDR52;
 		else if (speed <= 26000000)
 			priv->timing = MMC_TIMING_LEGACY;

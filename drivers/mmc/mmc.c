@@ -210,7 +210,7 @@ int mmc_set_blocklen(struct mmc *mmc, int len)
 {
 	struct mmc_cmd cmd;
 
-	if (mmc->ddr_mode)
+	if (mmc_card_ddr(mmc))
 		return 0;
 
 	cmd.cmdidx = MMC_CMD_SET_BLOCKLEN;
@@ -1926,7 +1926,6 @@ int mmc_start_init(struct mmc *mmc)
 	if (err)
 		return err;
 #endif
-	mmc->ddr_mode = 0;
 	mmc_set_bus_width(mmc, 1);
 	mmc_set_clock(mmc, 1);
 	mmc_set_timing(mmc, MMC_TIMING_LEGACY);
