@@ -523,10 +523,46 @@ static int mmc_send_ext_csd(struct mmc *mmc, u8 *ext_csd)
 	return err;
 }
 
-int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
+static int mmc_poll_for_busy(struct mmc *mmc)
 {
 	struct mmc_cmd cmd;
+	u8 busy = true;
+	uint start;
+	int ret;
 	int timeout = 1000;
+
+	cmd.cmdidx = MMC_CMD_SEND_STATUS;
+	cmd.resp_type = MMC_RSP_R1;
+	cmd.cmdarg = mmc->rca << 16;
+
+	start = get_timer(0);
+
+	do {
+		if (mmc_can_card_busy(mmc)) {
+			busy = mmc_card_busy(mmc);
+		} else {
+			ret = mmc_send_cmd(mmc, &cmd, NULL);
+
+			if (ret)
+				return ret;
+
+			if (cmd.response[0] & MMC_STATUS_SWITCH_ERROR)
+				return -EBADMSG;
+			busy = (cmd.response[0] & MMC_STATUS_CURR_STATE) ==
+				MMC_STATE_PRG;
+		}
+
+		if (get_timer(start) > timeout && busy)
+			return -ETIMEDOUT;
+	} while (busy);
+
+	return 0;
+}
+
+static int __mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value,
+			u8 send_status)
+{
+	struct mmc_cmd cmd;
 	int retries = 3;
 	int ret;
 
@@ -536,20 +572,19 @@ int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 				 (index << 16) |
 				 (value << 8);
 
-	while (retries > 0) {
+	do {
 		ret = mmc_send_cmd(mmc, &cmd, NULL);
 
-		/* Waiting for the ready status */
-		if (!ret) {
-			ret = mmc_send_status(mmc, timeout);
-			return ret;
-		}
-
-		retries--;
-	}
+		if (!ret && send_status)
+			return mmc_poll_for_busy(mmc);
+	} while (--retries > 0 && ret);
 
 	return ret;
+}
 
+int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
+{
+	return __mmc_switch(mmc, set, index, value, true);
 }
 
 static int mmc_select_hs(struct mmc *mmc)
