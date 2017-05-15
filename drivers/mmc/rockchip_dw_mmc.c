@@ -43,6 +43,13 @@ static uint rockchip_dwmmc_get_mmc_clk(struct dwmci_host *host, uint freq)
 	struct rockchip_dwmmc_priv *priv = dev_get_priv(dev);
 	int ret;
 
+	/*
+	 * If DDR52 8bit mode(only emmc work in 8bit mode),
+	 * divider must be set 1
+	 */
+	if (mmc_card_ddr52(host->mmc) && host->mmc->bus_width == 8)
+		freq *= 2;
+
 	ret = clk_set_rate(&priv->clk, freq);
 	if (ret < 0) {
 		printf("%s: err=%d\n", __func__, ret);

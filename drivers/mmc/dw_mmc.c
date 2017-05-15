@@ -344,7 +344,7 @@ static int dwmci_setup_bus(struct dwmci_host *host, u32 freq)
 	int timeout = 10000;
 	unsigned long sclk;
 
-	if ((freq == host->clock) || (freq == 0))
+	if (freq == 0)
 		return 0;
 	/*
 	 * If host->get_mmc_clk isn't defined,
