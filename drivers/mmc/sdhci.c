@@ -425,6 +425,39 @@ static void sdhci_set_power(struct sdhci_host *host, unsigned short power)
 	sdhci_writeb(host, pwr, SDHCI_POWER_CONTROL);
 }
 
+static void sdhci_set_uhs_signaling(struct sdhci_host *host)
+{
+	u16 ctrl_2;
+	u32 timing = host->mmc->timing;
+
+	ctrl_2 = sdhci_readw(host, SDHCI_HOST_CONTROL2);
+	/* Select Bus Speed Mode for host */
+	ctrl_2 &= ~SDHCI_CTRL_UHS_MASK;
+
+	if ((timing != MMC_TIMING_LEGACY) &&
+	    (timing != MMC_TIMING_MMC_HS) &&
+	    (timing != MMC_TIMING_SD_HS))
+		ctrl_2 |= SDHCI_CTRL_VDD_180;
+
+	if ((timing == MMC_TIMING_MMC_HS200) ||
+	    (timing == MMC_TIMING_UHS_SDR104))
+		ctrl_2 |= SDHCI_CTRL_UHS_SDR104 | SDHCI_CTRL_DRV_TYPE_A;
+	else if (timing == MMC_TIMING_UHS_SDR12)
+		ctrl_2 |= SDHCI_CTRL_UHS_SDR12;
+	else if (timing == MMC_TIMING_UHS_SDR25)
+		ctrl_2 |= SDHCI_CTRL_UHS_SDR25;
+	else if (timing == MMC_TIMING_UHS_SDR50)
+		ctrl_2 |= SDHCI_CTRL_UHS_SDR50;
+	else if ((timing == MMC_TIMING_UHS_DDR50) ||
+		 (timing == MMC_TIMING_MMC_DDR52))
+		ctrl_2 |= SDHCI_CTRL_UHS_DDR50;
+	else if (timing == MMC_TIMING_MMC_HS400 ||
+		 timing == MMC_TIMING_MMC_HS400ES)
+		ctrl_2 |= SDHCI_CTRL_HS400 | SDHCI_CTRL_DRV_TYPE_A;
+
+	sdhci_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
+}
+
 #ifdef CONFIG_DM_MMC_OPS
 static bool sdhci_card_busy(struct udevice *dev)
 {
@@ -483,6 +516,13 @@ static int sdhci_set_ios(struct mmc *mmc)
 		ctrl &= ~SDHCI_CTRL_HISPD;
 
 	sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
+
+	if ((mmc->timing != MMC_TIMING_LEGACY) &&
+	    (mmc->timing != MMC_TIMING_MMC_HS) &&
+	    (mmc->timing != MMC_TIMING_SD_HS))
+		sdhci_set_power(host, MMC_VDD_165_195_SHIFT);
+
+	sdhci_set_uhs_signaling(host);
 
 	/* If available, call the driver specific "post" set_ios() function */
 	if (host->ops && host->ops->set_ios_post)

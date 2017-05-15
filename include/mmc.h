@@ -138,6 +138,7 @@
 
 #define MMC_STATE_PRG		(7 << 9)
 
+#define MMC_VDD_165_195_SHIFT	7
 #define MMC_VDD_165_195		0x00000080	/* VDD voltage 1.65 - 1.95 */
 #define MMC_VDD_20_21		0x00000100	/* VDD voltage 2.0 ~ 2.1 */
 #define MMC_VDD_21_22		0x00000200	/* VDD voltage 2.1 ~ 2.2 */
