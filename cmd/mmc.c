@@ -15,6 +15,10 @@ static int curr_device = -1;
 static void print_mmcinfo(struct mmc *mmc)
 {
 	int i;
+	const char *timing[] = {
+		"Legacy", "High Speed", "High Speed", "SDR12",
+		"SDR25", "SDR50", "SDR104", "DDR50",
+		"DDR52", "HS200", "HS400", "HS400 Enhanced Strobe"};
 
 	printf("Device: %s\n", mmc->cfg->name);
 	printf("Manufacturer ID: %x\n", mmc->cid[0] >> 24);
@@ -23,6 +27,7 @@ static void print_mmcinfo(struct mmc *mmc)
 			(mmc->cid[1] >> 24), (mmc->cid[1] >> 16) & 0xff,
 			(mmc->cid[1] >> 8) & 0xff, mmc->cid[1] & 0xff);
 
+	printf("Timing Interface: %s\n", timing[mmc->timing]);
 	printf("Tran Speed: %d\n", mmc->clock);
 	printf("Rd Block Len: %d\n", mmc->read_bl_len);
 
