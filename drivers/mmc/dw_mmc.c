@@ -559,8 +559,7 @@ void dwmci_setup_cfg(struct mmc_config *cfg, struct dwmci_host *host,
 	cfg->host_caps = host->caps;
 
 	if (host->buswidth == 8) {
-		cfg->host_caps |= MMC_MODE_8BIT;
-		cfg->host_caps &= ~MMC_MODE_4BIT;
+		cfg->host_caps |= MMC_MODE_8BIT | MMC_MODE_4BIT;
 	} else {
 		cfg->host_caps |= MMC_MODE_4BIT;
 		cfg->host_caps &= ~MMC_MODE_8BIT;
