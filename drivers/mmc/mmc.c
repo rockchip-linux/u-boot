@@ -546,10 +546,62 @@ int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 
 }
 
+static u32 mmc_select_card_type(struct mmc *mmc, u8 *ext_csd)
+{
+	u8 card_type;
+	u32 host_caps, avail_type = 0;
+
+	card_type = ext_csd[EXT_CSD_CARD_TYPE];
+	host_caps = mmc->cfg->host_caps;
+
+	if ((host_caps & MMC_MODE_HS) &&
+	    (card_type & EXT_CSD_CARD_TYPE_26))
+		avail_type |= EXT_CSD_CARD_TYPE_26;
+
+	if ((host_caps & MMC_MODE_HS) &&
+	    (card_type & EXT_CSD_CARD_TYPE_52))
+		avail_type |= EXT_CSD_CARD_TYPE_52;
+
+	/*
+	 * For the moment, u-boot doesn't support signal voltage
+	 * switch, therefor we assume that host support ddr52
+	 * at 1.8v or 3.3v I/O(1.2v I/O not supported, hs200 and
+	 * hs400 are the same).
+	 */
+	if ((host_caps & MMC_MODE_DDR_52MHz) &&
+	    (card_type & EXT_CSD_CARD_TYPE_DDR_1_8V))
+		avail_type |= EXT_CSD_CARD_TYPE_DDR_1_8V;
+
+	if ((host_caps & MMC_MODE_HS200) &&
+	    (card_type & EXT_CSD_CARD_TYPE_HS200_1_8V))
+		avail_type |= EXT_CSD_CARD_TYPE_HS200_1_8V;
+
+	/*
+	 * If host can support HS400, it means that host can also
+	 * support HS200.
+	 */
+	if ((host_caps & MMC_MODE_HS400) &&
+	    (host_caps & MMC_MODE_8BIT) &&
+	    (card_type & EXT_CSD_CARD_TYPE_HS400_1_8V))
+		avail_type |= EXT_CSD_CARD_TYPE_HS200_1_8V |
+				EXT_CSD_CARD_TYPE_HS400_1_8V;
+
+	if ((host_caps & MMC_MODE_HS400ES) &&
+	    (host_caps & MMC_MODE_8BIT) &&
+	    ext_csd[EXT_CSD_STROBE_SUPPORT] &&
+	    (avail_type & EXT_CSD_CARD_TYPE_HS400_1_8V))
+		avail_type |= EXT_CSD_CARD_TYPE_HS200_1_8V |
+				EXT_CSD_CARD_TYPE_HS400_1_8V |
+				EXT_CSD_CARD_TYPE_HS400ES;
+
+	return avail_type;
+}
+
 static int mmc_change_freq(struct mmc *mmc)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(u8, ext_csd, MMC_MAX_BLOCK_LEN);
 	char cardtype;
+	u32 avail_type;
 	int err;
 
 	mmc->card_caps = 0;
@@ -569,8 +621,13 @@ static int mmc_change_freq(struct mmc *mmc)
 		return err;
 
 	cardtype = ext_csd[EXT_CSD_CARD_TYPE] & 0xf;
+	avail_type = mmc_select_card_type(mmc, ext_csd);
 
-	err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_HS_TIMING, 1);
+	if (avail_type & EXT_CSD_CARD_TYPE_HS)
+		err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+				 EXT_CSD_HS_TIMING, 1);
+	else
+		err = -EINVAL;
 
 	if (err)
 		return err;
