@@ -423,6 +423,23 @@ static void sdhci_set_power(struct sdhci_host *host, unsigned short power)
 }
 
 #ifdef CONFIG_DM_MMC_OPS
+static bool sdhci_card_busy(struct udevice *dev)
+{
+	struct mmc *mmc = mmc_get_mmc_dev(dev);
+#else
+static bool sdhci_card_busy(struct mmc *mmc)
+{
+#endif
+	struct sdhci_host *host = mmc->priv;
+	u32 present_state;
+
+	/* Check whether DAT[0] is 0 */
+	present_state = sdhci_readl(host, SDHCI_PRESENT_STATE);
+
+	return !(present_state & SDHCI_DATA_0_LVL);
+}
+
+#ifdef CONFIG_DM_MMC_OPS
 static int sdhci_set_ios(struct udevice *dev)
 {
 	struct mmc *mmc = mmc_get_mmc_dev(dev);
@@ -509,11 +526,13 @@ int sdhci_probe(struct udevice *dev)
 }
 
 const struct dm_mmc_ops sdhci_ops = {
+	.card_busy	= sdhci_card_busy,
 	.send_cmd	= sdhci_send_command,
 	.set_ios	= sdhci_set_ios,
 };
 #else
 static const struct mmc_ops sdhci_ops = {
+	.card_busy	= sdhci_card_busy,
 	.send_cmd	= sdhci_send_command,
 	.set_ios	= sdhci_set_ios,
 	.init		= sdhci_init,
