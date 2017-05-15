@@ -855,6 +855,45 @@ static int mmc_select_hs200(struct mmc *mmc)
 }
 #endif
 
+static int mmc_select_hs400(struct mmc *mmc)
+{
+	int ret;
+
+	/* Switch card to HS mode */
+	ret = __mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+			   EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS, false);
+	if (ret)
+		return ret;
+
+	/* Set host controller to HS timing */
+	mmc_set_timing(mmc, MMC_TIMING_MMC_HS);
+
+	/* Reduce frequency to HS frequency */
+	mmc_set_clock(mmc, MMC_HIGH_52_MAX_DTR);
+
+	ret = mmc_send_status(mmc, 1000);
+	if (ret)
+		return ret;
+
+	/* Switch card to DDR */
+	ret = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+			 EXT_CSD_BUS_WIDTH,
+			 EXT_CSD_DDR_BUS_WIDTH_8);
+	if (ret)
+		return ret;
+
+	/* Switch card to HS400 */
+	ret = __mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+			   EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS400, false);
+	if (ret)
+		return ret;
+
+	/* Set host controller to HS400 timing and frequency */
+	mmc_set_timing(mmc, MMC_TIMING_MMC_HS400);
+
+	return ret;
+}
+
 static u32 mmc_select_card_type(struct mmc *mmc, u8 *ext_csd)
 {
 	u8 card_type;
@@ -960,9 +999,14 @@ static int mmc_change_freq(struct mmc *mmc)
 
 	mmc_set_bus_speed(mmc, avail_type);
 
-	if (mmc_card_hs200(mmc))
+	if (mmc_card_hs200(mmc)) {
 		err = mmc_hs200_tuning(mmc);
-	else if (!mmc_card_hs400es(mmc)) {
+		if (avail_type & EXT_CSD_CARD_TYPE_HS400 &&
+		    mmc->bus_width == MMC_BUS_WIDTH_8BIT) {
+			err = mmc_select_hs400(mmc);
+			mmc_set_bus_speed(mmc, avail_type);
+		}
+	} else if (!mmc_card_hs400es(mmc)) {
 		err = mmc_select_bus_width(mmc) > 0 ? 0 : err;
 		if (!err && avail_type & EXT_CSD_CARD_TYPE_DDR_52)
 			err = mmc_select_hs_ddr(mmc);
