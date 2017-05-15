@@ -552,6 +552,19 @@ int mmc_switch(struct mmc *mmc, u8 set, u8 index, u8 value)
 
 }
 
+static int mmc_select_hs(struct mmc *mmc)
+{
+	int ret;
+
+	ret = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
+			 EXT_CSD_HS_TIMING, EXT_CSD_TIMING_HS);
+
+	if (!ret)
+		mmc_set_timing(mmc, MMC_TIMING_MMC_HS);
+
+	return ret;
+}
+
 static u32 mmc_select_card_type(struct mmc *mmc, u8 *ext_csd)
 {
 	u8 card_type;
@@ -630,8 +643,7 @@ static int mmc_change_freq(struct mmc *mmc)
 	avail_type = mmc_select_card_type(mmc, ext_csd);
 
 	if (avail_type & EXT_CSD_CARD_TYPE_HS)
-		err = mmc_switch(mmc, EXT_CSD_CMD_SET_NORMAL,
-				 EXT_CSD_HS_TIMING, 1);
+		err = mmc_select_hs(mmc);
 	else
 		err = -EINVAL;
 
