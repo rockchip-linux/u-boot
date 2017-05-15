@@ -595,6 +595,22 @@ static int dwmci_setup_bus(struct dwmci_host *host, u32 freq)
 }
 
 #ifdef CONFIG_DM_MMC
+static int dwmci_execute_tuning(struct udevice *dev, u32 opcode)
+{
+	struct mmc *mmc = mmc_get_mmc_dev(dev);
+#else
+static int dwmci_execute_tuning(struct mmc *mmc, u32 opcode)
+{
+#endif
+	struct dwmci_host *host = (struct dwmci_host *)mmc->priv;
+
+	if (!host->execute_tuning)
+		return -EIO;
+
+	return host->execute_tuning(host, opcode);
+}
+
+#ifdef CONFIG_DM_MMC
 static int dwmci_set_ios(struct udevice *dev)
 {
 	struct mmc *mmc = mmc_get_mmc_dev(dev);
@@ -763,6 +779,7 @@ const struct dm_mmc_ops dm_dwmci_ops = {
 	.send_cmd	= dwmci_send_cmd,
 	.set_ios	= dwmci_set_ios,
 	.get_cd         = dwmci_get_cd,
+	.execute_tuning	= dwmci_execute_tuning,
 };
 
 #else
@@ -771,6 +788,7 @@ static const struct mmc_ops dwmci_ops = {
 	.set_ios	= dwmci_set_ios,
 	.get_cd         = dwmci_get_cd,
 	.init		= dwmci_init,
+	.execute_tuning	= dwmci_execute_tuning,
 };
 #endif
 
