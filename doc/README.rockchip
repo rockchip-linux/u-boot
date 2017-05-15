@@ -11,11 +11,8 @@ U-Boot on Rockchip
 There are several repositories available with versions of U-Boot that support
 many Rockchip devices [1] [2].
 
-The current mainline support is experimental only and is not useful for
-anything. It should provide a base on which to build.
-
-So far only support for the RK3288 and RK3036 is provided.
-
+Document wiki from Rockchip for tools, boot option and other useful development
+information is here[0].
 
 Prerequisites
 =============
@@ -26,17 +23,16 @@ You will need:
    - Power connection to 5V using the supplied micro-USB power cable
    - Separate USB serial cable attached to your computer and the Firefly
         (connect to the micro-USB connector below the logo)
-   - rkflashtool [3]
-   - openssl (sudo apt-get install openssl)
-   - Serial UART connection [4]
+   - rkflashtool[3] or rkdeveloptool [4]
+   - Serial UART connection [5]
+   - loader file[6].
    - Suitable ARM cross compiler, e.g.:
         sudo apt-get install gcc-4.7-arm-linux-gnueabi
-
 
 Building
 ========
 
-At present eight RK3288 boards are supported:
+Eight RK3288 boards are supported:
 
    - EVB RK3288 - use evb-rk3288 configuration
    - Fennec RK3288 - use fennec-rk3288 configuration
@@ -47,10 +43,19 @@ At present eight RK3288 boards are supported:
    - Radxa Rock 2 - use rock2 configuration
    - Tinker RK3288 - use tinker-rk3288 configuration
 
-Two RK3036 board are supported:
+Two RK3036 boards are supported:
 
    - EVB RK3036 - use evb-rk3036 configuration
    - Kylin - use kylin_rk3036 configuration
+
+RK3399 boards supported:
+   - EVB RK3399 - use evb-rk3036 configuration
+   - Firefly RK3399 - use firefly-rk3399 configuration
+   - RK3399-Q7 - use puma-rk3399 configuration
+
+RK3328 boards supported
+   - EVB RK3328 - use evb-rk3328 configuration
+
 
 For example:
 
@@ -64,6 +69,7 @@ Writing to the board with USB
 
 For USB to work you must get your board into ROM boot mode, either by erasing
 your MMC or (perhaps) holding the recovery button when you boot the board.
+
 To erase your MMC, you can boot into Linux and type (as root)
 
    dd if=/dev/zero of=/dev/mmcblk0 bs=1M
@@ -72,9 +78,10 @@ Connect your board's OTG port to your computer.
 
 To create a suitable image and write it to the board:
 
-   ./firefly-rk3288/tools/mkimage -n rk3288 -T rkimage -d \
-	./firefly-rk3288/spl/u-boot-spl-dtb.bin out && \
-   cat out | openssl rc4 -K 7c4e0304550509072d2c7b38170d1711 | rkflashtool l
+   ./firefly-rk3288/tools/mkimage -n rk3288 -T rksd -d \
+	./firefly-rk3288/spl/u-boot-spl-dtb.bin idbspl.img && \
+	rkdeveloptool db rkbin/rk32/rk3288_loader_v1.01.232.bin \
+	rkdeveloptool wl 64 idbspl.img
 
 If all goes well you should something like:
 
@@ -243,8 +250,6 @@ Future work
 
 Immediate priorities are:
 
-- USB host
-- USB device
 - Run CPU at full speed (code exists but we only see ~60 DMIPS maximum)
 - NAND flash
 - Support for other Rockchip parts
@@ -256,10 +261,13 @@ Development Notes
 
 There are plenty of patches in the links below to help with this work.
 
+[0] http://opensource.rock-chips.com/
 [1] https://github.com/rkchrome/uboot.git
-[2] https://github.com/linux-rockchip/u-boot-rockchip.git branch u-boot-rk3288
-[3] https://github.com/linux-rockchip/rkflashtool.git
-[4] http://wiki.t-firefly.com/index.php/Firefly-RK3288/Serial_debug/en
+[2] https://github.com/rockchip-linux/u-boot.git branch release
+[3] https://github.com/rockchip-linux/rkflashtool.git
+[4] https://github.com/rockchip-linux/rkdeveloptool.git
+[5] http://wiki.t-firefly.com/index.php/Firefly-RK3288/Serial_debug/en
+[6] https://github.com/rockchip-linux/rkbin.git
 
 rkimage
 -------
@@ -330,7 +338,7 @@ With this GPT partition layout, uboot can be compatilbe with other components,
 like miniloader, trusted-os, arm-trust-firmware.
 
 There are some documents about partitions in the links below.
-http://rockchip.wikidot.com/partitions
+http://opensource.rock-chips.com/wiki_Partitions
 
 --
 Simon Glass <sjg@chromium.org>
