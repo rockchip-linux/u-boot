@@ -55,6 +55,7 @@ extern void rockchip_show_logo(void);
 
 #ifdef CONFIG_UBOOT_CHARGE
 int android_charge_mode = 0;
+int recovery_mode = 0;
 #endif
 
 int low_power_level = 0;

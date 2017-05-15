@@ -9,6 +9,9 @@
 #include "../config.h"
 #include "rkloader.h"
 
+#ifdef CONFIG_UBOOT_CHARGE
+extern int recovery_mode;
+#endif
 
 #if 0
 #define MaxFlashReadSize  16384  //8MB
@@ -226,6 +229,9 @@ int rkloader_run_misc_cmd(void)
 		return false;
 	}
 	if(!strcmp(bmsg->command, "boot-recovery")) {
+#ifdef CONFIG_UBOOT_CHARGE
+		recovery_mode = 1;
+#endif
 		printf("got recovery cmd from misc.\n");
 #ifdef CONFIG_CMD_BOOTRK
 		char *const boot_cmd[] = {"bootrk", "recovery"};

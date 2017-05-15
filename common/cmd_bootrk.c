@@ -21,6 +21,7 @@ extern int g_is_new_display;
 #endif
 #ifdef CONFIG_UBOOT_CHARGE
 extern int android_charge_mode;
+extern int recovery_mode;
 #endif
 
 #if defined(CONFIG_RK_HDMI)
@@ -605,7 +606,7 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 
 #ifdef CONFIG_UBOOT_CHARGE
-	if (android_charge_mode)
+	if (!recovery_mode && android_charge_mode)
 		charge = true;
 #endif
 
