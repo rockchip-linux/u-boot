@@ -301,9 +301,8 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 		return -ECOMM;
 }
 
-static int sdhci_set_clock(struct mmc *mmc, unsigned int clock)
+int sdhci_set_clock(struct sdhci_host *host, unsigned int clock)
 {
-	struct sdhci_host *host = mmc->priv;
 	unsigned int div, clk = 0, timeout;
 
 	/* Wait max 20 ms */
@@ -319,12 +318,10 @@ static int sdhci_set_clock(struct mmc *mmc, unsigned int clock)
 		timeout--;
 		udelay(100);
 	}
-
 	sdhci_writew(host, 0, SDHCI_CLOCK_CONTROL);
 
 	if (clock == 0)
 		return 0;
-
 	if (SDHCI_GET_VERSION(host) >= SDHCI_SPEC_300) {
 		/*
 		 * Check if the Host Controller supports Programmable Clock
@@ -364,7 +361,6 @@ static int sdhci_set_clock(struct mmc *mmc, unsigned int clock)
 		}
 		div >>= 1;
 	}
-
 	if (host->ops && host->ops->set_clock_ext)
 		host->ops->set_clock_ext(host, div);
 
@@ -386,12 +382,10 @@ static int sdhci_set_clock(struct mmc *mmc, unsigned int clock)
 		timeout--;
 		udelay(1000);
 	}
-
 	clk |= SDHCI_CLOCK_CARD_EN;
 	sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
 
 	host->clock = clock;
-
 	return 0;
 }
 
@@ -489,8 +483,12 @@ static int sdhci_set_ios(struct mmc *mmc)
 	if (host->ops && host->ops->set_control_reg)
 		host->ops->set_control_reg(host);
 
-	if (mmc->clock != host->clock)
-		sdhci_set_clock(mmc, mmc->clock);
+	if (mmc->clock != host->clock) {
+		if (host->ops && host->ops->set_clock)
+			host->ops->set_clock(host, mmc->clock);
+		else
+			sdhci_set_clock(host, mmc->clock);
+	}
 
 	/* Set bus width */
 	ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);

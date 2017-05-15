@@ -254,7 +254,8 @@ struct sdhci_ops {
 	int	(*get_cd)(struct sdhci_host *host);
 	void	(*set_control_reg)(struct sdhci_host *host);
 	void	(*set_ios_post)(struct sdhci_host *host);
-	void	(*set_clock)(struct sdhci_host *host, u32 div);
+	int	(*set_clock)(struct sdhci_host *host, unsigned int clock);
+	void	(*set_clock_ext)(struct sdhci_host *host, u32 div);
 };
 
 struct sdhci_host {
@@ -278,6 +279,8 @@ struct sdhci_host {
 
 	struct mmc_config cfg;
 };
+
+int sdhci_set_clock(struct sdhci_host *host, unsigned int clock);
 
 #ifdef CONFIG_MMC_SDHCI_IO_ACCESSORS
 
