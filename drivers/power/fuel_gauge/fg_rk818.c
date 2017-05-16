@@ -48,6 +48,8 @@ static int dbg_enable = 0;
 
 /* CHRG_CTRL_REG */
 #define ILIM_450MA		(0x00)
+#define ILIM_80MA		(0x01)
+#define ILIM_850MA		(0x02)
 #define CHRG_CT_EN		(1 << 7)
 
 /* USB_CTRL_REG */
@@ -66,6 +68,9 @@ static int dbg_enable = 0;
 
 /* CHRG_USB_CTRL */
 #define CHRG_EN			(1 << 7)
+
+#define ADC_TS2_EN		(1 << 4)
+#define TS2_ADC_MODE		(1 << 5)
 
 /* SUP_STS_REG */
 #define BAT_EXS			(1 << 7)
@@ -119,6 +124,11 @@ static int dbg_enable = 0;
 #define CHRG_FULL_K		400
 #define ADC_CALIB_THRESHOLD	4
 
+#define TS2_THRESHOLD_VOL	4350
+#define TS2_VALID_VOL		1000
+#define TS2_VOL_MULTI		0
+#define TS2_CHECK_CNT		5
+
 #define DIV(x)			((x) ? (x) : 1)
 
 /***********************************************************/
@@ -141,6 +151,7 @@ struct battery_info {
 	u32		*ocv_table;
 	u32		ocv_size;
 	int		virtual_power;
+	int		ts2_vol_multi;
 	int		pwroff_min;
 	int		sm_old_cap;
 	int		sm_linek;
@@ -864,11 +875,30 @@ static int rk818_bat_calc_linek(struct battery_info *di)
 	return linek;
 }
 
+static void rk818_bat_init_ts2(struct battery_info *di)
+{
+	u8 buf;
+
+	if (!di->ts2_vol_multi)
+		return;
+
+	/* TS2 adc mode */
+	buf = rk818_bat_read(RK818_TS_CTRL_REG);
+	buf |= TS2_ADC_MODE;
+	rk818_bat_write(RK818_TS_CTRL_REG, buf);
+
+	/* TS2 adc enable */
+	buf = rk818_bat_read(RK818_ADC_CTRL_REG);
+	buf |= ADC_TS2_EN;
+	rk818_bat_write(RK818_ADC_CTRL_REG, buf);
+}
+
 static void rk818_bat_fg_init(struct battery_info *di)
 {
 	rk818_bat_enable_gauge(di);
 	rk818_bat_init_voltage_kb(di);
 	rk818_bat_init_coffset(di);
+	rk818_bat_init_ts2(di);
 	rk818_bat_clr_initialized_state(di);
 	di->dsoc = rk818_bat_get_dsoc(di);
 
@@ -908,6 +938,74 @@ static void rk818_bat_set_current(int input_current)
 	rk818_bat_write(RK818_USB_CTRL_REG, usb_ctrl);
 }
 
+static int rk818_bat_get_ts2_voltage(struct battery_info *di)
+{
+	u32 val = 0;
+
+	val |= rk818_bat_read(RK818_TS2_ADC_REGL) << 0;
+	val |= rk818_bat_read(RK818_TS2_ADC_REGH) << 8;
+
+	/* refer voltage 2.2V, 12bit adc accuracy */
+	val = val * 2200 * di->ts2_vol_multi / 4095;
+	DBG("<%s>. ts2 voltage=%d\n", __func__, val);
+
+	return val;
+}
+
+static void rk818_bat_ts2_update_current(struct battery_info *di)
+{
+	int ts2_vol, input_current, invalid_cnt = 0, confirm_cnt = 0;
+
+	rk818_bat_set_current(ILIM_450MA);
+	input_current = ILIM_850MA;
+	while (input_current < di->chrg_cur_input) {
+		mdelay(100);
+		ts2_vol = rk818_bat_get_ts2_voltage(di);
+		DBG("******** ts2 vol=%d\n", ts2_vol);
+		/* filter invalid voltage */
+		if (ts2_vol <= TS2_VALID_VOL) {
+			invalid_cnt++;
+			DBG("%s: invalid ts2 voltage: %d\n, cnt=%d",
+			    __func__, ts2_vol, invalid_cnt);
+			if (invalid_cnt < TS2_CHECK_CNT)
+				continue;
+
+			/* if fail, set max input current as default */
+			input_current = di->chrg_cur_input;
+			rk818_bat_set_current(input_current);
+			break;
+		}
+
+		/* update input current */
+		if (ts2_vol >= TS2_THRESHOLD_VOL) {
+			/* update input current */
+			input_current++;
+			rk818_bat_set_current(input_current);
+			DBG("********* input=%d\n",
+			    CHRG_CUR_INPUT[input_current & 0x0f]);
+		} else {
+			/* confirm lower threshold voltage */
+			confirm_cnt++;
+			if (confirm_cnt < TS2_CHECK_CNT) {
+				DBG("%s: confirm ts2 voltage: %d\n, cnt=%d",
+				    __func__, ts2_vol, confirm_cnt);
+				continue;
+			}
+
+			/* trigger threshold, so roll back 1 step */
+			input_current--;
+			if (input_current == ILIM_80MA ||
+			    input_current < 0)
+				input_current = ILIM_450MA;
+			rk818_bat_set_current(input_current);
+			break;
+		}
+	}
+
+	BAT_INFO("DC_CHARGER charge_cur_input=%d\n",
+		 CHRG_CUR_INPUT[input_current]);
+}
+
 static void rk818_bat_charger_setting(struct battery_info *di, int charger)
 {
 	static u8 old_charger = UNDEF_CHARGER;
@@ -915,15 +1013,24 @@ static void rk818_bat_charger_setting(struct battery_info *di, int charger)
 	/* charger changed */
 	if (old_charger != charger) {
 		if (charger == NO_CHARGER) {
-			printf("rk818_bat_charger_setting NO_CHARGER\n");
+			BAT_INFO("NO_CHARGER\n");
 			rk818_bat_set_current(ILIM_450MA);
 		} else if (charger == USB_CHARGER) {
-			printf("rk818_bat_charger_setting USB_CHARGER\n");
+			BAT_INFO("USB_CHARGER\n");
 			rk818_bat_set_current(ILIM_450MA);
 		} else if (charger == DC_CHARGER || charger == AC_CHARGER) {
-			printf("rk818_bat_charger_setting DC_CHARGER charge_cur_input=%d\n",
-			       CHRG_CUR_INPUT[di->chrg_cur_input]);
-			rk818_bat_set_current(di->chrg_cur_input);
+#ifdef CONFIG_UBOOT_CHARGE
+			if (di->ts2_vol_multi) {
+#else
+			if ((rk818_bat_get_est_voltage(di) < CONFIG_SCREEN_ON_VOL_THRESD) &&
+			    (di->ts2_vol_multi)) {
+#endif
+				rk818_bat_ts2_update_current(di);
+			} else {
+				rk818_bat_set_current(di->chrg_cur_input);
+				BAT_INFO("DC_CHARGER charge_cur_input=%d\n",
+					 CHRG_CUR_INPUT[di->chrg_cur_input]);
+			}
 		} else {
 			BAT_INFO("charger setting error %d\n", charger);
 		}
@@ -1377,6 +1484,8 @@ static int rk818_bat_parse_dt(struct battery_info *di, void const *blob)
 		      SAMPLE_RES_DIV1 : SAMPLE_RES_DIV2;
 	di->max_soc_offset = fdtdec_get_int(blob, node, "max_soc_offset", 70);
 	di->virtual_power = fdtdec_get_int(blob, node, "virtual_power", 0);
+	di->ts2_vol_multi = fdtdec_get_int(blob, node, "ts2_vol_multi", 0);
+
 	if (!is_rk818_bat_exist(di))
 		di->virtual_power = 1;
 	di->bat_res = fdtdec_get_int(blob, node, "bat_res", 135);
