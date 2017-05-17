@@ -5,7 +5,10 @@
  */
 
 #include <common.h>
+#include <asm/arch/hardware.h>
+#include <asm/arch/grf_rk3328.h>
 #include <asm/armv8/mmu.h>
+#include <asm/io.h>
 #include <dwc3-uboot.h>
 #include <usb.h>
 
@@ -13,6 +16,15 @@ DECLARE_GLOBAL_DATA_PTR;
 
 int board_init(void)
 {
+#define GRF_BASE	0xff100000
+	struct rk3328_grf_regs * const grf = (void *)GRF_BASE;
+
+	/* uart2 select m1, sdcard select m1*/
+	rk_clrsetreg(&grf->com_iomux,
+		     IOMUX_SEL_UART2_MASK | IOMUX_SEL_SDMMC_MASK,
+		     IOMUX_SEL_UART2_M1 << IOMUX_SEL_UART2_SHIFT |
+		     IOMUX_SEL_SDMMC_M1 << IOMUX_SEL_SDMMC_SHIFT);
+
 	return 0;
 }
 
