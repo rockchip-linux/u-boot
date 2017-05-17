@@ -10,12 +10,14 @@
 #include <asm/armv8/mmu.h>
 #include <asm/io.h>
 #include <dwc3-uboot.h>
+#include <power/regulator.h>
 #include <usb.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
 int board_init(void)
 {
+	int ret;
 #define GRF_BASE	0xff100000
 	struct rk3328_grf_regs * const grf = (void *)GRF_BASE;
 
@@ -25,7 +27,11 @@ int board_init(void)
 		     IOMUX_SEL_UART2_M1 << IOMUX_SEL_UART2_SHIFT |
 		     IOMUX_SEL_SDMMC_M1 << IOMUX_SEL_SDMMC_SHIFT);
 
-	return 0;
+	ret = regulators_enable_boot_on(false);
+	if (ret)
+		debug("%s: Cannot enable boot on regulator\n", __func__);
+
+	return ret;
 }
 
 int dram_init(void)
