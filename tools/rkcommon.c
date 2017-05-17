@@ -86,9 +86,6 @@ static struct spl_info *rkcommon_get_spl_info(char *imagename)
 {
 	int i;
 
-	if (!imagename)
-		return NULL;
-
 	for (i = 0; i < ARRAY_SIZE(spl_infos); i++)
 		if (!strncmp(imagename, spl_infos[i].imagename, 6))
 			return spl_infos + i;
@@ -101,24 +98,17 @@ int rkcommon_check_params(struct image_tool_params *params)
 	int i;
 
 	if (rkcommon_get_spl_info(params->imagename) != NULL)
-		return EXIT_SUCCESS;
-
-	/*
-	 * If this is a operation (list or extract), the don't require
-	 * imagename to be set.
-	 */
-	if (params->lflag || params->iflag)
-		return EXIT_SUCCESS;
+		return 0;
 
 	fprintf(stderr, "ERROR: imagename (%s) is not supported!\n",
-		params->imagename ? params->imagename : "NULL");
+		strlen(params->imagename) > 0 ? params->imagename : "NULL");
 
 	fprintf(stderr, "Available imagename:");
 	for (i = 0; i < ARRAY_SIZE(spl_infos); i++)
 		fprintf(stderr, "\t%s", spl_infos[i].imagename);
 	fprintf(stderr, "\n");
 
-	return EXIT_FAILURE;
+	return -1;
 }
 
 const char *rkcommon_get_spl_hdr(struct image_tool_params *params)
