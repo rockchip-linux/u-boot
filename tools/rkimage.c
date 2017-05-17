@@ -13,6 +13,16 @@
 
 static uint32_t header;
 
+static int rkimage_verify_header(unsigned char *buf, int size,
+				 struct image_tool_params *params)
+{
+	return 0;
+}
+
+static void rkimage_print_header(const void *buf)
+{
+}
+
 static void rkimage_set_header(void *buf, struct stat *sbuf, int ifd,
 			       struct image_tool_params *params)
 {
@@ -21,6 +31,11 @@ static void rkimage_set_header(void *buf, struct stat *sbuf, int ifd,
 
 	if (rkcommon_need_rc4_spl(params))
 		rkcommon_rc4_encode_spl(buf, 4, params->file_size);
+}
+
+static int rkimage_extract_subimage(void *buf, struct image_tool_params *params)
+{
+	return 0;
 }
 
 static int rkimage_check_image_type(uint8_t type)
@@ -40,10 +55,10 @@ U_BOOT_IMAGE_TYPE(
 	4,
 	&header,
 	rkcommon_check_params,
-	NULL,
-	NULL,
+	rkimage_verify_header,
+	rkimage_print_header,
 	rkimage_set_header,
-	NULL,
+	rkimage_extract_subimage,
 	rkimage_check_image_type,
 	NULL,
 	NULL
