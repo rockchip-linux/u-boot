@@ -50,6 +50,7 @@ static int dbg_enable = 0;
 #define ILIM_450MA		(0x00)
 #define ILIM_80MA		(0x01)
 #define ILIM_850MA		(0x02)
+#define ILIM_2000MA		(0x07)
 #define CHRG_CT_EN		(1 << 7)
 
 /* USB_CTRL_REG */
@@ -1426,6 +1427,7 @@ static int rk818_bat_parse_dt(struct battery_info *di, void const *blob)
 	node = fdt_subnode_offset_namelen(blob, parent, "battery", 7);
 	if (node < 0) {
 		printf("can't find battery node\n");
+		di->chrg_cur_input = ILIM_2000MA;
 		return -EINVAL;
 	}
 
