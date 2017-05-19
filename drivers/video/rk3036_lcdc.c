@@ -505,6 +505,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		      m_DITHER_DOWN_MODE | m_DITHER_DOWN_SEL;
 		val = v_DITHER_DOWN_EN(1) | v_DITHER_UP_EN(0) |
 		      v_DITHER_DOWN_MODE(1) | v_DITHER_DOWN_SEL(1);
+		break;
     	case OUT_P888:
 		face = OUT_P888;
 		msk = m_DITHER_DOWN_EN | m_DITHER_UP_EN;
