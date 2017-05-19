@@ -172,6 +172,9 @@
 #define DATA17_REG			0xF1
 #define DATA18_REG			0xF2
 
+#define PWRON_RISE_INT			(1 << 6)
+#define PWRON_FALL_INT			(1 << 5)
+
 struct pmic_rk816 {
 	struct pmic *pmic;
 	int node;	/*device tree node*/

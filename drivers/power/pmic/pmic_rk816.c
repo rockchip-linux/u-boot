@@ -507,9 +507,14 @@ int pmic_rk816_init(unsigned char bus)
 	return 0;
 }
 
+/*
+ * Why do we clear fall int when detect rise, and clear rise when detect fall ?
+ * To solve the pwrkey long pressed situation.
+ */
 int pmic_rk816_poll_pwrkey_stat(void)
 {
 	u8 buf;
+	static int fall_ever_detected = 0;
 
 	i2c_set_bus_num(rk8xx->pmic->bus);
 	i2c_init(RK816_I2C_SPEED, rk8xx->pmic->hw.i2c.addr);
@@ -517,16 +522,31 @@ int pmic_rk816_poll_pwrkey_stat(void)
 
 	buf = i2c_reg_read(rk8xx->pmic->hw.i2c.addr, RK816_INT_STS_REG1);
 	/* rising, clear falling */
-	if (buf & (1 << 6))
-		i2c_reg_write(rk8xx->pmic->hw.i2c.addr,
-			      RK816_INT_STS_REG1, (1 << 5));
+	if (buf & PWRON_RISE_INT) {
+		if (fall_ever_detected)
+			i2c_reg_write(rk8xx->pmic->hw.i2c.addr,
+				      RK816_INT_STS_REG1, PWRON_FALL_INT);
+		/*
+		 * Normally, there must be a falling before a rising, so if
+		 * there is no falling ever detected before, possiblely the
+		 * situation: we force shutdown by long pressed pwrkey and
+		 * release pwrkey exactly when pmic power on. So this rising is
+		 * something wrong, clear it and abandont state poll this time.
+		 * We will get a normal state at next time.
+		 */
+		else
+			i2c_reg_write(rk8xx->pmic->hw.i2c.addr,
+				      RK816_INT_STS_REG1, PWRON_RISE_INT);
+	}
 	/* falling, clear rising */
-	if (buf & (1 << 5))
+	if (buf & PWRON_FALL_INT) {
 		i2c_reg_write(rk8xx->pmic->hw.i2c.addr,
-			      RK816_INT_STS_REG1, (1 << 6));
+			      RK816_INT_STS_REG1, PWRON_RISE_INT);
+		fall_ever_detected = 1;
+	}
 
 	buf = i2c_reg_read(rk8xx->pmic->hw.i2c.addr, RK816_INT_STS_REG1);
 
-	return (buf & (1 << 5));
+	return (buf & PWRON_FALL_INT);
 }
 
