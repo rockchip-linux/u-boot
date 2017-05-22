@@ -935,19 +935,24 @@ UBOOTVERSION := $(UBOOTVERSION)$(if $(RKCHIP),-$(RKCHIP))$(if $(RK_UBOOT_VERSION
 RK_SUBFIX = $(if $(RK_UBOOT_VERSION),.$(RK_UBOOT_VERSION)).bin
 
 ifdef CONFIG_MERGER_TRUSTOS
-ifdef CONFIG_RK_TOS_WITH_TA
-RK_TOS_BIN ?= `sed -n "/TOSTA=/s/TOSTA=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r'`
-else
 RK_TOS_BIN ?= `sed -n "/TOS=/s/TOS=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r'`
 endif
+ifdef CONFIG_MERGER_TRUSTOS_WITH_TA
+RK_TOS_TA_BIN ?= `sed -n "/TOSTA=/s/TOSTA=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r'`
 endif
 
 RKLoader_uboot.bin: u-boot.bin
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
-	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini &&) \
+	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini)
 	$(if $(CONFIG_MERGER_TRUSTIMAGE), ./tools/trust_merger $(if $(CONFIG_RK_TRUSTOS), --subfix) \
-							./tools/rk_tools/RKTRUST/$(RKCHIP)TRUST.ini &&) \
-	$(if $(CONFIG_MERGER_TRUSTOS), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img &&) \
+							./tools/rk_tools/RKTRUST/$(RKCHIP)TRUST.ini)
+ifeq ($(CONFIG_MERGER_TRUSTOS)$(CONFIG_MERGER_TRUSTOS_WITH_TA),yy)
+	$(if $(CONFIG_MERGER_TRUSTOS), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img)
+	$(if $(CONFIG_MERGER_TRUSTOS_WITH_TA), ./tools/loaderimage --pack --trustos $(RK_TOS_TA_BIN) trust_with_ta.img)
+else
+	$(if $(CONFIG_MERGER_TRUSTOS), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img)
+	$(if $(CONFIG_MERGER_TRUSTOS_WITH_TA), ./tools/loaderimage --pack --trustos $(RK_TOS_TA_BIN) trust.img)
+endif
 	./tools/loaderimage --pack --uboot u-boot.bin uboot.img
 else
 	./tools/boot_merger --subfix "$(RK_SUBFIX)" ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
