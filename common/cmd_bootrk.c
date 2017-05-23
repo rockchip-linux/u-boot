@@ -47,6 +47,8 @@ extern bool is_rk81x_fg_init(void);
 extern int rkimage_load_image(rk_boot_img_hdr *hdr,
 		const disk_partition_t *boot_ptn, const disk_partition_t *kernel_ptn);
 
+__weak int board_modify_fdt(void) { return 0; }
+
 /* Section for Android bootimage format support
  * Refer:
  * http://android.git.kernel.org/?p=platform/system/core.git;a=blob;f=mkbootimg/bootimg.h
@@ -631,6 +633,9 @@ int do_bootrk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 			goto fail;
 		}
 	}
+
+	board_modify_fdt();
+
 #if defined(CONFIG_LCD) && defined(CONFIG_KERNEL_LOGO)
 	/* if uboot logo enable, load logo */
 	if (g_logo_on_state != 0 && !g_is_new_display) {

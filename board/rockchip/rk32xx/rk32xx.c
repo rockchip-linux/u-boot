@@ -225,6 +225,23 @@ int board_late_init(void)
 }
 #endif
 
+int board_modify_fdt(void)
+{
+#if defined(CONFIG_RKCHIP_RK3288) && defined(CONFIG_NORMAL_WORLD)
+	int ret;
+
+	/* RK3288W HDMI Revision ID is 0x1A */
+	if (readl(RKIO_HDMI_PHYS + 0x4) == 0x1A) {
+		ret = fdt_setprop_string((void *)gd->fdt_blob, 0,
+					 "compatible", "rockchip,rk3288w");
+		if (ret) {
+			printf("fdt set compatible failed: %d\n", ret);
+			return -1;
+		}
+	}
+#endif
+	return 0;
+}
 
 #ifdef CONFIG_CMD_NET
 /*
