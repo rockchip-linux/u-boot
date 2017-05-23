@@ -222,6 +222,7 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 
 	/* init set content.addr = NULL */
 	content.load_addr = NULL;
+	content.content_size = 0;
 #endif
 
 #ifdef CONFIG_KERNEL_RUNNING_ADDR
@@ -347,6 +348,8 @@ static rk_boot_img_hdr * rk_load_image_from_storage(const disk_partition_t* ptn,
 	} else {
 		pimage->ft_addr = content.load_addr;
 		pimage->ft_len = content.content_size;
+		gd->fdt_blob = content.load_addr;
+		gd->fdt_size = content.content_size;
 	}
 #endif /* CONFIG_OF_LIBFDT */
 
