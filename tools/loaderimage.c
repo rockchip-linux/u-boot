@@ -67,7 +67,31 @@ typedef struct tag_second_loader_hdr {
 
 void usage(const char *prog)
 {
-	fprintf(stderr, "Usage: %s [--pack|--unpack] [--uboot|--trustos] file_in file_out\n", prog);
+	fprintf(stderr, "Usage: %s [--pack|--unpack] [--uboot|--trustos] file_in file_out [load_addr]\n", prog);
+}
+
+unsigned int str2hex(char *str)
+{
+	int i=0;
+	unsigned int value = 0;
+
+	if(*str == '0' && ( *(str+1) == 'x' || *(str+1) == 'X' ) )
+		str += 2;
+	if( *str == 'x' || *str == 'X' )
+		str += 1;
+
+	for(i=0; *str!='\0'; i++,++str)
+	{
+		if(*str>='0' && *str<='9')
+			value = value*16+*str-'0';
+		else if(*str>='a' && *str<='f')
+			value = value*16+*str-'a'+10;
+		else if(*str>='A' && *str<='F')
+			value = value*16+*str-'A'+10;
+		else
+			break;
+	}
+	return value;
 }
 
 int main (int argc, char *argv[])
@@ -137,6 +161,11 @@ int main (int argc, char *argv[])
 	if (!fo) {
 		perror(argv[4]);
 		exit (EXIT_FAILURE);
+	}
+
+	if (argc == 6) {
+		loader_addr = str2hex(argv[5]);
+		printf("\n load addr is 0x%x!\n", loader_addr);
 	}
 
 	buf = calloc(max_size, max_num);
