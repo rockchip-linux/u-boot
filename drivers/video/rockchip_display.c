@@ -759,27 +759,45 @@ int rockchip_display_init(void)
 
 		phandle = fdt_getprop_u32_default_node(blob, child, 0,
 						       "connect", -1);
-		if (phandle < 0)
+		if (phandle < 0) {
+			printf("Warn: %s: can't find connect node's handle\n",
+			       fdt_get_name(blob, child, NULL));
 			continue;
+		}
 
 		connect = fdt_node_offset_by_phandle(blob, phandle);
-		if (connect < 0)
+		if (connect < 0) {
+			printf("Warn: %s: can't find connect node\n",
+			       fdt_get_name(blob, child, NULL));
 			continue;
+		}
 
 		crtc_node = find_crtc_node(blob, connect);
-		if (!fdt_device_is_available(blob, crtc_node))
+		if (!fdt_device_is_available(blob, crtc_node)) {
+			printf("Warn: %s: crtc node is not available\n",
+			       fdt_get_name(blob, child, NULL));
 			continue;
+		}
 		crtc = rockchip_get_crtc(blob, crtc_node);
-		if (!crtc)
+		if (!crtc) {
+			printf("Warn: %s: can't find crtc driver\n",
+			       fdt_get_name(blob, child, NULL));
 			continue;
+		}
 
 		conn_node = find_connector_node(blob, connect);
-		if (!fdt_device_is_available(blob, conn_node))
+		if (!fdt_device_is_available(blob, conn_node)) {
+			printf("Warn: %s: connector node is not available\n",
+			       fdt_get_name(blob, child, NULL));
 			continue;
+		}
 
 		conn = rockchip_get_connector(blob, conn_node);
-		if (!conn)
+		if (!conn) {
+			printf("Warn: %s: can't find connector driver\n",
+			       fdt_get_name(blob, child, NULL));
 			continue;
+		}
 
 		s = malloc(sizeof(*s));
 		if (!s)
