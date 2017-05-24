@@ -220,12 +220,8 @@ int print_cpuinfo(void)
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3126)
-	if (gd->arch.chiptype == CONFIG_RK3126) {
-		if (grf_readl(GRF_CHIP_TAG) == 0x3136)
-			printf("CPU: rk3126b\n");
-		else
-			printf("CPU: rk3126\n");
-	}
+	if (gd->arch.chiptype == CONFIG_RK3126)
+		printf("CPU: rk3126\n");
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3128)
