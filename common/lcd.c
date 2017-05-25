@@ -711,7 +711,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 				*(fb++) = *(bmap++);
 				*(fb++) = *(bmap++);
 				*(fb++) = *(bmap++);
-				*(fb++) = 0;
+				*(fb++) = (uchar)255;
 			}
 			fb -= lcd_line_length + width * (bpix / 8);
 		}
