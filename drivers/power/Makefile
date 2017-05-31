@@ -18,6 +18,7 @@ obj-$(CONFIG_POWER) += power_core.o
 ifdef CONFIG_RK_POWER
 obj-$(CONFIG_OF_LIBFDT) += power_fdt.o
 obj-y += power_rockchip.o
+obj-y += fixed.o
 endif
 obj-$(CONFIG_DIALOG_POWER) += power_dialog.o
 obj-$(CONFIG_POWER_FSL) += power_fsl.o

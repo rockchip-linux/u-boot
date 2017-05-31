@@ -183,6 +183,8 @@ int board_late_init(void)
 #endif
 
 #ifdef CONFIG_RK_POWER
+	debug("fixed_init\n");
+	fixed_regulator_init();
 	debug("pmic_init\n");
 	pmic_init(0);
 #if defined(CONFIG_POWER_PWM_REGULATOR)

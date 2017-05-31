@@ -125,6 +125,7 @@ int pmic_charger_setting(int current);
 void shut_down(void);
 int fg_init(unsigned char bus);
 void plat_charger_init(void);
+int fixed_regulator_init(void);
 
 #if defined(CONFIG_POWER_PWM_REGULATOR)
 int pwm_regulator_init(void);
