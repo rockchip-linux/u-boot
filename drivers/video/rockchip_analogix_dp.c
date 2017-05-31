@@ -886,6 +886,14 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 		writel(0x04000400, RKIO_CRU_PHYS + 0x31c);
 		udelay(20);
 		writel(0x04000000, RKIO_CRU_PHYS + 0x31c);
+	} else if (pdata->chip_type == RK3288_DP) {
+		/* edp ref clk sel */
+		writel(0x00100010, RKIO_GRF_PHYS + 0x274);
+		/* edp 24m clock domain software reset */
+		writel(0x80008000, RKIO_CRU_PHYS + 0x1d0);
+		udelay(20);
+		writel(0x80000000, RKIO_CRU_PHYS + 0x1d0);
+		udelay(20);
 	}
 
 	analogix_dp_init_dp(dp);

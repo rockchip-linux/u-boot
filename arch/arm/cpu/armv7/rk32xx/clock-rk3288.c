@@ -1533,6 +1533,13 @@ void rkclk_set_crypto_clk(uint32 rate)
 }
 #endif /* CONFIG_SECUREBOOT_CRYPTO */
 
+#ifdef CONFIG_ROCKCHIP_DISPLAY
+/* eDP clock source select 24M */
+void rkclk_set_dp_ref_clk(void)
+{
+	cru_writel((1 << (15 + 16)) | (1 << 15), CRU_CLKSELS_CON(28));
+}
+#endif
 
 #ifdef CONFIG_RK_GMAC
 /*

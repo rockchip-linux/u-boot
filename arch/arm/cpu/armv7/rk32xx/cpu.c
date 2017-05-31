@@ -145,6 +145,9 @@ int arch_cpu_init(void)
 
 	/* use rk pwm */
 	grf_writel(0x00010001, 0x024c);
+
+	/* eDP clock source select 24M */
+	rkclk_set_dp_ref_clk();
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3126)

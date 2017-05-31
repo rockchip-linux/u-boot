@@ -307,3 +307,34 @@ int board_eth_init(bd_t *bis)
 	return 0;
 }
 #endif
+
+#ifdef CONFIG_ROCKCHIP_DISPLAY
+extern void rockchip_display_fixup(void *blob);
+#endif
+
+#if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
+void ft_board_setup(void *blob, bd_t * bd)
+{
+#ifdef CONFIG_ROCKCHIP_DISPLAY
+        rockchip_display_fixup(blob);
+#endif
+#ifdef CONFIG_ROCKCHIP
+#if defined(CONFIG_LCD) || defined(CONFIG_VIDEO)
+        u64 start, size;
+        int offset;
+
+        if (!gd->uboot_logo)
+                return;
+
+        start = gd->fb_base;
+        offset = gd->fb_offset;
+        if (offset > 0)
+                size = CONFIG_RK_LCD_SIZE;
+        else
+                size = CONFIG_RK_FB_SIZE;
+
+        fdt_update_reserved_memory(blob, "rockchip,fb-logo", start, size);
+#endif
+#endif
+}
+#endif
