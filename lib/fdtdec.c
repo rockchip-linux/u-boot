@@ -157,17 +157,26 @@ fdt_addr_t fdtdec_get_addr_size_auto_parent(const void *blob, int parent,
 	}
 
 	ns = fdt_size_cells(blob, parent);
+#ifndef CONFIG_ROCKCHIP
+	/* Rockchip platforms i2c slave node set "#size-cells = <0>", so skip */
 	if (ns < 1) {
 		debug("(bad #size-cells)\n");
 		return FDT_ADDR_T_NONE;
 	}
-
+#endif
 	debug("na=%d, ns=%d, ", na, ns);
 
 	return fdtdec_get_addr_size_fixed(blob, node, prop_name, index, na,
 					  ns, sizep);
 }
 
+/*
+ * @index: the index of reg array.
+ *	reg = <0xff750000 0x100>, <0xff730084 0x0c>, <0xff730064 0x0c>, ...
+ *	index = 0 means: <0xff750000 0x100>
+ *
+ * @sizep: out return value, saving size info from 'reg' property.
+ */
 fdt_addr_t fdtdec_get_addr_size_auto_noparent(const void *blob, int node,
 		const char *prop_name, int index, fdt_size_t *sizep)
 {
@@ -200,44 +209,6 @@ fdt_addr_t fdtdec_get_addr(const void *blob, int node,
 {
 	return fdtdec_get_addr_size(blob, node, prop_name, NULL);
 }
-
-#ifdef CONFIG_ROCKCHIP_ARCH64
-uint32_t fdtdec_get_reg(const void *blob, int node)
-{
-/* rk aarch64 iobase address using 2 cells, 0 for speed up boot time */
-#if 0
-	uint32_t *cell = NULL;
-	int addrcells = 0;
-	int parent;
-	uint32_t addr;
-
-	parent = fdt_parent_offset(blob, node);
-	if (parent < 0) {
-		addrcells = 1;
-	} else {
-		addrcells = fdt_address_cells(blob, parent);
-	}
-
-	cell = fdt_getprop(blob, node, "reg", NULL);
-	if (addrcells == 2) {
-		cell++;
-	}
-	addr = (u32)fdt32_to_cpu(*cell);
-
-	return addr;
-#else
-	uint32_t *cell = NULL;
-	uint32_t addr;
-
-	/* note: here iobase reg should use 2 cells */
-	cell = (uint32_t *)fdt_getprop(blob, node, "reg", NULL);
-	cell++;
-	addr = (u32)fdt32_to_cpu(*cell);
-
-	return addr;
-#endif
-}
-#endif
 
 uint64_t fdtdec_get_uint64(const void *blob, int node, const char *prop_name,
 		uint64_t default_val)
@@ -687,9 +658,8 @@ int fdtdec_decode_gpios(const void *blob, int node, const char *prop_name,
 		return -FDT_ERR_BADLAYOUT;
 	}
 #ifdef CONFIG_ROCKCHIP
-	const struct fdt_property *prop1;
-	const u32 *reg;
-	u32 gpio_dts;
+	u32 gpio_dts, gpio_addr;
+	int gpio_node;
 
 	/* Fist find rk pinctrl node, prepare for decode gpio */
 	static int pinctrl_node = -1;
@@ -702,22 +672,13 @@ int fdtdec_decode_gpios(const void *blob, int node, const char *prop_name,
 	}
 
         for (i = 0; i < len; i++, cell += 3) {
-#if 0
-		prop1 = fdt_get_property(blob,
-		             fdt_node_offset_by_phandle(blob, fdt32_to_cpu(cell[0])), 
-		             "reg", 0);
-#else
-		prop1 = fdt_get_property(blob,
-		             fdt_node_offset_by_phandle_node(blob, pinctrl_node, fdt32_to_cpu(cell[0])),
-		             "reg", 0);
-#endif
-		reg = (u32 *)prop1->data;
-		/* fixed aarch64 gpio io base error */
-#ifdef CONFIG_ROCKCHIP_ARCH64
-		gpio_dts = fdt32_to_cpu(cell[1]) | fdt32_to_cpu(reg[1]);
-#else
-		gpio_dts = fdt32_to_cpu(cell[1]) | fdt32_to_cpu(reg[0]);
-#endif
+		gpio_node = fdt_node_offset_by_phandle_node(blob, pinctrl_node,
+							fdt32_to_cpu(cell[0]));
+		gpio_addr = fdtdec_get_addr_size_auto_noparent(blob, gpio_node,
+							       "reg", 0, NULL);
+		debug("gpio address = 0x%x\n", gpio_addr);
+		gpio_dts = fdt32_to_cpu(cell[1]) | gpio_addr;
+
 		/* change dts gpio to rk uboot gpio */
 #ifdef CONFIG_RK_GPIO
 		gpio[i].gpio = rk_gpio_base_to_bank(gpio_dts & RK_GPIO_BANK_MASK) | (gpio_dts & RK_GPIO_PIN_MASK);

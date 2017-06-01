@@ -280,6 +280,10 @@
 #endif /* CONFIG_ARM64 */
 #endif /* CONFIG_SECOND_LEVEL_BOOTLOADER */
 
+/*
+ * fdtdec parse enable 64bit format for property 'reg', this compatible 32bit
+ */
+#define CONFIG_PHYS_64BIT
 
 /*
  * boot image: rk mode and ota mode check

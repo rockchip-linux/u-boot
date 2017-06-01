@@ -161,11 +161,9 @@ static int rk_bl_parse_dt(const void *blob)
 	bl.polarity = data[3];
 
 	pwm_node = fdt_node_offset_by_phandle(blob, data[0]);
-#ifdef CONFIG_ROCKCHIP_ARCH64
-	bl.base = fdtdec_get_reg(blob, pwm_node);
-#else
-	bl.base = fdtdec_get_addr(blob, pwm_node, "reg");
-#endif
+
+	bl.base = fdtdec_get_addr_size_auto_noparent(blob, pwm_node,
+						     "reg", 0, NULL);
 	bl.id = get_pwm_id(bl.base);
 	debug("bl id = %d, base= 0x%x\n", bl.id, bl.base);
 	fdt_getprop(blob, bl.node, "brightness-levels", &len);

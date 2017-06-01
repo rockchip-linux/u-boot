@@ -494,6 +494,11 @@ int fdt_node_offset_by_phandle(const void *fdt, uint32_t phandle)
 }
 
 #ifdef CONFIG_ROCKCHIP
+/*
+ * What's different with fdt_node_offset_by_phandle() ?
+ *
+ * This can specify which node we search from. It reduces search time.
+ */
 int fdt_node_offset_by_phandle_node(const void *fdt, int node, uint32_t phandle)
 {
 	int offset;
