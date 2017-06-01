@@ -43,6 +43,7 @@ struct crtc_state {
 	int format;
 	u32 dma_addr;
 	int ymirror;
+	int rb_swap;
 	int xvir;
 	int src_x;
 	int src_y;
@@ -52,7 +53,6 @@ struct crtc_state {
 	int crtc_y;
 	int crtc_w;
 	int crtc_h;
-
 };
 
 struct panel_state {

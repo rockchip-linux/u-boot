@@ -327,7 +327,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	VOP_WIN_SET(vop, act_info, act_info);
 	VOP_WIN_SET(vop, dsp_info, dsp_info);
 	VOP_WIN_SET(vop, dsp_st, dsp_st);
-	VOP_WIN_SET(vop, rb_swap, 1);
+	VOP_WIN_SET(vop, rb_swap, crtc_state->rb_swap);
 
 	VOP_WIN_SET(vop, src_alpha_ctl, 0);
 
