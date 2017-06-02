@@ -343,7 +343,7 @@ void printOpts(FILE* out) {
 	fprintf(out, SEC_OUT "\n" OPT_OUT_PATH "=%s\n", gOpts.outPath);
 }
 
-static bool parseOpts(void) {
+static bool parseOpts_from_file(void) {
 	bool ret = false;
 	bool chipOk = false;
 	bool versionOk = false;
@@ -430,7 +430,53 @@ end:
 	return ret;
 }
 
-bool initOpts(void) {
+static bool parseOpts_from_cmdline(int argc, char** argv)
+{
+	int i;
+	int tag = 0;
+	int v0, v1, v2, v3;
+
+	for (i = 2; i < argc; i++){
+		if (!strcmp(OPT_471, argv[i])){
+			i++;
+			snprintf(gOpts.code471Path[0], sizeof(gOpts.code471Path[0]), "%s", argv[i]);
+			tag |= 1;
+		} else if (!strcmp(OPT_472, argv[i])){
+			i++;
+			snprintf(gOpts.code472Path[0], sizeof(gOpts.code472Path[0]), "%s", argv[i]);
+			tag |= 2;
+		} else if (!strcmp(OPT_DATA, argv[i])){
+			i++;
+			snprintf(gOpts.loader[0].path, sizeof(gOpts.loader[0].path), "%s", argv[i]);
+			tag |= 4;
+		} else if (!strcmp(OPT_BOOT, argv[i])){
+			i++;
+			snprintf(gOpts.loader[1].path, sizeof(gOpts.loader[1].path), "%s", argv[i]);
+			tag |= 8;
+		} else if (!strcmp(OPT_OUT, argv[i])){
+			i++;
+			snprintf(gOpts.outPath, sizeof(gOpts.outPath), "%s", argv[i]);
+			tag |= 0x10;
+		} else if (!strcmp(OPT_CHIP, argv[i])){
+			i++;
+			snprintf(gOpts.chip, sizeof(gOpts.chip), "%s", argv[i]);
+			tag |= 0x20;
+		} else if (!strcmp(OPT_VERSION, argv[i])){
+		}
+	}
+
+
+	sscanf(gOpts.loader[0].path, "%*[^v]v%d.%d.bin", &v0, &v1);
+	sscanf(gOpts.loader[1].path, "%*[^v]v%d.%d.bin", &v2, &v3);
+	gOpts.major = v2;
+	gOpts.minor = v3;
+	snprintf(gOpts.outPath, sizeof(gOpts.outPath), "%s_loader_v%d.%02d.%d%02d.bin", gOpts.chip, v0, v1, v2, v3);
+	return ((tag & 0x0f) == 0x0f) ? true : false;
+}
+
+bool initOpts(int argc, char** argv) {
+	bool ret;
+
 	//set default opts
 	gOpts.major = DEF_MAJOR;
 	gOpts.minor = DEF_MINOR;
@@ -451,7 +497,12 @@ bool initOpts(void) {
 	strcpy(gOpts.loader[1].path, DEF_LOADER1_PATH);
 	strcpy(gOpts.outPath, DEF_OUT_PATH);
 
-	return parseOpts();
+	if(argc > 10)
+		ret = parseOpts_from_cmdline(argc, argv);
+	else
+		ret = parseOpts_from_file();
+
+	return ret;
 }
 
 /************merge code****************/
@@ -714,7 +765,7 @@ end:
 	return crc;
 }
 
-static bool mergeBoot(void) {
+static bool mergeBoot(int argc, char** argv) {
 	uint32_t dataOffset;
 	bool ret = false;
 	int i;
@@ -722,7 +773,7 @@ static bool mergeBoot(void) {
 	uint32_t crc;
 	rk_boot_header hdr;
 
-	if (!initOpts())
+	if (!initOpts(argc, argv))
 		return false;
 	{
 		char* subfix = strstr(gOpts.outPath, OUT_SUBFIX);
@@ -893,7 +944,7 @@ end:
 /************unpack code end***********/
 
 static void printHelp(void) {
-	printf("Usage: boot_merger [options]... FILE\n");
+	printf("Usage1: boot_merger [options]... FILE\n");
 	printf("Merge or unpack Rockchip's loader (Default action is to merge.)\n");
 	printf("Options:\n");
 	printf("\t" OPT_MERGE "\t\t\tMerge loader with specified config.\n");
@@ -902,6 +953,18 @@ static void printHelp(void) {
 	printf("\t" OPT_HELP "\t\t\tDisplay this information.\n");
 	printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
 	printf("\t" OPT_SUBFIX "\t\tSpec subfix.\n");
+	printf("Usage2: boot_merger [options] [parameter]\n");
+	printf("All below five option are must in this mode!\n");
+	printf("\t" OPT_CHIP "\t\tChip type, used for check with usbplug.\n");
+	printf("\t" OPT_471 "\t\t471 for download, ddr.bin.\n");
+	printf("\t" OPT_472 "\t\t472 for download, usbplug.bin.\n");
+	printf("\t" OPT_DATA "\t\tloader0 for flash, ddr.bin.\n");
+	printf("\t" OPT_BOOT "\t\tloader1 for flash, miniloader.bin.\n");
+	printf("\n./tools/boot_merger --pack --verbose -c RK322A -1 "	\
+		"rkbin/rk322x_ddr_300MHz_v1.04.bin -2 " \
+		"rkbin/rk32/rk322x_usbplug_v2.32.bin -d " \
+		"rkbin/rk32/rk322x_ddr_300MHz_v1.04.bin -b " \
+		"rkbin/rk32/rk322x_miniloader_v2.32.bin\n");
 }
 
 int main(int argc, char** argv) {
@@ -909,9 +972,11 @@ int main(int argc, char** argv) {
 	int i;
 	bool merge = true;
 	char* optPath = NULL;
+
 	for(i=1; i<argc; i++) {
 		if (!strcmp(OPT_VERBOSE, argv[i])) {
 			gDebug = true;
+			printf("enable debug\n");
 		} else if (!strcmp(OPT_HELP, argv[i])) {
 			printHelp();
 			return 0;
@@ -926,12 +991,8 @@ int main(int argc, char** argv) {
 			i++;
 			snprintf(gSubfix, sizeof(gSubfix), "%s", argv[i]);
 		} else {
-			if (optPath) {
-				fprintf(stderr, "only need one path arg, but we have:\n%s\n%s.\n", optPath, argv[i]);
-				printHelp();
-				return -1;
-			}
 			optPath = argv[i];
+			break;
 		}
 	}
 	if (!merge && !optPath) {
@@ -943,7 +1004,7 @@ int main(int argc, char** argv) {
 	if (merge) {
 		LOGD("do_merge\n");
 		gConfigPath = optPath;
-		if (!mergeBoot()) {
+		if (!mergeBoot(argc, argv)) {
 			fprintf(stderr, "merge failed!\n");
 			return -1;
 		}

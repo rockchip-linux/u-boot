@@ -186,6 +186,14 @@ typedef struct {
 #define OPT_UNPACK          "--unpack"
 #define OPT_SUBFIX          "--subfix"
 
+#define OPT_CHIP	"-c"
+#define OPT_471		"-1"
+#define OPT_472		"-2"
+#define	OPT_DATA	"-d"
+#define	OPT_BOOT	"-b"
+#define	OPT_OUT		"-o"
+
+
 #define VERSION             "2013-8-12 14:27:23"
 
 #endif// BOOT_MERGER_H
