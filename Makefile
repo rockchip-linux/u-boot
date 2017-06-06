@@ -943,7 +943,11 @@ endif
 
 RKLoader_uboot.bin: u-boot.bin
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
+ifdef CONFIG_PRODUCT_ECHO
+	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)_ECHOMINIALL.ini)
+else
 	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini)
+endif
 	$(if $(CONFIG_MERGER_TRUSTIMAGE), ./tools/trust_merger $(if $(CONFIG_RK_TRUSTOS), --subfix) \
 							./tools/rk_tools/RKTRUST/$(RKCHIP)TRUST.ini)
 ifeq ($(CONFIG_MERGER_TRUSTOS)$(CONFIG_MERGER_TRUSTOS_WITH_TA),yy)
