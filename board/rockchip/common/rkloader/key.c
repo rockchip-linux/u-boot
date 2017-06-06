@@ -113,7 +113,11 @@ __maybe_unused static void RockusbKeyInit(void)
 #if defined(CONFIG_RKCHIP_RK3036)
 	key_rockusb.type = KEY_INT;
 	key_rockusb.key.ioint.name = "rockusb_key";
+#if defined(CONFIG_PRODUCT_ECHO)
+	key_rockusb.key.ioint.gpio = (GPIO_BANK2 | GPIO_C7);
+#else
 	key_rockusb.key.ioint.gpio = (GPIO_BANK2 | GPIO_B0);
+#endif
 	key_rockusb.key.ioint.flags = IRQ_TYPE_EDGE_FALLING;
 	key_rockusb.key.ioint.pressed_state = 0;
 	key_rockusb.key.ioint.press_time = 0;
