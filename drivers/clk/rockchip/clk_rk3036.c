@@ -62,7 +62,7 @@ static int rkclk_set_pll(struct rk3036_cru *cru, enum rk_clk_id clk_id,
 	       output_hz >= OUTPUT_MIN_HZ && output_hz <= OUTPUT_MAX_HZ);
 
 	/* use interger mode */
-	rk_clrreg(&pll->con1, 1 << PLL_DSMPD_SHIFT);
+	rk_setreg(&pll->con1, 1 << PLL_DSMPD_SHIFT);
 
 	rk_clrsetreg(&pll->con0,
 		     PLL_POSTDIV1_MASK << PLL_POSTDIV1_SHIFT | PLL_FBDIV_MASK,
