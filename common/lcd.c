@@ -1045,9 +1045,6 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		format = RGB565;
 		break;
 	case 24:
-		bpix = 24;
-		format = RGB888;
-		break;
 	case 32:
 		bpix = 32;
 		format = ARGB888;
@@ -1228,6 +1225,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 				*(fb++) = *(bmap++);
 				*(fb++) = *(bmap++);
 				*(fb++) = *(bmap++);
+				*(fb++) = (uchar)255;
 			}
 			fb -= lcd_line_length + width * (bpix / 8);
 		}
