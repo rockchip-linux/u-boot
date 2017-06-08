@@ -22,7 +22,7 @@ extern void SdmmcCheckIdBlock(void);
 extern uint32 SdmmcBootReadLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec);
 extern uint32 SdmmcBootWriteLBA(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint32 mode);
 extern uint32 SdmmcGetCapacity(uint8 ChipSel);
-
+extern uint32 SdmmcBootEraseData(uint8 ChipSel, uint32 LBA, uint32 nSec);
 extern uint32 SdmmcSysDataLoad(uint8 ChipSel, uint32 Index, void *Buf);
 extern uint32 SdmmcSysDataStore(uint8 ChipSel, uint32 Index, void *Buf);
 extern uint32 EmmcSetBootPart(uint32 ChipSel, uint32 BootPart, uint32 AccessPart);

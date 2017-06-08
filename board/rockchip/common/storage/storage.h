@@ -94,6 +94,7 @@ extern	bool StorageSDCardBootMode(void);
 extern	bool StorageUMSUpdateMode(void);
 extern	bool StorageUMSBootMode(void);
 #endif
+int StorageEraseData(uint32 lba, uint32 n_sec);
 
 //local memory operation function
 typedef uint32 (*Memory_Init)(uint32 BaseAddr);
@@ -111,6 +112,8 @@ typedef uint32 (*Memory_GetTotleBlk)(void);
 typedef uint32 (*Memory_GetCapacity)(uint8 ChipSel);
 typedef uint32 (*Memory_SysDataLoad)(uint8 ChipSel, uint32 Index, void *Buf);
 typedef uint32 (*Memory_SysDataStore)(uint8 ChipSel, uint32 Index, void *Buf);
+typedef uint32 (*Memory_erase_data)(uint8 ChipSel, uint32 LBA, uint32 nSec);
+typedef uint32 (*Memory_read_fat_bbt)(uint8 *pbbt, uint32 die, uint32 len);
 
 typedef struct MEM_FUN_Tag
 {
@@ -132,6 +135,7 @@ typedef struct MEM_FUN_Tag
 	Memory_GetCapacity GetCapacity;
 	Memory_SysDataLoad SysDataLoad;
 	Memory_SysDataStore SysDataStore;
+	Memory_erase_data erase_data;
 } MEM_FUN_T, pMEM_FUN_T;
 
 
@@ -177,6 +181,8 @@ typedef struct LOADER_MEM_API_Tag
 	Memory_GetCapacity GetCapacity;    //get capacity
 	Memory_SysDataLoad SysDataLoad;    //vendor part,1MB
 	Memory_SysDataStore SysDataStore;  //vendor part,1MB
+	Memory_read_fat_bbt read_bbt;
+	Memory_erase_data erase_data;
 } LOADER_MEM_API_T, *pLOADER_MEM_API_T;
 
 //1全局变量

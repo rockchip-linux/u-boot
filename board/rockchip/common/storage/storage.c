@@ -59,6 +59,7 @@ static MEM_FUN_T NandFunOp =
 	LMemApiGetCapacity,
 	LMemApiSysDataLoad,
 	LMemApiSysDataStore,
+	LMemApiEraseData,
 };
 #endif
 
@@ -83,6 +84,7 @@ static MEM_FUN_T emmcFunOp =
 	SdmmcGetCapacity,
 	SdmmcSysDataLoad,
 	SdmmcSysDataStore,
+	SdmmcBootEraseData,
 };
 #endif
 
@@ -107,6 +109,7 @@ static MEM_FUN_T emmcFunOp =
 	SdhciGetCapacity,
 	SdhciSysDataLoad,
 	SdhciSysDataStore,
+	NULL,
 };
 #endif
 
@@ -131,6 +134,7 @@ MEM_FUN_T sd0FunOp =
 	SdmmcGetCapacity,
 	SdmmcSysDataLoad,
 	SdmmcSysDataStore,
+	NULL,
 };
 #endif
 
@@ -153,6 +157,7 @@ static MEM_FUN_T nvmeFunOp =
 	NULL,
 	NULL,
 	nvme_get_capacity,
+	NULL,
 	NULL,
 	NULL,
 };
@@ -179,6 +184,7 @@ MEM_FUN_T UMSFunOp =
 	NULL,
 	UMSGetCapacity,
 	UMSSysDataLoad,
+	NULL,
 	NULL,
 };
 #endif
@@ -346,6 +352,16 @@ int StorageWriteLba(uint32 LBA, void *pbuf, uint32 nSec, uint16 mode)
 	{
 		ret = gpMemFun->WriteLba(gpMemFun->id, LBA, pbuf, nSec, mode);
 	}
+
+	return ret;
+}
+
+int StorageEraseData(uint32 lba, uint32 n_sec)
+{
+	int ret = FTL_ERROR;
+
+	if (gpMemFun->erase_data)
+		ret = gpMemFun->erase_data(gpMemFun->id, lba, n_sec);
 
 	return ret;
 }

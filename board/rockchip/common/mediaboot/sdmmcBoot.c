@@ -426,6 +426,17 @@ uint32 SdmmcGetSysOffset(uint8 ChipSel)
 	return offset;
 }
 
+uint32 SdmmcBootEraseData(uint8 ChipSel, uint32 LBA, uint32 nSec)
+{
+	uint32 end_lba;
+	if (ChipSel == EMMC_CARD_ID) {
+		end_lba = LBA + nSec;
+		if (end_lba >= gSdCardInfoTbl[ChipSel].UserCapSize)
+			end_lba = gSdCardInfoTbl[ChipSel].UserCapSize - 1;
+		MMC_Trim(LBA, end_lba);
+	}
+	return 0;
+}
 
 /***************************************************************************
 函数描述:按物理BLOCK擦除——0:好块; 1:坏块

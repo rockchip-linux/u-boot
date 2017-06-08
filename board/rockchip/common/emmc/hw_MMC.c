@@ -673,6 +673,51 @@ int32 MMC_SwitchBoot(void *pCardInfo, uint32 enable, uint32 partition)
 	return ret;
 }
 
+int32 MMC_Trim(uint32 start_addr, uint32 end_addr)
+{
+	uint32 status = 0;
+	int32 ret = SDM_SUCCESS;
+	int32 card_id = 2;
+
+	ret = SDC_SendCommand(card_id,
+			     (SD_CMD35 | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV),
+			     start_addr, &status);
+
+	if (status & ((0x1 << 28) | (0x1 << 27) | (0x1 << 23) | (0x1 << 22) |
+	    (0x1 << 20) | (0x1 << 19))) {
+		PRINT_E("erase set start addr:0x%x failed\n", start_addr);
+		ret = SDM_FALSE;
+		return ret;
+	}
+
+	ret = SDC_SendCommand(card_id,
+			     (SD_CMD36 | SD_NODATA_OP | SD_RSP_R1 | WAIT_PREV),
+			     end_addr, &status);
+	if (status & ((0x1 << 28) | (0x1 << 23) | (0x1 << 22) | (0x1 << 20) |
+	    (0x1 << 19))) {
+		PRINT_E("erase set end_addr addr:0x%x failed\n", end_addr);
+		ret = SDM_FALSE;
+		return ret;
+	}
+
+	ret = SDC_SendCommand(card_id,
+			     (SD_ERASE | SD_NODATA_OP | SD_RSP_R1B |
+			     WAIT_PREV), 0x1, &status);
+
+	if (status & (((uint32)0x1 << 31) | (0x1 << 23) | (0x1 << 22) |
+	    (0x1 << 20) | (0x1 << 19))) {
+		PRINT_E("erase 0x%x-0x%x failed\n", start_addr, end_addr);
+		ret = SDM_FALSE;
+		return ret;
+	}
+
+	if (status & (0x1 << 15))
+		PRINT_E("erase zone include protect block 0x%x-0x%x\n",
+			start_addr, end_addr);
+
+	return ret;
+}
+
 /****************************************************************
 * 函数名:MMC_Init
 * 描述:MMC卡的初始化

@@ -21,7 +21,7 @@ extern uint32 LMemApiSysDataLoad(uint8 ChipSel, uint32 Index, void *Buf);
 extern uint32 LMemApiSysDataStore(uint8 ChipSel, uint32 Index, void *Buf);
 extern uint32 LMemApiErase(uint8 ChipSel, uint32 blkIndex, uint32 nblk, uint8 mod);
 extern uint32 LMemApiLowFormat(void);
-
+uint32 LMemApiEraseData(uint8 cs, uint32 lba, uint32 n_sec);
 extern uint32 FtlDeInit(void);
 extern uint32 FlashDeInit(void);
 

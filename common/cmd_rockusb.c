@@ -758,6 +758,18 @@ static void FW_LBAWrite10(void)
 #endif
 }
 
+static void FW_EraseData(void)
+{
+	uint32_t lba, n_sec;
+
+	n_sec = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 512;
+	lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
+	StorageEraseData(lba, n_sec);
+	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
+	usbcmd.csw.Status = CSW_GOOD;
+	usbcmd.status = RKUSB_STATUS_CSW;
+}
+
 static void FW_GetFlashInfo(void)
 {
 #ifdef CONFIG_RK_DWC3_UDC
@@ -926,6 +938,9 @@ void do_rockusb_cmd(void)
 		break;
 	case K_FW_LBA_WRITE_10:
 		FW_LBAWrite10();
+		break;
+	case K_FW_ERASE_DATA:
+		FW_EraseData();
 		break;
 	case K_FW_ERASE_SYS_DISK:
 		FW_LowFormatSysDisk();

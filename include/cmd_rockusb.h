@@ -52,6 +52,7 @@
 #define	K_FW_SET_RESET_FLAG		0x1E
 #define	K_FW_SPI_READ_10		0x21
 #define	K_FW_SPI_WRITE_10		0x22
+#define	K_FW_ERASE_DATA			0x25
 
 #define	K_FW_SESSION			0X30
 #define	K_FW_RESET			0xff

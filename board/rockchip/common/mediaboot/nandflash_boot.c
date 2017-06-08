@@ -148,6 +148,16 @@ uint32 LMemApiSysDataStore(uint8 ChipSel, uint32 Index, void *Buf)
 	return ret;
 }
 
+uint32 LMemApiEraseData(uint8 cs, uint32 lba, uint32 n_sec)
+{
+	uint32 ret = FTL_ERROR;
+
+	if (gp_loader_api->erase_data)
+		ret = gp_loader_api->erase_data(gpMemFun->id, lba, n_sec);
+
+	return ret;
+}
+
 #define RKNANDC_MAX_FREQ	(150 * MHZ)
 uint32 lMemApiInit(uint32 BaseAddr)
 {
