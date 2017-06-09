@@ -6,4 +6,5 @@
 
 
 obj-y += clk_rk322x.o
+obj-y += sdram_rk322x.o
 obj-y += syscon_rk322x.o
