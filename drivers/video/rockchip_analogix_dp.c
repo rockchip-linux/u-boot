@@ -852,7 +852,8 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	plat_data = malloc(sizeof(*pdata));
 	if (!plat_data)
 		return -ENOMEM;
-	dp->reg_base = (void *)fdtdec_get_addr(state->blob, dp_node, "reg");
+	dp->reg_base = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
+						dp_node, "reg", 0, NULL);
 	dp->plat_data = plat_data;
 	dp->plat_data->dev_type = ROCKCHIP_DP;
 	dp->plat_data->subdev_type = pdata->chip_type;

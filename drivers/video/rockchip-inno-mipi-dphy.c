@@ -570,7 +570,8 @@ static int inno_mipi_dphy_init(struct display_state *state)
 		return ret;
 	}
 
-	inno->regs = fdtdec_get_addr(blob, phy_node, "reg");
+	inno->regs = fdtdec_get_addr_size_auto_noparent(blob,
+						phy_node, "reg", 0, NULL);
 	if (inno->regs == FDT_ADDR_T_NONE) {
 		printf("%s: failed to get mipi phy address\n", __func__);
 		return -ENOMEM;

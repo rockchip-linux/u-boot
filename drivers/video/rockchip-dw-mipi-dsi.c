@@ -819,7 +819,8 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 	if (!dsi)
 		return -ENOMEM;
 
-	dsi->base = (void *)fdtdec_get_addr(state->blob, mipi_node, "reg");
+	dsi->base = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
+						mipi_node, "reg", 0, NULL);
 	dsi->pdata = pdata;
 	conn_state->private = dsi;
 	conn_state->type = DRM_MODE_CONNECTOR_DSI;

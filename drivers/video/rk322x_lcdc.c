@@ -1330,7 +1330,8 @@ static int rk32_vop_parse_dt(struct vop_device *vop_dev, const void *blob, int v
 		return -EPERM;
 	}
 
-	vop_dev->regs = fdtdec_get_addr(blob, vop_dev->node, "reg");
+	vop_dev->regs = fdtdec_get_addr_size_auto_noparent(blob,
+						vop_dev->node, "reg", 0, NULL);
 	order = fdtdec_get_int(blob, vop_dev->node,
 			       "rockchip,fb-win-map", order);
 	vop_dev->dft_win = order % 10;

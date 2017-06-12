@@ -1132,7 +1132,8 @@ static int vop_parse_dt(struct vop_device *vop_dev,
 		return -EPERM;
 	}
 
-	vop_dev->regs = fdtdec_get_addr(blob, vop_dev->node, "reg");
+	vop_dev->regs = fdtdec_get_addr_size_auto_noparent(blob,
+					vop_dev->node, "reg", 0, NULL);
 	if (vop_dev->regs == FDT_ADDR_T_NONE) {
 		debug("%s: Could not find vop regs\n", __func__);
 		return -1;

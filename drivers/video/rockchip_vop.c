@@ -52,8 +52,8 @@ static int rockchip_vop_init(struct display_state *state)
 	if (!vop)
 		return -ENOMEM;
 	crtc_state->private = vop;
-	vop->regs = (void *)fdtdec_get_addr(state->blob,
-					    crtc_state->node, "reg");
+	vop->regs = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
+					crtc_state->node, "reg", 0, NULL);
 	vop->regsbak = malloc(vop_data->reg_len);
 	vop->win = vop_data->win;
 	vop->win_offset = vop_data->win_offset;
