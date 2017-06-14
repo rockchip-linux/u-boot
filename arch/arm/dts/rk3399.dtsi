@@ -1298,6 +1298,7 @@
 		};
 
 		emmc_phy: phy@f780 {
+		u-boot,dm-pre-reloc;
 			compatible = "rockchip,rk3399-emmc-phy";
 			reg = <0xf780 0x24>;
 			clocks = <&sdhci>;
