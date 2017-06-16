@@ -38,10 +38,10 @@ static void rk_i2c_iomux_config(int i2c_id)
 		pmu_writel(pmu_readl(0x8c) | 1, 0x8c);
 		break;
 	case RK_I2C1_IOMUX:
-		grf_writel((1 << 20) | (1 << 18) | (1 << 4) | (1 << 2), GRF_GPIO6B_IOMUX);
+		grf_writel((1 << 26) | (1 << 24) | (1 << 10) | (1 << 8), GRF_GPIO8A_IOMUX);
 		break;
 	case RK_I2C2_IOMUX:
-		grf_writel((1 << 26) | (1 << 24) | (1 << 10) | (1 << 8), GRF_GPIO8A_IOMUX);
+		grf_writel((1 << 20) | (1 << 18) | (1 << 4) | (1 << 2), GRF_GPIO6B_IOMUX);
 		break;
 	case RK_I2C3_IOMUX:
 		grf_writel((1 << 18) | (1 << 16) | (1 << 2) | 1, GRF_GPIO2C_IOMUX);
