@@ -67,6 +67,7 @@ int board_init(void)
 		     CON_IOMUX_UART2SEL_MASK,
 		     CON_IOMUX_UART2SEL_21 << CON_IOMUX_UART2SEL_SHIFT);
 
+	rockchip_timer_init();
 	return 0;
 }
 
