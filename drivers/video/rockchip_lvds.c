@@ -132,7 +132,7 @@ const struct rockchip_lvds_chip_data rk33xx_lvds_drv_data = {
 	.grf_soc_con15 = 0x043c,
 	.pmugrf_gpio0b_iomux = 0x4,
 	.pmugrf_gpio0c_iomux = 0x8,
-	.pmugrf_gpio0b_iomux = 0xc,
+	.pmugrf_gpio0d_iomux = 0xc,
 };
 
 static int rockchip_lvds_pwr_off(struct rockchip_lvds_device *lvds)
