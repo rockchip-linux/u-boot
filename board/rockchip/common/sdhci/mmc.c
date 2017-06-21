@@ -1330,6 +1330,40 @@ static inline MmcCtrlr *mmc_ctrlr(MmcMedia *media)
 	return media->ctrlr;
 }
 
+int32 mmc_trim(uint32_t start_addr, uint32_t end_addr)
+{
+	int ret;
+	MmcCommand cmd;
+	MmcMedia *media = mmc_media(NULL);
+
+	cmd.cmdidx = MMC_CMD_ERASE_GROUP_START;
+	cmd.resp_type = MMC_RSP_R1;
+	cmd.cmdarg = start_addr;
+	cmd.flags = 0;
+
+	ret = mmc_send_cmd(media->ctrlr, &cmd, NULL);
+	if (ret)
+		return ret;
+
+	cmd.cmdidx = MMC_CMD_ERASE_GROUP_END;
+	cmd.cmdarg = end_addr;
+	ret = mmc_send_cmd(media->ctrlr, &cmd, NULL);
+	if (ret)
+		return ret;
+
+	cmd.cmdidx = MMC_CMD_ERASE;
+	cmd.resp_type = MMC_RSP_R1b;
+	cmd.cmdarg = 0x1;
+	ret = mmc_send_cmd(media->ctrlr, &cmd, NULL);
+	if (ret)
+		return ret;
+
+	/* Waiting for the ready status */
+	mmc_send_status(media, MMC_IO_RETRIES);
+
+	return ret;
+}
+
 lba_t block_mmc_read(BlockDevOps *me, lba_t start, lba_t count, void *buffer)
 {
 	uint8_t *dest = (uint8_t *)buffer;

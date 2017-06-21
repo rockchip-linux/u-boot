@@ -345,6 +345,7 @@ int mmc_busy_wait_io_until(volatile uint32_t *address, uint32_t *output,
 
 int mmc_setup_media(MmcCtrlr *ctrlr);
 
+int32 mmc_trim(uint32_t start_addr, uint32_t end_addr);
 lba_t block_mmc_read(BlockDevOps *me, lba_t start, lba_t count, void *buffer);
 lba_t block_mmc_write(BlockDevOps *me, lba_t start, lba_t count,
 		      const void *buffer);

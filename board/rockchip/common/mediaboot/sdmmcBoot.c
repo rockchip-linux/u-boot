@@ -430,10 +430,15 @@ uint32 SdmmcBootEraseData(uint8 ChipSel, uint32 LBA, uint32 nSec)
 {
 	uint32 end_lba;
 	if (ChipSel == EMMC_CARD_ID) {
-		end_lba = LBA + nSec;
+		end_lba = LBA + nSec - 1;
 		if (end_lba >= gSdCardInfoTbl[ChipSel].UserCapSize)
 			end_lba = gSdCardInfoTbl[ChipSel].UserCapSize - 1;
+		
+		#ifdef CONFIG_RK_AR_SDHCI
+		mmc_trim(LBA, end_lba);
+		#else
 		MMC_Trim(LBA, end_lba);
+		#endif
 	}
 	return 0;
 }
