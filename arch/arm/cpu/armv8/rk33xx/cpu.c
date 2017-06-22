@@ -122,6 +122,22 @@ uint8 rk_get_cpu_version(void)
 	#define CPU_AXI_QOS_PRIORITY		0x08
 	#define QOS_PRIORITY_LEVEL_H		2
 	#define QOS_PRIORITY_LEVEL_L		2
+
+	#define RKIO_ISP_R0_QOS_BASE	0xffad0080
+	#define QOS_ISP_R0_PRIORITY_LEVEL_H	1
+	#define QOS_ISP_R0_PRIORITY_LEVEL_L	1
+
+	#define RKIO_ISP_R1_QOS_BASE	0xffad0100
+	#define QOS_ISP_R1_PRIORITY_LEVEL_H	1
+	#define QOS_ISP_R1_PRIORITY_LEVEL_L	1
+
+	#define RKIO_ISP_W0_QOS_BASE	0xffad0180
+	#define QOS_ISP_W0_PRIORITY_LEVEL_H	3
+	#define QOS_ISP_W0_PRIORITY_LEVEL_L	3
+
+	#define RKIO_ISP_W1_QOS_BASE	0xffad0200
+	#define QOS_ISP_W1_PRIORITY_LEVEL_H	3
+	#define QOS_ISP_W1_PRIORITY_LEVEL_L	3
 #endif
 
 
@@ -167,6 +183,26 @@ static inline void cpu_axi_qos_prority_level_config(void)
 	/* set lcdc cpu axi qos priority level */
 	level = CPU_AXI_QOS_PRIORITY_LEVEL(QOS_PRIORITY_LEVEL_H, QOS_PRIORITY_LEVEL_L);
 	writel(level, RKIO_CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
+
+	/* set cpu isp r0 qos priority level */
+	level = CPU_AXI_QOS_PRIORITY_LEVEL(QOS_ISP_R0_PRIORITY_LEVEL_H,
+					   QOS_ISP_R0_PRIORITY_LEVEL_L);
+	writel(level, RKIO_ISP_R0_QOS_BASE + CPU_AXI_QOS_PRIORITY);
+
+	/* set cpu isp r1 qos priority level */
+	level = CPU_AXI_QOS_PRIORITY_LEVEL(QOS_ISP_R1_PRIORITY_LEVEL_H,
+					   QOS_ISP_R1_PRIORITY_LEVEL_L);
+	writel(level, RKIO_ISP_R1_QOS_BASE + CPU_AXI_QOS_PRIORITY);
+
+	/* set cpu isp w0 qos priority level */
+	level = CPU_AXI_QOS_PRIORITY_LEVEL(QOS_ISP_W0_PRIORITY_LEVEL_H,
+					   QOS_ISP_W0_PRIORITY_LEVEL_L);
+	writel(level, RKIO_ISP_W0_QOS_BASE + CPU_AXI_QOS_PRIORITY);
+
+	/* set cpu isp w1 qos priority level */
+	level = CPU_AXI_QOS_PRIORITY_LEVEL(QOS_ISP_W1_PRIORITY_LEVEL_H,
+					   QOS_ISP_W1_PRIORITY_LEVEL_L);
+	writel(level, RKIO_ISP_W1_QOS_BASE + CPU_AXI_QOS_PRIORITY);
 }
 #endif
 
