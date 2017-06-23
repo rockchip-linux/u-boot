@@ -27,12 +27,6 @@ static int rk3328_dmc_probe(struct udevice *dev)
 	priv->info.base = CONFIG_SYS_SDRAM_BASE;
 	priv->info.size = rockchip_sdram_size(
 				(phys_addr_t)&priv->grf->os_reg[2]);
-	/*
-	* we use the 0x00000000~0xfdffffff space since 0xff000000~0xffffffff
-	* is SoC register space (i.e. reserved), and 0xfe000000~0xfeffffff is
-	* inaccessible for some IP controller.
-	*/
-	priv->info.size = min(priv->info.size, 0xfe000000);
 
 	return 0;
 }

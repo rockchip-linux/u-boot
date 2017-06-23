@@ -37,6 +37,7 @@
 #define CONFIG_SYS_SDRAM_BASE		0x60000000
 #define CONFIG_NR_DRAM_BANKS		2
 #define SDRAM_BANK_SIZE			(512UL << 20UL)
+#define SDRAM_MAX_SIZE			0x80000000
 
 #ifndef CONFIG_SPL_BUILD
 /* usb otg */

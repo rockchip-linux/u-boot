@@ -914,7 +914,8 @@ static int rk3188_dmc_probe(struct udevice *dev)
 		return ret;
 #else
 	priv->info.base = CONFIG_SYS_SDRAM_BASE;
-	priv->info.size = rockchip_sdram_size(&priv->pmu->sys_reg[2]);
+	priv->info.size = rockchip_sdram_size(
+				(phys_addr_t)&priv->pmu->sys_reg[2]);
 #endif
 
 	return 0;

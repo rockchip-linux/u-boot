@@ -662,8 +662,9 @@ static int rk322x_dmc_probe(struct udevice *dev)
 	if (ret)
 		return ret;
 #else
-	priv->info.base = 0;
-	priv->info.size = rockchip_sdram_size(&priv->grf->os_reg[2]);
+	priv->info.base = CONFIG_SYS_SDRAM_BASE;
+	priv->info.size = rockchip_sdram_size(
+				(phys_addr_t)&priv->grf->os_reg[2]);
 #endif
 
 	return 0;

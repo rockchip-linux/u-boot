@@ -23,6 +23,7 @@ size_t rockchip_sdram_size(phys_addr_t reg)
 	u32 ch_num = 1 + ((sys_reg >> SYS_REG_NUM_CH_SHIFT)
 		       & SYS_REG_NUM_CH_MASK);
 
+	printf("%s %x %x\n", __func__, (u32)reg, sys_reg);
 	for (ch = 0; ch < ch_num; ch++) {
 		rank = 1 + (sys_reg >> SYS_REG_RANK_SHIFT(ch) &
 			SYS_REG_RANK_MASK);
@@ -44,9 +45,12 @@ size_t rockchip_sdram_size(phys_addr_t reg)
 		if (row_3_4)
 			chipsize_mb = chipsize_mb * 3 / 4;
 		size_mb += chipsize_mb;
+		printf("rank %d col %d bk %d cs0_row %d bw %d row_3_4 %d\n",
+				rank, col, bk, cs0_row, bw, row_3_4);
 	}
 
-	return size_mb << 20;
+	printf("size %lx\n", (unsigned long)size_mb << 20);
+	return (size_t)size_mb << 20;
 }
 
 int dram_init(void)
@@ -57,16 +61,24 @@ int dram_init(void)
 
 	ret = uclass_get_device(UCLASS_RAM, 0, &dev);
 	if (ret) {
-		debug("DRAM init failed: %d\n", ret);
+		printf("DRAM init failed: %d\n", ret);
 		return ret;
 	}
 	ret = ram_get_info(dev, &ram);
 	if (ret) {
-		debug("Cannot get DRAM size: %d\n", ret);
+		printf("Cannot get DRAM size: %d\n", ret);
 		return ret;
 	}
-	debug("SDRAM base=%x, size=%x\n", (u32)ram.base, (u32)ram.size);
+	printf("SDRAM base=%x, size=%lx\n", ram.base, (unsigned long)ram.size);
 	gd->ram_size = ram.size;
 
+
 	return 0;
+}
+
+ulong board_get_usable_ram_top(ulong total_size)
+{
+	unsigned long top = CONFIG_SYS_SDRAM_BASE + SDRAM_MAX_SIZE;
+
+	return (gd->ram_top > top) ? top : gd->ram_top;
 }

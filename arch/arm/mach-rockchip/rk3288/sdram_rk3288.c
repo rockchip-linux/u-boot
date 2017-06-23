@@ -614,6 +614,7 @@ static void dram_all_config(const struct dram_info *dram,
 		dram_cfg_rbc(&dram->chan[chan], chan, sdram_params);
 	}
 	writel(sys_reg, &dram->pmu->sys_reg[2]);
+
 	rk_clrsetreg(&dram->sgrf->soc_con2, 0x1f, sdram_params->base.stride);
 }
 
@@ -1045,8 +1046,6 @@ static int rk3288_dmc_probe(struct udevice *dev)
 	struct udevice *dev_clk;
 	struct regmap *map;
 	int ret;
-#else
-	size_t size;
 #endif
 	struct dram_info *priv = dev_get_priv(dev);
 
@@ -1088,14 +1087,8 @@ static int rk3288_dmc_probe(struct udevice *dev)
 		return ret;
 #else
 	priv->info.base = CONFIG_SYS_SDRAM_BASE;
-	size = rockchip_sdram_size(priv->pmu->sys_reg[2]);
+	priv->info.size = rockchip_sdram_size((phys_addr_t)&priv->pmu->sys_reg[2]);
 
-	/*
-	* we use the 0x00000000~0xfdffffff space since 0xff000000~0xffffffff
-	* is SoC register space (i.e. reserved), and 0xfe000000~0xfeffffff is
-	* inaccessible for some IP controller.
-	*/
-	priv->info.size = min(size, 0xfe000000);
 #endif
 
 	return 0;
