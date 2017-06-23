@@ -279,7 +279,8 @@
 #define CONFIG_POWER_PMIC
 #define CONFIG_POWER_FG
 #define CONFIG_POWER_BAT
-#endif /* CONFIG_PRODUCT_BOX */
+#endif
+/* CONFIG_PRODUCT_BOX */
 
 #define CONFIG_SCREEN_ON_VOL_THRESD	0
 #define CONFIG_SYSTEM_ON_VOL_THRESD	0
@@ -299,6 +300,9 @@
 #define CONFIG_POWER_RT5036
 #endif /* CONFIG_POWER_PMIC */
 
+#ifdef CONFIG_RKCHIP_RK3128
+#define CONFIG_POWER_RK818
+#endif
 /******** charger driver ********/
 #ifdef CONFIG_POWER_FG
 #define CONFIG_POWER_FG_CW201X
