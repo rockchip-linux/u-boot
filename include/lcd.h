@@ -336,6 +336,7 @@ typedef struct vidinfo {
 	u16 refresh_mode;
 	unsigned int x_mirror;
 	unsigned int y_mirror;
+	unsigned int *dsp_lut;
 
 	/* parent clock name(MPLL, EPLL or VPLL) */
 	unsigned int pclk_name;

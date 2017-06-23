@@ -116,7 +116,7 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
     screen->type        = vid->screen_type;
     screen->face        = vid->lcd_face;
    screen->color_mode   = vid->color_mode;
-   //screen->dsp_lut    = ?
+   screen->dsp_lut    = vid->dsp_lut;
    //screen->cabc_lut   = ?
    screen->mode.hsync_len   = vid->vl_hspw;
    screen->mode.left_margin = vid->vl_hbpd;
@@ -283,7 +283,7 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 {
 	int node;
 	int phandle;
-	int rotate_mode;
+	int rotate_mode, len, lut_num;
 
 	node = fdt_node_offset_by_compatible(blob, 0, COMPAT_ROCKCHIP_FB);
 	panel_info.dual_lcd_enabled =
@@ -416,6 +416,23 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	if (panel_info.vl_vbpd == 0) {
 		debug("Can't get vback-porch, use 8 to default\n");
 		panel_info.vl_vbpd = 8;
+	}
+
+	fdt_getprop(blob, node, "dsp-lut", &len);
+	if (len > 0) {
+		lut_num  = len / sizeof(u32);
+		panel_info.dsp_lut = malloc(len);
+		if (!panel_info.dsp_lut) {
+			printf("malloc dsp lut failed\n");
+			return -ENOMEM;
+		}
+		if (fdtdec_get_int_array(blob, node, "dsp-lut",
+			(u32 *)panel_info.dsp_lut, lut_num)) {
+			printf("Cannot decode dsp_lut\n");
+			return -EINVAL;
+		}
+	} else {
+		panel_info.dsp_lut = NULL;
 	}
 
 	node = rk_fb_find_lcdc_node_dt(rk_fb, blob);

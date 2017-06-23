@@ -381,6 +381,21 @@ void rk_lcdc_set_par(struct fb_dsp_info *fb_info,
 	/*setenv("bootdelay", "3");*/
 }
 
+void rk_lcdc_set_lut(struct lcdc_device *lcdc_dev, vidinfo_t *vid)
+{
+	int i, v, c;
+
+	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_DSP_LUT_EN, v_DSP_LUT_EN(0));
+	lcdc_cfg_done(lcdc_dev);
+	mdelay(25);
+	for (i = 0; i < 256; i++) {
+		v = vid->dsp_lut[i];
+		c = DSP_LUT_ADDR + i * 4;
+		writel(v, lcdc_dev->regs + c);
+	}
+	lcdc_msk_reg(lcdc_dev, SYS_CTRL, m_DSP_LUT_EN, v_DSP_LUT_EN(1));
+}
+
 int rk_lcdc_load_screen(vidinfo_t *vid)
 {
 	int face = 0;
@@ -389,6 +404,9 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
 	lcdc_dev->output_color = COLOR_RGB;
 	lcdc_dev->overlay_mode = VOP_RGB_DOMAIN;
+	if (vid->dsp_lut)
+		rk_lcdc_set_lut(lcdc_dev, vid);
+
 	switch (vid->screen_type) {
 	case SCREEN_HDMI:
         	lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL,
