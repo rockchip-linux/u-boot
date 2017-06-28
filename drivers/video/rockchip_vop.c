@@ -103,6 +103,10 @@ static int rockchip_vop_init(struct display_state *state)
 	case DRM_MODE_CONNECTOR_DSI:
 		VOP_CTRL_SET(vop, mipi_en, 1);
 		VOP_CTRL_SET(vop, mipi_pin_pol, val);
+		VOP_CTRL_SET(vop, mipi_dual_channel_en,
+			!!(conn_state->output_type & ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL));
+		VOP_CTRL_SET(vop, data01_swap,
+			!!(conn_state->output_type & ROCKCHIP_OUTPUT_DSI_DUAL_LINK));
 		break;
 	default:
 		printf("unsupport connector_type[%d]\n", conn_state->type);

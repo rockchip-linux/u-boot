@@ -11,6 +11,9 @@
 #include <drm_modes.h>
 #include <edid.h>
 
+#define ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL	BIT(0)
+#define ROCKCHIP_OUTPUT_DSI_DUAL_LINK		BIT(1)
+
 enum data_format {
 	ROCKCHIP_FMT_ARGB8888 = 0,
 	ROCKCHIP_FMT_RGB888,
@@ -76,6 +79,7 @@ struct connector_state {
 	int bus_format;
 	int output_mode;
 	int type;
+	int output_type;
 };
 
 struct logo_info {
