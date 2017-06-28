@@ -6,6 +6,7 @@
 #
 
 obj-$(CONFIG_RK_I2C) += rk_i2c.o
+obj-$(CONFIG_RK_I2C_GPIO) += i2c-gpio.o
 
 obj-$(CONFIG_BFIN_TWI_I2C) += bfin-twi_i2c.o
 obj-$(CONFIG_DW_I2C) += designware_i2c.o
