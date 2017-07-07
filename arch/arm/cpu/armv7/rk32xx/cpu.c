@@ -146,6 +146,9 @@ int arch_cpu_init(void)
 	/* use rk pwm */
 	grf_writel(0x00010001, 0x024c);
 
+	/* disable LVDS phy */
+	grf_writel(0x80008000, GRF_SOC_CON7);
+
 	/* eDP clock source select 24M */
 	rkclk_set_dp_ref_clk();
 #endif
