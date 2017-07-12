@@ -785,6 +785,14 @@ const struct dw_mipi_dsi_plat_data rk3288_mipi_dsi_drv_data = {
 	.has_vop_sel = true,
 };
 
+const struct dw_mipi_dsi_plat_data rk3366_mipi_dsi_drv_data = {
+	.dsi0_en_bit = BIT(2),
+	.grf_switch_reg = 0x0400,
+	.max_data_lanes = 4,
+	.max_bit_rate_per_lane = 1000000000,
+	.has_vop_sel = true,
+};
+
 const struct dw_mipi_dsi_plat_data rk3368_mipi_dsi_drv_data = {
 	.max_bit_rate_per_lane = 1000000000,
 	.max_data_lanes = 4,
