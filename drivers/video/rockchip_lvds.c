@@ -22,6 +22,7 @@
 #include "rockchip_lvds.h"
 
 enum rockchip_lvds_sub_devtype {
+	RK3288_LVDS,
 	RK3366_LVDS,
 	RK3368_LVDS,
 };
@@ -33,6 +34,7 @@ struct rockchip_lvds_chip_data {
 	u32	grf_soc_con6;
 	u32	grf_soc_con7;
 	u32	grf_soc_con15;
+	u32	grf_gpio1d_iomux;
 };
 
 struct rockchip_lvds_device {
@@ -77,6 +79,10 @@ static inline void lvds_writel(struct rockchip_lvds_device *lvds,
 			      u32 offset, u32 val)
 {
 	writel(val, lvds->regbase + offset);
+
+	if ((lvds->pdata->chip_type == RK3288_LVDS) &&
+	    (lvds->output == DISPLAY_OUTPUT_DUAL_LVDS))
+		writel(val, lvds->regbase + offset + 0x100);
 }
 
 static inline void lvds_msk_reg(struct rockchip_lvds_device *lvds, u32 offset,
@@ -136,8 +142,19 @@ const struct rockchip_lvds_chip_data rk3368_lvds_drv_data = {
 	.has_vop_sel = false,
 };
 
-static int rockchip_lvds_pwr_off(struct rockchip_lvds_device *lvds)
+const struct rockchip_lvds_chip_data rk3288_lvds_drv_data = {
+	.chip_type = RK3288_LVDS,
+	.has_vop_sel = true,
+	.grf_soc_con6 = 0x025c,
+	.grf_soc_con7 = 0x0260,
+	.grf_gpio1d_iomux = 0x000c,
+};
+
+static int rk336x_lvds_pwr_off(struct display_state *state)
 {
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+
 	/* disable lvds lane and power off pll */
 	lvds_writel(lvds, MIPIPHY_REGEB,
 		    v_LANE0_EN(0) | v_LANE1_EN(0) | v_LANE2_EN(0) |
@@ -155,8 +172,23 @@ static int rockchip_lvds_pwr_off(struct rockchip_lvds_device *lvds)
 	return 0;
 }
 
-static int rockchip_lvds_pwr_on(struct rockchip_lvds_device *lvds)
+static int rk3288_lvds_pwr_off(struct display_state *state)
 {
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+
+	lvds_writel(lvds, RK3288_LVDS_CFG_REG21, RK3288_LVDS_CFG_REG21_TX_DISABLE);
+	lvds_writel(lvds, RK3288_LVDS_CFG_REGC, RK3288_LVDS_CFG_REGC_PLL_DISABLE);
+
+	grf_writel(0xffff8000, lvds->pdata->grf_soc_con7);
+
+	return 0;
+}
+
+static int rk336x_lvds_pwr_on(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
 	u32 delay_times = 20;
 
 	if (lvds->output == DISPLAY_OUTPUT_LVDS) {
@@ -196,8 +228,10 @@ static int rockchip_lvds_pwr_on(struct rockchip_lvds_device *lvds)
 }
 
 
-static void rockchip_output_ttl(struct rockchip_lvds_device *lvds)
+static void rk336x_output_ttl(struct display_state *state)
 {
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
 	u32 val = 0;
 
 	/* iomux to lcdc */
@@ -238,11 +272,13 @@ static void rockchip_output_ttl(struct rockchip_lvds_device *lvds)
 		v_MSB_SEL(1) | v_DIG_INTER_RST(1);
 	lvds_writel(lvds, MIPIPHY_REGE0, val);
 
-	rockchip_lvds_pwr_on(lvds);
+	rk336x_lvds_pwr_on(state);
 }
 
-static void rockchip_output_lvds(struct rockchip_lvds_device *lvds)
+static void rk336x_output_lvds(struct display_state *state)
 {
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
 	u32 val = 0;
 
 	/* enable lvds mode */
@@ -268,8 +304,124 @@ static void rockchip_output_lvds(struct rockchip_lvds_device *lvds)
 		     m_MSB_SEL | m_DIG_INTER_RST,
 		     v_MSB_SEL(1) | v_DIG_INTER_RST(1));
 
-	rockchip_lvds_pwr_on(lvds);
+	rk336x_lvds_pwr_on(state);
 	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(1));
+}
+
+static int rk3288_lvds_pwr_on(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+	struct drm_display_mode *mode = &conn_state->mode;
+	u32 val;
+	u32 h_bp = mode->htotal - mode->hsync_start;
+	u8 pin_hsync = (mode->flags & DRM_MODE_FLAG_PHSYNC) ? 1 : 0;
+	u8 pin_dclk = (mode->flags & DRM_MODE_FLAG_PCSYNC) ? 1 : 0;
+
+	val = lvds->format;
+	if (lvds->output == DISPLAY_OUTPUT_DUAL_LVDS)
+		val |= LVDS_DUAL | LVDS_CH0_EN | LVDS_CH1_EN;
+	else if (lvds->output == DISPLAY_OUTPUT_LVDS)
+		val |= LVDS_CH0_EN;
+	else if (lvds->output == DISPLAY_OUTPUT_RGB)
+		val |= LVDS_TTL_EN | LVDS_CH0_EN | LVDS_CH1_EN;
+
+	if (h_bp & 0x01)
+		val |= LVDS_START_PHASE_RST_1;
+
+	val |= (pin_dclk << 8) | (pin_hsync << 9);
+	val |= (0xffff << 16);
+	grf_writel(val, lvds->pdata->grf_soc_con7);
+
+	return 0;
+}
+
+static void rk3288_output_ttl(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+
+	rk3288_lvds_pwr_on(state);
+	/* iomux: dclk den hsync vsync */
+	grf_writel(0x00550055, lvds->pdata->grf_gpio1d_iomux);
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG0,
+		    RK3288_LVDS_CH0_REG0_TTL_EN |
+		    RK3288_LVDS_CH0_REG0_LANECK_EN |
+		    RK3288_LVDS_CH0_REG0_LANE4_EN |
+		    RK3288_LVDS_CH0_REG0_LANE3_EN |
+		    RK3288_LVDS_CH0_REG0_LANE2_EN |
+		    RK3288_LVDS_CH0_REG0_LANE1_EN |
+		    RK3288_LVDS_CH0_REG0_LANE0_EN);
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG2,
+		    RK3288_LVDS_PLL_FBDIV_REG2(0x46));
+
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG3,
+		    RK3288_LVDS_PLL_FBDIV_REG3(0x46));
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG4,
+		    RK3288_LVDS_CH0_REG4_LANECK_TTL_MODE |
+		    RK3288_LVDS_CH0_REG4_LANE4_TTL_MODE |
+		    RK3288_LVDS_CH0_REG4_LANE3_TTL_MODE |
+		    RK3288_LVDS_CH0_REG4_LANE2_TTL_MODE |
+		    RK3288_LVDS_CH0_REG4_LANE1_TTL_MODE |
+		    RK3288_LVDS_CH0_REG4_LANE0_TTL_MODE);
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG5,
+		    RK3288_LVDS_CH0_REG5_LANECK_TTL_DATA |
+		    RK3288_LVDS_CH0_REG5_LANE4_TTL_DATA |
+		    RK3288_LVDS_CH0_REG5_LANE3_TTL_DATA |
+		    RK3288_LVDS_CH0_REG5_LANE2_TTL_DATA |
+		    RK3288_LVDS_CH0_REG5_LANE1_TTL_DATA |
+		    RK3288_LVDS_CH0_REG5_LANE0_TTL_DATA);
+	lvds_writel(lvds, RK3288_LVDS_CH0_REGD,
+		    RK3288_LVDS_PLL_PREDIV_REGD(0x0a));
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG20,
+		    RK3288_LVDS_CH0_REG20_LSB);
+
+	lvds_writel(lvds, RK3288_LVDS_CFG_REGC, RK3288_LVDS_CFG_REGC_PLL_ENABLE);
+	lvds_writel(lvds, RK3288_LVDS_CFG_REG21, RK3288_LVDS_CFG_REG21_TX_ENABLE);
+}
+
+static void rk3288_output_lvds(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+
+	rk3288_lvds_pwr_on(state);
+
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG0,
+		    RK3288_LVDS_CH0_REG0_LVDS_EN |
+		    RK3288_LVDS_CH0_REG0_LANECK_EN |
+		    RK3288_LVDS_CH0_REG0_LANE4_EN |
+		    RK3288_LVDS_CH0_REG0_LANE3_EN |
+		    RK3288_LVDS_CH0_REG0_LANE2_EN |
+		    RK3288_LVDS_CH0_REG0_LANE1_EN |
+		    RK3288_LVDS_CH0_REG0_LANE0_EN);
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG1,
+		    RK3288_LVDS_CH0_REG1_LANECK_BIAS |
+		    RK3288_LVDS_CH0_REG1_LANE4_BIAS |
+		    RK3288_LVDS_CH0_REG1_LANE3_BIAS |
+		    RK3288_LVDS_CH0_REG1_LANE2_BIAS |
+		    RK3288_LVDS_CH0_REG1_LANE1_BIAS |
+		    RK3288_LVDS_CH0_REG1_LANE0_BIAS);
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG2,
+		    RK3288_LVDS_CH0_REG2_RESERVE_ON |
+		    RK3288_LVDS_CH0_REG2_LANECK_LVDS_MODE |
+		    RK3288_LVDS_CH0_REG2_LANE4_LVDS_MODE |
+		    RK3288_LVDS_CH0_REG2_LANE3_LVDS_MODE |
+		    RK3288_LVDS_CH0_REG2_LANE2_LVDS_MODE |
+		    RK3288_LVDS_CH0_REG2_LANE1_LVDS_MODE |
+		    RK3288_LVDS_CH0_REG2_LANE0_LVDS_MODE |
+		    RK3288_LVDS_PLL_FBDIV_REG2(0x46));
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG3,
+		    RK3288_LVDS_PLL_FBDIV_REG3(0x46));
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG4, 0x00);
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG5, 0x00);
+	lvds_writel(lvds, RK3288_LVDS_CH0_REGD,
+		    RK3288_LVDS_PLL_PREDIV_REGD(0x0a));
+	lvds_writel(lvds, RK3288_LVDS_CH0_REG20,
+		    RK3288_LVDS_CH0_REG20_LSB);
+
+	lvds_writel(lvds, RK3288_LVDS_CFG_REGC, RK3288_LVDS_CFG_REGC_PLL_ENABLE);
+	lvds_writel(lvds, RK3288_LVDS_CFG_REG21, RK3288_LVDS_CFG_REG21_TX_ENABLE);
 }
 
 static int rockchip_lvds_init(struct display_state *state)
@@ -288,26 +440,31 @@ static int rockchip_lvds_init(struct display_state *state)
 	lvds = malloc(sizeof(*lvds));
 	if (!lvds)
 		return -ENOMEM;
-
-	i = fdt_get_named_resource(state->blob, lvds_node, "reg", "reg-names",
-				   "mipi_lvds_phy", &lvds_phy);
-	if (i) {
-		printf("can't get regs lvds_phy addresses!\n");
-		free(lvds);
-		return -ENOMEM;
-	}
-
-	i = fdt_get_named_resource(state->blob, lvds_node, "reg", "reg-names",
-				   "mipi_lvds_ctl", &lvds_ctrl);
-	if (i) {
-		printf("can't get regs lvds_ctrl addresses!\n");
-		free(lvds);
-		return -ENOMEM;
-	}
-
-	lvds->regbase = lvds_phy.start;
-	lvds->ctrl_reg = lvds_ctrl.start;
 	lvds->pdata = pdata;
+
+	if (pdata->chip_type == RK3288_LVDS) {
+		lvds->regbase = (u32)fdtdec_get_addr_size_auto_noparent(state->blob,
+						lvds_node, "reg", 0, NULL);
+	} else {
+		i = fdt_get_named_resource(state->blob, lvds_node, "reg", "reg-names",
+					   "mipi_lvds_phy", &lvds_phy);
+		if (i) {
+			printf("can't get regs lvds_phy addresses!\n");
+			free(lvds);
+			return -ENOMEM;
+		}
+
+		i = fdt_get_named_resource(state->blob, lvds_node, "reg", "reg-names",
+					   "mipi_lvds_ctl", &lvds_ctrl);
+		if (i) {
+			printf("can't get regs lvds_ctrl addresses!\n");
+			free(lvds);
+			return -ENOMEM;
+		}
+
+		lvds->regbase = lvds_phy.start;
+		lvds->ctrl_reg = lvds_ctrl.start;
+	}
 
 	fdt_get_string(state->blob, panel_node, "rockchip,output", &name);
 	if (fdt_get_string(state->blob, panel_node, "rockchip,output", &name))
@@ -374,12 +531,21 @@ static void rockchip_lvds_vop_routing(struct rockchip_lvds_device *lvds, int pip
 {
 	u32 val;
 
-	if (pipe)
-		val = RK3366_LVDS_VOP_SEL_LIT;
-	else
-		val = RK3366_LVDS_VOP_SEL_BIG;
+	if (lvds->pdata->chip_type == RK3288_LVDS) {
+		if (pipe)
+			val = RK3288_LVDS_SOC_CON6_SEL_VOP_LIT |
+				(RK3288_LVDS_SOC_CON6_SEL_VOP_LIT << 16);
+		else
+			val = RK3288_LVDS_SOC_CON6_SEL_VOP_LIT << 16;
+		grf_writel(val, lvds->pdata->grf_soc_con6);
+	} else {
+		if (pipe)
+			val = RK3366_LVDS_VOP_SEL_LIT;
+		else
+			val = RK3366_LVDS_VOP_SEL_BIG;
 
-	grf_writel(val, RK3366_GRF_SOC_CON0);
+		grf_writel(val, RK3366_GRF_SOC_CON0);
+	}
 }
 
 static int rockchip_lvds_enable(struct display_state *state)
@@ -391,10 +557,17 @@ static int rockchip_lvds_enable(struct display_state *state)
 	if (lvds->pdata->has_vop_sel)
 		rockchip_lvds_vop_routing(lvds, crtc_state->crtc_id);
 
-	if (lvds->output == DISPLAY_OUTPUT_LVDS)
-		rockchip_output_lvds(lvds);
-	else
-		rockchip_output_ttl(lvds);
+	if (lvds->output == DISPLAY_OUTPUT_LVDS) {
+		if (lvds->pdata->chip_type == RK3288_LVDS)
+			rk3288_output_lvds(state);
+		else
+			rk336x_output_lvds(state);
+	} else {
+		if (lvds->pdata->chip_type == RK3288_LVDS)
+			rk3288_output_ttl(state);
+		else
+			rk336x_output_ttl(state);
+	}
 
 	return 0;
 }
@@ -404,7 +577,10 @@ static int rockchip_lvds_disable(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct rockchip_lvds_device *lvds = conn_state->private;
 
-	rockchip_lvds_pwr_off(lvds);
+	if (lvds->pdata->chip_type == RK3288_LVDS)
+		rk3288_lvds_pwr_off(state);
+	else
+		rk336x_lvds_pwr_off(state);
 
 	return 0;
 }
