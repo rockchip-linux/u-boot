@@ -25,13 +25,21 @@
 #define BITS_MASK(x, mask, bit)  BITS((x) & (mask), bit)
 #define BITS_EN(mask, bit)       BITS(mask, bit + 16)
 
-/* RK3368_GRF_SOC_CON7 */
-#define v_RK3368_LVDS_OUTPUT_FORMAT(x) (BITS_MASK(x, 3, 13) | BITS_EN(3, 13))
-#define v_RK3368_LVDS_MSBSEL(x)        (BITS_MASK(x, 1, 11) | BITS_EN(1, 11))
-#define v_RK3368_LVDSMODE_EN(x)        (BITS_MASK(x, 1, 12) | BITS_EN(1, 12))
-#define v_RK3368_MIPIPHY_TTL_EN(x)     (BITS_MASK(x, 1, 15) | BITS_EN(1, 15))
-#define v_RK3368_MIPIPHY_LANE0_EN(x)   (BITS_MASK(x, 1, 5) | BITS_EN(1, 5))
-#define v_RK3368_MIPIDPI_FORCEX_EN(x)  (BITS_MASK(x, 1, 6) | BITS_EN(1, 6))
+#define RK3366_GRF_SOC_CON0	0x0400
+#define RK3366_LVDS_VOP_SEL_LIT	(BITS_MASK(1, 1, 0) | BITS_EN(1, 0))
+#define RK3366_LVDS_VOP_SEL_BIG	(BITS_MASK(0, 1, 0) | BITS_EN(1, 0))
+#define RK3366_GRF_SOC_CON5	0x0414
+#define RK3366_GRF_SOC_CON6	0x0418
+
+#define RK3368_GRF_SOC_CON7	0x041c
+#define RK3368_GRF_SOC_CON15	0x043c
+
+#define v_RK336X_LVDS_OUTPUT_FORMAT(x) (BITS_MASK(x, 3, 13) | BITS_EN(3, 13))
+#define v_RK336X_LVDS_MSBSEL(x)        (BITS_MASK(x, 1, 11) | BITS_EN(1, 11))
+#define v_RK336X_LVDSMODE_EN(x)        (BITS_MASK(x, 1, 12) | BITS_EN(1, 12))
+#define v_RK336X_MIPIPHY_TTL_EN(x)     (BITS_MASK(x, 1, 15) | BITS_EN(1, 15))
+#define v_RK336X_MIPIPHY_LANE0_EN(x)   (BITS_MASK(x, 1, 5) | BITS_EN(1, 5))
+#define v_RK336X_MIPIDPI_FORCEX_EN(x)  (BITS_MASK(x, 1, 6) | BITS_EN(1, 6))
 enum {
 	LVDS_DATA_FROM_LCDC = 0,
 	LVDS_DATA_FORM_EBC,
@@ -113,6 +121,6 @@ enum {
 #define v_LANE0_EN(x)           BITS_MASK(x, 1, 7)
 
 #define LVDS_PMUGRF_BASE         0xff738000
-#define v_RK3368_FORCE_JETAG(x) (BITS_MASK(x, 1, 13) | BITS_EN(1, 13))
+#define v_RK336X_FORCE_JETAG(x) (BITS_MASK(x, 1, 13) | BITS_EN(1, 13))
 
 #endif

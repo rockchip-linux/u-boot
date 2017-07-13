@@ -22,7 +22,7 @@
 #include "rockchip_lvds.h"
 
 enum rockchip_lvds_sub_devtype {
-	RK3288_LVDS,
+	RK3366_LVDS,
 	RK3368_LVDS,
 };
 
@@ -33,9 +33,6 @@ struct rockchip_lvds_chip_data {
 	u32	grf_soc_con6;
 	u32	grf_soc_con7;
 	u32	grf_soc_con15;
-	u32	pmugrf_gpio0b_iomux;
-	u32	pmugrf_gpio0c_iomux;
-	u32	pmugrf_gpio0d_iomux;
 };
 
 struct rockchip_lvds_device {
@@ -125,14 +122,18 @@ static int rockchip_lvds_clk_enable(struct rockchip_lvds_device *lvds)
 	return 0;
 }
 
-const struct rockchip_lvds_chip_data rk33xx_lvds_drv_data = {
+const struct rockchip_lvds_chip_data rk3366_lvds_drv_data = {
+	.chip_type = RK3366_LVDS,
+	.grf_soc_con7  = RK3366_GRF_SOC_CON5,
+	.grf_soc_con15 = RK3366_GRF_SOC_CON6,
+	.has_vop_sel = true,
+};
+
+const struct rockchip_lvds_chip_data rk3368_lvds_drv_data = {
 	.chip_type = RK3368_LVDS,
+	.grf_soc_con7  = RK3368_GRF_SOC_CON7,
+	.grf_soc_con15 = RK3368_GRF_SOC_CON15,
 	.has_vop_sel = false,
-	.grf_soc_con7  = 0x041c,
-	.grf_soc_con15 = 0x043c,
-	.pmugrf_gpio0b_iomux = 0x4,
-	.pmugrf_gpio0c_iomux = 0x8,
-	.pmugrf_gpio0d_iomux = 0xc,
 };
 
 static int rockchip_lvds_pwr_off(struct rockchip_lvds_device *lvds)
@@ -200,22 +201,30 @@ static void rockchip_output_ttl(struct rockchip_lvds_device *lvds)
 	u32 val = 0;
 
 	/* iomux to lcdc */
-	val = 0xf0005000;/*lcdc data 11 10*/
-	lvds_pmugrf_writel(lvds->pdata->pmugrf_gpio0b_iomux, val);
+	if (lvds->pdata->chip_type == RK3368_LVDS) {
+		/* lcdc data 11 10 */
+		lvds_pmugrf_writel(0x04, 0xf0005000);
+		/* lcdc data 12 13 14 15 16 17 18 19 */
+		lvds_pmugrf_writel(0x08, 0xFFFF5555);
+		/* lcdc data 20 21 22 23 HSYNC VSYNC DEN DCLK */
+		lvds_pmugrf_writel(0x0c, 0xFFFF5555);
+		/* set clock lane enable */
+		lvds_ctrl_writel(lvds, 0x0, 0x4);
+	} else {
+		/* lcdc data 15 ... 10, vsync, hsync */
+		lvds_pmugrf_writel(0x0c, 0xffff555a);
+		/* lcdc data 23 ... 16 */
+		lvds_pmugrf_writel(0x30, 0xffff5555);
+		/* lcdc dclk, den */
+		lvds_pmugrf_writel(0x34, 0x000f0005);
+	}
 
-	val = 0xFFFF5555;/*lcdc data 12 13 14 15 16 17 18 19*/
-	lvds_pmugrf_writel(lvds->pdata->pmugrf_gpio0c_iomux, val);
-
-	val = 0xFFFF5555;/*lcdc data 20 21 22 23 HSYNC VSYNC DEN DCLK*/
-	lvds_pmugrf_writel(lvds->pdata->pmugrf_gpio0d_iomux, val);
-
-	lvds_ctrl_writel(lvds, 0x0, 0x4);/*set clock lane enable*/
 	/* enable lvds mode */
-	val = v_RK3368_LVDSMODE_EN(0) | v_RK3368_MIPIPHY_TTL_EN(1) |
-		v_RK3368_MIPIPHY_LANE0_EN(1) |
-		v_RK3368_MIPIDPI_FORCEX_EN(1);
+	val = v_RK336X_LVDSMODE_EN(0) | v_RK336X_MIPIPHY_TTL_EN(1) |
+		v_RK336X_MIPIPHY_LANE0_EN(1) |
+		v_RK336X_MIPIDPI_FORCEX_EN(1);
 	grf_writel(val, lvds->pdata->grf_soc_con7);
-	val = v_RK3368_FORCE_JETAG(0);
+	val = v_RK336X_FORCE_JETAG(0);
 	grf_writel(val, lvds->pdata->grf_soc_con15);
 
 	/* enable lane */
@@ -232,19 +241,18 @@ static void rockchip_output_ttl(struct rockchip_lvds_device *lvds)
 	rockchip_lvds_pwr_on(lvds);
 }
 
-
 static void rockchip_output_lvds(struct rockchip_lvds_device *lvds)
 {
 	u32 val = 0;
 
 	/* enable lvds mode */
-	val |= v_RK3368_LVDSMODE_EN(1) | v_RK3368_MIPIPHY_TTL_EN(0);
+	val |= v_RK336X_LVDSMODE_EN(1) | v_RK336X_MIPIPHY_TTL_EN(0);
 	/* config lvds_format */
-	val |= v_RK3368_LVDS_OUTPUT_FORMAT(lvds->format);
+	val |= v_RK336X_LVDS_OUTPUT_FORMAT(lvds->format);
 	/* LSB receive mode */
-	val |= v_RK3368_LVDS_MSBSEL(LVDS_MSB_D7);
-	val |= v_RK3368_MIPIPHY_LANE0_EN(1) |
-	       v_RK3368_MIPIDPI_FORCEX_EN(1);
+	val |= v_RK336X_LVDS_MSBSEL(LVDS_MSB_D7);
+	val |= v_RK336X_MIPIPHY_LANE0_EN(1) |
+	       v_RK336X_MIPIDPI_FORCEX_EN(1);
 	grf_writel(val, lvds->pdata->grf_soc_con7);
 	/* digital internal disable */
 	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(0));
@@ -263,7 +271,6 @@ static void rockchip_output_lvds(struct rockchip_lvds_device *lvds)
 	rockchip_lvds_pwr_on(lvds);
 	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(1));
 }
-
 
 static int rockchip_lvds_init(struct display_state *state)
 {
@@ -362,10 +369,27 @@ static int rockchip_lvds_prepare(struct display_state *state)
 
 	return 0;
 }
+
+static void rockchip_lvds_vop_routing(struct rockchip_lvds_device *lvds, int pipe)
+{
+	u32 val;
+
+	if (pipe)
+		val = RK3366_LVDS_VOP_SEL_LIT;
+	else
+		val = RK3366_LVDS_VOP_SEL_BIG;
+
+	grf_writel(val, RK3366_GRF_SOC_CON0);
+}
+
 static int rockchip_lvds_enable(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct rockchip_lvds_device *lvds = conn_state->private;
+	struct crtc_state *crtc_state = &state->crtc_state;
+
+	if (lvds->pdata->has_vop_sel)
+		rockchip_lvds_vop_routing(lvds, crtc_state->crtc_id);
 
 	if (lvds->output == DISPLAY_OUTPUT_LVDS)
 		rockchip_output_lvds(lvds);

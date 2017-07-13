@@ -85,7 +85,8 @@ extern const struct rockchip_dp_chip_data rk3288_analogix_dp_drv_data;
 #ifdef CONFIG_ROCKCHIP_LVDS
 struct rockchip_lvds_chip_data;
 extern const struct rockchip_connector_funcs rockchip_lvds_funcs;
-extern const struct rockchip_lvds_chip_data rk33xx_lvds_drv_data;
+extern const struct rockchip_lvds_chip_data rk3366_lvds_drv_data;
+extern const struct rockchip_lvds_chip_data rk3368_lvds_drv_data;
 #endif
 #ifdef CONFIG_ROCKCHIP_DW_HDMI
 struct dw_hdmi_dsi_plat_data;
