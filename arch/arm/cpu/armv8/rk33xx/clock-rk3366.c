@@ -274,6 +274,204 @@ static uint32 rkclk_pll_get_rate(enum rk_plls_id pll_id)
 	}
 }
 
+#define MIN_FOUTVCO_FREQ	(1200 * MHZ)
+#define MAX_FOUTVCO_FREQ	(2000 * MHZ)
+
+
+struct rk_pll_set {
+	/* fbdiv postdiv1 refdiv postdiv2 dsmpd frac */
+	uint32_t fbdiv;
+	uint32_t postdiv1;
+	uint32_t refdiv;
+	uint32_t postdiv2;
+	uint32_t dsmpd;
+	uint32_t frac;
+};
+
+static inline uint32 rkclk_gcd(uint32 numerator, uint32 denominator)
+{
+	uint32 a, b;
+
+	if (!numerator || !denominator)
+		return 0;
+
+	if (numerator > denominator) {
+		a = numerator;
+		b = denominator;
+	} else {
+		a = denominator;
+		b = numerator;
+	}
+
+	while (b != 0) {
+		int r = b;
+		b = a % b;
+		a = r;
+	}
+
+	return a;
+}
+
+
+static int rkclk_cal_postdiv(uint32_t fout_hz, uint32_t *postdiv1,
+			     uint32_t *postdiv2, uint32_t *foutvco)
+{
+	unsigned long freq;
+
+	if (fout_hz < MIN_FOUTVCO_FREQ) {
+		for (*postdiv1 = 1; *postdiv1 <= 7; (*postdiv1)++)
+			for (*postdiv2 = 1; *postdiv2 <= 7; (*postdiv2)++) {
+				freq = fout_hz * (*postdiv1) * (*postdiv2);
+				if ((freq >= MIN_FOUTVCO_FREQ) &&
+				    (freq <= MAX_FOUTVCO_FREQ)) {
+					*foutvco = freq;
+				return 0;
+			}
+		}
+		printf("CANNOT FINE postdiv1/2 to make fout in range from 400M to 1600M,fout = %u\n",
+		       fout_hz);
+	} else {
+		*postdiv1 = 1;
+		*postdiv2 = 1;
+	}
+
+	return 0;
+}
+
+/*
+ * rkplat rkclk_cal_pll_set
+ * fin_hz: parent freq
+ * fout_hz: child freq which request
+ * refdiv fb postdiv1 postdiv2: pll set
+ *
+ */
+static int rkclk_cal_pll_set(uint32_t fin_hz, uint32_t fout_hz,
+			     struct rk_pll_set *pll_set)
+{
+	uint32_t gcd, foutvco = fout_hz;
+	uint64_t fin_64, frac_64;
+	uint32_t frac, postdiv1, postdiv2;
+
+	rkclk_cal_postdiv(fout_hz, &postdiv1, &postdiv2, &foutvco);
+	pll_set->postdiv1 = postdiv1;
+	pll_set->postdiv2 = postdiv2;
+
+	if ((fin_hz / MHZ * MHZ == fin_hz) &&
+	    (fout_hz / MHZ * MHZ == fout_hz)) {
+		fin_hz /= MHZ;
+		foutvco /= MHZ;
+		gcd = rkclk_gcd(fin_hz, foutvco);
+		pll_set->refdiv = fin_hz / gcd;
+		pll_set->fbdiv = foutvco / gcd;
+
+		pll_set->frac = 0;
+		pll_set->dsmpd = 1;
+
+		debug("fin=%u, fout=%u, gcd=%u, refdiv=%u, fbdiv=%u, postdiv1=%u, postdiv2=%u, frac=%u\n",
+		      fin_hz, fout_hz, gcd, pll_set->refdiv, pll_set->fbdiv,
+		pll_set->postdiv1, pll_set->postdiv2, pll_set->frac);
+	} else {
+		debug("frac div running, fin_hz=%u, fout_hz=%u, fin_INT_mhz=%u, fout_INT_mhz=%u\n",
+		      fin_hz, fout_hz, fin_hz / MHZ * MHZ, fout_hz / MHZ * MHZ);
+		debug("******frac get postdiv1=%u, postdiv2=%u, foutvco=%u\n",
+		      pll_set->postdiv1, pll_set->postdiv2, foutvco);
+		gcd = rkclk_gcd(fin_hz / MHZ, foutvco / MHZ);
+		pll_set->refdiv = fin_hz / MHZ / gcd;
+		pll_set->fbdiv = foutvco / MHZ / gcd;
+		debug("******frac get refdiv=%u, fbdiv=%u\n",
+		      pll_set->refdiv, pll_set->fbdiv);
+
+		pll_set->frac = 0;
+		pll_set->dsmpd = 1;
+
+		frac = (foutvco % MHZ);
+		fin_64 = fin_hz;
+		do_div(fin_64, (uint64_t)pll_set->refdiv);
+		frac_64 = (uint64_t)frac << 24;
+		do_div(frac_64, fin_64);
+		pll_set->frac = (uint32_t)frac_64;
+		if (pll_set->frac > 0)
+			pll_set->dsmpd = 0;
+		debug("frac=%x\n", pll_set->frac);
+	}
+
+	return 0;
+}
+
+/*
+ * rkplat clock set pll with any frequency
+ */
+int rkclk_pll_set_any_freq(enum rk_plls_id pll_id, uint32_t pll_hz)
+{
+	const struct pll_data *pll = NULL;
+	const struct pll_clk_set *clkset = NULL;
+	struct rk_pll_set pll_set;
+	uint32_t pllcon0, pllcon1, pllcon2, pllcon3;
+	uint32_t i;
+
+	debug("%s, pll_id[%d], freq=%d\n", __func__, pll_id, pll_hz);
+
+	/* Find pll rate set */
+	for (i = 0; i < END_PLL_ID; i++) {
+		if (rkpll_data[i].id == pll_id) {
+			pll = &rkpll_data[i];
+			break;
+		}
+	}
+	if ((pll == NULL) || (pll->clkset == NULL))
+		return -1;
+
+	/* Find clock set */
+	for (i = 0; i < pll->size; i++) {
+		if (pll->clkset[i].rate == pll_hz) {
+			clkset = &(pll->clkset[i]);
+			break;
+		}
+	}
+
+	if (clkset != NULL) {
+		/* if request pll rate in the pll_clks set */
+		pllcon0 = clkset->pllcon0;
+		pllcon1 = clkset->pllcon1;
+		pllcon2 = clkset->pllcon2;
+		pllcon3 = clkset->pllcon3;
+	} else {
+		/* calcurate the request pll rate set */
+		if (rkclk_cal_pll_set(24000000, pll_hz, &pll_set) == 0) {
+			debug("*%s*get postdiv1=%u, postdiv2=%u, fbdiv=%u, refdiv= %u\n",
+			      __func__, pll_set.postdiv1, pll_set.postdiv2,
+			      pll_set.fbdiv, pll_set.refdiv);
+			/* pll con set */
+			pllcon0 = PLL_SET_FBDIV(pll_set.fbdiv);
+			pllcon1 = PLL_SET_POSTDIV1(pll_set.postdiv1) |
+				  PLL_SET_POSTDIV2(pll_set.postdiv2) |
+				  PLL_SET_REFDIV(pll_set.refdiv);
+			pllcon2 = PLL_SET_FRAC(pll_set.frac);
+			pllcon3 = PLL_SET_DSMPD(pll_set.dsmpd);
+		} else { /* calcurate error. */
+			return -1;
+		}
+	}
+	/* PLL enter slow-mode */
+	cru_writel(PLL_MODE_SLOW | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+
+	/* pll config */
+	cru_writel(pllcon0, CRU_PLL_CON(pll_id, 0));
+	cru_writel(pllcon1, CRU_PLL_CON(pll_id, 1));
+	cru_writel(pllcon2, CRU_PLL_CON(pll_id, 2));
+	cru_writel(pllcon3, CRU_PLL_CON(pll_id, 3));
+
+	/* delay for pll setup */
+	rkclk_pll_wait_lock(pll_id);
+
+	/* PLL enter normal-mode */
+	cru_writel(PLL_MODE_NORM | PLL_MODE_W_MSK, CRU_PLL_CON(pll_id, 3));
+
+	/* update struct gd */
+	rkclk_get_pll();
+
+	return 0;
+}
 
 
 /*
@@ -796,12 +994,11 @@ static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
 	uint32 dclk_info = 0;
 	uint32 pll_sel = 0, div = 0;
-	uint32 clk_parent;
 
 	/* lcdc dclk from npll */
 	pll_sel = 2;
-	clk_parent = rkclk_pll_get_rate(NPLL_ID);
-	div = rkclk_calc_clkdiv(clk_parent, dclk_hz, 0);
+	div = 1;
+	rkclk_pll_set_any_freq(NPLL_ID, dclk_hz);
 	dclk_info = (pll_sel << 16) | div;
 	debug("rk lcdc dclk set: dclk = %dHZ, pll select = %d, div = %d\n", dclk_hz, pll_sel, div);
 
