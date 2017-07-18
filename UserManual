@@ -51,6 +51,7 @@
 		configs\rk3328_box_defconfig
 		configs\rk3366_box_defconfig
 		configs\rk3368_box_defconfig
+		configs\rk3368_box_kernel4.4_defconfig
 		configs\rk3399_box_defconfig
 
 	[Linux product]:
