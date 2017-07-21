@@ -162,7 +162,6 @@ struct inno_mipi_dphy {
 	struct drm_display_mode *mode;
 	unsigned int lane_mbps;
 	int lanes;
-	int bpp;
 };
 
 static const u32 lane_reg_offset[] = {
@@ -355,12 +354,13 @@ static void inno_mipi_dphy_pll_init(struct inno_mipi_dphy *inno)
 	unsigned int target_mbps = 1000;
 	unsigned int max_mbps = 1000;
 	u32 prediv = 1, fbdiv = 1;
+	int bpp = 24;
 	u32 val, mask;
 
 	mpclk = DIV_ROUND_UP(inno->mode->clock, MSEC_PER_SEC);
 	if (mpclk) {
 		/* take 1 / 0.9, since mbps must big than bandwidth of RGB */
-		tmp = mpclk * (inno->bpp / inno->lanes) * 10 / 9;
+		tmp = mpclk * (bpp / inno->lanes) * 10 / 9;
 		if (tmp < max_mbps)
 			target_mbps = tmp;
 		else
@@ -515,37 +515,10 @@ static int inno_mipi_dphy_get_data(struct display_state *state)
 
 static int inno_mipi_dphy_parse_dt(int node, struct inno_mipi_dphy *inno)
 {
-	const void *blob = inno->blob;
-	int phandle, panel_node;
-	int format;
-
-	phandle = fdt_getprop_u32_default_node(blob, node, 0,
-					       "rockchip,dsi-panel", -1);
-	if (phandle < 0) {
-		printf("failed to find 'rockchip,dsi-panel' property\n");
-		goto set_default;
-	}
-
-	panel_node = fdt_node_offset_by_phandle(blob, phandle);
-	if (panel_node < 0) {
-		printf("failed to find panel node\n");
-		goto set_default;
-	}
-
-	inno->lanes = fdtdec_get_int(blob, panel_node, "dsi,lanes", -1);
+	inno->lanes = fdtdec_get_int(inno->blob, inno->node, "inno,lanes", -1);
 	if (inno->lanes < 0)
 		inno->lanes = 4;
 
-	format = fdtdec_get_int(blob, panel_node, "dsi,format", -1);
-	inno->bpp = mipi_dsi_pixel_format_to_bpp(format);
-	if (inno->bpp < 0)
-		inno->bpp = 24;
-
-	return 0;
-
-set_default:
-	inno->bpp = 24;
-	inno->lanes = 4;
 	return 0;
 }
 
