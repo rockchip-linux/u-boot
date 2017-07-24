@@ -442,9 +442,9 @@ int rkclk_pll_set_any_freq(enum rk_plls_id pll_id, uint32_t pll_hz)
 			      __func__, pll_set.postdiv1, pll_set.postdiv2,
 			      pll_set.fbdiv, pll_set.refdiv);
 			/* pll con set */
-			pllcon0 = PLL_SET_FBDIV(pll_set.fbdiv);
-			pllcon1 = PLL_SET_POSTDIV1(pll_set.postdiv1) |
-				  PLL_SET_POSTDIV2(pll_set.postdiv2) |
+			pllcon0 = PLL_SET_FBDIV(pll_set.fbdiv) |
+				  PLL_SET_POSTDIV1(pll_set.postdiv1);
+			pllcon1 = PLL_SET_POSTDIV2(pll_set.postdiv2) |
 				  PLL_SET_REFDIV(pll_set.refdiv);
 			pllcon2 = PLL_SET_FRAC(pll_set.frac);
 			pllcon3 = PLL_SET_DSMPD(pll_set.dsmpd);
@@ -997,8 +997,13 @@ static int rkclk_lcdc_dclk_set(uint32 lcdc_id, uint32 dclk_hz)
 
 	/* lcdc dclk from npll */
 	pll_sel = 2;
-	div = 1;
-	rkclk_pll_set_any_freq(NPLL_ID, dclk_hz);
+	if (dclk_hz > 100000000) {
+		div = 1;
+		rkclk_pll_set_any_freq(NPLL_ID, dclk_hz);
+	} else {
+		div = 4;
+		rkclk_pll_set_any_freq(NPLL_ID, dclk_hz * 4);
+	}
 	dclk_info = (pll_sel << 16) | div;
 	debug("rk lcdc dclk set: dclk = %dHZ, pll select = %d, div = %d\n", dclk_hz, pll_sel, div);
 
