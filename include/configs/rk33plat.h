@@ -92,7 +92,7 @@
 	#define CONFIG_SECUREBOOT_SHA256
 	#undef CONFIG_RK_SDHCI_BOOT_EN
         #define CONFIG_RK_SDMMC_BOOT_EN
-        #undef CONFIG_RK_FLASH_BOOT_EN
+        #define CONFIG_RK_FLASH_BOOT_EN
         #undef CONFIG_RK_UMS_BOOT_EN
 
 	#undef CONFIG_RK_TRUSTOS
