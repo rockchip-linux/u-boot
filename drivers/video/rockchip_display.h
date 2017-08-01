@@ -60,6 +60,7 @@ struct crtc_state {
 
 struct panel_state {
 	int node;
+	int dsp_lut_node;
 
 	const struct rockchip_panel *panel;
 	void *private;
@@ -80,6 +81,11 @@ struct connector_state {
 	int output_mode;
 	int type;
 	int output_type;
+
+	struct {
+		u32 *lut;
+		int size;
+	} gamma;
 };
 
 struct logo_info {

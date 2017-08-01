@@ -26,6 +26,61 @@ static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
 	return us * mode->clock / mode->htotal / 1000;
 }
 
+static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	struct connector_state *conn_state = &state->conn_state;
+	u32 *lut = conn_state->gamma.lut;
+	int node = crtc_state->node;
+	fdt_size_t lut_size;
+	int i, lut_len;
+	u32 *lut_regs;
+
+	if (!conn_state->gamma.lut)
+		return 0;
+
+	i = fdt_find_string(state->blob, node, "reg-names", "gamma_lut");
+	if (i < 0) {
+		printf("Warning: vop not support gamma\n");
+		return 0;
+	}
+	lut_regs = (u32 *)fdtdec_get_addr_size_auto_noparent(state->blob,
+							     node, "reg",
+							     i, &lut_size);
+	if (lut_regs == (u32 *)FDT_ADDR_T_NONE) {
+		printf("failed to get gamma lut register\n");
+		return 0;
+	}
+	lut_len = lut_size / 4;
+	if (lut_len != 256 && lut_len != 1024) {
+		printf("Warning: unsupport gamma lut table[%d]\n", lut_len);
+		return 0;
+	}
+
+	if (conn_state->gamma.size != lut_len) {
+		int size = conn_state->gamma.size;
+		u32 j, r, g, b, color;
+
+		for (i = 0; i < lut_len; i++) {
+			j = i * size / lut_len;
+			r = lut[j] / size / size * lut_len / size;
+			g = lut[j] / size % size * lut_len / size;
+			b = lut[j] % size * lut_len / size;
+			color = r * lut_len * lut_len + g * lut_len + b;
+
+			writel(color, lut_regs + (i << 2));
+		}
+	} else {
+		for (i = 0; i < lut_len; i++)
+			writel(lut[i], lut_regs + (i << 2));
+	}
+
+	VOP_CTRL_SET(vop, dsp_lut_en, 1);
+	VOP_CTRL_SET(vop, update_gamma_lut, 1);
+
+	return 0;
+}
+
 static int rockchip_vop_init(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -51,6 +106,8 @@ static int rockchip_vop_init(struct display_state *state)
 	vop = malloc(sizeof(*vop));
 	if (!vop)
 		return -ENOMEM;
+	memset(vop, 0, sizeof(*vop));
+
 	crtc_state->private = vop;
 	vop->regs = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
 					crtc_state->node, "reg", 0, NULL);
@@ -76,6 +133,8 @@ static int rockchip_vop_init(struct display_state *state)
 		       mode->clock * 1000, rate);
 	}
 	memcpy(vop->regsbak, vop->regs, vop_data->reg_len);
+
+	rockchip_vop_init_gamma(vop, state);
 
 	VOP_CTRL_SET(vop, global_regdone_en, 1);
 	VOP_CTRL_SET(vop, win_gate[0], 1);
@@ -367,10 +426,53 @@ static int rockchip_vop_disable(struct display_state *state)
 	return 0;
 }
 
+static int rockchip_vop_fixup_dts(struct display_state *state, void *blob)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	struct panel_state *pstate = &state->panel_state;
+	uint32_t phandle;
+	char path[100];
+	int ret, dsp_lut_node;
+
+	if (!pstate->dsp_lut_node)
+		return 0;
+
+	ret = fdt_get_path(state->blob, pstate->dsp_lut_node, path, sizeof(path));
+	if (ret < 0) {
+		printf("failed to get dsp_lut path[%s], ret=%d\n",
+			path, ret);
+		return ret;
+	}
+
+	dsp_lut_node = fdt_path_offset(blob, path);
+	phandle = fdt_get_phandle(blob, dsp_lut_node);
+	if (!phandle) {
+		phandle = fdt_alloc_phandle(blob);
+		if (!phandle) {
+			printf("failed to alloc phandle\n");
+			return -ENOMEM;
+		}
+
+		fdt_set_phandle(blob, dsp_lut_node, phandle);
+	}
+
+	ret = fdt_get_path(state->blob, crtc_state->node, path, sizeof(path));
+	if (ret < 0) {
+		printf("failed to get route path[%s], ret=%d\n",
+			path, ret);
+		return ret;
+	}
+
+	do_fixup_by_path_u32(blob, path, "dsp-lut", phandle, 1);
+
+	return 0;
+}
+
 const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.init = rockchip_vop_init,
 	.set_plane = rockchip_vop_set_plane,
 	.prepare = rockchip_vop_prepare,
 	.enable = rockchip_vop_enable,
 	.disable = rockchip_vop_disable,
+	.fixup_dts = rockchip_vop_fixup_dts,
 };

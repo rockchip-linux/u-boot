@@ -149,8 +149,8 @@ static int connector_panel_init(struct display_state *state)
 	const void *blob = state->blob;
 	int conn_node = conn_state->node;
 	const struct rockchip_panel *panel;
-	int panel_node;
-	int ret;
+	int panel_node, dsp_lut_node;
+	int ret, len;
 
 	panel_node = get_panel_node(state, conn_node);
 	if (panel_node < 0) {
@@ -177,6 +177,25 @@ static int connector_panel_init(struct display_state *state)
 	if (ret) {
 		printf("failed to init panel driver\n");
 		return ret;
+	}
+
+	dsp_lut_node = fdt_subnode_offset(blob, panel_node, "dsp-lut");
+	fdt_getprop(blob, dsp_lut_node, "gamma-lut", &len);
+	if (len > 0) {
+		conn_state->gamma.size  = len / sizeof(u32);
+		conn_state->gamma.lut = malloc(len);
+		if (!conn_state->gamma.lut) {
+			printf("malloc gamma lut failed\n");
+			return -ENOMEM;
+		}
+		if (fdtdec_get_int_array(blob, dsp_lut_node, "gamma-lut",
+					 conn_state->gamma.lut,
+					 conn_state->gamma.size)) {
+			printf("Cannot decode gamma_lut\n");
+			conn_state->gamma.lut = NULL;
+			return -EINVAL;
+		}
+		panel_state->dsp_lut_node = dsp_lut_node;
 	}
 
 	return 0;
