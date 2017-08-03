@@ -76,7 +76,7 @@ uint32 LMemApiReadLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec)
 	int ret = FTL_ERROR;
 
 	if(gp_loader_api->ReadLba) {
-		ret = gp_loader_api->ReadLba(0, LBA , nSec, pbuf);
+		ret = gp_loader_api->ReadLba(ChipSel, LBA , nSec, pbuf);
 	}
 	return ret;
 }
@@ -86,7 +86,7 @@ uint32 LMemApiWriteLba(uint8 ChipSel, uint32 LBA, void *pbuf, uint32 nSec, uint3
 	int ret = FTL_ERROR;
 
 	if(gp_loader_api->WriteLba) {
-		ret = gp_loader_api->WriteLba(0, LBA, nSec, pbuf);
+		ret = gp_loader_api->WriteLba(ChipSel, LBA, nSec, pbuf);
 	}
 
 	return ret;

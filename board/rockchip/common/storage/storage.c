@@ -588,7 +588,7 @@ static int vendor_ops(u8 *buffer, u32 addr, u32 n_sec, int write)
 #endif
 
 #if defined(RK_FLASH_BOOT_EN)
-	if (media == BOOT_FROM_EMMC) {
+	if (media == BOOT_FROM_FLASH) {
 		if (write)
 			ret = gpMemFun->WriteLba(0x10,
 					addr + NAND_VENDOR_PART_START,
@@ -604,12 +604,18 @@ static int vendor_ops(u8 *buffer, u32 addr, u32 n_sec, int write)
 
 int vendor_storage_init(void)
 {
-	u32 i, max_ver, max_index;
+	u32 i, max_ver, max_index, vendor_part_num;
 	u8 *p_buf;
+
+	vendor_part_num = VENDOR_PART_NUM;
+	#if defined(RK_FLASH_BOOT_EN)
+	if (StorageGetBootMedia() == BOOT_FROM_FLASH)
+		vendor_part_num = NAND_VENDOR_PART_NUM;
+	#endif
 
 	max_ver = 0;
 	max_index = 0;
-	for (i = 0; i < VENDOR_PART_NUM; i++) {
+	for (i = 0; i < vendor_part_num; i++) {
 		/* read first 512 bytes */
 		p_buf = (u8 *)&g_vendor;
 		if (vendor_ops(p_buf, VENDOR_PART_SIZE * i, 1, 0))
@@ -661,8 +667,14 @@ int vendor_storage_read(u32 id, void *pbuf, u32 size)
 
 int vendor_storage_write(u32 id, void *pbuf, u32 size)
 {
-	u32 i, next_index, algin_size;
+	u32 i, next_index, algin_size, vendor_part_num;
 	struct vendor_item *item;
+
+	vendor_part_num = VENDOR_PART_NUM;
+	#if defined(RK_FLASH_BOOT_EN)
+	if (StorageGetBootMedia() == BOOT_FROM_FLASH)
+		vendor_part_num = NAND_VENDOR_PART_NUM;
+	#endif
 
 	next_index = g_vendor.next_index;
 	algin_size = (size + 0x3F) & (~0x3F); /* algin to 64 bytes*/
@@ -678,7 +690,7 @@ int vendor_storage_write(u32 id, void *pbuf, u32 size)
 			g_vendor.version++;
 			g_vendor.version2 = g_vendor.version;
 			g_vendor.next_index++;
-			if (g_vendor.next_index >= VENDOR_PART_NUM)
+			if (g_vendor.next_index >= vendor_part_num)
 				g_vendor.next_index = 0;
 			vendor_ops((u8 *)&g_vendor, VENDOR_PART_SIZE * next_index,
 					VENDOR_PART_SIZE, 1);
@@ -698,7 +710,7 @@ int vendor_storage_write(u32 id, void *pbuf, u32 size)
 		g_vendor.version++;
 		g_vendor.version2 = g_vendor.version;
 		g_vendor.next_index++;
-		if (g_vendor.next_index >= VENDOR_PART_NUM)
+		if (g_vendor.next_index >= vendor_part_num)
 			g_vendor.next_index = 0;
 		vendor_ops((u8 *)&g_vendor, VENDOR_PART_SIZE * next_index,
 				VENDOR_PART_SIZE, 1);
