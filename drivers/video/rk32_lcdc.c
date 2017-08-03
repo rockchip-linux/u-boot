@@ -832,6 +832,8 @@ void rk_lcdc_set_par(struct fb_dsp_info *fb_info, vidinfo_t *vid)
 	lcdc_writel(lcdc_dev, BCSH_BCS, 0xd0010000);
 	lcdc_writel(lcdc_dev, BCSH_H, 0x01000000);
 	lcdc_writel(lcdc_dev, BCSH_COLOR_BAR, 1);
+	if (lcdc_readl(lcdc_dev, VERSION_INFO) == VOP_FULL_RK3288_V1_1)
+		lcdc_writel(lcdc_dev, BCSH_CTRL, 0x11);
 	lcdc_cfg_done(lcdc_dev);
 }
 

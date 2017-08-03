@@ -20,6 +20,8 @@ DECLARE_GLOBAL_DATA_PTR;
 #define VERSION_INFO			(0x0004)
 #define m_RTL_VERSION			(0xffff<<0)
 #define m_FPGA_VERSION			(0xffff<<16)
+#define VOP_FULL_RK3288_V1_0		0x03007236
+#define VOP_FULL_RK3288_V1_1		0x0a050a01
 #define SYS_CTRL			(0x0008)
 #define v_DIRECT_PATH_EN(x)		(((x)&1)<<0)
 #define v_DIRECT_PATCH_SEL(x)		(((x)&3)<<1)
@@ -1075,6 +1077,12 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define m_BCSH_SIN_HUE			(0x1ff<<0)
 #define m_BCSH_COS_HUE			(0x1ff<<16)
+
+#define BCSH_CTRL			(0x01bc)
+#define v_BCSH_Y2R_EN(x)		(((x)&0x1)<<0)
+#define v_BCSH_R2Y_EN(x)		(((x)&0x1)<<4)
+#define m_BCSH_Y2R_EN			(0x1<<0)
+#define m_BCSH_R2Y_EN			(0x1<<4)
 
 #define CABC_CTRL0 			(0x01c0)
 #define v_CABC_EN(x)			(((x)&1)<<0)
