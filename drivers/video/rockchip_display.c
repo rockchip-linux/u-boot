@@ -221,12 +221,15 @@ static int display_get_timing_from_dts(int panel, const void *blob,
 	if (timing < 0)
 		return -ENODEV;
 
-	phandle = fdt_getprop_u32_default_node(blob, timing, 0,
-					       "native-mode", -1);
-	native_mode = fdt_node_offset_by_phandle_node(blob, timing, phandle);
-	if (native_mode <= 0) {
-		printf("rk fb dt: can't get device node for display-timings\n");
-		return -ENXIO;
+	native_mode = fdt_subnode_offset(blob, timing, "timing");
+	if (native_mode < 0) {
+		phandle = fdt_getprop_u32_default_node(blob, timing, 0,
+						       "native-mode", -1);
+		native_mode = fdt_node_offset_by_phandle_node(blob, timing, phandle);
+		if (native_mode <= 0) {
+			printf("failed to get display timings from DT\n");
+			return -ENXIO;
+		}
 	}
 
 #define FDT_GET_INT(val, name) \
