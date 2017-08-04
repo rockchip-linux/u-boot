@@ -7,7 +7,34 @@
 #ifndef __ROCKCHIP_MIPI_DSI_H__
 #define __ROCKCHIP_MIPI_DSI_H__
 
-#define BIT(x)	(1 << (x))
+#define MSEC_PER_SEC	1000L
+#define USEC_PER_MSEC	1000L
+#define NSEC_PER_USEC	1000L
+#define NSEC_PER_MSEC	1000000L
+#define USEC_PER_SEC	1000000L
+#define NSEC_PER_SEC	1000000000L
+#define FSEC_PER_SEC	1000000000000000LL
+
+#define BIT(x)		(1 << (x))
+#define GENMASK(h, l)	(((~0UL) << (l)) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
+#define UPDATE(v, h, l)	(((v) << (l)) & GENMASK((h), (l)))
+#define HIWORD_UPDATE(v, h, l)	(((v) << (l)) | (GENMASK(h, l) << 16))
+
+#define readl_poll_timeout(addr, val, cond, sleep_us, timeout_us)	\
+({ \
+	int try = 100; \
+	for (;;) { \
+		(val) = readl(addr); \
+		if (cond) \
+			break; \
+		try--; \
+		if (!try) \
+			break; \
+		if (sleep_us) \
+			udelay(sleep_us >> 2); \
+	} \
+	(cond) ? 0 : -ETIMEDOUT; \
+})
 
 /* MIPI DSI Processor-to-Peripheral transaction types */
 enum {
@@ -177,9 +204,41 @@ enum mipi_dsi_dcs_tear_mode {
 #define MIPI_DSI_DCS_POWER_MODE_PARTIAL (1 << 5)
 #define MIPI_DSI_DCS_POWER_MODE_IDLE    (1 << 6)
 
+struct mipi_dphy_timing {
+	unsigned int clkmiss;
+	unsigned int clkpost;
+	unsigned int clkpre;
+	unsigned int clkprepare;
+	unsigned int clksettle;
+	unsigned int clktermen;
+	unsigned int clktrail;
+	unsigned int clkzero;
+	unsigned int dtermen;
+	unsigned int eot;
+	unsigned int hsexit;
+	unsigned int hsprepare;
+	unsigned int hszero;
+	unsigned int hssettle;
+	unsigned int hsskip;
+	unsigned int hstrail;
+	unsigned int init;
+	unsigned int lpx;
+	unsigned int taget;
+	unsigned int tago;
+	unsigned int tasure;
+	unsigned int wakeup;
+};
+
+void mipi_dphy_timing_get_default(struct mipi_dphy_timing *timing,
+				  unsigned long period);
 ssize_t mipi_dsi_dcs_write(struct display_state *state,
 			   const void *payload, size_t size);
 ssize_t mipi_dsi_generic_write(struct display_state *state,
-			   const void *payload, size_t size);
-
+			       const void *payload, size_t size);
+int mipi_dsi_create_packet(struct mipi_dsi_packet *packet,
+			   const struct mipi_dsi_msg *msg);
+ssize_t mipi_dsi_dcs_read(struct display_state *state, u8 cmd, void *data,
+			  size_t len);
+ssize_t mipi_dsi_generic_read(struct display_state *state, const void *params,
+			      size_t num_params, void *data, size_t size);
 #endif /* __ROCKCHIP_MIPI_DSI__ */
