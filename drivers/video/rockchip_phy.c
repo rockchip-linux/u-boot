@@ -24,11 +24,11 @@ static const struct rockchip_phy g_phy[] = {
 #ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
 	{
 	 .compatible = "rockchip,rk3366-mipi-dphy",
-	 .funcs = &rockchip_inno_mipi_dphy_funcs,
+	 .funcs = &inno_mipi_dphy_funcs,
 	},
 	{
 	 .compatible = "rockchip,rk3368-mipi-dphy",
-	 .funcs = &rockchip_inno_mipi_dphy_funcs,
+	 .funcs = &inno_mipi_dphy_funcs,
 	},
 #endif
 };
@@ -76,15 +76,16 @@ int rockchip_phy_power_off(struct display_state *state)
 	return phy->funcs->power_off(state);
 }
 
-int rockchip_phy_get_data(struct display_state *state)
+unsigned long rockchip_phy_set_pll(struct display_state *state,
+				   unsigned long rate)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	const struct rockchip_phy *phy = conn_state->phy;
 
-	if (!phy || !phy->funcs || !phy->funcs->get_data) {
-		printf("%s: failed to find phy get_data funcs\n", __func__);
+	if (!phy || !phy->funcs || !phy->funcs->set_pll) {
+		printf("%s: failed to find phy set_pll funcs\n", __func__);
 		return -ENODEV;
 	}
 
-	return phy->funcs->get_data(state);
+	return phy->funcs->set_pll(state, rate);
 }

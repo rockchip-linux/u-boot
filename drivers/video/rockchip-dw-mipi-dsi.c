@@ -458,13 +458,40 @@ static int dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 	return ret;
 }
 
-static int dw_mipi_dsi_get_lane_bps(struct dw_mipi_dsi *dsi)
+static unsigned long dw_mipi_dsi_set_pll(struct dw_mipi_dsi *dsi,
+					 unsigned long rate)
 {
 	unsigned int i, pre;
-	unsigned long mpclk, pllref, tmp;
-	unsigned int m = 1, n = 1, target_mbps = 1000;
-	unsigned int max_mbps = dptdin_map[ARRAY_SIZE(dptdin_map) - 1].max_mbps;
+	unsigned long pllref, tmp;
+	unsigned int m = 1, n = 1;
+
+	pllref = 24000000;
+	tmp = pllref;
+
+	for (i = 1; i < 6; i++) {
+		pre = pllref / i;
+		if ((tmp > (rate % pre)) && (rate / pre < 512)) {
+			tmp = rate % pre;
+			n = i;
+			m = rate / pre;
+		}
+		if (tmp == 0)
+			break;
+	}
+
+	dsi->input_div = n;
+	dsi->feedback_div = m;
+
+	return pllref * m / n;
+}
+
+static unsigned long dw_mipi_dsi_calc_link_bandwidth(struct dw_mipi_dsi *dsi)
+{
+	unsigned long mpclk, tmp;
+	unsigned int target_mbps = 1000, max_mbps;
 	int bpp;
+
+	max_mbps = dsi->pdata->max_bit_rate_per_lane / USEC_PER_SEC;
 
 	bpp = mipi_dsi_pixel_format_to_bpp(dsi->format);
 	if (bpp < 0) {
@@ -482,25 +509,7 @@ static int dw_mipi_dsi_get_lane_bps(struct dw_mipi_dsi *dsi)
 			printf("DPHY clock frequency is out of range\n");
 	}
 
-	pllref = DIV_ROUND_UP(24 * MHZ, USEC_PER_SEC);
-	tmp = pllref;
-
-	for (i = 1; i < 6; i++) {
-		pre = pllref / i;
-		if ((tmp > (target_mbps % pre)) && (target_mbps / pre < 512)) {
-			tmp = target_mbps % pre;
-			n = i;
-			m = target_mbps / pre;
-		}
-		if (tmp == 0)
-			break;
-	}
-
-	dsi->lane_mbps = pllref / n * m;
-	dsi->input_div = n;
-	dsi->feedback_div = m;
-
-	return 0;
+	return target_mbps * USEC_PER_SEC;
 }
 
 static int dw_mipi_dsi_gen_pkt_hdr_write(struct dw_mipi_dsi *dsi, u32 val)
@@ -867,7 +876,7 @@ static int rockchip_dw_mipi_dsi_prepare(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct dw_mipi_dsi *dsi = conn_state->private;
-	int ret;
+	unsigned long bw, rate;
 
 	dsi->mode = &conn_state->mode;
 
@@ -875,13 +884,17 @@ static int rockchip_dw_mipi_dsi_prepare(struct display_state *state)
 
 	rockchip_phy_power_on(state);
 
-	if (conn_state->phy) {
-		dsi->lane_mbps = rockchip_phy_get_data(state);
-	} else {
-		ret = dw_mipi_dsi_get_lane_bps(dsi);
-		if (ret < 0)
-			return ret;
-	}
+	bw = dw_mipi_dsi_calc_link_bandwidth(dsi);
+
+	if (conn_state->phy)
+		rate = rockchip_phy_set_pll(state, bw);
+	else
+		rate = dw_mipi_dsi_set_pll(dsi, bw);
+
+	dsi->lane_mbps = rate / USEC_PER_SEC;
+
+	printf("final DSI-Link bandwidth: %u Mbps x %d\n",
+	       dsi->lane_mbps, dsi->lanes);
 
 	dw_mipi_dsi_init(dsi);
 	dw_mipi_dsi_dpi_config(dsi, dsi->mode);
