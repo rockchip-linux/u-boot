@@ -115,10 +115,8 @@ static int connector_phy_init(struct display_state *state)
 
 	phandle = fdt_getprop_u32_default_node(blob, conn_node, 0,
 					       "phys", -1);
-	if (phandle < 0) {
-		printf("failed to find phy node\n");
+	if (phandle < 0)
 		return 0;
-	}
 
 	phy_node = fdt_node_offset_by_phandle(blob, phandle);
 	if (phy_node < 0) {
@@ -485,6 +483,9 @@ static int display_disable(struct display_state *state)
 		conn_funcs->disable(state);
 
 	rockchip_panel_unprepare(state);
+
+	if (conn_funcs->unprepare)
+		conn_funcs->unprepare(state);
 
 	state->is_enable = 0;
 	state->is_init = 0;
