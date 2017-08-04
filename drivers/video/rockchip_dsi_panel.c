@@ -55,11 +55,12 @@ struct rockchip_dsi_panel {
 	struct fdt_gpio_state enable_gpio;
 	struct fdt_gpio_state reset_gpio;
 
-	unsigned int reset_delay;
+	unsigned int delay_reset;
 	unsigned int delay_prepare;
 	unsigned int delay_unprepare;
 	unsigned int delay_enable;
 	unsigned int delay_disable;
+	unsigned int delay_init;
 
 	struct dsi_panel_cmds *on_cmds;
 	struct dsi_panel_cmds *off_cmds;
@@ -131,8 +132,8 @@ static int rockchip_dsi_panel_parse_cmds(const void *blob, int node,
 		len -= dchdr->dlen;
 	}
 
-	printf("%s: dcs_cmd=%x len=%d, cmd_cnt=%d\n",
-	       __func__, pcmds->buf[0], pcmds->blen, pcmds->cmd_cnt);
+	debug("%s: total_len=%d, cmd_cnt=%d\n",
+	      __func__, pcmds->blen, pcmds->cmd_cnt);
 	return 0;
 }
 
@@ -177,13 +178,22 @@ static int rockchip_dsi_panel_prepare(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct rockchip_dsi_panel *panel = panel_state->private;
+	int ret;
 
 	fdtdec_set_gpio(&panel->enable_gpio, 1);
 	msleep(panel->delay_prepare);
 
 	fdtdec_set_gpio(&panel->reset_gpio, 1);
-	msleep(panel->reset_delay);
+	msleep(panel->delay_reset);
 	fdtdec_set_gpio(&panel->reset_gpio, 0);
+
+	msleep(panel->delay_init);
+
+	if (panel->on_cmds) {
+		ret = rockchip_dsi_panel_send_cmds(state, panel->on_cmds);
+		if (ret)
+			printf("failed to send on cmds: %d\n", ret);
+	}
 
 	return 0;
 }
@@ -192,11 +202,19 @@ static int rockchip_dsi_panel_unprepare(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct rockchip_dsi_panel *panel = panel_state->private;
+	int ret;
+
+	if (panel->off_cmds) {
+		ret = rockchip_dsi_panel_send_cmds(state, panel->off_cmds);
+		if (ret)
+			printf("failed to send on cmds: %d\n", ret);
+	}
 
 	fdtdec_set_gpio(&panel->reset_gpio, 1);
-	fdtdec_set_gpio(&panel->enable_gpio, 0);
 
 	mdelay(panel->delay_unprepare);
+
+	fdtdec_set_gpio(&panel->enable_gpio, 0);
 
 	return 0;
 }
@@ -205,13 +223,6 @@ static int rockchip_dsi_panel_enable(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct rockchip_dsi_panel *panel = panel_state->private;
-	int ret;
-
-	if (panel->on_cmds) {
-		ret = rockchip_dsi_panel_send_cmds(state, panel->on_cmds);
-		if (ret)
-			printf("failed to send on cmds: %d\n", ret);
-	}
 
 	msleep(panel->delay_enable);
 
@@ -225,18 +236,11 @@ static int rockchip_dsi_panel_disable(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct rockchip_dsi_panel *panel = panel_state->private;
-	int ret;
 
 #ifdef CONFIG_RK_PWM_BL
 	rk_pwm_bl_config(0);
 #endif
 	mdelay(panel->delay_disable);
-
-	if (panel->off_cmds) {
-		ret = rockchip_dsi_panel_send_cmds(state, panel->off_cmds);
-		if (ret)
-			printf("failed to send on cmds: %d\n", ret);
-	}
 
 	return 0;
 }
@@ -252,11 +256,12 @@ static int rockchip_dsi_panel_parse_dt(const void *blob, int node, struct rockch
 	fdtdec_decode_gpio(blob, node, "enable-gpios", enable_gpio);
 	fdtdec_decode_gpio(blob, node, "reset-gpios", reset_gpio);
 
-	panel->reset_delay = fdtdec_get_int(blob, node, "reset-delay-ms", 0);
-	panel->delay_prepare = fdtdec_get_int(blob, node, "delay,prepare", 0);
-	panel->delay_unprepare = fdtdec_get_int(blob, node, "delay,unprepare", 0);
-	panel->delay_enable = fdtdec_get_int(blob, node, "delay,enable", 0);
-	panel->delay_disable = fdtdec_get_int(blob, node, "delay,disable", 0);
+	panel->delay_prepare = fdtdec_get_int(blob, node, "prepare-delay-ms", 0);
+	panel->delay_unprepare = fdtdec_get_int(blob, node, "unprepare-delay-ms", 0);
+	panel->delay_enable = fdtdec_get_int(blob, node, "enable-delay-ms", 0);
+	panel->delay_disable = fdtdec_get_int(blob, node, "disable-delay-ms", 0);
+	panel->delay_init = fdtdec_get_int(blob, node, "init-delay-ms", 0);
+	panel->delay_reset = fdtdec_get_int(blob, node, "reset-delay-ms", 0);
 	panel->bus_format = fdtdec_get_int(blob, node, "bus-format", MEDIA_BUS_FMT_RBG888_1X24);
 
 	data = fdt_getprop(blob, node, "panel-init-sequence", &len);
