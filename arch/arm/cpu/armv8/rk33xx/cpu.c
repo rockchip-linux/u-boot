@@ -264,7 +264,11 @@ int print_cpuinfo(void)
 	#if defined(CONFIG_RKCHIP_PX5)
 		printf("CPU: px5\n");
 	#elif defined(CONFIG_RKCHIP_RK3368H)
-		printf("CPU: rk3368h\n");
+		#if defined(CONFIG_PRODUCT_BOX)
+			printf("CPU: rk3368\n");
+		#else
+			printf("CPU: rk3368h\n");
+		#endif
 	#else
 		printf("CPU: rk3368\n");
 	#endif
