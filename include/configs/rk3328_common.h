@@ -47,7 +47,7 @@
 #define CONFIG_NR_DRAM_BANKS		1
 #define SDRAM_MAX_SIZE			0xff000000
 
-#define CONFIG_SPI_FLASH
+#define CONFIG_SPI_FLASH 1
 #define CONFIG_SPI
 #define CONFIG_SF_DEFAULT_SPEED 20000000
 
@@ -74,5 +74,16 @@
 /* rockchip ohci host driver */
 #define CONFIG_USB_OHCI_NEW
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	1
+
+#define CONFIG_USB_FUNCTION_MASS_STORAGE
+
+/* enable usb config for usb ether */
+#define CONFIG_USB_HOST_ETHER
+
+#define CONFIG_USB_ETHER_ASIX
+#define CONFIG_USB_ETHER_ASIX88179
+#define CONFIG_USB_ETHER_MCS7830
+#define CONFIG_USB_ETHER_SMSC95XX
+#define CONFIG_USB_ETHER_RTL8152
 
 #endif

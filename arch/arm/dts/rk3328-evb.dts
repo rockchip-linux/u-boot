@@ -16,6 +16,20 @@
 		stdout-path = &uart2;
 	};
 
+	gmac_clkin: external-gmac-clock {
+		compatible = "fixed-clock";
+		clock-frequency = <125000000>;
+		clock-output-names = "gmac_clkin";
+		#clock-cells = <0>;
+	};
+
+	vcc_phy: vcc-phy-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_phy";
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
 	vcc3v3_sdmmc: sdmmc-pwren {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3";
@@ -214,6 +228,79 @@
 					regulator-on-in-suspend;
 					regulator-suspend-microvolt = <1000000>;
 				};
+                        };
+                };
+        };
+};
+
+&gmac2io {
+	phy-supply = <&vcc_phy>;
+	phy-mode = "rgmii";
+	clock_in_out = "input";
+	snps,reset-gpio = <&gpio1 RK_PC2 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	snps,reset-delays-us = <0 10000 50000>;
+	assigned-clocks = <&cru SCLK_MAC2IO>, <&cru SCLK_MAC2IO_EXT>;
+	assigned-clock-parents = <&gmac_clkin>, <&gmac_clkin>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&rgmiim1_pins>;
+	tx_delay = <0x26>;
+	rx_delay = <0x11>;
+	status = "okay";
+};
+
+&spi0 {
+	status = "okay";
+
+	/* SPI DMA does not work currently */
+	/delete-property/ dmas;
+	/delete-property/ #dma-cells;
+	/delete-property/ dma-names;
+
+	 spi-flash@0 {
+		#address-cells = <0x1>;
+		#size-cells = <1>;
+		compatible = "st,m25p128", "spi-flash";
+		reg = <0x0>;
+		spi-max-frequency = <25000000>;
+		status = "okay";
+		m25p,fast-read;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			system@0 {
+				label = "system";
+				reg = <0x0 0x8000>;
+				read-only;
+			};
+
+			loader@8000 {
+				label = "loader";
+				reg = <0x8000 0x3F8000>;
+			};
+
+			reserved@400000 {
+				label = "reserved";
+				reg = <0x400000 0x3C0000>;
+				read-only;
+			};
+
+			vendor@7c0000 {
+				label = "vendor";
+				reg = <0x7C0000 0x40000>;
+			};
+
+			uboot@800000 {
+				label = "uboot";
+				reg = <0x800000 0x400000>;
+			};
+
+			atf@c00000 {
+				label = "atf";
+				reg = <0xC00000 0x400000>;
 			};
 		};
 	};
