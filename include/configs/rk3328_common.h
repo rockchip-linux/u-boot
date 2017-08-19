@@ -77,6 +77,8 @@
 
 #define CONFIG_USB_FUNCTION_MASS_STORAGE
 
+#define CONFIG_PREBOOT
+
 /* enable usb config for usb ether */
 #define CONFIG_USB_HOST_ETHER
 
