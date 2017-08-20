@@ -15,6 +15,10 @@
 		stdout-path = &uart2;
 	};
 
+	aliases {
+		spi0 = &spi0;
+	};
+
 	gmac_clkin: external-gmac-clock {
 		compatible = "fixed-clock";
 		clock-frequency = <125000000>;
@@ -121,19 +125,13 @@
 &spi0 {
 	status = "okay";
 
-	/* SPI DMA does not work currently */
-	/delete-property/ dmas;
-	/delete-property/ #dma-cells;
-	/delete-property/ dma-names;
-
-	 spi-flash@0 {
+	spi-flash@0 {
 		#address-cells = <0x1>;
 		#size-cells = <1>;
-		compatible = "st,m25p128", "spi-flash";
+		compatible = "spi-flash";
 		reg = <0x0>;
 		spi-max-frequency = <25000000>;
 		status = "okay";
-		m25p,fast-read;
 
 		partitions {
 			compatible = "fixed-partitions";
