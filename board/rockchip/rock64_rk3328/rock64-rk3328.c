@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016 Rockchip Electronics Co., Ltd
+ * (C) Copyright 2017 PINE64
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */

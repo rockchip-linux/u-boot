@@ -10,6 +10,16 @@ config TARGET_EVB_RK3328
 	  with full function and phisical connectors support like
 	  usb2.0 host ports, LVDS, JTAG, MAC, SDcard, HDMI, USB-2-serial...
 
+config TARGET_ROCK64_RK3328
+	bool "ROCK64 RK3328"
+	help
+	  ROCK64 is a credit card size 4K60P HDR Media Board Computer
+	  powered by Rockchip RK3328 Quad-Core ARM Cortex A53 64-Bit Processor
+	  and support up to 4GB 1600MHz LPDDR3 memory.
+	  It provides eMMC module socket, MicroSD Card slot, Pi-2 Bus, Pi-P5+ Bus,
+	  USB 3.0 and many others peripheral devices interface for makers
+	  to integrate with sensors and devices
+
 endchoice
 
 config SYS_SOC
@@ -19,5 +29,6 @@ config SYS_MALLOC_F_LEN
 	default 0x0800
 
 source "board/rockchip/evb_rk3328/Kconfig"
+source "board/rockchip/rock64_rk3328/Kconfig"
 
 endif
