@@ -14,6 +14,7 @@
 #include <asm/arch/rkplat.h>
 #include <asm/unaligned.h>
 #include <linux/list.h>
+#include <linux/media-bus-format.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -863,6 +864,16 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	 */
 	dp->video_info.max_link_rate = 0x0A;
 	dp->video_info.max_lane_count = 0x04;
+
+	switch (conn_state->bus_format) {
+	case MEDIA_BUS_FMT_RGB666_1X18:
+		dp->video_info.color_depth = COLOR_6;
+		break;
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	default:
+		dp->video_info.color_depth = COLOR_8;
+		break;
+	}
 
 	conn_state->private = dp;
 	conn_state->type = DRM_MODE_CONNECTOR_eDP;
