@@ -6,13 +6,16 @@
 
 #include <common.h>
 #include <asm/arch/hardware.h>
-#include <asm/arch/grf_rk3328.h>
 #include <dm.h>
+#include <asm/arch/boot_mode.h>
+#include <asm/arch/clock.h>
+#include <asm/arch/grf_rk3328.h>
 #include <asm/armv8/mmu.h>
 #include <asm/io.h>
 #include <dwc3-uboot.h>
 #include <power/regulator.h>
 #include <usb.h>
+#include <syscon.h>
 #include <misc.h>
 #include <u-boot/sha256.h>
 
@@ -20,6 +23,117 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define RK3328_CPUID_OFF  0x7
 #define RK3328_CPUID_LEN  0x10
+
+static struct mm_region rk3328_mem_map[] = {
+	{
+		.virt = 0x0UL,
+		.phys = 0x0UL,
+		.size = 0xff000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_INNER_SHARE
+	}, {
+		.virt = 0xff000000UL,
+		.phys = 0xff000000UL,
+		.size = 0x1000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE |
+			 PTE_BLOCK_PXN | PTE_BLOCK_UXN
+	}, {
+		/* List terminator */
+		0,
+	}
+};
+
+struct mm_region *mem_map = rk3328_mem_map;
+
+int dram_init_banksize(void)
+{
+	size_t max_size = min((unsigned long)gd->ram_size, gd->ram_top);
+
+	/* Reserve 0x200000 for ATF bl31 */
+	gd->bd->bi_dram[0].start = 0x200000;
+	gd->bd->bi_dram[0].size = max_size - gd->bd->bi_dram[0].start;
+
+	return 0;
+}
+
+int arch_cpu_init(void)
+{
+	/* We do some SoC one time setting here. */
+
+	return 0;
+}
+
+static void boot_mode_set(int boot_mode)
+{
+	struct rk3328_grf_regs *grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+	writel(boot_mode, &grf->os_reg[0]);
+}
+
+int setup_boot_mode(void)
+{
+	struct rk3328_grf_regs *grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+
+	int boot_mode = readl(&grf->os_reg[0]);
+
+	/* Clear boot mode */
+	writel(BOOT_NORMAL, &grf->os_reg[0]);
+
+	debug("boot mode %x.\n", boot_mode);
+	switch(boot_mode) {
+		case BOOT_NORMAL:
+			printf("normal boot\n");
+			env_set("boot_mode", "normal");
+			break;
+
+		case BOOT_LOADER:
+			printf("enter Rockusb!\n");
+			env_set("preboot", "setenv preboot; rockusb 0 mmc 0");
+			break;
+
+		case BOOT_RECOVERY:
+			printf("enter recovery!\n");
+			env_set("boot_mode", "recovery");
+			break;
+
+		case BOOT_FASTBOOT:
+			printf("enter fastboot!\n");
+			env_set("preboot", "setenv preboot; fastboot usb0");
+			break;
+
+		case BOOT_CHARGING:
+			printf("enter charging!\n");
+			env_set("boot_mode", "charging");
+			break;
+
+		case BOOT_UMS:
+			printf("enter fastboot!\n");
+			env_set("preboot", "setenv preboot; if mmc dev 0;"
+				"then ums mmc 0; else ums mmc 1;fi");
+			break;
+
+		default:
+			env_set("boot_mode", "unknown");
+			break;
+	}
+
+	return 0;
+}
+
+#if defined(CONFIG_USB_FUNCTION_FASTBOOT)
+int fb_set_reboot_flag(void)
+{
+	printf("Setting reboot to fastboot flag ...\n");
+	boot_mode_set(BOOT_FASTBOOT);
+	return 0;
+}
+#endif
+
+int board_late_init(void)
+{
+	setup_boot_mode();
+	return 0;
+}
 
 int board_init(void)
 {
