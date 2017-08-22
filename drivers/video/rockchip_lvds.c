@@ -25,10 +25,12 @@ enum rockchip_lvds_sub_devtype {
 	RK3288_LVDS,
 	RK3366_LVDS,
 	RK3368_LVDS,
+	RK3126_LVDS,
 };
 
 struct rockchip_lvds_chip_data {
 	u32	chip_type;
+	u32	grf_base;
 	bool	has_vop_sel;
 	u32	grf_soc_con5;
 	u32	grf_soc_con6;
@@ -105,6 +107,11 @@ static inline void lvds_ctrl_writel(struct rockchip_lvds_device *lvds,
 	writel(val, lvds->ctrl_reg + offset);
 }
 
+static inline void lvds_grf_write(struct rockchip_lvds_device *lvds, u32 offset, u32 val)
+{
+	writel(val, lvds->pdata->grf_base + offset);
+}
+
 static inline u32 lvds_pmugrf_readl(u32 offset)
 {
 	return readl(LVDS_PMUGRF_BASE + offset);
@@ -118,15 +125,22 @@ static inline void lvds_pmugrf_writel(u32 offset, u32 val)
 static inline u32 lvds_phy_lock(struct rockchip_lvds_device *lvds)
 {
 	u32 val = 0;
-	val = readl(lvds->ctrl_reg + 0x10);
-	val &= 0x1;
-	return val;
+	val = readl(lvds->ctrl_reg + MIPIC_PHY_STATUS);
+	return (val & m_PHY_LOCK_STATUS) ? 1 : 0;
 }
 
 static int rockchip_lvds_clk_enable(struct rockchip_lvds_device *lvds)
 {
 	return 0;
 }
+
+const struct rockchip_lvds_chip_data rk3126_lvds_drv_data = {
+	.chip_type = RK3126_LVDS,
+	.grf_soc_con7  = RK3126_GRF_LVDS_CON0,
+	.grf_soc_con15 = RK3126_GRF_CON1,
+	.has_vop_sel = true,
+	.grf_base = 0x20008000
+};
 
 const struct rockchip_lvds_chip_data rk3366_lvds_drv_data = {
 	.chip_type = RK3366_LVDS,
@@ -227,6 +241,41 @@ static int rk336x_lvds_pwr_on(struct display_state *state)
 	return 0;
 }
 
+static void rk3126_output_ttl(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+	u32 val = 0;
+
+	/* iomux to lcdc */
+	lvds_grf_write(lvds, RK3126_GRF_GPIO2B_IOMUX, 0xffff5555);
+	lvds_grf_write(lvds, RK3126_GRF_GPIO2C_IOMUX, 0xffff5555);
+	lvds_grf_write(lvds, RK3126_GRF_GPIO2C_IOMUX2, 0x00ff0055);
+	lvds_grf_write(lvds, RK3126_GRF_GPIO2D_IOMUX, 0x700c1004);
+
+	/* enable lvds mode */
+	val = v_RK3126_LVDSMODE_EN(0) |
+		v_RK3126_MIPIPHY_TTL_EN(1) |
+		v_RK3126_MIPIPHY_LANE0_EN(1) |
+		v_RK3126_MIPIDPI_FORCEX_EN(1);
+	grf_writel(val, lvds->pdata->grf_soc_con7);
+	val = v_RK3126_MIPITTL_CLK_EN(1) |
+		v_RK3126_MIPITTL_LANE0_EN(1) |
+		v_RK3126_MIPITTL_LANE1_EN(1) |
+		v_RK3126_MIPITTL_LANE2_EN(1) |
+		v_RK3126_MIPITTL_LANE3_EN(1);
+	grf_writel(val, lvds->pdata->grf_soc_con15);
+	/* enable lane */
+	lvds_writel(lvds, MIPIPHY_REG0, 0x7f);
+	val = v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) | v_LANE3_EN(1) |
+		v_LANECLK_EN(1) | v_PLL_PWR_OFF(1);
+	lvds_writel(lvds, MIPIPHY_REGEB, val);
+	/* set ttl mode and reset phy config */
+	val = v_LVDS_MODE_EN(0) | v_TTL_MODE_EN(1) | v_MIPI_MODE_EN(0) |
+		v_MSB_SEL(1) | v_DIG_INTER_RST(1);
+	lvds_writel(lvds, MIPIPHY_REGE0, val);
+	rk336x_lvds_pwr_on(state);
+}
 
 static void rk336x_output_ttl(struct display_state *state)
 {
@@ -243,8 +292,8 @@ static void rk336x_output_ttl(struct display_state *state)
 		/* lcdc data 20 21 22 23 HSYNC VSYNC DEN DCLK */
 		lvds_pmugrf_writel(0x0c, 0xFFFF5555);
 		/* set clock lane enable */
-		lvds_ctrl_writel(lvds, 0x0, 0x4);
-	} else {
+		lvds_ctrl_writel(lvds, MIPIC_PHY_RSTZ, m_PHY_ENABLE_CLK);
+	} else if (lvds->pdata->chip_type == RK3366_LVDS) {
 		/* lcdc data 15 ... 10, vsync, hsync */
 		lvds_pmugrf_writel(0x0c, 0xffff555a);
 		/* lcdc data 23 ... 16 */
@@ -273,6 +322,41 @@ static void rk336x_output_ttl(struct display_state *state)
 	lvds_writel(lvds, MIPIPHY_REGE0, val);
 
 	rk336x_lvds_pwr_on(state);
+}
+
+static void rk3126_output_lvds(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+	u32 val = 0;
+
+	/* enable lvds mode */
+	val = v_RK3126_LVDSMODE_EN(1) |
+	      v_RK3126_MIPIPHY_TTL_EN(0);
+	/* config lvds_format */
+	val |= v_RK3126_LVDS_OUTPUT_FORMAT(lvds->format);
+	/* LSB receive mode */
+	val |= v_RK3126_LVDS_MSBSEL(LVDS_MSB_D7);
+	val |= v_RK3126_MIPIPHY_LANE0_EN(1) |
+	       v_RK3126_MIPIDPI_FORCEX_EN(1);
+	grf_writel(val, lvds->pdata->grf_soc_con7);
+
+	/* digital internal disable */
+	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(0));
+
+	/* set pll prediv and fbdiv */
+	lvds_writel(lvds, MIPIPHY_REG3, v_PREDIV(2) | v_FBDIV_MSB(0));
+	lvds_writel(lvds, MIPIPHY_REG4, v_FBDIV_LSB(28));
+
+	lvds_writel(lvds, MIPIPHY_REGE8, 0xfc);
+
+	/* set lvds mode and reset phy config */
+	lvds_msk_reg(lvds, MIPIPHY_REGE0,
+		     m_MSB_SEL | m_DIG_INTER_RST,
+		     v_MSB_SEL(1) | v_DIG_INTER_RST(1));
+
+	rk336x_lvds_pwr_on(state);
+	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(1));
 }
 
 static void rk336x_output_lvds(struct display_state *state)
@@ -432,7 +516,7 @@ static int rockchip_lvds_init(struct display_state *state)
 	int lvds_node = conn_state->node;
 	struct rockchip_lvds_device *lvds;
 	const char *name;
-	int i;
+	int i,width;
 	struct fdt_resource lvds_phy, lvds_ctrl;
 	struct panel_state *panel_state = &state->panel_state;
 	int panel_node = panel_state->node;
@@ -489,21 +573,26 @@ static int rockchip_lvds_init(struct display_state *state)
 		free(lvds);
 		return lvds->format;
 	}
-	i = fdtdec_get_int(state->blob, panel_node, "rockchip,data-width", 24);
-	if (i == 24) {
+	width = fdtdec_get_int(state->blob, panel_node, "rockchip,data-width", 24);
+	if (width == 24) {
 		lvds->format |= LVDS_24BIT;
-	} else if (i == 18) {
+	} else if (width == 18) {
 		lvds->format |= LVDS_18BIT;
 	} else {
-		printf("rockchip-lvds unsupport data-width[%d]\n", i);
+		printf("rockchip-lvds unsupport data-width[%d]\n", width);
 		free(lvds);
 		return -EINVAL;
 	}
+
 	printf("LVDS: data mapping: %s, data-width:%d, format:%d,\n",
-		name, i, lvds->format);
+		name, width, lvds->format);
 	conn_state->private = lvds;
 	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
-	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+
+	if ((lvds->output == DISPLAY_OUTPUT_RGB) && (width == 18))
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P666;
+	else
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
 	return 0;
 }
@@ -560,11 +649,15 @@ static int rockchip_lvds_enable(struct display_state *state)
 	if (lvds->output == DISPLAY_OUTPUT_LVDS) {
 		if (lvds->pdata->chip_type == RK3288_LVDS)
 			rk3288_output_lvds(state);
+		else if (lvds->pdata->chip_type == RK3126_LVDS)
+			rk3126_output_lvds(state);
 		else
 			rk336x_output_lvds(state);
 	} else {
 		if (lvds->pdata->chip_type == RK3288_LVDS)
 			rk3288_output_ttl(state);
+		else if (lvds->pdata->chip_type == RK3126_LVDS)
+			rk3126_output_ttl(state);
 		else
 			rk336x_output_ttl(state);
 	}

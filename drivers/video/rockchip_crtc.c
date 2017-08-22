@@ -53,6 +53,10 @@ static const struct rockchip_crtc g_crtc[] = {
 		.compatible = "rockchip,rk3328-vop",
 		.funcs = &rockchip_vop_funcs,
 		.data = &rk3328_vop,
+	}, {
+		.compatible = "rockchip,rk3126-vop",
+		.funcs = &rockchip_vop_funcs,
+		.data = &rk3036_vop,
 	},
 #endif
 };

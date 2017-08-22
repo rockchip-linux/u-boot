@@ -69,6 +69,11 @@ static const struct rockchip_connector g_connector[] = {
 	 .funcs = &rockchip_lvds_funcs,
 	 .data = &rk3288_lvds_drv_data,
 	},
+	{
+	 .compatible = "rockchip,rk3126-lvds",
+	 .funcs = &rockchip_lvds_funcs,
+	 .data = &rk3126_lvds_drv_data,
+	},
 #endif
 #ifdef CONFIG_ROCKCHIP_DW_HDMI
 	{
