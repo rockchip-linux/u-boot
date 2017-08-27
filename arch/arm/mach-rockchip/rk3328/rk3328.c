@@ -129,10 +129,15 @@ int fb_set_reboot_flag(void)
 }
 #endif
 
+__weak int rk_board_late_init(void)
+{
+	return 0;
+}
+
 int board_late_init(void)
 {
 	setup_boot_mode();
-	return 0;
+	return rk_board_late_init();
 }
 
 int board_init(void)
