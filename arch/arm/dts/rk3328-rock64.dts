@@ -117,6 +117,7 @@
 	assigned-clock-parents = <&gmac_clkin>, <&gmac_clkin>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&rgmiim1_pins>;
+	max-speed = <100>;
 	tx_delay = <0x26>;
 	rx_delay = <0x11>;
 	status = "okay";
