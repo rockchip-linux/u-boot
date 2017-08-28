@@ -237,6 +237,11 @@ static void setup_macaddr(void)
 	mac_addr[0] &= 0xfe;  /* clear multicast bit */
 	mac_addr[0] |= 0x02;  /* set local assignment bit (IEEE802) */
 	eth_env_set_enetaddr("ethaddr", mac_addr);
+
+	/* Make a valid MAC address for eth1 */
+	mac_addr[5] += 0x20;
+	mac_addr[5] &= 0xff;
+	eth_env_set_enetaddr("eth1addr", mac_addr);
 #endif
 
 	return;
