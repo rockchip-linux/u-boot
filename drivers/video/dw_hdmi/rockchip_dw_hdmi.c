@@ -69,6 +69,12 @@ static int rockchip_dw_hdmi_init(struct display_state *state)
 			    SUPPORT_DEEP_10BIT |
 			    SUPPORT_TMDS_600M;
 	strcpy(hdmi_dev->compatible, "rockchip,rk3288-dw-hdmi");
+#elif CONFIG_RKCHIP_RK3368
+	hdmi_dev->soctype = HDMI_SOC_RK3368;
+        hdmi_dev->feature = SUPPORT_4K |
+			    SUPPORT_4K_4096 |
+			    SUPPORT_YUV420;
+        strcpy(hdmi_dev->compatible, "rockchip,rk3368-dw-hdmi");
 #elif CONFIG_RKCHIP_RK3399
 	hdmi_dev->soctype = HDMI_SOC_RK3399;
 	hdmi_dev->feature = SUPPORT_4K |
@@ -88,14 +94,15 @@ static int rockchip_dw_hdmi_init(struct display_state *state)
 
 	dw_rk_hdmi_register(hdmi_dev);
 
-	if (crtc_state->crtc_id)
-		val = ((1 << pdata->vop_sel_bit) |
-		       (1 << (16 + pdata->vop_sel_bit)));
-	else
-		val = ((0 << pdata->vop_sel_bit) |
-		       (1 << (16 + pdata->vop_sel_bit)));
-	grf_writel(val, pdata->grf_vop_sel_reg);
-
+	if (pdata) {
+		if (crtc_state->crtc_id)
+			val = ((1 << pdata->vop_sel_bit) |
+			       (1 << (16 + pdata->vop_sel_bit)));
+		else
+			val = ((0 << pdata->vop_sel_bit) |
+			       (1 << (16 + pdata->vop_sel_bit)));
+		grf_writel(val, pdata->grf_vop_sel_reg);
+	}
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
 	hdmi_dev_init(hdmi_dev);
