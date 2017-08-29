@@ -1063,13 +1063,14 @@ static int hdmi_edid_parse_dtd(unsigned char *block, struct fb_videomode *mode)
 static int hdmi_edid_parse_base(struct hdmi_dev *hdmi_dev, unsigned char *buf, int *extend_num)
 {
 	int rc, len = -1;
-	
-	if (hdmi_dev == NULL)
+
+	if (!hdmi_dev)
 		return -1;
 
-	if(buf == NULL || extend_num == NULL)
+	if(!buf || !extend_num)
 		return E_HDMI_EDID_PARAM;
-		
+
+	*extend_num = buf[0x7e];
 	// Check first 8 byte to ensure it is an edid base block.
 	if( buf[0] != 0x00 ||
 	    buf[1] != 0xFF ||
@@ -1078,34 +1079,36 @@ static int hdmi_edid_parse_base(struct hdmi_dev *hdmi_dev, unsigned char *buf, i
 	    buf[4] != 0xFF ||
 	    buf[5] != 0xFF ||
 	    buf[6] != 0xFF ||
-	    buf[7] != 0x00)
-    {
-        printf("[EDID] check header error\n");
-        return E_HDMI_EDID_HEAD;
-    }
-    
-    *extend_num = buf[0x7e];
-    #ifdef HDMIDEBUG
-    printf("[EDID] extend block num is %d\n", buf[0x7e]);
-    #endif
-    
-    // Checksum
-    rc = hdmi_edid_checksum(buf);
-    if( rc != E_HDMI_EDID_SUCCESS)
-    {
-    	printf("[EDID] base block checksum error\n");
-    	return E_HDMI_EDID_CHECKSUM;
-    }
+	    buf[7] != 0x00) {
+		printf("[EDID] check header error\n");
+		rc = E_HDMI_EDID_HEAD;
+		goto out;
+	}
 
-	//pedid->specs = malloc(sizeof(struct fb_monspecs));
-	//if(pedid->specs == NULL)
-	//	return E_HDMI_EDID_NOMEMORY;
-		
-	//fb_edid_to_monspecs(buf, pedid->specs);
+	#ifdef HDMIDEBUG
+	printf("[EDID] extend block num is %d\n", buf[0x7e]);
+	#endif
+
+	// Checksum
+	rc = hdmi_edid_checksum(buf);
+	if( rc != E_HDMI_EDID_SUCCESS)
+	{
+		printf("[EDID] base block checksum error\n");
+		rc = E_HDMI_EDID_CHECKSUM;
+		goto out;
+	}
+
 	fb_create_modedb(buf, &len);
-
-	
-    return E_HDMI_EDID_SUCCESS;
+out:
+        /* For some sink, edid checksum is failed because several
+         * byte is wrong. To fix this case, we think it is a good
+         * edid if 1 <= *extend_num <= 4.
+         */
+        if ((rc != E_HDMI_EDID_SUCCESS) &&
+            (*extend_num < 1 || *extend_num > 4))
+                return rc;
+        else
+		return E_HDMI_EDID_SUCCESS;
 }
 
 // Parse CEA Short Video Descriptor
