@@ -15,11 +15,11 @@ DECLARE_GLOBAL_DATA_PTR;
 
 
 /* ARM/General/Codec/New pll freq config */
-#define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_APLL_FREQ_HIGH	1200 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		800 /* MHZ */
-#define CONFIG_RKCLK_CPLL_FREQ		594 /* MHZ */
-#define CONFIG_RKCLK_NPLL_FREQ		594 /* MHZ */
+#define CONFIG_RKCLK_APLL_FREQ		600000 /* KHZ */
+#define CONFIG_RKCLK_APLL_FREQ_HIGH	1200000 /* KHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		491520 /* KHZ */
+#define CONFIG_RKCLK_CPLL_FREQ		594000 /* KHZ */
+#define CONFIG_RKCLK_NPLL_FREQ		594000 /* KHZ */
 
 
 /* Cpu clock source select */
@@ -144,6 +144,7 @@ static struct pll_clk_set gpll_clks[] = {
 	_GPLL_SET_CLKS(800000, 1, 100, 3, 1, 1, 0,	6, 2, 2,	6, 2, 2),
 	_GPLL_SET_CLKS(594000, 2, 99, 2, 1, 1, 0,	4, 2, 2,	4, 2, 2),
 	_GPLL_SET_CLKS(576000, 1, 96, 4, 1, 1, 0,	4, 2, 2,	4, 2, 2),
+	_GPLL_SET_CLKS(491520, 24, 983, 2, 1, 0, 671088, 4, 2, 2, 4, 2, 2),
 	_GPLL_SET_CLKS(297000, 2, 99, 4, 1, 1, 0,	2, 2, 2,	2, 2, 2),
 };
 
@@ -216,7 +217,7 @@ static int rkclk_pll_set_rate(enum rk_plls_id pll_id, uint32 mHz, pll_callback_f
 {
 	const struct pll_data *pll = NULL;
 	struct pll_clk_set *clkset = NULL;
-	unsigned long rate = mHz * MHZ;
+	unsigned long rate = mHz * KHZ;
 	int i = 0;
 
 	/* Find pll rate set */
@@ -615,7 +616,7 @@ static int rkclk_vop_aclk_config(uint32 pll_sel, uint32 div)
 	con = (3 << (6 + 16)) | (pll_sel << 6);
 
 	/* vop_aclk div */
-	con = (0x1f << (0 + 16)) | ((div - 1) << 0);
+	con |= (0x1f << (0 + 16)) | ((div - 1) << 0);
 
 	cru_writel(con, CRU_CLKSELS_CON(39));
 
@@ -628,9 +629,9 @@ static int rkclk_vop_aclk_set(uint32 aclk_hz)
 	uint32 pll_sel = 0, div = 0;
 	uint32 pll_rate = 0;
 
-	/* vop aclk from codec pll */
-	pll_sel = 0;
-	pll_rate = gd->pci_clk;
+	/* vop aclk from gpll */
+	pll_sel = 1;
+	pll_rate = gd->bus_clk;
 
 	div = rkclk_calc_clkdiv(pll_rate, aclk_hz, 0);
 	aclk_info = (pll_sel << 16) | div;
@@ -645,6 +646,7 @@ static int rkclk_vop_aclk_set(uint32 aclk_hz)
 #define VIO_ACLK_MAX	(300 * MHZ)
 #define VIO_HCLK_MAX	(100 * MHZ)
 #define HDMIPHY_CLK_FREQ	(594 * MHZ)
+#define VOP_ACLK_MAX	(500 * MHZ)
 
 /*
  * rkplat lcdc aclk config
@@ -664,7 +666,7 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	con = (3 << (6 + 16)) | (pll_sel << 6);
 
 	/* vio_aclk div */
-	con = (0x1f << (0 + 16)) | ((div - 1) << 0);
+	con |= (0x1f << (0 + 16)) | ((div - 1) << 0);
 
 	cru_writel(con, CRU_CLKSELS_CON(37));
 
@@ -766,6 +768,7 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	rkclk_lcdc_aclk_set(lcdc_id, VIO_ACLK_MAX);
 	rkclk_lcdc_hclk_set(lcdc_id, VIO_HCLK_MAX);
 	rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
+	rkclk_vop_aclk_set(VOP_ACLK_MAX);
 
 	return HDMIPHY_CLK_FREQ;
 }
@@ -842,7 +845,7 @@ static inline uint32 rkclk_mmc_pll_rate2sel(uint32 pll_rate)
 {
 	if (pll_rate == gd->pci_clk)
 		return MMC_CODEC_PLL;
-	else if (pll_rate == gd->bus_clk)
+	else if ((gd->bus_clk - pll_rate) < 1000)
 		return MMC_GENERAL_PLL;
 	else if (pll_rate == (24 * MHZ))
 		return MMC_24M_PLL;
