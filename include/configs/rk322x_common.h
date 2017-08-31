@@ -62,6 +62,7 @@
  * so limit the fdt reallocation to that */
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"fdt_high=0x7fffffff\0" \
+	"fdtfile=" FDTFILE \
 	"partitions=" PARTS_DEFAULT \
 	ENV_MEM_LAYOUT_SETTINGS \
 	BOOTENV
