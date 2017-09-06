@@ -424,6 +424,18 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	debug("SPL malloc() used %#lx bytes (%ld KB)\n", gd->malloc_ptr,
 	      gd->malloc_ptr / 1024);
 #endif
+
+	if (CONFIG_IS_ENABLED(ATF_SUPPORT)) {
+		debug("loaded - jumping to U-Boot via ATF BL31.\n");
+		bl31_entry();
+	}
+
+	if (CONFIG_IS_ENABLED(OPTEE_SUPPORT)) {
+		debug("loaded - jumping to U-Boot via OP-TEE.\n");
+		spl_optee_entry(0, 0, 0, (void *)spl_image.entry_point);
+	}
+
+	debug("loaded - jumping to U-Boot...\n");
 #ifdef CONFIG_BOOTSTAGE_STASH
 	int ret;
 

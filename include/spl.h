@@ -283,6 +283,15 @@ void spl_bl31_entry(void *entry_addr);
 void spl_optee_entry(void *arg0, void *arg1, void *arg2, void *arg3);
 
 /**
+ * spl_optee_entry - entry function for optee
+ * entry arg0, pagestore
+ * entry arg1, (ARMv7 standard bootarg #1)
+ * entry arg2, device tree address, (ARMv7 standard bootarg #2)
+ * entry arg3, non-secure entry address (ARMv7 bootarg #0)
+ */
+void spl_optee_entry(void *arg0, void *arg1, void *arg2, void *arg3);
+
+/**
  * board_return_to_bootrom - allow for boards to continue with the boot ROM
  *
  * If a board (e.g. the Rockchip RK3368 boards) provide some
