@@ -427,7 +427,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 
 	if (CONFIG_IS_ENABLED(ATF_SUPPORT)) {
 		debug("loaded - jumping to U-Boot via ATF BL31.\n");
-		bl31_entry();
+		spl_bl31_entry((void *)spl_image.entry_point);
 	}
 
 	if (CONFIG_IS_ENABLED(OPTEE_SUPPORT)) {
