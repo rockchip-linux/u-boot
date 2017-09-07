@@ -33,6 +33,9 @@ struct rockchip_dp_chip_data {
 	u32	lcdsel_lit;
 	u32	chip_type;
 	bool	has_vop_sel;
+
+	u8 max_link_rate;
+	u8 max_lane_count;
 };
 
 static void
@@ -307,6 +310,8 @@ static int analogix_dp_process_clock_recovery(struct analogix_dp_device *dp)
 	int lane, lane_count, retval;
 	u8 voltage_swing, pre_emphasis, training_lane;
 	u8 link_status[2], adjust_request[2];
+	u8 dpcd;
+	bool tps3_supported;
 
 	udelay(101);
 
@@ -323,13 +328,22 @@ static int analogix_dp_process_clock_recovery(struct analogix_dp_device *dp)
 		return retval;
 
 	if (analogix_dp_clock_recovery_ok(link_status, lane_count) == 0) {
-		/* set training pattern 2 for EQ */
-		analogix_dp_set_training_pattern(dp, TRAINING_PTN2);
+		retval = analogix_dp_read_byte_from_dpcd(dp, DP_MAX_LANE_COUNT,
+							 &dpcd);
+		if (retval)
+			return retval;
+
+		tps3_supported = !!(dpcd & DP_TPS3_SUPPORTED);
+
+		/* set training pattern 2/3 for EQ */
+		analogix_dp_set_training_pattern(dp, tps3_supported ?
+						 TRAINING_PTN3: TRAINING_PTN2);
 
 		retval = analogix_dp_write_byte_to_dpcd(dp,
 				DP_TRAINING_PATTERN_SET,
 				DP_LINK_SCRAMBLING_DISABLE |
-				DP_TRAINING_PATTERN_2);
+				(tps3_supported ? DP_TRAINING_PATTERN_3 :
+				 DP_TRAINING_PATTERN_2));
 		if (retval)
 			return retval;
 
@@ -821,6 +835,8 @@ const struct rockchip_dp_chip_data rk3399_analogix_edp_drv_data = {
 	.lcdsel_lit = BIT(5) | BIT(21),
 	.chip_type = RK3399_EDP,
 	.has_vop_sel = true,
+	.max_link_rate = DP_LINK_BW_5_4,
+	.max_lane_count = 4,
 };
 
 const struct rockchip_dp_chip_data rk3288_analogix_dp_drv_data = {
@@ -829,11 +845,15 @@ const struct rockchip_dp_chip_data rk3288_analogix_dp_drv_data = {
 	.lcdsel_lit = BIT(5) | BIT(21),
 	.chip_type = RK3288_DP,
 	.has_vop_sel = true,
+	.max_link_rate = DP_LINK_BW_2_7,
+	.max_lane_count = 4,
 };
 
 const struct rockchip_dp_chip_data rk3368_analogix_edp_drv_data = {
 	.chip_type = RK3368_EDP,
 	.has_vop_sel = false,
+	.max_link_rate = DP_LINK_BW_2_7,
+	.max_lane_count = 4,
 };
 
 static int rockchip_analogix_dp_init(struct display_state *state)
@@ -858,12 +878,9 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	dp->plat_data = plat_data;
 	dp->plat_data->dev_type = ROCKCHIP_DP;
 	dp->plat_data->subdev_type = pdata->chip_type;
-	/*
-	 * Like Rockchip DisplayPort TRM indicate that "Main link
-	 * containing 4 physical lanes of 2.7/1.62 Gbps/lane".
-	 */
-	dp->video_info.max_link_rate = 0x0A;
-	dp->video_info.max_lane_count = 0x04;
+
+	dp->video_info.max_link_rate = pdata->max_link_rate;
+	dp->video_info.max_lane_count = pdata->max_lane_count;
 
 	switch (conn_state->bus_format) {
 	case MEDIA_BUS_FMT_RGB666_1X18:
