@@ -212,13 +212,23 @@ static int act8846_i2c_probe(u32 bus ,u32 addr)
 
 static int act8846_parse_dt(const void* blob)
 {
-	int node, nd;
+	int node, nd, act8846_node, semi_act8846_node;
 	struct fdt_gpio_state gpios[2];
 	u32 bus, addr;
 	int ret, i;
 
-	node = fdt_node_offset_by_compatible(blob,
+	act8846_node = fdt_node_offset_by_compatible(blob,
 					g_i2c_node, COMPAT_ACTIVE_ACT8846);
+	semi_act8846_node = fdt_node_offset_by_compatible(blob,
+					g_i2c_node, COMPAT_ACTIVE_SEMI_ACT8846);
+
+	if (act8846_node > 0)
+		node = act8846_node;
+	else if (semi_act8846_node > 0)
+		node = semi_act8846_node;
+	else
+		node = -1;
+
 	if (node < 0) {
 		debug("can't find dts node for act8846\n");
 		return -ENODEV;

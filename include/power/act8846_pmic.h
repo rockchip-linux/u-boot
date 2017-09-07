@@ -9,6 +9,7 @@
 #include <power/pmic.h>
 
 #define COMPAT_ACTIVE_ACT8846  "act,act8846"
+#define COMPAT_ACTIVE_SEMI_ACT8846  "active-semi,act8846"
 #define ACT8846_NUM_REGULATORS 12
 
 #define I2C_CH  I2C_BUS_CH0
