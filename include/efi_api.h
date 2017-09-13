@@ -284,11 +284,11 @@ struct efi_device_path {
 	u8 type;
 	u8 sub_type;
 	u16 length;
-};
+} __packed;
 
 struct efi_mac_addr {
 	u8 addr[32];
-};
+} __packed;
 
 #define DEVICE_PATH_TYPE_HARDWARE_DEVICE	0x01
 #  define DEVICE_PATH_SUB_TYPE_VENDOR		0x04
@@ -328,7 +328,7 @@ struct efi_device_path_mac_addr {
 	struct efi_device_path dp;
 	struct efi_mac_addr mac;
 	u8 if_type;
-};
+} __packed;
 
 struct efi_device_path_usb_class {
 	struct efi_device_path dp;
@@ -369,7 +369,7 @@ struct efi_device_path_cdrom_path {
 struct efi_device_path_file_path {
 	struct efi_device_path dp;
 	u16 str[32];
-};
+} __packed;
 
 #define BLOCK_IO_GUID \
 	EFI_GUID(0x964e5b21, 0x6459, 0x11d2, \
