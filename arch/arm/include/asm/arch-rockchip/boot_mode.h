@@ -22,4 +22,6 @@
 int setup_boot_mode(void);
 #endif
 
+int setup_boot_mode(void);
+
 #endif
