@@ -304,6 +304,7 @@ int edid_get_ranges(struct edid1_info *edid, unsigned int *hmin,
 		    unsigned int *hmax, unsigned int *vmin,
 		    unsigned int *vmax);
 
+struct drm_display_mode;
 struct display_timing;
 
 /**
@@ -341,5 +342,7 @@ int edid_get_timing_validate(u8 *buf, int buf_size,
  */
 int edid_get_timing(u8 *buf, int buf_size, struct display_timing *timing,
 		    int *panel_bits_per_colourp);
+int edid_get_drm_mode(u8 *buf, int buf_size, struct drm_display_mode *mode,
+		      int *panel_bits_per_colourp);
 
 #endif /* __EDID_H_ */

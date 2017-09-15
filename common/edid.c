@@ -15,6 +15,7 @@
 #include <log.h>
 #include <linux/ctype.h>
 #include <linux/string.h>
+#include <drm_modes.h>
 
 int edid_check_info(struct edid1_info *edid_info)
 {
@@ -136,6 +137,62 @@ static void decode_timing(u8 *buf, struct display_timing *timing)
 }
 
 /**
+ * decode_mode() - Decoding an 18-byte detailed timing record
+ *
+ * @buf:	Pointer to EDID detailed timing record
+ * @timing:	Place to put timing
+ */
+static void decode_mode(u8 *buf, struct drm_display_mode *mode)
+{
+	uint x_mm, y_mm;
+	unsigned int ha, hbl, hso, hspw, hborder;
+	unsigned int va, vbl, vso, vspw, vborder;
+	struct edid_detailed_timing *t = (struct edid_detailed_timing *)buf;
+
+	x_mm = (buf[12] + ((buf[14] & 0xf0) << 4));
+	y_mm = (buf[13] + ((buf[14] & 0x0f) << 8));
+	ha = (buf[2] + ((buf[4] & 0xf0) << 4));
+	hbl = (buf[3] + ((buf[4] & 0x0f) << 8));
+	hso = (buf[8] + ((buf[11] & 0xc0) << 2));
+	hspw = (buf[9] + ((buf[11] & 0x30) << 4));
+	hborder = buf[15];
+	va = (buf[5] + ((buf[7] & 0xf0) << 4));
+	vbl = (buf[6] + ((buf[7] & 0x0f) << 8));
+	vso = ((buf[10] >> 4) + ((buf[11] & 0x0c) << 2));
+	vspw = ((buf[10] & 0x0f) + ((buf[11] & 0x03) << 4));
+	vborder = buf[16];
+
+	/* Edid contains pixel clock in terms of 10KHz */
+	mode->clock = (buf[0] + (buf[1] << 8)) * 10;
+	mode->hdisplay = ha;
+	mode->hsync_start = ha + hso;
+	mode->hsync_end = ha + hso + hspw;
+	mode->htotal = ha + hbl;
+	mode->vdisplay = va;
+	mode->vsync_start = va + vso;
+	mode->vsync_end = va + vso + vspw;
+	mode->vtotal = va + vbl;
+
+	mode->flags = EDID_DETAILED_TIMING_FLAG_HSYNC_POLARITY(*t) ?
+		DRM_MODE_FLAG_PHSYNC : DRM_MODE_FLAG_NHSYNC;
+	mode->flags |= EDID_DETAILED_TIMING_FLAG_VSYNC_POLARITY(*t) ?
+		DRM_MODE_FLAG_PVSYNC : DRM_MODE_FLAG_NVSYNC;
+
+	if (EDID_DETAILED_TIMING_FLAG_HSYNC_POLARITY(*t))
+		mode->flags |= DRM_MODE_FLAG_INTERLACE;
+
+	debug("Detailed mode clock %u kHz, %d mm x %d mm, flags[%x]\n"
+	      "     %04d %04d %04d %04d hborder %d\n"
+	      "     %04d %04d %04d %04d vborder %d\n",
+	      mode->clock,
+	      x_mm, y_mm, mode->flags,
+	      mode->hdisplay, mode->hsync_start, mode->hsync_end,
+	      mode->htotal, hborder,
+	      mode->vdisplay, mode->vsync_start, mode->vsync_end,
+	      mode->vtotal, vborder);
+}
+
+/**
  * Check if HDMI vendor specific data block is present in CEA block
  * @param info	CEA extension block
  * Return: true if block is found
@@ -166,6 +223,54 @@ static bool cea_is_hdmi_vsdb_present(struct edid_cea861_info *info)
 	}
 
 	return false;
+}
+
+int edid_get_drm_mode(u8 *buf, int buf_size, struct drm_display_mode *mode,
+		      int *panel_bits_per_colourp)
+{
+	struct edid1_info *edid = (struct edid1_info *)buf;
+	bool timing_done;
+	int i;
+
+	if (buf_size < sizeof(*edid) || edid_check_info(edid)) {
+		debug("%s: Invalid buffer\n", __func__);
+		return -EINVAL;
+	}
+
+	if (!EDID1_INFO_FEATURE_PREFERRED_TIMING_MODE(*edid)) {
+		debug("%s: No preferred timing\n", __func__);
+		return -ENOENT;
+	}
+
+	/* Look for detailed timing */
+	timing_done = false;
+	for (i = 0; i < 4; i++) {
+		struct edid_monitor_descriptor *desc;
+
+		desc = &edid->monitor_details.descriptor[i];
+		if (desc->zero_flag_1 != 0) {
+			decode_mode((u8 *)desc, mode);
+			timing_done = true;
+			break;
+		}
+	}
+	if (!timing_done)
+		return -EINVAL;
+
+	if (!EDID1_INFO_VIDEO_INPUT_DIGITAL(*edid)) {
+		debug("%s: Not a digital display\n", __func__);
+		return -ENOSYS;
+	}
+	if (edid->version != 1 || edid->revision < 4) {
+		debug("%s: EDID version %d.%d does not have required info\n",
+		      __func__, edid->version, edid->revision);
+		*panel_bits_per_colourp = -1;
+	} else  {
+		*panel_bits_per_colourp =
+			((edid->video_input_definition & 0x70) >> 3) + 4;
+	}
+
+	return 0;
 }
 
 static bool edid_find_valid_timing(void *buf, int count,
