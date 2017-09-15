@@ -783,6 +783,7 @@ config VIDEO_IVYBRIDGE_IGD
 	  resolution can be selected in U-Boot.
 
 source "drivers/video/rockchip/Kconfig"
+source "drivers/video/drm/Kconfig"
 
 config VIDEO_ARM_MALIDP
 	bool "Enable Arm Mali Display Processor support"

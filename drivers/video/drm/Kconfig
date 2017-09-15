@@ -1,0 +1,46 @@
+menuconfig DRM_ROCKCHIP
+	bool "Rockchip DRM Support"
+	depends on DM_VIDEO
+	help
+	  Rockchip SoCs provide video output capabilities for High-Definition
+	  Multimedia Interface (HDMI), Low-voltage Differential Signalling
+	  (LVDS), embedded DisplayPort (eDP) and Display Serial Interface (DSI).
+
+	  This driver supports the on-chip video output device, and targets the
+	  Rockchip RK3288 and RK3399.
+
+config DRM_ROCKCHIP_PANEL
+	bool
+
+config DRM_ROCKCHIP_MIPI_DSI
+	bool
+
+config DRM_ROCKCHIP_DW_MIPI_DSI
+	tristate "Rockchip specific extensions for Synopsys DW MIPI DSI"
+	depends on DRM_ROCKCHIP
+	select DRM_ROCKCHIP_MIPI_DSI
+	select DRM_ROCKCHIP_PANEL
+	help
+	 This selects support for Rockchip SoC specific extensions
+	 for the Synopsys DesignWare HDMI driver. If you want to
+	 enable MIPI DSI on RK3288 based SoC, you should selet this
+	 option.
+
+config DRM_ROCKCHIP_ANALOGIX_DP
+	bool "Rockchip specific extensions for Analogix DP driver"
+	depends on DRM_ROCKCHIP
+	select DRM_ROCKCHIP_PANEL
+	help
+	  This selects support for Rockchip SoC specific extensions
+	  for the Analogix Core DP driver. If you want to enable DP
+	  on RK3288 based SoC, you should selet this option.
+
+config DRM_ROCKCHIP_LVDS
+	bool "Rockchip LVDS Support"
+	depends on DRM_ROCKCHIP
+	select DRM_ROCKCHIP_PANEL
+	help
+	  Choose this option to enable support for Rockchip LVDS controllers.
+	  Rockchip rk3288 SoC has LVDS TX Controller can be used, and it
+	  support LVDS, rgb, dual LVDS output mode. say Y to enable its
+	  driver.
