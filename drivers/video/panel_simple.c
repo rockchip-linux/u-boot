@@ -129,6 +129,7 @@ static int panel_simple_init(struct display_state *state)
 	panel = malloc(sizeof(*panel));
 	if (!panel)
 		return -ENOMEM;
+	memset(panel, 0, sizeof(*panel));
 
 	panel->blob = blob;
 	panel->node = node;
