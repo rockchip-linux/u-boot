@@ -70,7 +70,11 @@ static int dbg_enable = 0;
 /* CHRG_USB_CTRL */
 #define CHRG_EN			(1 << 7)
 
+/* ADC_CTRL_REG */
 #define ADC_TS2_EN		(1 << 4)
+#define ADC_TS1_EN		(1 << 5)
+
+/* TS_CTRL_REG */
 #define TS2_ADC_MODE		(1 << 5)
 
 /* SUP_STS_REG */
@@ -130,6 +134,23 @@ static int dbg_enable = 0;
 #define TS2_VOL_MULTI		0
 #define TS2_CHECK_CNT		5
 
+#define ADC_CUR_MSK		0x03
+#define ADC_CUR_20UA		0x00
+#define ADC_CUR_40UA		0x01
+#define ADC_CUR_60UA		0x02
+#define ADC_CUR_80UA		0x03
+
+#define NTC_CALC_FACTOR_80UA	7
+#define NTC_CALC_FACTOR_60UA	9
+#define NTC_CALC_FACTOR_40UA	13
+#define NTC_CALC_FACTOR_20UA	27
+#define NTC_80UA_MAX_MEASURE	27500
+#define NTC_60UA_MAX_MEASURE	36666
+#define NTC_40UA_MAX_MEASURE	55000
+#define NTC_20UA_MAX_MEASURE	110000
+
+#define INVAL_TEMPERATURE	0xffffffff
+
 #define DIV(x)			((x) ? (x) : 1)
 
 /***********************************************************/
@@ -151,6 +172,11 @@ struct battery_info {
 	int		nac;
 	u32		*ocv_table;
 	u32		ocv_size;
+	u32		*ntc_table;
+	u32		ntc_size;
+	u32		ntc_factor;
+	int		ntc_degree_from;
+	int		temperature;
 	int		virtual_power;
 	int		ts2_vol_multi;
 	int		pwroff_min;
@@ -876,6 +902,34 @@ static int rk818_bat_calc_linek(struct battery_info *di)
 	return linek;
 }
 
+static void rk818_bat_init_ts1(struct battery_info *di)
+{
+	u8 buf;
+
+	if (!di->ntc_size)
+		return;
+
+	/* select uA */
+	buf = rk818_bat_read(RK818_TS_CTRL_REG);
+	buf &= ~ADC_CUR_MSK;
+
+	if (di->ntc_factor == NTC_CALC_FACTOR_80UA)
+		buf |= ADC_CUR_80UA;
+	else if (di->ntc_factor == NTC_CALC_FACTOR_60UA)
+		buf |= ADC_CUR_60UA;
+	else if (di->ntc_factor == NTC_CALC_FACTOR_40UA)
+		buf |= ADC_CUR_40UA;
+	else
+		buf |= ADC_CUR_20UA;
+
+	rk818_bat_write(RK818_TS_CTRL_REG, buf);
+
+	/* ADC_TS1_EN */
+	buf = rk818_bat_read(RK818_ADC_CTRL_REG);
+	buf |= ADC_TS1_EN;
+	rk818_bat_write(RK818_ADC_CTRL_REG, buf);
+}
+
 static void rk818_bat_init_ts2(struct battery_info *di)
 {
 	u8 buf;
@@ -899,6 +953,7 @@ static void rk818_bat_fg_init(struct battery_info *di)
 	rk818_bat_enable_gauge(di);
 	rk818_bat_init_voltage_kb(di);
 	rk818_bat_init_coffset(di);
+	rk818_bat_init_ts1(di);
 	rk818_bat_init_ts2(di);
 	rk818_bat_clr_initialized_state(di);
 	di->dsoc = rk818_bat_get_dsoc(di);
@@ -1202,7 +1257,7 @@ static void rk818_bat_debug_info(struct battery_info *di)
 	    "K=%d, old_cap=%d, charger=%s, Is=%d, Ip=%d, Vs=%d\n"
 	    "min=%d, meet: soc=%d, calc: dsoc=%d, rsoc=%d, Vocv=%d\n"
 	    "off: i=0x%x, c=0x%x, max=%d, ocv_c=%d, halt: st=%d, cnt=%d\n"
-	    "pwr: dsoc=%d, rsoc=%d, vol=%d, Res=%d, exist=%d\n",
+	    "pwr: dsoc=%d, rsoc=%d, vol=%d, Res=%d, exist=%d, T=%d'C\n",
 	    di->dsoc, rk818_bat_get_rsoc(di), rk818_bat_get_avg_voltage(di),
 	    rk818_bat_get_avg_current(di), di->remain_cap, di->fcc,
 	    di->rsoc - di->dsoc,
@@ -1214,7 +1269,8 @@ static void rk818_bat_debug_info(struct battery_info *di)
 	    rk818_bat_get_ocv_voltage(di), rk818_bat_get_ioffset(di),
 	    rk818_bat_get_coffset(di), di->is_max_soc_offset,
 	    di->is_ocv_calib, di->is_halt, di->halt_cnt, di->pwr_dsoc,
-	    di->pwr_rsoc, di->pwr_vol, di->sample_res, is_rk818_bat_exist(di)
+	    di->pwr_rsoc, di->pwr_vol, di->sample_res, is_rk818_bat_exist(di),
+	    di->temperature
 	    );
 	rk818_bat_get_chrg_status(di);
 	DBG("###########################################################\n");
@@ -1365,6 +1421,46 @@ out:
 	rk818_bat_debug_info(di);
 }
 
+static int rk818_bat_get_ntc_res(struct battery_info *di)
+{
+	int val = 0;
+
+	val |= rk818_bat_read(RK818_TS1_ADC_REGL) << 0;
+	val |= rk818_bat_read(RK818_TS1_ADC_REGH) << 8;
+
+	val = val * di->ntc_factor;
+	DBG("<%s>. ntc_res=%d\n", __func__, val);
+
+	return val;
+}
+
+static void rk818_bat_update_temperature(struct battery_info *di)
+{
+	u32 ntc_size, *ntc_table;
+	int i, res;
+
+	ntc_table = di->ntc_table;
+	ntc_size = di->ntc_size;
+	di->temperature = INVAL_TEMPERATURE;
+
+	if (ntc_size) {
+		res = rk818_bat_get_ntc_res(di);
+		if (res < ntc_table[ntc_size - 1]) {
+			printf("bat ntc upper max degree: R=%d\n", res);
+		} else if (res > ntc_table[0]) {
+			printf("bat ntc lower min degree: R=%d\n", res);
+		} else {
+			for (i = 0; i < ntc_size; i++) {
+				if (res >= ntc_table[i])
+					break;
+			}
+			di->temperature = (i + di->ntc_degree_from);
+		}
+	}
+
+	DBG("temperature=%d\n", di->temperature);
+}
+
 static int rk818_bat_update(struct pmic *p, struct pmic *bat)
 {
 	struct battery *battery = bat->pbat->bat;
@@ -1384,6 +1480,7 @@ static int rk818_bat_update(struct pmic *p, struct pmic *bat)
 	if (get_timer(seconds) >= SECONDS(5)) {
 		seconds = get_timer(0);
 		rk818_bat_smooth_charge(&rk818_fg.di);
+		rk818_bat_update_temperature(&rk818_fg.di);
 	}
 
 	/* bat exist, fg init success(dts pass) and uboot charge: report data */
@@ -1410,6 +1507,7 @@ static int rk818_bat_parse_dt(struct battery_info *di, void const *blob)
 	int node, parent;
 	int len;
 	int err;
+	u32 sign, degree_from[2];
 	const char *prop;
 
 	parent = fdt_node_offset_by_compatible(blob, g_i2c_node,
@@ -1498,6 +1596,49 @@ static int rk818_bat_parse_dt(struct battery_info *di, void const *blob)
 		di->dc_is_valid = true;
 	}
 
+	prop = fdt_getprop(blob, node, "ntc_table", &len);
+	if (!prop) {
+		di->ntc_size = 0;
+	} else {
+		err = fdtdec_get_int_array(blob, node, "ntc_degree_from",
+					   degree_from, ARRAY_SIZE(degree_from));
+		if (err < 0) {
+			printf("invalid ntc_degree_from\n");
+			return -EINVAL;
+		}
+
+		sign = degree_from[0];
+		di->ntc_degree_from = degree_from[1];
+		if (sign)
+			di->ntc_degree_from = -di->ntc_degree_from;
+
+		di->ntc_size = len / sizeof(u32);
+	}
+
+	if (di->ntc_size) {
+		di->ntc_table = calloc(len, 1);
+		if (!di->ntc_table) {
+			printf("calloc ocv_table fail\n");
+			return -ENOMEM;
+		}
+
+		err = fdtdec_get_int_array(blob, node, "ntc_table",
+					   di->ntc_table, di->ntc_size);
+		if (err < 0) {
+			printf("read ntc_table array failed\n");
+			return err;
+		}
+
+		if (di->ntc_table[0] < NTC_80UA_MAX_MEASURE)
+			di->ntc_factor = NTC_CALC_FACTOR_80UA;
+		else if (di->ntc_table[0] < NTC_60UA_MAX_MEASURE)
+			di->ntc_factor = NTC_CALC_FACTOR_60UA;
+		else if (di->ntc_table[0] < NTC_40UA_MAX_MEASURE)
+			di->ntc_factor = NTC_CALC_FACTOR_40UA;
+		else
+			di->ntc_factor = NTC_CALC_FACTOR_20UA;
+	}
+
 	DBG("-------------------------------:\n");
 	DBG("max_input_current:%d\n", di->dts_cur_input);
 	DBG("max_chrg_current:%d\n", di->dts_cur_sel);
@@ -1506,6 +1647,10 @@ static int rk818_bat_parse_dt(struct battery_info *di, void const *blob)
 	DBG("design_qmax:%d\n", di->qmax);
 	DBG("max_soc_offset:%d\n", di->max_soc_offset);
 	DBG("sample_res:%d\n", di->sample_res);
+	DBG("ntc_factor:%d\n", di->ntc_factor);
+	DBG("ntc_size=%d\n", di->ntc_size);
+	DBG("ntc_degree_from:%d\n", di->ntc_degree_from);
+	DBG("ntc_degree_to:%d\n", di->ntc_degree_from + di->ntc_size - 1);
 
 	return 0;
 }
