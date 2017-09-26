@@ -557,7 +557,7 @@ bool StorageUMSBootMode(void)
 }
 #endif
 
-static struct vendor_info g_vendor;
+static struct vendor_info g_vendor __attribute__((aligned(ARCH_DMA_MINALIGN)));
 
 static int vendor_ops(u8 *buffer, u32 addr, u32 n_sec, int write)
 {

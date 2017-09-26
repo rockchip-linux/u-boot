@@ -300,7 +300,7 @@ struct bmp_header *get_bmp_header(const char *bmp_name)
 	const disk_partition_t *ptn = get_disk_partition(LOGO_NAME);
 	struct bmp_header *bmp;
 
-	bmp = malloc(BLOCK_SIZE);
+	bmp = memalign(ARCH_DMA_MINALIGN, BLOCK_SIZE);
 	if (!bmp)
 		return NULL;
 
