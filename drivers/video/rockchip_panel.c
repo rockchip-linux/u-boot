@@ -135,18 +135,19 @@ rockchip_get_display_mode_from_panel(struct display_state *state)
 const struct rockchip_panel *rockchip_get_panel(const void *blob, int node)
 {
 	const char *name;
-	int i;
+	int i, ret, index = 0;
 
-	fdt_get_string(blob, node, "compatible", &name);
-
-	for (i = 0; i < ARRAY_SIZE(g_panel); i++)
-		if (!strcmp(name, g_panel[i].compatible))
+	for (;;) {
+		ret = fdt_get_string_index(blob, node, "compatible", index++, &name);
+		if (ret < 0)
 			break;
 
-	if (i >= ARRAY_SIZE(g_panel))
-		return NULL;
+		for (i = 0; i < ARRAY_SIZE(g_panel); i++)
+			if (!strcmp(name, g_panel[i].compatible))
+				return &g_panel[i];
+	}
 
-	return &g_panel[i];
+	return NULL;
 }
 
 int rockchip_panel_init(struct display_state *state)
