@@ -570,8 +570,8 @@ static unsigned long rockchip_dsi_calc_bandwidth(struct dw_mipi_dsi *dsi)
 
 	mpclk = DIV_ROUND_UP(dsi->mode->clock, MSEC_PER_SEC);
 	if (mpclk) {
-		/* take 1 / 0.8, since mbps must big than bandwidth of RGB */
-		tmp = mpclk * (bpp / lanes) * 10 / 8;
+		/* take 1 / 0.9, since mbps must big than bandwidth of RGB */
+		tmp = mpclk * (bpp / lanes) * 10 / 9;
 		if (tmp < max_mbps)
 			target_mbps = tmp;
 		else
