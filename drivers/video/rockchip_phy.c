@@ -56,7 +56,7 @@ int rockchip_phy_power_on(struct display_state *state)
 	const struct rockchip_phy *phy = conn_state->phy;
 
 	if (!phy || !phy->funcs || !phy->funcs->power_on) {
-		printf("%s: failed to find phy power on funcs\n", __func__);
+		debug("%s: failed to find phy power on funcs\n", __func__);
 		return -ENODEV;
 	}
 
@@ -69,7 +69,7 @@ int rockchip_phy_power_off(struct display_state *state)
 	const struct rockchip_phy *phy = conn_state->phy;
 
 	if (!phy || !phy->funcs || !phy->funcs->power_off) {
-		printf("%s: failed to find phy power_off funcs\n", __func__);
+		debug("%s: failed to find phy power_off funcs\n", __func__);
 		return -ENODEV;
 	}
 
@@ -83,7 +83,7 @@ unsigned long rockchip_phy_set_pll(struct display_state *state,
 	const struct rockchip_phy *phy = conn_state->phy;
 
 	if (!phy || !phy->funcs || !phy->funcs->set_pll) {
-		printf("%s: failed to find phy set_pll funcs\n", __func__);
+		debug("%s: failed to find phy set_pll funcs\n", __func__);
 		return -ENODEV;
 	}
 
