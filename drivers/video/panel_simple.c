@@ -97,10 +97,10 @@ static int panel_simple_parse_dt(const void *blob, int node,
 
 	fdtdec_decode_gpio(blob, node, "enable-gpios", enable_gpio);
 
-	panel->delay_prepare = fdtdec_get_int(blob, node, "delay,prepare", 0);
-	panel->delay_unprepare = fdtdec_get_int(blob, node, "delay,unprepare", 0);
-	panel->delay_enable = fdtdec_get_int(blob, node, "delay,enable", 0);
-	panel->delay_disable = fdtdec_get_int(blob, node, "delay,disable", 0);
+	panel->delay_prepare = fdtdec_get_int(blob, node, "prepare-delay-ms", 0);
+	panel->delay_unprepare = fdtdec_get_int(blob, node, "unprepare-delay-ms", 0);
+	panel->delay_enable = fdtdec_get_int(blob, node, "enable-delay-ms", 0);
+	panel->delay_disable = fdtdec_get_int(blob, node, "disable-delay-ms", 0);
 	panel->bus_format = fdtdec_get_int(blob, node, "bus-format", MEDIA_BUS_FMT_RBG888_1X24);
 
 	printf("delay prepare[%d] unprepare[%d] enable[%d] disable[%d]\n",
