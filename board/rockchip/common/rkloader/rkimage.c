@@ -747,6 +747,16 @@ void rkimage_prepare_fdt(void)
 		return;
 	}
 #endif
+	content = rkimage_load_fdt(get_disk_partition(RECOVERY_NAME));
+	if (!content.load_addr) {
+		debug("Failed to prepare fdt from recovery!\n");
+	} else {
+		printf("Load FDT from recovery image.\n");
+
+		gd->fdt_blob = content.load_addr;
+		gd->fdt_size = content.content_size;
+		return;
+	}
 #endif
 }
 
