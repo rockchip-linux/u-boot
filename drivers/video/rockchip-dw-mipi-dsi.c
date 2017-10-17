@@ -325,6 +325,7 @@ struct dw_mipi_dsi_plat_data {
 	unsigned int max_data_lanes;
 	u32 max_bit_rate_per_lane;
 	bool has_vop_sel;
+	bool vsync_quirk;
 };
 
 struct mipi_dphy {
@@ -791,6 +792,9 @@ static void dw_mipi_dsi_dpi_config(struct dw_mipi_dsi *dsi,
 	if (mode->flags & DRM_MODE_FLAG_NHSYNC)
 		val |= HSYNC_ACTIVE_LOW;
 
+	if (dsi->pdata->vsync_quirk)
+		val ^= VSYNC_ACTIVE_LOW;
+
 	dsi_write(dsi, DSI_DPI_VCID, DPI_VID(dsi->channel));
 	dsi_write(dsi, DSI_DPI_COLOR_CODING, color);
 	dsi_write(dsi, DSI_DPI_CFG_POL, val);
@@ -895,6 +899,12 @@ static void dw_mipi_dsi_clear_err(struct dw_mipi_dsi *dsi)
 	dsi_write(dsi, DSI_INT_MSK0, 0);
 	dsi_write(dsi, DSI_INT_MSK1, 0);
 }
+
+const struct dw_mipi_dsi_plat_data rk3128_mipi_dsi_drv_data = {
+	.max_data_lanes = 4,
+	.max_bit_rate_per_lane = 1000000000,
+	.vsync_quirk = true,
+};
 
 const struct dw_mipi_dsi_plat_data rk3288_mipi_dsi_drv_data = {
 	.dsi0_en_bit = RK3288_DSI0_SEL_VOP_LIT,

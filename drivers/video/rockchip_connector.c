@@ -22,6 +22,11 @@
 static const struct rockchip_connector g_connector[] = {
 #ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
 	{
+	 .compatible = "rockchip,rk3128-mipi-dsi",
+	 .funcs = &rockchip_dw_mipi_dsi_funcs,
+	 .data = &rk3128_mipi_dsi_drv_data,
+	},
+	{
 	 .compatible = "rockchip,rk3288-mipi-dsi",
 	 .funcs = &rockchip_dw_mipi_dsi_funcs,
 	 .data = &rk3288_mipi_dsi_drv_data,
