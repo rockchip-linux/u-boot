@@ -23,6 +23,10 @@
 static const struct rockchip_phy g_phy[] = {
 #ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
 	{
+	 .compatible = "rockchip,rk3128-mipi-dphy",
+	 .funcs = &inno_mipi_dphy_funcs,
+	},
+	{
 	 .compatible = "rockchip,rk3366-mipi-dphy",
 	 .funcs = &inno_mipi_dphy_funcs,
 	},
