@@ -195,10 +195,6 @@ static void rk_mipi_screen_cmd_init(struct mipi_screen *screen)
 		}
 		else
 		    MIPI_SCREEN_DBG("cmd type err.\n");
-#ifdef CONFIG_RK32_DSI
-		free(dcs_cmd->dcs_cmd.cmds);
-		dcs_cmd->dcs_cmd.cmds = NULL;
-#endif
 	}
 
 #ifdef CONFIG_RK32_DSI
