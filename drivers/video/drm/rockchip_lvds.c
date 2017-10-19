@@ -28,6 +28,7 @@ enum rockchip_lvds_sub_devtype {
 	RK3288_LVDS,
 	RK3366_LVDS,
 	RK3368_LVDS,
+	RK3126_LVDS,
 };
 
 struct rockchip_lvds_chip_data {
@@ -41,9 +42,9 @@ struct rockchip_lvds_chip_data {
 };
 
 struct rockchip_lvds_device {
-	u32	regbase;
+	void	*regbase;
 	void	*grf;
-	u32	ctrl_reg;
+	void	*ctrl_reg;
 	u32	channel;
 	u32	output;
 	u32	format;
@@ -111,26 +112,32 @@ static inline void lvds_ctrl_writel(struct rockchip_lvds_device *lvds,
 
 static inline u32 lvds_pmugrf_readl(u32 offset)
 {
-	return readl(LVDS_PMUGRF_BASE + offset);
+	return readl((void *)LVDS_PMUGRF_BASE + offset);
 }
 
 static inline void lvds_pmugrf_writel(u32 offset, u32 val)
 {
-	writel(val, LVDS_PMUGRF_BASE + offset);
+	writel(val, (void *)LVDS_PMUGRF_BASE + offset);
 }
 
 static inline u32 lvds_phy_lock(struct rockchip_lvds_device *lvds)
 {
 	u32 val = 0;
-	val = readl(lvds->ctrl_reg + 0x10);
-	val &= 0x1;
-	return val;
+	val = readl(lvds->ctrl_reg + MIPIC_PHY_STATUS);
+	return (val & m_PHY_LOCK_STATUS) ? 1 : 0;
 }
 
 static int rockchip_lvds_clk_enable(struct rockchip_lvds_device *lvds)
 {
 	return 0;
 }
+
+const struct rockchip_lvds_chip_data rk3126_lvds_drv_data = {
+	.chip_type = RK3126_LVDS,
+	.grf_soc_con7  = RK3126_GRF_LVDS_CON0,
+	.grf_soc_con15 = RK3126_GRF_CON1,
+	.has_vop_sel = true,
+};
 
 const struct rockchip_lvds_chip_data rk3366_lvds_drv_data = {
 	.chip_type = RK3366_LVDS,
@@ -231,6 +238,41 @@ static int rk336x_lvds_pwr_on(struct display_state *state)
 	return 0;
 }
 
+static void rk3126_output_ttl(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+	u32 val = 0;
+
+	/* iomux to lcdc */
+	writel(0xffff5555, lvds->grf + RK3126_GRF_GPIO2B_IOMUX);
+	writel(0xffff5555, lvds->grf + RK3126_GRF_GPIO2C_IOMUX);
+	writel(0x00ff0055, lvds->grf + RK3126_GRF_GPIO2C_IOMUX2);
+	writel(0x700c1004, lvds->grf + RK3126_GRF_GPIO2D_IOMUX);
+
+	/* enable lvds mode */
+	val = v_RK3126_LVDSMODE_EN(0) |
+		v_RK3126_MIPIPHY_TTL_EN(1) |
+		v_RK3126_MIPIPHY_LANE0_EN(1) |
+		v_RK3126_MIPIDPI_FORCEX_EN(1);
+	writel(val, lvds->grf + lvds->pdata->grf_soc_con7);
+	val = v_RK3126_MIPITTL_CLK_EN(1) |
+		v_RK3126_MIPITTL_LANE0_EN(1) |
+		v_RK3126_MIPITTL_LANE1_EN(1) |
+		v_RK3126_MIPITTL_LANE2_EN(1) |
+		v_RK3126_MIPITTL_LANE3_EN(1);
+	writel(val, lvds->grf + lvds->pdata->grf_soc_con15);
+	/* enable lane */
+	lvds_writel(lvds, MIPIPHY_REG0, 0x7f);
+	val = v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) | v_LANE3_EN(1) |
+		v_LANECLK_EN(1) | v_PLL_PWR_OFF(1);
+	lvds_writel(lvds, MIPIPHY_REGEB, val);
+	/* set ttl mode and reset phy config */
+	val = v_LVDS_MODE_EN(0) | v_TTL_MODE_EN(1) | v_MIPI_MODE_EN(0) |
+		v_MSB_SEL(1) | v_DIG_INTER_RST(1);
+	lvds_writel(lvds, MIPIPHY_REGE0, val);
+	rk336x_lvds_pwr_on(state);
+}
 
 static void rk336x_output_ttl(struct display_state *state)
 {
@@ -277,6 +319,41 @@ static void rk336x_output_ttl(struct display_state *state)
 	lvds_writel(lvds, MIPIPHY_REGE0, val);
 
 	rk336x_lvds_pwr_on(state);
+}
+
+static void rk3126_output_lvds(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_lvds_device *lvds = conn_state->private;
+	u32 val = 0;
+
+	/* enable lvds mode */
+	val = v_RK3126_LVDSMODE_EN(1) |
+	      v_RK3126_MIPIPHY_TTL_EN(0);
+	/* config lvds_format */
+	val |= v_RK3126_LVDS_OUTPUT_FORMAT(lvds->format);
+	/* LSB receive mode */
+	val |= v_RK3126_LVDS_MSBSEL(LVDS_MSB_D7);
+	val |= v_RK3126_MIPIPHY_LANE0_EN(1) |
+	       v_RK3126_MIPIDPI_FORCEX_EN(1);
+	writel(val, lvds->grf + lvds->pdata->grf_soc_con7);
+
+	/* digital internal disable */
+	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(0));
+
+	/* set pll prediv and fbdiv */
+	lvds_writel(lvds, MIPIPHY_REG3, v_PREDIV(2) | v_FBDIV_MSB(0));
+	lvds_writel(lvds, MIPIPHY_REG4, v_FBDIV_LSB(28));
+
+	lvds_writel(lvds, MIPIPHY_REGE8, 0xfc);
+
+	/* set lvds mode and reset phy config */
+	lvds_msk_reg(lvds, MIPIPHY_REGE0,
+		     m_MSB_SEL | m_DIG_INTER_RST,
+		     v_MSB_SEL(1) | v_DIG_INTER_RST(1));
+
+	rk336x_lvds_pwr_on(state);
+	lvds_msk_reg(lvds, MIPIPHY_REGE1, m_DIG_INTER_EN, v_DIG_INTER_EN(1));
 }
 
 static void rk336x_output_lvds(struct display_state *state)
@@ -436,7 +513,7 @@ static int rockchip_lvds_init(struct display_state *state)
 	int lvds_node = conn_state->node;
 	struct rockchip_lvds_device *lvds;
 	const char *name;
-	int i;
+	int i,width;
 	struct fdt_resource lvds_phy, lvds_ctrl;
 	struct panel_state *panel_state = &state->panel_state;
 	int panel_node = panel_state->node;
@@ -447,7 +524,7 @@ static int rockchip_lvds_init(struct display_state *state)
 	lvds->pdata = pdata;
 
 	if (pdata->chip_type == RK3288_LVDS) {
-		lvds->regbase = (u32)fdtdec_get_addr_size_auto_noparent(state->blob,
+		lvds->regbase = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
 						lvds_node, "reg", 0, NULL, false);
 	} else {
 		i = fdt_get_named_resource(state->blob, lvds_node, "reg", "reg-names",
@@ -466,8 +543,8 @@ static int rockchip_lvds_init(struct display_state *state)
 			return -ENOMEM;
 		}
 
-		lvds->regbase = lvds_phy.start;
-		lvds->ctrl_reg = lvds_ctrl.start;
+		lvds->regbase = (void *)lvds_phy.start;
+		lvds->ctrl_reg = (void *)lvds_ctrl.start;
 	}
 
 	lvds->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
@@ -500,21 +577,26 @@ static int rockchip_lvds_init(struct display_state *state)
 		free(lvds);
 		return lvds->format;
 	}
-	i = fdtdec_get_int(state->blob, panel_node, "rockchip,data-width", 24);
-	if (i == 24) {
+	width = fdtdec_get_int(state->blob, panel_node, "rockchip,data-width", 24);
+	if (width == 24) {
 		lvds->format |= LVDS_24BIT;
-	} else if (i == 18) {
+	} else if (width == 18) {
 		lvds->format |= LVDS_18BIT;
 	} else {
-		printf("rockchip-lvds unsupport data-width[%d]\n", i);
+		printf("rockchip-lvds unsupport data-width[%d]\n", width);
 		free(lvds);
 		return -EINVAL;
 	}
+
 	printf("LVDS: data mapping: %s, data-width:%d, format:%d,\n",
-		name, i, lvds->format);
+		name, width, lvds->format);
 	conn_state->private = lvds;
 	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
-	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+
+	if ((lvds->output == DISPLAY_OUTPUT_RGB) && (width == 18))
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P666;
+	else
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
 	return 0;
 }
@@ -571,11 +653,15 @@ static int rockchip_lvds_enable(struct display_state *state)
 	if (lvds->output == DISPLAY_OUTPUT_LVDS) {
 		if (lvds->pdata->chip_type == RK3288_LVDS)
 			rk3288_output_lvds(state);
+		else if (lvds->pdata->chip_type == RK3126_LVDS)
+			rk3126_output_lvds(state);
 		else
 			rk336x_output_lvds(state);
 	} else {
 		if (lvds->pdata->chip_type == RK3288_LVDS)
 			rk3288_output_ttl(state);
+		else if (lvds->pdata->chip_type == RK3126_LVDS)
+			rk3126_output_ttl(state);
 		else
 			rk336x_output_ttl(state);
 	}
@@ -605,7 +691,7 @@ const struct rockchip_connector_funcs rockchip_lvds_funcs = {
 };
 
 static const struct rockchip_connector rk3366_lvds_data = {
-	 .funcs = &rockchip_analogix_dp_funcs,
+	 .funcs = &rockchip_lvds_funcs,
 	 .data = &rk3366_lvds_drv_data,
 };
 
@@ -619,6 +705,11 @@ static const struct rockchip_connector rk3288_lvds_data = {
 	 .data = &rk3288_lvds_drv_data,
 };
 
+static const struct rockchip_connector rk3126_lvds_data = {
+	 .funcs = &rockchip_lvds_funcs,
+	 .data = &rk3126_lvds_drv_data,
+};
+
 static const struct udevice_id rockchip_lvds_ids[] = {
 	{
 	 .compatible = "rockchip,rk3366-lvds",
@@ -629,6 +720,9 @@ static const struct udevice_id rockchip_lvds_ids[] = {
 	}, {
 	 .compatible = "rockchip,rk3288-lvds",
 	 .data = (ulong)&rk3288_lvds_data,
+	}, {
+	 .compatible = "rockchip,rk3126-lvds",
+	 .data = (ulong)&rk3126_lvds_data,
 	}, {}
 };
 
