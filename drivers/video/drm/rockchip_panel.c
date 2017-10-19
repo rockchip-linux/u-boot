@@ -4,21 +4,20 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <asm/unaligned.h>
 #include <config.h>
 #include <common.h>
 #include <errno.h>
-#include <malloc.h>
+#include <dm/device.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
-#include <asm/unaligned.h>
-#include <linux/list.h>
-#include <dm/device.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_panel.h"
 
+#ifdef CONFIG_DRM_ROCKCHIP_PANEL
 static const struct drm_display_mode auo_b125han03_mode = {
 	.clock = 146900,
 	.hdisplay = 1920,
@@ -46,16 +45,11 @@ static const struct drm_display_mode lg_lp079qx1_sp0v_mode = {
 	.vrefresh = 60,
 	.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC,
 };
-#if 0
+
 static const struct rockchip_panel simple_panel_data = {
 	.funcs = &panel_simple_funcs,
 };
-#endif
 
-static const struct rockchip_panel simple_panel_dsi_data = {
-	.funcs = &rockchip_dsi_panel_funcs,
-};
-#if 0
 static const struct rockchip_panel lg_lp079qx1_sp0v_data = {
 	.funcs = &panel_simple_funcs,
 	.data = &lg_lp079qx1_sp0v_mode,
@@ -67,41 +61,43 @@ static const struct rockchip_panel auo_b125han03_data = {
 };
 #endif
 
+#ifdef CONFIG_DRM_ROCKCHIP_DSI_PANEL
+static const struct rockchip_panel simple_panel_dsi_data = {
+	.funcs = &rockchip_dsi_panel_funcs,
+};
+#endif
+
 static const struct udevice_id rockchip_panel_ids[] = {
-#if 0
-	}, {
+#ifdef CONFIG_DRM_ROCKCHIP_PANEL
+	{
 		.compatible = "simple-panel",
-		.funcs = &simple_panel_data,
+		.data = (ulong)&simple_panel_data,
+	}, {
+		.compatible = "lg,lp079qx1-sp0v",
+		.data = (ulong)&lg_lp079qx1_sp0v_data,
+	}, {
+		.compatible = "auo,b125han03",
+		.data = (ulong)&auo_b125han03_data,
 	},
 #endif
- {
+#ifdef CONFIG_DRM_ROCKCHIP_DSI_PANEL
+	{
 		.compatible = "simple-panel-dsi",
 		.data = (ulong)&simple_panel_dsi_data,
 	},
-#if 0
-{
-		.compatible = "lg,lp079qx1-sp0v",
-		.funcs = &lg_lp079qx1_sp0v_data,
-	}, {
-		.compatible = "auo,b125han03",
-		.funcs = &auo_b125han03_data,
-	},
 #endif
- {}
+	{}
 };
 
 static int rockchip_panel_probe(struct udevice *dev)
 {
-	printf("--->yzq %s %d\n", __func__, __LINE__);
 	return 0;
 }
 
 static int rockchip_panel_bind(struct udevice *dev)
 {
-	printf("--->yzq %s %d\n", __func__, __LINE__);
 	return 0;
 }
-
 
 U_BOOT_DRIVER(rockchip_panel) = {
 	.name = "rockchip_panel",
@@ -122,25 +118,6 @@ rockchip_get_display_mode_from_panel(struct display_state *state)
 
 	return (const struct drm_display_mode *)panel->data;
 }
-
-#if 0
-const struct rockchip_panel *rockchip_get_panel(const void *blob, int node)
-{
-	const char *name;
-	int i;
-
-	name = fdt_stringlist_get(blob, node, "compatible", 0, NULL);
-
-	for (i = 0; i < ARRAY_SIZE(g_panel); i++)
-		if (!strcmp(name, g_panel[i].compatible))
-			break;
-
-	if (i >= ARRAY_SIZE(g_panel))
-		return NULL;
-
-	return &g_panel[i];
-}
-#endif
 
 int rockchip_panel_init(struct display_state *state)
 {
@@ -173,15 +150,10 @@ int rockchip_panel_prepare(struct display_state *state)
 	struct panel_state *panel_state = &state->panel_state;
 	const struct rockchip_panel *panel = panel_state->panel;
 
-printf("--->yzq %s %d\n", __func__, __LINE__);
 	if (!panel || !panel->funcs || !panel->funcs->prepare) {
-printf("--->yzq %s %d panel=%p\n", __func__, __LINE__, panel);
-printf("--->yzq %s %d panel->funcs=%p\n", __func__, __LINE__, panel->funcs);
-printf("--->yzq %s %d panel->funcs->prepare=%p\n", __func__, __LINE__, panel->funcs->prepare);
 		printf("%s: failed to find panel prepare funcs\n", __func__);
 		return -ENODEV;
 	}
-printf("--->yzq %s %d\n", __func__, __LINE__);
 
 	return panel->funcs->prepare(state);
 }

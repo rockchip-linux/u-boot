@@ -71,6 +71,7 @@ struct panel_state {
 struct connector_state {
 	struct udevice *dev;
 	const struct rockchip_connector *connector;
+	struct udevice *phy_dev;
 	const struct rockchip_phy *phy;
 	int node;
 	int phy_node;
@@ -109,20 +110,23 @@ struct rockchip_logo_cache {
 
 struct display_state {
 	struct list_head head;
+
 	const void *blob;
 	int node;
-	const char *ulogo_name;
-	const char *klogo_name;
-	int logo_mode;
-	int charge_logo_mode;
-	struct bmp_image *ubmp;
-	struct bmp_image *kbmp;
-	void *mem_base;
-	int mem_size;
-	struct logo_info logo;
+
 	struct crtc_state crtc_state;
 	struct connector_state conn_state;
 	struct panel_state panel_state;
+
+	const char *ulogo_name;
+	const char *klogo_name;
+
+	struct logo_info logo;
+	int logo_mode;
+	int charge_logo_mode;
+	void *mem_base;
+	int mem_size;
+
 	int enable;
 	int is_init;
 	int is_enable;

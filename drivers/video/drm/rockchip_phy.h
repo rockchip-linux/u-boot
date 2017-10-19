@@ -16,7 +16,6 @@ struct rockchip_phy_funcs {
 };
 
 struct rockchip_phy {
-	char compatible[30];
 	const struct rockchip_phy_funcs *funcs;
 	const void *data;
 };
@@ -28,7 +27,7 @@ int rockchip_phy_power_on(struct display_state *state);
 unsigned long rockchip_phy_set_pll(struct display_state *state,
 				   unsigned long rate);
 
-#ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
+#ifdef CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI
 extern const struct rockchip_phy_funcs inno_mipi_dphy_funcs;
 #endif
 #endif

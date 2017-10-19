@@ -18,6 +18,7 @@
 #include <video.h>
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
+#include <asm/arch-rockchip/resource_img.h>
 
 #include "bmp_helper.h"
 #include "rockchip_display.h"
@@ -26,34 +27,32 @@
 #include "rockchip_phy.h"
 #include "rockchip_panel.h"
 
+#define RK_BLK_SIZE 512
+
 DECLARE_GLOBAL_DATA_PTR;
 static LIST_HEAD(rockchip_display_list);
 static LIST_HEAD(logo_cache_list);
 
-#define DRM_ROCKCHIP_FB_WIDTH 1920
-#define DRM_ROCKCHIP_FB_HEIGHT 1080
+#ifdef CONFIG_DRM_ROCKCHIP_VIDEO_FRAMEBUFFER
+ #define DRM_ROCKCHIP_FB_WIDTH		1920
+ #define DRM_ROCKCHIP_FB_HEIGHT		1080
+ #define DRM_ROCKCHIP_FB_BPP		VIDEO_BPP32
+#else
+ #define DRM_ROCKCHIP_FB_WIDTH		0
+ #define DRM_ROCKCHIP_FB_HEIGHT		0
+ #define DRM_ROCKCHIP_FB_BPP		VIDEO_BPP32
+#endif
 
-#define MEMORY_POOL_SIZE 32 * 1024 * 1024
+#define MEMORY_POOL_SIZE	32 * 1024 * 1024
+#define DRM_ROCKCHIP_FB_SIZE \
+	VNBYTES(DRM_ROCKCHIP_FB_BPP) * DRM_ROCKCHIP_FB_WIDTH * DRM_ROCKCHIP_FB_HEIGHT
+
 static unsigned long memory_start;
 static unsigned long memory_end;
 
-#ifdef CONFIG_RK_PWM_BL
-extern int rk_pwm_bl_config(int brightness);
-#endif
-
-struct bmp_header *get_bmp_header(const char *bmp_name)
+static void init_display_buffer(ulong base)
 {
-	printf("%s %d TODO\n", __func__, __LINE__);
-}
-
-int load_bmp_content(const char *logo, void *bmp, int size)
-{
-	printf("%s %d TODO\n", __func__, __LINE__);
-}
-
-static void init_display_buffer(void)
-{
-	memory_start = gd->fb_base;
+	memory_start = base + DRM_ROCKCHIP_FB_SIZE;
 	memory_end = memory_start;
 }
 
@@ -73,28 +72,53 @@ static void *get_display_buffer(int size)
 	return buf;
 }
 
+#if 0
 static unsigned long get_display_size(void)
 {
 	return memory_end - memory_start;
 }
+#endif
 
 static bool can_direct_logo(int bpp)
 {
 	return bpp == 24 || bpp == 32;
 }
 
-static int get_panel_node(struct display_state *state, int conn_node)
+static struct udevice *find_panel_device_by_node(const void *blob,
+						 int panel_node)
 {
+	struct udevice *dev;
+	int ret;
+
+	ret = uclass_find_device_by_of_offset(UCLASS_PANEL, panel_node, &dev);
+	if (ret) {
+		printf("Warn: %s: can't find panel driver\n",
+		       fdt_get_name(blob, panel_node, NULL));
+		return NULL;
+	}
+
+	return dev;
+}
+
+static struct udevice *get_panel_device(struct display_state *state, int conn_node)
+{
+	struct panel_state *panel_state = &state->panel_state;
 	const void *blob = state->blob;
 	int panel, ports, port, ep, remote, ph, nodedepth;
+	struct udevice *dev;
 
 	panel = fdt_subnode_offset(blob, conn_node, "panel");
-	if (panel > 0)
-		return panel;
+	if (panel > 0 && fdt_device_is_available(blob, panel)) {
+		dev = find_panel_device_by_node(blob, panel);
+		if (dev) {
+			panel_state->node = panel;
+			return dev;
+		}
+	}
 
 	ports = fdt_subnode_offset(blob, conn_node, "ports");
 	if (ports < 0)
-		return -ENODEV;
+		return NULL;
 
 	fdt_for_each_subnode(port, blob, ports) {
 		fdt_for_each_subnode(ep, blob, port) {
@@ -112,11 +136,20 @@ static int get_panel_node(struct display_state *state, int conn_node)
 			panel = fdt_supernode_atdepth_offset(blob, remote,
 							     nodedepth - 2,
 							     NULL);
-			break;
+			if (!fdt_device_is_available(blob, panel)) {
+				debug("[%s]: panel is disabled\n",
+				      fdt_get_name(blob, panel, NULL));
+				continue;
+			}
+			dev = find_panel_device_by_node(blob, panel);
+			if (dev) {
+				panel_state->node = panel;
+				return dev;
+			}
 		}
 	}
 
-	return panel;
+	return NULL;
 }
 
 static int connector_phy_init(struct display_state *state)
@@ -126,6 +159,8 @@ static int connector_phy_init(struct display_state *state)
 	const void *blob = state->blob;
 	const struct rockchip_phy *phy;
 	int phy_node, phandle;
+	struct udevice *dev;
+	int ret;
 
 	phandle = fdt_getprop_u32_default_node(blob, conn_node, 0,
 					       "phys", -1);
@@ -138,12 +173,19 @@ static int connector_phy_init(struct display_state *state)
 		return phy_node;
 	}
 
-	phy = rockchip_get_phy(blob, phy_node);
+	ret = uclass_find_device_by_of_offset(UCLASS_PHY, phy_node, &dev);
+	if (ret) {
+		printf("Warn: %s: can't find phy driver\n",
+		       fdt_get_name(blob, phy_node, NULL));
+		return ret;
+	}
+	phy = (const struct rockchip_phy *)dev_get_driver_data(dev);
 	if (!phy) {
 		printf("failed to find phy driver\n");
 		return 0;
 	}
 
+	conn_state->phy_dev = dev;
 	conn_state->phy_node = phy_node;
 
 	if (!phy->funcs || !phy->funcs->init ||
@@ -164,30 +206,16 @@ static int connector_panel_init(struct display_state *state)
 	const void *blob = state->blob;
 	int conn_node = conn_state->node;
 	const struct rockchip_panel *panel;
-	int panel_node, dsp_lut_node;
+	int dsp_lut_node;
 	int ret, len;
-
-	panel_node = get_panel_node(state, conn_node);
-	if (panel_node < 0) {
-		printf("failed to find panel node\n");
-		return -ENODEV;
-	}
-
-	if (!fdt_device_is_available(blob, panel_node)) {
-		printf("panel is disabled\n");
-		return -ENODEV;
-	}
 
 	dm_scan_fdt_dev(conn_state->dev);
 
-	panel_state->node = panel_node;
-
-	ret = uclass_find_device_by_of_offset(UCLASS_PANEL, panel_node, &dev);
-	if (ret) {
-		printf("Warn: %s: can't find panel driver\n",
-		       fdt_get_name(blob, panel_node, NULL));
-		return -ENODEV;
+	dev = get_panel_device(state, conn_node);
+	if (!dev) {
+		return 0;
 	}
+
 	panel = (const struct rockchip_panel *)dev_get_driver_data(dev);
 	if (!panel) {
 		printf("failed to find panel driver\n");
@@ -203,7 +231,7 @@ static int connector_panel_init(struct display_state *state)
 		return ret;
 	}
 
-	dsp_lut_node = fdt_subnode_offset(blob, panel_node, "dsp-lut");
+	dsp_lut_node = fdt_subnode_offset(blob, panel_state->node, "dsp-lut");
 	fdt_getprop(blob, dsp_lut_node, "gamma-lut", &len);
 	if (len > 0) {
 		conn_state->gamma.size  = len / sizeof(u32);
@@ -320,16 +348,10 @@ static int display_get_timing(struct display_state *state)
 	struct drm_display_mode *mode = &conn_state->mode;
 	const struct drm_display_mode *m;
 	const void *blob = state->blob;
-	int conn_node = conn_state->node;
-	int panel;
+	struct panel_state *panel_state = &state->panel_state;
+	int panel = panel_state->node;
 
-	panel = get_panel_node(state, conn_node);
-	if (panel < 0) {
-		printf("failed to find panel node\n");
-		return -ENODEV;
-	}
-
-	if (!display_get_timing_from_dts(panel, blob, mode)) {
+	if (panel > 0 && !display_get_timing_from_dts(panel, blob, mode)) {
 		printf("Using display timing dts\n");
 		goto done;
 	}
@@ -393,7 +415,7 @@ static int display_init(struct display_state *state)
 	if (conn_funcs->init) {
 		ret = conn_funcs->init(state);
 		if (ret)
-			goto deinit_panel;
+			goto deinit;
 	}
 	/*
 	 * support hotplug, but not connect;
@@ -427,8 +449,6 @@ static int display_init(struct display_state *state)
 deinit:
 	if (conn_funcs->deinit)
 		conn_funcs->deinit(state);
-deinit_panel:
-	rockchip_panel_deinit(state);
 	return ret;
 }
 
@@ -580,7 +600,7 @@ static int display_logo(struct display_state *state)
 	crtc_state->src_y = 0;
 	crtc_state->ymirror = logo->ymirror;
 
-	crtc_state->dma_addr = logo->mem + logo->offset;
+	crtc_state->dma_addr = (u32)(unsigned long)logo->mem + logo->offset;
 	crtc_state->xvir = ALIGN(crtc_state->src_w * logo->bpp, 32) >> 5;
 
 	if (logo->mode == ROCKCHIP_DISPLAY_FULLSCREEN) {
@@ -686,10 +706,12 @@ struct rockchip_logo_cache *find_or_alloc_logo_cache(const char *bmp)
 
 static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 {
+#ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
 	struct rockchip_logo_cache *logo_cache;
 	struct bmp_header *header;
 	void *dst = NULL, *pdst;
-	int size;
+	int size, len;
+	int ret = 0;
 
 	if (!logo || !bmp_name)
 		return -EINVAL;
@@ -702,9 +724,15 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 		return 0;
 	}
 
-	header = get_bmp_header(bmp_name);
+	header = malloc(RK_BLK_SIZE);
 	if (!header)
-		return -EINVAL;
+		return -ENOMEM;
+
+	len = rockchip_read_resource_file(header, bmp_name, 0, RK_BLK_SIZE);
+	if (len != RK_BLK_SIZE) {
+		ret = -EINVAL;
+		goto free_header;
+	}
 
 	logo->bpp = get_unaligned_le16(&header->bit_count);
 	logo->width = get_unaligned_le32(&header->width);
@@ -713,18 +741,21 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	if (!can_direct_logo(logo->bpp)) {
 		if (size > MEMORY_POOL_SIZE) {
 			printf("failed to use boot buf as temp bmp buffer\n");
-			return -ENOMEM;
+			ret = -ENOMEM;
+			goto free_header;
 		}
-		pdst = (void *)gd->video_top;
+		pdst = get_display_buffer(size);
 
 	} else {
 		pdst = get_display_buffer(size);
 		dst = pdst;
 	}
 
-	if (load_bmp_content(bmp_name, pdst, size)) {
+	len = rockchip_read_resource_file(pdst, bmp_name, 0, size);
+	if (len != size) {
 		printf("failed to load bmp %s\n", bmp_name);
-		return 0;
+		ret = -ENOENT;
+		goto free_header;
 	}
 
 	if (!can_direct_logo(logo->bpp)) {
@@ -736,23 +767,37 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 		dst_size = logo->width * logo->height * logo->bpp >> 3;
 
 		dst = get_display_buffer(dst_size);
-		if (!dst)
-			return -ENOMEM;
+		if (!dst) {
+			ret = -ENOMEM;
+			goto free_header;
+		}
 		if (bmpdecoder(pdst, dst, logo->bpp)) {
 			printf("failed to decode bmp %s\n", bmp_name);
-			return 0;
+			ret = -EINVAL;
+			goto free_header;
 		}
+		flush_dcache_range((ulong)dst,
+				   ALIGN((ulong)dst + dst_size,
+					 CONFIG_SYS_CACHELINE_SIZE));
+
 		logo->offset = 0;
 		logo->ymirror = 0;
 	} else {
 		logo->offset = get_unaligned_le32(&header->data_offset);
 		logo->ymirror = 1;
 	}
-	logo->mem = (u32)(unsigned long)dst;
+	logo->mem = dst;
 
 	memcpy(&logo_cache->logo, logo, sizeof(*logo));
 
-	return 0;
+free_header:
+
+	free(header);
+
+	return ret;
+#else
+	return -EINVAL;
+#endif
 }
 
 void rockchip_show_fbbase(ulong fbbase)
@@ -761,7 +806,7 @@ void rockchip_show_fbbase(ulong fbbase)
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
 		s->logo.mode = ROCKCHIP_DISPLAY_FULLSCREEN;
-		s->logo.mem = fbbase;
+		s->logo.mem = (char *)fbbase;
 		s->logo.width = DRM_ROCKCHIP_FB_WIDTH;
 		s->logo.height = DRM_ROCKCHIP_FB_HEIGHT;
 		s->logo.bpp = 32;
@@ -804,7 +849,6 @@ void rockchip_show_logo(void)
 	}
 }
 
-extern const struct rockchip_connector rk3399_mipi_dsi_data;
 static int rockchip_display_probe(struct udevice *dev)
 {
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
@@ -831,7 +875,7 @@ static int rockchip_display_probe(struct udevice *dev)
 	if (!fdt_device_is_available(blob, route))
 		return -ENODEV;
 
-	init_display_buffer();
+	init_display_buffer(plat->base);
 
 	fdt_for_each_subnode(child, blob, route) {
 		if (!fdt_device_is_available(blob, child))
@@ -883,11 +927,12 @@ static int rockchip_display_probe(struct udevice *dev)
 
 		s = malloc(sizeof(*s));
 		if (!s)
-			goto err_free;
+			continue;
 
 		memset(s, 0, sizeof(*s));
 
 		INIT_LIST_HEAD(&s->head);
+		s->ulogo_name = fdt_stringlist_get(blob, child, "logo,uboot", 0, NULL);
 		s->klogo_name = fdt_stringlist_get(blob, child, "logo,kernel", 0, NULL);
 		name = fdt_stringlist_get(blob, child, "logo,mode", 0, NULL);
 		if (!strcmp(name, "fullscreen"))
@@ -910,27 +955,41 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->crtc_state.crtc_id = get_crtc_id(blob, connect);
 		s->node = child;
 
-		connector_phy_init(s);
-		connector_panel_init(s);
+		if (connector_phy_init(s)) {
+			printf("Warn: %s: Failed to init phy drivers\n",
+			       fdt_get_name(blob, child, NULL));
+			free(s);
+			continue;
+		}
+
+		if (connector_panel_init(s)) {
+			printf("Warn: %s: Failed to init panel drivers\n",
+			       fdt_get_name(blob, child, NULL));
+			free(s);
+			continue;
+		}
 		list_add_tail(&s->head, &rockchip_display_list);
+	}
+
+	if (list_empty(&rockchip_display_list)) {
+		printf("Failed to found available display route\n");
+		return -ENODEV;
 	}
 
 	uc_priv->xsize = DRM_ROCKCHIP_FB_WIDTH;
 	uc_priv->ysize = DRM_ROCKCHIP_FB_HEIGHT;
 	uc_priv->bpix = VIDEO_BPP32;
 
+	#ifdef CONFIG_DRM_ROCKCHIP_VIDEO_FRAMEBUFFER
 	rockchip_show_fbbase(plat->base);
 	video_set_flush_dcache(dev, true);
+	#else
+	rockchip_show_logo();
+	#endif
 
 	return 0;
-
-err_free:
-	list_for_each_entry(s, &rockchip_display_list, head) {
-		list_del(&s->head);
-		free(s);
-	}
-	return -ENODEV;
 }
+
 #if 0
 void rockchip_display_fixup(void *blob)
 {
@@ -1010,7 +1069,7 @@ int rockchip_display_bind(struct udevice *dev)
 {
 	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
 
-	plat->size = 4 * DRM_ROCKCHIP_FB_WIDTH * DRM_ROCKCHIP_FB_HEIGHT;
+	plat->size = DRM_ROCKCHIP_FB_SIZE + MEMORY_POOL_SIZE;
 
 	return 0;
 }
@@ -1027,3 +1086,37 @@ U_BOOT_DRIVER(rockchip_display) = {
 	.bind	= rockchip_display_bind,
 	.probe	= rockchip_display_probe,
 };
+
+static int do_rockchip_logo_show(cmd_tbl_t *cmdtp, int flag, int argc,
+			char *const argv[])
+{
+	if (argc != 1)
+		return CMD_RET_USAGE;
+
+	rockchip_show_logo();
+
+	return 0;
+}
+
+static int do_rockchip_show_bmp(cmd_tbl_t *cmdtp, int flag, int argc,
+				char *const argv[])
+{
+	if (argc != 2)
+		return CMD_RET_USAGE;
+
+	rockchip_show_bmp(argv[1]);
+
+	return 0;
+}
+
+U_BOOT_CMD(
+	rockchip_show_logo, 1, 1, do_rockchip_logo_show,
+	"load and display log from resource partition",
+	NULL
+);
+
+U_BOOT_CMD(
+	rockchip_show_bmp, 2, 1, do_rockchip_show_bmp,
+	"load and display bmp from resource partition",
+	"    <bmp_name>"
+);

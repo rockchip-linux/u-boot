@@ -18,7 +18,6 @@
 #include <asm/arch-rockchip/clock.h>
 #include <asm/gpio.h>
 
-
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
@@ -513,7 +512,7 @@ static int rockchip_lvds_init(struct display_state *state)
 	int lvds_node = conn_state->node;
 	struct rockchip_lvds_device *lvds;
 	const char *name;
-	int i,width;
+	int i, width;
 	struct fdt_resource lvds_phy, lvds_ctrl;
 	struct panel_state *panel_state = &state->panel_state;
 	int panel_node = panel_state->node;

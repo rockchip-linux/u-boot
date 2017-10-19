@@ -6,8 +6,8 @@
 
 #include <config.h>
 #include <common.h>
+#include <dm/device.h>
 #include <errno.h>
-#include <malloc.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
 #include <asm/unaligned.h>
@@ -18,35 +18,47 @@
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
 
-static const struct rockchip_phy g_phy[] = {
-#ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
+#ifdef CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI
+static const struct rockchip_phy rockchip_rk3366_mipi_dphy_data = {
+	 .funcs = &inno_mipi_dphy_funcs,
+};
+
+static const struct rockchip_phy rockchip_rk3368_mipi_dphy_data = {
+	 .funcs = &inno_mipi_dphy_funcs,
+};
+#endif
+
+static const struct udevice_id rockchip_phy_ids[] = {
+#ifdef CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI
 	{
 	 .compatible = "rockchip,rk3366-mipi-dphy",
-	 .funcs = &inno_mipi_dphy_funcs,
+	 .data = (ulong)&rockchip_rk3366_mipi_dphy_data,
 	},
 	{
 	 .compatible = "rockchip,rk3368-mipi-dphy",
-	 .funcs = &inno_mipi_dphy_funcs,
+	 .data = (ulong)&rockchip_rk3368_mipi_dphy_data,
 	},
 #endif
+	{}
 };
 
-const struct rockchip_phy *rockchip_get_phy(const void *blob, int phy_node)
+static int rockchip_phy_probe(struct udevice *dev)
 {
-	const char *name;
-	int i;
-
-	name = fdt_stringlist_get(blob, phy_node, "compatible", 0, NULL);
-
-	for (i = 0; i < ARRAY_SIZE(g_phy); i++) {
-		if (!strcmp(name, g_phy[i].compatible))
-			break;
-	}
-	if (i >= ARRAY_SIZE(g_phy))
-		return NULL;
-
-	return &g_phy[i];
+	return 0;
 }
+
+static int rockchip_phy_bind(struct udevice *dev)
+{
+	return 0;
+}
+
+U_BOOT_DRIVER(rockchip_phy) = {
+	.name = "rockchip_phy",
+	.id = UCLASS_PHY,
+	.of_match = rockchip_phy_ids,
+	.bind	= rockchip_phy_bind,
+	.probe	= rockchip_phy_probe,
+};
 
 int rockchip_phy_power_on(struct display_state *state)
 {

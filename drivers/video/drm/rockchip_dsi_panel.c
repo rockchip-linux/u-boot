@@ -297,15 +297,15 @@ static int rockchip_dsi_panel_parse_dt(const void *blob, int node, struct rockch
 
 	ret = gpio_request_by_name(panel->dev, "enable-gpios", 0,
 				   &panel->enable, GPIOD_IS_OUT);
-	if (ret != -ENOENT) {
+	if (ret && ret != -ENOENT) {
 		printf("%s: Warning: cannot get enable GPIO: ret=%d\n",
 		      __func__, ret);
 		return ret;
 	}
 
 	ret = gpio_request_by_name(panel->dev, "reset-gpios", 0,
-				   &panel->enable, GPIOD_IS_OUT);
-	if (ret != -ENOENT) {
+				   &panel->reset, GPIOD_IS_OUT);
+	if (ret && ret != -ENOENT) {
 		printf("%s: Warning: cannot get reset GPIO: ret=%d\n",
 		      __func__, ret);
 		return ret;

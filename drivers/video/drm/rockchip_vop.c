@@ -27,7 +27,7 @@ static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
 {
 	return us * mode->clock / mode->htotal / 1000;
 }
-#if 0
+
 static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -41,14 +41,14 @@ static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 	if (!conn_state->gamma.lut)
 		return 0;
 
-	i = fdt_find_string(state->blob, node, "reg-names", "gamma_lut");
+	i = fdt_stringlist_search(state->blob, node, "reg-names", "gamma_lut");
 	if (i < 0) {
 		printf("Warning: vop not support gamma\n");
 		return 0;
 	}
 	lut_regs = (u32 *)fdtdec_get_addr_size_auto_noparent(state->blob,
-							     node, "reg",
-							     i, &lut_size);
+							     node, "reg", i,
+							     &lut_size, false);
 	if (lut_regs == (u32 *)FDT_ADDR_T_NONE) {
 		printf("failed to get gamma lut register\n");
 		return 0;
@@ -82,7 +82,6 @@ static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 
 	return 0;
 }
-#endif
 
 static int rockchip_vop_init(struct display_state *state)
 {
@@ -102,10 +101,9 @@ static int rockchip_vop_init(struct display_state *state)
 	u16 vsync_len = mode->vsync_end - mode->vsync_start;
 	u16 vact_st = mode->vtotal - mode->vsync_start;
 	u16 vact_end = vact_st + vdisplay;
-	struct clk aclk, hclk, dclk;
+	struct clk dclk, aclk;
 	u32 val;
-	int i, ret;
-	int rate;
+	int ret;
 
 	vop = malloc(sizeof(*vop));
 	if (!vop)
@@ -122,56 +120,28 @@ static int rockchip_vop_init(struct display_state *state)
 	vop->line_flag = vop_data->line_flag;
 	vop->version = vop_data->version;
 
-	ret = clk_get_by_name(crtc_state->dev, "aclk_vop", &aclk);
-	if (IS_ERR_VALUE(ret)) {
-		printf("%s: Failed to get aclk: ret=%d\n", __func__, ret);
-		return ret;
-	}
-#if 0
-	ret = clk_set_rate(&aclk, 384 * 1000 * 1000);
-	if (IS_ERR_VALUE(ret)) {
-		printf("%s: Failed to set aclk: ret=%d\n", __func__, ret);
-		return ret;
-	}
-#endif
-#if 0
-
-	ret = clk_get_by_name(crtc_state->dev, "hclk_vop", &hclk);
-	if (!ret)
-		ret = clk_set_rate(&hclk, 100 * 1000 * 1000);
-	if (IS_ERR_VALUE(ret)) {
-		printf("%s: Failed to set aclk: ret=%d\n", __func__, ret);
-		return ret;
-	}
-#endif
+	/*
+	 * TODO:
+	 * Set Dclk pll parent
+	 */
 
 	ret = clk_get_by_name(crtc_state->dev, "dclk_vop", &dclk);
 	if (!ret)
 		ret = clk_set_rate(&dclk, mode->clock * 1000);
 	if (IS_ERR_VALUE(ret)) {
-		printf("%s: Failed to set aclk: ret=%d\n", __func__, ret);
+		printf("%s: Failed to set dclk: ret=%d\n", __func__, ret);
 		return ret;
 	}
 
-#if 0
-#ifdef CONFIG_RKCHIP_RK3399
-	/* Set Dclk pll parent */
-	if (conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
-		rkclk_lcdc_dclk_pll_sel(crtc_state->crtc_id, 0);
-	else
-		rkclk_lcdc_dclk_pll_sel(crtc_state->crtc_id, 1);
-#endif
+	ret = clk_get_by_name(crtc_state->dev, "aclk_vop", &aclk);
+	if (!ret)
+		ret = clk_set_rate(&aclk, 400 * 1000 * 1000);
+	if (IS_ERR_VALUE(ret))
+		printf("%s: Failed to set aclk: ret=%d\n", __func__, ret);
 
-	/* Set aclk hclk and dclk */
-	rate = rkclk_lcdc_clk_set(crtc_state->crtc_id, mode->clock * 1000);
-	if (rate != mode->clock * 1000) {
-		printf("Warn: vop clk request %dhz, but real clock is %dhz",
-		       mode->clock * 1000, rate);
-	}
-#endif
 	memcpy(vop->regsbak, vop->regs, vop_data->reg_len);
 
-	//rockchip_vop_init_gamma(vop, state);
+	rockchip_vop_init_gamma(vop, state);
 
 	VOP_CTRL_SET(vop, global_regdone_en, 1);
 	VOP_CTRL_SET(vop, win_gate[0], 1);

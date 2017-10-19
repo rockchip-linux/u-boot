@@ -17,6 +17,7 @@
 #include <dm/uclass-id.h>
 #include <asm/gpio.h>
 #include <backlight.h>
+#include <power/regulator.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -33,6 +34,8 @@ struct panel_simple {
 	const struct drm_display_mode *mode;
 	int bus_format;
 
+	struct udevice *power_supply;
+	bool power_invert;
 	struct udevice *backlight;
 	struct gpio_desc enable;
 
@@ -46,6 +49,15 @@ static int panel_simple_prepare(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct panel_simple *panel = panel_state->private;
+	int ret;
+
+	if (panel->power_supply) {
+		ret = regulator_set_enable(panel->power_supply,
+					   panel->power_invert);
+		if (ret)
+			printf("%s: failed to enable power_supply",
+			       __func__);
+	}
 
 	dm_gpio_set_value(&panel->enable, 1);
 	mdelay(panel->delay_prepare);
@@ -57,7 +69,15 @@ static int panel_simple_unprepare(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct panel_simple *panel = panel_state->private;
+	int ret;
 
+	if (panel->power_supply) {
+		ret = regulator_set_enable(panel->power_supply,
+					   !panel->power_invert);
+		if (ret)
+			printf("%s: failed to disable power_supply",
+			       __func__);
+	}
 	dm_gpio_set_value(&panel->enable, 0);
 	mdelay(panel->delay_unprepare);
 
@@ -69,7 +89,9 @@ static int panel_simple_enable(struct display_state *state)
 	struct panel_state *panel_state = &state->panel_state;
 	struct panel_simple *panel = panel_state->private;
 
-	backlight_enable(panel->backlight);
+	if (panel->backlight)
+		backlight_enable(panel->backlight);
+
 	mdelay(panel->delay_enable);
 
 	return 0;
@@ -91,7 +113,7 @@ static int panel_simple_parse_dt(const void *blob, int node,
 
 	ret = gpio_request_by_name(panel->dev, "enable-gpios", 0,
 				   &panel->enable, GPIOD_IS_OUT);
-	if (ret != -ENOENT) {
+	if (ret && ret != -ENOENT) {
 		printf("%s: Warning: cannot get enable GPIO: ret=%d\n",
 		      __func__, ret);
 		return ret;
@@ -99,10 +121,20 @@ static int panel_simple_parse_dt(const void *blob, int node,
 
 	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, panel->dev,
 					   "backlight", &panel->backlight);
-	if (ret) {
+	if (ret && ret != -ENOENT) {
 		printf("%s: Cannot get backlight: ret=%d\n", __func__, ret);
 		return ret;
 	}
+
+	ret = uclass_get_device_by_phandle(UCLASS_REGULATOR, panel->dev,
+					   "power-supply",
+					   &panel->power_supply);
+	if (ret && ret != -ENOENT) {
+		printf("%s: Cannot get power supply: ret=%d\n", __func__, ret);
+		return ret;
+	}
+
+	panel->power_invert = !!fdtdec_get_int(blob, node, "power_invert", 0);
 
 	panel->delay_prepare = fdtdec_get_int(blob, node, "delay,prepare", 0);
 	panel->delay_unprepare = fdtdec_get_int(blob, node, "delay,unprepare", 0);
@@ -134,6 +166,7 @@ static int panel_simple_init(struct display_state *state)
 	if (!panel)
 		return -ENOMEM;
 
+	memset(panel, 0, sizeof(*panel));
 	panel->blob = blob;
 	panel->node = node;
 	panel->mode = mode;
