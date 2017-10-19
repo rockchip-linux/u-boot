@@ -64,6 +64,9 @@ static const struct udevice_id rockchip_vop_ids[] = {
 		.compatible = "rockchip,rk3036-vop",
 		.data = (ulong)&rk3036_vop_data,
 	}, {
+		.compatible = "rockchip,rk3126-vop",
+		.data = (ulong)&rk3036_vop_data,
+	}, {
 		.compatible = "rockchip,rk3288-vop",
 		.data = (ulong)&rk3288_vop_data,
 	}, {
