@@ -34,6 +34,7 @@
 	#error "PLS config usb3  base!"
 #endif
 extern void rockusb_disable(struct usb_gadget *gadget);
+extern void rkplat_uart2UsbEn(uint32 en);
 
 static struct dwc3_device dwc3_device_data;
 static struct usb_endpoint_descriptor dwc3_gadget_ep0_desc = {
@@ -3060,6 +3061,7 @@ int rk_dwc3_connect(void)
 	DWC_PRINT("rk_dwc3_connect in.\n");
 	int ret;
 	/* usbphy_tunning(); */
+	rkplat_uart2UsbEn(0);
 
 	ret = dwc3_uboot_init(&dwc3_device_data);
 	if (ret) {
