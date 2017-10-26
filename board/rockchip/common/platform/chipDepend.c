@@ -170,6 +170,41 @@ void FW_NandDeInit(void)
 #endif
 }
 
+#if defined(CONFIG_RKCHIP_RK3399)
+static void rk3399_uart2usb(uint32 en)
+{
+	if (en) {
+#ifdef CONFIG_RKUART2USB_FORCE
+		/*
+		 * Note: if define force enable usb to uart, maybe usb
+		 * function will be affected.
+		 *
+		 * To use UART function:
+		 * 1. Put the USB PHY in suspend mode and opmode is normal;
+		 * 2. Set bypasssel to 1'b1 and bypassdmen to 1'b1;
+		 */
+		/* suspend usb phy  */
+		grf_writel(0x000f0001, GRF_USB20PHY0_CON(1));
+		/* enable usb bypass uart */
+		grf_writel(0x000c000c, GRF_USB20PHY0_CON(0));
+#else
+		con = grf_readl(GRF_SOC_STATUS3);
+		/* If vbus is low and iddig is high, then enable bypass */
+		if (!(con & (1 << 12)) && (con & (1 << 8))) {
+			grf_writel(0x000f0001, GRF_USB20PHY0_CON(1));
+			grf_writel(0x000c000c, GRF_USB20PHY0_CON(0));
+		}
+#endif /* CONFIG_RKUART2USB_FORCE */
+	} else {
+		/* disable usb bypass uart */
+		grf_writel(0x000c0000, GRF_USB20PHY0_CON(0));
+		/* resume usb phy */
+		grf_writel(0x000f0002, GRF_USB20PHY0_CON(1));
+		/* waiting for the utmi_clk to become stable */
+		DRVDelayMs(2);
+	}
+}
+#endif
 
 #if defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 static void rk3368_uart2usb(uint32 en)
@@ -276,7 +311,9 @@ void rkplat_uart2UsbEn(uint32 en)
 	rk312X_uart2usb(en);
 #elif defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
 	rk3368_uart2usb(en);
-#elif defined(CONFIG_RKCHIP_RK322X) || defined(CONFIG_RKCHIP_RK3399) || defined(CONFIG_RKCHIP_RK322XH)
+#elif defined(CONFIG_RKCHIP_RK3399)
+	rk3399_uart2usb(en);
+#elif defined(CONFIG_RKCHIP_RK322X) || defined(CONFIG_RKCHIP_RK322XH)
 	/* no support uart to usb */
 #else
 	#error "PLS config rk chip if support uart2usb."
