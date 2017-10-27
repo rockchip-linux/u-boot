@@ -16,6 +16,7 @@
 #include <linux/media-bus-format.h>
 #include <malloc.h>
 #include <video.h>
+#include <video_rockchip.h>
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
 #include <asm/arch-rockchip/resource_img.h>
