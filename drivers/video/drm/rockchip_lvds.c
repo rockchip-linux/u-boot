@@ -244,9 +244,8 @@ static void rk3126_output_ttl(struct display_state *state)
 	u32 val = 0;
 
 	/* iomux to lcdc */
-	writel(0xffff5555, lvds->grf + RK3126_GRF_GPIO2B_IOMUX);
+	writel(0xffc35541, lvds->grf + RK3126_GRF_GPIO2B_IOMUX);
 	writel(0xffff5555, lvds->grf + RK3126_GRF_GPIO2C_IOMUX);
-	writel(0x00ff0055, lvds->grf + RK3126_GRF_GPIO2C_IOMUX2);
 	writel(0x700c1004, lvds->grf + RK3126_GRF_GPIO2D_IOMUX);
 
 	/* enable lvds mode */
