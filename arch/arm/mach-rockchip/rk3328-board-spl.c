@@ -11,6 +11,7 @@
 #include <ram.h>
 #include <spl.h>
 #include <asm/io.h>
+#include <asm/arch/bootrom.h>
 #include <asm/arch/cru_rk3328.h>
 #include <asm/arch/grf_rk3328.h>
 #include <asm/arch/hardware.h>
@@ -50,6 +51,25 @@ u32 spl_boot_mode(const u32 boot_device)
 
 u32 spl_boot_device(void)
 {
+	u32 bootdevice_brom_id = readl(RK3328_BROM_BOOTSOURCE_ID_ADDR);
+	switch (bootdevice_brom_id) {
+		case BROM_BOOTSOURCE_EMMC:
+			printf("booted from eMMC\n");
+			return BOOT_DEVICE_MMC1;
+
+		case BROM_BOOTSOURCE_SD:
+			printf("booted from SD\n");
+			return BOOT_DEVICE_MMC2;
+
+		case BROM_BOOTSOURCE_SPINOR:
+			printf("booted from SPI flash\n");
+			return BOOT_DEVICE_SPI;
+
+		case BROM_BOOTSOURCE_USB:
+			printf("booted from USB\n");
+			break;
+	}
+
 	return BOOT_DEVICE_MMC1;
 }
 
