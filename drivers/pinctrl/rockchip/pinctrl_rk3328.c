@@ -200,6 +200,7 @@ static void pinctrl_rk3328_sdmmc_config(struct rk3328_grf_regs *grf,
 	}
 }
 
+#if CONFIG_IS_ENABLED(GMAC_ROCKCHIP)
 static void pinctrl_rk3328_gmac_config(struct rk3328_grf_regs *grf, int gmac_id)
 {
 	rk_clrsetreg(&grf->gpio1b_iomux,
@@ -350,6 +351,7 @@ static void pinctrl_rk3328_gmac_config(struct rk3328_grf_regs *grf, int gmac_id)
 		GPIO0D0_SEL_MASK,
 		GPIO_PULL_NORMAL << GPIO0D0_SEL_SHIFT);
 }
+#endif
 
 static int rk3328_pinctrl_request(struct udevice *dev, int func, int flags)
 {
