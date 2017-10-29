@@ -6,6 +6,7 @@
 
 /dts-v1/;
 #include "rk3328.dtsi"
+#include "rk3328-sdram-lpddr3-1600.dtsi"
 
 / {
 	model = "Pine64 Rock64";
