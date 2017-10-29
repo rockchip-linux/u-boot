@@ -67,7 +67,7 @@
 };
 
 &sdmmc {
-	u-boot,dm-pre-reloc;
+	u-boot,dm-spl;
 	bus-width = <4>;
 	cap-mmc-highspeed;
 	cap-sd-highspeed;
@@ -80,7 +80,7 @@
 };
 
 &emmc {
-	u-boot,dm-pre-reloc;
+	u-boot,dm-spl;
 	bus-width = <8>;
 	cap-mmc-highspeed;
 	supports-emmc;
@@ -128,11 +128,11 @@
 };
 
 &spi0 {
-	u-boot,dm-pre-reloc;
+	u-boot,dm-spl;
 	status = "okay";
 
 	spiflash: spi-flash@0 {
-		u-boot,dm-pre-reloc;
+		u-boot,dm-spl;
 		#address-cells = <0x1>;
 		#size-cells = <1>;
 		compatible = "spi-flash";
