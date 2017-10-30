@@ -70,7 +70,7 @@ u32 spl_boot_device(void)
 			break;
 	}
 
-	return BOOT_DEVICE_MMC1;
+	return BOOT_DEVICE_BOOTROM;
 }
 
 #ifdef CONFIG_SPL_LOAD_FIT
