@@ -24,6 +24,7 @@ enum uclass_id {
 	UCLASS_SERIAL,		/* Serial UART */
 
 	UCLASS_COUNT,
+	UCLASS_DISPLAY,		/* Display (e.g. DisplayPort, HDMI) */
 	UCLASS_INVALID = -1,
 };
 
