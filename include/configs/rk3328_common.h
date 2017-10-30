@@ -22,8 +22,6 @@
 #define CONFIG_SPL_SPI_LOAD
 #endif
 
-#define CONFIG_SPL_FRAMEWORK
-
 #define CONFIG_SYS_NS16550_MEM32
 
 #define CONFIG_SYS_TEXT_BASE		0x00200000
@@ -50,7 +48,7 @@
 #define CONFIG_FS_EXT4
 
 /* RAW SD card / eMMC locations. */
-#define CONFIG_SYS_SPI_U_BOOT_OFFS	(128 << 10)
+#define CONFIG_SYS_SPI_U_BOOT_OFFS	(CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR * 512)
 
 /* FAT sd card locations. */
 #define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION	1
