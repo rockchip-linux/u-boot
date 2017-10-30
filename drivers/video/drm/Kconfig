@@ -15,6 +15,14 @@ config DRM_ROCKCHIP_PANEL
 config DRM_ROCKCHIP_DSI_PANEL
 	bool
 
+config DRM_ROCKCHIP_DW_HDMI
+	bool "Rockchip specific extensions for Synopsys DW HDMI"
+	depends on DRM_ROCKCHIP
+	help
+	 This selects support for Rockchip SoC specific extensions
+	 for the Synopsys DesignWare HDMI driver. If you want to
+	 enable HDMI on, you should selet this option.
+
 config DRM_ROCKCHIP_MIPI_DSI
 	bool
 
