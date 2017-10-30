@@ -7,6 +7,14 @@
 #ifndef _DRM_MODES_H
 #define _DRM_MODES_H
 
+#define DRM_MODE_TYPE_BUILTIN	BIT(0)
+#define DRM_MODE_TYPE_CLOCK_C	(BIT(1) | DRM_MODE_TYPE_BUILTIN)
+#define DRM_MODE_TYPE_CRTC_C	(BIT(2) | DRM_MODE_TYPE_BUILTIN)
+#define DRM_MODE_TYPE_PREFERRED	BIT(3)
+#define DRM_MODE_TYPE_DEFAULT	BIT(4)
+#define DRM_MODE_TYPE_USERDEF	BIT(5)
+#define DRM_MODE_TYPE_DRIVER	BIT(6)
+
 /* Video mode flags */
 /* bit compatible with the xorg definitions. */
 #define DRM_MODE_FLAG_PHSYNC			(1 << 0)
@@ -120,6 +128,7 @@ struct drm_display_mode {
 	int vrefresh;
 	int vscan;
 	unsigned int flags;
+	int picture_aspect_ratio;
 };
 
 #endif

@@ -8,20 +8,65 @@
  *
  * Contains stolen code from ddcprobe project which is:
  * Copyright (C) Nalin Dahyabhai <bigfun@pobox.com>
+ * (C) Copyright 2008-2017 Fuzhou Rockchip Electronics Co., Ltd
  */
 
 #ifndef __EDID_H_
 #define __EDID_H_
 
+#include <div64.h>
 #include <linux/types.h>
 
 /* Size of the EDID data */
 #define EDID_SIZE	128
+#define EDID_EXT_SIZE	256
+#define MODE_LEN	120
 
+#define CEA_EXT	    0x02
+#define VTB_EXT	    0x10
+#define DI_EXT	    0x40
+#define LS_EXT	    0x50
+#define MI_EXT	    0x60
+#define DISPLAYID_EXT 0x70
+
+#define EDID_TIMING_ASPECT_SHIFT 6
+#define EDID_TIMING_ASPECT_MASK  (0x3 << EDID_TIMING_ASPECT_SHIFT)
+
+/* need to add 60 */
+#define EDID_TIMING_VFREQ_SHIFT  0
+#define EDID_TIMING_VFREQ_MASK   (0x3f << EDID_TIMING_VFREQ_SHIFT)
+
+/* OUI of HDMI vendor specific data block */
+#define HDMI_IEEE_OUI 0x000c03
+
+/* drm mode 4k and 3d */
+#define DRM_MODE_FLAG_420_MASK			(0x03 << 23)
+#define  DRM_MODE_FLAG_420			BIT(23)
+#define  DRM_MODE_FLAG_420_ONLY			BIT(24)
+
+#define DRM_MODE_FLAG_3D_MASK			(0x1f << 14)
+#define  DRM_MODE_FLAG_3D_NONE			(0 << 14)
+#define  DRM_MODE_FLAG_3D_FRAME_PACKING		BIT(14)
+#define  DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE	(2 << 14)
+#define  DRM_MODE_FLAG_3D_LINE_ALTERNATIVE	(3 << 14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL	(4 << 14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH		(5 << 14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH	(6 << 14)
+#define  DRM_MODE_FLAG_3D_TOP_AND_BOTTOM	(7 << 14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF	(8 << 14)
+
+#define BITS_PER_BYTE         8
+#define BITS_TO_LONGS(nr)     DIV_ROUND_UP(nr, BITS_PER_BYTE * sizeof(long))
 #define GET_BIT(_x, _pos) \
 	(((_x) >> (_pos)) & 1)
 #define GET_BITS(_x, _pos_msb, _pos_lsb) \
 	(((_x) >> (_pos_lsb)) & ((1 << ((_pos_msb) - (_pos_lsb) + 1)) - 1))
+#define DRM_MODE(c, hd, hss, hse, ht, vd, vss, vse, vt, vs, f) \
+	.clock = (c), \
+	.hdisplay = (hd), .hsync_start = (hss), .hsync_end = (hse), \
+	.htotal = (ht), .vdisplay = (vd), \
+	.vsync_start = (vss), .vsync_end = (vse), .vtotal = (vt), \
+	.vscan = (vs), .flags = (f)
 
 /* Aspect ratios used in EDID info. */
 enum edid_aspect {
@@ -30,6 +75,129 @@ enum edid_aspect {
 	ASPECT_8,
 	ASPECT_5625,
 };
+
+struct est_timings {
+	u8 t1;
+	u8 t2;
+	u8 mfg_rsvd;
+} __packed;
+
+/* 00=16:10, 01=4:3, 10=5:4, 11=16:9 */
+#define EDID_TIMING_ASPECT_SHIFT 6
+#define EDID_TIMING_ASPECT_MASK  (0x3 << EDID_TIMING_ASPECT_SHIFT)
+
+/* need to add 60 */
+#define EDID_TIMING_VFREQ_SHIFT  0
+#define EDID_TIMING_VFREQ_MASK   (0x3f << EDID_TIMING_VFREQ_SHIFT)
+
+struct std_timing {
+	u8 hsize; /* need to multiply by 8 then add 248 */
+	u8 vfreq_aspect;
+} __packed;
+
+struct detailed_pixel_timing {
+	u8 hactive_lo;
+	u8 hblank_lo;
+	u8 hactive_hblank_hi;
+	u8 vactive_lo;
+	u8 vblank_lo;
+	u8 vactive_vblank_hi;
+	u8 hsync_offset_lo;
+	u8 hsync_pulse_width_lo;
+	u8 vsync_offset_pulse_width_lo;
+	u8 hsync_vsync_offset_pulse_width_hi;
+	u8 width_mm_lo;
+	u8 height_mm_lo;
+	u8 width_height_mm_hi;
+	u8 hborder;
+	u8 vborder;
+	u8 misc;
+} __packed;
+
+/* If it's not pixel timing, it'll be one of the below */
+struct detailed_data_string {
+	u8 str[13];
+} __packed;
+
+struct detailed_data_monitor_range {
+	u8 min_vfreq;
+	u8 max_vfreq;
+	u8 min_hfreq_khz;
+	u8 max_hfreq_khz;
+	u8 pixel_clock_mhz; /* need to multiply by 10 */
+	u8 flags;
+	union {
+		struct {
+			u8 reserved;
+			u8 hfreq_start_khz; /* need to multiply by 2 */
+			u8 c; /* need to divide by 2 */
+			__le16 m;
+			u8 k;
+			u8 j; /* need to divide by 2 */
+		} __packed gtf2;
+		struct {
+			u8 version;
+			u8 data1; /* high 6 bits: extra clock resolution */
+			u8 data2; /* plus low 2 of above: max hactive */
+			u8 supported_aspects;
+			u8 flags; /* preferred aspect and blanking support */
+			u8 supported_scalings;
+			u8 preferred_refresh;
+		} __packed cvt;
+	} formula;
+} __packed;
+
+struct detailed_data_wpindex {
+	u8 white_yx_lo; /* Lower 2 bits each */
+	u8 white_x_hi;
+	u8 white_y_hi;
+	u8 gamma; /* need to divide by 100 then add 1 */
+} __packed;
+
+struct detailed_data_color_point {
+	u8 windex1;
+	u8 wpindex1[3];
+	u8 windex2;
+	u8 wpindex2[3];
+} __packed;
+
+struct cvt_timing {
+	u8 code[3];
+} __packed;
+
+struct detailed_non_pixel {
+	u8 pad1;
+	u8 type; /* ff=serial, fe=string, fd=monitor range, fc=monitor name
+		  * fb=color point data, fa=standard timing data,
+		  * f9=undefined, f8=mfg. reserved
+		  */
+	u8 pad2;
+	union {
+		struct detailed_data_string str;
+		struct detailed_data_monitor_range range;
+		struct detailed_data_wpindex color;
+		struct std_timing timings[6];
+		struct cvt_timing cvt[4];
+	} data;
+} __packed;
+
+#define EDID_DETAIL_EST_TIMINGS 0xf7
+#define EDID_DETAIL_CVT_3BYTE 0xf8
+#define EDID_DETAIL_COLOR_MGMT_DATA 0xf9
+#define EDID_DETAIL_STD_MODES 0xfa
+#define EDID_DETAIL_MONITOR_CPDATA 0xfb
+#define EDID_DETAIL_MONITOR_NAME 0xfc
+#define EDID_DETAIL_MONITOR_RANGE 0xfd
+#define EDID_DETAIL_MONITOR_STRING 0xfe
+#define EDID_DETAIL_MONITOR_SERIAL 0xff
+
+struct detailed_timing {
+	__le16 pixel_clock; /* need to multiply by 10 KHz */
+	union {
+		struct detailed_pixel_timing pixel_data;
+		struct detailed_non_pixel other_data;
+	} data;
+} __packed;
 
 /* Detailed timing information used in EDID v1.x */
 struct edid_detailed_timing {
@@ -89,6 +257,10 @@ struct edid_detailed_timing {
 	GET_BITS((_x).flags, 4, 3)
 #define EDID_DETAILED_TIMING_FLAG_POLARITY(_x) \
 	GET_BITS((_x).flags, 2, 1)
+#define EDID_DETAILED_TIMING_FLAG_VSYNC_POLARITY(_x) \
+	GET_BIT((_x).flags, 2)
+#define EDID_DETAILED_TIMING_FLAG_HSYNC_POLARITY(_x) \
+	GET_BIT((_x).flags, 1)
 #define EDID_DETAILED_TIMING_FLAG_INTERLEAVED(_x) \
 	GET_BIT((_x).flags, 0)
 } __attribute__ ((__packed__));
@@ -117,6 +289,58 @@ struct edid_monitor_descriptor {
 		} range_data;
 	} data;
 } __attribute__ ((__packed__));
+
+#define DRM_EDID_INPUT_SERRATION_VSYNC (1 << 0)
+#define DRM_EDID_INPUT_SYNC_ON_GREEN   (1 << 1)
+#define DRM_EDID_INPUT_COMPOSITE_SYNC  (1 << 2)
+#define DRM_EDID_INPUT_SEPARATE_SYNCS  (1 << 3)
+#define DRM_EDID_INPUT_BLANK_TO_BLACK  (1 << 4)
+#define DRM_EDID_INPUT_VIDEO_LEVEL     (3 << 5)
+#define DRM_EDID_INPUT_DIGITAL         (1 << 7)
+#define DRM_EDID_DIGITAL_DEPTH_MASK    (7 << 4)
+#define DRM_EDID_DIGITAL_DEPTH_UNDEF   (0 << 4)
+#define DRM_EDID_DIGITAL_DEPTH_6       (1 << 4)
+#define DRM_EDID_DIGITAL_DEPTH_8       (2 << 4)
+#define DRM_EDID_DIGITAL_DEPTH_10      (3 << 4)
+#define DRM_EDID_DIGITAL_DEPTH_12      (4 << 4)
+#define DRM_EDID_DIGITAL_DEPTH_14      (5 << 4)
+#define DRM_EDID_DIGITAL_DEPTH_16      (6 << 4)
+#define DRM_EDID_DIGITAL_DEPTH_RSVD    (7 << 4)
+#define DRM_EDID_DIGITAL_TYPE_UNDEF    (0)
+#define DRM_EDID_DIGITAL_TYPE_DVI      (1)
+#define DRM_EDID_DIGITAL_TYPE_HDMI_A   (2)
+#define DRM_EDID_DIGITAL_TYPE_HDMI_B   (3)
+#define DRM_EDID_DIGITAL_TYPE_MDDI     (4)
+#define DRM_EDID_DIGITAL_TYPE_DP       (5)
+
+#define DRM_EDID_FEATURE_DEFAULT_GTF      (1 << 0)
+#define DRM_EDID_FEATURE_PREFERRED_TIMING (1 << 1)
+#define DRM_EDID_FEATURE_STANDARD_COLOR   (1 << 2)
+/* If analog */
+#define DRM_EDID_FEATURE_DISPLAY_TYPE     (3 << 3) /* 00=mono, 01=rgb, 10=non-rgb, 11=unknown */
+/* If digital */
+#define DRM_EDID_FEATURE_COLOR_MASK	  (3 << 3)
+#define DRM_EDID_FEATURE_RGB		  (0 << 3)
+#define DRM_EDID_FEATURE_RGB_YCRCB444	  (1 << 3)
+#define DRM_EDID_FEATURE_RGB_YCRCB422	  (2 << 3)
+#define DRM_EDID_FEATURE_RGB_YCRCB	  (3 << 3) /* both 4:4:4 and 4:2:2 */
+
+#define DRM_EDID_FEATURE_PM_ACTIVE_OFF    (1 << 5)
+#define DRM_EDID_FEATURE_PM_SUSPEND       (1 << 6)
+#define DRM_EDID_FEATURE_PM_STANDBY       (1 << 7)
+
+#define DRM_EDID_HDMI_DC_48               (1 << 6)
+#define DRM_EDID_HDMI_DC_36               (1 << 5)
+#define DRM_EDID_HDMI_DC_30               (1 << 4)
+#define DRM_EDID_HDMI_DC_Y444             (1 << 3)
+
+/* YCBCR 420 deep color modes */
+#define DRM_EDID_YCBCR420_DC_48		  (1 << 2)
+#define DRM_EDID_YCBCR420_DC_36		  (1 << 1)
+#define DRM_EDID_YCBCR420_DC_30		  (1 << 0)
+#define DRM_EDID_YCBCR420_DC_MASK (DRM_EDID_YCBCR420_DC_48 | \
+				    DRM_EDID_YCBCR420_DC_36 | \
+				    DRM_EDID_YCBCR420_DC_30)
 
 struct edid1_info {
 	unsigned char header[8];
@@ -229,6 +453,263 @@ struct edid1_info {
 	unsigned char checksum;
 } __attribute__ ((__packed__));
 
+enum edid_cea861_db_types {
+	EDID_CEA861_DB_AUDIO = 0x01,
+	EDID_CEA861_DB_VIDEO = 0x02,
+	EDID_CEA861_DB_VENDOR = 0x03,
+	EDID_CEA861_DB_SPEAKER = 0x04,
+	EDID_CEA861_DB_USE_EXTENDED = 0x07,
+};
+
+#define EXT_VIDEO_CAPABILITY_BLOCK 0x00
+#define EXT_VIDEO_DATA_BLOCK_420        0x0E
+#define EXT_VIDEO_CAP_BLOCK_Y420CMDB 0x0F
+#define EDID_BASIC_AUDIO        BIT(6)
+#define EDID_CEA_YCRCB444       BIT(5)
+#define EDID_CEA_YCRCB422       BIT(4)
+#define EDID_CEA_VCDB_QS        BIT(6)
+
+#define EXT_VIDEO_DATA_BLOCK_420 0x0E
+
+struct edid_cea861_info {
+	unsigned char extension_tag;
+#define EDID_CEA861_EXTENSION_TAG	0x02
+	unsigned char revision;
+	unsigned char dtd_offset;
+	unsigned char dtd_count;
+#define EDID_CEA861_SUPPORTS_UNDERSCAN(_x) \
+	GET_BIT(((_x).dtd_count), 7)
+#define EDID_CEA861_SUPPORTS_BASIC_AUDIO(_x) \
+	GET_BIT(((_x).dtd_count), 6)
+#define EDID_CEA861_SUPPORTS_YUV444(_x) \
+	GET_BIT(((_x).dtd_count), 5)
+#define EDID_CEA861_SUPPORTS_YUV422(_x) \
+	GET_BIT(((_x).dtd_count), 4)
+#define EDID_CEA861_DTD_COUNT(_x) \
+	GET_BITS(((_x).dtd_count), 3, 0)
+	unsigned char data[124];
+#define EDID_CEA861_DB_TYPE(_x, offset) \
+	GET_BITS((_x).data[offset], 7, 5)
+#define EDID_CEA861_DB_LEN(_x, offset) \
+	GET_BITS((_x).data[offset], 4, 0)
+} __attribute__ ((__packed__));
+
+#define DATA_BLOCK_PRODUCT_ID 0x00
+#define DATA_BLOCK_DISPLAY_PARAMETERS 0x01
+#define DATA_BLOCK_COLOR_CHARACTERISTICS 0x02
+#define DATA_BLOCK_TYPE_1_DETAILED_TIMING 0x03
+#define DATA_BLOCK_TYPE_2_DETAILED_TIMING 0x04
+#define DATA_BLOCK_TYPE_3_SHORT_TIMING 0x05
+#define DATA_BLOCK_TYPE_4_DMT_TIMING 0x06
+#define DATA_BLOCK_VESA_TIMING 0x07
+#define DATA_BLOCK_CEA_TIMING 0x08
+#define DATA_BLOCK_VIDEO_TIMING_RANGE 0x09
+#define DATA_BLOCK_PRODUCT_SERIAL_NUMBER 0x0a
+#define DATA_BLOCK_GP_ASCII_STRING 0x0b
+#define DATA_BLOCK_DISPLAY_DEVICE_DATA 0x0c
+#define DATA_BLOCK_INTERFACE_POWER_SEQUENCING 0x0d
+#define DATA_BLOCK_TRANSFER_CHARACTERISTICS 0x0e
+#define DATA_BLOCK_DISPLAY_INTERFACE 0x0f
+#define DATA_BLOCK_STEREO_DISPLAY_INTERFACE 0x10
+#define DATA_BLOCK_TILED_DISPLAY 0x12
+
+struct displayid_hdr {
+	u8 rev;
+	u8 bytes;
+	u8 prod_id;
+	u8 ext_count;
+} __packed;
+
+struct displayid_block {
+	u8 tag;
+	u8 rev;
+	u8 num_bytes;
+} __packed;
+
+struct displayid_detailed_timings_1 {
+	u8 pixel_clock[3];
+	u8 flags;
+	u8 hactive[2];
+	u8 hblank[2];
+	u8 hsync[2];
+	u8 hsw[2];
+	u8 vactive[2];
+	u8 vblank[2];
+	u8 vsync[2];
+	u8 vsw[2];
+} __packed;
+
+struct displayid_detailed_timing_block {
+	struct displayid_block base;
+	struct displayid_detailed_timings_1 timings[0];
+};
+
+/**
+ * struct drm_scrambling: sink's scrambling support.
+ */
+struct drm_scrambling {
+	/**
+	 * @supported: scrambling supported for rates > 340 Mhz.
+	 */
+	bool supported;
+	/**
+	 * @low_rates: scrambling supported for rates <= 340 Mhz.
+	 */
+	bool low_rates;
+};
+
+/**
+ * struct drm_scdc - Information about scdc capabilities of a HDMI 2.0 sink
+ *
+ * Provides SCDC register support and capabilities related information on a
+ * HDMI 2.0 sink. In case of a HDMI 1.4 sink, all parameter must be 0.
+ */
+
+struct drm_scdc {
+	/**
+	 * @supported: status control & data channel present.
+	 */
+	bool supported;
+	/**
+	 * @read_request: sink is capable of generating scdc read request.
+	 */
+	bool read_request;
+	/**
+	 * @scrambling: sink's scrambling capabilities
+	 */
+	struct drm_scrambling scrambling;
+};
+
+/**
+ * struct drm_hdmi_info - runtime information about the connected HDMI sink
+ *
+ * Describes if a given display supports advanced HDMI 2.0 features.
+ * This information is available in CEA-861-F extension blocks (like HF-VSDB).
+ */
+struct drm_hdmi_info {
+	struct drm_scdc scdc;
+
+	/**
+	 * @y420_vdb_modes: bitmap of modes which can support ycbcr420
+	 * output only (not normal RGB/YCBCR444/422 outputs). There are total
+	 * 107 VICs defined by CEA-861-F spec, so the size is 128 bits to map
+	 * upto 128 VICs;
+	 */
+	unsigned long y420_vdb_modes[BITS_TO_LONGS(128)];
+
+	/**
+	 * @y420_cmdb_modes: bitmap of modes which can support ycbcr420
+	 * output also, along with normal HDMI outputs. There are total 107
+	 * VICs defined by CEA-861-F spec, so the size is 128 bits to map upto
+	 * 128 VICs;
+	 */
+	unsigned long y420_cmdb_modes[BITS_TO_LONGS(128)];
+
+	/** @y420_cmdb_map: bitmap of SVD index, to extraxt vcb modes */
+	u64 y420_cmdb_map;
+
+	/** @y420_dc_modes: bitmap of deep color support index */
+	u8 y420_dc_modes;
+};
+
+enum subpixel_order {
+	subpixelunknown = 0,
+	subpixelhorizontalrgb,
+	subpixelhorizontalbgr,
+	subpixelverticalrgb,
+	subpixelverticalbgr,
+	subpixelnone,
+};
+
+#define DRM_COLOR_FORMAT_RGB444         BIT(0)
+#define DRM_COLOR_FORMAT_YCRCB444       BIT(1)
+#define DRM_COLOR_FORMAT_YCRCB422       BIT(2)
+#define DRM_COLOR_FORMAT_YCRCB420       BIT(3)
+
+/*
+ * Describes a given display (e.g. CRT or flat panel) and its limitations.
+ */
+struct drm_display_info {
+	char name[32];
+
+	/* Physical size */
+	unsigned int width_mm;
+	unsigned int height_mm;
+
+	/* Clock limits FIXME: storage format */
+	unsigned int min_vfreq, max_vfreq;
+	unsigned int min_hfreq, max_hfreq;
+	unsigned int pixel_clock;
+	unsigned int bpc;
+
+	enum subpixel_order subpixel_order;
+	u32 color_formats;
+
+	const u32 *bus_formats;
+	unsigned int num_bus_formats;
+
+	/**
+	 * @max_tmds_clock: Maximum TMDS clock rate supported by the
+	 * sink in kHz. 0 means undefined.
+	 */
+	int max_tmds_clock;
+
+	/**
+	 * @dvi_dual: Dual-link DVI sink?
+	 */
+	bool dvi_dual;
+
+	/* Mask of supported hdmi deep color modes */
+	u8 edid_hdmi_dc_modes;
+
+	u8 cea_rev;
+
+	/**
+	 * @hdmi: advance features of a HDMI sink.
+	 */
+	struct drm_hdmi_info hdmi;
+};
+
+struct edid {
+	u8 header[8];
+	/* Vendor & product info */
+	u8 mfg_id[2];
+	u8 prod_code[2];
+	u32 serial; /* FIXME: byte order */
+	u8 mfg_week;
+	u8 mfg_year;
+	/* EDID version */
+	u8 version;
+	u8 revision;
+	/* Display info: */
+	u8 input;
+	u8 width_cm;
+	u8 height_cm;
+	u8 gamma;
+	u8 features;
+	/* Color characteristics */
+	u8 red_green_lo;
+	u8 black_white_lo;
+	u8 red_x;
+	u8 red_y;
+	u8 green_x;
+	u8 green_y;
+	u8 blue_x;
+	u8 blue_y;
+	u8 white_x;
+	u8 white_y;
+	/* Est. timings and mfg rsvd timings*/
+	struct est_timings established_timings;
+	/* Standard timings 1-8*/
+	struct std_timing standard_timings[8];
+	/* Detailing timings 1-4 */
+	struct detailed_timing detailed_timings[4];
+	/* Number of 128 byte ext. blocks */
+	u8 extensions;
+	/* Checksum */
+	u8 checksum;
+} __packed;
+
 /**
  * Print the EDID info.
  *
@@ -258,9 +739,9 @@ int edid_check_checksum(u8 *edid_block);
  *
  * @param edid	The EDID info
  * @param hmin	Returns the minimum horizontal rate
- * @param hmax	Returns the maxium horizontal rate
+ * @param hmax	Returns the maximum horizontal rate
  * @param vmin	Returns the minimum vertical rate
- * @param vmax	Returns the maxium vertical rate
+ * @param vmax	Returns the maximum vertical rate
  * @return 0 on success, or -1 on error
  */
 int edid_get_ranges(struct edid1_info *edid, unsigned int *hmin,
@@ -268,6 +749,15 @@ int edid_get_ranges(struct edid1_info *edid, unsigned int *hmin,
 		    unsigned int *vmax);
 
 struct drm_display_mode;
+struct display_timing;
+
+struct hdmi_edid_data {
+	struct drm_display_mode *preferred_mode;
+	int modes;
+	struct drm_hdmi_info hdmi_info;
+	struct drm_display_mode *mode_buf;
+	struct drm_display_info display_info;
+};
 
 /**
  * edid_get_timing() - Get basic digital display parameters
@@ -280,7 +770,12 @@ struct drm_display_mode;
  *			-1 if not available
  * @return 0 if timings are OK, -ve on error
  */
-int edid_get_timing(u8 *buf, int buf_size, struct drm_display_mode *mode,
+int edid_get_timing(u8 *buf, int buf_size, struct display_timing *timing,
 		    int *panel_bits_per_colourp);
+int edid_get_drm_mode(u8 *buf, int buf_size, struct drm_display_mode *mode,
+		      int *panel_bits_per_colourp);
+int drm_add_edid_modes(struct hdmi_edid_data *data, u8 *edid);
+bool drm_detect_hdmi_monitor(struct edid *edid);
+bool drm_detect_monitor_audio(struct edid *edid);
 
 #endif /* __EDID_H_ */
