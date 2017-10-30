@@ -88,20 +88,28 @@ static int panel_simple_enable(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct panel_simple *panel = panel_state->private;
+	int ret;
 
-	if (panel->backlight)
-		backlight_enable(panel->backlight);
-
-	mdelay(panel->delay_enable);
+	if (panel->backlight) {
+		ret = backlight_enable(panel->backlight);
+		mdelay(panel->delay_enable);
+		return ret;
+	}
 
 	return 0;
 }
 
 static int panel_simple_disable(struct display_state *state)
 {
-	/* TODO: backlight_disable:
-	 * presently uboot not support backlight disable.
-	 */
+	struct panel_state *panel_state = &state->panel_state;
+	struct panel_simple *panel = panel_state->private;
+	int ret;
+
+	if (panel->backlight) {
+		ret = backlight_disable(panel->backlight);
+		mdelay(panel->delay_disable);
+		return ret;
+	}
 
 	return 0;
 }

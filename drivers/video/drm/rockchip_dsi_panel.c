@@ -226,20 +226,28 @@ static int rockchip_dsi_panel_enable(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct rockchip_dsi_panel *panel = panel_state->private;
+	int ret;
 
-	msleep(panel->delay_enable);
+	if (panel->backlight) {
+		ret = backlight_enable(panel->backlight);
+		mdelay(panel->delay_enable);
+		return ret;
+	}
 
-	return backlight_enable(panel->backlight);
+	return 0;
 }
 
 static int rockchip_dsi_panel_disable(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct rockchip_dsi_panel *panel = panel_state->private;
+	int ret;
 
-	/* TODO: backlight_disable:
-	 * presently uboot not support backlight disable.
-	 */
+	if (panel->backlight) {
+		ret = backlight_disable(panel->backlight);
+		mdelay(panel->delay_disable);
+		return ret;
+	}
 
 	return 0;
 }
