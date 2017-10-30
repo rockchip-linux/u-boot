@@ -29,7 +29,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 struct rockchip_spi_platdata {
 #if CONFIG_IS_ENABLED(OF_PLATDATA)
-	struct dtd_rockchip_rk3288_spi of_plat;
+	struct dtd_rockchip_rk3066_spi of_plat;
 #endif
 	s32 frequency;		/* Default clock frequency, -1 for none */
 	fdt_addr_t base;
@@ -162,7 +162,7 @@ static void spi_cs_deactivate(struct udevice *dev, uint cs)
 static int conv_of_platdata(struct udevice *dev)
 {
 	struct rockchip_spi_platdata *plat = dev->platdata;
-	struct dtd_rockchip_rk3288_spi *dtplat = &plat->of_plat;
+	struct dtd_rockchip_rk3066_spi *dtplat = &plat->of_plat;
 	struct rockchip_spi_priv *priv = dev_get_priv(dev);
 	int ret;
 
