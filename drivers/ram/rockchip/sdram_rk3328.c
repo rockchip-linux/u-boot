@@ -625,6 +625,8 @@ static int sdram_init(struct dram_info *dram,
 			printf("LPDDR3\n");
 			break;
 		}
+
+		printf("DRAM frequency: %dMHz\n", sdram_params->ddr_freq);
 	}
 	/* release phy srst to provide clk to ctrl */
 	rkclk_ddr_reset(dram, 1, 1, 0, 0);
