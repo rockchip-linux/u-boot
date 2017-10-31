@@ -69,15 +69,7 @@ static int panel_simple_unprepare(struct display_state *state)
 {
 	struct panel_state *panel_state = &state->panel_state;
 	struct panel_simple *panel = panel_state->private;
-	int ret;
 
-	if (panel->power_supply) {
-		ret = regulator_set_enable(panel->power_supply,
-					   !panel->power_invert);
-		if (ret)
-			printf("%s: failed to disable power_supply",
-			       __func__);
-	}
 	dm_gpio_set_value(&panel->enable, 0);
 	mdelay(panel->delay_unprepare);
 
