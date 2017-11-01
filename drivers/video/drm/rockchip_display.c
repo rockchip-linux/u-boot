@@ -984,8 +984,6 @@ static int rockchip_display_probe(struct udevice *dev)
 	#ifdef CONFIG_DRM_ROCKCHIP_VIDEO_FRAMEBUFFER
 	rockchip_show_fbbase(plat->base);
 	video_set_flush_dcache(dev, true);
-	#else
-	rockchip_show_logo();
 	#endif
 
 	return 0;
