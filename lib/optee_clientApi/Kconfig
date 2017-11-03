@@ -1,0 +1,7 @@
+config OPTEE_CLIENT
+	bool "Support OPTEE"
+	help
+	  U-boot can communicate with trust if
+	  the config is enable. This function can
+	  be use in android bootloader a/b and avb
+	  step.
