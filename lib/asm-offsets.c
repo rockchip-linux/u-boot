@@ -42,5 +42,8 @@ int main(void)
 
 #endif
 
+	DEFINE(PM_CTX_SIZE, sizeof(struct pm_ctx));
+	DEFINE(PM_CTX_PHYS, offsetof(struct global_data, pm_ctx_phys));
+
 	return 0;
 }

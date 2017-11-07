@@ -23,6 +23,13 @@
 #ifndef __ASSEMBLY__
 #include <linux/list.h>
 
+/* Never change the sequence of members !!! */
+struct pm_ctx {
+	unsigned long sp;
+	phys_addr_t cpu_resume_addr;
+	unsigned long suspend_regs[15];
+};
+
 typedef struct global_data {
 	bd_t *bd;
 	unsigned long flags;
@@ -97,6 +104,7 @@ typedef struct global_data {
 	unsigned long malloc_ptr;	/* current address */
 #endif
 	struct arch_global_data arch;	/* architecture-specific data */
+	phys_addr_t pm_ctx_phys;
 } gd_t;
 #endif
 
