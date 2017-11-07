@@ -1088,7 +1088,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	else
 		val |= V_SW_P2I_EN(0);
 	vop_msk_reg(vop_dev, DSP_CTRL0, val);
-	vop_msk_reg(vop_dev, SYS_CTRL1, V_REG_DONE_FRM(0));
+	vop_msk_reg(vop_dev, SYS_CTRL1, V_REG_DONE_FRM(1));
 	/* BG color */
 	if (vop_dev->overlay_mode == VOP_YUV_DOMAIN)
 		val = V_DSP_BG_BLUE(0x200) | V_DSP_BG_GREEN(0x40) |
@@ -1209,6 +1209,7 @@ int rk_lcdc_init(int vop_id)
 	vop_msk_reg(vop_dev, HDR2SDR_DST_RANGE, val);
 	val = V_NORMFACCGAMMA(10240);
 	vop_msk_reg(vop_dev, HDR2SDR_NORMFACCGAMMA, val);
+	vop_msk_reg(vop_dev, MMU_AUTO_GATING, V_MMU_CFG_MODE(0));
 
 	vop_dev->pre_overlay = 0;
 	vop_cfg_done(vop_dev);
