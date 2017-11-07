@@ -948,8 +948,35 @@ static bool rk816_bat_ocv_sw_reset(struct battery_info *di)
 
 void rk816_bat_init_rsoc(struct battery_info *di)
 {
-	di->pwroff_min = rk816_bat_get_pwroff_min(di);
+	int charger, voltage, uboot_charge = 0, initialize = 0;
+
+#ifdef CONFIG_UBOOT_CHARGE
+	uboot_charge = 1;
+#endif
+	charger = rk816_bat_get_usb_state(di);
+	voltage = rk816_bat_get_est_voltage(di);
 	di->is_first_power_on = is_rk816_bat_first_poweron(di);
+
+	/*
+	 * Do rsoc initialization only when:
+	 *
+	 * 1. first power on;
+	 * 2. charger online + voltage lower than CONFIG_SCREEN_ON_VOL_THRESD;
+	 * 3. charger online + CONFIG_UBOOT_CHARGE enabled.
+	 */
+	if (di->is_first_power_on) {
+		initialize = 1;
+	} else if (charger != NO_CHARGER) {
+		if (voltage < CONFIG_SCREEN_ON_VOL_THRESD)
+			initialize = 1;
+		else if (uboot_charge)
+			initialize = 1;
+	}
+
+	if (!initialize)
+		return;
+
+	di->pwroff_min = rk816_bat_get_pwroff_min(di);
 	di->is_sw_reset = rk816_bat_ocv_sw_reset(di);
 
 	if (di->is_first_power_on || di->is_sw_reset)
@@ -1070,18 +1097,7 @@ static void rk816_bat_fg_init(struct battery_info *di)
 	rk816_bat_clr_initialized_state(di);
 	di->dsoc = rk816_bat_get_dsoc(di);
 
-	/* it's better to init fg in kernel,
-	 * so avoid init in uboot as far as possible
-	 */
-	if (rk816_bat_get_usb_state(di) != NO_CHARGER) {
-		if (rk816_bat_get_est_voltage(di) < CONFIG_SCREEN_ON_VOL_THRESD)
-			rk816_bat_init_rsoc(di);
-#ifdef CONFIG_UBOOT_CHARGE
-		else
-			rk816_bat_init_rsoc(di);
-#endif
-	}
-
+	rk816_bat_init_rsoc(di);
 	rk816_bat_init_chrg_config(di);
 	di->voltage_avg = rk816_bat_get_avg_voltage(di);
 	di->voltage_ocv = rk816_bat_get_ocv_voltage(di);
