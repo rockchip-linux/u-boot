@@ -42,6 +42,13 @@
 #define VENDOR_TAG			0x524B5644
 #define VENDOR_PART_SIZE		128
 
+#define VENDOR_SN_ID			1
+#define VENDOR_WIFI_MAC_ID		2
+#define VENDOR_LAN_MAC_ID		3
+#define VENDOR_BLUETOOTH_ID		4
+#define VENDOR_IMEI_ID			5
+#define VENDOR_OEM_UNLOCKED_ID		6
+
 struct vendor_item {
 	u16  id;
 	u16  offset;
