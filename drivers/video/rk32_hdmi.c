@@ -948,9 +948,7 @@ static int rk32_hdmi_video_packetizer(struct hdmi_dev *hdmi_dev,
 	/*Config Color Depth*/
 	hdmi_msk_reg(hdmi_dev, VP_PR_CD,
 		     m_COLOR_DEPTH, v_COLOR_DEPTH(color_depth));
-	/*Config pixel repettion*/
-	hdmi_msk_reg(hdmi_dev, VP_PR_CD, m_DESIRED_PR_FACTOR,
-		     v_DESIRED_PR_FACTOR(hdmi_dev->pixelrepeat - 1));
+
 	if (hdmi_dev->pixelrepeat > 1)
 		hdmi_msk_reg(hdmi_dev, VP_CONF,
 			     m_PIXEL_REPET_EN | m_BYPASS_SEL,
