@@ -277,6 +277,21 @@ static int rk_display_init(struct udevice *dev, ulong fbbase, int ep_node)
 		return ret;
 	}
 
+	/* in rk_vop_bind, it allocates memory size for maximum X & Y resolution it will support
+	 * (default 1080p) but nowadays we have display has 2K & 4K display, video_clear will
+	 * access more memory it is allowed. So here it is restricted below its maximum resolution it
+	 * will support
+	 */
+	u32 *hactive = &timing.hactive.typ;
+	u32 *vactive = &timing.vactive.typ;
+
+	if (*hactive > CONFIG_VIDEO_ROCKCHIP_MAX_XRES) {
+		*hactive = CONFIG_VIDEO_ROCKCHIP_MAX_XRES;
+	}
+	if (*vactive > CONFIG_VIDEO_ROCKCHIP_MAX_YRES) {
+		*vactive = CONFIG_VIDEO_ROCKCHIP_MAX_YRES;
+	}
+
 	ret = clk_get_by_index(dev, 1, &clk);
 	if (!ret)
 		ret = clk_set_rate(&clk, timing.pixelclock.typ);
