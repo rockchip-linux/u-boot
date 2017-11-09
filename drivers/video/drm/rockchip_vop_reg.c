@@ -86,6 +86,8 @@ static const struct vop_win rk3288_win01_data = {
 
 static const struct vop_ctrl rk3288_ctrl_data = {
 	.standby = VOP_REG(RK3288_SYS_CTRL, 0x1, 22),
+	.axi_outstanding_max_num = VOP_REG(RK3288_SYS_CTRL1, 0x1f, 13),
+	.axi_max_outstanding_en = VOP_REG(RK3288_SYS_CTRL1, 0x1, 12),
 	.htotal_pw = VOP_REG(RK3288_DSP_HTOTAL_HS_END, 0x1fff1fff, 0),
 	.hact_st_end = VOP_REG(RK3288_DSP_HACT_ST_END, 0x1fff1fff, 0),
 	.vtotal_pw = VOP_REG(RK3288_DSP_VTOTAL_VS_END, 0x1fff1fff, 0),
@@ -131,6 +133,19 @@ static const struct vop_ctrl rk3288_ctrl_data = {
 	.dsp_lut_en = VOP_REG(RK3288_DSP_CTRL1, 0x1, 0),
 	.update_gamma_lut = VOP_REG_VER(RK3288_DSP_CTRL1, 0x1, 7, 3, 5, -1),
 	.out_mode = VOP_REG(RK3288_DSP_CTRL0, 0xf, 0),
+
+	.bcsh_brightness = VOP_REG(RK3288_BCSH_BCS, 0xff, 0),
+	.bcsh_contrast = VOP_REG(RK3288_BCSH_BCS, 0x1ff, 8),
+	.bcsh_sat_con = VOP_REG(RK3288_BCSH_BCS, 0x3ff, 20),
+	.bcsh_out_mode = VOP_REG(RK3288_BCSH_BCS, 0x3, 0),
+	.bcsh_sin_hue = VOP_REG(RK3288_BCSH_H, 0x1ff, 0),
+	.bcsh_cos_hue = VOP_REG(RK3288_BCSH_H, 0x1ff, 16),
+	.bcsh_r2y_csc_mode = VOP_REG_VER(RK3368_BCSH_CTRL, 0x1, 6, 3, 1, -1),
+	.bcsh_r2y_en = VOP_REG_VER(RK3368_BCSH_CTRL, 0x1, 4, 3, 1, -1),
+	.bcsh_y2r_csc_mode = VOP_REG_VER(RK3368_BCSH_CTRL, 0x3, 2, 3, 1, -1),
+	.bcsh_y2r_en = VOP_REG_VER(RK3368_BCSH_CTRL, 0x1, 0, 3, 1, -1),
+	.bcsh_color_bar = VOP_REG(RK3288_BCSH_COLOR_BAR, 0xffffff, 8),
+	.bcsh_en = VOP_REG(RK3288_BCSH_COLOR_BAR, 0x1, 0),
 
 	.xmirror = VOP_REG(RK3288_DSP_CTRL0, 0x1, 22),
 	.ymirror = VOP_REG(RK3288_DSP_CTRL0, 0x1, 23),
@@ -209,6 +224,8 @@ const struct vop_data rk322x_vop = {
 
 static const struct vop_ctrl rk3328_ctrl_data = {
 	.standby = VOP_REG(RK3328_SYS_CTRL, 0x1, 22),
+	.axi_outstanding_max_num = VOP_REG(RK3328_SYS_CTRL1, 0x1f, 13),
+	.axi_max_outstanding_en = VOP_REG(RK3328_SYS_CTRL1, 0x1, 12),
 	.reg_done_frm = VOP_REG(RK3328_SYS_CTRL1, 0x1, 24),
 	.auto_gate_en = VOP_REG(RK3328_SYS_CTRL, 0x1, 23),
 	.htotal_pw = VOP_REG(RK3328_DSP_HTOTAL_HS_END, 0x1fff1fff, 0),
@@ -272,6 +289,9 @@ static const struct vop_ctrl rk3328_ctrl_data = {
 	.bcsh_y2r_en = VOP_REG(RK3328_BCSH_CTRL, 0x1, 0),
 	.bcsh_color_bar = VOP_REG(RK3328_BCSH_COLOR_BAR, 0xffffff, 8),
 	.bcsh_en = VOP_REG(RK3328_BCSH_COLOR_BAR, 0x1, 0),
+	.win_channel[0] = VOP_REG_VER(RK3328_WIN0_CTRL2, 0xff, 0, 3, 8, 8),
+	.win_channel[1] = VOP_REG_VER(RK3328_WIN1_CTRL2, 0xff, 0, 3, 8, 8),
+	.win_channel[2] = VOP_REG_VER(RK3328_WIN2_CTRL2, 0xff, 0, 3, 8, 8),
 
 	.cfg_done = VOP_REG(RK3328_REG_CFG_DONE, 0x1, 0),
 };

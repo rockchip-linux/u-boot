@@ -232,6 +232,8 @@ struct vop_reg {
 
 struct vop_ctrl {
 	struct vop_reg standby;
+	struct vop_reg axi_outstanding_max_num;
+	struct vop_reg axi_max_outstanding_en;
 	struct vop_reg htotal_pw;
 	struct vop_reg hact_st_end;
 	struct vop_reg vtotal_pw;
@@ -316,6 +318,9 @@ struct vop_ctrl {
 	struct vop_reg cabc_global_dn;
 	struct vop_reg cabc_calc_pixel_num;
 
+	struct vop_reg win_gate[4];
+	struct vop_reg win_channel[4];
+
 	/* BCSH */
 	struct vop_reg bcsh_brightness;
 	struct vop_reg bcsh_contrast;
@@ -345,7 +350,7 @@ struct vop_ctrl {
 	struct vop_reg mcu_type;
 	struct vop_reg mcu_rw_bypass_port;
 
-	struct vop_reg win_gate[4];
+
 	struct vop_reg cfg_done;
 };
 
