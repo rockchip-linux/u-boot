@@ -137,6 +137,8 @@ static int rockchip_vop_init(struct display_state *state)
 	rockchip_vop_init_gamma(vop, state);
 
 	VOP_CTRL_SET(vop, global_regdone_en, 1);
+	VOP_CTRL_SET(vop, axi_outstanding_max_num, 30);
+	VOP_CTRL_SET(vop, axi_max_outstanding_en, 1);
 	VOP_CTRL_SET(vop, win_gate[0], 1);
 	VOP_CTRL_SET(vop, win_gate[1], 1);
 	VOP_CTRL_SET(vop, dsp_blank, 0);
