@@ -18,7 +18,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CONFIG_RKCLK_APLL_FREQ		600000 /* KHZ */
 #define CONFIG_RKCLK_APLL_FREQ_HIGH	1200000 /* KHZ */
 #define CONFIG_RKCLK_GPLL_FREQ		491520 /* KHZ */
-#define CONFIG_RKCLK_CPLL_FREQ		594000 /* KHZ */
+#define CONFIG_RKCLK_CPLL_FREQ		1200000 /* KHZ */
 #define CONFIG_RKCLK_NPLL_FREQ		594000 /* KHZ */
 
 
@@ -152,6 +152,7 @@ static struct pll_clk_set gpll_clks[] = {
 /* cpll clock table, should be from high to low */
 static struct pll_clk_set cpll_clks[] = {
 	/* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
+	_CPLL_SET_CLKS(1200000, 1, 100, 2, 1, 1, 0),
 	_CPLL_SET_CLKS(750000, 2, 125, 2, 1, 1, 0),
 	_CPLL_SET_CLKS(594000, 2,  99, 2, 1, 1, 0),
 	_CPLL_SET_CLKS(400000, 6, 200, 2, 1, 1, 0),
@@ -643,7 +644,7 @@ static int rkclk_vop_aclk_set(uint32 aclk_hz)
 }
 
 
-#define VIO_ACLK_MAX	(300 * MHZ)
+#define VIO_ACLK_MAX	(400 * MHZ)
 #define VIO_HCLK_MAX	(100 * MHZ)
 #define HDMIPHY_CLK_FREQ	(594 * MHZ)
 #define VOP_ACLK_MAX	(500 * MHZ)
@@ -669,6 +670,7 @@ static int rkclk_lcdc_aclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 	con |= (0x1f << (0 + 16)) | ((div - 1) << 0);
 
 	cru_writel(con, CRU_CLKSELS_CON(37));
+	cru_writel(con, CRU_CLKSELS_CON(39));
 
 	return 0;
 }
