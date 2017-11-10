@@ -147,7 +147,7 @@ static void tve_set_mode (int mode)
 		tve_writel(TV_SYNC_TIMING, 0x00C07a81);
 		tve_writel(TV_ADJ_TIMING, 0x96B40000);
 		tve_writel(TV_ACT_ST,	0x001500D6);
-		tve_writel(TV_ACT_TIMING, 0x169800FC);
+		tve_writel(TV_ACT_TIMING, 0x169800FC | (1 << 12) | (1 << 28));
 
 	} else if (mode == TVOUT_CVBS_PAL) {
 		tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(0) |
