@@ -83,7 +83,7 @@ static inline void lvds_writel(struct rockchip_lvds_device *lvds,
 	writel(val, lvds->regbase + offset);
 
 	if ((lvds->pdata->chip_type == RK3288_LVDS) &&
-	    (lvds->output == DISPLAY_OUTPUT_DUAL_LVDS))
+	    (lvds->output != DISPLAY_OUTPUT_LVDS))
 		writel(val, lvds->regbase + offset + 0x100);
 }
 
