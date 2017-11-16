@@ -1012,6 +1012,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	ushort *cmap = tmpmap;
 	struct fb_dsp_info fb_info;
 	u8 format = RGB565;
+	int dsp_black = 0;
 #endif
 #endif
 	ushort *cmap_base = NULL;
@@ -1034,6 +1035,13 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	width = get_unaligned_le32(&bmp->header.width);
 	height = get_unaligned_le32(&bmp->header.height);
 	bmp_bpix = get_unaligned_le16(&bmp->header.bit_count);
+#if defined(CONFIG_RK_FB)
+	if (width * height > 1920 * 1080) {
+		dsp_black = 1;
+		printf("Error: no support this bmp resolution: %dx%d\n", width, height);
+		goto out;
+	}
+#endif
 
 	colors = 1 << bmp_bpix;
 
@@ -1053,8 +1061,9 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		format = ARGB888;
 		break;
 	default:
-		printf("Error: no support this bmp bpix%d\n",bmp_bpix);
-		return -1;
+		printf("Error: no support this bmp bpix:%d\n",bmp_bpix);
+		dsp_black = 1;
+		goto out;
 	}
 #else
 	bpix = NBITS(panel_info.vl_bpix);
@@ -1252,6 +1261,20 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	};
 
 #if defined(CONFIG_RK_FB)
+out:
+	if (dsp_black) {
+		x = 0;
+		y = 0;
+		width = 1920;
+		height = 1080;
+		bpix = 24;
+		format = RGB888;
+		fb_info.ymirror = 0;
+		lcd_base = (void *)gd->fb_base;
+		lcd_base = (void *) ALIGN((ulong)lcd_base, CONFIG_LCD_ALIGNMENT);
+		lcd_line_length = (width * bpix) / 8;
+		memset(lcd_base, 0, lcd_line_length * height);
+	}
 #ifdef CONFIG_DIRECT_LOGO
 display:
 #endif
