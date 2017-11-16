@@ -918,7 +918,7 @@ static int rockchip_display_probe(struct udevice *dev)
 			       fdt_get_name(blob, child, NULL));
 			continue;
 		}
-		ret = uclass_find_device_by_of_offset(UCLASS_DISPLAY, conn_node, &conn_dev);
+		ret = uclass_get_device_by_of_offset(UCLASS_DISPLAY, conn_node, &conn_dev);
 		if (ret) {
 			printf("Warn: %s: can't find connector driver\n",
 			       fdt_get_name(blob, child, NULL));
