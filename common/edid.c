@@ -15,6 +15,7 @@
 #include <fdtdec.h>
 #include <log.h>
 #include <malloc.h>
+#include <hexdump.h>
 #include <linux/compat.h>
 #include <linux/ctype.h>
 #include <linux/fb.h>
@@ -1438,14 +1439,14 @@ static void decode_mode(u8 *buf, struct drm_display_mode *mode)
  *
  * Returns true if @vendor is in @edid, false otherwise
  */
-static bool edid_vendor(struct edid1_info *edid, char *vendor)
+static bool edid_vendor(struct edid *edid, char *vendor)
 {
 	char edid_vendor[3];
 
-	edid_vendor[0] = ((edid->manufacturer_name[0] & 0x7c) >> 2) + '@';
-	edid_vendor[1] = (((edid->manufacturer_name[0] & 0x3) << 3) |
-			  ((edid->manufacturer_name[1] & 0xe0) >> 5)) + '@';
-	edid_vendor[2] = (edid->manufacturer_name[1] & 0x1f) + '@';
+	edid_vendor[0] = ((edid->mfg_id[0] & 0x7c) >> 2) + '@';
+	edid_vendor[1] = (((edid->mfg_id[0] & 0x3) << 3) |
+			  ((edid->mfg_id[1] & 0xe0) >> 5)) + '@';
+	edid_vendor[2] = (edid->mfg_id[1] & 0x1f) + '@';
 
 	return !strncmp(edid_vendor, vendor, 3);
 }
@@ -1481,6 +1482,32 @@ static bool cea_is_hdmi_vsdb_present(struct edid_cea861_info *info)
 	}
 
 	return false;
+}
+
+static int drm_get_vrefresh(const struct drm_display_mode *mode)
+{
+	int refresh = 0;
+	unsigned int calc_val;
+
+	if (mode->vrefresh > 0) {
+		refresh = mode->vrefresh;
+	} else if (mode->htotal > 0 && mode->vtotal > 0) {
+		int vtotal;
+
+		vtotal = mode->vtotal;
+		/* work out vrefresh the value will be x1000 */
+		calc_val = (mode->clock * 1000);
+		calc_val /= mode->htotal;
+		refresh = (calc_val + vtotal / 2) / vtotal;
+
+		if (mode->flags & DRM_MODE_FLAG_INTERLACE)
+			refresh *= 2;
+		if (mode->flags & DRM_MODE_FLAG_DBLSCAN)
+			refresh /= 2;
+		if (mode->vscan > 1)
+			refresh /= mode->vscan;
+	}
+	return refresh;
 }
 
 int edid_get_drm_mode(u8 *buf, int buf_size, struct drm_display_mode *mode,
@@ -2016,7 +2043,7 @@ struct drm_display_mode *drm_cvt_mode(int hdisplay, int vdisplay, int vrefresh,
 		/* 3) Nominal HSync width (% of line period) - default 8 */
 #define CVT_HSYNC_PERCENTAGE	8
 		unsigned int hblank_percentage;
-		int vsyncandback_porch, vback_porch, hblank;
+		int vsyncandback_porch, hblank;
 
 		/* estimated the horizontal period */
 		tmp1 = HV_FACTOR * 1000000  -
@@ -2031,8 +2058,9 @@ struct drm_display_mode *drm_cvt_mode(int hdisplay, int vdisplay, int vrefresh,
 			vsyncandback_porch = vsync + CVT_MIN_V_PORCH;
 		else
 			vsyncandback_porch = tmp1;
-		/* 10. Find number of lines in back porch */
-		vback_porch = vsyncandback_porch - vsync;
+		/* 10. Find number of lines in back porch
+		 *		vback_porch = vsyncandback_porch - vsync;
+		 */
 		drm_mode->vtotal = vdisplay_rnd + 2 * vmargin +
 				vsyncandback_porch + CVT_MIN_V_PORCH;
 		/* 5) Definition of Horizontal blanking time limitation */
@@ -2242,9 +2270,8 @@ static bool drm_valid_hdmi_vic(u8 vic)
 }
 
 static void drm_add_hdmi_modes(struct hdmi_edid_data *data,
-			       struct drm_display_mode *mode)
+			       const struct drm_display_mode *mode)
 {
-	int ret;
 	struct drm_display_mode *mode_buf = data->mode_buf;
 
 	mode_buf[(data->modes)++] = *mode;
@@ -2366,8 +2393,7 @@ static
 int do_y420vdb_modes(const u8 *svds, u8 svds_len, struct drm_hdmi_info *hdmi,
 		     struct hdmi_edid_data *data)
 {
-	int modes = 0, i, ret;
-	struct drm_display_mode *mode_buf = data->mode_buf;
+	int modes = 0, i;
 
 	for (i = 0; i < svds_len; i++) {
 		u8 vic = svd_to_vic(svds[i]);
@@ -2410,7 +2436,7 @@ stereo_match_mandatory(const struct drm_display_mode *mode,
 	return mode->hdisplay == stereo_mode->width &&
 	       mode->vdisplay == stereo_mode->height &&
 	       interlaced == (stereo_mode->flags & DRM_MODE_FLAG_INTERLACE) &&
-	       drm_mode_vrefresh(mode) == stereo_mode->vrefresh;
+	       drm_get_vrefresh(mode) == stereo_mode->vrefresh;
 }
 
 static int add_hdmi_mandatory_stereo_modes(struct hdmi_edid_data *data)
@@ -2489,8 +2515,6 @@ static int add_3d_struct_modes(struct hdmi_edid_data *data, u16 structure,
 
 static int add_hdmi_mode(struct hdmi_edid_data *data, u8 vic)
 {
-	struct drm_display_mode *newmode;
-
 	if (!drm_valid_hdmi_vic(vic)) {
 		debug("Unknown HDMI VIC: %d\n", vic);
 		return 0;
@@ -3046,7 +3070,7 @@ static void drm_add_display_info(struct hdmi_edid_data *data, struct edid *edid)
 		break;
 	}
 
-	debug("%s: Assigning EDID-1.4 digital sink color depth as %d bpc.\n",
+	debug("Assigning EDID-1.4 digital sink color depth as %d bpc.\n",
 	      info->bpc);
 
 	info->color_formats |= DRM_COLOR_FORMAT_RGB444;
@@ -3059,12 +3083,10 @@ static void drm_add_display_info(struct hdmi_edid_data *data, struct edid *edid)
 static
 int add_cea_modes(struct hdmi_edid_data *data, struct edid *edid)
 {
-	struct edid_cea861_info *info;
 	const u8 *cea = drm_find_cea_extension(edid);
 	const u8 *db, *hdmi = NULL, *video = NULL;
 	u8 dbl, hdmi_len, video_len = 0;
 	int modes = 0;
-	u8 end, i = 0;
 
 	if (cea && cea_revision(cea) >= 3) {
 		int i, start, end;
@@ -3300,7 +3322,7 @@ struct drm_display_mode *drm_mode_detailed(struct edid *edid,
 
 set_refresh:
 
-	mode->vrefresh = drm_mode_vrefresh(mode);
+	mode->vrefresh = drm_get_vrefresh(mode);
 
 	return mode;
 }
@@ -3757,7 +3779,7 @@ static struct drm_display_mode *drm_mode_find_dmt(
 			continue;
 		if (vsize != ptr->vdisplay)
 			continue;
-		if (fresh != drm_mode_vrefresh(ptr))
+		if (fresh != drm_get_vrefresh(ptr))
 			continue;
 		if (rb != mode_is_rb(ptr))
 			continue;
@@ -3794,9 +3816,8 @@ drm_gtf_mode_complex(int hdisplay, int vdisplay,
 	int top_margin, bottom_margin;
 	int interlace;
 	unsigned int hfreq_est;
-	int vsync_plus_bp, vback_porch;
-	unsigned int vtotal_lines, vfieldrate_est, hperiod;
-	unsigned int vfield_rate, vframe_rate;
+	int vsync_plus_bp;
+	unsigned int vtotal_lines;
 	int left_margin, right_margin;
 	unsigned int total_active_pixels, ideal_duty_cycle;
 	unsigned int hblank, total_pixels, pixel_freq;
@@ -3856,23 +3877,28 @@ drm_gtf_mode_complex(int hdisplay, int vdisplay,
 	/* [V SYNC+BP] = RINT(([MIN VSYNC+BP] * hfreq_est / 1000000)) */
 	vsync_plus_bp = MIN_VSYNC_PLUS_BP * hfreq_est / 1000;
 	vsync_plus_bp = (vsync_plus_bp + 500) / 1000;
-	/*  9. Find the number of lines in V back porch alone: */
-	vback_porch = vsync_plus_bp - V_SYNC_RQD;
+	/*  9. Find the number of lines in V back porch alone:
+	 *	vback_porch = vsync_plus_bp - V_SYNC_RQD;
+	 */
 	/*  10. Find the total number of lines in Vertical field period: */
 	vtotal_lines = vdisplay_rnd + top_margin + bottom_margin +
 			vsync_plus_bp + GTF_MIN_V_PORCH;
-	/*  11. Estimate the Vertical field frequency: */
-	vfieldrate_est = hfreq_est / vtotal_lines;
-	/*  12. Find the actual horizontal period: */
-	hperiod = 1000000 / (vfieldrate_rqd * vtotal_lines);
+	/*  11. Estimate the Vertical field frequency:
+	 *  vfieldrate_est = hfreq_est / vtotal_lines;
+	 */
 
-	/*  13. Find the actual Vertical field frequency: */
-	vfield_rate = hfreq_est / vtotal_lines;
-	/*  14. Find the Vertical frame frequency: */
-	if (interlaced)
-		vframe_rate = vfield_rate / 2;
-	else
-		vframe_rate = vfield_rate;
+	/*  12. Find the actual horizontal period:
+	 *	hperiod = 1000000 / (vfieldrate_rqd * vtotal_lines);
+	 */
+	/*  13. Find the actual Vertical field frequency:
+	 *	vfield_rate = hfreq_est / vtotal_lines;
+	 */
+	/*  14. Find the Vertical frame frequency:
+	 *	if (interlaced)
+	 *		vframe_rate = vfield_rate / 2;
+	 *	else
+	 *		vframe_rate = vfield_rate;
+	 */
 	/*  15. Find number of pixels in left margin: */
 	if (margins)
 		left_margin = (hdisplay_rnd * GTF_MARGIN_PERCENTAGE + 500) /
@@ -4012,7 +4038,7 @@ static struct drm_display_mode *
 drm_mode_std(struct hdmi_edid_data *data, struct edid *edid,
 	     struct std_timing *t)
 {
-	struct drm_display_mode *m, *mode = NULL;
+	struct drm_display_mode *mode = NULL;
 	int i, hsize, vsize;
 	int vrefresh_rate;
 	int num = data->modes;
@@ -4060,7 +4086,7 @@ drm_mode_std(struct hdmi_edid_data *data, struct edid *edid,
 	for (i = 0; i < num; i++)
 		if (data->mode_buf[i].hdisplay == hsize &&
 		    data->mode_buf[i].hdisplay &&
-		    drm_mode_vrefresh(&data->mode_buf[i]) == vrefresh_rate)
+		    drm_get_vrefresh(&data->mode_buf[i]) == vrefresh_rate)
 			return NULL;
 
 	/* HDTV hack, part 2 */
@@ -4288,7 +4314,7 @@ static u8 drm_match_hdmi_mode(const struct drm_display_mode *to_match)
 static int
 add_alternate_cea_modes(struct hdmi_edid_data *data, struct edid *edid)
 {
-	struct drm_display_mode *mode, *tmp;
+	struct drm_display_mode *mode;
 	int i, num, modes = 0;
 
 	/* Don't add CEA modes if the CEA extension block is missing */
@@ -4428,7 +4454,7 @@ drm_display_mode *drm_displayid_detailed(struct displayid_detailed_timings_1
 		vsync_positive ? DRM_MODE_FLAG_PVSYNC : DRM_MODE_FLAG_NVSYNC;
 
 	if (timings->flags & 0x80)
-	mode->vrefresh = drm_mode_vrefresh(mode);
+	mode->vrefresh = drm_get_vrefresh(mode);
 
 	return mode;
 }
@@ -4526,7 +4552,7 @@ mode_in_vsync_range(const struct drm_display_mode *mode,
 	vmax = t[6];
 	if (edid->revision >= 4)
 		vmax += ((t[4] & 0x02) ? 255 : 0);
-	vsync = drm_mode_vrefresh(mode);
+	vsync = drm_get_vrefresh(mode);
 
 	return (vsync <= vmax && vsync >= vmin);
 }
@@ -4587,7 +4613,7 @@ static bool valid_inferred_mode(struct hdmi_edid_data *data,
 		m = &data->mode_buf[i];
 		if (mode->hdisplay == m->hdisplay &&
 		    mode->vdisplay == m->vdisplay &&
-		    drm_mode_vrefresh(mode) == drm_mode_vrefresh(m))
+		    drm_get_vrefresh(mode) == drm_get_vrefresh(m))
 			return false; /* duplicated */
 		if (mode->hdisplay <= m->hdisplay &&
 		    mode->vdisplay <= m->vdisplay)
@@ -4751,7 +4777,7 @@ add_inferred_modes(struct hdmi_edid_data *data, struct edid *edid)
 static void edid_fixup_preferred(struct hdmi_edid_data *data,
 				 u32 quirks)
 {
-	struct drm_display_mode *t, *cur_mode, *preferred_mode;
+	struct drm_display_mode *cur_mode, *preferred_mode;
 	int i, target_refresh = 0;
 	int num = data->modes;
 	int cur_vrefresh, preferred_vrefresh;
@@ -4777,9 +4803,9 @@ static void edid_fixup_preferred(struct hdmi_edid_data *data,
 			preferred_mode = cur_mode;
 
 		cur_vrefresh = cur_mode->vrefresh ?
-		cur_mode->vrefresh : drm_mode_vrefresh(cur_mode);
+		cur_mode->vrefresh : drm_get_vrefresh(cur_mode);
 		preferred_vrefresh = preferred_mode->vrefresh ?
-		preferred_mode->vrefresh : drm_mode_vrefresh(preferred_mode);
+		preferred_mode->vrefresh : drm_get_vrefresh(preferred_mode);
 		/* At a given size, try to get closest to target refresh */
 		if ((MODE_SIZE(cur_mode) == MODE_SIZE(preferred_mode)) &&
 		    MODE_REFRESH_DIFF(cur_vrefresh, target_refresh) <
@@ -4918,7 +4944,7 @@ bad:
 			debug("EDID block is all zeroes\n");
 		} else {
 			debug("Raw EDID:\n");
-			print_hex_dump(KERN_ERR, " \t", DUMP_PREFIX_NONE, 16, 1,
+			print_hex_dump("", DUMP_PREFIX_NONE, 16, 1,
 				       raw_edid, EDID_SIZE, false);
 		}
 	}
