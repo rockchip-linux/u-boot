@@ -1021,6 +1021,7 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 	dsi->node = mipi_node;
 	conn_state->private = dsi;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 
 	panel = fdt_subnode_offset(state->blob, mipi_node, "panel");
 	if (panel < 0) {

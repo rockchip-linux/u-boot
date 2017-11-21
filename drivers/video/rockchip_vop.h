@@ -130,6 +130,18 @@ enum dither_down_mode_sel {
 	DITHER_DOWN_FRC = 0x1
 };
 
+enum vop_csc_format {
+	CSC_BT601L,
+	CSC_BT709L,
+	CSC_BT601F,
+	CSC_BT2020,
+};
+
+#define DSP_BG_SWAP		0x1
+#define DSP_RB_SWAP		0x2
+#define DSP_RG_SWAP		0x4
+#define DSP_DELTA_SWAP		0x8
+
 #define PRE_DITHER_DOWN_EN(x)	((x) << 0)
 #define DITHER_DOWN_EN(x)	((x) << 1)
 #define DITHER_DOWN_MODE(x)	((x) << 2)
@@ -242,6 +254,7 @@ struct vop_ctrl {
 	struct vop_reg core_dclk_div;
 	struct vop_reg dclk_ddr;
 	struct vop_reg p2i_en;
+	struct vop_reg hdmi_dclk_out_en;
 	struct vop_reg rgb_en;
 	struct vop_reg edp_en;
 	struct vop_reg hdmi_en;
@@ -275,6 +288,21 @@ struct vop_ctrl {
 	struct vop_reg dsp_background;
 
 	struct vop_reg win_gate[4];
+
+	/* BCSH */
+	struct vop_reg bcsh_brightness;
+	struct vop_reg bcsh_contrast;
+	struct vop_reg bcsh_sat_con;
+	struct vop_reg bcsh_sin_hue;
+	struct vop_reg bcsh_cos_hue;
+	struct vop_reg bcsh_r2y_csc_mode;
+	struct vop_reg bcsh_r2y_en;
+	struct vop_reg bcsh_y2r_csc_mode;
+	struct vop_reg bcsh_y2r_en;
+	struct vop_reg bcsh_color_bar;
+	struct vop_reg bcsh_out_mode;
+	struct vop_reg bcsh_en;
+
 	struct vop_reg cfg_done;
 };
 

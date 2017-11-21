@@ -895,6 +895,7 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	conn_state->private = dp;
 	conn_state->type = DRM_MODE_CONNECTOR_eDP;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
+	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 
 	if (pdata->chip_type == RK3399_EDP) {
 		/*

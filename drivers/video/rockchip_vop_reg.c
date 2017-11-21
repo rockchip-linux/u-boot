@@ -145,6 +145,19 @@ static const struct vop_ctrl rk3288_ctrl_data = {
 	.update_gamma_lut = VOP_REG_VER(RK3288_DSP_CTRL1, 0x1, 7, 3, 5, -1),
 	.out_mode = VOP_REG(RK3288_DSP_CTRL0, 0xf, 0),
 
+	.bcsh_brightness = VOP_REG(RK3288_BCSH_BCS, 0xff, 0),
+	.bcsh_contrast = VOP_REG(RK3288_BCSH_BCS, 0x1ff, 8),
+	.bcsh_sat_con = VOP_REG(RK3288_BCSH_BCS, 0x3ff, 20),
+	.bcsh_out_mode = VOP_REG(RK3288_BCSH_BCS, 0x3, 0),
+	.bcsh_sin_hue = VOP_REG(RK3288_BCSH_H, 0x1ff, 0),
+	.bcsh_cos_hue = VOP_REG(RK3288_BCSH_H, 0x1ff, 16),
+	.bcsh_r2y_csc_mode = VOP_REG_VER(RK3368_BCSH_CTRL, 0x1, 6, 3, 1, -1),
+	.bcsh_r2y_en = VOP_REG_VER(RK3368_BCSH_CTRL, 0x1, 4, 3, 1, -1),
+	.bcsh_y2r_csc_mode = VOP_REG_VER(RK3368_BCSH_CTRL, 0x3, 2, 3, 1, -1),
+	.bcsh_y2r_en = VOP_REG_VER(RK3368_BCSH_CTRL, 0x1, 0, 3, 1, -1),
+	.bcsh_color_bar = VOP_REG(RK3288_BCSH_COLOR_BAR, 0xffffff, 8),
+	.bcsh_en = VOP_REG(RK3288_BCSH_COLOR_BAR, 0x1, 0),
+
 	.xmirror = VOP_REG(RK3288_DSP_CTRL0, 0x1, 22),
 	.ymirror = VOP_REG(RK3288_DSP_CTRL0, 0x1, 23),
 
@@ -234,6 +247,9 @@ static const struct vop_ctrl rk3328_ctrl_data = {
 	.hpost_st_end = VOP_REG(RK3328_POST_DSP_HACT_INFO, 0x1fff1fff, 0),
 	.vpost_st_end = VOP_REG(RK3328_POST_DSP_VACT_INFO, 0x1fff1fff, 0),
 	.vpost_st_end_f1 = VOP_REG(RK3328_POST_DSP_VACT_INFO_F1, 0x1fff1fff, 0),
+	.post_scl_factor = VOP_REG(RK3328_POST_SCL_FACTOR_YRGB, 0xffffffff, 0),
+	.post_scl_ctrl = VOP_REG(RK3328_POST_SCL_CTRL, 0x3, 0),
+	.dsp_out_yuv = VOP_REG(RK3328_POST_SCL_CTRL, 0x1, 2),
 	.dsp_interlace = VOP_REG(RK3328_DSP_CTRL0, 0x1, 10),
 	.dsp_layer_sel = VOP_REG(RK3328_DSP_CTRL1, 0xff, 8),
 	.post_lb_mode = VOP_REG(RK3328_SYS_CTRL, 0x1, 18),
@@ -263,6 +279,19 @@ static const struct vop_ctrl rk3328_ctrl_data = {
 	.ymirror = VOP_REG(RK3328_DSP_CTRL0, 0x1, 23),
 
 	.dsp_background = VOP_REG(RK3328_DSP_BG, 0xffffffff, 0),
+
+	.bcsh_brightness = VOP_REG(RK3328_BCSH_BCS, 0xff, 0),
+	.bcsh_contrast = VOP_REG(RK3328_BCSH_BCS, 0x1ff, 8),
+	.bcsh_sat_con = VOP_REG(RK3328_BCSH_BCS, 0x3ff, 20),
+	.bcsh_out_mode = VOP_REG(RK3328_BCSH_BCS, 0x3, 30),
+	.bcsh_sin_hue = VOP_REG(RK3328_BCSH_H, 0x1ff, 0),
+	.bcsh_cos_hue = VOP_REG(RK3328_BCSH_H, 0x1ff, 16),
+	.bcsh_r2y_csc_mode = VOP_REG(RK3328_BCSH_CTRL, 0x3, 6),
+	.bcsh_r2y_en = VOP_REG(RK3368_BCSH_CTRL, 0x1, 4),
+	.bcsh_y2r_csc_mode = VOP_REG(RK3368_BCSH_CTRL, 0x3, 2),
+	.bcsh_y2r_en = VOP_REG(RK3368_BCSH_CTRL, 0x1, 0),
+	.bcsh_color_bar = VOP_REG(RK3328_BCSH_COLOR_BAR, 0xffffff, 8),
+	.bcsh_en = VOP_REG(RK3328_BCSH_COLOR_BAR, 0x1, 0),
 
 	.cfg_done = VOP_REG(RK3328_REG_CFG_DONE, 0x1, 0),
 };

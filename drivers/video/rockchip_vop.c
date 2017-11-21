@@ -26,6 +26,56 @@ static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
 	return us * mode->clock / mode->htotal / 1000;
 }
 
+static int to_vop_csc_mode(int csc_mode)
+{
+	switch (csc_mode) {
+	case V4L2_COLORSPACE_SMPTE170M:
+		return CSC_BT601L;
+	case V4L2_COLORSPACE_REC709:
+	case V4L2_COLORSPACE_DEFAULT:
+		return CSC_BT709L;
+	case V4L2_COLORSPACE_JPEG:
+		return CSC_BT601F;
+	case V4L2_COLORSPACE_BT2020:
+		return CSC_BT2020;
+	default:
+		return CSC_BT709L;
+	}
+}
+
+static bool is_yuv_output(uint32_t bus_format)
+{
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_YUV8_1X24:
+	case MEDIA_BUS_FMT_YUV10_1X30:
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool is_uv_swap(uint32_t bus_format, uint32_t output_mode)
+{
+	/*
+	 * FIXME:
+	 *
+	 * There is no media type for YUV444 output,
+	 * so when out_mode is AAAA or P888, assume output is YUV444 on
+	 * yuv format.
+	 *
+	 * From H/W testing, YUV444 mode need a rb swap.
+	 */
+	if ((bus_format == MEDIA_BUS_FMT_YUV8_1X24 ||
+	     bus_format == MEDIA_BUS_FMT_YUV10_1X30) &&
+	    (output_mode == ROCKCHIP_OUT_MODE_AAAA ||
+	     output_mode == ROCKCHIP_OUT_MODE_P888))
+		return true;
+	else
+		return false;
+}
+
 static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -100,8 +150,9 @@ static int rockchip_vop_init(struct display_state *state)
 	u16 vact_st = mode->vtotal - mode->vsync_start;
 	u16 vact_end = vact_st + vdisplay;
 	u32 val;
-	int i;
 	int rate;
+	bool yuv_overlay = false, post_r2y_en = false, post_y2r_en = false;
+	u16 post_csc_mode;
 
 	vop = malloc(sizeof(*vop));
 	if (!vop)
@@ -185,6 +236,14 @@ static int rockchip_vop_init(struct display_state *state)
 	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
 		val = DITHER_DOWN_EN(1) | DITHER_DOWN_MODE(RGB888_TO_RGB666);
 		break;
+	case MEDIA_BUS_FMT_YUV8_1X24:
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
+		val = DITHER_DOWN_EN(0) | PRE_DITHER_DOWN_EN(1);
+		break;
+	case MEDIA_BUS_FMT_YUV10_1X30:
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
+		val = DITHER_DOWN_EN(0) | PRE_DITHER_DOWN_EN(0);
+		break;
 	case MEDIA_BUS_FMT_RGB888_1X24:
 	default:
 		val = DITHER_DOWN_EN(0) | PRE_DITHER_DOWN_EN(0);
@@ -197,7 +256,53 @@ static int rockchip_vop_init(struct display_state *state)
 	val |= DITHER_DOWN_MODE_SEL(DITHER_DOWN_ALLEGRO);
 	VOP_CTRL_SET(vop, dither_down, val);
 
+	VOP_CTRL_SET(vop, dclk_ddr,
+		     conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420 ? 1 : 0);
+	VOP_CTRL_SET(vop, hdmi_dclk_out_en,
+		     conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420 ? 1 : 0);
+
+	if (is_uv_swap(conn_state->bus_format, conn_state->output_mode))
+		VOP_CTRL_SET(vop, dsp_data_swap, DSP_RB_SWAP);
+	else
+		VOP_CTRL_SET(vop, dsp_data_swap, 0);
+
 	VOP_CTRL_SET(vop, out_mode, conn_state->output_mode);
+
+	if (VOP_CTRL_SUPPORT(vop, overlay_mode)) {
+		yuv_overlay = is_yuv_output(conn_state->bus_format);
+		VOP_CTRL_SET(vop, overlay_mode, yuv_overlay);
+	}
+	/*
+	 * todo: r2y for win csc
+	 */
+	VOP_CTRL_SET(vop, dsp_out_yuv, is_yuv_output(conn_state->bus_format));
+
+	if (yuv_overlay) {
+		if (!is_yuv_output(conn_state->bus_format))
+			post_y2r_en = true;
+	} else {
+		if (is_yuv_output(conn_state->bus_format))
+			post_r2y_en = true;
+	}
+
+	post_csc_mode = to_vop_csc_mode(conn_state->color_space);
+	VOP_CTRL_SET(vop, bcsh_r2y_en, post_r2y_en);
+	VOP_CTRL_SET(vop, bcsh_y2r_en, post_y2r_en);
+	VOP_CTRL_SET(vop, bcsh_r2y_csc_mode, post_csc_mode);
+	VOP_CTRL_SET(vop, bcsh_y2r_csc_mode, post_csc_mode);
+
+	/*
+	 * Background color is 10bit depth if vop version >= 3.5
+	 */
+	if (!is_yuv_output(conn_state->bus_format))
+		val = 0;
+	else if (VOP_MAJOR(vop->version) == 3 &&
+		 VOP_MINOR(vop->version) >= 5)
+		val = 0x20010200;
+	else
+		val = 0x801080;
+	VOP_CTRL_SET(vop, dsp_background, val);
+
 	VOP_CTRL_SET(vop, htotal_pw, (htotal << 16) | hsync_len);
 	val = hact_st << 16;
 	val |= hact_end;
