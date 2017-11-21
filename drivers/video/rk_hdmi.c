@@ -1587,6 +1587,46 @@ static int hdmi_find_nearest_mode(struct hdmi_dev *hdmi_dev, int pos)
 	return -1;
 }
 
+static int get_baseparamer_no_edid(struct hdmi_dev *hdmi_dev)
+{
+	int i, pos_baseparamer = g_pos_baseparamer.hdmi_pos;
+	int vic, vic_2nd;
+	struct fb_videomode mode;
+
+	printf("g_pos_baseparamer.hdmi_pos:%d\n", g_pos_baseparamer.hdmi_pos);
+	if (g_pos_baseparamer.hdmi_pos < 0)
+		return -EINVAL;
+
+	for (i = 0; i < ARRAY_SIZE(hdmi_mode); i++) {
+		/* There is no valid information in EDID,
+		 * just list common hdmi foramt.
+		 */
+		mode = hdmi_mode[i].mode;
+		if (mode.xres >= 3840 ||
+		    mode.refresh < 50 ||
+		    (mode.vmode & FB_VMODE_INTERLACED))
+			continue;
+		vic = hdmi_dev->modedb[pos_baseparamer].vic;
+		vic_2nd = hdmi_dev->modedb[pos_baseparamer].vic_2nd;
+		if (hdmi_mode[i].vic == vic ||
+		    hdmi_mode[i].vic == vic_2nd ||
+		    hdmi_mode[i].vic_2nd == vic ||
+		    hdmi_mode[i].vic_2nd == vic_2nd)
+			break;
+	}
+
+
+	if (i < ARRAY_SIZE(hdmi_mode)) {
+		hdmi_dev->vic = hdmi_mode[i].vic;
+		printf("can't get edid, use baseparamer config:%d\n",
+		       pos_baseparamer);
+
+		return 0;
+	}
+
+	return -EINVAL;
+}
+
 void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 {
 	int i = 0, pos_baseparamer = 0;
@@ -1635,13 +1675,16 @@ void hdmi_find_best_mode(struct hdmi_dev *hdmi_dev)
 			printf("no baseparametr,find best edid mode,vic=%d\n",hdmi_dev->vic);
 		}
 	} else {
-		if (hdmi_dev->defaultmode)
-			hdmi_dev->vic = hdmi_dev->defaultmode;
-		else
-			hdmi_dev->vic = HDMI_VIDEO_DEFAULT_MODE;
-		printf("no edid message:use default vic config:%d\n",hdmi_dev->vic);
+		if (get_baseparamer_no_edid(hdmi_dev)) {
+			if (hdmi_dev->defaultmode)
+				hdmi_dev->vic = hdmi_dev->defaultmode;
+			else
+				hdmi_dev->vic = HDMI_VIDEO_DEFAULT_MODE;
+			printf("no edid message:use default vic config:%d\n",
+			       hdmi_dev->vic);
+		}
 	}
-	
+
 	hdmi_dev->video.vic = hdmi_dev->vic & HDMI_VIC_MASK;
 	printf("hdmi_dev->video.vic is %d\n", hdmi_dev->video.vic);
 	if (hdmi_dev->video.sink_hdmi == 0) {
