@@ -250,7 +250,7 @@
 
 /* rockchip global buffer. */
 #define CONFIG_RK_GLOBAL_BUFFER_SIZE			(SZ_4M)
-#define CONFIG_RK_BOOT_BUFFER_SIZE			(SZ_32M)
+#define CONFIG_RK_BOOT_BUFFER_SIZE			(SZ_32M + SZ_16M)
 
 /*
  * CONFIG_FASTBOOT_TRANSFER_BUFFER_SIZE should be larger than our boot/recovery image size.
