@@ -2070,7 +2070,7 @@ static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 	hdmi_dev->video.sink_hdmi = OUTPUT_HDMI;
 	hdmi_dev->video.format_3d = HDMI_3D_NONE;
 
-	hdmi_dev->video.color_output = HDMI_COLOR_RGB_0_255;
+	hdmi_dev->video.color_output = HDMI_COLOR_RGB_16_235;
 	hdmi_dev->video.color_output_depth = 8;
 
 	hdmi_dev_init(hdmi_dev);
