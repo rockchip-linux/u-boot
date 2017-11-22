@@ -2056,15 +2056,270 @@ static int hdmi_dev_insert(struct hdmi_dev *hdmi_dev)
 	return HDMI_ERROR_SUCESS;
 }
 
+
+static void hdmi_dev_config_aai(struct hdmi_dev *hdmi_dev,
+				struct hdmi_audio *audio)
+{
+	/* Refer to CEA861-E Audio infoFrame
+	 * Set both Audio Channel Count and Audio Coding
+	 * Type Refer to Stream Head for HDMI
+	 */
+	hdmi_msk_reg(hdmi_dev, FC_AUDICONF0,
+		     m_FC_CHN_CNT | m_FC_CODING_TYPE,
+		     v_FC_CHN_CNT(audio->channel - 1) | v_FC_CODING_TYPE(0));
+
+	/* Set both Audio Sample Size and Sample Frequency
+	 * Refer to Stream Head for HDMI
+	 */
+	hdmi_msk_reg(hdmi_dev, FC_AUDICONF1,
+		     m_FC_SAMPLE_SIZE | m_FC_SAMPLE_FREQ,
+		     v_FC_SAMPLE_SIZE(0) | v_FC_SAMPLE_FREQ(0));
+
+	/* Set Channel Allocation */
+	hdmi_writel(hdmi_dev, FC_AUDICONF2, 0x00);
+
+	/* Set LFEPBLDOWN-MIX INH and LSV */
+	hdmi_writel(hdmi_dev, FC_AUDICONF3, 0x00);
+}
+
+static int hdmi_dev_config_audio(struct hdmi_dev *hdmi_dev,
+				 struct hdmi_audio *audio)
+{
+	int word_length = 0, channel = 0, mclk_fs;
+	unsigned int N = 0, CTS = 0;
+	int rate = 0;
+
+	printf("%s\n", __func__);
+
+	if (audio->channel < 3)
+		channel = I2S_CHANNEL_1_2;
+	else if (audio->channel < 5)
+		channel = I2S_CHANNEL_3_4;
+	else if (audio->channel < 7)
+		channel = I2S_CHANNEL_5_6;
+	else
+		channel = I2S_CHANNEL_7_8;
+
+	switch (audio->rate) {
+	case HDMI_AUDIO_FS_32000:
+		mclk_fs = FS_128;
+		rate = AUDIO_32K;
+		if (hdmi_dev->tmdsclk >= 594000000)
+			N = N_32K_HIGHCLK;
+		else if (hdmi_dev->tmdsclk >= 297000000)
+			N = N_32K_MIDCLK;
+		else
+			N = N_32K_LOWCLK;
+		/*div a num to avoid the value is exceed 2^32(int)*/
+			CTS = CALC_CTS(N, hdmi_dev->tmdsclk / 1000, 32);
+		break;
+	case HDMI_AUDIO_FS_44100:
+		mclk_fs = FS_128;
+		rate = AUDIO_441K;
+		if (hdmi_dev->tmdsclk >= 594000000)
+			N = N_441K_HIGHCLK;
+		else if (hdmi_dev->tmdsclk >= 297000000)
+			N = N_441K_MIDCLK;
+		else
+			N = N_441K_LOWCLK;
+			CTS = CALC_CTS(N, hdmi_dev->tmdsclk / 100, 441);
+		break;
+	case HDMI_AUDIO_FS_48000:
+		mclk_fs = FS_128;
+		printf("HDMI_AUDIO_FS_48000\n");
+		rate = AUDIO_48K;
+		if (hdmi_dev->tmdsclk >= 594000000)	/*FS_153.6*/
+			N = N_48K_HIGHCLK;
+		else if (hdmi_dev->tmdsclk >= 297000000)
+			N = N_48K_MIDCLK;
+		else
+			N = N_48K_LOWCLK;
+			CTS = CALC_CTS(N, hdmi_dev->tmdsclk / 1000, 48);
+		break;
+	case HDMI_AUDIO_FS_88200:
+		mclk_fs = FS_128;
+		rate = AUDIO_882K;
+		if (hdmi_dev->tmdsclk >= 594000000)
+			N = N_882K_HIGHCLK;
+		else if (hdmi_dev->tmdsclk >= 297000000)
+			N = N_882K_MIDCLK;
+		else
+			N = N_882K_LOWCLK;
+			CTS = CALC_CTS(N, hdmi_dev->tmdsclk / 100, 882);
+		break;
+	case HDMI_AUDIO_FS_96000:
+		mclk_fs = FS_128;
+		rate = AUDIO_96K;
+		if (hdmi_dev->tmdsclk >= 594000000)	/*FS_153.6*/
+			N = N_96K_HIGHCLK;
+		else if (hdmi_dev->tmdsclk >= 297000000)
+			N = N_96K_MIDCLK;
+		else
+			N = N_96K_LOWCLK;
+			CTS = CALC_CTS(N, hdmi_dev->tmdsclk / 1000, 96);
+		break;
+	case HDMI_AUDIO_FS_176400:
+		mclk_fs = FS_128;
+		rate = AUDIO_1764K;
+		if (hdmi_dev->tmdsclk >= 594000000)
+			N = N_1764K_HIGHCLK;
+		else if (hdmi_dev->tmdsclk >= 297000000)
+			N = N_1764K_MIDCLK;
+		else
+			N = N_1764K_LOWCLK;
+			CTS = CALC_CTS(N, hdmi_dev->tmdsclk / 100, 1764);
+		break;
+	case HDMI_AUDIO_FS_192000:
+		mclk_fs = FS_128;
+		rate = AUDIO_192K;
+		if (hdmi_dev->tmdsclk >= 594000000)	/*FS_153.6*/
+			N = N_192K_HIGHCLK;
+		else if (hdmi_dev->tmdsclk >= 297000000)
+			N = N_192K_MIDCLK;
+		else
+			N = N_192K_LOWCLK;
+			CTS = CALC_CTS(N, hdmi_dev->tmdsclk / 1000, 192);
+		break;
+	default:
+		printf(
+			"[%s] not support such sample rate %d\n",
+			__func__, audio->rate);
+		return -ENOENT;
+	}
+
+	switch (audio->word_length) {
+	case HDMI_AUDIO_WORD_LENGTH_16bit:
+		word_length = I2S_16BIT_SAMPLE;
+		break;
+	case HDMI_AUDIO_WORD_LENGTH_20bit:
+		word_length = I2S_20BIT_SAMPLE;
+		break;
+	case HDMI_AUDIO_WORD_LENGTH_24bit:
+		word_length = I2S_24BIT_SAMPLE;
+		break;
+	default:
+		word_length = I2S_16BIT_SAMPLE;
+	}
+
+	printf("rate = %d, tmdsclk = %u, N = %d, CTS = %d\n",
+	       audio->rate, hdmi_dev->tmdsclk, N, CTS);
+	/* more than 2 channels => layout 1 else layout 0 */
+	hdmi_msk_reg(hdmi_dev, FC_AUDSCONF,
+		     m_AUD_PACK_LAYOUT,
+		     v_AUD_PACK_LAYOUT((audio->channel > 2) ? 1 : 0));
+
+		/*Mask fifo empty and full int and reset fifo*/
+		hdmi_msk_reg(hdmi_dev, AUD_INT,
+			     m_FIFO_EMPTY_MASK | m_FIFO_FULL_MASK,
+			     v_FIFO_EMPTY_MASK(1) | v_FIFO_FULL_MASK(1));
+		hdmi_msk_reg(hdmi_dev, AUD_CONF0,
+			     m_SW_AUD_FIFO_RST, v_SW_AUD_FIFO_RST(1));
+		hdmi_writel(hdmi_dev, MC_SWRSTZREQ, 0xF7);
+		udelay(100);
+		/*
+		 * when we try to use hdmi nlpcm mode
+		 * we should use set AUD_CONF2 to open this route and set
+		 * word_length to 24bit for b.p.c.u.v with 16bit raw data
+		 * when the bitstream data  up to 8 channel, we should use
+		 * the hdmi hbr mode
+		 * HBR Mode : Dolby TrueHD
+		 *            Dolby Atmos
+		 *            DTS-HDMA
+		 * NLPCM Mode :
+		 * FS_32000 FS_44100 FS_48000 : Dolby Digital &  DTS
+		 * FS_176400 FS_192000        : Dolby Digital Plus
+		 */
+		if (audio->type == HDMI_AUDIO_NLPCM) {
+			printf("HDMI_AUDIO_NLPCM\n");
+			if (channel == I2S_CHANNEL_7_8) {
+				HDMIDBG(2, "hbr mode.\n");
+				hdmi_writel(hdmi_dev, AUD_CONF2, 0x1);
+				word_length = I2S_24BIT_SAMPLE;
+			} else if ((audio->rate == HDMI_AUDIO_FS_32000) ||
+				   (audio->rate == HDMI_AUDIO_FS_44100) ||
+				   (audio->rate == HDMI_AUDIO_FS_48000) ||
+				   (audio->rate == HDMI_AUDIO_FS_176400) ||
+				   (audio->rate == HDMI_AUDIO_FS_192000)) {
+				HDMIDBG(2, "nlpcm mode.\n");
+				hdmi_writel(hdmi_dev, AUD_CONF2, 0x2);
+				word_length = I2S_24BIT_SAMPLE;
+			} else {
+				hdmi_writel(hdmi_dev, AUD_CONF2, 0x0);
+			}
+		} else if (hdmi_readl(hdmi_dev, DESIGN_ID) >= 0x21) {
+			hdmi_writel(hdmi_dev, AUD_CONF2, 0x4);
+		} else {
+			hdmi_writel(hdmi_dev, AUD_CONF2, 0x0);
+		}
+
+		hdmi_msk_reg(hdmi_dev, AUD_CONF0,
+			     m_I2S_SEL | m_I2S_IN_EN,
+			     v_I2S_SEL(AUDIO_I2S) | v_I2S_IN_EN(channel));
+		hdmi_writel(hdmi_dev, AUD_CONF1,
+			    v_I2S_MODE(I2S_STANDARD_MODE) |
+			    v_I2S_WIDTH(word_length));
+
+	hdmi_msk_reg(hdmi_dev, AUD_INPUTCLKFS,
+		     m_LFS_FACTOR, v_LFS_FACTOR(mclk_fs));
+
+	/*Set N value*/
+	hdmi_msk_reg(hdmi_dev, AUD_N3, m_NCTS_ATOMIC_WR, v_NCTS_ATOMIC_WR(1));
+	/*Set CTS by manual*/
+	hdmi_msk_reg(hdmi_dev, AUD_CTS3,
+		     m_N_SHIFT | m_CTS_MANUAL | m_AUD_CTS3,
+		     v_N_SHIFT(N_SHIFT_1) |
+		     v_CTS_MANUAL(1) |
+		     v_AUD_CTS3(CTS >> 16));
+	hdmi_writel(hdmi_dev, AUD_CTS2, (CTS >> 8) & 0xff);
+	hdmi_writel(hdmi_dev, AUD_CTS1, CTS & 0xff);
+
+	hdmi_msk_reg(hdmi_dev, AUD_N3, m_AUD_N3, v_AUD_N3(N >> 16));
+	hdmi_writel(hdmi_dev, AUD_N2, (N >> 8) & 0xff);
+	hdmi_writel(hdmi_dev, AUD_N1, N & 0xff);
+
+	/* set channel status register */
+	hdmi_msk_reg(hdmi_dev, FC_AUDSCHNLS7,
+		     m_AUDIO_SAMPLE_RATE, v_AUDIO_SAMPLE_RATE(rate));
+	hdmi_writel(hdmi_dev, FC_AUDSCHNLS8, ((~rate) << 4) | 0x2);
+
+	hdmi_msk_reg(hdmi_dev, AUD_CONF0,
+		     m_SW_AUD_FIFO_RST, v_SW_AUD_FIFO_RST(1));
+
+	hdmi_dev_config_aai(hdmi_dev, audio);
+
+	return 0;
+}
+
+int hdmi_config_audio(struct hdmi_dev *hdmi_dev, struct hdmi_audio	*audio)
+{
+	int i;
+	u32 value = hdmi_readl(hdmi_dev, PHY_STAT0);
+
+	if (audio == NULL)
+		return HDMI_ERROR_FALSE;
+
+	if (value & m_PHY_HPD)
+		hdmi_dev_config_audio(hdmi_dev, audio);
+
+	return 0;
+}
+
 extern int g_hdmi_noexit;
+
 static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 {
 	int ret = -1;
+	struct hdmi_audio audio;
 
 	HDMIDBG("inital rk32 hdmi hardware.\n");
 
 	if (!hdmi_dev)
 		return ret;
+
+	audio.type = HDMI_AUDIO_LPCM;
+	audio.channel = 2;
+	audio.rate = HDMI_AUDIO_FS_48000;
+	audio.word_length = HDMI_AUDIO_WORD_LENGTH_16bit;
 
 	hdmi_dev->video.color_input = HDMI_COLOR_RGB_0_255;
 	hdmi_dev->video.sink_hdmi = OUTPUT_HDMI;
@@ -2079,6 +2334,7 @@ static int rk32_hdmi_hardware_init(struct hdmi_dev *hdmi_dev)
 		hdmi_parse_edid(hdmi_dev);
 		hdmi_find_best_mode(hdmi_dev);
 		hdmi_dev_config_video(hdmi_dev, &hdmi_dev->video);
+		hdmi_config_audio(hdmi_dev, &audio);
 		hdmi_dev_hdcp_start(hdmi_dev);
 		hdmi_dev_control_output(hdmi_dev, HDMI_AV_UNMUTE);
 

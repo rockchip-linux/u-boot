@@ -66,6 +66,37 @@ enum {
 						   depth */
 };
 
+#define	FC_AUDSSTAT			0x1064
+#define	FC_AUDSV			0x1065
+#define	FC_AUDSU			0x1066
+#define	FC_AUDSCHNLS0			0x1067	/*0~8*/
+#define	FC_AUDSCHNLS1			0x1068
+#define	FC_AUDSCHNLS2			0x1069
+#define	FC_AUDSCHNLS3			0x106a
+#define	FC_AUDSCHNLS4			0x106b
+#define	FC_AUDSCHNLS5			0x106c
+#define	FC_AUDSCHNLS6			0x106d
+#define	FC_AUDSCHNLS7			0x106e
+#define	FC_AUDSCHNLS8			0x106f
+
+enum {
+	AUDIO_32K	= 0x3,
+	AUDIO_441K	= 0x0,
+	AUDIO_48K	= 0x2,
+	AUDIO_882K	= 0x8,
+	AUDIO_96K	= 0xa,
+	AUDIO_1764K	= 0xc,
+	AUDIO_192K	= 0xe,
+	AUDIO_768K	= 0x9,
+};
+
+#define m_AUDIO_SAMPLE_RATE		(0x0f << 0)
+#define v_AUDIO_SAMPLE_RATE(n)	(((n) & 0x0f) << 0)
+#define m_AUDIO_ORI_SAMPLE_RATE		(0x0f << 4)
+#define v_AUDIO_ORI_SAMPLE_RATE(n)	(((~(n)) & 0x0f) << 4)
+#define m_AUDIO_WORD_LENGTH		(0x0f << 0)
+#define v_AUDIO_WORD_LENGTH(n)	(((n) & 0x0f) << 0)
+
 #define HDMI_SCL_RATE		(100*1000)
 #define DDC_I2C_EDID_ADDR	0x50	/* 0xA0/2 = 0x50 */
 #define DDC_I2C_SEG_ADDR	0x30	/* 0x60/2 = 0x30 */
@@ -569,8 +600,8 @@ enum {
 #define	FC_AUDICONF0			0x1025
 #define m_FC_CHN_CNT		(0x07 << 4)
 #define v_FC_CHN_CNT(n)		(((n)&0x07) << 4)
-#define m_FC_CODING_TYEP	(0x0f << 0)
-#define v_FC_CODING_TYEP(n)	(((n)&0x0f) << 0)
+#define m_FC_CODING_TYPE	(0x0f << 0)
+#define v_FC_CODING_TYPE(n)	(((n)&0x0f) << 0)
 
 #define	FC_AUDICONF1			0x1026
 #define m_FC_SAMPLE_SIZE	(0x03 << 4)
