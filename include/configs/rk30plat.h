@@ -38,6 +38,7 @@
 
 /* undef some module for rk chip */
 #if defined(CONFIG_RKCHIP_RK3036)
+	#define CONFIG_MERGER_TRUSTOS
 	#undef CONFIG_RK_UMS_BOOT_EN
 	#undef CONFIG_RK_POWER
 
