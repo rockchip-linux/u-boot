@@ -1071,12 +1071,11 @@ static void rockchip_dw_dsi_pre_init(struct display_state *state,
 
 	dw_mipi_dsi_clk_enable(dsi);
 
-	rockchip_phy_power_on(state);
-
 	if (conn_state->phy) {
 		bw = rockchip_dsi_calc_bandwidth(dsi);
 		rate = rockchip_phy_set_pll(state, bw * USEC_PER_SEC);
 		dsi->lane_mbps = rate / USEC_PER_SEC;
+		rockchip_phy_power_on(state);
 	} else {
 		dw_mipi_dsi_get_lane_bps(dsi);
 	}
