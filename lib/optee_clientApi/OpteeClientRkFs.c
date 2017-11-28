@@ -162,7 +162,7 @@ static int rkss_read_section(struct rk_secure_storage *rkss)
 	if (pt == NULL)
 		return -1;
 
-	ret = StorageReadLba(pt->start + (rkss->index * RKSS_DATA_LEN), rkss->data, 1);
+	ret = StorageReadLba(pt->start + rkss->index, rkss->data, 1);
 	if (ret < 0)
 		return -1;
 
@@ -176,7 +176,7 @@ static int rkss_write_section(struct rk_secure_storage *rkss)
 	if (pt == NULL)
 		return -1;
 
-	ret = StorageWriteLba(pt->start + (rkss->index * RKSS_DATA_LEN), rkss->data, 1, 0);
+	ret = StorageWriteLba(pt->start + rkss->index, rkss->data, 1, 0);
 	if (ret < 0)
 		return -1;
 
@@ -188,13 +188,13 @@ static void rkss_dump(void* data, unsigned int len)
 {
 	char *p = (char *)data;
 	unsigned int i = 0;
-	DMSG("-------------- DUMP %d --------------", len);
+	printf("-------------- DUMP %d --------------", len);
 	for (i = 0; i < len; i++)
 	{
 		printf("%02x ", *(p + i));
 	}
 	printf("\n");
-	DMSG("------------- DUMP END -------------");
+	printf("------------- DUMP END -------------");
 }
 
 static void rkss_dump_ptable(void)
@@ -1208,6 +1208,19 @@ int tee_supp_rk_fs_init(void)
 #endif
 
 	return 0;
+}
+void OpteeClientRkFsInit(void)
+{
+#ifdef CONFIG_ROCKCHIP_RK3328
+	debug(" OpteeClientRkFsInit 64\n");
+#endif
+#ifdef CONFIG_ROCKCHIP_RK322X
+	debug(" OpteeClientRkFsInit 32\n");
+#endif
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+	debug(" OpteeClientRkFsInit 32\n");
+	tee_supp_rk_fs_init();
+#endif
 }
 
 static int rkss_step = 0;

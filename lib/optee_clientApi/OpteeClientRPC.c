@@ -440,8 +440,6 @@ TEEC_Result OpteeRpcCmdFs(t_teesmc32_arg *TeeSmc32Arg)
 	TEEC_Result TeecResult = TEEC_SUCCESS;
 	t_teesmc32_param *TeeSmc32Param;
 
-	tee_supp_rk_fs_init();
-
 	TeeSmc32Param = TEESMC32_GET_PARAMS(TeeSmc32Arg);
 	TeecResult = tee_supp_rk_fs_process((void *)TeeSmc32Param[0].u.memref.buf_ptr,
 							TeeSmc32Param[0].u.memref.size);

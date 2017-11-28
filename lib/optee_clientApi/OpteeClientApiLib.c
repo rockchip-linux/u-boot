@@ -8,6 +8,7 @@
 #include <optee_include/OpteeClientApiLib.h>
 #include <optee_include/OpteeClientMem.h>
 #include <optee_include/OpteeClientSMC.h>
+#include <optee_include/OpteeClientRkFs.h>
 
 /*
  * Initlialize the library
@@ -17,6 +18,8 @@ TEEC_Result OpteeClientApiLibInitialize(void)
 	TEEC_Result status = TEEC_SUCCESS;
 
 	OpteeClientMemInit();
+
+	OpteeClientRkFsInit();
 
 	return status;
 }
