@@ -26,6 +26,10 @@ static const struct rockchip_phy rockchip_rk3366_mipi_dphy_data = {
 static const struct rockchip_phy rockchip_rk3368_mipi_dphy_data = {
 	 .funcs = &inno_mipi_dphy_funcs,
 };
+
+static const struct rockchip_phy rockchip_rk312x_mipi_dphy_data = {
+	 .funcs = &inno_mipi_dphy_funcs,
+};
 #endif
 
 static const struct udevice_id rockchip_phy_ids[] = {
@@ -37,6 +41,10 @@ static const struct udevice_id rockchip_phy_ids[] = {
 	{
 	 .compatible = "rockchip,rk3368-mipi-dphy",
 	 .data = (ulong)&rockchip_rk3368_mipi_dphy_data,
+	},
+	{
+	 .compatible = "rockchip,rk312x-mipi-dphy",
+	 .data = (ulong)&rockchip_rk312x_mipi_dphy_data,
 	},
 #endif
 	{}
