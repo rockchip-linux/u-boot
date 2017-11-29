@@ -80,7 +80,7 @@ static const struct rockchip_connector g_connector[] = {
 	 .data = &rk3126_lvds_drv_data,
 	},
 #endif
-#ifdef CONFIG_ROCKCHIP_DW_HDMI
+#ifdef CONFIG_DRM_ROCKCHIP_DW_HDMI
 	{
 	 .compatible = "rockchip,rk3288-dw-hdmi",
 	 .funcs = &rockchip_dw_hdmi_funcs,
