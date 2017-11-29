@@ -272,12 +272,12 @@ uint32_t trusty_read_permanent_attributes(uint8_t *attributes, uint32_t size)
 
 	TEEC_SharedMemory SharedMem0 = {0};
 
-	SharedMem0.size = sizeof("attributes3");
+	SharedMem0.size = sizeof("attributes");
 	SharedMem0.flags = 0;
 
 	TeecResult = TEEC_AllocateSharedMemory(&TeecContext, &SharedMem0);
 
-	memcpy(SharedMem0.buffer, "attributes3", SharedMem0.size);
+	memcpy(SharedMem0.buffer, "attributes", SharedMem0.size);
 
 	TEEC_SharedMemory SharedMem1 = {0};
 
@@ -339,12 +339,12 @@ uint32_t trusty_write_permanent_attributes(uint8_t *attributes, uint32_t size)
 
 	TEEC_SharedMemory SharedMem0 = {0};
 
-	SharedMem0.size = sizeof("attributes3");
+	SharedMem0.size = sizeof("attributes");
 	SharedMem0.flags = 0;
 
 	TeecResult = TEEC_AllocateSharedMemory(&TeecContext, &SharedMem0);
 
-	memcpy(SharedMem0.buffer, "attributes3", SharedMem0.size);
+	memcpy(SharedMem0.buffer, "attributes", SharedMem0.size);
 
 	TEEC_SharedMemory SharedMem1 = {0};
 
@@ -712,7 +712,7 @@ uint32_t write_to_keymaster(uint8_t *filename,
 						TEEC_NONE);
 
 	TeecResult = TEEC_InvokeCommand(&TeecSession,
-					139,
+					141,
 					&TeecOperation,
 					&ErrorOrigin);
 

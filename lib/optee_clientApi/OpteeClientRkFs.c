@@ -286,6 +286,7 @@ static int rkss_verify_usedflags(struct rk_secure_storage* rkss)
 		if ( flag != 0x1 )
 		{
 			debug("init usedflags section ...");
+			memset(rkss->data, 0x00, RKSS_DATA_LEN);
 			int n = 0;
 			for (n = 0; n < RKSS_PARTITION_TABLE_COUNT + 1; n++)
 			{
@@ -478,7 +479,7 @@ static int rkss_get_empty_section_from_usedflags(int section_size)
 	}
 
 	int i = 0;
-	int found = 0, count0 = 0;
+	int count0 = 0;
 	for (i = 0; i < RKSS_DATA_SECTION_COUNT; i++)
 	{
 		uint8_t *flag = (uint8_t *)rkss.data + (int)i/2;
@@ -488,12 +489,11 @@ static int rkss_get_empty_section_from_usedflags(int section_size)
 		{
 			if (++count0 == section_size)
 			{
-				return found;
+				return (i + 1 - section_size);
 			}
 		}
 		else
 		{
-			++found;
 			count0 = 0;
 		}
 	}
@@ -776,10 +776,9 @@ static int tee_fs_read(struct tee_fs_rpc *fsrpc)
 		}
 
 		int read = left > RKSS_DATA_LEN ? RKSS_DATA_LEN : left;
-		data = (void *)((char *)data + di);
-		memcpy(data, rkss.data, read);
+		memcpy(data + di, rkss.data, read);
 #ifdef DEBUG_RKFSS
-		rkss_dump(data, read);
+		rkss_dump(data + di, read);
 #endif
 		di += read;
 		left -= read;
