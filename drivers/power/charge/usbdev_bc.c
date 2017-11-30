@@ -387,10 +387,27 @@ static uoc_field_t rockchip_rk3399_usb2phy_inno[] = {
 	[INNO_BC_DCPDET]	= { {0xe2ac, 1, 1} },
 };
 
+static uoc_field_t rockchip_rk3126_usb2phy_inno[] = {
+	[INNO_BC_BVALID]	= { {0x14c, 5, 1} },
+	[INNO_BC_IDDIG]		= { {0x14c, 8, 1} },
+	[INNO_BC_VDMSRCEN]	= { {0x184, 12, 1} },
+	[INNO_BC_VDPSRCEN]	= { {0x184, 11, 1} },
+	[INNO_BC_RDMPDEN]	= { {0x184, 10, 1} },
+	[INNO_BC_IDPSRCEN]	= { {0x184, 9, 1} },
+	[INNO_BC_IDMSINKEN]	= { {0x184, 8, 1} },
+	[INNO_BC_IDPSINKEN]	= { {0x184, 7, 1} },
+	[INNO_BC_DPATTACH]	= { {0x2c0, 7, 1} },
+	[INNO_BC_CPDET]		= { {0x2c0, 6, 1} },
+	[INNO_BC_DCPDET]	= { {0x2c0, 5, 1} },
+};
+
 static int usb_battery_charger_init_nofdt(const char *phy)
 {
 	if (strcmp(phy, "RK3399,inno,usb2phy") == 0) {
 		P_BC_UOC_FIELDS = rockchip_rk3399_usb2phy_inno;
+		gusb_bc_type = USB_BC_INNO;
+	} else if (strcmp(phy, "RK3126,inno,usb2phy") == 0) {
+		P_BC_UOC_FIELDS = rockchip_rk3126_usb2phy_inno;
 		gusb_bc_type = USB_BC_INNO;
 	} else {
 		return -1;
@@ -429,6 +446,9 @@ static void usb_battery_charger_init(void)
 #endif
 #ifdef CONFIG_RKCHIP_RK3399
 		usb_battery_charger_init_nofdt("RK3399,inno,usb2phy");
+#endif
+#ifdef CONFIG_RKCHIP_RK3126
+		usb_battery_charger_init_nofdt("RK3126,inno,usb2phy");
 #endif
 	}
 }
