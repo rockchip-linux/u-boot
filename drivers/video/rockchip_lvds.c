@@ -646,7 +646,8 @@ static int rockchip_lvds_enable(struct display_state *state)
 	if (lvds->pdata->has_vop_sel)
 		rockchip_lvds_vop_routing(lvds, crtc_state->crtc_id);
 
-	if (lvds->output == DISPLAY_OUTPUT_LVDS) {
+	if ((lvds->output == DISPLAY_OUTPUT_LVDS) ||
+	    (lvds->output == DISPLAY_OUTPUT_DUAL_LVDS)){
 		if (lvds->pdata->chip_type == RK3288_LVDS)
 			rk3288_output_lvds(state);
 		else if (lvds->pdata->chip_type == RK3126_LVDS)
