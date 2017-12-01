@@ -2189,10 +2189,13 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 			hdmi->sink_is_hdmi =
 				drm_detect_hdmi_monitor(conn_state->edid);
 			hdmi->sink_has_audio = false;
-			*mode = *hdmi->edid_data.preferred_mode;
-			hdmi->vic = drm_match_cea_mode(mode);
+			ret = drm_rk_find_best_mode(&hdmi->edid_data);
+			if (ret) {
+				*mode = *hdmi->edid_data.preferred_mode;
+				hdmi->vic = drm_match_cea_mode(mode);
+				return 0;
+			}
 
-			return 0;
 		}
 	}
 
