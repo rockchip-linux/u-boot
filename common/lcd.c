@@ -1021,7 +1021,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	bmp_image_t *bmp = (bmp_image_t *)map_sysmem(bmp_image, 0);
 	uchar *bmap;
 	ushort padded_width;
-	unsigned long width, height, byte_width;
+	unsigned long width, height, byte_width, image_size;
 	unsigned long pwidth = panel_info.vl_col;
 	unsigned colors, bpix, bmp_bpix;
 
@@ -1035,10 +1035,13 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	width = get_unaligned_le32(&bmp->header.width);
 	height = get_unaligned_le32(&bmp->header.height);
 	bmp_bpix = get_unaligned_le16(&bmp->header.bit_count);
+	image_size = get_unaligned_le32(&bmp->header.image_size);
+
 #if defined(CONFIG_RK_FB)
-	if (width * height > 1920 * 1080) {
+	if (image_size > CONFIG_MAX_BMP_BLOCKS * BLOCK_SIZE) {
 		dsp_black = 1;
-		printf("Error: no support this bmp resolution: %dx%d\n", width, height);
+		printf("Error: image file size(%lu Bytes) exceed(%lu Bytes)\n",
+		       image_size, (CONFIG_MAX_BMP_BLOCKS * BLOCK_SIZE));
 		goto out;
 	}
 #endif
@@ -1063,6 +1066,13 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	default:
 		printf("Error: no support this bmp bpix:%d\n",bmp_bpix);
 		dsp_black = 1;
+		goto out;
+	}
+
+	if (width * height * bpix > CONFIG_RK_FB_SIZE * 8) {
+		dsp_black = 1;
+		printf("Error: no support this bmp resolution: %dx%dx%d\n",
+		       width, height, bpix);
 		goto out;
 	}
 #else
