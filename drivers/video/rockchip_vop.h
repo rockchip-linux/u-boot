@@ -288,6 +288,7 @@ struct vop_ctrl {
 	struct vop_reg dsp_background;
 
 	struct vop_reg win_gate[4];
+	struct vop_reg win_channel[4];
 
 	/* BCSH */
 	struct vop_reg bcsh_brightness;

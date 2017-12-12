@@ -292,6 +292,9 @@ static const struct vop_ctrl rk3328_ctrl_data = {
 	.bcsh_y2r_en = VOP_REG(RK3368_BCSH_CTRL, 0x1, 0),
 	.bcsh_color_bar = VOP_REG(RK3328_BCSH_COLOR_BAR, 0xffffff, 8),
 	.bcsh_en = VOP_REG(RK3328_BCSH_COLOR_BAR, 0x1, 0),
+	.win_channel[0] = VOP_REG_VER(RK3328_WIN0_CTRL2, 0xff, 0, 3, 8, 8),
+	.win_channel[1] = VOP_REG_VER(RK3328_WIN1_CTRL2, 0xff, 0, 3, 8, 8),
+	.win_channel[2] = VOP_REG_VER(RK3328_WIN2_CTRL2, 0xff, 0, 3, 8, 8),
 
 	.cfg_done = VOP_REG(RK3328_REG_CFG_DONE, 0x1, 0),
 };
