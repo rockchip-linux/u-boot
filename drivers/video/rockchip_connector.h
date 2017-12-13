@@ -96,5 +96,6 @@ struct dw_hdmi_dsi_plat_data;
 extern const struct rockchip_connector_funcs rockchip_dw_hdmi_funcs;
 extern const struct dw_hdmi_plat_data rk3399_hdmi_drv_data;
 extern const struct dw_hdmi_plat_data rk3288_hdmi_drv_data;
+extern const struct dw_hdmi_plat_data rk3328_hdmi_drv_data;
 #endif
 #endif

@@ -35,6 +35,19 @@ static const struct rockchip_phy g_phy[] = {
 	 .funcs = &inno_mipi_dphy_funcs,
 	},
 #endif
+
+#ifdef CONFIG_DRM_ROCKCHIP_DW_HDMI
+	{
+	 .compatible = "rockchip,rk3328-hdmi-phy",
+	 .funcs = &inno_hdmi_phy_funcs,
+	},
+	{
+	 .compatible = "rockchip,rk3228-hdmi-phy",
+	 .funcs = &inno_hdmi_phy_funcs,
+	},
+
+#endif
+
 };
 
 const struct rockchip_phy *rockchip_get_phy(const void *blob, int phy_node)

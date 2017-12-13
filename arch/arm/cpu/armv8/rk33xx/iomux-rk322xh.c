@@ -172,6 +172,9 @@ static void rk_hdmi_iomux_config(int hdmi_id)
 	case RK_HDMI_IOMUX:
 		/* hdmi sda, scl, hdp, cec */
 		grf_writel((0xff << (6 + 16)) | (0x55 << 6), GRF_GPIO0A_IOMUX);
+		grf_writel(0xF << 26, GRF_GPIO0A_P);
+		grf_writel(0xf0000000 | (1 << 13), GRF_SOC_CON3);
+		grf_writel((3 << 10) | (3 << (10 + 16)) | (1 << 18), GRF_SOC_CON2);
 		break;
 	default:
 		debug("hdmi id = %d iomux error!\n", hdmi_id);

@@ -31,4 +31,7 @@ unsigned long rockchip_phy_set_pll(struct display_state *state,
 #ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
 extern const struct rockchip_phy_funcs inno_mipi_dphy_funcs;
 #endif
+#ifdef CONFIG_DRM_ROCKCHIP_DW_HDMI
+extern const struct rockchip_phy_funcs inno_hdmi_phy_funcs;
+#endif
 #endif

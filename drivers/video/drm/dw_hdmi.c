@@ -21,6 +21,7 @@
 #include "dw_hdmi.h"
 
 #define U64_MAX     ((u64)~0U)
+
 /*
  * Unless otherwise noted, entries in this table are 100% optimization.
  * Values can be obtained from hdmi_compute_n() but that function is
@@ -454,7 +455,7 @@ static void dw_hdmi_phy_power_off(struct dw_hdmi *hdmi)
 	if (val & HDMI_PHY_TX_PHY_LOCK)
 		printf("PHY failed to power down\n");
 	else
-		printf("PHY powered down in %u iterations\n", i);
+		debug("PHY powered down in %u iterations\n", i);
 
 	dw_hdmi_phy_gen2_pddq(hdmi, 1);
 }
@@ -491,7 +492,7 @@ static int dw_hdmi_phy_power_on(struct dw_hdmi *hdmi)
 		return -ETIMEDOUT;
 	}
 
-	printf("PHY PLL locked %u iterations\n", i);
+	debug("PHY PLL locked %u iterations\n", i);
 	return 0;
 }
 
@@ -692,8 +693,8 @@ static void rockchip_dw_hdmi_i2cm_write_data(struct dw_hdmi *hdmi,
 
 		i = 20;
 		if (interrupt & m_I2CM_DONE) {
-			printf("[%s] write offset %02x data %02x success\n",
-			       __func__, offset, data);
+			debug("[%s] write offset %02x data %02x success\n",
+			      __func__, offset, data);
 			trytime = 0;
 		} else if ((interrupt & m_I2CM_ERROR) || (i == -1)) {
 			printf("[%s] write data error\n", __func__);
@@ -851,8 +852,8 @@ static int hdmi_phy_configure(struct dw_hdmi *hdmi)
 	return dw_hdmi_phy_power_on(hdmi);
 }
 
-static int dw_hdmi_phy_init(struct dw_hdmi *hdmi, void *data,
-			    struct drm_display_mode *mode)
+static int dw_hdmi_phy_init(struct dw_hdmi *hdmi,
+			    void *data)
 {
 	int i, ret;
 
@@ -868,7 +869,8 @@ static int dw_hdmi_phy_init(struct dw_hdmi *hdmi, void *data,
 	return 0;
 }
 
-static void dw_hdmi_phy_disable(struct dw_hdmi *hdmi, void *data)
+static void dw_hdmi_phy_disable(struct dw_hdmi *hdmi,
+				void *data)
 {
 	dw_hdmi_phy_power_off(hdmi);
 }
@@ -950,7 +952,7 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 	if ((mode->flags & DRM_MODE_FLAG_3D_MASK) ==
 		DRM_MODE_FLAG_3D_FRAME_PACKING)
 		vmode->mpixelclock *= 2;
-	printf("final pixclk = %d\n", vmode->mpixelclock);
+	debug("final pixclk = %d\n", vmode->mpixelclock);
 
 	/* Set up HDMI_FC_INVIDCONF
 	 * fc_invidconf.HDCP_keepout must be set (1'b1)
@@ -1433,10 +1435,10 @@ static void hdmi_enable_overflow_interrupts(struct dw_hdmi *hdmi)
 	hdmi_writeb(hdmi, 0, HDMI_IH_MUTE_FC_STAT2);
 }
 
-static void dw_hdmi_disable(struct dw_hdmi *hdmi)
+static void dw_hdmi_disable(struct dw_hdmi *hdmi, struct display_state *state)
 {
 	if (hdmi->phy.enabled) {
-		hdmi->phy.ops->disable(hdmi, hdmi->phy.data);
+		hdmi->phy.ops->disable(hdmi, state);
 		hdmi->phy.enabled = false;
 	}
 }
@@ -1733,8 +1735,8 @@ static unsigned int hdmi_find_n(struct dw_hdmi *hdmi, unsigned long pixel_clk,
 	if (n > 0)
 		return n;
 
-	printf("Rate %lu missing; compute N dynamically\n",
-	       pixel_clk);
+	debug("Rate %lu missing; compute N dynamically\n",
+	      pixel_clk);
 
 	return hdmi_compute_n(hdmi, pixel_clk, sample_rate);
 }
@@ -1760,8 +1762,8 @@ void hdmi_set_clk_regenerator(struct dw_hdmi *hdmi, unsigned long pixel_clk,
 	do_div(tmp, 128 * sample_rate);
 	cts = tmp;
 
-	printf("%s: fs=%uHz ftdms=%lu.%03luMHz N=%d cts=%d\n", __func__,
-	       sample_rate, ftdms / 1000000, (ftdms / 1000) % 1000, n, cts);
+	debug("%s: fs=%uHz ftdms=%lu.%03luMHz N=%d cts=%d\n", __func__,
+	      sample_rate, ftdms / 1000000, (ftdms / 1000) % 1000, n, cts);
 
 	hdmi->audio_n = n;
 	hdmi->audio_cts = cts;
@@ -1787,7 +1789,8 @@ void dw_hdmi_set_sample_rate(struct dw_hdmi *hdmi, unsigned int rate)
 }
 
 static int dw_hdmi_setup(struct dw_hdmi *hdmi,
-			 struct drm_display_mode *mode)
+			 struct drm_display_mode *mode,
+			 struct display_state *state)
 {
 	int ret;
 	void *data = hdmi->plat_data->phy_data;
@@ -1860,7 +1863,7 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 	hdmi_av_composer(hdmi, mode);
 
 	/* HDMI Initialization Step B.2 */
-	ret = hdmi->phy.ops->init(hdmi, hdmi->phy.data, &hdmi->previous_mode);
+	ret = hdmi->phy.ops->init(hdmi, state);
 	if (ret)
 		return ret;
 	hdmi->phy.enabled = true;
@@ -1870,7 +1873,7 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 
 	/* HDMI Initialization Step E - Configure audio */
 	if (hdmi->sink_has_audio) {
-		printf("sink has audio support\n");
+		debug("sink has audio support\n");
 		hdmi_clk_regenerator_update_pixel_clock(hdmi);
 		hdmi_enable_audio_clk(hdmi);
 	}
@@ -1896,9 +1899,10 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 	return 0;
 }
 
-int dw_hdmi_detect_hotplug(struct dw_hdmi *hdmi)
+int dw_hdmi_detect_hotplug(struct dw_hdmi *hdmi,
+			   struct display_state *state)
 {
-	return hdmi->phy.ops->read_hpd(hdmi, hdmi->phy.data);
+	return hdmi->phy.ops->read_hpd(hdmi, state);
 }
 
 static int dw_hdmi_set_reg_wr(struct dw_hdmi *hdmi)
@@ -1946,7 +1950,6 @@ static void dw_hdmi_dev_init(struct dw_hdmi *hdmi)
 	hdmi->version = (hdmi_readb(hdmi, HDMI_DESIGN_ID) << 8)
 		      | (hdmi_readb(hdmi, HDMI_REVISION_ID) << 0);
 
-	dw_hdmi_phy_power_off(hdmi);
 	initialize_hdmi_mutes(hdmi);
 }
 
@@ -2020,7 +2023,7 @@ static int dw_hdmi_read_edid(struct dw_hdmi *hdmi,
 			}
 		}
 
-		printf("[%s] edid try times %d\n", __func__, trytime);
+		debug("[%s] edid try times %d\n", __func__, trytime);
 		mdelay(100);
 	}
 
@@ -2110,13 +2113,15 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 					"reg-io-width", -1);
 	dw_hdmi_set_reg_wr(hdmi);
 
-	if (crtc_state->crtc_id)
-		val = ((1 << pdata->vop_sel_bit) |
-		       (1 << (16 + pdata->vop_sel_bit)));
-	else
-		val = ((0 << pdata->vop_sel_bit) |
-		       (1 << (16 + pdata->vop_sel_bit)));
-	grf_writel(val, pdata->grf_vop_sel_reg);
+	if (pdata->grf_vop_sel_reg) {
+		if (crtc_state->crtc_id)
+			val = ((1 << pdata->vop_sel_bit) |
+			       (1 << (16 + pdata->vop_sel_bit)));
+		else
+			val = ((0 << pdata->vop_sel_bit) |
+			       (1 << (16 + pdata->vop_sel_bit)));
+		grf_writel(val, pdata->grf_vop_sel_reg);
+	}
 
 	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
@@ -2158,7 +2163,7 @@ int rockchip_dw_hdmi_enable(struct display_state *state)
 	if (!hdmi)
 		return -EFAULT;
 
-	dw_hdmi_setup(hdmi, mode);
+	dw_hdmi_setup(hdmi, mode, state);
 
 	return 0;
 }
@@ -2168,7 +2173,7 @@ int rockchip_dw_hdmi_disable(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct dw_hdmi *hdmi = conn_state->private;
 
-	dw_hdmi_disable(hdmi);
+	dw_hdmi_disable(hdmi, state);
 	return 0;
 }
 
@@ -2224,10 +2229,11 @@ int rockchip_dw_hdmi_detect(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct dw_hdmi *hdmi = conn_state->private;
 
+	debug("func: %s; line: %d\n", __func__, __LINE__);
 	if (!hdmi)
 		return -EFAULT;
 
-	ret = dw_hdmi_detect_hotplug(hdmi);
+	ret = dw_hdmi_detect_hotplug(hdmi, state);
 
 	return ret;
 }
@@ -2243,3 +2249,33 @@ int rockchip_dw_hdmi_get_edid(struct display_state *state)
 	return ret;
 }
 
+int inno_dw_hdmi_phy_init(struct dw_hdmi *dw_hdmi,
+			  struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	rockchip_phy_set_pll(state, conn_state->mode.clock * 1000);
+	rockchip_phy_power_on(state);
+	return 0;
+}
+
+void inno_dw_hdmi_phy_disable(struct dw_hdmi *dw_hdmi,
+			      struct display_state *state)
+{
+	return;
+}
+
+enum drm_connector_status inno_dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi,
+					struct display_state *state)
+{
+	enum drm_connector_status status;
+
+	status = dw_hdmi_phy_read_hpd(hdmi, state);
+	if (hdmi->dev_type == RK3328_HDMI) {
+		if (status == connector_status_connected)
+			inno_dw_hdmi_set_domain(1);
+		else
+			inno_dw_hdmi_set_domain(0);
+	}
+
+	return status;
+}

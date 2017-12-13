@@ -119,10 +119,10 @@ struct dw_hdmi_phy_config {
 };
 
 struct dw_hdmi_phy_ops {
-	int (*init)(struct dw_hdmi *hdmi, void *data,
-		    struct drm_display_mode *mode);
+	int (*init)(struct dw_hdmi *hdmi, void *data);
 	void (*disable)(struct dw_hdmi *hdmi, void *data);
-	enum drm_connector_status (*read_hpd)(struct dw_hdmi *hdmi, void *data);
+	enum drm_connector_status (*read_hpd)(struct dw_hdmi *hdmi,
+					      void *data);
 };
 
 struct dw_hdmi_plat_data {

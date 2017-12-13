@@ -7,6 +7,8 @@
 #ifndef _ROCKCHIP_HDMI_H_
 #define _ROCKCHIP_HDMI_H_
 
+#include <fsl_mc.h>
+
 #define HDMI_DESIGN_ID                          0x0000
 #define HDMI_REVISION_ID                        0x0001
 #define HDMI_PRODUCT_ID0                        0x0002
@@ -1340,5 +1342,6 @@ enum {
 };
 
 int drm_rk_find_best_mode(struct hdmi_edid_data *edid_data);
+void inno_dw_hdmi_set_domain(int status);
 
 #endif /* _ROCKCHIP_HDMI_H_ */

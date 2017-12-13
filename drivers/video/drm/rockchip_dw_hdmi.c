@@ -8,17 +8,21 @@
 #include <dm/device.h>
 #include <linux/dw_hdmi.h>
 #include <errno.h>
+#include <asm/arch/rkplat.h>
+#include "rockchip_dw_hdmi.h"
 #include "../rockchip_display.h"
 #include "../rockchip_crtc.h"
 #include "../rockchip_connector.h"
-#include "dw_hdmi.h"
-#include "rockchip_dw_hdmi.h"
 
 #define HDMI_SEL_LCDC(x, bit)  ((((x) & 1) << bit) | (1 << (16 + bit)))
 #define RK3288_GRF_SOC_CON6		0x025C
 #define RK3288_HDMI_LCDC_SEL		BIT(4)
 #define RK3399_GRF_SOC_CON20		0x6250
 #define RK3399_HDMI_LCDC_SEL		BIT(6)
+
+#define RK3328_IO_3V_DOMAIN              (7 << (9 + 16))
+#define RK3328_IO_5V_DOMAIN              ((7 << 9) | (3 << (9 + 16)))
+#define RK3328_GRF_SOC_CON4              0x0410
 
 static const struct dw_hdmi_mpll_config rockchip_mpll_cfg[] = {
 	{
@@ -231,6 +235,20 @@ int drm_rk_find_best_mode(struct hdmi_edid_data *edid_data)
 	return false;
 }
 
+void inno_dw_hdmi_set_domain(int status)
+{
+	if (status)
+		grf_writel(RK3328_IO_5V_DOMAIN, RK3328_GRF_SOC_CON4);
+	else
+		grf_writel(RK3328_IO_3V_DOMAIN, RK3328_GRF_SOC_CON4);
+}
+
+static const struct dw_hdmi_phy_ops inno_dw_hdmi_phy_ops = {
+	.init = inno_dw_hdmi_phy_init,
+	.disable = inno_dw_hdmi_phy_disable,
+	.read_hpd = inno_dw_hdmi_phy_read_hpd,
+};
+
 const struct rockchip_connector_funcs rockchip_dw_hdmi_funcs = {
 	.init = rockchip_dw_hdmi_init,
 	.deinit = rockchip_dw_hdmi_deinit,
@@ -246,6 +264,15 @@ const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
 	.vop_sel_bit = 4,
 	.grf_vop_sel_reg = RK3288_GRF_SOC_CON6,
 	.dev_type   = RK3288_HDMI,
+};
+
+const struct dw_hdmi_plat_data rk3328_hdmi_drv_data = {
+        //.mode_valid = dw_hdmi_rockchip_mode_valid,
+	.vop_sel_bit = 0,
+	.grf_vop_sel_reg = 0,
+	.phy_ops    = &inno_dw_hdmi_phy_ops,
+	.phy_name   = "inno_dw_hdmi_phy2",
+	.dev_type   = RK3328_HDMI,
 };
 
 const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
@@ -267,6 +294,11 @@ static const struct rockchip_connector rk3288_dw_hdmi_data = {
 	.data = &rk3288_hdmi_drv_data,
 };
 
+static const struct rockchip_connector rk3328_dw_hdmi_data = {
+	.funcs = &rockchip_dw_hdmi_funcs,
+	.data = &rk3328_hdmi_drv_data,
+};
+
 static int rockchip_dw_hdmi_probe(struct udevice *dev)
 {
 	return 0;
@@ -278,6 +310,9 @@ static const struct udevice_id rockchip_dw_hdmi_ids[] = {
 	 .data = (ulong)&rk3399_dw_hdmi_data,
 	}, {
 	 .compatible = "rockchip,rk3288-dw-hdmi",
+	 .data = (ulong)&rk3288_dw_hdmi_data,
+	}, {
+	 .compatible = "rockchip,rk3328-dw-hdmi",
 	 .data = (ulong)&rk3288_dw_hdmi_data,
 	}, {}
 };
