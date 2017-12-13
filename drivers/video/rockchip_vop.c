@@ -139,15 +139,15 @@ static int rockchip_vop_init(struct display_state *state)
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct vop_data *vop_data = crtc->data;
 	struct vop *vop;
-	u16 hsync_len = mode->hsync_end - mode->hsync_start;
-	u16 hdisplay = mode->hdisplay;
-	u16 htotal = mode->htotal;
-	u16 hact_st = mode->htotal - mode->hsync_start;
+	u16 hsync_len = mode->crtc_hsync_end - mode->crtc_hsync_start;
+	u16 hdisplay = mode->crtc_hdisplay;
+	u16 htotal = mode->crtc_htotal;
+	u16 hact_st = mode->crtc_htotal - mode->crtc_hsync_start;
 	u16 hact_end = hact_st + hdisplay;
-	u16 vdisplay = mode->vdisplay;
-	u16 vtotal = mode->vtotal;
-	u16 vsync_len = mode->vsync_end - mode->vsync_start;
-	u16 vact_st = mode->vtotal - mode->vsync_start;
+	u16 vdisplay = mode->crtc_vdisplay;
+	u16 vtotal = mode->crtc_vtotal;
+	u16 vsync_len = mode->crtc_vsync_end - mode->crtc_vsync_start;
+	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
 	u16 vact_end = vact_st + vdisplay;
 	u32 val;
 	int rate;
@@ -178,7 +178,7 @@ static int rockchip_vop_init(struct display_state *state)
 #endif
 
 	/* Set aclk hclk and dclk */
-	rate = rkclk_lcdc_clk_set(crtc_state->crtc_id, mode->clock * 1000);
+	rate = rkclk_lcdc_clk_set(crtc_state->crtc_id, mode->crtc_clock * 1000);
 	if (rate != mode->clock * 1000) {
 		printf("Warn: vop clk request %dhz, but real clock is %dhz",
 		       mode->clock * 1000, rate);
@@ -311,11 +311,32 @@ static int rockchip_vop_init(struct display_state *state)
 	val |= hact_end;
 	VOP_CTRL_SET(vop, hact_st_end, val);
 	VOP_CTRL_SET(vop, hpost_st_end, val);
-	VOP_CTRL_SET(vop, vtotal_pw, (vtotal << 16) | vsync_len);
 	val = vact_st << 16;
 	val |= vact_end;
 	VOP_CTRL_SET(vop, vact_st_end, val);
 	VOP_CTRL_SET(vop, vpost_st_end, val);
+	if (mode->flags & DRM_MODE_FLAG_INTERLACE) {
+		u16 vact_st_f1 = vtotal + vact_st + 1;
+		u16 vact_end_f1 = vact_st_f1 + vdisplay;
+
+		val = vact_st_f1 << 16 | vact_end_f1;
+		VOP_CTRL_SET(vop, vact_st_end_f1, val);
+		VOP_CTRL_SET(vop, vpost_st_end_f1, val);
+
+		val = vtotal << 16 | (vtotal + vsync_len);
+		VOP_CTRL_SET(vop, vs_st_end_f1, val);
+		VOP_CTRL_SET(vop, dsp_interlace, 1);
+		VOP_CTRL_SET(vop, p2i_en, 1);
+		vtotal += vtotal + 1;
+	} else {
+		VOP_CTRL_SET(vop, dsp_interlace, 0);
+		VOP_CTRL_SET(vop, p2i_en, 0);
+	}
+	VOP_CTRL_SET(vop, vtotal_pw, (vtotal << 16) | vsync_len);
+
+	VOP_CTRL_SET(vop, core_dclk_div,
+		     !!(mode->flags & DRM_MODE_FLAG_DBLCLK));
+
 	VOP_CTRL_SET(vop, standby, 1);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[0], vact_end - 3);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[1],

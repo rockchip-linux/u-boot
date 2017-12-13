@@ -7,13 +7,18 @@
 #ifndef _DRM_MODES_H
 #define _DRM_MODES_H
 
-#define DRM_MODE_TYPE_BUILTIN	BIT(0)
-#define DRM_MODE_TYPE_CLOCK_C	(BIT(1) | DRM_MODE_TYPE_BUILTIN)
-#define DRM_MODE_TYPE_CRTC_C	(BIT(2) | DRM_MODE_TYPE_BUILTIN)
-#define DRM_MODE_TYPE_PREFERRED	BIT(3)
-#define DRM_MODE_TYPE_DEFAULT	BIT(4)
-#define DRM_MODE_TYPE_USERDEF	BIT(5)
-#define DRM_MODE_TYPE_DRIVER	BIT(6)
+#define DRM_DISPLAY_INFO_LEN	32
+#define DRM_CONNECTOR_NAME_LEN	32
+#define DRM_DISPLAY_MODE_LEN	32
+#define DRM_PROP_NAME_LEN	32
+
+#define DRM_MODE_TYPE_BUILTIN	(1<<0)
+#define DRM_MODE_TYPE_CLOCK_C	((1<<1) | DRM_MODE_TYPE_BUILTIN)
+#define DRM_MODE_TYPE_CRTC_C	((1<<2) | DRM_MODE_TYPE_BUILTIN)
+#define DRM_MODE_TYPE_PREFERRED	(1<<3)
+#define DRM_MODE_TYPE_DEFAULT	(1<<4)
+#define DRM_MODE_TYPE_USERDEF	(1<<5)
+#define DRM_MODE_TYPE_DRIVER	(1<<6)
 
 /* Video mode flags */
 /* bit compatible with the xorg definitions. */
@@ -114,6 +119,14 @@ enum v4l2_colorspace {
 	V4L2_COLORSPACE_DCI_P3        = 12,
 };
 
+#define CRTC_INTERLACE_HALVE_V	(1 << 0) /* halve V values for interlacing */
+#define CRTC_STEREO_DOUBLE	(1 << 1) /* adjust timings for stereo modes */
+#define CRTC_NO_DBLSCAN		(1 << 2) /* don't adjust doublescan */
+#define CRTC_NO_VSCAN		(1 << 3) /* don't adjust doublescan */
+#define CRTC_STEREO_DOUBLE_ONLY	(CRTC_STEREO_DOUBLE | CRTC_NO_DBLSCAN | CRTC_NO_VSCAN)
+
+#define DRM_MODE_FLAG_3D_MAX	DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF
+
 struct drm_display_mode {
 	/* Proposed mode values */
 	int clock;		/* in kHz */
@@ -129,6 +142,23 @@ struct drm_display_mode {
 	int vscan;
 	unsigned int flags;
 	int picture_aspect_ratio;
+	int hskew;
+	unsigned int type;
+	/* Actual mode we give to hw */
+	int crtc_clock;         /* in KHz */
+	int crtc_hdisplay;
+	int crtc_hblank_start;
+	int crtc_hblank_end;
+	int crtc_hsync_start;
+	int crtc_hsync_end;
+	int crtc_htotal;
+	int crtc_hskew;
+	int crtc_vdisplay;
+	int crtc_vblank_start;
+	int crtc_vblank_end;
+	int crtc_vsync_start;
+	int crtc_vsync_end;
+	int crtc_vtotal;
 };
 
 #endif
