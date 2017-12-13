@@ -311,6 +311,87 @@ static int display_get_timing_from_dts(struct panel_state *panel_state,
 	return 0;
 }
 
+/**
+ * drm_mode_set_crtcinfo - set CRTC modesetting timing parameters
+ * @p: mode
+ * @adjust_flags: a combination of adjustment flags
+ *
+ * Setup the CRTC modesetting timing parameters for @p, adjusting if necessary.
+ *
+ * - The CRTC_INTERLACE_HALVE_V flag can be used to halve vertical timings of
+ *   interlaced modes.
+ * - The CRTC_STEREO_DOUBLE flag can be used to compute the timings for
+ *   buffers containing two eyes (only adjust the timings when needed, eg. for
+ *   "frame packing" or "side by side full").
+ * - The CRTC_NO_DBLSCAN and CRTC_NO_VSCAN flags request that adjustment *not*
+ *   be performed for doublescan and vscan > 1 modes respectively.
+ */
+void drm_mode_set_crtcinfo(struct drm_display_mode *p, int adjust_flags)
+{
+	if ((p == NULL) || ((p->type & DRM_MODE_TYPE_CRTC_C) == DRM_MODE_TYPE_BUILTIN))
+		return;
+
+	if (p->flags & DRM_MODE_FLAG_DBLCLK)
+		p->crtc_clock = 2 * p->clock;
+	else
+		p->crtc_clock = p->clock;
+	p->crtc_hdisplay = p->hdisplay;
+	p->crtc_hsync_start = p->hsync_start;
+	p->crtc_hsync_end = p->hsync_end;
+	p->crtc_htotal = p->htotal;
+	p->crtc_hskew = p->hskew;
+	p->crtc_vdisplay = p->vdisplay;
+	p->crtc_vsync_start = p->vsync_start;
+	p->crtc_vsync_end = p->vsync_end;
+	p->crtc_vtotal = p->vtotal;
+
+	if (p->flags & DRM_MODE_FLAG_INTERLACE) {
+		if (adjust_flags & CRTC_INTERLACE_HALVE_V) {
+			p->crtc_vdisplay /= 2;
+			p->crtc_vsync_start /= 2;
+			p->crtc_vsync_end /= 2;
+			p->crtc_vtotal /= 2;
+		}
+	}
+
+	if (!(adjust_flags & CRTC_NO_DBLSCAN)) {
+		if (p->flags & DRM_MODE_FLAG_DBLSCAN) {
+			p->crtc_vdisplay *= 2;
+			p->crtc_vsync_start *= 2;
+			p->crtc_vsync_end *= 2;
+			p->crtc_vtotal *= 2;
+		}
+	}
+
+	if (!(adjust_flags & CRTC_NO_VSCAN)) {
+		if (p->vscan > 1) {
+			p->crtc_vdisplay *= p->vscan;
+			p->crtc_vsync_start *= p->vscan;
+			p->crtc_vsync_end *= p->vscan;
+			p->crtc_vtotal *= p->vscan;
+		}
+	}
+
+	if (adjust_flags & CRTC_STEREO_DOUBLE) {
+		unsigned int layout = p->flags & DRM_MODE_FLAG_3D_MASK;
+
+		switch (layout) {
+		case DRM_MODE_FLAG_3D_FRAME_PACKING:
+			p->crtc_clock *= 2;
+			p->crtc_vdisplay += p->crtc_vtotal;
+			p->crtc_vsync_start += p->crtc_vtotal;
+			p->crtc_vsync_end += p->crtc_vtotal;
+			p->crtc_vtotal += p->crtc_vtotal;
+			break;
+		}
+	}
+
+	p->crtc_vblank_start = min(p->crtc_vsync_start, p->crtc_vdisplay);
+	p->crtc_vblank_end = max(p->crtc_vsync_end, p->crtc_vtotal);
+	p->crtc_hblank_start = min(p->crtc_hsync_start, p->crtc_hdisplay);
+	p->crtc_hblank_end = max(p->crtc_hsync_end, p->crtc_htotal);
+}
+
 static int display_get_timing(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -372,6 +453,7 @@ static int display_init(struct display_state *state)
 	struct crtc_state *crtc_state = &state->crtc_state;
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
+	struct drm_display_mode *mode = &conn_state->mode;
 	int ret = 0;
 
 	if (state->is_init)
@@ -405,6 +487,7 @@ static int display_init(struct display_state *state)
 		if (ret)
 			goto deinit;
 	}
+	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V);
 
 	if (crtc_funcs->init) {
 		ret = crtc_funcs->init(state);
