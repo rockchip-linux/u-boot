@@ -935,6 +935,7 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("video,vdisplay", s->conn_state.mode.vdisplay);
 		FDT_SET_U32("video,vrefresh",
 			    drm_mode_vrefresh(&s->conn_state.mode));
+		FDT_SET_U32("video,flags", s->conn_state.mode.flags);
 #undef FDT_SET_U32
 	}
 }
