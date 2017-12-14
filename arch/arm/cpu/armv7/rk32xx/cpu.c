@@ -10,6 +10,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define BIT(x)		(1 << (x))
+
 #ifdef CONFIG_RK_EFUSE
 extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
 #endif
@@ -124,6 +126,80 @@ uint8 rk_get_cpu_version(void)
 	return (uint8)gd->arch.cpuversion;
 }
 
+
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
+
+#define	PD_VIO_ST	(1 << 3)
+
+static inline u64 arch_counter_get_cntpct(void)
+{
+	u64 cval = 0;
+
+	isb();
+	asm volatile ("mrrc p15, 0, %Q0, %R0, c14" : "=r" (cval));
+	return cval;
+}
+
+static void cpu_udelay(u32 us)
+{
+	u64 orig;
+	u64 to_wait = 24ULL * us;
+
+	/* Note: u32 math is way more than enough for our small delays */
+	orig = arch_counter_get_cntpct();
+	while (arch_counter_get_cntpct() - orig <= to_wait)
+		;
+}
+
+static void rk312x_enable_pd_vio(void)
+{
+	u32 idle = 0;
+	u32 pwrdn_con, idle_req;
+	u32 idle_mask = BIT(2) | BIT(2 + 16);
+	u32 idle_tgt = (idle << 2) | (idle << (2 + 16));
+	u32 loop = 0, mask = BIT(2);
+
+	/* If pd_vio disabled now */
+	if (readl(RKIO_PMU_PHYS + PMU_PWRDN_ST) & PD_VIO_ST) {
+		/* enable PD_VIO */
+		pwrdn_con = readl(RKIO_PMU_PHYS + PMU_PWRDN_CON);
+		pwrdn_con &= ~PD_VIO_ST;
+		writel(pwrdn_con, RKIO_PMU_PHYS + PMU_PWRDN_CON);
+		asm volatile("dsb sy" : : : "memory");
+
+		/* Check pd_vio enabled or not */
+		while ((readl(RKIO_PMU_PHYS + PMU_PWRDN_ST) & PD_VIO_ST) &&
+		       (loop < 500)) {
+			cpu_udelay(4);
+			loop++;
+		}
+
+		if (readl(RKIO_PMU_PHYS + PMU_PWRDN_ST) & PD_VIO_ST) {
+			printf("enable pd_vio failed\n");
+			return;
+		}
+
+		/* request idle de-assert */
+		idle_req = readl(RKIO_PMU_PHYS + PMU_IDLE_REQ);
+		idle_req &= ~mask;
+		writel(idle_req, RKIO_PMU_PHYS + PMU_IDLE_REQ);
+		asm volatile("dsb sy" : : : "memory");
+
+		loop = 0;
+		/* wait idle de-assert */
+		while (((readl(RKIO_PMU_PHYS + PMU_IDLE_ST) & idle_mask) != idle_tgt) &&
+		       (loop < 500)) {
+			cpu_udelay(4);
+			loop++;
+		}
+
+		if ((readl(RKIO_PMU_PHYS + PMU_IDLE_ST) & idle_mask) != idle_tgt) {
+			printf("request pd_vio idle de-assert failed\n");
+		}
+	}
+}
+#endif
+
 /* cpu axi qos priority */
 #define CPU_AXI_QOS_PRIORITY    0x08
 #define CPU_AXI_QOS_PRIORITY_LEVEL(h, l) \
@@ -164,6 +240,8 @@ int arch_cpu_init(void)
 
 	/* set GPIO1_C1 iomux to gpio, default sdcard_detn */
 	grf_writel(0x00040000, 0x0c0);
+
+	rk312x_enable_pd_vio();
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3128)
@@ -173,6 +251,8 @@ int arch_cpu_init(void)
 	/* set lcdc cpu axi qos priority level */
 	#define	CPU_AXI_QOS_PRIORITY_BASE	0x1012f180
 	writel(CPU_AXI_QOS_PRIORITY_LEVEL(3, 3), CPU_AXI_QOS_PRIORITY_BASE + CPU_AXI_QOS_PRIORITY);
+
+	rk312x_enable_pd_vio();
 #endif
 
 #if defined(CONFIG_RKCHIP_RK3036)
