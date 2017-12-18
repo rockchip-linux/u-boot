@@ -98,6 +98,18 @@
 	status = "okay";
 };
 
+&u2phy {
+        status = "okay";
+};
+
+&u2phy_otg {
+        status = "okay";
+};
+
+&u2phy_host {
+        status = "okay";
+};
+
 &usb_host0_ehci {
 	status = "okay";
 };
