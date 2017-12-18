@@ -70,56 +70,6 @@ static void boot_mode_set(int boot_mode)
 	writel(boot_mode, &grf->os_reg[0]);
 }
 
-int setup_boot_mode(void)
-{
-	struct rk3328_grf_regs *grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
-
-	int boot_mode = readl(&grf->os_reg[0]);
-
-	/* Clear boot mode */
-	writel(BOOT_NORMAL, &grf->os_reg[0]);
-
-	debug("boot mode %x.\n", boot_mode);
-	switch(boot_mode) {
-		case BOOT_NORMAL:
-			printf("normal boot\n");
-			env_set("boot_mode", "normal");
-			break;
-
-		case BOOT_LOADER:
-			printf("enter Rockusb!\n");
-			env_set("preboot", "setenv preboot; rockusb 0 mmc 0");
-			break;
-
-		case BOOT_RECOVERY:
-			printf("enter recovery!\n");
-			env_set("boot_mode", "recovery");
-			break;
-
-		case BOOT_FASTBOOT:
-			printf("enter fastboot!\n");
-			env_set("preboot", "setenv preboot; fastboot usb0");
-			break;
-
-		case BOOT_CHARGING:
-			printf("enter charging!\n");
-			env_set("boot_mode", "charging");
-			break;
-
-		case BOOT_UMS:
-			printf("enter fastboot!\n");
-			env_set("preboot", "setenv preboot; if mmc dev 0;"
-				"then ums mmc 0; else ums mmc 1;fi");
-			break;
-
-		default:
-			env_set("boot_mode", "unknown");
-			break;
-	}
-
-	return 0;
-}
-
 #if defined(CONFIG_USB_FUNCTION_FASTBOOT)
 int fb_set_reboot_flag(void)
 {

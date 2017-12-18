@@ -83,6 +83,18 @@ int setup_boot_mode(void)
 	writel(BOOT_NORMAL, reg);
 
 	switch (boot_mode) {
+	case BOOT_NORMAL:
+		printf("normal boot\n");
+		env_set("boot_mode", "normal");
+		break;
+	case BOOT_LOADER:
+		printf("enter Rockusb!\n");
+		env_set("preboot", "setenv preboot; rockusb 0 mmc 0");
+		break;
+	case BOOT_RECOVERY:
+		printf("enter recovery!\n");
+		env_set("boot_mode", "recovery");
+		break;
 	case BOOT_FASTBOOT:
 		printf("enter fastboot!\n");
 #if defined(CONFIG_FASTBOOT_FLASH_MMC_DEV)
@@ -94,6 +106,10 @@ int setup_boot_mode(void)
 				"setenv preboot; fastboot usb 0; ");
 #endif
 		env_set("preboot", env_preboot);
+		break;
+	case BOOT_CHARGING:
+		printf("enter charging!\n");
+		env_set("boot_mode", "charging");
 		break;
 	case BOOT_UMS:
 		printf("enter UMS!\n");
