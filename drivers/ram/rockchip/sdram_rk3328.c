@@ -598,6 +598,16 @@ static void enable_low_power(struct dram_info *dram,
 	setbits_le32(pctl_base + DDR_PCTL2_PWRCTL, (1 << 3));
 }
 
+static inline void mmio_write_32(uintptr_t addr, uint32_t value)
+{
+	*(volatile uint32_t*)addr = value;
+}
+
+static inline void mmio_write_64(uintptr_t addr, uint64_t value)
+{
+	*(volatile uint64_t*)addr = value;
+}
+
 static int sdram_init(struct dram_info *dram,
 		      struct rk3328_sdram_params *sdram_params, u32 pre_init)
 {
@@ -662,6 +672,18 @@ static int sdram_init(struct dram_info *dram,
 
 	dram_all_config(dram, sdram_params);
 	enable_low_power(dram, sdram_params);
+
+	// TODO: ayufan configure memory regions for ATF
+#define DDR_PARAM_BASE		0x02000000
+#define DDR_REGION_NR_MAX		10
+#define REGION_NR_OFFSET		0
+#define REGION_ADDR_OFFSET		8
+#define REGION_DATA_PER_BYTES		8
+
+	printf("configuring DDR parameters\n");
+	mmio_write_32(DDR_PARAM_BASE + REGION_NR_OFFSET, 1);
+	mmio_write_64(DDR_PARAM_BASE + REGION_ADDR_OFFSET, 0);
+	mmio_write_64(DDR_PARAM_BASE + REGION_ADDR_OFFSET + REGION_DATA_PER_BYTES, 0x100000000);
 
 	return 0;
 }
