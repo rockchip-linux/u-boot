@@ -660,7 +660,7 @@ static void rockchip_dw_hdmi_i2cm_write_request(struct dw_hdmi *hdmi,
 {
 	hdmi_writeb(hdmi, offset, HDMI_I2CM_ADDRESS);
 	hdmi_writeb(hdmi, data, HDMI_I2CM_DATAO);
-	hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_WRITE, HDMI_I2CM_OPERATION_READ);
+	hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_WRITE, HDMI_I2CM_OPERATION);
 }
 
 static void rockchip_dw_hdmi_i2cm_read_request(struct dw_hdmi *hdmi,
@@ -715,9 +715,8 @@ static int rockchip_dw_hdmi_i2cm_read_data(struct dw_hdmi *hdmi, u8 offset)
 			udelay(1000);
 			interrupt = hdmi_readb(hdmi, HDMI_IH_I2CM_STAT0);
 			if (interrupt)
-				hdmi_writeb(hdmi, HDMI_IH_I2CM_STAT0,
-					    interrupt);
-
+				hdmi_writeb(hdmi, interrupt,
+					    HDMI_IH_I2CM_STAT0);
 			if (interrupt & (m_SCDC_READREQ |
 				m_I2CM_DONE | m_I2CM_ERROR))
 				break;
@@ -2253,7 +2252,7 @@ int inno_dw_hdmi_phy_init(struct dw_hdmi *dw_hdmi,
 			  struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	rockchip_phy_set_pll(state, conn_state->mode.clock * 1000);
+	rockchip_phy_set_pll(state, conn_state->mode.crtc_clock * 1000);
 	rockchip_phy_power_on(state);
 	return 0;
 }

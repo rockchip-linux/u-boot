@@ -20,7 +20,7 @@
 /* Size of the EDID data */
 #define EDID_SIZE	128
 #define EDID_EXT_SIZE	256
-#define MODE_LEN	120
+#define MODE_LEN	240
 
 #define CEA_EXT	    0x02
 #define VTB_EXT	    0x10

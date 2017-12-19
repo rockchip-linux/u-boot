@@ -2237,6 +2237,8 @@ static void drm_add_hdmi_modes(struct hdmi_edid_data *data,
 {
 	struct drm_display_mode *mode_buf = data->mode_buf;
 
+	if (data->modes >= MODE_LEN)
+		return;
 	mode_buf[(data->modes)++] = *mode;
 }
 
