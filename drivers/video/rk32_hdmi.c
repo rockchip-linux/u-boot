@@ -1397,6 +1397,9 @@ static int ext_phy1_config(struct hdmi_dev *hdmi_dev)
 	} else {
 		rockchip_hdmiv2_write_phy(hdmi_dev, EXT_PHY1_TERM_CAL_CTRL1,
 					  0x81);
+		rockchip_hdmiv2_write_phy(hdmi_dev, 0xc9, 0x10);
+                rockchip_hdmiv2_write_phy(hdmi_dev, 0xca, 0x10);
+                rockchip_hdmiv2_write_phy(hdmi_dev, 0xcb, 0x10);
 	}
 	if (hdmi_dev->soctype == HDMI_SOC_RK1108)
 		grf_writel(RK1108_PLL_POWER_UP, GRF_SOC_CON4);
