@@ -69,13 +69,4 @@ static inline int rkusb_cmd_process(struct fsg_common *common,
 }
 #endif
 
-/* Wait at maximum 60 seconds for cable connection */
-#define RKUSB_CABLE_READY_TIMEOUT	60
-#define SECTOR_SIZE			0x200
-
-struct rockusb {
-	struct ums *ums;
-	int ums_cnt;
-};
-
 #endif /* __ROCKUSB_H__ */

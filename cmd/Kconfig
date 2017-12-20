@@ -871,14 +871,6 @@ config CMD_REMOTEPROC
 	help
 	  Support for Remote Processor control
 
-config CMD_ROCKUSB
-	bool "rockusb - Command to upgrade Rockchip device"
-	depends on USB_GADGET
-	help
-	  Rockusb command provides a way to upgrade firmware for
-	  Rockchip SoC based devices, its design make use of USB
-	  Bulk-Only Transport based on UMS framework.
-
 config CMD_RKNAND
 	bool "rknand"
 	depends on RKNAND
