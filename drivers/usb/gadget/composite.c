@@ -271,18 +271,6 @@ static int count_configs(struct usb_composite_dev *cdev, unsigned type)
 	return count;
 }
 
-static int bos_desc(struct usb_composite_dev *cdev)
-{
-	struct usb_bos_descriptor	*bos = cdev->req->buf;
-
-	bos->bLength = USB_DT_BOS_SIZE;
-	bos->bDescriptorType = USB_DT_BOS;
-	bos->wTotalLength = cpu_to_le16(USB_DT_BOS_SIZE);
-	bos->bNumDeviceCaps = 0;
-
-	return le16_to_cpu(bos->wTotalLength);
-}
-
 static void device_qual(struct usb_composite_dev *cdev)
 {
 	struct usb_qualifier_descriptor	*qual = cdev->req->buf;
@@ -776,18 +764,6 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 				value = min(w_length, (u16) value);
 			break;
 		case USB_DT_BOS:
-			/* HACK: only for rockusb command.
-			 * Rockchip upgrade tool use bcdUSB (0x0201) field
-			 * distinguishing maskrom or loader device at present.
-			 * Unfortunately, it conflict with Windows 8 and beyond
-			 * which request BOS descriptor in this case that bcdUSB
-			 * is set to 0x0201.
-			 */
-			if (!strncmp(cdev->driver->name, "rkusb_ums_dnl", 13)) {
-				value = bos_desc(cdev);
-				value = min(w_length, (u16) value);
-			}
-
 			/*
 			 * The USB compliance test (USB 2.0 Command Verifier)
 			 * issues this request. We should not run into the
