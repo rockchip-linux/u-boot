@@ -250,7 +250,6 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 #include <usb_mass_storage.h>
-#include <rockusb.h>
 
 #include <asm/unaligned.h>
 #include <linux/usb/gadget.h>
@@ -1671,9 +1670,6 @@ static int send_status(struct fsg_common *common)
 
 
 /*-------------------------------------------------------------------------*/
-#ifdef CONFIG_CMD_ROCKUSB
-#include "f_rockusb.c"
-#endif
 
 /* Check whether the command is properly formed and whether its data size
  * and direction agree with the values we already have. */
@@ -1799,7 +1795,6 @@ static int do_scsi_command(struct fsg_common *common)
 	int			i;
 	static char		unknown[16];
 	struct fsg_lun		*curlun = &common->luns[common->lun];
-	const char		*cdev_name __maybe_unused;
 
 	dump_cdb(common);
 
@@ -1815,16 +1810,6 @@ static int do_scsi_command(struct fsg_common *common)
 	common->short_packet_received = 0;
 
 	down_read(&common->filesem);	/* We're using the backing file */
-
-	cdev_name = common->fsg->function.config->cdev->driver->name;
-	if (IS_RKUSB_UMS_DNL(cdev_name)) {
-		rc = rkusb_cmd_process(common, bh, &reply);
-		if (rc == RKUSB_RC_FINISHED || rc == RKUSB_RC_ERROR)
-			goto finish;
-		else if (rc == RKUSB_RC_UNKNOWN_CMND)
-			goto unknown_cmnd;
-	}
-
 	switch (common->cmnd[0]) {
 
 	case SC_INQUIRY:
@@ -2053,8 +2038,6 @@ unknown_cmnd:
 		}
 		break;
 	}
-
-finish:
 	up_read(&common->filesem);
 
 	if (reply == -EINTR)
@@ -2710,10 +2693,7 @@ static int fsg_bind(struct usb_configuration *c, struct usb_function *f)
 	fsg->bulk_out = ep;
 
 	/* Copy descriptors */
-	if (IS_RKUSB_UMS_DNL(c->cdev->driver->name))
-		f->descriptors = usb_copy_descriptors(rkusb_fs_function);
-	else
-		f->descriptors = usb_copy_descriptors(fsg_fs_function);
+	f->descriptors = usb_copy_descriptors(fsg_fs_function);
 	if (unlikely(!f->descriptors))
 		return -ENOMEM;
 
@@ -2723,13 +2703,7 @@ static int fsg_bind(struct usb_configuration *c, struct usb_function *f)
 			fsg_fs_bulk_in_desc.bEndpointAddress;
 		fsg_hs_bulk_out_desc.bEndpointAddress =
 			fsg_fs_bulk_out_desc.bEndpointAddress;
-
-		if (IS_RKUSB_UMS_DNL(c->cdev->driver->name))
-			f->hs_descriptors =
-				usb_copy_descriptors(rkusb_hs_function);
-		else
-			f->hs_descriptors =
-				usb_copy_descriptors(fsg_hs_function);
+		f->hs_descriptors = usb_copy_descriptors(fsg_hs_function);
 		if (unlikely(!f->hs_descriptors)) {
 			free(f->descriptors);
 			return -ENOMEM;
