@@ -1003,6 +1003,24 @@ static int rk3328_dmc_ofdata_to_platdata(struct udevice *dev)
 
 #endif
 
+struct ddr_param{
+	u32 count;
+	u32 reserved;
+	u64 bank_addr;
+	u64 bank_size;
+};
+#define PARAM_DRAM_INFO_OFFSET 0x2000000
+int setup_ddr_param(struct ram_info *info)
+{
+	struct ddr_param *dinfo = (struct ddr_param *)PARAM_DRAM_INFO_OFFSET;
+
+	dinfo->count = 1;
+	dinfo->bank_addr = info->base;
+	dinfo->bank_size = info->size;
+	printf("%s %p %d\n", __func__, &dinfo->count, dinfo->count);
+	return 0;
+}
+
 static int rk3328_dmc_probe(struct udevice *dev)
 {
 #ifdef CONFIG_TPL_BUILD
@@ -1016,6 +1034,9 @@ static int rk3328_dmc_probe(struct udevice *dev)
 	priv->info.base = CONFIG_SYS_SDRAM_BASE;
 	priv->info.size = rockchip_sdram_size(
 				(phys_addr_t)&priv->grf->os_reg[2]);
+#ifdef CONFIG_SPL_BUILD
+	setup_ddr_param(&priv->info);
+#endif
 #endif
 	return 0;
 }
