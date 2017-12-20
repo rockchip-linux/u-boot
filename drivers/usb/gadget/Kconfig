@@ -119,6 +119,14 @@ config G_DNL_VENDOR_NUM
 config G_DNL_PRODUCT_NUM
 	hex "Product ID of USB device"
 
+config USB_FUNCTION_ROCKUSB
+	bool "Enable USB rockusb gadget"
+	help
+	  Rockusb protocol is widely used by Rockchip SoC based devices. It can
+	  read/write info, image to/from devices. This enables the USB part of
+	  the rockusb gadget.for more detail about Rockusb protocol, please see
+	  doc/README.rockusb
+
 config USBNET_DEVADDR
 	string "USB Gadget Ethernet device mac address"
 	default "de:ad:be:ef:00:01"
