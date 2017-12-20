@@ -30,9 +30,6 @@
 
 #define CONFIG_SYS_BOOTM_LEN	(64 << 20)	/* 64M */
 
-#define CONFIG_ROCKUSB_G_DNL_PID	0x310C
-#define TEST_NUM_G
-
 /* MMC/SD IP block */
 #define CONFIG_BOUNCE_BUFFER
 

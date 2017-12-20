@@ -36,8 +36,6 @@
 #define GICD_BASE			0xffc01000
 #define GICC_BASE			0xffc02000
 
-#define CONFIG_ROCKUSB_G_DNL_PID	0x320A
-
 /* MMC/SD IP block */
 #define CONFIG_BOUNCE_BUFFER
 
