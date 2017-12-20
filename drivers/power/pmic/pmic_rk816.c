@@ -339,6 +339,74 @@ static int rk816_pre_init_ldo(unsigned char bus, uchar addr)
 	return 0;
 }
 
+static int rk805_pre_init(unsigned char bus, uchar addr)
+{
+#define BUCK1_2_IMAX_MSK		(0x3 << 6)
+#define BUCK3_4_IMAX_MSK		(0x3 << 3)
+#define BUCK1_2_IMAX_MAX		(0x3 << 6)
+#define BUCK3_4_IMAX_MAX		(0x3 << 3)
+#define BUCK3_4_IMIN_250MA_MSK		(0x7 << 0)
+#define BUCK3_4_IMIN_250MA		(0x4 << 0)
+
+	u8 val, reg87;
+	u8 index;
+	/* char reg87_step2[8] = { 5, 4, 0, 1, 6, 7, 7, 7}; */
+	char reg87_step3[8] = { 6, 5, 4, 0, 7, 7, 7, 7};
+
+	val = i2c_reg_read(addr, 0x19);
+	debug("rk805 pre init: 0x19 = 0x%02x\n", val);
+	if (val & 0x08) {
+		printf("rk805 bucks not enable trimming\n");
+		return 0;
+	}
+
+	i2c_reg_write(addr, 0x6F, 0x00);
+	reg87 = i2c_reg_read(addr, 0x87);
+	i2c_reg_write(addr, 0x6F, 0x5A);
+	printf("rk805 bucks enable trimming, REG[87H]=0x%02x\n", reg87);
+	index = reg87 & 0x7;
+	reg87 &= ~0x7;
+	reg87 |= reg87_step3[index];
+	i2c_reg_write(addr, 0x87, reg87);
+
+	/* BUCK 1 */
+	val = i2c_reg_read(addr, RK816_BUCK1_CONFIG_REG);
+	val &= ~BUCK1_2_IMAX_MSK;
+	val |= BUCK1_2_IMAX_MAX;
+	i2c_reg_write(addr, RK816_BUCK1_CONFIG_REG, val);
+
+	/* BUCK 2 */
+	val = i2c_reg_read(addr, RK816_BUCK2_CONFIG_REG);
+	val &= ~BUCK1_2_IMAX_MSK;
+	val |= BUCK1_2_IMAX_MAX;
+	i2c_reg_write(addr, RK816_BUCK2_CONFIG_REG, val);
+
+	/* BUCK 3 */
+	val = i2c_reg_read(addr, RK816_BUCK3_CONFIG_REG);
+	val &= ~BUCK3_4_IMAX_MSK;
+	val |= BUCK3_4_IMAX_MAX;
+	i2c_reg_write(addr, RK816_BUCK3_CONFIG_REG, val);
+
+	/* BUCK 4 */
+	val = i2c_reg_read(addr, RK816_BUCK4_CONFIG_REG);
+	val &= ~BUCK3_4_IMAX_MSK;
+	val |= BUCK3_4_IMAX_MAX;
+
+	/* IMIN setting is a copy from kernel */
+	val &= ~BUCK3_4_IMIN_250MA_MSK;
+	val |= BUCK3_4_IMIN_250MA;
+	i2c_reg_write(addr, RK816_BUCK4_CONFIG_REG, val);
+
+	printf("rk805 buck config[0x%02x, 0x%02x, 0x%02x, 0x%02x], REG[87H]=0x%02x\n",
+	       i2c_reg_read(addr, RK816_BUCK1_CONFIG_REG),
+	       i2c_reg_read(addr, RK816_BUCK2_CONFIG_REG),
+	       i2c_reg_read(addr, RK816_BUCK3_CONFIG_REG),
+	       i2c_reg_read(addr, RK816_BUCK4_CONFIG_REG),
+	       i2c_reg_read(addr, 0x87));
+
+	return 0;
+}
+
 static int rk816_pre_init(unsigned char bus, uchar addr)
 {
 	int ret = 0;
@@ -386,6 +454,7 @@ static struct pmic_rk816 rk805 = {
 	.reg_nums = RK805_NUM_REGULATORS,
 	.reg_match = rk805_reg_matches,
 	.reg1_match = rk805_reg1_matches,
+	.pre_init_regulator = rk805_pre_init,
 	.enable_regulator = rk805_regulator_enable,
 	.disable_regulator = rk805_regulator_disable,
 };
