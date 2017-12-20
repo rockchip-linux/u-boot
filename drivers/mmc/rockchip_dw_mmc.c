@@ -277,7 +277,6 @@ static int rockchip_dwmmc_probe(struct udevice *dev)
 	}
 #endif
 	dwmci_setup_cfg(&plat->cfg, host, priv->minmax[1], priv->minmax[0]);
-	plat->cfg.host_caps |= MMC_MODE_DDR_52MHz;
 	host->mmc = &plat->mmc;
 	host->mmc->priv = &priv->host;
 	host->mmc->dev = dev;

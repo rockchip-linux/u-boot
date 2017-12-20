@@ -11,11 +11,11 @@
 #define MHz		1000000
 #define OSC_HZ		(24 * MHz)
 
-#define APLL_HZ		(816 * MHz)
+#define APLL_HZ		(600 * MHz)
 #define GPLL_HZ		(594 * MHz)
 
-#define CORE_PERI_HZ	204000000
-#define CORE_ACLK_HZ	408000000
+#define CORE_PERI_HZ	150000000
+#define CORE_ACLK_HZ	300000000
 
 #define BUS_ACLK_HZ	148500000
 #define BUS_HCLK_HZ	148500000
