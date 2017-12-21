@@ -86,6 +86,7 @@ u32 spl_boot_device(void)
 	return BOOT_DEVICE_BOOTROM;
 }
 
+#define FW_DDR_CON_REG 0xff7c0040
 
 void board_init_f(ulong dummy)
 {
@@ -111,4 +112,7 @@ void board_init_f(ulong dummy)
 		printf("DRAM init failed: %d\n", ret);
 		return;
 	}
+	/* Disable the ddr secure region setting to make it non-secure */
+	rk_setreg(FW_DDR_CON_REG, 0x200);
+
 }
