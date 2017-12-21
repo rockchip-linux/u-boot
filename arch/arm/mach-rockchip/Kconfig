@@ -242,6 +242,7 @@ config ROCKCHIP_BOOT_MODE_REG
 	default 0xff738200 if ROCKCHIP_RK3368
 	default 0xff320300 if ROCKCHIP_RK3399
 	default 0x10300580 if ROCKCHIP_RV1108
+	default 0xff1005c8 if ROCKCHIP_RK3328
 	default 0
 	help
 	  The Soc will enter to different boot mode(defined in asm/arch/boot_mode.h)

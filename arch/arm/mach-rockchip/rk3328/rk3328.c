@@ -102,15 +102,6 @@ int board_init(void)
 		     IOMUX_SEL_UART2_M1 << IOMUX_SEL_UART2_SHIFT |
 		     IOMUX_SEL_SDMMC_M1 << IOMUX_SEL_SDMMC_SHIFT);
 
-#define GRF_BASE	0xff100000
-	struct rk3328_grf_regs * const grf = (void *)GRF_BASE;
-
-	/* uart2 select m1, sdcard select m1*/
-	rk_clrsetreg(&grf->com_iomux,
-		     IOMUX_SEL_UART2_MASK | IOMUX_SEL_SDMMC_MASK,
-		     IOMUX_SEL_UART2_M1 << IOMUX_SEL_UART2_SHIFT |
-		     IOMUX_SEL_SDMMC_M1 << IOMUX_SEL_SDMMC_SHIFT);
-
 	ret = regulators_enable_boot_on(false);
 	if (ret)
 		debug("%s: Cannot enable boot on regulator\n", __func__);
