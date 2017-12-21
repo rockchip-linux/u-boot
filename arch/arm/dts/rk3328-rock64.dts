@@ -149,6 +149,10 @@
 		#clock-cells = <1>;
 		clock-output-names = "xin32k", "rk805-clkout2";
 
+		pwrkey {
+			status = "okay";
+		};
+
 		regulators {
 			vdd_logic: DCDC_REG1 {
 				regulator-name = "vdd_logic";
