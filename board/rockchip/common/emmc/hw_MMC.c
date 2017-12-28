@@ -93,6 +93,7 @@ static void _MMC_DecodeCID(uint32 *pCID, pSDM_CARD_INFO_T pCard)
     pCard->oid[1] = (uint8)((pCID[3] >> 8) & 0xFF);
     pCard->oid[2] = 0x0; /* ×Ö·û´®½áÊø·û */
     _MMC_MID = pCard->mid = (uint8)((pCID[3] >> 24) & 0xFF); /* [127:120] samsung 0x15 */
+    memcpy(pCard->cid, pCID, 16);
 }
 
 /****************************************************************
@@ -355,6 +356,7 @@ static void _MMC_SwitchFunction(pSDM_CARD_INFO_T pCard)
 
 		pDataBuf = (uint8 *)pbuf;
 		pCard->bootSize = pDataBuf[226] * 256;
+		pCard->capacity_rpmb = pDataBuf[168] << 17;//#define EXT_CSD_RPMB_MULT  168	/* RO */
 		/* [215--212]  sector count */
 		value = ((pDataBuf[215] << 24) | (pDataBuf[214] << 16) | (pDataBuf[213] << 8) | pDataBuf[212]);
 		if (pCard->bootSize == 0 && value == 0 && retry_time == 0) {

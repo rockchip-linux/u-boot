@@ -35,9 +35,11 @@ typedef struct TagSDM_CARD_INFO {
 	/*************************************************************
 			SD/MMC information
 	*************************************************************/
-	uint32             WriteProt;      /* Mechanical write Protect switch state,
+	uint32           cid[4];
+	u64              capacity_rpmb;
+	uint32           WriteProt;      /* Mechanical write Protect switch state,
 						TRUE:write protected, FALSE: no write protected, can read and write */
-	uint32             bPassword;      /* 用于指示卡是否是有密码的卡, TRUE:have password, FALSE:no password */
+	uint32           bPassword;      /* 用于指示卡是否是有密码的卡, TRUE:have password, FALSE:no password */
 	/* Card internal detail */
 	uint16           year;             /* Card manufacture year */
 	uint8            month;            /* Card manufacture month */

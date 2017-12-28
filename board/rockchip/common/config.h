@@ -44,6 +44,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #if defined(RK_SDMMC_BOOT_EN) || defined(RK_SDCARD_BOOT_EN)
 	#define DRIVERS_SDMMC
 	#define EMMC_NOT_USED_BOOT_PART
+	#define CONFIG_SUPPORT_RK_RPMB
 #endif
 
 /* loader save information for kernel in ram */

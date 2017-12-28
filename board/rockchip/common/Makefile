@@ -24,6 +24,7 @@ obj-y += emmc/hw_SDController.o
 obj-y += emmc/hw_SDM.o
 obj-y += emmc/hw_SDOsAdapt.o
 obj-y += emmc/hw_SDPlatAdapt.o
+obj-y += emmc/rpmb.o
 obj-$(CONFIG_RK_AR_SDHCI) += sdhci/mmc.o sdhci/sdhci.o
 obj-y += mediaboot/sdmmcBoot.o
 obj-$(CONFIG_RK_SDHCI_BOOT_EN) += mediaboot/sdhciBoot.o
