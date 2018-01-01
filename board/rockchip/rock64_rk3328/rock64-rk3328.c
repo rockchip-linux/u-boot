@@ -14,7 +14,7 @@ DECLARE_GLOBAL_DATA_PTR;
 int rk_board_late_init(void)
 {
 	gpio_request(ROCK64_USB_POWER_GPIO, "usb_power");
-	gpio_direction_output(ROCK64_USB_POWER_GPIO, 1);
+	gpio_direction_output(ROCK64_USB_POWER_GPIO, 0);
 	gpio_free(ROCK64_USB_POWER_GPIO);
 	return 0;
 }
