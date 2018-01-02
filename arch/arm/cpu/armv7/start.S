@@ -144,6 +144,11 @@ ENTRY(cpu_init_cp15)
 	mcr     p15, 0, r0, c7, c10, 4	@ DSB
 	mcr     p15, 0, r0, c7, c5, 4	@ ISB
 
+	/* Rockchip 32-bit cpu are cortex A7, A9 and A17, they all need this */
+	mrc	p15, 0, r0, c1, c0, 1
+	orr	r0, r0, #(1 << 6)	@ Enable ACTLR.SMP bit
+	mcr	p15, 0, r0, c1, c0, 1
+
 	/*
 	 * Invalidate RK3288 L2 Latency, can't be set in normal world
 	 */
