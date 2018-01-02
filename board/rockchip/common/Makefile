@@ -17,6 +17,7 @@ obj-y += rkloader/rkloader.o
 obj-y += rkloader/rkimage.o
 obj-$(CONFIG_RK_KEY) += rkloader/key.o
 obj-$(CONFIG_RK_PWM_REMOTE) += rkloader/pwm_remotectl.o
+obj-$(CONFIG_OPTEE_CLIENT) += rkloader/attestation_key.o
 obj-y += rkboot/fastboot.o
 obj-y += emmc/hw_MMC.o
 obj-y += emmc/hw_SD.o

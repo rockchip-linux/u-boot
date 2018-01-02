@@ -16,6 +16,9 @@
 #include <asm/arch/rkplat.h>
 
 #include "../common/config.h"
+#ifdef CONFIG_OPTEE_CLIENT
+#include "../common/rkloader/attestation_key.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -204,6 +207,10 @@ int board_late_init(void)
 	debug("charger init\n");
 	plat_charger_init();
 #endif /* CONFIG_RK_POWER */
+
+#ifdef CONFIG_OPTEE_CLIENT
+       load_attestation_key();
+#endif
 
 	debug("idb init\n");
 	//TODO:set those buffers in a better way, and use malloc?

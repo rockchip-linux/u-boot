@@ -16,6 +16,9 @@
 #include <asm/arch/rkplat.h>
 
 #include "../common/config.h"
+#ifdef CONFIG_OPTEE_CLIENT
+#include "../common/rkloader/attestation_key.h"
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 static ulong get_sp(void)
@@ -197,6 +200,10 @@ int board_late_init(void)
 
 #if defined(CONFIG_RK_DCF)
 	dram_freq_init();
+#endif
+
+#ifdef CONFIG_OPTEE_CLIENT
+       load_attestation_key();
 #endif
 
 	debug("idb init\n");
