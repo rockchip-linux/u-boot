@@ -73,14 +73,14 @@ static void s5p_sdhci_set_control_reg(struct sdhci_host *host)
 	sdhci_writel(host, ctrl, SDHCI_CONTROL2);
 }
 
-static void s5p_set_clock_ext(struct sdhci_host *host, u32 div)
+static void s5p_set_clock(struct sdhci_host *host, u32 div)
 {
 	/* ToDo : Use the Clock Framework */
 	set_mmc_clk(host->index, div);
 }
 
 static const struct sdhci_ops s5p_sdhci_ops = {
-	.set_clock_ext	= &s5p_set_clock_ext,
+	.set_clock	= &s5p_set_clock,
 	.set_control_reg = &s5p_sdhci_set_control_reg,
 };
 

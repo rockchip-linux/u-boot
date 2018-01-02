@@ -50,6 +50,11 @@
 #define MIN_FREQ 400000
 #define SDHCI_BUFFER 0x20
 
+struct bcm2835_sdhci_plat {
+	struct mmc_config cfg;
+	struct mmc mmc;
+};
+
 struct bcm2835_sdhci_host {
 	struct sdhci_host host;
 	uint twoticks_delay;
@@ -75,7 +80,8 @@ static inline void bcm2835_sdhci_raw_writel(struct sdhci_host *host, u32 val,
 	 * too)
 	 */
 	if (reg != SDHCI_BUFFER) {
-		while (timer_get_us() - bcm_host->last_write < bcm_host->twoticks_delay)
+		while (timer_get_us() - bcm_host->last_write <
+		       bcm_host->twoticks_delay)
 			;
 	}
 

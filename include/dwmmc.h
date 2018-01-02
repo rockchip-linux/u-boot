@@ -115,10 +115,6 @@
 #define RX_WMARK_SHIFT		16
 #define RX_WMARK_MASK		(0xfff << RX_WMARK_SHIFT)
 
-/* HCON Register */
-#define DMA_INTERFACE_IDMA		(0x0)
-#define SDMMC_GET_TRANS_MODE(x)		(((x)>>16) & 0x3)
-
 #define DWMCI_IDMAC_OWN		(1 << 31)
 #define DWMCI_IDMAC_CH		(1 << 4)
 #define DWMCI_IDMAC_FS		(1 << 3)
@@ -150,7 +146,6 @@
  * @fifoth_val:	Value for FIFOTH register (or 0 to leave unset)
  * @mmc:	Pointer to generic MMC structure for this device
  * @priv:	Private pointer for use by controller
- * @stride_pio: Provide the ability of accessing fifo with burst mode
  */
 struct dwmci_host {
 	const char *name;
@@ -167,7 +162,6 @@ struct dwmci_host {
 	u32 fifoth_val;
 	struct mmc *mmc;
 	void *priv;
-	bool stride_pio;
 
 	void (*clksel)(struct dwmci_host *host);
 	void (*board_init)(struct dwmci_host *host);
@@ -186,7 +180,6 @@ struct dwmci_host {
 	 * @freq:	Frequency the host is trying to achieve
 	 */
 	unsigned int (*get_mmc_clk)(struct dwmci_host *host, uint freq);
-	int (*execute_tuning)(struct dwmci_host *host, u32 opcode);
 #ifndef CONFIG_BLK
 	struct mmc_config cfg;
 #endif

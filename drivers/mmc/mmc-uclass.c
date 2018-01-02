@@ -37,22 +37,6 @@ int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	return dm_mmc_send_cmd(mmc->dev, cmd, data);
 }
 
-bool mmc_card_busy(struct mmc *mmc)
-{
-	struct dm_mmc_ops *ops = mmc_get_ops(mmc->dev);
-
-	if (!ops->card_busy)
-		return -ENOSYS;
-	return ops->card_busy(mmc->dev);
-}
-
-bool mmc_can_card_busy(struct mmc *mmc)
-{
-	struct dm_mmc_ops *ops = mmc_get_ops(mmc->dev);
-
-	return !!ops->card_busy;
-}
-
 int dm_mmc_set_ios(struct udevice *dev)
 {
 	struct dm_mmc_ops *ops = mmc_get_ops(dev);
