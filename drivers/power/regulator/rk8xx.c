@@ -15,6 +15,7 @@
 #include <power/rk8xx_pmic.h>
 #include <power/pmic.h>
 #include <power/regulator.h>
+#include <led.h>
 
 #ifndef CONFIG_SPL_BUILD
 #define ENABLE_DRIVER
@@ -518,6 +519,39 @@ static int switch_get_enable(struct udevice *dev)
 	return ret & mask ? true : false;
 }
 
+static enum led_state_t rk8xx_led_get_state(struct udevice *dev)
+{
+	int sw = dev->driver_data - 1;
+	int ret;
+	uint mask;
+
+	mask = 1 << sw;
+
+	ret = pmic_reg_read(dev->parent, REG_OUT_CTRL);
+	if (ret < 0)
+		return ret;
+
+	return ret & mask ? LEDST_ON : LEDST_OFF;
+}
+
+static int rk8xx_led_set_state(struct udevice *dev, enum led_state_t state)
+{
+	int sw = dev->driver_data - 1;
+	uint mask;
+
+	mask = 1 << sw;
+
+	if (state == LEDST_TOGGLE) {
+		if (rk8xx_led_get_state(dev) == LEDST_ON)
+			state = LEDST_OFF;
+		else
+			state = LEDST_ON;
+	}
+
+	return pmic_clrsetbits(dev->parent, REG_OUT_CTRL, mask,
+			       state ? 0 : mask);
+}
+
 static int rk8xx_buck_probe(struct udevice *dev)
 {
 	struct dm_regulator_uclass_platdata *uc_pdata;
@@ -554,6 +588,21 @@ static int rk8xx_switch_probe(struct udevice *dev)
 	return 0;
 }
 
+static int rk8xx_led_bind(struct udevice *dev)
+{
+	struct led_uc_plat *uc_pdata;
+
+	uc_pdata = dev_get_uclass_platdata(dev);
+	uc_pdata->label = dev_read_string(dev, "label");
+
+	return 0;
+}
+
+static int rk8xx_led_probe(struct udevice *dev)
+{
+	return 0;
+}
+
 static const struct dm_regulator_ops rk8xx_buck_ops = {
 	.get_value  = buck_get_value,
 	.set_value  = buck_set_value,
@@ -577,6 +626,11 @@ static const struct dm_regulator_ops rk8xx_switch_ops = {
 	.set_enable = switch_set_enable,
 };
 
+static const struct led_ops rk8xx_led_ops = {
+	.get_state = rk8xx_led_get_state,
+	.set_state = rk8xx_led_set_state,
+};
+
 U_BOOT_DRIVER(rk8xx_buck) = {
 	.name = "rk8xx_buck",
 	.id = UCLASS_REGULATOR,
@@ -596,6 +650,14 @@ U_BOOT_DRIVER(rk8xx_switch) = {
 	.id = UCLASS_REGULATOR,
 	.ops = &rk8xx_switch_ops,
 	.probe = rk8xx_switch_probe,
+};
+
+U_BOOT_DRIVER(rk8xx_led) = {
+	.name = "rk8xx_led",
+	.id = UCLASS_LED,
+	.ops = &rk8xx_led_ops,
+	.bind = rk8xx_led_bind,
+	.probe = rk8xx_led_probe,
 };
 #endif
 

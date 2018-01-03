@@ -88,6 +88,8 @@ enum {
 	REG_BOOST_LDO9_SLP_VSEL,
 	REG_BOOST_CTRL,
 
+	REG_OUT_CTRL = 0x52,
+
 	/* Not sure what this does */
 	REG_DCDC_ILMAX			= 0x90,
 	REG_CHRG_COMP			= 0x9a,
