@@ -1122,7 +1122,11 @@ static int dwc2_init_common(struct udevice *dev, struct dwc2_priv *priv)
 #endif
 
 	dwc_otg_core_init(priv);
-	dwc_otg_core_host_init(dev, regs);
+
+	// HACK: needed by RK3328 to have OTG properly working
+	for(i = 0; i < 2; ++i) {
+		dwc_otg_core_host_init(dev, regs);
+	}
 
 	clrsetbits_le32(&regs->hprt0, DWC2_HPRT0_PRTENA |
 			DWC2_HPRT0_PRTCONNDET | DWC2_HPRT0_PRTENCHNG |
