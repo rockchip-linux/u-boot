@@ -941,10 +941,17 @@ UBOOTVERSION := $(UBOOTVERSION)$(if $(RKCHIP),-$(RKCHIP))$(if $(RK_UBOOT_VERSION
 RK_SUBFIX = $(if $(RK_UBOOT_VERSION),.$(RK_UBOOT_VERSION)).bin
 
 ifdef CONFIG_MERGER_TRUSTOS
-RK_TOS_BIN ?= `sed -n "/TOS=/s/TOS=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r'`
-endif
-ifdef CONFIG_MERGER_TRUSTOS_WITH_TA
-RK_TOS_TA_BIN ?= `sed -n "/TOSTA=/s/TOSTA=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r'`
+# trust OS without or with TA.
+# Most platforms only need one image generated, but some platforms require both two image generated.
+# Such as rk322x, it need generate trust.img for legacy request and trust_with_ta.img for latest request.
+RK_TOS_BIN ?= $(shell sed -n "/TOS=/s/TOS=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
+RK_TOS_TA_BIN ?= $(shell sed -n "/TOSTA=/s/TOSTA=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
+
+# multi trust.img used for different functions, such as: one image for emmc, another image for nand, etc.
+RK_TOS0_BIN ?= $(shell sed -n "/TOS0=/s/TOS0=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
+RK_TOS0_IMG ?= $(shell sed -n "/PATH0=/s/PATH0=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
+RK_TOS1_BIN ?= $(shell sed -n "/TOS1=/s/TOS1=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
+RK_TOS1_IMG ?= $(shell sed -n "/PATH1=/s/PATH1=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
 endif
 
 RKLoader_uboot.bin: u-boot.bin
@@ -956,12 +963,13 @@ else
 endif
 	$(if $(CONFIG_MERGER_TRUSTIMAGE), ./tools/trust_merger $(if $(CONFIG_RK_TRUSTOS), --subfix) \
 							./tools/rk_tools/RKTRUST/$(RKCHIP)TRUST.ini)
-ifeq ($(CONFIG_MERGER_TRUSTOS)$(CONFIG_MERGER_TRUSTOS_WITH_TA),yy)
-	$(if $(CONFIG_MERGER_TRUSTOS), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img)
-	$(if $(CONFIG_MERGER_TRUSTOS_WITH_TA), ./tools/loaderimage --pack --trustos $(RK_TOS_TA_BIN) trust_with_ta.img)
-else
-	$(if $(CONFIG_MERGER_TRUSTOS), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img)
-	$(if $(CONFIG_MERGER_TRUSTOS_WITH_TA), ./tools/loaderimage --pack --trustos $(RK_TOS_TA_BIN) trust.img)
+
+ifdef CONFIG_MERGER_TRUSTOS
+	$(if $(RK_TOS_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img)
+	$(if $(RK_TOS_TA_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS_TA_BIN) $(if $(RK_TOS_BIN), trust_with_ta.img, trust.img))
+
+	$(if $(RK_TOS0_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS0_BIN) $(RK_TOS0_IMG))
+	$(if $(RK_TOS1_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS1_BIN) $(RK_TOS1_IMG))
 endif
 	./tools/loaderimage --pack --uboot u-boot.bin uboot.img
 else
