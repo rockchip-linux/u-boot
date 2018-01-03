@@ -39,12 +39,6 @@
 #define RPMB_ERR_CNT_EXPIRED	0x80
 #define RPMB_ERR_MSK		0x7
 
-/* Sizes of RPMB data frame */
-#define RPMB_SZ_STUFF		196
-#define RPMB_SZ_MAC		32
-#define RPMB_SZ_DATA		256
-#define RPMB_SZ_NONCE		16
-
 #define SHA256_BLOCK_SIZE	64
 
 struct mmc g_rpmb_mmc;
@@ -60,29 +54,6 @@ static const char * const rpmb_err_msg[] = {
 	"Read failure",
 	"Authentication key not yet programmed",
 };
-
-/* Structure of RPMB data frame. */
-struct s_rpmb {
-	unsigned char stuff[RPMB_SZ_STUFF];
-	unsigned char mac[RPMB_SZ_MAC];
-	unsigned char data[RPMB_SZ_DATA];
-	unsigned char nonce[RPMB_SZ_NONCE];
-	unsigned long write_counter;
-	unsigned short address;
-	unsigned short block_count;
-	unsigned short result;
-	unsigned short request;
-};
-
-struct s_rpmb_verify {
-	unsigned char data[RPMB_SZ_DATA];
-	unsigned char nonce[RPMB_SZ_NONCE];
-	unsigned int write_counter;
-	unsigned short address;
-	unsigned short block_count;
-	unsigned short result;
-	unsigned short request;
-} __packed;
 
 int rpmb_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 {

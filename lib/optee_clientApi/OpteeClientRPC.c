@@ -165,7 +165,7 @@ Exit:
 /*
  * Execute an RPMB storage operation.
  */
-#ifdef CONFIG_ROCKCHIP_RK322X
+
 uint16_t global_block_count;
 TEEC_Result OpteeRpcCmdRpmb(t_teesmc32_arg *TeeSmc32Arg)
 {
@@ -431,7 +431,7 @@ Exit:
 
 	return TeecResult;
 }
-#endif
+
 /*
  * Execute a normal world local file system operation.
  */
@@ -514,17 +514,13 @@ TEEC_Result OpteeRpcCallback(ARM_SMC_ARGS *ArmSmcArgs)
 		}
 
 		case TEE_RPC_RPMB_CMD: {
-#ifdef CONFIG_ROCKCHIP_RK322X
 			TeecResult = OpteeRpcCmdRpmb(TeeSmc32Arg);
-#endif
 			break;
 		}
 
 		case TEE_RPC_FS: {
-#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 			TeecResult = OpteeRpcCmdFs(TeeSmc32Arg);
 			TeeSmc32Arg->ret = TEEC_SUCCESS;
-#endif
 			break;
 		}
 

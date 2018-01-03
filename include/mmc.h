@@ -464,4 +464,41 @@ int mmc_get_env_addr(struct mmc *mmc, int copy, u32 *env_addr);
 #define CONFIG_SYS_MMC_MAX_BLK_COUNT 65535
 #endif
 
+/* Sizes of RPMB data frame */
+#define RPMB_SZ_STUFF		196
+#define RPMB_SZ_MAC		32
+#define RPMB_SZ_DATA		256
+#define RPMB_SZ_NONCE		16
+
+/* Structure of RPMB data frame. */
+struct s_rpmb {
+	unsigned char stuff[RPMB_SZ_STUFF];
+	unsigned char mac[RPMB_SZ_MAC];
+	unsigned char data[RPMB_SZ_DATA];
+	unsigned char nonce[RPMB_SZ_NONCE];
+	unsigned int write_counter;
+	unsigned short address;
+	unsigned short block_count;
+	unsigned short result;
+	unsigned short request;
+} __packed;
+
+struct s_rpmb_verify {
+	unsigned char data[RPMB_SZ_DATA];
+	unsigned char nonce[RPMB_SZ_NONCE];
+	unsigned int write_counter;
+	unsigned short address;
+	unsigned short block_count;
+	unsigned short result;
+	unsigned short request;
+} __packed;
+
+int init_rpmb(void);
+int finish_rpmb(void);
+int do_readcounter(struct s_rpmb *requestpackets);
+int do_programkey(struct s_rpmb *requestpackets);
+int do_authenticatedread(struct s_rpmb *requestpackets, uint16_t block_count);
+int do_authenticatedwrite(struct s_rpmb *requestpackets);
+struct mmc *do_returnmmc(void);
+
 #endif /* _MMC_H_ */
