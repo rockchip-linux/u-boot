@@ -54,15 +54,72 @@ __weak int rockchip_dnl_key_pressed(void)
 		return false;
 }
 
+int rockchip_dnl_mode(int num_modes)
+{
+	int mode = 0;
+
+	while(mode < num_modes) {
+		++mode;
+
+		printf("rockchip_dnl_mode = %d mode\n", mode);
+
+		for (int i = 0; i < mode; ++i) {
+			cli_simple_run_command("led power off", 0);
+			mdelay(100);
+			cli_simple_run_command("led power on", 0);
+			mdelay(100);
+		}
+
+		// wait 2 seconds
+		for (int i = 0; i < 100; ++i) {
+			if (!rockchip_dnl_key_pressed()) {
+				goto end;
+			}
+			mdelay(20);
+		}
+	}
+
+end:
+	cli_simple_run_command("led power off", 0);
+	cli_simple_run_command("led standby on", 0);
+	return mode;
+}
+
 void rockchip_dnl_mode_check(void)
 {
-	if (rockchip_dnl_key_pressed()) {
-		printf("download key pressed, entering download mode...\n");
-		/* If failed, we fall back to bootrom download mode */
-		cli_simple_run_command("rockusb 0 mmc 0", 0);
-		set_back_to_bootrom_dnl_flag();
-		do_reset(NULL, 0, 0, NULL);
+	if (!rockchip_dnl_key_pressed()) {
+		return 0;
 	}
+
+	switch(rockchip_dnl_mode(4)) {
+	case 0:
+		return;
+
+	case 1:
+		printf("entering ums mode...\n");
+		cli_simple_run_command("ums 0 mmc 0", 0);
+		cli_simple_run_command("ums 0 mmc 1", 0);
+		break;
+
+	case 2:
+		printf("entering fastboot mode...\n");
+		cli_simple_run_command("mmc dev 0; fastboot usb 0", 0);
+		cli_simple_run_command("mmc dev 1; fastboot usb 0", 0);
+		break;
+
+	case 3:
+		printf("entering download mode...\n");
+		cli_simple_run_command("rockusb 0 mmc 0", 0);
+		cli_simple_run_command("rockusb 0 mmc 1", 0);
+		break;
+
+	case 4:
+		printf("entering maskrom mode...\n");
+		break;
+	}
+
+	set_back_to_bootrom_dnl_flag();
+	do_reset(NULL, 0, 0, NULL);
 }
 
 int setup_boot_mode(void)
