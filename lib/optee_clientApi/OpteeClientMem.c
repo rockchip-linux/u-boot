@@ -127,7 +127,7 @@ void OpteeClientMemInit(void)
 {
 #ifdef CONFIG_ROCKCHIP_RK3328
 	debug(" OpteeClientMemInit 64\n");
-	my_malloc_init(0x09200000, 0x00200000);
+	my_malloc_init((void *)0x09e10000, 0x003e0000);
 #endif
 #ifdef CONFIG_ROCKCHIP_RK322X
 	debug(" OpteeClientMemInit 32\n");
@@ -137,6 +137,11 @@ void OpteeClientMemInit(void)
 	debug(" OpteeClientMemInit 32\n");
 	my_malloc_init((void *)0x6910a000, 0x000e0000);
 #endif
+#ifdef CONFIG_RKCHIP_RK3368
+	debug(" OpteeClientMemInit 64\n");
+	my_malloc_init((void *)0x09e10000, 0x003e0000);
+#endif
+
 }
 
 /*

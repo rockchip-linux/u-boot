@@ -12,7 +12,7 @@
 
 struct tee_rpc_load_ta_cmd {
 	TEE_UUID uuid;
-	void *va;
+	uint32_t va;
 };
 
 struct tee_rpc_rpmb_cmd {

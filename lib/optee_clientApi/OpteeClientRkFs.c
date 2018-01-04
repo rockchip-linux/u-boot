@@ -683,7 +683,7 @@ static int tee_fs_open(struct tee_fs_rpc *fsrpc)
 		return -1;
 	}
 
-	debug("tee_fs_open open file: %s, len: %d", filename, strlen(filename));
+	debug("tee_fs_open open file: %s, len: %zu", filename, strlen(filename));
 	struct rkss_file_info p = {0};
 	int ret = rkss_get_fileinfo_by_name(filename, &p);
 	if (ret < 0)
@@ -729,7 +729,7 @@ static int tee_fs_open(struct tee_fs_rpc *fsrpc)
 
 	debug("tee_fs_open ! %s , fd:%d, flag: %x, len: %d",
 			filename, fsrpc->fd, fsrpc->flags, fsrpc->len);
-	
+
 	return fsrpc->fd;
 }
 
@@ -1219,6 +1219,9 @@ void OpteeClientRkFsInit(void)
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	debug(" OpteeClientRkFsInit 32\n");
 	tee_supp_rk_fs_init();
+#endif
+#ifdef CONFIG_RKCHIP_RK3368
+	debug(" OpteeClientRkFsInit 64\n");
 #endif
 }
 

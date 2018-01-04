@@ -104,7 +104,7 @@ TEEC_Result OpteeRpcCmdLoadTa(t_teesmc32_arg *TeeSmc32Arg)
 	debug("...AllocAddress[0] 0x%X ; AllocAddress[1] 0x%X bytes\n",
 		*(char *)AllocAddress, *(char *)(AllocAddress+1));
 
-	TeeLoadTaCmd->va = (void *)AllocAddress;
+	TeeLoadTaCmd->va = AllocAddress;
 
 	TeeSmc32Param[1].u.memref.buf_ptr = AllocAddress;
 	TeeSmc32Param[1].u.memref.size = ImageSize;

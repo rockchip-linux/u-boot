@@ -96,6 +96,12 @@ TEEC_Result TEEC_SMC_OpenSession(TEEC_Context *context,
 				TEESMC_ATTR_META;
 #endif
 
+#ifdef CONFIG_RKCHIP_RK3368
+	TeeSmc32Param[0].attr = TEESMC_ATTR_TYPE_MEMREF_INPUT |
+				TEESMC_ATTR_META              |
+				TEEC_SMC_DEFAULT_CACHE_ATTRIBUTES;
+#endif
+
 	SetTeeSmc32Params(operation, TeeSmc32Param + MetaNum);
 
 	*error_origin = TEEC_ORIGIN_COMMS;
@@ -270,6 +276,11 @@ void SetTeeSmc32Params(TEEC_Operation *operation,
 #if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 			debug(" 312X attr %x\n", attr);
 #endif
+#ifdef CONFIG_RKCHIP_RK3368
+			attr |= TEEC_SMC_DEFAULT_CACHE_ATTRIBUTES;
+			debug(" 3368 attr %x\n", attr);
+#endif
+
 
 			TeeSmc32Param[ParamCount].attr = attr;
 			TeeSmc32Param[ParamCount].u.memref.buf_ptr =
