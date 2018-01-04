@@ -531,7 +531,7 @@ static enum led_state_t rk8xx_led_get_state(struct udevice *dev)
 	if (ret < 0)
 		return ret;
 
-	return ret & mask ? LEDST_ON : LEDST_OFF;
+	return ret & mask ? LEDST_OFF : LEDST_ON;
 }
 
 static int rk8xx_led_set_state(struct udevice *dev, enum led_state_t state)
