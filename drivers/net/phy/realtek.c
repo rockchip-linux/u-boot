@@ -48,7 +48,10 @@
 #define MIIM_RTL8211F_PHYSTAT_LINK     0x0004
 
 #define MIIM_RTL8211F_PAGE_SELECT      0x1f
-#define MIIM_RTL8211F_TX_DELAY		0x100
+#define MIIM_RTL8211F_RX_DELAY_REG     0x15
+#define MIIM_RTL8211F_RX_DELAY_EN      BIT(3)
+#define MIIM_RTL8211F_TX_DELAY_REG     0x11
+#define MIIM_RTL8211F_TX_DELAY_EN      BIT(8)
 #define MIIM_RTL8211F_LCR		0x10
 
 static int rtl8211b_probe(struct phy_device *phydev)
@@ -97,16 +100,29 @@ static int rtl8211f_config(struct phy_device *phydev)
 
 	phy_write(phydev, MDIO_DEVAD_NONE,
 		  MIIM_RTL8211F_PAGE_SELECT, 0xd08);
-	reg = phy_read(phydev, MDIO_DEVAD_NONE, 0x11);
+
+	reg = phy_read(phydev, MDIO_DEVAD_NONE, MIIM_RTL8211F_TX_DELAY_REG);
 
 	/* enable TX-delay for rgmii-id and rgmii-txid, otherwise disable it */
 	if (phydev->interface == PHY_INTERFACE_MODE_RGMII_ID ||
 	    phydev->interface == PHY_INTERFACE_MODE_RGMII_TXID)
-		reg |= MIIM_RTL8211F_TX_DELAY;
+		reg |= MIIM_RTL8211F_TX_DELAY_EN;
 	else
-		reg &= ~MIIM_RTL8211F_TX_DELAY;
+		reg &= ~MIIM_RTL8211F_TX_DELAY_EN;
 
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x11, reg);
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_RTL8211F_TX_DELAY_REG, reg);
+
+	reg = phy_read(phydev, MDIO_DEVAD_NONE, MIIM_RTL8211F_RX_DELAY_REG);
+
+	/* enable TX-delay for rgmii-id and rgmii-txid, otherwise disable it */
+	if (phydev->interface == PHY_INTERFACE_MODE_RGMII_ID ||
+	    phydev->interface == PHY_INTERFACE_MODE_RGMII_RXID)
+		reg |= MIIM_RTL8211F_RX_DELAY_EN;
+	else
+		reg &= ~MIIM_RTL8211F_RX_DELAY_EN;
+
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_RTL8211F_RX_DELAY_REG, reg);
+
 	/* restore to default page 0 */
 	phy_write(phydev, MDIO_DEVAD_NONE,
 		  MIIM_RTL8211F_PAGE_SELECT, 0x0);
