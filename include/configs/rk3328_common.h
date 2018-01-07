@@ -41,6 +41,8 @@
 
 #define CONFIG_ROCKUSB_G_DNL_PID	0x320C
 
+#define CONFIG_UDP_CHECKSUM
+
 /* MMC/SD IP block */
 #define CONFIG_BOUNCE_BUFFER
 
