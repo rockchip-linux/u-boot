@@ -44,6 +44,7 @@ struct eth_mac_regs {
 #define FES_100			(1 << 14)
 #define DISABLERXOWN		(1 << 13)
 #define FULLDPLXMODE		(1 << 11)
+#define ENABLEIPC		(1 << 10)
 #define RXENABLE		(1 << 2)
 #define TXENABLE		(1 << 3)
 

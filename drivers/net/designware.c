@@ -252,6 +252,8 @@ static int dw_adjust_link(struct dw_eth_dev *priv, struct eth_mac_regs *mac_p,
 	if (phydev->duplex)
 		conf |= FULLDPLXMODE;
 
+	conf |= ENABLEIPC;
+
 	writel(conf, &mac_p->conf);
 
 	printf("Speed: %d, %s duplex%s\n", phydev->speed,
