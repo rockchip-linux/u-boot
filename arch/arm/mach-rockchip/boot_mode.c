@@ -54,6 +54,16 @@ __weak int rockchip_dnl_key_pressed(void)
 		return false;
 }
 
+void rockchip_blink_power(int times)
+{
+		for (int i = 0; i < times; ++i) {
+			cli_simple_run_command("led power off", 0);
+			mdelay(100);
+			cli_simple_run_command("led power on", 0);
+			mdelay(100);
+		}
+}
+
 int rockchip_dnl_mode(int num_modes)
 {
 	int mode = 0;
@@ -62,12 +72,11 @@ int rockchip_dnl_mode(int num_modes)
 		++mode;
 
 		printf("rockchip_dnl_mode = %d mode\n", mode);
+		rockchip_blink_power(mode);
 
-		for (int i = 0; i < mode; ++i) {
-			cli_simple_run_command("led power off", 0);
-			mdelay(100);
-			cli_simple_run_command("led power on", 0);
-			mdelay(100);
+		// return early
+		if (mode == num_modes) {
+			goto end;
 		}
 
 		// wait 2 seconds
