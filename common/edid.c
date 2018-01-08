@@ -3095,8 +3095,8 @@ int add_cea_modes(struct hdmi_edid_data *data, struct edid *edid)
 
 typedef void detailed_cb(struct detailed_timing *timing, void *closure);
 
-static
-void cea_for_each_detailed_block(u8 *ext, detailed_cb *cb, void *closure)
+static void
+cea_for_each_detailed_block(u8 *ext, detailed_cb *cb, void *closure)
 {
 	int i, n = 0;
 	u8 d = ext[0x02];
@@ -3107,8 +3107,8 @@ void cea_for_each_detailed_block(u8 *ext, detailed_cb *cb, void *closure)
 		cb((struct detailed_timing *)(det_base + 18 * i), closure);
 }
 
-static
-void vtb_for_each_detailed_block(u8 *ext, detailed_cb *cb, void *closure)
+static void
+vtb_for_each_detailed_block(u8 *ext, detailed_cb *cb, void *closure)
 {
 	unsigned int i, n = min((int)ext[0x02], 6);
 	u8 *det_base = ext + 5;
@@ -3120,8 +3120,8 @@ void vtb_for_each_detailed_block(u8 *ext, detailed_cb *cb, void *closure)
 		cb((struct detailed_timing *)(det_base + 18 * i), closure);
 }
 
-static
-void drm_for_each_detailed_block(u8 *raw_edid, detailed_cb *cb, void *closure)
+static void
+drm_for_each_detailed_block(u8 *raw_edid, detailed_cb *cb, void *closure)
 {
 	int i;
 	struct edid *edid = (struct edid *)raw_edid;
@@ -3236,8 +3236,8 @@ struct drm_display_mode *drm_mode_detailed(struct edid *edid,
 
 	/* it is incorrect if hsync/vsync width is zero */
 	if (!hsync_pulse_width || !vsync_pulse_width) {
-		debug("Incorrect Detailed timing. "
-		      "Wrong Hsync/Vsync pulse width\n");
+		debug("Incorrect Detailed timing. ");
+		debug("Wrong Hsync/Vsync pulse width\n");
 		return NULL;
 	}
 

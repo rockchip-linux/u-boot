@@ -16,6 +16,7 @@
 
 #include <div64.h>
 #include <linux/types.h>
+#include <drm_modes.h>
 
 /* Size of the EDID data */
 #define EDID_SIZE	128
@@ -44,16 +45,16 @@
 #define  DRM_MODE_FLAG_420			BIT(23)
 #define  DRM_MODE_FLAG_420_ONLY			BIT(24)
 
-#define DRM_MODE_FLAG_3D_MASK			(0x1f << 14)
-#define  DRM_MODE_FLAG_3D_NONE			(0 << 14)
-#define  DRM_MODE_FLAG_3D_FRAME_PACKING		BIT(14)
-#define  DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE	(2 << 14)
-#define  DRM_MODE_FLAG_3D_LINE_ALTERNATIVE	(3 << 14)
-#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL	(4 << 14)
-#define  DRM_MODE_FLAG_3D_L_DEPTH		(5 << 14)
-#define  DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH	(6 << 14)
-#define  DRM_MODE_FLAG_3D_TOP_AND_BOTTOM	(7 << 14)
-#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF	(8 << 14)
+#define DRM_MODE_FLAG_3D_MASK                  (0x1f << 14)
+#define  DRM_MODE_FLAG_3D_NONE                 (0 << 14)
+#define  DRM_MODE_FLAG_3D_FRAME_PACKING                BIT(14)
+#define  DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE    (2 << 14)
+#define  DRM_MODE_FLAG_3D_LINE_ALTERNATIVE     (3 << 14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL    (4 << 14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH              (5 << 14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH        (6 << 14)
+#define  DRM_MODE_FLAG_3D_TOP_AND_BOTTOM       (7 << 14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF    (8 << 14)
 
 #define BITS_PER_BYTE         8
 #define BITS_TO_LONGS(nr)     DIV_ROUND_UP(nr, BITS_PER_BYTE * sizeof(long))
@@ -317,13 +318,15 @@ struct edid_monitor_descriptor {
 #define DRM_EDID_FEATURE_PREFERRED_TIMING (1 << 1)
 #define DRM_EDID_FEATURE_STANDARD_COLOR   (1 << 2)
 /* If analog */
-#define DRM_EDID_FEATURE_DISPLAY_TYPE     (3 << 3) /* 00=mono, 01=rgb, 10=non-rgb, 11=unknown */
+/* 00=mono, 01=rgb, 10=non-rgb, 11=unknown */
+#define DRM_EDID_FEATURE_DISPLAY_TYPE     (3 << 3)
 /* If digital */
 #define DRM_EDID_FEATURE_COLOR_MASK	  (3 << 3)
 #define DRM_EDID_FEATURE_RGB		  (0 << 3)
 #define DRM_EDID_FEATURE_RGB_YCRCB444	  (1 << 3)
 #define DRM_EDID_FEATURE_RGB_YCRCB422	  (2 << 3)
-#define DRM_EDID_FEATURE_RGB_YCRCB	  (3 << 3) /* both 4:4:4 and 4:2:2 */
+/* both 4:4:4 and 4:2:2 */
+#define DRM_EDID_FEATURE_RGB_YCRCB	  (3 << 3)
 
 #define DRM_EDID_FEATURE_PM_ACTIVE_OFF    (1 << 5)
 #define DRM_EDID_FEATURE_PM_SUSPEND       (1 << 6)

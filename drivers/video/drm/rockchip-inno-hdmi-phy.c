@@ -20,12 +20,9 @@
 #include "../rockchip_crtc.h"
 #include "../rockchip_connector.h"
 #include "../rockchip_phy.h"
-#include "../rockchip_mipi_dsi.h"
-
 
 #define INNO_HDMI_PHY_TIMEOUT_LOOP_COUNT	1000
-
-#define UPDATE(x, h, l)		(((x) << (l)) & GENMASK((h), (l)))
+/*#define UPDATE(x, h, l)	(((x) << (l)) & GENMASK((h), (l)))*/
 
 /* REG: 0x00 */
 #define PRE_PLL_REFCLK_SEL_MASK			BIT(0)
@@ -158,7 +155,7 @@ struct inno_hdmi_phy {
 	u32 regs;
 
 	/* platform data */
-	struct inno_hdmi_phy_drv_data *plat_data;
+	const struct inno_hdmi_phy_drv_data *plat_data;
 	unsigned long pixclock;
 };
 
@@ -313,6 +310,7 @@ static inline void inno_update_bits(struct inno_hdmi_phy *inno, u8 reg,
 				    u8 mask, u8 val)
 {
 	u32 tmp, orig;
+
 	orig = inno_read(inno, reg);
 	tmp = orig & ~mask;
 	tmp |= val & mask;
@@ -321,7 +319,7 @@ static inline void inno_update_bits(struct inno_hdmi_phy *inno, u8 reg,
 
 static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno, int rate)
 {
-	int bus_width = 8;//phy_get_bus_width(inno->phy);
+	int bus_width = 8;
 	u32 tmdsclk;
 
 	switch (bus_width) {
@@ -384,11 +382,10 @@ static int inno_hdmi_phy_power_on(struct display_state *state)
 		return -EINVAL;
 
 	debug("Inno HDMI PHY Power On\n");
-	if (inno->plat_data->ops->power_on) {
+	if (inno->plat_data->ops->power_on)
 		return inno->plat_data->ops->power_on(inno, cfg, phy_cfg);
-	} else {
+	else
 		return -EINVAL;
-	}
 }
 
 static int inno_hdmi_phy_power_off(struct display_state *state)
@@ -396,7 +393,6 @@ static int inno_hdmi_phy_power_off(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct inno_hdmi_phy *inno = conn_state->phy_private;
 
-	//struct inno_hdmi_phy *inno = phy_get_drvdata(phy);
 	if (inno->plat_data->ops->power_off)
 		inno->plat_data->ops->power_off(inno);
 	debug("Inno HDMI PHY Power Off\n");
@@ -408,8 +404,8 @@ static int inno_hdmi_phy_clk_is_prepared(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct inno_hdmi_phy *inno = conn_state->phy_private;
-
 	u8 status;
+
 	if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3228)
 		status = inno_read(inno, 0xe0) & PRE_PLL_POWER_MASK;
 	else
@@ -422,6 +418,7 @@ static int inno_hdmi_phy_clk_prepare(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct inno_hdmi_phy *inno = conn_state->phy_private;
+
 	if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3228)
 		inno_update_bits(inno, 0xe0, PRE_PLL_POWER_MASK,
 				 PRE_PLL_POWER_UP);
@@ -440,8 +437,7 @@ static int inno_hdmi_phy_clk_set_rate(struct display_state *state,
 	const struct pre_pll_config *cfg = pre_pll_cfg_table;
 	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate);
 
-	printf("%s rate %lu tmdsclk %u\n",
-		__func__, rate, tmdsclock);
+	printf("%s rate %lu tmdsclk %u\n", __func__, rate, tmdsclock);
 
 	for (; cfg->pixclock != ~0UL; cfg++)
 		if (cfg->pixclock == rate && cfg->tmdsclock == tmdsclock)
@@ -543,7 +539,7 @@ inno_hdmi_phy_rk3228_power_on(struct inno_hdmi_phy *inno,
 	}
 
 	if (cfg->tmdsclock > 340000000)
-		udelay(100000);
+		mdelay(100);
 
 	/* pdata_en enable */
 	inno_update_bits(inno, 0x02, PDATAEN_MASK, PDATAEN_ENABLE);
@@ -702,7 +698,7 @@ inno_hdmi_phy_rk3328_power_on(struct inno_hdmi_phy *inno,
 		return -ETIMEDOUT;
 	}
 	if (phy_cfg->tmdsclock > 340000000)
-		udelay(100000);
+		mdelay(100);
 	/* set pdata_en to 1 */
 	inno_update_bits(inno, 0x02, 1, 1);
 
@@ -782,7 +778,8 @@ inno_hdmi_3328_phy_pll_recalc_rate(struct inno_hdmi_phy *inno,
 				   unsigned long parent_rate)
 {
 	unsigned long rate, vco, frac;
-	u8 nd, no_a, no_b, no_c, no_d;
+	u8 nd, no_a, no_b, no_d;
+	__maybe_unused u8 no_c;
 	u16 nf;
 
 	nd = inno_read(inno, 0xa1) & 0x3f;
@@ -853,11 +850,9 @@ static int inno_hdmi_phy_init(struct display_state *state)
 	const void *blob = state->blob;
 	struct connector_state *conn_state = &state->conn_state;
 	int conn_node = conn_state->node;
-	struct panel_state *panel_state = &state->panel_state;
 	int node = conn_state->phy_node;
-	int panel_node = panel_state->node;
 	struct inno_hdmi_phy *inno;
-	int ret, phy_node, phandle, i;
+	int phy_node, phandle, i;
 	const char *name;
 
 	inno = malloc(sizeof(*inno));
@@ -907,7 +902,7 @@ static int inno_hdmi_phy_init(struct display_state *state)
 }
 
 static unsigned long inno_hdmi_phy_set_pll(struct display_state *state,
-					    unsigned long rate)
+					   unsigned long rate)
 {
 	inno_hdmi_phy_clk_prepare(state);
 	inno_hdmi_phy_clk_is_prepared(state);

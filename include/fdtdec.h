@@ -871,14 +871,14 @@ struct timing_entry {
  *
  * Example: hsync active high, vsync active low
  *
- *				    Active Video
- * Video  ______________________XXXXXXXXXXXXXXXXXXXXXX_____________________
- *	  |<- sync ->|<- back ->|<----- active ----->|<- front ->|<- sync..
- *	  |	     |	 porch  |		     |	 porch	 |
+ *			    Active Video
+ * Video  __________________XXXXXXXXXXX__________________
+ *	  |<-sync->|<-back->|<-active->|<- front ->|<- sync..
+ *	  |	   |  porch |	       |   porch   |
  *
- * HSync _|¯¯¯¯¯¯¯¯¯¯|___________________________________________|¯¯¯¯¯¯¯¯¯
+ * HSync _|¯¯¯¯¯¯¯¯|_______________________________|¯¯¯
  *
- * VSync ¯|__________|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|_________
+ * VSync ¯|________|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|___
  */
 struct display_timing {
 	struct timing_entry pixelclock;
@@ -896,7 +896,5 @@ struct display_timing {
 	enum display_flags flags;		/* display flags */
 	bool hdmi_monitor;			/* is hdmi monitor? */
 };
-
-
 
 #endif

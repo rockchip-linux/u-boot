@@ -18,6 +18,7 @@
 #include "../rockchip_display.h"
 #include "../rockchip_crtc.h"
 #include "../rockchip_connector.h"
+#include "../rockchip_phy.h"
 #include "dw_hdmi.h"
 
 #define U64_MAX     ((u64)~0U)
@@ -810,7 +811,7 @@ static int hdmi_phy_configure(struct dw_hdmi *hdmi)
 	const struct dw_hdmi_phy_data *phy = hdmi->phy.data;
 	const struct dw_hdmi_plat_data *pdata = hdmi->plat_data;
 	unsigned long mpixelclock = hdmi->hdmi_data.video_mode.mpixelclock;
-	int ret, sink_version;
+	int ret;
 
 	dw_hdmi_phy_power_off(hdmi);
 
@@ -874,8 +875,8 @@ static void dw_hdmi_phy_disable(struct dw_hdmi *hdmi,
 	dw_hdmi_phy_power_off(hdmi);
 }
 
-static enum drm_connector_status dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi,
-						      void *data)
+static enum drm_connector_status 
+dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi, void *data)
 {
 	return hdmi_readb(hdmi, HDMI_PHY_STAT0) & HDMI_PHY_HPD ?
 		connector_status_connected : connector_status_disconnected;
@@ -2182,6 +2183,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct dw_hdmi *hdmi = conn_state->private;
+	struct edid *edid = (struct edid *)conn_state->edid;
 
 	if (!hdmi)
 		return -EFAULT;
@@ -2191,7 +2193,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 
 		if (ret > 0) {
 			hdmi->sink_is_hdmi =
-				drm_detect_hdmi_monitor(conn_state->edid);
+				drm_detect_hdmi_monitor(edid);
 			hdmi->sink_has_audio = false;
 			ret = drm_rk_find_best_mode(&hdmi->edid_data);
 			if (ret) {
@@ -2199,7 +2201,6 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 				hdmi->vic = drm_match_cea_mode(mode);
 				return 0;
 			}
-
 		}
 	}
 
@@ -2248,25 +2249,25 @@ int rockchip_dw_hdmi_get_edid(struct display_state *state)
 	return ret;
 }
 
-int inno_dw_hdmi_phy_init(struct dw_hdmi *dw_hdmi,
-			  struct display_state *state)
+int inno_dw_hdmi_phy_init(struct dw_hdmi *hdmi, void *data)
 {
+	struct display_state *state = (struct display_state *)data;
 	struct connector_state *conn_state = &state->conn_state;
+
 	rockchip_phy_set_pll(state, conn_state->mode.crtc_clock * 1000);
 	rockchip_phy_power_on(state);
 	return 0;
 }
 
-void inno_dw_hdmi_phy_disable(struct dw_hdmi *dw_hdmi,
-			      struct display_state *state)
+void inno_dw_hdmi_phy_disable(struct dw_hdmi *hdmi, void *data)
 {
-	return;
 }
 
-enum drm_connector_status inno_dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi,
-					struct display_state *state)
+enum drm_connector_status
+inno_dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi, void *data)
 {
 	enum drm_connector_status status;
+	struct display_state *state = (struct display_state *)data;
 
 	status = dw_hdmi_phy_read_hpd(hdmi, state);
 	if (hdmi->dev_type == RK3328_HDMI) {

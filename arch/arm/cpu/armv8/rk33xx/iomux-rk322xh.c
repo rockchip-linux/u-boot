@@ -151,13 +151,16 @@ static void rk_sdcard_iomux_config(int sdcard_id)
 	switch (sdcard_id) {
 	case RK_SDCARD_IOMUX:
 		/* sdcard data[0~3], clkout, detn, cmd */
-		grf_writel((0x3fff << (0 + 16)) | (0x1555 << 0), GRF_GPIO1A_IOMUX);
+		grf_writel((0x3fff << (0 + 16)) | (0x1555 << 0),
+			   GRF_GPIO1A_IOMUX);
 		if (0 == pwr_en_sel) {
 			/* sdcard pwr_en m0 */
-			grf_writel((0x3 << (14 + 16)) | (0x1 << 14), GRF_GPIO2A_IOMUX);
+			grf_writel((0x3 << (14 + 16)) | (0x1 << 14),
+				   GRF_GPIO2A_IOMUX);
 		} else {
 			/* sdcard pwr_en m1 */
-			grf_writel((0x3 << (12 + 16)) | (0x3 << 12), GRF_GPIO0D_IOMUX);
+			grf_writel((0x3 << (12 + 16)) | (0x3 << 12),
+				   GRF_GPIO0D_IOMUX);
 		}
 		break;
 	default:
@@ -174,7 +177,8 @@ static void rk_hdmi_iomux_config(int hdmi_id)
 		grf_writel((0xff << (6 + 16)) | (0x55 << 6), GRF_GPIO0A_IOMUX);
 		grf_writel(0xF << 26, GRF_GPIO0A_P);
 		grf_writel(0xf0000000 | (1 << 13), GRF_SOC_CON3);
-		grf_writel((3 << 10) | (3 << (10 + 16)) | (1 << 18), GRF_SOC_CON2);
+		grf_writel((3 << 10) | (3 << (10 + 16)) | (1 << 18),
+			   GRF_SOC_CON2);
 		break;
 	default:
 		debug("hdmi id = %d iomux error!\n", hdmi_id);

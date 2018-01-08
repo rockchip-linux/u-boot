@@ -284,8 +284,8 @@ static const struct drm_display_mode resolution_white[] = {
 	.vrefresh = 60, .picture_aspect_ratio = HDMI_PICTURE_ASPECT_256_135, },
 };
 
-static int drm_mode_equal(struct drm_display_mode *mode1,
-			  struct drm_display_mode *mode2)
+static int drm_mode_equal(const struct drm_display_mode *mode1,
+			  const struct drm_display_mode *mode2)
 {
 	unsigned int flags_mask =
 		DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_PHSYNC |
@@ -313,23 +313,27 @@ int drm_rk_find_best_mode(struct hdmi_edid_data *edid_data)
 	int i, j, white_len;
 	struct file_base_paramer base_paramer;
 	const disk_partition_t *ptn_baseparamer;
-	char baseparamer_buf[8 * RK_BLK_SIZE] __attribute__((aligned(ARCH_DMA_MINALIGN)));
+	char baseparamer_buf[8 * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
 	struct drm_display_mode *base_mode = &base_paramer.main.mode;
 
 	ptn_baseparamer = get_disk_partition("baseparamer");
 	if (ptn_baseparamer) {
-		if (StorageReadLba(ptn_baseparamer->start, baseparamer_buf, 8) < 0)
+		if (StorageReadLba(ptn_baseparamer->start,
+				   baseparamer_buf, 8) < 0)
 			printf("func: %s; LINE: %d\n", __func__, __LINE__);
 		else
-			memcpy(&base_paramer, baseparamer_buf, sizeof(base_paramer));
+			memcpy(&base_paramer, baseparamer_buf,
+			       sizeof(base_paramer));
 	}
 
 	if (base_mode->hdisplay == 0 || base_mode->hdisplay == 0) {
 		/* define init resolution here */
 	} else {
 		for (i = 0; i < edid_data->modes; i++) {
-			if (drm_mode_equal(base_mode, &edid_data->mode_buf[i])) {
-				edid_data->preferred_mode = &edid_data->mode_buf[i];
+			if (drm_mode_equal(base_mode,
+					   &edid_data->mode_buf[i])) {
+				edid_data->preferred_mode =
+					&edid_data->mode_buf[i];
 				break;
 			}
 		}
@@ -340,14 +344,17 @@ int drm_rk_find_best_mode(struct hdmi_edid_data *edid_data)
 
 	white_len = sizeof(resolution_white) / sizeof(resolution_white[0]);
 	for (j = white_len - 1; j >= 0; j--) {
-		if (drm_mode_equal(edid_data->preferred_mode, &resolution_white[j]))
+		if (drm_mode_equal(edid_data->preferred_mode,
+				   &resolution_white[j]))
 			return true;
 	}
 
 	for (j = (white_len - 1); j >= 0; j--) {
 		for (i = 0; i < edid_data->modes; i++) {
-			if (drm_mode_equal(&resolution_white[j], &edid_data->mode_buf[i])) {
-				edid_data->preferred_mode = &edid_data->mode_buf[i];
+			if (drm_mode_equal(&resolution_white[j],
+					   &edid_data->mode_buf[i])) {
+				edid_data->preferred_mode =
+					&edid_data->mode_buf[i];
 				return true;
 			}
 		}
@@ -389,7 +396,7 @@ const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
 };
 
 const struct dw_hdmi_plat_data rk3328_hdmi_drv_data = {
-        //.mode_valid = dw_hdmi_rockchip_mode_valid,
+	/* .mode_valid = dw_hdmi_rockchip_mode_valid, */
 	.vop_sel_bit = 0,
 	.grf_vop_sel_reg = 0,
 	.phy_ops    = &inno_dw_hdmi_phy_ops,
