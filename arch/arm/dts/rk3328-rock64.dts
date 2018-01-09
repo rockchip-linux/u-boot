@@ -131,6 +131,7 @@
 &usb_host0_xhci {
 	vbus-supply = <&vcc5v0_host_xhci>;
 	status = "okay";
+	maximum-speed = "high-speed";
 };
 
 &i2c1 {
