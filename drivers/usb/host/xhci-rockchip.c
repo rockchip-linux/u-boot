@@ -117,16 +117,16 @@ static int rockchip_xhci_core_init(struct rockchip_xhci *rkxhci,
 {
 	int ret;
 
+	rockchip_dwc3_phy_setup(rkxhci->dwc3_reg, dev);
+
+	/* We are hard-coding DWC3 core to Host Mode */
+	dwc3_set_mode(rkxhci->dwc3_reg, DWC3_GCTL_PRTCAP_HOST);
+
 	ret = dwc3_core_init(rkxhci->dwc3_reg);
 	if (ret) {
 		error("failed to initialize core\n");
 		return ret;
 	}
-
-	rockchip_dwc3_phy_setup(rkxhci->dwc3_reg, dev);
-
-	/* We are hard-coding DWC3 core to Host Mode */
-	dwc3_set_mode(rkxhci->dwc3_reg, DWC3_GCTL_PRTCAP_HOST);
 
 	return 0;
 }
