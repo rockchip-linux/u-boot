@@ -205,6 +205,14 @@ struct dwc3 {					/* offset: 0xC100 */
 #define DWC3_GTXFIFOSIZ_TXFDEF(n)		((n) & 0xffff)
 #define DWC3_GTXFIFOSIZ_TXFSTADDR(n)		((n) & 0xffff0000)
 
+/* Device Config Register */
+#define DWC3_DCFG_SPEED_MASK	(7 << 0)
+#define DWC3_DCFG_SUPERSPEED	(4 << 0)
+#define DWC3_DCFG_HIGHSPEED	(0 << 0)
+#define DWC3_DCFG_FULLSPEED2	(1 << 0)
+#define DWC3_DCFG_LOWSPEED	(2 << 0)
+#define DWC3_DCFG_FULLSPEED1	(3 << 0)
+
 /* Device Control Register */
 #define DWC3_DCTL_RUN_STOP			(1 << 31)
 #define DWC3_DCTL_CSFTRST			(1 << 30)
