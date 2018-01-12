@@ -69,6 +69,13 @@ struct panel_state {
 	void *private;
 };
 
+struct overscan {
+	int left_margin;
+	int right_margin;
+	int top_margin;
+	int bottom_margin;
+};
+
 struct connector_state {
 	int node;
 	int phy_node;
@@ -79,6 +86,7 @@ struct connector_state {
 	void *phy_private;
 
 	struct drm_display_mode mode;
+	struct overscan overscan;
 	u8 edid[EDID_SIZE * 4];
 	int bus_format;
 	int output_mode;
@@ -130,5 +138,7 @@ struct display_state {
 };
 
 int drm_mode_vrefresh(const struct drm_display_mode *mode);
+bool drm_mode_is_420(const struct drm_display_info *display,
+		     const struct drm_display_mode *mode);
 
 #endif

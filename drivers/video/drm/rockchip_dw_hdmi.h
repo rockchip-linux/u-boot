@@ -6,49 +6,6 @@
 #ifndef _ROCKCHIP_DW_HDMI_REG_H_
 #define _ROCKCHIP_DW_HDMI_REG_H_
 
-#include <drm_modes.h>
-#include "../rockchip_display.h"
-
-enum output_format {
-	output_rgb = 0,
-	output_ycbcr444 = 1,
-	output_ycbcr422 = 2,
-	output_ycbcr420 = 3,
-	/* (YCbCr444 > YCbCr422 > YCbCr420 > RGB) */
-	output_ycbcr_high_subsampling = 4,
-	/* (RGB > YCbCr420 > YCbCr422 > YCbCr444) */
-	output_ycbcr_low_subsampling = 5,
-	invalid_output = 6,
-};
-
-enum  output_depth {
-	automatic = 0,
-	depth_24bit = 8,
-	depth_30bit = 10,
-};
-
-struct over_scan {
-	unsigned short maxvalue;
-	unsigned short leftscale;
-	unsigned short rightscale;
-	unsigned short topscale;
-	unsigned short bottomscale;
-};
-
-struct disp_info {
-	struct drm_display_mode mode;
-	struct over_scan scan;
-	enum output_format  format;
-	enum output_depth depth;
-	unsigned int feature;
-	unsigned int reserve[10];
-};
-
-struct file_base_paramer {
-	struct disp_info main;
-	struct disp_info aux;
-};
-
 /*
  * Rockchip connector callbacks.
  * If you want to know the details, please refer to rockchip_connector.h

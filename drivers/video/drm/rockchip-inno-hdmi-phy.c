@@ -15,6 +15,7 @@
 #include <asm/unaligned.h>
 #include <linux/list.h>
 #include <div64.h>
+#include <linux/media-bus-format.h>
 
 #include "../rockchip_display.h"
 #include "../rockchip_crtc.h"
@@ -317,29 +318,22 @@ static inline void inno_update_bits(struct inno_hdmi_phy *inno, u8 reg,
 	inno_write(inno, reg, tmp);
 }
 
-static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno, int rate)
+static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno, int rate,
+				     int format)
 {
-	int bus_width = 8;
 	u32 tmdsclk;
 
-	switch (bus_width) {
-	case 4:
+	switch (format) {
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
 		tmdsclk = rate / 2;
 		break;
-	case 5:
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
 		tmdsclk = rate * 5 / 8;
 		break;
-	case 6:
-		tmdsclk = rate * 3 / 4;
-		break;
-	case 10:
+	case MEDIA_BUS_FMT_RGB101010_1X30:
+	case MEDIA_BUS_FMT_YUV10_1X30:
+	case MEDIA_BUS_FMT_UYVY10_1X20:
 		tmdsclk = rate * 5 / 4;
-		break;
-	case 12:
-		tmdsclk = rate * 3 / 2;
-		break;
-	case 16:
-		tmdsclk = rate * 2;
 		break;
 	default:
 		tmdsclk = rate;
@@ -354,7 +348,8 @@ static int inno_hdmi_phy_power_on(struct display_state *state)
 	struct inno_hdmi_phy *inno = conn_state->phy_private;
 	const struct post_pll_config *cfg = post_pll_cfg_table;
 	const struct phy_config *phy_cfg = inno->plat_data->phy_cfg_table;
-	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, inno->pixclock);
+	int format = conn_state->bus_format;
+	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, inno->pixclock, format);
 	u32 chipversion = 1;
 
 	debug("start Inno HDMI PHY Power On\n");
@@ -433,12 +428,11 @@ static int inno_hdmi_phy_clk_set_rate(struct display_state *state,
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct inno_hdmi_phy *inno = conn_state->phy_private;
-
 	const struct pre_pll_config *cfg = pre_pll_cfg_table;
-	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate);
+	int format = conn_state->bus_format;
+	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate, format);
 
 	printf("%s rate %lu tmdsclk %u\n", __func__, rate, tmdsclock);
-
 	for (; cfg->pixclock != ~0UL; cfg++)
 		if (cfg->pixclock == rate && cfg->tmdsclock == tmdsclock)
 			break;

@@ -757,7 +757,6 @@ struct display_timing;
 struct hdmi_edid_data {
 	struct drm_display_mode *preferred_mode;
 	int modes;
-	struct drm_hdmi_info hdmi_info;
 	struct drm_display_mode *mode_buf;
 	struct drm_display_info display_info;
 };

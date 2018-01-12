@@ -1341,7 +1341,10 @@ enum {
 	FAST_MODE
 };
 
-int drm_rk_find_best_mode(struct hdmi_edid_data *edid_data);
+int drm_rk_selete_output(struct hdmi_edid_data *edid_data,
+			 unsigned int *bus_format,
+			 struct overscan *overscan,
+			 enum dw_hdmi_devtype dev_type);
 void inno_dw_hdmi_set_domain(int status);
 
 #endif /* _ROCKCHIP_HDMI_H_ */

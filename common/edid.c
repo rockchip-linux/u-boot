@@ -2313,10 +2313,10 @@ drm_add_cmdb_modes(u8 svd, struct drm_hdmi_info *hdmi)
 }
 
 static int
-do_cea_modes(const u8 *db, u8 len, struct drm_hdmi_info *hdmi,
-	     struct hdmi_edid_data *data)
+do_cea_modes(struct hdmi_edid_data *data, const u8 *db, u8 len)
 {
 	int i, modes = 0;
+	struct drm_hdmi_info *hdmi = &data->display_info.hdmi;
 
 	for (i = 0; i < len; i++) {
 		struct drm_display_mode *mode;
@@ -2354,11 +2354,11 @@ do_cea_modes(const u8 *db, u8 len, struct drm_hdmi_info *hdmi,
  * which contains modes which can be supported in YCBCR 420
  * output format only.
  */
-static
-int do_y420vdb_modes(const u8 *svds, u8 svds_len, struct drm_hdmi_info *hdmi,
-		     struct hdmi_edid_data *data)
+static int
+do_y420vdb_modes(struct hdmi_edid_data *data, const u8 *svds, u8 svds_len)
 {
 	int modes = 0, i;
+	struct drm_hdmi_info *hdmi = &data->display_info.hdmi;
 
 	for (i = 0; i < svds_len; i++) {
 		u8 vic = svd_to_vic(svds[i]);
@@ -3066,8 +3066,7 @@ int add_cea_modes(struct hdmi_edid_data *data, struct edid *edid)
 			if (cea_db_tag(db) == EDID_CEA861_DB_VIDEO) {
 				video = db + 1;
 				video_len = dbl;
-				modes += do_cea_modes(video, dbl,
-						      &data->hdmi_info, data);
+				modes += do_cea_modes(data, video, dbl);
 			} else if (cea_db_is_hdmi_vsdb(db)) {
 				hdmi = db;
 				hdmi_len = dbl;
@@ -3075,9 +3074,8 @@ int add_cea_modes(struct hdmi_edid_data *data, struct edid *edid)
 				const u8 *vdb420 = &db[2];
 
 				/* Add 4:2:0(only) modes present in EDID */
-				modes += do_y420vdb_modes(vdb420, dbl - 1,
-							  &data->hdmi_info,
-							  data);
+				modes += do_y420vdb_modes(data, vdb420,
+							  dbl - 1);
 			}
 		}
 	}
