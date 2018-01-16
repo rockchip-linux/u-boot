@@ -190,6 +190,7 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, global_regdone_en, 1);
 	VOP_CTRL_SET(vop, axi_outstanding_max_num, 30);
 	VOP_CTRL_SET(vop, axi_max_outstanding_en, 1);
+	VOP_CTRL_SET(vop, reg_done_frm, 1);
 	VOP_CTRL_SET(vop, win_gate[0], 1);
 	VOP_CTRL_SET(vop, win_gate[1], 1);
 	VOP_CTRL_SET(vop, win_channel[0], 0x12);

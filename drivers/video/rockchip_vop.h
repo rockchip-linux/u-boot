@@ -304,6 +304,7 @@ struct vop_ctrl {
 	struct vop_reg bcsh_out_mode;
 	struct vop_reg bcsh_en;
 
+	struct vop_reg reg_done_frm;
 	struct vop_reg cfg_done;
 };
 
