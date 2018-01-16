@@ -320,6 +320,7 @@ struct vop_ctrl {
 	struct vop_reg bcsh_color_bar;
 	struct vop_reg bcsh_out_mode;
 	struct vop_reg bcsh_en;
+	struct vop_reg reg_done_frm;
 
 	/* MCU OUTPUT */
 	struct vop_reg mcu_pix_total;

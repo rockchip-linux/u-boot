@@ -209,6 +209,7 @@ const struct vop_data rk322x_vop = {
 
 static const struct vop_ctrl rk3328_ctrl_data = {
 	.standby = VOP_REG(RK3328_SYS_CTRL, 0x1, 22),
+	.reg_done_frm = VOP_REG(RK3328_SYS_CTRL1, 0x1, 24),
 	.auto_gate_en = VOP_REG(RK3328_SYS_CTRL, 0x1, 23),
 	.htotal_pw = VOP_REG(RK3328_DSP_HTOTAL_HS_END, 0x1fff1fff, 0),
 	.hact_st_end = VOP_REG(RK3328_DSP_HACT_ST_END, 0x1fff1fff, 0),
