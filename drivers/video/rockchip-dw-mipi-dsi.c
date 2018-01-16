@@ -368,6 +368,17 @@ static inline u32 dsi_read(struct dw_mipi_dsi *dsi, u32 reg)
 	return readl(dsi->base + reg);
 }
 
+static inline void dsi_update_bits(struct dw_mipi_dsi *dsi,
+				   u32 reg, u32 mask, u32 val)
+{
+	u32 orig, tmp;
+
+	orig = dsi_read(dsi, reg);
+	tmp = orig & ~mask;
+	tmp |= val & mask;
+	dsi_write(dsi, reg, tmp);
+}
+
 static void grf_field_write(struct dw_mipi_dsi *dsi, enum grf_reg_fields index,
 			    unsigned int val)
 {
@@ -610,10 +621,11 @@ static void rockchip_set_transfer_mode(struct dw_mipi_dsi *dsi, int flags)
 {
 	if (flags & MIPI_DSI_MSG_USE_LPM) {
 		dsi_write(dsi, DSI_CMD_MODE_CFG, CMD_MODE_ALL_LP);
-		dsi_write(dsi, DSI_LPCLK_CTRL, 0);
+		dsi_update_bits(dsi, DSI_LPCLK_CTRL, PHY_TXREQUESTCLKHS, 0);
 	} else {
 		dsi_write(dsi, DSI_CMD_MODE_CFG, 0);
-		dsi_write(dsi, DSI_LPCLK_CTRL, PHY_TXREQUESTCLKHS);
+		dsi_update_bits(dsi, DSI_LPCLK_CTRL,
+				PHY_TXREQUESTCLKHS, PHY_TXREQUESTCLKHS);
 	}
 }
 
@@ -763,6 +775,10 @@ static void dw_mipi_dsi_video_mode_config(struct dw_mipi_dsi *dsi)
 		val |= VID_MODE_TYPE_BURST_SYNC_EVENTS;
 
 	dsi_write(dsi, DSI_VID_MODE_CFG, val);
+
+	if (dsi->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)
+		dsi_update_bits(dsi, DSI_LPCLK_CTRL,
+				AUTO_CLKLANE_CTRL, AUTO_CLKLANE_CTRL);
 }
 
 static void dw_mipi_dsi_set_mode(struct dw_mipi_dsi *dsi,
@@ -772,7 +788,8 @@ static void dw_mipi_dsi_set_mode(struct dw_mipi_dsi *dsi,
 		dsi_write(dsi, DSI_MODE_CFG, ENABLE_CMD_MODE);
 	} else {
 		dsi_write(dsi, DSI_PWR_UP, RESET);
-		dsi_write(dsi, DSI_LPCLK_CTRL, PHY_TXREQUESTCLKHS);
+		dsi_update_bits(dsi, DSI_LPCLK_CTRL,
+				PHY_TXREQUESTCLKHS, PHY_TXREQUESTCLKHS);
 		dsi_write(dsi, DSI_MODE_CFG, ENABLE_VIDEO_MODE);
 		dsi_write(dsi, DSI_PWR_UP, POWERUP);
 	}
