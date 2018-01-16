@@ -9,6 +9,8 @@
 #include <optee_include/OpteeClientSMC.h>
 #include <optee_include/OpteeClientRPC.h>
 #include <optee_include/teesmc.h>
+#include <optee_include/teesmc_v2.h>
+
 
 #define TEEC_SMC_DEFAULT_CACHE_ATTRIBUTES \
 	(TEESMC_ATTR_CACHE_DEFAULT << TEESMC_ATTR_CACHE_SHIFT);
@@ -18,6 +20,19 @@ static void SetTeeSmc32Params(TEEC_Operation *operation,
 static void GetTeeSmc32Params(t_teesmc32_param *TeeSmc32Param,
 	TEEC_Operation *operation);
 static TEEC_Result OpteeSmcCall(t_teesmc32_arg *TeeSmc32Arg);
+
+void tee_uuid_to_octets(uint8_t *d, const TEEC_UUID *s)
+{
+	d[0] = s->timeLow >> 24;
+	d[1] = s->timeLow >> 16;
+	d[2] = s->timeLow >> 8;
+	d[3] = s->timeLow;
+	d[4] = s->timeMid >> 8;
+	d[5] = s->timeMid;
+	d[6] = s->timeHiAndVersion >> 8;
+	d[7] = s->timeHiAndVersion;
+	memcpy(d + 8, s->clockSeqAndNode, sizeof(s->clockSeqAndNode));
+}
 
 /*
  * This function opens a new Session between the Client application and the
@@ -38,8 +53,16 @@ TEEC_Result TEEC_SMC_OpenSession(TEEC_Context *context,
 
 	t_teesmc32_arg *TeeSmc32Arg = NULL;
 	t_teesmc32_param *TeeSmc32Param = NULL;
+
 	t_teesmc_meta_open_session *TeeSmcMetaSession = NULL;
-	static const uint32_t MetaNum = 1;
+
+#if defined CONFIG_OPTEE_V1
+	uint32_t MetaNum = 1;
+#endif
+
+#if defined CONFIG_OPTEE_V2
+	uint32_t MetaNum = 2;
+#endif
 
 	*error_origin = TEEC_ORIGIN_API;
 
@@ -77,29 +100,31 @@ TEEC_Result TEEC_SMC_OpenSession(TEEC_Context *context,
 		sizeof(TeeSmcMetaSession->uuid));
 	TeeSmcMetaSession->clnt_login = TEEC_LOGIN_PUBLIC;
 
-	TeeSmc32Param[0].u.memref.buf_ptr = (uint32_t) TeeSmcMetaSession;
+	TeeSmc32Param[0].u.memref.buf_ptr = (uint32_t) (size_t)TeeSmcMetaSession;
 	TeeSmc32Param[0].u.memref.size = sizeof(*TeeSmcMetaSession);
 
-#ifdef CONFIG_ROCKCHIP_RK3328
+#if defined CONFIG_OPTEE_V1 && defined CONFIG_ROCKCHIP_ARCH32
+	TeeSmc32Param[0].attr = TEESMC_ATTR_TYPE_MEMREF_INPUT |
+				TEESMC_ATTR_META;
+#endif
+#if defined CONFIG_OPTEE_V1 && defined CONFIG_ROCKCHIP_ARCH64
 	TeeSmc32Param[0].attr = TEESMC_ATTR_TYPE_MEMREF_INPUT |
 				TEESMC_ATTR_META              |
 				TEEC_SMC_DEFAULT_CACHE_ATTRIBUTES;
 #endif
-
-#ifdef CONFIG_ROCKCHIP_RK322X
-	TeeSmc32Param[0].attr = TEESMC_ATTR_TYPE_MEMREF_INPUT |
-				TEESMC_ATTR_META;
+#if defined CONFIG_OPTEE_V2 && defined CONFIG_ROCKCHIP_ARCH32
+	printf("Not support! All rockchips use optee v2.5 are 64 bits! \n");
 #endif
+#if defined CONFIG_OPTEE_V2 && defined CONFIG_ROCKCHIP_ARCH64
+	uint8_t * session_uuid = (uint8_t *)&TeeSmcMetaSession->uuid;
+	tee_uuid_to_octets(session_uuid, destination);
+	memcpy((void *)&TeeSmc32Param[0].u.value, &TeeSmcMetaSession->uuid, sizeof(TeeSmcMetaSession->uuid));
+	TeeSmc32Param[1].u.value.c = TeeSmcMetaSession->clnt_login;
 
-#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	TeeSmc32Param[0].attr = TEESMC_ATTR_TYPE_MEMREF_INPUT |
-				TEESMC_ATTR_META;
-#endif
-
-#ifdef CONFIG_RKCHIP_RK3368
-	TeeSmc32Param[0].attr = TEESMC_ATTR_TYPE_MEMREF_INPUT |
-				TEESMC_ATTR_META              |
-				TEEC_SMC_DEFAULT_CACHE_ATTRIBUTES;
+	TeeSmc32Param[0].attr = OPTEE_MSG_ATTR_TYPE_VALUE_INPUT_V2 |
+				OPTEE_MSG_ATTR_META_V2;
+	TeeSmc32Param[1].attr = OPTEE_MSG_ATTR_TYPE_VALUE_INPUT_V2 |
+				OPTEE_MSG_ATTR_META_V2;
 #endif
 
 	SetTeeSmc32Params(operation, TeeSmc32Param + MetaNum);
@@ -139,6 +164,7 @@ TEEC_Result TEEC_SMC_CloseSession(TEEC_Session *session,
 {
 	TEEC_Result TeecResult = TEEC_SUCCESS;
 	uint32_t TeeSmc32ArgLength;
+
 	t_teesmc32_arg *TeeSmc32Arg = NULL;
 
 	*error_origin = TEEC_ORIGIN_API;
@@ -185,6 +211,7 @@ TEEC_Result TEEC_SMC_InvokeCommand(TEEC_Session *session,
 {
 	TEEC_Result TeecResult = TEEC_SUCCESS;
 	uint32_t TeeSmc32ArgLength;
+
 	t_teesmc32_arg *TeeSmc32Arg = NULL;
 	t_teesmc32_param *TeeSmc32Param = NULL;
 
@@ -266,25 +293,25 @@ void SetTeeSmc32Params(TEEC_Operation *operation,
 		if (attr == TEEC_MEMREF_TEMP_INPUT ||
 			attr == TEEC_MEMREF_TEMP_OUTPUT ||
 			attr == TEEC_MEMREF_TEMP_INOUT) {
-#ifdef CONFIG_ROCKCHIP_RK3328
-			attr |= TEEC_SMC_DEFAULT_CACHE_ATTRIBUTES;
-			debug(" 3328 attr %x\n", attr);
-#endif
-#ifdef CONFIG_ROCKCHIP_RK322X
-			debug(" 322X attr %x\n", attr);
-#endif
-#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-			debug(" 312X attr %x\n", attr);
-#endif
-#ifdef CONFIG_RKCHIP_RK3368
-			attr |= TEEC_SMC_DEFAULT_CACHE_ATTRIBUTES;
-			debug(" 3368 attr %x\n", attr);
-#endif
 
+#if defined CONFIG_OPTEE_V1 && defined CONFIG_ROCKCHIP_ARCH32
+			debug(" OPTEE_OS_V1 ARCH32 attr %x\n", attr);
+#endif
+#if defined CONFIG_OPTEE_V1 && defined CONFIG_ROCKCHIP_ARCH64
+			attr |= TEEC_SMC_DEFAULT_CACHE_ATTRIBUTES;
+			debug(" OPTEE_OS_V1 ARCH64 attr %x\n", attr);
+#endif
+#if defined CONFIG_OPTEE_V2 && defined CONFIG_ROCKCHIP_ARCH32
+			printf("Not support! All rockchips use optee v2 are 64 bits! \n");
+#endif
+#if defined CONFIG_OPTEE_V2 && defined CONFIG_ROCKCHIP_ARCH64
+			attr += (OPTEE_MSG_ATTR_TYPE_TMEM_INPUT_V2 - TEEC_MEMREF_TEMP_INPUT);
+			debug(" OPTEE_OS_V2 ARCH64 attr %x\n", attr);
+#endif
 
 			TeeSmc32Param[ParamCount].attr = attr;
 			TeeSmc32Param[ParamCount].u.memref.buf_ptr =
-			(uint32_t)operation->params[ParamCount].tmpref.buffer;
+			(uint32_t)(size_t)operation->params[ParamCount].tmpref.buffer;
 			TeeSmc32Param[ParamCount].u.memref.size =
 				operation->params[ParamCount].tmpref.size;
 		} else {
@@ -330,11 +357,21 @@ TEEC_Result OpteeSmcCall(t_teesmc32_arg *TeeSmc32Arg)
 	TEEC_Result TeecResult = TEEC_SUCCESS;
 	ARM_SMC_ARGS ArmSmcArgs = {0};
 
+#ifdef CONFIG_OPTEE_V1
 	ArmSmcArgs.Arg0 = TEESMC32_CALL_WITH_ARG;
-	ArmSmcArgs.Arg1 = (uint32_t) TeeSmc32Arg;
+	ArmSmcArgs.Arg1 = (uint32_t) (size_t)TeeSmc32Arg;
+#endif
+
+#ifdef CONFIG_OPTEE_V2
+	ArmSmcArgs.Arg0 = OPTEE_SMC_CALL_WITH_ARG_V2;
+	ArmSmcArgs.Arg1 = 0;
+	ArmSmcArgs.Arg2 = (uint32_t) (size_t)TeeSmc32Arg;
+#endif
 
 	while (1) {
 		tee_smc_call(&ArmSmcArgs);
+		debug("arg0=0x%x arg1=0x%x arg2=0x%x arg3=0x%x",
+			ArmSmcArgs.Arg0, ArmSmcArgs.Arg1, ArmSmcArgs.Arg2, ArmSmcArgs.Arg3);
 		if (TEESMC_RETURN_IS_RPC(ArmSmcArgs.Arg0)) {
 			(void) OpteeRpcCallback(&ArmSmcArgs);
 		} else if (ArmSmcArgs.Arg0 == TEESMC_RETURN_UNKNOWN_FUNCTION) {

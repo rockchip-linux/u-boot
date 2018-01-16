@@ -207,28 +207,6 @@ struct teesmc32_arg {
 };
 
 /**
- * TEESMC32_GET_PARAMS - return pointer to union teesmc32_param *
- *
- * @x: Pointer to a struct teesmc32_arg
- *
- * Returns a pointer to the params[] inside a struct teesmc32_arg.
- */
-#define TEESMC32_GET_PARAMS(x) \
-	(struct teesmc32_param *)(((struct teesmc32_arg *)(x)) + 1)
-
-/**
- * TEESMC32_GET_ARG_SIZE - return size of struct teesmc32_arg
- *
- * @num_params: Number of parameters embedded in the struct teesmc32_arg
- *
- * Returns the size of the struct teesmc32_arg together with the number
- * of embedded paramters.
- */
-#define TEESMC32_GET_ARG_SIZE(num_params) \
-	(sizeof(struct teesmc32_arg) + \
-	 sizeof(struct teesmc32_param) * (num_params))
-
-/**
  * struct teesmc64_arg - SMC argument for Trusted OS
  * @cmd: OS Command, one of TEESMC_CMD_*
  * @ta_func: Trusted Application function, specific to the Trusted Application
@@ -667,10 +645,21 @@ struct teesmc_meta_open_session {
 #define TEESMC_RETURN_IS_RPC(ret) \
 	(((ret) & TEESMC_RETURN_RPC_PREFIX_MASK) == TEESMC_RETURN_RPC_PREFIX)
 
-typedef struct teesmc32_arg             t_teesmc32_arg;
-typedef struct teesmc32_param           t_teesmc32_param;
 typedef struct teesmc_meta_open_session t_teesmc_meta_open_session;
 
+#if defined CONFIG_OPTEE_V1
+
+typedef struct teesmc32_arg             t_teesmc32_arg;
+typedef struct teesmc32_param           t_teesmc32_param;
+
+#define TEESMC32_GET_PARAMS(x) \
+	(struct teesmc32_param *)(((struct teesmc32_arg *)(x)) + 1)
+
+#define TEESMC32_GET_ARG_SIZE(num_params) \
+	(sizeof(struct teesmc32_arg) + \
+	 sizeof(struct teesmc32_param) * (num_params))
+
+#endif
 void tee_smc_call(ARM_SMC_ARGS *param);
 
 #endif /* TEESMC_H */

@@ -1210,19 +1210,8 @@ int tee_supp_rk_fs_init(void)
 }
 void OpteeClientRkFsInit(void)
 {
-#ifdef CONFIG_ROCKCHIP_RK3328
-	debug(" OpteeClientRkFsInit 64\n");
-#endif
-#ifdef CONFIG_ROCKCHIP_RK322X
-	debug(" OpteeClientRkFsInit 32\n");
-#endif
-#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
-	debug(" OpteeClientRkFsInit 32\n");
+	debug(" OpteeClientRkFsInit\n");
 	tee_supp_rk_fs_init();
-#endif
-#ifdef CONFIG_RKCHIP_RK3368
-	debug(" OpteeClientRkFsInit 64\n");
-#endif
 }
 
 static int rkss_step = 0;
