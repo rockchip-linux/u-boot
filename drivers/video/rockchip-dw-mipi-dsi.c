@@ -1050,7 +1050,7 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 
 	FDT_GET_INT(dsi->lanes, "dsi,lanes");
 	FDT_GET_INT(dsi->format, "dsi,format");
-	FDT_GET_INT(dsi->mode_flags, "dsi,mode_flags");
+	FDT_GET_INT(dsi->mode_flags, "dsi,flags");
 	FDT_GET_INT(dsi->channel, "reg");
 
 	ret = rockchip_dsi_dual_channel_probe(dsi);
