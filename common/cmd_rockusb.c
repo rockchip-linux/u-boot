@@ -762,7 +762,7 @@ static void FW_EraseData(void)
 {
 	uint32_t lba, n_sec;
 
-	n_sec = get_unaligned_be16(&usbcmd.cbw.CDB[7]) * 512;
+	n_sec = get_unaligned_be16(&usbcmd.cbw.CDB[7]);
 	lba = get_unaligned_be32(&usbcmd.cbw.CDB[2]);
 	StorageEraseData(lba, n_sec);
 	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
