@@ -981,6 +981,10 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->conn_state.node = np_to_ofnode(cnt_node);
 		s->conn_state.dev = conn_dev;
 		s->conn_state.connector = conn;
+		s->conn_state.overscan.left_margin = 100;
+		s->conn_state.overscan.right_margin = 100;
+		s->conn_state.overscan.top_margin = 100;
+		s->conn_state.overscan.bottom_margin = 100;
 		s->crtc_state.node = np_to_ofnode(vop_node);
 		s->crtc_state.dev = crtc_dev;
 		s->crtc_state.crtc = crtc;
@@ -1084,6 +1088,11 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("video,vdisplay", s->conn_state.mode.vdisplay);
 		FDT_SET_U32("video,vrefresh",
 			    drm_mode_vrefresh(&s->conn_state.mode));
+		FDT_SET_U32("video,flags", s->conn_state.mode.flags);
+		FDT_SET_U32("overscan,left_margin", s->conn_state.overscan.left_margin);
+		FDT_SET_U32("overscan,right_margin", s->conn_state.overscan.right_margin);
+		FDT_SET_U32("overscan,top_margin", s->conn_state.overscan.top_margin);
+		FDT_SET_U32("overscan,bottom_margin", s->conn_state.overscan.bottom_margin);
 #undef FDT_SET_U32
 	}
 }
