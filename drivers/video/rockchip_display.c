@@ -1076,6 +1076,10 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("video,vrefresh",
 			    drm_mode_vrefresh(&s->conn_state.mode));
 		FDT_SET_U32("video,flags", s->conn_state.mode.flags);
+		FDT_SET_U32("overscan,left_margin", s->conn_state.overscan.left_margin);
+		FDT_SET_U32("overscan,right_margin", s->conn_state.overscan.right_margin);
+		FDT_SET_U32("overscan,top_margin", s->conn_state.overscan.top_margin);
+		FDT_SET_U32("overscan,bottom_margin", s->conn_state.overscan.bottom_margin);
 #undef FDT_SET_U32
 	}
 }

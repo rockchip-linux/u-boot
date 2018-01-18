@@ -131,6 +131,50 @@ static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 	return 0;
 }
 
+static void vop_post_config(struct display_state *state, struct vop *vop)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	u16 vtotal = mode->crtc_vtotal;
+	u16 hact_st = mode->crtc_htotal - mode->crtc_hsync_start;
+	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
+	u16 hdisplay = mode->crtc_hdisplay;
+	u16 vdisplay = mode->crtc_vdisplay;
+	u16 hsize = hdisplay * (conn_state->overscan.left_margin + conn_state->overscan.right_margin) / 200;
+	u16 vsize = vdisplay * (conn_state->overscan.top_margin + conn_state->overscan.bottom_margin) / 200;
+	u16 hact_end, vact_end;
+	u32 val;
+
+	hact_st += hdisplay * (100 - conn_state->overscan.left_margin) / 200;
+	hact_end = hact_st + hsize;
+	val = hact_st << 16;
+	val |= hact_end;
+
+	VOP_CTRL_SET(vop, hpost_st_end, val);
+	vact_st += vdisplay * (100 - conn_state->overscan.top_margin) / 200;
+	vact_end = vact_st + vsize;
+	val = vact_st << 16;
+	val |= vact_end;
+	VOP_CTRL_SET(vop, vpost_st_end, val);
+	val = scl_cal_scale2(vdisplay, vsize) << 16;
+	val |= scl_cal_scale2(hdisplay, hsize);
+	VOP_CTRL_SET(vop, post_scl_factor, val);
+#define POST_HORIZONTAL_SCALEDOWN_EN(x)		((x) << 0)
+#define POST_VERTICAL_SCALEDOWN_EN(x)		((x) << 1)
+	VOP_CTRL_SET(vop, post_scl_ctrl,
+		     POST_HORIZONTAL_SCALEDOWN_EN(hdisplay != hsize) |
+		     POST_VERTICAL_SCALEDOWN_EN(vdisplay != vsize));
+	if (mode->flags & DRM_MODE_FLAG_INTERLACE) {
+		u16 vact_st_f1 = vtotal + vact_st + 1;
+		u16 vact_end_f1 = vact_st_f1 + vsize;
+
+		val = vact_st_f1 << 16 | vact_end_f1;
+		VOP_CTRL_SET(vop, vpost_st_end_f1, val);
+	}
+}
+
 static int rockchip_vop_init(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -311,18 +355,15 @@ static int rockchip_vop_init(struct display_state *state)
 	val = hact_st << 16;
 	val |= hact_end;
 	VOP_CTRL_SET(vop, hact_st_end, val);
-	VOP_CTRL_SET(vop, hpost_st_end, val);
 	val = vact_st << 16;
 	val |= vact_end;
 	VOP_CTRL_SET(vop, vact_st_end, val);
-	VOP_CTRL_SET(vop, vpost_st_end, val);
 	if (mode->flags & DRM_MODE_FLAG_INTERLACE) {
 		u16 vact_st_f1 = vtotal + vact_st + 1;
 		u16 vact_end_f1 = vact_st_f1 + vdisplay;
 
 		val = vact_st_f1 << 16 | vact_end_f1;
 		VOP_CTRL_SET(vop, vact_st_end_f1, val);
-		VOP_CTRL_SET(vop, vpost_st_end_f1, val);
 
 		val = vtotal << 16 | (vtotal + vsync_len);
 		VOP_CTRL_SET(vop, vs_st_end_f1, val);
@@ -336,7 +377,7 @@ static int rockchip_vop_init(struct display_state *state)
 		act_end = vact_end;
 	}
 	VOP_CTRL_SET(vop, vtotal_pw, (vtotal << 16) | vsync_len);
-
+	vop_post_config(state, vop);
 	VOP_CTRL_SET(vop, core_dclk_div,
 		     !!(mode->flags & DRM_MODE_FLAG_DBLCLK));
 
