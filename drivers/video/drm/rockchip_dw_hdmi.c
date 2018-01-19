@@ -46,7 +46,7 @@ enum  base_output_depth {
 };
 
 struct base_overscan {
-	unsigned short maxvalue;
+	unsigned int maxvalue;
 	unsigned short leftscale;
 	unsigned short rightscale;
 	unsigned short topscale;
@@ -554,7 +554,7 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 	if (scan->rightscale < min_scan && scan->rightscale > 0)
 		overscan->right_margin = min_scan;
 	else if (scan->rightscale < max_scan)
-		overscan->left_margin = scan->rightscale;
+		overscan->right_margin = scan->rightscale;
 
 	if (scan->topscale < min_scan && scan->topscale > 0)
 		overscan->top_margin = min_scan;
