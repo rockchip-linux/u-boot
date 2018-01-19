@@ -986,6 +986,10 @@ int rockchip_display_init(void)
 		s->blob = blob;
 		s->conn_state.node = conn_node;
 		s->conn_state.connector = conn;
+		s->conn_state.overscan.left_margin = 100;
+		s->conn_state.overscan.right_margin = 100;
+		s->conn_state.overscan.top_margin = 100;
+		s->conn_state.overscan.bottom_margin = 100;
 		s->crtc_state.node = crtc_node;
 		s->crtc_state.crtc = crtc;
 		s->crtc_state.crtc_id = get_crtc_id(blob, connect);
