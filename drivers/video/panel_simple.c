@@ -69,10 +69,11 @@ static int panel_simple_enable(struct display_state *state)
 	struct panel_state *panel_state = &state->panel_state;
 	struct panel_simple *panel = panel_state->private;
 
+	mdelay(panel->delay_enable);
+
 #ifdef CONFIG_RK_PWM_BL
 	rk_pwm_bl_config(-1);
 #endif
-	mdelay(panel->delay_enable);
 
 	return 0;
 }
