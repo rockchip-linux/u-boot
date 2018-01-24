@@ -98,7 +98,7 @@ static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 		vol =  pwm.volt_table[i];
 
 		/* VDD12 = 1.40 - 0.455*D , pwm duty*/
-		pwm_value = (pwm_reg_matches[i].max_uV - vol) /
+		pwm_value = (pwm_reg_matches[num_matches].max_uV - vol) /
 			    ((pwm_reg_matches[num_matches].max_uV -
 			     pwm_reg_matches[num_matches].min_uV) / 100);
 		/*pwm_value %, coefficient *1000*/
