@@ -2177,7 +2177,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 
 	if (ret > 0) {
 		hdmi->sink_is_hdmi = drm_detect_hdmi_monitor(edid);
-		hdmi->sink_has_audio = false;
+		hdmi->sink_has_audio = true;
 		drm_rk_selete_output(&hdmi->edid_data, &bus_format,
 				     overscan, hdmi->dev_type);
 
@@ -2219,7 +2219,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 	printf("can't get edid timing\n");
 	hdmi->vic = HDMI_VIDEO_DEFAULT_MODE;
 	hdmi->sink_is_hdmi = true;
-	hdmi->sink_has_audio = false;
+	hdmi->sink_has_audio = true;
 	mode->hdisplay = 1280;
 	mode->hsync_start = 1390;
 	mode->hsync_end = 1430;
