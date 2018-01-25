@@ -66,6 +66,8 @@
 #define VOP_WIN_GET(x, name) \
 		vop_read_reg(x, vop->win->offset, &vop->win->name)
 
+#define CVBS_PAL_VDISPLAY              288
+
 enum alpha_mode {
 	ALPHA_STRAIGHT,
 	ALPHA_INVERSE,
@@ -271,6 +273,13 @@ struct vop_ctrl {
 
 	struct vop_reg dither_up;
 	struct vop_reg dither_down;
+
+	struct vop_reg sw_dac_sel;
+	struct vop_reg tve_sw_mode;
+	struct vop_reg tve_dclk_pol;
+	struct vop_reg tve_dclk_en;
+	struct vop_reg sw_genlock;
+	struct vop_reg sw_uv_offset_en;
 
 	struct vop_reg dsp_out_yuv;
 	struct vop_reg dsp_data_swap;
