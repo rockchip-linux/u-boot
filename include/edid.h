@@ -713,6 +713,55 @@ struct edid {
 	u8 checksum;
 } __packed;
 
+enum base_output_format {
+	DRM_HDMI_OUTPUT_DEFAULT_RGB, /* default RGB */
+	DRM_HDMI_OUTPUT_YCBCR444, /* YCBCR 444 */
+	DRM_HDMI_OUTPUT_YCBCR422, /* YCBCR 422 */
+	DRM_HDMI_OUTPUT_YCBCR420, /* YCBCR 420 */
+	/* (YCbCr444 > YCbCr422 > YCbCr420 > RGB) */
+	DRM_HDMI_OUTPUT_YCBCR_HQ,
+	/* (YCbCr420 > YCbCr422 > YCbCr444 > RGB) */
+	DRM_HDMI_OUTPUT_YCBCR_LQ,
+	DRM_HDMI_OUTPUT_INVALID, /* Guess what ? */
+};
+
+enum  base_output_depth {
+	AUTOMATIC = 0,
+	DEPTH_24BIT = 8,
+	DEPTH_30BIT = 10,
+};
+
+struct base_overscan {
+	unsigned int maxvalue;
+	unsigned short leftscale;
+	unsigned short rightscale;
+	unsigned short topscale;
+	unsigned short bottomscale;
+};
+
+struct base_drm_display_mode {
+	int clock;		/* in kHz */
+	int hdisplay;
+	int hsync_start;
+	int hsync_end;
+	int htotal;
+	int vdisplay;
+	int vsync_start;
+	int vsync_end;
+	int vtotal;
+	int vrefresh;
+	int vscan;
+	unsigned int flags;
+	int picture_aspect_ratio;
+};
+
+struct base_disp_info {
+	struct base_drm_display_mode mode;	/* 52 bytes */
+	struct base_overscan scan;		/* 12 bytes */
+	enum base_output_format  format;	/* 4 bytes */
+	enum base_output_depth depth;		/* 4 bytes */
+};
+
 /**
  * Print the EDID info.
  *
