@@ -270,6 +270,19 @@ static int rockchip_vop_init(struct display_state *state)
 		VOP_CTRL_SET(vop, data01_swap,
 			!!(conn_state->output_type & ROCKCHIP_OUTPUT_DSI_DUAL_LINK));
 		break;
+	case DRM_MODE_CONNECTOR_TV:
+		if (vdisplay == CVBS_PAL_VDISPLAY)
+			VOP_CTRL_SET(vop, tve_sw_mode, 1);
+		else
+			VOP_CTRL_SET(vop, tve_sw_mode, 0);
+		VOP_CTRL_SET(vop, tve_dclk_pol, 1);
+		VOP_CTRL_SET(vop, tve_dclk_en, 1);
+		/* use the same pol reg with hdmi */
+		VOP_CTRL_SET(vop, hdmi_pin_pol, val);
+		VOP_CTRL_SET(vop, sw_genlock, 1);
+		VOP_CTRL_SET(vop, sw_uv_offset_en, 1);
+		VOP_CTRL_SET(vop, dither_up, 1);
+		break;
 	default:
 		printf("unsupport connector_type[%d]\n", conn_state->type);
 	}
