@@ -847,6 +847,15 @@ static void FW_Reset(void)
 	usbcmd.status = RKUSB_STATUS_CSW;
 }
 
+static void FW_HandleUnknownCmd(void)
+{
+	RKUSBERR("%s: unknown cmd 0x%x\n", __func__, usbcmd.cmnd);
+
+	usbcmd.csw.Residue = cpu_to_be32(usbcmd.cbw.DataTransferLength);
+	usbcmd.csw.Status = CSW_FAIL;
+	usbcmd.status = RKUSB_STATUS_CSW;
+}
+
 static int rkusb_send_csw(void)
 {
 #ifdef CONFIG_RK_DWC3_UDC
@@ -961,6 +970,7 @@ void do_rockusb_cmd(void)
 		FW_Reset();
 		break;
 	default:
+		FW_HandleUnknownCmd();
 		break;
 	}
 }
