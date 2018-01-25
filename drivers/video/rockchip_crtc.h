@@ -9,6 +9,7 @@
 
 struct rockchip_crtc {
 	char compatible[30];
+	bool hdmi_hpd;
 	const struct rockchip_crtc_funcs *funcs;
 	const void *data;
 };

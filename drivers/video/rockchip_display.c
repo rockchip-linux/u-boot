@@ -488,8 +488,8 @@ done:
 static int display_init(struct display_state *state)
 {
 	const struct rockchip_connector *conn = state->conn_state.connector;
-	const struct rockchip_crtc *crtc = state->crtc_state.crtc;
 	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
+	struct rockchip_crtc *crtc = state->crtc_state.crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	const struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
@@ -511,8 +511,20 @@ static int display_init(struct display_state *state)
 	/*
 	 * support hotplug, but not connect;
 	 */
+
+#ifdef CONFIG_ROCKCHIP_DRM_TVE
+	if (crtc->hdmi_hpd && conn_state->type == DRM_MODE_CONNECTOR_TV) {
+		printf("hdmi plugin ,skip tve\n");
+		goto deinit;
+	}
+#endif
 	if (conn_funcs->detect) {
 		ret = conn_funcs->detect(state);
+
+#ifdef CONFIG_ROCKCHIP_DRM_TVE
+		if (conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
+			crtc->hdmi_hpd = ret;
+#endif
 		if (!ret)
 			goto deinit;
 	}

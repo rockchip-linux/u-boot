@@ -41,7 +41,8 @@ obj-$(CONFIG_VIDEO_SM501) += sm501.o
 obj-$(CONFIG_VIDEO_SMI_LYNXEM) += smiLynxEM.o videomodes.o
 obj-$(CONFIG_VIDEO_TEGRA) += tegra.o
 obj-$(CONFIG_VIDEO_VCXK) += bus_vcxk.o
-obj-$(CONFIG_ROCKCHIP_DISPLAY) += rockchip_display.o rockchip_crtc.o \
+obj-$(CONFIG_ROCKCHIP_DISPLAY) += drm/ \
+			rockchip_display.o rockchip_crtc.o \
 			rockchip_connector.o bmp_helper.o rockchip_panel.o \
 			rockchip_phy.o
 obj-$(CONFIG_ROCKCHIP_VOP) += rockchip_vop.o rockchip_vop_reg.o
@@ -49,7 +50,6 @@ obj-$(CONFIG_ROCKCHIP_MIPI_DSI)	+= rockchip_mipi_dsi.o
 obj-$(CONFIG_ROCKCHIP_DW_MIPI_DSI) += rockchip-dw-mipi-dsi.o rockchip-inno-mipi-dphy.o
 obj-$(CONFIG_ROCKCHIP_ANALOGIX_DP) += rockchip_analogix_dp.o rockchip_analogix_dp_reg.o
 obj-$(CONFIG_ROCKCHIP_LVDS) += rockchip_lvds.o
-obj-$(CONFIG_DRM_ROCKCHIP_DW_HDMI) += drm/
 obj-$(CONFIG_ROCKCHIP_PANEL) += panel_simple.o rockchip_dsi_panel.o
 obj-$(CONFIG_FORMIKE) += formike.o
 obj-$(CONFIG_RK_FB) += rockchip_fb.o

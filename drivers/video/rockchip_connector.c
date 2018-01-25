@@ -20,6 +20,12 @@
 #include "rockchip_connector.h"
 
 static const struct rockchip_connector g_connector[] = {
+#ifdef CONFIG_ROCKCHIP_DRM_TVE
+	{
+         .compatible = "rockchip,rk3328-tve",
+         .funcs = &rockchip_drm_tve_funcs,
+	},
+#endif
 #ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
 	{
 	 .compatible = "rockchip,rk3128-mipi-dsi",
