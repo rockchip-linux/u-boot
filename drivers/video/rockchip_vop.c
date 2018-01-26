@@ -13,6 +13,7 @@
 #include <resource.h>
 #include <asm/arch/rkplat.h>
 #include <asm/unaligned.h>
+#include <linux/compat.h>
 #include <linux/list.h>
 #include <linux/media-bus-format.h>
 
@@ -146,6 +147,9 @@ static void vop_post_config(struct display_state *state, struct vop *vop)
 	u16 vsize = vdisplay * (conn_state->overscan.top_margin + conn_state->overscan.bottom_margin) / 200;
 	u16 hact_end, vact_end;
 	u32 val;
+
+	if (mode->flags & DRM_MODE_FLAG_INTERLACE)
+		vsize = round_down(vsize, 2);
 
 	hact_st += hdisplay * (100 - conn_state->overscan.left_margin) / 200;
 	hact_end = hact_st + hsize;
