@@ -59,6 +59,8 @@ static OPT_T gOpts;
 #define BL3X_FILESIZE_MAX	(512 * 1024)
 static uint8_t gBuf[BL3X_FILESIZE_MAX];
 static bool gSubfix;
+static char *gLegacyPath;
+static char *gNewPath;
 
 const uint8_t gBl3xID[BL_MAX_SEC][4] = {
 	{'B', 'L', '3', '0'},
@@ -91,12 +93,26 @@ static inline uint32_t getBCD(uint16_t value)
 static inline void fixPath(char *path)
 {
 	int i, len = strlen(path);
+	char tmp[MAX_LINE_LEN];
+	char *start, *end;
 
 	for (i = 0; i < len; i++) {
 		if (path[i] == '\\')
 			path[i] = '/';
 		else if (path[i] == '\r' || path[i] == '\n')
 			path[i] = '\0';
+	}
+
+	if (gLegacyPath && gNewPath) {
+		start = strstr(path, gLegacyPath);
+		if (start) {
+			end = start + strlen(gLegacyPath);
+			/* Backup, so tmp can be src for strcat()*/
+			strcpy(tmp, end);
+			/* Terminate, so path can be dest for strcat() */
+			*start = '\0';
+			strcat(path, tmp);
+		}
 	}
 }
 
@@ -816,6 +832,7 @@ static void printHelp(void)
 	printf("\t" OPT_HELP "\t\t\tDisplay this information.\n");
 	printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
 	printf("\t" OPT_SUBFIX "\t\tSpec subfix.\n");
+	printf("\t" OPT_REPLACE "\t\tReplace some part of binary path.\n");
 }
 
 
@@ -842,6 +859,11 @@ int main(int argc, char **argv)
 		} else if (!strcmp(OPT_SUBFIX, argv[i])) {
 			gSubfix = true;
 			printf("trust_merger: Spec subfix!\n");
+		} else if (!strcmp(OPT_REPLACE, argv[i])) {
+			i++;
+			gLegacyPath = argv[i];
+			i++;
+			gNewPath = argv[i];
 		} else {
 			if (optPath) {
 				fprintf(stderr, "only need one path arg, but we have:\n%s\n%s.\n", optPath, argv[i]);

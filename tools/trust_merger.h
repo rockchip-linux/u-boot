@@ -43,7 +43,7 @@
 #define OPT_MERGE           "--pack"
 #define OPT_UNPACK          "--unpack"
 #define OPT_SUBFIX          "--subfix"
-
+#define OPT_REPLACE         "--replace"
 
 #define DEF_MAJOR           0
 #define DEF_MINOR           0
