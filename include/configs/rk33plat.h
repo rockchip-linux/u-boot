@@ -156,6 +156,8 @@
 	#undef CONFIG_RK_UMS_BOOT_EN
 
 	#undef CONFIG_RK_PL330_DMAC
+	#define CONFIG_OPTEE_CLIENT
+	#define CONFIG_OPTEE_V1
 #endif
 
 /* fpga board configure */
