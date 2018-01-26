@@ -19,8 +19,8 @@ bool gDebug =
 
 #define ENTRY_ALIGN  (2048)
 options gOpts;
-
-
+char gLegacyPath[MAX_LINE_LEN] = {0};
+char gNewPath[MAX_LINE_LEN] = {0};
 char gSubfix[MAX_LINE_LEN] = OUT_SUBFIX;
 char gEat[MAX_LINE_LEN];
 char* gConfigPath;
@@ -139,11 +139,26 @@ void P_RC4(uint8_t* buf, uint32_t len) {
 
 static inline void fixPath(char* path) {
 	int i, len = strlen(path);
+	char tmp[MAX_LINE_LEN];
+	char *start, *end;
+
 	for(i=0; i<len; i++) {
 		if (path[i] == '\\')
 			path[i] = '/';
 		else if (path[i] == '\r' || path[i] == '\n')
 			path[i] = '\0';
+	}
+
+	if (strlen(gLegacyPath) && strlen(gNewPath)) {
+		start = strstr(path, gLegacyPath);
+		if (start) {
+			end = start + strlen(gLegacyPath);
+			/* Backup, so tmp can be src for strcat()*/
+			strcpy(tmp, end);
+			/* Terminate, so path can be dest for strcat() */
+			*start = '\0';
+			strcat(path, tmp);
+		}
 	}
 }
 
@@ -953,6 +968,7 @@ static void printHelp(void) {
 	printf("\t" OPT_HELP "\t\t\tDisplay this information.\n");
 	printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
 	printf("\t" OPT_SUBFIX "\t\tSpec subfix.\n");
+	printf("\t" OPT_REPLACE "\t\tReplace some part of binary path.\n");
 	printf("Usage2: boot_merger [options] [parameter]\n");
 	printf("All below five option are must in this mode!\n");
 	printf("\t" OPT_CHIP "\t\tChip type, used for check with usbplug.\n");
@@ -990,6 +1006,11 @@ int main(int argc, char** argv) {
 		} else if (!strcmp(OPT_SUBFIX, argv[i])) {
 			i++;
 			snprintf(gSubfix, sizeof(gSubfix), "%s", argv[i]);
+		} else if (!strcmp(OPT_REPLACE, argv[i])) {
+			i++;
+			snprintf(gLegacyPath, sizeof(gLegacyPath), "%s", argv[i]);
+			i++;
+			snprintf(gNewPath, sizeof(gNewPath), "%s", argv[i]);
 		} else {
 			optPath = argv[i];
 			break;
@@ -1019,5 +1040,3 @@ int main(int argc, char** argv) {
 	}
 	return 0;
 }
-
-
