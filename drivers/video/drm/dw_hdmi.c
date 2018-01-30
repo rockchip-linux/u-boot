@@ -164,6 +164,7 @@ struct dw_hdmi {
 	unsigned int audio_cts;
 	unsigned int audio_n;
 	bool audio_enable;
+	bool scramble_low_rates;
 
 	void (*write)(struct dw_hdmi *hdmi, u8 val, int offset);
 	u8 (*read)(struct dw_hdmi *hdmi, int offset);
@@ -959,7 +960,8 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 	 * when activate the scrambler feature.
 	 */
 	inv_val = (vmode->mpixelclock > 340000000 ||
-		   hdmi_info->scdc.scrambling.low_rates ?
+		   (hdmi_info->scdc.scrambling.low_rates &&
+		    hdmi->scramble_low_rates) ?
 		   HDMI_FC_INVIDCONF_HDCP_KEEPOUT_ACTIVE :
 		   HDMI_FC_INVIDCONF_HDCP_KEEPOUT_INACTIVE);
 
@@ -1034,7 +1036,8 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 	/* Scrambling Control */
 	if (hdmi_info->scdc.supported) {
 		if (vmode->mpixelclock > 340000000 ||
-		    hdmi_info->scdc.scrambling.low_rates) {
+		    (hdmi_info->scdc.scrambling.low_rates &&
+		     hdmi->scramble_low_rates)) {
 			rockchip_dw_hdmi_scdc_init(hdmi);
 			bytes = rockchip_dw_hdmi_scdc_get_sink_version(hdmi);
 			rockchip_dw_hdmi_scdc_set_source_version(hdmi, bytes);
@@ -2091,6 +2094,10 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 					hdmi_node, "reg", 0, NULL);
 	hdmi->io_width = fdtdec_get_int(state->blob, hdmi_node,
 					"reg-io-width", -1);
+
+	if (fdtdec_get_bool(state->blob, hdmi_node, "scramble-low-rates"))
+		hdmi->scramble_low_rates = true;
+
 	dw_hdmi_set_reg_wr(hdmi);
 
 	if (pdata->grf_vop_sel_reg) {
