@@ -34,20 +34,6 @@ DECLARE_GLOBAL_DATA_PTR;
 static LIST_HEAD(rockchip_display_list);
 static LIST_HEAD(logo_cache_list);
 
-#ifdef CONFIG_DRM_ROCKCHIP_VIDEO_FRAMEBUFFER
- #define DRM_ROCKCHIP_FB_WIDTH		1920
- #define DRM_ROCKCHIP_FB_HEIGHT		1080
- #define DRM_ROCKCHIP_FB_BPP		VIDEO_BPP32
-#else
- #define DRM_ROCKCHIP_FB_WIDTH		0
- #define DRM_ROCKCHIP_FB_HEIGHT		0
- #define DRM_ROCKCHIP_FB_BPP		VIDEO_BPP32
-#endif
-
-#define MEMORY_POOL_SIZE	32 * 1024 * 1024
-#define DRM_ROCKCHIP_FB_SIZE \
-	VNBYTES(DRM_ROCKCHIP_FB_BPP) * DRM_ROCKCHIP_FB_WIDTH * DRM_ROCKCHIP_FB_HEIGHT
-
 static unsigned long memory_start;
 static unsigned long memory_end;
 

@@ -19,6 +19,9 @@
 #include <video_console.h>
 #include <asm/cache.h>
 #include <asm/global_data.h>
+#ifdef CONFIG_DRM_ROCKCHIP
+#include <video_rockchip.h>
+#endif
 #include <dm/lists.h>
 #include <dm/device_compat.h>
 #include <dm/device-internal.h>
@@ -132,6 +135,11 @@ int video_reserve(ulong *addrp)
 		return 0;
 
 	gd->video_top = *addrp;
+#ifdef CONFIG_DRM_ROCKCHIP
+	size = DRM_ROCKCHIP_FB_SIZE + MEMORY_POOL_SIZE;
+	*addrp = *addrp - size;
+	*addrp &= ~((1 << 20) - 1);
+#else
 	for (uclass_find_first_device(UCLASS_VIDEO, &dev);
 	     dev;
 	     uclass_find_next_device(&dev)) {
@@ -139,7 +147,7 @@ int video_reserve(ulong *addrp)
 		debug("%s: Reserving %lx bytes at %lx for video device '%s'\n",
 		      __func__, size, *addrp, dev->name);
 	}
-
+#endif
 	/* Allocate space for PCI video devices in case there were not bound */
 	if (*addrp == gd->video_top)
 		*addrp -= CONFIG_VAL(VIDEO_PCI_DEFAULT_FB_SIZE);
