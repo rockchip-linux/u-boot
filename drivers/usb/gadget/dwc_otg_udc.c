@@ -18,7 +18,7 @@
 #include <asm/arch/rkplat.h>
 #include "ep0.h"
 #include "dwc_otg_regs.h"
-
+#include "regs-otg.h"
 
 #define DWCERR
 #undef DWCWARN
@@ -481,6 +481,7 @@ static void set_address(void)
 	ep0in_ack();
 }
 
+__maybe_unused
 void HaltBulkEndpoint(uint8 ep_num)
 {
 	uint32 count;
@@ -566,28 +567,80 @@ void HaltBulkEndpoint(uint8 ep_num)
 	}
 }
 
-void clear_feature(uint8 ep_num)
+static void ep_clear_stall(uint8 ep_num)
 {
+	uint32 epctl;
 	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
 
-	ep_num &= 0x0f;
-	printf("USB CMD Clear_feature\n");
-	if(ep_num == BULK_IN_EP) {
-		HaltBulkEndpoint(BULK_IN_EP);
-		printf("##0x%08x DiEpCtl \n",
-		       OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl);
-		printf("##0x%08x DiEpInt \n",
-		       OtgReg->Device.InEp[BULK_IN_EP].DiEpInt);
-	}
-	if(ep_num == BULK_OUT_EP) {
-		HaltBulkEndpoint(BULK_OUT_EP);
-		printf("##0x%08x DoEpCtl \n",
-		       OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl);
-		printf("##0x%08x DoEpInt \n",
-		       OtgReg->Device.OutEp[BULK_OUT_EP].DoEpInt);
-		usbd_device_event_irq(udc_device, DEVICE_CLEAR_FEATURE, 0);
+	if (ep_num == BULK_IN_EP)
+		epctl = readl(&OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl);
+	else
+		epctl = readl(&OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl);
+
+	/* Clear stall bit */
+	epctl &= ~DEPCTL_STALL;
+
+	/*
+	 * USB Spec 9.4.5: For endpoints using data toggle, regardless
+	 * of whether an endpoint has the Halt feature set, a
+	 * ClearFeature(ENDPOINT_HALT) request always results in the
+	 * data toggle being reinitialized to DATA0.
+	 */
+	epctl |= DEPCTL_SETD0PID;
+
+	if (ep_num == BULK_IN_EP)
+		writel(epctl, &OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl);
+	else
+		writel(epctl, &OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl);
+
+	debug("%s: cleared stall, EPCTL%d = 0x%x\n", __func__, ep_num, epctl);
+}
+
+static void ep_activate(uint8 ep_num)
+{
+	uint32 epctl, daintmsk;
+	volatile uint32 *addr;
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
+
+	if (ep_num == BULK_IN_EP) {
+		epctl = readl(&OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl);
+		daintmsk = 1 << ep_num;
+	} else {
+		epctl = readl(&OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl);
+		daintmsk = (1 << ep_num) << DAINT_OUT_BIT;
 	}
 
+	debug("%s: EPCTRL%d = 0x%x\n", __func__, ep_num, epctl);
+
+	/* If the EP is already active don't change the EP Control register */
+	if (!(epctl & DEPCTL_USBACTEP)) {
+		epctl = (epctl & ~DEPCTL_TYPE_MASK) |
+			  (USB_ENDPOINT_XFER_BULK << DEPCTL_TYPE_BIT);
+		epctl = (epctl & ~DEPCTL_MPS_MASK) |
+			  (0x200 << DEPCTL_MPS_BIT);
+		epctl |= (DEPCTL_SETD0PID | DEPCTL_USBACTEP);
+	}
+
+	if (ep_num == BULK_IN_EP)
+		writel(epctl, &OtgReg->Device.InEp[BULK_IN_EP].DiEpCtl);
+	else
+		writel(epctl, &OtgReg->Device.OutEp[BULK_OUT_EP].DoEpCtl);
+
+	debug("%s: USB Ative EP%d, EPCTL%d = 0x%x\n",
+	      __func__, ep_num, ep_num, epctl);
+
+	/* Unmask EP Interrtupt */
+	addr = &OtgReg->Device.daintmsk;
+	writel(readl(addr) | daintmsk, addr);
+	debug("%s: DAINTMSK = 0x%x\n", __func__, readl(addr));
+}
+
+void clear_feature(uint8 ep_num)
+{
+	ep_num &= 0x0f;
+
+	ep_clear_stall(ep_num);
+	ep_activate(ep_num);
 	ep0in_ack();
 }
 
