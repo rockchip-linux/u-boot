@@ -114,6 +114,7 @@ struct hdmi_vmode {
 	unsigned int mpixelclock;
 	unsigned int mpixelrepetitioninput;
 	unsigned int mpixelrepetitionoutput;
+	unsigned int mtmdsclock;
 };
 
 struct hdmi_data_info {
@@ -511,6 +512,7 @@ int hdmi_phy_configure_dwc_hdmi_3d_tx(struct dw_hdmi *hdmi,
 	const struct dw_hdmi_mpll_config *mpll_config = pdata->mpll_cfg;
 	const struct dw_hdmi_curr_ctrl *curr_ctrl = pdata->cur_ctr;
 	const struct dw_hdmi_phy_config *phy_config = pdata->phy_config;
+	unsigned int tmdsclock = hdmi->hdmi_data.video_mode.mtmdsclock;
 
 	/* PLL/MPLL Cfg - always match on final entry */
 	for (; mpll_config->mpixelclock != ~0UL; mpll_config++)
@@ -518,11 +520,11 @@ int hdmi_phy_configure_dwc_hdmi_3d_tx(struct dw_hdmi *hdmi,
 			break;
 
 	for (; curr_ctrl->mpixelclock != ~0UL; curr_ctrl++)
-		if (mpixelclock <= curr_ctrl->mpixelclock)
+		if (tmdsclock <= curr_ctrl->mpixelclock)
 			break;
 
 	for (; phy_config->mpixelclock != ~0UL; phy_config++)
-		if (mpixelclock <= phy_config->mpixelclock)
+		if (tmdsclock <= phy_config->mpixelclock)
 			break;
 
 	if (mpll_config->mpixelclock == ~0UL ||
@@ -799,7 +801,7 @@ static void rockchip_dw_hdmi_scdc_set_tmds_rate(struct dw_hdmi *hdmi)
 	rockchip_dw_hdmi_scdc_init(hdmi);
 	stat = rockchip_dw_hdmi_i2cm_read_data(hdmi,
 					       SCDC_TMDS_CONFIG);
-	if (hdmi->hdmi_data.video_mode.mpixelclock > 340000000)
+	if (hdmi->hdmi_data.video_mode.mtmdsclock > 340000000)
 		stat |= SCDC_TMDS_BIT_CLOCK_RATIO_BY_40;
 	else
 		stat &= ~SCDC_TMDS_BIT_CLOCK_RATIO_BY_40;
@@ -812,6 +814,7 @@ static int hdmi_phy_configure(struct dw_hdmi *hdmi)
 	const struct dw_hdmi_phy_data *phy = hdmi->phy.data;
 	const struct dw_hdmi_plat_data *pdata = hdmi->plat_data;
 	unsigned long mpixelclock = hdmi->hdmi_data.video_mode.mpixelclock;
+	unsigned long mtmdsclock = hdmi->hdmi_data.video_mode.mtmdsclock;
 	int ret;
 
 	dw_hdmi_phy_power_off(hdmi);
@@ -847,7 +850,7 @@ static int hdmi_phy_configure(struct dw_hdmi *hdmi)
 	}
 
 	/* Wait for resuming transmission of TMDS clock and data */
-	if (mpixelclock > 340000000)
+	if (mtmdsclock > 340000000)
 		mdelay(100);
 
 	return dw_hdmi_phy_power_on(hdmi);
@@ -938,6 +941,33 @@ static int dw_hdmi_detect_phy(struct dw_hdmi *hdmi)
 	return -ENODEV;
 }
 
+static unsigned int
+hdmi_get_tmdsclock(struct dw_hdmi *hdmi, unsigned long mpixelclock)
+{
+	unsigned int tmdsclock = mpixelclock;
+	unsigned int depth =
+		hdmi_bus_fmt_color_depth(hdmi->hdmi_data.enc_out_bus_format);
+
+	if (!hdmi_bus_fmt_is_yuv422(hdmi->hdmi_data.enc_out_bus_format)) {
+		switch (depth) {
+		case 16:
+			tmdsclock = mpixelclock * 2;
+			break;
+		case 12:
+			tmdsclock = mpixelclock * 3 / 2;
+			break;
+		case 10:
+			tmdsclock = mpixelclock * 5 / 4;
+			break;
+		default:
+			break;
+		}
+	}
+
+	return tmdsclock;
+}
+
+
 static void hdmi_av_composer(struct dw_hdmi *hdmi,
 			     const struct drm_display_mode *mode)
 {
@@ -947,19 +977,22 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 	int bytes, hblank, vblank, h_de_hs, v_de_vs, hsync_len, vsync_len;
 	unsigned int hdisplay, vdisplay;
 
-	vmode->mpixelclock = mode->clock * 1000;
-	if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
-		vmode->mpixelclock /= 2;
+	vmode->mpixelclock = mode->crtc_clock * 1000;
 	if ((mode->flags & DRM_MODE_FLAG_3D_MASK) ==
 		DRM_MODE_FLAG_3D_FRAME_PACKING)
 		vmode->mpixelclock *= 2;
-	debug("final pixclk = %d\n", vmode->mpixelclock);
+	vmode->mtmdsclock = hdmi_get_tmdsclock(hdmi, vmode->mpixelclock);
+	if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
+		vmode->mtmdsclock/= 2;
+
+	debug("final pixclk = %d tmdsclk = %d\n",
+	      vmode->mpixelclock, vmode->mtmdsclock);
 
 	/* Set up HDMI_FC_INVIDCONF
 	 * fc_invidconf.HDCP_keepout must be set (1'b1)
 	 * when activate the scrambler feature.
 	 */
-	inv_val = (vmode->mpixelclock > 340000000 ||
+	inv_val = (vmode->mtmdsclock > 340000000 ||
 		   (hdmi_info->scdc.scrambling.low_rates &&
 		    hdmi->scramble_low_rates) ?
 		   HDMI_FC_INVIDCONF_HDCP_KEEPOUT_ACTIVE :
@@ -1035,7 +1068,7 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 
 	/* Scrambling Control */
 	if (hdmi_info->scdc.supported) {
-		if (vmode->mpixelclock > 340000000 ||
+		if (vmode->mtmdsclock > 340000000 ||
 		    (hdmi_info->scdc.scrambling.low_rates &&
 		     hdmi->scramble_low_rates)) {
 			rockchip_dw_hdmi_scdc_init(hdmi);
@@ -1775,7 +1808,7 @@ void hdmi_set_clk_regenerator(struct dw_hdmi *hdmi, unsigned long pixel_clk,
 
 static void hdmi_clk_regenerator_update_pixel_clock(struct dw_hdmi *hdmi)
 {
-	hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mpixelclock,
+	hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mtmdsclock,
 				 hdmi->sample_rate);
 }
 
@@ -1787,7 +1820,7 @@ static void hdmi_enable_audio_clk(struct dw_hdmi *hdmi)
 void dw_hdmi_set_sample_rate(struct dw_hdmi *hdmi, unsigned int rate)
 {
 	hdmi->sample_rate = rate;
-	hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mpixelclock,
+	hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mtmdsclock,
 				 hdmi->sample_rate);
 }
 
@@ -2272,7 +2305,10 @@ int inno_dw_hdmi_phy_init(struct dw_hdmi *hdmi, void *data)
 	struct connector_state *conn_state = &state->conn_state;
 
 	rockchip_phy_set_pll(state, conn_state->mode.crtc_clock * 1000);
+	if (hdmi->edid_data.display_info.hdmi.scdc.supported)
+		rockchip_dw_hdmi_scdc_set_tmds_rate(hdmi);
 	rockchip_phy_power_on(state);
+
 	return 0;
 }
 

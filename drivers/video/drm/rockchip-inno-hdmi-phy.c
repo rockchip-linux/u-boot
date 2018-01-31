@@ -318,7 +318,7 @@ static inline void inno_update_bits(struct inno_hdmi_phy *inno, u8 reg,
 	inno_write(inno, reg, tmp);
 }
 
-static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno, int rate,
+static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno, unsigned long rate,
 				     int format)
 {
 	u32 tmdsclk;
