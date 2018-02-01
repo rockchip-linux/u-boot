@@ -1068,10 +1068,10 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 
 	/* Scrambling Control */
 	if (hdmi_info->scdc.supported) {
+		rockchip_dw_hdmi_scdc_init(hdmi);
 		if (vmode->mtmdsclock > 340000000 ||
 		    (hdmi_info->scdc.scrambling.low_rates &&
 		     hdmi->scramble_low_rates)) {
-			rockchip_dw_hdmi_scdc_init(hdmi);
 			bytes = rockchip_dw_hdmi_scdc_get_sink_version(hdmi);
 			rockchip_dw_hdmi_scdc_set_source_version(hdmi, bytes);
 			rockchip_dw_hdmi_scrambling_enable(hdmi, 1);
