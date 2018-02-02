@@ -26,6 +26,8 @@ struct rockchip_crtc_funcs {
 struct vop_data;
 extern const struct rockchip_crtc_funcs rockchip_vop_funcs;
 extern const struct vop_data rk3036_vop;
+extern const struct vop_data px30_vop_lit;
+extern const struct vop_data px30_vop_big;
 extern const struct vop_data rk3288_vop;
 extern const struct vop_data rk3368_vop;
 extern const struct vop_data rk3366_vop;

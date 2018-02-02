@@ -239,17 +239,26 @@ struct vop_ctrl {
 	struct vop_reg dclk_ddr;
 	struct vop_reg p2i_en;
 	struct vop_reg rgb_en;
+	struct vop_reg lvds_en;
 	struct vop_reg edp_en;
 	struct vop_reg hdmi_en;
 	struct vop_reg mipi_en;
 	struct vop_reg data01_swap;
 	struct vop_reg mipi_dual_channel_en;
 	struct vop_reg dp_en;
+	struct vop_reg dclk_pol;
 	struct vop_reg pin_pol;
+	struct vop_reg rgb_dclk_pol;
 	struct vop_reg rgb_pin_pol;
+	struct vop_reg lvds_dclk_pol;
+	struct vop_reg lvds_pin_pol;
+	struct vop_reg hdmi_dclk_pol;
 	struct vop_reg hdmi_pin_pol;
+	struct vop_reg edp_dclk_pol;
 	struct vop_reg edp_pin_pol;
+	struct vop_reg mipi_dclk_pol;
 	struct vop_reg mipi_pin_pol;
+	struct vop_reg dp_dclk_pol;
 	struct vop_reg dp_pin_pol;
 
 	struct vop_reg dither_up;
@@ -269,6 +278,49 @@ struct vop_ctrl {
 	struct vop_reg xmirror;
 	struct vop_reg ymirror;
 	struct vop_reg dsp_background;
+
+	/* CABC */
+	struct vop_reg cabc_total_num;
+	struct vop_reg cabc_config_mode;
+	struct vop_reg cabc_stage_up_mode;
+	struct vop_reg cabc_scale_cfg_value;
+	struct vop_reg cabc_scale_cfg_enable;
+	struct vop_reg cabc_global_dn_limit_en;
+	struct vop_reg cabc_lut_en;
+	struct vop_reg cabc_en;
+	struct vop_reg cabc_handle_en;
+	struct vop_reg cabc_stage_up;
+	struct vop_reg cabc_stage_down;
+	struct vop_reg cabc_global_dn;
+	struct vop_reg cabc_calc_pixel_num;
+
+	/* BCSH */
+	struct vop_reg bcsh_brightness;
+	struct vop_reg bcsh_contrast;
+	struct vop_reg bcsh_sat_con;
+	struct vop_reg bcsh_sin_hue;
+	struct vop_reg bcsh_cos_hue;
+	struct vop_reg bcsh_r2y_csc_mode;
+	struct vop_reg bcsh_r2y_en;
+	struct vop_reg bcsh_y2r_csc_mode;
+	struct vop_reg bcsh_y2r_en;
+	struct vop_reg bcsh_color_bar;
+	struct vop_reg bcsh_out_mode;
+	struct vop_reg bcsh_en;
+
+	/* MCU OUTPUT */
+	struct vop_reg mcu_pix_total;
+	struct vop_reg mcu_cs_pst;
+	struct vop_reg mcu_cs_pend;
+	struct vop_reg mcu_rw_pst;
+	struct vop_reg mcu_rw_pend;
+	struct vop_reg mcu_clk_sel;
+	struct vop_reg mcu_hold_mode;
+	struct vop_reg mcu_frame_st;
+	struct vop_reg mcu_rs;
+	struct vop_reg mcu_bypass;
+	struct vop_reg mcu_type;
+	struct vop_reg mcu_rw_bypass_port;
 
 	struct vop_reg win_gate[4];
 	struct vop_reg cfg_done;
