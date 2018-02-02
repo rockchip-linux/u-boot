@@ -263,6 +263,7 @@ enum {
 };
 
 enum soc_type {
+	PX30,
 	RK3128,
 	RK3288,
 	RK3366,
@@ -1135,6 +1136,26 @@ static const struct rockchip_connector_funcs rockchip_dw_mipi_dsi_funcs = {
 	.transfer = rockchip_dw_mipi_dsi_transfer,
 };
 
+static const u32 px30_dsi_grf_reg_fields[MAX_FIELDS] = {
+	[DPIUPDATECFG]		= GRF_REG_FIELD(0x0434,  7,  7),
+	[DPICOLORM]		= GRF_REG_FIELD(0x0434,  3,  3),
+	[DPISHUTDN]		= GRF_REG_FIELD(0x0434,  2,  2),
+	[FORCETXSTOPMODE]	= GRF_REG_FIELD(0x0438,  7, 10),
+	[TURNDISABLE]		= GRF_REG_FIELD(0x0438,  5,  5),
+	[VOPSEL]		= GRF_REG_FIELD(0x0438,  0,  0),
+};
+
+static const struct dw_mipi_dsi_plat_data px30_mipi_dsi_drv_data = {
+	.dsi0_grf_reg_fields = px30_dsi_grf_reg_fields,
+	.max_bit_rate_per_lane = 1000000000UL,
+	.soc_type = PX30,
+};
+
+static const struct rockchip_connector px30_mipi_dsi_data = {
+	 .funcs = &rockchip_dw_mipi_dsi_funcs,
+	 .data = &px30_mipi_dsi_drv_data,
+};
+
 static const u32 rk3128_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[FORCETXSTOPMODE]	= GRF_REG_FIELD(0x0150, 10, 13),
 	[FORCERXMODE]		= GRF_REG_FIELD(0x0150,  9,  9),
@@ -1271,6 +1292,10 @@ static const struct rockchip_connector rk3399_mipi_dsi_data = {
 };
 
 static const struct udevice_id rockchip_mipi_dsi_ids[] = {
+	{
+		.compatible = "rockchip,px30-mipi-dsi",
+		.data = (ulong)&px30_mipi_dsi_data,
+	},
 	{
 		.compatible = "rockchip,rk3128-mipi-dsi",
 		.data = (ulong)&rk3128_mipi_dsi_data,
