@@ -124,7 +124,7 @@ struct inno_mipi_dphy_timing {
 struct inno_mipi_dphy {
 	const void *blob;
 	ofnode node;
-	u32 regs;
+	void __iomem *regs;
 
 	unsigned int lane_mbps;
 	int lanes;
@@ -560,11 +560,7 @@ static int inno_mipi_dphy_init(struct display_state *state)
 		return ret;
 	}
 
-	inno->regs = (u32)ofnode_get_addr(node);
-	if (inno->regs == FDT_ADDR_T_NONE) {
-		printf("%s: failed to get mipi phy address\n", __func__);
-		return -ENOMEM;
-	}
+	inno->regs = (void __iomem *)ofnode_get_addr(node);
 
 	conn_state->phy_private = inno;
 

@@ -17,15 +17,7 @@
 #include "rockchip_phy.h"
 
 #ifdef CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI
-static const struct rockchip_phy rockchip_rk3366_mipi_dphy_data = {
-	 .funcs = &inno_mipi_dphy_funcs,
-};
-
-static const struct rockchip_phy rockchip_rk3368_mipi_dphy_data = {
-	 .funcs = &inno_mipi_dphy_funcs,
-};
-
-static const struct rockchip_phy rockchip_rk312x_mipi_dphy_data = {
+static const struct rockchip_phy rockchip_inno_mipi_dphy_data = {
 	 .funcs = &inno_mipi_dphy_funcs,
 };
 #endif
@@ -33,16 +25,20 @@ static const struct rockchip_phy rockchip_rk312x_mipi_dphy_data = {
 static const struct udevice_id rockchip_phy_ids[] = {
 #ifdef CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI
 	{
-	 .compatible = "rockchip,rk3366-mipi-dphy",
-	 .data = (ulong)&rockchip_rk3366_mipi_dphy_data,
+		.compatible = "rockchip,px30-mipi-dphy",
+		.data = (ulong)&rockchip_inno_mipi_dphy_data,
 	},
 	{
-	 .compatible = "rockchip,rk3368-mipi-dphy",
-	 .data = (ulong)&rockchip_rk3368_mipi_dphy_data,
+		.compatible = "rockchip,rk3128-mipi-dphy",
+		.data = (ulong)&rockchip_inno_mipi_dphy_data,
 	},
 	{
-	 .compatible = "rockchip,rk3128-mipi-dphy",
-	 .data = (ulong)&rockchip_rk312x_mipi_dphy_data,
+		.compatible = "rockchip,rk3366-mipi-dphy",
+		.data = (ulong)&rockchip_inno_mipi_dphy_data,
+	},
+	{
+		.compatible = "rockchip,rk3368-mipi-dphy",
+		.data = (ulong)&rockchip_inno_mipi_dphy_data,
 	},
 #endif
 	{}
