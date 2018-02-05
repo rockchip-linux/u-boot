@@ -517,11 +517,16 @@ static int display_init(struct display_state *state)
 		printf("hdmi plugin ,skip tve\n");
 		goto deinit;
 	}
+#elif defined(CONFIG_ROCKCHIP_DRM_RK1000)
+	if (crtc->hdmi_hpd && conn_state->type == DRM_MODE_CONNECTOR_LVDS) {
+		printf("hdmi plugin ,skip tve\n");
+		goto deinit;
+	}
 #endif
 	if (conn_funcs->detect) {
 		ret = conn_funcs->detect(state);
 
-#ifdef CONFIG_ROCKCHIP_DRM_TVE
+#if defined(CONFIG_ROCKCHIP_DRM_TVE) || defined(CONFIG_ROCKCHIP_DRM_RK1000)
 		if (conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
 			crtc->hdmi_hpd = ret;
 #endif

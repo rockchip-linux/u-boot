@@ -117,6 +117,9 @@ static const struct rockchip_panel g_panel[] = {
 		.compatible = "lg,lp079qx1-sp0v",
 		.funcs = &panel_simple_funcs,
 		.data = &lg_lp079qx1_sp0v_mode,
+	}, {
+		.compatible = "rockchip,rk1000-tve",
+		.funcs = &rockchip_rk1000_funcs,
 	},
 };
 

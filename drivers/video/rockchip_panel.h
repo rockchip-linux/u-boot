@@ -35,6 +35,7 @@ int rockchip_panel_unprepare(struct display_state *state);
 #ifdef CONFIG_ROCKCHIP_PANEL
 extern const struct rockchip_panel_funcs panel_simple_funcs;
 extern const struct rockchip_panel_funcs rockchip_dsi_panel_funcs;
+extern const struct rockchip_panel_funcs rockchip_rk1000_funcs;
 #endif
 
 #endif	/* _ROCKCHIP_PANEL_H_ */
