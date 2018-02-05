@@ -513,6 +513,12 @@ int hdmi_phy_configure_dwc_hdmi_3d_tx(struct dw_hdmi *hdmi,
 	const struct dw_hdmi_curr_ctrl *curr_ctrl = pdata->cur_ctr;
 	const struct dw_hdmi_phy_config *phy_config = pdata->phy_config;
 	unsigned int tmdsclock = hdmi->hdmi_data.video_mode.mtmdsclock;
+        unsigned int depth =
+                hdmi_bus_fmt_color_depth(hdmi->hdmi_data.enc_out_bus_format);
+
+	if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format) &&
+	    pdata->mpll_cfg_420)
+		mpll_config = pdata->mpll_cfg_420;
 
 	/* PLL/MPLL Cfg - always match on final entry */
 	for (; mpll_config->mpixelclock != ~0UL; mpll_config++)
@@ -532,31 +538,29 @@ int hdmi_phy_configure_dwc_hdmi_3d_tx(struct dw_hdmi *hdmi,
 	    phy_config->mpixelclock == ~0UL)
 		return -EINVAL;
 
-	/*
-	 * RK3399 mpll clock source is vpll, also is vop clock source.
-	 * vpll rate is twice of mpixelclock in YCBCR420 mode, we need
-	 * to enable mpll pre-divider.
-	 */
-	if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format) &&
-	    (hdmi->dev_type == RK3399_HDMI || hdmi->dev_type == RK3368_HDMI))
-		dw_hdmi_phy_i2c_write(hdmi, mpll_config->res[0].cpce | 4,
-				      HDMI_3D_TX_PHY_CPCE_CTRL);
+	if (!hdmi_bus_fmt_is_yuv422(hdmi->hdmi_data.enc_out_bus_format))
+		depth = fls(depth - 8);
 	else
-		dw_hdmi_phy_i2c_write(hdmi, mpll_config->res[0].cpce,
-				      HDMI_3D_TX_PHY_CPCE_CTRL);
-	dw_hdmi_phy_i2c_write(hdmi, mpll_config->res[0].gmp,
+		depth = 0;
+	if (depth)
+		depth--;
+
+	dw_hdmi_phy_i2c_write(hdmi, mpll_config->res[depth].cpce,
+			      HDMI_3D_TX_PHY_CPCE_CTRL);
+
+	dw_hdmi_phy_i2c_write(hdmi, mpll_config->res[depth].gmp,
 			      HDMI_3D_TX_PHY_GMPCTRL);
-	dw_hdmi_phy_i2c_write(hdmi, curr_ctrl->curr[0],
+	dw_hdmi_phy_i2c_write(hdmi, curr_ctrl->curr[depth],
 			      HDMI_3D_TX_PHY_CURRCTRL);
 
 	dw_hdmi_phy_i2c_write(hdmi, 0, HDMI_3D_TX_PHY_PLLPHBYCTRL);
 	dw_hdmi_phy_i2c_write(hdmi, HDMI_3D_TX_PHY_MSM_CTRL_CKO_SEL_FB_CLK,
 			      HDMI_3D_TX_PHY_MSM_CTRL);
 
-	dw_hdmi_phy_i2c_write(hdmi, 0x0004, HDMI_3D_TX_PHY_TXTERM);
-	dw_hdmi_phy_i2c_write(hdmi, 0x8009,
+	dw_hdmi_phy_i2c_write(hdmi, phy_config->term, HDMI_3D_TX_PHY_TXTERM);
+	dw_hdmi_phy_i2c_write(hdmi, phy_config->sym_ctr,
 			      HDMI_3D_TX_PHY_CKSYMTXCTRL);
-	dw_hdmi_phy_i2c_write(hdmi, 0x0272,
+	dw_hdmi_phy_i2c_write(hdmi, phy_config->vlev_ctr,
 			      HDMI_3D_TX_PHY_VLEVCTRL);
 
 	/* Override and disable clock termination. */
@@ -983,8 +987,7 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 		vmode->mpixelclock *= 2;
 	vmode->mtmdsclock = hdmi_get_tmdsclock(hdmi, vmode->mpixelclock);
 	if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
-		vmode->mtmdsclock/= 2;
-
+		vmode->mtmdsclock /= 2;
 	debug("final pixclk = %d tmdsclk = %d\n",
 	      vmode->mpixelclock, vmode->mtmdsclock);
 
