@@ -94,6 +94,7 @@ static const struct rockchip_connector g_connector[] = {
 	}, {
 	 .compatible = "rockchip,rk3368-dw-hdmi",
 	 .funcs = &rockchip_dw_hdmi_funcs,
+	 .data = &rk3368_hdmi_drv_data,
 	}, {
 	 .compatible = "rockchip,rk3399-dw-hdmi",
 	 .funcs = &rockchip_dw_hdmi_funcs,

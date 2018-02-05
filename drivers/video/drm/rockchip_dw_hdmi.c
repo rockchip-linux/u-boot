@@ -562,6 +562,13 @@ const struct dw_hdmi_plat_data rk3328_hdmi_drv_data = {
 	.dev_type   = RK3328_HDMI,
 };
 
+const struct dw_hdmi_plat_data rk3368_hdmi_drv_data = {
+	.mpll_cfg   = rockchip_mpll_cfg,
+	.cur_ctr    = rockchip_cur_ctr,
+	.phy_config = rockchip_phy_config,
+	.dev_type   = RK3368_HDMI,
+};
+
 const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
 	.vop_sel_bit = 6,
 	.grf_vop_sel_reg = RK3399_GRF_SOC_CON20,
