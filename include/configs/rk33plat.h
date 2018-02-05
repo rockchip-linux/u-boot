@@ -399,11 +399,16 @@
 #define CONFIG_ROCKCHIP_DW_MIPI_DSI
 #define CONFIG_ROCKCHIP_LVDS
 #define CONFIG_ROCKCHIP_ANALOGIX_DP
-#define CONFIG_ROCKCHIP_DRM_TVE
 #define CONFIG_DRM_ROCKCHIP_DW_HDMI
 #define CONFIG_ROCKCHIP_PANEL
 #define CONFIG_I2C_EDID
 #define CONFIG_RK_VOP_DUAL_ANY_FREQ_PLL
+/* rk drm tve */
+#if defined(CONFIG_RKCHIP_RK322XH)
+        #define CONFIG_ROCKCHIP_DRM_TVE
+#elif defined(CONFIG_RKCHIP_RK3368)
+        #define CONFIG_ROCKCHIP_DRM_RK1000
+#endif
 #endif
 
 /* more config for charge */
