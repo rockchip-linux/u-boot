@@ -280,8 +280,6 @@ struct sdhci_host {
 	struct mmc_config cfg;
 };
 
-int sdhci_set_clock(struct sdhci_host *host, unsigned int clock);
-
 #ifdef CONFIG_MMC_SDHCI_IO_ACCESSORS
 
 static inline void sdhci_writel(struct sdhci_host *host, u32 val, int reg)
