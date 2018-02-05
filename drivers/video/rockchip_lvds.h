@@ -221,4 +221,9 @@ enum {
 #define LVDS_PMUGRF_BASE         0xff738000
 #define v_RK336X_FORCE_JETAG(x) (BITS_MASK(x, 1, 13) | BITS_EN(1, 13))
 
+#ifdef CONFIG_ROCKCHIP_DRM_RK1000
+extern void drm_rk1000_selete_output(struct overscan *overscan,
+				     struct drm_display_mode *mode);
+#endif
+
 #endif

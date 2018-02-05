@@ -680,10 +680,26 @@ static int rockchip_lvds_disable(struct display_state *state)
 	return 0;
 }
 
+#ifdef CONFIG_ROCKCHIP_DRM_RK1000
+int rockchip_lvds_get_timing(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct overscan *overscan = &conn_state->overscan;
+
+	drm_rk1000_selete_output(overscan, mode);
+
+	return 0;
+}
+#endif
+
 const struct rockchip_connector_funcs rockchip_lvds_funcs = {
 	.init = rockchip_lvds_init,
 	.deinit = rockchip_lvds_deinit,
 	.prepare = rockchip_lvds_prepare,
 	.enable = rockchip_lvds_enable,
 	.disable = rockchip_lvds_disable,
+#ifdef CONFIG_ROCKCHIP_DRM_RK1000
+	.get_timing = rockchip_lvds_get_timing,
+#endif
 };
