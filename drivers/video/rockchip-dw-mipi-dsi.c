@@ -21,6 +21,9 @@
 #include "rockchip_phy.h"
 #include "rockchip_mipi_dsi.h"
 
+#define IS_DSI0(dsi)	((dsi)->id == 0)
+#define IS_DSI1(dsi)	((dsi)->id == 1)
+
 #define MSEC_PER_SEC    1000L
 #define USEC_PER_SEC	1000000L
 
@@ -497,9 +500,22 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 	return 0;
 }
 
-static int dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
+static void mipi_dphy_pll_configure(struct dw_mipi_dsi *dsi)
 {
-	int testdin, vco, val;
+	dw_mipi_dsi_phy_write(dsi, 0x17, INPUT_DIVIDER(dsi->dphy.input_div));
+	dw_mipi_dsi_phy_write(dsi, 0x18,
+			      LOOP_DIV_LOW_SEL(dsi->dphy.feedback_div) |
+			      LOW_PROGRAM_EN);
+	dw_mipi_dsi_phy_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
+	dw_mipi_dsi_phy_write(dsi, 0x18,
+			      LOOP_DIV_HIGH_SEL(dsi->dphy.feedback_div) |
+			      HIGH_PROGRAM_EN);
+	dw_mipi_dsi_phy_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
+}
+
+static int mipi_dphy_configure(struct dw_mipi_dsi *dsi)
+{
+	int testdin, vco;
 
 	vco = (dsi->lane_mbps < 200) ? 0 : (dsi->lane_mbps + 100) / 200;
 
@@ -519,13 +535,8 @@ static int dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 					 LPF_RESISTORS_20_KOHM);
 	dw_mipi_dsi_phy_write(dsi, 0x44, HSFREQRANGE_SEL(testdin));
 
-	dw_mipi_dsi_phy_write(dsi, 0x17, INPUT_DIVIDER(dsi->dphy.input_div));
-	val = LOOP_DIV_LOW_SEL(dsi->dphy.feedback_div) | LOW_PROGRAM_EN;
-	dw_mipi_dsi_phy_write(dsi, 0x18, val);
-	dw_mipi_dsi_phy_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
-	val = LOOP_DIV_HIGH_SEL(dsi->dphy.feedback_div) | HIGH_PROGRAM_EN;
-	dw_mipi_dsi_phy_write(dsi, 0x18, val);
-	dw_mipi_dsi_phy_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
+	if (IS_DSI0(dsi))
+		mipi_dphy_pll_configure(dsi);
 
 	dw_mipi_dsi_phy_write(dsi, 0x20, POWER_CONTROL | INTERNAL_REG_CURRENT |
 					 BIAS_BLOCK_ON | BANDGAP_ON);
@@ -1036,6 +1047,7 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 	conn_state->private = dsi;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	conn_state->type = DRM_MODE_CONNECTOR_DSI;
 
 	panel = fdt_subnode_offset(state->blob, mipi_node, "panel");
 	if (panel < 0) {
@@ -1059,9 +1071,11 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 	if (ret)
 		return ret;
 
-	conn_state->type = DRM_MODE_CONNECTOR_DSI;
 	if (dsi->slave)
-		conn_state->output_type = ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL;
+		conn_state->output_type |= ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL;
+
+	if (IS_DSI1(dsi))
+		conn_state->output_type |= ROCKCHIP_OUTPUT_DSI_DUAL_LINK;
 
 	return 0;
 }
@@ -1146,7 +1160,7 @@ static void mipi_dphy_init(struct dw_mipi_dsi *dsi)
 	udelay(1);
 
 	if (!dsi->dphy.phy)
-		dw_mipi_dsi_phy_init(dsi);
+		mipi_dphy_configure(dsi);
 
 	/* Enable Data Lane Module */
 	grf_field_write(dsi, ENABLE_N, map[dsi->lanes - 1]);
