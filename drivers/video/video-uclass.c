@@ -128,7 +128,9 @@ static ulong alloc_fb(struct udevice *dev, ulong *addrp)
 
 int video_reserve(ulong *addrp)
 {
+#ifndef CONFIG_DRM_ROCKCHIP
 	struct udevice *dev;
+#endif
 	ulong size;
 
 	if (IS_ENABLED(CONFIG_SPL_VIDEO_HANDOFF) && xpl_phase() == PHASE_BOARD_F)
