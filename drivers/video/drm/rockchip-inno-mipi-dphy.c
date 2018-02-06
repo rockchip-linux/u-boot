@@ -8,8 +8,6 @@
 #include <common.h>
 #include <errno.h>
 #include <malloc.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <linux/list.h>
@@ -125,7 +123,7 @@ struct inno_mipi_dphy_timing {
 
 struct inno_mipi_dphy {
 	const void *blob;
-	int node;
+	ofnode node;
 	u32 regs;
 
 	unsigned int lane_mbps;
@@ -507,7 +505,7 @@ static unsigned long inno_mipi_dphy_set_pll(struct display_state *state,
 	fin = 24000000;
 	fout = inno_mipi_dphy_pll_round_rate(fin, rate, &prediv, &fbdiv);
 
-	printf("%s: fin=%lu, fout=%lu, prediv=%u, fbdiv=%u\n",
+	debug("%s: fin=%lu, fout=%lu, prediv=%u, fbdiv=%u\n",
 	       __func__, fin, fout, prediv, fbdiv);
 
 	m = FBDIV_HI_MASK | PREDIV_MASK;
@@ -523,16 +521,15 @@ static unsigned long inno_mipi_dphy_set_pll(struct display_state *state,
 	return fout;
 }
 
-static int inno_mipi_dphy_parse_dt(int panel_node, struct inno_mipi_dphy *inno)
+static int inno_mipi_dphy_parse_dt(ofnode panel_node, struct inno_mipi_dphy *inno)
 {
-	const void *blob = inno->blob;
 	int format;
 
-	inno->lanes = fdtdec_get_int(blob, panel_node, "dsi,lanes", -1);
+	inno->lanes = ofnode_read_s32_default(panel_node, "dsi,lanes", -1);
 	if (inno->lanes < 0)
 		inno->lanes = 4;
 
-	format = fdtdec_get_int(blob, panel_node, "dsi,format", -1);
+	format = ofnode_read_s32_default(panel_node, "dsi,format", -1);
 	inno->bpp = mipi_dsi_pixel_format_to_bpp(format);
 	if (inno->bpp < 0)
 		inno->bpp = 24;
@@ -545,8 +542,8 @@ static int inno_mipi_dphy_init(struct display_state *state)
 	const void *blob = state->blob;
 	struct connector_state *conn_state = &state->conn_state;
 	struct panel_state *panel_state = &state->panel_state;
-	int node = conn_state->phy_node;
-	int panel_node = panel_state->node;
+	ofnode node = conn_state->phy_node;
+	ofnode panel_node = panel_state->node;
 	struct inno_mipi_dphy *inno;
 	int ret;
 
@@ -563,8 +560,7 @@ static int inno_mipi_dphy_init(struct display_state *state)
 		return ret;
 	}
 
-	inno->regs = fdtdec_get_addr_size_auto_noparent(blob, node, "reg",
-							0, NULL, false);
+	inno->regs = (u32)ofnode_get_addr(node);
 	if (inno->regs == FDT_ADDR_T_NONE) {
 		printf("%s: failed to get mipi phy address\n", __func__);
 		return -ENOMEM;

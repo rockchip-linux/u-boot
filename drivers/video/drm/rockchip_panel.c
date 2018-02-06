@@ -9,8 +9,6 @@
 #include <common.h>
 #include <errno.h>
 #include <dm/device.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"

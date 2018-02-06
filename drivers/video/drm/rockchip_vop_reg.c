@@ -8,8 +8,6 @@
 #include <common.h>
 #include <errno.h>
 #include <malloc.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <linux/list.h>

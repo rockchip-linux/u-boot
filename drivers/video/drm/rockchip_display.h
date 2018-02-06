@@ -10,6 +10,7 @@
 #include <bmp_layout.h>
 #include <drm_modes.h>
 #include <edid.h>
+#include <dm/ofnode.h>
 
 #define ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL	BIT(0)
 #define ROCKCHIP_OUTPUT_DSI_DUAL_LINK		BIT(1)
@@ -41,7 +42,7 @@ struct crtc_state {
 	struct udevice *dev;
 	const struct rockchip_crtc *crtc;
 	void *private;
-	int node;
+	ofnode node;
 	int crtc_id;
 
 	int format;
@@ -61,8 +62,8 @@ struct crtc_state {
 
 struct panel_state {
 	struct udevice *dev;
-	int node;
-	int dsp_lut_node;
+	ofnode node;
+	ofnode dsp_lut_node;
 
 	const struct rockchip_panel *panel;
 	void *private;
@@ -73,8 +74,8 @@ struct connector_state {
 	const struct rockchip_connector *connector;
 	struct udevice *phy_dev;
 	const struct rockchip_phy *phy;
-	int node;
-	int phy_node;
+	ofnode node;
+	ofnode phy_node;
 
 	void *private;
 	void *phy_private;
@@ -112,7 +113,7 @@ struct display_state {
 	struct list_head head;
 
 	const void *blob;
-	int node;
+	ofnode node;
 
 	struct crtc_state crtc_state;
 	struct connector_state conn_state;

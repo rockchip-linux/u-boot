@@ -8,8 +8,6 @@
 #include <common.h>
 #include <dm/device.h>
 #include <errno.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <asm/unaligned.h>
 #include <linux/list.h>
 

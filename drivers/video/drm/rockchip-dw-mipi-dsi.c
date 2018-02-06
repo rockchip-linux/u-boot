@@ -8,12 +8,12 @@
 #include <common.h>
 #include <errno.h>
 #include <malloc.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <linux/list.h>
 #include <dm/device.h>
+#include <dm/read.h>
+#include <dm/of_access.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
 
@@ -340,7 +340,7 @@ struct dw_mipi_dsi {
 	void *base;
 	void *grf;
 	const void *blob;
-	int node;
+	ofnode node;
 
 	/* dual-channel */
 	struct dw_mipi_dsi *master;
@@ -531,7 +531,7 @@ static int dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 	ret = readl_poll_timeout(dsi->base + DSI_PHY_STATUS,
 				 val, val & LOCK, 1000, PHY_STATUS_TIMEOUT_US);
 	if (ret < 0) {
-		printf("failed to wait for phy lock state\n");
+		printf("failed to wait for phy lock state %p\n", dsi->base);
 		return ret;
 	}
 
@@ -554,8 +554,7 @@ static unsigned long rockchip_dsi_calc_bandwidth(struct dw_mipi_dsi *dsi)
 	int rate;
 
 	/* optional override of the desired bandwidth */
-	rate = fdt_getprop_u32_default_node(dsi->blob, dsi->node, 0,
-					     "rockchip,lane-rate", -1);
+	rate = ofnode_read_u32_default(dsi->node, "rockchip,lane-rate", -1);
 	if (rate > 0) {
 		return rate;
 	}
@@ -955,21 +954,21 @@ static int dw_mipi_dsi_clk_enable(struct dw_mipi_dsi *dsi)
 
 static int rockchip_dsi_dual_channel_probe(struct dw_mipi_dsi *master)
 {
-	int node0, node1;
+	int phandle;
+	struct device_node *np;
 	struct dw_mipi_dsi *slave = NULL;
 
-	node0 = fdt_getprop_u32_default_node(master->blob, master->node, 0,
-					       "rockchip,dual-channel", -1);
-	if (node0 < 0)
+	phandle = ofnode_read_u32_default(master->node, "rockchip,dual-channel", -1);
+	if (phandle < 0)
 		return 0;
 
-	node1 = fdt_node_offset_by_phandle(master->blob, node0);
-	if (node1 < 0) {
+	np = of_find_node_by_phandle(phandle);
+	if (ofnode_valid(np_to_ofnode(np))) {
 		printf("failed to find dsi slave node\n");
 		return -ENODEV;
 	}
 
-	if (!fdt_device_is_available(master->blob, node1)) {
+	if (!of_device_is_available(np)) {
 		printf("dsi slave node is not available\n");
 		return -ENODEV;
 	}
@@ -985,10 +984,8 @@ static int rockchip_dsi_dual_channel_probe(struct dw_mipi_dsi *master)
 	slave->master = master;
 
 	slave->blob = master->blob;
-	slave->node = node1;
-	slave->base = (void *)fdtdec_get_addr_size_auto_noparent(slave->blob,
-								 node1, "reg",
-								 0, NULL, false);
+	slave->node = np_to_ofnode(np);
+	slave->base = (u32 *)ofnode_get_addr_index(slave->node, 0);
 	slave->pdata = master->pdata;
 	slave->dphy.phy = master->dphy.phy;
 	slave->lanes = master->lanes;
@@ -1004,9 +1001,9 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	const struct rockchip_connector *connector = conn_state->connector;
 	const struct dw_mipi_dsi_plat_data *pdata = connector->data;
-	int mipi_node = conn_state->node;
+	ofnode mipi_node = conn_state->node;
 	struct dw_mipi_dsi *dsi;
-	int panel;
+	ofnode panel;
 	int ret;
 
 	dsi = malloc(sizeof(*dsi));
@@ -1014,9 +1011,7 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 		return -ENOMEM;
 	memset(dsi, 0, sizeof(*dsi));
 
-	dsi->base = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
-						mipi_node, "reg", 0, NULL, false);
-
+	dsi->base = dev_read_addr_ptr(conn_state->dev);
 	dsi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (dsi->grf <= 0) {
 		printf("%s: Get syscon grf failed (ret=%p)\n",
@@ -1030,14 +1025,14 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 	conn_state->private = dsi;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
-	panel = fdt_subnode_offset(state->blob, mipi_node, "panel");
-	if (panel < 0) {
+	panel = dev_read_subnode(conn_state->dev, "panel");
+	if (!ofnode_valid(panel)) {
 		printf("failed to find panel node\n");
 		return -1;
 	}
 
 #define FDT_GET_INT(val, name) \
-	val = fdtdec_get_int(state->blob, panel, name, -1); \
+	val = ofnode_read_s32_default(panel, name, -1); \
 	if (val < 0) { \
 		printf("Can't get %s\n", name); \
 		return -1; \

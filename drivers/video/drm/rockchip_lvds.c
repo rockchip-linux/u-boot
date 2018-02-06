@@ -8,8 +8,6 @@
 #include <common.h>
 #include <errno.h>
 #include <malloc.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <asm/unaligned.h>
 #include <linux/list.h>
 #include <asm/io.h>
@@ -515,6 +513,7 @@ static int rockchip_lvds_init(struct display_state *state)
 	struct fdt_resource lvds_phy, lvds_ctrl;
 	struct panel_state *panel_state = &state->panel_state;
 	int panel_node = panel_state->node;
+	int ret;
 
 	lvds = malloc(sizeof(*lvds));
 	if (!lvds)
@@ -522,19 +521,16 @@ static int rockchip_lvds_init(struct display_state *state)
 	lvds->pdata = pdata;
 
 	if (pdata->chip_type == RK3288_LVDS) {
-		lvds->regbase = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
-						lvds_node, "reg", 0, NULL, false);
+		lvds->regbase = dev_read_addr_ptr(conn_state->dev);
 	} else {
-		i = fdt_get_named_resource(state->blob, lvds_node, "reg", "reg-names",
-					   "mipi_lvds_phy", &lvds_phy);
+		i = dev_read_resource_byname(conn_state->dev, "mipi_lvds_phy", &lvds_phy);
 		if (i) {
 			printf("can't get regs lvds_phy addresses!\n");
 			free(lvds);
 			return -ENOMEM;
 		}
 
-		i = fdt_get_named_resource(state->blob, lvds_node, "reg", "reg-names",
-					   "mipi_lvds_ctl", &lvds_ctrl);
+		i = dev_read_resource_byname(conn_state->dev, "mipi_lvds_ctl", &lvds_ctrl);
 		if (i) {
 			printf("can't get regs lvds_ctrl addresses!\n");
 			free(lvds);
@@ -544,7 +540,7 @@ static int rockchip_lvds_init(struct display_state *state)
 		lvds->regbase = (void *)lvds_phy.start;
 		lvds->ctrl_reg = (void *)lvds_ctrl.start;
 	}
-
+	printf("%s regbase %p\n", __func__, lvds->regbase);
 	lvds->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (lvds->grf <= 0) {
 		printf("%s: Get syscon grf failed (ret=%p)\n",
@@ -552,8 +548,8 @@ static int rockchip_lvds_init(struct display_state *state)
 		return  -ENXIO;
 	}
 
-	name = fdt_stringlist_get(state->blob, panel_node, "rockchip,output", 0, NULL);
-	if (!name)
+	ret = dev_read_string_index(panel_state->dev, "rockchip,output", 0, &name);
+	if (ret)
 		/* default set it as output rgb */
 		lvds->output = DISPLAY_OUTPUT_RGB;
 	else
@@ -563,8 +559,8 @@ static int rockchip_lvds_init(struct display_state *state)
 		free(lvds);
 		return lvds->output;
 	}
-	name = fdt_stringlist_get(state->blob, panel_node, "rockchip,data-mapping", 0, NULL);
-	if (!name)
+	ret = dev_read_string_index(panel_state->dev, "rockchip,data-mapping", 0, &name);
+	if (ret)
 		/* default set it as format jeida */
 		lvds->format = LVDS_FORMAT_JEIDA;
 	else
@@ -575,7 +571,7 @@ static int rockchip_lvds_init(struct display_state *state)
 		free(lvds);
 		return lvds->format;
 	}
-	width = fdtdec_get_int(state->blob, panel_node, "rockchip,data-width", 24);
+	width = ofnode_read_u32_default(panel_node, "rockchip,data-width", 24);
 	if (width == 24) {
 		lvds->format |= LVDS_24BIT;
 	} else if (width == 18) {

@@ -5,12 +5,13 @@
  */
 
 #include <common.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <malloc.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
 #include <edid.h>
+#include <dm/device.h>
+#include <dm/of_node.h>
+#include <dm/read.h>
 #include <linux/hdmi.h>
 #include <linux/media-bus-format.h>
 #include <linux/dw_hdmi.h>
@@ -2087,7 +2088,7 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 	struct crtc_state *crtc_state = &state->crtc_state;
 	struct dw_hdmi *hdmi;
 	struct drm_display_mode *mode_buf;
-	int hdmi_node = conn_state->node;
+	ofnode hdmi_node = conn_state->node;
 	u32 val;
 
 	hdmi = malloc(sizeof(struct dw_hdmi));
@@ -2101,10 +2102,8 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 		return -ENOMEM;
 	memset(mode_buf, 0, MODE_LEN * sizeof(struct drm_display_mode));
 
-	hdmi->regs = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
-					hdmi_node, "reg", 0, NULL, false);
-	hdmi->io_width = fdtdec_get_int(state->blob, hdmi_node,
-					"reg-io-width", -1);
+	hdmi->regs = dev_read_addr_ptr(conn_state->dev);
+	hdmi->io_width = ofnode_read_s32_default(hdmi_node, "reg-io-width", -1);
 	hdmi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (hdmi->grf <= 0) {
 		printf("%s: Get syscon grf failed (ret=%p)\n",

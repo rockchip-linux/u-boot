@@ -8,8 +8,6 @@
 #include <common.h>
 #include <errno.h>
 #include <malloc.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <asm/unaligned.h>
 #include <linux/list.h>
 #include <linux/media-bus-format.h>
@@ -51,7 +49,7 @@ struct dsi_panel_cmds {
 struct rockchip_dsi_panel {
 	struct udevice *dev;
 	const void *blob;
-	int node;
+	ofnode node;
 
 	int bus_format;
 
@@ -72,7 +70,7 @@ struct rockchip_dsi_panel {
 	struct dsi_panel_cmds *off_cmds;
 };
 
-static int rockchip_dsi_panel_parse_cmds(const void *blob, int node,
+static int rockchip_dsi_panel_parse_cmds(ofnode node,
 					 const u8 *data, int blen,
 					 struct dsi_panel_cmds *pcmds)
 {
@@ -263,27 +261,27 @@ static int rockchip_dsi_panel_disable(struct display_state *state)
 	return 0;
 }
 
-static int rockchip_dsi_panel_parse_dt(const void *blob, int node, struct rockchip_dsi_panel *panel)
+static int rockchip_dsi_panel_parse_dt(ofnode node, struct rockchip_dsi_panel *panel)
 {
 	const void *data;
 	int len = 0;
 	int ret = 0;
 
-	panel->delay_prepare = fdtdec_get_int(blob, node, "prepare-delay-ms", 0);
-	panel->delay_unprepare = fdtdec_get_int(blob, node, "unprepare-delay-ms", 0);
-	panel->delay_enable = fdtdec_get_int(blob, node, "enable-delay-ms", 0);
-	panel->delay_disable = fdtdec_get_int(blob, node, "disable-delay-ms", 0);
-	panel->delay_init = fdtdec_get_int(blob, node, "init-delay-ms", 0);
-	panel->delay_reset = fdtdec_get_int(blob, node, "reset-delay-ms", 0);
-	panel->bus_format = fdtdec_get_int(blob, node, "bus-format", MEDIA_BUS_FMT_RBG888_1X24);
+	panel->delay_prepare = ofnode_read_u32_default(node, "prepare-delay-ms", 0);
+	panel->delay_unprepare = ofnode_read_u32_default(node, "unprepare-delay-ms", 0);
+	panel->delay_enable = ofnode_read_u32_default(node, "enable-delay-ms", 0);
+	panel->delay_disable = ofnode_read_u32_default(node, "disable-delay-ms", 0);
+	panel->delay_init = ofnode_read_u32_default(node, "init-delay-ms", 0);
+	panel->delay_reset = ofnode_read_u32_default(node, "reset-delay-ms", 0);
+	panel->bus_format = ofnode_read_u32_default(node, "bus-format", MEDIA_BUS_FMT_RBG888_1X24);
 
-	data = fdt_getprop(blob, node, "panel-init-sequence", &len);
+	data = ofnode_get_property(node, "panel-init-sequence", &len);
 	if (data) {
 		panel->on_cmds = malloc(sizeof(*panel->on_cmds));
 		if (!panel->on_cmds)
 			return -ENOMEM;
 
-		ret = rockchip_dsi_panel_parse_cmds(blob, node, data, len,
+		ret = rockchip_dsi_panel_parse_cmds(node, data, len,
 						    panel->on_cmds);
 		if (ret) {
 			printf("failed to parse panel init sequence\n");
@@ -291,7 +289,7 @@ static int rockchip_dsi_panel_parse_dt(const void *blob, int node, struct rockch
 		}
 	}
 
-	data = fdt_getprop(blob, node, "panel-exit-sequence", &len);
+	data = ofnode_get_property(node, "panel-exit-sequence", &len);
 	if (data) {
 		panel->off_cmds = malloc(sizeof(*panel->off_cmds));
 		if (!panel->off_cmds) {
@@ -299,7 +297,7 @@ static int rockchip_dsi_panel_parse_dt(const void *blob, int node, struct rockch
 			goto free_on_cmds;
 		}
 
-		ret = rockchip_dsi_panel_parse_cmds(blob, node, data, len,
+		ret = rockchip_dsi_panel_parse_cmds(node, data, len,
 						    panel->off_cmds);
 		if (ret) {
 			printf("failed to parse panel exit sequence\n");
@@ -338,7 +336,7 @@ static int rockchip_dsi_panel_parse_dt(const void *blob, int node, struct rockch
 		return ret;
 	}
 
-	panel->power_invert = !!fdtdec_get_int(blob, node, "power_invert", 0);
+	panel->power_invert = !!ofnode_read_u32_default(node, "power_invert", 0);
 
 	/* keep panel blank on init. */
 	dm_gpio_set_value(&panel->enable, 0);
@@ -358,7 +356,7 @@ static int rockchip_dsi_panel_init(struct display_state *state)
 	const void *blob = state->blob;
 	struct connector_state *conn_state = &state->conn_state;
 	struct panel_state *panel_state = &state->panel_state;
-	int node = panel_state->node;
+	ofnode node = panel_state->node;
 	struct rockchip_dsi_panel *panel;
 	int ret;
 
@@ -373,7 +371,7 @@ static int rockchip_dsi_panel_init(struct display_state *state)
 	panel->dev = panel_state->dev;
 	panel_state->private = panel;
 
-	ret = rockchip_dsi_panel_parse_dt(blob, node, panel);
+	ret = rockchip_dsi_panel_parse_dt(node, panel);
 	if (ret) {
 		printf("%s: failed to parse DT\n", __func__);
 		free(panel);

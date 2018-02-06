@@ -27,6 +27,9 @@
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
 #include "rockchip_panel.h"
+#include <dm.h>
+#include <dm/of_access.h>
+#include <dm/ofnode.h>
 
 #define RK_BLK_SIZE 512
 
@@ -71,68 +74,61 @@ static bool can_direct_logo(int bpp)
 	return bpp == 24 || bpp == 32;
 }
 
-static struct udevice *find_panel_device_by_node(const void *blob,
-						 int panel_node)
-{
-	struct udevice *dev;
-	int ret;
 
-	ret = uclass_find_device_by_of_offset(UCLASS_PANEL, panel_node, &dev);
-	if (ret) {
-		printf("Warn: %s: can't find panel driver\n",
-		       fdt_get_name(blob, panel_node, NULL));
-		return NULL;
-	}
-
-	return dev;
-}
-
-static struct udevice *get_panel_device(struct display_state *state, int conn_node)
+static struct udevice *get_panel_device(struct display_state *state, ofnode conn_node)
 {
 	struct panel_state *panel_state = &state->panel_state;
-	const void *blob = state->blob;
-	int panel, ports, port, ep, remote, ph, nodedepth;
 	struct udevice *dev;
+	struct connector_state *conn_state = &state->conn_state;
+	ofnode node, ports_node, port_node;
+	struct device_node *port, *panel, *ep;
+	int ph;
+	int ret;
 
-	panel = fdt_subnode_offset(blob, conn_node, "panel");
-	if (panel > 0 && fdt_device_is_available(blob, panel)) {
-		dev = find_panel_device_by_node(blob, panel);
-		if (dev) {
-			panel_state->node = panel;
+	node = dev_read_subnode(conn_state->dev, "panel");
+	if (ofnode_valid(node) &&
+	    of_device_is_available(ofnode_to_np(node))){
+		ret = uclass_get_device_by_ofnode(UCLASS_PANEL, node, &dev);
+		if(!ret) {
+			printf("%s get panel dev\n", __func__);
+			panel_state->node = node;
 			return dev;
 		}
 	}
 
-	ports = fdt_subnode_offset(blob, conn_node, "ports");
-	if (ports < 0)
+	/* TODO: this path not tested */
+	ports_node = dev_read_subnode(conn_state->dev, "ports");
+	if (!ofnode_valid(ports_node))
 		return NULL;
 
-	fdt_for_each_subnode(port, blob, ports) {
-		fdt_for_each_subnode(ep, blob, port) {
-			ph = fdt_getprop_u32_default_node(blob, ep, 0,
-							  "remote-endpoint", 0);
+	ofnode_for_each_subnode(port_node, ports_node) {
+		ofnode_for_each_subnode(node, port_node) {
+			ph = ofnode_read_u32_default(node, "remote-endpoint", -1);
 			if (!ph)
 				continue;
-
-			remote = fdt_node_offset_by_phandle(blob, ph);
-
-			nodedepth = fdt_node_depth(blob, remote);
-			if (nodedepth < 2)
-				continue;
-
-			panel = fdt_supernode_atdepth_offset(blob, remote,
-							     nodedepth - 2,
-							     NULL);
-			if (!fdt_device_is_available(blob, panel)) {
-				debug("[%s]: panel is disabled\n",
-				      fdt_get_name(blob, panel, NULL));
+			ep = of_find_node_by_phandle(ph);
+			if (!ofnode_valid(np_to_ofnode(ep))) {
+				printf("Warn: can't find endpoint from phdl\n");
 				continue;
 			}
-			dev = find_panel_device_by_node(blob, panel);
-			if (dev) {
-				panel_state->node = panel;
-				return dev;
+			port = of_get_parent(ep);
+			if (!ofnode_valid(np_to_ofnode(port))) {
+				printf("Warn: can't find port node\n");
+				continue;
 			}
+			panel = of_get_parent(port);
+			if (!ofnode_valid(np_to_ofnode(panel))) {
+				printf("Warn: can't find panel node\n");
+				continue;
+			}
+			ret = uclass_get_device_by_ofnode(UCLASS_PANEL,
+							  np_to_ofnode(panel),
+							  &dev);
+			if (ret) {
+				printf("Warn: can't find crtc driver\n");
+				continue;
+			}
+			return dev;
 		}
 	}
 
@@ -142,28 +138,14 @@ static struct udevice *get_panel_device(struct display_state *state, int conn_no
 static int connector_phy_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	int conn_node = conn_state->node;
-	const void *blob = state->blob;
 	const struct rockchip_phy *phy;
-	int phy_node, phandle;
 	struct udevice *dev;
 	int ret;
 
-	phandle = fdt_getprop_u32_default_node(blob, conn_node, 0,
-					       "phys", -1);
-	if (phandle < 0)
-		return 0;
-
-	phy_node = fdt_node_offset_by_phandle(blob, phandle);
-	if (phy_node < 0) {
-		printf("failed to find phy node\n");
-		return phy_node;
-	}
-
-	ret = uclass_find_device_by_of_offset(UCLASS_PHY, phy_node, &dev);
+	ret = uclass_get_device_by_phandle(UCLASS_PHY, conn_state->dev, "phys",
+					   &dev);
 	if (ret) {
-		printf("Warn: %s: can't find phy driver\n",
-		       fdt_get_name(blob, phy_node, NULL));
+		printf("Warn: can't find phy driver\n");
 		return ret;
 	}
 	phy = (const struct rockchip_phy *)dev_get_driver_data(dev);
@@ -173,7 +155,7 @@ static int connector_phy_init(struct display_state *state)
 	}
 
 	conn_state->phy_dev = dev;
-	conn_state->phy_node = phy_node;
+	conn_state->phy_node = dev->node;
 
 	if (!phy->funcs || !phy->funcs->init ||
 	    phy->funcs->init(state)) {
@@ -190,10 +172,9 @@ static int connector_panel_init(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct panel_state *panel_state = &state->panel_state;
 	struct udevice *dev;
-	const void *blob = state->blob;
-	int conn_node = conn_state->node;
+	ofnode conn_node = conn_state->node;
 	const struct rockchip_panel *panel;
-	int dsp_lut_node;
+	ofnode dsp_lut_node;
 	int ret, len;
 
 	dm_scan_fdt_dev(conn_state->dev);
@@ -217,19 +198,22 @@ static int connector_panel_init(struct display_state *state)
 		printf("failed to init panel driver\n");
 		return ret;
 	}
-
-	dsp_lut_node = fdt_subnode_offset(blob, panel_state->node, "dsp-lut");
-	fdt_getprop(blob, dsp_lut_node, "gamma-lut", &len);
+	dsp_lut_node = dev_read_subnode(dev, "dsp-lut");
+	if (!ofnode_valid(dsp_lut_node)) {
+		printf("%s can not find dsp-lut node\n", __func__);
+	}
+	ofnode_get_property(dsp_lut_node, "gamma-lut", &len);
 	if (len > 0) {
-		conn_state->gamma.size  = len / sizeof(u32);
+		conn_state->gamma.size = len / sizeof(u32);
 		conn_state->gamma.lut = malloc(len);
 		if (!conn_state->gamma.lut) {
 			printf("malloc gamma lut failed\n");
 			return -ENOMEM;
 		}
-		if (fdtdec_get_int_array(blob, dsp_lut_node, "gamma-lut",
-					 conn_state->gamma.lut,
-					 conn_state->gamma.size)) {
+		ret = ofnode_read_u32_array(dsp_lut_node, "gamma-lut",
+					    conn_state->gamma.lut,
+					    conn_state->gamma.size);
+		if (ret) {
 			printf("Cannot decode gamma_lut\n");
 			conn_state->gamma.lut = NULL;
 			return -EINVAL;
@@ -266,32 +250,32 @@ int drm_mode_vrefresh(const struct drm_display_mode *mode)
 	return refresh;
 }
 
-static int display_get_timing_from_dts(int panel, const void *blob,
+static int display_get_timing_from_dts(struct panel_state *panel_state,
 				       struct drm_display_mode *mode)
 {
-	int timing, phandle, native_mode;
+	int phandle;
 	int hactive, vactive, pixelclock;
 	int hfront_porch, hback_porch, hsync_len;
 	int vfront_porch, vback_porch, vsync_len;
 	int val, flags = 0;
+	ofnode timing, native_mode;
 
-	timing = fdt_subnode_offset(blob, panel, "display-timings");
-	if (timing < 0)
+	timing = dev_read_subnode(panel_state->dev, "display-timings");
+	if (!ofnode_valid(timing))
 		return -ENODEV;
 
-	native_mode = fdt_subnode_offset(blob, timing, "timing");
-	if (native_mode < 0) {
-		phandle = fdt_getprop_u32_default_node(blob, timing, 0,
-						       "native-mode", -1);
-		native_mode = fdt_node_offset_by_phandle_node(blob, timing, phandle);
-		if (native_mode <= 0) {
+	native_mode = ofnode_find_subnode(timing, "timing");
+	if (!ofnode_valid(native_mode)) {
+		phandle = ofnode_read_u32_default(timing, "native-mode", -1);
+		native_mode = np_to_ofnode(of_find_node_by_phandle(phandle));
+		if (!ofnode_valid(native_mode)) {
 			printf("failed to get display timings from DT\n");
 			return -ENXIO;
 		}
 	}
 
 #define FDT_GET_INT(val, name) \
-	val = fdtdec_get_int(blob, native_mode, name, -1); \
+	val = ofnode_read_s32_default(native_mode, name, -1); \
 	if (val < 0) { \
 		printf("Can't get %s\n", name); \
 		return -ENXIO; \
@@ -334,11 +318,10 @@ static int display_get_timing(struct display_state *state)
 	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
 	struct drm_display_mode *mode = &conn_state->mode;
 	const struct drm_display_mode *m;
-	const void *blob = state->blob;
 	struct panel_state *panel_state = &state->panel_state;
-	int panel = panel_state->node;
+	ofnode panel = panel_state->node;
 
-	if (panel > 0 && !display_get_timing_from_dts(panel, blob, mode)) {
+	if (ofnode_valid(panel) && !display_get_timing_from_dts(panel_state, mode)) {
 		printf("Using display timing dts\n");
 		goto done;
 	}
@@ -619,18 +602,17 @@ static int display_logo(struct display_state *state)
 	return 0;
 }
 
-static int get_crtc_id(const void *blob, int connect)
+static int get_crtc_id(ofnode connect)
 {
-	int phandle, remote;
+	int phandle;
+	struct device_node *remote;
 	int val;
 
-	phandle = fdt_getprop_u32_default_node(blob, connect, 0,
-					       "remote-endpoint", -1);
+	phandle = ofnode_read_u32_default(connect, "remote-endpoint", -1);
 	if (phandle < 0)
 		goto err;
-	remote = fdt_node_offset_by_phandle(blob, phandle);
-
-	val = fdtdec_get_int(blob, remote, "reg", -1);
+	remote = of_find_node_by_phandle(phandle);
+	val = ofnode_read_u32_default(np_to_ofnode(remote), "reg", -1);
 	if (val < 0)
 		goto err;
 
@@ -638,31 +620,6 @@ static int get_crtc_id(const void *blob, int connect)
 err:
 	printf("Can't get crtc id, default set to id = 0\n");
 	return 0;
-}
-
-static int find_crtc_node(const void *blob, int node)
-{
-	int nodedepth = fdt_node_depth(blob, node);
-
-	if (nodedepth < 2)
-		return -EINVAL;
-
-	return fdt_supernode_atdepth_offset(blob, node,
-					    nodedepth - 2, NULL);
-}
-
-static int find_connector_node(const void *blob, int node)
-{
-	int phandle, remote;
-	int nodedepth;
-
-	phandle = fdt_getprop_u32_default_node(blob, node, 0,
-					       "remote-endpoint", -1);
-	remote = fdt_node_offset_by_phandle(blob, phandle);
-	nodedepth = fdt_node_depth(blob, remote);
-
-	return fdt_supernode_atdepth_offset(blob, remote,
-					    nodedepth - 3, NULL);
 }
 
 struct rockchip_logo_cache *find_or_alloc_logo_cache(const char *bmp)
@@ -841,73 +798,76 @@ static int rockchip_display_probe(struct udevice *dev)
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
 	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
 	const void *blob = gd->fdt_blob;
-	int route, child, phandle, connect, crtc_node, conn_node;
+	int phandle;
 	struct udevice *crtc_dev, *conn_dev;
 	const struct rockchip_crtc *crtc;
 	const struct rockchip_connector *conn;
 	struct display_state *s;
 	const char *name;
 	int ret;
+	ofnode node, route_node;
+	struct device_node *port_node, *vop_node, *ep_node;
+	struct device_node *cnt_node, *p;
 
 	/* Before relocation we don't need to do anything */
 	if (!(gd->flags & GD_FLG_RELOC))
 		return 0;
-
-	route = fdt_path_offset(blob, "/display-subsystem/route");
-	if (route < 0) {
-		printf("Can't find display display route node\n");
-		return -ENODEV;
-	}
-
-	if (!fdt_device_is_available(blob, route))
-		return -ENODEV;
-
 	init_display_buffer(plat->base);
 
-	fdt_for_each_subnode(child, blob, route) {
-		if (!fdt_device_is_available(blob, child))
-			continue;
+	route_node = dev_read_subnode(dev, "route");
+	if (!ofnode_valid(route_node))
+		return -ENODEV;
 
-		phandle = fdt_getprop_u32_default_node(blob, child, 0,
-						       "connect", -1);
+	ofnode_for_each_subnode(node, route_node){
+		phandle = ofnode_read_u32_default(node, "connect", -1);
 		if (phandle < 0) {
-			printf("Warn: %s: can't find connect node's handle\n",
-			       fdt_get_name(blob, child, NULL));
+			printf("Warn: can't find connect node's handle\n");
 			continue;
 		}
-
-		connect = fdt_node_offset_by_phandle(blob, phandle);
-		if (connect < 0) {
-			printf("Warn: %s: can't find connect node\n",
-			       fdt_get_name(blob, child, NULL));
+		ep_node = of_find_node_by_phandle(phandle);
+		if (!ofnode_valid(np_to_ofnode(ep_node))) {
+			printf("Warn: can't find endpoint node from phandle\n");
 			continue;
 		}
-
-		crtc_node = find_crtc_node(blob, connect);
-		if (!fdt_device_is_available(blob, crtc_node)) {
-			printf("Warn: %s: crtc node is not available\n",
-			       fdt_get_name(blob, child, NULL));
+		port_node = of_get_parent(ep_node);
+		if (!ofnode_valid(np_to_ofnode(port_node))) {
+			printf("Warn: can't find port node from phandle\n");
 			continue;
 		}
-		ret = uclass_find_device_by_of_offset(UCLASS_VIDEO_CRTC, crtc_node, &crtc_dev);
+		vop_node = of_get_parent(port_node);
+		if (!ofnode_valid(np_to_ofnode(vop_node))) {
+			printf("Warn: can't find crtc node from phandle\n");
+			continue;
+		}
+		ret = uclass_get_device_by_ofnode(UCLASS_VIDEO_CRTC,
+						  np_to_ofnode(vop_node),
+						  &crtc_dev);
 		if (ret) {
-			printf("Warn: %s: can't find crtc driver\n",
-			       fdt_get_name(blob, child, NULL));
+			printf("Warn: can't find crtc driver\n");
 			continue;
 		}
-
 		crtc = (const struct rockchip_crtc *)dev_get_driver_data(crtc_dev);
 
-		conn_node = find_connector_node(blob, connect);
-		if (!fdt_device_is_available(blob, conn_node)) {
-			printf("Warn: %s: connector node is not available\n",
-			       fdt_get_name(blob, child, NULL));
+		phandle = ofnode_read_u32_default(np_to_ofnode(ep_node),
+						  "remote-endpoint", -1);
+		cnt_node = of_find_node_by_phandle(phandle);
+		if (phandle < 0) {
+			printf("Warn: can't find remote-endpoint's handle\n");
 			continue;
 		}
-		ret = uclass_get_device_by_of_offset(UCLASS_DISPLAY, conn_node, &conn_dev);
+		while (cnt_node->parent){
+			p = of_get_parent(cnt_node);
+			if (!strcmp(p->full_name, "/"))
+				break;
+			cnt_node = p;
+		}
+		if (!of_device_is_available(cnt_node))
+			continue;
+		ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY,
+						  np_to_ofnode(cnt_node),
+						  &conn_dev);
 		if (ret) {
-			printf("Warn: %s: can't find connector driver\n",
-			       fdt_get_name(blob, child, NULL));
+			printf("Warn: can't find connect driver\n");
 			continue;
 		}
 		conn = (const struct rockchip_connector *)dev_get_driver_data(conn_dev);
@@ -919,43 +879,42 @@ static int rockchip_display_probe(struct udevice *dev)
 		memset(s, 0, sizeof(*s));
 
 		INIT_LIST_HEAD(&s->head);
-		s->ulogo_name = fdt_stringlist_get(blob, child, "logo,uboot", 0, NULL);
-		s->klogo_name = fdt_stringlist_get(blob, child, "logo,kernel", 0, NULL);
-		name = fdt_stringlist_get(blob, child, "logo,mode", 0, NULL);
+		ret = ofnode_read_string_index(node, "logo,uboot", 0, &s->ulogo_name);
+		ret = ofnode_read_string_index(node, "logo,kernel", 0, &s->klogo_name);
+		ret = ofnode_read_string_index(node, "logo,mode", 0, &name);
 		if (!strcmp(name, "fullscreen"))
 			s->logo_mode = ROCKCHIP_DISPLAY_FULLSCREEN;
 		else
 			s->logo_mode = ROCKCHIP_DISPLAY_CENTER;
-		name = fdt_stringlist_get(blob, child, "charge_logo,mode", 0, NULL);
+		ret = ofnode_read_string_index(node, "charge_logo,mode", 0, &name);
 		if (!strcmp(name, "fullscreen"))
 			s->charge_logo_mode = ROCKCHIP_DISPLAY_FULLSCREEN;
 		else
 			s->charge_logo_mode = ROCKCHIP_DISPLAY_CENTER;
 
 		s->blob = blob;
-		s->conn_state.node = conn_node;
+		s->conn_state.node = np_to_ofnode(cnt_node);
 		s->conn_state.dev = conn_dev;
 		s->conn_state.connector = conn;
-		s->crtc_state.node = crtc_node;
+		s->crtc_state.node = np_to_ofnode(vop_node);
 		s->crtc_state.dev = crtc_dev;
 		s->crtc_state.crtc = crtc;
-		s->crtc_state.crtc_id = get_crtc_id(blob, connect);
-		s->node = child;
+		s->crtc_state.crtc_id = get_crtc_id(np_to_ofnode(ep_node));
+		s->node = node;
 
-		if (connector_phy_init(s)) {
-			printf("Warn: %s: Failed to init phy drivers\n",
-			       fdt_get_name(blob, child, NULL));
+		if (connector_panel_init(s)) {
+			printf("Warn: Failed to init panel drivers\n");
 			free(s);
 			continue;
 		}
 
-		if (connector_panel_init(s)) {
-			printf("Warn: %s: Failed to init panel drivers\n",
-			       fdt_get_name(blob, child, NULL));
+		if (connector_phy_init(s)) {
+			printf("Warn: Failed to init phy drivers\n");
 			free(s);
 			continue;
 		}
 		list_add_tail(&s->head, &rockchip_display_list);
+
 	}
 
 	if (list_empty(&rockchip_display_list)) {

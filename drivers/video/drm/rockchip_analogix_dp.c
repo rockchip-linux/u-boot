@@ -8,8 +8,6 @@
 #include <common.h>
 #include <errno.h>
 #include <malloc.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <dm/device.h>
@@ -856,8 +854,7 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	plat_data = malloc(sizeof(*pdata));
 	if (!plat_data)
 		return -ENOMEM;
-	dp->reg_base = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
-						dp_node, "reg", 0, NULL, false);
+	dp->reg_base = dev_read_addr_ptr(conn_state->dev);
 	dp->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (dp->grf <= 0) {
 		printf("%s: Get syscon grf failed (ret=%p)\n",

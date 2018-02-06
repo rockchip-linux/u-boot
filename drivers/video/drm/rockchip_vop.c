@@ -17,6 +17,8 @@
 #include <clk.h>
 #include <asm/arch/clock.h>
 #include <linux/err.h>
+#include <dm/device.h>
+#include <dm/read.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -33,7 +35,6 @@ static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 	struct crtc_state *crtc_state = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
 	u32 *lut = conn_state->gamma.lut;
-	int node = crtc_state->node;
 	fdt_size_t lut_size;
 	int i, lut_len;
 	u32 *lut_regs;
@@ -41,14 +42,12 @@ static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 	if (!conn_state->gamma.lut)
 		return 0;
 
-	i = fdt_stringlist_search(state->blob, node, "reg-names", "gamma_lut");
+	i = dev_read_stringlist_search(crtc_state->dev, "reg-names", "gamma_lut");
 	if (i < 0) {
 		printf("Warning: vop not support gamma\n");
 		return 0;
 	}
-	lut_regs = (u32 *)fdtdec_get_addr_size_auto_noparent(state->blob,
-							     node, "reg", i,
-							     &lut_size, false);
+	lut_regs = (u32 *)dev_read_addr_size(crtc_state->dev, "reg", &lut_size);
 	if (lut_regs == (u32 *)FDT_ADDR_T_NONE) {
 		printf("failed to get gamma lut register\n");
 		return 0;
@@ -111,8 +110,7 @@ static int rockchip_vop_init(struct display_state *state)
 	memset(vop, 0, sizeof(*vop));
 
 	crtc_state->private = vop;
-	vop->regs = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
-					crtc_state->node, "reg", 0, NULL, false);
+	vop->regs = dev_read_addr_ptr(crtc_state->dev);
 	vop->regsbak = malloc(vop_data->reg_len);
 	vop->win = vop_data->win;
 	vop->win_offset = vop_data->win_offset;
@@ -435,15 +433,15 @@ static int rockchip_vop_disable(struct display_state *state)
 
 static int rockchip_vop_fixup_dts(struct display_state *state, void *blob)
 {
+#if 0
 	struct crtc_state *crtc_state = &state->crtc_state;
 	struct panel_state *pstate = &state->panel_state;
 	uint32_t phandle;
 	char path[100];
 	int ret, dsp_lut_node;
 
-	if (!pstate->dsp_lut_node)
+	if (!ofnode_valid(pstate->dsp_lut_node))
 		return 0;
-
 	ret = fdt_get_path(state->blob, pstate->dsp_lut_node, path, sizeof(path));
 	if (ret < 0) {
 		printf("failed to get dsp_lut path[%s], ret=%d\n",
@@ -471,7 +469,7 @@ static int rockchip_vop_fixup_dts(struct display_state *state, void *blob)
 	}
 
 	do_fixup_by_path_u32(blob, path, "dsp-lut", phandle, 1);
-
+#endif
 	return 0;
 }
 

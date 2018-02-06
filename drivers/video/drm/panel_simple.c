@@ -8,8 +8,6 @@
 #include <common.h>
 #include <errno.h>
 #include <malloc.h>
-#include <fdtdec.h>
-#include <fdt_support.h>
 #include <asm/unaligned.h>
 #include <linux/list.h>
 #include <linux/media-bus-format.h>
@@ -106,7 +104,7 @@ static int panel_simple_disable(struct display_state *state)
 	return 0;
 }
 
-static int panel_simple_parse_dt(const void *blob, int node,
+static int panel_simple_parse_dt(const void *blob, ofnode node,
 				 struct panel_simple *panel)
 {
 	int ret;
@@ -134,13 +132,13 @@ static int panel_simple_parse_dt(const void *blob, int node,
 		return ret;
 	}
 
-	panel->power_invert = !!fdtdec_get_int(blob, node, "power_invert", 0);
+	panel->power_invert = !!ofnode_read_s32_default(node, "power_invert", 0);
 
-	panel->delay_prepare = fdtdec_get_int(blob, node, "delay,prepare", 0);
-	panel->delay_unprepare = fdtdec_get_int(blob, node, "delay,unprepare", 0);
-	panel->delay_enable = fdtdec_get_int(blob, node, "delay,enable", 0);
-	panel->delay_disable = fdtdec_get_int(blob, node, "delay,disable", 0);
-	panel->bus_format = fdtdec_get_int(blob, node, "bus-format", MEDIA_BUS_FMT_RBG888_1X24);
+	panel->delay_prepare = ofnode_read_s32_default(node, "delay,prepare", 0);
+	panel->delay_unprepare = ofnode_read_s32_default(node, "delay,unprepare", 0);
+	panel->delay_enable = ofnode_read_s32_default(node, "delay,enable", 0);
+	panel->delay_disable = ofnode_read_s32_default(node, "delay,disable", 0);
+	panel->bus_format = ofnode_read_s32_default(node, "bus-format", MEDIA_BUS_FMT_RBG888_1X24);
 
 	printf("delay prepare[%d] unprepare[%d] enable[%d] disable[%d]\n",
 	       panel->delay_prepare, panel->delay_unprepare,
@@ -157,7 +155,7 @@ static int panel_simple_init(struct display_state *state)
 	const void *blob = state->blob;
 	struct connector_state *conn_state = &state->conn_state;
 	struct panel_state *panel_state = &state->panel_state;
-	int node = panel_state->node;
+	ofnode node = panel_state->node;
 	const struct drm_display_mode *mode = panel_state->panel->data;
 	struct panel_simple *panel;
 	int ret;
