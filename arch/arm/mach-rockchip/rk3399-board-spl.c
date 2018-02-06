@@ -11,6 +11,7 @@
 #include <spl.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
+#include <asm/arch/bootrom.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/periph.h>
@@ -23,7 +24,26 @@ DECLARE_GLOBAL_DATA_PTR;
 
 u32 spl_boot_device(void)
 {
-	return BOOT_DEVICE_MMC1;
+	u32 bootdevice_brom_id = readl(RK3399_BROM_BOOTSOURCE_ID_ADDR);
+	switch (bootdevice_brom_id) {
+		case BROM_BOOTSOURCE_EMMC:
+			printf("booted from eMMC\n");
+			return BOOT_DEVICE_MMC1;
+
+		case BROM_BOOTSOURCE_SD:
+			printf("booted from SD\n");
+			return BOOT_DEVICE_MMC2;
+
+		case BROM_BOOTSOURCE_SPINOR:
+			printf("booted from SPI flash\n");
+			return BOOT_DEVICE_SPI;
+
+		case BROM_BOOTSOURCE_USB:
+			printf("booted from USB\n");
+			return BOOT_DEVICE_MMC1;
+	}
+
+	return BOOT_DEVICE_BOOTROM;
 }
 
 u32 spl_boot_mode(const u32 boot_device)
