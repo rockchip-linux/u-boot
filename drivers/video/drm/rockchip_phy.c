@@ -41,7 +41,7 @@ static const struct udevice_id rockchip_phy_ids[] = {
 	 .data = (ulong)&rockchip_rk3368_mipi_dphy_data,
 	},
 	{
-	 .compatible = "rockchip,rk312x-mipi-dphy",
+	 .compatible = "rockchip,rk3128-mipi-dphy",
 	 .data = (ulong)&rockchip_rk312x_mipi_dphy_data,
 	},
 #endif

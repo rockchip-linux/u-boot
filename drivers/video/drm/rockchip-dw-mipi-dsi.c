@@ -1270,7 +1270,7 @@ static const struct udevice_id rockchip_mipi_dsi_ids[] = {
 	 .compatible = "rockchip,rk3399-mipi-dsi",
 	 .data = (ulong)&rk3399_mipi_dsi_data,
 	},{
-	 .compatible = "rockchip,rk312x-mipi-dsi",
+	 .compatible = "rockchip,rk3128-mipi-dsi",
 	 .data = (ulong)&rk312x_mipi_dsi_data,
 	},
 	{}
