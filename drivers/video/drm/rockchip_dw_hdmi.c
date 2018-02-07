@@ -376,7 +376,7 @@ void drm_rk_select_mode(struct hdmi_edid_data *edid_data,
 	int i, j, white_len;
 	const struct base_drm_display_mode *base_mode = &base_parameter->mode;
 
-	if (base_mode->hdisplay == 0 || base_mode->hdisplay == 0) {
+	if (base_mode->hdisplay == 0 || base_mode->vdisplay == 0) {
 		/* define init resolution here */
 	} else {
 		for (i = 0; i < edid_data->modes; i++) {
@@ -421,6 +421,7 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	unsigned int color_format;
 	unsigned int color_depth = base_parameter->depth;
 	bool mode_420 = drm_mode_is_420(info, mode);
+	unsigned long tmdsclock, pixclock = mode->clock;
 
 	color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
 	switch (base_parameter->format) {
@@ -470,6 +471,17 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	    info->hdmi.y420_dc_modes & DRM_EDID_YCBCR420_DC_30)
 		support_dc = true;
 
+	if (mode->flags & DRM_MODE_FLAG_DBLCLK)
+		pixclock *= 2;
+
+	if (color_format == DRM_HDMI_OUTPUT_YCBCR422 || color_depth == 8)
+		tmdsclock = pixclock;
+	else
+		tmdsclock = pixclock * color_depth / 8;
+
+	if (color_format == DRM_HDMI_OUTPUT_YCBCR420)
+		tmdsclock /= 2;
+
 	if (!max_tmds_clock)
 		max_tmds_clock = 340000;
 
@@ -486,7 +498,7 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 		break;
 	}
 
-	if (mode->clock > max_tmds_clock) {
+	if (tmdsclock > max_tmds_clock) {
 		if (max_tmds_clock >= 594000) {
 			color_depth = 8;
 		} else if (max_tmds_clock > 340000) {
