@@ -518,12 +518,31 @@ void rkclk_set_apll_high(void)
 }
 
 /*
+ * rkplat clock set cpll child frequency
+ */
+void rkclk_set_cpll_child(void)
+{
+	/* clk_sdio */
+	cru_writel(0x00050005, CRU_CLKSELS_CON(31));
+	/* clk_sdmmc_ext */
+	cru_writel(0x00050005, CRU_CLKSELS_CON(43));
+	/* aclk_rkvdec_pre */
+	cru_writel(0x00050005, CRU_CLKSELS_CON(48));
+	/* sclk_venc_core aclk_rkvenc */
+	cru_writel(0x05050505, CRU_CLKSELS_CON(51));
+	/* sclk_venc_dsp */
+	cru_writel(0x05000500, CRU_CLKSELS_CON(52));
+}
+
+/*
  * rkplat clock set for arm and general pll
  */
 void rkclk_set_pll(void)
 {
 	rkclk_pll_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
 	rkclk_pll_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
+	if (CONFIG_RKCLK_CPLL_FREQ > 600000)
+		rkclk_set_cpll_child();
 	rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
 	rkclk_pll_set_rate(NPLL_ID, CONFIG_RKCLK_NPLL_FREQ, NULL);
 }
