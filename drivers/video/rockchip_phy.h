@@ -13,6 +13,7 @@ struct rockchip_phy_funcs {
 	int (*power_off)(struct display_state *state);
 	unsigned long (*set_pll)(struct display_state *state,
 				 unsigned long rate);
+	void (*set_bus_width)(struct display_state *state, u32 bus_width);
 };
 
 struct rockchip_phy {
@@ -27,7 +28,7 @@ int rockchip_phy_power_off(struct display_state *state);
 int rockchip_phy_power_on(struct display_state *state);
 unsigned long rockchip_phy_set_pll(struct display_state *state,
 				   unsigned long rate);
-
+void rockchip_phy_set_bus_width(struct display_state *state, u32 bus_width);
 #ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
 extern const struct rockchip_phy_funcs inno_mipi_dphy_funcs;
 #endif

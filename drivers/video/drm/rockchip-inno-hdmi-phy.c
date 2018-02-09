@@ -158,6 +158,7 @@ struct inno_hdmi_phy {
 	/* platform data */
 	const struct inno_hdmi_phy_drv_data *plat_data;
 	unsigned long pixclock;
+	u32 bus_width;
 };
 
 struct pre_pll_config {
@@ -318,22 +319,28 @@ static inline void inno_update_bits(struct inno_hdmi_phy *inno, u8 reg,
 	inno_write(inno, reg, tmp);
 }
 
-static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno, unsigned long rate,
-				     int format)
+static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno, unsigned long rate)
 {
 	u32 tmdsclk;
 
-	switch (format) {
-	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
-		tmdsclk = rate / 2;
+	switch (inno->bus_width) {
+	case 4:
+		tmdsclk = (u32)rate / 2;
 		break;
-	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
-		tmdsclk = rate * 5 / 8;
+	case 5:
+		tmdsclk = (u32)rate * 5 / 8;
 		break;
-	case MEDIA_BUS_FMT_RGB101010_1X30:
-	case MEDIA_BUS_FMT_YUV10_1X30:
-	case MEDIA_BUS_FMT_UYVY10_1X20:
-		tmdsclk = rate * 5 / 4;
+	case 6:
+		tmdsclk = (u32)rate * 3 / 4;
+		break;
+	case 10:
+		tmdsclk = (u32)rate * 5 / 4;
+		break;
+	case 12:
+		tmdsclk = (u32)rate * 3 / 2;
+		break;
+	case 16:
+		tmdsclk = (u32)rate * 2;
 		break;
 	default:
 		tmdsclk = rate;
@@ -348,8 +355,7 @@ static int inno_hdmi_phy_power_on(struct display_state *state)
 	struct inno_hdmi_phy *inno = conn_state->phy_private;
 	const struct post_pll_config *cfg = post_pll_cfg_table;
 	const struct phy_config *phy_cfg = inno->plat_data->phy_cfg_table;
-	int format = conn_state->bus_format;
-	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, inno->pixclock, format);
+	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, inno->pixclock);
 	u32 chipversion = 1;
 
 	debug("start Inno HDMI PHY Power On\n");
@@ -429,8 +435,8 @@ static int inno_hdmi_phy_clk_set_rate(struct display_state *state,
 	struct connector_state *conn_state = &state->conn_state;
 	struct inno_hdmi_phy *inno = conn_state->phy_private;
 	const struct pre_pll_config *cfg = pre_pll_cfg_table;
-	int format = conn_state->bus_format;
-	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate, format);
+	const struct rockchip_phy *phy = conn_state->phy;
+	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate);
 
 	printf("%s rate %lu tmdsclk %u\n", __func__, rate, tmdsclock);
 	for (; cfg->pixclock != ~0UL; cfg++)
@@ -904,9 +910,19 @@ static unsigned long inno_hdmi_phy_set_pll(struct display_state *state,
 	return 0;
 }
 
+static void
+inno_hdmi_phy_set_bus_width(struct display_state *state, u32 bus_width)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct inno_hdmi_phy *inno = conn_state->phy_private;
+
+	inno->bus_width = bus_width;
+}
+
 const struct rockchip_phy_funcs inno_hdmi_phy_funcs = {
 	.init = inno_hdmi_phy_init,
 	.power_on = inno_hdmi_phy_power_on,
 	.power_off = inno_hdmi_phy_power_off,
 	.set_pll = inno_hdmi_phy_set_pll,
+	.set_bus_width = inno_hdmi_phy_set_bus_width,
 };

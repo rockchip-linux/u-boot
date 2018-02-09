@@ -2313,7 +2313,18 @@ int inno_dw_hdmi_phy_init(struct dw_hdmi *hdmi, void *data)
 {
 	struct display_state *state = (struct display_state *)data;
 	struct connector_state *conn_state = &state->conn_state;
+	u32 color_depth, bus_width;
 
+	color_depth =
+		hdmi_bus_fmt_color_depth(hdmi->hdmi_data.enc_out_bus_format);
+
+	if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
+		bus_width = color_depth / 2;
+	else if (!hdmi_bus_fmt_is_yuv422(hdmi->hdmi_data.enc_out_bus_format))
+		bus_width = color_depth;
+	else
+		bus_width = 8;
+	rockchip_phy_set_bus_width(state, bus_width);
 	rockchip_phy_set_pll(state, conn_state->mode.crtc_clock * 1000);
 	if (hdmi->edid_data.display_info.hdmi.scdc.supported)
 		rockchip_dw_hdmi_scdc_set_tmds_rate(hdmi);

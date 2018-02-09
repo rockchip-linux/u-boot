@@ -106,3 +106,16 @@ unsigned long rockchip_phy_set_pll(struct display_state *state,
 
 	return phy->funcs->set_pll(state, rate);
 }
+
+void rockchip_phy_set_bus_width(struct display_state *state, u32 bus_width)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_phy *phy = (struct rockchip_phy *) conn_state->phy;
+
+	if (!phy || !phy->funcs || !phy->funcs->set_bus_width) {
+		debug("%s: failed to find phy set_bus_width funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return phy->funcs->set_bus_width(state, bus_width);
+}
