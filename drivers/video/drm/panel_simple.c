@@ -13,6 +13,7 @@
 #include <linux/media-bus-format.h>
 #include <dm/uclass.h>
 #include <dm/uclass-id.h>
+#include <dm/ofnode.h>
 #include <asm/gpio.h>
 #include <backlight.h>
 #include <power/regulator.h>
@@ -27,7 +28,7 @@
 struct panel_simple {
 	struct udevice *dev;
 	const void *blob;
-	int node;
+	ofnode node;
 
 	const struct drm_display_mode *mode;
 	int bus_format;

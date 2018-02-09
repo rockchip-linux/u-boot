@@ -10,8 +10,11 @@
 #include <malloc.h>
 #include <asm/unaligned.h>
 #include <linux/list.h>
+#include <linux/ioport.h>
 #include <asm/io.h>
 #include <dm/device.h>
+#include <dm/read.h>
+#include <dm/ofnode.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
 #include <asm/gpio.h>
@@ -506,13 +509,12 @@ static int rockchip_lvds_init(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	const struct rockchip_connector *connector = conn_state->connector;
 	const struct rockchip_lvds_chip_data *pdata = connector->data;
-	int lvds_node = conn_state->node;
 	struct rockchip_lvds_device *lvds;
 	const char *name;
 	int i, width;
-	struct fdt_resource lvds_phy, lvds_ctrl;
+	struct resource lvds_phy, lvds_ctrl;
 	struct panel_state *panel_state = &state->panel_state;
-	int panel_node = panel_state->node;
+	ofnode panel_node = panel_state->node;
 	int ret;
 
 	lvds = malloc(sizeof(*lvds));
