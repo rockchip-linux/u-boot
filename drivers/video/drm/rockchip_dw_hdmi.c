@@ -512,6 +512,8 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	}
 
 	if (color_depth > 8 && support_dc) {
+		if (dev_type == RK3288_HDMI)
+			return MEDIA_BUS_FMT_RGB101010_1X30;
 		switch (color_format) {
 		case DRM_HDMI_OUTPUT_YCBCR444:
 			return MEDIA_BUS_FMT_YUV10_1X30;
@@ -523,6 +525,8 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 			return MEDIA_BUS_FMT_RGB101010_1X30;
 		}
 	} else {
+		if (dev_type == RK3288_HDMI)
+			return MEDIA_BUS_FMT_RGB888_1X24;
 		switch (color_format) {
 		case DRM_HDMI_OUTPUT_YCBCR444:
 			return MEDIA_BUS_FMT_YUV8_1X24;
@@ -553,7 +557,11 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 	overscan->right_margin = max_scan;
 	overscan->top_margin = max_scan;
 	overscan->bottom_margin = max_scan;
-	*bus_format = MEDIA_BUS_FMT_YUV8_1X24;
+
+	if (dev_type == RK3288_HDMI)
+		*bus_format = MEDIA_BUS_FMT_RGB888_1X24;
+	else
+		*bus_format = MEDIA_BUS_FMT_YUV8_1X24;
 
 	ptn_baseparameter = get_disk_partition("baseparameter");
 	if (!ptn_baseparameter) {
@@ -622,6 +630,9 @@ const struct rockchip_connector_funcs rockchip_dw_hdmi_funcs = {
 const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
 	.vop_sel_bit = 4,
 	.grf_vop_sel_reg = RK3288_GRF_SOC_CON6,
+	.mpll_cfg   = rockchip_mpll_cfg,
+	.cur_ctr    = rockchip_cur_ctr,
+	.phy_config = rockchip_phy_config,
 	.dev_type   = RK3288_HDMI,
 };
 
