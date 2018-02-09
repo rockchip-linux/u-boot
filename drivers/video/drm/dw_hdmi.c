@@ -1267,6 +1267,9 @@ static void dw_hdmi_clear_overflow(struct dw_hdmi *hdmi)
 		count = 4;
 		break;
 	case 0x131a:
+	case 0x200a:
+	case 0x201a:
+	case 0x211a:
 		count = 1;
 		break;
 	default:
