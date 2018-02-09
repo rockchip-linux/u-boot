@@ -125,9 +125,10 @@ static struct udevice *get_panel_device(struct display_state *state, ofnode conn
 							  np_to_ofnode(panel),
 							  &dev);
 			if (ret) {
-				printf("Warn: can't find crtc driver\n");
+				printf("Warn: can't find panel drv %d\n", ret);
 				continue;
 			}
+			panel_state->node = np_to_ofnode(panel);
 			return dev;
 		}
 	}
@@ -146,7 +147,7 @@ static int connector_phy_init(struct display_state *state)
 					   &dev);
 	if (ret) {
 		printf("Warn: can't find phy driver\n");
-		return ret;
+		return 0;
 	}
 	phy = (const struct rockchip_phy *)dev_get_driver_data(dev);
 	if (!phy) {
@@ -843,7 +844,7 @@ static int rockchip_display_probe(struct udevice *dev)
 						  np_to_ofnode(vop_node),
 						  &crtc_dev);
 		if (ret) {
-			printf("Warn: can't find crtc driver\n");
+			printf("Warn: can't find crtc driver %d\n", ret);
 			continue;
 		}
 		crtc = (const struct rockchip_crtc *)dev_get_driver_data(crtc_dev);
