@@ -92,12 +92,19 @@ struct pll_clk_set {
 }
 
 
-#define _CPLL_SET_CLKS(_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac) \
+#define _CPLL_SET_CLKS(_mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac, \
+	_aclk_peri_div, _hclk_peri_div, _pclk_peri_div, _aclk_bus_div, _hclk_bus_div, _pclk_bus_div) \
 { \
 	.rate	= (_mhz) * KHZ, \
 	.pllcon0 = PLL_SET_POSTDIV1(_postdiv1) | PLL_SET_FBDIV(_fbdiv),	\
 	.pllcon1 = PLL_SET_POSTDIV2(_postdiv2) | PLL_SET_REFDIV(_refdiv) | PLL_SET_DSMPD(_dsmpd), \
 	.pllcon2 = PLL_SET_FRAC(_frac),	\
+	.aclk_peri_div	= CLK_DIV_##_aclk_peri_div, \
+	.hclk_peri_div	= CLK_DIV_##_hclk_peri_div, \
+	.pclk_peri_div	= CLK_DIV_##_pclk_peri_div, \
+	.aclk_bus_div	= CLK_DIV_##_aclk_bus_div, \
+	.hclk_bus_div	= CLK_DIV_##_hclk_bus_div, \
+	.pclk_bus_div	= CLK_DIV_##_pclk_bus_div, \
 }
 
 
@@ -151,11 +158,14 @@ static struct pll_clk_set gpll_clks[] = {
 
 /* cpll clock table, should be from high to low */
 static struct pll_clk_set cpll_clks[] = {
-	/* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
-	_CPLL_SET_CLKS(1200000, 1, 100, 2, 1, 1, 0),
-	_CPLL_SET_CLKS(750000, 2, 125, 2, 1, 1, 0),
-	_CPLL_SET_CLKS(594000, 2,  99, 2, 1, 1, 0),
-	_CPLL_SET_CLKS(400000, 6, 200, 2, 1, 1, 0),
+	/*
+	* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac
+	*  aclk_peri_div, hclk_peri_div, pclk_peri_div, aclk_bus_div, hclk_bus_div, pclk_bus_div
+	*/
+	_CPLL_SET_CLKS(1200000, 1, 100, 2, 1, 1, 0, 8, 2, 2, 8, 2, 2),
+	_CPLL_SET_CLKS(750000, 2, 125, 2, 1, 1, 0, 6, 2, 2, 6, 2, 2),
+	_CPLL_SET_CLKS(594000, 2,  99, 2, 1, 1, 0, 4, 2, 2, 4, 2, 2),
+	_CPLL_SET_CLKS(400000, 6, 200, 2, 1, 1, 0, 4, 2, 2, 4, 2, 2),
 };
 
 
@@ -366,6 +376,12 @@ static void rkclk_gpll_cb(struct pll_clk_set *clkset)
 	rkclk_periph_ahpclk_set(PERIPH_SRC_GENERAL_PLL, clkset->aclk_peri_div, clkset->hclk_peri_div, clkset->pclk_peri_div);
 }
 
+static void rkclk_cpll_cb(struct pll_clk_set *clkset)
+{
+	rkclk_bus_ahpclk_set(BUS_SRC_CODEC_PLL, clkset->aclk_bus_div, clkset->hclk_bus_div, clkset->pclk_bus_div);
+	rkclk_periph_ahpclk_set(PERIPH_SRC_CODEC_PLL, clkset->aclk_peri_div, clkset->hclk_peri_div, clkset->pclk_peri_div);
+}
+
 
 /*
  * rkplat clock set cpu clock from arm pll
@@ -540,10 +556,10 @@ void rkclk_set_cpll_child(void)
 void rkclk_set_pll(void)
 {
 	rkclk_pll_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
-	rkclk_pll_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
+	rkclk_pll_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, NULL);
 	if (CONFIG_RKCLK_CPLL_FREQ > 600000)
 		rkclk_set_cpll_child();
-	rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
+	rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, rkclk_cpll_cb);
 	rkclk_pll_set_rate(NPLL_ID, CONFIG_RKCLK_NPLL_FREQ, NULL);
 }
 
@@ -566,7 +582,7 @@ void rkclk_get_pll(void)
 
 	/* cpu / general / ddr / codec freq */
 	gd->cpu_clk = rkclk_pll_get_rate(APLL_ID);
-	gd->bus_clk = rkclk_pll_get_rate(GPLL_ID);
+	gd->bus_clk = rkclk_pll_get_rate(CPLL_ID);
 	gd->mem_clk = rkclk_pll_get_rate(DPLL_ID);
 	gd->pci_clk = rkclk_pll_get_rate(CPLL_ID);
 
