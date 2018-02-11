@@ -789,7 +789,6 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	rkclk_lcdc_aclk_set(lcdc_id, VIO_ACLK_MAX);
 	rkclk_lcdc_hclk_set(lcdc_id, VIO_HCLK_MAX);
 	rkclk_lcdc_dclk_set(lcdc_id, dclk_hz);
-	rkclk_vop_aclk_set(VOP_ACLK_MAX);
 
 	return HDMIPHY_CLK_FREQ;
 }
