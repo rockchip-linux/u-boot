@@ -16,7 +16,6 @@
 
 	chosen {
 		stdout-path = &uart2;
-		u-boot,spl-boot-order = &sdhci, &sdmmc;
 	};
 
 	backlight: backlight {
@@ -211,9 +210,9 @@
 	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 10000 50000>;
-	tx_delay = <0x33>;
-	rx_delay = <0x45>;
-	status = "okay";
+	tx_delay = <0x28>;
+	rx_delay = <0x11>;
+	status = "disabled";
 };
 
 &i2c0 {
@@ -595,6 +594,11 @@
 &sdmmc {
 	u-boot,dm-pre-reloc;
 	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	fifo-mode;
+	disable-wp;
+	num-slots = <1>;
 	status = "okay";
 };
 
@@ -604,7 +608,7 @@
 	mmc-hs400-1_8v;
 	mmc-hs400-enhanced-strobe;
 	non-removable;
-	status = "okay";
+	status = "disabled";
 };
 
 &tsadc {
@@ -612,7 +616,7 @@
 	rockchip,hw-tshut-mode = <1>;
 	/* tshut polarity 0:LOW 1:HIGH */
 	rockchip,hw-tshut-polarity = <1>;
-	status = "okay";
+	status = "disabled";
 };
 
 &u2phy0 {
@@ -665,4 +669,35 @@
 
 &usb_host1_ohci {
 	status = "okay";
+};
+
+&spi0 {
+	u-boot,dm-spl;
+	status = "okay";
+
+	spiflash: spi-flash@0 {
+		u-boot,dm-spl;
+		#address-cells = <0x1>;
+		#size-cells = <1>;
+		compatible = "spi-flash";
+		reg = <0x0>;
+		spi-max-frequency = <25000000>;
+		status = "okay";
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			loader@8000 {
+				label = "loader";
+				reg = <0x8000 0x3F8000>;
+			};
+
+			vendor@7c0000 {
+				label = "vendor";
+				reg = <0x7C0000 0x40000>;
+			};
+		};
+	};
 };
