@@ -23,5 +23,6 @@
 
 void rockchip_show_bmp(const char *bmp);
 void rockchip_show_logo(void);
+void rockchip_display_fixup(void *blob);
 
 #endif

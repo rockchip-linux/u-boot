@@ -62,12 +62,10 @@ static void *get_display_buffer(int size)
 	return buf;
 }
 
-#if 0
 static unsigned long get_display_size(void)
 {
 	return memory_end - memory_start;
 }
-#endif
 
 static bool can_direct_logo(int bpp)
 {
@@ -935,7 +933,6 @@ static int rockchip_display_probe(struct udevice *dev)
 	return 0;
 }
 
-#if 0
 void rockchip_display_fixup(void *blob)
 {
 	const struct rockchip_connector_funcs *conn_funcs;
@@ -944,17 +941,16 @@ void rockchip_display_fixup(void *blob)
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
 	u32 offset;
-	int node;
-	char path[100];
-	int ret;
+	const struct device_node *np;
+	const char *path;
 
 	if (!get_display_size())
 		return;
 
-	node = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
+	offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
 					       (u64)memory_start,
 					       (u64)get_display_size());
-	if (node < 0) {
+	if (offset < 0) {
 		printf("failed to add drm-loader-logo memory\n");
 		return;
 	}
@@ -985,17 +981,14 @@ void rockchip_display_fixup(void *blob)
 		if (conn_funcs->fixup_dts)
 			conn_funcs->fixup_dts(s, blob);
 
-		ret = fdt_get_path(s->blob, s->node, path, sizeof(path));
-		if (ret < 0) {
-			printf("failed to get route path[%s], ret=%d\n",
-			       path, ret);
-			continue;
-		}
-
+		np = ofnode_to_np(s->node);
+		path = np->full_name;
+		fdt_increase_size(blob, 0x400);
 #define FDT_SET_U32(name, val) \
 		do_fixup_by_path_u32(blob, path, name, val, 1);
 
-		offset = s->logo.offset + s->logo.mem - memory_start;
+		offset = s->logo.offset + (u32)(unsigned long)s->logo.mem
+			 - memory_start;
 		FDT_SET_U32("logo,offset", offset);
 		FDT_SET_U32("logo,width", s->logo.width);
 		FDT_SET_U32("logo,height", s->logo.height);
@@ -1008,7 +1001,6 @@ void rockchip_display_fixup(void *blob)
 #undef FDT_SET_U32
 	}
 }
-#endif
 
 int rockchip_display_bind(struct udevice *dev)
 {
