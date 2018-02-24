@@ -163,6 +163,7 @@ static const struct vop_line_flag rk3288_vop_line_flag = {
 
 const struct vop_data rk3288_vop = {
 	.version = VOP_VERSION(3, 1),
+	.max_output = {3840, 2160},
 	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
@@ -177,6 +178,7 @@ static const struct vop_line_flag rk3368_vop_line_flag = {
 
 const struct vop_data rk3368_vop = {
 	.version = VOP_VERSION(3, 2),
+	.max_output = {4096, 2160},
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
 	.line_flag = &rk3368_vop_line_flag,
@@ -190,6 +192,7 @@ static const struct vop_line_flag rk3366_vop_line_flag = {
 
 const struct vop_data rk3366_vop = {
 	.version = VOP_VERSION(3, 4),
+	.max_output = {4096, 2160},
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
 	.line_flag = &rk3366_vop_line_flag,
@@ -198,6 +201,7 @@ const struct vop_data rk3366_vop = {
 
 const struct vop_data rk3399_vop_big = {
 	.version = VOP_VERSION(3, 5),
+	.max_output = {4096, 2160},
 	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
@@ -207,6 +211,7 @@ const struct vop_data rk3399_vop_big = {
 
 const struct vop_data rk3399_vop_lit = {
 	.version = VOP_VERSION(3, 6),
+	.max_output = {2560, 1600},
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
 	.line_flag = &rk3366_vop_line_flag,
@@ -215,6 +220,7 @@ const struct vop_data rk3399_vop_lit = {
 
 const struct vop_data rk322x_vop = {
 	.version = VOP_VERSION(3, 7),
+	.max_output = {4096, 2160},
 	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
@@ -304,6 +310,7 @@ static const struct vop_line_flag rk3328_vop_line_flag = {
 
 const struct vop_data rk3328_vop = {
 	.version = VOP_VERSION(3, 8),
+	.max_output = {4096, 2160},
 	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3328_ctrl_data,
 	.win = &rk3288_win01_data,
@@ -354,6 +361,7 @@ static const struct vop_line_flag rk3036_vop_line_flag = {
 
 const struct vop_data rk3036_vop = {
 	.version = VOP_VERSION(2, 2),
+	.max_output = {1920, 1080},
 	.ctrl = &rk3036_ctrl_data,
 	.win = &rk3036_win0_data,
 	.line_flag = &rk3036_vop_line_flag,
@@ -469,6 +477,7 @@ static const struct vop_line_flag rk3366_vop_lite_line_flag = {
 
 const struct vop_data px30_vop_lit = {
 	.version = VOP_VERSION(2, 5),
+	.max_output = {1920, 1080},
 	.ctrl = &px30_ctrl_data,
 	.win = &rk3366_win1_data,
 	.line_flag = &rk3366_vop_lite_line_flag,
@@ -477,6 +486,7 @@ const struct vop_data px30_vop_lit = {
 
 const struct vop_data px30_vop_big = {
 	.version = VOP_VERSION(2, 6),
+	.max_output = {1920, 1080},
 	.ctrl = &px30_ctrl_data,
 	.win = &rk3366_win0_data,
 	.line_flag = &rk3366_vop_lite_line_flag,
