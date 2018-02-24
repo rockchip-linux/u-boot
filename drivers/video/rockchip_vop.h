@@ -375,6 +375,11 @@ struct vop_line_flag {
 	struct vop_reg line_flag_num[2];
 };
 
+struct vop_rect {
+	int width;
+	int height;
+};
+
 #define VOP_FEATURE_OUTPUT_10BIT	BIT(0)
 
 struct vop_data {
@@ -385,6 +390,7 @@ struct vop_data {
 	int win_offset;
 	int reg_len;
 	u64 feature;
+	struct vop_rect max_output;
 };
 
 struct vop {
@@ -396,6 +402,7 @@ struct vop {
 	const struct vop_win *win;
 	const struct vop_line_flag *line_flag;
 	int win_offset;
+	struct vop_rect max_output;
 };
 
 static inline void vop_writel(struct vop *vop, uint32_t offset, uint32_t v)
