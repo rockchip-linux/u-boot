@@ -135,13 +135,13 @@ static int panel_simple_parse_dt(const void *blob, ofnode node,
 
 	panel->power_invert = !!ofnode_read_s32_default(node, "power_invert", 0);
 
-	panel->delay_prepare = ofnode_read_s32_default(node, "delay,prepare", 0);
-	panel->delay_unprepare = ofnode_read_s32_default(node, "delay,unprepare", 0);
-	panel->delay_enable = ofnode_read_s32_default(node, "delay,enable", 0);
-	panel->delay_disable = ofnode_read_s32_default(node, "delay,disable", 0);
+	panel->delay_prepare = ofnode_read_s32_default(node, "prepare-delay-ms", 0);
+	panel->delay_unprepare = ofnode_read_s32_default(node, "unprepare-delay-ms", 0);
+	panel->delay_enable = ofnode_read_s32_default(node, "enable-delay-ms", 0);
+	panel->delay_disable = ofnode_read_s32_default(node, "disable-delay-ms", 0);
 	panel->bus_format = ofnode_read_s32_default(node, "bus-format", MEDIA_BUS_FMT_RBG888_1X24);
 
-	printf("delay prepare[%d] unprepare[%d] enable[%d] disable[%d]\n",
+	debug("delay prepare[%d] unprepare[%d] enable[%d] disable[%d]\n",
 	       panel->delay_prepare, panel->delay_unprepare,
 	       panel->delay_enable, panel->delay_disable);
 
