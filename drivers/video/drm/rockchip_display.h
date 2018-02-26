@@ -72,6 +72,13 @@ struct panel_state {
 	void *private;
 };
 
+struct overscan {
+	int left_margin;
+	int right_margin;
+	int top_margin;
+	int bottom_margin;
+};
+
 struct connector_state {
 	struct udevice *dev;
 	const struct rockchip_connector *connector;
@@ -84,6 +91,7 @@ struct connector_state {
 	void *phy_private;
 
 	struct drm_display_mode mode;
+	struct overscan overscan;
 	u8 edid[EDID_SIZE * 4];
 	int bus_format;
 	int output_mode;
