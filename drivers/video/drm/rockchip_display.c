@@ -85,10 +85,9 @@ static struct udevice *get_panel_device(struct display_state *state, ofnode conn
 
 	node = dev_read_subnode(conn_state->dev, "panel");
 	if (ofnode_valid(node) &&
-	    of_device_is_available(ofnode_to_np(node))){
+	    of_device_is_available(ofnode_to_np(node))) {
 		ret = uclass_get_device_by_ofnode(UCLASS_PANEL, node, &dev);
-		if(!ret) {
-			printf("%s get panel dev\n", __func__);
+		if (!ret) {
 			panel_state->node = node;
 			return dev;
 		}
@@ -122,12 +121,10 @@ static struct udevice *get_panel_device(struct display_state *state, ofnode conn
 			ret = uclass_get_device_by_ofnode(UCLASS_PANEL,
 							  np_to_ofnode(panel),
 							  &dev);
-			if (ret) {
-				printf("Warn: can't find panel drv %d\n", ret);
-				continue;
+			if (!ret) {
+				panel_state->node = np_to_ofnode(panel);
+				return dev;
 			}
-			panel_state->node = np_to_ofnode(panel);
-			return dev;
 		}
 	}
 
@@ -144,9 +141,10 @@ static int connector_phy_init(struct display_state *state)
 	ret = uclass_get_device_by_phandle(UCLASS_PHY, conn_state->dev, "phys",
 					   &dev);
 	if (ret) {
-		printf("Warn: can't find phy driver\n");
+		debug("Warn: can't find phy driver\n");
 		return 0;
 	}
+
 	phy = (const struct rockchip_phy *)dev_get_driver_data(dev);
 	if (!phy) {
 		printf("failed to find phy driver\n");
@@ -197,10 +195,13 @@ static int connector_panel_init(struct display_state *state)
 		printf("failed to init panel driver\n");
 		return ret;
 	}
+
 	dsp_lut_node = dev_read_subnode(dev, "dsp-lut");
 	if (!ofnode_valid(dsp_lut_node)) {
-		printf("%s can not find dsp-lut node\n", __func__);
+		debug("%s can not find dsp-lut node\n", __func__);
+		return 0;
 	}
+
 	ofnode_get_property(dsp_lut_node, "gamma-lut", &len);
 	if (len > 0) {
 		conn_state->gamma.size = len / sizeof(u32);
@@ -817,7 +818,9 @@ static int rockchip_display_probe(struct udevice *dev)
 	if (!ofnode_valid(route_node))
 		return -ENODEV;
 
-	ofnode_for_each_subnode(node, route_node){
+	ofnode_for_each_subnode(node, route_node) {
+		if (!ofnode_is_available(node))
+			continue;
 		phandle = ofnode_read_u32_default(node, "connect", -1);
 		if (phandle < 0) {
 			printf("Warn: can't find connect node's handle\n");
