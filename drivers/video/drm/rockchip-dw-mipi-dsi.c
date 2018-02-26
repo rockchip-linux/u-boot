@@ -961,6 +961,7 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 	dsi->node = mipi_node;
 	conn_state->private = dsi;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 
 	panel = dev_read_subnode(conn_state->dev, "panel");
 	if (!ofnode_valid(panel)) {
