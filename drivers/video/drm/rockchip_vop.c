@@ -151,7 +151,7 @@ static int rockchip_vop_init(struct display_state *state)
 	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
 	u16 vact_end = vact_st + vdisplay;
 	struct clk dclk, aclk;
-	u32 val;
+	u32 val, act_end;
 	int ret;
 	bool yuv_overlay = false, post_r2y_en = false, post_y2r_en = false;
 	u16 post_csc_mode;
@@ -330,18 +330,20 @@ static int rockchip_vop_init(struct display_state *state)
 			VOP_CTRL_SET(vop, dsp_interlace, 1);
 			VOP_CTRL_SET(vop, p2i_en, 1);
 			vtotal += vtotal + 1;
+		act_end = vact_end_f1;
 		} else {
 			VOP_CTRL_SET(vop, dsp_interlace, 0);
 			VOP_CTRL_SET(vop, p2i_en, 0);
+		act_end = vact_end;
 		}
 		VOP_CTRL_SET(vop, vtotal_pw, (vtotal << 16) | vsync_len);
 
 		VOP_CTRL_SET(vop, core_dclk_div,
 					 !!(mode->flags & DRM_MODE_FLAG_DBLCLK));
 	VOP_CTRL_SET(vop, standby, 1);
-	VOP_LINE_FLAG_SET(vop, line_flag_num[0], vact_end - 3);
+	VOP_LINE_FLAG_SET(vop, line_flag_num[0], act_end - 3);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[1],
-			  vact_end - us_to_vertical_line(mode, 1000));
+			  act_end - us_to_vertical_line(mode, 1000));
 	vop_cfg_done(vop);
 
 	return 0;
