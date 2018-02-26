@@ -102,12 +102,6 @@
 #define BITS_MASK(x, mask, bit)  BITS((x) & (mask), bit)
 #define BITS_EN(mask, bit)       BITS(mask, bit + 16)
 
-#define RK3366_GRF_SOC_CON0	0x0400
-#define RK3366_LVDS_VOP_SEL_LIT	(BITS_MASK(1, 1, 0) | BITS_EN(1, 0))
-#define RK3366_LVDS_VOP_SEL_BIG	(BITS_MASK(0, 1, 0) | BITS_EN(1, 0))
-#define RK3366_GRF_SOC_CON5	0x0414
-#define RK3366_GRF_SOC_CON6	0x0418
-
 #define RK3368_GRF_SOC_CON7	0x041c
 #define RK3368_GRF_SOC_CON15	0x043c
 

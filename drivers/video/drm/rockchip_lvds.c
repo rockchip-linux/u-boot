@@ -26,7 +26,6 @@
 
 enum rockchip_lvds_sub_devtype {
 	RK3288_LVDS,
-	RK3366_LVDS,
 	RK3368_LVDS,
 	RK3126_LVDS,
 };
@@ -136,13 +135,6 @@ const struct rockchip_lvds_chip_data rk3126_lvds_drv_data = {
 	.chip_type = RK3126_LVDS,
 	.grf_soc_con7  = RK3126_GRF_LVDS_CON0,
 	.grf_soc_con15 = RK3126_GRF_CON1,
-	.has_vop_sel = true,
-};
-
-const struct rockchip_lvds_chip_data rk3366_lvds_drv_data = {
-	.chip_type = RK3366_LVDS,
-	.grf_soc_con7  = RK3366_GRF_SOC_CON5,
-	.grf_soc_con15 = RK3366_GRF_SOC_CON6,
 	.has_vop_sel = true,
 };
 
@@ -627,13 +619,6 @@ static void rockchip_lvds_vop_routing(struct rockchip_lvds_device *lvds, int pip
 		else
 			val = RK3288_LVDS_SOC_CON6_SEL_VOP_LIT << 16;
 		writel(val, lvds->grf + lvds->pdata->grf_soc_con6);
-	} else {
-		if (pipe)
-			val = RK3366_LVDS_VOP_SEL_LIT;
-		else
-			val = RK3366_LVDS_VOP_SEL_BIG;
-
-		writel(val, lvds->grf + RK3366_GRF_SOC_CON0);
 	}
 }
 
@@ -686,11 +671,6 @@ const struct rockchip_connector_funcs rockchip_lvds_funcs = {
 	.disable = rockchip_lvds_disable,
 };
 
-static const struct rockchip_connector rk3366_lvds_data = {
-	 .funcs = &rockchip_lvds_funcs,
-	 .data = &rk3366_lvds_drv_data,
-};
-
 static const struct rockchip_connector rk3368_lvds_data = {
 	 .funcs = &rockchip_lvds_funcs,
 	 .data = &rk3368_lvds_drv_data,
@@ -708,9 +688,6 @@ static const struct rockchip_connector rk3126_lvds_data = {
 
 static const struct udevice_id rockchip_lvds_ids[] = {
 	{
-	 .compatible = "rockchip,rk3366-lvds",
-	 .data = (ulong)&rk3366_lvds_data,
-	}, {
 	 .compatible = "rockchip,rk3368-lvds",
 	 .data = (ulong)&rk3368_lvds_data,
 	}, {
