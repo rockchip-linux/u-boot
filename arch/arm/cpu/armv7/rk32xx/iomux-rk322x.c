@@ -149,11 +149,17 @@ static void rk_hdmi_iomux_config(int hdmi_id)
 	switch (hdmi_id) {
 	case RK_HDMI_IOMUX:
 		/* iomux scl/ada */
-		grf_writel((3 << 26) | (3 << 28) | (2 << 12) | (2 << 14), GRF_GPIO0A_IOMUX);
+		grf_writel((3 << 28) | (3 << 30) | (2 << 12) | (2 << 14), GRF_GPIO0A_IOMUX);
 		/*iomux hpd*/
 		grf_writel((3 << 30) | (1 << 14), GRF_GPIO0B_IOMUX);
 		/*iomux cec*/
 		grf_writel((3 << 24) | (1 << 8), GRF_GPIO0C_IOMUX);
+		/* scl/sda pull pu/pd set */
+		grf_writel(0xF << 28, GRF_GPIO0A_P);
+		/* scl/sda mask set */
+		grf_writel((3 << 13) | (3 << (13 + 16)), GRF_SOC_CON2);
+		/* scl/sda 3.3v io select */
+		grf_writel((7 << 4) | (7 << (4 + 16)), GRF_SOC_CON6);
 		break;
 	default:
 		debug("hdmi id = %d iomux error!\n", hdmi_id);

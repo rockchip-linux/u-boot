@@ -640,12 +640,19 @@ const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
 };
 
 const struct dw_hdmi_plat_data rk3328_hdmi_drv_data = {
-	/* .mode_valid = dw_hdmi_rockchip_mode_valid, */
 	.vop_sel_bit = 0,
 	.grf_vop_sel_reg = 0,
 	.phy_ops    = &inno_dw_hdmi_phy_ops,
 	.phy_name   = "inno_dw_hdmi_phy2",
 	.dev_type   = RK3328_HDMI,
+};
+
+const struct dw_hdmi_plat_data rk3228_hdmi_drv_data = {
+	.vop_sel_bit = 0,
+	.grf_vop_sel_reg = 0,
+	.phy_ops    = &inno_dw_hdmi_phy_ops,
+	.phy_name   = "inno_dw_hdmi_phy",
+	.dev_type   = RK3228_HDMI,
 };
 
 const struct dw_hdmi_plat_data rk3368_hdmi_drv_data = {
