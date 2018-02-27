@@ -370,6 +370,67 @@ static int drm_mode_equal(const struct base_drm_display_mode *mode1,
 	return false;
 }
 
+/**
+ * drm_mode_sort - sort mode list
+ * @edid_data: modes structures to sort
+ *
+ * Sort @edid_data by favorability, moving good modes to the head of the list.
+ */
+static void drm_mode_sort(struct hdmi_edid_data *edid_data)
+{
+	struct drm_display_mode *a, *b;
+	struct drm_display_mode c;
+	int diff, i, j;
+
+	edid_data->preferred_mode->type |= DRM_MODE_TYPE_PREFERRED;
+	for (i = 0; i < (edid_data->modes - 1); i++) {
+		a = &edid_data->mode_buf[i];
+		for (j = i + 1; j < edid_data->modes; j++) {
+			b = &edid_data->mode_buf[j];
+			diff = ((b->type & DRM_MODE_TYPE_PREFERRED) != 0) -
+				((a->type & DRM_MODE_TYPE_PREFERRED) != 0);
+			if (diff) {
+				if (diff > 0) {
+					c = *a;
+					*a = *b;
+					*b = c;
+				}
+				continue;
+			}
+
+			diff = b->hdisplay * b->vdisplay
+				- a->hdisplay * a->vdisplay;
+			if (diff) {
+				if (diff > 0) {
+					c = *a;
+					*a = *b;
+					*b = c;
+				}
+				continue;
+			}
+
+			diff = b->vrefresh - a->vrefresh;
+			if (diff) {
+				if (diff > 0) {
+					c = *a;
+					*a = *b;
+					*b = c;
+				}
+				continue;
+			}
+
+			diff = b->clock - a->clock;
+			if (diff > 0) {
+				c = *a;
+				*a = *b;
+				*b = c;
+			}
+		}
+	}
+	edid_data->preferred_mode = &edid_data->mode_buf[0];
+}
+
+
 void drm_rk_select_mode(struct hdmi_edid_data *edid_data,
 			struct base_disp_info *base_parameter)
 {
@@ -392,14 +453,9 @@ void drm_rk_select_mode(struct hdmi_edid_data *edid_data,
 		return;
 
 	white_len = sizeof(resolution_white) / sizeof(resolution_white[0]);
-	for (j = white_len - 1; j >= 0; j--) {
-		if (drm_mode_equal(&resolution_white[j],
-				   edid_data->preferred_mode))
-			return;
-	}
-
-	for (j = (white_len - 1); j >= 0; j--) {
-		for (i = 0; i < edid_data->modes; i++) {
+	drm_mode_sort(edid_data);
+	for (i = 0; i < edid_data->modes; i++) {
+		for (j = 0; j < white_len; j++) {
 			if (drm_mode_equal(&resolution_white[j],
 					   &edid_data->mode_buf[i])) {
 				edid_data->preferred_mode =
