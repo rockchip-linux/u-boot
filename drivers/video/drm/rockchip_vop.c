@@ -196,7 +196,7 @@ static int rockchip_vop_init(struct display_state *state)
 	u16 vsync_len = mode->crtc_vsync_end - mode->crtc_vsync_start;
 	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
 	u16 vact_end = vact_st + vdisplay;
-	struct clk dclk, aclk;
+	struct clk dclk;
 	u32 val, act_end;
 	int ret;
 	bool yuv_overlay = false, post_r2y_en = false, post_y2r_en = false;
@@ -236,12 +236,6 @@ static int rockchip_vop_init(struct display_state *state)
 		printf("%s: Failed to set dclk: ret=%d\n", __func__, ret);
 		return ret;
 	}
-
-	ret = clk_get_by_name(crtc_state->dev, "aclk_vop", &aclk);
-	if (!ret)
-		ret = clk_set_rate(&aclk, 400 * 1000 * 1000);
-	if (IS_ERR_VALUE(ret))
-		printf("%s: Failed to set aclk: ret=%d\n", __func__, ret);
 
 	memcpy(vop->regsbak, vop->regs, vop_data->reg_len);
 
