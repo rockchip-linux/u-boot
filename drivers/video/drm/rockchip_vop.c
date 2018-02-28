@@ -572,8 +572,12 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	dsp_sty = crtc_y + mode->vtotal - mode->vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
 
-	if (crtc_state->ymirror)
-		crtc_state->dma_addr += (src_h - 1) * xvir * 4;
+	if (crtc_state->ymirror) {
+		if (VOP_WIN_SUPPORT(vop, vop->win, ymirror))
+			crtc_state->dma_addr += (src_h - 1) * xvir * 4;
+		else
+			crtc_state->ymirror = 0;
+	}
 	VOP_WIN_SET(vop, ymirror, crtc_state->ymirror);
 	VOP_WIN_SET(vop, format, crtc_state->format);
 	VOP_WIN_SET(vop, yrgb_vir, xvir);
