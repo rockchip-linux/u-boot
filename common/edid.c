@@ -2312,8 +2312,7 @@ drm_add_cmdb_modes(u8 svd, struct drm_hdmi_info *hdmi)
 	bitmap_set(hdmi->y420_cmdb_modes, vic, 1);
 }
 
-static int
-do_cea_modes(struct hdmi_edid_data *data, const u8 *db, u8 len)
+int do_cea_modes(struct hdmi_edid_data *data, const u8 *db, u8 len)
 {
 	int i, modes = 0;
 	struct drm_hdmi_info *hdmi = &data->display_info.hdmi;

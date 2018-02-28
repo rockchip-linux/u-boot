@@ -2209,77 +2209,59 @@ int rockchip_dw_hdmi_disable(struct display_state *state)
 
 int rockchip_dw_hdmi_get_timing(struct display_state *state)
 {
-	int ret;
+	int ret, i;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct dw_hdmi *hdmi = conn_state->private;
 	struct edid *edid = (struct edid *)conn_state->edid;
 	unsigned int bus_format;
 	struct overscan *overscan = &conn_state->overscan;
+	const u8 def_modes_vic[6] = {4, 16, 2, 17, 31, 19};
+	struct drm_display_mode *def_mode;
 
 	if (!hdmi)
 		return -EFAULT;
 
 	ret = drm_do_get_edid(hdmi, conn_state->edid);
 	if (!ret) {
+		hdmi->sink_is_hdmi = drm_detect_hdmi_monitor(edid);
+		hdmi->sink_has_audio = drm_detect_monitor_audio(edid);
 		ret = drm_add_edid_modes(&hdmi->edid_data, conn_state->edid);
 	}
 
-	if (ret > 0) {
-		hdmi->sink_is_hdmi = drm_detect_hdmi_monitor(edid);
+	if (ret <= 0) {
+		hdmi->sink_is_hdmi = true;
 		hdmi->sink_has_audio = true;
-		drm_rk_selete_output(&hdmi->edid_data, &bus_format,
-				     overscan, hdmi->dev_type);
-
-		*mode = *hdmi->edid_data.preferred_mode;
-		hdmi->vic = drm_match_cea_mode(mode);
-
-		conn_state->bus_format = bus_format;
-		hdmi->hdmi_data.enc_in_bus_format = bus_format;
-		hdmi->hdmi_data.enc_out_bus_format = bus_format;
-		switch (bus_format) {
-		case MEDIA_BUS_FMT_UYVY10_1X20:
-			conn_state->bus_format = MEDIA_BUS_FMT_YUV10_1X30;
-			hdmi->hdmi_data.enc_in_bus_format =
-				MEDIA_BUS_FMT_YUV10_1X30;
-			break;
-		case MEDIA_BUS_FMT_UYVY8_1X16:
-			conn_state->bus_format = MEDIA_BUS_FMT_YUV8_1X24;
-			hdmi->hdmi_data.enc_in_bus_format =
-				MEDIA_BUS_FMT_YUV8_1X24;
-			break;
-		case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
-		case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
-			conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV420;
-			break;
-		}
-		return 0;
+		do_cea_modes(&hdmi->edid_data, def_modes_vic,
+			     sizeof(def_modes_vic));
+		hdmi->edid_data.preferred_mode = &hdmi->edid_data.mode_buf[0];
+		printf("failed to get edid\n");
 	}
 
-	conn_state->bus_format = MEDIA_BUS_FMT_RGB888_1X24;
-	hdmi->hdmi_data.enc_in_bus_format = MEDIA_BUS_FMT_RGB888_1X24;
-	hdmi->hdmi_data.enc_out_bus_format = MEDIA_BUS_FMT_RGB888_1X24;
+	drm_rk_selete_output(&hdmi->edid_data, &bus_format,
+			     overscan, hdmi->dev_type);
+	*mode = *hdmi->edid_data.preferred_mode;
+	hdmi->vic = drm_match_cea_mode(mode);
 
-	overscan->left_margin = 100;
-	overscan->right_margin = 100;
-	overscan->top_margin = 100;
-	overscan->bottom_margin = 100;
-
-	/* if can't get edid timing, use default resolution. */
-	printf("can't get edid timing\n");
-	hdmi->vic = HDMI_VIDEO_DEFAULT_MODE;
-	hdmi->sink_is_hdmi = true;
-	hdmi->sink_has_audio = true;
-	mode->hdisplay = 1280;
-	mode->hsync_start = 1390;
-	mode->hsync_end = 1430;
-	mode->htotal = 1650;
-	mode->vdisplay = 720;
-	mode->vsync_start = 725;
-	mode->vsync_end = 730;
-	mode->vtotal = 750;
-	mode->clock = 74250;
-	mode->flags = DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC;
+	conn_state->bus_format = bus_format;
+	hdmi->hdmi_data.enc_in_bus_format = bus_format;
+	hdmi->hdmi_data.enc_out_bus_format = bus_format;
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_UYVY10_1X20:
+		conn_state->bus_format = MEDIA_BUS_FMT_YUV10_1X30;
+		hdmi->hdmi_data.enc_in_bus_format =
+			MEDIA_BUS_FMT_YUV10_1X30;
+		break;
+	case MEDIA_BUS_FMT_UYVY8_1X16:
+		conn_state->bus_format = MEDIA_BUS_FMT_YUV8_1X24;
+		hdmi->hdmi_data.enc_in_bus_format =
+			MEDIA_BUS_FMT_YUV8_1X24;
+		break;
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV420;
+		break;
+	}
 	return 0;
 }
 

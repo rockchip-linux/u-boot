@@ -828,5 +828,6 @@ int edid_get_drm_mode(u8 *buf, int buf_size, struct drm_display_mode *mode,
 int drm_add_edid_modes(struct hdmi_edid_data *data, u8 *edid);
 bool drm_detect_hdmi_monitor(struct edid *edid);
 bool drm_detect_monitor_audio(struct edid *edid);
+int do_cea_modes(struct hdmi_edid_data *data, const u8 *db, u8 len);
 
 #endif /* __EDID_H_ */
