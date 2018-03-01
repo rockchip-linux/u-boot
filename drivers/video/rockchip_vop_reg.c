@@ -177,9 +177,19 @@ static const struct vop_line_flag rk3288_vop_line_flag = {
 	.line_flag_num[0] = VOP_REG(RK3288_INTR_CTRL0, 0x1fff, 12),
 };
 
-const struct vop_data rk3288_vop = {
+const struct vop_data rk3288_vop_big = {
 	.version = VOP_VERSION(3, 1),
 	.max_output = {3840, 2160},
+	.feature = VOP_FEATURE_OUTPUT_10BIT,
+	.ctrl = &rk3288_ctrl_data,
+	.win = &rk3288_win01_data,
+	.line_flag = &rk3288_vop_line_flag,
+	.reg_len = RK3288_DSP_VACT_ST_END_F1 * 4,
+};
+
+const struct vop_data rk3288_vop_lit = {
+	.version = VOP_VERSION(3, 1),
+	.max_output = {2560, 1600},
 	.feature = VOP_FEATURE_OUTPUT_10BIT,
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
