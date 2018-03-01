@@ -681,6 +681,11 @@ inno_hdmi_phy_rk3328_power_on(struct inno_hdmi_phy *inno,
 		inno_write(inno, 0xc5, 0x81);
 	}
 
+	/* set TMDS sync detection counter length */
+	val = 47520000000 / phy_cfg->tmdsclock;
+	inno_write(inno, 0xd8, (val >> 8) & 0xff);
+	inno_write(inno, 0xd9, val & 0xff);
+
 	/* Power up post PLL */
 	inno_update_bits(inno, 0xaa, 1, 0);
 	/* Power up tmds driver */
