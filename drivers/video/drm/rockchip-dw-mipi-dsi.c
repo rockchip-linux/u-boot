@@ -939,7 +939,7 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 	ofnode mipi_node = conn_state->node;
 	struct dw_mipi_dsi *dsi;
 	ofnode panel;
-	static int id = 0;
+	int id;
 	int ret;
 
 	dsi = malloc(sizeof(*dsi));
@@ -955,8 +955,12 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 		return -ENXIO;
 	}
 
+	id = of_alias_get_id(ofnode_to_np(mipi_node), "dsi");
+	if (id < 0)
+		id = 0;
+
 	dsi->pdata = pdata;
-	dsi->id = id++;
+	dsi->id = id;
 	dsi->blob = state->blob;
 	dsi->node = mipi_node;
 	conn_state->private = dsi;
