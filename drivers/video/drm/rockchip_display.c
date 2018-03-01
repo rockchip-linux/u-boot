@@ -31,6 +31,15 @@
 #include <dm/of_access.h>
 #include <dm/ofnode.h>
 
+#define DRIVER_VERSION	"v1.0.0"
+
+/***********************************************************************
+ *  Rockchip UBOOT DRM driver version
+ *
+ *  v1.0.0	: add basic version for rockchip drm driver(hjc)
+ *
+ **********************************************************************/
+
 #define RK_BLK_SIZE 512
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -455,6 +464,8 @@ static int display_init(struct display_state *state)
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	struct drm_display_mode *mode = &conn_state->mode;
 	int ret = 0;
+
+	printf("Rockchip UBOOT DRM driver version: %s\n", DRIVER_VERSION);
 
 	if (state->is_init)
 		return 0;
