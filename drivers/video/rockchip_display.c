@@ -25,6 +25,15 @@
 #include "rockchip_phy.h"
 #include "rockchip_panel.h"
 
+#define DRIVER_VERSION	"develop-v1.0.0"
+
+/***********************************************************************
+ *  Rockchip UBOOT DRM driver version
+ *
+ *  v1.0.0	: add basic version for rockchip drm driver(hjc)
+ *
+ **********************************************************************/
+
 DECLARE_GLOBAL_DATA_PTR;
 static LIST_HEAD(rockchip_display_list);
 static LIST_HEAD(logo_cache_list);
@@ -922,6 +931,8 @@ int rockchip_display_init(void)
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
 	const char *name;
+
+	printf("Rockchip UBOOT DRM driver version: %s\n", DRIVER_VERSION);
 
 	route = fdt_path_offset(blob, "/display-subsystem/route");
 	if (route < 0) {
