@@ -32,9 +32,14 @@ static const struct rockchip_crtc px30_vop_big_data = {
 	.data = &px30_vop_big,
 };
 
-static const struct rockchip_crtc rk3288_vop_data = {
+static const struct rockchip_crtc rk3288_vop_big_data = {
 	.funcs = &rockchip_vop_funcs,
-	.data = &rk3288_vop,
+	.data = &rk3288_vop_big,
+};
+
+static const struct rockchip_crtc rk3288_vop_lit_data = {
+	.funcs = &rockchip_vop_funcs,
+	.data = &rk3288_vop_lit,
 };
 
 static const struct rockchip_crtc rk3368_vop_data = {
@@ -81,8 +86,11 @@ static const struct udevice_id rockchip_vop_ids[] = {
 		.compatible = "rockchip,px30-vop-big",
 		.data = (ulong)&px30_vop_big_data,
 	}, {
-		.compatible = "rockchip,rk3288-vop",
-		.data = (ulong)&rk3288_vop_data,
+		.compatible = "rockchip,rk3288-vop-big",
+		.data = (ulong)&rk3288_vop_big_data,
+	}, {
+		.compatible = "rockchip,rk3288-vop-lit",
+		.data = (ulong)&rk3288_vop_lit_data,
 	}, {
 		.compatible = "rockchip,rk3368-vop",
 		.data = (ulong)&rk3368_vop_data,
