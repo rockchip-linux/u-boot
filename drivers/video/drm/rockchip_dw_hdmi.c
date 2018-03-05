@@ -595,7 +595,7 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 	const disk_partition_t *ptn_baseparameter;
 	char baseparameter_buf[8 * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
 	int max_scan = 100;
-	int min_scan = 50;
+	int min_scan = 51;
 
 	overscan->left_margin = max_scan;
 	overscan->right_margin = max_scan;
@@ -623,22 +623,22 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 
 	if (scan->leftscale < min_scan && scan->leftscale > 0)
 		overscan->left_margin = min_scan;
-	else if (scan->leftscale < max_scan)
+	else if (scan->leftscale < max_scan && scan->leftscale > 0)
 		overscan->left_margin = scan->leftscale;
 
 	if (scan->rightscale < min_scan && scan->rightscale > 0)
 		overscan->right_margin = min_scan;
-	else if (scan->rightscale < max_scan)
+	else if (scan->rightscale < max_scan && scan->rightscale > 0)
 		overscan->right_margin = scan->rightscale;
 
 	if (scan->topscale < min_scan && scan->topscale > 0)
 		overscan->top_margin = min_scan;
-	else if (scan->topscale < max_scan)
+	else if (scan->topscale < max_scan && scan->topscale > 0)
 		overscan->top_margin = scan->topscale;
 
 	if (scan->bottomscale < min_scan && scan->bottomscale > 0)
 		overscan->bottom_margin = min_scan;
-	else if (scan->bottomscale < max_scan)
+	else if (scan->bottomscale < max_scan && scan->bottomscale > 0)
 		overscan->bottom_margin = scan->bottomscale;
 
 	screen_size = sizeof(base_parameter.screen_list) /
