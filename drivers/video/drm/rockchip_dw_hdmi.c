@@ -412,14 +412,15 @@ static void drm_mode_sort(struct hdmi_edid_data *edid_data)
 
 
 void drm_rk_select_mode(struct hdmi_edid_data *edid_data,
-			struct base_disp_info *base_parameter)
+			struct base_screen_info *screen_info)
 {
 	int i, j, white_len;
-	const struct base_drm_display_mode *base_mode = &base_parameter->mode;
+	const struct base_drm_display_mode *base_mode;
 
-	if (base_mode->hdisplay == 0 || base_mode->vdisplay == 0) {
+	if (!screen_info) {
 		/* define init resolution here */
 	} else {
+		base_mode = &screen_info->mode;
 		for (i = 0; i < edid_data->modes; i++) {
 			if (drm_mode_equal(base_mode,
 					   &edid_data->mode_buf[i])) {
@@ -447,20 +448,23 @@ void drm_rk_select_mode(struct hdmi_edid_data *edid_data,
 }
 
 static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
-					struct base_disp_info *base_parameter,
+					struct base_screen_info *screen_info,
 					enum dw_hdmi_devtype dev_type)
 {
 	struct drm_display_info *info = &edid_data->display_info;
 	struct drm_display_mode *mode = edid_data->preferred_mode;
 	int max_tmds_clock = info->max_tmds_clock;
 	bool support_dc = false;
-	unsigned int color_format;
-	unsigned int color_depth = base_parameter->depth;
 	bool mode_420 = drm_mode_is_420(info, mode);
+	unsigned int color_depth = 8;
+	unsigned int base_color = DRM_HDMI_OUTPUT_YCBCR444;
+	unsigned int color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
 	unsigned long tmdsclock, pixclock = mode->clock;
 
-	color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
-	switch (base_parameter->format) {
+	if (screen_info)
+		base_color = screen_info->format;
+
+	switch (base_color) {
 	case DRM_HDMI_OUTPUT_YCBCR_HQ:
 		if (info->color_formats & DRM_COLOR_FORMAT_YCRCB444)
 			color_format = DRM_HDMI_OUTPUT_YCBCR444;
@@ -510,8 +514,8 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	if (mode->flags & DRM_MODE_FLAG_DBLCLK)
 		pixclock *= 2;
 
-	if (!color_depth)
-		color_depth = 8;
+	if (screen_info && (screen_info->depth == 10))
+		color_depth = screen_info->depth;
 
 	if (color_format == DRM_HDMI_OUTPUT_YCBCR422 || color_depth == 8)
 		tmdsclock = pixclock;
@@ -584,9 +588,10 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 			  struct overscan *overscan,
 			  enum dw_hdmi_devtype dev_type)
 {
-	int ret;
+	int ret, i, screen_size;
 	struct base_disp_info base_parameter;
 	const struct base_overscan *scan;
+	struct base_screen_info *screen_info = NULL;
 	const disk_partition_t *ptn_baseparameter;
 	char baseparameter_buf[8 * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
 	int max_scan = 100;
@@ -636,8 +641,19 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 	else if (scan->bottomscale < max_scan)
 		overscan->bottom_margin = scan->bottomscale;
 
-	drm_rk_select_mode(edid_data, &base_parameter);
-	*bus_format = drm_rk_select_color(edid_data, &base_parameter,
+	screen_size = sizeof(base_parameter.screen_list) /
+		sizeof(base_parameter.screen_list[0]);
+
+	for (i = 0; i < screen_size; i++) {
+		if (base_parameter.screen_list[i].type ==
+		    DRM_MODE_CONNECTOR_HDMIA) {
+			screen_info = &base_parameter.screen_list[i];
+			break;
+		}
+	}
+
+	drm_rk_select_mode(edid_data, screen_info);
+	*bus_format = drm_rk_select_color(edid_data, screen_info,
 					  dev_type);
 }
 

@@ -351,7 +351,8 @@ static int rockchip_drm_tve_detect(struct display_state *state)
 static void drm_tve_selete_output(struct overscan *overscan,
 			  struct drm_display_mode *mode)
 {
-	int ret;
+	int ret, i, screen_size;
+	struct base_screen_info *screen_info = NULL;
 	struct base_disp_info base_parameter;
 	const struct base_overscan *scan;
 	const disk_partition_t *ptn_baseparameter;
@@ -378,6 +379,17 @@ static void drm_tve_selete_output(struct overscan *overscan,
 	memcpy(&base_parameter, baseparameter_buf, sizeof(base_parameter));
 	scan = &base_parameter.scan;
 
+	screen_size = sizeof(base_parameter.screen_list) /
+		sizeof(base_parameter.screen_list[0]);
+
+	for (i = 0; i < screen_size; i++) {
+		if (base_parameter.screen_list[i].type ==
+		    DRM_MODE_CONNECTOR_TV) {
+			screen_info = &base_parameter.screen_list[i];
+			break;
+		}
+	}
+
 	if (scan->leftscale < min_scan && scan->leftscale > 0)
 		overscan->left_margin = min_scan;
 	else if (scan->leftscale < max_scan)
@@ -398,10 +410,11 @@ static void drm_tve_selete_output(struct overscan *overscan,
 	else if (scan->bottomscale < max_scan)
 		overscan->bottom_margin = scan->bottomscale;
 
-	if (base_parameter.mode.hdisplay == 720 &&
-	    base_parameter.mode.vdisplay == 576 &&
-	    base_parameter.mode.hsync_start == 753 &&
-	    base_parameter.mode.hsync_end == 816) {
+	if (screen_info &&
+	    (screen_info->mode.hdisplay == 720 &&
+	    screen_info->mode.vdisplay == 576 &&
+	    screen_info->mode.hsync_start == 753 &&
+	    screen_info->mode.hsync_end == 816)) {
 		mode->hdisplay = 720;
 		mode->hsync_start = 753;
 		mode->hsync_end = 816;
@@ -411,9 +424,10 @@ static void drm_tve_selete_output(struct overscan *overscan,
 		mode->vsync_end = 586;
 		mode->vtotal = 625;
 		mode->clock = 13500;
-	} else if (base_parameter.mode.vdisplay == 480 &&
-		   base_parameter.mode.vsync_start == 480 &&
-		   base_parameter.mode.vsync_end == 486) {
+	} else if (screen_info &&
+		   screen_info->mode.vdisplay == 480 &&
+		   screen_info->mode.vsync_start == 480 &&
+		   screen_info->mode.vsync_end == 486) {
 		mode->hdisplay = 720;
 		mode->hsync_start = 753;
 		mode->hsync_end = 815;
@@ -437,7 +451,10 @@ static void drm_tve_selete_output(struct overscan *overscan,
 
 	mode->flags = DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC |
 		DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_DBLCLK;
-	printf("base_parameter.mode.vdisplay:%d\n",base_parameter.mode.vdisplay);
+	if (screen_info)
+		printf("base_parameter.mode:%dx%d\n",
+		       screen_info->mode.hdisplay,
+		       screen_info->mode.vdisplay);
 }
 
 static int rockchip_drm_tve_get_timing(struct display_state *state)

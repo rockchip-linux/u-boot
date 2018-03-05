@@ -755,11 +755,17 @@ struct base_drm_display_mode {
 	int picture_aspect_ratio;
 };
 
-struct base_disp_info {
+struct base_screen_info {
+	int type;
 	struct base_drm_display_mode mode;	/* 52 bytes */
-	struct base_overscan scan;		/* 12 bytes */
 	enum base_output_format  format;	/* 4 bytes */
 	enum base_output_depth depth;		/* 4 bytes */
+	unsigned int feature;			/* 4 bytes */
+};
+
+struct base_disp_info {
+	struct base_screen_info screen_list[5];
+	struct base_overscan scan;		/* 12 bytes */
 };
 
 /**

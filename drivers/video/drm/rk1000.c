@@ -66,7 +66,8 @@ static int rk1000_parse_dt(const void* blob)
 void drm_rk1000_selete_output(struct overscan *overscan,
 			      struct drm_display_mode *mode)
 {
-	int ret;
+	int ret, i, screen_size;
+	struct base_screen_info *screen_info = NULL;
 	struct base_disp_info base_parameter;
 	const struct base_overscan *scan;
 	const disk_partition_t *ptn_baseparameter;
@@ -93,6 +94,17 @@ void drm_rk1000_selete_output(struct overscan *overscan,
 	memcpy(&base_parameter, baseparameter_buf, sizeof(base_parameter));
 	scan = &base_parameter.scan;
 
+	screen_size = sizeof(base_parameter.screen_list) /
+		sizeof(base_parameter.screen_list[0]);
+
+	for (i = 0; i < screen_size; i++) {
+		if (base_parameter.screen_list[i].type ==
+		    DRM_MODE_CONNECTOR_TV) {
+			screen_info = &base_parameter.screen_list[i];
+			break;
+		}
+	}
+
 	if (scan->leftscale < min_scan && scan->leftscale > 0)
 		overscan->left_margin = min_scan;
 	else if (scan->leftscale < max_scan)
@@ -113,9 +125,10 @@ void drm_rk1000_selete_output(struct overscan *overscan,
 	else if (scan->bottomscale < max_scan)
 		overscan->bottom_margin = scan->bottomscale;
 
-	if (base_parameter.mode.hdisplay == 720 &&
-	    base_parameter.mode.vdisplay == 576 &&
-	    base_parameter.mode.hsync_end == 738) {
+	if (screen_info &&
+	    (screen_info->mode.hdisplay == 720 &&
+	     screen_info->mode.vdisplay == 576 &&
+	     screen_info->mode.hsync_end == 738)) {
 		mode->hdisplay = 720;
 		mode->hsync_start = 732;
 		mode->hsync_end = 738;
@@ -125,9 +138,10 @@ void drm_rk1000_selete_output(struct overscan *overscan,
 		mode->vsync_end = 588;
 		mode->vtotal = 625;
 		mode->clock = 27000;
-	} else if (base_parameter.mode.hdisplay == 720 &&
-		   base_parameter.mode.hsync_end == 742 &&
-		   base_parameter.mode.vdisplay == 480) {
+	} else if (screen_info &&
+		   (screen_info->mode.hdisplay == 720 &&
+		    screen_info->mode.hsync_end == 742 &&
+		    screen_info->mode.vdisplay == 480)) {
 		mode->hdisplay = 720;
 		mode->hsync_start = 736;
 		mode->hsync_end = 742;
@@ -150,8 +164,10 @@ void drm_rk1000_selete_output(struct overscan *overscan,
 	}
 
 	mode->flags = DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC;
-	printf("base_parameter.mode:%dx%d\n", base_parameter.mode.hdisplay,
-	       base_parameter.mode.vdisplay);
+	if (screen_info)
+		printf("base_parameter.mode:%dx%d\n",
+		       screen_info->mode.hdisplay,
+		       screen_info->mode.vdisplay);
 }
 
 static int drm_rk1000_tve_init(struct display_state *state)
