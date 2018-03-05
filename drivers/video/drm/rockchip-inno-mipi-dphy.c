@@ -21,6 +21,7 @@
 
 /* Innosilicon MIPI D-PHY registers */
 #define INNO_PHY_LANE_CTRL	0x00000
+#define MIPI_BGPD		BIT(7)
 #define CLK_LANE_EN_MASK	BIT(6)
 #define DATA_LANE_3_EN_MASK	BIT(5)
 #define DATA_LANE_2_EN_MASK	BIT(4)
@@ -31,6 +32,8 @@
 #define DATA_LANE_2_EN		BIT(4)
 #define DATA_LANE_1_EN		BIT(3)
 #define DATA_LANE_0_EN		BIT(2)
+#define PWROK_BP		BIT(1)
+#define PWROK			BIT(0)
 #define INNO_PHY_POWER_CTRL	0x00004
 #define ANALOG_RESET_MASK	BIT(2)
 #define ANALOG_RESET		BIT(2)
@@ -53,6 +56,8 @@
 #define DIGITAL_RESET_MASK	BIT(0)
 #define DIGITAL_NORMAL		BIT(0)
 #define DIGITAL_RESET		0
+#define INNO_PHY_LVDS_CTRL	0x003ac
+#define LVDS_BGPD		BIT(0)
 
 #define INNO_CLOCK_LANE_REG_BASE	0x00100
 #define INNO_DATA_LANE_0_REG_BASE	0x00180
@@ -462,11 +467,34 @@ static inline void inno_mipi_dphy_pll_ldo_enable(struct inno_mipi_dphy *inno)
 			 PLL_POWER_ON | LDO_POWER_ON);
 }
 
+static inline void inno_mipi_dphy_da_pwrok_enable(struct inno_mipi_dphy *inno)
+{
+	inno_update_bits(inno, INNO_PHY_LANE_CTRL, PWROK_BP | PWROK, PWROK);
+}
+
+static inline void inno_mipi_dphy_da_pwrok_disable(struct inno_mipi_dphy *inno)
+{
+	inno_update_bits(inno, INNO_PHY_LANE_CTRL, PWROK_BP | PWROK, PWROK_BP);
+}
+
+static inline void inno_mipi_dphy_bgpd_enable(struct inno_mipi_dphy *inno)
+{
+	inno_update_bits(inno, INNO_PHY_LANE_CTRL, MIPI_BGPD, 0);
+}
+
+static inline void inno_mipi_dphy_bgpd_disable(struct inno_mipi_dphy *inno)
+{
+	inno_update_bits(inno, INNO_PHY_LANE_CTRL, MIPI_BGPD, MIPI_BGPD);
+	inno_update_bits(inno, INNO_PHY_LVDS_CTRL, LVDS_BGPD, LVDS_BGPD);
+}
+
 static int inno_mipi_dphy_power_on(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct inno_mipi_dphy *inno = conn_state->phy_private;
 
+	inno_mipi_dphy_bgpd_enable(inno);
+	inno_mipi_dphy_da_pwrok_enable(inno);
 	inno_mipi_dphy_pll_ldo_enable(inno);
 	inno_mipi_dphy_lane_enable(inno);
 	inno_mipi_dphy_reset(inno);
@@ -488,6 +516,8 @@ static int inno_mipi_dphy_power_off(struct display_state *state)
 
 	inno_mipi_dphy_lane_disable(inno);
 	inno_mipi_dphy_pll_ldo_disable(inno);
+	inno_mipi_dphy_da_pwrok_disable(inno);
+	inno_mipi_dphy_bgpd_disable(inno);
 
 	return 0;
 }
