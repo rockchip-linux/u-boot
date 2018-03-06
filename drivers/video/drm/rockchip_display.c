@@ -464,8 +464,12 @@ static int display_init(struct display_state *state)
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	struct drm_display_mode *mode = &conn_state->mode;
 	int ret = 0;
+	static bool __print_once = false;
 
-	printf("Rockchip UBOOT DRM driver version: %s\n", DRIVER_VERSION);
+	if (!__print_once) {
+		__print_once = true;
+		printf("Rockchip UBOOT DRM driver version: %s\n", DRIVER_VERSION);
+	}
 
 	if (state->is_init)
 		return 0;
