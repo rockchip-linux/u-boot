@@ -127,6 +127,7 @@ static volatile uint8_t		UsbBusReset;
 static volatile uint8_t		ControlStage;
 static volatile uint8_t		Ep0PktSize;
 static volatile uint16_t	BulkEpSize;
+static bool			phy_enabled;
 
 
 static void udc_stall_ep(uint32_t ep_num);
@@ -331,62 +332,6 @@ static void ControlInPacket(void)
 			ControlStage = STAGE_STATUS;
 	}
 }
-
-
-uint32_t GetVbus(void)
-{
-	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
-	uint32_t vbus = 1;
-
-#if defined(CONFIG_RKCHIP_RK3288)
-	if (grf_readl(GRF_UOC0_CON2) & (0x01 << 2)) {
-		/* exit suspend */
-		grf_writel(((0x01 << 2) << 16), GRF_UOC0_CON2);
-		/* delay more than 1ms, waiting for usb phy init */
-		mdelay(3);
-	}
-#elif defined(CONFIG_RKCHIP_RK3036)
-	if (grf_readl(GRF_UOC0_CON5) & (0x01 << 0)) {
-		/* exit suspend */
-		grf_writel(((0x01 << 0) << 16), GRF_UOC0_CON5);
-		/* delay more than 1ms, waiting for usb phy init */
-		mdelay(3);
-	}
-#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) \
-		|| defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
-	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
-		/* exit suspend */
-		grf_writel(((0x1 << 0) << 16), GRF_UOC0_CON0);
-		/* delay more than 1ms, waiting for usb phy init */
-		mdelay(3);
-	}
-#elif defined(CONFIG_RKCHIP_RK322X)
-	if (grf_readl(GRF_USBPHY0_CON0) & (0x01 << 1)) {
-		/* exit suspend */
-		grf_writel(((0x1 << 1) << 16), GRF_USBPHY0_CON0);
-		/* delay more than 1ms, waiting for usb phy init */
-		mdelay(3);
-	}
-#elif defined(CONFIG_RKCHIP_RK322XH)
-	if (readl(RKIO_USB2PHY_GRF_PHYS + USB2PHY_GRF_CON(0)) & (0x01 << 1)) {
-		/* exit suspend */
-		writel(((0x1 << 1) << 16), RKIO_USB2PHY_GRF_PHYS + USB2PHY_GRF_CON(0));
-		/* delay more than 1ms, waiting for usb phy init */
-		mdelay(3);
-	}
-#else
-	#error "PLS config chiptype for usb vbus check!"
-#endif
-
-	vbus = (OtgReg->Core.gotgctl >> 19) & 0x01;
-	if (vbus == 0) {
-		mdelay(1);
-		vbus = (OtgReg->Core.gotgctl >> 19) & 0x01;
-	}
-
-	return (vbus);     //vbus״̬
-}
-
 
 uint8_t UsbConnectStatus(void)
 {
@@ -1077,8 +1022,8 @@ int udc_init(void)
 	udc_device = NULL;
 	suspend = true;
 	Ep0Buf = memalign(ARCH_DMA_MINALIGN, EP0_BUF_MAXSIZE);
-	usbdbg("starting \n");
-	
+	usbdbg("starting\n");
+
 	return 0;
 }
 
@@ -1089,17 +1034,21 @@ int is_usbd_high_speed(void)
 	return ((OtgReg->Device.dsts>>1) & 0x03) ? 0 : 1;
 }
 
-void usbphy_tunning(void)
+static void udc_phy_init(void)
 {
+	if (phy_enabled)
+		return;
+
+	/* Stage1 PHY PLL recovering and PHY tuning*/
 #if defined(CONFIG_RKCHIP_RK3126) || \
     defined(CONFIG_RKCHIP_RK3128)
-	/* Phy PLL recovering */
+	/* PHY PLL recovering */
 	grf_writel(0x00030001, GRF_UOC0_CON0);
 	mdelay(10);
 	grf_writel(0x00030002, GRF_UOC0_CON0);
 #endif
 #if defined(CONFIG_RKCHIP_RK3036)
-	/* Phy PLL recovering */
+	/* PHY PLL recovering */
 	grf_writel(0x00030001, GRF_UOC0_CON5);
 	mdelay(10);
 	grf_writel(0x00030002, GRF_UOC0_CON5);
@@ -1114,7 +1063,64 @@ void usbphy_tunning(void)
 	/* compensation current tuning reference relate to ODT and etc */
 	grf_writel(0xffff026e, GRF_USBPHY_CON3);
 #endif
+
+	/* Stage2 PHY exit suspend */
+#if defined(CONFIG_RKCHIP_RK3288)
+	if (grf_readl(GRF_UOC0_CON2) & (0x01 << 2)) {
+		grf_writel(((0x01 << 2) << 16), GRF_UOC0_CON2);
+		/* wait for the utmi_clk to become stable */
+		mdelay(3);
+	}
+#elif defined(CONFIG_RKCHIP_RK3036)
+	if (grf_readl(GRF_UOC0_CON5) & (0x01 << 0)) {
+		grf_writel(((0x01 << 0) << 16), GRF_UOC0_CON5);
+		/* wait for the utmi_clk to become stable */
+		mdelay(3);
+	}
+#elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128) ||\
+	defined(CONFIG_RKCHIP_RK3368) || defined(CONFIG_RKCHIP_RK3366)
+	if (grf_readl(GRF_UOC0_CON0) & (0x01 << 0)) {
+		grf_writel(((0x1 << 0) << 16), GRF_UOC0_CON0);
+		/* wait for the utmi_clk to become stable */
+		mdelay(3);
+	}
+#elif defined(CONFIG_RKCHIP_RK322X)
+	if (grf_readl(GRF_USBPHY0_CON0) & (0x01 << 0)) {
+		grf_writel(((0x1 << 0) << 16), GRF_USBPHY0_CON0);
+		/* wait for the utmi_clk to become stable */
+		mdelay(3);
+	}
+#elif defined(CONFIG_RKCHIP_RK322XH)
+	if (readl(RKIO_USB2PHY_GRF_PHYS + USB2PHY_GRF_CON(0)) & (0x01 << 1)) {
+		writel(((0x1 << 1) << 16),
+		       RKIO_USB2PHY_GRF_PHYS + USB2PHY_GRF_CON(0));
+		/* wait for the utmi_clk to become stable */
+		mdelay(3);
+	}
+#else
+	#error "PLS config chiptype for usb vbus check!"
+	return;
+#endif
+
+	phy_enabled = true;
 }
+
+uint32_t GetVbus(void)
+{
+	pUSB_OTG_REG OtgReg = (pUSB_OTG_REG)RKIO_USBOTG_BASE;
+	uint32_t vbus = 1;
+
+	udc_phy_init();
+
+	vbus = (OtgReg->Core.gotgctl >> 19) & 0x01;
+	if (vbus == 0) {
+		mdelay(1);
+		vbus = (OtgReg->Core.gotgctl >> 19) & 0x01;
+	}
+
+	return vbus;
+}
+
 /* Turn on the USB connection by enabling the pullup resistor */
 void udc_connect(void)
 {
@@ -1124,7 +1130,6 @@ void udc_connect(void)
 	rkplat_uart2UsbEn(0);
 
 	OtgReg->Device.dctl |= 0x02;	//soft disconnect
-	usbphy_tunning();
 	mdelay(500);
 	UdcInit();
 	OtgReg->Device.dctl &= ~0x02;	//soft connect
@@ -1165,6 +1170,8 @@ void udc_enable(struct usb_device_instance *device)
 {
 	usbinfo("enable device %p, status %d, device_state %d\n",
 		device, device->status, device->device_state);
+
+	udc_phy_init();
 
 	/* Save the device structure pointer */
 	udc_device = device;
