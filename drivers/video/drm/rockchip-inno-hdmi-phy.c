@@ -240,6 +240,7 @@ static const struct pre_pll_config pre_pll_cfg_table[] = {
 static const struct post_pll_config post_pll_cfg_table[] = {
 	{33750000,  1, 40, 8, 1},
 	{33750000,  1, 80, 8, 2},
+	{33750000,  1, 10, 2, 4},
 	{74250000,  1, 40, 8, 1},
 	{74250000, 18, 80, 8, 2},
 	{148500000, 2, 40, 4, 3},
@@ -349,6 +350,19 @@ static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno, unsigned long r
 	return tmdsclk;
 }
 
+static uint8 rk_get_efuse_flag(void)
+{
+	uint8 value = 0;
+
+#ifdef CONFIG_RK_EFUSE
+	#if defined(CONFIG_RKCHIP_RK322X)
+	FtEfuseRead((void *)(unsigned long)RKIO_EFUSE_256BITS_PHYS, &value, 29, 1);
+	value = value & 2;
+	#endif
+#endif /* CONFIG_RK_EFUSE */
+	return value;
+}
+
 static int inno_hdmi_phy_power_on(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -367,6 +381,9 @@ static int inno_hdmi_phy_power_on(struct display_state *state)
 	if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3328 &&
 	    rk_get_cpu_version())
 		chipversion = 2;
+	else if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3228 &&
+		 tmdsclock <= 33750000 && rk_get_efuse_flag())
+		chipversion = 4;
 
 	debug("tmdsclock = %d; chipversion = %d\n", tmdsclock, chipversion);
 
