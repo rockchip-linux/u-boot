@@ -10,10 +10,8 @@ menuconfig DRM_ROCKCHIP
 	  Rockchip RK3288 and RK3399.
 
 config DRM_ROCKCHIP_PANEL
-	bool
-
-config DRM_ROCKCHIP_DSI_PANEL
-	bool
+	bool "Rockchip Panel Support"
+	select DRM_ROCKCHIP_MIPI_DSI
 
 config DRM_ROCKCHIP_DW_HDMI
 	bool "Rockchip specific extensions for Synopsys DW HDMI"
@@ -30,7 +28,7 @@ config DRM_ROCKCHIP_DW_MIPI_DSI
 	tristate "Rockchip specific extensions for Synopsys DW MIPI DSI"
 	depends on DRM_ROCKCHIP
 	select DRM_ROCKCHIP_MIPI_DSI
-	select DRM_ROCKCHIP_DSI_PANEL
+	select DRM_ROCKCHIP_PANEL
 	help
 	 This selects support for Rockchip SoC specific extensions
 	 for the Synopsys DesignWare HDMI driver. If you want to

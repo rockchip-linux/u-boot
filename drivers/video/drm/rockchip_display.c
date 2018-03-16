@@ -199,10 +199,12 @@ static int connector_panel_init(struct display_state *state)
 	panel_state->dev = dev;
 	panel_state->panel = panel;
 
-	ret = rockchip_panel_init(state);
-	if (ret) {
-		printf("failed to init panel driver\n");
-		return ret;
+	if (panel->funcs && panel->funcs->init) {
+		ret = panel->funcs->init(state);
+		if (ret) {
+			printf("failed to init panel driver\n");
+			return ret;
+		}
 	}
 
 	dsp_lut_node = dev_read_subnode(dev, "dsp-lut");
@@ -409,24 +411,34 @@ static int display_get_timing(struct display_state *state)
 	struct drm_display_mode *mode = &conn_state->mode;
 	const struct drm_display_mode *m;
 	struct panel_state *panel_state = &state->panel_state;
-	ofnode panel = panel_state->node;
+	const struct rockchip_panel *panel = panel_state->panel;
+	const struct rockchip_panel_funcs *panel_funcs = panel->funcs;
+	ofnode panel_node = panel_state->node;
+	int ret;
 
-	if (ofnode_valid(panel) && !display_get_timing_from_dts(panel_state, mode)) {
+	if (ofnode_valid(panel_node) && !display_get_timing_from_dts(panel_state, mode)) {
 		printf("Using display timing dts\n");
 		goto done;
 	}
 
-	m = rockchip_get_display_mode_from_panel(state);
-	if (m) {
-		printf("Using display timing from compatible panel driver\n");
+	if (panel->data) {
+		m = (const struct drm_display_mode *)panel->data;
 		memcpy(mode, m, sizeof(*m));
+		printf("Using display timing from compatible panel driver\n");
 		goto done;
 	}
 
-	rockchip_panel_prepare(state);
-
 	if (conn_funcs->get_edid && !conn_funcs->get_edid(state)) {
 		int panel_bits_per_colourp;
+
+		/* In order to read EDID, the panel needs to be powered on */
+		if (panel_funcs->prepare) {
+			ret = panel_funcs->prepare(state);
+			if (ret) {
+				printf("failed to prepare panel\n");
+				return ret;
+			}
+		}
 
 		if (!edid_get_drm_mode((void *)&conn_state->edid,
 				     sizeof(conn_state->edid), mode,
@@ -434,6 +446,9 @@ static int display_get_timing(struct display_state *state)
 			printf("Using display timing from edid\n");
 			edid_print_info((void *)&conn_state->edid);
 			goto done;
+		} else {
+			if (panel_funcs->unprepare)
+				panel_funcs->unprepare(state);
 		}
 	}
 
@@ -547,6 +562,9 @@ static int display_enable(struct display_state *state)
 	struct crtc_state *crtc_state = &state->crtc_state;
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+	const struct rockchip_panel_funcs *panel_funcs = panel->funcs;
 	int ret = 0;
 
 	display_init(state);
@@ -569,12 +587,18 @@ static int display_enable(struct display_state *state)
 			goto unprepare_crtc;
 	}
 
-	rockchip_panel_prepare(state);
+	if (panel_funcs->prepare) {
+		ret = panel_funcs->prepare(state);
+		if (ret) {
+			printf("failed to prepare panel\n");
+			goto unprepare_conn;
+		}
+	}
 
 	if (crtc_funcs->enable) {
 		ret = crtc_funcs->enable(state);
 		if (ret)
-			goto unprepare_conn;
+			goto unprepare_panel;
 	}
 
 	if (conn_funcs->enable) {
@@ -583,20 +607,33 @@ static int display_enable(struct display_state *state)
 			goto disable_crtc;
 	}
 
-	rockchip_panel_enable(state);
+	if (panel_funcs->enable) {
+		ret = panel_funcs->enable(state);
+		if (ret) {
+			printf("failed to enable panel\n");
+			goto disable_conn;
+		}
+	}
 
 	state->is_enable = true;
 
 	return 0;
-unprepare_crtc:
-	if (crtc_funcs->unprepare)
-		crtc_funcs->unprepare(state);
-unprepare_conn:
+
+disable_conn:
 	if (conn_funcs->unprepare)
 		conn_funcs->unprepare(state);
 disable_crtc:
 	if (crtc_funcs->disable)
 		crtc_funcs->disable(state);
+unprepare_crtc:
+	if (crtc_funcs->unprepare)
+		crtc_funcs->unprepare(state);
+unprepare_panel:
+	if (panel_funcs->unprepare)
+		panel_funcs->unprepare(state);
+unprepare_conn:
+	if (conn_funcs->unprepare)
+		conn_funcs->unprepare(state);
 	return ret;
 }
 
@@ -608,6 +645,9 @@ static int display_disable(struct display_state *state)
 	struct crtc_state *crtc_state = &state->crtc_state;
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+	const struct rockchip_panel_funcs *panel_funcs = panel->funcs;
 
 	if (!state->is_init)
 		return 0;
@@ -615,7 +655,8 @@ static int display_disable(struct display_state *state)
 	if (!state->is_enable)
 		return 0;
 
-	rockchip_panel_disable(state);
+	if (panel_funcs->disable)
+		panel_funcs->disable(state);
 
 	if (crtc_funcs->disable)
 		crtc_funcs->disable(state);
@@ -623,7 +664,8 @@ static int display_disable(struct display_state *state)
 	if (conn_funcs->disable)
 		conn_funcs->disable(state);
 
-	rockchip_panel_unprepare(state);
+	if (panel_funcs->unprepare)
+		panel_funcs->unprepare(state);
 
 	if (conn_funcs->unprepare)
 		conn_funcs->unprepare(state);
