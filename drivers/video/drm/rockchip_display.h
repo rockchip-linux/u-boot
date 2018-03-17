@@ -29,6 +29,12 @@ enum display_mode {
 	ROCKCHIP_DISPLAY_CENTER,
 };
 
+enum rockchip_cmd_type {
+	CMD_TYPE_DEFAULT,
+	CMD_TYPE_SPI,
+	CMD_TYPE_MCU
+};
+
 /*
  * display output interface supported by rockchip lcdc
  */

@@ -64,7 +64,25 @@ struct rockchip_panel_priv {
 	struct udevice *backlight;
 	struct gpio_desc enable_gpio;
 	struct gpio_desc reset_gpio;
+
+	int cmd_type;
+	struct gpio_desc spi_sdi_gpio;
+	struct gpio_desc spi_scl_gpio;
+	struct gpio_desc spi_cs_gpio;
 };
+
+static inline int get_panel_cmd_type(const char *s)
+{
+	if (!s)
+		return -EINVAL;
+
+	if (strncmp(s, "spi", 3) == 0)
+		return CMD_TYPE_SPI;
+	else if (strncmp(s, "mcu", 3) == 0)
+		return CMD_TYPE_MCU;
+
+	return CMD_TYPE_DEFAULT;
+}
 
 static int rockchip_panel_parse_cmds(const u8 *data, int length,
 				     struct rockchip_panel_cmds *pcmds)
@@ -110,8 +128,64 @@ static int rockchip_panel_parse_cmds(const u8 *data, int length,
 	return 0;
 }
 
-static int rockchip_panel_send_cmds(struct display_state *state,
-				    struct rockchip_panel_cmds *cmds)
+static void rockchip_panel_write_spi_cmds(struct rockchip_panel_priv *priv,
+					  u8 type, int value)
+{
+	int i;
+
+	dm_gpio_set_value(&priv->spi_cs_gpio, 0);
+
+	if (type == 0)
+		value &= (~(1 << 8));
+	else
+		value |= (1 << 8);
+
+	for (i = 0; i < 9; i++) {
+		if (value & 0x100)
+			dm_gpio_set_value(&priv->spi_sdi_gpio, 1);
+		else
+			dm_gpio_set_value(&priv->spi_sdi_gpio, 0);
+
+		dm_gpio_set_value(&priv->spi_scl_gpio, 0);
+		udelay(10);
+		dm_gpio_set_value(&priv->spi_scl_gpio, 1);
+		value <<= 1;
+		udelay(10);
+	}
+
+	dm_gpio_set_value(&priv->spi_cs_gpio, 1);
+}
+
+static int rockchip_panel_send_spi_cmds(struct display_state *state,
+					struct rockchip_panel_cmds *cmds)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	struct rockchip_panel_priv *priv = dev_get_priv(panel_state->dev);
+	int i;
+
+	if (!cmds)
+		return -EINVAL;
+
+	for (i = 0; i < cmds->cmd_cnt; i++) {
+		struct rockchip_cmd_desc *desc = &cmds->cmds[i];
+		int value = 0;
+
+		if (desc->header.payload_length == 2)
+			value = (desc->payload[0] << 8) | desc->payload[1];
+		else
+			value = desc->payload[0];
+		rockchip_panel_write_spi_cmds(priv,
+					      desc->header.data_type, value);
+
+		if (desc->header.delay_ms)
+			mdelay(desc->header.delay_ms);
+	}
+
+	return 0;
+}
+
+static int rockchip_panel_send_dsi_cmds(struct display_state *state,
+					struct rockchip_panel_cmds *cmds)
 {
 	int i, ret;
 
@@ -182,7 +256,12 @@ static int rockchip_panel_prepare(struct display_state *state)
 	mdelay(plat->delay.init);
 
 	if (plat->on_cmds) {
-		ret = rockchip_panel_send_cmds(state, plat->on_cmds);
+		if (priv->cmd_type == CMD_TYPE_SPI)
+			ret = rockchip_panel_send_spi_cmds(state,
+							   plat->on_cmds);
+		else
+			ret = rockchip_panel_send_dsi_cmds(state,
+							   plat->on_cmds);
 		if (ret)
 			printf("failed to send on cmds: %d\n", ret);
 	}
@@ -203,7 +282,12 @@ static void rockchip_panel_unprepare(struct display_state *state)
 		return;
 
 	if (plat->off_cmds) {
-		ret = rockchip_panel_send_cmds(state, plat->off_cmds);
+		if (priv->cmd_type == CMD_TYPE_SPI)
+			ret = rockchip_panel_send_spi_cmds(state,
+							   plat->off_cmds);
+		else
+			ret = rockchip_panel_send_dsi_cmds(state,
+							   plat->off_cmds);
 		if (ret)
 			printf("failed to send off cmds: %d\n", ret);
 	}
@@ -338,6 +422,7 @@ static int rockchip_panel_probe(struct udevice *dev)
 {
 	struct rockchip_panel_priv *priv = dev_get_priv(dev);
 	int ret;
+	const char *cmd_type;
 
 	ret = gpio_request_by_name(dev, "enable-gpios", 0,
 				   &priv->enable_gpio, GPIOD_IS_OUT);
@@ -365,6 +450,40 @@ static int rockchip_panel_probe(struct udevice *dev)
 	if (ret && ret != -ENOENT) {
 		printf("%s: Cannot get power supply: %d\n", __func__, ret);
 		return ret;
+	}
+
+	ret = dev_read_string_index(dev, "rockchip,cmd-type", 0, &cmd_type);
+	if (ret)
+		priv->cmd_type = CMD_TYPE_DEFAULT;
+	else
+		priv->cmd_type = get_panel_cmd_type(cmd_type);
+
+	if (priv->cmd_type == CMD_TYPE_SPI) {
+		ret = gpio_request_by_name(dev, "spi-sdi-gpios", 0,
+					   &priv->spi_sdi_gpio, GPIOD_IS_OUT);
+		if (ret && ret != -ENOENT) {
+			printf("%s: Cannot get spi sdi GPIO: %d\n",
+			       __func__, ret);
+			return ret;
+		}
+		ret = gpio_request_by_name(dev, "spi-scl-gpios", 0,
+					   &priv->spi_scl_gpio, GPIOD_IS_OUT);
+		if (ret && ret != -ENOENT) {
+			printf("%s: Cannot get spi scl GPIO: %d\n",
+			       __func__, ret);
+			return ret;
+		}
+		ret = gpio_request_by_name(dev, "spi-cs-gpios", 0,
+					   &priv->spi_cs_gpio, GPIOD_IS_OUT);
+		if (ret && ret != -ENOENT) {
+			printf("%s: Cannot get spi cs GPIO: %d\n",
+			       __func__, ret);
+			return ret;
+		}
+		dm_gpio_set_value(&priv->spi_sdi_gpio, 1);
+		dm_gpio_set_value(&priv->spi_scl_gpio, 1);
+		dm_gpio_set_value(&priv->spi_cs_gpio, 1);
+		dm_gpio_set_value(&priv->reset_gpio, 0);
 	}
 
 	return 0;
