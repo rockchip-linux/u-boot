@@ -15,7 +15,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* ARM/General/Codec pll freq config */
 #define CONFIG_RKCLK_APLL_FREQ		600 /* MHZ */
-#define CONFIG_RKCLK_GPLL_FREQ		600 /* MHZ */
+#define CONFIG_RKCLK_GPLL_FREQ		1200 /* MHZ */
 #define CONFIG_RKCLK_CPLL_FREQ		500 /* MHZ */
 
 
@@ -137,6 +137,7 @@ static const struct pll_clk_set apll_clks[] = {
 static const struct pll_clk_set gpll_clks[] = {
 	/* rate, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac,
 			aclk_peri_div, hclk_peri_div, pclk_peri_div,	aclk_bus_div, hclk_bus_div, pclk_bus_div */
+	_GPLL_SET_CLKS(1200000, 1, 50, 1, 1, 1, 0,	8, 8, 16,	8, 8, 16),
 	_GPLL_SET_CLKS(600000, 1, 75, 3, 1, 1, 0,	2, 2, 4,	2, 2, 4),
 };
 
@@ -302,11 +303,11 @@ static void rkclk_bus_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk_di
 	/* bus pclk - pclk_bus = clk_src / (pclk_div_con + 1) */
 	p_div = (pclk_div == 0) ? 1 : (pclk_div - 1);
 
-	cru_writel((BUS_SEL_PLL_W_MSK | pll_sel)
-			| (BUS_ACLK_DIV_W_MSK | (a_div << BUS_ACLK_DIV_OFF)), CRU_CLKSELS_CON(0));
-
+	cru_writel(BUS_ACLK_DIV_W_MSK | (a_div << BUS_ACLK_DIV_OFF), CRU_CLKSELS_CON(0));
 	cru_writel((BUS_PCLK_DIV_W_MSK | (p_div << BUS_PCLK_DIV_OFF))
 			| (BUS_HCLK_DIV_W_MSK | (h_div << BUS_HCLK_DIV_OFF)), CRU_CLKSELS_CON(1));
+
+	cru_writel(BUS_SEL_PLL_W_MSK | pll_sel, CRU_CLKSELS_CON(0));
 }
 
 
@@ -366,10 +367,11 @@ static void rkclk_periph_ahpclk_set(uint32 pll_src, uint32 aclk_div, uint32 hclk
 		break;
 	}
 
-	cru_writel((PERI_SEL_PLL_W_MSK | pll_sel)
-			| (PERI_PCLK_DIV_W_MSK | (p_div << PERI_PCLK_DIV_OFF))
+	cru_writel((PERI_PCLK_DIV_W_MSK | (p_div << PERI_PCLK_DIV_OFF))
 			| (PERI_HCLK_DIV_W_MSK | (h_div << PERI_HCLK_DIV_OFF))
 			| (PERI_ACLK_DIV_W_MSK | (a_div << PERI_ACLK_DIV_OFF)), CRU_CLKSELS_CON(10));
+
+	cru_writel(PERI_SEL_PLL_W_MSK | pll_sel, CRU_CLKSELS_CON(10));
 }
 
 
@@ -542,6 +544,28 @@ void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
 	rkclk_pll_set_rate(pll_id, mHz, cb_f);
 }
 
+/*
+ * rkplat clock set gpll child frequency
+ */
+void rkclk_set_gpll_child(void)
+{
+	/* sclk_rga */
+	cru_writel(0x1f0003, CRU_CLKSELS_CON(22));
+	/* sclk_hdcp */
+	cru_writel(0x3f000300, CRU_CLKSELS_CON(23));
+	/* dclk_vop */
+	cru_writel(0xff000300, CRU_CLKSELS_CON(27));
+	/* aclk_rkvdec sclk_vdec_cabac */
+	cru_writel(0x1f1f0303, CRU_CLKSELS_CON(28));
+	/* aclk_iep aclk_hdcp */
+	cru_writel(0x1f1f0303, CRU_CLKSELS_CON(31));
+	/* aclk_vpu */
+	cru_writel(0x1f0003, CRU_CLKSELS_CON(32));
+	/* aclk_rga aclk_vop */
+	cru_writel(0x1f1f0303, CRU_CLKSELS_CON(33));
+	/* sclk_vdec_core aclk_gpu */
+	cru_writel(0x1f1f0303, CRU_CLKSELS_CON(34));
+}
 
 /*
  * rkplat clock set for arm and general pll
@@ -549,6 +573,8 @@ void rkclk_set_pll_rate_by_id(enum rk_plls_id pll_id, uint32 mHz)
 void rkclk_set_pll(void)
 {
 	rkclk_pll_set_rate(APLL_ID, CONFIG_RKCLK_APLL_FREQ, rkclk_apll_cb);
+	if (CONFIG_RKCLK_GPLL_FREQ > 600)
+		rkclk_set_gpll_child();
 	rkclk_pll_set_rate(GPLL_ID, CONFIG_RKCLK_GPLL_FREQ, rkclk_gpll_cb);
 	rkclk_pll_set_rate(CPLL_ID, CONFIG_RKCLK_CPLL_FREQ, NULL);
 }
@@ -625,7 +651,7 @@ void rkclk_dump_pll(void)
 }
 
 
-#define VIO_ACLK_MAX	(300 * MHZ)
+#define VIO_ACLK_MAX	(400 * MHZ)
 #define VIO_HCLK_MAX	(150 * MHZ)
 
 /*
@@ -662,9 +688,9 @@ int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 	uint32 pll_sel = 0, div = 0;
 	uint32 pll_rate = 0;
 
-	/* lcdc aclk from codec pll */
-	pll_sel = 0;
-	pll_rate = gd->pci_clk;
+	/* lcdc aclk from general pll */
+	pll_sel = 1;
+	pll_rate = gd->bus_clk;
 
 	div = rkclk_calc_clkdiv(pll_rate, aclk_hz, 0);
 	aclk_info = (pll_sel << 16) | div;
