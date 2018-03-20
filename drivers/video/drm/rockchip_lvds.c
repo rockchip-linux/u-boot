@@ -215,29 +215,6 @@ static void px30_output_ttl(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct rockchip_lvds_device *lvds = conn_state->private;
 	u32 val = 0;
-	int ret;
-
-	ret = dev_read_stringlist_search(conn_state->dev, "pinctrl-names", "m0");
-	if (ret < 0) {
-		/* iomux to lcdcm1 */
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3A_IOMUX_L, 0x000f, 0x0001);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3A_IOMUX_H, 0x0f0f, 0x0101);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3B_IOMUX_L, 0xff00, 0x1100);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3B_IOMUX_H, 0x00f0, 0x0010);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3C_IOMUX_L, 0xffff, 0x1111);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3C_IOMUX_H, 0xffff, 0x1111);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3D_IOMUX_L, 0xffff, 0x1111);
-	} else {
-		/* iomux to lcdcm0 */
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3A_IOMUX_L, 0xffff, 0x1111);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3A_IOMUX_H, 0xffff, 0x1111);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3B_IOMUX_L, 0xffff, 0x1111);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3B_IOMUX_H, 0xffff, 0x1111);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3C_IOMUX_L, 0xffff, 0x1111);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3C_IOMUX_H, 0xffff, 0x1111);
-		rk_clrsetreg(lvds->grf + PX30_GRF_GPIO3D_IOMUX_L, 0xffff, 0x1111);
-		return;
-	}
 
 	/* enable lvds mode */
 	val = PX30_LVDS_PHY_MODE(0) | PX30_DPHY_FORCERXMODE(1);
@@ -260,11 +237,6 @@ static void rk3126_output_ttl(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct rockchip_lvds_device *lvds = conn_state->private;
 	u32 val = 0;
-
-	/* iomux to lcdc */
-	writel(0xffc35541, lvds->grf + RK3126_GRF_GPIO2B_IOMUX);
-	writel(0xffff5555, lvds->grf + RK3126_GRF_GPIO2C_IOMUX);
-	writel(0x700c1004, lvds->grf + RK3126_GRF_GPIO2D_IOMUX);
 
 	/* enable lvds mode */
 	val = v_RK3126_LVDSMODE_EN(0) |
@@ -295,25 +267,6 @@ static void rk336x_output_ttl(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct rockchip_lvds_device *lvds = conn_state->private;
 	u32 val = 0;
-
-	/* iomux to lcdc */
-	if (lvds->pdata->chip_type == RK3368_LVDS) {
-		/* lcdc data 11 10 */
-		lvds_pmugrf_writel(0x04, 0xf0005000);
-		/* lcdc data 12 13 14 15 16 17 18 19 */
-		lvds_pmugrf_writel(0x08, 0xFFFF5555);
-		/* lcdc data 20 21 22 23 HSYNC VSYNC DEN DCLK */
-		lvds_pmugrf_writel(0x0c, 0xFFFF5555);
-		/* set clock lane enable */
-		lvds_ctrl_writel(lvds, 0x0, 0x4);
-	} else {
-		/* lcdc data 15 ... 10, vsync, hsync */
-		lvds_pmugrf_writel(0x0c, 0xffff555a);
-		/* lcdc data 23 ... 16 */
-		lvds_pmugrf_writel(0x30, 0xffff5555);
-		/* lcdc dclk, den */
-		lvds_pmugrf_writel(0x34, 0x000f0005);
-	}
 
 	/* enable lvds mode */
 	val = v_RK336X_LVDSMODE_EN(0) | v_RK336X_MIPIPHY_TTL_EN(1) |
@@ -471,8 +424,6 @@ static void rk3288_output_ttl(struct display_state *state)
 	struct rockchip_lvds_device *lvds = conn_state->private;
 
 	rk3288_lvds_pwr_on(state);
-	/* iomux: dclk den hsync vsync */
-	writel(0x00550055, lvds->grf + lvds->pdata->grf_gpio1d_iomux);
 	lvds_writel(lvds, RK3288_LVDS_CH0_REG0,
 		    RK3288_LVDS_CH0_REG0_TTL_EN |
 		    RK3288_LVDS_CH0_REG0_LANECK_EN |
