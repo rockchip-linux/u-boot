@@ -13,4 +13,5 @@ obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI) += rockchip-dw-mipi-dsi.o \
 obj-$(CONFIG_DRM_ROCKCHIP_DW_HDMI) += rockchip_dw_hdmi.o dw_hdmi.o
 obj-$(CONFIG_DRM_ROCKCHIP_ANALOGIX_DP) += rockchip_analogix_dp.o rockchip_analogix_dp_reg.o
 obj-$(CONFIG_DRM_ROCKCHIP_LVDS) += rockchip_lvds.o
+obj-$(CONFIG_DRM_ROCKCHIP_RGB) += rockchip_rgb.o
 obj-$(CONFIG_DRM_ROCKCHIP_PANEL) += rockchip_panel.o
