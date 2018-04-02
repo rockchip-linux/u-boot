@@ -31,7 +31,7 @@ static int rockchip_rgb_prepare(struct display_state *state)
 	struct crtc_state *crtc_state = &state->crtc_state;
 	int pipe = crtc_state->crtc_id;
 
-	if (priv->grf) {
+	if (!IS_ERR_OR_NULL(priv->grf)) {
 		regmap_write(priv->grf, PX30_GRF_PD_VO_CON1,
 			     PX30_RGB_VOP_SEL(pipe));
 		regmap_write(priv->grf, PX30_GRF_PD_VO_CON1,
