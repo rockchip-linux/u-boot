@@ -15,6 +15,7 @@
 #include <asm/io.h>
 #include <asm-generic/errno.h>
 #include <asm/arch/rkplat.h>
+#include <../board/rockchip/common/storage/storage.h>
 #include "../rockchip_display.h"
 #include "../rockchip_crtc.h"
 #include "../rockchip_connector.h"
@@ -23,6 +24,9 @@
 
 #define U64_MAX     ((u64)~0U)
 
+#define HDCP_PRIVATE_KEY_SIZE   280
+#define HDCP_KEY_SHA_SIZE       20
+#define HDMI_HDCP1X_ID		5
 /*
  * Unless otherwise noted, entries in this table are 100% optimization.
  * Values can be obtained from hdmi_compute_n() but that function is
@@ -136,6 +140,13 @@ struct dw_hdmi_phy_data {
 			 unsigned long mpixelclock);
 };
 
+struct hdcp_keys {
+	u8 KSV[8];
+	u8 devicekey[HDCP_PRIVATE_KEY_SIZE];
+	u8 sha1[HDCP_KEY_SHA_SIZE];
+	u8 seeds[2];
+};
+
 struct dw_hdmi {
 	enum dw_hdmi_devtype dev_type;
 	unsigned int version;
@@ -169,6 +180,8 @@ struct dw_hdmi {
 
 	void (*write)(struct dw_hdmi *hdmi, u8 val, int offset);
 	u8 (*read)(struct dw_hdmi *hdmi, int offset);
+
+	bool hdcp1x_enable;
 };
 
 static void dw_hdmi_writel(struct dw_hdmi *hdmi, u8 val, int offset)
@@ -1828,6 +1841,152 @@ void dw_hdmi_set_sample_rate(struct dw_hdmi *hdmi, unsigned int rate)
 				 hdmi->sample_rate);
 }
 
+static int dw_hdmi_hdcp_load_key(struct dw_hdmi *hdmi)
+{
+	int i, j, ret, val;
+	struct hdcp_keys *hdcp_keys;
+
+	val = sizeof(*hdcp_keys);
+	hdcp_keys = malloc(val);
+	if (!hdcp_keys)
+		return -ENOMEM;
+
+	memset(hdcp_keys, 0, val);
+	ret = vendor_storage_init();
+	if (ret) {
+		printf("HDCP:  vendor_storage_init failed %d\n", ret);
+		free(hdcp_keys);
+		return -ENODEV;
+	}
+
+	ret = vendor_storage_read(HDMI_HDCP1X_ID, hdcp_keys, val);
+	if (ret < val) {
+		printf("HDCP: read size %d\n", ret);
+		free(hdcp_keys);
+		return -EINVAL;
+	}
+
+	if (hdcp_keys->KSV[0] == 0x00 &&
+	    hdcp_keys->KSV[1] == 0x00 &&
+	    hdcp_keys->KSV[2] == 0x00 &&
+	    hdcp_keys->KSV[3] == 0x00 &&
+	    hdcp_keys->KSV[4] == 0x00) {
+		printf("HDCP: Invalid hdcp key\n");
+		free(hdcp_keys);
+		return -EINVAL;
+	}
+
+	/* Disable decryption logic */
+	hdmi_writeb(hdmi, 0, HDMI_HDCPREG_RMCTL);
+	/* Poll untile DPK write is allowed */
+	do {
+		val = hdmi_readb(hdmi, HDMI_HDCPREG_RMSTS);
+	} while ((val & DPK_WR_OK_STS) == 0);
+
+	hdmi_writeb(hdmi, 0, HDMI_HDCPREG_DPK6);
+	hdmi_writeb(hdmi, 0, HDMI_HDCPREG_DPK5);
+
+	/* The useful data in ksv should be 5 byte */
+	for (i = 4; i >= 0; i--)
+		hdmi_writeb(hdmi, hdcp_keys->KSV[i], HDMI_HDCPREG_DPK0 + i);
+	/* Poll untile DPK write is allowed */
+	do {
+		val = hdmi_readb(hdmi, HDMI_HDCPREG_RMSTS);
+	} while ((val & DPK_WR_OK_STS) == 0);
+
+	/* Enable decryption logic */
+	hdmi_writeb(hdmi, 1, HDMI_HDCPREG_RMCTL);
+	hdmi_writeb(hdmi, hdcp_keys->seeds[0], HDMI_HDCPREG_SEED1);
+	hdmi_writeb(hdmi, hdcp_keys->seeds[1], HDMI_HDCPREG_SEED0);
+
+	/* Write encrypt device private key */
+	for (i = 0; i < DW_HDMI_HDCP_DPK_LEN - 6; i += 7) {
+		for (j = 6; j >= 0; j--)
+			hdmi_writeb(hdmi, hdcp_keys->devicekey[i + j],
+				    HDMI_HDCPREG_DPK0 + j);
+		do {
+			val = hdmi_readb(hdmi, HDMI_HDCPREG_RMSTS);
+		} while ((val & DPK_WR_OK_STS) == 0);
+	}
+
+	free(hdcp_keys);
+	return 0;
+}
+
+static void hdmi_tx_hdcp_config(struct dw_hdmi *hdmi,
+				const struct drm_display_mode *mode)
+{
+	u8 vsync_pol, hsync_pol, data_pol, hdmi_dvi;
+
+	if (!hdmi->hdcp1x_enable)
+		return;
+
+	/* Configure the video polarity */
+	vsync_pol = mode->flags & DRM_MODE_FLAG_PVSYNC ?
+		    HDMI_A_VIDPOLCFG_VSYNCPOL_ACTIVE_HIGH :
+		    HDMI_A_VIDPOLCFG_VSYNCPOL_ACTIVE_LOW;
+	hsync_pol = mode->flags & DRM_MODE_FLAG_PHSYNC ?
+		    HDMI_A_VIDPOLCFG_HSYNCPOL_ACTIVE_HIGH :
+		    HDMI_A_VIDPOLCFG_HSYNCPOL_ACTIVE_LOW;
+	data_pol = HDMI_A_VIDPOLCFG_DATAENPOL_ACTIVE_HIGH;
+	hdmi_modb(hdmi, vsync_pol | hsync_pol | data_pol,
+		  HDMI_A_VIDPOLCFG_VSYNCPOL_MASK |
+		  HDMI_A_VIDPOLCFG_HSYNCPOL_MASK |
+		  HDMI_A_VIDPOLCFG_DATAENPOL_MASK,
+		  HDMI_A_VIDPOLCFG);
+
+	/* Config the display mode */
+	hdmi_dvi = hdmi->sink_is_hdmi ? HDMI_A_HDCPCFG0_HDMIDVI_HDMI :
+		   HDMI_A_HDCPCFG0_HDMIDVI_DVI;
+	hdmi_modb(hdmi, hdmi_dvi, HDMI_A_HDCPCFG0_HDMIDVI_MASK,
+		  HDMI_A_HDCPCFG0);
+
+	if (!(hdmi_readb(hdmi, HDMI_HDCPREG_RMSTS) & 0x3f))
+		dw_hdmi_hdcp_load_key(hdmi);
+
+	hdmi_modb(hdmi, HDMI_FC_INVIDCONF_HDCP_KEEPOUT_ACTIVE,
+		  HDMI_FC_INVIDCONF_HDCP_KEEPOUT_MASK,
+		  HDMI_FC_INVIDCONF);
+
+	if (hdmi_readb(hdmi, HDMI_CONFIG1_ID) & HDMI_A_HDCP22_MASK) {
+		hdmi_modb(hdmi, HDMI_HDCP2_OVR_ENABLE |
+			  HDMI_HDCP2_FORCE_DISABLE,
+			  HDMI_HDCP2_OVR_EN_MASK |
+			  HDMI_HDCP2_FORCE_MASK,
+			  HDMI_HDCP2REG_CTRL);
+		hdmi_writeb(hdmi, 0xff, HDMI_HDCP2REG_MASK);
+		hdmi_writeb(hdmi, 0xff, HDMI_HDCP2REG_MUTE);
+	}
+
+	hdmi_writeb(hdmi, 0x40, HDMI_A_OESSWCFG);
+		    hdmi_modb(hdmi, HDMI_A_HDCPCFG0_BYPENCRYPTION_DISABLE |
+		    HDMI_A_HDCPCFG0_EN11FEATURE_DISABLE |
+		    HDMI_A_HDCPCFG0_SYNCRICHECK_ENABLE,
+		    HDMI_A_HDCPCFG0_BYPENCRYPTION_MASK |
+		    HDMI_A_HDCPCFG0_EN11FEATURE_MASK |
+		    HDMI_A_HDCPCFG0_SYNCRICHECK_MASK, HDMI_A_HDCPCFG0);
+
+	hdmi_modb(hdmi, HDMI_A_HDCPCFG1_ENCRYPTIONDISABLE_ENABLE |
+		  HDMI_A_HDCPCFG1_PH2UPSHFTENC_ENABLE,
+		  HDMI_A_HDCPCFG1_ENCRYPTIONDISABLE_MASK |
+		  HDMI_A_HDCPCFG1_PH2UPSHFTENC_MASK, HDMI_A_HDCPCFG1);
+
+	/* Reset HDCP Engine */
+	if (hdmi_readb(hdmi, HDMI_MC_CLKDIS) & HDMI_MC_CLKDIS_HDCPCLK_MASK) {
+		hdmi_modb(hdmi, HDMI_A_HDCPCFG1_SWRESET_ASSERT,
+			  HDMI_A_HDCPCFG1_SWRESET_MASK, HDMI_A_HDCPCFG1);
+	}
+
+	hdmi_writeb(hdmi, 0x00, HDMI_A_APIINTMSK);
+	hdmi_modb(hdmi, HDMI_A_HDCPCFG0_RXDETECT_ENABLE,
+		  HDMI_A_HDCPCFG0_RXDETECT_MASK, HDMI_A_HDCPCFG0);
+
+	hdmi_modb(hdmi, HDMI_MC_CLKDIS_HDCPCLK_ENABLE,
+		  HDMI_MC_CLKDIS_HDCPCLK_MASK, HDMI_MC_CLKDIS);
+
+	printf("%s success\n", __func__);
+}
+
 static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 			 struct drm_display_mode *mode,
 			 struct display_state *state)
@@ -1912,6 +2071,7 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 	hdmi_video_packetize(hdmi);
 	hdmi_video_csc(hdmi);
 	hdmi_video_sample(hdmi);
+	hdmi_tx_hdcp_config(hdmi, mode);
 	dw_hdmi_clear_overflow(hdmi);
 	if (hdmi->cable_plugin && hdmi->sink_is_hdmi)
 		hdmi_enable_overflow_interrupts(hdmi);
@@ -2135,6 +2295,11 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 	if (fdtdec_get_bool(state->blob, hdmi_node, "scramble-low-rates"))
 		hdmi->scramble_low_rates = true;
 
+	if (fdtdec_get_bool(state->blob, hdmi_node, "hdcp1x-enable"))
+		hdmi->hdcp1x_enable = true;
+	else
+		hdmi->hdcp1x_enable = false;
+
 	dw_hdmi_set_reg_wr(hdmi);
 
 	if (pdata->grf_vop_sel_reg) {
@@ -2206,7 +2371,7 @@ int rockchip_dw_hdmi_disable(struct display_state *state)
 
 int rockchip_dw_hdmi_get_timing(struct display_state *state)
 {
-	int ret, i;
+	int ret;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct dw_hdmi *hdmi = conn_state->private;
@@ -2214,7 +2379,6 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 	unsigned int bus_format;
 	struct overscan *overscan = &conn_state->overscan;
 	const u8 def_modes_vic[6] = {4, 16, 2, 17, 31, 19};
-	struct drm_display_mode *def_mode;
 
 	if (!hdmi)
 		return -EFAULT;
