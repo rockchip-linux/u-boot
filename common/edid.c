@@ -5288,3 +5288,202 @@ ssize_t hdmi_vendor_infoframe_pack(struct hdmi_vendor_infoframe *frame,
 
 	return length;
 }
+
+/**
+ * drm_do_probe_ddc_edid() - get EDID information via I2C
+ * @adap: ddc adapter
+ * @buf: EDID data buffer to be filled
+ * @block: 128 byte EDID block to start fetching from
+ * @len: EDID data buffer length to fetch
+ *
+ * Try to fetch EDID information by calling I2C driver functions.
+ *
+ * Return: 0 on success or -1 on failure.
+ */
+static int
+drm_do_probe_ddc_edid(struct ddc_adapter *adap, u8 *buf, unsigned int block,
+		      size_t len)
+{
+	unsigned char start = block * HDMI_EDID_BLOCK_SIZE;
+	unsigned char segment = block >> 1;
+	unsigned char xfers = segment ? 3 : 2;
+	int ret, retries = 5;
+
+	do {
+		struct i2c_msg msgs[] = {
+			{
+				.addr	= DDC_SEGMENT_ADDR,
+				.flags	= 0,
+				.len	= 1,
+				.buf	= &segment,
+			}, {
+				.addr	= DDC_ADDR,
+				.flags	= 0,
+				.len	= 1,
+				.buf	= &start,
+			}, {
+				.addr	= DDC_ADDR,
+				.flags	= I2C_M_RD,
+				.len	= len,
+				.buf	= buf,
+			}
+		};
+
+		ret = adap->ddc_xfer(adap, &msgs[3 - xfers], xfers);
+
+	} while (ret != xfers && --retries);
+
+	/* All msg transfer successfully. */
+	return ret == xfers ? 0 : -1;
+}
+
+int drm_do_get_edid(struct ddc_adapter *adap, u8 *edid)
+{
+	int i, j, block_num, block = 0;
+	bool edid_corrupt;
+#ifdef DEBUG
+	u8 *buff;
+#endif
+
+	/* base block fetch */
+	for (i = 0; i < 4; i++) {
+		if (drm_do_probe_ddc_edid(adap, edid, 0, HDMI_EDID_BLOCK_SIZE))
+			goto err;
+		if (drm_edid_block_valid(edid, 0, true,
+					 &edid_corrupt))
+			break;
+		if (i == 0 && drm_edid_is_zero(edid, HDMI_EDID_BLOCK_SIZE)) {
+			printf("edid base block is 0, get edid failed\n");
+			goto err;
+		}
+	}
+
+	if (i == 4)
+		goto err;
+
+	block++;
+	/* get the number of extensions */
+	block_num = edid[0x7e];
+
+	for (j = 1; j <= block_num; j++) {
+		for (i = 0; i < 4; i++) {
+			if (drm_do_probe_ddc_edid(adap, &edid[0x80 * j], j,
+						  HDMI_EDID_BLOCK_SIZE))
+				goto err;
+			if (drm_edid_block_valid(&edid[0x80 * j], j,
+						 true, NULL))
+				break;
+		}
+
+		if (i == 4)
+			goto err;
+		block++;
+	}
+
+#ifdef DEBUG
+	printf("RAW EDID:\n");
+	for (i = 0; i < block_num + 1; i++) {
+		buff = &edid[0x80 * i];
+		for (j = 0; j < HDMI_EDID_BLOCK_SIZE; j++) {
+			if (j % 16 == 0)
+				printf("\n");
+			printf("0x%02x, ", buff[j]);
+		}
+		printf("\n");
+	}
+#endif
+
+	return 0;
+
+err:
+	printf("can't get edid block:%d\n", block);
+	/* clear all read edid block, include invalid block */
+	memset(edid, 0, HDMI_EDID_BLOCK_SIZE * (block + 1));
+	return -EFAULT;
+}
+
+static ssize_t hdmi_ddc_read(struct ddc_adapter *adap, u16 addr, u8 offset,
+			     void *buffer, size_t size)
+{
+	struct i2c_msg msgs[2] = {
+		{
+			.addr = addr,
+			.flags = 0,
+			.len = 1,
+			.buf = &offset,
+		}, {
+			.addr = addr,
+			.flags = I2C_M_RD,
+			.len = size,
+			.buf = buffer,
+		}
+	};
+
+	return adap->ddc_xfer(adap, msgs, ARRAY_SIZE(msgs));
+}
+
+static ssize_t hdmi_ddc_write(struct ddc_adapter *adap, u16 addr, u8 offset,
+			      const void *buffer, size_t size)
+{
+	struct i2c_msg msg = {
+		.addr = addr,
+		.flags = 0,
+		.len = 1 + size,
+		.buf = NULL,
+	};
+	void *data;
+	int err;
+
+	data = malloc(1 + size);
+	if (!data)
+		return -ENOMEM;
+
+	msg.buf = data;
+
+	memcpy(data, &offset, sizeof(offset));
+	memcpy(data + 1, buffer, size);
+
+	err = adap->ddc_xfer(adap, &msg, 1);
+
+	free(data);
+
+	return err;
+}
+
+/**
+ * drm_scdc_readb - read a single byte from SCDC
+ * @adap: ddc adapter
+ * @offset: offset of register to read
+ * @value: return location for the register value
+ *
+ * Reads a single byte from SCDC. This is a convenience wrapper around the
+ * drm_scdc_read() function.
+ *
+ * Returns:
+ * 0 on success or a negative error code on failure.
+ */
+u8 drm_scdc_readb(struct ddc_adapter *adap, u8 offset,
+		  u8 *value)
+{
+	return hdmi_ddc_read(adap, SCDC_I2C_SLAVE_ADDRESS, offset, value,
+			     sizeof(*value));
+}
+
+/**
+ * drm_scdc_writeb - write a single byte to SCDC
+ * @adap: ddc adapter
+ * @offset: offset of register to read
+ * @value: return location for the register value
+ *
+ * Writes a single byte to SCDC. This is a convenience wrapper around the
+ * drm_scdc_write() function.
+ *
+ * Returns:
+ * 0 on success or a negative error code on failure.
+ */
+u8 drm_scdc_writeb(struct ddc_adapter *adap, u8 offset,
+		   u8 value)
+{
+	return hdmi_ddc_write(adap, SCDC_I2C_SLAVE_ADDRESS, offset, &value,
+			      sizeof(value));
+}

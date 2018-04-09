@@ -69,6 +69,11 @@
 	.vsync_start = (vss), .vsync_end = (vse), .vtotal = (vt), \
 	.vscan = (vs), .flags = (f)
 
+#define DDC_SEGMENT_ADDR 0x30
+#define DDC_ADDR 0x50
+#define HDMI_EDID_BLOCK_SIZE 128
+#define SCDC_I2C_SLAVE_ADDRESS 0x54
+
 /* Aspect ratios used in EDID info. */
 enum edid_aspect {
 	ASPECT_625 = 0,
@@ -816,6 +821,25 @@ struct hdmi_edid_data {
 	struct drm_display_info display_info;
 };
 
+struct i2c_msg {
+	__u16 addr;	/* slave address			*/
+	__u16 flags;
+#define I2C_M_TEN		0x0010	/* this is a ten bit chip address */
+#define I2C_M_RD		0x0001	/* read data, from slave to master */
+#define I2C_M_STOP		0x8000	/* if I2C_FUNC_PROTOCOL_MANGLING */
+#define I2C_M_NOSTART		0x4000	/* if I2C_FUNC_NOSTART */
+#define I2C_M_REV_DIR_ADDR	0x2000	/* if I2C_FUNC_PROTOCOL_MANGLING */
+#define I2C_M_IGNORE_NAK	0x1000	/* if I2C_FUNC_PROTOCOL_MANGLING */
+#define I2C_M_NO_RD_ACK		0x0800	/* if I2C_FUNC_PROTOCOL_MANGLING */
+#define I2C_M_RECV_LEN		0x0400	/* length will be first received byte */
+	__u16 len;		/* msg length				*/
+	__u8 *buf;		/* pointer to msg data			*/
+};
+
+struct ddc_adapter {
+	int (*ddc_xfer)(struct ddc_adapter *adap, struct i2c_msg *msgs, int num);
+};
+
 /**
  * edid_get_timing() - Get basic digital display parameters
  *
@@ -835,5 +859,10 @@ int drm_add_edid_modes(struct hdmi_edid_data *data, u8 *edid);
 bool drm_detect_hdmi_monitor(struct edid *edid);
 bool drm_detect_monitor_audio(struct edid *edid);
 int do_cea_modes(struct hdmi_edid_data *data, const u8 *db, u8 len);
+int drm_do_get_edid(struct ddc_adapter *adap, u8 *edid);
+u8 drm_scdc_readb(struct ddc_adapter *adap, u8 offset,
+                                 u8 *value);
+u8 drm_scdc_writeb(struct ddc_adapter *adap, u8 offset,
+				 u8 value);
 
 #endif /* __EDID_H_ */

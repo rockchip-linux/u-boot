@@ -4,6 +4,8 @@
 
 struct dw_hdmi;
 struct display_state;
+struct ddc_adapter;
+struct i2c_msg;
 
 /**
  * DOC: Supported input formats and encodings
