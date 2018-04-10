@@ -201,6 +201,7 @@ static int rockchip_vop_init(struct display_state *state)
 	int rate;
 	bool yuv_overlay = false, post_r2y_en = false, post_y2r_en = false;
 	u16 post_csc_mode;
+	int for_ddr_freq = 0;
 
 	vop = malloc(sizeof(*vop));
 	if (!vop)
@@ -401,9 +402,13 @@ static int rockchip_vop_init(struct display_state *state)
 		     !!(mode->flags & DRM_MODE_FLAG_DBLCLK));
 
 	VOP_CTRL_SET(vop, standby, 1);
-	VOP_LINE_FLAG_SET(vop, line_flag_num[0], act_end - 3);
+
+	if (VOP_MAJOR(vop->version) == 3 &&
+	    (VOP_MINOR(vop->version) == 2 || VOP_MINOR(vop->version) == 8))
+		for_ddr_freq = 1000;
+	VOP_LINE_FLAG_SET(vop, line_flag_num[0], act_end - 1);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[1],
-			  act_end - us_to_vertical_line(mode, 1000));
+			  act_end - us_to_vertical_line(mode, for_ddr_freq));
 	vop_cfg_done(vop);
 
 	return 0;
