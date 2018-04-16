@@ -522,7 +522,11 @@ static void FW_GetChipVer(void)
 #elif defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3128)
 	chip_info[0] = 0x33313241;
 #elif defined(CONFIG_RKCHIP_RK322X)
+#if defined(CONFIG_RKCHIP_RK3128X)
+        chip_info[0] = 0x33313258;
+#else
 	chip_info[0] = 0x33323241;
+#endif
 #elif defined(CONFIG_RKCHIP_RK3366)
 	chip_info[0] = 0x33333042;
 #elif defined(CONFIG_RKCHIP_RK322XH)

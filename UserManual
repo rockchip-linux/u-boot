@@ -45,6 +45,7 @@
 		configs\rk3288_box_defconfig
 
 	  2. With Security:
+		configs\rk3128x_box_defconfig
 		configs\rk322x_box_defconfig
 		configs\rk322xh_box_defconfig
 		configs\rk3288_box_secure_defconfig
