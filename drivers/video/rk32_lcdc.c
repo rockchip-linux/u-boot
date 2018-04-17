@@ -844,6 +844,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	struct rk_screen *screen =  lcdc_dev->screen;
 	int face = 0;
 	u32 msk, val;
+	u8 dclk_inv = 0;
 
 	rk_fb_vidinfo_to_screen(vid, screen);
 	if (vid->screen_type == SCREEN_MIPI ||
@@ -972,9 +973,15 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	      v_LINE_FLAG_INTR_EN(0);
 	lcdc_msk_reg(lcdc_dev, INTR_CTRL0, msk, val);
 	lcdc_cfg_done(lcdc_dev);
+	dclk_inv = vid->dclk_inv;
+
 	if ((vid->screen_type == SCREEN_LVDS) ||
 	    (vid->screen_type == SCREEN_DUAL_LVDS) ||
 	    (vid->screen_type == SCREEN_RGB)) {
+		if (vid->lcdc_id == 0)
+			grf_writel(VOP0_DCLK_INV(dclk_inv), RK3288_GRF_DCLK_INV);
+		else
+			grf_writel(VOP0_DCLK_INV(dclk_inv), RK3288_GRF_DCLK_INV);
 		rk32_lvds_en(vid);
 	} else if (vid->screen_type == SCREEN_EDP) {
 		rk32_edp_enable(vid);

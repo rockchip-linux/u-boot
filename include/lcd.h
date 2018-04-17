@@ -347,6 +347,7 @@ typedef struct vidinfo {
 
     	u_char screen_type;
     	u_char lvds_ch_nr;
+	u_char dclk_inv;
 	unsigned short overscan;
 	unsigned short left;
 	unsigned short top;

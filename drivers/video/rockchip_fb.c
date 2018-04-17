@@ -133,6 +133,7 @@ void rk_fb_vidinfo_to_screen(vidinfo_t *vid, struct rk_screen *screen)
    screen->pin_vsync        = vid->vl_vsp;
    screen->pin_dclk         = vid->vl_clkp;
    screen->pin_den          = vid->vl_oep;
+	screen->dclk_inv	    = vid->dclk_inv;
    screen->pixelrepeat      = vid->pixelrepeat;
    screen->refresh_mode	    = vid->refresh_mode;
 
@@ -368,6 +369,12 @@ int rk_fb_parse_dt(struct rockchip_fb *rk_fb, const void *blob)
 	if (panel_info.vl_vsp == (u_char)-1) {
 		debug("Can't get vsync-active, set to 0 for default\n");
 		panel_info.vl_vsp = 0;
+	}
+
+	panel_info.dclk_inv = fdtdec_get_int(blob, node, "dclk-inv", -1);
+	if (panel_info.dclk_inv == (u_char)-1) {
+		debug("Can't get dclk-inv, set to 0 for default\n");
+		panel_info.dclk_inv = 0;
 	}
 
 	panel_info.lvds_format = fdtdec_get_int(blob, node, "lvds-format", -1);

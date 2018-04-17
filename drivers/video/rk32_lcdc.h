@@ -1336,6 +1336,9 @@ enum factor_mode {
 	AA_SRC_GLOBAL           = 0x4
 };/*src_factor_mode  &&  dst_factor_mode*/
 
+#define VOP0_DCLK_INV(x)		(((x) << 12) | (1 << (12 + 16)))
+#define VOP1_DCLK_INV(x)		(((x) << 14) | (1 << (14 + 16)))
+#define RK3288_GRF_DCLK_INV	0x03a4
 
 struct alpha_config {
 	enum src_alpha_mode src_alpha_mode;       	/*win0_src_alpha_m0*/

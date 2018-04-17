@@ -402,6 +402,8 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	int msk,val;
 	int bg_val = 0;
 	struct lcdc_device *lcdc_dev = &rk312x_lcdc;
+	u8 dclk_inv = vid->dclk_inv;
+
 	lcdc_dev->output_color = COLOR_RGB;
 	lcdc_dev->overlay_mode = VOP_RGB_DOMAIN;
 	if (vid->dsp_lut)
@@ -468,15 +470,19 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		break;
 	case SCREEN_LVDS:
 		msk = m_LVDS_DCLK_INVERT | m_LVDS_DCLK_EN;
-		val = v_LVDS_DCLK_INVERT(1) | v_LVDS_DCLK_EN(1);
+		val = v_LVDS_DCLK_INVERT(!dclk_inv) | v_LVDS_DCLK_EN(1);
 		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, msk, val);	
 		break;
 	case SCREEN_RGB:
-		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL, m_RGB_DCLK_EN |
-			      m_LVDS_DCLK_EN, v_RGB_DCLK_EN(1) | v_LVDS_DCLK_EN(1));
+		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL,
+			     m_RGB_DCLK_EN | m_LVDS_DCLK_EN | m_RGB_DCLK_INVERT,
+			     v_RGB_DCLK_EN(1) | v_LVDS_DCLK_EN(1) |
+			     v_RGB_DCLK_INVERT(dclk_inv));
 		break;
 	case SCREEN_MIPI:
-		lcdc_msk_reg(lcdc_dev,AXI_BUS_CTRL, m_MIPI_DCLK_EN, v_MIPI_DCLK_EN(1));
+		lcdc_msk_reg(lcdc_dev, AXI_BUS_CTRL,
+			     m_MIPI_DCLK_EN | m_MIPI_DCLK_INVERT,
+			     v_MIPI_DCLK_EN(1) | v_MIPI_DCLK_INVERT(dclk_inv));
 		break;
 	default:
 		printf("unsupport screen_type %d\n",vid->screen_type);

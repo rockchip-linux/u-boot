@@ -105,6 +105,7 @@ struct rk_screen {
 	u8 pin_vsync;
 	u8 pin_den;
 	u8 pin_dclk;
+	u8 dclk_inv;
 
 	/* Swap rule */
 	u8 swap_gb;

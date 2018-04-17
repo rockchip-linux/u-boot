@@ -1657,6 +1657,8 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define VOP_PMU_GRF_BASE                (0xff738000)
 #define VOP_PMUGRF_SOC_CON0             (0x100)
+#define RK3366_GRF_SOC_CON6		(0x0418)
+#define GRF_DCLK_INV(x)			(((x) << 5) | (1 << (5 + 16)))
 
 #define OUT_CCIR656_MODE_0              5
 #define OUT_CCIR656_MODE_1              6

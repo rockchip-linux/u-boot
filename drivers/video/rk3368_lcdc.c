@@ -1005,6 +1005,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 	u32 mask = 0, val = 0;
 	int face = 0;
 	u16 dclk_ddr = 0;
+	u8 dclk_inv = vid->dclk_inv;
 
         screen = lcdc_dev->screen;
         rk_fb_vidinfo_to_screen(vid, screen);
@@ -1093,6 +1094,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		    v_RGB_LVDS_VSYNC_POL(screen->pin_vsync) |
 		    v_RGB_LVDS_DEN_POL(screen->pin_den) |
 		    v_RGB_LVDS_DCLK_POL(screen->pin_dclk);
+		grf_writel(GRF_DCLK_INV(dclk_inv), RK3366_GRF_SOC_CON6);
 		break;
 	case SCREEN_LVDS:
 		mask = m_RGB_OUT_EN;
@@ -1104,6 +1106,7 @@ int rk_lcdc_load_screen(vidinfo_t *vid)
 		    v_RGB_LVDS_VSYNC_POL(screen->pin_vsync) |
 		    v_RGB_LVDS_DEN_POL(screen->pin_den) |
 		    v_RGB_LVDS_DCLK_POL(screen->pin_dclk);
+		grf_writel(GRF_DCLK_INV(dclk_inv), RK3366_GRF_SOC_CON6);
 		break;
 	case SCREEN_HDMI:
 		/*face = OUT_RGB_AAA;*/
