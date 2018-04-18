@@ -119,3 +119,16 @@ void rockchip_phy_set_bus_width(struct display_state *state, u32 bus_width)
 
 	return phy->funcs->set_bus_width(state, bus_width);
 }
+
+long rockchip_phy_round_rate(struct display_state *state, unsigned long rate)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_phy *phy = (struct rockchip_phy *) conn_state->phy;
+
+	if (!phy || !phy->funcs || !phy->funcs->round_rate) {
+		debug("%s: failed to find phy round_rate funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return phy->funcs->round_rate(state, rate);
+}

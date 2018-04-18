@@ -150,6 +150,11 @@ enum inno_hdmi_phy_type {
 
 struct inno_hdmi_phy_drv_data;
 
+struct phy_config {
+	unsigned long	tmdsclock;
+	u8		regs[14];
+};
+
 struct inno_hdmi_phy {
 	const void *blob;
 	int node;
@@ -159,6 +164,7 @@ struct inno_hdmi_phy {
 	const struct inno_hdmi_phy_drv_data *plat_data;
 	unsigned long pixclock;
 	u32 bus_width;
+	struct phy_config *phy_cfg;
 };
 
 struct pre_pll_config {
@@ -183,11 +189,6 @@ struct post_pll_config {
 	u16 fbdiv;
 	u8 postdiv;
 	u8 version;
-};
-
-struct phy_config {
-	unsigned long	tmdsclock;
-	u8		regs[14];
 };
 
 struct inno_hdmi_phy_ops {
@@ -373,6 +374,10 @@ static int inno_hdmi_phy_power_on(struct display_state *state)
 	u32 chipversion = 1;
 
 	debug("start Inno HDMI PHY Power On\n");
+
+	if (inno->phy_cfg)
+		phy_cfg = inno->phy_cfg;
+
 	if (!tmdsclock) {
 		printf("TMDS clock is zero!\n");
 		return -EINVAL;
@@ -832,6 +837,38 @@ inno_hdmi_3328_phy_pll_recalc_rate(struct inno_hdmi_phy *inno,
 	return rate;
 }
 
+#define PHY_TAB_LEN 60
+
+static
+int inno_hdmi_update_phy_table(struct inno_hdmi_phy *inno, u32 *config,
+			       struct phy_config *phy_cfg,
+			       int phy_table_size)
+{
+	int i, j;
+
+	for (i = 0; i < phy_table_size; i++) {
+		phy_cfg[i].tmdsclock =
+			(unsigned long)config[i * 15];
+
+		debug("%ld ", phy_cfg[i].tmdsclock);
+		for (j = 0; j < 14; j++) {
+			phy_cfg[i].regs[j] = (u8)config[i * 15 + 1 + j];
+			debug("0x%02x ", phy_cfg[i].regs[j]);
+		}
+		printf("\n");
+	}
+
+	/*
+	 * The last set of phy cfg is used to indicate whether
+	 * there is no more phy cfg data.
+	 */
+	phy_cfg[i].tmdsclock = ~0UL;
+	for (j = 0; j < 14; j++)
+		phy_cfg[i].regs[j] = 0;
+
+	return 0;
+}
+
 static const struct inno_hdmi_phy_ops rk3228_hdmi_phy_ops = {
 	.init = inno_hdmi_phy_rk3228_init,
 	.power_on = inno_hdmi_phy_rk3228_power_on,
@@ -876,8 +913,9 @@ static int inno_hdmi_phy_init(struct display_state *state)
 	int conn_node = conn_state->node;
 	int node = conn_state->phy_node;
 	struct inno_hdmi_phy *inno;
-	int phy_node, phandle, i;
+	int phy_node, phandle, i, val, phy_table_size, ret;
 	const char *name;
+	u32 *phy_config;
 
 	inno = malloc(sizeof(*inno));
 	if (!inno)
@@ -913,6 +951,41 @@ static int inno_hdmi_phy_init(struct display_state *state)
 		}
 	}
 
+	fdt_getprop(blob, phy_node, "rockchip,phy-table", &val);
+	if (val >= 0) {
+		if (val % PHY_TAB_LEN || !val) {
+			printf("Invalid phy cfg table format!\n");
+			return -EINVAL;
+		}
+
+		phy_config = malloc(val);
+		if (!phy_config) {
+			printf("kmalloc phy table failed\n");
+			return -ENOMEM;
+		}
+
+		phy_table_size = val / PHY_TAB_LEN;
+		/* Effective phy cfg data and the end of phy cfg table */
+		inno->phy_cfg = malloc(val + PHY_TAB_LEN);
+		if (!inno->phy_cfg) {
+			free(phy_config);
+			return -ENOMEM;
+		}
+
+		fdtdec_get_int_array(blob, phy_node, "rockchip,phy-table",
+				     phy_config, val / sizeof(u32));
+		ret = inno_hdmi_update_phy_table(inno, phy_config,
+						 inno->phy_cfg,
+						 phy_table_size);
+		if (ret) {
+			free(phy_config);
+			return ret;
+		}
+		free(phy_config);
+	} else {
+		printf("use default hdmi phy table\n");
+	}
+
 	if (i >= ARRAY_SIZE(inno_hdmi_phy_of_match))
 		return 0;
 
@@ -943,10 +1016,52 @@ inno_hdmi_phy_set_bus_width(struct display_state *state, u32 bus_width)
 	inno->bus_width = bus_width;
 }
 
+static long
+inno_hdmi_phy_clk_round_rate(struct display_state *state, unsigned long rate)
+{
+	int i;
+	const struct pre_pll_config *cfg = pre_pll_cfg_table;
+	struct connector_state *conn_state = &state->conn_state;
+	struct inno_hdmi_phy *inno = conn_state->phy_private;
+	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate);
+
+	for (; cfg->pixclock != ~0UL; cfg++)
+		if (cfg->pixclock == rate)
+			break;
+
+	/*
+	 * XXX: Limit pixel clock under 600MHz
+	 * rk3228 does not support non-zero fracdiv
+	 */
+	if ((inno->plat_data->dev_type == INNO_HDMI_PHY_RK3228 &&
+	    cfg->fracdiv) || cfg->pixclock > 600000000)
+		return -EINVAL;
+
+	/*
+	 * If there is no dts phy cfg table, use default phy cfg table.
+	 * The tmds clock maximum is 594MHz. So there is no need to check
+	 * whether tmds clock is out of range.
+	 */
+	if (!inno->phy_cfg)
+		return cfg->pixclock;
+
+	/* Check if tmds clock is out of dts phy config's range. */
+	for (i = 0; inno->phy_cfg[i].tmdsclock != ~0UL; i++) {
+		if (inno->phy_cfg[i].tmdsclock >= tmdsclock)
+			break;
+	}
+
+	if (inno->phy_cfg[i].tmdsclock == ~0UL)
+		return -EINVAL;
+
+	return cfg->pixclock;
+}
+
 const struct rockchip_phy_funcs inno_hdmi_phy_funcs = {
 	.init = inno_hdmi_phy_init,
 	.power_on = inno_hdmi_phy_power_on,
 	.power_off = inno_hdmi_phy_power_off,
 	.set_pll = inno_hdmi_phy_set_pll,
 	.set_bus_width = inno_hdmi_phy_set_bus_width,
+	.round_rate = inno_hdmi_phy_clk_round_rate,
 };
