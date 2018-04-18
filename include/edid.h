@@ -62,8 +62,8 @@
 	(((_x) >> (_pos)) & 1)
 #define GET_BITS(_x, _pos_msb, _pos_lsb) \
 	(((_x) >> (_pos_lsb)) & ((1 << ((_pos_msb) - (_pos_lsb) + 1)) - 1))
-#define DRM_MODE(c, hd, hss, hse, ht, vd, vss, vse, vt, vs, f) \
-	.clock = (c), \
+#define DRM_MODE(t, c, hd, hss, hse, ht, vd, vss, vse, vt, vs, f) \
+	.clock = (c), .type = (t),\
 	.hdisplay = (hd), .hsync_start = (hss), .hsync_end = (hse), \
 	.htotal = (ht), .vdisplay = (vd), \
 	.vsync_start = (vss), .vsync_end = (vse), .vtotal = (vt), \

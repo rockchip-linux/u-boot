@@ -2356,7 +2356,7 @@ int rockchip_dw_hdmi_disable(struct display_state *state)
 
 int rockchip_dw_hdmi_get_timing(struct display_state *state)
 {
-	int ret;
+	int ret, i;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct dw_hdmi *hdmi = conn_state->private;
@@ -2384,6 +2384,21 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 		printf("failed to get edid\n");
 	}
 
+	drm_rk_filter_whitelist(&hdmi->edid_data);
+	if (hdmi->phy.ops->mode_valid)
+		hdmi->phy.ops->mode_valid(hdmi, state);
+
+	if (!drm_mode_prune_invalid(&hdmi->edid_data)) {
+		printf("can't find valid hdmi mode\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < hdmi->edid_data.modes; i++) {
+		hdmi->edid_data.mode_buf[i].vrefresh =
+			drm_mode_vrefresh(&hdmi->edid_data.mode_buf[i]);
+	}
+
+	drm_mode_sort(&hdmi->edid_data);
 	drm_rk_selete_output(&hdmi->edid_data, &bus_format,
 			     overscan, hdmi->dev_type);
 	*mode = *hdmi->edid_data.preferred_mode;
@@ -2483,4 +2498,28 @@ inno_dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi, void *data)
 		rockchip_phy_set_pll(state, 27000000);
 #endif
 	return status;
+}
+
+void inno_dw_hdmi_mode_valid(struct dw_hdmi *hdmi, void *data)
+{
+	struct display_state *state = (struct display_state *)data;
+	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
+	unsigned long rate;
+	int i, ret;
+	struct drm_display_mode *mode_buf = edid_data->mode_buf;
+
+	for (i = 0; i < edid_data->modes; i++) {
+		if (edid_data->mode_buf[i].invalid)
+			continue;
+		if (edid_data->mode_buf[i].flags & DRM_MODE_FLAG_DBLCLK)
+			rate = mode_buf[i].clock * 1000 * 2;
+		else
+			rate = mode_buf[i].clock * 1000;
+
+		/* Check whether mode is out of phy cfg range. */
+		ret = rockchip_phy_round_rate(state, rate);
+
+		if (ret < 0)
+			edid_data->mode_buf[i].invalid = true;
+	}
 }

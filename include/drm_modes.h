@@ -159,6 +159,7 @@ struct drm_display_mode {
 	int crtc_vsync_start;
 	int crtc_vsync_end;
 	int crtc_vtotal;
+	bool invalid;
 };
 
 #endif

@@ -26,6 +26,7 @@ void inno_dw_hdmi_phy_disable(struct dw_hdmi *dw_hdmi,
 			      void *data);
 int inno_dw_hdmi_phy_init(struct dw_hdmi *dw_hdmi,
 			  void *data);
+void inno_dw_hdmi_mode_valid(struct dw_hdmi *hdmi, void *data);
 
 const disk_partition_t *get_disk_partition(const char *name);
 int StorageReadLba(u32 LBA, void *pbuf, u32 nSec);
