@@ -19,6 +19,7 @@
 #include <linux/err.h>
 #include <dm/device.h>
 #include <dm/read.h>
+#include <syscon.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -200,6 +201,7 @@ static int rockchip_vop_init(struct display_state *state)
 	int ret;
 	bool yuv_overlay = false, post_r2y_en = false, post_y2r_en = false;
 	u16 post_csc_mode;
+	bool dclk_inv;
 
 	vop = malloc(sizeof(*vop));
 	if (!vop)
@@ -212,6 +214,12 @@ static int rockchip_vop_init(struct display_state *state)
 	vop->win = vop_data->win;
 	vop->win_offset = vop_data->win_offset;
 	vop->ctrl = vop_data->ctrl;
+	vop->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+	if (vop->grf <= 0)
+		printf("%s: Get syscon grf failed (ret=%p)\n",
+		      __func__, vop->grf);
+
+	vop->grf_ctrl = vop_data->grf_ctrl;
 	vop->line_flag = vop_data->line_flag;
 	vop->version = vop_data->version;
 	vop->max_output = vop_data->max_output;
@@ -250,6 +258,9 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, win_channel[2], 0x56);
 	VOP_CTRL_SET(vop, dsp_blank, 0);
 
+	dclk_inv = (mode->flags & DRM_MODE_FLAG_PPIXDATA) ? 0 : 1;
+	VOP_CTRL_SET(vop, dclk_pol, dclk_inv);
+
 	val = 0x8;
 	val |= (mode->flags & DRM_MODE_FLAG_NHSYNC) ? 0 : 1;
 	val |= (mode->flags & DRM_MODE_FLAG_NVSYNC) ? 0 : (1 << 1);
@@ -259,22 +270,36 @@ static int rockchip_vop_init(struct display_state *state)
 	case DRM_MODE_CONNECTOR_LVDS:
 		VOP_CTRL_SET(vop, rgb_en, 1);
 		VOP_CTRL_SET(vop, rgb_pin_pol, val);
+		VOP_CTRL_SET(vop, rgb_dclk_pol, dclk_inv);
+		VOP_CTRL_SET(vop, lvds_en, 1);
+		VOP_CTRL_SET(vop, lvds_pin_pol, val);
+		VOP_CTRL_SET(vop, lvds_dclk_pol, dclk_inv);
+		if (!IS_ERR_OR_NULL(vop->grf))
+			VOP_GRF_SET(vop, grf_dclk_inv, !dclk_inv);
 		break;
 	case DRM_MODE_CONNECTOR_eDP:
 		VOP_CTRL_SET(vop, edp_en, 1);
 		VOP_CTRL_SET(vop, edp_pin_pol, val);
+		VOP_CTRL_SET(vop, edp_dclk_pol, dclk_inv);
 		break;
 	case DRM_MODE_CONNECTOR_HDMIA:
 		VOP_CTRL_SET(vop, hdmi_en, 1);
 		VOP_CTRL_SET(vop, hdmi_pin_pol, val);
+		VOP_CTRL_SET(vop, hdmi_dclk_pol, 1);
 		break;
 	case DRM_MODE_CONNECTOR_DSI:
 		VOP_CTRL_SET(vop, mipi_en, 1);
 		VOP_CTRL_SET(vop, mipi_pin_pol, val);
+		VOP_CTRL_SET(vop, mipi_dclk_pol, dclk_inv);
 		VOP_CTRL_SET(vop, mipi_dual_channel_en,
 			!!(conn_state->output_type & ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL));
 		VOP_CTRL_SET(vop, data01_swap,
 			!!(conn_state->output_type & ROCKCHIP_OUTPUT_DSI_DUAL_LINK));
+		break;
+	case DRM_MODE_CONNECTOR_DisplayPort:
+		VOP_CTRL_SET(vop, dp_dclk_pol, 0);
+		VOP_CTRL_SET(vop, dp_pin_pol, val);
+		VOP_CTRL_SET(vop, dp_en, 1);
 		break;
 	case DRM_MODE_CONNECTOR_TV:
 		if (vdisplay == CVBS_PAL_VDISPLAY)

@@ -64,6 +64,13 @@
 #define VOP_WIN_GET(x, name) \
 		vop_read_reg(x, vop->win->offset, &vop->win->name)
 
+#define VOP_GRF_SET(vop, name, v) \
+	do { \
+		if (vop->grf_ctrl) { \
+			vop_grf_writel(vop, vop->grf_ctrl->name, v); \
+		} \
+	} while (0)
+
 #define CVBS_PAL_VDISPLAY              288
 
 enum alpha_mode {
@@ -412,6 +419,10 @@ struct vop_line_flag {
 	struct vop_reg line_flag_num[2];
 };
 
+struct vop_grf_ctrl {
+	struct vop_reg grf_dclk_inv;
+};
+
 struct vop_rect {
 	int width;
 	int height;
@@ -424,6 +435,7 @@ struct vop_data {
 	const struct vop_ctrl *ctrl;
 	const struct vop_win *win;
 	const struct vop_line_flag *line_flag;
+	const struct vop_grf_ctrl *grf_ctrl;
 	int win_offset;
 	int reg_len;
 	u64 feature;
@@ -433,11 +445,13 @@ struct vop_data {
 struct vop {
 	u32 *regsbak;
 	void *regs;
+	void *grf;
 
 	uint32_t version;
 	const struct vop_ctrl *ctrl;
 	const struct vop_win *win;
 	const struct vop_line_flag *line_flag;
+	const struct vop_grf_ctrl *grf_ctrl;
 	int win_offset;
 	struct vop_rect max_output;
 };
@@ -481,6 +495,16 @@ static inline void vop_mask_write(struct vop *vop, uint32_t offset,
 static inline void vop_cfg_done(struct vop *vop)
 {
 	VOP_CTRL_SET(vop, cfg_done, 1);
+}
+
+static inline void vop_grf_writel(struct vop *vop, struct vop_reg reg, u32 v)
+{
+	u32 val = 0;
+
+	if (VOP_REG_SUPPORT(vop, reg)) {
+		val = (v << reg.shift) | (reg.mask << (reg.shift + 16));
+		writel(val, vop->grf + reg.offset);
+	}
 }
 
 /**

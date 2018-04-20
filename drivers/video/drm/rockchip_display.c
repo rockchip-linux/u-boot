@@ -305,6 +305,8 @@ static int display_get_timing_from_dts(struct panel_state *panel_state,
 	flags |= val ? DRM_MODE_FLAG_PHSYNC : DRM_MODE_FLAG_NHSYNC;
 	FDT_GET_INT(val, "vsync-active");
 	flags |= val ? DRM_MODE_FLAG_PVSYNC : DRM_MODE_FLAG_NVSYNC;
+	FDT_GET_INT(val, "pixelclk-active");
+	flags |= val ? DRM_MODE_FLAG_PPIXDATA : 0;
 
 	mode->hdisplay = hactive;
 	mode->hsync_start = mode->hdisplay + hfront_porch;

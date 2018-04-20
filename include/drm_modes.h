@@ -36,6 +36,7 @@
 #define DRM_MODE_FLAG_PIXMUX			(1 << 11)
 #define DRM_MODE_FLAG_DBLCLK			(1 << 12)
 #define DRM_MODE_FLAG_CLKDIV2			(1 << 13)
+#define DRM_MODE_FLAG_PPIXDATA			(1 << 31)
 
 #define DRM_MODE_CONNECTOR_Unknown	0
 #define DRM_MODE_CONNECTOR_VGA		1
