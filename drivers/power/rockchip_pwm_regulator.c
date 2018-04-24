@@ -64,6 +64,7 @@ static int pwm_regulator_set_rate(int rate, int pwm_id)
 
 	duty_cycle = (rate * (pwm.period) / 100) ;
 	pwm_config(pwm_id, duty_cycle, pwm.period);
+	udelay(200);
 
 	return 0;
 }
@@ -117,8 +118,8 @@ static int pwm_regulator_set_voltage(int pwm_id, int num_matches,
 static int pwm_regulator_parse_dt(const void *blob)
 {
 	int pwm_node[2], pwm_nd[2];
-	int ret = 0, i, length;
-	u32 pwm0_data[4];
+	int ret = 0, i, length, arg_counts;
+	u32 pwm0_data[4] = {0};
 	int pwm_count = 0, pwm_id[2];
 	int pwm_init_volt[2];
 
@@ -147,8 +148,11 @@ static int pwm_regulator_parse_dt(const void *blob)
 		pwm_count = 2;
 	}
 
+	arg_counts = fdtdec_get_int_array_count(blob, pwm_node[0], "pwms",
+						pwm0_data,
+						ARRAY_SIZE(pwm0_data));
 	if (fdtdec_get_int_array(blob, pwm_node[0], "pwms", pwm0_data,
-			ARRAY_SIZE(pwm0_data))) {
+			arg_counts)) {
 		debug("Cannot decode PWM%d property pwms\n", pwm0_data[1]);
 		return -ENODEV;
 	}
