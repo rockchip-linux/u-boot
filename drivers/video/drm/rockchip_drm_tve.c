@@ -36,6 +36,21 @@ extern int32 FtEfuseRead(void *base, void *buff, uint32 addr, uint32 size);
 
 #define TVE_REG_NUM 0x28
 
+static const struct drm_display_mode tve_modes[] = {
+	/* 0 - 720x576i@50Hz */
+	{ DRM_MODE(DRM_MODE_TYPE_DRIVER, 13500, 720, 753,
+		   816, 864, 576, 580, 586, 625, 0,
+		   DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC |
+		   DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_DBLCLK),
+	  .vrefresh = 50, },
+	/* 1 - 720x480i@60Hz */
+	{ DRM_MODE(DRM_MODE_TYPE_DRIVER, 13500, 720, 753,
+		   815, 858, 480, 480, 486, 525, 0,
+		   DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC |
+		   DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_DBLCLK),
+	  .vrefresh = 60, },
+};
+
 int drm_tve_show_reg(void)
 {
 	int i = 0;
@@ -229,6 +244,14 @@ static int rockchip_drm_tve_init(struct display_state *state)
 		if (tve_s.soctype == SOC_RK312X)
 			tve_s.test_mode = fdtdec_get_int(gd->fdt_blob, node, "test_mode", 0);
 
+		tve_s.preferred_mode = fdtdec_get_int(gd->fdt_blob, node, "rockchip,tvemode", -1);
+		if (tve_s.preferred_mode < 0) {
+			tve_s.preferred_mode = 0;
+		} else if (tve_s.preferred_mode > 1) {
+			printf("tve mode value invalid\n");
+			goto err;
+		}
+
 		tve_s.saturation = fdtdec_get_int(gd->fdt_blob, node, "rockchip,saturation", 0);
 		if (tve_s.saturation == 0) {
 			printf("tve saturation err\n");
@@ -349,11 +372,12 @@ static int rockchip_drm_tve_detect(struct display_state *state)
 }
 
 static void drm_tve_selete_output(struct overscan *overscan,
-			  struct drm_display_mode *mode)
+				  struct drm_display_mode *mode)
 {
 	int ret, i, screen_size;
 	struct base_screen_info *screen_info = NULL;
 	struct base_disp_info base_parameter;
+	struct drm_display_mode modes[2];
 	const struct base_overscan *scan;
 	const disk_partition_t *ptn_baseparameter;
 	char baseparameter_buf[8 * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
@@ -364,6 +388,13 @@ static void drm_tve_selete_output(struct overscan *overscan,
 	overscan->right_margin = max_scan;
 	overscan->top_margin = max_scan;
 	overscan->bottom_margin = max_scan;
+
+	for (i = 0; i < 2; i++) {
+		modes[i] = tve_modes[i];
+		if (i == tve_s.preferred_mode)
+			modes[i].type |= DRM_MODE_TYPE_PREFERRED;
+	}
+	*mode = modes[tve_s.preferred_mode];
 
 	ptn_baseparameter = get_disk_partition("baseparameter");
 	if (!ptn_baseparameter) {
@@ -414,43 +445,14 @@ static void drm_tve_selete_output(struct overscan *overscan,
 	    (screen_info->mode.hdisplay == 720 &&
 	    screen_info->mode.vdisplay == 576 &&
 	    screen_info->mode.hsync_start == 753 &&
-	    screen_info->mode.hsync_end == 816)) {
-		mode->hdisplay = 720;
-		mode->hsync_start = 753;
-		mode->hsync_end = 816;
-		mode->htotal = 864;
-		mode->vdisplay = 576;
-		mode->vsync_start = 580;
-		mode->vsync_end = 586;
-		mode->vtotal = 625;
-		mode->clock = 13500;
-	} else if (screen_info &&
-		   screen_info->mode.vdisplay == 480 &&
-		   screen_info->mode.vsync_start == 480 &&
-		   screen_info->mode.vsync_end == 486) {
-		mode->hdisplay = 720;
-		mode->hsync_start = 753;
-		mode->hsync_end = 815;
-		mode->htotal = 858;
-		mode->vdisplay = 480;
-		mode->vsync_start = 480;
-		mode->vsync_end = 486;
-		mode->vtotal = 525;
-		mode->clock = 13500;
-	} else {
-		mode->hdisplay = 720;
-		mode->hsync_start = 753;
-		mode->hsync_end = 816;
-		mode->htotal = 864;
-		mode->vdisplay = 576;
-		mode->vsync_start = 580;
-		mode->vsync_end = 586;
-		mode->vtotal = 625;
-		mode->clock = 13500;
-	}
+	    screen_info->mode.hsync_end == 816))
+		*mode = modes[0];
+	else if (screen_info &&
+		 screen_info->mode.vdisplay == 480 &&
+		 screen_info->mode.vsync_start == 480 &&
+		 screen_info->mode.vsync_end == 486)
+		*mode = modes[1];
 
-	mode->flags = DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC |
-		DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_DBLCLK;
 	if (screen_info)
 		printf("base_parameter.mode:%dx%d\n",
 		       screen_info->mode.hdisplay,

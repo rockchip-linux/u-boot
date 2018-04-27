@@ -137,6 +137,7 @@ struct drm_tve {
 	int	lumafilter2;
 	int	daclevel;
 	int	dac1level;
+	int	preferred_mode;
 };
 
 #define RK30_TVE_REGBASE 0x10118000 + 0x200
