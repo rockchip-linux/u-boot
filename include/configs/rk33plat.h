@@ -407,7 +407,9 @@
 #if defined(CONFIG_RKCHIP_RK322XH)
         #define CONFIG_ROCKCHIP_DRM_TVE
 #elif defined(CONFIG_RKCHIP_RK3368)
+#ifdef CONFIG_PRODUCT_BOX
         #define CONFIG_ROCKCHIP_DRM_RK1000
+#endif
 #endif
 #endif
 
