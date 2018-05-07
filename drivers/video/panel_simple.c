@@ -33,6 +33,7 @@ struct panel_simple {
 
 	const struct drm_display_mode *mode;
 	int bus_format;
+	int bpc;
 
 	struct fdt_gpio_state enable_gpio;
 
@@ -103,6 +104,7 @@ static int panel_simple_parse_dt(const void *blob, int node,
 	panel->delay_enable = fdtdec_get_int(blob, node, "enable-delay-ms", 0);
 	panel->delay_disable = fdtdec_get_int(blob, node, "disable-delay-ms", 0);
 	panel->bus_format = fdtdec_get_int(blob, node, "bus-format", MEDIA_BUS_FMT_RBG888_1X24);
+	panel->bpc = fdtdec_get_int(blob, node, "bpc", 8);
 
 	printf("delay prepare[%d] unprepare[%d] enable[%d] disable[%d]\n",
 	       panel->delay_prepare, panel->delay_unprepare,
@@ -145,6 +147,7 @@ static int panel_simple_init(struct display_state *state)
 	}
 
 	conn_state->bus_format = panel->bus_format;
+	conn_state->bpc = panel->bpc;
 
 	return 0;
 }

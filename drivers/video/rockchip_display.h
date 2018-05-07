@@ -89,6 +89,7 @@ struct connector_state {
 	struct overscan overscan;
 	u8 edid[EDID_SIZE * 4];
 	int bus_format;
+	int bpc;
 	int output_mode;
 	int type;
 	int output_type;
