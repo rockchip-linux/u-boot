@@ -882,11 +882,19 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	dp->video_info.max_link_rate = pdata->max_link_rate;
 	dp->video_info.max_lane_count = pdata->max_lane_count;
 
-	switch (conn_state->bus_format) {
-	case MEDIA_BUS_FMT_RGB666_1X18:
+	switch (conn_state->bpc) {
+	case 12:
+		dp->video_info.color_depth = COLOR_12;
+		break;
+	case 10:
+		dp->video_info.color_depth = COLOR_10;
+		break;
+	case 8:
+		dp->video_info.color_depth = COLOR_8;
+		break;
+	case 6:
 		dp->video_info.color_depth = COLOR_6;
 		break;
-	case MEDIA_BUS_FMT_RGB888_1X24:
 	default:
 		dp->video_info.color_depth = COLOR_8;
 		break;
