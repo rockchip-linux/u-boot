@@ -400,10 +400,16 @@ static int rk818_bat_get_avg_voltage(struct battery_info *di)
 static int rk818_bat_get_est_voltage(struct battery_info *di)
 {
 	int est_vol, vol, curr;
-	int timeout = 0;
+	int plugin, timeout = 0;
 
 	vol = rk818_bat_get_avg_voltage(di);
 	curr = rk818_bat_get_avg_current(di);
+	plugin = rk818_bat_read(RK818_VB_MON_REG) & PLUG_IN_STS;
+	if (di->is_first_power_on || (!plugin && curr >= 0) || (plugin && curr <= 0)) {
+		DBG("%s: curr=%d, plugin=%d, first_on=%d\n",
+		    __func__, curr, plugin, di->is_first_power_on);
+		curr = 0;
+	}
 	est_vol = vol - (di->bat_res * curr / 1000);
 
 	while ((est_vol <= CONFIG_SCREEN_ON_VOL_THRESD) &&
@@ -413,6 +419,12 @@ static int rk818_bat_get_est_voltage(struct battery_info *di)
 		/* Update */
 		vol = rk818_bat_get_avg_voltage(di);
 		curr = rk818_bat_get_avg_current(di);
+		plugin = rk818_bat_read(RK818_VB_MON_REG) & PLUG_IN_STS;
+		if (di->is_first_power_on || (!plugin && curr >= 0) || (plugin && curr <= 0)) {
+			DBG("%s: while curr=%d, plugin=%d, first_on=%d\n",
+			    __func__, curr, plugin, di->is_first_power_on);
+			curr = 0;
+		}
 		est_vol = vol - (di->bat_res * curr / 1000);
 
 		timeout++;
