@@ -82,8 +82,6 @@ int pwm_init(int pwm_id, int div, int invert)
 		enable_conf |= PWM_DUTY_POSTIVE | PWM_INACTIVE_NEGATIVE;
 	div = div;
 
-	rk_iomux_config(RK_PWM0_IOMUX + pwm_id);
-
 	return 0;
 }
 
@@ -150,6 +148,8 @@ int pwm_config(int pwm_id, int duty_ns, int period_ns)
 	writel(0, base + PWM_REG_CNTR);
 	writel(on|conf, base + PWM_REG_CTRL);
 
+	rk_iomux_config(RK_PWM0_IOMUX + pwm_id);
+
 	return 0;
 }
 
@@ -164,6 +164,8 @@ int pwm_enable(int pwm_id)
 	ctrl = readl(base + PWM_REG_CTRL);
 	ctrl |= RK_PWM_ENABLE;
 	writel(ctrl, base + PWM_REG_CTRL);
+
+	rk_iomux_config(RK_PWM0_IOMUX + pwm_id);
 
 	return 0;
 }
