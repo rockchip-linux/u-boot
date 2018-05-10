@@ -36,12 +36,13 @@ static bool gDebug =
 
 
 /* config sha and rsa */
-#define SHA_SEL_256		3
-#define SHA_SEL_256_RK		2
+#define SHA_SEL_256		3	/* little endian */
+#define SHA_SEL_256_RK		2	/* big endian */
 #define SHA_SEL_160		1
 #define SHA_SEL_NONE		0
 
-#define RSA_SEL_2048		2
+#define RSA_SEL_2048_PSS	3	/* only RK3326, PX30, RK3308 */
+#define RSA_SEL_2048		2	/* most platforms except above PSS */
 #define RSA_SEL_1024		1
 #define RSA_SEL_NONE		0
 
@@ -51,8 +52,8 @@ static bool gDebug =
 #else
 #define SHA_SEL_DEFAULT		SHA_SEL_256
 #endif
-#define RSA_SEL_DEFAULT		RSA_SEL_2048
 
+#define is_digit(c)		((c) >= '0' && (c) <= '9')
 
 static char *gConfigPath;
 static OPT_T gOpts;
@@ -61,6 +62,7 @@ static uint8_t gBuf[BL3X_FILESIZE_MAX];
 static bool gSubfix;
 static char *gLegacyPath;
 static char *gNewPath;
+static uint8_t gRSAmode = RSA_SEL_2048;
 
 const uint8_t gBl3xID[BL_MAX_SEC][4] = {
 	{'B', 'L', '3', '0'},
@@ -581,7 +583,7 @@ static bool mergetrust(void)
 	pHead->version = (getBCD(gOpts.major) << 8) | getBCD(gOpts.minor);
 	pHead->flags = 0;
 	pHead->flags |= (SHA_SEL_DEFAULT << 0);
-	pHead->flags |= (RSA_SEL_DEFAULT << 4);
+	pHead->flags |= (gRSAmode << 4);
 
 	SignOffset = sizeof(TRUST_HEADER) + nComponentNum * sizeof(COMPONENT_DATA);
 	LOGD("trust bin sign offset = %d\n", SignOffset);
@@ -833,6 +835,7 @@ static void printHelp(void)
 	printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
 	printf("\t" OPT_SUBFIX "\t\tSpec subfix.\n");
 	printf("\t" OPT_REPLACE "\t\tReplace some part of binary path.\n");
+	printf("\t" OPT_RSA "\t\t\tRSA mode.\"--rsa [mode]\", [mode] can be: 0(none), 1(1024), 2(2048), 3(2048 pss).\n");
 }
 
 
@@ -864,6 +867,14 @@ int main(int argc, char **argv)
 			gLegacyPath = argv[i];
 			i++;
 			gNewPath = argv[i];
+		} else if (!strcmp(OPT_RSA, argv[i])) {
+			i++;
+			if (!is_digit(*(argv[i]))) {
+				printHelp();
+				return -1;
+			}
+			gRSAmode = *(argv[i]) - '0';
+			LOGD("rsa mode:%d\n", gRSAmode);
 		} else {
 			if (optPath) {
 				fprintf(stderr, "only need one path arg, but we have:\n%s\n%s.\n", optPath, argv[i]);
