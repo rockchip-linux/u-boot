@@ -966,7 +966,7 @@ else
 	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini)
 endif
 	$(if $(CONFIG_MERGER_TRUSTIMAGE), ./tools/trust_merger $(if $(CONFIG_RK_TRUSTOS), --subfix) \
-							./tools/rk_tools/RKTRUST/$(RKCHIP)TRUST.ini)
+					$(if $(CONFIG_RKCHIP_RK3368), --sha 2) ./tools/rk_tools/RKTRUST/$(RKCHIP)TRUST.ini)
 
 ifdef CONFIG_MERGER_TRUSTOS
 	$(if $(RK_TOS_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img)
