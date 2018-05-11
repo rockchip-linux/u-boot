@@ -37,7 +37,7 @@ static bool gDebug =
 
 /* config sha and rsa */
 #define SHA_SEL_256		3	/* little endian */
-#define SHA_SEL_256_RK		2	/* big endian */
+#define SHA_SEL_256_RK		2	/* big endian: only rk3368 need it */
 #define SHA_SEL_160		1
 #define SHA_SEL_NONE		0
 
@@ -45,13 +45,6 @@ static bool gDebug =
 #define RSA_SEL_2048		2	/* most platforms except above PSS */
 #define RSA_SEL_1024		1
 #define RSA_SEL_NONE		0
-
-/* only rk3368 using rk sha256 mode for miniloader */
-#if defined(CONFIG_RKCHIP_RK3368)
-#define SHA_SEL_DEFAULT		SHA_SEL_256_RK
-#else
-#define SHA_SEL_DEFAULT		SHA_SEL_256
-#endif
 
 #define is_digit(c)		((c) >= '0' && (c) <= '9')
 
@@ -63,6 +56,7 @@ static bool gSubfix;
 static char *gLegacyPath;
 static char *gNewPath;
 static uint8_t gRSAmode = RSA_SEL_2048;
+static uint8_t gSHAmode = SHA_SEL_256;
 
 const uint8_t gBl3xID[BL_MAX_SEC][4] = {
 	{'B', 'L', '3', '0'},
@@ -493,29 +487,29 @@ static bool bl3xHash256(uint8_t *pHash, uint8_t *pData, uint32_t nDataSize)
 
 	nHasHashSize = 0;
 
-#if (SHA_SEL_DEFAULT == SHA_SEL_256_RK)
-	sha256_ctx ctx;
+	if (gSHAmode == SHA_SEL_256_RK) {
+		sha256_ctx ctx;
 
-	sha256_begin(&ctx);
-	while (nDataSize > 0) {
-		nHashSize = (nDataSize >= SHA256_CHECK_SZ) ? SHA256_CHECK_SZ : nDataSize;
-		sha256_hash(&ctx, pData + nHasHashSize, nHashSize);
-		nHasHashSize += nHashSize;
-		nDataSize -= nHashSize;
-	}
-	sha256_end(&ctx, pHash);
-#else
-	sha256_context ctx;
+		sha256_begin(&ctx);
+		while (nDataSize > 0) {
+			nHashSize = (nDataSize >= SHA256_CHECK_SZ) ? SHA256_CHECK_SZ : nDataSize;
+			sha256_hash(&ctx, pData + nHasHashSize, nHashSize);
+			nHasHashSize += nHashSize;
+			nDataSize -= nHashSize;
+		}
+		sha256_end(&ctx, pHash);
+	} else {
+		sha256_context ctx;
 
-	sha256_starts(&ctx);
-	while (nDataSize > 0) {
-		nHashSize = (nDataSize >= SHA256_CHECK_SZ) ? SHA256_CHECK_SZ : nDataSize;
-		sha256_update(&ctx, pData + nHasHashSize, nHashSize);
-		nHasHashSize += nHashSize;
-		nDataSize -= nHashSize;
+		sha256_starts(&ctx);
+		while (nDataSize > 0) {
+			nHashSize = (nDataSize >= SHA256_CHECK_SZ) ? SHA256_CHECK_SZ : nDataSize;
+			sha256_update(&ctx, pData + nHasHashSize, nHashSize);
+			nHasHashSize += nHashSize;
+			nDataSize -= nHashSize;
+		}
+		sha256_finish(&ctx, pHash);
 	}
-	sha256_finish(&ctx, pHash);
-#endif
 	return true;
 }
 
@@ -582,7 +576,7 @@ static bool mergetrust(void)
 	memcpy(&pHead->tag, TRUST_HEAD_TAG, 4);
 	pHead->version = (getBCD(gOpts.major) << 8) | getBCD(gOpts.minor);
 	pHead->flags = 0;
-	pHead->flags |= (SHA_SEL_DEFAULT << 0);
+	pHead->flags |= (gSHAmode << 0);
 	pHead->flags |= (gRSAmode << 4);
 
 	SignOffset = sizeof(TRUST_HEADER) + nComponentNum * sizeof(COMPONENT_DATA);
@@ -836,6 +830,7 @@ static void printHelp(void)
 	printf("\t" OPT_SUBFIX "\t\tSpec subfix.\n");
 	printf("\t" OPT_REPLACE "\t\tReplace some part of binary path.\n");
 	printf("\t" OPT_RSA "\t\t\tRSA mode.\"--rsa [mode]\", [mode] can be: 0(none), 1(1024), 2(2048), 3(2048 pss).\n");
+	printf("\t" OPT_SHA "\t\t\tSHA mode.\"--sha [mode]\", [mode] can be: 0(none), 1(160), 2(256 RK big endian), 3(256 little endian).\n");
 }
 
 
@@ -875,6 +870,14 @@ int main(int argc, char **argv)
 			}
 			gRSAmode = *(argv[i]) - '0';
 			LOGD("rsa mode:%d\n", gRSAmode);
+		} else if (!strcmp(OPT_SHA, argv[i])) {
+			i++;
+			if (!is_digit(*(argv[i]))) {
+				printHelp();
+				return -1;
+			}
+			gSHAmode = *(argv[i]) - '0';
+			LOGD("sha mode:%d\n", gSHAmode);
 		} else {
 			if (optPath) {
 				fprintf(stderr, "only need one path arg, but we have:\n%s\n%s.\n", optPath, argv[i]);

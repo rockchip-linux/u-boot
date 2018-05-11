@@ -45,6 +45,7 @@
 #define OPT_SUBFIX          "--subfix"
 #define OPT_REPLACE         "--replace"
 #define OPT_RSA		    "--rsa"
+#define OPT_SHA		    "--sha"
 
 #define DEF_MAJOR           0
 #define DEF_MINOR           0
