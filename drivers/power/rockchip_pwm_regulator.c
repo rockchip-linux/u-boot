@@ -172,9 +172,13 @@ static int pwm_regulator_parse_dt(const void *blob)
 	for (i = 0 ; i < pwm_count; i++) {
 		pwm_id[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_id", -1);
 		if (pwm_id[i] < 0) {
-			printf("Cannot find regulator pwm id\n");
+			printf("Cannot find regulator pwm%d\n", i);
+			continue;
+		} else if (!fdt_device_is_available(blob, pwm_node[i])) {
+			printf("regulator pwm%d is disabled\n", i);
 			continue;
 		}
+
 		pwm_init(pwm_id[i], 0, pwm.polarity);
 		pwm_nd[i] = fdt_get_regulator_node(blob, pwm_node[i]);
 		pwm_init_volt[i] = fdtdec_get_int(blob, pwm_node[i], "rockchip,pwm_voltage", 0);
@@ -200,7 +204,10 @@ pwm_regulator:
 		pwm_id[i] = fdtdec_get_int(blob, pwm_node[i],
 					   "rockchip,pwm_id", -1);
 		if (pwm_id[i] < 0) {
-			printf("Cannot find regulator pwm id\n");
+			printf("Cannot find regulator pwm%d\n", i);
+			continue;
+		} else if (!fdt_device_is_available(blob, pwm_node[i])) {
+			printf("regulator pwm%d is disabled\n", i);
 			continue;
 		}
 		pwm_init(pwm_id[i], 0, pwm.polarity);
