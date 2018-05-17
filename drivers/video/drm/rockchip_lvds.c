@@ -220,7 +220,7 @@ static void px30_output_ttl(struct display_state *state)
 	u32 val = 0;
 
 	/* enable lvds mode */
-	val = PX30_LVDS_PHY_MODE(0) | PX30_DPHY_FORCERXMODE(1);
+	val = PX30_RGB_SYNC_BYPASS(1) | PX30_DPHY_FORCERXMODE(1);
 	writel(val, lvds->grf + PX30_GRF_PD_VO_CON1);
 
 	/* enable lane */
