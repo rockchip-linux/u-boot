@@ -196,6 +196,9 @@ static int rk336x_lvds_pwr_on(struct display_state *state)
 		lvds_msk_reg(lvds, MIPIPHY_REGE3,
 			     m_MIPI_EN | m_LVDS_EN | m_TTL_EN,
 			     v_MIPI_EN(0) | v_LVDS_EN(0) | v_TTL_EN(1));
+
+		/* set clock lane enable */
+		lvds_ctrl_writel(lvds, 0xa0, 0x4);
 	}
 	/* delay for waitting pll lock on */
 	while (delay_times--) {
