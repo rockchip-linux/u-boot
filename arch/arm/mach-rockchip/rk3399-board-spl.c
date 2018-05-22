@@ -120,21 +120,23 @@ void board_init_f(ulong dummy)
 	 * printascii("string");
 	 */
 	debug_uart_init();
-	printascii("U-Boot SPL board init");
+	printascii("U-Boot SPL board init\n");
 #endif
 
-	rk_clrsetreg(SGRF_DDR_RGN_CON16, 0x1FF, 0x200);
-	rk_clrreg(SGRF_SLV_SECURE_CON4, 0x2000);
-	/*  Emmc clock generator: disable the clock multipilier */
-	rk_clrreg(GRF_EMMCCORE_CON11, 0x0ff);
+	// rk_clrsetreg(SGRF_DDR_RGN_CON16, 0x1FF, 0x200);
+	// rk_clrreg(SGRF_SLV_SECURE_CON4, 0x2000);
+	// /*  Emmc clock generator: disable the clock multipilier */
+	// rk_clrreg(GRF_EMMCCORE_CON11, 0x0ff);
 
-	secure_timer_init();
+	// secure_timer_init();
 
 	ret = spl_early_init();
 	if (ret) {
 		debug("spl_early_init() failed: %d\n", ret);
 		hang();
 	}
+
+	preloader_console_init();
 
 	/*
 	 * Disable DDR and SRAM security regions.
@@ -148,11 +150,11 @@ void board_init_f(ulong dummy)
 	rk_clrsetreg(SGRF_DDR_RGN_CON16, 0x1FF, 0);
 	rk_clrreg(SGRF_SLV_SECURE_CON4, 0x2000);
 
-	ret = uclass_get_device(UCLASS_PINCTRL, 0, &pinctrl);
-	if (ret) {
-		debug("Pinctrl init failed: %d\n", ret);
-		return;
-	}
+	// ret = uclass_get_device(UCLASS_PINCTRL, 0, &pinctrl);
+	// if (ret) {
+	// 	debug("Pinctrl init failed: %d\n", ret);
+	// 	return;
+	// }
 
 	ret = uclass_get_device(UCLASS_RAM, 0, &dev);
 	if (ret) {
