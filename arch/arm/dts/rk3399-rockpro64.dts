@@ -18,6 +18,10 @@
 		stdout-path = &uart2;
 	};
 
+	aliases {
+		spi0 = &spi1;
+	};
+
 	backlight: backlight {
 		compatible = "pwm-backlight";
 		enable-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
@@ -212,7 +216,7 @@
 	snps,reset-delays-us = <0 10000 50000>;
 	tx_delay = <0x28>;
 	rx_delay = <0x11>;
-	status = "disabled";
+	status = "okay";
 };
 
 &i2c0 {
@@ -592,23 +596,29 @@
 };
 
 &sdmmc {
-	u-boot,dm-pre-reloc;
-	bus-width = <4>;
+	u-boot,dm-spl;
 	cap-mmc-highspeed;
 	cap-sd-highspeed;
+	card-detect-delay = <200>;
+	max-frequency = <50000000>;
 	fifo-mode;
 	disable-wp;
-	num-slots = <1>;
+	bus-width = <4>;
 	status = "okay";
 };
 
 &sdhci {
+	u-boot,dm-spl;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	card-detect-delay = <200>;
+	max-frequency = <50000000>;
+	fifo-mode;
+	disable-wp;
 	bus-width = <8>;
 	keep-power-in-suspend;
-	mmc-hs400-1_8v;
-	mmc-hs400-enhanced-strobe;
 	non-removable;
-	status = "disabled";
+	status = "okay";
 };
 
 &tsadc {
@@ -616,7 +626,7 @@
 	rockchip,hw-tshut-mode = <1>;
 	/* tshut polarity 0:LOW 1:HIGH */
 	rockchip,hw-tshut-polarity = <1>;
-	status = "disabled";
+	status = "okay";
 };
 
 &u2phy0 {
@@ -652,6 +662,7 @@
 };
 
 &uart2 {
+	u-boot,dm-pre-reloc;
 	status = "okay";
 };
 
@@ -671,7 +682,7 @@
 	status = "okay";
 };
 
-&spi0 {
+&spi1 {
 	u-boot,dm-spl;
 	status = "okay";
 
