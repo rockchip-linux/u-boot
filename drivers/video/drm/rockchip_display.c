@@ -1089,7 +1089,7 @@ void rockchip_display_fixup(void *blob)
 	const struct rockchip_connector *conn;
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
-	u32 offset;
+	int offset;
 	const struct device_node *np;
 	const char *path;
 
@@ -1101,6 +1101,12 @@ void rockchip_display_fixup(void *blob)
 					       (u64)get_display_size());
 	if (offset < 0) {
 		printf("failed to add drm-loader-logo memory\n");
+		/* Compatible with rkfb display, only need reserve memory */
+		offset = fdt_update_reserved_memory(blob, "rockchip,fb-logo",
+					       (u64)memory_start,
+					       (u64)get_display_size());
+		if (offset < 0)
+			printf("failed to add fb-loader-logo memory\n");
 		return;
 	}
 
