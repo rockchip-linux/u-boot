@@ -790,6 +790,41 @@ struct rockchip_logo_cache *find_or_alloc_logo_cache(const char *bmp)
 	return logo_cache;
 }
 
+/* Note: used only for rkfb kernel driver */
+static int load_kernel_bmp_logo(struct logo_info *logo, const char *bmp_name)
+{
+#ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
+	void *dst = NULL;
+	int len, size;
+	struct bmp_header *header;
+
+	if (!logo || !bmp_name)
+		return -EINVAL;
+
+	header = malloc(RK_BLK_SIZE);
+	if (!header)
+		return -ENOMEM;
+
+	len = rockchip_read_resource_file(header, bmp_name, 0, RK_BLK_SIZE);
+	if (len != RK_BLK_SIZE) {
+		free(header);
+		return -EINVAL;
+	}
+	size = get_unaligned_le32(&header->file_size);
+	dst = (void *)(memory_start + MEMORY_POOL_SIZE / 2);
+	len = rockchip_read_resource_file(dst, bmp_name, 0, size);
+	if (len != size) {
+		printf("failed to load bmp %s\n", bmp_name);
+		free(header);
+		return -ENOENT;
+	}
+
+	logo->mem = dst;
+
+	return 0;
+#endif
+}
+
 static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 {
 #ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
@@ -930,8 +965,8 @@ void rockchip_show_logo(void)
 			printf("failed to display uboot logo\n");
 		else
 			display_logo(s);
-		if (load_bmp_logo(&s->logo, s->klogo_name))
-			printf("failed to display kernel logo\n");
+
+		/* Load kernel bmp in rockchip_display_fixup() later */
 	}
 }
 
@@ -1096,17 +1131,25 @@ void rockchip_display_fixup(void *blob)
 	if (!get_display_size())
 		return;
 
-	offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
-					       (u64)memory_start,
-					       (u64)get_display_size());
-	if (offset < 0) {
-		printf("failed to add drm-loader-logo memory\n");
+	if (fdt_node_offset_by_compatible(blob, 0, "rockchip,drm-logo") >= 0) {
+		list_for_each_entry(s, &rockchip_display_list, head)
+			load_bmp_logo(&s->logo, s->klogo_name);
+		offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
+						    (u64)memory_start,
+						    (u64)get_display_size());
+		if (offset < 0)
+			printf("failed to reserve drm-loader-logo memory\n");
+	} else {
+		printf("can't found rockchip,drm-logo, use rockchip,fb-logo\n");
 		/* Compatible with rkfb display, only need reserve memory */
 		offset = fdt_update_reserved_memory(blob, "rockchip,fb-logo",
-					       (u64)memory_start,
-					       (u64)get_display_size());
+						    (u64)memory_start,
+						    MEMORY_POOL_SIZE);
 		if (offset < 0)
-			printf("failed to add fb-loader-logo memory\n");
+			printf("failed to reserve fb-loader-logo memory\n");
+		else
+			list_for_each_entry(s, &rockchip_display_list, head)
+				load_kernel_bmp_logo(&s->logo, s->klogo_name);
 		return;
 	}
 
