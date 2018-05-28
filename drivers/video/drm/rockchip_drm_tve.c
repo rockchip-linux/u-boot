@@ -17,6 +17,7 @@
 #include "../rockchip_display.h"
 #include "../rockchip_crtc.h"
 #include "../rockchip_connector.h"
+#include "../rockchip_phy.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -339,6 +340,10 @@ static int rockchip_drm_tve_enable(struct display_state *state)
 	struct drm_display_mode *mode = &conn_state->mode;
 	int tve_type;
 
+#ifdef CONFIG_RKCHIP_INNO_HDMI_PHY
+	/* set inno hdmi phy clk. */
+	rockchip_phy_set_pll(state, 27000000);
+#endif
 	if (mode->vdisplay == 576)
 		tve_type = TVOUT_CVBS_PAL;
 	else

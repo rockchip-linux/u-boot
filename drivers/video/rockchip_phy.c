@@ -36,7 +36,7 @@ static const struct rockchip_phy g_phy[] = {
 	},
 #endif
 
-#ifdef CONFIG_DRM_ROCKCHIP_DW_HDMI
+#ifdef CONFIG_RKCHIP_INNO_HDMI_PHY
 	{
 	 .compatible = "rockchip,rk3328-hdmi-phy",
 	 .funcs = &inno_hdmi_phy_funcs,

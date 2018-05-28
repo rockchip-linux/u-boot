@@ -457,7 +457,6 @@ static int inno_hdmi_phy_clk_set_rate(struct display_state *state,
 	struct connector_state *conn_state = &state->conn_state;
 	struct inno_hdmi_phy *inno = conn_state->phy_private;
 	const struct pre_pll_config *cfg = pre_pll_cfg_table;
-	const struct rockchip_phy *phy = conn_state->phy;
 	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate);
 
 	printf("%s rate %lu tmdsclk %u\n", __func__, rate, tmdsclock);
@@ -910,10 +909,9 @@ static int inno_hdmi_phy_init(struct display_state *state)
 {
 	const void *blob = state->blob;
 	struct connector_state *conn_state = &state->conn_state;
-	int conn_node = conn_state->node;
-	int node = conn_state->phy_node;
+	int phy_node = conn_state->phy_node;
 	struct inno_hdmi_phy *inno;
-	int phy_node, phandle, i, val, phy_table_size, ret;
+	int phandle, i, val, phy_table_size, ret;
 	const char *name;
 	u32 *phy_config;
 
@@ -922,26 +920,15 @@ static int inno_hdmi_phy_init(struct display_state *state)
 		return -ENOMEM;
 
 	inno->blob = blob;
-	inno->node = node;
+	inno->node = phy_node;
 
-	inno->regs = fdtdec_get_addr_size_auto_noparent(blob, node, "reg",
+	inno->regs = fdtdec_get_addr_size_auto_noparent(blob, phy_node, "reg",
 							0, NULL);
 	if (inno->regs == FDT_ADDR_T_NONE) {
-		printf("%s: failed to get mipi phy address\n", __func__);
+		printf("%s: failed to get phy address\n", __func__);
 		return -ENOMEM;
 	}
 	conn_state->phy_private = inno;
-
-	phandle = fdt_getprop_u32_default_node(blob, conn_node, 0,
-					       "phys", -1);
-	if (phandle < 0)
-		return 0;
-
-	phy_node = fdt_node_offset_by_phandle(blob, phandle);
-	if (phy_node < 0) {
-		printf("failed to find inno phy node\n");
-		return phy_node;
-	}
 
 	fdt_get_string(blob, phy_node, "compatible", &name);
 	for (i = 0; i < ARRAY_SIZE(inno_hdmi_phy_of_match); i++) {

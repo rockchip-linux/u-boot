@@ -35,7 +35,7 @@ long rockchip_phy_round_rate(struct display_state *state, unsigned long rate);
 #ifdef CONFIG_ROCKCHIP_DW_MIPI_DSI
 extern const struct rockchip_phy_funcs inno_mipi_dphy_funcs;
 #endif
-#ifdef CONFIG_DRM_ROCKCHIP_DW_HDMI
+#ifdef CONFIG_RKCHIP_INNO_HDMI_PHY
 extern const struct rockchip_phy_funcs inno_hdmi_phy_funcs;
 #endif
 #endif

@@ -46,6 +46,91 @@ static unsigned long memory_end;
 extern int rk_pwm_bl_config(int brightness);
 #endif
 
+/*
+ * the phy types are used by different connectors in public.
+ * The current version only has inno hdmi phy for hdmi and tve.
+ */
+enum public_use_phy {
+	NONE,
+	INNO_HDMI_PHY
+};
+
+/* save public phy data */
+struct public_phy_data {
+	void *private_date;
+	const struct rockchip_phy *phy_drv;
+	int phy_node;
+	int public_phy_type;
+	bool phy_init;
+};
+
+/* check which kind of public phy does connector use */
+static int check_public_use_phy(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	int conn_node = conn_state->node;
+	const void *blob = state->blob;
+	int ret = NONE;
+
+#ifdef CONFIG_RKCHIP_INNO_HDMI_PHY
+	if (!strncmp(fdt_get_name(blob, conn_node, NULL), "tve", 3) ||
+	!strncmp(fdt_get_name(blob, conn_node, NULL), "hdmi", 4))
+		ret = INNO_HDMI_PHY;
+#endif
+
+	return ret;
+
+}
+
+/*
+ * get public phy driver and initialize it.
+ * The current version only has inno hdmi phy for hdmi and tve.
+ */
+static int get_public_phy(struct display_state *state,
+			  struct public_phy_data *data)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const void *blob = state->blob;
+	const struct rockchip_phy *phy;
+	int phy_node;
+
+	switch (data->public_phy_type) {
+	case INNO_HDMI_PHY:
+		phy_node = fdt_path_offset(blob, "/hdmiphy");
+		if (phy_node < 0) {
+			printf("Can't find hdmiphy node\n");
+			return phy_node;
+		}
+
+		if (!fdt_device_is_available(blob, phy_node))
+			return -ENODEV;
+
+		phy = rockchip_get_phy(blob, phy_node);
+		if (!phy) {
+			printf("failed to find phy driver\n");
+			return 0;
+		}
+
+		conn_state->phy_node = phy_node;
+
+		if (!phy->funcs || !phy->funcs->init ||
+		    phy->funcs->init(state)) {
+			printf("failed to init phy driver\n");
+			return -EINVAL;
+		}
+		conn_state->phy = phy;
+
+		printf("inno hdmi phy init success, save it\n");
+		data->phy_node = conn_state->phy_node;
+		data->private_date = conn_state->phy_private;
+		data->phy_drv = conn_state->phy;
+		data->phy_init = true;
+		return 0;
+	default:
+		return -EINVAL;
+	}
+}
+
 static void init_display_buffer(void)
 {
 	memory_start = gd->fb_base;
@@ -114,14 +199,40 @@ static int get_panel_node(struct display_state *state, int conn_node)
 	return panel;
 }
 
-static int connector_phy_init(struct display_state *state)
+static int connector_phy_init(struct display_state *state,
+			      struct public_phy_data *data)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	int conn_node = conn_state->node;
 	const void *blob = state->blob;
 	const struct rockchip_phy *phy;
-	int phy_node, phandle;
+	int phy_node, phandle, type;
 
+	/* does this connector use public phy with others */
+	type = check_public_use_phy(state);
+	if (type == INNO_HDMI_PHY) {
+		/* there is no public phy was initialized */
+		if (!data->phy_init) {
+			data->public_phy_type = type;
+			if(get_public_phy(state, data)) {
+				printf("can't find correct public phy type\n");
+				free(data);
+				return -EINVAL;
+			}
+			return 0;
+		}
+
+		/* if this phy has been initialized, get it directly */
+		conn_state->phy_node = data->phy_node;
+		conn_state->phy_private = data->private_date;
+		conn_state->phy = data->phy_drv;
+		return 0;
+	}
+
+	/*
+	 * if this connector don't use the same phy with others,
+	 * just get phy as original method.
+	 */
 	phandle = fdt_getprop_u32_default_node(blob, conn_node, 0,
 					       "phys", -1);
 	if (phandle < 0)
@@ -146,8 +257,8 @@ static int connector_phy_init(struct display_state *state)
 		printf("failed to init phy driver\n");
 		return -EINVAL;
 	}
-
 	conn_state->phy = phy;
+
 	return 0;
 }
 
@@ -930,6 +1041,7 @@ int rockchip_display_init(void)
 	const struct rockchip_connector *conn;
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
+	struct public_phy_data *data;
 	const char *name;
 
 	printf("Rockchip UBOOT DRM driver version: %s\n", DRIVER_VERSION);
@@ -943,6 +1055,12 @@ int rockchip_display_init(void)
 	if (!fdt_device_is_available(blob, route))
 		return -ENODEV;
 
+	data = malloc(sizeof(struct public_phy_data));
+	if (!data) {
+		printf("failed to alloc phy data\n");
+		return -ENOMEM;
+	}
+	data->phy_init = false;
 	init_display_buffer();
 
 	fdt_for_each_subnode(blob, child, route) {
@@ -1023,7 +1141,7 @@ int rockchip_display_init(void)
 		s->crtc_state.crtc_id = get_crtc_id(blob, connect);
 		s->node = child;
 
-		connector_phy_init(s);
+		connector_phy_init(s, data);
 		connector_panel_init(s);
 		list_add_tail(&s->head, &rockchip_display_list);
 	}
@@ -1035,6 +1153,7 @@ err_free:
 		list_del(&s->head);
 		free(s);
 	}
+	free(data);
 	return -ENODEV;
 }
 

@@ -2493,10 +2493,7 @@ inno_dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi, void *data)
 		else
 			inno_dw_hdmi_set_domain(0);
 	}
-#ifdef CONFIG_ROCKCHIP_DRM_TVE
-	if (!status)
-		rockchip_phy_set_pll(state, 27000000);
-#endif
+
 	return status;
 }
 
