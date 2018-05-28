@@ -7,10 +7,6 @@
 #ifndef __DRM_ANALOGIX_DP_H__
 #define __DRM_ANALOGIX_DP_H__
 
-#define pr_err printf
-#define pr_info printf
-#define pr_debug debug
-
 /*
  * Unless otherwise noted, all values are from the DP 1.1a spec.  Note that
  * DP and DPCD versions are independent.  Differences from 1.0 are not noted,

@@ -11,6 +11,7 @@
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <dm/device.h>
+#include <dm/read.h>
 #include <linux/list.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
@@ -841,7 +842,6 @@ static int rockchip_analogix_dp_init(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	const struct rockchip_connector *connector = conn_state->connector;
 	const struct rockchip_dp_chip_data *pdata = connector->data;
-	int dp_node = conn_state->node;
 	struct analogix_dp_device *dp;
 	struct analogix_dp_plat_data *plat_data;
 	int ret;
