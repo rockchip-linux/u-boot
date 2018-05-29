@@ -214,7 +214,7 @@
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 10000 50000>;
 	tx_delay = <0x28>;
-	rx_delay = <0x11>;
+	rx_delay = <0x20>;
 	status = "okay";
 };
 
@@ -596,26 +596,14 @@
 
 &sdmmc {
 	u-boot,dm-spl;
-	cap-mmc-highspeed;
-	cap-sd-highspeed;
-	card-detect-delay = <200>;
-	max-frequency = <50000000>;
-	fifo-mode;
-	disable-wp;
 	bus-width = <4>;
 	status = "okay";
 };
 
 &sdhci {
 	u-boot,dm-spl;
-	cap-mmc-highspeed;
-	cap-sd-highspeed;
-	card-detect-delay = <200>;
-	max-frequency = <50000000>;
-	fifo-mode;
-	disable-wp;
-	bus-width = <8>;
-	keep-power-in-suspend;
+	mmc-hs400-1_8v;
+	mmc-hs400-enhanced-strobe;
 	non-removable;
 	status = "okay";
 };
