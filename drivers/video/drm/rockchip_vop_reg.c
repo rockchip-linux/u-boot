@@ -602,3 +602,12 @@ const struct vop_data rk3308_vop = {
 	.line_flag = &rk3366_vop_lite_line_flag,
 	.reg_len = RK3366_LIT_FRC_LOWER01_0 * 4,
 };
+
+const struct vop_data rv1108_vop = {
+	.version = VOP_VERSION(2, 4),
+	.max_output = {1920, 1080},
+	.ctrl = &rk3308_ctrl_data,
+	.win = &rk3366_win0_data,
+	.line_flag = &rk3366_vop_lite_line_flag,
+	.reg_len = RK3366_LIT_FRC_LOWER01_0 * 4,
+};

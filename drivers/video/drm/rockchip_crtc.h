@@ -37,4 +37,5 @@ extern const struct vop_data rk3399_vop_big;
 extern const struct vop_data rk3399_vop_lit;
 extern const struct vop_data rk322x_vop;
 extern const struct vop_data rk3328_vop;
+extern const struct vop_data rv1108_vop;
 #endif
