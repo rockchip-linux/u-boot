@@ -9,6 +9,8 @@
 #include <optee_include/OpteeClientApiLib.h>
 #include <optee_include/tee_client_api.h>
 
+#define     BOOT_FROM_EMMC    (1<<1)
+
 void test_optee(void)
 {
 	TEEC_Result TeecResult;
@@ -25,12 +27,26 @@ void test_optee(void)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -122,12 +138,26 @@ uint32_t trusty_read_rollback_index(uint32_t slot, uint64_t *value)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -191,12 +221,27 @@ uint32_t trusty_write_rollback_index(uint32_t slot, uint64_t value)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -262,12 +307,27 @@ uint32_t trusty_read_permanent_attributes(uint8_t *attributes, uint32_t size)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -329,12 +389,27 @@ uint32_t trusty_write_permanent_attributes(uint8_t *attributes, uint32_t size)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -397,13 +472,27 @@ uint32_t trusty_read_lock_state(uint8_t *lock_state)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
 
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -465,12 +554,27 @@ uint32_t trusty_write_lock_state(uint8_t lock_state)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -533,13 +637,27 @@ uint32_t trusty_read_flash_lock_state(uint8_t *flash_lock_state)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
 
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -601,12 +719,27 @@ uint32_t trusty_write_flash_lock_state(uint8_t flash_lock_state)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -673,12 +806,27 @@ uint32_t write_to_keymaster(uint8_t *filename,
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -1100,12 +1248,27 @@ uint32_t trusty_read_permanent_attributes_flag(uint8_t *attributes)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
@@ -1166,12 +1329,27 @@ uint32_t trusty_write_permanent_attributes_flag(uint8_t attributes)
 
 	TeecResult = TEEC_InitializeContext(NULL, &TeecContext);
 
+	TeecOperation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT,
+							TEEC_NONE,
+							TEEC_NONE,
+							TEEC_NONE);
+
+	/*0 nand or emmc "security" partition , 1 rpmb*/
+	if (StorageGetBootMedia() == BOOT_FROM_EMMC) {
+		TeecOperation.params[0].value.a = 1;
+	} else {
+		TeecOperation.params[0].value.a = 0;
+	}
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	TeecOperation.params[0].value.a = 0;
+#endif
+
 	TeecResult = TEEC_OpenSession(&TeecContext,
 				&TeecSession,
 				TeecUuid,
 				TEEC_LOGIN_PUBLIC,
 				NULL,
-				NULL,
+				&TeecOperation,
 				&ErrorOrigin);
 
 	TEEC_SharedMemory SharedMem0 = {0};
