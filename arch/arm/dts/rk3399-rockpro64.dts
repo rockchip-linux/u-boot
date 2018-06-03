@@ -689,7 +689,12 @@
 
 			loader@8000 {
 				label = "loader";
-				reg = <0x8000 0x3F8000>;
+				reg = <0x8000 0x3F0000>;
+			};
+
+			env@3f8000 {
+				label = "env";
+				reg = <0x3F8000 0x8000>;
 			};
 
 			vendor@7c0000 {
