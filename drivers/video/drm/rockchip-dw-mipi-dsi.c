@@ -269,6 +269,7 @@ enum soc_type {
 	RK3366,
 	RK3368,
 	RK3399,
+	RV1108,
 };
 
 #define GRF_REG_FIELD(reg, lsb, msb)	((reg << 16) | (lsb << 8) | (msb))
@@ -1296,6 +1297,26 @@ static const struct rockchip_connector rk3399_mipi_dsi_data = {
 	 .data = &rk3399_mipi_dsi_drv_data,
 };
 
+static const u32 rv1108_dsi_grf_reg_fields[MAX_FIELDS] = {
+	[DPICOLORM]		= GRF_REG_FIELD(0x0410,  7,  7),
+	[DPISHUTDN]		= GRF_REG_FIELD(0x0410,  6,  6),
+	[DPIUPDATECFG]		= GRF_REG_FIELD(0x0410,  8,  8),
+	[FORCERXMODE]		= GRF_REG_FIELD(0x0414,  5,  5),
+	[FORCETXSTOPMODE]	= GRF_REG_FIELD(0x0414,  6,  9),
+	[TURNDISABLE]		= GRF_REG_FIELD(0x0414,  4,  4),
+};
+
+static const struct dw_mipi_dsi_plat_data rv1108_mipi_dsi_drv_data = {
+	.dsi0_grf_reg_fields = rv1108_dsi_grf_reg_fields,
+	.max_bit_rate_per_lane = 1000000000UL,
+	.soc_type = RV1108,
+};
+
+static const struct rockchip_connector rv1108_mipi_dsi_data = {
+	 .funcs = &rockchip_dw_mipi_dsi_funcs,
+	 .data = &rv1108_mipi_dsi_drv_data,
+};
+
 static const struct udevice_id rockchip_mipi_dsi_ids[] = {
 	{
 		.compatible = "rockchip,px30-mipi-dsi",
@@ -1320,6 +1341,10 @@ static const struct udevice_id rockchip_mipi_dsi_ids[] = {
 	{
 		.compatible = "rockchip,rk3399-mipi-dsi",
 		.data = (ulong)&rk3399_mipi_dsi_data,
+	},
+	{
+		.compatible = "rockchip,rv1108-mipi-dsi",
+		.data = (ulong)&rv1108_mipi_dsi_data,
 	},
 	{}
 };
