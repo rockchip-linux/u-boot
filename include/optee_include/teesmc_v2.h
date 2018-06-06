@@ -85,5 +85,30 @@ typedef struct optee_msg_param_v2      t_teesmc32_param;
 
 #define OPTEE_MSG_RPC_CMD_FS_V2		2
 
+#define OPTEE_SMC_32_V2			0
+#define OPTEE_SMC_64_V2			0x40000000
+#define OPTEE_SMC_FAST_CALL_V2		0x80000000
+#define OPTEE_SMC_STD_CALL_V2		0
+
+#define OPTEE_SMC_OWNER_MASK_V2		0x3F
+#define OPTEE_SMC_OWNER_SHIFT_V2		24
+
+#define OPTEE_SMC_FUNC_MASK_V2		0xFFFF
+
+#define OPTEE_SMC_OWNER_TRUSTED_OS_V2	50
+
+#define OPTEE_SMC_FUNCID_GET_SHM_CONFIG_V2	7
+#define OPTEE_SMC_GET_SHM_CONFIG_V2 \
+	OPTEE_SMC_FAST_CALL_VAL_V2(OPTEE_SMC_FUNCID_GET_SHM_CONFIG_V2)
+
+#define OPTEE_SMC_FAST_CALL_VAL_V2(func_num) \
+	OPTEE_SMC_CALL_VAL_V2(OPTEE_SMC_32_V2, OPTEE_SMC_FAST_CALL_V2, \
+			   OPTEE_SMC_OWNER_TRUSTED_OS_V2, (func_num))
+
+#define OPTEE_SMC_CALL_VAL_V2(type, calling_convention, owner, func_num) \
+			((type) | (calling_convention) | \
+			(((owner) & OPTEE_SMC_OWNER_MASK_V2) << \
+				OPTEE_SMC_OWNER_SHIFT_V2) |\
+			((func_num) & OPTEE_SMC_FUNC_MASK_V2))
 
 #endif /* TEESMC_V2_H */

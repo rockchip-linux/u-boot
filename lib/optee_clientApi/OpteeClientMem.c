@@ -7,6 +7,10 @@
 #include <common.h>
 #include <stdlib.h>
 #include <optee_include/OpteeClientMem.h>
+#include <optee_include/OpteeClientRPC.h>
+#include <optee_include/teesmc.h>
+#include <optee_include/teesmc_optee.h>
+#include <optee_include/teesmc_v2.h>
 
 void *my_mem_start;
 uint32_t my_count;
@@ -125,19 +129,21 @@ void my_free(void *ptr)
  */
 void OpteeClientMemInit(void)
 {
-#if defined CONFIG_ROCKCHIP_ARCH32
-	debug(" OpteeClientMemInit 32\n");
-#if defined CONFIG_RKCHIP_RK3288
-	my_malloc_init((void *)0x0910a000, 0x000e0000);
-#else
-	my_malloc_init((void *)0x6910a000, 0x000e0000);
+	ARM_SMC_ARGS ArmSmcArgs = {0};
+
+#ifdef CONFIG_OPTEE_V1
+	ArmSmcArgs.Arg0 = TEESMC32_OPTEE_FASTCALL_GET_SHM_CONFIG;
 #endif
+#ifdef CONFIG_OPTEE_V2
+	ArmSmcArgs.Arg0 = OPTEE_SMC_GET_SHM_CONFIG_V2;
 #endif
 
-#if defined CONFIG_ROCKCHIP_ARCH64
-	debug(" OpteeClientMemInit 64\n");
-	my_malloc_init((void *)0x09e10000, 0x003e0000);
-#endif
+	tee_smc_call(&ArmSmcArgs);
+
+	printf("get share memory, arg0=0x%x arg1=0x%x arg2=0x%x arg3=0x%x",
+			ArmSmcArgs.Arg0, ArmSmcArgs.Arg1, ArmSmcArgs.Arg2, ArmSmcArgs.Arg3);
+
+	my_malloc_init((void *)(size_t)ArmSmcArgs.Arg1, ArmSmcArgs.Arg2);
 }
 
 /*
