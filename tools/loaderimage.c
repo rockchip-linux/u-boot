@@ -12,6 +12,11 @@
 
 extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
 
+#define OPT_PACK		"--pack"
+#define OPT_UNPACK		"--unpack"
+#define OPT_UBOOT		"--uboot"
+#define OPT_TRUSTOS		"--trustos"
+
 /* pack or unpack */
 #define MODE_PACK		0
 #define MODE_UNPACK		1
@@ -96,36 +101,47 @@ unsigned int str2hex(char *str)
 
 int main (int argc, char *argv[])
 {
-	int			mode, image;
+	int			mode = -1, image = -1;
 	int			max_size, max_num;
 	int			size, i;
-	uint32_t		loader_addr;
+	uint32_t		loader_addr, in_loader_addr = 0;
 	char			*magic, *version, *name;
 	FILE			*fi, *fo;
 	second_loader_hdr	hdr;
 	char 			*buf = 0;
+	char 			*file_in = NULL, *file_out = NULL;
 
 	if (argc < 5) {
 		usage(argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
-	/* pack or unpack */
-	if (!strcmp(argv[1], "--pack"))
-		mode = MODE_PACK;
-	else if (!strcmp(argv[1], "--unpack"))
-		mode = MODE_UNPACK;
-	else {
-		usage(argv[0]);
-		exit(EXIT_FAILURE);
+	for (i = 1; i < argc; i++) {
+		if (!strcmp(argv[i], OPT_PACK)) {
+			mode = MODE_PACK;
+		} else if (!strcmp(argv[i], OPT_UNPACK)) {
+			mode = MODE_UNPACK;
+		} else if (!strcmp(argv[i], OPT_UBOOT)) {
+			image = IMAGE_UBOOT;
+			file_in = argv[++i];
+			file_out = argv[++i];
+			/* detect whether loader address is delivered */
+			if ((argv[i+1]) && (strncmp(argv[i+1], "--", 2)))
+				in_loader_addr = str2hex(argv[++i]);
+		} else if (!strcmp(argv[i], OPT_TRUSTOS)) {
+			image = IMAGE_TRUST;
+			file_in = argv[++i];
+			file_out = argv[++i];
+			/* detect whether loader address is delivered */
+			if ((argv[i+1]) && (strncmp(argv[i+1], "--", 2)))
+				in_loader_addr = str2hex(argv[++i]);
+		} else {
+			usage(argv[0]);
+			exit(EXIT_FAILURE);
+		}
 	}
 
-	/* uboot or trust */
-	if (!strcmp(argv[2], "--uboot")) {
-		image = IMAGE_UBOOT;
-	} else if (!strcmp(argv[2], "--trustos")) {
-		image = IMAGE_TRUST;
-	} else {
+	if (!file_in || !file_out) {
 		usage(argv[0]);
 		exit(EXIT_FAILURE);
 	}
@@ -137,51 +153,50 @@ int main (int argc, char *argv[])
 		version = UBOOT_VERSION_STRING;
 		max_size = UBOOT_MAX_SIZE;
 		max_num = UBOOT_NUM;
-		loader_addr = RK_UBOOT_RUNNING_ADDR;
+		loader_addr = in_loader_addr ?
+			in_loader_addr : RK_UBOOT_RUNNING_ADDR;
 	} else if (image == IMAGE_TRUST) {
 		name = TRUST_NAME;
 		magic = RK_TRUST_MAGIC;
 		version = TRUST_VERSION_STRING;
 		max_size = TRUST_MAX_SIZE;
 		max_num = TRUST_NUM;
-		loader_addr = RK_TRUST_RUNNING_ADDR;
+		loader_addr = in_loader_addr ?
+			in_loader_addr : RK_TRUST_RUNNING_ADDR;
 	} else {
 		exit(EXIT_FAILURE);
 	}
 
 	/* file in */
-	fi = fopen(argv[3], "rb");
+	fi = fopen(file_in, "rb");
 	if (!fi) {
-		perror(argv[3]);
+		perror(file_in);
 		exit(EXIT_FAILURE);
 	}
 
 	/* file out */
-	fo = fopen(argv[4], "wb");
+	fo = fopen(file_out, "wb");
 	if (!fo) {
-		perror(argv[4]);
+		perror(file_out);
 		exit (EXIT_FAILURE);
 	}
 
-	if (argc == 6) {
-		loader_addr = str2hex(argv[5]);
-		printf("\n load addr is 0x%x!\n", loader_addr);
-	}
+	printf("\n load addr is 0x%x!\n", loader_addr);
 
 	buf = calloc(max_size, max_num);
 	if (!buf) {
-		perror(argv[4]);
+		perror(file_out);
 		exit (EXIT_FAILURE);
 	}
 
 	if (mode == MODE_PACK) {
-		printf("pack input %s \n", argv[3]);
+		printf("pack input %s \n", file_in);
 		fseek(fi, 0, SEEK_END);
 		size = ftell(fi);
 		fseek(fi, 0, SEEK_SET);
 		printf("pack file size: %d \n", size);
 		if (size > max_size - sizeof(second_loader_hdr)) {
-			perror(argv[4]);
+			perror(file_out);
 			exit (EXIT_FAILURE);
 		}
 		memset(&hdr, 0, sizeof(second_loader_hdr));
@@ -229,9 +244,9 @@ int main (int argc, char *argv[])
 		for(i = 0; i < max_num; i++)
 			fwrite(buf, max_size, 1, fo);
 
-		printf("pack %s success! \n", argv[4]);
+		printf("pack %s success! \n", file_out);
 	} else if (mode == MODE_UNPACK) {
-		printf("unpack input %s \n", argv[3]);
+		printf("unpack input %s \n", file_in);
 		memset(&hdr, 0, sizeof(second_loader_hdr));
 		if (!fread(&hdr, sizeof(second_loader_hdr), 1, fi))
 			exit (EXIT_FAILURE);
@@ -240,7 +255,7 @@ int main (int argc, char *argv[])
 			exit (EXIT_FAILURE);
 
 		fwrite(buf, hdr.loader_load_size, 1, fo);
-		printf("unpack %s success! \n", argv[4]);
+		printf("unpack %s success! \n", file_out);
 	}
 
 	free(buf);
