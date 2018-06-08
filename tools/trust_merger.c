@@ -30,10 +30,9 @@ static bool gDebug =
 } while (0)
 
 
-/* trust image has TRUSTIMAGE_MAX_NUM backups */
-#define TRUSTIMAGE_MAX_NUM	2
-#define TRUSTIMAGE_MAX_SIZE	(2 * 1024 * 1024)
-
+/* trust image has g_trust_max_num backups */
+static uint32_t g_trust_max_num = 2;
+static uint32_t g_trust_max_size = 2 * 1024 * 1024;
 
 /* config sha and rsa */
 #define SHA_SEL_256		3	/* little endian */
@@ -617,7 +616,7 @@ static bool mergetrust(void)
 		}
 	}
 
-	/* 0 for TRUSTIMAGE_MAX_NUM backups */
+	/* 0 for g_trust_max_num backups */
 #if 0
 	/* save trust head to out file */
 	if (!fwrite(gBuf, TRUST_HEADER_SIZE, 1, outFile))
@@ -641,18 +640,18 @@ static bool mergetrust(void)
 	}
 #else
 	/* check bin size */
-	if (OutFileSize > TRUSTIMAGE_MAX_SIZE) {
+	if (OutFileSize > g_trust_max_size) {
 		LOGE("Merge trust image: trust bin size overfull.\n");
 		goto end;
 	}
 
 	/* malloc buffer */
-	pbuf = outBuf = calloc(TRUSTIMAGE_MAX_SIZE, TRUSTIMAGE_MAX_NUM);
+	pbuf = outBuf = calloc(g_trust_max_size, g_trust_max_num);
 	if (!outBuf) {
 		LOGE("Merge trust image: calloc buffer error.\n");
 		goto end;
 	}
-	memset(outBuf, 0, (TRUSTIMAGE_MAX_SIZE * TRUSTIMAGE_MAX_NUM));
+	memset(outBuf, 0, (g_trust_max_size * g_trust_max_num));
 
 	/* save trust head data */
 	memcpy(pbuf, gBuf, TRUST_HEADER_SIZE);
@@ -684,13 +683,13 @@ static bool mergetrust(void)
 		pEntry++;
 	}
 
-	/* copy other (TRUSTIMAGE_MAX_NUM - 1) backup bin */
-	for (n = 1; n < TRUSTIMAGE_MAX_NUM; n++) {
-		memcpy(outBuf + TRUSTIMAGE_MAX_SIZE * n, outBuf, TRUSTIMAGE_MAX_SIZE);
+	/* copy other (g_trust_max_num - 1) backup bin */
+	for (n = 1; n < g_trust_max_num; n++) {
+		memcpy(outBuf + g_trust_max_size * n, outBuf, g_trust_max_size);
 	}
 
 	/* save date to file */
-	if (!fwrite(outBuf, TRUSTIMAGE_MAX_SIZE * TRUSTIMAGE_MAX_NUM, 1, outFile)) {
+	if (!fwrite(outBuf, g_trust_max_size * g_trust_max_num, 1, outFile)) {
 		LOGE("Merge trust image: write file error.\n");
 		goto end;
 	}
@@ -831,8 +830,8 @@ static void printHelp(void)
 	printf("\t" OPT_REPLACE "\t\tReplace some part of binary path.\n");
 	printf("\t" OPT_RSA "\t\t\tRSA mode.\"--rsa [mode]\", [mode] can be: 0(none), 1(1024), 2(2048), 3(2048 pss).\n");
 	printf("\t" OPT_SHA "\t\t\tSHA mode.\"--sha [mode]\", [mode] can be: 0(none), 1(160), 2(256 RK big endian), 3(256 little endian).\n");
+	printf("\t" OPT_SIZE "\t\t\tTrustImage size.\"--size [per image KB size] [copy count]\", per image must be 512KB aligned\n");
 }
-
 
 int main(int argc, char **argv)
 {
@@ -878,6 +877,20 @@ int main(int argc, char **argv)
 			}
 			gSHAmode = *(argv[i]) - '0';
 			LOGD("sha mode:%d\n", gSHAmode);
+		} else if (!strcmp(OPT_SIZE, argv[i])) {
+			/* Per trust image size */
+			g_trust_max_size =
+				strtoul(argv[++i], NULL, 10);
+			/* Must be 512kb align due to preloader detects every 512kb */
+			if (g_trust_max_size % 512) {
+				printHelp();
+				return -1;
+			}
+			g_trust_max_size *= 1024;	/* bytes */
+
+			/* Total backup numbers */
+			g_trust_max_num =
+				strtoul(argv[++i], NULL, 10);
 		} else {
 			if (optPath) {
 				fprintf(stderr, "only need one path arg, but we have:\n%s\n%s.\n", optPath, argv[i]);
