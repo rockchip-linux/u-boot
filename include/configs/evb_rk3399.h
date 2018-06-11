@@ -9,7 +9,10 @@
 
 #include <configs/rk3399_common.h>
 
+#ifndef CONFIG_SPL_BUILD
 #define CONFIG_MMC_SDHCI_SDMA
+#endif
+
 #define CONFIG_SYS_MMC_ENV_DEV 0
 
 #define SDRAM_BANK_SIZE			(2UL << 30)
