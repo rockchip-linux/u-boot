@@ -55,11 +55,11 @@ int arch_cpu_init(void)
 {
 	/* We do some SoC one time setting here. */
 
-	// /* Emmc clock generator: disable the clock multipilier */
-	// rk_clrreg(GRF_EMMCCORE_CON11, 0x0ff);
+	/* Emmc clock generator: disable the clock multipilier */
+	rk_clrreg(GRF_EMMCCORE_CON11, 0x0ff);
 
-	// /* PWM3 select pwm3a io */
-	// rk_clrreg(PMU_GRF_SOC_CON0, 1 << 5);
+	/* PWM3 select pwm3a io */
+	rk_clrreg(PMU_GRF_SOC_CON0, 1 << 5);
 
 	return 0;
 }
