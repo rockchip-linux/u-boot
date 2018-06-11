@@ -16,6 +16,7 @@ extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
 #define OPT_UNPACK		"--unpack"
 #define OPT_UBOOT		"--uboot"
 #define OPT_TRUSTOS		"--trustos"
+#define OPT_SIZE		"--size"
 
 /* pack or unpack */
 #define MODE_PACK		0
@@ -109,6 +110,7 @@ int main (int argc, char *argv[])
 	FILE			*fi, *fo;
 	second_loader_hdr	hdr;
 	char 			*buf = 0;
+	uint32_t		in_size = 0, in_num = 0;
 	char 			*file_in = NULL, *file_out = NULL;
 
 	if (argc < 5) {
@@ -135,6 +137,16 @@ int main (int argc, char *argv[])
 			/* detect whether loader address is delivered */
 			if ((argv[i+1]) && (strncmp(argv[i+1], "--", 2)))
 				in_loader_addr = str2hex(argv[++i]);
+		} else if (!strcmp(argv[i], OPT_SIZE)) {
+			in_size = strtoul(argv[++i], NULL, 10);
+			/* Must be 512kb align due to preloader detects every 512kb */
+			if (in_size % 512) {
+				usage(argv[0]);
+				exit(EXIT_FAILURE);
+			}
+			in_size *= 1024;
+
+			in_num = strtoul(argv[++i], NULL, 10);
 		} else {
 			usage(argv[0]);
 			exit(EXIT_FAILURE);
@@ -151,16 +163,16 @@ int main (int argc, char *argv[])
 		name = UBOOT_NAME;
 		magic = RK_UBOOT_MAGIC;
 		version = UBOOT_VERSION_STRING;
-		max_size = UBOOT_MAX_SIZE;
-		max_num = UBOOT_NUM;
+		max_size = in_size ? in_size : UBOOT_MAX_SIZE;
+		max_num = in_num ? in_num : UBOOT_NUM;
 		loader_addr = in_loader_addr ?
 			in_loader_addr : RK_UBOOT_RUNNING_ADDR;
 	} else if (image == IMAGE_TRUST) {
 		name = TRUST_NAME;
 		magic = RK_TRUST_MAGIC;
 		version = TRUST_VERSION_STRING;
-		max_size = TRUST_MAX_SIZE;
-		max_num = TRUST_NUM;
+		max_size = in_size ? in_size : TRUST_MAX_SIZE;
+		max_num = in_num ? in_num : TRUST_NUM;
 		loader_addr = in_loader_addr ?
 			in_loader_addr : RK_TRUST_RUNNING_ADDR;
 	} else {
