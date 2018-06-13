@@ -631,7 +631,7 @@ static int dw_mipi_dsi_get_lane_bps(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_set_transfer_mode(struct dw_mipi_dsi *dsi, int flags)
 {
-	if (flags & MIPI_DSI_MSG_USE_LPM) {
+	if (dsi->mode_flags & MIPI_DSI_MODE_LPM) {
 		dsi_write(dsi, DSI_CMD_MODE_CFG, CMD_MODE_ALL_LP);
 		dsi_update_bits(dsi, DSI_LPCLK_CTRL, PHY_TXREQUESTCLKHS, 0);
 	} else {
