@@ -105,7 +105,7 @@ int main (int argc, char *argv[])
 	int			mode = -1, image = -1;
 	int			max_size, max_num;
 	int			size, i;
-	uint32_t		loader_addr, in_loader_addr = 0;
+	uint32_t		loader_addr, in_loader_addr = -1;
 	char			*magic, *version, *name;
 	FILE			*fi, *fo;
 	second_loader_hdr	hdr;
@@ -165,16 +165,16 @@ int main (int argc, char *argv[])
 		version = UBOOT_VERSION_STRING;
 		max_size = in_size ? in_size : UBOOT_MAX_SIZE;
 		max_num = in_num ? in_num : UBOOT_NUM;
-		loader_addr = in_loader_addr ?
-			in_loader_addr : RK_UBOOT_RUNNING_ADDR;
+		loader_addr = (in_loader_addr == -1) ?
+			RK_UBOOT_RUNNING_ADDR : in_loader_addr;
 	} else if (image == IMAGE_TRUST) {
 		name = TRUST_NAME;
 		magic = RK_TRUST_MAGIC;
 		version = TRUST_VERSION_STRING;
 		max_size = in_size ? in_size : TRUST_MAX_SIZE;
 		max_num = in_num ? in_num : TRUST_NUM;
-		loader_addr = in_loader_addr ?
-			in_loader_addr : RK_TRUST_RUNNING_ADDR;
+		loader_addr = (in_loader_addr == -1) ?
+			RK_TRUST_RUNNING_ADDR : in_loader_addr;
 	} else {
 		exit(EXIT_FAILURE);
 	}
