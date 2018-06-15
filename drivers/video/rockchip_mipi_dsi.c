@@ -180,6 +180,42 @@ ssize_t mipi_dsi_dcs_read(struct display_state *state, u8 cmd, void *data,
 	return connector->funcs->transfer(state, &msg);
 }
 
+ssize_t mipi_dsi_shutdown_peripheral(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_connector *connector = conn_state->connector;
+	struct mipi_dsi_msg msg = {
+		.channel = 0,
+		.type = MIPI_DSI_SHUTDOWN_PERIPHERAL,
+		.tx_buf = (u8 [2]) { 0, 0 },
+		.tx_len = 2,
+		.flags = MIPI_DSI_MSG_USE_LPM,
+	};
+
+	if (!connector || !connector->funcs || !connector->funcs->transfer)
+		return -ENODEV;
+
+	return connector->funcs->transfer(state, &msg);
+}
+
+ssize_t mipi_dsi_turn_on_peripheral(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_connector *connector = conn_state->connector;
+	struct mipi_dsi_msg msg = {
+		.channel = 0,
+		.type = MIPI_DSI_TURN_ON_PERIPHERAL,
+		.tx_buf = (u8 [2]) { 0, 0 },
+		.tx_len = 2,
+		.flags = MIPI_DSI_MSG_USE_LPM,
+	};
+
+	if (!connector || !connector->funcs || !connector->funcs->transfer)
+		return -ENODEV;
+
+	return connector->funcs->transfer(state, &msg);
+}
+
 static bool mipi_dsi_packet_format_is_short(u8 type)
 {
 	switch (type) {

@@ -77,11 +77,14 @@
 
 #define DSI_VID_MODE_CFG		0x38
 #define VPG_EN				BIT(16)
+#define LP_CMD_EN			BIT(15)
 #define FRAME_BTA_ACK			BIT(14)
 #define LP_HFP_EN			BIT(13)
 #define LP_HBP_EN			BIT(12)
-#define ENABLE_LOW_POWER		(0xf << 8)
-#define ENABLE_LOW_POWER_MASK		(0xf << 8)
+#define LP_VACT_EN			BIT(11)
+#define LP_VFP_EN			BIT(10)
+#define LP_VBP_EN			BIT(9)
+#define LP_VSA_EN			BIT(8)
 #define VID_MODE_TYPE_BURST_SYNC_PULSES	0x0
 #define VID_MODE_TYPE_BURST_SYNC_EVENTS	0x1
 #define VID_MODE_TYPE_BURST		0x2
@@ -400,6 +403,16 @@ static void grf_field_write(struct dw_mipi_dsi *dsi, enum grf_reg_fields index,
 	writel((val << lsb) | (GENMASK(msb, lsb) << 16), RKIO_GRF_PHYS + reg);
 }
 
+static inline void dpishutdn_assert(struct dw_mipi_dsi *dsi)
+{
+	grf_field_write(dsi, DPISHUTDN, 1);
+}
+
+static inline void dpishutdn_deassert(struct dw_mipi_dsi *dsi)
+{
+	grf_field_write(dsi, DPISHUTDN, 0);
+}
+
 static int genif_wait_w_pld_fifo_not_full(struct dw_mipi_dsi *dsi)
 {
 	u32 sts;
@@ -690,12 +703,52 @@ static int dw_mipi_dsi_read_from_fifo(struct dw_mipi_dsi *dsi,
 	return 0;
 }
 
+static int dw_mipi_dsi_turn_on_peripheral(struct dw_mipi_dsi *dsi)
+{
+	dpishutdn_assert(dsi);
+	udelay(20);
+	dpishutdn_deassert(dsi);
+
+	return 0;
+}
+
+static int dw_mipi_dsi_shutdown_peripheral(struct dw_mipi_dsi *dsi)
+{
+	dpishutdn_deassert(dsi);
+	udelay(20);
+	dpishutdn_assert(dsi);
+
+	return 0;
+}
+
 static ssize_t dw_mipi_dsi_transfer(struct dw_mipi_dsi *dsi,
 				    const struct mipi_dsi_msg *msg)
 {
 	struct mipi_dsi_packet packet;
 	int ret;
 	int val;
+
+	switch (msg->type) {
+	case MIPI_DSI_SHUTDOWN_PERIPHERAL:
+		return dw_mipi_dsi_shutdown_peripheral(dsi);
+	case MIPI_DSI_TURN_ON_PERIPHERAL:
+		return dw_mipi_dsi_turn_on_peripheral(dsi);
+	case MIPI_DSI_DCS_SHORT_WRITE:
+	case MIPI_DSI_DCS_SHORT_WRITE_PARAM:
+	case MIPI_DSI_DCS_LONG_WRITE:
+	case MIPI_DSI_DCS_READ:
+	case MIPI_DSI_SET_MAXIMUM_RETURN_PACKET_SIZE:
+	case MIPI_DSI_GENERIC_SHORT_WRITE_0_PARAM:
+	case MIPI_DSI_GENERIC_SHORT_WRITE_1_PARAM:
+	case MIPI_DSI_GENERIC_SHORT_WRITE_2_PARAM:
+	case MIPI_DSI_GENERIC_LONG_WRITE:
+	case MIPI_DSI_GENERIC_READ_REQUEST_0_PARAM:
+	case MIPI_DSI_GENERIC_READ_REQUEST_1_PARAM:
+	case MIPI_DSI_GENERIC_READ_REQUEST_2_PARAM:
+		break;
+	default:
+		return -EINVAL;
+	}
 
 	/* create a packet to the DSI protocol */
 	ret = mipi_dsi_create_packet(&packet, msg);
@@ -777,7 +830,13 @@ static void dw_mipi_dsi_video_mode_config(struct dw_mipi_dsi *dsi)
 {
 	u32 val;
 
-	val = LP_HFP_EN | ENABLE_LOW_POWER;
+	val = LP_VACT_EN | LP_VFP_EN | LP_VBP_EN | LP_VSA_EN | LP_CMD_EN;
+
+	if (!(dsi->mode_flags & MIPI_DSI_MODE_VIDEO_HFP))
+		val |= LP_HFP_EN;
+
+	if (!(dsi->mode_flags & MIPI_DSI_MODE_VIDEO_HBP))
+		val |= LP_HBP_EN;
 
 	if (dsi->mode_flags & MIPI_DSI_MODE_VIDEO_BURST)
 		val |= VID_MODE_TYPE_BURST;

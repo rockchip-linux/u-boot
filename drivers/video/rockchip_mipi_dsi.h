@@ -241,4 +241,7 @@ ssize_t mipi_dsi_dcs_read(struct display_state *state, u8 cmd, void *data,
 			  size_t len);
 ssize_t mipi_dsi_generic_read(struct display_state *state, const void *params,
 			      size_t num_params, void *data, size_t size);
+ssize_t mipi_dsi_shutdown_peripheral(struct display_state *state);
+ssize_t mipi_dsi_turn_on_peripheral(struct display_state *state);
+
 #endif /* __ROCKCHIP_MIPI_DSI__ */
