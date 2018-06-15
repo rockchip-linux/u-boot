@@ -17,17 +17,19 @@ extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
 #define OPT_UBOOT		"--uboot"
 #define OPT_TRUSTOS		"--trustos"
 #define OPT_SIZE		"--size"
+#define OPT_VERSION		"--version"
 
 /* pack or unpack */
 #define MODE_PACK		0
 #define MODE_UNPACK		1
+#define CONFIG_SECUREBOOT_SHA256
 
 /* image type */
 #define IMAGE_UBOOT		0
 #define IMAGE_TRUST		1
 
 /* magic and hash size */
-#define LOADER_MAGIC_SIZE	16
+#define LOADER_MAGIC_SIZE	8
 #define LOADER_HASH_SIZE	32
 
 /* uboot image config */
@@ -56,7 +58,8 @@ extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
 
 typedef struct tag_second_loader_hdr {
 	uint8_t magic[LOADER_MAGIC_SIZE];	/* magic */
-
+	uint32_t version;
+	uint32_t reserved0;
 	uint32_t loader_load_addr;		/* physical load addr */
 	uint32_t loader_load_size;		/* size in bytes */
 	uint32_t crc32;				/* crc32 */
@@ -73,7 +76,7 @@ typedef struct tag_second_loader_hdr {
 
 void usage(const char *prog)
 {
-	fprintf(stderr, "Usage: %s [--pack|--unpack] [--uboot|--trustos] file_in file_out [load_addr]\n", prog);
+	fprintf(stderr, "Usage: %s [--pack|--unpack] [--uboot|--trustos] file_in file_out [load_addr]  [--size] [size number] [--version] [version]\n", prog);
 }
 
 unsigned int str2hex(char *str)
@@ -112,6 +115,7 @@ int main (int argc, char *argv[])
 	char 			*buf = 0;
 	uint32_t		in_size = 0, in_num = 0;
 	char 			*file_in = NULL, *file_out = NULL;
+	uint32_t curr_version = 0;
 
 	if (argc < 5) {
 		usage(argv[0]);
@@ -147,6 +151,9 @@ int main (int argc, char *argv[])
 			in_size *= 1024;
 
 			in_num = strtoul(argv[++i], NULL, 10);
+		} else if (!strcmp(argv[i], OPT_VERSION)) {
+			curr_version = strtoul(argv[++i], NULL, 10);
+			printf("curr_version = 0x%x\n", curr_version);
 		} else {
 			usage(argv[0]);
 			exit(EXIT_FAILURE);
@@ -212,7 +219,8 @@ int main (int argc, char *argv[])
 			exit (EXIT_FAILURE);
 		}
 		memset(&hdr, 0, sizeof(second_loader_hdr));
-		strcpy((char *)hdr.magic, magic);
+		memcpy((char *)hdr.magic, magic, LOADER_MAGIC_SIZE);
+		hdr.version = curr_version;
 		hdr.loader_load_addr = loader_addr;
 		if (!fread(buf + sizeof(second_loader_hdr), size, 1, fi))
 			exit (EXIT_FAILURE);
@@ -230,6 +238,9 @@ int main (int argc, char *argv[])
 		hdr.hash_len = (SHA_DIGEST_SIZE > LOADER_HASH_SIZE) ? LOADER_HASH_SIZE : SHA_DIGEST_SIZE;
 		SHA_init(&ctx);
 		SHA_update(&ctx, buf + sizeof(second_loader_hdr), size);
+		if (hdr.version > 0)
+			SHA_update(&ctx, (void *)&hdr.version, 8);
+
 		SHA_update(&ctx, &hdr.loader_load_addr, sizeof(hdr.loader_load_addr));
 		SHA_update(&ctx, &hdr.loader_load_size, sizeof(hdr.loader_load_size));
 		SHA_update(&ctx, &hdr.hash_len, sizeof(hdr.hash_len));
@@ -244,6 +255,9 @@ int main (int argc, char *argv[])
 		hdr.hash_len = 32; /* sha256 */
 		sha256_starts(&ctx);
 		sha256_update(&ctx, (void *)buf + sizeof(second_loader_hdr), size);
+		if (hdr.version > 0)
+			sha256_update(&ctx, (void *)&hdr.version, 8);
+
 		sha256_update(&ctx, (void *)&hdr.loader_load_addr, sizeof(hdr.loader_load_addr));
 		sha256_update(&ctx, (void *)&hdr.loader_load_size, sizeof(hdr.loader_load_size));
 		sha256_update(&ctx, (void *)&hdr.hash_len, sizeof(hdr.hash_len));
