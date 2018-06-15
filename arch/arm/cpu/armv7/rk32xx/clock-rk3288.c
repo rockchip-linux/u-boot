@@ -1085,9 +1085,9 @@ static int rkclk_lcdc_dclk_config(uint32 lcdc_id, uint32 pll_sel, uint32 div)
 #ifdef CONFIG_PRODUCT_BOX
 #define RK3288_LIMIT_PLL_VIO0	(594*MHZ)
 #else
-#define RK3288_LIMIT_PLL_VIO0	(410*MHZ)
+#define RK3288_LIMIT_PLL_VIO0	(600*MHZ)
 #endif
-#define RK3288_LIMIT_PLL_VIO1	(350*MHZ)
+#define RK3288_LIMIT_PLL_VIO1	(410*MHZ)
 
 static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dclk_div)
 {
