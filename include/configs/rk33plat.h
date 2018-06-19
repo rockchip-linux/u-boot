@@ -142,6 +142,13 @@
 	#define CONFIG_RK_GPIO_EXT_FUNC
 	#define CONFIG_CHARGE_LED
 	#define CONFIG_POWER_FUSB302
+	#define CONFIG_OPTEE_CLIENT
+	#define CONFIG_OPTEE_V1
+/*
+ * we should enable this macro when we use emmc and secure store
+ * data to security partition, not to rpmb.
+ */
+	/* #define CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION */
 #endif
 
 #if defined(CONFIG_RKCHIP_RK322XH)
