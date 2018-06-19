@@ -49,6 +49,15 @@
 
 	#undef CONFIG_CMD_NET
 	#undef CONFIG_RK_GMAC
+#ifdef CONFIG_NORMAL_WORLD
+	#define CONFIG_OPTEE_CLIENT
+	#define CONFIG_OPTEE_V1
+/*
+ * we should enable this macro when we use emmc and secure store
+ * data to security partition, not to rpmb.
+ */
+	/* #define CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION */
+#endif
 #endif
 
 /* if working normal world, secure efuse can't read,
