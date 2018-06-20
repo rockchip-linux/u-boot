@@ -1106,7 +1106,7 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dcl
 		// vio0 and vio linit freq select
 		vio_limit_freq = (lcdc_id != 0) ? RK3288_LIMIT_PLL_VIO1 : RK3288_LIMIT_PLL_VIO0;
 
-		div = vio_limit_freq / rate_hz;
+		div = DIV_ROUND_UP(vio_limit_freq, rate_hz);
 		pll_hz = div * rate_hz;
 #ifdef CONFIG_PRODUCT_BOX
 		if (pll_hz == CONFIG_RKCLK_CPLL_FREQ * MHZ)
