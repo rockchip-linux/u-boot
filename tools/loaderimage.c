@@ -265,7 +265,7 @@ int main (int argc, char *argv[])
 		memcpy(hdr.hash, hash, hdr.hash_len);
 #endif /* CONFIG_SECUREBOOT_SHA256 */
 
-		printf("%s version: %s\n", name, version);
+		/* printf("%s version: %s\n", name, version); */
 		memcpy(buf, &hdr, sizeof(second_loader_hdr));
 		for(i = 0; i < max_num; i++)
 			fwrite(buf, max_size, 1, fo);
