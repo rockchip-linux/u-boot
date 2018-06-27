@@ -18,7 +18,6 @@
 #define RKCLK_APLLL_FREQ_HZ		816000000
 #define RKCLK_GPLL_FREQ_HZ		800000000
 #define RKCLK_CPLL_FREQ_HZ		800000000
-#define RKCLK_NPLL_FREQ_HZ		500000000
 
 #define RKCLK_PPLL_FREQ_HZ		700000000
 
@@ -134,13 +133,6 @@ static struct pll_clk_set cpll_clks[] = {
 	_PLL_SET_CLKS(800000000, 6, 400, 2, 1, 1, 0),
 };
 
-/* npll clock table, should be from high to low */
-static struct pll_clk_set npll_clks[] = {
-	/* _hz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
-	_PLL_SET_CLKS(600000000, 1, 75, 3, 1, 1, 0),
-	_PLL_SET_CLKS(500000000, 1, 125, 6, 1, 1, 0),
-};
-
 
 /* vpll clock table, should be from high to low */
 static struct pll_clk_set vpll_clks[] = {
@@ -173,7 +165,7 @@ static struct pll_data rkpll_data[END_PLL_ID] = {
 	SET_PLL_DATA(DPLL_ID, NULL, 0),
 	SET_PLL_DATA(CPLL_ID, cpll_clks, ARRAY_SIZE(cpll_clks)),
 	SET_PLL_DATA(GPLL_ID, gpll_clks, ARRAY_SIZE(gpll_clks)),
-	SET_PLL_DATA(NPLL_ID, npll_clks, ARRAY_SIZE(npll_clks)),
+	SET_PLL_DATA(NPLL_ID, NULL, 0),
 	SET_PLL_DATA(VPLL_ID, vpll_clks, ARRAY_SIZE(vpll_clks)),
 
 	SET_PLL_DATA(PPLL_ID, ppll_clks, ARRAY_SIZE(ppll_clks)),
@@ -960,7 +952,6 @@ void rkclk_set_pll(void)
 	rkclk_pll_set_rate(APLLL_ID, RKCLK_APLLL_FREQ_HZ, rkclk_aplll_cb);
 	rkclk_pll_set_rate(GPLL_ID, RKCLK_GPLL_FREQ_HZ, rkclk_gpll_cb);
 	rkclk_pll_set_rate(CPLL_ID, RKCLK_CPLL_FREQ_HZ, NULL);
-	rkclk_pll_set_rate(NPLL_ID, RKCLK_NPLL_FREQ_HZ, NULL);
 	rkclk_pll_set_rate(PPLL_ID, RKCLK_PPLL_FREQ_HZ, rkclk_ppll_cb);
 }
 
@@ -1052,7 +1043,7 @@ void rkclk_dump_pll(void)
 }
 
 
-#define VIO_ACLK_MAX	(500 * MHZ)
+#define VIO_ACLK_MAX	(400 * MHZ)
 #define VIO_HCLK_MAX	(100 * MHZ)
 
 /*
@@ -1095,15 +1086,9 @@ static int rkclk_lcdc_aclk_set(uint32 lcdc_id, uint32 aclk_hz)
 		return -1;
 
 #ifdef CONFIG_RK_VOP_DUAL_ANY_FREQ_PLL
-	if (gd->bus_clk % aclk_hz) {
-		/* lcdc aclk from npll */
-		pll_sel = 3;
-		pll_rate = rkclk_pll_get_rate(NPLL_ID);
-	} else {
-		/* lcdc aclk from gpll */
-		pll_sel = 2;
-		pll_rate = gd->bus_clk;
-	}
+	/* lcdc aclk from gpll */
+	pll_sel = 2;
+	pll_rate = gd->bus_clk;
 #else
 	/* lcdc aclk from codec pll */
 	pll_sel = 1;
