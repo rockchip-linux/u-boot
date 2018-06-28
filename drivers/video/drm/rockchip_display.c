@@ -575,6 +575,58 @@ static int display_set_plane(struct display_state *state)
 	return 0;
 }
 
+static int display_panel_prepare(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->prepare) {
+		printf("%s: failed to find panel prepare funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return panel->funcs->prepare(state);
+}
+
+static int display_panel_enable(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->enable) {
+		printf("%s: failed to find panel enable funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return panel->funcs->enable(state);
+}
+
+static void display_panel_unprepare(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->unprepare) {
+		printf("%s: failed to find panel unprepare funcs\n", __func__);
+		return;
+	}
+
+	panel->funcs->unprepare(state);
+}
+
+static void display_panel_disable(struct display_state *state)
+{
+	struct panel_state *panel_state = &state->panel_state;
+	const struct rockchip_panel *panel = panel_state->panel;
+
+	if (!panel || !panel->funcs || !panel->funcs->disable) {
+		printf("%s: failed to find panel disable funcs\n", __func__);
+		return;
+	}
+
+	panel->funcs->disable(state);
+}
+
 static int display_enable(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -583,9 +635,6 @@ static int display_enable(struct display_state *state)
 	struct crtc_state *crtc_state = &state->crtc_state;
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
-	struct panel_state *panel_state = &state->panel_state;
-	const struct rockchip_panel *panel = panel_state->panel;
-	const struct rockchip_panel_funcs *panel_funcs = panel->funcs;
 	int ret = 0;
 
 	display_init(state);
@@ -608,18 +657,12 @@ static int display_enable(struct display_state *state)
 			goto unprepare_crtc;
 	}
 
-	if (panel_funcs->prepare) {
-		ret = panel_funcs->prepare(state);
-		if (ret) {
-			printf("failed to prepare panel\n");
-			goto unprepare_conn;
-		}
-	}
+	display_panel_prepare(state);
 
 	if (crtc_funcs->enable) {
 		ret = crtc_funcs->enable(state);
 		if (ret)
-			goto unprepare_panel;
+			goto unprepare_conn;
 	}
 
 	if (conn_funcs->enable) {
@@ -628,33 +671,20 @@ static int display_enable(struct display_state *state)
 			goto disable_crtc;
 	}
 
-	if (panel_funcs->enable) {
-		ret = panel_funcs->enable(state);
-		if (ret) {
-			printf("failed to enable panel\n");
-			goto disable_conn;
-		}
-	}
+	display_panel_enable(state);
 
 	state->is_enable = true;
-
 	return 0;
 
-disable_conn:
-	if (conn_funcs->unprepare)
-		conn_funcs->unprepare(state);
 disable_crtc:
 	if (crtc_funcs->disable)
 		crtc_funcs->disable(state);
-unprepare_crtc:
-	if (crtc_funcs->unprepare)
-		crtc_funcs->unprepare(state);
-unprepare_panel:
-	if (panel_funcs->unprepare)
-		panel_funcs->unprepare(state);
 unprepare_conn:
 	if (conn_funcs->unprepare)
 		conn_funcs->unprepare(state);
+unprepare_crtc:
+	if (crtc_funcs->unprepare)
+		crtc_funcs->unprepare(state);
 	return ret;
 }
 
@@ -666,9 +696,6 @@ static int display_disable(struct display_state *state)
 	struct crtc_state *crtc_state = &state->crtc_state;
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
-	struct panel_state *panel_state = &state->panel_state;
-	const struct rockchip_panel *panel = panel_state->panel;
-	const struct rockchip_panel_funcs *panel_funcs = panel->funcs;
 
 	if (!state->is_init)
 		return 0;
@@ -676,8 +703,7 @@ static int display_disable(struct display_state *state)
 	if (!state->is_enable)
 		return 0;
 
-	if (panel_funcs->disable)
-		panel_funcs->disable(state);
+	display_panel_disable(state);
 
 	if (crtc_funcs->disable)
 		crtc_funcs->disable(state);
@@ -685,8 +711,7 @@ static int display_disable(struct display_state *state)
 	if (conn_funcs->disable)
 		conn_funcs->disable(state);
 
-	if (panel_funcs->unprepare)
-		panel_funcs->unprepare(state);
+	display_panel_unprepare(state);
 
 	if (conn_funcs->unprepare)
 		conn_funcs->unprepare(state);
