@@ -1424,7 +1424,7 @@ static void decode_mode(u8 *buf, struct drm_display_mode *mode)
 	mode->flags |= EDID_DETAILED_TIMING_FLAG_VSYNC_POLARITY(*t) ?
 		DRM_MODE_FLAG_PVSYNC : DRM_MODE_FLAG_NVSYNC;
 
-	if (EDID_DETAILED_TIMING_FLAG_HSYNC_POLARITY(*t))
+	if (EDID_DETAILED_TIMING_FLAG_INTERLACED(*t))
 		mode->flags |= DRM_MODE_FLAG_INTERLACE;
 
 	debug("Detailed mode clock %u kHz, %d mm x %d mm, flags[%x]\n"
