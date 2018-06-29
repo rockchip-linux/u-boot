@@ -587,9 +587,9 @@ static int display_get_timing(struct display_state *state)
 	if (conn_funcs->get_edid && !conn_funcs->get_edid(state)) {
 		int panel_bits_per_colourp;
 
-		if (!edid_get_timing((void *)&conn_state->edid,
-				     sizeof(conn_state->edid), mode,
-				     &panel_bits_per_colourp)) {
+		if (!edid_get_drm_mode((void *)&conn_state->edid,
+				       sizeof(conn_state->edid), mode,
+				       &panel_bits_per_colourp)) {
 			printf("Using display timing from edid\n");
 			edid_print_info((void *)&conn_state->edid);
 			goto done;
