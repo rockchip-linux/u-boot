@@ -29,6 +29,10 @@ config TARGET_PUMA_RK3399
 	   * HDMI, eDP, MIPI-DSI, MIPI-DSI/CSI and MIPI-CSI
 	   * SPI, I2C, I2S, UART, GPIO, ...
 
+config TARGET_ROCKPRO64_RK3399
+	bool "RockPro64"
+	select BOARD_LATE_INIT
+
 endchoice
 
 config SYS_SOC
@@ -38,6 +42,7 @@ config SYS_MALLOC_F_LEN
 	default 0x0800
 
 source "board/rockchip/evb_rk3399/Kconfig"
+source "board/rockchip/rockpro64_rk3399/Kconfig"
 source "board/theobroma-systems/puma_rk3399/Kconfig"
 
 endif
