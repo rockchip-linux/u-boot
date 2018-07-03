@@ -61,6 +61,21 @@
 		default-brightness-level = <200>;
 	};
 
+	leds {
+		status = "okay";
+		compatible = "gpio-leds";
+
+		power-led {
+			label = "power";
+			gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+		};
+
+		standby-led {
+			label = "standby";
+			gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
 	clkin_gmac: external-gmac-clock {
 		compatible = "fixed-clock";
 		clock-frequency = <125000000>;
