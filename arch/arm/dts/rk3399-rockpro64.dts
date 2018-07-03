@@ -137,12 +137,16 @@
 
 	vcc5v0_host: vcc5v0-host-regulator {
 		compatible = "regulator-fixed";
-		enable-active-high;
 		gpio = <&gpio4 RK_PD2 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&host_vbus_drv>;
 		regulator-name = "vcc5v0_host";
-		regulator-always-on;
+	};
+
+	vcc5v0_typec0: vcc5v0-typec0-en {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc5v0_typec0";
+		gpio = <&gpio1 3 GPIO_ACTIVE_HIGH>;
 	};
 
 	vcc_phy: vcc-phy-regulator {
@@ -490,6 +494,9 @@
 };
 
 &u2phy0 {
+	/delete-property/ clocks;
+	/delete-property/ clock-names;
+
 	status = "okay";
 
 	u2phy0_otg: otg-port {
@@ -503,6 +510,9 @@
 };
 
 &u2phy1 {
+	/delete-property/ clocks;
+	/delete-property/ clock-names;
+
 	status = "okay";
 
 	u2phy1_otg: otg-port {
@@ -526,20 +536,47 @@
 	status = "okay";
 };
 
+&dwc3_typec0 {
+	status = "okay";
+	maximum-speed = "high-speed";
+};
+
 &usb_host0_ehci {
+	/delete-property/ clocks;
+	/delete-property/ clock-names;
+
+	vbus-supply = <&vcc5v0_host>;
 	status = "okay";
 };
 
 &usb_host0_ohci {
+	/delete-property/ clocks;
+	/delete-property/ clock-names;
+
+	vbus-supply = <&vcc5v0_host>;
 	status = "okay";
 };
 
 &usb_host1_ehci {
+	/delete-property/ clocks;
+	/delete-property/ clock-names;
+
+	vbus-supply = <&vcc5v0_host>;
 	status = "okay";
 };
 
 &usb_host1_ohci {
+	/delete-property/ clocks;
+	/delete-property/ clock-names;
+
+	vbus-supply = <&vcc5v0_host>;
 	status = "okay";
+};
+
+&dwc3_typec1 {
+	vbus-supply = <&vcc5v0_host>;
+	status = "okay";
+	maximum-speed = "high-speed";
 };
 
 &spi1 {
