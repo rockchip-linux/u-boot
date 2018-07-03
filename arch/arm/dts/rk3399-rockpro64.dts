@@ -599,7 +599,7 @@
 
 			loader@8000 {
 				label = "loader";
-				reg = <0x8000 0x3F0000>;
+				reg = <0x0 0x3F8000>;
 			};
 
 			env@3f8000 {
