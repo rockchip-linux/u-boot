@@ -1,0 +1,50 @@
+image: ayufan/rock64-dockerfiles:x86_64
+
+variables:
+  GITHUB_USER: ayufan-rock64
+  GITHUB_REPO: linux-u-boot
+
+  USE_CCACHE: "true"
+  CCACHE_DIR: "/data/shared/ccache"
+
+stages: [build]
+
+before_script:
+  - ccache -M 0 -F 0
+
+build:
+  stage: build
+  only: [branches]
+  script:
+    - rm -f ../*.deb
+    - export RELEASE=$((1000+$CI_PIPELINE_IID))
+    - ./dev-make BOARD_TARGET=rock64 -j5
+    - ./dev-make BOARD_TARGET=rockpro64 -j5
+    - |
+      set -x
+
+      export RELEASE_NAME="$(./dev-make version)"
+      export RELEASE_TITLE="$(./dev-make version)"
+      export DESCRIPTION="$CI_PROJECT_URL/pipelines/$CI_PIPELINE_ID"
+
+      github-release release \
+        --tag "${RELEASE_NAME}" \
+        --name "${RELEASE_TITLE}" \
+        --description "${DESCRIPTION}" \
+        --target "${CI_COMMIT_SHA}" \
+        --draft
+
+      pushd ../
+      for i in *.deb *.img.xz; do
+        github-release upload \
+          --tag "${RELEASE_NAME}" \
+          --name "${i}" \
+          --file "${i}"
+      done
+      popd
+
+      github-release edit \
+        --tag "${RELEASE_NAME}" \
+        --name "${RELEASE_TITLE}" \
+        --description "${DESCRIPTION}" \
+        --pre-release
