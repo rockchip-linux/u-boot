@@ -18,10 +18,12 @@ extern uint32_t crc32_rk (uint32_t, const unsigned char *, uint32_t);
 #define OPT_TRUSTOS		"--trustos"
 #define OPT_SIZE		"--size"
 #define OPT_VERSION		"--version"
+#define OPT_INFO                "--info"
 
 /* pack or unpack */
 #define MODE_PACK		0
 #define MODE_UNPACK		1
+#define MODE_INFO               2
 #define CONFIG_SECUREBOOT_SHA256
 
 /* image type */
@@ -76,7 +78,9 @@ typedef struct tag_second_loader_hdr {
 
 void usage(const char *prog)
 {
-	fprintf(stderr, "Usage: %s [--pack|--unpack] [--uboot|--trustos] file_in file_out [load_addr]  [--size] [size number] [--version] [version]\n", prog);
+	fprintf(stderr, "Usage: %s [--pack|--unpack] [--uboot|--trustos]\
+		file_in file_out [load_addr]  [--size] [size number]\
+		[--version] [version] | [--info] [file]\n", prog);
 }
 
 unsigned int str2hex(char *str)
@@ -117,7 +121,7 @@ int main (int argc, char *argv[])
 	char 			*file_in = NULL, *file_out = NULL;
 	uint32_t curr_version = 0;
 
-	if (argc < 5) {
+	if (argc < 3) {
 		usage(argv[0]);
 		exit(EXIT_FAILURE);
 	}
@@ -154,15 +158,13 @@ int main (int argc, char *argv[])
 		} else if (!strcmp(argv[i], OPT_VERSION)) {
 			curr_version = strtoul(argv[++i], NULL, 10);
 			printf("curr_version = 0x%x\n", curr_version);
+		} else if (!strcmp(argv[i], OPT_INFO)) {
+			mode = MODE_INFO;
+			file_in = argv[++i];
 		} else {
 			usage(argv[0]);
 			exit(EXIT_FAILURE);
 		}
-	}
-
-	if (!file_in || !file_out) {
-		usage(argv[0]);
-		exit(EXIT_FAILURE);
 	}
 
 	/* config image information */
@@ -182,33 +184,38 @@ int main (int argc, char *argv[])
 		max_num = in_num ? in_num : TRUST_NUM;
 		loader_addr = (in_loader_addr == -1) ?
 			RK_TRUST_RUNNING_ADDR : in_loader_addr;
+	} else if (mode == MODE_INFO) {
+
 	} else {
 		exit(EXIT_FAILURE);
 	}
 
-	/* file in */
-	fi = fopen(file_in, "rb");
-	if (!fi) {
-		perror(file_in);
-		exit(EXIT_FAILURE);
-	}
-
-	/* file out */
-	fo = fopen(file_out, "wb");
-	if (!fo) {
-		perror(file_out);
-		exit (EXIT_FAILURE);
-	}
-
-	printf("\n load addr is 0x%x!\n", loader_addr);
-
-	buf = calloc(max_size, max_num);
-	if (!buf) {
-		perror(file_out);
-		exit (EXIT_FAILURE);
-	}
-
 	if (mode == MODE_PACK) {
+		buf = calloc(max_size, max_num);
+		if (!buf) {
+			perror(file_out);
+			exit (EXIT_FAILURE);
+		}
+		printf("\n load addr is 0x%x!\n", loader_addr);
+		if (!file_in || !file_out) {
+			usage(argv[0]);
+			exit(EXIT_FAILURE);
+		}
+
+		/* file in */
+		fi = fopen(file_in, "rb");
+		if (!fi) {
+			perror(file_in);
+			exit(EXIT_FAILURE);
+		}
+
+		/* file out */
+		fo = fopen(file_out, "wb");
+		if (!fo) {
+			perror(file_out);
+			exit (EXIT_FAILURE);
+		}
+
 		printf("pack input %s \n", file_in);
 		fseek(fi, 0, SEEK_END);
 		size = ftell(fi);
@@ -271,7 +278,33 @@ int main (int argc, char *argv[])
 			fwrite(buf, max_size, 1, fo);
 
 		printf("pack %s success! \n", file_out);
+		fclose(fi);
+		fclose(fo);
 	} else if (mode == MODE_UNPACK) {
+		buf = calloc(max_size, max_num);
+		if (!buf) {
+			perror(file_out);
+			exit (EXIT_FAILURE);
+		}
+		if (!file_in || !file_out) {
+			usage(argv[0]);
+			exit(EXIT_FAILURE);
+		}
+
+		/* file in */
+		fi = fopen(file_in, "rb");
+		if (!fi) {
+			perror(file_in);
+			exit(EXIT_FAILURE);
+		}
+
+		/* file out */
+		fo = fopen(file_out, "wb");
+		if (!fo) {
+			perror(file_out);
+			exit (EXIT_FAILURE);
+		}
+
 		printf("unpack input %s \n", file_in);
 		memset(&hdr, 0, sizeof(second_loader_hdr));
 		if (!fread(&hdr, sizeof(second_loader_hdr), 1, fi))
@@ -282,11 +315,35 @@ int main (int argc, char *argv[])
 
 		fwrite(buf, hdr.loader_load_size, 1, fo);
 		printf("unpack %s success! \n", file_out);
-	}
+		fclose(fi);
+		fclose(fo);
+	} else if (mode == MODE_INFO) {
+		second_loader_hdr *hdr;
 
+		hdr = malloc(sizeof(struct tag_second_loader_hdr));
+		if (hdr == NULL) {
+			printf("Memory error!\n");
+			exit (EXIT_FAILURE);
+		}
+		/* file in */
+		fi = fopen(file_in, "rb");
+		if (!fi) {
+			perror(file_in);
+			exit(EXIT_FAILURE);
+		}
+		fread(hdr, sizeof(struct tag_second_loader_hdr), 1, fi);
+		if (!(memcmp(RK_UBOOT_MAGIC, hdr->magic, 5)) || !(memcmp(RK_TRUST_MAGIC, hdr->magic, 3))) {
+			printf("The image info:\n");
+			printf("Rollback index is %d\n", hdr->version);
+			printf("Load Addr is 0x%x\n", hdr->loader_load_addr);
+		} else {
+			printf("Please input the correct file.\n");
+		}
+
+		fclose(fi);
+		free(hdr);
+	}
 	free(buf);
-	fclose(fi);
-	fclose(fo);
 
 	return 0;
 }
