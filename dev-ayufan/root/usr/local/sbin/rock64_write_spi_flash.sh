@@ -43,8 +43,8 @@ while true; do
     fi
 done
 
-if ! debsums -s "u-boot-${BOARD}"; then
-    echo "Verification of 'u-boot-${BOARD}' failed."
+if ! debsums -s "u-boot-rockchip-${BOARD}"; then
+    echo "Verification of 'u-boot-rockchip-${BOARD}' failed."
     echo "Your disk might have got corrupted."
     exit 1
 fi
