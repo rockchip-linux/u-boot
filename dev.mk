@@ -12,7 +12,7 @@ RELEASE_NAME ?= $(shell $(UBOOT_MAKE) -s ubootrelease)
 
 .PHONY: .scmversion
 .scmversion:
-	@echo "~$(RELEASE)-rockchip-ayufan-g$$(git rev-parse --short HEAD)" > .scmversion
+	@echo "-rockchip-ayufan-$(RELEASE)-g$$(git rev-parse --short HEAD)" > .scmversion
 
 version: .scmversion
 	@echo $(RELEASE_NAME)

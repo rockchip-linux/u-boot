@@ -23,8 +23,8 @@ build:
     - |
       set -x
 
-      export RELEASE_NAME="$(./dev-make version)"
-      export RELEASE_TITLE="$(./dev-make version)"
+      export RELEASE_NAME="$(./dev-make version BOARD_TARGET=rock64)"
+      export RELEASE_TITLE="$(./dev-make version BOARD_TARGET=rock64)"
       export DESCRIPTION="$CI_PROJECT_URL/pipelines/$CI_PIPELINE_ID"
 
       github-release release \
@@ -34,14 +34,12 @@ build:
         --target "${CI_COMMIT_SHA}" \
         --draft
 
-      pushd ../
       for i in *.deb *.img.xz; do
         github-release upload \
           --tag "${RELEASE_NAME}" \
           --name "${i}" \
           --file "${i}"
       done
-      popd
 
       github-release edit \
         --tag "${RELEASE_NAME}" \
