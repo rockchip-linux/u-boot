@@ -47,7 +47,7 @@ fi
 MNT_DEV=$(findmnt /boot/efi -n -o SOURCE)
 
 case $MNT_DEV in
-    /dev/mmcblk*p6|/dev/sd*p6)
+    /dev/mmcblk*p6|/dev/sd*p6|/dev/loop*p6)
         dd if=$LOADER of="${MNT_DEV/p6/p1}"
         ;;
 
