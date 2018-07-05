@@ -19,7 +19,7 @@ else
     exit 1
 fi
 
-LOADER="/usr/lib/u-boot-${BOARD}/rksd_loader.img"
+LOADER="/usr/lib/u-boot-${BOARD}/${LOADER_NAME}.img"
 if [[ ! -f "$LOADER" ]]; then
     echo "Missing board bootloader image: $LOADER"
     exit 1
