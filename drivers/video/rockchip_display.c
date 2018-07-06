@@ -96,11 +96,19 @@ static int get_public_phy(struct display_state *state,
 
 	switch (data->public_phy_type) {
 	case INNO_HDMI_PHY:
+#if defined(CONFIG_RKCHIP_RK322XH)
 		phy_node = fdt_path_offset(blob, "/hdmiphy");
 		if (phy_node < 0) {
-			printf("Can't find hdmiphy node\n");
+			printf("Can't find 322xh hdmiphy node\n");
 			return phy_node;
 		}
+#elif defined(CONFIG_RKCHIP_RK322X)
+		phy_node = fdt_path_offset(blob, "/hdmi-phy");
+		if (phy_node < 0) {
+			printf("Can't find 322x hdmiphy node\n");
+			return phy_node;
+		}
+#endif
 
 		if (!fdt_device_is_available(blob, phy_node))
 			return -ENODEV;
