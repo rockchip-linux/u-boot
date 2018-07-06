@@ -47,13 +47,12 @@ fi
 MNT_DEV=$(findmnt /boot/efi -n -o SOURCE)
 
 case $MNT_DEV in
-    /dev/mmcblk*p6|/dev/sd*p6|/dev/loop*p6)
+    /dev/mmcblk*p6|/dev/sd*p6|/dev/mapper/loop*p6|/dev/mapper/nvme*p6)
         dd if=$LOADER of="${MNT_DEV/p6/p1}"
         ;;
 
     *)
-        echo "Cannot detect boot device."
-        echo "The bootloader can only be copied when booted from eMMC, SD or USB."
+        echo "Cannot detect boot device ($MNT_DEV)."
         exit 1
         ;;
 esac
