@@ -537,6 +537,25 @@ deinit:
 	return ret;
 }
 
+int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
+	int ret;
+
+	if (!state->is_init)
+		return -EINVAL;
+
+	if (crtc_funcs->send_mcu_cmd) {
+		ret = crtc_funcs->send_mcu_cmd(state, type, val);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 static int display_set_plane(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -761,6 +780,37 @@ static int get_crtc_id(ofnode connect)
 	return val;
 err:
 	printf("Can't get crtc id, default set to id = 0\n");
+	return 0;
+}
+
+static int get_crtc_mcu_mode(struct crtc_state *crtc_state)
+{
+	ofnode mcu_node;
+	int total_pixel, cs_pst, cs_pend, rw_pst, rw_pend;
+
+	mcu_node = dev_read_subnode(crtc_state->dev, "mcu-timing");
+
+#define FDT_GET_MCU_INT(val, name) \
+	do { \
+		val = ofnode_read_s32_default(mcu_node, name, -1); \
+		if (val < 0) { \
+			printf("Can't get %s\n", name); \
+			return -ENXIO; \
+		} \
+	} while (0)
+
+	FDT_GET_MCU_INT(total_pixel, "mcu-pix-total");
+	FDT_GET_MCU_INT(cs_pst, "mcu-cs-pst");
+	FDT_GET_MCU_INT(cs_pend, "mcu-cs-pend");
+	FDT_GET_MCU_INT(rw_pst, "mcu-rw-pst");
+	FDT_GET_MCU_INT(rw_pend, "mcu-rw-pend");
+
+	crtc_state->mcu_timing.mcu_pix_total = total_pixel;
+	crtc_state->mcu_timing.mcu_cs_pst = cs_pst;
+	crtc_state->mcu_timing.mcu_cs_pend = cs_pend;
+	crtc_state->mcu_timing.mcu_rw_pst = rw_pst;
+	crtc_state->mcu_timing.mcu_rw_pend = rw_pend;
+
 	return 0;
 }
 
@@ -1084,6 +1134,7 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->crtc_state.crtc = crtc;
 		s->crtc_state.crtc_id = get_crtc_id(np_to_ofnode(ep_node));
 		s->node = node;
+		get_crtc_mcu_mode(&s->crtc_state);
 
 		if (connector_panel_init(s)) {
 			printf("Warn: Failed to init panel drivers\n");

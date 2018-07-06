@@ -35,6 +35,12 @@ enum rockchip_cmd_type {
 	CMD_TYPE_MCU
 };
 
+enum rockchip_mcu_cmd {
+	MCU_WRCMD = 0,
+	MCU_WRDATA,
+	MCU_SETBYPASS,
+};
+
 /*
  * display output interface supported by rockchip lcdc
  */
@@ -46,6 +52,15 @@ enum rockchip_cmd_type {
 #define ROCKCHIP_OUT_MODE_YUV420	14
 /* for use special outface */
 #define ROCKCHIP_OUT_MODE_AAAA	15
+
+struct rockchip_mcu_timing {
+	int mcu_pix_total;
+	int mcu_cs_pst;
+	int mcu_cs_pend;
+	int mcu_rw_pst;
+	int mcu_rw_pend;
+	int mcu_hold_mode;
+};
 
 struct crtc_state {
 	struct udevice *dev;
@@ -67,6 +82,7 @@ struct crtc_state {
 	int crtc_y;
 	int crtc_w;
 	int crtc_h;
+	struct rockchip_mcu_timing mcu_timing;
 };
 
 struct panel_state {
@@ -152,5 +168,6 @@ struct display_state {
 };
 
 int drm_mode_vrefresh(const struct drm_display_mode *mode);
+int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val);
 
 #endif

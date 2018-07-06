@@ -178,6 +178,21 @@ static void vop_post_config(struct display_state *state, struct vop *vop)
 	}
 }
 
+static void vop_mcu_mode(struct display_state *state, struct vop *vop)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+
+	VOP_CTRL_SET(vop, mcu_clk_sel, 1);
+	VOP_CTRL_SET(vop, mcu_type, 1);
+
+	VOP_CTRL_SET(vop, mcu_hold_mode, 1);
+	VOP_CTRL_SET(vop, mcu_pix_total, crtc_state->mcu_timing.mcu_pix_total);
+	VOP_CTRL_SET(vop, mcu_cs_pst, crtc_state->mcu_timing.mcu_cs_pst);
+	VOP_CTRL_SET(vop, mcu_cs_pend, crtc_state->mcu_timing.mcu_cs_pend);
+	VOP_CTRL_SET(vop, mcu_rw_pst, crtc_state->mcu_timing.mcu_rw_pst);
+	VOP_CTRL_SET(vop, mcu_rw_pend, crtc_state->mcu_timing.mcu_rw_pend);
+}
+
 static int rockchip_vop_init(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -421,10 +436,11 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, core_dclk_div,
 		     !!(mode->flags & DRM_MODE_FLAG_DBLCLK));
 
-	VOP_CTRL_SET(vop, standby, 1);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[0], act_end - 3);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[1],
 			  act_end - us_to_vertical_line(mode, 1000));
+	if (state->crtc_state.mcu_timing.mcu_pix_total > 0)
+		vop_mcu_mode(state, vop);
 	vop_cfg_done(vop);
 
 	return 0;
@@ -632,6 +648,8 @@ static int rockchip_vop_enable(struct display_state *state)
 
 	VOP_CTRL_SET(vop, standby, 0);
 	vop_cfg_done(vop);
+	if (crtc_state->mcu_timing.mcu_pix_total > 0)
+		VOP_CTRL_SET(vop, mcu_hold_mode, 0);
 
 	return 0;
 }
@@ -688,6 +706,34 @@ static int rockchip_vop_fixup_dts(struct display_state *state, void *blob)
 	return 0;
 }
 
+static int rockchip_vop_send_mcu_cmd(struct display_state *state,
+				     u32 type, u32 value)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	struct vop *vop = crtc_state->private;
+
+	if (vop) {
+		switch (type) {
+		case MCU_WRCMD:
+			VOP_CTRL_SET(vop, mcu_rs, 0);
+			VOP_CTRL_SET(vop, mcu_rw_bypass_port, value);
+			VOP_CTRL_SET(vop, mcu_rs, 1);
+			break;
+		case MCU_WRDATA:
+			VOP_CTRL_SET(vop, mcu_rs, 1);
+			VOP_CTRL_SET(vop, mcu_rw_bypass_port, value);
+			break;
+		case MCU_SETBYPASS:
+			VOP_CTRL_SET(vop, mcu_bypass, value ? 1 : 0);
+			break;
+		default:
+			break;
+		}
+	}
+
+	return 0;
+}
+
 const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.init = rockchip_vop_init,
 	.set_plane = rockchip_vop_set_plane,
@@ -695,4 +741,5 @@ const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.enable = rockchip_vop_enable,
 	.disable = rockchip_vop_disable,
 	.fixup_dts = rockchip_vop_fixup_dts,
+	.send_mcu_cmd = rockchip_vop_send_mcu_cmd,
 };
