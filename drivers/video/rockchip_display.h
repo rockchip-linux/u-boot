@@ -59,6 +59,7 @@ struct crtc_state {
 	int crtc_y;
 	int crtc_w;
 	int crtc_h;
+	bool yuv_overlay;
 };
 
 struct panel_state {

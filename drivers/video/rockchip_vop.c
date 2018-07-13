@@ -134,10 +134,8 @@ static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 
 static void vop_post_config(struct display_state *state, struct vop *vop)
 {
-	struct crtc_state *crtc_state = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	u16 vtotal = mode->crtc_vtotal;
 	u16 hact_st = mode->crtc_htotal - mode->crtc_hsync_start;
 	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
@@ -216,6 +214,8 @@ static int rockchip_vop_init(struct display_state *state)
 	vop->win_offset = vop_data->win_offset;
 	vop->ctrl = vop_data->ctrl;
 	vop->line_flag = vop_data->line_flag;
+	vop->csc_table = vop_data->csc_table;
+	vop->win_csc = vop_data->win_csc;
 	vop->version = vop_data->version;
 	vop->max_output = vop_data->max_output;
 
@@ -353,6 +353,7 @@ static int rockchip_vop_init(struct display_state *state)
 			post_r2y_en = true;
 	}
 
+	crtc_state->yuv_overlay = yuv_overlay;
 	post_csc_mode = to_vop_csc_mode(conn_state->color_space);
 	VOP_CTRL_SET(vop, bcsh_r2y_en, post_r2y_en);
 	VOP_CTRL_SET(vop, bcsh_y2r_en, post_y2r_en);
@@ -552,6 +553,55 @@ static void scl_vop_cal_scl_fac(struct vop *vop,
 	}
 }
 
+
+static void vop_load_csc_table(struct vop *vop, u32 offset, const u32 *table)
+{
+	int i;
+
+	/*
+	 * so far the csc offset is not 0 and in the feature the csc offset
+	 * impossible be 0, so when the offset is 0, should return here.
+	 */
+	if (!table || offset == 0)
+		return;
+
+	for (i = 0; i < 8; i++)
+		vop_writel(vop, offset + i * 4, table[i]);
+}
+
+static int rockchip_vop_setup_csc_table(struct display_state *state)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	struct connector_state *conn_state = &state->conn_state;
+	struct vop *vop = crtc_state->private;
+	const uint32_t *csc_table = NULL;
+
+	if (!vop->csc_table || !crtc_state->yuv_overlay)
+		return 0;
+	/* todo: only implement r2y*/
+	switch (conn_state->color_space) {
+	case V4L2_COLORSPACE_SMPTE170M:
+		csc_table = vop->csc_table->r2y_bt601_12_235;
+		break;
+	case V4L2_COLORSPACE_REC709:
+	case V4L2_COLORSPACE_DEFAULT:
+	case V4L2_COLORSPACE_JPEG:
+		csc_table = vop->csc_table->r2y_bt709;
+		break;
+	case V4L2_COLORSPACE_BT2020:
+		csc_table = vop->csc_table->r2y_bt2020;
+		break;
+	default:
+		csc_table = vop->csc_table->r2y_bt601;
+		break;
+	}
+
+	vop_load_csc_table(vop, vop->win_csc->r2y_offset, csc_table);
+	VOP_WIN_CSC_SET(vop, r2y_en, 1);
+
+	return 0;
+}
+
 static int rockchip_vop_set_plane(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -594,6 +644,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 
 	VOP_WIN_SET(vop, src_alpha_ctl, 0);
 
+	rockchip_vop_setup_csc_table(state);
 	VOP_WIN_SET(vop, enable, 1);
 	vop_cfg_done(vop);
 
