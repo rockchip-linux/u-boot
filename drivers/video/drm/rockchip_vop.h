@@ -58,6 +58,8 @@
 		REG_SET(x, name, 0, (x)->ctrl->name, v)
 #define VOP_LINE_FLAG_SET(x, name, v) \
 		REG_SET(x, name, 0, (x)->line_flag->name, v)
+#define VOP_WIN_CSC_SET(x, name, v) \
+		REG_SET(x, name, 0, (x)->win_csc->name, v)
 
 #define VOP_CTRL_GET(x, name) \
 		vop_read_reg(x, 0, &vop->ctrl->name)
@@ -429,6 +431,23 @@ struct vop_rect {
 	int height;
 };
 
+struct vop_csc_table {
+	const uint32_t *r2y_bt601;
+	const uint32_t *r2y_bt601_12_235;
+	const uint32_t *r2y_bt709;
+	const uint32_t *r2y_bt2020;
+};
+
+struct vop_csc {
+	struct vop_reg y2r_en;
+	struct vop_reg r2r_en;
+	struct vop_reg r2y_en;
+
+	uint32_t y2r_offset;
+	uint32_t r2r_offset;
+	uint32_t r2y_offset;
+};
+
 #define VOP_FEATURE_OUTPUT_10BIT	BIT(0)
 
 struct vop_data {
@@ -437,6 +456,8 @@ struct vop_data {
 	const struct vop_win *win;
 	const struct vop_line_flag *line_flag;
 	const struct vop_grf_ctrl *grf_ctrl;
+	const struct vop_csc_table *csc_table;
+	const struct vop_csc *win_csc;
 	int win_offset;
 	int reg_len;
 	u64 feature;
@@ -453,6 +474,8 @@ struct vop {
 	const struct vop_win *win;
 	const struct vop_line_flag *line_flag;
 	const struct vop_grf_ctrl *grf_ctrl;
+	const struct vop_csc_table *csc_table;
+	const struct vop_csc *win_csc;
 	int win_offset;
 	struct vop_rect max_output;
 };

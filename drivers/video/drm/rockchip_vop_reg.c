@@ -235,6 +235,42 @@ const struct vop_data rk3366_vop = {
 	.reg_len = RK3366_DSP_VACT_ST_END_F1 * 4,
 };
 
+static const uint32_t vop_csc_r2y_bt601[] = {
+	0x02590132, 0xff530075, 0x0200fead, 0xfe530200,
+	0x0000ffad, 0x00000200, 0x00080200, 0x00080200,
+};
+
+static const uint32_t vop_csc_r2y_bt601_12_235[] = {
+	0x02040107, 0xff680064, 0x01c2fed6, 0xffb7fe87,
+	0x0000ffb7, 0x00010200, 0x00080200, 0x00080200,
+};
+
+static const uint32_t vop_csc_r2y_bt709[] = {
+	0x027500bb, 0xff99003f, 0x01c2fea5, 0xfe6801c2,
+	0x0000ffd7, 0x00010200, 0x00080200, 0x00080200,
+};
+
+static const uint32_t vop_csc_r2y_bt2020[] = {
+	0x025300e6, 0xff830034, 0x01c1febd, 0xfe6401c1,
+	0x0000ffdc, 0x00010200, 0x00080200, 0x00080200,
+};
+
+static const struct vop_csc_table rk3399_csc_table = {
+	.r2y_bt601		= vop_csc_r2y_bt601,
+	.r2y_bt601_12_235	= vop_csc_r2y_bt601_12_235,
+	.r2y_bt709		= vop_csc_r2y_bt709,
+	.r2y_bt2020		= vop_csc_r2y_bt2020,
+};
+
+static const struct vop_csc rk3399_win0_csc = {
+	.r2r_en = VOP_REG(RK3399_YUV2YUV_WIN, 0x1, 0),
+	.y2r_en = VOP_REG(RK3399_YUV2YUV_WIN, 0x1, 1),
+	.r2y_en = VOP_REG(RK3399_YUV2YUV_WIN, 0x1, 2),
+	.y2r_offset = RK3399_WIN0_YUV2YUV_Y2R,
+	.r2r_offset = RK3399_WIN0_YUV2YUV_3X3,
+	.r2y_offset = RK3399_WIN0_YUV2YUV_R2Y,
+};
+
 const struct vop_data rk3399_vop_big = {
 	.version = VOP_VERSION(3, 5),
 	.max_output = {4096, 2160},
@@ -242,6 +278,8 @@ const struct vop_data rk3399_vop_big = {
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
 	.line_flag = &rk3366_vop_line_flag,
+	.csc_table = &rk3399_csc_table,
+	.win_csc = &rk3399_win0_csc,
 	.reg_len = RK3399_DSP_VACT_ST_END_F1 * 4,
 };
 
@@ -251,6 +289,8 @@ const struct vop_data rk3399_vop_lit = {
 	.ctrl = &rk3288_ctrl_data,
 	.win = &rk3288_win01_data,
 	.line_flag = &rk3366_vop_line_flag,
+	.csc_table = &rk3399_csc_table,
+	.win_csc = &rk3399_win0_csc,
 	.reg_len = RK3399_DSP_VACT_ST_END_F1 * 4,
 };
 
