@@ -15,11 +15,13 @@
 
 #include <div64.h>
 #include <linux/types.h>
+#include <drm_modes.h>
+#include <i2c.h>
 
 /* Size of the EDID data */
 #define EDID_SIZE	128
 #define EDID_EXT_SIZE	256
-#define MODE_LEN	120
+#define MODE_LEN	240
 
 #define CEA_EXT	    0x02
 #define VTB_EXT	    0x10
@@ -43,16 +45,16 @@
 #define  DRM_MODE_FLAG_420			BIT(23)
 #define  DRM_MODE_FLAG_420_ONLY			BIT(24)
 
-#define DRM_MODE_FLAG_3D_MASK			(0x1f << 14)
-#define  DRM_MODE_FLAG_3D_NONE			(0 << 14)
-#define  DRM_MODE_FLAG_3D_FRAME_PACKING		BIT(14)
-#define  DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE	(2 << 14)
-#define  DRM_MODE_FLAG_3D_LINE_ALTERNATIVE	(3 << 14)
-#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL	(4 << 14)
-#define  DRM_MODE_FLAG_3D_L_DEPTH		(5 << 14)
-#define  DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH	(6 << 14)
-#define  DRM_MODE_FLAG_3D_TOP_AND_BOTTOM	(7 << 14)
-#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF	(8 << 14)
+#define DRM_MODE_FLAG_3D_MASK                  (0x1f << 14)
+#define  DRM_MODE_FLAG_3D_NONE                 (0 << 14)
+#define  DRM_MODE_FLAG_3D_FRAME_PACKING                BIT(14)
+#define  DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE    (2 << 14)
+#define  DRM_MODE_FLAG_3D_LINE_ALTERNATIVE     (3 << 14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL    (4 << 14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH              (5 << 14)
+#define  DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH        (6 << 14)
+#define  DRM_MODE_FLAG_3D_TOP_AND_BOTTOM       (7 << 14)
+#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF    (8 << 14)
 
 #define BITS_PER_BYTE         8
 #define BITS_TO_LONGS(nr)     DIV_ROUND_UP(nr, BITS_PER_BYTE * sizeof(long))
@@ -60,12 +62,17 @@
 	(((_x) >> (_pos)) & 1)
 #define GET_BITS(_x, _pos_msb, _pos_lsb) \
 	(((_x) >> (_pos_lsb)) & ((1 << ((_pos_msb) - (_pos_lsb) + 1)) - 1))
-#define DRM_MODE(c, hd, hss, hse, ht, vd, vss, vse, vt, vs, f) \
-	.clock = (c), \
+#define DRM_MODE(t, c, hd, hss, hse, ht, vd, vss, vse, vt, vs, f) \
+	.clock = (c), .type = (t),\
 	.hdisplay = (hd), .hsync_start = (hss), .hsync_end = (hse), \
 	.htotal = (ht), .vdisplay = (vd), \
 	.vsync_start = (vss), .vsync_end = (vse), .vtotal = (vt), \
 	.vscan = (vs), .flags = (f)
+
+#define DDC_SEGMENT_ADDR 0x30
+#define DDC_ADDR 0x50
+#define HDMI_EDID_BLOCK_SIZE 128
+#define SCDC_I2C_SLAVE_ADDRESS 0x54
 
 /* Aspect ratios used in EDID info. */
 enum edid_aspect {
@@ -316,13 +323,15 @@ struct edid_monitor_descriptor {
 #define DRM_EDID_FEATURE_PREFERRED_TIMING (1 << 1)
 #define DRM_EDID_FEATURE_STANDARD_COLOR   (1 << 2)
 /* If analog */
-#define DRM_EDID_FEATURE_DISPLAY_TYPE     (3 << 3) /* 00=mono, 01=rgb, 10=non-rgb, 11=unknown */
+/* 00=mono, 01=rgb, 10=non-rgb, 11=unknown */
+#define DRM_EDID_FEATURE_DISPLAY_TYPE     (3 << 3)
 /* If digital */
 #define DRM_EDID_FEATURE_COLOR_MASK	  (3 << 3)
 #define DRM_EDID_FEATURE_RGB		  (0 << 3)
 #define DRM_EDID_FEATURE_RGB_YCRCB444	  (1 << 3)
 #define DRM_EDID_FEATURE_RGB_YCRCB422	  (2 << 3)
-#define DRM_EDID_FEATURE_RGB_YCRCB	  (3 << 3) /* both 4:4:4 and 4:2:2 */
+/* both 4:4:4 and 4:2:2 */
+#define DRM_EDID_FEATURE_RGB_YCRCB	  (3 << 3)
 
 #define DRM_EDID_FEATURE_PM_ACTIVE_OFF    (1 << 5)
 #define DRM_EDID_FEATURE_PM_SUSPEND       (1 << 6)
@@ -709,6 +718,61 @@ struct edid {
 	u8 checksum;
 } __packed;
 
+enum base_output_format {
+	DRM_HDMI_OUTPUT_DEFAULT_RGB, /* default RGB */
+	DRM_HDMI_OUTPUT_YCBCR444, /* YCBCR 444 */
+	DRM_HDMI_OUTPUT_YCBCR422, /* YCBCR 422 */
+	DRM_HDMI_OUTPUT_YCBCR420, /* YCBCR 420 */
+	/* (YCbCr444 > YCbCr422 > YCbCr420 > RGB) */
+	DRM_HDMI_OUTPUT_YCBCR_HQ,
+	/* (YCbCr420 > YCbCr422 > YCbCr444 > RGB) */
+	DRM_HDMI_OUTPUT_YCBCR_LQ,
+	DRM_HDMI_OUTPUT_INVALID, /* Guess what ? */
+};
+
+enum  base_output_depth {
+	AUTOMATIC = 0,
+	DEPTH_24BIT = 8,
+	DEPTH_30BIT = 10,
+};
+
+struct base_overscan {
+	unsigned int maxvalue;
+	unsigned short leftscale;
+	unsigned short rightscale;
+	unsigned short topscale;
+	unsigned short bottomscale;
+};
+
+struct base_drm_display_mode {
+	int clock;		/* in kHz */
+	int hdisplay;
+	int hsync_start;
+	int hsync_end;
+	int htotal;
+	int vdisplay;
+	int vsync_start;
+	int vsync_end;
+	int vtotal;
+	int vrefresh;
+	int vscan;
+	unsigned int flags;
+	int picture_aspect_ratio;
+};
+
+struct base_screen_info {
+	int type;
+	struct base_drm_display_mode mode;	/* 52 bytes */
+	enum base_output_format  format;	/* 4 bytes */
+	enum base_output_depth depth;		/* 4 bytes */
+	unsigned int feature;			/* 4 bytes */
+};
+
+struct base_disp_info {
+	struct base_screen_info screen_list[5];
+	struct base_overscan scan;		/* 12 bytes */
+};
+
 /**
  * Print the EDID info.
  *
@@ -753,9 +817,13 @@ struct display_timing;
 struct hdmi_edid_data {
 	struct drm_display_mode *preferred_mode;
 	int modes;
-	struct drm_hdmi_info hdmi_info;
 	struct drm_display_mode *mode_buf;
 	struct drm_display_info display_info;
+};
+
+struct ddc_adapter {
+	int (*ddc_xfer)(struct ddc_adapter *adap, struct i2c_msg *msgs,
+			int num);
 };
 
 /**
@@ -798,5 +866,11 @@ int edid_get_drm_mode(u8 *buf, int buf_size, struct drm_display_mode *mode,
 int drm_add_edid_modes(struct hdmi_edid_data *data, u8 *edid);
 bool drm_detect_hdmi_monitor(struct edid *edid);
 bool drm_detect_monitor_audio(struct edid *edid);
+int do_cea_modes(struct hdmi_edid_data *data, const u8 *db, u8 len);
+int drm_do_get_edid(struct ddc_adapter *adap, u8 *edid);
+u8 drm_scdc_readb(struct ddc_adapter *adap, u8 offset,
+		  u8 *value);
+u8 drm_scdc_writeb(struct ddc_adapter *adap, u8 offset,
+		   u8 value);
 
 #endif /* __EDID_H_ */

@@ -170,5 +170,7 @@ struct display_state {
 
 int drm_mode_vrefresh(const struct drm_display_mode *mode);
 int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val);
+bool drm_mode_is_420(const struct drm_display_info *display,
+		     struct drm_display_mode *mode);
 
 #endif

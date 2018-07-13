@@ -487,6 +487,22 @@
 #define HDMI_A_PRESETUP                         0x501A
 #define HDMI_A_SRM_BASE                         0x5020
 
+/* HDCP Registers */
+#define HDMI_HDCPREG_RMCTL                      0x780e
+#define HDMI_HDCPREG_RMSTS                      0x780f
+#define HDMI_HDCPREG_SEED0                      0x7810
+#define HDMI_HDCPREG_SEED1                      0x7811
+#define HDMI_HDCPREG_DPK0                       0x7812
+#define HDMI_HDCPREG_DPK1                       0x7813
+#define HDMI_HDCPREG_DPK2                       0x7814
+#define HDMI_HDCPREG_DPK3                       0x7815
+#define HDMI_HDCPREG_DPK4                       0x7816
+#define HDMI_HDCPREG_DPK5                       0x7817
+#define HDMI_HDCPREG_DPK6                       0x7818
+#define HDMI_HDCP2REG_CTRL                      0x7904
+#define HDMI_HDCP2REG_MASK                      0x790c
+#define HDMI_HDCP2REG_MUTE                      0x790e
+
 /* CEC Engine Registers */
 #define HDMI_CEC_CTRL                           0x7D00
 #define HDMI_CEC_STAT                           0x7D01
@@ -1203,6 +1219,55 @@ enum {
 	HDMI_MC_SWRSTZ_I2S_RESET_MSK = BIT(3),
 };
 
+enum {
+	HDMI_MC_CLKDIS_HDCPCLK_MASK = 0x40,
+	HDMI_MC_CLKDIS_HDCPCLK_ENABLE = 0x00,
+
+	HDMI_A_SRMCTRL_SHA1_FAIL_MASK = 0X08,
+	HDMI_A_SRMCTRL_SHA1_FAIL_DISABLE = 0X00,
+	HDMI_A_SRMCTRL_SHA1_FAIL_ENABLE = 0X08,
+
+	HDMI_A_SRMCTRL_KSV_UPDATE_MASK = 0X04,
+	HDMI_A_SRMCTRL_KSV_UPDATE_DISABLE = 0X00,
+	HDMI_A_SRMCTRL_KSV_UPDATE_ENABLE = 0X04,
+
+	HDMI_A_SRMCTRL_KSV_MEM_REQ_MASK = 0X01,
+	HDMI_A_SRMCTRL_KSV_MEM_REQ_DISABLE = 0X00,
+	HDMI_A_SRMCTRL_KSV_MEM_REQ_ENABLE = 0X01,
+
+	HDMI_A_SRMCTRL_KSV_MEM_ACCESS_MASK = 0X02,
+	HDMI_A_SRMCTRL_KSV_MEM_ACCESS_DISABLE = 0X00,
+	HDMI_A_SRMCTRL_KSV_MEM_ACCESS_ENABLE = 0X02,
+
+	HDMI_A_SRM_BASE_MAX_DEVS_EXCEEDED = 0x80,
+	HDMI_A_SRM_BASE_DEVICE_COUNT = 0x7f,
+
+	HDMI_A_SRM_BASE_MAX_CASCADE_EXCEEDED = 0x08,
+
+	HDMI_A_APIINTSTAT_KSVSHA1_CALC_INT = 0x02,
+
+	/* HDCPREG_RMSTS field values */
+	DPK_WR_OK_STS = 0x40,
+
+	HDMI_A_HDCP22_MASK = 0x40,
+
+	HDMI_HDCP2_OVR_EN_MASK = 0x02,
+	HDMI_HDCP2_OVR_ENABLE = 0x02,
+	HDMI_HDCP2_OVR_DISABLE = 0x00,
+
+	HDMI_HDCP2_FORCE_MASK = 0x04,
+	HDMI_HDCP2_FORCE_ENABLE = 0x04,
+	HDMI_HDCP2_FORCE_DISABLE = 0x00,
+};
+
+enum {
+	DW_HDMI_HDCP_KSV_LEN = 8,
+	DW_HDMI_HDCP_SHA_LEN = 20,
+	DW_HDMI_HDCP_DPK_LEN = 280,
+	DW_HDMI_HDCP_KEY_LEN = 308,
+	DW_HDMI_HDCP_SEED_LEN = 2,
+};
+
 /*
  * HDMI 3D TX PHY registers
  */
@@ -1338,5 +1403,15 @@ enum {
 	STANDARD_MODE = 0,
 	FAST_MODE
 };
+
+void drm_mode_sort(struct hdmi_edid_data *edid_data);
+int drm_mode_prune_invalid(struct hdmi_edid_data *edid_data);
+void drm_rk_filter_whitelist(struct hdmi_edid_data *edid_data);
+void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
+			  unsigned int *bus_format,
+			  struct overscan *overscan,
+			  enum dw_hdmi_devtype dev_type);
+void inno_dw_hdmi_set_domain(void *grf, int status);
+void dw_hdmi_set_iomux(void *grf, int dev_type);
 
 #endif /* _ROCKCHIP_HDMI_H_ */

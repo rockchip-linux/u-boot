@@ -11,6 +11,7 @@
 #include <libfdt.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
+#include <linux/hdmi.h>
 #include <linux/list.h>
 #include <linux/compat.h>
 #include <linux/media-bus-format.h>
@@ -150,7 +151,7 @@ static int connector_phy_init(struct display_state *state)
 	ret = uclass_get_device_by_phandle(UCLASS_PHY, conn_state->dev, "phys",
 					   &dev);
 	if (ret) {
-		debug("Warn: can't find phy driver\n");
+		printf("Warn: can't find phy driver\n");
 		return 0;
 	}
 
@@ -168,7 +169,6 @@ static int connector_phy_init(struct display_state *state)
 		printf("failed to init phy driver\n");
 		return -EINVAL;
 	}
-
 	conn_state->phy = phy;
 	return 0;
 }
@@ -405,6 +405,62 @@ void drm_mode_set_crtcinfo(struct drm_display_mode *p, int adjust_flags)
 	p->crtc_hblank_end = max(p->crtc_hsync_end, p->crtc_htotal);
 }
 
+/**
+ * drm_mode_is_420_only - if a given videomode can be only supported in YCBCR420
+ * output format
+ *
+ * @connector: drm connector under action.
+ * @mode: video mode to be tested.
+ *
+ * Returns:
+ * true if the mode can be supported in YCBCR420 format
+ * false if not.
+ */
+bool drm_mode_is_420_only(const struct drm_display_info *display,
+			  struct drm_display_mode *mode)
+{
+	u8 vic = drm_match_cea_mode(mode);
+
+	return test_bit(vic, display->hdmi.y420_vdb_modes);
+}
+
+/**
+ * drm_mode_is_420_also - if a given videomode can be supported in YCBCR420
+ * output format also (along with RGB/YCBCR444/422)
+ *
+ * @display: display under action.
+ * @mode: video mode to be tested.
+ *
+ * Returns:
+ * true if the mode can be support YCBCR420 format
+ * false if not.
+ */
+bool drm_mode_is_420_also(const struct drm_display_info *display,
+			  struct drm_display_mode *mode)
+{
+	u8 vic = drm_match_cea_mode(mode);
+
+	return test_bit(vic, display->hdmi.y420_cmdb_modes);
+}
+
+/**
+ * drm_mode_is_420 - if a given videomode can be supported in YCBCR420
+ * output format
+ *
+ * @display: display under action.
+ * @mode: video mode to be tested.
+ *
+ * Returns:
+ * true if the mode can be supported in YCBCR420 format
+ * false if not.
+ */
+bool drm_mode_is_420(const struct drm_display_info *display,
+		     struct drm_display_mode *mode)
+{
+	return drm_mode_is_420_only(display, mode) ||
+		drm_mode_is_420_also(display, mode);
+}
+
 static int display_get_timing(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -526,7 +582,6 @@ static int display_init(struct display_state *state)
 		if (ret)
 			goto deinit;
 	}
-
 	state->is_init = 1;
 
 	return 0;
@@ -1173,7 +1228,6 @@ static int rockchip_display_probe(struct udevice *dev)
 			continue;
 		}
 		list_add_tail(&s->head, &rockchip_display_list);
-
 	}
 
 	if (list_empty(&rockchip_display_list)) {

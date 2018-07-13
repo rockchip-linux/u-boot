@@ -22,6 +22,12 @@ static const struct rockchip_phy rockchip_inno_mipi_dphy_data = {
 };
 #endif
 
+#ifdef CONFIG_ROCKCHIP_INNO_HDMI_PHY
+static const struct rockchip_phy rockchip_inno_hdmi_phy_data = {
+	 .funcs = &inno_hdmi_phy_funcs,
+};
+#endif
+
 static const struct udevice_id rockchip_phy_ids[] = {
 #ifdef CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI
 	{
@@ -44,6 +50,17 @@ static const struct udevice_id rockchip_phy_ids[] = {
 		.compatible = "rockchip,rv1108-mipi-dphy",
 		.data = (ulong)&rockchip_inno_mipi_dphy_data,
 	},
+#endif
+#ifdef CONFIG_ROCKCHIP_INNO_HDMI_PHY
+	{
+	 .compatible = "rockchip,rk3328-hdmi-phy",
+	 .data = (ulong)&rockchip_inno_hdmi_phy_data,
+	},
+	{
+	 .compatible = "rockchip,rk3228-hdmi-phy",
+	 .data = (ulong)&rockchip_inno_hdmi_phy_data,
+	},
+
 #endif
 	{}
 };
@@ -104,4 +121,32 @@ unsigned long rockchip_phy_set_pll(struct display_state *state,
 	}
 
 	return phy->funcs->set_pll(state, rate);
+}
+
+void rockchip_phy_set_bus_width(struct display_state *state, u32 bus_width)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_phy *phy =
+		(struct rockchip_phy *)conn_state->phy;
+
+	if (!phy || !phy->funcs || !phy->funcs->set_bus_width) {
+		debug("%s: failed to find phy set_bus_width funcs\n", __func__);
+		return;
+	}
+
+	return phy->funcs->set_bus_width(state, bus_width);
+}
+
+long rockchip_phy_round_rate(struct display_state *state, unsigned long rate)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_phy *phy =
+		(struct rockchip_phy *)conn_state->phy;
+
+	if (!phy || !phy->funcs || !phy->funcs->round_rate) {
+		debug("%s: failed to find phy round_rate funcs\n", __func__);
+		return -ENODEV;
+	}
+
+	return phy->funcs->round_rate(state, rate);
 }

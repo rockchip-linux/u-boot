@@ -36,7 +36,7 @@
 #define DRM_MODE_FLAG_PIXMUX			(1 << 11)
 #define DRM_MODE_FLAG_DBLCLK			(1 << 12)
 #define DRM_MODE_FLAG_CLKDIV2			(1 << 13)
-#define DRM_MODE_FLAG_PPIXDATA			(1 << 31)
+#define DRM_MODE_FLAG_PPIXDATA                  BIT(31)
 
 #define DRM_MODE_CONNECTOR_Unknown	0
 #define DRM_MODE_CONNECTOR_VGA		1
@@ -124,7 +124,8 @@ enum v4l2_colorspace {
 #define CRTC_STEREO_DOUBLE	(1 << 1) /* adjust timings for stereo modes */
 #define CRTC_NO_DBLSCAN		(1 << 2) /* don't adjust doublescan */
 #define CRTC_NO_VSCAN		(1 << 3) /* don't adjust doublescan */
-#define CRTC_STEREO_DOUBLE_ONLY	(CRTC_STEREO_DOUBLE | CRTC_NO_DBLSCAN | CRTC_NO_VSCAN)
+#define CRTC_STEREO_DOUBLE_ONLY	(CRTC_STEREO_DOUBLE | CRTC_NO_DBLSCAN | \
+				 CRTC_NO_VSCAN)
 
 #define DRM_MODE_FLAG_3D_MAX	DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF
 
@@ -160,6 +161,7 @@ struct drm_display_mode {
 	int crtc_vsync_start;
 	int crtc_vsync_end;
 	int crtc_vtotal;
+	bool invalid;
 };
 
 #endif

@@ -21,6 +21,14 @@ config DRM_ROCKCHIP_DW_HDMI
 	 for the Synopsys DesignWare HDMI driver. If you want to
 	 enable HDMI on, you should selet this option.
 
+config ROCKCHIP_INNO_HDMI_PHY
+	bool "Rockchip specific extensions for INNO HDMI PHY"
+	depends on DRM_ROCKCHIP
+	help
+	 This selects support for INNO HDMI PHY. If you want to
+	 use HDMI or TVE in RK322XH or RK322X, you should selet
+	 this option.
+
 config DRM_ROCKCHIP_MIPI_DSI
 	bool
 
