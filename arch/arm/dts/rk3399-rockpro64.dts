@@ -162,6 +162,7 @@
 		regulator-name = "vdd_log";
 		regulator-always-on;
 		regulator-boot-on;
+		regulator-init-microvolt = <900000>;
 		regulator-min-microvolt = <800000>;
 		regulator-max-microvolt = <1400000>;
 	};

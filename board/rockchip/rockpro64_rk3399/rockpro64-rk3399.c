@@ -51,28 +51,16 @@ int board_init(void)
 		goto out;
 	}
 
-	/* Enable pwm0 for panel backlight */
-	ret = pinctrl_request_noflags(pinctrl, PERIPH_ID_PWM0);
-	if (ret) {
-		debug("%s PWM0 pinctrl init fail! (ret=%d)\n", __func__, ret);
-		goto out;
-	}
-
 	ret = pinctrl_request_noflags(pinctrl, PERIPH_ID_PWM2);
 	if (ret) {
 		debug("%s PWM2 pinctrl init fail!\n", __func__);
 		goto out;
 	}
 
-	ret = pinctrl_request_noflags(pinctrl, PERIPH_ID_PWM3);
+	ret = regulators_enable_boot_on(true);
 	if (ret) {
-		debug("%s PWM3 pinctrl init fail!\n", __func__);
-		goto out;
-	}
-
-	ret = regulators_enable_boot_on(false);
-	if (ret)
 		debug("%s: Cannot enable boot on regulator\n", __func__);
+	}
 
 	fix_usb2_vbus_pull_mode();
 
