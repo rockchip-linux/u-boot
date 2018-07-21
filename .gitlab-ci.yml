@@ -44,5 +44,4 @@ build:
       github-release edit \
         --tag "${RELEASE_NAME}" \
         --name "${RELEASE_TITLE}" \
-        --description "${DESCRIPTION}" \
-        --pre-release
+        --description "${DESCRIPTION}"
