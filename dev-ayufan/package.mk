@@ -1,6 +1,6 @@
 .PHONY: u-boot-package
 u-boot-package: $(UBOOT_LOADERS)
-	fpm -s dir -t deb -n u-boot-rockchip-$(BOARD_TARGET) -v $(RELEASE_NAME) \
+	fpm -s dir -t deb -n u-boot-rockchip-$(BOARD_TARGET)-$(RELEASE_NAME) -v $(RELEASE_NAME) \
 		-p u-boot-rockchip-$(BOARD_TARGET)-$(RELEASE_NAME).deb \
 		--deb-priority optional --category admin \
 		--force \
@@ -8,9 +8,9 @@ u-boot-package: $(UBOOT_LOADERS)
 		--depends mtd-utils \
 		--deb-compression bzip2 \
 		--deb-field "Multi-Arch: foreign" \
-		--deb-field "Replaces: u-boot-virtual" \
-		--deb-field "Conflicts: u-boot-virtual" \
-		--deb-field "Provides: u-boot-virtual" \
+		--deb-field "Replaces: u-boot-virtual, u-boot-rockchip-$(BOARD_TARGET)" \
+		--deb-field "Conflicts: u-boot-virtual, u-boot-rockchip-$(BOARD_TARGET)" \
+		--deb-field "Provides: u-boot-virtual, u-boot-rockchip-$(BOARD_TARGET)" \
 		--after-install dev-ayufan/scripts/postinst.deb \
 		--before-remove dev-ayufan/scripts/prerm.deb \
 		--url https://gitlab.com/ayufan-rock64/linux-build \
