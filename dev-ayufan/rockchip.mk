@@ -1,17 +1,17 @@
 .PHONY: loader-download-mode
-loader-download-mode:
+loader-download-mode: $(LOADER_BIN)
 	rkdeveloptool db $(LOADER_BIN)
 	sleep 1s
 
 .PHONY: loader-boot		# boot loader over USB
-loader-boot: $(UBOOT_LOADERS)
-	make loader-download-mode
+loader-boot: $(UBOOT_LOADERS) $(UBOOT_TPL) $(UBOOT_SPL)
+	./dev-make loader-download-mode
 	rkdeveloptool rid
 	dd if=/dev/zero of=$(UBOOT_OUTPUT_DIR)/clear.img count=1
 	rkdeveloptool wl 64 $(UBOOT_OUTPUT_DIR)/clear.img
 	rkdeveloptool wl 512 $(UBOOT_OUTPUT_DIR)/u-boot.itb
 
-ifneq (rk3399,$(BOARD_CHIP))
+ifeq (rk3399,$(BOARD_CHIP))
 	@echo Restart device and press ENTER
 	@read XX
 	sleep 3s
@@ -20,24 +20,16 @@ else
 	sleep 1s
 endif
 
-ifneq (,$(USE_UBOOT_SPL))
-	cat $(UBOOT_OUTPUT_DIR)/spl/u-boot-spl.bin | openssl rc4 -K 7c4e0304550509072d2c7b38170d1711 | rkflashtool l
-else
-ifneq (,$(USE_UBOOT_TPL))
-	cat $(UBOOT_OUTPUT_DIR)/tpl/u-boot-tpl.bin | openssl rc4 -K 7c4e0304550509072d2c7b38170d1711 | rkflashtool l
-else
-	cat $(DDR) | openssl rc4 -K 7c4e0304550509072d2c7b38170d1711 | rkflashtool l
+ifneq (,$(UBOOT_TPL))
+	cat $(UBOOT_TPL) | openssl rc4 -K 7c4e0304550509072d2c7b38170d1711 | rkflashtool l
 endif
-ifneq (,$(USE_MINILOADER))
-	cat $(MINILOADER_BIN) | openssl rc4 -K 7c4e0304550509072d2c7b38170d1711 | rkflashtool L
-else
-	cat $(UBOOT_OUTPUT_DIR)/spl/u-boot-spl.bin | openssl rc4 -K 7c4e0304550509072d2c7b38170d1711 | rkflashtool L
-endif
+ifneq (,$(UBOOT_SPL))
+	cat $(UBOOT_SPL) | openssl rc4 -K 7c4e0304550509072d2c7b38170d1711 | rkflashtool L
 endif
 
 .PHONY: loader-flash		# flash loader to the device
-loader-flash: $(UBOOT_OUTPUT_DIR)/idbloader.img
-	make loader-download-mode
+loader-flash: $(UBOOT_LOADERS)
+	./dev-make loader-download-mode
 	sleep 1s
 	rkdeveloptool rid
 	rkdeveloptool wl 64 $<
@@ -46,7 +38,7 @@ loader-flash: $(UBOOT_OUTPUT_DIR)/idbloader.img
 .PHONY: loader-wipe		# clear loader
 loader-wipe:
 	dd if=/dev/zero of=$(UBOOT_OUTPUT_DIR)/clear.img count=1
-	make loader-download-mode
+	./dev-make loader-download-mode
 	sleep 1s
 	rkdeveloptool rid
 	rkdeveloptool wl 64 $(UBOOT_OUTPUT_DIR)/clear.img
