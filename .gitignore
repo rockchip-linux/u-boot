@@ -50,6 +50,7 @@ fit-dtb.blob
 /spl/
 /tpl/
 /defconfig
+/tmp/
 
 #
 # Generated include files
