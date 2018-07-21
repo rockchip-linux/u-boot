@@ -12,15 +12,14 @@ if ! which nandwrite &>/dev/null; then
     exit 1
 fi
 
-BOARD=
-if grep -qi rockpro64 /proc/device-tree/compatible || grep -qi rockpro64 /etc/flash-kernel/machine; then
+if dpkg -s "u-boot-rockchip-rockpro64" &>/dev/null; then
     BOARD=rockpro64
     LOADER_NAME=rkspi_loader
-elif grep -qi rock64 /proc/device-tree/compatible || grep -qi rock64 /etc/flash-kernel/machine; then
+elif dpkg -s "u-boot-rockchip-rock64" &>/dev/null; then
     BOARD=rock64
     LOADER_NAME=rksd_loader
 else
-    exit "Unknown board."
+    exit "Unknown package installed."
     exit 1
 fi
 
@@ -34,6 +33,13 @@ echo "Doing this will overwrite data stored on SPI Flash"
 echo "  and it will require that you use eMMC or SD"
 echo "  as your boot device."
 echo ""
+
+if ! ( grep -qi "$BOARD" /proc/device-tree/compatible || grep -qi "$BOARD" /etc/flash-kernel/machine ); then
+    echo "You are currently running on different board ($(cat /proc/device-tree/model))."
+    echo "It may brick your device or the system unless"
+    echo "you know what are you doing."
+    echo ""
+fi
 
 while true; do
     echo "Type YES to continue or Ctrl-C to abort."
