@@ -8,7 +8,8 @@ u-boot-package: $(UBOOT_LOADERS)
 		--depends mtd-utils \
 		--deb-compression bzip2 \
 		--deb-field "Multi-Arch: foreign" \
-		--deb-field "Conflicts: u-boot-$(BOARD_TARGET), u-boot-rockchip" \
+		--deb-field "Replaces: u-boot-virtual" \
+		--deb-field "Conflicts: u-boot-virtual" \
 		--deb-field "Provides: u-boot-virtual" \
 		--after-install dev-ayufan/scripts/postinst.deb \
 		--before-remove dev-ayufan/scripts/prerm.deb \
