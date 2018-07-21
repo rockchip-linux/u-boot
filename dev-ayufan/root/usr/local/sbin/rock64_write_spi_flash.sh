@@ -34,8 +34,9 @@ echo "  and it will require that you use eMMC or SD"
 echo "  as your boot device."
 echo ""
 
-if ! ( grep -qi "$BOARD" /proc/device-tree/compatible || grep -qi "$BOARD" /etc/flash-kernel/machine ); then
-    echo "You are currently running on different board ($(cat /proc/device-tree/model))."
+if ! grep -qi "$BOARD" /proc/device-tree/compatible; then
+    echo "You are currently running on different board:"
+    cat /proc/device-tree/model
     echo "It may brick your device or the system unless"
     echo "you know what are you doing."
     echo ""

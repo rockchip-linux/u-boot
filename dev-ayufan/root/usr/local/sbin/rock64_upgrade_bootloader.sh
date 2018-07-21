@@ -29,8 +29,9 @@ echo "If this happens you will have to manually fix that outside of your Rock64.
 echo "If you are booting from SPI. You have to use 'rock64_write_spi_flash.sh'."
 echo ""
 
-if ! ( grep -qi "$BOARD" /proc/device-tree/compatible || grep -qi "$BOARD" /etc/flash-kernel/machine ); then
-    echo "You are currently running on different board ($(cat /proc/device-tree/model))."
+if ! grep -qi "$BOARD" /proc/device-tree/compatible; then
+    echo "You are currently running on different board:"
+    cat /proc/device-tree/model
     echo "It may brick your device or the system unless"
     echo "you know what are you doing."
     echo ""
