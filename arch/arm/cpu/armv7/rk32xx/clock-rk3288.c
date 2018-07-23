@@ -1106,7 +1106,7 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dcl
 		// vio0 and vio linit freq select
 		vio_limit_freq = (lcdc_id != 0) ? RK3288_LIMIT_PLL_VIO1 : RK3288_LIMIT_PLL_VIO0;
 
-		div = DIV_ROUND_UP(vio_limit_freq, rate_hz);
+		div = vio_limit_freq / rate_hz;
 		pll_hz = div * rate_hz;
 #ifdef CONFIG_PRODUCT_BOX
 		if (pll_hz == CONFIG_RKCLK_CPLL_FREQ * MHZ)
@@ -1138,13 +1138,18 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 {
 	uint32 pll_src;
 	uint32 aclk_div, dclk_div;
+	uint32 vio_limit_freq;
 
 	pll_src = rkclk_lcdc_dclk_to_pll(lcdc_id, dclk_hz, &dclk_div);
 	rkclk_lcdc_dclk_config(lcdc_id, pll_src, dclk_div);
-	if (pll_src != 0) /* gpll */
+
+	if (pll_src != 0) {/* gpll */
 		aclk_div = rkclk_calc_clkdiv(gd->bus_clk, 300 * MHZ, 0);
-	else /* cpll */
-		aclk_div = 1;
+	} else { /* cpll */
+		vio_limit_freq = (lcdc_id != 0) ?
+				 RK3288_LIMIT_PLL_VIO1 : RK3288_LIMIT_PLL_VIO0;
+		aclk_div = rkclk_calc_clkdiv(gd->pci_clk, vio_limit_freq, 0);
+	}
 
 	rkclk_lcdc_aclk_config(lcdc_id, pll_src, aclk_div);
 	/* when set lcdc0, should vio hclk */
