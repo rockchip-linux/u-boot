@@ -612,6 +612,9 @@ static int analogix_dp_config_video(struct analogix_dp_device *dp)
 	/* Configure video slave mode */
 	analogix_dp_enable_video_master(dp, 0);
 
+	/* Enable video input */
+	analogix_dp_start_video(dp);
+
 	timeout_loop = 0;
 
 	for (;;) {
@@ -985,9 +988,6 @@ static int rockchip_analogix_dp_enable(struct display_state *state)
 	ret = analogix_dp_config_video(dp);
 	if (ret)
 		pr_err("unable to config video\n");
-
-	/* Enable video */
-	analogix_dp_start_video(dp);
 
 	return 0;
 }
