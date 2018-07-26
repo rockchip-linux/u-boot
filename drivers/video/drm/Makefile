@@ -17,3 +17,4 @@ obj-$(CONFIG_DRM_ROCKCHIP_ANALOGIX_DP) += analogix_dp.o analogix_dp_reg.o
 obj-$(CONFIG_DRM_ROCKCHIP_LVDS) += rockchip_lvds.o
 obj-$(CONFIG_DRM_ROCKCHIP_RGB) += rockchip_rgb.o
 obj-$(CONFIG_DRM_ROCKCHIP_PANEL) += rockchip_panel.o
+obj-$(CONFIG_DRM_ROCKCHIP_RK618) += rk618.o rk618_lvds.o
