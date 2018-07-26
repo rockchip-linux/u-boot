@@ -8,9 +8,9 @@ u-boot-package: $(UBOOT_LOADERS)
 		--depends mtd-utils \
 		--deb-compression bzip2 \
 		--deb-field "Multi-Arch: foreign" \
-		--deb-field "Replaces: u-boot-virtual, u-boot-rockchip-$(BOARD_TARGET)" \
-		--deb-field "Conflicts: u-boot-virtual, u-boot-rockchip-$(BOARD_TARGET)" \
-		--deb-field "Provides: u-boot-virtual, u-boot-rockchip-$(BOARD_TARGET)" \
+		--deb-field "Replaces: u-boot-virtual, u-boot-rockchip, u-boot-$(BOARD_TARGET), u-boot-rockchip-$(BOARD_TARGET)" \
+		--deb-field "Conflicts: u-boot-virtual, u-boot-rockchip, u-boot-$(BOARD_TARGET), u-boot-rockchip-$(BOARD_TARGET)" \
+		--deb-field "Provides: u-boot-virtual, u-boot-rockchip, u-boot-$(BOARD_TARGET), u-boot-rockchip-$(BOARD_TARGET)" \
 		--after-install dev-ayufan/scripts/postinst.deb \
 		--before-remove dev-ayufan/scripts/prerm.deb \
 		--url https://gitlab.com/ayufan-rock64/linux-build \
