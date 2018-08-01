@@ -147,8 +147,13 @@ int main (int argc, char *argv[])
 				in_loader_addr = str2hex(argv[++i]);
 		} else if (!strcmp(argv[i], OPT_SIZE)) {
 			in_size = strtoul(argv[++i], NULL, 10);
-			/* Must be 512kb align due to preloader detects every 512kb */
-			if (in_size % 512) {
+			/*
+			 * Usually, it must be at 512kb align due to preloader
+			 * detects every 512kb. But some product has critial
+			 * flash size requirement, we have to make it small than
+			 * 512KB.
+			 */
+			if (in_size % 64) {
 				usage(argv[0]);
 				exit(EXIT_FAILURE);
 			}
