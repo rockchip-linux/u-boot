@@ -830,7 +830,7 @@ static void printHelp(void)
 	printf("\t" OPT_REPLACE "\t\tReplace some part of binary path.\n");
 	printf("\t" OPT_RSA "\t\t\tRSA mode.\"--rsa [mode]\", [mode] can be: 0(none), 1(1024), 2(2048), 3(2048 pss).\n");
 	printf("\t" OPT_SHA "\t\t\tSHA mode.\"--sha [mode]\", [mode] can be: 0(none), 1(160), 2(256 RK big endian), 3(256 little endian).\n");
-	printf("\t" OPT_SIZE "\t\t\tTrustImage size.\"--size [per image KB size] [copy count]\", per image must be 512KB aligned\n");
+	printf("\t" OPT_SIZE "\t\t\tTrustImage size.\"--size [per image KB size] [copy count]\", per image must be 64KB aligned\n");
 }
 
 int main(int argc, char **argv)
@@ -881,8 +881,13 @@ int main(int argc, char **argv)
 			/* Per trust image size */
 			g_trust_max_size =
 				strtoul(argv[++i], NULL, 10);
-			/* Must be 512kb align due to preloader detects every 512kb */
-			if (g_trust_max_size % 512) {
+			/*
+			 * Usually, it must be at 512kb align due to preloader
+			 * detects every 512kb. But some product has critial
+			 * flash size requirement, we have to make it small than
+			 * 512KB.
+			 */
+			if (g_trust_max_size % 64) {
 				printHelp();
 				return -1;
 			}
