@@ -316,6 +316,9 @@ static void px30_output_lvds(struct display_state *state)
 
 	lvds_writel(lvds, MIPIPHY_REGE8, 0xfc);
 
+	lvds_msk_reg(lvds, MIPIPHY_REG8,
+		     m_SAMPLE_CLK_DIR, v_SAMPLE_CLK_DIR_REVERSE);
+
 	/* set lvds mode and reset phy config */
 	lvds_msk_reg(lvds, MIPIPHY_REGE0,
 		     m_MSB_SEL | m_DIG_INTER_RST,
