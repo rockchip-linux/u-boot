@@ -924,9 +924,6 @@ static void dw_mipi_dsi_dpi_config(struct dw_mipi_dsi *dsi,
 	if (mode->flags & DRM_MODE_FLAG_NHSYNC)
 		val |= HSYNC_ACTIVE_LOW;
 
-	if (dsi->pdata->soc_type == RK3126)
-		val ^= VSYNC_ACTIVE_LOW;
-
 	dsi_write(dsi, DSI_DPI_VCID, DPI_VID(dsi->channel));
 	dsi_write(dsi, DSI_DPI_COLOR_CODING, color);
 	dsi_write(dsi, DSI_DPI_CFG_POL, val);
