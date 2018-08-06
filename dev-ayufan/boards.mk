@@ -15,8 +15,8 @@ LOADERS ?= rksd_loader
 else ifeq (rockpro64,$(BOARD_TARGET))
 
 UBOOT_DEFCONFIG ?= rockpro64-rk3399_defconfig
-UBOOT_TPL ?= tmp/rkbin/rk33/rk3399_ddr_800MHz_v1.12.bin
-BL31 ?= tmp/rkbin/rk33/rk3399_bl31_v1.16.elf
+UBOOT_TPL ?= tmp/rkbin/rk33/rk3399_ddr_933MHz_v1.13.bin
+BL31 ?= tmp/rkbin/rk33/rk3399_bl31_v1.17.elf
 BOARD_CHIP ?= rk3399
 LOADER_BIN ?= tmp/rkbin/rk33/rk3399_loader_v1.10.112_support_1CS.bin
 USE_SEPARATE_SPIFLASH ?= true
