@@ -28,4 +28,7 @@
 		"stdout=serial,vidconsole\0" \
 		"stderr=serial,vidconsole\0"
 
+#undef CONFIG_SYS_SPI_U_BOOT_OFFS
+#define CONFIG_SYS_SPI_U_BOOT_OFFS	1024 * 512
+
 #endif
