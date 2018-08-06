@@ -32,7 +32,10 @@ $(UBOOT_OUTPUT_DIR)/rkspi_loader.img: $(UBOOT_OUTPUT_DIR)/u-boot.itb $(UBOOT_TPL
 ifneq (,$(UBOOT_TPL))
 	cat $(UBOOT_SPL) >> $@.tmp
 endif
-	dd if=$(UBOOT_OUTPUT_DIR)/u-boot.itb of=$@.tmp seek=$$((0x200-64)) conv=notrunc
+	# pad every 2k with 2k of zeros
+	for i in $$(seq 1 128); do dd count=4 status=none; dd if=/dev/zero count=4 status=none; done < $@.tmp > $@.tmp2
+	mv $@.tmp2 $@.tmp
+	dd if=$(UBOOT_OUTPUT_DIR)/u-boot.itb of=$@.tmp seek=$$((0x400)) conv=notrunc
 	mv $@.tmp $@
 
 .PHONY: u-boot-menuconfig		# edit u-boot config and save as defconfig

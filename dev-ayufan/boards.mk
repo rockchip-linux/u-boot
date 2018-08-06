@@ -20,6 +20,7 @@ BL31 ?= tmp/rkbin/rk33/rk3399_bl31_v1.16.elf
 BOARD_CHIP ?= rk3399
 LOADER_BIN ?= tmp/rkbin/rk33/rk3399_loader_v1.10.112_support_1CS.bin
 USE_SEPARATE_SPIFLASH ?= true
+IMAGES ?= flash-spi erase-spi
 LOADERS ?= rksd_loader rkspi_loader
 
 else

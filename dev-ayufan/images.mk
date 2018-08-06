@@ -9,7 +9,7 @@ $(UBOOT_OUTPUT_DIR)/%/boot.img: $(UBOOT_OUTPUT_DIR)/%/boot.scr $(UBOOT_LOADERS)
 	mv $@.tmp $@
 
 u-boot-%-$(BOARD_TARGET).img: $(UBOOT_OUTPUT_DIR)/%/boot.img $(UBOOT_LOADERS)
-	dd if=/dev/zero of=$@.tmp bs=1M count=128
+	dd if=/dev/zero of=$@.tmp bs=1M count=16
 	parted -s $@.tmp mklabel gpt
 	parted -s $@.tmp unit s mkpart bootloader 64 8127
 	parted -s $@.tmp unit s mkpart boot fat16 8192 100%
