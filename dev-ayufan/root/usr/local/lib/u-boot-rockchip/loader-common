@@ -1,0 +1,64 @@
+#!/bin/bash
+
+if [[ "$(id -u)" -ne "0" ]]; then
+    echo "This script requires root."
+    exit 1
+fi
+
+if ! which nandwrite &>/dev/null; then
+    echo "Install mtd-utils with 'apt-get install mtd-utils'"
+    exit 1
+fi
+
+if ! which flash_erase &>/dev/null; then
+    echo "Install mtd-utils with 'apt-get install mtd-utils'"
+    exit 1
+fi
+
+if ! PACKAGE_NAME=$(dpkg -S "$0" | cut -d: -f1); then
+    exit "Unknown package installed."
+    exit 1
+fi
+
+if ! debsums -s "${PACKAGE_NAME}"; then
+    echo "Verification of '${PACKAGE_NAME}' failed."
+    echo "Your disk might have got corrupted."
+    exit 1
+fi
+
+case "$PACKAGE_NAME" in
+    *-rockchip-rock64-*)
+        SD_LOADER=/usr/lib/u-boot-rock64/rksd_loader.img
+        SPI_LOADER=/usr/lib/u-boot-rock64/rksd_loader.img
+        BOARD=rock64
+        ;;
+
+    *-rockchip-rockpro64-*)
+        SD_LOADER=/usr/lib/u-boot-rockpro64/rksd_loader.img
+        SPI_LOADER=/usr/lib/u-boot-rockpro64/rkspi_loader.img
+        BOARD=rockpro64
+        ;;
+
+    *)
+        echo "Cannot detect board from $PACKAGE_NAME."
+        exit 1
+        ;;
+esac
+
+if ! grep -qi "$BOARD" /proc/device-tree/compatible; then
+    echo "You are currently running on different board:"
+    cat /proc/device-tree/model || true
+    echo "It may brick your device or the system unless"
+    echo "you know what are you doing."
+    echo ""
+fi
+
+confirm() {
+    while true; do
+        echo "Type YES to continue or Ctrl-C to abort."
+        read CONFIRM
+        if [[ "$CONFIRM" == "YES" ]]; then
+            break
+        fi
+    done
+}
