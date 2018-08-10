@@ -1127,6 +1127,33 @@ static uint32 rkclk_lcdc_dclk_to_pll(uint32 lcdc_id, uint32 rate_hz, uint32 *dcl
 	}
 }
 
+static uint32 rkclk_lcdc_get_aclk(uint32 lcdc_id)
+{
+	uint32 con, parent, div, sel;
+
+	if (lcdc_id) {
+		con = cru_readl(CRU_CLKSELS_CON(31));
+		div = (con & (0x1f << 8)) >> 8;
+		sel = (con & (0x3 << 14)) >> 14;
+		if (sel == 0)
+			parent = rkclk_pll_get_rate(CPLL_ID);
+		else if (sel == 1)
+			parent = rkclk_pll_get_rate(GPLL_ID);
+		else
+			parent = 480000000;
+	} else {
+		con = cru_readl(CRU_CLKSELS_CON(31));
+		div = (con & (0x1f << 0)) >> 0;
+		sel = (con & (0x3 << 6)) >> 6;
+		if (sel == 0)
+			parent = rkclk_pll_get_rate(CPLL_ID);
+		else if (sel == 1)
+			parent = rkclk_pll_get_rate(GPLL_ID);
+		else
+			parent = 480000000;
+	}
+	return parent / div;
+}
 
 /*
  * rkplat lcdc dclk and aclk parent pll source
@@ -1154,18 +1181,18 @@ int rkclk_lcdc_clk_set(uint32 lcdc_id, uint32 dclk_hz)
 	rkclk_lcdc_aclk_config(lcdc_id, pll_src, aclk_div);
 	/* when set lcdc0, should vio hclk */
 	if (lcdc_id == 0) {
-		uint32 pll_hz;
 		uint32 hclk_div;
 
 		/* rk3288 eco chip, also set lcdc1 aclk for isp aclk0 and aclk1 should same source */
 		rkclk_lcdc_aclk_config(1, pll_src, aclk_div);
 
-		if (pll_src == 0)
-			pll_hz = rkclk_pll_get_rate(CPLL_ID);
+		if (readl(RKIO_HDMI_PHYS + 0x4) == 0x1A)
+			hclk_div = rkclk_calc_clkdiv(rkclk_lcdc_get_aclk(1),
+						     100 * MHZ, 0);
 		else
-			pll_hz = rkclk_pll_get_rate(GPLL_ID);
+			hclk_div = rkclk_calc_clkdiv(rkclk_lcdc_get_aclk(0),
+						     100 * MHZ, 0);
 
-		hclk_div = rkclk_calc_clkdiv(pll_hz, 100 * MHZ, 0);
 		rkclk_vio_hclk_set(lcdc_id, hclk_div);
 	}
 
