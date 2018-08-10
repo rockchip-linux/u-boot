@@ -1,5 +1,4 @@
 CC 		= gcc
-STRIP = strip -s --remove-section=.note --remove-section=.comment
 TARGET 	= resource_tool
 
 HEADERS = resource_tool.h common.h
@@ -17,7 +16,6 @@ HEADERS += tests.h
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $(OBJS) $(CFLAGS) $(LDFLAGS) $(LIBS)
-	$(STRIP) $@
 
 .PHONY: clean
 clean:
