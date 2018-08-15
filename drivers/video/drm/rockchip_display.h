@@ -64,7 +64,7 @@ struct rockchip_mcu_timing {
 
 struct crtc_state {
 	struct udevice *dev;
-	const struct rockchip_crtc *crtc;
+	struct rockchip_crtc *crtc;
 	void *private;
 	ofnode node;
 	int crtc_id;

@@ -69,3 +69,11 @@ config DRM_ROCKCHIP_RGB
 	help
 	  Choose this option to enable support for Rockchip RGB driver.
 	  say Y to enable its driver.
+
+config ROCKCHIP_DRM_TVE
+	bool "Rockchip TVE Support"
+	depends on DRM_ROCKCHIP
+	help
+	  Choose this option to enable support for Rockchip TVE.
+	  Rockchip rk322x and rk322xh SoC has TVE can be used, and
+	  say Y to enable TVE driver.
