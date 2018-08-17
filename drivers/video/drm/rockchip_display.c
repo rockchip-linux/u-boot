@@ -1229,6 +1229,48 @@ void rockchip_show_logo(void)
 	}
 }
 
+static struct udevice *rockchip_of_find_connector(struct udevice *dev)
+{
+	ofnode conn_node, port, ep;
+	struct udevice *conn_dev;
+	int ret;
+
+	port = dev_read_subnode(dev, "port");
+	if (!ofnode_valid(port))
+		return NULL;
+
+	ofnode_for_each_subnode(ep, port) {
+		ofnode _ep, _port, _ports;
+		uint phandle;
+
+		if (ofnode_read_u32(ep, "remote-endpoint", &phandle))
+			continue;
+
+		_ep = ofnode_get_by_phandle(phandle);
+		if (!ofnode_valid(_ep) || !ofnode_is_available(_ep))
+			continue;
+
+		_port = ofnode_get_parent(_ep);
+		if (!ofnode_valid(_port))
+			continue;
+
+		_ports = ofnode_get_parent(_port);
+		if (!ofnode_valid(_ports))
+			continue;
+
+		conn_node = ofnode_get_parent(_ports);
+		if (!ofnode_valid(conn_node) || !ofnode_is_available(conn_node))
+			continue;
+
+		ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY, conn_node,
+						  &conn_dev);
+		if (!ret)
+			return conn_dev;
+	}
+
+	return NULL;
+}
+
 static int rockchip_display_probe(struct udevice *dev)
 {
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
@@ -1243,7 +1285,6 @@ static int rockchip_display_probe(struct udevice *dev)
 	int ret;
 	ofnode node, route_node;
 	struct device_node *port_node, *vop_node, *ep_node;
-	struct device_node *cnt_node, *p;
 	struct public_phy_data *data;
 
 	/* Before relocation we don't need to do anything */
@@ -1295,28 +1336,12 @@ static int rockchip_display_probe(struct udevice *dev)
 		}
 		crtc = (struct rockchip_crtc *)dev_get_driver_data(crtc_dev);
 
-		phandle = ofnode_read_u32_default(np_to_ofnode(ep_node),
-						  "remote-endpoint", -1);
-		cnt_node = of_find_node_by_phandle(phandle);
-		if (phandle < 0) {
-			printf("Warn: can't find remote-endpoint's handle\n");
-			continue;
-		}
-		while (cnt_node->parent){
-			p = of_get_parent(cnt_node);
-			if (!strcmp(p->full_name, "/"))
-				break;
-			cnt_node = p;
-		}
-		if (!of_device_is_available(cnt_node))
-			continue;
-		ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY,
-						  np_to_ofnode(cnt_node),
-						  &conn_dev);
-		if (ret) {
+		conn_dev = rockchip_of_find_connector(crtc_dev);
+		if (!conn_dev) {
 			printf("Warn: can't find connect driver\n");
 			continue;
 		}
+
 		conn = (const struct rockchip_connector *)dev_get_driver_data(conn_dev);
 
 		s = malloc(sizeof(*s));
@@ -1340,7 +1365,7 @@ static int rockchip_display_probe(struct udevice *dev)
 			s->charge_logo_mode = ROCKCHIP_DISPLAY_CENTER;
 
 		s->blob = blob;
-		s->conn_state.node = np_to_ofnode(cnt_node);
+		s->conn_state.node = conn_dev->node;
 		s->conn_state.dev = conn_dev;
 		s->conn_state.connector = conn;
 		s->conn_state.overscan.left_margin = 100;
