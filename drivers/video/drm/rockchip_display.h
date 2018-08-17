@@ -154,8 +154,8 @@ struct display_state {
 	struct connector_state conn_state;
 	struct panel_state panel_state;
 
-	const char *ulogo_name;
-	const char *klogo_name;
+	char ulogo_name[30];
+	char klogo_name[30];
 
 	struct logo_info logo;
 	int logo_mode;

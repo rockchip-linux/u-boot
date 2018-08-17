@@ -1351,8 +1351,12 @@ static int rockchip_display_probe(struct udevice *dev)
 		memset(s, 0, sizeof(*s));
 
 		INIT_LIST_HEAD(&s->head);
-		ret = ofnode_read_string_index(node, "logo,uboot", 0, &s->ulogo_name);
-		ret = ofnode_read_string_index(node, "logo,kernel", 0, &s->klogo_name);
+		ret = ofnode_read_string_index(node, "logo,uboot", 0, &name);
+		if (!ret)
+			memcpy(s->ulogo_name, name, strlen(name));
+		ret = ofnode_read_string_index(node, "logo,kernel", 0, &name);
+		if (!ret)
+			memcpy(s->klogo_name, name, strlen(name));
 		ret = ofnode_read_string_index(node, "logo,mode", 0, &name);
 		if (!strcmp(name, "fullscreen"))
 			s->logo_mode = ROCKCHIP_DISPLAY_FULLSCREEN;
