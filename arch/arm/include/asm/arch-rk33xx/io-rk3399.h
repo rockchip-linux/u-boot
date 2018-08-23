@@ -45,7 +45,7 @@
 #define RKIO_UART1_PHYS                 0xFF190000
 #define RKIO_UART2_PHYS                 0xFF1A0000
 #define RKIO_UART3_PHYS                 0xFF1B0000
-#define RKIO_UART4_PHYS                 0xFF3C0000
+#define RKIO_UART4_PHYS                 0xFF370000
 
 #define RKIO_SPI0_PHYS                  0xFF1C0000
 #define RKIO_SPI1_PHYS                  0xFF1D0000
