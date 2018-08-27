@@ -24,7 +24,9 @@ char gNewPath[MAX_LINE_LEN] = {0};
 char gSubfix[MAX_LINE_LEN] = OUT_SUBFIX;
 char gEat[MAX_LINE_LEN];
 char* gConfigPath;
-uint8_t gBuf[MAX_MERGE_SIZE];
+uint8_t *gBuf;
+
+static uint32_t g_merge_max_size = MAX_MERGE_SIZE;
 
 uint32_t gTable_Crc32[256] =
 {
@@ -969,6 +971,7 @@ static void printHelp(void) {
 	printf("\t" OPT_VERSION "\t\tDisplay version information.\n");
 	printf("\t" OPT_SUBFIX "\t\tSpec subfix.\n");
 	printf("\t" OPT_REPLACE "\t\tReplace some part of binary path.\n");
+	printf("\t" OPT_SIZE "\t\tImage size.\"--size [image KB size]\", must be 512KB aligned\n");
 	printf("Usage2: boot_merger [options] [parameter]\n");
 	printf("All below five option are must in this mode!\n");
 	printf("\t" OPT_CHIP "\t\tChip type, used for check with usbplug.\n");
@@ -1011,6 +1014,14 @@ int main(int argc, char** argv) {
 			snprintf(gLegacyPath, sizeof(gLegacyPath), "%s", argv[i]);
 			i++;
 			snprintf(gNewPath, sizeof(gNewPath), "%s", argv[i]);
+		} else if (!strcmp(OPT_SIZE, argv[i])) {
+			g_merge_max_size =
+				strtoul(argv[++i], NULL, 10);
+			if (g_merge_max_size % 512) {
+				printHelp();
+				return -1;
+			}
+			g_merge_max_size *= 1024;	/* bytes */
 		} else {
 			optPath = argv[i];
 			break;
@@ -1019,6 +1030,12 @@ int main(int argc, char** argv) {
 	if (!merge && !optPath) {
 		fprintf(stderr, "need set out path to unpack!\n");
 		printHelp();
+		return -1;
+	}
+
+	gBuf = calloc(g_merge_max_size, 1);
+	if (!gBuf) {
+		LOGE("Merge image: calloc buffer error.\n");
 		return -1;
 	}
 
