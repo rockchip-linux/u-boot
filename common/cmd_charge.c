@@ -616,10 +616,15 @@ static inline void set_brightness(int brightness, screen_state* state) {
 
 int timer1_init(uint64_t count)
 {
+#ifdef CONFIG_RKCHIP_RK3399
+	u32 ctrl_reg = 0x1c;
+#else
+	u32 ctrl_reg = 0x10;
+#endif
 	//1 s interrupt
 	writel(1*CONFIG_SYS_CLK_FREQ, RK_CHARGE_TIMER_BASE);
 	/* auto reload & enable the timer */
-	writel(0x05, RK_CHARGE_TIMER_BASE+0x10);
+	writel(0x05, RK_CHARGE_TIMER_BASE + ctrl_reg);
 
 	writel(0x01, RK_CHARGE_TIMER_BASE+0x18);
 
