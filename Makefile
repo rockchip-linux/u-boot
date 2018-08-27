@@ -977,7 +977,7 @@ ifdef CONFIG_MERGER_TRUSTOS
 endif
 	./tools/loaderimage --pack --uboot u-boot.bin uboot.img
 else
-	./tools/boot_merger --subfix "$(RK_SUBFIX)" ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
+	./tools/boot_merger --subfix "$(RK_SUBFIX)" $(if $(CONFIG_RKCHIP_RK3288), --size 1024) ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
 endif # CONFIG_SECOND_LEVEL_BOOTLOADER
 
 endif # CONFIG_ROCKCHIP
