@@ -155,14 +155,33 @@ static int dir_seek = 0;
 extern const disk_partition_t* get_disk_partition(const char *name);
 extern int StorageReadLba(uint32_t LBA, void *pbuf, uint32_t nSec);
 extern int StorageWriteLba(uint32_t LBA, void *pbuf, uint32_t nSec, uint16_t mode);
-static int rkss_read_section(struct rk_secure_storage *rkss)
+static int rkss_read_multi_sections(unsigned char *data, unsigned long index, unsigned int num)
 {
 	int ret;
 	const disk_partition_t* pt = get_disk_partition("security");
 	if (pt == NULL)
 		return -1;
 
-	ret = StorageReadLba(pt->start + rkss->index, rkss->data, 1);
+	ret = StorageReadLba(pt->start + index, data, num);
+	if (ret < 0)
+		return -1;
+
+	return 0;
+}
+
+static int rkss_read_section(struct rk_secure_storage *rkss)
+{
+	return rkss_read_multi_sections(rkss->data, rkss->index, 1);
+}
+
+static int rkss_write_multi_sections(unsigned char *data, unsigned long index, unsigned int num)
+{
+	int ret;
+	const disk_partition_t* pt = get_disk_partition("security");
+	if (pt == NULL)
+		return -1;
+
+	ret = StorageWriteLba(pt->start + index, data, num, 0);
 	if (ret < 0)
 		return -1;
 
@@ -171,16 +190,22 @@ static int rkss_read_section(struct rk_secure_storage *rkss)
 
 static int rkss_write_section(struct rk_secure_storage *rkss)
 {
+	return  rkss_write_multi_sections(rkss->data, rkss->index, 1);
+}
+
+static int rkss_read_patition_tables(unsigned char *data)
+{
 	int ret;
 	const disk_partition_t* pt = get_disk_partition("security");
 	if (pt == NULL)
 		return -1;
 
-	ret = StorageWriteLba(pt->start + rkss->index, rkss->data, 1, 0);
+	ret = StorageReadLba(pt->start, data, RKSS_PARTITION_TABLE_COUNT);
 	if (ret < 0)
 		return -1;
 
 	return 0;
+
 }
 
 #ifdef DEBUG_RKFSS
@@ -200,17 +225,26 @@ static void rkss_dump(void* data, unsigned int len)
 static void rkss_dump_ptable(void)
 {
 	printf("-------------- DUMP ptable --------------");
-	int i = 0;
+	int i = 0, ret;
+	unsigned char *table_data;
+
+	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	if (table_data == NULL) {
+		printf("malloc table_data fail \n");
+		return;
+	}
+	ret = rkss_read_patition_tables(table_data);
+	if (ret < 0) {
+		printf("rkss_read_patition_tables fail ! ret: %d.", ret);
+		free(table_data);
+		return;
+	}
+
 	for (i = 0; i < RKSS_PARTITION_TABLE_COUNT; i++)
 	{
 		struct rk_secure_storage rkss = {0};
 		rkss.index = i;
-		int ret = rkss_read_section(&rkss);
-		if (ret < 0)
-		{
-			printf("rkss_read_section fail ! ret: %d.", ret);
-			return;
-		}
+		memcpy(rkss.data, table_data + rkss.index * RKSS_DATA_LEN, RKSS_DATA_LEN);
 
 		int n ;
 		for (n = 0; n < RKSS_EACH_FILEFOLDER_COUNT; n++)
@@ -224,6 +258,7 @@ static void rkss_dump_ptable(void)
 					p->index, p->size);
 		}
 	}
+	free(table_data);
 	printf("-------------- DUMP END --------------");
 }
 
@@ -241,63 +276,54 @@ static void rkss_dump_usedflags(void)
 }
 #endif
 
-static int rkss_verify_ptable(struct rk_secure_storage* rkss)
+static int rkss_verify_ptable(unsigned char *table_data)
 {
-	void *vp = (void *)rkss->data;
-	char *cp = (char *)vp;
+	unsigned char *cp, *vp;
+	struct rkss_file_verification *verify;
+	int ret, i;
 
-	if ( rkss->index > RKSS_PARTITION_TABLE_COUNT)
-	{
-		printf("cannot support verifing other section.");
-		return 0;
-	}
+	for (i = 0; i < RKSS_PARTITION_TABLE_COUNT; i++) {
+		cp = table_data + (i * RKSS_DATA_LEN);
+		vp = cp + RKSS_DATA_LEN - sizeof(struct rkss_file_verification);
+		verify = (struct rkss_file_verification *)(void *)vp;
 
-	cp = (char *)(cp + RKSS_DATA_LEN - sizeof(struct rkss_file_verification));
-	struct rkss_file_verification *verify =
-			(struct rkss_file_verification *)(void *)cp;
-
-	if (verify->version != RKSS_VERSION
-			|| verify->checkstr != RKSS_CHECK_STR)
-	{
-		debug("verify [%lu] fail, cleanning ....", rkss->index);
-		memset(rkss->data, 0, sizeof(RKSS_DATA_LEN));
-		verify->checkstr = RKSS_CHECK_STR;
-		verify->version = RKSS_VERSION;
-		int ret = rkss_write_section(rkss);
-		if (ret < 0)
-		{
-			printf("cleanning ptable fail ! ret: %d.", ret);
-			return -1;
+		if (verify->version != RKSS_VERSION
+				|| verify->checkstr != RKSS_CHECK_STR) {
+			printf("verify [%d] fail, cleanning ....", i);
+			memset(cp, 0, RKSS_DATA_LEN);
+			verify->checkstr = RKSS_CHECK_STR;
+			verify->version = RKSS_VERSION;
 		}
-		return 0;
 	}
+	ret = rkss_write_multi_sections(table_data, 0, RKSS_PARTITION_TABLE_COUNT);
+	if (ret < 0) {
+		printf("rkss_write_multi_sections failed!!! ret: %d.", ret);
+		return -1;
+	}
+	debug("verify ptable success.");
 	return 0;
 }
 
-static int rkss_verify_usedflags(struct rk_secure_storage* rkss)
+static int rkss_verify_usedflags(struct rk_secure_storage *rkss)
 {
 	uint8_t *flags = (uint8_t *)rkss->data;
+	int i, duel, flag, n, value, ret;
+	uint8_t *flagw;
 
-	int i = 0;
-	for (i = 0; i < RKSS_PARTITION_TABLE_COUNT + 1; i++)
-	{
-		int duel = *(flags + (int)i/2);
-		int flag = i & 0x1 ? duel & 0x0F : (duel & 0xF0) >> 4;
-		if ( flag != 0x1 )
-		{
+	for (i = 0; i < RKSS_PARTITION_TABLE_COUNT + 1; i++) {
+		duel = *(flags + (int)i/2);
+		flag = i & 0x1 ? duel & 0x0F : (duel & 0xF0) >> 4;
+		if (flag != 0x1) {
 			debug("init usedflags section ...");
 			memset(rkss->data, 0x00, RKSS_DATA_LEN);
-			int n = 0;
-			for (n = 0; n < RKSS_PARTITION_TABLE_COUNT + 1; n++)
-			{
-				uint8_t *flagw = (uint8_t *)rkss->data + (int)n/2;
-				uint8_t value = 0x1;
+			for (n = 0; n < RKSS_PARTITION_TABLE_COUNT + 1; n++) {
+				flagw = (uint8_t *)rkss->data + (int)n/2;
+				value = 0x1;
 				*flagw = n & 0x1 ? (*flagw & 0xF0) | (value & 0x0F) :
 						(*flagw & 0x0F) | (value << 4);
 			}
-			int ret = rkss_write_section(rkss);
-			if (ret < 0)
-			{
+			ret = rkss_write_multi_sections(rkss->data, rkss->index, 1);
+			if (ret < 0) {
 				printf("clean usedflags section failed!!! ret: %d.", ret);
 				return -1;
 			}
@@ -305,6 +331,7 @@ static int rkss_verify_usedflags(struct rk_secure_storage* rkss)
 			return 0;
 		}
 	}
+	debug("rkss_verify_usedflags: sucess.");
 	return 0;
 }
 
@@ -312,36 +339,40 @@ static int rkss_get_fileinfo_by_index(int fd, struct rkss_file_info *pfileinfo)
 {
 	int i = fd / RKSS_EACH_FILEFOLDER_COUNT;
 	int n = fd - (RKSS_EACH_FILEFOLDER_COUNT * i);
-
 	struct rk_secure_storage rkss = {0};
+	int ret;
+	void *pdata;
+	struct rkss_file_info *p;
+
 	rkss.index = i;
-	int ret = rkss_read_section(&rkss);
-	if (ret < 0)
-	{
-		printf("rkss_read_section fail ! ret: %d.", ret);
+	ret = rkss_read_multi_sections(rkss.data, rkss.index, 1);
+	if (ret < 0) {
+		printf("rkss_read_multi_sections fail ! ret: %d.", ret);
 		return -1;
 	}
 
-	void *pdata = rkss.data;
-	struct rkss_file_info *p = (struct rkss_file_info *)pdata;
+	pdata = rkss.data;
+	p = (struct rkss_file_info *)pdata;
 	p += n;
 
-	if (p->used != 1)
-	{
-		printf("error: unused section! ");
+	if (p->used != 1) {
+		debug("error: unused section! ");
 		return -1;
 	}
-
+	debug("rkss_get_fileinfo_by_index p->used = %d p->name=%s p->index=%d p->size=%d \n",
+		p->used, p->name, p->index, p->size);
 	memcpy(pfileinfo, p, sizeof(struct rkss_file_info));
+
 	return 0;
 }
 
 static int rkss_get_fileinfo_by_name(
 		char* filename, struct rkss_file_info *pfileinfo)
 {
-	int i = 0;
+	int i = 0, ret;
 	uint8_t n = 0;
 	unsigned int len;
+	unsigned char *table_data;
 
 	len = strlen(filename);
 	if (len > RKSS_NAME_MAX_LENGTH - 1)
@@ -350,16 +381,23 @@ static int rkss_get_fileinfo_by_name(
 		return -1;
 	}
 
+	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	if (table_data == NULL) {
+		printf("malloc table_data fail \n");
+		return -1;
+	}
+	ret = rkss_read_patition_tables(table_data);
+	if (ret < 0) {
+		printf("rkss_read_patition_tables fail ! ret: %d.", ret);
+		free(table_data);
+		return -1;
+	}
+
 	for (i = 0; i < RKSS_PARTITION_TABLE_COUNT; i++)
 	{
 		struct rk_secure_storage rkss = {0};
 		rkss.index = i;
-		int ret = rkss_read_section(&rkss);
-		if (ret < 0)
-		{
-			printf("rkss_read_section fail ! ret: %d.", ret);
-			return -1;
-		}
+		memcpy(rkss.data, table_data + rkss.index * RKSS_DATA_LEN, RKSS_DATA_LEN);
 
 		for (n = 0; n < RKSS_EACH_FILEFOLDER_COUNT; n++)
 		{
@@ -375,6 +413,7 @@ static int rkss_get_fileinfo_by_name(
 				debug("rkss_get_fileinfo_by_name: hit table[%d/%d], index[%d/%d]",
 						i, RKSS_PARTITION_TABLE_COUNT, n, RKSS_EACH_FILEFOLDER_COUNT);
 				memcpy(pfileinfo, p, sizeof(struct rkss_file_info));
+				free(table_data);
 				return i * RKSS_EACH_FILEFOLDER_COUNT + n;
 			}
 
@@ -403,20 +442,23 @@ static int rkss_get_fileinfo_by_name(
 			} while(cur_inpos && cur_svpos);
 
 			debug("Matched folder: %s", p->name);
+			free(table_data);
 			return -100;
 UNMATCHFOLDER:
 			debug("Unmatched ...");
 		}
 	}
 	debug("rkss_get_fileinfo_by_name: file or dir no found!");
+	free(table_data);
 	return -1;
 }
 
 static int rkss_get_dirs_by_name(char* filename)
 {
-	int i = 0;
+	int i = 0, ret;
 	uint8_t n = 0;
 	unsigned int len;
+	unsigned char *table_data;
 
 	len = strlen(filename);
 	if (len > RKSS_NAME_MAX_LENGTH - 1)
@@ -425,17 +467,24 @@ static int rkss_get_dirs_by_name(char* filename)
 		return -1;
 	}
 
+	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	if (table_data == NULL) {
+		printf("malloc table_data fail \n");
+		return -1;
+	}
+	ret = rkss_read_patition_tables(table_data);
+	if (ret < 0) {
+		printf("rkss_read_patition_tables fail ! ret: %d.", ret);
+		free(table_data);
+		return -1;
+	}
+
 	dir_num = 0;
 	for (i = 0; i < RKSS_PARTITION_TABLE_COUNT; i++)
 	{
 		struct rk_secure_storage rkss = {0};
 		rkss.index = i;
-		int ret = rkss_read_section(&rkss);
-		if (ret < 0)
-		{
-			printf("rkss_read_section fail ! ret: %d.", ret);
-			return -1;
-		}
+		memcpy(rkss.data, table_data + rkss.index * RKSS_DATA_LEN, RKSS_DATA_LEN);
 
 		for (n = 0; n < RKSS_EACH_FILEFOLDER_COUNT; n++)
 		{
@@ -457,13 +506,14 @@ static int rkss_get_dirs_by_name(char* filename)
 				{
 					char *file = p->name + strlen(filename) + 1;
 					char *subdir = strtok(file, "/");
-					printf("found: %s", subdir);
+					debug("found: %s", subdir);
 					strcpy(dir_cache[dir_num], subdir);
 					++dir_num;
 				}
 			}
 		}
 	}
+	free(table_data);
 	return dir_num;
 }
 
@@ -502,95 +552,100 @@ static int rkss_get_empty_section_from_usedflags(int section_size)
 	return -10;
 }
 
-static int rkss_incref_usedflags_section(int index)
+static int rkss_incref_multi_usedflags_sections(unsigned int index, unsigned int num)
 {
-	debug("rkss_incref_usedflags_section :%d", index);
-	if (index >= RKSS_DATA_SECTION_COUNT)
-	{
+	struct rk_secure_storage rkss = {0};
+	int ret, value, i;
+	uint8_t *flag;
+
+	if ((index + num) >= RKSS_DATA_SECTION_COUNT) {
 		printf("index[%d] out of range.", index);
 		return -1;
 	}
 
-	struct rk_secure_storage rkss = {0};
 	rkss.index = RKSS_USEDFLAGS_INDEX;
-	int ret = rkss_read_section(&rkss);
-	if (ret < 0)
-	{
-		printf("rkss_read_section fail ! ret: %d.", ret);
+	ret = rkss_read_multi_sections(rkss.data, rkss.index, 1);
+	if (ret < 0) {
+		printf("rkss_read_multi_sections fail ! ret: %d.", ret);
 		return -1;
 	}
 
-	uint8_t *flag = (uint8_t *)rkss.data + (int)index/2;
-	int value = index & 0x1 ? *flag & 0x0F : (*flag & 0xF0) >> 4;
-	if (++value > 0xF)
-	{
-		printf("reference out of data: %d", value);
-		value = 0xF;
+	for (i = 0; i < num; i++, index++) {
+		flag = (uint8_t *)rkss.data + (int)index/2;
+		value = index & 0x1 ? *flag & 0x0F : (*flag & 0xF0) >> 4;
+		if (++value > 0xF) {
+			printf("reference out of data: %d", value);
+			value = 0xF;
+		}
+		*flag = index & 0x1 ? (*flag & 0xF0) | (value & 0x0F) :
+				(*flag & 0x0F) | (value << 4);
 	}
-	*flag = index & 0x1 ? (*flag & 0xF0) | (value & 0x0F) :
-			(*flag & 0x0F) | (value << 4);
-
-	ret = rkss_write_section(&rkss);
-	if (ret < 0)
-	{
-		printf("rkss_write_section fail ! ret: %d.", ret);
+	ret = rkss_write_multi_sections(rkss.data, rkss.index, 1);
+	if (ret < 0) {
+		printf("rkss_write_multi_sections fail ! ret: %d.", ret);
 		return -1;
 	}
-
 	return 0;
 }
 
-static int rkss_decref_usedflags_section(int index)
+static int rkss_decref_multi_usedflags_sections(unsigned int index, unsigned int num)
 {
-	debug("rkss_decref_usedflags_section :%d", index);
-	if (index >= RKSS_DATA_SECTION_COUNT)
-	{
+	struct rk_secure_storage rkss = {0};
+	int ret, value, i;
+	uint8_t *flag;
+
+	if ((index + num) >= RKSS_DATA_SECTION_COUNT) {
 		printf("index[%d] out of range.", index);
 		return -1;
 	}
 
-	struct rk_secure_storage rkss = {0};
 	rkss.index = RKSS_USEDFLAGS_INDEX;
-	int ret = rkss_read_section(&rkss);
-	if (ret < 0)
-	{
-		printf("rkss_read_section fail ! ret: %d.", ret);
+	ret = rkss_read_multi_sections(rkss.data, rkss.index, 1);
+	if (ret < 0) {
+		printf("rkss_read_multi_sections fail ! ret: %d.", ret);
 		return -1;
 	}
-
-	uint8_t *flag = (uint8_t *)rkss.data + (int)index/2;
-	int value = index & 0x1 ? *flag & 0x0F : (*flag & 0xF0) >> 4;
-	if (--value < 0)
-	{
-		printf("reference out of data: %d", value);
-		value = 0x0;
+	for (i = 0; i < num; i++, index++) {
+		flag = (uint8_t *)rkss.data + (int)index/2;
+		value = index & 0x1 ? *flag & 0x0F : (*flag & 0xF0) >> 4;
+		if (--value < 0) {
+			printf("reference out of data: %d", value);
+			value = 0x0;
+		}
+		*flag = index & 0x1 ? (*flag & 0xF0) | (value & 0x0F) :
+				(*flag & 0x0F) | (value << 4);
 	}
-	*flag = index & 0x1 ? (*flag & 0xF0) | (value & 0x0F) :
-			(*flag & 0x0F) | (value << 4);
-
-	ret = rkss_write_section(&rkss);
-	if (ret < 0)
-	{
-		printf("rkss_write_section fail ! ret: %d.", ret);
+	ret = rkss_write_multi_sections(rkss.data, rkss.index, 1);
+	if (ret < 0) {
+		printf("rkss_write_multi_sections fail ! ret: %d.", ret);
 		return -1;
 	}
-
 	return 0;
 }
 
 static int rkss_write_empty_ptable(struct rkss_file_info *pfileinfo)
 {
-	int i = 0;
+	int i = 0, ret;
+	unsigned char *table_data;
+
+	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	if (table_data == NULL) {
+		printf("malloc table_data fail \n");
+		return -1;
+	}
+
+	ret = rkss_read_patition_tables(table_data);
+	if (ret < 0) {
+		printf("rkss_read_patition_tables fail ! ret: %d.", ret);
+		free(table_data);
+		return -1;
+	}
+
 	for (i = 0; i < RKSS_PARTITION_TABLE_COUNT; i++)
 	{
 		struct rk_secure_storage rkss = {0};
 		rkss.index = i;
-		int ret = rkss_read_section(&rkss);
-		if (ret < 0)
-		{
-			printf("rkss_read_section fail ! ret: %d.", ret);
-			return -1;
-		}
+		memcpy(rkss.data, table_data + rkss.index * RKSS_DATA_LEN, RKSS_DATA_LEN);
 
 		int n = 0;
 		for (n = 0; n < RKSS_EACH_FILEFOLDER_COUNT; n++)
@@ -610,14 +665,16 @@ static int rkss_write_empty_ptable(struct rkss_file_info *pfileinfo)
 				if (ret < 0)
 				{
 					printf("rkss_write_section fail ! ret: %d.", ret);
+					free(table_data);
 					return -1;
 				}
-
+				free(table_data);
 				return i * RKSS_EACH_FILEFOLDER_COUNT + n;
 			}
 		}
 	}
 	printf("No enough ptable space available in secure storage.");
+	free(table_data);
 	return -1;
 }
 
@@ -759,30 +816,24 @@ static int tee_fs_read(struct tee_fs_rpc *fsrpc)
 	}
 
 	int num = fsrpc->len / RKSS_DATA_LEN + 1;
-	int left = fsrpc->len > p.size ? p.size : fsrpc->len;
 	int di = 0;
 	debug("reading section[%d], fd:%d, len:%d, filesize:%d",
 			p.index, fsrpc->fd, fsrpc->len, p.size);
-	int i = 0;
-	for (i = 0; i < num; i++)
-	{
-		struct rk_secure_storage rkss = {0};
-		rkss.index = p.index + i;
-		ret = rkss_read_section(&rkss);
-		if (ret < 0)
-		{
-			printf("unavailable file index %lu!", rkss.index);
-			return -1;
-		}
 
-		int read = left > RKSS_DATA_LEN ? RKSS_DATA_LEN : left;
-		memcpy(data + di, rkss.data, read);
-#ifdef DEBUG_RKFSS
-		rkss_dump(data + di, read);
-#endif
-		di += read;
-		left -= read;
+	uint8_t *temp_file_data = malloc(num * RKSS_DATA_LEN);
+	if (temp_file_data == NULL) {
+		printf("malloc fail!");
+		return -1;
 	}
+	ret = rkss_read_multi_sections(temp_file_data, p.index, num);
+	if (ret < 0) {
+		printf("unavailable file index");
+		free(temp_file_data);
+		return -1;
+	}
+	di = fsrpc->len > p.size ? p.size : fsrpc->len;
+	memcpy(data, temp_file_data, di);
+	free(temp_file_data);
 	return di;
 }
 
@@ -815,15 +866,11 @@ static int tee_fs_write(struct tee_fs_rpc *fsrpc)
 	p.index = rkss_get_empty_section_from_usedflags(num);
 	debug("Get Empty section in %d", p.index);
 	p.used = 1;
-	int i = 0;
-	for (i = 0; i < num; i++)
-	{
-		ret = rkss_incref_usedflags_section(p.index + i);
-		if (ret < 0)
-		{
-			printf("rkss_incref_usedflags_section error !");
-			return -1;
-		}
+
+	ret = rkss_incref_multi_usedflags_sections(p.index, num);
+	if (ret < 0) {
+		printf("rkss_incref_multi_usedflags_sections error !");
+		ret = -1;
 	}
 
 	ret = rkss_write_back_ptable(fsrpc->fd, &p);
@@ -833,28 +880,15 @@ static int tee_fs_write(struct tee_fs_rpc *fsrpc)
 		return -1;
 	}
 
-	int left = p.size;
-	int lastw = 0;
-	for (i = 0; i < num; i++)
-	{
-		struct rk_secure_storage rkss = {0};
-		rkss.index = p.index + i;
-		int ws = left > RKSS_DATA_LEN ? RKSS_DATA_LEN : left;
-		memcpy(rkss.data, (char *)data + lastw, ws);
-		lastw += ws;
-		left -= RKSS_DATA_LEN;
-		left = left < 0 ? 0 : left;
-		debug("writing: fd:%d, section[%lu], size:%d", fsrpc->fd, rkss.index, ws);
-#ifdef DEBUG_RKFSS
-		rkss_dump(rkss.data, ws);
-#endif
-		ret = rkss_write_section(&rkss);
-		if (ret < 0)
-		{
-			printf("rkss_write_section: write error!");
-			return -1;
-		}
+	uint8_t *temp_file_data = malloc(num * RKSS_DATA_LEN);
+	if (temp_file_data == NULL) {
+		printf("malloc fail!");
+		return -1;
 	}
+	memset(temp_file_data, 0, num * RKSS_DATA_LEN);
+	memcpy(temp_file_data, data, p.size);
+	rkss_write_multi_sections(temp_file_data, p.index, num);
+	free(temp_file_data);
 
 #ifdef DEBUG_RKFSS
 	rkss_dump_usedflags();
@@ -913,15 +947,11 @@ static int tee_fs_unlink(struct tee_fs_rpc *fsrpc)
 
 	/* decrease ref from usedflags */
 	int num = p.size / RKSS_DATA_LEN + 1;
-	int i = 0;
-	for (i = 0; i < num; i++)
+	ret = rkss_decref_multi_usedflags_sections(p.index, num);
+	if (ret < 0)
 	{
-		ret = rkss_decref_usedflags_section(p.index + i);
-		if (ret < 0)
-		{
-			printf("rkss_decref_usedflags_section error !");
-			return -1;
-		}
+		printf("rkss_decref_multi_usedflags_sections error !");
+		return -1;
 	}
 
 	/* rm from ptable */
@@ -974,15 +1004,11 @@ static int tee_fs_link(struct tee_fs_rpc *fsrpc)
 	}
 
 	int num = p_new.size / RKSS_DATA_LEN + 1;
-	int i = 0;
-	for (i = 0; i < num; i++)
+	ret = rkss_incref_multi_usedflags_sections(p_new.index, num);
+	if (ret < 0)
 	{
-		ret = rkss_incref_usedflags_section(p_new.index + i);
-		if (ret < 0)
-		{
-			printf("rkss_incref_usedflags_section error !");
-			return -1;
-		}
+		printf("rkss_incref_multi_usedflags_sections error !");
+		return -1;
 	}
 
 #ifdef DEBUG_RKFSS
@@ -1079,12 +1105,12 @@ static int tee_fs_closedir(struct tee_fs_rpc *fsrpc)
 static int tee_fs_readdir(struct tee_fs_rpc *fsrpc)
 {
 	char *dirname = (char *)(fsrpc + 1);
-	printf("seek/num:%d/%d",dir_seek, dir_num);
+	debug("seek/num:%d/%d",dir_seek, dir_num);
 	if (dir_seek == dir_num)
 	{
 		dirname = NULL;
 		fsrpc->len = 0;
-		printf("tee_fs_readdir: END");
+		debug("tee_fs_readdir: END");
 		return -1;
 	}
 
@@ -1155,11 +1181,13 @@ int tee_supp_rk_fs_init(void)
 	assert(sizeof(struct rkss_file_info) == 126);
 	assert(512 / sizeof(struct rkss_file_info) == RKSS_EACH_FILEFOLDER_COUNT);
 
-	int i = 0;
+	unsigned char *table_data;
 #ifdef DEBUG_CLEAN_RKSS // clean secure storage
+	int i = 0;
 	for (i = 0; i < RKSS_DATA_SECTION_COUNT; i++)
 	{
 		struct rk_secure_storage rkss = {0};
+		memset(rkss.data, 0, RKSS_DATA_LEN);
 		rkss.index = i;
 		rkss_write_section(&rkss);
 		printf("cleaned [%d]", i);
@@ -1167,28 +1195,32 @@ int tee_supp_rk_fs_init(void)
 #endif
 
 	// Verify Partition Table
-	for (i = 0; i < RKSS_PARTITION_TABLE_COUNT; i++)
-	{
-		//DMSG("rkss_get_fileinfo_by_name: reading %d",i);
-		struct rk_secure_storage rkss = {0};
-		rkss.index = i;
-		int ret = rkss_read_section(&rkss);
-		if (ret < 0)
-		{
-			printf("rkss_read_section fail ! ret: %d.", ret);
-			return -1;
-		}
-		if (rkss_verify_ptable(&rkss) < 0)
-		{
-			printf("rkss_verify_ptable fail !");
-			return -1;
-		}
+	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	if (table_data == NULL) {
+		printf("malloc table_data fail \n");
+		return -1;
 	}
+	int ret = rkss_read_patition_tables(table_data);
+	if (ret < 0) {
+		printf("rkss_read_patition_tables fail ! ret: %d.", ret);
+		free(table_data);
+		return -1;
+	}
+
+	/* Verify Partition Table*/
+	ret = rkss_verify_ptable(table_data);
+	if (ret < 0) {
+		printf("rkss_verify_ptable fail ! ret: %d.", ret);
+		free(table_data);
+		return -1;
+	}
+	free(table_data);
+	table_data = NULL;
 
 	// Verify Usedflags Section
 	struct rk_secure_storage rkss = {0};
 	rkss.index = RKSS_USEDFLAGS_INDEX;
-	int ret = rkss_read_section(&rkss);
+	ret = rkss_read_section(&rkss);
 	if (ret < 0)
 	{
 		printf("rkss_read_section fail ! ret: %d.", ret);
