@@ -656,8 +656,8 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	dsp_info = (crtc_h - 1) << 16;
 	dsp_info |= (crtc_w - 1) & 0xffff;
 
-	dsp_stx = crtc_x + mode->htotal - mode->hsync_start;
-	dsp_sty = crtc_y + mode->vtotal - mode->vsync_start;
+	dsp_stx = crtc_x + mode->crtc_htotal - mode->crtc_hsync_start;
+	dsp_sty = crtc_y + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
 
 	if (crtc_state->ymirror) {
