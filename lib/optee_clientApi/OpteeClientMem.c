@@ -6,6 +6,7 @@
  */
 #include <common.h>
 #include <stdlib.h>
+#include <command.h>
 #include <optee_include/OpteeClientMem.h>
 #include <optee_include/OpteeClientRPC.h>
 #include <optee_include/teesmc.h>
@@ -26,9 +27,9 @@ void my_malloc_init(void *start, uint32_t size)
 {
 	memset(start, 0, size);
 	my_mem_start = start;
-	my_count = size/4096;
-	my_flag = malloc(size/4096);
-	memset(my_flag, 0, size/4096);
+	my_count = size / 4096;
+	my_flag = memalign(ARCH_DMA_MINALIGN, size / 4096);
+	memset(my_flag, 0, size / 4096);
 	memset(alloc_flags, 0, 50 * sizeof(ALLOC_FLAG));
 }
 

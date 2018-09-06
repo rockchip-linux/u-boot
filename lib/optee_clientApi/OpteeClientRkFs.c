@@ -228,7 +228,8 @@ static void rkss_dump_ptable(void)
 	int i = 0, ret;
 	unsigned char *table_data;
 
-	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	table_data = memalign(ARCH_DMA_MINALIGN,
+			RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
 	if (table_data == NULL) {
 		printf("malloc table_data fail \n");
 		return;
@@ -381,7 +382,8 @@ static int rkss_get_fileinfo_by_name(
 		return -1;
 	}
 
-	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	table_data = memalign(ARCH_DMA_MINALIGN,
+			RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
 	if (table_data == NULL) {
 		printf("malloc table_data fail \n");
 		return -1;
@@ -467,7 +469,8 @@ static int rkss_get_dirs_by_name(char* filename)
 		return -1;
 	}
 
-	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	table_data = memalign(ARCH_DMA_MINALIGN,
+			RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
 	if (table_data == NULL) {
 		printf("malloc table_data fail \n");
 		return -1;
@@ -628,7 +631,8 @@ static int rkss_write_empty_ptable(struct rkss_file_info *pfileinfo)
 	int i = 0, ret;
 	unsigned char *table_data;
 
-	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	table_data = memalign(ARCH_DMA_MINALIGN,
+			RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
 	if (table_data == NULL) {
 		printf("malloc table_data fail \n");
 		return -1;
@@ -820,7 +824,7 @@ static int tee_fs_read(struct tee_fs_rpc *fsrpc)
 	debug("reading section[%d], fd:%d, len:%d, filesize:%d",
 			p.index, fsrpc->fd, fsrpc->len, p.size);
 
-	uint8_t *temp_file_data = malloc(num * RKSS_DATA_LEN);
+	uint8_t *temp_file_data = memalign(ARCH_DMA_MINALIGN, num * RKSS_DATA_LEN);
 	if (temp_file_data == NULL) {
 		printf("malloc fail!");
 		return -1;
@@ -880,7 +884,7 @@ static int tee_fs_write(struct tee_fs_rpc *fsrpc)
 		return -1;
 	}
 
-	uint8_t *temp_file_data = malloc(num * RKSS_DATA_LEN);
+	uint8_t *temp_file_data = memalign(ARCH_DMA_MINALIGN, num * RKSS_DATA_LEN);
 	if (temp_file_data == NULL) {
 		printf("malloc fail!");
 		return -1;
@@ -1195,7 +1199,8 @@ int tee_supp_rk_fs_init(void)
 #endif
 
 	// Verify Partition Table
-	table_data = malloc(RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
+	table_data = memalign(ARCH_DMA_MINALIGN,
+			RKSS_DATA_LEN * RKSS_PARTITION_TABLE_COUNT);
 	if (table_data == NULL) {
 		printf("malloc table_data fail \n");
 		return -1;

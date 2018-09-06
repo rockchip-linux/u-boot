@@ -243,7 +243,7 @@ TEEC_Result OpteeRpcCmdRpmb(t_teesmc32_arg *TeeSmc32Arg)
 			(RpmbRequest->block_count == 0 ?
 			1 : RpmbRequest->block_count);
 		RequestPackets_back =
-			malloc(sizeof(EFI_RK_RPMB_DATA_PACKET_BACK)
+			memalign(ARCH_DMA_MINALIGN, sizeof(EFI_RK_RPMB_DATA_PACKET_BACK)
 			* global_block_count);
 		memcpy(RequestPackets_back->stuff,
 			RequestPackets->stuff_bytes,
