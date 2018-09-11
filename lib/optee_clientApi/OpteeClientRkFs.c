@@ -155,13 +155,16 @@ static int dir_seek = 0;
 extern const disk_partition_t* get_disk_partition(const char *name);
 extern int StorageReadLba(uint32_t LBA, void *pbuf, uint32_t nSec);
 extern int StorageWriteLba(uint32_t LBA, void *pbuf, uint32_t nSec, uint16_t mode);
+
+static const disk_partition_t* pt = NULL;
 static int rkss_read_multi_sections(unsigned char *data, unsigned long index, unsigned int num)
 {
 	int ret;
-	const disk_partition_t* pt = get_disk_partition("security");
-	if (pt == NULL)
-		return -1;
-
+	if (pt == NULL) {
+		pt = get_disk_partition("security");
+		if (pt == NULL)
+			return -1;
+	}
 	ret = StorageReadLba(pt->start + index, data, num);
 	if (ret < 0)
 		return -1;
@@ -177,10 +180,11 @@ static int rkss_read_section(struct rk_secure_storage *rkss)
 static int rkss_write_multi_sections(unsigned char *data, unsigned long index, unsigned int num)
 {
 	int ret;
-	const disk_partition_t* pt = get_disk_partition("security");
-	if (pt == NULL)
-		return -1;
-
+	if (pt == NULL) {
+		pt = get_disk_partition("security");
+		if (pt == NULL)
+			return -1;
+	}
 	ret = StorageWriteLba(pt->start + index, data, num, 0);
 	if (ret < 0)
 		return -1;
@@ -196,10 +200,11 @@ static int rkss_write_section(struct rk_secure_storage *rkss)
 static int rkss_read_patition_tables(unsigned char *data)
 {
 	int ret;
-	const disk_partition_t* pt = get_disk_partition("security");
-	if (pt == NULL)
-		return -1;
-
+	if (pt == NULL) {
+		pt = get_disk_partition("security");
+		if (pt == NULL)
+			return -1;
+	}
 	ret = StorageReadLba(pt->start, data, RKSS_PARTITION_TABLE_COUNT);
 	if (ret < 0)
 		return -1;
