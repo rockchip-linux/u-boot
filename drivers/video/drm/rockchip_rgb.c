@@ -10,6 +10,7 @@
 #include <regmap.h>
 #include <dm/device.h>
 #include <dm/read.h>
+#include <linux/media-bus-format.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -24,7 +25,7 @@ struct rockchip_rgb_priv {
 	struct regmap *grf;
 };
 
-static int rockchip_rgb_prepare(struct display_state *state)
+static int rockchip_rgb_enable(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct rockchip_rgb_priv *priv = dev_get_priv(conn_state->dev);
@@ -41,54 +42,39 @@ static int rockchip_rgb_prepare(struct display_state *state)
 	return 0;
 }
 
-static int rockchip_rgb_unprepare(struct display_state *state)
+static int rockchip_rgb_disable(struct display_state *state)
 {
 	return 0;
-}
-
-static int to_output_mode(const char *s)
-{
-	const struct {
-		const char *name;
-		int format;
-	} formats[] = {
-		{ "p888", ROCKCHIP_OUT_MODE_P888 },
-		{ "p666", ROCKCHIP_OUT_MODE_P666 },
-		{ "p565", ROCKCHIP_OUT_MODE_P565 },
-		{ "s888", ROCKCHIP_OUT_MODE_S888 },
-		{ "s888_dummy", ROCKCHIP_OUT_MODE_S888_DUMMY }
-	};
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(formats); i++)
-		if (!strncmp(s, formats[i].name, strlen(formats[i].name)))
-			return formats[i].format;
-
-	return ROCKCHIP_OUT_MODE_P888;
 }
 
 static int rockchip_rgb_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	struct panel_state *panel_state = &state->panel_state;
-	const char *mode;
 
 	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 
-	mode = dev_read_string(panel_state->dev, "rgb-mode");
-	if (mode)
-		conn_state->output_mode = to_output_mode(mode);
-	else
+	switch (conn_state->bus_format) {
+	case MEDIA_BUS_FMT_RGB666_1X18:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P666;
+		break;
+	case MEDIA_BUS_FMT_RGB565_1X16:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P565;
+		break;
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
+	default:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+		break;
+	}
 
 	return 0;
 }
 
 static const struct rockchip_connector_funcs rockchip_rgb_funcs = {
 	.init = rockchip_rgb_init,
-	.enable = rockchip_rgb_prepare,
-	.disable = rockchip_rgb_unprepare,
+	.enable = rockchip_rgb_enable,
+	.disable = rockchip_rgb_disable,
 };
 
 static int rockchip_rgb_probe(struct udevice *dev)
