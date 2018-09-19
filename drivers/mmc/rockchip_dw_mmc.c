@@ -254,7 +254,7 @@ static int rockchip_dwmmc_probe(struct udevice *dev)
 
 	ret = clk_get_by_name(dev, "ciu-sample", &priv->sample_clk);
 	if (ret < 0)
-		printf("Caution: find clock fail, not support hs200!\n");
+		debug("MMC: sample clock not found, not support hs200!\n");
 	host->execute_tuning = rockchip_dwmmc_execute_tuning;
 #endif
 	host->fifoth_val = MSIZE(0x2) |

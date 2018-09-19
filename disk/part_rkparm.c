@@ -40,7 +40,7 @@ static int rkparm_param_parse(char *param, struct list_head *parts_head,
 	unsigned long size, start;
 
 	if (!cmdline) {
-		printf("invalid parameter\n");
+		debug("RKPARM: Invalid parameter part table\n");
 		return -EINVAL;
 	}
 

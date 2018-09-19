@@ -42,9 +42,17 @@ entry_counter:
 
 #if (defined(CONFIG_SPL_BUILD) || defined(CONFIG_ARM64))
 	/* U-Boot proper of armv7 do not need this */
-#if CONFIG_IS_ENABLED(TINY_FRAMEWORK) && defined(CONFIG_ARM64)
+#if CONFIG_IS_ENABLED(TINY_FRAMEWORK)
+#if !defined(CONFIG_ARM64)
+	/*
+	 * For armv7, the addr '_start' will check by u-boot-tpl.lds file.
+	 */
+_start:
+#endif
 	/* Allow the board to save important registers */
 	b save_boot_params
+
+.type   save_boot_params_ret, % function
 .globl	save_boot_params_ret
 save_boot_params_ret:
 	b board_init_f
@@ -54,7 +62,7 @@ save_boot_params_ret:
 
 #endif
 
-#if !defined(CONFIG_ARM64)
+#if !defined(CONFIG_ARM64) && !CONFIG_IS_ENABLED(TINY_FRAMEWORK)
 	/*
 	 * For armv7, the addr '_start' will used as vector start address
 	 * and write to VBAR register, which needs to aligned to 0x20.

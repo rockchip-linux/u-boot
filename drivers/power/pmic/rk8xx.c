@@ -158,6 +158,7 @@ static int rk8xx_probe(struct udevice *dev)
 	int init_data_num = 0;
 	int ret = 0, i, show_variant;
 	uint8_t msb, lsb, id_msb, id_lsb;
+	uint8_t on_source = 0, off_source = 0;
 
 	/* read Chip variant */
 	if (device_is_compatible(dev, "rockchip,rk817") ||
@@ -185,9 +186,13 @@ static int rk8xx_probe(struct udevice *dev)
 	case RK805_ID:
 	case RK816_ID:
 	case RK818_ID:
+		on_source = RK8XX_ON_SOURCE;
+		off_source = RK8XX_OFF_SOURCE;
 		break;
 	case RK809_ID:
 	case RK817_ID:
+		on_source = RK817_ON_SOURCE;
+		off_source = RK817_OFF_SOURCE;
 #ifdef CONFIG_DM_CHARGE_DISPLAY
 		init_data = rk817_init_reg;
 		init_data_num = ARRAY_SIZE(rk817_init_reg);
@@ -212,7 +217,16 @@ static int rk8xx_probe(struct udevice *dev)
 		      pmic_reg_read(dev, init_data[i].reg));
 	}
 
-	printf("PMIC:  RK%x\n", show_variant);
+	printf("PMIC:  RK%x ", show_variant);
+
+	if (on_source && off_source) {
+		on_source = pmic_reg_read(dev, on_source);
+		off_source = pmic_reg_read(dev, off_source);
+		printf("(on=0x%02x, off=0x%02x)",
+		       pmic_reg_read(dev, on_source),
+		       pmic_reg_read(dev, off_source));
+	}
+	printf("\n");
 
 	return 0;
 }

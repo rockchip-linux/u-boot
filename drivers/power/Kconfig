@@ -77,7 +77,7 @@ endchoice
 
 config CHARGE_ANIMATION
 	bool "Enable charge animation"
-	depends on DM_CHARGE_DISPLAY && DM_FUEL_GAUGE && DRM_ROCKCHIP
+	depends on DM_CHARGE_DISPLAY && DM_FUEL_GAUGE
 	help
 	  This adds a simple function for charge animation display.
 

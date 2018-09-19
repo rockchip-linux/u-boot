@@ -267,8 +267,16 @@ int regulator_autoset(struct udevice *dev)
 	if (!uc_pdata->always_on && !uc_pdata->boot_on)
 		return -EMEDIUMTYPE;
 
-	if (uc_pdata->flags & REGULATOR_FLAG_AUTOSET_UV)
+	if (uc_pdata->flags & REGULATOR_FLAG_AUTOSET_UV) {
 		ret = regulator_set_value(dev, uc_pdata->min_uV);
+	} else {
+		if ((uc_pdata->type == REGULATOR_TYPE_BUCK) &&
+		    (uc_pdata->min_uV != -ENODATA) &&
+		    (uc_pdata->max_uV != -ENODATA))
+			printf("%s %d uV\n",
+			       uc_pdata->name, regulator_get_value(dev));
+	}
+
 	if (uc_pdata->init_uV > 0) {
 		ret = regulator_set_value(dev, uc_pdata->init_uV);
 		if (!ret)

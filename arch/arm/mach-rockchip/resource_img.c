@@ -113,7 +113,8 @@ static int resource_image_check_header(const struct resource_img_hdr *hdr)
 
 	ret = memcmp(RESOURCE_MAGIC, hdr->magic, RESOURCE_MAGIC_SIZE);
 	if (ret) {
-		printf("bad resource image magic\n");
+		printf("bad resource image magic: %s\n",
+		       hdr->magic ? hdr->magic : "none");
 		ret = -EINVAL;
 	}
 	debug("resource image header:\n");
@@ -192,14 +193,16 @@ static int init_resource_list(struct resource_img_hdr *hdr)
 	}
 	hdr = memalign(ARCH_DMA_MINALIGN, RK_BLK_SIZE);
 	if (!hdr) {
-		printf("%s out of memory!\n", __func__);
+		printf("%s: out of memory!\n", __func__);
 		return -ENOMEM;
 	}
 
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	/* Get boot mode from misc */
+#ifndef CONFIG_ANDROID_AB
 	if (rockchip_get_boot_mode() == BOOT_MODE_RECOVERY)
 		boot_partname = PART_RECOVERY;
+#endif
 
 	/* Read boot/recovery and chenc if this is an AOSP img */
 #ifdef CONFIG_ANDROID_AB
@@ -213,7 +216,8 @@ static int init_resource_list(struct resource_img_hdr *hdr)
 #endif
 	ret = part_get_info_by_name(dev_desc, boot_partname, &part_info);
 	if (ret < 0) {
-		printf("fail to get %s part\n", boot_partname);
+		printf("%s: failed to get %s part, ret=%d\n",
+		       __func__, boot_partname, ret);
 		/* RKIMG can support part table without 'boot' */
 		goto next;
 	}
@@ -225,12 +229,13 @@ static int init_resource_list(struct resource_img_hdr *hdr)
 	andr_hdr = (void *)hdr;
 	ret = blk_dread(dev_desc, part_info.start, 1, andr_hdr);
 	if (ret != 1) {
-		printf("%s read fail\n", __func__);
+		printf("%s: failed to read %s hdr, ret=%d\n",
+		       __func__, part_info.name, ret);
 		goto out;
 	}
 	ret = android_image_check_header(andr_hdr);
 	if (!ret) {
-		debug("%s Load resource from %s senond pos\n",
+		debug("%s: Load resource from %s second pos\n",
 		      __func__, part_info.name);
 		/* Read resource from second offset */
 		offset = part_info.start * RK_BLK_SIZE;
@@ -248,20 +253,24 @@ next:
 	 * try to read RK format images(resource part).
 	 */
 	if (!resource_found) {
+		debug("%s: Load resource from resource part\n", __func__);
 		/* Read resource from Rockchip Resource partition */
 		ret = part_get_info_by_name(dev_desc, PART_RESOURCE, &part_info);
 		if (ret < 0) {
-			printf("fail to get %s part\n", PART_RESOURCE);
+			printf("%s: failed to get resource part, ret=%d\n",
+			       __func__, ret);
 			goto out;
 		}
 		offset = part_info.start;
-		debug("%s Load resource from %s\n", __func__, part_info.name);
 	}
 
 	/* Only read header and check magic */
 	ret = blk_dread(dev_desc, offset, 1, hdr);
-	if (ret != 1)
+	if (ret != 1) {
+		printf("%s: failed to read resource hdr, ret=%d\n",
+		       __func__, ret);
 		goto out;
+	}
 
 	ret = resource_image_check_header(hdr);
 	if (ret < 0)
@@ -270,15 +279,18 @@ next:
 	content = memalign(ARCH_DMA_MINALIGN,
 			   hdr->e_blks * hdr->e_nums * RK_BLK_SIZE);
 	if (!content) {
-		printf("alloc memory for content failed\n");
+		printf("%s: failed to alloc memory for content\n", __func__);
 		goto out;
 	}
 
-	/* Real read whole resource image */
+	/* Read all entries from resource image */
 	ret = blk_dread(dev_desc, offset + hdr->c_offset,
 			hdr->e_blks * hdr->e_nums, content);
-	if (ret != (hdr->e_blks * hdr->e_nums))
+	if (ret != (hdr->e_blks * hdr->e_nums)) {
+		printf("%s: failed to read resource entries, ret=%d\n",
+		       __func__, ret);
 		goto err;
+	}
 
 	for (e_num = 0; e_num < hdr->e_nums; e_num++) {
 		size = e_num * hdr->e_blks * RK_BLK_SIZE;

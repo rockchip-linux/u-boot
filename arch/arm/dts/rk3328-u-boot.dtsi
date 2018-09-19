@@ -34,3 +34,19 @@
 &sdmmc {
 	u-boot,dm-pre-reloc;
 };
+
+&usb20_otg {
+	u-boot,dm-pre-reloc;
+};
+
+&usb2phy_grf {
+	u-boot,dm-pre-reloc;
+};
+
+&u2phy {
+	u-boot,dm-pre-reloc;
+};
+
+&u2phy_otg {
+	u-boot,dm-pre-reloc;
+};

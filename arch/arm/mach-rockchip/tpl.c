@@ -34,13 +34,13 @@ void putc(char c)
 #endif /* CONFIG_TPL_LIBCOMMON_SUPPORT */
 
 #ifndef CONFIG_TPL_LIBGENERIC_SUPPORT
-#ifdef CONFIG_ARM64
-/* for ARM64,it don't have define timer_init and __udelay except lib/timer.c */
 int __weak timer_init(void)
 {
 	return 0;
 }
 
+#ifdef CONFIG_ARM64
+/* for ARM64,it don't have define timer_init and __udelay except lib/timer.c */
 void __weak __udelay(unsigned long usec)
 {
 	u64 i, j, count;
@@ -53,6 +53,24 @@ void __weak __udelay(unsigned long usec)
 	while (1) {
 		asm volatile ("MRS %0, CNTPCT_EL0" : "=r"(count));
 		if (count > i)
+			break;
+	}
+}
+#else
+void __weak __udelay(unsigned long usec)
+{
+	u32 nowl, nowu;
+	u64 cur_count, end_count;
+
+	asm volatile("mrrc p15, 0, %0, %1, c14" : "=r" (nowl), "=r" (nowu));
+	cur_count = (u64)nowu << 32 | nowl;
+	/* usec to count,24MHz */
+	end_count = usec * 24 + cur_count;
+	while (1) {
+		asm volatile("mrrc p15, 0, %0, %1, c14" : "=r" (nowl),
+			     "=r" (nowu));
+		cur_count = (u64)nowu << 32 | nowl;
+		if (cur_count > end_count)
 			break;
 	}
 }

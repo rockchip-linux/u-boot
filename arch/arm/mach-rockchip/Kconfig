@@ -283,11 +283,29 @@ config ROCKCHIP_RV1108
 	bool "Support Rockchip RV1108"
 	select CPU_V7
 	select SUPPORT_SPL
+	select SUPPORT_TPL
 	select SPL
+	select TPL
 	select BOARD_LATE_INIT
 	help
 	  The Rockchip RV1108 is a ARM-based SoC with a single-core Cortex-A7
 	  and a DSP.
+
+if ROCKCHIP_RV1108
+
+config TPL_LDSCRIPT
+        default "arch/arm/mach-rockchip/u-boot-tpl.lds"
+
+config TPL_TEXT_BASE
+        default 0x10080800
+
+config TPL_MAX_SIZE
+        default 6144
+
+config TPL_STACK
+        default 0x10082000
+
+endif
 
 config SPL_ROCKCHIP_BACK_TO_BROM
 	bool "SPL returns to bootrom"
@@ -472,6 +490,15 @@ config ROCKCHIP_CRASH_DUMP
 	help
 	  This enable dump registers when system crash, the registers you would like
 	  to dump can be added in show_regs().
+
+config ROCKCHIP_PRELOADER_ATAGS
+	bool "Rockchip pre-loader atags"
+	default y if ARCH_ROCKCHIP
+	help
+	  This enable support Rockchip atags among pre-loaders, i.e. ddr, miniloader, ATF,
+	  tos, U-Boot, etc. It delivers boot and configure information, shared with pre-loaders
+	  and finally ends with U-Boot.
+
 
 config GICV2
 	bool "ARM GICv2"

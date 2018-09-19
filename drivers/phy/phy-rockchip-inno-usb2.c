@@ -255,7 +255,7 @@ int rockchip_chg_get_type(void)
 	bool is_dcd, vout;
 	int ret;
 
-	ret = uclass_get_device(UCLASS_PHY, 0, &udev);
+	ret = uclass_get_device_by_name(UCLASS_PHY, "usb2-phy", &udev);
 	if (ret == -ENODEV) {
 		pr_err("%s: get u2phy node failed: %d\n", __func__, ret);
 		return ret;
@@ -366,7 +366,7 @@ void otg_phy_init(struct dwc2_udc *dev)
 	void __iomem *base;
 	int ret;
 
-	ret = uclass_get_device(UCLASS_PHY, 0, &udev);
+	ret = uclass_get_device_by_name(UCLASS_PHY, "usb2-phy", &udev);
 	if (ret == -ENODEV) {
 		pr_err("%s: get u2phy node failed: %d\n", __func__, ret);
 		return;

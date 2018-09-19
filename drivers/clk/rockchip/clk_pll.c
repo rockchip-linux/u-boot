@@ -233,8 +233,10 @@ static int rk3036_pll_set_rate(struct rockchip_pll_clock *pll,
 		  1 << RK3036_PLLCON1_PWRDOWN_SHIT);
 
 	/* waiting for pll lock */
-	while (!(readl(base + pll->con_offset + 0x4) & (1 << pll->lock_shift)))
+	while (!(readl(base + pll->con_offset + 0x4) & (1 << pll->lock_shift))) {
 		udelay(1);
+		debug("%s: wait pll lock, pll_id=%ld\n", __func__, pll_id);
+	}
 
 	rk_clrsetreg(base + pll->mode_offset, pll->mode_mask << pll->mode_shift,
 		     RKCLK_PLL_MODE_NORMAL << pll->mode_shift);

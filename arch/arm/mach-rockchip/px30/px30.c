@@ -101,7 +101,7 @@ void board_debug_uart_init(void)
 		GPIO2B5_GPIO		= 0,
 		GPIO2B5_PWM2,
 
-		GPIO2B4_SHIFT		= 4,
+		GPIO2B4_SHIFT		= 0,
 		GPIO2B4_MASK		= 0xf << GPIO2B4_SHIFT,
 		GPIO2B4_GPIO		= 0,
 		GPIO2B4_CIF_D0M0,
@@ -156,7 +156,7 @@ void board_debug_uart_init(void)
 		GPIO1D1_GPIO		= 0,
 		GPIO1D1_SDIO_D3,
 
-		GPIO1D0_SHIFT		= 4,
+		GPIO1D0_SHIFT		= 0,
 		GPIO1D0_MASK		= 0xf << GPIO1D0_SHIFT,
 		GPIO1D0_GPIO		= 0,
 		GPIO1D0_SDIO_D2,

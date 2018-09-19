@@ -36,6 +36,8 @@
 	.global	switch_to_hypervisor_ret
 #endif
 
+#if !CONFIG_IS_ENABLED(TINY_FRAMEWORK)
+
 reset:
 	/* Allow the board to save important registers */
 	b	save_boot_params
@@ -108,6 +110,8 @@ ENTRY(c_runtime_cpu_setup)
 	bx	lr
 
 ENDPROC(c_runtime_cpu_setup)
+
+#endif/* !CONFIG_IS_ENABLED(TINY_FRAMEWORK) */
 
 /*************************************************************************
  *

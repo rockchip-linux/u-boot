@@ -55,3 +55,5 @@ obj-spl-$(CONFIG_TPL_BUILD) =
 # Now add SPL/TPL objects back into the main build
 obj-$(CONFIG_SPL_BUILD) += $(obj-spl-y)
 obj-$(CONFIG_TPL_BUILD) += $(obj-tpl-y)
+
+obj-$(CONFIG_ROCKCHIP_PRELOADER_ATAGS) += rk_atags.o

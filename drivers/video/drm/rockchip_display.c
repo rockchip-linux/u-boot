@@ -1229,46 +1229,37 @@ void rockchip_show_logo(void)
 	}
 }
 
-static struct udevice *rockchip_of_find_connector(struct udevice *dev)
+static struct udevice *rockchip_of_find_connector(ofnode endpoint)
 {
-	ofnode conn_node, port, ep;
-	struct udevice *conn_dev;
+	ofnode ep, port, ports, conn;
+	uint phandle;
+	struct udevice *dev;
 	int ret;
 
-	port = dev_read_subnode(dev, "port");
+	if (ofnode_read_u32(endpoint, "remote-endpoint", &phandle))
+		return NULL;
+
+	ep = ofnode_get_by_phandle(phandle);
+	if (!ofnode_valid(ep) || !ofnode_is_available(ep))
+		return NULL;
+
+	port = ofnode_get_parent(ep);
 	if (!ofnode_valid(port))
 		return NULL;
 
-	ofnode_for_each_subnode(ep, port) {
-		ofnode _ep, _port, _ports;
-		uint phandle;
+	ports = ofnode_get_parent(port);
+	if (!ofnode_valid(ports))
+		return NULL;
 
-		if (ofnode_read_u32(ep, "remote-endpoint", &phandle))
-			continue;
+	conn = ofnode_get_parent(ports);
+	if (!ofnode_valid(conn) || !ofnode_is_available(conn))
+		return NULL;
 
-		_ep = ofnode_get_by_phandle(phandle);
-		if (!ofnode_valid(_ep) || !ofnode_is_available(_ep))
-			continue;
+	ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY, conn, &dev);
+	if (ret)
+		return NULL;
 
-		_port = ofnode_get_parent(_ep);
-		if (!ofnode_valid(_port))
-			continue;
-
-		_ports = ofnode_get_parent(_port);
-		if (!ofnode_valid(_ports))
-			continue;
-
-		conn_node = ofnode_get_parent(_ports);
-		if (!ofnode_valid(conn_node) || !ofnode_is_available(conn_node))
-			continue;
-
-		ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY, conn_node,
-						  &conn_dev);
-		if (!ret)
-			return conn_dev;
-	}
-
-	return NULL;
+	return dev;
 }
 
 static int rockchip_display_probe(struct udevice *dev)
@@ -1336,7 +1327,7 @@ static int rockchip_display_probe(struct udevice *dev)
 		}
 		crtc = (struct rockchip_crtc *)dev_get_driver_data(crtc_dev);
 
-		conn_dev = rockchip_of_find_connector(crtc_dev);
+		conn_dev = rockchip_of_find_connector(np_to_ofnode(ep_node));
 		if (!conn_dev) {
 			printf("Warn: can't find connect driver\n");
 			continue;

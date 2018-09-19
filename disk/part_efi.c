@@ -275,9 +275,15 @@ int part_get_info_efi(struct blk_desc *dev_desc, int part,
 	if (!gpt_head)
 		gpt_head = memalign(ARCH_DMA_MINALIGN, dev_desc->blksz);
 
-	/* We suppose different dev have different size, eg. emmc vs sd */
-	if (gpt_head && (gpt_head->last_usable_lba + 0x22) != dev_desc->lba)
+	/*
+	 * We suppose different dev have different size, eg. emmc vs sd
+	 * free the pte first if exist and then will malloc and init a new one.
+	 */
+	if (gpt_head && (gpt_head->last_usable_lba + 0x22) != dev_desc->lba) {
+		if (gpt_pte)
+			free(gpt_pte);
 		gpt_pte = NULL;
+	}
 
 	/* "part" argument must be at least 1 */
 	if (part < 1) {

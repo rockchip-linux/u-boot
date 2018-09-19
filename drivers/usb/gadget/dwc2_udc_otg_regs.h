@@ -262,7 +262,7 @@ struct dwc2_usbotg_reg {
 #define DOEPT_SIZ_PKT_CNT(x)                      (x << 19)
 #define DOEPT_SIZ_XFER_SIZE(x)                    (x << 0)
 #define DOEPT_SIZ_XFER_SIZE_MAX_EP0               (0x7F << 0)
-#define DOEPT_SIZ_XFER_SIZE_MAX_EP                (0x7FFF << 0)
+#define DOEPT_SIZ_XFER_SIZE_MAX_EP                (0x7FFFF << 0)
 
 /* Device Endpoint-N Control Register (DIEPCTLn/DOEPCTLn) */
 #define DIEPCTL_TX_FIFO_NUM(x)                    (x << 22)

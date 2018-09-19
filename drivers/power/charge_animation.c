@@ -12,7 +12,6 @@
 #include <errno.h>
 #include <key.h>
 #include <pwm.h>
-#include <irq-generic.h>
 #include <asm/arch/rockchip_smccc.h>
 #include <asm/suspend.h>
 #include <linux/input.h>
@@ -23,8 +22,11 @@
 #include <power/pmic.h>
 #include <power/rk8xx_pmic.h>
 #include <power/regulator.h>
-#include <rk_timer_irq.h>
 #include <video_rockchip.h>
+#ifdef CONFIG_IRQ
+#include <irq-generic.h>
+#include <rk_timer_irq.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -141,6 +143,20 @@ static int check_key_press(struct udevice *dev)
 	return state;
 }
 
+/*
+ * If not enable CONFIG_IRQ, cpu can't suspend to ATF or wfi, so that wakeup
+ * period timer is useless.
+ */
+#ifndef CONFIG_IRQ
+static int system_suspend_enter(struct charge_animation_pdata *pdata)
+{
+	return 0;
+}
+
+static void autowakeup_timer_init(struct udevice *dev, uint32_t seconds) {}
+static void autowakeup_timer_uninit(void) {}
+
+#else
 static int system_suspend_enter(struct charge_animation_pdata *pdata)
 {
 	if (pdata->system_suspend && IS_ENABLED(CONFIG_ARM_SMCCC)) {
@@ -179,7 +195,6 @@ static int system_suspend_enter(struct charge_animation_pdata *pdata)
 
 	return 0;
 }
-
 static void timer_irq_handler(int irq, void *data)
 {
 	struct udevice *dev = data;
@@ -214,6 +229,7 @@ static void autowakeup_timer_uninit(void)
 {
 	irq_free_handler(TIMER_IRQ);
 }
+#endif
 
 #ifdef CONFIG_DRM_ROCKCHIP
 static void charge_show_bmp(const char *name)
@@ -385,7 +401,12 @@ static int charge_animation_show(struct udevice *dev)
 		autowakeup_timer_init(dev, pdata->auto_wakeup_interval);
 	}
 
+/* Give a message warning when CONFIG_IRQ is not enabled */
+#ifdef CONFIG_IRQ
 	printf("Enter U-Boot charging mode\n");
+#else
+	printf("Enter U-Boot charging mode(without IRQ)\n");
+#endif
 
 	charge_start = get_timer(0);
 	delta = get_timer(0);

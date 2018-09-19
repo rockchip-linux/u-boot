@@ -505,10 +505,37 @@ static AvbSlotVerifyResult android_slot_verify(char *boot_partname,
 	if (verify_result == AVB_SLOT_VERIFY_RESULT_OK ||
 	    verify_result == AVB_SLOT_VERIFY_RESULT_ERROR_PUBLIC_KEY_REJECTED ||
 	    (unlocked & LOCK_MASK)) {
+		int len = 0;
+		char *bootargs, *newbootargs;
+
+		if (*slot_data[0]->cmdline) {
+			debug("Kernel command line: %s\n", slot_data[0]->cmdline);
+			len += strlen(slot_data[0]->cmdline);
+		}
+
+		bootargs = env_get("bootargs");
+		if (bootargs)
+			len += strlen(bootargs);
+
+		newbootargs = malloc(len + 2);
+
+		if (!newbootargs) {
+			puts("Error: malloc in android_slot_verify failed!\n");
+			return AVB_SLOT_VERIFY_RESULT_ERROR_OOM;
+		}
+		*newbootargs = '\0';
+
+		if (bootargs) {
+			strcpy(newbootargs, bootargs);
+			strcat(newbootargs, " ");
+		}
+		if (*slot_data[0]->cmdline)
+			strcat(newbootargs, slot_data[0]->cmdline);
+		env_set("bootargs", newbootargs);
+
 		memcpy((uint8_t *)load_address,
 		       slot_data[0]->loaded_partitions->data,
 		       slot_data[0]->loaded_partitions->data_size);
-		env_set("bootargs", slot_data[0]->cmdline);
 
 		/* ... and decrement tries remaining, if applicable. */
 		if (!ab_data.slots[slot_index_to_boot].successful_boot &&

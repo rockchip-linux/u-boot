@@ -9,7 +9,13 @@
 #include <linux/sizes.h>
 
 #define COUNTER_FREQUENCY               24000000
+
+#if CONFIG_IS_ENABLED(TINY_FRAMEWORK) && !defined(CONFIG_ARM64)
+#undef CONFIG_SYS_ARCH_TIMER
+#else
 #define CONFIG_SYS_ARCH_TIMER
+#endif
+
 #define CONFIG_SYS_HZ_CLOCK	24000000
 
 #define CONFIG_SYS_NS16550_MEM32

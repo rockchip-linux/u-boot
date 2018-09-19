@@ -930,9 +930,9 @@ static int rk816_bat_get_charger_type(struct battery_priv *di)
 
 static bool rk816_bat_need_initialize(struct battery_priv *di)
 {
-	struct charge_animation_pdata *pdata;
 	bool initialize = false;
 #ifdef CONFIG_DM_CHARGE_DISPLAY
+	struct charge_animation_pdata *pdata;
 	struct udevice *dev;
 	int est_voltage;
 

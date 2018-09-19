@@ -98,7 +98,7 @@ static int setdma_rx(struct dwc2_ep *ep, struct dwc2_request *req)
 
 	buf = req->req.buf + req->req.actual;
 	length = min_t(u32, req->req.length - req->req.actual,
-		       ep_num ? DMA_BUFFER_SIZE : ep->ep.maxpacket);
+		       ep_num ? DOEPT_SIZ_XFER_SIZE_MAX_EP : ep->ep.maxpacket);
 
 	ep->len = length;
 	ep->dma_buf = buf;

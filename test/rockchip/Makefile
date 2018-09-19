@@ -5,8 +5,8 @@
 #
 
 obj-y += test-rockchip.o
-obj-y += test-timer.o
 obj-y += test-brom-dnl.o
+obj-$(CONFIG_IRQ) += test-timer.o
 obj-$(CONFIG_DM_KEY) += test-key.o
 obj-$(CONFIG_MMC) += test-emmc.o
 obj-$(CONFIG_DM_REGULATOR)+= test-regulator.o

@@ -199,6 +199,11 @@ enum {
 #define RK817_PMIC_SYS_CFG3	0xf4
 #define RK817_GPIO_INT_CFG	0xfe
 
+#define RK8XX_ON_SOURCE		0xae
+#define RK8XX_OFF_SOURCE	0xaf
+#define RK817_ON_SOURCE		0xf5
+#define RK817_OFF_SOURCE	0xf6
+
 struct reg_data {
 	u8 reg;
 	u8 val;

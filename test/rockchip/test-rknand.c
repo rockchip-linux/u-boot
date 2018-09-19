@@ -8,8 +8,6 @@
 #include <cli.h>
 #include <common.h>
 #include <linux/compat.h>
-#include <irq-generic.h>
-#include <irq-platform.h>
 #include <malloc.h>
 #include "test-rockchip.h"
 
