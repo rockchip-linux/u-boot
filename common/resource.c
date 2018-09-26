@@ -36,46 +36,41 @@ static bool inline read_storage(lbaint_t offset, void* buf, uint16_t blocks) {
 #endif
 }
 
-static int inline get_base_offset(void) {
-	const disk_partition_t* ptn;
-#ifdef CONFIG_ROCKCHIP
-	ptn	= get_disk_partition(RESOURCE_NAME);
-#else
-	//TODO: find disk_partition_t in other way.
-	ptn = NULL;
-#endif
-	if (!ptn) {
-		FBTDBG("%s ptn not found.\n", RESOURCE_NAME);
+static int inline get_base_offset(void)
+{
+	const disk_partition_t *ptn = get_disk_partition(BOOT_NAME);
 
-		/* if no resource partition, load logo from boot partition second data area */
-		ptn = get_disk_partition(BOOT_NAME);
-		if (ptn != NULL) {
-			unsigned long blksz = ptn->blksz;
-			int offset = 0;
-			rk_boot_img_hdr *hdr = NULL;
+	if (ptn) {
+		unsigned long blksz = ptn->blksz;
+		int offset = 0;
+		rk_boot_img_hdr *hdr = NULL;
 
 #ifdef CONFIG_RK_NVME_BOOT_EN
-			hdr = memalign(SZ_4K, blksz << 2);
+		hdr = memalign(SZ_4K, blksz << 2);
 #else
-			hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
+		hdr = memalign(ARCH_DMA_MINALIGN, blksz << 2);
 #endif
-			if (StorageReadLba(ptn->start, (void *) hdr, 1 << 2) != 0) {
-				return 0;
-			}
-			//load from bootimg's second data area.
-			if (!memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) && hdr->second_size) {
-				//compute second data area's offset.
-				offset = ptn->start + (hdr->page_size / blksz);
-				offset += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
-				offset += ALIGN(hdr->ramdisk_size, hdr->page_size) / blksz;
+		if (StorageReadLba(ptn->start, (void *)hdr, 1 << 2) != 0)
+			return 0;
 
-				return offset;
-			}
+		/* load from boot.img second data area */
+		if (!memcmp(hdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE) && hdr->second_size) {
+			offset = ptn->start + (hdr->page_size / blksz);
+			offset += ALIGN(hdr->kernel_size, hdr->page_size) / blksz;
+			offset += ALIGN(hdr->ramdisk_size, hdr->page_size) / blksz;
+
+			return offset;
 		}
-
-		return 0;
 	}
-	return ptn->start;
+
+#ifdef CONFIG_ROCKCHIP
+	ptn = get_disk_partition(RESOURCE_NAME);
+	if (ptn)
+		return ptn->start;
+#endif
+	FBTERR("Not find resource image from boot and resource part!\n");
+
+	return 0;
 }
 
 static bool get_entry_ram(resource_ptn_header header, void *table,
