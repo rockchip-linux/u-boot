@@ -2463,11 +2463,12 @@ int inno_dw_hdmi_phy_init(struct dw_hdmi *hdmi, void *data)
 		bus_width = color_depth;
 	else
 		bus_width = 8;
-	rockchip_phy_set_bus_width(state, bus_width);
-	rockchip_phy_set_pll(state, conn_state->mode.crtc_clock * 1000);
+	rockchip_phy_set_bus_width(conn_state->phy, bus_width);
+	rockchip_phy_set_pll(conn_state->phy,
+			     conn_state->mode.crtc_clock * 1000);
 	if (hdmi->edid_data.display_info.hdmi.scdc.supported)
 		rockchip_dw_hdmi_scdc_set_tmds_rate(hdmi);
-	rockchip_phy_power_on(state);
+	rockchip_phy_power_on(conn_state->phy);
 
 	return 0;
 }
@@ -2497,6 +2498,7 @@ inno_dw_hdmi_phy_read_hpd(struct dw_hdmi *hdmi, void *data)
 void inno_dw_hdmi_mode_valid(struct dw_hdmi *hdmi, void *data)
 {
 	struct display_state *state = (struct display_state *)data;
+	struct connector_state *conn_state = &state->conn_state;
 	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
 	unsigned long rate;
 	int i, ret;
@@ -2511,7 +2513,7 @@ void inno_dw_hdmi_mode_valid(struct dw_hdmi *hdmi, void *data)
 			rate = mode_buf[i].clock * 1000;
 
 		/* Check whether mode is out of phy cfg range. */
-		ret = rockchip_phy_round_rate(state, rate);
+		ret = rockchip_phy_round_rate(conn_state->phy, rate);
 
 		if (ret < 0)
 			edid_data->mode_buf[i].invalid = true;

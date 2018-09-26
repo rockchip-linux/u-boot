@@ -157,7 +157,7 @@ struct phy_config {
 };
 
 struct inno_hdmi_phy {
-	const void *blob;
+	struct udevice *dev;
 	ofnode node;
 	void *regs;
 
@@ -397,10 +397,9 @@ static u8 rk_get_cpu_version(void)
 	return val;
 }
 
-static int inno_hdmi_phy_power_on(struct display_state *state)
+static int inno_hdmi_phy_power_on(struct rockchip_phy *phy)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi_phy *inno = conn_state->phy_private;
+	struct inno_hdmi_phy *inno = dev_get_priv(phy->dev);
 	const struct post_pll_config *cfg = post_pll_cfg_table;
 	const struct phy_config *phy_cfg = inno->plat_data->phy_cfg_table;
 	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, inno->pixclock);
@@ -444,10 +443,9 @@ static int inno_hdmi_phy_power_on(struct display_state *state)
 		return -EINVAL;
 }
 
-static int inno_hdmi_phy_power_off(struct display_state *state)
+static int inno_hdmi_phy_power_off(struct rockchip_phy *phy)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi_phy *inno = conn_state->phy_private;
+	struct inno_hdmi_phy *inno = dev_get_priv(phy->dev);
 
 	if (inno->plat_data->ops->power_off)
 		inno->plat_data->ops->power_off(inno);
@@ -456,10 +454,8 @@ static int inno_hdmi_phy_power_off(struct display_state *state)
 	return 0;
 }
 
-static int inno_hdmi_phy_clk_is_prepared(struct display_state *state)
+static int inno_hdmi_phy_clk_is_prepared(struct inno_hdmi_phy *inno)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi_phy *inno = conn_state->phy_private;
 	u8 status;
 
 	if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3228)
@@ -470,11 +466,8 @@ static int inno_hdmi_phy_clk_is_prepared(struct display_state *state)
 	return status ? 0 : 1;
 }
 
-static int inno_hdmi_phy_clk_prepare(struct display_state *state)
+static int inno_hdmi_phy_clk_prepare(struct inno_hdmi_phy *inno)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi_phy *inno = conn_state->phy_private;
-
 	if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3228)
 		inno_update_bits(inno, 0xe0, PRE_PLL_POWER_MASK,
 				 PRE_PLL_POWER_UP);
@@ -484,11 +477,9 @@ static int inno_hdmi_phy_clk_prepare(struct display_state *state)
 	return 0;
 }
 
-static int inno_hdmi_phy_clk_set_rate(struct display_state *state,
+static int inno_hdmi_phy_clk_set_rate(struct inno_hdmi_phy *inno,
 				      unsigned long rate)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi_phy *inno = conn_state->phy_private;
 	const struct pre_pll_config *cfg = pre_pll_cfg_table;
 	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate);
 
@@ -937,30 +928,21 @@ static const struct rockchip_inno_data inno_hdmi_phy_of_match[] = {
 	{}
 };
 
-static int inno_hdmi_phy_init(struct display_state *state)
+static int inno_hdmi_phy_init(struct rockchip_phy *phy)
 {
-	const void *blob = state->blob;
-	struct connector_state *conn_state = &state->conn_state;
-	struct udevice *dev = conn_state->phy_dev;
-	ofnode phy_node = conn_state->phy_node;
-	struct inno_hdmi_phy *inno;
+	struct udevice *dev = phy->dev;
+	struct inno_hdmi_phy *inno = dev_get_priv(phy->dev);
 	int i, val, phy_table_size, ret;
 	const char *name;
 	u32 *phy_config;
 
-	inno = malloc(sizeof(*inno));
-	if (!inno)
-		return -ENOMEM;
-
-	inno->blob = blob;
-	inno->node = phy_node;
+	inno->node = dev->node;
 
 	inno->regs = dev_read_addr_ptr(dev);
 	if (!inno->regs) {
 		printf("%s: failed to get phy address\n", __func__);
 		return -ENOMEM;
 	}
-	conn_state->phy_private = inno;
 
 	name = dev_read_string(dev, "compatible");
 	for (i = 0; i < ARRAY_SIZE(inno_hdmi_phy_of_match); i++) {
@@ -1018,31 +1000,33 @@ static int inno_hdmi_phy_init(struct display_state *state)
 	return 0;
 }
 
-static unsigned long inno_hdmi_phy_set_pll(struct display_state *state,
+static unsigned long inno_hdmi_phy_set_pll(struct rockchip_phy *phy,
 					   unsigned long rate)
 {
-	inno_hdmi_phy_clk_prepare(state);
-	inno_hdmi_phy_clk_is_prepared(state);
-	inno_hdmi_phy_clk_set_rate(state, rate);
+	struct inno_hdmi_phy *inno = dev_get_priv(phy->dev);
+
+	inno_hdmi_phy_clk_prepare(inno);
+	inno_hdmi_phy_clk_is_prepared(inno);
+	inno_hdmi_phy_clk_set_rate(inno, rate);
 	return 0;
 }
 
-static void
-inno_hdmi_phy_set_bus_width(struct display_state *state, u32 bus_width)
+static int
+inno_hdmi_phy_set_bus_width(struct rockchip_phy *phy, u32 bus_width)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi_phy *inno = conn_state->phy_private;
+	struct inno_hdmi_phy *inno = dev_get_priv(phy->dev);
 
 	inno->bus_width = bus_width;
+
+	return 0;
 }
 
 static long
-inno_hdmi_phy_clk_round_rate(struct display_state *state, unsigned long rate)
+inno_hdmi_phy_clk_round_rate(struct rockchip_phy *phy, unsigned long rate)
 {
+	struct inno_hdmi_phy *inno = dev_get_priv(phy->dev);
 	int i;
 	const struct pre_pll_config *cfg = pre_pll_cfg_table;
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi_phy *inno = conn_state->phy_private;
 	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, rate);
 
 	for (; cfg->pixclock != ~0UL; cfg++)
@@ -1084,4 +1068,40 @@ const struct rockchip_phy_funcs inno_hdmi_phy_funcs = {
 	.set_pll = inno_hdmi_phy_set_pll,
 	.set_bus_width = inno_hdmi_phy_set_bus_width,
 	.round_rate = inno_hdmi_phy_clk_round_rate,
+};
+
+static struct rockchip_phy inno_hdmi_phy_driver_data = {
+	 .funcs = &inno_hdmi_phy_funcs,
+};
+
+static const struct udevice_id inno_hdmi_phy_ids[] = {
+	{
+	 .compatible = "rockchip,rk3328-hdmi-phy",
+	 .data = (ulong)&inno_hdmi_phy_driver_data,
+	},
+	{
+	 .compatible = "rockchip,rk3228-hdmi-phy",
+	 .data = (ulong)&inno_hdmi_phy_driver_data,
+	},
+	{}
+};
+
+static int inno_hdmi_phy_probe(struct udevice *dev)
+{
+	struct inno_hdmi_phy *inno = dev_get_priv(dev);
+	struct rockchip_phy *phy =
+		(struct rockchip_phy *)dev_get_driver_data(dev);
+
+	inno->dev = dev;
+	phy->dev = dev;
+
+	return 0;
+}
+
+U_BOOT_DRIVER(inno_hdmi_phy) = {
+	.name = "inno_hdmi_phy",
+	.id = UCLASS_PHY,
+	.of_match = inno_hdmi_phy_ids,
+	.probe = inno_hdmi_phy_probe,
+	.priv_auto_alloc_size = sizeof(struct inno_hdmi_phy),
 };

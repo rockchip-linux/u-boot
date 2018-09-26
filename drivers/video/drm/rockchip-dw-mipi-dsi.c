@@ -299,7 +299,7 @@ struct dw_mipi_dsi_plat_data {
 
 struct mipi_dphy {
 	/* Non-SNPS PHY */
-	const struct rockchip_phy *phy;
+	struct rockchip_phy *phy;
 
 	u16 input_div;
 	u16 feedback_div;
@@ -1032,6 +1032,8 @@ static int rockchip_dw_mipi_dsi_init(struct display_state *state)
 	dsi->id = id;
 	dsi->blob = state->blob;
 	dsi->node = mipi_node;
+	dsi->dphy.phy = conn_state->phy;
+
 	conn_state->private = dsi;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
@@ -1083,11 +1085,11 @@ static void rockchip_dw_dsi_pre_init(struct display_state *state,
 
 	dsi->mode = &conn_state->mode;
 
-	if (conn_state->phy) {
+	if (dsi->dphy.phy) {
 		bw = rockchip_dsi_calc_bandwidth(dsi);
-		rate = rockchip_phy_set_pll(state, bw * USEC_PER_SEC);
+		rate = rockchip_phy_set_pll(dsi->dphy.phy, bw * USEC_PER_SEC);
 		dsi->lane_mbps = rate / USEC_PER_SEC;
-		rockchip_phy_power_on(state);
+		rockchip_phy_power_on(dsi->dphy.phy);
 	} else {
 		dw_mipi_dsi_get_lane_bps(dsi);
 	}

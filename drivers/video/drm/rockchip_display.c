@@ -61,7 +61,6 @@ enum public_use_phy {
 
 /* save public phy data */
 struct public_phy_data {
-	void *private_date;
 	const struct rockchip_phy *phy_drv;
 	int phy_node;
 	int public_phy_type;
@@ -91,18 +90,18 @@ static int get_public_phy(struct display_state *state,
 			  struct public_phy_data *data)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	const struct rockchip_phy *phy;
+	struct rockchip_phy *phy;
 	struct udevice *dev;
 	int ret = 0;
 
 	switch (data->public_phy_type) {
 	case INNO_HDMI_PHY:
 #if defined(CONFIG_ROCKCHIP_RK3328)
-		ret = uclass_find_device_by_name(UCLASS_PHY,
-						 "hdmiphy@ff430000", &dev);
+		ret = uclass_get_device_by_name(UCLASS_PHY,
+						"hdmiphy@ff430000", &dev);
 #elif defined(CONFIG_ROCKCHIP_RK322X)
-		ret = uclass_find_device_by_name(UCLASS_PHY,
-						 "hdmi-phy@12030000", &dev);
+		ret = uclass_get_device_by_name(UCLASS_PHY,
+						"hdmi-phy@12030000", &dev);
 #else
 		ret = -EINVAL;
 #endif
@@ -111,7 +110,7 @@ static int get_public_phy(struct display_state *state,
 			return 0;
 		}
 
-		phy = (const struct rockchip_phy *)dev_get_driver_data(dev);
+		phy = (struct rockchip_phy *)dev_get_driver_data(dev);
 		if (!phy) {
 			printf("failed to get phy driver\n");
 			return 0;
@@ -119,16 +118,16 @@ static int get_public_phy(struct display_state *state,
 
 		conn_state->phy_dev = dev;
 		conn_state->phy_node = dev->node;
-		if (!phy->funcs || !phy->funcs->init ||
-		    phy->funcs->init(state)) {
+
+		ret = rockchip_phy_init(phy);
+		if (ret) {
 			printf("failed to init phy driver\n");
-			return -EINVAL;
+			return ret;
 		}
 		conn_state->phy = phy;
 
 		printf("inno hdmi phy init success, save it\n");
 		data->phy_node = ofnode_to_offset(conn_state->phy_node);
-		data->private_date = conn_state->phy_private;
 		data->phy_drv = conn_state->phy;
 		data->phy_init = true;
 		return 0;
@@ -232,7 +231,7 @@ static int connector_phy_init(struct display_state *state,
 			      struct public_phy_data *data)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	const struct rockchip_phy *phy;
+	struct rockchip_phy *phy;
 	struct udevice *dev;
 	int ret, type;
 
@@ -253,8 +252,7 @@ static int connector_phy_init(struct display_state *state,
 
 		/* if this phy has been initialized, get it directly */
 		conn_state->phy_node = offset_to_ofnode(data->phy_node);
-		conn_state->phy_private = data->private_date;
-		conn_state->phy = data->phy_drv;
+		conn_state->phy = (struct rockchip_phy *)data->phy_drv;
 		return 0;
 	}
 
@@ -269,7 +267,7 @@ static int connector_phy_init(struct display_state *state,
 		return 0;
 	}
 
-	phy = (const struct rockchip_phy *)dev_get_driver_data(dev);
+	phy = (struct rockchip_phy *)dev_get_driver_data(dev);
 	if (!phy) {
 		printf("failed to find phy driver\n");
 		return 0;
@@ -278,12 +276,14 @@ static int connector_phy_init(struct display_state *state,
 	conn_state->phy_dev = dev;
 	conn_state->phy_node = dev->node;
 
-	if (!phy->funcs || !phy->funcs->init ||
-	    phy->funcs->init(state)) {
+	ret = rockchip_phy_init(phy);
+	if (ret) {
 		printf("failed to init phy driver\n");
-		return -EINVAL;
+		return ret;
 	}
+
 	conn_state->phy = phy;
+
 	return 0;
 }
 

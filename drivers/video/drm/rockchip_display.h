@@ -106,12 +106,11 @@ struct connector_state {
 	struct udevice *dev;
 	const struct rockchip_connector *connector;
 	struct udevice *phy_dev;
-	const struct rockchip_phy *phy;
+	struct rockchip_phy *phy;
 	ofnode node;
 	ofnode phy_node;
 
 	void *private;
-	void *phy_private;
 
 	struct drm_display_mode mode;
 	struct overscan overscan;
