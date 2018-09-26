@@ -218,6 +218,44 @@ ssize_t mipi_dsi_turn_on_peripheral(struct display_state *state)
 	return connector->funcs->transfer(state, &msg);
 }
 
+int mipi_dsi_dcs_get_power_mode(struct display_state *state, u8 *mode)
+{
+	ssize_t err;
+
+	err = mipi_dsi_dcs_read(state, MIPI_DCS_GET_POWER_MODE, mode,
+				sizeof(*mode));
+	if (err <= 0) {
+		if (err == 0)
+			err = -ENODATA;
+
+		return err;
+	}
+
+	return 0;
+}
+
+int mipi_dsi_set_maximum_return_packet_size(struct display_state *state,
+					    u16 value)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_connector *connector = conn_state->connector;
+	u8 tx[2] = { value & 0xff, value >> 8 };
+	struct mipi_dsi_msg msg = {
+		.channel = 0,
+		.type = MIPI_DSI_SET_MAXIMUM_RETURN_PACKET_SIZE,
+		.tx_len = sizeof(tx),
+		.tx_buf = tx,
+	};
+
+	if (!connector)
+		return -ENODEV;
+
+	if (!connector->funcs || !connector->funcs->transfer)
+		return -ENOSYS;
+
+	return connector->funcs->transfer(state, &msg);
+}
+
 static bool mipi_dsi_packet_format_is_short(u8 type)
 {
 	switch (type) {
