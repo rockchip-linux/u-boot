@@ -265,16 +265,6 @@ enum {
 	BIASEXTR_127_7,
 };
 
-enum soc_type {
-	PX30,
-	RK3128,
-	RK3288,
-	RK3366,
-	RK3368,
-	RK3399,
-	RV1108,
-};
-
 #define GRF_REG_FIELD(reg, lsb, msb)	((reg << 16) | (lsb << 8) | (msb))
 
 enum grf_reg_fields {
@@ -297,7 +287,6 @@ struct dw_mipi_dsi_plat_data {
 	const u32 *dsi0_grf_reg_fields;
 	const u32 *dsi1_grf_reg_fields;
 	unsigned long max_bit_rate_per_lane;
-	enum soc_type soc_type;
 };
 
 struct mipi_dphy {
@@ -908,9 +897,6 @@ static void dw_mipi_dsi_dpi_config(struct dw_mipi_dsi *dsi,
 	if (mode->flags & DRM_MODE_FLAG_NHSYNC)
 		val |= HSYNC_ACTIVE_LOW;
 
-	if (dsi->pdata->soc_type == RK3128)
-		val ^= VSYNC_ACTIVE_LOW;
-
 	dsi_write(dsi, DSI_DPI_VCID, DPI_VID(dsi->channel));
 	dsi_write(dsi, DSI_DPI_COLOR_CODING, color);
 	dsi_write(dsi, DSI_DPI_CFG_POL, val);
@@ -1269,7 +1255,6 @@ static const u32 px30_dsi_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data px30_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = px30_dsi_grf_reg_fields,
 	.max_bit_rate_per_lane = 1000000000UL,
-	.soc_type = PX30,
 };
 
 static const struct rockchip_connector px30_mipi_dsi_driver_data = {
@@ -1288,7 +1273,6 @@ static const u32 rk3128_dsi_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data rk3128_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3128_dsi_grf_reg_fields,
 	.max_bit_rate_per_lane = 1000000000UL,
-	.soc_type = RK3128,
 };
 
 static const struct rockchip_connector rk3128_mipi_dsi_driver_data = {
@@ -1326,7 +1310,6 @@ static const struct dw_mipi_dsi_plat_data rk3288_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3288_dsi0_grf_reg_fields,
 	.dsi1_grf_reg_fields = rk3288_dsi1_grf_reg_fields,
 	.max_bit_rate_per_lane = 1500000000UL,
-	.soc_type = RK3288,
 };
 
 static const struct rockchip_connector rk3288_mipi_dsi_driver_data = {
@@ -1347,7 +1330,6 @@ static const u32 rk3366_dsi_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data rk3366_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3366_dsi_grf_reg_fields,
 	.max_bit_rate_per_lane = 1000000000UL,
-	.soc_type = RK3366,
 };
 
 static const struct rockchip_connector rk3366_mipi_dsi_driver_data = {
@@ -1367,7 +1349,6 @@ static const u32 rk3368_dsi_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data rk3368_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3368_dsi_grf_reg_fields,
 	.max_bit_rate_per_lane = 1000000000UL,
-	.soc_type = RK3368,
 };
 
 static const struct rockchip_connector rk3368_mipi_dsi_driver_data = {
@@ -1404,7 +1385,6 @@ static const struct dw_mipi_dsi_plat_data rk3399_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3399_dsi0_grf_reg_fields,
 	.dsi1_grf_reg_fields = rk3399_dsi1_grf_reg_fields,
 	.max_bit_rate_per_lane = 1500000000UL,
-	.soc_type = RK3399,
 };
 
 static const struct rockchip_connector rk3399_mipi_dsi_driver_data = {
@@ -1424,7 +1404,6 @@ static const u32 rv1108_dsi_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data rv1108_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rv1108_dsi_grf_reg_fields,
 	.max_bit_rate_per_lane = 1000000000UL,
-	.soc_type = RV1108,
 };
 
 static const struct rockchip_connector rv1108_mipi_dsi_driver_data = {
