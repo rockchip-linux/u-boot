@@ -372,6 +372,17 @@ static inline u32 dsi_read(struct dw_mipi_dsi *dsi, u32 reg)
 	return readl(dsi->base + reg);
 }
 
+static inline void dsi_update_bits(struct dw_mipi_dsi *dsi,
+				   u32 reg, u32 mask, u32 val)
+{
+	u32 orig, tmp;
+
+	orig = dsi_read(dsi, reg);
+	tmp = orig & ~mask;
+	tmp |= val & mask;
+	dsi_write(dsi, reg, tmp);
+}
+
 static void grf_field_write(struct dw_mipi_dsi *dsi, enum grf_reg_fields index,
 			    unsigned int val)
 {
@@ -613,10 +624,11 @@ static void rockchip_set_transfer_mode(struct dw_mipi_dsi *dsi, int flags)
 {
 	if (flags & MIPI_DSI_MSG_USE_LPM) {
 		dsi_write(dsi, DSI_CMD_MODE_CFG, CMD_MODE_ALL_LP);
-		dsi_write(dsi, DSI_LPCLK_CTRL, 0);
+		dsi_update_bits(dsi, DSI_LPCLK_CTRL, PHY_TXREQUESTCLKHS, 0);
 	} else {
 		dsi_write(dsi, DSI_CMD_MODE_CFG, 0);
-		dsi_write(dsi, DSI_LPCLK_CTRL, PHY_TXREQUESTCLKHS);
+		dsi_update_bits(dsi, DSI_LPCLK_CTRL,
+				PHY_TXREQUESTCLKHS, PHY_TXREQUESTCLKHS);
 	}
 }
 
