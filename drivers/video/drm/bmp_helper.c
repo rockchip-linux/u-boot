@@ -4,6 +4,8 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
+#include <command.h>
+#include <log.h>
 #include <config.h>
 #include <common.h>
 #include <malloc.h>
@@ -141,9 +143,30 @@ static void decode_rle8_bitmap(void *psrc, void *pdst, uint16_t *cmap,
 	}
 }
 
+static void dump_bmp_dib_head(void *bmp_addr)
+{
+	struct bmp_image *bmp = bmp_addr;
+
+	debug("########## BMP DIB_HEAD ##########\n"
+	      "Width  : %u\n"
+	      "Height : %u\n"
+	      "Bpp    : %u\n"
+	      "Compression method : %u\n"
+	      "Image size : %u\n"
+	      "Colors in palette  : %u\n"
+	      "##################################\n",
+		bmp->header.width,
+		bmp->header.height,
+		bmp->header.bit_count,
+		bmp->header.compression,
+		bmp->header.image_size,
+		bmp->header.colors_used);
+}
+
 int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp)
 {
-	int stride, padded_width, bpp, i, width, height;
+	int i, j;
+	int stride, padded_width, bpp, width, height;
 	struct bmp_image *bmp = bmp_addr;
 	uint8_t *src = bmp_addr;
 	uint8_t *dst = pdst;
@@ -153,9 +176,10 @@ int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp)
 
 	if (!bmp || !(bmp->header.signature[0] == 'B' &&
 	    bmp->header.signature[1] == 'M')) {
-		printf("cat not find bmp file\n");
+		printf("Error: Invalid bmp file.\n");
 		return -1;
 	}
+	dump_bmp_dib_head(bmp);
 	width = get_unaligned_le32(&bmp->header.width);
 	height = get_unaligned_le32(&bmp->header.height);
 	bpp = get_unaligned_le16(&bmp->header.bit_count);
@@ -172,8 +196,8 @@ int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp)
 	switch (bpp) {
 	case 8:
 		if (dst_bpp != 16) {
-			printf("can't support covert bmap to bit[%d]\n",
-			       dst_bpp);
+			printf("Error: Target pixel's bpp is not 16bit.\n");
+
 			return -1;
 		}
 		cmap = malloc(sizeof(cmap) * 256);
@@ -193,7 +217,6 @@ int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp)
 			decode_rle8_bitmap(src, dst, cmap, width, height,
 					   bpp, 0, 0, flip);
 		} else {
-			int j;
 			stride = width * 2;
 
 			if (flip)
@@ -211,9 +234,35 @@ int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp)
 		}
 		free(cmap);
 		break;
+	case 16:
+		if (get_unaligned_le32(&bmp->header.compression)) {
+			printf("Error: Failed to decompression bmp file.\n");
+
+			return -1;
+		}
+		stride = ALIGN(width * bpp / 8, 4);
+		if (flip)
+			src += stride * (height - 1);
+		for (i = 0; i < height; i++) {
+			for (j = 0; j < width; j++) {
+				ushort color = (src[1] << 8) | src[0];
+
+				color = (((color & 0x7c00) << 1) |
+					((color & 0x03e0) << 1) |
+					(color & 0x001f));
+				*(uint16_t *)dst = color;
+				src += 2;
+				dst += 2;
+			}
+			src += (padded_width - width);
+			if (flip)
+				src -= stride * 2;
+		}
+		break;
 	case 24:
 		if (get_unaligned_le32(&bmp->header.compression)) {
-			printf("can't not support compression for 24bit bmap");
+			printf("Error: Failed to decompression bmp file.\n");
+
 			return -1;
 		}
 		stride = ALIGN(width * 3, 4);
@@ -228,10 +277,26 @@ int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp)
 				src -= stride * 2;
 		}
 		break;
-	case 16:
 	case 32:
+		if (get_unaligned_le32(&bmp->header.compression)) {
+			printf("Error: Failed to decompression bmp file.\n");
+
+			return -1;
+		}
+		stride = ALIGN(width * 4, 4);
+		if (flip)
+			src += stride * (height - 1);
+
+		for (i = 0; i < height; i++) {
+			memcpy(dst, src, 4 * width);
+			dst += stride;
+			src += stride;
+			if (flip)
+				src -= stride * 2;
+		}
+		break;
 	default:
-		printf("unsupport bit=%d now\n", bpp);
+		printf("Error: Can't decode this bmp file with bit=%d\n", bpp);
 		return -1;
 	}
 

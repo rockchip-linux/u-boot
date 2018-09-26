@@ -4,6 +4,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <asm/io.h>
 #include <asm/unaligned.h>
 #include <config.h>
 #include <common.h>
@@ -28,6 +29,7 @@
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
 #include "rockchip_panel.h"
+#include "rockchip_vop.h"
 #include <dm.h>
 #include <dm/of_access.h>
 #include <dm/ofnode.h>
@@ -163,9 +165,40 @@ static unsigned long get_display_size(void)
 	return memory_end - memory_start;
 }
 
-static bool can_direct_logo(int bpp)
+/**
+ * vop_support_ymirror - ensure whethere vop support the feature of ymirror.
+ * @logo:	the pointer to the logo information.
+ *
+ */
+static bool vop_support_ymirror(struct logo_info *logo)
 {
-	return bpp == 24 || bpp == 32;
+	bool ret;
+	struct display_state *state;
+	struct vop_data *vop_data;
+
+	ret = false;
+	state = container_of(logo, struct display_state, logo);
+	if (state->crtc_state.crtc->data) {
+		vop_data = (struct vop_data *)state->crtc_state.crtc->data;
+		printf("VOP hardware version v%d.%d, ",
+		       VOP_MAJOR(vop_data->version),
+		       VOP_MINOR(vop_data->version));
+		/*
+		 * if the version of VOP is higher than v3.0,
+		 * which means that the VOP support ymirror,
+		 * so it isn't need to mirror image by ourself.
+		 */
+		if (vop_data->version >= VOP_VERSION(3, 0)) {
+			printf("Support mirror mode.\n");
+			ret = true;
+		} else {
+			printf("Not support mirror mode.\n");
+		}
+	} else {
+		printf("Error: CRTC drivers is not ready.\n");
+	}
+
+	return ret;
 }
 
 
@@ -323,7 +356,7 @@ static int connector_panel_init(struct display_state *state)
 
 	dsp_lut_node = dev_read_subnode(dev, "dsp-lut");
 	if (!ofnode_valid(dsp_lut_node)) {
-		debug("%s can not find dsp-lut node\n", __func__);
+		printf("%s can not find dsp-lut node\n", __func__);
 		return 0;
 	}
 
@@ -931,7 +964,6 @@ static int display_logo(struct display_state *state)
 		printf("can't support bmp bits[%d]\n", logo->bpp);
 		return -EINVAL;
 	}
-	crtc_state->rb_swap = logo->bpp != 32;
 	hdisplay = conn_state->mode.hdisplay;
 	vdisplay = conn_state->mode.vdisplay;
 	crtc_state->src_w = logo->width;
@@ -1117,19 +1149,16 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	logo->bpp = get_unaligned_le16(&header->bit_count);
 	logo->width = get_unaligned_le32(&header->width);
 	logo->height = get_unaligned_le32(&header->height);
-	size = get_unaligned_le32(&header->file_size);
-	if (!can_direct_logo(logo->bpp)) {
-		if (size > MEMORY_POOL_SIZE) {
-			printf("failed to use boot buf as temp bmp buffer\n");
-			ret = -ENOMEM;
-			goto free_header;
-		}
-		pdst = get_display_buffer(size);
 
-	} else {
-		pdst = get_display_buffer(size);
-		dst = pdst;
+	size = get_unaligned_le32(&header->file_size);
+	if (size > MEMORY_POOL_SIZE) {
+		printf("failed to use boot buf as temp bmp buffer\n");
+		ret = -ENOMEM;
+		goto free_header;
 	}
+
+	pdst = get_display_buffer(size);
+	dst = pdst;
 
 	len = rockchip_read_resource_file(pdst, bmp_name, 0, size);
 	if (len != size) {
@@ -1138,7 +1167,7 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 		goto free_header;
 	}
 
-	if (!can_direct_logo(logo->bpp)) {
+	if (!vop_support_ymirror(logo)) {
 		int dst_size;
 		/*
 		 * TODO: force use 16bpp if bpp less than 16;
@@ -1151,6 +1180,7 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 			ret = -ENOMEM;
 			goto free_header;
 		}
+		memset(dst, 0, dst_size);
 		if (bmpdecoder(pdst, dst, logo->bpp)) {
 			printf("failed to decode bmp %s\n", bmp_name);
 			ret = -EINVAL;
