@@ -239,7 +239,7 @@ static int rockchip_panel_send_dsi_cmds(struct display_state *state,
 			return -EINVAL;
 		}
 
-		if (ret) {
+		if (ret < 0) {
 			printf("failed to write cmd%d: %d\n", i, ret);
 			return ret;
 		}
