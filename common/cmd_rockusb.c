@@ -979,6 +979,74 @@ void do_rockusb_cmd(void)
 	}
 }
 
+static inline bool is_vs_lba(uint32_t lba)
+{
+#define VS_LBA_MASK	0xFFFF0000
+#define VS_LBA_VALUE	0xFFF00000
+	return (lba & VS_LBA_MASK) == VS_LBA_VALUE;
+}
+
+static inline uint16_t get_vs_id(uint32_t lba)
+{
+#define VS_ID_MASK	0x0000FFFF
+	return lba & VS_ID_MASK;
+}
+
+static inline bool need_vsfilter(uint16_t id)
+{
+	return (id & VSH_ID_MASK) == VSH_ID_FILTER_BASE;
+}
+
+static inline bool is_vs_match(uint32_t lba)
+{
+	uint16_t id = get_vs_id(lba);
+
+	return is_vs_lba(lba) && !need_vsfilter(id);
+}
+
+static inline bool is_vsfilter_match(uint32_t lba)
+{
+	uint16_t id = get_vs_id(lba);
+
+	return is_vs_lba(lba) && need_vsfilter(id);
+}
+
+static void vsfilter_read(uint16_t id, char *buff, uint32_t size)
+{
+	struct vsf_ver *vsfver;
+
+	id -= VSH_ID_FILTER_BASE;
+
+	switch (id) {
+	case VSH_ID_FILTER_VERSION_OFFSET:
+		/* get vendor storage filter version */
+		vsfver = (struct vsf_ver *)buff;
+
+		vsfver->magic = cpu_to_le32(VSFV_MAGIC);
+		vsfver->version = cpu_to_le16(VSFV_VERSION);
+		vsfver->rev_level = cpu_to_le16(0);
+		break;
+	case VSH_ID_FILTER_WIDEVINE_OFFSET:
+		/* WIDEVINE read process */
+		break;
+	default:
+		break;
+	}
+}
+
+static void vsfilter_write(uint16_t id, char *buff, uint32_t size)
+{
+	id -= VSH_ID_FILTER_BASE;
+
+	switch (id) {
+	case VSH_ID_FILTER_WIDEVINE_OFFSET:
+		/* WIDEVINE write process */
+		break;
+	default:
+		break;
+	}
+}
+
 void rkusb_handle_datarx(void)
 {
 #ifdef CONFIG_RK_DWC3_UDC
@@ -1036,13 +1104,19 @@ void rkusb_handle_datarx(void)
 				usbcmd.lba += rxdata_blocks;
 			} else if (usbcmd.lba == 0xFFFFF000) {
 				SecureBootUnlock(rxdata_buf);
-			} else if ((usbcmd.lba & 0xFFFF0000) == 0xFFF00000) {
+			} else if (is_vs_match(usbcmd.lba)) {
 				iRet = vendor_storage_write(*(uint16 *)rxdata_buf, rxdata_buf + 8,
 					       		    *(uint16 *)(rxdata_buf + 4));
 				if (iRet == -1) {
 					RKUSBERR("vendor_storage_write failed,err=%d\n", iRet);
 				}
 				usbcmd.lba += rxdata_blocks;
+			} else if (is_vsfilter_match(usbcmd.lba)) {
+				struct vs_hdr *vshdr = (struct vs_hdr *)rxdata_buf;
+
+				vsfilter_write(le16_to_cpu(vshdr->id),
+					       vshdr->data,
+					       le16_to_cpu(vshdr->size));
 			} else if (SecureBootLock == 0) {
 				iRet = StorageWriteLba(usbcmd.lba, rxdata_buf, rxdata_blocks, usbcmd.imgwr_mode);
 				if (iRet != FTL_OK) {
@@ -1111,12 +1185,18 @@ void rkusb_handle_datarx(void)
 				usbcmd.lba += rxdata_blocks;
 			} else if (usbcmd.lba == 0xFFFFF000) {
 				SecureBootUnlock(rxdata_buf);
-			} else if ((usbcmd.lba & 0xFFFF0000) == 0xFFF00000) {
+			} else if (is_vs_match(usbcmd.lba)) {
 				int iRet = vendor_storage_write(*(uint16 *)rxdata_buf, rxdata_buf+8, *(uint16 *)(rxdata_buf+4));
 				if (iRet == -1) {
 					RKUSBERR("vendor_storage_write failed,err=%d\n", iRet);
 				}
 				usbcmd.lba += rxdata_blocks;
+			} else if (is_vsfilter_match(usbcmd.lba)) {
+				struct vs_hdr *vshdr = (struct vs_hdr *)rxdata_buf;
+
+				vsfilter_write(le16_to_cpu(vshdr->id),
+					       vshdr->data,
+					       le16_to_cpu(vshdr->size));
 			} else if (SecureBootLock == 0) {
 				StorageWriteLba(usbcmd.lba, rxdata_buf, rxdata_blocks, usbcmd.imgwr_mode);
 				usbcmd.lba += rxdata_blocks;
@@ -1186,7 +1266,7 @@ start:
 				StorageVendorSysDataLoad(usbcmd.pre_read.pre_lba - 0xFFFFFF00, pre_blocks, (uint32 *)usbcmd.pre_read.pre_buffer);
 			else if (usbcmd.lba == 0xFFFFF000)
 				SecureBootUnlockCheck(usbcmd.pre_read.pre_buffer);
-			else if ((usbcmd.lba & 0xFFFF0000) == 0xFFF00000) {
+			else if (is_vs_match(usbcmd.lba)) {
 				uint16_t req_id = (usbcmd.lba & 0xFFFF);
 				uint8 *p_buf = usbcmd.pre_read.pre_buffer;
 				iRet = vendor_storage_read(req_id, p_buf + 8, usbcmd.u_size - 8);
@@ -1198,6 +1278,19 @@ start:
 					p_buf[4] = (uint32_t)(iRet & 0xFF);
 					p_buf[5] = (uint32_t)((iRet >> 8) & 0xFF);
 				}
+			} else if (is_vsfilter_match(usbcmd.lba)) {
+				struct vs_hdr *vshdr;
+
+				vshdr = (struct vs_hdr *)usbcmd.pre_read.pre_buffer;
+				vshdr->id = cpu_to_le16(get_vs_id(usbcmd.lba));
+				vshdr->size = cpu_to_le16(usbcmd.u_size - sizeof(*vshdr));
+
+				if (le16_to_cpu(vshdr->id) == VSH_ID_FILTER_BASE)
+					vshdr->size = cpu_to_le16(sizeof(*vshdr));
+
+				vsfilter_read(le16_to_cpu(vshdr->id),
+					      vshdr->data,
+					      le16_to_cpu(vshdr->size));
 			} else {
 				iRet = StorageReadLba(usbcmd.pre_read.pre_lba, usbcmd.pre_read.pre_buffer, pre_blocks);
 				if (iRet != FTL_OK) {
@@ -1266,7 +1359,7 @@ start:
 				StorageVendorSysDataLoad(usbcmd.pre_read.pre_lba - 0xFFFFFF00, pre_blocks, (uint32 *)usbcmd.pre_read.pre_buffer);
 			} else if (usbcmd.lba == 0xFFFFF000) {
 				SecureBootUnlockCheck(usbcmd.pre_read.pre_buffer);
-			} else if ((usbcmd.lba & 0xFFFF0000) == 0xFFF00000) {
+			} else if (is_vs_match(usbcmd.lba)) {
 				uint16_t req_id = (usbcmd.lba & 0xFFFF);
 				uint8 *p_buf = usbcmd.pre_read.pre_buffer;
 				int iRet = vendor_storage_read(req_id, p_buf + 8, usbcmd.u_size - 8);
@@ -1278,6 +1371,19 @@ start:
 					p_buf[4] = (uint32_t)(iRet & 0xFF);
 					p_buf[5] = (uint32_t)((iRet >> 8) & 0xFF);
 				}
+			} else if (is_vsfilter_match(usbcmd.lba)) {
+				struct vs_hdr *vshdr;
+
+				vshdr = (struct vs_hdr *)usbcmd.pre_read.pre_buffer;
+				vshdr->id = cpu_to_le16(get_vs_id(usbcmd.lba));
+				vshdr->size = cpu_to_le16(usbcmd.u_size - sizeof(*vshdr));
+
+				if (le16_to_cpu(vshdr->id) == VSH_ID_FILTER_BASE)
+					vshdr->size = cpu_to_le16(sizeof(*vshdr));
+
+				vsfilter_read(le16_to_cpu(vshdr->id),
+					      vshdr->data,
+					      le16_to_cpu(vshdr->size));
 			} else {
 				StorageReadLba(usbcmd.pre_read.pre_lba, usbcmd.pre_read.pre_buffer, pre_blocks);
 			}

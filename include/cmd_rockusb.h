@@ -346,6 +346,26 @@ struct cmd_rockusb_interface {
 	struct cmd_rockusb_preread pre_read __attribute__((aligned(ARCH_DMA_MINALIGN)));
 };
 
+struct vs_hdr {
+#define VSH_ID_MASK	0xFF00
+#define VSH_ID_FILTER_BASE	0x5500
+#define VSH_ID_FILTER_VERSION_OFFSET	0x0
+#define VSH_ID_FILTER_WIDEVINE_OFFSET	0x1
+	__le16 id;
+	__le16 flag;
+	__le16 size;
+	__le16 reserved;
+	char data[];
+} __attribute__ ((packed));
+
+struct vsf_ver {
+#define VSFV_MAGIC	0x42524556	/* 'VERB' */
+#define VSFV_VERSION	0x100		/* version 1.0 */
+	__le32 magic;
+	__le16 version;	/* BCD version number 0xMMNN for version M.N */
+	__le16 rev_level;	/* revision level */
+} __attribute__ ((packed));
+
 /* Declare functions */
 extern void FW_SorageLowFormatEn(int en);
 
