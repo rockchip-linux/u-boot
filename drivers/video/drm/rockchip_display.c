@@ -34,12 +34,13 @@
 #include <dm/of_access.h>
 #include <dm/ofnode.h>
 
-#define DRIVER_VERSION	"v1.0.0"
+#define DRIVER_VERSION	"v1.0.1"
 
 /***********************************************************************
  *  Rockchip UBOOT DRM driver version
  *
  *  v1.0.0	: add basic version for rockchip drm driver(hjc)
+ *  v1.0.1	: add much dsi update(hjc)
  *
  **********************************************************************/
 
