@@ -658,6 +658,20 @@ const struct vop_data rk3308_vop = {
 	.reg_len = RK3366_LIT_FRC_LOWER01_0 * 4,
 };
 
+static const struct vop_grf_ctrl rk1808_grf_ctrl = {
+	.grf_dclk_inv = VOP_REG(RK1808_GRF_PD_VO_CON1, 0x1, 4),
+};
+
+const struct vop_data rk1808_vop = {
+	.version = VOP_VERSION(2, 8),
+	.max_output = {1920, 1080},
+	.ctrl = &px30_ctrl_data,
+	.grf_ctrl = &rk1808_grf_ctrl,
+	.win = &rk3366_win1_data,
+	.line_flag = &rk3366_vop_lite_line_flag,
+	.reg_len = RK3366_LIT_FRC_LOWER01_0 * 4,
+};
+
 const struct vop_data rv1108_vop = {
 	.version = VOP_VERSION(2, 4),
 	.max_output = {1920, 1080},

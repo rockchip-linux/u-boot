@@ -959,4 +959,9 @@
 #define PX30_AFBCD0_AXI_CTRL			0x00250
 #define PX30_GRF_PD_VO_CON1			0x00438
 /* px30 register definition end */
+
+/* rk1808 register definition start*/
+#define RK1808_GRF_PD_VO_CON1			0x00000444
+/* rk1808 register definition end*/
+
 #endif /* _ROCKCHIP_VOP_REG_H */
