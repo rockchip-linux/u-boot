@@ -20,22 +20,6 @@
 #define UPDATE(v, h, l)	(((v) << (l)) & GENMASK((h), (l)))
 #define HIWORD_UPDATE(v, h, l)	(((v) << (l)) | (GENMASK(h, l) << 16))
 
-#define readl_poll_timeout(addr, val, cond, sleep_us, timeout_us)	\
-({ \
-	int try = 100; \
-	for (;;) { \
-		(val) = readl(addr); \
-		if (cond) \
-			break; \
-		try--; \
-		if (!try) \
-			break; \
-		if (sleep_us) \
-			udelay(sleep_us >> 2); \
-	} \
-	(cond) ? 0 : -ETIMEDOUT; \
-})
-
 /* MIPI DSI Processor-to-Peripheral transaction types */
 enum {
 	MIPI_DSI_V_SYNC_START				= 0x01,

@@ -14,6 +14,7 @@
 #include <asm/arch/rkplat.h>
 #include <asm/unaligned.h>
 #include <linux/list.h>
+#include <linux/iopoll.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -309,7 +310,7 @@ struct mipi_dphy {
 };
 
 struct dw_mipi_dsi {
-	void *base;
+	u32 base;
 	const void *blob;
 	int node;
 	int id;
@@ -419,7 +420,7 @@ static int genif_wait_w_pld_fifo_not_full(struct dw_mipi_dsi *dsi)
 	int ret;
 
 	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-				 sts, !(sts & GEN_PLD_W_FULL), 10,
+				 sts, !(sts & GEN_PLD_W_FULL),
 				 CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		printf("generic write payload fifo is full\n");
@@ -435,7 +436,7 @@ static int genif_wait_cmd_fifo_not_full(struct dw_mipi_dsi *dsi)
 	int ret;
 
 	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-				 sts, !(sts & GEN_CMD_FULL), 10,
+				 sts, !(sts & GEN_CMD_FULL),
 				 CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		printf("generic write cmd fifo is full\n");
@@ -453,7 +454,7 @@ static int genif_wait_write_fifo_empty(struct dw_mipi_dsi *dsi)
 
 	mask = GEN_CMD_EMPTY | GEN_PLD_W_EMPTY;
 	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-				 sts, (sts & mask) == mask, 10,
+				 sts, (sts & mask) == mask,
 				 CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		printf("generic write fifo is full\n");
@@ -494,14 +495,14 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 	mdelay(2);
 
 	ret = readl_poll_timeout(dsi->base + DSI_PHY_STATUS,
-				 val, val & LOCK, 1000, PHY_STATUS_TIMEOUT_US);
+				 val, val & LOCK, PHY_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		printf("PHY is not locked\n");
 		return ret;
 	}
 
 	ret = readl_poll_timeout(dsi->base + DSI_PHY_STATUS,
-				 val, val & STOP_STATE_CLK_LANE, 1000,
+				 val, val & STOP_STATE_CLK_LANE,
 				 PHY_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		printf("lane module is not in stop state\n");
@@ -663,7 +664,7 @@ static int dw_mipi_dsi_read_from_fifo(struct dw_mipi_dsi *dsi,
 	int ret;
 
 	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-				 val, !(val & GEN_RD_CMD_BUSY), 50, 5000);
+				 val, !(val & GEN_RD_CMD_BUSY), 5000);
 	if (ret) {
 		printf("entire response isn't stored in the FIFO\n");
 		return ret;
@@ -672,8 +673,7 @@ static int dw_mipi_dsi_read_from_fifo(struct dw_mipi_dsi *dsi,
 	/* Receive payload */
 	for (length = msg->rx_len; length; length -= 4) {
 		ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-					 val, !(val & GEN_PLD_R_EMPTY),
-					 50, 5000);
+					 val, !(val & GEN_PLD_R_EMPTY), 5000);
 		if (ret) {
 			printf("Read payload FIFO is empty\n");
 			return ret;
@@ -1062,9 +1062,8 @@ static int dw_mipi_dsi_dual_channel_probe(struct dw_mipi_dsi *master)
 
 	slave->blob = master->blob;
 	slave->node = node1;
-	slave->base = (void *)fdtdec_get_addr_size_auto_noparent(slave->blob,
-								 node1, "reg",
-								 0, NULL);
+	slave->base = fdtdec_get_addr_size_auto_noparent(slave->blob, node1,
+							 "reg", 0, NULL);
 	slave->pdata = master->pdata;
 	slave->id = 1;
 	slave->dphy.phy = master->dphy.phy;
@@ -1092,8 +1091,8 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 		return -ENOMEM;
 	memset(dsi, 0, sizeof(*dsi));
 
-	dsi->base = (void *)fdtdec_get_addr_size_auto_noparent(state->blob,
-						mipi_node, "reg", 0, NULL);
+	dsi->base = fdtdec_get_addr_size_auto_noparent(state->blob, mipi_node,
+						       "reg", 0, NULL);
 	dsi->pdata = pdata;
 	dsi->id = id++;
 	dsi->blob = state->blob;
