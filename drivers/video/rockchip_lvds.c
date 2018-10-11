@@ -14,6 +14,7 @@
 #include <asm/arch/rkplat.h>
 #include <asm/unaligned.h>
 #include <linux/list.h>
+#include <linux/iopoll.h>
 #include <asm/io.h>
 
 #include "rockchip_display.h"
@@ -424,6 +425,8 @@ static void rk3288_output_ttl(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct rockchip_lvds_device *lvds = conn_state->private;
+	u32 status;
+	int ret;
 
 	rk3288_lvds_pwr_on(state);
 	/* iomux: dclk den hsync vsync */
@@ -461,6 +464,13 @@ static void rk3288_output_ttl(struct display_state *state)
 		    RK3288_LVDS_CH0_REG20_LSB);
 
 	lvds_writel(lvds, RK3288_LVDS_CFG_REGC, RK3288_LVDS_CFG_REGC_PLL_ENABLE);
+	ret = readl_poll_timeout(lvds->regbase + RK3288_LVDS_CH0_REGF, status,
+				 status & RK3288_LVDS_CH0_PLL_LOCK, 10000);
+	if (ret) {
+		printf("%s: PLL is not lock\n", __func__);
+		return;
+	}
+
 	lvds_writel(lvds, RK3288_LVDS_CFG_REG21, RK3288_LVDS_CFG_REG21_TX_ENABLE);
 }
 
