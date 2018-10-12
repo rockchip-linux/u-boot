@@ -130,6 +130,7 @@ struct connector_state {
 struct logo_info {
 	int mode;
 	char *mem;
+	bool rb_swap;
 	bool ymirror;
 	u32 offset;
 	u32 width;
