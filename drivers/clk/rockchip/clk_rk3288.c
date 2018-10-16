@@ -172,6 +172,40 @@ static int rkclk_set_pll(struct rk3288_cru *cru, enum rk_clk_id clk_id,
 	return 0;
 }
 
+/* Get pll rate by id */
+static u32 rkclk_pll_get_rate(struct rk3288_cru *cru,
+			      enum rk_clk_id clk_id)
+{
+	u32 nr, no, nf;
+	u32 con;
+	int pll_id = rk_pll_id(clk_id);
+	struct rk3288_pll *pll = &cru->pll[pll_id];
+	static u8 clk_shift[CLK_COUNT] = {
+		0xff, APLL_MODE_SHIFT, DPLL_MODE_SHIFT, CPLL_MODE_SHIFT,
+		GPLL_MODE_SHIFT, NPLL_MODE_SHIFT
+	};
+	uint shift;
+
+	con = readl(&cru->cru_mode_con);
+	shift = clk_shift[clk_id];
+	switch ((con >> shift) & CRU_MODE_MASK) {
+	case APLL_MODE_SLOW:
+		return OSC_HZ;
+	case APLL_MODE_NORMAL:
+		/* normal mode */
+		con = readl(&pll->con0);
+		no = ((con & CLKOD_MASK) >> CLKOD_SHIFT) + 1;
+		nr = ((con & CLKR_MASK) >> CLKR_SHIFT) + 1;
+		con = readl(&pll->con1);
+		nf = ((con & CLKF_MASK) >> CLKF_SHIFT) + 1;
+
+		return (24 * nf / (nr * no)) * 1000000;
+	case APLL_MODE_DEEP:
+	default:
+		return 32768;
+	}
+}
+
 static int rkclk_configure_ddr(struct rk3288_cru *cru, struct rk3288_grf *grf,
 			       unsigned int hz)
 {
@@ -337,37 +371,90 @@ static int rockchip_mac_set_clk(struct rk3288_cru *cru, uint freq)
 static int rockchip_vop_set_clk(struct rk3288_cru *cru, struct rk3288_grf *grf,
 				int periph, unsigned int rate_hz)
 {
-	struct pll_div npll_config = {0};
-	u32 lcdc_div;
+	struct pll_div cpll_config = {0};
+	u32 lcdc_div, parent;
 	int ret;
+	unsigned int gpll_rate, npll_rate;
 
-	ret = pll_para_config(rate_hz, &npll_config, &lcdc_div);
-	if (ret)
-		return ret;
+	gpll_rate = rkclk_pll_get_rate(cru, CLK_GENERAL);
+	npll_rate = rkclk_pll_get_rate(cru, CLK_NEW);
 
-	rk_clrsetreg(&cru->cru_mode_con, NPLL_MODE_MASK,
-		     NPLL_MODE_SLOW << NPLL_MODE_SHIFT);
-	rkclk_set_pll(cru, CLK_NEW, &npll_config);
-
-	/* waiting for pll lock */
-	while (1) {
-		if (readl(&grf->soc_status[1]) & SOCSTS_NPLL_LOCK)
-			break;
-		udelay(1);
-	}
-
-	rk_clrsetreg(&cru->cru_mode_con, NPLL_MODE_MASK,
-		     NPLL_MODE_NORMAL << NPLL_MODE_SHIFT);
-
-	/* vop dclk source clk: npll,dclk_div: 1 */
+	/* vop dclk source clk: cpll,dclk_div: 1 */
 	switch (periph) {
 	case DCLK_VOP0:
-		rk_clrsetreg(&cru->cru_clksel_con[27], 0xff << 8 | 3 << 0,
-			     (lcdc_div - 1) << 8 | 2 << 0);
+		ret = (readl(&cru->cru_clksel_con[27]) && DCLK_VOP0_PLL_MASK) >>
+		      DCLK_VOP0_PLL_SHIFT;
+		if (ret == DCLK_VOP0_SELECT_CPLL) {
+			ret = pll_para_config(rate_hz, &cpll_config, &lcdc_div);
+			if (ret)
+				return ret;
+
+			rk_clrsetreg(&cru->cru_mode_con, CPLL_MODE_MASK,
+				     CPLL_MODE_SLOW << CPLL_MODE_SHIFT);
+			rkclk_set_pll(cru, CLK_NEW, &cpll_config);
+
+			/* waiting for pll lock */
+			while (1) {
+				if (readl(&grf->soc_status[1]) &
+					  SOCSTS_CPLL_LOCK)
+					break;
+				udelay(1);
+			}
+
+			rk_clrsetreg(&cru->cru_mode_con, CPLL_MODE_MASK,
+				     CPLL_MODE_NORMAL << CPLL_MODE_SHIFT);
+			parent = DCLK_VOP0_SELECT_CPLL;
+		} else if (ret == DCLK_VOP0_SELECT_GPLL) {
+			parent = DCLK_VOP0_SELECT_GPLL;
+			lcdc_div = DIV_ROUND_UP(gpll_rate,
+						rate_hz);
+		} else {
+			parent = DCLK_VOP0_SELECT_NPLL;
+			lcdc_div = DIV_ROUND_UP(npll_rate,
+						rate_hz);
+		}
+		rk_clrsetreg(&cru->cru_clksel_con[27],
+			     DCLK_VOP0_DIV_MASK | DCLK_VOP0_PLL_MASK,
+			     ((lcdc_div - 1) << DCLK_VOP0_DIV_SHIFT) |
+			     (parent << DCLK_VOP0_PLL_SHIFT));
 		break;
 	case DCLK_VOP1:
-		rk_clrsetreg(&cru->cru_clksel_con[29], 0xff << 8 | 3 << 6,
-			     (lcdc_div - 1) << 8 | 2 << 6);
+		ret = (readl(&cru->cru_clksel_con[29]) && DCLK_VOP1_PLL_MASK) >>
+		      DCLK_VOP1_PLL_SHIFT;
+		if (ret == DCLK_VOP1_SELECT_CPLL) {
+			ret = pll_para_config(rate_hz, &cpll_config, &lcdc_div);
+			if (ret)
+				return ret;
+
+			rk_clrsetreg(&cru->cru_mode_con, CPLL_MODE_MASK,
+				     CPLL_MODE_SLOW << CPLL_MODE_SHIFT);
+			rkclk_set_pll(cru, CLK_NEW, &cpll_config);
+
+			/* waiting for pll lock */
+			while (1) {
+				if (readl(&grf->soc_status[1]) &
+				    SOCSTS_CPLL_LOCK)
+					break;
+				udelay(1);
+			}
+
+			rk_clrsetreg(&cru->cru_mode_con, CPLL_MODE_MASK,
+				     CPLL_MODE_NORMAL << CPLL_MODE_SHIFT);
+
+			parent = DCLK_VOP1_SELECT_CPLL;
+		} else if (ret == DCLK_VOP1_SELECT_GPLL) {
+			parent = DCLK_VOP1_SELECT_GPLL;
+			lcdc_div = DIV_ROUND_UP(gpll_rate,
+						rate_hz);
+		} else {
+			parent = DCLK_VOP1_SELECT_NPLL;
+			lcdc_div = DIV_ROUND_UP(npll_rate,
+						rate_hz);
+		}
+		rk_clrsetreg(&cru->cru_clksel_con[29],
+			     DCLK_VOP1_DIV_MASK | DCLK_VOP1_PLL_MASK,
+			     ((lcdc_div - 1) << DCLK_VOP1_DIV_SHIFT) |
+			     (parent << DCLK_VOP1_PLL_SHIFT));
 		break;
 	}
 
@@ -488,40 +575,6 @@ void rk3288_clk_configure_cpu(struct rk3288_cru *cru, struct rk3288_grf *grf)
 	/* PLL enter normal-mode */
 	rk_clrsetreg(&cru->cru_mode_con, APLL_MODE_MASK,
 		     APLL_MODE_NORMAL << APLL_MODE_SHIFT);
-}
-
-/* Get pll rate by id */
-static uint32_t rkclk_pll_get_rate(struct rk3288_cru *cru,
-				   enum rk_clk_id clk_id)
-{
-	uint32_t nr, no, nf;
-	uint32_t con;
-	int pll_id = rk_pll_id(clk_id);
-	struct rk3288_pll *pll = &cru->pll[pll_id];
-	static u8 clk_shift[CLK_COUNT] = {
-		0xff, APLL_MODE_SHIFT, DPLL_MODE_SHIFT, CPLL_MODE_SHIFT,
-		GPLL_MODE_SHIFT, NPLL_MODE_SHIFT
-	};
-	uint shift;
-
-	con = readl(&cru->cru_mode_con);
-	shift = clk_shift[clk_id];
-	switch ((con >> shift) & CRU_MODE_MASK) {
-	case APLL_MODE_SLOW:
-		return OSC_HZ;
-	case APLL_MODE_NORMAL:
-		/* normal mode */
-		con = readl(&pll->con0);
-		no = ((con & CLKOD_MASK) >> CLKOD_SHIFT) + 1;
-		nr = ((con & CLKR_MASK) >> CLKR_SHIFT) + 1;
-		con = readl(&pll->con1);
-		nf = ((con & CLKF_MASK) >> CLKF_SHIFT) + 1;
-
-		return (24 * nf / (nr * no)) * 1000000;
-	case APLL_MODE_DEEP:
-	default:
-		return 32768;
-	}
 }
 
 static ulong rockchip_mmc_get_clk(struct rk3288_cru *cru, uint gclk_rate,
@@ -1003,11 +1056,52 @@ static int __maybe_unused rk3288_gmac_set_parent(struct clk *clk, struct clk *pa
 	return -EINVAL;
 }
 
+static int __maybe_unused rk3288_vop_set_parent(struct clk *clk,
+						struct clk *parent)
+{
+	struct rk3288_clk_priv *priv = dev_get_priv(clk->dev);
+	struct rk3288_cru *cru = priv->cru;
+	int parent_sel;
+
+	switch (parent->id) {
+	case PLL_CPLL:
+		parent_sel = 0;
+		break;
+	case PLL_GPLL:
+		parent_sel = 1;
+		break;
+	case PLL_NPLL:
+		parent_sel = 2;
+		break;
+	default:
+		parent_sel = 0;
+		break;
+	}
+
+	switch (clk->id) {
+	case DCLK_VOP0:
+		rk_clrsetreg(&cru->cru_clksel_con[27],
+			     DCLK_VOP0_PLL_MASK, parent_sel << 0);
+		break;
+	case DCLK_VOP1:
+		rk_clrsetreg(&cru->cru_clksel_con[29],
+			     DCLK_VOP1_PLL_MASK, parent_sel << 6);
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int __maybe_unused rk3288_clk_set_parent(struct clk *clk, struct clk *parent)
 {
 	switch (clk->id) {
 	case SCLK_MAC:
 		return rk3288_gmac_set_parent(clk, parent);
+	case DCLK_VOP0:
+	case DCLK_VOP1:
+		return rk3288_vop_set_parent(clk, parent);
 	case SCLK_USBPHY480M_SRC:
 		return 0;
 	}
