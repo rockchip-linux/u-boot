@@ -391,7 +391,7 @@ static int rockchip_vop_set_clk(struct rk3288_cru *cru, struct rk3288_grf *grf,
 
 			rk_clrsetreg(&cru->cru_mode_con, CPLL_MODE_MASK,
 				     CPLL_MODE_SLOW << CPLL_MODE_SHIFT);
-			rkclk_set_pll(cru, CLK_NEW, &cpll_config);
+			rkclk_set_pll(cru, CLK_CODEC, &cpll_config);
 
 			/* waiting for pll lock */
 			while (1) {
@@ -428,7 +428,7 @@ static int rockchip_vop_set_clk(struct rk3288_cru *cru, struct rk3288_grf *grf,
 
 			rk_clrsetreg(&cru->cru_mode_con, CPLL_MODE_MASK,
 				     CPLL_MODE_SLOW << CPLL_MODE_SHIFT);
-			rkclk_set_pll(cru, CLK_NEW, &cpll_config);
+			rkclk_set_pll(cru, CLK_CODEC, &cpll_config);
 
 			/* waiting for pll lock */
 			while (1) {
