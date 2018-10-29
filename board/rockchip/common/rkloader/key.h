@@ -11,7 +11,7 @@
 #define KEY_LONG_PRESS		-1
 #define KEY_SHORT_PRESS		1
 
-#if defined(CONFIG_RKCHIP_RK3126)
+#if defined(CONFIG_RKCHIP_RK3126) || defined(CONFIG_RKCHIP_RK3399PRO)
 #define KEY_ADC_CN		2
 #elif defined(CONFIG_RKCHIP_RK322XH)
 #define KEY_ADC_CN		0
