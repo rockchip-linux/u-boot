@@ -15,7 +15,6 @@
 #include <optee_include/teesmc_optee.h>
 #include <optee_include/tee_rpc_types.h>
 #include <optee_include/tee_rpc.h>
-#include <optee_include/258be795-f9ca-40e6-a8699ce6886c5d5d.h>
 #include <optee_include/c11fe8ac-b997-48cf-a28de2a55e5240ef.h>
 #include <optee_include/OpteeClientRkFs.h>
 
@@ -105,8 +104,8 @@ TEEC_Result OpteeRpcCmdLoadTa(t_teesmc32_arg *TeeSmc32Arg)
 	size_t AllocAddress = 0;
 
 	if (is_uuid_equal(TeeLoadTaCmd->uuid, TA_RK_KEYMASTER_UUID)) {
-		ImageData = (void *)keymaster_data;
-		ImageSize = keymaster_size;
+		ImageData = (void *)0;
+		ImageSize = 0;
 	} else {
 		ImageData = (void *)widevine_keybox_data;
 		ImageSize = widevine_keybox_size;
@@ -165,11 +164,11 @@ TEEC_Result OpteeRpcCmdLoadV2Ta(t_teesmc32_arg *TeeSmc32Arg)
 		printf("uuid 0x%x", uuid[i]);
 
 	if (TeeSmc32Param[1].u.memref.buf_ptr == 0) {
-		printf("return size of TA, keymaster_size = 0x%x", keymaster_size);
-		TeeSmc32Param[1].u.memref.size = keymaster_size;
+		printf("return size of TA, keymaster_size = 0");
+		TeeSmc32Param[1].u.memref.size = 0;
 	} else {
-		memcpy((void *)TeeSmc32Param[1].u.memref.buf_ptr,
-			(void *)keymaster_data, TeeSmc32Param[1].u.memref.size);
+		/*memcpy((void *)TeeSmc32Param[1].u.memref.buf_ptr,
+			(void *)keymaster_data, TeeSmc32Param[1].u.memref.size);*/
 		printf("memref.buf_ptr = 0x%llx; memref.size = 0x%llx",
 			TeeSmc32Param[1].u.memref.buf_ptr,
 			TeeSmc32Param[1].u.memref.size);
