@@ -244,6 +244,12 @@ int arch_cpu_init(void)
 
 	/* pwm3 select A mode */
 	pmugrf_writel((1 << (5 + 16)) | (0 << 5), PMU_GRF_SOC_CON0);
+
+#endif
+
+#if defined(CONFIG_RKCHIP_RK3399PRO)
+	/* select uart2a for debug */
+	grf_writel((0x0 << 10) | (0x3 << (10 + 16)), GRF_SOC_CON7);
 #endif
 
 #if defined(CONFIG_RKCHIP_RK322XH)
