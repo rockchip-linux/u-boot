@@ -79,21 +79,15 @@ uint32_t rk_send_keybox_to_ta(uint8_t *filename, uint32_t filename_size,
 						    TEEC_MEMREF_TEMP_INOUT,
 						    TEEC_NONE);
 
+	printf("write keybox to secure storage\n");
 	TeecResult = TEEC_InvokeCommand(&TeecSession,
-					122,
+					6,
 					&TeecOperation,
 					&ErrorOrigin);
-	if (TeecResult != TEEC_SUCCESS) {
-		printf("no keybox in secure storage, write keybox to secure storage\n");
-		TeecResult = TEEC_InvokeCommand(&TeecSession,
-						121,
-						&TeecOperation,
-						&ErrorOrigin);
-		if (TeecResult != TEEC_SUCCESS)
-			printf("send data to TA failed with code 0x%x\n", TeecResult);
-		else
-			printf("send data to TA success with code 0x%x\n", TeecResult);
-	}
+	if (TeecResult != TEEC_SUCCESS)
+		printf("send data to TA failed with code 0x%x\n", TeecResult);
+	else
+		printf("send data to TA success with code 0x%x\n", TeecResult);
 
 	TEEC_ReleaseSharedMemory(&SharedMem0);
 	TEEC_ReleaseSharedMemory(&SharedMem1);
@@ -109,20 +103,18 @@ int write_keybox_to_secure_storage(uint8_t *uboot_data, uint32_t len)
 {
 	uint32_t key_size;
 	uint32_t data_size;
-	uint32_t object_id;
-	TEEC_Result ret;
+	TEEC_Result ret = 0;
 
 	if (memcmp(uboot_data, WIDEVINE_TAG, 4) == 0) {
 		/* widevine keybox */
-		TEEC_UUID widevine_uuid = { 0xc11fe8ac, 0xb997, 0x48cf,
-			{ 0xa2, 0x8d, 0xe2, 0xa5, 0x5e, 0x52, 0x40, 0xef} };
-		object_id = 101;
+		TEEC_UUID widevine_uuid = { 0x1b484ea5, 0x698b, 0x4142,
+			{ 0x82, 0xb8, 0x3a, 0xcf, 0x16, 0xe9, 0x9e, 0x2a } };
 
 		key_size = *(uboot_data + 4);
 		data_size = *(uboot_data + 8);
 
-		ret = rk_send_keybox_to_ta((uint8_t *)&object_id,
-					   sizeof(uint32_t),
+		ret = rk_send_keybox_to_ta((uint8_t *)"widevine_keybox",
+					   sizeof("widevine_keybox"),
 					   widevine_uuid,
 					   uboot_data + 12,
 					   key_size,

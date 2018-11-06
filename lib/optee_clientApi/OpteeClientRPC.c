@@ -15,7 +15,6 @@
 #include <optee_include/teesmc_optee.h>
 #include <optee_include/tee_rpc_types.h>
 #include <optee_include/tee_rpc.h>
-#include <optee_include/c11fe8ac-b997-48cf-a28de2a55e5240ef.h>
 #include <optee_include/OpteeClientRkFs.h>
 
 /*
@@ -107,8 +106,8 @@ TEEC_Result OpteeRpcCmdLoadTa(t_teesmc32_arg *TeeSmc32Arg)
 		ImageData = (void *)0;
 		ImageSize = 0;
 	} else {
-		ImageData = (void *)widevine_keybox_data;
-		ImageSize = widevine_keybox_size;
+		ImageData = (void *)0;
+		ImageSize = 0;
 	}
 
 	if (Status != 0) {
