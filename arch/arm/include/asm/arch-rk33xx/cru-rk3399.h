@@ -27,6 +27,7 @@ enum rk_plls_id {
 
 #define PMUCRU_PLL_CON(id, i)	((id) * 0x20 + ((i) * 4))
 #define PMUCRU_CLKSEL_CON	0x080
+#define PMUCRU_CLKSEL_CON1	0x084
 #define PMUCRU_CLKGATE_CON	0x100
 #define PMUCRU_SOFTRST_CON	0x110
 

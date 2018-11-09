@@ -250,6 +250,10 @@ int arch_cpu_init(void)
 #if defined(CONFIG_RKCHIP_RK3399PRO)
 	/* select uart2a for debug */
 	grf_writel((0x0 << 10) | (0x3 << (10 + 16)), GRF_SOC_CON7);
+
+	/* set wifi_26M to 24M and disabled by default */
+	writel(0x7f002000, RKIO_PMU_CRU_PHYS + PMUCRU_CLKSEL_CON1);
+	writel(0x01000100, RKIO_PMU_CRU_PHYS + PMUCRU_CLKGATE_CON);
 #endif
 
 #if defined(CONFIG_RKCHIP_RK322XH)
