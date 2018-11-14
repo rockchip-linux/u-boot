@@ -824,6 +824,10 @@ static void dw_mipi_dsi_video_mode_config(struct dw_mipi_dsi *dsi)
 		val |= VID_MODE_TYPE_BURST_SYNC_EVENTS;
 
 	dsi_write(dsi, DSI_VID_MODE_CFG, val);
+
+	if (dsi->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)
+		dsi_update_bits(dsi, DSI_LPCLK_CTRL,
+				AUTO_CLKLANE_CTRL, AUTO_CLKLANE_CTRL);
 }
 
 static void dw_mipi_dsi_set_mode(struct dw_mipi_dsi *dsi,
@@ -833,7 +837,8 @@ static void dw_mipi_dsi_set_mode(struct dw_mipi_dsi *dsi,
 		dsi_write(dsi, DSI_MODE_CFG, ENABLE_CMD_MODE);
 	} else {
 		dsi_write(dsi, DSI_PWR_UP, RESET);
-		dsi_write(dsi, DSI_LPCLK_CTRL, PHY_TXREQUESTCLKHS);
+		dsi_update_bits(dsi, DSI_LPCLK_CTRL,
+				PHY_TXREQUESTCLKHS, PHY_TXREQUESTCLKHS);
 		dsi_write(dsi, DSI_MODE_CFG, ENABLE_VIDEO_MODE);
 		dsi_write(dsi, DSI_PWR_UP, POWERUP);
 	}
