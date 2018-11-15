@@ -1040,6 +1040,8 @@ static int get_crtc_mcu_mode(struct crtc_state *crtc_state)
 	int total_pixel, cs_pst, cs_pend, rw_pst, rw_pend;
 
 	mcu_node = dev_read_subnode(crtc_state->dev, "mcu-timing");
+	if (!ofnode_valid(mcu_node))
+		return -ENODEV;
 
 #define FDT_GET_MCU_INT(val, name) \
 	do { \
