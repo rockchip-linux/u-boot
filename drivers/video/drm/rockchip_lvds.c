@@ -141,7 +141,8 @@ static int rk336x_lvds_pwr_off(struct display_state *state)
 	/* disable lvds lane and power off pll */
 	lvds_writel(lvds, MIPIPHY_REGEB,
 		    v_LANE0_EN(0) | v_LANE1_EN(0) | v_LANE2_EN(0) |
-		    v_LANE3_EN(0) | v_LANECLK_EN(0) | v_PLL_PWR_OFF(1));
+		    v_LANE3_EN(0) | v_LANECLK_EN(0) | v_PLL_PWR_OFF(1) |
+		    v_LVDS_BGPD(1));
 
 	/* power down lvds pll and bandgap */
 	lvds_msk_reg(lvds, MIPIPHY_REG1,
@@ -186,7 +187,8 @@ static int rk336x_lvds_pwr_on(struct display_state *state)
 		/* enable lvds lane and power on pll */
 		lvds_writel(lvds, MIPIPHY_REGEB,
 			    v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) |
-			    v_LANE3_EN(1) | v_LANECLK_EN(1) | v_PLL_PWR_OFF(0));
+			    v_LANE3_EN(1) | v_LANECLK_EN(1) | v_PLL_PWR_OFF(0) |
+			    v_LVDS_BGPD(0));
 
 		/* enable lvds */
 		lvds_msk_reg(lvds, MIPIPHY_REGE3,
@@ -224,9 +226,9 @@ static void px30_output_ttl(struct display_state *state)
 	writel(val, lvds->grf + PX30_GRF_PD_VO_CON1);
 
 	/* enable lane */
-	lvds_writel(lvds, MIPIPHY_REG0, 0x7f);
+	lvds_msk_reg(lvds, MIPIPHY_REG0, 0x7c, 0x7c);
 	val = v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) | v_LANE3_EN(1) |
-		v_LANECLK_EN(1) | v_PLL_PWR_OFF(1);
+		v_LANECLK_EN(1) | v_PLL_PWR_OFF(1) | v_LVDS_BGPD(0);
 	lvds_writel(lvds, MIPIPHY_REGEB, val);
 	/* set ttl mode and reset phy config */
 	val = v_LVDS_MODE_EN(0) | v_TTL_MODE_EN(1) | v_MIPI_MODE_EN(0) |
@@ -254,9 +256,9 @@ static void rk3126_output_ttl(struct display_state *state)
 		v_RK3126_MIPITTL_LANE3_EN(1);
 	writel(val, lvds->grf + lvds->pdata->grf_soc_con15);
 	/* enable lane */
-	lvds_writel(lvds, MIPIPHY_REG0, 0x7f);
+	lvds_msk_reg(lvds, MIPIPHY_REG0, 0x7c, 0x7c);
 	val = v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) | v_LANE3_EN(1) |
-		v_LANECLK_EN(1) | v_PLL_PWR_OFF(1);
+		v_LANECLK_EN(1) | v_PLL_PWR_OFF(1) | v_LVDS_BGPD(0);
 	lvds_writel(lvds, MIPIPHY_REGEB, val);
 	/* set ttl mode and reset phy config */
 	val = v_LVDS_MODE_EN(0) | v_TTL_MODE_EN(1) | v_MIPI_MODE_EN(0) |
@@ -280,9 +282,9 @@ static void rk336x_output_ttl(struct display_state *state)
 	writel(val, lvds->grf + lvds->pdata->grf_soc_con15);
 
 	/* enable lane */
-	lvds_writel(lvds, MIPIPHY_REG0, 0x7f);
+	lvds_msk_reg(lvds, MIPIPHY_REG0, 0x7c, 0x7c);
 	val = v_LANE0_EN(1) | v_LANE1_EN(1) | v_LANE2_EN(1) | v_LANE3_EN(1) |
-		v_LANECLK_EN(1) | v_PLL_PWR_OFF(1);
+		v_LANECLK_EN(1) | v_PLL_PWR_OFF(1) | v_LVDS_BGPD(0);
 	lvds_writel(lvds, MIPIPHY_REGEB, val);
 
 	/* set ttl mode and reset phy config */
