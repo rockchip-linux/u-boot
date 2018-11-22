@@ -163,28 +163,28 @@ static struct pll_clk_set apll_clks[] = {
 static struct pll_clk_set gpll_clks[] = {
 	/* rate, nr, nf, no,	aclk_peri_div, hclk_peri_div, pclk_peri_div,	axi_bus_div, aclk_bus_div, hclk_bus_div, pclk_bus_div */
 	_GPLL_SET_CLKS(768000, 1,  64, 2,    2, 2, 4,				1, 2, 2, 4),
-	_GPLL_SET_CLKS(594000, 2, 198, 4,    2, 2, 4,				1, 2, 2, 4),
+	_GPLL_SET_CLKS(594000, 1, 99, 4,    2, 2, 4,				1, 2, 2, 4),
 	_GPLL_SET_CLKS(300000, 1,  50, 4,    1, 2, 4,				1, 1, 2, 4),
-	_GPLL_SET_CLKS(297000, 2, 198, 8,    1, 2, 4,				1, 1, 2, 4),
+	_GPLL_SET_CLKS(297000, 1, 99, 8,    1, 2, 4,				1, 1, 2, 4),
 };
 
 
 /* cpll clock table, should be from high to low */
 static struct pll_clk_set cpll_clks[] = {
 	/* rate, nr, nf, no */
-	_CPLL_SET_CLKS(798000, 2, 133, 2),
+	_CPLL_SET_CLKS(798000, 1, 133, 4),
 #ifdef CONFIG_PRODUCT_BOX
-	_CPLL_SET_CLKS(594000, 1, 198, 8),
+	_CPLL_SET_CLKS(594000, 1, 99, 4),
 #else
-	_CPLL_SET_CLKS(594000, 2, 198, 4),
+	_CPLL_SET_CLKS(594000, 1, 99, 4),
 #endif
-	_CPLL_SET_CLKS(384000, 2, 128, 4),
+	_CPLL_SET_CLKS(384000, 1, 64, 4),
 };
 
 /* npll clock table, should be from high to low */
 static struct pll_clk_set npll_clks[] = {
 	/* rate, nr, nf, no */
-	_CPLL_SET_CLKS(500000, 3, 125, 2),
+	_CPLL_SET_CLKS(500000, 1, 125, 6),
 };
 
 static struct pll_data rkpll_data[END_PLL_ID] = {
