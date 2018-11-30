@@ -961,12 +961,6 @@ ifdef CONFIG_MERGER_TRUSTOS
 # Such as rk322x, it need generate trust.img for legacy request and trust_with_ta.img for latest request.
 RK_TOS_BIN ?= $(shell sed -n "/TOS=/s/TOS=//p" $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
 RK_TOS_TA_BIN ?= $(shell sed -n "/TOSTA=/s/TOSTA=//p" $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
-
-# multi trust.img used for different functions, such as: one image for emmc, another image for nand, etc.
-RK_TOS0_BIN ?= $(shell sed -n "/TOS0=/s/TOS0=//p"   $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
-RK_TOS0_IMG ?= $(shell sed -n "/PATH0=/s/PATH0=//p" $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
-RK_TOS1_BIN ?= $(shell sed -n "/TOS1=/s/TOS1=//p"   $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
-RK_TOS1_IMG ?= $(shell sed -n "/PATH1=/s/PATH1=//p" $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
 endif
 
 RKLoader_uboot.bin: u-boot.bin
@@ -982,9 +976,6 @@ endif
 ifdef CONFIG_MERGER_TRUSTOS
 	$(if $(RK_TOS_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img)
 	$(if $(RK_TOS_TA_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS_TA_BIN) $(if $(RK_TOS_BIN), trust_with_ta.img, trust.img))
-
-	$(if $(RK_TOS0_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS0_BIN) $(RK_TOS0_IMG))
-	$(if $(RK_TOS1_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS1_BIN) $(RK_TOS1_IMG))
 endif
 	./tools/loaderimage --pack --uboot u-boot.bin uboot.img
 else
