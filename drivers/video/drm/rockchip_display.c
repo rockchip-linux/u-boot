@@ -166,11 +166,6 @@ static unsigned long get_display_size(void)
 	return memory_end - memory_start;
 }
 
-static bool bmp_can_disp_direct(struct logo_info *logo)
-{
-	return logo->bpp == 24 || logo->bpp == 32;
-}
-
 /**
  * vop_support_ymirror - ensure whethere vop support the feature of ymirror.
  * @logo:	the pointer to the logo information.
@@ -184,23 +179,21 @@ static bool vop_support_ymirror(struct logo_info *logo)
 
 	ret = false;
 	state = container_of(logo, struct display_state, logo);
-
-	vop_data = (struct vop_data *)state->crtc_state.crtc->data;
-	if (vop_data) {
+	if (state->crtc_state.crtc->data) {
+		vop_data = (struct vop_data *)state->crtc_state.crtc->data;
 		printf("VOP hardware version v%d.%d, ",
 		       VOP_MAJOR(vop_data->version),
 		       VOP_MINOR(vop_data->version));
-
 		/*
 		 * if the version of VOP is higher than v3.0,
 		 * which means that the VOP support ymirror,
 		 * so it isn't need to mirror image by ourself.
 		 */
-		if (VOP_WIN_SUPPORT(vop_data, vop_data->win, ymirror)) {
-			printf("support mirror mode.\n");
+		if (vop_data->version >= VOP_VERSION(3, 0)) {
+			printf("Support mirror mode.\n");
 			ret = true;
 		} else {
-			printf("not support mirror mode.\n");
+			printf("Not support mirror mode.\n");
 		}
 	} else {
 		printf("Error: CRTC drivers is not ready.\n");
@@ -972,14 +965,12 @@ static int display_logo(struct display_state *state)
 		printf("can't support bmp bits[%d]\n", logo->bpp);
 		return -EINVAL;
 	}
-
 	hdisplay = conn_state->mode.hdisplay;
 	vdisplay = conn_state->mode.vdisplay;
 	crtc_state->src_w = logo->width;
 	crtc_state->src_h = logo->height;
 	crtc_state->src_x = 0;
 	crtc_state->src_y = 0;
-	crtc_state->rb_swap = logo->rb_swap;
 	crtc_state->ymirror = logo->ymirror;
 
 	crtc_state->dma_addr = (u32)(unsigned long)logo->mem + logo->offset;
@@ -1134,8 +1125,6 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	struct rockchip_logo_cache *logo_cache;
 	struct bmp_header *header;
 	void *dst = NULL, *pdst;
-	bool bmp_disp_direct = false;
-	bool vop_supp_ymirror = false;
 	int size, len;
 	int ret = 0;
 
@@ -1180,24 +1169,22 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 		ret = -ENOENT;
 		goto free_header;
 	}
-	vop_supp_ymirror = vop_support_ymirror(logo);
-	bmp_disp_direct = bmp_can_disp_direct(logo);
-	if (!vop_supp_ymirror || !bmp_disp_direct) {
+
+	if (!vop_support_ymirror(logo)) {
 		int dst_size;
 		/*
 		 * TODO: force use 16bpp if bpp less than 16;
 		 */
-		logo->rb_swap = (logo->bpp == 8 ? true : false);
 		logo->bpp = (logo->bpp <= 16) ? 16 : logo->bpp;
 		dst_size = logo->width * logo->height * logo->bpp >> 3;
+
 		dst = get_display_buffer(dst_size);
 		if (!dst) {
 			ret = -ENOMEM;
 			goto free_header;
 		}
 		memset(dst, 0, dst_size);
-		if (bmpdecoder(pdst, dst, logo->bpp,
-			       !vop_supp_ymirror)) {
+		if (bmpdecoder(pdst, dst, logo->bpp)) {
 			printf("failed to decode bmp %s\n", bmp_name);
 			ret = -EINVAL;
 			goto free_header;
@@ -1205,12 +1192,12 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 		flush_dcache_range((ulong)dst,
 				   ALIGN((ulong)dst + dst_size,
 					 CONFIG_SYS_CACHELINE_SIZE));
+
 		logo->offset = 0;
-		logo->ymirror = vop_supp_ymirror;
+		logo->ymirror = 0;
 	} else {
 		logo->offset = get_unaligned_le32(&header->data_offset);
-		logo->rb_swap = (logo->bpp != 32 ? true : false);
-		logo->ymirror = true;
+		logo->ymirror = 1;
 	}
 	logo->mem = dst;
 

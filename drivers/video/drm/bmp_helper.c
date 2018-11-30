@@ -163,13 +163,14 @@ static void dump_bmp_dib_head(void *bmp_addr)
 		bmp->header.colors_used);
 }
 
-int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp, bool flip)
+int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp)
 {
 	int i, j;
 	int stride, padded_width, bpp, width, height;
 	struct bmp_image *bmp = bmp_addr;
 	uint8_t *src = bmp_addr;
 	uint8_t *dst = pdst;
+	bool flip = false;
 	uint16_t *cmap;
 	uint8_t *cmap_base;
 
@@ -184,10 +185,11 @@ int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp, bool flip)
 	bpp = get_unaligned_le16(&bmp->header.bit_count);
 	padded_width = width & 0x3 ? (width & ~0x3) + 4 : width;
 
-	if (height < 0) {
+	if (height < 0)
 		height = 0 - height;
-		flip = false;
-	}
+	else
+		flip = true;
+
 	cmap_base = src + sizeof(bmp->header);
 	src = bmp_addr + get_unaligned_le32(&bmp->header.data_offset);
 
