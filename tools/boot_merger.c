@@ -159,6 +159,7 @@ static inline void fixPath(char* path) {
 			strcpy(tmp, end);
 			/* Terminate, so path can be dest for strcat() */
 			*start = '\0';
+			strcat(path, gNewPath);
 			strcat(path, tmp);
 		}
 	}
