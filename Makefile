@@ -951,8 +951,10 @@ RK_SUBFIX = $(if $(RK_UBOOT_VERSION),.$(RK_UBOOT_VERSION)).bin
 # select rkbin as primary binary source, because rkbin is always newest version and compatible rkdevelop branch
 ifneq ($(wildcard ../rkbin),)
 RKBIN_PATH ?= ../rkbin
+RKBIN_BIN_PATH_FIXUP ?= --replace tools/rk_tools/ ../rkbin/
 else
 RKBIN_PATH ?= ./tools/rk_tools
+RKBIN_BIN_PATH_FIXUP ?=
 endif
 
 ifdef CONFIG_MERGER_TRUSTOS
@@ -963,14 +965,20 @@ RK_TOS_BIN ?= $(shell sed -n "/TOS=/s/TOS=//p" $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TO
 RK_TOS_TA_BIN ?= $(shell sed -n "/TOSTA=/s/TOSTA=//p" $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
 endif
 
+# replace "tools/rk_tools/" with " ../rkbin/"
+ifneq ($(wildcard ../rkbin),)
+RK_TOS_BIN := $(shell echo $(RK_TOS_BIN) | sed "s/tools\/rk_tools\//\.\.\/rkbin\//g")
+RK_TOS_TA_BIN := $(shell echo $(RK_TOS_TA_BIN) | sed "s/tools\/rk_tools\//\.\.\/rkbin\//g")
+endif
+
 RKLoader_uboot.bin: u-boot.bin
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 ifdef CONFIG_PRODUCT_ECHO
-	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger $(RKBIN_PATH)/RKBOOT/$(RKCHIP)_ECHOMINIALL.ini)
+	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger $(RKBIN_BIN_PATH_FIXUP) $(RKBIN_PATH)/RKBOOT/$(RKCHIP)_ECHOMINIALL.ini)
 else
-	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger $(RKBIN_PATH)/RKBOOT/$(RKCHIP)MINIALL.ini)
+	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger $(RKBIN_BIN_PATH_FIXUP) $(RKBIN_PATH)/RKBOOT/$(RKCHIP)MINIALL.ini)
 endif
-	$(if $(CONFIG_MERGER_TRUSTIMAGE), ./tools/trust_merger $(if $(CONFIG_RK_TRUSTOS), --subfix) \
+	$(if $(CONFIG_MERGER_TRUSTIMAGE), ./tools/trust_merger $(RKBIN_BIN_PATH_FIXUP) $(if $(CONFIG_RK_TRUSTOS), --subfix) \
 					$(if $(CONFIG_RKCHIP_RK3368), --sha 2) $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TRUST.ini)
 
 ifdef CONFIG_MERGER_TRUSTOS
@@ -979,7 +987,7 @@ ifdef CONFIG_MERGER_TRUSTOS
 endif
 	./tools/loaderimage --pack --uboot u-boot.bin uboot.img
 else
-	./tools/boot_merger --subfix "$(RK_SUBFIX)" $(if $(CONFIG_RKCHIP_RK3288), --size 1024) $(RKBIN_PATH)/RKBOOT/$(RKCHIP).ini
+	./tools/boot_merger $(RKBIN_BIN_PATH_FIXUP) --subfix "$(RK_SUBFIX)" $(if $(CONFIG_RKCHIP_RK3288), --size 1024) $(RKBIN_PATH)/RKBOOT/$(RKCHIP).ini
 endif # CONFIG_SECOND_LEVEL_BOOTLOADER
 
 endif # CONFIG_ROCKCHIP
