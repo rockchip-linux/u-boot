@@ -7,6 +7,8 @@
 #ifndef _ROCKCHIP_PANEL_H_
 #define _ROCKCHIP_PANEL_H_
 
+struct display_state;
+
 struct rockchip_panel_funcs {
 	int (*init)(struct display_state *state);
 	void (*deinit)(struct display_state *state);
@@ -17,6 +19,8 @@ struct rockchip_panel_funcs {
 };
 
 struct rockchip_panel {
+	struct udevice *dev;
+	u32 bus_format;
 	const struct rockchip_panel_funcs *funcs;
 	const void *data;
 };

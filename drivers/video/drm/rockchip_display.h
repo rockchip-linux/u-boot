@@ -87,12 +87,9 @@ struct crtc_state {
 };
 
 struct panel_state {
-	struct udevice *dev;
-	ofnode node;
-	ofnode dsp_lut_node;
+	struct rockchip_panel *panel;
 
-	const struct rockchip_panel *panel;
-	void *private;
+	ofnode dsp_lut_node;
 };
 
 struct overscan {
@@ -105,6 +102,7 @@ struct overscan {
 struct connector_state {
 	struct udevice *dev;
 	const struct rockchip_connector *connector;
+	struct rockchip_bridge *bridge;
 	struct udevice *phy_dev;
 	struct rockchip_phy *phy;
 	ofnode node;
@@ -166,6 +164,13 @@ struct display_state {
 	int is_init;
 	int is_enable;
 };
+
+static inline struct rockchip_panel *state_get_panel(struct display_state *s)
+{
+	struct panel_state *panel_state = &s->panel_state;
+
+	return panel_state->panel;
+}
 
 int drm_mode_vrefresh(const struct drm_display_mode *mode);
 int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val);

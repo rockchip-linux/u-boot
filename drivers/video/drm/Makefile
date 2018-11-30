@@ -4,7 +4,7 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj-y += rockchip_display.o rockchip_crtc.o rockchip_phy.o \
+obj-y += rockchip_display.o rockchip_crtc.o rockchip_phy.o rockchip_bridge.o \
 		rockchip_vop.o rockchip_vop_reg.o bmp_helper.o
 
 obj-$(CONFIG_DRM_ROCKCHIP_MIPI_DSI)	+= rockchip_mipi_dsi.o
