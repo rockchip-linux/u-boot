@@ -302,6 +302,8 @@ static void px30_output_lvds(struct display_state *state)
 	struct rockchip_lvds_device *lvds = conn_state->private;
 	u32 val = 0;
 
+	lvds_writel(lvds, MIPIPHY_REG0, 0x01);
+
 	/* enable lvds mode */
 	val = PX30_LVDS_PHY_MODE(1) | PX30_DPHY_FORCERXMODE(1);
 	/* config lvds_format */
