@@ -8,8 +8,6 @@
 #include <sys/stat.h>  
 #include <version.h>
 
-//#define USE_P_RC4
-
 bool gDebug = 
 #ifdef DEBUG
 	true;
@@ -25,6 +23,7 @@ char gSubfix[MAX_LINE_LEN] = OUT_SUBFIX;
 char gEat[MAX_LINE_LEN];
 char* gConfigPath;
 uint8_t *gBuf;
+bool enableRC4 = false;
 
 static uint32_t g_merge_max_size = MAX_MERGE_SIZE;
 
@@ -761,9 +760,8 @@ static inline void getBoothdr(rk_boot_header* hdr) {
 	hdr->loaderNum = gOpts.loaderNum;
 	hdr->loaderOffset = hdr->code472Offset + gOpts.code472Num * hdr->code472Size;
 	hdr->loaderSize = sizeof(rk_boot_entry);
-#ifndef USE_P_RC4
-	hdr->rc4Flag = 1;
-#endif
+	if (!enableRC4)
+		hdr->rc4Flag = 1;
 }
 
 static inline uint32_t getCrc(const char* path) {
@@ -1007,6 +1005,9 @@ int main(int argc, char** argv) {
 			merge = true;
 		} else if (!strcmp(OPT_UNPACK, argv[i])) {
 			merge = false;
+		} else if (!strcmp(OPT_RC4, argv[i])) {
+			printf("enable RC4 for IDB data(both ddr and preloader)\n");
+			enableRC4 = true;
 		} else if (!strcmp(OPT_SUBFIX, argv[i])) {
 			i++;
 			snprintf(gSubfix, sizeof(gSubfix), "%s", argv[i]);
