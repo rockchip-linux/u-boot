@@ -1175,6 +1175,7 @@ static void dw_mipi_dsi_pre_init(struct dw_mipi_dsi *dsi)
 		bw = dw_mipi_dsi_calc_bandwidth(dsi);
 		rate = rockchip_phy_set_pll(dsi->dphy.phy, bw * USEC_PER_SEC);
 		dsi->lane_mbps = rate / USEC_PER_SEC;
+		rockchip_phy_set_mode(dsi->dphy.phy, PHY_MODE_VIDEO_MIPI);
 		rockchip_phy_power_on(dsi->dphy.phy);
 	} else {
 		dw_mipi_dsi_get_lane_bps(dsi);
