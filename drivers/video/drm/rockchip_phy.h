@@ -7,6 +7,13 @@
 #ifndef _ROCKCHIP_PHY_H_
 #define _ROCKCHIP_PHY_H_
 
+enum phy_mode {
+	PHY_MODE_INVALID,
+	PHY_MODE_VIDEO_MIPI,
+	PHY_MODE_VIDEO_LVDS,
+	PHY_MODE_VIDEO_TTL,
+};
+
 struct rockchip_phy;
 
 struct rockchip_phy_funcs {
@@ -16,6 +23,7 @@ struct rockchip_phy_funcs {
 	unsigned long (*set_pll)(struct rockchip_phy *phy, unsigned long rate);
 	int (*set_bus_width)(struct rockchip_phy *phy, u32 bus_width);
 	long (*round_rate)(struct rockchip_phy *phy, unsigned long rate);
+	int (*set_mode)(struct rockchip_phy *phy, enum phy_mode mode);
 };
 
 struct rockchip_phy {
@@ -31,5 +39,6 @@ unsigned long rockchip_phy_set_pll(struct rockchip_phy *phy,
 				   unsigned long rate);
 int rockchip_phy_set_bus_width(struct rockchip_phy *phy, u32 bus_width);
 long rockchip_phy_round_rate(struct rockchip_phy *phy, unsigned long rate);
+int rockchip_phy_set_mode(struct rockchip_phy *phy, enum phy_mode mode);
 
 #endif

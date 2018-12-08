@@ -73,3 +73,14 @@ long rockchip_phy_round_rate(struct rockchip_phy *phy, unsigned long rate)
 
 	return 0;
 }
+
+int rockchip_phy_set_mode(struct rockchip_phy *phy, enum phy_mode mode)
+{
+	if (!phy)
+		return -ENODEV;
+
+	if (phy->funcs && phy->funcs->set_mode)
+		return phy->funcs->set_mode(phy, mode);
+
+	return 0;
+}
