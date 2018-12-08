@@ -587,22 +587,6 @@ static struct rockchip_phy inno_mipi_dphy_driver_data = {
 
 static const struct udevice_id inno_mipi_dphy_ids[] = {
 	{
-		.compatible = "rockchip,px30-mipi-dphy",
-		.data = (ulong)&inno_mipi_dphy_driver_data,
-	},
-	{
-		.compatible = "rockchip,rk3128-mipi-dphy",
-		.data = (ulong)&inno_mipi_dphy_driver_data,
-	},
-	{
-		.compatible = "rockchip,rk3366-mipi-dphy",
-		.data = (ulong)&inno_mipi_dphy_driver_data,
-	},
-	{
-		.compatible = "rockchip,rk3368-mipi-dphy",
-		.data = (ulong)&inno_mipi_dphy_driver_data,
-	},
-	{
 		.compatible = "rockchip,rv1108-mipi-dphy",
 		.data = (ulong)&inno_mipi_dphy_driver_data,
 	},
