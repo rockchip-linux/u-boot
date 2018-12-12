@@ -948,30 +948,23 @@ UBOOTVERSION := $(UBOOTVERSION)$(if $(RKCHIP),-$(RKCHIP))$(if $(RK_UBOOT_VERSION
 
 RK_SUBFIX = $(if $(RK_UBOOT_VERSION),.$(RK_UBOOT_VERSION)).bin
 
-# select rkbin as primary binary source, because rkbin is always newest version and compatible rkdevelop branch
-ifneq ($(wildcard ../rkbin),)
-RKBIN_PATH ?= ../rkbin
-else
-RKBIN_PATH ?= ./tools/rk_tools
-endif
-
 ifdef CONFIG_MERGER_TRUSTOS
 # trust OS without or with TA.
 # Most platforms only need one image generated, but some platforms require both two image generated.
 # Such as rk322x, it need generate trust.img for legacy request and trust_with_ta.img for latest request.
-RK_TOS_BIN ?= $(shell sed -n "/TOS=/s/TOS=//p" $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
-RK_TOS_TA_BIN ?= $(shell sed -n "/TOSTA=/s/TOSTA=//p" $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
+RK_TOS_BIN ?= $(shell sed -n "/TOS=/s/TOS=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
+RK_TOS_TA_BIN ?= $(shell sed -n "/TOSTA=/s/TOSTA=//p" ./tools/rk_tools/RKTRUST/$(RKCHIP)TOS.ini|tr -d '\r')
 endif
 
 RKLoader_uboot.bin: u-boot.bin
 ifdef CONFIG_SECOND_LEVEL_BOOTLOADER
 ifdef CONFIG_PRODUCT_ECHO
-	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger $(RKBIN_PATH)/RKBOOT/$(RKCHIP)_ECHOMINIALL.ini)
+	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)_ECHOMINIALL.ini)
 else
-	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger $(RKBIN_PATH)/RKBOOT/$(RKCHIP)MINIALL.ini)
+	$(if $(CONFIG_MERGER_MINILOADER), ./tools/boot_merger ./tools/rk_tools/RKBOOT/$(RKCHIP)MINIALL.ini)
 endif
 	$(if $(CONFIG_MERGER_TRUSTIMAGE), ./tools/trust_merger $(if $(CONFIG_RK_TRUSTOS), --subfix) \
-					$(if $(CONFIG_RKCHIP_RK3368), --sha 2) $(RKBIN_PATH)/RKTRUST/$(RKCHIP)TRUST.ini)
+					$(if $(CONFIG_RKCHIP_RK3368), --sha 2) ./tools/rk_tools/RKTRUST/$(RKCHIP)TRUST.ini)
 
 ifdef CONFIG_MERGER_TRUSTOS
 	$(if $(RK_TOS_BIN), ./tools/loaderimage --pack --trustos $(RK_TOS_BIN) trust.img)
@@ -979,7 +972,7 @@ ifdef CONFIG_MERGER_TRUSTOS
 endif
 	./tools/loaderimage --pack --uboot u-boot.bin uboot.img
 else
-	./tools/boot_merger --subfix "$(RK_SUBFIX)" $(if $(CONFIG_RKCHIP_RK3288), --size 1024) $(RKBIN_PATH)/RKBOOT/$(RKCHIP).ini
+	./tools/boot_merger --subfix "$(RK_SUBFIX)" $(if $(CONFIG_RKCHIP_RK3288), --size 1024) ./tools/rk_tools/RKBOOT/$(RKCHIP).ini
 endif # CONFIG_SECOND_LEVEL_BOOTLOADER
 
 endif # CONFIG_ROCKCHIP
