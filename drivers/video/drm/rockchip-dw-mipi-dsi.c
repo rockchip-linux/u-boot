@@ -1515,5 +1515,6 @@ U_BOOT_DRIVER(dw_mipi_dsi) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = dw_mipi_dsi_ids,
 	.probe = dw_mipi_dsi_probe,
+	.bind = dm_scan_fdt_dev,
 	.priv_auto_alloc_size = sizeof(struct dw_mipi_dsi),
 };
