@@ -1068,13 +1068,14 @@ struct analogix_dp_plat_data {
 };
 
 struct analogix_dp_device {
+	struct udevice *dev;
 	void *reg_base;
 	void *grf;
 	struct gpio_desc hpd_gpio;
 	struct video_info	video_info;
 	struct link_train	link_train;
 	struct drm_display_mode *mode;
-	struct analogix_dp_plat_data *plat_data;
+	struct analogix_dp_plat_data plat_data;
 	unsigned char edid[EDID_BLOCK_LENGTH * 2];
 };
 

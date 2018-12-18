@@ -81,10 +81,10 @@ void analogix_dp_init_analog_param(struct analogix_dp_device *dp)
 	reg = SEL_24M | TX_DVDD_BIT_1_0625V;
 	writel(reg, dp->reg_base + ANALOGIX_DP_ANALOG_CTL_2);
 
-	if (dp->plat_data && (dp->plat_data->dev_type == ROCKCHIP_DP)) {
+	if (dp->plat_data.dev_type == ROCKCHIP_DP) {
 		reg = REF_CLK_24M;
-		if (dp->plat_data->subdev_type == RK3288_DP ||
-		    dp->plat_data->subdev_type == RK3368_EDP)
+		if (dp->plat_data.subdev_type == RK3288_DP ||
+		    dp->plat_data.subdev_type == RK3368_EDP)
 			reg ^= REF_CLK_MASK;
 
 		writel(reg, dp->reg_base + ANALOGIX_DP_PLL_REG_1);
@@ -256,7 +256,7 @@ void analogix_dp_set_analog_power_down(struct analogix_dp_device *dp,
 	u32 reg;
 	u32 phy_pd_addr = ANALOGIX_DP_PHY_PD;
 
-	if (dp->plat_data && (dp->plat_data->dev_type == ROCKCHIP_DP))
+	if (dp->plat_data.dev_type == ROCKCHIP_DP)
 		phy_pd_addr = ANALOGIX_DP_PD;
 
 	switch (block) {
@@ -360,8 +360,9 @@ void analogix_dp_init_analog_func(struct analogix_dp_device *dp)
 
 		while (analogix_dp_get_pll_lock_status(dp) == PLL_UNLOCKED) {
 			timeout_loop++;
-			if(DP_TIMEOUT_LOOP_COUNT < timeout_loop) {
-				pr_err("failed to get pll lock status\n");
+			if (timeout_loop > DP_TIMEOUT_LOOP_COUNT) {
+				dev_err(dp->dev,
+					"failed to get pll lock status\n");
 				return;
 			}
 			udelay(20);
@@ -460,7 +461,7 @@ void analogix_dp_init_aux(struct analogix_dp_device *dp)
 	analogix_dp_reset_aux(dp);
 
 	/* Disable AUX transaction H/W retry */
-	if (dp->plat_data && (dp->plat_data->dev_type == ROCKCHIP_DP))
+	if (dp->plat_data.dev_type == ROCKCHIP_DP)
 		reg = AUX_BIT_PERIOD_EXPECTED_DELAY(0) |
 		      AUX_HW_RETRY_COUNT_SEL(3) |
 		      AUX_HW_RETRY_INTERVAL_600_MICROSECONDS;
@@ -521,9 +522,10 @@ int analogix_dp_start_aux_transaction(struct analogix_dp_device *dp)
 	while (!(reg & RPLY_RECEIV)) {
 		timeout_loop++;
 		if (DP_TIMEOUT_LOOP_COUNT < timeout_loop) {
-			pr_err("AUX CH command reply failed!\n");
+			dev_err(dp->dev, "AUX CH command reply failed!\n");
 			return -ETIMEDOUT;
 		}
+
 		reg = readl(dp->reg_base + ANALOGIX_DP_INT_STA);
 		udelay(11);
 	}
@@ -541,8 +543,8 @@ int analogix_dp_start_aux_transaction(struct analogix_dp_device *dp)
 	/* Check AUX CH error access status */
 	reg = readl(dp->reg_base + ANALOGIX_DP_AUX_CH_STA);
 	if ((reg & AUX_STATUS_MASK) != 0) {
-		pr_err("AUX CH error happens: %d\n\n",
-			reg & AUX_STATUS_MASK);
+		dev_err(dp->dev,
+			"AUX CH error happens: %d\n", reg & AUX_STATUS_MASK);
 		return -EREMOTEIO;
 	}
 
@@ -586,8 +588,6 @@ int analogix_dp_write_byte_to_dpcd(struct analogix_dp_device *dp,
 		retval = analogix_dp_start_aux_transaction(dp);
 		if (retval == 0)
 			break;
-
-		pr_debug("%s: Aux Transaction fail!\n", __func__);
 	}
 
 	return retval;
@@ -626,8 +626,6 @@ int analogix_dp_read_byte_from_dpcd(struct analogix_dp_device *dp,
 		retval = analogix_dp_start_aux_transaction(dp);
 		if (retval == 0)
 			break;
-
-		pr_info("%s: Aux Transaction fail!\n", __func__);
 	}
 
 	/* Read data buffer */
@@ -691,9 +689,6 @@ int analogix_dp_write_bytes_to_dpcd(struct analogix_dp_device *dp,
 			retval = analogix_dp_start_aux_transaction(dp);
 			if (retval == 0)
 				break;
-
-			pr_debug("%s: Aux Transaction fail!\n",
-				__func__);
 		}
 
 		start_offset += cur_data_count;
@@ -749,9 +744,6 @@ int analogix_dp_read_bytes_from_dpcd(struct analogix_dp_device *dp,
 			retval = analogix_dp_start_aux_transaction(dp);
 			if (retval == 0)
 				break;
-
-			pr_debug("%s: Aux Transaction fail!\n",
-				__func__);
 		}
 
 		for (cur_data_idx = 0; cur_data_idx < cur_data_count;
@@ -795,10 +787,10 @@ int analogix_dp_select_i2c_device(struct analogix_dp_device *dp,
 
 	/* Start AUX transaction */
 	retval = analogix_dp_start_aux_transaction(dp);
-	if (retval != 0)
-		pr_debug("%s: Aux Transaction fail!\n", __func__);
+	if (retval < 0)
+		return retval;
 
-	return retval;
+	return 0;
 }
 
 int analogix_dp_read_byte_from_i2c(struct analogix_dp_device *dp,
@@ -834,8 +826,6 @@ int analogix_dp_read_byte_from_i2c(struct analogix_dp_device *dp,
 		retval = analogix_dp_start_aux_transaction(dp);
 		if (retval == 0)
 			break;
-
-		pr_debug("%s: Aux Transaction fail!\n", __func__);
 	}
 
 	/* Read data */
@@ -894,15 +884,12 @@ int analogix_dp_read_bytes_from_i2c(struct analogix_dp_device *dp,
 				retval = analogix_dp_start_aux_transaction(dp);
 				if (retval == 0)
 					break;
-
-				pr_debug("%s: Aux Transaction fail!\n",
-					__func__);
 			}
 			/* Check if Rx sends defer */
 			reg = readl(dp->reg_base + ANALOGIX_DP_AUX_RX_COMM);
 			if (reg == AUX_RX_COMM_AUX_DEFER ||
 			    reg == AUX_RX_COMM_I2C_DEFER) {
-				pr_err("Defer: %d\n\n", reg);
+				dev_dbg(dp->dev, "Defer: %d\n\n", reg);
 				defer = 1;
 			}
 		}
@@ -1175,21 +1162,16 @@ int analogix_dp_is_slave_video_stream_clock_on(struct analogix_dp_device *dp)
 
 	reg = readl(dp->reg_base + ANALOGIX_DP_SYS_CTL_1);
 
-	if (!(reg & DET_STA)) {
-		pr_debug("Input stream clock not detected.\n");
+	if (!(reg & DET_STA))
 		return -EINVAL;
-	}
 
 	reg = readl(dp->reg_base + ANALOGIX_DP_SYS_CTL_2);
 	writel(reg, dp->reg_base + ANALOGIX_DP_SYS_CTL_2);
 
 	reg = readl(dp->reg_base + ANALOGIX_DP_SYS_CTL_2);
-	pr_debug("wait SYS_CTL_2.\n");
 
-	if (reg & CHA_STA) {
-		pr_debug("Input stream clk is changing\n");
+	if (reg & CHA_STA)
 		return -EINVAL;
-	}
 
 	return 0;
 }
@@ -1277,10 +1259,8 @@ int analogix_dp_is_video_stream_on(struct analogix_dp_device *dp)
 	writel(reg, dp->reg_base + ANALOGIX_DP_SYS_CTL_3);
 
 	reg = readl(dp->reg_base + ANALOGIX_DP_SYS_CTL_3);
-	if (!(reg & STRM_VALID)) {
-		pr_debug("Input video stream is not detected.\n");
+	if (!(reg & STRM_VALID))
 		return -EINVAL;
-	}
 
 	return 0;
 }
