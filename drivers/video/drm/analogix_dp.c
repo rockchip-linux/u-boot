@@ -20,7 +20,7 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_analogix_dp.h"
+#include "analogix_dp.h"
 
 /**
  * struct rockchip_dp_chip_data - splite the grf setting of kind of chips

@@ -25,7 +25,7 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_analogix_dp.h"
+#include "analogix_dp.h"
 
 #define COMMON_INT_MASK_1	0
 #define COMMON_INT_MASK_2	0
