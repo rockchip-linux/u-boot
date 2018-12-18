@@ -251,55 +251,55 @@ static int rockchip_panel_send_dsi_cmds(struct display_state *state,
 	return 0;
 }
 
-static int rockchip_panel_prepare(struct display_state *state)
+static void panel_simple_prepare(struct rockchip_panel *panel)
 {
-	struct rockchip_panel *panel = state_get_panel(state);
 	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 	int ret;
 
 	if (priv->prepared)
-		return 0;
+		return;
 
-	if (priv->power_supply) {
-		ret = regulator_set_enable(priv->power_supply,
-					   !plat->power_invert);
-		if (ret) {
-			printf("%s: failed to enable power supply", __func__);
-			return ret;
-		}
-	}
+	if (priv->power_supply)
+		regulator_set_enable(priv->power_supply, !plat->power_invert);
 
-	dm_gpio_set_value(&priv->enable_gpio, 1);
-	mdelay(plat->delay.prepare);
+	if (dm_gpio_is_valid(&priv->enable_gpio))
+		dm_gpio_set_value(&priv->enable_gpio, 1);
 
-	dm_gpio_set_value(&priv->reset_gpio, 1);
-	mdelay(plat->delay.reset);
-	dm_gpio_set_value(&priv->reset_gpio, 0);
+	if (plat->delay.prepare)
+		mdelay(plat->delay.prepare);
 
-	mdelay(plat->delay.init);
+	if (dm_gpio_is_valid(&priv->reset_gpio))
+		dm_gpio_set_value(&priv->reset_gpio, 1);
+
+	if (plat->delay.reset)
+		mdelay(plat->delay.reset);
+
+	if (dm_gpio_is_valid(&priv->reset_gpio))
+		dm_gpio_set_value(&priv->reset_gpio, 0);
+
+	if (plat->delay.init)
+		mdelay(plat->delay.init);
 
 	if (plat->on_cmds) {
 		if (priv->cmd_type == CMD_TYPE_SPI)
-			ret = rockchip_panel_send_spi_cmds(state,
+			ret = rockchip_panel_send_spi_cmds(panel->state,
 							   plat->on_cmds);
 		else if (priv->cmd_type == CMD_TYPE_MCU)
-			ret = rockchip_panel_send_mcu_cmds(state, plat->on_cmds);
+			ret = rockchip_panel_send_mcu_cmds(panel->state,
+							   plat->on_cmds);
 		else
-			ret = rockchip_panel_send_dsi_cmds(state,
+			ret = rockchip_panel_send_dsi_cmds(panel->state,
 							   plat->on_cmds);
 		if (ret)
 			printf("failed to send on cmds: %d\n", ret);
 	}
 
 	priv->prepared = true;
-
-	return 0;
 }
 
-static void rockchip_panel_unprepare(struct display_state *state)
+static void panel_simple_unprepare(struct rockchip_panel *panel)
 {
-	struct rockchip_panel *panel = state_get_panel(state);
 	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 	int ret;
@@ -309,55 +309,52 @@ static void rockchip_panel_unprepare(struct display_state *state)
 
 	if (plat->off_cmds) {
 		if (priv->cmd_type == CMD_TYPE_SPI)
-			ret = rockchip_panel_send_spi_cmds(state,
+			ret = rockchip_panel_send_spi_cmds(panel->state,
 							   plat->off_cmds);
 		else if (priv->cmd_type == CMD_TYPE_MCU)
-			ret = rockchip_panel_send_mcu_cmds(state,
+			ret = rockchip_panel_send_mcu_cmds(panel->state,
 							   plat->off_cmds);
 		else
-			ret = rockchip_panel_send_dsi_cmds(state,
+			ret = rockchip_panel_send_dsi_cmds(panel->state,
 							   plat->off_cmds);
 		if (ret)
 			printf("failed to send off cmds: %d\n", ret);
 	}
 
-	dm_gpio_set_value(&priv->reset_gpio, 1);
-	dm_gpio_set_value(&priv->enable_gpio, 0);
+	if (dm_gpio_is_valid(&priv->reset_gpio))
+		dm_gpio_set_value(&priv->reset_gpio, 1);
 
-	if (priv->power_supply) {
-		ret = regulator_set_enable(priv->power_supply,
-					   plat->power_invert);
-		if (ret)
-			printf("%s: failed to disable power supply", __func__);
-	}
+	if (dm_gpio_is_valid(&priv->enable_gpio))
+		dm_gpio_set_value(&priv->enable_gpio, 0);
 
-	mdelay(plat->delay.unprepare);
+	if (priv->power_supply)
+		regulator_set_enable(priv->power_supply, plat->power_invert);
+
+	if (plat->delay.unprepare)
+		mdelay(plat->delay.unprepare);
 
 	priv->prepared = false;
 }
 
-static int rockchip_panel_enable(struct display_state *state)
+static void panel_simple_enable(struct rockchip_panel *panel)
 {
-	struct rockchip_panel *panel = state_get_panel(state);
 	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 
 	if (priv->enabled)
-		return 0;
+		return;
 
-	mdelay(plat->delay.enable);
+	if (plat->delay.enable)
+		mdelay(plat->delay.enable);
 
 	if (priv->backlight)
 		backlight_enable(priv->backlight);
 
 	priv->enabled = true;
-
-	return 0;
 }
 
-static void rockchip_panel_disable(struct display_state *state)
+static void panel_simple_disable(struct rockchip_panel *panel)
 {
-	struct rockchip_panel *panel = state_get_panel(state);
 	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 
@@ -367,27 +364,26 @@ static void rockchip_panel_disable(struct display_state *state)
 	if (priv->backlight)
 		backlight_disable(priv->backlight);
 
-	mdelay(plat->delay.disable);
+	if (plat->delay.disable)
+		mdelay(plat->delay.disable);
 
 	priv->enabled = false;
 }
 
-static int rockchip_panel_init(struct display_state *state)
+static void panel_simple_init(struct rockchip_panel *panel)
 {
+	struct display_state *state = panel->state;
 	struct connector_state *conn_state = &state->conn_state;
-	struct rockchip_panel *panel = state_get_panel(state);
 
 	conn_state->bus_format = panel->bus_format;
-
-	return 0;
 }
 
 static const struct rockchip_panel_funcs rockchip_panel_funcs = {
-	.init = rockchip_panel_init,
-	.prepare = rockchip_panel_prepare,
-	.unprepare = rockchip_panel_unprepare,
-	.enable = rockchip_panel_enable,
-	.disable = rockchip_panel_disable,
+	.init = panel_simple_init,
+	.prepare = panel_simple_prepare,
+	.unprepare = panel_simple_unprepare,
+	.enable = panel_simple_enable,
+	.disable = panel_simple_disable,
 };
 
 static int rockchip_panel_ofdata_to_platdata(struct udevice *dev)

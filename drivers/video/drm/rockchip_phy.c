@@ -12,7 +12,7 @@ int rockchip_phy_init(struct rockchip_phy *phy)
 	if (!phy)
 		return -ENODEV;
 
-	if (phy->funcs || phy->funcs->init)
+	if (phy->funcs && phy->funcs->init)
 		return phy->funcs->init(phy);
 
 	return 0;
@@ -23,7 +23,7 @@ int rockchip_phy_power_on(struct rockchip_phy *phy)
 	if (!phy)
 		return -ENODEV;
 
-	if (phy->funcs || phy->funcs->power_on)
+	if (phy->funcs && phy->funcs->power_on)
 		return phy->funcs->power_on(phy);
 
 	return 0;
