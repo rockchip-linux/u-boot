@@ -32,6 +32,7 @@ struct rockchip_rgb_funcs {
 
 struct rockchip_rgb {
 	struct regmap *grf;
+	bool data_sync;
 	const struct rockchip_rgb_funcs *funcs;
 };
 
@@ -102,27 +103,19 @@ static int rockchip_rgb_probe(struct udevice *dev)
 
 	rgb->funcs = connector->data;
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
+	rgb->data_sync = dev_read_bool(dev, "rockchip,data-sync");
 
 	return 0;
 }
 
 static void px30_rgb_enable(struct rockchip_rgb *rgb, int pipe)
 {
-	regmap_write(rgb->grf, PX30_GRF_PD_VO_CON1,
-		     PX30_RGB_VOP_SEL(pipe));
-	regmap_write(rgb->grf, PX30_GRF_PD_VO_CON1,
-		     PX30_RGB_DATA_SYNC_BYPASS(1));
-}
-
-static void px30_rgb_disable(struct rockchip_rgb *rgb)
-{
-	regmap_write(rgb->grf, PX30_GRF_PD_VO_CON1,
-		     PX30_RGB_DATA_SYNC_BYPASS(0));
+	regmap_write(rgb->grf, PX30_GRF_PD_VO_CON1, PX30_RGB_VOP_SEL(pipe) |
+		     PX30_RGB_DATA_SYNC_BYPASS(!rgb->data_sync));
 }
 
 static const struct rockchip_rgb_funcs px30_rgb_funcs = {
 	.enable = px30_rgb_enable,
-	.disable = px30_rgb_disable,
 };
 
 static const struct rockchip_connector px30_rgb_driver_data = {
@@ -133,18 +126,11 @@ static const struct rockchip_connector px30_rgb_driver_data = {
 static void rk1808_rgb_enable(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RK1808_GRF_PD_VO_CON1,
-		     RK1808_RGB_DATA_SYNC_BYPASS(1));
-}
-
-static void rk1808_rgb_disable(struct rockchip_rgb *rgb)
-{
-	regmap_write(rgb->grf, RK1808_GRF_PD_VO_CON1,
-		     RK1808_RGB_DATA_SYNC_BYPASS(0));
+		     RK1808_RGB_DATA_SYNC_BYPASS(!rgb->data_sync));
 }
 
 static const struct rockchip_rgb_funcs rk1808_rgb_funcs = {
 	.enable = rk1808_rgb_enable,
-	.disable = rk1808_rgb_disable,
 };
 
 static const struct rockchip_connector rk1808_rgb_driver_data = {
