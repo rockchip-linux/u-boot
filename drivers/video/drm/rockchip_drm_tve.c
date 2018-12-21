@@ -287,7 +287,7 @@ static int rockchip_drm_tve_init(struct display_state *state)
 	}
 #endif
 
-	if (!fdt_device_is_available(gd->fdt_blob, node)) {
+	if (!fdtdec_get_is_enabled(gd->fdt_blob, node)) {
 		printf("tve is disabled\n");
 		goto err;
 	}
