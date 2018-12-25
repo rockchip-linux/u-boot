@@ -229,13 +229,8 @@ int arch_cpu_init(void)
 	/* select 32KHz clock source */
 	pmugrf_writel((1 << (7 + 16)) | (0 << 7), PMU_GRF_SOC_CON0);
 
-	#if defined(CONFIG_RKCHIP_PX5) || defined (CONFIG_RKCHIP_PX5_KERNEL4_4)
-		/* disable force to jtag */
-		grf_writel((0x0 << 13) | (0x01 << (13 + 16)), GRF_SOC_CON15);
-	#else
-		/* enable force to jtag */
-		grf_writel((0x01 << 13) | (0x01 << (13 + 16)), GRF_SOC_CON15);
-	#endif
+	/* disable force to jtag */
+	grf_writel((0x0 << 13) | (0x01 << (13 + 16)), GRF_SOC_CON15);
 #endif /* CONFIG_RKCHIP_RK3368 */
 
 #if defined(CONFIG_RKCHIP_RK3399)
