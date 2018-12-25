@@ -567,7 +567,7 @@ static unsigned long dw_mipi_dsi_get_lane_rate(struct dw_mipi_dsi *dsi)
 
 	/* optional override of the desired bandwidth */
 	value = fdt_getprop_u32_default_node(dsi->blob, dsi->node, 0,
-					     "rockchip,lane-rate", -1);
+					     "rockchip,lane-rate", 0);
 	if (value > 0)
 		return value * USEC_PER_SEC;
 
