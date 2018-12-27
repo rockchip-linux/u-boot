@@ -586,7 +586,7 @@ const struct vop_data px30_vop_big = {
 	.max_output = {1920, 1080},
 	.ctrl = &px30_ctrl_data,
 	.grf_ctrl = &px30_grf_ctrl,
-	.win = &rk3366_win0_data,
+	.win = &rk3366_win1_data,
 	.line_flag = &rk3366_vop_lite_line_flag,
 	.reg_len = RK3366_LIT_FRC_LOWER01_0 * 4,
 };
