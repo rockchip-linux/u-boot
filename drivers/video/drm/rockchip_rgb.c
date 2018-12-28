@@ -15,6 +15,7 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
+#include "rockchip_phy.h"
 
 #define PX30_GRF_PD_VO_CON1		0x0438
 #define PX30_RGB_DATA_SYNC_BYPASS(v)	HIWORD_UPDATE(v, 3, 3)
@@ -22,6 +23,15 @@
 
 #define RK1808_GRF_PD_VO_CON1		0x0444
 #define RK1808_RGB_DATA_SYNC_BYPASS(v)	HIWORD_UPDATE(v, 3, 3)
+
+#define RK3288_GRF_SOC_CON6		0x025c
+#define RK3288_LVDS_LCDC_SEL(v)		HIWORD_UPDATE(v,  3,  3)
+#define RK3288_GRF_SOC_CON7		0x0260
+#define RK3288_LVDS_PWRDWN(v)		HIWORD_UPDATE(v, 15, 15)
+#define RK3288_LVDS_CON_ENABLE_2(v)	HIWORD_UPDATE(v, 12, 12)
+#define RK3288_LVDS_CON_ENABLE_1(v)	HIWORD_UPDATE(v, 11, 11)
+#define RK3288_LVDS_CON_CLKINV(v)	HIWORD_UPDATE(v,  8,  8)
+#define RK3288_LVDS_CON_TTL_EN(v)	HIWORD_UPDATE(v,  6,  6)
 
 struct rockchip_rgb;
 
@@ -31,8 +41,10 @@ struct rockchip_rgb_funcs {
 };
 
 struct rockchip_rgb {
+	struct udevice *dev;
 	struct regmap *grf;
 	bool data_sync;
+	struct rockchip_phy *phy;
 	const struct rockchip_rgb_funcs *funcs;
 };
 
@@ -48,9 +60,20 @@ static int rockchip_rgb_connector_enable(struct display_state *state)
 	struct rockchip_rgb *rgb = state_to_rgb(state);
 	struct crtc_state *crtc_state = &state->crtc_state;
 	int pipe = crtc_state->crtc_id;
+	int ret;
 
 	if (rgb->funcs && rgb->funcs->enable)
 		rgb->funcs->enable(rgb, pipe);
+
+	if (rgb->phy) {
+		ret = rockchip_phy_set_mode(rgb->phy, PHY_MODE_VIDEO_TTL);
+		if (ret) {
+			dev_err(rgb->dev, "failed to set phy mode: %d\n", ret);
+			return ret;
+		}
+
+		rockchip_phy_power_on(rgb->phy);
+	}
 
 	return 0;
 }
@@ -58,6 +81,9 @@ static int rockchip_rgb_connector_enable(struct display_state *state)
 static int rockchip_rgb_connector_disable(struct display_state *state)
 {
 	struct rockchip_rgb *rgb = state_to_rgb(state);
+
+	if (rgb->phy)
+		rockchip_phy_power_off(rgb->phy);
 
 	if (rgb->funcs && rgb->funcs->disable)
 		rgb->funcs->disable(rgb);
@@ -67,7 +93,10 @@ static int rockchip_rgb_connector_disable(struct display_state *state)
 
 static int rockchip_rgb_connector_init(struct display_state *state)
 {
+	struct rockchip_rgb *rgb = state_to_rgb(state);
 	struct connector_state *conn_state = &state->conn_state;
+
+	rgb->phy = conn_state->phy;
 
 	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
@@ -101,6 +130,7 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	const struct rockchip_connector *connector =
 		(const struct rockchip_connector *)dev_get_driver_data(dev);
 
+	rgb->dev = dev;
 	rgb->funcs = connector->data;
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
 	rgb->data_sync = dev_read_bool(dev, "rockchip,data-sync");
@@ -138,6 +168,32 @@ static const struct rockchip_connector rk1808_rgb_driver_data = {
 	.data = &rk1808_rgb_funcs,
 };
 
+static void rk3288_rgb_enable(struct rockchip_rgb *rgb, int pipe)
+{
+	regmap_write(rgb->grf, RK3288_GRF_SOC_CON6, RK3288_LVDS_LCDC_SEL(pipe));
+	regmap_write(rgb->grf, RK3288_GRF_SOC_CON7,
+		     RK3288_LVDS_PWRDWN(0) | RK3288_LVDS_CON_ENABLE_2(1) |
+		     RK3288_LVDS_CON_ENABLE_1(1) | RK3288_LVDS_CON_CLKINV(0) |
+		     RK3288_LVDS_CON_TTL_EN(1));
+}
+
+static void rk3288_rgb_disable(struct rockchip_rgb *rgb)
+{
+	regmap_write(rgb->grf, RK3288_GRF_SOC_CON7,
+		     RK3288_LVDS_PWRDWN(1) | RK3288_LVDS_CON_ENABLE_2(0) |
+		     RK3288_LVDS_CON_ENABLE_1(0) | RK3288_LVDS_CON_TTL_EN(0));
+}
+
+static const struct rockchip_rgb_funcs rk3288_rgb_funcs = {
+	.enable = rk3288_rgb_enable,
+	.disable = rk3288_rgb_disable,
+};
+
+static const struct rockchip_connector rk3288_rgb_driver_data = {
+	.funcs = &rockchip_rgb_connector_funcs,
+	.data = &rk3288_rgb_funcs,
+};
+
 static const struct rockchip_connector rockchip_rgb_driver_data = {
 	.funcs = &rockchip_rgb_connector_funcs,
 };
@@ -156,7 +212,19 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 		.data = (ulong)&rockchip_rgb_driver_data,
 	},
 	{
+		.compatible = "rockchip,rk3128-rgb",
+		.data = (ulong)&rockchip_rgb_driver_data,
+	},
+	{
+		.compatible = "rockchip,rk3288-rgb",
+		.data = (ulong)&rk3288_rgb_driver_data,
+	},
+	{
 		.compatible = "rockchip,rk3308-rgb",
+		.data = (ulong)&rockchip_rgb_driver_data,
+	},
+	{
+		.compatible = "rockchip,rk3368-rgb",
 		.data = (ulong)&rockchip_rgb_driver_data,
 	},
 	{
