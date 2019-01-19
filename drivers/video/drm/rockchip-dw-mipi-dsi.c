@@ -7,11 +7,9 @@
 #include <config.h>
 #include <common.h>
 #include <errno.h>
-#include <malloc.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <asm/hardware.h>
-#include <linux/list.h>
 #include <dm/device.h>
 #include <dm/read.h>
 #include <dm/of_access.h>
@@ -21,11 +19,9 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
+#include "rockchip_panel.h"
 #include "rockchip_phy.h"
 #include "rockchip_mipi_dsi.h"
-
-#define MSEC_PER_SEC    1000L
-#define USEC_PER_SEC	1000000L
 
 #define DSI_VERSION			0x00
 #define DSI_PWR_UP			0x04
@@ -232,11 +228,9 @@ struct dw_mipi_dsi {
 	struct udevice *dev;
 	void *base;
 	void *grf;
-	const void *blob;
-	ofnode node;
 	int id;
 
-	/* dual-channel */
+	/* for dual-channel */
 	struct dw_mipi_dsi *master;
 	struct dw_mipi_dsi *slave;
 
@@ -855,10 +849,8 @@ static ssize_t dw_mipi_dsi_transfer(struct dw_mipi_dsi *dsi,
 
 	if (dsi->slave) {
 		ret = dw_mipi_dsi_transfer(dsi->slave, msg);
-		if (ret) {
-			printf("failed to send command through dsi slave, ret = %d\n", ret);
+		if (ret < 0)
 			return ret;
-		}
 	}
 
 	return msg->rx_len ? msg->rx_len : msg->tx_len;
@@ -868,7 +860,7 @@ static ssize_t dw_mipi_dsi_connector_transfer(struct display_state *state,
 					      const struct mipi_dsi_msg *msg)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = conn_state->private;
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
 
 	return dw_mipi_dsi_transfer(dsi, msg);
 }
@@ -1091,109 +1083,36 @@ static void dw_mipi_dsi_clear_err(struct dw_mipi_dsi *dsi)
 	dsi_write(dsi, DSI_INT_MSK1, 0);
 }
 
-static int dw_mipi_dsi_dual_channel_probe(struct dw_mipi_dsi *master)
-{
-	int phandle;
-	struct device_node *np;
-	struct dw_mipi_dsi *slave = NULL;
-
-	phandle = ofnode_read_u32_default(master->node, "rockchip,dual-channel", -1);
-	if (phandle < 0)
-		return 0;
-
-	np = of_find_node_by_phandle(phandle);
-	if (ofnode_valid(np_to_ofnode(np))) {
-		printf("failed to find dsi slave node\n");
-		return -ENODEV;
-	}
-
-	if (!of_device_is_available(np)) {
-		printf("dsi slave node is not available\n");
-		return -ENODEV;
-	}
-
-	slave = malloc(sizeof(*slave));
-	if (!slave)
-		return -ENOMEM;
-
-	memset(slave, 0, sizeof(*slave));
-
-	master->lanes /= 2;
-	master->slave = slave;
-	slave->master = master;
-
-	slave->blob = master->blob;
-	slave->node = np_to_ofnode(np);
-	slave->base = (u32 *)ofnode_get_addr_index(slave->node, 0);
-	slave->pdata = master->pdata;
-	slave->id = 1;
-	slave->dphy.phy = master->dphy.phy;
-	slave->lanes = master->lanes;
-	slave->format = master->format;
-	slave->mode_flags = master->mode_flags;
-	slave->channel = master->channel;
-
-	return 0;
-}
-
 static int dw_mipi_dsi_connector_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	const struct rockchip_connector *connector = conn_state->connector;
-	const struct dw_mipi_dsi_plat_data *pdata = connector->data;
-	ofnode mipi_node = conn_state->node;
 	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
-	ofnode panel;
-	int id;
-	int ret;
+	struct rockchip_panel *panel = state_get_panel(state);
 
-	dsi->base = dev_read_addr_ptr(conn_state->dev);
-	dsi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
-	if (dsi->grf <= 0) {
-		printf("%s: Get syscon grf failed (ret=%p)\n",
-			__func__, dsi->grf);
-		return -ENXIO;
-	}
-
-	id = of_alias_get_id(ofnode_to_np(mipi_node), "dsi");
-	if (id < 0)
-		id = 0;
-
-	dsi->pdata = pdata;
-	dsi->id = id;
-	dsi->blob = state->blob;
-	dsi->node = mipi_node;
 	dsi->dphy.phy = conn_state->phy;
 
-	conn_state->private = dsi;
+	dsi->lanes = dev_read_u32_default(panel->dev, "dsi,lanes", 4);
+	dsi->format = dev_read_u32_default(panel->dev, "dsi,format",
+					   MIPI_DSI_FMT_RGB888);
+	dsi->mode_flags = dev_read_u32_default(panel->dev, "dsi,flags",
+					       MIPI_DSI_MODE_VIDEO |
+					       MIPI_DSI_MODE_VIDEO_BURST |
+					       MIPI_DSI_MODE_LPM |
+					       MIPI_DSI_MODE_EOT_PACKET);
+	dsi->channel = dev_read_u32_default(panel->dev, "reg", 0);
+
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
-
-	panel = dev_read_subnode(conn_state->dev, "panel");
-	if (!ofnode_valid(panel)) {
-		printf("failed to find panel node\n");
-		return -1;
-	}
-
-#define FDT_GET_INT(val, name) \
-	val = ofnode_read_s32_default(panel, name, -1); \
-	if (val < 0) { \
-		printf("Can't get %s\n", name); \
-		return -1; \
-	}
-
-	FDT_GET_INT(dsi->lanes, "dsi,lanes");
-	FDT_GET_INT(dsi->format, "dsi,format");
-	FDT_GET_INT(dsi->mode_flags, "dsi,flags");
-	FDT_GET_INT(dsi->channel, "reg");
-
-	ret = dw_mipi_dsi_dual_channel_probe(dsi);
-	if (ret)
-		return ret;
-
 	conn_state->type = DRM_MODE_CONNECTOR_DSI;
-	if (dsi->slave)
+
+	if (dsi->slave) {
+		dsi->lanes /= 2;
+		dsi->slave->lanes = dsi->lanes;
+		dsi->slave->format = dsi->format;
+		dsi->slave->mode_flags = dsi->mode_flags;
+		dsi->slave->channel = dsi->channel;
 		conn_state->output_type = ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL;
+	}
 
 	return 0;
 }
@@ -1279,7 +1198,7 @@ static int dw_mipi_dsi_connector_prepare(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *crtc_state = &state->crtc_state;
-	struct dw_mipi_dsi *dsi = conn_state->private;
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
 	unsigned long lane_rate;
 
 	dsi->mode = &conn_state->mode;
@@ -1304,7 +1223,7 @@ static int dw_mipi_dsi_connector_prepare(struct display_state *state)
 static void dw_mipi_dsi_connector_unprepare(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = conn_state->private;
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
 
 	dw_mipi_dsi_post_disable(dsi);
 }
@@ -1312,7 +1231,7 @@ static void dw_mipi_dsi_connector_unprepare(struct display_state *state)
 static int dw_mipi_dsi_connector_enable(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = conn_state->private;
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
 
 	dw_mipi_dsi_enable(dsi);
 
@@ -1322,7 +1241,7 @@ static int dw_mipi_dsi_connector_enable(struct display_state *state)
 static int dw_mipi_dsi_connector_disable(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = conn_state->private;
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
 
 	dw_mipi_dsi_disable(dsi);
 
@@ -1337,6 +1256,61 @@ static const struct rockchip_connector_funcs dw_mipi_dsi_connector_funcs = {
 	.disable = dw_mipi_dsi_connector_disable,
 	.transfer = dw_mipi_dsi_connector_transfer,
 };
+
+static int dw_mipi_dsi_dual_channel_probe(struct dw_mipi_dsi *master)
+{
+	struct udevice *dev;
+	struct dw_mipi_dsi *slave;
+	int ret;
+
+	ret = uclass_get_device_by_phandle(UCLASS_DISPLAY, master->dev,
+					   "rockchip,dual-channel", &dev);
+	if (ret == -ENOENT) {
+		return 0;
+	} else if (ret) {
+		dev_err(dev, "failed to find slave device: %d\n", ret);
+		return ret;
+	}
+
+	slave = dev_get_priv(dev);
+	if (!slave) {
+		dev_err(dev, "failed to get slave channel\n");
+		return -ENODEV;
+	}
+
+	master->slave = slave;
+	slave->master = master;
+
+	return 0;
+}
+
+static int dw_mipi_dsi_probe(struct udevice *dev)
+{
+	struct dw_mipi_dsi *dsi = dev_get_priv(dev);
+	const struct rockchip_connector *connector =
+		(const struct rockchip_connector *)dev_get_driver_data(dev);
+	const struct dw_mipi_dsi_plat_data *pdata = connector->data;
+	int id, ret;
+
+	dsi->base = dev_read_addr_ptr(dev);
+	dsi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+	if (IS_ERR(dsi->grf))
+		return PTR_ERR(dsi->grf);
+
+	id = of_alias_get_id(ofnode_to_np(dev->node), "dsi");
+	if (id < 0)
+		id = 0;
+
+	dsi->dev = dev;
+	dsi->pdata = pdata;
+	dsi->id = id;
+
+	ret = dw_mipi_dsi_dual_channel_probe(dsi);
+	if (ret)
+		return ret;
+
+	return 0;
+}
 
 static const u32 px30_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[DPIUPDATECFG]		= GRF_REG_FIELD(0x0434,  7,  7),
@@ -1469,6 +1443,7 @@ static const u32 rk3399_dsi1_grf_reg_fields[MAX_FIELDS] = {
 	[DPICOLORM]		= GRF_REG_FIELD(0x6250,  1,  1),
 	[TURNDISABLE]		= GRF_REG_FIELD(0x625c, 12, 15),
 	[FORCETXSTOPMODE]	= GRF_REG_FIELD(0x625c,  8, 11),
+	[FORCERXMODE]           = GRF_REG_FIELD(0x625c,  4,  7),
 	[ENABLE_N]		= GRF_REG_FIELD(0x625c,  0,  3),
 	[MASTERSLAVEZ]		= GRF_REG_FIELD(0x6260,  7,  7),
 	[ENABLECLK]		= GRF_REG_FIELD(0x6260,  6,  6),
@@ -1537,15 +1512,6 @@ static const struct udevice_id dw_mipi_dsi_ids[] = {
 	},
 	{}
 };
-
-static int dw_mipi_dsi_probe(struct udevice *dev)
-{
-	struct dw_mipi_dsi *dsi = dev_get_priv(dev);
-
-	dsi->dev = dev;
-
-	return 0;
-}
 
 U_BOOT_DRIVER(dw_mipi_dsi) = {
 	.name = "dw_mipi_dsi",
