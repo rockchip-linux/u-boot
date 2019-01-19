@@ -173,15 +173,13 @@
 
 #define DSI_PHY_TST_CTRL0		0xb4
 #define PHY_TESTCLK			BIT(1)
-#define PHY_UNTESTCLK			0
 #define PHY_TESTCLR			BIT(0)
-#define PHY_UNTESTCLR			0
 
 #define DSI_PHY_TST_CTRL1		0xb8
 #define PHY_TESTEN			BIT(16)
-#define PHY_UNTESTEN			0
-#define PHY_TESTDOUT(n)			(((n) & 0xff) << 8)
-#define PHY_TESTDIN(n)			(((n) & 0xff) << 0)
+#define PHY_TESTDOUT_SHIFT		8
+#define PHY_TESTDIN_MASK		GENMASK(7, 0)
+#define PHY_TESTDIN(x)			UPDATE(x, 7, 0)
 
 #define DSI_INT_ST0			0xbc
 #define DSI_INT_ST1			0xc0
@@ -437,25 +435,79 @@ static int genif_wait_write_fifo_empty(struct dw_mipi_dsi *dsi)
 	return 0;
 }
 
-static void dw_mipi_dsi_phy_write(struct dw_mipi_dsi *dsi, u8 test_code,
-				 u8 test_data)
+static inline void testif_testclk_assert(struct dw_mipi_dsi *dsi)
 {
-	/*
-	 * With the falling edge on TESTCLK, the TESTDIN[7:0] signal content
-	 * is latched internally as the current test code. Test data is
-	 * programmed internally by rising edge on TESTCLK.
-	 */
-	dsi_write(dsi, DSI_PHY_TST_CTRL0, PHY_TESTCLK | PHY_UNTESTCLR);
+	dsi_update_bits(dsi, DSI_PHY_TST_CTRL0, PHY_TESTCLK, PHY_TESTCLK);
+	udelay(1);
+}
 
-	dsi_write(dsi, DSI_PHY_TST_CTRL1, PHY_TESTEN | PHY_TESTDOUT(0) |
-					  PHY_TESTDIN(test_code));
+static inline void testif_testclk_deassert(struct dw_mipi_dsi *dsi)
+{
+	dsi_update_bits(dsi, DSI_PHY_TST_CTRL0, PHY_TESTCLK, 0);
+	udelay(1);
+}
 
-	dsi_write(dsi, DSI_PHY_TST_CTRL0, PHY_UNTESTCLK | PHY_UNTESTCLR);
+static inline void testif_testclr_assert(struct dw_mipi_dsi *dsi)
+{
+	dsi_update_bits(dsi, DSI_PHY_TST_CTRL0, PHY_TESTCLR, PHY_TESTCLR);
+	udelay(1);
+}
 
-	dsi_write(dsi, DSI_PHY_TST_CTRL1, PHY_UNTESTEN | PHY_TESTDOUT(0) |
-					  PHY_TESTDIN(test_data));
+static inline void testif_testclr_deassert(struct dw_mipi_dsi *dsi)
+{
+	dsi_update_bits(dsi, DSI_PHY_TST_CTRL0, PHY_TESTCLR, 0);
+	udelay(1);
+}
 
-	dsi_write(dsi, DSI_PHY_TST_CTRL0, PHY_TESTCLK | PHY_UNTESTCLR);
+static inline void testif_testen_assert(struct dw_mipi_dsi *dsi)
+{
+	dsi_update_bits(dsi, DSI_PHY_TST_CTRL1, PHY_TESTEN, PHY_TESTEN);
+	udelay(1);
+}
+
+static inline void testif_testen_deassert(struct dw_mipi_dsi *dsi)
+{
+	dsi_update_bits(dsi, DSI_PHY_TST_CTRL1, PHY_TESTEN, 0);
+	udelay(1);
+}
+
+static inline void testif_set_data(struct dw_mipi_dsi *dsi, u8 data)
+{
+	dsi_update_bits(dsi, DSI_PHY_TST_CTRL1,
+			PHY_TESTDIN_MASK, PHY_TESTDIN(data));
+	udelay(1);
+}
+
+static inline u8 testif_get_data(struct dw_mipi_dsi *dsi)
+{
+	return dsi_read(dsi, DSI_PHY_TST_CTRL1) >> PHY_TESTDOUT_SHIFT;
+}
+
+static void testif_test_code_write(struct dw_mipi_dsi *dsi, u8 test_code)
+{
+	testif_testclk_assert(dsi);
+	testif_set_data(dsi, test_code);
+	testif_testen_assert(dsi);
+	testif_testclk_deassert(dsi);
+	testif_testen_deassert(dsi);
+}
+
+static void testif_test_data_write(struct dw_mipi_dsi *dsi, u8 test_data)
+{
+	testif_testclk_deassert(dsi);
+	testif_set_data(dsi, test_data);
+	testif_testclk_assert(dsi);
+}
+
+static void testif_write(struct dw_mipi_dsi *dsi, u8 test_code, u8 test_data)
+{
+	testif_testclr_deassert(dsi);
+	testif_test_code_write(dsi, test_code);
+	testif_test_data_write(dsi, test_data);
+
+	dev_dbg(dsi->dev,
+		"test_code=0x%02x, test_data=0x%02x, monitor_data=0x%02x\n",
+		test_code, test_data, testif_get_data(dsi));
 }
 
 static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
@@ -500,35 +552,30 @@ static int dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 		return testdin;
 	}
 
-	dw_mipi_dsi_phy_write(dsi, 0x10, BYPASS_VCO_RANGE |
-					 VCO_RANGE_CON_SEL(vco) |
-					 VCO_IN_CAP_CON_LOW |
-					 REF_BIAS_CUR_SEL);
-	dw_mipi_dsi_phy_write(dsi, 0x11, CP_CURRENT_3MA);
-	dw_mipi_dsi_phy_write(dsi, 0x12, CP_PROGRAM_EN | LPF_PROGRAM_EN |
-					 LPF_RESISTORS_20_KOHM);
-	dw_mipi_dsi_phy_write(dsi, 0x44, HSFREQRANGE_SEL(testdin));
-	dw_mipi_dsi_phy_write(dsi, 0x17, INPUT_DIVIDER(dsi->dphy.input_div));
+	testif_write(dsi, 0x10, BYPASS_VCO_RANGE | VCO_RANGE_CON_SEL(vco) |
+		     VCO_IN_CAP_CON_LOW | REF_BIAS_CUR_SEL);
+	testif_write(dsi, 0x11, CP_CURRENT_3MA);
+	testif_write(dsi, 0x12, CP_PROGRAM_EN | LPF_PROGRAM_EN |
+		     LPF_RESISTORS_20_KOHM);
+	testif_write(dsi, 0x44, HSFREQRANGE_SEL(testdin));
+	testif_write(dsi, 0x17, INPUT_DIVIDER(dsi->dphy.input_div));
 	val = LOOP_DIV_LOW_SEL(dsi->dphy.feedback_div) | LOW_PROGRAM_EN;
-	dw_mipi_dsi_phy_write(dsi, 0x18, val);
-	dw_mipi_dsi_phy_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
+	testif_write(dsi, 0x18, val);
+	testif_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
 	val = LOOP_DIV_HIGH_SEL(dsi->dphy.feedback_div) | HIGH_PROGRAM_EN;
-	dw_mipi_dsi_phy_write(dsi, 0x18, val);
-	dw_mipi_dsi_phy_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
-	dw_mipi_dsi_phy_write(dsi, 0x20, POWER_CONTROL | INTERNAL_REG_CURRENT |
-					 BIAS_BLOCK_ON | BANDGAP_ON);
-	dw_mipi_dsi_phy_write(dsi, 0x21, TER_RESISTOR_LOW | TER_CAL_DONE |
-					 SETRD_MAX | TER_RESISTORS_ON);
-	dw_mipi_dsi_phy_write(dsi, 0x21, TER_RESISTOR_HIGH | LEVEL_SHIFTERS_ON |
-					 SETRD_MAX | POWER_MANAGE |
-					 TER_RESISTORS_ON);
-	dw_mipi_dsi_phy_write(dsi, 0x22, LOW_PROGRAM_EN |
-					 BIASEXTR_SEL(BIASEXTR_127_7));
-	dw_mipi_dsi_phy_write(dsi, 0x22, HIGH_PROGRAM_EN |
-					 BANDGAP_SEL(BANDGAP_96_10));
-	dw_mipi_dsi_phy_write(dsi, 0x70, TLP_PROGRAM_EN | 0xf);
-	dw_mipi_dsi_phy_write(dsi, 0x71, THS_PRE_PROGRAM_EN | 0x2d);
-	dw_mipi_dsi_phy_write(dsi, 0x72, THS_ZERO_PROGRAM_EN | 0xa);
+	testif_write(dsi, 0x18, val);
+	testif_write(dsi, 0x19, PLL_LOOP_DIV_EN | PLL_INPUT_DIV_EN);
+	testif_write(dsi, 0x20, POWER_CONTROL | INTERNAL_REG_CURRENT |
+		     BIAS_BLOCK_ON | BANDGAP_ON);
+	testif_write(dsi, 0x21, TER_RESISTOR_LOW | TER_CAL_DONE |
+		     SETRD_MAX | TER_RESISTORS_ON);
+	testif_write(dsi, 0x21, TER_RESISTOR_HIGH | LEVEL_SHIFTERS_ON |
+		     SETRD_MAX | POWER_MANAGE | TER_RESISTORS_ON);
+	testif_write(dsi, 0x22, LOW_PROGRAM_EN | BIASEXTR_SEL(BIASEXTR_127_7));
+	testif_write(dsi, 0x22, HIGH_PROGRAM_EN | BANDGAP_SEL(BANDGAP_96_10));
+	testif_write(dsi, 0x70, TLP_PROGRAM_EN | 0xf);
+	testif_write(dsi, 0x71, THS_PRE_PROGRAM_EN | 0x2d);
+	testif_write(dsi, 0x72, THS_ZERO_PROGRAM_EN | 0xa);
 
 	return 0;
 }
