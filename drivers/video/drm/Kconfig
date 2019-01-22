@@ -2,6 +2,7 @@ menuconfig DRM_ROCKCHIP
 	bool "Rockchip DRM Support"
 	depends on DM_VIDEO && OF_LIVE
 	select VIDEO_BRIDGE
+	select PHY
 	help
 	  Rockchip SoCs provide video output capabilities for High-Definition
 	  Multimedia Interface (HDMI), Low-voltage Differential Signalling
