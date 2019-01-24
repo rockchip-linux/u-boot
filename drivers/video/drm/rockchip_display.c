@@ -660,7 +660,6 @@ static int display_enable(struct display_state *state)
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	struct panel_state *panel_state = &state->panel_state;
-	int ret = 0;
 
 	display_init(state);
 
@@ -670,17 +669,11 @@ static int display_enable(struct display_state *state)
 	if (state->is_enable)
 		return 0;
 
-	if (crtc_funcs->prepare) {
-		ret = crtc_funcs->prepare(state);
-		if (ret)
-			return ret;
-	}
+	if (crtc_funcs->prepare)
+		crtc_funcs->prepare(state);
 
-	if (conn_funcs->prepare) {
-		ret = conn_funcs->prepare(state);
-		if (ret)
-			goto unprepare_crtc;
-	}
+	if (conn_funcs->prepare)
+		conn_funcs->prepare(state);
 
 	if (conn_state->bridge)
 		rockchip_bridge_pre_enable(conn_state->bridge);
@@ -688,17 +681,11 @@ static int display_enable(struct display_state *state)
 	if (panel_state->panel)
 		rockchip_panel_prepare(panel_state->panel);
 
-	if (crtc_funcs->enable) {
-		ret = crtc_funcs->enable(state);
-		if (ret)
-			goto unprepare_conn;
-	}
+	if (crtc_funcs->enable)
+		crtc_funcs->enable(state);
 
-	if (conn_funcs->enable) {
-		ret = conn_funcs->enable(state);
-		if (ret)
-			goto disable_crtc;
-	}
+	if (conn_funcs->enable)
+		conn_funcs->enable(state);
 
 	if (conn_state->bridge)
 		rockchip_bridge_enable(conn_state->bridge);
@@ -707,18 +694,8 @@ static int display_enable(struct display_state *state)
 		rockchip_panel_enable(panel_state->panel);
 
 	state->is_enable = true;
-	return 0;
 
-disable_crtc:
-	if (crtc_funcs->disable)
-		crtc_funcs->disable(state);
-unprepare_conn:
-	if (conn_funcs->unprepare)
-		conn_funcs->unprepare(state);
-unprepare_crtc:
-	if (crtc_funcs->unprepare)
-		crtc_funcs->unprepare(state);
-	return ret;
+	return 0;
 }
 
 static int display_disable(struct display_state *state)
