@@ -723,8 +723,7 @@ static int tftp_init_load_addr(void)
 	struct lmb lmb;
 	phys_size_t max_size;
 
-	lmb_init_and_reserve(&lmb, gd->bd->bi_dram[0].start,
-			     gd->bd->bi_dram[0].size, (void *)gd->fdt_blob);
+	lmb_init_and_reserve(&lmb, gd->bd, (void *)gd->fdt_blob);
 
 	max_size = lmb_get_unreserved_size(&lmb, load_addr);
 	if (!max_size)
