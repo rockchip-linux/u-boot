@@ -43,6 +43,7 @@ struct rockchip_panel_cmds {
 struct rockchip_panel_plat {
 	bool power_invert;
 	u32 bus_format;
+	unsigned int bpc;
 
 	struct {
 		unsigned int prepare;
@@ -404,6 +405,7 @@ static int rockchip_panel_ofdata_to_platdata(struct udevice *dev)
 
 	plat->bus_format = dev_read_u32_default(dev, "bus-format",
 						MEDIA_BUS_FMT_RBG888_1X24);
+	plat->bpc = dev_read_u32_default(dev, "bpc", 8);
 
 	data = dev_read_prop(dev, "panel-init-sequence", &len);
 	if (data) {
@@ -515,6 +517,7 @@ static int rockchip_panel_probe(struct udevice *dev)
 
 	panel->dev = dev;
 	panel->bus_format = plat->bus_format;
+	panel->bpc = plat->bpc;
 
 	return 0;
 }

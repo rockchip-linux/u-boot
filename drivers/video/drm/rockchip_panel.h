@@ -21,6 +21,7 @@ struct rockchip_panel_funcs {
 struct rockchip_panel {
 	struct udevice *dev;
 	u32 bus_format;
+	unsigned int bpc;
 	const struct rockchip_panel_funcs *funcs;
 	const void *data;
 
