@@ -463,8 +463,10 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 	mipi_dphy_rstz_deassert(dsi);
 	mdelay(2);
 
-	if (dsi->dphy.phy)
+	if (dsi->dphy.phy) {
+		rockchip_phy_set_mode(dsi->dphy.phy, PHY_MODE_VIDEO_MIPI);
 		rockchip_phy_power_on(dsi->dphy.phy);
+	}
 
 	ret = readl_poll_timeout(dsi->base + DSI_PHY_STATUS,
 				 val, val & PHY_LOCK,
