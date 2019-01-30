@@ -7,6 +7,8 @@
 #ifndef __DRM_ANALOGIX_DP_H__
 #define __DRM_ANALOGIX_DP_H__
 
+#include <reset.h>
+
 /*
  * Unless otherwise noted, all values are from the DP 1.1a spec.  Note that
  * DP and DPCD versions are independent.  Differences from 1.0 are not noted,
@@ -1071,6 +1073,7 @@ struct analogix_dp_device {
 	struct udevice *dev;
 	void *reg_base;
 	void *grf;
+	struct reset_ctl reset;
 	struct gpio_desc hpd_gpio;
 	struct video_info	video_info;
 	struct link_train	link_train;

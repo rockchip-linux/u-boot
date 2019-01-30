@@ -828,6 +828,11 @@ static int analogix_dp_connector_init(struct display_state *state)
 		break;
 	}
 
+	/* eDP software reset request */
+	reset_assert(&dp->reset);
+	udelay(1);
+	reset_deassert(&dp->reset);
+
 	analogix_dp_init_dp(dp);
 
 	return 0;
@@ -916,6 +921,12 @@ static int analogix_dp_probe(struct udevice *dev)
 	dp->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (IS_ERR(dp->grf))
 		return PTR_ERR(dp->grf);
+
+	ret = reset_get_by_name(dev, "dp", &dp->reset);
+	if (ret) {
+		dev_err(dev, "failed to get reset control: %d\n", ret);
+		return ret;
+	}
 
 	ret = gpio_request_by_name(dev, "hpd-gpios", 0, &dp->hpd_gpio,
 				   GPIOD_IS_IN);
