@@ -17,11 +17,13 @@
 #include <dm/uclass.h>
 #include <dm/uclass-id.h>
 
-#include "rockchip_display.h"
-#include "rockchip_crtc.h"
-#include "rockchip_connector.h"
 #include "rockchip_phy.h"
-#include "rockchip_mipi_dsi.h"
+
+#define NSEC_PER_USEC		1000L
+#define USEC_PER_SEC		1000000L
+#define NSEC_PER_SEC		1000000000L
+
+#define UPDATE(v, h, l)		(((v) << (l)) & GENMASK((h), (l)))
 
 /* Innosilicon MIPI D-PHY registers */
 #define INNO_PHY_LANE_CTRL	0x00000
@@ -115,6 +117,31 @@ enum lane_type {
 	DATA_LANE_3,
 };
 
+struct mipi_dphy_timing {
+	unsigned int clkmiss;
+	unsigned int clkpost;
+	unsigned int clkpre;
+	unsigned int clkprepare;
+	unsigned int clksettle;
+	unsigned int clktermen;
+	unsigned int clktrail;
+	unsigned int clkzero;
+	unsigned int dtermen;
+	unsigned int eot;
+	unsigned int hsexit;
+	unsigned int hsprepare;
+	unsigned int hszero;
+	unsigned int hssettle;
+	unsigned int hsskip;
+	unsigned int hstrail;
+	unsigned int init;
+	unsigned int lpx;
+	unsigned int taget;
+	unsigned int tago;
+	unsigned int tasure;
+	unsigned int wakeup;
+};
+
 struct inno_mipi_dphy_timing {
 	u8 lpx;
 	u8 hs_prepare;
@@ -203,6 +230,34 @@ static inline void inno_update_bits(struct inno_mipi_dphy *inno, u32 reg,
 	tmp = orig & ~mask;
 	tmp |= val & mask;
 	inno_write(inno, reg, tmp);
+}
+
+static void mipi_dphy_timing_get_default(struct mipi_dphy_timing *timing,
+					 unsigned long period)
+{
+	/* Global Operation Timing Parameters */
+	timing->clkmiss = 0;
+	timing->clkpost = 70 + 52 * period;
+	timing->clkpre = 8 * period;
+	timing->clkprepare = 65;
+	timing->clksettle = 95;
+	timing->clktermen = 0;
+	timing->clktrail = 80;
+	timing->clkzero = 260;
+	timing->dtermen = 0;
+	timing->eot = 0;
+	timing->hsexit = 120;
+	timing->hsprepare = 65 + 4 * period;
+	timing->hszero = 145 + 6 * period;
+	timing->hssettle = 85 + 6 * period;
+	timing->hsskip = 40;
+	timing->hstrail = max(8 * period, 60 + 4 * period);
+	timing->init = 100000;
+	timing->lpx = 60;
+	timing->taget = 5 * timing->lpx;
+	timing->tago = 4 * timing->lpx;
+	timing->tasure = 2 * timing->lpx;
+	timing->wakeup = 1000000;
 }
 
 static void inno_mipi_dphy_timing_update(struct inno_mipi_dphy *inno,

@@ -31,6 +31,13 @@ config ROCKCHIP_INNO_HDMI_PHY
 	 use HDMI or TVE in RK322XH or RK322X, you should selet
 	 this option.
 
+config DRM_ROCKCHIP_INNO_MIPI_PHY
+	tristate "Rockchip INNO MIPI PHY driver"
+	depends on DRM_ROCKCHIP
+	help
+	  Enable this to support the Rockchip MIPI PHY
+	  with Innosilicon IP block.
+
 config DRM_ROCKCHIP_INNO_VIDEO_PHY
 	tristate "Rockchip INNO LVDS/TTL PHY driver"
 	depends on DRM_ROCKCHIP
