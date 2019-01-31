@@ -20,7 +20,8 @@
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
 #include "rockchip_panel.h"
-#include "rockchip_lvds.h"
+
+#define HIWORD_UPDATE(v, h, l)		(((v) << (l)) | (GENMASK(h, l) << 16))
 
 #define PX30_GRF_PD_VO_CON1		0x0438
 #define PX30_LVDS_SELECT(x)		HIWORD_UPDATE(x, 14, 13)

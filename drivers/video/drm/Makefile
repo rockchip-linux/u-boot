@@ -7,7 +7,7 @@
 obj-y += rockchip_display.o rockchip_crtc.o rockchip_phy.o rockchip_bridge.o \
 		rockchip_vop.o rockchip_vop_reg.o bmp_helper.o
 
-obj-$(CONFIG_DRM_ROCKCHIP_MIPI_DSI)	+= rockchip_mipi_dsi.o
+obj-$(CONFIG_DRM_MIPI_DSI) += drm_mipi_dsi.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI) += dw_mipi_dsi.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_HDMI) += rockchip_dw_hdmi.o dw_hdmi.o
 obj-$(CONFIG_ROCKCHIP_INNO_HDMI_PHY) += rockchip-inno-hdmi-phy.o

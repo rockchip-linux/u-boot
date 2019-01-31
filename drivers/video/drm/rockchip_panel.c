@@ -4,6 +4,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <drm/drm_mipi_dsi.h>
+
 #include <config.h>
 #include <common.h>
 #include <errno.h>
@@ -21,7 +23,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_mipi_dsi.h"
 #include "rockchip_panel.h"
 
 struct rockchip_cmd_header {
@@ -209,7 +210,7 @@ static int rockchip_panel_send_spi_cmds(struct display_state *state,
 	return 0;
 }
 
-static int rockchip_panel_send_dsi_cmds(struct display_state *state,
+static int rockchip_panel_send_dsi_cmds(struct mipi_dsi_device *dsi,
 					struct rockchip_panel_cmds *cmds)
 {
 	int i, ret;
@@ -219,24 +220,25 @@ static int rockchip_panel_send_dsi_cmds(struct display_state *state,
 
 	for (i = 0; i < cmds->cmd_cnt; i++) {
 		struct rockchip_cmd_desc *desc = &cmds->cmds[i];
+		const struct rockchip_cmd_header *header = &desc->header;
 
-		switch (desc->header.data_type) {
+		switch (header->data_type) {
 		case MIPI_DSI_GENERIC_SHORT_WRITE_0_PARAM:
 		case MIPI_DSI_GENERIC_SHORT_WRITE_1_PARAM:
 		case MIPI_DSI_GENERIC_SHORT_WRITE_2_PARAM:
 		case MIPI_DSI_GENERIC_LONG_WRITE:
-			ret = mipi_dsi_generic_write(state, desc->payload,
-						     desc->header.payload_length);
+			ret = mipi_dsi_generic_write(dsi, desc->payload,
+						     header->payload_length);
 			break;
 		case MIPI_DSI_DCS_SHORT_WRITE:
 		case MIPI_DSI_DCS_SHORT_WRITE_PARAM:
 		case MIPI_DSI_DCS_LONG_WRITE:
-			ret = mipi_dsi_dcs_write(state, desc->payload,
-						 desc->header.payload_length);
+			ret = mipi_dsi_dcs_write_buffer(dsi, desc->payload,
+							header->payload_length);
 			break;
 		default:
 			printf("unsupport command data type: %d\n",
-			       desc->header.data_type);
+			       header->data_type);
 			return -EINVAL;
 		}
 
@@ -245,8 +247,8 @@ static int rockchip_panel_send_dsi_cmds(struct display_state *state,
 			return ret;
 		}
 
-		if (desc->header.delay_ms)
-			mdelay(desc->header.delay_ms);
+		if (header->delay_ms)
+			mdelay(header->delay_ms);
 	}
 
 	return 0;
@@ -256,6 +258,7 @@ static void panel_simple_prepare(struct rockchip_panel *panel)
 {
 	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
+	struct mipi_dsi_device *dsi = dev_get_parent_platdata(panel->dev);
 	int ret;
 
 	if (priv->prepared)
@@ -290,8 +293,7 @@ static void panel_simple_prepare(struct rockchip_panel *panel)
 			ret = rockchip_panel_send_mcu_cmds(panel->state,
 							   plat->on_cmds);
 		else
-			ret = rockchip_panel_send_dsi_cmds(panel->state,
-							   plat->on_cmds);
+			ret = rockchip_panel_send_dsi_cmds(dsi, plat->on_cmds);
 		if (ret)
 			printf("failed to send on cmds: %d\n", ret);
 	}
@@ -303,6 +305,7 @@ static void panel_simple_unprepare(struct rockchip_panel *panel)
 {
 	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
+	struct mipi_dsi_device *dsi = dev_get_parent_platdata(panel->dev);
 	int ret;
 
 	if (!priv->prepared)
@@ -316,8 +319,7 @@ static void panel_simple_unprepare(struct rockchip_panel *panel)
 			ret = rockchip_panel_send_mcu_cmds(panel->state,
 							   plat->off_cmds);
 		else
-			ret = rockchip_panel_send_dsi_cmds(panel->state,
-							   plat->off_cmds);
+			ret = rockchip_panel_send_dsi_cmds(dsi, plat->off_cmds);
 		if (ret)
 			printf("failed to send off cmds: %d\n", ret);
 	}

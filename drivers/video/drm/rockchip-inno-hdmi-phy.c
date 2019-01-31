@@ -20,11 +20,10 @@
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
-#include "rockchip_connector.h"
 #include "rockchip_phy.h"
 
 #define INNO_HDMI_PHY_TIMEOUT_LOOP_COUNT	1000
-/*#define UPDATE(x, h, l)	(((x) << (l)) & GENMASK((h), (l)))*/
+#define UPDATE(x, h, l)	(((x) << (l)) & GENMASK((h), (l)))
 
 /* REG: 0x00 */
 #define PRE_PLL_REFCLK_SEL_MASK			BIT(0)

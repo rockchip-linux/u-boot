@@ -13,7 +13,8 @@ menuconfig DRM_ROCKCHIP
 
 config DRM_ROCKCHIP_PANEL
 	bool "Rockchip Panel Support"
-	select DRM_ROCKCHIP_MIPI_DSI
+	depends on DRM_ROCKCHIP
+	select DRM_MIPI_DSI
 
 config DRM_ROCKCHIP_DW_HDMI
 	bool "Rockchip specific extensions for Synopsys DW HDMI"
@@ -52,13 +53,14 @@ config DRM_ROCKCHIP_INNO_VIDEO_COMBO_PHY
 	  Enable this to support the Rockchip MIPI/LVDS/TTL PHY
 	  with Innosilicon IP block.
 
-config DRM_ROCKCHIP_MIPI_DSI
+config DRM_MIPI_DSI
 	bool
+	depends on DRM_ROCKCHIP
 
 config DRM_ROCKCHIP_DW_MIPI_DSI
 	tristate "Rockchip specific extensions for Synopsys DW MIPI DSI"
 	depends on DRM_ROCKCHIP
-	select DRM_ROCKCHIP_MIPI_DSI
+	select DRM_MIPI_DSI
 	select DRM_ROCKCHIP_PANEL
 	help
 	 This selects support for Rockchip SoC specific extensions

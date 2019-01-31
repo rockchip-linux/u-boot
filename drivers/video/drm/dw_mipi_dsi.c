@@ -4,6 +4,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <drm/drm_mipi_dsi.h>
+
 #include <config.h>
 #include <common.h>
 #include <errno.h>
@@ -15,13 +17,15 @@
 #include <dm/of_access.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
+#include <linux/iopoll.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_panel.h"
 #include "rockchip_phy.h"
-#include "rockchip_mipi_dsi.h"
+
+#define UPDATE(v, h, l)		(((v) << (l)) & GENMASK((h), (l)))
 
 #define DSI_VERSION			0x00
 #define DSI_PWR_UP			0x04
@@ -300,7 +304,7 @@ static int genif_wait_w_pld_fifo_not_full(struct dw_mipi_dsi *dsi)
 	int ret;
 
 	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-				 sts, !(sts & GEN_PLD_W_FULL), 10,
+				 sts, !(sts & GEN_PLD_W_FULL),
 				 CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		printf("generic write payload fifo is full\n");
@@ -316,7 +320,7 @@ static int genif_wait_cmd_fifo_not_full(struct dw_mipi_dsi *dsi)
 	int ret;
 
 	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-				 sts, !(sts & GEN_CMD_FULL), 10,
+				 sts, !(sts & GEN_CMD_FULL),
 				 CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		printf("generic write cmd fifo is full\n");
@@ -334,7 +338,7 @@ static int genif_wait_write_fifo_empty(struct dw_mipi_dsi *dsi)
 
 	mask = GEN_CMD_EMPTY | GEN_PLD_W_EMPTY;
 	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-				 sts, (sts & mask) == mask, 10,
+				 sts, (sts & mask) == mask,
 				 CMD_PKT_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		printf("generic write fifo is full\n");
@@ -469,8 +473,7 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 	}
 
 	ret = readl_poll_timeout(dsi->base + DSI_PHY_STATUS,
-				 val, val & PHY_LOCK,
-				 1000, PHY_STATUS_TIMEOUT_US);
+				 val, val & PHY_LOCK, PHY_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		dev_err(dsi->dev, "PHY is not locked\n");
 		return ret;
@@ -481,7 +484,7 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 	mask = PHY_STOPSTATELANE;
 	ret = readl_poll_timeout(dsi->base + DSI_PHY_STATUS,
 				 val, (val & mask) == mask,
-				 1000, PHY_STATUS_TIMEOUT_US);
+				 PHY_STATUS_TIMEOUT_US);
 	if (ret < 0) {
 		dev_err(dsi->dev, "lane module is not in stop state\n");
 		return ret;
@@ -525,7 +528,7 @@ static void dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 	testif_write(dsi, 0x44, HSFREQRANGE(hsfreqrange));
 
 	txbyteclkhs = dsi->lane_mbps >> 3;
-	counter = txbyteclkhs * 60 / NSEC_PER_USEC;
+	counter = txbyteclkhs * 60 / 1000;
 	testif_write(dsi, 0x60, 0x80 | counter);
 	testif_write(dsi, 0x70, 0x80 | counter);
 
@@ -549,7 +552,7 @@ static unsigned long dw_mipi_dsi_get_lane_rate(struct dw_mipi_dsi *dsi)
 	/* optional override of the desired bandwidth */
 	value = dev_read_u32_default(dsi->dev, "rockchip,lane-rate", 0);
 	if (value > 0)
-		return value * USEC_PER_SEC;
+		return value * 1000 * 1000;
 
 	bpp = mipi_dsi_pixel_format_to_bpp(dsi->format);
 	if (bpp < 0)
@@ -629,7 +632,7 @@ static void dw_mipi_dsi_set_pll(struct dw_mipi_dsi *dsi, unsigned long rate)
 		}
 	}
 
-	dsi->lane_mbps = best_freq / USEC_PER_SEC;
+	dsi->lane_mbps = best_freq / 1000 / 1000;
 	dsi->dphy.input_div = best_prediv;
 	dsi->dphy.feedback_div = best_fbdiv;
 	if (dsi->slave) {
@@ -648,7 +651,7 @@ static int dw_mipi_dsi_read_from_fifo(struct dw_mipi_dsi *dsi,
 	int ret;
 
 	ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-				 val, !(val & GEN_RD_CMD_BUSY), 50, 5000);
+				 val, !(val & GEN_RD_CMD_BUSY), 5000);
 	if (ret) {
 		printf("entire response isn't stored in the FIFO\n");
 		return ret;
@@ -657,8 +660,7 @@ static int dw_mipi_dsi_read_from_fifo(struct dw_mipi_dsi *dsi,
 	/* Receive payload */
 	for (length = msg->rx_len; length; length -= 4) {
 		ret = readl_poll_timeout(dsi->base + DSI_CMD_PKT_STATUS,
-					 val, !(val & GEN_PLD_R_EMPTY),
-					 50, 5000);
+					 val, !(val & GEN_PLD_R_EMPTY), 5000);
 		if (ret) {
 			printf("Read payload FIFO is empty\n");
 			return ret;
@@ -713,7 +715,7 @@ static ssize_t dw_mipi_dsi_transfer(struct dw_mipi_dsi *dsi,
 	int ret;
 	int val;
 
-	if (dsi->mode_flags & MIPI_DSI_MODE_LPM) {
+	if (msg->flags & MIPI_DSI_MSG_USE_LPM) {
 		dsi_update_bits(dsi, DSI_VID_MODE_CFG, LP_CMD_EN, LP_CMD_EN);
 		dsi_update_bits(dsi, DSI_LPCLK_CTRL, PHY_TXREQUESTCLKHS, 0);
 	} else {
@@ -856,15 +858,6 @@ static ssize_t dw_mipi_dsi_transfer(struct dw_mipi_dsi *dsi,
 	}
 
 	return msg->rx_len ? msg->rx_len : msg->tx_len;
-}
-
-static ssize_t dw_mipi_dsi_connector_transfer(struct display_state *state,
-					      const struct mipi_dsi_msg *msg)
-{
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
-
-	return dw_mipi_dsi_transfer(dsi, msg);
 }
 
 static void dw_mipi_dsi_video_mode_config(struct dw_mipi_dsi *dsi)
@@ -1017,7 +1010,7 @@ static int dw_mipi_dsi_get_hcomponent_lbcc(struct dw_mipi_dsi *dsi,
 {
 	u32 lbcc;
 
-	lbcc = hcomponent * dsi->lane_mbps * MSEC_PER_SEC / 8;
+	lbcc = hcomponent * dsi->lane_mbps * 1000 / 8;
 
 	if (dsi->mode->clock == 0) {
 		printf("dsi mode clock is 0!\n");
@@ -1089,19 +1082,8 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
-	struct rockchip_panel *panel = state_get_panel(state);
 
 	dsi->dphy.phy = conn_state->phy;
-
-	dsi->lanes = dev_read_u32_default(panel->dev, "dsi,lanes", 4);
-	dsi->format = dev_read_u32_default(panel->dev, "dsi,format",
-					   MIPI_DSI_FMT_RGB888);
-	dsi->mode_flags = dev_read_u32_default(panel->dev, "dsi,flags",
-					       MIPI_DSI_MODE_VIDEO |
-					       MIPI_DSI_MODE_VIDEO_BURST |
-					       MIPI_DSI_MODE_LPM |
-					       MIPI_DSI_MODE_EOT_PACKET);
-	dsi->channel = dev_read_u32_default(panel->dev, "reg", 0);
 
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
@@ -1122,7 +1104,7 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 static void dw_mipi_dsi_set_hs_clk(struct dw_mipi_dsi *dsi, unsigned long rate)
 {
 	rate = rockchip_phy_set_pll(dsi->dphy.phy, rate);
-	dsi->lane_mbps = rate / USEC_PER_SEC;
+	dsi->lane_mbps = rate / 1000 / 1000;
 }
 
 static void dw_mipi_dsi_host_init(struct dw_mipi_dsi *dsi)
@@ -1256,7 +1238,6 @@ static const struct rockchip_connector_funcs dw_mipi_dsi_connector_funcs = {
 	.unprepare = dw_mipi_dsi_connector_unprepare,
 	.enable = dw_mipi_dsi_connector_enable,
 	.disable = dw_mipi_dsi_connector_disable,
-	.transfer = dw_mipi_dsi_connector_transfer,
 };
 
 static int dw_mipi_dsi_dual_channel_probe(struct dw_mipi_dsi *master)
@@ -1515,11 +1496,89 @@ static const struct udevice_id dw_mipi_dsi_ids[] = {
 	{}
 };
 
+static ssize_t dw_mipi_dsi_host_transfer(struct mipi_dsi_host *host,
+					 const struct mipi_dsi_msg *msg)
+{
+	struct dw_mipi_dsi *dsi = dev_get_priv(host->dev);
+
+	return dw_mipi_dsi_transfer(dsi, msg);
+}
+
+static int dw_mipi_dsi_host_attach(struct mipi_dsi_host *host,
+				   struct mipi_dsi_device *device)
+{
+	struct dw_mipi_dsi *dsi = dev_get_priv(host->dev);
+
+	if (device->lanes < 1 || device->lanes > 8)
+		return -EINVAL;
+
+	dsi->lanes = device->lanes;
+	dsi->channel = device->channel;
+	dsi->format = device->format;
+	dsi->mode_flags = device->mode_flags;
+
+	return 0;
+}
+
+static const struct mipi_dsi_host_ops dw_mipi_dsi_host_ops = {
+	.attach = dw_mipi_dsi_host_attach,
+	.transfer = dw_mipi_dsi_host_transfer,
+};
+
+static int dw_mipi_dsi_bind(struct udevice *dev)
+{
+	struct mipi_dsi_host *host = dev_get_platdata(dev);
+
+	host->dev = dev;
+	host->ops = &dw_mipi_dsi_host_ops;
+
+	return dm_scan_fdt_dev(dev);
+}
+
+static int dw_mipi_dsi_child_post_bind(struct udevice *dev)
+{
+	struct mipi_dsi_host *host = dev_get_platdata(dev->parent);
+	struct mipi_dsi_device *device = dev_get_parent_platdata(dev);
+
+	device->dev = dev;
+	device->host = host;
+	device->lanes = dev_read_u32_default(dev, "dsi,lanes", 4);
+	device->format = dev_read_u32_default(dev, "dsi,format",
+					      MIPI_DSI_FMT_RGB888);
+	device->mode_flags = dev_read_u32_default(dev, "dsi,flags",
+						  MIPI_DSI_MODE_VIDEO |
+						  MIPI_DSI_MODE_VIDEO_BURST |
+						  MIPI_DSI_MODE_VIDEO_HBP |
+						  MIPI_DSI_MODE_LPM |
+						  MIPI_DSI_MODE_EOT_PACKET);
+	device->channel = dev_read_u32_default(dev, "reg", 0);
+
+	return 0;
+}
+
+static int dw_mipi_dsi_child_pre_probe(struct udevice *dev)
+{
+	struct mipi_dsi_device *device = dev_get_parent_platdata(dev);
+	int ret;
+
+	ret = mipi_dsi_attach(device);
+	if (ret) {
+		dev_err(dev, "mipi_dsi_attach() failed: %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
 U_BOOT_DRIVER(dw_mipi_dsi) = {
 	.name = "dw_mipi_dsi",
 	.id = UCLASS_DISPLAY,
 	.of_match = dw_mipi_dsi_ids,
 	.probe = dw_mipi_dsi_probe,
-	.bind = dm_scan_fdt_dev,
+	.bind = dw_mipi_dsi_bind,
 	.priv_auto_alloc_size = sizeof(struct dw_mipi_dsi),
+	.per_child_platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
+	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_host),
+	.child_post_bind = dw_mipi_dsi_child_post_bind,
+	.child_pre_probe = dw_mipi_dsi_child_pre_probe,
 };
