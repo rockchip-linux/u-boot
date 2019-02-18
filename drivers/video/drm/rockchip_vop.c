@@ -339,6 +339,8 @@ static int rockchip_vop_init(struct display_state *state)
 		break;
 	case MEDIA_BUS_FMT_RGB666_1X18:
 	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
+	case MEDIA_BUS_FMT_RGB666_1X7X3_SPWG:
+	case MEDIA_BUS_FMT_RGB666_1X7X3_JEIDA:
 		val = DITHER_DOWN_EN(1) | DITHER_DOWN_MODE(RGB888_TO_RGB666);
 		break;
 	case MEDIA_BUS_FMT_YUV8_1X24:
@@ -350,6 +352,8 @@ static int rockchip_vop_init(struct display_state *state)
 		val = DITHER_DOWN_EN(0) | PRE_DITHER_DOWN_EN(0);
 		break;
 	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_RGB888_1X7X4_SPWG:
+	case MEDIA_BUS_FMT_RGB888_1X7X4_JEIDA:
 	default:
 		val = DITHER_DOWN_EN(0) | PRE_DITHER_DOWN_EN(0);
 		break;
