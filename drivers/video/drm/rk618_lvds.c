@@ -44,17 +44,18 @@ static void rk618_lvds_bridge_enable(struct rockchip_bridge *bridge)
 	rk618_frc_dclk_invert(priv->parent);
 
 	switch (panel->bus_format) {
-	case MEDIA_BUS_FMT_RGB666_1X7X3_SPWG:	/* jeida-18 */
+	case MEDIA_BUS_FMT_RGB666_1X7X3_JEIDA:	/* jeida-18 */
 		format = LVDS_6BIT_MODE;
 		break;
 	case MEDIA_BUS_FMT_RGB888_1X7X4_JEIDA:	/* jeida-24 */
 		format = LVDS_8BIT_MODE_FORMAT_2;
 		break;
-	case MEDIA_BUS_FMT_RGB888_1X7X4_SPWG:	/* vesa-24 */
-		format = LVDS_8BIT_MODE_FORMAT_1;
-		break;
-	default:
+	case MEDIA_BUS_FMT_RGB666_1X7X3_SPWG:	/* vesa-18 */
 		format = LVDS_8BIT_MODE_FORMAT_3;
+		break;
+	case MEDIA_BUS_FMT_RGB888_1X7X4_SPWG:	/* vesa-24 */
+	default:
+		format = LVDS_8BIT_MODE_FORMAT_1;
 		break;
 	}
 
