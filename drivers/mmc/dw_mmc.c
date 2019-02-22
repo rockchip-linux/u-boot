@@ -18,6 +18,11 @@
 #include <linux/delay.h>
 #include <power/regulator.h>
 
+#ifdef CONFIG_DM_GPIO
+#include <asm/gpio.h>
+#include <asm-generic/gpio.h>
+#endif
+
 #define PAGE_SIZE 4096
 
 /* Internal DMA Controller (IDMAC) descriptor for 32-bit addressing mode */
@@ -729,6 +734,23 @@ static int dwmci_init(struct mmc *mmc)
 	return 0;
 }
 
+static int dwmci_get_cd(struct udevice *dev)
+{
+	int ret = -1;
+
+#if CONFIG_IS_ENABLED(DM_GPIO)
+	struct gpio_desc detect;
+
+	ret = gpio_request_by_name(dev, "cd-gpios", 0, &detect, GPIOD_IS_IN);
+	if (ret) {
+		return ret;
+	}
+
+	ret = !dm_gpio_get_value(&detect);
+#endif
+	return ret;
+}
+
 #if CONFIG_IS_ENABLED(DM_MMC)
 int dwmci_probe(struct udevice *dev)
 {
@@ -740,12 +762,14 @@ int dwmci_probe(struct udevice *dev)
 const struct dm_mmc_ops dm_dwmci_ops = {
 	.send_cmd	= dwmci_send_cmd,
 	.set_ios	= dwmci_set_ios,
+	.get_cd         = dwmci_get_cd,
 };
 
 #else
 static const struct mmc_ops dwmci_ops = {
 	.send_cmd	= dwmci_send_cmd,
 	.set_ios	= dwmci_set_ios,
+	.get_cd         = dwmci_get_cd,
 	.init		= dwmci_init,
 };
 #endif
