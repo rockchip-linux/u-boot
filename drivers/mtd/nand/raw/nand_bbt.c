@@ -489,8 +489,10 @@ static int create_bbt(struct mtd_info *mtd, uint8_t *buf,
 		int ret;
 
 		BUG_ON(bd->options & NAND_BBT_NO_OOB);
-
-		ret = scan_block_fast(mtd, bd, from, buf, numpages);
+		if (this->block_bad)
+			ret = this->block_bad(mtd, from);
+		else
+			ret = scan_block_fast(mtd, bd, from, buf, numpages);
 		if (ret < 0)
 			return ret;
 
