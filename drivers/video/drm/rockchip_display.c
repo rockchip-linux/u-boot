@@ -1483,12 +1483,13 @@ void rockchip_display_fixup(void *blob)
 	const struct device_node *np;
 	const char *path;
 
-	if (!get_display_size())
-		return;
-
 	if (fdt_node_offset_by_compatible(blob, 0, "rockchip,drm-logo") >= 0) {
 		list_for_each_entry(s, &rockchip_display_list, head)
 			load_bmp_logo(&s->logo, s->klogo_name);
+
+		if (!get_display_size())
+			return;
+
 		offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
 						    (u64)memory_start,
 						    (u64)get_display_size());
