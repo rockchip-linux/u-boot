@@ -20,6 +20,7 @@ build:
     - export RELEASE=$((1000+$CI_PIPELINE_IID))
     - ./dev-make BOARD_TARGET=rock64 -j5
     - ./dev-make BOARD_TARGET=rockpro64 -j5
+    - ./dev-make BOARD_TARGET=pinebookpro -j5
     - |
       set -x
 
