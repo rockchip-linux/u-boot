@@ -23,8 +23,8 @@
 
 	backlight: backlight {
 		compatible = "pwm-backlight";
-		enable-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
-		pwms = <&pwm0 0 25000 0>;
+		enable-gpios = <&gpio4 RK_PD2 GPIO_ACTIVE_HIGH>;
+		pwms = <&pwm0 0 740740 0>;
 		brightness-levels = <
 			  0   1   2   3   4   5   6   7
 			  8   9  10  11  12  13  14  15
@@ -59,28 +59,6 @@
 			240 241 242 243 244 245 246 247
 			248 249 250 251 252 253 254 255>;
 		default-brightness-level = <200>;
-	};
-
-	leds {
-		status = "okay";
-		compatible = "gpio-leds";
-
-		power-led {
-			label = "power";
-			gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
-		};
-
-		standby-led {
-			label = "standby";
-			gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
-		};
-	};
-
-	clkin_gmac: external-gmac-clock {
-		compatible = "fixed-clock";
-		clock-frequency = <125000000>;
-		clock-output-names = "clkin_gmac";
-		#clock-cells = <0>;
 	};
 
 	sdio_pwrseq: sdio-pwrseq {
@@ -137,23 +115,20 @@
 
 	vcc5v0_host: vcc5v0-host-regulator {
 		compatible = "regulator-fixed";
-		gpio = <&gpio4 RK_PD2 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&host_vbus_drv>;
 		regulator-name = "vcc5v0_host";
 	};
 
-	vcc5v0_typec0: vcc5v0-typec0-en {
+	vcc5v0_usb3_host: vcc5v0-usb3-host-regulator {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc5v0_typec0";
-		gpio = <&gpio1 3 GPIO_ACTIVE_HIGH>;
-	};
-
-	vcc_phy: vcc-phy-regulator {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc_phy";
+		enable-active-high;
+		gpio = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&host_usb3_drv>;
+		regulator-name = "vcc5v0_usb3_host";
 		regulator-always-on;
-		regulator-boot-on;
 	};
 
 	vdd_log: vdd-log {
@@ -185,22 +160,6 @@
 };
 
 &emmc_phy {
-	status = "okay";
-};
-
-&gmac {
-	assigned-clocks = <&cru SCLK_RMII_SRC>;
-	assigned-clock-parents = <&clkin_gmac>;
-	clock_in_out = "input";
-	phy-supply = <&vcc_phy>;
-	phy-mode = "rgmii";
-	pinctrl-names = "default";
-	pinctrl-0 = <&rgmii_pins>;
-	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
-	snps,reset-active-low;
-	snps,reset-delays-us = <0 10000 50000>;
-	tx_delay = <0x28>;
-	rx_delay = <0x20>;
 	status = "okay";
 };
 
@@ -240,7 +199,7 @@
 				regulator-name = "vdd_center";
 				regulator-always-on;
 				regulator-boot-on;
-				regulator-min-microvolt = <750000>;
+				regulator-min-microvolt = <900000>;
 				regulator-max-microvolt = <1350000>;
 				regulator-ramp-delay = <6001>;
 				regulator-state-mem {
@@ -395,18 +354,6 @@
 	};
 };
 
-&i2c1 {
-	i2c-scl-rising-time-ns = <300>;
-	i2c-scl-falling-time-ns = <15>;
-	status = "okay";
-};
-
-&i2c3 {
-	i2c-scl-rising-time-ns = <450>;
-	i2c-scl-falling-time-ns = <15>;
-	status = "okay";
-};
-
 &i2c4 {
 	i2c-scl-rising-time-ns = <600>;
 	i2c-scl-falling-time-ns = <20>;
@@ -416,8 +363,8 @@
 &io_domains {
 	status = "okay";
 
-	bt656-supply = <&vcc1v8_s0>;
-	audio-supply = <&vcc1v8_s0>;
+	bt656-supply = <&vcc1v8_dvp>;
+	audio-supply = <&vcca1v8_codec>;
 	sdmmc-supply = <&vcc_sd>;
 	gpio1830-supply = <&vcc_3v0>;
 };
@@ -452,7 +399,11 @@
 
 	usb2 {
 		host_vbus_drv: host-vbus-drv {
-			rockchip,pins = <4 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <4 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		host_usb3_drv: host-usb3-drv {
+			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
@@ -524,12 +475,6 @@
 		phy-supply = <&vcc5v0_host>;
 		status = "okay";
 	};
-};
-
-&uart0 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart0_xfer &uart0_cts>;
-	status = "okay";
 };
 
 &uart2 {
