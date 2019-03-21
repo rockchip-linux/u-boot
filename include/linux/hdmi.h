@@ -322,6 +322,11 @@ int
 drm_hdmi_avi_infoframe_from_display_mode(struct hdmi_avi_infoframe *frame,
 					 struct drm_display_mode *mode,
 					 bool is_hdmi2_sink);
+void
+drm_hdmi_avi_infoframe_quant_range(struct hdmi_avi_infoframe *frame,
+				   struct drm_display_mode *mode,
+				   enum hdmi_quantization_range rgb_quant_range,
+				   bool rgb_quant_range_selectable);
 u8 drm_match_cea_mode(struct drm_display_mode *to_match);
 
 #endif /* _DRM_HDMI_H */

@@ -2788,6 +2788,24 @@ static void drm_parse_hdmi_forum_vsdb(struct hdmi_edid_data *data,
 	drm_parse_ycbcr420_deep_color_info(data, hf_vsdb);
 }
 
+/**
+ * drm_default_rgb_quant_range - default RGB quantization range
+ * @mode: display mode
+ *
+ * Determine the default RGB quantization range for the mode,
+ * as specified in CEA-861.
+ *
+ * Return: The default RGB quantization range for the mode
+ */
+enum hdmi_quantization_range
+drm_default_rgb_quant_range(struct drm_display_mode *mode)
+{
+	/* All CEA modes other than VIC 1 use limited quantization range. */
+	return drm_match_cea_mode(mode) > 1 ?
+		HDMI_QUANTIZATION_RANGE_LIMITED :
+		HDMI_QUANTIZATION_RANGE_FULL;
+}
+
 static void drm_parse_hdmi_deep_color_info(struct hdmi_edid_data *data,
 					   const u8 *hdmi)
 {
@@ -5195,6 +5213,50 @@ static int hdmi_vendor_infoframe_init(struct hdmi_vendor_infoframe *frame)
 	frame->s3d_struct = HDMI_3D_STRUCTURE_INVALID;
 
 	return 0;
+}
+
+/**
+ * drm_hdmi_avi_infoframe_quant_range() - fill the HDMI AVI infoframe
+ *                                        quantization range information
+ * @frame: HDMI AVI infoframe
+ * @rgb_quant_range: RGB quantization range (Q)
+ * @rgb_quant_range_selectable: Sink support selectable RGB quantization range (QS)
+ */
+void
+drm_hdmi_avi_infoframe_quant_range(struct hdmi_avi_infoframe *frame,
+				   struct drm_display_mode *mode,
+				   enum hdmi_quantization_range rgb_quant_range,
+				   bool rgb_quant_range_selectable)
+{
+	/*
+	 * CEA-861:
+	 * "A Source shall not send a non-zero Q value that does not correspond
+	 *  to the default RGB Quantization Range for the transmitted Picture
+	 *  unless the Sink indicates support for the Q bit in a Video
+	 *  Capabilities Data Block."
+	 *
+	 * HDMI 2.0 recommends sending non-zero Q when it does match the
+	 * default RGB quantization range for the mode, even when QS=0.
+	 */
+	if (rgb_quant_range_selectable ||
+	    rgb_quant_range == drm_default_rgb_quant_range(mode))
+		frame->quantization_range = rgb_quant_range;
+	else
+		frame->quantization_range = HDMI_QUANTIZATION_RANGE_DEFAULT;
+
+	/*
+	 * CEA-861-F:
+	 * "When transmitting any RGB colorimetry, the Source should set the
+	 *  YQ-field to match the RGB Quantization Range being transmitted
+	 *  (e.g., when Limited Range RGB, set YQ=0 or when Full Range RGB,
+	 *  set YQ=1) and the Sink shall ignore the YQ-field."
+	 */
+	if (rgb_quant_range == HDMI_QUANTIZATION_RANGE_LIMITED)
+		frame->ycc_quantization_range =
+			HDMI_YCC_QUANTIZATION_RANGE_LIMITED;
+	else
+		frame->ycc_quantization_range =
+			HDMI_YCC_QUANTIZATION_RANGE_FULL;
 }
 
 static enum hdmi_3d_structure

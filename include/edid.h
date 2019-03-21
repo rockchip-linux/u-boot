@@ -868,6 +868,8 @@ bool drm_detect_hdmi_monitor(struct edid *edid);
 bool drm_detect_monitor_audio(struct edid *edid);
 int do_cea_modes(struct hdmi_edid_data *data, const u8 *db, u8 len);
 int drm_do_get_edid(struct ddc_adapter *adap, u8 *edid);
+enum hdmi_quantization_range
+drm_default_rgb_quant_range(struct drm_display_mode *mode);
 u8 drm_scdc_readb(struct ddc_adapter *adap, u8 offset,
 		  u8 *value);
 u8 drm_scdc_writeb(struct ddc_adapter *adap, u8 offset,
