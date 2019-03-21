@@ -9,12 +9,13 @@ echo "  and it will require that you use eMMC or SD"
 echo "  as your boot device."
 echo ""
 
-confirm
-
 if ! MTD=$(grep \"loader\" /proc/mtd | cut -d: -f1); then
     echo "loader partition on MTD is not found"
     return 1
 fi
+
+version "/dev/${MTD/mtd/mtdblock}"
+confirm
 
 flash_erase "/dev/$MTD" 0 0
 

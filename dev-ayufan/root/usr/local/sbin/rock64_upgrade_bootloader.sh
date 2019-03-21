@@ -9,9 +9,10 @@ echo "If this happens you will have to manually fix that outside of your Rock64.
 echo "If you are booting from SPI. You have to use 'rock64_write_spi_flash.sh'."
 echo ""
 
-confirm
-
 MNT_DEV=$(findmnt /boot/efi -n -o SOURCE)
+
+version "$MNT_DEV"
+confirm
 
 write_sd() {
     case "$1" in

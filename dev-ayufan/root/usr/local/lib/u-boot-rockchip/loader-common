@@ -23,7 +23,10 @@ fi
 if ! debsums -s "${PACKAGE_NAME}"; then
     echo "Verification of '${PACKAGE_NAME}' failed."
     echo "Your disk might have got corrupted."
-    exit 1
+    if [[ -z "IGNORE_VERIFICATION" ]]; then
+        echo "Use 'export IGNORE_VERIFICATION=1'"
+        exit 1
+    fi
 fi
 
 case "$PACKAGE_NAME" in
@@ -67,4 +70,19 @@ confirm() {
             break
         fi
     done
+}
+
+version() {
+    local DEVICE="${1/p6/p1}"
+
+    echo -n "Current version: "
+    if strings "$DEVICE" | grep "^U-Boot [a-z0-9.-]*$"; then
+        echo -n "Board: "
+        strings "$DEVICE" | grep -E "^board="
+        echo -n "FDT: "
+        strings "$DEVICE" | grep -E "^fdtfile="
+    else
+        echo "not installed on $DEVICE."
+    fi
+    echo
 }

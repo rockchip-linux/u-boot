@@ -10,9 +10,10 @@ echo "Use this only if you prefer to boot from SPI ('rock64_write_spi_flash.sh')
 echo "To bring back bootloader run 'rock64_upgrade_bootloader.sh'."
 echo ""
 
-confirm
-
 MNT_DEV=$(findmnt /boot/efi -n -o SOURCE)
+
+version "$MNT_DEV"
+confirm
 
 write_sd() {
     case "$1" in

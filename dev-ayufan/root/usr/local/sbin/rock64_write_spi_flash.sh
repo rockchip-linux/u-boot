@@ -9,16 +9,15 @@ echo "  and it will require that you use eMMC or SD"
 echo "  as your boot device."
 echo ""
 
+if ! MTD=$(grep \"loader\" /proc/mtd | cut -d: -f1); then
+    echo "loader partition on MTD is not found"
+    exit 1
+fi
+
+version "/dev/${MTD/mtd/mtdblock}"
 confirm
 
-MNT_DEV=$(findmnt /boot/efi -n -o SOURCE)
-
 write_nand() {
-    if ! MTD=$(grep \"$1\" /proc/mtd | cut -d: -f1); then
-        echo "$1 partition on MTD is not found"
-        return 1
-    fi
-
     echo "Writing /dev/$MTD with content of $2"
     flash_erase "/dev/$MTD" 0 0
     nandwrite "/dev/$MTD" < "$2"
