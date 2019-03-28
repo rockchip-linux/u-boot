@@ -45,6 +45,7 @@
  **********************************************************************/
 
 #define RK_BLK_SIZE 512
+#define BMP_PROCESSED_FLAG 8399
 
 DECLARE_GLOBAL_DATA_PTR;
 static LIST_HEAD(rockchip_display_list);
@@ -923,6 +924,7 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	void *dst = NULL, *pdst;
 	int size, len;
 	int ret = 0;
+	int reserved = 0;
 
 	if (!logo || !bmp_name)
 		return -EINVAL;
@@ -948,6 +950,9 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	logo->bpp = get_unaligned_le16(&header->bit_count);
 	logo->width = get_unaligned_le32(&header->width);
 	logo->height = get_unaligned_le32(&header->height);
+	reserved = get_unaligned_le32(&header->reserved);
+	if (logo->height < 0)
+	    logo->height = -logo->height;
 	size = get_unaligned_le32(&header->file_size);
 	if (!can_direct_logo(logo->bpp)) {
 		if (size > MEMORY_POOL_SIZE) {
@@ -995,7 +1000,10 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 		logo->ymirror = 0;
 	} else {
 		logo->offset = get_unaligned_le32(&header->data_offset);
-		logo->ymirror = 1;
+		if (reserved == BMP_PROCESSED_FLAG)
+			logo->ymirror = 0;
+		else
+			logo->ymirror = 1;
 	}
 	logo->mem = dst;
 
