@@ -10,6 +10,7 @@
 #include <regmap.h>
 #include <dm/device.h>
 #include <dm/read.h>
+#include <dm/pinctrl.h>
 #include <linux/media-bus-format.h>
 
 #include "rockchip_display.h"
@@ -64,6 +65,8 @@ static int rockchip_rgb_connector_enable(struct display_state *state)
 	int pipe = crtc_state->crtc_id;
 	int ret;
 
+	pinctrl_select_state(rgb->dev, "default");
+
 	if (rgb->funcs && rgb->funcs->enable)
 		rgb->funcs->enable(rgb, pipe);
 
@@ -89,6 +92,8 @@ static int rockchip_rgb_connector_disable(struct display_state *state)
 
 	if (rgb->funcs && rgb->funcs->disable)
 		rgb->funcs->disable(rgb);
+
+	pinctrl_select_state(rgb->dev, "sleep");
 
 	return 0;
 }
