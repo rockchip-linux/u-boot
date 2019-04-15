@@ -1,0 +1,15 @@
+if TARGET_ROSETTA_RK3328
+
+config SYS_BOARD
+	default "rosetta_rk3328"
+
+config SYS_VENDOR
+	default "frontrow"
+
+config SYS_CONFIG_NAME
+	default "rosetta_rk3328"
+
+config BOARD_SPECIFIC_OPTIONS # dummy
+	def_bool y
+
+endif

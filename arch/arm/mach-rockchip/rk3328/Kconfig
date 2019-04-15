@@ -11,6 +11,11 @@ config TARGET_EVB_RK3328
 	  with full function and phisical connectors support like
 	  usb2.0 host ports, LVDS, JTAG, MAC, SDcard, HDMI, USB-2-serial...
 
+config TARGET_ROSETTA_RK3328
+	bool "Rosetta RK3328 board, "
+	help
+	  RK3328 based Rosetta board manufactured by FrontRow
+
 endchoice
 
 config SYS_SOC
@@ -20,5 +25,6 @@ config SYS_MALLOC_F_LEN
 	default 0x0800
 
 source "board/rockchip/evb_rk3328/Kconfig"
+source "board/frontrow/rosetta-rk3328/Kconfig"
 
 endif
