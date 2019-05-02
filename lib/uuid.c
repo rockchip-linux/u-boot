@@ -239,6 +239,8 @@ void gen_rand_uuid(unsigned char *uuid_bin)
 	struct uuid *uuid = (struct uuid *)ptr;
 	int i;
 
+	srand(get_ticks() + rand());
+
 	/* Set all fields randomly */
 	for (i = 0; i < 4; i++)
 		ptr[i] = rand();
