@@ -36,17 +36,19 @@
 
 	vcc3v3_sdmmc: sdmmc-pwren {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3";
+		regulator-name = "vcc3v3_sdmmc";
+		enable-active-high;
 		gpio = <&gpio0 30 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&sdmmc0m1_pwren>;
 		regulator-always-on;
 		regulator-boot-on;
 	};
 
 	vcc5v0_otg: vcc5v0-otg-drv {
 		compatible = "regulator-fixed";
-		enable-active-high;
 		regulator-name = "vcc5v0_otg";
-		gpio = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio0 2 GPIO_ACTIVE_LOW>;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 	};
