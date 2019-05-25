@@ -46,7 +46,7 @@
 		compatible = "regulator-fixed";
 		enable-active-high;
 		regulator-name = "vcc5v0_otg";
-		gpio = <&gpio0 27 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio0 2 GPIO_ACTIVE_HIGH>;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 	};
