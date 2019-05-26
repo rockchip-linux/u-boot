@@ -21,6 +21,7 @@ build:
     - ./dev-make BOARD_TARGET=rock64 -j5
     - ./dev-make BOARD_TARGET=rockpro64 -j5
     - ./dev-make BOARD_TARGET=pinebookpro -j5
+    - ./dev-make BOARD_TARGET=rockpi4b -j5
     - |
       set -x
 

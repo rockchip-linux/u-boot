@@ -48,6 +48,12 @@ case "$PACKAGE_NAME" in
         BOARD=pinebookpro
         ;;
 
+    *-rockchip-rockpi4b-*)
+        SD_LOADER=/usr/lib/u-boot-rockpi4b/rksd_loader.img
+        SPI_LOADER=/usr/lib/u-boot-rockpi4b/rkspi_loader.img
+        BOARD=rockpi4b
+        ;;
+
     *)
         echo "Cannot detect board from $PACKAGE_NAME."
         exit 1
@@ -56,7 +62,7 @@ esac
 
 if ! grep -qi "$BOARD" /proc/device-tree/compatible; then
     echo "You are currently running on different board:"
-    cat /proc/device-tree/model || true
+    echo "$(cat /proc/device-tree/model || true)"
     echo "It may brick your device or the system unless"
     echo "you know what are you doing."
     echo ""

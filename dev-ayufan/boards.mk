@@ -23,6 +23,17 @@ USE_SEPARATE_SPIFLASH ?= true
 IMAGES ?= flash-spi erase-spi
 LOADERS ?= rksd_loader rkspi_loader
 
+else ifeq (rockpi4b,$(BOARD_TARGET))
+
+UBOOT_DEFCONFIG ?= rockpi4b-rk3399_defconfig
+UBOOT_TPL ?= tmp/rkbin/rk33/rk3399_ddr_933MHz_v1.19.bin
+BL31 ?= tmp/rkbin/rk33/rk3399_bl31_v1.25.elf
+BOARD_CHIP ?= rk3399
+LOADER_BIN ?= tmp/rkbin/rk33/rk3399_loader_v1.10.112_support_1CS.bin
+USE_SEPARATE_SPIFLASH ?= true
+IMAGES ?= flash-spi erase-spi
+LOADERS ?= rksd_loader rkspi_loader
+
 else ifeq (pinebookpro,$(BOARD_TARGET))
 
 UBOOT_DEFCONFIG ?= pinebook_pro-rk3399_defconfig
