@@ -38,6 +38,11 @@
 #define DRM_MODE_FLAG_CLKDIV2			(1 << 13)
 #define DRM_MODE_FLAG_PPIXDATA                  BIT(31)
 
+/* Panel Mirror control */
+#define DRM_MODE_FLAG_XMIRROR			(1<<28)
+#define DRM_MODE_FLAG_YMIRROR			(1<<29)
+#define DRM_MODE_FLAG_XYMIRROR			(DRM_MODE_FLAG_XMIRROR | DRM_MODE_FLAG_YMIRROR)
+
 #define DRM_MODE_CONNECTOR_Unknown	0
 #define DRM_MODE_CONNECTOR_VGA		1
 #define DRM_MODE_CONNECTOR_DVII		2

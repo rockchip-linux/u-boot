@@ -294,6 +294,9 @@ static int display_get_timing_from_dts(struct panel_state *panel_state,
 		return -ENXIO; \
 	}
 
+#define FDT_GET_INT_DEFAULT(val, name, default) \
+	val = ofnode_read_s32_default(native_mode, name, default);
+
 	FDT_GET_INT(hactive, "hactive");
 	FDT_GET_INT(vactive, "vactive");
 	FDT_GET_INT(pixelclock, "clock-frequency");
@@ -310,6 +313,15 @@ static int display_get_timing_from_dts(struct panel_state *panel_state,
 	FDT_GET_INT(val, "pixelclk-active");
 	flags |= val ? DRM_MODE_FLAG_PPIXDATA : 0;
 
+	FDT_GET_INT_DEFAULT(val, "screen-rotate", 0);
+	if (val == DRM_MODE_FLAG_XMIRROR) {
+		flags |= DRM_MODE_FLAG_XMIRROR;
+	} else if (val == DRM_MODE_FLAG_YMIRROR) {
+		flags |= DRM_MODE_FLAG_YMIRROR;
+	} else if (val == DRM_MODE_FLAG_XYMIRROR) {
+		flags |= DRM_MODE_FLAG_XMIRROR;
+		flags |= DRM_MODE_FLAG_YMIRROR;
+	}
 	mode->hdisplay = hactive;
 	mode->hsync_start = mode->hdisplay + hfront_porch;
 	mode->hsync_end = mode->hsync_start + hsync_len;

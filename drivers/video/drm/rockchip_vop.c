@@ -653,6 +653,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	int crtc_w = crtc_state->crtc_w;
 	int crtc_h = crtc_state->crtc_h;
 	int xvir = crtc_state->xvir;
+	int x_mirror = 0, y_mirror = 0;
 
 	act_info = (src_h - 1) << 16;
 	act_info |= (src_w - 1) & 0xffff;
@@ -664,13 +665,27 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	dsp_sty = crtc_y + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
 
-	if (crtc_state->ymirror) {
-		if (VOP_WIN_SUPPORT(vop, vop->win, ymirror))
+	if (mode->flags & DRM_MODE_FLAG_YMIRROR)
+		y_mirror = 1;
+	else
+		y_mirror = 0;
+	if (mode->flags & DRM_MODE_FLAG_XMIRROR)
+		x_mirror = 1;
+	else
+		x_mirror = 0;
+	if (crtc_state->ymirror ^ y_mirror)
+		y_mirror = 1;
+	else
+		y_mirror = 0;
+	if (y_mirror) {
+		if (VOP_CTRL_SUPPORT(vop, ymirror))
 			crtc_state->dma_addr += (src_h - 1) * xvir * 4;
 		else
-			crtc_state->ymirror = 0;
-	}
-	VOP_WIN_SET(vop, ymirror, crtc_state->ymirror);
+			y_mirror = 0;
+		}
+	VOP_CTRL_SET(vop, ymirror, y_mirror);
+	VOP_CTRL_SET(vop, xmirror, x_mirror);
+
 	VOP_WIN_SET(vop, format, crtc_state->format);
 	VOP_WIN_SET(vop, yrgb_vir, xvir);
 	VOP_WIN_SET(vop, yrgb_mst, crtc_state->dma_addr);
