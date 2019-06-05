@@ -23,15 +23,15 @@ DECLARE_GLOBAL_DATA_PTR;
 #define RK3399_CPUID_OFF  0x7
 #define RK3399_CPUID_LEN  0x10
 
-static int fix_usb2_vbus_pull_mode(void)
+static int fix_lcd_backling_pull_mode(void)
 {
 #include <asm/arch/grf_rk3399.h>
 
-#define GRF_BASE	0xff770000
+#define PMU_GRF_BASE	0xff320000
 
-	// set pull of GPIO4_D2
-	struct rk3399_grf_regs * const grf = (void *)GRF_BASE;
-	rk_clrsetreg(&grf->gpio4_p[3], 3 << 4, 0 << 4);
+	// set pull of GPIO1_A0
+	struct rk3399_pmugrf_regs * const pmugrf = (void *)PMU_GRF_BASE;
+	rk_clrsetreg(&pmugrf->gpio1_p[0], 3 << (2 * 0), 0 << (2 * 0));
 	return 0;
 }
 
@@ -62,7 +62,7 @@ int board_init(void)
 		debug("%s: Cannot enable boot on regulator\n", __func__);
 	}
 
-	fix_usb2_vbus_pull_mode();
+	fix_lcd_backling_pull_mode();
 
 out:
 	return 0;

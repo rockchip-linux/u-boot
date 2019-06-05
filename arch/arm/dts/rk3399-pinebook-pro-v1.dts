@@ -23,7 +23,7 @@
 
 	backlight: backlight {
 		compatible = "pwm-backlight";
-		enable-gpios = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
+		enable-gpios = <&gpio4 RK_PD2 GPIO_ACTIVE_HIGH>;
 		pwms = <&pwm0 0 740740 0>;
 		brightness-levels = <
 			  0   1   2   3   4   5   6   7
@@ -74,7 +74,7 @@
 		 * - SDIO_RESET_L_WL_REG_ON
 		 * - PDN (power down when low)
 		 */
-		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>; // TODO?
+		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
 	};
 
 	vcc1v8_s0: vcc1v8-s0 {
@@ -115,7 +115,7 @@
 
 	vcc5v0_host: vcc5v0-host-regulator {
 		compatible = "regulator-fixed";
-		gpio = <&gpio4 RK_PD2 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&host_vbus_drv>;
 		regulator-name = "vcc5v0_host";
@@ -124,7 +124,7 @@
 	vcc5v0_usb3_host: vcc5v0-usb3-host-regulator {
 		compatible = "regulator-fixed";
 		enable-active-high;
-		gpio = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&host_usb3_drv>;
 		regulator-name = "vcc5v0_usb3_host";
@@ -393,17 +393,17 @@
 
 	pmic {
 		pmic_int_l: pmic-int-l {
-			rockchip,pins = <3 RK_PB2 RK_FUNC_GPIO &pcfg_pull_up>;
+			rockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
 	usb2 {
 		host_vbus_drv: host-vbus-drv {
-			rockchip,pins = <4 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <4 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		host_usb3_drv: host-usb3-drv {
-			rockchip,pins = <1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
