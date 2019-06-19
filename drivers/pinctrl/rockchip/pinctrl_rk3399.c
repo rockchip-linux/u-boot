@@ -70,10 +70,17 @@ static void pinctrl_rk3399_i2c_config(struct rk3399_grf_regs *grf,
 			     PMUGRF_GPIO1C0_SEL_MASK,
 			     PMUGRF_I2C0PMU_SCL << PMUGRF_GPIO1C0_SEL_SHIFT);
 		break;
+	case PERIPH_ID_I2C4:
+		rk_clrsetreg(&pmugrf->gpio1b_iomux,
+			     PMUGRF_GPIO1B3_SEL_MASK,
+			     PMUGRF_I2C4PMU_SDA << PMUGRF_GPIO1B3_SEL_SHIFT);
+		rk_clrsetreg(&pmugrf->gpio1b_iomux,
+			     PMUGRF_GPIO1B4_SEL_MASK,
+			     PMUGRF_I2C4PMU_SCL << PMUGRF_GPIO1B4_SEL_SHIFT);
+		break;
 	case PERIPH_ID_I2C1:
 	case PERIPH_ID_I2C2:
 	case PERIPH_ID_I2C3:
-	case PERIPH_ID_I2C4:
 	case PERIPH_ID_I2C5:
 	default:
 		debug("i2c id = %d iomux error!\n", i2c_id);
