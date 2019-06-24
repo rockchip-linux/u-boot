@@ -203,6 +203,19 @@ const struct vop_data rk3288_vop_lit = {
 	.reg_len = RK3288_DSP_VACT_ST_END_F1 * 4,
 };
 
+static const struct vop_win rk3368_win23_data = {
+	.enable = VOP_REG(RK3368_WIN2_CTRL0, 0x1, 4),
+	.format = VOP_REG(RK3368_WIN2_CTRL0, 0x3, 5),
+	.ymirror = VOP_REG(RK3368_WIN2_CTRL1, 0x1, 15),
+	.rb_swap = VOP_REG(RK3368_WIN2_CTRL0, 0x1, 20),
+	.dsp_info = VOP_REG(RK3368_WIN2_DSP_INFO0, 0x0fff0fff, 0),
+	.dsp_st = VOP_REG(RK3368_WIN2_DSP_ST0, 0x1fff1fff, 0),
+	.yrgb_mst = VOP_REG(RK3368_WIN2_MST0, 0xffffffff, 0),
+	.yrgb_vir = VOP_REG(RK3368_WIN2_VIR0_1, 0x1fff, 0),
+	.src_alpha_ctl = VOP_REG(RK3368_WIN2_SRC_ALPHA_CTRL, 0xffff, 0),
+	.dst_alpha_ctl = VOP_REG(RK3368_WIN2_DST_ALPHA_CTRL, 0xffffffff, 0),
+};
+
 static const struct vop_line_flag rk3368_vop_line_flag = {
 	.line_flag_num[0] = VOP_REG(RK3368_LINE_FLAG, 0xffff, 0),
 	.line_flag_num[1] = VOP_REG(RK3368_LINE_FLAG, 0xffff, 16),
@@ -288,7 +301,7 @@ const struct vop_data rk3399_vop_lit = {
 	.version = VOP_VERSION(3, 6),
 	.max_output = {2560, 1600},
 	.ctrl = &rk3288_ctrl_data,
-	.win = &rk3288_win01_data,
+	.win = &rk3368_win23_data,
 	.line_flag = &rk3366_vop_line_flag,
 	.csc_table = &rk3399_csc_table,
 	.win_csc = &rk3399_win0_csc,
