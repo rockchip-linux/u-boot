@@ -1314,6 +1314,26 @@ static const struct rockchip_connector px30_mipi_dsi_driver_data = {
 	 .data = &px30_mipi_dsi_plat_data,
 };
 
+static const u32 rk1808_dsi_grf_reg_fields[MAX_FIELDS] = {
+	[MASTERSLAVEZ]          = GRF_REG_FIELD(0x0440,  8,  8),
+	[DPIUPDATECFG]          = GRF_REG_FIELD(0x0440,  7,  7),
+	[DPICOLORM]             = GRF_REG_FIELD(0x0440,  3,  3),
+	[DPISHUTDN]             = GRF_REG_FIELD(0x0440,  2,  2),
+	[FORCETXSTOPMODE]       = GRF_REG_FIELD(0x0444,  7, 10),
+	[FORCERXMODE]           = GRF_REG_FIELD(0x0444,  6,  6),
+	[TURNDISABLE]           = GRF_REG_FIELD(0x0444,  5,  5),
+};
+
+static const struct dw_mipi_dsi_plat_data rk1808_mipi_dsi_plat_data = {
+	.dsi0_grf_reg_fields = rk1808_dsi_grf_reg_fields,
+	.max_bit_rate_per_lane = 2000000000UL,
+};
+
+static const struct rockchip_connector rk1808_mipi_dsi_driver_data = {
+	 .funcs = &dw_mipi_dsi_connector_funcs,
+	 .data = &rk1808_mipi_dsi_plat_data,
+};
+
 static const u32 rk3128_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[FORCETXSTOPMODE]	= GRF_REG_FIELD(0x0150, 10, 13),
 	[FORCERXMODE]		= GRF_REG_FIELD(0x0150,  9,  9),
@@ -1468,6 +1488,10 @@ static const struct udevice_id dw_mipi_dsi_ids[] = {
 	{
 		.compatible = "rockchip,px30-mipi-dsi",
 		.data = (ulong)&px30_mipi_dsi_driver_data,
+	},
+	{
+		.compatible = "rockchip,rk1808-mipi-dsi",
+		.data = (ulong)&rk1808_mipi_dsi_driver_data,
 	},
 	{
 		.compatible = "rockchip,rk3128-mipi-dsi",
