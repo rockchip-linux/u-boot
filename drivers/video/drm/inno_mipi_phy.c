@@ -26,63 +26,79 @@
 #define UPDATE(v, h, l)		(((v) << (l)) & GENMASK((h), (l)))
 
 /* Innosilicon MIPI D-PHY registers */
-#define INNO_PHY_LANE_CTRL	0x00000
-#define MIPI_BGPD		BIT(7)
-#define CLK_LANE_EN_MASK	BIT(6)
-#define DATA_LANE_3_EN_MASK	BIT(5)
-#define DATA_LANE_2_EN_MASK	BIT(4)
-#define DATA_LANE_1_EN_MASK	BIT(3)
-#define DATA_LANE_0_EN_MASK	BIT(2)
-#define CLK_LANE_EN		BIT(6)
-#define DATA_LANE_3_EN		BIT(5)
-#define DATA_LANE_2_EN		BIT(4)
-#define DATA_LANE_1_EN		BIT(3)
-#define DATA_LANE_0_EN		BIT(2)
-#define PWROK_BP		BIT(1)
-#define PWROK			BIT(0)
-#define INNO_PHY_POWER_CTRL	0x00004
-#define ANALOG_RESET_MASK	BIT(2)
-#define ANALOG_RESET		BIT(2)
-#define ANALOG_NORMAL		0
-#define LDO_POWER_MASK		BIT(1)
-#define LDO_POWER_DOWN		BIT(1)
-#define LDO_POWER_ON		0
-#define PLL_POWER_MASK		BIT(0)
-#define PLL_POWER_DOWN		BIT(0)
-#define PLL_POWER_ON		0
-#define INNO_PHY_PLL_CTRL_0	0x0000c
-#define FBDIV_HI_MASK		BIT(5)
-#define FBDIV_HI(x)		UPDATE(x, 5, 5)
-#define PREDIV_MASK		GENMASK(4, 0)
-#define PREDIV(x)		UPDATE(x, 4, 0)
-#define INNO_PHY_PLL_CTRL_1	0x00010
-#define FBDIV_LO_MASK		GENMASK(7, 0)
-#define FBDIV_LO(x)		UPDATE(x, 7, 0)
-#define INNO_PHY_DIG_CTRL	0x00080
-#define DIGITAL_RESET_MASK	BIT(0)
-#define DIGITAL_NORMAL		BIT(0)
-#define DIGITAL_RESET		0
-#define INNO_PHY_LVDS_CTRL	0x003ac
-#define LVDS_BGPD		BIT(0)
+#define INNO_PHY_LANE_CTRL		0x0000
+#define MIPI_BGPD			BIT(7)
+#define CLK_LANE_EN_MASK		BIT(6)
+#define DATA_LANE_3_EN_MASK		BIT(5)
+#define DATA_LANE_2_EN_MASK		BIT(4)
+#define DATA_LANE_1_EN_MASK		BIT(3)
+#define DATA_LANE_0_EN_MASK		BIT(2)
+#define CLK_LANE_EN			BIT(6)
+#define DATA_LANE_3_EN			BIT(5)
+#define DATA_LANE_2_EN			BIT(4)
+#define DATA_LANE_1_EN			BIT(3)
+#define DATA_LANE_0_EN			BIT(2)
+#define PWROK_BP			BIT(1)
+#define PWROK				BIT(0)
+#define INNO_PHY_POWER_CTRL		0x0004
+#define ANALOG_RESET_MASK		BIT(2)
+#define ANALOG_RESET			BIT(2)
+#define ANALOG_NORMAL			0
+#define LDO_POWER_MASK			BIT(1)
+#define LDO_POWER_DOWN			BIT(1)
+#define LDO_POWER_ON			0
+#define PLL_POWER_MASK			BIT(0)
+#define PLL_POWER_DOWN			BIT(0)
+#define PLL_POWER_ON			0
+#define INNO_PHY_PLL_CTRL_0		0x000c
+#define FBDIV_HI_MASK			BIT(5)
+#define FBDIV_HI(x)			UPDATE(x, 5, 5)
+#define PREDIV_MASK			GENMASK(4, 0)
+#define PREDIV(x)			UPDATE(x, 4, 0)
+#define INNO_PHY_PLL_CTRL_1		0x0010
+#define FBDIV_LO_MASK			GENMASK(7, 0)
+#define FBDIV_LO(x)			UPDATE(x, 7, 0)
+#define ANALOG_REG_08			0x0020
+#define PRE_EMPHASIS_ENABLE_MASK	BIT(7)
+#define PRE_EMPHASIS_ENABLE		BIT(7)
+#define PRE_EMPHASIS_DISABLE		0
+#define PLL_POST_DIV_ENABLE_MASK	BIT(5)
+#define PLL_POST_DIV_ENABLE		BIT(5)
+#define PLL_POST_DIV_DISABLE		0
+#define DATA_LANE_VOD_RANGE_SET_MASK	GENMASK(3, 0)
+#define DATA_LANE_VOD_RANGE_SET(x)	UPDATE(x, 3, 0)
+#define ANALOG_REG_0B			0x002c
+#define CLOCK_LANE_VOD_RANGE_SET_MASK	GENMASK(3, 0)
+#define CLOCK_LANE_VOD_RANGE_SET(x)	UPDATE(x, 3, 0)
+#define VOD_MIN_RANGE			0x1
+#define VOD_MID_RANGE			0x3
+#define VOD_BIG_RANGE			0x7
+#define VOD_MAX_RANGE			0xf
+#define INNO_PHY_DIG_CTRL		0x0080
+#define DIGITAL_RESET_MASK		BIT(0)
+#define DIGITAL_NORMAL			BIT(0)
+#define DIGITAL_RESET			0
+#define INNO_PHY_LVDS_CTRL		0x03ac
+#define LVDS_BGPD			BIT(0)
 
-#define INNO_CLOCK_LANE_REG_BASE	0x00100
-#define INNO_DATA_LANE_0_REG_BASE	0x00180
-#define INNO_DATA_LANE_1_REG_BASE	0x00200
-#define INNO_DATA_LANE_2_REG_BASE	0x00280
-#define INNO_DATA_LANE_3_REG_BASE	0x00300
+#define INNO_CLOCK_LANE_REG_BASE	0x0100
+#define INNO_DATA_LANE_0_REG_BASE	0x0180
+#define INNO_DATA_LANE_1_REG_BASE	0x0200
+#define INNO_DATA_LANE_2_REG_BASE	0x0280
+#define INNO_DATA_LANE_3_REG_BASE	0x0300
 
-#define T_LPX_OFFSET		0x00014
-#define T_HS_PREPARE_OFFSET	0x00018
-#define T_HS_ZERO_OFFSET	0x0001c
-#define T_HS_TRAIL_OFFSET	0x00020
-#define T_HS_EXIT_OFFSET	0x00024
-#define T_CLK_POST_OFFSET	0x00028
-#define T_WAKUP_H_OFFSET	0x00030
-#define T_WAKUP_L_OFFSET	0x00034
-#define T_CLK_PRE_OFFSET	0x00038
-#define T_TA_GO_OFFSET		0x00040
-#define T_TA_SURE_OFFSET	0x00044
-#define T_TA_WAIT_OFFSET	0x00048
+#define T_LPX_OFFSET		0x0014
+#define T_HS_PREPARE_OFFSET	0x0018
+#define T_HS_ZERO_OFFSET	0x001c
+#define T_HS_TRAIL_OFFSET	0x0020
+#define T_HS_EXIT_OFFSET	0x0024
+#define T_CLK_POST_OFFSET	0x0028
+#define T_WAKUP_H_OFFSET	0x0030
+#define T_WAKUP_L_OFFSET	0x0034
+#define T_CLK_PRE_OFFSET	0x0038
+#define T_TA_GO_OFFSET		0x0040
+#define T_TA_SURE_OFFSET	0x0044
+#define T_TA_WAIT_OFFSET	0x0048
 
 #define T_LPX_MASK		GENMASK(5, 0)
 #define T_LPX(x)		UPDATE(x, 5, 0)
@@ -108,6 +124,11 @@
 #define T_TA_SURE(x)		UPDATE(x, 5, 0)
 #define T_TA_WAIT_MASK		GENMASK(5, 0)
 #define T_TA_WAIT(x)		UPDATE(x, 5, 0)
+
+enum soc_type {
+	RV1108_MIPI_DPHY,
+	RK1808_MIPI_DPHY,
+};
 
 enum lane_type {
 	CLOCK_LANE,
@@ -198,17 +219,35 @@ struct fixed_param {
 };
 
 static const struct fixed_param fixed_param_table[] = {
-	FIXED_PARAM( 110, 0x20, 0x16, 0x02, 0x22),
-	FIXED_PARAM( 150, 0x06, 0x16, 0x03, 0x45),
-	FIXED_PARAM( 200, 0x18, 0x17, 0x04, 0x0b),
-	FIXED_PARAM( 250, 0x05, 0x17, 0x05, 0x16),
-	FIXED_PARAM( 300, 0x51, 0x18, 0x06, 0x2c),
-	FIXED_PARAM( 400, 0x64, 0x19, 0x07, 0x33),
-	FIXED_PARAM( 500, 0x20, 0x1b, 0x07, 0x4e),
-	FIXED_PARAM( 600, 0x6a, 0x1d, 0x08, 0x3a),
-	FIXED_PARAM( 700, 0x3e, 0x1e, 0x08, 0x6a),
-	FIXED_PARAM( 800, 0x21, 0x1f, 0x09, 0x29),
+	FIXED_PARAM(110, 0x20, 0x16, 0x02, 0x22),
+	FIXED_PARAM(150, 0x06, 0x16, 0x03, 0x45),
+	FIXED_PARAM(200, 0x18, 0x17, 0x04, 0x0b),
+	FIXED_PARAM(250, 0x05, 0x17, 0x05, 0x16),
+	FIXED_PARAM(300, 0x51, 0x18, 0x06, 0x2c),
+	FIXED_PARAM(400, 0x64, 0x19, 0x07, 0x33),
+	FIXED_PARAM(500, 0x20, 0x1b, 0x07, 0x4e),
+	FIXED_PARAM(600, 0x6a, 0x1d, 0x08, 0x3a),
+	FIXED_PARAM(700, 0x3e, 0x1e, 0x08, 0x6a),
+	FIXED_PARAM(800, 0x21, 0x1f, 0x09, 0x29),
 	FIXED_PARAM(1000, 0x09, 0x20, 0x09, 0x27)
+};
+
+static const struct fixed_param rk1808_fixed_param_table[] = {
+	FIXED_PARAM(110, 0x7f, 0x16, 0x02, 0x02),
+	FIXED_PARAM(150, 0x7f, 0x16, 0x03, 0x02),
+	FIXED_PARAM(200, 0x7f, 0x17, 0x04, 0x02),
+	FIXED_PARAM(250, 0x7f, 0x17, 0x05, 0x04),
+	FIXED_PARAM(300, 0x7f, 0x18, 0x06, 0x04),
+	FIXED_PARAM(400, 0x7e, 0x19, 0x07, 0x04),
+	FIXED_PARAM(500, 0x7c, 0x1b, 0x07, 0x08),
+	FIXED_PARAM(600, 0x70, 0x1d, 0x08, 0x10),
+	FIXED_PARAM(700, 0x40, 0x1e, 0x08, 0x30),
+	FIXED_PARAM(800, 0x02, 0x1f, 0x09, 0x30),
+	FIXED_PARAM(1000, 0x08, 0x20, 0x09, 0x30),
+	FIXED_PARAM(1400, 0x03, 0x32, 0x14, 0x0f),
+	FIXED_PARAM(1600, 0x42, 0x36, 0x0e, 0x0f),
+	FIXED_PARAM(1800, 0x47, 0x7a, 0x0e, 0x0f),
+	FIXED_PARAM(2000, 0x64, 0x7a, 0x0e, 0x0b),
 };
 
 static inline void inno_write(struct inno_mipi_dphy *inno, u32 reg, u32 val)
@@ -320,19 +359,28 @@ static void inno_mipi_dphy_timing_update(struct inno_mipi_dphy *inno,
 
 static void inno_mipi_dphy_get_fixed_param(struct inno_mipi_dphy_timing *t,
 					   unsigned int freq,
+					   enum soc_type soc_type,
 					   enum lane_type lane_type)
 {
-	const struct fixed_param *param;
-	int i;
+	const struct fixed_param *param, *param_table;
+	int i, param_num;
 
-	for (i = 0; i < ARRAY_SIZE(fixed_param_table); i++)
-		if (freq <= fixed_param_table[i].max_freq)
+	if (soc_type == RK1808_MIPI_DPHY) {
+		param_table = rk1808_fixed_param_table;
+		param_num = ARRAY_SIZE(rk1808_fixed_param_table);
+	} else {
+		param_table = fixed_param_table;
+		param_num = ARRAY_SIZE(fixed_param_table);
+	}
+
+	for (i = 0; i < param_num; i++)
+		if (freq <= param_table[i].max_freq)
 			break;
 
-	if (i == ARRAY_SIZE(fixed_param_table))
+	if (i == param_num)
 		--i;
 
-	param = &fixed_param_table[i];
+	param = &param_table[i];
 
 	if (lane_type == CLOCK_LANE)
 		t->hs_zero = param->clk_lane.hs_zero;
@@ -346,6 +394,8 @@ static void inno_mipi_dphy_get_fixed_param(struct inno_mipi_dphy_timing *t,
 static void inno_mipi_dphy_lane_timing_init(struct inno_mipi_dphy *inno,
 					    enum lane_type lane_type)
 {
+	struct rockchip_phy *phy =
+		(struct rockchip_phy *)dev_get_driver_data(inno->dev);
 	struct mipi_dphy_timing timing;
 	struct inno_mipi_dphy_timing data;
 	unsigned long txbyteclk, txclkesc, UI;
@@ -363,7 +413,8 @@ static void inno_mipi_dphy_lane_timing_init(struct inno_mipi_dphy *inno,
 	      txbyteclk, txclkesc, esc_clk_div, UI);
 
 	mipi_dphy_timing_get_default(&timing, UI);
-	inno_mipi_dphy_get_fixed_param(&data, inno->lane_mbps, lane_type);
+	inno_mipi_dphy_get_fixed_param(&data, inno->lane_mbps,
+				       phy->soc_type, lane_type);
 
 	/*
 	 * Ttxbyteclk * val >= Ths-exit
@@ -599,6 +650,14 @@ static unsigned long inno_mipi_dphy_set_pll(struct rockchip_phy *phy,
 	v = FBDIV_LO(fbdiv);
 	inno_update_bits(inno, INNO_PHY_PLL_CTRL_1, m, v);
 
+	if (phy->soc_type == RK1808_MIPI_DPHY) {
+		inno_update_bits(inno, ANALOG_REG_08,
+				 PLL_POST_DIV_ENABLE_MASK, PLL_POST_DIV_ENABLE);
+		inno_update_bits(inno, ANALOG_REG_0B,
+				 CLOCK_LANE_VOD_RANGE_SET_MASK,
+				 CLOCK_LANE_VOD_RANGE_SET(VOD_MAX_RANGE));
+	}
+
 	inno->lane_mbps = fout / USEC_PER_SEC;
 
 	return fout;
@@ -637,13 +696,23 @@ static const struct rockchip_phy_funcs inno_mipi_dphy_funcs = {
 };
 
 static struct rockchip_phy inno_mipi_dphy_driver_data = {
+	.funcs = &inno_mipi_dphy_funcs,
+	.soc_type = RV1108_MIPI_DPHY,
+};
+
+static struct rockchip_phy rk1808_inno_mipi_dphy_driver_data = {
 	 .funcs = &inno_mipi_dphy_funcs,
+	 .soc_type = RK1808_MIPI_DPHY,
 };
 
 static const struct udevice_id inno_mipi_dphy_ids[] = {
 	{
 		.compatible = "rockchip,rv1108-mipi-dphy",
 		.data = (ulong)&inno_mipi_dphy_driver_data,
+	},
+	{
+		.compatible = "rockchip,rk1808-mipi-dphy",
+		.data = (ulong)&rk1808_inno_mipi_dphy_driver_data,
 	},
 	{}
 };

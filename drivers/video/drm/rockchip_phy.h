@@ -30,6 +30,7 @@ struct rockchip_phy {
 	struct udevice *dev;
 	const struct rockchip_phy_funcs *funcs;
 	const void *data;
+	int soc_type;
 };
 
 int rockchip_phy_init(struct rockchip_phy *phy);
