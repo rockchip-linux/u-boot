@@ -6,7 +6,6 @@ u-boot-package: $(UBOOT_LOADERS)
 		--force \
 		--depends debsums \
 		--depends mtd-utils \
-		--deb-compression bzip2 \
 		--deb-field "Multi-Arch: foreign" \
 		--deb-field "Replaces: u-boot-virtual, u-boot-rockchip, u-boot-$(BOARD_TARGET), u-boot-rockchip-$(BOARD_TARGET)" \
 		--deb-field "Conflicts: u-boot-virtual, u-boot-rockchip, u-boot-$(BOARD_TARGET), u-boot-rockchip-$(BOARD_TARGET)" \
