@@ -2325,15 +2325,10 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 	 */
 	hdmi->i2c->scl_high_ns =
 		ofnode_read_s32_default(hdmi_node,
-					"ddc-i2c-scl-high-time-ns", -1);
-	if (hdmi->i2c->scl_high_ns < 0)
-		hdmi->i2c->scl_high_ns = 4708;
-
+					"ddc-i2c-scl-high-time-ns", 4708);
 	hdmi->i2c->scl_low_ns =
 		ofnode_read_s32_default(hdmi_node,
-					"ddc-i2c-scl-low-time-ns", -1);
-	if (hdmi->i2c->scl_low_ns < 0)
-		hdmi->i2c->scl_low_ns = 4916;
+					"ddc-i2c-scl-low-time-ns", 4916);
 
 	dw_hdmi_i2c_init(hdmi);
 	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
