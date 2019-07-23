@@ -1047,37 +1047,43 @@ void rockchip_show_fbbase(ulong fbbase)
 	}
 }
 
-void rockchip_show_bmp(const char *bmp)
+int rockchip_show_bmp(const char *bmp)
 {
 	struct display_state *s;
+	int ret = 0;
 
 	if (!bmp) {
 		list_for_each_entry(s, &rockchip_display_list, head)
 			display_disable(s);
-		return;
+		return -ENOENT;
 	}
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
 		s->logo.mode = s->charge_logo_mode;
 		if (load_bmp_logo(&s->logo, bmp))
 			continue;
-		display_logo(s);
+		ret = display_logo(s);
 	}
+
+	return ret;
 }
 
-void rockchip_show_logo(void)
+int rockchip_show_logo(void)
 {
 	struct display_state *s;
+	int ret = 0;
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
 		s->logo.mode = s->logo_mode;
 		if (load_bmp_logo(&s->logo, s->ulogo_name))
 			printf("failed to display uboot logo\n");
 		else
-			display_logo(s);
+			ret = display_logo(s);
 
 		/* Load kernel bmp in rockchip_display_fixup() later */
 	}
+
+	return ret;
 }
 
 enum {

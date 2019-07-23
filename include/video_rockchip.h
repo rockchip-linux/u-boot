@@ -21,8 +21,8 @@
 #define DRM_ROCKCHIP_FB_SIZE \
 	VNBYTES(DRM_ROCKCHIP_FB_BPP) * DRM_ROCKCHIP_FB_WIDTH * DRM_ROCKCHIP_FB_HEIGHT
 
-void rockchip_show_bmp(const char *bmp);
-void rockchip_show_logo(void);
+int rockchip_show_bmp(const char *bmp);
+int rockchip_show_logo(void);
 void rockchip_display_fixup(void *blob);
 
 #endif
