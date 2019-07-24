@@ -233,10 +233,9 @@ struct dw_mipi_dsi {
 	void *base;
 	void *grf;
 	int id;
-
-	/* for dual-channel */
 	struct dw_mipi_dsi *master;
 	struct dw_mipi_dsi *slave;
+	bool prepared;
 
 	unsigned int lane_mbps; /* per lane */
 	u32 channel;
@@ -244,7 +243,7 @@ struct dw_mipi_dsi {
 	u32 format;
 	u32 mode_flags;
 	struct mipi_dphy dphy;
-	struct drm_display_mode *mode;
+	struct drm_display_mode mode;
 
 	const struct dw_mipi_dsi_plat_data *pdata;
 };
@@ -542,7 +541,7 @@ static void dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 
 static unsigned long dw_mipi_dsi_get_lane_rate(struct dw_mipi_dsi *dsi)
 {
-	const struct drm_display_mode *mode = dsi->mode;
+	const struct drm_display_mode *mode = &dsi->mode;
 	unsigned long max_lane_rate = dsi->pdata->max_bit_rate_per_lane;
 	unsigned long lane_rate;
 	unsigned int value;
@@ -639,6 +638,11 @@ static void dw_mipi_dsi_set_pll(struct dw_mipi_dsi *dsi, unsigned long rate)
 		dsi->slave->lane_mbps = dsi->lane_mbps;
 		dsi->slave->dphy.input_div = dsi->dphy.input_div;
 		dsi->slave->dphy.feedback_div = dsi->dphy.feedback_div;
+	}
+	if (dsi->master) {
+		dsi->master->lane_mbps = dsi->lane_mbps;
+		dsi->master->dphy.input_div = dsi->dphy.input_div;
+		dsi->master->dphy.feedback_div = dsi->dphy.feedback_div;
 	}
 }
 
@@ -887,7 +891,7 @@ static void dw_mipi_dsi_video_mode_config(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_enable(struct dw_mipi_dsi *dsi)
 {
-	const struct drm_display_mode *mode = dsi->mode;
+	const struct drm_display_mode *mode = &dsi->mode;
 
 	dsi_update_bits(dsi, DSI_LPCLK_CTRL,
 			PHY_TXREQUESTCLKHS, PHY_TXREQUESTCLKHS);
@@ -924,8 +928,16 @@ static void dw_mipi_dsi_disable(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_post_disable(struct dw_mipi_dsi *dsi)
 {
+	if (!dsi->prepared)
+		return;
+
+	if (dsi->master)
+		dw_mipi_dsi_post_disable(dsi->master);
+
 	dsi_write(dsi, DSI_PWR_UP, RESET);
 	dsi_write(dsi, DSI_PHY_RSTZ, 0);
+
+	dsi->prepared = false;
 
 	if (dsi->slave)
 		dw_mipi_dsi_post_disable(dsi->slave);
@@ -988,14 +1000,7 @@ static void dw_mipi_dsi_packet_handler_config(struct dw_mipi_dsi *dsi)
 static void dw_mipi_dsi_video_packet_config(struct dw_mipi_dsi *dsi,
 					    struct drm_display_mode *mode)
 {
-	int pkt_size;
-
-	if (dsi->slave || dsi->master)
-		pkt_size = VID_PKT_SIZE(mode->hdisplay / 2);
-	else
-		pkt_size = VID_PKT_SIZE(mode->hdisplay);
-
-	dsi_write(dsi, DSI_VID_PKT_SIZE, pkt_size);
+	dsi_write(dsi, DSI_VID_PKT_SIZE, VID_PKT_SIZE(mode->hdisplay));
 }
 
 static void dw_mipi_dsi_command_mode_config(struct dw_mipi_dsi *dsi)
@@ -1012,18 +1017,16 @@ static int dw_mipi_dsi_get_hcomponent_lbcc(struct dw_mipi_dsi *dsi,
 
 	lbcc = hcomponent * dsi->lane_mbps * 1000 / 8;
 
-	if (dsi->mode->clock == 0) {
-		printf("dsi mode clock is 0!\n");
+	if (!dsi->mode.clock)
 		return 0;
-	}
 
-	return DIV_ROUND_CLOSEST(lbcc, dsi->mode->clock);
+	return DIV_ROUND_CLOSEST(lbcc, dsi->mode.clock);
 }
 
 static void dw_mipi_dsi_line_timer_config(struct dw_mipi_dsi *dsi)
 {
 	int htotal, hsa, hbp, lbcc;
-	struct drm_display_mode *mode = dsi->mode;
+	struct drm_display_mode *mode = &dsi->mode;
 
 	htotal = mode->htotal;
 	hsa = mode->hsync_end - mode->hsync_start;
@@ -1042,7 +1045,7 @@ static void dw_mipi_dsi_line_timer_config(struct dw_mipi_dsi *dsi)
 static void dw_mipi_dsi_vertical_timing_config(struct dw_mipi_dsi *dsi)
 {
 	u32 vactive, vsa, vfp, vbp;
-	struct drm_display_mode *mode = dsi->mode;
+	struct drm_display_mode *mode = &dsi->mode;
 
 	vactive = mode->vdisplay;
 	vsa = mode->vsync_end - mode->vsync_start;
@@ -1089,7 +1092,35 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 	conn_state->type = DRM_MODE_CONNECTOR_DSI;
 
-	if (dsi->slave) {
+	if (dsi->id) {
+		struct udevice *dev;
+		int ret;
+
+		ret = uclass_get_device_by_name(UCLASS_DISPLAY, "dsi@ff960000",
+						&dev);
+		if (ret)
+			return ret;
+
+		dsi->master = dev_get_priv(dev);
+		if (!dsi->master)
+			return -ENODEV;
+
+		conn_state->output_type = ROCKCHIP_OUTPUT_DSI_DUAL_LINK;
+	}
+
+	if (dsi->lanes > 4) {
+		struct udevice *dev;
+		int ret;
+
+		ret = uclass_get_device_by_name(UCLASS_DISPLAY, "dsi@ff968000",
+						&dev);
+		if (ret)
+			return ret;
+
+		dsi->slave = dev_get_priv(dev);
+		if (!dsi->slave)
+			return -ENODEV;
+
 		dsi->lanes /= 2;
 		dsi->slave->lanes = dsi->lanes;
 		dsi->slave->format = dsi->format;
@@ -1110,10 +1141,10 @@ static void dw_mipi_dsi_set_hs_clk(struct dw_mipi_dsi *dsi, unsigned long rate)
 static void dw_mipi_dsi_host_init(struct dw_mipi_dsi *dsi)
 {
 	dw_mipi_dsi_init(dsi);
-	dw_mipi_dsi_dpi_config(dsi, dsi->mode);
+	dw_mipi_dsi_dpi_config(dsi, &dsi->mode);
 	dw_mipi_dsi_packet_handler_config(dsi);
 	dw_mipi_dsi_video_mode_config(dsi);
-	dw_mipi_dsi_video_packet_config(dsi, dsi->mode);
+	dw_mipi_dsi_video_packet_config(dsi, &dsi->mode);
 	dw_mipi_dsi_command_mode_config(dsi);
 	dsi_update_bits(dsi, DSI_MODE_CFG, CMD_VIDEO_MODE, COMMAND_MODE);
 	dw_mipi_dsi_line_timer_config(dsi);
@@ -1133,7 +1164,7 @@ static void dw_mipi_dsi_vop_routing(struct dw_mipi_dsi *dsi, int vop_id)
 
 static void mipi_dphy_init(struct dw_mipi_dsi *dsi)
 {
-	u32 map[] = {0x1, 0x3, 0x7, 0xf};
+	u32 map[] = {0x0, 0x1, 0x3, 0x7, 0xf};
 
 	mipi_dphy_enableclk_deassert(dsi);
 	mipi_dphy_shutdownz_assert(dsi);
@@ -1159,7 +1190,7 @@ static void mipi_dphy_init(struct dw_mipi_dsi *dsi)
 		dw_mipi_dsi_phy_init(dsi);
 
 	/* Enable Data Lane Module */
-	grf_field_write(dsi, ENABLE_N, map[dsi->lanes - 1]);
+	grf_field_write(dsi, ENABLE_N, map[dsi->lanes]);
 
 	/* Enable Clock Lane Module */
 	grf_field_write(dsi, ENABLECLK, 1);
@@ -1169,10 +1200,18 @@ static void mipi_dphy_init(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi)
 {
+	if (dsi->prepared)
+		return;
+
+	if (dsi->master)
+		dw_mipi_dsi_pre_enable(dsi->master);
+
 	dw_mipi_dsi_host_init(dsi);
 	mipi_dphy_init(dsi);
 	mipi_dphy_power_on(dsi);
 	dsi_write(dsi, DSI_PWR_UP, POWERUP);
+
+	dsi->prepared = true;
 
 	if (dsi->slave)
 		dw_mipi_dsi_pre_enable(dsi->slave);
@@ -1185,9 +1224,12 @@ static int dw_mipi_dsi_connector_prepare(struct display_state *state)
 	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
 	unsigned long lane_rate;
 
-	dsi->mode = &conn_state->mode;
-	if (dsi->slave)
-		dsi->slave->mode = dsi->mode;
+	memcpy(&dsi->mode, &conn_state->mode, sizeof(struct drm_display_mode));
+	if (dsi->slave) {
+		dsi->mode.hdisplay /= 2;
+		memcpy(&dsi->slave->mode, &dsi->mode,
+		       sizeof(struct drm_display_mode));
+	}
 
 	lane_rate = dw_mipi_dsi_get_lane_rate(dsi);
 	if (dsi->dphy.phy)
@@ -1240,40 +1282,13 @@ static const struct rockchip_connector_funcs dw_mipi_dsi_connector_funcs = {
 	.disable = dw_mipi_dsi_connector_disable,
 };
 
-static int dw_mipi_dsi_dual_channel_probe(struct dw_mipi_dsi *master)
-{
-	struct udevice *dev;
-	struct dw_mipi_dsi *slave;
-	int ret;
-
-	ret = uclass_get_device_by_phandle(UCLASS_DISPLAY, master->dev,
-					   "rockchip,dual-channel", &dev);
-	if (ret == -ENOENT) {
-		return 0;
-	} else if (ret) {
-		dev_err(dev, "failed to find slave device: %d\n", ret);
-		return ret;
-	}
-
-	slave = dev_get_priv(dev);
-	if (!slave) {
-		dev_err(dev, "failed to get slave channel\n");
-		return -ENODEV;
-	}
-
-	master->slave = slave;
-	slave->master = master;
-
-	return 0;
-}
-
 static int dw_mipi_dsi_probe(struct udevice *dev)
 {
 	struct dw_mipi_dsi *dsi = dev_get_priv(dev);
 	const struct rockchip_connector *connector =
 		(const struct rockchip_connector *)dev_get_driver_data(dev);
 	const struct dw_mipi_dsi_plat_data *pdata = connector->data;
-	int id, ret;
+	int id;
 
 	dsi->base = dev_read_addr_ptr(dev);
 	dsi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
@@ -1287,10 +1302,6 @@ static int dw_mipi_dsi_probe(struct udevice *dev)
 	dsi->dev = dev;
 	dsi->pdata = pdata;
 	dsi->id = id;
-
-	ret = dw_mipi_dsi_dual_channel_probe(dsi);
-	if (ret)
-		return ret;
 
 	return 0;
 }
@@ -1563,6 +1574,10 @@ static int dw_mipi_dsi_child_post_bind(struct udevice *dev)
 {
 	struct mipi_dsi_host *host = dev_get_platdata(dev->parent);
 	struct mipi_dsi_device *device = dev_get_parent_platdata(dev);
+	char name[20];
+
+	sprintf(name, "%s.%d", host->dev->name, device->channel);
+	device_set_name(dev, name);
 
 	device->dev = dev;
 	device->host = host;
