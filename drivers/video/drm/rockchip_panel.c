@@ -450,8 +450,7 @@ static int rockchip_panel_probe(struct udevice *dev)
 {
 	struct rockchip_panel_priv *priv = dev_get_priv(dev);
 	struct rockchip_panel_plat *plat = dev_get_platdata(dev);
-	struct rockchip_panel *panel =
-		(struct rockchip_panel *)dev_get_driver_data(dev);
+	struct rockchip_panel *panel;
 	int ret;
 	const char *cmd_type;
 
@@ -517,73 +516,22 @@ static int rockchip_panel_probe(struct udevice *dev)
 		dm_gpio_set_value(&priv->reset_gpio, 0);
 	}
 
+	panel = calloc(1, sizeof(*panel));
+	if (!panel)
+		return -ENOMEM;
+
+	dev->driver_data = (ulong)panel;
 	panel->dev = dev;
 	panel->bus_format = plat->bus_format;
 	panel->bpc = plat->bpc;
+	panel->funcs = &rockchip_panel_funcs;
 
 	return 0;
 }
 
-static const struct drm_display_mode auo_b125han03_mode = {
-	.clock = 146900,
-	.hdisplay = 1920,
-	.hsync_start = 1920 + 48,
-	.hsync_end = 1920 + 48 + 32,
-	.htotal = 1920 + 48 + 32 + 140,
-	.vdisplay = 1080,
-	.vsync_start = 1080 + 2,
-	.vsync_end = 1080 + 2 + 5,
-	.vtotal = 1080 + 2 + 5 + 57,
-	.vrefresh = 60,
-	.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC,
-};
-
-static const struct rockchip_panel auo_b125han03_driver_data = {
-	.funcs = &rockchip_panel_funcs,
-	.data = &auo_b125han03_mode,
-};
-
-static const struct drm_display_mode lg_lp079qx1_sp0v_mode = {
-	.clock = 200000,
-	.hdisplay = 1536,
-	.hsync_start = 1536 + 12,
-	.hsync_end = 1536 + 12 + 16,
-	.htotal = 1536 + 12 + 16 + 48,
-	.vdisplay = 2048,
-	.vsync_start = 2048 + 8,
-	.vsync_end = 2048 + 8 + 4,
-	.vtotal = 2048 + 8 + 4 + 8,
-	.vrefresh = 60,
-	.flags = DRM_MODE_FLAG_NVSYNC | DRM_MODE_FLAG_NHSYNC,
-};
-
-static const struct rockchip_panel lg_lp079qx1_sp0v_driver_data = {
-	.funcs = &rockchip_panel_funcs,
-	.data = &lg_lp079qx1_sp0v_mode,
-};
-
-static const struct rockchip_panel panel_simple_driver_data = {
-	.funcs = &rockchip_panel_funcs,
-};
-
-static const struct rockchip_panel panel_simple_dsi_driver_data = {
-	.funcs = &rockchip_panel_funcs,
-};
-
 static const struct udevice_id rockchip_panel_ids[] = {
-	{
-		.compatible = "auo,b125han03",
-		.data = (ulong)&auo_b125han03_driver_data,
-	}, {
-		.compatible = "lg,lp079qx1-sp0v",
-		.data = (ulong)&lg_lp079qx1_sp0v_driver_data,
-	}, {
-		.compatible = "simple-panel",
-		.data = (ulong)&panel_simple_driver_data,
-	}, {
-		.compatible = "simple-panel-dsi",
-		.data = (ulong)&panel_simple_dsi_driver_data,
-	},
+	{ .compatible = "simple-panel", },
+	{ .compatible = "simple-panel-dsi", },
 	{}
 };
 
