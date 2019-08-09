@@ -642,6 +642,8 @@ static int rockchip_vop_setup_csc_table(struct display_state *state)
 static int rockchip_vop_set_plane(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	const struct vop_data *vop_data = crtc->data;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	u32 act_info, dsp_info, dsp_st, dsp_stx, dsp_sty;
@@ -664,6 +666,14 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	dsp_stx = crtc_x + mode->crtc_htotal - mode->crtc_hsync_start;
 	dsp_sty = crtc_y + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
+	/*
+	 * PX30 treat rgb888 as bgr888
+	 * so we reverse the rb swap to workaround
+	 */
+	if (VOP_MAJOR(vop_data->version) == 2 &&
+	    VOP_MINOR(vop_data->version) == 6 &&
+	    crtc_state->format == ROCKCHIP_FMT_RGB888)
+		crtc_state->rb_swap = !crtc_state->rb_swap;
 
 	if (mode->flags & DRM_MODE_FLAG_YMIRROR)
 		y_mirror = 1;
