@@ -127,7 +127,7 @@ static int get_public_phy(struct display_state *state,
 		}
 		conn_state->phy = phy;
 
-		printf("inno hdmi phy init success, save it\n");
+		debug("inno hdmi phy init success, save it\n");
 		data->phy_drv = conn_state->phy;
 		data->phy_init = true;
 		return 0;
@@ -179,7 +179,7 @@ static int connector_phy_init(struct display_state *state,
 	if (type == INNO_HDMI_PHY) {
 		/* there is no public phy was initialized */
 		if (!data->phy_init) {
-			printf("start get public phy\n");
+			debug("start get public phy\n");
 			data->public_phy_type = type;
 			if (get_public_phy(state, data)) {
 				printf("can't find correct public phy type\n");
