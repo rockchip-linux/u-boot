@@ -61,6 +61,21 @@
 		default-brightness-level = <200>;
 	};
 
+	leds {
+		status = "okay";
+		compatible = "gpio-leds";
+
+		work-led {
+			label = "work";
+			gpios = <&gpio0 RK_PB3 GPIO_ACTIVE_HIGH>;
+		};
+
+		standby-led {
+			label = "standby";
+			gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_LOW>;
+		};
+	};
+
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		clocks = <&rk808 1>;
