@@ -51,12 +51,9 @@ void board_init_sdmmc_pwr_en(void)
 		<< GPIO1A0_SEL_SHIFT);
 
 	// set GPIO0_D6 to GPIO_ACTIVE_LOW
-	rk_clrreg(&gpio0->swport_dr,
-		1 << RK_PD6);
-
 	// set GPIO0_D6 to OUTPUT
-	rk_setreg(&gpio0->swport_ddr, 
-		1 << RK_PD6);
+	clrbits_le32(&gpio0->swport_dr, 1 << RK_PD6);
+	setbits_le32(&gpio0->swport_ddr, 1 << RK_PD6);
 }
 
 void board_init_f(ulong dummy)
