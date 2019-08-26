@@ -21,3 +21,8 @@ $(filter tmp/rkbin/%, $(BL31) $(UBOOT_TPL) $(UBOOT_SPL) $(LOADER_BIN)):
 	mkdir -p $$(dirname "$@")
 	curl --fail -L https://github.com/ayufan-rock64/rkbin/raw/master/$(subst tmp/rkbin/,,$@) > $@.tmp
 	mv $@.tmp $@
+
+deploy: u-boot-package
+	scp u-boot-rockchip-$(BOARD_TARGET)-$(RELEASE_NAME).deb root@$(TARGET_HOST):
+	ssh root@$(TARGET_HOST) apt install ./u-boot-rockchip-$(BOARD_TARGET)-$(RELEASE_NAME).deb
+	ssh root@$(TARGET_HOST) rock64_upgrade_bootloader.sh
