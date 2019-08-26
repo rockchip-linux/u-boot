@@ -19,6 +19,8 @@
 #include <asm/arch/timer.h>
 #include <dm/pinctrl.h>
 #include <power/regulator.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -69,6 +71,19 @@ void secure_timer_init(void)
 	writel(0, TIMER_CHN10_BASE + TIMER_INIT_COUNT_L);
 	writel(0, TIMER_CHN10_BASE + TIMER_INIT_COUNT_H);
 	writel(TIMER_EN | TIMER_FMODE, TIMER_CHN10_BASE + TIMER_CONTROL_REG);
+}
+
+void board_init_power_standby_leds(void)
+{
+#define GPIO0_BASE  0xff720000
+
+	struct rockchip_gpio_regs * const gpio0 = (void *)GPIO0_BASE;
+
+	// set GPIO0_A2/B3 to GPIO_ACTIVE_HIGH
+	// set GPIO0_A2/B3 to OUTPUT
+	int mask = (1UL << RK_PA2) | (1UL << RK_PB3);
+	setbits_le32(&gpio0->swport_dr, mask);
+	setbits_le32(&gpio0->swport_ddr, mask);
 }
 
 void board_debug_uart_init(void)
@@ -137,6 +152,7 @@ void board_init_f(ulong dummy)
 	}
 
 	preloader_console_init();
+	board_init_power_standby_leds();
 
 	/*
 	 * Disable DDR and SRAM security regions.
