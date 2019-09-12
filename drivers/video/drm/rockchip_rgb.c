@@ -36,6 +36,9 @@
 #define RK3288_LVDS_CON_CLKINV(v)	HIWORD_UPDATE(v,  8,  8)
 #define RK3288_LVDS_CON_TTL_EN(v)	HIWORD_UPDATE(v,  6,  6)
 
+#define RK3368_GRF_SOC_CON15		0x043c
+#define RK3368_FORCE_JETAG(v)		HIWORD_UPDATE(v,  13,  13)
+
 struct rockchip_rgb;
 
 struct rockchip_rgb_funcs {
@@ -201,6 +204,20 @@ static const struct rockchip_connector rk3288_rgb_driver_data = {
 	.data = &rk3288_rgb_funcs,
 };
 
+static void rk3368_rgb_enable(struct rockchip_rgb *rgb, int pipe)
+{
+	regmap_write(rgb->grf, RK3368_GRF_SOC_CON15, RK3368_FORCE_JETAG(0));
+}
+
+static const struct rockchip_rgb_funcs rk3368_rgb_funcs = {
+	.enable = rk3368_rgb_enable,
+};
+
+static const struct rockchip_connector rk3368_rgb_driver_data = {
+	.funcs = &rockchip_rgb_connector_funcs,
+	.data = &rk3368_rgb_funcs,
+};
+
 static const struct rockchip_connector rockchip_rgb_driver_data = {
 	.funcs = &rockchip_rgb_connector_funcs,
 };
@@ -232,7 +249,7 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 	},
 	{
 		.compatible = "rockchip,rk3368-rgb",
-		.data = (ulong)&rockchip_rgb_driver_data,
+		.data = (ulong)&rk3368_rgb_driver_data,
 	},
 	{
 		.compatible = "rockchip,rv1108-rgb",
