@@ -104,6 +104,15 @@ config DRM_ROCKCHIP_RK618
 	  Choose this option to enable support for Rockchip RK618 display
 	  bridge chips driver. say Y to enable its driver.
 
+config DRM_ROCKCHIP_RK1000
+	bool "Rockchip RK1000 display bridge driver"
+	depends on DRM_ROCKCHIP
+	select DRM_ROCKCHIP_PANEL
+	select VIDEO_BRIDGE
+	help
+	  Choose this option to enable support for Rockchip RK1000 display
+	  bridge chips driver. say Y to enable its driver.
+
 config ROCKCHIP_DRM_TVE
 	bool "Rockchip TVE Support"
 	depends on DRM_ROCKCHIP
