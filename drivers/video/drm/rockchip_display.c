@@ -586,6 +586,8 @@ static int display_init(struct display_state *state)
 						&bpc);
 			if (!ret)
 				edid_print_info((void *)&conn_state->edid);
+		} else {
+			ret = video_bridge_get_timing(conn_state->bridge->dev);
 		}
 	} else if (conn_funcs->get_timing) {
 		ret = conn_funcs->get_timing(state);

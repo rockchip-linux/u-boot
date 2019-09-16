@@ -57,6 +57,15 @@ int video_bridge_read_edid(struct udevice *dev, u8 *buf, int buf_size)
 	return ops->read_edid(dev, buf, buf_size);
 }
 
+int video_bridge_get_timing(struct udevice *dev)
+{
+	struct video_bridge_ops *ops = video_bridge_get_ops(dev);
+
+	if (!ops || !ops->get_timing)
+		return -ENOSYS;
+	return ops->get_timing(dev);
+}
+
 static int video_bridge_pre_probe(struct udevice *dev)
 {
 	struct video_bridge_priv *uc_priv = dev_get_uclass_priv(dev);
