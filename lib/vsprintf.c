@@ -293,7 +293,6 @@ static char *string16(char *buf, char *end, u16 *s, int field_width,
 	return buf;
 }
 
-#ifdef CONFIG_CMD_NET
 static char *mac_address_string(char *buf, char *end, u8 *addr, int field_width,
 				int precision, int flags)
 {
@@ -355,7 +354,6 @@ static char *ip4_addr_string(char *buf, char *end, u8 *addr, int field_width,
 	return string(buf, end, ip4_addr, field_width, precision,
 		      flags & ~SPECIAL);
 }
-#endif
 
 #ifdef CONFIG_LIB_UUID
 /*
@@ -425,7 +423,6 @@ static char *pointer(const char *fmt, char *buf, char *end, void *ptr,
 #endif
 
 	switch (*fmt) {
-#ifdef CONFIG_CMD_NET
 	case 'a':
 		flags |= SPECIAL | ZEROPAD;
 
@@ -455,7 +452,7 @@ static char *pointer(const char *fmt, char *buf, char *end, void *ptr,
 					       precision, flags);
 		flags &= ~SPECIAL;
 		break;
-#endif
+
 #ifdef CONFIG_LIB_UUID
 	case 'U':
 		return uuid_string(buf, end, ptr, field_width, precision,
