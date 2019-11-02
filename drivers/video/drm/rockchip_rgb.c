@@ -118,6 +118,11 @@ static int rockchip_rgb_connector_init(struct display_state *state)
 	case MEDIA_BUS_FMT_RGB565_1X16:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P565;
 		break;
+	case MEDIA_BUS_FMT_SRGB888_3X8:
+	case MEDIA_BUS_FMT_SBGR888_3X8:
+	case MEDIA_BUS_FMT_SRBG888_3X8:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_S888;
+		break;
 	case MEDIA_BUS_FMT_RGB888_1X24:
 	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
 	default:
