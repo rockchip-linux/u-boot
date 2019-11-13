@@ -358,7 +358,6 @@ static bool drm_mode_equal(const struct base_drm_display_mode *mode1,
 	    mode1->vsync_start == mode2->vsync_start &&
 	    mode1->vsync_end == mode2->vsync_end &&
 	    mode1->vtotal == mode2->vtotal &&
-	    mode1->picture_aspect_ratio == mode2->picture_aspect_ratio &&
 	    (mode1->flags & flags_mask) == (mode2->flags & flags_mask)) {
 		return true;
 	}
@@ -709,8 +708,6 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 		if (base_parameter.screen_list[i].type ==
 		    DRM_MODE_CONNECTOR_HDMIA) {
 			screen_info = &base_parameter.screen_list[i];
-			screen_info->mode.picture_aspect_ratio =
-				(screen_info->mode.flags & DRM_MODE_FLAG_PIC_AR_MASK) >> 19;
 			break;
 		}
 	}
