@@ -63,6 +63,8 @@ enum lvds_format {
 	LVDS_8BIT_MODE_FORMAT_2,
 	LVDS_8BIT_MODE_FORMAT_3,
 	LVDS_6BIT_MODE,
+	LVDS_10BIT_MODE_FORMAT_1,
+	LVDS_10BIT_MODE_FORMAT_2,
 };
 
 struct rockchip_lvds;
@@ -106,8 +108,13 @@ static int rockchip_lvds_connector_init(struct display_state *state)
 	case MEDIA_BUS_FMT_RGB888_1X7X4_JEIDA:	/* jeida-24 */
 		lvds->format = LVDS_8BIT_MODE_FORMAT_2;
 		break;
+	case MEDIA_BUS_FMT_RGB101010_1X7X5_JEIDA: /* jeida-30 */
+		lvds->format = LVDS_10BIT_MODE_FORMAT_1;
 	case MEDIA_BUS_FMT_RGB666_1X7X3_SPWG:	/* vesa-18 */
 		lvds->format = LVDS_8BIT_MODE_FORMAT_3;
+		break;
+	case MEDIA_BUS_FMT_RGB101010_1X7X5_SPWG: /* vesa-30 */
+		lvds->format = LVDS_10BIT_MODE_FORMAT_2;
 		break;
 	case MEDIA_BUS_FMT_RGB888_1X7X4_SPWG:	/* vesa-24 */
 	default:
@@ -117,6 +124,11 @@ static int rockchip_lvds_connector_init(struct display_state *state)
 
 	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+
+	if ((lvds->format == LVDS_10BIT_MODE_FORMAT_1) ||
+		(lvds->format == LVDS_10BIT_MODE_FORMAT_2))
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
+
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 
 	return 0;
