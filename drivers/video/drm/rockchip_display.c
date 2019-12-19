@@ -1386,6 +1386,9 @@ static int rockchip_display_probe(struct udevice *dev)
 
 		get_crtc_mcu_mode(&s->crtc_state);
 
+		ret = ofnode_read_u32_default(s->crtc_state.node,
+					      "rockchip,dual-channel-swap", 0);
+		s->crtc_state.dual_channel_swap = ret;
 		if (connector_panel_init(s)) {
 			printf("Warn: Failed to init panel drivers\n");
 			free(s);

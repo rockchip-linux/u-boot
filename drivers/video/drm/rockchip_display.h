@@ -84,6 +84,7 @@ struct crtc_state {
 	int crtc_h;
 	bool yuv_overlay;
 	struct rockchip_mcu_timing mcu_timing;
+	u32 dual_channel_swap;
 };
 
 struct panel_state {

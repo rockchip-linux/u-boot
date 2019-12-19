@@ -305,7 +305,8 @@ static int rockchip_vop_init(struct display_state *state)
 		VOP_CTRL_SET(vop, mipi_dual_channel_en,
 			!!(conn_state->output_type & ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL));
 		VOP_CTRL_SET(vop, data01_swap,
-			!!(conn_state->output_type & ROCKCHIP_OUTPUT_DSI_DUAL_LINK));
+			!!(conn_state->output_type & ROCKCHIP_OUTPUT_DSI_DUAL_LINK) ||
+			crtc_state->dual_channel_swap);
 		break;
 	case DRM_MODE_CONNECTOR_DisplayPort:
 		VOP_CTRL_SET(vop, dp_dclk_pol, 0);
