@@ -142,7 +142,7 @@ static void init_display_buffer(ulong base)
 	memory_end = memory_start;
 }
 
-static void *get_display_buffer(int size)
+void *get_display_buffer(int size)
 {
 	unsigned long roundup_memory = roundup(memory_end, PAGE_SIZE);
 	void *buf;
@@ -163,7 +163,7 @@ static unsigned long get_display_size(void)
 	return memory_end - memory_start;
 }
 
-static bool can_direct_logo(int bpp)
+bool can_direct_logo(int bpp)
 {
 	return bpp == 24 || bpp == 32;
 }
@@ -925,9 +925,9 @@ static int load_kernel_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	}
 
 	logo->mem = dst;
+#endif
 
 	return 0;
-#endif
 }
 
 static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
