@@ -459,7 +459,7 @@ parse_second_pos_dtb:
 		entry->f_size = fdt_totalsize((void *)hdr);
 		entry->f_offset = 0;
 
-		add_file_to_list(entry, part_info.start);
+		add_file_to_list(entry, rsce_base);
 		free(entry);
 		ret = 0;
 		printf("Found DTB in %s part(second pos)\n", boot_partname);
