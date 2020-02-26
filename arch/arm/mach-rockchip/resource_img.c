@@ -458,6 +458,7 @@ parse_second_pos_dtb:
 		memcpy(entry->name, DTB_FILE, sizeof(DTB_FILE));
 		entry->f_size = fdt_totalsize((void *)hdr);
 		entry->f_offset = 0;
+		entry->hash_size = 0;
 
 		add_file_to_list(entry, rsce_base);
 		free(entry);
