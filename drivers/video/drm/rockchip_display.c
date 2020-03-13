@@ -670,8 +670,6 @@ static int display_enable(struct display_state *state)
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	struct panel_state *panel_state = &state->panel_state;
 
-	display_init(state);
-
 	if (!state->is_init)
 		return -EINVAL;
 
