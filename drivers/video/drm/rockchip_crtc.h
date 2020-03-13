@@ -10,7 +10,9 @@
 struct rockchip_crtc {
 	const struct rockchip_crtc_funcs *funcs;
 	const void *data;
-	bool hdmi_hpd;
+	struct drm_display_mode active_mode;
+	bool hdmi_hpd : 1;
+	bool active : 1;
 };
 
 struct rockchip_crtc_funcs {
