@@ -965,4 +965,11 @@
 #define RK1808_GRF_PD_VO_CON1			0x00000444
 /* rk1808 register definition end*/
 
+/* RV1126 register definition start */
+#define RV1126_WIN2_CTRL0			0x0190
+#define RV1126_WIN2_VIR0_1			0x0198
+#define RV1126_WIN2_MST0			0x01a0
+#define RV1126_WIN2_DSP_INFO0			0x01a4
+#define RV1126_WIN2_DSP_ST0			0x01a8
+/* RV1126 register definition end   */
 #endif /* _ROCKCHIP_VOP_REG_H */

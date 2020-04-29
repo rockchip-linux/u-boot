@@ -401,6 +401,7 @@ struct vop_scl_regs {
 struct vop_win {
 	const struct vop_scl_regs *scl;
 
+	struct vop_reg gate;
 	struct vop_reg enable;
 	struct vop_reg format;
 	struct vop_reg ymirror;
