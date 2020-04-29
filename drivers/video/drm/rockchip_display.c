@@ -540,10 +540,11 @@ static int display_init(struct display_state *state)
 	struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	struct drm_display_mode *mode = &conn_state->mode;
-	int bpc;
 	int ret = 0;
 	static bool __print_once = false;
-
+#if defined(CONFIG_I2C_EDID)
+	int bpc;
+#endif
 	if (!__print_once) {
 		__print_once = true;
 		printf("Rockchip UBOOT DRM driver version: %s\n", DRIVER_VERSION);
@@ -617,10 +618,12 @@ static int display_init(struct display_state *state)
 		ret = video_bridge_read_edid(conn_state->bridge->dev,
 					     conn_state->edid, EDID_SIZE);
 		if (ret > 0) {
+#if defined(CONFIG_I2C_EDID)
 			ret = edid_get_drm_mode(conn_state->edid, ret, mode,
 						&bpc);
 			if (!ret)
 				edid_print_info((void *)&conn_state->edid);
+#endif
 		} else {
 			ret = video_bridge_get_timing(conn_state->bridge->dev);
 		}
@@ -628,6 +631,7 @@ static int display_init(struct display_state *state)
 		ret = conn_funcs->get_timing(state);
 	} else if (conn_funcs->get_edid) {
 		ret = conn_funcs->get_edid(state);
+#if defined(CONFIG_I2C_EDID)
 		if (!ret) {
 			ret = edid_get_drm_mode((void *)&conn_state->edid,
 						sizeof(conn_state->edid), mode,
@@ -635,6 +639,7 @@ static int display_init(struct display_state *state)
 			if (!ret)
 				edid_print_info((void *)&conn_state->edid);
 		}
+#endif
 	}
 
 	if (ret)
