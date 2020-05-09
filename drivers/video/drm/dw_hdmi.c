@@ -2423,6 +2423,8 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 	drm_rk_filter_whitelist(&hdmi->edid_data);
 	if (hdmi->phy.ops->mode_valid)
 		hdmi->phy.ops->mode_valid(hdmi, state);
+	drm_mode_max_resolution_filter(&hdmi->edid_data,
+				       &state->crtc_state.max_output);
 	if (!drm_mode_prune_invalid(&hdmi->edid_data)) {
 		printf("can't find valid hdmi mode\n");
 		return -EINVAL;

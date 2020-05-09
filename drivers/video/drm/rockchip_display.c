@@ -339,6 +339,23 @@ static int display_get_timing_from_dts(struct panel_state *panel_state,
 }
 
 /**
+ * drm_mode_max_resolution_filter - mark modes out of vop max resolution
+ * @edid_data: structure store mode list
+ * @max_output: vop max output resolution
+ */
+void drm_mode_max_resolution_filter(struct hdmi_edid_data *edid_data,
+				    struct vop_rect *max_output)
+{
+	int i;
+
+	for (i = 0; i < edid_data->modes; i++) {
+		if (edid_data->mode_buf[i].hdisplay > max_output->width ||
+		    edid_data->mode_buf[i].vdisplay > max_output->height)
+			edid_data->mode_buf[i].invalid = true;
+	}
+}
+
+/**
  * drm_mode_set_crtcinfo - set CRTC modesetting timing parameters
  * @p: mode
  * @adjust_flags: a combination of adjustment flags
@@ -550,6 +567,12 @@ static int display_init(struct display_state *state)
 			crtc_state->crtc->active_mode.vdisplay,
 			crtc_state->crtc->active_mode.vrefresh);
 		return -ENODEV;
+	}
+
+	if (crtc_funcs->preinit) {
+		ret = crtc_funcs->preinit(state);
+		if (ret)
+			return ret;
 	}
 
 	if (panel_state->panel)

@@ -62,6 +62,11 @@ struct rockchip_mcu_timing {
 	int mcu_hold_mode;
 };
 
+struct vop_rect {
+	int width;
+	int height;
+};
+
 struct crtc_state {
 	struct udevice *dev;
 	struct rockchip_crtc *crtc;
@@ -85,6 +90,7 @@ struct crtc_state {
 	bool yuv_overlay;
 	struct rockchip_mcu_timing mcu_timing;
 	u32 dual_channel_swap;
+	struct vop_rect max_output;
 };
 
 struct panel_state {
@@ -175,5 +181,8 @@ int drm_mode_vrefresh(const struct drm_display_mode *mode);
 int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val);
 bool drm_mode_is_420(const struct drm_display_info *display,
 		     struct drm_display_mode *mode);
+
+void drm_mode_max_resolution_filter(struct hdmi_edid_data *edid_data,
+				    struct vop_rect *max_output);
 
 #endif

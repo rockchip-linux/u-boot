@@ -193,6 +193,15 @@ static void vop_mcu_mode(struct display_state *state, struct vop *vop)
 	VOP_CTRL_SET(vop, mcu_rw_pend, crtc_state->mcu_timing.mcu_rw_pend);
 }
 
+static int rockchip_vop_preinit(struct display_state *state)
+{
+	const struct vop_data *vop_data = state->crtc_state.crtc->data;
+
+	state->crtc_state.max_output = vop_data->max_output;
+
+	return 0;
+}
+
 static int rockchip_vop_init(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -239,7 +248,6 @@ static int rockchip_vop_init(struct display_state *state)
 	vop->csc_table = vop_data->csc_table;
 	vop->win_csc = vop_data->win_csc;
 	vop->version = vop_data->version;
-	vop->max_output = vop_data->max_output;
 
 	/*
 	 * TODO:
@@ -505,12 +513,6 @@ static void scl_vop_cal_scl_fac(struct vop *vop,
 	if (!vop->win->scl)
 		return;
 
-	if (dst_w > vop->max_output.width) {
-		printf("Maximum destination width %d exceeded\n",
-		       vop->max_output.width);
-		return;
-	}
-
 	if (!vop->win->scl->ext) {
 		VOP_SCL_SET(vop, scale_yrgb_x,
 			    scl_cal_scale2(src_w, dst_w));
@@ -657,6 +659,14 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	int crtc_h = crtc_state->crtc_h;
 	int xvir = crtc_state->xvir;
 	int x_mirror = 0, y_mirror = 0;
+
+	if ((crtc_w > crtc_state->max_output.width) ||
+	    (crtc_h > crtc_state->max_output.height)){
+		printf("Maximum destination %dx%d exceeded\n",
+		       crtc_state->max_output.width,
+		       crtc_state->max_output.height);
+		return -EINVAL;
+	}
 
 	act_info = (src_h - 1) << 16;
 	act_info |= (src_w - 1) & 0xffff;
@@ -817,6 +827,7 @@ static int rockchip_vop_send_mcu_cmd(struct display_state *state,
 }
 
 const struct rockchip_crtc_funcs rockchip_vop_funcs = {
+	.preinit = rockchip_vop_preinit,
 	.init = rockchip_vop_init,
 	.set_plane = rockchip_vop_set_plane,
 	.prepare = rockchip_vop_prepare,

@@ -16,6 +16,7 @@ struct rockchip_crtc {
 };
 
 struct rockchip_crtc_funcs {
+	int (*preinit)(struct display_state *state);
 	int (*init)(struct display_state *state);
 	void (*deinit)(struct display_state *state);
 	int (*set_plane)(struct display_state *state);

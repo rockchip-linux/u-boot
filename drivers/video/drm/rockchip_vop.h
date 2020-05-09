@@ -6,6 +6,7 @@
 
 #ifndef _ROCKCHIP_VOP_H_
 #define _ROCKCHIP_VOP_H_
+#include "rockchip_display.h"
 
 /*
  * major: IP major vertion, used for IP structure
@@ -426,11 +427,6 @@ struct vop_grf_ctrl {
 	struct vop_reg grf_dclk_inv;
 };
 
-struct vop_rect {
-	int width;
-	int height;
-};
-
 struct vop_csc_table {
 	const uint32_t *r2y_bt601;
 	const uint32_t *r2y_bt601_12_235;
@@ -477,7 +473,6 @@ struct vop {
 	const struct vop_csc_table *csc_table;
 	const struct vop_csc *win_csc;
 	int win_offset;
-	struct vop_rect max_output;
 };
 
 static inline void vop_writel(struct vop *vop, uint32_t offset, uint32_t v)
