@@ -285,6 +285,13 @@ static const struct vop_csc rk3399_win0_csc = {
 	.r2y_offset = RK3399_WIN0_YUV2YUV_R2Y,
 };
 
+static const struct vop_csc rk3399_win2_csc = {
+	.r2r_en = VOP_REG(RK3399_YUV2YUV_WIN, 0x1, 16),
+	.r2y_en = VOP_REG(RK3399_YUV2YUV_WIN, 0x1, 18),
+	.r2r_offset = RK3399_WIN2_YUV2YUV_3X3,
+
+};
+
 const struct vop_data rk3399_vop_big = {
 	.version = VOP_VERSION(3, 5),
 	.max_output = {4096, 2160},
@@ -304,7 +311,7 @@ const struct vop_data rk3399_vop_lit = {
 	.win = &rk3368_win23_data,
 	.line_flag = &rk3366_vop_line_flag,
 	.csc_table = &rk3399_csc_table,
-	.win_csc = &rk3399_win0_csc,
+	.win_csc = &rk3399_win2_csc,
 	.reg_len = RK3399_DSP_VACT_ST_END_F1 * 4,
 };
 
