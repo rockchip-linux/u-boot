@@ -177,6 +177,7 @@ static int rockchip_gpio_probe(struct udevice *dev)
 	struct rockchip_gpio_priv *priv = dev_get_priv(dev);
 	struct ofnode_phandle_args args;
 	char *end;
+	int pins_num;
 	int ret;
 
 	priv->regs = dev_read_addr_ptr(dev);
@@ -210,6 +211,9 @@ static int rockchip_gpio_probe(struct udevice *dev)
 	uc_priv->bank_name = priv->name;
 
 	priv->version = readl(priv->regs + VER_ID_V2);
+	pins_num = pinctrl_get_pins_count(priv->pinctrl);
+	if ((priv->bank + 1) * ROCKCHIP_GPIOS_PER_BANK >= pins_num)
+		uc_priv->gpio_count = pins_num - priv->bank * ROCKCHIP_GPIOS_PER_BANK;
 
 	return 0;
 }
