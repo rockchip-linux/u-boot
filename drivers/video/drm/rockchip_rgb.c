@@ -27,6 +27,9 @@
 #define RK1808_GRF_PD_VO_CON1		0x0444
 #define RK1808_RGB_DATA_SYNC_BYPASS(v)	HIWORD_UPDATE(v, 3, 3)
 
+#define RV1126_GRF_IOFUNC_CON3          0x1026c
+#define RV1126_LCDC_IO_BYPASS(v)        HIWORD_UPDATE(v, 0, 0)
+
 #define RK3288_GRF_SOC_CON6		0x025c
 #define RK3288_LVDS_LCDC_SEL(v)		HIWORD_UPDATE(v,  3,  3)
 #define RK3288_GRF_SOC_CON7		0x0260
@@ -49,7 +52,7 @@ struct rockchip_rgb_funcs {
 struct rockchip_rgb {
 	struct udevice *dev;
 	struct regmap *grf;
-	bool data_sync;
+	bool data_sync_bypass;
 	struct rockchip_phy *phy;
 	const struct rockchip_rgb_funcs *funcs;
 };
@@ -151,15 +154,30 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	rgb->dev = dev;
 	rgb->funcs = connector->data;
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
-	rgb->data_sync = dev_read_bool(dev, "rockchip,data-sync");
+	rgb->data_sync_bypass = dev_read_bool(dev, "rockchip,data-sync-bypass");
 
 	return 0;
 }
 
+static void rv1126_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+{
+	regmap_write(rgb->grf, RV1126_GRF_IOFUNC_CON3,
+		     RV1126_LCDC_IO_BYPASS(rgb->data_sync_bypass));
+}
+
+static const struct rockchip_rgb_funcs rv1126_rgb_funcs = {
+	.prepare = rv1126_rgb_prepare,
+};
+
+static const struct rockchip_connector rv1126_rgb_driver_data = {
+	 .funcs = &rockchip_rgb_connector_funcs,
+	 .data = &rv1126_rgb_funcs,
+};
+
 static void px30_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, PX30_GRF_PD_VO_CON1, PX30_RGB_VOP_SEL(pipe) |
-		     PX30_RGB_DATA_SYNC_BYPASS(!rgb->data_sync));
+		     PX30_RGB_DATA_SYNC_BYPASS(rgb->data_sync_bypass));
 }
 
 static const struct rockchip_rgb_funcs px30_rgb_funcs = {
@@ -174,7 +192,7 @@ static const struct rockchip_connector px30_rgb_driver_data = {
 static void rk1808_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RK1808_GRF_PD_VO_CON1,
-		     RK1808_RGB_DATA_SYNC_BYPASS(!rgb->data_sync));
+		     RK1808_RGB_DATA_SYNC_BYPASS(rgb->data_sync_bypass));
 }
 
 static const struct rockchip_rgb_funcs rk1808_rgb_funcs = {
@@ -262,6 +280,10 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 	{
 		.compatible = "rockchip,rv1108-rgb",
 		.data = (ulong)&rockchip_rgb_driver_data,
+	},
+	{
+		.compatible = "rockchip,rv1126-rgb",
+		.data = (ulong)&rv1126_rgb_driver_data,
 	},
 	{}
 };
