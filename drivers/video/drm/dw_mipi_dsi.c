@@ -1112,7 +1112,12 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 		struct udevice *dev;
 		int ret;
 
-		ret = uclass_get_device_by_name(UCLASS_DISPLAY, "dsi@ff968000",
+		ret = uclass_get_device_by_name(UCLASS_DISPLAY,
+#if defined(CONFIG_ROCKCHIP_RK3288)
+						"dsi@ff964000",
+#else
+						"dsi@ff968000",
+#endif
 						&dev);
 		if (ret)
 			return ret;
