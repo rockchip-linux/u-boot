@@ -723,6 +723,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 
 	rockchip_vop_setup_csc_table(state);
 	VOP_WIN_SET(vop, enable, 1);
+	VOP_WIN_SET(vop, gate, 1);
 	vop_cfg_done(vop);
 
 	return 0;
