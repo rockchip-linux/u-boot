@@ -24,6 +24,14 @@ config DRM_ROCKCHIP_DW_HDMI
 	 for the Synopsys DesignWare HDMI driver. If you want to
 	 enable HDMI on, you should selet this option.
 
+config DRM_ROCKCHIP_INNO_HDMI
+	bool "Rockchip specific extensions for INNO HDMI"
+	depends on DRM_ROCKCHIP
+	help
+	 This selects support for Rockchip SoC specific extensions
+	 for the Synopsys DesignWare HDMI driver. If you want to
+	 enable HDMI on, you should selet this option.
+
 config ROCKCHIP_INNO_HDMI_PHY
 	bool "Rockchip specific extensions for INNO HDMI PHY"
 	depends on DRM_ROCKCHIP
