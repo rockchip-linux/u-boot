@@ -1404,9 +1404,6 @@ enum {
 	FAST_MODE
 };
 
-void drm_mode_sort(struct hdmi_edid_data *edid_data);
-int drm_mode_prune_invalid(struct hdmi_edid_data *edid_data);
-void drm_rk_filter_whitelist(struct hdmi_edid_data *edid_data);
 void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 			  unsigned int *bus_format,
 			  struct overscan *overscan,
