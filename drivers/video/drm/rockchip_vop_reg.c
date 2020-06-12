@@ -416,27 +416,14 @@ const struct vop_data rk3328_vop = {
 	.reg_len = RK3328_DSP_VACT_ST_END_F1 * 4,
 };
 
-static const struct vop_scl_regs rk3036_win_scl = {
-	.scale_yrgb_x = VOP_REG(RK3036_WIN0_SCL_FACTOR_YRGB, 0xffff, 0x0),
-	.scale_yrgb_y = VOP_REG(RK3036_WIN0_SCL_FACTOR_YRGB, 0xffff, 16),
-	.scale_cbcr_x = VOP_REG(RK3036_WIN0_SCL_FACTOR_CBR, 0xffff, 0x0),
-	.scale_cbcr_y = VOP_REG(RK3036_WIN0_SCL_FACTOR_CBR, 0xffff, 16),
-};
-
-static const struct vop_win rk3036_win0_data = {
-	.scl = &rk3036_win_scl,
-	.enable = VOP_REG(RK3036_SYS_CTRL, 0x1, 0),
-	.format = VOP_REG(RK3036_SYS_CTRL, 0x7, 3),
-	.rb_swap = VOP_REG(RK3036_SYS_CTRL, 0x1, 15),
-	.act_info = VOP_REG(RK3036_WIN0_ACT_INFO, 0x1fff1fff, 0),
-	.dsp_info = VOP_REG(RK3036_WIN0_DSP_INFO, 0x0fff0fff, 0),
-	.dsp_st = VOP_REG(RK3036_WIN0_DSP_ST, 0x1fff1fff, 0),
-	.yrgb_mst = VOP_REG(RK3036_WIN0_YRGB_MST, 0xffffffff, 0),
-	.uv_mst = VOP_REG(RK3036_WIN0_CBR_MST, 0xffffffff, 0),
-	.yrgb_vir = VOP_REG(RK3036_WIN0_VIR, 0xffff, 0),
-	.uv_vir = VOP_REG(RK3036_WIN0_VIR, 0x1fff, 16),
-	.alpha_mode = VOP_REG(RK3036_DSP_CTRL0, 0x1, 18),
-	.alpha_en = VOP_REG(RK3036_ALPHA_CTRL, 0x1, 0)
+static const struct vop_win rk3126_win1_data = {
+	.enable = VOP_REG(RK3036_SYS_CTRL, 0x1, 1),
+	.format = VOP_REG(RK3036_SYS_CTRL, 0x7, 6),
+	.rb_swap = VOP_REG(RK3036_SYS_CTRL, 0x1, 19),
+	.dsp_info = VOP_REG(RK3126_WIN1_DSP_INFO, 0x0fff0fff, 0),
+	.dsp_st = VOP_REG(RK3126_WIN1_DSP_ST, 0x1fff1fff, 0),
+	.yrgb_mst = VOP_REG(RK3126_WIN1_MST, 0xffffffff, 0),
+	.yrgb_vir = VOP_REG(RK3036_WIN1_VIR, 0xffff, 0),
 };
 
 static const struct vop_ctrl rk3036_ctrl_data = {
@@ -471,7 +458,7 @@ const struct vop_data rk3036_vop = {
 	.version = VOP_VERSION(2, 2),
 	.max_output = {1920, 1080},
 	.ctrl = &rk3036_ctrl_data,
-	.win = &rk3036_win0_data,
+	.win = &rk3126_win1_data,
 	.line_flag = &rk3036_vop_line_flag,
 	.reg_len = RK3036_DSP_VACT_ST_END_F1 * 4,
 };

@@ -876,6 +876,12 @@
 #define RK3036_HWC_LUT_ADDR		0x800
 /* rk3036 register definition end */
 
+/* rk3126 register definition */
+#define RK3126_WIN1_MST				0x0004c
+#define RK3126_WIN1_DSP_INFO			0x00050
+#define RK3126_WIN1_DSP_ST			0x00054
+/* rk3126 register definition end */
+
 /* rk3366 register definition */
 #define RK3366_LIT_REG_CFG_DONE			0x00000
 #define RK3366_LIT_VERSION			0x00004
