@@ -817,7 +817,6 @@ static int display_logo(struct display_state *state)
 		printf("can't support bmp bits[%d]\n", logo->bpp);
 		return -EINVAL;
 	}
-	crtc_state->rb_swap = logo->bpp != 32;
 	hdisplay = conn_state->mode.hdisplay;
 	vdisplay = conn_state->mode.vdisplay;
 	crtc_state->src_w = logo->width;

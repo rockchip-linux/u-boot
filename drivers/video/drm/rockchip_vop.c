@@ -678,13 +678,9 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	dsp_sty = crtc_y + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
 	/*
-	 * win module base on rk3366 need to treats rgb888 as bgr888
-	 * so we reverse the rb swap to workaround
+	 * vop full need to treats rgb888 as bgr888 so we reverse the rb swap to workaround
 	 */
-	if (crtc_state->format == ROCKCHIP_FMT_RGB888 &&
-	    VOP_MAJOR(vop_data->version) == 2 &&
-	    ((VOP_MINOR(vop_data->version) >= 5) &&
-	     (VOP_MINOR(vop_data->version) <= 8)))
+	if (crtc_state->format == ROCKCHIP_FMT_RGB888 && VOP_MAJOR(vop_data->version) == 3)
 		crtc_state->rb_swap = !crtc_state->rb_swap;
 
 	if (mode->flags & DRM_MODE_FLAG_YMIRROR)
