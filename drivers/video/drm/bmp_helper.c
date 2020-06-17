@@ -180,9 +180,9 @@ int bmpdecoder(void *bmp_addr, void *pdst, int dst_bpp)
 
 		/* Set color map */
 		for (i = 0; i < 256; i++) {
-			ushort colreg = ((cmap_base[0] << 8) & 0xf800) |
+			ushort colreg = ((cmap_base[2] << 8) & 0xf800) |
 					((cmap_base[1] << 3) & 0x07e0) |
-					((cmap_base[2] >> 3) & 0x001f) ;
+					((cmap_base[0] >> 3) & 0x001f) ;
 			cmap_base += 4;
 			cmap[i] = colreg;
 		}
