@@ -145,7 +145,7 @@ static int inno_video_phy_power_on(struct rockchip_phy *phy)
 
 	phy_update_bits(inno, 0x0030, DISABLE_PLL, 0);
 	ret = readl_poll_timeout(inno->base + 0x003c, status,
-				 status & PLL_LOCK, 10000);
+				 status & PLL_LOCK, 100000);
 	if (ret) {
 		dev_err(phy->dev, "PLL is not lock\n");
 		return ret;
