@@ -196,7 +196,7 @@
 #define FEEDBACK_DIV_LO(x)		UPDATE(x, 4, 0)
 #define FEEDBACK_DIV_HI(x)		(BIT(7) | UPDATE(x, 3, 0))
 
-#define GRF_REG_FIELD(reg, lsb, msb)	((reg << 16) | (lsb << 8) | (msb))
+#define GRF_REG_FIELD(reg, lsb, msb)	(((reg) << 10) | ((lsb) << 5) | (msb))
 
 enum grf_reg_fields {
 	DPIUPDATECFG,
@@ -280,9 +280,9 @@ static void grf_field_write(struct dw_mipi_dsi *dsi, enum grf_reg_fields index,
 	if (!field)
 		return;
 
-	reg = (field >> 16) & 0xffff;
-	lsb = (field >>  8) & 0xff;
-	msb = (field >>  0) & 0xff;
+	reg = (field >> 10) & 0x3ffff;
+	lsb = (field >>  5) & 0x1f;
+	msb = (field >>  0) & 0x1f;
 
 	rk_clrsetreg(dsi->grf + reg, GENMASK(msb, lsb), val << lsb);
 }
@@ -1500,6 +1500,25 @@ static const struct rockchip_connector rv1108_mipi_dsi_driver_data = {
 	 .data = &rv1108_mipi_dsi_plat_data,
 };
 
+static const u32 rv1126_dsi_grf_reg_fields[MAX_FIELDS] = {
+	[DPIUPDATECFG]		= GRF_REG_FIELD(0x0008,  5,  5),
+	[DPISHUTDN]		= GRF_REG_FIELD(0x0008,  4,  4),
+	[DPICOLORM]		= GRF_REG_FIELD(0x0008,  3,  3),
+	[FORCETXSTOPMODE]	= GRF_REG_FIELD(0x10220,  4,  7),
+	[TURNDISABLE]		= GRF_REG_FIELD(0x10220,  2,  2),
+	[FORCERXMODE]		= GRF_REG_FIELD(0x10220,  0,  0),
+};
+
+static const struct dw_mipi_dsi_plat_data rv1126_mipi_dsi_plat_data = {
+	.dsi0_grf_reg_fields = rv1126_dsi_grf_reg_fields,
+	.max_bit_rate_per_lane = 1000000000UL,
+};
+
+static const struct rockchip_connector rv1126_mipi_dsi_driver_data = {
+	 .funcs = &dw_mipi_dsi_connector_funcs,
+	 .data = &rv1126_mipi_dsi_plat_data,
+};
+
 static const struct udevice_id dw_mipi_dsi_ids[] = {
 	{
 		.compatible = "rockchip,px30-mipi-dsi",
@@ -1532,6 +1551,10 @@ static const struct udevice_id dw_mipi_dsi_ids[] = {
 	{
 		.compatible = "rockchip,rv1108-mipi-dsi",
 		.data = (ulong)&rv1108_mipi_dsi_driver_data,
+	},
+	{
+		.compatible = "rockchip,rv1126-mipi-dsi",
+		.data = (ulong)&rv1126_mipi_dsi_driver_data,
 	},
 	{}
 };
