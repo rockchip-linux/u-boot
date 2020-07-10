@@ -503,31 +503,17 @@ static int display_get_timing(struct display_state *state)
 	if (dev_of_valid(panel->dev) &&
 	    !display_get_timing_from_dts(panel_state, mode)) {
 		printf("Using display timing dts\n");
-		goto done;
+		return 0;
 	}
 
 	if (panel->data) {
 		m = (const struct drm_display_mode *)panel->data;
 		memcpy(mode, m, sizeof(*m));
 		printf("Using display timing from compatible panel driver\n");
-		goto done;
+		return 0;
 	}
 
-	printf("failed to find display timing\n");
 	return -ENODEV;
-done:
-	printf("Detailed mode clock %u kHz, flags[%x]\n"
-	       "    H: %04d %04d %04d %04d\n"
-	       "    V: %04d %04d %04d %04d\n"
-	       "bus_format: %x\n",
-	       mode->clock, mode->flags,
-	       mode->hdisplay, mode->hsync_start,
-	       mode->hsync_end, mode->htotal,
-	       mode->vdisplay, mode->vsync_start,
-	       mode->vsync_end, mode->vtotal,
-	       conn_state->bus_format);
-
-	return 0;
 }
 
 static int display_init(struct display_state *state)
@@ -614,6 +600,20 @@ static int display_init(struct display_state *state)
 
 	if (panel_state->panel) {
 		ret = display_get_timing(state);
+#if defined(CONFIG_I2C_EDID)
+		if (ret < 0 && conn_funcs->get_edid) {
+			rockchip_panel_prepare(panel_state->panel);
+
+			ret = conn_funcs->get_edid(state);
+			if (!ret) {
+				ret = edid_get_drm_mode((void *)&conn_state->edid,
+							sizeof(conn_state->edid),
+							mode, &bpc);
+				if (!ret)
+					edid_print_info((void *)&conn_state->edid);
+			}
+		}
+#endif
 	} else if (conn_state->bridge) {
 		ret = video_bridge_read_edid(conn_state->bridge->dev,
 					     conn_state->edid, EDID_SIZE);
@@ -644,6 +644,17 @@ static int display_init(struct display_state *state)
 
 	if (ret)
 		goto deinit;
+
+	printf("Detailed mode clock %u kHz, flags[%x]\n"
+	       "    H: %04d %04d %04d %04d\n"
+	       "    V: %04d %04d %04d %04d\n"
+	       "bus_format: %x\n",
+	       mode->clock, mode->flags,
+	       mode->hdisplay, mode->hsync_start,
+	       mode->hsync_end, mode->htotal,
+	       mode->vdisplay, mode->vsync_start,
+	       mode->vsync_end, mode->vtotal,
+	       conn_state->bus_format);
 
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V);
 
