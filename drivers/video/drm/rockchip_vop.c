@@ -660,11 +660,9 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	int xvir = crtc_state->xvir;
 	int x_mirror = 0, y_mirror = 0;
 
-	if ((crtc_w > crtc_state->max_output.width) ||
-	    (crtc_h > crtc_state->max_output.height)){
-		printf("Maximum destination %dx%d exceeded\n",
-		       crtc_state->max_output.width,
-		       crtc_state->max_output.height);
+	if (crtc_w > crtc_state->max_output.width) {
+		printf("ERROR: output w[%d] exceeded max width[%d]\n",
+		       crtc_w, crtc_state->max_output.width);
 		return -EINVAL;
 	}
 
