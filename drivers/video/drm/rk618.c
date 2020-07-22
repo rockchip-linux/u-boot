@@ -103,7 +103,7 @@ static int rk618_power_on(struct rk618 *rk618)
 static void rk618_cru_init(struct rk618 *rk618)
 {
 	rk618_i2c_write(rk618, 0x0058, 0xffff0000);
-	rk618_i2c_write(rk618, 0x005c, 0xffff1d1e);
+	rk618_i2c_write(rk618, 0x005c, 0xffff191e);
 	rk618_i2c_write(rk618, 0x0060, 0x00000000);
 	rk618_i2c_write(rk618, 0x0064, 0xffff2186);
 	rk618_i2c_write(rk618, 0x0068, 0xffff1028);
