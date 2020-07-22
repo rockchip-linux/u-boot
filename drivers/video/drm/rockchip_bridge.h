@@ -13,12 +13,15 @@
 
 struct display_state;
 struct rockchip_bridge;
+struct drm_display_mode;
 
 struct rockchip_bridge_funcs {
 	void (*enable)(struct rockchip_bridge *bridge);
 	void (*disable)(struct rockchip_bridge *bridge);
 	void (*pre_enable)(struct rockchip_bridge *bridge);
 	void (*post_disable)(struct rockchip_bridge *bridge);
+	void (*mode_set)(struct rockchip_bridge *bridge,
+			 const struct drm_display_mode *mode);
 };
 
 struct rockchip_bridge {
@@ -32,5 +35,7 @@ void rockchip_bridge_enable(struct rockchip_bridge *bridge);
 void rockchip_bridge_disable(struct rockchip_bridge *bridge);
 void rockchip_bridge_pre_enable(struct rockchip_bridge *bridge);
 void rockchip_bridge_post_disable(struct rockchip_bridge *bridge);
+void rockchip_bridge_mode_set(struct rockchip_bridge *bridge,
+			      const struct drm_display_mode *mode);
 
 #endif

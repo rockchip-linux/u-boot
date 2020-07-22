@@ -666,6 +666,9 @@ static int display_init(struct display_state *state)
 
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V);
 
+	if (conn_state->bridge)
+		rockchip_bridge_mode_set(conn_state->bridge, &conn_state->mode);
+
 	if (crtc_funcs->init) {
 		ret = crtc_funcs->init(state);
 		if (ret)
