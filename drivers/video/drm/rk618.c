@@ -149,7 +149,7 @@ static int rk618_probe(struct udevice *dev)
 		return ret;
 	}
 
-	ret = clk_set_rate(&rk618->clkin, 12000000);
+	ret = clk_set_rate(&rk618->clkin, 11289600);
 	if (ret < 0) {
 		dev_err(dev, "failed to set rate: %d\n", ret);
 		return ret;
