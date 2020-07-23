@@ -1456,7 +1456,7 @@ static int rockchip_display_probe(struct udevice *dev)
 	}
 
 	if (list_empty(&rockchip_display_list)) {
-		printf("Failed to found available display route\n");
+		debug("Failed to found available display route\n");
 		return -ENODEV;
 	}
 
