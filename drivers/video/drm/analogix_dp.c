@@ -20,7 +20,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_panel.h"
 #include "analogix_dp.h"
 
 /**
@@ -805,28 +804,10 @@ static int analogix_dp_connector_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct analogix_dp_device *dp = dev_get_priv(conn_state->dev);
-	struct video_info *video = &dp->video_info;
-	struct rockchip_panel *panel = state_get_panel(state);
 
 	conn_state->type = DRM_MODE_CONNECTOR_eDP;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
-
-	switch (panel->bpc) {
-	case 12:
-		video->color_depth = COLOR_12;
-		break;
-	case 10:
-		video->color_depth = COLOR_10;
-		break;
-	case 6:
-		video->color_depth = COLOR_6;
-		break;
-	case 8:
-	default:
-		video->color_depth = COLOR_8;
-		break;
-	}
 
 	/* eDP software reset request */
 	reset_assert(&dp->reset);
@@ -862,6 +843,7 @@ static int analogix_dp_connector_enable(struct display_state *state)
 	const struct rockchip_connector *connector = conn_state->connector;
 	const struct rockchip_dp_chip_data *pdata = connector->data;
 	struct analogix_dp_device *dp = dev_get_priv(conn_state->dev);
+	struct video_info *video = &dp->video_info;
 	u32 val;
 	int ret;
 
@@ -872,6 +854,22 @@ static int analogix_dp_connector_enable(struct display_state *state)
 			val = pdata->lcdsel_big;
 
 		writel(val, dp->grf + pdata->lcdsel_grf_reg);
+	}
+
+	switch (conn_state->bpc) {
+	case 12:
+		video->color_depth = COLOR_12;
+		break;
+	case 10:
+		video->color_depth = COLOR_10;
+		break;
+	case 6:
+		video->color_depth = COLOR_6;
+		break;
+	case 8:
+	default:
+		video->color_depth = COLOR_8;
+		break;
 	}
 
 	ret = analogix_dp_set_link_train(dp, dp->video_info.max_lane_count,

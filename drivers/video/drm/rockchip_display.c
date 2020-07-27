@@ -600,6 +600,8 @@ static int display_init(struct display_state *state)
 
 	if (panel_state->panel) {
 		ret = display_get_timing(state);
+		if (!ret)
+			conn_state->bpc = panel_state->panel->bpc;
 #if defined(CONFIG_I2C_EDID)
 		if (ret < 0 && conn_funcs->get_edid) {
 			rockchip_panel_prepare(panel_state->panel);
@@ -609,8 +611,10 @@ static int display_init(struct display_state *state)
 				ret = edid_get_drm_mode((void *)&conn_state->edid,
 							sizeof(conn_state->edid),
 							mode, &bpc);
-				if (!ret)
+				if (!ret) {
+					conn_state->bpc = bpc;
 					edid_print_info((void *)&conn_state->edid);
+				}
 			}
 		}
 #endif
@@ -621,8 +625,10 @@ static int display_init(struct display_state *state)
 #if defined(CONFIG_I2C_EDID)
 			ret = edid_get_drm_mode(conn_state->edid, ret, mode,
 						&bpc);
-			if (!ret)
+			if (!ret) {
+				conn_state->bpc = bpc;
 				edid_print_info((void *)&conn_state->edid);
+			}
 #endif
 		} else {
 			ret = video_bridge_get_timing(conn_state->bridge->dev);
@@ -636,8 +642,10 @@ static int display_init(struct display_state *state)
 			ret = edid_get_drm_mode((void *)&conn_state->edid,
 						sizeof(conn_state->edid), mode,
 						&bpc);
-			if (!ret)
+			if (!ret) {
+				conn_state->bpc = bpc;
 				edid_print_info((void *)&conn_state->edid);
+			}
 		}
 #endif
 	}
