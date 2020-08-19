@@ -83,6 +83,7 @@ static struct rockchip_pin_bank rk3036_pin_banks[] = {
 static struct rockchip_pin_ctrl rk3036_pin_ctrl = {
 	.pin_banks		= rk3036_pin_banks,
 	.nr_banks		= ARRAY_SIZE(rk3036_pin_banks),
+	.nr_pins		= 96,
 	.grf_mux_offset		= 0xa8,
 	.set_mux		= rk3036_set_mux,
 	.set_pull		= rk3036_set_pull,

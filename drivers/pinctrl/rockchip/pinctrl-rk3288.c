@@ -215,6 +215,7 @@ static struct rockchip_pin_bank rk3288_pin_banks[] = {
 static struct rockchip_pin_ctrl rk3288_pin_ctrl = {
 	.pin_banks		= rk3288_pin_banks,
 	.nr_banks		= ARRAY_SIZE(rk3288_pin_banks),
+	.nr_pins		= 264,
 	.grf_mux_offset		= 0x0,
 	.pmu_mux_offset		= 0x84,
 	.iomux_routes		= rk3288_mux_route_data,

@@ -10,6 +10,7 @@
 #include <syscon.h>
 #include <fdtdec.h>
 #include <linux/bitops.h>
+#include <linux/bug.h>
 #include <linux/libfdt.h>
 
 #include "pinctrl-rockchip.h"
@@ -532,6 +533,7 @@ static struct rockchip_pin_ctrl *rockchip_pinctrl_get_soc_data(struct udevice *d
 			(struct rockchip_pin_ctrl *)dev_get_driver_data(dev);
 	struct rockchip_pin_bank *bank;
 	int grf_offs, pmu_offs, drv_grf_offs, drv_pmu_offs, i, j;
+	u32 nr_pins;
 
 	grf_offs = ctrl->grf_mux_offset;
 	pmu_offs = ctrl->pmu_mux_offset;
@@ -539,12 +541,13 @@ static struct rockchip_pin_ctrl *rockchip_pinctrl_get_soc_data(struct udevice *d
 	drv_grf_offs = ctrl->grf_drv_offset;
 	bank = ctrl->pin_banks;
 
+	nr_pins = 0;
 	for (i = 0; i < ctrl->nr_banks; ++i, ++bank) {
 		int bank_pins = 0;
 
 		bank->priv = priv;
-		bank->pin_base = ctrl->nr_pins;
-		ctrl->nr_pins += bank->nr_pins;
+		bank->pin_base = nr_pins;
+		nr_pins += bank->nr_pins;
 
 		/* calculate iomux and drv offsets */
 		for (j = 0; j < 4; j++) {
@@ -552,7 +555,7 @@ static struct rockchip_pin_ctrl *rockchip_pinctrl_get_soc_data(struct udevice *d
 			struct rockchip_drv *drv = &bank->drv[j];
 			int inc;
 
-			if (bank_pins >= bank->nr_pins)
+			if (bank_pins >= nr_pins)
 				break;
 
 			/* preset iomux offset value, set new start value */
@@ -632,6 +635,8 @@ static struct rockchip_pin_ctrl *rockchip_pinctrl_get_soc_data(struct udevice *d
 			}
 		}
 	}
+
+	WARN_ON(nr_pins != ctrl->nr_pins);
 
 	return ctrl;
 }
