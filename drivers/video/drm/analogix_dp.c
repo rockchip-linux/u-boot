@@ -900,11 +900,20 @@ static int analogix_dp_connector_disable(struct display_state *state)
 	return 0;
 }
 
+static int analogix_dp_connector_detect(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct analogix_dp_device *dp = dev_get_priv(conn_state->dev);
+
+	return analogix_dp_detect(dp);
+}
+
 static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
 	.init = analogix_dp_connector_init,
 	.get_edid = analogix_dp_connector_get_edid,
 	.enable = analogix_dp_connector_enable,
 	.disable = analogix_dp_connector_disable,
+	.detect = analogix_dp_connector_detect,
 };
 
 static int analogix_dp_probe(struct udevice *dev)
@@ -932,6 +941,8 @@ static int analogix_dp_probe(struct udevice *dev)
 		dev_err(dev, "failed to get hpd GPIO: %d\n", ret);
 		return ret;
 	}
+
+	dp->force_hpd = dev_read_bool(dev, "force-hpd");
 
 	dp->plat_data.dev_type = ROCKCHIP_DP;
 	dp->plat_data.subdev_type = pdata->chip_type;

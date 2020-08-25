@@ -1075,6 +1075,7 @@ struct analogix_dp_device {
 	void *grf;
 	struct reset_ctl reset;
 	struct gpio_desc hpd_gpio;
+	bool force_hpd;
 	struct video_info	video_info;
 	struct link_train	link_train;
 	struct drm_display_mode *mode;
@@ -1105,7 +1106,7 @@ enum dp_irq_type analogix_dp_get_irq_type(struct analogix_dp_device *dp);
 void analogix_dp_clear_hotplug_interrupts(struct analogix_dp_device *dp);
 void analogix_dp_reset_aux(struct analogix_dp_device *dp);
 void analogix_dp_init_aux(struct analogix_dp_device *dp);
-int analogix_dp_get_plug_in_status(struct analogix_dp_device *dp);
+int analogix_dp_detect(struct analogix_dp_device *dp);
 void analogix_dp_enable_sw_function(struct analogix_dp_device *dp);
 int analogix_dp_start_aux_transaction(struct analogix_dp_device *dp);
 int analogix_dp_write_byte_to_dpcd(struct analogix_dp_device *dp,

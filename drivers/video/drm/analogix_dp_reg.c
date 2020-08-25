@@ -495,20 +495,21 @@ void analogix_dp_init_aux(struct analogix_dp_device *dp)
 	analogix_dp_write(dp, ANALOGIX_DP_FUNC_EN_2, reg);
 }
 
-int analogix_dp_get_plug_in_status(struct analogix_dp_device *dp)
+int analogix_dp_detect(struct analogix_dp_device *dp)
 {
 	u32 reg;
 
-	if (dm_gpio_is_valid(&dp->hpd_gpio)) {
-		if (dm_gpio_get_value(&dp->hpd_gpio))
-			return 0;
-	} else {
-		reg = analogix_dp_read(dp, ANALOGIX_DP_SYS_CTL_3);
-		if (reg & HPD_STATUS)
-			return 0;
-	}
+	if (dm_gpio_is_valid(&dp->hpd_gpio))
+		return dm_gpio_get_value(&dp->hpd_gpio);
 
-	return -EINVAL;
+	if (dp->force_hpd)
+		analogix_dp_force_hpd(dp);
+
+	reg = analogix_dp_read(dp, ANALOGIX_DP_SYS_CTL_3);
+	if (reg & HPD_STATUS)
+		return 1;
+
+	return 0;
 }
 
 void analogix_dp_enable_sw_function(struct analogix_dp_device *dp)
