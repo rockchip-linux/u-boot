@@ -1335,4 +1335,10 @@ config SPL_HIDE_LOGO_VERSION
       Enable this option to hide this information.
 endif
 
+config ROCKCHIP_EINK
+	bool "enable rockchip eink driver"
+	help
+	  Enable rockchip eink driver
+source "drivers/video/rk_eink/Kconfig"
+
 endmenu
