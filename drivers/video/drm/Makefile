@@ -5,7 +5,7 @@
 #
 
 obj-y += rockchip_display.o rockchip_crtc.o rockchip_phy.o rockchip_bridge.o \
-		rockchip_vop.o rockchip_vop_reg.o bmp_helper.o
+		rockchip_vop.o rockchip_vop_reg.o rockchip_vop2.o bmp_helper.o
 
 obj-$(CONFIG_DRM_MIPI_DSI) += drm_mipi_dsi.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI) += dw_mipi_dsi.o
