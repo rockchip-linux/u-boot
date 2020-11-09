@@ -158,6 +158,8 @@ static int rk_i2c_send_stop_bit(struct rk_i2c *i2c)
 
 static inline void rk_i2c_disable(struct rk_i2c *i2c)
 {
+	writel(0, &i2c->regs->ien);
+	writel(I2C_IPD_ALL_CLEAN, &i2c->regs->ipd);
 	writel(0, &i2c->regs->con);
 }
 
