@@ -703,28 +703,18 @@ static const struct rockchip_phy_funcs inno_mipi_dphy_funcs = {
 	.set_pll = inno_mipi_dphy_set_pll,
 };
 
-static struct rockchip_phy inno_mipi_dphy_driver_data = {
-	.funcs = &inno_mipi_dphy_funcs,
-	.soc_type = RV1108_MIPI_DPHY,
-};
-
-static struct rockchip_phy rk1808_inno_mipi_dphy_driver_data = {
-	 .funcs = &inno_mipi_dphy_funcs,
-	 .soc_type = RK1808_MIPI_DPHY,
-};
-
 static const struct udevice_id inno_mipi_dphy_ids[] = {
 	{
 		.compatible = "rockchip,rv1108-mipi-dphy",
-		.data = (ulong)&inno_mipi_dphy_driver_data,
 	},
 	{
 		.compatible = "rockchip,rk1808-mipi-dphy",
-		.data = (ulong)&rk1808_inno_mipi_dphy_driver_data,
 	},
 	{
 		.compatible = "rockchip,rv1126-mipi-dphy",
-		.data = (ulong)&rk1808_inno_mipi_dphy_driver_data,
+	},
+	{
+		.compatible = "rockchip,rk3568-mipi-dphy",
 	},
 	{}
 };
@@ -732,11 +722,22 @@ static const struct udevice_id inno_mipi_dphy_ids[] = {
 static int inno_mipi_dphy_probe(struct udevice *dev)
 {
 	struct inno_mipi_dphy *inno = dev_get_priv(dev);
-	struct rockchip_phy *phy =
-		(struct rockchip_phy *)dev_get_driver_data(dev);
+	struct rockchip_phy *phy;
 
+	phy = calloc(1, sizeof(*phy));
+	if (!phy)
+		return -ENOMEM;
+
+	dev->driver_data = (ulong)phy;
 	inno->dev = dev;
 	phy->dev = dev;
+	phy->funcs = &inno_mipi_dphy_funcs;
+
+#if defined(CONFIG_ROCKCHIP_RV1108)
+	phy->soc_type = RV1108_MIPI_DPHY;
+#else
+	phy->soc_type = RK1808_MIPI_DPHY;
+#endif
 
 	return 0;
 }
