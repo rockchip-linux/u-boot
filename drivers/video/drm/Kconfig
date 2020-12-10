@@ -11,6 +11,10 @@ menuconfig DRM_ROCKCHIP
 	  This driver supports the on-chip video output device, and targets the
 	  Rockchip RK3288 and RK3399.
 
+config DRM_DP_HELPER
+	bool
+	depends on DRM_ROCKCHIP
+
 config DRM_ROCKCHIP_PANEL
 	bool "Rockchip Panel Support"
 	depends on DRM_ROCKCHIP
@@ -80,6 +84,7 @@ config DRM_ROCKCHIP_ANALOGIX_DP
 	bool "Rockchip specific extensions for Analogix DP driver"
 	depends on DRM_ROCKCHIP
 	select DRM_ROCKCHIP_PANEL
+	select DRM_DP_HELPER
 	help
 	  This selects support for Rockchip SoC specific extensions
 	  for the Analogix Core DP driver. If you want to enable DP
