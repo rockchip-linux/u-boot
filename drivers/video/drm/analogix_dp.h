@@ -7,6 +7,7 @@
 #ifndef __DRM_ANALOGIX_DP_H__
 #define __DRM_ANALOGIX_DP_H__
 
+#include <generic-phy.h>
 #include <reset.h>
 
 #include <drm/drm_dp_helper.h>
@@ -515,6 +516,7 @@ struct link_train {
 	u8 link_rate;
 	u8 lane_count;
 	u8 training_lane[4];
+	bool ssc;
 
 	enum link_training_state lt_state;
 };
@@ -528,18 +530,20 @@ enum analogix_dp_sub_devtype {
 	RK3288_DP,
 	RK3368_EDP,
 	RK3399_EDP,
+	RK3568_EDP,
 };
 
 struct analogix_dp_plat_data {
 	enum analogix_dp_devtype dev_type;
 	enum analogix_dp_sub_devtype subdev_type;
+	bool ssc;
 };
 
 struct analogix_dp_device {
 	struct udevice *dev;
 	void *reg_base;
-	void *grf;
-	struct reset_ctl reset;
+	struct phy phy;
+	struct reset_ctl_bulk resets;
 	struct gpio_desc hpd_gpio;
 	bool force_hpd;
 	struct video_info	video_info;
@@ -628,5 +632,6 @@ int analogix_dp_is_video_stream_on(struct analogix_dp_device *dp);
 void analogix_dp_config_video_slave_mode(struct analogix_dp_device *dp);
 void analogix_dp_enable_scrambling(struct analogix_dp_device *dp);
 void analogix_dp_disable_scrambling(struct analogix_dp_device *dp);
+bool analogix_dp_ssc_supported(struct analogix_dp_device *dp);
 
 #endif /* __DRM_ANALOGIX_DP__ */
