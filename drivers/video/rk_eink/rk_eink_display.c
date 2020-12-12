@@ -110,7 +110,7 @@ static int read_vcom_from_vendor(void)
 	/* Read vcom value from vendor storage part */
 	ret = vendor_storage_read(EINK_VCOM_ID, vcom_str, (EINK_VCOM_MAX - 1));
 	if (ret > 0) {
-		snprintf(vcom_args, strlen(vcom_str) + 6, "vcom=%s", vcom_str);
+		snprintf(vcom_args, strlen(vcom_str) + 15, "ebc_pmic.vcom=%s", vcom_str);
 		printf("eink update bootargs: %s\n", vcom_args);
 		env_update("bootargs", vcom_args);
 	} else {
