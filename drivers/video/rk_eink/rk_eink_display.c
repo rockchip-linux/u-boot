@@ -472,9 +472,16 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	struct udevice *dev;
 
 	if (!eink_dev) {
-		ret = rk_eink_display_init();
-		if (ret) {
-			printf("Get ebc dev failed, check dts configs\n");
+		static bool first_init = true;
+
+		if (first_init) {
+			first_init = false;
+			ret = rk_eink_display_init();
+			if (ret) {
+				printf("Get ebc dev failed, check dts\n");
+				return -ENODEV;
+			}
+		} else {
 			return -ENODEV;
 		}
 	}
@@ -596,7 +603,7 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 	ret = uclass_get_device_by_phandle(UCLASS_EBC, dev,
 					   "ebc_tcon",
 					   &priv->ebc_tcon_dev);
-	if (ret && ret != -ENOENT) {
+	if (ret) {
 		dev_err(dev, "Cannot get ebc_tcon: %d\n", ret);
 		return ret;
 	}
@@ -604,7 +611,7 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 	ret = uclass_get_device_by_phandle(UCLASS_I2C_GENERIC, dev,
 					   "pmic",
 					   &priv->ebc_pwr_dev);
-	if (ret && ret != -ENOENT) {
+	if (ret) {
 		dev_err(dev, "Cannot get pmic: %d\n", ret);
 		return ret;
 	}
