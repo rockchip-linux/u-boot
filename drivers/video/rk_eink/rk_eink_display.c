@@ -174,6 +174,7 @@ static u32 aligned_image_size_4k(struct udevice *dev)
  * Every image logo size must be aligned in 4K, make sure
  * kernel can use it rightly, the buffer of LOGO image is
  * put in order of below map:
+ *  |---reset logo        ---|
  *  |---uboot logo        ---|
  *  |---kernel logo       ---|
  *  |---charge_0 logo   ---|
@@ -193,7 +194,7 @@ static int get_addr_by_type(struct udevice *dev, u32 logo_type)
 		printf("invalid display buffer, please check dts\n");
 		return -EINVAL;
 	}
-	indx = ffs(logo_type) - 1;
+	indx = ffs(logo_type);
 	img_size = aligned_image_size_4k(dev);
 	offset = img_size * indx;
 	if (offset + img_size > plat->disp_pbuf_size) {
@@ -202,6 +203,7 @@ static int get_addr_by_type(struct udevice *dev, u32 logo_type)
 	}
 
 	switch (logo_type) {
+	case EINK_LOGO_RESET:
 	case EINK_LOGO_UBOOT:
 	case EINK_LOGO_KERNEL:
 	case EINK_LOGO_CHARGING_0:
@@ -467,7 +469,6 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	u32 logo_addr;
 	u32 last_logo_addr;
 	struct ebc_panel *plat;
-	void *reset_disp_addr = NULL;
 	struct udevice *dev;
 
 	if (!eink_dev) {
@@ -493,17 +494,17 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 		return -1;
 	}
 	/*
-	 * The last_logo_type is 0 means it's first displaying
+	 * The last_logo_type is -1 means it's first displaying
 	 */
 	if (last_logo_type == -1) {
 		int size = (plat->width * plat->height) >> 1;
 
-		reset_disp_addr = memalign(ARCH_DMA_MINALIGN, size);
-		memset(reset_disp_addr, 0xff, size);
-		last_logo_addr = (u32)(u64)reset_disp_addr;
-		eink_display(dev, last_logo_addr, last_logo_addr,
+		logo_addr = get_addr_by_type(dev, EINK_LOGO_RESET);
+		memset((u32 *)(u64)logo_addr, 0xff, size);
+		eink_display(dev, logo_addr, logo_addr,
 			     WF_TYPE_RESET, 0);
 		last_logo_type = 0;
+		last_logo_addr = logo_addr;
 	} else {
 		last_logo_addr = get_addr_by_type(dev, last_logo_type);
 		if (last_logo_addr < 0) {
@@ -511,12 +512,9 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 			goto out;
 		}
 		if (cur_logo_type == EINK_LOGO_RESET) {
-			int size = (plat->width * plat->height) >> 1;
-
-			reset_disp_addr = memalign(ARCH_DMA_MINALIGN, size);
-			memset(reset_disp_addr, 0xff, size);
+			logo_addr = get_addr_by_type(dev, EINK_LOGO_RESET);
 			eink_display(dev, last_logo_addr,
-				     (u32)(u64)reset_disp_addr,
+				     logo_addr,
 				     WF_TYPE_GC16, update_mode);
 			last_logo_type = -1;
 			goto out;
@@ -570,8 +568,6 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	}
 
 out:
-	if (reset_disp_addr)
-		free(reset_disp_addr);
 	ret = ebc_power_set(dev, EBC_PWR_DOWN);
 	if (ret)
 		printf("Eink power down failed\n");
