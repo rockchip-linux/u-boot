@@ -2114,7 +2114,13 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 		/* HDMI Initialization Step F - Configure AVI InfoFrame */
 		hdmi_config_AVI(hdmi, mode);
 		hdmi_config_vendor_specific_infoframe(hdmi, mode);
+		hdmi_modb(hdmi, HDMI_A_HDCPCFG0_HDMIDVI_HDMI,
+			  HDMI_A_HDCPCFG0_HDMIDVI_MASK,
+			  HDMI_A_HDCPCFG0);
 	} else {
+		hdmi_modb(hdmi, HDMI_A_HDCPCFG0_HDMIDVI_DVI,
+			  HDMI_A_HDCPCFG0_HDMIDVI_MASK,
+			  HDMI_A_HDCPCFG0);
 		printf("%s DVI mode\n", __func__);
 	}
 
