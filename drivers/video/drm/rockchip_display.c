@@ -1332,8 +1332,9 @@ static int rockchip_display_probe(struct udevice *dev)
 	const char *name;
 	int ret;
 	ofnode node, route_node;
-	struct device_node *port_node, *vop_node, *ep_node;
+	struct device_node *port_node, *vop_node, *ep_node, *port_parent_node;
 	struct public_phy_data *data;
+	bool is_ports_node = false;
 
 	/* Before relocation we don't need to do anything */
 	if (!(gd->flags & GD_FLG_RELOC))
@@ -1370,11 +1371,24 @@ static int rockchip_display_probe(struct udevice *dev)
 			printf("Warn: can't find port node from phandle\n");
 			continue;
 		}
-		vop_node = of_get_parent(port_node);
-		if (!ofnode_valid(np_to_ofnode(vop_node))) {
-			printf("Warn: can't find crtc node from phandle\n");
+
+		port_parent_node = of_get_parent(port_node);
+		if (!ofnode_valid(np_to_ofnode(port_parent_node))) {
+			printf("Warn: can't find port parent node from phandle\n");
 			continue;
 		}
+
+		is_ports_node = strstr(port_parent_node->full_name, "ports") ? 1 : 0;
+		if (is_ports_node) {
+			vop_node = of_get_parent(port_parent_node);
+			if (!ofnode_valid(np_to_ofnode(vop_node))) {
+				printf("Warn: can't find crtc node from phandle\n");
+				continue;
+			}
+		} else {
+			vop_node = port_parent_node;
+		}
+
 		ret = uclass_get_device_by_ofnode(UCLASS_VIDEO_CRTC,
 						  np_to_ofnode(vop_node),
 						  &crtc_dev);
