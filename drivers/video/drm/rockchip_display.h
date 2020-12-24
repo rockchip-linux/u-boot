@@ -12,9 +12,6 @@
 #include <edid.h>
 #include <dm/ofnode.h>
 
-#define ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL	BIT(0)
-#define ROCKCHIP_OUTPUT_DSI_DUAL_LINK		BIT(1)
-
 #define ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE	BIT(0)
 #define ROCKCHIP_OUTPUT_DUAL_CHANNEL_ODD_EVEN_MODE	BIT(1)
 #define ROCKCHIP_OUTPUT_DATA_SWAP			BIT(2)
@@ -139,7 +136,6 @@ struct connector_state {
 	int bus_format;
 	int output_mode;
 	int type;
-	int output_type;
 	int output_if;
 	int output_flags;
 	int color_space;

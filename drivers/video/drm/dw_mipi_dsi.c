@@ -1109,7 +1109,7 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 		if (!dsi->master)
 			return -ENODEV;
 
-		conn_state->output_type = ROCKCHIP_OUTPUT_DSI_DUAL_LINK;
+		conn_state->output_flags = ROCKCHIP_OUTPUT_DATA_SWAP;
 	}
 #endif
 
@@ -1138,7 +1138,8 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 		dsi->slave->format = dsi->format;
 		dsi->slave->mode_flags = dsi->mode_flags;
 		dsi->slave->channel = dsi->channel;
-		conn_state->output_type = ROCKCHIP_OUTPUT_DSI_DUAL_CHANNEL;
+		conn_state->output_flags =
+				ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE;
 		conn_state->output_if |= VOP_OUTPUT_IF_MIPI1;
 
 #if defined(CONFIG_ROCKCHIP_RK3568)
