@@ -872,7 +872,6 @@ static int rockchip_vop2_init(struct display_state *state)
 					LVDS_DUAL_SWAP_EN_SHIFT, 1, false);
 	}
 
-	conn_state->output_if = VOP_OUTPUT_IF_MIPI0;
 	if (conn_state->output_if & VOP_OUTPUT_IF_MIPI0) {
 		//cstate->crtc_id = 0;
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, MIPI0_EN_SHIFT,
