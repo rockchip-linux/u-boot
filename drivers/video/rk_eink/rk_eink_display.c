@@ -281,8 +281,8 @@ static int read_grayscale(struct blk_desc *dev_desc,
  * u32 needed_logo: we only load needed logo image into ram, such as
  *                   uboot logo + kernel logo or charger logo + kernel
  *                   logo
- * u32 *real_logo: because the needed logo may not exist in logo.img,
- *                  so have really loaded logo in para loaded_logo.
+ * u32 *loaded_logo: because the needed logo may not exist in logo.img,
+ *                  store the really loaded logo in para loaded_logo.
  */
 static int read_needed_logo_from_partition(struct udevice *dev,
 					   u32 needed_logo,
@@ -295,6 +295,11 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 	struct logo_part_header *part_hdr = &hdr->part_hdr;
 	struct ebc_panel *panel = dev_get_platdata(dev);
 
+	if (*loaded_logo & needed_logo) {
+		printf("logo[0x%x] is already loaded, just return!\n",
+		       needed_logo);
+		return 0;
+	}
 	dev_desc = rockchip_get_bootdev();
 	if (!dev_desc) {
 		printf("%s: Could not find device\n", __func__);
@@ -317,7 +322,6 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 		return -EINVAL;
 	}
 
-	*loaded_logo = 0;
 	for (i = 0; i < part_hdr->logo_count; i++) {
 		struct grayscale_header *img_hdr = &hdr->img_hdr[i];
 		int pic_buf;
@@ -465,11 +469,11 @@ static int rk_eink_display_init(void)
 static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 {
 	int ret = 0;
-	u32 read_logo = 0;
 	u32 logo_addr;
 	u32 last_logo_addr;
 	struct ebc_panel *plat;
 	struct udevice *dev;
+	static u32 loaded_logo;
 
 	if (!eink_dev) {
 		static bool first_init = true;
@@ -528,9 +532,10 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 		}
 	}
 	ret = read_needed_logo_from_partition(dev, cur_logo_type,
-					      &read_logo);
-	if (ret || !(read_logo & cur_logo_type)) {
-		printf("read uboot logo failed, read_logo=%d\n", read_logo);
+					      &loaded_logo);
+	if (ret || !(loaded_logo & cur_logo_type)) {
+		printf("read logo[0x%x] failed, loaded_logo=0x%x\n",
+		       cur_logo_type, loaded_logo);
 		ret = -EIO;
 		goto out;
 	}
@@ -555,8 +560,8 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 		sprintf(logo_args, "ulogo_addr=0x%x", logo_addr);
 		env_update("bootargs", logo_args);
 		ret = read_needed_logo_from_partition(dev, EINK_LOGO_KERNEL,
-						      &read_logo);
-		if (ret || !(read_logo & EINK_LOGO_KERNEL)) {
+						      &loaded_logo);
+		if (ret || !(loaded_logo & EINK_LOGO_KERNEL)) {
 			printf("No invalid kernel logo in logo.img\n");
 		} else {
 			int klogo_addr = get_addr_by_type(dev,
