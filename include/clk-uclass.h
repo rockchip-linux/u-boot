@@ -63,6 +63,14 @@ struct clk_ops {
 	 */
 	int (*free)(struct clk *clock);
 	/**
+	 * round_rate() - Adjust a rate to the exact rate a clock can provide.
+	 *
+	 * @clk:	he clock to manipulate.
+	 * @rate:	Desired clock rate in Hz.
+	 * Return: rounded rate in Hz, or negative error code.
+	 */
+	ulong (*round_rate)(struct clk *clk, ulong rate);
+	/**
 	 * get_rate() - Get current clock rate.
 	 *
 	 * @clk:	The clock to query.

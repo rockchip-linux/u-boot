@@ -335,6 +335,21 @@ ulong clk_get_rate(struct clk *clk)
 	return ops->get_rate(clk);
 }
 
+ulong clk_round_rate(struct clk *clk, ulong rate)
+{
+	const struct clk_ops *ops;
+
+	debug("%s(clk=%p, rate=%lu)\n", __func__, clk, rate);
+	if (!clk_valid(clk))
+		return 0;
+
+	ops = clk_dev_ops(clk->dev);
+	if (!ops->round_rate)
+		return -ENOSYS;
+
+	return ops->round_rate(clk, rate);
+}
+
 ulong clk_set_rate(struct clk *clk, ulong rate)
 {
 	const struct clk_ops *ops = clk_dev_ops(clk->dev);

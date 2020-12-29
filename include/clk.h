@@ -237,6 +237,29 @@ int clk_free(struct clk *clk);
 ulong clk_get_rate(struct clk *clk);
 
 /**
+ * clk_round_rate() - Adjust a rate to the exact rate a clock can provide
+ *
+ * This answers the question "if I were to pass @rate to clk_set_rate(),
+ * what clock rate would I end up with?" without changing the hardware
+ * in any way.  In other words:
+ *
+ *   rate = clk_round_rate(clk, r);
+ *
+ * and:
+ *
+ *   rate = clk_set_rate(clk, r);
+ *
+ * are equivalent except the former does not modify the clock hardware
+ * in any way.
+ *
+ * @clk: A clock struct that was previously successfully requested by
+ *       clk_request/get_by_*().
+ * @rate: desired clock rate in Hz.
+ * Return: rounded rate in Hz, or negative error code.
+ */
+ulong clk_round_rate(struct clk *clk, ulong rate);
+
+/**
  * clk_set_rate() - Set current clock rate.
  *
  * @clk:	A clock struct that was previously successfully requested by
