@@ -35,6 +35,10 @@
 #define RK3328_GRF_SOC_CON3              0x040c
 #define RK3328_GRF_SOC_CON4              0x0410
 
+#define RK3568_GRF_VO_CON1               0x0364
+#define RK3568_HDMI_SDAIN_MSK            ((1 << 15) | (1 << (15 + 16)))
+#define RK3568_HDMI_SCLIN_MSK            ((1 << 14) | (1 << (14 + 16)))
+
 static const struct dw_hdmi_mpll_config rockchip_mpll_cfg[] = {
 	{
 		30666000, {
@@ -178,6 +182,7 @@ static const struct dw_hdmi_phy_config rockchip_phy_config[] = {
 	{ 165000000, 0x802b, 0x0004, 0x0209},
 	{ 297000000, 0x8039, 0x0005, 0x028d},
 	{ 594000000, 0x8039, 0x0000, 0x019d},
+	{ ~0UL,	     0x0000, 0x0000, 0x0000},
 	{ ~0UL,	     0x0000, 0x0000, 0x0000}
 };
 
@@ -423,6 +428,10 @@ void dw_hdmi_set_iomux(void *grf, int dev_type)
 		writel(RK3228_IO_3V_DOMAIN, grf + RK3228_GRF_SOC_CON6);
 		writel(RK3228_IO_DDC_IN_MSK, grf + RK3228_GRF_SOC_CON2);
 		break;
+	case RK3568_HDMI:
+		writel(RK3568_HDMI_SDAIN_MSK | RK3568_HDMI_SCLIN_MSK,
+		       grf + RK3568_GRF_VO_CON1);
+		break;
 	default:
 		break;
 	}
@@ -489,10 +498,25 @@ const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
 	.dev_type   = RK3399_HDMI,
 };
 
+const struct dw_hdmi_plat_data rk3568_hdmi_drv_data = {
+	.vop_sel_bit = 0,
+	.grf_vop_sel_reg = 0,
+	.mpll_cfg   = rockchip_mpll_cfg,
+	.cur_ctr    = rockchip_cur_ctr,
+	.phy_config = rockchip_phy_config,
+	.mpll_cfg_420 = rockchip_mpll_cfg_420,
+	.dev_type   = RK3568_HDMI,
+};
+
 static int rockchip_dw_hdmi_probe(struct udevice *dev)
 {
 	return 0;
 }
+
+static const struct rockchip_connector rk3568_dw_hdmi_data = {
+	.funcs = &rockchip_dw_hdmi_funcs,
+	.data = &rk3568_hdmi_drv_data,
+};
 
 static const struct rockchip_connector rk3399_dw_hdmi_data = {
 	.funcs = &rockchip_dw_hdmi_funcs,
@@ -521,6 +545,9 @@ static const struct rockchip_connector rk3228_dw_hdmi_data = {
 
 static const struct udevice_id rockchip_dw_hdmi_ids[] = {
 	{
+	 .compatible = "rockchip,rk3568-dw-hdmi",
+	 .data = (ulong)&rk3568_dw_hdmi_data,
+	}, {
 	 .compatible = "rockchip,rk3399-dw-hdmi",
 	 .data = (ulong)&rk3399_dw_hdmi_data,
 	}, {

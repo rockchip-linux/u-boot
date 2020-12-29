@@ -772,9 +772,6 @@ int hdmi_phy_configure_dwc_hdmi_3d_tx(struct dw_hdmi *hdmi,
 	dw_hdmi_phy_i2c_write(hdmi, phy_config->vlev_ctr,
 			      HDMI_3D_TX_PHY_VLEVCTRL);
 
-	/* Override and disable clock termination. */
-	dw_hdmi_phy_i2c_write(hdmi, HDMI_3D_TX_PHY_CKCALCTRL_OVERRIDE,
-			      HDMI_3D_TX_PHY_CKCALCTRL);
 	return 0;
 }
 
@@ -1525,12 +1522,6 @@ static void hdmi_video_sample(struct dw_hdmi *hdmi)
 	hdmi_writeb(hdmi, 0x0, HDMI_TX_BCBDATA1);
 }
 
-static void hdmi_enable_overflow_interrupts(struct dw_hdmi *hdmi)
-{
-	hdmi_writeb(hdmi, 0, HDMI_FC_MASK2);
-	hdmi_writeb(hdmi, 0, HDMI_IH_MUTE_FC_STAT2);
-}
-
 static void dw_hdmi_disable(struct dw_hdmi *hdmi, struct display_state *state)
 {
 	if (hdmi->phy.enabled) {
@@ -2048,10 +2039,10 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 	if (hdmi->plat_data->get_enc_out_encoding)
 		hdmi->hdmi_data.enc_out_encoding =
 			hdmi->plat_data->get_enc_out_encoding(data);
-	else if ((hdmi->vic == 6) || (hdmi->vic == 7) ||
-		 (hdmi->vic == 21) || (hdmi->vic == 22) ||
-		 (hdmi->vic == 2) || (hdmi->vic == 3) ||
-		 (hdmi->vic == 17) || (hdmi->vic == 18))
+	else if (hdmi->vic == 6 || hdmi->vic == 7 ||
+		 hdmi->vic == 21 || hdmi->vic == 22 ||
+		 hdmi->vic == 2 || hdmi->vic == 3 ||
+		 hdmi->vic == 17 || hdmi->vic == 18)
 		hdmi->hdmi_data.enc_out_encoding = V4L2_YCBCR_ENC_601;
 	else
 		hdmi->hdmi_data.enc_out_encoding = V4L2_YCBCR_ENC_709;
@@ -2129,8 +2120,6 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 	hdmi_video_sample(hdmi);
 	hdmi_tx_hdcp_config(hdmi, mode);
 	dw_hdmi_clear_overflow(hdmi);
-	if (hdmi->cable_plugin && hdmi->sink_is_hdmi)
-		hdmi_enable_overflow_interrupts(hdmi);
 
 	return 0;
 }
@@ -2163,6 +2152,9 @@ static int dw_hdmi_set_reg_wr(struct dw_hdmi *hdmi)
 static void initialize_hdmi_mutes(struct dw_hdmi *hdmi)
 {
 	/*mute unnecessary interrupt, only enable hpd */
+	hdmi_writeb(hdmi, 0xff, HDMI_FC_MASK0);
+	hdmi_writeb(hdmi, 0xff, HDMI_FC_MASK1);
+	hdmi_writeb(hdmi, 0xff, HDMI_FC_MASK2);
 	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_FC_STAT0);
 	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_FC_STAT1);
 	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_FC_STAT2);
@@ -2338,6 +2330,7 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 
 	dw_hdmi_i2c_init(hdmi);
 	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
+	conn_state->output_if |= VOP_OUTPUT_IF_HDMI0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 
 	hdmi->dev_type = pdata->dev_type;
@@ -2405,6 +2398,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 	struct dw_hdmi *hdmi = conn_state->private;
 	struct edid *edid = (struct edid *)conn_state->edid;
 	unsigned int bus_format;
+	unsigned long enc_out_encoding;
 	struct overscan *overscan = &conn_state->overscan;
 	const u8 def_modes_vic[6] = {4, 16, 2, 17, 31, 19};
 
@@ -2412,6 +2406,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 		return -EFAULT;
 
 	ret = drm_do_get_edid(&hdmi->adap, conn_state->edid);
+
 	if (!ret) {
 		hdmi->sink_is_hdmi =
 			drm_detect_hdmi_monitor(edid);
@@ -2468,6 +2463,23 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV420;
 		break;
 	}
+
+	if (hdmi->vic == 6 || hdmi->vic == 7 || hdmi->vic == 21 ||
+	    hdmi->vic == 22 || hdmi->vic == 2 || hdmi->vic == 3 ||
+	    hdmi->vic == 17 || hdmi->vic == 18)
+		enc_out_encoding = V4L2_YCBCR_ENC_601;
+	else
+		enc_out_encoding = V4L2_YCBCR_ENC_709;
+
+	if (enc_out_encoding == V4L2_YCBCR_ENC_BT2020)
+		conn_state->color_space = V4L2_COLORSPACE_BT2020;
+	else if (bus_format == MEDIA_BUS_FMT_RGB888_1X24 ||
+		 bus_format == MEDIA_BUS_FMT_RGB101010_1X30)
+		conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	else if (enc_out_encoding == V4L2_YCBCR_ENC_709)
+		conn_state->color_space = V4L2_COLORSPACE_REC709;
+	else
+		conn_state->color_space = V4L2_COLORSPACE_SMPTE170M;
 
 	return 0;
 }
