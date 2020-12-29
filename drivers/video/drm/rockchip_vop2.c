@@ -62,6 +62,8 @@
 #define IF_CRTL_MIPI_DCLK_POL_SHIT		19
 #define IF_CRTL_EDP_DCLK_POL_SHIT		15
 #define IF_CRTL_HDMI_DCLK_POL_SHIT		7
+#define IF_CRTL_HDMI_PIN_POL_MASK		0x7
+#define IF_CRTL_HDMI_PIN_POL_SHIT		4
 #define IF_CRTL_RGB_LVDS_DCLK_POL_SHIT		3
 #define RK3568_VP0_LINE_FLAG			0x70
 #define RK3568_VP1_LINE_FLAG			0x74
@@ -86,14 +88,20 @@
 #define RK3568_VP0_DSP_CTRL				0xC00
 #define OUT_MODE_MASK					0xf
 #define OUT_MODE_SHIFT					0
-#define DCLK_DIV2_EN_SHIFT				4
+#define DATA_SWAP_MASK					0x1f
+#define DATA_SWAP_SHIFT					8
+#define DSP_RB_SWAP					2
+#define CORE_DCLK_DIV_EN_SHIFT				4
 #define P2I_EN_SHIFT					5
 #define INTERLACE_EN_SHIFT				7
+#define POST_DSP_OUT_R2Y_SHIFT				15
 #define PRE_DITHER_DOWN_EN_SHIFT			16
 #define DITHER_DOWN_EN_SHIFT				17
 #define STANDBY_EN_SHIFT				31
 
 #define RK3568_VP0_MIPI_CTRL				0xC04
+#define DCLK_DIV2_SHIFT					4
+#define DCLK_DIV2_MASK					0x3
 #define MIPI_DUAL_EN_SHIFT				20
 #define MIPI_DUAL_SWAP_EN_SHIFT				21
 
@@ -253,10 +261,14 @@
 
 /* Esmart register definition */
 #define RK3568_ESMART0_CTRL0			0x1800
+#define RGB2YUV_EN_SHIFT			1
+#define CSC_MODE_SHIFT				2
+#define CSC_MODE_MASK				0x3
 
 #define RK3568_ESMART0_CTRL1			0x1804
 #define YMIRROR_EN_SHIFT			31
 #define RK3568_ESMART0_REGION0_CTRL		0x1810
+#define REGION0_RB_SWAP_SHIFT			14
 #define WIN_EN_SHIFT				0
 #define WIN_FORMAT_MASK				0x1f
 #define WIN_FORMAT_SHIFT			1
@@ -451,6 +463,20 @@
 #define VOP2_LAYER_MAX				8
 #define VOP2_MAX_VP				4
 
+enum vop2_csc_format {
+	CSC_BT601L,
+	CSC_BT709L,
+	CSC_BT601F,
+	CSC_BT2020,
+};
+
+enum vop2_pol {
+	HSYNC_POSITIVE = 0,
+	VSYNC_POSITIVE = 1,
+	DEN_NEGATIVE   = 2,
+	DCLK_INVERT    = 3
+};
+
 #define _VOP_REG(off, _mask, _shift, _write_mask) \
 		{ \
 		 .offset = off, \
@@ -593,6 +619,26 @@ static bool is_yuv_output(uint32_t bus_format)
 		return true;
 	default:
 		return false;
+	}
+}
+
+static int vop2_convert_csc_mode(int csc_mode)
+{
+	switch (csc_mode) {
+	case V4L2_COLORSPACE_SMPTE170M:
+	case V4L2_COLORSPACE_470_SYSTEM_M:
+	case V4L2_COLORSPACE_470_SYSTEM_BG:
+		return CSC_BT601L;
+	case V4L2_COLORSPACE_REC709:
+	case V4L2_COLORSPACE_SMPTE240M:
+	case V4L2_COLORSPACE_DEFAULT:
+		return CSC_BT709L;
+	case V4L2_COLORSPACE_JPEG:
+		return CSC_BT601F;
+	case V4L2_COLORSPACE_BT2020:
+		return CSC_BT2020;
+	default:
+		return CSC_BT709L;
 	}
 }
 
@@ -817,6 +863,8 @@ static int rockchip_vop2_init(struct display_state *state)
 	vop2_initial(vop2, state);
 
 	dclk_inv = (mode->flags & DRM_MODE_FLAG_PPIXDATA) ? 0 : 1;
+	val = (mode->flags & DRM_MODE_FLAG_NHSYNC) ? 0 : BIT(HSYNC_POSITIVE);
+	val |= (mode->flags & DRM_MODE_FLAG_NVSYNC) ? 0 : BIT(VSYNC_POSITIVE);
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_RGB) {
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RGB_EN_SHIFT,
@@ -913,7 +961,22 @@ static int rockchip_vop2_init(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				HDMI0_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
+				IF_CRTL_HDMI_DCLK_POL_SHIT, 1, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL,
+				IF_CRTL_HDMI_PIN_POL_MASK,
+				IF_CRTL_HDMI_PIN_POL_SHIT, val, false);
 	}
+
+	if (is_uv_swap(conn_state->bus_format, conn_state->output_mode))
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
+				DATA_SWAP_MASK, DATA_SWAP_SHIFT, DSP_RB_SWAP,
+				false);
+	else
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
+				DATA_SWAP_MASK, DATA_SWAP_SHIFT, 0,
+				false);
+
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, OUT_MODE_MASK,
 			OUT_MODE_SHIFT, conn_state->output_mode, false);
 
@@ -991,7 +1054,23 @@ static int rockchip_vop2_init(struct display_state *state)
 		    (vtotal << 16) | vsync_len);
 	val = ! !(mode->flags & DRM_MODE_FLAG_DBLCLK);
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-			DCLK_DIV2_EN_SHIFT, val, false);
+			CORE_DCLK_DIV_EN_SHIFT, val, false);
+
+	if (conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420)
+		vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, DCLK_DIV2_MASK,
+				DCLK_DIV2_SHIFT, 0x3, false);
+	else
+		vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, DCLK_DIV2_MASK,
+				DCLK_DIV2_SHIFT, 0, false);
+
+	if (yuv_overlay)
+		val = 0x20010200;
+	else
+		val = 0;
+	vop2_writel(vop2, RK3568_VP0_DSP_BG + vp_offset, val);
+
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+			POST_DSP_OUT_R2Y_SHIFT, yuv_overlay, false);
 
 	vop2_post_config(state, vop2);
 	vop2_setup_win_for_vp(state);
@@ -1073,6 +1152,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 	int crtc_h = cstate->crtc_h;
 	int xvir = cstate->xvir;
 	int y_mirror = 0;
+	int csc_mode;
 	uint32_t win_offset = cstate->crtc_id * 0x200;
 	uint32_t cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
 
@@ -1117,6 +1197,13 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 
 	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
 			WIN_EN_SHIFT, 1, false);
+
+	csc_mode = vop2_convert_csc_mode(conn_state->color_space);
+	vop2_mask_write(vop2, RK3568_ESMART0_CTRL0 + win_offset, EN_MASK,
+			RGB2YUV_EN_SHIFT,
+			is_yuv_output(conn_state->bus_format), false);
+	vop2_mask_write(vop2, RK3568_ESMART0_CTRL0 + win_offset, CSC_MODE_MASK,
+			CSC_MODE_SHIFT, csc_mode, false);
 
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
 	return 0;
