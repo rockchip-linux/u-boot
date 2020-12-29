@@ -10,8 +10,8 @@
 
 #include <generic-phy-dp.h>
 #include <generic-phy-hdmi.h>
-#include <generic-phy-mipi-dphy.h>
 #include <generic-phy-pcie.h>
+#include <phy-mipi-dphy.h>
 
 struct ofnode_phandle_args;
 

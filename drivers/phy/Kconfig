@@ -59,6 +59,11 @@ config SPL_NOP_PHY
 	  This is useful when a driver uses the PHY framework but no real PHY
 	  hardware exists.
 
+config MIPI_DPHY_HELPERS
+	bool "MIPI D-PHY support helpers"
+	help
+	  Provides a number of helpers a core functions for MIPI D-PHY drivers.
+
 config PHY_ROCKCHIP_INNO_USB2
 	bool "Support Rockchip INNO USB2PHY"
 	depends on ARCH_ROCKCHIP

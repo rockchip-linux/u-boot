@@ -7,6 +7,7 @@
 
 obj-$(CONFIG_$(SPL_)PHY) += phy-uclass.o
 obj-$(CONFIG_$(SPL_)NOP_PHY) += nop-phy.o
+obj-$(CONFIG_MIPI_DPHY_HELPERS) += phy-core-mipi-dphy.o
 obj-$(CONFIG_PHY_ROCKCHIP_INNO_USB2) += phy-rockchip-inno-usb2.o
 obj-$(CONFIG_PHY_ROCKCHIP_NANENG_USB2) += phy-rockchip-naneng-usb2.o
 obj-$(CONFIG_PHY_ROCKCHIP_INNO_USB3) += phy-rockchip-inno-usb3.o
