@@ -31,7 +31,7 @@
 
 #define RK3568_VERSION_INFO			0x004
 
-#define EN_MASK				1
+#define EN_MASK					1
 
 #define RK3568_DSP_IF_EN			0x028
 #define RGB_EN_SHIFT				0
@@ -460,6 +460,11 @@
 
 #define RK3568_MAX_REG				0x1ED0
 
+#define RK3568_GRF_VO_CON1			0x0364
+#define GRF_BT656_CLK_INV_SHIFT			1
+#define GRF_BT1120_CLK_INV_SHIFT		2
+#define GRF_RGB_DCLK_INV_SHIFT			3
+
 #define VOP2_LAYER_MAX				8
 #define VOP2_MAX_VP				4
 
@@ -492,17 +497,6 @@ enum dither_down_mode {
 	RGB888_TO_RGB666 = 0x1
 };
 
-struct vop2_reg {
-	uint32_t mask;
-	uint32_t offset:12;
-	uint32_t shift:5;
-	uint32_t write_mask:1;
-};
-
-struct vop2_grf_ctrl {
-	struct vop2_reg dclk_inv;
-};
-
 enum vop2_video_ports_id {
 	VOP2_VP0,
 	VOP2_VP1,
@@ -528,7 +522,7 @@ struct vop2_win {
 };
 
 struct vop2_data {
-	uint32_t version;
+	u32 version;
 	struct vop_rect max_output[VOP2_MAX_VP];
 	/**
 	 * win_id: id of window attach to VP0,VP1,VP2,VP3,
@@ -543,15 +537,14 @@ struct vop2_data {
 	 *
 	 */
 	uint8_t win_sel_id[VOP2_LAYER_MAX];
-	struct vop2_grf_ctrl *grf_ctrl;
 };
 
 struct vop2 {
 	u32 *regsbak;
 	void *regs;
 	void *grf;
-	uint32_t reg_len;
-	uint32_t version;
+	u32 reg_len;
+	u32 version;
 	const struct vop2_data *data;
 	/**
 	 * @nr_wins: active wins attached to the video port
@@ -574,19 +567,19 @@ static inline uint16_t scl_cal_scale2(int src, int dst)
 	return ((src - 1) << 12) / (dst - 1);
 }
 
-static inline void vop2_writel(struct vop2 *vop2, uint32_t offset, uint32_t v)
+static inline void vop2_writel(struct vop2 *vop2, u32 offset, u32 v)
 {
 	writel(v, vop2->regs + offset);
 	vop2->regsbak[offset >> 2] = v;
 }
 
-static inline uint32_t vop2_readl(struct vop2 *vop2, uint32_t offset)
+static inline u32 vop2_readl(struct vop2 *vop2, u32 offset)
 {
 	return readl(vop2->regs + offset);
 }
 
-static inline void vop2_mask_write(struct vop2 *vop2, uint32_t offset,
-				   uint32_t mask, uint32_t shift, uint32_t v,
+static inline void vop2_mask_write(struct vop2 *vop2, u32 offset,
+				   u32 mask, u32 shift, u32 v,
 				   bool write_mask)
 {
 	if (!mask)
@@ -595,7 +588,7 @@ static inline void vop2_mask_write(struct vop2 *vop2, uint32_t offset,
 	if (write_mask) {
 		v = ((v & mask) << shift) | (mask << (shift + 16));
 	} else {
-		uint32_t cached_val = vop2->regsbak[offset >> 2];
+		u32 cached_val = vop2->regsbak[offset >> 2];
 
 		v = (cached_val & ~(mask << shift)) | ((v & mask) << shift);
 		vop2->regsbak[offset >> 2] = v;
@@ -604,12 +597,21 @@ static inline void vop2_mask_write(struct vop2 *vop2, uint32_t offset,
 	writel(v, vop2->regs + offset);
 }
 
+static inline void vop2_grf_writel(struct vop2 *vop, u32 offset,
+				   u32 mask, u32 shift, u32 v)
+{
+	u32 val = 0;
+
+	val = (v << shift) | (mask << (shift + 16));
+	writel(val, vop->grf + offset);
+}
+
 static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
 {
 	return us * mode->clock / mode->htotal / 1000;
 }
 
-static bool is_yuv_output(uint32_t bus_format)
+static bool is_yuv_output(u32 bus_format)
 {
 	switch (bus_format) {
 	case MEDIA_BUS_FMT_YUV8_1X24:
@@ -642,7 +644,7 @@ static int vop2_convert_csc_mode(int csc_mode)
 	}
 }
 
-static __maybe_unused bool is_uv_swap(uint32_t bus_format, uint32_t output_mode)
+static __maybe_unused bool is_uv_swap(u32 bus_format, u32 output_mode)
 {
 	/*
 	 * FIXME:
@@ -672,6 +674,8 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
+	struct crtc_state *cstate = &state->crtc_state;
+	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u16 vtotal = mode->crtc_vtotal;
 	u16 hact_st = mode->crtc_htotal - mode->crtc_hsync_start;
 	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
@@ -697,18 +701,18 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	val = hact_st << 16;
 	val |= hact_end;
 
-	vop2_writel(vop2, RK3568_VP0_POST_DSP_HACT_INFO, val);
+	vop2_writel(vop2, RK3568_VP0_POST_DSP_HACT_INFO + vp_offset, val);
 	vact_st += vdisplay * (100 - conn_state->overscan.top_margin) / 200;
 	vact_end = vact_st + vsize;
 	val = vact_st << 16;
 	val |= vact_end;
-	vop2_writel(vop2, RK3568_VP0_POST_DSP_VACT_INFO, val);
+	vop2_writel(vop2, RK3568_VP0_POST_DSP_VACT_INFO + vp_offset, val);
 	val = scl_cal_scale2(vdisplay, vsize) << 16;
 	val |= scl_cal_scale2(hdisplay, hsize);
-	vop2_writel(vop2, RK3568_VP0_POST_SCL_FACTOR_YRGB, val);
+	vop2_writel(vop2, RK3568_VP0_POST_SCL_FACTOR_YRGB + vp_offset, val);
 #define POST_HORIZONTAL_SCALEDOWN_EN(x)		((x) << 0)
 #define POST_VERTICAL_SCALEDOWN_EN(x)		((x) << 1)
-	vop2_writel(vop2, RK3568_VP0_POST_SCL_CTRL,
+	vop2_writel(vop2, RK3568_VP0_POST_SCL_CTRL + vp_offset,
 		    POST_HORIZONTAL_SCALEDOWN_EN(hdisplay != hsize) |
 		    POST_VERTICAL_SCALEDOWN_EN(vdisplay != vsize));
 	if (mode->flags & DRM_MODE_FLAG_INTERLACE) {
@@ -716,21 +720,21 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 		u16 vact_end_f1 = vact_st_f1 + vsize;
 
 		val = vact_st_f1 << 16 | vact_end_f1;
-		vop2_writel(vop2, RK3568_VP0_POST_DSP_VACT_INFO_F1, val);
+		vop2_writel(vop2, RK3568_VP0_POST_DSP_VACT_INFO_F1 + vp_offset, val);
 	}
 
 	bg_ovl_dly = (nr_mixers - used_layer) << 1;
 	bg_dly = pre_scan_max_dly - bg_ovl_dly;
 	pre_scan_dly = bg_dly + (hdisplay >> 1) - 1;
 	pre_scan_dly = (pre_scan_dly << 16) | hsync_len;
-	vop2_writel(vop2, RK3568_VP0_PRE_SCAN_HTIMING, pre_scan_dly);
+	vop2_writel(vop2, RK3568_VP0_PRE_SCAN_HTIMING + vp_offset, pre_scan_dly);
 }
 
 static void vop2_layer_map_initial(struct vop2 *vop2)
 {
 	struct vop2_layer *layer;
 	struct vop2_win *win;
-	uint32_t layer_map, sel;
+	u32 layer_map, sel;
 	int i, j;
 
 	layer_map = vop2_readl(vop2, RK3568_OVL_LAYER_SEL);
@@ -850,7 +854,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	u16 vact_end = vact_st + vdisplay;
 	bool yuv_overlay = false;
 	//bool yuv_overlay = false, post_r2y_en = false, post_y2r_en = false;
-	uint32_t vp_offset = (cstate->crtc_id * 0x100);
+	u32 vp_offset = (cstate->crtc_id * 0x100);
 	//struct clk dclk;
 	//fdt_size_t len;
 	u32 val;
@@ -861,7 +865,6 @@ static int rockchip_vop2_init(struct display_state *state)
 	//uint8_t dither_down_mode = RGB888_TO_RGB666;
 
 	vop2_initial(vop2, state);
-
 	dclk_inv = (mode->flags & DRM_MODE_FLAG_PPIXDATA) ? 0 : 1;
 	val = (mode->flags & DRM_MODE_FLAG_NHSYNC) ? 0 : BIT(HSYNC_POSITIVE);
 	val |= (mode->flags & DRM_MODE_FLAG_NVSYNC) ? 0 : BIT(VSYNC_POSITIVE);
@@ -872,16 +875,21 @@ static int rockchip_vop2_init(struct display_state *state)
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				RGB_MUX_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
-				IF_CRTL_RGB_LVDS_DCLK_POL_SHIT, ! !dclk_inv,
+				IF_CRTL_RGB_LVDS_DCLK_POL_SHIT, !!dclk_inv,
 				false);
-		//VOP2_GRF_SET(vop2, dclk_inv, dclk_inv);
+		vop2_grf_writel(vop2, RK3568_GRF_VO_CON1, EN_MASK,
+				GRF_RGB_DCLK_INV_SHIFT, !dclk_inv);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_BT1120) {
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RGB_EN_SHIFT,
+				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK,
 				BT1120_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				RGB_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_grf_writel(vop2, RK3568_GRF_VO_CON1, EN_MASK,
+				GRF_BT1120_CLK_INV_SHIFT, !dclk_inv);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_BT656) {
@@ -889,6 +897,8 @@ static int rockchip_vop2_init(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				RGB_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_grf_writel(vop2, RK3568_GRF_VO_CON1, EN_MASK,
+				GRF_BT656_CLK_INV_SHIFT, !dclk_inv);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_LVDS0) {
@@ -921,7 +931,6 @@ static int rockchip_vop2_init(struct display_state *state)
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_MIPI0) {
-		//cstate->crtc_id = 0;
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, MIPI0_EN_SHIFT,
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
@@ -1132,9 +1141,15 @@ static void vop2_setup_win_for_vp(struct display_state *state)
 	vop2_mask_write(vop2, RK3568_OVL_PORT_SEL, PORT_MUX_MASK, shift,
 			used_layers, false);
 
-	vop2_writel(vop2, 0x604, 0x54760312);
-	vop2_writel(vop2, 0x608, 0x84000781);
-	vop2_writel(vop2, 0x6e0, 0x22000000);
+	if (port_id == 0) {
+		vop2_writel(vop2, 0x604, 0x54760312);
+		vop2_writel(vop2, 0x608, 0x84000781);
+		vop2_writel(vop2, 0x6e0, 0x22000000);
+	} else {
+		vop2_writel(vop2, 0x604, 0x54720316);
+		vop2_writel(vop2, 0x608, 0x84000708);
+		vop2_writel(vop2, 0x6e4, 0x1e000000);
+	}
 }
 
 static int rockchip_vop2_set_plane(struct display_state *state)
@@ -1153,8 +1168,8 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 	int xvir = cstate->xvir;
 	int y_mirror = 0;
 	int csc_mode;
-	uint32_t win_offset = cstate->crtc_id * 0x200;
-	uint32_t cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
+	u32 win_offset = cstate->crtc_id * 0x200;
+	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
 
 	if (crtc_w > cstate->max_output.width) {
 		printf("ERROR: output w[%d] exceeded max width[%d]\n",
@@ -1218,8 +1233,8 @@ static int rockchip_vop2_enable(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
-	uint32_t vp_offset = (cstate->crtc_id * 0x100);
-	uint32_t cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
+	u32 vp_offset = (cstate->crtc_id * 0x100);
+	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
 
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 			STANDBY_EN_SHIFT, 0, false);
@@ -1232,8 +1247,8 @@ static int rockchip_vop2_disable(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
-	uint32_t vp_offset = (cstate->crtc_id * 0x100);
-	uint32_t cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
+	u32 vp_offset = (cstate->crtc_id * 0x100);
+	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
 
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 			STANDBY_EN_SHIFT, 1, false);
