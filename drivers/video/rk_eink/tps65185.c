@@ -15,6 +15,7 @@
 struct tps65185_priv_data {
 	struct udevice *dev;
 	struct gpio_desc pwr_up_gpio;
+	struct gpio_desc pwr_en_gpio;
 	struct gpio_desc vcom_gpio;
 	struct gpio_desc wake_up_gpio;
 	u8 rev_id;
@@ -428,6 +429,13 @@ static int tps65185_probe(struct udevice *dev)
 		printf("Cannot get vcom_gpio GPIO: %d\n", ret);
 		return ret;
 	}
+	ret = gpio_request_by_name(dev, "poweren-gpios", 0,
+				   &tps65185_priv->pwr_en_gpio, GPIOD_IS_OUT);
+	if (!ret)
+		dm_gpio_set_value(&tps65185_priv->pwr_en_gpio, 1);
+	else
+		printf("Cannot get pwren_pin GPIO: %d\n", ret);
+
 	ret = tps65185_hw_init(dev);
 	if (ret) {
 		printf("Cannot init hardware for tps65185: %d\n", ret);
