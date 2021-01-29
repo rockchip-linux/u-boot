@@ -3,6 +3,7 @@
  * Copyright (c) 2020 Fuzhou Rockchip Electronics Co., Ltd
  */
 
+#include <clk.h>
 #include <dm.h>
 #include <rng.h>
 #include <asm/arch-rockchip/hardware.h>
@@ -406,15 +407,15 @@ static const struct dm_rng_ops rockchip_rng_ops = {
 static const struct udevice_id rockchip_rng_match[] = {
 	{
 		.compatible = "rockchip,rk3288-crypto",
-		.data = (ulong)&rk_cryptov1_soc_data,
+		.data = (ulong)&cryptov1_soc_data,
 	},
 	{
 		.compatible = "rockchip,rk3328-crypto",
-		.data = (ulong)&rk_cryptov1_soc_data,
+		.data = (ulong)&cryptov1_soc_data,
 	},
 	{
 		.compatible = "rockchip,rk3399-crypto",
-		.data = (ulong)&rk_cryptov1_soc_data,
+		.data = (ulong)&cryptov1_soc_data,
 	},
 	{
 		.compatible = "rockchip,cryptov1-rng",

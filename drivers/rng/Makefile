@@ -19,3 +19,6 @@ obj-$(CONFIG_TPM_RNG) += tpm_rng.o
 obj-$(CONFIG_RNG_JH7110) += jh7110_rng.o
 obj-$(CONFIG_RNG_TURRIS_RWTM) += turris_rwtm_rng.o
 obj-$(CONFIG_RNG_EXYNOS) += exynos-trng.o
+ifdef CONFIG_LIB_HW_RAND
+obj-$(CONFIG_RNG_ROCKCHIP) += rockchip_rand.o
+endif
