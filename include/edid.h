@@ -879,6 +879,8 @@ struct hdmi_edid_data {
 struct ddc_adapter {
 	int (*ddc_xfer)(struct ddc_adapter *adap, struct i2c_msg *msgs,
 			int num);
+	struct udevice *i2c_bus;
+	struct dm_i2c_ops *ops;
 };
 
 /**

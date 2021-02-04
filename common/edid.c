@@ -6701,8 +6701,14 @@ drm_do_probe_ddc_edid(struct ddc_adapter *adap, u8 *buf, unsigned int block,
 			}
 		};
 
-		ret = adap->ddc_xfer(adap, &msgs[3 - xfers], xfers);
-
+		if (adap->ops) {
+			ret = adap->ops->xfer(adap->i2c_bus, &msgs[3 - xfers],
+					      xfers);
+			if (!ret)
+				ret = xfers;
+		} else {
+			ret = adap->ddc_xfer(adap, &msgs[3 - xfers], xfers);
+		}
 	} while (ret != xfers && --retries);
 
 	/* All msg transfer successfully. */
