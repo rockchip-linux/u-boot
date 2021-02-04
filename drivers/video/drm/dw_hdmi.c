@@ -11,6 +11,7 @@
 #include <asm/arch/vendor.h>
 #include <edid.h>
 #include <dm/device.h>
+#include <dm/of_access.h>
 #include <dm/ofnode.h>
 #include <dm/read.h>
 #include <linux/hdmi.h>
@@ -2270,6 +2271,7 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 	struct drm_display_mode *mode_buf;
 	ofnode hdmi_node = conn_state->node;
 	u32 val;
+	struct device_node *ddc_node;
 
 	hdmi = malloc(sizeof(struct dw_hdmi));
 	if (!hdmi)
@@ -2292,6 +2294,14 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 		hdmi->hdcp1x_enable = true;
 	else
 		hdmi->hdcp1x_enable = false;
+
+	ddc_node = of_parse_phandle(ofnode_to_np(hdmi_node), "ddc-i2c-bus", 0);
+	if (ddc_node) {
+		uclass_get_device_by_ofnode(UCLASS_I2C, np_to_ofnode(ddc_node),
+					    &hdmi->adap.i2c_bus);
+		if (hdmi->adap.i2c_bus)
+			hdmi->adap.ops = i2c_get_ops(hdmi->adap.i2c_bus);
+	}
 
 	hdmi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (hdmi->grf <= 0) {
