@@ -1165,7 +1165,7 @@ enum {
 
 static struct rockchip_panel *rockchip_of_find_panel(struct udevice *dev)
 {
-	ofnode panel_node, ports, port, ep;
+	ofnode panel_node, ports, port, ep, port_parent_node;
 	struct udevice *panel_dev;
 	int ret;
 
@@ -1193,6 +1193,7 @@ static struct rockchip_panel *rockchip_of_find_panel(struct udevice *dev)
 		ofnode_for_each_subnode(ep, port) {
 			ofnode _ep, _port;
 			uint phandle;
+			bool is_ports_node = false;
 
 			if (ofnode_read_u32(ep, "remote-endpoint", &phandle))
 				continue;
@@ -1205,7 +1206,12 @@ static struct rockchip_panel *rockchip_of_find_panel(struct udevice *dev)
 			if (!ofnode_valid(_port))
 				continue;
 
-			panel_node = ofnode_get_parent(_port);
+			port_parent_node = ofnode_get_parent(_port);
+			is_ports_node = strstr(port_parent_node.np->full_name, "ports") ? 1 : 0;
+			if (is_ports_node)
+				panel_node = ofnode_get_parent(port_parent_node);
+			else
+				panel_node = ofnode_get_parent(_port);
 			if (!ofnode_valid(panel_node))
 				continue;
 
