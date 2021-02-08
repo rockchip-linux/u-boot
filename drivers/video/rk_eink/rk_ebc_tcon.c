@@ -271,8 +271,8 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		   DSP_HEIGHT(panel->height) |
 		   DSP_WIDTH(panel->width));
 	tcon_write(tcon, EBC_WIN_VIR,
-		   WIN_VIR_HEIGHT(panel->height) |
-		   WIN_VIR_WIDTH(panel->width));
+		   WIN_VIR_HEIGHT(panel->vir_height) |
+		   WIN_VIR_WIDTH(panel->vir_width));
 	tcon_write(tcon, EBC_WIN_ACT,
 		   WIN_ACT_HEIGHT(panel->height) |
 		   WIN_ACT_WIDTH(panel->width));
