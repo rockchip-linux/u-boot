@@ -58,6 +58,22 @@
 #define RK3368_LVDS_MSBSEL(x)		HIWORD_UPDATE(x, 11, 11)
 #define RK3368_LVDS_P2S_EN(x)		HIWORD_UPDATE(x,  6,  6)
 
+#define RK3568_GRF_VO_CON0		0x0360
+#define RK3568_LVDS1_SELECT(x)		HIWORD_UPDATE(x, 13, 12)
+#define RK3568_LVDS1_MSBSEL(x)		HIWORD_UPDATE(x, 11, 11)
+#define RK3568_LVDS0_SELECT(x)		HIWORD_UPDATE(x,  5,  4)
+#define RK3568_LVDS0_MSBSEL(x)		HIWORD_UPDATE(x,  3,  3)
+#define RK3568_GRF_VO_CON2		0x0368
+#define RK3568_LVDS0_DCLK_INV_SEL(x)	HIWORD_UPDATE(x,  9,  9)
+#define RK3568_LVDS0_DCLK_DIV2_SEL(x)	HIWORD_UPDATE(x,  8,  8)
+#define RK3568_LVDS0_MODE_EN(x)		HIWORD_UPDATE(x,  1,  1)
+#define RK3568_LVDS0_P2S_EN(x)		HIWORD_UPDATE(x,  0,  0)
+#define RK3568_GRF_VO_CON3		0x036c
+#define RK3568_LVDS1_DCLK_INV_SEL(x)	HIWORD_UPDATE(x,  9,  9)
+#define RK3568_LVDS1_DCLK_DIV2_SEL(x)	HIWORD_UPDATE(x,  8,  8)
+#define RK3568_LVDS1_MODE_EN(x)		HIWORD_UPDATE(x,  1,  1)
+#define RK3568_LVDS1_P2S_EN(x)		HIWORD_UPDATE(x,  0,  0)
+
 enum lvds_format {
 	LVDS_8BIT_MODE_FORMAT_1,
 	LVDS_8BIT_MODE_FORMAT_2,
@@ -130,6 +146,7 @@ static int rockchip_lvds_connector_init(struct display_state *state)
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	conn_state->output_if = VOP_OUTPUT_IF_LVDS0;
 
 	return 0;
 }
@@ -307,6 +324,30 @@ static const struct rockchip_connector rk3368_lvds_driver_data = {
 	 .data = &rk3368_lvds_funcs,
 };
 
+static void rk3568_lvds_enable(struct rockchip_lvds *lvds, int pipe)
+{
+	regmap_write(lvds->grf, RK3568_GRF_VO_CON2,
+		     RK3568_LVDS0_MODE_EN(1) | RK3568_LVDS0_P2S_EN(1) |
+		     RK3568_LVDS0_DCLK_INV_SEL(1));
+	regmap_write(lvds->grf, RK3568_GRF_VO_CON0,
+		     RK3568_LVDS0_SELECT(lvds->format) | RK3568_LVDS0_MSBSEL(1));
+}
+
+static void rk3568_lvds_disable(struct rockchip_lvds *lvds)
+{
+	regmap_write(lvds->grf, RK3568_GRF_VO_CON2, RK3568_LVDS0_MODE_EN(0));
+}
+
+static const struct rockchip_lvds_funcs rk3568_lvds_funcs = {
+	.enable = rk3568_lvds_enable,
+	.disable = rk3568_lvds_disable,
+};
+
+static const struct rockchip_connector rk3568_lvds_driver_data = {
+	.funcs = &rockchip_lvds_connector_funcs,
+	.data = &rk3568_lvds_funcs,
+};
+
 static const struct udevice_id rockchip_lvds_ids[] = {
 	{
 		.compatible = "rockchip,px30-lvds",
@@ -323,6 +364,10 @@ static const struct udevice_id rockchip_lvds_ids[] = {
 	{
 		.compatible = "rockchip,rk3368-lvds",
 		.data = (ulong)&rk3368_lvds_driver_data,
+	},
+	{
+		.compatible = "rockchip,rk3568-lvds",
+		.data = (ulong)&rk3568_lvds_driver_data,
 	},
 	{}
 };
