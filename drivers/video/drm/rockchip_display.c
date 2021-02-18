@@ -527,6 +527,7 @@ static int display_init(struct display_state *state)
 	struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
 	struct drm_display_mode *mode = &conn_state->mode;
+	const char *compatible;
 	int ret = 0;
 	static bool __print_once = false;
 #if defined(CONFIG_I2C_EDID)
@@ -653,6 +654,11 @@ static int display_init(struct display_state *state)
 
 	if (ret)
 		goto deinit;
+
+	/* rk356x series drive mipi pixdata on posedge */
+	compatible = dev_read_string(conn_state->dev, "compatible");
+	if (!strcmp(compatible, "rockchip,rk3568-mipi-dsi"))
+		conn_state->mode.flags |= DRM_MODE_FLAG_PPIXDATA;
 
 	printf("Detailed mode clock %u kHz, flags[%x]\n"
 	       "    H: %04d %04d %04d %04d\n"
