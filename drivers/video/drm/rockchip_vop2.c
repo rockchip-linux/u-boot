@@ -689,9 +689,14 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 			conn_state->overscan.bottom_margin) / 200;
 	u16 hact_end, vact_end;
 	u32 val;
-	u16 nr_mixers = 5, used_layer = 2, pre_scan_max_dly = 40;
+	u16 nr_mixers = 5, used_layer = 2, pre_scan_max_dly;
 	u32 bg_ovl_dly, bg_dly, pre_scan_dly;
 	u16 hsync_len = mode->crtc_hsync_end - mode->crtc_hsync_start;
+
+	if (cstate->crtc_id == 0)
+		pre_scan_max_dly = 69;
+	else
+		pre_scan_max_dly = 40;
 
 	if (mode->flags & DRM_MODE_FLAG_INTERLACE)
 		vsize = round_down(vsize, 2);
@@ -1142,12 +1147,12 @@ static void vop2_setup_win_for_vp(struct display_state *state)
 			used_layers, false);
 
 	if (port_id == 0) {
-		vop2_writel(vop2, 0x604, 0x54760312);
-		vop2_writel(vop2, 0x608, 0x84000781);
-		vop2_writel(vop2, 0x6e0, 0x22000000);
+		vop2_writel(vop2, 0x604, 0x54760123);
+		vop2_writel(vop2, 0x608, 0x00000755);
+		vop2_writel(vop2, 0x6e0, 0x2a000000);
 	} else {
-		vop2_writel(vop2, 0x604, 0x54720316);
-		vop2_writel(vop2, 0x608, 0x84000708);
+		vop2_writel(vop2, 0x604, 0x54760312);
+		vop2_writel(vop2, 0x608, 0x55050728);
 		vop2_writel(vop2, 0x6e4, 0x1e000000);
 	}
 }
@@ -1168,8 +1173,13 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 	int xvir = cstate->xvir;
 	int y_mirror = 0;
 	int csc_mode;
-	u32 win_offset = cstate->crtc_id * 0x200;
+	u32 win_offset;
 	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
+
+	if (cstate->crtc_id == 1)
+		win_offset = 0x400; /* port 1 use smart0*/
+	else
+		win_offset = 0; /* port 0 use esmart0*/
 
 	if (crtc_w > cstate->max_output.width) {
 		printf("ERROR: output w[%d] exceeded max width[%d]\n",
