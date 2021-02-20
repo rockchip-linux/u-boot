@@ -33,6 +33,7 @@
 #include <dm.h>
 #include <dm/of_access.h>
 #include <dm/ofnode.h>
+#include <asm/io.h>
 
 #define DRIVER_VERSION	"v1.0.1"
 
@@ -1316,6 +1317,80 @@ static struct rockchip_phy *rockchip_of_find_phy(struct udevice *dev)
 	return (struct rockchip_phy *)dev_get_driver_data(phy_dev);
 }
 
+#if defined(CONFIG_ROCKCHIP_RK3568)
+static int rockchip_display_fixup_dts(void *blob)
+{
+	ofnode route_node, route_subnode, conn_ep, conn_port;
+	const struct device_node *route_sub_devnode;
+	const struct device_node *ep_node, *conn_ep_dev_node;
+	u32 phandle;
+	int conn_ep_offset;
+	const char *route_sub_path, *path;
+
+	/* Don't go further if new variant after
+	 * reading PMUGRF_SOC_CON15
+	 */
+	if ((readl(0xfdc20100) & GENMASK(15, 14)))
+		return 0;
+
+	route_node = ofnode_path("/display-subsystem/route");
+	if (!ofnode_valid(route_node))
+		return -EINVAL;
+
+	ofnode_for_each_subnode(route_subnode, route_node) {
+		if (!ofnode_is_available(route_subnode))
+			continue;
+
+		route_sub_devnode = ofnode_to_np(route_subnode);
+		route_sub_path = route_sub_devnode->full_name;
+		if (!strstr(ofnode_get_name(route_subnode), "dsi") &&
+		    !strstr(ofnode_get_name(route_subnode), "edp"))
+			return 0;
+
+		phandle = ofnode_read_u32_default(route_subnode, "connect", -1);
+		if (phandle < 0) {
+			printf("Warn: can't find connect node's handle\n");
+			continue;
+		}
+
+		ep_node = of_find_node_by_phandle(phandle);
+		if (!ofnode_valid(np_to_ofnode(ep_node))) {
+			printf("Warn: can't find endpoint node from phandle\n");
+			continue;
+		}
+
+		ofnode_read_u32(np_to_ofnode(ep_node), "remote-endpoint", &phandle);
+		conn_ep = ofnode_get_by_phandle(phandle);
+		if (!ofnode_valid(conn_ep) || !ofnode_is_available(conn_ep))
+			return -ENODEV;
+
+		conn_port = ofnode_get_parent(conn_ep);
+		if (!ofnode_valid(conn_port))
+			return -ENODEV;
+
+		ofnode_for_each_subnode(conn_ep, conn_port) {
+			conn_ep_dev_node = ofnode_to_np(conn_ep);
+			path = conn_ep_dev_node->full_name;
+			ofnode_read_u32(conn_ep, "remote-endpoint", &phandle);
+			conn_ep_offset = fdt_path_offset(blob, path);
+
+			if (!ofnode_is_available(conn_ep) &&
+			    strstr(ofnode_get_name(conn_ep), "endpoint@0")) {
+				do_fixup_by_path_u32(blob, route_sub_path,
+						     "connect", phandle, 1);
+				fdt_status_okay(blob, conn_ep_offset);
+
+			} else if (ofnode_is_available(conn_ep) &&
+				   strstr(ofnode_get_name(conn_ep), "endpoint@1")) {
+				fdt_status_disabled(blob, conn_ep_offset);
+			}
+		}
+	}
+
+	return 0;
+}
+#endif
+
 static int rockchip_display_probe(struct udevice *dev)
 {
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
@@ -1335,6 +1410,10 @@ static int rockchip_display_probe(struct udevice *dev)
 	struct device_node *port_node, *vop_node, *ep_node, *port_parent_node;
 	struct public_phy_data *data;
 	bool is_ports_node = false;
+
+#if defined(CONFIG_ROCKCHIP_RK3568)
+	rockchip_display_fixup_dts((void *)blob);
+#endif
 
 	/* Before relocation we don't need to do anything */
 	if (!(gd->flags & GD_FLG_RELOC))
