@@ -49,7 +49,7 @@
 #define EDP0_MUX_SHIFT				14
 #define MIPI0_MUX_SHIFT				16
 #define MIPI1_MUX_SHIFT				21
-#define LVDS0_MUX_SHIFT				5
+#define LVDS0_MUX_SHIFT				18
 #define LVDS1_MUX_SHIFT				25
 
 #define RK3568_DSP_IF_CTRL			0x02c
@@ -911,6 +911,8 @@ static int rockchip_vop2_init(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				LVDS0_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
+				IF_CRTL_RGB_LVDS_DCLK_POL_SHIT, dclk_inv, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_LVDS1) {
@@ -918,6 +920,8 @@ static int rockchip_vop2_init(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				LVDS1_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
+				IF_CRTL_RGB_LVDS_DCLK_POL_SHIT, dclk_inv, false);
 	}
 
 	if (conn_state->output_flags &
