@@ -1535,7 +1535,7 @@ static const u32 rk3568_dsi1_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data rk3568_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3568_dsi0_grf_reg_fields,
 	.dsi1_grf_reg_fields = rk3568_dsi1_grf_reg_fields,
-	.max_bit_rate_per_lane = 1000000000UL,
+	.max_bit_rate_per_lane = 1200000000UL,
 };
 static const struct rockchip_connector rk3568_mipi_dsi_driver_data = {
 	 .funcs = &dw_mipi_dsi_connector_funcs,
