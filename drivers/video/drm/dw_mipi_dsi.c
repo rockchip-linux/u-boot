@@ -245,6 +245,7 @@ struct dw_mipi_dsi {
 	u32 mode_flags;
 	struct mipi_dphy dphy;
 	struct drm_display_mode mode;
+	bool data_swap;
 
 	const struct dw_mipi_dsi_plat_data *pdata;
 };
@@ -1140,6 +1141,9 @@ static int dw_mipi_dsi_connector_init(struct display_state *state)
 		dsi->slave->channel = dsi->channel;
 		conn_state->output_flags =
 				ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE;
+		if (dsi->data_swap)
+			conn_state->output_flags |= ROCKCHIP_OUTPUT_DATA_SWAP;
+
 		conn_state->output_if |= VOP_OUTPUT_IF_MIPI1;
 
 #if defined(CONFIG_ROCKCHIP_RK3568)
@@ -1338,6 +1342,7 @@ static int dw_mipi_dsi_probe(struct udevice *dev)
 	dsi->dev = dev;
 	dsi->pdata = pdata;
 	dsi->id = id;
+	dsi->data_swap = dev_read_bool(dsi->dev, "rockchip,data-swap");
 
 	return 0;
 }
