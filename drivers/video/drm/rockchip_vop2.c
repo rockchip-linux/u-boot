@@ -10,6 +10,7 @@
 #include <malloc.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
+#include <asm/arch/cpu.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <linux/list.h>
@@ -65,6 +66,8 @@
 #define IF_CRTL_HDMI_PIN_POL_MASK		0x7
 #define IF_CRTL_HDMI_PIN_POL_SHIT		4
 #define IF_CRTL_RGB_LVDS_DCLK_POL_SHIT		3
+#define RK3568_SYS_OTP_WIN_EN			0x50
+#define OTP_WIN_EN_SHIFT			0
 #define RK3568_VP0_LINE_FLAG			0x70
 #define RK3568_VP1_LINE_FLAG			0x74
 #define RK3568_VP2_LINE_FLAG			0x78
@@ -790,6 +793,9 @@ static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 		return ret;
 	}
 
+	if (soc_is_rk3566())
+		vop2_mask_write(vop2, RK3568_SYS_OTP_WIN_EN, EN_MASK,
+				OTP_WIN_EN_SHIFT, 1, false);
 	memcpy(vop2->regsbak, vop2->regs, vop2->reg_len);
 
 	rockchip_vop2_init_gamma(vop2, state);
