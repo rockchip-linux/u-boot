@@ -546,7 +546,7 @@ static int display_init(struct display_state *state)
 		return -ENXIO;
 	}
 
-	if (crtc_state->crtc->active &&
+	if (crtc_state->crtc->active && !crtc_state->ports_node &&
 	    memcmp(&crtc_state->crtc->active_mode, &conn_state->mode,
 		   sizeof(struct drm_display_mode))) {
 		printf("%s has been used for output type: %d, mode: %dx%dp%d\n",
@@ -1545,6 +1545,8 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->crtc_state.crtc = crtc;
 		s->crtc_state.crtc_id = get_crtc_id(np_to_ofnode(ep_node));
 		s->node = node;
+		if (is_ports_node)
+			s->crtc_state.ports_node = port_parent_node;
 
 		if (bridge)
 			bridge->state = s;
