@@ -1544,6 +1544,7 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->crtc_state.dev = crtc_dev;
 		s->crtc_state.crtc = crtc;
 		s->crtc_state.crtc_id = get_crtc_id(np_to_ofnode(ep_node));
+		s->crtc_state.crtc->vps[s->crtc_state.crtc_id].enable = true;
 		s->node = node;
 		if (is_ports_node)
 			s->crtc_state.ports_node = port_parent_node;

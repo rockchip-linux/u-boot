@@ -7,10 +7,18 @@
 #ifndef _ROCKCHIP_CRTC_H_
 #define _ROCKCHIP_CRTC_H_
 
+#define VOP2_MAX_VP				4
+
+struct rockchip_vp {
+	bool enable;
+	u8 bg_ovl_dly;
+};
+
 struct rockchip_crtc {
 	const struct rockchip_crtc_funcs *funcs;
 	const void *data;
 	struct drm_display_mode active_mode;
+	struct rockchip_vp vps[4];
 	bool hdmi_hpd : 1;
 	bool active : 1;
 };

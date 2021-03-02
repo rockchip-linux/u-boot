@@ -106,6 +106,7 @@ struct crtc_state {
 	bool yuv_overlay;
 	struct rockchip_mcu_timing mcu_timing;
 	u32 dual_channel_swap;
+	u32 feature;
 	struct vop_rect max_output;
 };
 
