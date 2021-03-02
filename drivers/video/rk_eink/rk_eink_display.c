@@ -16,6 +16,7 @@
 #include <dm/uclass-id.h>
 #include <boot_rkimg.h>
 #include <rk_eink.h>
+#include <backlight.h>
 #include "rk_ebc.h"
 #include "epdlut/epd_lut.h"
 
@@ -87,6 +88,7 @@ struct rockchip_eink_display_priv {
 	struct udevice *ebc_tcon_dev;
 	struct udevice *ebc_pwr_dev;
 	int vcom;
+	struct udevice *backlight;
 };
 
 enum {
@@ -474,6 +476,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	struct ebc_panel *plat;
 	struct udevice *dev;
 	static u32 loaded_logo;
+	struct rockchip_eink_display_priv *priv;
 
 	if (!eink_dev) {
 		static bool first_init = true;
@@ -498,6 +501,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	}
 
 	plat = dev_get_platdata(dev);
+	priv = dev_get_priv(dev);
 
 	ret = ebc_power_set(dev, EBC_PWR_ON);
 	if (ret) {
@@ -548,6 +552,10 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	}
 
 	eink_display(dev, last_logo_addr, logo_addr, WF_TYPE_GC16, update_mode);
+
+	if (priv->backlight)
+		backlight_enable(priv->backlight);
+
 	last_logo_type = cur_logo_type;
 	/*
 	 * System will boot up to kernel only when the
@@ -621,6 +629,12 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 		return ret;
 	}
 
+	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
+					   "backlight", &priv->backlight);
+	if (ret && ret != -ENOENT) {
+		printf("%s: Cannot get backlight: %d\n", __func__, ret);
+	}
+
 	vcom = read_vcom_from_vendor();
 	if (vcom <= 0) {
 		printf("read vcom from vendor failed, use default vcom\n");
@@ -648,6 +662,7 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 	}
 
 	eink_dev = dev;
+
 	return 0;
 }
 
