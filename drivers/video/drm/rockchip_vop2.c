@@ -861,7 +861,7 @@ static int rockchip_vop2_preinit(struct display_state *state)
 	int i = 0;
 
 	if (!rockchip_vop2) {
-		rockchip_vop2 = malloc(sizeof(struct vop2));
+		rockchip_vop2 = calloc(1, sizeof(struct vop2));
 		if (!rockchip_vop2)
 			return -ENOMEM;
 		rockchip_vop2->regs = dev_read_addr_ptr(cstate->dev);
