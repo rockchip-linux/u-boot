@@ -2413,7 +2413,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 		hdmi->sink_has_audio = drm_detect_monitor_audio(edid);
 		ret = drm_add_edid_modes(&hdmi->edid_data, conn_state->edid);
 	}
-	if (ret <= 0) {
+	if (ret < 0) {
 		hdmi->sink_is_hdmi = true;
 		hdmi->sink_has_audio = true;
 		do_cea_modes(&hdmi->edid_data, def_modes_vic,
