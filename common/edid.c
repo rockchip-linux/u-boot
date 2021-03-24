@@ -6504,11 +6504,6 @@ int hdmi_infoframe_unpack(union hdmi_infoframe *frame, void *buffer)
 bool drm_mode_equal(const struct base_drm_display_mode *mode1,
 		    const struct drm_display_mode *mode2)
 {
-	unsigned int flags_mask =
-		DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_PHSYNC |
-		DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_PVSYNC |
-		DRM_MODE_FLAG_NVSYNC;
-
 	if (mode1->clock == mode2->clock &&
 	    mode1->hdisplay == mode2->hdisplay &&
 	    mode1->hsync_start == mode2->hsync_start &&
@@ -6518,9 +6513,8 @@ bool drm_mode_equal(const struct base_drm_display_mode *mode1,
 	    mode1->vsync_start == mode2->vsync_start &&
 	    mode1->vsync_end == mode2->vsync_end &&
 	    mode1->vtotal == mode2->vtotal &&
-	    (mode1->flags & flags_mask) == (mode2->flags & flags_mask)) {
+	    mode1->flags == mode2->flags)
 		return true;
-	}
 
 	return false;
 }
