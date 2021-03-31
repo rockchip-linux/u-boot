@@ -1667,6 +1667,7 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("logo,height", s->logo.height);
 		FDT_SET_U32("logo,bpp", s->logo.bpp);
 		FDT_SET_U32("logo,ymirror", s->logo.ymirror);
+		FDT_SET_U32("video,clock", s->conn_state.mode.clock);
 		FDT_SET_U32("video,hdisplay", s->conn_state.mode.hdisplay);
 		FDT_SET_U32("video,vdisplay", s->conn_state.mode.vdisplay);
 		FDT_SET_U32("video,crtc_hsync_end", s->conn_state.mode.crtc_hsync_end);
