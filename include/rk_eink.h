@@ -18,6 +18,7 @@ enum type_logo {
 	EINK_LOGO_CHARGING_4 = 1 << 6,
 	EINK_LOGO_CHARGING_5 = 1 << 7,
 	EINK_LOGO_CHARGING_LOWPOWER = 1 << 8,
+	EINK_LOGO_UNMIRROR_TEMP_BUF = 1 << 9,
 };
 
 enum update_mode {
