@@ -2261,6 +2261,15 @@ void dw_hdmi_audio_disable(struct dw_hdmi *hdmi)
 	hdmi_set_cts_n(hdmi, hdmi->audio_cts, 0);
 }
 
+int rockchip_dw_hdmi_pre_init(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
+
+	return 0;
+}
+
 int rockchip_dw_hdmi_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -2339,7 +2348,6 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 					"ddc-i2c-scl-low-time-ns", 4916);
 
 	dw_hdmi_i2c_init(hdmi);
-	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
 	conn_state->output_if |= VOP_OUTPUT_IF_HDMI0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 

@@ -15,6 +15,12 @@ struct rockchip_connector {
 
 struct rockchip_connector_funcs {
 	/*
+	 * pre init connector, prepare some parameter out_if, this will be
+	 * used by rockchip_display.c and vop
+	 */
+	int (*pre_init)(struct display_state *state);
+
+	/*
 	 * init connector, prepare resource to ensure
 	 * detect and get_timing can works
 	 */

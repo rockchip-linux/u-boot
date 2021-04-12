@@ -10,6 +10,7 @@
  * Rockchip connector callbacks.
  * If you want to know the details, please refer to rockchip_connector.h
  */
+int rockchip_dw_hdmi_pre_init(struct display_state *state);
 int rockchip_dw_hdmi_init(struct display_state *state);
 void rockchip_dw_hdmi_deinit(struct display_state *state);
 int rockchip_dw_hdmi_prepare(struct display_state *state);

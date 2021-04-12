@@ -730,12 +730,20 @@ retry:
 	return retval;
 }
 
+static int analogix_dp_connector_pre_init(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+	conn_state->type = DRM_MODE_CONNECTOR_eDP;
+
+	return 0;
+}
+
 static int analogix_dp_connector_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct analogix_dp_device *dp = dev_get_priv(conn_state->dev);
 
-	conn_state->type = DRM_MODE_CONNECTOR_eDP;
 	conn_state->output_if |= VOP_OUTPUT_IF_eDP0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
@@ -840,6 +848,7 @@ static int analogix_dp_connector_detect(struct display_state *state)
 }
 
 static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
+	.pre_init = analogix_dp_connector_pre_init,
 	.init = analogix_dp_connector_init,
 	.get_edid = analogix_dp_connector_get_edid,
 	.enable = analogix_dp_connector_enable,

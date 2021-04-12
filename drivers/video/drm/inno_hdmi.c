@@ -620,6 +620,15 @@ static int inno_hdmi_i2c_xfer(struct ddc_adapter *adap,
 	return ret;
 }
 
+int rockchip_inno_hdmi_pre_init(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
+
+	return 0;
+}
+
 static int rockchip_inno_hdmi_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -800,6 +809,7 @@ static int rockchip_inno_hdmi_bind(struct udevice *dev)
 }
 
 const struct rockchip_connector_funcs rockchip_inno_hdmi_funcs = {
+	.pre_init = rockchip_inno_hdmi_pre_init,
 	.init = rockchip_inno_hdmi_init,
 	.deinit = rockchip_inno_hdmi_deinit,
 	.prepare = rockchip_inno_hdmi_prepare,

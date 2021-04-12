@@ -102,6 +102,15 @@ static void rockchip_rgb_connector_unprepare(struct display_state *state)
 	pinctrl_select_state(rgb->dev, "sleep");
 }
 
+static int rockchip_rgb_connector_pre_init(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
+
+	return 0;
+}
+
 static int rockchip_rgb_connector_init(struct display_state *state)
 {
 	struct rockchip_rgb *rgb = state_to_rgb(state);
@@ -109,7 +118,6 @@ static int rockchip_rgb_connector_init(struct display_state *state)
 
 	rgb->phy = conn_state->phy;
 
-	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 
 	switch (conn_state->bus_format) {
@@ -140,6 +148,7 @@ static int rockchip_rgb_connector_init(struct display_state *state)
 }
 
 static const struct rockchip_connector_funcs rockchip_rgb_connector_funcs = {
+	.pre_init = rockchip_rgb_connector_pre_init,
 	.init = rockchip_rgb_connector_init,
 	.prepare = rockchip_rgb_connector_prepare,
 	.unprepare = rockchip_rgb_connector_unprepare,

@@ -205,6 +205,15 @@ static u8 rk_get_vdac_value(void)
 	return value;
 }
 
+static int rockchip_drm_tve_pre_init(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+	conn_state->type = DRM_MODE_CONNECTOR_TV;
+
+	return 0;
+}
+
 static int rockchip_drm_tve_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -212,7 +221,6 @@ static int rockchip_drm_tve_init(struct display_state *state)
 	int dac_value, getvdac;
 	fdt_addr_t addr;
 
-	conn_state->type = DRM_MODE_CONNECTOR_TV;
 	tve_s.grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (tve_s.grf <= 0) {
 		printf("%s:Get syscon grf failed (ret=%p)\n",
@@ -551,6 +559,7 @@ static int rockchip_drm_tve_probe(struct udevice *dev)
 }
 
 const struct rockchip_connector_funcs rockchip_drm_tve_funcs = {
+	.pre_init = rockchip_drm_tve_pre_init,
 	.init = rockchip_drm_tve_init,
 	.deinit = rockchip_drm_tve_deinit,
 	.prepare = rockchip_drm_tve_prepare,

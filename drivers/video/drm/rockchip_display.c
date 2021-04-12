@@ -517,6 +517,28 @@ static int display_get_timing(struct display_state *state)
 	return -ENODEV;
 }
 
+static int display_pre_init(void)
+{
+	struct display_state *state;
+	int ret = 0;
+
+	list_for_each_entry(state, &rockchip_display_list, head) {
+		struct connector_state *conn_state = &state->conn_state;
+		const struct rockchip_connector *conn = conn_state->connector;
+		const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
+		struct crtc_state *crtc_state = &state->crtc_state;
+		struct rockchip_crtc *crtc = crtc_state->crtc;
+
+		if (conn_funcs->pre_init) {
+			ret = conn_funcs->pre_init(state);
+			if (ret)
+				printf("pre init conn error\n");
+		}
+		crtc->vps[crtc_state->crtc_id].output_type = conn_state->type;
+	}
+	return ret;
+}
+
 static int display_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -1578,6 +1600,7 @@ static int rockchip_display_probe(struct udevice *dev)
 		debug("Failed to found available display route\n");
 		return -ENODEV;
 	}
+	display_pre_init();
 
 	uc_priv->xsize = DRM_ROCKCHIP_FB_WIDTH;
 	uc_priv->ysize = DRM_ROCKCHIP_FB_HEIGHT;

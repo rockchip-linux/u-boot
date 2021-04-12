@@ -108,6 +108,15 @@ static inline struct rockchip_lvds *state_to_lvds(struct display_state *state)
 	return dev_get_priv(conn_state->dev);
 }
 
+static int rockchip_lvds_connector_pre_init(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
+
+	return 0;
+}
+
 static int rockchip_lvds_connector_init(struct display_state *state)
 {
 	struct rockchip_lvds *lvds = state_to_lvds(state);
@@ -138,7 +147,6 @@ static int rockchip_lvds_connector_init(struct display_state *state)
 		break;
 	}
 
-	conn_state->type = DRM_MODE_CONNECTOR_LVDS;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
 	if ((lvds->format == LVDS_10BIT_MODE_FORMAT_1) ||
@@ -185,6 +193,7 @@ static int rockchip_lvds_connector_disable(struct display_state *state)
 }
 
 static const struct rockchip_connector_funcs rockchip_lvds_connector_funcs = {
+	.pre_init = rockchip_lvds_connector_pre_init,
 	.init = rockchip_lvds_connector_init,
 	.enable = rockchip_lvds_connector_enable,
 	.disable = rockchip_lvds_connector_disable,

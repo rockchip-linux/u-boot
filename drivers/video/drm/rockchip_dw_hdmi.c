@@ -445,6 +445,7 @@ static const struct dw_hdmi_phy_ops inno_dw_hdmi_phy_ops = {
 };
 
 static const struct rockchip_connector_funcs rockchip_dw_hdmi_funcs = {
+	.pre_init = rockchip_dw_hdmi_pre_init,
 	.init = rockchip_dw_hdmi_init,
 	.deinit = rockchip_dw_hdmi_deinit,
 	.prepare = rockchip_dw_hdmi_prepare,

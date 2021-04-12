@@ -11,6 +11,7 @@
 
 struct rockchip_vp {
 	bool enable;
+	int output_type;
 	u8 bg_ovl_dly;
 };
 
