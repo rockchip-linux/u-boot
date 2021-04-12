@@ -1339,6 +1339,21 @@ static struct udevice *rockchip_of_find_connector(ofnode endpoint)
 	return dev;
 }
 
+static bool rockchip_get_display_path_status(ofnode endpoint)
+{
+	ofnode ep;
+	uint phandle;
+
+	if (ofnode_read_u32(endpoint, "remote-endpoint", &phandle))
+		return false;
+
+	ep = ofnode_get_by_phandle(phandle);
+	if (!ofnode_valid(ep) || !ofnode_is_available(ep))
+		return false;
+
+	return true;
+}
+
 static struct rockchip_phy *rockchip_of_find_phy(struct udevice *dev)
 {
 	struct udevice *phy_dev;
@@ -1566,10 +1581,36 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->crtc_state.dev = crtc_dev;
 		s->crtc_state.crtc = crtc;
 		s->crtc_state.crtc_id = get_crtc_id(np_to_ofnode(ep_node));
-		s->crtc_state.crtc->vps[s->crtc_state.crtc_id].enable = true;
 		s->node = node;
-		if (is_ports_node)
+
+		if (is_ports_node) { /* only vop2 will get into here */
+			ofnode vp_node = np_to_ofnode(port_node);
+			static bool get_plane_mask_from_dts;
+
 			s->crtc_state.ports_node = port_parent_node;
+			if (!get_plane_mask_from_dts) {
+				ofnode vp_sub_node;
+				int vp_id = 0;
+				bool vp_enable = false;
+
+				ofnode_for_each_subnode(vp_node, np_to_ofnode(port_parent_node)) {
+					vp_id = ofnode_read_u32_default(vp_node, "reg", 0);
+					ret = ofnode_read_u32_default(vp_node, "rockchip,plane-mask", 0);
+					if (ret) {
+						s->crtc_state.crtc->vps[vp_id].plane_mask = ret;
+						s->crtc_state.crtc->assign_plane |= true;
+						printf("get vp%d plane mask:0x%x from dts\n", vp_id, ret);
+					}
+
+					/* To check current vp status */
+					vp_enable = false;
+					ofnode_for_each_subnode(vp_sub_node, vp_node)
+						vp_enable |= rockchip_get_display_path_status(vp_sub_node);
+					s->crtc_state.crtc->vps[vp_id].enable = vp_enable;
+				}
+				get_plane_mask_from_dts = true;
+			}
+		}
 
 		if (bridge)
 			bridge->state = s;

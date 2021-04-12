@@ -87,7 +87,7 @@ struct crtc_state {
 	struct rockchip_crtc *crtc;
 	void *private;
 	ofnode node;
-	struct device_node *ports_node;
+	struct device_node *ports_node; /* if (ports_node) it's vop2; */
 	int crtc_id;
 
 	int format;
