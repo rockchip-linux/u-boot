@@ -333,10 +333,24 @@
 #define RK3568_ESMART0_REGION0_DSP_INFO		0x1824
 #define RK3568_ESMART0_REGION0_DSP_ST		0x1828
 #define RK3568_ESMART0_REGION0_SCL_CTRL		0x1830
+#define YRGB_XSCL_MODE_MASK			0x3
+#define YRGB_XSCL_MODE_SHIFT			0
+#define YRGB_XSCL_FILTER_MODE_MASK		0x3
+#define YRGB_XSCL_FILTER_MODE_SHIFT		2
+#define YRGB_YSCL_MODE_MASK			0x3
+#define YRGB_YSCL_MODE_SHIFT			4
+#define YRGB_YSCL_FILTER_MODE_MASK		0x3
+#define YRGB_YSCL_FILTER_MODE_SHIFT		6
+
 #define RK3568_ESMART0_REGION0_SCL_FACTOR_YRGB	0x1834
 #define RK3568_ESMART0_REGION0_SCL_FACTOR_CBR	0x1838
 #define RK3568_ESMART0_REGION0_SCL_OFFSET	0x183C
 #define RK3568_ESMART0_REGION1_CTRL		0x1840
+#define YRGB_GT2_MASK				0x1
+#define YRGB_GT2_SHIFT				8
+#define YRGB_GT4_MASK				0x1
+#define YRGB_GT4_SHIFT				9
+
 #define RK3568_ESMART0_REGION1_YRGB_MST		0x1844
 #define RK3568_ESMART0_REGION1_CBR_MST		0x1848
 #define RK3568_ESMART0_REGION1_VIR		0x184C
@@ -580,6 +594,34 @@ enum vop2_layer_phy_id {
 	ROCKCHIP_VOP2_ESMART3,
 };
 
+enum vop2_scale_up_mode {
+	VOP2_SCALE_UP_NRST_NBOR,
+	VOP2_SCALE_UP_BIL,
+	VOP2_SCALE_UP_BIC,
+};
+
+enum vop2_scale_down_mode {
+	VOP2_SCALE_DOWN_NRST_NBOR,
+	VOP2_SCALE_DOWN_BIL,
+	VOP2_SCALE_DOWN_AVG,
+};
+
+enum scale_mode {
+	SCALE_NONE = 0x0,
+	SCALE_UP   = 0x1,
+	SCALE_DOWN = 0x2
+};
+
+struct vop2_layer {
+	u8 id;
+	/**
+	 * @win_phys_id: window id of the layer selected.
+	 * Every layer must make sure to select different
+	 * windows of others.
+	 */
+	u8 win_phys_id;
+};
+
 struct vop2_win_data {
 	char *name;
 	u8 phys_id;
@@ -624,6 +666,73 @@ struct vop2 {
 };
 
 static struct vop2 *rockchip_vop2;
+/*
+ * bli_sd_factor = (src - 1) / (dst - 1) << 12;
+ * avg_sd_factor:
+ * bli_su_factor:
+ * bic_su_factor:
+ * = (src - 1) / (dst - 1) << 16;
+ *
+ * gt2 enable: dst get one line from two line of the src
+ * gt4 enable: dst get one line from four line of the src.
+ *
+ */
+#define VOP2_BILI_SCL_DN(src, dst)	(((src - 1) << 12) / (dst - 1))
+#define VOP2_COMMON_SCL(src, dst)	(((src - 1) << 16) / (dst - 1))
+
+#define VOP2_BILI_SCL_FAC_CHECK(src, dst, fac)	 \
+				(fac * (dst - 1) >> 12 < (src - 1))
+#define VOP2_COMMON_SCL_FAC_CHECK(src, dst, fac) \
+				(fac * (dst - 1) >> 16 < (src - 1))
+
+static uint16_t vop2_scale_factor(enum scale_mode mode,
+				  int32_t filter_mode,
+				  uint32_t src, uint32_t dst)
+{
+	uint32_t fac = 0;
+	int i = 0;
+
+	if (mode == SCALE_NONE)
+		return 0;
+
+	/*
+	 * A workaround to avoid zero div.
+	 */
+	if ((dst == 1) || (src == 1)) {
+		dst = dst + 1;
+		src = src + 1;
+	}
+
+	if ((mode == SCALE_DOWN) && (filter_mode == VOP2_SCALE_DOWN_BIL)) {
+		fac = VOP2_BILI_SCL_DN(src, dst);
+		for (i = 0; i < 100; i++) {
+			if (VOP2_BILI_SCL_FAC_CHECK(src, dst, fac))
+				break;
+			fac -= 1;
+			printf("down fac cali: src:%d, dst:%d, fac:0x%x\n", src, dst, fac);
+		}
+	} else {
+		fac = VOP2_COMMON_SCL(src, dst);
+		for (i = 0; i < 100; i++) {
+			if (VOP2_COMMON_SCL_FAC_CHECK(src, dst, fac))
+				break;
+			fac -= 1;
+			printf("up fac cali:  src:%d, dst:%d, fac:0x%x\n", src, dst, fac);
+		}
+	}
+
+	return fac;
+}
+
+static inline enum scale_mode scl_get_scl_mode(int src, int dst)
+{
+	if (src < dst)
+		return SCALE_UP;
+	else if (src > dst)
+		return SCALE_DOWN;
+
+	return SCALE_NONE;
+}
 
 static u8 vop2_vp_primary_plane_order[VOP2_VP_MAX] = {
 	ROCKCHIP_VOP2_SMART0,
@@ -1503,6 +1612,74 @@ static int rockchip_vop2_init(struct display_state *state)
 	return 0;
 }
 
+static void vop2_setup_scale(struct vop2 *vop2, uint32_t win_offset,
+			     uint32_t src_w, uint32_t src_h, uint32_t dst_w,
+			     uint32_t dst_h)
+{
+	uint16_t yrgb_hor_scl_mode, yrgb_ver_scl_mode;
+	uint16_t hscl_filter_mode, vscl_filter_mode;
+	uint8_t gt2 = 0, gt4 = 0;
+	uint32_t xfac = 0, yfac = 0;
+	uint16_t hsu_filter_mode = VOP2_SCALE_UP_BIC;
+	uint16_t hsd_filter_mode = VOP2_SCALE_DOWN_BIL;
+	uint16_t vsu_filter_mode = VOP2_SCALE_UP_BIL;
+	uint16_t vsd_filter_mode = VOP2_SCALE_DOWN_BIL;
+
+	if (src_h >= (4 * dst_h))
+		gt4 = 1;
+	else if (src_h >= (2 * dst_h))
+		gt2 = 1;
+
+	if (gt4)
+		src_h >>= 2;
+	else if (gt2)
+		src_h >>= 1;
+
+	yrgb_hor_scl_mode = scl_get_scl_mode(src_w, dst_w);
+	yrgb_ver_scl_mode = scl_get_scl_mode(src_h, dst_h);
+
+	if (yrgb_hor_scl_mode == SCALE_UP)
+		hscl_filter_mode = hsu_filter_mode;
+	else
+		hscl_filter_mode = hsd_filter_mode;
+
+	if (yrgb_ver_scl_mode == SCALE_UP)
+		vscl_filter_mode = vsu_filter_mode;
+	else
+		vscl_filter_mode = vsd_filter_mode;
+
+	/*
+	 * RK3568 VOP Esmart/Smart dsp_w should be even pixel
+	 * at scale down mode
+	 */
+	if ((yrgb_hor_scl_mode == SCALE_DOWN) && (dst_w & 0x1)) {
+		printf("win dst_w[%d] should align as 2 pixel\n", dst_w);
+		dst_w += 1;
+	}
+
+	xfac = vop2_scale_factor(yrgb_hor_scl_mode, hscl_filter_mode, src_w, dst_w);
+	yfac = vop2_scale_factor(yrgb_ver_scl_mode, vscl_filter_mode, src_h, dst_h);
+	vop2_writel(vop2, RK3568_ESMART0_REGION0_SCL_FACTOR_YRGB + win_offset,
+		    yfac << 16 | xfac);
+
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION1_CTRL + win_offset,
+			YRGB_GT2_MASK, YRGB_GT2_SHIFT, gt2, false);
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION1_CTRL + win_offset,
+			YRGB_GT4_MASK, YRGB_GT4_SHIFT, gt4, false);
+
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_SCL_CTRL + win_offset,
+			YRGB_XSCL_MODE_MASK, YRGB_XSCL_MODE_SHIFT, yrgb_hor_scl_mode, false);
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_SCL_CTRL + win_offset,
+			YRGB_YSCL_MODE_MASK, YRGB_YSCL_MODE_SHIFT, yrgb_ver_scl_mode, false);
+
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_SCL_CTRL + win_offset,
+			YRGB_XSCL_FILTER_MODE_MASK, YRGB_XSCL_FILTER_MODE_SHIFT,
+			hscl_filter_mode, false);
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_SCL_CTRL + win_offset,
+			YRGB_YSCL_FILTER_MODE_MASK, YRGB_YSCL_FILTER_MODE_SHIFT,
+			vscl_filter_mode, false);
+}
+
 static int rockchip_vop2_set_plane(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -1544,6 +1721,8 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 		y_mirror = 1;
 	else
 		y_mirror = 0;
+
+	vop2_setup_scale(vop2, win_offset, src_w, src_h, crtc_w, crtc_h);
 
 	if (y_mirror)
 		cstate->dma_addr += (src_h - 1) * xvir * 4;
