@@ -18,6 +18,7 @@
 #include <clk.h>
 #include <asm/arch/clock.h>
 #include <linux/err.h>
+#include <linux/ioport.h>
 #include <dm/device.h>
 #include <dm/read.h>
 #include <syscon.h>
@@ -69,6 +70,10 @@
 #define IF_CRTL_RGB_LVDS_DCLK_POL_SHIT		3
 #define RK3568_SYS_OTP_WIN_EN			0x50
 #define OTP_WIN_EN_SHIFT			0
+#define RK3568_SYS_LUT_PORT_SEL			0x58
+#define GAMMA_PORT_SEL_MASK			0x3
+#define GAMMA_PORT_SEL_SHIFT			0
+
 #define RK3568_VP0_LINE_FLAG			0x70
 #define RK3568_VP1_LINE_FLAG			0x74
 #define RK3568_VP2_LINE_FLAG			0x78
@@ -133,6 +138,8 @@
 #define POST_DSP_OUT_R2Y_SHIFT			15
 #define PRE_DITHER_DOWN_EN_SHIFT		16
 #define DITHER_DOWN_EN_SHIFT			17
+#define DSP_LUT_EN_SHIFT			28
+
 #define STANDBY_EN_SHIFT			31
 
 #define RK3568_VP0_MIPI_CTRL			0xC04
@@ -555,6 +562,7 @@ struct vop2_data {
 	u8 nr_vps;
 	u8 nr_layers;
 	u8 nr_mixers;
+	u8 nr_gammas;
 };
 
 struct vop2 {
@@ -710,9 +718,65 @@ static inline bool is_hot_plug_devices(int output_type)
 	}
 }
 
-static int rockchip_vop2_init_gamma(struct vop2 *vop2,
-				    struct display_state *state)
+static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
+					struct display_state *state)
 {
+	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *cstate = &state->crtc_state;
+	struct resource gamma_res;
+	fdt_size_t lut_size;
+	int i, lut_len, ret = 0;
+	u32 *lut_regs;
+	u32 *lut_val;
+	u32 r, g, b;
+	u32 vp_offset = cstate->crtc_id * 0x100;
+	struct base2_disp_info *disp_info = conn_state->disp_info;
+	static int gamma_lut_en_num = 1;
+
+	if (gamma_lut_en_num > vop2->data->nr_gammas) {
+		printf("warn: only %d vp support gamma\n", vop2->data->nr_gammas);
+		return 0;
+	}
+
+	if (!disp_info)
+		return 0;
+
+	if (!disp_info->gamma_lut_data.size)
+		return 0;
+
+	ret = ofnode_read_resource_byname(cstate->node, "gamma_lut", &gamma_res);
+	if (ret)
+		printf("failed to get gamma lut res\n");
+	lut_regs = (u32 *)gamma_res.start;
+	lut_size = gamma_res.end - gamma_res.start + 1;
+	if (lut_regs == (u32 *)FDT_ADDR_T_NONE) {
+		printf("failed to get gamma lut register\n");
+		return 0;
+	}
+	lut_len = lut_size / 4;
+	if (lut_len != 256 && lut_len != 1024) {
+		printf("Warning: unsupport gamma lut table[%d]\n", lut_len);
+		return 0;
+	}
+	lut_val = (u32 *)calloc(1, lut_size);
+	for (i = 0; i < lut_len; i++) {
+		r = disp_info->gamma_lut_data.lred[i] * (lut_len - 1) / 0xffff;
+		g = disp_info->gamma_lut_data.lgreen[i] * (lut_len - 1) / 0xffff;
+		b = disp_info->gamma_lut_data.lblue[i] * (lut_len - 1) / 0xffff;
+
+		lut_val[i] = b * lut_len * lut_len + g * lut_len + r;
+	}
+
+	for (i = 0; i < lut_len; i++)
+		writel(lut_val[i], lut_regs + i);
+
+	vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL,
+			GAMMA_PORT_SEL_MASK, GAMMA_PORT_SEL_SHIFT,
+			cstate->crtc_id , false);
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
+			EN_MASK, DSP_LUT_EN_SHIFT, 1, false);
+	gamma_lut_en_num++;
+
 	return 0;
 }
 
@@ -952,7 +1016,7 @@ static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 	}
 
 	vop2_global_initial(vop2, state);
-	rockchip_vop2_init_gamma(vop2, state);
+	rockchip_vop2_gamma_lut_init(vop2, state);
 
 	return 0;
 }
@@ -1521,6 +1585,7 @@ const struct vop2_data rk3568_vop = {
 	.plane_mask = rk356x_vp_plane_mask[0],
 	.nr_layers = 6,
 	.nr_mixers = 5,
+	.nr_gammas = 1,
 };
 
 const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
