@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <dm/of_access.h>
 #include <errno.h>
 #include <syscon.h>
 #include <regmap.h>
@@ -50,6 +51,7 @@ struct rockchip_rgb_funcs {
 };
 
 struct rockchip_rgb {
+	int id;
 	struct udevice *dev;
 	struct regmap *grf;
 	bool data_sync_bypass;
@@ -119,6 +121,7 @@ static int rockchip_rgb_connector_init(struct display_state *state)
 	rgb->phy = conn_state->phy;
 
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, rgb->id);
 
 	switch (conn_state->bus_format) {
 	case MEDIA_BUS_FMT_RGB666_1X18:
@@ -164,6 +167,9 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	rgb->funcs = connector->data;
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
 	rgb->data_sync_bypass = dev_read_bool(dev, "rockchip,data-sync-bypass");
+	rgb->id = of_alias_get_id(ofnode_to_np(dev->node), "rgb");
+	if (rgb->id < 0)
+		rgb->id = 0;
 
 	return 0;
 }

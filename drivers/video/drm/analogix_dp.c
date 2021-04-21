@@ -11,6 +11,7 @@
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <dm/device.h>
+#include <dm/of_access.h>
 #include <dm/read.h>
 #include <linux/list.h>
 #include <syscon.h>
@@ -752,6 +753,7 @@ static int analogix_dp_connector_init(struct display_state *state)
 	udelay(1);
 	reset_deassert_bulk(&dp->resets);
 
+	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dp->id);
 	generic_phy_power_on(&dp->phy);
 	analogix_dp_init_dp(dp);
 
@@ -866,6 +868,9 @@ static int analogix_dp_probe(struct udevice *dev)
 
 	dp->reg_base = dev_read_addr_ptr(dev);
 
+	dp->id = of_alias_get_id(ofnode_to_np(dev->node), "edp");
+	if (dp->id < 0)
+		dp->id = 0;
 	ret = reset_get_bulk(dev, &dp->resets);
 	if (ret) {
 		dev_err(dev, "failed to get reset control: %d\n", ret);

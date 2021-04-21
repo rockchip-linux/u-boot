@@ -10,6 +10,7 @@
 #include <dm/device.h>
 #include <dm/read.h>
 #include <dm/ofnode.h>
+#include <dm/of_access.h>
 #include <syscon.h>
 #include <regmap.h>
 #include <dm/device.h>
@@ -91,6 +92,7 @@ struct rockchip_lvds_funcs {
 };
 
 struct rockchip_lvds {
+	int id;
 	struct udevice *dev;
 	struct regmap *grf;
 	struct rockchip_phy *phy;
@@ -125,6 +127,7 @@ static int rockchip_lvds_connector_init(struct display_state *state)
 
 	lvds->mode = &conn_state->mode;
 	lvds->phy = conn_state->phy;
+	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, lvds->id);
 
 	switch (panel->bus_format) {
 	case MEDIA_BUS_FMT_RGB666_1X7X3_JEIDA:	/* jeida-18 */
@@ -210,6 +213,9 @@ static int rockchip_lvds_probe(struct udevice *dev)
 	lvds->grf = syscon_get_regmap(dev_get_parent(dev));
 	lvds->dual_channel = dev_read_bool(dev, "dual-channel");
 	lvds->data_swap = dev_read_bool(dev, "rockchip,data-swap");
+	lvds->id = of_alias_get_id(ofnode_to_np(dev->node), "lvds");
+	if (lvds->id < 0)
+		lvds->id = 0;
 
 	return 0;
 }

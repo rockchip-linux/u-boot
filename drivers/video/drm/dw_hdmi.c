@@ -164,6 +164,7 @@ struct dw_hdmi_i2c {
 };
 
 struct dw_hdmi {
+	int id;
 	enum dw_hdmi_devtype dev_type;
 	unsigned int version;
 	struct hdmi_data_info hdmi_data;
@@ -2281,15 +2282,25 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 	ofnode hdmi_node = conn_state->node;
 	u32 val;
 	struct device_node *ddc_node;
+	int id;
 
 	hdmi = malloc(sizeof(struct dw_hdmi));
 	if (!hdmi)
 		return -ENOMEM;
+	id = of_alias_get_id(ofnode_to_np(hdmi_node), "hdmi");
+	if (id < 0)
+		id = 0;
+	hdmi->id = id;
+	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, hdmi->id);
 
 	memset(hdmi, 0, sizeof(struct dw_hdmi));
 	mode_buf = malloc(MODE_LEN * sizeof(struct drm_display_mode));
 	if (!mode_buf)
 		return -ENOMEM;
+	hdmi->id = of_alias_get_id(ofnode_to_np(hdmi_node), "hdmi");
+	if (hdmi->id < 0)
+		hdmi->id = 0;
+	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, hdmi->id);
 
 	memset(mode_buf, 0, MODE_LEN * sizeof(struct drm_display_mode));
 

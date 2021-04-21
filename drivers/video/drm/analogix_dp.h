@@ -540,6 +540,7 @@ struct analogix_dp_plat_data {
 };
 
 struct analogix_dp_device {
+	int id;
 	struct udevice *dev;
 	void *reg_base;
 	struct phy phy;
