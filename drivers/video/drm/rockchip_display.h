@@ -143,6 +143,8 @@ struct connector_state {
 	int color_space;
 	unsigned int bpc;
 
+	struct base2_disp_info *disp_info; /* disp_info from baseparameter 2.0 */
+
 	struct {
 		u32 *lut;
 		int size;
@@ -200,6 +202,7 @@ int drm_mode_vrefresh(const struct drm_display_mode *mode);
 int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val);
 bool drm_mode_is_420(const struct drm_display_info *display,
 		     struct drm_display_mode *mode);
+struct base2_disp_info *rockchip_get_disp_info(int type, int id);
 
 void drm_mode_max_resolution_filter(struct hdmi_edid_data *edid_data,
 				    struct vop_rect *max_output);

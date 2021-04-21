@@ -736,6 +736,13 @@ enum  base_output_depth {
 	DEPTH_30BIT = 10,
 };
 
+struct base_bcsh_info {
+	unsigned short brightness;
+	unsigned short contrast;
+	unsigned short saturation;
+	unsigned short hue;
+};
+
 struct base_overscan {
 	unsigned int maxvalue;
 	unsigned short leftscale;
@@ -771,6 +778,54 @@ struct base_screen_info {
 struct base_disp_info {
 	struct base_screen_info screen_list[5];
 	struct base_overscan scan;		/* 12 bytes */
+};
+
+struct base2_cubic_lut_data {
+	u16 size;
+	u16 lred[4913];
+	u16 lgreen[4913];
+	u16 lblue[4913];
+};
+
+struct base2_screen_info {
+	u32 type;
+	u32 id;
+	struct base_drm_display_mode resolution;
+	enum base_output_format  format;
+	enum base_output_depth depthc;
+	u32 feature;
+};
+
+struct base2_gamma_lut_data {
+	u16 size;
+	u16 lred[1024];
+	u16 lgreen[1024];
+	u16 lblue[1024];
+};
+
+struct base2_disp_info {
+	char disp_head_flag[6];
+	struct base2_screen_info screen_info[4];
+	struct base_bcsh_info bcsh_info;
+	struct base_overscan overscan_info;
+	struct base2_gamma_lut_data gamma_lut_data;
+	struct base2_cubic_lut_data cubic_lut_data;
+	u32 reserved[256];
+	u32 crc;
+};
+
+struct base2_disp_header {
+	u32 connector_type;
+	u32 connector_id;
+	u32 offset;
+};
+
+struct base2_info {
+	char head_flag[4];
+	u16 major_version;
+	u16 minor_version;
+	struct base2_disp_header disp_header[8];
+	struct base2_disp_info disp_info[8];
 };
 
 /**

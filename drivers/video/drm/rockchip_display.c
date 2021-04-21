@@ -5,6 +5,7 @@
  */
 
 #include <asm/unaligned.h>
+#include <boot_rkimg.h>
 #include <config.h>
 #include <common.h>
 #include <errno.h>
@@ -54,6 +55,8 @@ static LIST_HEAD(logo_cache_list);
 
 static unsigned long memory_start;
 static unsigned long memory_end;
+static struct base2_info base_parameter;
+static uint32_t crc32_table[256];
 
 /*
  * the phy types are used by different connectors in public.
@@ -71,6 +74,103 @@ struct public_phy_data {
 	int public_phy_type;
 	bool phy_init;
 };
+
+void rockchip_display_make_crc32_table(void)
+{
+	uint32_t c;
+	int n, k;
+	unsigned long poly;		/* polynomial exclusive-or pattern */
+	/* terms of polynomial defining this crc (except x^32): */
+	static const char p[] = {0, 1, 2, 4, 5, 7, 8, 10, 11, 12, 16, 22, 23, 26};
+
+	/* make exclusive-or pattern from polynomial (0xedb88320L) */
+	poly = 0L;
+	for (n = 0; n < sizeof(p) / sizeof(char); n++)
+		poly |= 1L << (31 - p[n]);
+
+	for (n = 0; n < 256; n++) {
+		c = (unsigned long)n;
+		for (k = 0; k < 8; k++)
+		c = c & 1 ? poly ^ (c >> 1) : c >> 1;
+		crc32_table[n] = cpu_to_le32(c);
+	}
+}
+
+uint32_t rockchip_display_crc32c_cal(unsigned char *data, int length)
+{
+	int i;
+	uint32_t crc;
+	crc = 0xFFFFFFFF;
+
+	for (i = 0; i < length; i++) {
+		crc = crc32_table[(crc ^ *data) & 0xff] ^ (crc >> 8);
+		data++;
+	}
+
+	return crc ^ 0xffffffff;
+}
+
+int rockchip_get_baseparameter(void)
+{
+	struct blk_desc *dev_desc;
+	disk_partition_t part_info;
+	int block_num = 2048;
+	char baseparameter_buf[block_num * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
+	int ret = 0;
+
+	dev_desc = rockchip_get_bootdev();
+	if (!dev_desc) {
+		printf("%s: Could not find device\n", __func__);
+		return -ENOENT;
+	}
+
+	if (part_get_info_by_name(dev_desc, "baseparameter", &part_info) < 0) {
+		printf("Could not find baseparameter partition\n");
+		return -ENOENT;
+	}
+
+	ret = blk_dread(dev_desc, part_info.start, block_num, (void *)baseparameter_buf);
+	if (ret < 0) {
+		printf("read baseparameter failed\n");
+		return ret;
+	}
+
+	memcpy(&base_parameter, baseparameter_buf, sizeof(base_parameter));
+	if (strncasecmp(base_parameter.head_flag, "BASP", 4)) {
+		printf("warning: bad baseparameter\n");
+		memset(&base_parameter, 0, sizeof(base_parameter));
+	}
+	rockchip_display_make_crc32_table();
+
+	return ret;
+}
+
+struct base2_disp_info *rockchip_get_disp_info(int type, int id)
+{
+	struct base2_disp_info *disp_info;
+	int i = 0;
+	u32 crc_val;
+
+	for (i = 0; i < 8; i++) {
+		disp_info = &base_parameter.disp_info[i];
+		if (disp_info->screen_info[0].type == type &&
+		    disp_info->screen_info[0].id == id) {
+			printf("disp info %d, type:%d, id:%d\n", i, type, id);
+			break;
+		}
+	}
+	if (strncasecmp(disp_info->disp_head_flag, "DISP", 4))
+		return NULL;
+
+	crc_val = rockchip_display_crc32c_cal((unsigned char *)disp_info, sizeof(struct base2_disp_info) - 4);
+
+	if (crc_val != disp_info->crc) {
+		printf("error: connector type[%d], id[%d] disp info crc check error\n", type, id);
+		return NULL;
+	}
+
+	return disp_info;
+}
 
 /* check which kind of public phy does connector use */
 static int check_public_use_phy(struct display_state *state)
@@ -1641,6 +1741,7 @@ static int rockchip_display_probe(struct udevice *dev)
 		debug("Failed to found available display route\n");
 		return -ENODEV;
 	}
+	rockchip_get_baseparameter();
 	display_pre_init();
 
 	uc_priv->xsize = DRM_ROCKCHIP_FB_WIDTH;
