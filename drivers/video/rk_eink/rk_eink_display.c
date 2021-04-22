@@ -564,6 +564,9 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 
 		logo_addr = get_addr_by_type(dev, EINK_LOGO_RESET);
 		memset((u32 *)(u64)logo_addr, 0xff, size);
+		flush_dcache_range((ulong)logo_addr,
+				   ALIGN((ulong)logo_addr + size,
+					 CONFIG_SYS_CACHELINE_SIZE));
 		eink_display(dev, logo_addr, logo_addr,
 			     WF_TYPE_RESET, 0);
 		last_logo_type = 0;
