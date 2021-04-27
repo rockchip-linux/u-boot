@@ -1882,6 +1882,13 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("overscan,top_margin", s->conn_state.overscan.top_margin);
 		FDT_SET_U32("overscan,bottom_margin", s->conn_state.overscan.bottom_margin);
 
+		if (s->conn_state.disp_info) {
+			FDT_SET_U32("bcsh,brightness", s->conn_state.disp_info->bcsh_info.brightness);
+			FDT_SET_U32("bcsh,contrast", s->conn_state.disp_info->bcsh_info.contrast);
+			FDT_SET_U32("bcsh,saturation", s->conn_state.disp_info->bcsh_info.saturation);
+			FDT_SET_U32("bcsh,hue", s->conn_state.disp_info->bcsh_info.hue);
+		}
+
 		if (s->conn_state.disp_info->cubic_lut_data.size &&
 		    CONFIG_ROCKCHIP_CUBIC_LUT_SIZE)
 			FDT_SET_U32("cubic_lut,offset", get_cubic_lut_offset(s->crtc_state.crtc_id));

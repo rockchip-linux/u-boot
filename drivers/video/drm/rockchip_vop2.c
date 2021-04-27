@@ -21,6 +21,7 @@
 #include <linux/ioport.h>
 #include <dm/device.h>
 #include <dm/read.h>
+#include <fixp-arith.h>
 #include <syscon.h>
 
 #include "rockchip_display.h"
@@ -171,6 +172,36 @@
 #define RK3568_VP0_DSP_VACT_ST_END		0xC54
 #define RK3568_VP0_DSP_VS_ST_END_F1		0xC58
 #define RK3568_VP0_DSP_VACT_ST_END_F1		0xC5C
+
+#define RK3568_VP0_BCSH_CTRL			0xC60
+#define BCSH_CTRL_Y2R_SHIFT			0
+#define BCSH_CTRL_Y2R_MASK			0x1
+#define BCSH_CTRL_Y2R_CSC_MODE_SHIFT		2
+#define BCSH_CTRL_Y2R_CSC_MODE_MASK		0x3
+#define BCSH_CTRL_R2Y_SHIFT			4
+#define BCSH_CTRL_R2Y_MASK			0x1
+#define BCSH_CTRL_R2Y_CSC_MODE_SHIFT		6
+#define BCSH_CTRL_R2Y_CSC_MODE_MASK		0x3
+
+#define RK3568_VP0_BCSH_BCS			0xC64
+#define BCSH_BRIGHTNESS_SHIFT			0
+#define BCSH_BRIGHTNESS_MASK			0xFF
+#define BCSH_CONTRAST_SHIFT			8
+#define BCSH_CONTRAST_MASK			0x1FF
+#define BCSH_SATURATION_SHIFT			20
+#define BCSH_SATURATION_MASK			0x3FF
+#define BCSH_OUT_MODE_SHIFT			30
+#define BCSH_OUT_MODE_MASK			0x3
+
+#define RK3568_VP0_BCSH_H			0xC68
+#define BCSH_SIN_HUE_SHIFT			0
+#define BCSH_SIN_HUE_MASK			0x1FF
+#define BCSH_COS_HUE_SHIFT			16
+#define BCSH_COS_HUE_MASK			0x1FF
+
+#define RK3568_VP0_BCSH_COLOR			0xC6C
+#define BCSH_EN_SHIFT				31
+#define BCSH_EN_MASK				1
 
 #define RK3568_VP1_DSP_CTRL			0xD00
 #define RK3568_VP1_MIPI_CTRL			0xD04
@@ -505,6 +536,13 @@ enum vop2_pol {
 	DCLK_INVERT    = 3
 };
 
+enum vop2_bcsh_out_mode {
+	BCSH_OUT_MODE_BLACK,
+	BCSH_OUT_MODE_BLUE,
+	BCSH_OUT_MODE_COLOR_BAR,
+	BCSH_OUT_MODE_NORMAL_VIDEO,
+};
+
 #define _VOP_REG(off, _mask, _shift, _write_mask) \
 		{ \
 		 .offset = off, \
@@ -592,6 +630,11 @@ static u8 vop2_vp_primary_plane_order[VOP2_VP_MAX] = {
 	ROCKCHIP_VOP2_SMART1,
 	ROCKCHIP_VOP2_ESMART1,
 };
+
+static inline int interpolate(int x1, int y1, int x2, int y2, int x)
+{
+	return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+}
 
 static int vop2_get_primary_plane(struct vop2 *vop2, u32 plane_mask)
 {
@@ -840,6 +883,98 @@ static int rockchip_vop2_cubic_lut_init(struct vop2 *vop2,
 			EN_MASK, VP0_3D_LUT_UPDATE_SHIFT, 1, false);
 
 	return 0;
+}
+
+static void vop2_tv_config_update(struct display_state *state, struct vop2 *vop2)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct base_bcsh_info *bcsh_info;
+	struct crtc_state *cstate = &state->crtc_state;
+	int brightness, contrast, saturation, hue, sin_hue, cos_hue;
+	bool bcsh_en = false, post_r2y_en = false, post_y2r_en = false;
+	u32 vp_offset = (cstate->crtc_id * 0x100);
+	int post_csc_mode;
+
+	if (!conn_state->disp_info)
+		return;
+	bcsh_info = &conn_state->disp_info->bcsh_info;
+	if (!bcsh_info)
+		return;
+
+	if (bcsh_info->brightness != 50 ||
+	    bcsh_info->contrast != 50 ||
+	    bcsh_info->saturation != 50 || bcsh_info->hue != 50)
+		bcsh_en = true;
+
+	if (bcsh_en) {
+		if (!cstate->yuv_overlay)
+			post_r2y_en = 1;
+		if (!is_yuv_output(conn_state->bus_format))
+			post_y2r_en = 1;
+	} else {
+		if (!cstate->yuv_overlay && is_yuv_output(conn_state->bus_format))
+			post_r2y_en = 1;
+		if (cstate->yuv_overlay && !is_yuv_output(conn_state->bus_format))
+			post_y2r_en = 1;
+	}
+
+	post_csc_mode = vop2_convert_csc_mode(conn_state->color_space);
+
+
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_CTRL + vp_offset, BCSH_CTRL_R2Y_MASK,
+			BCSH_CTRL_R2Y_SHIFT, post_r2y_en, false);
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_CTRL + vp_offset, BCSH_CTRL_Y2R_MASK,
+			BCSH_CTRL_Y2R_SHIFT, post_y2r_en, false);
+
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_CTRL + vp_offset, BCSH_CTRL_R2Y_CSC_MODE_MASK,
+			BCSH_CTRL_R2Y_CSC_MODE_SHIFT, post_csc_mode, false);
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_CTRL + vp_offset, BCSH_CTRL_Y2R_CSC_MODE_MASK,
+			BCSH_CTRL_Y2R_CSC_MODE_SHIFT, post_csc_mode, false);
+	if (!bcsh_en) {
+		vop2_mask_write(vop2, RK3568_VP0_BCSH_COLOR + vp_offset,
+				BCSH_EN_MASK, BCSH_EN_SHIFT, 0, false);
+		return;
+	}
+
+	if (cstate->feature & VOP_FEATURE_OUTPUT_10BIT)
+		brightness = interpolate(0, -128, 100, 127,
+					 bcsh_info->brightness);
+	else
+		brightness = interpolate(0, -32, 100, 31,
+					 bcsh_info->brightness);
+	contrast = interpolate(0, 0, 100, 511, bcsh_info->contrast);
+	saturation = interpolate(0, 0, 100, 511, bcsh_info->saturation);
+	hue = interpolate(0, -30, 100, 30, bcsh_info->hue);
+
+
+	/*
+	 *  a:[-30~0):
+	 *    sin_hue = 0x100 - sin(a)*256;
+	 *    cos_hue = cos(a)*256;
+	 *  a:[0~30]
+	 *    sin_hue = sin(a)*256;
+	 *    cos_hue = cos(a)*256;
+	 */
+	sin_hue = fixp_sin32(hue) >> 23;
+	cos_hue = fixp_cos32(hue) >> 23;
+
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_BCS + vp_offset,
+			BCSH_BRIGHTNESS_MASK, BCSH_BRIGHTNESS_SHIFT,
+			brightness, false);
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_BCS + vp_offset,
+			BCSH_CONTRAST_MASK, BCSH_CONTRAST_SHIFT, contrast, false);
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_BCS + vp_offset,
+			BCSH_SATURATION_MASK, BCSH_SATURATION_SHIFT,
+			saturation * contrast / 0x100, false);
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_H + vp_offset,
+			BCSH_SIN_HUE_MASK, BCSH_SIN_HUE_SHIFT, sin_hue, false);
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_H + vp_offset,
+			BCSH_COS_HUE_MASK, BCSH_COS_HUE_SHIFT, cos_hue, false);
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_BCS + vp_offset,
+			 BCSH_OUT_MODE_MASK, BCSH_OUT_MODE_SHIFT,
+			BCSH_OUT_MODE_NORMAL_VIDEO, false);
+	vop2_mask_write(vop2, RK3568_VP0_BCSH_COLOR + vp_offset,
+			BCSH_EN_MASK, BCSH_EN_SHIFT, 1, false);
 }
 
 static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
@@ -1363,6 +1498,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 			POST_DSP_OUT_R2Y_SHIFT, yuv_overlay, false);
 
+	vop2_tv_config_update(state, vop2);
 	vop2_post_config(state, vop2);
 
 	return 0;
