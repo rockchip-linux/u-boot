@@ -43,6 +43,9 @@
 #define RK3368_GRF_SOC_CON15		0x043c
 #define RK3368_FORCE_JETAG(v)		HIWORD_UPDATE(v,  13,  13)
 
+#define RK3568_GRF_VO_CON1		0X0364
+#define RK3568_RGB_DATA_BYPASS(v)	HIWORD_UPDATE(v, 6, 6)
+
 struct rockchip_rgb;
 
 struct rockchip_rgb_funcs {
@@ -126,24 +129,42 @@ static int rockchip_rgb_connector_init(struct display_state *state)
 	switch (conn_state->bus_format) {
 	case MEDIA_BUS_FMT_RGB666_1X18:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P666;
+		conn_state->output_if = VOP_OUTPUT_IF_RGB;
 		break;
 	case MEDIA_BUS_FMT_RGB565_1X16:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P565;
+		conn_state->output_if = VOP_OUTPUT_IF_RGB;
 		break;
 	case MEDIA_BUS_FMT_SRGB888_3X8:
 	case MEDIA_BUS_FMT_SBGR888_3X8:
 	case MEDIA_BUS_FMT_SRBG888_3X8:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_S888;
+		conn_state->output_if = VOP_OUTPUT_IF_RGB;
 		break;
 	case MEDIA_BUS_FMT_SRGB888_DUMMY_4X8:
 	case MEDIA_BUS_FMT_SBGR888_DUMMY_4X8:
 	case MEDIA_BUS_FMT_SRBG888_DUMMY_4X8:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_S888_DUMMY;
+		conn_state->output_if = VOP_OUTPUT_IF_RGB;
 		break;
+	case MEDIA_BUS_FMT_YUYV8_2X8:
+	case MEDIA_BUS_FMT_YVYU8_2X8:
+	case MEDIA_BUS_FMT_UYVY8_2X8:
+	case MEDIA_BUS_FMT_VYUY8_2X8:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_BT656;
+		conn_state->output_if = VOP_OUTPUT_IF_BT656;
+		break;
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_YVYU8_1X16:
+	case MEDIA_BUS_FMT_UYVY8_1X16:
+	case MEDIA_BUS_FMT_VYUY8_1X16:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_BT1120;
+		conn_state->output_if = VOP_OUTPUT_IF_BT1120;
 	case MEDIA_BUS_FMT_RGB888_1X24:
 	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
 	default:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+		conn_state->output_if = VOP_OUTPUT_IF_RGB;
 		break;
 	}
 
@@ -259,6 +280,20 @@ static const struct rockchip_connector rk3368_rgb_driver_data = {
 	.data = &rk3368_rgb_funcs,
 };
 
+static void rk3568_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+{
+	regmap_write(rgb->grf, RK3568_GRF_VO_CON1, RK3568_RGB_DATA_BYPASS(0));
+}
+
+static const struct rockchip_rgb_funcs rk3568_rgb_funcs = {
+	.prepare = rk3568_rgb_prepare,
+};
+
+static const struct rockchip_connector rk3568_rgb_driver_data = {
+	.funcs = &rockchip_rgb_connector_funcs,
+	.data = &rk3568_rgb_funcs,
+};
+
 static const struct rockchip_connector rockchip_rgb_driver_data = {
 	.funcs = &rockchip_rgb_connector_funcs,
 };
@@ -291,6 +326,10 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 	{
 		.compatible = "rockchip,rk3368-rgb",
 		.data = (ulong)&rk3368_rgb_driver_data,
+	},
+	{
+		.compatible = "rockchip,rk3568-rgb",
+		.data = (ulong)&rk3568_rgb_driver_data,
 	},
 	{
 		.compatible = "rockchip,rv1108-rgb",

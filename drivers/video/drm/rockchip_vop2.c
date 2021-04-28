@@ -1283,11 +1283,8 @@ static int rockchip_vop2_init(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				RGB_MUX_SHIFT, cstate->crtc_id, false);
-		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
-				IF_CRTL_RGB_LVDS_DCLK_POL_SHIT, !!dclk_inv,
-				false);
 		vop2_grf_writel(vop2, RK3568_GRF_VO_CON1, EN_MASK,
-				GRF_RGB_DCLK_INV_SHIFT, !dclk_inv);
+				GRF_RGB_DCLK_INV_SHIFT, dclk_inv);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_BT1120) {
@@ -1349,7 +1346,7 @@ static int rockchip_vop2_init(struct display_state *state)
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				MIPI0_MUX_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
-				IF_CRTL_MIPI_DCLK_POL_SHIT, !!dclk_inv, false);
+				IF_CRTL_MIPI_DCLK_POL_SHIT, dclk_inv, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_MIPI1) {
@@ -1358,7 +1355,7 @@ static int rockchip_vop2_init(struct display_state *state)
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				MIPI1_MUX_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
-				IF_CRTL_MIPI_DCLK_POL_SHIT, !!dclk_inv, false);
+				IF_CRTL_MIPI_DCLK_POL_SHIT, dclk_inv, false);
 	}
 
 	if (conn_state->output_flags &
@@ -1376,6 +1373,8 @@ static int rockchip_vop2_init(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				EDP0_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
+				IF_CRTL_EDP_DCLK_POL_SHIT, dclk_inv, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_HDMI0) {
