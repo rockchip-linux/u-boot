@@ -136,7 +136,13 @@ int video_reserve(ulong *addrp)
 
 	gd->video_top = *addrp;
 #ifdef CONFIG_DRM_ROCKCHIP
-	size = DRM_ROCKCHIP_FB_SIZE + MEMORY_POOL_SIZE;
+	int cubic_lut_step = CONFIG_ROCKCHIP_CUBIC_LUT_SIZE;
+	/* This is depend on IC designed */
+	ulong cubic_lut_size = (cubic_lut_step * cubic_lut_step * cubic_lut_step + 1) / 2 * 16;
+	/* Max support 4 cubic lut */
+	cubic_lut_size = roundup(cubic_lut_size, PAGE_SIZE) << 2;
+
+	size = DRM_ROCKCHIP_FB_SIZE + MEMORY_POOL_SIZE + cubic_lut_size;
 	*addrp = *addrp - size;
 	*addrp &= ~((1 << 20) - 1);
 #else

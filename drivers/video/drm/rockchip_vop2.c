@@ -36,6 +36,9 @@
 
 #define RK3568_AUTO_GATING_CTRL			0x008
 
+#define RK3568_SYS_AXI_LUT_CTRL			0x024
+#define LUT_DMA_EN_SHIFT			0
+
 #define RK3568_DSP_IF_EN			0x028
 #define RGB_EN_SHIFT				0
 #define HDMI0_EN_SHIFT				1
@@ -149,6 +152,12 @@
 #define MIPI_DUAL_SWAP_EN_SHIFT			21
 
 #define RK3568_VP0_COLOR_BAR_CTRL		0xC08
+#define RK3568_VP0_3D_LUT_CTRL			0xC10
+#define VP0_3D_LUT_EN_SHIFT				0
+#define VP0_3D_LUT_UPDATE_SHIFT			2
+
+#define RK3568_VP0_3D_LUT_MST			0xC20
+
 #define RK3568_VP0_DSP_BG			0xC2C
 #define RK3568_VP0_PRE_SCAN_HTIMING		0xC30
 #define RK3568_VP0_POST_DSP_HACT_INFO		0xC34
@@ -780,6 +789,59 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 	return 0;
 }
 
+static int rockchip_vop2_cubic_lut_init(struct vop2 *vop2,
+					struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *cstate = &state->crtc_state;
+	int i, cubic_lut_len;
+	u32 vp_offset = cstate->crtc_id * 0x100;
+	struct base2_disp_info *disp_info = conn_state->disp_info;
+	struct base2_cubic_lut_data *lut = &conn_state->disp_info->cubic_lut_data;
+	u32 *cubic_lut_addr;
+
+	if (!disp_info || CONFIG_ROCKCHIP_CUBIC_LUT_SIZE == 0)
+		return 0;
+
+	if (!disp_info->cubic_lut_data.size)
+		return 0;
+
+	cubic_lut_addr = (u32 *)get_cubic_lut_buffer(cstate->crtc_id);
+	cubic_lut_len = disp_info->cubic_lut_data.size;
+
+	for (i = 0; i < cubic_lut_len / 2; i++) {
+		*cubic_lut_addr++ = ((lut->lred[2 * i]) & 0xfff) +
+					((lut->lgreen[2 * i] & 0xfff) << 12) +
+					((lut->lblue[2 * i] & 0xff) << 24);
+		*cubic_lut_addr++ = ((lut->lblue[2 * i] & 0xf00) >> 8) +
+					((lut->lred[2 * i + 1] & 0xfff) << 4) +
+					((lut->lgreen[2 * i + 1] & 0xfff) << 16) +
+					((lut->lblue[2 * i + 1] & 0xf) << 28);
+		*cubic_lut_addr++ = (lut->lblue[2 * i + 1] & 0xff0) >> 4;
+		*cubic_lut_addr++ = 0;
+	}
+
+	if (cubic_lut_len % 2) {
+		*cubic_lut_addr++ = (lut->lred[2 * i] & 0xfff) +
+					((lut->lgreen[2 * i] & 0xfff) << 12) +
+					((lut->lblue[2 * i] & 0xff) << 24);
+		*cubic_lut_addr++ = (lut->lblue[2 * i] & 0xf00) >> 8;
+		*cubic_lut_addr++ = 0;
+		*cubic_lut_addr = 0;
+	}
+
+	vop2_writel(vop2, RK3568_VP0_3D_LUT_MST + vp_offset,
+		    get_cubic_lut_buffer(cstate->crtc_id));
+	vop2_mask_write(vop2, RK3568_SYS_AXI_LUT_CTRL,
+			EN_MASK, LUT_DMA_EN_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3568_VP0_3D_LUT_CTRL + vp_offset,
+			EN_MASK, VP0_3D_LUT_EN_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3568_VP0_3D_LUT_CTRL + vp_offset,
+			EN_MASK, VP0_3D_LUT_UPDATE_SHIFT, 1, false);
+
+	return 0;
+}
+
 static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -1017,6 +1079,7 @@ static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 
 	vop2_global_initial(vop2, state);
 	rockchip_vop2_gamma_lut_init(vop2, state);
+	rockchip_vop2_cubic_lut_init(vop2, state);
 
 	return 0;
 }

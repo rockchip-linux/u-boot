@@ -133,3 +133,10 @@ config ROCKCHIP_DRM_TVE
 	  Choose this option to enable support for Rockchip TVE.
 	  Rockchip rk322x and rk322xh SoC has TVE can be used, and
 	  say Y to enable TVE driver.
+
+config ROCKCHIP_CUBIC_LUT_SIZE
+	int "Rockchip cubic lut size"
+	depends on DRM_ROCKCHIP
+	default 0
+	help
+	  Used to calc cubic lut size.

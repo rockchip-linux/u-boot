@@ -54,6 +54,7 @@ static LIST_HEAD(rockchip_display_list);
 static LIST_HEAD(logo_cache_list);
 
 static unsigned long memory_start;
+static unsigned long cubic_lut_memory_start;
 static unsigned long memory_end;
 static struct base2_info base_parameter;
 static uint32_t crc32_table[256];
@@ -241,6 +242,7 @@ static void init_display_buffer(ulong base)
 {
 	memory_start = base + DRM_ROCKCHIP_FB_SIZE;
 	memory_end = memory_start;
+	cubic_lut_memory_start = memory_start + MEMORY_POOL_SIZE;
 }
 
 void *get_display_buffer(int size)
@@ -262,6 +264,34 @@ void *get_display_buffer(int size)
 static unsigned long get_display_size(void)
 {
 	return memory_end - memory_start;
+}
+
+static unsigned long get_single_cubic_lut_size(void)
+{
+	ulong cubic_lut_size;
+	int cubic_lut_step = CONFIG_ROCKCHIP_CUBIC_LUT_SIZE;
+
+	/* This is depend on IC designed */
+	cubic_lut_size = (cubic_lut_step * cubic_lut_step * cubic_lut_step + 1) / 2 * 16;
+	cubic_lut_size = roundup(cubic_lut_size, PAGE_SIZE);
+
+	return cubic_lut_size;
+}
+
+static unsigned long get_cubic_lut_offset(int crtc_id)
+{
+	return crtc_id * get_single_cubic_lut_size();
+}
+
+unsigned long get_cubic_lut_buffer(int crtc_id)
+{
+	return cubic_lut_memory_start + crtc_id * get_single_cubic_lut_size();
+}
+
+static unsigned long get_cubic_memory_size(void)
+{
+	/* Max support 4 cubic lut */
+	return get_single_cubic_lut_size() * 4;
 }
 
 bool can_direct_logo(int bpp)
@@ -1779,6 +1809,12 @@ void rockchip_display_fixup(void *blob)
 						    (u64)get_display_size());
 		if (offset < 0)
 			printf("failed to reserve drm-loader-logo memory\n");
+
+		offset = fdt_update_reserved_memory(blob, "rockchip,drm-cubic-lut",
+						    (u64)cubic_lut_memory_start,
+						    (u64)get_cubic_memory_size());
+		if (offset < 0)
+			printf("failed to reserve drm-cubic-lut memory\n");
 	} else {
 		printf("can't found rockchip,drm-logo, use rockchip,fb-logo\n");
 		/* Compatible with rkfb display, only need reserve memory */
@@ -1845,6 +1881,11 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("overscan,right_margin", s->conn_state.overscan.right_margin);
 		FDT_SET_U32("overscan,top_margin", s->conn_state.overscan.top_margin);
 		FDT_SET_U32("overscan,bottom_margin", s->conn_state.overscan.bottom_margin);
+
+		if (s->conn_state.disp_info->cubic_lut_data.size &&
+		    CONFIG_ROCKCHIP_CUBIC_LUT_SIZE)
+			FDT_SET_U32("cubic_lut,offset", get_cubic_lut_offset(s->crtc_state.crtc_id));
+
 #undef FDT_SET_U32
 	}
 }

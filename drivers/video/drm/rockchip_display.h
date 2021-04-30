@@ -206,5 +206,6 @@ struct base2_disp_info *rockchip_get_disp_info(int type, int id);
 
 void drm_mode_max_resolution_filter(struct hdmi_edid_data *edid_data,
 				    struct vop_rect *max_output);
+unsigned long get_cubic_lut_buffer(int crtc_id);
 
 #endif
