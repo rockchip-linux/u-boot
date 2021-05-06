@@ -149,8 +149,8 @@ enum ebc_win_data_fmt {
 
 #ifdef CONFIG_IRQ
 #define IRQ_EBC			49
-static volatile int frame_done;
 #endif
+static volatile int last_frame_done = -1;
 static inline void regs_dump(struct ebc_tcon_priv *tcon)
 {
 	int i;
@@ -240,7 +240,7 @@ static void ebc_irq_handler(int irq, void *data)
 	if (intr_status & DSP_END_INT) {
 		tcon_update_bits(tcon, EBC_INT_STATUS,
 				 DSP_END_INT_CLR, DSP_END_INT_CLR);
-		frame_done = 1;
+		last_frame_done = 1;
 	}
 }
 #endif
@@ -408,17 +408,23 @@ static int wait_for_last_frame_complete(struct udevice *dev)
 	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
 
 #ifdef CONFIG_IRQ
-	while (!frame_done)
+	while (1) {
+		if ((last_frame_done == -1) || (last_frame_done == 1))
+			break;
 		msleep(1);
-	frame_done = 0;
+	}
 #else
 	/* wait for frame display end*/
-	do {
-		msleep(1);
+	while (1) {
+		/* first frame don't need to wait*/
+		if (last_frame_done == -1)
+			break;
 		intr_status = readl(tcon->reg + EBC_INT_STATUS);
-	} while (!(intr_status & DSP_END_INT));
+		if (intr_status & DSP_END_INT)
+			break;
+		msleep(1);
+	}
 #endif
-
 	tcon_update_bits(tcon, EBC_INT_STATUS,
 			 DSP_END_INT_CLR, DSP_END_INT_CLR);
 
@@ -437,7 +443,7 @@ static int ebc_tcon_frame_start(struct udevice *dev, int frame_total)
 
 	tcon_update_bits(tcon, EBC_DSP_START,
 			 DSP_FRM_START_MASK, DSP_FRM_START);
-
+	last_frame_done = 0;
 	return 0;
 }
 

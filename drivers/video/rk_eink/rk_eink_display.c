@@ -322,8 +322,9 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 	struct logo_info *hdr = &eink_logo_info;
 	struct logo_part_header *part_hdr = &hdr->part_hdr;
 	struct ebc_panel *panel = dev_get_platdata(dev);
+	u32 logo = needed_logo & (~(*loaded_logo));
 
-	if (*loaded_logo & needed_logo) {
+	if (!logo) {
 		printf("logo[0x%x] is already loaded, just return!\n",
 		       needed_logo);
 		return 0;
@@ -360,7 +361,7 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 		debug("offset=0x%x, size=%d,logo_type=%d,w=%d,h=%d\n",
 		      offset, size, logo_type, img_hdr->w, img_hdr->h);
 
-		if (needed_logo & logo_type) {
+		if (logo & logo_type) {
 			pic_buf = get_addr_by_type(dev, logo_type);
 
 			if (pic_buf <= 0) {
@@ -378,7 +379,7 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 			 * kernel will do the mirror operation, so skip kernel
 			 * logo here.
 			 */
-			if (panel->mirror && needed_logo != EINK_LOGO_KERNEL) {
+			if (panel->mirror && logo_type != EINK_LOGO_KERNEL) {
 				u32 w = panel->vir_width;
 				u32 h = panel->vir_height;
 				u32 mirror_buf = 0;
@@ -401,6 +402,10 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 					   ALIGN((ulong)pic_buf + size,
 						 CONFIG_SYS_CACHELINE_SIZE));
 			*loaded_logo |= logo_type;
+
+			logo &= ~logo_type;
+			if (!logo)
+				break;
 		}
 	}
 
@@ -471,14 +476,13 @@ static int eink_display(struct udevice *dev, u32 pre_img_buf,
 	debug("lut_type=%d, frame num=%d, temp=%d\n", lut_type,
 	      frame_num, temperature);
 
+	ebc_tcon_ops->wait_for_last_frame_complete(ebc_tcon_dev);
 	ebc_tcon_ops->lut_data_set(ebc_tcon_dev, plat->lut_data.data,
 				   frame_num, 0);
 	ebc_tcon_ops->dsp_mode_set(ebc_tcon_dev, update_mode,
 				   LUT_MODE, !THREE_WIN_MODE, !EINK_MODE);
 	ebc_tcon_ops->image_addr_set(ebc_tcon_dev, pre_img_buf, cur_img_buf);
 	ebc_tcon_ops->frame_start(ebc_tcon_dev, frame_num);
-	ebc_tcon_ops->wait_for_last_frame_complete(ebc_tcon_dev);
-
 	return 0;
 }
 
@@ -523,7 +527,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	u32 last_logo_addr;
 	struct ebc_panel *plat;
 	struct udevice *dev;
-	static u32 loaded_logo;
+	static u32 loaded_logo = 0;
 	struct rockchip_eink_display_priv *priv;
 
 	if (!eink_dev) {
@@ -551,15 +555,16 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	plat = dev_get_platdata(dev);
 	priv = dev_get_priv(dev);
 
-	ret = ebc_power_set(dev, EBC_PWR_ON);
-	if (ret) {
-		printf("Eink power on failed\n");
-		return -1;
-	}
 	/*
 	 * The last_logo_type is -1 means it's first displaying
 	 */
 	if (last_logo_type == -1) {
+		ret = ebc_power_set(dev, EBC_PWR_ON);
+		if (ret) {
+			printf("Eink power on failed\n");
+			return -1;
+		}
+
 		int size = (plat->vir_width * plat->vir_height) >> 1;
 
 		logo_addr = get_addr_by_type(dev, EINK_LOGO_RESET);
@@ -568,7 +573,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 				   ALIGN((ulong)logo_addr + size,
 					 CONFIG_SYS_CACHELINE_SIZE));
 		eink_display(dev, logo_addr, logo_addr,
-			     WF_TYPE_RESET, 0);
+			     WF_TYPE_RESET, EINK_LOGO_RESET);
 		last_logo_type = 0;
 		last_logo_addr = logo_addr;
 	} else {
@@ -577,12 +582,39 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 			printf("Invalid last logo addr, exit!\n");
 			goto out;
 		}
+
+		/* The last logo of charging logo display */
 		if (cur_logo_type == EINK_LOGO_RESET) {
+			struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
+			struct rk_ebc_tcon_ops *ebc_tcon_ops;
+
 			logo_addr = get_addr_by_type(dev, EINK_LOGO_RESET);
 			eink_display(dev, last_logo_addr,
 				     logo_addr,
 				     WF_TYPE_GC16, update_mode);
 			last_logo_type = -1;
+			/*
+			 * For normal logo display, waiting for the last frame
+			 * completion before start a new frame, except one
+			 * situation which charging logo display finished,
+			 * because device will rebooting or shutdown after
+			 * charging logo is competed.
+			 *
+			 * We should take care of the power sequence,
+			 * because ebc can't power off if last frame
+			 * data is still sending, so keep the ebc power
+			 * during u-boot phase and shutdown the
+			 * power only if uboot charging is finished.
+			 */
+			ebc_tcon_ops = ebc_tcon_get_ops(ebc_tcon_dev);
+			ebc_tcon_ops->wait_for_last_frame_complete(ebc_tcon_dev);
+			debug("charging logo displaying is complete\n");
+			/*
+			 *shutdown ebc after charging logo display is complete
+			 */
+			ret = ebc_power_set(dev, EBC_PWR_DOWN);
+			if (ret)
+				printf("Eink power down failed\n");
 			goto out;
 		}
 	}
@@ -646,9 +678,6 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	}
 
 out:
-	ret = ebc_power_set(dev, EBC_PWR_DOWN);
-	if (ret)
-		printf("Eink power down failed\n");
 	return ret;
 }
 
