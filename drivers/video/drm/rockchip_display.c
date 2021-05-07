@@ -149,17 +149,32 @@ int rockchip_get_baseparameter(void)
 struct base2_disp_info *rockchip_get_disp_info(int type, int id)
 {
 	struct base2_disp_info *disp_info;
-	int i = 0;
+	struct base2_disp_header *disp_header;
+	int i = 0, offset = -1;
 	u32 crc_val;
+	void *base_parameter_addr = (void *)&base_parameter;
 
 	for (i = 0; i < 8; i++) {
-		disp_info = &base_parameter.disp_info[i];
-		if (disp_info->screen_info[0].type == type &&
-		    disp_info->screen_info[0].id == id) {
+		disp_header = &base_parameter.disp_header[i];
+		if (disp_header->connector_type == type &&
+		    disp_header->connector_id == id) {
 			printf("disp info %d, type:%d, id:%d\n", i, type, id);
+			offset = disp_header->offset;
 			break;
 		}
 	}
+
+	if (offset < 0)
+		return NULL;
+	disp_info = base_parameter_addr + offset;
+	if (disp_info->screen_info[0].type != type ||
+	    disp_info->screen_info[0].id != id) {
+		printf("connector type or id is error, type:%d, id:%d\n",
+		       disp_info->screen_info[0].type,
+		       disp_info->screen_info[0].id);
+		return NULL;
+	}
+
 	if (strncasecmp(disp_info->disp_head_flag, "DISP", 4))
 		return NULL;
 
