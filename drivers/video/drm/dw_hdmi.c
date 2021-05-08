@@ -2282,16 +2282,10 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 	ofnode hdmi_node = conn_state->node;
 	u32 val;
 	struct device_node *ddc_node;
-	int id;
 
 	hdmi = malloc(sizeof(struct dw_hdmi));
 	if (!hdmi)
 		return -ENOMEM;
-	id = of_alias_get_id(ofnode_to_np(hdmi_node), "hdmi");
-	if (id < 0)
-		id = 0;
-	hdmi->id = id;
-	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, hdmi->id);
 
 	memset(hdmi, 0, sizeof(struct dw_hdmi));
 	mode_buf = malloc(MODE_LEN * sizeof(struct drm_display_mode));
@@ -2465,7 +2459,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 			drm_mode_vrefresh(&hdmi->edid_data.mode_buf[i]);
 
 	drm_mode_sort(&hdmi->edid_data);
-	drm_rk_selete_output(&hdmi->edid_data, &bus_format,
+	drm_rk_selete_output(&hdmi->edid_data, conn_state, &bus_format,
 			     overscan, hdmi->dev_type);
 
 	*mode = *hdmi->edid_data.preferred_mode;

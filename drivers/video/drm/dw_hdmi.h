@@ -1405,6 +1405,7 @@ enum {
 };
 
 void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
+			  struct connector_state *conn_state,
 			  unsigned int *bus_format,
 			  struct overscan *overscan,
 			  enum dw_hdmi_devtype dev_type);
