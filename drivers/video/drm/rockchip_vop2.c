@@ -1204,6 +1204,8 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 
 		if (soc_is_rk3566() && active_vp_num > 2)
 			printf("ERROR: rk3566 only support 2 display output!!\n");
+		if (soc_is_rk3566())
+			active_vp_num = 2;
 		plane_mask = vop2->data->plane_mask;
 		plane_mask += (active_vp_num - 1) * VOP2_VP_MAX;
 
