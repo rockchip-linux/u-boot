@@ -1108,8 +1108,8 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	u32 bg_ovl_dly, bg_dly, pre_scan_dly;
 	u16 hsync_len = mode->crtc_hsync_end - mode->crtc_hsync_start;
 
-	if (mode->flags & DRM_MODE_FLAG_INTERLACE)
-		vsize = round_down(vsize, 2);
+	hsize = round_down(hsize, 2);
+	vsize = round_down(vsize, 2);
 
 	hact_st += hdisplay * (100 - conn_state->overscan.left_margin) / 200;
 	hact_end = hact_st + hsize;
@@ -1705,6 +1705,15 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 		printf("ERROR: output w[%d] exceeded max width[%d]\n",
 		       crtc_w, cstate->max_output.width);
 		return -EINVAL;
+	}
+
+	/*
+	 * This is workaround solution for IC design:
+	 * esmart can't support scale down when actual_w % 16 == 1.
+	 */
+	if (src_w > crtc_w && (src_w & 0xf) == 1) {
+		printf("WARN: vp%d unsupported act_w[%d] mode 16 = 1 when scale down\n", cstate->crtc_id, src_w);
+		src_w -= 1;
 	}
 
 	act_info = (src_h - 1) << 16;
