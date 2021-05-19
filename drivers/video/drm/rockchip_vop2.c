@@ -138,6 +138,7 @@
 #define DSP_RB_SWAP				2
 #define CORE_DCLK_DIV_EN_SHIFT			4
 #define P2I_EN_SHIFT				5
+#define DSP_FILED_POL				6
 #define INTERLACE_EN_SHIFT			7
 #define POST_DSP_OUT_R2Y_SHIFT			15
 #define PRE_DITHER_DOWN_EN_SHIFT		16
@@ -1577,6 +1578,8 @@ static int rockchip_vop2_init(struct display_state *state)
 		vop2_writel(vop2, RK3568_VP0_DSP_VS_ST_END_F1 + vp_offset, val);
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				INTERLACE_EN_SHIFT, 1, false);
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				DSP_FILED_POL, 1, false);
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				P2I_EN_SHIFT, 1, false);
 		vtotal += vtotal + 1;
