@@ -1205,8 +1205,6 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 
 		if (soc_is_rk3566() && active_vp_num > 2)
 			printf("ERROR: rk3566 only support 2 display output!!\n");
-		if (soc_is_rk3566())
-			active_vp_num = 2;
 		plane_mask = vop2->data->plane_mask;
 		plane_mask += (active_vp_num - 1) * VOP2_VP_MAX;
 
@@ -1235,9 +1233,19 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		/* store plane mask for vop2_fixup_dts */
 		for (i = 0; i < vop2->data->nr_vps; i++) {
 			layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
-			for (j = 0; j < layer_nr; j++) {
-				layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
-				vop2->vp_plane_mask[i].plane_mask |= BIT(layer_phy_id);
+			/* rk3566 only support 3+3 policy */
+			if (soc_is_rk3566() && active_vp_num == 1) {
+				if (cstate->crtc->vps[i].enable) {
+					for (j = 0; j < 3; j++) {
+						layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
+						vop2->vp_plane_mask[i].plane_mask |= BIT(layer_phy_id);
+					}
+				}
+			} else {
+				for (j = 0; j < layer_nr; j++) {
+					layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
+					vop2->vp_plane_mask[i].plane_mask |= BIT(layer_phy_id);
+				}
 			}
 		}
 	}
