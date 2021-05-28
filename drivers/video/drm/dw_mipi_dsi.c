@@ -939,6 +939,9 @@ static void dw_mipi_dsi_post_disable(struct dw_mipi_dsi *dsi)
 	dsi_write(dsi, DSI_PWR_UP, RESET);
 	dsi_write(dsi, DSI_PHY_RSTZ, 0);
 
+	if (dsi->dphy.phy)
+		rockchip_phy_power_off(dsi->dphy.phy);
+
 	dsi->prepared = false;
 
 	if (dsi->slave)
