@@ -875,6 +875,12 @@ struct base2_gamma_lut_data {
 	u16 lblue[1024];
 };
 
+struct framebuffer_info {
+	u32 framebuffer_width;
+	u32 framebuffer_height;
+	u32 fps;
+};
+
 struct base2_disp_info {
 	char disp_head_flag[6];
 	struct base2_screen_info screen_info[4];
@@ -882,7 +888,8 @@ struct base2_disp_info {
 	struct base_overscan overscan_info;
 	struct base2_gamma_lut_data gamma_lut_data;
 	struct base2_cubic_lut_data cubic_lut_data;
-	u32 reserved[256];
+	struct framebuffer_info framebuffer_info;
+	u32 reserved[244];
 	u32 crc;
 };
 
