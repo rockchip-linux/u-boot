@@ -191,6 +191,9 @@ struct display_state {
 	int enable;
 	int is_init;
 	int is_enable;
+	bool force_output;
+	struct drm_display_mode force_mode;
+	u32 force_bus_format;
 };
 
 static inline struct rockchip_panel *state_get_panel(struct display_state *s)

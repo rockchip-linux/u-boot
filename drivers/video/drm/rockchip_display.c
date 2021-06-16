@@ -408,40 +408,22 @@ int drm_mode_vrefresh(const struct drm_display_mode *mode)
 	return refresh;
 }
 
-static int display_get_timing_from_dts(struct panel_state *panel_state,
-				       struct drm_display_mode *mode)
+static int display_get_detail_timing(ofnode node, struct drm_display_mode *mode)
 {
-	struct rockchip_panel *panel = panel_state->panel;
-	int phandle;
 	int hactive, vactive, pixelclock;
 	int hfront_porch, hback_porch, hsync_len;
 	int vfront_porch, vback_porch, vsync_len;
 	int val, flags = 0;
-	ofnode timing, native_mode;
-
-	timing = dev_read_subnode(panel->dev, "display-timings");
-	if (!ofnode_valid(timing))
-		return -ENODEV;
-
-	native_mode = ofnode_find_subnode(timing, "timing");
-	if (!ofnode_valid(native_mode)) {
-		phandle = ofnode_read_u32_default(timing, "native-mode", -1);
-		native_mode = np_to_ofnode(of_find_node_by_phandle(phandle));
-		if (!ofnode_valid(native_mode)) {
-			printf("failed to get display timings from DT\n");
-			return -ENXIO;
-		}
-	}
 
 #define FDT_GET_INT(val, name) \
-	val = ofnode_read_s32_default(native_mode, name, -1); \
+	val = ofnode_read_s32_default(node, name, -1); \
 	if (val < 0) { \
 		printf("Can't get %s\n", name); \
 		return -ENXIO; \
 	}
 
 #define FDT_GET_INT_DEFAULT(val, name, default) \
-	val = ofnode_read_s32_default(native_mode, name, default);
+	val = ofnode_read_s32_default(node, name, default);
 
 	FDT_GET_INT(hactive, "hactive");
 	FDT_GET_INT(vactive, "vactive");
@@ -480,6 +462,62 @@ static int display_get_timing_from_dts(struct panel_state *panel_state,
 
 	mode->clock = pixelclock / 1000;
 	mode->flags = flags;
+
+	return 0;
+}
+
+static int display_get_force_timing_from_dts(ofnode node, struct drm_display_mode *mode)
+{
+	int ret = 0;
+
+	ret = display_get_detail_timing(node, mode);
+
+	if (ret) {
+		mode->clock = 74250;
+		mode->flags = 0x5;
+		mode->hdisplay = 1280;
+		mode->hsync_start = 1390;
+		mode->hsync_end = 1430;
+		mode->htotal = 1650;
+		mode->hskew = 0;
+		mode->vdisplay = 720;
+		mode->vsync_start = 725;
+		mode->vsync_end = 730;
+		mode->vtotal = 750;
+		mode->vrefresh = 60;
+		mode->picture_aspect_ratio = HDMI_PICTURE_ASPECT_16_9;
+		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
+	}
+
+	printf("route node %s force_timing, use %dx%dp%d as default mode\n",
+	       ret ? "undefine" : "define", mode->hdisplay, mode->vdisplay,
+	       mode->vscan);
+
+	return 0;
+}
+
+static int display_get_timing_from_dts(struct panel_state *panel_state,
+				       struct drm_display_mode *mode)
+{
+	struct rockchip_panel *panel = panel_state->panel;
+	int phandle;
+	ofnode timing, native_mode;
+
+	timing = dev_read_subnode(panel->dev, "display-timings");
+	if (!ofnode_valid(timing))
+		return -ENODEV;
+
+	native_mode = ofnode_find_subnode(timing, "timing");
+	if (!ofnode_valid(native_mode)) {
+		phandle = ofnode_read_u32_default(timing, "native-mode", -1);
+		native_mode = np_to_ofnode(of_find_node_by_phandle(phandle));
+		if (!ofnode_valid(native_mode)) {
+			printf("failed to get display timings from DT\n");
+			return -ENXIO;
+		}
+	}
+
+	display_get_detail_timing(native_mode, mode);
 
 	return 0;
 }
@@ -684,6 +722,52 @@ static int display_pre_init(void)
 	return ret;
 }
 
+static int display_use_force_mode(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+
+	conn_state->bpc = 8;
+	memcpy(mode, &state->force_mode, sizeof(struct drm_display_mode));
+	conn_state->bus_format = state->force_bus_format;
+
+	return 0;
+}
+
+static int display_get_edid_mode(struct display_state *state)
+{
+	int ret = 0;
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	int bpc;
+
+	ret = edid_get_drm_mode(conn_state->edid, ret, mode, &bpc);
+	if (!ret) {
+		conn_state->bpc = bpc;
+		edid_print_info((void *)&conn_state->edid);
+	} else {
+		conn_state->bpc = 8;
+		mode->clock = 74250;
+		mode->flags = 0x5;
+		mode->hdisplay = 1280;
+		mode->hsync_start = 1390;
+		mode->hsync_end = 1430;
+		mode->htotal = 1650;
+		mode->hskew = 0;
+		mode->vdisplay = 720;
+		mode->vsync_start = 725;
+		mode->vsync_end = 730;
+		mode->vtotal = 750;
+		mode->vrefresh = 60;
+		mode->picture_aspect_ratio = HDMI_PICTURE_ASPECT_16_9;
+		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
+
+		printf("error: %s get mode from edid failed, use 720p60 as default mode\n", conn_state->dev->name);
+	}
+
+	return ret;
+}
+
 static int display_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -697,9 +781,7 @@ static int display_init(struct display_state *state)
 	const char *compatible;
 	int ret = 0;
 	static bool __print_once = false;
-#if defined(CONFIG_I2C_EDID)
-	int bpc;
-#endif
+
 	if (!__print_once) {
 		__print_once = true;
 		printf("Rockchip UBOOT DRM driver version: %s\n", DRIVER_VERSION);
@@ -763,8 +845,10 @@ static int display_init(struct display_state *state)
 		if (conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
 			crtc->hdmi_hpd = ret;
 #endif
-		if (!ret)
+		if (!ret && !state->force_output) {
+			printf("%s disconnected\n", conn_state->dev->name);
 			goto deinit;
+		}
 	}
 
 	if (panel_state->panel) {
@@ -774,17 +858,9 @@ static int display_init(struct display_state *state)
 #if defined(CONFIG_I2C_EDID)
 		if (ret < 0 && conn_funcs->get_edid) {
 			rockchip_panel_prepare(panel_state->panel);
-
 			ret = conn_funcs->get_edid(state);
-			if (!ret) {
-				ret = edid_get_drm_mode((void *)&conn_state->edid,
-							sizeof(conn_state->edid),
-							mode, &bpc);
-				if (!ret) {
-					conn_state->bpc = bpc;
-					edid_print_info((void *)&conn_state->edid);
-				}
-			}
+			if (!ret)
+				display_get_edid_mode(state);
 		}
 #endif
 	} else if (conn_state->bridge) {
@@ -792,12 +868,7 @@ static int display_init(struct display_state *state)
 					     conn_state->edid, EDID_SIZE);
 		if (ret > 0) {
 #if defined(CONFIG_I2C_EDID)
-			ret = edid_get_drm_mode(conn_state->edid, ret, mode,
-						&bpc);
-			if (!ret) {
-				conn_state->bpc = bpc;
-				edid_print_info((void *)&conn_state->edid);
-			}
+			display_get_edid_mode(state);
 #endif
 		} else {
 			ret = video_bridge_get_timing(conn_state->bridge->dev);
@@ -807,30 +878,27 @@ static int display_init(struct display_state *state)
 	} else if (conn_funcs->get_edid) {
 		ret = conn_funcs->get_edid(state);
 #if defined(CONFIG_I2C_EDID)
-		if (!ret) {
-			ret = edid_get_drm_mode((void *)&conn_state->edid,
-						sizeof(conn_state->edid), mode,
-						&bpc);
-			if (!ret) {
-				conn_state->bpc = bpc;
-				edid_print_info((void *)&conn_state->edid);
-			}
-		}
+		if (!ret)
+			display_get_edid_mode(state);
 #endif
 	}
 
-	if (ret)
+	if (ret && !state->force_output)
 		goto deinit;
+	if (state->force_output)
+		display_use_force_mode(state);
 
 	/* rk356x series drive mipi pixdata on posedge */
 	compatible = dev_read_string(conn_state->dev, "compatible");
 	if (!strcmp(compatible, "rockchip,rk3568-mipi-dsi"))
 		conn_state->mode.flags |= DRM_MODE_FLAG_PPIXDATA;
 
-	printf("Detailed mode clock %u kHz, flags[%x]\n"
+	printf("%s: %s detailed mode clock %u kHz, flags[%x]\n"
 	       "    H: %04d %04d %04d %04d\n"
 	       "    V: %04d %04d %04d %04d\n"
 	       "bus_format: %x\n",
+	       conn_state->dev->name,
+	       state->force_output ? "use force output" : "",
 	       mode->clock, mode->flags,
 	       mode->hdisplay, mode->hsync_start,
 	       mode->hsync_end, mode->htotal,
@@ -1600,7 +1668,7 @@ static int rockchip_display_probe(struct udevice *dev)
 	struct display_state *s;
 	const char *name;
 	int ret;
-	ofnode node, route_node;
+	ofnode node, route_node, timing_node;
 	struct device_node *port_node, *vop_node, *ep_node, *port_parent_node;
 	struct public_phy_data *data;
 	bool is_ports_node = false;
@@ -1710,6 +1778,15 @@ static int rockchip_display_probe(struct udevice *dev)
 			s->charge_logo_mode = ROCKCHIP_DISPLAY_FULLSCREEN;
 		else
 			s->charge_logo_mode = ROCKCHIP_DISPLAY_CENTER;
+
+		s->force_output = ofnode_read_bool(node, "force-output");
+
+		if (s->force_output) {
+			timing_node = ofnode_find_subnode(node, "force_timing");
+			ret = display_get_force_timing_from_dts(timing_node, &s->force_mode);
+			if (ofnode_read_u32(node, "force-bus-format", &s->force_bus_format))
+				s->force_bus_format = MEDIA_BUS_FMT_RGB888_1X24;
+		}
 
 		s->blob = blob;
 		s->panel_state.panel = panel;

@@ -2466,6 +2466,8 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 	hdmi->vic = drm_match_cea_mode(mode);
 
 	printf("mode:%dx%d\n", mode->hdisplay, mode->vdisplay);
+	if (state->force_output)
+		bus_format = state->force_bus_format;
 	conn_state->bus_format = bus_format;
 	hdmi->hdmi_data.enc_in_bus_format = bus_format;
 	hdmi->hdmi_data.enc_out_bus_format = bus_format;
