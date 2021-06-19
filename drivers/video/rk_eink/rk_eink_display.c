@@ -216,6 +216,7 @@ static int get_addr_by_type(struct udevice *dev, u32 logo_type)
 	case EINK_LOGO_CHARGING_4:
 	case EINK_LOGO_CHARGING_5:
 	case EINK_LOGO_CHARGING_LOWPOWER:
+	case EINK_LOGO_POWEROFF:
 	/*
 	 * The MIRROR_TEMP_BUF is used to save the
 	 * non-mirror image data.
@@ -582,41 +583,6 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 			printf("Invalid last logo addr, exit!\n");
 			goto out;
 		}
-
-		/* The last logo of charging logo display */
-		if (cur_logo_type == EINK_LOGO_RESET) {
-			struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
-			struct rk_ebc_tcon_ops *ebc_tcon_ops;
-
-			logo_addr = get_addr_by_type(dev, EINK_LOGO_RESET);
-			eink_display(dev, last_logo_addr,
-				     logo_addr,
-				     WF_TYPE_GC16, update_mode);
-			last_logo_type = -1;
-			/*
-			 * For normal logo display, waiting for the last frame
-			 * completion before start a new frame, except one
-			 * situation which charging logo display finished,
-			 * because device will rebooting or shutdown after
-			 * charging logo is competed.
-			 *
-			 * We should take care of the power sequence,
-			 * because ebc can't power off if last frame
-			 * data is still sending, so keep the ebc power
-			 * during u-boot phase and shutdown the
-			 * power only if uboot charging is finished.
-			 */
-			ebc_tcon_ops = ebc_tcon_get_ops(ebc_tcon_dev);
-			ebc_tcon_ops->wait_for_last_frame_complete(ebc_tcon_dev);
-			debug("charging logo displaying is complete\n");
-			/*
-			 *shutdown ebc after charging logo display is complete
-			 */
-			ret = ebc_power_set(dev, EBC_PWR_DOWN);
-			if (ret)
-				printf("Eink power down failed\n");
-			goto out;
-		}
 	}
 	ret = read_needed_logo_from_partition(dev, cur_logo_type,
 					      &loaded_logo);
@@ -640,6 +606,37 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 		backlight_enable(priv->backlight);
 
 	last_logo_type = cur_logo_type;
+
+	if (cur_logo_type == EINK_LOGO_POWEROFF) {
+		struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
+		struct rk_ebc_tcon_ops *ebc_tcon_ops;
+
+		last_logo_type = -1;
+		/*
+		 * For normal logo display, waiting for the last frame
+		 * completion before start a new frame, except one
+		 * situation which charging logo display finished,
+		 * because device will rebooting or shutdown after
+		 * charging logo is competed.
+		 *
+		 * We should take care of the power sequence,
+		 * because ebc can't power off if last frame
+		 * data is still sending, so keep the ebc power
+		 * during u-boot phase and shutdown the
+		 * power only if uboot charging is finished.
+		 */
+		ebc_tcon_ops = ebc_tcon_get_ops(ebc_tcon_dev);
+		ebc_tcon_ops->wait_for_last_frame_complete(ebc_tcon_dev);
+		debug("charging logo displaying is complete\n");
+		/*
+		 *shutdown ebc after charging logo display is complete
+		 */
+		ret = ebc_power_set(dev, EBC_PWR_DOWN);
+		if (ret)
+			printf("Eink power down failed\n");
+		goto out;
+	}
+
 	/*
 	 * System will boot up to kernel only when the
 	 * logo is uboot logo
