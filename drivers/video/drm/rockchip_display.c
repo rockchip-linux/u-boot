@@ -1742,9 +1742,15 @@ static int rockchip_display_probe(struct udevice *dev)
 					vp_id = ofnode_read_u32_default(vp_node, "reg", 0);
 					ret = ofnode_read_u32_default(vp_node, "rockchip,plane-mask", 0);
 					if (ret) {
+						int primary_plane = 0;
+
 						s->crtc_state.crtc->vps[vp_id].plane_mask = ret;
 						s->crtc_state.crtc->assign_plane |= true;
-						printf("get vp%d plane mask:0x%x from dts\n", vp_id, ret);
+						primary_plane = ofnode_read_u32_default(vp_node, "rockchip,primary-plane", 0);
+						printf("get vp%d plane mask:0x%x, primary id:%d from dts\n",
+						       vp_id,
+						       s->crtc_state.crtc->vps[vp_id].plane_mask,
+						       primary_plane);
 					}
 
 					/* To check current vp status */

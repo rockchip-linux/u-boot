@@ -1915,6 +1915,8 @@ static int rockchip_vop2_fixup_dts(struct display_state *state, void *blob)
 		path = vp_node.np->full_name;
 		plane_mask = vop2->vp_plane_mask[vp_id].plane_mask;
 
+		if (cstate->crtc->assign_plane)
+			continue;
 		printf("vp%d, plane_mask:0x%x, primary-id:%d\n",
 		       vp_id, plane_mask,
 		       vop2->vp_plane_mask[vp_id].primary_plane_id);
