@@ -1212,6 +1212,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 			if (!is_hot_plug_devices(cstate->crtc->vps[i].output_type)) {
 				vop2->vp_plane_mask[i] = plane_mask[0]; /* the first store main display plane mask*/
 				main_vp_index = i;
+				break;
 			}
 		}
 
