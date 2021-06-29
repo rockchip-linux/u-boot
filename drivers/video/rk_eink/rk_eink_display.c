@@ -424,25 +424,25 @@ static int ebc_power_set(struct udevice *dev, int is_on)
 	struct rk_ebc_pwr_ops *pwr_ops = ebc_pwr_get_ops(ebc_pwr_dev);
 
 	if (is_on) {
-		ret = ebc_tcon_ops->enable(ebc_tcon_dev, panel);
-		if (ret) {
-			printf("%s, ebc tcon enabled failed\n", __func__);
-			return -1;
-		}
 		ret = pwr_ops->power_on(ebc_pwr_dev);
 		if (ret) {
 			printf("%s, power on failed\n", __func__);
 			return -1;
 		}
-	} else {
-		ret = pwr_ops->power_down(ebc_pwr_dev);
+		ret = ebc_tcon_ops->enable(ebc_tcon_dev, panel);
 		if (ret) {
-			printf("%s, power_down failed\n", __func__);
+			printf("%s, ebc tcon enabled failed\n", __func__);
 			return -1;
 		}
+	} else {
 		ret = ebc_tcon_ops->disable(ebc_tcon_dev);
 		if (ret) {
 			printf("%s, ebc tcon disable failed\n", __func__);
+			return -1;
+		}
+		ret = pwr_ops->power_down(ebc_pwr_dev);
+		if (ret) {
+			printf("%s, power_down failed\n", __func__);
 			return -1;
 		}
 	}
