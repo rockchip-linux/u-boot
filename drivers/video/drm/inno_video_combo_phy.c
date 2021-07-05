@@ -195,9 +195,9 @@
 #define DSI_PHY_STATUS			0xb0
 #define PHY_LOCK			BIT(0)
 
-enum phy_process_type {
-	SMIC40LL,
-	TSMC22ULP,
+enum phy_max_rate {
+	MAX_1GHZ,
+	MAX_2_5GHZ,
 };
 
 struct inno_video_mipi_dphy_timing {
@@ -212,11 +212,11 @@ struct inno_video_mipi_dphy_timing {
 struct inno_video_mipi_dphy_info {
 	const struct inno_video_mipi_dphy_timing *inno_mipi_dphy_timing_table;
 	const unsigned int num_timings;
-	enum phy_process_type phy_process_type;
+	enum phy_max_rate phy_max_rate;
 };
 
 static const
-struct inno_video_mipi_dphy_timing inno_mipi_dphy_timing_table_smic40ll[] = {
+struct inno_video_mipi_dphy_timing inno_mipi_dphy_timing_table_max_1GHz[] = {
 	{ 110, 0x0, 0x20, 0x16, 0x02, 0x22},
 	{ 150, 0x0, 0x06, 0x16, 0x03, 0x45},
 	{ 200, 0x0, 0x18, 0x17, 0x04, 0x0b},
@@ -231,7 +231,7 @@ struct inno_video_mipi_dphy_timing inno_mipi_dphy_timing_table_smic40ll[] = {
 };
 
 static const
-struct inno_video_mipi_dphy_timing inno_mipi_dphy_timing_table_tsmc22ulp[] = {
+struct inno_video_mipi_dphy_timing inno_mipi_dphy_timing_table_max_2_5GHz[] = {
 	{ 110, 0x02, 0x7f, 0x16, 0x02, 0x02},
 	{ 150, 0x02, 0x7f, 0x16, 0x03, 0x02},
 	{ 200, 0x02, 0x7f, 0x17, 0x04, 0x02},
@@ -253,16 +253,16 @@ struct inno_video_mipi_dphy_timing inno_mipi_dphy_timing_table_tsmc22ulp[] = {
 	{2500, 0x15, 0x54, 0x7f, 0x15, 0x6a},
 };
 
-const struct inno_video_mipi_dphy_info inno_video_mipi_dphy_smic4011 = {
-	.inno_mipi_dphy_timing_table = inno_mipi_dphy_timing_table_smic40ll,
-	.num_timings = ARRAY_SIZE(inno_mipi_dphy_timing_table_smic40ll),
-	.phy_process_type = SMIC40LL,
+const struct inno_video_mipi_dphy_info inno_video_mipi_dphy_max_1GHz = {
+	.inno_mipi_dphy_timing_table = inno_mipi_dphy_timing_table_max_1GHz,
+	.num_timings = ARRAY_SIZE(inno_mipi_dphy_timing_table_max_1GHz),
+	.phy_max_rate = MAX_1GHZ,
 };
 
-const struct inno_video_mipi_dphy_info inno_video_mipi_dphy_tsmc22ulp = {
-	.inno_mipi_dphy_timing_table = inno_mipi_dphy_timing_table_tsmc22ulp,
-	.num_timings = ARRAY_SIZE(inno_mipi_dphy_timing_table_tsmc22ulp),
-	.phy_process_type = TSMC22ULP,
+const struct inno_video_mipi_dphy_info inno_video_mipi_dphy_max_2_5GHz = {
+	.inno_mipi_dphy_timing_table = inno_mipi_dphy_timing_table_max_2_5GHz,
+	.num_timings = ARRAY_SIZE(inno_mipi_dphy_timing_table_max_2_5GHz),
+	.phy_max_rate = MAX_2_5GHZ,
 };
 
 struct mipi_dphy_timing {
@@ -386,7 +386,7 @@ inno_mipi_dphy_get_timing(struct inno_video_phy *inno)
 	return &timings[i];
 }
 
-static void inno_mipi_dphy_tsmc22ulp_pll_enable(struct inno_video_phy *inno)
+static void inno_mipi_dphy_max_2_5GHz_pll_enable(struct inno_video_phy *inno)
 {
 	phy_update_bits(inno, REGISTER_PART_ANALOG, 0x03,
 			REG_PREDIV_MASK, REG_PREDIV(inno->pll.prediv));
@@ -404,7 +404,7 @@ static void inno_mipi_dphy_tsmc22ulp_pll_enable(struct inno_video_phy *inno)
 			REG_LDOPD_POWER_ON | REG_PLLPD_POWER_ON);
 }
 
-static void inno_mipi_dphy_smic40ll_pll_enable(struct inno_video_phy *inno)
+static void inno_mipi_dphy_max_1GHz_pll_enable(struct inno_video_phy *inno)
 {
 	/* Configure PLL */
 	phy_update_bits(inno, REGISTER_PART_ANALOG, 0x03,
@@ -505,7 +505,7 @@ static void inno_mipi_dphy_timing_init(struct inno_video_phy *inno)
 	 * The value of counter for HS Tlpx Time
 	 * Tlpx = Tpin_txbyteclkhs * (2 + value)
 	 */
-	if (inno->mipi_dphy_info->phy_process_type == SMIC40LL) {
+	if (inno->mipi_dphy_info->phy_max_rate == MAX_1GHZ) {
 		lpx = DIV_ROUND_UP(gotp.lpx, t_txbyteclkhs);
 		if (lpx >= 2)
 			lpx -= 2;
@@ -530,7 +530,7 @@ static void inno_mipi_dphy_timing_init(struct inno_video_phy *inno)
 		phy_update_bits(inno, i, 0x06, T_HS_PREPARE_CNT_MASK,
 				T_HS_PREPARE_CNT(hs_prepare));
 
-		if (inno->mipi_dphy_info->phy_process_type == TSMC22ULP)
+		if (inno->mipi_dphy_info->phy_max_rate == MAX_2_5GHZ)
 			phy_update_bits(inno, i, 0x06, T_HS_ZERO_CNT_HI_MASK,
 					T_HS_ZERO_CNT_HI(hs_zero >> 6));
 
@@ -539,14 +539,14 @@ static void inno_mipi_dphy_timing_init(struct inno_video_phy *inno)
 		phy_update_bits(inno, i, 0x08, T_HS_TRAIL_CNT_MASK,
 				T_HS_TRAIL_CNT(hs_trail));
 
-		if (inno->mipi_dphy_info->phy_process_type == TSMC22ULP)
+		if (inno->mipi_dphy_info->phy_max_rate == MAX_2_5GHZ)
 			phy_update_bits(inno, i, 0x11, T_HS_EXIT_CNT_HI_MASK,
 					T_HS_EXIT_CNT_HI(hs_exit >> 5));
 
 		phy_update_bits(inno, i, 0x09, T_HS_EXIT_CNT_LO_MASK,
 				T_HS_EXIT_CNT_LO(hs_exit));
 
-		if (inno->mipi_dphy_info->phy_process_type == TSMC22ULP)
+		if (inno->mipi_dphy_info->phy_max_rate == MAX_2_5GHZ)
 			phy_update_bits(inno, i, 0x10, T_CLK_POST_HI_MASK,
 					T_CLK_POST_HI(clk_post >> 4));
 
@@ -596,10 +596,10 @@ static void inno_video_phy_mipi_mode_enable(struct inno_video_phy *inno)
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x03,
 			MODE_ENABLE_MASK, MIPI_MODE_ENABLE);
 
-	if (inno->mipi_dphy_info->phy_process_type == TSMC22ULP)
-		inno_mipi_dphy_tsmc22ulp_pll_enable(inno);
+	if (inno->mipi_dphy_info->phy_max_rate == MAX_2_5GHZ)
+		inno_mipi_dphy_max_2_5GHz_pll_enable(inno);
 	else
-		inno_mipi_dphy_smic40ll_pll_enable(inno);
+		inno_mipi_dphy_max_1GHz_pll_enable(inno);
 
 	inno_mipi_dphy_reset(inno);
 	inno_mipi_dphy_timing_init(inno);
@@ -888,32 +888,36 @@ static const struct rockchip_phy_funcs inno_video_phy_funcs = {
 	.set_mode = inno_video_phy_set_mode,
 };
 
-static struct rockchip_phy inno_video_phy_smic40ll_driver_data = {
+static struct rockchip_phy px30_inno_video_phy_driver_data = {
 	 .funcs = &inno_video_phy_funcs,
-	 .data = &inno_video_mipi_dphy_smic4011,
+	 .data = &inno_video_mipi_dphy_max_1GHz,
 };
 
-static struct rockchip_phy inno_video_phy_tsmc22ulp_driver_data = {
+static struct rockchip_phy rk3568_inno_video_phy_driver_data = {
 	 .funcs = &inno_video_phy_funcs,
-	 .data = &inno_video_mipi_dphy_tsmc22ulp,
+	 .data = &inno_video_mipi_dphy_max_2_5GHz,
 };
 
 static const struct udevice_id inno_video_phy_ids[] = {
 	{
 		.compatible = "rockchip,px30-video-phy",
-		.data = (ulong)&inno_video_phy_smic40ll_driver_data,
+		.data = (ulong)&px30_inno_video_phy_driver_data,
 	},
 	{
 		.compatible = "rockchip,rk3128-video-phy",
-		.data = (ulong)&inno_video_phy_smic40ll_driver_data,
+		.data = (ulong)&px30_inno_video_phy_driver_data,
 	},
 	{
 		.compatible = "rockchip,rk3368-video-phy",
-		.data = (ulong)&inno_video_phy_smic40ll_driver_data,
+		.data = (ulong)&px30_inno_video_phy_driver_data,
 	},
 	{
 		.compatible = "rockchip,rk3568-video-phy",
-		.data = (ulong)&inno_video_phy_tsmc22ulp_driver_data,
+		.data = (ulong)&rk3568_inno_video_phy_driver_data,
+	},
+	{
+		.compatible = "rockchip,rk3568-dsi-dphy",
+		.data = (ulong)&rk3568_inno_video_phy_driver_data,
 	},
 	{}
 };
