@@ -812,6 +812,76 @@ static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
 	return us * mode->clock / mode->htotal / 1000;
 }
 
+static char* get_output_if_name(u32 output_if, char *name)
+{
+	if (output_if & VOP_OUTPUT_IF_RGB)
+		strcat(name, " RGB");
+	if (output_if & VOP_OUTPUT_IF_BT1120)
+		strcat(name, " BT1120");
+	if (output_if & VOP_OUTPUT_IF_BT656)
+		strcat(name, " BT656");
+	if (output_if & VOP_OUTPUT_IF_LVDS0)
+		strcat(name, " LVDS0");
+	if (output_if & VOP_OUTPUT_IF_LVDS1)
+		strcat(name, " LVDS1");
+	if (output_if & VOP_OUTPUT_IF_MIPI0)
+		strcat(name, " MIPI0");
+	if (output_if & VOP_OUTPUT_IF_MIPI1)
+		strcat(name, " MIPI1");
+	if (output_if & VOP_OUTPUT_IF_eDP0)
+		strcat(name, " eDP0");
+	if (output_if & VOP_OUTPUT_IF_eDP1)
+		strcat(name, " eDP1");
+	if (output_if & VOP_OUTPUT_IF_DP0)
+		strcat(name, " DP0");
+	if (output_if & VOP_OUTPUT_IF_DP1)
+		strcat(name, " DP1");
+	if (output_if & VOP_OUTPUT_IF_HDMI0)
+		strcat(name, " HDMI0");
+	if (output_if & VOP_OUTPUT_IF_HDMI1)
+		strcat(name, " HDMI1");
+
+	return name;
+}
+
+static char *get_plane_name(int plane_id, char *name)
+{
+	switch (plane_id) {
+	case ROCKCHIP_VOP2_CLUSTER0:
+		strcat(name, "Cluster0");
+		break;
+	case ROCKCHIP_VOP2_CLUSTER1:
+		strcat(name, "Cluster1");
+		break;
+	case ROCKCHIP_VOP2_ESMART0:
+		strcat(name, "Esmart0");
+		break;
+	case ROCKCHIP_VOP2_ESMART1:
+		strcat(name, "Esmart1");
+		break;
+	case ROCKCHIP_VOP2_SMART0:
+		strcat(name, "Smart0");
+		break;
+	case ROCKCHIP_VOP2_SMART1:
+		strcat(name, "Smart1");
+		break;
+	case ROCKCHIP_VOP2_CLUSTER2:
+		strcat(name, "Cluster2");
+		break;
+	case ROCKCHIP_VOP2_CLUSTER3:
+		strcat(name, "Cluster3");
+		break;
+	case ROCKCHIP_VOP2_ESMART2:
+		strcat(name, "Esmart2");
+		break;
+	case ROCKCHIP_VOP2_ESMART3:
+		strcat(name, "Esmart3");
+		break;
+	}
+
+	return name;
+}
+
 static bool is_yuv_output(u32 bus_format)
 {
 	switch (bus_format) {
@@ -1393,6 +1463,14 @@ static int rockchip_vop2_init(struct display_state *state)
 	bool dclk_inv;
 	u8 dither_down_en = 0;
 	u8 pre_dither_down_en = 0;
+	char output_type_name[30] = {0};
+
+	printf("VOP update mode to: %dx%d%s%d, type:%s for VP%d\n",
+	       mode->hdisplay, mode->vdisplay,
+	       mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "p",
+	       mode->vscan,
+	       get_output_if_name(conn_state->output_if, output_type_name),
+	       cstate->crtc_id);
 
 	vop2_initial(vop2, state);
 	dclk_inv = (mode->flags & DRM_MODE_FLAG_PPIXDATA) ? 0 : 1;
@@ -1713,6 +1791,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 	u32 win_offset;
 	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id);
 	u8 primary_plane_id = vop2->vp_plane_mask[cstate->crtc_id].primary_plane_id;
+	char plane_name[10] = {0};
 
 	win_offset = vop2->data->win_data[primary_plane_id].reg_offset;
 	if (crtc_w > cstate->max_output.width) {
@@ -1776,6 +1855,12 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 			CSC_MODE_SHIFT, csc_mode, false);
 
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+
+	printf("VOP VP%d enable %s[%dx%d->%dx%d@%dx%d] fmt[%d] addr[0x%x]\n",
+		cstate->crtc_id, get_plane_name(primary_plane_id, plane_name),
+		src_w, src_h, crtc_w, crtc_h, crtc_x, crtc_y, cstate->format,
+		cstate->dma_addr);
+
 	return 0;
 }
 
