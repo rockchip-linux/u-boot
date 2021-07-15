@@ -14,6 +14,7 @@ struct rockchip_vp {
 	u8 bg_ovl_dly;
 	int output_type;
 	u32 plane_mask;
+	int cursor_plane;
 };
 
 struct rockchip_crtc {

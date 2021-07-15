@@ -581,6 +581,12 @@ enum vop2_video_ports_id {
 	VOP2_VP_MAX,
 };
 
+enum vop2_layer_type {
+	CLUSTER_LAYER = 0,
+	ESMART_LAYER = 1,
+	SMART_LAYER = 2,
+};
+
 /* This define must same with kernel win phy id */
 enum vop2_layer_phy_id {
 	ROCKCHIP_VOP2_CLUSTER0 = 0,
@@ -593,6 +599,7 @@ enum vop2_layer_phy_id {
 	ROCKCHIP_VOP2_CLUSTER3,
 	ROCKCHIP_VOP2_ESMART2,
 	ROCKCHIP_VOP2_ESMART3,
+	ROCKCHIP_VOP2_LAYER_MAX,
 };
 
 enum vop2_scale_up_mode {
@@ -637,11 +644,17 @@ struct vop2_vp_data {
 	struct vop_rect max_output;
 };
 
+struct vop2_plane_table {
+	enum vop2_layer_phy_id plane_id;
+	enum vop2_layer_type plane_type;
+};
+
 struct vop2_vp_plane_mask {
 	u8 primary_plane_id; /* use this win to show logo */
 	u8 attached_layers_nr; /* number layers attach to this vp */
 	u8 attached_layers[VOP2_LAYER_MAX]; /* the layers attached to this vp */
 	u32 plane_mask;
+	int cursor_plane_id;
 };
 
 struct vop2_data {
@@ -649,6 +662,7 @@ struct vop2_data {
 	struct vop2_vp_data *vp_data;
 	struct vop2_win_data *win_data;
 	struct vop2_vp_plane_mask *plane_mask;
+	struct vop2_plane_table *plane_table;
 	u8 nr_vps;
 	u8 nr_layers;
 	u8 nr_mixers;
@@ -1897,6 +1911,49 @@ static int rockchip_vop2_disable(struct display_state *state)
 	return 0;
 }
 
+static int rockchip_vop2_get_cursor_plane(struct display_state *state, u32 plane_mask, int cursor_plane)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	int i = 0;
+	int correct_cursor_plane = -1;
+	int plane_type = -1;
+
+	if (cursor_plane < 0)
+		return -1;
+
+	if (plane_mask & (1 << cursor_plane))
+		return cursor_plane;
+
+	/* Get current cursor plane type */
+	for (i = 0; i < vop2->data->nr_layers; i++) {
+		if (vop2->data->plane_table[i].plane_id == cursor_plane) {
+			plane_type = vop2->data->plane_table[i].plane_type;
+			break;
+		}
+	}
+
+	/* Get the other same plane type plane id */
+	for (i = 0; i < vop2->data->nr_layers; i++) {
+		if (vop2->data->plane_table[i].plane_type == plane_type &&
+		    vop2->data->plane_table[i].plane_id != cursor_plane) {
+			correct_cursor_plane = vop2->data->plane_table[i].plane_id;
+			break;
+		}
+	}
+
+	/* To check whether the new correct_cursor_plane is attach to current vp */
+	if (correct_cursor_plane < 0 || !(plane_mask & (1 << correct_cursor_plane))) {
+		printf("error: faild to find correct plane as cursor plane\n");
+		return -1;
+	}
+
+	printf("vp%d adjust cursor plane from %d to %d\n",
+	       cstate->crtc_id, cursor_plane, correct_cursor_plane);
+
+	return correct_cursor_plane;
+}
+
 static int rockchip_vop2_fixup_dts(struct display_state *state, void *blob)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -1907,6 +1964,7 @@ static int rockchip_vop2_fixup_dts(struct display_state *state, void *blob)
 	const char *path;
 	u32 plane_mask = 0;
 	int vp_id = 0;
+	int cursor_plane_id = -1;
 
 	if (vop_fix_dts)
 		return 0;
@@ -1917,14 +1975,20 @@ static int rockchip_vop2_fixup_dts(struct display_state *state, void *blob)
 
 		if (cstate->crtc->assign_plane)
 			continue;
-		printf("vp%d, plane_mask:0x%x, primary-id:%d\n",
+		cursor_plane_id = rockchip_vop2_get_cursor_plane(state, plane_mask,
+								 cstate->crtc->vps[vp_id].cursor_plane);
+		printf("vp%d, plane_mask:0x%x, primary-id:%d, curser-id:%d\n",
 		       vp_id, plane_mask,
-		       vop2->vp_plane_mask[vp_id].primary_plane_id);
+		       vop2->vp_plane_mask[vp_id].primary_plane_id,
+		       cursor_plane_id);
 
 		do_fixup_by_path_u32(blob, path, "rockchip,plane-mask",
 				     plane_mask, 1);
 		do_fixup_by_path_u32(blob, path, "rockchip,primary-plane",
 				     vop2->vp_plane_mask[vp_id].primary_plane_id, 1);
+		if (cursor_plane_id >= 0)
+			do_fixup_by_path_u32(blob, path, "cursor-win-id",
+					     cursor_plane_id, 1);
 		vp_id++;
 	}
 
@@ -1932,6 +1996,15 @@ static int rockchip_vop2_fixup_dts(struct display_state *state, void *blob)
 
 	return 0;
 }
+
+static struct vop2_plane_table rk356x_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
+	{ROCKCHIP_VOP2_CLUSTER0, CLUSTER_LAYER},
+	{ROCKCHIP_VOP2_CLUSTER1, CLUSTER_LAYER},
+	{ROCKCHIP_VOP2_ESMART0, ESMART_LAYER},
+	{ROCKCHIP_VOP2_ESMART1, ESMART_LAYER},
+	{ROCKCHIP_VOP2_SMART0, SMART_LAYER},
+	{ROCKCHIP_VOP2_SMART0, SMART_LAYER},
+};
 
 static struct vop2_vp_plane_mask rk356x_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] = {
 	{ /* one display policy */
@@ -2070,6 +2143,7 @@ const struct vop2_data rk3568_vop = {
 	.vp_data = rk3568_vp_data,
 	.win_data = rk3568_win_data,
 	.plane_mask = rk356x_vp_plane_mask[0],
+	.plane_table = rk356x_plane_table,
 	.nr_layers = 6,
 	.nr_mixers = 5,
 	.nr_gammas = 1,
