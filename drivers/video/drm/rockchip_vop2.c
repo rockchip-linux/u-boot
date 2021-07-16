@@ -1417,7 +1417,6 @@ static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 		return ret;
 	}
 
-	vop2_global_initial(vop2, state);
 	rockchip_vop2_gamma_lut_init(vop2, state);
 	rockchip_vop2_cubic_lut_init(vop2, state);
 
@@ -1451,6 +1450,8 @@ static int rockchip_vop2_preinit(struct display_state *state)
 	cstate->private = rockchip_vop2;
 	cstate->max_output = vop2_data->vp_data[cstate->crtc_id].max_output;
 	cstate->feature = vop2_data->vp_data[cstate->crtc_id].feature;
+
+	vop2_global_initial(rockchip_vop2, state);
 
 	return 0;
 }
