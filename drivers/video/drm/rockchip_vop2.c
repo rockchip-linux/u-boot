@@ -1754,9 +1754,9 @@ static void vop2_setup_scale(struct vop2 *vop2, uint32_t win_offset,
 	vop2_writel(vop2, RK3568_ESMART0_REGION0_SCL_FACTOR_YRGB + win_offset,
 		    yfac << 16 | xfac);
 
-	vop2_mask_write(vop2, RK3568_ESMART0_REGION1_CTRL + win_offset,
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset,
 			YRGB_GT2_MASK, YRGB_GT2_SHIFT, gt2, false);
-	vop2_mask_write(vop2, RK3568_ESMART0_REGION1_CTRL + win_offset,
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset,
 			YRGB_GT4_MASK, YRGB_GT4_SHIFT, gt4, false);
 
 	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_SCL_CTRL + win_offset,
