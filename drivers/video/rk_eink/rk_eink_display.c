@@ -690,7 +690,9 @@ int rockchip_eink_show_charge_logo(int logo_type)
 
 static int rockchip_eink_display_probe(struct udevice *dev)
 {
-	int ret, vcom;
+	int ret, vcom, size, i;
+	const fdt32_t *list;
+	uint32_t phandle;
 	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
 
 	/* Before relocation we don't need to do anything */
@@ -705,9 +707,23 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 		return ret;
 	}
 
-	ret = uclass_get_device_by_phandle(UCLASS_I2C_GENERIC, dev,
-					   "pmic",
-					   &priv->ebc_pwr_dev);
+	list = dev_read_prop(dev, "pmic", &size);
+	if (!list) {
+		dev_err(dev, "Cannot get pmic prop\n");
+		return -EINVAL;
+	}
+
+	size /= sizeof(*list);
+	for (i = 0; i < size; i++) {
+		phandle = fdt32_to_cpu(*list++);
+		ret = uclass_get_device_by_phandle_id(UCLASS_I2C_GENERIC,
+						      phandle,
+						      &priv->ebc_pwr_dev);
+		if (!ret) {
+			printf("Eink: use pmic %s\n", priv->ebc_pwr_dev->name);
+			break;
+		}
+	}
 	if (ret) {
 		dev_err(dev, "Cannot get pmic: %d\n", ret);
 		return ret;
