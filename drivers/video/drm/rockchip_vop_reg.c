@@ -778,10 +778,15 @@ static const struct vop_ctrl rv1126_ctrl_data = {
 				      0xffffffff, 0),
 };
 
+static const struct vop_grf_ctrl rv1126_grf_ctrl = {
+	.grf_dclk_inv = VOP_REG(0x1026c, 0x1, 2),
+};
+
 const struct vop_data rv1126_vop = {
 	.version = VOP_VERSION(2, 7),
 	.max_output = {1920, 1080},
 	.ctrl = &rv1126_ctrl_data,
+	.grf_ctrl = &rv1126_grf_ctrl,
 	.win = &rv1126_win2_data,
 	.line_flag = &rk3366_vop_lite_line_flag,
 	.reg_len = RK3366_LIT_FLAG_REG * 4,

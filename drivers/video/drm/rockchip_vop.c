@@ -294,7 +294,7 @@ static int rockchip_vop_init(struct display_state *state)
 		VOP_CTRL_SET(vop, lvds_pin_pol, val);
 		VOP_CTRL_SET(vop, lvds_dclk_pol, dclk_inv);
 		if (!IS_ERR_OR_NULL(vop->grf))
-			VOP_GRF_SET(vop, grf_dclk_inv, !dclk_inv);
+			VOP_GRF_SET(vop, grf_dclk_inv, dclk_inv);
 		break;
 	case DRM_MODE_CONNECTOR_eDP:
 		VOP_CTRL_SET(vop, edp_en, 1);
