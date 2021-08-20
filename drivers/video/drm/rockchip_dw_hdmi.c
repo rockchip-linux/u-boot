@@ -356,14 +356,14 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 		dev_desc = rockchip_get_bootdev();
 		if (!dev_desc) {
 			printf("%s: Could not find device\n", __func__);
-			return;
+			goto null_basep;
 		}
 
 		ret = part_get_info_by_name(dev_desc, "baseparameter",
 					    &part_info);
 		if (ret < 0) {
 			printf("Could not find baseparameter partition\n");
-			return;
+			goto null_basep;
 		}
 
 read_aux:
@@ -371,7 +371,7 @@ read_aux:
 				(void *)baseparameter_buf);
 		if (ret < 0) {
 			printf("read baseparameter failed\n");
-			return;
+			goto null_basep;
 		}
 
 		memcpy(&base_parameter, baseparameter_buf,
@@ -437,7 +437,7 @@ read_aux:
 	else if (scan->bottomscale < max_scan && scan->bottomscale > 0)
 		overscan->bottom_margin = scan->bottomscale;
 
-
+null_basep:
 
 	if (screen_info)
 		printf("base_parameter.mode:%dx%d\n",
