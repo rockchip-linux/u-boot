@@ -167,6 +167,19 @@ static const struct vop_ctrl rk3288_ctrl_data = {
 	.cfg_done = VOP_REG(RK3288_REG_CFG_DONE, 0x1, 0),
 	.win_gate[0] = VOP_REG(RK3288_WIN2_CTRL0, 0x1, 0),
 	.win_gate[1] = VOP_REG(RK3288_WIN3_CTRL0, 0x1, 0),
+
+	.mcu_pix_total = VOP_REG(RK3288_MCU_CTRL, 0x3f, 0),
+	.mcu_cs_pst = VOP_REG(RK3288_MCU_CTRL, 0xf, 6),
+	.mcu_cs_pend = VOP_REG(RK3288_MCU_CTRL, 0x3f, 10),
+	.mcu_rw_pst = VOP_REG(RK3288_MCU_CTRL, 0xf, 16),
+	.mcu_rw_pend = VOP_REG(RK3288_MCU_CTRL, 0x3f, 20),
+	.mcu_clk_sel = VOP_REG(RK3288_MCU_CTRL, 0x1, 26),
+	.mcu_hold_mode = VOP_REG(RK3288_MCU_CTRL, 0x1, 27),
+	.mcu_frame_st = VOP_REG(RK3288_MCU_CTRL, 0x1, 28),
+	.mcu_rs = VOP_REG(RK3288_MCU_CTRL, 0x1, 29),
+	.mcu_bypass = VOP_REG(RK3288_MCU_CTRL, 0x1, 30),
+	.mcu_type = VOP_REG(RK3288_MCU_CTRL, 0x1, 31),
+	.mcu_rw_bypass_port = VOP_REG(RK3288_MCU_BYPASS_WPORT, 0xffffffff, 0),
 };
 
 static const struct vop_line_flag rk3288_vop_line_flag = {
