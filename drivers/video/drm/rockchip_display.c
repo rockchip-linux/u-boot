@@ -1244,6 +1244,7 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	int size, len;
 	int ret = 0;
 	int reserved = 0;
+	int dst_size;
 
 	if (!logo || !bmp_name)
 		return -EINVAL;
@@ -1269,6 +1270,7 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	logo->bpp = get_unaligned_le16(&header->bit_count);
 	logo->width = get_unaligned_le32(&header->width);
 	logo->height = get_unaligned_le32(&header->height);
+	dst_size = logo->width * logo->height * logo->bpp >> 3;
 	reserved = get_unaligned_le32(&header->reserved);
 	if (logo->height < 0)
 	    logo->height = -logo->height;
@@ -1294,13 +1296,11 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	}
 
 	if (!can_direct_logo(logo->bpp)) {
-		int dst_size;
 		/*
 		 * TODO: force use 16bpp if bpp less than 16;
 		 */
 		logo->bpp = (logo->bpp <= 16) ? 16 : logo->bpp;
 		dst_size = logo->width * logo->height * logo->bpp >> 3;
-
 		dst = get_display_buffer(dst_size);
 		if (!dst) {
 			ret = -ENOMEM;
@@ -1311,9 +1311,6 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 			ret = -EINVAL;
 			goto free_header;
 		}
-		flush_dcache_range((ulong)dst,
-				   ALIGN((ulong)dst + dst_size,
-					 CONFIG_SYS_CACHELINE_SIZE));
 
 		logo->offset = 0;
 		logo->ymirror = 0;
@@ -1327,6 +1324,8 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	logo->mem = dst;
 
 	memcpy(&logo_cache->logo, logo, sizeof(*logo));
+
+	flush_dcache_range((ulong)dst, ALIGN((ulong)dst + dst_size, CONFIG_SYS_CACHELINE_SIZE));
 
 free_header:
 
