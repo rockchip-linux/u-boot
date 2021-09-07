@@ -11,6 +11,11 @@ menuconfig DRM_ROCKCHIP
 	  This driver supports the on-chip video output device, and targets the
 	  Rockchip RK3288 and RK3399.
 
+config DRM_MEM_RESERVED_SIZE_MBYTES
+	int "Size in Mega Bytes"
+	depends on DRM_ROCKCHIP
+	default 32
+
 config DRM_DP_HELPER
 	bool
 	depends on DRM_ROCKCHIP
