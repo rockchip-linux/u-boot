@@ -282,7 +282,7 @@ static const struct rockchip_connector rk3368_rgb_driver_data = {
 
 static void rk3568_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
-	regmap_write(rgb->grf, RK3568_GRF_VO_CON1, RK3568_RGB_DATA_BYPASS(0));
+	regmap_write(rgb->grf, RK3568_GRF_VO_CON1, RK3568_RGB_DATA_BYPASS(rgb->data_sync_bypass));
 }
 
 static const struct rockchip_rgb_funcs rk3568_rgb_funcs = {
