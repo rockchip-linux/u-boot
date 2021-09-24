@@ -1088,6 +1088,7 @@ static int display_logo(struct display_state *state)
 	crtc_state->src_x = 0;
 	crtc_state->src_y = 0;
 	crtc_state->ymirror = logo->ymirror;
+	crtc_state->rb_swap = 0;
 
 	crtc_state->dma_addr = (u32)(unsigned long)logo->mem + logo->offset;
 	crtc_state->xvir = ALIGN(crtc_state->src_w * logo->bpp, 32) >> 5;
