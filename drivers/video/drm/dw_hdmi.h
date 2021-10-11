@@ -1408,7 +1408,8 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 			  struct connector_state *conn_state,
 			  unsigned int *bus_format,
 			  struct overscan *overscan,
-			  enum dw_hdmi_devtype dev_type);
+			  enum dw_hdmi_devtype dev_type,
+			  bool output_bus_format_rgb);
 void inno_dw_hdmi_set_domain(void *grf, int status);
 void dw_hdmi_set_iomux(void *grf, int dev_type);
 

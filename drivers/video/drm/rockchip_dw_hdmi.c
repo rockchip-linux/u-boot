@@ -188,7 +188,8 @@ static const struct dw_hdmi_phy_config rockchip_phy_config[] = {
 
 static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 					struct base_screen_info *screen_info,
-					enum dw_hdmi_devtype dev_type)
+					enum dw_hdmi_devtype dev_type,
+					bool output_bus_format_rgb)
 {
 	struct drm_display_info *info = &edid_data->display_info;
 	struct drm_display_mode *mode = edid_data->preferred_mode;
@@ -236,6 +237,9 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	default:
 		break;
 	}
+
+	if (output_bus_format_rgb)
+		color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
 
 	if (color_format == DRM_HDMI_OUTPUT_DEFAULT_RGB &&
 	    info->edid_hdmi_dc_modes & DRM_EDID_HDMI_DC_30)
@@ -326,7 +330,8 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 			  struct connector_state *conn_state,
 			  unsigned int *bus_format,
 			  struct overscan *overscan,
-			  enum dw_hdmi_devtype dev_type)
+			  enum dw_hdmi_devtype dev_type,
+			  bool output_bus_format_rgb)
 {
 	int ret, i, screen_size;
 	struct base_disp_info base_parameter;
@@ -347,7 +352,7 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 	overscan->top_margin = max_scan;
 	overscan->bottom_margin = max_scan;
 
-	if (dev_type == RK3288_HDMI)
+	if (dev_type == RK3288_HDMI || output_bus_format_rgb)
 		*bus_format = MEDIA_BUS_FMT_RGB888_1X24;
 	else
 		*bus_format = MEDIA_BUS_FMT_YUV8_1X24;
@@ -446,7 +451,7 @@ null_basep:
 	drm_rk_select_mode(edid_data, screen_info);
 
 	*bus_format = drm_rk_select_color(edid_data, screen_info,
-					  dev_type);
+					  dev_type, output_bus_format_rgb);
 }
 
 void inno_dw_hdmi_set_domain(void *grf, int status)

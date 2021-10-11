@@ -202,6 +202,7 @@ struct dw_hdmi {
 	u8 (*read)(struct dw_hdmi *hdmi, int offset);
 
 	bool hdcp1x_enable;
+	bool output_bus_format_rgb;
 };
 
 static void dw_hdmi_writel(struct dw_hdmi *hdmi, u8 val, int offset)
@@ -2309,6 +2310,12 @@ int rockchip_dw_hdmi_init(struct display_state *state)
 	else
 		hdmi->hdcp1x_enable = false;
 
+	if (ofnode_read_bool(hdmi_node, "force_output_bus_format_RGB") ||
+	    ofnode_read_bool(hdmi_node, "unsupported-yuv-input"))
+		hdmi->output_bus_format_rgb = true;
+	else
+		hdmi->output_bus_format_rgb = false;
+
 	ddc_node = of_parse_phandle(ofnode_to_np(hdmi_node), "ddc-i2c-bus", 0);
 	if (ddc_node) {
 		uclass_get_device_by_ofnode(UCLASS_I2C, np_to_ofnode(ddc_node),
@@ -2460,7 +2467,7 @@ int rockchip_dw_hdmi_get_timing(struct display_state *state)
 
 	drm_mode_sort(&hdmi->edid_data);
 	drm_rk_selete_output(&hdmi->edid_data, conn_state, &bus_format,
-			     overscan, hdmi->dev_type);
+			     overscan, hdmi->dev_type, hdmi->output_bus_format_rgb);
 
 	*mode = *hdmi->edid_data.preferred_mode;
 	hdmi->vic = drm_match_cea_mode(mode);
