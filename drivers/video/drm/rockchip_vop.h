@@ -9,13 +9,6 @@
 #include "rockchip_display.h"
 #include <asm/gpio.h>
 
-/*
- * major: IP major vertion, used for IP structure
- * minor: big feature change under same structure
- */
-#define VOP_VERSION(major, minor)	((major) << 8 | (minor))
-#define VOP_MAJOR(version) 	((version) >> 8)
-#define VOP_MINOR(version) 	((version) & 0xff)
 
 #define VOP_REG_SUPPORT(vop, reg) \
 		(reg.mask && \

@@ -12,9 +12,22 @@
 #include <edid.h>
 #include <dm/ofnode.h>
 
+/*
+ * major: IP major vertion, used for IP structure
+ * minor: big feature change under same structure
+ */
+#define VOP_VERSION(major, minor)	((major) << 8 | (minor))
+#define VOP_MAJOR(version)		((version) >> 8)
+#define VOP_MINOR(version)		((version) & 0xff)
+
+#define VOP_VERSION_RK3568		VOP_VERSION(0x40, 0x15)
+#define VOP_VERSION_RK3588		VOP_VERSION(0x40, 0x17)
+
 #define ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE	BIT(0)
 #define ROCKCHIP_OUTPUT_DUAL_CHANNEL_ODD_EVEN_MODE	BIT(1)
 #define ROCKCHIP_OUTPUT_DATA_SWAP			BIT(2)
+
+#define ROCKCHIP_DSC_PPS_SIZE_BYTE			88
 
 enum data_format {
 	ROCKCHIP_FMT_ARGB8888 = 0,
@@ -84,6 +97,27 @@ struct vop_rect {
 	int height;
 };
 
+struct rockchip_dsc_sink_cap {
+	/**
+	 * @slice_width: the number of pixel columns that comprise the slice width
+	 * @slice_height: the number of pixel rows that comprise the slice height
+	 * @block_pred: Does block prediction
+	 * @native_420: Does sink support DSC with 4:2:0 compression
+	 * @bpc_supported: compressed bpc supported by sink : 10, 12 or 16 bpc
+	 * @version_major: DSC major version
+	 * @version_minor: DSC minor version
+	 * @target_bits_per_pixel_x16: bits num after compress and multiply 16
+	 */
+	u16 slice_width;
+	u16 slice_height;
+	bool block_pred;
+	bool native_420;
+	u8 bpc_supported;
+	u8 version_major;
+	u8 version_minor;
+	u16 target_bits_per_pixel_x16;
+};
+
 struct crtc_state {
 	struct udevice *dev;
 	struct rockchip_crtc *crtc;
@@ -143,9 +177,18 @@ struct connector_state {
 	int output_if;
 	int output_flags;
 	int color_space;
+	int dsc_enable;
 	unsigned int bpc;
 
 	struct base2_disp_info *disp_info; /* disp_info from baseparameter 2.0 */
+
+	u8 dsc_id;
+	u8 dsc_slice_num;
+	u8 dsc_pixel_num;
+	u64 dsc_txp_clk;
+	u64 dsc_pxl_clk;
+	u64 dsc_cds_clk;
+	struct rockchip_dsc_sink_cap dsc_sink_cap;
 
 	struct {
 		u32 *lut;
