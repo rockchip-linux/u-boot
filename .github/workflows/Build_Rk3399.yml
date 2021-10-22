@@ -1,0 +1,61 @@
+name: Build_Rk3399
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+  #schedule:
+  #  - cron: 0 8 * * 5
+  
+  #watch:
+  #  types: [started]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+      with: 
+        path: './uboot'
+    - name: Clone toolchain
+      env: 
+        RKBIN_REPO_URL: https://github.com/rockchip-linux/rkbin
+        RKBIN_REPO_BRANCH: master
+        GCC_REPO_URL: https://github.com/rockchip-linux/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu
+        GCC_REPO_BRANCH: master
+      run: |
+        git clone --depth 1 $RKBIN_REPO_URL -b $RKBIN_REPO_BRANCH rkbin
+        git clone --depth 1 $GCC_REPO_URL -b $GCC_REPO_BRANCH prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu
+    - name: Build rk3399
+      working-directory: ./uboot
+      env:
+        RK_UBOOT_DEFCONFIG: rk3399
+      run: |
+        ./make.sh $RK_UBOOT_DEFCONFIG
+    - name: Changelog
+      id: Changelog
+      uses: mikepenz/release-changelog-builder-action@develop
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        path: ./uboot
+        configuration: "./.github/config/changelog.json"
+    - name: upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: uboot
+        path: |
+          ./uboot/*.img
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        body: |
+          ${{ steps.Changelog.outputs.changelog }}
+        draft: false
+        prerelease: false
+        files: |
+          ./uboot/uboot.img
+          ./uboot/trust.img

@@ -1,0 +1,58 @@
+{
+    "categories": [
+      {
+        "title": "## ✨ Features",
+        "labels": [
+          "feat"
+        ]
+      },
+      {
+        "title": "## 🐛 Fixes",
+        "labels": [
+          "fix"
+        ]
+      },
+      {
+        "title": "## 🧪 Tests",
+        "labels": [
+          "test"
+        ]
+      },
+      {
+        "title": "## 💬 Other",
+        "labels": [
+          "build",
+          "chore",
+          "ci",
+          "docs",
+          "perf",
+          "refactor",
+          "revert",
+          "style"
+        ]
+      }
+    ],
+    "ignore_labels": [
+      "ignore"
+    ],
+    "sort": "ASC",
+    "template": "${{CHANGELOG}}\n${{UNCATEGORIZED}}",
+    "pr_template": "${{TITLE}} #${{NUMBER}}",
+    "empty_template": "",
+    "label_extractor": [
+      {
+        "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|merge).*",
+        "target": "$1",
+        "on_property": "title"
+      }
+    ],
+    "transformers": [
+      {
+        "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test|merge)\\(?([a-z ]+)?\\)?:[\\s]?(\ud83c[\udf00-\udfff]|\ud83d[\udc00-\ude4f\ude80-\udeff]|[\u2600-\u2B55])?([\\s\\S]+)*(#[0-9]+)",
+        "target": "- $4 $5"
+      }
+    ],
+    "tag_resolver": {
+      "method": "semver"
+    }
+  }
