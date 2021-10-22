@@ -100,7 +100,7 @@ static void rk_i2c_show_regs(struct i2c_regs *regs)
 #endif
 }
 
-static int rk_i2c_send_start_bit(struct rk_i2c *i2c)
+static int rk_i2c_send_start_bit(struct rk_i2c *i2c, u32 con)
 {
 	struct i2c_regs *regs = i2c->regs;
 	ulong start;
@@ -108,8 +108,8 @@ static int rk_i2c_send_start_bit(struct rk_i2c *i2c)
 	debug("I2c Send Start bit.\n");
 	writel(I2C_IPD_ALL_CLEAN, &regs->ipd);
 
-	writel(I2C_CON_EN | I2C_CON_START, &regs->con);
 	writel(I2C_STARTIEN, &regs->ien);
+	writel(I2C_CON_EN | I2C_CON_START | con, &regs->con);
 
 	start = get_timer(0);
 	while (1) {
@@ -124,6 +124,9 @@ static int rk_i2c_send_start_bit(struct rk_i2c *i2c)
 		}
 		udelay(1);
 	}
+
+	/* clean start bit */
+	writel(I2C_CON_EN | con, &regs->con);
 
 	return 0;
 }
@@ -153,6 +156,7 @@ static int rk_i2c_send_stop_bit(struct rk_i2c *i2c)
 		udelay(1);
 	}
 
+	udelay(1);
 	return 0;
 }
 
@@ -164,7 +168,7 @@ static inline void rk_i2c_disable(struct rk_i2c *i2c)
 }
 
 static int rk_i2c_read(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
-		       uchar *buf, uint b_len)
+		       uchar *buf, uint b_len, bool snd)
 {
 	struct i2c_regs *regs = i2c->regs;
 	uchar *pbuf = buf;
@@ -175,15 +179,15 @@ static int rk_i2c_read(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 	uint con = 0;
 	uint rxdata;
 	uint i, j;
-	int err;
+	int err = 0;
 	bool snd_chunk = false;
 
 	debug("rk_i2c_read: chip = %d, reg = %d, r_len = %d, b_len = %d\n",
 	      chip, reg, r_len, b_len);
 
-	err = rk_i2c_send_start_bit(i2c);
-	if (err)
-		return err;
+	/* If the second message for TRX read, resetting internal state. */
+	if (snd)
+		writel(0, &regs->con);
 
 	writel(I2C_MRXADDR_SET(1, chip << 1 | 1), &regs->mrxaddr);
 	if (r_len == 0) {
@@ -210,16 +214,21 @@ static int rk_i2c_read(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 		words_xferred = DIV_ROUND_UP(bytes_xferred, 4);
 
 		/*
-		 * make sure we are in plain RX mode if we read a second chunk
+		 * make sure we are in plain RX mode if we read a second chunk;
+		 * and first rx read need to send start bit.
 		 */
-		if (snd_chunk)
+		if (snd_chunk) {
 			con |= I2C_CON_MOD(I2C_MODE_RX);
-		else
+			writel(con, &regs->con);
+		} else {
 			con |= I2C_CON_MOD(I2C_MODE_TRX);
+			err = rk_i2c_send_start_bit(i2c, con);
+			if (err)
+				return err;
+		}
 
-		writel(con, &regs->con);
-		writel(bytes_xferred, &regs->mrxcnt);
 		writel(I2C_MBRFIEN | I2C_NAKRCVIEN, &regs->ien);
+		writel(bytes_xferred, &regs->mrxcnt);
 
 		start = get_timer(0);
 		while (1) {
@@ -256,8 +265,6 @@ static int rk_i2c_read(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 	}
 
 i2c_exit:
-	rk_i2c_disable(i2c);
-
 	return err;
 }
 
@@ -265,20 +272,18 @@ static int rk_i2c_write(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 			uchar *buf, uint b_len)
 {
 	struct i2c_regs *regs = i2c->regs;
-	int err;
+	int err = 0;
 	uchar *pbuf = buf;
 	uint bytes_remain_len = b_len + r_len + 1;
 	uint bytes_xferred = 0;
 	uint words_xferred = 0;
+	bool next = false;
 	ulong start;
 	uint txdata;
 	uint i, j;
 
 	debug("rk_i2c_write: chip = %d, reg = %d, r_len = %d, b_len = %d\n",
 	      chip, reg, r_len, b_len);
-	err = rk_i2c_send_start_bit(i2c);
-	if (err)
-		return err;
 
 	while (bytes_remain_len) {
 		if (bytes_remain_len > RK_I2C_FIFO_SIZE)
@@ -306,9 +311,17 @@ static int rk_i2c_write(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 			debug("I2c Write TXDATA[%d] = 0x%08x\n", i, txdata);
 		}
 
-		writel(I2C_CON_EN | I2C_CON_MOD(I2C_MODE_TX), &regs->con);
-		writel(bytes_xferred, &regs->mtxcnt);
+		/* If the write is the first, need to send start bit */
+		if (!next) {
+			err = rk_i2c_send_start_bit(i2c, I2C_CON_EN | I2C_CON_MOD(I2C_MODE_TX));
+			if (err)
+				return err;
+			next = true;
+		} else {
+			writel(I2C_CON_EN | I2C_CON_MOD(I2C_MODE_TX), &regs->con);
+		}
 		writel(I2C_MBTFIEN | I2C_NAKRCVIEN, &regs->ien);
+		writel(bytes_xferred, &regs->mtxcnt);
 
 		start = get_timer(0);
 		while (1) {
@@ -334,8 +347,6 @@ static int rk_i2c_write(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 	}
 
 i2c_exit:
-	rk_i2c_disable(i2c);
-
 	return err;
 }
 
@@ -343,18 +354,28 @@ static int rockchip_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
 			     int nmsgs)
 {
 	struct rk_i2c *i2c = dev_get_priv(bus);
+	bool snd = false; /* second message for TRX read */
 	int ret = 0;
 
 	debug("i2c_xfer: %d messages\n", nmsgs);
+	if (nmsgs > 2 || ((nmsgs == 2) && (msg->flags & I2C_M_RD))) {
+		debug("Not support more messages now, split them\n");
+		return -EINVAL;
+	}
+
 	for (; nmsgs > 0; nmsgs--, msg++) {
 		debug("i2c_xfer: chip=0x%x, len=0x%x\n", msg->addr, msg->len);
+
 		if (msg->flags & I2C_M_RD) {
+			/* If snd is true, it is TRX mode. */
 			ret = rk_i2c_read(i2c, msg->addr, 0, 0, msg->buf,
-					  msg->len);
+					  msg->len, snd);
 		} else {
+			snd = true;
 			ret = rk_i2c_write(i2c, msg->addr, 0, 0, msg->buf,
 					   msg->len);
 		}
+
 		if (ret) {
 			debug("i2c_write: error sending\n");
 			ret = -EREMOTEIO;
