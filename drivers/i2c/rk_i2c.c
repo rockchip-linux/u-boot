@@ -30,6 +30,7 @@ struct rk_i2c {
 	struct clk clk;
 	struct i2c_regs *regs;
 	unsigned int speed;
+	unsigned int cfg;
 };
 
 enum {
@@ -44,39 +45,50 @@ struct rk_i2c_soc_data {
 	int controller_type;
 };
 
-static inline void rk_i2c_get_div(int div, int *divh, int *divl)
+struct i2c_spec_values {
+	unsigned int min_low_ns;
+	unsigned int min_high_ns;
+	unsigned int max_rise_ns;
+	unsigned int max_fall_ns;
+};
+
+enum {
+	RK_I2C_VERSION0 = 0,
+	RK_I2C_VERSION1,
+	RK_I2C_VERSION5 = 5,
+};
+
+/********************* Private Variable Definition ***************************/
+
+static const struct i2c_spec_values standard_mode_spec = {
+	.min_low_ns = 4700,
+	.min_high_ns = 4000,
+	.max_rise_ns = 1000,
+	.max_fall_ns = 300,
+};
+
+static const struct i2c_spec_values fast_mode_spec = {
+	.min_low_ns = 1300,
+	.min_high_ns = 600,
+	.max_rise_ns = 300,
+	.max_fall_ns = 300,
+};
+
+static const struct i2c_spec_values fast_modeplus_spec = {
+	.min_low_ns = 500,
+	.min_high_ns = 260,
+	.max_rise_ns = 120,
+	.max_fall_ns = 120,
+};
+
+static const struct i2c_spec_values *rk_i2c_get_spec(unsigned int speed)
 {
-	*divl = div / 2;
-	if (div % 2 == 0)
-		*divh = div / 2;
+	if (speed == 1000)
+		return &fast_modeplus_spec;
+	else if (speed == 400)
+		return &fast_mode_spec;
 	else
-		*divh = DIV_ROUND_UP(div, 2);
-}
-
-/*
- * SCL Divisor = 8 * (CLKDIVL+1 + CLKDIVH+1)
- * SCL = PCLK / SCLK Divisor
- * i2c_rate = PCLK
- */
-static void rk_i2c_set_clk(struct rk_i2c *i2c, uint32_t scl_rate)
-{
-	uint32_t i2c_rate;
-	int div, divl, divh;
-
-	/* First get i2c rate from pclk */
-	i2c_rate = clk_get_rate(&i2c->clk);
-
-	div = DIV_ROUND_UP(i2c_rate, scl_rate * 8) - 2;
-	divh = 0;
-	divl = 0;
-	if (div >= 0)
-		rk_i2c_get_div(div, &divh, &divl);
-	writel(I2C_CLKDIV_VAL(divl, divh), &i2c->regs->clkdiv);
-
-	debug("rk_i2c_set_clk: i2c rate = %d, scl rate = %d\n", i2c_rate,
-	      scl_rate);
-	debug("set i2c clk div = %d, divh = %d, divl = %d\n", div, divh, divl);
-	debug("set clk(I2C_CLKDIV: 0x%08x)\n", readl(&i2c->regs->clkdiv));
+		return &standard_mode_spec;
 }
 
 static void rk_i2c_show_regs(struct i2c_regs *regs)
@@ -100,6 +112,112 @@ static void rk_i2c_show_regs(struct i2c_regs *regs)
 #endif
 }
 
+static inline void rk_i2c_get_div(int div, int *divh, int *divl)
+{
+	*divl = div / 2;
+	if (div % 2 == 0)
+		*divh = div / 2;
+	else
+		*divh = DIV_ROUND_UP(div, 2);
+}
+
+/*
+ * SCL Divisor = 8 * (CLKDIVL+1 + CLKDIVH+1)
+ * SCL = PCLK / SCLK Divisor
+ * i2c_rate = PCLK
+ */
+static void rk_i2c_set_clk(struct rk_i2c *i2c, unsigned int scl_rate)
+{
+	unsigned int i2c_rate;
+	int div, divl, divh;
+
+	/* First get i2c rate from pclk */
+	i2c_rate = clk_get_rate(&i2c->clk);
+
+	div = DIV_ROUND_UP(i2c_rate, scl_rate * 8) - 2;
+	divh = 0;
+	divl = 0;
+	if (div >= 0)
+		rk_i2c_get_div(div, &divh, &divl);
+	writel(I2C_CLKDIV_VAL(divl, divh), &i2c->regs->clkdiv);
+
+	debug("rk_i2c_set_clk: i2c rate = %d, scl rate = %d\n", i2c_rate,
+	      scl_rate);
+	debug("set i2c clk div = %d, divh = %d, divl = %d\n", div, divh, divl);
+	debug("set clk(I2C_CLKDIV: 0x%08x)\n", readl(&i2c->regs->clkdiv));
+}
+
+static int rk_i2c_adapter_clk(struct rk_i2c *i2c, unsigned int scl_rate)
+{
+	const struct i2c_spec_values *spec;
+	unsigned int min_total_div, min_low_div, min_high_div, min_hold_div;
+	unsigned int low_div, high_div, extra_div, extra_low_div;
+	unsigned int min_low_ns, min_high_ns;
+	unsigned int start_setup = 0;
+	unsigned int i2c_rate = clk_get_rate(&i2c->clk);
+	unsigned int speed;
+
+	debug("rk_i2c_set_clk: i2c rate = %d, scl rate = %d\n", i2c_rate,
+	      scl_rate);
+
+	if (scl_rate <= 100000 && scl_rate >= 1000) {
+		start_setup = 1;
+		speed = 100;
+	} else if (scl_rate <= 400000 && scl_rate >= 100000) {
+		speed = 400;
+	} else if (scl_rate <= 1000000 && scl_rate > 400000) {
+		speed = 1000;
+	} else {
+		debug("invalid i2c speed : %d\n", scl_rate);
+		return -EINVAL;
+	}
+
+	spec = rk_i2c_get_spec(speed);
+	i2c_rate = DIV_ROUND_UP(i2c_rate, 1000);
+	speed = DIV_ROUND_UP(scl_rate, 1000);
+
+	min_total_div = DIV_ROUND_UP(i2c_rate, speed * 8);
+
+	min_high_ns = spec->max_rise_ns + spec->min_high_ns;
+	min_high_div = DIV_ROUND_UP(i2c_rate * min_high_ns, 8 * 1000000);
+
+	min_low_ns = spec->max_fall_ns + spec->min_low_ns;
+	min_low_div = DIV_ROUND_UP(i2c_rate * min_low_ns, 8 * 1000000);
+
+	min_high_div = (min_high_div < 1) ? 2 : min_high_div;
+	min_low_div = (min_low_div < 1) ? 2 : min_low_div;
+
+	min_hold_div = min_high_div + min_low_div;
+
+	if (min_hold_div >= min_total_div) {
+		high_div = min_high_div;
+		low_div = min_low_div;
+	} else {
+		extra_div = min_total_div - min_hold_div;
+		extra_low_div = DIV_ROUND_UP(min_low_div * extra_div,
+					     min_hold_div);
+
+		low_div = min_low_div + extra_low_div;
+		high_div = min_high_div + (extra_div - extra_low_div);
+	}
+
+	high_div--;
+	low_div--;
+
+	if (high_div > 0xffff || low_div > 0xffff)
+		return -EINVAL;
+
+	/* 1 for data hold/setup time is enough */
+	i2c->cfg = I2C_CON_SDA_CFG(1) | I2C_CON_STA_CFG(start_setup);
+	writel((high_div << I2C_CLK_DIV_HIGH_SHIFT) | low_div,
+	       &i2c->regs->clkdiv);
+
+	debug("set clk(I2C_TIMING: 0x%08x)\n", i2c->cfg);
+	debug("set clk(I2C_CLKDIV: 0x%08x)\n", readl(&i2c->regs->clkdiv));
+
+	return 0;
+}
+
 static int rk_i2c_send_start_bit(struct rk_i2c *i2c, u32 con)
 {
 	struct i2c_regs *regs = i2c->regs;
@@ -109,7 +227,7 @@ static int rk_i2c_send_start_bit(struct rk_i2c *i2c, u32 con)
 	writel(I2C_IPD_ALL_CLEAN, &regs->ipd);
 
 	writel(I2C_STARTIEN, &regs->ien);
-	writel(I2C_CON_EN | I2C_CON_START | con, &regs->con);
+	writel(I2C_CON_EN | I2C_CON_START | i2c->cfg | con, &regs->con);
 
 	start = get_timer(0);
 	while (1) {
@@ -126,7 +244,7 @@ static int rk_i2c_send_start_bit(struct rk_i2c *i2c, u32 con)
 	}
 
 	/* clean start bit */
-	writel(I2C_CON_EN | con, &regs->con);
+	writel(I2C_CON_EN | i2c->cfg | con, &regs->con);
 
 	return 0;
 }
@@ -139,7 +257,7 @@ static int rk_i2c_send_stop_bit(struct rk_i2c *i2c)
 	debug("I2c Send Stop bit.\n");
 	writel(I2C_IPD_ALL_CLEAN, &regs->ipd);
 
-	writel(I2C_CON_EN | I2C_CON_STOP, &regs->con);
+	writel(I2C_CON_EN | i2c->cfg | I2C_CON_STOP, &regs->con);
 	writel(I2C_CON_STOP, &regs->ien);
 
 	start = get_timer(0);
@@ -219,7 +337,7 @@ static int rk_i2c_read(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 		 */
 		if (snd_chunk) {
 			con |= I2C_CON_MOD(I2C_MODE_RX);
-			writel(con, &regs->con);
+			writel(con | i2c->cfg, &regs->con);
 		} else {
 			con |= I2C_CON_MOD(I2C_MODE_TRX);
 			err = rk_i2c_send_start_bit(i2c, con);
@@ -313,12 +431,14 @@ static int rk_i2c_write(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 
 		/* If the write is the first, need to send start bit */
 		if (!next) {
-			err = rk_i2c_send_start_bit(i2c, I2C_CON_EN | I2C_CON_MOD(I2C_MODE_TX));
+			err = rk_i2c_send_start_bit(i2c, I2C_CON_EN |
+					   I2C_CON_MOD(I2C_MODE_TX));
 			if (err)
 				return err;
 			next = true;
 		} else {
-			writel(I2C_CON_EN | I2C_CON_MOD(I2C_MODE_TX), &regs->con);
+			writel(I2C_CON_EN | I2C_CON_MOD(I2C_MODE_TX) | i2c->cfg,
+			       &regs->con);
 		}
 		writel(I2C_MBTFIEN | I2C_NAKRCVIEN, &regs->ien);
 		writel(bytes_xferred, &regs->mtxcnt);
@@ -389,11 +509,24 @@ static int rockchip_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
 	return ret;
 }
 
+static unsigned int rk3x_i2c_get_version(struct rk_i2c *i2c)
+{
+	struct i2c_regs *regs = i2c->regs;
+	uint version;
+
+	version = readl(&regs->con) & I2C_CON_VERSION;
+
+	return version >>= I2C_CON_VERSION_SHIFT;
+}
+
 int rockchip_i2c_set_bus_speed(struct udevice *bus, unsigned int speed)
 {
 	struct rk_i2c *i2c = dev_get_priv(bus);
 
-	rk_i2c_set_clk(i2c, speed);
+	if (rk3x_i2c_get_version(i2c) >= RK_I2C_VERSION1)
+		rk_i2c_adapter_clk(i2c, speed);
+	else
+		rk_i2c_set_clk(i2c, speed);
 
 	return 0;
 }
