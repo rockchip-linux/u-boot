@@ -142,6 +142,13 @@ config DRM_ROCKCHIP_RK1000
 	  Choose this option to enable support for Rockchip RK1000 display
 	  bridge chips driver. say Y to enable its driver.
 
+config DRM_ROCKCHIP_SAMSUNG_MIPI_DCPHY
+	tristate "Rockchip SAMSUNG MIPI DCPHY driver"
+	depends on DRM_ROCKCHIP
+	help
+	  Enable this to support the Rockchip MIPI DCPHY
+	  with SAMSUNG IP block.
+
 config ROCKCHIP_DRM_TVE
 	bool "Rockchip TVE Support"
 	depends on DRM_ROCKCHIP
