@@ -8,6 +8,7 @@
 #define __DRM_ANALOGIX_DP_H__
 
 #include <generic-phy.h>
+#include <regmap.h>
 #include <reset.h>
 
 #include <drm/drm_dp_helper.h>
@@ -295,6 +296,7 @@
 #define LINK_QUAL_PATTERN_SET_D10_2		(0x1 << 2)
 #define LINK_QUAL_PATTERN_SET_DISABLE		(0x0 << 2)
 #define SW_TRAINING_PATTERN_SET_MASK		(0x3 << 0)
+#define SW_TRAINING_PATTERN_SET_PTN3		(0x3 << 0)
 #define SW_TRAINING_PATTERN_SET_PTN2		(0x2 << 0)
 #define SW_TRAINING_PATTERN_SET_PTN1		(0x1 << 0)
 #define SW_TRAINING_PATTERN_SET_NORMAL		(0x0 << 0)
@@ -436,6 +438,7 @@ enum pattern_set {
 	D10_2,
 	TRAINING_PTN1,
 	TRAINING_PTN2,
+	TRAINING_PTN3,
 	DP_NONE
 };
 
@@ -532,6 +535,7 @@ enum analogix_dp_sub_devtype {
 	RK3368_EDP,
 	RK3399_EDP,
 	RK3568_EDP,
+	RK3588_EDP
 };
 
 struct analogix_dp_plat_data {
@@ -544,6 +548,7 @@ struct analogix_dp_device {
 	int id;
 	struct udevice *dev;
 	void *reg_base;
+	struct regmap *grf;
 	struct phy phy;
 	struct reset_ctl_bulk resets;
 	struct gpio_desc hpd_gpio;
