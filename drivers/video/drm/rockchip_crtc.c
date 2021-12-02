@@ -4,6 +4,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <clk.h>
 #include <config.h>
 #include <common.h>
 #include <errno.h>
@@ -12,10 +13,23 @@
 #include <linux/list.h>
 #include <dm/device.h>
 #include <dm.h>
+#include <dm/device-internal.h>
+#include <dm/lists.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
+
+static const struct udevice_id rockchip_vp_ids[] = {
+	{ .compatible = "rockchip-vp" },
+	{ }
+};
+
+U_BOOT_DRIVER(rockchip_vp) = {
+	.name		= "rockchip-vp",
+	.id		= UCLASS_VIDEO_CRTC,
+	.of_match	= rockchip_vp_ids,
+};
 
 static const struct rockchip_crtc rk3036_vop_data = {
 	.funcs = &rockchip_vop_funcs,
@@ -162,11 +176,44 @@ static const struct udevice_id rockchip_vop_ids[] = {
 
 static int rockchip_vop_probe(struct udevice *dev)
 {
+	struct udevice *child;
+	int ret;
+
+	for (device_find_first_child(dev, &child);
+	     child;
+	     device_find_next_child(&child)) {
+		ret = device_probe(child);
+		if (ret)
+			return ret;
+
+		ret = clk_set_defaults(child);
+		if (ret)
+			return ret;
+	}
+
 	return 0;
 }
 
 static int rockchip_vop_bind(struct udevice *dev)
 {
+	ofnode ports, node;
+	int ret;
+
+	ports = dev_read_subnode(dev, "ports");
+	if (!ofnode_valid(ports))
+		return 0;
+
+	ofnode_for_each_subnode(node, ports) {
+		const char *name = ofnode_get_name(node);
+
+		ret = device_bind_driver_to_node(dev, "rockchip-vp", name,
+						 node, NULL);
+		if (ret) {
+			dev_err(dev, "unable to bind vp device node: %d\n", ret);
+			return ret;
+		}
+	}
+
 	return 0;
 }
 
