@@ -1126,17 +1126,15 @@ static int display_logo(struct display_state *state)
 	return 0;
 }
 
-static int get_crtc_id(ofnode connect)
+static int get_crtc_id(struct device_node *connect)
 {
-	int phandle;
-	struct device_node *remote;
+	struct device_node *port_node;
 	int val;
 
-	phandle = ofnode_read_u32_default(connect, "remote-endpoint", -1);
-	if (phandle < 0)
+	port_node = of_get_parent(connect);
+	if (!port_node)
 		goto err;
-	remote = of_find_node_by_phandle(phandle);
-	val = ofnode_read_u32_default(np_to_ofnode(remote), "reg", -1);
+	val = ofnode_read_u32_default(np_to_ofnode(port_node), "reg", -1);
 	if (val < 0)
 		goto err;
 
@@ -1806,7 +1804,7 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->crtc_state.node = np_to_ofnode(vop_node);
 		s->crtc_state.dev = crtc_dev;
 		s->crtc_state.crtc = crtc;
-		s->crtc_state.crtc_id = get_crtc_id(np_to_ofnode(ep_node));
+		s->crtc_state.crtc_id = get_crtc_id(ep_node);
 		s->node = node;
 
 		if (is_ports_node) { /* only vop2 will get into here */
