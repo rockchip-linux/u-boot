@@ -485,21 +485,21 @@ static int analogix_dp_sw_link_training(struct analogix_dp_device *dp)
 static int analogix_dp_set_link_train(struct analogix_dp_device *dp,
 				      u32 count, u32 bwtype)
 {
-	int ret;
+	int i, ret;
 
-	ret = analogix_dp_init_training(dp, count, bwtype);
-	if (ret < 0) {
-		dev_err(dp->dev, "failed to init training\n");
-		return ret;
+	for (i = 0; i < 5; i++) {
+		ret = analogix_dp_init_training(dp, count, bwtype);
+		if (ret < 0) {
+			dev_err(dp->dev, "failed to init training\n");
+			return ret;
+		}
+
+		ret = analogix_dp_sw_link_training(dp);
+		if (!ret)
+			break;
 	}
 
-	ret = analogix_dp_sw_link_training(dp);
-	if (ret < 0) {
-		dev_err(dp->dev, "failed to do sw link training\n");
-		return ret;
-	}
-
-	return 0;
+	return ret;
 }
 
 static int analogix_dp_config_video(struct analogix_dp_device *dp)
