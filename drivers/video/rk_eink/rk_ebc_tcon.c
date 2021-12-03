@@ -27,6 +27,7 @@ struct ebc_tcon_priv {
 	u32 reg_len;
 	void *grf;
 	void *pmugrf;
+	struct clk dclk;
 };
 
 #define msleep(a)		udelay((a) * 1000)
@@ -252,6 +253,7 @@ static inline void tcon_cfg_done(struct ebc_tcon_priv *tcon)
 
 static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 {
+	int ret;
 	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
 
 	/* panel timing and win info config */
@@ -323,6 +325,12 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		   DSP_SDCLK_DIV(panel->panel_16bit ? 7 : 3));
 
 	tcon_cfg_done(tcon);
+
+	ret = clk_set_rate(&tcon->dclk, panel->sdck * ((panel->panel_16bit ? 7 : 3) + 1));
+	if (ret < 0) {
+		printf("%s: set clock rate failed, %d\n", __func__, ret);
+		return ret;
+	}
 
 	return 0;
 }
@@ -460,9 +468,11 @@ static int rk_ebc_tcon_probe(struct udevice *dev)
 	}
 
 	priv->dev = dev;
-	ret = clk_set_defaults(dev);
-	if (ret)
-		printf("%s clk_set_defaults failed %d\n", __func__, ret);
+	ret = clk_get_by_index(dev, 1, &priv->dclk);
+	if (ret < 0) {
+		printf("%s get clock fail! %d\n", __func__, ret);
+		return -EINVAL;
+	}
 
 #ifdef CONFIG_IRQ
 	irq_install_handler(IRQ_EBC, ebc_irq_handler, dev);
