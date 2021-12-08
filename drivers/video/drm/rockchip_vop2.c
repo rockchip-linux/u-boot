@@ -24,6 +24,7 @@
 #include <dm/read.h>
 #include <fixp-arith.h>
 #include <syscon.h>
+#include <linux/iopoll.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -126,6 +127,18 @@
 #define RK3568_VP2_INT_EN			0xC0
 #define RK3568_VP2_INT_CLR			0xC4
 #define RK3568_VP2_INT_STATUS			0xC8
+#define RK3588_CLUSTER0_PD_EN_SHIFT		0
+#define RK3588_CLUSTER1_PD_EN_SHIFT		1
+#define RK3588_CLUSTER2_PD_EN_SHIFT		2
+#define RK3588_CLUSTER3_PD_EN_SHIFT		3
+#define RK3588_ESMART_PD_EN_SHIFT		7
+
+#define RK3568_SYS_STATUS0			0x60
+#define RK3588_CLUSTER0_PD_STATUS_SHIFT		8
+#define RK3588_CLUSTER1_PD_STATUS_SHIFT		9
+#define RK3588_CLUSTER2_PD_STATUS_SHIFT		10
+#define RK3588_CLUSTER3_PD_STATUS_SHIFT		11
+#define RK3588_ESMART_PD_STATUS_SHIFT		15
 
 /* Overlay registers definition    */
 #define RK3568_OVL_CTRL				0x600
@@ -581,6 +594,20 @@
 #define RK3588_GRF_EDP1_ENABLE_SHIFT		3
 #define RK3588_GRF_HDMITX1_ENABLE_SHIFT		4
 
+#define RK3588_PMU_BISR_CON3			0x20C
+#define RK3588_PD_CLUSTER0_REPAIR_EN_SHIFT	9
+#define RK3588_PD_CLUSTER1_REPAIR_EN_SHIFT	10
+#define RK3588_PD_CLUSTER2_REPAIR_EN_SHIFT	11
+#define RK3588_PD_CLUSTER3_REPAIR_EN_SHIFT	12
+#define RK3588_PD_ESMART_REPAIR_EN_SHIFT	15
+
+#define RK3588_PMU_BISR_STATUS5			0x294
+#define RK3588_PD_CLUSTER0_PWR_STAT_SHIFI	9
+#define RK3588_PD_CLUSTER1_PWR_STAT_SHIFI	10
+#define RK3588_PD_CLUSTER2_PWR_STAT_SHIFI	11
+#define RK3588_PD_CLUSTER3_PWR_STAT_SHIFI	12
+#define RK3588_PD_ESMART_PWR_STAT_SHIFI		15
+
 #define VOP2_LAYER_MAX				8
 
 #define VOP_FEATURE_OUTPUT_10BIT		BIT(0)
@@ -678,6 +705,15 @@ struct vop2_layer {
 	u8 win_phys_id;
 };
 
+struct vop2_power_domain_data {
+	bool is_parent_needed;
+	u8 pd_en_shift;
+	u8 pd_status_shift;
+	u8 pmu_status_shift;
+	u8 bisr_en_status_shift;
+	u8 parent_phy_id;
+};
+
 struct vop2_win_data {
 	char *name;
 	u8 phys_id;
@@ -685,6 +721,7 @@ struct vop2_win_data {
 	u8 win_sel_port_offset;
 	u8 layer_sel_win_id;
 	u32 reg_offset;
+	struct vop2_power_domain_data *pd_data;
 };
 
 struct vop2_vp_data {
@@ -727,6 +764,7 @@ struct vop2 {
 	void *grf;
 	void *vop_grf;
 	void *vo1_grf;
+	void *sys_pmu;
 	u32 reg_len;
 	u32 version;
 	bool global_init;
@@ -890,6 +928,12 @@ static inline void vop2_grf_writel(struct vop2 *vop, void *grf_base, u32 offset,
 
 	val = (v << shift) | (mask << (shift + 16));
 	writel(val, grf_base + offset);
+}
+
+static inline u32 vop2_grf_readl(struct vop2 *vop, void *grf_base, u32 offset,
+				  u32 mask, u32 shift)
+{
+	return (readl(grf_base + offset) >> shift) & mask;
 }
 
 static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
@@ -1326,17 +1370,59 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	vop2_writel(vop2, RK3568_VP0_PRE_SCAN_HTIMING + vp_offset, pre_scan_dly);
 }
 
+static int vop2_wait_power_domain_on(struct vop2 *vop2, struct vop2_power_domain_data *pd_data)
+{
+	int val = 0;
+	int shift = 0;
+	bool is_bisr_en = false;
+
+	is_bisr_en = vop2_grf_readl(vop2, vop2->sys_pmu, RK3588_PMU_BISR_CON3, EN_MASK,
+				    pd_data->bisr_en_status_shift);
+	if (is_bisr_en) {
+		shift = pd_data->pmu_status_shift;
+		return readl_poll_timeout(vop2->sys_pmu + RK3588_PMU_BISR_STATUS5, val,
+					  !((val >> shift) & 0x1), 50 * 1000);
+	} else {
+		shift = pd_data->pd_status_shift;
+		return readl_poll_timeout(vop2->regs + RK3568_SYS_STATUS0, val,
+					  !((val >> shift) & 0x1), 50 * 1000);
+	}
+}
+
+static int vop2_power_domain_on(struct vop2 *vop2, int plane_id)
+{
+	struct vop2_win_data *win_data;
+	struct vop2_power_domain_data *pd_data;
+	int ret = 0;
+
+	win_data = vop2_find_win_by_phys_id(vop2, plane_id);
+	if (!win_data) {
+		printf("can't find win_data by phys_id\n");
+		return -EINVAL;
+	}
+	pd_data = win_data->pd_data;
+	if (pd_data->is_parent_needed) {
+		ret = vop2_power_domain_on(vop2, pd_data->parent_phy_id);
+		if (ret) {
+			printf("can't open parent power domain\n");
+			return -EINVAL;
+		}
+	}
+
+	vop2_mask_write(vop2, RK3568_SYS_PD_CTRL, EN_MASK, pd_data->pd_en_shift, 0, false);
+	ret = vop2_wait_power_domain_on(vop2, pd_data);
+	if (ret) {
+		printf("wait vop2 power domain timeout\n");
+		return ret;
+	}
+
+	return 0;
+}
+
 static void rk3588_vop2_regsbak(struct vop2 *vop2)
 {
 	u32 *base = vop2->regs;
 	int i = 0;
-
-	/*
-	 * Open the global pd
-	 */
-	writel(0xffff0000, 0xfd8d8150);
-	udelay(500);
-	vop2_writel(vop2, RK3568_SYS_PD_CTRL, 0x0);
 
 	/*
 	 * No need to backup HDR/DSC/GAMMA_LUT/BPP_LUT/MMU
@@ -1358,19 +1444,16 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	if (vop2->global_init)
 		return;
 
+	/*
+	 * Open the global pd(temp)
+	 */
+	writel(0xffff0000, 0xfd8d8150);
+	udelay(50);
+
 	/* OTP must enable at the first time, otherwise mirror layer register is error */
 	if (soc_is_rk3566())
 		vop2_mask_write(vop2, RK3568_SYS_OTP_WIN_EN, EN_MASK,
 				OTP_WIN_EN_SHIFT, 1, false);
-
-	if (vop2->version == VOP_VERSION_RK3588)
-		rk3588_vop2_regsbak(vop2);
-	else
-		memcpy(vop2->regsbak, vop2->regs, vop2->reg_len);
-	vop2_mask_write(vop2, RK3568_OVL_CTRL, EN_MASK,
-			OVL_PORT_MUX_REG_DONE_IMD_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
-			IF_CTRL_REG_DONE_IMD_SHIFT, 1, false);
 
 	if (cstate->crtc->assign_plane) {/* dts assign plane */
 		u32 plane_mask;
@@ -1449,6 +1532,25 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 			}
 		}
 	}
+
+	if (vop2->version == VOP_VERSION_RK3588) {
+		for (i = 0; i < vop2->data->nr_vps; i++) {
+			if (cstate->crtc->vps[i].enable) {
+				if (vop2_power_domain_on(vop2, vop2->vp_plane_mask[i].primary_plane_id))
+					printf("open vp[%d] plane pd fail\n", i);
+			}
+		}
+	}
+
+	if (vop2->version == VOP_VERSION_RK3588)
+		rk3588_vop2_regsbak(vop2);
+	else
+		memcpy(vop2->regsbak, vop2->regs, vop2->reg_len);
+
+	vop2_mask_write(vop2, RK3568_OVL_CTRL, EN_MASK,
+			OVL_PORT_MUX_REG_DONE_IMD_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
+			IF_CTRL_REG_DONE_IMD_SHIFT, 1, false);
 
 	for (i = 0; i < vop2->data->nr_vps; i++) {
 		printf("vp%d have layer nr:%d[", i, vop2->vp_plane_mask[i].attached_layers_nr);
@@ -1554,6 +1656,9 @@ static int rockchip_vop2_preinit(struct display_state *state)
 			rockchip_vop2->vo1_grf = syscon_get_first_range(ROCKCHIP_SYSCON_VO_GRF);
 			if (rockchip_vop2->vo1_grf <= 0)
 				printf("%s: Get syscon vo1_grf failed (ret=%p)\n", __func__, rockchip_vop2->vo1_grf);
+			rockchip_vop2->sys_pmu = syscon_get_first_range(ROCKCHIP_SYSCON_PMU);
+			if (rockchip_vop2->vo1_grf <= 0)
+				printf("%s: Get syscon sys_pmu failed (ret=%p)\n", __func__, rockchip_vop2->sys_pmu);
 		}
 	}
 
@@ -2802,6 +2907,47 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 
 };
 
+static struct vop2_power_domain_data rk3588_cluster0_pd_data = {
+	.pd_en_shift = RK3588_CLUSTER0_PD_EN_SHIFT,
+	.pd_status_shift = RK3588_CLUSTER0_PD_STATUS_SHIFT,
+	.pmu_status_shift = RK3588_PD_CLUSTER0_PWR_STAT_SHIFI,
+	.bisr_en_status_shift = RK3588_PD_CLUSTER0_REPAIR_EN_SHIFT,
+};
+
+static struct vop2_power_domain_data rk3588_cluster1_pd_data = {
+	.is_parent_needed = true,
+	.pd_en_shift = RK3588_CLUSTER1_PD_EN_SHIFT,
+	.pd_status_shift = RK3588_CLUSTER1_PD_STATUS_SHIFT,
+	.pmu_status_shift = RK3588_PD_CLUSTER1_PWR_STAT_SHIFI,
+	.bisr_en_status_shift = RK3588_PD_CLUSTER1_REPAIR_EN_SHIFT,
+	.parent_phy_id = ROCKCHIP_VOP2_CLUSTER0,
+};
+
+static struct vop2_power_domain_data rk3588_cluster2_pd_data = {
+	.is_parent_needed = true,
+	.pd_en_shift = RK3588_CLUSTER2_PD_EN_SHIFT,
+	.pd_status_shift = RK3588_CLUSTER2_PD_STATUS_SHIFT,
+	.pmu_status_shift = RK3588_PD_CLUSTER2_PWR_STAT_SHIFI,
+	.bisr_en_status_shift = RK3588_PD_CLUSTER2_REPAIR_EN_SHIFT,
+	.parent_phy_id = ROCKCHIP_VOP2_CLUSTER0,
+};
+
+static struct vop2_power_domain_data rk3588_cluster3_pd_data = {
+	.is_parent_needed = true,
+	.pd_en_shift = RK3588_CLUSTER3_PD_EN_SHIFT,
+	.pd_status_shift = RK3588_CLUSTER3_PD_STATUS_SHIFT,
+	.pmu_status_shift = RK3588_PD_CLUSTER3_PWR_STAT_SHIFI,
+	.bisr_en_status_shift = RK3588_PD_CLUSTER3_REPAIR_EN_SHIFT,
+	.parent_phy_id = ROCKCHIP_VOP2_CLUSTER0,
+};
+
+static struct vop2_power_domain_data rk3588_esmart_pd_data = {
+	.pd_en_shift = RK3588_ESMART_PD_EN_SHIFT,
+	.pd_status_shift = RK3588_ESMART_PD_STATUS_SHIFT,
+	.pmu_status_shift = RK3588_PD_ESMART_PWR_STAT_SHIFI,
+	.bisr_en_status_shift = RK3588_PD_ESMART_REPAIR_EN_SHIFT,
+};
+
 static struct vop2_win_data rk3588_win_data[8] = {
 	{
 		.name = "Cluster0",
@@ -2810,6 +2956,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.win_sel_port_offset = 0,
 		.layer_sel_win_id = 0,
 		.reg_offset = 0,
+		.pd_data = &rk3588_cluster0_pd_data,
 	},
 
 	{
@@ -2819,6 +2966,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.win_sel_port_offset = 1,
 		.layer_sel_win_id = 1,
 		.reg_offset = 0x200,
+		.pd_data = &rk3588_cluster1_pd_data,
 	},
 
 	{
@@ -2828,6 +2976,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.win_sel_port_offset = 2,
 		.layer_sel_win_id = 4,
 		.reg_offset = 0x400,
+		.pd_data = &rk3588_cluster2_pd_data,
 	},
 
 	{
@@ -2837,6 +2986,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.win_sel_port_offset = 3,
 		.layer_sel_win_id = 5,
 		.reg_offset = 0x600,
+		.pd_data = &rk3588_cluster3_pd_data,
 	},
 
 	{
@@ -2846,6 +2996,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.win_sel_port_offset = 4,
 		.layer_sel_win_id = 2,
 		.reg_offset = 0,
+		.pd_data = &rk3588_esmart_pd_data,
 	},
 
 	{
@@ -2855,6 +3006,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.win_sel_port_offset = 5,
 		.layer_sel_win_id = 3,
 		.reg_offset = 0x200,
+		.pd_data = &rk3588_esmart_pd_data,
 	},
 
 	{
@@ -2864,6 +3016,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.win_sel_port_offset = 6,
 		.layer_sel_win_id = 6,
 		.reg_offset = 0x400,
+		.pd_data = &rk3588_esmart_pd_data,
 	},
 
 	{
@@ -2873,6 +3026,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.win_sel_port_offset = 7,
 		.layer_sel_win_id = 7,
 		.reg_offset = 0x600,
+		.pd_data = &rk3588_esmart_pd_data,
 	},
 };
 
