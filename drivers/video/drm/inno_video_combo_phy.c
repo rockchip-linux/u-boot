@@ -5,6 +5,7 @@
  * Author: Wyon Bi <bivvy.bi@rock-chips.com>
  */
 
+#include <asm/arch/cpu.h>
 #include <config.h>
 #include <common.h>
 #include <errno.h>
@@ -195,6 +196,14 @@
 #define DSI_PHY_STATUS			0xb0
 #define PHY_LOCK			BIT(0)
 
+enum soc_type {
+	PX30_VIDEO_PHY,
+	PX30S_VIDEO_PHY,
+	RK3128_VIDEO_PHY,
+	RK3368_VIDEO_PHY,
+	RK3568_VIDEO_PHY,
+};
+
 enum phy_max_rate {
 	MAX_1GHZ,
 	MAX_2_5GHZ,
@@ -291,6 +300,7 @@ struct mipi_dphy_timing {
 };
 
 struct inno_video_phy {
+	struct udevice *dev;
 	enum phy_mode mode;
 	const struct inno_video_mipi_dphy_info *mipi_dphy_info;
 	struct resource phy;
@@ -592,9 +602,17 @@ static void inno_mipi_dphy_lane_enable(struct inno_video_phy *inno)
 
 static void inno_video_phy_mipi_mode_enable(struct inno_video_phy *inno)
 {
+	struct rockchip_phy *phy =
+		(struct rockchip_phy *)dev_get_driver_data(inno->dev);
+
 	/* Select MIPI mode */
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x03,
 			MODE_ENABLE_MASK, MIPI_MODE_ENABLE);
+
+	/* set px30 pin_txclkesc_0 invert disable */
+	if (phy->soc_type == PX30_VIDEO_PHY || phy->soc_type == PX30S_VIDEO_PHY)
+		phy_update_bits(inno, REGISTER_PART_DIGITAL, 0x01,
+				INVERT_TXCLKESC_MASK, INVERT_TXCLKESC_DISABLE);
 
 	if (inno->mipi_dphy_info->phy_max_rate == MAX_2_5GHZ)
 		inno_mipi_dphy_max_2_5GHz_pll_enable(inno);
@@ -618,9 +636,19 @@ static void inno_video_phy_lvds_mode_enable(struct inno_video_phy *inno)
 			SAMPLE_CLOCK_DIRECTION_MASK | LOWFRE_EN_MASK,
 			SAMPLE_CLOCK_DIRECTION_REVERSE |
 			PLL_OUTPUT_FREQUENCY_DIV_BY_1);
+
+	/* Reset LVDS digital logic */
+	phy_update_bits(inno, REGISTER_PART_LVDS, 0x00,
+			LVDS_DIGITAL_INTERNAL_RESET_MASK,
+			LVDS_DIGITAL_INTERNAL_RESET_ENABLE);
+	phy_update_bits(inno, REGISTER_PART_LVDS, 0x00,
+			LVDS_DIGITAL_INTERNAL_RESET_MASK,
+			LVDS_DIGITAL_INTERNAL_RESET_DISABLE);
+
 	/* Select LVDS mode */
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x03,
 			MODE_ENABLE_MASK, LVDS_MODE_ENABLE);
+
 	/* Configure PLL */
 	phy_update_bits(inno, REGISTER_PART_ANALOG, 0x03,
 			REG_PREDIV_MASK, REG_PREDIV(prediv));
@@ -629,6 +657,7 @@ static void inno_video_phy_lvds_mode_enable(struct inno_video_phy *inno)
 	phy_update_bits(inno, REGISTER_PART_ANALOG, 0x04,
 			REG_FBDIV_LO_MASK, REG_FBDIV_LO(fbdiv));
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x08, 0xff, 0xfc);
+
 	/* Enable PLL and Bandgap */
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x0b,
 			LVDS_PLL_POWER_MASK | LVDS_BANDGAP_POWER_MASK,
@@ -643,13 +672,6 @@ static void inno_video_phy_lvds_mode_enable(struct inno_video_phy *inno)
 	phy_update_bits(inno, REGISTER_PART_ANALOG, 0x1e,
 			PLL_MODE_SEL_MASK, PLL_MODE_SEL_LVDS_MODE);
 
-	/* Reset LVDS digital logic */
-	phy_update_bits(inno, REGISTER_PART_LVDS, 0x00,
-			LVDS_DIGITAL_INTERNAL_RESET_MASK,
-			LVDS_DIGITAL_INTERNAL_RESET_ENABLE);
-	phy_update_bits(inno, REGISTER_PART_LVDS, 0x00,
-			LVDS_DIGITAL_INTERNAL_RESET_MASK,
-			LVDS_DIGITAL_INTERNAL_RESET_DISABLE);
 	/* Enable LVDS digital logic */
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x01,
 			LVDS_DIGITAL_INTERNAL_ENABLE_MASK,
@@ -663,9 +685,6 @@ static void inno_video_phy_lvds_mode_enable(struct inno_video_phy *inno)
 
 static void inno_video_phy_ttl_mode_enable(struct inno_video_phy *inno)
 {
-	/* Select TTL mode */
-	phy_update_bits(inno, REGISTER_PART_LVDS, 0x03,
-			MODE_ENABLE_MASK, TTL_MODE_ENABLE);
 	/* Reset digital logic */
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x00,
 			LVDS_DIGITAL_INTERNAL_RESET_MASK,
@@ -673,6 +692,10 @@ static void inno_video_phy_ttl_mode_enable(struct inno_video_phy *inno)
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x00,
 			LVDS_DIGITAL_INTERNAL_RESET_MASK,
 			LVDS_DIGITAL_INTERNAL_RESET_DISABLE);
+
+	/* Select TTL mode */
+	phy_update_bits(inno, REGISTER_PART_LVDS, 0x03,
+			MODE_ENABLE_MASK, TTL_MODE_ENABLE);
 	/* Enable digital logic */
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x01,
 			LVDS_DIGITAL_INTERNAL_ENABLE_MASK,
@@ -861,7 +884,11 @@ static int inno_video_phy_probe(struct udevice *dev)
 	dev->driver_data = (ulong)phy;
 	memcpy(phy, tmp_phy, sizeof(*phy));
 
+	inno->dev = dev;
 	inno->mipi_dphy_info = phy->data;
+	if (soc_is_px30s())
+		inno->mipi_dphy_info = &inno_video_mipi_dphy_max_2_5GHz;
+
 	inno->lanes = ofnode_read_u32_default(dev->node, "inno,lanes", 4);
 
 	ret = dev_read_resource(dev, 0, &inno->phy);
@@ -889,13 +916,33 @@ static const struct rockchip_phy_funcs inno_video_phy_funcs = {
 };
 
 static struct rockchip_phy px30_inno_video_phy_driver_data = {
-	 .funcs = &inno_video_phy_funcs,
-	 .data = &inno_video_mipi_dphy_max_1GHz,
+	.soc_type = PX30_VIDEO_PHY,
+	.funcs = &inno_video_phy_funcs,
+	.data = &inno_video_mipi_dphy_max_1GHz,
+};
+
+static struct rockchip_phy px30s_inno_video_phy_driver_data = {
+	.soc_type = PX30S_VIDEO_PHY,
+	.funcs = &inno_video_phy_funcs,
+	.data = &inno_video_mipi_dphy_max_2_5GHz,
+};
+
+static struct rockchip_phy rk3128_inno_video_phy_driver_data = {
+	.soc_type = RK3128_VIDEO_PHY,
+	.funcs = &inno_video_phy_funcs,
+	.data = &inno_video_mipi_dphy_max_1GHz,
+};
+
+static struct rockchip_phy rk3368_inno_video_phy_driver_data = {
+	.soc_type = RK3368_VIDEO_PHY,
+	.funcs = &inno_video_phy_funcs,
+	.data = &inno_video_mipi_dphy_max_1GHz,
 };
 
 static struct rockchip_phy rk3568_inno_video_phy_driver_data = {
-	 .funcs = &inno_video_phy_funcs,
-	 .data = &inno_video_mipi_dphy_max_2_5GHz,
+	.soc_type = RK3568_VIDEO_PHY,
+	.funcs = &inno_video_phy_funcs,
+	.data = &inno_video_mipi_dphy_max_2_5GHz,
 };
 
 static const struct udevice_id inno_video_phy_ids[] = {
@@ -904,19 +951,19 @@ static const struct udevice_id inno_video_phy_ids[] = {
 		.data = (ulong)&px30_inno_video_phy_driver_data,
 	},
 	{
+		.compatible = "rockchip,px30s-video-phy",
+		.data = (ulong)&px30s_inno_video_phy_driver_data,
+	},
+	{
 		.compatible = "rockchip,rk3128-video-phy",
-		.data = (ulong)&px30_inno_video_phy_driver_data,
+		.data = (ulong)&rk3128_inno_video_phy_driver_data,
 	},
 	{
 		.compatible = "rockchip,rk3368-video-phy",
-		.data = (ulong)&px30_inno_video_phy_driver_data,
+		.data = (ulong)&rk3368_inno_video_phy_driver_data,
 	},
 	{
 		.compatible = "rockchip,rk3568-video-phy",
-		.data = (ulong)&rk3568_inno_video_phy_driver_data,
-	},
-	{
-		.compatible = "rockchip,rk3568-dsi-dphy",
 		.data = (ulong)&rk3568_inno_video_phy_driver_data,
 	},
 	{}
