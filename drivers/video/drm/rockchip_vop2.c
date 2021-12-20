@@ -143,6 +143,11 @@
 #define RK3588_CLUSTER3_PD_STATUS_SHIFT		11
 #define RK3588_ESMART_PD_STATUS_SHIFT		15
 
+#define RK3568_SYS_CTRL_LINE_FLAG0		0x70
+#define LINE_FLAG_NUM_MASK			0x1fff
+#define RK3568_DSP_LINE_FLAG_NUM0_SHIFT		0
+#define RK3568_DSP_LINE_FLAG_NUM1_SHIFT		16
+
 /* Overlay registers definition    */
 #define RK3568_OVL_CTRL				0x600
 #define OVL_PORT_MUX_REG_DONE_IMD_SHIFT		28
@@ -2153,7 +2158,8 @@ static int rockchip_vop2_init(struct display_state *state)
 	u16 vact_end = vact_st + vdisplay;
 	bool yuv_overlay = false;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
-	u32 val;
+	u32 line_flag_offset = (cstate->crtc_id * 4);
+	u32 val, act_end;
 	u8 dither_down_en = 0;
 	u8 pre_dither_down_en = 0;
 	char output_type_name[30] = {0};
@@ -2257,11 +2263,13 @@ static int rockchip_vop2_init(struct display_state *state)
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				P2I_EN_SHIFT, 1, false);
 		vtotal += vtotal + 1;
+		act_end = vact_end_f1;
 	} else {
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				INTERLACE_EN_SHIFT, 0, false);
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				P2I_EN_SHIFT, 0, false);
+		act_end = vact_end;
 	}
 	vop2_writel(vop2, RK3568_VP0_DSP_VTOTAL_VS_END + vp_offset,
 		    (vtotal << 16) | vsync_len);
@@ -2297,6 +2305,11 @@ static int rockchip_vop2_init(struct display_state *state)
 		       __func__, cstate->crtc_id, dclk_rate, ret);
 		return ret;
 	}
+
+	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
+			RK3568_DSP_LINE_FLAG_NUM0_SHIFT, act_end - 3, false);
+	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
+			RK3568_DSP_LINE_FLAG_NUM1_SHIFT, act_end - us_to_vertical_line(mode, 1000), false);
 
 	return 0;
 }
