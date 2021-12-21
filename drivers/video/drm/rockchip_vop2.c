@@ -107,6 +107,8 @@
 #define GAMMA_PORT_SEL_MASK			0x3
 #define GAMMA_PORT_SEL_SHIFT			0
 #define RK3568_MIPI_DUAL_EN_SHIFT		10
+#define RK3588_MIPI_DSI0_MODE_SEL_SHIFT		11
+#define RK3588_MIPI_DSI1_MODE_SEL_SHIFT		12
 
 #define RK3568_SYS_PD_CTRL			0x034
 #define RK3568_VP0_LINE_FLAG			0x70
@@ -1860,6 +1862,9 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 			val = 0;
 		else
 			val = 1;
+		if (conn_state->output_flags & ROCKCHIP_OUTPUT_MIPI_DS_MODE)
+			vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_MIPI_DSI0_MODE_SEL_SHIFT,
+					1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_MIPI0_EN_SHIFT,
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, 1, RK3588_MIPI0_MUX_SHIFT, val, false);
@@ -1874,6 +1879,9 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 			val = 1;
 		else
 			val = 3; /*VP1*/
+		if (conn_state->output_flags & ROCKCHIP_OUTPUT_MIPI_DS_MODE)
+			vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_MIPI_DSI1_MODE_SEL_SHIFT,
+					1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_MIPI1_EN_SHIFT,
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK, MIPI1_MUX_SHIFT,
@@ -1885,6 +1893,8 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
 		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
 				RK3568_MIPI_DUAL_EN_SHIFT, 1, false);
+		vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, EN_MASK,
+				MIPI_DUAL_EN_SHIFT, 1, false);
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DATA_SWAP)
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
 					EN_MASK, MIPI_DUAL_SWAP_EN_SHIFT, 1,
