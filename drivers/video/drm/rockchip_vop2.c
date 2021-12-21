@@ -1444,12 +1444,6 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	if (vop2->global_init)
 		return;
 
-	/*
-	 * Open the global pd(temp)
-	 */
-	writel(0xffff0000, 0xfd8d8150);
-	udelay(50);
-
 	/* OTP must enable at the first time, otherwise mirror layer register is error */
 	if (soc_is_rk3566())
 		vop2_mask_write(vop2, RK3568_SYS_OTP_WIN_EN, EN_MASK,
