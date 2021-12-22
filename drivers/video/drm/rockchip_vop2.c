@@ -79,6 +79,10 @@
 #define LVDS_DUAL_EN_SHIFT			0
 #define LVDS_DUAL_LEFT_RIGHT_EN_SHIFT		1
 #define LVDS_DUAL_SWAP_EN_SHIFT			2
+#define RK3568_MIPI_DUAL_EN_SHIFT		10
+#define RK3588_MIPI_DSI0_MODE_SEL_SHIFT		11
+#define RK3588_MIPI_DSI1_MODE_SEL_SHIFT		12
+
 #define RK3568_DSP_IF_POL			0x030
 #define IF_CTRL_REG_DONE_IMD_MASK		1
 #define IF_CTRL_REG_DONE_IMD_SHIFT		28
@@ -106,9 +110,6 @@
 #define RK3568_SYS_LUT_PORT_SEL			0x58
 #define GAMMA_PORT_SEL_MASK			0x3
 #define GAMMA_PORT_SEL_SHIFT			0
-#define RK3568_MIPI_DUAL_EN_SHIFT		10
-#define RK3588_MIPI_DSI0_MODE_SEL_SHIFT		11
-#define RK3588_MIPI_DSI1_MODE_SEL_SHIFT		12
 
 #define RK3568_SYS_PD_CTRL			0x034
 #define RK3568_VP0_LINE_FLAG			0x70
@@ -197,6 +198,10 @@
 #define DCLK_DIV2_MASK				0x3
 #define MIPI_DUAL_EN_SHIFT			20
 #define MIPI_DUAL_SWAP_EN_SHIFT			21
+#define EDPI_TE_EN				28
+#define EDPI_WMS_HOLD_EN			30
+#define EDPI_WMS_FS				31
+
 
 #define RK3568_VP0_COLOR_BAR_CTRL		0xC08
 #define RK3568_VP0_3D_LUT_CTRL			0xC10
@@ -1862,14 +1867,24 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 			val = 0;
 		else
 			val = 1;
+
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_MIPI_DS_MODE)
-			vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_MIPI_DSI0_MODE_SEL_SHIFT,
-					1, false);
+			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+					RK3588_MIPI_DSI0_MODE_SEL_SHIFT, 1, false);
+
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_MIPI0_EN_SHIFT,
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, 1, RK3588_MIPI0_MUX_SHIFT, val, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, 3, MIPI0_PIXCLK_DIV_SHIFT,
 				if_pixclk_div, false);
+
+		if (conn_state->hold_mode) {
+			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+					EN_MASK, EDPI_TE_EN, 1, false);
+
+			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+					EN_MASK, EDPI_WMS_HOLD_EN, 1, false);
+		}
 	}
 
 	if (output_if & VOP_OUTPUT_IF_MIPI1) {
@@ -1880,14 +1895,28 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 		else
 			val = 3; /*VP1*/
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_MIPI_DS_MODE)
-			vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_MIPI_DSI1_MODE_SEL_SHIFT,
-					1, false);
+			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+					RK3588_MIPI_DSI1_MODE_SEL_SHIFT, 1, false);
+
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_MIPI1_EN_SHIFT,
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK, MIPI1_MUX_SHIFT,
 				val, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, 3, MIPI1_PIXCLK_DIV_SHIFT,
 				if_pixclk_div, false);
+
+		if (conn_state->hold_mode) {
+			/* UNDO: RK3588 VP1->DSC1->DSI1 only can support soft TE mode */
+			if (vop2->version == VOP_VERSION_RK3588 && val == 3)
+				vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+						EN_MASK, EDPI_TE_EN, 0, false);
+			else
+				vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+						EN_MASK, EDPI_TE_EN, 1, false);
+
+			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+					EN_MASK, EDPI_WMS_HOLD_EN, 1, false);
+		}
 	}
 
 	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {

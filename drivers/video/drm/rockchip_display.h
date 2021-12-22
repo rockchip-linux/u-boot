@@ -181,6 +181,14 @@ struct connector_state {
 	int dsc_enable;
 	unsigned int bpc;
 
+	/**
+	 * @hold_mode: enabled when it's:
+	 * (1) mcu hold mode
+	 * (2) mipi dsi cmd mode
+	 * (3) edp psr mode
+	 */
+	bool hold_mode;
+
 	struct base2_disp_info *disp_info; /* disp_info from baseparameter 2.0 */
 
 	u8 dsc_id;
