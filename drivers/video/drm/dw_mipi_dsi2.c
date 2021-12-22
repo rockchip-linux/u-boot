@@ -689,6 +689,11 @@ static int dw_mipi_dsi2_connector_init(struct display_state *state)
 	conn_state->output_if |=
 		dsi2->id ? VOP_OUTPUT_IF_MIPI1 : VOP_OUTPUT_IF_MIPI0;
 
+	if (!(dsi2->mode_flags & MIPI_DSI_MODE_VIDEO)) {
+		conn_state->output_flags |= ROCKCHIP_OUTPUT_MIPI_DS_MODE;
+		conn_state->hold_mode = true;
+	}
+
 	if (dsi2->lanes > 4) {
 		ret = uclass_get_device_by_name(UCLASS_DISPLAY,
 						"dsi@fde30000",
@@ -706,7 +711,7 @@ static int dw_mipi_dsi2_connector_init(struct display_state *state)
 		dsi2->slave->format = dsi2->format;
 		dsi2->slave->mode_flags = dsi2->mode_flags;
 		dsi2->slave->channel = dsi2->channel;
-		conn_state->output_flags =
+		conn_state->output_flags |=
 				ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE;
 		if (dsi2->data_swap)
 			conn_state->output_flags |= ROCKCHIP_OUTPUT_DATA_SWAP;
