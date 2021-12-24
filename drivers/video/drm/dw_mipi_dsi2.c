@@ -17,6 +17,7 @@
 #include <dm/device.h>
 #include <dm/read.h>
 #include <dm/of_access.h>
+#include <regmap.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
 #include <linux/iopoll.h>
@@ -320,7 +321,7 @@ static void grf_field_write(struct dw_mipi_dsi2 *dsi2, enum grf_reg_fields index
 	lsb = (field >>  8) & 0xff;
 	msb = (field >>  0) & 0xff;
 
-	rk_clrsetreg(dsi2->grf + reg, GENMASK(msb, lsb), val << lsb);
+	regmap_write(dsi2->grf, reg, GENMASK(msb, lsb) << 16 | val << lsb);
 }
 
 static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
@@ -623,7 +624,6 @@ static void dw_mipi_dsi2_set_cmd_mode(struct dw_mipi_dsi2 *dsi2)
 		printf("failed to enter cmd mode\n");
 }
 
-
 static void dw_mipi_dsi2_enable(struct dw_mipi_dsi2 *dsi2)
 {
 	dw_mipi_dsi2_ipi_set(dsi2);
@@ -788,6 +788,10 @@ int mipi_dphy_get_default_config(unsigned long long hs_clk_rate,
 static void dw_mipi_dsi2_set_hs_clk(struct dw_mipi_dsi2 *dsi2, unsigned long rate)
 {
 	mipi_dphy_get_default_config(rate, &dsi2->mipi_dphy_cfg);
+
+	if (!dsi2->c_option)
+		rockchip_phy_set_mode(dsi2->dcphy.phy, PHY_MODE_MIPI_DPHY);
+
 	rate = rockchip_phy_set_pll(dsi2->dcphy.phy, rate);
 	dsi2->lane_hs_rate = rate / 1000 / 1000;
 }
@@ -829,8 +833,8 @@ static void dw_mipi_dsi2_phy_clk_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 	if (dsi2->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)
 		val |= NON_CONTINUOUS_CLK;
 
-	/* The maximum value of the escape clock frequency is 20MHz */
-	esc_clk_div = DIV_ROUND_UP(sys_clk, 20 * 2);
+	/* The Escape clock ranges from 1MHz to 20MHz. */
+	esc_clk_div = DIV_ROUND_UP(sys_clk, 10 * 2);
 	val |= PHY_LPTX_CLK_DIV(esc_clk_div);
 
 	dsi_write(dsi2, DSI2_PHY_CLK_CFG, val);
@@ -839,8 +843,7 @@ static void dw_mipi_dsi2_phy_clk_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 {
 	struct drm_display_mode *mode = &dsi2->mode;
-	u32 pixel_clk, ipi_clk, phy_hsclk;
-	u64 tmp;
+	u64 pixel_clk, ipi_clk, phy_hsclk, tmp;
 
 	/*
 	 * in DPHY mode, the phy_hstx_clk is exactly 1/16 the Lane high-speed
@@ -849,6 +852,7 @@ static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 	 */
 	if (dsi2->c_option)
 		phy_hsclk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 7);
+
 	else
 		phy_hsclk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 16);
 
@@ -954,9 +958,6 @@ static void mipi_dcphy_power_on(struct dw_mipi_dsi2 *dsi2)
 	if (!dsi2->dcphy.phy)
 		return;
 
-	if (!dsi2->c_option)
-		rockchip_phy_set_mode(dsi2->dcphy.phy, PHY_MODE_MIPI_DPHY);
-
 	rockchip_phy_power_on(dsi2->dcphy.phy);
 }
 
@@ -1052,12 +1053,18 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 	const struct rockchip_connector *connector =
 		(const struct rockchip_connector *)dev_get_driver_data(dev);
 	const struct dw_mipi_dsi2_plat_data *pdata = connector->data;
-	int id;
+	struct udevice *syscon;
+	int id, ret;
 
 	dsi2->base = dev_read_addr_ptr(dev);
-	dsi2->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
-	if (IS_ERR(dsi2->grf))
-		return PTR_ERR(dsi2->grf);
+
+	ret = uclass_get_device_by_phandle(UCLASS_SYSCON, dev, "rockchip,grf",
+					   &syscon);
+	if (!ret) {
+		dsi2->grf = syscon_get_regmap(syscon);
+		if (!dsi2->grf)
+			return -ENODEV;
+	}
 
 	id = of_alias_get_id(ofnode_to_np(dev->node), "dsi");
 	if (id < 0)
