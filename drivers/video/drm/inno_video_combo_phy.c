@@ -698,7 +698,7 @@ static int inno_video_phy_power_on(struct rockchip_phy *phy)
 			POWER_WORK_MASK, POWER_WORK_ENABLE);
 
 	switch (inno->mode) {
-	case PHY_MODE_VIDEO_MIPI:
+	case PHY_MODE_MIPI_DPHY:
 		inno_video_phy_mipi_mode_enable(inno);
 		break;
 	case PHY_MODE_VIDEO_LVDS:
@@ -834,7 +834,7 @@ static int inno_video_phy_set_mode(struct rockchip_phy *phy,
 	struct inno_video_phy *inno = dev_get_priv(phy->dev);
 
 	switch (mode) {
-	case PHY_MODE_VIDEO_MIPI:
+	case PHY_MODE_MIPI_DPHY:
 	case PHY_MODE_VIDEO_LVDS:
 	case PHY_MODE_VIDEO_TTL:
 		inno->mode = mode;

@@ -469,7 +469,7 @@ static int mipi_dphy_power_on(struct dw_mipi_dsi *dsi)
 	mdelay(2);
 
 	if (dsi->dphy.phy) {
-		rockchip_phy_set_mode(dsi->dphy.phy, PHY_MODE_VIDEO_MIPI);
+		rockchip_phy_set_mode(dsi->dphy.phy, PHY_MODE_MIPI_DPHY);
 		rockchip_phy_power_on(dsi->dphy.phy);
 	}
 
