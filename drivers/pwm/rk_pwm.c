@@ -146,7 +146,12 @@ static int rk_pwm_probe(struct udevice *dev)
 		return -EINVAL;
 	}
 
-	priv->freq = clk_get_rate(&clk);
+	ret = clk_get_rate(&clk);
+	if (ret < 0) {
+		debug("%s pwm get clock rate fail!\n", __func__);
+		return -EINVAL;
+	}
+	priv->freq = ret;
 	priv->data = (struct rockchip_pwm_data *)dev_get_driver_data(dev);
 
 	if (priv->data->supports_polarity)
