@@ -172,7 +172,7 @@ static int rockchip_lvds_connector_enable(struct display_state *state)
 	if (lvds->funcs->enable)
 		lvds->funcs->enable(lvds, pipe);
 
-	ret = rockchip_phy_set_mode(lvds->phy, PHY_MODE_LVDS);
+	ret = rockchip_phy_set_mode(lvds->phy, PHY_MODE_VIDEO_LVDS);
 	if (ret) {
 		dev_err(lvds->dev, "failed to set phy mode: %d\n", ret);
 		return ret;

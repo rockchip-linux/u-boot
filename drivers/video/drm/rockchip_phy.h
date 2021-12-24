@@ -8,8 +8,10 @@
 #define _ROCKCHIP_PHY_H_
 
 enum phy_mode {
-	PHY_MODE_MIPI_DPHY,
-	PHY_MODE_LVDS,
+	PHY_MODE_INVALID,
+	PHY_MODE_VIDEO_MIPI,
+	PHY_MODE_VIDEO_LVDS,
+	PHY_MODE_VIDEO_TTL,
 };
 
 struct rockchip_phy;

@@ -74,15 +74,22 @@ static int rockchip_rgb_connector_prepare(struct display_state *state)
 	struct rockchip_rgb *rgb = state_to_rgb(state);
 	struct crtc_state *crtc_state = &state->crtc_state;
 	int pipe = crtc_state->crtc_id;
+	int ret;
 
 	pinctrl_select_state(rgb->dev, "default");
 
 	if (rgb->funcs && rgb->funcs->prepare)
 		rgb->funcs->prepare(rgb, pipe);
 
-	if (rgb->phy)
-		rockchip_phy_power_on(rgb->phy);
+	if (rgb->phy) {
+		ret = rockchip_phy_set_mode(rgb->phy, PHY_MODE_VIDEO_TTL);
+		if (ret) {
+			dev_err(rgb->dev, "failed to set phy mode: %d\n", ret);
+			return ret;
+		}
 
+		rockchip_phy_power_on(rgb->phy);
+	}
 
 	return 0;
 }
