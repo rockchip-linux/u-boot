@@ -16,6 +16,7 @@
 #include <linux/iopoll.h>
 #include <linux/math64.h>
 #include <reset.h>
+#include <regmap.h>
 #include <syscon.h>
 
 #include "rockchip_phy.h"
@@ -29,6 +30,9 @@
 #define BIAS_CON0		0x0000
 #define BIAS_CON1		0x0004
 #define BIAS_CON2		0x0008
+#define BIAS_CON4		0x0010
+#define I_MUX_SEL_MASK		GENMASK(6, 5)
+#define I_MUX_SEL(x)		UPDATE(x, 6, 5)
 
 #define PLL_CON0		0x0100
 #define PLL_EN			BIT(12)
@@ -1213,7 +1217,7 @@ static inline void phy_update_bits(struct samsung_mipi_dcphy *samsung,
 static inline void grf_write(struct samsung_mipi_dcphy *samsung,
 			     u32 reg, u32 val)
 {
-	writel(val, samsung->grf + reg);
+	regmap_write(samsung->grf, reg, val);
 }
 
 static const struct samsung_mipi_dphy_timing *
@@ -1263,6 +1267,9 @@ static void samsung_mipi_dcphy_bias_block_enable(struct samsung_mipi_dcphy *sams
 	phy_write(samsung, BIAS_CON0, 0x0010);
 	phy_write(samsung, BIAS_CON1, 0x0110);
 	phy_write(samsung, BIAS_CON2, 0x3223);
+
+	if (samsung->c_option)
+		phy_update_bits(samsung, BIAS_CON4, I_MUX_SEL_MASK, I_MUX_SEL(2));
 }
 
 static void samsung_mipi_dcphy_bias_block_disable(struct samsung_mipi_dcphy *samsung)
@@ -1597,13 +1604,10 @@ static int samsung_mipi_dcphy_power_on(struct rockchip_phy *phy)
 {
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
 
-	switch (samsung->mode) {
-	case PHY_MODE_MIPI_DPHY:
+	if (samsung->mode == PHY_MODE_MIPI_DPHY)
 		samsung_mipi_dphy_power_on(samsung);
-		break;
-	default:
+	else
 		samsung_mipi_cphy_power_on(samsung);
-	}
 
 	return 0;
 }
@@ -1612,20 +1616,16 @@ static int samsung_mipi_dcphy_power_off(struct rockchip_phy *phy)
 {
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
 
-	switch (samsung->mode) {
-	case PHY_MODE_MIPI_DPHY:
+	if (samsung->mode == PHY_MODE_MIPI_DPHY)
 		samsung_mipi_dphy_lane_disable(samsung);
-		break;
-	default:
+	else
 		samsung_mipi_cphy_lane_disable(samsung);
-	}
 
 	samsung_mipi_dcphy_pll_disable(samsung);
 	samsung_mipi_dcphy_bias_block_disable(samsung);
 
 	return 0;
 }
-
 
 static int
 samsung_mipi_dcphy_pll_ssc_modulation_calc(struct samsung_mipi_dcphy *samsung,
@@ -1760,14 +1760,14 @@ static unsigned long samsung_mipi_dcphy_set_pll(struct rockchip_phy *phy,
 						unsigned long rate)
 {
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
-	unsigned long fin, fout;
+	unsigned long fin = 24000000, fout;
 	u8 scaler = 0, mfr = 0, mrr = 0;
 	u16 fbdiv = 1;
 	u8 prediv = 1;
 	int dsm = 0;
 	int ret;
 
-	fin = 24000000;
+	samsung->c_option = (samsung->mode == PHY_MODE_MIPI_DPHY) ? false : true;
 	fout = samsung_mipi_dcphy_pll_round_rate(samsung, fin, rate, &prediv,
 						 &fbdiv, &dsm, &scaler);
 
@@ -1803,7 +1803,6 @@ static int samsung_mipi_dcphy_set_mode(struct rockchip_phy *phy,
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
 
 	samsung->mode = mode;
-	samsung->c_option = (mode == PHY_MODE_MIPI_DPHY) ? false : true;
 
 	return 0;
 }
@@ -1813,6 +1812,7 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(dev);
 	struct rockchip_phy *tmp_phy;
 	struct rockchip_phy *phy;
+	struct udevice *syscon;
 	int ret;
 
 	phy = calloc(1, sizeof(*phy));
@@ -1829,10 +1829,12 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 		return PTR_ERR(samsung->base);
 	}
 
-	samsung->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
-	if (IS_ERR(samsung->grf)) {
-		dev_err(dev, "resource \"grf\" not found\n");
-		return PTR_ERR(samsung->grf);
+	ret = uclass_get_device_by_phandle(UCLASS_SYSCON, dev, "rockchip,grf",
+					   &syscon);
+	if (!ret) {
+		samsung->grf = syscon_get_regmap(syscon);
+		if (!samsung->grf)
+			return -ENODEV;
 	}
 
 	ret = reset_get_by_name(dev, "phy", &samsung->phy_rst);
