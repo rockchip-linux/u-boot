@@ -745,7 +745,7 @@ static int display_get_edid_mode(struct display_state *state)
 	struct drm_display_mode *mode = &conn_state->mode;
 	int bpc;
 
-	ret = edid_get_drm_mode(conn_state->edid, ret, mode, &bpc);
+	ret = edid_get_drm_mode(conn_state->edid, sizeof(conn_state->edid), mode, &bpc);
 	if (!ret) {
 		conn_state->bpc = bpc;
 		edid_print_info((void *)&conn_state->edid);
