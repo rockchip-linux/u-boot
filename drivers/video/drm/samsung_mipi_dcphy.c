@@ -182,6 +182,7 @@ struct samsung_mipi_dcphy {
 	enum phy_mode mode;
 	void *base;
 	void *grf;
+	int lanes;
 	bool c_option;
 	struct reset_ctl phy_rst;
 
@@ -1432,45 +1433,32 @@ static void samsung_mipi_dcphy_pll_disable(struct samsung_mipi_dcphy *samsung)
 
 static void samsung_mipi_dphy_lane_enable(struct samsung_mipi_dcphy *samsung)
 {
-	u32 sts;
-	int ret;
-
 	phy_write(samsung, DPHY_MC_GNR_CON1, T_PHY_READY(0x2000));
-	phy_write(samsung, COMBO_MD0_GNR_CON1, T_PHY_READY(0x2000));
-	phy_write(samsung, COMBO_MD1_GNR_CON1, T_PHY_READY(0x2000));
-	phy_write(samsung, COMBO_MD2_GNR_CON1, T_PHY_READY(0x2000));
-	phy_write(samsung, DPHY_MD3_GNR_CON1, T_PHY_READY(0x2000));
-
 	phy_update_bits(samsung, DPHY_MC_GNR_CON0, PHY_ENABLE, PHY_ENABLE);
-	phy_update_bits(samsung, COMBO_MD0_GNR_CON0, PHY_ENABLE, PHY_ENABLE);
-	phy_update_bits(samsung, COMBO_MD1_GNR_CON0, PHY_ENABLE, PHY_ENABLE);
-	phy_update_bits(samsung, COMBO_MD2_GNR_CON0, PHY_ENABLE, PHY_ENABLE);
-	phy_update_bits(samsung, DPHY_MD3_GNR_CON0, PHY_ENABLE, PHY_ENABLE);
 
-	ret = readl_poll_timeout(samsung->base + DPHY_MC_GNR_CON0,
-				 sts, (sts & PHY_READY), 2000);
-	if (ret < 0)
-		dev_err(samsung->dev, "D-PHY clk lane is not locked\n");
-
-	ret = readl_poll_timeout(samsung->base + COMBO_MD0_GNR_CON0,
-				 sts, (sts & PHY_READY), 2000);
-	if (ret < 0)
-		dev_err(samsung->dev, "D-PHY Data0 lane is not locked\n");
-
-	ret = readl_poll_timeout(samsung->base + COMBO_MD1_GNR_CON0,
-				 sts, (sts & PHY_READY), 2000);
-	if (ret < 0)
-		dev_err(samsung->dev, "D-PHY Data1 lane is not locked\n");
-
-	ret = readl_poll_timeout(samsung->base + COMBO_MD2_GNR_CON0,
-				 sts, (sts & PHY_READY), 2000);
-	if (ret < 0)
-		dev_err(samsung->dev, "D-PHY Data2 lane is not locked\n");
-
-	ret = readl_poll_timeout(samsung->base + DPHY_MD3_GNR_CON0,
-				 sts, (sts & PHY_READY), 2000);
-	if (ret < 0)
-		dev_err(samsung->dev, "D-PHY Data3 lane is not locked\n");
+	switch (samsung->lanes) {
+	case 4:
+		phy_write(samsung, DPHY_MD3_GNR_CON1, T_PHY_READY(0x2000));
+		phy_update_bits(samsung, DPHY_MD3_GNR_CON0,
+				PHY_ENABLE, PHY_ENABLE);
+		//fallthrough;
+	case 3:
+		phy_write(samsung, COMBO_MD2_GNR_CON1, T_PHY_READY(0x2000));
+		phy_update_bits(samsung, COMBO_MD2_GNR_CON0,
+				PHY_ENABLE, PHY_ENABLE);
+		//fallthrough;
+	case 2:
+		phy_write(samsung, COMBO_MD1_GNR_CON1, T_PHY_READY(0x2000));
+		phy_update_bits(samsung, COMBO_MD1_GNR_CON0,
+				PHY_ENABLE, PHY_ENABLE);
+		//fallthrough;
+	case 1:
+	default:
+		phy_write(samsung, COMBO_MD0_GNR_CON1, T_PHY_READY(0x2000));
+		phy_update_bits(samsung, COMBO_MD0_GNR_CON0,
+				PHY_ENABLE, PHY_ENABLE);
+		break;
+	}
 }
 
 static void samsung_mipi_cphy_timing_init(struct samsung_mipi_dcphy *samsung)
@@ -1521,9 +1509,6 @@ static void samsung_mipi_cphy_timing_init(struct samsung_mipi_dcphy *samsung)
 
 static void samsung_mipi_cphy_lane_enable(struct samsung_mipi_dcphy *samsung)
 {
-	u32 sts;
-	int ret;
-
 	phy_write(samsung, COMBO_MD0_GNR_CON1, T_PHY_READY(0x2000));
 	phy_write(samsung, COMBO_MD1_GNR_CON1, T_PHY_READY(0x2000));
 	phy_write(samsung, COMBO_MD2_GNR_CON1, T_PHY_READY(0x2000));
@@ -1531,22 +1516,6 @@ static void samsung_mipi_cphy_lane_enable(struct samsung_mipi_dcphy *samsung)
 	phy_update_bits(samsung, COMBO_MD0_GNR_CON0, PHY_ENABLE, PHY_ENABLE);
 	phy_update_bits(samsung, COMBO_MD1_GNR_CON0, PHY_ENABLE, PHY_ENABLE);
 	phy_update_bits(samsung, COMBO_MD2_GNR_CON0, PHY_ENABLE, PHY_ENABLE);
-
-	/* 200us is needed for locking the PLL */
-	ret = readl_poll_timeout(samsung->base + COMBO_MD0_GNR_CON0,
-				 sts, (sts & PHY_READY), 2000);
-	if (ret < 0)
-		dev_err(samsung->dev, "C-PHY Data0 lane is not locked\n");
-
-	ret = readl_poll_timeout(samsung->base + COMBO_MD1_GNR_CON0,
-				 sts, (sts & PHY_READY), 2000);
-	if (ret < 0)
-		dev_err(samsung->dev, "C-PHY Data1 lane is not locked\n");
-
-	ret = readl_poll_timeout(samsung->base + COMBO_MD2_GNR_CON0,
-				 sts, (sts & PHY_READY), 2000);
-	if (ret < 0)
-		dev_err(samsung->dev, "C-PHY Data2 lane is not locked\n");
 }
 
 static void
@@ -1822,6 +1791,8 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 	tmp_phy = (struct rockchip_phy *)dev_get_driver_data(dev);
 	dev->driver_data = (ulong)phy;
 	memcpy(phy, tmp_phy, sizeof(*phy));
+
+	samsung->lanes = ofnode_read_u32_default(dev->node, "samsung,lanes", 4);
 
 	samsung->base = dev_read_addr_ptr(dev);
 	if (IS_ERR(samsung->base)) {
