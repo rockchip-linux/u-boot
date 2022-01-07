@@ -1390,6 +1390,12 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	vop2_writel(vop2, RK3568_VP0_PRE_SCAN_HTIMING + vp_offset, pre_scan_dly);
 }
 
+/*
+ * Read VOP internal power domain on/off status.
+ * We should query BISR_STS register in PMU for
+ * power up/down status when memory repair is enabled.
+ * Return value: 1 for power on, 0 for power off;
+ */
 static int vop2_wait_power_domain_on(struct vop2 *vop2, struct vop2_power_domain_data *pd_data)
 {
 	int val = 0;
@@ -1401,7 +1407,7 @@ static int vop2_wait_power_domain_on(struct vop2 *vop2, struct vop2_power_domain
 	if (is_bisr_en) {
 		shift = pd_data->pmu_status_shift;
 		return readl_poll_timeout(vop2->sys_pmu + RK3588_PMU_BISR_STATUS5, val,
-					  !((val >> shift) & 0x1), 50 * 1000);
+					  ((val >> shift) & 0x1), 50 * 1000);
 	} else {
 		shift = pd_data->pd_status_shift;
 		return readl_poll_timeout(vop2->regs + RK3568_SYS_STATUS0, val,
