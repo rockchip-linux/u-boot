@@ -2292,9 +2292,16 @@ static int rockchip_vop2_init(struct display_state *state)
 	}
 	vop2_writel(vop2, RK3568_VP0_DSP_VTOTAL_VS_END + vp_offset,
 		    (vtotal << 16) | vsync_len);
-	val = !!(mode->flags & DRM_MODE_FLAG_DBLCLK);
-	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-			CORE_DCLK_DIV_EN_SHIFT, val, false);
+
+	if (vop2->version == VOP_VERSION_RK3568) {
+		if (mode->flags & DRM_MODE_FLAG_DBLCLK ||
+		    conn_state->output_if & VOP_OUTPUT_IF_BT656)
+			vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+					CORE_DCLK_DIV_EN_SHIFT, 1, false);
+		else
+			vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+					CORE_DCLK_DIV_EN_SHIFT, 0, false);
+	}
 
 	if (conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420)
 		vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
