@@ -186,7 +186,10 @@
 #define OUT_MODE_SHIFT				0
 #define DATA_SWAP_MASK				0x1f
 #define DATA_SWAP_SHIFT				8
-#define DSP_RB_SWAP				2
+#define DSP_BG_SWAP				0x1
+#define DSP_RB_SWAP				0x2
+#define DSP_RG_SWAP				0x4
+#define DSP_DELTA_SWAP				0x8
 #define CORE_DCLK_DIV_EN_SHIFT			4
 #define P2I_EN_SHIFT				5
 #define DSP_FILED_POL				6
@@ -2140,6 +2143,29 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 	return mode->clock;
 }
 
+static void vop2_post_color_swap(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct connector_state *conn_state = &state->conn_state;
+	struct vop2 *vop2 = cstate->private;
+	u32 vp_offset = (cstate->crtc_id * 0x100);
+	u32 output_type = conn_state->type;
+	u32 data_swap = 0;
+
+	if (is_uv_swap(conn_state->bus_format, conn_state->output_mode))
+		data_swap = DSP_RB_SWAP;
+
+	if (vop2->version == VOP_VERSION_RK3588 &&
+	    (output_type == DRM_MODE_CONNECTOR_HDMIA ||
+	     output_type == DRM_MODE_CONNECTOR_eDP) &&
+	    (conn_state->bus_format == MEDIA_BUS_FMT_YUV8_1X24 ||
+	     conn_state->bus_format == MEDIA_BUS_FMT_YUV10_1X30))
+		data_swap |= DSP_RG_SWAP;
+
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
+			DATA_SWAP_MASK, DATA_SWAP_SHIFT, data_swap, false);
+}
+
 static int rockchip_vop2_init(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -2185,14 +2211,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	    !(cstate->feature & VOP_FEATURE_OUTPUT_10BIT))
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
-	if (is_uv_swap(conn_state->bus_format, conn_state->output_mode))
-		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
-				DATA_SWAP_MASK, DATA_SWAP_SHIFT, DSP_RB_SWAP,
-				false);
-	else
-		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
-				DATA_SWAP_MASK, DATA_SWAP_SHIFT, 0,
-				false);
+	vop2_post_color_swap(state);
 
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, OUT_MODE_MASK,
 			OUT_MODE_SHIFT, conn_state->output_mode, false);
