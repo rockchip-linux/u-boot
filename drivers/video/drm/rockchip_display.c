@@ -311,7 +311,7 @@ static unsigned long get_cubic_memory_size(void)
 
 bool can_direct_logo(int bpp)
 {
-	return bpp == 24 || bpp == 32;
+	return bpp == 16 || bpp == 32;
 }
 
 static int connector_phy_init(struct display_state *state,
