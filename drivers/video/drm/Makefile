@@ -21,6 +21,7 @@ obj-$(CONFIG_DRM_ROCKCHIP_INNO_VIDEO_COMBO_PHY) += inno_video_combo_phy.o
 obj-$(CONFIG_PHY_ROCKCHIP_SAMSUNG_HDPTX_HDMI) += phy-rockchip-samsung-hdptx-hdmi.o
 obj-$(CONFIG_ROCKCHIP_DRM_TVE) += rockchip_drm_tve.o
 obj-$(CONFIG_DRM_ROCKCHIP_ANALOGIX_DP) += analogix_dp.o analogix_dp_reg.o
+obj-$(CONFIG_DRM_ROCKCHIP_DW_DP) += dw-dp.o
 obj-$(CONFIG_DRM_ROCKCHIP_LVDS) += rockchip_lvds.o
 obj-$(CONFIG_DRM_ROCKCHIP_RGB) += rockchip_rgb.o
 obj-$(CONFIG_DRM_ROCKCHIP_PANEL) += rockchip_panel.o
