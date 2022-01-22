@@ -149,6 +149,13 @@ config DRM_ROCKCHIP_SAMSUNG_MIPI_DCPHY
 	  Enable this to support the Rockchip MIPI DCPHY
 	  with SAMSUNG IP block.
 
+config PHY_ROCKCHIP_SAMSUNG_HDPTX_HDMI
+	bool "Rockchip Samsung HDMI/DP Combo PHY HDMI driver"
+	depends on DRM_ROCKCHIP
+	help
+	  Support for Rockchip HDMI/DP Combo PHY HDMI with Samsung
+	  IP block.
+
 config ROCKCHIP_DRM_TVE
 	bool "Rockchip TVE Support"
 	depends on DRM_ROCKCHIP
