@@ -350,6 +350,36 @@ struct edid_monitor_descriptor {
 				    DRM_EDID_YCBCR420_DC_36 | \
 				    DRM_EDID_YCBCR420_DC_30)
 
+/* HDMI 2.1 additional fields */
+#define DRM_EDID_MAX_FRL_RATE_MASK		0xf0
+#define DRM_EDID_FAPA_START_LOCATION		BIT(0)
+#define DRM_EDID_ALLM				BIT(1)
+#define DRM_EDID_FVA				BIT(2)
+
+/* Deep Color specific */
+#define DRM_EDID_DC_30BIT_420			BIT(0)
+#define DRM_EDID_DC_36BIT_420			BIT(1)
+#define DRM_EDID_DC_48BIT_420			BIT(2)
+
+/* VRR specific */
+#define DRM_EDID_CNMVRR				BIT(3)
+#define DRM_EDID_CINEMA_VRR			BIT(4)
+#define DRM_EDID_MDELTA				BIT(5)
+#define DRM_EDID_VRR_MAX_UPPER_MASK		0xc0
+#define DRM_EDID_VRR_MAX_LOWER_MASK		0xff
+#define DRM_EDID_VRR_MIN_MASK			0x3f
+
+/* DSC specific */
+#define DRM_EDID_DSC_10BPC			BIT(0)
+#define DRM_EDID_DSC_12BPC			BIT(1)
+#define DRM_EDID_DSC_16BPC			BIT(2)
+#define DRM_EDID_DSC_ALL_BPP			BIT(3)
+#define DRM_EDID_DSC_NATIVE_420			BIT(6)
+#define DRM_EDID_DSC_1P2			BIT(7)
+#define DRM_EDID_DSC_MAX_FRL_RATE_MASK		0xf0
+#define DRM_EDID_DSC_MAX_SLICES			0xf
+#define DRM_EDID_DSC_TOTAL_CHUNK_KBYTES		0x3f
+
 struct edid1_info {
 	unsigned char header[8];
 	unsigned char manufacturer_name[2];
@@ -589,6 +619,47 @@ struct drm_scdc {
 };
 
 /**
+ * struct drm_hdmi_dsc_cap - DSC capabilities of HDMI sink
+ *
+ * Describes the DSC support provided by HDMI 2.1 sink.
+ * The information is fetched fom additional HFVSDB blocks defined
+ * for HDMI 2.1.
+ */
+struct drm_hdmi_dsc_cap {
+	/** @v_1p2: flag for dsc1.2 version support by sink */
+	bool v_1p2;
+
+	/** @native_420: Does sink support DSC with 4:2:0 compression */
+	bool native_420;
+
+	/**
+	 * @all_bpp: Does sink support all bpp with 4:4:4: or 4:2:2
+	 * compressed formats
+	 */
+	bool all_bpp;
+
+	/**
+	 * @bpc_supported: compressed bpc supported by sink : 10, 12 or 16 bpc
+	 */
+	u8 bpc_supported;
+
+	/** @max_slices: maximum number of Horizontal slices supported by */
+	u8 max_slices;
+
+	/** @clk_per_slice : max pixel clock in MHz supported per slice */
+	int clk_per_slice;
+
+	/** @max_lanes : dsc max lanes supported for Fixed rate Link training */
+	u8 max_lanes;
+
+	/** @max_frl_rate_per_lane : maximum frl rate with DSC per lane */
+	u8 max_frl_rate_per_lane;
+
+	/** @total_chunk_kbytes: max size of chunks in KBs supported per line*/
+	u8 total_chunk_kbytes;
+};
+
+/**
  * struct drm_hdmi_info - runtime information about the connected HDMI sink
  *
  * Describes if a given display supports advanced HDMI 2.0 features.
@@ -618,6 +689,15 @@ struct drm_hdmi_info {
 
 	/** @y420_dc_modes: bitmap of deep color support index */
 	u8 y420_dc_modes;
+
+	/** @max_frl_rate_per_lane: support fixed rate link */
+	u8 max_frl_rate_per_lane;
+
+	/** @max_lanes: supported by sink */
+	u8 max_lanes;
+
+	/** @dsc_cap: DSC capabilities of the sink */
+	struct drm_hdmi_dsc_cap dsc_cap;
 };
 
 enum subpixel_order {
