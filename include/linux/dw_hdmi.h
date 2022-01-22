@@ -140,6 +140,23 @@ struct dw_hdmi_phy_ops {
 	void (*mode_valid)(struct dw_hdmi *hdmi, void *data);
 };
 
+struct dw_hdmi_qp_phy_ops {
+	int (*init)(void *hdmi, void *data);
+	void (*disable)(void *hdmi, void *data);
+	enum drm_connector_status (*read_hpd)(void *data);
+	void (*mode_valid)(void *hdmi, void *data);
+	void (*set_pll)(void *hdmi, void *data);
+};
+
+struct dw_hdmi_link_config {
+	bool dsc_mode;
+	bool frl_mode;
+	int frl_lanes;
+	int rate_per_lane;
+	int hcactive;
+	u8 pps_payload[128];
+};
+
 struct dw_hdmi_plat_data {
 	enum dw_hdmi_devtype dev_type;
 	unsigned long input_bus_format;
@@ -148,9 +165,11 @@ struct dw_hdmi_plat_data {
 	u32 grf_vop_sel_reg;
 	/* Vendor PHY support */
 	const struct dw_hdmi_phy_ops *phy_ops;
+	const struct dw_hdmi_qp_phy_ops *qp_phy_ops;
 	const struct dw_hdmi_audio_tmds_n *tmds_n_table;
 	const char *phy_name;
 	void *phy_data;
+	void *hdmi;
 
 	/* Synopsys PHY support */
 	const struct dw_hdmi_mpll_config *mpll_cfg;

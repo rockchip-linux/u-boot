@@ -12,6 +12,7 @@ obj-$(CONFIG_DRM_DP_HELPER) += drm_dp_helper.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI) += dw_mipi_dsi.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI2) += dw_mipi_dsi2.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_HDMI) += rockchip_dw_hdmi.o dw_hdmi.o
+obj-$(CONFIG_DRM_ROCKCHIP_DW_HDMI_QP) += rockchip_dw_hdmi_qp.o dw_hdmi_qp.o
 obj-$(CONFIG_ROCKCHIP_INNO_HDMI_PHY) += rockchip-inno-hdmi-phy.o
 obj-$(CONFIG_DRM_ROCKCHIP_INNO_HDMI) += inno_hdmi.o
 obj-$(CONFIG_DRM_ROCKCHIP_INNO_MIPI_PHY) += inno_mipi_phy.o

@@ -1,7 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * (C) Copyright 2008-2017 Fuzhou Rockchip Electronics Co., Ltd
- *
- * SPDX-License-Identifier:	GPL-2.0+
+ * (C) Copyright 2021 Fuzhou Rockchip Electronics Co., Ltd
  */
 #ifndef _ROCKCHIP_DW_HDMI_REG_H_
 #define _ROCKCHIP_DW_HDMI_REG_H_
