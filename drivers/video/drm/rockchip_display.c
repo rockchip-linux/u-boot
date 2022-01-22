@@ -169,7 +169,7 @@ struct base2_disp_info *rockchip_get_disp_info(int type, int id)
 	disp_info = base_parameter_addr + offset;
 	if (disp_info->screen_info[0].type != type ||
 	    disp_info->screen_info[0].id != id) {
-		printf("connector type or id is error, type:%d, id:%d\n",
+		printf("base2_disp_info couldn't be found, screen_info type[%d] or id[%d] mismatched\n",
 		       disp_info->screen_info[0].type,
 		       disp_info->screen_info[0].id);
 		return NULL;
