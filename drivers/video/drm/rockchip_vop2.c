@@ -957,11 +957,6 @@ static inline u32 vop2_grf_readl(struct vop2 *vop, void *grf_base, u32 offset,
 	return (readl(grf_base + offset) >> shift) & mask;
 }
 
-static inline int us_to_vertical_line(struct drm_display_mode *mode, int us)
-{
-	return us * mode->clock / mode->htotal / 1000;
-}
-
 static char* get_output_if_name(u32 output_if, char *name)
 {
 	if (output_if & VOP_OUTPUT_IF_RGB)
@@ -2428,9 +2423,9 @@ static int rockchip_vop2_init(struct display_state *state)
 	}
 
 	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
-			RK3568_DSP_LINE_FLAG_NUM0_SHIFT, act_end - 3, false);
+			RK3568_DSP_LINE_FLAG_NUM0_SHIFT, act_end, false);
 	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
-			RK3568_DSP_LINE_FLAG_NUM1_SHIFT, act_end - us_to_vertical_line(mode, 1000), false);
+			RK3568_DSP_LINE_FLAG_NUM1_SHIFT, act_end, false);
 
 	return 0;
 }
