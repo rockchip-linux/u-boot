@@ -1084,10 +1084,14 @@ static bool is_uv_swap(u32 bus_format, u32 output_mode)
 	 *
 	 * From H/W testing, YUV444 mode need a rb swap.
 	 */
-	if ((bus_format == MEDIA_BUS_FMT_YUV8_1X24 ||
+	if (bus_format == MEDIA_BUS_FMT_YVYU8_1X16 ||
+	    bus_format == MEDIA_BUS_FMT_VYUY8_1X16 ||
+	    bus_format == MEDIA_BUS_FMT_YVYU8_2X8 ||
+	    bus_format == MEDIA_BUS_FMT_VYUY8_2X8 ||
+	    ((bus_format == MEDIA_BUS_FMT_YUV8_1X24 ||
 	     bus_format == MEDIA_BUS_FMT_YUV10_1X30) &&
 	    (output_mode == ROCKCHIP_OUT_MODE_AAAA ||
-	     output_mode == ROCKCHIP_OUT_MODE_P888))
+	     output_mode == ROCKCHIP_OUT_MODE_P888)))
 		return true;
 	else
 		return false;
