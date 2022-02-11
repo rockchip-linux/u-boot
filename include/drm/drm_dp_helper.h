@@ -24,6 +24,8 @@
 #ifndef _DRM_DP_HELPER_H_
 #define _DRM_DP_HELPER_H_
 
+#include <edid.h>
+
 /*
  * Unless otherwise noted, all values are from the DP 1.1a spec.  Note that
  * DP and DPCD versions are independent.  Differences from 1.0 are not noted,
@@ -38,6 +40,48 @@
  *
  * 1.2 formally includes both eDP and DPI definitions.
  */
+
+/* MSA (Main Stream Attribute) MISC bits (as MISC1<<8|MISC0) */
+#define DP_MSA_MISC_SYNC_CLOCK			(1 << 0)
+#define DP_MSA_MISC_INTERLACE_VTOTAL_EVEN	(1 << 8)
+#define DP_MSA_MISC_STEREO_NO_3D		(0 << 9)
+#define DP_MSA_MISC_STEREO_PROG_RIGHT_EYE	(1 << 9)
+#define DP_MSA_MISC_STEREO_PROG_LEFT_EYE	(3 << 9)
+/* bits per component for non-RAW */
+#define DP_MSA_MISC_6_BPC			(0 << 5)
+#define DP_MSA_MISC_8_BPC			(1 << 5)
+#define DP_MSA_MISC_10_BPC			(2 << 5)
+#define DP_MSA_MISC_12_BPC			(3 << 5)
+#define DP_MSA_MISC_16_BPC			(4 << 5)
+/* bits per component for RAW */
+#define DP_MSA_MISC_RAW_6_BPC			(1 << 5)
+#define DP_MSA_MISC_RAW_7_BPC			(2 << 5)
+#define DP_MSA_MISC_RAW_8_BPC			(3 << 5)
+#define DP_MSA_MISC_RAW_10_BPC			(4 << 5)
+#define DP_MSA_MISC_RAW_12_BPC			(5 << 5)
+#define DP_MSA_MISC_RAW_14_BPC			(6 << 5)
+#define DP_MSA_MISC_RAW_16_BPC			(7 << 5)
+/* pixel encoding/colorimetry format */
+#define _DP_MSA_MISC_COLOR(misc1_7, misc0_21, misc0_3, misc0_4) \
+	((misc1_7) << 15 | (misc0_4) << 4 | (misc0_3) << 3 | ((misc0_21) << 1))
+#define DP_MSA_MISC_COLOR_RGB			_DP_MSA_MISC_COLOR(0, 0, 0, 0)
+#define DP_MSA_MISC_COLOR_CEA_RGB		_DP_MSA_MISC_COLOR(0, 0, 1, 0)
+#define DP_MSA_MISC_COLOR_RGB_WIDE_FIXED	_DP_MSA_MISC_COLOR(0, 3, 0, 0)
+#define DP_MSA_MISC_COLOR_RGB_WIDE_FLOAT	_DP_MSA_MISC_COLOR(0, 3, 0, 1)
+#define DP_MSA_MISC_COLOR_Y_ONLY		_DP_MSA_MISC_COLOR(1, 0, 0, 0)
+#define DP_MSA_MISC_COLOR_RAW			_DP_MSA_MISC_COLOR(1, 1, 0, 0)
+#define DP_MSA_MISC_COLOR_YCBCR_422_BT601	_DP_MSA_MISC_COLOR(0, 1, 1, 0)
+#define DP_MSA_MISC_COLOR_YCBCR_422_BT709	_DP_MSA_MISC_COLOR(0, 1, 1, 1)
+#define DP_MSA_MISC_COLOR_YCBCR_444_BT601	_DP_MSA_MISC_COLOR(0, 2, 1, 0)
+#define DP_MSA_MISC_COLOR_YCBCR_444_BT709	_DP_MSA_MISC_COLOR(0, 2, 1, 1)
+#define DP_MSA_MISC_COLOR_XVYCC_422_BT601	_DP_MSA_MISC_COLOR(0, 1, 0, 0)
+#define DP_MSA_MISC_COLOR_XVYCC_422_BT709	_DP_MSA_MISC_COLOR(0, 1, 0, 1)
+#define DP_MSA_MISC_COLOR_XVYCC_444_BT601	_DP_MSA_MISC_COLOR(0, 2, 0, 0)
+#define DP_MSA_MISC_COLOR_XVYCC_444_BT709	_DP_MSA_MISC_COLOR(0, 2, 0, 1)
+#define DP_MSA_MISC_COLOR_OPRGB			_DP_MSA_MISC_COLOR(0, 0, 1, 1)
+#define DP_MSA_MISC_COLOR_DCI_P3		_DP_MSA_MISC_COLOR(0, 3, 1, 0)
+#define DP_MSA_MISC_COLOR_COLOR_PROFILE		_DP_MSA_MISC_COLOR(0, 3, 1, 1)
+#define DP_MSA_MISC_COLOR_VSC_SDP		(1 << 14)
 
 #define DP_AUX_MAX_PAYLOAD_BYTES	16
 
@@ -92,6 +136,7 @@
 # define DP_DETAILED_CAP_INFO_AVAILABLE	    (1 << 4) /* DPI */
 
 #define DP_MAIN_LINK_CHANNEL_CODING         0x006
+# define DP_CAP_ANSI_8B10B		    (1 << 0)
 
 #define DP_DOWN_STREAM_PORT_COUNT	    0x007
 # define DP_PORT_COUNT_MASK		    0x0f
@@ -122,6 +167,7 @@
 
 #define DP_TRAINING_AUX_RD_INTERVAL         0x00e   /* XXX 1.2? */
 # define DP_TRAINING_AUX_RD_MASK            0x7F    /* XXX 1.2? */
+# define DP_EXTENDED_RECEIVER_CAP_FIELD_PRESENT	(1 << 7) /* DP 1.3 */
 
 #define DP_ADAPTER_CAP			    0x00f   /* 1.2 */
 # define DP_FORCE_LOAD_SENSE_CAP	    (1 << 0)
@@ -1015,6 +1061,57 @@ struct edp_vsc_psr {
 #define EDP_VSC_PSR_UPDATE_RFB		(1 << 1)
 #define EDP_VSC_PSR_CRC_VALUES_VALID	(1 << 2)
 
+enum dp_pixelformat {
+	DP_PIXELFORMAT_RGB = 0,
+	DP_PIXELFORMAT_YUV444 = 0x1,
+	DP_PIXELFORMAT_YUV422 = 0x2,
+	DP_PIXELFORMAT_YUV420 = 0x3,
+	DP_PIXELFORMAT_Y_ONLY = 0x4,
+	DP_PIXELFORMAT_RAW = 0x5,
+	DP_PIXELFORMAT_RESERVED = 0x6,
+};
+
+enum dp_colorimetry {
+	DP_COLORIMETRY_DEFAULT = 0,
+	DP_COLORIMETRY_RGB_WIDE_FIXED = 0x1,
+	DP_COLORIMETRY_BT709_YCC = 0x1,
+	DP_COLORIMETRY_RGB_WIDE_FLOAT = 0x2,
+	DP_COLORIMETRY_XVYCC_601 = 0x2,
+	DP_COLORIMETRY_OPRGB = 0x3,
+	DP_COLORIMETRY_XVYCC_709 = 0x3,
+	DP_COLORIMETRY_DCI_P3_RGB = 0x4,
+	DP_COLORIMETRY_SYCC_601 = 0x4,
+	DP_COLORIMETRY_RGB_CUSTOM = 0x5,
+	DP_COLORIMETRY_OPYCC_601 = 0x5,
+	DP_COLORIMETRY_BT2020_RGB = 0x6,
+	DP_COLORIMETRY_BT2020_CYCC = 0x6,
+	DP_COLORIMETRY_BT2020_YCC = 0x7,
+};
+
+enum dp_dynamic_range {
+	DP_DYNAMIC_RANGE_VESA = 0,
+	DP_DYNAMIC_RANGE_CTA = 1,
+};
+
+enum dp_content_type {
+	DP_CONTENT_TYPE_NOT_DEFINED = 0x00,
+	DP_CONTENT_TYPE_GRAPHICS = 0x01,
+	DP_CONTENT_TYPE_PHOTO = 0x02,
+	DP_CONTENT_TYPE_VIDEO = 0x03,
+	DP_CONTENT_TYPE_GAME = 0x04,
+};
+
+struct drm_dp_vsc_sdp {
+	unsigned char sdp_type;
+	unsigned char revision;
+	unsigned char length;
+	enum dp_pixelformat pixelformat;
+	enum dp_colorimetry colorimetry;
+	int bpc;
+	enum dp_dynamic_range dynamic_range;
+	enum dp_content_type content_type;
+};
+
 static inline int
 drm_dp_max_link_rate(const u8 dpcd[DP_RECEIVER_CAP_SIZE])
 {
@@ -1061,4 +1158,71 @@ drm_dp_is_branch(const u8 dpcd[DP_RECEIVER_CAP_SIZE])
 	return dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_PRESENT;
 }
 
+static inline bool
+drm_dp_channel_coding_supported(const u8 dpcd[DP_RECEIVER_CAP_SIZE])
+{
+	return dpcd[DP_MAIN_LINK_CHANNEL_CODING] & DP_CAP_ANSI_8B10B;
+}
+
+struct drm_dp_aux_msg {
+	unsigned int address;
+	u8 request;
+	u8 reply;
+	void *buffer;
+	size_t size;
+};
+
+struct drm_dp_aux {
+	const char *name;
+	struct ddc_adapter ddc;
+	struct udevice *dev;
+	ssize_t (*transfer)(struct drm_dp_aux *aux,
+			    struct drm_dp_aux_msg *msg);
+	unsigned int i2c_nack_count;
+	unsigned int i2c_defer_count;
+};
+
+ssize_t drm_dp_dpcd_read(struct drm_dp_aux *aux, unsigned int offset,
+			 void *buffer, size_t size);
+ssize_t drm_dp_dpcd_write(struct drm_dp_aux *aux, unsigned int offset,
+			  void *buffer, size_t size);
+
+/**
+ * drm_dp_dpcd_readb() - read a single byte from the DPCD
+ * @aux: DisplayPort AUX channel
+ * @offset: address of the register to read
+ * @valuep: location where the value of the register will be stored
+ *
+ * Returns the number of bytes transferred (1) on success, or a negative
+ * error code on failure.
+ */
+static inline ssize_t drm_dp_dpcd_readb(struct drm_dp_aux *aux,
+					unsigned int offset, u8 *valuep)
+{
+	return drm_dp_dpcd_read(aux, offset, valuep, 1);
+}
+
+/**
+ * drm_dp_dpcd_writeb() - write a single byte to the DPCD
+ * @aux: DisplayPort AUX channel
+ * @offset: address of the register to write
+ * @value: value to write to the register
+ *
+ * Returns the number of bytes transferred (1) on success, or a negative
+ * error code on failure.
+ */
+static inline ssize_t drm_dp_dpcd_writeb(struct drm_dp_aux *aux,
+					 unsigned int offset, u8 value)
+{
+	return drm_dp_dpcd_write(aux, offset, &value, 1);
+}
+
+int drm_dp_read_dpcd_caps(struct drm_dp_aux *aux,
+			  u8 dpcd[DP_RECEIVER_CAP_SIZE]);
+
+int drm_dp_dpcd_read_link_status(struct drm_dp_aux *aux,
+				 u8 status[DP_LINK_STATUS_SIZE]);
+
+int drm_dp_i2c_xfer(struct ddc_adapter *adapter, struct i2c_msg *msgs,
+		    int num);
 #endif /* _DRM_DP_HELPER_H_ */
