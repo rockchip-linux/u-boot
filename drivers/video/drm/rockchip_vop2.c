@@ -2027,7 +2027,7 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	}
 
 	if (output_if & VOP_OUTPUT_IF_DP1) {
-		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_HDMI1_EN_SHIFT,
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_DP1_EN_SHIFT,
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK, RK3588_DP1_MUX_SHIFT,
 				cstate->crtc_id, false);
