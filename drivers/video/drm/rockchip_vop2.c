@@ -2387,17 +2387,19 @@ static int rockchip_vop2_init(struct display_state *state)
 		return ret;
 	}
 
-	ret = clk_get_by_name(cstate->dev, "hdmi0_phy_pll_uboot", &hdmi0_phy_pll);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "hdmiphypll_clk0",
+					&hdmi0_phy_pll.dev);
 	if (ret) {
 		hdmi0_phy_pll.dev = NULL;
-		printf("%s:No hdmi0_phy_pll_uboot clk found, use system clk\n",
+		printf("%s:No hdmiphypll clk0 found, use system clk\n",
 		       __func__);
 	}
 
-	ret = clk_get_by_name(cstate->dev, "hdmi1_phy_pll_uboot", &hdmi1_phy_pll);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "hdmiphypll_clk1",
+					&hdmi1_phy_pll.dev);
 	if (ret) {
-		hdmi0_phy_pll.dev = NULL;
-		printf("%s:No hdmi1_phy_pll_uboot clk found, use system clk\n",
+		hdmi1_phy_pll.dev = NULL;
+		printf("%s:No hdmiphypll clk1 found, use system clk\n",
 		       __func__);
 	}
 
