@@ -15,6 +15,7 @@
 #include <linux/bitfield.h>
 #include <linux/iopoll.h>
 #include <asm/arch/clock.h>
+#include <dm/lists.h>
 #include <dm/of_access.h>
 
 #include "rockchip_display.h"
@@ -1775,7 +1776,8 @@ static int rockchip_hdptx_phy_hdmi_probe(struct udevice *dev)
 {
 	struct rockchip_hdptx_phy *hdptx = dev_get_priv(dev);
 	struct rockchip_phy *phy;
-	struct udevice *syscon;
+	struct udevice *syscon, *sys_child;
+	char name[30], *str;
 	int ret;
 
 	hdptx->id = of_alias_get_id(ofnode_to_np(dev->node), "hdptxhdmi");
@@ -1847,6 +1849,15 @@ static int rockchip_hdptx_phy_hdmi_probe(struct udevice *dev)
 		return ret;
 	}
 
+	sprintf(name, "hdmiphypll_clk%d", hdptx->id);
+	str = strdup(name);
+	/* The phy pll driver does not have a device node, so bind it here */
+	ret = device_bind_driver(dev, "clk_hdptx", str, &sys_child);
+	if (ret) {
+		dev_err(dev, "Warning: No phy pll driver: ret=%d\n", ret);
+		return ret;
+	}
+
 	return 0;
 }
 
@@ -1867,7 +1878,7 @@ U_BOOT_DRIVER(rockchip_hdptx_phy_hdmi) = {
 
 static struct rockchip_hdptx_phy *get_hdptx(struct udevice *dev)
 {
-	if (!strcmp(dev->name, "hdptxphy_hdmi0_uboot"))
+	if (!strcmp(dev->name, "hdmiphypll_clk0"))
 		return g_hdptx0;
 
 	return g_hdptx1;
@@ -1910,11 +1921,6 @@ static int hdptx_clk_probe(struct udevice *dev)
 	return 0;
 }
 
-static const struct udevice_id hdptx_clk_ids[] = {
-	{ .compatible = "hdmiphy-clock" },
-	{ }
-};
-
 /*
  * In order for other display interfaces to use hdmiphy as source
  * for dclk, hdmiphy must register a virtual clock driver
@@ -1922,7 +1928,6 @@ static const struct udevice_id hdptx_clk_ids[] = {
 U_BOOT_DRIVER(clk_hdptx) = {
 	.name		= "clk_hdptx",
 	.id		= UCLASS_CLK,
-	.of_match	= hdptx_clk_ids,
 	.priv_auto_alloc_size = sizeof(struct clk_hdptx),
 	.ops		= &hdptx_clk_ops,
 	.probe		= hdptx_clk_probe,
