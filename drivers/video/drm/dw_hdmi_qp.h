@@ -931,6 +931,6 @@ void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
 			      struct overscan *overscan,
 			      enum dw_hdmi_devtype dev_type,
 			      bool output_bus_format_rgb,
-			      void *data);
+			      void *data, struct display_state *state);
 
 #endif /* __DW_HDMI_QP_H__ */

@@ -1115,14 +1115,13 @@ int rockchip_dw_hdmi_qp_get_timing(struct display_state *state)
 	drm_mode_sort(&hdmi->edid_data);
 	dw_hdmi_qp_selete_output(&hdmi->edid_data, conn_state, &bus_format,
 				 overscan, hdmi->dev_type,
-				 hdmi->output_bus_format_rgb, hdmi->rk_hdmi);
+				 hdmi->output_bus_format_rgb, hdmi->rk_hdmi,
+				 state);
 
 	*mode = *hdmi->edid_data.preferred_mode;
 	hdmi->vic = drm_match_cea_mode(mode);
 
 	printf("mode:%dx%d bus_format:0x%x\n", mode->hdisplay, mode->vdisplay, bus_format);
-	if (state->force_output)
-		bus_format = state->force_bus_format;
 	conn_state->bus_format = bus_format;
 	hdmi->hdmi_data.enc_in_bus_format = bus_format;
 	hdmi->hdmi_data.enc_out_bus_format = bus_format;
