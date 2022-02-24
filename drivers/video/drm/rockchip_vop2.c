@@ -1770,7 +1770,7 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		else
 			dclk_out_rate = v_pixclk >> 2;
 
-		dclk_rate = vop2_calc_dclk(dclk_core_rate, vop2->data->vp_data->max_dclk);
+		dclk_rate = vop2_calc_dclk(dclk_out_rate, vop2->data->vp_data->max_dclk);
 		if (!dclk_rate) {
 			printf("DP dclk_core out of range(max_dclk: %d KHZ, dclk_core: %ld KHZ)\n",
 			       vop2->data->vp_data->max_dclk, dclk_core_rate);
