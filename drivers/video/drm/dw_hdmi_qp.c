@@ -924,7 +924,7 @@ int dw_hdmi_detect_hotplug(struct dw_hdmi_qp *hdmi,
 	int ret;
 
 	ret = hdmi->phy.ops->read_hpd(hdmi->rk_hdmi);
-	if (ret) {
+	if (ret || state->force_output) {
 		if (!hdmi->id)
 			conn_state->output_if |= VOP_OUTPUT_IF_HDMI0;
 		else
