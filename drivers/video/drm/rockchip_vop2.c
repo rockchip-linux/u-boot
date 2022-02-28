@@ -1553,15 +1553,6 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		}
 	}
 
-	if (vop2->version == VOP_VERSION_RK3588) {
-		for (i = 0; i < vop2->data->nr_vps; i++) {
-			if (cstate->crtc->vps[i].enable) {
-				if (vop2_power_domain_on(vop2, vop2->vp_plane_mask[i].primary_plane_id))
-					printf("open vp[%d] plane pd fail\n", i);
-			}
-		}
-	}
-
 	if (vop2->version == VOP_VERSION_RK3588)
 		rk3588_vop2_regsbak(vop2);
 	else
@@ -2437,6 +2428,11 @@ static int rockchip_vop2_init(struct display_state *state)
 			RK3568_DSP_LINE_FLAG_NUM0_SHIFT, act_end, false);
 	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
 			RK3568_DSP_LINE_FLAG_NUM1_SHIFT, act_end, false);
+
+	if (vop2->version == VOP_VERSION_RK3588) {
+		if (vop2_power_domain_on(vop2, vop2->vp_plane_mask[cstate->crtc_id].primary_plane_id))
+			printf("open vp%d plane pd fail\n", cstate->crtc_id);
+	}
 
 	return 0;
 }
