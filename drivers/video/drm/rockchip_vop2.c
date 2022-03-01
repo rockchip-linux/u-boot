@@ -745,6 +745,7 @@ struct vop2_layer {
 };
 
 struct vop2_power_domain_data {
+	bool is_enabled;
 	bool is_parent_needed;
 	u8 pd_en_shift;
 	u8 pd_status_shift;
@@ -1447,8 +1448,11 @@ static int vop2_power_domain_on(struct vop2 *vop2, int plane_id)
 		printf("can't find win_data by phys_id\n");
 		return -EINVAL;
 	}
+
 	pd_data = win_data->pd_data;
-	if (pd_data->is_parent_needed) {
+	if (!pd_data || pd_data->is_enabled) {
+		return 0;
+	} else if (pd_data->is_parent_needed) {
 		ret = vop2_power_domain_on(vop2, pd_data->parent_phy_id);
 		if (ret) {
 			printf("can't open parent power domain\n");
@@ -1462,6 +1466,7 @@ static int vop2_power_domain_on(struct vop2 *vop2, int plane_id)
 		printf("wait vop2 power domain timeout\n");
 		return ret;
 	}
+	pd_data->is_enabled = true;
 
 	return 0;
 }
@@ -3240,7 +3245,6 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 0,
 		.axi_yrgb_id = 0x0a,
 		.axi_uv_id = 0x0b,
-		.pd_data = &rk3588_esmart_pd_data,
 	},
 
 	{
