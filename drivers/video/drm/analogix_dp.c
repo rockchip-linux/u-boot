@@ -262,7 +262,7 @@ static int analogix_dp_process_clock_recovery(struct analogix_dp_device *dp)
 	u8 link_status[2], adjust_request[2];
 	u8 training_pattern = TRAINING_PTN2;
 
-	udelay(101);
+	drm_dp_link_train_clock_recovery_delay(dp->dpcd);
 
 	lane_count = dp->link_train.lane_count;
 
@@ -337,7 +337,7 @@ static int analogix_dp_process_equalizer_training(struct analogix_dp_device *dp)
 	u32 reg;
 	u8 link_align, link_status[2], adjust_request[2];
 
-	udelay(401);
+	drm_dp_link_train_channel_eq_delay(dp->dpcd);
 
 	lane_count = dp->link_train.lane_count;
 
@@ -841,6 +841,13 @@ static int analogix_dp_connector_enable(struct display_state *state)
 	default:
 		video->color_depth = COLOR_8;
 		break;
+	}
+
+	ret = analogix_dp_read_bytes_from_dpcd(dp, DP_DPCD_REV,
+					       DP_RECEIVER_CAP_SIZE, dp->dpcd);
+	if (ret) {
+		dev_err(dp->dev, "failed to read dpcd caps: %d\n", ret);
+		return ret;
 	}
 
 	ret = analogix_dp_set_link_train(dp, dp->video_info.max_lane_count,

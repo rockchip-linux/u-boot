@@ -558,6 +558,7 @@ struct analogix_dp_device {
 	struct drm_display_mode *mode;
 	struct analogix_dp_plat_data plat_data;
 	unsigned char edid[EDID_BLOCK_LENGTH * 2];
+	u8 dpcd[DP_RECEIVER_CAP_SIZE];
 };
 
 /* analogix_dp_reg.c */
