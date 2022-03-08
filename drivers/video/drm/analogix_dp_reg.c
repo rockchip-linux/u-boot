@@ -510,6 +510,17 @@ void analogix_dp_enable_sw_function(struct analogix_dp_device *dp)
 	analogix_dp_write(dp, ANALOGIX_DP_FUNC_EN_1, reg);
 }
 
+int analogix_dp_get_plug_in_status(struct analogix_dp_device *dp)
+{
+	u32 reg;
+
+	reg = analogix_dp_read(dp, ANALOGIX_DP_SYS_CTL_3);
+	if (reg & HPD_STATUS)
+		return 0;
+
+	return -EINVAL;
+}
+
 int analogix_dp_start_aux_transaction(struct analogix_dp_device *dp)
 {
 	int reg;
