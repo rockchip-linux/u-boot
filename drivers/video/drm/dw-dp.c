@@ -227,6 +227,8 @@ struct dw_dp {
 	struct drm_dp_aux aux;
 	struct dw_dp_link link;
 	struct dw_dp_video video;
+
+	bool force_output;
 };
 
 enum {
@@ -278,6 +280,13 @@ enum {
 	DPTX_PHY_PATTERN_CUSTOM_80BIT,
 	DPTX_PHY_PATTERN_CP2520_1,
 	DPTX_PHY_PATTERN_CP2520_2,
+};
+
+enum {
+	DPTX_PHYRATE_RBR,
+	DPTX_PHYRATE_HBR,
+	DPTX_PHYRATE_HBR2,
+	DPTX_PHYRATE_HBR3,
 };
 
 struct dw_dp_output_format {
@@ -605,7 +614,7 @@ static int dw_dp_link_configure(struct dw_dp *dp)
 	struct dw_dp_link *link = &dp->link;
 	union phy_configure_opts phy_cfg;
 	u8 buf[2];
-	int ret;
+	int ret, phy_rate;
 
 	/* Move PHY to P3 */
 	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_POWERDOWN,
@@ -623,6 +632,24 @@ static int dw_dp_link_configure(struct dw_dp *dp)
 
 	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_LANES,
 			   FIELD_PREP(PHY_LANES, link->lanes / 2));
+
+	switch (link->rate) {
+	case 810000:
+		phy_rate = DPTX_PHYRATE_HBR3;
+		break;
+	case 540000:
+		phy_rate = DPTX_PHYRATE_HBR2;
+		break;
+	case 270000:
+		phy_rate = DPTX_PHYRATE_HBR;
+		break;
+	case 162000:
+	default:
+		phy_rate = DPTX_PHYRATE_RBR;
+		break;
+	}
+	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_RATE,
+			   FIELD_PREP(PHY_RATE, phy_rate));
 
 	/* Move PHY to P0 */
 	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_POWERDOWN,
@@ -943,6 +970,72 @@ static int dw_dp_link_enable(struct dw_dp *dp)
 		return ret;
 	}
 
+	return 0;
+}
+
+static int dw_dp_set_phy_default_config(struct dw_dp *dp)
+{
+	struct dw_dp_link *link = &dp->link;
+	union phy_configure_opts phy_cfg;
+	int ret, i, phy_rate;
+
+	link->vsc_sdp_extension_for_colorimetry_supported = false;
+	link->rate = 270000;
+	link->lanes = dp->phy.attrs.bus_width;
+
+	link->caps.enhanced_framing = true;
+	link->caps.channel_coding = true;
+	link->caps.ssc = true;
+
+	/* Move PHY to P3 */
+	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_POWERDOWN,
+			   FIELD_PREP(PHY_POWERDOWN, 0x3));
+
+	for (i = 0; i < link->lanes; i++) {
+		phy_cfg.dp.voltage[i] = 3;
+		phy_cfg.dp.pre[i] = 0;
+	}
+	phy_cfg.dp.lanes = link->lanes;
+	phy_cfg.dp.link_rate = link->rate / 100;
+	phy_cfg.dp.ssc = link->caps.ssc;
+	phy_cfg.dp.set_lanes = true;
+	phy_cfg.dp.set_rate = true;
+	phy_cfg.dp.set_voltages = true;
+	ret = generic_phy_configure(&dp->phy, &phy_cfg);
+	if (ret)
+		return ret;
+
+	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_LANES,
+			   FIELD_PREP(PHY_LANES, link->lanes / 2));
+
+	switch (link->rate) {
+	case 810000:
+		phy_rate = DPTX_PHYRATE_HBR3;
+		break;
+	case 540000:
+		phy_rate = DPTX_PHYRATE_HBR2;
+		break;
+	case 270000:
+		phy_rate = DPTX_PHYRATE_HBR;
+		break;
+	case 162000:
+	default:
+		phy_rate = DPTX_PHYRATE_RBR;
+		break;
+	}
+	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_RATE,
+			   FIELD_PREP(PHY_RATE, phy_rate));
+
+	/* Move PHY to P0 */
+	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_POWERDOWN,
+			   FIELD_PREP(PHY_POWERDOWN, 0x0));
+
+	dw_dp_phy_xmit_enable(dp, link->lanes);
+
+	regmap_update_bits(dp->regmap, DPTX_CCTL, ENHANCE_FRAMING_EN,
+			   FIELD_PREP(ENHANCE_FRAMING_EN, 1));
+
+	dw_dp_phy_set_pattern(dp, DPTX_PHY_PATTERN_NONE);
 	return 0;
 }
 
@@ -1369,15 +1462,21 @@ static int dw_dp_connector_enable(struct display_state *state)
 	memcpy(&video->mode, mode, sizeof(video->mode));
 	video->pixel_mode = DPTX_MP_QUAD_PIXEL;
 
-	ret = dw_dp_link_enable(dp);
-	if (ret < 0) {
-		dev_err(dp->dev, "failed to enable link: %d\n", ret);
-		return ret;
+	if (dp->force_output) {
+		ret = dw_dp_set_phy_default_config(dp);
+		if (ret < 0)
+			printf("failed to set phy_default config: %d\n", ret);
+	} else {
+		ret = dw_dp_link_enable(dp);
+		if (ret < 0) {
+			printf("failed to enable link: %d\n", ret);
+			return ret;
+		}
 	}
 
 	ret = dw_dp_video_enable(dp);
 	if (ret < 0) {
-		dev_err(dp->dev, "failed to enable video: %d\n", ret);
+		printf("failed to enable video: %d\n", ret);
 		return ret;
 	}
 
@@ -1404,7 +1503,10 @@ static int dw_dp_connector_detect(struct display_state *state)
 		mdelay(2);
 	}
 
-	if (!status)
+	if (state->force_output && !status)
+		dp->force_output = true;
+
+	if (!status && !dp->force_output)
 		generic_phy_power_off(&dp->phy);
 
 	return status;
@@ -1507,39 +1609,41 @@ static int dw_dp_connector_get_timing(struct display_state *state)
 	memset(&edid_data, 0, sizeof(struct hdmi_edid_data));
 	edid_data.mode_buf = mode_buf;
 
-	ret = drm_do_get_edid(&dp->aux.ddc, conn_state->edid);
-	if (!ret)
-		ret = drm_add_edid_modes(&edid_data, conn_state->edid);
+	if (!dp->force_output) {
+		ret = drm_do_get_edid(&dp->aux.ddc, conn_state->edid);
+		if (!ret)
+			ret = drm_add_edid_modes(&edid_data, conn_state->edid);
 
-	if (ret < 0) {
-		printf("failed to get edid\n");
-		goto err;
+		if (ret < 0) {
+			printf("failed to get edid\n");
+			goto err;
+		}
+
+		ret = dw_dp_link_probe(dp);
+		if (ret) {
+			printf("failed to probe DP link: %d\n", ret);
+			ret = -EINVAL;
+			goto err;
+		}
+
+		drm_rk_filter_whitelist(&edid_data);
+		drm_mode_max_resolution_filter(&edid_data,
+					       &state->crtc_state.max_output);
+		dw_dp_mode_valid(dp, &edid_data);
+
+		if (!drm_mode_prune_invalid(&edid_data)) {
+			printf("can't find valid hdmi mode\n");
+			ret = -EINVAL;
+			goto err;
+		}
+
+		for (i = 0; i < edid_data.modes; i++)
+			edid_data.mode_buf[i].vrefresh =
+				drm_mode_vrefresh(&edid_data.mode_buf[i]);
+
+		drm_mode_sort(&edid_data);
+		memcpy(mode, edid_data.preferred_mode, sizeof(struct drm_display_mode));
 	}
-
-	ret = dw_dp_link_probe(dp);
-	if (ret) {
-		printf("failed to probe DP link: %d\n", ret);
-		ret = -EINVAL;
-		goto err;
-	}
-
-	drm_rk_filter_whitelist(&edid_data);
-	drm_mode_max_resolution_filter(&edid_data,
-				       &state->crtc_state.max_output);
-	dw_dp_mode_valid(dp, &edid_data);
-
-	if (!drm_mode_prune_invalid(&edid_data)) {
-		printf("can't find valid hdmi mode\n");
-		ret = -EINVAL;
-		goto err;
-	}
-
-	for (i = 0; i < edid_data.modes; i++)
-		edid_data.mode_buf[i].vrefresh =
-			drm_mode_vrefresh(&edid_data.mode_buf[i]);
-
-	drm_mode_sort(&edid_data);
-	memcpy(mode, edid_data.preferred_mode, sizeof(struct drm_display_mode));
 
 	if (state->force_output)
 		bus_fmt = dw_dp_get_force_output_fmts(state);
