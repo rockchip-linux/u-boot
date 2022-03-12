@@ -272,7 +272,7 @@ struct dw_mipi_dsi2 {
 	u32 version_major;
 	u32 version_minor;
 
-	unsigned int lane_hs_rate; /* per lane */
+	unsigned int lane_hs_rate; /* Kbps/Ksps per lane */
 	u32 channel;
 	u32 lanes;
 	u32 format;
@@ -339,7 +339,7 @@ static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 	/* optional override of the desired bandwidth */
 	value = dev_read_u32_default(dsi2->dev, "rockchip,lane-rate", 0);
 	if (value > 0)
-		return value * 1000 * 1000;
+		return value * MSEC_PER_SEC;
 
 	bpp = mipi_dsi_pixel_format_to_bpp(dsi2->format);
 	if (bpp < 0)
@@ -352,9 +352,15 @@ static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 	if (dsi2->c_option)
 		tmp = DIV_ROUND_CLOSEST(tmp * 100, 228);
 
-	/* take 1 / 0.9, since mbps must big than bandwidth of RGB */
-	tmp *= 10;
-	do_div(tmp, 9);
+	/* set BW a little larger only in video burst mode in
+	 * consideration of the protocol overhead and HS mode
+	 * switching to BLLP mode, take 1 / 0.9, since Mbps must
+	 * big than bandwidth of RGB
+	 */
+	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_BURST) {
+		tmp *= 10;
+		do_div(tmp, 9);
+	}
 
 	if (tmp > max_lane_rate)
 		lane_rate = max_lane_rate;
@@ -548,9 +554,9 @@ static void dw_mipi_dsi2_ipi_set(struct dw_mipi_dsi2 *dsi2)
 	pixel_clk = mode->clock * MSEC_PER_SEC;
 
 	if (dsi2->c_option)
-		phy_hs_clk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * USEC_PER_SEC, 7);
+		phy_hs_clk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 7);
 	else
-		phy_hs_clk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * USEC_PER_SEC, 16);
+		phy_hs_clk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 16);
 
 	tmp = hsa * phy_hs_clk;
 	hsa_time = DIV_ROUND_CLOSEST(tmp << 16, pixel_clk);
@@ -798,7 +804,7 @@ static void dw_mipi_dsi2_set_hs_clk(struct dw_mipi_dsi2 *dsi2, unsigned long rat
 		rockchip_phy_set_mode(dsi2->dcphy.phy, PHY_MODE_MIPI_DPHY);
 
 	rate = rockchip_phy_set_pll(dsi2->dcphy.phy, rate);
-	dsi2->lane_hs_rate = rate / 1000 / 1000;
+	dsi2->lane_hs_rate = DIV_ROUND_CLOSEST(rate, MSEC_PER_SEC);
 }
 
 static void dw_mipi_dsi2_host_softrst(struct dw_mipi_dsi2 *dsi2)
@@ -856,10 +862,10 @@ static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 	 * high speed symbol rate.
 	 */
 	if (dsi2->c_option)
-		phy_hsclk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * USEC_PER_SEC, 7);
+		phy_hsclk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 7);
 
 	else
-		phy_hsclk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * USEC_PER_SEC, 16);
+		phy_hsclk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 16);
 
 	/* IPI_RATIO_MAN_CFG = PHY_HSTX_CLK / IPI_CLK */
 	pixel_clk = mode->clock * MSEC_PER_SEC;
@@ -868,9 +874,7 @@ static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 	tmp = DIV_ROUND_CLOSEST(phy_hsclk << 16, ipi_clk);
 	dsi_write(dsi2, DSI2_PHY_IPI_RATIO_MAN_CFG, PHY_IPI_RATIO(tmp));
 
-	/*
-	 * SYS_RATIO_MAN_CFG = MIPI_DCPHY_HSCLK_Freq / MIPI_DCPHY_HSCLK_Freq
-	 */
+	/* SYS_RATIO_MAN_CFG = MIPI_DCPHY_HSCLK_Freq / SYS_CLK */
 	tmp = DIV_ROUND_CLOSEST(phy_hsclk << 16, SYS_CLK);
 	dsi_write(dsi2, DSI2_PHY_SYS_RATIO_MAN_CFG, PHY_SYS_RATIO(tmp));
 }
@@ -881,7 +885,7 @@ static void dw_mipi_dsi2_lp2hs_or_hs2lp_cfg(struct dw_mipi_dsi2 *dsi2)
 	unsigned long long tmp, ui;
 	unsigned long long hstx_clk;
 
-	hstx_clk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * USEC_PER_SEC, 16);
+	hstx_clk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 16);
 
 	ui = ALIGN(PSEC_PER_SEC, hstx_clk);
 	do_div(ui, hstx_clk);
@@ -1007,7 +1011,7 @@ static int dw_mipi_dsi2_connector_prepare(struct display_state *state)
 		dw_mipi_dsi2_set_hs_clk(dsi2->slave, lane_rate);
 
 	printf("final DSI-Link bandwidth: %u %s x %d\n",
-	       dsi2->lane_hs_rate, dsi2->c_option ? "Msps" : "Mbps",
+	       dsi2->lane_hs_rate, dsi2->c_option ? "Ksps" : "Kbps",
 	       dsi2->slave ? dsi2->lanes * 2 : dsi2->lanes);
 
 	dw_mipi_dsi2_pre_enable(dsi2);
