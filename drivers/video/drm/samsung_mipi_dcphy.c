@@ -21,6 +21,10 @@
 
 #include "rockchip_phy.h"
 
+#define MAX_DPHY_BW	4500000L
+#define MAX_CPHY_BW	2000000L
+
+#define MSEC_PER_SEC	1000L
 #define USEC_PER_SEC	1000000LL
 #define PSEC_PER_SEC	1000000000000LL
 
@@ -1646,9 +1650,9 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 				  unsigned long prate, unsigned long rate,
 				  u8 *prediv, u16 *fbdiv, int *dsm, u8 *scaler)
 {
-	unsigned int max_fout = samsung->c_option ? 4500 : 2000;
-	unsigned long best_freq = 0;
-	unsigned int fin, fvco, fout;
+	u64 max_fout = samsung->c_option ? MAX_CPHY_BW : MAX_DPHY_BW;
+	u64 best_freq = 0;
+	u64 fin, fvco, fout;
 	u8 min_prediv, max_prediv;
 	u8 _prediv, best_prediv = 1;
 	u16 _fbdiv, best_fbdiv = 1;
@@ -1661,10 +1665,10 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 	 * Fvco = ((m+k/65536) x 2 x Fin) / p
 	 * Fout = ((m+k/65536) x 2 x Fin) / (p x 2^s)
 	 */
-	fin = div64_ul(prate, USEC_PER_SEC);
+	fin = div64_ul(prate, MSEC_PER_SEC);
 
 	while (!best_freq) {
-		fout = div64_ul(rate, USEC_PER_SEC);
+		fout = div64_ul(rate, MSEC_PER_SEC);
 		if (fout > max_fout)
 			fout = max_fout;
 
@@ -1675,15 +1679,15 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 			/*
 			 * 2600MHz ≤ FVCO ≤ 6600MHz
 			 */
-			if (fvco < 2600 || fvco > 6600)
+			if (fvco < 2600 * MSEC_PER_SEC || fvco > 6600 * MSEC_PER_SEC)
 				continue;
 
 			/* 6MHz ≤ Fref(Fin / p) ≤ 30MHz */
-			min_prediv = DIV_ROUND_UP(fin, 30);
-			max_prediv = fin / 6;
+			min_prediv = DIV_ROUND_UP(fin, 30 * MSEC_PER_SEC);
+			max_prediv = DIV_ROUND_CLOSEST(fin, 6 * MSEC_PER_SEC);
 
 			for (_prediv = min_prediv; _prediv <= max_prediv; _prediv++) {
-				u32 delta, tmp;
+				u64 delta, tmp;
 
 				_fbdiv = DIV_ROUND_CLOSEST(fvco * _prediv, 2 * fin);
 
@@ -1700,19 +1704,19 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 				tmp = DIV_ROUND_CLOSEST((_fbdiv * fin * 2 * 1000), _prediv);
 				tmp += DIV_ROUND_CLOSEST((_dsm * fin * 1000), _prediv << 15);
 
-				delta = abs(fvco - tmp);
+				delta = abs(fvco * MSEC_PER_SEC - tmp);
 				if (delta < min_delta) {
 					best_prediv = _prediv;
 					best_fbdiv = _fbdiv;
 					best_dsm = _dsm;
 					best_scaler = _scaler;
 					min_delta = delta;
-					best_freq = DIV_ROUND_CLOSEST(tmp, 1000) * USEC_PER_SEC;
+					best_freq = DIV_ROUND_CLOSEST(tmp, 1000) * MSEC_PER_SEC;
 				}
 			}
 		}
 
-		rate += USEC_PER_SEC;
+		rate += 100 * MSEC_PER_SEC;
 	}
 
 	*prediv = best_prediv;
