@@ -39,7 +39,6 @@
 #define EN_MASK					1
 
 #define RK3568_AUTO_GATING_CTRL			0x008
-#define PORT0_ACLK_EN_SHIFT			25
 
 #define RK3568_SYS_AXI_LUT_CTRL			0x024
 #define LUT_DMA_EN_SHIFT			0
@@ -1645,12 +1644,6 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 
 	if (vop2->version == VOP_VERSION_RK3568)
 		vop2_writel(vop2, RK3568_AUTO_GATING_CTRL, 0);
-	/**
-	 * To reduce power consumption, disable the aclks of ports by default, which will be
-	 * enabled later if the corresponding ports used.
-	 */
-	else if (vop2->version == VOP_VERSION_RK3588)
-		vop2_writel(vop2, RK3568_AUTO_GATING_CTRL, 0xe1ffffff);
 
 	vop2->global_init = true;
 }
@@ -2287,12 +2280,6 @@ static int rockchip_vop2_init(struct display_state *state)
 	       mode->vscan,
 	       get_output_if_name(conn_state->output_if, output_type_name),
 	       cstate->crtc_id);
-
-	/* vp aclk enable */
-	if (vop2->version == VOP_VERSION_RK3588) {
-		vop2_mask_write(vop2, RK3568_AUTO_GATING_CTRL, EN_MASK,
-				PORT0_ACLK_EN_SHIFT + cstate->crtc_id, 1, false);
-	}
 
 	vop2_initial(vop2, state);
 	if (vop2->version == VOP_VERSION_RK3588)
