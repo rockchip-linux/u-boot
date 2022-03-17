@@ -169,6 +169,7 @@ config DRM_ROCKCHIP_SAMSUNG_MIPI_DCPHY
 config PHY_ROCKCHIP_SAMSUNG_HDPTX_HDMI
 	bool "Rockchip Samsung HDMI/DP Combo PHY HDMI driver"
 	depends on DRM_ROCKCHIP
+	select LIB_RATIONAL
 	help
 	  Support for Rockchip HDMI/DP Combo PHY HDMI with Samsung
 	  IP block.

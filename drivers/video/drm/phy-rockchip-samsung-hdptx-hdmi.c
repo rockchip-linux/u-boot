@@ -13,6 +13,7 @@
 #include <syscon.h>
 #include <asm/io.h>
 #include <linux/bitfield.h>
+#include <linux/rational.h>
 #include <linux/iopoll.h>
 #include <asm/arch/clock.h>
 #include <dm/lists.h>
@@ -979,11 +980,83 @@ static int hdptx_post_power_up(struct rockchip_hdptx_phy *hdptx)
 	return 0;
 }
 
+static bool hdptx_phy_clk_pll_calc(unsigned int data_rate,
+				   struct ropll_config *cfg)
+{
+	unsigned int fref = 24000;
+	unsigned int sdc;
+	unsigned int fout = data_rate / 2;
+	unsigned int fvco;
+	u32 mdiv, sdiv, n = 8;
+	unsigned long k = 0, lc, k_sub, lc_sub;
+
+	for (sdiv = 1; sdiv <= 16; sdiv++) {
+		if (sdiv % 2 && sdiv != 1)
+			continue;
+
+		fvco = fout * sdiv;
+
+		if (fvco < 2000000 || fvco > 4000000)
+			continue;
+
+		mdiv = DIV_ROUND_UP(fvco, fref);
+		if (mdiv < 20 || mdiv > 255)
+			continue;
+
+		if (fref * mdiv - fvco) {
+			for (sdc = 264000; sdc <= 750000; sdc += fref)
+				if (sdc * n > fref * mdiv)
+					break;
+
+			if (sdc > 750000)
+				continue;
+
+			rational_best_approximation(fref * mdiv - fvco,
+						    sdc / 16,
+						    GENMASK(6, 0),
+						    GENMASK(7, 0),
+						    &k, &lc);
+
+			rational_best_approximation(sdc * n - fref * mdiv,
+						    sdc,
+						    GENMASK(6, 0),
+						    GENMASK(7, 0),
+						    &k_sub, &lc_sub);
+		}
+
+		break;
+	}
+
+	if (sdiv > 16)
+		return false;
+
+	if (cfg) {
+		cfg->pms_mdiv = mdiv;
+		cfg->pms_mdiv_afc = mdiv;
+		cfg->pms_pdiv = 1;
+		cfg->pms_refdiv = 1;
+		cfg->pms_sdiv = sdiv - 1;
+
+		cfg->sdm_en = k > 0 ? 1 : 0;
+		if (cfg->sdm_en) {
+			cfg->sdm_deno = lc;
+			cfg->sdm_num_sign = 1;
+			cfg->sdm_num = k;
+			cfg->sdc_n = n - 3;
+			cfg->sdc_num = k_sub;
+			cfg->sdc_deno = lc_sub;
+		}
+	}
+
+	return true;
+}
+
 static int hdptx_ropll_cmn_config(struct rockchip_hdptx_phy *hdptx, unsigned long bit_rate)
 {
 	int bus_width = hdptx->bus_width;
 	u8 color_depth = (bus_width & COLOR_DEPTH_MASK) ? 1 : 0;
 	struct ropll_config *cfg = ropll_tmds_cfg;
+	struct ropll_config rc = {0};
 
 	printf("%s bus_width:%x rate:%lu\n", __func__, bus_width, bit_rate);
 	hdptx->rate = bit_rate * 100;
@@ -993,9 +1066,20 @@ static int hdptx_ropll_cmn_config(struct rockchip_hdptx_phy *hdptx, unsigned lon
 			break;
 
 	if (cfg->bit_rate == ~0) {
-		dev_err(hdptx->dev, "%s can't find pll cfg\n", __func__);
-		return -EINVAL;
+		if (hdptx_phy_clk_pll_calc(bit_rate, &rc)) {
+			cfg = &rc;
+		} else {
+			dev_err(hdptx->dev, "%s can't find pll cfg\n", __func__);
+			return -EINVAL;
+		}
 	}
+
+	dev_dbg(hdptx->dev, "mdiv=%u, sdiv=%u\n",
+		cfg->pms_mdiv, cfg->pms_sdiv + 1);
+	dev_dbg(hdptx->dev, "sdm_en=%u, k_sign=%u, k=%u, lc=%u",
+		cfg->sdm_en, cfg->sdm_num_sign, cfg->sdm_num, cfg->sdm_deno);
+	dev_dbg(hdptx->dev, "n=%u, k_sub=%u, lc_sub=%u\n",
+		cfg->sdc_n + 3, cfg->sdc_num, cfg->sdc_deno);
 
 	hdptx_pre_power_up(hdptx);
 
@@ -1726,7 +1810,7 @@ static long rockchip_hdptx_phy_clk_round_rate(struct rockchip_phy *phy,
 		if (bit_rate == cfg->bit_rate)
 			break;
 
-	if (cfg->bit_rate == ~0)
+	if (cfg->bit_rate == ~0 && !hdptx_phy_clk_pll_calc(bit_rate, NULL))
 		return -EINVAL;
 
 	return rate;
