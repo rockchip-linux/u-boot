@@ -188,7 +188,7 @@ struct samsung_mipi_dcphy {
 	void *grf;
 	int lanes;
 	bool c_option;
-	struct reset_ctl phy_rst;
+	struct reset_ctl m_phy_rst;
 
 	struct {
 		unsigned long long rate;
@@ -1530,7 +1530,7 @@ samsung_mipi_dcphy_hs_vreg_amp_config(struct samsung_mipi_dcphy *samsung)
 
 static void samsung_mipi_dphy_power_on(struct samsung_mipi_dcphy *samsung)
 {
-	reset_assert(&samsung->phy_rst);
+	reset_assert(&samsung->m_phy_rst);
 
 	samsung_mipi_dcphy_bias_block_enable(samsung);
 	samsung_mipi_dcphy_pll_configure(samsung);
@@ -1539,13 +1539,13 @@ static void samsung_mipi_dphy_power_on(struct samsung_mipi_dcphy *samsung)
 	samsung_mipi_dcphy_pll_enable(samsung);
 	samsung_mipi_dphy_lane_enable(samsung);
 
-	reset_deassert(&samsung->phy_rst);
+	reset_deassert(&samsung->m_phy_rst);
 }
 
 static void samsung_mipi_cphy_power_on(struct samsung_mipi_dcphy *samsung)
 {
 	grf_write(samsung, MIPI_DCPHY_GRF_CON0, M_CPHY_MODE);
-	reset_assert(&samsung->phy_rst);
+	reset_assert(&samsung->m_phy_rst);
 
 	samsung_mipi_dcphy_bias_block_enable(samsung);
 	samsung_mipi_dcphy_hs_vreg_amp_config(samsung);
@@ -1554,7 +1554,7 @@ static void samsung_mipi_cphy_power_on(struct samsung_mipi_dcphy *samsung)
 	samsung_mipi_dcphy_pll_enable(samsung);
 	samsung_mipi_cphy_lane_enable(samsung);
 
-	reset_deassert(&samsung->phy_rst);
+	reset_deassert(&samsung->m_phy_rst);
 }
 
 static void samsung_mipi_dphy_lane_disable(struct samsung_mipi_dcphy *samsung)
@@ -1812,10 +1812,13 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 			return -ENODEV;
 	}
 
-	ret = reset_get_by_name(dev, "phy", &samsung->phy_rst);
+	ret = reset_get_by_name(dev, "m_phy", &samsung->m_phy_rst);
 	if (ret) {
-		pr_err("reset_get_by_name(phy) failed: %d\n", ret);
-		return ret;
+		ret = reset_get_by_name(dev, "phy", &samsung->m_phy_rst);
+		if (ret) {
+			pr_err("reset_get_by_name(phy) failed: %d\n", ret);
+			return ret;
+		}
 	}
 
 	phy->dev = dev;
