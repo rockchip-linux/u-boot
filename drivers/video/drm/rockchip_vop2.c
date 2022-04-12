@@ -650,6 +650,9 @@
 
 #define VOP_FEATURE_OUTPUT_10BIT		BIT(0)
 
+/* KHz */
+#define VOP2_MAX_DCLK_RATE			600000
+
 enum vop2_csc_format {
 	CSC_BT601L,
 	CSC_BT709L,
@@ -1768,6 +1771,9 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 			if_dclk_rate = dclk_core_rate / K;
 		}
 
+		if (v_pixclk > VOP2_MAX_DCLK_RATE)
+			dclk_rate = vop2_calc_dclk(dclk_core_rate, vop2->data->vp_data->max_dclk);
+
 		if (!dclk_rate) {
 			printf("DP if_pixclk_rate out of range(max_dclk: %d KHZ, dclk_core: %lld KHZ)\n",
 			       vop2->data->vp_data->max_dclk, if_pixclk_rate);
@@ -2428,28 +2434,32 @@ static int rockchip_vop2_init(struct display_state *state)
 		       __func__);
 	}
 
-	if (conn_state->output_if & VOP_OUTPUT_IF_HDMI0)
-		vop2_clk_set_parent(&dclk, &hdmi0_phy_pll);
-	else if (conn_state->output_if & VOP_OUTPUT_IF_HDMI1)
-		vop2_clk_set_parent(&dclk, &hdmi1_phy_pll);
+	if (mode->clock < VOP2_MAX_DCLK_RATE) {
+		if (conn_state->output_if & VOP_OUTPUT_IF_HDMI0)
+			vop2_clk_set_parent(&dclk, &hdmi0_phy_pll);
+		else if (conn_state->output_if & VOP_OUTPUT_IF_HDMI1)
+			vop2_clk_set_parent(&dclk, &hdmi1_phy_pll);
 
-	/*
-	 * uboot clk driver won't set dclk parent's rate when use
-	 * hdmi phypll as dclk source.
-	 * So set dclk rate is meaningless. Set hdmi phypll rate
-	 * directly.
-	 */
-	if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0) && hdmi0_phy_pll.dev)
-		ret = vop2_clk_set_rate(&hdmi0_phy_pll, dclk_rate * 1000);
-	else if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI1) && hdmi1_phy_pll.dev)
-		ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate * 1000);
-	else
+		/*
+		 * uboot clk driver won't set dclk parent's rate when use
+		 * hdmi phypll as dclk source.
+		 * So set dclk rate is meaningless. Set hdmi phypll rate
+		 * directly.
+		 */
+		if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0) && hdmi0_phy_pll.dev)
+			ret = vop2_clk_set_rate(&hdmi0_phy_pll, dclk_rate * 1000);
+		else if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI1) && hdmi1_phy_pll.dev)
+			ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate * 1000);
+		else
+			ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
+
+		if (IS_ERR_VALUE(ret)) {
+			printf("%s: Failed to set vp%d dclk[%ld KHZ] ret=%d\n",
+			       __func__, cstate->crtc_id, dclk_rate, ret);
+			return ret;
+		}
+	} else {
 		ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
-
-	if (IS_ERR_VALUE(ret)) {
-		printf("%s: Failed to set vp%d dclk[%ld KHZ] ret=%d\n",
-		       __func__, cstate->crtc_id, dclk_rate, ret);
-		return ret;
 	}
 
 	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
