@@ -43,7 +43,7 @@ int fdt_find_regions(const void *fdt, char * const inc[], int inc_count,
 	int depth = -1;
 	int want = 0;
 	int base = fdt_off_dt_struct(fdt);
-	bool expect_end = false;
+	int expect_end = 0;
 
 	end = path;
 	*end = '\0';
@@ -114,7 +114,7 @@ int fdt_find_regions(const void *fdt, char * const inc[], int inc_count,
 				;
 			*end = '\0';
 			if (depth == -1)
-				expect_end = true;
+				expect_end = 1;
 			break;
 
 		case FDT_END:

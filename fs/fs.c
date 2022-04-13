@@ -13,6 +13,7 @@
 #include <fat.h>
 #include <fs.h>
 #include <sandboxfs.h>
+#include <sysmem.h>
 #include <ubifs_uboot.h>
 #include <asm/io.h>
 #include <div64.h>
@@ -392,20 +393,21 @@ int fs_size(const char *filename, loff_t *size)
 	return ret;
 }
 
-#ifdef CONFIG_LMB
+#ifdef CONFIG_SYSMEM
 /* Check if a file may be read to the given address */
 static int fs_read_lmb_check(const char *filename, ulong addr, loff_t offset,
 			     loff_t len, struct fstype_info *info)
 {
-	struct lmb lmb;
 	int ret;
 	loff_t size;
 	loff_t read_len;
+	phys_addr_t lmbaddr;
 
 	/* get the actual size of the file */
 	ret = info->size(filename, &size);
 	if (ret)
 		return ret;
+
 	if (offset >= size) {
 		/* offset >= EOF, no bytes will be written */
 		return 0;
@@ -416,14 +418,17 @@ static int fs_read_lmb_check(const char *filename, ulong addr, loff_t offset,
 	if (len && len < read_len)
 		read_len = len;
 
-	lmb_init_and_reserve(&lmb, gd->bd, (void *)gd->fdt_blob);
-	lmb_dump_all(&lmb);
+	lmbaddr = lmb_alloc_base(&plat_sysmem.lmb, read_len, 1, addr + read_len);
+	if (!lmbaddr) {
+		printf("** Reading file would overwrite reserved memory **\n");
+		return -ENOSPC;
+	}
+	if (lmb_free(&plat_sysmem.lmb, lmbaddr, read_len)) {
+		printf("** Freeing reserved memory failed**\n");
+		return -ENOSPC;
+	}
 
-	if (lmb_alloc_addr(&lmb, addr, read_len) == addr)
-		return 0;
-
-	printf("** Reading file would overwrite reserved memory **\n");
-	return -ENOSPC;
+	return 0;
 }
 #endif
 
@@ -434,7 +439,7 @@ static int _fs_read(const char *filename, ulong addr, loff_t offset, loff_t len,
 	void *buf;
 	int ret;
 
-#ifdef CONFIG_LMB
+#ifdef CONFIG_SYSMEM
 	if (do_lmb_check) {
 		ret = fs_read_lmb_check(filename, addr, offset, len, info);
 		if (ret)
@@ -461,7 +466,7 @@ static int _fs_read(const char *filename, ulong addr, loff_t offset, loff_t len,
 int fs_read(const char *filename, ulong addr, loff_t offset, loff_t len,
 	    loff_t *actread)
 {
-	return _fs_read(filename, addr, offset, len, 0, actread);
+	return _fs_read(filename, addr, offset, len, 1, actread);
 }
 
 int fs_write(const char *filename, ulong addr, loff_t offset, loff_t len,

@@ -53,6 +53,9 @@ struct lmb;
 
 #endif /* USE_HOSTCC */
 
+/* An invalid size, meaning that the image size is not known */
+#define IMAGE_SIZE_INVAL        (-1UL)
+
 #if IMAGE_ENABLE_FIT
 #include <hash.h>
 #include <linux/libfdt.h>

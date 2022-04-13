@@ -64,15 +64,16 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 #ifdef CONFIG_LMB
 static void boot_start_lmb(bootm_headers_t *images)
 {
-
-	lmb_init(&images->lmb);
 #ifdef CONFIG_NR_DRAM_BANKS
 	int i;
 
+	lmb_init(&images->lmb);
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
 		lmb_add(&images->lmb, gd->bd->bi_dram[i].start,
 			gd->bd->bi_dram[i].size);
 	}
+	arch_lmb_reserve(&images->lmb);
+	board_lmb_reserve(&images->lmb);
 #else
 	ulong		mem_start;
 	phys_size_t	mem_size;
@@ -82,8 +83,6 @@ static void boot_start_lmb(bootm_headers_t *images)
 	lmb_init_and_reserve_range(&images->lmb, (phys_addr_t)mem_start,
 				   mem_size, NULL);
 #endif
-	arch_lmb_reserve(&images->lmb);
-	board_lmb_reserve(&images->lmb);
 }
 #else
 #define lmb_reserve(lmb, base, size)

@@ -16,6 +16,7 @@
 #ifdef CONFIG_SYS_DIRECT_FLASH_TFTP
 #include <flash.h>
 #endif
+#include <sysmem.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -84,7 +85,7 @@ static ulong	tftp_block_wrap;
 static ulong	tftp_block_wrap_offset;
 static int	tftp_state;
 static ulong	tftp_load_addr;
-#ifdef CONFIG_LMB
+#ifdef CONFIG_SYSMEM
 static ulong	tftp_load_size;
 #endif
 #ifdef CONFIG_TFTP_TSIZE
@@ -199,7 +200,7 @@ static inline int store_block(int block, uchar *src, unsigned int len)
 	{
 		void *ptr;
 
-#ifdef CONFIG_LMB
+#ifdef CONFIG_SYSMEM
 		if (store_addr < tftp_load_addr ||
 		    store_addr + len > tftp_load_addr + tftp_load_size) {
 			puts("\nTFTP error: ");
@@ -719,13 +720,10 @@ static void tftp_timeout_handler(void)
 /* Initialize tftp_load_addr and tftp_load_size from load_addr and lmb */
 static int tftp_init_load_addr(void)
 {
-#ifdef CONFIG_LMB
-	struct lmb lmb;
+#ifdef CONFIG_SYSMEM
 	phys_size_t max_size;
 
-	lmb_init_and_reserve(&lmb, gd->bd, (void *)gd->fdt_blob);
-
-	max_size = lmb_get_unreserved_size(&lmb, load_addr);
+	max_size = lmb_get_free_size(&plat_sysmem.lmb, load_addr);
 	if (!max_size)
 		return -1;
 

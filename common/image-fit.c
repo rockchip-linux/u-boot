@@ -1787,19 +1787,22 @@ static int fdt_check_no_at(const void *fit, int parent)
 	return 0;
 }
 
-int fit_check_format(const void *fit, ulong size)
+int fit_check_format(const void *fit)
 {
+	ulong size = IMAGE_SIZE_INVAL;
 	int ret;
 
 	/* A FIT image must be a valid FDT */
 	ret = fdt_check_header(fit);
 	if (ret) {
-		log_debug("Wrong FIT format: not a flattened device tree (err=%d)\n",
-			  ret);
-		return -ENOEXEC;
+		debug("Wrong FIT format: not a flattened device tree (err=%d)\n", ret);
+		return 0;
 	}
 
-	if (CONFIG_IS_ENABLED(FIT_FULL_CHECK)) {
+#ifndef USE_HOSTCC
+	if (CONFIG_IS_ENABLED(FIT_FULL_CHECK))
+#endif
+	{
 		/*
 		 * If we are not given the size, make do wtih calculating it.
 		 * This is not as secure, so we should consider a flag to
@@ -1807,10 +1810,11 @@ int fit_check_format(const void *fit, ulong size)
 		 */
 		if (size == IMAGE_SIZE_INVAL)
 			size = fdt_totalsize(fit);
+#ifndef USE_HOSTCC
 		ret = fdt_check_full(fit, size);
 		if (ret)
-			ret = -EINVAL;
-
+			return 0;
+#endif
 		/*
 		 * U-Boot stopped using unit addressed in 2017. Since libfdt
 		 * can match nodes ignoring any unit address, signature
@@ -1818,17 +1822,16 @@ int fit_check_format(const void *fit, ulong size)
 		 * the same name as a valid node but with a unit address
 		 * attached. Protect against this by disallowing unit addresses.
 		 */
-		if (!ret && CONFIG_IS_ENABLED(FIT_SIGNATURE)) {
+#ifndef USE_HOSTCC
+		if (CONFIG_IS_ENABLED(FIT_SIGNATURE))
+#endif
+		{
 			ret = fdt_check_no_at(fit, 0);
 
 			if (ret) {
-				log_debug("FIT check error %d\n", ret);
-				return ret;
+				debug("FIT check error %d\n", ret);
+				return 0;
 			}
-		}
-		if (ret) {
-			log_debug("FIT check error %d\n", ret);
-			return ret;
 		}
 	}
 
@@ -2276,13 +2279,23 @@ int fit_image_load_index(bootm_headers_t *images, ulong addr,
 	printf("## Loading %s from FIT Image at %08lx ...\n", prop_name, addr);
 
 	bootstage_mark(bootstage_id + BOOTSTAGE_SUB_FORMAT);
-	ret = fit_check_format(fit, IMAGE_SIZE_INVAL);
-	if (ret) {
-		printf("Bad FIT %s image format! (err=%d)\n", prop_name, ret);
-		if (CONFIG_IS_ENABLED(FIT_SIGNATURE) && ret == -EADDRNOTAVAIL)
-			printf("Signature checking prevents use of unit addresses (@) in nodes\n");
+	ret = fit_check_format(fit);
+	if (!ret) {
+		printf("Bad FIT %s image format!\n", prop_name);
+#ifndef USE_HOSTCC
+		/*
+		 * Check if the failure is due to unit addresses in node names.
+		 * We need to check this separately since fit_check_format returns
+		 * boolean value for backward compatibility.
+		 */
+		if (CONFIG_IS_ENABLED(FIT_SIGNATURE) && CONFIG_IS_ENABLED(FIT_FULL_CHECK)) {
+			int check_ret = fdt_check_no_at(fit, 0);
+			if (check_ret == -EADDRNOTAVAIL)
+				printf("Signature checking prevents use of unit addresses (@) in nodes\n");
+		}
+#endif
 		bootstage_error(bootstage_id + BOOTSTAGE_SUB_FORMAT);
-		return ret;
+		return -ENOEXEC;
 	}
 	bootstage_mark(bootstage_id + BOOTSTAGE_SUB_FORMAT_OK);
 	if (fit_uname) {
