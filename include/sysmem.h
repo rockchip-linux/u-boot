@@ -28,6 +28,8 @@ struct sysmem {
 };
 
 #ifdef CONFIG_SYSMEM
+extern struct sysmem plat_sysmem;
+
 /**
  * sysmem_has_init() - Is sysmem initialized
  *
