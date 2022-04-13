@@ -375,6 +375,31 @@ int lmb_is_reserved(struct lmb *lmb, phys_addr_t addr)
 	return 0;
 }
 
+/* Return number of bytes from a given address that are free */
+phys_size_t lmb_get_free_size(struct lmb *lmb, phys_addr_t addr)
+{
+	int i;
+
+	/* This area isn't reserved, take it */
+	if (!lmb_is_reserved(lmb, addr)) {
+		for (i = 0; i < lmb->reserved.cnt; i++) {
+			if (addr < lmb->reserved.region[i].base)
+				/* first reserved range > requested address */
+				return lmb->reserved.region[i].base - addr;
+
+			if (lmb->reserved.region[i].base +
+			    lmb->reserved.region[i].size > addr)
+				/* requested addr is in this reserved range */
+				return 0;
+		}
+		/* if we come here: no reserved ranges above requested addr */
+		return lmb->memory.region[lmb->memory.cnt - 1].base +
+		       lmb->memory.region[lmb->memory.cnt - 1].size - addr;
+	}
+
+	return 0;
+}
+
 __weak void board_lmb_reserve(struct lmb *lmb)
 {
 	/* please define platform specific board_lmb_reserve() */
