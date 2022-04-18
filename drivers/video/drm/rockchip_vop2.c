@@ -2006,6 +2006,9 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 
 		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, 3, HDMI_EDP1_PIXCLK_DIV_SHIFT,
 				if_pixclk_div, false);
+
+		vop2_grf_writel(vop2, vop2->vop_grf, RK3588_GRF_VOP_CON2, EN_MASK,
+				RK3588_GRF_EDP1_ENABLE_SHIFT, 1);
 	}
 
 	if (output_if & VOP_OUTPUT_IF_HDMI0) {
