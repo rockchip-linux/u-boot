@@ -672,12 +672,12 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	struct drm_display_mode *mode = &conn_state->mode;
 	u32 act_info, dsp_info, dsp_st, dsp_stx, dsp_sty;
 	struct vop *vop = crtc_state->private;
-	int src_w = crtc_state->src_w;
-	int src_h = crtc_state->src_h;
-	int crtc_x = crtc_state->crtc_x;
-	int crtc_y = crtc_state->crtc_y;
-	int crtc_w = crtc_state->crtc_w;
-	int crtc_h = crtc_state->crtc_h;
+	int src_w = crtc_state->src_rect.w;
+	int src_h = crtc_state->src_rect.h;
+	int crtc_x = crtc_state->crtc_rect.x;
+	int crtc_y = crtc_state->crtc_rect.y;
+	int crtc_w = crtc_state->crtc_rect.w;
+	int crtc_h = crtc_state->crtc_rect.h;
 	int xvir = crtc_state->xvir;
 	int x_mirror = 0, y_mirror = 0;
 

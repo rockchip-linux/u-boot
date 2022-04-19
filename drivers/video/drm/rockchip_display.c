@@ -1087,36 +1087,36 @@ static int display_logo(struct display_state *state)
 	}
 	hdisplay = conn_state->mode.hdisplay;
 	vdisplay = conn_state->mode.vdisplay;
-	crtc_state->src_w = logo->width;
-	crtc_state->src_h = logo->height;
-	crtc_state->src_x = 0;
-	crtc_state->src_y = 0;
+	crtc_state->src_rect.w = logo->width;
+	crtc_state->src_rect.h = logo->height;
+	crtc_state->src_rect.x = 0;
+	crtc_state->src_rect.y = 0;
 	crtc_state->ymirror = logo->ymirror;
 	crtc_state->rb_swap = 0;
 
 	crtc_state->dma_addr = (u32)(unsigned long)logo->mem + logo->offset;
-	crtc_state->xvir = ALIGN(crtc_state->src_w * logo->bpp, 32) >> 5;
+	crtc_state->xvir = ALIGN(crtc_state->src_rect.w * logo->bpp, 32) >> 5;
 
 	if (logo->mode == ROCKCHIP_DISPLAY_FULLSCREEN) {
-		crtc_state->crtc_x = 0;
-		crtc_state->crtc_y = 0;
-		crtc_state->crtc_w = hdisplay;
-		crtc_state->crtc_h = vdisplay;
+		crtc_state->crtc_rect.x = 0;
+		crtc_state->crtc_rect.y = 0;
+		crtc_state->crtc_rect.w = hdisplay;
+		crtc_state->crtc_rect.h = vdisplay;
 	} else {
-		if (crtc_state->src_w >= hdisplay) {
-			crtc_state->crtc_x = 0;
-			crtc_state->crtc_w = hdisplay;
+		if (crtc_state->src_rect.w >= hdisplay) {
+			crtc_state->crtc_rect.x = 0;
+			crtc_state->crtc_rect.w = hdisplay;
 		} else {
-			crtc_state->crtc_x = (hdisplay - crtc_state->src_w) / 2;
-			crtc_state->crtc_w = crtc_state->src_w;
+			crtc_state->crtc_rect.x = (hdisplay - crtc_state->src_rect.w) / 2;
+			crtc_state->crtc_rect.w = crtc_state->src_rect.w;
 		}
 
-		if (crtc_state->src_h >= vdisplay) {
-			crtc_state->crtc_y = 0;
-			crtc_state->crtc_h = vdisplay;
+		if (crtc_state->src_rect.h >= vdisplay) {
+			crtc_state->crtc_rect.y = 0;
+			crtc_state->crtc_rect.h = vdisplay;
 		} else {
-			crtc_state->crtc_y = (vdisplay - crtc_state->src_h) / 2;
-			crtc_state->crtc_h = crtc_state->src_h;
+			crtc_state->crtc_rect.y = (vdisplay - crtc_state->src_rect.h) / 2;
+			crtc_state->crtc_rect.h = crtc_state->src_rect.h;
 		}
 	}
 

@@ -119,6 +119,21 @@ struct rockchip_dsc_sink_cap {
 	u16 target_bits_per_pixel_x16;
 };
 
+struct display_rect {
+	int x;
+	int y;
+	int w;
+	int h;
+};
+
+struct bcsh_state {
+	int brightness;
+	int contrast;
+	int saturation;
+	int sin_hue;
+	int cos_hue;
+};
+
 struct crtc_state {
 	struct udevice *dev;
 	struct rockchip_crtc *crtc;
@@ -132,15 +147,17 @@ struct crtc_state {
 	int ymirror;
 	int rb_swap;
 	int xvir;
-	int src_x;
-	int src_y;
-	int src_w;
-	int src_h;
-	int crtc_x;
-	int crtc_y;
-	int crtc_w;
-	int crtc_h;
+	int post_csc_mode;
+	struct display_rect src_rect;
+	struct display_rect crtc_rect;
+	struct display_rect right_src_rect;
+	struct display_rect right_crtc_rect;
 	bool yuv_overlay;
+	bool post_r2y_en;
+	bool post_y2r_en;
+	bool bcsh_en;
+	bool splice_mode;
+	u8 splice_crtc_id;
 	struct rockchip_mcu_timing mcu_timing;
 	u32 dual_channel_swap;
 	u32 feature;
