@@ -347,9 +347,9 @@ struct tx_drv_ctrl {
 	u8 ana_tx_drv_idrv_iup_ctrl;
 	u8 ana_tx_drv_accdrv_en;
 	u8 ana_tx_drv_accdrv_ctrl;
-};
+} __packed;
 
-static const struct tx_drv_ctrl tx_drv_ctrl_rbr[4][4] = {
+static struct tx_drv_ctrl tx_drv_ctrl_rbr[4][4] = {
 	/* voltage swing 0, pre-emphasis 0->3 */
 	{
 		{ 0x1, 0x0, 0x4, 0x6, 0x0, 0x4 },
@@ -377,7 +377,7 @@ static const struct tx_drv_ctrl tx_drv_ctrl_rbr[4][4] = {
 	}
 };
 
-static const struct tx_drv_ctrl tx_drv_ctrl_hbr[4][4] = {
+static struct tx_drv_ctrl tx_drv_ctrl_hbr[4][4] = {
 	/* voltage swing 0, pre-emphasis 0->3 */
 	{
 		{ 0x2, 0x1, 0x4, 0x6, 0x0, 0x4 },
@@ -405,7 +405,7 @@ static const struct tx_drv_ctrl tx_drv_ctrl_hbr[4][4] = {
 	}
 };
 
-static const struct tx_drv_ctrl tx_drv_ctrl_hbr2[4][4] = {
+static struct tx_drv_ctrl tx_drv_ctrl_hbr2[4][4] = {
 	/* voltage swing 0, pre-emphasis 0->3 */
 	{
 		{ 0x2, 0x1, 0x4, 0x6, 0x0, 0x4 },
@@ -432,6 +432,45 @@ static const struct tx_drv_ctrl tx_drv_ctrl_hbr2[4][4] = {
 		{ 0xd, 0x0, 0x7, 0x7, 0x1, 0x4 },
 	}
 };
+
+static int rockchip_hdptx_phy_parse_training_table(struct udevice *dev)
+{
+	int size = sizeof(struct tx_drv_ctrl) * 10;
+	const uint8_t *prop;
+	u8 *buf, *training_table;
+	int i, j;
+
+	prop = dev_read_u8_array_ptr(dev, "training-table", size);
+	if (!prop)
+		return 0;
+
+	buf = kzalloc(size, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	memcpy(buf, prop, size);
+
+	training_table = buf;
+
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < 4; j++) {
+			struct tx_drv_ctrl *ctrl;
+
+			if (i + j > 3)
+				continue;
+
+			ctrl = (struct tx_drv_ctrl *)training_table;
+			tx_drv_ctrl_rbr[i][j] = *ctrl;
+			tx_drv_ctrl_hbr[i][j] = *ctrl;
+			tx_drv_ctrl_hbr2[i][j] = *ctrl;
+			training_table += sizeof(*ctrl);
+		}
+	}
+
+	kfree(buf);
+
+	return 0;
+}
 
 static inline void phy_write(struct rockchip_hdptx_phy *hdptx, uint reg,
 			     uint val)
@@ -1037,6 +1076,12 @@ static int rockchip_hdptx_phy_probe(struct udevice *dev)
 	ret = reset_get_by_name(dev, "lane", &hdptx->lane_reset);
 	if (ret < 0) {
 		dev_err(dev, "failed to get lane reset: %d\n", ret);
+		return ret;
+	}
+
+	ret = rockchip_hdptx_phy_parse_training_table(dev);
+	if (ret) {
+		dev_err(dev, "failed to parse training table: %d\n", ret);
 		return ret;
 	}
 
