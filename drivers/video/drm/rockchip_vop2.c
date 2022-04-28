@@ -136,6 +136,8 @@
 #define RK3588_CLUSTER1_PD_EN_SHIFT		1
 #define RK3588_CLUSTER2_PD_EN_SHIFT		2
 #define RK3588_CLUSTER3_PD_EN_SHIFT		3
+#define RK3588_DSC_8K_PD_EN_SHIFT		5
+#define RK3588_DSC_4K_PD_EN_SHIFT		6
 #define RK3588_ESMART_PD_EN_SHIFT		7
 
 #define RK3568_SYS_STATUS0			0x60
@@ -143,6 +145,8 @@
 #define RK3588_CLUSTER1_PD_STATUS_SHIFT		9
 #define RK3588_CLUSTER2_PD_STATUS_SHIFT		10
 #define RK3588_CLUSTER3_PD_STATUS_SHIFT		11
+#define RK3588_DSC_8K_PD_STATUS_SHIFT		13
+#define RK3588_DSC_4K_PD_STATUS_SHIFT		14
 #define RK3588_ESMART_PD_STATUS_SHIFT		15
 
 #define RK3568_SYS_CTRL_LINE_FLAG0		0x70
@@ -640,6 +644,8 @@
 #define RK3588_PD_CLUSTER1_REPAIR_EN_SHIFT	10
 #define RK3588_PD_CLUSTER2_REPAIR_EN_SHIFT	11
 #define RK3588_PD_CLUSTER3_REPAIR_EN_SHIFT	12
+#define RK3588_PD_DSC_8K_REPAIR_EN_SHIFT	13
+#define RK3588_PD_DSC_4K_REPAIR_EN_SHIFT	14
 #define RK3588_PD_ESMART_REPAIR_EN_SHIFT	15
 
 #define RK3588_PMU_BISR_STATUS5			0x294
@@ -647,6 +653,8 @@
 #define RK3588_PD_CLUSTER1_PWR_STAT_SHIFI	10
 #define RK3588_PD_CLUSTER2_PWR_STAT_SHIFI	11
 #define RK3588_PD_CLUSTER3_PWR_STAT_SHIFI	12
+#define RK3588_PD_DSC_8K_PWR_STAT_SHIFI		13
+#define RK3588_PD_DSC_4K_PWR_STAT_SHIFI		14
 #define RK3588_PD_ESMART_PWR_STAT_SHIFI		15
 
 #define VOP2_LAYER_MAX				8
@@ -657,6 +665,25 @@
 
 /* KHz */
 #define VOP2_MAX_DCLK_RATE			600000
+
+/*
+ * vop2 dsc id
+ */
+#define ROCKCHIP_VOP2_DSC_8K	0
+#define ROCKCHIP_VOP2_DSC_4K	1
+
+/*
+ * vop2 internal power domain id,
+ * should be all none zero, 0 will be
+ * treat as invalid;
+ */
+#define VOP2_PD_CLUSTER0			BIT(0)
+#define VOP2_PD_CLUSTER1			BIT(1)
+#define VOP2_PD_CLUSTER2			BIT(2)
+#define VOP2_PD_CLUSTER3			BIT(3)
+#define VOP2_PD_DSC_8K				BIT(5)
+#define VOP2_PD_DSC_4K				BIT(6)
+#define VOP2_PD_ESMART				BIT(7)
 
 enum vop2_csc_format {
 	CSC_BT601L,
@@ -752,13 +779,13 @@ struct vop2_layer {
 };
 
 struct vop2_power_domain_data {
-	bool is_enabled;
-	bool is_parent_needed;
-	u8 pd_en_shift;
-	u8 pd_status_shift;
-	u8 pmu_status_shift;
-	u8 bisr_en_status_shift;
-	u8 parent_phy_id;
+	u8 id;
+	u8 parent_id;
+	/*
+	 * @module_id_mask: module id of which module this power domain is belongs to.
+	 * PD_CLUSTER0,1,2,3 only belongs to CLUSTER0/1/2/3, PD_Esmart0 shared by Esmart1/2/3
+	 */
+	u32 module_id_mask;
 };
 
 struct vop2_win_data {
@@ -771,9 +798,9 @@ struct vop2_win_data {
 	u8 axi_uv_id;
 	u8 axi_yrgb_id;
 	u8 splice_win_id;
+	u8 pd_id;
 	u32 reg_offset;
 	bool splice_mode_right;
-	struct vop2_power_domain_data *pd_data;
 };
 
 struct vop2_vp_data {
@@ -803,11 +830,13 @@ struct vop2_data {
 	struct vop2_win_data *win_data;
 	struct vop2_vp_plane_mask *plane_mask;
 	struct vop2_plane_table *plane_table;
+	struct vop2_power_domain_data *pd;
 	u8 nr_vps;
 	u8 nr_layers;
 	u8 nr_mixers;
 	u8 nr_gammas;
 	u8 nr_dscs;
+	u8 nr_pd;
 	u32 reg_len;
 };
 
@@ -1151,6 +1180,18 @@ static struct vop2_win_data *vop2_find_win_by_phys_id(struct vop2 *vop2, int phy
 	return NULL;
 }
 
+static struct vop2_power_domain_data *vop2_find_pd_data_by_id(struct vop2 *vop2, int pd_id)
+{
+	int i = 0;
+
+	for (i = 0; i < vop2->data->nr_pd; i++) {
+		if (vop2->data->pd[i].id == pd_id)
+			return &vop2->data->pd[i];
+	}
+
+	return NULL;
+}
+
 static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 					struct display_state *state)
 {
@@ -1464,51 +1505,62 @@ static int vop2_wait_power_domain_on(struct vop2 *vop2, struct vop2_power_domain
 {
 	int val = 0;
 	int shift = 0;
+	int shift_factor = 0;
 	bool is_bisr_en = false;
 
-	is_bisr_en = vop2_grf_readl(vop2, vop2->sys_pmu, RK3588_PMU_BISR_CON3, EN_MASK,
-				    pd_data->bisr_en_status_shift);
+	/*
+	 * The order of pd status bits in BISR_STS register
+	 * is different from that in VOP SYS_STS register.
+	 */
+	if (pd_data->id == VOP2_PD_DSC_8K ||
+	    pd_data->id == VOP2_PD_DSC_4K ||
+	    pd_data->id == VOP2_PD_ESMART)
+			shift_factor = 1;
+
+	shift = RK3588_PD_CLUSTER0_REPAIR_EN_SHIFT + generic_ffs(pd_data->id) - 1 - shift_factor;
+	is_bisr_en = vop2_grf_readl(vop2, vop2->sys_pmu, RK3588_PMU_BISR_CON3, EN_MASK, shift);
 	if (is_bisr_en) {
-		shift = pd_data->pmu_status_shift;
+		shift = RK3588_PD_CLUSTER0_PWR_STAT_SHIFI + generic_ffs(pd_data->id) - 1 - shift_factor;
+
 		return readl_poll_timeout(vop2->sys_pmu + RK3588_PMU_BISR_STATUS5, val,
 					  ((val >> shift) & 0x1), 50 * 1000);
 	} else {
-		shift = pd_data->pd_status_shift;
+		shift = RK3588_CLUSTER0_PD_STATUS_SHIFT + generic_ffs(pd_data->id) - 1;
+
 		return readl_poll_timeout(vop2->regs + RK3568_SYS_STATUS0, val,
 					  !((val >> shift) & 0x1), 50 * 1000);
 	}
 }
 
-static int vop2_power_domain_on(struct vop2 *vop2, int plane_id)
+static int vop2_power_domain_on(struct vop2 *vop2, int pd_id)
 {
-	struct vop2_win_data *win_data;
 	struct vop2_power_domain_data *pd_data;
 	int ret = 0;
 
-	win_data = vop2_find_win_by_phys_id(vop2, plane_id);
-	if (!win_data) {
-		printf("can't find win_data by phys_id\n");
+	if (!pd_id)
+		return 0;
+
+	pd_data = vop2_find_pd_data_by_id(vop2, pd_id);
+	if (!pd_data) {
+		printf("can't find pd_data by id\n");
 		return -EINVAL;
 	}
 
-	pd_data = win_data->pd_data;
-	if (!pd_data || pd_data->is_enabled) {
-		return 0;
-	} else if (pd_data->is_parent_needed) {
-		ret = vop2_power_domain_on(vop2, pd_data->parent_phy_id);
+	if (pd_data->parent_id) {
+		ret = vop2_power_domain_on(vop2, pd_data->parent_id);
 		if (ret) {
 			printf("can't open parent power domain\n");
 			return -EINVAL;
 		}
 	}
 
-	vop2_mask_write(vop2, RK3568_SYS_PD_CTRL, EN_MASK, pd_data->pd_en_shift, 0, false);
+	vop2_mask_write(vop2, RK3568_SYS_PD_CTRL, EN_MASK,
+			RK3588_CLUSTER0_PD_EN_SHIFT + generic_ffs(pd_id) - 1, 0, false);
 	ret = vop2_wait_power_domain_on(vop2, pd_data);
 	if (ret) {
 		printf("wait vop2 power domain timeout\n");
 		return ret;
 	}
-	pd_data->is_enabled = true;
 
 	return 0;
 }
@@ -2531,17 +2583,6 @@ static int rockchip_vop2_init(struct display_state *state)
 	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
 			RK3568_DSP_LINE_FLAG_NUM1_SHIFT, act_end, false);
 
-	if (vop2->version == VOP_VERSION_RK3588) {
-		if (vop2_power_domain_on(vop2, vop2->vp_plane_mask[cstate->crtc_id].primary_plane_id))
-			printf("open vp%d plane pd fail\n", cstate->crtc_id);
-
-		if (cstate->splice_mode) {
-			if (vop2_power_domain_on(vop2, vop2->vp_plane_mask[cstate->splice_crtc_id].primary_plane_id))
-				printf("splice mode: open vp%d plane pd fail\n",
-				       cstate->splice_crtc_id);
-		}
-	}
-
 	return 0;
 }
 
@@ -2929,10 +2970,19 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 		return -ENODEV;
 	}
 
+	if (vop2->version == VOP_VERSION_RK3588) {
+		if (vop2_power_domain_on(vop2, win_data->pd_id))
+			printf("open vp%d plane pd fail\n", cstate->crtc_id);
+	}
+
 	if (cstate->splice_mode) {
 		if (win_data->splice_win_id) {
 			splice_win_data = vop2_find_win_by_phys_id(vop2, win_data->splice_win_id);
 			splice_win_data->splice_mode_right = true;
+
+			if (vop2_power_domain_on(vop2, splice_win_data->pd_id))
+				printf("splice mode: open vp%d plane pd fail\n", cstate->splice_crtc_id);
+
 			vop2_calc_display_rect_for_splice(state);
 			if (win_data->type == CLUSTER_LAYER)
 				vop2_set_cluster_win(state, splice_win_data);
@@ -3348,47 +3398,6 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 
 };
 
-static struct vop2_power_domain_data rk3588_cluster0_pd_data = {
-	.pd_en_shift = RK3588_CLUSTER0_PD_EN_SHIFT,
-	.pd_status_shift = RK3588_CLUSTER0_PD_STATUS_SHIFT,
-	.pmu_status_shift = RK3588_PD_CLUSTER0_PWR_STAT_SHIFI,
-	.bisr_en_status_shift = RK3588_PD_CLUSTER0_REPAIR_EN_SHIFT,
-};
-
-static struct vop2_power_domain_data rk3588_cluster1_pd_data = {
-	.is_parent_needed = true,
-	.pd_en_shift = RK3588_CLUSTER1_PD_EN_SHIFT,
-	.pd_status_shift = RK3588_CLUSTER1_PD_STATUS_SHIFT,
-	.pmu_status_shift = RK3588_PD_CLUSTER1_PWR_STAT_SHIFI,
-	.bisr_en_status_shift = RK3588_PD_CLUSTER1_REPAIR_EN_SHIFT,
-	.parent_phy_id = ROCKCHIP_VOP2_CLUSTER0,
-};
-
-static struct vop2_power_domain_data rk3588_cluster2_pd_data = {
-	.is_parent_needed = true,
-	.pd_en_shift = RK3588_CLUSTER2_PD_EN_SHIFT,
-	.pd_status_shift = RK3588_CLUSTER2_PD_STATUS_SHIFT,
-	.pmu_status_shift = RK3588_PD_CLUSTER2_PWR_STAT_SHIFI,
-	.bisr_en_status_shift = RK3588_PD_CLUSTER2_REPAIR_EN_SHIFT,
-	.parent_phy_id = ROCKCHIP_VOP2_CLUSTER0,
-};
-
-static struct vop2_power_domain_data rk3588_cluster3_pd_data = {
-	.is_parent_needed = true,
-	.pd_en_shift = RK3588_CLUSTER3_PD_EN_SHIFT,
-	.pd_status_shift = RK3588_CLUSTER3_PD_STATUS_SHIFT,
-	.pmu_status_shift = RK3588_PD_CLUSTER3_PWR_STAT_SHIFI,
-	.bisr_en_status_shift = RK3588_PD_CLUSTER3_REPAIR_EN_SHIFT,
-	.parent_phy_id = ROCKCHIP_VOP2_CLUSTER0,
-};
-
-static struct vop2_power_domain_data rk3588_esmart_pd_data = {
-	.pd_en_shift = RK3588_ESMART_PD_EN_SHIFT,
-	.pd_status_shift = RK3588_ESMART_PD_STATUS_SHIFT,
-	.pmu_status_shift = RK3588_PD_ESMART_PWR_STAT_SHIFI,
-	.bisr_en_status_shift = RK3588_PD_ESMART_REPAIR_EN_SHIFT,
-};
-
 static struct vop2_win_data rk3588_win_data[8] = {
 	{
 		.name = "Cluster0",
@@ -3401,7 +3410,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 0,
 		.axi_yrgb_id = 2,
 		.axi_uv_id = 3,
-		.pd_data = &rk3588_cluster0_pd_data,
+		.pd_id = VOP2_PD_CLUSTER0,
 	},
 
 	{
@@ -3414,7 +3423,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 0,
 		.axi_yrgb_id = 6,
 		.axi_uv_id = 7,
-		.pd_data = &rk3588_cluster1_pd_data,
+		.pd_id = VOP2_PD_CLUSTER1,
 	},
 
 	{
@@ -3428,7 +3437,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 1,
 		.axi_yrgb_id = 2,
 		.axi_uv_id = 3,
-		.pd_data = &rk3588_cluster2_pd_data,
+		.pd_id = VOP2_PD_CLUSTER2,
 	},
 
 	{
@@ -3441,7 +3450,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 1,
 		.axi_yrgb_id = 6,
 		.axi_uv_id = 7,
-		.pd_data = &rk3588_cluster3_pd_data,
+		.pd_id = VOP2_PD_CLUSTER3,
 	},
 
 	{
@@ -3467,7 +3476,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 0,
 		.axi_yrgb_id = 0x0c,
 		.axi_uv_id = 0x0d,
-		.pd_data = &rk3588_esmart_pd_data,
+		.pd_id = VOP2_PD_ESMART,
 	},
 
 	{
@@ -3481,7 +3490,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 1,
 		.axi_yrgb_id = 0x0a,
 		.axi_uv_id = 0x0b,
-		.pd_data = &rk3588_esmart_pd_data,
+		.pd_id = VOP2_PD_ESMART,
 	},
 
 	{
@@ -3494,7 +3503,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 1,
 		.axi_yrgb_id = 0x0c,
 		.axi_uv_id = 0x0d,
-		.pd_data = &rk3588_esmart_pd_data,
+		.pd_id = VOP2_PD_ESMART,
 	},
 };
 
@@ -3526,6 +3535,42 @@ static struct vop2_vp_data rk3588_vp_data[4] = {
 	},
 };
 
+static struct vop2_power_domain_data rk3588_vop_pd_data[] = {
+	{
+	  .id = VOP2_PD_CLUSTER0,
+	  .module_id_mask = BIT(ROCKCHIP_VOP2_CLUSTER0),
+	},
+	{
+	  .id = VOP2_PD_CLUSTER1,
+	  .module_id_mask = BIT(ROCKCHIP_VOP2_CLUSTER1),
+	  .parent_id = VOP2_PD_CLUSTER0,
+	},
+	{
+	  .id = VOP2_PD_CLUSTER2,
+	  .module_id_mask = BIT(ROCKCHIP_VOP2_CLUSTER2),
+	  .parent_id = VOP2_PD_CLUSTER0,
+	},
+	{
+	  .id = VOP2_PD_CLUSTER3,
+	  .module_id_mask = BIT(ROCKCHIP_VOP2_CLUSTER3),
+	  .parent_id = VOP2_PD_CLUSTER0,
+	},
+	{
+	  .id = VOP2_PD_ESMART,
+	  .module_id_mask = BIT(ROCKCHIP_VOP2_ESMART1) |
+			    BIT(ROCKCHIP_VOP2_ESMART2) |
+			    BIT(ROCKCHIP_VOP2_ESMART3),
+	},
+	{
+	  .id = VOP2_PD_DSC_8K,
+	  .module_id_mask = BIT(ROCKCHIP_VOP2_DSC_8K),
+	},
+	{
+	  .id = VOP2_PD_DSC_4K,
+	  .module_id_mask = BIT(ROCKCHIP_VOP2_DSC_4K),
+	},
+};
+
 const struct vop2_data rk3588_vop = {
 	.version = VOP_VERSION_RK3588,
 	.nr_vps = 4,
@@ -3533,10 +3578,12 @@ const struct vop2_data rk3588_vop = {
 	.win_data = rk3588_win_data,
 	.plane_mask = rk3588_vp_plane_mask[0],
 	.plane_table = rk3588_plane_table,
+	.pd = rk3588_vop_pd_data,
 	.nr_layers = 8,
 	.nr_mixers = 7,
 	.nr_gammas = 4,
 	.nr_dscs = 2,
+	.nr_pd = ARRAY_SIZE(rk3588_vop_pd_data),
 };
 
 const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
