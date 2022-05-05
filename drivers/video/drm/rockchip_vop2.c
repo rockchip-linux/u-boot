@@ -154,6 +154,57 @@
 #define RK3568_DSP_LINE_FLAG_NUM0_SHIFT		0
 #define RK3568_DSP_LINE_FLAG_NUM1_SHIFT		16
 
+/* DSC CTRL registers definition */
+#define RK3588_DSC_8K_SYS_CTRL			0x200
+#define DSC_PORT_SEL_MASK			0x3
+#define DSC_PORT_SEL_SHIFT			0
+#define DSC_MAN_MODE_MASK			0x1
+#define DSC_MAN_MODE_SHIFT			2
+#define DSC_INTERFACE_MODE_MASK			0x3
+#define DSC_INTERFACE_MODE_SHIFT		4
+#define DSC_PIXEL_NUM_MASK			0x3
+#define DSC_PIXEL_NUM_SHIFT			6
+#define DSC_PXL_CLK_DIV_MASK			0x1
+#define DSC_PXL_CLK_DIV_SHIFT			8
+#define DSC_CDS_CLK_DIV_MASK			0x3
+#define DSC_CDS_CLK_DIV_SHIFT			12
+#define DSC_TXP_CLK_DIV_MASK			0x3
+#define DSC_TXP_CLK_DIV_SHIFT			14
+#define DSC_INIT_DLY_MODE_MASK			0x1
+#define DSC_INIT_DLY_MODE_SHIFT			16
+#define DSC_SCAN_EN_SHIFT			17
+#define DSC_HALT_EN_SHIFT			18
+
+#define RK3588_DSC_8K_RST			0x204
+#define RST_DEASSERT_MASK			0x1
+#define RST_DEASSERT_SHIFT			0
+
+#define RK3588_DSC_8K_CFG_DONE			0x208
+#define DSC_CFG_DONE_SHIFT			0
+
+#define RK3588_DSC_8K_INIT_DLY			0x20C
+#define DSC_INIT_DLY_NUM_MASK			0xffff
+#define DSC_INIT_DLY_NUM_SHIFT			0
+#define SCAN_TIMING_PARA_IMD_EN_SHIFT		16
+
+#define RK3588_DSC_8K_HTOTAL_HS_END		0x210
+#define DSC_HTOTAL_PW_MASK			0xffffffff
+#define DSC_HTOTAL_PW_SHIFT			0
+
+#define RK3588_DSC_8K_HACT_ST_END		0x214
+#define DSC_HACT_ST_END_MASK			0xffffffff
+#define DSC_HACT_ST_END_SHIFT			0
+
+#define RK3588_DSC_8K_VTOTAL_VS_END		0x218
+#define DSC_VTOTAL_PW_MASK			0xffffffff
+#define DSC_VTOTAL_PW_SHIFT			0
+
+#define RK3588_DSC_8K_VACT_ST_END		0x21C
+#define DSC_VACT_ST_END_MASK			0xffffffff
+#define DSC_VACT_ST_END_SHIFT			0
+
+#define RK3588_DSC_8K_STATUS			0x220
+
 /* Overlay registers definition    */
 #define RK3568_OVL_CTRL				0x600
 #define OVL_MODE_SEL_MASK			0x1
@@ -621,6 +672,31 @@
 #define RK3568_SMART1_REGION3_SCL_FACTOR_CBR	0x1EC8
 #define RK3568_SMART1_REGION3_SCL_OFFSET	0x1ECC
 
+/* DSC 8K/4K register definition */
+#define RK3588_DSC_8K_PPS0_3			0x4000
+#define RK3588_DSC_8K_CTRL0			0x40A0
+#define DSC_EN_SHIFT				0
+#define DSC_RBIT_SHIFT				2
+#define DSC_RBYT_SHIFT				3
+#define DSC_FLAL_SHIFT				4
+#define DSC_MER_SHIFT				5
+#define DSC_EPB_SHIFT				6
+#define DSC_EPL_SHIFT				7
+#define DSC_NSLC_SHIFT				16
+#define DSC_SBO_SHIFT				28
+#define DSC_IFEP_SHIFT				29
+#define DSC_PPS_UPD_SHIFT			31
+
+#define RK3588_DSC_8K_CTRL1			0x40A4
+#define RK3588_DSC_8K_STS0			0x40A8
+#define RK3588_DSC_8K_ERS			0x40C4
+
+#define RK3588_DSC_4K_PPS0_3			0x4100
+#define RK3588_DSC_4K_CTRL0			0x41A0
+#define RK3588_DSC_4K_CTRL1			0x41A4
+#define RK3588_DSC_4K_STS0			0x41A8
+#define RK3588_DSC_4K_ERS			0x41C4
+
 #define RK3568_MAX_REG				0x1ED0
 
 #define RK3568_GRF_VO_CON1			0x0364
@@ -768,6 +844,13 @@ enum scale_mode {
 	SCALE_DOWN = 0x2
 };
 
+enum vop_dsc_interface_mode {
+	VOP_DSC_IF_DISABLE = 0,
+	VOP_DSC_IF_HDMI = 1,
+	VOP_DSC_IF_MIPI_DS_MODE = 2,
+	VOP_DSC_IF_MIPI_VIDEO_MODE = 3,
+};
+
 struct vop2_layer {
 	u8 id;
 	/**
@@ -824,6 +907,23 @@ struct vop2_vp_plane_mask {
 	int cursor_plane_id;
 };
 
+struct vop2_dsc_data {
+	u8 id;
+	u8 pd_id;
+	u8 max_slice_num;
+	u8 max_linebuf_depth;	/* used to generate the bitstream */
+	u8 min_bits_per_pixel;	/* bit num after encoder compress */
+	const char *dsc_txp_clk_src_name;
+	const char *dsc_txp_clk_name;
+	const char *dsc_pxl_clk_name;
+	const char *dsc_cds_clk_name;
+};
+
+struct dsc_error_info {
+	u32 dsc_error_val;
+	char dsc_error_info[50];
+};
+
 struct vop2_data {
 	u32 version;
 	struct vop2_vp_data *vp_data;
@@ -831,12 +931,17 @@ struct vop2_data {
 	struct vop2_vp_plane_mask *plane_mask;
 	struct vop2_plane_table *plane_table;
 	struct vop2_power_domain_data *pd;
+	struct vop2_dsc_data *dsc;
+	struct dsc_error_info *dsc_error_ecw;
+	struct dsc_error_info *dsc_error_buffer_flow;
 	u8 nr_vps;
 	u8 nr_layers;
 	u8 nr_mixers;
 	u8 nr_gammas;
-	u8 nr_dscs;
 	u8 nr_pd;
+	u8 nr_dscs;
+	u8 nr_dsc_ecw;
+	u8 nr_dsc_buffer_flow;
 	u32 reg_len;
 };
 
@@ -1855,9 +1960,9 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 			dclk_rate = dclk_rate >> 1;
 			K = 2;
 		}
-		if (conn_state->dsc_enable) {
-			if_pixclk_rate = conn_state->dsc_cds_clk << 1;
-			if_dclk_rate = conn_state->dsc_cds_clk;
+		if (cstate->dsc_enable) {
+			if_pixclk_rate = cstate->dsc_cds_clk_rate << 1;
+			if_dclk_rate = cstate->dsc_cds_clk_rate;
 		} else {
 			if_pixclk_rate = (dclk_core_rate << 1) / K;
 			if_dclk_rate = dclk_core_rate / K;
@@ -1902,12 +2007,13 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 	} else if (output_type == DRM_MODE_CONNECTOR_DSI) {
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)
 			K = 2;
-		if (conn_state->dsc_enable)
-			if_pixclk_rate = conn_state->dsc_cds_clk >> 1;
+		if (cstate->dsc_enable)
+			/* dsc output is 96bit, dsi input is 192 bit */
+			if_pixclk_rate = cstate->dsc_cds_clk_rate >> 1;
 		else
 			if_pixclk_rate = dclk_core_rate / K;
 		/* dclk_core = dclk_out * K = if_pixclk * K = v_pixclk / 4 */
-		dclk_out_rate = if_pixclk_rate;
+		dclk_out_rate = dclk_core_rate / K;
 		/* dclk_rate = N * dclk_core_rate N = (1,2,4 ), we get a little factor here */
 		dclk_rate = vop2_calc_dclk(dclk_out_rate, vop2->data->vp_data->max_dclk);
 		if (!dclk_rate) {
@@ -1915,9 +2021,15 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 			       vop2->data->vp_data->max_dclk, dclk_rate);
 			return -EINVAL;
 		}
+
+		if (cstate->dsc_enable)
+			dclk_rate = dclk_rate >> 1;
+
 		*dclk_out_div = dclk_rate / dclk_out_rate;
 		*dclk_core_div = dclk_rate / dclk_core_rate;
 		*if_pixclk_div = 1;       /*mipi pixclk == dclk_out*/
+		if (cstate->dsc_enable)
+			*if_pixclk_div = dclk_out_rate / if_pixclk_rate;
 
 	} else if (output_type == DRM_MODE_CONNECTOR_DPI) {
 		dclk_rate = v_pixclk;
@@ -1932,27 +2044,29 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 	return dclk_rate;
 }
 
-static int vop2_calc_dsc_clk(struct connector_state *conn_state)
+static int vop2_calc_dsc_clk(struct display_state *state)
 {
+	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	u64 v_pixclk = mode->clock * 1000LL; /* video timing pixclk */
+	struct crtc_state *cstate = &state->crtc_state;
+	u64 v_pixclk = mode->clock; /* video timing pixclk */
 	u8 k = 1;
 
 	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)
 		k = 2;
 
-	conn_state->dsc_pxl_clk = v_pixclk;
-	do_div(conn_state->dsc_pxl_clk, (conn_state->dsc_slice_num * k));
+	cstate->dsc_txp_clk_rate = v_pixclk;
+	do_div(cstate->dsc_txp_clk_rate, (cstate->dsc_pixel_num * k));
 
-	conn_state->dsc_txp_clk = v_pixclk;
-	do_div(conn_state->dsc_txp_clk, (conn_state->dsc_pixel_num * k));
+	cstate->dsc_pxl_clk_rate = v_pixclk;
+	do_div(cstate->dsc_pxl_clk_rate, (cstate->dsc_slice_num * k));
 
 	/* dsc_cds = crtc_clock / (cds_dat_width / bits_per_pixel)
 	 * cds_dat_width = 96;
 	 * bits_per_pixel = [8-12];
 	 * As only support 1/2/4 div, so we set dsc_cds = crtc_clock / 8;
 	 */
-	conn_state->dsc_cds_clk = mode->crtc_clock / 8 * 1000;
+	cstate->dsc_cds_clk_rate = v_pixclk / 8;
 
 	return 0;
 }
@@ -1962,7 +2076,7 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	struct rockchip_dsc_sink_cap *dsc_sink_cap = &conn_state->dsc_sink_cap;
+	struct rockchip_dsc_sink_cap *dsc_sink_cap = &cstate->dsc_sink_cap;
 	struct vop2 *vop2 = cstate->private;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u16 hdisplay = mode->crtc_hdisplay;
@@ -1982,16 +2096,25 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 		val |= (mode->flags & DRM_MODE_FLAG_NVSYNC) ? 0 : BIT(VSYNC_POSITIVE);
 	}
 
-	if (conn_state->dsc_enable) {
+	if (cstate->dsc_enable) {
+		int k = 1;
+
 		if (!vop2->data->nr_dscs) {
-			printf("No DSC\n");
+			printf("Unsupported DSC\n");
 			return 0;
 		}
-		conn_state->dsc_id = output_if & (VOP_OUTPUT_IF_MIPI0 | VOP_OUTPUT_IF_HDMI0) ? 0 : 1;
-		conn_state->dsc_slice_num = hdisplay / dsc_sink_cap->slice_width;
-		conn_state->dsc_pixel_num = conn_state->dsc_slice_num >= 4 ?
-					    4 : conn_state->dsc_slice_num >= 2 ? 2 : 1;
-		vop2_calc_dsc_clk(conn_state);
+
+		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)
+			k = 2;
+
+		cstate->dsc_id = output_if & (VOP_OUTPUT_IF_MIPI0 | VOP_OUTPUT_IF_HDMI0) ? 0 : 1;
+		cstate->dsc_slice_num = hdisplay / dsc_sink_cap->slice_width / k;
+		cstate->dsc_pixel_num = cstate->dsc_slice_num > 4 ? 4 : cstate->dsc_slice_num;
+
+		vop2_calc_dsc_clk(state);
+		printf("Enable DSC%d slice:%dx%d, slice num:%d\n",
+		       cstate->dsc_id, dsc_sink_cap->slice_width,
+		       dsc_sink_cap->slice_height, cstate->dsc_slice_num);
 	}
 
 	dclk_rate = vop2_calc_cru_cfg(state, &dclk_core_div, &dclk_out_div, &if_pixclk_div, &if_dclk_div);
@@ -2345,6 +2468,216 @@ static ulong vop2_clk_set_rate(struct clk *clk, ulong rate)
 	return ret;
 }
 
+static void vop2_calc_dsc_cru_cfg(struct display_state *state,
+				  int *dsc_txp_clk_div, int *dsc_pxl_clk_div,
+				  int *dsc_cds_clk_div, u64 dclk_rate)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+
+	*dsc_txp_clk_div = dclk_rate / cstate->dsc_txp_clk_rate;
+	*dsc_pxl_clk_div = dclk_rate / cstate->dsc_pxl_clk_rate;
+	*dsc_cds_clk_div = dclk_rate / cstate->dsc_cds_clk_rate;
+
+	*dsc_txp_clk_div = ilog2(*dsc_txp_clk_div);
+	*dsc_pxl_clk_div = ilog2(*dsc_pxl_clk_div);
+	*dsc_cds_clk_div = ilog2(*dsc_cds_clk_div);
+}
+
+static void vop2_load_pps(struct display_state *state, struct vop2 *vop2, u8 dsc_id)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct drm_dsc_picture_parameter_set *pps = &cstate->pps;
+	struct drm_dsc_picture_parameter_set config_pps;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_dsc_data *dsc_data = &vop2_data->dsc[dsc_id];
+	u32 *pps_val = (u32 *)&config_pps;
+	u32 decoder_regs_offset = (dsc_id * 0x100);
+	int i = 0;
+
+	memcpy(&config_pps, pps, sizeof(config_pps));
+
+	if ((config_pps.pps_3 & 0xf) > dsc_data->max_linebuf_depth) {
+		config_pps.pps_3 &= 0xf0;
+		config_pps.pps_3 |= dsc_data->max_linebuf_depth;
+		printf("DSC%d max_linebuf_depth is: %d, current set value is: %d\n",
+		       dsc_id, dsc_data->max_linebuf_depth, config_pps.pps_3 & 0xf);
+	}
+
+	for (i = 0; i < DSC_NUM_BUF_RANGES; i++) {
+		config_pps.rc_range_parameters[i] =
+			(pps->rc_range_parameters[i] >> 3 & 0x1f) |
+			((pps->rc_range_parameters[i] >> 14 & 0x3) << 5) |
+			((pps->rc_range_parameters[i] >> 0 & 0x7) << 7) |
+			((pps->rc_range_parameters[i] >> 8 & 0x3f) << 10);
+	}
+
+	for (i = 0; i < ROCKCHIP_DSC_PPS_SIZE_BYTE / 4; i++)
+		vop2_writel(vop2, RK3588_DSC_8K_PPS0_3 + decoder_regs_offset + i * 4, *pps_val++);
+}
+
+static void vop2_dsc_enable(struct display_state *state, struct vop2 *vop2, u8 dsc_id, u64 dclk_rate)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct crtc_state *cstate = &state->crtc_state;
+	struct rockchip_dsc_sink_cap *dsc_sink_cap = &cstate->dsc_sink_cap;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_dsc_data *dsc_data = &vop2_data->dsc[dsc_id];
+	bool mipi_ds_mode = false;
+	u8 dsc_interface_mode = 0;
+	u16 hsync_len = mode->crtc_hsync_end - mode->crtc_hsync_start;
+	u16 hdisplay = mode->crtc_hdisplay;
+	u16 htotal = mode->crtc_htotal;
+	u16 hact_st = mode->crtc_htotal - mode->crtc_hsync_start;
+	u16 vdisplay = mode->crtc_vdisplay;
+	u16 vtotal = mode->crtc_vtotal;
+	u16 vsync_len = mode->crtc_vsync_end - mode->crtc_vsync_start;
+	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
+	u16 vact_end = vact_st + vdisplay;
+	u32 ctrl_regs_offset = (dsc_id * 0x30);
+	u32 decoder_regs_offset = (dsc_id * 0x100);
+	u32 backup_regs_offset = 0;
+	int dsc_txp_clk_div = 0;
+	int dsc_pxl_clk_div = 0;
+	int dsc_cds_clk_div = 0;
+
+	if (!vop2->data->nr_dscs) {
+		printf("Unsupported DSC\n");
+		return;
+	}
+
+	if (cstate->dsc_slice_num > dsc_data->max_slice_num)
+		printf("DSC%d supported max slice is: %d, current is: %d\n",
+		       dsc_data->id, dsc_data->max_slice_num, cstate->dsc_slice_num);
+
+	if (dsc_data->pd_id) {
+		if (vop2_power_domain_on(vop2, dsc_data->pd_id))
+			printf("open dsc%d pd fail\n", dsc_id);
+	}
+
+	vop2_mask_write(vop2, RK3588_DSC_8K_INIT_DLY + ctrl_regs_offset, EN_MASK,
+			SCAN_TIMING_PARA_IMD_EN_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_PORT_SEL_MASK,
+			DSC_PORT_SEL_SHIFT, cstate->crtc_id, false);
+	if (conn_state->output_if & (VOP_OUTPUT_IF_HDMI0 | VOP_OUTPUT_IF_HDMI1)) {
+		dsc_interface_mode = VOP_DSC_IF_HDMI;
+	} else {
+		mipi_ds_mode = !!(conn_state->output_flags & ROCKCHIP_OUTPUT_MIPI_DS_MODE);
+		if (mipi_ds_mode)
+			dsc_interface_mode = VOP_DSC_IF_MIPI_DS_MODE;
+		else
+			dsc_interface_mode = VOP_DSC_IF_MIPI_VIDEO_MODE;
+	}
+
+	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)
+		vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_MAN_MODE_MASK,
+				DSC_MAN_MODE_SHIFT, 0, false);
+	else
+		vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_MAN_MODE_MASK,
+				DSC_MAN_MODE_SHIFT, 1, false);
+
+	vop2_calc_dsc_cru_cfg(state, &dsc_txp_clk_div, &dsc_pxl_clk_div, &dsc_cds_clk_div, dclk_rate);
+
+	vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_INTERFACE_MODE_MASK,
+			DSC_INTERFACE_MODE_SHIFT, dsc_interface_mode, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_PIXEL_NUM_MASK,
+			DSC_PIXEL_NUM_SHIFT, cstate->dsc_pixel_num >> 1, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_TXP_CLK_DIV_MASK,
+			DSC_TXP_CLK_DIV_SHIFT, dsc_txp_clk_div, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_PXL_CLK_DIV_MASK,
+			DSC_PXL_CLK_DIV_SHIFT, dsc_pxl_clk_div, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_CDS_CLK_DIV_MASK,
+			DSC_CDS_CLK_DIV_SHIFT, dsc_cds_clk_div, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, EN_MASK,
+			DSC_SCAN_EN_SHIFT, !mipi_ds_mode, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_SYS_CTRL + ctrl_regs_offset, DSC_CDS_CLK_DIV_MASK,
+			DSC_HALT_EN_SHIFT, mipi_ds_mode, false);
+
+	if (!mipi_ds_mode) {
+		u16 dsc_hsync, dsc_htotal, dsc_hact_st, dsc_hact_end;
+		u32 target_bpp = dsc_sink_cap->target_bits_per_pixel_x16;
+		u64 dsc_cds_rate = cstate->dsc_cds_clk_rate;
+		u32 v_pixclk_mhz = mode->crtc_clock / 1000; /* video timing pixclk */
+		u32 dly_num, dsc_cds_rate_mhz, val = 0;
+
+		if (target_bpp >> 4 < dsc_data->min_bits_per_pixel)
+			printf("Unsupported bpp less than: %d\n", dsc_data->min_bits_per_pixel);
+
+		/*
+		 * dly_num = delay_line_num * T(one-line) / T (dsc_cds)
+		 * T (one-line) = 1/v_pixclk_mhz * htotal = htotal/v_pixclk_mhz
+		 * T (dsc_cds) = 1 / dsc_cds_rate_mhz
+		 * delay_line_num: according the pps initial_xmit_delay to adjust vop dsc delay
+		 *                 delay_line_num = 4 - BPP / 8
+		 *                                = (64 - target_bpp / 8) / 16
+		 *
+		 * dly_num = htotal * dsc_cds_rate_mhz / v_pixclk_mhz * (64 - target_bpp / 8) / 16;
+		 */
+		do_div(dsc_cds_rate, 1000000); /* hz to Mhz */
+		dsc_cds_rate_mhz = dsc_cds_rate;
+		dly_num = htotal * dsc_cds_rate_mhz / v_pixclk_mhz * (64 - target_bpp / 8) / 16;
+		vop2_mask_write(vop2, RK3588_DSC_8K_INIT_DLY + ctrl_regs_offset, DSC_INIT_DLY_MODE_MASK,
+				DSC_INIT_DLY_MODE_SHIFT, 0, false);
+		vop2_mask_write(vop2, RK3588_DSC_8K_INIT_DLY + ctrl_regs_offset, DSC_INIT_DLY_NUM_MASK,
+				DSC_INIT_DLY_NUM_SHIFT, dly_num, false);
+
+		dsc_hsync = hsync_len / 2;
+		dsc_htotal = htotal / (1 << dsc_cds_clk_div);
+		val = dsc_htotal << 16 | dsc_hsync;
+		vop2_mask_write(vop2, RK3588_DSC_8K_HTOTAL_HS_END + ctrl_regs_offset, DSC_HTOTAL_PW_MASK,
+				DSC_HTOTAL_PW_SHIFT, val, false);
+
+		dsc_hact_st = hact_st / 2;
+		dsc_hact_end = (hdisplay * target_bpp >> 4) / 24 + dsc_hact_st;
+		val = dsc_hact_end << 16 | dsc_hact_st;
+		vop2_mask_write(vop2, RK3588_DSC_8K_HACT_ST_END + ctrl_regs_offset, DSC_HACT_ST_END_MASK,
+				DSC_HACT_ST_END_SHIFT, val, false);
+
+		vop2_mask_write(vop2, RK3588_DSC_8K_VTOTAL_VS_END + ctrl_regs_offset, DSC_VTOTAL_PW_MASK,
+				DSC_VTOTAL_PW_SHIFT, vtotal << 16 | vsync_len, false);
+		vop2_mask_write(vop2, RK3588_DSC_8K_VACT_ST_END + ctrl_regs_offset, DSC_VACT_ST_END_MASK,
+				DSC_VACT_ST_END_SHIFT, vact_end << 16 | vact_st, false);
+	}
+
+	vop2_mask_write(vop2, RK3588_DSC_8K_RST + ctrl_regs_offset, RST_DEASSERT_MASK,
+			RST_DEASSERT_SHIFT, 1, false);
+	udelay(10);
+	/* read current dsc core register and backup to regsbak */
+	backup_regs_offset = RK3588_DSC_8K_CTRL0;
+	vop2->regsbak[backup_regs_offset >> 2] = vop2_readl(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset);
+
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_EN_SHIFT, 1, false);
+	vop2_load_pps(state, vop2, dsc_id);
+
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_RBIT_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_RBYT_SHIFT, 0, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_FLAL_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_MER_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_EPB_SHIFT, 0, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_EPL_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_NSLC_SHIFT, ilog2(cstate->dsc_slice_num), false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_SBO_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_IFEP_SHIFT, dsc_sink_cap->version_minor == 2 ? 1 : 0, false);
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+			DSC_PPS_UPD_SHIFT, 1, false);
+
+	printf("DSC%d: txp:%lld div:%d, pxl:%lld div:%d, dsc:%lld div:%d\n",
+	       dsc_id,
+	       cstate->dsc_txp_clk_rate, dsc_txp_clk_div,
+	       cstate->dsc_pxl_clk_rate, dsc_pxl_clk_div,
+	       cstate->dsc_cds_clk_rate, dsc_cds_clk_div);
+}
+
 static int rockchip_vop2_init(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -2526,6 +2859,15 @@ static int rockchip_vop2_init(struct display_state *state)
 
 	vop2_tv_config_update(state, vop2);
 	vop2_post_config(state, vop2);
+
+	if (cstate->dsc_enable) {
+		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
+			vop2_dsc_enable(state, vop2, 0, dclk_rate);
+			vop2_dsc_enable(state, vop2, 1, dclk_rate);
+		} else {
+			vop2_dsc_enable(state, vop2, cstate->dsc_id, dclk_rate);
+		}
+	}
 
 	snprintf(dclk_name, sizeof(dclk_name), "dclk_vp%d", cstate->crtc_id);
 	ret = clk_get_by_name(cstate->dev, dclk_name, &dclk);
@@ -3014,6 +3356,25 @@ static int rockchip_vop2_prepare(struct display_state *state)
 	return 0;
 }
 
+static void vop2_dsc_cfg_done(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	u8 dsc_id = cstate->dsc_id;
+	u32 ctrl_regs_offset = (dsc_id * 0x30);
+
+	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
+		vop2_mask_write(vop2, RK3588_DSC_8K_CFG_DONE, EN_MASK,
+				DSC_CFG_DONE_SHIFT, 1, false);
+		vop2_mask_write(vop2, RK3588_DSC_8K_CFG_DONE + 0x30, EN_MASK,
+				DSC_CFG_DONE_SHIFT, 1, false);
+	} else {
+		vop2_mask_write(vop2, RK3588_DSC_8K_CFG_DONE + ctrl_regs_offset, EN_MASK,
+				DSC_CFG_DONE_SHIFT, 1, false);
+	}
+}
+
 static int rockchip_vop2_enable(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -3028,6 +3389,9 @@ static int rockchip_vop2_enable(struct display_state *state)
 		cfg_done |= BIT(cstate->splice_crtc_id) | (BIT(cstate->splice_crtc_id) << 16);
 
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+
+	if (cstate->dsc_enable)
+		vop2_dsc_cfg_done(state);
 
 	return 0;
 }
@@ -3507,6 +3871,81 @@ static struct vop2_win_data rk3588_win_data[8] = {
 	},
 };
 
+static struct dsc_error_info dsc_ecw[] = {
+	{0x00000000, "no error detected by DSC encoder"},
+	{0x0030ffff, "bits per component error"},
+	{0x0040ffff, "multiple mode error"},
+	{0x0050ffff, "line buffer depth error"},
+	{0x0060ffff, "minor version error"},
+	{0x0070ffff, "picture height error"},
+	{0x0080ffff, "picture width error"},
+	{0x0090ffff, "number of slices error"},
+	{0x00c0ffff, "slice height Error "},
+	{0x00d0ffff, "slice width error"},
+	{0x00e0ffff, "second line BPG offset error"},
+	{0x00f0ffff, "non second line BPG offset error"},
+	{0x0100ffff, "PPS ID error"},
+	{0x0110ffff, "bits per pixel (BPP) Error"},
+	{0x0120ffff, "buffer flow error"},  /* dsc_buffer_flow */
+
+	{0x01510001, "slice 0 RC buffer model overflow error"},
+	{0x01510002, "slice 1 RC buffer model overflow error"},
+	{0x01510004, "slice 2 RC buffer model overflow error"},
+	{0x01510008, "slice 3 RC buffer model overflow error"},
+	{0x01510010, "slice 4 RC buffer model overflow error"},
+	{0x01510020, "slice 5 RC buffer model overflow error"},
+	{0x01510040, "slice 6 RC buffer model overflow error"},
+	{0x01510080, "slice 7 RC buffer model overflow error"},
+
+	{0x01610001, "slice 0 RC buffer model underflow error"},
+	{0x01610002, "slice 1 RC buffer model underflow error"},
+	{0x01610004, "slice 2 RC buffer model underflow error"},
+	{0x01610008, "slice 3 RC buffer model underflow error"},
+	{0x01610010, "slice 4 RC buffer model underflow error"},
+	{0x01610020, "slice 5 RC buffer model underflow error"},
+	{0x01610040, "slice 6 RC buffer model underflow error"},
+	{0x01610080, "slice 7 RC buffer model underflow error"},
+
+	{0xffffffff, "unsuccessful RESET cycle status"},
+	{0x00a0ffff, "ICH full error precision settings error"},
+	{0x0020ffff, "native mode"},
+};
+
+static struct dsc_error_info dsc_buffer_flow[] = {
+	{0x00000000, "rate buffer status"},
+	{0x00000001, "line buffer status"},
+	{0x00000002, "decoder model status"},
+	{0x00000003, "pixel buffer status"},
+	{0x00000004, "balance fifo buffer status"},
+	{0x00000005, "syntax element fifo status"},
+};
+
+static struct vop2_dsc_data rk3588_dsc_data[] = {
+	{
+		.id = ROCKCHIP_VOP2_DSC_8K,
+		.pd_id = VOP2_PD_DSC_8K,
+		.max_slice_num = 8,
+		.max_linebuf_depth = 11,
+		.min_bits_per_pixel = 9,
+		.dsc_txp_clk_src_name = "dsc_8k_txp_clk_src",
+		.dsc_txp_clk_name = "dsc_8k_txp_clk",
+		.dsc_pxl_clk_name = "dsc_8k_pxl_clk",
+		.dsc_cds_clk_name = "dsc_8k_cds_clk",
+	},
+
+	{
+		.id = ROCKCHIP_VOP2_DSC_4K,
+		.pd_id = VOP2_PD_DSC_4K,
+		.max_slice_num = 2,
+		.max_linebuf_depth = 11,
+		.min_bits_per_pixel = 9,
+		.dsc_txp_clk_src_name = "dsc_4k_txp_clk_src",
+		.dsc_txp_clk_name = "dsc_4k_txp_clk",
+		.dsc_pxl_clk_name = "dsc_4k_pxl_clk",
+		.dsc_cds_clk_name = "dsc_4k_cds_clk",
+	},
+};
+
 static struct vop2_vp_data rk3588_vp_data[4] = {
 	{
 		.splice_vp_id = 1,
@@ -3579,11 +4018,16 @@ const struct vop2_data rk3588_vop = {
 	.plane_mask = rk3588_vp_plane_mask[0],
 	.plane_table = rk3588_plane_table,
 	.pd = rk3588_vop_pd_data,
+	.dsc = rk3588_dsc_data,
+	.dsc_error_ecw = dsc_ecw,
+	.dsc_error_buffer_flow = dsc_buffer_flow,
 	.nr_layers = 8,
 	.nr_mixers = 7,
 	.nr_gammas = 4,
-	.nr_dscs = 2,
 	.nr_pd = ARRAY_SIZE(rk3588_vop_pd_data),
+	.nr_dscs = 2,
+	.nr_dsc_ecw = ARRAY_SIZE(dsc_ecw),
+	.nr_dsc_buffer_flow = ARRAY_SIZE(dsc_buffer_flow),
 };
 
 const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
