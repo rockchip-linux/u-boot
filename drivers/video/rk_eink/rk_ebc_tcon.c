@@ -259,7 +259,7 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 	/* panel timing and win info config */
 	tcon_write(tcon, EBC_DSP_HTIMING0,
 		   DSP_HTOTAL(panel->lsl + panel->lbl + panel->ldl +
-			      panel->lel) | DSP_HS_END(panel->lsl + 2));
+			      panel->lel) | DSP_HS_END(panel->lsl));
 	tcon_write(tcon, EBC_DSP_HTIMING1,
 		   DSP_HACT_END(panel->lsl + panel->lbl + panel->ldl) |
 		   DSP_HACT_ST(panel->lsl + panel->lbl - 1));
