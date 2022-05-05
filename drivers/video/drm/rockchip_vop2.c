@@ -2706,6 +2706,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	struct clk dclk;
 	struct clk hdmi0_phy_pll;
 	struct clk hdmi1_phy_pll;
+	struct udevice *disp_dev;
 	unsigned long dclk_rate;
 	int ret;
 
@@ -2876,20 +2877,18 @@ static int rockchip_vop2_init(struct display_state *state)
 		return ret;
 	}
 
-	ret = uclass_get_device_by_name(UCLASS_CLK, "hdmiphypll_clk0",
-					&hdmi0_phy_pll.dev);
-	if (ret) {
+	ret = uclass_get_device_by_name(UCLASS_VIDEO, "display-subsystem", &disp_dev);
+	if (!ret) {
+		ret = clk_get_by_name(disp_dev, "hdmi0_phy_pll", &hdmi0_phy_pll);
+		if (ret)
+			printf("%s: Failed to get hdmi0_phy_pll ret=%d\n", __func__, ret);
+		ret = clk_get_by_name(disp_dev, "hdmi1_phy_pll", &hdmi1_phy_pll);
+		if (ret)
+			printf("%s: Failed to get hdmi1_phy_pll ret=%d\n", __func__, ret);
+	} else {
 		hdmi0_phy_pll.dev = NULL;
-		printf("%s:No hdmiphypll clk0 found, use system clk\n",
-		       __func__);
-	}
-
-	ret = uclass_get_device_by_name(UCLASS_CLK, "hdmiphypll_clk1",
-					&hdmi1_phy_pll.dev);
-	if (ret) {
 		hdmi1_phy_pll.dev = NULL;
-		printf("%s:No hdmiphypll clk1 found, use system clk\n",
-		       __func__);
+		printf("%s: Faile to find display-subsystem node\n", __func__);
 	}
 
 	if (mode->clock < VOP2_MAX_DCLK_RATE) {
