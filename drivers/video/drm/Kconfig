@@ -20,6 +20,14 @@ config DRM_DP_HELPER
 	bool
 	depends on DRM_ROCKCHIP
 
+config DRM_MAXIM_MAX96745
+	bool "Maxim max96745 GMSL2 Serializer"
+	depends on DRM_ROCKCHIP
+	select I2C_MUX_MAX96745
+	select PINCTRL_MAX96745
+	help
+	  Driver for Maxim MAX96745 GMSL2 Serializer with eDP1.4a/DP1.4 Input.
+
 config DRM_MAXIM_MAX96752F
 	bool "Maxim max96752F GMSL2 Deserializer"
 	depends on DRM_ROCKCHIP

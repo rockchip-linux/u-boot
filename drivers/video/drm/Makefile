@@ -10,6 +10,7 @@ obj-y += rockchip_display.o rockchip_crtc.o rockchip_phy.o rockchip_bridge.o \
 obj-$(CONFIG_DRM_MIPI_DSI) += drm_mipi_dsi.o
 obj-$(CONFIG_DRM_DP_HELPER) += drm_dp_helper.o
 obj-$(CONFIG_DRM_DSC) += drm_dsc.o
+obj-$(CONFIG_DRM_MAXIM_MAX96745) += max96745.o
 obj-$(CONFIG_DRM_MAXIM_MAX96752F) += max96752f.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI) += dw_mipi_dsi.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI2) += dw_mipi_dsi2.o
