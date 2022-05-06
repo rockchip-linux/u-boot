@@ -27,10 +27,12 @@ struct rockchip_bridge_funcs {
 struct rockchip_bridge {
 	struct udevice *dev;
 	const struct rockchip_bridge_funcs *funcs;
-
+	struct rockchip_bridge *next_bridge;
 	struct display_state *state;
 };
 
+void rockchip_bridge_init(struct rockchip_bridge *bridge,
+			  struct display_state *state);
 void rockchip_bridge_enable(struct rockchip_bridge *bridge);
 void rockchip_bridge_disable(struct rockchip_bridge *bridge);
 void rockchip_bridge_pre_enable(struct rockchip_bridge *bridge);
