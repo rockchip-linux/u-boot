@@ -2915,9 +2915,25 @@ static int rockchip_vop2_init(struct display_state *state)
 			printf("%s: Failed to set vp%d dclk[%ld KHZ] ret=%d\n",
 			       __func__, cstate->crtc_id, dclk_rate, ret);
 			return ret;
+		} else {
+			if (mode->flags & DRM_MODE_FLAG_DBLCLK)
+				mode->crtc_clock = ret * 2 / 1000;
+			else
+				mode->crtc_clock = ret / 1000;
 		}
 	} else {
 		ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
+
+		if (IS_ERR_VALUE(ret)) {
+			printf("%s: Failed to set vp%d dclk[%ld KHZ] ret=%d\n",
+			       __func__, cstate->crtc_id, dclk_rate, ret);
+			return ret;
+		} else {
+			if (mode->flags & DRM_MODE_FLAG_DBLCLK)
+				mode->crtc_clock = ret * 2 / 1000;
+			else
+				mode->crtc_clock = ret / 1000;
+		}
 	}
 
 	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
