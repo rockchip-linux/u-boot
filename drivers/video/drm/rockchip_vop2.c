@@ -1710,8 +1710,10 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 			vop2->vp_plane_mask[i].plane_mask = plane_mask;
 			layer_nr = hweight32(plane_mask); /* use bitmap to store plane mask */
 			vop2->vp_plane_mask[i].attached_layers_nr = layer_nr;
-			primary_plane_id = vop2_get_primary_plane(vop2, plane_mask);
-			vop2->vp_plane_mask[i].primary_plane_id =  primary_plane_id;
+			primary_plane_id = cstate->crtc->vps[i].primary_plane_id;
+			if (primary_plane_id < 0)
+				primary_plane_id = vop2_get_primary_plane(vop2, plane_mask);
+			vop2->vp_plane_mask[i].primary_plane_id = primary_plane_id;
 			vop2->vp_plane_mask[i].plane_mask = plane_mask;
 
 			/* plane mask[bitmap] convert into layer phy id[enum vop2_layer_phy_id]*/

@@ -1876,15 +1876,14 @@ static int rockchip_display_probe(struct udevice *dev)
 					cursor_plane = ofnode_read_u32_default(vp_node, "cursor-win-id", -1);
 					s->crtc_state.crtc->vps[vp_id].cursor_plane = cursor_plane;
 					if (ret) {
-						int primary_plane = 0;
-
 						s->crtc_state.crtc->vps[vp_id].plane_mask = ret;
 						s->crtc_state.crtc->assign_plane |= true;
-						primary_plane = ofnode_read_u32_default(vp_node, "rockchip,primary-plane", 0);
+						s->crtc_state.crtc->vps[vp_id].primary_plane_id =
+							ofnode_read_u32_default(vp_node, "rockchip,primary-plane", -1);
 						printf("get vp%d plane mask:0x%x, primary id:%d, cursor_plane:%d, from dts\n",
 						       vp_id,
 						       s->crtc_state.crtc->vps[vp_id].plane_mask,
-						       primary_plane,
+						       s->crtc_state.crtc->vps[vp_id].primary_plane_id,
 						       cursor_plane);
 					}
 
