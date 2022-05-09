@@ -386,16 +386,7 @@ static void panel_simple_disable(struct rockchip_panel *panel)
 	priv->enabled = false;
 }
 
-static void panel_simple_init(struct rockchip_panel *panel)
-{
-	struct display_state *state = panel->state;
-	struct connector_state *conn_state = &state->conn_state;
-
-	conn_state->bus_format = panel->bus_format;
-}
-
 static const struct rockchip_panel_funcs rockchip_panel_funcs = {
-	.init = panel_simple_init,
 	.prepare = panel_simple_prepare,
 	.unprepare = panel_simple_unprepare,
 	.enable = panel_simple_enable,

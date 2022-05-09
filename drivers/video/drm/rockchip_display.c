@@ -818,7 +818,7 @@ static int display_init(struct display_state *state)
 	}
 
 	if (panel_state->panel)
-		rockchip_panel_init(panel_state->panel);
+		rockchip_panel_init(panel_state->panel, state);
 
 	if (conn_state->bridge)
 		rockchip_bridge_init(conn_state->bridge, state);
@@ -1880,9 +1880,6 @@ static int rockchip_display_probe(struct udevice *dev)
 				get_plane_mask_from_dts = true;
 			}
 		}
-
-		if (panel)
-			panel->state = s;
 
 		get_crtc_mcu_mode(&s->crtc_state);
 
