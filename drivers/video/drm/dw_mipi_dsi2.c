@@ -343,10 +343,15 @@ static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 			dsi2->pdata->cphy_max_symbol_rate_per_lane :
 			dsi2->pdata->dphy_max_bit_rate_per_lane;
 
-	/* optional override of the desired bandwidth */
+	/*
+	 * optional override of the desired bandwidth
+	 * High-Speed mode: Differential and terminated: 80Mbps ~ 4500 Mbps
+	 */
 	value = dev_read_u32_default(dsi2->dev, "rockchip,lane-rate", 0);
-	if (value > 0)
+	if (value >= 80000 && value <= 4500000)
 		return value * MSEC_PER_SEC;
+	else if (value >= 80 && value <= 4500)
+		return value * USEC_PER_SEC;
 
 	bpp = mipi_dsi_pixel_format_to_bpp(dsi2->format);
 	if (bpp < 0)
