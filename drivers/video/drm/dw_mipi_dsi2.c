@@ -358,7 +358,7 @@ static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 		bpp = 24;
 
 	lanes = dsi2->slave ? dsi2->lanes * 2 : dsi2->lanes;
-	tmp = (u64)mode->clock * 1000 * bpp;
+	tmp = (u64)mode->crtc_clock * 1000 * bpp;
 	do_div(tmp, lanes);
 
 	if (dsi2->c_option)
@@ -563,7 +563,7 @@ static void dw_mipi_dsi2_ipi_set(struct dw_mipi_dsi2 *dsi2)
 	hbp = mode->htotal - mode->hsync_end;
 	hline = mode->htotal;
 
-	pixel_clk = mode->clock * MSEC_PER_SEC;
+	pixel_clk = mode->crtc_clock * MSEC_PER_SEC;
 
 	if (dsi2->c_option)
 		phy_hs_clk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 7);
@@ -893,7 +893,7 @@ static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 		phy_hsclk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 16);
 
 	/* IPI_RATIO_MAN_CFG = PHY_HSTX_CLK / IPI_CLK */
-	pixel_clk = mode->clock * MSEC_PER_SEC;
+	pixel_clk = mode->crtc_clock * MSEC_PER_SEC;
 	ipi_clk = pixel_clk / 4;
 
 	tmp = DIV_ROUND_CLOSEST(phy_hsclk << 16, ipi_clk);
