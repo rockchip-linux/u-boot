@@ -784,6 +784,7 @@ static void hdmi_set_op_mode(struct dw_hdmi_qp *hdmi,
 			     bool scdc_support)
 {
 	int frl_rate;
+	int i;
 
 	hdmi_writel(hdmi, 0, FLT_CONFIG0);
 	if (scdc_support)
@@ -806,6 +807,12 @@ static void hdmi_set_op_mode(struct dw_hdmi_qp *hdmi,
 
 	frl_rate = link_cfg->frl_lanes * link_cfg->rate_per_lane;
 	hdmi_start_flt(hdmi, frl_rate);
+
+	for (i = 0; i < 50; i++) {
+		hdmi_modb(hdmi, PKTSCHED_NULL_TX_EN, PKTSCHED_NULL_TX_EN, PKTSCHED_PKT_EN);
+		mdelay(1);
+		hdmi_modb(hdmi, 0, PKTSCHED_NULL_TX_EN, PKTSCHED_PKT_EN);
+	}
 }
 
 static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
