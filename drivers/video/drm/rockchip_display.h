@@ -149,6 +149,8 @@ struct crtc_state {
 	int rb_swap;
 	int xvir;
 	int post_csc_mode;
+	int dclk_core_div;
+	int dclk_out_div;
 	struct display_rect src_rect;
 	struct display_rect crtc_rect;
 	struct display_rect right_src_rect;

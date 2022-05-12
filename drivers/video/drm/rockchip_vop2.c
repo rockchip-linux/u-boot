@@ -2057,9 +2057,11 @@ static int vop2_calc_dsc_clk(struct display_state *state)
 	/* dsc_cds = crtc_clock / (cds_dat_width / bits_per_pixel)
 	 * cds_dat_width = 96;
 	 * bits_per_pixel = [8-12];
-	 * As only support 1/2/4 div, so we set dsc_cds = crtc_clock / 8;
+	 * As cds clk is div from txp clk and only support 1/2/4 div,
+	 * so when txp_clk is equal to v_pixclk, we set dsc_cds = crtc_clock / 4,
+	 * otherwise dsc_cds = crtc_clock / 8;
 	 */
-	cstate->dsc_cds_clk_rate = v_pixclk / 8;
+	cstate->dsc_cds_clk_rate = v_pixclk / (cstate->dsc_txp_clk_rate == v_pixclk ? 4 : 8);
 
 	return 0;
 }
@@ -2074,8 +2076,6 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u16 hdisplay = mode->crtc_hdisplay;
 	int output_if = conn_state->output_if;
-	int dclk_core_div = 0;
-	int dclk_out_div = 0;
 	int if_pixclk_div = 0;
 	int if_dclk_div = 0;
 	unsigned long dclk_rate;
@@ -2110,7 +2110,7 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 		       dsc_sink_cap->slice_height, cstate->dsc_slice_num);
 	}
 
-	dclk_rate = vop2_calc_cru_cfg(state, &dclk_core_div, &dclk_out_div, &if_pixclk_div, &if_dclk_div);
+	dclk_rate = vop2_calc_cru_cfg(state, &cstate->dclk_core_div, &cstate->dclk_out_div, &if_pixclk_div, &if_dclk_div);
 
 	if (output_if & VOP_OUTPUT_IF_RGB) {
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, 0x7, RK3588_RGB_EN_SHIFT,
@@ -2280,9 +2280,9 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	}
 
 	vop2_mask_write(vop2, RK3588_VP0_CLK_CTRL + vp_offset, 0x3,
-			DCLK_CORE_DIV_SHIFT, dclk_core_div, false);
+			DCLK_CORE_DIV_SHIFT, cstate->dclk_core_div, false);
 	vop2_mask_write(vop2, RK3588_VP0_CLK_CTRL + vp_offset, 0x3,
-			DCLK_OUT_DIV_SHIFT, dclk_out_div, false);
+			DCLK_OUT_DIV_SHIFT, cstate->dclk_out_div, false);
 
 	return dclk_rate;
 }
@@ -2592,6 +2592,10 @@ static void vop2_dsc_enable(struct display_state *state, struct vop2 *vop2, u8 d
 		u64 dsc_cds_rate = cstate->dsc_cds_clk_rate;
 		u32 v_pixclk_mhz = mode->crtc_clock / 1000; /* video timing pixclk */
 		u32 dly_num, dsc_cds_rate_mhz, val = 0;
+		int k = 1;
+
+		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)
+			k = 2;
 
 		if (target_bpp >> 4 < dsc_data->min_bits_per_pixel)
 			printf("Unsupported bpp less than: %d\n", dsc_data->min_bits_per_pixel);
@@ -2615,13 +2619,24 @@ static void vop2_dsc_enable(struct display_state *state, struct vop2 *vop2, u8 d
 				DSC_INIT_DLY_NUM_SHIFT, dly_num, false);
 
 		dsc_hsync = hsync_len / 2;
-		dsc_htotal = htotal / (1 << dsc_cds_clk_div);
+		/*
+		 * htotal / dclk_core = dsc_htotal /cds_clk
+		 *
+		 * dclk_core = DCLK / (1 << dclk_core->div_val)
+		 * cds_clk = txp_clk / (1 << dsc_cds_clk->div_val)
+		 * txp_clk = DCLK / (1 << dsc_txp_clk->div_val)
+		 *
+		 * dsc_htotal = htotal * (1 << dclk_core->div_val) /
+		 *              ((1 << dsc_txp_clk->div_val) * (1 << dsc_cds_clk->div_val))
+		 */
+		dsc_htotal = htotal * (1 << cstate->dclk_core_div) /
+			     ((1 << dsc_txp_clk_div) * (1 << dsc_cds_clk_div));
 		val = dsc_htotal << 16 | dsc_hsync;
 		vop2_mask_write(vop2, RK3588_DSC_8K_HTOTAL_HS_END + ctrl_regs_offset, DSC_HTOTAL_PW_MASK,
 				DSC_HTOTAL_PW_SHIFT, val, false);
 
 		dsc_hact_st = hact_st / 2;
-		dsc_hact_end = (hdisplay * target_bpp >> 4) / 24 + dsc_hact_st;
+		dsc_hact_end = (hdisplay / k * target_bpp >> 4) / 24 + dsc_hact_st;
 		val = dsc_hact_end << 16 | dsc_hact_st;
 		vop2_mask_write(vop2, RK3588_DSC_8K_HACT_ST_END + ctrl_regs_offset, DSC_HACT_ST_END_MASK,
 				DSC_HACT_ST_END_SHIFT, val, false);
@@ -3982,7 +3997,7 @@ static struct vop2_dsc_data rk3588_dsc_data[] = {
 		.pd_id = VOP2_PD_DSC_8K,
 		.max_slice_num = 8,
 		.max_linebuf_depth = 11,
-		.min_bits_per_pixel = 9,
+		.min_bits_per_pixel = 8,
 		.dsc_txp_clk_src_name = "dsc_8k_txp_clk_src",
 		.dsc_txp_clk_name = "dsc_8k_txp_clk",
 		.dsc_pxl_clk_name = "dsc_8k_pxl_clk",
@@ -3994,7 +4009,7 @@ static struct vop2_dsc_data rk3588_dsc_data[] = {
 		.pd_id = VOP2_PD_DSC_4K,
 		.max_slice_num = 2,
 		.max_linebuf_depth = 11,
-		.min_bits_per_pixel = 9,
+		.min_bits_per_pixel = 8,
 		.dsc_txp_clk_src_name = "dsc_4k_txp_clk_src",
 		.dsc_txp_clk_name = "dsc_4k_txp_clk",
 		.dsc_pxl_clk_name = "dsc_4k_pxl_clk",
