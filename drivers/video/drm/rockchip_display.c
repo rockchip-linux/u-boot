@@ -408,7 +408,7 @@ int drm_mode_vrefresh(const struct drm_display_mode *mode)
 	return refresh;
 }
 
-static int display_get_detail_timing(ofnode node, struct drm_display_mode *mode)
+int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode)
 {
 	int hactive, vactive, pixelclock;
 	int hfront_porch, hback_porch, hsync_len;
@@ -462,6 +462,7 @@ static int display_get_detail_timing(ofnode node, struct drm_display_mode *mode)
 
 	mode->clock = pixelclock / 1000;
 	mode->flags = flags;
+	mode->vrefresh = drm_mode_vrefresh(mode);
 
 	return 0;
 }
@@ -470,7 +471,7 @@ static int display_get_force_timing_from_dts(ofnode node, struct drm_display_mod
 {
 	int ret = 0;
 
-	ret = display_get_detail_timing(node, mode);
+	ret = rockchip_ofnode_get_display_mode(node, mode);
 
 	if (ret) {
 		mode->clock = 74250;
@@ -521,7 +522,7 @@ static int display_get_timing_from_dts(struct panel_state *panel_state,
 		return -ENXIO;
 	}
 
-	display_get_detail_timing(timing, mode);
+	rockchip_ofnode_get_display_mode(timing, mode);
 
 	return 0;
 }
