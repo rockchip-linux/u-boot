@@ -22,6 +22,7 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
+#include "rockchip_panel.h"
 #include "analogix_dp.h"
 
 #define RK3588_GRF_VO1_CON0	0x0000
@@ -944,9 +945,36 @@ static int analogix_dp_connector_disable(struct display_state *state)
 static int analogix_dp_connector_detect(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
+	struct panel_state *panel_state = &state->panel_state;
 	struct analogix_dp_device *dp = dev_get_priv(conn_state->dev);
+	int ret;
 
-	return analogix_dp_detect(dp);
+	if (panel_state->panel)
+		rockchip_panel_prepare(panel_state->panel);
+
+	if (!analogix_dp_detect(dp))
+		goto unprepare_panel;
+
+	ret = analogix_dp_read_byte_from_dpcd(dp, DP_MAX_LINK_RATE,
+					      &dp->link_train.link_rate);
+	if (ret < 0) {
+		dev_err(dp->dev, "failed to read link rate: %d\n", ret);
+		goto unprepare_panel;
+	}
+
+	ret = analogix_dp_read_byte_from_dpcd(dp, DP_MAX_LANE_COUNT,
+					      &dp->link_train.lane_count);
+	if (ret < 0) {
+		dev_err(dp->dev, "failed to read lane count: %d\n", ret);
+		goto unprepare_panel;
+	}
+
+	return true;
+
+unprepare_panel:
+	if (panel_state->panel)
+		rockchip_panel_unprepare(panel_state->panel);
+	return false;
 }
 
 static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
