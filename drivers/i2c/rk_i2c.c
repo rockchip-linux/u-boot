@@ -498,7 +498,6 @@ static int rockchip_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
 
 		if (ret) {
 			debug("i2c_write: error sending\n");
-			ret = -EREMOTEIO;
 			break;
 		}
 	}
