@@ -16,6 +16,7 @@
 #include <dm/pinctrl.h>
 #include <dm/read.h>
 #include <dt-bindings/pinctrl/rockchip.h>
+#include <dm/device_compat.h>
 
 #define SWPORT_DR		0x0000
 #define SWPORT_DDR		0x0004
@@ -183,9 +184,14 @@ static int rockchip_gpio_probe(struct udevice *dev)
 	priv->regs = dev_read_addr_ptr(dev);
 
 	if (CONFIG_IS_ENABLED(PINCTRL)) {
-		ret = uclass_first_device_err(UCLASS_PINCTRL, &priv->pinctrl);
-		if (ret)
-			return ret;
+		ret = uclass_get_device_by_seq(UCLASS_PINCTRL, 0, &priv->pinctrl);
+		if (ret) {
+			ret = uclass_first_device_err(UCLASS_PINCTRL, &priv->pinctrl);
+			if (ret) {
+				dev_err(dev, "failed to get pinctrl device %d\n", ret);
+				return ret;
+			}
+		}
 	}
 
 	/*
