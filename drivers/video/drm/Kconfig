@@ -20,6 +20,15 @@ config DRM_DP_HELPER
 	bool
 	depends on DRM_ROCKCHIP
 
+config DRM_MAXIM_MAX96752F
+	bool "Maxim max96752F GMSL2 Deserializer"
+	depends on DRM_ROCKCHIP
+	select I2C_MUX_MAX96752F
+	select PINCTRL_MAX96752F
+	select GPIO_MAX96752F
+	help
+	  Driver for Maxim MAX96752F GMSL2 Deserializer with Dual LVDS Output.
+
 config DRM_ROCKCHIP_PANEL
 	bool "Rockchip Panel Support"
 	depends on DRM_ROCKCHIP
