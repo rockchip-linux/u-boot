@@ -49,3 +49,10 @@ config I2C_MUX_GPIO
 	  a GPIO based I2C multiplexer. This driver provides access to
 	  I2C busses connected through a MUX, which is controlled
 	  through GPIO pins.
+
+config I2C_MUX_MAX96752F
+	tristate "Maxim MAX96752F I2C multiplexer"
+	depends on I2C_MUX
+	help
+	  If you say yes here you get support for the Maxim MAX96752F
+	  I2C multiplexer.
