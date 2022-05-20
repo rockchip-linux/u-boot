@@ -476,6 +476,9 @@ static int rockchip_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
 	struct rk_i2c *i2c = dev_get_priv(bus);
 	bool snd = false; /* second message for TRX read */
 	int ret = 0;
+#ifdef CONFIG_IRQ
+	ulong flags;
+#endif
 
 	debug("i2c_xfer: %d messages\n", nmsgs);
 	if (nmsgs > 2 || ((nmsgs == 2) && (msg->flags & I2C_M_RD))) {
@@ -483,6 +486,9 @@ static int rockchip_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_IRQ
+	local_irq_save(flags);
+#endif
 	for (; nmsgs > 0; nmsgs--, msg++) {
 		debug("i2c_xfer: chip=0x%x, len=0x%x\n", msg->addr, msg->len);
 
@@ -504,7 +510,9 @@ static int rockchip_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
 
 	rk_i2c_send_stop_bit(i2c);
 	rk_i2c_disable(i2c);
-
+#ifdef CONFIG_IRQ
+	local_irq_restore(flags);
+#endif
 	return ret;
 }
 
