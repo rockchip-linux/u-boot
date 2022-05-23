@@ -2749,6 +2749,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	u32 val, act_end;
 	u8 dither_down_en = 0;
 	u8 pre_dither_down_en = 0;
+	u8 dclk_div_factor = 0;
 	char output_type_name[30] = {0};
 	char dclk_name[9];
 	struct clk dclk;
@@ -2962,33 +2963,21 @@ static int rockchip_vop2_init(struct display_state *state)
 			else
 				ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
 		}
-
-		if (IS_ERR_VALUE(ret)) {
-			printf("%s: Failed to set vp%d dclk[%ld KHZ] ret=%d\n",
-			       __func__, cstate->crtc_id, dclk_rate, ret);
-			return ret;
-		} else {
-			if (mode->flags & DRM_MODE_FLAG_DBLCLK)
-				mode->crtc_clock = ret * 2 / 1000;
-			else
-				mode->crtc_clock = ret / 1000;
-		}
 	} else {
 		if (is_extend_pll(state, &hdmi_phy_pll.dev))
 			ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate * 1000);
 		else
 			ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
+	}
 
-		if (IS_ERR_VALUE(ret)) {
-			printf("%s: Failed to set vp%d dclk[%ld KHZ] ret=%d\n",
-			       __func__, cstate->crtc_id, dclk_rate, ret);
-			return ret;
-		} else {
-			if (mode->flags & DRM_MODE_FLAG_DBLCLK)
-				mode->crtc_clock = ret * 2 / 1000;
-			else
-				mode->crtc_clock = ret / 1000;
-		}
+	if (IS_ERR_VALUE(ret)) {
+		printf("%s: Failed to set vp%d dclk[%ld KHZ] ret=%d\n",
+		       __func__, cstate->crtc_id, dclk_rate, ret);
+		return ret;
+	} else {
+		dclk_div_factor = mode->clock / dclk_rate;
+		mode->crtc_clock = ret * dclk_div_factor / 1000;
+		printf("VP%d set crtc_clock to %dKHz\n", cstate->crtc_id, mode->crtc_clock);
 	}
 
 	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
