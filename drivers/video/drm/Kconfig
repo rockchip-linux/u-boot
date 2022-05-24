@@ -37,6 +37,13 @@ config DRM_MAXIM_MAX96752F
 	help
 	  Driver for Maxim MAX96752F GMSL2 Deserializer with Dual LVDS Output.
 
+config DRM_MAXIM_MAX96755F
+	bool "Maxim max96755F GMSL2 Serializer"
+	depends on DRM_ROCKCHIP
+	select I2C_MUX_MAX96755F
+	help
+	  Driver for Maxim MAX96755F GMSL2 Serializer with MIPI-DSI Input.
+
 config DRM_ROCKCHIP_PANEL
 	bool "Rockchip Panel Support"
 	depends on DRM_ROCKCHIP
