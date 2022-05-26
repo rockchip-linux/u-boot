@@ -1860,8 +1860,7 @@ static int rockchip_hdptx_phy_hdmi_probe(struct udevice *dev)
 {
 	struct rockchip_hdptx_phy *hdptx = dev_get_priv(dev);
 	struct rockchip_phy *phy;
-	struct udevice *syscon, *sys_child;
-	char name[30], *str;
+	struct udevice *syscon;
 	int ret;
 
 	hdptx->id = of_alias_get_id(ofnode_to_np(dev->node), "hdptxhdmi");
@@ -1933,12 +1932,32 @@ static int rockchip_hdptx_phy_hdmi_probe(struct udevice *dev)
 		return ret;
 	}
 
-	sprintf(name, "hdmiphypll_clk%d", hdptx->id);
+	return 0;
+}
+
+static int rockchip_hdptx_phy_hdmi_bind(struct udevice *parent)
+{
+	struct udevice *child;
+	ofnode subnode;
+	char name[30], *str;
+	int id, ret;
+
+	id = of_alias_get_id(ofnode_to_np(parent->node), "hdptxhdmi");
+	if (id < 0)
+		id = 0;
+
+	sprintf(name, "hdmiphypll_clk%d", id);
 	str = strdup(name);
-	/* The phy pll driver does not have a device node, so bind it here */
-	ret = device_bind_driver(dev, "clk_hdptx", str, &sys_child);
+
+	subnode = ofnode_find_subnode(parent->node, "clk-port");
+	if (!ofnode_valid(subnode)) {
+		printf("%s: no subnode for %s", __func__, parent->name);
+		return -ENXIO;
+	}
+
+	ret = device_bind_driver_to_node(parent, "clk_hdptx", str, subnode, &child);
 	if (ret) {
-		dev_err(dev, "Warning: No phy pll driver: ret=%d\n", ret);
+		printf("%s: clk-port cannot bind its driver\n", __func__);
 		return ret;
 	}
 
@@ -1957,6 +1976,7 @@ U_BOOT_DRIVER(rockchip_hdptx_phy_hdmi) = {
 	.id		= UCLASS_PHY,
 	.of_match	= rockchip_hdptx_phy_hdmi_ids,
 	.probe		= rockchip_hdptx_phy_hdmi_probe,
+	.bind		= rockchip_hdptx_phy_hdmi_bind,
 	.priv_auto_alloc_size = sizeof(struct rockchip_hdptx_phy),
 };
 
