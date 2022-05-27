@@ -1055,6 +1055,8 @@ null_basep:
 		if (color_depth == 10)
 			hdmi->bus_width |= COLOR_DEPTH_10BIT;
 	}
+
+	rockchip_phy_set_bus_width(conn_state->phy, hdmi->bus_width);
 }
 
 static void rk3588_set_link_mode(struct rockchip_hdmi *hdmi)
