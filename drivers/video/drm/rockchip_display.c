@@ -1531,15 +1531,14 @@ static struct rockchip_bridge *rockchip_of_find_bridge(struct udevice *conn_dev)
 
 			ret = uclass_get_device_by_ofnode(UCLASS_VIDEO_BRIDGE,
 							  node, &dev);
-			if (!ret)
-				goto found;
+			if (ret)
+				return ERR_PTR(ret);
+
+			return (struct rockchip_bridge *)dev_get_driver_data(dev);
 		}
 	}
 
 	return NULL;
-
-found:
-	return (struct rockchip_bridge *)dev_get_driver_data(dev);
 }
 
 static struct udevice *rockchip_of_find_connector(ofnode endpoint)
@@ -1773,13 +1772,15 @@ static int rockchip_display_probe(struct udevice *dev)
 		phy = rockchip_of_find_phy(conn_dev);
 
 		bridge = rockchip_of_find_bridge(conn_dev);
-		if (bridge)
-			b = bridge;
+		if (IS_ERR(bridge))
+			continue;
+
+		b = bridge;
 		while (b) {
-			struct rockchip_bridge *next_bridge = NULL;
+			struct rockchip_bridge *next_bridge;
 
 			next_bridge = rockchip_of_find_bridge(b->dev);
-			if (!next_bridge)
+			if (IS_ERR_OR_NULL(next_bridge))
 				break;
 
 			b->next_bridge = next_bridge;
