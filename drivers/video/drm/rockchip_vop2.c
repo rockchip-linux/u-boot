@@ -81,6 +81,9 @@
 #define LVDS_DUAL_EN_SHIFT			0
 #define LVDS_DUAL_LEFT_RIGHT_EN_SHIFT		1
 #define LVDS_DUAL_SWAP_EN_SHIFT			2
+#define RK3588_HDMI_DUAL_EN_SHIFT		8
+#define RK3588_EDP_DUAL_EN_SHIFT		8
+#define RK3588_DP_DUAL_EN_SHIFT			9
 #define RK3568_MIPI_DUAL_EN_SHIFT		10
 #define RK3588_MIPI_DSI0_MODE_SEL_SHIFT		11
 #define RK3588_MIPI_DSI1_MODE_SEL_SHIFT		12
@@ -1934,7 +1937,7 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
-	unsigned long v_pixclk = mode->clock;
+	unsigned long v_pixclk = mode->crtc_clock;
 	unsigned long dclk_core_rate = v_pixclk >> 2;
 	unsigned long dclk_rate = v_pixclk;
 	unsigned long dclk_out_rate;
@@ -1944,12 +1947,23 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 	int output_mode = conn_state->output_mode;
 	int K = 1;
 
+	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE &&
+	    output_mode == ROCKCHIP_OUT_MODE_YUV420) {
+		printf("Dual channel and YUV420 can't work together\n");
+		return -EINVAL;
+	}
+
+	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE ||
+	    output_mode == ROCKCHIP_OUT_MODE_YUV420)
+		K = 2;
+
 	if (output_type == DRM_MODE_CONNECTOR_HDMIA) {
 		/*
 		 * K = 2: dclk_core = if_pixclk_rate > if_dclk_rate
 		 * K = 1: dclk_core = hdmie_edp_dclk > if_pixclk_rate
 		 */
-		if (output_mode == ROCKCHIP_OUT_MODE_YUV420) {
+		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE ||
+		    output_mode == ROCKCHIP_OUT_MODE_YUV420) {
 			dclk_rate = dclk_rate >> 1;
 			K = 2;
 		}
@@ -1983,10 +1997,8 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		*if_pixclk_div = dclk_rate / if_pixclk_rate;
 		*if_dclk_div = *if_pixclk_div;
 	} else if (output_type == DRM_MODE_CONNECTOR_DisplayPort) {
-		if (output_mode == ROCKCHIP_OUT_MODE_YUV420)
-			dclk_out_rate = v_pixclk >> 3;
-		else
-			dclk_out_rate = v_pixclk >> 2;
+		dclk_out_rate = v_pixclk >> 2;
+		dclk_out_rate = dclk_out_rate / K;
 
 		dclk_rate = vop2_calc_dclk(dclk_out_rate, vop2->data->vp_data->max_dclk);
 		if (!dclk_rate) {
@@ -1996,7 +2008,6 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		}
 		*dclk_out_div = dclk_rate / dclk_out_rate;
 		*dclk_core_div = dclk_rate / dclk_core_rate;
-
 	} else if (output_type == DRM_MODE_CONNECTOR_DSI) {
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)
 			K = 2;
@@ -2185,14 +2196,32 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	}
 
 	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
-		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
-				RK3568_MIPI_DUAL_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, EN_MASK,
 				MIPI_DUAL_EN_SHIFT, 1, false);
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DATA_SWAP)
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
 					EN_MASK, MIPI_DUAL_SWAP_EN_SHIFT, 1,
 					false);
+		switch (conn_state->type) {
+		case DRM_MODE_CONNECTOR_DisplayPort:
+			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+					RK3588_DP_DUAL_EN_SHIFT, 1, false);
+			break;
+		case DRM_MODE_CONNECTOR_eDP:
+			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+					RK3588_EDP_DUAL_EN_SHIFT, 1, false);
+			break;
+		case DRM_MODE_CONNECTOR_HDMIA:
+			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+					RK3588_HDMI_DUAL_EN_SHIFT, 1, false);
+			break;
+		case DRM_MODE_CONNECTOR_DSI:
+			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+					RK3568_MIPI_DUAL_EN_SHIFT, 1, false);
+			break;
+		default:
+			break;
+		}
 	}
 
 	if (output_if & VOP_OUTPUT_IF_eDP0) {
@@ -2760,7 +2789,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	int ret;
 
 	printf("VOP update mode to: %dx%d%s%d, type:%s for VP%d\n",
-	       mode->hdisplay, mode->vdisplay,
+	       mode->crtc_hdisplay, mode->crtc_vdisplay,
 	       mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "p",
 	       mode->vscan,
 	       get_output_if_name(conn_state->output_if, output_type_name),
@@ -2939,7 +2968,7 @@ static int rockchip_vop2_init(struct display_state *state)
 		printf("%s: Faile to find display-subsystem node\n", __func__);
 	}
 
-	if (mode->clock < VOP2_MAX_DCLK_RATE) {
+	if (mode->crtc_clock < VOP2_MAX_DCLK_RATE) {
 		if (conn_state->output_if & VOP_OUTPUT_IF_HDMI0)
 			vop2_clk_set_parent(&dclk, &hdmi0_phy_pll);
 		else if (conn_state->output_if & VOP_OUTPUT_IF_HDMI1)
