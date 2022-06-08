@@ -713,7 +713,12 @@ static int hdmi_start_flt(struct dw_hdmi_qp *hdmi, u8 rate)
 	int i = 0;
 	bool ltsp = false;
 
-	hdmi_modb(hdmi, BIT(6), BIT(6), 0x44);
+	hdmi_modb(hdmi, AVP_DATAPATH_VIDEO_SWDISABLE,
+		  AVP_DATAPATH_VIDEO_SWDISABLE, GLOBAL_SWDISABLE);
+
+	/* clear flt flags */
+	drm_scdc_writeb(&hdmi->adap, 0x10, 0xff);
+
 	/* FLT_READY & FFE_LEVELS read */
 	for (i = 0; i < 20; i++) {
 		drm_scdc_readb(&hdmi->adap, SCDC_STATUS_FLAGS_0, &val);
@@ -723,18 +728,18 @@ static int hdmi_start_flt(struct dw_hdmi_qp *hdmi, u8 rate)
 	}
 
 	if (i == 20) {
-		dev_err(hdmi->dev, "sink flt isn't ready\n");
+		printf("sink flt isn't ready\n");
 		return -EINVAL;
 	}
 
 	/* max ffe level 3 */
 	val = 0 << 4 | hdmi_set_frl_mask(rate);
 	drm_scdc_writeb(&hdmi->adap, 0x31, val);
-
 	/* select FRL_RATE & FFE_LEVELS */
 	hdmi_writel(hdmi, ffe_lv, FLT_CONFIG0);
 
-	while (1) {
+	i = 500;
+	while (i--) {
 		mdelay(4);
 		drm_scdc_readb(&hdmi->adap, 0x10, &val);
 
@@ -753,14 +758,14 @@ static int hdmi_start_flt(struct dw_hdmi_qp *hdmi, u8 rate)
 			ln3 = (reg_val >> 4) & 0xf;
 
 			if (!ln0 && !ln1 && !ln2 && !ln3) {
-				printf("ltsp!\n");
+				printf("goto ltsp\n");
 				ltsp = true;
 				hdmi_writel(hdmi, 0, FLT_CONFIG1);
 			} else if ((ln0 == 0xf) | (ln1 == 0xf) | (ln2 == 0xf) | (ln3 == 0xf)) {
-				printf("lts4!\n");
+				printf("goto lts4\n");
 				break;
 			} else if ((ln0 == 0xe) | (ln1 == 0xe) | (ln2 == 0xe) | (ln3 == 0xe)) {
-				printf("ffe!\n");
+				printf("goto ffe\n");
 				break;
 			} else {
 				value = (ln3 << 16) | (ln2 << 12) | (ln1 << 8) | (ln0 << 4) | 0xf;
@@ -771,12 +776,17 @@ static int hdmi_start_flt(struct dw_hdmi_qp *hdmi, u8 rate)
 		drm_scdc_writeb(&hdmi->adap, 0x10, val);
 
 		if ((val & BIT(4)) && ltsp) {
+			hdmi_modb(hdmi, 0, AVP_DATAPATH_VIDEO_SWDISABLE, GLOBAL_SWDISABLE);
 			printf("flt success\n");
 			break;
 		}
 	}
 
-	hdmi_modb(hdmi, 0, BIT(6), 0x44);
+	if (i < 0) {
+		printf("flt time out\n");
+		return -ETIMEDOUT;
+	}
+
 	return 0;
 }
 
@@ -811,10 +821,11 @@ static void hdmi_set_op_mode(struct dw_hdmi_qp *hdmi,
 	frl_rate = link_cfg->frl_lanes * link_cfg->rate_per_lane;
 	hdmi_start_flt(hdmi, frl_rate);
 
-	for (i = 0; i < 50; i++) {
+	for (i = 0; i < 200; i++) {
 		hdmi_modb(hdmi, PKTSCHED_NULL_TX_EN, PKTSCHED_NULL_TX_EN, PKTSCHED_PKT_EN);
-		mdelay(1);
+		udelay(50);
 		hdmi_modb(hdmi, 0, PKTSCHED_NULL_TX_EN, PKTSCHED_PKT_EN);
+		udelay(50);
 	}
 }
 
