@@ -1496,7 +1496,7 @@ static int dw_dp_connector_detect(struct display_state *state)
 	struct dw_dp *dp = dev_get_priv(conn_state->dev);
 	int status, tries;
 
-	for (tries = 0; tries < 100; tries++) {
+	for (tries = 0; tries < 200; tries++) {
 		status = dw_dp_detect(dp);
 		if (status)
 			break;
