@@ -597,16 +597,23 @@ static void dw_mipi_dsi2_set_vid_mode(struct dw_mipi_dsi2 *dsi2)
 	u32 val = 0, mode;
 	int ret;
 
+	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HFP)
+		val |= BLK_HFP_HS_EN;
+
+	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HBP)
+		val |= BLK_HBP_HS_EN;
+
+	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HSA)
+		val |= BLK_HSA_HS_EN;
+
 	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_BURST)
 		val |= VID_MODE_TYPE_BURST;
 	else if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_SYNC_PULSE)
 		val |= VID_MODE_TYPE_NON_BURST_SYNC_PULSES;
-
 	else
 		val |= VID_MODE_TYPE_NON_BURST_SYNC_EVENTS;
 
 	dsi_write(dsi2, DSI2_DSI_VID_TX_CFG, val);
-
 
 	dsi_write(dsi2, DSI2_MODE_CTRL, VIDEO_MODE);
 	ret = readl_poll_timeout(dsi2->base + DSI2_MODE_STATUS,
@@ -950,20 +957,6 @@ static void dw_mipi_dsi2_tx_option_set(struct dw_mipi_dsi2 *dsi2)
 
 	if (dsi2->scrambling_en)
 		dsi_write(dsi2, DSI2_DSI_SCRAMBLING_CFG, SCRAMBLING_EN);
-
-	val = 0;
-	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HFP)
-		val |= BLK_HFP_HS_EN;
-
-	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HBP)
-		val |= BLK_HBP_HS_EN;
-
-	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HSA)
-		val |= BLK_HSA_HS_EN;
-
-	dsi_write(dsi2, DSI2_DSI_VID_TX_CFG, val);
-
-	/* configure the maximum return packet size that periphera can send */
 }
 
 static void dw_mipi_dsi2_irq_enable(struct dw_mipi_dsi2 *dsi2, bool enable)
