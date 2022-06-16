@@ -916,6 +916,11 @@ static int analogix_dp_connector_enable(struct display_state *state)
 	analogix_dp_enable_enhanced_mode(dp, 1);
 
 	analogix_dp_init_video(dp);
+	analogix_dp_set_video_format(dp, &conn_state->mode);
+
+	if (dp->video_bist_enable)
+		analogix_dp_video_bist_enable(dp);
+
 	ret = analogix_dp_config_video(dp);
 	if (ret) {
 		dev_err(dp->dev, "unable to config video\n");
@@ -1025,6 +1030,7 @@ static int analogix_dp_probe(struct udevice *dev)
 	generic_phy_get_by_name(dev, "dp", &dp->phy);
 
 	dp->force_hpd = dev_read_bool(dev, "force-hpd");
+	dp->video_bist_enable = dev_read_bool(dev, "analogix,video-bist-enable");
 
 	dp->plat_data.dev_type = ROCKCHIP_DP;
 	dp->plat_data.subdev_type = pdata->chip_type;

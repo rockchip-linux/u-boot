@@ -19,9 +19,27 @@
 #define ANALOGIX_DP_VIDEO_CTL_1			0x20
 #define ANALOGIX_DP_VIDEO_CTL_2			0x24
 #define ANALOGIX_DP_VIDEO_CTL_3			0x28
-
+#define ANALOGIX_DP_VIDEO_CTL_4			0x2C
 #define ANALOGIX_DP_VIDEO_CTL_8			0x3C
 #define ANALOGIX_DP_VIDEO_CTL_10		0x44
+
+#define ANALOGIX_DP_TOTAL_LINE_CFG_L		0x48
+#define ANALOGIX_DP_TOTAL_LINE_CFG_H		0x4C
+#define ANALOGIX_DP_ACTIVE_LINE_CFG_L		0x50
+#define ANALOGIX_DP_ACTIVE_LINE_CFG_H		0x54
+#define ANALOGIX_DP_V_F_PORCH_CFG		0x58
+#define ANALOGIX_DP_V_SYNC_WIDTH_CFG		0x5C
+#define ANALOGIX_DP_V_B_PORCH_CFG		0x60
+#define ANALOGIX_DP_TOTAL_PIXEL_CFG_L		0x64
+#define ANALOGIX_DP_TOTAL_PIXEL_CFG_H		0x68
+#define ANALOGIX_DP_ACTIVE_PIXEL_CFG_L		0x6C
+#define ANALOGIX_DP_ACTIVE_PIXEL_CFG_H		0x70
+#define ANALOGIX_DP_H_F_PORCH_CFG_L		0x74
+#define ANALOGIX_DP_H_F_PORCH_CFG_H		0x78
+#define ANALOGIX_DP_H_SYNC_CFG_L		0x7C
+#define ANALOGIX_DP_H_SYNC_CFG_H		0x80
+#define ANALOGIX_DP_H_B_PORCH_CFG_L		0x84
+#define ANALOGIX_DP_H_B_PORCH_CFG_H		0x88
 
 #define ANALOGIX_DP_PLL_REG_1			0xfc
 #define ANALOGIX_DP_PLL_REG_2			0x9e4
@@ -127,6 +145,11 @@
 #define VIDEO_EN				(0x1 << 7)
 #define HDCP_VIDEO_MUTE				(0x1 << 6)
 
+/* ANALOGIX_DP_VIDEO_CTL_4 */
+#define BIST_EN					(0x1 << 3)
+#define BIST_WIDTH(x)				(((x) & 0x1) << 2)
+#define BIST_TYPE(x)				(((x) & 0x3) << 0)
+
 /* ANALOGIX_DP_VIDEO_CTL_1 */
 #define IN_D_RANGE_MASK				(0x1 << 7)
 #define IN_D_RANGE_SHIFT			(7)
@@ -163,6 +186,57 @@
 #define INTERACE_SCAN_CFG			(0x1 << 2)
 #define VSYNC_POLARITY_CFG			(0x1 << 1)
 #define HSYNC_POLARITY_CFG			(0x1 << 0)
+
+/* ANALOGIX_DP_TOTAL_LINE_CFG_L */
+#define TOTAL_LINE_CFG_L(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_TOTAL_LINE_CFG_H */
+#define TOTAL_LINE_CFG_H(x)			(((x) & 0xf) << 0)
+
+/* ANALOGIX_DP_ACTIVE_LINE_CFG_L */
+#define ACTIVE_LINE_CFG_L(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_ACTIVE_LINE_CFG_H */
+#define ACTIVE_LINE_CFG_H(x)			(((x) & 0xf) << 0)
+
+/* ANALOGIX_DP_V_F_PORCH_CFG */
+#define V_F_PORCH_CFG(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_V_SYNC_WIDTH_CFG */
+#define V_SYNC_WIDTH_CFG(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_V_B_PORCH_CFG */
+#define V_B_PORCH_CFG(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_TOTAL_PIXEL_CFG_L */
+#define TOTAL_PIXEL_CFG_L(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_TOTAL_PIXEL_CFG_H */
+#define TOTAL_PIXEL_CFG_H(x)			(((x) & 0x3f) << 0)
+
+/* ANALOGIX_DP_ACTIVE_PIXEL_CFG_L */
+#define ACTIVE_PIXEL_CFG_L(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_ACTIVE_PIXEL_CFG_H */
+#define ACTIVE_PIXEL_CFG_H(x)			(((x) & 0x3f) << 0)
+
+/* ANALOGIX_DP_H_F_PORCH_CFG_L */
+#define H_F_PORCH_CFG_L(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_H_F_PORCH_CFG_H */
+#define H_F_PORCH_CFG_H(x)			(((x) & 0xf) << 0)
+
+/* ANALOGIX_DP_H_SYNC_CFG_L */
+#define H_SYNC_CFG_L(x)				(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_H_SYNC_CFG_H */
+#define H_SYNC_CFG_H(x)				(((x) & 0xf) << 0)
+
+/* ANALOGIX_DP_H_B_PORCH_CFG_L */
+#define H_B_PORCH_CFG_L(x)			(((x) & 0xff) << 0)
+
+/* ANALOGIX_DP_H_B_PORCH_CFG_H */
+#define H_B_PORCH_CFG_H(x)			(((x) & 0xf) << 0)
 
 /* ANALOGIX_DP_PLL_REG_1 */
 #define REF_CLK_24M				(0x1 << 0)
@@ -559,6 +633,7 @@ struct analogix_dp_device {
 	struct analogix_dp_plat_data plat_data;
 	unsigned char edid[EDID_BLOCK_LENGTH * 2];
 	u8 dpcd[DP_RECEIVER_CAP_SIZE];
+	bool video_bist_enable;
 };
 
 /* analogix_dp_reg.c */
@@ -642,5 +717,8 @@ void analogix_dp_config_video_slave_mode(struct analogix_dp_device *dp);
 void analogix_dp_enable_scrambling(struct analogix_dp_device *dp);
 void analogix_dp_disable_scrambling(struct analogix_dp_device *dp);
 bool analogix_dp_ssc_supported(struct analogix_dp_device *dp);
+void analogix_dp_set_video_format(struct analogix_dp_device *dp,
+				  const struct drm_display_mode *mode);
+void analogix_dp_video_bist_enable(struct analogix_dp_device *dp);
 
 #endif /* __DRM_ANALOGIX_DP__ */

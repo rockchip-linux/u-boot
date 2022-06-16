@@ -1299,3 +1299,68 @@ void analogix_dp_disable_scrambling(struct analogix_dp_device *dp)
 	reg |= SCRAMBLING_DISABLE;
 	analogix_dp_write(dp, ANALOGIX_DP_TRAINING_PTN_SET, reg);
 }
+
+void analogix_dp_set_video_format(struct analogix_dp_device *dp,
+				  const struct drm_display_mode *mode)
+{
+	unsigned int hsw, hfp, hbp, vsw, vfp, vbp;
+
+	hsw = mode->hsync_end - mode->hsync_start;
+	hfp = mode->hsync_start - mode->hdisplay;
+	hbp = mode->htotal - mode->hsync_end;
+	vsw = mode->vsync_end - mode->vsync_start;
+	vfp = mode->vsync_start - mode->vdisplay;
+	vbp = mode->vtotal - mode->vsync_end;
+
+	/* Set Video Format Parameters */
+	analogix_dp_write(dp, ANALOGIX_DP_TOTAL_LINE_CFG_L,
+			  TOTAL_LINE_CFG_L(mode->vtotal));
+	analogix_dp_write(dp, ANALOGIX_DP_TOTAL_LINE_CFG_H,
+			  TOTAL_LINE_CFG_H(mode->vtotal >> 8));
+	analogix_dp_write(dp, ANALOGIX_DP_ACTIVE_LINE_CFG_L,
+			  ACTIVE_LINE_CFG_L(mode->vdisplay));
+	analogix_dp_write(dp, ANALOGIX_DP_ACTIVE_LINE_CFG_H,
+			  ACTIVE_LINE_CFG_H(mode->vdisplay >> 8));
+	analogix_dp_write(dp, ANALOGIX_DP_V_F_PORCH_CFG,
+			  V_F_PORCH_CFG(vfp));
+	analogix_dp_write(dp, ANALOGIX_DP_V_SYNC_WIDTH_CFG,
+			  V_SYNC_WIDTH_CFG(vsw));
+	analogix_dp_write(dp, ANALOGIX_DP_V_B_PORCH_CFG,
+			  V_B_PORCH_CFG(vbp));
+	analogix_dp_write(dp, ANALOGIX_DP_TOTAL_PIXEL_CFG_L,
+			  TOTAL_PIXEL_CFG_L(mode->htotal));
+	analogix_dp_write(dp, ANALOGIX_DP_TOTAL_PIXEL_CFG_H,
+			  TOTAL_PIXEL_CFG_H(mode->htotal >> 8));
+	analogix_dp_write(dp, ANALOGIX_DP_ACTIVE_PIXEL_CFG_L,
+			  ACTIVE_PIXEL_CFG_L(mode->hdisplay));
+	analogix_dp_write(dp, ANALOGIX_DP_ACTIVE_PIXEL_CFG_H,
+			  ACTIVE_PIXEL_CFG_H(mode->hdisplay >> 8));
+	analogix_dp_write(dp, ANALOGIX_DP_H_F_PORCH_CFG_L,
+			  H_F_PORCH_CFG_L(hfp));
+	analogix_dp_write(dp, ANALOGIX_DP_H_F_PORCH_CFG_H,
+			  H_F_PORCH_CFG_H(hfp >> 8));
+	analogix_dp_write(dp, ANALOGIX_DP_H_SYNC_CFG_L,
+			  H_SYNC_CFG_L(hsw));
+	analogix_dp_write(dp, ANALOGIX_DP_H_SYNC_CFG_H,
+			  H_SYNC_CFG_H(hsw >> 8));
+	analogix_dp_write(dp, ANALOGIX_DP_H_B_PORCH_CFG_L,
+			  H_B_PORCH_CFG_L(hbp));
+	analogix_dp_write(dp, ANALOGIX_DP_H_B_PORCH_CFG_H,
+			  H_B_PORCH_CFG_H(hbp >> 8));
+}
+
+void analogix_dp_video_bist_enable(struct analogix_dp_device *dp)
+{
+	u32 reg;
+
+	/* Enable Video BIST */
+	analogix_dp_write(dp, ANALOGIX_DP_VIDEO_CTL_4, BIST_EN);
+
+	/*
+	 * Note that if BIST_EN is set to 1, F_SEL must be cleared to 0
+	 * although video format information comes from registers set by user.
+	 */
+	reg = analogix_dp_read(dp, ANALOGIX_DP_VIDEO_CTL_10);
+	reg &= ~FORMAT_SEL;
+	analogix_dp_write(dp, ANALOGIX_DP_VIDEO_CTL_10, reg);
+}
