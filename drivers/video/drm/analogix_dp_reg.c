@@ -1111,7 +1111,8 @@ void analogix_dp_init_video(struct analogix_dp_device *dp)
 	reg = CHA_CRI(4) | CHA_CTRL;
 	analogix_dp_write(dp, ANALOGIX_DP_SYS_CTL_2, reg);
 
-	reg = 0x0;
+	reg = analogix_dp_read(dp, ANALOGIX_DP_SYS_CTL_3);
+	reg |= VALID_CTRL | F_VALID;
 	analogix_dp_write(dp, ANALOGIX_DP_SYS_CTL_3, reg);
 
 	reg = VID_HRES_TH(2) | VID_VRES_TH(0);
@@ -1300,6 +1301,16 @@ void analogix_dp_set_video_format(struct analogix_dp_device *dp,
 				  const struct drm_display_mode *mode)
 {
 	unsigned int hsw, hfp, hbp, vsw, vfp, vbp;
+
+	dp->video_info.interlaced = !!(mode->flags & DRM_MODE_FLAG_INTERLACE);
+
+	if (dp->plat_data.subdev_type == RK3588_EDP) {
+		dp->video_info.v_sync_polarity = true;
+		dp->video_info.h_sync_polarity = true;
+	} else {
+		dp->video_info.v_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NVSYNC);
+		dp->video_info.h_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NHSYNC);
+	}
 
 	hsw = mode->hsync_end - mode->hsync_start;
 	hfp = mode->hsync_start - mode->hdisplay;
