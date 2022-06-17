@@ -1085,8 +1085,10 @@ static int rockchip_hdptx_phy_probe(struct udevice *dev)
 		return ret;
 	}
 
-	dev_read_u32_array(dev, "lane-polarity-invert",
-			   hdptx->lane_polarity_invert, 4);
+	ret = dev_read_u32_array(dev, "lane-polarity-invert",
+				 hdptx->lane_polarity_invert, 4);
+	if (ret < 0)
+		return ret;
 
 	return 0;
 }
