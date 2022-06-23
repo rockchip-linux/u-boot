@@ -2743,7 +2743,6 @@ static int rockchip_vop2_init(struct display_state *state)
 	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
 	u16 vact_end = vact_st + vdisplay;
 	bool yuv_overlay = false;
-	bool splice_en = false;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 line_flag_offset = (cstate->crtc_id * 4);
 	u32 val, act_end;
@@ -2769,13 +2768,15 @@ static int rockchip_vop2_init(struct display_state *state)
 
 	if (mode->hdisplay > VOP2_MAX_VP_OUTPUT_WIDTH) {
 		cstate->splice_mode = true;
-		splice_en = true;
 		cstate->splice_crtc_id = vop2->data->vp_data[cstate->crtc_id].splice_vp_id;
 		if (!cstate->splice_crtc_id) {
 			printf("%s: Splice mode is unsupported by vp%d\n",
 			       __func__, cstate->crtc_id);
 			return -EINVAL;
 		}
+
+		vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL, EN_MASK,
+				PORT_MERGE_EN_SHIFT, 1, false);
 	}
 
 	vop2_initial(vop2, state);
@@ -2833,9 +2834,6 @@ static int rockchip_vop2_init(struct display_state *state)
 			yuv_overlay, false);
 
 	cstate->yuv_overlay = yuv_overlay;
-
-	vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL, EN_MASK,
-			PORT_MERGE_EN_SHIFT, splice_en, false);
 
 	vop2_writel(vop2, RK3568_VP0_DSP_HTOTAL_HS_END + vp_offset,
 		    (htotal << 16) | hsync_len);
@@ -2898,7 +2896,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	else
 		val = 0;
 	vop2_writel(vop2, RK3568_VP0_DSP_BG + vp_offset, val);
-	if (splice_en) {
+	if (cstate->splice_mode) {
 		vop2_mask_write(vop2, RK3568_OVL_CTRL, OVL_MODE_SEL_MASK,
 				OVL_MODE_SEL_SHIFT + cstate->splice_crtc_id,
 				yuv_overlay, false);
