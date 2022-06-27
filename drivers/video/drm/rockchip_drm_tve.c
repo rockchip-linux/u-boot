@@ -205,18 +205,8 @@ static u8 rk_get_vdac_value(void)
 	return value;
 }
 
-static int rockchip_drm_tve_pre_init(struct display_state *state)
+static int rockchip_drm_tve_init(struct rockchip_connector *conn, struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-
-	conn_state->type = DRM_MODE_CONNECTOR_TV;
-
-	return 0;
-}
-
-static int rockchip_drm_tve_init(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
 	int node = 0;
 	int dac_value, getvdac;
 	fdt_addr_t addr;
@@ -229,7 +219,7 @@ static int rockchip_drm_tve_init(struct display_state *state)
 	}
 
 #if defined(CONFIG_ROCKCHIP_RK3036)
-	addr = dev_read_addr_index(conn_state->dev, 0);
+	addr = dev_read_addr_index(conn->dev, 0);
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
@@ -242,7 +232,7 @@ static int rockchip_drm_tve_init(struct display_state *state)
 		goto err;
 	}
 #elif defined(CONFIG_ROCKCHIP_RK3128)
-	addr = dev_read_addr_index(conn_state->dev, 0);
+	addr = dev_read_addr_index(conn->dev, 0);
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
@@ -256,7 +246,7 @@ static int rockchip_drm_tve_init(struct display_state *state)
 		goto err;
 	}
 #elif defined(CONFIG_ROCKCHIP_RK322X)
-	addr = dev_read_addr_index(conn_state->dev, 0);
+	addr = dev_read_addr_index(conn->dev, 0);
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
@@ -264,7 +254,7 @@ static int rockchip_drm_tve_init(struct display_state *state)
 	tve_s.soctype = SOC_RK322X;
 	tve_s.saturation = 0;
 
-	addr = dev_read_addr_index(conn_state->dev, 1);
+	addr = dev_read_addr_index(conn->dev, 1);
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 	tve_s.vdacbase = (void *)addr;
@@ -275,14 +265,14 @@ static int rockchip_drm_tve_init(struct display_state *state)
 		goto err;
 	}
 #elif defined(CONFIG_ROCKCHIP_RK3328)
-	addr = dev_read_addr_index(conn_state->dev, 0);
+	addr = dev_read_addr_index(conn->dev, 0);
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
 	tve_s.reg_phy_base = (void *)addr;
 	tve_s.soctype = SOC_RK322XH;
 
-	addr = dev_read_addr_index(conn_state->dev, 1);
+	addr = dev_read_addr_index(conn->dev, 1);
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 	tve_s.vdacbase = (void *)addr;
@@ -403,7 +393,7 @@ err:
 	return -ENODEV;
 }
 
-static int rockchip_drm_tve_enable(struct display_state *state)
+static int rockchip_drm_tve_enable(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
@@ -411,7 +401,7 @@ static int rockchip_drm_tve_enable(struct display_state *state)
 
 #ifdef CONFIG_ROCKCHIP_INNO_HDMI_PHY
 	/* set inno hdmi phy clk. */
-	rockchip_phy_set_pll(conn_state->phy, 27000000);
+	rockchip_phy_set_pll(conn->phy, 27000000);
 #endif
 	if (mode->vdisplay == 576)
 		tve_type = TVOUT_CVBS_PAL;
@@ -424,23 +414,23 @@ static int rockchip_drm_tve_enable(struct display_state *state)
 	return 0;
 }
 
-static void rockchip_drm_tve_deinit(struct display_state *state)
+static void rockchip_drm_tve_deinit(struct rockchip_connector *conn, struct display_state *state)
 {
 	dac_enable(0);
 }
 
-static int rockchip_drm_tve_prepare(struct display_state *state)
+static int rockchip_drm_tve_prepare(struct rockchip_connector *conn, struct display_state *state)
 {
 	return 0;
 }
 
-static int rockchip_drm_tve_disable(struct display_state *state)
+static int rockchip_drm_tve_disable(struct rockchip_connector *conn, struct display_state *state)
 {
 	dac_enable(0);
 	return 0;
 }
 
-static int rockchip_drm_tve_detect(struct display_state *state)
+static int rockchip_drm_tve_detect(struct rockchip_connector *conn, struct display_state *state)
 {
 	return 1;
 }
@@ -541,7 +531,7 @@ static void drm_tve_selete_output(struct overscan *overscan,
 		       screen_info->mode.vdisplay);
 }
 
-static int rockchip_drm_tve_get_timing(struct display_state *state)
+static int rockchip_drm_tve_get_timing(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
@@ -553,13 +543,7 @@ static int rockchip_drm_tve_get_timing(struct display_state *state)
 	return 0;
 }
 
-static int rockchip_drm_tve_probe(struct udevice *dev)
-{
-	return 0;
-}
-
 const struct rockchip_connector_funcs rockchip_drm_tve_funcs = {
-	.pre_init = rockchip_drm_tve_pre_init,
 	.init = rockchip_drm_tve_init,
 	.deinit = rockchip_drm_tve_deinit,
 	.prepare = rockchip_drm_tve_prepare,
@@ -569,14 +553,19 @@ const struct rockchip_connector_funcs rockchip_drm_tve_funcs = {
 	.detect = rockchip_drm_tve_detect,
 };
 
-static const struct rockchip_connector rk3328_drm_tve_data = {
-	.funcs = &rockchip_drm_tve_funcs,
-};
+static int rockchip_drm_tve_probe(struct udevice *dev)
+{
+	struct rockchip_connector *conn = dev_get_priv(dev);
+
+	rockchip_connector_bind(conn, dev, 0, &rockchip_drm_tve_funcs, NULL,
+				DRM_MODE_CONNECTOR_TV);
+
+	return 0;
+}
 
 static const struct udevice_id rockchip_drm_tve_ids[] = {
 	{
 	 .compatible = "rockchip,rk3328-tve",
-	 .data = (ulong)&rk3328_drm_tve_data,
 	}, {}
 };
 
@@ -585,4 +574,5 @@ U_BOOT_DRIVER(rockchip_drm_tve) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = rockchip_drm_tve_ids,
 	.probe	= rockchip_drm_tve_probe,
+	.priv_auto_alloc_size = sizeof(struct rockchip_connector),
 };

@@ -930,7 +930,7 @@ void rk3588_set_grf_cfg(void *data);
 void dw_hdmi_qp_set_iomux(void *data);
 struct dw_hdmi_link_config *dw_hdmi_rockchip_get_link_cfg(void *data);
 void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
-			      struct connector_state *conn_state,
+			      struct rockchip_connector *conn,
 			      unsigned int *bus_format,
 			      struct overscan *overscan,
 			      enum dw_hdmi_devtype dev_type,

@@ -191,13 +191,8 @@ struct overscan {
 };
 
 struct connector_state {
-	struct udevice *dev;
-	const struct rockchip_connector *connector;
-	struct rockchip_bridge *bridge;
-	struct rockchip_phy *phy;
-	ofnode node;
-
-	void *private;
+	struct rockchip_connector *connector;
+	struct rockchip_connector *secondary;
 
 	struct drm_display_mode mode;
 	struct overscan overscan;
@@ -277,13 +272,6 @@ struct display_state {
 	struct drm_display_mode force_mode;
 	u32 force_bus_format;
 };
-
-static inline struct rockchip_panel *state_get_panel(struct display_state *s)
-{
-	struct panel_state *panel_state = &s->panel_state;
-
-	return panel_state->panel;
-}
 
 int drm_mode_vrefresh(const struct drm_display_mode *mode);
 int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val);

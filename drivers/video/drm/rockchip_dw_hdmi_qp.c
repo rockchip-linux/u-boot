@@ -105,6 +105,7 @@ enum hdmi_frl_rate_per_lane {
 };
 
 struct rockchip_hdmi {
+	struct rockchip_connector connector;
 	int id;
 	struct udevice *dev;
 	struct regmap *regmap;
@@ -890,7 +891,7 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 }
 
 void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
-			      struct connector_state *conn_state,
+			      struct rockchip_connector *conn,
 			      unsigned int *bus_format,
 			      struct overscan *overscan,
 			      enum dw_hdmi_devtype dev_type,
@@ -901,7 +902,7 @@ void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
 	struct drm_hdmi_info *hdmi_info = &edid_data->display_info.hdmi;
 	int ret, i, screen_size;
 	struct base_disp_info base_parameter;
-	struct base2_disp_info *base2_parameter = conn_state->disp_info;
+	struct base2_disp_info *base2_parameter = state->conn_state.disp_info;
 	const struct base_overscan *scan;
 	struct base_screen_info *screen_info = NULL;
 	struct base2_screen_info *screen_info2 = NULL;
@@ -1067,7 +1068,7 @@ null_basep:
 			hdmi->bus_width |= COLOR_DEPTH_10BIT;
 	}
 
-	rockchip_phy_set_bus_width(conn_state->phy, hdmi->bus_width);
+	rockchip_phy_set_bus_width(conn->phy, hdmi->bus_width);
 }
 
 static void rk3588_set_link_mode(struct rockchip_hdmi *hdmi)
@@ -1208,25 +1209,21 @@ struct dw_hdmi_link_config *dw_hdmi_rockchip_get_link_cfg(void *data)
 	return &hdmi->link_cfg;
 }
 
-static void dw_hdmi_qp_rockchip_phy_disable(void *data, void *state)
+static void dw_hdmi_qp_rockchip_phy_disable(struct rockchip_connector *conn, void *data,
+					    void *state)
 {
-	struct display_state *display_state = (struct display_state *)state;
-	struct connector_state *conn_state = &display_state->conn_state;
-
-	rockchip_phy_power_off(conn_state->phy);
+	rockchip_phy_power_off(conn->phy);
 }
 
-static int dw_hdmi_qp_rockchip_genphy_init(void *data, void *state)
+static int dw_hdmi_qp_rockchip_genphy_init(struct rockchip_connector *conn, void *data, void *state)
 {
 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
-	struct display_state *display_state = (struct display_state *)state;
-	struct connector_state *conn_state = &display_state->conn_state;
 
-	dw_hdmi_qp_rockchip_phy_disable(data, state);
+	dw_hdmi_qp_rockchip_phy_disable(conn, data, state);
 
-	rockchip_phy_set_bus_width(conn_state->phy, hdmi->bus_width);
+	rockchip_phy_set_bus_width(conn->phy, hdmi->bus_width);
 
-	return rockchip_phy_power_on(conn_state->phy);
+	return rockchip_phy_power_on(conn->phy);
 }
 
 static enum drm_connector_status dw_hdmi_rk3588_read_hpd(void *data)
@@ -1252,7 +1249,7 @@ static enum drm_connector_status dw_hdmi_rk3588_read_hpd(void *data)
 	return ret;
 }
 
-static void dw_hdmi_rk3588_set_pll(void *data, void *state)
+static void dw_hdmi_rk3588_set_pll(struct rockchip_connector *conn, void *data, void *state)
 {
 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
 	struct display_state *display_state = (struct display_state *)state;
@@ -1260,9 +1257,9 @@ static void dw_hdmi_rk3588_set_pll(void *data, void *state)
 	struct drm_display_mode *mode = &conn_state->mode;
 
 	if (hdmi_bus_fmt_is_yuv420(hdmi->bus_format))
-		rockchip_phy_set_pll(conn_state->phy, mode->clock / 2 * 1000);
+		rockchip_phy_set_pll(conn->phy, mode->clock / 2 * 1000);
 	else
-		rockchip_phy_set_pll(conn_state->phy, mode->clock * 1000);
+		rockchip_phy_set_pll(conn->phy, mode->clock * 1000);
 }
 
 static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
@@ -1273,7 +1270,6 @@ static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
 };
 
 static const struct rockchip_connector_funcs rockchip_dw_hdmi_qp_funcs = {
-	.pre_init = rockchip_dw_hdmi_qp_pre_init,
 	.init = rockchip_dw_hdmi_qp_init,
 	.deinit = rockchip_dw_hdmi_qp_deinit,
 	.prepare = rockchip_dw_hdmi_qp_prepare,
@@ -1326,18 +1322,16 @@ static int rockchip_dw_hdmi_qp_probe(struct udevice *dev)
 		return ret;
 	}
 
+	rockchip_connector_bind(&hdmi->connector, dev, hdmi->id, &rockchip_dw_hdmi_qp_funcs,
+				NULL, DRM_MODE_CONNECTOR_HDMIA);
+
 	return 0;
 }
-
-static const struct rockchip_connector rk3588_dw_hdmi_qp_data = {
-	.funcs = &rockchip_dw_hdmi_qp_funcs,
-	.data = &rk3588_hdmi_drv_data,
-};
 
 static const struct udevice_id rockchip_dw_hdmi_qp_ids[] = {
 	{
 	 .compatible = "rockchip,rk3588-dw-hdmi",
-	 .data = (ulong)&rk3588_dw_hdmi_qp_data,
+	 .data = (ulong)&rk3588_hdmi_drv_data,
 	}, {}
 };
 

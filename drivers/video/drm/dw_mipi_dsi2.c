@@ -263,6 +263,7 @@ struct mipi_dphy_configure {
 };
 
 struct dw_mipi_dsi2 {
+	struct rockchip_connector connector;
 	struct udevice *dev;
 	void *base;
 	void *grf;
@@ -689,11 +690,10 @@ static void dw_mipi_dsi2_post_disable(struct dw_mipi_dsi2 *dsi2)
 		dw_mipi_dsi2_post_disable(dsi2->slave);
 }
 
-static int dw_mipi_dsi2_connector_pre_init(struct display_state *state)
+static int dw_mipi_dsi2_connector_pre_init(struct rockchip_connector *conn,
+					   struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct panel_state *panel_state = &state->panel_state;
-	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 	struct mipi_dsi_host *host = dev_get_platdata(dsi2->dev);
 	struct mipi_dsi_device *device;
 	char name[20];
@@ -703,12 +703,10 @@ static int dw_mipi_dsi2_connector_pre_init(struct display_state *state)
 	if (!device)
 		return -ENOMEM;
 
-	conn_state->type = DRM_MODE_CONNECTOR_DSI;
-
-	if (conn_state->bridge)
-		dev = conn_state->bridge->dev;
-	else if (panel_state->panel)
-		dev = panel_state->panel->dev;
+	if (conn->bridge)
+		dev = conn->bridge->dev;
+	else if (conn->panel)
+		dev = conn->panel->dev;
 	else
 		return -ENODEV;
 
@@ -735,18 +733,18 @@ static int dw_mipi_dsi2_connector_pre_init(struct display_state *state)
 	return 0;
 }
 
-static int dw_mipi_dsi2_connector_init(struct display_state *state)
+static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
-	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 	struct rockchip_phy *phy = NULL;
 	struct udevice *phy_dev;
 	struct udevice *dev;
 	int ret;
 
 	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dsi2->id);
-	dsi2->dcphy.phy = conn_state->phy;
+	dsi2->dcphy.phy = conn->phy;
 
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
@@ -1048,10 +1046,11 @@ static void dw_mipi_dsi2_pre_enable(struct dw_mipi_dsi2 *dsi2)
 		dw_mipi_dsi2_pre_enable(dsi2->slave);
 }
 
-static int dw_mipi_dsi2_connector_prepare(struct display_state *state)
+static int dw_mipi_dsi2_connector_prepare(struct rockchip_connector *conn,
+					  struct display_state *state)
 {
+	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn_state->dev);
 	unsigned long lane_rate;
 
 	memcpy(&dsi2->mode, &conn_state->mode, sizeof(struct drm_display_mode));
@@ -1075,28 +1074,28 @@ static int dw_mipi_dsi2_connector_prepare(struct display_state *state)
 	return 0;
 }
 
-static void dw_mipi_dsi2_connector_unprepare(struct display_state *state)
+static void dw_mipi_dsi2_connector_unprepare(struct rockchip_connector *conn,
+					     struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 
 	dw_mipi_dsi2_post_disable(dsi2);
 }
 
-static int dw_mipi_dsi2_connector_enable(struct display_state *state)
+static int dw_mipi_dsi2_connector_enable(struct rockchip_connector *conn,
+					 struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 
 	dw_mipi_dsi2_enable(dsi2);
 
 	return 0;
 }
 
-static int dw_mipi_dsi2_connector_disable(struct display_state *state)
+static int dw_mipi_dsi2_connector_disable(struct rockchip_connector *conn,
+					  struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 
 	dw_mipi_dsi2_disable(dsi2);
 
@@ -1115,9 +1114,8 @@ static const struct rockchip_connector_funcs dw_mipi_dsi2_connector_funcs = {
 static int dw_mipi_dsi2_probe(struct udevice *dev)
 {
 	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(dev);
-	const struct rockchip_connector *connector =
-		(const struct rockchip_connector *)dev_get_driver_data(dev);
-	const struct dw_mipi_dsi2_plat_data *pdata = connector->data;
+	const struct dw_mipi_dsi2_plat_data *pdata =
+		(const struct dw_mipi_dsi2_plat_data *)dev_get_driver_data(dev);
 	struct udevice *syscon;
 	int id, ret;
 
@@ -1139,6 +1137,9 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 	dsi2->pdata = pdata;
 	dsi2->id = id;
 	dsi2->data_swap = dev_read_bool(dsi2->dev, "rockchip,data-swap");
+
+	rockchip_connector_bind(&dsi2->connector, dev, id, &dw_mipi_dsi2_connector_funcs, NULL,
+				DRM_MODE_CONNECTOR_DSI);
 
 	return 0;
 }
@@ -1167,15 +1168,11 @@ static const struct dw_mipi_dsi2_plat_data rk3588_mipi_dsi2_plat_data = {
 	.dphy_max_bit_rate_per_lane = 4500000000ULL,
 	.cphy_max_symbol_rate_per_lane = 2000000000ULL,
 };
-static const struct rockchip_connector rk3588_mipi_dsi2_driver_data = {
-	 .funcs = &dw_mipi_dsi2_connector_funcs,
-	 .data = &rk3588_mipi_dsi2_plat_data,
-};
 
 static const struct udevice_id dw_mipi_dsi2_ids[] = {
 	{
 		.compatible = "rockchip,rk3588-mipi-dsi2",
-		.data = (ulong)&rk3588_mipi_dsi2_driver_data,
+		.data = (ulong)&rk3588_mipi_dsi2_plat_data,
 	},
 	{}
 };

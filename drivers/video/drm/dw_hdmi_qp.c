@@ -939,6 +939,7 @@ static void hdmi_set_op_mode(struct dw_hdmi_qp *hdmi,
 }
 
 static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
+			 struct rockchip_connector *conn,
 			 struct drm_display_mode *mode,
 			 struct display_state *state)
 {
@@ -1006,7 +1007,7 @@ static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
 	hdmi->hdmi_data.video_mode.mdataenablepolarity = true;
 
 	/* HDMI Initialization Step B.2 */
-	ret = hdmi->phy.ops->init(hdmi->rk_hdmi, state);
+	ret = hdmi->phy.ops->init(conn, hdmi->rk_hdmi, state);
 	if (ret)
 		return ret;
 	hdmi->phy.enabled = true;
@@ -1067,24 +1068,15 @@ int dw_hdmi_detect_hotplug(struct dw_hdmi_qp *hdmi,
 	return ret;
 }
 
-int rockchip_dw_hdmi_qp_pre_init(struct display_state *state)
+int rockchip_dw_hdmi_qp_init(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-
-	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
-
-	return 0;
-}
-
-int rockchip_dw_hdmi_qp_init(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-	const struct rockchip_connector *connector = conn_state->connector;
-	const struct dw_hdmi_plat_data *pdata = connector->data;
-	void *rk_hdmi = dev_get_priv(conn_state->dev);
+	const struct dw_hdmi_plat_data *pdata =
+		(const struct dw_hdmi_plat_data *)dev_get_driver_data(conn->dev);
+	void *rk_hdmi = dev_get_priv(conn->dev);
 	struct dw_hdmi_qp *hdmi;
 	struct drm_display_mode *mode_buf;
-	ofnode hdmi_node = conn_state->node;
+	ofnode hdmi_node = conn->dev->node;
 	struct device_node *ddc_node;
 
 	hdmi = malloc(sizeof(struct dw_hdmi_qp));
@@ -1104,7 +1096,7 @@ int rockchip_dw_hdmi_qp_init(struct display_state *state)
 
 	memset(mode_buf, 0, MODE_LEN * sizeof(struct drm_display_mode));
 
-	hdmi->regs = dev_read_addr_ptr(conn_state->dev);
+	hdmi->regs = dev_read_addr_ptr(conn->dev);
 
 	ddc_node = of_parse_phandle(ofnode_to_np(hdmi_node), "ddc-i2c-bus", 0);
 	if (ddc_node) {
@@ -1137,7 +1129,7 @@ int rockchip_dw_hdmi_qp_init(struct display_state *state)
 	hdmi->plat_data = pdata;
 	hdmi->edid_data.mode_buf = mode_buf;
 
-	conn_state->private = hdmi;
+	conn->data = hdmi;
 
 	dw_hdmi_detect_phy(hdmi);
 	hdmi_writel(hdmi, 0, MAINUNIT_0_INT_MASK_N);
@@ -1149,10 +1141,9 @@ int rockchip_dw_hdmi_qp_init(struct display_state *state)
 	return 0;
 }
 
-void rockchip_dw_hdmi_qp_deinit(struct display_state *state)
+void rockchip_dw_hdmi_qp_deinit(struct rockchip_connector *conn, struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_hdmi_qp *hdmi = conn_state->private;
+	struct dw_hdmi_qp *hdmi = conn->data;
 
 	if (hdmi->i2c)
 		free(hdmi->i2c);
@@ -1162,24 +1153,25 @@ void rockchip_dw_hdmi_qp_deinit(struct display_state *state)
 		free(hdmi);
 }
 
-int rockchip_dw_hdmi_qp_prepare(struct display_state *state)
+int rockchip_dw_hdmi_qp_prepare(struct rockchip_connector *conn, struct display_state *state)
 {
 	return 0;
 }
 
-static void dw_hdmi_disable(struct dw_hdmi_qp *hdmi, struct display_state *state)
+static void dw_hdmi_disable(struct rockchip_connector *conn, struct dw_hdmi_qp *hdmi,
+			    struct display_state *state)
 {
 	if (hdmi->phy.enabled) {
-		hdmi->phy.ops->disable(hdmi->rk_hdmi, state);
+		hdmi->phy.ops->disable(conn, hdmi->rk_hdmi, state);
 		hdmi->phy.enabled = false;
 	}
 }
 
-int rockchip_dw_hdmi_qp_enable(struct display_state *state)
+int rockchip_dw_hdmi_qp_enable(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	struct dw_hdmi_qp *hdmi = conn_state->private;
+	struct dw_hdmi_qp *hdmi = conn->data;
 
 	if (!hdmi)
 		return -EFAULT;
@@ -1187,26 +1179,25 @@ int rockchip_dw_hdmi_qp_enable(struct display_state *state)
 	/* Store the display mode for plugin/DKMS poweron events */
 	memcpy(&hdmi->previous_mode, mode, sizeof(hdmi->previous_mode));
 
-	dw_hdmi_setup(hdmi, mode, state);
+	dw_hdmi_setup(hdmi, conn, mode, state);
 
 	return 0;
 }
 
-int rockchip_dw_hdmi_qp_disable(struct display_state *state)
+int rockchip_dw_hdmi_qp_disable(struct rockchip_connector *conn, struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_hdmi_qp *hdmi = conn_state->private;
+	struct dw_hdmi_qp *hdmi = conn->data;
 
-	dw_hdmi_disable(hdmi, state);
+	dw_hdmi_disable(conn, hdmi, state);
 	return 0;
 }
 
-int rockchip_dw_hdmi_qp_get_timing(struct display_state *state)
+int rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn, struct display_state *state)
 {
 	int ret, i;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	struct dw_hdmi_qp *hdmi = conn_state->private;
+	struct dw_hdmi_qp *hdmi = conn->data;
 	struct edid *edid = (struct edid *)conn_state->edid;
 	unsigned int bus_format;
 	unsigned long enc_out_encoding;
@@ -1246,7 +1237,7 @@ int rockchip_dw_hdmi_qp_get_timing(struct display_state *state)
 			drm_mode_vrefresh(&hdmi->edid_data.mode_buf[i]);
 
 	drm_mode_sort(&hdmi->edid_data);
-	dw_hdmi_qp_selete_output(&hdmi->edid_data, conn_state, &bus_format,
+	dw_hdmi_qp_selete_output(&hdmi->edid_data, conn, &bus_format,
 				 overscan, hdmi->dev_type,
 				 hdmi->output_bus_format_rgb, hdmi->rk_hdmi,
 				 state);
@@ -1296,11 +1287,10 @@ int rockchip_dw_hdmi_qp_get_timing(struct display_state *state)
 	return 0;
 }
 
-int rockchip_dw_hdmi_qp_detect(struct display_state *state)
+int rockchip_dw_hdmi_qp_detect(struct rockchip_connector *conn, struct display_state *state)
 {
 	int ret;
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_hdmi_qp *hdmi = conn_state->private;
+	struct dw_hdmi_qp *hdmi = conn->data;
 
 	if (!hdmi)
 		return -EFAULT;
@@ -1310,11 +1300,11 @@ int rockchip_dw_hdmi_qp_detect(struct display_state *state)
 	return ret;
 }
 
-int rockchip_dw_hdmi_qp_get_edid(struct display_state *state)
+int rockchip_dw_hdmi_qp_get_edid(struct rockchip_connector *conn, struct display_state *state)
 {
 	int ret;
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_hdmi_qp *hdmi = conn_state->private;
+	struct dw_hdmi_qp *hdmi = conn->data;
 
 	ret = drm_do_get_edid(&hdmi->adap, conn_state->edid);
 

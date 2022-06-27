@@ -14,6 +14,7 @@
 struct display_state;
 struct rockchip_bridge;
 struct drm_display_mode;
+struct rockchip_connector;
 
 struct rockchip_bridge_funcs {
 	void (*enable)(struct rockchip_bridge *bridge);
@@ -29,10 +30,12 @@ struct rockchip_bridge {
 	struct udevice *dev;
 	const struct rockchip_bridge_funcs *funcs;
 	struct rockchip_bridge *next_bridge;
+	struct rockchip_connector *conn;
 	struct display_state *state;
 };
 
 void rockchip_bridge_init(struct rockchip_bridge *bridge,
+			  struct rockchip_connector *conn,
 			  struct display_state *state);
 void rockchip_bridge_enable(struct rockchip_bridge *bridge);
 void rockchip_bridge_disable(struct rockchip_bridge *bridge);

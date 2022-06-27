@@ -13,6 +13,8 @@
 
 #include <drm/drm_dp_helper.h>
 
+#include "rockchip_connector.h"
+
 #define ANALOGIX_DP_TX_SW_RESET			0x14
 #define ANALOGIX_DP_FUNC_EN_1			0x18
 #define ANALOGIX_DP_FUNC_EN_2			0x1C
@@ -619,6 +621,7 @@ struct analogix_dp_plat_data {
 };
 
 struct analogix_dp_device {
+	struct rockchip_connector connector;
 	int id;
 	struct udevice *dev;
 	void *reg_base;

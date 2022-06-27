@@ -7,6 +7,7 @@
 #include <syscon.h>
 #include <asm/io.h>
 #include <asm/arch-rockchip/clock.h>
+#include <dm/of_access.h>
 #include <dm/device.h>
 #include <dm/read.h>
 #include <linux/hdmi.h>
@@ -620,22 +621,12 @@ static int inno_hdmi_i2c_xfer(struct ddc_adapter *adap,
 	return ret;
 }
 
-int rockchip_inno_hdmi_pre_init(struct display_state *state)
+static int rockchip_inno_hdmi_init(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-
-	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
-
-	return 0;
-}
-
-static int rockchip_inno_hdmi_init(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-	const struct rockchip_connector *connector = conn_state->connector;
 	struct inno_hdmi *hdmi;
 	struct drm_display_mode *mode_buf;
-	ofnode hdmi_node = conn_state->node;
+	ofnode hdmi_node = conn->dev->node;
 	int ret;
 
 	hdmi = calloc(1, sizeof(struct inno_hdmi));
@@ -646,7 +637,7 @@ static int rockchip_inno_hdmi_init(struct display_state *state)
 	if (!mode_buf)
 		return -ENOMEM;
 
-	hdmi->regs = dev_read_addr_ptr(conn_state->dev);
+	hdmi->regs = dev_read_addr_ptr(conn->dev);
 
 	hdmi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (hdmi->grf <= 0) {
@@ -675,14 +666,14 @@ static int rockchip_inno_hdmi_init(struct display_state *state)
 	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 
-	hdmi->plat_data = (struct inno_hdmi_plat_data *)connector->data;
+	hdmi->plat_data = (struct inno_hdmi_plat_data *)dev_get_driver_data(conn->dev);
 	hdmi->edid_data.mode_buf = mode_buf;
 	hdmi->sample_rate = 48000;
 
-	conn_state->private = hdmi;
+	conn->data = hdmi;
 
 	inno_hdmi_reset(hdmi);
-	ret = clk_get_by_name(conn_state->dev, "pclk", &hdmi->pclk);
+	ret = clk_get_by_name(conn->dev, "pclk", &hdmi->pclk);
 	if (ret < 0) {
 		dev_err(hdmi->dev, "failed to get pclk: %d\n", ret);
 		return ret;
@@ -696,11 +687,11 @@ static int rockchip_inno_hdmi_init(struct display_state *state)
 	return 0;
 }
 
-static int rockchip_inno_hdmi_enable(struct display_state *state)
+static int rockchip_inno_hdmi_enable(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	struct inno_hdmi *hdmi = conn_state->private;
+	struct inno_hdmi *hdmi = conn->data;
 
 	if (!hdmi)
 		return -EFAULT;
@@ -714,10 +705,9 @@ static int rockchip_inno_hdmi_enable(struct display_state *state)
 	return 0;
 }
 
-static void rockchip_inno_hdmi_deinit(struct display_state *state)
+static void rockchip_inno_hdmi_deinit(struct rockchip_connector *conn, struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi *hdmi = conn_state->private;
+	struct inno_hdmi *hdmi = conn->data;
 
 	if (hdmi->i2c)
 		free(hdmi->i2c);
@@ -725,35 +715,34 @@ static void rockchip_inno_hdmi_deinit(struct display_state *state)
 		free(hdmi);
 }
 
-static int rockchip_inno_hdmi_prepare(struct display_state *state)
+static int rockchip_inno_hdmi_prepare(struct rockchip_connector *conn, struct display_state *state)
 {
 	return 0;
 }
 
-static int rockchip_inno_hdmi_disable(struct display_state *state)
+static int rockchip_inno_hdmi_disable(struct rockchip_connector *conn, struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi *hdmi = conn_state->private;
+	struct inno_hdmi *hdmi = conn->data;
 
 	inno_hdmi_set_pwr_mode(hdmi, LOWER_PWR);
 	return 0;
 }
 
-static int rockchip_inno_hdmi_detect(struct display_state *state)
+static int rockchip_inno_hdmi_detect(struct rockchip_connector *conn, struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct inno_hdmi *hdmi = conn_state->private;
+	struct inno_hdmi *hdmi = conn->data;
 
 	return (hdmi_readb(hdmi, HDMI_STATUS) & m_HOTPLUG) ?
 		connector_status_connected : connector_status_disconnected;
 }
 
-static int rockchip_inno_hdmi_get_timing(struct display_state *state)
+static int rockchip_inno_hdmi_get_timing(struct rockchip_connector *conn,
+					 struct display_state *state)
 {
 	int  i, ret;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	struct inno_hdmi *hdmi = conn_state->private;
+	struct inno_hdmi *hdmi = conn->data;
 	struct edid *edid = (struct edid *)conn_state->edid;
 	const u8 def_modes_vic[6] = {16, 4, 2, 17, 31, 19};
 
@@ -798,18 +787,7 @@ static int rockchip_inno_hdmi_get_timing(struct display_state *state)
 	return 0;
 }
 
-static int rockchip_inno_hdmi_probe(struct udevice *dev)
-{
-	return 0;
-}
-
-static int rockchip_inno_hdmi_bind(struct udevice *dev)
-{
-	return 0;
-}
-
 const struct rockchip_connector_funcs rockchip_inno_hdmi_funcs = {
-	.pre_init = rockchip_inno_hdmi_pre_init,
 	.init = rockchip_inno_hdmi_init,
 	.deinit = rockchip_inno_hdmi_deinit,
 	.prepare = rockchip_inno_hdmi_prepare,
@@ -818,6 +796,26 @@ const struct rockchip_connector_funcs rockchip_inno_hdmi_funcs = {
 	.get_timing = rockchip_inno_hdmi_get_timing,
 	.detect = rockchip_inno_hdmi_detect,
 };
+
+static int rockchip_inno_hdmi_probe(struct udevice *dev)
+{
+	int id;
+	struct rockchip_connector *conn = dev_get_priv(dev);
+
+	id = of_alias_get_id(ofnode_to_np(dev->node), "hdmi");
+	if (id < 0)
+		id = 0;
+
+	rockchip_connector_bind(conn, dev, id, &rockchip_inno_hdmi_funcs, NULL,
+				DRM_MODE_CONNECTOR_HDMIA);
+
+	return 0;
+}
+
+static int rockchip_inno_hdmi_bind(struct udevice *dev)
+{
+	return 0;
+}
 
 static const struct inno_hdmi_plat_data rk3036_hdmi_drv_data = {
 	.dev_type   = RK3036_HDMI,
@@ -829,24 +827,14 @@ static const struct inno_hdmi_plat_data rk3128_hdmi_drv_data = {
 	.phy_config = rk3128_hdmi_phy_config,
 };
 
-static const struct rockchip_connector rk3036_inno_hdmi_data = {
-	.funcs = &rockchip_inno_hdmi_funcs,
-	.data = &rk3036_hdmi_drv_data,
-};
-
-static const struct rockchip_connector rk3128_inno_hdmi_data = {
-	.funcs = &rockchip_inno_hdmi_funcs,
-	.data = &rk3128_hdmi_drv_data,
-};
-
 static const struct udevice_id rockchip_inno_hdmi_ids[] = {
 	{
 	 .compatible = "rockchip,rk3036-inno-hdmi",
-	 .data = (ulong)&rk3036_inno_hdmi_data,
+	 .data = (ulong)&rk3036_hdmi_drv_data,
 	},
 	{
 	 .compatible = "rockchip,rk3128-inno-hdmi",
-	 .data = (ulong)&rk3128_inno_hdmi_data,
+	 .data = (ulong)&rk3128_hdmi_drv_data,
 	}, {}
 
 };
@@ -857,4 +845,5 @@ U_BOOT_DRIVER(rockchip_inno_hdmi) = {
 	.of_match = rockchip_inno_hdmi_ids,
 	.probe	= rockchip_inno_hdmi_probe,
 	.bind	= rockchip_inno_hdmi_bind,
+	.priv_auto_alloc_size = sizeof(struct rockchip_connector),
 };

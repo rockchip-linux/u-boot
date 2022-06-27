@@ -9,6 +9,7 @@
 
 struct display_state;
 struct rockchip_panel;
+struct rockchip_conn;
 
 struct rockchip_panel_funcs {
 	void (*prepare)(struct rockchip_panel *panel);
@@ -24,15 +25,18 @@ struct rockchip_panel {
 	const struct rockchip_panel_funcs *funcs;
 	const void *data;
 
+	struct rockchip_connector *conn;
 	struct display_state *state;
 };
 
 static inline void rockchip_panel_init(struct rockchip_panel *panel,
+				       struct rockchip_connector *conn,
 				       struct display_state *state)
 {
 	if (!panel)
 		return;
 
+	panel->conn = conn;
 	panel->state = state;
 
 	if (panel->bus_format)

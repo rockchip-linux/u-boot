@@ -217,6 +217,7 @@ struct dw_dp_sdp {
 };
 
 struct dw_dp {
+	struct rockchip_connector connector;
 	struct udevice *dev;
 	struct regmap *regmap;
 	struct phy phy;
@@ -1405,19 +1406,10 @@ static bool dw_dp_detect(struct dw_dp *dp)
 	return false;
 }
 
-static int dw_dp_connector_pre_init(struct display_state *state)
+static int dw_dp_connector_init(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-
-	conn_state->type = DRM_MODE_CONNECTOR_DisplayPort;
-
-	return 0;
-}
-
-static int dw_dp_connector_init(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_dp *dp = dev_get_priv(conn_state->dev);
+	struct dw_dp *dp = dev_get_priv(conn->dev);
 	int ret;
 
 	conn_state->output_if |= dp->id ? VOP_OUTPUT_IF_DP1 : VOP_OUTPUT_IF_DP0;
@@ -1438,11 +1430,11 @@ static int dw_dp_connector_init(struct display_state *state)
 	return ret;
 }
 
-static int dw_dp_connector_get_edid(struct display_state *state)
+static int dw_dp_connector_get_edid(struct rockchip_connector *conn, struct display_state *state)
 {
 	int ret;
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_dp *dp = dev_get_priv(conn_state->dev);
+	struct dw_dp *dp = dev_get_priv(conn->dev);
 
 	ret = drm_do_get_edid(&dp->aux.ddc, conn_state->edid);
 
@@ -1466,10 +1458,10 @@ static int dw_dp_get_output_fmts_index(u32 bus_format)
 	return i;
 }
 
-static int dw_dp_connector_prepare(struct display_state *state)
+static int dw_dp_connector_prepare(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_dp *dp = dev_get_priv(conn_state->dev);
+	struct dw_dp *dp = dev_get_priv(conn->dev);
 	struct dw_dp_video *video = &dp->video;
 	int bus_fmt;
 
@@ -1483,11 +1475,11 @@ static int dw_dp_connector_prepare(struct display_state *state)
 	return 0;
 }
 
-static int dw_dp_connector_enable(struct display_state *state)
+static int dw_dp_connector_enable(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	struct dw_dp *dp = dev_get_priv(conn_state->dev);
+	struct dw_dp *dp = dev_get_priv(conn->dev);
 	struct dw_dp_video *video = &dp->video;
 	int ret;
 
@@ -1515,17 +1507,16 @@ static int dw_dp_connector_enable(struct display_state *state)
 	return 0;
 }
 
-static int dw_dp_connector_disable(struct display_state *state)
+static int dw_dp_connector_disable(struct rockchip_connector *conn, struct display_state *state)
 {
 	/* TODO */
 
 	return 0;
 }
 
-static int dw_dp_connector_detect(struct display_state *state)
+static int dw_dp_connector_detect(struct rockchip_connector *conn, struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_dp *dp = dev_get_priv(conn_state->dev);
+	struct dw_dp *dp = dev_get_priv(conn->dev);
 	int status, tries, ret;
 
 	for (tries = 0; tries < 200; tries++) {
@@ -1611,11 +1602,11 @@ static u32 dw_dp_get_output_bus_fmts(struct dw_dp *dp, struct hdmi_edid_data *ed
 	return i;
 }
 
-static int dw_dp_connector_get_timing(struct display_state *state)
+static int dw_dp_connector_get_timing(struct rockchip_connector *conn, struct display_state *state)
 {
 	int ret, i;
 	struct connector_state *conn_state = &state->conn_state;
-	struct dw_dp *dp = dev_get_priv(conn_state->dev);
+	struct dw_dp *dp = dev_get_priv(conn->dev);
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct hdmi_edid_data edid_data;
 	struct drm_display_mode *mode_buf;
@@ -1686,7 +1677,6 @@ err:
 }
 
 static const struct rockchip_connector_funcs dw_dp_connector_funcs = {
-	.pre_init = dw_dp_connector_pre_init,
 	.init = dw_dp_connector_init,
 	.get_edid = dw_dp_connector_get_edid,
 	.prepare = dw_dp_connector_prepare,
@@ -1740,17 +1730,15 @@ static int dw_dp_probe(struct udevice *dev)
 
 	dw_dp_ddc_init(dp);
 
+	rockchip_connector_bind(&dp->connector, dev, dp->id, &dw_dp_connector_funcs, NULL,
+				DRM_MODE_CONNECTOR_DisplayPort);
+
 	return 0;
 }
-
-static const struct rockchip_connector rk3588_dp_driver_data = {
-	.funcs = &dw_dp_connector_funcs,
-};
 
 static const struct udevice_id dw_dp_ids[] = {
 	{
 		.compatible = "rockchip,rk3588-dp",
-		.data = (ulong)&rk3588_dp_driver_data
 	},
 	{}
 };

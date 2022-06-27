@@ -230,6 +230,7 @@ struct mipi_dphy {
 };
 
 struct dw_mipi_dsi {
+	struct rockchip_connector connector;
 	struct udevice *dev;
 	void *base;
 	void *grf;
@@ -1086,22 +1087,13 @@ static void dw_mipi_dsi_clear_err(struct dw_mipi_dsi *dsi)
 	dsi_write(dsi, DSI_INT_MSK1, 0);
 }
 
-static int dw_mipi_dsi_connector_pre_init(struct display_state *state)
+static int dw_mipi_dsi_connector_init(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
-
-	conn_state->type = DRM_MODE_CONNECTOR_DSI;
-
-	return 0;
-}
-
-static int dw_mipi_dsi_connector_init(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn->dev);
 
 	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dsi->id);
-	dsi->dphy.phy = conn_state->phy;
+	dsi->dphy.phy = conn->phy;
 
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
@@ -1266,11 +1258,12 @@ static void dw_mipi_dsi_pre_enable(struct dw_mipi_dsi *dsi)
 		dw_mipi_dsi_pre_enable(dsi->slave);
 }
 
-static int dw_mipi_dsi_connector_prepare(struct display_state *state)
+static int dw_mipi_dsi_connector_prepare(struct rockchip_connector *conn,
+					 struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *crtc_state = &state->crtc_state;
-	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn->dev);
 	unsigned long lane_rate;
 
 	memcpy(&dsi->mode, &conn_state->mode, sizeof(struct drm_display_mode));
@@ -1298,28 +1291,28 @@ static int dw_mipi_dsi_connector_prepare(struct display_state *state)
 	return 0;
 }
 
-static void dw_mipi_dsi_connector_unprepare(struct display_state *state)
+static void dw_mipi_dsi_connector_unprepare(struct rockchip_connector *conn,
+					    struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn->dev);
 
 	dw_mipi_dsi_post_disable(dsi);
 }
 
-static int dw_mipi_dsi_connector_enable(struct display_state *state)
+static int dw_mipi_dsi_connector_enable(struct rockchip_connector *conn,
+					struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn->dev);
 
 	dw_mipi_dsi_enable(dsi);
 
 	return 0;
 }
 
-static int dw_mipi_dsi_connector_disable(struct display_state *state)
+static int dw_mipi_dsi_connector_disable(struct rockchip_connector *conn,
+					 struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_mipi_dsi *dsi = dev_get_priv(conn_state->dev);
+	struct dw_mipi_dsi *dsi = dev_get_priv(conn->dev);
 
 	dw_mipi_dsi_disable(dsi);
 
@@ -1327,7 +1320,6 @@ static int dw_mipi_dsi_connector_disable(struct display_state *state)
 }
 
 static const struct rockchip_connector_funcs dw_mipi_dsi_connector_funcs = {
-	.pre_init = dw_mipi_dsi_connector_pre_init,
 	.init = dw_mipi_dsi_connector_init,
 	.prepare = dw_mipi_dsi_connector_prepare,
 	.unprepare = dw_mipi_dsi_connector_unprepare,
@@ -1338,9 +1330,8 @@ static const struct rockchip_connector_funcs dw_mipi_dsi_connector_funcs = {
 static int dw_mipi_dsi_probe(struct udevice *dev)
 {
 	struct dw_mipi_dsi *dsi = dev_get_priv(dev);
-	const struct rockchip_connector *connector =
-		(const struct rockchip_connector *)dev_get_driver_data(dev);
-	const struct dw_mipi_dsi_plat_data *pdata = connector->data;
+	const struct dw_mipi_dsi_plat_data *pdata =
+		(const struct dw_mipi_dsi_plat_data *)dev_get_driver_data(dev);
 	int id;
 
 	dsi->base = dev_read_addr_ptr(dev);
@@ -1356,6 +1347,9 @@ static int dw_mipi_dsi_probe(struct udevice *dev)
 	dsi->pdata = pdata;
 	dsi->id = id;
 	dsi->data_swap = dev_read_bool(dsi->dev, "rockchip,data-swap");
+
+	rockchip_connector_bind(&dsi->connector, dev, dsi->id, &dw_mipi_dsi_connector_funcs, NULL,
+				DRM_MODE_CONNECTOR_DSI);
 
 	return 0;
 }
@@ -1374,11 +1368,6 @@ static const struct dw_mipi_dsi_plat_data px30_mipi_dsi_plat_data = {
 	.max_bit_rate_per_lane = 1000000000UL,
 };
 
-static const struct rockchip_connector px30_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &px30_mipi_dsi_plat_data,
-};
-
 static const u32 rk1808_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[MASTERSLAVEZ]          = GRF_REG_FIELD(0x0440,  8,  8),
 	[DPIUPDATECFG]          = GRF_REG_FIELD(0x0440,  7,  7),
@@ -1394,11 +1383,6 @@ static const struct dw_mipi_dsi_plat_data rk1808_mipi_dsi_plat_data = {
 	.max_bit_rate_per_lane = 2000000000UL,
 };
 
-static const struct rockchip_connector rk1808_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rk1808_mipi_dsi_plat_data,
-};
-
 static const u32 rk3128_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[FORCETXSTOPMODE]	= GRF_REG_FIELD(0x0150, 10, 13),
 	[FORCERXMODE]		= GRF_REG_FIELD(0x0150,  9,  9),
@@ -1410,11 +1394,6 @@ static const u32 rk3128_dsi_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data rk3128_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3128_dsi_grf_reg_fields,
 	.max_bit_rate_per_lane = 1000000000UL,
-};
-
-static const struct rockchip_connector rk3128_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rk3128_mipi_dsi_plat_data,
 };
 
 static const u32 rk3288_dsi0_grf_reg_fields[MAX_FIELDS] = {
@@ -1449,11 +1428,6 @@ static const struct dw_mipi_dsi_plat_data rk3288_mipi_dsi_plat_data = {
 	.max_bit_rate_per_lane = 1500000000UL,
 };
 
-static const struct rockchip_connector rk3288_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rk3288_mipi_dsi_plat_data,
-};
-
 static const u32 rk3366_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[VOPSEL]		= GRF_REG_FIELD(0x0400,  2,  2),
 	[DPIUPDATECFG]		= GRF_REG_FIELD(0x0410,  9,  9),
@@ -1469,11 +1443,6 @@ static const struct dw_mipi_dsi_plat_data rk3366_mipi_dsi_plat_data = {
 	.max_bit_rate_per_lane = 1000000000UL,
 };
 
-static const struct rockchip_connector rk3366_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rk3366_mipi_dsi_plat_data,
-};
-
 static const u32 rk3368_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[DPIUPDATECFG]		= GRF_REG_FIELD(0x0418,  7,  7),
 	[DPICOLORM]		= GRF_REG_FIELD(0x0418,  3,  3),
@@ -1486,11 +1455,6 @@ static const u32 rk3368_dsi_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data rk3368_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3368_dsi_grf_reg_fields,
 	.max_bit_rate_per_lane = 1000000000UL,
-};
-
-static const struct rockchip_connector rk3368_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rk3368_mipi_dsi_plat_data,
 };
 
 static const u32 rk3399_dsi0_grf_reg_fields[MAX_FIELDS] = {
@@ -1525,11 +1489,6 @@ static const struct dw_mipi_dsi_plat_data rk3399_mipi_dsi_plat_data = {
 	.max_bit_rate_per_lane = 1500000000UL,
 };
 
-static const struct rockchip_connector rk3399_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rk3399_mipi_dsi_plat_data,
-};
-
 static const u32 rk3568_dsi0_grf_reg_fields[MAX_FIELDS] = {
 	[DPIUPDATECFG]		= GRF_REG_FIELD(0x0360,  2,  2),
 	[DPICOLORM]		= GRF_REG_FIELD(0x0360,  1,  1),
@@ -1555,10 +1514,6 @@ static const struct dw_mipi_dsi_plat_data rk3568_mipi_dsi_plat_data = {
 	.dsi1_grf_reg_fields = rk3568_dsi1_grf_reg_fields,
 	.max_bit_rate_per_lane = 1200000000UL,
 };
-static const struct rockchip_connector rk3568_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rk3568_mipi_dsi_plat_data,
-};
 
 static const u32 rv1108_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[DPICOLORM]		= GRF_REG_FIELD(0x0410,  7,  7),
@@ -1572,11 +1527,6 @@ static const u32 rv1108_dsi_grf_reg_fields[MAX_FIELDS] = {
 static const struct dw_mipi_dsi_plat_data rv1108_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rv1108_dsi_grf_reg_fields,
 	.max_bit_rate_per_lane = 1000000000UL,
-};
-
-static const struct rockchip_connector rv1108_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rv1108_mipi_dsi_plat_data,
 };
 
 static const u32 rv1126_dsi_grf_reg_fields[MAX_FIELDS] = {
@@ -1593,51 +1543,46 @@ static const struct dw_mipi_dsi_plat_data rv1126_mipi_dsi_plat_data = {
 	.max_bit_rate_per_lane = 1000000000UL,
 };
 
-static const struct rockchip_connector rv1126_mipi_dsi_driver_data = {
-	 .funcs = &dw_mipi_dsi_connector_funcs,
-	 .data = &rv1126_mipi_dsi_plat_data,
-};
-
 static const struct udevice_id dw_mipi_dsi_ids[] = {
 	{
 		.compatible = "rockchip,px30-mipi-dsi",
-		.data = (ulong)&px30_mipi_dsi_driver_data,
+		.data = (ulong)&px30_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rk1808-mipi-dsi",
-		.data = (ulong)&rk1808_mipi_dsi_driver_data,
+		.data = (ulong)&rk1808_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rk3128-mipi-dsi",
-		.data = (ulong)&rk3128_mipi_dsi_driver_data,
+		.data = (ulong)&rk3128_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rk3288-mipi-dsi",
-		.data = (ulong)&rk3288_mipi_dsi_driver_data,
+		.data = (ulong)&rk3288_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rk3366-mipi-dsi",
-		.data = (ulong)&rk3366_mipi_dsi_driver_data,
+		.data = (ulong)&rk3366_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rk3368-mipi-dsi",
-		.data = (ulong)&rk3368_mipi_dsi_driver_data,
+		.data = (ulong)&rk3368_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rk3399-mipi-dsi",
-		.data = (ulong)&rk3399_mipi_dsi_driver_data,
+		.data = (ulong)&rk3399_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rk3568-mipi-dsi",
-		.data = (ulong)&rk3568_mipi_dsi_driver_data,
+		.data = (ulong)&rk3568_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rv1108-mipi-dsi",
-		.data = (ulong)&rv1108_mipi_dsi_driver_data,
+		.data = (ulong)&rv1108_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rv1126-mipi-dsi",
-		.data = (ulong)&rv1126_mipi_dsi_driver_data,
+		.data = (ulong)&rv1126_mipi_dsi_plat_data,
 	},
 	{}
 };

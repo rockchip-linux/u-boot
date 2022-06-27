@@ -132,20 +132,21 @@ struct dw_hdmi_phy_config {
 	u16 vlev_ctr;   /* voltage level control */
 };
 
+struct rockchip_connector;
 struct dw_hdmi_phy_ops {
-	int (*init)(struct dw_hdmi *hdmi, void *data);
-	void (*disable)(struct dw_hdmi *hdmi, void *data);
+	int (*init)(struct rockchip_connector *conn, struct dw_hdmi *hdmi, void *data);
+	void (*disable)(struct rockchip_connector *conn, struct dw_hdmi *hdmi, void *data);
 	enum drm_connector_status (*read_hpd)(struct dw_hdmi *hdmi,
 					      void *data);
-	void (*mode_valid)(struct dw_hdmi *hdmi, void *data);
+	void (*mode_valid)(struct rockchip_connector *conn, struct dw_hdmi *hdmi, void *data);
 };
 
 struct dw_hdmi_qp_phy_ops {
-	int (*init)(void *hdmi, void *data);
-	void (*disable)(void *hdmi, void *data);
+	int (*init)(struct rockchip_connector *conn, void *hdmi, void *data);
+	void (*disable)(struct rockchip_connector *conn, void *hdmi, void *data);
 	enum drm_connector_status (*read_hpd)(void *data);
 	void (*mode_valid)(void *hdmi, void *data);
-	void (*set_pll)(void *hdmi, void *data);
+	void (*set_pll)(struct rockchip_connector *conn, void *hdmi, void *data);
 };
 
 struct dw_hdmi_link_config {

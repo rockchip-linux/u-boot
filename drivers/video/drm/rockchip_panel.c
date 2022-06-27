@@ -158,7 +158,7 @@ static void rockchip_panel_write_spi_cmds(struct rockchip_panel_priv *priv,
 	dm_gpio_set_value(&priv->spi_cs_gpio, 1);
 }
 
-static int rockchip_panel_send_mcu_cmds(struct display_state *state,
+static int rockchip_panel_send_mcu_cmds(struct rockchip_panel *panel, struct display_state *state,
 					struct rockchip_panel_cmds *cmds)
 {
 	int i;
@@ -182,10 +182,9 @@ static int rockchip_panel_send_mcu_cmds(struct display_state *state,
 	return 0;
 }
 
-static int rockchip_panel_send_spi_cmds(struct display_state *state,
+static int rockchip_panel_send_spi_cmds(struct rockchip_panel *panel, struct display_state *state,
 					struct rockchip_panel_cmds *cmds)
 {
-	struct rockchip_panel *panel = state_get_panel(state);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 	int i;
 
@@ -300,10 +299,10 @@ static void panel_simple_prepare(struct rockchip_panel *panel)
 
 	if (plat->on_cmds) {
 		if (priv->cmd_type == CMD_TYPE_SPI)
-			ret = rockchip_panel_send_spi_cmds(panel->state,
+			ret = rockchip_panel_send_spi_cmds(panel, panel->state,
 							   plat->on_cmds);
 		else if (priv->cmd_type == CMD_TYPE_MCU)
-			ret = rockchip_panel_send_mcu_cmds(panel->state,
+			ret = rockchip_panel_send_mcu_cmds(panel, panel->state,
 							   plat->on_cmds);
 		else
 			ret = rockchip_panel_send_dsi_cmds(dsi, plat->on_cmds);
@@ -326,10 +325,10 @@ static void panel_simple_unprepare(struct rockchip_panel *panel)
 
 	if (plat->off_cmds) {
 		if (priv->cmd_type == CMD_TYPE_SPI)
-			ret = rockchip_panel_send_spi_cmds(panel->state,
+			ret = rockchip_panel_send_spi_cmds(panel, panel->state,
 							   plat->off_cmds);
 		else if (priv->cmd_type == CMD_TYPE_MCU)
-			ret = rockchip_panel_send_mcu_cmds(panel->state,
+			ret = rockchip_panel_send_mcu_cmds(panel, panel->state,
 							   plat->off_cmds);
 		else
 			ret = rockchip_panel_send_dsi_cmds(dsi, plat->off_cmds);

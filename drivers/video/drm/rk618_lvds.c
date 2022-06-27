@@ -14,6 +14,7 @@
 #include "rockchip_display.h"
 #include "rockchip_bridge.h"
 #include "rockchip_panel.h"
+#include "rockchip_connector.h"
 
 #include "rk618.h"
 
@@ -38,7 +39,7 @@ static int lvds_write(struct rk618_lvds_priv *priv, u16 reg, u32 val)
 static void rk618_lvds_bridge_enable(struct rockchip_bridge *bridge)
 {
 	struct rk618_lvds_priv *priv = dev_get_priv(bridge->dev);
-	struct rockchip_panel *panel = state_get_panel(bridge->state);
+	struct rockchip_panel *panel = bridge->conn->panel;
 	u32 value, format;
 
 	rk618_frc_dclk_invert(priv->parent);
