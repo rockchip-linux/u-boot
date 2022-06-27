@@ -228,6 +228,7 @@ struct dw_dp {
 	struct dw_dp_link link;
 	struct dw_dp_video video;
 
+	bool force_hpd;
 	bool force_output;
 };
 
@@ -439,7 +440,7 @@ static bool dw_dp_bandwidth_ok(struct dw_dp *dp,
 
 static void dw_dp_hpd_init(struct dw_dp *dp)
 {
-	if (dm_gpio_is_valid(&dp->hpd_gpio)) {
+	if (dm_gpio_is_valid(&dp->hpd_gpio) || dp->force_hpd) {
 		regmap_update_bits(dp->regmap, DPTX_CCTL, FORCE_HPD,
 				   FIELD_PREP(FORCE_HPD, 1));
 		return;
@@ -1394,14 +1395,10 @@ static bool dw_dp_detect(struct dw_dp *dp)
 	if (dm_gpio_is_valid(&dp->hpd_gpio))
 		return dm_gpio_get_value(&dp->hpd_gpio);
 
-	regmap_read(dp->regmap, DPTX_GENERAL_INTERRUPT, &value);
-	if (value & HPD_EVENT) {
-		regmap_read(dp->regmap, DPTX_HPD_STATUS, &value);
-		if ((value & HPD_HOT_PLUG) &&
-		    (FIELD_GET(HPD_STATE, value) == SOURCE_STATE_PLUG)) {
-			regmap_write(dp->regmap, DPTX_HPD_STATUS, HPD_HOT_PLUG);
-			return true;
-		}
+	regmap_read(dp->regmap, DPTX_HPD_STATUS, &value);
+	if (FIELD_GET(HPD_STATE, value) == SOURCE_STATE_PLUG) {
+		regmap_write(dp->regmap, DPTX_HPD_STATUS, HPD_HOT_PLUG);
+		return true;
 	}
 
 	return false;
@@ -1715,6 +1712,8 @@ static int dw_dp_probe(struct udevice *dev)
 		dev_err(dev, "failed to get reset control: %d\n", ret);
 		return ret;
 	}
+
+	dp->force_hpd = dev_read_bool(dev, "force-hpd");
 
 	ret = gpio_request_by_name(dev, "hpd-gpios", 0, &dp->hpd_gpio,
 				   GPIOD_IS_IN);
