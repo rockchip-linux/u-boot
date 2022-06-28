@@ -854,6 +854,14 @@ static int display_init(struct display_state *state)
 
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V);
 
+	if (conn_state->secondary) {
+		mode->crtc_clock *= 2;
+		mode->crtc_hdisplay *= 2;
+		mode->crtc_hsync_start *= 2;
+		mode->crtc_hsync_end *= 2;
+		mode->crtc_htotal *= 2;
+	}
+
 	if (conn->bridge)
 		rockchip_bridge_mode_set(conn->bridge, &conn_state->mode);
 
@@ -990,8 +998,8 @@ static int display_logo(struct display_state *state)
 		printf("can't support bmp bits[%d]\n", logo->bpp);
 		return -EINVAL;
 	}
-	hdisplay = conn_state->mode.hdisplay;
-	vdisplay = conn_state->mode.vdisplay;
+	hdisplay = conn_state->mode.crtc_hdisplay;
+	vdisplay = conn_state->mode.crtc_vdisplay;
 	crtc_state->src_rect.w = logo->width;
 	crtc_state->src_rect.h = logo->height;
 	crtc_state->src_rect.x = 0;
@@ -1552,6 +1560,53 @@ static struct rockchip_connector *rockchip_of_get_connector(ofnode endpoint)
 	return conn;
 }
 
+static struct rockchip_connector *rockchip_get_split_connector(struct rockchip_connector *conn)
+{
+	char *conn_name;
+	struct device_node *split_node;
+	struct udevice *split_dev;
+	struct rockchip_connector *split_conn;
+	bool split_mode;
+	int ret;
+
+	split_mode = ofnode_read_bool(conn->dev->node, "split-mode");
+	if (!split_mode)
+		return NULL;
+
+	switch (conn->type) {
+	case DRM_MODE_CONNECTOR_DisplayPort:
+		conn_name = "dp";
+		break;
+	case DRM_MODE_CONNECTOR_eDP:
+		conn_name = "edp";
+		break;
+	case DRM_MODE_CONNECTOR_HDMIA:
+		conn_name = "hdmi";
+		break;
+	default:
+		return NULL;
+	}
+
+	split_node = of_alias_get_dev(conn_name, !conn->id);
+	if (!split_node || !of_device_is_available(split_node))
+		return NULL;
+
+	ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY, np_to_ofnode(split_node), &split_dev);
+	if (ret)
+		return NULL;
+
+	split_conn = get_rockchip_connector_by_device(split_dev);
+	if (!split_conn)
+		return NULL;
+	ret = rockchip_of_find_panel_or_bridge(split_dev, &split_conn->panel, &split_conn->bridge);
+	if (ret)
+		debug("Warn: no find panel or bridge\n");
+
+	split_conn->phy = rockchip_of_find_phy(split_dev);
+
+	return split_conn;
+}
+
 static bool rockchip_get_display_path_status(ofnode endpoint)
 {
 	ofnode ep;
@@ -1649,7 +1704,7 @@ static int rockchip_display_probe(struct udevice *dev)
 	int phandle;
 	struct udevice *crtc_dev;
 	struct rockchip_crtc *crtc;
-	struct rockchip_connector *conn;
+	struct rockchip_connector *conn, *split_conn;
 	struct display_state *s;
 	const char *name;
 	int ret;
@@ -1728,6 +1783,7 @@ static int rockchip_display_probe(struct udevice *dev)
 			printf("Warn: can't get connect driver\n");
 			continue;
 		}
+		split_conn = rockchip_get_split_connector(conn);
 
 		s = malloc(sizeof(*s));
 		if (!s)
@@ -1766,6 +1822,11 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->conn_state.connector = conn;
 		s->conn_state.secondary = NULL;
 		s->conn_state.type = conn->type;
+		if (split_conn) {
+			s->conn_state.secondary = split_conn;
+			s->conn_state.output_flags |= ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE;
+			s->conn_state.output_flags |= conn->id ? ROCKCHIP_OUTPUT_DATA_SWAP : 0;
+		}
 		s->conn_state.overscan.left_margin = 100;
 		s->conn_state.overscan.right_margin = 100;
 		s->conn_state.overscan.top_margin = 100;
@@ -1900,6 +1961,11 @@ void rockchip_display_fixup(void *blob)
 		if (!conn_funcs) {
 			printf("failed to get exist connector\n");
 			continue;
+		}
+
+		if (s->conn_state.secondary) {
+			s->conn_state.mode.clock *= 2;
+			s->conn_state.mode.hdisplay *= 2;
 		}
 
 		crtc = s->crtc_state.crtc;
