@@ -155,8 +155,6 @@ static struct edid_quirk {
  * Do not access directly, instead always use cea_mode_for_vic().
  */
 static const struct drm_display_mode edid_cea_modes_1[] = {
-	/* 0 - dummy, VICs start at 1 */
-	{ },
 	/* 1 - 640x480@60Hz */
 	{ DRM_MODE(DRM_MODE_TYPE_DRIVER, 25175, 640, 656,
 		   752, 800, 480, 490, 492, 525, 0,
@@ -6655,7 +6653,9 @@ void drm_rk_select_mode(struct hdmi_edid_data *edid_data,
 					   &edid_data->mode_buf[i])) {
 				edid_data->preferred_mode =
 					&edid_data->mode_buf[i];
-				break;
+
+				if (edid_data->mode_buf[i].picture_aspect_ratio)
+					break;
 			}
 		}
 	}
