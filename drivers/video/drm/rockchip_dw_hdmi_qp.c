@@ -775,11 +775,11 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 			color_format = DRM_HDMI_OUTPUT_YCBCR444;
 		else if (info->color_formats & DRM_COLOR_FORMAT_YCRCB422)
 			color_format = DRM_HDMI_OUTPUT_YCBCR422;
-		else if (mode_420)
+		else if (mode_420 && pixclock >= 340000)
 			color_format = DRM_HDMI_OUTPUT_YCBCR420;
 		break;
 	case DRM_HDMI_OUTPUT_YCBCR_LQ:
-		if (mode_420)
+		if (mode_420 && pixclock >= 340000)
 			color_format = DRM_HDMI_OUTPUT_YCBCR420;
 		else if (info->color_formats & DRM_COLOR_FORMAT_YCRCB422)
 			color_format = DRM_HDMI_OUTPUT_YCBCR422;
@@ -787,7 +787,7 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 			color_format = DRM_HDMI_OUTPUT_YCBCR444;
 		break;
 	case DRM_HDMI_OUTPUT_YCBCR420:
-		if (mode_420)
+		if (mode_420 && pixclock >= 340000)
 			color_format = DRM_HDMI_OUTPUT_YCBCR420;
 		break;
 	case DRM_HDMI_OUTPUT_YCBCR422:
@@ -805,9 +805,6 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 
 	if (output_bus_format_rgb)
 		color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
-
-	if (pixclock > 340000)
-		color_format = DRM_HDMI_OUTPUT_YCBCR420;
 
 	if (color_format == DRM_HDMI_OUTPUT_DEFAULT_RGB &&
 	    info->edid_hdmi_dc_modes & DRM_EDID_HDMI_DC_30)
@@ -839,17 +836,15 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	if (!max_tmds_clock)
 		max_tmds_clock = 340000;
 
-	if (tmdsclock > max_tmds_clock) {
-		if (max_tmds_clock >= 594000) {
-			color_depth = 8;
-		} else if (max_tmds_clock > 340000) {
-			if (drm_mode_is_420(info, mode))
-				color_format = DRM_HDMI_OUTPUT_YCBCR420;
-		} else {
-			color_depth = 8;
-			if (drm_mode_is_420(info, mode))
-				color_format = DRM_HDMI_OUTPUT_YCBCR420;
-		}
+	if (pixclock >= 340000) {
+		if (drm_mode_is_420(info, mode))
+			color_format = DRM_HDMI_OUTPUT_YCBCR420;
+		else
+			color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
+	} else if (tmdsclock > max_tmds_clock) {
+		color_depth = 8;
+		if (drm_mode_is_420(info, mode))
+			color_format = DRM_HDMI_OUTPUT_YCBCR420;
 	}
 
 	printf("color_format:%x\n", color_format);
