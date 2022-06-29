@@ -1240,6 +1240,10 @@ static int hdptx_ropll_cmn_config(struct rockchip_hdptx_phy *hdptx, unsigned lon
 static int hdptx_ropll_tmds_mode_config(struct rockchip_hdptx_phy *hdptx, u32 rate)
 {
 	u32 bit_rate = rate & DATA_RATE_MASK;
+	u8 color_depth = (rate & COLOR_DEPTH_MASK) ? 1 : 0;
+
+	if (color_depth)
+		bit_rate = bit_rate * 5 / 4;
 
 	if (!hdptx->pll_locked) {
 		int ret;
