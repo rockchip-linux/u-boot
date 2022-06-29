@@ -1610,6 +1610,7 @@ static int dw_dp_connector_get_timing(struct rockchip_connector *conn, struct di
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct hdmi_edid_data edid_data;
 	struct drm_display_mode *mode_buf;
+	struct vop_rect rect;
 	u32 bus_fmt;
 
 	mode_buf = malloc(MODE_LEN * sizeof(struct drm_display_mode));
@@ -1631,8 +1632,15 @@ static int dw_dp_connector_get_timing(struct rockchip_connector *conn, struct di
 		}
 
 		drm_rk_filter_whitelist(&edid_data);
-		drm_mode_max_resolution_filter(&edid_data,
-					       &state->crtc_state.max_output);
+		if (state->conn_state.secondary) {
+			rect.width = state->crtc_state.max_output.width / 2;
+			rect.height = state->crtc_state.max_output.height / 2;
+		} else {
+			rect.width = state->crtc_state.max_output.width;
+			rect.height = state->crtc_state.max_output.height;
+		}
+
+		drm_mode_max_resolution_filter(&edid_data, &rect);
 		dw_dp_mode_valid(dp, &edid_data);
 
 		if (!drm_mode_prune_invalid(&edid_data)) {
