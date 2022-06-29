@@ -832,7 +832,7 @@ static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
 	else
 		printf("CEA mode used vic=%d\n", hdmi->vic);
 
-	vmode->mpixelclock = mode->crtc_clock * 1000;
+	vmode->mpixelclock = mode->clock * 1000;
 	vmode->mtmdsclock = hdmi_get_tmdsclock(hdmi, vmode->mpixelclock);
 	if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
 		vmode->mtmdsclock /= 2;
