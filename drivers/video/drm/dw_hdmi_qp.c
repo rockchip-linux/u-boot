@@ -595,6 +595,8 @@ static void hdmi_config_AVI(struct dw_hdmi_qp *hdmi, struct drm_display_mode *mo
 		hdmi_writel(hdmi, val, PKT_AVI_CONTENTS1 + i * 4);
 	}
 
+	hdmi_modb(hdmi, 0, PKTSCHED_AVI_FIELDRATE, PKTSCHED_PKT_CONFIG1);
+
 	hdmi_modb(hdmi, PKTSCHED_AVI_TX_EN | PKTSCHED_GCP_TX_EN,
 		  PKTSCHED_AVI_TX_EN | PKTSCHED_GCP_TX_EN,
 		  PKTSCHED_PKT_EN);
