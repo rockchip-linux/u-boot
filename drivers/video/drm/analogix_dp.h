@@ -634,12 +634,12 @@ struct analogix_dp_device {
 	unsigned char edid[EDID_BLOCK_LENGTH * 2];
 	u8 dpcd[DP_RECEIVER_CAP_SIZE];
 	bool video_bist_enable;
+	u32 lane_map[4];
 };
 
 /* analogix_dp_reg.c */
 void analogix_dp_enable_video_mute(struct analogix_dp_device *dp, bool enable);
 void analogix_dp_stop_video(struct analogix_dp_device *dp);
-void analogix_dp_lane_swap(struct analogix_dp_device *dp, bool enable);
 void analogix_dp_init_analog_param(struct analogix_dp_device *dp);
 void analogix_dp_init_interrupt(struct analogix_dp_device *dp);
 void analogix_dp_reset(struct analogix_dp_device *dp);

@@ -991,6 +991,39 @@ static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
 	.detect = analogix_dp_connector_detect,
 };
 
+static int analogix_dp_parse_dt(struct analogix_dp_device *dp)
+{
+	struct udevice *dev = dp->dev;
+	int len;
+	u32 num_lanes;
+	int ret;
+
+	dp->force_hpd = dev_read_bool(dev, "force-hpd");
+	dp->video_bist_enable = dev_read_bool(dev, "analogix,video-bist-enable");
+
+	if (dev_read_prop(dev, "data-lanes", &len)) {
+		num_lanes = len / sizeof(u32);
+		if (num_lanes < 1 || num_lanes > 4 || num_lanes == 3) {
+			dev_err(dev, "bad number of data lanes\n");
+			return -EINVAL;
+		}
+
+		ret = dev_read_u32_array(dev, "data-lanes", dp->lane_map,
+					 num_lanes);
+		if (ret)
+			return ret;
+
+		dp->video_info.max_lane_count = num_lanes;
+	} else {
+		dp->lane_map[0] = 0;
+		dp->lane_map[1] = 1;
+		dp->lane_map[2] = 2;
+		dp->lane_map[3] = 3;
+	}
+
+	return 0;
+}
+
 static int analogix_dp_probe(struct udevice *dev)
 {
 	struct analogix_dp_device *dp = dev_get_priv(dev);
@@ -1029,9 +1062,6 @@ static int analogix_dp_probe(struct udevice *dev)
 
 	generic_phy_get_by_name(dev, "dp", &dp->phy);
 
-	dp->force_hpd = dev_read_bool(dev, "force-hpd");
-	dp->video_bist_enable = dev_read_bool(dev, "analogix,video-bist-enable");
-
 	dp->plat_data.dev_type = ROCKCHIP_DP;
 	dp->plat_data.subdev_type = pdata->chip_type;
 	dp->plat_data.ssc = pdata->ssc;
@@ -1040,6 +1070,12 @@ static int analogix_dp_probe(struct udevice *dev)
 	dp->video_info.max_lane_count = pdata->max_lane_count;
 
 	dp->dev = dev;
+
+	ret = analogix_dp_parse_dt(dp);
+	if (ret) {
+		dev_err(dev, "failed to parse DT: %d\n", ret);
+		return ret;
+	}
 
 	return 0;
 }
