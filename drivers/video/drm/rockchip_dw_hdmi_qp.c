@@ -762,7 +762,7 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	bool support_dc = false;
 	bool mode_420 = drm_mode_is_420(info, mode);
 	unsigned int color_depth = 8;
-	unsigned int base_color = DRM_HDMI_OUTPUT_DEFAULT_RGB;
+	unsigned int base_color = DRM_HDMI_OUTPUT_YCBCR444;
 	unsigned int color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
 	unsigned long tmdsclock, pixclock = mode->clock;
 
