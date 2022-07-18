@@ -358,6 +358,12 @@ struct vop_ctrl {
 	struct vop_reg mcu_type;
 	struct vop_reg mcu_rw_bypass_port;
 
+	/* bt1120 */
+	struct vop_reg bt1120_yc_swap;
+	struct vop_reg bt1120_en;
+
+	/* bt656 */
+	struct vop_reg bt656_en;
 
 	struct vop_reg cfg_done;
 };
@@ -401,6 +407,7 @@ struct vop_win {
 	struct vop_reg gate;
 	struct vop_reg enable;
 	struct vop_reg format;
+	struct vop_reg interlace_read;
 	struct vop_reg ymirror;
 	struct vop_reg rb_swap;
 	struct vop_reg act_info;

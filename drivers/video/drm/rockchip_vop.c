@@ -299,6 +299,9 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, dsp_blank, 0);
 
 	dclk_inv = (mode->flags & DRM_MODE_FLAG_PPIXDATA) ? 0 : 1;
+	/* For improving signal quality, dclk need to be inverted by default on rv1106. */
+	if ((VOP_MAJOR(vop->version) == 2 && VOP_MINOR(vop->version) == 12))
+		dclk_inv = !dclk_inv;
 	VOP_CTRL_SET(vop, dclk_pol, dclk_inv);
 
 	val = 0x8;
