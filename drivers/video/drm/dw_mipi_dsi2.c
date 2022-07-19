@@ -12,6 +12,7 @@
 #include <common.h>
 #include <errno.h>
 #include <asm/unaligned.h>
+#include <asm/gpio.h>
 #include <asm/io.h>
 #include <asm/hardware.h>
 #include <dm/device.h>
@@ -288,6 +289,7 @@ struct dw_mipi_dsi2 {
 	struct drm_display_mode mode;
 	bool data_swap;
 
+	struct gpio_desc te_gpio;
 	struct mipi_dsi_device *device;
 	struct mipi_dphy_configure mipi_dphy_cfg;
 	const struct dw_mipi_dsi2_plat_data *pdata;
@@ -832,6 +834,11 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 
 	dw_mipi_dsi2_get_dsc_params_from_sink(dsi2);
 
+	if (dm_gpio_is_valid(&dsi2->te_gpio)) {
+		cstate->soft_te = true;
+		conn_state->te_gpio = &dsi2->te_gpio;
+	}
+
 	if (dsi2->dsc_enable) {
 		cstate->dsc_enable = 1;
 		cstate->dsc_sink_cap.version_major = dsi2->version_major;
@@ -1206,6 +1213,13 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 	id = of_alias_get_id(ofnode_to_np(dev->node), "dsi");
 	if (id < 0)
 		id = 0;
+
+	ret = gpio_request_by_name(dev, "te-gpios", 0,
+				   &dsi2->te_gpio, GPIOD_IS_IN);
+	if (ret && ret != -ENOENT) {
+		printf("%s: Cannot get TE GPIO: %d\n", __func__, ret);
+		return ret;
+	}
 
 	dsi2->dev = dev;
 	dsi2->pdata = pdata;
