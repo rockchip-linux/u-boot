@@ -19,6 +19,7 @@
 #include <linux/media-bus-format.h>
 #include <clk.h>
 #include <asm/arch/clock.h>
+#include <asm/gpio.h>
 #include <linux/err.h>
 #include <linux/ioport.h>
 #include <dm/device.h>
@@ -2796,8 +2797,7 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 
 		if (conn_state->hold_mode) {
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-					EN_MASK, EDPI_TE_EN, 1, false);
-
+					EN_MASK, EDPI_TE_EN, !cstate->soft_te, false);
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
 					EN_MASK, EDPI_WMS_HOLD_EN, 1, false);
 		}
@@ -2822,14 +2822,8 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 				if_pixclk_div, false);
 
 		if (conn_state->hold_mode) {
-			/* UNDO: RK3588 VP1->DSC1->DSI1 only can support soft TE mode */
-			if (vop2->version == VOP_VERSION_RK3588 && val == 3)
-				vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-						EN_MASK, EDPI_TE_EN, 0, false);
-			else
-				vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-						EN_MASK, EDPI_TE_EN, 1, false);
-
+			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+					EN_MASK, EDPI_TE_EN, !cstate->soft_te, false);
 			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
 					EN_MASK, EDPI_WMS_HOLD_EN, 1, false);
 		}
@@ -4471,6 +4465,43 @@ static int rockchip_vop2_plane_check(struct display_state *state)
 	if (hscale < 0 || vscale < 0) {
 		printf("ERROR: VP%d %s: scale factor is out of range\n", cstate->crtc_id, win_data->name);
 		return -ERANGE;
+		}
+
+	return 0;
+}
+
+static int rockchip_vop2_apply_soft_te(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	u32 vp_offset = (cstate->crtc_id * 0x100);
+	int val = 0;
+	int ret = 0;
+
+	ret = readl_poll_timeout(vop2->regs + RK3568_VP0_MIPI_CTRL + vp_offset, val,
+				 (val >> EDPI_WMS_FS) & 0x1, 50 * 1000);
+	if (!ret) {
+		ret = readx_poll_timeout(dm_gpio_get_value, conn_state->te_gpio, val,
+					 !val, 50 * 1000);
+		if (!ret) {
+			ret = readx_poll_timeout(dm_gpio_get_value, conn_state->te_gpio, val,
+						 val, 50 * 1000);
+			if (!ret) {
+				vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+						EN_MASK, EDPI_WMS_FS, 1, false);
+			} else {
+				printf("ERROR: vp%d wait for active TE signal timeout\n",
+				       cstate->crtc_id);
+				return ret;
+			}
+		} else {
+			printf("ERROR: vp%d TE signal maybe always high\n", cstate->crtc_id);
+			return ret;
+		}
+	} else {
+		printf("ERROR: vp%d wait vop2 frame start timeout in hold mode\n", cstate->crtc_id);
+		return ret;
 	}
 
 	return 0;
@@ -5614,4 +5645,5 @@ const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
 	.plane_check = rockchip_vop2_plane_check,
 	.regs_dump = rockchip_vop2_regs_dump,
 	.active_regs_dump = rockchip_vop2_active_regs_dump,
+	.apply_soft_te = rockchip_vop2_apply_soft_te,
 };

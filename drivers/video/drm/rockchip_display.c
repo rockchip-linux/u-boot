@@ -1012,6 +1012,9 @@ static int display_enable(struct display_state *state)
 
 	rockchip_connector_enable(state);
 
+	if (crtc_state->soft_te)
+		crtc_funcs->apply_soft_te(state);
+
 	state->is_enable = true;
 
 	return 0;

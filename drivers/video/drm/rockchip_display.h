@@ -169,6 +169,7 @@ struct crtc_state {
 	bool post_y2r_en;
 	bool bcsh_en;
 	bool splice_mode;
+	bool soft_te;
 	u8 splice_crtc_id;
 	u8 dsc_id;
 	u8 dsc_enable;
@@ -232,6 +233,8 @@ struct connector_state {
 	u64 dsc_cds_clk;
 	struct rockchip_dsc_sink_cap dsc_sink_cap;
 	struct drm_dsc_picture_parameter_set pps;
+
+	struct gpio_desc *te_gpio;
 
 	struct {
 		u32 *lut;
