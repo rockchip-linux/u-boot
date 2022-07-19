@@ -875,7 +875,7 @@ static int hdptx_post_enable_lane(struct rockchip_hdptx_phy *hdptx)
 	hdptx_grf_write(hdptx, GRF_HDPTX_CON0, val);
 
 	val = 0;
-	for (i = 0; i < 20; i++) {
+	for (i = 0; i < 50; i++) {
 		val = hdptx_grf_read(hdptx, GRF_HDPTX_STATUS);
 
 		if (val & HDPTX_O_PHY_RDY && val & HDPTX_O_PLL_LOCK_DONE)
@@ -883,7 +883,7 @@ static int hdptx_post_enable_lane(struct rockchip_hdptx_phy *hdptx)
 		udelay(100);
 	}
 
-	if (i == 20) {
+	if (i == 50) {
 		dev_err(hdptx->dev, "hdptx phy lane can't ready!\n");
 		return -EINVAL;
 	}
@@ -910,7 +910,7 @@ static int hdptx_post_enable_pll(struct rockchip_hdptx_phy *hdptx)
 	reset_deassert(&hdptx->cmn_reset);
 
 	val = 0;
-	for (i = 0; i < 20; i++) {
+	for (i = 0; i < 50; i++) {
 		val = hdptx_grf_read(hdptx, GRF_HDPTX_STATUS);
 
 		if (val & HDPTX_O_PHY_CLK_RDY)
@@ -918,7 +918,7 @@ static int hdptx_post_enable_pll(struct rockchip_hdptx_phy *hdptx)
 		udelay(20);
 	}
 
-	if (i == 20) {
+	if (i == 50) {
 		dev_err(hdptx->dev, "hdptx phy pll can't lock!\n");
 		return -EINVAL;
 	}
@@ -945,7 +945,7 @@ static int hdptx_post_power_up(struct rockchip_hdptx_phy *hdptx)
 	udelay(10);
 	reset_deassert(&hdptx->cmn_reset);
 
-	for (i = 0; i < 20; i++) {
+	for (i = 0; i < 50; i++) {
 		val = hdptx_grf_read(hdptx, GRF_HDPTX_STATUS);
 
 		if (val & HDPTX_O_PLL_LOCK_DONE)
@@ -953,7 +953,7 @@ static int hdptx_post_power_up(struct rockchip_hdptx_phy *hdptx)
 		udelay(20);
 	}
 
-	if (i == 20) {
+	if (i == 50) {
 		dev_err(hdptx->dev, "hdptx phy can't lock!\n");
 		return -EINVAL;
 	}
@@ -962,7 +962,7 @@ static int hdptx_post_power_up(struct rockchip_hdptx_phy *hdptx)
 
 	reset_deassert(&hdptx->lane_reset);
 
-	for (i = 0; i < 20; i++) {
+	for (i = 0; i < 50; i++) {
 		val = hdptx_grf_read(hdptx, GRF_HDPTX_STATUS);
 
 		if (val & HDPTX_O_PHY_RDY)
@@ -970,7 +970,7 @@ static int hdptx_post_power_up(struct rockchip_hdptx_phy *hdptx)
 		udelay(100);
 	}
 
-	if (i == 20) {
+	if (i == 50) {
 		dev_err(hdptx->dev, "hdptx phy can't ready!\n");
 		return -EINVAL;
 	}
