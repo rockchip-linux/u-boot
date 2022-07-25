@@ -22,6 +22,7 @@ struct rockchip_bridge_funcs {
 	void (*post_disable)(struct rockchip_bridge *bridge);
 	void (*mode_set)(struct rockchip_bridge *bridge,
 			 const struct drm_display_mode *mode);
+	bool (*detect)(struct rockchip_bridge *bridge);
 };
 
 struct rockchip_bridge {
@@ -39,5 +40,6 @@ void rockchip_bridge_pre_enable(struct rockchip_bridge *bridge);
 void rockchip_bridge_post_disable(struct rockchip_bridge *bridge);
 void rockchip_bridge_mode_set(struct rockchip_bridge *bridge,
 			      const struct drm_display_mode *mode);
+bool rockchip_bridge_detect(struct rockchip_bridge *bridge);
 
 #endif

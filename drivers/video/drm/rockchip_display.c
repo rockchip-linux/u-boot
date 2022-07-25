@@ -859,6 +859,14 @@ static int display_init(struct display_state *state)
 		}
 	}
 
+	if (conn_state->bridge) {
+		if (!rockchip_bridge_detect(conn_state->bridge)) {
+			printf("%s disconnected\n",
+			       dev_np(conn_state->bridge->dev)->full_name);
+			goto deinit;
+		}
+	}
+
 	if (panel_state->panel) {
 		ret = display_get_timing(state);
 		if (!ret)

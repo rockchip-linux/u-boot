@@ -77,3 +77,15 @@ void rockchip_bridge_mode_set(struct rockchip_bridge *bridge,
 	if (bridge->next_bridge)
 		rockchip_bridge_mode_set(bridge->next_bridge, mode);
 }
+
+bool rockchip_bridge_detect(struct rockchip_bridge *bridge)
+{
+	if (bridge->funcs && bridge->funcs->detect)
+		if (!bridge->funcs->detect(bridge))
+			return false;
+
+	if (bridge->next_bridge)
+		return rockchip_bridge_detect(bridge->next_bridge);
+
+	return true;
+}
