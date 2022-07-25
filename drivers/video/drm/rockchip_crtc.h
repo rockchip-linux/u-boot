@@ -26,6 +26,8 @@ struct rockchip_crtc {
 	bool hdmi_hpd : 1;
 	bool active : 1;
 	bool assign_plane : 1;
+	bool splice_mode : 1;
+	u8 splice_crtc_id;
 };
 
 struct rockchip_crtc_funcs {
@@ -39,6 +41,7 @@ struct rockchip_crtc_funcs {
 	void (*unprepare)(struct display_state *state);
 	int (*fixup_dts)(struct display_state *state, void *blob);
 	int (*send_mcu_cmd)(struct display_state *state, u32 type, u32 value);
+	int (*check)(struct display_state *state);
 };
 
 struct vop_data;

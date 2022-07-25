@@ -3551,6 +3551,24 @@ static int rockchip_vop2_fixup_dts(struct display_state *state, void *blob)
 	return 0;
 }
 
+static int rockchip_vop2_check(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct rockchip_crtc *crtc = cstate->crtc;
+
+	if (crtc->splice_mode && cstate->crtc_id == crtc->splice_crtc_id) {
+		printf("WARN: VP%d is busy in splice mode\n", cstate->crtc_id);
+		return -ENOTSUPP;
+	}
+
+	if (cstate->splice_mode) {
+		crtc->splice_mode = true;
+		crtc->splice_crtc_id = cstate->splice_crtc_id;
+	}
+
+	return 0;
+}
+
 static struct vop2_plane_table rk356x_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
 	{ROCKCHIP_VOP2_CLUSTER0, CLUSTER_LAYER},
 	{ROCKCHIP_VOP2_CLUSTER1, CLUSTER_LAYER},
@@ -4089,4 +4107,5 @@ const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
 	.enable = rockchip_vop2_enable,
 	.disable = rockchip_vop2_disable,
 	.fixup_dts = rockchip_vop2_fixup_dts,
+	.check = rockchip_vop2_check,
 };

@@ -68,6 +68,8 @@ struct rockchip_connector_funcs {
 	int (*enable)(struct rockchip_connector *connector, struct display_state *state);
 	int (*disable)(struct rockchip_connector *connector, struct display_state *state);
 	void (*unprepare)(struct rockchip_connector *connector, struct display_state *state);
+
+	int (*check)(struct rockchip_connector *connector, struct display_state *state);
 };
 
 const struct rockchip_connector *

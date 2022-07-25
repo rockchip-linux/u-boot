@@ -992,6 +992,38 @@ static int display_disable(struct display_state *state)
 	return 0;
 }
 
+static int display_check(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_connector *conn = conn_state->connector;
+	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
+	struct crtc_state *crtc_state = &state->crtc_state;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
+	int ret;
+
+	if (!state->is_init)
+		return 0;
+
+	if (conn_funcs->check) {
+		ret = conn_funcs->check(conn, state);
+		if (ret)
+			goto check_fail;
+	}
+
+	if (crtc_funcs->check) {
+		ret = crtc_funcs->check(state);
+		if (ret)
+			goto check_fail;
+	}
+
+	return 0;
+
+check_fail:
+	state->is_init = false;
+	return ret;
+}
+
 static int display_logo(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -1052,6 +1084,7 @@ static int display_logo(struct display_state *state)
 		}
 	}
 
+	display_check(state);
 	display_set_plane(state);
 	display_enable(state);
 
