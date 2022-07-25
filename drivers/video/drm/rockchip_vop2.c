@@ -154,6 +154,11 @@
 #define RK3588_DSC_4K_PD_EN_SHIFT		6
 #define RK3588_ESMART_PD_EN_SHIFT		7
 
+#define RK3588_SYS_VAR_FREQ_CTRL		0x038
+#define RK3588_VP0_LINE_FLAG_OR_EN_SHIFT	20
+#define RK3588_VP0_DSP_HOLD_OR_EN_SHIFT		24
+#define RK3588_VP0_ALMOST_FULL_OR_EN_SHIFT	28
+
 #define RK3568_SYS_STATUS0			0x60
 #define RK3588_CLUSTER0_PD_STATUS_SHIFT		8
 #define RK3588_CLUSTER1_PD_STATUS_SHIFT		9
@@ -3410,6 +3415,11 @@ static int rockchip_vop2_init(struct display_state *state)
 		vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL, EN_MASK,
 				PORT_MERGE_EN_SHIFT, 1, false);
 	}
+
+	vop2_mask_write(vop2, RK3588_SYS_VAR_FREQ_CTRL, EN_MASK,
+			RK3588_VP0_LINE_FLAG_OR_EN_SHIFT + cstate->crtc_id, 1, false);
+	vop2_mask_write(vop2, RK3588_SYS_VAR_FREQ_CTRL, EN_MASK,
+			RK3588_VP0_ALMOST_FULL_OR_EN_SHIFT + cstate->crtc_id, 1, false);
 
 	vop2_initial(vop2, state);
 	if (vop2->version == VOP_VERSION_RK3588)
