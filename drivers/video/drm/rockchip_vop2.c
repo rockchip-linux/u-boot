@@ -3569,6 +3569,25 @@ static int rockchip_vop2_check(struct display_state *state)
 	return 0;
 }
 
+static int rockchip_vop2_mode_valid(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *cstate = &state->crtc_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct videomode vm;
+
+	drm_display_mode_to_videomode(mode, &vm);
+
+	if (vm.hactive < 32 || vm.vactive < 32 ||
+	    (vm.hfront_porch * vm.hsync_len * vm.hback_porch *
+	     vm.vfront_porch * vm.vsync_len * vm.vback_porch == 0)) {
+		printf("ERROR: VP%d: unsupported display timing\n", cstate->crtc_id);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static struct vop2_plane_table rk356x_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
 	{ROCKCHIP_VOP2_CLUSTER0, CLUSTER_LAYER},
 	{ROCKCHIP_VOP2_CLUSTER1, CLUSTER_LAYER},
@@ -4108,4 +4127,5 @@ const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
 	.disable = rockchip_vop2_disable,
 	.fixup_dts = rockchip_vop2_fixup_dts,
 	.check = rockchip_vop2_check,
+	.mode_valid = rockchip_vop2_mode_valid,
 };

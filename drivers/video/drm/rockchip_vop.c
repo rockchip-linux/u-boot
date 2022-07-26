@@ -843,6 +843,24 @@ static int rockchip_vop_send_mcu_cmd(struct display_state *state,
 	return 0;
 }
 
+static int rockchip_vop_mode_valid(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct videomode vm;
+
+	drm_display_mode_to_videomode(mode, &vm);
+
+	if (vm.hactive < 32 || vm.vactive < 32 ||
+	    (vm.hfront_porch * vm.hsync_len * vm.hback_porch *
+	     vm.vfront_porch * vm.vsync_len * vm.vback_porch == 0)) {
+		printf("ERROR: unsupported display timing\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.preinit = rockchip_vop_preinit,
 	.init = rockchip_vop_init,
@@ -852,4 +870,5 @@ const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.disable = rockchip_vop_disable,
 	.fixup_dts = rockchip_vop_fixup_dts,
 	.send_mcu_cmd = rockchip_vop_send_mcu_cmd,
+	.mode_valid = rockchip_vop_mode_valid,
 };

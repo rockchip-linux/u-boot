@@ -42,6 +42,7 @@ struct rockchip_crtc_funcs {
 	int (*fixup_dts)(struct display_state *state, void *blob);
 	int (*send_mcu_cmd)(struct display_state *state, u32 type, u32 value);
 	int (*check)(struct display_state *state);
+	int (*mode_valid)(struct display_state *state);
 };
 
 struct vop_data;

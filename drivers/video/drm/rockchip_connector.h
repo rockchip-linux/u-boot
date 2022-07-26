@@ -70,6 +70,7 @@ struct rockchip_connector_funcs {
 	void (*unprepare)(struct rockchip_connector *connector, struct display_state *state);
 
 	int (*check)(struct rockchip_connector *connector, struct display_state *state);
+	int (*mode_valid)(struct rockchip_connector *connector, struct display_state *state);
 };
 
 const struct rockchip_connector *
