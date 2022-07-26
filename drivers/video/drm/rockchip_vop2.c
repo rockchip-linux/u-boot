@@ -2707,7 +2707,7 @@ static bool is_extend_pll(struct display_state *state, struct udevice **clk_dev)
 	ret = dev_read_phandle_with_args(vp_dev, "assigned-clock-parents", "#clock-cells", 0,
 					 0, &args);
 	if (ret) {
-		printf("warn: can't get assigned-clock-parents's node\n");
+		printf("assigned-clock-parents's node not define\n");
 		return false;
 	}
 
@@ -2931,10 +2931,10 @@ static int rockchip_vop2_init(struct display_state *state)
 	if (!ret) {
 		ret = clk_get_by_name(disp_dev, "hdmi0_phy_pll", &hdmi0_phy_pll);
 		if (ret)
-			printf("%s: Failed to get hdmi0_phy_pll ret=%d\n", __func__, ret);
+			printf("%s: hdmi0_phy_pll may not define\n", __func__);
 		ret = clk_get_by_name(disp_dev, "hdmi1_phy_pll", &hdmi1_phy_pll);
 		if (ret)
-			printf("%s: Failed to get hdmi1_phy_pll ret=%d\n", __func__, ret);
+			printf("%s: hdmi1_phy_pll may not define\n", __func__);
 	} else {
 		hdmi0_phy_pll.dev = NULL;
 		hdmi1_phy_pll.dev = NULL;
