@@ -28,6 +28,11 @@
 #define RK1808_GRF_PD_VO_CON1		0x0444
 #define RK1808_RGB_DATA_SYNC_BYPASS(v)	HIWORD_UPDATE(v, 3, 3)
 
+#define RV1106_VENC_GRF_VOP_IO_WRAPPER	0x1000c
+#define RV1106_IO_BYPASS_SEL(v)		HIWORD_UPDATE(v, 0, 1)
+#define RV1106_VOGRF_VOP_PIPE_BYPASS	0x60034
+#define RV1106_VOP_PIPE_BYPASS(v)	HIWORD_UPDATE(v, 0, 1)
+
 #define RV1126_GRF_IOFUNC_CON3          0x1026c
 #define RV1126_LCDC_IO_BYPASS(v)        HIWORD_UPDATE(v, 0, 0)
 
@@ -183,6 +188,18 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	return 0;
 }
 
+static void rv1106_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+{
+	regmap_write(rgb->grf, RV1106_VENC_GRF_VOP_IO_WRAPPER,
+		     RV1106_IO_BYPASS_SEL(rgb->data_sync_bypass ? 0x3 : 0x0));
+	regmap_write(rgb->grf, RV1106_VOGRF_VOP_PIPE_BYPASS,
+		     RV1106_VOP_PIPE_BYPASS(rgb->data_sync_bypass ? 0x3 : 0x0));
+}
+
+static const struct rockchip_rgb_funcs rv1106_rgb_funcs = {
+	.prepare = rv1106_rgb_prepare,
+};
+
 static void rv1126_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RV1126_GRF_IOFUNC_CON3,
@@ -281,6 +298,10 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 	{
 		.compatible = "rockchip,rk3568-rgb",
 		.data = (ulong)&rk3568_rgb_funcs,
+	},
+	{
+		.compatible = "rockchip,rv1106-rgb",
+		.data = (ulong)&rv1106_rgb_funcs,
 	},
 	{
 		.compatible = "rockchip,rv1108-rgb",
