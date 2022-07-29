@@ -3270,41 +3270,6 @@ static void vop2_set_smart_win(struct display_state *state, struct vop2_win_data
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
 }
 
-static int display_rect_calc_scale(int src, int dst)
-{
-	int scale = 0;
-
-	if (WARN_ON(src < 0 || dst < 0))
-		return -EINVAL;
-
-	if (dst == 0)
-		return 0;
-
-	if (src > (dst << 16))
-		return DIV_ROUND_UP(src, dst);
-
-	scale = src / dst;
-
-	return scale;
-}
-
-static int display_rect_calc_hscale(const struct display_rect *src,
-				    const struct display_rect *dst,
-				    int min_hscale, int max_hscale)
-{
-	int src_w = src->w;
-	int dst_w = dst->w;
-	int hscale = display_rect_calc_scale(src_w, dst_w);
-
-	if (hscale < 0 || dst_w == 0)
-		return hscale;
-
-	if (hscale < min_hscale || hscale > max_hscale)
-		return -ERANGE;
-
-	return hscale;
-}
-
 static void vop2_calc_display_rect_for_splice(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -3314,7 +3279,6 @@ static void vop2_calc_display_rect_for_splice(struct display_state *state)
 	struct display_rect *dst_rect = &cstate->crtc_rect;
 	struct display_rect left_src, left_dst, right_src, right_dst;
 	u16 half_hdisplay = mode->crtc_hdisplay >> 1;
-	int hscale = display_rect_calc_hscale(src_rect, dst_rect, 0, INT_MAX);
 	int left_src_w, left_dst_w, right_dst_w;
 
 	left_dst_w = min_t(u16, half_hdisplay, dst_rect->x + dst_rect->w) - dst_rect->x;
@@ -3325,7 +3289,7 @@ static void vop2_calc_display_rect_for_splice(struct display_state *state)
 	if (!right_dst_w)
 		left_src_w = src_rect->w;
 	else
-		left_src_w = left_dst_w * hscale;
+		left_src_w = src_rect->x + src_rect->w - src_rect->w / 2;
 
 	left_src.x = src_rect->x;
 	left_src.w = left_src_w;
