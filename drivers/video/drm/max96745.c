@@ -14,36 +14,36 @@
 #include "rockchip_display.h"
 #include "rockchip_panel.h"
 
-static void max96745_bridge_enable(struct rockchip_bridge *bridge)
+struct max96745_bridge_priv {
+	struct gpio_desc lock_gpio;
+};
+
+static bool max96745_bridge_detect(struct rockchip_bridge *bridge)
 {
-	struct udevice *dev = bridge->dev;
+	struct max96745_bridge_priv *priv = dev_get_priv(bridge->dev);
 
-	dm_i2c_reg_clrset(dev->parent, 0x0100, VID_TX_EN,
-			  FIELD_PREP(VID_TX_EN, 1));
-}
+	if (!dm_gpio_get_value(&priv->lock_gpio))
+		return false;
 
-static void max96745_bridge_disable(struct rockchip_bridge *bridge)
-{
-	struct udevice *dev = bridge->dev;
-
-	dm_i2c_reg_clrset(dev->parent, 0x0100, VID_TX_EN,
-			  FIELD_PREP(VID_TX_EN, 0));
+	return true;
 }
 
 static const struct rockchip_bridge_funcs max96745_bridge_funcs = {
-	.enable = max96745_bridge_enable,
-	.disable = max96745_bridge_disable,
+	.detect = max96745_bridge_detect,
 };
 
 static int max96745_bridge_probe(struct udevice *dev)
 {
+	struct max96745_bridge_priv *priv = dev_get_priv(dev);
 	struct rockchip_bridge *bridge;
+	int ret;
 
-	dm_i2c_reg_write(dev->parent, 0x7019, 0x00);
-	dm_i2c_reg_write(dev->parent, 0x70a0, 0x04);
-	dm_i2c_reg_write(dev->parent, 0x7074, 0x14);
-	dm_i2c_reg_write(dev->parent, 0x7070, 0x04);
-	dm_i2c_reg_write(dev->parent, 0x7000, 0x01);
+	ret = gpio_request_by_name(dev, "lock-gpios", 0, &priv->lock_gpio,
+				   GPIOD_IS_IN);
+	if (ret) {
+		dev_err(dev, "failed to get lock GPIO: %d\n", ret);
+		return ret;
+	}
 
 	bridge = calloc(1, sizeof(*bridge));
 	if (!bridge)
@@ -66,4 +66,5 @@ U_BOOT_DRIVER(max96745_bridge) = {
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = max96745_bridge_of_match,
 	.probe = max96745_bridge_probe,
+	.priv_auto_alloc_size = sizeof(struct max96745_bridge_priv),
 };
