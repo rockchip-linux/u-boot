@@ -27,12 +27,13 @@ static const struct i2c_mux_ops max96752f_ops = {
 };
 
 static uint addr_list[] = {
-	0x48, 0x4a, 0x4c, 0x68, 0x6a, 0x6c, 0x28, 0x2a
+	0x48, 0x68, 0x6a, 0x4a, 0x4c, 0x6c, 0x28, 0x2a
 };
 
-static void max96752f_check_addr(struct udevice *dev)
+void max96752f_init(struct udevice *dev)
 {
 	struct dm_i2c_chip *chip = dev_get_parent_platdata(dev);
+	u32 stream_id = dev_read_u32_default(dev->parent, "reg", 0);
 	uint addr = chip->chip_addr;
 	int i, ret;
 
@@ -50,27 +51,20 @@ static void max96752f_check_addr(struct udevice *dev)
 	}
 
 	chip->chip_addr = addr;
+
+	dm_i2c_reg_clrset(dev, 0x0050, STR_SEL,
+			  FIELD_PREP(STR_SEL, stream_id));
+	dm_i2c_reg_clrset(dev, 0x0073, TX_SRC_ID,
+			  FIELD_PREP(TX_SRC_ID, stream_id));
 }
 
 static int max96752f_probe(struct udevice *dev)
 {
-	u32 stream_id = dev_read_u32_default(dev->parent, "reg", 0);
 	int ret;
 
 	ret = i2c_set_chip_offset_len(dev, 2);
 	if (ret)
 		return ret;
-
-	max96752f_check_addr(dev);
-
-	ret = dm_i2c_reg_read(dev, 0x000d);
-	if (ret < 0) {
-		dev_err(dev, "%s: failed to get dev id: %d\n", __func__, ret);
-		return ret;
-	}
-
-	dm_i2c_reg_clrset(dev, 0x0050, STR_SEL, FIELD_PREP(STR_SEL, stream_id));
-	dm_i2c_reg_clrset(dev, 0x0073, TX_SRC_ID, FIELD_PREP(TX_SRC_ID, stream_id));
 
 	return 0;
 }

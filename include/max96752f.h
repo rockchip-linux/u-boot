@@ -61,4 +61,6 @@
 #define OLDI_SPL_MODE		GENMASK(2, 1)
 #define OLDI_SPL_POL		BIT(0)
 
+void max96752f_init(struct udevice *dev);
+
 #endif
