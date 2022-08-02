@@ -132,10 +132,21 @@ static void max96755f_bridge_mode_set(struct rockchip_bridge *bridge,
 	memcpy(&priv->mode, mode, sizeof(struct drm_display_mode));
 }
 
+static bool max96755f_bridge_detect(struct rockchip_bridge *bridge)
+{
+	struct max96755f_priv *priv = dev_get_priv(bridge->dev->parent);
+
+	if (!dm_gpio_get_value(&priv->lock_gpio))
+		return false;
+
+	return true;
+}
+
 static const struct rockchip_bridge_funcs max96755f_bridge_funcs = {
 	.enable = max96755f_bridge_enable,
 	.disable = max96755f_bridge_disable,
 	.mode_set = max96755f_bridge_mode_set,
+	.detect = max96755f_bridge_detect,
 };
 
 static int max96755f_bridge_bind(struct udevice *dev)
@@ -156,6 +167,7 @@ static int max96755f_bridge_probe(struct udevice *dev)
 {
 	struct rockchip_bridge *bridge;
 	struct max96755f_priv *priv = dev_get_priv(dev->parent);
+	int ret;
 
 	bridge = calloc(1, sizeof(*bridge));
 	if (!bridge)
@@ -168,6 +180,13 @@ static int max96755f_bridge_probe(struct udevice *dev)
 	priv->num_lanes = dev_read_u32_default(dev, "dsi,lanes", 4);
 	priv->dv_swp_ab = dev_read_bool(dev, "vd-swap-ab");
 	priv->dpi_deskew_en = dev_read_bool(dev, "dpi-deskew-en");
+
+	ret = gpio_request_by_name(dev, "lock-gpios", 0, &priv->lock_gpio,
+				   GPIOD_IS_IN);
+	if (ret) {
+		dev_err(dev, "failed to get lock GPIO: %d\n", ret);
+		return ret;
+	}
 
 	return 0;
 }

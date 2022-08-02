@@ -194,4 +194,15 @@ enum link_mode {
 	SPLITTER_MODE,
 };
 
+struct max96755f_priv {
+	struct udevice *dev;
+	struct gpio_desc enable_gpio;
+	bool split_mode;
+	bool dv_swp_ab;
+	bool dpi_deskew_en;
+	struct drm_display_mode mode;
+	u32 num_lanes;
+	struct gpio_desc lock_gpio;
+};
+
 #endif
