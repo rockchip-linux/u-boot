@@ -1109,7 +1109,7 @@ static int display_logo(struct display_state *state)
 	crtc_state->dma_addr = (u32)(unsigned long)logo->mem + logo->offset;
 	crtc_state->xvir = ALIGN(crtc_state->src_rect.w * logo->bpp, 32) >> 5;
 
-	if (logo->mode == ROCKCHIP_DISPLAY_FULLSCREEN) {
+	if (state->logo_mode == ROCKCHIP_DISPLAY_FULLSCREEN) {
 		crtc_state->crtc_rect.x = 0;
 		crtc_state->crtc_rect.y = 0;
 		crtc_state->crtc_rect.w = hdisplay;
