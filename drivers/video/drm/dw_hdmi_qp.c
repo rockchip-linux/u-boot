@@ -1037,6 +1037,8 @@ static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
 		hdmi_config_vendor_specific_infoframe(hdmi, mode);
 		hdmi_config_CVTEM(hdmi, link_cfg);
 		hdmi_set_op_mode(hdmi, link_cfg, hdmi_info->scdc.supported);
+		/* clear avmute */
+		hdmi_writel(hdmi, 2, PKTSCHED_PKT_CONTROL0);
 	} else {
 		hdmi_modb(hdmi, OPMODE_DVI, OPMODE_DVI, LINK_CONFIG0);
 		printf("%s DVI mode\n", __func__);
