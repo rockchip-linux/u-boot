@@ -861,6 +861,30 @@ static int rockchip_vop_mode_valid(struct display_state *state)
 	return 0;
 }
 
+static int rockchip_vop_plane_check(struct display_state *state)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	const struct vop_data *vop_data = crtc->data;
+	const struct vop_win *win = vop_data->win;
+	struct display_rect *src = &crtc_state->src_rect;
+	struct display_rect *dst = &crtc_state->crtc_rect;
+	int min_scale, max_scale;
+	int hscale, vscale;
+
+	min_scale = win->scl ? FRAC_16_16(1, 8) : VOP_PLANE_NO_SCALING;
+	max_scale = win->scl ? FRAC_16_16(8, 1) : VOP_PLANE_NO_SCALING;
+
+	hscale = display_rect_calc_hscale(src, dst, min_scale, max_scale);
+	vscale = display_rect_calc_vscale(src, dst, min_scale, max_scale);
+	if (hscale < 0 || vscale < 0) {
+		printf("ERROR: scale factor is out of range\n");
+		return -ERANGE;
+	}
+
+	return 0;
+}
+
 const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.preinit = rockchip_vop_preinit,
 	.init = rockchip_vop_init,
@@ -871,4 +895,5 @@ const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.fixup_dts = rockchip_vop_fixup_dts,
 	.send_mcu_cmd = rockchip_vop_send_mcu_cmd,
 	.mode_valid = rockchip_vop_mode_valid,
+	.plane_check = rockchip_vop_plane_check,
 };

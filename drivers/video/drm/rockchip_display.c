@@ -992,6 +992,54 @@ static int display_disable(struct display_state *state)
 	return 0;
 }
 
+static int display_rect_calc_scale(int src, int dst)
+{
+	int scale = 0;
+
+	if (WARN_ON(src < 0 || dst < 0))
+		return -EINVAL;
+
+	if (dst == 0)
+		return 0;
+
+	src <<= 16;
+
+	if (src > (dst << 16))
+		return DIV_ROUND_UP(src, dst);
+	else
+		scale = src / dst;
+
+	return scale;
+}
+
+int display_rect_calc_hscale(struct display_rect *src, struct display_rect *dst,
+			     int min_hscale, int max_hscale)
+{
+	int hscale = display_rect_calc_scale(src->w, dst->w);
+
+	if (hscale < 0 || dst->w == 0)
+		return hscale;
+
+	if (hscale < min_hscale || hscale > max_hscale)
+		return -ERANGE;
+
+	return hscale;
+}
+
+int display_rect_calc_vscale(struct display_rect *src, struct display_rect *dst,
+			     int min_vscale, int max_vscale)
+{
+	int vscale = display_rect_calc_scale(src->h, dst->h);
+
+	if (vscale < 0 || dst->h == 0)
+		return vscale;
+
+	if (vscale < min_vscale || vscale > max_vscale)
+		return -ERANGE;
+
+	return vscale;
+}
+
 static int display_check(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -1013,6 +1061,12 @@ static int display_check(struct display_state *state)
 
 	if (crtc_funcs->check) {
 		ret = crtc_funcs->check(state);
+		if (ret)
+			goto check_fail;
+	}
+
+	if (crtc_funcs->plane_check) {
+		ret = crtc_funcs->plane_check(state);
 		if (ret)
 			goto check_fail;
 	}

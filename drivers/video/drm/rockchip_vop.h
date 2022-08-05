@@ -157,6 +157,8 @@ enum vop_csc_format {
 #define SCL_MAX_VSKIPLINES		4
 #define MIN_SCL_FT_AFTER_VSKIP		1
 
+#define VOP_PLANE_NO_SCALING	BIT(16)
+
 static inline uint16_t scl_cal_scale(int src, int dst, int shift)
 {
 	return ((src * 2 - 3) << (shift - 1)) / (dst - 1);

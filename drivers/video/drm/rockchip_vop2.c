@@ -765,6 +765,8 @@
 #define VOP2_PD_DSC_4K				BIT(6)
 #define VOP2_PD_ESMART				BIT(7)
 
+#define VOP2_PLANE_NO_SCALING			BIT(16)
+
 enum vop2_csc_format {
 	CSC_BT601L,
 	CSC_BT709L,
@@ -887,6 +889,8 @@ struct vop2_win_data {
 	u8 splice_win_id;
 	u8 pd_id;
 	u32 reg_offset;
+	u32 max_upscale_factor;
+	u32 max_downscale_factor;
 	bool splice_mode_right;
 };
 
@@ -3588,6 +3592,37 @@ static int rockchip_vop2_mode_valid(struct display_state *state)
 	return 0;
 }
 
+#define FRAC_16_16(mult, div)	(((mult) << 16) / (div))
+
+static int rockchip_vop2_plane_check(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	struct display_rect *src = &cstate->src_rect;
+	struct display_rect *dst = &cstate->crtc_rect;
+	struct vop2_win_data *win_data;
+	int min_scale, max_scale;
+	int hscale, vscale;
+	u8 primary_plane_id = vop2->vp_plane_mask[cstate->crtc_id].primary_plane_id;
+
+	win_data = vop2_find_win_by_phys_id(vop2, primary_plane_id);
+	if (!win_data) {
+		printf("ERROR: invalid win id %d\n", primary_plane_id);
+		return -ENODEV;
+	}
+
+	min_scale = FRAC_16_16(1, win_data->max_downscale_factor);
+	max_scale = FRAC_16_16(win_data->max_upscale_factor, 1);
+
+	hscale = display_rect_calc_hscale(src, dst, min_scale, max_scale);
+	vscale = display_rect_calc_vscale(src, dst, min_scale, max_scale);
+	if (hscale < 0 || vscale < 0) {
+		printf("ERROR: VP%d %s: scale factor is out of range\n", cstate->crtc_id, win_data->name);
+		return -ERANGE;
+	}
+
+	return 0;
+}
 static struct vop2_plane_table rk356x_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
 	{ROCKCHIP_VOP2_CLUSTER0, CLUSTER_LAYER},
 	{ROCKCHIP_VOP2_CLUSTER1, CLUSTER_LAYER},
@@ -3669,6 +3704,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.win_sel_port_offset = 0,
 		.layer_sel_win_id = 0,
 		.reg_offset = 0,
+		.max_upscale_factor = 4,
+		.max_downscale_factor = 4,
 	},
 
 	{
@@ -3678,6 +3715,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.win_sel_port_offset = 1,
 		.layer_sel_win_id = 1,
 		.reg_offset = 0x200,
+		.max_upscale_factor = 4,
+		.max_downscale_factor = 4,
 	},
 
 	{
@@ -3687,6 +3726,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.win_sel_port_offset = 4,
 		.layer_sel_win_id = 2,
 		.reg_offset = 0,
+		.max_upscale_factor = 8,
+		.max_downscale_factor = 8,
 	},
 
 	{
@@ -3696,6 +3737,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.win_sel_port_offset = 5,
 		.layer_sel_win_id = 6,
 		.reg_offset = 0x200,
+		.max_upscale_factor = 8,
+		.max_downscale_factor = 8,
 	},
 
 	{
@@ -3705,6 +3748,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.win_sel_port_offset = 6,
 		.layer_sel_win_id = 3,
 		.reg_offset = 0x400,
+		.max_upscale_factor = 8,
+		.max_downscale_factor = 8,
 	},
 
 	{
@@ -3714,6 +3759,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.win_sel_port_offset = 7,
 		.layer_sel_win_id = 7,
 		.reg_offset = 0x600,
+		.max_upscale_factor = 8,
+		.max_downscale_factor = 8,
 	},
 };
 
@@ -3863,6 +3910,8 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_yrgb_id = 2,
 		.axi_uv_id = 3,
 		.pd_id = VOP2_PD_CLUSTER0,
+		.max_upscale_factor = 4,
+		.max_downscale_factor = 4,
 	},
 
 	{
@@ -3876,6 +3925,8 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_yrgb_id = 6,
 		.axi_uv_id = 7,
 		.pd_id = VOP2_PD_CLUSTER1,
+		.max_upscale_factor = 4,
+		.max_downscale_factor = 4,
 	},
 
 	{
@@ -3890,6 +3941,8 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_yrgb_id = 2,
 		.axi_uv_id = 3,
 		.pd_id = VOP2_PD_CLUSTER2,
+		.max_upscale_factor = 4,
+		.max_downscale_factor = 4,
 	},
 
 	{
@@ -3903,6 +3956,8 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_yrgb_id = 6,
 		.axi_uv_id = 7,
 		.pd_id = VOP2_PD_CLUSTER3,
+		.max_upscale_factor = 4,
+		.max_downscale_factor = 4,
 	},
 
 	{
@@ -3916,6 +3971,8 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_id = 0,
 		.axi_yrgb_id = 0x0a,
 		.axi_uv_id = 0x0b,
+		.max_upscale_factor = 8,
+		.max_downscale_factor = 8,
 	},
 
 	{
@@ -3929,6 +3986,8 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_yrgb_id = 0x0c,
 		.axi_uv_id = 0x0d,
 		.pd_id = VOP2_PD_ESMART,
+		.max_upscale_factor = 8,
+		.max_downscale_factor = 8,
 	},
 
 	{
@@ -3943,6 +4002,8 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_yrgb_id = 0x0a,
 		.axi_uv_id = 0x0b,
 		.pd_id = VOP2_PD_ESMART,
+		.max_upscale_factor = 8,
+		.max_downscale_factor = 8,
 	},
 
 	{
@@ -3956,6 +4017,8 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.axi_yrgb_id = 0x0c,
 		.axi_uv_id = 0x0d,
 		.pd_id = VOP2_PD_ESMART,
+		.max_upscale_factor = 8,
+		.max_downscale_factor = 8,
 	},
 };
 
@@ -4128,4 +4191,5 @@ const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
 	.fixup_dts = rockchip_vop2_fixup_dts,
 	.check = rockchip_vop2_check,
 	.mode_valid = rockchip_vop2_mode_valid,
+	.plane_check = rockchip_vop2_plane_check,
 };

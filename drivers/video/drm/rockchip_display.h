@@ -284,4 +284,9 @@ void drm_mode_max_resolution_filter(struct hdmi_edid_data *edid_data,
 unsigned long get_cubic_lut_buffer(int crtc_id);
 int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode);
 
+int display_rect_calc_hscale(struct display_rect *src, struct display_rect *dst,
+			     int min_hscale, int max_hscale);
+int display_rect_calc_vscale(struct display_rect *src, struct display_rect *dst,
+			     int min_vscale, int max_vscale);
+
 #endif
