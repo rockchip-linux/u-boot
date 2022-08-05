@@ -38,9 +38,13 @@ static void bu18rl82_serdes_init_sequence_write(struct bu18rl82_priv *priv)
 	uint cnt = serdes_init_seq->reg_seq_cnt;
 	struct udevice *dev = priv->dev;
 	uint i;
+	int ret;
 
-	for (i = 0; i < cnt; i++)
-		dm_i2c_reg_write(dev, reg_sequence[i].reg, reg_sequence[i].def);
+	for (i = 0; i < cnt; i++) {
+		ret = dm_i2c_reg_write(dev, reg_sequence[i].reg, reg_sequence[i].def);
+		if (ret < 0)
+			dev_err(priv->dev, "write reg: 0x%04x\n", reg_sequence[i].reg);
+	}
 }
 
 static void bu18rl82_bridge_enable(struct rockchip_bridge *bridge)
