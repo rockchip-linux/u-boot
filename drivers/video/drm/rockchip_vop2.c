@@ -257,6 +257,7 @@
 #define P2I_EN_SHIFT				5
 #define DSP_FILED_POL				6
 #define INTERLACE_EN_SHIFT			7
+#define DSP_X_MIR_EN_SHIFT			13
 #define POST_DSP_OUT_R2Y_SHIFT			15
 #define PRE_DITHER_DOWN_EN_SHIFT		16
 #define DITHER_DOWN_EN_SHIFT			17
@@ -2762,6 +2763,7 @@ static bool is_extend_pll(struct display_state *state, struct udevice **clk_dev)
 static int rockchip_vop2_init(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
@@ -2938,6 +2940,10 @@ static int rockchip_vop2_init(struct display_state *state)
 
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 			POST_DSP_OUT_R2Y_SHIFT, yuv_overlay, false);
+
+	if (vp->xmirror_en)
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				DSP_X_MIR_EN_SHIFT, 1, false);
 
 	vop2_tv_config_update(state, vop2);
 	vop2_post_config(state, vop2);
