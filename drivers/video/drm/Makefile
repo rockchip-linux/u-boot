@@ -16,6 +16,7 @@ obj-$(CONFIG_DRM_DSC) += drm_dsc.o
 obj-$(CONFIG_DRM_MAXIM_MAX96745) += max96745.o
 obj-$(CONFIG_DRM_MAXIM_MAX96752F) += max96752f.o
 obj-$(CONFIG_DRM_MAXIM_MAX96755F) += max96755f.o
+obj-$(CONFIG_DRM_PANEL_MAXIM_DESERIALIZER) += panel-maxim-deserializer.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI) += dw_mipi_dsi.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI2) += dw_mipi_dsi2.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_HDMI) += rockchip_dw_hdmi.o dw_hdmi.o
