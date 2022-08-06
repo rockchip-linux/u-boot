@@ -1973,6 +1973,9 @@ void rockchip_display_fixup(void *blob)
 	}
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
+		if (!s->is_init)
+			continue;
+
 		conn = s->conn_state.connector;
 		if (!conn)
 			continue;
