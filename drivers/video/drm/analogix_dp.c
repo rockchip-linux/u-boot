@@ -447,23 +447,11 @@ static int analogix_dp_init_training(struct analogix_dp_device *dp,
 	analogix_dp_get_max_rx_bandwidth(dp, &dp->link_train.link_rate);
 	analogix_dp_get_max_rx_lane_count(dp, &dp->link_train.lane_count);
 
-	if ((dp->link_train.link_rate != DP_LINK_BW_1_62) &&
-	    (dp->link_train.link_rate != DP_LINK_BW_2_7) &&
-	    (dp->link_train.link_rate != DP_LINK_BW_5_4)) {
-		dev_err(dp->dev, "failed to get Rx Max Link Rate\n");
-		return -ENODEV;
-	}
-
-	if (dp->link_train.lane_count == 0) {
-		dev_err(dp->dev, "failed to get Rx Max Lane Count\n");
-		return -ENODEV;
-	}
-
 	/* Setup TX lane count & rate */
-	if (dp->link_train.lane_count > max_lane)
-		dp->link_train.lane_count = max_lane;
-	if (dp->link_train.link_rate > max_rate)
-		dp->link_train.link_rate = max_rate;
+	dp->link_train.lane_count = min_t(u8, dp->link_train.lane_count,
+					  max_lane);
+	dp->link_train.link_rate = min_t(u32, dp->link_train.link_rate,
+					 max_rate);
 
 	analogix_dp_read_byte_from_dpcd(dp, DP_MAX_DOWNSPREAD, &dpcd);
 	dp->link_train.ssc = !!(dpcd & DP_MAX_DOWNSPREAD_0_5);
