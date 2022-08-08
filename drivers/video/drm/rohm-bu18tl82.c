@@ -33,37 +33,70 @@ struct bu18tl82_priv {
 	struct serdes_init_seq *serdes_init_seq;
 };
 
-static void bu18tl82_serdes_init_sequence_write(struct bu18tl82_priv *priv)
+static void bu18tl82_bridge_reset(struct rockchip_bridge *bridge)
+{
+	int ret = 0;
+	struct udevice *dev = bridge->dev;
+	struct udevice *bus = dev_get_parent(dev);
+
+	ret = dm_i2c_reg_write(dev, 0x0011, 0x007f);
+	if (ret < 0)
+		printf("%s: failed to reset bu18tl82(%s) 0x11 ret=%d\n", __func__, bus->name, ret);
+
+	ret = dm_i2c_reg_write(dev, 0x0012, 0x0003);
+	if (ret < 0)
+		printf("%s: failed to reset bu18tl82(%s) 0x12 ret=%d\n", __func__, bus->name, ret);
+
+	mdelay(10);
+}
+
+static int bu18tl82_serdes_init_sequence_write(struct bu18tl82_priv *priv)
 {
 	struct serdes_init_seq *serdes_init_seq = priv->serdes_init_seq;
 	struct ser_reg_sequence *reg_sequence =  serdes_init_seq->reg_sequence;
 	uint cnt = serdes_init_seq->reg_seq_cnt;
 	struct udevice *dev = priv->dev;
 	uint i;
-	int ret;
+	int ret = 0;
 
 	for (i = 0; i < cnt; i++) {
 		ret = dm_i2c_reg_write(dev, reg_sequence[i].reg, reg_sequence[i].def);
-		if (ret < 0)
-			dev_err(priv->dev, "write reg: 0x%04x\n", reg_sequence[i].reg);
+		if (ret < 0) {
+			dev_err(priv->dev, "failed to write reg: 0x%04x\n", reg_sequence[i].reg);
+			return ret;
+		}
 	}
 
-	mdelay(1000);
+	return ret;
+}
+
+static void bu18tl82_serdes_init(struct rockchip_bridge *bridge)
+{
+	struct udevice *dev = bridge->dev;
+	struct bu18tl82_priv *priv = dev_get_priv(dev);
+	uint i;
+	int ret;
+
+	for (i = 0; i < 10; i++) {
+		ret = bu18tl82_serdes_init_sequence_write(priv);
+		if (ret < 0) {
+			mdelay(100);
+			continue;
+		}
+
+		break;
+	}
 }
 
 static void bu18tl82_bridge_enable(struct rockchip_bridge *bridge)
 {
-	struct udevice *dev = bridge->dev;
-	struct bu18tl82_priv *priv = dev_get_priv(dev);
-
-	bu18tl82_serdes_init_sequence_write(priv);
 }
 
 static void bu18tl82_bridge_disable(struct rockchip_bridge *bridge)
 {
 }
 
-static void bu18tl82_bridge_pre_enable(struct rockchip_bridge *bridge)
+static void bu18tl82_bridge_init(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct bu18tl82_priv *priv = dev_get_priv(dev);
@@ -74,30 +107,16 @@ static void bu18tl82_bridge_pre_enable(struct rockchip_bridge *bridge)
 	if (dm_gpio_is_valid(&priv->enable_gpio))
 		dm_gpio_set_value(&priv->enable_gpio, 1);
 
-	mdelay(120);
+	mdelay(5);
 
 	video_bridge_set_active(priv->dev, true);
-}
 
-static void bu18tl82_bridge_post_disable(struct rockchip_bridge *bridge)
-{
-	struct udevice *dev = bridge->dev;
-	struct bu18tl82_priv *priv = dev_get_priv(dev);
-
-	video_bridge_set_active(priv->dev, false);
-
-	if (dm_gpio_is_valid(&priv->enable_gpio))
-		dm_gpio_set_value(&priv->enable_gpio, 0);
-
-	if (priv->power_supply)
-		regulator_set_enable(priv->power_supply, false);
+	bu18tl82_serdes_init(bridge);
 }
 
 static const struct rockchip_bridge_funcs bu18tl82_bridge_funcs = {
 	.enable = bu18tl82_bridge_enable,
 	.disable = bu18tl82_bridge_disable,
-	.pre_enable = bu18tl82_bridge_pre_enable,
-	.post_disable = bu18tl82_bridge_post_disable,
 };
 
 static int bu18tl82_parse_init_seq(struct udevice *dev, const u16 *data,
@@ -208,6 +227,9 @@ static int bu18tl82_probe(struct udevice *dev)
 	dev->driver_data = (ulong)bridge;
 	bridge->dev = dev;
 	bridge->funcs = &bu18tl82_bridge_funcs;
+
+	bu18tl82_bridge_reset(bridge);
+	bu18tl82_bridge_init(bridge);
 
 	return 0;
 
