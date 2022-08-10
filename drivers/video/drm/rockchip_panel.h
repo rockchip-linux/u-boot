@@ -16,6 +16,8 @@ struct rockchip_panel_funcs {
 	void (*unprepare)(struct rockchip_panel *panel);
 	void (*enable)(struct rockchip_panel *panel);
 	void (*disable)(struct rockchip_panel *panel);
+	int (*get_mode)(struct rockchip_panel *panel,
+			struct drm_display_mode *mode);
 };
 
 struct rockchip_panel {

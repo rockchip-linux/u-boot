@@ -645,6 +645,9 @@ static int display_get_timing(struct display_state *state)
 	const struct drm_display_mode *m;
 	struct rockchip_panel *panel = conn_state->connector->panel;
 
+	if (panel->funcs->get_mode)
+		return panel->funcs->get_mode(panel, mode);
+
 	if (dev_of_valid(panel->dev) &&
 	    !display_get_timing_from_dts(panel, mode)) {
 		printf("Using display timing dts\n");
@@ -827,6 +830,22 @@ static int display_init(struct display_state *state)
 		if (!ret)
 			display_get_edid_mode(state);
 #endif
+	}
+
+	if (!ret && conn_state->secondary) {
+		struct rockchip_connector *connector = conn_state->secondary;
+
+		if (connector->panel) {
+			if (connector->panel->funcs->get_mode) {
+				struct drm_display_mode *_mode = drm_mode_create();
+
+				ret = connector->panel->funcs->get_mode(connector->panel, _mode);
+				if (!ret && !drm_mode_equal(_mode, mode))
+					ret = -EINVAL;
+
+				drm_mode_destroy(_mode);
+			}
+		}
 	}
 
 	if (ret && !state->force_output)
