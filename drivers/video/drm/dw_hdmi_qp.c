@@ -175,6 +175,9 @@ static bool hdmi_bus_fmt_is_yuv422(unsigned int bus_format)
 	case MEDIA_BUS_FMT_UYVY8_1X16:
 	case MEDIA_BUS_FMT_UYVY10_1X20:
 	case MEDIA_BUS_FMT_UYVY12_1X24:
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_YUYV10_1X20:
+	case MEDIA_BUS_FMT_YUYV12_1X24:
 		return true;
 
 	default:
@@ -1047,6 +1050,9 @@ static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
 	/* HDMI Initialization Step B.2 */
 	hdmi->phy.ops->set_pll(conn, hdmi->rk_hdmi, state);
 
+	/* Mark yuv422 10bit */
+	if (hdmi->hdmi_data.enc_out_bus_format == MEDIA_BUS_FMT_YUYV10_1X20)
+		hdmi_writel(hdmi, BIT(20), VIDEO_INTERFACE_CONFIG0);
 	rk3588_set_grf_cfg(hdmi->rk_hdmi);
 	link_cfg = dw_hdmi_rockchip_get_link_cfg(hdmi->rk_hdmi);
 
@@ -1310,15 +1316,17 @@ static int _rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn,
 	hdmi->hdmi_data.enc_out_bus_format = bus_format;
 
 	switch (bus_format) {
-	case MEDIA_BUS_FMT_UYVY10_1X20:
-		conn_state->bus_format = MEDIA_BUS_FMT_YUV10_1X30;
+	case MEDIA_BUS_FMT_YUYV10_1X20:
+		conn_state->bus_format = MEDIA_BUS_FMT_YUYV10_1X20;
 		hdmi->hdmi_data.enc_in_bus_format =
-			MEDIA_BUS_FMT_YUV10_1X30;
+			MEDIA_BUS_FMT_YUYV10_1X20;
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV422;
 		break;
-	case MEDIA_BUS_FMT_UYVY8_1X16:
-		conn_state->bus_format = MEDIA_BUS_FMT_YUV8_1X24;
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+		conn_state->bus_format = MEDIA_BUS_FMT_YUYV8_1X16;
 		hdmi->hdmi_data.enc_in_bus_format =
-			MEDIA_BUS_FMT_YUV8_1X24;
+			MEDIA_BUS_FMT_YUYV8_1X16;
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV422;
 		break;
 	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
 	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
