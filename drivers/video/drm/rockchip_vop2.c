@@ -1460,6 +1460,7 @@ static bool is_yuv_output(u32 bus_format)
 	switch (bus_format) {
 	case MEDIA_BUS_FMT_YUV8_1X24:
 	case MEDIA_BUS_FMT_YUV10_1X30:
+	case MEDIA_BUS_FMT_YUYV10_1X20:
 	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
 	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
 	case MEDIA_BUS_FMT_YUYV8_2X8:
@@ -3583,21 +3584,21 @@ static int rockchip_vop2_init(struct display_state *state)
 		dither_down_en = 0;
 		pre_dither_down_en = 0;
 		break;
+	case MEDIA_BUS_FMT_YUYV10_1X20:
 	case MEDIA_BUS_FMT_RGB888_1X24:
 	case MEDIA_BUS_FMT_RGB888_1X7X4_SPWG:
 	case MEDIA_BUS_FMT_RGB888_1X7X4_JEIDA:
+	case MEDIA_BUS_FMT_RGB101010_1X30:
 	default:
 		dither_down_en = 0;
 		pre_dither_down_en = 1;
 		break;
 	}
 
-	if (conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA)
-		pre_dither_down_en = 0;
-	else
-		pre_dither_down_en = 1;
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 			DITHER_DOWN_EN_SHIFT, dither_down_en, false);
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+			DITHER_DOWN_MODE_SHIFT, dither_down_mode, false);
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 			PRE_DITHER_DOWN_EN_SHIFT, pre_dither_down_en, false);
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
