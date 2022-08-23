@@ -2729,19 +2729,19 @@ static bool is_extend_pll(struct display_state *state, struct udevice **clk_dev)
 
 	sprintf(vp_name, "port@%d", cstate->crtc_id);
 	if (uclass_find_device_by_name(UCLASS_VIDEO_CRTC, vp_name, &vp_dev)) {
-		printf("warn: can't get vp device\n");
+		debug("warn: can't get vp device\n");
 		return false;
 	}
 
 	ret = dev_read_phandle_with_args(vp_dev, "assigned-clock-parents", "#clock-cells", 0,
 					 0, &args);
 	if (ret) {
-		printf("assigned-clock-parents's node not define\n");
+		debug("assigned-clock-parents's node not define\n");
 		return false;
 	}
 
 	if (uclass_find_device_by_ofnode(UCLASS_CLK, args.node, &dev)) {
-		printf("warn: can't get clk device\n");
+		debug("warn: can't get clk device\n");
 		return false;
 	}
 
@@ -2791,7 +2791,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	printf("VOP update mode to: %dx%d%s%d, type:%s for VP%d\n",
 	       mode->crtc_hdisplay, mode->crtc_vdisplay,
 	       mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "p",
-	       mode->vscan,
+	       mode->vrefresh,
 	       get_output_if_name(conn_state->output_if, output_type_name),
 	       cstate->crtc_id);
 
@@ -2958,14 +2958,14 @@ static int rockchip_vop2_init(struct display_state *state)
 	if (!ret) {
 		ret = clk_get_by_name(disp_dev, "hdmi0_phy_pll", &hdmi0_phy_pll);
 		if (ret)
-			printf("%s: hdmi0_phy_pll may not define\n", __func__);
+			debug("%s: hdmi0_phy_pll may not define\n", __func__);
 		ret = clk_get_by_name(disp_dev, "hdmi1_phy_pll", &hdmi1_phy_pll);
 		if (ret)
-			printf("%s: hdmi1_phy_pll may not define\n", __func__);
+			debug("%s: hdmi1_phy_pll may not define\n", __func__);
 	} else {
 		hdmi0_phy_pll.dev = NULL;
 		hdmi1_phy_pll.dev = NULL;
-		printf("%s: Faile to find display-subsystem node\n", __func__);
+		debug("%s: Faile to find display-subsystem node\n", __func__);
 	}
 
 	if (mode->crtc_clock < VOP2_MAX_DCLK_RATE) {
