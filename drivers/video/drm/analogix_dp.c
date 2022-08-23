@@ -948,10 +948,27 @@ static int analogix_dp_parse_dt(struct analogix_dp_device *dp)
 	struct udevice *dev = dp->dev;
 	int len;
 	u32 num_lanes;
+	u32 max_link_rate;
 	int ret;
 
 	dp->force_hpd = dev_read_bool(dev, "force-hpd");
 	dp->video_bist_enable = dev_read_bool(dev, "analogix,video-bist-enable");
+
+	max_link_rate = dev_read_u32_default(dev, "max-link-rate", 0);
+	if (max_link_rate) {
+		switch (max_link_rate) {
+		case 1620:
+		case 2700:
+		case 5400:
+			dp->video_info.max_link_rate =
+				min_t(u8, dp->video_info.max_link_rate,
+				      drm_dp_link_rate_to_bw_code(max_link_rate * 100));
+			break;
+		default:
+			dev_err(dev, "invalid max-link-rate %d\n", max_link_rate);
+			break;
+		}
+	}
 
 	if (dev_read_prop(dev, "data-lanes", &len)) {
 		num_lanes = len / sizeof(u32);
