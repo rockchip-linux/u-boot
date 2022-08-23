@@ -290,7 +290,7 @@ static int drm_dp_read_extended_dpcd_caps(struct drm_dp_aux *aux,
 	if (!memcmp(dpcd, dpcd_ext, sizeof(dpcd_ext)))
 		return 0;
 
-	printf("%s: Base DPCD: %*ph\n",
+	debug("%s: Base DPCD: %*ph\n",
 	       aux->name, DP_RECEIVER_CAP_SIZE, dpcd);
 
 	memcpy(dpcd, dpcd_ext, sizeof(dpcd_ext));
@@ -313,7 +313,7 @@ int drm_dp_read_dpcd_caps(struct drm_dp_aux *aux,
 	if (ret < 0)
 		return ret;
 
-	printf("%s: DPCD: %*ph\n",
+	debug("%s: DPCD: %*ph\n",
 	       aux->name, DP_RECEIVER_CAP_SIZE, dpcd);
 
 	return ret;
