@@ -7,6 +7,8 @@
 #ifndef _DRM_MODES_H
 #define _DRM_MODES_H
 
+#include "fdtdec.h"
+
 #define DRM_DISPLAY_INFO_LEN	32
 #define DRM_CONNECTOR_NAME_LEN	32
 #define DRM_DISPLAY_MODE_LEN	32
@@ -210,6 +212,26 @@ struct drm_display_mode {
 	bool invalid;
 };
 
+/*
+ * Subsystem independent description of a videomode.
+ * Can be generated from struct display_timing.
+ */
+struct videomode {
+	unsigned long pixelclock;	/* pixelclock in Hz */
+
+	u32 hactive;
+	u32 hfront_porch;
+	u32 hback_porch;
+	u32 hsync_len;
+
+	u32 vactive;
+	u32 vfront_porch;
+	u32 vback_porch;
+	u32 vsync_len;
+
+	enum display_flags flags; /* display flags */
+};
+
 struct drm_display_mode *drm_mode_create(void);
 void drm_mode_destroy(struct drm_display_mode *mode);
 bool drm_mode_match(const struct drm_display_mode *mode1,
@@ -217,5 +239,7 @@ bool drm_mode_match(const struct drm_display_mode *mode1,
 		    unsigned int match_flags);
 bool drm_mode_equal(const struct drm_display_mode *mode1,
 		    const struct drm_display_mode *mode2);
+void drm_display_mode_to_videomode(const struct drm_display_mode *dmode,
+				   struct videomode *vm);
 
 #endif
