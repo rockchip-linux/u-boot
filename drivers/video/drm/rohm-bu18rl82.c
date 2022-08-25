@@ -22,7 +22,6 @@
 #define BU18RL82_SWRST_EXCREG BIT(1)
 #define BU18RL82_SWRST_ALL BIT(7)
 
-
 struct des_reg_sequence {
 	uint reg;
 	uint def;
@@ -44,7 +43,8 @@ static void bu18rl82_bridge_reset(struct rockchip_bridge *bridge)
 	struct udevice *dev = bridge->dev;
 	struct udevice *bus = dev_get_parent(dev);
 
-	ret = dm_i2c_reg_write(dev, BU18RL82_REG_RESET, (BU18RL82_SWRST_REG | BU18RL82_SWRST_EXCREG | BU18RL82_SWRST_ALL));
+	ret = dm_i2c_reg_write(dev, BU18RL82_REG_RESET,
+			       (BU18RL82_SWRST_REG | BU18RL82_SWRST_EXCREG | BU18RL82_SWRST_ALL));
 	if (ret < 0)
 		printf("failed to reset bu18rl82(%s) ret=%d\n", bus->name, ret);
 }
@@ -61,7 +61,8 @@ static int bu18rl82_serdes_init_sequence_write(struct bu18rl82_priv *priv)
 	for (i = 0; i < cnt; i++) {
 		ret = dm_i2c_reg_write(dev, reg_sequence[i].reg, reg_sequence[i].def);
 		if (ret < 0) {
-			dev_err(priv->dev, "failed write reg: 0x%04x value: 0x%04x\n", reg_sequence[i].reg, reg_sequence[i].def);
+			dev_err(priv->dev, "failed write reg: 0x%04x value: 0x%04x\n",
+				reg_sequence[i].reg, reg_sequence[i].def);
 			break;
 		}
 	}
@@ -80,7 +81,6 @@ static void bu18rl82_bridge_enable(struct rockchip_bridge *bridge)
 	for (i = 0; i < 10; i++) {
 		ret = bu18rl82_serdes_init_sequence_write(priv);
 		if (ret < 0) {
-			mdelay(100);
 			dev_err(priv->dev, "%s ret=%d\n", bus->name, ret);
 			continue;
 		}
