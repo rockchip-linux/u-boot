@@ -45,17 +45,6 @@
 #define  DRM_MODE_FLAG_420			BIT(23)
 #define  DRM_MODE_FLAG_420_ONLY			BIT(24)
 
-#define DRM_MODE_FLAG_3D_MASK                  (0x1f << 14)
-#define  DRM_MODE_FLAG_3D_NONE                 (0 << 14)
-#define  DRM_MODE_FLAG_3D_FRAME_PACKING                BIT(14)
-#define  DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE    (2 << 14)
-#define  DRM_MODE_FLAG_3D_LINE_ALTERNATIVE     (3 << 14)
-#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL    (4 << 14)
-#define  DRM_MODE_FLAG_3D_L_DEPTH              (5 << 14)
-#define  DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH        (6 << 14)
-#define  DRM_MODE_FLAG_3D_TOP_AND_BOTTOM       (7 << 14)
-#define  DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF    (8 << 14)
-
 #define BITS_PER_BYTE         8
 #define BITS_TO_LONGS(nr)     DIV_ROUND_UP(nr, BITS_PER_BYTE * sizeof(long))
 #define GET_BIT(_x, _pos) \

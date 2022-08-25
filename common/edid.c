@@ -2345,39 +2345,6 @@ void edid_print_info(struct edid1_info *edid_info)
 }
 
 /**
- * drm_mode_create - create a new display mode
- *
- * Create a new, cleared drm_display_mode.
- *
- * Returns:
- * Pointer to new mode on success, NULL on error.
- */
-static struct drm_display_mode *drm_mode_create(void)
-{
-	struct drm_display_mode *nmode;
-
-	nmode = malloc(sizeof(struct drm_display_mode));
-	memset(nmode, 0, sizeof(struct drm_display_mode));
-	if (!nmode)
-		return NULL;
-
-	return nmode;
-}
-
-/**
- * drm_mode_destroy - remove a mode
- * @mode: mode to remove
- *
- */
-static void drm_mode_destroy(struct drm_display_mode *mode)
-{
-	if (!mode)
-		return;
-
-	kfree(mode);
-}
-
-/**
  * drm_cvt_mode -create a modeline based on the CVT algorithm
  * @hdisplay: hdisplay size
  * @vdisplay: vdisplay size
@@ -6727,24 +6694,6 @@ int hdmi_infoframe_unpack(union hdmi_infoframe *frame, void *buffer)
 	return ret;
 }
 
-bool drm_mode_equal(const struct base_drm_display_mode *mode1,
-		    const struct drm_display_mode *mode2)
-{
-	if (mode1->clock == mode2->clock &&
-	    mode1->hdisplay == mode2->hdisplay &&
-	    mode1->hsync_start == mode2->hsync_start &&
-	    mode1->hsync_end == mode2->hsync_end &&
-	    mode1->htotal == mode2->htotal &&
-	    mode1->vdisplay == mode2->vdisplay &&
-	    mode1->vsync_start == mode2->vsync_start &&
-	    mode1->vsync_end == mode2->vsync_end &&
-	    mode1->vtotal == mode2->vtotal &&
-	    mode1->flags == mode2->flags)
-		return true;
-
-	return false;
-}
-
 /**
  * drm_mode_sort - sort mode list
  * @edid_data: modes structures to sort
@@ -6847,8 +6796,11 @@ void drm_rk_filter_whitelist(struct hdmi_edid_data *edid_data)
 			sizeof(resolution_white[0]);
 		for (i = 0; i < edid_data->modes; i++) {
 			for (j = 0; j < white_len; j++) {
-				if (drm_mode_equal(&resolution_white[j],
-						   &edid_data->mode_buf[i]))
+				if (drm_mode_match((const struct drm_display_mode *)&resolution_white[j],
+						   &edid_data->mode_buf[i],
+						   DRM_MODE_MATCH_TIMINGS |
+						   DRM_MODE_MATCH_CLOCK |
+						   DRM_MODE_MATCH_FLAGS))
 					break;
 			}
 
@@ -6869,8 +6821,11 @@ void drm_rk_select_mode(struct hdmi_edid_data *edid_data,
 	} else {
 		base_mode = &screen_info->mode;
 		for (i = 0; i < edid_data->modes; i++) {
-			if (drm_mode_equal(base_mode,
-					   &edid_data->mode_buf[i])) {
+			if (drm_mode_match((const struct drm_display_mode *)base_mode,
+					   &edid_data->mode_buf[i],
+					   DRM_MODE_MATCH_TIMINGS |
+					   DRM_MODE_MATCH_CLOCK |
+					   DRM_MODE_MATCH_FLAGS)) {
 				edid_data->preferred_mode =
 					&edid_data->mode_buf[i];
 
