@@ -472,11 +472,20 @@ static int display_get_timing_from_dts(struct rockchip_panel *panel,
 				       struct drm_display_mode *mode)
 {
 	struct ofnode_phandle_args args;
-	ofnode dt, timing;
+	ofnode dt, timing, mcu_panel;
 	int ret;
 
+	mcu_panel = dev_read_subnode(panel->dev, "mcu-panel");
 	dt = dev_read_subnode(panel->dev, "display-timings");
 	if (ofnode_valid(dt)) {
+		ret = ofnode_parse_phandle_with_args(dt, "native-mode", NULL,
+						     0, 0, &args);
+		if (ret)
+			return ret;
+
+		timing = args.node;
+	} else if (ofnode_valid(mcu_panel)) {
+		dt = ofnode_find_subnode(mcu_panel, "display-timings");
 		ret = ofnode_parse_phandle_with_args(dt, "native-mode", NULL,
 						     0, 0, &args);
 		if (ret)
@@ -1619,6 +1628,10 @@ static int rockchip_of_find_panel_or_bridge(struct udevice *dev, struct rockchip
 					    struct rockchip_bridge **bridge)
 {
 	int ret = 0;
+
+	if (*panel)
+		return 0;
+
 	*panel = NULL;
 	*bridge = NULL;
 
