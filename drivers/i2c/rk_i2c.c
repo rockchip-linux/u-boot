@@ -353,6 +353,7 @@ static int rk_i2c_read(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 			if (readl(&regs->ipd) & I2C_NAKRCVIPD) {
 				writel(I2C_NAKRCVIPD, &regs->ipd);
 				err = -EREMOTEIO;
+				goto i2c_exit;
 			}
 			if (readl(&regs->ipd) & I2C_MBRFIPD) {
 				writel(I2C_MBRFIPD, &regs->ipd);
@@ -448,6 +449,7 @@ static int rk_i2c_write(struct rk_i2c *i2c, uchar chip, uint reg, uint r_len,
 			if (readl(&regs->ipd) & I2C_NAKRCVIPD) {
 				writel(I2C_NAKRCVIPD, &regs->ipd);
 				err = -EREMOTEIO;
+				goto i2c_exit;
 			}
 			if (readl(&regs->ipd) & I2C_MBTFIPD) {
 				writel(I2C_MBTFIPD, &regs->ipd);
@@ -489,6 +491,8 @@ static int rockchip_i2c_xfer(struct udevice *bus, struct i2c_msg *msg,
 #ifdef CONFIG_IRQ
 	local_irq_save(flags);
 #endif
+	/* Nack enabled */
+	i2c->cfg |= I2C_CON_ACTACK;
 	for (; nmsgs > 0; nmsgs--, msg++) {
 		debug("i2c_xfer: chip=0x%x, len=0x%x\n", msg->addr, msg->len);
 
