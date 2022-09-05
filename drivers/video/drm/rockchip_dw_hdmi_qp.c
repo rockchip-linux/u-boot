@@ -6,6 +6,7 @@
 
 #include <common.h>
 #include <boot_rkimg.h>
+#include <clk.h>
 #include <fdtdec.h>
 #include <regmap.h>
 #include <syscon.h>
@@ -77,6 +78,7 @@
 #define COLOR_DEPTH_10BIT		BIT(31)
 #define HDMI_FRL_MODE			BIT(30)
 #define HDMI_EARC_MODE			BIT(29)
+#define DATA_RATE_MASK			0xFFFFFFF
 
 #define HDMI20_MAX_RATE			600000
 #define HDMI_8K60_RATE			2376000
@@ -122,6 +124,8 @@ struct rockchip_hdmi {
 	u32 bus_width;
 	struct drm_hdmi_dsc_cap dsc_cap;
 	struct dw_hdmi_link_config link_cfg;
+
+	struct clk link_clk;
 
 	struct gpio_desc enable_gpio;
 };
@@ -1252,16 +1256,10 @@ static enum drm_connector_status dw_hdmi_rk3588_read_hpd(void *data)
 static void dw_hdmi_rk3588_set_pll(struct rockchip_connector *conn, void *data, void *state)
 {
 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
-	struct display_state *display_state = (struct display_state *)state;
-	struct connector_state *conn_state = &display_state->conn_state;
-	struct drm_display_mode *mode = &conn_state->mode;
+	u32 rate = (hdmi->bus_width & DATA_RATE_MASK) * 100;
 
-	if (hdmi_bus_fmt_is_yuv420(hdmi->bus_format))
-		rockchip_phy_set_pll(conn->phy, mode->clock / 2 * 1000);
-	else
-		rockchip_phy_set_pll(conn->phy, mode->clock * 1000);
+	clk_set_rate(&hdmi->link_clk, rate);
 }
-
 static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
 	.init = dw_hdmi_qp_rockchip_genphy_init,
 	.disable = dw_hdmi_qp_rockchip_phy_disable,
@@ -1319,6 +1317,12 @@ static int rockchip_dw_hdmi_qp_probe(struct udevice *dev)
 				   &hdmi->enable_gpio, GPIOD_IS_OUT);
 	if (ret) {
 		dev_err(dev, "Cannot get enable GPIO: %d\n", ret);
+		return ret;
+	}
+
+	ret = clk_get_by_name(dev, "link_clk", &hdmi->link_clk);
+	if (ret) {
+		printf("%s: can't get link_clk\n", __func__);
 		return ret;
 	}
 
