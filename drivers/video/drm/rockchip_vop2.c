@@ -115,6 +115,8 @@
 #define RK3568_SYS_LUT_PORT_SEL			0x58
 #define GAMMA_PORT_SEL_MASK			0x3
 #define GAMMA_PORT_SEL_SHIFT			0
+#define GAMMA_AHB_WRITE_SEL_MASK		0x3
+#define GAMMA_AHB_WRITE_SEL_SHIFT		12
 #define PORT_MERGE_EN_SHIFT			16
 
 #define RK3568_SYS_PD_CTRL			0x034
@@ -261,6 +263,7 @@
 #define POST_DSP_OUT_R2Y_SHIFT			15
 #define PRE_DITHER_DOWN_EN_SHIFT		16
 #define DITHER_DOWN_EN_SHIFT			17
+#define GAMMA_UPDATE_EN_SHIFT			22
 #define DSP_LUT_EN_SHIFT			28
 
 #define STANDBY_EN_SHIFT			31
@@ -1306,6 +1309,42 @@ static struct vop2_power_domain_data *vop2_find_pd_data_by_id(struct vop2 *vop2,
 	return NULL;
 }
 
+static void rk3568_vop2_load_lut(struct vop2 *vop2, int crtc_id,
+				 u32 *lut_regs, u32 *lut_val, int lut_len)
+{
+	u32 vp_offset = crtc_id * 0x100;
+	int i;
+
+	vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL,
+			GAMMA_PORT_SEL_MASK, GAMMA_PORT_SEL_SHIFT,
+			crtc_id, false);
+
+	for (i = 0; i < lut_len; i++)
+		writel(lut_val[i], lut_regs + i);
+
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
+			EN_MASK, DSP_LUT_EN_SHIFT, 1, false);
+}
+
+static void rk3588_vop2_load_lut(struct vop2 *vop2, int crtc_id,
+				 u32 *lut_regs, u32 *lut_val, int lut_len)
+{
+	u32 vp_offset = crtc_id * 0x100;
+	int i;
+
+	vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL,
+			GAMMA_AHB_WRITE_SEL_MASK, GAMMA_AHB_WRITE_SEL_SHIFT,
+			crtc_id, false);
+
+	for (i = 0; i < lut_len; i++)
+		writel(lut_val[i], lut_regs + i);
+
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
+			EN_MASK, DSP_LUT_EN_SHIFT, 1, false);
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
+			EN_MASK, GAMMA_UPDATE_EN_SHIFT, 1, false);
+}
+
 static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 					struct display_state *state)
 {
@@ -1317,7 +1356,6 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 	u32 *lut_regs;
 	u32 *lut_val;
 	u32 r, g, b;
-	u32 vp_offset = cstate->crtc_id * 0x100;
 	struct base2_disp_info *disp_info = conn_state->disp_info;
 	static int gamma_lut_en_num = 1;
 
@@ -1355,15 +1393,17 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 		lut_val[i] = b * lut_len * lut_len + g * lut_len + r;
 	}
 
-	for (i = 0; i < lut_len; i++)
-		writel(lut_val[i], lut_regs + i);
-
-	vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL,
-			GAMMA_PORT_SEL_MASK, GAMMA_PORT_SEL_SHIFT,
-			cstate->crtc_id , false);
-	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset,
-			EN_MASK, DSP_LUT_EN_SHIFT, 1, false);
-	gamma_lut_en_num++;
+	if (vop2->version == VOP_VERSION_RK3568) {
+		rk3568_vop2_load_lut(vop2, cstate->crtc_id, lut_regs, lut_val, lut_len);
+		gamma_lut_en_num++;
+	} else if (vop2->version == VOP_VERSION_RK3588) {
+		rk3588_vop2_load_lut(vop2, cstate->crtc_id, lut_regs, lut_val, lut_len);
+		if (cstate->splice_mode) {
+			rk3588_vop2_load_lut(vop2, cstate->splice_crtc_id, lut_regs, lut_val, lut_len);
+			gamma_lut_en_num++;
+		}
+		gamma_lut_en_num++;
+	}
 
 	return 0;
 }
