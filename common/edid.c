@@ -3239,6 +3239,7 @@ static void drm_parse_hdmi_forum_vsdb(struct hdmi_edid_data *data,
 		max_frl_rate = (hf_vsdb[7] & DRM_EDID_MAX_FRL_RATE_MASK) >> 4;
 		drm_get_max_frl_rate(max_frl_rate, &hdmi->max_lanes,
 				     &hdmi->max_frl_rate_per_lane);
+		hdmi->add_func = hf_vsdb[8];
 		hdmi_dsc->v_1p2 = hf_vsdb[11] & DRM_EDID_DSC_1P2;
 
 		if (hdmi_dsc->v_1p2) {
