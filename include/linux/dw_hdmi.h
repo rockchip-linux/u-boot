@@ -155,6 +155,7 @@ struct dw_hdmi_link_config {
 	int frl_lanes;
 	int rate_per_lane;
 	int hcactive;
+	bool allm_en;
 	u8 pps_payload[128];
 };
 

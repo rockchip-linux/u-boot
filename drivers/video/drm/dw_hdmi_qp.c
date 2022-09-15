@@ -655,31 +655,59 @@ static void hdmi_config_AVI(struct dw_hdmi_qp *hdmi, struct drm_display_mode *mo
 		  PKTSCHED_PKT_EN);
 }
 
+#define VSI_PKT_TYPE		0x81
+#define VSI_PKT_VERSION		1
+#define HDMI_FORUM_OUI		0xc45dd8
+#define ALLM_MODE		BIT(1)
+#define HDMI_FORUM_LEN		9
+
 static void hdmi_config_vendor_specific_infoframe(struct dw_hdmi_qp *hdmi,
 						  struct drm_display_mode *mode)
 {
 	struct hdmi_vendor_infoframe frame;
+	struct dw_hdmi_link_config *link_cfg = NULL;
 	u8 buffer[10];
 	u32 val;
 	ssize_t err;
 	int i, reg;
 
-	hdmi_modb(hdmi, 0, PKTSCHED_VSI_TX_EN, PKTSCHED_PKT_EN);
-	err = drm_hdmi_vendor_infoframe_from_display_mode(&frame, mode);
-	if (err < 0)
-		/*
-		 * Going into that statement does not means vendor infoframe
-		 * fails. It just informed us that vendor infoframe is not
-		 * needed for the selected mode. Only 4k or stereoscopic 3D
-		 * mode requires vendor infoframe. So just simply return.
-		 */
-		return;
+	link_cfg = dw_hdmi_rockchip_get_link_cfg(hdmi->rk_hdmi);
 
-	err = hdmi_vendor_infoframe_pack(&frame, buffer, sizeof(buffer));
-	if (err < 0) {
-		dev_err(hdmi->dev, "Failed to pack vendor infoframe: %zd\n",
-			err);
-		return;
+	hdmi_modb(hdmi, 0, PKTSCHED_VSI_TX_EN, PKTSCHED_PKT_EN);
+
+	for (i = 0; i <= 7; i++)
+		hdmi_writel(hdmi, 0, PKT_VSI_CONTENTS0 + i * 4);
+
+	if (link_cfg->allm_en) {
+		buffer[0] = VSI_PKT_TYPE;
+		buffer[1] = VSI_PKT_VERSION;
+		buffer[2] = 5;
+		buffer[4] = HDMI_FORUM_OUI & 0xff;
+		buffer[5] = (HDMI_FORUM_OUI >> 8) & 0xff;
+		buffer[6] = (HDMI_FORUM_OUI >> 16) & 0xff;
+		buffer[7] = VSI_PKT_VERSION;
+		buffer[8] = ALLM_MODE;
+
+		hdmi_infoframe_set_checksum(buffer, HDMI_FORUM_LEN);
+
+		err = 9;
+	} else {
+		err = drm_hdmi_vendor_infoframe_from_display_mode(&frame, mode);
+		if (err < 0)
+			/*
+			 * Going into that statement does not means vendor infoframe
+			 * fails. It just informed us that vendor infoframe is not
+			 * needed for the selected mode. Only 4k or stereoscopic 3D
+			 * mode requires vendor infoframe. So just simply return.
+			 */
+			return;
+
+		err = hdmi_vendor_infoframe_pack(&frame, buffer, sizeof(buffer));
+		if (err < 0) {
+			dev_err(hdmi->dev, "Failed to pack vendor infoframe: %zd\n",
+				err);
+			return;
+		}
 	}
 
 	/* vsi header */

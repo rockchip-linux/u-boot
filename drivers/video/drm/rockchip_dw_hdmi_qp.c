@@ -121,6 +121,7 @@ struct rockchip_hdmi {
 
 	u8 max_frl_rate_per_lane;
 	u8 max_lanes;
+	bool allm_en;
 	u32 bus_width;
 	struct drm_hdmi_dsc_cap dsc_cap;
 	struct dw_hdmi_link_config link_cfg;
@@ -440,6 +441,7 @@ static void hdmi_select_link_config(struct rockchip_hdmi *hdmi,
 	hdmi->link_cfg.dsc_mode = false;
 	hdmi->link_cfg.frl_lanes = max_lanes;
 	hdmi->link_cfg.rate_per_lane = max_rate_per_lane;
+	hdmi->link_cfg.allm_en = hdmi->allm_en;
 
 	if (!max_frl_rate ||
 	    (tmdsclk < HDMI20_MAX_RATE && mode->clock < HDMI20_MAX_RATE)) {
@@ -894,6 +896,8 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	}
 }
 
+#define SUPPORT_HDMI_ALLM	BIT(1)
+
 void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
 			      struct rockchip_connector *conn,
 			      unsigned int *bus_format,
@@ -979,6 +983,8 @@ read_aux:
 			goto read_aux;
 		}
 	} else {
+		bool allm_en = false;
+
 		scan = &base2_parameter->overscan_info;
 		screen_size = sizeof(base2_parameter->screen_info) /
 			sizeof(base2_parameter->screen_info[0]);
@@ -998,6 +1004,13 @@ read_aux:
 		screen_info->format = screen_info2->format;
 		screen_info->depth = screen_info2->depthc;
 		screen_info->feature = screen_info2->feature;
+
+		/* check if allm is enabled */
+		allm_en = base2_parameter->reserved[0] & BIT(0);
+		if (allm_en && (hdmi_info->add_func & SUPPORT_HDMI_ALLM))
+			hdmi->allm_en = true;
+		else
+			hdmi->allm_en = false;
 	}
 
 	if (scan->leftscale < min_scan && scan->leftscale > 0)
