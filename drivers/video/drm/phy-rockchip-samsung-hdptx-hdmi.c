@@ -626,6 +626,10 @@
 #define HDMI_MODE_MASK BIT(30)
 #define HDMI_EARC_MASK BIT(29)
 
+#define FRL_8G_4LANES 3200000000ULL
+#define FRL_6G_3LANES 1800000000
+#define FRL_3G_3LANES 900000000
+
 struct lcpll_config {
 	u32 bit_rate;
 	u8 lcvco_mode_en;
@@ -724,8 +728,14 @@ struct lcpll_config lcpll_cfg[] = {
 	{ 40000000, 1, 1, 0, 0x68, 0x68, 1, 1, 0, 0, 0, 1, 1, 1, 1, 9, 0, 1, 1,
 		0, 2, 3, 1, 0, 0x20, 0x0c, 1, 0,
 	},
-	{ 32000000, 1, 1, 1, 0x6b, 0x6b, 1, 1, 0, 1, 2, 1, 1, 1, 1, 9, 1, 2, 1,
-		0, 0x0d, 0x18, 1, 0, 0x20, 0x0c, 1, 1,
+	{ 24000000, 1, 0, 0, 0x7d, 0x7d, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 2,
+		0, 0x13, 0x18, 1, 0, 0x20, 0x0c, 1, 0,
+	},
+	{ 18000000, 1, 0, 0, 0x7d, 0x7d, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 2,
+		0, 0x13, 0x18, 1, 0, 0x20, 0x0c, 1, 0,
+	},
+	{ 9000000, 1, 0, 0, 0x7d, 0x7d, 1, 1, 3, 0, 0, 0, 0, 1, 1, 1, 0, 0, 2,
+		0, 0x13, 0x18, 1, 0, 0x20, 0x0c, 1, 0,
 	},
 	{ ~0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0,
@@ -873,6 +883,12 @@ static int hdptx_post_enable_lane(struct rockchip_hdptx_phy *hdptx)
 	val = (HDPTX_I_BIAS_EN | HDPTX_I_BGR_EN) << 16 | HDPTX_I_BIAS_EN |
 		HDPTX_I_BGR_EN;
 	hdptx_grf_write(hdptx, GRF_HDPTX_CON0, val);
+
+	/* 3 lanes frl mode */
+	if (hdptx->rate == FRL_6G_3LANES || hdptx->rate == FRL_3G_3LANES)
+		hdptx_write(hdptx, LNTOP_REG0207, 0x07);
+	else
+		hdptx_write(hdptx, LNTOP_REG0207, 0x0f);
 
 	val = 0;
 	for (i = 0; i < 50; i++) {
@@ -1055,6 +1071,9 @@ static int hdptx_lcpll_cmn_config(struct rockchip_hdptx_phy *hdptx, unsigned lon
 {
 	u8 color_depth = (bit_rate & COLOR_DEPTH_MASK) ? 1 : 0;
 	struct lcpll_config *cfg = lcpll_cfg;
+
+	printf("%s rate:%lu\n", __func__, bit_rate);
+	hdptx->rate = bit_rate * 100;
 
 	for (; cfg->bit_rate != ~0; cfg++)
 		if (bit_rate == cfg->bit_rate)
@@ -1425,7 +1444,6 @@ static int hdptx_ropll_tmds_mode_config(struct rockchip_hdptx_phy *hdptx, u32 ra
 	}
 
 	hdptx_write(hdptx, LNTOP_REG0206, 0x07);
-	hdptx_write(hdptx, LNTOP_REG0207, 0x0f);
 	hdptx_write(hdptx, LANE_REG0303, 0x0c);
 	hdptx_write(hdptx, LANE_REG0307, 0x20);
 	hdptx_write(hdptx, LANE_REG030A, 0x17);
@@ -1757,7 +1775,6 @@ static int hdptx_lcpll_frl_mode_config(struct rockchip_hdptx_phy *hdptx, u32 rat
 	hdptx_write(hdptx, LNTOP_REG0204, 0xff);
 	hdptx_write(hdptx, LNTOP_REG0205, 0xff);
 	hdptx_write(hdptx, LNTOP_REG0206, 0x05);
-	hdptx_write(hdptx, LNTOP_REG0207, 0x0f);
 	hdptx_write(hdptx, LANE_REG0303, 0x0c);
 	hdptx_write(hdptx, LANE_REG0307, 0x20);
 	hdptx_write(hdptx, LANE_REG030A, 0x17);
@@ -1827,7 +1844,7 @@ static int rockchip_hdptx_phy_power_on(struct rockchip_phy *phy)
 	printf("bus_width:0x%x,bit_rate:%d\n", bus_width, bit_rate);
 
 	if (bus_width & HDMI_MODE_MASK)
-		if (bit_rate > 24000000)
+		if (bit_rate != (FRL_8G_4LANES / 100))
 			return hdptx_lcpll_frl_mode_config(hdptx, bus_width);
 		else
 			return hdptx_ropll_frl_mode_config(hdptx, bus_width);
