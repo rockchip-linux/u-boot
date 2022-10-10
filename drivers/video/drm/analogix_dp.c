@@ -953,6 +953,8 @@ static int analogix_dp_parse_dt(struct analogix_dp_device *dp)
 
 	dp->force_hpd = dev_read_bool(dev, "force-hpd");
 	dp->video_bist_enable = dev_read_bool(dev, "analogix,video-bist-enable");
+	dp->video_info.force_stream_valid =
+		dev_read_bool(dev, "analogix,force-stream-valid");
 
 	max_link_rate = dev_read_u32_default(dev, "max-link-rate", 0);
 	if (max_link_rate) {

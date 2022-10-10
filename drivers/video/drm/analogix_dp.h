@@ -587,6 +587,8 @@ struct video_info {
 
 	int max_link_rate;
 	enum link_lane_count_type max_lane_count;
+
+	bool force_stream_valid;
 };
 
 struct link_train {
