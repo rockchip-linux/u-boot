@@ -762,6 +762,7 @@
 #define DSC_MER_SHIFT				5
 #define DSC_EPB_SHIFT				6
 #define DSC_EPL_SHIFT				7
+#define DSC_NSLC_MASK				0x7
 #define DSC_NSLC_SHIFT				16
 #define DSC_SBO_SHIFT				28
 #define DSC_IFEP_SHIFT				29
@@ -2393,7 +2394,7 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		*dclk_core_div = dclk_rate / dclk_core_rate;
 		*if_pixclk_div = 1;       /*mipi pixclk == dclk_out*/
 		if (cstate->dsc_enable)
-			*if_pixclk_div = dclk_out_rate / if_pixclk_rate;
+			*if_pixclk_div = dclk_out_rate * 1000LL / if_pixclk_rate;
 
 	} else if (output_type == DRM_MODE_CONNECTOR_DPI) {
 		dclk_rate = v_pixclk;
@@ -2413,7 +2414,7 @@ static int vop2_calc_dsc_clk(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct crtc_state *cstate = &state->crtc_state;
-	u64 v_pixclk = mode->clock; /* video timing pixclk */
+	u64 v_pixclk = mode->crtc_clock * 1000LL; /* video timing pixclk */
 	u8 k = 1;
 
 	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)
@@ -3026,21 +3027,42 @@ static void vop2_dsc_enable(struct display_state *state, struct vop2 *vop2, u8 d
 		 * dly_num = delay_line_num * T(one-line) / T (dsc_cds)
 		 * T (one-line) = 1/v_pixclk_mhz * htotal = htotal/v_pixclk_mhz
 		 * T (dsc_cds) = 1 / dsc_cds_rate_mhz
+		 *
+		 * HDMI:
 		 * delay_line_num: according the pps initial_xmit_delay to adjust vop dsc delay
 		 *                 delay_line_num = 4 - BPP / 8
 		 *                                = (64 - target_bpp / 8) / 16
-		 *
 		 * dly_num = htotal * dsc_cds_rate_mhz / v_pixclk_mhz * (64 - target_bpp / 8) / 16;
+		 *
+		 * MIPI DSI[4320 and 9216 is buffer size for DSC]:
+		 * DSC0:delay_line_num = 4320 * 8 / slince_num / chunk_size;
+		 *	delay_line_num = delay_line_num > 5 ? 5 : delay_line_num;
+		 * DSC1:delay_line_num = 9216 * 2 / slince_num / chunk_size;
+		 *	delay_line_num = delay_line_num > 5 ? 5 : delay_line_num;
+		 * dly_num = htotal * dsc_cds_rate_mhz / v_pixclk_mhz * delay_line_num
 		 */
 		do_div(dsc_cds_rate, 1000000); /* hz to Mhz */
 		dsc_cds_rate_mhz = dsc_cds_rate;
-		dly_num = htotal * dsc_cds_rate_mhz / v_pixclk_mhz * (64 - target_bpp / 8) / 16;
+		dsc_hsync = hsync_len / 2;
+		if (dsc_interface_mode == VOP_DSC_IF_HDMI) {
+			dly_num = htotal * dsc_cds_rate_mhz / v_pixclk_mhz * (64 - target_bpp / 8) / 16;
+		} else {
+			int dsc_buf_size  = dsc_id == 0 ? 4320 * 8 : 9216 * 2;
+			int delay_line_num = dsc_buf_size / cstate->dsc_slice_num /
+					     be16_to_cpu(cstate->pps.chunk_size);
+
+			delay_line_num = delay_line_num > 5 ? 5 : delay_line_num;
+			dly_num = htotal * dsc_cds_rate_mhz / v_pixclk_mhz * delay_line_num;
+
+			/* The dsc mipi video mode dsc_hsync minimum size is 8 pixels */
+			if (dsc_hsync < 8)
+				dsc_hsync = 8;
+		}
 		vop2_mask_write(vop2, RK3588_DSC_8K_INIT_DLY + ctrl_regs_offset, DSC_INIT_DLY_MODE_MASK,
 				DSC_INIT_DLY_MODE_SHIFT, 0, false);
 		vop2_mask_write(vop2, RK3588_DSC_8K_INIT_DLY + ctrl_regs_offset, DSC_INIT_DLY_NUM_MASK,
 				DSC_INIT_DLY_NUM_SHIFT, dly_num, false);
 
-		dsc_hsync = hsync_len / 2;
 		/*
 		 * htotal / dclk_core = dsc_htotal /cds_clk
 		 *
@@ -3092,7 +3114,7 @@ static void vop2_dsc_enable(struct display_state *state, struct vop2 *vop2, u8 d
 			DSC_EPB_SHIFT, 0, false);
 	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
 			DSC_EPL_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
+	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, DSC_NSLC_MASK,
 			DSC_NSLC_SHIFT, ilog2(cstate->dsc_slice_num), false);
 	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
 			DSC_SBO_SHIFT, 1, false);
@@ -3350,10 +3372,10 @@ static int rockchip_vop2_init(struct display_state *state)
 
 	if (cstate->dsc_enable) {
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
-			vop2_dsc_enable(state, vop2, 0, dclk_rate);
-			vop2_dsc_enable(state, vop2, 1, dclk_rate);
+			vop2_dsc_enable(state, vop2, 0, dclk_rate * 1000LL);
+			vop2_dsc_enable(state, vop2, 1, dclk_rate * 1000LL);
 		} else {
-			vop2_dsc_enable(state, vop2, cstate->dsc_id, dclk_rate);
+			vop2_dsc_enable(state, vop2, cstate->dsc_id, dclk_rate * 1000LL);
 		}
 	}
 
