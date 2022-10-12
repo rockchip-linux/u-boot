@@ -652,6 +652,61 @@ static void dw_mipi_dsi2_set_cmd_mode(struct dw_mipi_dsi2 *dsi2)
 		printf("failed to enter cmd mode\n");
 }
 
+static int dw_mipi_dsi2_get_dsc_params_from_sink(struct dw_mipi_dsi2 *dsi2)
+{
+	struct udevice *dev = dsi2->device->dev;
+	struct rockchip_cmd_header *header;
+	struct drm_dsc_picture_parameter_set *pps = NULL;
+	u8 *dsc_packed_pps;
+	const void *data;
+	int len;
+
+	dsi2->c_option = dev_read_bool(dev, "phy-c-option");
+	dsi2->scrambling_en = dev_read_bool(dev, "scrambling-enable");
+	dsi2->dsc_enable = dev_read_bool(dev, "compressed-data");
+
+	if (dsi2->slave) {
+		dsi2->slave->c_option = dsi2->c_option;
+		dsi2->slave->scrambling_en = dsi2->scrambling_en;
+		dsi2->slave->dsc_enable = dsi2->dsc_enable;
+	}
+
+	dsi2->slice_width = dev_read_u32_default(dev, "slice-width", 0);
+	dsi2->slice_height = dev_read_u32_default(dev, "slice-height", 0);
+	dsi2->version_major = dev_read_u32_default(dev, "version-major", 0);
+	dsi2->version_minor = dev_read_u32_default(dev, "version-minor", 0);
+
+	data = dev_read_prop(dev, "panel-init-sequence", &len);
+	if (!data)
+		return -EINVAL;
+
+	while (len > sizeof(*header)) {
+		header = (struct rockchip_cmd_header *)data;
+		data += sizeof(*header);
+		len -= sizeof(*header);
+
+		if (header->payload_length > len)
+			return -EINVAL;
+
+		if (header->data_type == MIPI_DSI_PICTURE_PARAMETER_SET) {
+			dsc_packed_pps = calloc(1, header->payload_length);
+			if (!dsc_packed_pps)
+				return -ENOMEM;
+
+			memcpy(dsc_packed_pps, data, header->payload_length);
+			pps = (struct drm_dsc_picture_parameter_set *)dsc_packed_pps;
+			break;
+		}
+
+		data += header->payload_length;
+		len -= header->payload_length;
+	}
+
+	dsi2->pps = pps;
+
+	return 0;
+}
+
 static void dw_mipi_dsi2_enable(struct dw_mipi_dsi2 *dsi2)
 {
 	dw_mipi_dsi2_ipi_set(dsi2);
@@ -794,6 +849,8 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 			return phy->funcs->init(phy);
 	}
 
+	dw_mipi_dsi2_get_dsc_params_from_sink(dsi2);
+
 	if (dsi2->dsc_enable) {
 		cstate->dsc_enable = 1;
 		cstate->dsc_sink_cap.version_major = dsi2->version_major;
@@ -905,7 +962,7 @@ static void dw_mipi_dsi2_phy_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 
 static void dw_mipi_dsi2_phy_clk_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 {
-	u32 sys_clk = SYS_CLK / MSEC_PER_SEC;
+	u32 sys_clk = SYS_CLK / USEC_PER_SEC;
 	u32 esc_clk_div;
 	u32 val = 0;
 
@@ -1185,61 +1242,6 @@ static ssize_t dw_mipi_dsi2_host_transfer(struct mipi_dsi_host *host,
 	return dw_mipi_dsi2_transfer(dsi2, msg);
 }
 
-static int dw_mipi_dsi2_get_dsc_params_from_sink(struct dw_mipi_dsi2 *dsi2)
-{
-	struct udevice *dev = dsi2->device->dev;
-	struct rockchip_cmd_header *header;
-	struct drm_dsc_picture_parameter_set *pps = NULL;
-	u8 *dsc_packed_pps;
-	const void *data;
-	int len;
-
-	dsi2->c_option = dev_read_bool(dev, "phy-c-option");
-	dsi2->scrambling_en = dev_read_bool(dev, "scrambling-enable");
-	dsi2->dsc_enable = dev_read_bool(dev, "compressed-data");
-
-	if (dsi2->slave) {
-		dsi2->slave->c_option = dsi2->c_option;
-		dsi2->slave->scrambling_en = dsi2->scrambling_en;
-		dsi2->slave->dsc_enable = dsi2->dsc_enable;
-	}
-
-	dsi2->slice_width = dev_read_u32_default(dev, "slice-width", 0);
-	dsi2->slice_height = dev_read_u32_default(dev, "slice-height", 0);
-	dsi2->version_major = dev_read_u32_default(dev, "version-major", 0);
-	dsi2->version_minor = dev_read_u32_default(dev, "version-minor", 0);
-
-	data = dev_read_prop(dev, "panel-init-sequence", &len);
-	if (!data)
-		return -EINVAL;
-
-	while (len > sizeof(*header)) {
-		header = (struct rockchip_cmd_header *)data;
-		data += sizeof(*header);
-		len -= sizeof(*header);
-
-		if (header->payload_length > len)
-			return -EINVAL;
-
-		if (header->data_type == MIPI_DSI_PICTURE_PARAMETER_SET) {
-			dsc_packed_pps = calloc(1, header->payload_length);
-			if (!dsc_packed_pps)
-				return -ENOMEM;
-
-			memcpy(dsc_packed_pps, data, header->payload_length);
-			pps = (struct drm_dsc_picture_parameter_set *)dsc_packed_pps;
-			break;
-		}
-
-		data += header->payload_length;
-		len -= header->payload_length;
-	}
-
-	dsi2->pps = pps;
-
-	return 0;
-}
-
 static int dw_mipi_dsi2_host_attach(struct mipi_dsi_host *host,
 				   struct mipi_dsi_device *device)
 {
@@ -1252,8 +1254,6 @@ static int dw_mipi_dsi2_host_attach(struct mipi_dsi_host *host,
 	dsi2->channel = device->channel;
 	dsi2->format = device->format;
 	dsi2->mode_flags = device->mode_flags;
-
-	dw_mipi_dsi2_get_dsc_params_from_sink(dsi2);
 
 	return 0;
 }
