@@ -2062,12 +2062,20 @@ void rockchip_display_fixup(void *blob)
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
 	int offset;
+	int ret;
 	const struct device_node *np;
 	const char *path;
 
 	if (fdt_node_offset_by_compatible(blob, 0, "rockchip,drm-logo") >= 0) {
-		list_for_each_entry(s, &rockchip_display_list, head)
-			load_bmp_logo(&s->logo, s->klogo_name);
+		list_for_each_entry(s, &rockchip_display_list, head) {
+			ret = load_bmp_logo(&s->logo, s->klogo_name);
+			if (ret < 0) {
+				s->is_klogo_valid = false;
+				printf("VP%d fail to load kernel logo\n", s->crtc_state.crtc_id);
+			} else {
+				s->is_klogo_valid = true;
+			}
+		}
 
 		if (!get_display_size())
 			return;
@@ -2098,7 +2106,7 @@ void rockchip_display_fixup(void *blob)
 	}
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
-		if (!s->is_init)
+		if (!s->is_init || !s->is_klogo_valid)
 			continue;
 
 		conn = s->conn_state.connector;
