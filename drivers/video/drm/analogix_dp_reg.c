@@ -1305,8 +1305,14 @@ void analogix_dp_set_video_format(struct analogix_dp_device *dp,
 	unsigned int hsw, hfp, hbp, vsw, vfp, vbp;
 
 	dp->video_info.interlaced = !!(mode->flags & DRM_MODE_FLAG_INTERLACE);
-	dp->video_info.v_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NVSYNC);
-	dp->video_info.h_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NHSYNC);
+
+	if (dp->plat_data.subdev_type == RK3588_EDP) {
+		dp->video_info.v_sync_polarity = true;
+		dp->video_info.h_sync_polarity = true;
+	} else {
+		dp->video_info.v_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NVSYNC);
+		dp->video_info.h_sync_polarity = !!(mode->flags & DRM_MODE_FLAG_NHSYNC);
+	}
 
 	hsw = mode->hsync_end - mode->hsync_start;
 	hfp = mode->hsync_start - mode->hdisplay;
