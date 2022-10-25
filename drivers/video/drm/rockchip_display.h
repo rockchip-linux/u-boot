@@ -21,6 +21,7 @@
 #define VOP_MAJOR(version)		((version) >> 8)
 #define VOP_MINOR(version)		((version) & 0xff)
 
+#define VOP_VERSION_RK3528		VOP_VERSION(0x50, 0x17)
 #define VOP_VERSION_RK3568		VOP_VERSION(0x40, 0x15)
 #define VOP_VERSION_RK3588		VOP_VERSION(0x40, 0x17)
 
