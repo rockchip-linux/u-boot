@@ -946,6 +946,7 @@ struct vop2_data {
 	struct vop2_dsc_data *dsc;
 	struct dsc_error_info *dsc_error_ecw;
 	struct dsc_error_info *dsc_error_buffer_flow;
+	u8 *vp_primary_plane_order;
 	u8 nr_vps;
 	u8 nr_layers;
 	u8 nr_mixers;
@@ -1040,19 +1041,6 @@ static inline enum scale_mode scl_get_scl_mode(int src, int dst)
 	return SCALE_NONE;
 }
 
-static u8 rk3588_vop2_vp_primary_plane_order[VOP2_VP_MAX] = {
-	ROCKCHIP_VOP2_ESMART0,
-	ROCKCHIP_VOP2_ESMART1,
-	ROCKCHIP_VOP2_ESMART2,
-	ROCKCHIP_VOP2_ESMART3,
-};
-
-static u8 rk3568_vop2_vp_primary_plane_order[VOP2_VP_MAX] = {
-	ROCKCHIP_VOP2_SMART0,
-	ROCKCHIP_VOP2_SMART1,
-	ROCKCHIP_VOP2_ESMART1,
-};
-
 static inline int interpolate(int x1, int y1, int x2, int y2, int x)
 {
 	return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
@@ -1061,23 +1049,13 @@ static inline int interpolate(int x1, int y1, int x2, int y2, int x)
 static int vop2_get_primary_plane(struct vop2 *vop2, u32 plane_mask)
 {
 	int i = 0;
-	u8 *vop2_vp_primary_plane_order;
-	u8 default_primary_plane;
 
-	if (vop2->version == VOP_VERSION_RK3588) {
-		vop2_vp_primary_plane_order = rk3588_vop2_vp_primary_plane_order;
-		default_primary_plane = ROCKCHIP_VOP2_ESMART0;
-	} else {
-		vop2_vp_primary_plane_order = rk3568_vop2_vp_primary_plane_order;
-		default_primary_plane = ROCKCHIP_VOP2_SMART0;
+	for (i = 0; i < vop2->data->nr_layers; i++) {
+		if (plane_mask & BIT(vop2->data->vp_primary_plane_order[i]))
+			return vop2->data->vp_primary_plane_order[i];
 	}
 
-	for (i = 0; i < vop2->data->nr_vps; i++) {
-		if (plane_mask & BIT(vop2_vp_primary_plane_order[i]))
-			return vop2_vp_primary_plane_order[i];
-	}
-
-	return default_primary_plane;
+	return vop2->data->vp_primary_plane_order[0];
 }
 
 static inline u16 scl_cal_scale(int src, int dst, int shift)
@@ -1759,7 +1737,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 			layer_nr = hweight32(plane_mask); /* use bitmap to store plane mask */
 			vop2->vp_plane_mask[i].attached_layers_nr = layer_nr;
 			primary_plane_id = cstate->crtc->vps[i].primary_plane_id;
-			if (primary_plane_id < 0)
+			if (primary_plane_id >= ROCKCHIP_VOP2_LAYER_MAX)
 				primary_plane_id = vop2_get_primary_plane(vop2, plane_mask);
 			vop2->vp_plane_mask[i].primary_plane_id = primary_plane_id;
 			vop2->vp_plane_mask[i].plane_mask = plane_mask;
@@ -3669,6 +3647,14 @@ static int rockchip_vop2_plane_check(struct display_state *state)
 
 	return 0;
 }
+
+static u8 rk3568_vp_primary_plane_order[ROCKCHIP_VOP2_LAYER_MAX] = {
+	ROCKCHIP_VOP2_SMART0,
+	ROCKCHIP_VOP2_SMART1,
+	ROCKCHIP_VOP2_ESMART0,
+	ROCKCHIP_VOP2_ESMART1,
+};
+
 static struct vop2_plane_table rk356x_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
 	{ROCKCHIP_VOP2_CLUSTER0, CLUSTER_LAYER},
 	{ROCKCHIP_VOP2_CLUSTER1, CLUSTER_LAYER},
@@ -3835,9 +3821,21 @@ const struct vop2_data rk3568_vop = {
 	.win_data = rk3568_win_data,
 	.plane_mask = rk356x_vp_plane_mask[0],
 	.plane_table = rk356x_plane_table,
+	.vp_primary_plane_order = rk3568_vp_primary_plane_order,
 	.nr_layers = 6,
 	.nr_mixers = 5,
 	.nr_gammas = 1,
+};
+
+static u8 rk3588_vp_primary_plane_order[ROCKCHIP_VOP2_LAYER_MAX] = {
+	ROCKCHIP_VOP2_ESMART0,
+	ROCKCHIP_VOP2_ESMART1,
+	ROCKCHIP_VOP2_ESMART2,
+	ROCKCHIP_VOP2_ESMART3,
+	ROCKCHIP_VOP2_CLUSTER0,
+	ROCKCHIP_VOP2_CLUSTER1,
+	ROCKCHIP_VOP2_CLUSTER2,
+	ROCKCHIP_VOP2_CLUSTER3,
 };
 
 static struct vop2_plane_table rk3588_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
@@ -4218,6 +4216,7 @@ const struct vop2_data rk3588_vop = {
 	.dsc = rk3588_dsc_data,
 	.dsc_error_ecw = dsc_ecw,
 	.dsc_error_buffer_flow = dsc_buffer_flow,
+	.vp_primary_plane_order = rk3588_vp_primary_plane_order,
 	.nr_layers = 8,
 	.nr_mixers = 7,
 	.nr_gammas = 4,
