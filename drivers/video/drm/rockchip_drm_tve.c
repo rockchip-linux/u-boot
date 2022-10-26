@@ -18,25 +18,14 @@
 #include <boot_rkimg.h>
 #include <mapmem.h>
 #include <misc.h>
+
 #include "rockchip_drm_tve.h"
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
 
-DECLARE_GLOBAL_DATA_PTR;
-
-static struct drm_tve tve_s;
-
-#define tve_writel(offset, v)	writel(v, tve_s.reg_phy_base  + offset)
-#define tve_readl(offset)	readl(tve_s.reg_phy_base + offset)
-
-#define tve_dac_writel(offset, v)   writel(v, tve_s.vdacbase + offset)
-#define tve_dac_readl(offset)	readl(tve_s.vdacbase + offset)
-
-#define RK322X_VDAC_STANDARD 0x15
-
-#define TVE_REG_NUM 0x28
+#define RK322X_VDAC_STANDARD		0x15
 
 static const struct drm_display_mode tve_modes[] = {
 	/* 0 - 720x576i@50Hz */
@@ -44,120 +33,299 @@ static const struct drm_display_mode tve_modes[] = {
 		   816, 864, 576, 580, 586, 625, 0,
 		   DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC |
 		   DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_DBLCLK),
-	  .vrefresh = 50, },
+		   .vrefresh = 50, },
 	/* 1 - 720x480i@60Hz */
 	{ DRM_MODE(DRM_MODE_TYPE_DRIVER, 13500, 720, 753,
-		   815, 858, 480, 480, 486, 525, 0,
+		   815, 858, 480, 483, 486, 525, 0,
 		   DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC |
 		   DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_DBLCLK),
-	  .vrefresh = 60, },
+		   .vrefresh = 60, },
 };
 
-static void dac_enable(int enable)
+struct env_config {
+	u32 offset;
+	u32 value;
+};
+
+static struct env_config ntsc_bt656_config[] = {
+	{ BT656_DECODER_CROP, 0x00000000 },
+	{ BT656_DECODER_SIZE, 0x01e002d0 },
+	{ BT656_DECODER_HTOTAL_HS_END, 0x035a003e },
+	{ BT656_DECODER_VACT_ST_HACT_ST, 0x00160069 },
+	{ BT656_DECODER_VTOTAL_VS_END, 0x020d0003 },
+	{ BT656_DECODER_VS_ST_END_F1, 0x01060109 },
+	{ BT656_DECODER_DBG_REG, 0x024002d0 },
+	{ BT656_DECODER_CTRL, 0x00000009 },
+};
+
+static struct env_config ntsc_tve_config[] = {
+	{ TVE_MODE_CTRL, 0x000af906 },
+	{ TVE_HOR_TIMING1, 0x00c07a81 },
+	{ TVE_HOR_TIMING2, 0x169810fc },
+	{ TVE_HOR_TIMING3, 0x96b40000 },
+	{ TVE_SUB_CAR_FRQ, 0x21f07bd7 },
+	{ TVE_IMAGE_POSITION, 0x001500d6 },
+	{ TVE_ROUTING, 0x10088880 },
+	{ TVE_SYNC_ADJUST, 0x00000000 },
+	{ TVE_STATUS, 0x00000000 },
+	{ TVE_CTRL, 0x00000000 },
+	{ TVE_INTR_STATUS, 0x00000000 },
+	{ TVE_INTR_EN, 0x00000000 },
+	{ TVE_INTR_CLR, 0x00000000 },
+	{ TVE_COLOR_BUSRT_SAT, 0x0052543c },
+	{ TVE_CHROMA_BANDWIDTH, 0x00000002 },
+	{ TVE_BRIGHTNESS_CONTRAST, 0x00008300 },
+	{ TVE_CLAMP, 0x00000000 },
+};
+
+static struct env_config pal_bt656_config[] = {
+	{ BT656_DECODER_CROP, 0x00000000 },
+	{ BT656_DECODER_SIZE, 0x024002d0 },
+	{ BT656_DECODER_HTOTAL_HS_END, 0x0360003f },
+	{ BT656_DECODER_VACT_ST_HACT_ST, 0x0016006f },
+	{ BT656_DECODER_VTOTAL_VS_END, 0x02710003 },
+	{ BT656_DECODER_VS_ST_END_F1, 0x0138013b },
+	{ BT656_DECODER_DBG_REG, 0x024002d0 },
+	{ BT656_DECODER_CTRL, 0x00000009 },
+};
+
+static struct env_config pal_tve_config[] = {
+	{ TVE_MODE_CTRL, 0x010ab906 },
+	{ TVE_HOR_TIMING1, 0x00c28381 },
+	{ TVE_HOR_TIMING2, 0x267d111d },
+	{ TVE_HOR_TIMING3, 0x76c00880 },
+	{ TVE_SUB_CAR_FRQ, 0x2a098acb },
+	{ TVE_IMAGE_POSITION, 0x001500f6 },
+	{ TVE_ROUTING, 0x10008882 },
+	{ TVE_SYNC_ADJUST, 0x00000000 },
+	{ TVE_STATUS, 0x000000b0 },
+	{ TVE_CTRL, 0x00000000 },
+	{ TVE_INTR_STATUS, 0x00000000 },
+	{ TVE_INTR_EN, 0x00000000 },
+	{ TVE_INTR_CLR, 0x00000000 },
+	{ TVE_COLOR_BUSRT_SAT, 0x00366044 },
+	{ TVE_CHROMA_BANDWIDTH, 0x00000022 },
+	{ TVE_BRIGHTNESS_CONTRAST, 0x0000a300 },
+	{ TVE_CLAMP, 0x00000000 },
+};
+
+#define BT656_ENV_CONFIG_SIZE		(sizeof(ntsc_bt656_config) / sizeof(struct env_config))
+#define TVE_ENV_CONFIG_SIZE		(sizeof(ntsc_tve_config) / sizeof(struct env_config))
+
+#define tve_writel(offset, v)		writel(v, tve->reg_base  + offset)
+#define tve_readl(offset)		readl(tve->reg_base + offset)
+
+#define tve_dac_writel(offset, v)	writel(v, tve->vdac_base + offset)
+#define tve_dac_readl(offset)		readl(tve->vdac_base + offset)
+
+#define tve_grf_writel(offset, v)	writel(v, tve->grf + offset)
+#define tve_grf_readl(offset, v)	readl(tve->grf + offset)
+
+struct rockchip_tve_data {
+	int	input_format;
+	int	soc_type;
+};
+
+struct rockchip_tve {
+	struct	rockchip_connector connector;
+	struct	udevice *dev;
+	void	*reg_base;
+	void	*vdac_base;
+	int	soc_type;
+	int	input_format;
+	int 	tv_format;
+	int	test_mode;
+	int	saturation;
+	int	brightcontrast;
+	int	adjtiming;
+	int	lumafilter0;
+	int	lumafilter1;
+	int	lumafilter2;
+	int	lumafilter3;
+	int	lumafilter4;
+	int	lumafilter5;
+	int	lumafilter6;
+	int	lumafilter7;
+	int	daclevel;
+	int	dac1level;
+	int	preferred_mode;
+	int	upsample_mode;
+	void	*grf;
+};
+
+static void tve_write_block(struct rockchip_tve *tve, struct env_config *config, int len)
 {
-	u32 mask, val = 0;
-	u32 grfreg = 0;
+	int i;
 
-#if defined(CONFIG_ROCKCHIP_RK322X) || defined(CONFIG_ROCKCHIP_RK3328)
-	tve_dac_writel(VDAC_VDAC2, v_CUR_CTR(tve_s.daclevel));
-	tve_dac_writel(VDAC_VDAC3, v_CAB_EN(0));
-#endif
-	if (enable) {
-		mask = m_VBG_EN | m_DAC_EN | m_DAC_GAIN;
-#if defined(CONFIG_ROCKCHIP_RK3128)
-			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(tve_s.daclevel);
-			grfreg = GRF_TVE_CON0;
-#elif defined(CONFIG_ROCKCHIP_RK3036)
-			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(tve_s.daclevel);
-			grfreg = GRF_SOC_CON3;
-#endif
-		val |= mask << 16;
+	for (i = 0; i < len; i++)
+		tve_writel(config[i].offset, config[i].value);
+}
 
-#if defined(CONFIG_ROCKCHIP_RK322X) || defined(CONFIG_ROCKCHIP_RK3328)
-			val = v_CUR_REG(tve_s.dac1level) |
-				v_DR_PWR_DOWN(0) | v_BG_PWR_DOWN(0);
-#endif
+static void tve_set_mode(struct rockchip_tve *tve)
+{
+	struct env_config *bt656_cfg, *tve_cfg;
+	int mode = tve->tv_format;
+
+	if (tve->soc_type == SOC_RK3528) {
+		tve_writel(TVE_LUMA_FILTER1, tve->lumafilter0);
+		tve_writel(TVE_LUMA_FILTER2, tve->lumafilter1);
+		tve_writel(TVE_LUMA_FILTER3, tve->lumafilter2);
+		tve_writel(TVE_LUMA_FILTER4, tve->lumafilter3);
+		tve_writel(TVE_LUMA_FILTER5, tve->lumafilter4);
+		tve_writel(TVE_LUMA_FILTER6, tve->lumafilter5);
+		tve_writel(TVE_LUMA_FILTER7, tve->lumafilter6);
+		tve_writel(TVE_LUMA_FILTER8, tve->lumafilter7);
 	} else {
-		mask = m_VBG_EN | m_DAC_EN;
-		val = 0;
-#if defined(CONFIG_ROCKCHIP_RK3128)
-			grfreg = GRF_TVE_CON0;
-#elif defined(CONFIG_ROCKCHIP_RK3036)
-			grfreg = GRF_SOC_CON3;
-#endif
-		val |= mask << 16;
+		if (tve->input_format == INPUT_FORMAT_RGB)
+			tve_writel(TV_CTRL, v_CVBS_MODE(mode) | v_CLK_UPSTREAM_EN(2) |
+				v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) |
+				v_LUMA_FILTER_UPSAMPLE(1) | v_CSC_PATH(0));
+		else
+			tve_writel(TV_CTRL, v_CVBS_MODE(mode) | v_CLK_UPSTREAM_EN(2) |
+				v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) |
+				v_LUMA_FILTER_UPSAMPLE(1) | v_CSC_PATH(3));
 
-#if defined(CONFIG_ROCKCHIP_RK322X) || defined(CONFIG_ROCKCHIP_RK3328)
-			val = v_CUR_REG(tve_s.dac1level) |
-				m_DR_PWR_DOWN | m_BG_PWR_DOWN;
-		#endif
+		tve_writel(TV_LUMA_FILTER0, tve->lumafilter0);
+		tve_writel(TV_LUMA_FILTER1, tve->lumafilter1);
+		tve_writel(TV_LUMA_FILTER2, tve->lumafilter2);
+	}
+
+	if (mode == TVOUT_CVBS_NTSC) {
+		TVEDBG("tve set ntsc mode\n");
+
+		if (tve->soc_type == SOC_RK3528) {
+			bt656_cfg = ntsc_bt656_config;
+			tve_cfg = ntsc_tve_config;
+
+			tve_write_block(tve, bt656_cfg, BT656_ENV_CONFIG_SIZE);
+			tve_write_block(tve, tve_cfg, TVE_ENV_CONFIG_SIZE);
+		} else {
+			tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(1) |
+				   v_Y_AGC_PULSE_ON(0) | v_Y_VIDEO_ON(1) |
+				   v_YPP_MODE(1) | v_Y_SYNC_ON(1) | v_PIC_MODE(mode));
+			tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_NTSC) |
+				   v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
+			tve_writel(TV_SATURATION, 0x0042543C);
+			if (tve->test_mode)
+				tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008300);
+			else
+				tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00007900);
+
+			tve_writel(TV_FREQ_SC,	0x21F07BD7);
+			tve_writel(TV_SYNC_TIMING, 0x00C07a81);
+			tve_writel(TV_ADJ_TIMING, 0x96B40000 | 0x70);
+			tve_writel(TV_ACT_ST,	0x001500D6);
+			tve_writel(TV_ACT_TIMING, 0x069800FC | (1 << 12) | (1 << 28));
+		}
+	} else if (mode == TVOUT_CVBS_PAL) {
+		TVEDBG("tve set pal mode\n");
+
+		if (tve->soc_type == SOC_RK3528) {
+			bt656_cfg = pal_bt656_config;
+			tve_cfg = pal_tve_config;
+
+			tve_write_block(tve, bt656_cfg, BT656_ENV_CONFIG_SIZE);
+			tve_write_block(tve, tve_cfg, TVE_ENV_CONFIG_SIZE);
+		} else {
+			tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(0) |
+				   v_Y_AGC_PULSE_ON(0) | v_Y_VIDEO_ON(1) |
+				   v_YPP_MODE(1) | v_Y_SYNC_ON(1) | v_PIC_MODE(mode));
+			tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_PAL) |
+				   v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
+
+			tve_writel(TV_SATURATION, tve->saturation);
+			tve_writel(TV_BRIGHTNESS_CONTRAST, tve->brightcontrast);
+
+			tve_writel(TV_FREQ_SC,	0x2A098ACB);
+			tve_writel(TV_SYNC_TIMING, 0x00C28381);
+			tve_writel(TV_ADJ_TIMING, (0xc << 28) | 0x06c00800 | 0x80);
+			tve_writel(TV_ACT_ST,	0x001500F6);
+			tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
+
+			tve_writel(TV_ADJ_TIMING, tve->adjtiming);
+			tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
+		}
+	}
+
+	if (tve->soc_type == SOC_RK3528) {
+		u32 upsample_mode = 0;
+		u32 mask = 0;
+		u32 val = 0;
+		bool upsample_en;
+
+		upsample_en = tve->upsample_mode ? 1 : 0;
+		if (upsample_en)
+			upsample_mode = tve->upsample_mode - 1;
+		mask = m_TVE_DCLK_POL | m_TVE_DCLK_EN | m_DCLK_UPSAMPLE_2X4X |
+		       m_DCLK_UPSAMPLE_EN | m_TVE_MODE | m_TVE_EN;
+		val = v_TVE_DCLK_POL(0) | v_TVE_DCLK_EN(1) | v_DCLK_UPSAMPLE_2X4X(upsample_mode) |
+		      v_DCLK_UPSAMPLE_EN(upsample_en) | v_TVE_MODE(tve->tv_format) | v_TVE_EN(1);
+
+		tve_grf_writel(RK3528_VO_GRF_CVBS_CON, (mask << 16) | val);
+	}
+}
+
+static void dac_init(struct rockchip_tve *tve)
+{
+	tve_dac_writel(VDAC_VDAC1, v_CUR_REG(tve->dac1level) |
+				   m_DR_PWR_DOWN | m_BG_PWR_DOWN);
+	tve_dac_writel(VDAC_VDAC2, v_CUR_CTR(tve->daclevel));
+	tve_dac_writel(VDAC_VDAC3, v_CAB_EN(0));
+}
+
+static void dac_enable(struct rockchip_tve *tve, bool enable)
+{
+	u32 mask = 0;
+	u32 val = 0;
+	u32 grfreg = 0;
+	u32 offset = 0;
+
+	if (enable) {
+		TVEDBG("tve enable\n");
+
+		if (tve->soc_type == SOC_RK3036) {
+			mask = m_VBG_EN | m_DAC_EN | m_DAC_GAIN;
+			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(tve->daclevel);
+			grfreg = RK3036_GRF_SOC_CON3;
+		} else if (tve->soc_type == SOC_RK312X) {
+			mask = m_VBG_EN | m_DAC_EN | m_DAC_GAIN;
+			val = m_VBG_EN | m_DAC_EN | v_DAC_GAIN(tve->daclevel);
+			grfreg = RK312X_GRF_TVE_CON;
+		} else if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
+			val = v_CUR_REG(tve->dac1level) | v_DR_PWR_DOWN(0) | v_BG_PWR_DOWN(0);
+		} else if (tve->soc_type == SOC_RK3528) {
+			/*
+			 * Reset the vdac
+			 */
+			tve_dac_writel(VDAC_CLK_RST, v_ANALOG_RST(0) | v_DIGITAL_RST(0));
+			mdelay(20);
+			tve_dac_writel(VDAC_CLK_RST, v_ANALOG_RST(1) | v_DIGITAL_RST(1));
+
+			val = v_REF_VOLTAGE(7) | v_DAC_PWN(1) | v_BIAS_PWN(1);
+			offset = VDAC_PWM_REF_CTRL;
+		}
+	} else {
+		TVEDBG("tve disable\n");
+
+		if (tve->soc_type == SOC_RK312X) {
+			mask = m_VBG_EN | m_DAC_EN;
+			grfreg = RK312X_GRF_TVE_CON;
+		} else if (tve->soc_type == SOC_RK3036) {
+			mask = m_VBG_EN | m_DAC_EN;
+			grfreg = RK3036_GRF_SOC_CON3;
+		} else if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
+			val = v_CUR_REG(tve->dac1level) | m_DR_PWR_DOWN | m_BG_PWR_DOWN;
+			offset = VDAC_VDAC1;
+		} else if (tve->soc_type == SOC_RK3528) {
+			val = v_DAC_PWN(0) | v_BIAS_PWN(0);
+			offset = VDAC_PWM_REF_CTRL;
+		}
 	}
 
 	if (grfreg)
-		writel(val, tve_s.grf + grfreg);
-	else if (tve_s.vdacbase)
-		tve_dac_writel(VDAC_VDAC1, val);
-}
-
-static void tve_set_mode(int mode)
-{
-	if (tve_s.soctype != SOC_RK322X &&
-	    tve_s.soctype != SOC_RK322XH) {
-		tve_writel(TV_RESET, v_RESET(1));
-		udelay(100);
-		tve_writel(TV_RESET, v_RESET(0));
-	}
-
-	if (tve_s.soctype == SOC_RK3036)
-		tve_writel(TV_CTRL, v_CVBS_MODE(mode) | v_CLK_UPSTREAM_EN(2) |
-			   v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) |
-			   v_LUMA_FILTER_UPSAMPLE(1) | v_CSC_PATH(0));
-	else
-		tve_writel(TV_CTRL, v_CVBS_MODE(mode) | v_CLK_UPSTREAM_EN(2) |
-			   v_TIMING_EN(2) | v_LUMA_FILTER_GAIN(0) |
-			   v_LUMA_FILTER_UPSAMPLE(1) | v_CSC_PATH(3));
-
-	tve_writel(TV_LUMA_FILTER0, tve_s.lumafilter0);
-	tve_writel(TV_LUMA_FILTER1, tve_s.lumafilter1);
-	tve_writel(TV_LUMA_FILTER2, tve_s.lumafilter2);
-
-	if (mode == TVOUT_CVBS_NTSC) {
-		tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(1) |
-			v_Y_AGC_PULSE_ON(1) | v_Y_VIDEO_ON(1) |
-			v_Y_SYNC_ON(1) | v_PIC_MODE(mode));
-		tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_NTSC) |
-			   v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
-		tve_writel(TV_SATURATION, 0x0052543C);
-		if (tve_s.test_mode)
-			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00008300);
-		else
-			tve_writel(TV_BRIGHTNESS_CONTRAST, 0x00007900);
-
-		tve_writel(TV_FREQ_SC,	0x21F07BD7);
-		tve_writel(TV_SYNC_TIMING, 0x00C07a81);
-		tve_writel(TV_ADJ_TIMING, 0x96B40000);
-		tve_writel(TV_ACT_ST,	0x001500D6);
-		tve_writel(TV_ACT_TIMING, 0x169800FC | (1 << 12) | (1 << 28));
-
-	} else if (mode == TVOUT_CVBS_PAL) {
-		tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(0) |
-			v_Y_AGC_PULSE_ON(0) | v_Y_VIDEO_ON(1) |
-			v_YPP_MODE(1) | v_Y_SYNC_ON(1) | v_PIC_MODE(mode));
-		tve_writel(TV_BW_CTRL, v_CHROMA_BW(BP_FILTER_PAL) |
-			v_COLOR_DIFF_BW(COLOR_DIFF_FILTER_BW_1_3));
-
-		tve_writel(TV_SATURATION, tve_s.saturation);
-		tve_writel(TV_BRIGHTNESS_CONTRAST, tve_s.brightcontrast);
-
-		tve_writel(TV_FREQ_SC,	0x2A098ACB);
-		tve_writel(TV_SYNC_TIMING, 0x00C28381);
-		tve_writel(TV_ADJ_TIMING, (0xc << 28) | 0x06c00800 | 0x80);
-		tve_writel(TV_ACT_ST,	0x001500F6);
-		tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
-
-		tve_writel(TV_ADJ_TIMING, tve_s.adjtiming);
-		tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
-	}
+		tve_grf_writel(grfreg, (mask << 16) | val);
+	else if (tve->vdac_base)
+		tve_dac_writel(offset, val);
 }
 
 static u8 rk_get_vdac_value(void)
@@ -171,8 +339,7 @@ static u8 rk_get_vdac_value(void)
 	ofnode node;
 	int ret;
 
-	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(rockchip_efuse), &dev);
+	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_GET_DRIVER(rockchip_efuse), &dev);
 	if (ret) {
 		printf("%s: no misc-device found\n", __func__);
 		return -EINVAL;
@@ -205,218 +372,250 @@ static u8 rk_get_vdac_value(void)
 	return value;
 }
 
-static int rockchip_drm_tve_init(struct rockchip_connector *conn, struct display_state *state)
+static int tve_parse_dt(struct rockchip_tve *tve)
 {
-	int node = 0;
-	int dac_value, getvdac;
-	fdt_addr_t addr;
-
-	tve_s.grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
-	if (tve_s.grf <= 0) {
-		printf("%s:Get syscon grf failed (ret=%p)\n",
-		       __func__, tve_s.grf);
-		return -ENXIO;
-	}
-
-#if defined(CONFIG_ROCKCHIP_RK3036)
-	addr = dev_read_addr_index(conn->dev, 0);
-	if (addr == FDT_ADDR_T_NONE)
-		return -EINVAL;
-
-	tve_s.reg_phy_base = (void *)addr;
-	tve_s.soctype = SOC_RK3036;
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, 0,
-					     "rockchip,rk3036-tve");
-	if (node < 0) {
-		printf("can't find dts node for rk3036-tve\n");
-		goto err;
-	}
-#elif defined(CONFIG_ROCKCHIP_RK3128)
-	addr = dev_read_addr_index(conn->dev, 0);
-	if (addr == FDT_ADDR_T_NONE)
-		return -EINVAL;
-
-	tve_s.reg_phy_base = (void *)addr;
-	tve_s.soctype = SOC_RK312X;
-	tve_s.saturation = 0;
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, 0,
-					     "rockchip,rk312x-tve");
-	if (node < 0) {
-		printf("can't find dts node for rk312x-tve\n");
-		goto err;
-	}
-#elif defined(CONFIG_ROCKCHIP_RK322X)
-	addr = dev_read_addr_index(conn->dev, 0);
-	if (addr == FDT_ADDR_T_NONE)
-		return -EINVAL;
-
-	tve_s.reg_phy_base = (void *)addr;
-	tve_s.soctype = SOC_RK322X;
-	tve_s.saturation = 0;
-
-	addr = dev_read_addr_index(conn->dev, 1);
-	if (addr == FDT_ADDR_T_NONE)
-		return -EINVAL;
-	tve_s.vdacbase = (void *)addr;
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, 0,
-					     "rockchip,rk3328-tve");
-	if (node < 0) {
-		printf("can't find dts node for rk322x-tve\n");
-		goto err;
-	}
-#elif defined(CONFIG_ROCKCHIP_RK3328)
-	addr = dev_read_addr_index(conn->dev, 0);
-	if (addr == FDT_ADDR_T_NONE)
-		return -EINVAL;
-
-	tve_s.reg_phy_base = (void *)addr;
-	tve_s.soctype = SOC_RK322XH;
-
-	addr = dev_read_addr_index(conn->dev, 1);
-	if (addr == FDT_ADDR_T_NONE)
-		return -EINVAL;
-	tve_s.vdacbase = (void *)addr;
-
-	node = fdt_node_offset_by_compatible(gd->fdt_blob, 0,
-					     "rockchip,rk3328-tve");
-	if (node < 0) {
-		printf("can't find dts node for rk322xh-tve\n");
-		goto err;
-	}
-#endif
-
-	if (!fdtdec_get_is_enabled(gd->fdt_blob, node)) {
-		printf("tve is disabled\n");
-		goto err;
-	}
-
-	if (tve_s.soctype == SOC_RK312X)
-		tve_s.test_mode = fdtdec_get_int(gd->fdt_blob, node,
-						 "test_mode", 0);
-
-	tve_s.preferred_mode = fdtdec_get_int(gd->fdt_blob, node,
-					      "rockchip,tvemode", -1);
-	if (tve_s.preferred_mode < 0) {
-		tve_s.preferred_mode = 0;
-	} else if (tve_s.preferred_mode > 1) {
+	tve->preferred_mode = dev_read_u32_default(tve->dev, "rockchip,tvemode", -1);
+	if (tve->preferred_mode < 0) {
+		tve->preferred_mode = 0;
+	} else if (tve->preferred_mode > 1) {
 		printf("tve mode value invalid\n");
-		goto err;
+		return -EINVAL;
 	}
 
-	tve_s.saturation = fdtdec_get_int(gd->fdt_blob, node,
-					  "rockchip,saturation", 0);
-	if (tve_s.saturation == 0) {
-		printf("tve saturation err\n");
-		goto err;
+	tve->lumafilter0 = dev_read_u32_default(tve->dev, "rockchip,lumafilter0", 0);
+	if (tve->lumafilter0 == 0) {
+		printf("tve get lumafilter0 err\n");
+		return -EINVAL;
 	}
 
-	tve_s.brightcontrast = fdtdec_get_int(gd->fdt_blob, node,
-					      "rockchip,brightcontrast", 0);
-	if (tve_s.brightcontrast == 0) {
-		printf("tve brightcontrast err\n");
-		goto err;
+	tve->lumafilter1 = dev_read_u32_default(tve->dev, "rockchip,lumafilter1", 0);
+	if (tve->lumafilter1 == 0) {
+		printf("tve get lumafilter1 err\n");
+		return -EINVAL;
 	}
 
-	tve_s.adjtiming = fdtdec_get_int(gd->fdt_blob, node,
-					 "rockchip,adjtiming", 0);
-	if (tve_s.adjtiming == 0) {
-		printf("tve adjtiming err\n");
-		goto err;
+	tve->lumafilter2 = dev_read_u32_default(tve->dev, "rockchip,lumafilter2", 0);
+	if (tve->lumafilter2 == 0) {
+		printf("tve get lumafilter2 err\n");
+		return -EINVAL;
 	}
 
-	tve_s.lumafilter0 = fdtdec_get_int(gd->fdt_blob, node,
-					   "rockchip,lumafilter0", 0);
-	if (tve_s.lumafilter0 == 0) {
-		printf("tve lumafilter0 err\n");
-		goto err;
+	tve->lumafilter3 = dev_read_u32_default(tve->dev, "rockchip,lumafilter3", 0);
+	if (tve->lumafilter3 == 0) {
+		printf("tve get lumafilter3 err\n");
+		return -EINVAL;
 	}
 
-	tve_s.lumafilter1 = fdtdec_get_int(gd->fdt_blob, node,
-					   "rockchip,lumafilter1", 0);
-	if (tve_s.lumafilter1 == 0) {
-		printf("tve lumafilter1 err\n");
-		goto err;
+	tve->lumafilter4 = dev_read_u32_default(tve->dev, "rockchip,lumafilter4", 0);
+	if (tve->lumafilter4 == 0) {
+		printf("tve get lumafilter4 err\n");
+		return -EINVAL;
 	}
 
-	tve_s.lumafilter2 = fdtdec_get_int(gd->fdt_blob, node,
-					   "rockchip,lumafilter2", 0);
-	if (tve_s.lumafilter2 == 0) {
-		printf("tve lumafilter2 err\n");
-		goto err;
+	tve->lumafilter5 = dev_read_u32_default(tve->dev, "rockchip,lumafilter5", 0);
+	if (tve->lumafilter5 == 0) {
+		printf("tve get lumafilter5 err\n");
+		return -EINVAL;
 	}
 
-	dac_value = fdtdec_get_int(gd->fdt_blob, node, "rockchip,daclevel", 0);
+	tve->lumafilter6 = dev_read_u32_default(tve->dev, "rockchip,lumafilter6", 0);
+	if (tve->lumafilter6 == 0) {
+		printf("tve get lumafilter6 err\n");
+		return -EINVAL;
+	}
+
+	tve->lumafilter7 = dev_read_u32_default(tve->dev, "rockchip,lumafilter7", 0);
+	if (tve->lumafilter7 == 0) {
+		printf("tve get lumafilter7 err\n");
+		return -EINVAL;
+	}
+
+	tve->upsample_mode = dev_read_u32_default(tve->dev, "rockchip,tve-upsample", -1);
+	if (tve->upsample_mode < 0 || tve->upsample_mode > DCLK_UPSAMPLEx4) {
+		printf("tve get upsample_mode err\n");
+		return -EINVAL;
+	}
+
+	TVEDBG("tve->preferred_mode = 0x%x\n", tve->preferred_mode);
+	TVEDBG("tve->lumafilter0 = 0x%x\n", tve->lumafilter0);
+	TVEDBG("tve->lumafilter1 = 0x%x\n", tve->lumafilter1);
+	TVEDBG("tve->lumafilter2 = 0x%x\n", tve->lumafilter2);
+	TVEDBG("tve->lumafilter3 = 0x%x\n", tve->lumafilter3);
+	TVEDBG("tve->lumafilter4 = 0x%x\n", tve->lumafilter4);
+	TVEDBG("tve->lumafilter5 = 0x%x\n", tve->lumafilter5);
+	TVEDBG("tve->lumafilter6 = 0x%x\n", tve->lumafilter6);
+	TVEDBG("tve->lumafilter7 = 0x%x\n", tve->lumafilter7);
+	TVEDBG("tve->upsample_mode = 0x%x\n", tve->upsample_mode);
+
+	return 0;
+}
+
+static int tve_parse_dt_legacy(struct rockchip_tve *tve)
+{
+	int dac_value, getvdac;
+
+	if (tve->soc_type == SOC_RK312X)
+		tve->test_mode = dev_read_u32_default(tve->dev, "test_mode", 0);
+
+	tve->preferred_mode = dev_read_u32_default(tve->dev, "rockchip,tvemode", -1);
+	if (tve->preferred_mode < 0) {
+		tve->preferred_mode = 0;
+	} else if (tve->preferred_mode > 1) {
+		printf("tve mode value invalid\n");
+		return -EINVAL;
+	}
+
+	tve->saturation = dev_read_u32_default(tve->dev, "rockchip,saturation", 0);
+	if (tve->saturation == 0) {
+		printf("tve get saturation err\n");
+		return -EINVAL;
+	}
+
+	tve->brightcontrast = dev_read_u32_default(tve->dev, "rockchip,brightcontrast", 0);
+	if (tve->brightcontrast == 0) {
+		printf("tve get brightcontrast err\n");
+		return -EINVAL;
+	}
+
+	tve->adjtiming = dev_read_u32_default(tve->dev, "rockchip,adjtiming", 0);
+	if (tve->adjtiming == 0) {
+		printf("tve get adjtiming err\n");
+		return -EINVAL;
+	}
+
+	tve->lumafilter0 = dev_read_u32_default(tve->dev, "rockchip,lumafilter0", 0);
+	if (tve->lumafilter0 == 0) {
+		printf("tve get lumafilter0 err\n");
+		return -EINVAL;
+	}
+
+	tve->lumafilter1 = dev_read_u32_default(tve->dev, "rockchip,lumafilter1", 0);
+	if (tve->lumafilter1 == 0) {
+		printf("tve get lumafilter1 err\n");
+		return -EINVAL;
+	}
+
+	tve->lumafilter2 = dev_read_u32_default(tve->dev, "rockchip,lumafilter2", 0);
+	if (tve->lumafilter2 == 0) {
+		printf("tve get lumafilter2 err\n");
+		return -EINVAL;
+	}
+
+	dac_value = dev_read_u32_default(tve->dev, "rockchip,daclevel", 0);
 	if (dac_value == 0) {
-		printf("tve dac_value err\n");
-		goto err;
+		printf("tve get dac_value err\n");
+		return -EINVAL;
 	}
 
-	tve_s.daclevel = dac_value;
-	if (tve_s.soctype == SOC_RK322X) {
+	tve->daclevel = dac_value;
+	if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
 		getvdac = rk_get_vdac_value();
 		if (getvdac > 0) {
-			tve_s.daclevel =
-				dac_value + getvdac - RK322X_VDAC_STANDARD;
-			if (tve_s.daclevel > 0x3f ||
-			    tve_s.daclevel < 0) {
+			tve->daclevel = dac_value + getvdac - RK322X_VDAC_STANDARD;
+			if (tve->daclevel > 0x3f || tve->daclevel < 0) {
 				printf("rk322x daclevel error!\n");
-				tve_s.daclevel = dac_value;
+				tve->daclevel = dac_value;
 			}
 		} else if (getvdac < 0) {
 			printf("get rk322x daclevel error\n");
-			goto err;
+			return -EINVAL;
 		}
 	}
 
-	if (tve_s.soctype == SOC_RK322X ||
-	    tve_s.soctype == SOC_RK322XH) {
-		tve_s.dac1level = fdtdec_get_int(gd->fdt_blob, node,
-						 "rockchip,dac1level", 0);
-		if (tve_s.dac1level == 0) {
+	if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
+		tve->dac1level = dev_read_u32_default(tve->dev, "rockchip,dac1level", 0);
+		if (tve->dac1level == 0) {
 			printf("rk322x dac1level error!\n");
-			goto err;
+			return -EINVAL;
 		}
 	}
-	TVEDBG("tve_s.test_mode = 0x%x\n", tve_s.test_mode);
-	TVEDBG("tve_s.saturation = 0x%x\n", tve_s.saturation);
-	TVEDBG("tve_s.brightcontrast = 0x%x\n", tve_s.brightcontrast);
-	TVEDBG("tve_s.adjtiming = 0x%x\n", tve_s.adjtiming);
-	TVEDBG("tve_s.lumafilter0 = 0x%x\n", tve_s.lumafilter0);
-	TVEDBG("tve_s.lumafilter1 = 0x%x\n", tve_s.lumafilter1);
-	TVEDBG("tve_s.lumafilter2 = 0x%x\n", tve_s.lumafilter2);
-	TVEDBG("tve_s.daclevel = 0x%x\n", tve_s.daclevel);
+
+	TVEDBG("tve->test_mode = 0x%x\n", tve->test_mode);
+	TVEDBG("tve->saturation = 0x%x\n", tve->saturation);
+	TVEDBG("tve->brightcontrast = 0x%x\n", tve->brightcontrast);
+	TVEDBG("tve->adjtiming = 0x%x\n", tve->adjtiming);
+	TVEDBG("tve->lumafilter0 = 0x%x\n", tve->lumafilter0);
+	TVEDBG("tve->lumafilter1 = 0x%x\n", tve->lumafilter1);
+	TVEDBG("tve->lumafilter2 = 0x%x\n", tve->lumafilter2);
+	TVEDBG("tve->daclevel = 0x%x\n", tve->daclevel);
 
 	return 0;
+}
 
-err:
-	dac_enable(0);
-	return -ENODEV;
+static int rockchip_drm_tve_init(struct rockchip_connector *conn, struct display_state *state)
+{
+	struct rockchip_tve *tve = dev_get_priv(conn->dev);
+	struct connector_state *conn_state = &state->conn_state;
+	fdt_addr_t addr;
+	int ret;
+
+	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+	conn_state->bus_format = MEDIA_BUS_FMT_YUV8_1X24;
+	if (tve->soc_type == SOC_RK3528)
+		conn_state->output_if |= VOP_OUTPUT_IF_BT656;
+	conn_state->color_space = V4L2_COLORSPACE_SMPTE170M;
+
+	if (tve->soc_type == SOC_RK3528)
+		ret = tve_parse_dt(tve);
+	else
+		ret = tve_parse_dt_legacy(tve);
+	if (ret) {
+		printf("tve parse dts error\n");
+		return -EINVAL;
+	}
+
+	addr = dev_read_addr_index(conn->dev, 0);
+	if (addr == FDT_ADDR_T_NONE) {
+		printf("failed to get tve reg_base\n");
+		return -EINVAL;
+	}
+	tve->reg_base = (void *)addr;
+
+	if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328 ||
+	    tve->soc_type == SOC_RK3528) {
+		addr = dev_read_addr_index(conn->dev, 1);
+		if (addr == FDT_ADDR_T_NONE) {
+			printf("failed to get tve vdac_base\n");
+			return -EINVAL;
+		}
+		tve->vdac_base = (void *)addr;
+	}
+
+	tve->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+
+	if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328)
+		dac_init(tve);
+
+	return 0;
 }
 
 static int rockchip_drm_tve_enable(struct rockchip_connector *conn, struct display_state *state)
 {
+	struct rockchip_tve *tve = dev_get_priv(conn->dev);
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	int tve_type;
 
 #ifdef CONFIG_ROCKCHIP_INNO_HDMI_PHY
 	/* set inno hdmi phy clk. */
-	rockchip_phy_set_pll(conn->phy, 27000000);
+	if (tve->soc_type != SOC_RK3528)
+		rockchip_phy_set_pll(conn->phy, 27000000);
 #endif
 	if (mode->vdisplay == 576)
-		tve_type = TVOUT_CVBS_PAL;
+		tve->tv_format = TVOUT_CVBS_PAL;
 	else
-		tve_type = TVOUT_CVBS_NTSC;
-	dac_enable(0);
-	tve_set_mode(tve_type);
-	dac_enable(1);
+		tve->tv_format = TVOUT_CVBS_NTSC;
+
+	dac_enable(tve, true);
+	tve_set_mode(tve);
 
 	return 0;
 }
 
 static void rockchip_drm_tve_deinit(struct rockchip_connector *conn, struct display_state *state)
 {
-	dac_enable(0);
+	struct rockchip_tve *tve = dev_get_priv(conn->dev);
+
+	dac_enable(tve, false);
 }
 
 static int rockchip_drm_tve_prepare(struct rockchip_connector *conn, struct display_state *state)
@@ -426,7 +625,10 @@ static int rockchip_drm_tve_prepare(struct rockchip_connector *conn, struct disp
 
 static int rockchip_drm_tve_disable(struct rockchip_connector *conn, struct display_state *state)
 {
-	dac_enable(0);
+	struct rockchip_tve *tve = dev_get_priv(conn->dev);
+
+	dac_enable(tve, false);
+
 	return 0;
 }
 
@@ -435,8 +637,8 @@ static int rockchip_drm_tve_detect(struct rockchip_connector *conn, struct displ
 	return 1;
 }
 
-static void drm_tve_selete_output(struct overscan *overscan,
-				  struct drm_display_mode *mode)
+static void tve_selete_output(struct rockchip_tve *tve, struct overscan *overscan,
+			      struct drm_display_mode *mode)
 {
 	int ret, i, screen_size;
 	struct base_screen_info *screen_info = NULL;
@@ -449,17 +651,12 @@ static void drm_tve_selete_output(struct overscan *overscan,
 	int max_scan = 100;
 	int min_scan = 50;
 
-	overscan->left_margin = max_scan;
-	overscan->right_margin = max_scan;
-	overscan->top_margin = max_scan;
-	overscan->bottom_margin = max_scan;
-
 	for (i = 0; i < 2; i++) {
 		modes[i] = tve_modes[i];
-		if (i == tve_s.preferred_mode)
+		if (i == tve->preferred_mode)
 			modes[i].type |= DRM_MODE_TYPE_PREFERRED;
 	}
-	*mode = modes[tve_s.preferred_mode];
+	*mode = modes[tve->preferred_mode];
 
 	dev_desc = rockchip_get_bootdev();
 	if (!dev_desc) {
@@ -472,8 +669,7 @@ static void drm_tve_selete_output(struct overscan *overscan,
 		return;
 	}
 
-	ret = blk_dread(dev_desc, part_info.start, 1,
-			(void *)baseparameter_buf);
+	ret = blk_dread(dev_desc, part_info.start, 1, (void *)baseparameter_buf);
 	if (ret < 0) {
 		printf("read baseparameter failed\n");
 		return;
@@ -482,63 +678,56 @@ static void drm_tve_selete_output(struct overscan *overscan,
 	memcpy(&base_parameter, baseparameter_buf, sizeof(base_parameter));
 	scan = &base_parameter.scan;
 
-	screen_size = sizeof(base_parameter.screen_list) /
-		sizeof(base_parameter.screen_list[0]);
+	screen_size = sizeof(base_parameter.screen_list) / sizeof(base_parameter.screen_list[0]);
 
 	for (i = 0; i < screen_size; i++) {
-		if (base_parameter.screen_list[i].type ==
-		    DRM_MODE_CONNECTOR_TV) {
+		if (base_parameter.screen_list[i].type == DRM_MODE_CONNECTOR_TV) {
 			screen_info = &base_parameter.screen_list[i];
 			break;
 		}
 	}
 
-	if (scan->leftscale < min_scan && scan->leftscale > 0)
-		overscan->left_margin = min_scan;
-	else if (scan->leftscale < max_scan)
+	if (scan->leftscale < min_scan || scan->leftscale > max_scan)
+		overscan->left_margin = max_scan;
+	else
 		overscan->left_margin = scan->leftscale;
 
-	if (scan->rightscale < min_scan && scan->rightscale > 0)
-		overscan->right_margin = min_scan;
-	else if (scan->rightscale < max_scan)
+	if (scan->rightscale < min_scan || scan->rightscale > max_scan)
+		overscan->right_margin = max_scan;
+	else
 		overscan->right_margin = scan->rightscale;
 
-	if (scan->topscale < min_scan && scan->topscale > 0)
-		overscan->top_margin = min_scan;
-	else if (scan->topscale < max_scan)
+	if (scan->topscale < min_scan || scan->topscale > max_scan)
+		overscan->top_margin = max_scan;
+	else
 		overscan->top_margin = scan->topscale;
 
-	if (scan->bottomscale < min_scan && scan->bottomscale > 0)
-		overscan->bottom_margin = min_scan;
-	else if (scan->bottomscale < max_scan)
+	if (scan->bottomscale < min_scan || scan->bottomscale > max_scan)
+		overscan->bottom_margin = max_scan;
+	else
 		overscan->bottom_margin = scan->bottomscale;
 
 	if (screen_info &&
 	    (screen_info->mode.hdisplay == 720 &&
-	    screen_info->mode.vdisplay == 576 &&
-	    screen_info->mode.hsync_start == 753 &&
-	    screen_info->mode.hsync_end == 816))
+	     screen_info->mode.vdisplay == 576))
 		*mode = modes[0];
 	else if (screen_info &&
-		 screen_info->mode.vdisplay == 480 &&
-		 screen_info->mode.vsync_start == 480 &&
-		 screen_info->mode.vsync_end == 486)
+		 (screen_info->mode.hdisplay == 720 &&
+		  screen_info->mode.vdisplay == 480))
 		*mode = modes[1];
 
 	if (screen_info)
-		printf("base_parameter.mode:%dx%d\n",
-		       screen_info->mode.hdisplay,
-		       screen_info->mode.vdisplay);
+		printf("base_parameter mode: %dx%d\n",
+		       screen_info->mode.hdisplay, screen_info->mode.vdisplay);
 }
 
 static int rockchip_drm_tve_get_timing(struct rockchip_connector *conn, struct display_state *state)
 {
+	struct rockchip_tve *tve = dev_get_priv(conn->dev);
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 
-	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
-	conn_state->bus_format = MEDIA_BUS_FMT_YUV8_1X24;
-	drm_tve_selete_output(&conn_state->overscan, mode);
+	tve_selete_output(tve, &conn_state->overscan, mode);
 
 	return 0;
 }
@@ -555,18 +744,50 @@ const struct rockchip_connector_funcs rockchip_drm_tve_funcs = {
 
 static int rockchip_drm_tve_probe(struct udevice *dev)
 {
-	struct rockchip_connector *conn = dev_get_priv(dev);
+	struct rockchip_tve *tve = dev_get_priv(dev);
+	const struct rockchip_tve_data *data;
 
-	rockchip_connector_bind(conn, dev, 0, &rockchip_drm_tve_funcs, NULL,
-				DRM_MODE_CONNECTOR_TV);
+	tve->dev = dev;
+	data = (const struct rockchip_tve_data *)dev_get_driver_data(dev);
+	tve->soc_type = data->soc_type;
+	tve->input_format = data->input_format;
+
+	rockchip_connector_bind(&tve->connector, dev, 0, &rockchip_drm_tve_funcs, NULL, DRM_MODE_CONNECTOR_TV);
 
 	return 0;
 }
 
+static const struct rockchip_tve_data rk3036_tve = {
+	.soc_type = SOC_RK3036,
+	.input_format = INPUT_FORMAT_RGB,
+};
+
+static const struct rockchip_tve_data rk312x_tve = {
+	.soc_type = SOC_RK312X,
+	.input_format = INPUT_FORMAT_RGB,
+};
+
+static const struct rockchip_tve_data rk322x_tve = {
+	.soc_type = SOC_RK322X,
+	.input_format = INPUT_FORMAT_YUV,
+};
+
+static const struct rockchip_tve_data rk3328_tve = {
+	.soc_type = SOC_RK3328,
+	.input_format = INPUT_FORMAT_YUV,
+};
+
+static const struct rockchip_tve_data rk3528_tve = {
+	.soc_type = SOC_RK3528,
+	.input_format = INPUT_FORMAT_YUV,
+};
+
 static const struct udevice_id rockchip_drm_tve_ids[] = {
-	{
-	 .compatible = "rockchip,rk3328-tve",
-	}, {}
+	{ .compatible = "rockchip,rk3036-tve", .data = (ulong)&rk3036_tve },
+	{ .compatible = "rockchip,rk312x-tve", .data = (ulong)&rk312x_tve },
+	{ .compatible = "rockchip,rk322x-tve", .data = (ulong)&rk322x_tve },
+	{ .compatible = "rockchip,rk3328-tve", .data = (ulong)&rk3328_tve },
+	{ .compatible = "rockchip,rk3528-tve", .data = (ulong)&rk3528_tve },
 };
 
 U_BOOT_DRIVER(rockchip_drm_tve) = {
@@ -574,5 +795,5 @@ U_BOOT_DRIVER(rockchip_drm_tve) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = rockchip_drm_tve_ids,
 	.probe	= rockchip_drm_tve_probe,
-	.priv_auto_alloc_size = sizeof(struct rockchip_connector),
+	.priv_auto_alloc_size = sizeof(struct rockchip_tve),
 };
