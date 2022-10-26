@@ -780,7 +780,7 @@ static int display_init(struct display_state *state)
 	/*
 	 * support hotplug, but not connect;
 	 */
-#ifdef CONFIG_ROCKCHIP_DRM_TVE
+#ifdef CONFIG_DRM_ROCKCHIP_TVE
 	if (crtc->hdmi_hpd && conn_state->type == DRM_MODE_CONNECTOR_TV) {
 		printf("hdmi plugin ,skip tve\n");
 		goto deinit;
@@ -793,7 +793,7 @@ static int display_init(struct display_state *state)
 #endif
 
 	ret = rockchip_connector_detect(state);
-#if defined(CONFIG_ROCKCHIP_DRM_TVE) || defined(CONFIG_DRM_ROCKCHIP_RK1000)
+#if defined(CONFIG_DRM_ROCKCHIP_TVE) || defined(CONFIG_DRM_ROCKCHIP_RK1000)
 	if (conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
 		crtc->hdmi_hpd = ret;
 #endif

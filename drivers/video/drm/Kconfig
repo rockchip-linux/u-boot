@@ -216,13 +216,12 @@ config PHY_ROCKCHIP_SAMSUNG_HDPTX_HDMI
 	  Support for Rockchip HDMI/DP Combo PHY HDMI with Samsung
 	  IP block.
 
-config ROCKCHIP_DRM_TVE
+config DRM_ROCKCHIP_TVE
 	bool "Rockchip TVE Support"
 	depends on DRM_ROCKCHIP
 	help
 	  Choose this option to enable support for Rockchip TVE.
-	  Rockchip rk322x and rk322xh SoC has TVE can be used, and
-	  say Y to enable TVE driver.
+	  Say Y to enable TVE driver.
 
 config ROCKCHIP_CUBIC_LUT_SIZE
 	int "Rockchip cubic lut size"

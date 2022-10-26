@@ -19,11 +19,11 @@
 #include <mapmem.h>
 #include <misc.h>
 
-#include "rockchip_drm_tve.h"
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
+#include "rockchip_tve.h"
 
 #define RK322X_VDAC_STANDARD		0x15
 

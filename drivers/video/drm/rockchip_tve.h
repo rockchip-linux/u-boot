@@ -2,8 +2,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  * (C) Copyright 2008-2015 Fuzhou Rockchip Electronics Co., Ltd
  */
-#ifndef __ROCKCHIP_DRM_TVE_H__
-#define __ROCKCHIP_DRM_TVE_H__
+#ifndef __ROCKCHIP_TVE_H__
+#define __ROCKCHIP_TVE_H__
 
 #define RK3036_GRF_SOC_CON3	0x0154
 #define RK312X_GRF_TVE_CON	0x0170
@@ -247,4 +247,4 @@ enum {
 #define TVEDBG(format, ...)
 #endif
 
-#endif /* __ROCKCHIP_DRM_TVE_H__*/
+#endif /* __ROCKCHIP_TVE_H__ */
