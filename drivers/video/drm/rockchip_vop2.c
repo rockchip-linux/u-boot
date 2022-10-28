@@ -2795,7 +2795,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	int ret;
 
 	printf("VOP update mode to: %dx%d%s%d, type:%s for VP%d\n",
-	       mode->crtc_hdisplay, mode->crtc_vdisplay,
+	       mode->crtc_hdisplay, mode->vdisplay,
 	       mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "p",
 	       mode->vrefresh,
 	       get_output_if_name(conn_state->output_if, output_type_name),

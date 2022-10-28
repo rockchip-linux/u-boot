@@ -1136,7 +1136,7 @@ static int display_logo(struct display_state *state)
 		return -EINVAL;
 	}
 	hdisplay = conn_state->mode.crtc_hdisplay;
-	vdisplay = conn_state->mode.crtc_vdisplay;
+	vdisplay = conn_state->mode.vdisplay;
 	crtc_state->src_rect.w = logo->width;
 	crtc_state->src_rect.h = logo->height;
 	crtc_state->src_rect.x = 0;
