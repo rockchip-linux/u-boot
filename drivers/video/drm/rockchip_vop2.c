@@ -767,6 +767,9 @@
 #define DSC_SBO_SHIFT				28
 #define DSC_IFEP_SHIFT				29
 #define DSC_PPS_UPD_SHIFT			31
+#define DSC_CTRL0_DEF_CON ((1 << DSC_EN_SHIFT)   | (1 << DSC_RBIT_SHIFT) | (0 << DSC_RBYT_SHIFT) | \
+			   (1 << DSC_FLAL_SHIFT) | (1 << DSC_MER_SHIFT)  | (0 << DSC_EPB_SHIFT)  | \
+			   (1 << DSC_EPL_SHIFT)  | (1 << DSC_SBO_SHIFT))
 
 #define RK3588_DSC_8K_CTRL1			0x40A4
 #define RK3588_DSC_8K_STS0			0x40A8
@@ -2952,10 +2955,10 @@ static void vop2_dsc_enable(struct display_state *state, struct vop2 *vop2, u8 d
 	u16 vact_end = vact_st + vdisplay;
 	u32 ctrl_regs_offset = (dsc_id * 0x30);
 	u32 decoder_regs_offset = (dsc_id * 0x100);
-	u32 backup_regs_offset = 0;
 	int dsc_txp_clk_div = 0;
 	int dsc_pxl_clk_div = 0;
 	int dsc_cds_clk_div = 0;
+	int val = 0;
 
 	if (!vop2->data->nr_dscs) {
 		printf("Unsupported DSC\n");
@@ -3094,34 +3097,15 @@ static void vop2_dsc_enable(struct display_state *state, struct vop2 *vop2, u8 d
 	vop2_mask_write(vop2, RK3588_DSC_8K_RST + ctrl_regs_offset, RST_DEASSERT_MASK,
 			RST_DEASSERT_SHIFT, 1, false);
 	udelay(10);
-	/* read current dsc core register and backup to regsbak */
-	backup_regs_offset = RK3588_DSC_8K_CTRL0;
-	vop2->regsbak[backup_regs_offset >> 2] = vop2_readl(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset);
 
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_EN_SHIFT, 1, false);
+	val |= DSC_CTRL0_DEF_CON | (ilog2(cstate->dsc_slice_num) << DSC_NSLC_SHIFT) |
+	       ((dsc_sink_cap->version_minor == 2 ? 1 : 0) << DSC_IFEP_SHIFT);
+	vop2_writel(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, val);
+
 	vop2_load_pps(state, vop2, dsc_id);
 
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_RBIT_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_RBYT_SHIFT, 0, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_FLAL_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_MER_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_EPB_SHIFT, 0, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_EPL_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, DSC_NSLC_MASK,
-			DSC_NSLC_SHIFT, ilog2(cstate->dsc_slice_num), false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_SBO_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_IFEP_SHIFT, dsc_sink_cap->version_minor == 2 ? 1 : 0, false);
-	vop2_mask_write(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, EN_MASK,
-			DSC_PPS_UPD_SHIFT, 1, false);
+	val |= (1 << DSC_PPS_UPD_SHIFT);
+	vop2_writel(vop2, RK3588_DSC_8K_CTRL0 + decoder_regs_offset, val);
 
 	printf("DSC%d: txp:%lld div:%d, pxl:%lld div:%d, dsc:%lld div:%d\n",
 	       dsc_id,
