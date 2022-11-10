@@ -255,6 +255,19 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 {
 	int ret;
 	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
+	u32 width, height, vir_width, vir_height;
+
+	if (panel->rearrange) {
+		width = panel->width * 2;
+		height = panel->height / 2;
+		vir_width = panel->vir_width * 2;
+		vir_height = panel->vir_height / 2;
+	} else {
+		width = panel->width;
+		height = panel->height;
+		vir_width = panel->vir_width;
+		vir_height = panel->vir_height;
+	}
 
 	/* panel timing and win info config */
 	tcon_write(tcon, EBC_DSP_HTIMING0,
@@ -270,17 +283,17 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		   DSP_VACT_END(panel->fsl + panel->fbl + panel->fdl) |
 		   DSP_VACT_ST(panel->fsl + panel->fbl));
 	tcon_write(tcon, EBC_DSP_ACT_INFO,
-		   DSP_HEIGHT(panel->height) |
-		   DSP_WIDTH(panel->width));
+		   DSP_HEIGHT(height) |
+		   DSP_WIDTH(width));
 	tcon_write(tcon, EBC_WIN_VIR,
-		   WIN_VIR_HEIGHT(panel->vir_height) |
-		   WIN_VIR_WIDTH(panel->vir_width));
+		   WIN_VIR_HEIGHT(vir_height) |
+		   WIN_VIR_WIDTH(vir_width));
 	tcon_write(tcon, EBC_WIN_ACT,
-		   WIN_ACT_HEIGHT(panel->height) |
-		   WIN_ACT_WIDTH(panel->width));
+		   WIN_ACT_HEIGHT(height) |
+		   WIN_ACT_WIDTH(width));
 	tcon_write(tcon, EBC_WIN_DSP,
-		   WIN_DSP_HEIGHT(panel->height) |
-		   WIN_DSP_WIDTH(panel->width));
+		   WIN_DSP_HEIGHT(height) |
+		   WIN_DSP_WIDTH(width));
 	tcon_write(tcon, EBC_WIN_DSP_ST,
 		   WIN_DSP_YST(panel->fsl + panel->fbl) |
 		   WIN_DSP_XST(panel->lsl + panel->lbl));

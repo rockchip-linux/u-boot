@@ -281,6 +281,34 @@ static int read_grayscale(struct blk_desc *dev_desc,
 	return 0;
 }
 
+static int image_rearrange(u8 *in_buf, u8 *out_buf, u16 w, u16 h)
+{
+	int i, j;
+	u8 in_data;
+	u8 *out_buf_tmp;
+
+	if (!in_buf || !out_buf) {
+		printf("rearrange in buffer or out buffer is NULL\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < h; i += 2) {
+		out_buf_tmp = out_buf + (i * w / 2);
+		for (j = 0; j < w / 2; j++) {
+			in_data = *in_buf++;
+			*(out_buf_tmp + j * 2) = in_data & 0x0f;
+			*(out_buf_tmp + j * 2 + 1) = (in_data >> 4) & 0x0f;
+		}
+		for (j = 0; j < w / 2; j++) {
+			in_data = *in_buf++;
+			*(out_buf_tmp + j * 2) |= (in_data << 4) & 0xf0;
+			*(out_buf_tmp + j * 2 + 1) |= in_data & 0xf0;
+		}
+	}
+
+	return 0;
+}
+
 static int image_mirror(u8 *in_buf, u8 *out_buf, u16 w, u16 h)
 {
 	int i;
@@ -394,6 +422,21 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 				read_grayscale(dev_desc, &part, offset, size,
 					       (void *)((ulong)mirror_buf));
 				image_mirror((u8 *)((ulong)mirror_buf),
+					     (u8 *)((ulong)pic_buf), w, h);
+			} else if (panel->rearrange && logo_type != EINK_LOGO_KERNEL) {
+				u32 w = panel->vir_width;
+				u32 h = panel->vir_height;
+				u32 rearrange_buf = 0;
+
+				rearrange_buf = get_addr_by_type(dev,
+							      EINK_LOGO_UNMIRROR_TEMP_BUF);
+				if (rearrange_buf <= 0) {
+					printf("get mirror buffer failed\n");
+					return -EIO;
+				}
+				read_grayscale(dev_desc, &part, offset, size,
+					       (void *)((ulong)rearrange_buf));
+				image_rearrange((u8 *)((ulong)rearrange_buf),
 					     (u8 *)((ulong)pic_buf), w, h);
 			} else {
 				read_grayscale(dev_desc, &part, offset, size,
@@ -645,7 +688,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 		char logo_args[64] = {0};
 		u32 uboot_logo_buf;
 
-		if (plat->mirror)
+		if (plat->mirror || plat->rearrange)
 			uboot_logo_buf = get_addr_by_type(dev,
 							  EINK_LOGO_UNMIRROR_TEMP_BUF);
 		else
@@ -792,6 +835,7 @@ static int rockchip_eink_display_ofdata_to_platdata(struct udevice *dev)
 	plat->panel_16bit = dev_read_u32_default(dev, "panel,panel_16bit", 0);
 	plat->panel_color = dev_read_u32_default(dev, "panel,panel_color", 0);
 	plat->mirror = dev_read_u32_default(dev, "panel,mirror", 0);
+	plat->rearrange = dev_read_u32_default(dev, "panel,rearrange", 0);
 	plat->width_mm = dev_read_u32_default(dev, "panel,width-mm", 0);
 	plat->height_mm = dev_read_u32_default(dev, "panel,height-mm", 0);
 
