@@ -7,6 +7,7 @@
 #include <common.h>
 #include <boot_rkimg.h>
 #include <asm/io.h>
+#include <asm/gpio.h>
 #include <dm/of_access.h>
 #include <dm/device.h>
 #include <linux/dw_hdmi.h>
@@ -35,6 +36,16 @@
 #define RK3328_GRF_SOC_CON2              0x0408
 #define RK3328_GRF_SOC_CON3              0x040c
 #define RK3328_GRF_SOC_CON4              0x0410
+
+#define RK3528_VO_GRF_HDMI_MASK		0x60014
+#define RK3528_HDMI_SNKDET_SEL		((BIT(6) << 16) | BIT(6))
+#define RK3528_HDMI_SNKDET		BIT(21)
+#define RK3528_HDMI_CECIN_MSK		((BIT(2) << 16) | BIT(2))
+#define RK3528_HDMI_SDAIN_MSK		((BIT(1) << 16) | BIT(1))
+#define RK3528_HDMI_SCLIN_MSK		((BIT(0) << 16) | BIT(0))
+
+#define RK3528_GPIO_SWPORT_DR_L		0x0000
+#define RK3528_GPIO0_A2_DR		((BIT(2) << 16) | BIT(2))
 
 #define RK3568_GRF_VO_CON1               0x0364
 #define RK3568_HDMI_SDAIN_MSK            ((1 << 15) | (1 << (15 + 16)))
@@ -463,8 +474,11 @@ void inno_dw_hdmi_set_domain(void *grf, int status)
 		writel(RK3328_IO_3V_DOMAIN, grf + RK3328_GRF_SOC_CON4);
 }
 
-void dw_hdmi_set_iomux(void *grf, int dev_type)
+void dw_hdmi_set_iomux(void *grf, void *gpio_base, struct gpio_desc *hpd_gpiod,
+		       int dev_type)
 {
+	u32 val = 0;
+
 	switch (dev_type) {
 	case RK3328_HDMI:
 		writel(RK3328_IO_DDC_IN_MSK, grf + RK3328_GRF_SOC_CON2);
@@ -473,6 +487,26 @@ void dw_hdmi_set_iomux(void *grf, int dev_type)
 	case RK3228_HDMI:
 		writel(RK3228_IO_3V_DOMAIN, grf + RK3228_GRF_SOC_CON6);
 		writel(RK3228_IO_DDC_IN_MSK, grf + RK3228_GRF_SOC_CON2);
+		break;
+	case RK3528_HDMI:
+		writel(RK3528_HDMI_SDAIN_MSK | RK3528_HDMI_SCLIN_MSK |
+		       RK3528_HDMI_SNKDET_SEL,
+		       grf + RK3528_VO_GRF_HDMI_MASK);
+
+		writel(val, grf + RK3528_VO_GRF_HDMI_MASK);
+
+		/* gpio0_a2's input enable is controlled by gpio output data bit */
+		writel(RK3528_GPIO0_A2_DR, gpio_base + RK3528_GPIO_SWPORT_DR_L);
+
+		if (dm_gpio_is_valid(hpd_gpiod))
+			val = dm_gpio_get_value(hpd_gpiod);
+
+		if (val)
+			val = RK3528_HDMI_SNKDET | BIT(5);
+		else
+			val = RK3528_HDMI_SNKDET;
+		writel(val, grf + RK3528_VO_GRF_HDMI_MASK);
+
 		break;
 	case RK3568_HDMI:
 		writel(RK3568_HDMI_SDAIN_MSK | RK3568_HDMI_SCLIN_MSK,
@@ -544,6 +578,14 @@ const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
 	.dev_type   = RK3399_HDMI,
 };
 
+const struct dw_hdmi_plat_data rk3528_hdmi_drv_data = {
+	.vop_sel_bit = 0,
+	.grf_vop_sel_reg = 0,
+	.phy_ops    = &inno_dw_hdmi_phy_ops,
+	.phy_name   = "inno_dw_hdmi_phy2",
+	.dev_type   = RK3528_HDMI,
+};
+
 const struct dw_hdmi_plat_data rk3568_hdmi_drv_data = {
 	.vop_sel_bit = 0,
 	.grf_vop_sel_reg = 0,
@@ -571,6 +613,9 @@ static int rockchip_dw_hdmi_probe(struct udevice *dev)
 
 static const struct udevice_id rockchip_dw_hdmi_ids[] = {
 	{
+	 .compatible = "rockchip,rk3528-dw-hdmi",
+	 .data = (ulong)&rk3528_hdmi_drv_data,
+	}, {
 	 .compatible = "rockchip,rk3568-dw-hdmi",
 	 .data = (ulong)&rk3568_hdmi_drv_data,
 	}, {

@@ -261,13 +261,13 @@ static const struct post_pll_config post_pll_cfg_table[] = {
 	{33750000,  1, 10, 2, 4},
 	{74250000,  1, 40, 8, 1},
 	{74250000, 18, 80, 8, 2},
-	{74250000,  1, 20, 4, 5},
+	{74250000,  1, 20, 4, 8},
 	{148500000, 2, 40, 4, 3},
-	{148500000, 1, 10, 2, 5},
+	{148500000, 1, 10, 2, 8},
 	{297000000, 4, 40, 2, 3},
-	{297000000, 2, 20, 2, 5},
+	{297000000, 2, 20, 2, 8},
 	{594000000, 8, 40, 1, 3},
-	{594000000, 4, 20, 1, 5},
+	{594000000, 4, 20, 1, 8},
 	{     ~0UL, 0,  0, 0, 0}
 };
 
@@ -461,7 +461,7 @@ static int inno_hdmi_phy_power_on(struct rockchip_phy *phy)
 		 tmdsclock <= 33750000)
 		chipversion = 4;
 	else if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3528)
-		chipversion = 5;
+		chipversion = 8;
 
 	printf("tmdsclock = %d; chipversion = %d\n", tmdsclock, chipversion);
 
@@ -917,6 +917,7 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 	inno_write(inno, 0xab, val);
 
 	if (cfg->postdiv == 1) {
+		inno_write(inno, 0xad, 0x8);
 		inno_write(inno, 0xaa, 2);
 	} else {
 		val = (cfg->postdiv / 2) - 1;
@@ -947,13 +948,12 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 	inno_write(inno, 0xbb, phy_cfg->regs[4]);
 	inno_write(inno, 0xbc, phy_cfg->regs[4]);
 	inno_write(inno, 0xbd, phy_cfg->regs[4]);
-	inno_write(inno, 0xbe, phy_cfg->regs[4]);
 
 	/* enable LDO */
 	inno_write(inno, 0xb4, 0x7);
 
 	/* enable serializer */
-	inno_write(inno, 0xbe, 0x7);
+	inno_write(inno, 0xbe, 0x70);
 
 	if (phy_cfg->tmdsclock > 340000000) {
 		/* Set termination resistor to 100ohm */
@@ -1003,6 +1003,8 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 	/* Enable PHY IRQ */
 	inno_write(inno, 0x05, 0x22);
 	inno_write(inno, 0x07, 0x22);
+	inno_write(inno, 0xcc, 0x0f);
+
 	return 0;
 }
 

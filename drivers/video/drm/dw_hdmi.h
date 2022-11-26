@@ -1411,6 +1411,7 @@ void drm_rk_selete_output(struct hdmi_edid_data *edid_data,
 			  enum dw_hdmi_devtype dev_type,
 			  bool output_bus_format_rgb);
 void inno_dw_hdmi_set_domain(void *grf, int status);
-void dw_hdmi_set_iomux(void *grf, int dev_type);
+void dw_hdmi_set_iomux(void *grf, void *gpio_base, struct gpio_desc *hpd_gpiod,
+		       int dev_type);
 
 #endif /* _ROCKCHIP_HDMI_H_ */

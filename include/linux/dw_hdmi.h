@@ -92,6 +92,7 @@ enum dw_hdmi_devtype {
 	RK3366_HDMI,
 	RK3368_HDMI,
 	RK3399_HDMI,
+	RK3528_HDMI,
 	RK3568_HDMI,
 };
 

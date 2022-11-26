@@ -7,6 +7,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <syscon.h>
+#include <asm/gpio.h>
 #include <asm/arch-rockchip/clock.h>
 #include <asm/arch/vendor.h>
 #include <edid.h>
@@ -181,6 +182,7 @@ struct dw_hdmi {
 	bool sink_has_audio;
 	void *regs;
 	void *grf;
+	void *gpio_base;
 	struct dw_hdmi_i2c *i2c;
 
 	struct {
@@ -203,6 +205,8 @@ struct dw_hdmi {
 
 	bool hdcp1x_enable;
 	bool output_bus_format_rgb;
+
+	struct gpio_desc hpd_gpiod;
 };
 
 static void dw_hdmi_writel(struct dw_hdmi *hdmi, u8 val, int offset)
@@ -959,6 +963,7 @@ static int dw_hdmi_detect_phy(struct dw_hdmi *hdmi)
 	 * but it has a vedor phy.
 	 */
 	if (phy_type == DW_HDMI_PHY_VENDOR_PHY ||
+	    hdmi->dev_type == RK3528_HDMI ||
 	    hdmi->dev_type == RK3328_HDMI ||
 	    hdmi->dev_type == RK3228_HDMI) {
 		/* Vendor PHYs require support from the glue layer. */
@@ -2276,6 +2281,7 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	ofnode hdmi_node = conn->dev->node;
 	u32 val;
 	struct device_node *ddc_node;
+	int ret;
 
 	hdmi = malloc(sizeof(struct dw_hdmi));
 	if (!hdmi)
@@ -2324,6 +2330,17 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 		return -ENXIO;
 	}
 
+	hdmi->gpio_base = (void *)dev_read_addr_index(conn->dev, 1);
+	if (!hdmi->gpio_base)
+		return -ENODEV;
+
+	ret = gpio_request_by_name(conn->dev, "hpd-gpios", 0,
+				   &hdmi->hpd_gpiod, GPIOD_IS_IN);
+        if (ret && ret != -ENOENT) {
+                printf("%s: Cannot get HPD GPIO: %d\n", __func__, ret);
+                return ret;
+        }
+
 	dw_hdmi_set_reg_wr(hdmi);
 
 	if (pdata->grf_vop_sel_reg) {
@@ -2362,7 +2379,8 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	hdmi->sample_rate = 48000;
 
 	conn->data = hdmi;
-	dw_hdmi_set_iomux(hdmi->grf, hdmi->dev_type);
+	dw_hdmi_set_iomux(hdmi->grf, hdmi->gpio_base,
+			  &hdmi->hpd_gpiod, hdmi->dev_type);
 	dw_hdmi_detect_phy(hdmi);
 	dw_hdmi_dev_init(hdmi);
 
