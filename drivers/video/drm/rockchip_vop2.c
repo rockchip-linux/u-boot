@@ -3395,10 +3395,21 @@ static int rockchip_vop2_init(struct display_state *state)
 		} else if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI1) && hdmi1_phy_pll.dev) {
 			ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate * 1000);
 		} else {
-			if (is_extend_pll(state, &hdmi_phy_pll.dev))
+			if (is_extend_pll(state, &hdmi_phy_pll.dev)) {
 				ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate * 1000);
-			else
-				ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
+			} else {
+				/*
+				 * For RK3528, the path of CVBS output is like:
+				 * VOP BT656 ENCODER -> CVBS BT656 DECODER -> CVBS ENCODER -> CVBS VDAC
+				 * The vop2 dclk should be four times crtc_clock for CVBS sampling
+				 * clock needs.
+				 */
+				if (vop2->version == VOP_VERSION_RK3528 &&
+				    conn_state->output_if & VOP_OUTPUT_IF_BT656)
+					ret = vop2_clk_set_rate(&dclk, 4 * dclk_rate * 1000);
+				else
+					ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
+			}
 		}
 	} else {
 		if (is_extend_pll(state, &hdmi_phy_pll.dev))
