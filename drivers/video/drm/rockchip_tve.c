@@ -605,8 +605,9 @@ static int rockchip_drm_tve_enable(struct rockchip_connector *conn, struct displ
 	else
 		tve->tv_format = TVOUT_CVBS_NTSC;
 
-	dac_enable(tve, true);
 	tve_set_mode(tve);
+	mdelay(1000);
+	dac_enable(tve, true);
 
 	return 0;
 }
