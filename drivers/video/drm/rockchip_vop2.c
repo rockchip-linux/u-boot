@@ -3378,6 +3378,22 @@ static int rockchip_vop2_init(struct display_state *state)
 		debug("%s: Faile to find display-subsystem node\n", __func__);
 	}
 
+	if (vop2->version == VOP_VERSION_RK3528) {
+		struct ofnode_phandle_args args;
+
+		ret = dev_read_phandle_with_args(cstate->dev, "assigned-clock-parents",
+						 "#clock-cells", 0, 0, &args);
+		if (!ret) {
+			ret = uclass_find_device_by_ofnode(UCLASS_CLK, args.node, &hdmi0_phy_pll.dev);
+			if (ret) {
+				debug("warn: can't get clk device\n");
+				return ret;
+			}
+		} else {
+			debug("assigned-clock-parents's node not define\n");
+		}
+	}
+
 	if (mode->crtc_clock < VOP2_MAX_DCLK_RATE) {
 		if (conn_state->output_if & VOP_OUTPUT_IF_HDMI0)
 			vop2_clk_set_parent(&dclk, &hdmi0_phy_pll);
@@ -4129,7 +4145,7 @@ static struct vop2_plane_table rk3528_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
 static struct vop2_vp_plane_mask rk3528_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] = {
 	{ /* one display policy for hdmi */
 		{/* main display */
-			.primary_plane_id = ROCKCHIP_VOP2_ESMART1,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART0,
 			.attached_layers_nr = 4,
 			.attached_layers = {
 				  ROCKCHIP_VOP2_CLUSTER0,
@@ -4143,7 +4159,7 @@ static struct vop2_vp_plane_mask rk3528_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 
 	{ /* two display policy */
 		{/* main display */
-			.primary_plane_id = ROCKCHIP_VOP2_ESMART1,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART0,
 			.attached_layers_nr = 3,
 			.attached_layers = {
 				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_ESMART0, ROCKCHIP_VOP2_ESMART1
