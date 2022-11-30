@@ -330,7 +330,7 @@ static const struct phy_config rk3528_phy_cfg[] = {
 		},
 	}, {
 		594000000, {
-			0x00, 0x0a, 0x1c, 0x1c, 0x30, 0x00, 0x00, 0x00, 0x00,
+			0x02, 0x08, 0x0d, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00,
 		},
 	}, {
@@ -957,11 +957,12 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 
 	if (phy_cfg->tmdsclock > 340000000) {
 		/* Set termination resistor to 100ohm */
-		val = 75000000 / 100000;
-		inno_write(inno, 0xc5, ((val >> 8) & 0xff) | 0x80);
-		inno_write(inno, 0xc6, val & 0xff);
-		inno_write(inno, 0xc7, 3 << 1);
-		inno_write(inno, 0xc5, ((val >> 8) & 0xff));
+		inno_write(inno, 0xc7, 0x76);
+		inno_write(inno, 0xc5, 0x83);
+		inno_write(inno, 0xc8, 0x00);
+		inno_write(inno, 0xc9, 0x2d);
+		inno_write(inno, 0xca, 0x2d);
+		inno_write(inno, 0xcb, 0x2d);
 	} else {
 		inno_write(inno, 0xc5, 0x81);
 		/* clk termination resistor is 50ohm */
