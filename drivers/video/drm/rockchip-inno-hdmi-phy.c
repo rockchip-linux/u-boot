@@ -320,12 +320,12 @@ static const struct phy_config rk3328_phy_cfg[] = {
 static const struct phy_config rk3528_phy_cfg[] = {
 	/* tmdsclk bias-clk bias-data voltage-clk voltage-data pre-emphasis-data */
 	{	165000000, {
-			0x00, 0x00, 0x1c, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x03, 0x04, 0x0c, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00,
 		},
 	}, {
 		340000000, {
-			0x00, 0x02, 0x1c, 0x1c, 0x20, 0x00, 0x00, 0x00, 0x00,
+			0x03, 0x04, 0x0c, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00,
 		},
 	}, {
@@ -907,6 +907,7 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 {
 	u32 val;
 	u64 temp;
+	u32 tmdsclock = inno_hdmi_phy_get_tmdsclk(inno, inno->pixclock);
 
 	/* set pdata_en to 0 */
 	inno_update_bits(inno, 0x02, 1, 0);
@@ -955,28 +956,26 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 	/* enable serializer */
 	inno_write(inno, 0xbe, 0x70);
 
+	/* set termination resistance */
 	if (phy_cfg->tmdsclock > 340000000) {
-		/* Set termination resistor to 100ohm */
 		inno_write(inno, 0xc7, 0x76);
 		inno_write(inno, 0xc5, 0x83);
 		inno_write(inno, 0xc8, 0x00);
-		inno_write(inno, 0xc9, 0x2d);
-		inno_write(inno, 0xca, 0x2d);
-		inno_write(inno, 0xcb, 0x2d);
+		inno_write(inno, 0xc9, 0x2f);
+		inno_write(inno, 0xca, 0x2f);
+		inno_write(inno, 0xcb, 0x2f);
 	} else {
-		inno_write(inno, 0xc5, 0x81);
-		/* clk termination resistor is 50ohm */
-		if (phy_cfg->tmdsclock > 165000000)
-			inno_write(inno, 0xc8, 0x30);
-		/* data termination resistor is 150ohm */
-		inno_write(inno, 0xc9, 0x10);
-		inno_write(inno, 0xca, 0x10);
-		inno_write(inno, 0xcb, 0x10);
+		inno_write(inno, 0xc7, 0x76);
+		inno_write(inno, 0xc5, 0x83);
+		inno_write(inno, 0xc8, 0x00);
+		inno_write(inno, 0xc9, 0x0f);
+		inno_write(inno, 0xca, 0x0f);
+		inno_write(inno, 0xcb, 0x0f);
 	}
 
 
 	/* set TMDS sync detection counter length */
-	temp = 47520000000UL / phy_cfg->tmdsclock;
+	temp = 47520000000UL / tmdsclock;
 	inno_write(inno, 0xd8, (temp >> 8) & 0xff);
 	inno_write(inno, 0xd9, temp & 0xff);
 
