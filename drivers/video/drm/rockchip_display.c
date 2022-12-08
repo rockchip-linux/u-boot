@@ -152,6 +152,7 @@ struct base2_disp_info *rockchip_get_disp_info(int type, int id)
 	struct base2_disp_header *disp_header;
 	int i = 0, offset = -1;
 	u32 crc_val;
+	u32 base2_length;
 	void *base_parameter_addr = (void *)&base_parameter;
 
 	for (i = 0; i < 8; i++) {
@@ -178,11 +179,23 @@ struct base2_disp_info *rockchip_get_disp_info(int type, int id)
 	if (strncasecmp(disp_info->disp_head_flag, "DISP", 4))
 		return NULL;
 
-	crc_val = rockchip_display_crc32c_cal((unsigned char *)disp_info, sizeof(struct base2_disp_info) - 4);
-
-	if (crc_val != disp_info->crc) {
-		printf("error: connector type[%d], id[%d] disp info crc check error\n", type, id);
-		return NULL;
+	if (base_parameter.major_version == 3 && base_parameter.minor_version == 0) {
+		crc_val = rockchip_display_crc32c_cal((unsigned char *)disp_info,
+						      sizeof(struct base2_disp_info) - 4);
+		if (crc_val != disp_info->crc2) {
+			printf("error: connector type[%d], id[%d] disp info crc2 check error\n",
+			       type, id);
+			return NULL;
+		}
+	} else {
+		base2_length = sizeof(struct base2_disp_info) - sizeof(struct csc_info) -
+			       sizeof(struct acm_data) - 10 * 1024 - 4;
+		crc_val = rockchip_display_crc32c_cal((unsigned char *)disp_info, base2_length - 4);
+		if (crc_val != disp_info->crc) {
+			printf("error: connector type[%d], id[%d] disp info crc check error\n",
+			       type, id);
+			return NULL;
+		}
 	}
 
 	return disp_info;
@@ -2065,6 +2078,7 @@ void rockchip_display_fixup(void *blob)
 	int ret;
 	const struct device_node *np;
 	const char *path;
+	const char *cacm_header;
 
 	if (fdt_node_offset_by_compatible(blob, 0, "rockchip,drm-logo") >= 0) {
 		list_for_each_entry(s, &rockchip_display_list, head) {
@@ -2164,10 +2178,37 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("overscan,bottom_margin", s->conn_state.overscan.bottom_margin);
 
 		if (s->conn_state.disp_info) {
+			cacm_header = (const char*)&s->conn_state.disp_info->cacm_header;
+
 			FDT_SET_U32("bcsh,brightness", s->conn_state.disp_info->bcsh_info.brightness);
 			FDT_SET_U32("bcsh,contrast", s->conn_state.disp_info->bcsh_info.contrast);
 			FDT_SET_U32("bcsh,saturation", s->conn_state.disp_info->bcsh_info.saturation);
 			FDT_SET_U32("bcsh,hue", s->conn_state.disp_info->bcsh_info.hue);
+
+			if (!strncasecmp(cacm_header, "CACM", 4)) {
+				FDT_SET_U32("post_csc,hue",
+					    s->conn_state.disp_info->csc_info.hue);
+				FDT_SET_U32("post_csc,saturation",
+					    s->conn_state.disp_info->csc_info.saturation);
+				FDT_SET_U32("post_csc,contrast",
+					    s->conn_state.disp_info->csc_info.contrast);
+				FDT_SET_U32("post_csc,brightness",
+					    s->conn_state.disp_info->csc_info.brightness);
+				FDT_SET_U32("post_csc,r_gain",
+					    s->conn_state.disp_info->csc_info.r_gain);
+				FDT_SET_U32("post_csc,g_gain",
+					    s->conn_state.disp_info->csc_info.g_gain);
+				FDT_SET_U32("post_csc,b_gain",
+					    s->conn_state.disp_info->csc_info.b_gain);
+				FDT_SET_U32("post_csc,r_offset",
+					    s->conn_state.disp_info->csc_info.r_offset);
+				FDT_SET_U32("post_csc,g_offset",
+					    s->conn_state.disp_info->csc_info.g_offset);
+				FDT_SET_U32("post_csc,b_offset",
+					    s->conn_state.disp_info->csc_info.b_offset);
+				FDT_SET_U32("post_csc,csc_enable",
+					    s->conn_state.disp_info->csc_info.csc_enable);
+			}
 		}
 
 		if (s->conn_state.disp_info->cubic_lut_data.size &&
