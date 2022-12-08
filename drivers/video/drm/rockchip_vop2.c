@@ -44,6 +44,7 @@
 
 #define RK3568_SYS_AXI_LUT_CTRL			0x024
 #define LUT_DMA_EN_SHIFT			0
+#define DSP_VS_T_SEL_SHIFT			16
 
 #define RK3568_DSP_IF_EN			0x028
 #define RGB_EN_SHIFT				0
@@ -2200,6 +2201,9 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 				ESMART_LB_MODE_SEL_SHIFT, vop2->esmart_lb_mode, false);
 
 		vop3_init_esmart_scale_engine(vop2);
+
+		vop2_mask_write(vop2, RK3568_SYS_AXI_LUT_CTRL, EN_MASK,
+				DSP_VS_T_SEL_SHIFT, 0, false);
 	}
 
 	if (vop2->version == VOP_VERSION_RK3568)
@@ -3286,18 +3290,8 @@ static int rockchip_vop2_init(struct display_state *state)
 		vop2_writel(vop2, RK3568_VP0_DSP_VS_ST_END_F1 + vp_offset, val);
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				INTERLACE_EN_SHIFT, 1, false);
-		if (vop2->version == VOP_VERSION_RK3528) {
-			if (conn_state->output_if & VOP_OUTPUT_IF_BT656 &&
-			    mode->vdisplay == 480)
-				vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-						DSP_FILED_POL, 0, false);
-			else
-				vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-						DSP_FILED_POL, 1, false);
-		} else {
-			vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-					DSP_FILED_POL, 1, false);
-		}
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				DSP_FILED_POL, 1, false);
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				P2I_EN_SHIFT, 1, false);
 		vtotal += vtotal + 1;
