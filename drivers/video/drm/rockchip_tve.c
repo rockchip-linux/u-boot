@@ -93,7 +93,7 @@ static struct env_config pal_tve_config[] = {
 	{ TVE_MODE_CTRL, 0x010ab906 },
 	{ TVE_HOR_TIMING1, 0x00c28381 },
 	{ TVE_HOR_TIMING2, 0x267d111d },
-	{ TVE_HOR_TIMING3, 0x76c00880 },
+	{ TVE_HOR_TIMING3, 0x66c00880 },
 	{ TVE_SUB_CAR_FRQ, 0x2a098acb },
 	{ TVE_IMAGE_POSITION, 0x001500f6 },
 	{ TVE_ROUTING, 0x10008882 },
@@ -103,9 +103,9 @@ static struct env_config pal_tve_config[] = {
 	{ TVE_INTR_STATUS, 0x00000000 },
 	{ TVE_INTR_EN, 0x00000000 },
 	{ TVE_INTR_CLR, 0x00000000 },
-	{ TVE_COLOR_BUSRT_SAT, 0x00366044 },
+	{ TVE_COLOR_BUSRT_SAT, 0x00356245 },
 	{ TVE_CHROMA_BANDWIDTH, 0x00000022 },
-	{ TVE_BRIGHTNESS_CONTRAST, 0x0000a300 },
+	{ TVE_BRIGHTNESS_CONTRAST, 0x0000aa00 },
 	{ TVE_CLAMP, 0x00000000 },
 };
 
@@ -300,6 +300,8 @@ static void dac_enable(struct rockchip_tve *tve, bool enable)
 			tve_dac_writel(VDAC_CLK_RST, v_ANALOG_RST(0) | v_DIGITAL_RST(0));
 			mdelay(20);
 			tve_dac_writel(VDAC_CLK_RST, v_ANALOG_RST(1) | v_DIGITAL_RST(1));
+
+			tve_dac_writel(VDAC_CURRENT_CTRL, v_OUT_CURRENT(0xd2));
 
 			val = v_REF_VOLTAGE(7) | v_DAC_PWN(1) | v_BIAS_PWN(1);
 			offset = VDAC_PWM_REF_CTRL;

@@ -205,6 +205,9 @@
 	#define v_DAC_PWN(x)		(((x) & 1) << 1)
 	#define v_BIAS_PWN(x)		(((x) & 1) << 0)
 #define VDAC_CURRENT_CTRL		(0x0284)
+	#define m_OUT_CURRENT		(0xff << 0)
+
+	#define v_OUT_CURRENT(x)	(((x) & 0xff) << 0)
 #define VDAC_CABLE_CTRL			(0x0288)
 #define VDAC_VOLTAGE_CTRL		(0x028C)
 #define VDAC_BIAS_CLK_CTRL0		(0x0290)
