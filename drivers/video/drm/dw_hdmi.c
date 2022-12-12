@@ -2457,6 +2457,7 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 		hdmi->sink_has_audio = true;
 		do_cea_modes(&hdmi->edid_data, def_modes_vic,
 			     sizeof(def_modes_vic));
+		hdmi->edid_data.mode_buf[0].type |= DRM_MODE_TYPE_PREFERRED;
 		hdmi->edid_data.preferred_mode = &hdmi->edid_data.mode_buf[0];
 		printf("failed to get edid\n");
 	}
