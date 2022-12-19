@@ -1705,6 +1705,28 @@ static int hdptx_lcpll_ropll_frl_mode_config(struct rockchip_hdptx_phy *hdptx)
 	hdptx_write(hdptx, LANE_REG061F, 0x15);
 	hdptx_write(hdptx, LANE_REG0620, 0xa0);
 
+	hdptx_write(hdptx, LANE_REG0303, 0x2f);
+	hdptx_write(hdptx, LANE_REG0403, 0x2f);
+	hdptx_write(hdptx, LANE_REG0503, 0x2f);
+	hdptx_write(hdptx, LANE_REG0603, 0x2f);
+	hdptx_write(hdptx, LANE_REG0305, 0x03);
+	hdptx_write(hdptx, LANE_REG0405, 0x03);
+	hdptx_write(hdptx, LANE_REG0505, 0x03);
+	hdptx_write(hdptx, LANE_REG0605, 0x03);
+	hdptx_write(hdptx, LANE_REG0306, 0xfc);
+	hdptx_write(hdptx, LANE_REG0406, 0xfc);
+	hdptx_write(hdptx, LANE_REG0506, 0xfc);
+	hdptx_write(hdptx, LANE_REG0606, 0xfc);
+
+	hdptx_write(hdptx, LANE_REG0305, 0x4f);
+	hdptx_write(hdptx, LANE_REG0405, 0x4f);
+	hdptx_write(hdptx, LANE_REG0505, 0x4f);
+	hdptx_write(hdptx, LANE_REG0605, 0x4f);
+	hdptx_write(hdptx, LANE_REG0304, 0x14);
+	hdptx_write(hdptx, LANE_REG0404, 0x14);
+	hdptx_write(hdptx, LANE_REG0504, 0x14);
+	hdptx_write(hdptx, LANE_REG0604, 0x14);
+
 	return hdptx_post_enable_lane(hdptx);
 }
 
@@ -2021,18 +2043,6 @@ static ulong hdptx_clk_set_rate(struct clk *clk, ulong rate)
 				new_rate = rate;
 				priv->rate = rate;
 			}
-		}
-	} else {
-		if (!hdptx_ropll_cmn_config(hdptx, rate)) {
-			new_rate = rate;
-			priv->rate = rate;
-		}
-	}
-
-	if (rate > (HDMI20_MAX_RATE / 100)) {
-		if (!hdptx_lcpll_cmn_config(hdptx, rate)) {
-			new_rate = rate;
-			priv->rate = rate;
 		}
 	} else {
 		if (!hdptx_ropll_cmn_config(hdptx, rate)) {
