@@ -503,6 +503,7 @@
 #define RK3568_CLUSTER0_WIN0_AFBCD_PIC_OFFSET	0x1064
 #define RK3568_CLUSTER0_WIN0_AFBCD_DSP_OFFSET	0x1068
 #define RK3568_CLUSTER0_WIN0_AFBCD_CTRL		0x106C
+#define CLUSTER_AFBCD_HALF_BLOCK_SHIFT		7
 
 #define RK3568_CLUSTER0_WIN1_CTRL0		0x1080
 #define RK3568_CLUSTER0_WIN1_CTRL1		0x1084
@@ -3992,6 +3993,11 @@ static void vop2_set_cluster_win(struct display_state *state, struct vop2_win_da
 
 	if (y_mirror)
 		printf("WARN: y mirror is unsupported by cluster window\n");
+
+	/* rk3588 should set half_blocK_en to 1 in line and tile mode */
+	if (vop2->version == VOP_VERSION_RK3588)
+		vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_AFBCD_CTRL + win_offset,
+				EN_MASK, CLUSTER_AFBCD_HALF_BLOCK_SHIFT, 1, false);
 
 	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset,
 			WIN_FORMAT_MASK, WIN_FORMAT_SHIFT, cstate->format,
