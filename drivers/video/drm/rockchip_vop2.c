@@ -1940,10 +1940,10 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 	u32 value;
 	int i;
 
+	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
+		POST_ACM_BYPASS_EN_MASK, POST_ACM_BYPASS_EN_SHIFT, 0, false);
 	if (!acm->acm_enable) {
-		writel(0x2, vop2->regs + RK3528_ACM_CTRL);
-		vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
-				POST_ACM_BYPASS_EN_MASK, POST_ACM_BYPASS_EN_SHIFT, 1, false);
+		writel(0, vop2->regs + RK3528_ACM_CTRL);
 		return;
 	}
 
@@ -1954,8 +1954,6 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 	value = (acm->acm_enable & 0x1) + ((mode->hdisplay & 0xfff) << 8) +
 		((mode->vdisplay & 0xfff) << 20);
 	writel(value, vop2->regs + RK3528_ACM_CTRL);
-	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
-			POST_ACM_BYPASS_EN_MASK, POST_ACM_BYPASS_EN_SHIFT, 0, false);
 
 	value = (acm->y_gain & 0x3ff) + ((acm->h_gain << 10) & 0xffc00) +
 		((acm->s_gain << 20) & 0x3ff00000);
@@ -2073,7 +2071,6 @@ static void vop3_post_config(struct display_state *state, struct vop2 *vop2)
 	struct connector_state *conn_state = &state->conn_state;
 	struct base2_disp_info *disp_info = conn_state->disp_info;
 	const char *enable_flag;
-
 	if (!disp_info) {
 		printf("disp_info is empty\n");
 		return;
