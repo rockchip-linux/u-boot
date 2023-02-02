@@ -28,15 +28,6 @@ config DRM_MAXIM_MAX96745
 	help
 	  Driver for Maxim MAX96745 GMSL2 Serializer with eDP1.4a/DP1.4 Input.
 
-config DRM_MAXIM_MAX96752F
-	bool "Maxim max96752F GMSL2 Deserializer"
-	depends on DRM_ROCKCHIP
-	select I2C_MUX_MAX96752F
-	select PINCTRL_MAX96752F
-	select GPIO_MAX96752F
-	help
-	  Driver for Maxim MAX96752F GMSL2 Deserializer with Dual LVDS Output.
-
 config DRM_MAXIM_MAX96755F
 	bool "Maxim max96755F GMSL2 Serializer"
 	depends on DRM_ROCKCHIP
