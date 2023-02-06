@@ -14,16 +14,23 @@
 #include <drm/drm_dsc.h>
 
 /*
- * major: IP major vertion, used for IP structure
+ * major: IP major version, used for IP structure
  * minor: big feature change under same structure
+ * build: RTL current SVN number
  */
-#define VOP_VERSION(major, minor)	((major) << 8 | (minor))
-#define VOP_MAJOR(version)		((version) >> 8)
-#define VOP_MINOR(version)		((version) & 0xff)
+#define VOP_VERSION(major, minor)		((major) << 8 | (minor))
+#define VOP_MAJOR(version)			((version) >> 8)
+#define VOP_MINOR(version)			((version) & 0xff)
 
-#define VOP_VERSION_RK3528		VOP_VERSION(0x50, 0x17)
-#define VOP_VERSION_RK3568		VOP_VERSION(0x40, 0x15)
-#define VOP_VERSION_RK3588		VOP_VERSION(0x40, 0x17)
+#define VOP2_VERSION(major, minor, build)	((major) << 24 | (minor) << 16 | (build))
+#define VOP2_MAJOR(version)			(((version) >> 24) & 0xff)
+#define VOP2_MINOR(version)			(((version) >> 16) & 0xff)
+#define VOP2_BUILD(version)			((version) & 0xffff)
+
+#define VOP_VERSION_RK3528			VOP2_VERSION(0x50, 0x17, 0x1263)
+#define VOP_VERSION_RK3562			VOP2_VERSION(0x50, 0x17, 0x4350)
+#define VOP_VERSION_RK3568			VOP2_VERSION(0x40, 0x15, 0x8023)
+#define VOP_VERSION_RK3588			VOP2_VERSION(0x40, 0x17, 0x6786)
 
 #define ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE	BIT(0)
 #define ROCKCHIP_OUTPUT_DUAL_CHANNEL_ODD_EVEN_MODE	BIT(1)
