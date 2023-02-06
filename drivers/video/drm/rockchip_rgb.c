@@ -48,6 +48,9 @@
 #define RK3368_GRF_SOC_CON15		0x043c
 #define RK3368_FORCE_JETAG(v)		HIWORD_UPDATE(v,  13,  13)
 
+#define RK3562_GRF_IOC_VO_IO_CON	0x10500
+#define RK3562_RGB_DATA_BYPASS(v)	HIWORD_UPDATE(v, 6, 6)
+
 #define RK3568_GRF_VO_CON1		0X0364
 #define RK3568_RGB_DATA_BYPASS(v)	HIWORD_UPDATE(v, 6, 6)
 
@@ -260,6 +263,16 @@ static const struct rockchip_rgb_funcs rk3368_rgb_funcs = {
 	.prepare = rk3368_rgb_prepare,
 };
 
+static void rk3562_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+{
+	regmap_write(rgb->grf, RK3562_GRF_IOC_VO_IO_CON,
+		     RK3562_RGB_DATA_BYPASS(rgb->data_sync_bypass));
+}
+
+static const struct rockchip_rgb_funcs rk3562_rgb_funcs = {
+	.prepare = rk3562_rgb_prepare,
+};
+
 static void rk3568_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RK3568_GRF_VO_CON1, RK3568_RGB_DATA_BYPASS(rgb->data_sync_bypass));
@@ -294,6 +307,10 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 	{
 		.compatible = "rockchip,rk3368-rgb",
 		.data = (ulong)&rk3368_rgb_funcs,
+	},
+	{
+		.compatible = "rockchip,rk3562-rgb",
+		.data = (ulong)&rk3562_rgb_funcs,
 	},
 	{
 		.compatible = "rockchip,rk3568-rgb",
