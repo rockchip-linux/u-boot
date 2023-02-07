@@ -4617,13 +4617,17 @@ static struct vop2_vp_data rk3528_vp_data[2] = {
 	{
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN | VOP_FEATURE_POST_ACM |
 			   VOP_FEATURE_POST_CSC,
-		.pre_scan_max_dly = 43,
 		.max_output = {4096, 4096},
+		.layer_mix_dly = 6,
+		.hdr_mix_dly = 2,
+		.win_dly = 8,
 	},
 	{
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN,
-		.pre_scan_max_dly = 37,
 		.max_output = {1920, 1080},
+		.layer_mix_dly = 2,
+		.hdr_mix_dly = 0,
+		.win_dly = 8,
 	},
 };
 
