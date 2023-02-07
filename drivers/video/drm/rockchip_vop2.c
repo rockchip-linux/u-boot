@@ -2287,22 +2287,16 @@ static bool vop3_ignore_plane(struct vop2 *vop2, struct vop2_win_data *win)
 static void vop3_init_esmart_scale_engine(struct vop2 *vop2)
 {
 	struct vop2_win_data *win_data;
-	int layer_phy_id = 0;
-	int i, j;
+	int i;
 	u8 scale_engine_num = 0;
-	u32 layer_nr = 0;
 
 	/* store plane mask for vop2_fixup_dts */
-	for (i = 0; i < vop2->data->nr_vps; i++) {
-		layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
-		for (j = 0; j < layer_nr; j++) {
-			layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
-			win_data = vop2_find_win_by_phys_id(vop2, layer_phy_id);
-			if (win_data->type == CLUSTER_LAYER || vop3_ignore_plane(vop2, win_data))
-				continue;
+	for (i = 0; i < vop2->data->nr_layers; i++) {
+		win_data = &vop2->data->win_data[i];
+		if (win_data->type == CLUSTER_LAYER || vop3_ignore_plane(vop2, win_data))
+			continue;
 
-			win_data->scale_engine_num = scale_engine_num++;
-		}
+		win_data->scale_engine_num = scale_engine_num++;
 	}
 }
 
@@ -2312,6 +2306,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	struct vop2_vp_plane_mask *plane_mask;
 	int layer_phy_id = 0;
 	int i, j;
+	int ret;
 	u32 layer_nr = 0;
 
 	if (vop2->global_init)
@@ -2442,8 +2437,8 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		 * 	esmart_lb_mode = /bits/ 8 <2>;
 		 * };
 		 */
-		vop2->esmart_lb_mode = ofnode_read_u32_default(cstate->node, "esmart_lb_mode", -1);
-		if (vop2->esmart_lb_mode < 0)
+		ret = ofnode_read_u32(cstate->node, "esmart_lb_mode", &vop2->esmart_lb_mode);
+		if (ret < 0)
 			vop2->esmart_lb_mode = vop2->data->esmart_lb_mode;
 		vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL, ESMART_LB_MODE_SEL_MASK,
 				ESMART_LB_MODE_SEL_SHIFT, vop2->esmart_lb_mode, false);
