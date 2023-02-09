@@ -1252,9 +1252,10 @@ static void rockchip_dw_hdmi_qp_mode_valid(struct dw_hdmi_qp *hdmi)
 	}
 }
 
-int rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn, struct display_state *state)
+static int _rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn,
+					   struct display_state *state, int edid_status)
 {
-	int ret, i;
+	int i;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct dw_hdmi_qp *hdmi = conn->data;
@@ -1267,14 +1268,13 @@ int rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn, struct displ
 	if (!hdmi)
 		return -EFAULT;
 
-	ret = drm_do_get_edid(&hdmi->adap, conn_state->edid);
-	if (!ret) {
+	if (!edid_status) {
 		hdmi->sink_is_hdmi =
 			drm_detect_hdmi_monitor(edid);
 		hdmi->sink_has_audio = drm_detect_monitor_audio(edid);
-		ret = drm_add_edid_modes(&hdmi->edid_data, conn_state->edid);
+		edid_status = drm_add_edid_modes(&hdmi->edid_data, conn_state->edid);
 	}
-	if (ret < 0) {
+	if (edid_status < 0) {
 		hdmi->sink_is_hdmi = true;
 		hdmi->sink_has_audio = true;
 		do_cea_modes(&hdmi->edid_data, def_modes_vic,
@@ -1345,6 +1345,21 @@ int rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn, struct displ
 
 	return 0;
 }
+
+int rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn, struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct dw_hdmi_qp *hdmi = conn->data;
+	int ret;
+
+	ret = drm_do_get_edid(&hdmi->adap, conn_state->edid);
+
+	if (conn_state->secondary)
+		_rockchip_dw_hdmi_qp_get_timing(conn_state->secondary, state, ret);
+
+	return _rockchip_dw_hdmi_qp_get_timing(conn, state, ret);
+}
+
 
 int rockchip_dw_hdmi_qp_detect(struct rockchip_connector *conn, struct display_state *state)
 {
