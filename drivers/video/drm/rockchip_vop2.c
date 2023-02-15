@@ -2587,11 +2587,12 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		}
 
 		if (v_pixclk > VOP2_MAX_DCLK_RATE)
-			dclk_rate = vop2_calc_dclk(dclk_core_rate, vop2->data->vp_data->max_dclk);
+			dclk_rate = vop2_calc_dclk(dclk_core_rate,
+						   vop2->data->vp_data[cstate->crtc_id].max_dclk);
 
 		if (!dclk_rate) {
 			printf("DP if_pixclk_rate out of range(max_dclk: %d KHZ, dclk_core: %lld KHZ)\n",
-			       vop2->data->vp_data->max_dclk, if_pixclk_rate);
+			       vop2->data->vp_data[cstate->crtc_id].max_dclk, if_pixclk_rate);
 			return -EINVAL;
 		}
 		*if_pixclk_div = dclk_rate / if_pixclk_rate;
@@ -2611,10 +2612,11 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		dclk_out_rate = v_pixclk >> 2;
 		dclk_out_rate = dclk_out_rate / K;
 
-		dclk_rate = vop2_calc_dclk(dclk_out_rate, vop2->data->vp_data->max_dclk);
+		dclk_rate = vop2_calc_dclk(dclk_out_rate,
+					   vop2->data->vp_data[cstate->crtc_id].max_dclk);
 		if (!dclk_rate) {
 			printf("DP dclk_core out of range(max_dclk: %d KHZ, dclk_core: %ld KHZ)\n",
-			       vop2->data->vp_data->max_dclk, dclk_core_rate);
+			       vop2->data->vp_data[cstate->crtc_id].max_dclk, dclk_core_rate);
 			return -EINVAL;
 		}
 		*dclk_out_div = dclk_rate / dclk_out_rate;
@@ -2630,10 +2632,11 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		/* dclk_core = dclk_out * K = if_pixclk * K = v_pixclk / 4 */
 		dclk_out_rate = dclk_core_rate / K;
 		/* dclk_rate = N * dclk_core_rate N = (1,2,4 ), we get a little factor here */
-		dclk_rate = vop2_calc_dclk(dclk_out_rate, vop2->data->vp_data->max_dclk);
+		dclk_rate = vop2_calc_dclk(dclk_out_rate,
+					   vop2->data->vp_data[cstate->crtc_id].max_dclk);
 		if (!dclk_rate) {
 			printf("MIPI dclk out of range(max_dclk: %d KHZ, dclk_rate: %ld KHZ)\n",
-			       vop2->data->vp_data->max_dclk, dclk_rate);
+			       vop2->data->vp_data[cstate->crtc_id].max_dclk, dclk_rate);
 			return -EINVAL;
 		}
 
