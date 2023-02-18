@@ -1159,6 +1159,41 @@ static int dw_mipi_dsi2_connector_disable(struct rockchip_connector *conn,
 	return 0;
 }
 
+static int dw_mipi_dsi2_connector_mode_valid(struct rockchip_connector *conn,
+					     struct display_state *state)
+{
+	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
+	struct connector_state *conn_state = &state->conn_state;
+	u8 min_pixels = dsi2->slave ? 8 : 4;
+	struct videomode vm;
+
+	drm_display_mode_to_videomode(&conn_state->mode, &vm);
+
+	/*
+	 * the minimum region size (HSA,HBP,HACT,HFP) is 4 pixels
+	 * which is the ip known issues and limitations.
+	 */
+	if (!(vm.hsync_len < min_pixels || vm.hback_porch < min_pixels ||
+	    vm.hfront_porch < min_pixels || vm.hactive < min_pixels))
+		return MODE_OK;
+
+	if (vm.hsync_len < min_pixels)
+		vm.hsync_len = min_pixels;
+
+	if (vm.hback_porch < min_pixels)
+		vm.hback_porch = min_pixels;
+
+	if (vm.hfront_porch < min_pixels)
+		vm.hfront_porch = min_pixels;
+
+	if (vm.hactive < min_pixels)
+		vm.hactive = min_pixels;
+
+	drm_display_mode_from_videomode(&vm, &conn_state->mode);
+
+	return MODE_OK;
+}
+
 static const struct rockchip_connector_funcs dw_mipi_dsi2_connector_funcs = {
 	.pre_init = dw_mipi_dsi2_connector_pre_init,
 	.init = dw_mipi_dsi2_connector_init,
@@ -1166,6 +1201,7 @@ static const struct rockchip_connector_funcs dw_mipi_dsi2_connector_funcs = {
 	.unprepare = dw_mipi_dsi2_connector_unprepare,
 	.enable = dw_mipi_dsi2_connector_enable,
 	.disable = dw_mipi_dsi2_connector_disable,
+	.mode_valid = dw_mipi_dsi2_connector_mode_valid,
 };
 
 static int dw_mipi_dsi2_probe(struct udevice *dev)
