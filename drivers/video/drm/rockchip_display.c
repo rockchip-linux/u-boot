@@ -743,6 +743,31 @@ static int display_get_edid_mode(struct display_state *state)
 	return ret;
 }
 
+static int display_mode_valid(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_connector *conn = conn_state->connector;
+	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
+	struct crtc_state *crtc_state = &state->crtc_state;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
+	int ret;
+
+	if (conn_funcs->mode_valid) {
+		ret = conn_funcs->mode_valid(conn, state);
+		if (ret)
+			return ret;
+	}
+
+	if (crtc_funcs->mode_valid) {
+		ret = crtc_funcs->mode_valid(state);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 static int display_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -865,6 +890,9 @@ static int display_init(struct display_state *state)
 		goto deinit;
 	if (state->force_output)
 		display_use_force_mode(state);
+
+	if (display_mode_valid(state))
+		goto deinit;
 
 	/* rk356x series drive mipi pixdata on posedge */
 	compatible = dev_read_string(conn->dev, "compatible");
@@ -1091,38 +1119,6 @@ check_fail:
 	return ret;
 }
 
-static int display_mode_valid(struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-	struct rockchip_connector *conn = conn_state->connector;
-	const struct rockchip_connector_funcs *conn_funcs = conn->funcs;
-	struct crtc_state *crtc_state = &state->crtc_state;
-	const struct rockchip_crtc *crtc = crtc_state->crtc;
-	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
-	int ret;
-
-	if (!state->is_init)
-		return 0;
-
-	if (conn_funcs->mode_valid) {
-		ret = conn_funcs->mode_valid(conn, state);
-		if (ret)
-			goto invalid_mode;
-	}
-
-	if (crtc_funcs->mode_valid) {
-		ret = crtc_funcs->mode_valid(state);
-		if (ret)
-			goto invalid_mode;
-	}
-
-	return 0;
-
-invalid_mode:
-	state->is_init = false;
-	return ret;
-}
-
 static int display_logo(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -1183,7 +1179,6 @@ static int display_logo(struct display_state *state)
 		}
 	}
 
-	display_mode_valid(state);
 	display_check(state);
 	display_set_plane(state);
 	display_enable(state);
