@@ -993,7 +993,6 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 		mdelay(100);
 	/* set pdata_en to 0/1 */
 	inno_update_bits(inno, 0x02, 1, 0);
-	mdelay(1);
 	inno_update_bits(inno, 0x02, 1, 1);
 
 	/* Enable PHY IRQ */
