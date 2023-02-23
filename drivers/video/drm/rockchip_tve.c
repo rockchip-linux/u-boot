@@ -150,6 +150,7 @@ struct rockchip_tve {
 	int	dac1level;
 	int	preferred_mode;
 	int	upsample_mode;
+	u8	vdac_out_current;
 	void	*grf;
 };
 
@@ -301,7 +302,7 @@ static void dac_enable(struct rockchip_tve *tve, bool enable)
 			mdelay(20);
 			tve_dac_writel(VDAC_CLK_RST, v_ANALOG_RST(1) | v_DIGITAL_RST(1));
 
-			tve_dac_writel(VDAC_CURRENT_CTRL, v_OUT_CURRENT(0xd2));
+			tve_dac_writel(VDAC_CURRENT_CTRL, v_OUT_CURRENT(tve->vdac_out_current));
 
 			val = v_REF_VOLTAGE(7) | v_DAC_PWN(1) | v_BIAS_PWN(1);
 			offset = VDAC_PWM_REF_CTRL;
@@ -374,8 +375,74 @@ static u8 rk_get_vdac_value(void)
 	return value;
 }
 
+#if defined(CONFIG_ROCKCHIP_EFUSE) || defined(CONFIG_ROCKCHIP_OTP)
+static int tve_read_otp_by_name(char *name, u8 *val, u8 default_val)
+{
+	struct udevice *dev;
+	ofnode node;
+	u32 regs[2] = {0};
+	int ret = -EINVAL;
+
+	*val = default_val;
+	if (IS_ENABLED(CONFIG_ROCKCHIP_EFUSE))
+		ret = uclass_get_device_by_driver(UCLASS_MISC,
+						  DM_GET_DRIVER(rockchip_efuse),
+						  &dev);
+	else
+		ret = uclass_get_device_by_driver(UCLASS_MISC,
+						  DM_GET_DRIVER(rockchip_otp),
+						  &dev);
+	if (!ret) {
+		node = dev_read_subnode(dev, name);
+		if (ofnode_valid(node)) {
+			if (!ofnode_read_u32_array(node, "reg", regs, 2)) {
+				ret = misc_read(dev, regs[0], val, 1);
+				if (!ret)
+					return 0;
+			}
+		}
+	}
+
+	printf("tve read %s from otp failed, use default\n", name);
+
+	return ret;
+}
+#endif
+
 static int tve_parse_dt(struct rockchip_tve *tve)
 {
+	/*
+	 * Read vdac output current from OTP if exists, and the default
+	 * current val is 0xd2.
+	 */
+	u8 out_current = 0xd2;
+#if defined(CONFIG_ROCKCHIP_EFUSE) || defined(CONFIG_ROCKCHIP_OTP)
+	u8 version = 0;
+	int ret = 0;
+
+	ret = tve_read_otp_by_name("vdac-out-current", &out_current, out_current);
+	if (!ret) {
+		if (out_current) {
+			/*
+			 * If test version is 0x0, the value of vdac out current
+			 * needs to be reduced by one.
+			 */
+			ret = tve_read_otp_by_name("test-version", &version, version);
+			if (!ret) {
+				if (version == 0x0)
+					out_current -= 1;
+			}
+		} else {
+			/*
+			 * If the current value read from OTP is 0, set it to default.
+			 */
+			out_current = 0xd2;
+		}
+
+	}
+#endif
+	tve->vdac_out_current = out_current;
+
 	tve->preferred_mode = dev_read_u32_default(tve->dev, "rockchip,tvemode", -1);
 	if (tve->preferred_mode < 0) {
 		tve->preferred_mode = 0;
