@@ -1075,8 +1075,9 @@ static const struct rockchip_dp_chip_data rk3399_edp_platform_data = {
 	.lcdsel_big = 0 | BIT(21),
 	.lcdsel_lit = BIT(5) | BIT(21),
 	.chip_type = RK3399_EDP,
+	.ssc = true,
 
-	.max_link_rate = DP_LINK_BW_2_7,
+	.max_link_rate = DP_LINK_BW_5_4,
 	.max_lane_count = 4,
 };
 
