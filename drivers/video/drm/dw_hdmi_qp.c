@@ -1239,6 +1239,19 @@ int rockchip_dw_hdmi_qp_disable(struct rockchip_connector *conn, struct display_
 	return 0;
 }
 
+static void rockchip_dw_hdmi_qp_mode_valid(struct dw_hdmi_qp *hdmi)
+{
+	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
+	int i;
+
+	for (i = 0; i < edid_data->modes; i++) {
+		if (edid_data->mode_buf[i].invalid)
+			continue;
+		if (edid_data->mode_buf[i].clock <= 25000)
+			edid_data->mode_buf[i].invalid = true;
+	}
+}
+
 int rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn, struct display_state *state)
 {
 	int ret, i;
@@ -1270,8 +1283,7 @@ int rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn, struct displ
 		printf("failed to get edid\n");
 	}
 	drm_rk_filter_whitelist(&hdmi->edid_data);
-	if (hdmi->phy.ops->mode_valid)
-		hdmi->phy.ops->mode_valid(hdmi->rk_hdmi, state);
+	rockchip_dw_hdmi_qp_mode_valid(hdmi);
 	drm_mode_max_resolution_filter(&hdmi->edid_data,
 				       &state->crtc_state.max_output);
 	if (!drm_mode_prune_invalid(&hdmi->edid_data)) {
