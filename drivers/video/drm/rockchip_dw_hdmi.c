@@ -188,7 +188,7 @@ static const struct dw_hdmi_curr_ctrl rockchip_cur_ctr[] = {
 	}
 };
 
-static const struct dw_hdmi_phy_config rockchip_phy_config[] = {
+static struct dw_hdmi_phy_config rockchip_phy_config[] = {
 	/*pixelclk   symbol   term   vlev*/
 	{ 74250000,  0x8009, 0x0004, 0x0272},
 	{ 165000000, 0x802b, 0x0004, 0x0209},

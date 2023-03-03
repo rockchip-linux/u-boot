@@ -2298,6 +2298,9 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 
 	memset(mode_buf, 0, MODE_LEN * sizeof(struct drm_display_mode));
 
+	hdmi->dev_type = pdata->dev_type;
+	hdmi->plat_data = pdata;
+
 	hdmi->regs = dev_read_addr_ptr(conn->dev);
 	hdmi->io_width = ofnode_read_s32_default(hdmi_node, "reg-io-width", -1);
 
@@ -2314,6 +2317,24 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 		hdmi->output_bus_format_rgb = true;
 	else
 		hdmi->output_bus_format_rgb = false;
+
+	val = dev_read_size(conn->dev, "rockchip,phy-table");
+	if (val > 0 && hdmi->plat_data->phy_config) {
+		u32 phy_config[val / 4];
+		int i;
+
+		dev_read_u32_array(conn->dev, "rockchip,phy-table", phy_config, val / 4);
+
+		for (i = 0; i < val / 16; i++) {
+			if (phy_config[i * 4] != 0)
+				hdmi->plat_data->phy_config[i].mpixelclock = (u64)phy_config[i * 4];
+			else
+				hdmi->plat_data->phy_config[i].mpixelclock = ~0UL;
+			hdmi->plat_data->phy_config[i].sym_ctr = (u16)phy_config[i * 4 + 1];
+			hdmi->plat_data->phy_config[i].term = (u16)phy_config[i * 4 + 2];
+			hdmi->plat_data->phy_config[i].vlev_ctr = (u16)phy_config[i * 4 + 3];
+		}
+	}
 
 	ddc_node = of_parse_phandle(ofnode_to_np(hdmi_node), "ddc-i2c-bus", 0);
 	if (ddc_node) {
@@ -2373,8 +2394,6 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	conn_state->output_if |= VOP_OUTPUT_IF_HDMI0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 
-	hdmi->dev_type = pdata->dev_type;
-	hdmi->plat_data = pdata;
 	hdmi->edid_data.mode_buf = mode_buf;
 	hdmi->sample_rate = 48000;
 
