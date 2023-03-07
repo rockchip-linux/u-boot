@@ -2318,14 +2318,14 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	else
 		hdmi->output_bus_format_rgb = false;
 
-	val = dev_read_size(conn->dev, "rockchip,phy-table");
-	if (val > 0 && hdmi->plat_data->phy_config) {
-		u32 phy_config[val / 4];
+	ret = dev_read_size(conn->dev, "rockchip,phy-table");
+	if (ret > 0 && hdmi->plat_data->phy_config) {
+		u32 phy_config[ret / 4];
 		int i;
 
-		dev_read_u32_array(conn->dev, "rockchip,phy-table", phy_config, val / 4);
+		dev_read_u32_array(conn->dev, "rockchip,phy-table", phy_config, ret / 4);
 
-		for (i = 0; i < val / 16; i++) {
+		for (i = 0; i < ret / 16; i++) {
 			if (phy_config[i * 4] != 0)
 				hdmi->plat_data->phy_config[i].mpixelclock = (u64)phy_config[i * 4];
 			else
