@@ -9,7 +9,7 @@ obj-y += drm_modes.o
 ifndef CONFIG_SPL_BUILD
 obj-y += rockchip_display.o rockchip_display_helper.o rockchip_crtc.o rockchip_phy.o rockchip_bridge.o \
 		rockchip_vop.o rockchip_vop_reg.o rockchip_vop2.o bmp_helper.o \
-		rockchip_connector.o rockchip_post_csc.o
+		rockchip_connector.o rockchip_post_csc.o libnsbmp.o
 
 obj-$(CONFIG_DRM_MIPI_DSI) += drm_mipi_dsi.o
 obj-$(CONFIG_DRM_DP_HELPER) += drm_dp_helper.o
