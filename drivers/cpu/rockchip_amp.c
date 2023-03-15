@@ -437,8 +437,12 @@ static int brought_up_all_amp(void *fit, const char *fit_uname_cfg)
 		cleanup_before_linux();
 		printf("OK\n");
 #ifdef CONFIG_ARM64
-		armv8_switch_to_el2(0, 0, 0, g_bootcpu.state, (u64)g_bootcpu.entry,
-		     g_bootcpu.arch == IH_ARCH_ARM ? ES_TO_AARCH32 : ES_TO_AARCH64);
+		if (g_bootcpu.state & (1 << MODE_HYP_SHIFT))
+			armv8_switch_to_el2(0, 0, 0, g_bootcpu.state, (u64)g_bootcpu.entry,
+			     g_bootcpu.arch == IH_ARCH_ARM ? ES_TO_AARCH32 : ES_TO_AARCH64);
+		else
+			armv8_switch_to_el1(0, 0, 0, g_bootcpu.state, (u64)g_bootcpu.entry,
+			     g_bootcpu.arch == IH_ARCH_ARM ? ES_TO_AARCH32 : ES_TO_AARCH64);
 #else
 		void (*armv7_entry)(void);
 
