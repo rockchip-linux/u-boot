@@ -25,6 +25,7 @@
 #include <asm/arch-rockchip/resource_img.h>
 
 #include "bmp_helper.h"
+#include "libnsbmp.h"
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
@@ -48,6 +49,8 @@
 
 #define RK_BLK_SIZE 512
 #define BMP_PROCESSED_FLAG 8399
+#define BYTES_PER_PIXEL sizeof(uint32_t)
+#define MAX_IMAGE_BYTES (8 * 1024 * 1024)
 
 DECLARE_GLOBAL_DATA_PTR;
 static LIST_HEAD(rockchip_display_list);
@@ -1198,7 +1201,8 @@ static int load_kernel_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	return 0;
 }
 
-static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
+#ifdef BMP_DECODEER_LEGACY
+static int load_bmp_logo_legacy(struct logo_info *logo, const char *bmp_name)
 {
 #ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
 	struct rockchip_logo_cache *logo_cache;
@@ -1293,6 +1297,138 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 free_header:
 
 	free(header);
+
+	return ret;
+#else
+	return -EINVAL;
+#endif
+}
+#endif
+
+static void *bitmap_create(int width, int height, unsigned int state)
+{
+	/* Ensure a stupidly large bitmap is not created */
+	if (width > 4096 || height > 4096)
+		return NULL;
+
+	return calloc(width * height, BYTES_PER_PIXEL);
+}
+
+static unsigned char *bitmap_get_buffer(void *bitmap)
+{
+	return bitmap;
+}
+
+static void bitmap_destroy(void *bitmap)
+{
+	free(bitmap);
+}
+
+static void bmp_copy(void *dst, bmp_image *bmp)
+{
+	u16 row, col;
+	u8 *image;
+	u8 *pdst = (u8 *)dst;
+
+	image = (u8 *)bmp->bitmap;
+	for (row = 0; row != bmp->height; row++) {
+		for (col = 0; col != bmp->width; col++) {
+			size_t z = (row * bmp->width + col) * BYTES_PER_PIXEL;
+
+			*pdst++ = image[z + 2];
+			*pdst++ = image[z + 1];
+			*pdst++ = image[z + 0];
+			*pdst++ = image[z + 3];
+		}
+	}
+}
+
+static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
+{
+#ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
+	struct rockchip_logo_cache *logo_cache;
+	bmp_bitmap_callback_vt bitmap_callbacks = {
+		bitmap_create,
+		bitmap_destroy,
+		bitmap_get_buffer,
+	};
+	bmp_result code;
+	bmp_image bmp;
+	void *bmp_data;
+	void *dst = NULL;
+	int len, dst_size;
+	int ret = 0;
+
+	if (!logo || !bmp_name)
+		return -EINVAL;
+	logo_cache = find_or_alloc_logo_cache(bmp_name);
+	if (!logo_cache)
+		return -ENOMEM;
+
+	if (logo_cache->logo.mem) {
+		memcpy(logo, &logo_cache->logo, sizeof(*logo));
+		return 0;
+	}
+
+	bmp_data = malloc(MAX_IMAGE_BYTES);
+	if (!bmp_data)
+		return -ENOMEM;
+
+	bmp_create(&bmp, &bitmap_callbacks);
+
+	len = rockchip_read_resource_file(bmp_data, bmp_name, 0, MAX_IMAGE_BYTES);
+	if (len < 0) {
+		ret = -EINVAL;
+		goto free_bmp_data;
+	}
+
+	/* analyse the BMP */
+	code = bmp_analyse(&bmp, len, bmp_data);
+	if (code != BMP_OK) {
+		printf("failed to parse bmp:%s header\n", bmp_name);
+		ret = -EINVAL;
+		goto free_bmp_data;
+	}
+	/* fix bpp to 32 */
+	logo->bpp = 32;
+	logo->offset = 0;
+	logo->ymirror = 0;
+	logo->width = get_unaligned_le32(&bmp.width);
+	logo->height = get_unaligned_le32(&bmp.height);
+	dst_size = logo->width * logo->height * logo->bpp >> 3;
+	/* decode the image to RGBA8888 format */
+	code = bmp_decode(&bmp);
+	if (code != BMP_OK) {
+		/* allow partially decoded images */
+		if (code != BMP_INSUFFICIENT_DATA && code != BMP_DATA_ERROR) {
+			printf("failed to allocate the buffer of bmp:%s\n", bmp_name);
+			ret = -EINVAL;
+			goto free_bmp_data;
+		}
+
+		/* skip if the partially decoded image would be ridiculously large */
+		if ((bmp.width * bmp.height) > 200000) {
+			printf("partially decoded bmp:%s can not be too large\n", bmp_name);
+			ret = -EINVAL;
+			goto free_bmp_data;
+		}
+	}
+
+	dst = get_display_buffer(dst_size);
+	if (!dst) {
+		ret = -ENOMEM;
+		goto free_bmp_data;
+	}
+	bmp_copy(dst, &bmp);
+	logo->mem = dst;
+
+	memcpy(&logo_cache->logo, logo, sizeof(*logo));
+
+	flush_dcache_range((ulong)dst, ALIGN((ulong)dst + dst_size, CONFIG_SYS_CACHELINE_SIZE));
+free_bmp_data:
+	/* clean up */
+	bmp_finalise(&bmp);
+	free(bmp_data);
 
 	return ret;
 #else
