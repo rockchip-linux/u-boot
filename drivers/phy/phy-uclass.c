@@ -336,6 +336,17 @@ int generic_phy_validate(struct phy *phy, enum phy_mode mode, int submode,
 	return ops->validate ? ops->validate(phy, mode, submode, opts) : 0;
 }
 
+int generic_phy_set_speed(struct phy *phy, int speed)
+{
+	struct phy_ops const *ops;
+
+	if (!generic_phy_valid(phy))
+		return 0;
+	ops = phy_dev_ops(phy->dev);
+
+	return ops->set_speed ? ops->set_speed(phy, speed) : 0;
+}
+
 int generic_phy_set_mode_ext(struct phy *phy, enum phy_mode mode, int submode)
 {
 	struct phy_ops const *ops;
