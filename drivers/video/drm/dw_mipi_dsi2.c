@@ -970,7 +970,7 @@ static void dw_mipi_dsi2_phy_clk_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 		val |= NON_CONTINUOUS_CLK;
 
 	/* The Escape clock ranges from 1MHz to 20MHz. */
-	esc_clk_div = DIV_ROUND_UP(sys_clk, 10 * 2);
+	esc_clk_div = DIV_ROUND_UP(sys_clk, 20 * 2);
 	val |= PHY_LPTX_CLK_DIV(esc_clk_div);
 
 	dsi_write(dsi2, DSI2_PHY_CLK_CFG, val);
