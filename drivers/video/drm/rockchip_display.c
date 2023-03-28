@@ -2115,6 +2115,13 @@ void rockchip_display_fixup(void *blob)
 	}
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
+		/*
+		 * If plane mask is not set in dts, fixup dts to assign it
+		 * whether crtc is initialized or not.
+		 */
+		if (s->crtc_state.crtc->funcs->fixup_dts && !s->crtc_state.crtc->assign_plane)
+			s->crtc_state.crtc->funcs->fixup_dts(s, blob);
+
 		if (!s->is_init || !s->is_klogo_valid)
 			continue;
 
@@ -2141,9 +2148,6 @@ void rockchip_display_fixup(void *blob)
 			printf("failed to get exist crtc\n");
 			continue;
 		}
-
-		if (crtc_funcs->fixup_dts)
-			crtc_funcs->fixup_dts(s, blob);
 
 		np = ofnode_to_np(s->node);
 		path = np->full_name;
