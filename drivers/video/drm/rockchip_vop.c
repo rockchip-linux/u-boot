@@ -97,6 +97,19 @@ static bool is_uv_swap(uint32_t bus_format, uint32_t output_mode)
 		return false;
 }
 
+static bool is_rb_swap(uint32_t bus_format, uint32_t output_mode)
+{
+	/*
+	 * The default component order of serial rgb3x8 formats
+	 * is BGR. So it is needed to enable RB swap.
+	 */
+	if (bus_format == MEDIA_BUS_FMT_SRGB888_3X8 ||
+	    bus_format == MEDIA_BUS_FMT_SRGB888_DUMMY_4X8)
+		return true;
+	else
+		return false;
+}
+
 static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -403,7 +416,8 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, hdmi_dclk_out_en,
 		     conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420 ? 1 : 0);
 
-	if (is_uv_swap(conn_state->bus_format, conn_state->output_mode))
+	if (is_uv_swap(conn_state->bus_format, conn_state->output_mode) ||
+	    is_rb_swap(conn_state->bus_format, conn_state->output_mode))
 		VOP_CTRL_SET(vop, dsp_rb_swap, 1);
 	else
 		VOP_CTRL_SET(vop, dsp_data_swap, 0);
