@@ -404,7 +404,7 @@ static int rockchip_vop_init(struct display_state *state)
 		     conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420 ? 1 : 0);
 
 	if (is_uv_swap(conn_state->bus_format, conn_state->output_mode))
-		VOP_CTRL_SET(vop, dsp_data_swap, DSP_RB_SWAP);
+		VOP_CTRL_SET(vop, dsp_rb_swap, 1);
 	else
 		VOP_CTRL_SET(vop, dsp_data_swap, 0);
 
