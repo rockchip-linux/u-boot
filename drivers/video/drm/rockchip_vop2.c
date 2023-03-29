@@ -5029,7 +5029,7 @@ static struct vop2_plane_table rk3588_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
 static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] = {
 	{ /* one display policy */
 		{/* main display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER0,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART0,
 			.attached_layers_nr = 8,
 			.attached_layers = {
 				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_ESMART0, ROCKCHIP_VOP2_ESMART2,
@@ -5044,7 +5044,7 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 
 	{ /* two display policy */
 		{/* main display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER0,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART0,
 			.attached_layers_nr = 4,
 			.attached_layers = {
 				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_ESMART0,
@@ -5053,7 +5053,7 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 		},
 
 		{/* second display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER2,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART2,
 			.attached_layers_nr = 4,
 			.attached_layers = {
 				  ROCKCHIP_VOP2_CLUSTER2, ROCKCHIP_VOP2_ESMART2,
@@ -5066,7 +5066,7 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 
 	{ /* three display policy */
 		{/* main display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER0,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART0,
 			.attached_layers_nr = 3,
 			.attached_layers = {
 				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_CLUSTER1, ROCKCHIP_VOP2_ESMART0
@@ -5074,7 +5074,7 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 		},
 
 		{/* second display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER2,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART1,
 			.attached_layers_nr = 3,
 			.attached_layers = {
 				  ROCKCHIP_VOP2_CLUSTER2, ROCKCHIP_VOP2_CLUSTER3, ROCKCHIP_VOP2_ESMART1
@@ -5092,25 +5092,25 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 
 	{ /* four display policy */
 		{/* main display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER0,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART0,
 			.attached_layers_nr = 2,
 			.attached_layers = { ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_ESMART0 },
 		},
 
 		{/* second display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER1,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART1,
 			.attached_layers_nr = 2,
 			.attached_layers = { ROCKCHIP_VOP2_CLUSTER1, ROCKCHIP_VOP2_ESMART1 },
 		},
 
 		{/* third  display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER2,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART2,
 			.attached_layers_nr = 2,
 			.attached_layers = { ROCKCHIP_VOP2_CLUSTER2, ROCKCHIP_VOP2_ESMART2 },
 		},
 
 		{/* fourth display */
-			.primary_plane_id = ROCKCHIP_VOP2_CLUSTER3,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART3,
 			.attached_layers_nr = 2,
 			.attached_layers = { ROCKCHIP_VOP2_CLUSTER3, ROCKCHIP_VOP2_ESMART3 },
 		},
