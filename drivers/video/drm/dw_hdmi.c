@@ -2450,7 +2450,7 @@ int rockchip_dw_hdmi_disable(struct rockchip_connector *conn, struct display_sta
 
 int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_state *state)
 {
-	int ret, i;
+	int ret, i, vic;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct dw_hdmi *hdmi = conn->data;
@@ -2490,9 +2490,20 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 		return -EINVAL;
 	}
 
-	for (i = 0; i < hdmi->edid_data.modes; i++)
+	for (i = 0; i < hdmi->edid_data.modes; i++) {
 		hdmi->edid_data.mode_buf[i].vrefresh =
 			drm_mode_vrefresh(&hdmi->edid_data.mode_buf[i]);
+
+		vic = drm_match_cea_mode(&hdmi->edid_data.mode_buf[i]);
+		if (hdmi->edid_data.mode_buf[i].picture_aspect_ratio == HDMI_PICTURE_ASPECT_NONE) {
+			if (vic >= 93 && vic <= 95)
+				hdmi->edid_data.mode_buf[i].picture_aspect_ratio =
+					HDMI_PICTURE_ASPECT_16_9;
+			else if (vic == 98)
+				hdmi->edid_data.mode_buf[i].picture_aspect_ratio =
+					HDMI_PICTURE_ASPECT_256_135;
+		}
+	}
 
 	drm_mode_sort(&hdmi->edid_data);
 	drm_rk_selete_output(&hdmi->edid_data, conn_state, &bus_format,
