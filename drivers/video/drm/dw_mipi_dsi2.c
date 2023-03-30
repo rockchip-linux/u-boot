@@ -288,6 +288,7 @@ struct dw_mipi_dsi2 {
 	struct drm_display_mode mode;
 	bool data_swap;
 
+	struct mipi_dsi_device *device;
 	struct mipi_dphy_configure mipi_dphy_cfg;
 	const struct dw_mipi_dsi2_plat_data *pdata;
 	struct drm_dsc_picture_parameter_set *pps;
@@ -692,25 +693,35 @@ static int dw_mipi_dsi2_connector_pre_init(struct rockchip_connector *conn,
 					   struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
+	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
+	struct mipi_dsi_host *host = dev_get_platdata(dsi2->dev);
+	struct mipi_dsi_device *device;
+	char name[20];
 
 	conn_state->type = DRM_MODE_CONNECTOR_DSI;
+
+	if (conn->bridge) {
+		device = dev_get_platdata(conn->bridge->dev);
+		if (!device)
+			return -ENODEV;
+
+		device->host = host;
+		sprintf(name, "%s.%d", host->dev->name, device->channel);
+		device_set_name(conn->bridge->dev, name);
+		mipi_dsi_attach(device);
+	}
 
 	return 0;
 }
 
 static int dw_mipi_dsi2_get_dsc_params_from_sink(struct dw_mipi_dsi2 *dsi2)
 {
-	struct udevice *dev = NULL;
+	struct udevice *dev = dsi2->device->dev;
 	struct rockchip_cmd_header *header;
 	struct drm_dsc_picture_parameter_set *pps = NULL;
 	u8 *dsc_packed_pps;
 	const void *data;
 	int len;
-	int ret;
-
-	ret = device_find_first_child(dsi2->dev, &dev);
-	if (ret)
-		return ret;
 
 	dsi2->c_option = dev_read_bool(dev, "phy-c-option");
 	dsi2->scrambling_en = dev_read_bool(dev, "scrambling-enable");
@@ -767,7 +778,6 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 	struct udevice *phy_dev;
 	struct udevice *dev;
 	int ret;
-
 
 	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dsi2->id);
 	dsi2->dcphy.phy = conn->phy;
@@ -1261,6 +1271,7 @@ static int dw_mipi_dsi2_host_attach(struct mipi_dsi_host *host,
 	dsi2->channel = device->channel;
 	dsi2->format = device->format;
 	dsi2->mode_flags = device->mode_flags;
+	dsi2->device = device;
 
 	return 0;
 }
