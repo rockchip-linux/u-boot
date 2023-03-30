@@ -22,7 +22,6 @@
 #include <asm/arch-rockchip/clock.h>
 #include <linux/iopoll.h>
 
-#include "rockchip_bridge.h"
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
@@ -289,7 +288,6 @@ struct dw_mipi_dsi2 {
 	struct drm_display_mode mode;
 	bool data_swap;
 
-	struct mipi_dsi_device *device;
 	struct mipi_dphy_configure mipi_dphy_cfg;
 	const struct dw_mipi_dsi2_plat_data *pdata;
 	struct drm_dsc_picture_parameter_set *pps;
@@ -652,14 +650,67 @@ static void dw_mipi_dsi2_set_cmd_mode(struct dw_mipi_dsi2 *dsi2)
 		printf("failed to enter cmd mode\n");
 }
 
+static void dw_mipi_dsi2_enable(struct dw_mipi_dsi2 *dsi2)
+{
+	dw_mipi_dsi2_ipi_set(dsi2);
+
+	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO)
+		dw_mipi_dsi2_set_vid_mode(dsi2);
+	else
+		dw_mipi_dsi2_set_data_stream_mode(dsi2);
+
+	if (dsi2->slave)
+		dw_mipi_dsi2_enable(dsi2->slave);
+}
+
+static void dw_mipi_dsi2_disable(struct dw_mipi_dsi2 *dsi2)
+{
+	dsi_write(dsi2, DSI2_IPI_PIX_PKT_CFG, 0);
+	dw_mipi_dsi2_set_cmd_mode(dsi2);
+
+	if (dsi2->slave)
+		dw_mipi_dsi2_disable(dsi2->slave);
+}
+
+static void dw_mipi_dsi2_post_disable(struct dw_mipi_dsi2 *dsi2)
+{
+	if (!dsi2->prepared)
+		return;
+
+	dsi_write(dsi2, DSI2_PWR_UP, RESET);
+
+	if (dsi2->dcphy.phy)
+		rockchip_phy_power_off(dsi2->dcphy.phy);
+
+	dsi2->prepared = false;
+
+	if (dsi2->slave)
+		dw_mipi_dsi2_post_disable(dsi2->slave);
+}
+
+static int dw_mipi_dsi2_connector_pre_init(struct rockchip_connector *conn,
+					   struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+	conn_state->type = DRM_MODE_CONNECTOR_DSI;
+
+	return 0;
+}
+
 static int dw_mipi_dsi2_get_dsc_params_from_sink(struct dw_mipi_dsi2 *dsi2)
 {
-	struct udevice *dev = dsi2->device->dev;
+	struct udevice *dev = NULL;
 	struct rockchip_cmd_header *header;
 	struct drm_dsc_picture_parameter_set *pps = NULL;
 	u8 *dsc_packed_pps;
 	const void *data;
 	int len;
+	int ret;
+
+	ret = device_find_first_child(dsi2->dev, &dev);
+	if (ret)
+		return ret;
 
 	dsi2->c_option = dev_read_bool(dev, "phy-c-option");
 	dsi2->scrambling_en = dev_read_bool(dev, "scrambling-enable");
@@ -707,87 +758,6 @@ static int dw_mipi_dsi2_get_dsc_params_from_sink(struct dw_mipi_dsi2 *dsi2)
 	return 0;
 }
 
-static void dw_mipi_dsi2_enable(struct dw_mipi_dsi2 *dsi2)
-{
-	dw_mipi_dsi2_ipi_set(dsi2);
-
-	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO)
-		dw_mipi_dsi2_set_vid_mode(dsi2);
-	else
-		dw_mipi_dsi2_set_data_stream_mode(dsi2);
-
-	if (dsi2->slave)
-		dw_mipi_dsi2_enable(dsi2->slave);
-}
-
-static void dw_mipi_dsi2_disable(struct dw_mipi_dsi2 *dsi2)
-{
-	dsi_write(dsi2, DSI2_IPI_PIX_PKT_CFG, 0);
-	dw_mipi_dsi2_set_cmd_mode(dsi2);
-
-	if (dsi2->slave)
-		dw_mipi_dsi2_disable(dsi2->slave);
-}
-
-static void dw_mipi_dsi2_post_disable(struct dw_mipi_dsi2 *dsi2)
-{
-	if (!dsi2->prepared)
-		return;
-
-	dsi_write(dsi2, DSI2_PWR_UP, RESET);
-
-	if (dsi2->dcphy.phy)
-		rockchip_phy_power_off(dsi2->dcphy.phy);
-
-	dsi2->prepared = false;
-
-	if (dsi2->slave)
-		dw_mipi_dsi2_post_disable(dsi2->slave);
-}
-
-static int dw_mipi_dsi2_connector_pre_init(struct rockchip_connector *conn,
-					   struct display_state *state)
-{
-	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
-	struct mipi_dsi_host *host = dev_get_platdata(dsi2->dev);
-	struct mipi_dsi_device *device;
-	char name[20];
-	struct udevice *dev;
-
-	device = calloc(1, sizeof(struct dw_mipi_dsi2));
-	if (!device)
-		return -ENOMEM;
-
-	if (conn->bridge)
-		dev = conn->bridge->dev;
-	else if (conn->panel)
-		dev = conn->panel->dev;
-	else
-		return -ENODEV;
-
-	device->dev = dev;
-	device->host = host;
-	device->lanes = dev_read_u32_default(dev, "dsi,lanes", 4);
-	device->channel = dev_read_u32_default(dev, "reg", 0);
-	device->format = dev_read_u32_default(dev, "dsi,format",
-					      MIPI_DSI_FMT_RGB888);
-	device->mode_flags = dev_read_u32_default(dev, "dsi,flags",
-						  MIPI_DSI_MODE_VIDEO |
-						  MIPI_DSI_MODE_VIDEO_BURST |
-						  MIPI_DSI_MODE_VIDEO_HBP |
-						  MIPI_DSI_MODE_LPM |
-						  MIPI_DSI_MODE_EOT_PACKET);
-
-	sprintf(name, "%s.%d", host->dev->name, device->channel);
-	device_set_name(dev, name);
-	dsi2->device = device;
-	dev->parent_platdata = device;
-
-	mipi_dsi_attach(dsi2->device);
-
-	return 0;
-}
-
 static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -797,6 +767,7 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 	struct udevice *phy_dev;
 	struct udevice *dev;
 	int ret;
+
 
 	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dsi2->id);
 	dsi2->dcphy.phy = conn->phy;
@@ -1309,6 +1280,45 @@ static int dw_mipi_dsi2_bind(struct udevice *dev)
 	return dm_scan_fdt_dev(dev);
 }
 
+static int dw_mipi_dsi2_child_post_bind(struct udevice *dev)
+{
+	struct mipi_dsi_host *host = dev_get_platdata(dev->parent);
+	struct mipi_dsi_device *device = dev_get_parent_platdata(dev);
+	char name[20];
+
+	sprintf(name, "%s.%d", host->dev->name, device->channel);
+	device_set_name(dev, name);
+
+	device->dev = dev;
+	device->host = host;
+	device->lanes = dev_read_u32_default(dev, "dsi,lanes", 4);
+	device->format = dev_read_u32_default(dev, "dsi,format",
+					      MIPI_DSI_FMT_RGB888);
+	device->mode_flags = dev_read_u32_default(dev, "dsi,flags",
+						  MIPI_DSI_MODE_VIDEO |
+						  MIPI_DSI_MODE_VIDEO_BURST |
+						  MIPI_DSI_MODE_VIDEO_HBP |
+						  MIPI_DSI_MODE_LPM |
+						  MIPI_DSI_MODE_EOT_PACKET);
+	device->channel = dev_read_u32_default(dev, "reg", 0);
+
+	return 0;
+}
+
+static int dw_mipi_dsi2_child_pre_probe(struct udevice *dev)
+{
+	struct mipi_dsi_device *device = dev_get_parent_platdata(dev);
+	int ret;
+
+	ret = mipi_dsi_attach(device);
+	if (ret) {
+		dev_err(dev, "mipi_dsi_attach() failed: %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
 U_BOOT_DRIVER(dw_mipi_dsi2) = {
 	.name = "dw_mipi_dsi2",
 	.id = UCLASS_DISPLAY,
@@ -1316,5 +1326,8 @@ U_BOOT_DRIVER(dw_mipi_dsi2) = {
 	.probe = dw_mipi_dsi2_probe,
 	.bind = dw_mipi_dsi2_bind,
 	.priv_auto_alloc_size = sizeof(struct dw_mipi_dsi2),
+	.per_child_platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
 	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_host),
+	.child_post_bind = dw_mipi_dsi2_child_post_bind,
+	.child_pre_probe = dw_mipi_dsi2_child_pre_probe,
 };
