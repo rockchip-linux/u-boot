@@ -9,6 +9,7 @@
 #include <i2c.h>
 #include <max96755f.h>
 #include <video_bridge.h>
+#include <drm/drm_mipi_dsi.h>
 #include <dm/of_access.h>
 #include <linux/media-bus-format.h>
 
@@ -137,6 +138,20 @@ static const struct rockchip_bridge_funcs max96755f_bridge_funcs = {
 	.mode_set = max96755f_bridge_mode_set,
 };
 
+static int max96755f_bridge_bind(struct udevice *dev)
+{
+	struct mipi_dsi_device *device = dev_get_platdata(dev);
+
+	device->dev = dev;
+	device->lanes = dev_read_u32_default(dev, "dsi,lanes", 4);
+	device->format = dev_read_u32_default(dev, "dsi,format",
+					      MIPI_DSI_FMT_RGB888);
+	device->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_SYNC_PULSE;
+	device->channel = dev_read_u32_default(dev, "reg", 0);
+
+	return 0;
+}
+
 static int max96755f_bridge_probe(struct udevice *dev)
 {
 	struct rockchip_bridge *bridge;
@@ -167,4 +182,6 @@ U_BOOT_DRIVER(max96755f_bridge) = {
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = max96755f_bridge_of_match,
 	.probe = max96755f_bridge_probe,
+	.bind = max96755f_bridge_bind,
+	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
 };
