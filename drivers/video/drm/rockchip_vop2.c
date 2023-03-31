@@ -2061,13 +2061,17 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 		vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 				POST_CSC_COE00_MASK, POST_CSC_COE00_SHIFT,
 				csc_coef.csc_coef00, false);
-		value = (csc_coef.csc_coef02 << 16) | csc_coef.csc_coef01;
+		value = csc_coef.csc_coef01 & 0xffff;
+		value |= (csc_coef.csc_coef02 << 16) & 0xffff0000;
 		writel(value, vop2->regs + RK3528_VP0_CSC_COE01_02);
-		value = (csc_coef.csc_coef11 << 16) | csc_coef.csc_coef10;
+		value = csc_coef.csc_coef10 & 0xffff;
+		value |= (csc_coef.csc_coef11 << 16) & 0xffff0000;
 		writel(value, vop2->regs + RK3528_VP0_CSC_COE10_11);
-		value = (csc_coef.csc_coef20 << 16) | csc_coef.csc_coef12;
+		value = csc_coef.csc_coef12 & 0xffff;
+		value |= (csc_coef.csc_coef20 << 16) & 0xffff0000;
 		writel(value, vop2->regs + RK3528_VP0_CSC_COE12_20);
-		value = (csc_coef.csc_coef22 << 16) | csc_coef.csc_coef21;
+		value = csc_coef.csc_coef21 & 0xffff;
+		value |= (csc_coef.csc_coef22 << 16) & 0xffff0000;
 		writel(value, vop2->regs + RK3528_VP0_CSC_COE21_22);
 		writel(csc_coef.csc_dc0, vop2->regs + RK3528_VP0_CSC_OFFSET0);
 		writel(csc_coef.csc_dc1, vop2->regs + RK3528_VP0_CSC_OFFSET1);
@@ -2080,7 +2084,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	}
 
 	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
-			POST_R2Y_MODE_MASK, POST_R2Y_MODE_SHIFT, post_r2y_en ? 1 : 0, false);
+			POST_R2Y_EN_MASK, POST_R2Y_EN_SHIFT, post_r2y_en ? 1 : 0, false);
 	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 			POST_CSC_EN_MASK, POST_CSC_EN_SHIFT, post_csc_en ? 1 : 0, false);
 	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
