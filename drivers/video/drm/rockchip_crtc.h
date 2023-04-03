@@ -45,6 +45,8 @@ struct rockchip_crtc_funcs {
 	int (*check)(struct display_state *state);
 	int (*mode_valid)(struct display_state *state);
 	int (*plane_check)(struct display_state *state);
+	int (*regs_dump)(struct display_state *state);
+	int (*active_regs_dump)(struct display_state *state);
 };
 
 struct vop_data;

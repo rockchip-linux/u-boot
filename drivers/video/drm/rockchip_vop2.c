@@ -790,6 +790,13 @@
 #define RK3568_SMART1_REGION3_SCL_FACTOR_CBR	0x1EC8
 #define RK3568_SMART1_REGION3_SCL_OFFSET	0x1ECC
 
+/* HDR register definition */
+#define RK3568_HDR_LUT_CTRL			0x2000
+
+#define RK3588_VP3_DSP_CTRL			0xF00
+#define RK3588_CLUSTER2_WIN0_CTRL0		0x1400
+#define RK3588_CLUSTER3_WIN0_CTRL0		0x1600
+
 /* DSC 8K/4K register definition */
 #define RK3588_DSC_8K_PPS0_3			0x4000
 #define RK3588_DSC_8K_CTRL0			0x40A0
@@ -818,6 +825,9 @@
 #define RK3588_DSC_4K_CTRL1			0x41A4
 #define RK3588_DSC_4K_STS0			0x41A8
 #define RK3588_DSC_4K_ERS			0x41C4
+
+/* RK3528 HDR register definition */
+#define RK3528_HDR_LUT_CTRL			0x2000
 
 /* RK3528 ACM register definition */
 #define RK3528_ACM_CTRL				0x6400
@@ -1127,6 +1137,15 @@ struct dsc_error_info {
 	char dsc_error_info[50];
 };
 
+struct vop2_dump_regs {
+	u32 offset;
+	const char *name;
+	u32 state_base;
+	u32 state_mask;
+	u32 state_shift;
+	bool enable_state;
+};
+
 struct vop2_data {
 	u32 version;
 	u32 esmart_lb_mode;
@@ -1138,6 +1157,7 @@ struct vop2_data {
 	struct vop2_dsc_data *dsc;
 	struct dsc_error_info *dsc_error_ecw;
 	struct dsc_error_info *dsc_error_buffer_flow;
+	struct vop2_dump_regs *dump_regs;
 	u8 *vp_primary_plane_order;
 	u8 nr_vps;
 	u8 nr_layers;
@@ -1148,6 +1168,7 @@ struct vop2_data {
 	u8 nr_dsc_ecw;
 	u8 nr_dsc_buffer_flow;
 	u32 reg_len;
+	u32 dump_regs_size;
 };
 
 struct vop2 {
@@ -4446,6 +4467,88 @@ static int rockchip_vop2_plane_check(struct display_state *state)
 	return 0;
 }
 
+static int rockchip_vop2_regs_dump(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_dump_regs *regs = vop2_data->dump_regs;
+	u32 n, i, j;
+	u32 base;
+
+	if (!cstate->crtc->active)
+		return -EINVAL;
+
+	n = vop2_data->dump_regs_size;
+	for (i = 0; i < n; i++) {
+		base = regs[i].offset;
+		printf("\n%s:\n", regs[i].name);
+		for (j = 0; j < 68;) {
+			printf("%08lx:  %08x %08x %08x %08x\n", (uintptr_t)vop2->regs + base + j * 4,
+			       vop2_readl(vop2, base + (4 * j)),
+			       vop2_readl(vop2, base + (4 * (j + 1))),
+			       vop2_readl(vop2, base + (4 * (j + 2))),
+			       vop2_readl(vop2, base + (4 * (j + 3))));
+			j += 4;
+		}
+	}
+
+	return 0;
+}
+
+static int rockchip_vop2_active_regs_dump(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_dump_regs *regs = vop2_data->dump_regs;
+	u32 n, i, j;
+	u32 base;
+	bool enable_state;
+
+	if (!cstate->crtc->active)
+		return -EINVAL;
+
+	n = vop2_data->dump_regs_size;
+	for (i = 0; i < n; i++) {
+		if (regs[i].state_mask) {
+			enable_state = (vop2_readl(vop2, regs[i].state_base) >> regs[i].state_shift) &
+				       regs[i].state_mask;
+			if (enable_state != regs[i].enable_state)
+				continue;
+		}
+
+		base = regs[i].offset;
+		printf("\n%s:\n", regs[i].name);
+		for (j = 0; j < 68;) {
+			printf("%08lx:  %08x %08x %08x %08x\n", (uintptr_t)vop2->regs + base + j * 4,
+			       vop2_readl(vop2, base + (4 * j)),
+			       vop2_readl(vop2, base + (4 * (j + 1))),
+			       vop2_readl(vop2, base + (4 * (j + 2))),
+			       vop2_readl(vop2, base + (4 * (j + 3))));
+			j += 4;
+		}
+	}
+
+	return 0;
+}
+
+static struct vop2_dump_regs rk3528_dump_regs[] = {
+	{ RK3568_REG_CFG_DONE, "SYS", 0, 0, 0, 0 },
+	{ RK3528_OVL_SYS, "OVL_SYS", 0, 0, 0, 0 },
+	{ RK3528_OVL_PORT0_CTRL, "OVL_VP0", RK3568_VP0_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3528_OVL_PORT1_CTRL, "OVL_VP1", RK3568_VP1_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_VP0_DSP_CTRL, "VP0", RK3568_VP0_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_VP1_DSP_CTRL, "VP1", RK3568_VP1_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_CLUSTER0_WIN0_CTRL0, "Cluster0", RK3568_CLUSTER0_WIN0_CTRL0, 0x1, 0, 1 },
+	{ RK3568_ESMART0_CTRL0, "Esmart0", RK3568_ESMART0_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_ESMART1_CTRL0, "Esmart1", RK3568_ESMART1_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_SMART0_CTRL0, "Esmart2", RK3568_SMART0_CTRL0, 0x1, 0, 1 },
+	{ RK3568_SMART1_CTRL0, "Esmart3", RK3568_SMART1_CTRL0, 0x1, 0, 1 },
+	{ RK3528_HDR_LUT_CTRL, "HDR", 0, 0, 0, 0 },
+	{ RK3528_ACM_CTRL, "ACM", RK3528_ACM_CTRL, 0x1, 0, 1},
+};
+
 static u8 rk3528_vp_primary_plane_order[ROCKCHIP_VOP2_LAYER_MAX] = {
 	ROCKCHIP_VOP2_ESMART0,
 	ROCKCHIP_VOP2_ESMART1,
@@ -4644,6 +4747,21 @@ const struct vop2_data rk3528_vop = {
 	.nr_mixers = 3,
 	.nr_gammas = 2,
 	.esmart_lb_mode = VOP3_ESMART_4K_2K_2K_MODE,
+	.dump_regs = rk3528_dump_regs,
+	.dump_regs_size = ARRAY_SIZE(rk3528_dump_regs),
+};
+
+static struct vop2_dump_regs rk3562_dump_regs[] = {
+	{ RK3568_REG_CFG_DONE, "SYS", 0, 0, 0, 0 },
+	{ RK3528_OVL_SYS, "OVL_SYS", 0, 0, 0, 0 },
+	{ RK3528_OVL_PORT0_CTRL, "OVL_VP0", RK3568_VP0_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3528_OVL_PORT1_CTRL, "OVL_VP1", RK3568_VP1_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_VP0_DSP_CTRL, "VP0", RK3568_VP0_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_VP1_DSP_CTRL, "VP1", RK3568_VP1_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_ESMART0_CTRL0, "Esmart0", RK3568_ESMART0_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_ESMART1_CTRL0, "Esmart1", RK3568_ESMART1_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_SMART0_CTRL0, "Esmart2", RK3568_SMART0_CTRL0, 0x1, 0, 1 },
+	{ RK3568_SMART1_CTRL0, "Esmart3", RK3568_SMART1_CTRL0, 0x1, 0, 1 },
 };
 
 static u8 rk3562_vp_primary_plane_order[ROCKCHIP_VOP2_LAYER_MAX] = {
@@ -4799,6 +4917,23 @@ const struct vop2_data rk3562_vop = {
 	.nr_mixers = 3,
 	.nr_gammas = 2,
 	.esmart_lb_mode = VOP3_ESMART_2K_2K_2K_2K_MODE,
+	.dump_regs = rk3562_dump_regs,
+	.dump_regs_size = ARRAY_SIZE(rk3562_dump_regs),
+};
+
+static struct vop2_dump_regs rk3568_dump_regs[] = {
+	{ RK3568_REG_CFG_DONE, "SYS", 0, 0, 0, 0 },
+	{ RK3568_OVL_CTRL, "OVL", 0, 0, 0, 0 },
+	{ RK3568_VP0_DSP_CTRL, "VP0", RK3568_VP1_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_VP1_DSP_CTRL, "VP1", RK3568_VP1_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_VP2_DSP_CTRL, "VP2", RK3568_VP2_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_CLUSTER0_WIN0_CTRL0, "Cluster0", RK3568_CLUSTER0_WIN0_CTRL0, 0x1, 0, 1 },
+	{ RK3568_CLUSTER1_WIN0_CTRL0, "Cluster1", RK3568_CLUSTER1_WIN0_CTRL0, 0x1, 0, 1 },
+	{ RK3568_ESMART0_CTRL0, "Esmart0", RK3568_ESMART0_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_ESMART1_CTRL0, "Esmart1", RK3568_ESMART1_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_SMART0_CTRL0, "Smart0", RK3568_SMART0_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_SMART1_CTRL0, "Smart1", RK3568_SMART1_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_HDR_LUT_CTRL, "HDR", 0, 0, 0, 0 },
 };
 
 static u8 rk3568_vp_primary_plane_order[ROCKCHIP_VOP2_LAYER_MAX] = {
@@ -5002,6 +5137,8 @@ const struct vop2_data rk3568_vop = {
 	.nr_layers = 6,
 	.nr_mixers = 5,
 	.nr_gammas = 1,
+	.dump_regs = rk3568_dump_regs,
+	.dump_regs_size = ARRAY_SIZE(rk3568_dump_regs),
 };
 
 static u8 rk3588_vp_primary_plane_order[ROCKCHIP_VOP2_LAYER_MAX] = {
@@ -5024,6 +5161,24 @@ static struct vop2_plane_table rk3588_plane_table[ROCKCHIP_VOP2_LAYER_MAX] = {
 	{ROCKCHIP_VOP2_ESMART1, ESMART_LAYER},
 	{ROCKCHIP_VOP2_ESMART2, ESMART_LAYER},
 	{ROCKCHIP_VOP2_ESMART3, ESMART_LAYER},
+};
+
+static struct vop2_dump_regs rk3588_dump_regs[] = {
+	{ RK3568_REG_CFG_DONE, "SYS", 0, 0, 0, 0 },
+	{ RK3568_OVL_CTRL, "OVL", 0, 0, 0, 0 },
+	{ RK3568_VP0_DSP_CTRL, "VP0", RK3568_VP0_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_VP1_DSP_CTRL, "VP1", RK3568_VP1_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_VP2_DSP_CTRL, "VP2", RK3568_VP2_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3588_VP3_DSP_CTRL, "VP3", RK3588_VP3_DSP_CTRL, 0x1, 31, 0 },
+	{ RK3568_CLUSTER0_WIN0_CTRL0, "Cluster0", RK3568_CLUSTER0_WIN0_CTRL0, 0x1, 0, 1 },
+	{ RK3568_CLUSTER1_WIN0_CTRL0, "Cluster1", RK3568_CLUSTER1_WIN0_CTRL0, 0x1, 0, 1 },
+	{ RK3588_CLUSTER2_WIN0_CTRL0, "Cluster2", RK3588_CLUSTER2_WIN0_CTRL0, 0x1, 0, 1 },
+	{ RK3588_CLUSTER3_WIN0_CTRL0, "Cluster3", RK3588_CLUSTER3_WIN0_CTRL0, 0x1, 0, 1 },
+	{ RK3568_ESMART0_CTRL0, "Esmart0", RK3568_ESMART0_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_ESMART1_CTRL0, "Esmart1", RK3568_ESMART1_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_SMART0_CTRL0, "Esmart2", RK3568_SMART0_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_SMART1_CTRL0, "Esmart3", RK3568_SMART1_REGION0_CTRL, 0x1, 0, 1 },
+	{ RK3568_HDR_LUT_CTRL, "HDR", 0, 0, 0, 0 },
 };
 
 static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] = {
@@ -5433,6 +5588,8 @@ const struct vop2_data rk3588_vop = {
 	.nr_dscs = 2,
 	.nr_dsc_ecw = ARRAY_SIZE(dsc_ecw),
 	.nr_dsc_buffer_flow = ARRAY_SIZE(dsc_buffer_flow),
+	.dump_regs = rk3588_dump_regs,
+	.dump_regs_size = ARRAY_SIZE(rk3588_dump_regs),
 };
 
 const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
@@ -5446,4 +5603,6 @@ const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
 	.check = rockchip_vop2_check,
 	.mode_valid = rockchip_vop2_mode_valid,
 	.plane_check = rockchip_vop2_plane_check,
+	.regs_dump = rockchip_vop2_regs_dump,
+	.active_regs_dump = rockchip_vop2_active_regs_dump,
 };
