@@ -1551,13 +1551,12 @@ static const struct device_node *rockchip_of_graph_get_port_parent(ofnode port)
 	return ofnode_to_np(parent);
 }
 
-static const struct device_node *rockchip_of_graph_get_remote_node(ofnode node, int port,
-								   int endpoint)
+const struct device_node *
+rockchip_of_graph_get_endpoint_by_regs(ofnode node, int port, int endpoint)
 {
 	const struct device_node *port_node;
 	ofnode ep;
 	u32 reg;
-	uint phandle;
 
 	port_node = rockchip_of_graph_get_port_by_id(node, port);
 	if (!port_node)
@@ -1573,7 +1572,21 @@ static const struct device_node *rockchip_of_graph_get_remote_node(ofnode node, 
 	if (!ofnode_valid(ep))
 		return NULL;
 
-	if (ofnode_read_u32(ep, "remote-endpoint", &phandle))
+	return ofnode_to_np(ep);
+}
+
+static const struct device_node *
+rockchip_of_graph_get_remote_node(ofnode node, int port, int endpoint)
+{
+	const struct device_node *ep_node;
+	ofnode ep;
+	uint phandle;
+
+	ep_node = rockchip_of_graph_get_endpoint_by_regs(node, port, endpoint);
+	if (!ep_node)
+		return NULL;
+
+	if (ofnode_read_u32(np_to_ofnode(ep_node), "remote-endpoint", &phandle))
 		return NULL;
 
 	ep = ofnode_get_by_phandle(phandle);

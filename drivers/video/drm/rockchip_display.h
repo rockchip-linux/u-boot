@@ -297,5 +297,7 @@ int display_rect_calc_hscale(struct display_rect *src, struct display_rect *dst,
 			     int min_hscale, int max_hscale);
 int display_rect_calc_vscale(struct display_rect *src, struct display_rect *dst,
 			     int min_vscale, int max_vscale);
+const struct device_node *
+rockchip_of_graph_get_endpoint_by_regs(ofnode node, int port, int endpoint);
 
 #endif
