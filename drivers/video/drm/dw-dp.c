@@ -231,6 +231,7 @@ struct dw_dp {
 
 	bool force_hpd;
 	bool force_output;
+	u32 max_link_rate;
 };
 
 enum {
@@ -562,7 +563,7 @@ static int dw_dp_link_probe(struct dw_dp *dp)
 		!!(dpcd & DP_VSC_SDP_EXT_FOR_COLORIMETRY_SUPPORTED);
 
 	link->revision = link->dpcd[DP_DPCD_REV];
-	link->rate = min_t(u32, dp->phy.attrs.max_link_rate * 100,
+	link->rate = min_t(u32, min(dp->max_link_rate, dp->phy.attrs.max_link_rate * 100),
 			   drm_dp_max_link_rate(link->dpcd));
 	link->lanes = min_t(u8, dp->phy.attrs.bus_width,
 			    drm_dp_max_lane_count(link->dpcd));
@@ -1704,6 +1705,49 @@ static int dw_dp_ddc_init(struct dw_dp *dp)
 	return 0;
 }
 
+static u32 dw_dp_parse_link_frequencies(struct dw_dp *dp)
+{
+	struct udevice *dev = dp->dev;
+	const struct device_node *endpoint;
+	u64 frequency = 0;
+
+	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev->node, 1, 0);
+	if (!endpoint)
+		return 0;
+
+	if (of_property_read_u64(endpoint, "link-frequencies", &frequency) < 0)
+		return 0;
+
+	if (!frequency)
+		return 0;
+
+	do_div(frequency, 10 * 1000);	/* symbol rate kbytes */
+
+	switch (frequency) {
+	case 162000:
+	case 270000:
+	case 540000:
+	case 810000:
+		break;
+	default:
+		dev_err(dev, "invalid link frequency value: %llu\n", frequency);
+		return 0;
+	}
+
+	return frequency;
+}
+
+static int dw_dp_parse_dt(struct dw_dp *dp)
+{
+	dp->force_hpd = dev_read_bool(dp->dev, "force-hpd");
+
+	dp->max_link_rate = dw_dp_parse_link_frequencies(dp);
+	if (!dp->max_link_rate)
+		dp->max_link_rate = 810000;
+
+	return 0;
+}
+
 static int dw_dp_probe(struct udevice *dev)
 {
 	struct dw_dp *dp = dev_get_priv(dev);
@@ -1723,8 +1767,6 @@ static int dw_dp_probe(struct udevice *dev)
 		return ret;
 	}
 
-	dp->force_hpd = dev_read_bool(dev, "force-hpd");
-
 	ret = gpio_request_by_name(dev, "hpd-gpios", 0, &dp->hpd_gpio,
 				   GPIOD_IS_IN);
 	if (ret && ret != -ENOENT) {
@@ -1735,6 +1777,12 @@ static int dw_dp_probe(struct udevice *dev)
 	generic_phy_get_by_index(dev, 0, &dp->phy);
 
 	dp->dev = dev;
+
+	ret = dw_dp_parse_dt(dp);
+	if (ret) {
+		dev_err(dev, "failed to parse DT\n");
+		return ret;
+	}
 
 	dw_dp_ddc_init(dp);
 
