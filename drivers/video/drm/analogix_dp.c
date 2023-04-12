@@ -943,6 +943,37 @@ static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
 	.detect = analogix_dp_connector_detect,
 };
 
+static u32 analogix_dp_parse_link_frequencies(struct analogix_dp_device *dp)
+{
+	struct udevice *dev = dp->dev;
+	const struct device_node *endpoint;
+	u64 frequency = 0;
+
+	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev->node, 1, 0);
+	if (!endpoint)
+		return 0;
+
+	if (of_property_read_u64(endpoint, "link-frequencies", &frequency) < 0)
+		return 0;
+
+	if (!frequency)
+		return 0;
+
+	do_div(frequency, 10 * 1000);	/* symbol rate kbytes */
+
+	switch (frequency) {
+	case 162000:
+	case 270000:
+	case 540000:
+		break;
+	default:
+		dev_err(dev, "invalid link frequency value: %llu\n", frequency);
+		return 0;
+	}
+
+	return frequency;
+}
+
 static int analogix_dp_parse_dt(struct analogix_dp_device *dp)
 {
 	struct udevice *dev = dp->dev;
@@ -956,21 +987,9 @@ static int analogix_dp_parse_dt(struct analogix_dp_device *dp)
 	dp->video_info.force_stream_valid =
 		dev_read_bool(dev, "analogix,force-stream-valid");
 
-	max_link_rate = dev_read_u32_default(dev, "max-link-rate", 0);
-	if (max_link_rate) {
-		switch (max_link_rate) {
-		case 1620:
-		case 2700:
-		case 5400:
-			dp->video_info.max_link_rate =
-				min_t(u8, dp->video_info.max_link_rate,
-				      drm_dp_link_rate_to_bw_code(max_link_rate * 100));
-			break;
-		default:
-			dev_err(dev, "invalid max-link-rate %d\n", max_link_rate);
-			break;
-		}
-	}
+	max_link_rate = analogix_dp_parse_link_frequencies(dp);
+	if (max_link_rate && max_link_rate < drm_dp_bw_code_to_link_rate(dp->video_info.max_link_rate))
+		dp->video_info.max_link_rate = drm_dp_link_rate_to_bw_code(max_link_rate);
 
 	if (dev_read_prop(dev, "data-lanes", &len)) {
 		num_lanes = len / sizeof(u32);
