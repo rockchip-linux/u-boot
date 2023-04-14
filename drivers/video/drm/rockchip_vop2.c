@@ -100,6 +100,8 @@
 #define IF_CTRL_REG_DONE_IMD_SHIFT		28
 #define IF_CRTL_MIPI_DCLK_POL_SHIT		19
 #define IF_CRTL_EDP_DCLK_POL_SHIT		15
+#define IF_CTRL_EDP_PIN_POL_MASK		0x7
+#define IF_CTRL_EDP_PIN_POL_SHIFT		12
 #define IF_CRTL_HDMI_DCLK_POL_SHIT		7
 #define IF_CRTL_HDMI_PIN_POL_MASK		0x7
 #define IF_CRTL_HDMI_PIN_POL_SHIT		4
@@ -3064,6 +3066,8 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 				EDP0_MUX_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
 				IF_CRTL_EDP_DCLK_POL_SHIT, dclk_inv, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, IF_CTRL_EDP_PIN_POL_MASK,
+				IF_CTRL_EDP_PIN_POL_SHIFT, val, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_HDMI0) {
