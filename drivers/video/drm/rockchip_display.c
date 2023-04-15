@@ -317,12 +317,15 @@ static int connector_phy_init(struct rockchip_connector *conn,
 	return 0;
 }
 
-int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode)
+int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode, u32 *bus_flags)
 {
 	int hactive, vactive, pixelclock;
 	int hfront_porch, hback_porch, hsync_len;
 	int vfront_porch, vback_porch, vsync_len;
 	int val, flags = 0;
+
+#define FDT_GET_BOOL(val, name) \
+	val = ofnode_read_bool(node, name);
 
 #define FDT_GET_INT(val, name) \
 	val = ofnode_read_s32_default(node, name, -1); \
@@ -347,8 +350,18 @@ int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode)
 	flags |= val ? DRM_MODE_FLAG_PHSYNC : DRM_MODE_FLAG_NHSYNC;
 	FDT_GET_INT(val, "vsync-active");
 	flags |= val ? DRM_MODE_FLAG_PVSYNC : DRM_MODE_FLAG_NVSYNC;
+
+	FDT_GET_BOOL(val, "interlaced");
+	flags |= val ? DRM_MODE_FLAG_INTERLACE : 0;
+	FDT_GET_BOOL(val, "doublescan");
+	flags |= val ? DRM_MODE_FLAG_DBLSCAN : 0;
+	FDT_GET_BOOL(val, "doubleclk");
+	flags |= val ? DISPLAY_FLAGS_DOUBLECLK : 0;
+
+	FDT_GET_INT(val, "de-active");
+	*bus_flags |= val ? DRM_BUS_FLAG_DE_HIGH : DRM_BUS_FLAG_DE_LOW;
 	FDT_GET_INT(val, "pixelclk-active");
-	flags |= val ? DRM_MODE_FLAG_PPIXDATA : 0;
+	*bus_flags |= val ? DRM_BUS_FLAG_PIXDATA_DRIVE_POSEDGE : DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE;
 
 	FDT_GET_INT_DEFAULT(val, "screen-rotate", 0);
 	if (val == DRM_MODE_FLAG_XMIRROR) {
@@ -376,11 +389,13 @@ int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode)
 	return 0;
 }
 
-static int display_get_force_timing_from_dts(ofnode node, struct drm_display_mode *mode)
+static int display_get_force_timing_from_dts(ofnode node,
+					     struct drm_display_mode *mode,
+					     u32 *bus_flags)
 {
 	int ret = 0;
 
-	ret = rockchip_ofnode_get_display_mode(node, mode);
+	ret = rockchip_ofnode_get_display_mode(node, mode, bus_flags);
 
 	if (ret) {
 		mode->clock = 74250;
@@ -407,7 +422,8 @@ static int display_get_force_timing_from_dts(ofnode node, struct drm_display_mod
 }
 
 static int display_get_timing_from_dts(struct rockchip_panel *panel,
-				       struct drm_display_mode *mode)
+				       struct drm_display_mode *mode,
+				       u32 *bus_flags)
 {
 	struct ofnode_phandle_args args;
 	ofnode dt, timing, mcu_panel;
@@ -439,7 +455,7 @@ static int display_get_timing_from_dts(struct rockchip_panel *panel,
 		return -ENXIO;
 	}
 
-	rockchip_ofnode_get_display_mode(timing, mode);
+	rockchip_ofnode_get_display_mode(timing, mode, bus_flags);
 
 	return 0;
 }
@@ -455,7 +471,7 @@ static int display_get_timing(struct display_state *state)
 		return panel->funcs->get_mode(panel, mode);
 
 	if (ofnode_valid(dev_ofnode(panel->dev)) &&
-	    !display_get_timing_from_dts(panel, mode)) {
+	    !display_get_timing_from_dts(panel, mode, &conn_state->bus_flags)) {
 		printf("Using display timing dts\n");
 		return 0;
 	}
@@ -712,8 +728,10 @@ static int display_init(struct display_state *state)
 
 	/* rk356x series drive mipi pixdata on posedge */
 	compatible = dev_read_string(conn->dev, "compatible");
-	if (!strcmp(compatible, "rockchip,rk3568-mipi-dsi"))
-		conn_state->mode.flags |= DRM_MODE_FLAG_PPIXDATA;
+	if (!strcmp(compatible, "rockchip,rk3568-mipi-dsi")) {
+		conn_state->bus_flags &= ~DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE;
+		conn_state->bus_flags |= DRM_BUS_FLAG_PIXDATA_DRIVE_POSEDGE;
+	}
 
 	printf("%s: %s detailed mode clock %u kHz, flags[%x]\n"
 	       "    H: %04d %04d %04d %04d\n"
@@ -1901,7 +1919,9 @@ static int rockchip_display_probe(struct udevice *dev)
 
 		if (s->force_output) {
 			timing_node = ofnode_find_subnode(node, "force_timing");
-			ret = display_get_force_timing_from_dts(timing_node, &s->force_mode);
+			ret = display_get_force_timing_from_dts(timing_node,
+								&s->force_mode,
+								&s->conn_state.bus_flags);
 			if (ofnode_read_u32(node, "force-bus-format", &s->force_bus_format))
 				s->force_bus_format = MEDIA_BUS_FMT_RGB888_1X24;
 		}
