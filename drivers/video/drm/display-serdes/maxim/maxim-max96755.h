@@ -203,6 +203,7 @@ struct max96755f_priv {
 	struct drm_display_mode mode;
 	u32 num_lanes;
 	struct gpio_desc lock_gpio;
+	u32 dsi_lane_map[4];
 };
 
 #endif

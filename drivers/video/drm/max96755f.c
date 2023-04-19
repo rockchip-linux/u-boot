@@ -22,9 +22,18 @@ static void max96755f_mipi_dsi_rx_config(struct max96755f_priv *priv)
 	struct drm_display_mode *mode = &priv->mode;
 	u32 hfp, hsa, hbp, hact;
 	u32 vact, vsa, vfp, vbp;
+	u8 lane_map;
 
 	dm_i2c_reg_clrset(priv->dev, 0x0331, NUM_LANES,
 			  FIELD_PREP(NUM_LANES, priv->num_lanes - 1));
+
+	lane_map = (priv->dsi_lane_map[0] & 0xff) << 4 |
+		   (priv->dsi_lane_map[1] & 0xff) << 6 |
+		   (priv->dsi_lane_map[2] & 0xff) << 0 |
+		   (priv->dsi_lane_map[3] & 0xff) << 2;
+
+	dm_i2c_reg_write(priv->dev, 0x0332, lane_map);
+
 	if (!priv->dpi_deskew_en)
 		return;
 
@@ -167,7 +176,8 @@ static int max96755f_bridge_probe(struct udevice *dev)
 {
 	struct rockchip_bridge *bridge;
 	struct max96755f_priv *priv = dev_get_priv(dev->parent);
-	int ret;
+	const struct device_node *np = ofnode_to_np(dev->node);
+	int i, len, ret;
 
 	bridge = calloc(1, sizeof(*bridge));
 	if (!bridge)
@@ -180,6 +190,24 @@ static int max96755f_bridge_probe(struct udevice *dev)
 	priv->num_lanes = dev_read_u32_default(dev, "dsi,lanes", 4);
 	priv->dv_swp_ab = dev_read_bool(dev, "vd-swap-ab");
 	priv->dpi_deskew_en = dev_read_bool(dev, "dpi-deskew-en");
+
+	for ( i = 0; i < priv->num_lanes; i++)
+		priv->dsi_lane_map[i] = i;
+
+	if (of_find_property(np, "maxim,dsi-lane-map", &len)) {
+		len /= sizeof(u32);
+		if (priv->num_lanes != len) {
+			printf("invalid number of lane map\n");
+			return -EINVAL;
+		}
+	}
+
+	ret = of_read_u32_array(np, "maxim,dsi-lane-map",
+				priv->dsi_lane_map, priv->num_lanes);
+	if (ret) {
+		printf("get dsi lane map failed\n");
+		return -EINVAL;
+	}
 
 	ret = gpio_request_by_name(dev, "lock-gpios", 0, &priv->lock_gpio,
 				   GPIOD_IS_IN);
