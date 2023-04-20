@@ -1021,14 +1021,22 @@ err:
 	return 0;
 }
 
-static int get_crtc_mcu_mode(struct crtc_state *crtc_state)
+static int get_crtc_mcu_mode(struct crtc_state *crtc_state, struct device_node *port_node,
+			     bool is_ports_node)
 {
-	ofnode mcu_node;
+	ofnode mcu_node, vp_node;
 	int total_pixel, cs_pst, cs_pend, rw_pst, rw_pend;
 
-	mcu_node = dev_read_subnode(crtc_state->dev, "mcu-timing");
-	if (!ofnode_valid(mcu_node))
-		return -ENODEV;
+	if (is_ports_node) {
+		vp_node = np_to_ofnode(port_node);
+		mcu_node = ofnode_find_subnode(vp_node, "mcu-timing");
+		if (!ofnode_valid(mcu_node))
+			return -ENODEV;
+	} else {
+		mcu_node = dev_read_subnode(crtc_state->dev, "mcu-timing");
+		if (!ofnode_valid(mcu_node))
+			return -ENODEV;
+	}
 
 #define FDT_GET_MCU_INT(val, name) \
 	do { \
@@ -1999,7 +2007,7 @@ static int rockchip_display_probe(struct udevice *dev)
 			}
 		}
 
-		get_crtc_mcu_mode(&s->crtc_state);
+		get_crtc_mcu_mode(&s->crtc_state, port_node, is_ports_node);
 
 		ret = ofnode_read_u32_default(s->crtc_state.node,
 					      "rockchip,dual-channel-swap", 0);

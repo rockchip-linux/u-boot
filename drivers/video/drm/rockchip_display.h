@@ -19,6 +19,7 @@
 #include <dm/ofnode.h>
 #include <drm/drm_dsc.h>
 #include <spl_display.h>
+#include <clk.h>
 
 /*
  * major: IP major version, used for IP structure
@@ -157,6 +158,7 @@ struct crtc_state {
 	void *private;
 	ofnode node;
 	struct device_node *ports_node; /* if (ports_node) it's vop2; */
+	struct clk dclk;
 	int crtc_id;
 
 	int format;
