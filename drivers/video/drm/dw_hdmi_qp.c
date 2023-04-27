@@ -1101,6 +1101,9 @@ static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
 		printf("%s DVI mode\n", __func__);
 	}
 
+	/* Mark uboot hdmi is enabled */
+	hdmi_writel(hdmi, BIT(21), VIDEO_INTERFACE_CONFIG0);
+
 	return 0;
 }
 
