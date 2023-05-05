@@ -1457,6 +1457,13 @@ static int hdptx_ropll_tmds_mode_config(struct rockchip_hdptx_phy *hdptx, u32 ra
 	hdptx_write(hdptx, LANE_REG0616, 0x02);
 	hdptx_write(hdptx, LANE_REG061B, 0x01);
 	hdptx_write(hdptx, LANE_REG061E, 0x08);
+
+	/* fix Inter-Pair Skew exceed the limits */
+	hdptx_write(hdptx, LANE_REG031E, 0x02);
+	hdptx_write(hdptx, LANE_REG041E, 0x02);
+	hdptx_write(hdptx, LANE_REG051E, 0x02);
+	hdptx_write(hdptx, LANE_REG061E, 0x0a);
+
 	hdptx_write(hdptx, LANE_REG061F, 0x15);
 	hdptx_write(hdptx, LANE_REG0620, 0xa0);
 
@@ -1705,6 +1712,11 @@ static int hdptx_lcpll_ropll_frl_mode_config(struct rockchip_hdptx_phy *hdptx)
 	hdptx_write(hdptx, LANE_REG061F, 0x15);
 	hdptx_write(hdptx, LANE_REG0620, 0xa0);
 
+	hdptx_write(hdptx, LANE_REG031E, 0x02);
+	hdptx_write(hdptx, LANE_REG041E, 0x02);
+	hdptx_write(hdptx, LANE_REG051E, 0x02);
+	hdptx_write(hdptx, LANE_REG061E, 0x02);
+
 	hdptx_write(hdptx, LANE_REG0303, 0x2f);
 	hdptx_write(hdptx, LANE_REG0403, 0x2f);
 	hdptx_write(hdptx, LANE_REG0503, 0x2f);
@@ -1796,6 +1808,33 @@ static int hdptx_lcpll_frl_mode_config(struct rockchip_hdptx_phy *hdptx, u32 rat
 	hdptx_write(hdptx, LANE_REG061B, 0x01);
 	hdptx_write(hdptx, LANE_REG061F, 0x15);
 	hdptx_write(hdptx, LANE_REG0620, 0xa0);
+
+	hdptx_write(hdptx, LANE_REG031E, 0x02);
+	hdptx_write(hdptx, LANE_REG041E, 0x02);
+	hdptx_write(hdptx, LANE_REG051E, 0x02);
+	hdptx_write(hdptx, LANE_REG061E, 0x02);
+
+	hdptx_write(hdptx, LANE_REG0303, 0x2f);
+	hdptx_write(hdptx, LANE_REG0403, 0x2f);
+	hdptx_write(hdptx, LANE_REG0503, 0x2f);
+	hdptx_write(hdptx, LANE_REG0603, 0x2f);
+	hdptx_write(hdptx, LANE_REG0305, 0x03);
+	hdptx_write(hdptx, LANE_REG0405, 0x03);
+	hdptx_write(hdptx, LANE_REG0505, 0x03);
+	hdptx_write(hdptx, LANE_REG0605, 0x03);
+	hdptx_write(hdptx, LANE_REG0306, 0xfc);
+	hdptx_write(hdptx, LANE_REG0406, 0xfc);
+	hdptx_write(hdptx, LANE_REG0506, 0xfc);
+	hdptx_write(hdptx, LANE_REG0606, 0xfc);
+
+	hdptx_write(hdptx, LANE_REG0305, 0x4f);
+	hdptx_write(hdptx, LANE_REG0405, 0x4f);
+	hdptx_write(hdptx, LANE_REG0505, 0x4f);
+	hdptx_write(hdptx, LANE_REG0605, 0x4f);
+	hdptx_write(hdptx, LANE_REG0304, 0x14);
+	hdptx_write(hdptx, LANE_REG0404, 0x14);
+	hdptx_write(hdptx, LANE_REG0504, 0x14);
+	hdptx_write(hdptx, LANE_REG0604, 0x14);
 
 	return hdptx_post_enable_lane(hdptx);
 }
