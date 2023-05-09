@@ -524,6 +524,8 @@ static int rockchip_rgb_probe(struct udevice *dev)
 		mcu_panel->base.bus_format = mcu_panel->desc->bus_format;
 		mcu_panel->base.bpc = mcu_panel->desc->bpc;
 		mcu_panel->base.funcs = &rockchip_mcu_panel_funcs;
+		mcu_panel->enabled = false;
+		mcu_panel->prepared = false;
 
 		rgb->connector.panel = &mcu_panel->base;
 	}
