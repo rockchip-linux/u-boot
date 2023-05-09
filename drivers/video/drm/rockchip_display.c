@@ -457,6 +457,23 @@ static int display_get_timing_from_dts(struct rockchip_panel *panel,
 
 	rockchip_ofnode_get_display_mode(timing, mode, bus_flags);
 
+	if (IS_ENABLED(CONFIG_ROCKCHIP_RK3568) || IS_ENABLED(CONFIG_ROCKCHIP_RK3588)) {
+		if (mode->hdisplay % 4) {
+			int old_hdisplay = mode->hdisplay;
+			int align = 4 - (mode->hdisplay % 4);
+
+			mode->hdisplay += align;
+			mode->hsync_start += align;
+			mode->hsync_end += align;
+			mode->htotal += align;
+
+			ofnode_write_u32(timing, "hactive", mode->hdisplay);
+
+			printf("WARN: hactive need to be aligned with 4-pixel, %d -> %d\n",
+				old_hdisplay, mode->hdisplay);
+		}
+	}
+
 	return 0;
 }
 
