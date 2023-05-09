@@ -577,6 +577,22 @@ static int display_mode_valid(struct display_state *state)
 	return 0;
 }
 
+static int display_mode_fixup(struct display_state *state)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
+	int ret;
+
+	if (crtc_funcs->mode_fixup) {
+		ret = crtc_funcs->mode_fixup(state);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 static int display_init(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -746,15 +762,8 @@ static int display_init(struct display_state *state)
 	       mode->vsync_end, mode->vtotal,
 	       conn_state->bus_format);
 
-	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V);
-
-	if (conn_state->secondary) {
-		mode->crtc_clock *= 2;
-		mode->crtc_hdisplay *= 2;
-		mode->crtc_hsync_start *= 2;
-		mode->crtc_hsync_end *= 2;
-		mode->crtc_htotal *= 2;
-	}
+	if (display_mode_fixup(state))
+		goto deinit;
 
 	if (conn->bridge)
 		rockchip_bridge_mode_set(conn->bridge, &conn_state->mode);

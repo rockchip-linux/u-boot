@@ -44,6 +44,7 @@ struct rockchip_crtc_funcs {
 	int (*send_mcu_cmd)(struct display_state *state, u32 type, u32 value);
 	int (*check)(struct display_state *state);
 	int (*mode_valid)(struct display_state *state);
+	int (*mode_fixup)(struct display_state *state);
 	int (*plane_check)(struct display_state *state);
 	int (*regs_dump)(struct display_state *state);
 	int (*active_regs_dump)(struct display_state *state);

@@ -3645,15 +3645,13 @@ static int rockchip_vop2_init(struct display_state *state)
 	vop2_writel(vop2, RK3568_VP0_DSP_VTOTAL_VS_END + vp_offset,
 		    (vtotal << 16) | vsync_len);
 
-	if (vop2->version == VOP_VERSION_RK3568 || vop2->version == VOP_VERSION_RK3528) {
-		if (mode->flags & DRM_MODE_FLAG_DBLCLK ||
-		    conn_state->output_if & VOP_OUTPUT_IF_BT656)
-			vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-					CORE_DCLK_DIV_EN_SHIFT, 1, false);
-		else
-			vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-					CORE_DCLK_DIV_EN_SHIFT, 0, false);
-	}
+	if (mode->flags & DRM_MODE_FLAG_DBLCLK ||
+	    conn_state->output_if & VOP_OUTPUT_IF_BT656)
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				CORE_DCLK_DIV_EN_SHIFT, 1, false);
+	else
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				CORE_DCLK_DIV_EN_SHIFT, 0, false);
 
 	if (conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420)
 		vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
@@ -3758,17 +3756,7 @@ static int rockchip_vop2_init(struct display_state *state)
 				ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate * 1000);
 			} else {
 #ifndef CONFIG_SPL_BUILD
-				/*
-				 * For RK3528, the path of CVBS output is like:
-				 * VOP BT656 ENCODER -> CVBS BT656 DECODER -> CVBS ENCODER -> CVBS VDAC
-				 * The vop2 dclk should be four times crtc_clock for CVBS sampling
-				 * clock needs.
-				 */
-				if (vop2->version == VOP_VERSION_RK3528 &&
-				    conn_state->output_if & VOP_OUTPUT_IF_BT656)
-					ret = vop2_clk_set_rate(&dclk, 4 * dclk_rate * 1000);
-				else
-					ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
+				ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
 #else
 				if (vop2->version == VOP_VERSION_RK3528) {
 					void *cru_base = (void *)RK3528_CRU_BASE;
@@ -4451,6 +4439,38 @@ static int rockchip_vop2_mode_valid(struct display_state *state)
 	     vm.vfront_porch * vm.vsync_len * vm.vback_porch == 0)) {
 		printf("ERROR: VP%d: unsupported display timing\n", cstate->crtc_id);
 		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int rockchip_vop2_mode_fixup(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+
+	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V);
+
+	if (mode->flags & DRM_MODE_FLAG_DBLCLK || conn_state->output_if & VOP_OUTPUT_IF_BT656)
+		mode->crtc_clock *= 2;
+
+	/*
+	 * For RK3528, the path of CVBS output is like:
+	 * VOP BT656 ENCODER -> CVBS BT656 DECODER -> CVBS ENCODER -> CVBS VDAC
+	 * The vop2 dclk should be four times crtc_clock for CVBS sampling
+	 * clock needs.
+	 */
+	if (vop2->version == VOP_VERSION_RK3528 && conn_state->output_if & VOP_OUTPUT_IF_BT656)
+		mode->crtc_clock *= 4;
+
+	if (conn_state->secondary) {
+		mode->crtc_clock *= 2;
+		mode->crtc_hdisplay *= 2;
+		mode->crtc_hsync_start *= 2;
+		mode->crtc_hsync_end *= 2;
+		mode->crtc_htotal *= 2;
 	}
 
 	return 0;
@@ -5662,6 +5682,7 @@ const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
 	.fixup_dts = rockchip_vop2_fixup_dts,
 	.check = rockchip_vop2_check,
 	.mode_valid = rockchip_vop2_mode_valid,
+	.mode_fixup = rockchip_vop2_mode_fixup,
 	.plane_check = rockchip_vop2_plane_check,
 	.regs_dump = rockchip_vop2_regs_dump,
 	.active_regs_dump = rockchip_vop2_active_regs_dump,
