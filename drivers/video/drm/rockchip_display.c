@@ -58,6 +58,7 @@ static unsigned long cubic_lut_memory_start;
 static unsigned long memory_end;
 static struct base2_info base_parameter;
 static uint32_t crc32_table[256];
+static u32 align_size = PAGE_SIZE;
 
 /*
  * the phy types are used by different connectors in public.
@@ -266,9 +267,9 @@ static int get_public_phy(struct rockchip_connector *conn,
 
 static void init_display_buffer(ulong base)
 {
-	memory_start = base + DRM_ROCKCHIP_FB_SIZE;
+	memory_start = ALIGN(base + DRM_ROCKCHIP_FB_SIZE, align_size);
 	memory_end = memory_start;
-	cubic_lut_memory_start = memory_start + MEMORY_POOL_SIZE;
+	cubic_lut_memory_start = ALIGN(memory_start + MEMORY_POOL_SIZE, align_size);
 }
 
 void *get_display_buffer(int size)
@@ -2132,6 +2133,7 @@ void rockchip_display_fixup(void *blob)
 	const struct device_node *np;
 	const char *path;
 	const char *cacm_header;
+	u64 aligned_memory_size;
 
 	if (fdt_node_offset_by_compatible(blob, 0, "rockchip,drm-logo") >= 0) {
 		list_for_each_entry(s, &rockchip_display_list, head) {
@@ -2147,17 +2149,21 @@ void rockchip_display_fixup(void *blob)
 		if (!get_display_size())
 			return;
 
+		aligned_memory_size = (u64)ALIGN(get_display_size(), align_size);
 		offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
 						    (u64)memory_start,
-						    (u64)get_display_size());
+						    aligned_memory_size);
 		if (offset < 0)
 			printf("failed to reserve drm-loader-logo memory\n");
 
-		offset = fdt_update_reserved_memory(blob, "rockchip,drm-cubic-lut",
-						    (u64)cubic_lut_memory_start,
-						    (u64)get_cubic_memory_size());
-		if (offset < 0)
-			printf("failed to reserve drm-cubic-lut memory\n");
+		if (get_cubic_memory_size()) {
+			aligned_memory_size = (u64)ALIGN(get_cubic_memory_size(), align_size);
+			offset = fdt_update_reserved_memory(blob, "rockchip,drm-cubic-lut",
+							    (u64)cubic_lut_memory_start,
+							    aligned_memory_size);
+			if (offset < 0)
+				printf("failed to reserve drm-cubic-lut memory\n");
+		}
 	} else {
 		printf("can't found rockchip,drm-logo, use rockchip,fb-logo\n");
 		/* Compatible with rkfb display, only need reserve memory */
