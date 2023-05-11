@@ -106,6 +106,9 @@
 #define IF_CRTL_HDMI_DCLK_POL_SHIT		7
 #define IF_CRTL_HDMI_PIN_POL_MASK		0x7
 #define IF_CRTL_HDMI_PIN_POL_SHIT		4
+#define IF_CTRL_RGB_LVDS_DCLK_POL_SHIFT		3
+#define IF_CTRL_RGB_LVDS_PIN_POL_MASK		0x7
+#define IF_CTRL_RGB_LVDS_PIN_POL_SHIFT		0
 
 #define RK3562_MIPI_DCLK_POL_SHIFT		15
 #define RK3562_MIPI_PIN_POL_SHIFT		12
@@ -114,9 +117,6 @@
 #define RK3588_DP0_PIN_POL_SHIFT		8
 #define RK3588_DP1_PIN_POL_SHIFT		12
 #define RK3588_IF_PIN_POL_MASK			0x7
-
-#define IF_CRTL_RGB_LVDS_DCLK_POL_SHIT		3
-#define IF_CRTL_RGB_LVDS_PIN_POL_SHIFT		0
 
 #define HDMI_EDP0_DCLK_DIV_SHIFT		16
 #define HDMI_EDP0_PIXCLK_DIV_SHIFT		18
@@ -2969,6 +2969,8 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				RGB_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, IF_CTRL_RGB_LVDS_PIN_POL_MASK,
+				IF_CTRL_RGB_LVDS_PIN_POL_SHIFT, val, false);
 		vop2_grf_writel(vop2, vop2->grf, RK3568_GRF_VO_CON1, EN_MASK,
 				GRF_RGB_DCLK_INV_SHIFT, dclk_inv);
 	}
@@ -2998,8 +3000,10 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				LVDS0_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, IF_CTRL_RGB_LVDS_PIN_POL_MASK,
+				IF_CTRL_RGB_LVDS_PIN_POL_SHIFT, val, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
-				IF_CRTL_RGB_LVDS_DCLK_POL_SHIT, dclk_inv, false);
+				IF_CTRL_RGB_LVDS_DCLK_POL_SHIFT, dclk_inv, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_LVDS1) {
@@ -3007,8 +3011,10 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				LVDS1_MUX_SHIFT, cstate->crtc_id, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, IF_CTRL_RGB_LVDS_PIN_POL_MASK,
+				IF_CTRL_RGB_LVDS_PIN_POL_SHIFT, val, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
-				IF_CRTL_RGB_LVDS_DCLK_POL_SHIT, dclk_inv, false);
+				IF_CTRL_RGB_LVDS_DCLK_POL_SHIFT, dclk_inv, false);
 	}
 
 	if (conn_state->output_flags &
@@ -3134,7 +3140,7 @@ static unsigned long rk3562_vop2_if_cfg(struct display_state *state)
 		vop2_grf_writel(vop2, vop2->grf, RK3562_GRF_IOC_VO_IO_CON, EN_MASK,
 				GRF_RGB_DCLK_INV_SHIFT, dclk_inv);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, RK3562_IF_PIN_POL_MASK,
-				IF_CRTL_RGB_LVDS_PIN_POL_SHIFT, val, false);
+				IF_CTRL_RGB_LVDS_PIN_POL_SHIFT, val, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_LVDS0) {
@@ -3143,9 +3149,9 @@ static unsigned long rk3562_vop2_if_cfg(struct display_state *state)
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK,
 				LVDS0_MUX_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
-				IF_CRTL_RGB_LVDS_DCLK_POL_SHIT, dclk_inv, false);
+				IF_CTRL_RGB_LVDS_DCLK_POL_SHIFT, dclk_inv, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, RK3562_IF_PIN_POL_MASK,
-				IF_CRTL_RGB_LVDS_PIN_POL_SHIFT, val, false);
+				IF_CTRL_RGB_LVDS_PIN_POL_SHIFT, val, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_MIPI0) {
