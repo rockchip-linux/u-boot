@@ -2668,7 +2668,7 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		}
 
 		if (cstate->dsc_enable)
-			dclk_rate = dclk_rate >> 1;
+			dclk_rate /= cstate->dsc_slice_num;
 
 		*dclk_out_div = dclk_rate / dclk_out_rate;
 		*dclk_core_div = dclk_rate / dclk_core_rate;
