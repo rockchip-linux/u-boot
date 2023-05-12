@@ -203,6 +203,13 @@ static int rockchip_vop_probe(struct udevice *dev)
 	struct udevice *child;
 	int ret;
 
+	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
+	ret = clk_set_defaults(dev);
+	if (ret) {
+		dev_err(dev, "%s clk_set_defaults failed %d\n", __func__, ret);
+		return ret;
+	}
+
 	for (device_find_first_child(dev, &child);
 	     child;
 	     device_find_next_child(&child)) {

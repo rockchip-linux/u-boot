@@ -2485,14 +2485,6 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 
 static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 {
-	struct crtc_state *cstate = &state->crtc_state;
-	int ret;
-
-	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
-	ret = clk_set_defaults(cstate->dev);
-	if (ret)
-		debug("%s clk_set_defaults failed %d\n", __func__, ret);
-
 	rockchip_vop2_gamma_lut_init(vop2, state);
 	rockchip_vop2_cubic_lut_init(vop2, state);
 
