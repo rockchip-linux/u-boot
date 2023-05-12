@@ -15,6 +15,7 @@ obj-$(CONFIG_DRM_DP_HELPER) += drm_dp_helper.o
 obj-$(CONFIG_DRM_DSC) += drm_dsc.o
 obj-$(CONFIG_DRM_MAXIM_MAX96745) += max96745.o
 obj-$(CONFIG_DRM_MAXIM_MAX96755F) += max96755f.o
+obj-$(CONFIG_DRM_PANEL_ROHM_BU18RL82) += panel-rohm-bu18rl82.o
 obj-$(CONFIG_DRM_PANEL_MAXIM_MAX96752F) += panel-maxim-max96752f.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI) += dw_mipi_dsi.o
 obj-$(CONFIG_DRM_ROCKCHIP_DW_MIPI_DSI2) += dw_mipi_dsi2.o
