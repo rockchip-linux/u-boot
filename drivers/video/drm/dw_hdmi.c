@@ -1934,6 +1934,7 @@ void dw_hdmi_set_sample_rate(struct dw_hdmi *hdmi, unsigned int rate)
 				 hdmi->sample_rate);
 }
 
+#ifndef CONFIG_SPL_BUILD
 static int dw_hdmi_hdcp_load_key(struct dw_hdmi *hdmi)
 {
 	int i, j, ret, val;
@@ -1999,6 +2000,7 @@ static int dw_hdmi_hdcp_load_key(struct dw_hdmi *hdmi)
 	free(hdcp_keys);
 	return 0;
 }
+#endif
 
 static void hdmi_tx_hdcp_config(struct dw_hdmi *hdmi,
 				const struct drm_display_mode *mode)
@@ -2028,8 +2030,10 @@ static void hdmi_tx_hdcp_config(struct dw_hdmi *hdmi,
 	hdmi_modb(hdmi, hdmi_dvi, HDMI_A_HDCPCFG0_HDMIDVI_MASK,
 		  HDMI_A_HDCPCFG0);
 
+#ifndef CONFIG_SPL_BUILD
 	if (!(hdmi_readb(hdmi, HDMI_HDCPREG_RMSTS) & 0x3f))
 		dw_hdmi_hdcp_load_key(hdmi);
+#endif
 
 	hdmi_modb(hdmi, HDMI_FC_INVIDCONF_HDCP_KEEPOUT_ACTIVE,
 		  HDMI_FC_INVIDCONF_HDCP_KEEPOUT_MASK,
@@ -2316,14 +2320,18 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 {
 	struct connector_state *conn_state = &state->conn_state;
 	const struct dw_hdmi_plat_data *pdata =
+#ifdef CONFIG_SPL_BUILD
+		(const struct dw_hdmi_plat_data *)conn->data;
+#else
 		(const struct dw_hdmi_plat_data *)dev_get_driver_data(conn->dev);
+	ofnode hdmi_node = conn->dev->node;
+	struct device_node *ddc_node;
+	int ret;
+#endif
 	struct crtc_state *crtc_state = &state->crtc_state;
 	struct dw_hdmi *hdmi;
 	struct drm_display_mode *mode_buf;
-	ofnode hdmi_node = conn->dev->node;
 	u32 val;
-	struct device_node *ddc_node;
-	int ret;
 
 	hdmi = malloc(sizeof(struct dw_hdmi));
 	if (!hdmi)
@@ -2333,16 +2341,28 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	mode_buf = malloc(MODE_LEN * sizeof(struct drm_display_mode));
 	if (!mode_buf)
 		return -ENOMEM;
+
+#ifdef CONFIG_SPL_BUILD
+	hdmi->id = 0;
+	hdmi->regs = (void *)RK3528_HDMI_BASE;
+	hdmi->io_width = 4;
+	hdmi->scramble_low_rates = false;
+	hdmi->hdcp1x_enable = false;
+	hdmi->output_bus_format_rgb = false;
+	conn_state->type = DRM_MODE_CONNECTOR_HDMIA;
+#else
 	hdmi->id = of_alias_get_id(ofnode_to_np(hdmi_node), "hdmi");
 	if (hdmi->id < 0)
 		hdmi->id = 0;
-	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, hdmi->id);
+	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, hdmi->id);
+#endif
 
 	memset(mode_buf, 0, MODE_LEN * sizeof(struct drm_display_mode));
 
 	hdmi->dev_type = pdata->dev_type;
 	hdmi->plat_data = pdata;
 
+#ifndef CONFIG_SPL_BUILD
 	hdmi->regs = dev_read_addr_ptr(conn->dev);
 	hdmi->io_width = ofnode_read_s32_default(hdmi_node, "reg-io-width", -1);
 
@@ -2385,6 +2405,7 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 		if (hdmi->adap.i2c_bus)
 			hdmi->adap.ops = i2c_get_ops(hdmi->adap.i2c_bus);
 	}
+#endif
 
 	hdmi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 	if (hdmi->grf <= 0) {
@@ -2393,16 +2414,19 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 		return -ENXIO;
 	}
 
-	hdmi->gpio_base = (void *)dev_read_addr_index(conn->dev, 1);
-	if (!hdmi->gpio_base)
-		return -ENODEV;
-
+#ifdef CONFIG_SPL_BUILD
+	hdmi->gpio_base = (void *)RK3528_GPIO_BASE;
+#else
 	ret = gpio_request_by_name(conn->dev, "hpd-gpios", 0,
 				   &hdmi->hpd_gpiod, GPIOD_IS_IN);
-        if (ret && ret != -ENOENT) {
-                printf("%s: Cannot get HPD GPIO: %d\n", __func__, ret);
-                return ret;
-        }
+	if (ret && ret != -ENOENT) {
+		printf("%s: Cannot get HPD GPIO: %d\n", __func__, ret);
+		return ret;
+	}
+	hdmi->gpio_base = (void *)dev_read_addr_index(conn->dev, 1);
+#endif
+	if (!hdmi->gpio_base)
+		return -ENODEV;
 
 	dw_hdmi_set_reg_wr(hdmi);
 
@@ -2425,12 +2449,17 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	 * Read high and low time from device tree. If not available use
 	 * the default timing scl clock rate is about 99.6KHz.
 	 */
+#ifdef CONFIG_SPL_BUILD
+	hdmi->i2c->scl_high_ns = 9625;
+	hdmi->i2c->scl_low_ns = 10000;
+#else
 	hdmi->i2c->scl_high_ns =
 		ofnode_read_s32_default(hdmi_node,
 					"ddc-i2c-scl-high-time-ns", 4708);
 	hdmi->i2c->scl_low_ns =
 		ofnode_read_s32_default(hdmi_node,
 					"ddc-i2c-scl-low-time-ns", 4916);
+#endif
 
 	dw_hdmi_i2c_init(hdmi);
 	conn_state->output_if |= VOP_OUTPUT_IF_HDMI0;
@@ -2522,6 +2551,9 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 		hdmi->edid_data.preferred_mode = &hdmi->edid_data.mode_buf[0];
 		printf("failed to get edid\n");
 	}
+#ifdef CONFIG_SPL_BUILD
+	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, hdmi->id);
+#endif
 	drm_rk_filter_whitelist(&hdmi->edid_data);
 	if (hdmi->phy.ops->mode_valid)
 		hdmi->phy.ops->mode_valid(conn, hdmi, state);
@@ -2554,7 +2586,6 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 	*mode = *hdmi->edid_data.preferred_mode;
 	hdmi->vic = drm_match_cea_mode(mode);
 
-	printf("mode:%dx%d\n", mode->hdisplay, mode->vdisplay);
 	if (state->force_output)
 		bus_format = state->force_bus_format;
 	conn_state->bus_format = bus_format;
