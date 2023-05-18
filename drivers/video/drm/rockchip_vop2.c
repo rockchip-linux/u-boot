@@ -34,6 +34,7 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
+#include "rockchip_phy.h"
 #include "rockchip_post_csc.h"
 
 /* System registers definition */
@@ -2511,12 +2512,17 @@ static int rockchip_vop2_preinit(struct display_state *state)
 		rockchip_vop2 = calloc(1, sizeof(struct vop2));
 		if (!rockchip_vop2)
 			return -ENOMEM;
-		rockchip_vop2->regs = dev_read_addr_ptr(cstate->dev);
+		memset(rockchip_vop2, 0, sizeof(struct vop2));
 		rockchip_vop2->regsbak = malloc(RK3568_MAX_REG);
 		rockchip_vop2->reg_len = RK3568_MAX_REG;
+#ifdef CONFIG_SPL_BUILD
+		rockchip_vop2->regs = (void *)RK3528_VOP_BASE;
+#else
+		rockchip_vop2->regs = dev_read_addr_ptr(cstate->dev);
 		rockchip_vop2->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 		if (rockchip_vop2->grf <= 0)
 			printf("%s: Get syscon grf failed (ret=%p)\n", __func__, rockchip_vop2->grf);
+#endif
 		rockchip_vop2->version = vop2_data->version;
 		rockchip_vop2->data = vop2_data;
 		if (rockchip_vop2->version == VOP_VERSION_RK3588) {
@@ -3507,7 +3513,9 @@ static int rockchip_vop2_init(struct display_state *state)
 	u8 pre_dither_down_en = 0;
 	u8 dclk_div_factor = 0;
 	char output_type_name[30] = {0};
+#ifndef CONFIG_SPL_BUILD
 	char dclk_name[9];
+#endif
 	struct clk dclk;
 	struct clk hdmi0_phy_pll;
 	struct clk hdmi1_phy_pll;
@@ -3699,12 +3707,14 @@ static int rockchip_vop2_init(struct display_state *state)
 		}
 	}
 
+#ifndef CONFIG_SPL_BUILD
 	snprintf(dclk_name, sizeof(dclk_name), "dclk_vp%d", cstate->crtc_id);
 	ret = clk_get_by_name(cstate->dev, dclk_name, &dclk);
 	if (ret) {
 		printf("%s: Failed to get dclk ret=%d\n", __func__, ret);
 		return ret;
 	}
+#endif
 
 	ret = uclass_get_device_by_name(UCLASS_VIDEO, "display-subsystem", &disp_dev);
 	if (!ret) {
@@ -3756,6 +3766,7 @@ static int rockchip_vop2_init(struct display_state *state)
 			if (is_extend_pll(state, &hdmi_phy_pll.dev)) {
 				ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate * 1000);
 			} else {
+#ifndef CONFIG_SPL_BUILD
 				/*
 				 * For RK3528, the path of CVBS output is like:
 				 * VOP BT656 ENCODER -> CVBS BT656 DECODER -> CVBS ENCODER -> CVBS VDAC
@@ -3767,6 +3778,16 @@ static int rockchip_vop2_init(struct display_state *state)
 					ret = vop2_clk_set_rate(&dclk, 4 * dclk_rate * 1000);
 				else
 					ret = vop2_clk_set_rate(&dclk, dclk_rate * 1000);
+#else
+				if (vop2->version == VOP_VERSION_RK3528) {
+					void *cru_base = (void *)RK3528_CRU_BASE;
+
+					/* dclk src switch to hdmiphy pll */
+					writel((BIT(0) << 16) | BIT(0), cru_base + 0x450);
+					rockchip_phy_set_pll(conn_state->connector->phy, dclk_rate * 1000);
+					ret = dclk_rate * 1000;
+				}
+#endif
 			}
 		}
 	} else {
@@ -4478,7 +4499,7 @@ static int rockchip_vop2_plane_check(struct display_state *state)
 
 static int rockchip_vop2_apply_soft_te(struct display_state *state)
 {
-	struct connector_state *conn_state = &state->conn_state;
+	__maybe_unused struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
@@ -4488,6 +4509,7 @@ static int rockchip_vop2_apply_soft_te(struct display_state *state)
 	ret = readl_poll_timeout(vop2->regs + RK3568_VP0_MIPI_CTRL + vp_offset, val,
 				 (val >> EDPI_WMS_FS) & 0x1, 50 * 1000);
 	if (!ret) {
+#ifndef CONFIG_SPL_BUILD
 		ret = readx_poll_timeout(dm_gpio_get_value, conn_state->te_gpio, val,
 					 !val, 50 * 1000);
 		if (!ret) {
@@ -4505,6 +4527,7 @@ static int rockchip_vop2_apply_soft_te(struct display_state *state)
 			printf("ERROR: vp%d TE signal maybe always high\n", cstate->crtc_id);
 			return ret;
 		}
+#endif
 	} else {
 		printf("ERROR: vp%d wait vop2 frame start timeout in hold mode\n", cstate->crtc_id);
 		return ret;
