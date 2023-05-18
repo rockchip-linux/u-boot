@@ -7,6 +7,17 @@
 #ifndef _ROCKCHIP_CONNECTOR_H_
 #define _ROCKCHIP_CONNECTOR_H_
 
+#ifdef CONFIG_SPL_BUILD
+struct rockchip_connector {
+	struct rockchip_phy *phy;
+	int id;
+	int type;
+	bool hpd;
+
+	const struct rockchip_connector_funcs *funcs;
+	void *data;
+};
+#else
 #include "rockchip_bridge.h"
 #include "rockchip_panel.h"
 
@@ -18,10 +29,12 @@ struct rockchip_connector {
 	struct list_head head;
 	int id;
 	int type;
+	bool hpd;
 
 	const struct rockchip_connector_funcs *funcs;
 	void *data;
 };
+#endif
 
 struct rockchip_connector_funcs {
 	/*

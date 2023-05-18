@@ -3,6 +3,7 @@
 # (C) Copyright 2000-2007
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
+ifndef CONFIG_SPL_BUILD
 ifdef CONFIG_DM
 obj-$(CONFIG_$(PHASE_)BACKLIGHT) += backlight-uclass.o
 obj-$(CONFIG_BACKLIGHT_GPIO) += backlight_gpio.o
@@ -32,7 +33,6 @@ endif
 obj-$(CONFIG_BACKLIGHT_LM3533) += lm3533_backlight.o
 obj-${CONFIG_EXYNOS_FB} += exynos/
 obj-${CONFIG_VIDEO_ROCKCHIP} += rockchip/
-obj-${CONFIG_DRM_ROCKCHIP} += drm/
 obj-${CONFIG_VIDEO_STM32} += stm32/
 obj-${CONFIG_VIDEO_TEGRA124} += tegra124/
 obj-${CONFIG_$(XPL_)VIDEO_TIDSS} += tidss/
@@ -85,3 +85,6 @@ obj-$(CONFIG_VIDEO_ZYNQMP_DPSUB) += zynqmp/
 obj-y += bridge/
 obj-y += sunxi/
 obj-y += tegra20/
+endif
+
+obj-${CONFIG_DRM_ROCKCHIP} += drm/

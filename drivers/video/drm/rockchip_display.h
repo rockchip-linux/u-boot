@@ -7,12 +7,18 @@
 #ifndef _ROCKCHIP_DISPLAY_H
 #define _ROCKCHIP_DISPLAY_H
 
+#ifdef CONFIG_SPL_BUILD
+#include <linux/hdmi.h>
+#include <linux/media-bus-format.h>
+#else
 #include <bmp_layout.h>
-#include <drm_modes.h>
 #include <edid.h>
+#endif
 #include <dm/device_compat.h>
+#include <drm_modes.h>
 #include <dm/ofnode.h>
 #include <drm/drm_dsc.h>
+#include <spl_display.h>
 
 /*
  * major: IP major version, used for IP structure
@@ -286,6 +292,7 @@ struct display_state {
 	int is_enable;
 	bool is_klogo_valid;
 	bool force_output;
+	bool enabled_at_spl;
 	struct drm_display_mode force_mode;
 	u32 force_bus_format;
 };
@@ -300,6 +307,9 @@ void drm_mode_max_resolution_filter(struct hdmi_edid_data *edid_data,
 				    struct vop_rect *max_output);
 unsigned long get_cubic_lut_buffer(int crtc_id);
 int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode);
+void rockchip_display_make_crc32_table(void);
+uint32_t rockchip_display_crc32c_cal(unsigned char *data, int length);
+void drm_mode_set_crtcinfo(struct drm_display_mode *p, int adjust_flags);
 
 int display_rect_calc_hscale(struct display_rect *src, struct display_rect *dst,
 			     int min_hscale, int max_hscale);
@@ -308,4 +318,9 @@ int display_rect_calc_vscale(struct display_rect *src, struct display_rect *dst,
 struct device_node *
 rockchip_of_graph_get_endpoint_by_regs(ofnode node, int port, int endpoint);
 
+#ifdef CONFIG_SPL_BUILD
+int rockchip_spl_vop_probe(struct crtc_state *crtc_state);
+int rockchip_spl_dw_hdmi_probe(struct connector_state *conn_state);
+int inno_spl_hdmi_phy_probe(struct display_state *state);
+#endif
 #endif
