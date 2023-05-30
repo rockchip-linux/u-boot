@@ -4623,7 +4623,7 @@ static int rockchip_vop2_mode_fixup(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
 
-	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V);
+	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V | CRTC_STEREO_DOUBLE);
 
 	if (mode->flags & DRM_MODE_FLAG_DBLCLK || conn_state->output_if & VOP_OUTPUT_IF_BT656)
 		mode->crtc_clock *= 2;

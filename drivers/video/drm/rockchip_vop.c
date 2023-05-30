@@ -902,6 +902,16 @@ static int rockchip_vop_plane_check(struct display_state *state)
 	return 0;
 }
 
+static int rockchip_vop_mode_fixup(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+
+	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V | CRTC_STEREO_DOUBLE);
+
+	return 0;
+}
+
 const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.preinit = rockchip_vop_preinit,
 	.init = rockchip_vop_init,
@@ -913,4 +923,5 @@ const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.send_mcu_cmd = rockchip_vop_send_mcu_cmd,
 	.mode_valid = rockchip_vop_mode_valid,
 	.plane_check = rockchip_vop_plane_check,
+	.mode_fixup = rockchip_vop_mode_fixup,
 };
