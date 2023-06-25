@@ -1601,7 +1601,7 @@ static u32 dw_dp_get_output_bus_fmts(struct dw_dp *dp, struct hdmi_edid_data *ed
 		    !link->vsc_sdp_extension_for_colorimetry_supported)
 			continue;
 
-		if (drm_mode_is_420(&edid_data->display_info, edid_data->preferred_mode) &&
+		if (drm_mode_is_420_only(&edid_data->display_info, edid_data->preferred_mode) &&
 		    fmt->color_format != DRM_COLOR_FORMAT_YCRCB420)
 			continue;
 
