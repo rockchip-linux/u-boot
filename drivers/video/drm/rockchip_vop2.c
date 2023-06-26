@@ -496,6 +496,7 @@
 #define CLUSTER_YUV2RGB_EN_SHIFT		8
 #define CLUSTER_RGB2YUV_EN_SHIFT		9
 #define CLUSTER_CSC_MODE_SHIFT			10
+#define CLUSTER_DITHER_UP_EN_SHIFT		18
 #define RK3568_CLUSTER0_WIN0_CTRL1		0x1004
 #define RK3568_CLUSTER_YRGB_XSCL_MODE_SHIFT	12
 #define RK3568_CLUSTER_YRGB_YSCL_MODE_SHIFT	14
@@ -614,6 +615,7 @@
 #define WIN_EN_SHIFT				0
 #define WIN_FORMAT_MASK				0x1f
 #define WIN_FORMAT_SHIFT			1
+#define REGION0_DITHER_UP_EN_SHIFT		12
 #define REGION0_RB_SWAP_SHIFT			14
 #define ESMART_XAVG_EN_SHIFT			20
 #define ESMART_XGT_EN_SHIFT			21
@@ -4131,6 +4133,16 @@ static void vop2_axi_config(struct vop2 *vop2, struct vop2_win_data *win)
 	}
 }
 
+static bool vop2_win_dither_up(uint32_t format)
+{
+	switch (format) {
+	case ROCKCHIP_FMT_RGB565:
+		return true;
+	default:
+		return false;
+	}
+}
+
 static void vop2_set_cluster_win(struct display_state *state, struct vop2_win_data *win)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -4152,6 +4164,7 @@ static void vop2_set_cluster_win(struct display_state *state, struct vop2_win_da
 	u32 splice_yrgb_offset = 0;
 	u32 win_offset = win->reg_offset;
 	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
+	bool dither_up;
 
 	if (win->splice_mode_right) {
 		src_w = cstate->right_src_rect.w;
@@ -4213,6 +4226,11 @@ static void vop2_set_cluster_win(struct display_state *state, struct vop2_win_da
 			is_yuv_output(conn_state->bus_format), false);
 	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, CSC_MODE_MASK,
 			CLUSTER_CSC_MODE_SHIFT, csc_mode, false);
+
+	dither_up = vop2_win_dither_up(cstate->format);
+	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK,
+			CLUSTER_DITHER_UP_EN_SHIFT, dither_up, false);
+
 	vop2_mask_write(vop2, RK3568_CLUSTER0_CTRL + win_offset, EN_MASK, CLUSTER_EN_SHIFT, 1, false);
 
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
@@ -4239,6 +4257,7 @@ static void vop2_set_smart_win(struct display_state *state, struct vop2_win_data
 	u32 splice_yrgb_offset = 0;
 	u32 win_offset = win->reg_offset;
 	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
+	bool dither_up;
 
 	if (win->splice_mode_right) {
 		src_w = cstate->right_src_rect.w;
@@ -4313,6 +4332,10 @@ static void vop2_set_smart_win(struct display_state *state, struct vop2_win_data
 			is_yuv_output(conn_state->bus_format), false);
 	vop2_mask_write(vop2, RK3568_ESMART0_CTRL0 + win_offset, CSC_MODE_MASK,
 			CSC_MODE_SHIFT, csc_mode, false);
+
+	dither_up = vop2_win_dither_up(cstate->format);
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
+			REGION0_DITHER_UP_EN_SHIFT, dither_up, false);
 
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
 }
