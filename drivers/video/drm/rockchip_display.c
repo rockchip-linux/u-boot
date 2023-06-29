@@ -2208,27 +2208,27 @@ void rockchip_display_fixup(void *blob)
 			FDT_SET_U32("bcsh,hue", s->conn_state.disp_info->bcsh_info.hue);
 
 			if (!strncasecmp(cacm_header, "CACM", 4)) {
-				FDT_SET_U32("post_csc,hue",
+				FDT_SET_U32("post-csc,hue",
 					    s->conn_state.disp_info->csc_info.hue);
-				FDT_SET_U32("post_csc,saturation",
+				FDT_SET_U32("post-csc,saturation",
 					    s->conn_state.disp_info->csc_info.saturation);
-				FDT_SET_U32("post_csc,contrast",
+				FDT_SET_U32("post-csc,contrast",
 					    s->conn_state.disp_info->csc_info.contrast);
-				FDT_SET_U32("post_csc,brightness",
+				FDT_SET_U32("post-csc,brightness",
 					    s->conn_state.disp_info->csc_info.brightness);
-				FDT_SET_U32("post_csc,r_gain",
+				FDT_SET_U32("post-csc,r-gain",
 					    s->conn_state.disp_info->csc_info.r_gain);
-				FDT_SET_U32("post_csc,g_gain",
+				FDT_SET_U32("post-csc,g-gain",
 					    s->conn_state.disp_info->csc_info.g_gain);
-				FDT_SET_U32("post_csc,b_gain",
+				FDT_SET_U32("post-csc,b-gain",
 					    s->conn_state.disp_info->csc_info.b_gain);
-				FDT_SET_U32("post_csc,r_offset",
+				FDT_SET_U32("post-csc,r-offset",
 					    s->conn_state.disp_info->csc_info.r_offset);
-				FDT_SET_U32("post_csc,g_offset",
+				FDT_SET_U32("post-csc,g-offset",
 					    s->conn_state.disp_info->csc_info.g_offset);
-				FDT_SET_U32("post_csc,b_offset",
+				FDT_SET_U32("post-csc,b-offset",
 					    s->conn_state.disp_info->csc_info.b_offset);
-				FDT_SET_U32("post_csc,csc_enable",
+				FDT_SET_U32("post-csc,enable",
 					    s->conn_state.disp_info->csc_info.csc_enable);
 			}
 		}
