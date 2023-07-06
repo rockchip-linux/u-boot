@@ -1120,9 +1120,11 @@ struct vop2_win_data {
 	u8 hsd_pre_filter_mode;
 	u8 vsd_pre_filter_mode;
 	u8 scale_engine_num;
+	u8 source_win_id;
 	u32 reg_offset;
 	u32 max_upscale_factor;
 	u32 max_downscale_factor;
+	u32 feature;
 	bool splice_mode_right;
 };
 
@@ -4143,7 +4145,12 @@ static bool vop2_win_dither_up(uint32_t format)
 	}
 }
 
-static void vop2_set_cluster_win(struct display_state *state, struct vop2_win_data *win)
+static bool vop2_is_mirror_win(struct vop2_win_data *win)
+{
+	return soc_is_rk3566() && (win->feature & WIN_FEATURE_MIRROR);
+}
+
+static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_data *win)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
@@ -4234,9 +4241,11 @@ static void vop2_set_cluster_win(struct display_state *state, struct vop2_win_da
 	vop2_mask_write(vop2, RK3568_CLUSTER0_CTRL + win_offset, EN_MASK, CLUSTER_EN_SHIFT, 1, false);
 
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+
+	return 0;
 }
 
-static void vop2_set_smart_win(struct display_state *state, struct vop2_win_data *win)
+static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data *win)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
@@ -4257,7 +4266,23 @@ static void vop2_set_smart_win(struct display_state *state, struct vop2_win_data
 	u32 splice_yrgb_offset = 0;
 	u32 win_offset = win->reg_offset;
 	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
+	u32 val;
 	bool dither_up;
+
+	if (vop2_is_mirror_win(win)) {
+		struct vop2_win_data *source_win = vop2_find_win_by_phys_id(vop2, win->source_win_id);
+
+		if (!source_win) {
+			printf("invalid source win id %d\n", win->source_win_id);
+			return -ENODEV;
+		}
+
+		val = vop2_readl(vop2, RK3568_ESMART0_REGION0_CTRL + source_win->reg_offset);
+		if (!(val & BIT(WIN_EN_SHIFT))) {
+			printf("WARN: the source win should be enabled before mirror win\n");
+			return -EAGAIN;
+		}
+	}
 
 	if (win->splice_mode_right) {
 		src_w = cstate->right_src_rect.w;
@@ -4338,6 +4363,8 @@ static void vop2_set_smart_win(struct display_state *state, struct vop2_win_data
 			REGION0_DITHER_UP_EN_SHIFT, dither_up, false);
 
 	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+
+	return 0;
 }
 
 static void vop2_calc_display_rect_for_splice(struct display_state *state)
@@ -4393,6 +4420,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 	struct vop2_win_data *splice_win_data;
 	u8 primary_plane_id = vop2->vp_plane_mask[cstate->crtc_id].primary_plane_id;
 	char plane_name[10] = {0};
+	int ret;
 
 	if (cstate->crtc_rect.w > cstate->max_output.width) {
 		printf("ERROR: output w[%d] exceeded max width[%d]\n",
@@ -4436,9 +4464,11 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 	}
 
 	if (win_data->type == CLUSTER_LAYER)
-		vop2_set_cluster_win(state, win_data);
+		ret = vop2_set_cluster_win(state, win_data);
 	else
-		vop2_set_smart_win(state, win_data);
+		ret = vop2_set_smart_win(state, win_data);
+	if (ret)
+		return ret;
 
 	printf("VOP VP%d enable %s[%dx%d->%dx%d@%dx%d] fmt[%d] addr[0x%x]\n",
 		cstate->crtc_id, get_plane_name(primary_plane_id, plane_name),
@@ -5335,6 +5365,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.vsd_filter_mode = VOP2_SCALE_DOWN_BIL,
 		.max_upscale_factor = 4,
 		.max_downscale_factor = 4,
+		.source_win_id = ROCKCHIP_VOP2_CLUSTER0,
+		.feature = WIN_FEATURE_MIRROR,
 	},
 
 	{
@@ -5365,6 +5397,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.vsd_filter_mode = VOP2_SCALE_DOWN_BIL,
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.source_win_id = ROCKCHIP_VOP2_ESMART0,
+		.feature = WIN_FEATURE_MIRROR,
 	},
 
 	{
@@ -5395,6 +5429,8 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.vsd_filter_mode = VOP2_SCALE_DOWN_BIL,
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.source_win_id = ROCKCHIP_VOP2_SMART0,
+		.feature = WIN_FEATURE_MIRROR,
 	},
 };
 

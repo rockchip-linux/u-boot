@@ -14,6 +14,7 @@
 #include <fdtdec.h>
 #include <fdt_support.h>
 #include <linux/bug.h>
+#include <linux/delay.h>
 #include <linux/hdmi.h>
 #include <linux/list.h>
 #include <linux/compat.h>
@@ -997,7 +998,9 @@ static int display_logo(struct display_state *state)
 	}
 
 	display_check(state);
-	display_set_plane(state);
+	ret = display_set_plane(state);
+	if (ret)
+		return ret;
 	display_enable(state);
 
 	return 0;
@@ -1401,17 +1404,37 @@ int rockchip_show_bmp(const char *bmp)
 int rockchip_show_logo(void)
 {
 	struct display_state *s;
+	struct display_state *ms = NULL;
 	int ret = 0;
+	int count = 0;
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
 		s->logo.mode = s->logo_mode;
 		s->logo.rotate = s->logo_rotate;
-		if (load_bmp_logo(&s->logo, s->ulogo_name))
+		if (load_bmp_logo(&s->logo, s->ulogo_name)) {
 			printf("failed to display uboot logo\n");
-		else
+		} else {
 			ret = display_logo(s);
-
+			if (ret == -EAGAIN)
+				ms = s;
+		}
 		/* Load kernel bmp in rockchip_display_fixup() later */
+	}
+
+	/*
+	 * For rk3566, the mirror win must be enabled after the related
+	 * source win. If error code is EAGAIN, the mirror win may be
+	 * first enabled unexpectedly, and we will move the enabling process
+	 * as follows.
+	 */
+	if (ms) {
+		while (count < 5) {
+			ret = display_logo(ms);
+			if (ret != -EAGAIN)
+				break;
+			mdelay(10);
+			count++;
+		}
 	}
 
 	return ret;
