@@ -87,6 +87,9 @@ static int rockchip_spl_display_init(struct display_state *state)
 	}
 
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V);
+	if (p->flags & DRM_MODE_FLAG_DBLCLK)
+		p->crtc_clock = 2 * p->clock;
+
 	if (crtc_funcs->init) {
 		ret = crtc_funcs->init(state);
 		if (ret)
