@@ -4666,7 +4666,8 @@ static int rockchip_vop2_mode_fixup(struct display_state *state)
 	if (cstate->mcu_timing.mcu_pix_total)
 		mode->crtc_clock *= cstate->mcu_timing.mcu_pix_total + 1;
 
-	if (conn_state->secondary) {
+	if (conn_state->secondary &&
+	    conn_state->secondary->type != DRM_MODE_CONNECTOR_LVDS) {
 		mode->crtc_clock *= 2;
 		mode->crtc_hdisplay *= 2;
 		mode->crtc_hsync_start *= 2;

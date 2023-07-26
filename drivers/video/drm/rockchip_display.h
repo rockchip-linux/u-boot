@@ -321,6 +321,8 @@ int display_rect_calc_vscale(struct display_rect *src, struct display_rect *dst,
 			     int min_vscale, int max_vscale);
 struct device_node *
 rockchip_of_graph_get_endpoint_by_regs(ofnode node, int port, int endpoint);
+struct device_node *
+rockchip_of_graph_get_port_by_id(ofnode node, int id);
 uint32_t rockchip_drm_get_cycles_per_pixel(uint32_t bus_format);
 char* rockchip_get_output_if_name(u32 output_if, char *name);
 
