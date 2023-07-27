@@ -2957,13 +2957,47 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	return dclk_rate;
 }
 
+static void rk3568_vop2_setup_dual_channel_if(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct connector_state *conn_state = &state->conn_state;
+	struct vop2 *vop2 = cstate->private;
+	u32 vp_offset = (cstate->crtc_id * 0x100);
+
+	if (conn_state->output_flags &
+	    ROCKCHIP_OUTPUT_DUAL_CHANNEL_ODD_EVEN_MODE) {
+		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+				LVDS_DUAL_EN_SHIFT, 1, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+				LVDS_DUAL_LEFT_RIGHT_EN_SHIFT, 0, false);
+		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DATA_SWAP)
+			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+					LVDS_DUAL_SWAP_EN_SHIFT, 1, false);
+
+		return;
+	}
+
+	vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, EN_MASK,
+			MIPI_DUAL_EN_SHIFT, 1, false);
+	if (conn_state->output_flags & ROCKCHIP_OUTPUT_DATA_SWAP) {
+		vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, EN_MASK,
+				MIPI_DUAL_SWAP_EN_SHIFT, 1, false);
+	}
+
+	if (conn_state->output_if & VOP_OUTPUT_IF_LVDS1) {
+		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+				LVDS_DUAL_EN_SHIFT, 1, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
+				LVDS_DUAL_LEFT_RIGHT_EN_SHIFT, 1, false);
+	}
+}
+
 static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
-	u32 vp_offset = (cstate->crtc_id * 0x100);
 	bool dclk_inv;
 	u32 val;
 
@@ -3024,20 +3058,6 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 				IF_CTRL_RGB_LVDS_DCLK_POL_SHIFT, dclk_inv, false);
 	}
 
-	if (conn_state->output_flags &
-	    (ROCKCHIP_OUTPUT_DUAL_CHANNEL_ODD_EVEN_MODE |
-	     ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)) {
-		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
-				LVDS_DUAL_EN_SHIFT, 1, false);
-		if (conn_state->output_flags &
-		    ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE)
-			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
-					LVDS_DUAL_LEFT_RIGHT_EN_SHIFT, 1,
-					false);
-		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DATA_SWAP)
-			vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK,
-					LVDS_DUAL_SWAP_EN_SHIFT, 1, false);
-	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_MIPI0) {
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, MIPI0_EN_SHIFT,
@@ -3058,14 +3078,10 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 	}
 
 	if (conn_state->output_flags &
-	    ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
-		vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset, EN_MASK,
-				MIPI_DUAL_EN_SHIFT, 1, false);
-		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DATA_SWAP)
-			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
-					EN_MASK, MIPI_DUAL_SWAP_EN_SHIFT, 1,
-					false);
-	}
+		    ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE ||
+	    conn_state->output_flags &
+		    ROCKCHIP_OUTPUT_DUAL_CHANNEL_ODD_EVEN_MODE)
+		rk3568_vop2_setup_dual_channel_if(state);
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_eDP0) {
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, EDP0_EN_SHIFT,
