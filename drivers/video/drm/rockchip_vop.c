@@ -103,8 +103,8 @@ static bool is_rb_swap(uint32_t bus_format, uint32_t output_mode)
 	 * The default component order of serial rgb3x8 formats
 	 * is BGR. So it is needed to enable RB swap.
 	 */
-	if (bus_format == MEDIA_BUS_FMT_SRGB888_3X8 ||
-	    bus_format == MEDIA_BUS_FMT_SRGB888_DUMMY_4X8)
+	if (bus_format == MEDIA_BUS_FMT_RGB888_3X8 ||
+	    bus_format == MEDIA_BUS_FMT_RGB888_DUMMY_4X8)
 		return true;
 	else
 		return false;
