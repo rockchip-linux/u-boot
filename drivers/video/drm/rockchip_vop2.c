@@ -3648,6 +3648,61 @@ static int vop2_get_vrefresh(struct display_state *state)
 		return mode->vrefresh;
 }
 
+static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
+{
+	u32 vp_offset = crtc_id * 0x100;
+	u8 dither_down_mode = 0;
+	bool dither_down_en = false;
+	bool pre_dither_down_en = false;
+
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_RGB565_1X16:
+		dither_down_en = true;
+		dither_down_mode = RGB888_TO_RGB565;
+		pre_dither_down_en = true;
+		break;
+	case MEDIA_BUS_FMT_RGB666_1X18:
+	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
+	case MEDIA_BUS_FMT_RGB666_1X7X3_SPWG:
+		dither_down_en = true;
+		dither_down_mode = RGB888_TO_RGB666;
+		pre_dither_down_en = true;
+		break;
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_YUV8_1X24:
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
+		dither_down_en = false;
+		pre_dither_down_en = true;
+		break;
+	case MEDIA_BUS_FMT_YUYV10_1X20:
+	case MEDIA_BUS_FMT_YUV10_1X30:
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
+	case MEDIA_BUS_FMT_RGB101010_1X30:
+		dither_down_en = false;
+		pre_dither_down_en = false;
+		break;
+	case MEDIA_BUS_FMT_RGB888_3X8:
+	case MEDIA_BUS_FMT_RGB888_DUMMY_4X8:
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_RGB888_1X7X4_SPWG:
+	case MEDIA_BUS_FMT_RGB888_1X7X4_JEIDA:
+	default:
+		dither_down_en = false;
+		pre_dither_down_en = true;
+		break;
+	}
+
+	if (is_yuv_output(bus_format))
+		pre_dither_down_en = false;
+
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+			PRE_DITHER_DOWN_EN_SHIFT, pre_dither_down_en, false);
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+			DITHER_DOWN_EN_SHIFT, dither_down_en, false);
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+			DITHER_DOWN_MODE_SHIFT, dither_down_mode, false);
+}
+
 static int rockchip_vop2_init(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -3669,9 +3724,6 @@ static int rockchip_vop2_init(struct display_state *state)
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 line_flag_offset = (cstate->crtc_id * 4);
 	u32 val, act_end;
-	u8 dither_down_en = 0;
-	u8 dither_down_mode = 0;
-	u8 pre_dither_down_en = 0;
 	u8 dclk_div_factor = 0;
 	char output_type_name[30] = {0};
 #ifndef CONFIG_SPL_BUILD
@@ -3728,49 +3780,9 @@ static int rockchip_vop2_init(struct display_state *state)
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, OUT_MODE_MASK,
 			OUT_MODE_SHIFT, conn_state->output_mode, false);
 
-	switch (conn_state->bus_format) {
-	case MEDIA_BUS_FMT_RGB565_1X16:
-		dither_down_en = 1;
-		dither_down_mode = RGB888_TO_RGB565;
-		pre_dither_down_en = 1;
-		break;
-	case MEDIA_BUS_FMT_RGB666_1X18:
-	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
-	case MEDIA_BUS_FMT_RGB666_1X7X3_SPWG:
-	case MEDIA_BUS_FMT_RGB666_1X7X3_JEIDA:
-		dither_down_en = 1;
-		dither_down_mode = RGB888_TO_RGB666;
-		pre_dither_down_en = 1;
-		break;
-	case MEDIA_BUS_FMT_YUV8_1X24:
-	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
-		dither_down_en = 0;
-		pre_dither_down_en = 1;
-		break;
-	case MEDIA_BUS_FMT_YUV10_1X30:
-	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
-		dither_down_en = 0;
-		pre_dither_down_en = 0;
-		break;
-	case MEDIA_BUS_FMT_YUYV10_1X20:
-	case MEDIA_BUS_FMT_RGB888_1X24:
-	case MEDIA_BUS_FMT_RGB888_1X7X4_SPWG:
-	case MEDIA_BUS_FMT_RGB888_1X7X4_JEIDA:
-	case MEDIA_BUS_FMT_RGB101010_1X30:
-	default:
-		dither_down_en = 0;
-		pre_dither_down_en = 1;
-		break;
-	}
-
-	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-			DITHER_DOWN_EN_SHIFT, dither_down_en, false);
-	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-			DITHER_DOWN_MODE_SHIFT, dither_down_mode, false);
-	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-			PRE_DITHER_DOWN_EN_SHIFT, pre_dither_down_en, false);
-	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-			DITHER_DOWN_MODE_SHIFT, dither_down_mode, false);
+	vop2_dither_setup(vop2, conn_state->bus_format, cstate->crtc_id);
+	if (cstate->splice_mode)
+		vop2_dither_setup(vop2, conn_state->bus_format, cstate->splice_crtc_id);
 
 	yuv_overlay = is_yuv_output(conn_state->bus_format) ? 1 : 0;
 	vop2_mask_write(vop2, RK3568_OVL_CTRL, EN_MASK, cstate->crtc_id,
