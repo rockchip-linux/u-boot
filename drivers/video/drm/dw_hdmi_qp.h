@@ -939,5 +939,6 @@ void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
 			      enum dw_hdmi_devtype dev_type,
 			      bool output_bus_format_rgb,
 			      void *data, struct display_state *state);
+bool dw_hdmi_qp_check_enable_gpio(void *data);
 
 #endif /* __DW_HDMI_QP_H__ */

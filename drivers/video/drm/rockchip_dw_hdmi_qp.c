@@ -1094,6 +1094,16 @@ null_basep:
 	rockchip_phy_set_bus_width(conn->phy, hdmi->bus_width);
 }
 
+bool dw_hdmi_qp_check_enable_gpio(void *data)
+{
+	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
+
+	if (!hdmi->enable_gpio.dev)
+		return false;
+	else
+		return true;
+}
+
 static void rk3588_set_link_mode(struct rockchip_hdmi *hdmi)
 {
 	int val;
@@ -1338,7 +1348,7 @@ static int rockchip_dw_hdmi_qp_probe(struct udevice *dev)
 
 	ret = gpio_request_by_name(dev, "enable-gpios", 0,
 				   &hdmi->enable_gpio, GPIOD_IS_OUT);
-	if (ret) {
+	if (ret && ret != -ENOENT) {
 		dev_err(dev, "Cannot get enable GPIO: %d\n", ret);
 		return ret;
 	}

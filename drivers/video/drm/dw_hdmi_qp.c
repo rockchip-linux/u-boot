@@ -1251,11 +1251,16 @@ static void rockchip_dw_hdmi_qp_mode_valid(struct dw_hdmi_qp *hdmi)
 {
 	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
 	int i;
+	bool enable_gpio = dw_hdmi_qp_check_enable_gpio(hdmi->rk_hdmi);
 
 	for (i = 0; i < edid_data->modes; i++) {
 		if (edid_data->mode_buf[i].invalid)
 			continue;
+
 		if (edid_data->mode_buf[i].clock <= 25000)
+			edid_data->mode_buf[i].invalid = true;
+
+		if (edid_data->mode_buf[i].clock > 600000 && !enable_gpio)
 			edid_data->mode_buf[i].invalid = true;
 	}
 }
