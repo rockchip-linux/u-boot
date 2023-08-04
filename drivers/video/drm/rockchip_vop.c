@@ -285,7 +285,7 @@ static int rockchip_vop_init(struct display_state *state)
 
 	ret = clk_get_by_name(crtc_state->dev, "dclk_vop", &dclk);
 	if (!ret)
-		ret = clk_set_rate(&dclk, mode->clock * 1000);
+		ret = clk_set_rate(&dclk, mode->crtc_clock * 1000);
 	if (IS_ERR_VALUE(ret)) {
 		printf("%s: Failed to set dclk: ret=%d\n", __func__, ret);
 		return ret;
@@ -904,10 +904,15 @@ static int rockchip_vop_plane_check(struct display_state *state)
 
 static int rockchip_vop_mode_fixup(struct display_state *state)
 {
+	struct crtc_state *crtc_state = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V | CRTC_STEREO_DOUBLE);
+
+	mode->crtc_clock *= rockchip_drm_get_cycles_per_pixel(conn_state->bus_format);
+	if (crtc_state->mcu_timing.mcu_pix_total)
+		mode->crtc_clock *= crtc_state->mcu_timing.mcu_pix_total + 1;
 
 	return 0;
 }

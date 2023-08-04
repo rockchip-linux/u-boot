@@ -321,6 +321,7 @@ int display_rect_calc_vscale(struct display_rect *src, struct display_rect *dst,
 			     int min_vscale, int max_vscale);
 struct device_node *
 rockchip_of_graph_get_endpoint_by_regs(ofnode node, int port, int endpoint);
+uint32_t rockchip_drm_get_cycles_per_pixel(uint32_t bus_format);
 
 #ifdef CONFIG_SPL_BUILD
 int rockchip_spl_vop_probe(struct crtc_state *crtc_state);

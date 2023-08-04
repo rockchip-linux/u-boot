@@ -81,6 +81,29 @@ struct public_phy_data {
 	bool phy_init;
 };
 
+u32 rockchip_drm_get_cycles_per_pixel(u32 bus_format)
+{
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_RGB565_1X16:
+	case MEDIA_BUS_FMT_RGB666_1X18:
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
+		return 1;
+	case MEDIA_BUS_FMT_RGB565_2X8_LE:
+	case MEDIA_BUS_FMT_BGR565_2X8_LE:
+		return 2;
+	case MEDIA_BUS_FMT_RGB666_3X6:
+	case MEDIA_BUS_FMT_RGB888_3X8:
+	case MEDIA_BUS_FMT_BGR888_3X8:
+		return 3;
+	case MEDIA_BUS_FMT_RGB888_DUMMY_4X8:
+	case MEDIA_BUS_FMT_BGR888_DUMMY_4X8:
+		return 4;
+	default:
+		return 1;
+	}
+}
+
 int rockchip_get_baseparameter(void)
 {
 	struct blk_desc *dev_desc;
