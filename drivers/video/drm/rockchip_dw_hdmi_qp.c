@@ -1066,7 +1066,8 @@ null_basep:
 	hdmi_select_link_config(hdmi, edid_data->preferred_mode, tmdsclk);
 	dw_hdmi_qp_dsc_configure(hdmi, edid_data->preferred_mode);
 	if (hdmi->link_cfg.frl_mode) {
-		dm_gpio_set_value(&hdmi->enable_gpio, 0);
+		if (dm_gpio_is_valid(&hdmi->enable_gpio))
+			dm_gpio_set_value(&hdmi->enable_gpio, 0);
 		/* in the current version, support max 40G frl */
 		if (hdmi->link_cfg.rate_per_lane >= 10) {
 			hdmi->link_cfg.frl_lanes = 4;
@@ -1081,7 +1082,8 @@ null_basep:
 		else
 			hdmi->bus_width |= HDMI_FRL_MODE;
 	} else {
-		dm_gpio_set_value(&hdmi->enable_gpio, 1);
+		if (dm_gpio_is_valid(&hdmi->enable_gpio))
+			dm_gpio_set_value(&hdmi->enable_gpio, 1);
 		hdmi->bus_width =
 			hdmi_get_tmdsclock(hdmi, pixel_clk * 10);
 		if (hdmi_bus_fmt_is_yuv420(*bus_format))

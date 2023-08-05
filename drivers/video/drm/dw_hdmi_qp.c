@@ -19,6 +19,7 @@
 #include <linux/media-bus-format.h>
 #include <linux/dw_hdmi.h>
 #include <asm/io.h>
+#include "rockchip_bridge.h"
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
@@ -1110,9 +1111,15 @@ int dw_hdmi_detect_hotplug(struct dw_hdmi_qp *hdmi,
 			   struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_connector *conn = conn_state->connector;
 	int ret;
 
 	ret = hdmi->phy.ops->read_hpd(hdmi->rk_hdmi);
+	if (!ret) {
+		if (conn->bridge)
+			ret = rockchip_bridge_detect(conn->bridge);
+	}
+
 	if (ret || state->force_output) {
 		if (!hdmi->id)
 			conn_state->output_if |= VOP_OUTPUT_IF_HDMI0;
@@ -1208,8 +1215,80 @@ void rockchip_dw_hdmi_qp_deinit(struct rockchip_connector *conn, struct display_
 		free(hdmi);
 }
 
+static void rockchip_dw_hdmi_qp_config_output(struct rockchip_connector *conn,
+					      struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct dw_hdmi_qp *hdmi = conn->data;
+	unsigned int bus_format;
+	unsigned long enc_out_encoding;
+	struct overscan *overscan = &conn_state->overscan;
+
+	dw_hdmi_qp_selete_output(&hdmi->edid_data, conn, &bus_format,
+				 overscan, hdmi->dev_type,
+				 hdmi->output_bus_format_rgb, hdmi->rk_hdmi,
+				 state);
+
+	*mode = *hdmi->edid_data.preferred_mode;
+	hdmi->vic = drm_match_cea_mode(mode);
+
+	printf("mode:%dx%d bus_format:0x%x\n", mode->hdisplay, mode->vdisplay, bus_format);
+	conn_state->bus_format = bus_format;
+	hdmi->hdmi_data.enc_in_bus_format = bus_format;
+	hdmi->hdmi_data.enc_out_bus_format = bus_format;
+
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_YUYV10_1X20:
+		conn_state->bus_format = MEDIA_BUS_FMT_YUYV10_1X20;
+		hdmi->hdmi_data.enc_in_bus_format =
+			MEDIA_BUS_FMT_YUYV10_1X20;
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV422;
+		break;
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+		conn_state->bus_format = MEDIA_BUS_FMT_YUYV8_1X16;
+		hdmi->hdmi_data.enc_in_bus_format =
+			MEDIA_BUS_FMT_YUYV8_1X16;
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV422;
+		break;
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV420;
+		break;
+	}
+
+	if (hdmi->vic == 6 || hdmi->vic == 7 || hdmi->vic == 21 ||
+	    hdmi->vic == 22 || hdmi->vic == 2 || hdmi->vic == 3 ||
+	    hdmi->vic == 17 || hdmi->vic == 18)
+		enc_out_encoding = V4L2_YCBCR_ENC_601;
+	else
+		enc_out_encoding = V4L2_YCBCR_ENC_709;
+
+	if (enc_out_encoding == V4L2_YCBCR_ENC_BT2020)
+		conn_state->color_space = V4L2_COLORSPACE_BT2020;
+	else if (bus_format == MEDIA_BUS_FMT_RGB888_1X24 ||
+		 bus_format == MEDIA_BUS_FMT_RGB101010_1X30)
+		conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	else if (enc_out_encoding == V4L2_YCBCR_ENC_709)
+		conn_state->color_space = V4L2_COLORSPACE_REC709;
+	else
+		conn_state->color_space = V4L2_COLORSPACE_SMPTE170M;
+}
+
 int rockchip_dw_hdmi_qp_prepare(struct rockchip_connector *conn, struct display_state *state)
 {
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct dw_hdmi_qp *hdmi = conn->data;
+
+	if (!hdmi->edid_data.preferred_mode && conn->bridge) {
+		drm_add_hdmi_modes(&hdmi->edid_data, mode);
+		drm_mode_sort(&hdmi->edid_data);
+		hdmi->sink_is_hdmi = true;
+		hdmi->sink_has_audio = true;
+		rockchip_dw_hdmi_qp_config_output(conn, state);
+	}
+
 	return 0;
 }
 
@@ -1283,12 +1362,8 @@ static int _rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn,
 {
 	int i;
 	struct connector_state *conn_state = &state->conn_state;
-	struct drm_display_mode *mode = &conn_state->mode;
 	struct dw_hdmi_qp *hdmi = conn->data;
 	struct edid *edid = (struct edid *)conn_state->edid;
-	unsigned int bus_format;
-	unsigned long enc_out_encoding;
-	struct overscan *overscan = &conn_state->overscan;
 	const u8 def_modes_vic[6] = {4, 16, 2, 17, 31, 19};
 
 	if (!hdmi)
@@ -1322,54 +1397,8 @@ static int _rockchip_dw_hdmi_qp_get_timing(struct rockchip_connector *conn,
 			drm_mode_vrefresh(&hdmi->edid_data.mode_buf[i]);
 
 	drm_mode_sort(&hdmi->edid_data);
-	dw_hdmi_qp_selete_output(&hdmi->edid_data, conn, &bus_format,
-				 overscan, hdmi->dev_type,
-				 hdmi->output_bus_format_rgb, hdmi->rk_hdmi,
-				 state);
 
-	*mode = *hdmi->edid_data.preferred_mode;
-	hdmi->vic = drm_match_cea_mode(mode);
-
-	printf("mode:%dx%d bus_format:0x%x\n", mode->hdisplay, mode->vdisplay, bus_format);
-	conn_state->bus_format = bus_format;
-	hdmi->hdmi_data.enc_in_bus_format = bus_format;
-	hdmi->hdmi_data.enc_out_bus_format = bus_format;
-
-	switch (bus_format) {
-	case MEDIA_BUS_FMT_YUYV10_1X20:
-		conn_state->bus_format = MEDIA_BUS_FMT_YUYV10_1X20;
-		hdmi->hdmi_data.enc_in_bus_format =
-			MEDIA_BUS_FMT_YUYV10_1X20;
-		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV422;
-		break;
-	case MEDIA_BUS_FMT_YUYV8_1X16:
-		conn_state->bus_format = MEDIA_BUS_FMT_YUYV8_1X16;
-		hdmi->hdmi_data.enc_in_bus_format =
-			MEDIA_BUS_FMT_YUYV8_1X16;
-		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV422;
-		break;
-	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
-	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
-		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV420;
-		break;
-	}
-
-	if (hdmi->vic == 6 || hdmi->vic == 7 || hdmi->vic == 21 ||
-	    hdmi->vic == 22 || hdmi->vic == 2 || hdmi->vic == 3 ||
-	    hdmi->vic == 17 || hdmi->vic == 18)
-		enc_out_encoding = V4L2_YCBCR_ENC_601;
-	else
-		enc_out_encoding = V4L2_YCBCR_ENC_709;
-
-	if (enc_out_encoding == V4L2_YCBCR_ENC_BT2020)
-		conn_state->color_space = V4L2_COLORSPACE_BT2020;
-	else if (bus_format == MEDIA_BUS_FMT_RGB888_1X24 ||
-		 bus_format == MEDIA_BUS_FMT_RGB101010_1X30)
-		conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
-	else if (enc_out_encoding == V4L2_YCBCR_ENC_709)
-		conn_state->color_space = V4L2_COLORSPACE_REC709;
-	else
-		conn_state->color_space = V4L2_COLORSPACE_SMPTE170M;
+	rockchip_dw_hdmi_qp_config_output(conn, state);
 
 	return 0;
 }
