@@ -23,6 +23,7 @@
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
 #include <asm/arch-rockchip/resource_img.h>
+#include <asm/arch-rockchip/cpu.h>
 
 #include "bmp_helper.h"
 #include "libnsbmp.h"
@@ -1140,12 +1141,13 @@ static int get_crtc_mcu_mode(struct crtc_state *crtc_state, struct device_node *
 	return 0;
 }
 
-struct rockchip_logo_cache *find_or_alloc_logo_cache(const char *bmp)
+struct rockchip_logo_cache *find_or_alloc_logo_cache(const char *bmp, int rotate)
 {
 	struct rockchip_logo_cache *tmp, *logo_cache = NULL;
 
 	list_for_each_entry(tmp, &logo_cache_list, head) {
-		if (!strcmp(tmp->name, bmp)) {
+		if ((!strcmp(tmp->name, bmp) && rotate == tmp->logo_rotate) ||
+		    (soc_is_rk3566() && tmp->logo_rotate)) {
 			logo_cache = tmp;
 			break;
 		}
@@ -1215,7 +1217,7 @@ static int load_bmp_logo_legacy(struct logo_info *logo, const char *bmp_name)
 
 	if (!logo || !bmp_name)
 		return -EINVAL;
-	logo_cache = find_or_alloc_logo_cache(bmp_name);
+	logo_cache = find_or_alloc_logo_cache(bmp_name, logo->rotate);
 	if (!logo_cache)
 		return -ENOMEM;
 
@@ -1343,6 +1345,83 @@ static void bmp_copy(void *dst, bmp_image *bmp)
 	}
 }
 
+static void *rockchip_logo_rotate(struct logo_info *logo, void *src)
+{
+	void *dst_rotate;
+	int width = logo->width;
+	int height = logo->height;
+	int width_rotate = logo->height & 0x3 ? (logo->height & ~0x3) + 4 : logo->height;
+	int height_rotate = logo->width;
+	int dst_size = width * height * logo->bpp >> 3;
+	int dst_size_rotate = width_rotate * height_rotate * logo->bpp >> 3;
+	int bytes_per_pixel = logo->bpp >> 3;
+	int padded_width;
+	int i, j;
+	char *img_data;
+
+	if (!(logo->rotate == 90 || logo->rotate == 180 || logo->rotate == 270)) {
+		printf("Unsupported rotation angle\n");
+		return NULL;
+	}
+
+	img_data = (char *)malloc(dst_size);
+	if (!img_data) {
+		printf("failed to alloc memory for image data\n");
+		return NULL;
+	}
+	memcpy(img_data, src, dst_size);
+
+	dst_rotate = get_display_buffer(dst_size_rotate);
+	if (!dst_rotate)
+		return NULL;
+	memset(dst_rotate, 0, dst_size_rotate);
+
+	switch (logo->rotate) {
+	case 90:
+		logo->width = width_rotate;
+		logo->height = height_rotate;
+		padded_width = height & 0x3 ? (height & ~0x3) + 4 : height;
+		for (i = 0; i < height; i++) {
+			for (j = 0; j < width; j++) {
+				memcpy(dst_rotate + (j * padded_width * bytes_per_pixel) +
+				       (height - i - 1) * bytes_per_pixel,
+				       img_data + i * width * bytes_per_pixel + j * bytes_per_pixel,
+				       bytes_per_pixel);
+			}
+		}
+		break;
+	case 180:
+		for (i = 0; i < height; i++) {
+			for (j = 0; j < width; j++) {
+				memcpy(dst_rotate + (height - i - 1) * width * bytes_per_pixel +
+				       (width - j - 1) * bytes_per_pixel,
+				       img_data + i * width * bytes_per_pixel + j * bytes_per_pixel,
+				       bytes_per_pixel);
+			}
+		}
+		break;
+	case 270:
+		logo->width = width_rotate;
+		logo->height = height_rotate;
+		padded_width = height & 0x3 ? (height & ~0x3) + 4 : height;
+		for (i = 0; i < height; i++) {
+			for (j = 0; j < width; j++) {
+				memcpy(dst_rotate + (width - j - 1) * padded_width * bytes_per_pixel +
+				       i * bytes_per_pixel,
+				       img_data + i * width * bytes_per_pixel + j * bytes_per_pixel,
+				       bytes_per_pixel);
+			}
+		}
+		break;
+	default:
+		break;
+	}
+
+	free(img_data);
+
+	return dst_rotate;
+}
+
 static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 {
 #ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
@@ -1356,12 +1435,14 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	bmp_image bmp;
 	void *bmp_data;
 	void *dst = NULL;
+	void *dst_rotate = NULL;
 	int len, dst_size;
 	int ret = 0;
 
 	if (!logo || !bmp_name)
 		return -EINVAL;
-	logo_cache = find_or_alloc_logo_cache(bmp_name);
+
+	logo_cache = find_or_alloc_logo_cache(bmp_name, logo->rotate);
 	if (!logo_cache)
 		return -ENOMEM;
 
@@ -1420,9 +1501,19 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 		goto free_bmp_data;
 	}
 	bmp_copy(dst, &bmp);
+
+	if (logo->rotate) {
+		dst_rotate = rockchip_logo_rotate(logo, dst);
+		if (dst_rotate) {
+			dst = dst_rotate;
+			dst_size = logo->width * logo->height * logo->bpp >> 3;
+		}
+		printf("logo ratate %d\n", logo->rotate);
+	}
 	logo->mem = dst;
 
 	memcpy(&logo_cache->logo, logo, sizeof(*logo));
+	logo_cache->logo_rotate = logo->rotate;
 
 	flush_dcache_range((ulong)dst, ALIGN((ulong)dst + dst_size, CONFIG_SYS_CACHELINE_SIZE));
 free_bmp_data:
@@ -1482,6 +1573,7 @@ int rockchip_show_logo(void)
 
 	list_for_each_entry(s, &rockchip_display_list, head) {
 		s->logo.mode = s->logo_mode;
+		s->logo.rotate = s->logo_rotate;
 		if (load_bmp_logo(&s->logo, s->ulogo_name)) {
 			printf("failed to display uboot logo\n");
 		} else {
@@ -2044,6 +2136,8 @@ static int rockchip_display_probe(struct udevice *dev)
 			s->charge_logo_mode = ROCKCHIP_DISPLAY_FULLSCREEN;
 		else
 			s->charge_logo_mode = ROCKCHIP_DISPLAY_CENTER;
+
+		s->logo_rotate = ofnode_read_u32_default(node, "logo,rotate", 0);
 
 		s->force_output = ofnode_read_bool(node, "force-output");
 
