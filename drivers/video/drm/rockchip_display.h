@@ -245,6 +245,7 @@ struct connector_state {
 
 struct logo_info {
 	int mode;
+	int rotate;
 	char *mem;
 	bool ymirror;
 	u32 offset;
@@ -257,6 +258,7 @@ struct rockchip_logo_cache {
 	struct list_head head;
 	char name[20];
 	struct logo_info logo;
+	int logo_rotate;
 };
 
 struct display_state {
@@ -275,6 +277,7 @@ struct display_state {
 	struct logo_info logo;
 	int logo_mode;
 	int charge_logo_mode;
+	int logo_rotate;
 	void *mem_base;
 	int mem_size;
 
