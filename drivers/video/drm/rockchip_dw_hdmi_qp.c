@@ -1304,6 +1304,7 @@ static const struct rockchip_connector_funcs rockchip_dw_hdmi_qp_funcs = {
 	.init = rockchip_dw_hdmi_qp_init,
 	.deinit = rockchip_dw_hdmi_qp_deinit,
 	.prepare = rockchip_dw_hdmi_qp_prepare,
+	.check = rockchip_dw_hdmi_qp_check,
 	.enable = rockchip_dw_hdmi_qp_enable,
 	.disable = rockchip_dw_hdmi_qp_disable,
 	.get_timing = rockchip_dw_hdmi_qp_get_timing,

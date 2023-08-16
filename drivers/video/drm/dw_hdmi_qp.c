@@ -1213,6 +1213,19 @@ int rockchip_dw_hdmi_qp_prepare(struct rockchip_connector *conn, struct display_
 	return 0;
 }
 
+int rockchip_dw_hdmi_qp_check(struct rockchip_connector *conn, struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct rockchip_crtc *crtc = cstate->crtc;
+	struct dw_hdmi_qp *hdmi = conn->data;
+
+	/* clear hdmi uboot logo on flag */
+	if (crtc->splice_mode && cstate->crtc_id == 1)
+		hdmi_writel(hdmi, 0, I2CM_INTERFACE_CONTROL0);
+
+	return 0;
+}
+
 static void dw_hdmi_disable(struct rockchip_connector *conn, struct dw_hdmi_qp *hdmi,
 			    struct display_state *state)
 {
