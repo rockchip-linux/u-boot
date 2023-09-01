@@ -4241,23 +4241,13 @@ static int rockchip_vop2_send_mcu_cmd(struct display_state *state, u32 type, u32
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
-	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
 
 	/*
-	 * 1.disable port dclk auto gating.
-	 * 2.set mcu bypass mode timing to adapt to the mode of sending cmds.
-	 * 3.make setting of output mode take effect.
-	 * 4.set dclk rate to 150M, in order to sync with hclk in sending cmds.
+	 * 1.set mcu bypass mode timing.
+	 * 2.set dclk rate to 150M.
 	 */
 	if (type == MCU_SETBYPASS && value) {
-		vop2_mask_write(vop2, RK3568_AUTO_GATING_CTRL, EN_MASK,
-				AUTO_GATING_EN_SHIFT, 0, false);
-		vop2_mask_write(vop2, RK3568_AUTO_GATING_CTRL, EN_MASK,
-				PORT_DCLK_AUTO_GATING_EN_SHIFT, 0, false);
 		vop3_mcu_bypass_mode_setup(state);
-		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-				STANDBY_EN_SHIFT, 0, false);
-		vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
 		vop2_clk_set_rate(&cstate->dclk, 150000000);
 	}
 
@@ -4287,18 +4277,11 @@ static int rockchip_vop2_send_mcu_cmd(struct display_state *state, u32 type, u32
 	}
 
 	/*
-	 * 1.restore port dclk auto gating.
-	 * 2.restore mcu data mode timing.
-	 * 3.restore dclk rate to crtc_clock.
+	 * 1.restore mcu data mode timing.
+	 * 2.restore dclk rate to crtc_clock.
 	 */
 	if (type == MCU_SETBYPASS && !value) {
-		vop2_mask_write(vop2, RK3568_AUTO_GATING_CTRL, EN_MASK,
-				AUTO_GATING_EN_SHIFT, 1, false);
-		vop2_mask_write(vop2, RK3568_AUTO_GATING_CTRL, EN_MASK,
-				PORT_DCLK_AUTO_GATING_EN_SHIFT, 1, false);
 		vop3_mcu_mode_setup(state);
-		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-				STANDBY_EN_SHIFT, 1, false);
 		vop2_clk_set_rate(&cstate->dclk, mode->crtc_clock * 1000);
 	}
 
@@ -4400,6 +4383,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 line_flag_offset = (cstate->crtc_id * 4);
 	u32 val, act_end;
+	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
 	u8 dclk_div_factor = 0;
 	u8 vp_dclk_div = 1;
 	char output_type_name[30] = {0};
@@ -4663,8 +4647,12 @@ static int rockchip_vop2_init(struct display_state *state)
 	vop2_mask_write(vop2, RK3568_SYS_CTRL_LINE_FLAG0 + line_flag_offset, LINE_FLAG_NUM_MASK,
 			RK3568_DSP_LINE_FLAG_NUM1_SHIFT, act_end, false);
 
-	if (cstate->mcu_timing.mcu_pix_total)
+	if (cstate->mcu_timing.mcu_pix_total) {
+		vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				STANDBY_EN_SHIFT, 0, false);
 		vop3_mcu_mode_setup(state);
+	}
 
 	return 0;
 }
