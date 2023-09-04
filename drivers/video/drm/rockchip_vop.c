@@ -255,6 +255,7 @@ static int rockchip_vop_init(struct display_state *state)
 	bool yuv_overlay = false, post_r2y_en = false, post_y2r_en = false;
 	u16 post_csc_mode;
 	bool dclk_inv;
+	char output_type_name[30] = {0};
 
 	vop = malloc(sizeof(*vop));
 	if (!vop)
@@ -278,6 +279,12 @@ static int rockchip_vop_init(struct display_state *state)
 	vop->win_csc = vop_data->win_csc;
 	vop->version = vop_data->version;
 
+	printf("VOP:0x%8p update mode to: %dx%d%s%d, type:%s\n",
+	       vop->regs, mode->crtc_hdisplay, mode->vdisplay,
+	       mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "p",
+	       mode->vrefresh,
+	       rockchip_get_output_if_name(conn_state->output_if, output_type_name));
+
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
 	ret = clk_set_defaults(crtc_state->dev, CLK_DEFAULTS_POST);
 	if (ret)
@@ -290,6 +297,7 @@ static int rockchip_vop_init(struct display_state *state)
 		printf("%s: Failed to set dclk: ret=%d\n", __func__, ret);
 		return ret;
 	}
+	printf("VOP:0x%8p set crtc_clock to %dKHz\n", vop->regs, mode->crtc_clock);
 
 	memcpy(vop->regsbak, vop->regs, vop_data->reg_len);
 

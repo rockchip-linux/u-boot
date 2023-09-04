@@ -81,6 +81,38 @@ struct public_phy_data {
 	bool phy_init;
 };
 
+char* rockchip_get_output_if_name(u32 output_if, char *name)
+{
+	if (output_if & VOP_OUTPUT_IF_RGB)
+		strcat(name, " RGB");
+	if (output_if & VOP_OUTPUT_IF_BT1120)
+		strcat(name, " BT1120");
+	if (output_if & VOP_OUTPUT_IF_BT656)
+		strcat(name, " BT656");
+	if (output_if & VOP_OUTPUT_IF_LVDS0)
+		strcat(name, " LVDS0");
+	if (output_if & VOP_OUTPUT_IF_LVDS1)
+		strcat(name, " LVDS1");
+	if (output_if & VOP_OUTPUT_IF_MIPI0)
+		strcat(name, " MIPI0");
+	if (output_if & VOP_OUTPUT_IF_MIPI1)
+		strcat(name, " MIPI1");
+	if (output_if & VOP_OUTPUT_IF_eDP0)
+		strcat(name, " eDP0");
+	if (output_if & VOP_OUTPUT_IF_eDP1)
+		strcat(name, " eDP1");
+	if (output_if & VOP_OUTPUT_IF_DP0)
+		strcat(name, " DP0");
+	if (output_if & VOP_OUTPUT_IF_DP1)
+		strcat(name, " DP1");
+	if (output_if & VOP_OUTPUT_IF_HDMI0)
+		strcat(name, " HDMI0");
+	if (output_if & VOP_OUTPUT_IF_HDMI1)
+		strcat(name, " HDMI1");
+
+	return name;
+}
+
 u32 rockchip_drm_get_cycles_per_pixel(u32 bus_format)
 {
 	switch (bus_format) {
