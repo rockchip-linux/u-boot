@@ -2519,6 +2519,20 @@ int rockchip_dw_hdmi_disable(struct rockchip_connector *conn, struct display_sta
 	return 0;
 }
 
+static void rockchip_dw_hdmi_mode_valid(struct dw_hdmi *hdmi)
+{
+	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
+	int i;
+
+	for (i = 0; i < edid_data->modes; i++) {
+		if (edid_data->mode_buf[i].invalid)
+			continue;
+
+		if (edid_data->mode_buf[i].clock > 600000)
+			edid_data->mode_buf[i].invalid = true;
+	}
+}
+
 int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_state *state)
 {
 	int ret, i, vic;
@@ -2555,6 +2569,7 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, hdmi->id);
 #endif
 	drm_rk_filter_whitelist(&hdmi->edid_data);
+	rockchip_dw_hdmi_mode_valid(hdmi);
 	if (hdmi->phy.ops->mode_valid)
 		hdmi->phy.ops->mode_valid(conn, hdmi, state);
 	drm_mode_max_resolution_filter(&hdmi->edid_data,
