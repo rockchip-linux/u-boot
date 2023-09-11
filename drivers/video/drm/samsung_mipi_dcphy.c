@@ -1542,6 +1542,9 @@ static void samsung_mipi_dphy_power_on(struct samsung_mipi_dcphy *samsung)
 	samsung_mipi_dphy_lane_enable(samsung);
 
 	reset_deassert(&samsung->m_phy_rst);
+
+	/* The Tskewcal maximum is 100 usec at initial calibration. */
+	udelay(100);
 }
 
 static void samsung_mipi_cphy_power_on(struct samsung_mipi_dcphy *samsung)
