@@ -228,3 +228,6 @@ config ROCKCHIP_CUBIC_LUT_SIZE
 	default 0
 	help
 	  Used to calc cubic lut size.
+
+source "drivers/video/drm/display-serdes/Kconfig"
+
