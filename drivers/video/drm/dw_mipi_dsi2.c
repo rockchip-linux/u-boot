@@ -1191,7 +1191,9 @@ static int dw_mipi_dsi2_connector_mode_valid(struct rockchip_connector *conn,
 	if (vm.hactive < min_pixels)
 		vm.hactive = min_pixels;
 
+	memset(&conn_state->mode, 0, sizeof(struct drm_display_mode));
 	drm_display_mode_from_videomode(&vm, &conn_state->mode);
+	conn_state->mode.vrefresh = drm_mode_vrefresh(&conn_state->mode);
 
 	return MODE_OK;
 }
