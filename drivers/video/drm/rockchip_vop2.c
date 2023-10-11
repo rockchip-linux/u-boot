@@ -87,10 +87,14 @@
 
 #define RK3568_DSP_IF_CTRL			0x02c
 #define LVDS_DUAL_EN_SHIFT			0
+#define RK3588_BT656_UV_SWAP_SHIFT		0
 #define LVDS_DUAL_LEFT_RIGHT_EN_SHIFT		1
+#define RK3588_BT656_YC_SWAP_SHIFT		1
 #define LVDS_DUAL_SWAP_EN_SHIFT			2
 #define BT656_UV_SWAP				4
+#define RK3588_BT1120_UV_SWAP_SHIFT		4
 #define BT656_YC_SWAP				5
+#define RK3588_BT1120_YC_SWAP_SHIFT		5
 #define BT656_DCLK_POL				6
 #define RK3588_HDMI_DUAL_EN_SHIFT		8
 #define RK3588_EDP_DUAL_EN_SHIFT		8
@@ -880,6 +884,9 @@
 #define GRF_BT1120_CLK_INV_SHIFT		2
 #define GRF_RGB_DCLK_INV_SHIFT			3
 
+#define RK3588_GRF_SOC_CON1			0x0304
+#define RK3588_GRF_VOP_DCLK_INV_SEL_SHIFT	14
+
 #define RK3588_GRF_VOP_CON2			0x0008
 #define RK3588_GRF_EDP0_ENABLE_SHIFT		0
 #define RK3588_GRF_HDMITX0_ENABLE_SHIFT		1
@@ -1551,6 +1558,19 @@ static bool is_rb_swap(u32 bus_format, u32 output_mode)
 		return true;
 	else
 		return false;
+}
+
+static bool is_yc_swap(u32 bus_format)
+{
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_YVYU8_1X16:
+	case MEDIA_BUS_FMT_YUYV8_2X8:
+	case MEDIA_BUS_FMT_YVYU8_2X8:
+		return true;
+	default:
+		return false;
+	}
 }
 
 static inline bool is_hot_plug_devices(int output_type)
@@ -2741,8 +2761,10 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	int if_pixclk_div = 0;
 	int if_dclk_div = 0;
 	unsigned long dclk_rate;
+	bool dclk_inv, yc_swap = false;
 	u32 val;
 
+	dclk_inv = (conn_state->bus_flags & DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE) ? 1 : 0;
 	if (output_if & (VOP_OUTPUT_IF_HDMI0 | VOP_OUTPUT_IF_HDMI1)) {
 		val = (mode->flags & DRM_MODE_FLAG_NHSYNC) ? BIT(HSYNC_POSITIVE) : 0;
 		val |= (mode->flags & DRM_MODE_FLAG_NVSYNC) ? BIT(VSYNC_POSITIVE) : 0;
@@ -2777,16 +2799,28 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	if (output_if & VOP_OUTPUT_IF_RGB) {
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, 0x7, RK3588_RGB_EN_SHIFT,
 				4, false);
+		vop2_grf_writel(vop2, vop2->grf, RK3588_GRF_SOC_CON1, EN_MASK,
+				RK3588_GRF_VOP_DCLK_INV_SEL_SHIFT, !dclk_inv);
 	}
 
 	if (output_if & VOP_OUTPUT_IF_BT1120) {
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, 0x7, RK3588_RGB_EN_SHIFT,
 				3, false);
+		vop2_grf_writel(vop2, vop2->grf, RK3588_GRF_SOC_CON1, EN_MASK,
+				RK3588_GRF_VOP_DCLK_INV_SEL_SHIFT, !dclk_inv);
+		yc_swap = is_yc_swap(conn_state->bus_format);
+		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK, RK3588_BT1120_YC_SWAP_SHIFT,
+				yc_swap, false);
 	}
 
 	if (output_if & VOP_OUTPUT_IF_BT656) {
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, 0x7, RK3588_RGB_EN_SHIFT,
 				2, false);
+		vop2_grf_writel(vop2, vop2->grf, RK3588_GRF_SOC_CON1, EN_MASK,
+				RK3588_GRF_VOP_DCLK_INV_SEL_SHIFT, !dclk_inv);
+		yc_swap = is_yc_swap(conn_state->bus_format);
+		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, EN_MASK, RK3588_BT656_YC_SWAP_SHIFT,
+				yc_swap, false);
 	}
 
 	if (output_if & VOP_OUTPUT_IF_MIPI0) {
@@ -3746,8 +3780,9 @@ static int rockchip_vop2_init(struct display_state *state)
 	else if (vop2->version == VOP_VERSION_RK3562)
 		dclk_rate = rk3562_vop2_if_cfg(state);
 
-	if (conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
-	    !(cstate->feature & VOP_FEATURE_OUTPUT_10BIT))
+	if ((conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
+	     !(cstate->feature & VOP_FEATURE_OUTPUT_10BIT)) ||
+	    conn_state->output_if & VOP_OUTPUT_IF_BT656)
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
 	vop2_post_color_swap(state);
