@@ -660,6 +660,9 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 		.data = (ulong)&rk3568_rgb_funcs,
 	},
 	{
+		.compatible = "rockchip,rk3588-rgb",
+	},
+	{
 		.compatible = "rockchip,rv1106-rgb",
 		.data = (ulong)&rv1106_rgb_funcs,
 	},
