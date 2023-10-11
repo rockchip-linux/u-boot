@@ -3938,12 +3938,8 @@ static int rockchip_vop2_init(struct display_state *state)
 		if (cstate->mcu_timing.mcu_pix_total) {
 			mode->crtc_clock = roundup(ret, 1000) / 1000;
 		} else {
-			dclk_div_factor = mode->clock / dclk_rate;
-			if (vop2->version == VOP_VERSION_RK3528 &&
-			    conn_state->output_if & VOP_OUTPUT_IF_BT656)
-				mode->crtc_clock = roundup(ret, 1000) / 4 / 1000;
-			else
-				mode->crtc_clock = roundup(ret, 1000) * dclk_div_factor / 1000;
+			dclk_div_factor = mode->crtc_clock / dclk_rate;
+			mode->crtc_clock = roundup(ret, 1000) * dclk_div_factor / 1000;
 		}
 		printf("VP%d set crtc_clock to %dKHz\n", cstate->crtc_id, mode->crtc_clock);
 	}
