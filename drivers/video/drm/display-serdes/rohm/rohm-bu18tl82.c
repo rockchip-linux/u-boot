@@ -266,9 +266,64 @@ static int bu18tl82_pinctrl_config_set(struct serdes *serdes,
 	return 0;
 }
 
-static int bu18tl82_pinctrl_set_mux(struct serdes *serdes,
-				    unsigned int group_selector,
-				    unsigned int func_selector)
+static int bu18tl82_pinctrl_set_pin_mux(struct serdes *serdes,
+					unsigned int pin_selector,
+					unsigned int func_selector)
+{
+	struct function_desc *func;
+	struct pinctrl_pin_desc *pin;
+	int offset;
+
+	func = &serdes->chip_data->pinctrl_info->functions[func_selector];
+	if (!func) {
+		printf("%s: func is null\n", __func__);
+		return -EINVAL;
+	}
+
+	pin = &serdes->chip_data->pinctrl_info->pins[pin_selector];
+	if (!pin) {
+		printf("%s: pin is null\n", __func__);
+		return -EINVAL;
+	}
+
+	SERDES_DBG_CHIP("%s: serdes %s func=%s data=%p pin=%s num=%d\n",
+			__func__, serdes->dev->name,
+			func->name, func->data,
+			pin->name, pin->number);
+
+	if (func->data) {
+		struct serdes_function_data *fdata = func->data;
+
+		offset = pin->number;
+		if (offset > 7)
+			dev_err(serdes->dev, "%s gpio offset=%d > 7\n",
+				serdes->dev->name, offset);
+		else
+			SERDES_DBG_CHIP("%s: serdes %s gpio=0x%x, off=%d\n",
+					__func__, serdes->dev->name,
+					fdata->gpio_id, offset);
+		serdes_set_bits(serdes, bu18tl82_gpio_oen[offset].reg,
+				bu18tl82_gpio_oen[offset].mask,
+				FIELD_PREP(BIT(3), fdata->gpio_rx_en));
+		serdes_set_bits(serdes, bu18tl82_gpio_id_low[offset].reg,
+				bu18tl82_gpio_id_low[offset].mask,
+				FIELD_PREP(GENMASK(7, 0),
+				(fdata->gpio_id & 0xff)));
+		serdes_set_bits(serdes, bu18tl82_gpio_id_high[offset].reg,
+				bu18tl82_gpio_id_high[offset].mask,
+				FIELD_PREP(GENMASK(2, 0),
+				((fdata->gpio_id >> 8) & 0x7)));
+		serdes_set_bits(serdes, bu18tl82_gpio_pden[offset].reg,
+				bu18tl82_gpio_pden[offset].mask,
+				FIELD_PREP(BIT(4), 0));
+	}
+
+	return 0;
+}
+
+static int bu18tl82_pinctrl_set_grp_mux(struct serdes *serdes,
+					unsigned int group_selector,
+					unsigned int func_selector)
 {
 	struct serdes_pinctrl *pinctrl = serdes->serdes_pinctrl;
 	struct function_desc *func;
@@ -276,12 +331,16 @@ static int bu18tl82_pinctrl_set_mux(struct serdes *serdes,
 	int i, offset;
 
 	func = &serdes->chip_data->pinctrl_info->functions[func_selector];
-	if (!func)
+	if (!func) {
+		printf("%s: func is null\n", __func__);
 		return -EINVAL;
+	}
 
 	grp = &serdes->chip_data->pinctrl_info->groups[group_selector];
-	if (!grp)
+	if (!grp) {
+		printf("%s: grp is null\n", __func__);
 		return -EINVAL;
+	}
 
 	SERDES_DBG_CHIP("%s: serdes %s func=%s data=%p grp=%s data=%p, num=%d\n",
 			__func__, serdes->dev->name,
@@ -294,10 +353,10 @@ static int bu18tl82_pinctrl_set_mux(struct serdes *serdes,
 		for (i = 0; i < grp->num_pins; i++) {
 			offset = grp->pins[i] - pinctrl->pin_base;
 			if (offset > 7)
-				dev_err(serdes->dev, "%s gpio offset=%d too large > 7\n",
+				dev_err(serdes->dev, "%s gpio offset=%d > 7\n",
 					serdes->dev->name, offset);
 			else
-				SERDES_DBG_CHIP("%s: serdes chip %s gpio_id=0x%x, offset=%d\n",
+				SERDES_DBG_CHIP("%s serdes %s io=0x%x off=%d\n",
 						__func__, serdes->dev->name,
 						fdata->gpio_id, offset);
 			serdes_set_bits(serdes, bu18tl82_gpio_oen[offset].reg,
@@ -322,7 +381,8 @@ static int bu18tl82_pinctrl_set_mux(struct serdes *serdes,
 
 static struct serdes_chip_pinctrl_ops bu18tl82_pinctrl_ops = {
 	.pinconf_set = bu18tl82_pinctrl_config_set,
-	.pinmux_group_set = bu18tl82_pinctrl_set_mux,
+	.pinmux_set = bu18tl82_pinctrl_set_pin_mux,
+	.pinmux_group_set = bu18tl82_pinctrl_set_grp_mux,
 };
 
 static int bu18tl82_gpio_direction_input(struct serdes *serdes, int gpio)
