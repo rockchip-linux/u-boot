@@ -101,6 +101,20 @@ static int param_write(struct regmap *base,
 	return regmap_write(base, reg->offset, val);
 }
 
+static u32 rockchip_combphy_is_ready(struct rockchip_combphy_priv *priv)
+{
+	const struct rockchip_combphy_grfcfg *cfg = priv->cfg->grfcfg;
+	u32 mask, val;
+
+	mask = GENMASK(cfg->pipe_phy_status.bitend,
+		       cfg->pipe_phy_status.bitstart);
+
+	regmap_read(priv->phy_grf, cfg->pipe_phy_status.offset, &val);
+	val = (val & mask) >> cfg->pipe_phy_status.bitstart;
+
+	return val;
+}
+
 static int rockchip_combphy_pcie_init(struct rockchip_combphy_priv *priv)
 {
 	int ret = 0;
@@ -179,6 +193,66 @@ static int rockchip_combphy_sgmii_init(struct rockchip_combphy_priv *priv)
 			return ret;
 		}
 	}
+
+	return ret;
+}
+
+int rockchip_combphy_usb3_uboot_init(fdt_addr_t phy_addr)
+{
+	struct udevice *udev = NULL;
+	struct udevice *dev;
+	struct uclass *uc;
+	const struct driver *find_drv;
+	struct rockchip_combphy_priv *priv;
+	const struct rockchip_combphy_grfcfg *cfg;
+	u32 val;
+	int ret = 0;
+
+	ret = uclass_get(UCLASS_PHY, &uc);
+	if (ret)
+		return ret;
+
+	find_drv = DM_DRIVER_GET(rockchip_naneng_combphy);
+	list_for_each_entry(dev, &uc->dev_head, uclass_node) {
+		if (dev->driver == find_drv && dev_read_addr(dev) == phy_addr) {
+			ret = uclass_get_device_tail(dev, 0, &udev);
+			break;
+		}
+	}
+
+	if (!udev || ret) {
+		ret = ret ? ret : -ENODEV;
+		pr_err("%s: get usb3-phy node failed: %d\n", __func__, ret);
+		return ret;
+	}
+
+	priv = dev_get_priv(udev);
+	priv->mode = PHY_TYPE_USB3;
+	cfg = priv->cfg->grfcfg;
+
+	rockchip_combphy_usb3_init(priv);
+	reset_deassert(&priv->phy_rst);
+
+	if (cfg->pipe_phy_grf_reset.enable)
+		param_write(priv->phy_grf, &cfg->pipe_phy_grf_reset, false);
+
+	if (priv->mode == PHY_TYPE_USB3) {
+		ret = readx_poll_timeout(rockchip_combphy_is_ready,
+					 priv, val,
+					 val == cfg->pipe_phy_status.enable,
+					 1000);
+		if (ret) {
+			dev_err(priv->dev, "wait phy status ready timeout\n");
+			param_write(priv->phy_grf, &cfg->usb_mode_set, false);
+			if (cfg->u3otg0_pipe_clk_sel.disable)
+				param_write(priv->phy_grf, &cfg->u3otg0_pipe_clk_sel, false);
+			return ret;
+		}
+	}
+
+	/* Select clk_usb3otg0_pipe for source clk */
+	if (cfg->u3otg0_pipe_clk_sel.disable)
+		param_write(priv->phy_grf, &cfg->u3otg0_pipe_clk_sel, true);
 
 	return ret;
 }
