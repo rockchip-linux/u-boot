@@ -125,6 +125,32 @@ static u32 rpmb_get_dev_info(u16 dev_id, struct rpmb_dev_info *info)
 	return TEE_SUCCESS;
 }
 
+static int rpmb_get_real_dev_id(void)
+{
+	struct mmc *mmc;
+	int mmc_num;
+	static int current_dev_id = -1;
+
+	if (current_dev_id >= 0) {
+		return current_dev_id;
+	}
+
+	mmc_num = get_mmc_num();
+
+	if (mmc_num > 0) {
+		for (int dev_id = 0; dev_id < mmc_num; dev_id++) {
+			mmc = find_mmc_device(dev_id);
+			if (mmc && !IS_SD(mmc)) {
+				debug("find emmc dev id %d\n", dev_id);
+				current_dev_id = dev_id;
+				return dev_id;
+			}
+		}
+	}
+
+	return -1;
+}
+
 static u32 rpmb_process_request(struct optee_private *priv, void *req,
 				ulong req_size, void *rsp, ulong rsp_size)
 {
@@ -133,6 +159,9 @@ static u32 rpmb_process_request(struct optee_private *priv, void *req,
 
 	if (req_size < sizeof(*sreq))
 		return TEE_ERROR_BAD_PARAMETERS;
+
+	/* ignore the dev id passed from optee OS */
+	sreq->dev_id = rpmb_get_real_dev_id();
 
 	switch (sreq->cmd) {
 	case RPMB_CMD_DATA_REQ:
