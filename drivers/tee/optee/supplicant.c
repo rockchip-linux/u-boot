@@ -83,8 +83,12 @@ void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,
 		cmd_shm_free(arg);
 		break;
 	case OPTEE_MSG_RPC_CMD_FS:
+#ifdef CONFIG_ARCH_ROCKCHIP
+		optee_suppl_cmd_fs(arg);
+#else
 		debug("REE FS storage isn't available\n");
 		arg->ret = TEE_ERROR_STORAGE_NOT_AVAILABLE;
+#endif
 		break;
 	case OPTEE_MSG_RPC_CMD_RPMB:
 		optee_suppl_cmd_rpmb(dev, arg);

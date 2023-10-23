@@ -60,6 +60,8 @@ static inline void optee_suppl_rpmb_release(struct udevice *dev)
 }
 #endif
 
+void optee_suppl_cmd_fs(struct optee_msg_arg *arg);
+
 #ifdef CONFIG_DM_I2C
 /**
  * optee_suppl_cmd_i2c_transfer() - route I2C requests to an I2C chip
