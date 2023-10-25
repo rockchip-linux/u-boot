@@ -300,6 +300,15 @@ void *optee_alloc_and_init_page_list(void *buf, ulong len, u64 *phys_buf_ptr)
 	return page_list;
 }
 
+bool optee_is_support_dynamic_shm(struct udevice *dev)
+{
+	struct optee_private *priv = dev_get_priv(dev);
+	bool shm_caps;
+
+	shm_caps = !!(priv->sec_caps & OPTEE_SMC_SEC_CAP_DYNAMIC_SHM);
+	return shm_caps;
+}
+
 static void optee_get_version(struct udevice *dev,
 			      struct tee_version_data *vers)
 {
@@ -817,6 +826,7 @@ static int optee_bind(struct udevice *dev)
 static int optee_probe(struct udevice *dev)
 {
 	struct optee_pdata *pdata = dev_get_plat(dev);
+	struct optee_private *priv = dev_get_priv(dev);
 	u32 sec_caps;
 	int ret;
 
@@ -836,12 +846,20 @@ static int optee_probe(struct udevice *dev)
 	 * OP-TEE can use both shared memory via predefined pool or as
 	 * dynamic shared memory provided by normal world. To keep things
 	 * simple we're only using dynamic shared memory in this driver.
+	 *
+	 * Support reserved shared memory now.
 	 */
-	if (!exchange_capabilities(pdata->invoke_fn, &sec_caps) ||
-	    !(sec_caps & OPTEE_SMC_SEC_CAP_DYNAMIC_SHM)) {
+	if (!exchange_capabilities(pdata->invoke_fn, &sec_caps)) {
+		dev_err(dev, "OP-TEE get capabilities failed\n");
+		return -ENOENT;
+	}
+
+	if (!(sec_caps & OPTEE_SMC_SEC_CAP_DYNAMIC_SHM) &&
+	    !(sec_caps & OPTEE_SMC_SEC_CAP_HAVE_RESERVED_SHM)) {
 		dev_err(dev, "OP-TEE capabilities mismatch\n");
 		return -ENOENT;
 	}
+	priv->sec_caps = sec_caps;
 
 	if (IS_ENABLED(CONFIG_OPTEE_SERVICE_DISCOVERY)) {
 		ret = bind_service_drivers(dev);

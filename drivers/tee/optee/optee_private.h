@@ -16,11 +16,13 @@
  * @rpmb_original_part:	the previosly active partition on the mmc device,
  *			used to restore active the partition when the RPMB
  *			accesses are finished
+ * @sec_caps:		capabilities of TEE
  */
 struct optee_private {
 	struct mmc *rpmb_mmc;
 	int rpmb_dev_id;
 	int rpmb_original_part;
+	u32 sec_caps;
 };
 
 struct optee_msg_arg;
@@ -80,5 +82,7 @@ static inline void optee_suppl_cmd_i2c_transfer(struct optee_msg_arg *arg)
 #endif
 
 void *optee_alloc_and_init_page_list(void *buf, ulong len, u64 *phys_buf_ptr);
+
+bool optee_is_support_dynamic_shm(struct udevice *dev);
 
 #endif /* __OPTEE_PRIVATE_H */
