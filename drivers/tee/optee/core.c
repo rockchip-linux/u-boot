@@ -765,6 +765,24 @@ static bool exchange_capabilities(optee_invoke_fn *invoke_fn, u32 *sec_caps)
 	return true;
 }
 
+static bool get_reserved_shm_config(optee_invoke_fn *invoke_fn,
+				    struct optee_smc_get_shm_config_result *config)
+{
+	union {
+		struct arm_smccc_res smccc;
+		struct optee_smc_get_shm_config_result result;
+	} res;
+
+	invoke_fn(OPTEE_SMC_GET_SHM_CONFIG, 0, 0, 0, 0, 0, 0, 0, &res.smccc);
+
+	if (res.result.status != OPTEE_SMC_RETURN_OK)
+		return false;
+
+	*config = res.result;
+
+	return true;
+}
+
 /* Simple wrapper functions to be able to use a function pointer */
 static void optee_smccc_smc(unsigned long a0, unsigned long a1,
 			    unsigned long a2, unsigned long a3,
@@ -860,6 +878,13 @@ static int optee_probe(struct udevice *dev)
 		return -ENOENT;
 	}
 	priv->sec_caps = sec_caps;
+
+	if (sec_caps & OPTEE_SMC_SEC_CAP_HAVE_RESERVED_SHM) {
+		struct optee_smc_get_shm_config_result config;
+		if (get_reserved_shm_config(pdata->invoke_fn, &config)) {
+			reserved_shm_init(config);
+		}
+	}
 
 	if (IS_ENABLED(CONFIG_OPTEE_SERVICE_DISCOVERY)) {
 		ret = bind_service_drivers(dev);

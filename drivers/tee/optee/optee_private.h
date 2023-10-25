@@ -8,6 +8,7 @@
 
 #include <tee.h>
 #include <log.h>
+#include "optee_smc.h"
 
 /**
  * struct optee_private - OP-TEE driver private data
@@ -63,6 +64,12 @@ static inline void optee_suppl_rpmb_release(struct udevice *dev)
 #endif
 
 void optee_suppl_cmd_fs(struct optee_msg_arg *arg);
+
+int reserved_shm_init(struct optee_smc_get_shm_config_result config);
+
+void *reserved_shm_malloc(u32 size);
+
+void reserved_shm_free(void *ptr);
 
 #ifdef CONFIG_DM_I2C
 /**
