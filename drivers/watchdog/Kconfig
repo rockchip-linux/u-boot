@@ -450,4 +450,10 @@ config WDT_FTWDT010
 	help
 	  Faraday Technology ftwdt010 watchdog is an architecture independent
 	  watchdog. It is usually used in SoC chip design.
+
+config WDT_ROCKCHIP
+	bool "Rockchip watchdog"
+	depends on WDT && ARCH_ROCKCHIP
+	help
+	  Say Y here to enable Rockchip watchdog driver.
 endmenu
