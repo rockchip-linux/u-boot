@@ -57,6 +57,15 @@ config SARADC_ROCKCHIP
 	  - 1O or 12 bits resolution
 	  - Up to 1MSPS of sample rate
 
+config SARADC_ROCKCHIP_V2
+	bool "Enable Rockchip SARADC v2 driver"
+	help
+	  This enables driver for Rockchip SARADC v2.
+	  It provides:
+	  - 8 analog input channels
+	  - 12 bits resolution
+	  - Up to 1MSPS of sample rate
+
 config STM32_ADC
 	bool "Enable STMicroelectronics STM32 ADC driver"
 	depends on ADC && (STM32H7 || ARCH_STM32MP)
