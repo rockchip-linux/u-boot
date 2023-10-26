@@ -35,6 +35,12 @@ config IMX_TMU
 	  The boot is hold to the cool device to throttle CPUs when the
 	  passive trip is crossed
 
+config ROCKCHIP_THERMAL
+	bool "Temperature sensor driver for Rockchip SoCs"
+	depends on CLK
+	help
+	  Support for Temperature Monitor (TEMPMON) found on Rockchip SoCs.
+
 config TI_DRA7_THERMAL
         bool "Temperature sensor driver for TI dra7xx SOCs"
         help
