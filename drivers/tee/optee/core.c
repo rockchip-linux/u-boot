@@ -306,6 +306,8 @@ bool optee_is_support_dynamic_shm(struct udevice *dev)
 	bool shm_caps;
 
 	shm_caps = !!(priv->sec_caps & OPTEE_SMC_SEC_CAP_DYNAMIC_SHM);
+	debug("%s: shm_caps=%d \n", __func__, shm_caps);
+
 	return shm_caps;
 }
 
@@ -324,9 +326,15 @@ static int get_msg_arg(struct udevice *dev, uint num_params,
 {
 	int rc;
 	struct optee_msg_arg *ma;
+	u32 f;
+
+	if (optee_is_support_dynamic_shm(dev))
+		f = TEE_SHM_ALLOC;
+	else
+		f = TEE_SHM_RES_ALLOC;
 
 	rc = __tee_shm_add(dev, OPTEE_MSG_NONCONTIG_PAGE_SIZE, NULL,
-			   OPTEE_MSG_GET_ARG_SIZE(num_params), TEE_SHM_ALLOC,
+			   OPTEE_MSG_GET_ARG_SIZE(num_params), f,
 			   shmp);
 	if (rc)
 		return rc;
@@ -339,7 +347,7 @@ static int get_msg_arg(struct udevice *dev, uint num_params,
 	return 0;
 }
 
-static int to_msg_param(struct optee_msg_param *msg_params, uint num_params,
+static int to_msg_param(struct udevice *dev, struct optee_msg_param *msg_params, uint num_params,
 			const struct tee_param *params)
 {
 	uint n;
@@ -365,11 +373,22 @@ static int to_msg_param(struct optee_msg_param *msg_params, uint num_params,
 		case TEE_PARAM_ATTR_TYPE_MEMREF_INPUT:
 		case TEE_PARAM_ATTR_TYPE_MEMREF_OUTPUT:
 		case TEE_PARAM_ATTR_TYPE_MEMREF_INOUT:
-			mp->attr = OPTEE_MSG_ATTR_TYPE_RMEM_INPUT + p->attr -
-				   TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
-			mp->u.rmem.shm_ref = (ulong)p->u.memref.shm;
-			mp->u.rmem.size = p->u.memref.size;
-			mp->u.rmem.offs = p->u.memref.shm_offs;
+			if (optee_is_support_dynamic_shm(dev)) {
+				mp->attr = OPTEE_MSG_ATTR_TYPE_RMEM_INPUT + p->attr -
+					   TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+				mp->u.rmem.shm_ref = (ulong)p->u.memref.shm;
+				mp->u.rmem.size = p->u.memref.size;
+				mp->u.rmem.offs = p->u.memref.shm_offs;
+			} else {
+				mp->attr = OPTEE_MSG_ATTR_TYPE_TMEM_INPUT + p->attr -
+					   TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+				mp->u.tmem.size = p->u.memref.size;
+				mp->u.tmem.shm_ref = (ulong)p->u.memref.shm;
+				if (!p->u.memref.shm)
+					mp->u.tmem.buf_ptr = 0;
+				else
+					mp->u.tmem.buf_ptr = virt_to_phys(p->u.memref.shm->addr);
+			}
 			break;
 		default:
 			return -EINVAL;
@@ -419,6 +438,21 @@ static int from_msg_param(struct tee_param *params, uint num_params,
 			p->u.memref.shm_offs = mp->u.rmem.offs;
 			p->u.memref.shm = shm;
 			break;
+		case OPTEE_MSG_ATTR_TYPE_TMEM_INPUT:
+		case OPTEE_MSG_ATTR_TYPE_TMEM_OUTPUT:
+		case OPTEE_MSG_ATTR_TYPE_TMEM_INOUT:
+			p->attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT +
+				  attr - OPTEE_MSG_ATTR_TYPE_TMEM_INPUT;
+			p->u.memref.size = mp->u.tmem.size;
+			shm = (struct tee_shm *)(ulong)mp->u.tmem.shm_ref;
+			if (!shm) {
+				p->u.memref.shm_offs = 0;
+				p->u.memref.shm = NULL;
+				break;
+			}
+			p->u.memref.shm_offs = 0;
+			p->u.memref.shm = shm;
+			break;
 		default:
 			return -EINVAL;
 		}
@@ -429,13 +463,19 @@ static int from_msg_param(struct tee_param *params, uint num_params,
 static void handle_rpc(struct udevice *dev, struct rpc_param *param,
 		       void *page_list)
 {
+	int rc;
 	struct tee_shm *shm;
 
 	switch (OPTEE_SMC_RETURN_GET_RPC_FUNC(param->a0)) {
 	case OPTEE_SMC_RPC_FUNC_ALLOC:
-		if (!__tee_shm_add(dev, OPTEE_MSG_NONCONTIG_PAGE_SIZE, NULL,
-				   param->a1, TEE_SHM_ALLOC | TEE_SHM_REGISTER,
-				   &shm)) {
+		if (optee_is_support_dynamic_shm(dev)) {
+			rc = __tee_shm_add(dev, OPTEE_MSG_NONCONTIG_PAGE_SIZE, NULL,
+					   param->a1, TEE_SHM_ALLOC | TEE_SHM_REGISTER, &shm);
+		} else {
+			rc = __tee_shm_add(dev, OPTEE_MSG_NONCONTIG_PAGE_SIZE, NULL,
+					   param->a1, TEE_SHM_RES_ALLOC, &shm);
+		}
+		if (!rc) {
 			reg_pair_from_64(&param->a1, &param->a2,
 					 virt_to_phys(shm->addr));
 			/* "cookie" */
@@ -571,7 +611,7 @@ static int optee_open_session(struct udevice *dev,
 	memcpy(&msg_arg->params[1].u.value, arg->uuid, sizeof(arg->clnt_uuid));
 	msg_arg->params[1].u.value.c = arg->clnt_login;
 
-	rc = to_msg_param(msg_arg->params + 2, num_params, params);
+	rc = to_msg_param(dev, msg_arg->params + 2, num_params, params);
 	if (rc)
 		goto out;
 
@@ -612,7 +652,7 @@ static int optee_invoke_func(struct udevice *dev, struct tee_invoke_arg *arg,
 	msg_arg->func = arg->func;
 	msg_arg->session = arg->session;
 
-	rc = to_msg_param(msg_arg->params, num_params, params);
+	rc = to_msg_param(dev, msg_arg->params, num_params, params);
 	if (rc)
 		goto out;
 

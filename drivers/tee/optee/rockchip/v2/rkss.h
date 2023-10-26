@@ -10,6 +10,7 @@
 
 #include <tee.h>
 #include "../../optee_msg.h"
+#include "../../optee_private.h"
 
 /*
  * Operations and defines shared with TEE.

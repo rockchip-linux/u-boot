@@ -884,9 +884,7 @@ static uint32_t ree_fs_new_open(size_t num_params,
 	struct rkss_file_table p = {0};
 	unsigned int area_index;
 
-	struct tee_shm *shm;
-	shm = (struct tee_shm *)(size_t)params[1].u.rmem.shm_ref;
-	filename = shm->addr + params[1].u.rmem.offs;
+	filename = tee_supp_param_to_va(params + 1);
 	if (!filename)
 		return TEE_ERROR_BAD_PARAMETERS;
 
@@ -916,9 +914,7 @@ static u32 ree_fs_new_create(size_t num_params,
 	struct rkss_file_table p = {0};
 	unsigned int area_index;
 
-	struct tee_shm *shm;
-	shm = (struct tee_shm *)(size_t)params[1].u.rmem.shm_ref;
-	filename = shm->addr + params[1].u.rmem.offs;
+	filename = tee_supp_param_to_va(params + 1);
 	if (!filename)
 		return TEE_ERROR_BAD_PARAMETERS;
 
@@ -990,9 +986,7 @@ static u32 ree_fs_new_read(size_t num_params,
 	fd = params[0].u.value.b;
 	offs = params[0].u.value.c;
 
-	struct tee_shm *shm;
-	shm = (struct tee_shm *)(size_t)params[1].u.rmem.shm_ref;
-	data = shm->addr + params[1].u.rmem.offs;
+	data = tee_supp_param_to_va(params + 1);
 	if (!data)
 		return TEE_ERROR_BAD_PARAMETERS;
 	len = params[1].u.rmem.size;
@@ -1047,9 +1041,7 @@ static u32 ree_fs_new_write(size_t num_params,
 	fd = params[0].u.value.b;
 	offs = params[0].u.value.c;
 
-	struct tee_shm *shm;
-	shm = (struct tee_shm *)(size_t)params[1].u.rmem.shm_ref;
-	data = shm->addr + params[1].u.rmem.offs;
+	data = tee_supp_param_to_va(params + 1);
 	if (!data)
 		return TEE_ERROR_BAD_PARAMETERS;
 	len = params[1].u.rmem.size;
@@ -1186,9 +1178,7 @@ static u32 ree_fs_new_remove(size_t num_params,
 	int ret, fd, num;
 	unsigned int area_index;
 
-	struct tee_shm *shm;
-	shm = (struct tee_shm *)(size_t)params[1].u.rmem.shm_ref;
-	filename = shm->addr + params[1].u.rmem.offs;
+	filename = tee_supp_param_to_va(params + 1);
 	if (!filename)
 		return TEE_ERROR_BAD_PARAMETERS;
 
@@ -1230,14 +1220,11 @@ static u32 ree_fs_new_rename(size_t num_params,
 	int ret;
 	unsigned int area_index;
 
-	struct tee_shm *shm;
-	shm = (struct tee_shm *)(size_t)params[1].u.rmem.shm_ref;
-	old_fname = shm->addr + params[1].u.rmem.offs;
+	old_fname = tee_supp_param_to_va(params + 1);
 	if (!old_fname)
 		return TEE_ERROR_BAD_PARAMETERS;
 
-	shm = (struct tee_shm *)(size_t)params[2].u.rmem.shm_ref;
-	new_fname = shm->addr + params[2].u.rmem.offs;
+	new_fname = tee_supp_param_to_va(params + 2);
 	if (!new_fname)
 		return TEE_ERROR_BAD_PARAMETERS;
 
@@ -1271,9 +1258,7 @@ static u32 ree_fs_new_opendir(size_t num_params,
 	char *dirname;
 	int ret;
 
-	struct tee_shm *shm;
-	shm = (struct tee_shm *)(size_t)params[1].u.rmem.shm_ref;
-	dirname = shm->addr + params[1].u.rmem.offs;
+	dirname = tee_supp_param_to_va(params + 1);
 	if (!dirname)
 		return TEE_ERROR_BAD_PARAMETERS;
 
@@ -1310,9 +1295,7 @@ static u32 ree_fs_new_readdir(size_t num_params,
 	size_t len;
 	size_t dirname_len;
 
-	struct tee_shm *shm;
-	shm = (struct tee_shm *)(size_t)params[1].u.rmem.shm_ref;
-	dirname = shm->addr + params[1].u.rmem.offs;
+	dirname = tee_supp_param_to_va(params + 1);
 	if (!dirname)
 		return TEE_ERROR_BAD_PARAMETERS;
 	len = params[1].u.rmem.size;
@@ -1362,18 +1345,6 @@ int tee_supp_rk_fs_init_v2(void)
 #endif
 
 	return 0;
-}
-
-static bool tee_supp_param_is_value(struct optee_msg_param *param)
-{
-	switch (param->attr & TEE_PARAM_ATTR_TYPE_MASK) {
-	case TEE_PARAM_ATTR_TYPE_VALUE_INPUT:
-	case TEE_PARAM_ATTR_TYPE_VALUE_OUTPUT:
-	case TEE_PARAM_ATTR_TYPE_VALUE_INOUT:
-		return true;
-	default:
-		return false;
-	}
 }
 
 static int rkss_step;

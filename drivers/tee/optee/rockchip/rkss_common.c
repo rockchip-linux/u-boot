@@ -68,7 +68,7 @@ static int rkss_init(void)
 	int version;
 
 	version = get_rkss_version();
-	printf("%s: rkss_init version: %d\n", __func__, version);
+	printf("optee: rkss v%d\n", version);
 
 	if (version == RKSS_VERSION_V1)
 		return tee_supp_rk_fs_init_v1();
@@ -80,7 +80,7 @@ static int rkss_init(void)
 
 #ifdef CONFIG_ROCKCHIP_OPTEE_V2
 static int rkss_process_request(u32 num_params,
-			struct optee_msg_param *params)
+				struct optee_msg_param *params)
 {
 	int version;
 

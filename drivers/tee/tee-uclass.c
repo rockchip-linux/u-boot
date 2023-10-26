@@ -13,6 +13,7 @@
 #include <asm/cache.h>
 #include <dm/device-internal.h>
 #include <dm/uclass-internal.h>
+#include "optee/optee_private.h"
 
 /**
  * struct tee_uclass_priv - information of a TEE, stored by the uclass
@@ -64,6 +65,9 @@ int __tee_shm_add(struct udevice *dev, ulong align, void *addr, ulong size,
 		else
 			p = malloc(size);
 	}
+
+	if (flags & TEE_SHM_RES_ALLOC)
+		p = reserved_shm_malloc(size);
 	if (!p)
 		return -ENOMEM;
 
@@ -106,7 +110,10 @@ int tee_shm_alloc(struct udevice *dev, ulong size, u32 flags,
 {
 	u32 f = flags;
 
-	f |= TEE_SHM_SEC_REGISTER | TEE_SHM_REGISTER | TEE_SHM_ALLOC;
+	if (optee_is_support_dynamic_shm(dev))
+		f |= TEE_SHM_SEC_REGISTER | TEE_SHM_REGISTER | TEE_SHM_ALLOC;
+	else
+		f = TEE_SHM_RES_ALLOC;
 
 	return __tee_shm_add(dev, 0, NULL, size, f, shmp);
 }
@@ -134,6 +141,9 @@ void tee_shm_free(struct tee_shm *shm)
 
 	if (shm->flags & TEE_SHM_ALLOC)
 		free(shm->addr);
+
+	if (shm->flags & TEE_SHM_RES_ALLOC)
+		reserved_shm_free(shm->addr);
 
 	free(shm);
 }

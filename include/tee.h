@@ -18,6 +18,7 @@
 #define TEE_SHM_SEC_REGISTER	BIT(1)	/* TEE notified of this memory */
 #define TEE_SHM_ALLOC		BIT(2)	/* The memory is malloced() and must */
 					/* be freed() */
+#define TEE_SHM_RES_ALLOC	BIT(3)	/* The memory is malloc from reserved shm */
 
 #define TEE_PARAM_ATTR_TYPE_NONE		0	/* parameter not used */
 #define TEE_PARAM_ATTR_TYPE_VALUE_INPUT		1

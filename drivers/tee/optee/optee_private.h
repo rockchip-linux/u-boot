@@ -8,6 +8,7 @@
 
 #include <tee.h>
 #include <log.h>
+#include "optee_msg.h"
 #include "optee_smc.h"
 
 /**
@@ -70,6 +71,10 @@ int reserved_shm_init(struct optee_smc_get_shm_config_result config);
 void *reserved_shm_malloc(u32 size);
 
 void reserved_shm_free(void *ptr);
+
+bool tee_supp_param_is_value(struct optee_msg_param *param);
+
+void *tee_supp_param_to_va(struct optee_msg_param *param);
 
 #ifdef CONFIG_DM_I2C
 /**

@@ -7,6 +7,7 @@
 #include <malloc.h>
 #include <tee.h>
 #include <linux/errno.h>
+#include <linux/io.h>
 #include <linux/types.h>
 
 #include "optee_msg.h"
@@ -30,29 +31,46 @@ static void cmd_shm_alloc(struct udevice *dev, struct optee_msg_arg *arg,
 		return;
 	}
 
-	rc = __tee_shm_add(dev, 0, NULL, arg->params[0].u.value.b,
-			   TEE_SHM_REGISTER | TEE_SHM_ALLOC, &shm);
-	if (rc) {
-		if (rc == -ENOMEM)
+	if (optee_is_support_dynamic_shm(dev)) {
+		rc = __tee_shm_add(dev, 0, NULL, arg->params[0].u.value.b,
+				   TEE_SHM_REGISTER | TEE_SHM_ALLOC, &shm);
+		if (rc) {
+			if (rc == -ENOMEM)
+				arg->ret = TEE_ERROR_OUT_OF_MEMORY;
+			else
+				arg->ret = TEE_ERROR_GENERIC;
+			return;
+		}
+
+		pl = optee_alloc_and_init_page_list(shm->addr, shm->size, &ph_ptr);
+		if (!pl) {
 			arg->ret = TEE_ERROR_OUT_OF_MEMORY;
-		else
-			arg->ret = TEE_ERROR_GENERIC;
-		return;
+			tee_shm_free(shm);
+			return;
+		}
+
+		*page_list = pl;
+		arg->params[0].attr = OPTEE_MSG_ATTR_TYPE_TMEM_OUTPUT |
+				      OPTEE_MSG_ATTR_NONCONTIG;
+		arg->params[0].u.tmem.buf_ptr = ph_ptr;
+		arg->params[0].u.tmem.size = shm->size;
+		arg->params[0].u.tmem.shm_ref = (ulong)shm;
+	} else {
+		rc = __tee_shm_add(dev, 0, NULL, arg->params[0].u.value.b,
+				   TEE_SHM_RES_ALLOC, &shm);
+		if (rc) {
+			if (rc == -ENOMEM)
+				arg->ret = TEE_ERROR_OUT_OF_MEMORY;
+			else
+				arg->ret = TEE_ERROR_GENERIC;
+			return;
+		}
+		arg->params[0].attr = OPTEE_MSG_ATTR_TYPE_TMEM_OUTPUT;
+		arg->params[0].u.tmem.buf_ptr = virt_to_phys(shm->addr);
+		arg->params[0].u.tmem.size = shm->size;
+		arg->params[0].u.tmem.shm_ref = (ulong)shm;
 	}
 
-	pl = optee_alloc_and_init_page_list(shm->addr, shm->size, &ph_ptr);
-	if (!pl) {
-		arg->ret = TEE_ERROR_OUT_OF_MEMORY;
-		tee_shm_free(shm);
-		return;
-	}
-
-	*page_list = pl;
-	arg->params[0].attr = OPTEE_MSG_ATTR_TYPE_TMEM_OUTPUT |
-			      OPTEE_MSG_ATTR_NONCONTIG;
-	arg->params[0].u.tmem.buf_ptr = ph_ptr;
-	arg->params[0].u.tmem.size = shm->size;
-	arg->params[0].u.tmem.shm_ref = (ulong)shm;
 	arg->ret = TEE_SUCCESS;
 }
 
@@ -68,6 +86,38 @@ static void cmd_shm_free(struct optee_msg_arg *arg)
 
 	tee_shm_free((struct tee_shm *)(ulong)arg->params[0].u.value.b);
 	arg->ret = TEE_SUCCESS;
+}
+
+bool tee_supp_param_is_value(struct optee_msg_param *param)
+{
+	switch (param->attr & TEE_PARAM_ATTR_TYPE_MASK) {
+	case OPTEE_MSG_ATTR_TYPE_VALUE_INPUT:
+	case OPTEE_MSG_ATTR_TYPE_VALUE_OUTPUT:
+	case OPTEE_MSG_ATTR_TYPE_VALUE_INOUT:
+		return true;
+	default:
+		return false;
+	}
+}
+
+void *tee_supp_param_to_va(struct optee_msg_param *param)
+{
+	struct tee_shm *shm = NULL;
+
+	switch (param->attr & TEE_PARAM_ATTR_TYPE_MASK) {
+	case OPTEE_MSG_ATTR_TYPE_RMEM_INPUT:
+	case OPTEE_MSG_ATTR_TYPE_RMEM_OUTPUT:
+	case OPTEE_MSG_ATTR_TYPE_RMEM_INOUT:
+		shm = (struct tee_shm *)(size_t)param->u.rmem.shm_ref;
+		return (uint8_t *)shm->addr + param->u.rmem.offs;
+	case OPTEE_MSG_ATTR_TYPE_TMEM_INPUT:
+	case OPTEE_MSG_ATTR_TYPE_TMEM_OUTPUT:
+	case OPTEE_MSG_ATTR_TYPE_TMEM_INOUT:
+		shm = (struct tee_shm *)(size_t)param->u.tmem.shm_ref;
+		return (uint8_t *)shm->addr;
+	default:
+		return NULL;
+	}
 }
 
 void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,

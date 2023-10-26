@@ -197,20 +197,37 @@ void optee_suppl_cmd_rpmb(struct udevice *dev, struct optee_msg_arg *arg)
 	ulong req_size;
 	ulong rsp_size;
 
-	if (arg->num_params != 2 ||
-	    arg->params[0].attr != OPTEE_MSG_ATTR_TYPE_RMEM_INPUT ||
-	    arg->params[1].attr != OPTEE_MSG_ATTR_TYPE_RMEM_OUTPUT) {
-		arg->ret = TEE_ERROR_BAD_PARAMETERS;
-		return;
+	if (optee_is_support_dynamic_shm(dev)) {
+		if (arg->num_params != 2 ||
+		    arg->params[0].attr != OPTEE_MSG_ATTR_TYPE_RMEM_INPUT ||
+		    arg->params[1].attr != OPTEE_MSG_ATTR_TYPE_RMEM_OUTPUT) {
+			arg->ret = TEE_ERROR_BAD_PARAMETERS;
+			return;
+		}
+
+		req_shm = (struct tee_shm *)(ulong)arg->params[0].u.rmem.shm_ref;
+		req_buf = (u8 *)req_shm->addr + arg->params[0].u.rmem.offs;
+		req_size = arg->params[0].u.rmem.size;
+
+		rsp_shm = (struct tee_shm *)(ulong)arg->params[1].u.rmem.shm_ref;
+		rsp_buf = (u8 *)rsp_shm->addr + arg->params[1].u.rmem.offs;
+		rsp_size = arg->params[1].u.rmem.size;
+	} else {
+		if (arg->num_params != 2 ||
+		    arg->params[0].attr != OPTEE_MSG_ATTR_TYPE_TMEM_INPUT ||
+		    arg->params[1].attr != OPTEE_MSG_ATTR_TYPE_TMEM_OUTPUT) {
+			arg->ret = TEE_ERROR_BAD_PARAMETERS;
+			return;
+		}
+
+		req_shm = (struct tee_shm *)(ulong)arg->params[0].u.tmem.shm_ref;
+		req_buf = (u8 *)req_shm->addr;
+		req_size = arg->params[0].u.tmem.size;
+
+		rsp_shm = (struct tee_shm *)(ulong)arg->params[1].u.tmem.shm_ref;
+		rsp_buf = (u8 *)rsp_shm->addr;
+		rsp_size = arg->params[1].u.tmem.size;
 	}
-
-	req_shm = (struct tee_shm *)(ulong)arg->params[0].u.rmem.shm_ref;
-	req_buf = (u8 *)req_shm->addr + arg->params[0].u.rmem.offs;
-	req_size = arg->params[0].u.rmem.size;
-
-	rsp_shm = (struct tee_shm *)(ulong)arg->params[1].u.rmem.shm_ref;
-	rsp_buf = (u8 *)rsp_shm->addr + arg->params[1].u.rmem.offs;
-	rsp_size = arg->params[1].u.rmem.size;
 
 	arg->ret = rpmb_process_request(dev_get_priv(dev), req_buf, req_size,
 					rsp_buf, rsp_size);
