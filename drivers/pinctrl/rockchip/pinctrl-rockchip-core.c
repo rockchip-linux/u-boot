@@ -387,8 +387,11 @@ static int rockchip_pinconf_set(struct rockchip_pin_bank *bank,
 				u32 pin, u32 param, u32 arg)
 {
 	int rc;
+#if CONFIG_IS_ENABLED(DM_GPIO) && \
+	(CONFIG_IS_ENABLED(SPL_GPIO_SUPPORT) || !defined(CONFIG_SPL_BUILD))
 	struct gpio_desc desc;
 	char gpio_name[16];
+#endif
 
 	switch (param) {
 	case PIN_CONFIG_BIAS_DISABLE:
@@ -413,6 +416,8 @@ static int rockchip_pinconf_set(struct rockchip_pin_bank *bank,
 			return rc;
 		break;
 	case PIN_CONFIG_OUTPUT:
+#if CONFIG_IS_ENABLED(DM_GPIO) && \
+	(CONFIG_IS_ENABLED(SPL_GPIO_SUPPORT) || !defined(CONFIG_SPL_BUILD))
 		desc.flags = GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE;
 		if (!arg) desc.flags |= GPIOD_ACTIVE_LOW;
 		snprintf(gpio_name, 16, "%s%d", bank->name, pin);
@@ -432,6 +437,9 @@ static int rockchip_pinconf_set(struct rockchip_pin_bank *bank,
 		dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
 		dm_gpio_set_value(&desc, arg ? 1 : 0);
 		debug("%s: GPIO %s-%d set to %d\n", __func__, bank->name, pin, arg);
+#else
+		return -ENOSYS;
+#endif
 		break;
 
 	default:
