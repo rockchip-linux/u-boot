@@ -14,6 +14,8 @@
 #include <write_keybox.h>
 #include <linux/mtd/mtd.h>
 #include <optee_include/OpteeClientInterface.h>
+#include <dm.h>
+#include <misc.h>
 #include <mmc.h>
 #include <stdlib.h>
 #include <usbplug.h>
@@ -862,7 +864,12 @@ static int rkusb_do_read_capacity(struct fsg_common *common,
 	 * bit[7]: Read SecureMode
 	 * bit[8]: New IDB feature
 	 * bit[9]: Get storage media info
-	 * bit[10:63}: Reserved.
+	 * bit[10]: LBAwrite Parity
+	 * bit[11]: Read Otp Data
+	 * bit[12]: usb3 download
+	 * bit[13]: Write OTP proof
+	 * bit[14]: Write Cipher Key
+	 * bit[15:63}: Reserved.
 	 */
 	memset((void *)&buf[0], 0, len);
 	if (type == IF_TYPE_MMC || type == IF_TYPE_SD || type == IF_TYPE_NVME)
@@ -891,12 +898,42 @@ static int rkusb_do_read_capacity(struct fsg_common *common,
 	else
 		buf[1] &= ~BIT(4);
 
+#ifdef CONFIG_ROCKCHIP_OTP
+	buf[1] |= BIT(3); /* Read Otp Data */
+	buf[1] |= BIT(5); /* Write OTP proof */
+	buf[1] |= BIT(6); /* Write Cipher Key */
+#endif
+
 	/* Set data xfer size */
 	common->residue = len;
 	common->data_size_from_cmnd = len;
 
 	return len;
 }
+
+#ifdef CONFIG_ROCKCHIP_OTP
+static int rkusb_do_read_otp(struct fsg_common *common,
+			       struct fsg_buffhd *bh)
+{
+	u32 len = common->data_size;
+	u32 type = common->cmnd[1];
+	u8 *buf = (u8 *)bh->buf;
+	struct udevice *dev;
+
+	buf[0] = 0;
+	if (type == 0) { /* soc uuid */
+		if (!uclass_get_device_by_driver(UCLASS_MISC, DM_GET_DRIVER(rockchip_otp), &dev)) {
+			if (!misc_read(dev, CFG_CPUID_OFFSET, (void *)&buf[1], len))
+				buf[0] = len;
+		}
+	}
+
+	common->residue = len;
+	common->data_size_from_cmnd = len;
+
+	return len;
+}
+#endif
 
 static void rkusb_fixup_cbwcb(struct fsg_common *common,
 			      struct fsg_buffhd *bh)
@@ -1022,6 +1059,13 @@ static int rkusb_cmd_process(struct fsg_common *common,
 		rc = RKUSB_RC_FINISHED;
 		break;
 
+#ifdef CONFIG_ROCKCHIP_OTP
+	case RKUSB_READ_OTP_DATA:
+		*reply = rkusb_do_read_otp(common, bh);
+		rc = RKUSB_RC_FINISHED;
+		break;
+#endif
+
 	case RKUSB_READ_10:
 	case RKUSB_WRITE_10:
 		printf("CMD Not support, pls use new version Tool\n");
@@ -1038,7 +1082,6 @@ static int rkusb_cmd_process(struct fsg_common *common,
 	case RKUSB_SET_RESET_FLAG:
 	case RKUSB_SPI_READ_10:
 	case RKUSB_SPI_WRITE_10:
-	case RKUSB_SESSION:
 		/* Fall through */
 	default:
 		rc = RKUSB_RC_UNKNOWN_CMND;
