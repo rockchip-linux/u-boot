@@ -420,6 +420,7 @@ static int rockchip_pinconf_set(struct rockchip_pin_bank *bank,
 		if (rc < 0) {
 			debug("%s: GPIO %s-%d lookup failed (ret=%d)\n", __func__,
 				bank->name, pin, rc);
+			return rc;
 		}
 
 		rc = dm_gpio_request(&desc, gpio_name);
