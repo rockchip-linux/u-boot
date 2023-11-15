@@ -190,6 +190,10 @@ static int rockchip_saradc_probe(struct udevice *dev)
 	/* Wait until pll stable */
 	mdelay(5);
 
+#ifdef CONFIG_DM_KERNEL_DTB
+	vref = vref;	/* avoid gcc warning */
+	vref_uv = 1800000;
+#else
 	ret = device_get_supply_regulator(dev, "vref-supply", &vref);
 	if (ret) {
 		printf("can't get vref-supply: %d\n", ret);
@@ -201,6 +205,7 @@ static int rockchip_saradc_probe(struct udevice *dev)
 		printf("can't get vref-supply value: %d\n", vref_uv);
 		return vref_uv;
 	}
+#endif
 
 	/* VDD supplied by common vref pin */
 	uc_pdata->vdd_supply = vref;
