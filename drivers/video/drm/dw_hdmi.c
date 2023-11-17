@@ -181,6 +181,7 @@ struct dw_hdmi {
 	bool cable_plugin;
 	bool sink_is_hdmi;
 	bool sink_has_audio;
+	bool force_output;
 	void *regs;
 	void *grf;
 	void *gpio_base;
@@ -878,7 +879,7 @@ static int rockchip_dw_hdmi_scrambling_enable(struct dw_hdmi *hdmi,
 
 	drm_scdc_readb(&hdmi->adap, SCDC_TMDS_CONFIG, &stat);
 
-	if (stat < 0) {
+	if (stat < 0 && !hdmi->force_output) {
 		debug("Failed to read tmds config\n");
 		return false;
 	}
@@ -1168,7 +1169,7 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 	}
 
 	/* Scrambling Control */
-	if (hdmi_info->scdc.supported) {
+	if (hdmi_info->scdc.supported || hdmi->force_output) {
 		if (vmode->mtmdsclock > 340000000 ||
 		    (hdmi_info->scdc.scrambling.low_rates &&
 		     hdmi->scramble_low_rates)) {
@@ -2601,8 +2602,12 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 	*mode = *hdmi->edid_data.preferred_mode;
 	hdmi->vic = drm_match_cea_mode(mode);
 
-	if (state->force_output)
+	if (state->force_output) {
+		hdmi->force_output = state->force_output;
+		hdmi->sink_is_hdmi = true;
+		hdmi->sink_has_audio = true;
 		bus_format = state->force_bus_format;
+	}
 	conn_state->bus_format = bus_format;
 	hdmi->hdmi_data.enc_in_bus_format = bus_format;
 	hdmi->hdmi_data.enc_out_bus_format = bus_format;
