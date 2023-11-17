@@ -271,6 +271,7 @@ struct dw_mipi_dsi2 {
 	struct dw_mipi_dsi2 *slave;
 	bool prepared;
 
+	bool auto_calc_mode;
 	bool c_option;
 	bool dsc_enable;
 	bool scrambling_en;
@@ -551,6 +552,9 @@ static void dw_mipi_dsi2_ipi_set(struct dw_mipi_dsi2 *dsi2)
 
 	dw_mipi_dsi2_ipi_color_coding_cfg(dsi2);
 
+	if (dsi2->auto_calc_mode)
+		return;
+
 	/*
 	 * if the controller is intended to operate in data stream mode,
 	 * no more steps are required.
@@ -655,7 +659,19 @@ static void dw_mipi_dsi2_set_cmd_mode(struct dw_mipi_dsi2 *dsi2)
 
 static void dw_mipi_dsi2_enable(struct dw_mipi_dsi2 *dsi2)
 {
+	u32 mode;
+	int ret;
+
 	dw_mipi_dsi2_ipi_set(dsi2);
+
+	if (dsi2->auto_calc_mode) {
+		dsi_write(dsi2, DSI2_MODE_CTRL, AUTOCALC_MODE);
+		ret = readl_poll_timeout(dsi2->base + DSI2_MODE_STATUS,
+					 mode, mode == IDLE_MODE,
+					 MODE_STATUS_TIMEOUT_US);
+		if (ret < 0)
+			printf("auto calculation training failed\n");
+	}
 
 	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO)
 		dw_mipi_dsi2_set_vid_mode(dsi2);
@@ -663,7 +679,7 @@ static void dw_mipi_dsi2_enable(struct dw_mipi_dsi2 *dsi2)
 		dw_mipi_dsi2_set_data_stream_mode(dsi2);
 
 	if (dsi2->slave)
-		dw_mipi_dsi2_enable(dsi2->slave);
+	    dw_mipi_dsi2_enable(dsi2->slave);
 }
 
 static void dw_mipi_dsi2_disable(struct dw_mipi_dsi2 *dsi2)
@@ -822,6 +838,8 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 
 		dsi2->slave->master = dsi2;
 		dsi2->lanes /= 2;
+
+		dsi2->slave->auto_calc_mode = dsi2->auto_calc_mode;
 		dsi2->slave->lanes = dsi2->lanes;
 		dsi2->slave->format = dsi2->format;
 		dsi2->slave->mode_flags = dsi2->mode_flags;
@@ -1031,6 +1049,10 @@ static void dw_mipi_dsi2_phy_init(struct dw_mipi_dsi2 *dsi2)
 {
 	dw_mipi_dsi2_phy_mode_cfg(dsi2);
 	dw_mipi_dsi2_phy_clk_mode_cfg(dsi2);
+
+	if (dsi2->auto_calc_mode)
+		return;
+
 	dw_mipi_dsi2_phy_ratio_cfg(dsi2);
 	dw_mipi_dsi2_lp2hs_or_hs2lp_cfg(dsi2);
 
@@ -1090,7 +1112,7 @@ static void dw_mipi_dsi2_pre_enable(struct dw_mipi_dsi2 *dsi2)
 	dw_mipi_dsi2_host_softrst(dsi2);
 	dsi_write(dsi2, DSI2_PWR_UP, RESET);
 
-	dw_mipi_dsi2_work_mode(dsi2, MANUAL_MODE_EN);
+	dw_mipi_dsi2_work_mode(dsi2, dsi2->auto_calc_mode ? 0 : MANUAL_MODE_EN);
 	dw_mipi_dsi2_phy_init(dsi2);
 	dw_mipi_dsi2_tx_option_set(dsi2);
 	dw_mipi_dsi2_irq_enable(dsi2, 0);
@@ -1268,6 +1290,7 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 	dsi2->pdata = pdata;
 	dsi2->id = id;
 	dsi2->data_swap = dev_read_bool(dsi2->dev, "rockchip,data-swap");
+	dsi2->auto_calc_mode = dev_read_bool(dsi2->dev, "auto-calculation-mode");
 
 	rockchip_connector_bind(&dsi2->connector, dev, id, &dw_mipi_dsi2_connector_funcs, NULL,
 				DRM_MODE_CONNECTOR_DSI);
