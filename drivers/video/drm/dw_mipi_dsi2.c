@@ -284,6 +284,7 @@ struct dw_mipi_dsi2 {
 	u32 lanes;
 	u32 format;
 	u32 mode_flags;
+	u64 mipi_pixel_rate;
 	struct mipi_dcphy dcphy;
 	struct drm_display_mode mode;
 	bool data_swap;
@@ -980,8 +981,7 @@ static void dw_mipi_dsi2_phy_clk_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 
 static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 {
-	struct drm_display_mode *mode = &dsi2->mode;
-	u64 pixel_clk, ipi_clk, phy_hsclk, tmp;
+	u64 ipi_clk, phy_hsclk, tmp;
 
 	/*
 	 * in DPHY mode, the phy_hstx_clk is exactly 1/16 the Lane high-speed
@@ -995,8 +995,7 @@ static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 		phy_hsclk = DIV_ROUND_CLOSEST(dsi2->lane_hs_rate * MSEC_PER_SEC, 16);
 
 	/* IPI_RATIO_MAN_CFG = PHY_HSTX_CLK / IPI_CLK */
-	pixel_clk = mode->crtc_clock * MSEC_PER_SEC;
-	ipi_clk = pixel_clk / 4;
+	ipi_clk = dsi2->mipi_pixel_rate;
 
 	tmp = DIV_ROUND_CLOSEST(phy_hsclk << 16, ipi_clk);
 	dsi_write(dsi2, DSI2_PHY_IPI_RATIO_MAN_CFG, PHY_IPI_RATIO(tmp));
@@ -1105,17 +1104,45 @@ static void dw_mipi_dsi2_pre_enable(struct dw_mipi_dsi2 *dsi2)
 		dw_mipi_dsi2_pre_enable(dsi2->slave);
 }
 
+static void dw_mipi_dsi2_get_mipi_pixel_clk(struct dw_mipi_dsi2 *dsi2,
+					    struct crtc_state *s)
+{
+	struct drm_display_mode *mode = &dsi2->mode;
+	u8 k = dsi2->slave ? 2 : 1;
+
+	/* 1.When MIPI works in uncompressed mode:
+	 * (Video Timing Pixel Rate)/(4)=(MIPI Pixel ClockxK)=(dclk_out×K)=dclk_core
+	 * 2.When MIPI works in compressed mode:
+	 * MIPI Pixel Clock = cds_clk / 2
+	 * MIPI is configured as double channel display mode, K=2, otherwise K=1.
+	 */
+	if (dsi2->dsc_enable) {
+		dsi2->mipi_pixel_rate = s->dsc_cds_clk_rate / 2;
+		if (dsi2->slave)
+			dsi2->slave->mipi_pixel_rate = dsi2->mipi_pixel_rate;
+
+		return;
+	}
+
+	dsi2->mipi_pixel_rate = (mode->crtc_clock * MSEC_PER_SEC) / (4 * k);
+	if (dsi2->slave)
+		dsi2->slave->mipi_pixel_rate = dsi2->mipi_pixel_rate;
+}
+
 static int dw_mipi_dsi2_connector_prepare(struct rockchip_connector *conn,
 					  struct display_state *state)
 {
 	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *cstate = &state->crtc_state;
 	unsigned long lane_rate;
 
 	memcpy(&dsi2->mode, &conn_state->mode, sizeof(struct drm_display_mode));
 	if (dsi2->slave)
 		memcpy(&dsi2->slave->mode, &dsi2->mode,
 		       sizeof(struct drm_display_mode));
+
+	dw_mipi_dsi2_get_mipi_pixel_clk(dsi2, cstate);
 
 	lane_rate = dw_mipi_dsi2_get_lane_rate(dsi2);
 	if (dsi2->dcphy.phy)
