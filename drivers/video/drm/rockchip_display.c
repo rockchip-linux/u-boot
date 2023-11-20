@@ -8,7 +8,7 @@
 #include <config.h>
 #include <common.h>
 #include <errno.h>
-#include <libfdt.h>
+#include <linux/libfdt.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
 #include <linux/hdmi.h>
