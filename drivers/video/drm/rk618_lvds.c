@@ -125,5 +125,5 @@ U_BOOT_DRIVER(rk618_lvds) = {
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = rk618_lvds_ids,
 	.probe = rk618_lvds_probe,
-	.priv_auto_alloc_size = sizeof(struct rk618_lvds_priv),
+	.priv_auto = sizeof(struct rk618_lvds_priv),
 };

@@ -312,5 +312,5 @@ U_BOOT_DRIVER(rk1000_tve) = {
 	.of_match = rk1000_tve_ids,
 	.ops = &rk1000_tve_ops,
 	.probe = rk1000_tve_probe,
-	.priv_auto_alloc_size = sizeof(struct rk1000_tve),
+	.priv_auto = sizeof(struct rk1000_tve),
 };

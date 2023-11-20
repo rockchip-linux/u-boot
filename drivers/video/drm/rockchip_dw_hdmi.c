@@ -718,5 +718,5 @@ U_BOOT_DRIVER(rockchip_dw_hdmi) = {
 #ifndef CONFIG_SPL_BUILD
 	.probe	= rockchip_dw_hdmi_probe,
 #endif
-	.priv_auto_alloc_size = sizeof(struct rockchip_connector),
+	.priv_auto = sizeof(struct rockchip_connector),
 };

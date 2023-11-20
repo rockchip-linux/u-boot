@@ -2001,7 +2001,7 @@ U_BOOT_DRIVER(rockchip_hdptx_phy_hdmi) = {
 	.of_match	= rockchip_hdptx_phy_hdmi_ids,
 	.probe		= rockchip_hdptx_phy_hdmi_probe,
 	.bind		= rockchip_hdptx_phy_hdmi_bind,
-	.priv_auto_alloc_size = sizeof(struct rockchip_hdptx_phy),
+	.priv_auto	= sizeof(struct rockchip_hdptx_phy),
 };
 
 static struct rockchip_hdptx_phy *get_hdptx(struct udevice *dev)
@@ -2071,7 +2071,7 @@ static int hdptx_clk_probe(struct udevice *dev)
 U_BOOT_DRIVER(clk_hdptx) = {
 	.name		= "clk_hdptx",
 	.id		= UCLASS_CLK,
-	.priv_auto_alloc_size = sizeof(struct clk_hdptx),
+	.priv_auto	= sizeof(struct clk_hdptx),
 	.ops		= &hdptx_clk_ops,
 	.probe		= hdptx_clk_probe,
 };

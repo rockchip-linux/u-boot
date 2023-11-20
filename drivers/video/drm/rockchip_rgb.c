@@ -678,5 +678,5 @@ U_BOOT_DRIVER(rockchip_rgb) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = rockchip_rgb_ids,
 	.probe = rockchip_rgb_probe,
-	.priv_auto_alloc_size = sizeof(struct rockchip_rgb),
+	.priv_auto = sizeof(struct rockchip_rgb),
 };

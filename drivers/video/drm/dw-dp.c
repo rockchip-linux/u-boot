@@ -1804,6 +1804,6 @@ U_BOOT_DRIVER(dw_dp) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = dw_dp_ids,
 	.probe = dw_dp_probe,
-	.priv_auto_alloc_size = sizeof(struct dw_dp),
+	.priv_auto = sizeof(struct dw_dp),
 };
 

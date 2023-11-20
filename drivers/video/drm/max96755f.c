@@ -183,5 +183,5 @@ U_BOOT_DRIVER(max96755f_bridge) = {
 	.of_match = max96755f_bridge_of_match,
 	.probe = max96755f_bridge_probe,
 	.bind = max96755f_bridge_bind,
-	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
+	.plat_auto = sizeof(struct mipi_dsi_device),
 };

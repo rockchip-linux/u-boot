@@ -1350,9 +1350,9 @@ U_BOOT_DRIVER(dw_mipi_dsi2) = {
 	.of_match = dw_mipi_dsi2_ids,
 	.probe = dw_mipi_dsi2_probe,
 	.bind = dw_mipi_dsi2_bind,
-	.priv_auto_alloc_size = sizeof(struct dw_mipi_dsi2),
-	.per_child_platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
-	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_host),
+	.priv_auto = sizeof(struct dw_mipi_dsi2),
+	.per_child_plat_auto = sizeof(struct mipi_dsi_device),
+	.plat_auto = sizeof(struct mipi_dsi_host),
 	.child_post_bind = dw_mipi_dsi2_child_post_bind,
 	.child_pre_probe = dw_mipi_dsi2_child_pre_probe,
 };

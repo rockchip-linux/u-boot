@@ -135,5 +135,5 @@ U_BOOT_DRIVER(rk1000) = {
 	.of_match = rk1000_ctl_of_match,
 	.probe = rk1000_ctl_probe,
 	.bind = dm_scan_fdt_dev,
-	.priv_auto_alloc_size = sizeof(struct rk1000_ctl),
+	.priv_auto = sizeof(struct rk1000_ctl),
 };

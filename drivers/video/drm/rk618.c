@@ -179,5 +179,5 @@ U_BOOT_DRIVER(rk618) = {
 	.of_match = rk618_of_match,
 	.probe = rk618_probe,
 	.bind = dm_scan_fdt_dev,
-	.priv_auto_alloc_size = sizeof(struct rk618),
+	.priv_auto = sizeof(struct rk618),
 };

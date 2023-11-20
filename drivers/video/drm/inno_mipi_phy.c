@@ -744,5 +744,5 @@ U_BOOT_DRIVER(inno_mipi_dphy) = {
 	.id = UCLASS_PHY,
 	.of_match = inno_mipi_dphy_ids,
 	.probe = inno_mipi_dphy_probe,
-	.priv_auto_alloc_size = sizeof(struct inno_mipi_dphy),
+	.priv_auto = sizeof(struct inno_mipi_dphy),
 };

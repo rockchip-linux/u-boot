@@ -229,5 +229,5 @@ U_BOOT_DRIVER(max96752f) = {
 	.id = UCLASS_PANEL,
 	.of_match = max96752f_of_match,
 	.probe = max96752f_probe,
-	.priv_auto_alloc_size = sizeof(struct max96752f),
+	.priv_auto = sizeof(struct max96752f),
 };

@@ -265,6 +265,6 @@ U_BOOT_DRIVER(bu18tl82) = {
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = bu18tl82_of_match,
 	.probe = bu18tl82_probe,
-	.priv_auto_alloc_size = sizeof(struct bu18tl82_priv),
-	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
+	.priv_auto = sizeof(struct bu18tl82_priv),
+	.plat_auto = sizeof(struct mipi_dsi_device),
 };

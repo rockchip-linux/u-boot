@@ -542,8 +542,8 @@ U_BOOT_DRIVER(rockchip_panel) = {
 	.name = "rockchip_panel",
 	.id = UCLASS_PANEL,
 	.of_match = rockchip_panel_ids,
-	.ofdata_to_platdata = rockchip_panel_ofdata_to_platdata,
+	.of_to_plat = rockchip_panel_ofdata_to_platdata,
 	.probe = rockchip_panel_probe,
-	.priv_auto_alloc_size = sizeof(struct rockchip_panel_priv),
-	.platdata_auto_alloc_size = sizeof(struct rockchip_panel_plat),
+	.priv_auto = sizeof(struct rockchip_panel_priv),
+	.plat_auto = sizeof(struct rockchip_panel_plat),
 };

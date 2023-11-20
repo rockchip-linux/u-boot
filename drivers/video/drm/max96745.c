@@ -66,5 +66,5 @@ U_BOOT_DRIVER(max96745_bridge) = {
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = max96745_bridge_of_match,
 	.probe = max96745_bridge_probe,
-	.priv_auto_alloc_size = sizeof(struct max96745_bridge_priv),
+	.priv_auto = sizeof(struct max96745_bridge_priv),
 };

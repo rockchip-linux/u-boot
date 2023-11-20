@@ -381,5 +381,5 @@ U_BOOT_DRIVER(rockchip_lvds) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = rockchip_lvds_ids,
 	.probe = rockchip_lvds_probe,
-	.priv_auto_alloc_size = sizeof(struct rockchip_lvds),
+	.priv_auto = sizeof(struct rockchip_lvds),
 };

@@ -1123,5 +1123,5 @@ U_BOOT_DRIVER(rockchip_hdptx_phy) = {
 	.ops		= &rockchip_hdptx_phy_ops,
 	.of_match	= rockchip_hdptx_phy_ids,
 	.probe		= rockchip_hdptx_phy_probe,
-	.priv_auto_alloc_size = sizeof(struct rockchip_hdptx_phy),
+	.priv_auto = sizeof(struct rockchip_hdptx_phy),
 };

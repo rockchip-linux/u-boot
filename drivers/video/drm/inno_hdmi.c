@@ -845,5 +845,5 @@ U_BOOT_DRIVER(rockchip_inno_hdmi) = {
 	.of_match = rockchip_inno_hdmi_ids,
 	.probe	= rockchip_inno_hdmi_probe,
 	.bind	= rockchip_inno_hdmi_bind,
-	.priv_auto_alloc_size = sizeof(struct rockchip_connector),
+	.priv_auto = sizeof(struct rockchip_connector),
 };

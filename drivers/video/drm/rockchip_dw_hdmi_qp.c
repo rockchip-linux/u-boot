@@ -1364,5 +1364,5 @@ U_BOOT_DRIVER(rockchip_dw_hdmi_qp) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = rockchip_dw_hdmi_qp_ids,
 	.probe	= rockchip_dw_hdmi_qp_probe,
-	.priv_auto_alloc_size = sizeof(struct rockchip_hdmi),
+	.priv_auto = sizeof(struct rockchip_hdmi),
 };

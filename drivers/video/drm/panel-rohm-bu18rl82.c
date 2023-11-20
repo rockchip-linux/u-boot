@@ -345,5 +345,5 @@ U_BOOT_DRIVER(panel_rohm_bu18rl82) = {
 	.id = UCLASS_PANEL,
 	.of_match = bu18rl82_of_match,
 	.probe = bu18rl82_probe,
-	.priv_auto_alloc_size = sizeof(struct bu18rl82),
+	.priv_auto = sizeof(struct bu18rl82),
 };

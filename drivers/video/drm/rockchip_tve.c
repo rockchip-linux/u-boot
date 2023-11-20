@@ -844,5 +844,5 @@ U_BOOT_DRIVER(rockchip_drm_tve) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = rockchip_drm_tve_ids,
 	.probe	= rockchip_drm_tve_probe,
-	.priv_auto_alloc_size = sizeof(struct rockchip_tve),
+	.priv_auto = sizeof(struct rockchip_tve),
 };

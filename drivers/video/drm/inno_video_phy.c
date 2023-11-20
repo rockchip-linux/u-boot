@@ -229,5 +229,5 @@ U_BOOT_DRIVER(inno_video_phy) = {
 	.id = UCLASS_PHY,
 	.of_match = inno_video_phy_ids,
 	.probe = inno_video_phy_probe,
-	.priv_auto_alloc_size = sizeof(struct inno_video_phy),
+	.priv_auto = sizeof(struct inno_video_phy),
 };

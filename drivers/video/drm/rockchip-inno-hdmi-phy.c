@@ -1470,7 +1470,7 @@ U_BOOT_DRIVER(inno_hdmi_phy) = {
 	.probe = inno_hdmi_phy_probe,
 #endif
 	.bind = rockchip_inno_phy_hdmi_bind,
-	.priv_auto_alloc_size = sizeof(struct inno_hdmi_phy),
+	.priv_auto = sizeof(struct inno_hdmi_phy),
 };
 
 
@@ -1516,7 +1516,7 @@ static int inno_hdmi_clk_probe(struct udevice *dev)
 U_BOOT_DRIVER(clk_inno_hdmi) = {
 	.name		= "clk_inno_hdmi",
 	.id		= UCLASS_CLK,
-	.priv_auto_alloc_size = sizeof(struct clk_inno_hdmi),
+	.priv_auto	= sizeof(struct clk_inno_hdmi),
 	.ops		= &inno_hdmi_clk_ops,
 	.probe		= inno_hdmi_clk_probe,
 };

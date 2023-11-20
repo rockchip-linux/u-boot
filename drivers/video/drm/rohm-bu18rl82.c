@@ -208,5 +208,5 @@ U_BOOT_DRIVER(bu18rl82) = {
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = bu18rl82_of_match,
 	.probe = bu18rl82_probe,
-	.priv_auto_alloc_size = sizeof(struct bu18rl82_priv),
+	.priv_auto = sizeof(struct bu18rl82_priv),
 };

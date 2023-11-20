@@ -1060,9 +1060,9 @@ U_BOOT_DRIVER(rk618_dsi) = {
 	.of_match = rk618_dsi_ids,
 	.probe = rk618_dsi_probe,
 	.bind = rk618_dsi_bind,
-	.priv_auto_alloc_size = sizeof(struct rk618_dsi),
-	.per_child_platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
-	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_host),
+	.priv_auto = sizeof(struct rk618_dsi),
+	.per_child_plat_auto = sizeof(struct mipi_dsi_device),
+	.plat_auto = sizeof(struct mipi_dsi_host),
 	.child_post_bind = rk618_dsi_child_post_bind,
 	.child_pre_probe = rk618_dsi_child_pre_probe,
 };

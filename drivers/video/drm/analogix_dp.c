@@ -1141,5 +1141,5 @@ U_BOOT_DRIVER(analogix_dp) = {
 	.id = UCLASS_DISPLAY,
 	.of_match = analogix_dp_ids,
 	.probe = analogix_dp_probe,
-	.priv_auto_alloc_size = sizeof(struct analogix_dp_device),
+	.priv_auto = sizeof(struct analogix_dp_device),
 };

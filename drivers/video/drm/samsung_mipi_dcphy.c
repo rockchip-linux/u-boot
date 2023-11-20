@@ -1850,5 +1850,5 @@ U_BOOT_DRIVER(samsung_mipi_dcphy) = {
 	.id = UCLASS_PHY,
 	.of_match = samsung_mipi_dcphy_ids,
 	.probe = samsung_mipi_dcphy_probe,
-	.priv_auto_alloc_size = sizeof(struct samsung_mipi_dcphy),
+	.priv_auto = sizeof(struct samsung_mipi_dcphy),
 };
