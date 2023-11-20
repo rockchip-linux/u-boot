@@ -1905,7 +1905,7 @@ static int rockchip_display_fixup_dts(void *blob)
 static int rockchip_display_probe(struct udevice *dev)
 {
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
-	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
+	struct video_uc_platdata *plat = dev_get_uclass_plat(dev);
 	const void *blob = gd->fdt_blob;
 	int phandle;
 	struct udevice *crtc_dev;
@@ -2284,7 +2284,7 @@ void rockchip_display_fixup(void *blob)
 
 int rockchip_display_bind(struct udevice *dev)
 {
-	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
+	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
 
 	plat->size = DRM_ROCKCHIP_FB_SIZE + MEMORY_POOL_SIZE;
 
