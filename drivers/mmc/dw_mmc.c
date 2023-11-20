@@ -229,6 +229,9 @@ static int dwmci_data_transfer(struct dwmci_host *host, struct mmc_data *data)
 		buf = (unsigned int *)data->src;
 
 	timeout = dwmci_get_timeout(mmc, size);
+	/* The tuning data is 128bytes, a timeout of 1ms is sufficient.*/
+	if ((dwmci_readl(host, DWMCI_CMD) & 0x1F) == MMC_CMD_SEND_TUNING_BLOCK_HS200)
+		timeout = 1;
 
 	size /= 4;
 
