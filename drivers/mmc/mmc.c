@@ -425,9 +425,13 @@ int mmc_send_tuning(struct mmc *mmc, u32 opcode)
 	data.flags = MMC_DATA_READ;
 
 	err = mmc_send_cmd(mmc, &cmd, &data);
-	if (err)
+	if (err) {
+		cmd.cmdidx = MMC_CMD_STOP_TRANSMISSION;
+		cmd.cmdarg = 0;
+		cmd.resp_type = MMC_RSP_R1b;
+		mmc_send_cmd(mmc, &cmd, NULL);
 		return err;
-
+	}
 	if (memcmp(data_buf, tuning_block_pattern, size))
 		return -EIO;
 
