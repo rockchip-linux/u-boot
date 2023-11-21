@@ -1,0 +1,20 @@
+menu "DDR Tool"
+
+config CMD_DDR_TOOL
+	bool "Enable DDR Tool"
+	help
+	  This enable ddr tool such as ddr dq eye, ddr test tool, memtester and stressapptest.
+
+config CMD_MEMTESTER
+	bool "Enable memtester for ddr"
+	depends on CMD_DDR_TOOL
+	help
+	  This enables memtester for ddr.
+
+config CMD_STRESSAPPTEST
+	bool "Enable stressapptest for ddr"
+	depends on CMD_DDR_TOOL
+	help
+	  This enables stressapptest for ddr.
+
+endmenu
