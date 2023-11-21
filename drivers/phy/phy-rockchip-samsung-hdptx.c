@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <dm.h>
+#include <dm/device_compat.h>
 #include <generic-phy.h>
 #include <generic-phy-dp.h>
 #include <reset.h>
@@ -15,7 +16,7 @@
 #include <asm/io.h>
 #include <linux/bitfield.h>
 #include <linux/iopoll.h>
-#include <asm/arch/clock.h>
+#include <asm/arch-rockchip/clock.h>
 
 #define HDPTXPHY_GRF_CON0			0x0000
 #define RO_REF_CLK_SEL				GENMASK(11, 10)
@@ -1057,7 +1058,7 @@ static int rockchip_hdptx_phy_probe(struct udevice *dev)
 	u32 prop[4];
 	int ret;
 
-	ret = regmap_init_mem(dev, &hdptx->regmap);
+	ret = regmap_init_mem(dev->node_, &hdptx->regmap);
 	if (ret)
 		return ret;
 

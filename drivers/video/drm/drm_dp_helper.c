@@ -23,6 +23,8 @@
 
 #include <common.h>
 #include <drm/drm_dp_helper.h>
+#include <linux/bug.h>
+#include <linux/delay.h>
 
 /**
  * DOC: dp helpers

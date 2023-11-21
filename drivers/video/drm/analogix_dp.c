@@ -759,7 +759,7 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 	reset_deassert_bulk(&dp->resets);
 
 	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dp->id);
-	generic_phy_set_mode(&dp->phy, PHY_MODE_DP);
+	generic_phy_set_mode(&dp->phy, PHY_MODE_DP, 0);
 	generic_phy_power_on(&dp->phy);
 	analogix_dp_init_dp(dp);
 
@@ -949,11 +949,11 @@ static u32 analogix_dp_parse_link_frequencies(struct analogix_dp_device *dp)
 	const struct device_node *endpoint;
 	u64 frequency = 0;
 
-	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev->node, 1, 0);
+	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev->node_, 1, 0);
 	if (!endpoint)
 		return 0;
 
-	if (of_property_read_u64(endpoint, "link-frequencies", &frequency) < 0)
+	if (of_read_u64(endpoint, "link-frequencies", &frequency) < 0)
 		return 0;
 
 	if (!frequency)
@@ -1024,7 +1024,7 @@ static int analogix_dp_probe(struct udevice *dev)
 
 	dp->reg_base = dev_read_addr_ptr(dev);
 
-	dp->id = of_alias_get_id(ofnode_to_np(dev->node), "edp");
+	dp->id = of_alias_get_id(ofnode_to_np(dev->node_), "edp");
 	if (dp->id < 0)
 		dp->id = 0;
 

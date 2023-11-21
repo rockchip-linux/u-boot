@@ -10,12 +10,12 @@
 #include <malloc.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
+#include <asm/arch-rockchip/clock.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <linux/list.h>
 #include <linux/media-bus-format.h>
 #include <clk.h>
-#include <asm/arch/clock.h>
 #include <linux/err.h>
 #include <dm/device.h>
 #include <dm/read.h>
@@ -127,7 +127,7 @@ static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 		printf("Warning: vop not support gamma\n");
 		return 0;
 	}
-	lut_regs = (u32 *)dev_read_addr_size(crtc_state->dev, "reg", &lut_size);
+	lut_regs = (u32 *)dev_read_addr_size_name(crtc_state->dev, "reg", &lut_size);
 	if (lut_regs == (u32 *)FDT_ADDR_T_NONE) {
 		printf("failed to get gamma lut register\n");
 		return 0;
@@ -279,7 +279,7 @@ static int rockchip_vop_init(struct display_state *state)
 	vop->version = vop_data->version;
 
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
-	ret = clk_set_defaults(crtc_state->dev);
+	ret = clk_set_defaults(crtc_state->dev, CLK_DEFAULTS_POST);
 	if (ret)
 		debug("%s clk_set_defaults failed %d\n", __func__, ret);
 

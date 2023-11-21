@@ -9,6 +9,7 @@
 #include <common.h>
 #include <errno.h>
 #include <dm.h>
+#include <dm/device_compat.h>
 #include <div64.h>
 #include <asm/io.h>
 #include <asm/arch-rockchip/clock.h>
@@ -1798,7 +1799,7 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 	dev->driver_data = (ulong)phy;
 	memcpy(phy, tmp_phy, sizeof(*phy));
 
-	samsung->lanes = ofnode_read_u32_default(dev->node, "samsung,lanes", 4);
+	samsung->lanes = ofnode_read_u32_default(dev->node_, "samsung,lanes", 4);
 
 	samsung->base = dev_read_addr_ptr(dev);
 	if (IS_ERR(samsung->base)) {

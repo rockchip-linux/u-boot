@@ -1418,7 +1418,7 @@ static int dw_dp_connector_init(struct rockchip_connector *conn, struct display_
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 
-	clk_set_defaults(dp->dev);
+	clk_set_defaults(dp->dev, CLK_DEFAULTS_POST);
 
 	reset_assert(&dp->reset);
 	udelay(20);
@@ -1712,11 +1712,11 @@ static u32 dw_dp_parse_link_frequencies(struct dw_dp *dp)
 	const struct device_node *endpoint;
 	u64 frequency = 0;
 
-	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev->node, 1, 0);
+	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev->node_, 1, 0);
 	if (!endpoint)
 		return 0;
 
-	if (of_property_read_u64(endpoint, "link-frequencies", &frequency) < 0)
+	if (of_read_u64(endpoint, "link-frequencies", &frequency) < 0)
 		return 0;
 
 	if (!frequency)
@@ -1754,11 +1754,11 @@ static int dw_dp_probe(struct udevice *dev)
 	struct dw_dp *dp = dev_get_priv(dev);
 	int ret;
 
-	ret = regmap_init_mem(dev, &dp->regmap);
+	ret = regmap_init_mem(dev->node_, &dp->regmap);
 	if (ret)
 		return ret;
 
-	dp->id = of_alias_get_id(ofnode_to_np(dev->node), "dp");
+	dp->id = of_alias_get_id(ofnode_to_np(dev->node_), "dp");
 	if (dp->id < 0)
 		dp->id = 0;
 

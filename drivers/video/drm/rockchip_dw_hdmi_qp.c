@@ -5,12 +5,13 @@
  */
 
 #include <common.h>
-#include <boot_rkimg.h>
 #include <clk.h>
 #include <fdtdec.h>
+#include <part.h>
 #include <regmap.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
+#include <asm/cache.h>
 #include <asm/io.h>
 #include <asm-generic/gpio.h>
 #include <dm/of_access.h>
@@ -24,6 +25,8 @@
 #include "rockchip_phy.h"
 #include "dw_hdmi_qp.h"
 #include "rockchip_dw_hdmi_qp.h"
+
+#define RK_BLK_SIZE 512
 
 #define HIWORD_UPDATE(val, mask)	((val) | (mask) << 16)
 
@@ -925,7 +928,7 @@ void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
 	unsigned int pixel_clk;
 	bool found = false;
 	struct blk_desc *dev_desc;
-	disk_partition_t part_info;
+	struct disk_partition part_info;
 	char baseparameter_buf[8 * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
 
 	overscan->left_margin = max_scan;
@@ -943,7 +946,7 @@ void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
 		*bus_format = MEDIA_BUS_FMT_YUV8_1X24;
 
 	if (!base2_parameter) {
-		dev_desc = rockchip_get_bootdev();
+		dev_desc = plat_bootdev();
 		if (!dev_desc) {
 			printf("%s: Could not find device\n", __func__);
 			goto null_basep;
@@ -1312,7 +1315,7 @@ static int rockchip_dw_hdmi_qp_probe(struct udevice *dev)
 
 	hdmi->dev = dev;
 
-	hdmi->id = of_alias_get_id(ofnode_to_np(dev->node), "hdmi");
+	hdmi->id = of_alias_get_id(ofnode_to_np(dev->node_), "hdmi");
 	if (hdmi->id < 0)
 		hdmi->id = 0;
 

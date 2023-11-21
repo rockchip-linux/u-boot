@@ -487,12 +487,12 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	rgb->funcs = (const struct rockchip_rgb_funcs *)dev_get_driver_data(dev);
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
 	rgb->data_sync_bypass = dev_read_bool(dev, "rockchip,data-sync-bypass");
-	rgb->id = of_alias_get_id(ofnode_to_np(dev->node), "rgb");
+	rgb->id = of_alias_get_id(ofnode_to_np(dev->node_), "rgb");
 	if (rgb->id < 0)
 		rgb->id = 0;
 
 	mcu_panel_node = dev_read_subnode(dev, "mcu-panel");
-	if (ofnode_valid(mcu_panel_node) && ofnode_is_available(mcu_panel_node)) {
+	if (ofnode_valid(mcu_panel_node) && ofnode_is_enabled(mcu_panel_node)) {
 		struct rockchip_mcu_panel *mcu_panel;
 
 		mcu_panel = malloc(sizeof(struct rockchip_mcu_panel));

@@ -8,12 +8,13 @@
 #include <malloc.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
-#include <asm/arch/vendor.h>
+#include <asm/arch-rockchip/vendor.h>
 #include <edid.h>
 #include <dm/device.h>
 #include <dm/of_access.h>
 #include <dm/ofnode.h>
 #include <dm/read.h>
+#include <linux/delay.h>
 #include <linux/hdmi.h>
 #include <linux/media-bus-format.h>
 #include <linux/dw_hdmi.h>
@@ -477,8 +478,7 @@ static int dw_hdmi_detect_phy(struct dw_hdmi_qp *hdmi)
 {
 	/* Vendor PHYs require support from the glue layer. */
 	if (!hdmi->plat_data->qp_phy_ops || !hdmi->plat_data->phy_name) {
-		dev_err(hdmi->dev,
-			"Vendor HDMI PHY not supported by glue layer\n");
+		printf("Vendor HDMI PHY not supported by glue layer\n");
 		return -ENODEV;
 	}
 
@@ -707,8 +707,7 @@ static void hdmi_config_vendor_specific_infoframe(struct dw_hdmi_qp *hdmi,
 
 		err = hdmi_vendor_infoframe_pack(&frame, buffer, sizeof(buffer));
 		if (err < 0) {
-			dev_err(hdmi->dev, "Failed to pack vendor infoframe: %zd\n",
-				err);
+			printf("Failed to pack vendor infoframe: %zd\n", err);
 			return;
 		}
 	}
@@ -1132,7 +1131,7 @@ int rockchip_dw_hdmi_qp_init(struct rockchip_connector *conn, struct display_sta
 	void *rk_hdmi = dev_get_priv(conn->dev);
 	struct dw_hdmi_qp *hdmi;
 	struct drm_display_mode *mode_buf;
-	ofnode hdmi_node = conn->dev->node;
+	ofnode hdmi_node = conn->dev->node_;
 	struct device_node *ddc_node;
 
 	hdmi = malloc(sizeof(struct dw_hdmi_qp));

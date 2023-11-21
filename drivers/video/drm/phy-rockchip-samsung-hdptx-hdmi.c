@@ -11,11 +11,11 @@
 #include <reset.h>
 #include <regmap.h>
 #include <syscon.h>
+#include <asm/arch-rockchip/clock.h>
 #include <asm/io.h>
 #include <linux/bitfield.h>
 #include <linux/rational.h>
 #include <linux/iopoll.h>
-#include <asm/arch/clock.h>
 #include <dm/lists.h>
 #include <dm/of_access.h>
 
@@ -1885,7 +1885,7 @@ static int rockchip_hdptx_phy_hdmi_probe(struct udevice *dev)
 	struct udevice *syscon;
 	int ret;
 
-	hdptx->id = of_alias_get_id(ofnode_to_np(dev->node), "hdptxhdmi");
+	hdptx->id = of_alias_get_id(ofnode_to_np(dev->node_), "hdptxhdmi");
 	if (hdptx->id < 0)
 		hdptx->id = 0;
 
@@ -1964,14 +1964,14 @@ static int rockchip_hdptx_phy_hdmi_bind(struct udevice *parent)
 	char name[30], *str;
 	int id, ret;
 
-	id = of_alias_get_id(ofnode_to_np(parent->node), "hdptxhdmi");
+	id = of_alias_get_id(ofnode_to_np(parent->node_), "hdptxhdmi");
 	if (id < 0)
 		id = 0;
 
 	sprintf(name, "hdmiphypll_clk%d", id);
 	str = strdup(name);
 
-	subnode = ofnode_find_subnode(parent->node, "clk-port");
+	subnode = ofnode_find_subnode(parent->node_, "clk-port");
 	if (!ofnode_valid(subnode)) {
 		free(str);
 		printf("%s: no subnode for %s", __func__, parent->name);

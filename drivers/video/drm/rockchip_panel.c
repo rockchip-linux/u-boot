@@ -17,6 +17,7 @@
 #include <dm/read.h>
 #include <dm/uclass.h>
 #include <dm/uclass-id.h>
+#include <linux/delay.h>
 #include <linux/media-bus-format.h>
 #include <power/regulator.h>
 

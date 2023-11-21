@@ -4,14 +4,16 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <asm/cache.h>
 #include <asm/unaligned.h>
-#include <boot_rkimg.h>
 #include <config.h>
 #include <common.h>
+#include <command.h>
 #include <errno.h>
 #include <linux/libfdt.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
+#include <linux/bug.h>
 #include <linux/hdmi.h>
 #include <linux/list.h>
 #include <linux/compat.h>
@@ -22,7 +24,7 @@
 #include <video_bridge.h>
 #include <dm/device.h>
 #include <dm/uclass-internal.h>
-#include <asm/arch-rockchip/resource_img.h>
+#include <part.h>
 
 #include "bmp_helper.h"
 #include "rockchip_display.h"
@@ -115,12 +117,12 @@ uint32_t rockchip_display_crc32c_cal(unsigned char *data, int length)
 int rockchip_get_baseparameter(void)
 {
 	struct blk_desc *dev_desc;
-	disk_partition_t part_info;
+	struct disk_partition part_info;
 	int block_num = 2048;
 	char baseparameter_buf[block_num * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
 	int ret = 0;
 
-	dev_desc = rockchip_get_bootdev();
+	dev_desc = plat_bootdev();
 	if (!dev_desc) {
 		printf("%s: Could not find device\n", __func__);
 		return -ENOENT;
@@ -671,7 +673,7 @@ static int display_get_timing(struct display_state *state)
 	if (panel->funcs->get_mode)
 		return panel->funcs->get_mode(panel, mode);
 
-	if (dev_of_valid(panel->dev) &&
+	if (ofnode_valid(dev_ofnode(panel->dev)) &&
 	    !display_get_timing_from_dts(panel, mode)) {
 		printf("Using display timing dts\n");
 		return 0;
@@ -1219,7 +1221,7 @@ static int get_crtc_id(ofnode connect, bool is_ports_node)
 		if (phandle < 0)
 			goto err;
 
-		remote = of_find_node_by_phandle(phandle);
+		remote = of_find_node_by_phandle(NULL, phandle);
 		if (!remote)
 			goto err;
 
@@ -1519,7 +1521,7 @@ enum {
 	PORT_DIR_OUT,
 };
 
-static const struct device_node *rockchip_of_graph_get_port_by_id(ofnode node, int id)
+static struct device_node *rockchip_of_graph_get_port_by_id(ofnode node, int id)
 {
 	ofnode ports, port;
 	u32 reg;
@@ -1542,7 +1544,7 @@ static const struct device_node *rockchip_of_graph_get_port_by_id(ofnode node, i
 	return NULL;
 }
 
-static const struct device_node *rockchip_of_graph_get_port_parent(ofnode port)
+static struct device_node *rockchip_of_graph_get_port_parent(ofnode port)
 {
 	ofnode parent;
 	int is_ports_node;
@@ -1555,10 +1557,10 @@ static const struct device_node *rockchip_of_graph_get_port_parent(ofnode port)
 	return ofnode_to_np(parent);
 }
 
-const struct device_node *
+struct device_node *
 rockchip_of_graph_get_endpoint_by_regs(ofnode node, int port, int endpoint)
 {
-	const struct device_node *port_node;
+	struct device_node *port_node;
 	ofnode ep;
 	u32 reg;
 
@@ -1579,10 +1581,10 @@ rockchip_of_graph_get_endpoint_by_regs(ofnode node, int port, int endpoint)
 	return ofnode_to_np(ep);
 }
 
-static const struct device_node *
+static struct device_node *
 rockchip_of_graph_get_remote_node(ofnode node, int port, int endpoint)
 {
-	const struct device_node *ep_node;
+	struct device_node *ep_node;
 	ofnode ep;
 	uint phandle;
 
@@ -1602,21 +1604,21 @@ rockchip_of_graph_get_remote_node(ofnode node, int port, int endpoint)
 
 static int rockchip_of_find_panel(struct udevice *dev, struct rockchip_panel **panel)
 {
-	const struct device_node *ep_node, *panel_node;
+	struct device_node *ep_node, *panel_node;
 	ofnode panel_ofnode, port;
 	struct udevice *panel_dev;
 	int ret = 0;
 
 	*panel = NULL;
 	panel_ofnode = dev_read_subnode(dev, "panel");
-	if (ofnode_valid(panel_ofnode) && ofnode_is_available(panel_ofnode)) {
+	if (ofnode_valid(panel_ofnode) && ofnode_is_enabled(panel_ofnode)) {
 		ret = uclass_get_device_by_ofnode(UCLASS_PANEL, panel_ofnode,
 						  &panel_dev);
 		if (!ret)
 			goto found;
 	}
 
-	ep_node = rockchip_of_graph_get_remote_node(dev->node, PORT_DIR_OUT, 0);
+	ep_node = rockchip_of_graph_get_remote_node(dev->node_, PORT_DIR_OUT, 0);
 	if (!ep_node)
 		return -ENODEV;
 
@@ -1641,12 +1643,12 @@ found:
 
 static int rockchip_of_find_bridge(struct udevice *dev, struct rockchip_bridge **bridge)
 {
-	const struct device_node *ep_node, *bridge_node;
+	struct device_node *ep_node, *bridge_node;
 	ofnode port;
 	struct udevice *bridge_dev;
 	int ret = 0;
 
-	ep_node = rockchip_of_graph_get_remote_node(dev->node, PORT_DIR_OUT, 0);
+	ep_node = rockchip_of_graph_get_remote_node(dev->node_, PORT_DIR_OUT, 0);
 	if (!ep_node)
 		return -ENODEV;
 
@@ -1720,7 +1722,7 @@ static struct udevice *rockchip_of_find_connector_device(ofnode endpoint)
 		return NULL;
 
 	ep = ofnode_get_by_phandle(phandle);
-	if (!ofnode_valid(ep) || !ofnode_is_available(ep))
+	if (!ofnode_valid(ep) || !ofnode_is_enabled(ep))
 		return NULL;
 
 	port = ofnode_get_parent(ep);
@@ -1732,7 +1734,7 @@ static struct udevice *rockchip_of_find_connector_device(ofnode endpoint)
 		return NULL;
 
 	conn = ofnode_get_parent(ports);
-	if (!ofnode_valid(conn) || !ofnode_is_available(conn))
+	if (!ofnode_valid(conn) || !ofnode_is_enabled(conn))
 		return NULL;
 
 	ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY, conn, &dev);
@@ -1775,7 +1777,7 @@ static struct rockchip_connector *rockchip_get_split_connector(struct rockchip_c
 	bool split_mode;
 	int ret;
 
-	split_mode = ofnode_read_bool(conn->dev->node, "split-mode");
+	split_mode = ofnode_read_bool(conn->dev->node_, "split-mode");
 	if (!split_mode)
 		return NULL;
 
@@ -1822,7 +1824,7 @@ static bool rockchip_get_display_path_status(ofnode endpoint)
 		return false;
 
 	ep = ofnode_get_by_phandle(phandle);
-	if (!ofnode_valid(ep) || !ofnode_is_available(ep))
+	if (!ofnode_valid(ep) || !ofnode_is_enabled(ep))
 		return false;
 
 	return true;
@@ -1849,7 +1851,7 @@ static int rockchip_display_fixup_dts(void *blob)
 		return -EINVAL;
 
 	ofnode_for_each_subnode(route_subnode, route_node) {
-		if (!ofnode_is_available(route_subnode))
+		if (!ofnode_is_enabled(route_subnode))
 			continue;
 
 		route_sub_devnode = ofnode_to_np(route_subnode);
@@ -1864,7 +1866,7 @@ static int rockchip_display_fixup_dts(void *blob)
 			continue;
 		}
 
-		ep_node = of_find_node_by_phandle(phandle);
+		ep_node = of_find_node_by_phandle(NULL, phandle);
 		if (!ofnode_valid(np_to_ofnode(ep_node))) {
 			printf("Warn: can't find endpoint node from phandle\n");
 			continue;
@@ -1872,7 +1874,7 @@ static int rockchip_display_fixup_dts(void *blob)
 
 		ofnode_read_u32(np_to_ofnode(ep_node), "remote-endpoint", &phandle);
 		conn_ep = ofnode_get_by_phandle(phandle);
-		if (!ofnode_valid(conn_ep) || !ofnode_is_available(conn_ep))
+		if (!ofnode_valid(conn_ep) || !ofnode_is_enabled(conn_ep))
 			return -ENODEV;
 
 		conn_port = ofnode_get_parent(conn_ep);
@@ -1885,13 +1887,13 @@ static int rockchip_display_fixup_dts(void *blob)
 			ofnode_read_u32(conn_ep, "remote-endpoint", &phandle);
 			conn_ep_offset = fdt_path_offset(blob, path);
 
-			if (!ofnode_is_available(conn_ep) &&
+			if (!ofnode_is_enabled(conn_ep) &&
 			    strstr(ofnode_get_name(conn_ep), "endpoint@0")) {
 				do_fixup_by_path_u32(blob, route_sub_path,
 						     "connect", phandle, 1);
 				fdt_status_okay(blob, conn_ep_offset);
 
-			} else if (ofnode_is_available(conn_ep) &&
+			} else if (ofnode_is_enabled(conn_ep) &&
 				   strstr(ofnode_get_name(conn_ep), "endpoint@1")) {
 				fdt_status_disabled(blob, conn_ep_offset);
 			}
@@ -1905,7 +1907,7 @@ static int rockchip_display_fixup_dts(void *blob)
 static int rockchip_display_probe(struct udevice *dev)
 {
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
-	struct video_uc_platdata *plat = dev_get_uclass_plat(dev);
+	struct video_uc_plat *uc_plat = dev_get_uclass_plat(dev);
 	const void *blob = gd->fdt_blob;
 	int phandle;
 	struct udevice *crtc_dev;
@@ -1933,21 +1935,21 @@ static int rockchip_display_probe(struct udevice *dev)
 	}
 	data->phy_init = false;
 
-	init_display_buffer(plat->base);
+	init_display_buffer(uc_plat->base);
 
 	route_node = dev_read_subnode(dev, "route");
 	if (!ofnode_valid(route_node))
 		return -ENODEV;
 
 	ofnode_for_each_subnode(node, route_node) {
-		if (!ofnode_is_available(node))
+		if (!ofnode_is_enabled(node))
 			continue;
 		phandle = ofnode_read_u32_default(node, "connect", -1);
 		if (phandle < 0) {
 			printf("Warn: can't find connect node's handle\n");
 			continue;
 		}
-		ep_node = of_find_node_by_phandle(phandle);
+		ep_node = of_find_node_by_phandle(NULL, phandle);
 		if (!ofnode_valid(np_to_ofnode(ep_node))) {
 			printf("Warn: can't find endpoint node from phandle\n");
 			continue;
@@ -2284,9 +2286,9 @@ void rockchip_display_fixup(void *blob)
 
 int rockchip_display_bind(struct udevice *dev)
 {
-	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
+	struct video_uc_plat *uc_plat = dev_get_uclass_plat(dev);
 
-	plat->size = DRM_ROCKCHIP_FB_SIZE + MEMORY_POOL_SIZE;
+	uc_plat->size = DRM_ROCKCHIP_FB_SIZE + MEMORY_POOL_SIZE;
 
 	return 0;
 }
@@ -2304,8 +2306,8 @@ U_BOOT_DRIVER(rockchip_display) = {
 	.probe	= rockchip_display_probe,
 };
 
-static int do_rockchip_logo_show(cmd_tbl_t *cmdtp, int flag, int argc,
-			char *const argv[])
+static int do_rockchip_logo_show(struct cmd_tbl *cmdtp, int flag, int argc,
+				 char *const argv[])
 {
 	if (argc != 1)
 		return CMD_RET_USAGE;
@@ -2315,7 +2317,7 @@ static int do_rockchip_logo_show(cmd_tbl_t *cmdtp, int flag, int argc,
 	return 0;
 }
 
-static int do_rockchip_show_bmp(cmd_tbl_t *cmdtp, int flag, int argc,
+static int do_rockchip_show_bmp(struct cmd_tbl *cmdtp, int flag, int argc,
 				char *const argv[])
 {
 	if (argc != 2)
@@ -2326,7 +2328,7 @@ static int do_rockchip_show_bmp(cmd_tbl_t *cmdtp, int flag, int argc,
 	return 0;
 }
 
-static int do_rockchip_vop_dump(cmd_tbl_t *cmdtp, int flag, int argc,
+static int do_rockchip_vop_dump(struct cmd_tbl *cmdtp, int flag, int argc,
 				char *const argv[])
 {
 	int ret;

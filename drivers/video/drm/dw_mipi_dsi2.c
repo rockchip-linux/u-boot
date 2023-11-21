@@ -14,7 +14,6 @@
 #include <asm/unaligned.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
-#include <asm/hardware.h>
 #include <dm/device.h>
 #include <dm/read.h>
 #include <dm/of_access.h>
@@ -1210,7 +1209,7 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 			return -ENODEV;
 	}
 
-	id = of_alias_get_id(ofnode_to_np(dev->node), "dsi");
+	id = of_alias_get_id(ofnode_to_np(dev->node_), "dsi");
 	if (id < 0)
 		id = 0;
 

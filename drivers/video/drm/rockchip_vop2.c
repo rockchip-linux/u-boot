@@ -11,14 +11,13 @@
 #include <fdtdec.h>
 #include <fdt_support.h>
 #include <regmap.h>
-#include <asm/arch/cpu.h>
+#include <asm/arch-rockchip/clock.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
 #include <linux/list.h>
 #include <linux/log2.h>
 #include <linux/media-bus-format.h>
 #include <clk.h>
-#include <asm/arch/clock.h>
 #include <asm/gpio.h>
 #include <linux/err.h>
 #include <linux/ioport.h>
@@ -1880,7 +1879,7 @@ static void vop3_setup_pipe_dly(struct display_state *state, struct vop2 *vop2, 
 	u8 win_id;
 
 	win_data = vop2_find_win_by_phys_id(vop2, primary_plane_id);
-	win_id = atoi(&win_data->name[strlen(win_data->name) - 1]);
+	win_id = win_data->name[strlen(win_data->name) - 1] - '0';
 	vop2_mask_write(vop2, RK3528_OVL_SYS_ESMART0_CTRL + win_id * 4,
 			ESMART_DLY_NUM_MASK, ESMART_DLY_NUM_SHIFT, 0, false);
 
