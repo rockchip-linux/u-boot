@@ -183,6 +183,7 @@ struct samsung_mipi_cphy_timing {
 };
 
 struct samsung_mipi_dcphy {
+	struct udevice *dev;
 	enum phy_mode mode;
 	void *base;
 	void *grf;
@@ -1788,6 +1789,7 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 	struct udevice *syscon;
 	int ret;
 
+	samsung->dev = dev;
 	phy = calloc(1, sizeof(*phy));
 	if (!phy)
 		return -ENOMEM;
