@@ -1637,7 +1637,7 @@ static const struct mipi_dsi_host_ops dw_mipi_dsi_host_ops = {
 
 static int dw_mipi_dsi_bind(struct udevice *dev)
 {
-	struct mipi_dsi_host *host = dev_get_platdata(dev);
+	struct mipi_dsi_host *host = dev_get_plat(dev);
 
 	host->dev = dev;
 	host->ops = &dw_mipi_dsi_host_ops;
@@ -1647,7 +1647,7 @@ static int dw_mipi_dsi_bind(struct udevice *dev)
 
 static int dw_mipi_dsi_child_post_bind(struct udevice *dev)
 {
-	struct mipi_dsi_host *host = dev_get_platdata(dev->parent);
+	struct mipi_dsi_host *host = dev_get_plat(dev->parent);
 	struct mipi_dsi_device *device = dev_get_parent_platdata(dev);
 	char name[20];
 

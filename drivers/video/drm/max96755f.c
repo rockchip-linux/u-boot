@@ -140,7 +140,7 @@ static const struct rockchip_bridge_funcs max96755f_bridge_funcs = {
 
 static int max96755f_bridge_bind(struct udevice *dev)
 {
-	struct mipi_dsi_device *device = dev_get_platdata(dev);
+	struct mipi_dsi_device *device = dev_get_plat(dev);
 
 	device->dev = dev;
 	device->lanes = dev_read_u32_default(dev, "dsi,lanes", 4);

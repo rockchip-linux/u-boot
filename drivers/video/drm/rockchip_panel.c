@@ -268,7 +268,7 @@ static int rockchip_panel_send_dsi_cmds(struct mipi_dsi_device *dsi,
 
 static void panel_simple_prepare(struct rockchip_panel *panel)
 {
-	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
+	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 	struct mipi_dsi_device *dsi = dev_get_parent_platdata(panel->dev);
 	int ret;
@@ -315,7 +315,7 @@ static void panel_simple_prepare(struct rockchip_panel *panel)
 
 static void panel_simple_unprepare(struct rockchip_panel *panel)
 {
-	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
+	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 	struct mipi_dsi_device *dsi = dev_get_parent_platdata(panel->dev);
 	int ret;
@@ -353,7 +353,7 @@ static void panel_simple_unprepare(struct rockchip_panel *panel)
 
 static void panel_simple_enable(struct rockchip_panel *panel)
 {
-	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
+	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 
 	if (priv->enabled)
@@ -370,7 +370,7 @@ static void panel_simple_enable(struct rockchip_panel *panel)
 
 static void panel_simple_disable(struct rockchip_panel *panel)
 {
-	struct rockchip_panel_plat *plat = dev_get_platdata(panel->dev);
+	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
 
 	if (!priv->enabled)
@@ -394,7 +394,7 @@ static const struct rockchip_panel_funcs rockchip_panel_funcs = {
 
 static int rockchip_panel_ofdata_to_platdata(struct udevice *dev)
 {
-	struct rockchip_panel_plat *plat = dev_get_platdata(dev);
+	struct rockchip_panel_plat *plat = dev_get_plat(dev);
 	const void *data;
 	int len = 0;
 	int ret;
@@ -452,7 +452,7 @@ free_on_cmds:
 static int rockchip_panel_probe(struct udevice *dev)
 {
 	struct rockchip_panel_priv *priv = dev_get_priv(dev);
-	struct rockchip_panel_plat *plat = dev_get_platdata(dev);
+	struct rockchip_panel_plat *plat = dev_get_plat(dev);
 	struct rockchip_panel *panel;
 	int ret;
 	const char *cmd_type;

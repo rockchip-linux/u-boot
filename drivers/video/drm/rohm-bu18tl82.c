@@ -220,7 +220,7 @@ static int bu18tl82_probe(struct udevice *dev)
 
 	priv->sel_mipi = dev_read_bool(dev, "sel-mipi");
 	if (priv->sel_mipi) {
-		struct mipi_dsi_device *device = dev_get_platdata(dev);
+		struct mipi_dsi_device *device = dev_get_plat(dev);
 
 		device->dev = dev;
 		device->lanes = dev_read_u32_default(dev, "dsi,lanes", 4);
