@@ -7,11 +7,7 @@ config DM_HASH
 config HASH_SOFTWARE
 	bool "Enable driver for Hash in software"
 	depends on DM_HASH
-	depends on MD5
-	depends on SHA1
-	depends on SHA256
-	depends on SHA384
-	depends on SHA512
+	depends on MD5 || SHA1 || SHA256 || SHA384 || SHA512
 	help
 	  Enable driver for hashing operations in software. Currently
 	  it support multiple hash algorithm including CRC/MD5/SHA.
