@@ -8,6 +8,7 @@ obj-$(CONFIG_CRYPTO_MANAGER) += crypto_manager.o
 ifdef CONFIG_DM_HASH
 obj-$(CONFIG_CRYPTO_MANAGER) += crypto_hash.o
 endif
+obj-$(CONFIG_CRYPTO_MANAGER) += crypto_rsa.o
 obj-y += rsa_mod_exp/
 obj-y += fsl/
 obj-y += hash/

@@ -13,6 +13,7 @@
 #include <linux/delay.h>
 #include <rockchip/crypto_hash_cache.h>
 #include <rockchip/crypto_v2.h>
+#include <rockchip/crypto_v2_pka.h>
 
 //#define DEBUG
 
@@ -887,11 +888,109 @@ static struct crypto_impl rk_crypto_v2_hash_impl = {
 	.hash.hash_finish  = rk_hash_finish,
 };
 
+#if CONFIG_IS_ENABLED(ROCKCHIP_RSA)
+
+static int rk_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_len,
+		      struct key_prop *prop, uint8_t *out)
+{
+	struct mpa_num *mpa_m = NULL, *mpa_e = NULL;;
+	struct mpa_num *mpa_n = NULL, *mpa_result = NULL;
+	u32 n_words, n_bytes;
+	int ret;
+
+	if (!dev || !sig || !prop || !out || sig_len != prop->num_bits / 8)
+		return -EINVAL;
+
+	n_words = prop->num_bits / 32;
+	n_bytes = prop->num_bits / 8;
+
+	ret = rk_mpa_alloc(&mpa_m, (void *)sig, n_words);
+	if (ret)
+		goto exit;
+
+	ret = rk_mpa_alloc(&mpa_e, NULL, n_words);
+	if (ret)
+		goto exit;
+
+	ret = rk_mpa_alloc(&mpa_n, (void *)prop->modulus, n_words);
+	if (ret)
+		goto exit;
+
+	ret = rk_mpa_alloc(&mpa_result, NULL, n_words);
+	if (ret)
+		goto exit;
+
+	/* mpa need little endian data */
+	util_reverse_buff((void *)mpa_m->d, n_bytes);
+	util_reverse_buff((void *)mpa_n->d, n_bytes);
+	util_reverse_memcpy((void *)mpa_e->d, prop->public_exponent, prop->exp_len);
+
+	rk_crypto_enable_clk(dev);
+	ret = rk_exptmod_np(mpa_m, mpa_e, mpa_n, NULL, mpa_result);
+	if (!ret)
+		util_reverse_memcpy(out, (void *)mpa_result->d, n_bytes);
+
+	rk_crypto_disable_clk(dev);
+
+exit:
+	rk_mpa_free(&mpa_m);
+	rk_mpa_free(&mpa_e);
+	rk_mpa_free(&mpa_n);
+	rk_mpa_free(&mpa_result);
+
+	return ret;
+}
+
+static bool rk_mod_exp_check_valid(struct udevice *dev, u32 algo, u32 mode)
+{
+	if (!dev)
+		return false;
+
+	if (mode != CRYPTO_MODE_NONE)
+		return false;
+
+	if (algo != ASYM_ALGO_RSA)
+		return false;
+
+	return true;
+}
+
+static struct crypto_impl rk_mod_exp_impl = {
+	.type        = CRYPTO_TYPE_ASYM,
+	.uclass_id   = UCLASS_MISC,
+	.priority    = CRYPTO_PRIORITY_HW,
+	.check_valid = rk_mod_exp_check_valid,
+
+	.asym.rsa.mod_exp = rk_mod_exp,
+};
+
+#endif
+
 static int rockchip_crypto_bind(struct udevice *dev)
 {
+	int ret;
+
 	rk_crypto_v2_hash_impl.dev = dev;
 
-	return crypto_impl_register(&rk_crypto_v2_hash_impl);
+	ret = crypto_impl_register(&rk_crypto_v2_hash_impl);
+	if (ret) {
+		printf("crypto_impl_register rk_crypto_v2_hash_impl failed.\n");
+		goto exit;
+	}
+
+#if CONFIG_IS_ENABLED(ROCKCHIP_RSA)
+
+	rk_mod_exp_impl.dev = dev;
+
+	ret = crypto_impl_register(&rk_mod_exp_impl);
+	if (ret) {
+		printf("crypto_impl_register rk_mod_exp_impl failed.\n");
+		goto exit;
+	}
+#endif
+
+exit:
+	return ret;
 }
 
 U_BOOT_DRIVER(rk_crypto_v2) = {
