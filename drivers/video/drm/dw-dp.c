@@ -16,6 +16,7 @@
 #include <dm/of_access.h>
 #include <dm/read.h>
 #include <generic-phy.h>
+#include <generic-phy-dp.h>
 #include <linux/bitfield.h>
 #include <linux/hdmi.h>
 #include <linux/media-bus-format.h>
@@ -582,7 +583,7 @@ static int dw_dp_link_train_update_vs_emph(struct dw_dp *dp)
 {
 	struct dw_dp_link *link = &dp->link;
 	struct drm_dp_link_train_set *request = &link->train.request;
-	union phy_configure_opts phy_cfg;
+	struct phy_configure_opts_dp phy_cfg;
 	unsigned int lanes = link->lanes, *vs, *pe;
 	u8 buf[4];
 	int i, ret;
@@ -591,14 +592,14 @@ static int dw_dp_link_train_update_vs_emph(struct dw_dp *dp)
 	pe = request->pre_emphasis;
 
 	for (i = 0; i < lanes; i++) {
-		phy_cfg.dp.voltage[i] = vs[i];
-		phy_cfg.dp.pre[i] = pe[i];
+		phy_cfg.voltage[i] = vs[i];
+		phy_cfg.pre[i] = pe[i];
 	}
-	phy_cfg.dp.lanes = lanes;
-	phy_cfg.dp.link_rate = link->rate / 100;
-	phy_cfg.dp.set_lanes = false;
-	phy_cfg.dp.set_rate = false;
-	phy_cfg.dp.set_voltages = true;
+	phy_cfg.lanes = lanes;
+	phy_cfg.link_rate = link->rate / 100;
+	phy_cfg.set_lanes = false;
+	phy_cfg.set_rate = false;
+	phy_cfg.set_voltages = true;
 	ret = generic_phy_configure(&dp->phy, &phy_cfg);
 	if (ret)
 		return ret;
@@ -616,7 +617,7 @@ static int dw_dp_link_train_update_vs_emph(struct dw_dp *dp)
 static int dw_dp_link_configure(struct dw_dp *dp)
 {
 	struct dw_dp_link *link = &dp->link;
-	union phy_configure_opts phy_cfg;
+	struct phy_configure_opts_dp phy_cfg;
 	u8 buf[2];
 	int ret, phy_rate;
 
@@ -624,12 +625,12 @@ static int dw_dp_link_configure(struct dw_dp *dp)
 	regmap_update_bits(dp->regmap, DPTX_PHYIF_CTRL, PHY_POWERDOWN,
 			   FIELD_PREP(PHY_POWERDOWN, 0x3));
 
-	phy_cfg.dp.lanes = link->lanes;
-	phy_cfg.dp.link_rate = link->rate / 100;
-	phy_cfg.dp.ssc = link->caps.ssc;
-	phy_cfg.dp.set_lanes = true;
-	phy_cfg.dp.set_rate = true;
-	phy_cfg.dp.set_voltages = false;
+	phy_cfg.lanes = link->lanes;
+	phy_cfg.link_rate = link->rate / 100;
+	phy_cfg.ssc = link->caps.ssc;
+	phy_cfg.set_lanes = true;
+	phy_cfg.set_rate = true;
+	phy_cfg.set_voltages = false;
 	ret = generic_phy_configure(&dp->phy, &phy_cfg);
 	if (ret)
 		return ret;
@@ -980,7 +981,7 @@ static int dw_dp_link_enable(struct dw_dp *dp)
 static int dw_dp_set_phy_default_config(struct dw_dp *dp)
 {
 	struct dw_dp_link *link = &dp->link;
-	union phy_configure_opts phy_cfg;
+	struct phy_configure_opts_dp phy_cfg;
 	int ret, i, phy_rate;
 
 	link->vsc_sdp_extension_for_colorimetry_supported = false;
@@ -996,15 +997,15 @@ static int dw_dp_set_phy_default_config(struct dw_dp *dp)
 			   FIELD_PREP(PHY_POWERDOWN, 0x3));
 
 	for (i = 0; i < link->lanes; i++) {
-		phy_cfg.dp.voltage[i] = 3;
-		phy_cfg.dp.pre[i] = 0;
+		phy_cfg.voltage[i] = 3;
+		phy_cfg.pre[i] = 0;
 	}
-	phy_cfg.dp.lanes = link->lanes;
-	phy_cfg.dp.link_rate = link->rate / 100;
-	phy_cfg.dp.ssc = link->caps.ssc;
-	phy_cfg.dp.set_lanes = true;
-	phy_cfg.dp.set_rate = true;
-	phy_cfg.dp.set_voltages = true;
+	phy_cfg.lanes = link->lanes;
+	phy_cfg.link_rate = link->rate / 100;
+	phy_cfg.ssc = link->caps.ssc;
+	phy_cfg.set_lanes = true;
+	phy_cfg.set_rate = true;
+	phy_cfg.set_voltages = true;
 	ret = generic_phy_configure(&dp->phy, &phy_cfg);
 	if (ret)
 		return ret;
