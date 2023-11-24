@@ -35,6 +35,18 @@ enum phy_mode {
 };
 
 /**
+ * struct phy_attrs - represents phy attributes
+ * @bus_width: Data path width implemented by PHY
+ * @max_link_rate: Maximum link rate supported by PHY (in Mbps)
+ * @mode: PHY mode
+ */
+struct phy_attrs {
+	u32			bus_width;
+	u32			max_link_rate;
+	enum phy_mode		mode;
+};
+
+/**
  * struct phy - A handle to (allowing control of) a single phy port.
  *
  * Clients provide storage for phy handles. The content of the structure is
@@ -49,6 +61,7 @@ enum phy_mode {
 struct phy {
 	struct udevice *dev;
 	unsigned long id;
+	struct phy_attrs attrs;
 };
 
 /*
@@ -58,6 +71,7 @@ struct phy {
  * @reset: reset the phy (optional).
  * @power_on: powering on the phy (optional)
  * @power_off: powering off the phy (optional)
+ * @set_mode: set the mode of the phy
  */
 struct phy_ops {
 	/**
@@ -534,6 +548,11 @@ static inline int generic_shutdown_phy(struct phy *phy)
 static inline bool generic_phy_valid(struct phy *phy)
 {
 	return phy && phy->dev;
+}
+
+static inline enum phy_mode generic_phy_get_mode(struct phy *phy)
+{
+	return phy->attrs.mode;
 }
 
 #endif /*__GENERIC_PHY_H */
