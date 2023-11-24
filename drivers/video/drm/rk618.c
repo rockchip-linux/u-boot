@@ -14,7 +14,7 @@
 
 int rk618_i2c_write(struct rk618 *rk618, u16 reg, u32 val)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(rk618->dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(rk618->dev);
 	struct i2c_msg msg;
 	u8 buf[] = {
 		(reg >> 0) & 0xff, (reg >> 8) & 0xff,
@@ -39,7 +39,7 @@ int rk618_i2c_write(struct rk618 *rk618, u16 reg, u32 val)
 
 int rk618_i2c_read(struct rk618 *rk618, u16 reg, u32 *val)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(rk618->dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(rk618->dev);
 	u32 data;
 	struct i2c_msg msg[] = {
 		{

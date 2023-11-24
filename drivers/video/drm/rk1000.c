@@ -24,7 +24,7 @@
 
 int rk1000_ctl_i2c_write(struct rk1000_ctl *rk1000_ctl, u8 reg, u8 val)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(rk1000_ctl->dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(rk1000_ctl->dev);
 	struct i2c_msg msg;
 	u8 buf[2];
 	int ret;
@@ -48,7 +48,7 @@ int rk1000_ctl_i2c_write(struct rk1000_ctl *rk1000_ctl, u8 reg, u8 val)
 
 int rk1000_ctl_i2c_read(struct rk1000_ctl *rk1000_ctl, u8 reg, u8 *val)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(rk1000_ctl->dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(rk1000_ctl->dev);
 	u8 data;
 	struct i2c_msg msg[] = {
 		{

@@ -32,7 +32,7 @@ static uint addr_list[] = {
 
 void max96752f_init(struct udevice *dev)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(dev);
 	u32 stream_id = dev_read_u32_default(dev->parent, "reg", 0);
 	uint addr = chip->chip_addr;
 	int i, ret;

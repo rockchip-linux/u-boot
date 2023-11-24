@@ -1018,7 +1018,7 @@ static int rk618_dsi_bind(struct udevice *dev)
 static int rk618_dsi_child_post_bind(struct udevice *dev)
 {
 	struct mipi_dsi_host *host = dev_get_plat(dev->parent);
-	struct mipi_dsi_device *device = dev_get_parent_platdata(dev);
+	struct mipi_dsi_device *device = dev_get_parent_plat(dev);
 	char name[20];
 
 	sprintf(name, "%s.%d", host->dev->name, device->channel);
@@ -1042,7 +1042,7 @@ static int rk618_dsi_child_post_bind(struct udevice *dev)
 
 static int rk618_dsi_child_pre_probe(struct udevice *dev)
 {
-	struct mipi_dsi_device *device = dev_get_parent_platdata(dev);
+	struct mipi_dsi_device *device = dev_get_parent_plat(dev);
 	int ret;
 
 	ret = mipi_dsi_attach(device);

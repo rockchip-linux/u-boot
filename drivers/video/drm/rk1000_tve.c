@@ -36,7 +36,7 @@ enum {
 
 int rk1000_tve_i2c_write(struct rk1000_tve *rk1000_tve, u8 reg, u8 val)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(rk1000_tve->dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(rk1000_tve->dev);
 	struct i2c_msg msg;
 	u8 buf[2];
 	int ret;
@@ -60,7 +60,7 @@ int rk1000_tve_i2c_write(struct rk1000_tve *rk1000_tve, u8 reg, u8 val)
 
 int rk1000_tve_i2c_read(struct rk1000_tve *rk1000_tve, u8 reg, u8 *val)
 {
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(rk1000_tve->dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(rk1000_tve->dev);
 	u8 data;
 	struct i2c_msg msg[] = {
 		{

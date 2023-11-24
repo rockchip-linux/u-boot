@@ -270,7 +270,7 @@ static void panel_simple_prepare(struct rockchip_panel *panel)
 {
 	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
-	struct mipi_dsi_device *dsi = dev_get_parent_platdata(panel->dev);
+	struct mipi_dsi_device *dsi = dev_get_parent_plat(panel->dev);
 	int ret;
 
 	if (priv->prepared)
@@ -317,7 +317,7 @@ static void panel_simple_unprepare(struct rockchip_panel *panel)
 {
 	struct rockchip_panel_plat *plat = dev_get_plat(panel->dev);
 	struct rockchip_panel_priv *priv = dev_get_priv(panel->dev);
-	struct mipi_dsi_device *dsi = dev_get_parent_platdata(panel->dev);
+	struct mipi_dsi_device *dsi = dev_get_parent_plat(panel->dev);
 	int ret;
 
 	if (!priv->prepared)
