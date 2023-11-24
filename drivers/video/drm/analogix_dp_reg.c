@@ -922,19 +922,19 @@ bool analogix_dp_ssc_supported(struct analogix_dp_device *dp)
 
 void analogix_dp_set_link_bandwidth(struct analogix_dp_device *dp, u32 bwtype)
 {
-	union phy_configure_opts phy_cfg;
+	struct phy_configure_opts_dp phy_cfg;
 	u32 status;
 	int ret;
 
 	analogix_dp_write(dp, ANALOGIX_DP_LINK_BW_SET, bwtype);
 
-	phy_cfg.dp.lanes = dp->link_train.lane_count;
-	phy_cfg.dp.link_rate =
+	phy_cfg.lanes = dp->link_train.lane_count;
+	phy_cfg.link_rate =
 		drm_dp_bw_code_to_link_rate(dp->link_train.link_rate) / 100;
-	phy_cfg.dp.ssc = analogix_dp_ssc_supported(dp);
-	phy_cfg.dp.set_lanes = false;
-	phy_cfg.dp.set_rate = true;
-	phy_cfg.dp.set_voltages = false;
+	phy_cfg.ssc = analogix_dp_ssc_supported(dp);
+	phy_cfg.set_lanes = false;
+	phy_cfg.set_rate = true;
+	phy_cfg.set_voltages = false;
 	ret = generic_phy_configure(&dp->phy, &phy_cfg);
 	if (ret) {
 		dev_err(dp->dev, "%s: phy_configure() failed: %d\n",
@@ -961,17 +961,17 @@ void analogix_dp_get_link_bandwidth(struct analogix_dp_device *dp, u32 *bwtype)
 
 void analogix_dp_set_lane_count(struct analogix_dp_device *dp, u32 count)
 {
-	union phy_configure_opts phy_cfg;
+	struct phy_configure_opts_dp phy_cfg;
 	u32 reg;
 	int ret;
 
 	reg = count;
 	analogix_dp_write(dp, ANALOGIX_DP_LANE_COUNT_SET, reg);
 
-	phy_cfg.dp.lanes = dp->link_train.lane_count;
-	phy_cfg.dp.set_lanes = true;
-	phy_cfg.dp.set_rate = false;
-	phy_cfg.dp.set_voltages = false;
+	phy_cfg.lanes = dp->link_train.lane_count;
+	phy_cfg.set_lanes = true;
+	phy_cfg.set_rate = false;
+	phy_cfg.set_voltages = false;
 	ret = generic_phy_configure(&dp->phy, &phy_cfg);
 	if (ret) {
 		dev_err(dp->dev, "%s: phy_configure() failed: %d\n",
@@ -990,7 +990,7 @@ void analogix_dp_get_lane_count(struct analogix_dp_device *dp, u32 *count)
 
 void analogix_dp_set_lane_link_training(struct analogix_dp_device *dp)
 {
-	union phy_configure_opts phy_cfg;
+	struct phy_configure_opts_dp phy_cfg;
 	u8 lane;
 	int ret;
 
@@ -1006,16 +1006,16 @@ void analogix_dp_set_lane_link_training(struct analogix_dp_device *dp)
 		     DP_TRAIN_VOLTAGE_SWING_SHIFT;
 		pe = (training_lane & DP_TRAIN_PRE_EMPHASIS_MASK) >>
 		     DP_TRAIN_PRE_EMPHASIS_SHIFT;
-		phy_cfg.dp.voltage[lane] = vs;
-		phy_cfg.dp.pre[lane] = pe;
+		phy_cfg.voltage[lane] = vs;
+		phy_cfg.pre[lane] = pe;
 	}
 
-	phy_cfg.dp.lanes = dp->link_train.lane_count;
-	phy_cfg.dp.link_rate =
+	phy_cfg.lanes = dp->link_train.lane_count;
+	phy_cfg.link_rate =
 		drm_dp_bw_code_to_link_rate(dp->link_train.link_rate) / 100;
-	phy_cfg.dp.set_lanes = false;
-	phy_cfg.dp.set_rate = false;
-	phy_cfg.dp.set_voltages = true;
+	phy_cfg.set_lanes = false;
+	phy_cfg.set_rate = false;
+	phy_cfg.set_voltages = true;
 	ret = generic_phy_configure(&dp->phy, &phy_cfg);
 	if (ret) {
 		dev_err(dp->dev, "%s: phy_configure() failed: %d\n",

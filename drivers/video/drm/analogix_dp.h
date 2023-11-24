@@ -8,6 +8,7 @@
 #define __DRM_ANALOGIX_DP_H__
 
 #include <generic-phy.h>
+#include <generic-phy-dp.h>
 #include <regmap.h>
 #include <reset.h>
 

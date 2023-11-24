@@ -8,6 +8,7 @@
 #include <common.h>
 #include <dm.h>
 #include <generic-phy.h>
+#include <generic-phy-dp.h>
 #include <reset.h>
 #include <regmap.h>
 #include <syscon.h>
@@ -693,32 +694,32 @@ static int rockchip_hdptx_phy_set_rate(struct rockchip_hdptx_phy *hdptx,
 	return 0;
 }
 
-static int rockchip_hdptx_phy_configure(struct phy *phy,
-					union phy_configure_opts *opts)
+static int rockchip_hdptx_phy_configure(struct phy *phy, void *params)
 {
 	struct rockchip_hdptx_phy *hdptx = dev_get_priv(phy->dev);
+	struct phy_configure_opts_dp *phy_cfg = (struct phy_configure_opts_dp *)params;
 	enum phy_mode mode = generic_phy_get_mode(phy);
 	int ret;
 
 	if (mode != PHY_MODE_DP)
 		return -EINVAL;
 
-	ret = rockchip_hdptx_phy_verify_config(hdptx, &opts->dp);
+	ret = rockchip_hdptx_phy_verify_config(hdptx, phy_cfg);
 	if (ret) {
 		dev_err(hdptx->dev, "invalid params for phy configure\n");
 		return ret;
 	}
 
-	if (opts->dp.set_rate) {
-		ret = rockchip_hdptx_phy_set_rate(hdptx, &opts->dp);
+	if (phy_cfg->set_rate) {
+		ret = rockchip_hdptx_phy_set_rate(hdptx, phy_cfg);
 		if (ret) {
 			dev_err(hdptx->dev, "failed to set rate: %d\n", ret);
 			return ret;
 		}
 	}
 
-	if (opts->dp.set_voltages) {
-		ret = rockchip_hdptx_phy_set_voltages(hdptx, &opts->dp);
+	if (phy_cfg->set_voltages) {
+		ret = rockchip_hdptx_phy_set_voltages(hdptx, phy_cfg);
 		if (ret) {
 			dev_err(hdptx->dev, "failed to set voltages: %d\n",
 				ret);
