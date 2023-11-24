@@ -377,7 +377,7 @@ static void panel_simple_disable(struct rockchip_panel *panel)
 		return;
 
 	if (priv->backlight)
-		backlight_disable(priv->backlight);
+		backlight_set_brightness(priv->backlight, BACKLIGHT_OFF);
 
 	if (plat->delay.disable)
 		mdelay(plat->delay.disable);

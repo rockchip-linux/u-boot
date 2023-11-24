@@ -84,7 +84,7 @@ static void max96752f_panel_disable(struct rockchip_panel *panel)
 		desc->backlight_disable(max96752f);
 
 	if (max96752f->backlight)
-		backlight_disable(max96752f->backlight);
+		backlight_set_brightness(max96752f->backlight, BACKLIGHT_OFF);
 
 	if (desc->disable)
 		desc->disable(max96752f);

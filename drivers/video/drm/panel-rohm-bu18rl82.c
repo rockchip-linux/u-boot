@@ -82,7 +82,7 @@ static void bu18rl82_panel_disable(struct rockchip_panel *panel)
 		desc->backlight_disable(rl82);
 
 	if (rl82->backlight)
-		backlight_disable(rl82->backlight);
+		backlight_set_brightness(rl82->backlight, BACKLIGHT_OFF);
 
 	if (desc->disable)
 		desc->disable(rl82);

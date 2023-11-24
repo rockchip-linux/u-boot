@@ -343,7 +343,7 @@ static void rockchip_mcu_panel_disable(struct rockchip_panel *panel)
 		return;
 
 	if (mcu_panel->backlight)
-		backlight_disable(mcu_panel->backlight);
+		backlight_set_brightness(mcu_panel->backlight, BACKLIGHT_OFF);
 
 	if (mcu_panel->desc->delay.disable)
 		mdelay(mcu_panel->desc->delay.disable);
