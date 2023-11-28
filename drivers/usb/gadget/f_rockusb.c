@@ -569,6 +569,17 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 						curlun->sense_data = SS_WRITE_ERROR;
 						return -EIO;
 					}
+				} else if (memcmp(data, "ENDA", 4) == 0) {
+					if (vhead->size - 8 != 16) {
+						printf("check oem encrypt data size fail!\n");
+						curlun->sense_data = SS_WRITE_ERROR;
+						return -EIO;
+					}
+					if (trusty_write_oem_encrypt_data((uint32_t *)(data + 8), 4) != 0) {
+						printf("trusty_write_oem_encrypt_data error!");
+						curlun->sense_data = SS_WRITE_ERROR;
+						return -EIO;
+					}
 				} else {
 					printf("Unknown tag\n");
 					curlun->sense_data = SS_WRITE_ERROR;
