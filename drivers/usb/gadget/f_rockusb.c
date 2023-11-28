@@ -580,6 +580,19 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 						curlun->sense_data = SS_WRITE_ERROR;
 						return -EIO;
 					}
+				} else if (memcmp(data, "OTPK", 4) == 0) {
+					uint32_t key_len = vhead->size - 9;
+					uint8_t key_id = *((uint8_t *)data + 8);
+					if (key_len != 16 && key_len != 24 && key_len != 32) {
+						printf("check oem otp key size fail!\n");
+						curlun->sense_data = SS_WRITE_ERROR;
+						return -EIO;
+					}
+					if (trusty_write_oem_otp_key(key_id, (uint8_t *)(data + 9), key_len) != 0) {
+						printf("trusty_write_oem_huk error!");
+						curlun->sense_data = SS_WRITE_ERROR;
+						return -EIO;
+					}
 				} else {
 					printf("Unknown tag\n");
 					curlun->sense_data = SS_WRITE_ERROR;
