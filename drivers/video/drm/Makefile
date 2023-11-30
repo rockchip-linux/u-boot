@@ -7,7 +7,7 @@
 obj-y += drm_modes.o
 
 obj-y += rockchip_display.o rockchip_crtc.o rockchip_phy.o rockchip_bridge.o \
-		rockchip_vop.o rockchip_vop_reg.o rockchip_vop2.o bmp_helper.o \
+		rockchip_vop.o rockchip_vop_reg.o rockchip_vop2.o \
 		rockchip_connector.o rockchip_post_csc.o libnsbmp.o
 
 obj-$(CONFIG_DRM_MIPI_DSI) += drm_mipi_dsi.o

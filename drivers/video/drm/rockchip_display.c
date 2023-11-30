@@ -26,7 +26,6 @@
 #include <dm/uclass-internal.h>
 #include <part.h>
 
-#include "bmp_helper.h"
 #include "libnsbmp.h"
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -324,11 +323,6 @@ static unsigned long get_cubic_memory_size(void)
 {
 	/* Max support 4 cubic lut */
 	return get_single_cubic_lut_size() * 4;
-}
-
-bool can_direct_logo(int bpp)
-{
-	return bpp == 16 || bpp == 32;
 }
 
 static int connector_phy_init(struct rockchip_connector *conn,
@@ -1333,110 +1327,6 @@ static int load_kernel_bmp_logo(struct logo_info *logo, const char *bmp_name)
 
 	return 0;
 }
-
-#ifdef BMP_DECODEER_LEGACY
-static int load_bmp_logo_legacy(struct logo_info *logo, const char *bmp_name)
-{
-#ifdef CONFIG_ROCKCHIP_RESOURCE_IMAGE
-	struct rockchip_logo_cache *logo_cache;
-	struct bmp_header *header;
-	void *dst = NULL, *pdst;
-	int size, len;
-	int ret = 0;
-	int reserved = 0;
-	int dst_size;
-
-	if (!logo || !bmp_name)
-		return -EINVAL;
-	logo_cache = find_or_alloc_logo_cache(bmp_name, logo->rotate);
-	if (!logo_cache)
-		return -ENOMEM;
-
-	if (logo_cache->logo.mem) {
-		memcpy(logo, &logo_cache->logo, sizeof(*logo));
-		return 0;
-	}
-
-	header = malloc(RK_BLK_SIZE);
-	if (!header)
-		return -ENOMEM;
-
-	len = rockchip_read_resource_file(header, bmp_name, 0, RK_BLK_SIZE);
-	if (len != RK_BLK_SIZE) {
-		ret = -EINVAL;
-		goto free_header;
-	}
-
-	logo->bpp = get_unaligned_le16(&header->bit_count);
-	logo->width = get_unaligned_le32(&header->width);
-	logo->height = get_unaligned_le32(&header->height);
-	dst_size = logo->width * logo->height * logo->bpp >> 3;
-	reserved = get_unaligned_le32(&header->reserved);
-	if (logo->height < 0)
-	    logo->height = -logo->height;
-	size = get_unaligned_le32(&header->file_size);
-	if (!can_direct_logo(logo->bpp)) {
-		if (size > MEMORY_POOL_SIZE) {
-			printf("failed to use boot buf as temp bmp buffer\n");
-			ret = -ENOMEM;
-			goto free_header;
-		}
-		pdst = get_display_buffer(size);
-
-	} else {
-		pdst = get_display_buffer(size);
-		dst = pdst;
-	}
-
-	len = rockchip_read_resource_file(pdst, bmp_name, 0, size);
-	if (len != size) {
-		printf("failed to load bmp %s\n", bmp_name);
-		ret = -ENOENT;
-		goto free_header;
-	}
-
-	if (!can_direct_logo(logo->bpp)) {
-		/*
-		 * TODO: force use 16bpp if bpp less than 16;
-		 */
-		logo->bpp = (logo->bpp <= 16) ? 16 : logo->bpp;
-		dst_size = logo->width * logo->height * logo->bpp >> 3;
-		dst = get_display_buffer(dst_size);
-		if (!dst) {
-			ret = -ENOMEM;
-			goto free_header;
-		}
-		if (bmpdecoder(pdst, dst, logo->bpp)) {
-			printf("failed to decode bmp %s\n", bmp_name);
-			ret = -EINVAL;
-			goto free_header;
-		}
-
-		logo->offset = 0;
-		logo->ymirror = 0;
-	} else {
-		logo->offset = get_unaligned_le32(&header->data_offset);
-		if (reserved == BMP_PROCESSED_FLAG)
-			logo->ymirror = 0;
-		else
-			logo->ymirror = 1;
-	}
-	logo->mem = dst;
-
-	memcpy(&logo_cache->logo, logo, sizeof(*logo));
-
-	flush_dcache_range((ulong)dst, ALIGN((ulong)dst + dst_size, CONFIG_SYS_CACHELINE_SIZE));
-
-free_header:
-
-	free(header);
-
-	return ret;
-#else
-	return -EINVAL;
-#endif
-}
-#endif
 
 static void *bitmap_create(int width, int height, unsigned int state)
 {
