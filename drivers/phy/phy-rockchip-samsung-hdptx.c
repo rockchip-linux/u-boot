@@ -483,6 +483,8 @@ static inline void rockchip_grf_write(struct regmap *grf, uint reg, uint mask,
 static int rockchip_hdptx_phy_set_mode(struct phy *phy, enum phy_mode mode,
 				       int submode)
 {
+	phy->attrs.mode = mode;
+
 	return 0;
 }
 
