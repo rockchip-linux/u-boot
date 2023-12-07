@@ -11,6 +11,7 @@
 #include <fdtdec.h>
 #include <fdt_support.h>
 #include <regmap.h>
+#include <asm/arch-rockchip/cpu.h>
 #include <asm/arch-rockchip/clock.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>

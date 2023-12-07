@@ -4,6 +4,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <asm/arch-rockchip/cpu.h>
 #include <asm/cache.h>
 #include <asm/unaligned.h>
 #include <config.h>
