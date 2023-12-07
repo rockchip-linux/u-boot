@@ -102,6 +102,8 @@
 				thumb        = <0>;
 				hyp          = <0>;
 				udelay       = <1000000>;
+				load         = <0x2000000>; // optional
+				load_c       = <0x4000000>; // optional
 			};
 		};
 	};
