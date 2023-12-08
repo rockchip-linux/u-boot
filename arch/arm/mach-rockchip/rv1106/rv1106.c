@@ -404,9 +404,32 @@ void board_debug_uart_init(void)
 #endif
 }
 
+#ifdef CONFIG_SUPPORT_USBPLUG
+void board_set_iomux(enum if_type if_type, int devnum, int routing)
+{
+	switch (if_type) {
+	case IF_TYPE_MMC:
+		/* emmc iomux */
+		writel(0xffff1111, GPIO4_IOC_BASE + GPIO4A_IOMUX_SEL_L);
+		writel(0xffff1111, GPIO4_IOC_BASE + GPIO4A_IOMUX_SEL_H);
+		writel(0x00ff0011, GPIO4_IOC_BASE + GPIO4B_IOMUX_SEL_L);
+		break;
+	case IF_TYPE_MTD:
+		/* fspi iomux */
+		writel(0x0f000700, GPIO4_IOC_BASE + 0x0030);
+		writel(0xff002200, GPIO4_IOC_BASE + GPIO4A_IOMUX_SEL_L);
+		writel(0x0f0f0202, GPIO4_IOC_BASE + GPIO4A_IOMUX_SEL_H);
+		writel(0x00ff0022, GPIO4_IOC_BASE + GPIO4B_IOMUX_SEL_L);
+		break;
+	default:
+		break;
+	}
+}
+#endif
+
 int arch_cpu_init(void)
 {
-#ifdef CONFIG_SPL_BUILD
+#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_SUPPORT_USBPLUG)
 	/* Save chip version to OS_REG1[2:0] */
 	if (readl(ROM_VER_REG) == ROM_V2)
 		writel((readl(CHIP_VER_REG) & ~CHIP_VER_MSK) | V(2), CHIP_VER_REG);
