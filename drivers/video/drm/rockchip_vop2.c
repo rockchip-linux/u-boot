@@ -3107,7 +3107,7 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 				IF_CRTL_HDMI_PIN_POL_SHIT, val, false);
 	}
 
-	return mode->clock;
+	return mode->crtc_clock;
 }
 
 static unsigned long rk3528_vop2_if_cfg(struct display_state *state)
