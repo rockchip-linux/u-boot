@@ -9,7 +9,7 @@
 
 #include "core.h"
 
-static void serdes_panel_init(struct serdes *serdes)
+static void serdes_panel_split_init(struct serdes *serdes)
 {
 	if (serdes->vpower_supply)
 		regulator_set_enable(serdes->vpower_supply, true);
@@ -29,7 +29,7 @@ static void serdes_panel_init(struct serdes *serdes)
 		       serdes->chip_data->name);
 }
 
-static void serdes_panel_prepare(struct rockchip_panel *panel)
+static void serdes_panel_split_prepare(struct rockchip_panel *panel)
 {
 	struct udevice *dev = panel->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
@@ -41,7 +41,7 @@ static void serdes_panel_prepare(struct rockchip_panel *panel)
 		       serdes->chip_data->name);
 }
 
-static void serdes_panel_unprepare(struct rockchip_panel *panel)
+static void serdes_panel_split_unprepare(struct rockchip_panel *panel)
 {
 	struct udevice *dev = panel->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
@@ -53,7 +53,7 @@ static void serdes_panel_unprepare(struct rockchip_panel *panel)
 		       serdes->chip_data->name);
 }
 
-static void serdes_panel_enable(struct rockchip_panel *panel)
+static void serdes_panel_split_enable(struct rockchip_panel *panel)
 {
 	struct udevice *dev = panel->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
@@ -61,10 +61,10 @@ static void serdes_panel_enable(struct rockchip_panel *panel)
 	if (serdes->chip_data->panel_ops->enable)
 		serdes->chip_data->panel_ops->enable(serdes);
 
-	serdes_panel_init(serdes);
+	serdes_panel_split_init(serdes);
 
-	if (serdes->serdes_panel->backlight)
-		backlight_enable(serdes->serdes_panel->backlight);
+	if (serdes->serdes_panel_split->backlight)
+		backlight_enable(serdes->serdes_panel_split->backlight);
 
 	if (serdes->chip_data->panel_ops->backlight_enable)
 		serdes->chip_data->panel_ops->backlight_enable(serdes);
@@ -73,7 +73,7 @@ static void serdes_panel_enable(struct rockchip_panel *panel)
 		       serdes->chip_data->name);
 }
 
-static void serdes_panel_disable(struct rockchip_panel *panel)
+static void serdes_panel_split_disable(struct rockchip_panel *panel)
 {
 	struct udevice *dev = panel->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
@@ -81,8 +81,8 @@ static void serdes_panel_disable(struct rockchip_panel *panel)
 	if (serdes->chip_data->panel_ops->backlight_disable)
 		serdes->chip_data->panel_ops->backlight_disable(serdes);
 
-	if (serdes->serdes_panel->backlight)
-		backlight_disable(serdes->serdes_panel->backlight);
+	if (serdes->serdes_panel_split->backlight)
+		backlight_disable(serdes->serdes_panel_split->backlight);
 
 	if (serdes->chip_data->panel_ops->disable)
 		serdes->chip_data->panel_ops->disable(serdes);
@@ -91,17 +91,17 @@ static void serdes_panel_disable(struct rockchip_panel *panel)
 		       serdes->chip_data->name);
 }
 
-static struct rockchip_panel_funcs serdes_panel_ops = {
-	.prepare = serdes_panel_prepare,
-	.unprepare = serdes_panel_unprepare,
-	.enable = serdes_panel_enable,
-	.disable = serdes_panel_disable,
+static struct rockchip_panel_funcs serdes_panel_split_ops = {
+	.prepare = serdes_panel_split_prepare,
+	.unprepare = serdes_panel_split_unprepare,
+	.enable = serdes_panel_split_enable,
+	.disable = serdes_panel_split_disable,
 };
 
-static int serdes_panel_probe(struct udevice *dev)
+static int serdes_panel_split_probe(struct udevice *dev)
 {
 	struct serdes *serdes = dev_get_priv(dev->parent);
-	struct serdes_panel *serdes_panel = NULL;
+	struct serdes_panel_split *serdes_panel_split = NULL;
 	struct rockchip_panel *panel;
 	int ret;
 
@@ -115,17 +115,17 @@ static int serdes_panel_probe(struct udevice *dev)
 	}
 
 	if (serdes->chip_data->serdes_type != TYPE_DES)
-		printf("warning: this chip is not des type\n");
+		printf("%s warning: this chip is not des type\n", __func__);
 
-	serdes_panel = calloc(1, sizeof(*serdes_panel));
-	if (!serdes_panel)
+	serdes_panel_split = calloc(1, sizeof(*serdes_panel_split));
+	if (!serdes_panel_split)
 		return -ENOMEM;
 
-	serdes->serdes_panel = serdes_panel;
+	serdes->serdes_panel_split = serdes_panel_split;
 
 	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
 					   "backlight",
-					   &serdes->serdes_panel->backlight);
+					   &serdes->serdes_panel_split->backlight);
 	if (ret && ret != -ENOENT)
 		printf("%s: Cannot get backlight: %d\n", __func__, ret);
 
@@ -140,9 +140,9 @@ static int serdes_panel_probe(struct udevice *dev)
 	dev->driver_data = (ulong)panel;
 	panel->dev = dev;
 	panel->bus_format = MEDIA_BUS_FMT_RGB888_1X24;
-	panel->funcs = &serdes_panel_ops;
+	panel->funcs = &serdes_panel_split_ops;
 
-	serdes->serdes_panel->panel = panel;
+	serdes->serdes_panel_split->panel = panel;
 
 	printf("%s %s successful, version %s\n",
 	       __func__,
@@ -159,21 +159,21 @@ free_panel:
 
 static const struct udevice_id serdes_of_match[] = {
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96752)
-	{ .compatible = "maxim,max96752-panel",},
+	{ .compatible = "maxim,max96752-panel-split",},
 #endif
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96772)
-	{ .compatible = "maxim,max96772-panel",},
+	{ .compatible = "maxim,max96772-panel-split",},
 #endif
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROCKCHIP_RKX121)
-	{ .compatible = "rockchip,rkx121-panel",},
+	{ .compatible = "rockchip,rkx121-panel-split",},
 #endif
 	{ }
 };
 
-U_BOOT_DRIVER(serdes_panel) = {
-	.name = "serdes-panel",
+U_BOOT_DRIVER(serdes_panel_split) = {
+	.name = "serdes-panel-split",
 	.id = UCLASS_PANEL,
 	.of_match = serdes_of_match,
-	.probe = serdes_panel_probe,
-	.priv_auto_alloc_size = sizeof(struct serdes_panel),
+	.probe = serdes_panel_split_probe,
+	.priv_auto_alloc_size = sizeof(struct serdes_panel_split),
 };

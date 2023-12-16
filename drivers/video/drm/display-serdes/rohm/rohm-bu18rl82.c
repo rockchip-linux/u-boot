@@ -7,7 +7,7 @@
  * Author: luowei <lw@rock-chips.com>
  */
 
-#include <serdes-display-core.h>
+#include "../core.h"
 #include "rohm-bu18rl82.h"
 
 static int BU18RL82_GPIO0_pins[] = {0};

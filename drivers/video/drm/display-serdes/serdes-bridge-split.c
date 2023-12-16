@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * serdes-bridge.c  --  display bridge for different serdes chips
+ * serdes-bridge_split.c  --  display bridge_split for different serdes chips
  *
  * Copyright (c) 2023 Rockchip Electronics Co. Ltd.
  *
@@ -9,7 +9,7 @@
 
 #include "core.h"
 
-static void serdes_bridge_init(struct serdes *serdes)
+static void serdes_bridge_split_init(struct serdes *serdes)
 {
 	if (serdes->vpower_supply)
 		regulator_set_enable(serdes->vpower_supply, true);
@@ -31,12 +31,12 @@ static void serdes_bridge_init(struct serdes *serdes)
 		       serdes->chip_data->name);
 }
 
-static void serdes_bridge_pre_enable(struct rockchip_bridge *bridge)
+static void serdes_bridge_split_pre_enable(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
 
-	//serdes_bridge_init(serdes);
+	//serdes_bridge_split_split_init(serdes);
 
 	if (serdes->chip_data->bridge_ops->pre_enable)
 		serdes->chip_data->bridge_ops->pre_enable(serdes);
@@ -46,7 +46,7 @@ static void serdes_bridge_pre_enable(struct rockchip_bridge *bridge)
 		       serdes->chip_data->name);
 }
 
-static void serdes_bridge_post_disable(struct rockchip_bridge *bridge)
+static void serdes_bridge_split_post_disable(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
@@ -59,13 +59,13 @@ static void serdes_bridge_post_disable(struct rockchip_bridge *bridge)
 		       serdes->chip_data->name);
 }
 
-static void serdes_bridge_enable(struct rockchip_bridge *bridge)
+static void serdes_bridge_split_enable(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
 
 	if (serdes->chip_data->serdes_type == TYPE_DES)
-		serdes_bridge_init(serdes);
+		serdes_bridge_split_init(serdes);
 
 	if (serdes->chip_data->bridge_ops->enable)
 		serdes->chip_data->bridge_ops->enable(serdes);
@@ -75,7 +75,7 @@ static void serdes_bridge_enable(struct rockchip_bridge *bridge)
 		       serdes->chip_data->name);
 }
 
-static void serdes_bridge_disable(struct rockchip_bridge *bridge)
+static void serdes_bridge_split_disable(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
@@ -87,20 +87,20 @@ static void serdes_bridge_disable(struct rockchip_bridge *bridge)
 		       serdes->chip_data->name);
 }
 
-static void serdes_bridge_mode_set(struct rockchip_bridge *bridge,
-				   const struct drm_display_mode *mode)
+static void serdes_bridge_split_mode_set(struct rockchip_bridge *bridge,
+					 const struct drm_display_mode *mode)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
 
-	memcpy(&serdes->serdes_bridge->mode, mode,
+	memcpy(&serdes->serdes_bridge_split->mode, mode,
 	       sizeof(struct drm_display_mode));
 
 	SERDES_DBG_MFD("%s: %s %s\n", __func__, serdes->dev->name,
 		       serdes->chip_data->name);
 }
 
-static bool serdes_bridge_detect(struct rockchip_bridge *bridge)
+static bool serdes_bridge_split_detect(struct rockchip_bridge *bridge)
 {
 	bool ret = true;
 	struct udevice *dev = bridge->dev;
@@ -110,31 +110,25 @@ static bool serdes_bridge_detect(struct rockchip_bridge *bridge)
 		ret = serdes->chip_data->bridge_ops->detect(serdes);
 
 	SERDES_DBG_MFD("%s: %s %s %s\n", __func__, serdes->dev->name,
-		       serdes->chip_data->name, (ret == true) ? "detected" : "no detected");
+		       serdes->chip_data->name, ret ? "detected" : "no detected");
 
 	return ret;
 }
 
-struct rockchip_bridge_funcs serdes_bridge_ops = {
-	.pre_enable = serdes_bridge_pre_enable,
-	.post_disable = serdes_bridge_post_disable,
-	.enable = serdes_bridge_enable,
-	.disable = serdes_bridge_disable,
-	.mode_set = serdes_bridge_mode_set,
-	.detect = serdes_bridge_detect,
+struct rockchip_bridge_funcs serdes_bridge_split_ops = {
+	.pre_enable = serdes_bridge_split_pre_enable,
+	.post_disable = serdes_bridge_split_post_disable,
+	.enable = serdes_bridge_split_enable,
+	.disable = serdes_bridge_split_disable,
+	.mode_set = serdes_bridge_split_mode_set,
+	.detect = serdes_bridge_split_detect,
 };
 
-static int serdes_bridge_probe(struct udevice *dev)
+static int serdes_bridge_split_probe(struct udevice *dev)
 {
 	struct rockchip_bridge *bridge;
 	struct serdes *serdes = dev_get_priv(dev->parent);
 	struct mipi_dsi_device *device = dev_get_platdata(dev);
-
-	if (!serdes->chip_data->bridge_ops) {
-		SERDES_DBG_MFD("%s %s no bridge ops\n",
-			       __func__, serdes->chip_data->name);
-		return 0;
-	}
 
 	serdes->sel_mipi = dev_read_bool(dev->parent, "sel-mipi");
 	if (serdes->sel_mipi) {
@@ -152,9 +146,9 @@ static int serdes_bridge_probe(struct udevice *dev)
 
 	dev->driver_data = (ulong)bridge;
 	bridge->dev = dev;
-	bridge->funcs = &serdes_bridge_ops;
+	bridge->funcs = &serdes_bridge_split_ops;
 
-	serdes->serdes_bridge->bridge = bridge;
+	serdes->serdes_bridge_split->bridge = bridge;
 
 	SERDES_DBG_MFD("%s: %s %s bridge=%p name=%s device=%p\n",
 		       __func__, serdes->dev->name,
@@ -165,32 +159,23 @@ static int serdes_bridge_probe(struct udevice *dev)
 }
 
 static const struct udevice_id serdes_of_match[] = {
-#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROHM_BU18TL82)
-	{ .compatible = "rohm,bu18tl82-bridge",  },
-#endif
-#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROHM_BU18RL82)
-	{ .compatible = "rohm,bu18rl82-bridge", },
-#endif
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96745)
-	{ .compatible = "maxim,max96745-bridge", },
+	{ .compatible = "maxim,max96745-bridge-split", },
 #endif
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96755)
-	{ .compatible = "maxim,max96755-bridge", },
+	{ .compatible = "maxim,max96755-bridge-split", },
 #endif
-#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96755)
-	{ .compatible = "maxim,max96789-bridge", },
-#endif
-#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROCKCHIP_RKX111)
-	{ .compatible = "rockchip,rkx111-bridge", },
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96789)
+	{ .compatible = "maxim,max96789-bridge-split", },
 #endif
 	{ }
 };
 
-U_BOOT_DRIVER(serdes_bridge) = {
-	.name = "serdes-bridge",
+U_BOOT_DRIVER(serdes_bridge_split) = {
+	.name = "serdes-bridge-split",
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = serdes_of_match,
-	.probe = serdes_bridge_probe,
-	.priv_auto_alloc_size = sizeof(struct serdes_bridge),
+	.probe = serdes_bridge_split_probe,
+	.priv_auto_alloc_size = sizeof(struct serdes_bridge_split),
 	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
 };

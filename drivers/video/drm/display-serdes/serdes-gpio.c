@@ -8,7 +8,7 @@
  *
  */
 
-#include <serdes-display-core.h>
+#include "core.h"
 
 static int serdes_gpio_get(struct udevice *dev, unsigned int offset)
 {

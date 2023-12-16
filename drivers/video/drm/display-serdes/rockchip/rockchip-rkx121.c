@@ -7,7 +7,7 @@
  * Author: luowei <lw@rock-chips.com>
  */
 
-#include <serdes-display-core.h>
+#include "../core.h"
 
 int rkx121_bridge_init(struct serdes *serdes)
 {

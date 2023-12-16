@@ -7,7 +7,7 @@
  * Author: luowei <lw@rock-chips.com>
  */
 
-#include <serdes-display-core.h>
+#include "../core.h"
 
 struct serdes_chip_data serdes_nca9539_data = {
 	.name			= "nca9539",

@@ -7,7 +7,7 @@
  * Author: luowei <lw@rock-chips.com>
  */
 
-#include <serdes-display-core.h>
+#include "../core.h"
 #include "rohm-bu18tl82.h"
 
 #define PINCTRL_GROUP(a, b, c) { .name = a, .pins = b, .num_pins = c}
