@@ -7,7 +7,7 @@
  * Author: luowei <lw@rock-chips.com>
  */
 
-#include <serdes-display-core.h>
+#include "core.h"
 
 static const struct pinconf_param serdes_conf_params[] = {
 	{ "bias-disable", PIN_CONFIG_BIAS_DISABLE, 0 },

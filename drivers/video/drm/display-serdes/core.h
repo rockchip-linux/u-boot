@@ -12,6 +12,8 @@
 #include <i2c.h>
 #include <errno.h>
 #include <drm/drm_mipi_dsi.h>
+#include <drm/drm_dsc.h>
+#include <drm_modes.h>
 #include <video_bridge.h>
 #include <asm/unaligned.h>
 #include <linux/media-bus-format.h>
@@ -38,7 +40,7 @@
 #include <asm/system.h>
 #include <asm/io.h>
 
-#include <serdes-display-gpio.h>
+#include "gpio.h"
 
 #include "../drivers/video/drm/rockchip_bridge.h"
 #include "../drivers/video/drm/rockchip_display.h"
@@ -70,8 +72,15 @@
 #endif
 
 #define SERDES_UBOOT_DISPLAY_VERSION "serdes-uboot-displaly-v10-230920"
-
+#define MAX_NUM_SERDES_SPLIT 8
 struct serdes;
+
+enum ser_link_mode {
+	SER_DUAL_LINK,
+	SER_LINKA,
+	SER_LINKB,
+	SER_SPLITTER_MODE,
+};
 
 /* Convenience macro to define a single named or anonymous pin descriptor */
 #define PINCTRL_PIN(a, b) { .number = a, .name = b }
@@ -178,6 +187,11 @@ struct serdes_chip_gpio_ops {
 	int (*to_irq)(struct serdes *serdes, int gpio);
 };
 
+struct serdes_chip_split_ops {
+	int (*select)(struct serdes *serdes, int chan);
+	int (*deselect)(struct serdes *serdes, int chan);
+	int (*set_i2c_addr)(struct serdes *serdes, int address, int link);
+};
 struct serdes_chip_irq_ops {
 	/*serdes chip function for lock and err irq*/
 	int (*lock_handle)(struct serdes *serdes);
@@ -200,11 +214,13 @@ struct serdes_chip_data {
 	int same_chip_count;
 	u8 bank_num;
 
+	int (*chip_init)(struct serdes *serdes);
 	struct serdes_chip_pinctrl_info *pinctrl_info;
 	struct serdes_chip_bridge_ops *bridge_ops;
 	struct serdes_chip_panel_ops *panel_ops;
 	struct serdes_chip_pinctrl_ops *pinctrl_ops;
 	struct serdes_chip_gpio_ops *gpio_ops;
+	struct serdes_chip_split_ops *split_ops;
 	struct serdes_chip_irq_ops *irq_ops;
 };
 
@@ -236,12 +252,43 @@ struct serdes_pinctrl {
 
 struct serdes_panel {
 	struct rockchip_panel *panel;
+	const char *name;
+	u32 width_mm;
+	u32 height_mm;
+	u32 link_rate;
+	u32 lane_count;
+	bool ssc;
 	struct serdes *parent;
+	struct drm_display_mode mode;
+	struct udevice *backlight;
+	struct rockchip_panel_funcs *panel_ops;
+};
+
+struct serdes_panel_split {
+	struct rockchip_panel *panel;
+
+	const char *name;
+	u32 width_mm;
+	u32 height_mm;
+	u32 link_rate;
+	u32 lane_count;
+	bool ssc;
+	struct serdes *parent;
+	struct drm_display_mode mode;
 	struct udevice *backlight;
 	struct rockchip_panel_funcs *panel_ops;
 };
 
 struct serdes_bridge {
+	bool sel_mipi;
+	struct mipi_dsi_device *dsi;
+	struct serdes *parent;
+	struct drm_display_mode mode;
+	struct rockchip_bridge *bridge;
+	struct rockchip_bridge_funcs *bridge_ops;
+};
+
+struct serdes_bridge_split {
 	bool sel_mipi;
 	struct mipi_dsi_device *dsi;
 	struct serdes *parent;
@@ -260,7 +307,7 @@ struct serdes {
 	struct gpio_desc reset_gpio;
 	struct gpio_desc enable_gpio;
 
-	/*serdes irq pin*/
+	/* serdes irq pin */
 	struct gpio_desc lock_gpio;
 	struct gpio_desc err_gpio;
 	int lock_irq;
@@ -271,8 +318,18 @@ struct serdes {
 	bool sel_mipi;
 	struct mipi_dsi_device *dsi;
 
+	bool split_mode_enable;
+	unsigned int reg_hw;
+	unsigned int reg_use;
+	unsigned int link_use;
+	unsigned int id_serdes_bridge_split;
+	unsigned int id_serdes_panel_split;
+	struct serdes *g_serdes_bridge_split;
+
 	struct serdes_bridge *serdes_bridge;
+	struct serdes_bridge_split *serdes_bridge_split;
 	struct serdes_panel *serdes_panel;
+	struct serdes_panel_split *serdes_panel_split;
 	struct serdes_pinctrl *serdes_pinctrl;
 	struct serdes_chip_data *chip_data;
 };
@@ -282,13 +339,21 @@ int serdes_reg_read(struct serdes *serdes, unsigned int reg, unsigned int *val);
 int serdes_reg_write(struct serdes *serdes, unsigned int reg, unsigned int val);
 int serdes_set_bits(struct serdes *serdes, unsigned int reg,
 		    unsigned int mask, unsigned int val);
+int serdes_multi_reg_write(struct serdes *serdes,
+			   const struct reg_sequence *regs,
+			   int num_regs);
 int serdes_i2c_set_sequence(struct serdes *serdes);
 int serdes_parse_init_seq(struct udevice *dev, const u16 *data,
 			  int length, struct serdes_init_seq *seq);
 int serdes_get_init_seq(struct serdes *serdes);
 int serdes_gpio_register(struct udevice *dev, struct serdes *serdes);
 int serdes_pinctrl_register(struct udevice *dev, struct serdes *serdes);
+int serdes_bridge_register(struct udevice *dev, struct serdes *serdes);
+int serdes_bridge_split_register(struct udevice *dev, struct serdes *serdes);
 int serdes_power_init(void);
+int serdes_video_bridge_init(void);
+int serdes_video_bridge_split_init(void);
+int serdes_display_init(void);
 
 extern struct serdes_chip_data serdes_bu18tl82_data;
 extern struct serdes_chip_data serdes_bu18rl82_data;

@@ -1,411 +1,75 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- * serdes-i2c.c  --  display i2c for different serdes chips
+ * serdes-bridge.c  --  display bridge for different serdes chips
  *
  * Copyright (c) 2023 Rockchip Electronics Co. Ltd.
  *
  * Author: luowei <lw@rock-chips.com>
  */
 
-#include <serdes-display-core.h>
+#include "core.h"
 
-static int dm_i2c_reg_write_u8(struct udevice *dev, u8 reg, u8 val)
+static struct serdes *g_serdes_ser_split[MAX_NUM_SERDES_SPLIT];
+
+static void serdes_i2c_init(struct serdes *serdes)
 {
-	int ret;
-	u8 buf[2];
-	struct i2c_msg msg;
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(dev);
-
-	buf[0] = reg;
-	buf[1] = val;
-	msg.addr = chip->chip_addr;
-	msg.flags = 0;
-	msg.len = 2;
-	msg.buf = buf;
-
-	ret = dm_i2c_xfer(dev, &msg, 1);
-	if (ret) {
-		printf("dm i2c write failed: %d\n", ret);
-		return ret;
-	}
-
-	return 0;
-}
-
-static uint8_t dm_i2c_reg_read_u8(struct udevice *dev, u8 reg)
-{
-	int ret;
-	u8 data;
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(dev);
-	struct i2c_msg msg[] = {
-		{
-			.addr = chip->chip_addr,
-			.flags = 0,
-			.buf = (u8 *)&reg,
-			.len = 1,
-		}, {
-			.addr = chip->chip_addr,
-			.flags = I2C_M_RD,
-			.buf = (u8 *)&data,
-			.len = 1,
-		}
-	};
-
-	ret = dm_i2c_xfer(dev, msg, 2);
-	if (ret) {
-		printf("dm i2c read failed: %d\n", ret);
-		return ret;
-	}
-
-	return data;
-}
-
-static int dm_i2c_reg_clrset_u8(struct udevice *dev,
-				u8 offset,
-				u8 clr, u8 set)
-{
-	u8 val;
-
-	val = dm_i2c_reg_read_u8(dev, offset);
-	if (val < 0)
-		return val;
-
-	val &= ~clr;
-	val |= set;
-
-	return dm_i2c_reg_write_u8(dev, offset, val);
-}
-
-/**
- * serdes_reg_read: Read a single serdes register.
- *
- * @serdes: Device to read from.
- * @reg: Register to read.
- * @val: Date read from register.
- */
-int serdes_reg_read(struct serdes *serdes,
-		    unsigned int reg, unsigned int *val)
-{
-	unsigned int value;
-
-	if (serdes->chip_data->reg_val_type == REG_8BIT_VAL_8IT)
-		value = dm_i2c_reg_read_u8(serdes->dev, reg);
-	else
-		value = dm_i2c_reg_read(serdes->dev, reg);
-
-	*val = value;
-	SERDES_DBG_I2C("%s %s %s Read Reg%04x %04x\n",
-		       __func__, serdes->dev->name,
-		       serdes->dev->name, reg, *val);
-	return 0;
-}
-EXPORT_SYMBOL_GPL(serdes_reg_read);
-
-/**
- * serdes_reg_write: Write a single serdes register.
- *
- * @serdes: Device to write to.
- * @reg: Register to write to.
- * @val: Value to write.
- */
-int serdes_reg_write(struct serdes *serdes, unsigned int reg,
-		     unsigned int val)
-{
-	int ret = 0;
-
-	SERDES_DBG_I2C("%s %s %s Write Reg%04x %04x)\n",
-		       __func__, serdes->dev->name,
-		       serdes->dev->name, reg, val);
-	if (serdes->chip_data->reg_val_type == REG_8BIT_VAL_8IT) {
-		ret = dm_i2c_reg_write_u8(serdes->dev, reg, val);
-		if (ret != 0)
-			return ret;
-	} else {
-		ret = dm_i2c_reg_write(serdes->dev, reg, val);
-		if (ret != 0)
-			return ret;
-	}
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(serdes_reg_write);
-
-/**
- * serdes_set_bits: Set the value of a bitfield in a serdes register
- *
- * @serdes: Device to write to.
- * @reg: Register to write to.
- * @mask: Mask of bits to set.
- * @val: Value to set (unshifted)
- */
-int serdes_set_bits(struct serdes *serdes, unsigned int reg,
-		    unsigned int mask, unsigned int val)
-{
-	int ret = 0;
-
-	SERDES_DBG_I2C("%s %s %s Write Reg%04x %04x) mask=%04x\n",
-		       __func__,
-		       serdes->dev->name,
-		       serdes->dev->name, reg, val, mask);
-
-	if (serdes->chip_data->reg_val_type == REG_8BIT_VAL_8IT)
-		ret = dm_i2c_reg_clrset_u8(serdes->dev, reg, mask, val);
-	else
-		ret = dm_i2c_reg_clrset(serdes->dev, reg, mask, val);
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(serdes_set_bits);
-
-int serdes_i2c_set_sequence(struct serdes *serdes)
-{
-	int i, ret = 0;
-	unsigned int def = 0;
-
-	for (i = 0; i < serdes->serdes_init_seq->reg_seq_cnt; i++) {
-		if (serdes->serdes_init_seq->reg_sequence[i].reg == 0xffff) {
-			SERDES_DBG_MFD("%s: delay 0x%04x us\n", __func__,
-				       serdes->serdes_init_seq->reg_sequence[i].def);
-			udelay(serdes->serdes_init_seq->reg_sequence[i].def);
-			continue;
-		}
-
-		ret = serdes_reg_write(serdes,
-				       serdes->serdes_init_seq->reg_sequence[i].reg,
-				       serdes->serdes_init_seq->reg_sequence[i].def);
-
-		if (ret < 0) {
-			SERDES_DBG_MFD("failed to write reg %04x, ret %d, again\n",
-				       serdes->serdes_init_seq->reg_sequence[i].reg, ret);
-			ret = serdes_reg_write(serdes,
-					       serdes->serdes_init_seq->reg_sequence[i].reg,
-					       serdes->serdes_init_seq->reg_sequence[i].def);
-		}
-		serdes_reg_read(serdes, serdes->serdes_init_seq->reg_sequence[i].reg, &def);
-		if ((def != serdes->serdes_init_seq->reg_sequence[i].def) || (ret < 0)) {
-			/*if read value != write value then write again*/
-			printf("%s read %04x %04x != %04x\n", serdes->dev->name,
-			       serdes->serdes_init_seq->reg_sequence[i].reg,
-			       def, serdes->serdes_init_seq->reg_sequence[i].def);
-			ret = serdes_reg_write(serdes,
-					       serdes->serdes_init_seq->reg_sequence[i].reg,
-					       serdes->serdes_init_seq->reg_sequence[i].def);
-		}
-	}
-
-	SERDES_DBG_MFD("serdes %s sequence_init\n", serdes->dev->name);
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(serdes_i2c_set_sequence);
-
-int serdes_parse_init_seq(struct udevice *dev, const u16 *data,
-			  int length, struct serdes_init_seq *seq)
-{
-	struct reg_sequence *reg_sequence;
-	u16 *buf, *d;
-	unsigned int i, cnt;
-	int ret;
-
-	if (!seq)
-		return -EINVAL;
-
-	buf = calloc(1, length);
-	if (!buf)
-		return -ENOMEM;
-
-	memcpy(buf, data, length);
-
-	d = buf;
-	cnt = length / 4;
-	seq->reg_seq_cnt = cnt;
-
-	seq->reg_sequence = calloc(cnt, sizeof(struct reg_sequence));
-	if (!seq->reg_sequence) {
-		ret = -ENOMEM;
-		goto free_buf;
-	}
-
-	for (i = 0; i < cnt; i++) {
-		reg_sequence = &seq->reg_sequence[i];
-		reg_sequence->reg = get_unaligned_be16(&d[0]);
-		reg_sequence->def = get_unaligned_be16(&d[1]);
-		d += 2;
-	}
-
-	return 0;
-
-free_buf:
-	free(buf);
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(serdes_parse_init_seq);
-
-int serdes_get_init_seq(struct serdes *serdes)
-{
-	const void *data = NULL;
-	int len, err;
-
-	data = dev_read_prop(serdes->dev, "serdes-init-sequence", &len);
-	if (!data) {
-		printf("failed to get serdes-init-sequence\n");
-		return -EINVAL;
-	}
-
-	serdes->serdes_init_seq = calloc(1, sizeof(*serdes->serdes_init_seq));
-	if (!serdes->serdes_init_seq)
-		return -ENOMEM;
-
-	err = serdes_parse_init_seq(serdes->dev,
-				    data, len, serdes->serdes_init_seq);
-	if (err) {
-		printf("failed to parse serdes-init-sequence\n");
-		goto free_init_seq;
-	}
-
-	return 0;
-
-free_init_seq:
-	free(serdes->serdes_init_seq);
-
-	return err;
-}
-EXPORT_SYMBOL_GPL(serdes_get_init_seq);
-
-int serdes_gpio_register(struct udevice *dev,
-			 struct serdes *serdes)
-{
-	bool pre_reloc_only = !(gd->flags & GD_FLG_RELOC);
-	struct uclass_driver *drv;
-	int ret = -ENODEV;
-	const char *name;
-	ofnode subnode;
-	struct udevice *subdev;
-	struct udevice *gpio_dev;
-
-	SERDES_DBG_MFD("%s node=%s\n",
-		       __func__, ofnode_get_name(dev->node));
-
-	/* Lookup GPIO driver */
-	drv = lists_uclass_lookup(UCLASS_GPIO);
-	if (!drv) {
-		printf("Cannot find GPIO driver\n");
-		return -ENOENT;
-	}
-
-	dev_for_each_subnode(subnode, dev) {
-		if (pre_reloc_only &&
-		    !ofnode_pre_reloc(subnode))
-			continue;
-
-		name = ofnode_get_name(subnode);
-		if (!name)
-			continue;
-
-		if (strstr(name, "gpio")) {
-			ret = device_bind_driver_to_node(dev,
-							 "serdes-gpio", name,
-							 subnode, &subdev);
-			if (ret)
-				return ret;
-
-			ret = uclass_get_device_by_ofnode(UCLASS_GPIO,
-							  subnode,
-							  &gpio_dev);
-			if (ret) {
-				printf("%s failed to get gpio dev\n", __func__);
-				return ret;
-			}
-
-			SERDES_DBG_MFD("%s select %s gpio_dev=%s\n",
-				       __func__, name, gpio_dev->name);
-			return 0;
-		}
-	}
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(serdes_gpio_register);
-
-int serdes_pinctrl_register(struct udevice *dev,
-			    struct serdes *serdes)
-{
-	bool pre_reloc_only = !(gd->flags & GD_FLG_RELOC);
-	struct uclass_driver *drv;
-	int ret = -ENODEV;
-	const char *name;
-	ofnode subnode;
-	struct udevice *subdev;
-	struct udevice *pinctrl_dev;
-
-	SERDES_DBG_MFD("%s node=%s\n",
-		       __func__, ofnode_get_name(dev->node));
-
-	/* Lookup PINCTRL driver */
-	drv = lists_uclass_lookup(UCLASS_PINCTRL);
-	if (!drv) {
-		printf("Cannot find PINCTRL driver\n");
-		return -ENOENT;
-	}
-
-	dev_for_each_subnode(subnode, dev) {
-		if (pre_reloc_only &&
-		    !ofnode_pre_reloc(subnode))
-			continue;
-
-		name = ofnode_get_name(subnode);
-		if (!name)
-			continue;
-
-		if (strstr(name, "pinctrl")) {
-			ret = device_bind_driver_to_node(dev,
-							 "serdes-pinctrl", name,
-							 subnode, &subdev);
-			if (ret)
-				return ret;
-
-			ret = uclass_get_device_by_ofnode(UCLASS_PINCTRL,
-							  subnode,
-							  &pinctrl_dev);
-			if (ret) {
-				printf("%s failed to get pinctrl\n", __func__);
-				return ret;
-			}
-
-			SERDES_DBG_MFD("%s select %s pinctrl_dev=%s\n",
-				       __func__, name, pinctrl_dev->name);
-			return 0;
-		}
-	}
-
-	return ret;
-}
-EXPORT_SYMBOL_GPL(serdes_pinctrl_register);
-
-static int serdes_i2c_init(struct serdes *serdes)
-{
-	int ret = 0;
-	int i = 0;
-
 	if (serdes->vpower_supply)
 		regulator_set_enable(serdes->vpower_supply, true);
 
 	if (dm_gpio_is_valid(&serdes->enable_gpio))
 		dm_gpio_set_value(&serdes->enable_gpio, 1);
 
-	mdelay(5);
+	//mdelay(5);
 
-	for (i = 0; i < 5; i++) {
-		ret = serdes_i2c_set_sequence(serdes);
-		if (!ret)
-			break;
-		else
-			mdelay(20);
+	//video_bridge_set_active(serdes->dev, true);
+
+	if (serdes->chip_data->bridge_ops->init)
+		serdes->chip_data->bridge_ops->init(serdes);
+
+	serdes_i2c_set_sequence(serdes);
+
+	SERDES_DBG_MFD("%s: %s %s\n", __func__,
+		       serdes->dev->name,
+		       serdes->chip_data->name);
+}
+
+static int serdes_set_i2c_address(struct serdes *serdes,
+				  u32 reg_hw, u32 reg_use, int link)
+{
+	int ret = 0;
+	struct dm_i2c_chip *chip_split;
+	struct serdes *serdes_split = serdes->g_serdes_bridge_split;
+
+	if (!serdes_split) {
+		pr_info("%s: serdes_split is null\n", __func__);
+		return -1;
 	}
 
-	SERDES_DBG_MFD("%s: %s %s\n", __func__, serdes->dev->name,
-		       serdes->chip_data->name);
+	chip_split = dev_get_parent_platdata(serdes->dev);
+	SERDES_DBG_MFD("%s: %s addr=0x%x reg_hw=0x%x, reg_use=0x%x split=0x%p\n",
+		       __func__, serdes_split->dev->name,
+		       chip_split->chip_addr, serdes->reg_hw,
+		       serdes->reg_use, serdes_split);
+
+	chip_split->chip_addr = serdes->reg_hw;
+
+	if (serdes_split && serdes_split->chip_data->split_ops &&
+	    serdes_split->chip_data->split_ops->select)
+		ret = serdes_split->chip_data->split_ops->select(serdes_split, link);
+
+	if (serdes->chip_data->split_ops &&
+	    serdes->chip_data->split_ops->set_i2c_addr)
+		serdes->chip_data->split_ops->set_i2c_addr(serdes,
+							   reg_use, link);
+
+	if (serdes_split && serdes_split->chip_data->split_ops &&
+	    serdes_split->chip_data->split_ops->select)
+		ret = serdes_split->chip_data->split_ops->select(serdes_split,
+								 SER_SPLITTER_MODE);
+
+	chip_split->chip_addr = serdes->reg_use;
+
+	serdes_i2c_set_sequence(serdes);
 
 	return ret;
 }
@@ -413,6 +77,9 @@ static int serdes_i2c_init(struct serdes *serdes)
 static int serdes_i2c_probe(struct udevice *dev)
 {
 	struct serdes *serdes = dev_get_priv(dev);
+	struct serdes_bridge *serdes_bridge = NULL;
+	struct serdes_bridge_split *serdes_bridge_split = NULL;
+	struct serdes_pinctrl *serdes_pinctrl = NULL;
 	int ret;
 
 	ret = i2c_set_chip_offset_len(dev, 2);
@@ -423,8 +90,8 @@ static int serdes_i2c_probe(struct udevice *dev)
 	serdes->chip_data = (struct serdes_chip_data *)dev_get_driver_data(dev);
 	serdes->type = serdes->chip_data->serdes_type;
 
-	SERDES_DBG_MFD("serdes %s %s probe start\n",
-		       serdes->dev->name, serdes->chip_data->name);
+	SERDES_DBG_MFD("serdes %s %s probe start serdes=%p\n",
+		       serdes->dev->name, serdes->chip_data->name, serdes);
 
 	ret = uclass_get_device_by_phandle(UCLASS_REGULATOR, dev,
 					   "vpower-supply",
@@ -439,60 +106,133 @@ static int serdes_i2c_probe(struct udevice *dev)
 		SERDES_DBG_MFD("%s: failed to get enable gpio: %d\n",
 			       __func__, ret);
 
-	ret = gpio_request_by_name(dev, "lock-gpios", 0,
-				   &serdes->lock_gpio,
+	ret = gpio_request_by_name(dev, "lock-gpios", 0, &serdes->lock_gpio,
 				   GPIOD_IS_IN);
 	if (ret)
 		SERDES_DBG_MFD("%s: failed to get lock gpio: %d\n",
 			       __func__, ret);
 
-	ret = gpio_request_by_name(dev, "err-gpios", 0,
-				   &serdes->err_gpio,
+	ret = gpio_request_by_name(dev, "err-gpios", 0, &serdes->err_gpio,
 				   GPIOD_IS_IN);
 	if (ret)
 		SERDES_DBG_MFD("%s: failed to err gpio: %d\n",
 			       __func__, ret);
 
+	if (serdes->chip_data->serdes_type == TYPE_OTHER) {
+		SERDES_DBG_MFD("TYPE_OTHER just need only init i2c\n");
+		serdes_i2c_init(serdes);
+		return 0;
+	}
+
 	ret = serdes_get_init_seq(serdes);
 	if (ret)
 		return ret;
 
-	serdes_i2c_init(serdes);
+	if (serdes->chip_data->serdes_type == TYPE_SER)
+		serdes_i2c_init(serdes);
 
-	printf("%s %s successful, version %s\n",
+	if (serdes->chip_data->bridge_ops) {
+		serdes_bridge = calloc(1, sizeof(*serdes_bridge));
+		if (!serdes_bridge)
+			return -ENOMEM;
+		serdes->serdes_bridge = serdes_bridge;
+
+		serdes_bridge_split = calloc(1, sizeof(*serdes_bridge_split));
+		if (!serdes_bridge_split)
+			return -ENOMEM;
+		serdes->serdes_bridge_split = serdes_bridge_split;
+	}
+
+	serdes_pinctrl = calloc(1, sizeof(*serdes_pinctrl));
+	if (!serdes_pinctrl)
+		return -ENOMEM;
+
+	serdes->serdes_pinctrl = serdes_pinctrl;
+	ret = serdes_pinctrl_register(dev, serdes);
+	if (ret)
+		return ret;
+
+	serdes->id_serdes_bridge_split = dev_read_u32_default(dev, "id-serdes-bridge-split", 0);
+	if ((serdes->id_serdes_bridge_split < MAX_NUM_SERDES_SPLIT) && (serdes->type == TYPE_SER)) {
+		g_serdes_ser_split[serdes->id_serdes_bridge_split] = serdes;
+		SERDES_DBG_MFD("%s: %s-%s g_serdes_split[%d]=0x%p\n", __func__,
+			       serdes->dev->name, serdes->chip_data->name,
+			       serdes->id_serdes_bridge_split, serdes);
+	}
+
+	serdes->reg_hw = dev_read_u32_default(dev, "reg-hw", 0);
+	serdes->reg_use = dev_read_u32_default(dev, "reg", 0);
+	serdes->link_use = dev_read_u32_default(dev, "link", 0);
+	serdes->id_serdes_panel_split = dev_read_u32_default(dev, "id-serdes-panel-split", 0);
+
+	if ((serdes->id_serdes_panel_split) && (serdes->type == TYPE_DES)) {
+		serdes->g_serdes_bridge_split = g_serdes_ser_split[serdes->id_serdes_panel_split];
+		SERDES_DBG_MFD("%s: id=%d p=0x%p\n", __func__,
+			       serdes->id_serdes_panel_split,
+			       serdes->g_serdes_bridge_split);
+	}
+
+	if (serdes->reg_hw) {
+		SERDES_DBG_MFD("%s: %s change i2c addr from 0x%x to 0x%x\n",
+			       __func__, dev->name,
+			       serdes->reg_hw, serdes->reg_use);
+		serdes_set_i2c_address(serdes, serdes->reg_hw,
+				       serdes->reg_use, serdes->link_use);
+	}
+
+	printf("%s %s %s successful\n",
 	       __func__,
 	       serdes->dev->name,
-	       SERDES_UBOOT_DISPLAY_VERSION);
+	       serdes->chip_data->name);
 
 	return 0;
 }
 
 static const struct udevice_id serdes_of_match[] = {
-#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_NOVO_NCA9539)
-	{ .compatible = "novo,nca9539", .data = (ulong)&serdes_nca9539_data },
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROHM_BU18TL82)
+	{ .compatible = "rohm,bu18tl82",
+		.data = (ulong)&serdes_bu18tl82_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROHM_BU18RL82)
+	{ .compatible = "rohm,bu18rl82",
+		.data = (ulong)&serdes_bu18rl82_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96745)
+	{ .compatible = "maxim,max96745",
+		.data = (ulong)&serdes_max96745_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96755)
+	{ .compatible = "maxim,max96755",
+		.data = (ulong)&serdes_max96755_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96789)
+	{ .compatible = "maxim,max96789",
+		.data = (ulong)&serdes_max96789_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROCKCHIP_RKX111)
+	{ .compatible = "rockchip,rkx111",
+		.data = (ulong)&serdes_rkx111_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96752)
+	{ .compatible = "maxim,max96752",
+		.data = (ulong)&serdes_max96752_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96772)
+	{ .compatible = "maxim,max96772",
+		.data = (ulong)&serdes_max96772_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROCKCHIP_RKX121)
+	{ .compatible = "rockchip,rkx121",
+		.data = (ulong)&serdes_rkx121_data },
 #endif
 	{ }
 };
 
-U_BOOT_DRIVER(serdes_misc) = {
-	.name = "serdes-misc",
+U_BOOT_DRIVER(serdes_i2c) = {
+	.name = "serdes-i2c",
 	.id = UCLASS_MISC,
 	.of_match = serdes_of_match,
 	.probe = serdes_i2c_probe,
+	.bind = dm_scan_fdt_dev,
 	.priv_auto_alloc_size = sizeof(struct serdes),
 };
-
-int serdes_power_init(void)
-{
-	struct udevice *dev;
-	int ret = 0;
-
-	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(serdes_misc),
-					  &dev);
-	if (ret)
-		printf("%s failed to get serdes misc device\n", __func__);
-
-	return ret;
-}
-

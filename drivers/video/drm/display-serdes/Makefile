@@ -11,5 +11,5 @@ obj-$(CONFIG_SERDES_DISPLAY_CHIP_ROHM)		+= rohm/
 obj-$(CONFIG_SERDES_DISPLAY_CHIP_ROCKCHIP)	+= rockchip/
 obj-$(CONFIG_SERDES_DISPLAY_CHIP_NOVO)		+= novo/
 
-obj-$(CONFIG_SERDES_DISPLAY) +=serdes-i2c.o serdes-bridge.o serdes-panel.o serdes-pinctrl.o serdes-gpio.o
+obj-$(CONFIG_SERDES_DISPLAY) +=serdes-i2c.o serdes-core.o serdes-bridge.o serdes-bridge-split.o serdes-panel.o serdes-panel-split.o serdes-pinctrl.o serdes-gpio.o
 endif
