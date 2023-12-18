@@ -7,6 +7,11 @@
 #define _AVB_VERIFY_H
 
 #include <../lib/libavb/libavb.h>
+#include <../lib/libavb_ab/libavb_ab.h>
+#include <../lib/libavb_atx/libavb_atx.h>
+#include <../lib/libavb_user/libavb_user.h>
+#include <../lib/libavb_user/rockchip/avb.h>
+#include <../lib/libavb_user/rockchip/ab.h>
 #include <mapmem.h>
 #include <mmc.h>
 
@@ -22,6 +27,11 @@ enum avb_boot_state {
 	AVB_RED,
 };
 
+struct preloaded_partition {
+	uint8_t *addr;
+	size_t size; // 0: the partition hasn't yet been preloaded
+};
+
 struct AvbOpsData {
 	struct AvbOps ops;
 	int mmc_dev;
@@ -30,6 +40,13 @@ struct AvbOpsData {
 	struct udevice *tee;
 	u32 session;
 #endif
+	const char *iface;
+	const char *devnum;
+	const char *slot_suffix;
+	struct preloaded_partition boot;
+	struct preloaded_partition vendor_boot;
+	struct preloaded_partition init_boot;
+	struct preloaded_partition resource;
 };
 
 struct mmc_part {
