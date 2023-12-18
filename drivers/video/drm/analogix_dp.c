@@ -935,12 +935,29 @@ static int analogix_dp_connector_detect(struct rockchip_connector *conn,
 	return analogix_dp_detect(dp);
 }
 
+static int analogix_dp_connector_mode_valid(struct rockchip_connector *conn,
+					    struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct videomode vm;
+
+	drm_display_mode_to_videomode(&conn_state->mode, &vm);
+
+	if (!vm.hfront_porch || !vm.hback_porch || !vm.vfront_porch || !vm.vback_porch) {
+		dev_err(dp->dev, "front porch or back porch can not be 0\n");
+		return MODE_BAD;
+	}
+
+	return MODE_OK;
+}
+
 static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
 	.init = analogix_dp_connector_init,
 	.get_edid = analogix_dp_connector_get_edid,
 	.enable = analogix_dp_connector_enable,
 	.disable = analogix_dp_connector_disable,
 	.detect = analogix_dp_connector_detect,
+	.mode_valid = analogix_dp_connector_mode_valid,
 };
 
 static u32 analogix_dp_parse_link_frequencies(struct analogix_dp_device *dp)
