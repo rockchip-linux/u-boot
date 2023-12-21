@@ -30,6 +30,8 @@ struct rockchip_connector {
 	int id;
 	int type;
 	bool hpd;
+	bool split_mode;
+	bool dual_channel_mode;
 
 	const struct rockchip_connector_funcs *funcs;
 	void *data;
