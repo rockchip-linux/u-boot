@@ -30,7 +30,7 @@
 #ifndef AVB_ATX_OPS_H_
 #define AVB_ATX_OPS_H_
 
-#include <libavb/libavb.h>
+#include "../libavb/libavb.h"
 
 #include "avb_atx_types.h"
 

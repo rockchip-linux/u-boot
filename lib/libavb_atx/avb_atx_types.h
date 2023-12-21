@@ -30,7 +30,7 @@
 #ifndef AVB_ATX_TYPES_H_
 #define AVB_ATX_TYPES_H_
 
-#include <libavb/libavb.h>
+#include "../libavb/libavb.h"
 
 #ifdef __cplusplus
 extern "C" {
