@@ -2212,12 +2212,6 @@ void rockchip_display_fixup(void *blob)
 			continue;
 		}
 
-		if (s->conn_state.secondary &&
-		    s->conn_state.secondary->type != DRM_MODE_CONNECTOR_LVDS) {
-			s->conn_state.mode.clock *= 2;
-			s->conn_state.mode.hdisplay *= 2;
-		}
-
 		crtc = s->crtc_state.crtc;
 		if (!crtc)
 			continue;

@@ -328,6 +328,8 @@ int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode,
 void rockchip_display_make_crc32_table(void);
 uint32_t rockchip_display_crc32c_cal(unsigned char *data, int length);
 void drm_mode_set_crtcinfo(struct drm_display_mode *p, int adjust_flags);
+void drm_mode_convert_to_origin_mode(struct drm_display_mode *mode);
+void drm_mode_convert_to_split_mode(struct drm_display_mode *mode);
 
 int display_rect_calc_hscale(struct display_rect *src, struct display_rect *dst,
 			     int min_hscale, int max_hscale);

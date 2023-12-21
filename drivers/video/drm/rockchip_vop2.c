@@ -5622,6 +5622,10 @@ static int rockchip_vop2_mode_fixup(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
 
+	if (conn_state->secondary &&
+	    conn_state->secondary->type != DRM_MODE_CONNECTOR_LVDS)
+		drm_mode_convert_to_split_mode(mode);
+
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V | CRTC_STEREO_DOUBLE);
 
 	/*
@@ -5668,15 +5672,6 @@ static int rockchip_vop2_mode_fixup(struct display_state *state)
 	mode->crtc_clock *= rockchip_drm_get_cycles_per_pixel(conn_state->bus_format);
 	if (cstate->mcu_timing.mcu_pix_total)
 		mode->crtc_clock *= cstate->mcu_timing.mcu_pix_total + 1;
-
-	if (conn_state->secondary &&
-	    conn_state->secondary->type != DRM_MODE_CONNECTOR_LVDS) {
-		mode->crtc_clock *= 2;
-		mode->crtc_hdisplay *= 2;
-		mode->crtc_hsync_start *= 2;
-		mode->crtc_hsync_end *= 2;
-		mode->crtc_htotal *= 2;
-	}
 
 	return 0;
 }
