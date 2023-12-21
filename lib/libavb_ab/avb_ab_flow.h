@@ -93,8 +93,9 @@ typedef struct AvbABData {
   /* Per-slot metadata. */
   AvbABSlotData slots[2];
 
+  uint8_t last_boot;
   /* Reserved for future use. */
-  uint8_t reserved2[12];
+  uint8_t reserved2[11];
 
   /* CRC32 of all 28 bytes preceding this field. */
   uint32_t crc32;
@@ -132,6 +133,25 @@ AvbIOResult avb_ab_data_read(AvbABOps* ab_ops, AvbABData* data);
  */
 AvbIOResult avb_ab_data_write(AvbABOps* ab_ops, const AvbABData* data);
 
+/* Return whether current slot is bootable or not. */
+bool slot_is_bootable(AvbABSlotData* slot);
+
+/* Set this slot unbootable */
+void slot_set_unbootable(AvbABSlotData* slot);
+
+/* Check whether need to set unbootable */
+void slot_normalize(AvbABSlotData* slot);
+
+/* Load ab metadata from misc. */
+AvbIOResult load_metadata(AvbABOps* ab_ops,
+                                 AvbABData* ab_data,
+                                 AvbABData* ab_data_orig);
+
+/* Save metadata in misc when ab data changed. */
+AvbIOResult save_metadata_if_changed(AvbABOps* ab_ops,
+                                            AvbABData* ab_data,
+                                            AvbABData* ab_data_orig);
+
 /* Return codes used in avb_ab_flow(), see that function for
  * documentation of each value.
  */
@@ -143,9 +163,6 @@ typedef enum {
   AVB_AB_FLOW_RESULT_ERROR_NO_BOOTABLE_SLOTS,
   AVB_AB_FLOW_RESULT_ERROR_INVALID_ARGUMENT
 } AvbABFlowResult;
-
-/* Get a textual representation of |result|. */
-const char* avb_ab_flow_result_to_string(AvbABFlowResult result);
 
 /* High-level function to select a slot to boot. The following
  * algorithm is used:
@@ -253,6 +270,9 @@ AvbIOResult avb_ab_mark_slot_unbootable(AvbABOps* ab_ops,
  */
 AvbIOResult avb_ab_mark_slot_successful(AvbABOps* ab_ops,
                                         unsigned int slot_number);
+
+/* Get a textual representation of |result|. */
+const char* avb_ab_flow_result_to_string(AvbABFlowResult result);
 
 #ifdef __cplusplus
 }

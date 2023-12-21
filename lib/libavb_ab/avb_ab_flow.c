@@ -64,6 +64,7 @@ void avb_ab_data_init(AvbABData* data) {
   avb_memcpy(data->magic, AVB_AB_MAGIC, AVB_AB_MAGIC_LEN);
   data->version_major = AVB_AB_MAJOR_VERSION;
   data->version_minor = AVB_AB_MINOR_VERSION;
+  data->last_boot = 0;
   data->slots[0].priority = AVB_AB_MAX_PRIORITY;
   data->slots[0].tries_remaining = AVB_AB_MAX_TRIES_REMAINING;
   data->slots[0].successful_boot = 0;
@@ -131,12 +132,12 @@ AvbIOResult avb_ab_data_write(AvbABOps* ab_ops, const AvbABData* data) {
   return AVB_IO_RESULT_OK;
 }
 
-static bool slot_is_bootable(AvbABSlotData* slot) {
+bool slot_is_bootable(AvbABSlotData* slot) {
   return slot->priority > 0 &&
          (slot->successful_boot || (slot->tries_remaining > 0));
 }
 
-static void slot_set_unbootable(AvbABSlotData* slot) {
+void slot_set_unbootable(AvbABSlotData* slot) {
   slot->priority = 0;
   slot->tries_remaining = 0;
   slot->successful_boot = 0;
@@ -146,7 +147,7 @@ static void slot_set_unbootable(AvbABSlotData* slot) {
  * canonical 'unbootable' state, e.g. priority=0, tries_remaining=0,
  * and successful_boot=0.
  */
-static void slot_normalize(AvbABSlotData* slot) {
+void slot_normalize(AvbABSlotData* slot) {
   if (slot->priority > 0) {
     if (slot->tries_remaining == 0 && !slot->successful_boot) {
       /* We've exhausted all tries -> unbootable. */
@@ -168,7 +169,7 @@ static const char* slot_suffixes[2] = {"_a", "_b"};
 /* Helper function to load metadata - returns AVB_IO_RESULT_OK on
  * success, error code otherwise.
  */
-static AvbIOResult load_metadata(AvbABOps* ab_ops,
+AvbIOResult load_metadata(AvbABOps* ab_ops,
                                  AvbABData* ab_data,
                                  AvbABData* ab_data_orig) {
   AvbIOResult io_ret;
@@ -192,7 +193,7 @@ static AvbIOResult load_metadata(AvbABOps* ab_ops,
 /* Writes A/B metadata to disk only if it has changed - returns
  * AVB_IO_RESULT_OK on success, error code otherwise.
  */
-static AvbIOResult save_metadata_if_changed(AvbABOps* ab_ops,
+AvbIOResult save_metadata_if_changed(AvbABOps* ab_ops,
                                             AvbABData* ab_data,
                                             AvbABData* ab_data_orig) {
   if (avb_safe_memcmp(ab_data, ab_data_orig, sizeof(AvbABData)) != 0) {
@@ -263,7 +264,7 @@ AvbABFlowResult avb_ab_flow(AvbABOps* ab_ops,
         case AVB_SLOT_VERIFY_RESULT_ERROR_PUBLIC_KEY_REJECTED:
           if (flags & AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR) {
             /* Do nothing since we allow this. */
-            avb_debug("Allowing slot ",
+            avb_debugv("Allowing slot ",
                       slot_suffixes[n],
                       " which verified with result ",
                       avb_slot_verify_result_to_string(verify_result),
@@ -282,11 +283,12 @@ AvbABFlowResult avb_ab_flow(AvbABOps* ab_ops,
       }
 
       if (set_slot_unbootable) {
-        avb_error("Error verifying slot ",
+        avb_errorv("Error verifying slot ",
                   slot_suffixes[n],
                   " with result ",
                   avb_slot_verify_result_to_string(verify_result),
-                  " - setting unbootable.\n");
+                  " - setting unbootable.\n",
+                  NULL);
         slot_set_unbootable(&ab_data.slots[n]);
       }
     }

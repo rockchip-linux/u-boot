@@ -25,7 +25,7 @@
 #ifndef LIBAVB_AB_H_
 #define LIBAVB_AB_H_
 
-#include <libavb/libavb.h>
+#include "../libavb/libavb.h"
 
 /* The libavb_ab/ and boot_control/ code has been marked for some time
  * as experimental in anticipation of being removed in the future. It
@@ -33,6 +33,7 @@
  * AVB_AB_I_UNDERSTAND_LIBAVB_AB_IS_DEPRECATED. It will be removed Jun
  * 1 2018.
  */
+#define AVB_AB_I_UNDERSTAND_LIBAVB_AB_IS_DEPRECATED
 #ifndef AVB_AB_I_UNDERSTAND_LIBAVB_AB_IS_DEPRECATED
 #error \
     "You must define AVB_AB_I_UNDERSTAND_LIBAVB_AB_IS_DEPRECATED to use this library."

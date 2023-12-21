@@ -30,7 +30,7 @@
 #ifndef AVB_AB_OPS_H_
 #define AVB_AB_OPS_H_
 
-#include <libavb/libavb.h>
+#include "../libavb/libavb.h"
 
 #ifdef __cplusplus
 extern "C" {
