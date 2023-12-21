@@ -5618,13 +5618,17 @@ static int rockchip_vop2_mode_valid(struct display_state *state)
 static int rockchip_vop2_mode_fixup(struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_connector *conn = conn_state->connector;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
 
-	if (conn_state->secondary &&
-	    conn_state->secondary->type != DRM_MODE_CONNECTOR_LVDS)
-		drm_mode_convert_to_split_mode(mode);
+	if (conn_state->secondary) {
+		if (!(conn->dual_channel_mode &&
+		      conn_state->secondary->type == DRM_MODE_CONNECTOR_eDP) &&
+		    conn_state->secondary->type != DRM_MODE_CONNECTOR_LVDS)
+			drm_mode_convert_to_split_mode(mode);
+	}
 
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V | CRTC_STEREO_DOUBLE);
 
