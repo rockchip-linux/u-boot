@@ -218,6 +218,12 @@ struct AvbOps {
    */
   AvbIOResult (*read_is_device_unlocked)(AvbOps* ops, bool* out_is_unlocked);
 
+  /* write the device lock flag. Returns
+   * AVB_IO_RESULT_OK if the state was retrieved, otherwise an error
+   * code.
+   */
+  AvbIOResult (*write_is_device_unlocked)(AvbOps* ops, bool* out_is_unlocked);
+
   /* Gets the unique partition GUID for a partition with name in
    * |partition| (NUL-terminated UTF-8 string). The GUID is copied as
    * a string into |guid_buf| of size |guid_buf_size| and will be NUL

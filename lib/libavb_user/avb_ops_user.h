@@ -25,7 +25,9 @@
 #ifndef AVB_OPS_USER_H_
 #define AVB_OPS_USER_H_
 
-#include <libavb/libavb.h>
+#include "../libavb/libavb.h"
+#include "../libavb_ab/libavb_ab.h"
+#include "../libavb_atx/libavb_atx.h"
 
 #ifdef __cplusplus
 extern "C" {
