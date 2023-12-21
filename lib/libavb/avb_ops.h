@@ -133,7 +133,8 @@ struct AvbOps {
                                          const char* partition,
                                          size_t num_bytes,
                                          uint8_t** out_pointer,
-                                         size_t* out_num_bytes_preloaded);
+                                         size_t* out_num_bytes_preloaded,
+                                         int allow_verification_error);
 
   /* Writes |num_bytes| from |bffer| at offset |offset| to partition
    * with name |partition| (NUL-terminated UTF-8 string). If |offset|

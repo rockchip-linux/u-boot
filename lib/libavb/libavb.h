@@ -12,6 +12,7 @@
  */
 
 #define AVB_INSIDE_LIBAVB_H
+/* avb_cmdline.h, avb_rsa.h, avb_sha.h can't be included in public libavb.h */
 #include "avb_chain_partition_descriptor.h"
 #include "avb_crypto.h"
 #include "avb_descriptor.h"

@@ -3,6 +3,8 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
+#include <common.h>
+#include <android_image.h>
 #include "avb_slot_verify.h"
 #include "avb_chain_partition_descriptor.h"
 #include "avb_cmdline.h"
@@ -61,7 +63,8 @@ static AvbSlotVerifyResult load_full_partition(AvbOps* ops,
                                                const char* part_name,
                                                uint64_t image_size,
                                                uint8_t** out_image_buf,
-                                               bool* out_image_preloaded) {
+                                               bool* out_image_preloaded,
+                                               int allow_verification_error) {
   size_t part_num_read;
   AvbIOResult io_ret;
 
@@ -79,7 +82,8 @@ static AvbSlotVerifyResult load_full_partition(AvbOps* ops,
   /* Try use a preloaded one. */
   if (ops->get_preloaded_partition != NULL) {
     io_ret = ops->get_preloaded_partition(
-        ops, part_name, image_size, out_image_buf, &part_num_read);
+        ops, part_name, image_size, out_image_buf, &part_num_read,
+        allow_verification_error);
     if (io_ret == AVB_IO_RESULT_ERROR_OOM) {
       return AVB_SLOT_VERIFY_RESULT_ERROR_OOM;
     } else if (io_ret != AVB_IO_RESULT_OK) {
@@ -364,8 +368,11 @@ static AvbSlotVerifyResult load_and_verify_hash_partition(
   }
 
   ret = load_full_partition(
-      ops, part_name, image_size, &image_buf, &image_preloaded);
+      ops, part_name, image_size, &image_buf, &image_preloaded,
+      allow_verification_error);
   if (ret != AVB_SLOT_VERIFY_RESULT_OK) {
+    goto out;
+  } else if (allow_verification_error) {
     goto out;
   }
   // Although only one of the type might be used, we have to defined the
@@ -500,7 +507,7 @@ static AvbSlotVerifyResult load_requested_partitions(
     avb_debugv(part_name, ": Loading entire partition.\n", NULL);
 
     ret = load_full_partition(
-        ops, part_name, image_size, &image_buf, &image_preloaded);
+        ops, part_name, image_size, &image_buf, &image_preloaded, 1);
     if (ret != AVB_SLOT_VERIFY_RESULT_OK) {
       goto out;
     }
@@ -1695,6 +1702,7 @@ void avb_slot_verify_data_calculate_vbmeta_digest(AvbSlotVerifyData* data,
   switch (digest_type) {
     case AVB_DIGEST_TYPE_SHA256: {
       AvbSHA256Ctx ctx;
+
       avb_sha256_init(&ctx);
       for (n = 0; n < data->num_vbmeta_images; n++) {
         avb_sha256_update(&ctx,
@@ -1707,6 +1715,7 @@ void avb_slot_verify_data_calculate_vbmeta_digest(AvbSlotVerifyData* data,
 
     case AVB_DIGEST_TYPE_SHA512: {
       AvbSHA512Ctx ctx;
+
       avb_sha512_init(&ctx);
       for (n = 0; n < data->num_vbmeta_images; n++) {
         avb_sha512_update(&ctx,

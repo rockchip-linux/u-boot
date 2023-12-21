@@ -8,7 +8,45 @@
  * Issue date:  04/30/2005
  */
 
+#include <common.h>
+#include <dm.h>
+#include <u-boot/hash.h>
 #include "avb_sha.h"
+
+#ifdef CONFIG_DM_HASH
+  void avb_sha512_init(AvbSHA512Ctx* ctx) {
+    int ret;
+
+    memset(ctx->buf, 0, sizeof(ctx->buf));
+    ctx->crypto_dev = NULL;
+    ctx->crypto_ctx = NULL;
+
+    ret = uclass_get_device(UCLASS_HASH, 0, &ctx->crypto_dev);
+    if (ret) {
+      printf("No crypto-hash device, ret=%d\n", ret);
+      return;
+    }
+
+    ret = hash_init(ctx->crypto_dev, HASH_ALGO_SHA512, &ctx->crypto_ctx);
+    if (ret) {
+      panic("No hash device support sha512\n");
+      return;
+    }
+  }
+
+  void avb_sha512_update(AvbSHA512Ctx* ctx, const uint8_t* data, size_t len) {
+    if (ctx->crypto_dev)
+      hash_update(ctx->crypto_dev, ctx->crypto_ctx, (u32 *)data, len);
+  }
+
+  uint8_t* avb_sha512_final(AvbSHA512Ctx* ctx) {
+    if (ctx->crypto_dev)
+      hash_finish(ctx->crypto_dev, ctx->crypto_ctx, ctx->buf);
+
+    return ctx->buf;
+  }
+
+#else
 
 #define SHFR(x, n) (x >> n)
 #define ROTR(x, n) ((x >> n) | (x << ((sizeof(x) << 3) - n)))
@@ -359,3 +397,4 @@ uint8_t* avb_sha512_final(AvbSHA512Ctx* ctx) {
 
   return ctx->buf;
 }
+#endif
