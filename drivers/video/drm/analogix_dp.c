@@ -983,6 +983,7 @@ static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 		(const struct rockchip_dp_chip_data *)dev_get_driver_data(conn->dev);
 	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
 	struct video_info *video = &dp->video_info;
+	struct drm_display_mode mode;
 	u32 val;
 	int ret;
 
@@ -1043,7 +1044,11 @@ static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 	analogix_dp_enable_enhanced_mode(dp, 1);
 
 	analogix_dp_init_video(dp);
-	analogix_dp_set_video_format(dp, &conn_state->mode);
+
+	drm_mode_copy(&mode, &conn_state->mode);
+	if (conn->dual_channel_mode)
+		drm_mode_convert_to_origin_mode(&mode);
+	analogix_dp_set_video_format(dp, &mode);
 
 	if (dp->video_bist_enable)
 		analogix_dp_video_bist_enable(dp);
