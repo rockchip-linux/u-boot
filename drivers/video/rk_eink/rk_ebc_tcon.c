@@ -148,9 +148,6 @@ enum ebc_win_data_fmt {
 	RGB565 = 3,
 };
 
-#ifdef CONFIG_IRQ
-#define IRQ_EBC			49
-#endif
 static volatile int last_frame_done = -1;
 static inline void regs_dump(struct ebc_tcon_priv *tcon)
 {
@@ -171,7 +168,8 @@ static inline void regs_dump(struct ebc_tcon_priv *tcon)
 	printf("\n");
 }
 
-static int ebc_power_domain(int on)
+/* RK356X ebc power domain is enabled by default when power up */
+static int __maybe_unused ebc_power_domain(int on)
 {
 	u32 pd_reg;
 	u32 pd_stat;
@@ -472,24 +470,34 @@ static int rk_ebc_tcon_probe(struct udevice *dev)
 {
 	int ret;
 	struct ebc_tcon_priv *priv = dev_get_priv(dev);
+	struct driver *driver = (struct driver *)dev->driver;
+	const struct rk_ebc_tcon_ops *tcon_ops;
+#ifdef CONFIG_IRQ
+	u32 interrupt[2];
+	int irq;
+#endif
 
-	/*Enable PD first*/
-	ret = ebc_power_domain(1);
-	if (ret) {
-		printf("%s, enable pd failed\n", __func__);
-		return -1;
-	}
+	tcon_ops = (const struct rk_ebc_tcon_ops *)dev_get_driver_data(dev);
+	driver->ops = tcon_ops;
 
 	priv->dev = dev;
-	ret = clk_get_by_index(dev, 1, &priv->dclk);
+	ret = clk_get_by_name(dev, "dclk", &priv->dclk);
 	if (ret < 0) {
 		printf("%s get clock fail! %d\n", __func__, ret);
 		return -EINVAL;
 	}
 
 #ifdef CONFIG_IRQ
-	irq_install_handler(IRQ_EBC, ebc_irq_handler, dev);
-	irq_handler_enable(IRQ_EBC);
+	ret = dev_read_u32_array(dev, "interrupts", interrupt, 2);
+	if (ret) {
+		printf("read ebc irq failed:%d\n", ret);
+		return ret;
+	}
+
+	/* convert to Shared Peripheral Interrupt */
+	irq = interrupt[1] + 32;
+	irq_install_handler(irq, ebc_irq_handler, dev);
+	irq_handler_enable(irq);
 #endif
 	return 0;
 }
@@ -537,7 +545,10 @@ static int rk_ebc_tcon_ofdata_to_platdata(struct udevice *dev)
 }
 
 static const struct udevice_id ebc_tcon_ids[] = {
-	{ .compatible = "rockchip,rk3568-ebc-tcon" },
+	{
+		.compatible = "rockchip,rk3568-ebc-tcon",
+		.data = (ulong)&ebc_tcon_funcs,
+	},
 	{ }
 };
 
@@ -547,7 +558,6 @@ U_BOOT_DRIVER(rk_ebc_tcon) = {
 	.of_match = ebc_tcon_ids,
 	.ofdata_to_platdata = rk_ebc_tcon_ofdata_to_platdata,
 	.probe	= rk_ebc_tcon_probe,
-	.ops	= &ebc_tcon_funcs,
 	.priv_auto_alloc_size   = sizeof(struct ebc_tcon_priv),
 };
 
