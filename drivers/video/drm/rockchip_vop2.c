@@ -2509,6 +2509,7 @@ static int rockchip_vop2_preinit(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	const struct vop2_data *vop2_data = cstate->crtc->data;
+	struct regmap *map;
 
 	if (!rockchip_vop2) {
 		rockchip_vop2 = calloc(1, sizeof(struct vop2));
@@ -2521,23 +2522,24 @@ static int rockchip_vop2_preinit(struct display_state *state)
 		rockchip_vop2->regs = (void *)RK3528_VOP_BASE;
 #else
 		rockchip_vop2->regs = dev_read_addr_ptr(cstate->dev);
-		rockchip_vop2->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+		map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,grf");
+		rockchip_vop2->grf = regmap_get_range(map, 0);
 		if (rockchip_vop2->grf <= 0)
 			printf("%s: Get syscon grf failed (ret=%p)\n", __func__, rockchip_vop2->grf);
 #endif
 		rockchip_vop2->version = vop2_data->version;
 		rockchip_vop2->data = vop2_data;
 		if (rockchip_vop2->version == VOP_VERSION_RK3588) {
-			struct regmap *map;
-
-			rockchip_vop2->vop_grf = syscon_get_first_range(ROCKCHIP_SYSCON_VOP_GRF);
+			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,vop-grf");
+			rockchip_vop2->vop_grf = regmap_get_range(map, 0);
 			if (rockchip_vop2->vop_grf <= 0)
 				printf("%s: Get syscon vop_grf failed (ret=%p)\n", __func__, rockchip_vop2->vop_grf);
 			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,vo1-grf");
 			rockchip_vop2->vo1_grf = regmap_get_range(map, 0);
 			if (rockchip_vop2->vo1_grf <= 0)
 				printf("%s: Get syscon vo1_grf failed (ret=%p)\n", __func__, rockchip_vop2->vo1_grf);
-			rockchip_vop2->sys_pmu = syscon_get_first_range(ROCKCHIP_SYSCON_PMU);
+			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,pmu");
+			rockchip_vop2->sys_pmu = regmap_get_range(map, 0);
 			if (rockchip_vop2->sys_pmu <= 0)
 				printf("%s: Get syscon sys_pmu failed (ret=%p)\n", __func__, rockchip_vop2->sys_pmu);
 		}
