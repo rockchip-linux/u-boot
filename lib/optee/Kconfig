@@ -27,3 +27,10 @@ config BOOTM_OPTEE
 	  Select this command to enable chain-loading of a Linux kernel
 	  via an OPTEE firmware.
 	  The bootflow is BootROM -> u-boot -> OPTEE -> Linux in this case.
+
+config OPTEE_ALWAYS_USE_SECURITY_PARTITION
+	bool "Support use security partition for OPTEE"
+	depends on OPTEE
+	help
+	  U-Boot can secure store data to security partition
+	  for nand or emmc, do not to store data to rpmb.
