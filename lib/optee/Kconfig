@@ -34,3 +34,15 @@ config OPTEE_ALWAYS_USE_SECURITY_PARTITION
 	help
 	  U-Boot can secure store data to security partition
 	  for nand or emmc, do not to store data to rpmb.
+
+config OPTEE_SECURITY_LEVEL
+	int "Support select security level for OPTEE"
+	depends on OPTEE
+	default 0
+	range 0 2
+	help
+	  U-Boot can select security level for OPTEE.
+	  0 - OPTEE use soft HUK to derive keys.
+	  1 - OPTEE use OEM HUK to derive keys.
+	  2 - OPTEE use hard HUK to derive keys.
+	  Refer to the TEE SDK document for more information.
