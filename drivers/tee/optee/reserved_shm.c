@@ -9,6 +9,7 @@
 #include <linux/io.h>
 #include <stdlib.h>
 #include "optee_smc.h"
+#include <asm/cache.h>
 
 #define	SHM_PAGE_SIZE	4096
 #define	SHM_ALLOC_COUNT	64
@@ -117,6 +118,31 @@ void reserved_shm_free(void *ptr)
 	free_used_block(ptr);
 }
 
+/*
+ * Common for OP-TEE:
+ *	64-bit & 32-bit mode: share memory dcache is always enabled;
+ *
+ * Common for U-Boot:
+ *	64-bit mode: MMU table is static defined in rkxxx.c file, all memory
+ *		     regions are mapped. That's good to match OP-TEE MMU policy.
+ *
+ *	32-bit mode: MMU table is setup according to gd->bd->bi_dram[..] where
+ *		     the OP-TEE region has been reserved, so it can not be
+ *		     mapped(i.e. dcache is disabled). That's *NOT* good to match
+ *		     OP-TEE MMU policy.
+ *
+ * For the data coherence when communication between U-Boot and OP-TEE, U-Boot
+ * should follow OP-TEE MMU policy.
+ *
+ * So 32-bit mode U-Boot should map OP-TEE share memory as dcache enabled.
+ */
+static void reserved_shm_caches_fixup(u32 start, u32 size)
+{
+#if defined(CONFIG_ARM64_BOOT_AARCH32) || !defined(CONFIG_ARM64)
+	mmu_set_region_dcache_behaviour(start, size, DCACHE_WRITEBACK);
+#endif
+}
+
 int reserved_shm_init(struct optee_smc_get_shm_config_result config)
 {
 	void *start = phys_to_virt(config.start);
@@ -128,6 +154,8 @@ int reserved_shm_init(struct optee_smc_get_shm_config_result config)
 		printf("%s: invalid parameter\n", __func__);
 		return -1;
 	}
+
+	reserved_shm_caches_fixup(config.start, config.size);
 
 	memset(start, 0, size);
 
