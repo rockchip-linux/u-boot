@@ -1981,15 +1981,16 @@ static int rockchip_hdptx_phy_hdmi_bind(struct udevice *parent)
 
 	subnode = ofnode_find_subnode(parent->node_, "clk-port");
 	if (!ofnode_valid(subnode)) {
-		free(str);
-		printf("%s: no subnode for %s\n", __func__, parent->name);
-		return -ENXIO;
+		ret = device_bind_driver_to_node(parent, "clk_hdptx", str,
+						 dev_ofnode(parent), NULL);
+	} else {
+		ret = device_bind_driver_to_node(parent, "clk_hdptx", str,
+						 subnode, &child);
 	}
 
-	ret = device_bind_driver_to_node(parent, "clk_hdptx", str, subnode, &child);
 	if (ret) {
 		free(str);
-		printf("%s: clk-port cannot bind its driver\n", __func__);
+		printf("%s: clk_hdptx cannot bind its driver\n", __func__);
 		return ret;
 	}
 
