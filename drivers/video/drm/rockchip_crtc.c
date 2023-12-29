@@ -205,7 +205,7 @@ static int rockchip_vop_probe(struct udevice *dev)
 	int ret;
 
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
-	ret = clk_set_defaults(dev, CLK_DEFAULTS_POST);
+	ret = clk_set_defaults(dev, CLK_DEFAULTS_PRE);
 	if (ret) {
 		dev_err(dev, "%s clk_set_defaults failed %d\n", __func__, ret);
 		return ret;
@@ -218,7 +218,7 @@ static int rockchip_vop_probe(struct udevice *dev)
 		if (ret)
 			return ret;
 
-		ret = clk_set_defaults(child, CLK_DEFAULTS_POST);
+		ret = clk_set_defaults(child, CLK_DEFAULTS_PRE);
 		if (ret)
 			return ret;
 	}

@@ -1418,7 +1418,7 @@ static int dw_dp_connector_init(struct rockchip_connector *conn, struct display_
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
 
-	clk_set_defaults(dp->dev, CLK_DEFAULTS_POST);
+	clk_set_defaults(dp->dev, CLK_DEFAULTS_PRE);
 
 	reset_assert(&dp->reset);
 	udelay(20);

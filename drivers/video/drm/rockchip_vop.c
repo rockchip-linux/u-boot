@@ -286,7 +286,7 @@ static int rockchip_vop_init(struct display_state *state)
 	       rockchip_get_output_if_name(conn_state->output_if, output_type_name));
 
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
-	ret = clk_set_defaults(crtc_state->dev, CLK_DEFAULTS_POST);
+	ret = clk_set_defaults(crtc_state->dev, CLK_DEFAULTS_PRE);
 	if (ret)
 		debug("%s clk_set_defaults failed %d\n", __func__, ret);
 
