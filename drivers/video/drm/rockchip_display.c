@@ -5,6 +5,7 @@
  */
 
 #include <asm/arch-rockchip/cpu.h>
+#include <asm/arch-rockchip/resource.h>
 #include <asm/cache.h>
 #include <asm/unaligned.h>
 #include <config.h>
@@ -1180,14 +1181,14 @@ static int load_kernel_bmp_logo(struct logo_info *logo, const char *bmp_name)
 	if (!header)
 		return -ENOMEM;
 
-	len = rockchip_read_resource_file(header, bmp_name, 0, RK_BLK_SIZE);
+	len = resource_read_file(header, bmp_name, 0, RK_BLK_SIZE);
 	if (len != RK_BLK_SIZE) {
 		free(header);
 		return -EINVAL;
 	}
 	size = get_unaligned_le32(&header->file_size);
 	dst = (void *)(memory_start + MEMORY_POOL_SIZE / 2);
-	len = rockchip_read_resource_file(dst, bmp_name, 0, size);
+	len = resource_read_file(dst, bmp_name, 0, size);
 	if (len != size) {
 		printf("failed to load bmp %s\n", bmp_name);
 		free(header);
@@ -1350,7 +1351,7 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 
 	bmp_create(&bmp, &bitmap_callbacks);
 
-	len = rockchip_read_resource_file(bmp_data, bmp_name, 0, MAX_IMAGE_BYTES);
+	len = resource_read_file(bmp_data, bmp_name, 0, MAX_IMAGE_BYTES);
 	if (len < 0) {
 		ret = -EINVAL;
 		goto free_bmp_data;
