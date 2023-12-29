@@ -938,6 +938,7 @@ static int analogix_dp_connector_detect(struct rockchip_connector *conn,
 static int analogix_dp_connector_mode_valid(struct rockchip_connector *conn,
 					    struct display_state *state)
 {
+	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
 	struct connector_state *conn_state = &state->conn_state;
 	struct videomode vm;
 
