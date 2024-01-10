@@ -183,6 +183,8 @@ struct udevice *tee_find_device(struct udevice *start,
 			return dev;
 	}
 
+	printf("TEE: No available device!\n");
+
 	return NULL;
 }
 
