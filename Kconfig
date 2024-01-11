@@ -168,6 +168,12 @@ endmenu		# General setup
 
 menu "Boot images"
 
+config IMAGE_GZIP
+	bool "U-Boot Image with gzip compression"
+	default n
+	help
+	  This enables gzip compression on U-Boot Image.
+
 config ANDROID_BOOT_IMAGE
 	bool "Enable support for Android Boot Images"
 	default y if FASTBOOT
