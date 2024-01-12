@@ -726,9 +726,11 @@ static int rockchip_sfc_exec_op(struct spi_slave *mem,
 	if (rockchip_sfc_get_version(sfc) >= SFC_VER_4 &&
 	    sfc->cur_speed != sfc->speed[plat->cs]) {
 		sfc->speed[plat->cs] = sfc->cur_speed;
+#if CONFIG_IS_ENABLED(CLK)
 		if (sfc->cur_real_speed > SFC_DLL_THRESHOLD_RATE)
 			rockchip_sfc_delay_lines_tuning(sfc, mem);
 		else
+#endif
 			rockchip_sfc_set_delay_lines(sfc, 0, plat->cs);
 	}
 
