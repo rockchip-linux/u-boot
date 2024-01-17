@@ -1832,6 +1832,52 @@ U_BOOT_DRIVER(rockchip_rk3528_grf_cru) = {
 	.probe		= rk3528_grfclk_probe,
 };
 
+#ifdef CONFIG_SPL_BUILD
+
+#define COREGRF_BASE	0xff300000
+#define PVTPLL_CON0_L	0x0
+#define PVTPLL_CON0_H	0x4
+
+static int rk3528_cpu_pvtpll_set_rate(struct rk3528_clk_priv *priv, ulong rate)
+{
+	struct rk3528_cru *cru = priv->cru;
+	u32 length;
+
+	if (rate >= 1200000000)
+		length = 8;
+	else if (rate >= 1008000000)
+		length = 11;
+	else
+		length = 17;
+
+	/* set pclk dbg div to 9 */
+	rk_clrsetreg(&cru->clksel_con[40], RK3528_DIV_PCLK_DBG_MASK,
+		     9 << RK3528_DIV_PCLK_DBG_SHIFT);
+	/* set aclk_m_core div to 1 */
+	rk_clrsetreg(&cru->clksel_con[39], RK3528_DIV_ACLK_M_CORE_MASK,
+		     1 << RK3528_DIV_ACLK_M_CORE_SHIFT);
+
+	/* set ring sel = 1 */
+	writel(0x07000000 | (1 << 8), COREGRF_BASE + PVTPLL_CON0_L);
+	/* set length */
+	writel(0x007f0000 | length, COREGRF_BASE + PVTPLL_CON0_H);
+	/* enable pvtpll */
+	writel(0x00020002, COREGRF_BASE + PVTPLL_CON0_L);
+	/* start monitor */
+	writel(0x00010001, COREGRF_BASE + PVTPLL_CON0_L);
+
+	/* set core mux pvtpll */
+	writel(0x00010001, &cru->clksel_con[40]);
+	writel(0x00100010, &cru->clksel_con[39]);
+
+	/* set pclk dbg div to 8 */
+	rk_clrsetreg(&cru->clksel_con[40], RK3528_DIV_PCLK_DBG_MASK,
+		     8 << RK3528_DIV_PCLK_DBG_SHIFT);
+
+	return 0;
+}
+#endif
+
 static int rk3528_clk_init(struct rk3528_clk_priv *priv)
 {
 	int ret;
@@ -1866,6 +1912,12 @@ static int rk3528_clk_init(struct rk3528_clk_priv *priv)
 		if (!ret)
 			priv->armclk_init_hz = APLL_HZ;
 	}
+
+	if (!rk3528_cpu_pvtpll_set_rate(priv, CPU_PVTPLL_HZ)) {
+		printf("cpu pvtpll %d KHz\n", CPU_PVTPLL_HZ / 1000);
+		priv->armclk_init_hz = CPU_PVTPLL_HZ;
+	}
+
 #elif CONFIG_IS_ENABLED(CLK_SCMI)
 	if (!priv->armclk_enter_hz) {
 		struct clk clk;
@@ -1882,9 +1934,7 @@ static int rk3528_clk_init(struct rk3528_clk_priv *priv)
 			printf("Failed to set scmi cpu %dhz\n", CPU_PVTPLL_HZ);
 			return ret;
 		} else {
-			priv->armclk_enter_hz =
-				rockchip_pll_get_rate(&rk3528_pll_clks[APLL],
-						      priv->cru, APLL);
+			priv->armclk_enter_hz = CPU_PVTPLL_HZ;
 			priv->armclk_init_hz = CPU_PVTPLL_HZ;
 		}
 	}
