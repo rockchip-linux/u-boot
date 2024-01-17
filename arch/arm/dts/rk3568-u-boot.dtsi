@@ -387,7 +387,7 @@
 };
 
 &pinctrl {
-	u-boot,dm-pre-reloc;
+	u-boot,dm-spl;
 	status = "okay";
 };
 
