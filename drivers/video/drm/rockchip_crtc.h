@@ -14,6 +14,7 @@ struct rockchip_vp {
 	bool xmirror_en;
 	u8 bg_ovl_dly;
 	u8 primary_plane_id;
+	u8 dclk_div;
 	int output_type;
 	u32 plane_mask;
 	int cursor_plane;
@@ -74,6 +75,7 @@ extern const struct vop_data rv1126_vop;
 extern const struct vop2_data rk3528_vop;
 extern const struct vop2_data rk3562_vop;
 extern const struct vop2_data rk3568_vop;
+extern const struct vop2_data rk3576_vop;
 extern const struct vop2_data rk3576_vop_lit;
 extern const struct vop2_data rk3588_vop;
 #endif
