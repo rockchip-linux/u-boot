@@ -1090,7 +1090,16 @@ extract_boot_image_v34_header(struct blk_desc *dev_desc,
 		return NULL;
 	}
 
-	/* Start from android-13 GKI, it doesn't assign 'os_version' */
+	/*
+	 * [Start from android-13 GKI, it doesn't assign 'os_version']
+	 *
+	 * Android_12 or later are header_version >= 4.
+	 * Android_13(GKI) introduce a new partition named "init_boot" and
+	 * doesn't assign 'os_version' any more(ie. default 0).
+	 *
+	 * We only assign 'os_version' depend on whether there is
+	 * init_boot partition or not.
+	 */
 	if (boot_hdr->header_version >= 4 && boot_hdr->os_version == 0) {
 		if (part_get_info_by_name(dev_desc,
 				ANDROID_PARTITION_INIT_BOOT, &part) > 0)
@@ -1171,7 +1180,25 @@ int populate_boot_info(const struct boot_img_hdr_v34 *boot_hdr,
 	/* fixed in v3 */
 	hdr->page_size = 4096;
 	hdr->header_version = boot_hdr->header_version;
-	hdr->os_version = boot_hdr->os_version;
+	/*
+	 * [Start from android-13 GKI, it doesn't assign 'os_version']
+	 *
+	 * Android_12 or later are header_version >= 4.
+	 * Android_13(GKI) introduce a new partition named "init_boot" and
+	 * doesn't assign 'os_version' any more(ie. default 0).
+	 *
+	 * We only assign 'os_version' depend on whether there is
+	 * init_boot partition or not.
+	 */
+	if (boot_hdr->header_version >= 4 && boot_hdr->os_version == 0) {
+		if (init_boot_hdr)
+			hdr->os_version = 13 << 25;
+
+		if (!hdr->os_version)
+			printf("WARN: it seems to be an invalid Android os_version: 0\n");
+	} else {
+		hdr->os_version = boot_hdr->os_version;
+	}
 
 	memset(hdr->name, 0, ANDR_BOOT_NAME_SIZE);
 	strncpy(hdr->name, (const char *)vendor_boot_hdr->name, ANDR_BOOT_NAME_SIZE);
