@@ -1748,8 +1748,18 @@ static struct udevice *rockchip_of_find_connector_device(ofnode endpoint)
 		return NULL;
 
 	ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY, conn, &dev);
-	if (ret)
-		return NULL;
+	if (ret) {
+		/*
+		 * for DP-MST, ports node->parent node->parent node is the device node */
+		conn = ofnode_get_parent(conn);
+		if (!ofnode_valid(conn) || !ofnode_is_available(conn))
+			return NULL;
+
+		ret = uclass_get_device_by_ofnode(UCLASS_DISPLAY, conn, &dev);
+		if (ret)
+			return NULL;
+
+	}
 
 	return dev;
 }
