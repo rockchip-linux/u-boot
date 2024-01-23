@@ -487,7 +487,7 @@ config TPL_LDSCRIPT
 	default "arch/arm/mach-rockchip/u-boot-tpl-v8.lds"
 
 config TPL_TEXT_BASE
-	default 0xfdcc1000
+	default 0xff001000
 
 config TPL_MAX_SIZE
 	default 61440
