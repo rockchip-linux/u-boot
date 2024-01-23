@@ -217,6 +217,10 @@ struct dw_dp_sdp {
 	unsigned long flags;
 };
 
+struct dw_dp_chip_data {
+	int pixel_mode;
+};
+
 struct dw_dp {
 	struct rockchip_connector connector;
 	struct udevice *dev;
@@ -1486,7 +1490,6 @@ static int dw_dp_connector_enable(struct rockchip_connector *conn, struct displa
 	int ret;
 
 	memcpy(&video->mode, mode, sizeof(video->mode));
-	video->pixel_mode = DPTX_MP_QUAD_PIXEL;
 
 	if (dp->force_output) {
 		ret = dw_dp_set_phy_default_config(dp);
@@ -1752,6 +1755,8 @@ static int dw_dp_parse_dt(struct dw_dp *dp)
 static int dw_dp_probe(struct udevice *dev)
 {
 	struct dw_dp *dp = dev_get_priv(dev);
+	const struct dw_dp_chip_data *pdata =
+		(const struct dw_dp_chip_data *)dev_get_driver_data(dev);
 	int ret;
 
 	ret = regmap_init_mem(dev->node_, &dp->regmap);
@@ -1761,6 +1766,8 @@ static int dw_dp_probe(struct udevice *dev)
 	dp->id = of_alias_get_id(ofnode_to_np(dev->node_), "dp");
 	if (dp->id < 0)
 		dp->id = 0;
+
+	dp->video.pixel_mode = pdata->pixel_mode;
 
 	ret = reset_get_by_index(dev, 0, &dp->reset);
 	if (ret) {
@@ -1793,9 +1800,22 @@ static int dw_dp_probe(struct udevice *dev)
 	return 0;
 }
 
+static const struct dw_dp_chip_data rk3588_dp = {
+	.pixel_mode = DPTX_MP_QUAD_PIXEL,
+};
+
+static const struct dw_dp_chip_data rk3576_dp = {
+	.pixel_mode = DPTX_MP_DUAL_PIXEL,
+};
+
 static const struct udevice_id dw_dp_ids[] = {
 	{
+		.compatible = "rockchip,rk3576-dp",
+		.data = (ulong)&rk3576_dp,
+	},
+	{
 		.compatible = "rockchip,rk3588-dp",
+		.data = (ulong)&rk3588_dp,
 	},
 	{}
 };
