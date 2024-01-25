@@ -1132,9 +1132,12 @@ void board_quiesce_devices(void *images)
  */
 int board_rng_seed(struct abuf *buf)
 {
+#ifdef CONFIG_DM_RNG
 	struct udevice *dev;
+#endif
 	size_t len = 32;
-	u64 *data;
+	u8 *data;
+	int i;
 
 	data = malloc(len);
 	if (!data) {
@@ -1142,14 +1145,13 @@ int board_rng_seed(struct abuf *buf)
 	        return -ENOMEM;
 	}
 
-	if (uclass_get_device(UCLASS_RNG, 0, &dev) || !dev) {
-	        printf("No RNG device\n");
-	        return -ENODEV;
-	}
-
-	if (dm_rng_read(dev, data, len)) {
-	        printf("Reading RNG failed\n");
-	        return -EIO;
+#ifdef CONFIG_DM_RNG
+	if (uclass_get_device(UCLASS_RNG, 0, &dev) || dm_rng_read(dev, data, len))
+#endif
+	{
+		printf("board seed: Pseudo\n");
+		for (i = 0; i < len; i++)
+			data[i] = (u8)rand();
 	}
 
 	abuf_init_set(buf, data, len);
