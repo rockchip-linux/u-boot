@@ -1126,6 +1126,14 @@ static const struct rockchip_dp_chip_data rk3568_edp_platform_data = {
 	.max_lane_count = 4,
 };
 
+static const struct rockchip_dp_chip_data rk3576_edp_platform_data = {
+	.chip_type = RK3576_EDP,
+	.ssc = true,
+
+	.max_link_rate = DP_LINK_BW_5_4,
+	.max_lane_count = 4,
+};
+
 static const struct rockchip_dp_chip_data rk3588_edp_platform_data = {
 	.chip_type = RK3588_EDP,
 	.ssc = true,
@@ -1147,6 +1155,9 @@ static const struct udevice_id analogix_dp_ids[] = {
 	}, {
 		.compatible = "rockchip,rk3568-edp",
 		.data = (ulong)&rk3568_edp_platform_data,
+	}, {
+		.compatible = "rockchip,rk3576-edp",
+		.data = (ulong)&rk3576_edp_platform_data,
 	}, {
 		.compatible = "rockchip,rk3588-edp",
 		.data = (ulong)&rk3588_edp_platform_data,
