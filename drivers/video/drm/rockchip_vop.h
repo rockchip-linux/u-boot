@@ -142,6 +142,13 @@ enum vop_csc_format {
 	CSC_BT2020,
 };
 
+enum vop_pol {
+	HSYNC_POSITIVE = 0,
+	VSYNC_POSITIVE = 1,
+	DEN_NEGATIVE   = 2,
+	DCLK_INVERT    = 3
+};
+
 #define DSP_BG_SWAP		0x1
 #define DSP_RB_SWAP		0x2
 #define DSP_RG_SWAP		0x4
@@ -254,6 +261,7 @@ struct vop_ctrl {
 	struct vop_reg post_scl_factor;
 	struct vop_reg post_scl_ctrl;
 	struct vop_reg dsp_interlace;
+	struct vop_reg dsp_interlace_pol;
 	struct vop_reg global_regdone_en;
 	struct vop_reg auto_gate_en;
 	struct vop_reg post_lb_mode;
@@ -364,6 +372,7 @@ struct vop_ctrl {
 	struct vop_reg mcu_rw_bypass_port;
 
 	/* bt1120 */
+	struct vop_reg bt1120_uv_swap;
 	struct vop_reg bt1120_yc_swap;
 	struct vop_reg bt1120_en;
 
@@ -371,6 +380,11 @@ struct vop_ctrl {
 	struct vop_reg bt656_en;
 
 	struct vop_reg cfg_done;
+
+	/* ebc vop */
+	struct vop_reg enable;
+	struct vop_reg inf_out_en;
+	struct vop_reg out_dresetn;
 };
 
 struct vop_scl_extension {
@@ -435,6 +449,15 @@ struct vop_line_flag {
 
 struct vop_grf_ctrl {
 	struct vop_reg grf_dclk_inv;
+	struct vop_reg grf_vopl_sel;
+	struct vop_reg grf_edp_ch_sel;
+	struct vop_reg grf_hdmi_ch_sel;
+	struct vop_reg grf_mipi_ch_sel;
+	struct vop_reg grf_hdmi_pin_pol;
+	struct vop_reg grf_hdmi_1to4_en;
+	struct vop_reg grf_mipi_mode;
+	struct vop_reg grf_mipi_pin_pol;
+	struct vop_reg grf_mipi_1to4_en;
 };
 
 struct vop_csc_table {
@@ -462,6 +485,7 @@ struct vop_data {
 	const struct vop_win *win;
 	const struct vop_line_flag *line_flag;
 	const struct vop_grf_ctrl *grf_ctrl;
+	const struct vop_grf_ctrl *vo0_grf_ctrl;
 	const struct vop_csc_table *csc_table;
 	const struct vop_csc *win_csc;
 	int win_offset;
@@ -474,6 +498,7 @@ struct vop {
 	u32 *regsbak;
 	void *regs;
 	void *grf_ctrl;
+	void *vo0_grf_ctrl;
 
 	uint32_t version;
 	const struct vop_ctrl *ctrl;
