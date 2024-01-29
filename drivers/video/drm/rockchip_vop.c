@@ -20,6 +20,7 @@
 #include <dm/device.h>
 #include <dm/read.h>
 #include <syscon.h>
+#include <regmap.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -239,6 +240,7 @@ static int rockchip_vop_init(struct display_state *state)
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
 	const struct vop_data *vop_data = crtc->data;
 	struct vop *vop;
+	struct regmap *map;
 	u16 hsync_len = mode->crtc_hsync_end - mode->crtc_hsync_start;
 	u16 hdisplay = mode->crtc_hdisplay;
 	u16 htotal = mode->crtc_htotal;
@@ -263,17 +265,18 @@ static int rockchip_vop_init(struct display_state *state)
 	memset(vop, 0, sizeof(*vop));
 
 	crtc_state->private = vop;
+	vop->data = vop_data;
 	vop->regs = dev_read_addr_ptr(crtc_state->dev);
 	vop->regsbak = malloc(vop_data->reg_len);
 	vop->win = vop_data->win;
 	vop->win_offset = vop_data->win_offset;
 	vop->ctrl = vop_data->ctrl;
-	vop->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
-	if (vop->grf <= 0)
-		printf("%s: Get syscon grf failed (ret=%p)\n",
-		      __func__, vop->grf);
 
-	vop->grf_ctrl = vop_data->grf_ctrl;
+	map = syscon_regmap_lookup_by_phandle(crtc_state->dev, "rockchip,grf");
+	vop->grf_ctrl = regmap_get_range(map, 0);
+	if (vop->grf_ctrl <= 0)
+		printf("%s: Get syscon grf failed (ret=%p)\n", __func__, vop->grf_ctrl);
+
 	vop->line_flag = vop_data->line_flag;
 	vop->csc_table = vop_data->csc_table;
 	vop->win_csc = vop_data->win_csc;
@@ -338,8 +341,8 @@ static int rockchip_vop_init(struct display_state *state)
 		VOP_CTRL_SET(vop, lvds_en, 1);
 		VOP_CTRL_SET(vop, lvds_pin_pol, val);
 		VOP_CTRL_SET(vop, lvds_dclk_pol, dclk_inv);
-		if (!IS_ERR_OR_NULL(vop->grf))
-			VOP_GRF_SET(vop, grf_dclk_inv, dclk_inv);
+		if (!IS_ERR_OR_NULL(vop->grf_ctrl))
+			VOP_GRF_SET(vop, grf_ctrl, grf_dclk_inv, dclk_inv);
 		break;
 	case DRM_MODE_CONNECTOR_eDP:
 		VOP_CTRL_SET(vop, edp_en, 1);

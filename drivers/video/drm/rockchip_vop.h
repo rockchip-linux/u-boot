@@ -62,10 +62,10 @@
 #define VOP_WIN_GET(x, name) \
 		vop_read_reg(x, vop->win->offset, &vop->win->name)
 
-#define VOP_GRF_SET(vop, name, v) \
+#define VOP_GRF_SET(vop, grf, reg, v) \
 	do { \
-		if (vop->grf_ctrl) { \
-			vop_grf_writel(vop, vop->grf_ctrl->name, v); \
+		if (vop->data->grf) { \
+			vop_grf_writel(vop->grf, vop->data->grf->reg, v); \
 		} \
 	} while (0)
 
@@ -473,15 +473,15 @@ struct vop_data {
 struct vop {
 	u32 *regsbak;
 	void *regs;
-	void *grf;
+	void *grf_ctrl;
 
 	uint32_t version;
 	const struct vop_ctrl *ctrl;
 	const struct vop_win *win;
 	const struct vop_line_flag *line_flag;
-	const struct vop_grf_ctrl *grf_ctrl;
 	const struct vop_csc_table *csc_table;
 	const struct vop_csc *win_csc;
+	const struct vop_data *data;
 	int win_offset;
 
 	struct gpio_desc mcu_rs_gpio;
@@ -528,13 +528,13 @@ static inline void vop_cfg_done(struct vop *vop)
 	VOP_CTRL_SET(vop, cfg_done, 1);
 }
 
-static inline void vop_grf_writel(struct vop *vop, struct vop_reg reg, u32 v)
+static inline void vop_grf_writel(void *regmap, struct vop_reg reg, u32 v)
 {
 	u32 val = 0;
 
-	if (VOP_REG_SUPPORT(vop, reg)) {
+	if (reg.mask) {
 		val = (v << reg.shift) | (reg.mask << (reg.shift + 16));
-		writel(val, vop->grf + reg.offset);
+		writel(val, regmap + reg.offset);
 	}
 }
 
