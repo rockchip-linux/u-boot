@@ -81,7 +81,7 @@
 #define  SFC_FSR_TX_IS_EMPTY		BIT(1)
 #define  SFC_FSR_RX_IS_EMPTY		BIT(2)
 #define  SFC_FSR_RX_IS_FULL		BIT(3)
-#define  SFC_FSR_TXLV_MASK		GENMASK(12, 8)
+#define  SFC_FSR_TXLV_MASK		GENMASK(13, 8)
 #define  SFC_FSR_TXLV_SHIFT		8
 #define  SFC_FSR_RXLV_MASK		GENMASK(20, 16)
 #define  SFC_FSR_RXLV_SHIFT		16
@@ -202,10 +202,12 @@ static int rockchip_sfc_reset(struct rockchip_sfc *sfc)
 				 !(status & SFC_RCVR_RESET),
 				 1000000);
 	if (err)
-		printf("SFC reset never finished\n");
+		dev_err(sfc->dev, "SFC reset never finished\n");
 
 	/* Still need to clear the masked interrupt from RISR */
 	writel(0xFFFFFFFF, sfc->regbase + SFC_ICLR);
+
+	dev_dbg(sfc->dev, "reset\n");
 
 	return err;
 }
@@ -217,7 +219,7 @@ static u16 rockchip_sfc_get_version(struct rockchip_sfc *sfc)
 
 static u32 rockchip_sfc_get_max_iosize(struct rockchip_sfc *sfc)
 {
-	if (rockchip_sfc_get_version(sfc) >= SFC_VER_4)
+	if (sfc->version >= SFC_VER_4)
 		return SFC_MAX_IOSIZE_VER4;
 
 	return SFC_MAX_IOSIZE_VER3;
@@ -225,16 +227,12 @@ static u32 rockchip_sfc_get_max_iosize(struct rockchip_sfc *sfc)
 
 static u32 rockchip_sfc_get_max_dll_cells(struct rockchip_sfc *sfc)
 {
-	switch (rockchip_sfc_get_version(sfc)) {
-	case SFC_VER_8:
-	case SFC_VER_6:
-	case SFC_VER_5:
+	if (sfc->version > SFC_VER_4)
 		return SFC_DLL_CTRL0_DLL_MAX_VER5;
-	case SFC_VER_4:
+	else if (sfc->version == SFC_VER_4)
 		return SFC_DLL_CTRL0_DLL_MAX_VER4;
-	default:
+	else
 		return 0;
-	}
 }
 
 static __maybe_unused void rockchip_sfc_set_delay_lines(struct rockchip_sfc *sfc, u16 cells, u8 cs)
