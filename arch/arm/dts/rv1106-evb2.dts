@@ -22,7 +22,7 @@
 		compatible = "adc-keys";
 		io-channels = <&saradc 0>;
 		io-channel-names = "buttons";
-		keyup-threshold-microvolt = <1800000>;
+		keyup-threshold-microvolt = <893000>;
 		u-boot,dm-spl;
 		status = "okay";
 
@@ -30,6 +30,13 @@
 			u-boot,dm-spl;
 			linux,code = <KEY_VOLUMEUP>;
 			label = "volume up";
+			press-threshold-microvolt = <339589>;
+		};
+
+		volumedown-key {
+			u-boot,dm-spl;
+			linux,code = <KEY_VOLUMEDOWN>;
+			label = "volume down";
 			press-threshold-microvolt = <17578>;
 		};
 	};
