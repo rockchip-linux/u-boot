@@ -229,5 +229,11 @@ config ROCKCHIP_CUBIC_LUT_SIZE
 	help
 	  Used to calc cubic lut size.
 
+config DRM_SII902X
+	bool "Silicon Image sii902x RGB/HDMI bridge"
+	depends on DRM_ROCKCHIP
+	help
+	  Silicon Image sii902x bridge chip driver.
+
 source "drivers/video/drm/display-serdes/Kconfig"
 
