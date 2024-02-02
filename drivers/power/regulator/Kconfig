@@ -296,6 +296,13 @@ config DM_REGULATOR_SANDBOX
 	A detailed information can be found in header: '<power/sandbox_pmic.h>'
 	Binding info: 'doc/device-tree-bindings/pmic/max77686.txt'
 
+config REGULATOR_SY7636A
+	bool "Enable driver for SY7636A PMIC regulators"
+	depends on PMIC_SY7636A
+	---help---
+	This enables the regulator features of the SY7636A, allowing VCOM
+	voltages to be set, etc.
+
 config REGULATOR_TPS65090
 	bool "Enable driver for TPS65090 PMIC regulators"
 	depends on PMIC_TPS65090
