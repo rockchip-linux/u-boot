@@ -11,14 +11,24 @@
 #include <mapmem.h>
 #include <stdlib.h>
 #include <asm/arch/vendor.h>
+#include <dm/device-internal.h>
 #include <dm/of_access.h>
 #include <dm/uclass.h>
 #include <dm/uclass-id.h>
 #include <boot_rkimg.h>
 #include <rk_eink.h>
 #include <backlight.h>
+#include <power/regulator.h>
+#include <thermal.h>
 #include "rk_ebc.h"
 #include "epdlut/epd_lut.h"
+
+#if !CONFIG_IS_ENABLED(DM_THERMAL)
+inline int thermal_get_temp(struct udevice *dev, int *temp)
+{
+	return 0;
+}
+#endif
 
 #define PART_WAVEFORM		"waveform"
 #define EINK_LOGO_PART_MAGIC	"RKEL"
@@ -87,6 +97,8 @@ struct rockchip_eink_display_priv {
 	struct udevice *dev;
 	struct udevice *ebc_tcon_dev;
 	struct udevice *ebc_pwr_dev;
+	struct udevice *regulator_dev;
+	struct udevice *thermal_dev;
 	int vcom;
 	struct udevice *backlight;
 };
@@ -464,10 +476,16 @@ static int ebc_power_set(struct udevice *dev, int is_on)
 	struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
 	struct rk_ebc_tcon_ops *ebc_tcon_ops = ebc_tcon_get_ops(ebc_tcon_dev);
 	struct udevice *ebc_pwr_dev = priv->ebc_pwr_dev;
-	struct rk_ebc_pwr_ops *pwr_ops = ebc_pwr_get_ops(ebc_pwr_dev);
+	struct rk_ebc_pwr_ops *pwr_ops = NULL;
+
+	if (ebc_pwr_dev)
+		pwr_ops = ebc_pwr_get_ops(ebc_pwr_dev);
 
 	if (is_on) {
-		ret = pwr_ops->power_on(ebc_pwr_dev);
+		if (pwr_ops)
+			ret = pwr_ops->power_on(ebc_pwr_dev);
+		else
+			ret  = regulator_set_enable(priv->regulator_dev, true);
 		if (ret) {
 			printf("%s, power on failed\n", __func__);
 			return -1;
@@ -483,7 +501,11 @@ static int ebc_power_set(struct udevice *dev, int is_on)
 			printf("%s, ebc tcon disable failed\n", __func__);
 			return -1;
 		}
-		ret = pwr_ops->power_down(ebc_pwr_dev);
+
+		if (pwr_ops)
+			ret = pwr_ops->power_down(ebc_pwr_dev);
+		else
+			ret  = regulator_set_enable(priv->regulator_dev, false);
 		if (ret) {
 			printf("%s, power_down failed\n", __func__);
 			return -1;
@@ -495,16 +517,23 @@ static int ebc_power_set(struct udevice *dev, int is_on)
 static int eink_display(struct udevice *dev, u32 pre_img_buf,
 			u32 cur_img_buf, u32 lut_type, int update_mode)
 {
-	u32 temperature, frame_num;
+	int temperature;
+	u32 frame_num;
 	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
 	struct ebc_panel *plat = dev_get_platdata(dev);
 	struct epd_lut_ops *lut_ops = &plat->lut_ops;
 	struct udevice *ebc_pwr_dev = priv->ebc_pwr_dev;
-	struct rk_ebc_pwr_ops *pwr_ops = ebc_pwr_get_ops(ebc_pwr_dev);
+	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
 	struct rk_ebc_tcon_ops *ebc_tcon_ops = ebc_tcon_get_ops(ebc_tcon_dev);
 
-	pwr_ops->temp_get(ebc_pwr_dev, &temperature);
+	if (ebc_pwr_dev)
+		pwr_ops = ebc_pwr_get_ops(ebc_pwr_dev);
+
+	if (pwr_ops)
+		pwr_ops->temp_get(ebc_pwr_dev, (u32 *)(&temperature));
+	else
+		thermal_get_temp(priv->thermal_dev, &temperature);
 	if (temperature <= 0 || temperature > 50) {
 		printf("temperature = %d, out of range0~50 ,use 25\n",
 		       temperature);
@@ -733,10 +762,13 @@ int rockchip_eink_show_charge_logo(int logo_type)
 
 static int rockchip_eink_display_probe(struct udevice *dev)
 {
-	int ret, vcom, size, i;
+	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
+	struct rk_ebc_pwr_ops *pwr_ops = NULL;
+	struct udevice *child, *pmic_dev;
+	int ret, vcom, size, i, uclass_id;
+	bool find_pmic = false;
 	const fdt32_t *list;
 	uint32_t phandle;
-	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
 
 	/* Before relocation we don't need to do anything */
 	if (!(gd->flags & GD_FLG_RELOC))
@@ -759,15 +791,38 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 	size /= sizeof(*list);
 	for (i = 0; i < size; i++) {
 		phandle = fdt32_to_cpu(*list++);
+		/* TODO: migrate to pmic */
 		ret = uclass_get_device_by_phandle_id(UCLASS_I2C_GENERIC,
 						      phandle,
 						      &priv->ebc_pwr_dev);
 		if (!ret) {
-			printf("Eink: use pmic %s\n", priv->ebc_pwr_dev->name);
+			find_pmic = true;
+			break;
+		}
+
+		ret = uclass_get_device_by_phandle_id(UCLASS_PMIC, phandle, &pmic_dev);
+		if (!ret) {
+			for (device_find_first_child(pmic_dev, &child); child;
+			     device_find_next_child(&child)) {
+				uclass_id = device_get_uclass_id(child);
+				ret = device_probe(child);
+				if (ret) {
+					dev_warn(dev, "Failed to probe pmic %s\n", child->name);
+					continue;
+				}
+
+				if (uclass_id == UCLASS_REGULATOR)
+					priv->regulator_dev = child;
+				else if (uclass_id == UCLASS_THERMAL)
+					priv->thermal_dev = child;
+			}
+
+			find_pmic = true;
 			break;
 		}
 	}
-	if (ret) {
+
+	if (!find_pmic) {
 		dev_err(dev, "Cannot get pmic: %d\n", ret);
 		return ret;
 	}
@@ -786,15 +841,16 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 		priv->vcom = vcom;
 	}
 
-	if (priv->ebc_pwr_dev) {
-		struct rk_ebc_pwr_ops *pwr_ops;
-
+	if (priv->ebc_pwr_dev)
 		pwr_ops = ebc_pwr_get_ops(priv->ebc_pwr_dev);
+
+	if (priv->ebc_pwr_dev)
 		ret = pwr_ops->vcom_set(priv->ebc_pwr_dev, priv->vcom);
-		if (ret) {
-			printf("%s, vcom_set failed\n", __func__);
-			return -EIO;
-		}
+	else
+		ret = regulator_set_value(priv->regulator_dev, priv->vcom * 1000);
+	if (ret) {
+		printf("%s, vcom_set failed\n", __func__);
+		return -EIO;
 	}
 
 	// read lut to ram, and get lut ops
