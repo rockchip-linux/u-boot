@@ -788,7 +788,7 @@ static int display_init(struct display_state *state)
 					     conn_state->edid, EDID_SIZE);
 		if (ret > 0) {
 #if defined(CONFIG_I2C_EDID)
-			display_get_edid_mode(state);
+			ret = display_get_edid_mode(state);
 #endif
 		} else {
 			ret = video_bridge_get_timing(conn->bridge->dev);
@@ -834,6 +834,12 @@ static int display_init(struct display_state *state)
 		conn_state->bus_flags |= DRM_BUS_FLAG_PIXDATA_DRIVE_POSEDGE;
 	}
 
+	if (display_mode_fixup(state))
+		goto deinit;
+
+	if (conn->bridge)
+		rockchip_bridge_mode_set(conn->bridge, &conn_state->mode);
+
 	printf("%s: %s detailed mode clock %u kHz, flags[%x]\n"
 	       "    H: %04d %04d %04d %04d\n"
 	       "    V: %04d %04d %04d %04d\n"
@@ -846,12 +852,6 @@ static int display_init(struct display_state *state)
 	       mode->vdisplay, mode->vsync_start,
 	       mode->vsync_end, mode->vtotal,
 	       conn_state->bus_format);
-
-	if (display_mode_fixup(state))
-		goto deinit;
-
-	if (conn->bridge)
-		rockchip_bridge_mode_set(conn->bridge, &conn_state->mode);
 
 	if (crtc_funcs->init && state->enabled_at_spl == false) {
 		ret = crtc_funcs->init(state);
