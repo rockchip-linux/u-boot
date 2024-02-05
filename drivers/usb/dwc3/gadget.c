@@ -730,10 +730,10 @@ static void dwc3_prepare_one_trb(struct dwc3_ep *dep,
 	 * for OUT endpoints, the total size of a Buffer Descriptor must be a
 	 * multiple of MaxPacketSize. So amend the TRB size to apply this rule.
 	 */
-	if (usb_endpoint_dir_out(dep->endpoint.desc)) {
+	if (usb_endpoint_dir_out(dep->endpoint.desc) &&
+	    (length % dep->endpoint.maxpacket))
 		length = dep->endpoint.maxpacket *
-			((length - 1) / dep->endpoint.maxpacket + 1);
-	}
+			 ((length - 1) / dep->endpoint.maxpacket + 1);
 
 	trb->size = DWC3_TRB_SIZE_LENGTH(length);
 	trb->bpl = lower_32_bits(dma);
@@ -1696,6 +1696,7 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	unsigned int		count;
 	unsigned int		s_pkt = 0;
 	unsigned int		trb_status;
+	unsigned int		length;
 
 	if ((trb->ctrl & DWC3_TRB_CTRL_HWO) && status != -ESHUTDOWN)
 		/*
@@ -1752,7 +1753,14 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	 * should receive and we simply bounce the request back to the
 	 * gadget driver for further processing.
 	 */
-	req->request.actual += req->request.length - count;
+	if (usb_endpoint_dir_out(dep->endpoint.desc) &&
+	    (req->request.length % dep->endpoint.maxpacket)) {
+		length = dep->endpoint.maxpacket *
+			 ((req->request.length - 1) / dep->endpoint.maxpacket + 1);
+		req->request.actual += length - count;
+	} else {
+		req->request.actual += req->request.length - count;
+	}
 	if (s_pkt)
 		return 1;
 	if ((event->status & DEPEVT_STATUS_LST) &&
