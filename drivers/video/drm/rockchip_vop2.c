@@ -4350,6 +4350,12 @@ static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
 	}
 
 	if ((vp_data->feature & VOP_FEATURE_POST_FRC_V2) && pre_dither_down_en) {
+		if (vop2->version == VOP_VERSION_RK3576) {
+			vop2_writel(vop2, RK3576_VP0_POST_DITHER_FRC_0 + vp_offset, 0x00000000);
+			vop2_writel(vop2, RK3576_VP0_POST_DITHER_FRC_1 + vp_offset, 0x01000100);
+			vop2_writel(vop2, RK3576_VP0_POST_DITHER_FRC_2 + vp_offset, 0x04030100);
+		}
+
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				PRE_DITHER_DOWN_EN_SHIFT, 0, false);
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
