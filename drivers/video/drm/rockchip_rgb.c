@@ -182,7 +182,8 @@ static int rockchip_rgb_connector_init(struct rockchip_connector *conn, struct d
 
 	rgb->phy = conn->phy;
 
-	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
+	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
 	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, rgb->id);
 
 	switch (conn_state->bus_format) {
@@ -210,6 +211,8 @@ static int rockchip_rgb_connector_init(struct rockchip_connector *conn, struct d
 	case MEDIA_BUS_FMT_VYUY8_2X8:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_BT656;
 		conn_state->output_if = VOP_OUTPUT_IF_BT656;
+		conn_state->color_range = DRM_COLOR_YCBCR_LIMITED_RANGE;
+		conn_state->color_encoding = DRM_COLOR_YCBCR_BT601;
 		break;
 	case MEDIA_BUS_FMT_YUYV8_1X16:
 	case MEDIA_BUS_FMT_YVYU8_1X16:
@@ -217,6 +220,7 @@ static int rockchip_rgb_connector_init(struct rockchip_connector *conn, struct d
 	case MEDIA_BUS_FMT_VYUY8_1X16:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_BT1120;
 		conn_state->output_if = VOP_OUTPUT_IF_BT1120;
+		conn_state->color_range = DRM_COLOR_YCBCR_LIMITED_RANGE;
 		break;
 	case MEDIA_BUS_FMT_RGB888_1X24:
 	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:

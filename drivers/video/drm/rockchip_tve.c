@@ -555,7 +555,8 @@ static int rockchip_drm_tve_init(struct rockchip_connector *conn, struct display
 	conn_state->bus_format = MEDIA_BUS_FMT_YUV8_1X24;
 	if (tve->soc_type == SOC_RK3528)
 		conn_state->output_if |= VOP_OUTPUT_IF_BT656;
-	conn_state->color_space = V4L2_COLORSPACE_SMPTE170M;
+	conn_state->color_encoding = DRM_COLOR_YCBCR_BT601;
+	conn_state->color_range = DRM_COLOR_YCBCR_LIMITED_RANGE;
 
 	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, 0);
 

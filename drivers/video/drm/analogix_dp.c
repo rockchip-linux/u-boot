@@ -752,7 +752,8 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 
 	conn_state->output_if |= dp->id ? VOP_OUTPUT_IF_eDP1 : VOP_OUTPUT_IF_eDP0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
-	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
+	conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
 
 	reset_assert_bulk(&dp->resets);
 	udelay(1);

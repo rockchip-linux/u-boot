@@ -40,21 +40,43 @@ static inline void set_vop_mcu_rs(struct vop *vop, int v)
 		VOP_CTRL_SET(vop, mcu_rs, v);
 }
 
-static int to_vop_csc_mode(int csc_mode)
+static enum vop_csc_format to_vop_csc_mode(enum drm_color_encoding color_encoding,
+					   enum drm_color_range color_range)
 {
-	switch (csc_mode) {
-	case V4L2_COLORSPACE_SMPTE170M:
-		return CSC_BT601L;
-	case V4L2_COLORSPACE_REC709:
-	case V4L2_COLORSPACE_DEFAULT:
-		return CSC_BT709L;
-	case V4L2_COLORSPACE_JPEG:
-		return CSC_BT601F;
-	case V4L2_COLORSPACE_BT2020:
-		return CSC_BT2020;
+	bool full_range = color_range == DRM_COLOR_YCBCR_FULL_RANGE ? 1 : 0;
+	enum vop_csc_format csc_mode = CSC_BT709L;
+
+	switch (color_encoding) {
+	case DRM_COLOR_YCBCR_BT601:
+		if (full_range)
+			csc_mode = CSC_BT601F;
+		else
+			csc_mode = CSC_BT601L;
+		break;
+
+	case DRM_COLOR_YCBCR_BT709:
+		if (full_range) {
+			csc_mode = CSC_BT601F;
+			printf("Unsupported bt709f at 10bit csc depth, use bt601f instead\n");
+		} else {
+			csc_mode = CSC_BT709L;
+		}
+		break;
+
+	case DRM_COLOR_YCBCR_BT2020:
+		if (full_range) {
+			csc_mode = CSC_BT601F;
+			printf("Unsupported bt2020f at 10bit csc depth, use bt601f instead\n");
+		} else {
+			csc_mode = CSC_BT2020L;
+		}
+		break;
+
 	default:
-		return CSC_BT709L;
+		printf("Unsuport color_encoding:%d\n", color_encoding);
 	}
+
+	return csc_mode;
 }
 
 static bool is_yuv_output(uint32_t bus_format)
@@ -503,7 +525,7 @@ static int rockchip_vop_init(struct display_state *state)
 	}
 
 	crtc_state->yuv_overlay = yuv_overlay;
-	post_csc_mode = to_vop_csc_mode(conn_state->color_space);
+	post_csc_mode = to_vop_csc_mode(conn_state->color_encoding, conn_state->color_range);
 	VOP_CTRL_SET(vop, bcsh_r2y_en, post_r2y_en);
 	VOP_CTRL_SET(vop, bcsh_y2r_en, post_y2r_en);
 	VOP_CTRL_SET(vop, bcsh_r2y_csc_mode, post_csc_mode);
@@ -718,20 +740,21 @@ static int rockchip_vop_setup_csc_table(struct display_state *state)
 	if (!vop->csc_table || !crtc_state->yuv_overlay)
 		return 0;
 	/* todo: only implement r2y*/
-	switch (conn_state->color_space) {
-	case V4L2_COLORSPACE_SMPTE170M:
-		csc_table = vop->csc_table->r2y_bt601_12_235;
+	switch (conn_state->color_encoding) {
+	case DRM_COLOR_YCBCR_BT601:
+		if (conn_state->color_range == DRM_COLOR_YCBCR_LIMITED_RANGE)
+			csc_table = vop->csc_table->r2y_bt601_12_235; /* bt601 limit */
+		else
+			csc_table = vop->csc_table->r2y_bt601; /* bt601 full */
 		break;
-	case V4L2_COLORSPACE_REC709:
-	case V4L2_COLORSPACE_DEFAULT:
-	case V4L2_COLORSPACE_JPEG:
+	case DRM_COLOR_YCBCR_BT709:
 		csc_table = vop->csc_table->r2y_bt709;
 		break;
-	case V4L2_COLORSPACE_BT2020:
+	case DRM_COLOR_YCBCR_BT2020:
 		csc_table = vop->csc_table->r2y_bt2020;
 		break;
 	default:
-		csc_table = vop->csc_table->r2y_bt601;
+		csc_table = vop->csc_table->r2y_bt601; /* bt601 full */
 		break;
 	}
 

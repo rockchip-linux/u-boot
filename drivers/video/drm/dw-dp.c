@@ -1416,7 +1416,7 @@ static int dw_dp_connector_init(struct rockchip_connector *conn, struct display_
 
 	conn_state->output_if |= dp->id ? VOP_OUTPUT_IF_DP1 : VOP_OUTPUT_IF_DP0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
-	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
 
 	clk_set_defaults(dp->dev, CLK_DEFAULTS_PRE);
 

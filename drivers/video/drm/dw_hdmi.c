@@ -2637,14 +2637,26 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 		enc_out_encoding = V4L2_YCBCR_ENC_709;
 
 	if (enc_out_encoding == V4L2_YCBCR_ENC_BT2020)
-		conn_state->color_space = V4L2_COLORSPACE_BT2020;
+		conn_state->color_encoding = DRM_COLOR_YCBCR_BT2020;
 	else if (bus_format == MEDIA_BUS_FMT_RGB888_1X24 ||
 		 bus_format == MEDIA_BUS_FMT_RGB101010_1X30)
-		conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+		conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
 	else if (enc_out_encoding == V4L2_YCBCR_ENC_709)
-		conn_state->color_space = V4L2_COLORSPACE_REC709;
+		conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
 	else
-		conn_state->color_space = V4L2_COLORSPACE_SMPTE170M;
+		conn_state->color_encoding = DRM_COLOR_YCBCR_BT601;
+
+	if (bus_format == MEDIA_BUS_FMT_RGB888_1X24 ||
+	    bus_format == MEDIA_BUS_FMT_RGB101010_1X30)
+		conn_state->color_range = hdmi->hdmi_data.quant_range ==
+					  HDMI_QUANTIZATION_RANGE_LIMITED ?
+					  DRM_COLOR_YCBCR_LIMITED_RANGE :
+					  DRM_COLOR_YCBCR_FULL_RANGE;
+	else
+		conn_state->color_range = hdmi->hdmi_data.quant_range ==
+					  HDMI_QUANTIZATION_RANGE_FULL ?
+					  DRM_COLOR_YCBCR_FULL_RANGE :
+					  DRM_COLOR_YCBCR_LIMITED_RANGE;
 
 	return 0;
 }

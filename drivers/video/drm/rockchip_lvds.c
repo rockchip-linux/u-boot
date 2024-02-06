@@ -153,7 +153,8 @@ static int rockchip_lvds_connector_init(struct rockchip_connector *conn,
 		(lvds->format == LVDS_10BIT_MODE_FORMAT_2))
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 
-	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
+	conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
 	if (primary_lvds) {
 		conn_state->output_flags = 0;
 		conn_state->output_if = 0;

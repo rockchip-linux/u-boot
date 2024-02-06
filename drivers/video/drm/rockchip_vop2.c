@@ -1123,7 +1123,7 @@ enum vop_csc_format {
 	CSC_BT601L,
 	CSC_BT709L,
 	CSC_BT601F,
-	CSC_BT2020,
+	CSC_BT2020L,
 	CSC_BT709L_13BIT,
 	CSC_BT709F_13BIT,
 	CSC_BT2020L_13BIT,
@@ -1649,44 +1649,47 @@ static bool is_yuv_output(u32 bus_format)
 	}
 }
 
-static int vop2_convert_csc_mode(int csc_mode, int bit_depth)
+static enum vop_csc_format vop2_convert_csc_mode(enum drm_color_encoding color_encoding,
+						 enum drm_color_range color_range,
+						 int bit_depth)
 {
-	switch (csc_mode) {
-	case V4L2_COLORSPACE_SMPTE170M:
-	case V4L2_COLORSPACE_470_SYSTEM_M:
-	case V4L2_COLORSPACE_470_SYSTEM_BG:
-		return CSC_BT601L;
-	case V4L2_COLORSPACE_REC709:
-	case V4L2_COLORSPACE_SMPTE240M:
-	case V4L2_COLORSPACE_DEFAULT:
-		if (bit_depth == CSC_13BIT_DEPTH)
-			return CSC_BT709L_13BIT;
+	bool full_range = color_range == DRM_COLOR_YCBCR_FULL_RANGE ? 1 : 0;
+	enum vop_csc_format csc_mode = CSC_BT709L;
+
+
+	switch (color_encoding) {
+	case DRM_COLOR_YCBCR_BT601:
+		if (full_range)
+			csc_mode = CSC_BT601F;
 		else
-			return CSC_BT709L;
-	case V4L2_COLORSPACE_JPEG:
-		return CSC_BT601F;
-	case V4L2_COLORSPACE_BT2020:
-		if (bit_depth == CSC_13BIT_DEPTH)
-			return CSC_BT2020L_13BIT;
-		else
-			return CSC_BT2020;
-	case V4L2_COLORSPACE_BT709F:
-		if (bit_depth == CSC_10BIT_DEPTH) {
-			printf("WARN: Unsupported bt709f at 10bit csc depth, use bt601f instead\n");
-			return CSC_BT601F;
+			csc_mode = CSC_BT601L;
+		break;
+
+	case DRM_COLOR_YCBCR_BT709:
+		if (full_range) {
+			csc_mode = bit_depth == CSC_13BIT_DEPTH ? CSC_BT709F_13BIT : CSC_BT601F;
+			if (bit_depth != CSC_13BIT_DEPTH)
+				printf("Unsupported bt709f at 10bit csc depth, use bt601f instead\n");
 		} else {
-			return CSC_BT709F_13BIT;
+			csc_mode = CSC_BT709L;
 		}
-	case V4L2_COLORSPACE_BT2020F:
-		if (bit_depth == CSC_10BIT_DEPTH) {
-			printf("WARN: Unsupported bt2020f at 10bit csc depth, use bt601f instead\n");
-			return CSC_BT601F;
+		break;
+
+	case DRM_COLOR_YCBCR_BT2020:
+		if (full_range) {
+			csc_mode = bit_depth == CSC_13BIT_DEPTH ? CSC_BT2020F_13BIT : CSC_BT601F;
+			if (bit_depth != CSC_13BIT_DEPTH)
+				printf("Unsupported bt2020f at 10bit csc depth, use bt601f instead\n");
 		} else {
-			return CSC_BT2020F_13BIT;
+			csc_mode = bit_depth == CSC_13BIT_DEPTH ? CSC_BT2020L_13BIT : CSC_BT2020L;
 		}
+		break;
+
 	default:
-		return CSC_BT709L;
+		printf("Unsuport color_encoding:%d\n", color_encoding);
 	}
+
+	return csc_mode;
 }
 
 static bool is_uv_swap(u32 bus_format, u32 output_mode)
@@ -2002,7 +2005,9 @@ static void vop2_tv_config_update(struct display_state *state, struct vop2 *vop2
 			cstate->post_y2r_en = 1;
 	}
 
-	cstate->post_csc_mode = vop2_convert_csc_mode(conn_state->color_space, CSC_10BIT_DEPTH);
+	cstate->post_csc_mode = vop2_convert_csc_mode(conn_state->color_encoding,
+						      conn_state->color_range,
+						      CSC_10BIT_DEPTH);
 
 	if (cstate->feature & VOP_FEATURE_OUTPUT_10BIT)
 		brightness = interpolate(0, -128, 100, 127,
@@ -2262,7 +2267,9 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	if (is_yuv_output(conn_state->bus_format))
 		is_output_yuv = true;
 
-	cstate->post_csc_mode = vop2_convert_csc_mode(conn_state->color_space, CSC_13BIT_DEPTH);
+	cstate->post_csc_mode = vop2_convert_csc_mode(conn_state->color_encoding,
+						      conn_state->color_range,
+						      CSC_13BIT_DEPTH);
 
 	if (post_csc_en) {
 		rockchip_calc_post_csc(csc, &csc_coef, cstate->post_csc_mode, is_input_yuv,
@@ -4977,7 +4984,8 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 
 	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK, WIN_EN_SHIFT, 1, false);
 
-	csc_mode = vop2_convert_csc_mode(conn_state->color_space, CSC_10BIT_DEPTH);
+	csc_mode = vop2_convert_csc_mode(conn_state->color_encoding, conn_state->color_range,
+					 CSC_10BIT_DEPTH);
 	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK,
 			CLUSTER_RGB2YUV_EN_SHIFT,
 			is_yuv_output(conn_state->bus_format), false);
@@ -5120,7 +5128,8 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
 			WIN_EN_SHIFT, 1, false);
 
-	csc_mode = vop2_convert_csc_mode(conn_state->color_space, CSC_10BIT_DEPTH);
+	csc_mode = vop2_convert_csc_mode(conn_state->color_encoding, conn_state->color_range,
+					 CSC_10BIT_DEPTH);
 	vop2_mask_write(vop2, RK3568_ESMART0_CTRL0 + win_offset, EN_MASK,
 			RGB2YUV_EN_SHIFT,
 			is_yuv_output(conn_state->bus_format), false);

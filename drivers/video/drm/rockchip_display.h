@@ -20,6 +20,7 @@
 #include <drm/drm_dsc.h>
 #include <spl_display.h>
 #include <clk.h>
+#include <drm/drm_color_mgmt.h>
 
 /*
  * major: IP major version, used for IP structure
@@ -224,7 +225,8 @@ struct connector_state {
 	int type;
 	int output_if;
 	int output_flags;
-	int color_space;
+	enum drm_color_encoding color_encoding;
+	enum drm_color_range color_range;
 	unsigned int bpc;
 
 	/**

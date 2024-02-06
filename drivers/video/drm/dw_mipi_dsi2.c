@@ -816,7 +816,8 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 	dsi2->dcphy.phy = conn->phy;
 
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
-	conn_state->color_space = V4L2_COLORSPACE_DEFAULT;
+	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
+	conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
 	conn_state->output_if |=
 		dsi2->id ? VOP_OUTPUT_IF_MIPI1 : VOP_OUTPUT_IF_MIPI0;
 
