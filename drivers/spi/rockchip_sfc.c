@@ -300,13 +300,14 @@ static int rockchip_sfc_probe(struct udevice *bus)
 	if (ret)
 		dev_dbg(sfc->dev, "sfc Enable clock fail for %s: %d\n", bus->name, ret);
 #endif
+	/* Initial the version at the first */
+	sfc->version = rockchip_sfc_get_version(sfc);
 
 	ret = rockchip_sfc_init(sfc);
 	if (ret)
 		goto err_init;
 
 	sfc->max_iosize = rockchip_sfc_get_max_iosize(sfc);
-	sfc->version = rockchip_sfc_get_version(sfc);
 	sfc->max_freq = SFC_MAX_SPEED;
 	sfc->dev = bus;
 
