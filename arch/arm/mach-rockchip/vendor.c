@@ -578,7 +578,7 @@ void vendor_storage_fixup(void *blob)
 {
 	unsigned long size;
 	unsigned long start;
-	ulong offset;
+	int offset;
 
 	/* init vendor storage */
 	if (!bootdev_type) {
