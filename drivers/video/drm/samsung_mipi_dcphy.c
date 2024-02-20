@@ -22,9 +22,6 @@
 
 #include "rockchip_phy.h"
 
-#define MAX_DPHY_BW	4500000L
-#define MAX_CPHY_BW	2000000L
-
 #define MSEC_PER_SEC	1000L
 #define USEC_PER_SEC	1000000LL
 #define PSEC_PER_SEC	1000000000000LL
@@ -183,6 +180,11 @@ struct samsung_mipi_cphy_timing {
 	u8 settle_3;
 };
 
+struct samsung_mipi_dcphy_plat_data {
+	u32 dphy_tx_max_kbps_per_lane;
+	u32 cphy_tx_max_ksps_per_lane;
+};
+
 struct samsung_mipi_dcphy {
 	struct udevice *dev;
 	enum phy_mode mode;
@@ -192,6 +194,7 @@ struct samsung_mipi_dcphy {
 	bool c_option;
 	struct reset_ctl m_phy_rst;
 
+	const struct samsung_mipi_dcphy_plat_data *pdata;
 	struct {
 		unsigned long long rate;
 		u8 prediv;
@@ -1655,7 +1658,9 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 				  unsigned long prate, unsigned long rate,
 				  u8 *prediv, u16 *fbdiv, int *dsm, u8 *scaler)
 {
-	u64 max_fout = samsung->c_option ? MAX_CPHY_BW : MAX_DPHY_BW;
+	u32 max_fout = samsung->c_option ?
+		       samsung->pdata->cphy_tx_max_ksps_per_lane :
+		       samsung->pdata->dphy_tx_max_kbps_per_lane;
 	u64 best_freq = 0;
 	u64 fin, fvco, fout;
 	u8 min_prediv, max_prediv;
@@ -1664,6 +1669,11 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 	u8 _scaler, best_scaler = 0;
 	long _dsm, best_dsm = 0;
 	u32 min_delta = 0xffffffff;
+
+	if (!prate) {
+		dev_err(samsung->dev, "prate of pll can not be set zero\n");
+		return 0;
+	}
 
 	/*
 	 * The PLL output frequency can be calculated using a simple formula:
@@ -1740,7 +1750,7 @@ static unsigned long samsung_mipi_dcphy_set_pll(struct rockchip_phy *phy,
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
 	unsigned long fin = 24000000, fout;
 	u8 scaler = 0, mfr = 0, mrr = 0;
-	u16 fbdiv = 1;
+	u16 fbdiv = 0;
 	u8 prediv = 1;
 	int dsm = 0;
 	int ret;
@@ -1802,6 +1812,7 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 	dev->driver_data = (ulong)phy;
 	memcpy(phy, tmp_phy, sizeof(*phy));
 
+	samsung->pdata = (struct samsung_mipi_dcphy_plat_data *)phy->data;
 	samsung->lanes = ofnode_read_u32_default(dev->node_, "samsung,lanes", 4);
 
 	samsung->base = dev_read_addr_ptr(dev);
@@ -1839,12 +1850,31 @@ static const struct rockchip_phy_funcs samsung_mipi_dcphy_funcs = {
 	.set_mode = samsung_mipi_dcphy_set_mode,
 };
 
+static const struct samsung_mipi_dcphy_plat_data rk3576_samsung_mipi_dcphy_plat_data = {
+	.dphy_tx_max_kbps_per_lane = 2500000L,
+	.cphy_tx_max_ksps_per_lane = 2000000L,
+};
+
+static const struct samsung_mipi_dcphy_plat_data rk3588_samsung_mipi_dcphy_plat_data = {
+	.dphy_tx_max_kbps_per_lane = 4500000L,
+	.cphy_tx_max_ksps_per_lane = 2000000L,
+};
+
+static struct rockchip_phy rk3576_samsung_mipi_dcphy_driver_data = {
+	 .data = &rk3576_samsung_mipi_dcphy_plat_data,
+	 .funcs = &samsung_mipi_dcphy_funcs,
+};
+
 static struct rockchip_phy rk3588_samsung_mipi_dcphy_driver_data = {
+	 .data = &rk3588_samsung_mipi_dcphy_plat_data,
 	 .funcs = &samsung_mipi_dcphy_funcs,
 };
 
 static const struct udevice_id samsung_mipi_dcphy_ids[] = {
 	{
+		.compatible = "rockchip,rk3576-mipi-dcphy",
+		.data = (ulong)&rk3576_samsung_mipi_dcphy_driver_data,
+	}, {
 		.compatible = "rockchip,rk3588-mipi-dcphy",
 		.data = (ulong)&rk3588_samsung_mipi_dcphy_driver_data,
 	},
