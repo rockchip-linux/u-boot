@@ -162,7 +162,6 @@
 
 #define CMD_PKT_STATUS_TIMEOUT_US	1000
 #define MODE_STATUS_TIMEOUT_US		20000
-#define SYS_CLK				351000000LL
 #define PSEC_PER_SEC			1000000000000LL
 #define USEC_PER_SEC			1000000L
 #define MSEC_PER_SEC			1000L
@@ -213,6 +212,7 @@ struct rockchip_cmd_header {
 };
 
 struct dw_mipi_dsi2_plat_data {
+	bool dsc;
 	const u32 *dsi0_grf_reg_fields;
 	const u32 *dsi1_grf_reg_fields;
 	unsigned long long dphy_max_bit_rate_per_lane;
@@ -279,6 +279,7 @@ struct dw_mipi_dsi2 {
 	unsigned int slice_height;
 	u32 version_major;
 	u32 version_minor;
+	struct clk sys_clk;
 
 	unsigned int lane_hs_rate; /* Kbps/Ksps per lane */
 	u32 channel;
@@ -743,7 +744,8 @@ static int dw_mipi_dsi2_get_dsc_params_from_sink(struct dw_mipi_dsi2 *dsi2)
 
 	dsi2->c_option = dev_read_bool(dev, "phy-c-option");
 	dsi2->scrambling_en = dev_read_bool(dev, "scrambling-enable");
-	dsi2->dsc_enable = dev_read_bool(dev, "compressed-data");
+	dsi2->dsc_enable = dsi2->pdata->dsc ?
+			   dev_read_bool(dev, "compressed-data") : false;
 
 	if (dsi2->slave) {
 		dsi2->slave->c_option = dsi2->c_option;
@@ -934,10 +936,10 @@ int mipi_dphy_get_default_config(unsigned long long hs_clk_rate,
 	cfg->hs_trail = max(4 * 8 * ui, 60000 + 4 * 4 * ui);
 
 	cfg->init = 100;
-	cfg->lpx = 60000;
+	cfg->lpx = 50000;
 	cfg->ta_get = 5 * cfg->lpx;
 	cfg->ta_go = 4 * cfg->lpx;
-	cfg->ta_sure = 2 * cfg->lpx;
+	cfg->ta_sure = cfg->lpx;
 	cfg->wakeup = 1000;
 
 	return 0;
@@ -984,7 +986,7 @@ static void dw_mipi_dsi2_phy_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 
 static void dw_mipi_dsi2_phy_clk_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 {
-	u32 sys_clk = SYS_CLK / USEC_PER_SEC;
+	u32 sys_clk = clk_get_rate(&dsi2->sys_clk) / USEC_PER_SEC;
 	u32 esc_clk_div;
 	u32 val = 0;
 
@@ -1001,6 +1003,7 @@ static void dw_mipi_dsi2_phy_clk_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 {
 	u64 ipi_clk, phy_hsclk, tmp;
+	u32 sys_clk = clk_get_rate(&dsi2->sys_clk);
 
 	/*
 	 * in DPHY mode, the phy_hstx_clk is exactly 1/16 the Lane high-speed
@@ -1020,7 +1023,7 @@ static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 	dsi_write(dsi2, DSI2_PHY_IPI_RATIO_MAN_CFG, PHY_IPI_RATIO(tmp));
 
 	/* SYS_RATIO_MAN_CFG = MIPI_DCPHY_HSCLK_Freq / SYS_CLK */
-	tmp = DIV_ROUND_CLOSEST(phy_hsclk << 16, SYS_CLK);
+	tmp = DIV_ROUND_CLOSEST(phy_hsclk << 16, sys_clk);
 	dsi_write(dsi2, DSI2_PHY_SYS_RATIO_MAN_CFG, PHY_SYS_RATIO(tmp));
 }
 
@@ -1287,6 +1290,12 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 		return ret;
 	}
 
+	ret = clk_get_by_name(dev, "sys_clk", &dsi2->sys_clk);
+	if (ret < 0) {
+		printf("failed to get sys_clk: %d\n", ret);
+		return ret;
+	}
+
 	dsi2->dev = dev;
 	dsi2->pdata = pdata;
 	dsi2->id = id;
@@ -1298,6 +1307,15 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 
 	return 0;
 }
+
+static const u32 rk3576_dsi_grf_reg_fields[MAX_FIELDS] = {
+	[TXREQCLKHS_EN]		= GRF_REG_FIELD(0x0028,  1,  1),
+	[GATING_EN]		= GRF_REG_FIELD(0x0028,  0,  0),
+	[IPI_SHUTDN]		= GRF_REG_FIELD(0x0028,  3,  3),
+	[IPI_COLORM]		= GRF_REG_FIELD(0x0028,  2,  2),
+	[IPI_COLOR_DEPTH]	= GRF_REG_FIELD(0x0028,  8,  11),
+	[IPI_FORMAT]		= GRF_REG_FIELD(0x0028,  4,  7),
+};
 
 static const u32 rk3588_dsi0_grf_reg_fields[MAX_FIELDS] = {
 	[TXREQCLKHS_EN]		= GRF_REG_FIELD(0x0000, 11, 11),
@@ -1317,7 +1335,15 @@ static const u32 rk3588_dsi1_grf_reg_fields[MAX_FIELDS] = {
 	[IPI_FORMAT]		= GRF_REG_FIELD(0x0004,  0,  3),
 };
 
+static const struct dw_mipi_dsi2_plat_data rk3576_mipi_dsi2_plat_data = {
+	.dsc = false,
+	.dsi0_grf_reg_fields = rk3576_dsi_grf_reg_fields,
+	.dphy_max_bit_rate_per_lane = 2500000000ULL,
+	.cphy_max_symbol_rate_per_lane = 1700000000ULL,
+};
+
 static const struct dw_mipi_dsi2_plat_data rk3588_mipi_dsi2_plat_data = {
+	.dsc = true,
 	.dsi0_grf_reg_fields = rk3588_dsi0_grf_reg_fields,
 	.dsi1_grf_reg_fields = rk3588_dsi1_grf_reg_fields,
 	.dphy_max_bit_rate_per_lane = 4500000000ULL,
@@ -1326,6 +1352,9 @@ static const struct dw_mipi_dsi2_plat_data rk3588_mipi_dsi2_plat_data = {
 
 static const struct udevice_id dw_mipi_dsi2_ids[] = {
 	{
+		.compatible = "rockchip,rk3576-mipi-dsi2",
+		.data = (ulong)&rk3576_mipi_dsi2_plat_data,
+	}, {
 		.compatible = "rockchip,rk3588-mipi-dsi2",
 		.data = (ulong)&rk3588_mipi_dsi2_plat_data,
 	},
