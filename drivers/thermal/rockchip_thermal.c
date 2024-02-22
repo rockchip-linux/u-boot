@@ -1679,6 +1679,31 @@ static const struct rockchip_tsadc_chip rk3588_tsadc_data = {
 	},
 };
 
+static const struct rockchip_tsadc_chip rk3576_tsadc_data = {
+	/* top, big_core, little_core, ddr, npu, gpu */
+	.chn_id = {0, 1, 2, 3, 4, 5},
+	.chn_num = 6, /* six channels for tsadc */
+
+	.tshut_mode = TSHUT_MODE_GPIO, /* default TSHUT via GPIO give PMIC */
+	.tshut_polarity = TSHUT_LOW_ACTIVE, /* default TSHUT LOW ACTIVE */
+	.tshut_temp = 95000,
+
+	.tsadc_init = tsadc_init_v8,
+	.tsadc_control = tsadc_control_v4,
+	.tsadc_get_temp = tsadc_get_temp_v4,
+	.irq_ack = tsadc_irq_ack_v4,
+	.set_alarm_temp = tsadc_alarm_temp_v3,
+	.set_tshut_temp = tsadc_tshut_temp_v3,
+	.set_tshut_mode = tsadc_tshut_mode_v4,
+
+	.table = {
+		.id = rk3588_code_table,
+		.length = ARRAY_SIZE(rk3588_code_table),
+		.data_mask = TSADCV4_DATA_MASK,
+		.mode = ADC_INCREMENT,
+	},
+};
+
 static const struct udevice_id rockchip_thermal_match[] = {
 	{
 		.compatible = "rockchip,px30-tsadc",
@@ -1739,6 +1764,10 @@ static const struct udevice_id rockchip_thermal_match[] = {
 	{
 		.compatible = "rockchip,rk3588-tsadc",
 		.data = (ulong)&rk3588_tsadc_data,
+	},
+	{
+		.compatible = "rockchip,rk3576-tsadc",
+		.data = (ulong)&rk3576_tsadc_data,
 	},
 	{ /* end */ },
 };
