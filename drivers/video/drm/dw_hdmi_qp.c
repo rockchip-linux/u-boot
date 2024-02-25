@@ -1053,7 +1053,7 @@ static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
 	/* Mark yuv422 10bit */
 	if (hdmi->hdmi_data.enc_out_bus_format == MEDIA_BUS_FMT_YUYV10_1X20)
 		hdmi_writel(hdmi, BIT(20), VIDEO_INTERFACE_CONFIG0);
-	rk3588_set_grf_cfg(hdmi->rk_hdmi);
+	dw_hdmi_qp_set_grf_cfg(hdmi->rk_hdmi);
 	link_cfg = dw_hdmi_rockchip_get_link_cfg(hdmi->rk_hdmi);
 
 	/* not for DVI mode */
@@ -1198,7 +1198,7 @@ int rockchip_dw_hdmi_qp_init(struct rockchip_connector *conn, struct display_sta
 	hdmi_writel(hdmi, 0, MAINUNIT_1_INT_MASK_N);
 	hdmi_writel(hdmi, 428571429, TIMER_BASE_CONFIG0);
 
-	dw_hdmi_qp_set_iomux(hdmi->rk_hdmi);
+	dw_hdmi_qp_io_path_init(hdmi->rk_hdmi);
 
 	return 0;
 }
@@ -1225,7 +1225,7 @@ static void rockchip_dw_hdmi_qp_config_output(struct rockchip_connector *conn,
 	unsigned long enc_out_encoding;
 	struct overscan *overscan = &conn_state->overscan;
 
-	dw_hdmi_qp_selete_output(&hdmi->edid_data, conn, &bus_format,
+	dw_hdmi_qp_select_output(&hdmi->edid_data, conn, &bus_format,
 				 overscan, hdmi->dev_type,
 				 hdmi->output_bus_format_rgb, hdmi->rk_hdmi,
 				 state);

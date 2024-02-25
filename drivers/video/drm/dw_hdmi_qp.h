@@ -929,10 +929,10 @@ enum drm_connector_status {
 	connector_status_connected = 1,
 };
 
-void rk3588_set_grf_cfg(void *data);
-void dw_hdmi_qp_set_iomux(void *data);
+void dw_hdmi_qp_set_grf_cfg(void *data);
+void dw_hdmi_qp_io_path_init(void *data);
 struct dw_hdmi_link_config *dw_hdmi_rockchip_get_link_cfg(void *data);
-void dw_hdmi_qp_selete_output(struct hdmi_edid_data *edid_data,
+void dw_hdmi_qp_select_output(struct hdmi_edid_data *edid_data,
 			      struct rockchip_connector *conn,
 			      unsigned int *bus_format,
 			      struct overscan *overscan,

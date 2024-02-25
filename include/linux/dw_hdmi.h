@@ -94,6 +94,8 @@ enum dw_hdmi_devtype {
 	RK3399_HDMI,
 	RK3528_HDMI,
 	RK3568_HDMI,
+	RK3576_HDMI,
+	RK3588_HDMI,
 };
 
 struct dw_hdmi_audio_tmds_n {
@@ -173,6 +175,7 @@ struct dw_hdmi_plat_data {
 	const char *phy_name;
 	void *phy_data;
 	void *hdmi;
+	void *chip_ops;
 
 	/* Synopsys PHY support */
 	const struct dw_hdmi_mpll_config *mpll_cfg;
