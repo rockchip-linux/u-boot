@@ -709,9 +709,6 @@ struct rockchip_hdptx_phy {
 	struct reset_ctl cmn_reset;
 	struct reset_ctl init_reset;
 	struct reset_ctl lane_reset;
-	struct reset_ctl phy_reset;
-	struct reset_ctl ropll_reset;
-	struct reset_ctl lcpll_reset;
 };
 
 struct clk_hdptx {
@@ -1035,10 +1032,6 @@ static int hdptx_lcpll_cmn_config(struct rockchip_hdptx_phy *hdptx, unsigned lon
 
 	hdptx_pre_power_up(hdptx);
 
-	reset_assert(&hdptx->lcpll_reset);
-	udelay(20);
-	reset_deassert(&hdptx->lcpll_reset);
-
 	hdptx_grf_write(hdptx, GRF_HDPTX_CON0, LC_REF_CLK_SEL << 16);
 
 	hdptx_update_bits(hdptx, CMN_REG0008, LCPLL_EN_MASK |
@@ -1211,10 +1204,6 @@ static int hdptx_ropll_cmn_config(struct rockchip_hdptx_phy *hdptx, unsigned lon
 		cfg->sdc_n + 3, cfg->sdc_num, cfg->sdc_deno);
 
 	hdptx_pre_power_up(hdptx);
-
-	reset_assert(&hdptx->ropll_reset);
-	udelay(20);
-	reset_deassert(&hdptx->ropll_reset);
 
 	hdptx_grf_write(hdptx, GRF_HDPTX_CON0, LC_REF_CLK_SEL << 16);
 
@@ -1494,14 +1483,6 @@ hdptx_lcpll_ropll_cmn_config(struct rockchip_hdptx_phy *hdptx,
 	hdptx->rate = rate * 100;
 
 	hdptx_pre_power_up(hdptx);
-
-	reset_assert(&hdptx->ropll_reset);
-	udelay(20);
-	reset_deassert(&hdptx->ropll_reset);
-
-	reset_assert(&hdptx->lcpll_reset);
-	udelay(20);
-	reset_deassert(&hdptx->lcpll_reset);
 
 	/* ROPLL input reference clock from LCPLL (cascade mode) */
 	val = (LC_REF_CLK_SEL << 16) | LC_REF_CLK_SEL;
@@ -1976,18 +1957,6 @@ static int rockchip_hdptx_phy_hdmi_probe(struct udevice *dev)
 	}
 
 	ret = reset_get_by_name(dev, "lane", &hdptx->lane_reset);
-	if (ret < 0) {
-		dev_err(dev, "failed to get lane reset: %d\n", ret);
-		return ret;
-	}
-
-	ret = reset_get_by_name(dev, "ropll", &hdptx->ropll_reset);
-	if (ret < 0) {
-		dev_err(dev, "failed to get ropll reset: %d\n", ret);
-		return ret;
-	}
-
-	ret = reset_get_by_name(dev, "lcpll", &hdptx->lcpll_reset);
 	if (ret < 0) {
 		dev_err(dev, "failed to get lane reset: %d\n", ret);
 		return ret;
