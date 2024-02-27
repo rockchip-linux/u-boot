@@ -586,9 +586,10 @@ static int ebc_tcon_frame_start(struct udevice *dev, int frame_total)
 #ifdef CONFIG_ROCKCHIP_RK3576
 static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 {
-	int ret;
 	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
 	u32 width, height, vir_width, vir_height;
+	u32 val;
+	int ret;
 
 	if (panel->rearrange) {
 		width = panel->width * 2;
@@ -627,9 +628,33 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 	tcon_write(tcon, RK3576_EBC_WIN_DSP,
 		   RK3576_WIN_DSP_HEIGHT(height) |
 		   RK3576_WIN_DSP_WIDTH(width));
-	tcon_write(tcon, RK3576_EBC_WIN_DSP_ST,
-		   RK3576_WIN_DSP_YST(panel->fsl + panel->fbl) |
-		   RK3576_WIN_DSP_XST(panel->lsl + panel->lbl));
+	if (width != vir_width || height != vir_height) {
+		if (((vir_width - width) / 2) % 2)
+			dev_warn(dev,
+				 "Margin left/right between width/vir_width must be same\n");
+		if (((vir_height - height) / 2) % 2)
+			dev_warn(tcon->dev,
+				 "Margin top/bottom between height/vir_height must be same\n");
+
+		val = panel->panel_16bit ? 8 : 4;
+		if (((vir_width - width) / 2) % val)
+			dev_warn(dev,
+				 "Margin left/right between width/vir_width must align with %d\n",
+				 val);
+
+		val = RK3576_WIN_DSP_YST(panel->fsl + panel->fbl + (vir_height - height) / 2);
+		if (panel->panel_16bit)
+			val |= RK3576_WIN_DSP_XST(panel->lsl + panel->lbl +
+						  (vir_width - width) / 2 / 8);
+		else
+			val |= RK3576_WIN_DSP_XST(panel->lsl + panel->lbl +
+						  (vir_width - width) / 2 / 4);
+		tcon_write(tcon, RK3576_EBC_WIN_DSP_ST, val);
+	} else {
+		tcon_write(tcon, RK3576_EBC_WIN_DSP_ST,
+			   RK3576_WIN_DSP_YST(panel->fsl + panel->fbl) |
+			   RK3576_WIN_DSP_XST(panel->lsl + panel->lbl));
+	}
 
 	/*
 	 * win2 fifo is 512x64, win fifo is 256x64,
