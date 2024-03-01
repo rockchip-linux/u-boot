@@ -190,6 +190,7 @@ struct ebc_tcon_priv {
 #define RK3576_DSP_VCOM_MODE(x)			UPDATE(x, 27, 27)
 #define RK3576_DSP_SDCLK_DIV(x)			UPDATE(x, 19, 16)
 #define RK3576_DSP_SDCLK_DIV_MASK		GENMASK(19, 16)
+#define RK3576_DSP_SDOE_MODE(x)			UPDATE(x, 0, 0)
 
 #define RK3576_DSP_HTOTAL(x)			UPDATE(x, 31, 16)
 #define RK3576_DSP_HS_END(x)			UPDATE(x, 15, 0)
@@ -695,13 +696,25 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		   RK3576_EPD_SDSHR(1));
 
 	tcon_write(tcon, RK3576_EBC_DSP_START, 0);
-	tcon_write(tcon, RK3576_EBC_DSP_CTRL2,
-		   RK3576_SW_BURST_CTRL | RK3576_DSP_SDCE_WIDTH(panel->ldl));
+
+	if (panel->sdce_width == 0)
+		val = RK3576_DSP_SDCE_WIDTH(panel->ldl);
+	else
+		val = RK3576_DSP_SDCE_WIDTH(panel->sdce_width);
+	tcon_write(tcon, RK3576_EBC_DSP_CTRL2, RK3576_SW_BURST_CTRL | val);
+
+	/**
+	 *  SDOE_MODE 1 : sdce signal act as vden
+	 *  SDOE_MODE 0 : sdce signal act as hden
+	 */
+	if (panel->sdoe_mode == 1)
+		val = RK3576_DSP_SDOE_MODE(1);
+	else
+		val = RK3576_DSP_SDOE_MODE(0);
 
 	tcon_write(tcon, RK3576_EBC_DSP_CTRL,
-		   RK3576_DSP_SWAP_MODE(panel->panel_16bit ? 2 : 3) |
-		   RK3576_DSP_VCOM_MODE(1) |
-		   RK3576_DSP_SDCLK_DIV(panel->panel_16bit ? 7 : 3));
+		   RK3576_DSP_SWAP_MODE(panel->panel_16bit ? 2 : 3) | RK3576_DSP_VCOM_MODE(1) |
+		   RK3576_DSP_SDCLK_DIV(panel->panel_16bit ? 7 : 3) | val);
 
 	tcon_cfg_done(tcon);
 

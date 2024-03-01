@@ -894,6 +894,8 @@ static int rockchip_eink_display_ofdata_to_platdata(struct udevice *dev)
 	plat->rearrange = dev_read_u32_default(dev, "panel,rearrange", 0);
 	plat->width_mm = dev_read_u32_default(dev, "panel,width-mm", 0);
 	plat->height_mm = dev_read_u32_default(dev, "panel,height-mm", 0);
+	plat->sdce_width = dev_read_u32_default(dev, "panel,sdce_width", 0);
+	plat->sdoe_mode = dev_read_u32_default(dev, "panel,sdoe_mode", 0);
 
 	disp_mem = of_parse_phandle(ofnode_to_np(dev_ofnode(dev)),
 				    "memory-region", 0);
