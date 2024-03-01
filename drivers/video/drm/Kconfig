@@ -242,5 +242,66 @@ config DRM_SII902X
 	help
 	  Silicon Image sii902x bridge chip driver.
 
+config ROCKCHIP_VIDCONSOLE
+	bool "Rockchip video console support"
+	depends on DRM_ROCKCHIP
+	default n
+	help
+	  Used to enable video console mode.
+	  This mode can be used to print text info on screen.
+
+config ROCKCHIP_VIDCONSOLE_MEM_RESERVED_SIZE_MBYTES
+	int "Size in Mega Bytes"
+	depends on ROCKCHIP_VIDCONSOLE
+	depends on DRM_ROCKCHIP
+	default 16
+	help
+	  Used to set the framebuffer size of video console.
+	  It can be calculated by:
+	    size = ROUNDUP(width x height x bpp / 8 / 1024 / 1024)
+
+config ROCKCHIP_VIDCONSOLE_WIDTH
+	int "Rockchip video console horizontal resolution"
+	depends on ROCKCHIP_VIDCONSOLE
+	default 0
+	help
+	  Used to set the width of video console.
+
+config ROCKCHIP_VIDCONSOLE_HEIGHT
+	int "Rockchip video console vertical resolution"
+	depends on ROCKCHIP_VIDCONSOLE
+	default 0
+	help
+	  Used to set the height of video console.
+
+config ROCKCHIP_VIDCONSOLE_BPP
+	int
+	depends on ROCKCHIP_VIDCONSOLE
+	default 32 if ROCKCHIP_VIDCONSOLE_BPP32
+	default 16 if ROCKCHIP_VIDCONSOLE_BPP16
+	default 8 if ROCKCHIP_VIDCONSOLE_BPP8
+	default 0
+
+choice
+	prompt "Rockchip video console bits per pixel"
+	depends on ROCKCHIP_VIDCONSOLE
+	default ROCKCHIP_VIDCONSOLE_BPP32
+	help
+	  Used to set the bits per pixel of video console.
+
+config ROCKCHIP_VIDCONSOLE_BPP32
+	bool "Rockchip video console BPP32"
+	depends on VIDEO_BPP32
+
+config ROCKCHIP_VIDCONSOLE_BPP16
+	bool "Rockchip video console BPP16"
+	depends on VIDEO_BPP16
+
+config ROCKCHIP_VIDCONSOLE_BPP8
+	bool "Rockchip video console BPP8"
+	depends on VIDEO_BPP8
+
+endchoice
+
 source "drivers/video/drm/display-serdes/Kconfig"
 

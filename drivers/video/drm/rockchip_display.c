@@ -18,6 +18,7 @@
 #include <linux/bug.h>
 #include <linux/delay.h>
 #include <linux/hdmi.h>
+#include <linux/log2.h>
 #include <linux/list.h>
 #include <linux/compat.h>
 #include <linux/media-bus-format.h>
@@ -1017,6 +1018,9 @@ static int display_logo(struct display_state *state)
 	u32 overscan_w, overscan_h;
 	int hdisplay, vdisplay, ret;
 
+	if (state->is_init)
+		return 0;
+
 	ret = display_init(state);
 	if (!state->is_init || ret)
 		return -ENODEV;
@@ -1463,21 +1467,159 @@ free_bmp_data:
 #endif
 }
 
-void rockchip_show_fbbase(ulong fbbase)
+#ifdef CONFIG_ROCKCHIP_VIDCONSOLE
+static int vidconsole_init(struct udevice *dev, struct display_state *state)
 {
-	struct display_state *s;
+	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
+	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
+	struct crtc_state *crtc_state = &state->crtc_state;
+	struct connector_state *conn_state = &state->conn_state;
+	struct overscan *overscan = &conn_state->overscan;
+	u32 crtc_x, crtc_y, crtc_w, crtc_h;
+	u32 overscan_w, overscan_h;
+	int ret;
 
-	list_for_each_entry(s, &rockchip_display_list, head) {
-		s->logo.mode = ROCKCHIP_DISPLAY_FULLSCREEN;
-		s->logo.mem = (char *)fbbase;
-		s->logo.width = DRM_ROCKCHIP_FB_WIDTH;
-		s->logo.height = DRM_ROCKCHIP_FB_HEIGHT;
-		s->logo.bpp = 32;
-		s->logo.ymirror = 0;
-
-		display_logo(s);
+	switch (DRM_ROCKCHIP_FB_BPP) {
+	case 16:
+		crtc_state->format = ROCKCHIP_FMT_RGB565;
+		break;
+	case 24:
+		crtc_state->format = ROCKCHIP_FMT_RGB888;
+		break;
+	case 32:
+		crtc_state->format = ROCKCHIP_FMT_ARGB8888;
+		break;
+	default:
+		printf("can't support video console bpp[%d]\n", DRM_ROCKCHIP_FB_BPP);
+		return -EINVAL;
 	}
+
+	crtc_state->src_rect.w = uc_priv->xsize;
+	crtc_state->src_rect.h = uc_priv->ysize;
+	crtc_state->src_rect.x = 0;
+	crtc_state->src_rect.y = 0;
+	/* the video console mode is fullscreen display */
+	crtc_state->crtc_rect.w = conn_state->mode.crtc_hdisplay;
+	crtc_state->crtc_rect.h = conn_state->mode.crtc_vdisplay;
+	crtc_state->crtc_rect.x = 0;
+	crtc_state->crtc_rect.y = 0;
+
+	crtc_state->dma_addr = (u32)plat->base;
+	crtc_state->xvir = ALIGN(crtc_state->src_rect.w * DRM_ROCKCHIP_FB_BPP, 32) >> 5;
+
+	/*
+	 * For some platforms, such as RK3576, use the win scale instead
+	 * of the post scale to configure overscan parameters, because the
+	 * sharp/post scale/split functions are mutually exclusice.
+	 */
+	if (crtc_state->overscan_by_win_scale) {
+		overscan_w = crtc_state->crtc_rect.w * (200 - overscan->left_margin * 2) / 200;
+		overscan_h = crtc_state->crtc_rect.h * (200 - overscan->top_margin * 2) / 200;
+
+		crtc_x = crtc_state->crtc_rect.x + overscan_w / 2;
+		crtc_y = crtc_state->crtc_rect.y + overscan_h / 2;
+		crtc_w = crtc_state->crtc_rect.w - overscan_w;
+		crtc_h = crtc_state->crtc_rect.h - overscan_h;
+
+		crtc_state->crtc_rect.x = crtc_x;
+		crtc_state->crtc_rect.y = crtc_y;
+		crtc_state->crtc_rect.w = crtc_w;
+		crtc_state->crtc_rect.h = crtc_h;
+	}
+
+	ret = display_check(state);
+	if (ret)
+		return ret;
+
+	ret = display_set_plane(state);
+	if (ret)
+		return ret;
+
+	return 0;
 }
+
+int rockchip_vidconsole_display(struct udevice *dev)
+{
+	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
+	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
+	struct display_state *state;
+	bool is_init = false;
+	u32 fb_size;
+	int ret;
+
+	uc_priv->xsize = U16_MAX;
+	uc_priv->ysize = U16_MAX;
+	/* convert bpp 32/16/8 to VIDEO_BPP32/VIDEO_BPP16/VIDEO_BPP8 */
+	uc_priv->bpix = ilog2(DRM_ROCKCHIP_FB_BPP);
+	list_for_each_entry(state, &rockchip_display_list, head) {
+		ret = display_init(state);
+		is_init |= state->is_init;
+		if (!state->is_init)
+			continue;
+
+		/*
+		 * The default horizontal resolution of video console is the minimum
+		 * &drm_display_mode.crtc_hdisplay of the VPs, and the vertical
+		 * resolution is the minimum &drm_display_mode.crtc_vdisplay.
+		 */
+		if (uc_priv->xsize > state->conn_state.mode.crtc_hdisplay)
+			uc_priv->xsize = state->conn_state.mode.crtc_hdisplay;
+
+		if (uc_priv->ysize > state->conn_state.mode.crtc_vdisplay)
+			uc_priv->ysize = state->conn_state.mode.crtc_vdisplay;
+
+		state->vidcon_fb_addr = plat->base;
+	}
+	if (!is_init) {
+		ret = -ENODEV;
+		goto display_deinit;
+	}
+
+	if (CONFIG_ROCKCHIP_VIDCONSOLE_WIDTH > 0 && CONFIG_ROCKCHIP_VIDCONSOLE_HEIGHT > 0) {
+		uc_priv->xsize = CONFIG_ROCKCHIP_VIDCONSOLE_WIDTH;
+		uc_priv->ysize = CONFIG_ROCKCHIP_VIDCONSOLE_HEIGHT;
+	}
+
+	fb_size = uc_priv->xsize * uc_priv->ysize * VNBYTES(uc_priv->bpix);
+	if (fb_size > CONFIG_ROCKCHIP_VIDCONSOLE_MEM_RESERVED_SIZE_MBYTES * 1024 * 1024) {
+		printf("video console fb size [%d Bytes] is over reserved [%d Bytes], then back to show uboot logo\n",
+		       fb_size, CONFIG_ROCKCHIP_VIDCONSOLE_MEM_RESERVED_SIZE_MBYTES * 1024 * 1024);
+		ret = -EINVAL;
+		goto display_deinit;
+	}
+	memset((void *)plat->base, 0, fb_size);
+
+	list_for_each_entry(state, &rockchip_display_list, head) {
+		if (!state->is_init)
+			continue;
+
+		ret = vidconsole_init(dev, state);
+		if (ret) {
+			printf("failed to init video console, then back to show uboot logo\n");
+			goto display_deinit;
+		}
+	}
+
+	list_for_each_entry(state, &rockchip_display_list, head) {
+		if (!state->is_init)
+			continue;
+
+		display_enable(state);
+	}
+
+	printf("Enable video console mode: resolution[%dx%d] bpp[%d]\n",
+	       uc_priv->xsize, uc_priv->ysize, DRM_ROCKCHIP_FB_BPP);
+
+	return 0;
+
+display_deinit:
+	list_for_each_entry(state, &rockchip_display_list, head) {
+		state->is_init = false;
+		state->vidcon_fb_addr = 0;
+	}
+	return ret;
+}
+#endif
 
 int rockchip_show_bmp(const char *bmp)
 {
@@ -2180,11 +2322,10 @@ static int rockchip_display_probe(struct udevice *dev)
 	uc_priv->ysize = DRM_ROCKCHIP_FB_HEIGHT;
 	uc_priv->bpix = VIDEO_BPP32;
 
-	#ifdef CONFIG_DRM_ROCKCHIP_VIDEO_FRAMEBUFFER
-	rockchip_show_fbbase(plat->base);
+#ifdef CONFIG_ROCKCHIP_VIDCONSOLE
+	rockchip_vidconsole_display(dev);
 	video_set_flush_dcache(dev, true);
-	#endif
-
+#endif
 	return 0;
 }
 
@@ -2201,6 +2342,7 @@ void rockchip_display_fixup(void *blob)
 	const char *path;
 	const char *cacm_header;
 	u64 aligned_memory_size;
+	ulong vidcon_fb_addr = 0;
 	bool is_logo_init = 0;
 
 	if (fdt_node_offset_by_compatible(blob, 0, "rockchip,drm-logo") >= 0) {
@@ -2214,6 +2356,7 @@ void rockchip_display_fixup(void *blob)
 				} else {
 					s->is_klogo_valid = true;
 				}
+				vidcon_fb_addr = s->vidcon_fb_addr;
 			}
 			is_logo_init |= s->is_init;
 		}
@@ -2226,10 +2369,17 @@ void rockchip_display_fixup(void *blob)
 		if (!get_display_size())
 			return;
 
-		aligned_memory_size = (u64)ALIGN(get_display_size(), align_size);
-		offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
-						    (u64)memory_start,
-						    aligned_memory_size);
+		if (vidcon_fb_addr) {
+			aligned_memory_size = (u64)ALIGN(memory_end - vidcon_fb_addr, align_size);
+			offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
+							    (u64)vidcon_fb_addr,
+							    aligned_memory_size);
+		} else {
+			aligned_memory_size = (u64)ALIGN(get_display_size(), align_size);
+			offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
+							    (u64)memory_start,
+							    aligned_memory_size);
+		}
 		if (offset < 0)
 			printf("failed to reserve drm-loader-logo memory\n");
 
@@ -2291,8 +2441,10 @@ void rockchip_display_fixup(void *blob)
 #define FDT_SET_U32(name, val) \
 		do_fixup_by_path_u32(blob, path, name, val, 1);
 
-		offset = s->logo.offset + (u32)(unsigned long)s->logo.mem
-			 - memory_start;
+		if (vidcon_fb_addr)
+			offset = s->logo.offset + (u32)(unsigned long)s->logo.mem - vidcon_fb_addr;
+		else
+			offset = s->logo.offset + (u32)(unsigned long)s->logo.mem - memory_start;
 		FDT_SET_U32("logo,offset", offset);
 		FDT_SET_U32("logo,width", s->logo.width);
 		FDT_SET_U32("logo,height", s->logo.height);
