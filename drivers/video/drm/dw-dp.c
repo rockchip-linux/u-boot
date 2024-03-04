@@ -555,6 +555,7 @@ static int dw_dp_link_probe(struct dw_dp *dp)
 	u8 dpcd;
 	int ret;
 
+	drm_dp_dpcd_writeb(&dp->aux, DP_MSTM_CTRL, 0);
 	ret = drm_dp_read_dpcd_caps(&dp->aux, link->dpcd);
 	if (ret < 0)
 		return ret;
