@@ -69,8 +69,8 @@ static void scsi_setup_inquiry(struct scsi_cmd *pccb)
 	pccb->cmd[1] = 0;
 	pccb->cmd[2] = 0;
 	pccb->cmd[3] = 0;
-	if (pccb->datalen > 255)
-		pccb->cmd[4] = 255;
+	if (pccb->datalen > SCSI_MAX_INQUIRY_BYTES)
+		pccb->cmd[4] = SCSI_MAX_INQUIRY_BYTES;
 	else
 		pccb->cmd[4] = (unsigned char)pccb->datalen;
 	pccb->cmd[5] = 0;
@@ -536,7 +536,7 @@ static int scsi_detect_dev(struct udevice *dev, int target, int lun,
 	pccb->target = target;
 	pccb->lun = lun;
 	pccb->pdata = tempbuff;
-	pccb->datalen = 512;
+	pccb->datalen = SCSI_STD_INQUIRY_BYTES;
 	pccb->dma_dir = DMA_FROM_DEVICE;
 	scsi_setup_inquiry(pccb);
 	if (scsi_exec(dev, pccb)) {

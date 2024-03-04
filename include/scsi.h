@@ -364,6 +364,8 @@ int scsi_scan(bool verbose);
 int scsi_scan_dev(struct udevice *dev, bool verbose);
 
 #define SCSI_IDENTIFY					0xC0  /* not used */
+#define SCSI_STD_INQUIRY_BYTES				36
+#define SCSI_MAX_INQUIRY_BYTES				96
 
 /* Hardware errors  */
 #define SCSI_SEL_TIME_OUT			 0x00000101	 /* Selection time out */
