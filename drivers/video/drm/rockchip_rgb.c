@@ -195,6 +195,15 @@ static int rockchip_rgb_connector_init(struct rockchip_connector *conn, struct d
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P565;
 		conn_state->output_if = VOP_OUTPUT_IF_RGB;
 		break;
+	case MEDIA_BUS_FMT_RGB565_2X8_LE:
+	case MEDIA_BUS_FMT_BGR565_2X8_LE:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_S565;
+		conn_state->output_if = VOP_OUTPUT_IF_RGB;
+		break;
+	case MEDIA_BUS_FMT_RGB666_3X6:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_S666;
+		conn_state->output_if = VOP_OUTPUT_IF_RGB;
+		break;
 	case MEDIA_BUS_FMT_RGB888_3X8:
 	case MEDIA_BUS_FMT_BGR888_3X8:
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_S888;
