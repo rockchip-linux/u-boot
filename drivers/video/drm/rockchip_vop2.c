@@ -4299,6 +4299,7 @@ static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
 
 	switch (bus_format) {
 	case MEDIA_BUS_FMT_RGB565_1X16:
+	case MEDIA_BUS_FMT_RGB565_2X8_LE:
 		dither_down_en = true;
 		dither_down_mode = RGB888_TO_RGB565;
 		pre_dither_down_en = true;
@@ -4306,6 +4307,7 @@ static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
 	case MEDIA_BUS_FMT_RGB666_1X18:
 	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
 	case MEDIA_BUS_FMT_RGB666_1X7X3_SPWG:
+	case MEDIA_BUS_FMT_RGB666_3X6:
 		dither_down_en = true;
 		dither_down_mode = RGB888_TO_RGB666;
 		pre_dither_down_en = true;
