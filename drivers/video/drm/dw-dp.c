@@ -1650,7 +1650,7 @@ static int dw_dp_connector_get_timing(struct rockchip_connector *conn, struct di
 		dw_dp_mode_valid(dp, &edid_data);
 
 		if (!drm_mode_prune_invalid(&edid_data)) {
-			printf("can't find valid hdmi mode\n");
+			printf("can't find valid dp mode\n");
 			ret = -EINVAL;
 			goto err;
 		}
