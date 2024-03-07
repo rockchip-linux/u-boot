@@ -2828,8 +2828,8 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	if (vop2->version == VOP_VERSION_RK3576) {
 		vop2->merge_irq = ofnode_read_bool(cstate->node, "rockchip,vop-merge-irq");
 
-		/* Default use rkiommu 2.0 for axi0 */
-		vop2_mask_write(vop2, RK3576_SYS_MMU_CTRL, EN_MASK, RKMMU_V2_EN_SHIFT, 1, true);
+		/* Default use rkiommu 1.0 for axi0 */
+		vop2_mask_write(vop2, RK3576_SYS_MMU_CTRL, EN_MASK, RKMMU_V2_EN_SHIFT, 0, true);
 
 		/* Init frc2.0 config */
 		vop2_writel(vop2, 0xca0, 0xc8);
