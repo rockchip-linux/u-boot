@@ -22,6 +22,7 @@
 #include <linux/compat.h>
 #include <linux/media-bus-format.h>
 #include <malloc.h>
+#include <memalign.h>
 #include <video.h>
 #include <video_rockchip.h>
 #include <video_bridge.h>
@@ -142,8 +143,8 @@ int rockchip_get_baseparameter(void)
 {
 	struct blk_desc *dev_desc;
 	struct disk_partition part_info;
-	int block_num = 2048;
-	char baseparameter_buf[block_num * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
+	int block_num;
+	char *baseparameter_buf;
 	int ret = 0;
 
 	dev_desc = plat_bootdev();
@@ -157,10 +158,17 @@ int rockchip_get_baseparameter(void)
 		return -ENOENT;
 	}
 
+	block_num = BLOCK_CNT(sizeof(base_parameter), dev_desc);
+	baseparameter_buf = memalign(ARCH_DMA_MINALIGN, block_num * dev_desc->blksz);
+	if (!baseparameter_buf) {
+		printf("failed to alloc memory for baseparameter buffer\n");
+		return -ENOMEM;
+	}
+
 	ret = blk_dread(dev_desc, part_info.start, block_num, (void *)baseparameter_buf);
 	if (ret < 0) {
 		printf("read baseparameter failed\n");
-		return ret;
+		goto out;
 	}
 
 	memcpy(&base_parameter, baseparameter_buf, sizeof(base_parameter));
@@ -170,6 +178,8 @@ int rockchip_get_baseparameter(void)
 	}
 	rockchip_display_make_crc32_table();
 
+out:
+	free(baseparameter_buf);
 	return ret;
 }
 
