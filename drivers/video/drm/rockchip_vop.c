@@ -319,13 +319,17 @@ static int rockchip_vop_init(struct display_state *state)
 	vop->ctrl = vop_data->ctrl;
 
 	map = syscon_regmap_lookup_by_phandle(crtc_state->dev, "rockchip,grf");
-	vop->grf_ctrl = regmap_get_range(map, 0);
-	if (vop->grf_ctrl <= 0)
-		printf("%s: Get syscon grf failed (ret=%p)\n", __func__, vop->grf_ctrl);
+	if (!IS_ERR_OR_NULL(map)) {
+		vop->grf_ctrl = regmap_get_range(map, 0);
+		if (vop->grf_ctrl <= 0)
+			printf("%s: Get syscon grf failed (ret=%p)\n", __func__, vop->grf_ctrl);
+	}
 	map = syscon_regmap_lookup_by_phandle(crtc_state->dev, "rockchip,vo0-grf");
-	vop->vo0_grf_ctrl = regmap_get_range(map, 0);
-	if (vop->vo0_grf_ctrl <= 0)
-		printf("%s: Get syscon vo0_grf failed (ret=%p)\n", __func__, vop->vo0_grf_ctrl);
+	if (!IS_ERR_OR_NULL(map)) {
+		vop->vo0_grf_ctrl = regmap_get_range(map, 0);
+		if (vop->vo0_grf_ctrl <= 0)
+			printf("%s: Get syscon vo0_grf failed (ret=%p)\n", __func__, vop->vo0_grf_ctrl);
+	}
 
 	vop->line_flag = vop_data->line_flag;
 	vop->csc_table = vop_data->csc_table;
