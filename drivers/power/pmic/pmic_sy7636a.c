@@ -61,17 +61,32 @@ static int sy7636a_read(struct udevice *dev, uint reg, uint8_t *buff, int len)
 static int pmic_sy7636a_probe(struct udevice *dev)
 {
 	struct gpio_desc gpio_desc[8];
+	uint8_t data;
+	int num;
 	int ret;
 
-	ret = gpio_request_list_by_name(dev, "enable-gpios", gpio_desc, 8,
+	num = gpio_request_list_by_name(dev, "enable-gpios", gpio_desc, 8,
 					GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE);
-	if (ret < 0)
+	if (num < 0)
 		dev_warn(dev, "sy7636a failed to get enable gpios:%d\n", ret);
 
 	/* After enable, SY7636A requires 2.5ms delay time to enter active mode */
 	udelay(2500);
 
+	/* check is device i2c present */
+	ret = dm_i2c_read(dev, SY7636A_REG_OPERATION_MODE_CRL, &data, 1);
+	if (ret) {
+		dev_warn(dev, "sy7636a i2c not present: %d\n", ret);
+		goto fail;
+	}
+
 	return 0;
+
+fail:
+	if (num > 0)
+		gpio_free_list(dev, gpio_desc, num);
+
+	return ret;
 }
 
 static int pmic_sy7636a_bind(struct udevice *dev)
