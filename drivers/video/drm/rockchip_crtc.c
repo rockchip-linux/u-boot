@@ -133,7 +133,7 @@ static const struct rockchip_crtc rk3576_vop_data = {
 };
 
 static const struct rockchip_crtc rk3576_vop_lit_data = {
-	.funcs = &rockchip_vop2_funcs,
+	.funcs = &rockchip_vop_funcs,
 	.data = &rk3576_vop_lit,
 };
 
