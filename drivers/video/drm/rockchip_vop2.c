@@ -2688,20 +2688,6 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 			}
 			printf("VOP have %d active VP\n", active_vp_num);
 		} else {
-			plane_mask = vop2->data->plane_mask;
-			plane_mask += 2 * VOP2_VP_MAX;
-
-			for (i = 0; i < vop2->data->nr_vps; i++) {
-				vop2->vp_plane_mask[i] = plane_mask[i];
-			}
-
-			for (i = 0; i < vop2->data->nr_vps; i++) {
-				layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
-				for (j = 0; j < layer_nr; j++) {
-					layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
-					vop2->vp_plane_mask[i].plane_mask |= BIT(layer_phy_id);
-				}
-			}
 			/* find the first unplug devices and set it as main display */
 			int main_vp_index = -1;
 
