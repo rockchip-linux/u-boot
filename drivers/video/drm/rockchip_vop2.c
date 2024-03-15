@@ -3377,6 +3377,7 @@ static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
 	bool interface_dclk_sel, interface_pix_clk_sel = false;
 	bool double_pixel = mode->flags & DRM_MODE_FLAG_DBLCLK ||
 			    conn_state->output_if & VOP_OUTPUT_IF_BT656;
+	unsigned long dclk_in_rate, dclk_core_rate;
 	u32 val;
 
 	dclk_inv = (conn_state->bus_flags & DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE) ? 1 : 0;
@@ -3391,19 +3392,18 @@ static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
 		val |= (mode->flags & DRM_MODE_FLAG_NVSYNC) ? 0 : BIT(VSYNC_POSITIVE);
 	}
 
-	if (cstate->crtc_id == 1 || cstate->crtc_id == 2 ||
-	    (cstate->crtc_id == 0 && conn_state->output_if & VOP_OUTPUT_IF_eDP0) ||
-	    (conn_state->output_if & VOP_OUTPUT_IF_HDMI0 && mode->crtc_clock <= VOP2_MAX_DCLK_RATE))
-		cstate->crtc->vps[cstate->crtc_id].dclk_div = 1; /* no div */
-	else
+	if (conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420 ||
+	    mode->crtc_clock > VOP2_MAX_DCLK_RATE || (cstate->crtc_id == 0 && split_mode))
 		cstate->crtc->vps[cstate->crtc_id].dclk_div = 2; /* div2 */
-
-	if (double_pixel ||
-	    (cstate->crtc_id == 0 && conn_state->output_if & VOP_OUTPUT_IF_eDP0) ||
-	    (conn_state->output_if & VOP_OUTPUT_IF_HDMI0 && mode->crtc_clock <= VOP2_MAX_DCLK_RATE))
-		post_dclk_core_sel = true; /* div2 */
 	else
-		post_dclk_core_sel = false; /* no div */
+		cstate->crtc->vps[cstate->crtc_id].dclk_div = 1; /* no div */
+	dclk_in_rate = mode->crtc_clock / cstate->crtc->vps[cstate->crtc_id].dclk_div;
+
+	if (double_pixel)
+		dclk_core_rate = mode->crtc_clock / 2;
+	else
+		dclk_core_rate = mode->crtc_clock / port_pix_rate;
+	post_dclk_core_sel = dclk_in_rate > dclk_core_rate ? 1 : 0; /* 0: no div, 1: div2 */
 
 	if (split_mode || conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420) {
 		pix_half_rate = true;
@@ -4603,6 +4603,9 @@ static int rockchip_vop2_init(struct display_state *state)
 		}
 	}
 
+	if (vop2->version == VOP_VERSION_RK3576)
+		vp_dclk_div = cstate->crtc->vps[cstate->crtc_id].dclk_div;
+
 	if (mode->crtc_clock < VOP2_MAX_DCLK_RATE) {
 		if (conn_state->output_if & VOP_OUTPUT_IF_HDMI0)
 			vop2_clk_set_parent(&cstate->dclk, &hdmi0_phy_pll);
@@ -4616,14 +4619,13 @@ static int rockchip_vop2_init(struct display_state *state)
 		 * directly.
 		 */
 		if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0) && hdmi0_phy_pll.dev) {
-			ret = vop2_clk_set_rate(&hdmi0_phy_pll, dclk_rate * 1000);
+			ret = vop2_clk_set_rate(&hdmi0_phy_pll, dclk_rate / vp_dclk_div * 1000);
 		} else if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI1) && hdmi1_phy_pll.dev) {
-			ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate * 1000);
+			ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate / vp_dclk_div * 1000);
 		} else {
-			if (vop2->version == VOP_VERSION_RK3576)
-				vp_dclk_div = cstate->crtc->vps[cstate->crtc_id].dclk_div;
 			if (is_extend_pll(state, &hdmi_phy_pll.dev)) {
-				ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate * 1000);
+				ret = vop2_clk_set_rate(&hdmi_phy_pll,
+							dclk_rate / vp_dclk_div * 1000);
 			} else {
 #ifndef CONFIG_SPL_BUILD
 				ret = vop2_clk_set_rate(&cstate->dclk,
@@ -4642,9 +4644,9 @@ static int rockchip_vop2_init(struct display_state *state)
 		}
 	} else {
 		if (is_extend_pll(state, &hdmi_phy_pll.dev))
-			ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate * 1000);
+			ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate / vp_dclk_div * 1000);
 		else
-			ret = vop2_clk_set_rate(&cstate->dclk, dclk_rate * 1000);
+			ret = vop2_clk_set_rate(&cstate->dclk, dclk_rate / vp_dclk_div * 1000);
 	}
 
 	if (IS_ERR_VALUE(ret)) {
