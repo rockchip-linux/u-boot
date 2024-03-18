@@ -411,6 +411,8 @@
 #define POST_DSP_OUT_R2Y_SHIFT			15
 #define PRE_DITHER_DOWN_EN_SHIFT		16
 #define DITHER_DOWN_EN_SHIFT			17
+#define DITHER_DOWN_SEL_SHIFT			18
+#define DITHER_DOWN_SEL_MASK			0x3
 #define DITHER_DOWN_MODE_SHIFT			20
 #define GAMMA_UPDATE_EN_SHIFT			22
 #define DSP_LUT_EN_SHIFT			28
@@ -4306,36 +4308,40 @@ static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_vp_data *vp_data = &vop2_data->vp_data[crtc_id];
 	u32 vp_offset = crtc_id * 0x100;
-	u8 dither_down_mode = 0;
-	bool dither_down_en = false;
 	bool pre_dither_down_en = false;
 
 	switch (bus_format) {
 	case MEDIA_BUS_FMT_RGB565_1X16:
 	case MEDIA_BUS_FMT_RGB565_2X8_LE:
-		dither_down_en = true;
-		dither_down_mode = RGB888_TO_RGB565;
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				PRE_DITHER_DOWN_EN_SHIFT, true, false);
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				DITHER_DOWN_MODE_SHIFT, RGB888_TO_RGB565, false);
 		pre_dither_down_en = true;
 		break;
 	case MEDIA_BUS_FMT_RGB666_1X18:
 	case MEDIA_BUS_FMT_RGB666_1X24_CPADHI:
 	case MEDIA_BUS_FMT_RGB666_1X7X3_SPWG:
 	case MEDIA_BUS_FMT_RGB666_3X6:
-		dither_down_en = true;
-		dither_down_mode = RGB888_TO_RGB666;
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				PRE_DITHER_DOWN_EN_SHIFT, true, false);
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				DITHER_DOWN_MODE_SHIFT, RGB888_TO_RGB666, false);
 		pre_dither_down_en = true;
 		break;
 	case MEDIA_BUS_FMT_YUYV8_1X16:
 	case MEDIA_BUS_FMT_YUV8_1X24:
 	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
-		dither_down_en = false;
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				PRE_DITHER_DOWN_EN_SHIFT, false, false);
 		pre_dither_down_en = true;
 		break;
 	case MEDIA_BUS_FMT_YUYV10_1X20:
 	case MEDIA_BUS_FMT_YUV10_1X30:
 	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
 	case MEDIA_BUS_FMT_RGB101010_1X30:
-		dither_down_en = false;
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				PRE_DITHER_DOWN_EN_SHIFT, false, false);
 		pre_dither_down_en = false;
 		break;
 	case MEDIA_BUS_FMT_RGB888_3X8:
@@ -4344,15 +4350,14 @@ static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
 	case MEDIA_BUS_FMT_RGB888_1X7X4_SPWG:
 	case MEDIA_BUS_FMT_RGB888_1X7X4_JEIDA:
 	default:
-		dither_down_en = false;
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				PRE_DITHER_DOWN_EN_SHIFT, false, false);
 		pre_dither_down_en = true;
 		break;
 	}
 
-	if (is_yuv_output(bus_format)) {
-		if (vp_data->feature & VOP_FEATURE_POST_FRC_V2)
-			pre_dither_down_en = false;
-	}
+	if (is_yuv_output(bus_format) && (vp_data->feature & VOP_FEATURE_POST_FRC_V2) == 0)
+		pre_dither_down_en = false;
 
 	if ((vp_data->feature & VOP_FEATURE_POST_FRC_V2) && pre_dither_down_en) {
 		if (vop2->version == VOP_VERSION_RK3576) {
@@ -4363,17 +4368,16 @@ static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
 
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				PRE_DITHER_DOWN_EN_SHIFT, 0, false);
+		/* enable frc2.0 do 10->8 */
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				DITHER_DOWN_EN_SHIFT, 1, false);
-		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-				DITHER_DOWN_MODE_SHIFT, DITHER_DOWN_FRC, false);
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, DITHER_DOWN_SEL_MASK,
+				DITHER_DOWN_SEL_SHIFT, DITHER_DOWN_FRC, false);
 	} else {
 		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
 				PRE_DITHER_DOWN_EN_SHIFT, pre_dither_down_en, false);
-		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-				DITHER_DOWN_EN_SHIFT, dither_down_en, false);
-		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-				DITHER_DOWN_MODE_SHIFT, dither_down_mode, false);
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, DITHER_DOWN_SEL_MASK,
+				DITHER_DOWN_SEL_SHIFT, DITHER_DOWN_ALLEGRO, false);
 	}
 }
 
