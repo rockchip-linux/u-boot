@@ -2837,10 +2837,37 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	vop2->global_init = true;
 }
 
+static void rockchip_vop2_sharp_init(struct vop2 *vop2, struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_vp_data *vp_data = &vop2_data->vp_data[cstate->crtc_id];
+	struct resource sharp_regs;
+	u32 *sharp_reg_base;
+	int ret;
+
+	if (!(vp_data->feature & VOP_FEATURE_POST_SHARP))
+		return;
+
+	ret = ofnode_read_resource_byname(cstate->node, "sharp_regs", &sharp_regs);
+	if (ret) {
+		printf("failed to get sharp regs\n");
+		return;
+	}
+	sharp_reg_base = (u32 *)sharp_regs.start;
+
+	/*
+	 * After vop initialization, keep sw_sharp_enable always on.
+	 * Only enable/disable sharp submodule to avoid black screen.
+	 */
+	writel(0x1, sharp_reg_base);
+}
+
 static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 {
 	rockchip_vop2_gamma_lut_init(vop2, state);
 	rockchip_vop2_cubic_lut_init(vop2, state);
+	rockchip_vop2_sharp_init(vop2, state);
 
 	return 0;
 }
