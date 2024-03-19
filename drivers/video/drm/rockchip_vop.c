@@ -15,6 +15,7 @@
 #include <asm/io.h>
 #include <linux/list.h>
 #include <linux/media-bus-format.h>
+#include <linux/iopoll.h>
 #include <clk.h>
 #include <linux/err.h>
 #include <dm/device.h>
@@ -277,6 +278,23 @@ static int rockchip_vop_preinit(struct display_state *state)
 	state->crtc_state.max_output = vop_data->max_output;
 
 	return 0;
+}
+
+static u32 vop_mode_done(struct vop *vop)
+{
+	return VOP_CTRL_GET(vop, out_mode);
+}
+
+static void vop_set_out_mode(struct vop *vop, u32 mode)
+{
+	int ret;
+	u32 val;
+
+	VOP_CTRL_SET(vop, out_mode, mode);
+	vop_cfg_done(vop);
+	ret = readx_poll_timeout(vop_mode_done, vop, val, val == mode, 1000 * 1000);
+	if (ret)
+		printf("wait for setting mode 0x%x timeout\n", mode);
 }
 
 static int rockchip_vop_init(struct display_state *state)
@@ -594,8 +612,15 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_LINE_FLAG_SET(vop, line_flag_num[0], act_end - 3);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[1],
 			  act_end - us_to_vertical_line(mode, 1000));
-	if (state->crtc_state.mcu_timing.mcu_pix_total > 0)
+
+	if (state->crtc_state.mcu_timing.mcu_pix_total > 0) {
+		if (vop->version == VOP_VERSION(2, 0xd)) {
+			VOP_CTRL_SET(vop, standby, 0);
+			vop_set_out_mode(vop, conn_state->output_mode);
+		}
 		vop_mcu_mode_setup(state, vop);
+	}
+
 	vop_cfg_done(vop);
 
 	return 0;
