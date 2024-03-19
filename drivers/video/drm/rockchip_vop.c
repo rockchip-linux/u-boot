@@ -354,7 +354,7 @@ static int rockchip_vop_init(struct display_state *state)
 		printf("%s: Failed to set dclk: ret=%d\n", __func__, ret);
 		return ret;
 	}
-	printf("VOP:0x%8p set crtc_clock to %dKHz\n", vop->regs, mode->crtc_clock);
+	printf("VOP:0x%8p set crtc_clock to %dKHz, get %dHz\n", vop->regs, mode->crtc_clock, ret);
 
 	memcpy(vop->regsbak, vop->regs, vop_data->reg_len);
 
