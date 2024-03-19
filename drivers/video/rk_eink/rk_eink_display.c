@@ -172,8 +172,8 @@ static int read_waveform(struct udevice *dev)
 static u32 aligned_image_size_4k(struct udevice *dev)
 {
 	struct ebc_panel *plat = dev_get_platdata(dev);
-	u32 w = plat->vir_width;
-	u32 h = plat->vir_height;
+	u32 w = plat->width;
+	u32 h = plat->height;
 
 	return ALIGN((w * h) >> 1, 4096);
 }
@@ -384,11 +384,11 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 		printf("eink logo read header failed,ret = %d\n", ret);
 		return -EINVAL;
 	}
-	if (part_hdr->screen_width != panel->vir_width ||
-	    part_hdr->screen_height != panel->vir_height){
+	if (part_hdr->screen_width != panel->width ||
+	    part_hdr->screen_height != panel->height){
 		printf("logo size(%dx%d) is not same as screen size(%dx%d)\n",
 		       part_hdr->screen_width, part_hdr->screen_height,
-			panel->vir_width, panel->vir_height);
+			panel->width, panel->height);
 		return -EINVAL;
 	}
 
@@ -421,8 +421,8 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 			 * logo here.
 			 */
 			if (panel->mirror && logo_type != EINK_LOGO_KERNEL) {
-				u32 w = panel->vir_width;
-				u32 h = panel->vir_height;
+				u32 w = panel->width;
+				u32 h = panel->height;
 				u32 mirror_buf = 0;
 
 				mirror_buf = get_addr_by_type(dev,
@@ -436,8 +436,8 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 				image_mirror((u8 *)((ulong)mirror_buf),
 					     (u8 *)((ulong)pic_buf), w, h);
 			} else if (panel->rearrange && logo_type != EINK_LOGO_KERNEL) {
-				u32 w = panel->vir_width;
-				u32 h = panel->vir_height;
+				u32 w = panel->width;
+				u32 h = panel->height;
 				u32 rearrange_buf = 0;
 
 				rearrange_buf = get_addr_by_type(dev,
@@ -638,7 +638,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 			return -1;
 		}
 
-		int size = (plat->vir_width * plat->vir_height) >> 1;
+		int size = (plat->width * plat->height) >> 1;
 
 		logo_addr = get_addr_by_type(dev, EINK_LOGO_RESET);
 		memset((u32 *)(u64)logo_addr, 0xff, size);
