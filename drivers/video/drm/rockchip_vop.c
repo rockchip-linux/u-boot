@@ -512,6 +512,15 @@ static int rockchip_vop_init(struct display_state *state)
 	else
 		VOP_CTRL_SET(vop, dsp_data_swap, 0);
 
+	/*
+	 * For RK3576 vopl, rg_swap and rb_swap need to be enabled in
+	 * YUV444 bus_format.
+	 */
+	if (VOP_MAJOR(vop->version) == 2 && VOP_MINOR(vop->version) == 0xd) {
+		if (conn_state->bus_format == MEDIA_BUS_FMT_YUV8_1X24)
+			VOP_CTRL_SET(vop, dsp_data_swap, DSP_RG_SWAP | DSP_RB_SWAP);
+	}
+
 	VOP_CTRL_SET(vop, out_mode, conn_state->output_mode);
 
 	if (VOP_CTRL_SUPPORT(vop, overlay_mode)) {
