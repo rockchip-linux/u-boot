@@ -552,6 +552,8 @@ static int rockchip_vop_init(struct display_state *state)
 	 */
 	if (!is_yuv_output(conn_state->bus_format))
 		val = 0;
+	else if (vop->version == VOP_VERSION(2, 0xd))
+		val = 0;
 	else if (VOP_MAJOR(vop->version) == 3 &&
 		 VOP_MINOR(vop->version) >= 5)
 		val = 0x20010200;
