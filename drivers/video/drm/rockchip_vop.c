@@ -408,6 +408,7 @@ static int rockchip_vop_init(struct display_state *state)
 		VOP_CTRL_SET(vop, edp_pin_pol, val);
 		VOP_CTRL_SET(vop, edp_dclk_pol, dclk_inv);
 		VOP_CTRL_SET(vop, inf_out_en, 1);
+		VOP_CTRL_SET(vop, out_dresetn, 1);
 		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_edp_ch_sel, 1);
 		break;
 	case DRM_MODE_CONNECTOR_HDMIA:
@@ -415,9 +416,10 @@ static int rockchip_vop_init(struct display_state *state)
 		VOP_CTRL_SET(vop, hdmi_pin_pol, val);
 		VOP_CTRL_SET(vop, hdmi_dclk_pol, 1);
 		VOP_CTRL_SET(vop, inf_out_en, 1);
+		VOP_CTRL_SET(vop, out_dresetn, 1);
 		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_hdmi_ch_sel, 1);
 		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_hdmi_pin_pol, val);
-		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_hdmi_1to4_en, val);
+		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_hdmi_1to4_en, 1);
 		break;
 	case DRM_MODE_CONNECTOR_DSI:
 		/*
@@ -435,8 +437,9 @@ static int rockchip_vop_init(struct display_state *state)
 			!!(conn_state->output_flags & ROCKCHIP_OUTPUT_DATA_SWAP) ||
 			crtc_state->dual_channel_swap);
 		VOP_CTRL_SET(vop, inf_out_en, 1);
+		VOP_CTRL_SET(vop, out_dresetn, 1);
 		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_mipi_ch_sel, 1);
-		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_mipi_mode, 1);
+		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_mipi_mode, 0);
 		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_mipi_pin_pol, val);
 		VOP_GRF_SET(vop, vo0_grf_ctrl, grf_mipi_1to4_en, 1);
 		break;

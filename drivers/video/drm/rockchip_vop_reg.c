@@ -781,7 +781,7 @@ static const struct vop_grf_ctrl rk3576_lit_vo0_grf_ctrl = {
 	.grf_hdmi_1to4_en = VOP_REG(RK3576_VO0_GRF_SOC_CON13, 0x1, 4),
 	.grf_mipi_mode = VOP_REG(RK3576_VO0_GRF_SOC_CON13, 0x1, 3),
 	.grf_mipi_pin_pol = VOP_REG(RK3576_VO0_GRF_SOC_CON13, 0x3, 1),
-	.grf_mipi_1to4_en = VOP_REG(RK3576_VO0_GRF_SOC_CON13, 0x1, 1),
+	.grf_mipi_1to4_en = VOP_REG(RK3576_VO0_GRF_SOC_CON13, 0x1, 0),
 };
 
 static const struct vop_grf_ctrl rk3576_lit_grf_ctrl = {
