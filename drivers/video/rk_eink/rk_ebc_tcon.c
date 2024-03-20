@@ -792,6 +792,12 @@ static int rk_ebc_tcon_probe(struct udevice *dev)
 	driver->ops = tcon_ops;
 
 	priv->dev = dev;
+
+	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
+	ret = clk_set_defaults(dev);
+	if (ret)
+		dev_warn(dev, "clk_set_defaults failed %d\n", ret);
+
 	ret = clk_get_by_name(dev, "dclk", &priv->dclk);
 	if (ret < 0) {
 		printf("%s get clock fail! %d\n", __func__, ret);
