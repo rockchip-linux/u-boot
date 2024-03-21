@@ -829,7 +829,7 @@ static int display_init(struct display_state *state)
 
 	/* rk356x series drive mipi pixdata on posedge */
 	compatible = dev_read_string(conn->dev, "compatible");
-	if (!strcmp(compatible, "rockchip,rk3568-mipi-dsi")) {
+	if (compatible && !strcmp(compatible, "rockchip,rk3568-mipi-dsi")) {
 		conn_state->bus_flags &= ~DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE;
 		conn_state->bus_flags |= DRM_BUS_FLAG_PIXDATA_DRIVE_POSEDGE;
 	}
