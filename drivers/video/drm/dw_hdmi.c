@@ -2552,9 +2552,12 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 	ret = drm_do_get_edid(&hdmi->adap, conn_state->edid);
 
 	if (!ret) {
-		hdmi->sink_is_hdmi =
-			drm_detect_hdmi_monitor(edid);
 		hdmi->sink_has_audio = drm_detect_monitor_audio(edid);
+		if (hdmi->sink_has_audio)
+			hdmi->sink_is_hdmi = true;
+		else
+			hdmi->sink_is_hdmi = drm_detect_hdmi_monitor(edid);
+
 		ret = drm_add_edid_modes(&hdmi->edid_data, conn_state->edid);
 	}
 	if (ret < 0) {
