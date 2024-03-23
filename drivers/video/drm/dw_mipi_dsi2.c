@@ -243,6 +243,7 @@ struct dw_mipi_dsi2 {
 	u32 version_major;
 	u32 version_minor;
 	struct clk sys_clk;
+	struct reset_ctl apb_rst;
 
 	unsigned int lane_hs_rate; /* Kbps/Ksps per lane */
 	u32 channel;
@@ -873,6 +874,10 @@ static void dw_mipi_dsi2_set_hs_clk(struct dw_mipi_dsi2 *dsi2)
 
 static void dw_mipi_dsi2_host_softrst(struct dw_mipi_dsi2 *dsi2)
 {
+	reset_assert(&dsi2->apb_rst);
+	udelay(20);
+	reset_deassert(&dsi2->apb_rst);
+
 	dsi_write(dsi2, DSI2_SOFT_RESET, 0X0);
 	udelay(100);
 	dsi_write(dsi2, DSI2_SOFT_RESET, SYS_RSTN | PHY_RSTN | IPI_RSTN);
@@ -1207,6 +1212,12 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 	ret = clk_get_by_name(dev, "sys_clk", &dsi2->sys_clk);
 	if (ret < 0) {
 		printf("failed to get sys_clk: %d\n", ret);
+		return ret;
+	}
+
+	ret = reset_get_by_name(dev, "apb", &dsi2->apb_rst);
+	if (ret) {
+		pr_err("reset_get_by_name(apb) failed: %d\n", ret);
 		return ret;
 	}
 
