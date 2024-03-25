@@ -271,6 +271,7 @@ struct dw_mipi_dsi2 {
 	struct dw_mipi_dsi2 *slave;
 	bool prepared;
 
+	bool disable_hold_mode;
 	bool auto_calc_mode;
 	bool c_option;
 	bool dsc_enable;
@@ -826,7 +827,7 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 
 	if (!(dsi2->mode_flags & MIPI_DSI_MODE_VIDEO)) {
 		conn_state->output_flags |= ROCKCHIP_OUTPUT_MIPI_DS_MODE;
-		conn_state->hold_mode = true;
+		conn_state->hold_mode = dsi2->disable_hold_mode ? false : true;
 	}
 
 	if (dsi2->dual_channel) {
@@ -1303,6 +1304,7 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 	dsi2->dual_channel = dev_read_bool(dsi2->dev, "rockchip,dual-channel");
 	dsi2->data_swap = dev_read_bool(dsi2->dev, "rockchip,data-swap");
 	dsi2->auto_calc_mode = dev_read_bool(dsi2->dev, "auto-calculation-mode");
+	dsi2->disable_hold_mode = dev_read_bool(dsi2->dev, "disable-hold-mode");
 
 	rockchip_connector_bind(&dsi2->connector, dev, id, &dw_mipi_dsi2_connector_funcs, NULL,
 				DRM_MODE_CONNECTOR_DSI);
