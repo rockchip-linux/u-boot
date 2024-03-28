@@ -48,6 +48,7 @@
 #define RK3568_AUTO_GATING_CTRL			0x008
 #define AUTO_GATING_EN_SHIFT			31
 #define PORT_DCLK_AUTO_GATING_EN_SHIFT		14
+#define ACLK_PRE_AUTO_GATING_EN_SHIFT		7
 
 #define RK3576_SYS_AXI_HURRY_CTRL0_IMD		0x014
 #define AXI0_PORT_URGENCY_EN_SHIFT		24
@@ -2828,6 +2829,22 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 
 		vop2_mask_write(vop2, RK3568_SYS_AXI_LUT_CTRL, EN_MASK,
 				DSP_VS_T_SEL_SHIFT, 0, false);
+
+		/*
+		 * This is a workaround for RK3528/RK3562/RK3576:
+		 *
+		 * The aclk pre auto gating function may disable the aclk
+		 * in some unexpected cases, which detected by hardware
+		 * automatically.
+		 *
+		 * For example, if the above function is enabled, the post
+		 * scale function will be affected, resulting in abnormal
+		 * display.
+		 */
+		if (vop2->version == VOP_VERSION_RK3528 || vop2->version == VOP_VERSION_RK3562 ||
+		    vop2->version == VOP_VERSION_RK3576)
+			vop2_mask_write(vop2, RK3568_AUTO_GATING_CTRL, EN_MASK,
+					ACLK_PRE_AUTO_GATING_EN_SHIFT, 0, false);
 	}
 
 	if (vop2->version == VOP_VERSION_RK3568)
