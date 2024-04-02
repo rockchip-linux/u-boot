@@ -121,6 +121,11 @@ struct vop_rect {
 	int height;
 };
 
+struct vop_urgency {
+	u8 urgen_thl;
+	u8 urgen_thh;
+};
+
 struct rockchip_dsc_sink_cap {
 	/**
 	 * @slice_width: the number of pixel columns that comprise the slice width

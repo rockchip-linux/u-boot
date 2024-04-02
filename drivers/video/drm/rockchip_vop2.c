@@ -48,6 +48,12 @@
 #define AUTO_GATING_EN_SHIFT			31
 #define PORT_DCLK_AUTO_GATING_EN_SHIFT		14
 
+#define RK3576_SYS_AXI_HURRY_CTRL0_IMD		0x014
+#define AXI0_PORT_URGENCY_EN_SHIFT		24
+
+#define RK3576_SYS_AXI_HURRY_CTRL1_IMD		0x018
+#define AXI1_PORT_URGENCY_EN_SHIFT		24
+
 #define RK3576_SYS_MMU_CTRL			0x020
 #define RKMMU_V2_EN_SHIFT			0
 #define RKMMU_V2_SEL_AXI_SHIFT			1
@@ -430,6 +436,11 @@
 
 
 #define RK3568_VP0_COLOR_BAR_CTRL		0xC08
+#define POST_URGENCY_EN_SHIFT			8
+#define POST_URGENCY_THL_SHIFT			16
+#define POST_URGENCY_THL_MASK			0xf
+#define POST_URGENCY_THH_SHIFT			20
+#define POST_URGENCY_THH_MASK			0xf
 
 #define RK3568_VP0_DCLK_SEL			0xC0C
 #define RK3576_DCLK_CORE_SEL_SHIFT		0
@@ -1292,6 +1303,7 @@ struct vop2_win_data {
 
 struct vop2_vp_data {
 	u32 feature;
+	u32 max_dclk;
 	u8 pre_scan_max_dly;
 	u8 layer_mix_dly;
 	u8 hdrvivid_dly;
@@ -1301,7 +1313,7 @@ struct vop2_vp_data {
 	u8 splice_vp_id;
 	u8 pixel_rate;
 	struct vop_rect max_output;
-	u32 max_dclk;
+	struct vop_urgency *urgency;
 };
 
 struct vop2_plane_table {
@@ -4441,6 +4453,22 @@ static int rockchip_vop2_init(struct display_state *state)
 	vop2_mask_write(vop2, RK3588_SYS_VAR_FREQ_CTRL, EN_MASK,
 			RK3588_VP0_ALMOST_FULL_OR_EN_SHIFT + cstate->crtc_id, 1, false);
 
+	if (vop2->data->vp_data[cstate->crtc_id].urgency) {
+		u8 urgen_thl = vop2->data->vp_data[cstate->crtc_id].urgency->urgen_thl;
+		u8 urgen_thh = vop2->data->vp_data[cstate->crtc_id].urgency->urgen_thh;
+
+		vop2_mask_write(vop2, RK3576_SYS_AXI_HURRY_CTRL0_IMD, EN_MASK,
+				AXI0_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
+		vop2_mask_write(vop2, RK3576_SYS_AXI_HURRY_CTRL1_IMD, EN_MASK,
+				AXI1_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
+		vop2_mask_write(vop2, RK3568_VP0_COLOR_BAR_CTRL + vp_offset, EN_MASK,
+				POST_URGENCY_EN_SHIFT, 1, false);
+		vop2_mask_write(vop2, RK3568_VP0_COLOR_BAR_CTRL + vp_offset, POST_URGENCY_THL_MASK,
+				POST_URGENCY_THL_SHIFT, urgen_thl, false);
+		vop2_mask_write(vop2, RK3568_VP0_COLOR_BAR_CTRL + vp_offset, POST_URGENCY_THH_MASK,
+				POST_URGENCY_THH_SHIFT, urgen_thh, false);
+	}
+
 	vop2_initial(vop2, state);
 	if (vop2->version == VOP_VERSION_RK3588)
 		dclk_rate = rk3588_vop2_if_cfg(state);
@@ -6448,6 +6476,16 @@ static struct vop2_win_data rk3576_win_data[6] = {
 	},
 };
 
+/*
+ * RK3576 VP0 has 8 lines post linebuffer, when full post line buffer is less 4,
+ * the urgency signal will be set to 1, when full post line buffer is over 6, the
+ * urgency signal will be set to 0.
+ */
+static struct vop_urgency rk3576_vp0_urgency = {
+	.urgen_thl = 4,
+	.urgen_thh = 6,
+};
+
 static struct vop2_vp_data rk3576_vp_data[3] = {
 	{
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN | VOP_FEATURE_VIVID_HDR |
@@ -6460,6 +6498,7 @@ static struct vop2_vp_data rk3576_vp_data[3] = {
 		.hdr_mix_dly = 2,
 		.win_dly = 10,
 		.pixel_rate = 2,
+		.urgency = &rk3576_vp0_urgency,
 	},
 	{
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN |
