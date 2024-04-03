@@ -290,6 +290,7 @@ struct dw_mipi_dsi2 {
 	struct mipi_dcphy dcphy;
 	struct drm_display_mode mode;
 	bool data_swap;
+	bool dual_channel;
 
 	struct gpio_desc te_gpio;
 	struct mipi_dsi_device *device;
@@ -828,7 +829,7 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 		conn_state->hold_mode = true;
 	}
 
-	if (dsi2->lanes > 4) {
+	if (dsi2->dual_channel) {
 		ret = uclass_get_device_by_name(UCLASS_DISPLAY,
 						"dsi@fde30000",
 						&dev);
@@ -1299,6 +1300,7 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 	dsi2->dev = dev;
 	dsi2->pdata = pdata;
 	dsi2->id = id;
+	dsi2->dual_channel = dev_read_bool(dsi2->dev, "rockchip,dual-channel");
 	dsi2->data_swap = dev_read_bool(dsi2->dev, "rockchip,data-swap");
 	dsi2->auto_calc_mode = dev_read_bool(dsi2->dev, "auto-calculation-mode");
 
