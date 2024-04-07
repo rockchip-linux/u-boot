@@ -2068,6 +2068,7 @@ static int rockchip_display_probe(struct udevice *dev)
 		s->conn_state.overscan.top_margin = 100;
 		s->conn_state.overscan.bottom_margin = 100;
 		s->crtc_state.node = np_to_ofnode(vop_node);
+		s->crtc_state.port_node = port_node;
 		s->crtc_state.dev = crtc_dev;
 		s->crtc_state.crtc = crtc;
 		s->crtc_state.crtc_id = get_crtc_id(np_to_ofnode(ep_node), is_ports_node);

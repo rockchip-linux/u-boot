@@ -30,6 +30,7 @@
 #include <linux/iopoll.h>
 #include <dm/uclass-internal.h>
 #include <stdlib.h>
+#include <dm/of_access.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -1840,7 +1841,6 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 	fdt_size_t lut_size;
 	int i, lut_len, ret = 0;
 	u32 *lut_regs;
-	u32 *lut_val;
 	u32 r, g, b;
 	struct base2_disp_info *disp_info = conn_state->disp_info;
 	static int gamma_lut_en_num = 1;
@@ -1849,12 +1849,6 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 		printf("warn: only %d vp support gamma\n", vop2->data->nr_gammas);
 		return 0;
 	}
-
-	if (!disp_info)
-		return 0;
-
-	if (!disp_info->gamma_lut_data.size)
-		return 0;
 
 	ret = ofnode_read_resource_byname(cstate->node, "gamma_lut", &gamma_res);
 	if (ret)
@@ -1870,26 +1864,40 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 		printf("Warning: unsupport gamma lut table[%d]\n", lut_len);
 		return 0;
 	}
-	lut_val = (u32 *)calloc(1, lut_size);
-	for (i = 0; i < lut_len; i++) {
-		r = disp_info->gamma_lut_data.lred[i] * (lut_len - 1) / 0xffff;
-		g = disp_info->gamma_lut_data.lgreen[i] * (lut_len - 1) / 0xffff;
-		b = disp_info->gamma_lut_data.lblue[i] * (lut_len - 1) / 0xffff;
 
-		lut_val[i] = b * lut_len * lut_len + g * lut_len + r;
+	if (!cstate->lut_val) {
+		if (!disp_info)
+			return 0;
+
+		if (!disp_info->gamma_lut_data.size)
+			return 0;
+
+		cstate->lut_val = (u32 *)calloc(1, lut_size);
+		for (i = 0; i < lut_len; i++) {
+			r = disp_info->gamma_lut_data.lred[i] * (lut_len - 1) / 0xffff;
+			g = disp_info->gamma_lut_data.lgreen[i] * (lut_len - 1) / 0xffff;
+			b = disp_info->gamma_lut_data.lblue[i] * (lut_len - 1) / 0xffff;
+
+			cstate->lut_val[i] = b * lut_len * lut_len + g * lut_len + r;
+		}
 	}
 
 	if (vop2->version == VOP_VERSION_RK3568) {
-		rk3568_vop2_load_lut(vop2, cstate->crtc_id, lut_regs, lut_val, lut_len);
+		rk3568_vop2_load_lut(vop2, cstate->crtc_id, lut_regs,
+				     cstate->lut_val, lut_len);
 		gamma_lut_en_num++;
 	} else if (vop2->version == VOP_VERSION_RK3588) {
-		rk3588_vop2_load_lut(vop2, cstate->crtc_id, lut_regs, lut_val, lut_len);
+		rk3588_vop2_load_lut(vop2, cstate->crtc_id, lut_regs,
+				     cstate->lut_val, lut_len);
 		if (cstate->splice_mode) {
-			rk3588_vop2_load_lut(vop2, cstate->splice_crtc_id, lut_regs, lut_val, lut_len);
+			rk3588_vop2_load_lut(vop2, cstate->splice_crtc_id, lut_regs,
+					     cstate->lut_val, lut_len);
 			gamma_lut_en_num++;
 		}
 		gamma_lut_en_num++;
 	}
+
+	free(cstate->lut_val);
 
 	return 0;
 }
@@ -2877,8 +2885,100 @@ static void rockchip_vop2_sharp_init(struct vop2 *vop2, struct display_state *st
 	writel(0x1, sharp_reg_base);
 }
 
+static int rockchip_vop2_of_get_gamma_lut(struct display_state *state,
+					  struct device_node *dsp_lut_node)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct resource gamma_res;
+	fdt_size_t lut_size;
+	u32 *lut_regs;
+	u32 *lut;
+	u32 r, g, b;
+	int lut_len;
+	int length;
+	int i, j;
+	int ret = 0;
+
+	of_get_property(dsp_lut_node, "gamma-lut", &length);
+	if (!length)
+		return -EINVAL;
+
+	ret = ofnode_read_resource_byname(cstate->node, "gamma_lut", &gamma_res);
+	if (ret)
+		printf("failed to get gamma lut res\n");
+	lut_regs = (u32 *)gamma_res.start;
+	lut_size = gamma_res.end - gamma_res.start + 1;
+	if (lut_regs == (u32 *)FDT_ADDR_T_NONE) {
+		printf("failed to get gamma lut register\n");
+		return -EINVAL;
+	}
+	lut_len = lut_size / 4;
+
+	cstate->lut_val = (u32 *)calloc(1, lut_size);
+	if (!cstate->lut_val)
+		return -ENOMEM;
+
+	length >>= 2;
+	if (length != lut_len) {
+		lut = (u32 *)calloc(1, lut_len);
+		if (!lut) {
+			free(cstate->lut_val);
+			return -ENOMEM;
+		}
+
+		ret = of_read_u32_array(dsp_lut_node, "gamma-lut", lut, length);
+		if (ret) {
+			printf("Failed to load gamma-lut for vp%d\n", cstate->crtc_id);
+			free(cstate->lut_val);
+			free(lut);
+			return -EINVAL;
+		}
+
+		/*
+		 * In order to achieve the same gamma correction effect in different
+		 * platforms, the following conversion helps to translate from 8bit
+		 * gamma table with 256 parameters to 10bit gamma with 1024 parameters.
+		 */
+		for (i = 0; i < lut_len; i++) {
+			j = i * length / lut_len;
+			r = lut[j] / length / length * lut_len / length;
+			g = lut[j] / length % length * lut_len / length;
+			b = lut[j] % length * lut_len / length;
+
+			cstate->lut_val[i] = r * lut_len * lut_len + g * lut_len + b;
+		}
+		free(lut);
+	} else {
+		of_read_u32_array(dsp_lut_node, "gamma-lut", cstate->lut_val, lut_len);
+	}
+
+	return 0;
+}
+
+static void rockchip_vop2_of_get_dsp_lut(struct vop2 *vop2, struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct device_node *dsp_lut_node;
+	int phandle;
+	int ret = 0;
+
+	phandle = ofnode_read_u32_default(np_to_ofnode(cstate->port_node), "dsp-lut", -1);
+	if (phandle < 0)
+		return;
+
+	dsp_lut_node = of_find_node_by_phandle(phandle);
+	if (!dsp_lut_node)
+		return;
+
+	ret = rockchip_vop2_of_get_gamma_lut(state, dsp_lut_node);
+	if (ret)
+		printf("failed to load vp%d gamma-lut from dts\n", cstate->crtc_id);
+}
+
 static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 {
+	rockchip_vop2_of_get_dsp_lut(vop2, state);
+
 	rockchip_vop2_gamma_lut_init(vop2, state);
 	rockchip_vop2_cubic_lut_init(vop2, state);
 	rockchip_vop2_sharp_init(vop2, state);
