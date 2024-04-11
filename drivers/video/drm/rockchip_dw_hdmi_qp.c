@@ -892,7 +892,7 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	if (screen_info && screen_info->depth == 10)
 		color_depth = screen_info->depth;
 
-	if (mode->clock >= 1188000)
+	if (mode->clock > 1188000)
 		color_format = DRM_HDMI_OUTPUT_YCBCR420;
 
 	if (color_format == DRM_HDMI_OUTPUT_YCBCR422 || color_depth == 8)
