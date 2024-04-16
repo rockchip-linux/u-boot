@@ -5594,6 +5594,25 @@ static int rockchip_vop2_mode_fixup(struct display_state *state)
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V | CRTC_STEREO_DOUBLE);
 
 	/*
+	 * For RK3568 and RK3588, the hactive of video timing must
+	 * be 4-pixel aligned.
+	 */
+	if (vop2->version == VOP_VERSION_RK3568 || vop2->version == VOP_VERSION_RK3588) {
+		if (mode->crtc_hdisplay % 4) {
+			int old_hdisplay = mode->crtc_hdisplay;
+			int align = 4 - (mode->crtc_hdisplay % 4);
+
+			mode->crtc_hdisplay += align;
+			mode->crtc_hsync_start += align;
+			mode->crtc_hsync_end += align;
+			mode->crtc_htotal += align;
+
+			printf("WARN: hactive need to be aligned with 4-pixel, %d -> %d\n",
+			       old_hdisplay, mode->hdisplay);
+		}
+	}
+
+	/*
 	 * For RK3576 YUV420 output, hden signal introduce one cycle delay,
 	 * so we need to adjust hfp and hbp to compatible with this design.
 	 */
