@@ -56,6 +56,9 @@
 #define I2CM_ADDR					0xff000
 #define I2CM_SLVADDR					0xfe0
 #define I2CM_WR_MASK					0x1e
+#define I2CM_NBYTES_MASK				(0xf << 20)
+#define I2CM_16BYTES					(0xf << 20)
+#define I2CM_1BYTES					(0 << 20)
 #define I2CM_EXT_READ					BIT(4)
 #define I2CM_SHORT_READ					BIT(3)
 #define I2CM_FM_READ					BIT(2)
