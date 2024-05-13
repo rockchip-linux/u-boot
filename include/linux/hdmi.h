@@ -370,7 +370,7 @@ void
 drm_hdmi_avi_infoframe_quant_range(struct hdmi_avi_infoframe *frame,
 				   struct drm_display_mode *mode,
 				   enum hdmi_quantization_range rgb_quant_range,
-				   bool rgb_quant_range_selectable);
+				   bool rgb_quant_range_selectable, bool is_hdmi2_sink);
 u8 drm_match_cea_mode(struct drm_display_mode *to_match);
 
 #endif /* _DRM_HDMI_H */
