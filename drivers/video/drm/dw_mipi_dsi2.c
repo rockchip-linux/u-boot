@@ -75,7 +75,9 @@
 #define PHY_TYPE(x)			UPDATE(x, 0, 0)
 #define DSI2_PHY_CLK_CFG		0X0104
 #define PHY_LPTX_CLK_DIV(x)		UPDATE(x, 12, 8)
+#define CLK_TYPE_MASK			BIT(0)
 #define NON_CONTINUOUS_CLK		BIT(0)
+#define CONTIUOUS_CLK			0
 #define DSI2_PHY_LP2HS_MAN_CFG		0x010c
 #define PHY_LP2HS_TIME(x)		UPDATE(x, 28, 0)
 #define DSI2_PHY_HS2LP_MAN_CFG		0x0114
@@ -446,6 +448,22 @@ static int dw_mipi_dsi2_read_from_fifo(struct dw_mipi_dsi2 *dsi2,
 	return 0;
 }
 
+static void dw_mipi_dsi2_clk_management(struct dw_mipi_dsi2 *dsi2)
+{
+	u32 clk_type;
+
+	/*
+	 * initial deskew calibration is send after phy_power_on,
+	 * then we can configure clk_type.
+	 */
+	if (dsi2->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)
+		clk_type = NON_CONTINUOUS_CLK;
+	else
+		clk_type = CONTIUOUS_CLK;
+
+	dsi_update_bits(dsi2, DSI2_PHY_CLK_CFG, CLK_TYPE_MASK, clk_type);
+}
+
 static ssize_t dw_mipi_dsi2_transfer(struct dw_mipi_dsi2 *dsi2,
 				    const struct mipi_dsi_msg *msg)
 {
@@ -454,6 +472,7 @@ static ssize_t dw_mipi_dsi2_transfer(struct dw_mipi_dsi2 *dsi2,
 	int val;
 	u32 mode;
 
+	dw_mipi_dsi2_clk_management(dsi2);
 	dsi_update_bits(dsi2, DSI2_DSI_VID_TX_CFG, LPDT_DISPLAY_CMD_EN,
 			msg->flags & MIPI_DSI_MSG_USE_LPM ?
 			LPDT_DISPLAY_CMD_EN : 0);
@@ -665,6 +684,7 @@ static void dw_mipi_dsi2_enable(struct dw_mipi_dsi2 *dsi2)
 	u32 mode;
 	int ret;
 
+	dw_mipi_dsi2_clk_management(dsi2);
 	dw_mipi_dsi2_ipi_set(dsi2);
 
 	if (dsi2->auto_calc_mode) {
@@ -992,8 +1012,11 @@ static void dw_mipi_dsi2_phy_clk_mode_cfg(struct dw_mipi_dsi2 *dsi2)
 	u32 esc_clk_div;
 	u32 val = 0;
 
-	if (dsi2->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)
-		val |= NON_CONTINUOUS_CLK;
+	/*
+	 * clk_type should be NON_CONTINUOUS_CLK before
+	 * initial deskew calibration be sent.
+	 */
+	val |= NON_CONTINUOUS_CLK;
 
 	/* The Escape clock ranges from 1MHz to 20MHz. */
 	esc_clk_div = DIV_ROUND_UP(sys_clk, 20 * 2);
