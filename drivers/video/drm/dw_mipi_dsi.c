@@ -248,6 +248,7 @@ struct dw_mipi_dsi {
 	struct drm_display_mode mode;
 	bool data_swap;
 	bool dual_channel;
+	bool disable_hold_mode;
 
 	const struct dw_mipi_dsi_plat_data *pdata;
 };
@@ -1102,6 +1103,11 @@ static int dw_mipi_dsi_connector_init(struct rockchip_connector *conn, struct di
 	conn_state->output_if |=
 		dsi->id ? VOP_OUTPUT_IF_MIPI1 : VOP_OUTPUT_IF_MIPI0;
 
+	if (!(dsi->mode_flags & MIPI_DSI_MODE_VIDEO)) {
+		conn_state->output_flags |= ROCKCHIP_OUTPUT_MIPI_DS_MODE;
+		conn_state->hold_mode = dsi->disable_hold_mode ? false : true;
+	}
+
 #ifndef CONFIG_ROCKCHIP_RK3568
 	if (dsi->id) {
 		struct udevice *dev;
@@ -1350,6 +1356,7 @@ static int dw_mipi_dsi_probe(struct udevice *dev)
 	dsi->id = id;
 	dsi->dual_channel = dev_read_bool(dsi->dev, "rockchip,dual-channel");
 	dsi->data_swap = dev_read_bool(dsi->dev, "rockchip,data-swap");
+	dsi->disable_hold_mode = dev_read_bool(dsi->dev, "disable-hold-mode");
 
 	rockchip_connector_bind(&dsi->connector, dev, dsi->id, &dw_mipi_dsi_connector_funcs, NULL,
 				DRM_MODE_CONNECTOR_DSI);
