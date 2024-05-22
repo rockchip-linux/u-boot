@@ -177,6 +177,11 @@
 #define TTL_MODE_ENABLE				BIT(2)
 #define LVDS_MODE_ENABLE			BIT(1)
 #define MIPI_MODE_ENABLE			BIT(0)
+/* LVDS Register Part: reg04 */
+#define LVDS_VCOM_MASK				GENMASK(5, 4)
+#define LVDS_VCOM(x)				UPDATE(x, 5, 4)
+#define LVDS_VOD_MASK				GENMASK(7, 6)
+#define LVDS_VOD(x)				UPDATE(x, 7, 6)
 /* LVDS Register Part: reg0b */
 #define LVDS_LANE_EN_MASK			GENMASK(7, 3)
 #define LVDS_DATA_LANE0_EN			BIT(7)
@@ -311,6 +316,8 @@ struct inno_video_phy {
 		u16 fbdiv;
 		unsigned long rate;
 	} pll;
+	u32 lvds_vcom;
+	u32 lvds_vod;
 };
 
 enum {
@@ -624,6 +631,35 @@ static void inno_video_phy_mipi_mode_enable(struct inno_video_phy *inno)
 	inno_mipi_dphy_lane_enable(inno);
 }
 
+static void inno_dsiphy_lvds_voltage_set(struct inno_video_phy *inno)
+{
+	u32 val = 0;
+
+	/* This version of inno phy does not have voltage register, skip it. */
+	if (inno->mipi_dphy_info->phy_max_rate == MAX_1GHZ)
+		return;
+
+	if (inno->lvds_vcom >= 1000)
+		val |= LVDS_VCOM(3);
+	else if (inno->lvds_vcom >= 950)
+		val |= LVDS_VCOM(2);
+	else if (inno->lvds_vcom >= 900)
+		val |= LVDS_VCOM(0);
+	else
+		val |= LVDS_VCOM(1); /* 850mV */
+
+	if (inno->lvds_vod >= 400)
+		val |= LVDS_VOD(3);
+	else if (inno->lvds_vod >= 350)
+		val |= LVDS_VOD(2);
+	else if (inno->lvds_vod >= 300)
+		val |= LVDS_VOD(1);
+	else
+		val |= LVDS_VOD(0); /* 250mV */
+
+	phy_update_bits(inno, REGISTER_PART_LVDS, 0x04, LVDS_VCOM_MASK | LVDS_VOD_MASK, val);
+}
+
 static void inno_video_phy_lvds_mode_enable(struct inno_video_phy *inno)
 {
 	u8 prediv = 2;
@@ -644,7 +680,7 @@ static void inno_video_phy_lvds_mode_enable(struct inno_video_phy *inno)
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x00,
 			LVDS_DIGITAL_INTERNAL_RESET_MASK,
 			LVDS_DIGITAL_INTERNAL_RESET_DISABLE);
-
+	inno_dsiphy_lvds_voltage_set(inno);
 	/* Select LVDS mode */
 	phy_update_bits(inno, REGISTER_PART_LVDS, 0x03,
 			MODE_ENABLE_MASK, LVDS_MODE_ENABLE);
@@ -890,6 +926,8 @@ static int inno_video_phy_probe(struct udevice *dev)
 		inno->mipi_dphy_info = &inno_video_mipi_dphy_max_2_5GHz;
 
 	inno->lanes = ofnode_read_u32_default(dev->node, "inno,lanes", 4);
+	inno->lvds_vcom = ofnode_read_u32_default(dev->node, "inno,lvds-vcom", 950);
+	inno->lvds_vod = ofnode_read_u32_default(dev->node, "inno,lvds-vod", 350);
 
 	ret = dev_read_resource(dev, 0, &inno->phy);
 	if (ret < 0) {
