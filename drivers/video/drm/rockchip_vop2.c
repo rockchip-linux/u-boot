@@ -3944,6 +3944,7 @@ static unsigned long rk3562_vop2_if_cfg(struct display_state *state)
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
 	bool dclk_inv;
+	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 val;
 
 	dclk_inv = (conn_state->bus_flags & DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE) ? 1 : 0;
@@ -3981,6 +3982,13 @@ static unsigned long rk3562_vop2_if_cfg(struct display_state *state)
 				RK3562_MIPI_DCLK_POL_SHIFT, dclk_inv, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, RK3562_IF_PIN_POL_MASK,
 				RK3562_MIPI_PIN_POL_SHIFT, val, false);
+
+		if (conn_state->hold_mode) {
+			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+					EN_MASK, EDPI_TE_EN, !cstate->soft_te, false);
+			vop2_mask_write(vop2, RK3568_VP0_MIPI_CTRL + vp_offset,
+					EN_MASK, EDPI_WMS_HOLD_EN, 1, false);
+		}
 	}
 
 	return mode->crtc_clock;
