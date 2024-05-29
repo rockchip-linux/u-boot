@@ -435,6 +435,11 @@ static bool analogix_dp_link_config_validate(u8 link_rate, u8 lane_count)
 	case DP_LINK_BW_1_62:
 	case DP_LINK_BW_2_7:
 	case DP_LINK_BW_5_4:
+	/* Supported link rate in eDP 1.4 */
+	case EDP_LINK_BW_2_16:
+	case EDP_LINK_BW_2_43:
+	case EDP_LINK_BW_3_24:
+	case EDP_LINK_BW_4_32:
 		break;
 	default:
 		return false;
