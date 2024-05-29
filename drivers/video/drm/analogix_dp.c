@@ -105,16 +105,22 @@ static int analogix_dp_link_start(struct analogix_dp_device *dp)
 	for (lane = 0; lane < lane_count; lane++)
 		dp->link_train.cr_loop[lane] = 0;
 
-	/* Set link rate and count as you want to establish*/
+	/* Set link rate and count as you want to establish */
 	analogix_dp_set_link_bandwidth(dp, dp->link_train.link_rate);
 	analogix_dp_set_lane_count(dp, dp->link_train.lane_count);
 
-	/* Setup RX configuration */
-	buf[0] = dp->link_train.link_rate;
-	buf[1] = dp->link_train.lane_count;
-	retval = analogix_dp_write_bytes_to_dpcd(dp, DP_LINK_BW_SET, 2, buf);
-	if (retval)
-		return retval;
+	if (dp->nr_link_rate_table) {
+		/* Setup DP_LINK_RATE_SET for eDP 1.4 and later */
+		analogix_dp_write_byte_to_dpcd(dp, DP_LANE_COUNT_SET, dp->link_train.lane_count);
+		analogix_dp_write_byte_to_dpcd(dp, DP_LINK_RATE_SET, dp->link_rate_select);
+	} else {
+		/* Setup DP_LINK_BW_SET for eDP 1.3 and earlier */
+		buf[0] = dp->link_train.link_rate;
+		buf[1] = dp->link_train.lane_count;
+		retval = analogix_dp_write_bytes_to_dpcd(dp, DP_LINK_BW_SET, 2, buf);
+		if (retval)
+			return retval;
+	}
 
 	/* Spread AMP if required, enable 8b/10b coding */
 	buf[0] = analogix_dp_ssc_supported(dp) ? DP_SPREAD_AMP_0_5 : 0;
@@ -408,19 +414,142 @@ static int analogix_dp_process_equalizer_training(struct analogix_dp_device *dp)
 	return retval;
 }
 
+static bool analogix_dp_bandwidth_ok(struct analogix_dp_device *dp,
+				     const struct drm_display_mode *mode,
+				     unsigned int rate, unsigned int lanes)
+{
+	u32 max_bw, req_bw;
+	u32 bpp = 3 * dp->video_info.bpc;
+
+	req_bw = mode->clock * bpp / 8;
+	max_bw = lanes * rate;
+	if (req_bw > max_bw)
+		return false;
+
+	return true;
+}
+
+static bool analogix_dp_link_config_validate(u8 link_rate, u8 lane_count)
+{
+	switch (link_rate) {
+	case DP_LINK_BW_1_62:
+	case DP_LINK_BW_2_7:
+	case DP_LINK_BW_5_4:
+		break;
+	default:
+		return false;
+	}
+
+	switch (lane_count) {
+	case LANE_COUNT1:
+	case LANE_COUNT2:
+	case LANE_COUNT4:
+		break;
+	default:
+		return false;
+	}
+
+	return true;
+}
+
+static int analogix_dp_select_link_rate_from_table(struct analogix_dp_device *dp)
+{
+	int i;
+	u8 bw_code;
+	u32 max_link_rate = drm_dp_bw_code_to_link_rate(dp->video_info.max_link_rate);
+
+	for (i = 0; i < dp->nr_link_rate_table; i++) {
+		bw_code =  drm_dp_link_rate_to_bw_code(dp->link_rate_table[i]);
+
+		if (!analogix_dp_bandwidth_ok(dp, &dp->video_info.mode, dp->link_rate_table[i],
+					      dp->link_train.lane_count))
+			continue;
+
+		if (dp->link_rate_table[i] <= max_link_rate &&
+		    analogix_dp_link_config_validate(bw_code, dp->link_train.lane_count)) {
+			dp->link_rate_select = i;
+			return bw_code;
+		}
+	}
+
+	return 0;
+}
+
+static int analogix_dp_select_rx_bandwidth(struct analogix_dp_device *dp)
+{
+	if (dp->nr_link_rate_table)
+		/*
+		 * Select the smallest one among link rates which meet
+		 * the bandwidth requirement for eDP 1.4 and later.
+		 */
+		dp->link_train.link_rate = analogix_dp_select_link_rate_from_table(dp);
+	else
+		/*
+		 * Select the smaller one between rx DP_MAX_LINK_RATE
+		 * and the max link rate supported by the platform.
+		 */
+		dp->link_train.link_rate = min_t(u32, dp->link_train.link_rate,
+						 dp->video_info.max_link_rate);
+	if (!dp->link_train.link_rate)
+		return -EINVAL;
+
+	return 0;
+}
+
+static int analogix_dp_init_link_rate_table(struct analogix_dp_device *dp)
+{
+	u8 link_rate_table[DP_MAX_SUPPORTED_RATES * 2];
+	int i;
+	int ret;
+
+	ret = analogix_dp_read_bytes_from_dpcd(dp, DP_SUPPORTED_LINK_RATES,
+					       sizeof(link_rate_table), link_rate_table);
+	if (ret)
+		return ret;
+
+	for (i = 0; i < ARRAY_SIZE(link_rate_table) / 2; i++) {
+		int val = link_rate_table[2 * i] | link_rate_table[2 * i + 1] << 8;
+
+		if (val == 0)
+			break;
+
+		/* Convert to the link_rate as drm_dp_bw_code_to_link_rate() */
+		dp->link_rate_table[i] = (val * 20);
+	}
+	dp->nr_link_rate_table = i;
+
+	return 0;
+}
+
 static void analogix_dp_get_max_rx_bandwidth(struct analogix_dp_device *dp,
 					     u8 *bandwidth)
 {
 	u8 data;
+	int ret;
 
-	/*
-	 * For DP rev.1.1, Maximum link rate of Main Link lanes
-	 * 0x06 = 1.62 Gbps, 0x0a = 2.7 Gbps
-	 * For DP rev.1.2, Maximum link rate of Main Link lanes
-	 * 0x06 = 1.62 Gbps, 0x0a = 2.7 Gbps, 0x14 = 5.4Gbps
-	 */
-	analogix_dp_read_byte_from_dpcd(dp, DP_MAX_LINK_RATE, &data);
-	*bandwidth = data;
+	analogix_dp_read_byte_from_dpcd(dp, DP_EDP_DPCD_REV, &data);
+	if (data >= DP_EDP_14) {
+		u32 max_link_rate;
+
+		/* As the Table 4-23 in eDP 1.4 spec, the link rate table is required */
+		if (!dp->nr_link_rate_table) {
+			dev_info(dp->dev, "eDP version: 0x%02x supports link rate table\n", data);
+
+			if (analogix_dp_init_link_rate_table(dp))
+				dev_err(dp->dev, "failed to read link rate table: %d\n", ret);
+		}
+		max_link_rate = dp->link_rate_table[dp->nr_link_rate_table - 1];
+		*bandwidth = drm_dp_link_rate_to_bw_code(max_link_rate);
+	} else {
+		/*
+		 * For DP rev.1.1, Maximum link rate of Main Link lanes
+		 * 0x06 = 1.62 Gbps, 0x0a = 2.7 Gbps
+		 * For DP rev.1.2, Maximum link rate of Main Link lanes
+		 * 0x06 = 1.62 Gbps, 0x0a = 2.7 Gbps, 0x14 = 5.4Gbps
+		 */
+		analogix_dp_read_byte_from_dpcd(dp, DP_MAX_LINK_RATE, &data);
+		*bandwidth = data;
+	}
 }
 
 static void analogix_dp_get_max_rx_lane_count(struct analogix_dp_device *dp,
@@ -452,11 +581,14 @@ static int analogix_dp_init_training(struct analogix_dp_device *dp,
 	analogix_dp_get_max_rx_bandwidth(dp, &dp->link_train.link_rate);
 	analogix_dp_get_max_rx_lane_count(dp, &dp->link_train.lane_count);
 
-	/* Setup TX lane count & rate */
-	dp->link_train.lane_count = min_t(u8, dp->link_train.lane_count,
-					  max_lane);
-	dp->link_train.link_rate = min_t(u32, dp->link_train.link_rate,
-					 max_rate);
+	/* Setup TX lane count */
+	dp->link_train.lane_count = min_t(u32, dp->link_train.lane_count, max_lane);
+
+	/* Setup TX lane rate */
+	if (analogix_dp_select_rx_bandwidth(dp)) {
+		dev_err(dp->dev, "Select rx bandwidth failed\n");
+		return -EINVAL;
+	}
 
 	analogix_dp_read_byte_from_dpcd(dp, DP_MAX_DOWNSPREAD, &dpcd);
 	dp->link_train.ssc = !!(dpcd & DP_MAX_DOWNSPREAD_0_5);
@@ -849,6 +981,8 @@ static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 	u32 val;
 	int ret;
 
+	drm_mode_copy(&video->mode, &conn_state->mode);
+
 	if (pdata->lcdsel_grf_reg) {
 		if (crtc_state->crtc_id)
 			val = pdata->lcdsel_lit;
@@ -862,7 +996,8 @@ static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 		regmap_write(dp->grf, dp->id ? RK3588_GRF_VO1_CON1 : RK3588_GRF_VO1_CON0,
 			     EDP_MODE << 16 | FIELD_PREP(EDP_MODE, 1));
 
-	switch (conn_state->bpc) {
+	video->bpc = conn_state->bpc;
+	switch (video->bpc) {
 	case 12:
 		video->color_depth = COLOR_12;
 		break;
