@@ -1050,19 +1050,19 @@ crc32_table:
 	.size	global_waveform, 8
 global_waveform:
 	.zero	8
-	.section	.data.sftemp.6190,"aw",@progbits
+	.section	.data.sftemp.6194,"aw",@progbits
 	.align	2
 	.set	.LANCHOR2,. + 0
-	.type	sftemp.6190, %object
-	.size	sftemp.6190, 4
-sftemp.6190:
+	.type	sftemp.6194, %object
+	.size	sftemp.6194, 4
+sftemp.6194:
 	.word	-1
-	.section	.data.stype.6189,"aw",@progbits
+	.section	.data.stype.6193,"aw",@progbits
 	.align	2
 	.set	.LANCHOR3,. + 0
-	.type	stype.6189, %object
-	.size	stype.6189, 4
-stype.6189:
+	.type	stype.6193, %object
+	.size	stype.6193, 4
+stype.6193:
 	.word	13
 	.section	.rodata.rkf_wf_input.str1.1,"aMS",@progbits,1
 .LC0:
@@ -1350,7 +1350,7 @@ stype.6189:
 	.uleb128 0x5
 	.4byte	.LASF32
 	.byte	0xb
-	.byte	0xdf
+	.byte	0xe1
 	.4byte	0x206
 	.uleb128 0x13
 	.2byte	0x1220
@@ -3040,7 +3040,7 @@ stype.6189:
 	.4byte	0xd83
 	.uleb128 0x9
 	.byte	0x3
-	.8byte	stype.6189
+	.8byte	stype.6193
 	.uleb128 0x2c
 	.4byte	.LASF335
 	.byte	0x1
@@ -3048,7 +3048,7 @@ stype.6189:
 	.4byte	0x59
 	.uleb128 0x9
 	.byte	0x3
-	.8byte	sftemp.6190
+	.8byte	sftemp.6194
 	.uleb128 0x2d
 	.string	"ret"
 	.byte	0x1
@@ -5722,7 +5722,7 @@ stype.6189:
 	.8byte	.LVL83-1
 	.2byte	0x9
 	.byte	0x3
-	.8byte	sftemp.6190
+	.8byte	sftemp.6194
 	.8byte	0
 	.8byte	0
 .LLST41:
@@ -6331,7 +6331,7 @@ stype.6189:
 	.8byte	.LVL121-1
 	.2byte	0x9
 	.byte	0x3
-	.8byte	sftemp.6190
+	.8byte	sftemp.6194
 	.8byte	0
 	.8byte	0
 .LLST75:
@@ -6383,7 +6383,7 @@ stype.6189:
 	.8byte	.LVL151-1
 	.2byte	0x9
 	.byte	0x3
-	.8byte	sftemp.6190
+	.8byte	sftemp.6194
 	.8byte	0
 	.8byte	0
 .LLST80:
