@@ -59,6 +59,8 @@
 
 #define RK3576_VCCIO_IOC_MISC_CON8	0x6420
 #define RK3576_VOP_MCU_SEL(v)		HIWORD_UPDATE(v, 10, 10)
+#define RK3576_VOP_DLL_SEL(v)		HIWORD_UPDATE(v, 8, 8)
+#define RK3576_VOP_DCLK_DELAYLINE(v)	HIWORD_UPDATE(v, 0, 6)
 
 struct rockchip_rgb;
 
@@ -70,6 +72,7 @@ struct rockchip_rgb_funcs {
 struct rockchip_rgb_data {
 	u32 rgb_max_dclk_rate;
 	u32 mcu_max_dclk_rate;
+	u32 dclk_delayline;
 	const struct rockchip_rgb_funcs *funcs;
 };
 
@@ -82,6 +85,7 @@ struct rockchip_rgb {
 	struct rockchip_phy *phy;
 	const struct rockchip_rgb_funcs *funcs;
 	u32 max_dclk_rate;
+	u32 dclk_delayline;
 };
 
 struct mcu_cmd_header {
@@ -540,6 +544,7 @@ static int rockchip_rgb_probe(struct udevice *dev)
 			rgb->max_dclk_rate = rgb_data->mcu_max_dclk_rate;
 		else
 			rgb->max_dclk_rate = rgb_data->rgb_max_dclk_rate;
+		rgb->dclk_delayline = rgb_data->dclk_delayline;
 	}
 	rgb->dev = dev;
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
@@ -722,6 +727,10 @@ static void rk3576_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8,
 		     RK3576_VOP_MCU_SEL(rgb->data_sync_bypass));
+	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8,
+		     RK3576_VOP_DLL_SEL(true));
+	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8,
+		     RK3576_VOP_DCLK_DELAYLINE(rgb->dclk_delayline));
 }
 
 static const struct rockchip_rgb_funcs rk3576_rgb_funcs = {
@@ -729,6 +738,7 @@ static const struct rockchip_rgb_funcs rk3576_rgb_funcs = {
 };
 
 static const struct rockchip_rgb_data rk3576_rgb = {
+	.dclk_delayline = 5,
 	.funcs = &rk3576_rgb_funcs,
 };
 
