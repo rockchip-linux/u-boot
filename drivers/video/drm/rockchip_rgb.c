@@ -67,6 +67,12 @@ struct rockchip_rgb_funcs {
 	void (*unprepare)(struct rockchip_rgb *rgb);
 };
 
+struct rockchip_rgb_data {
+	u32 rgb_max_dclk_rate;
+	u32 mcu_max_dclk_rate;
+	const struct rockchip_rgb_funcs *funcs;
+};
+
 struct rockchip_rgb {
 	struct rockchip_connector connector;
 	int id;
@@ -75,6 +81,7 @@ struct rockchip_rgb {
 	bool data_sync_bypass;
 	struct rockchip_phy *phy;
 	const struct rockchip_rgb_funcs *funcs;
+	u32 max_dclk_rate;
 };
 
 struct mcu_cmd_header {
@@ -242,10 +249,37 @@ static int rockchip_rgb_connector_init(struct rockchip_connector *conn, struct d
 	return 0;
 }
 
+static int rockchip_rgb_connector_mode_valid(struct rockchip_connector *conn,
+					     struct display_state *state)
+{
+	struct rockchip_rgb *rgb = dev_get_priv(conn->dev);
+	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *crtc_state = &state->crtc_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	u32 request_clock = mode->clock;
+	u32 max_clock = rgb->max_dclk_rate;
+
+	if (mode->flags & DRM_MODE_FLAG_DBLCLK)
+		request_clock *= 2;
+
+	if (rgb->data_sync_bypass)
+		request_clock *= rockchip_drm_get_cycles_per_pixel(conn_state->bus_format) *
+				 (crtc_state->mcu_timing.mcu_pix_total + 1);
+
+	if (max_clock != 0 && request_clock > max_clock) {
+		printf("mode [%dx%d] clock %d is higher than max_clock %d\n",
+		       mode->hdisplay, mode->vdisplay, request_clock, max_clock);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static const struct rockchip_connector_funcs rockchip_rgb_connector_funcs = {
 	.init = rockchip_rgb_connector_init,
 	.prepare = rockchip_rgb_connector_prepare,
 	.unprepare = rockchip_rgb_connector_unprepare,
+	.mode_valid = rockchip_rgb_connector_mode_valid,
 };
 
 static int rockchip_mcu_panel_send_cmds(struct display_state *state,
@@ -493,12 +527,21 @@ free_on_cmds:
 static int rockchip_rgb_probe(struct udevice *dev)
 {
 	struct rockchip_rgb *rgb = dev_get_priv(dev);
+	const struct rockchip_rgb_data *rgb_data;
 	ofnode mcu_panel_node;
 	int phandle;
 	int ret;
 
+	rgb->data_sync_bypass = dev_read_bool(dev, "rockchip,data-sync-bypass");
+	rgb_data = (const struct rockchip_rgb_data *)dev_get_driver_data(dev);
+	if (rgb_data) {
+		rgb->funcs = rgb_data->funcs;
+		if (rgb->data_sync_bypass)
+			rgb->max_dclk_rate = rgb_data->mcu_max_dclk_rate;
+		else
+			rgb->max_dclk_rate = rgb_data->rgb_max_dclk_rate;
+	}
 	rgb->dev = dev;
-	rgb->funcs = (const struct rockchip_rgb_funcs *)dev_get_driver_data(dev);
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
 	rgb->data_sync_bypass = dev_read_bool(dev, "rockchip,data-sync-bypass");
 	rgb->id = of_alias_get_id(ofnode_to_np(dev->node_), "rgb");
@@ -562,6 +605,12 @@ static const struct rockchip_rgb_funcs rv1106_rgb_funcs = {
 	.prepare = rv1106_rgb_prepare,
 };
 
+static const struct rockchip_rgb_data rv1106_rgb = {
+	.rgb_max_dclk_rate = 74250,
+	.mcu_max_dclk_rate = 150000,
+	.funcs = &rv1106_rgb_funcs,
+};
+
 static void rv1126_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RV1126_GRF_IOFUNC_CON3,
@@ -570,6 +619,10 @@ static void rv1126_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 
 static const struct rockchip_rgb_funcs rv1126_rgb_funcs = {
 	.prepare = rv1126_rgb_prepare,
+};
+
+static const struct rockchip_rgb_data rv1126_rgb = {
+	.funcs = &rv1126_rgb_funcs,
 };
 
 static void px30_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
@@ -582,6 +635,10 @@ static const struct rockchip_rgb_funcs px30_rgb_funcs = {
 	.prepare = px30_rgb_prepare,
 };
 
+static const struct rockchip_rgb_data px30_rgb = {
+	.funcs = &px30_rgb_funcs,
+};
+
 static void rk1808_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RK1808_GRF_PD_VO_CON1,
@@ -590,6 +647,10 @@ static void rk1808_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 
 static const struct rockchip_rgb_funcs rk1808_rgb_funcs = {
 	.prepare = rk1808_rgb_prepare,
+};
+
+static const struct rockchip_rgb_data rk1808_rgb = {
+	.funcs = &rk1808_rgb_funcs,
 };
 
 static void rk3288_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
@@ -613,6 +674,10 @@ static const struct rockchip_rgb_funcs rk3288_rgb_funcs = {
 	.unprepare = rk3288_rgb_unprepare,
 };
 
+static const struct rockchip_rgb_data rk3288_rgb = {
+	.funcs = &rk3288_rgb_funcs,
+};
+
 static void rk3368_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RK3368_GRF_SOC_CON15, RK3368_FORCE_JETAG(0));
@@ -620,6 +685,10 @@ static void rk3368_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 
 static const struct rockchip_rgb_funcs rk3368_rgb_funcs = {
 	.prepare = rk3368_rgb_prepare,
+};
+
+static const struct rockchip_rgb_data rk3368_rgb = {
+	.funcs = &rk3368_rgb_funcs,
 };
 
 static void rk3562_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
@@ -632,6 +701,10 @@ static const struct rockchip_rgb_funcs rk3562_rgb_funcs = {
 	.prepare = rk3562_rgb_prepare,
 };
 
+static const struct rockchip_rgb_data rk3562_rgb = {
+	.funcs = &rk3562_rgb_funcs,
+};
+
 static void rk3568_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, RK3568_GRF_VO_CON1, RK3568_RGB_DATA_BYPASS(rgb->data_sync_bypass));
@@ -639,6 +712,10 @@ static void rk3568_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 
 static const struct rockchip_rgb_funcs rk3568_rgb_funcs = {
 	.prepare = rk3568_rgb_prepare,
+};
+
+static const struct rockchip_rgb_data rk3568_rgb = {
+	.funcs = &rk3568_rgb_funcs,
 };
 
 static void rk3576_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
@@ -651,14 +728,18 @@ static const struct rockchip_rgb_funcs rk3576_rgb_funcs = {
 	.prepare = rk3576_rgb_prepare,
 };
 
+static const struct rockchip_rgb_data rk3576_rgb = {
+	.funcs = &rk3576_rgb_funcs,
+};
+
 static const struct udevice_id rockchip_rgb_ids[] = {
 	{
 		.compatible = "rockchip,px30-rgb",
-		.data = (ulong)&px30_rgb_funcs,
+		.data = (ulong)&px30_rgb,
 	},
 	{
 		.compatible = "rockchip,rk1808-rgb",
-		.data = (ulong)&rk1808_rgb_funcs,
+		.data = (ulong)&rk1808_rgb,
 	},
 	{
 		.compatible = "rockchip,rk3066-rgb",
@@ -668,40 +749,40 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 	},
 	{
 		.compatible = "rockchip,rk3288-rgb",
-		.data = (ulong)&rk3288_rgb_funcs,
+		.data = (ulong)&rk3288_rgb,
 	},
 	{
 		.compatible = "rockchip,rk3308-rgb",
 	},
 	{
 		.compatible = "rockchip,rk3368-rgb",
-		.data = (ulong)&rk3368_rgb_funcs,
+		.data = (ulong)&rk3368_rgb,
 	},
 	{
 		.compatible = "rockchip,rk3562-rgb",
-		.data = (ulong)&rk3562_rgb_funcs,
+		.data = (ulong)&rk3562_rgb,
 	},
 	{
 		.compatible = "rockchip,rk3568-rgb",
-		.data = (ulong)&rk3568_rgb_funcs,
+		.data = (ulong)&rk3568_rgb,
 	},
 	{
 		.compatible = "rockchip,rk3576-rgb",
-		.data = (ulong)&rk3576_rgb_funcs,
+		.data = (ulong)&rk3576_rgb,
 	},
 	{
 		.compatible = "rockchip,rk3588-rgb",
 	},
 	{
 		.compatible = "rockchip,rv1106-rgb",
-		.data = (ulong)&rv1106_rgb_funcs,
+		.data = (ulong)&rv1106_rgb,
 	},
 	{
 		.compatible = "rockchip,rv1108-rgb",
 	},
 	{
 		.compatible = "rockchip,rv1126-rgb",
-		.data = (ulong)&rv1126_rgb_funcs,
+		.data = (ulong)&rv1126_rgb,
 	},
 	{}
 };
