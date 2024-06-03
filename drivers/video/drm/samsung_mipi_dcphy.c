@@ -70,6 +70,11 @@
 #define DPHY_MC_GNR_CON1	0x0304
 #define T_PHY_READY(x)		UPDATE(x, 15, 0)
 #define DPHY_MC_ANA_CON0	0x0308
+#define EDGE_CON(x)		UPDATE(x, 14, 12)
+#define EDGE_CON_DIR(x)		UPDATE(x, 9, 9)
+#define EDGE_CON_EN		BIT(8)
+#define RES_UP(x)		UPDATE(x, 7, 4)
+#define RES_DN(x)		UPDATE(x, 3, 0)
 #define DPHY_MC_ANA_CON1	0x030c
 #define DPHY_MC_ANA_CON2	0x0310
 #define HS_VREG_AMP_ICON(x)	UPDATE(x, 1, 0)
@@ -180,7 +185,34 @@ struct samsung_mipi_cphy_timing {
 	u8 settle_3;
 };
 
+enum hs_drv_res_ohm {
+	_30_OHM = 0x8,
+	_31_2_OHM,
+	_32_5_OHM,
+	_34_OHM,
+	_35_5_OHM,
+	_37_OHM,
+	_39_OHM,
+	_41_OHM,
+	_43_OHM = 0x0,
+	_46_OHM,
+	_49_OHM,
+	_52_OHM,
+	_56_OHM,
+	_60_OHM,
+	_66_OHM,
+	_73_OHM,
+};
+
+struct hs_drv_res_cfg {
+	enum hs_drv_res_ohm clk_hs_drv_up_ohm;
+	enum hs_drv_res_ohm clk_hs_drv_down_ohm;
+	enum hs_drv_res_ohm data_hs_drv_up_ohm;
+	enum hs_drv_res_ohm data_hs_drv_down_ohm;
+};
+
 struct samsung_mipi_dcphy_plat_data {
+	const struct hs_drv_res_cfg *dphy_hs_drv_res_cfg;
 	u32 dphy_tx_max_kbps_per_lane;
 	u32 cphy_tx_max_ksps_per_lane;
 };
@@ -1321,15 +1353,25 @@ samsung_mipi_dphy_clk_lane_timing_init(struct samsung_mipi_dcphy *samsung)
 {
 	const struct samsung_mipi_dphy_timing *timing;
 	unsigned int lane_hs_rate = div64_ul(samsung->pll.rate, USEC_PER_SEC);
-	u32 val = 0;
+	u32 val, res_up, res_down;
 
 	timing = samsung_mipi_dphy_get_timing(samsung);
 	phy_write(samsung, DPHY_MC_GNR_CON0, 0xf000);
-	phy_write(samsung, DPHY_MC_ANA_CON0, 0x7133);
+
+	/*
+	 * The Drive-Strength / Voltage-Amplitude is adjusted by adjusting the
+	 *  Driver-Up Resistor and Driver-Down Resistor.
+	 */
+	res_up = samsung->pdata->dphy_hs_drv_res_cfg->clk_hs_drv_up_ohm;
+	res_down = samsung->pdata->dphy_hs_drv_res_cfg->clk_hs_drv_down_ohm;
+	val = EDGE_CON(7) | EDGE_CON_DIR(0) | EDGE_CON_EN |
+	      RES_UP(res_up) | RES_DN(res_down);
+	phy_write(samsung, DPHY_MC_ANA_CON0, val);
 
 	if (lane_hs_rate >= 4500)
 		phy_write(samsung, DPHY_MC_ANA_CON1, 0x0001);
 
+	val = 0;
 	/*
 	 * Divide-by-2 Clock from Serial Clock. Use this when data rate is under
 	 * 1500Mbps, otherwise divide-by-16 Clock from Serial Clock
@@ -1366,14 +1408,22 @@ samsung_mipi_dphy_data_lane_timing_init(struct samsung_mipi_dcphy *samsung)
 {
 	const struct samsung_mipi_dphy_timing *timing;
 	unsigned int lane_hs_rate = div64_ul(samsung->pll.rate, USEC_PER_SEC);
-	u32 val = 0;
+	u32 val, res_up, res_down;
 
 	timing = samsung_mipi_dphy_get_timing(samsung);
 
-	phy_write(samsung, COMBO_MD0_ANA_CON0, 0x7133);
-	phy_write(samsung, COMBO_MD1_ANA_CON0, 0x7133);
-	phy_write(samsung, COMBO_MD2_ANA_CON0, 0x7133);
-	phy_write(samsung, DPHY_MD3_ANA_CON0, 0x7133);
+	/*
+	 * The Drive-Strength / Voltage-Amplitude is adjusted by adjusting the
+	 *  Driver-Up Resistor and Driver-Down Resistor.
+	 */
+	res_up = samsung->pdata->dphy_hs_drv_res_cfg->data_hs_drv_up_ohm;
+	res_down = samsung->pdata->dphy_hs_drv_res_cfg->data_hs_drv_down_ohm;
+	val = EDGE_CON(7) | EDGE_CON_DIR(0) | EDGE_CON_EN |
+	      RES_UP(res_up) | RES_DN(res_down);
+	phy_write(samsung, COMBO_MD0_ANA_CON0, val);
+	phy_write(samsung, COMBO_MD1_ANA_CON0, val);
+	phy_write(samsung, COMBO_MD2_ANA_CON0, val);
+	phy_write(samsung, DPHY_MD3_ANA_CON0, val);
 
 	if (lane_hs_rate >= 1500) {
 		phy_write(samsung, COMBO_MD0_ANA_CON1, 0x0001);
@@ -1382,6 +1432,7 @@ samsung_mipi_dphy_data_lane_timing_init(struct samsung_mipi_dcphy *samsung)
 		phy_write(samsung, DPHY_MD3_ANA_CON1, 0x0001);
 	}
 
+	val = 0;
 	/*
 	 * Divide-by-2 Clock from Serial Clock. Use this when data rate is under
 	 * 1500Mbps, otherwise divide-by-16 Clock from Serial Clock
@@ -1850,12 +1901,28 @@ static const struct rockchip_phy_funcs samsung_mipi_dcphy_funcs = {
 	.set_mode = samsung_mipi_dcphy_set_mode,
 };
 
+static const struct hs_drv_res_cfg rk3576_dphy_hs_drv_res_cfg = {
+	.clk_hs_drv_up_ohm = _52_OHM,
+	.clk_hs_drv_down_ohm = _52_OHM,
+	.data_hs_drv_up_ohm = _39_OHM,
+	.data_hs_drv_down_ohm = _39_OHM,
+};
+
+static const struct hs_drv_res_cfg rk3588_dphy_hs_drv_res_cfg = {
+	.clk_hs_drv_up_ohm = _34_OHM,
+	.clk_hs_drv_down_ohm = _34_OHM,
+	.data_hs_drv_up_ohm = _43_OHM,
+	.data_hs_drv_down_ohm = _43_OHM,
+};
+
 static const struct samsung_mipi_dcphy_plat_data rk3576_samsung_mipi_dcphy_plat_data = {
+	.dphy_hs_drv_res_cfg = &rk3576_dphy_hs_drv_res_cfg,
 	.dphy_tx_max_kbps_per_lane = 2500000L,
-	.cphy_tx_max_ksps_per_lane = 2000000L,
+	.cphy_tx_max_ksps_per_lane = 1700000L,
 };
 
 static const struct samsung_mipi_dcphy_plat_data rk3588_samsung_mipi_dcphy_plat_data = {
+	.dphy_hs_drv_res_cfg = &rk3588_dphy_hs_drv_res_cfg,
 	.dphy_tx_max_kbps_per_lane = 4500000L,
 	.cphy_tx_max_ksps_per_lane = 2000000L,
 };
