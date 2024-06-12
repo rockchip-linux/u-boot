@@ -123,6 +123,8 @@
 #define RK3568_DSP_IF_POL			0x030
 #define IF_CTRL_REG_DONE_IMD_SHIFT		28
 #define IF_CRTL_MIPI_DCLK_POL_SHIT		19
+#define IF_CTRL_MIPI_PIN_POL_MASK		0x7
+#define IF_CTRL_MIPI_PIN_POL_SHIFT		16
 #define IF_CRTL_EDP_DCLK_POL_SHIT		15
 #define IF_CTRL_EDP_PIN_POL_MASK		0x7
 #define IF_CTRL_EDP_PIN_POL_SHIFT		12
@@ -3894,6 +3896,8 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 				MIPI0_MUX_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
 				IF_CRTL_MIPI_DCLK_POL_SHIT, dclk_inv, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, IF_CTRL_MIPI_PIN_POL_MASK,
+				IF_CTRL_MIPI_PIN_POL_SHIFT, val, false);
 	}
 
 	if (conn_state->output_if & VOP_OUTPUT_IF_MIPI1) {
@@ -3903,6 +3907,8 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 				MIPI1_MUX_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, EN_MASK,
 				IF_CRTL_MIPI_DCLK_POL_SHIT, dclk_inv, false);
+		vop2_mask_write(vop2, RK3568_DSP_IF_POL, IF_CTRL_MIPI_PIN_POL_MASK,
+				IF_CTRL_MIPI_PIN_POL_SHIFT, val, false);
 	}
 
 	if (conn_state->output_flags &
