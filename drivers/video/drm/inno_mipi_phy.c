@@ -74,6 +74,30 @@
 #define VOD_MID_RANGE			0x3
 #define VOD_BIG_RANGE			0x7
 #define VOD_MAX_RANGE			0xf
+#define RK3506_VOD_MIN_RANGE		0x8
+#define RK3506_VOD_MID_RANGE		0xc
+#define RK3506_VOD_BIG_RANGE		0xe
+#define RK3506_VOD_MAX_RANGE		0xf
+#define RK3506_PRE_EMPHASIS			0x0060
+#define LANE0_PRE_EMPHASIS_ENABLE_MASK          BIT(6)
+#define LANE0_PRE_EMPHASIS_ENABLE               BIT(6)
+#define LANE0_PRE_EMPHASIS_DISABLE              0
+#define LANE1_PRE_EMPHASIS_ENABLE_MASK          BIT(5)
+#define LANE1_PRE_EMPHASIS_ENABLE               BIT(5)
+#define LANE1_PRE_EMPHASIS_DISABLE              0
+#define PRE_EMPHASIS_RANGE                      0x0064
+#define PRE_EMPHASIS_RANGE_SET_MASK             GENMASK(7, 6)
+#define PRE_EMPHASIS_RANGE_SET(x)               UPDATE(x, 7, 6)
+#define LANE0_PRE_EMPHASIS_RANGE                0x0068
+#define LANE0_PRE_EMPHASIS_RANGE_SET_MASK       GENMASK(7, 6)
+#define LANE0_PRE_EMPHASIS_RANGE_SET(x)         UPDATE(x, 7, 6)
+#define LANE1_PRE_EMPHASIS_RANGE                0x006c
+#define LANE1_PRE_EMPHASIS_RANGE_SET_MASK       GENMASK(7, 6)
+#define LANE1_PRE_EMPHASIS_RANGE_SET(x)         UPDATE(x, 7, 6)
+#define PRE_EMPHASIS_MIN_RANGE			0x0
+#define PRE_EMPHASIS_MID_RANGE			0x1
+#define PRE_EMPHASIS_MAX_RANGE			0x2
+#define PRE_EMPHASIS_RESERVED_RANGE		0x3
 #define INNO_PHY_DIG_CTRL		0x0080
 #define DIGITAL_RESET_MASK		BIT(0)
 #define DIGITAL_NORMAL			BIT(0)
@@ -131,6 +155,7 @@
 enum soc_type {
 	RV1108_MIPI_DPHY,
 	RK1808_MIPI_DPHY,
+	RK3506_MIPI_DPHY,
 };
 
 enum lane_type {
@@ -671,6 +696,25 @@ static unsigned long inno_mipi_dphy_set_pll(struct rockchip_phy *phy,
 				 CLOCK_LANE_VOD_RANGE_SET(VOD_MAX_RANGE));
 	}
 
+	if (phy->soc_type == RK3506_MIPI_DPHY) {
+		inno_update_bits(inno, RK3506_PRE_EMPHASIS,
+				LANE0_PRE_EMPHASIS_ENABLE_MASK, LANE0_PRE_EMPHASIS_ENABLE);
+		inno_update_bits(inno, RK3506_PRE_EMPHASIS,
+				LANE1_PRE_EMPHASIS_ENABLE_MASK, LANE1_PRE_EMPHASIS_ENABLE);
+		inno_update_bits(inno, PRE_EMPHASIS_RANGE,
+				PRE_EMPHASIS_RANGE_SET_MASK,
+				PRE_EMPHASIS_RANGE_SET(PRE_EMPHASIS_MID_RANGE));
+		inno_update_bits(inno, LANE1_PRE_EMPHASIS_RANGE,
+				LANE0_PRE_EMPHASIS_RANGE_SET_MASK,
+				LANE0_PRE_EMPHASIS_RANGE_SET(PRE_EMPHASIS_MID_RANGE));
+		inno_update_bits(inno, LANE1_PRE_EMPHASIS_RANGE,
+				LANE1_PRE_EMPHASIS_RANGE_SET_MASK,
+				LANE1_PRE_EMPHASIS_RANGE_SET(PRE_EMPHASIS_MID_RANGE));
+		inno_update_bits(inno, ANALOG_REG_0B,
+				CLOCK_LANE_VOD_RANGE_SET_MASK,
+				CLOCK_LANE_VOD_RANGE_SET(RK3506_VOD_MAX_RANGE));
+	}
+
 	inno->lane_mbps = fout / USEC_PER_SEC;
 
 	return fout;
@@ -680,7 +724,11 @@ static int inno_mipi_dphy_parse_dt(struct inno_mipi_dphy *inno)
 {
 	struct udevice *dev = inno->dev;
 
+#if defined(CONFIG_ROCKCHIP_RK3506)
+	inno->lanes = ofnode_read_u32_default(dev->node, "inno,lanes", 2);
+#else
 	inno->lanes = ofnode_read_u32_default(dev->node, "inno,lanes", 4);
+#endif
 
 	return 0;
 }
@@ -737,6 +785,8 @@ static int inno_mipi_dphy_probe(struct udevice *dev)
 
 #if defined(CONFIG_ROCKCHIP_RV1108)
 	phy->soc_type = RV1108_MIPI_DPHY;
+#elif defined(CONFIG_ROCKCHIP_RK3506)
+	phy->soc_type = RK3506_MIPI_DPHY;
 #else
 	phy->soc_type = RK1808_MIPI_DPHY;
 #endif
