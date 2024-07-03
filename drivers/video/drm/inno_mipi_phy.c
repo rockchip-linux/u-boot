@@ -704,7 +704,7 @@ static unsigned long inno_mipi_dphy_set_pll(struct rockchip_phy *phy,
 		inno_update_bits(inno, PRE_EMPHASIS_RANGE,
 				PRE_EMPHASIS_RANGE_SET_MASK,
 				PRE_EMPHASIS_RANGE_SET(PRE_EMPHASIS_MID_RANGE));
-		inno_update_bits(inno, LANE1_PRE_EMPHASIS_RANGE,
+		inno_update_bits(inno, LANE0_PRE_EMPHASIS_RANGE,
 				LANE0_PRE_EMPHASIS_RANGE_SET_MASK,
 				LANE0_PRE_EMPHASIS_RANGE_SET(PRE_EMPHASIS_MID_RANGE));
 		inno_update_bits(inno, LANE1_PRE_EMPHASIS_RANGE,
@@ -765,6 +765,9 @@ static const struct udevice_id inno_mipi_dphy_ids[] = {
 	},
 	{
 		.compatible = "rockchip,rv1126-mipi-dphy",
+	},
+	{
+		.compatible = "rockchip,rk3506-dsi-dphy",
 	},
 	{}
 };
