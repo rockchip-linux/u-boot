@@ -807,7 +807,7 @@ static const struct vop_win rk3506_win1_data = {
 };
 
 const struct vop_data rk3506_vop = {
-	.version = VOP_VERSION(2, 0xc),
+	.version = VOP_VERSION(2, 0xe),
 	.max_output = {1280, 1280},
 	.ctrl = &rk3506_ctrl_data,
 	.win = &rk3506_win1_data,
