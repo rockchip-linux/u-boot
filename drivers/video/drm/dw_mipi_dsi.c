@@ -1507,6 +1507,7 @@ static const u32 rk3506_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[FORCETXSTOPMODE]       = GRF_REG_FIELD(0x0018,  4,  7),
 	[TURNDISABLE]           = GRF_REG_FIELD(0x0018,  2,  2),
 	[FORCERXMODE]           = GRF_REG_FIELD(0x0018,  0,  0),
+	[ENABLE_N]              = GRF_REG_FIELD(0x0018,  8,  9),
 };
 
 static const struct dw_mipi_dsi_plat_data rk3506_mipi_dsi_plat_data = {
