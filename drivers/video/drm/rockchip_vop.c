@@ -614,7 +614,7 @@ static int rockchip_vop_init(struct display_state *state)
 			  act_end - us_to_vertical_line(mode, 1000));
 
 	if (state->crtc_state.mcu_timing.mcu_pix_total > 0) {
-		if (vop->version == VOP_VERSION(2, 0xd)) {
+		if (vop->version >= VOP_VERSION(2, 0xd)) {
 			VOP_CTRL_SET(vop, standby, 0);
 			vop_set_out_mode(vop, conn_state->output_mode);
 		}
@@ -980,7 +980,7 @@ static int rockchip_vop_send_mcu_cmd(struct display_state *state, u32 type, u32 
 	struct vop *vop = crtc_state->private;
 	int ret;
 
-	if (vop->version == VOP_VERSION(2, 0xd)) {
+	if (vop->version >= VOP_VERSION(2, 0xd)) {
 		/*
 		 * 1.set mcu bypass mode timing.
 		 * 2.set dclk rate to 150M.
@@ -1014,7 +1014,7 @@ static int rockchip_vop_send_mcu_cmd(struct display_state *state, u32 type, u32 
 		}
 	}
 
-	if (vop->version == VOP_VERSION(2, 0xd)) {
+	if (vop->version >= VOP_VERSION(2, 0xd)) {
 		/*
 		 * 1.restore mcu data mode timing.
 		 * 2.restore dclk rate to crtc_clock.
