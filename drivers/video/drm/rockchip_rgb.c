@@ -22,7 +22,7 @@
 #include "rockchip_phy.h"
 #include "rockchip_panel.h"
 
-#define HIWORD_UPDATE(v, h, l)		(((v) << (l)) | (GENMASK(h, l) << 16))
+#define HIWORD_UPDATE(v, l, h)		(((v) << (l)) | (GENMASK(h, l) << 16))
 
 #define PX30_GRF_PD_VO_CON1		0x0438
 #define PX30_RGB_DATA_SYNC_BYPASS(v)	HIWORD_UPDATE(v, 3, 3)
