@@ -134,6 +134,19 @@ static bool is_rb_swap(uint32_t bus_format, uint32_t output_mode)
 		return false;
 }
 
+static bool is_yc_swap(uint32_t bus_format)
+{
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_YVYU8_1X16:
+	case MEDIA_BUS_FMT_YUYV8_2X8:
+	case MEDIA_BUS_FMT_YVYU8_2X8:
+		return true;
+	default:
+		return false;
+	}
+}
+
 static int rockchip_vop_init_gamma(struct vop *vop, struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
@@ -320,7 +333,7 @@ static int rockchip_vop_init(struct display_state *state)
 	int ret;
 	bool yuv_overlay = false, post_r2y_en = false, post_y2r_en = false;
 	u16 post_csc_mode;
-	bool dclk_inv;
+	bool dclk_inv, yc_swap = false;
 	char output_type_name[30] = {0};
 
 	vop = malloc(sizeof(*vop));
@@ -420,6 +433,16 @@ static int rockchip_vop_init(struct display_state *state)
 		VOP_CTRL_SET(vop, lvds_dclk_pol, dclk_inv);
 		if (!IS_ERR_OR_NULL(vop->grf_ctrl))
 			VOP_GRF_SET(vop, grf_ctrl, grf_dclk_inv, dclk_inv);
+		if (conn_state->output_if & VOP_OUTPUT_IF_BT1120) {
+			VOP_CTRL_SET(vop, bt1120_en, 1);
+			yc_swap = is_yc_swap(conn_state->bus_format);
+			VOP_CTRL_SET(vop, bt1120_yc_swap, yc_swap);
+			VOP_CTRL_SET(vop, yuv_clip, 1);
+		} else if (conn_state->output_if & VOP_OUTPUT_IF_BT656) {
+			VOP_CTRL_SET(vop, bt656_en, 1);
+			yc_swap = is_yc_swap(conn_state->bus_format);
+			VOP_CTRL_SET(vop, bt1120_yc_swap, yc_swap);
+		}
 		break;
 	case DRM_MODE_CONNECTOR_eDP:
 		VOP_CTRL_SET(vop, edp_en, 1);
@@ -483,8 +506,10 @@ static int rockchip_vop_init(struct display_state *state)
 		printf("unsupport connector_type[%d]\n", conn_state->type);
 	}
 
-	if (conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
-	    !(vop_data->feature & VOP_FEATURE_OUTPUT_10BIT))
+	if ((conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
+	     !(vop_data->feature & VOP_FEATURE_OUTPUT_10BIT)) ||
+	    (VOP_MAJOR(vop->version) == 2 && VOP_MINOR(vop->version) >= 12 &&
+	     conn_state->output_if & VOP_OUTPUT_IF_BT656))
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
 	switch (conn_state->bus_format) {
@@ -607,7 +632,8 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, vtotal_pw, (vtotal << 16) | vsync_len);
 	vop_post_config(state, vop);
 	VOP_CTRL_SET(vop, core_dclk_div,
-		     !!(mode->flags & DRM_MODE_FLAG_DBLCLK));
+		     !!(mode->flags & DRM_MODE_FLAG_DBLCLK) ||
+		     conn_state->output_if & VOP_OUTPUT_IF_BT656);
 
 	VOP_LINE_FLAG_SET(vop, line_flag_num[0], act_end - 3);
 	VOP_LINE_FLAG_SET(vop, line_flag_num[1],
@@ -831,7 +857,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 		return -EINVAL;
 	}
 
-	if ((vop->version == VOP_VERSION(2, 2) || vop->version == VOP_VERSION(2, 0xd)) &&
+	if ((vop->version == VOP_VERSION(2, 2) || vop->version >= VOP_VERSION(2, 0xd)) &&
 	    (mode->flags & DRM_MODE_FLAG_INTERLACE))
 		crtc_h = crtc_h / 2;
 
@@ -843,7 +869,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 
 	dsp_stx = crtc_x + mode->crtc_htotal - mode->crtc_hsync_start;
 	dsp_sty = crtc_y + mode->crtc_vtotal - mode->crtc_vsync_start;
-	if ((vop->version == VOP_VERSION(2, 2) || vop->version == VOP_VERSION(2, 0xd)) &&
+	if ((vop->version == VOP_VERSION(2, 2) || vop->version >= VOP_VERSION(2, 0xd)) &&
 	    (mode->flags & DRM_MODE_FLAG_INTERLACE))
 		dsp_sty = crtc_y / 2 + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
@@ -875,6 +901,9 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	VOP_CTRL_SET(vop, xmirror, x_mirror);
 
 	VOP_WIN_SET(vop, format, crtc_state->format);
+
+	VOP_WIN_SET(vop, interlace_read, (mode->flags & DRM_MODE_FLAG_INTERLACE) ? 1 : 0);
+
 	VOP_WIN_SET(vop, yrgb_vir, xvir);
 	VOP_WIN_SET(vop, yrgb_mst, crtc_state->dma_addr);
 
@@ -1077,10 +1106,20 @@ static int rockchip_vop_plane_check(struct display_state *state)
 static int rockchip_vop_mode_fixup(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	const struct vop_data *vop_data = crtc->data;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 
 	drm_mode_set_crtcinfo(mode, CRTC_INTERLACE_HALVE_V | CRTC_STEREO_DOUBLE);
+
+	/*
+	 * Dclk need to be double if BT656 interface and vop version >= 2.12.
+	 */
+	if (mode->flags & DRM_MODE_FLAG_DBLCLK ||
+	    (VOP_MAJOR(vop_data->version) == 2 && VOP_MINOR(vop_data->version) >= 12 &&
+	     conn_state->output_if & VOP_OUTPUT_IF_BT656))
+		mode->crtc_clock *= 2;
 
 	mode->crtc_clock *= rockchip_drm_get_cycles_per_pixel(conn_state->bus_format);
 	if (crtc_state->mcu_timing.mcu_pix_total)

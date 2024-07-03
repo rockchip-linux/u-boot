@@ -315,6 +315,7 @@ struct vop_ctrl {
 	struct vop_reg dsp_rg_swap;
 	struct vop_reg dsp_delta_swap;
 	struct vop_reg dsp_dummy_swap;
+	struct vop_reg yuv_clip;
 	struct vop_reg dsp_ccir656_avg;
 	struct vop_reg dsp_black;
 	struct vop_reg dsp_blank;
