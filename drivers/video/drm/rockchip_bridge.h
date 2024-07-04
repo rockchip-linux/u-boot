@@ -32,6 +32,7 @@ struct rockchip_bridge {
 	struct rockchip_bridge *next_bridge;
 	struct rockchip_connector *conn;
 	struct display_state *state;
+	u32 bus_format;
 };
 
 void rockchip_bridge_init(struct rockchip_bridge *bridge,

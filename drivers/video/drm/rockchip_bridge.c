@@ -4,6 +4,7 @@
  */
 
 #include "rockchip_bridge.h"
+#include "rockchip_display.h"
 
 void rockchip_bridge_init(struct rockchip_bridge *bridge,
 			  struct rockchip_connector *conn,
@@ -14,6 +15,9 @@ void rockchip_bridge_init(struct rockchip_bridge *bridge,
 
 	bridge->conn = conn;
 	bridge->state = state;
+
+	if (bridge->bus_format)
+		state->conn_state.bus_format = bridge->bus_format;
 
 	if (bridge->next_bridge)
 		rockchip_bridge_init(bridge->next_bridge, conn, state);
