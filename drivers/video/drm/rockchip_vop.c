@@ -893,6 +893,12 @@ static int rockchip_vop_set_plane(struct display_state *state)
 	VOP_WIN_SET(vop, gate, 1);
 	vop_cfg_done(vop);
 
+	printf("VOP:0x%8p set plane [%dx%d->%dx%d@%dx%d] fmt[%d] addr[0x%x]\n",
+		vop->regs, crtc_state->src_rect.w, crtc_state->src_rect.h,
+		crtc_state->crtc_rect.w, crtc_state->crtc_rect.h,
+		crtc_state->crtc_rect.x, crtc_state->crtc_rect.y,
+		crtc_state->format, crtc_state->dma_addr);
+
 	return 0;
 }
 
