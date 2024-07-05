@@ -357,7 +357,7 @@ static int rockchip_vop_init(struct display_state *state)
 	printf("VOP:0x%8p update mode to: %dx%d%s%d, type:%s\n",
 	       vop->regs, mode->crtc_hdisplay, mode->vdisplay,
 	       mode->flags & DRM_MODE_FLAG_INTERLACE ? "i" : "p",
-	       mode->vrefresh,
+	       drm_mode_vrefresh(mode),
 	       rockchip_get_output_if_name(conn_state->output_if, output_type_name));
 
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
