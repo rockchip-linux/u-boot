@@ -687,6 +687,7 @@ static int sii902x_probe(struct udevice *dev)
 			break;
 		}
 	}
+	bridge->bus_format = sii902x->bus_format;
 
 	ret = sii902x_init(sii902x);
 	if (ret < 0) {
