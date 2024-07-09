@@ -19,6 +19,7 @@
 #include <linux/media-bus-format.h>
 #include <linux/dw_hdmi.h>
 #include <asm/io.h>
+#include "rockchip_bridge.h"
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
@@ -2184,7 +2185,17 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 int dw_hdmi_detect_hotplug(struct dw_hdmi *hdmi,
 			   struct display_state *state)
 {
-	return hdmi->phy.ops->read_hpd(hdmi, state);
+	struct connector_state *conn_state = &state->conn_state;
+	struct rockchip_connector *conn = conn_state->connector;
+	int ret;
+
+	ret = hdmi->phy.ops->read_hpd(hdmi, state);
+	if (!ret) {
+		if (conn->bridge)
+			ret = rockchip_bridge_detect(conn->bridge);
+	}
+
+	return ret;
 }
 
 static int dw_hdmi_set_reg_wr(struct dw_hdmi *hdmi)
@@ -2490,115 +2501,16 @@ void rockchip_dw_hdmi_deinit(struct rockchip_connector *conn, struct display_sta
 		free(hdmi);
 }
 
-int rockchip_dw_hdmi_prepare(struct rockchip_connector *conn, struct display_state *state)
-{
-	return 0;
-}
-
-int rockchip_dw_hdmi_enable(struct rockchip_connector *conn, struct display_state *state)
+static void rockchip_dw_hdmi_config_output(struct rockchip_connector *conn,
+					   struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct dw_hdmi *hdmi = conn->data;
-
-	if (!hdmi)
-		return -EFAULT;
-
-	/* Store the display mode for plugin/DKMS poweron events */
-	memcpy(&hdmi->previous_mode, mode, sizeof(hdmi->previous_mode));
-
-	dw_hdmi_setup(hdmi, conn, mode, state);
-
-	return 0;
-}
-
-int rockchip_dw_hdmi_disable(struct rockchip_connector *conn, struct display_state *state)
-{
-	struct dw_hdmi *hdmi = conn->data;
-
-	dw_hdmi_disable(conn, hdmi, state);
-	return 0;
-}
-
-static void rockchip_dw_hdmi_mode_valid(struct dw_hdmi *hdmi)
-{
-	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
-	int i;
-
-	for (i = 0; i < edid_data->modes; i++) {
-		if (edid_data->mode_buf[i].invalid)
-			continue;
-
-		if (edid_data->mode_buf[i].clock > 600000)
-			edid_data->mode_buf[i].invalid = true;
-	}
-}
-
-int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_state *state)
-{
-	int ret, i, vic;
-	struct connector_state *conn_state = &state->conn_state;
-	struct drm_display_mode *mode = &conn_state->mode;
-	struct dw_hdmi *hdmi = conn->data;
-	struct edid *edid = (struct edid *)conn_state->edid;
 	unsigned int bus_format;
 	unsigned long enc_out_encoding;
 	struct overscan *overscan = &conn_state->overscan;
-	const u8 def_modes_vic[6] = {4, 16, 2, 17, 31, 19};
 
-	if (!hdmi)
-		return -EFAULT;
-
-	ret = drm_do_get_edid(&hdmi->adap, conn_state->edid);
-
-	if (!ret) {
-		hdmi->sink_has_audio = drm_detect_monitor_audio(edid);
-		if (hdmi->sink_has_audio)
-			hdmi->sink_is_hdmi = true;
-		else
-			hdmi->sink_is_hdmi = drm_detect_hdmi_monitor(edid);
-
-		ret = drm_add_edid_modes(&hdmi->edid_data, conn_state->edid);
-	}
-	if (ret < 0) {
-		hdmi->sink_is_hdmi = true;
-		hdmi->sink_has_audio = true;
-		do_cea_modes(&hdmi->edid_data, def_modes_vic,
-			     sizeof(def_modes_vic));
-		hdmi->edid_data.mode_buf[0].type |= DRM_MODE_TYPE_PREFERRED;
-		hdmi->edid_data.preferred_mode = &hdmi->edid_data.mode_buf[0];
-		printf("failed to get edid\n");
-	}
-#ifdef CONFIG_SPL_BUILD
-	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, hdmi->id);
-#endif
-	drm_rk_filter_whitelist(&hdmi->edid_data);
-	rockchip_dw_hdmi_mode_valid(hdmi);
-	if (hdmi->phy.ops->mode_valid)
-		hdmi->phy.ops->mode_valid(conn, hdmi, state);
-	drm_mode_max_resolution_filter(&hdmi->edid_data,
-				       &state->crtc_state.max_output);
-	if (!drm_mode_prune_invalid(&hdmi->edid_data)) {
-		printf("can't find valid hdmi mode\n");
-		return -EINVAL;
-	}
-
-	for (i = 0; i < hdmi->edid_data.modes; i++) {
-		hdmi->edid_data.mode_buf[i].vrefresh =
-			drm_mode_vrefresh(&hdmi->edid_data.mode_buf[i]);
-
-		vic = drm_match_cea_mode(&hdmi->edid_data.mode_buf[i]);
-		if (hdmi->edid_data.mode_buf[i].picture_aspect_ratio == HDMI_PICTURE_ASPECT_NONE) {
-			if (vic >= 93 && vic <= 95)
-				hdmi->edid_data.mode_buf[i].picture_aspect_ratio =
-					HDMI_PICTURE_ASPECT_16_9;
-			else if (vic == 98)
-				hdmi->edid_data.mode_buf[i].picture_aspect_ratio =
-					HDMI_PICTURE_ASPECT_256_135;
-		}
-	}
-
-	drm_mode_sort(&hdmi->edid_data);
 	drm_rk_selete_output(&hdmi->edid_data, conn_state, &bus_format,
 			     overscan, hdmi->dev_type, hdmi->output_bus_format_rgb);
 
@@ -2660,6 +2572,126 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 					  HDMI_QUANTIZATION_RANGE_FULL ?
 					  DRM_COLOR_YCBCR_FULL_RANGE :
 					  DRM_COLOR_YCBCR_LIMITED_RANGE;
+}
+
+int rockchip_dw_hdmi_prepare(struct rockchip_connector *conn, struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct dw_hdmi *hdmi = conn->data;
+
+	if (!hdmi->edid_data.preferred_mode && conn->bridge) {
+		drm_add_hdmi_modes(&hdmi->edid_data, mode);
+		drm_mode_sort(&hdmi->edid_data);
+		hdmi->sink_is_hdmi = true;
+		hdmi->sink_has_audio = true;
+		rockchip_dw_hdmi_config_output(conn, state);
+	}
+
+	return 0;
+}
+
+int rockchip_dw_hdmi_enable(struct rockchip_connector *conn, struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct dw_hdmi *hdmi = conn->data;
+
+	if (!hdmi)
+		return -EFAULT;
+
+	/* Store the display mode for plugin/DKMS poweron events */
+	memcpy(&hdmi->previous_mode, mode, sizeof(hdmi->previous_mode));
+
+	dw_hdmi_setup(hdmi, conn, mode, state);
+
+	return 0;
+}
+
+int rockchip_dw_hdmi_disable(struct rockchip_connector *conn, struct display_state *state)
+{
+	struct dw_hdmi *hdmi = conn->data;
+
+	dw_hdmi_disable(conn, hdmi, state);
+	return 0;
+}
+
+static void rockchip_dw_hdmi_mode_valid(struct dw_hdmi *hdmi)
+{
+	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
+	int i;
+
+	for (i = 0; i < edid_data->modes; i++) {
+		if (edid_data->mode_buf[i].invalid)
+			continue;
+
+		if (edid_data->mode_buf[i].clock > 600000)
+			edid_data->mode_buf[i].invalid = true;
+	}
+}
+
+int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_state *state)
+{
+	int ret, i, vic;
+	struct connector_state *conn_state = &state->conn_state;
+	struct dw_hdmi *hdmi = conn->data;
+	struct edid *edid = (struct edid *)conn_state->edid;
+	const u8 def_modes_vic[6] = {4, 16, 2, 17, 31, 19};
+
+	if (!hdmi)
+		return -EFAULT;
+
+	ret = drm_do_get_edid(&hdmi->adap, conn_state->edid);
+
+	if (!ret) {
+		hdmi->sink_has_audio = drm_detect_monitor_audio(edid);
+		if (hdmi->sink_has_audio)
+			hdmi->sink_is_hdmi = true;
+		else
+			hdmi->sink_is_hdmi = drm_detect_hdmi_monitor(edid);
+
+		ret = drm_add_edid_modes(&hdmi->edid_data, conn_state->edid);
+	}
+	if (ret < 0) {
+		hdmi->sink_is_hdmi = true;
+		hdmi->sink_has_audio = true;
+		do_cea_modes(&hdmi->edid_data, def_modes_vic,
+			     sizeof(def_modes_vic));
+		hdmi->edid_data.mode_buf[0].type |= DRM_MODE_TYPE_PREFERRED;
+		hdmi->edid_data.preferred_mode = &hdmi->edid_data.mode_buf[0];
+		printf("failed to get edid\n");
+	}
+#ifdef CONFIG_SPL_BUILD
+	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, hdmi->id);
+#endif
+	drm_rk_filter_whitelist(&hdmi->edid_data);
+	rockchip_dw_hdmi_mode_valid(hdmi);
+	if (hdmi->phy.ops->mode_valid)
+		hdmi->phy.ops->mode_valid(conn, hdmi, state);
+	drm_mode_max_resolution_filter(&hdmi->edid_data,
+				       &state->crtc_state.max_output);
+	if (!drm_mode_prune_invalid(&hdmi->edid_data)) {
+		printf("can't find valid hdmi mode\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < hdmi->edid_data.modes; i++) {
+		hdmi->edid_data.mode_buf[i].vrefresh =
+			drm_mode_vrefresh(&hdmi->edid_data.mode_buf[i]);
+
+		vic = drm_match_cea_mode(&hdmi->edid_data.mode_buf[i]);
+		if (hdmi->edid_data.mode_buf[i].picture_aspect_ratio == HDMI_PICTURE_ASPECT_NONE) {
+			if (vic >= 93 && vic <= 95)
+				hdmi->edid_data.mode_buf[i].picture_aspect_ratio =
+					HDMI_PICTURE_ASPECT_16_9;
+			else if (vic == 98)
+				hdmi->edid_data.mode_buf[i].picture_aspect_ratio =
+					HDMI_PICTURE_ASPECT_256_135;
+		}
+	}
+
+	drm_mode_sort(&hdmi->edid_data);
+	rockchip_dw_hdmi_config_output(conn, state);
 
 	return 0;
 }
