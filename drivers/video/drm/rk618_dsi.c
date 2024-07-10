@@ -591,7 +591,7 @@ static int rk618_dsi_pre_enable(struct rk618_dsi *dsi)
 	/* Packet handler configuration */
 	value = GEN_VID_RX(dsi->channel) | EN_CRC_RX | EN_ECC_RX | EN_BTA;
 
-	if (!(dsi->mode_flags & MIPI_DSI_MODE_EOT_PACKET))
+	if (!(dsi->mode_flags & MIPI_DSI_MODE_NO_EOT_PACKET))
 		value |= EN_EOTP_TX;
 
 	dsi_write(dsi, DSI_PCKHDL_CFG, value);
@@ -599,10 +599,10 @@ static int rk618_dsi_pre_enable(struct rk618_dsi *dsi)
 	/* Video mode configuration */
 	value = EN_LP_VACT | EN_LP_VBP | EN_LP_VFP | EN_LP_VSA;
 
-	if (!(dsi->mode_flags & MIPI_DSI_MODE_VIDEO_HFP))
+	if (!(dsi->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HFP))
 		value |= EN_LP_HFP;
 
-	if (!(dsi->mode_flags & MIPI_DSI_MODE_VIDEO_HBP))
+	if (!(dsi->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HBP))
 		value |= EN_LP_HBP;
 
 	if (dsi->mode_flags & MIPI_DSI_MODE_VIDEO_BURST)
@@ -1032,9 +1032,9 @@ static int rk618_dsi_child_post_bind(struct udevice *dev)
 	device->mode_flags = dev_read_u32_default(dev, "dsi,flags",
 						  MIPI_DSI_MODE_VIDEO |
 						  MIPI_DSI_MODE_VIDEO_BURST |
-						  MIPI_DSI_MODE_VIDEO_HBP |
+						  MIPI_DSI_MODE_VIDEO_NO_HBP |
 						  MIPI_DSI_MODE_LPM |
-						  MIPI_DSI_MODE_EOT_PACKET);
+						  MIPI_DSI_MODE_NO_EOT_PACKET);
 	device->channel = dev_read_u32_default(dev, "reg", 0);
 
 	return 0;

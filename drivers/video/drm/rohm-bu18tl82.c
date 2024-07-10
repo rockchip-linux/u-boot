@@ -227,8 +227,8 @@ static int bu18tl82_probe(struct udevice *dev)
 		device->format = dev_read_u32_default(dev, "dsi,format",
 						      MIPI_DSI_FMT_RGB888);
 		device->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
-				     MIPI_DSI_MODE_VIDEO_HBP | MIPI_DSI_MODE_LPM |
-				     MIPI_DSI_MODE_EOT_PACKET;
+				     MIPI_DSI_MODE_VIDEO_NO_HBP | MIPI_DSI_MODE_LPM |
+				     MIPI_DSI_MODE_NO_EOT_PACKET;
 		device->channel = dev_read_u32_default(dev, "reg", 0);
 	}
 

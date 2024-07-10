@@ -627,13 +627,13 @@ static void dw_mipi_dsi2_set_vid_mode(struct dw_mipi_dsi2 *dsi2)
 	u32 val = 0, mode;
 	int ret;
 
-	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HFP)
+	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HFP)
 		val |= BLK_HFP_HS_EN;
 
-	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HBP)
+	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HBP)
 		val |= BLK_HBP_HS_EN;
 
-	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_HSA)
+	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HSA)
 		val |= BLK_HSA_HS_EN;
 
 	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_BURST)
@@ -1094,7 +1094,7 @@ static void dw_mipi_dsi2_tx_option_set(struct dw_mipi_dsi2 *dsi2)
 
 	val = BTA_EN | EOTP_TX_EN;
 
-	if (dsi2->mode_flags & MIPI_DSI_MODE_EOT_PACKET)
+	if (dsi2->mode_flags & MIPI_DSI_MODE_NO_EOT_PACKET)
 		val &= ~EOTP_TX_EN;
 
 	dsi_write(dsi2, DSI2_DSI_GENERAL_CFG, val);
@@ -1445,9 +1445,9 @@ static int dw_mipi_dsi2_child_post_bind(struct udevice *dev)
 	device->mode_flags = dev_read_u32_default(dev, "dsi,flags",
 						  MIPI_DSI_MODE_VIDEO |
 						  MIPI_DSI_MODE_VIDEO_BURST |
-						  MIPI_DSI_MODE_VIDEO_HBP |
+						  MIPI_DSI_MODE_VIDEO_NO_HBP |
 						  MIPI_DSI_MODE_LPM |
-						  MIPI_DSI_MODE_EOT_PACKET);
+						  MIPI_DSI_MODE_NO_EOT_PACKET);
 	device->channel = dev_read_u32_default(dev, "reg", 0);
 
 	return 0;
