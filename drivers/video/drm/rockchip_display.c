@@ -916,6 +916,23 @@ static int display_enable(struct display_state *state)
 	if (state->enabled_at_spl == false)
 		rockchip_connector_enable(state);
 
+#ifdef CONFIG_DRM_ROCKCHIP_RK628
+	/*
+	 * trigger .probe helper of U_BOOT_DRIVER(rk628) in ./rk628/rk628.c
+	 */
+	struct udevice * dev;
+	int phandle, ret;
+
+	phandle = ofnode_read_u32_default(state->node, "bridge", -1);
+	if (phandle < 0)
+		printf("%s failed to find bridge phandle\n", ofnode_get_name(state->node));
+
+	ret = uclass_get_device_by_phandle_id(UCLASS_I2C_GENERIC, phandle, &dev);
+	if (ret && ret != -ENOENT)
+		printf("%s:%d failed to get rk628 device ret:%d\n", __func__, __LINE__, ret);
+
+#endif
+
 	if (crtc_state->soft_te)
 		crtc_funcs->apply_soft_te(state);
 
