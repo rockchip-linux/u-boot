@@ -116,6 +116,13 @@ config SPL_DM_REGULATOR_DA9063
 	  regulators. It also implements the get/set api for current for the
 	  buck regulators.
 
+config REGULATOR_FP9931
+	bool "Enable driver for FP9931 PMIC regulators"
+	depends on PMIC_FP9931
+	---help---
+	This enables the regulator features of the FP9931, allowing VCOM
+	VPOS/VNEG voltages to be set, etc.
+
 config DM_REGULATOR_PFUZE100
 	bool "Enable Driver Model for REGULATOR PFUZE100"
 	depends on DM_REGULATOR && DM_PMIC_PFUZE100
