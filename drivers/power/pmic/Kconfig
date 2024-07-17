@@ -211,6 +211,17 @@ config DM_PMIC_MC34708
 	 This config enables implementation of driver-model pmic uclass features
 	 for PMIC MC34708. The driver implements read/write operations.
 
+config PMIC_FP9931
+	bool "Enable support for PMIC Fitipower FP9931"
+	depends on DM_PMIC
+	---help---
+	The PMIC FP9931 includes 2 high performance DC-DC
+	converters, one is for positive voltage and the other
+	is for negative voltage used by EPD drivers, a VCOM
+	buffer (unity-gain OPA), a positive charge pump and
+	a negative charge pump to provide adjustable regulated
+	output voltages.
+
 config PMIC_MAX8997
 	bool "Enable Driver Model for PMIC MAX8997"
 	---help---
