@@ -8,6 +8,12 @@ config DM_THERMAL
 
 if DM_THERMAL
 
+config FP9931_THERMAL
+	bool "Temperature sensor driver for fp9931"
+	depends on PMIC_FP9931
+	help
+	  Support for Temperature Monitor (TEMPMON) found on fp9931.
+
 config IMX_THERMAL
 	bool "Temperature sensor driver for Freescale i.MX SoCs"
 	depends on MX6 || MX7
