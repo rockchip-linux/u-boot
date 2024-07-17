@@ -763,6 +763,7 @@ int rockchip_eink_show_charge_logo(int logo_type)
 static int rockchip_eink_display_probe(struct udevice *dev)
 {
 	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
+	struct dm_regulator_uclass_platdata *uc_pdata;
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *child, *pmic_dev;
 	int ret, vcom, size, i, uclass_id;
@@ -811,10 +812,13 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 					continue;
 				}
 
-				if (uclass_id == UCLASS_REGULATOR)
-					priv->regulator_dev = child;
-				else if (uclass_id == UCLASS_THERMAL)
+				if (uclass_id == UCLASS_REGULATOR) {
+					uc_pdata = dev_get_uclass_platdata(child);
+					if (!strcmp(uc_pdata->name, "vcom"))
+						priv->regulator_dev = child;
+				} else if (uclass_id == UCLASS_THERMAL) {
 					priv->thermal_dev = child;
+				}
 			}
 
 			find_pmic = true;

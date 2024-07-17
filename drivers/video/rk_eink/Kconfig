@@ -19,6 +19,14 @@ config ROCKCHIP_EINK_DISPLAY
            used to display uboot/charging/lowerpower logo, and also used to
            load kernel logo to ram, which can pass to kernel to display.
 
+config ROCKCHIP_EBC_PMIC_FP9931
+        bool "FP9931 PMIC Suppot"
+        depends on ROCKCHIP_EINK
+        depends on REGULATOR_FP9931
+        depends on FP9931_THERMAL
+        help
+          Choose this option to enable support for FP9931 PMIC.
+
 config ROCKCHIP_EBC_PMIC_SY7636A
         bool "SY7636A PMIC Suppot"
         depends on ROCKCHIP_EINK
