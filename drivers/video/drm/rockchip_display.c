@@ -424,7 +424,7 @@ int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode,
 	FDT_GET_BOOL(val, "doublescan");
 	flags |= val ? DRM_MODE_FLAG_DBLSCAN : 0;
 	FDT_GET_BOOL(val, "doubleclk");
-	flags |= val ? DISPLAY_FLAGS_DOUBLECLK : 0;
+	flags |= val ? DRM_MODE_FLAG_DBLCLK : 0;
 
 	FDT_GET_INT(val, "de-active");
 	*bus_flags |= val ? DRM_BUS_FLAG_DE_HIGH : DRM_BUS_FLAG_DE_LOW;
