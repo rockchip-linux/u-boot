@@ -1390,13 +1390,6 @@ static int load_bmp_logo(struct logo_info *logo, const char *bmp_name)
 			ret = -EINVAL;
 			goto free_bmp_data;
 		}
-
-		/* skip if the partially decoded image would be ridiculously large */
-		if ((bmp.width * bmp.height) > 200000) {
-			printf("partially decoded bmp:%s can not be too large\n", bmp_name);
-			ret = -EINVAL;
-			goto free_bmp_data;
-		}
 	}
 
 	dst = get_display_buffer(dst_size);
