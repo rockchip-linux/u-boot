@@ -98,7 +98,7 @@ static void scsi_setup_read_ext(struct scsi_cmd *pccb, lbaint_t start,
 	pccb->cmd[6] = 0;
 	pccb->cmd[7] = (unsigned char)(blocks >> 8) & 0xff;
 	pccb->cmd[8] = (unsigned char)blocks & 0xff;
-	pccb->cmd[6] = 0;
+	pccb->cmd[9] = 0;
 	pccb->cmdlen = 10;
 	pccb->msgout[0] = SCSI_IDENTIFY; /* NOT USED */
 	debug("scsi_setup_read_ext: cmd: %02X %02X startblk %02X%02X%02X%02X blccnt %02X%02X\n",
@@ -232,6 +232,38 @@ static ulong _scsi_read(struct blk_desc *block_dev, lbaint_t blknr,
 	return blkcnt;
 }
 
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
+static ulong scsi_bread_prepare(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt,
+			        void *buffer)
+{
+	struct blk_desc *block_dev = dev_get_uclass_platdata(dev);
+	struct udevice *bdev = dev->parent;
+	uint32_t rawsectsz = block_dev->rawblksz / 512;
+	struct scsi_cmd *pccb = (struct scsi_cmd *)&tempccb;
+	ulong ret = blkcnt;
+
+	if ((blknr & (rawsectsz - 1)) || rawsectsz != 8)
+		return -EINVAL;
+
+	blknr /= rawsectsz;
+	blkcnt = (blkcnt + rawsectsz - 1) / rawsectsz;
+
+	/* Setup device */
+	pccb->target = block_dev->target;
+	pccb->lun = block_dev->lun;
+	pccb->pdata = (unsigned char *)buffer;
+	pccb->dma_dir = DMA_FROM_DEVICE;
+	pccb->datalen = block_dev->rawblksz * blkcnt;
+	scsi_setup_read_ext(pccb, blknr, blkcnt);
+	pccb->cmd[0] = SCSI_PRE_READ10;
+
+	if (scsi_exec(bdev, pccb))
+		ret = -EIO;
+
+	return ret;
+}
+#endif
+
 #ifdef CONFIG_BLK
 static ulong scsi_read(struct udevice *dev, lbaint_t blknr, lbaint_t blkcnt,
 		       void *buffer)
@@ -246,6 +278,10 @@ static ulong scsi_read(struct blk_desc *block_dev, lbaint_t blknr,
 	long ret = blkcnt;
 
 	if (rawsectsz == 8) {
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
+		if (block_dev->op_flag == BLK_PRE_RW)
+			return scsi_bread_prepare(dev, blknr, blkcnt, buffer);
+#endif
 		if ((blknr & (rawsectsz - 1)) || (blkcnt & (rawsectsz - 1))) {
 			uint32_t offset, n_sec, num_lpa;
 			long lpa;

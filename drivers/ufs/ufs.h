@@ -347,7 +347,7 @@ struct ufshcd_sg_entry {
 	__le32    size;
 };
 
-#define MAX_BUFF	128
+#define MAX_BUFF	1024
 /**
  * struct utp_transfer_cmd_desc - UFS Command Descriptor structure
  * @command_upiu: Command UPIU Frame address

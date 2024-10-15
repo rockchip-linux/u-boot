@@ -66,7 +66,7 @@
 #define MAX_PRDT_ENTRY	262144
 
 /* maximum bytes per request */
-#define UFS_MAX_BYTES	(128 * 256 * 1024)
+#define UFS_MAX_BYTES	(256 * 1024 * 1024)
 
 static inline bool ufshcd_is_hba_active(struct ufs_hba *hba);
 static inline void ufshcd_hba_stop(struct ufs_hba *hba);
@@ -676,6 +676,13 @@ static void ufshcd_host_memory_configure(struct ufs_hba *hba)
  */
 static int ufshcd_memory_alloc(struct ufs_hba *hba)
 {
+#if !defined(CONFIG_MOS_SECONDARY) && defined(CONFIG_MOS_BOOTDEV_SHARED)
+	void * shared_buf = (void *)(CONFIG_MOS_BOOTDEV_SHARED_ADDR +
+			    CONFIG_MOS_BOOTDEV_SHARED_ARGS_SIZE - 64 * 1024);
+
+	hba->utrdl = shared_buf;
+	hba->ucdl = shared_buf + ALIGN(sizeof(struct utp_transfer_req_desc), 1024);
+#else
 	/* Allocate one Transfer Request Descriptor
 	 * Should be aligned to 1k boundary.
 	 */
@@ -693,13 +700,13 @@ static int ufshcd_memory_alloc(struct ufs_hba *hba)
 		dev_err(hba->dev, "Command descriptor memory allocation failed\n");
 		return -ENOMEM;
 	}
+#endif
 
 	hba->dev_desc = memalign(ARCH_DMA_MINALIGN, sizeof(struct ufs_device_descriptor));
 	if (!hba->dev_desc) {
 		dev_err(hba->dev, "memory allocation failed\n");
 		return -ENOMEM;
 	}
-
 #if defined(CONFIG_SUPPORT_USBPLUG)
 	hba->rc_desc = memalign(ARCH_DMA_MINALIGN, sizeof(struct ufs_configuration_descriptor));
 	hba->wc_desc = memalign(ARCH_DMA_MINALIGN, sizeof(struct ufs_configuration_descriptor));
@@ -1553,6 +1560,15 @@ int ufs_send_scsi_cmd(struct ufs_hba *hba, struct scsi_cmd *pccb)
 	int ocs, result = 0, retry_count = 3;
 	u8 scsi_status;
 
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
+	u8 pre_read_flag = 0;
+
+	if (pccb->cmd[0] == SCSI_PRE_READ10) {
+		pccb->cmd[0] = SCSI_READ10;
+		pre_read_flag = 1;
+	}
+#endif
+
 	if (hba->quirks & UFSDEV_QUIRK_LUN_IN_SCSI_COMMANDS)
 		pccb->cmd[1] &= 0x1F;
 
@@ -1560,6 +1576,13 @@ retry:
 	ufshcd_prepare_req_desc_hdr(req_desc, &upiu_flags, pccb->dma_dir);
 	ufshcd_prepare_utp_scsi_cmd_upiu(hba, pccb, upiu_flags);
 	prepare_prdt_table(hba, pccb);
+
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
+	if (pre_read_flag) {
+		ufshcd_writel(hba, 1 << TASK_TAG, REG_UTP_TRANSFER_REQ_DOOR_BELL);
+		return 0;
+	}
+#endif
 
 	if (ufshcd_send_command(hba, TASK_TAG) == -ETIMEDOUT && retry_count) {
 		retry_count--;
