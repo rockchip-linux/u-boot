@@ -14,12 +14,6 @@
 #include <mmc.h>
 #include <sdhci.h>
 
-#if defined(CONFIG_FIXED_SDHCI_ALIGNED_BUFFER)
-void *aligned_buffer = (void *)CONFIG_FIXED_SDHCI_ALIGNED_BUFFER;
-#else
-void *aligned_buffer;
-#endif
-
 static void sdhci_reset(struct sdhci_host *host, u8 mask)
 {
 	unsigned long timeout;
@@ -68,17 +62,68 @@ static void sdhci_transfer_pio(struct sdhci_host *host, struct mmc_data *data)
 	}
 }
 
+#if (CONFIG_IS_ENABLED(MMC_SDHCI_SDMA) || CONFIG_IS_ENABLED(MMC_SDHCI_ADMA))
+static void sdhci_prepare_dma(struct sdhci_host *host, struct mmc_data *data,
+			      int *is_aligned, int trans_bytes)
+{
+	dma_addr_t dma_addr;
+	unsigned char ctrl;
+	void *buf;
+
+	if (data->flags == MMC_DATA_READ)
+		buf = data->dest;
+	else
+		buf = (void *)data->src;
+
+	ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
+	ctrl &= ~SDHCI_CTRL_DMA_MASK;
+	if (host->flags & USE_ADMA64)
+		ctrl |= SDHCI_CTRL_ADMA64;
+	else if (host->flags & USE_ADMA)
+		ctrl |= SDHCI_CTRL_ADMA32;
+	sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
+
+	if (host->flags & USE_SDMA &&
+	    (host->force_align_buffer ||
+	     (host->quirks & SDHCI_QUIRK_32BIT_DMA_ADDR &&
+	      ((unsigned long)buf & 0x7) != 0x0))) {
+		*is_aligned = 0;
+		if (data->flags != MMC_DATA_READ)
+			memcpy(host->align_buffer, buf, trans_bytes);
+		buf = host->align_buffer;
+	}
+
+	host->start_addr = (dma_addr_t)buf;
+	flush_dcache_range(host->start_addr, host->start_addr + trans_bytes + ARCH_DMA_MINALIGN);
+
+	if (host->flags & USE_SDMA) {
+		dma_addr = host->start_addr;
+		sdhci_writel(host, dma_addr, SDHCI_DMA_ADDRESS);
+	}
+#if CONFIG_IS_ENABLED(MMC_SDHCI_ADMA)
+	else if (host->flags & (USE_ADMA | USE_ADMA64)) {
+		sdhci_prepare_adma_table(host->adma_desc_table, data,
+					 host->start_addr);
+
+		sdhci_writel(host, lower_32_bits(host->adma_addr),
+			     SDHCI_ADMA_ADDRESS);
+		if (host->flags & USE_ADMA64)
+			sdhci_writel(host, upper_32_bits(host->adma_addr),
+				     SDHCI_ADMA_ADDRESS_HI);
+	}
+#endif
+}
+#else
+static void sdhci_prepare_dma(struct sdhci_host *host, struct mmc_data *data,
+			      int *is_aligned, int trans_bytes)
+{}
+#endif
+
 static int sdhci_transfer_data(struct sdhci_host *host, struct mmc_data *data,
-				unsigned int start_addr)
+				unsigned long start_addr)
 {
 	unsigned int stat, rdy, mask, timeout, block = 0;
 	bool transfer_done = false;
-#ifdef CONFIG_MMC_SDHCI_SDMA
-	unsigned char ctrl;
-	ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
-	ctrl &= ~SDHCI_CTRL_DMA_MASK;
-	sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
-#endif
 
 	timeout = 1000000;
 	rdy = SDHCI_INT_SPACE_AVAIL | SDHCI_INT_DATA_AVAIL;
@@ -86,7 +131,7 @@ static int sdhci_transfer_data(struct sdhci_host *host, struct mmc_data *data,
 	do {
 		stat = sdhci_readl(host, SDHCI_INT_STATUS);
 		if (stat & SDHCI_INT_ERROR) {
-			printf("%s: Error detected in status(0x%X)!\n",
+			printf("%s: Error detected in status(0x%x)!\n",
 			       __func__, stat);
 			return -EIO;
 		}
@@ -105,14 +150,16 @@ static int sdhci_transfer_data(struct sdhci_host *host, struct mmc_data *data,
 				continue;
 			}
 		}
-#ifdef CONFIG_MMC_SDHCI_SDMA
-		if (!transfer_done && (stat & SDHCI_INT_DMA_END)) {
+		if ((host->flags & USE_DMA) && !transfer_done &&
+		    (stat & SDHCI_INT_DMA_END)) {
 			sdhci_writel(host, SDHCI_INT_DMA_END, SDHCI_INT_STATUS);
-			start_addr &= ~(SDHCI_DEFAULT_BOUNDARY_SIZE - 1);
-			start_addr += SDHCI_DEFAULT_BOUNDARY_SIZE;
-			sdhci_writel(host, start_addr, SDHCI_DMA_ADDRESS);
+			if (host->flags & USE_SDMA) {
+				start_addr &=
+				~(SDHCI_DEFAULT_BOUNDARY_SIZE - 1);
+				start_addr += SDHCI_DEFAULT_BOUNDARY_SIZE;
+				sdhci_writel(host, start_addr, SDHCI_DMA_ADDRESS);
+			}
 		}
-#endif
 		if (timeout-- > 0)
 			udelay(10);
 		else {
@@ -120,7 +167,25 @@ static int sdhci_transfer_data(struct sdhci_host *host, struct mmc_data *data,
 			return -ETIMEDOUT;
 		}
 	} while (!(stat & SDHCI_INT_DATA_END));
+
 	return 0;
+}
+
+static void sdhci_set_block_info(struct sdhci_host *host, struct mmc_data *data)
+{
+	/* Set the DMA boundary value and block size */
+	sdhci_writew(host, SDHCI_MAKE_BLKSZ(SDHCI_DEFAULT_BOUNDARY_ARG, data->blocksize),
+		     SDHCI_BLOCK_SIZE);
+	/*
+	 * For Version 4.10 onwards, if v4 mode is enabled, 32-bit Block Count
+	 * can be supported, in that case 16-bit block count register must be 0.
+	 */
+	if (host->flags & (USE_ADMA | USE_ADMA64)) {
+		sdhci_writew(host, 0, SDHCI_BLOCK_COUNT);
+		sdhci_writel(host, data->blocks, SDHCI_32BIT_BLK_CNT);
+	} else {
+		sdhci_writew(host, data->blocks, SDHCI_BLOCK_COUNT);
+	}
 }
 
 /*
@@ -149,11 +214,12 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 	unsigned int stat = 0;
 	int ret = 0;
 	int trans_bytes = 0, is_aligned = 1;
-	u32 mask, flags, mode;
-	unsigned int time = 0, start_addr = 0;
+	u32 mask, flags, mode = 0;
+	unsigned int time = 0;
 	int mmc_dev = mmc_get_blk_desc(mmc)->devnum;
 	unsigned start = get_timer(0);
 
+	host->start_addr = 0;
 	/* Timeout unit - ms */
 	static unsigned int cmd_timeout = SDHCI_CMD_DEFAULT_TIMEOUT;
 
@@ -224,49 +290,18 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 		if (data->flags == MMC_DATA_READ)
 			mode |= SDHCI_TRNS_READ;
 
-#ifdef CONFIG_MMC_SDHCI_SDMA
-		if (data->flags == MMC_DATA_READ)
-			start_addr = (unsigned long)data->dest;
-		else
-			start_addr = (unsigned long)data->src;
-		if ((host->quirks & SDHCI_QUIRK_32BIT_DMA_ADDR) &&
-				(start_addr & 0x7) != 0x0) {
-			is_aligned = 0;
-			start_addr = (unsigned long)aligned_buffer;
-			if (data->flags != MMC_DATA_READ)
-				memcpy(aligned_buffer, data->src, trans_bytes);
+		if (host->flags & USE_DMA) {
+			mode |= SDHCI_TRNS_DMA;
+			sdhci_prepare_dma(host, data, &is_aligned, trans_bytes);
 		}
 
-#if defined(CONFIG_FIXED_SDHCI_ALIGNED_BUFFER)
-		/*
-		 * Always use this bounce-buffer when
-		 * CONFIG_FIXED_SDHCI_ALIGNED_BUFFER is defined
-		 */
-		is_aligned = 0;
-		start_addr = (unsigned long)aligned_buffer;
-		if (data->flags != MMC_DATA_READ)
-			memcpy(aligned_buffer, data->src, trans_bytes);
-#endif
-
-		sdhci_writel(host, start_addr, SDHCI_DMA_ADDRESS);
-		mode |= SDHCI_TRNS_DMA;
-#endif
-		sdhci_writew(host, SDHCI_MAKE_BLKSZ(SDHCI_DEFAULT_BOUNDARY_ARG,
-				data->blocksize),
-				SDHCI_BLOCK_SIZE);
-		sdhci_writew(host, data->blocks, SDHCI_BLOCK_COUNT);
+		sdhci_set_block_info(host, data);
 		sdhci_writew(host, mode, SDHCI_TRANSFER_MODE);
 	} else if (cmd->resp_type & MMC_RSP_BUSY) {
 		sdhci_writeb(host, 0xe, SDHCI_TIMEOUT_CONTROL);
 	}
 
 	sdhci_writel(host, cmd->cmdarg, SDHCI_ARGUMENT);
-#ifdef CONFIG_MMC_SDHCI_SDMA
-	if (data != 0) {
-		trans_bytes = ALIGN(trans_bytes, CONFIG_SYS_CACHELINE_SIZE);
-		flush_cache(start_addr, trans_bytes);
-	}
-#endif
 	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->cmdidx, flags), SDHCI_COMMAND);
 	start = get_timer(0);
 	do {
@@ -292,7 +327,7 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 		ret = -1;
 
 	if (!ret && data)
-		ret = sdhci_transfer_data(host, data, start_addr);
+		ret = sdhci_transfer_data(host, data, host->start_addr);
 
 	if (host->quirks & SDHCI_QUIRK_WAIT_SEND_CMD)
 		udelay(1000);
@@ -302,7 +337,7 @@ static int sdhci_send_command(struct mmc *mmc, struct mmc_cmd *cmd,
 	if (!ret) {
 		if ((host->quirks & SDHCI_QUIRK_32BIT_DMA_ADDR) &&
 				!is_aligned && (data->flags == MMC_DATA_READ))
-			memcpy(data->dest, aligned_buffer, trans_bytes);
+			memcpy(data->dest, host->align_buffer, trans_bytes);
 		return 0;
 	}
 
@@ -557,14 +592,23 @@ static int sdhci_init(struct mmc *mmc)
 
 	sdhci_reset(host, SDHCI_RESET_ALL);
 
-	if ((host->quirks & SDHCI_QUIRK_32BIT_DMA_ADDR) && !aligned_buffer) {
-		aligned_buffer = memalign(8, 512*1024);
-		if (!aligned_buffer) {
+#if defined(CONFIG_FIXED_SDHCI_ALIGNED_BUFFER)
+	host->align_buffer = (void *)CONFIG_FIXED_SDHCI_ALIGNED_BUFFER;
+	/*
+	 * Always use this bounce-buffer when CONFIG_FIXED_SDHCI_ALIGNED_BUFFER
+	 * is defined.
+	 */
+	host->force_align_buffer = true;
+#else
+	if (host->quirks & SDHCI_QUIRK_32BIT_DMA_ADDR) {
+		host->align_buffer = memalign(8, 512 * 1024);
+		if (!host->align_buffer) {
 			printf("%s: Aligned buffer alloc failed!!!\n",
 			       __func__);
 			return -ENOMEM;
 		}
 	}
+#endif
 
 	sdhci_set_power(host, fls(mmc->cfg->voltages) - 1);
 
@@ -725,12 +769,29 @@ int sdhci_setup_cfg(struct mmc_config *cfg, struct sdhci_host *host,
 
 	caps = sdhci_readl(host, SDHCI_CAPABILITIES);
 
-#ifdef CONFIG_MMC_SDHCI_SDMA
-	if (!(caps & SDHCI_CAN_DO_SDMA)) {
-		printf("%s: Your controller doesn't support SDMA!!\n",
+#if CONFIG_IS_ENABLED(MMC_SDHCI_SDMA)
+	if ((caps & SDHCI_CAN_DO_SDMA)) {
+		host->flags |= USE_SDMA;
+	} else {
+		debug("%s: Your controller doesn't support SDMA!!\n",
+		      __func__);
+	}
+#endif
+#if CONFIG_IS_ENABLED(MMC_SDHCI_ADMA)
+	if (!(caps & SDHCI_CAN_DO_ADMA2)) {
+		printf("%s: Your controller doesn't support ADMA!!\n",
 		       __func__);
 		return -EINVAL;
 	}
+	host->flags &= ~USE_SDMA;
+	host->adma_desc_table = sdhci_adma_init();
+	host->adma_addr = (dma_addr_t)host->adma_desc_table;
+
+#ifdef CONFIG_DMA_ADDR_T_64BIT
+	host->flags |= USE_ADMA64;
+#else
+	host->flags |= USE_ADMA;
+#endif
 #endif
 	if (host->quirks & SDHCI_QUIRK_REG32_RW)
 		host->version =

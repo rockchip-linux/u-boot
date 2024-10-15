@@ -40,6 +40,9 @@ config SPL_DM_MMC
 
 if MMC
 
+config MMC_SDHCI_ADMA_HELPERS
+	bool
+
 config SPL_MMC_TINY
 	bool "Tiny MMC framework in SPL"
 	help
@@ -234,6 +237,31 @@ config MMC_SDHCI_SDMA
 	help
 	  This enables support for the SDMA (Single Operation DMA) defined
 	  in the SD Host Controller Standard Specification Version 1.00 .
+
+config SPL_MMC_SDHCI_SDMA
+	bool "Support SDHCI SDMA in SPL"
+	depends on MMC_SDHCI
+	default y if MMC_SDHCI_SDMA
+	help
+	  This enables support for the SDMA (Single Operation DMA) defined
+	  in the SD Host Controller Standard Specification Version 1.00 in SPL.
+
+config MMC_SDHCI_ADMA
+	bool "Support SDHCI ADMA2"
+	depends on MMC_SDHCI
+	select MMC_SDHCI_ADMA_HELPERS
+	help
+	  This enables support for the ADMA (Advanced DMA) defined
+	  in the SD Host Controller Standard Specification Version 3.00
+
+config SPL_MMC_SDHCI_ADMA
+	bool "Support SDHCI ADMA2 in SPL"
+	depends on MMC_SDHCI
+	select MMC_SDHCI_ADMA_HELPERS
+	help
+	  This enables support for the ADMA (Advanced DMA) defined
+	  in the SD Host Controller Standard Specification Version 3.00 in SPL.
+
 
 config MMC_SDHCI_ATMEL
 	bool "Atmel SDHCI controller support"

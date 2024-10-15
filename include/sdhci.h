@@ -19,6 +19,7 @@
  */
 
 #define SDHCI_DMA_ADDRESS	0x00
+#define SDHCI_32BIT_BLK_CNT	0x00
 
 #define SDHCI_BLOCK_SIZE	0x04
 #define  SDHCI_MAKE_BLKSZ(dma, blksz) (((dma & 0x7) << 12) | (blksz & 0xFFF))
@@ -31,6 +32,7 @@
 #define  SDHCI_TRNS_DMA		BIT(0)
 #define  SDHCI_TRNS_BLK_CNT_EN	BIT(1)
 #define  SDHCI_TRNS_ACMD12	BIT(2)
+#define  SDHCI_TRNS_ACMD23	BIT(3)
 #define  SDHCI_TRNS_READ	BIT(4)
 #define  SDHCI_TRNS_MULTI	BIT(5)
 
@@ -99,6 +101,7 @@
 #define  SDHCI_DIV_MASK_LEN	8
 #define  SDHCI_DIV_HI_MASK	0x300
 #define  SDHCI_PROG_CLOCK_MODE  BIT(5)
+#define  SDHCI_CLOCK_PLL_EN		BIT(3)
 #define  SDHCI_CLOCK_CARD_EN	BIT(2)
 #define  SDHCI_CLOCK_INT_STABLE	BIT(1)
 #define  SDHCI_CLOCK_INT_EN	BIT(0)
@@ -200,6 +203,7 @@
 /* 55-57 reserved */
 
 #define SDHCI_ADMA_ADDRESS	0x58
+#define SDHCI_ADMA_ADDRESS_HI	0x5c
 
 /* 60-FB reserved */
 
@@ -270,6 +274,37 @@ struct sdhci_ops {
 	int	(*set_enhanced_strobe)(struct sdhci_host *host);
 };
 
+#define ADMA_MAX_LEN	65532
+#ifdef CONFIG_DMA_ADDR_T_64BIT
+#define ADMA_DESC_LEN	16
+#else
+#define ADMA_DESC_LEN	8
+#endif
+#define ADMA_TABLE_NO_ENTRIES ((CONFIG_SYS_MMC_MAX_BLK_COUNT * \
+			       MMC_MAX_BLOCK_LEN) / ADMA_MAX_LEN + 3)
+
+#define ADMA_TABLE_SZ (ADMA_TABLE_NO_ENTRIES * ADMA_DESC_LEN)
+
+/* Decriptor table defines */
+#define ADMA_DESC_ATTR_VALID		BIT(0)
+#define ADMA_DESC_ATTR_END		BIT(1)
+#define ADMA_DESC_ATTR_INT		BIT(2)
+#define ADMA_DESC_ATTR_ACT1		BIT(4)
+#define ADMA_DESC_ATTR_ACT2		BIT(5)
+
+#define ADMA_DESC_TRANSFER_DATA		ADMA_DESC_ATTR_ACT2
+#define ADMA_DESC_LINK_DESC	(ADMA_DESC_ATTR_ACT1 | ADMA_DESC_ATTR_ACT2)
+
+struct sdhci_adma_desc {
+	u8 attr;
+	u8 reserved;
+	u16 len;
+	u32 addr_lo;
+#ifdef CONFIG_DMA_ADDR_T_64BIT
+	u32 addr_hi;
+#endif
+} __packed;
+
 struct sdhci_host {
 	const char *name;
 	void *ioaddr;
@@ -290,6 +325,18 @@ struct sdhci_host {
 	uint	voltages;
 
 	struct mmc_config cfg;
+	void *align_buffer;
+	bool force_align_buffer;
+	dma_addr_t start_addr;
+	int flags;
+#define USE_SDMA	(0x1 << 0)
+#define USE_ADMA	(0x1 << 1)
+#define USE_ADMA64	(0x1 << 2)
+#define USE_DMA		(USE_SDMA | USE_ADMA | USE_ADMA64)
+	dma_addr_t adma_addr;
+#if CONFIG_IS_ENABLED(MMC_SDHCI_ADMA)
+	struct sdhci_adma_desc *adma_desc_table;
+#endif
 };
 
 void sdhci_enable_clk(struct sdhci_host *host, u16 clk);
@@ -450,5 +497,9 @@ int sdhci_probe(struct udevice *dev);
 extern const struct dm_mmc_ops sdhci_ops;
 #else
 #endif
+
+struct sdhci_adma_desc *sdhci_adma_init(void);
+void sdhci_prepare_adma_table(struct sdhci_adma_desc *table,
+			      struct mmc_data *data, dma_addr_t addr);
 
 #endif /* __SDHCI_HW_H */
