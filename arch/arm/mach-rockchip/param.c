@@ -390,10 +390,10 @@ struct memblock *param_parse_ddr_mem(int *out_count)
 	return mem;
 }
 
-#ifndef CONFIG_BIDRAM
+#if !CONFIG_IS_ENABLED(BIDRAM)
 /*
- * init_bank=0: called from dram_init_banksize()
  * init_bank=0: called from dram_init()
+ * init_bank=1: called from dram_init_banksize()
  */
 phys_size_t param_simple_parse_ddr_mem(int init_bank)
 {

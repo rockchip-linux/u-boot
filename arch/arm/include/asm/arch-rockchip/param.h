@@ -20,7 +20,7 @@ struct memblock *param_parse_ddr_mem(int *out_count);
 /**
  * param_simple_parse_ddr_mem() - Simple parse ddr memory region
  */
-#ifndef CONFIG_BIDRAM
+#if !CONFIG_IS_ENABLED(BIDRAM)
 phys_size_t param_simple_parse_ddr_mem(int init_bank);
 #endif
 

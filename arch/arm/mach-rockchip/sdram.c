@@ -11,6 +11,7 @@
 #include <ram.h>
 #include <asm/armv8/mmu.h>
 #include <asm/global_data.h>
+#include <asm/arch-rockchip/param.h>
 #include <asm/io.h>
 #include <asm/arch-rockchip/sdram.h>
 #include <dm/uclass-internal.h>
@@ -143,7 +144,7 @@ size_t rockchip_sdram_size(phys_addr_t reg)
 #ifndef CONFIG_SPL_BUILD
 int dram_init_banksize(void)
 {
-#ifdef CONFIG_BIDRAM
+#if CONFIG_IS_ENABLED(BIDRAM)
 	bidram_gen_gd_bi_dram();
 #else
 	param_simple_parse_ddr_mem(1);
@@ -154,8 +155,12 @@ int dram_init_banksize(void)
 
 int dram_init(void)
 {
-#if defined(CONFIG_BIDRAM) && !defined(CONFIG_SPL_BUILD)
+#if CONFIG_IS_ENABLED(BIDRAM)
 	gd->ram_size = bidram_get_ram_size();
+#elif defined(CONFIG_SPL_BUILD)
+	gd->ram_size = param_simple_parse_ddr_mem(0);
+	if (!gd->ram_size)
+		return -ENOMEM;
 #else
 	struct ram_info ram;
 	struct udevice *dev;
