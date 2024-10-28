@@ -22,7 +22,7 @@ SIG_CONFIG="${SIG_CFG_DIR}/sign.readonly_config"
 MINIALL_INI="${SIG_CFG_DIR}/MINIALL.ini"
 DTC_TOOL="${SIG_CFG_DIR}/dtc"
 # offs
-OFFS_DATA="0x1200"
+OFFS_DATA="0x1400"
 # placeholder address
 FDT_ADDR_PLACEHOLDER="0xffffff00"
 KERNEL_ADDR_PLACEHOLDER="0xffffff01"
