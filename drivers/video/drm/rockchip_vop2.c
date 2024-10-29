@@ -2904,6 +2904,40 @@ static void rockchip_vop2_sharp_init(struct vop2 *vop2, struct display_state *st
 	writel(0x1, sharp_reg_base);
 }
 
+static void rockchip_vop2_acm_init(struct vop2 *vop2, struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_vp_data *vp_data = &vop2_data->vp_data[cstate->crtc_id];
+	struct resource acm_regs;
+	u32 *acm_reg_base;
+	u32 val;
+	u32 vp_offset = (cstate->crtc_id * 0x100);
+	int ret;
+
+	if (!(vp_data->feature & VOP_FEATURE_POST_ACM))
+		return;
+
+	ret = ofnode_read_resource_byname(cstate->node, "acm_regs", &acm_regs);
+	if (ret) {
+		printf("failed to get acm regs\n");
+		return;
+	}
+	acm_reg_base = (u32 *)acm_regs.start;
+
+	/*
+	 * Black screen is displayed when acm bypass switched
+	 * between enable and disable. Therefore, disable acm
+	 * bypass by default after system boot.
+	 */
+	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
+			POST_ACM_BYPASS_EN_MASK, POST_ACM_BYPASS_EN_SHIFT, 0, false);
+
+	val = readl(acm_reg_base + RK3528_ACM_CTRL);
+	val &= ~BIT(1);
+	writel(val, acm_reg_base + RK3528_ACM_CTRL);
+}
+
 static int rockchip_vop2_of_get_gamma_lut(struct display_state *state,
 					  struct device_node *dsp_lut_node)
 {
@@ -3001,6 +3035,7 @@ static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 	rockchip_vop2_gamma_lut_init(vop2, state);
 	rockchip_vop2_cubic_lut_init(vop2, state);
 	rockchip_vop2_sharp_init(vop2, state);
+	rockchip_vop2_acm_init(vop2, state);
 
 	return 0;
 }
