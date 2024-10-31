@@ -2911,7 +2911,6 @@ static void rockchip_vop2_acm_init(struct vop2 *vop2, struct display_state *stat
 	const struct vop2_vp_data *vp_data = &vop2_data->vp_data[cstate->crtc_id];
 	struct resource acm_regs;
 	u32 *acm_reg_base;
-	u32 val;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	int ret;
 
@@ -2933,9 +2932,7 @@ static void rockchip_vop2_acm_init(struct vop2 *vop2, struct display_state *stat
 	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 			POST_ACM_BYPASS_EN_MASK, POST_ACM_BYPASS_EN_SHIFT, 0, false);
 
-	val = readl(acm_reg_base + RK3528_ACM_CTRL);
-	val &= ~BIT(1);
-	writel(val, acm_reg_base + RK3528_ACM_CTRL);
+	writel(0, acm_reg_base + 0);
 }
 
 static int rockchip_vop2_of_get_gamma_lut(struct display_state *state,
