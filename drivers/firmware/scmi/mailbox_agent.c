@@ -5,12 +5,12 @@
 
 #include <common.h>
 #include <dm.h>
-#include <dm/device_compat.h>
+#include <dm/device.h>
+#include <dm/read.h>
 #include <errno.h>
 #include <mailbox.h>
 #include <scmi_agent.h>
 #include <scmi_agent-uclass.h>
-#include <dm/devres.h>
 #include <linux/compat.h>
 
 #include "smt.h"
