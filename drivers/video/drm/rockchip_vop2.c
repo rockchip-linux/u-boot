@@ -466,6 +466,8 @@
 #define RK3568_VP0_POST_DSP_VACT_INFO		0xC38
 #define RK3568_VP0_POST_SCL_FACTOR_YRGB		0xC3C
 #define RK3568_VP0_POST_SCL_CTRL		0xC40
+#define RK3568_VP0_POST_SCALE_MASK		0x3
+#define RK3568_VP0_POST_SCALE_SHIFT		0
 #define RK3568_VP0_POST_DSP_VACT_INFO_F1	0xC44
 #define RK3568_VP0_DSP_HTOTAL_HS_END		0xC48
 #define RK3568_VP0_DSP_HACT_ST_END		0xC4C
@@ -2168,9 +2170,10 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	vop2_writel(vop2, RK3568_VP0_POST_SCL_FACTOR_YRGB + vp_offset, val);
 #define POST_HORIZONTAL_SCALEDOWN_EN(x)		((x) << 0)
 #define POST_VERTICAL_SCALEDOWN_EN(x)		((x) << 1)
-	vop2_writel(vop2, RK3568_VP0_POST_SCL_CTRL + vp_offset,
-		    POST_HORIZONTAL_SCALEDOWN_EN(hdisplay != hsize) |
-		    POST_VERTICAL_SCALEDOWN_EN(vdisplay != vsize));
+	vop2_mask_write(vop2, RK3568_VP0_POST_SCL_CTRL + vp_offset,
+			RK3568_VP0_POST_SCALE_MASK, RK3568_VP0_POST_SCALE_SHIFT,
+			POST_HORIZONTAL_SCALEDOWN_EN(hdisplay != hsize) |
+			POST_VERTICAL_SCALEDOWN_EN(vdisplay != vsize), false);
 	if (mode->flags & DRM_MODE_FLAG_INTERLACE) {
 		u16 vact_st_f1 = vtotal + vact_st + 1;
 		u16 vact_end_f1 = vact_st_f1 + vsize;
