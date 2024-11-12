@@ -29,6 +29,29 @@ struct scmi_mbox_channel {
 	ulong timeout_us;
 };
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+int scmi_mbox_poll_done(struct scmi_mbox_channel *chan)
+{
+	ulong timeout_us = chan->timeout_us;
+	ulong start_time;
+
+	start_time = timer_get_us();
+	/*
+	 * Account for partial us ticks, but if timeout_us is 0, ensure we
+	 * still don't wait at all.
+	 */
+	if (timeout_us)
+		timeout_us++;
+
+	for (;;) {
+		if (scmi_smt_channel_is_free(&chan->smt))
+			return 0;
+		if ((timer_get_us() - start_time) >= timeout_us)
+			return -ETIMEDOUT;
+	}
+}
+#endif
+
 static int scmi_mbox_process_msg(struct udevice *dev, struct scmi_msg *msg)
 {
 	struct scmi_mbox_channel *chan = dev_get_priv(dev);
@@ -46,7 +69,11 @@ static int scmi_mbox_process_msg(struct udevice *dev, struct scmi_msg *msg)
 	}
 
 	/* Receive the response */
+#ifdef CONFIG_ARCH_ROCKCHIP
+	ret = scmi_mbox_poll_done(chan);
+#else
 	ret = mbox_recv(&chan->mbox, chan->smt.buf, chan->timeout_us);
+#endif
 	if (ret) {
 		dev_err(dev, "Response failed: %d, abort\n", ret);
 		goto out;
