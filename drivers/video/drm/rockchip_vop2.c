@@ -4450,6 +4450,7 @@ static void vop2_post_color_swap(struct display_state *state)
 
 static void vop2_clk_set_parent(struct clk *clk, struct clk *parent)
 {
+#ifndef CONFIG_MOS_SUPPORT
 	int ret = 0;
 
 	if (parent->dev)
@@ -4457,6 +4458,7 @@ static void vop2_clk_set_parent(struct clk *clk, struct clk *parent)
 	if (ret < 0)
 		debug("failed to set %s as parent for %s\n",
 		      parent->dev->name, clk->dev->name);
+#endif
 }
 
 static ulong vop2_clk_set_rate(struct clk *clk, ulong rate)
