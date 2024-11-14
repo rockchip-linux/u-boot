@@ -47,6 +47,9 @@ enum scmi_clock_message_id {
 	SCMI_CLOCK_RATE_SET = 0x5,
 	SCMI_CLOCK_RATE_GET = 0x6,
 	SCMI_CLOCK_CONFIG_SET = 0x7,
+	SCMI_CLOCK_POSSIBLE_PARENTS_GET = 0xC,
+	SCMI_CLOCK_PARENT_SET = 0xD,
+	SCMI_CLOCK_PARENT_GET = 0xE,
 };
 
 #define SCMI_CLK_RATE_ASYNC_NOTIFY	BIT(0)
@@ -113,6 +116,24 @@ struct scmi_clk_rate_set_in {
  * @status:	SCMI command status
  */
 struct scmi_clk_rate_set_out {
+	s32 status;
+};
+
+/**
+ * struct scmi_clk_set_parent_in - Message payload for CLOCK_PARENT_SET command
+ * @clock_id:	SCMI clock ID
+ * @parent_id:	SCMI parent clock ID
+ */
+struct scmi_clk_set_parent_in {
+	u32 clock_id;
+	u32 parent_id;
+};
+
+/**
+ * struct scmi_clk_set_parent_out - Response payload for CLOCK_PARENT_SET command
+ * @status:	SCMI command status
+ */
+struct scmi_clk_set_parent_out {
 	s32 status;
 };
 
