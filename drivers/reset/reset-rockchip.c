@@ -83,6 +83,9 @@ static int rockchip_reset_probe(struct udevice *dev)
 	if (addr == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
+	if (!priv->sf_reset_num)
+		priv->sf_reset_num = dev_read_u32_default(dev, "rockchip,softrst-num", 0);
+
 	if ((priv->sf_reset_offset == 0) && (priv->sf_reset_num == 0))
 		return -EINVAL;
 
@@ -95,10 +98,26 @@ static int rockchip_reset_probe(struct udevice *dev)
 	return 0;
 }
 
+#ifdef CONFIG_MOS_SUPPORT
+static int rockchip_reset_ofdata_to_platdata(struct udevice *dev)
+{
+	return 0;
+}
+
+static const struct udevice_id rockchip_reset_ids[] = {
+	{ .compatible = "rockchip,reset" },
+	{ }
+};
+#endif
+
 U_BOOT_DRIVER(rockchip_reset) = {
 	.name = "rockchip_reset",
 	.id = UCLASS_RESET,
 	.probe = rockchip_reset_probe,
 	.ops = &rockchip_reset_ops,
 	.priv_auto_alloc_size = sizeof(struct rockchip_reset_priv),
+#ifdef CONFIG_MOS_SUPPORT
+	.of_match = rockchip_reset_ids,
+	.ofdata_to_platdata = rockchip_reset_ofdata_to_platdata,
+#endif
 };
