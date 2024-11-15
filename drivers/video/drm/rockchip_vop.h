@@ -240,11 +240,10 @@ struct vop_reg_data {
 
 struct vop_reg {
 	uint32_t mask;
-	uint32_t offset:17;
+	uint32_t offset:19;
 	uint32_t shift:5;
 	uint32_t begin_minor:4;
 	uint32_t end_minor:4;
-	uint32_t reserved:2;
 	uint32_t major:3;
 	uint32_t write_mask:1;
 };
