@@ -39,6 +39,9 @@
 #define RV1126_GRF_IOFUNC_CON3          0x1026c
 #define RV1126_LCDC_IO_BYPASS(v)        HIWORD_UPDATE(v, 0, 0)
 
+#define RV1126B_GRF_VOP_LCDC_CON	0x30b9c
+#define RV1126B_VOP_MCU_SEL(v)		HIWORD_UPDATE(v, 15, 15)
+
 #define RK3288_GRF_SOC_CON6		0x025c
 #define RK3288_LVDS_LCDC_SEL(v)		HIWORD_UPDATE(v,  3,  3)
 #define RK3288_GRF_SOC_CON7		0x0260
@@ -633,6 +636,22 @@ static const struct rockchip_rgb_data rv1126_rgb = {
 	.funcs = &rv1126_rgb_funcs,
 };
 
+static void rv1126b_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+{
+	regmap_write(rgb->grf, RV1126B_GRF_VOP_LCDC_CON,
+		     RV1126B_VOP_MCU_SEL(rgb->data_sync_bypass));
+}
+
+static const struct rockchip_rgb_funcs rv1126b_rgb_funcs = {
+	.prepare = rv1126b_rgb_prepare,
+};
+
+static const struct rockchip_rgb_data rv1126b_rgb = {
+	.rgb_max_dclk_rate = 150000,
+	.mcu_max_dclk_rate = 150000,
+	.funcs = &rv1126b_rgb_funcs,
+};
+
 static void px30_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
 {
 	regmap_write(rgb->grf, PX30_GRF_PD_VO_CON1, PX30_RGB_VOP_SEL(pipe) |
@@ -816,6 +835,10 @@ static const struct udevice_id rockchip_rgb_ids[] = {
 	{
 		.compatible = "rockchip,rv1126-rgb",
 		.data = (ulong)&rv1126_rgb,
+	},
+	{
+		.compatible = "rockchip,rv1126b-rgb",
+		.data = (ulong)&rv1126b_rgb,
 	},
 	{}
 };
