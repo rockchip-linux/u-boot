@@ -220,6 +220,13 @@ int serdes_i2c_set_sequence(struct serdes *serdes)
 		}
 	}
 
+	/* workaround */
+	if (serdes->chip_data->serdes_id == MAXIM_ID_MAX96752) {
+		ret = serdes_reg_write(serdes, 0x10, 0x21);
+		mdelay(10);
+		printf("%s reset oneshot max96752\n", serdes->dev->name);
+	}
+
 	SERDES_DBG_MFD("serdes %s sequence_init\n", serdes->dev->name);
 
 	return ret;

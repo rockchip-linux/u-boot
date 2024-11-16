@@ -140,7 +140,7 @@ struct serdes_chip_bridge_ops {
 	int (*power_on)(struct serdes *serdes);
 	int (*init)(struct serdes *serdes);
 	int (*attach)(struct serdes *serdes);
-	bool (*detect)(struct serdes *serdes);
+	bool (*detect)(struct serdes *serdes, int link);
 	int (*get_modes)(struct serdes *serdes);
 	int (*pre_enable)(struct serdes *serdes);
 	int (*enable)(struct serdes *serdes);

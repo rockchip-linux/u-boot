@@ -215,7 +215,7 @@ int bu18tl82_bridge_pre_enable(struct serdes *serdes)
 	return ret;
 }
 
-bool bu18tl82_bridge_detect(struct serdes *serdes)
+bool bu18tl82_bridge_detect(struct serdes *serdes, int link)
 {
 	return true;
 }

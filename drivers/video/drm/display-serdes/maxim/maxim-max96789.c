@@ -307,32 +307,58 @@ static struct serdes_chip_pinctrl_info max96789_pinctrl_info = {
 	.num_functions = ARRAY_SIZE(max96789_functions_desc),
 };
 
-static bool max96789_bridge_link_locked(struct serdes *serdes)
+static bool max96789_bridge_linka_locked(struct serdes *serdes)
 {
-	u32 val;
+	u32 val = 0, i = 0;
 
-	if (dm_gpio_is_valid(&serdes->lock_gpio)) {
-		val = dm_gpio_get_value(&serdes->lock_gpio);
-		SERDES_DBG_CHIP("serdes %s:val=%d\n", __func__, val);
-		return val;
-	}
+	for (i = 0; i < 100; i++) {
+		mdelay(10);
+		if (serdes_reg_read(serdes, 0x001f, &val)) {
+			SERDES_DBG_CHIP("%s unlock val=0x%x\n", __func__, val);
+			continue;
+		}
 
-	if (serdes_reg_read(serdes, 0x0013, &val)) {
-		SERDES_DBG_CHIP("serdes %s: false val=%d\n", __func__, val);
-		return false;
-	}
+		if (!FIELD_GET(LINKA_LOCKED, val)) {
+			SERDES_DBG_CHIP("%s unlock val=0x%x\n", __func__, val);
+			continue;
+		}
 
-	if (!FIELD_GET(LOCKED, val)) {
-		SERDES_DBG_CHIP("serdes %s: false val=%d\n", __func__, val);
-		return false;
+		SERDES_DBG_CHIP("%s: serdes reg locked 0x%x\n", __func__, val);
+		return true;
 	}
 
 	return true;
 }
 
-static bool max96789_bridge_detect(struct serdes *serdes)
+static bool max96789_bridge_linkb_locked(struct serdes *serdes)
 {
-	return max96789_bridge_link_locked(serdes);
+	u32 val = 0, i = 0;
+
+	for (i = 0; i < 100; i++) {
+		mdelay(10);
+		if (serdes_reg_read(serdes, 0x001f, &val)) {
+			SERDES_DBG_CHIP("%s unlock val=0x%x\n", __func__, val);
+			continue;
+		}
+
+		if (!FIELD_GET(LINKB_LOCKED, val)) {
+			SERDES_DBG_CHIP("%s unlock val=0x%x\n", __func__, val);
+			continue;
+		}
+
+		SERDES_DBG_CHIP("%s: serdes reg locked 0x%x\n", __func__, val);
+		return true;
+	}
+
+	return true;
+}
+
+static bool max96789_bridge_detect(struct serdes *serdes, int link)
+{
+	if (link == LINKA)
+		return max96789_bridge_linka_locked(serdes);
+	else
+		return max96789_bridge_linkb_locked(serdes);
 }
 
 static int max96789_bridge_enable(struct serdes *serdes)
@@ -624,6 +650,7 @@ static int max96789_select(struct serdes *serdes, int chan)
 	u32 link_cfg, link_status;
 	int ret = 0;
 	int i = 0;
+	int link_mode = LINKA;
 
 	serdes_set_bits(serdes, 0x0001, DIS_REM_CC,
 			FIELD_PREP(DIS_REM_CC, 0));
@@ -644,6 +671,7 @@ static int max96789_select(struct serdes *serdes, int chan)
 				      FIELD_PREP(RESET_ONESHOT, 1) |
 				      FIELD_PREP(AUTO_LINK, 0) |
 				      FIELD_PREP(LINK_CFG, DUAL_LINK));
+		link_mode = DUAL_LINK;
 		SERDES_DBG_CHIP("%s: change to use dual link\n", __func__);
 	} else if (chan == 1 && (link_cfg & LINK_CFG) != LINKA) {
 		ret = serdes_set_bits(serdes, 0x0004,
@@ -655,6 +683,7 @@ static int max96789_select(struct serdes *serdes, int chan)
 				      FIELD_PREP(RESET_ONESHOT, 1) |
 				      FIELD_PREP(AUTO_LINK, 0) |
 				      FIELD_PREP(LINK_CFG, LINKA));
+		link_mode = LINKA;
 		SERDES_DBG_CHIP("%s: change to use linkA\n", __func__);
 	} else if (chan == 2 && (link_cfg & LINK_CFG) != LINKB) {
 		ret = serdes_set_bits(serdes, 0x0004,
@@ -666,6 +695,7 @@ static int max96789_select(struct serdes *serdes, int chan)
 				      FIELD_PREP(RESET_ONESHOT, 1) |
 				      FIELD_PREP(AUTO_LINK, 0) |
 				      FIELD_PREP(LINK_CFG, LINKB));
+		link_mode = LINKB;
 		SERDES_DBG_CHIP("%s: change to use linkB\n", __func__);
 	} else if (chan == 3 && (link_cfg & LINK_CFG) != SPLITTER_MODE) {
 		ret = serdes_set_bits(serdes, 0x0004,
@@ -677,22 +707,39 @@ static int max96789_select(struct serdes *serdes, int chan)
 				      FIELD_PREP(RESET_ONESHOT, 1) |
 				      FIELD_PREP(AUTO_LINK, 0) |
 				      FIELD_PREP(LINK_CFG, SPLITTER_MODE));
+		link_mode = SPLITTER_MODE;
 		SERDES_DBG_CHIP("%s: change to use split mode\n", __func__);
 	}
 
-	for (i = 0; i < 20; i++) {
-		serdes_reg_read(serdes, 0x0013, &link_status);
-		if (link_status & LOCKED)
-			break;
+	for (i = 0; i < 50; i++) {
+		serdes_reg_read(serdes, 0x001f, &link_status);
+		switch (link_mode) {
+		case DUAL_LINK:
+		case SPLITTER_MODE:
+			if ((link_status & LINKA_LOCKED) &&
+			    (link_status & LINKB_LOCKED))
+				goto out;
+		break;
+		case LINKA:
+			if (link_status & LINKA_LOCKED)
+				goto out;
+		break;
+		case LINKB:
+			if (link_status & LINKB_LOCKED)
+				goto out;
+		break;
+		}
+
+out:
 		mdelay(5);
 	}
 
-	if (i > 9)
-		printf("%s: %s GMSL2 link lock timeout\n", __func__,
-		       serdes->dev->name);
+	if (i > 49)
+		printf("%s: %s link lock timeout, mode=%d val=0x%x\n", __func__,
+		       serdes->dev->name, link_mode, link_status);
 	else
-		printf("%s: %s GMSL2 link locked\n", __func__,
-		       serdes->dev->name);
+		printf("%s: %s link locked, mode=%d, val=0x%x\n", __func__,
+		       serdes->dev->name, link_mode, link_status);
 
 	return ret;
 }

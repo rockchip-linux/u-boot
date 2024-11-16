@@ -107,7 +107,7 @@ static bool serdes_bridge_detect(struct rockchip_bridge *bridge)
 	struct serdes *serdes = dev_get_priv(dev->parent);
 
 	if (serdes->chip_data->bridge_ops->detect)
-		ret = serdes->chip_data->bridge_ops->detect(serdes);
+		ret = serdes->chip_data->bridge_ops->detect(serdes, SER_LINKA);
 
 	SERDES_DBG_MFD("%s: %s %s %s\n", __func__, serdes->dev->name,
 		       serdes->chip_data->name, (ret == true) ? "detected" : "no detected");

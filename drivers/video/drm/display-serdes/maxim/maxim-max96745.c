@@ -348,7 +348,7 @@ static struct serdes_chip_pinctrl_info max96745_pinctrl_info = {
 	.num_functions = ARRAY_SIZE(max96745_functions_desc),
 };
 
-static bool max96745_bridge_link_locked(struct serdes *serdes)
+static bool max96745_bridge_linka_locked(struct serdes *serdes)
 {
 	u32 val;
 
@@ -371,9 +371,35 @@ static bool max96745_bridge_link_locked(struct serdes *serdes)
 	return true;
 }
 
-static bool max96745_bridge_detect(struct serdes *serdes)
+static bool max96745_bridge_linkb_locked(struct serdes *serdes)
 {
-	return max96745_bridge_link_locked(serdes);
+	u32 val;
+
+	if (dm_gpio_is_valid(&serdes->lock_gpio)) {
+		val = dm_gpio_get_value(&serdes->lock_gpio);
+		SERDES_DBG_CHIP("serdes %s:val=%d\n", __func__, val);
+		return val;
+	}
+
+	if (serdes_reg_read(serdes, 0x002a, &val)) {
+		SERDES_DBG_CHIP("serdes %s: false val=%d\n", __func__, val);
+		return false;
+	}
+
+	if (!FIELD_GET(LOCKED, val)) {
+		SERDES_DBG_CHIP("serdes %s: false val=%d\n", __func__, val);
+		return false;
+	}
+
+	return true;
+}
+
+static bool max96745_bridge_detect(struct serdes *serdes, int link)
+{
+	if (link == LINKA)
+		return max96745_bridge_linka_locked(serdes);
+	else
+		return max96745_bridge_linkb_locked(serdes);
 }
 
 static int max96745_bridge_enable(struct serdes *serdes)
@@ -407,8 +433,8 @@ static int max96745_bridge_enable(struct serdes *serdes)
 		if (ret < 0)
 			return ret;
 
-		if (readx_poll_timeout(max96745_bridge_link_locked, serdes, ret,
-				       ret, 200000))
+		if (readx_poll_timeout(max96745_bridge_linka_locked, serdes,
+				       ret, ret, 200000))
 			printf("%s: GMSL link not locked\n", __func__);
 	}
 
@@ -444,8 +470,8 @@ static int max96745_bridge_disable(struct serdes *serdes)
 		if (ret < 0)
 			return ret;
 
-		if (readx_poll_timeout(max96745_bridge_link_locked, serdes, ret,
-				       ret, 200000))
+		if (readx_poll_timeout(max96745_bridge_linka_locked, serdes,
+				       ret, ret, 200000))
 			printf("%s: GMSL link not locked\n", __func__);
 	}
 
