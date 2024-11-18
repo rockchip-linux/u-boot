@@ -175,6 +175,13 @@ static int analogix_dp_link_start(struct analogix_dp_device *dp)
 	if (retval < 0)
 		return retval;
 
+	/* set enhanced mode if available */
+	retval = analogix_dp_set_enhanced_mode(dp);
+	if (retval < 0) {
+		dev_err(dp->dev, "failed to set enhance mode\n");
+		return retval;
+	}
+
 	/* Set TX voltage-swing and pre-emphasis to minimum */
 	for (lane = 0; lane < lane_count; lane++)
 		dp->link_train.training_lane[lane] =
@@ -427,13 +434,6 @@ static int analogix_dp_process_equalizer_training(struct analogix_dp_device *dp)
 
 		printf("final link rate = 0x%.2x, lane count = 0x%.2x\n",
 		       dp->link_train.link_rate, dp->link_train.lane_count);
-
-		/* set enhanced mode if available */
-		retval = analogix_dp_set_enhanced_mode(dp);
-		if (retval < 0) {
-			dev_err(dp->dev, "failed to set enhance mode\n");
-			return retval;
-		}
 
 		dp->link_train.lt_state = FINISHED;
 
@@ -1105,9 +1105,6 @@ static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 		dev_err(dp->dev, "can not enable scramble\n");
 		return ret;
 	}
-
-	analogix_dp_enable_rx_to_enhanced_mode(dp, 1);
-	analogix_dp_enable_enhanced_mode(dp, 1);
 
 	analogix_dp_init_video(dp);
 
