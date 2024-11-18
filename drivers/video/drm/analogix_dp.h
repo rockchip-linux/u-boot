@@ -683,20 +683,6 @@ int analogix_dp_get_plug_in_status(struct analogix_dp_device *dp);
 int analogix_dp_detect(struct analogix_dp_device *dp);
 void analogix_dp_enable_sw_function(struct analogix_dp_device *dp);
 int analogix_dp_start_aux_transaction(struct analogix_dp_device *dp);
-int analogix_dp_write_byte_to_dpcd(struct analogix_dp_device *dp,
-				   unsigned int reg_addr,
-				   unsigned char data);
-int analogix_dp_read_byte_from_dpcd(struct analogix_dp_device *dp,
-				    unsigned int reg_addr,
-				    unsigned char *data);
-int analogix_dp_write_bytes_to_dpcd(struct analogix_dp_device *dp,
-				    unsigned int reg_addr,
-				    unsigned int count,
-				    unsigned char data[]);
-int analogix_dp_read_bytes_from_dpcd(struct analogix_dp_device *dp,
-				     unsigned int reg_addr,
-				     unsigned int count,
-				     unsigned char data[]);
 int analogix_dp_select_i2c_device(struct analogix_dp_device *dp,
 				  unsigned int device_addr,
 				  unsigned int reg_addr);
