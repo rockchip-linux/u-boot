@@ -15,6 +15,7 @@
 #include <dm/read.h>
 #include <linux/bitfield.h>
 #include <linux/list.h>
+#include <linux/media-bus-format.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
 #include <asm/gpio.h>
@@ -35,6 +36,10 @@
  * @lcdsel_lit: reg value of selecting vop little for eDP
  * @chip_type: specific chip type
  * @ssc: check if SSC is supported by source
+ * @max_link_rate: max supported link rate
+ * @max_lane_count: max supported lane count
+ * @format_yuv: check if yuv color format is supported
+ * @max_bpc: max supported bpc which set to 8 by default
  */
 struct rockchip_dp_chip_data {
 	u32	lcdsel_grf_reg;
@@ -45,7 +50,31 @@ struct rockchip_dp_chip_data {
 
 	u32 max_link_rate;
 	u32 max_lane_count;
+	bool format_yuv;
+	u8 max_bpc;
 };
+
+static const struct analogix_dp_output_format possible_output_fmts[] = {
+	{ MEDIA_BUS_FMT_RGB101010_1X30, DRM_COLOR_FORMAT_RGB444, 10 },
+	{ MEDIA_BUS_FMT_RGB888_1X24, DRM_COLOR_FORMAT_RGB444, 8 },
+	{ MEDIA_BUS_FMT_RGB666_1X24_CPADHI, DRM_COLOR_FORMAT_RGB444, 6 },
+	{ MEDIA_BUS_FMT_YUV10_1X30, DRM_COLOR_FORMAT_YCRCB444, 10 },
+	{ MEDIA_BUS_FMT_YUV8_1X24, DRM_COLOR_FORMAT_YCRCB444, 8},
+	{ MEDIA_BUS_FMT_YUYV10_1X20, DRM_COLOR_FORMAT_YCRCB422, 10 },
+	{ MEDIA_BUS_FMT_YUYV8_1X16, DRM_COLOR_FORMAT_YCRCB422, 8 },
+};
+
+static u8 analogix_dp_get_output_bpp(const struct analogix_dp_output_format *fmt)
+{
+	switch (fmt->color_format) {
+	case DRM_COLOR_FORMAT_YCRCB422:
+		return fmt->bpc * 2;
+	case DRM_COLOR_FORMAT_RGB444:
+	case DRM_COLOR_FORMAT_YCRCB444:
+	default:
+		return fmt->bpc * 3;
+	}
+}
 
 static int
 analogix_dp_enable_rx_to_enhanced_mode(struct analogix_dp_device *dp,
@@ -465,11 +494,10 @@ static int analogix_dp_process_equalizer_training(struct analogix_dp_device *dp)
 }
 
 static bool analogix_dp_bandwidth_ok(struct analogix_dp_device *dp,
-				     const struct drm_display_mode *mode,
+				     const struct drm_display_mode *mode, u32 bpp,
 				     unsigned int rate, unsigned int lanes)
 {
 	u32 max_bw, req_bw;
-	u32 bpp = 3 * dp->video_info.bpc;
 
 	req_bw = mode->clock * bpp / 8;
 	max_bw = lanes * rate;
@@ -516,8 +544,9 @@ static int analogix_dp_select_link_rate_from_table(struct analogix_dp_device *dp
 	for (i = 0; i < dp->nr_link_rate_table; i++) {
 		bw_code =  drm_dp_link_rate_to_bw_code(dp->link_rate_table[i]);
 
-		if (!analogix_dp_bandwidth_ok(dp, &dp->video_info.mode, dp->link_rate_table[i],
-					      dp->link_train.lane_count))
+		if (!analogix_dp_bandwidth_ok(dp, &dp->video_info.mode,
+					      analogix_dp_get_output_bpp(dp->output_fmt),
+					      dp->link_rate_table[i], dp->link_train.lane_count))
 			continue;
 
 		if (dp->link_rate_table[i] <= max_link_rate &&
@@ -644,10 +673,6 @@ static int analogix_dp_init_training(struct analogix_dp_device *dp,
 	 * the DP inter pair skew issue for at least 10 us
 	 */
 	analogix_dp_reset_macro(dp);
-
-	/* Initialize by reading RX's DPCD */
-	analogix_dp_get_max_rx_bandwidth(dp, &dp->link_train.link_rate);
-	analogix_dp_get_max_rx_lane_count(dp, &dp->link_train.lane_count);
 
 	/* Setup TX lane count */
 	dp->link_train.lane_count = min_t(u32, dp->link_train.lane_count, max_lane);
@@ -1036,6 +1061,52 @@ static int analogix_dp_link_power_down(struct analogix_dp_device *dp)
 	return 0;
 }
 
+static u32 analogix_dp_get_output_format(struct analogix_dp_device *dp, u32 bus_format)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(possible_output_fmts); i++) {
+		const struct analogix_dp_output_format *fmt = &possible_output_fmts[i];
+
+		if (fmt->bus_format == bus_format)
+			break;
+	}
+
+	if (i == ARRAY_SIZE(possible_output_fmts))
+		return 1;
+
+	return i;
+}
+
+static u32 analogix_dp_get_output_format_by_edid(struct analogix_dp_device *dp,
+						 struct hdmi_edid_data *edid_data)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(possible_output_fmts); i++) {
+		const struct analogix_dp_output_format *fmt = &possible_output_fmts[i];
+
+		if (fmt->bpc > edid_data->display_info.bpc || fmt->bpc > dp->plat_data.max_bpc)
+			continue;
+
+		if (!(edid_data->display_info.color_formats & fmt->color_format))
+			continue;
+
+		if (!analogix_dp_bandwidth_ok(dp, edid_data->preferred_mode,
+					      analogix_dp_get_output_bpp(fmt),
+					      drm_dp_bw_code_to_link_rate(dp->link_train.link_rate),
+					      dp->link_train.lane_count))
+			continue;
+
+		break;
+	}
+
+	if (i == ARRAY_SIZE(possible_output_fmts))
+		return 1;
+
+	return i;
+}
+
 static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 					struct display_state *state)
 {
@@ -1046,6 +1117,7 @@ static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
 	struct video_info *video = &dp->video_info;
 	struct drm_display_mode mode;
+	u32 fmt_id;
 	u32 val;
 	int ret;
 
@@ -1064,8 +1136,12 @@ static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 		regmap_write(dp->grf, dp->id ? RK3588_GRF_VO1_CON1 : RK3588_GRF_VO1_CON0,
 			     EDP_MODE << 16 | FIELD_PREP(EDP_MODE, 1));
 
-	video->bpc = conn_state->bpc;
-	switch (video->bpc) {
+	if (!dp->output_fmt) {
+		fmt_id = analogix_dp_get_output_format(dp, conn_state->bus_format);
+		dp->output_fmt = &possible_output_fmts[fmt_id];
+	}
+
+	switch (dp->output_fmt->bpc) {
 	case 12:
 		video->color_depth = COLOR_12;
 		break;
@@ -1079,6 +1155,16 @@ static int analogix_dp_connector_enable(struct rockchip_connector *conn,
 	default:
 		video->color_depth = COLOR_8;
 		break;
+	}
+	if (dp->output_fmt->color_format == DRM_COLOR_FORMAT_YCRCB444) {
+		video->color_space = COLOR_YCBCR444;
+		video->ycbcr_coeff = COLOR_YCBCR709;
+	} else if (dp->output_fmt->color_format == DRM_COLOR_FORMAT_YCRCB422) {
+		video->color_space = COLOR_YCBCR422;
+		video->ycbcr_coeff = COLOR_YCBCR709;
+	} else {
+		video->color_space = COLOR_RGB;
+		video->ycbcr_coeff = COLOR_YCBCR601;
 	}
 
 	ret = drm_dp_dpcd_read(&dp->aux, DP_DPCD_REV, dp->dpcd, DP_RECEIVER_CAP_SIZE);
@@ -1146,8 +1232,26 @@ static int analogix_dp_connector_detect(struct rockchip_connector *conn,
 					struct display_state *state)
 {
 	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
+	int ret;
 
-	return analogix_dp_detect(dp);
+	if (analogix_dp_detect(dp)) {
+		/* Initialize by reading RX's DPCD */
+		ret = analogix_dp_get_max_rx_bandwidth(dp, &dp->link_train.link_rate);
+		if (ret) {
+			dev_err(dp->dev, "failed to read max link rate\n");
+			return 0;
+		}
+
+		ret = analogix_dp_get_max_rx_lane_count(dp, &dp->link_train.lane_count);
+		if (ret) {
+			dev_err(dp->dev, "failed to read max lane count\n");
+			return 0;
+		}
+
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 static int analogix_dp_connector_mode_valid(struct rockchip_connector *conn,
@@ -1167,6 +1271,123 @@ static int analogix_dp_connector_mode_valid(struct rockchip_connector *conn,
 	return MODE_OK;
 }
 
+static int analogix_dp_mode_valid(struct analogix_dp_device *dp, struct hdmi_edid_data *edid_data)
+{
+	struct drm_display_info *di = &edid_data->display_info;
+	u32 max_link_rate, max_lane_count;
+	u32 min_bpp;
+	int i;
+
+	if (di->color_formats & DRM_COLOR_FORMAT_YCRCB422)
+		min_bpp = 16;
+	else if (di->color_formats & DRM_COLOR_FORMAT_RGB444)
+		min_bpp = 18;
+	else
+		min_bpp = 24;
+
+	max_link_rate = min_t(u32, dp->video_info.max_link_rate, dp->link_train.link_rate);
+	max_lane_count = min_t(u32, dp->video_info.max_lane_count, dp->link_train.lane_count);
+	for (i = 0; i < edid_data->modes; i++) {
+		if (!analogix_dp_bandwidth_ok(dp, &edid_data->mode_buf[i], min_bpp,
+					      drm_dp_bw_code_to_link_rate(max_link_rate),
+					      max_lane_count))
+			edid_data->mode_buf[i].invalid = true;
+	}
+
+	return 0;
+}
+
+static int analogix_dp_connector_get_timing(struct rockchip_connector *conn,
+					    struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	const struct rockchip_dp_chip_data *pdata =
+		(const struct rockchip_dp_chip_data *)dev_get_driver_data(conn->dev);
+	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
+	struct drm_display_mode *mode = &conn_state->mode;
+	struct hdmi_edid_data edid_data;
+	struct drm_display_mode *mode_buf;
+	struct vop_rect rect;
+	u32 yuv_fmts_mask = DRM_COLOR_FORMAT_YCRCB444 | DRM_COLOR_FORMAT_YCRCB422;
+	u32 fmt_id;
+	int ret, i;
+
+	mode_buf = malloc(MODE_LEN * sizeof(struct drm_display_mode));
+	if (!mode_buf)
+		return -ENOMEM;
+
+	memset(mode_buf, 0, MODE_LEN * sizeof(struct drm_display_mode));
+	memset(&edid_data, 0, sizeof(struct hdmi_edid_data));
+	edid_data.mode_buf = mode_buf;
+
+	ret = drm_do_get_edid(&dp->aux.ddc, conn_state->edid);
+	if (!ret)
+		ret = drm_add_edid_modes(&edid_data, conn_state->edid);
+
+	if (ret < 0) {
+		printf("failed to get edid\n");
+		goto err;
+	}
+
+	if (!pdata->format_yuv) {
+		if (edid_data.display_info.color_formats & yuv_fmts_mask) {
+			printf("Swapping display color format from YUV to RGB\n");
+			edid_data.display_info.color_formats &= ~yuv_fmts_mask;
+			edid_data.display_info.color_formats |= DRM_COLOR_FORMAT_RGB444;
+		}
+	}
+
+	if (state->conn_state.secondary) {
+		rect.width = state->crtc_state.max_output.width / 2;
+		rect.height = state->crtc_state.max_output.height / 2;
+	} else {
+		rect.width = state->crtc_state.max_output.width;
+		rect.height = state->crtc_state.max_output.height;
+	}
+
+	drm_mode_max_resolution_filter(&edid_data, &rect);
+	analogix_dp_mode_valid(dp, &edid_data);
+
+	if (!drm_mode_prune_invalid(&edid_data)) {
+		printf("can't find valid dp mode\n");
+		ret = -EINVAL;
+		goto err;
+	}
+
+	for (i = 0; i < edid_data.modes; i++)
+		edid_data.mode_buf[i].vrefresh = drm_mode_vrefresh(&edid_data.mode_buf[i]);
+
+	drm_mode_sort(&edid_data);
+	memcpy(mode, edid_data.preferred_mode, sizeof(struct drm_display_mode));
+
+	fmt_id = analogix_dp_get_output_format_by_edid(dp, &edid_data);
+	dp->output_fmt = &possible_output_fmts[fmt_id];
+
+	switch (dp->output_fmt->color_format) {
+	case DRM_COLOR_FORMAT_YCRCB422:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_YUV422;
+		break;
+	case DRM_COLOR_FORMAT_RGB444:
+	case DRM_COLOR_FORMAT_YCRCB444:
+	default:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
+		break;
+	}
+
+	conn_state->bus_format = dp->output_fmt->bus_format;
+	conn_state->bpc = dp->output_fmt->bpc;
+	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
+	if (dp->output_fmt->color_format == DRM_COLOR_FORMAT_RGB444)
+		conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
+	else
+		conn_state->color_range = DRM_COLOR_YCBCR_LIMITED_RANGE;
+
+err:
+	free(mode_buf);
+
+	return 0;
+}
+
 static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
 	.init = analogix_dp_connector_init,
 	.get_edid = analogix_dp_connector_get_edid,
@@ -1174,6 +1395,7 @@ static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
 	.disable = analogix_dp_connector_disable,
 	.detect = analogix_dp_connector_detect,
 	.mode_valid = analogix_dp_connector_mode_valid,
+	.get_timing = analogix_dp_connector_get_timing,
 };
 
 static u32 analogix_dp_parse_link_frequencies(struct analogix_dp_device *dp)
@@ -1297,6 +1519,7 @@ static int analogix_dp_probe(struct udevice *dev)
 	dp->plat_data.dev_type = ROCKCHIP_DP;
 	dp->plat_data.subdev_type = pdata->chip_type;
 	dp->plat_data.ssc = pdata->ssc;
+	dp->plat_data.max_bpc = pdata->max_bpc ? pdata->max_bpc : 8;
 
 	dp->video_info.max_link_rate = pdata->max_link_rate;
 	dp->video_info.max_lane_count = pdata->max_lane_count;
@@ -1359,6 +1582,8 @@ static const struct rockchip_dp_chip_data rk3576_edp_platform_data = {
 
 	.max_link_rate = DP_LINK_BW_5_4,
 	.max_lane_count = 4,
+	.format_yuv = true,
+	.max_bpc = 10,
 };
 
 static const struct rockchip_dp_chip_data rk3588_edp_platform_data = {
@@ -1367,6 +1592,8 @@ static const struct rockchip_dp_chip_data rk3588_edp_platform_data = {
 
 	.max_link_rate = DP_LINK_BW_5_4,
 	.max_lane_count = 4,
+	.format_yuv = true,
+	.max_bpc = 10,
 };
 
 static const struct udevice_id analogix_dp_ids[] = {
