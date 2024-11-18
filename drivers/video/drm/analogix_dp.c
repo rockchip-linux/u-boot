@@ -1184,6 +1184,16 @@ static int analogix_dp_parse_dt(struct analogix_dp_device *dp)
 	return 0;
 }
 
+static int analogix_dp_ddc_init(struct analogix_dp_device *dp)
+{
+	dp->aux.name = "analogix-dp";
+	dp->aux.dev = dp->dev;
+	dp->aux.transfer = analogix_dp_aux_transfer;
+	dp->aux.ddc.ddc_xfer = drm_dp_i2c_xfer;
+
+	return 0;
+}
+
 static int analogix_dp_probe(struct udevice *dev)
 {
 	struct analogix_dp_device *dp = dev_get_priv(dev);
@@ -1235,6 +1245,8 @@ static int analogix_dp_probe(struct udevice *dev)
 		dev_err(dev, "failed to parse DT: %d\n", ret);
 		return ret;
 	}
+
+	analogix_dp_ddc_init(dp);
 
 	rockchip_connector_bind(&dp->connector, dev, dp->id, &analogix_dp_connector_funcs,
 				NULL, DRM_MODE_CONNECTOR_eDP);

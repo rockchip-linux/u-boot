@@ -654,6 +654,7 @@ struct analogix_dp_device {
 	u8 dpcd[DP_RECEIVER_CAP_SIZE];
 	bool video_bist_enable;
 	u32 lane_map[4];
+	struct drm_dp_aux aux;
 };
 
 /* analogix_dp_reg.c */
@@ -739,5 +740,6 @@ bool analogix_dp_ssc_supported(struct analogix_dp_device *dp);
 void analogix_dp_set_video_format(struct analogix_dp_device *dp,
 				  const struct drm_display_mode *mode);
 void analogix_dp_video_bist_enable(struct analogix_dp_device *dp);
+ssize_t analogix_dp_aux_transfer(struct drm_dp_aux *aux, struct drm_dp_aux_msg *msg);
 
 #endif /* __DRM_ANALOGIX_DP__ */
