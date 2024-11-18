@@ -99,6 +99,28 @@ static int analogix_dp_set_enhanced_mode(struct analogix_dp_device *dp)
 	if (ret < 0)
 		return ret;
 
+	if (!data) {
+		/*
+		 * As the Table 3-4 in eDP v1.2 spec:
+		 * DPCD 0000Dh:
+		 * Bit 1 = FRAMING_CHANGE_CAPABLE
+		 * A setting of 1 indicates that this is an eDP device that
+		 * uses only Enhanced Framing, independently of the setting by
+		 * the source of ENHANCED_FRAME_EN
+		 *
+		 * And as the Table 3-3 in eDP v1.4 spec:
+		 * DPCD 0000Dh:
+		 * Bit 1 = RESERVED for eDP
+		 * New to eDP v1.4.(Read all 0s)
+		 */
+		ret = drm_dp_dpcd_readb(&dp->aux, DP_EDP_CONFIGURATION_CAP,
+					&data);
+		if (ret < 0)
+			return ret;
+
+		data = !!(data & DP_FRAMING_CHANGE_CAP);
+	}
+
 	analogix_dp_enable_enhanced_mode(dp, data);
 
 	return 0;
