@@ -467,6 +467,145 @@ int arch_cpu_init(void)
 }
 #endif
 
+#ifdef CONFIG_MOS_SUPPORT
+#include <dm.h>
+#include <asm/io.h>
+#include <asm/arch/cru_rk3576.h>
+
+#ifdef CONFIG_MOS_SECONDARY
+static int rk3576_cpub_pvtpll_set_rate(ulong rate)
+{
+	u32 length, length_frac;
+
+	if (rate >= 1608000000) {
+		length = 5;
+		length_frac = 1;
+	} else if (rate >= 1416000000) {
+		length = 7;
+		length_frac = 1;
+	} else if (rate >= 1200000000) {
+		length = 11;
+		length_frac = 0;
+	} else {
+		length = 17;
+		length_frac = 0;
+	}
+
+	writel(0x1dff0000 | (length << 2) | length_frac, PVTPLL_BIGCORE_BASE + RK3576_PVTPLL_GCK_LEN);
+	/* set cal cnt = 24, T = 1us */
+	writel(0x18, PVTPLL_BIGCORE_BASE + RK3576_PVTPLL_GCK_CAL_CNT);
+	/* enable pvtpll */
+	writel(0x00220022, PVTPLL_BIGCORE_BASE + RK3576_PVTPLL_GCK_CFG);
+	/* start pvtpll */
+	writel(0x00230023, PVTPLL_BIGCORE_BASE + RK3576_PVTPLL_GCK_CFG);
+
+	/* set pvtpll_src parent from 24MHz/32KHz to pvtpll */
+	writel(0x00200020, RK3576_CRU_BASE + RK3576_BIGCORE_CLKSEL_CON(2));
+
+	/* set litcore unclean_src parent to pvtpll_src */
+	writel(0x30002000, RK3576_CRU_BASE + RK3576_BIGCORE_CLKSEL_CON(1));
+	/*
+	* set litcore parent from pvtpll_src to unclean_src,
+	* because autocs is on litcore unclean_src.
+	*/
+	writel(0xc0000000, RK3576_CRU_BASE + RK3576_BIGCORE_CLKSEL_CON(1));
+	/* set litcore unclean_src div to 0 */
+	writel(0x0f800000, RK3576_CRU_BASE + RK3576_BIGCORE_CLKSEL_CON(1));
+	return 0;
+}
+#else
+static int rk3576_cpul_pvtpll_set_rate(ulong rate)
+{
+	u32 length, length_frac;
+
+	if (rate >= 1608000000) {
+		length = 6;
+		length_frac = 2;
+	} else if (rate >= 1416000000) {
+		length = 8;
+		length_frac = 0;
+	} else if (rate >= 1200000000) {
+		length = 11;
+		length_frac = 0;
+	} else {
+		length = 17;
+		length_frac = 0;
+	}
+
+	writel(0x1dff0000 | (length << 2) | length_frac, PVTPLL_LITCORE_BASE + RK3576_PVTPLL_GCK_LEN);
+	/* set cal cnt = 24, T = 1us */
+	writel(0x18, PVTPLL_LITCORE_BASE + RK3576_PVTPLL_GCK_CAL_CNT);
+	/* enable pvtpll */
+	writel(0x00220022, PVTPLL_LITCORE_BASE + RK3576_PVTPLL_GCK_CFG);
+	/* start pvtpll */
+	writel(0x00230023, PVTPLL_LITCORE_BASE + RK3576_PVTPLL_GCK_CFG);
+
+	/* set pvtpll_src parent from 24MHz/32KHz to pvtpll */
+	writel(0x20002000, RK3576_CRU_BASE + RK3576_LITCORE_CLKSEL_CON(1));
+
+	/* set litcore unclean_src parent to pvtpll_src */
+	writel(0x30002000, RK3576_CRU_BASE + RK3576_LITCORE_CLKSEL_CON(0));
+	/*
+	* set litcore parent from pvtpll_src to unclean_src,
+	* because autocs is on litcore unclean_src.
+	*/
+	writel(0x00c00000, RK3576_CRU_BASE + RK3576_LITCORE_CLKSEL_CON(1));
+	/* set litcore unclean_src div to 0 */
+	writel(0x0f800000, RK3576_CRU_BASE + RK3576_LITCORE_CLKSEL_CON(0));
+	return 0;
+}
+
+static int rk3576_cci_pvtpll_set_rate(ulong rate)
+{
+	u32 length, pvtpll_en = 0;
+
+	if (rate >= 900000000)
+		length = 30;
+	else if (rate >= 800000000)
+		length = 31;
+	else
+		length = 34;
+
+	writel(0x1dff0000 | (length << 2), PVTPLL_CCI_BASE + RK3576_PVTPLL_GCK_LEN);
+	/* set cal cnt = 24, T = 1us */
+	writel(0x18, PVTPLL_CCI_BASE + RK3576_PVTPLL_GCK_CAL_CNT);
+	/* enable pvtpll */
+	pvtpll_en = readl(PVTPLL_CCI_BASE + RK3576_PVTPLL_GCK_CFG);
+	if (pvtpll_en && 0x22 != 0x22)
+		writel(0x00220022, PVTPLL_CCI_BASE + RK3576_PVTPLL_GCK_CFG);
+	/* start pvtpll */
+	writel(0x00230023, PVTPLL_CCI_BASE + RK3576_PVTPLL_GCK_CFG);
+
+	/* set cci mux pvtpll */
+	writel(0x40004000, RK3576_CRU_BASE + RK3576_CCI_CLKSEL_CON(4));
+	writel(0x30001000, RK3576_CRU_BASE + RK3576_CCI_CLKSEL_CON(4));
+	writel(0x0f800000, RK3576_CRU_BASE + RK3576_CCI_CLKSEL_CON(4));
+	return 0;
+}
+#endif
+
+int set_armclk_rate(void)
+{
+	u32 is_pvtpll;
+#ifdef CONFIG_MOS_SECONDARY
+	is_pvtpll = (readl(RK3576_CRU_BASE + RK3576_BIGCORE_CLKSEL_CON(1)) &
+		     CLK_LITCORE_SEL_MASK) >> CLK_LITCORE_SEL_SHIFT;
+	if (is_pvtpll == 2)
+		return 0;
+	rk3576_cpub_pvtpll_set_rate(1608000000);
+#else
+	is_pvtpll = (readl(RK3576_CRU_BASE + RK3576_LITCORE_CLKSEL_CON(0)) &
+		     CLK_LITCORE_SEL_MASK) >> CLK_LITCORE_SEL_SHIFT;
+	if (is_pvtpll == 2)
+		return 0;
+	rk3576_cpul_pvtpll_set_rate(1608000000);
+	rk3576_cci_pvtpll_set_rate(1608000000 / 2);
+#endif
+
+	return 0;
+}
+#endif
+
 #if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && defined(CONFIG_UFS)
 int rk_board_dm_fdt_fixup(const void *blob)
 {
