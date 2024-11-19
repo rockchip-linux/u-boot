@@ -397,7 +397,7 @@ static void inno_mipi_dphy_get_fixed_param(struct inno_mipi_dphy_timing *t,
 	const struct fixed_param *param, *param_table;
 	int i, param_num;
 
-	if (soc_type == RK1808_MIPI_DPHY) {
+	if (soc_type == RK1808_MIPI_DPHY || soc_type == RK3506_MIPI_DPHY) {
 		param_table = rk1808_fixed_param_table;
 		param_num = ARRAY_SIZE(rk1808_fixed_param_table);
 	} else {
@@ -422,7 +422,7 @@ static void inno_mipi_dphy_get_fixed_param(struct inno_mipi_dphy_timing *t,
 	t->hs_prepare = param->hs_prepare;
 	t->hs_trail = param->hs_trail;
 
-	if (soc_type == RK1808_MIPI_DPHY)
+	if (soc_type == RK1808_MIPI_DPHY || soc_type == RK3506_MIPI_DPHY)
 		t->lpx = param->lpx;
 }
 
