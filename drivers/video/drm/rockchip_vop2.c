@@ -4091,7 +4091,7 @@ static void vop2_post_color_swap(struct display_state *state)
 
 	if ((vop2->version == VOP_VERSION_RK3588 || vop2->version == VOP_VERSION_RK3576)) {
 		if ((output_type == DRM_MODE_CONNECTOR_HDMIA ||
-		     output_type == DRM_MODE_CONNECTOR_eDP) &&
+		     output_type == DRM_MODE_CONNECTOR_DisplayPort) &&
 		    (conn_state->bus_format == MEDIA_BUS_FMT_YUV8_1X24 ||
 		     conn_state->bus_format == MEDIA_BUS_FMT_YUV10_1X30))
 		data_swap |= DSP_RG_SWAP;
