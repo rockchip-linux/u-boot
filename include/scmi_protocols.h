@@ -197,4 +197,34 @@ struct scmi_rd_reset_out {
 	s32 status;
 };
 
+/*
+ * SCMI Power Domain Management Protocol
+ */
+
+enum scmi_power_domain_message_id {
+	SCMI_POWER_DOMAIN_STATE_SET = 0x4,
+};
+
+#define SCMI_PWD_PSTATE_TYPE_LOST BIT(30)
+
+/**
+ * struct scmi_pwd_state_set_in - Message payload for POWER_DOMAIN_STATE_SET command
+ * @flags:      Flags
+ * @@domain_id: Identifier of power domain
+ * @pstate:     Power state of the domain
+ */
+struct scmi_pwd_state_set_in {
+	u32 flags;
+	u32 domain_id;
+	u32 pstate;
+};
+
+/**
+ * struct scmi_pwd_state_set_out - Message payload for POWER_DOMAIN_STATE_SET command
+ * @status:	SCMI command status
+ */
+struct scmi_pwd_state_set_out {
+	s32 status;
+};
+
 #endif /* _SCMI_PROTOCOLS_H */
