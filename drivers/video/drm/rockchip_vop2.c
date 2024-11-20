@@ -31,6 +31,7 @@
 #include <dm/uclass-internal.h>
 #include <stdlib.h>
 #include <dm/of_access.h>
+#include <power-domain.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -3338,6 +3339,10 @@ static int rockchip_vop2_preinit(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	const struct vop2_data *vop2_data = cstate->crtc->data;
 	struct regmap *map;
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+	struct power_domain pwrdom;
+	struct clk_bulk clks;
+#endif
 	char dclk_name[16];
 	int ret;
 
@@ -3387,6 +3392,31 @@ static int rockchip_vop2_preinit(struct display_state *state)
 				printf("%s: Get syscon sys_pmu failed (ret=%p)\n",
 				       __func__, rockchip_vop2->sys_pmu);
 		}
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+		ret = power_domain_get(cstate->dev, &pwrdom);
+		if (ret) {
+			printf("failed to get pwrdom: %d\n", ret);
+			return ret;
+		}
+		ret = power_domain_on(&pwrdom);
+		if (ret) {
+			printf("failed to power on pd: %d\n", ret);
+			return ret;
+		}
+		ret = clk_get_bulk(cstate->dev, &clks);
+		if (ret) {
+			if (ret != -ENOSYS && ret != -ENOENT) {
+				printf("failed to get clk: %d\n", ret);
+				return ret;
+			}
+		}
+		ret = clk_enable_bulk(&clks);
+		if (ret) {
+			printf("failed to enable clk: %d\n", ret);
+			clk_release_bulk(&clks);
+			return ret;
+		}
+#endif
 	}
 
 	snprintf(dclk_name, sizeof(dclk_name), "dclk_vp%d", cstate->crtc_id);
