@@ -272,6 +272,31 @@ static int rk_pwm_of_to_plat(struct udevice *dev)
 	return 0;
 }
 
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+static int rk_pwm_clk_init(struct udevice *dev)
+{
+	struct clk_bulk clks = { 0 };
+	int ret = 0;
+
+	ret = clk_get_bulk(dev, &clks);
+	if (ret == -ENOSYS || ret == -ENOENT)
+		return 0;
+	if (ret) {
+		dev_err(dev, "failed to get clk: %d\n", ret);
+		return ret;
+	}
+
+	ret = clk_enable_bulk(&clks);
+	if (ret) {
+		dev_err(dev, "failed to enable clk: %d\n", ret);
+		clk_release_bulk(&clks);
+		return ret;
+	}
+
+	return 0;
+}
+#endif
+
 static int rk_pwm_probe(struct udevice *dev)
 {
 	struct rk_pwm_priv *priv = dev_get_priv(dev);
@@ -299,6 +324,12 @@ static int rk_pwm_probe(struct udevice *dev)
 			priv->conf_polarity = PWM_DUTY_POSTIVE | PWM_INACTIVE_POSTIVE;
 		}
 	}
+
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+	ret = rk_pwm_clk_init(dev);
+	if (ret)
+		return ret;
+#endif
 
 	return 0;
 }
