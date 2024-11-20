@@ -24,6 +24,7 @@
 #include <linux/list.h>
 #include <asm/gpio.h>
 #include <generic-phy.h>
+#include <power-domain.h>
 #include <regmap.h>
 #include <reset.h>
 #include <drm/drm_dp_helper.h>
@@ -227,6 +228,10 @@ struct dw_dp {
 	struct udevice *dev;
 	struct regmap *regmap;
 	struct phy phy;
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+	struct power_domain pwrdom;
+	struct clk_bulk clks;
+#endif
 	struct reset_ctl reset;
 	int id;
 
@@ -1788,6 +1793,29 @@ static int dw_dp_probe(struct udevice *dev)
 		dp->id = 0;
 
 	dp->video.pixel_mode = pdata->pixel_mode;
+
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+	ret = power_domain_get(dev, &dp->pwrdom);
+	if (ret) {
+		dev_err(dev, "failed to get pwrdom: %d\n", ret);
+		return ret;
+	}
+	ret = power_domain_on(&dp->pwrdom);
+	if (ret) {
+		dev_err(dev, "failed to power on pd: %d\n", ret);
+		return ret;
+	}
+	ret = clk_get_bulk(dev, &dp->clks);
+	if (ret) {
+		dev_err(dev, "failed to get clk: %d\n", ret);
+		return ret;
+	}
+	ret = clk_enable_bulk(&dp->clks);
+	if (ret) {
+		dev_err(dev, "failed to enable clk: %d\n", ret);
+		return ret;
+	}
+#endif
 
 	ret = reset_get_by_index(dev, 0, &dp->reset);
 	if (ret) {
