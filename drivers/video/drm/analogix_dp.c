@@ -1416,6 +1416,29 @@ static int analogix_dp_probe(struct udevice *dev)
 			return -ENODEV;
 	}
 
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+	ret = power_domain_get(dev, &dp->pwrdom);
+	if (ret) {
+		dev_err(dev, "failed to get pwrdom: %d\n", ret);
+		return ret;
+	}
+	ret = power_domain_on(&dp->pwrdom);
+	if (ret) {
+		dev_err(dev, "failed to power on pd: %d\n", ret);
+		return ret;
+	}
+	ret = clk_get_bulk(dev, &dp->clks);
+	if (ret) {
+		dev_err(dev, "failed to get clk: %d\n", ret);
+		return ret;
+	}
+	ret = clk_enable_bulk(&dp->clks);
+	if (ret) {
+		dev_err(dev, "failed to enable clk: %d\n", ret);
+		return ret;
+	}
+#endif
+
 	ret = reset_get_bulk(dev, &dp->resets);
 	if (ret) {
 		dev_err(dev, "failed to get reset control: %d\n", ret);
