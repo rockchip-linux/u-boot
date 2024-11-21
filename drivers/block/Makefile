@@ -15,4 +15,5 @@ obj-$(CONFIG_IDE) += ide.o
 obj-$(CONFIG_SANDBOX) += sandbox.o
 obj-$(CONFIG_SYSTEMACE) += systemace.o
 obj-$(CONFIG_BLOCK_CACHE) += blkcache.o
+obj-$(CONFIG_$(SPL_)RAMDISK) += ramdisk.o
 obj-$(CONFIG_$(SPL_)VIRTUAL_DISK) += vdisk.o

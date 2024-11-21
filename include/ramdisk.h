@@ -6,6 +6,17 @@
 #ifndef __RAMDISK_H__
 #define __RAMDISK_H__
 
+#define RAMDISK_INFO_SIZE	512
+#define RAMDISK_INFO_MAGIC	0x5244534b /* "RDSK" */
+
+struct ramdisk_info {
+	u32 magic;
+	ulong base;
+	ulong lba;		/* number of virtual blocks */
+	ulong bgpt_lba;		/* real start block of backup gpt */
+	ulong second_fw_addr;
+};
+
 struct ramdisk_ops {
 	/*
 	 * read() - read from a block device

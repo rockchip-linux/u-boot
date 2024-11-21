@@ -48,6 +48,16 @@ config IDE
 	  from U-Boot. See also CMD_IDE which provides an 'ide' command for
 	  performing various IDE operations.
 
+config RAMDISK
+	bool "Ram disk in U-Boot"
+	help
+	  This enables ramdisk support.
+
+config SPL_RAMDISK
+	bool "Ram disk support in SPL"
+	help
+	  This enables ramdisk support.
+
 config VIRTUAL_DISK
 	bool "Virtual disk"
 	default n

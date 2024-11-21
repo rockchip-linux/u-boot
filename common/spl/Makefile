@@ -64,6 +64,7 @@ obj-$(CONFIG_$(SPL_TPL_)UFS_SUPPORT) += spl_ufs.o
 obj-$(CONFIG_$(SPL_TPL_)DFU) += spl_dfu.o
 obj-$(CONFIG_$(SPL_TPL_)SPI_LOAD) += spl_spi.o
 obj-$(CONFIG_$(SPL_TPL_)RAM_SUPPORT) += spl_ram.o
+obj-$(CONFIG_$(SPL_TPL_)RAMDISK) += spl_ramdisk.o
 obj-$(CONFIG_$(SPL_TPL_)USB_SDP_SUPPORT) += spl_sdp.o
 obj-$(CONFIG_$(SPL_TPL_)BOOT_IMAGE) += spl_boot_image.o
 endif
