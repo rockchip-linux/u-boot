@@ -54,6 +54,7 @@
 #define BOOT_TYPE_SATA		(1 << 10)
 #define BOOT_TYPE_PCIE		(1 << 11)
 #define BOOT_TYPE_UFS		(1 << 12)
+#define BOOT_TYPE_RVD		(1 << 13)
 
 /* define sd card function */
 #define SD_UNKNOWN_CARD		0

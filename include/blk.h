@@ -40,6 +40,7 @@ enum if_type {
 	IF_TYPE_SPINOR,
 	IF_TYPE_RAMDISK,
 	IF_TYPE_MTD,
+	IF_TYPE_RVD,
 	IF_TYPE_COUNT,			/* Number of interface types */
 };
 

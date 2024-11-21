@@ -47,3 +47,10 @@ config IDE
 	  This allows access to raw blocks and filesystems on an IDE drive
 	  from U-Boot. See also CMD_IDE which provides an 'ide' command for
 	  performing various IDE operations.
+
+config VIRTUAL_DISK
+	bool "Virtual disk"
+	default n
+	help
+	  This enable virtual disk support.
+

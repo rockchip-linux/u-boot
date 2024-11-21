@@ -33,6 +33,7 @@
 #include <syscon.h>
 #include <sysmem.h>
 #include <video_rockchip.h>
+#include <vdisk.h>
 #include <xbc.h>
 #include <asm/io.h>
 #include <asm/gpio.h>
@@ -592,6 +593,9 @@ int board_init(void)
 	board_debug_init();
 #ifdef DEBUG
 	soc_clk_dump();
+#endif
+#ifdef CONFIG_VIRTUAL_DISK
+	rvd_init();
 #endif
 #ifdef CONFIG_OPTEE_CLIENT
 	optee_client_init();

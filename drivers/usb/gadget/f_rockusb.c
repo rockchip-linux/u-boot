@@ -21,6 +21,7 @@
 #include <scsi.h>
 #include <stdlib.h>
 #include <usbplug.h>
+#include <vdisk.h>
 #include <asm/arch/vendor.h>
 #include <rockusb.h>
 
@@ -248,6 +249,9 @@ static int rkusb_do_read_flash_id(struct fsg_common *common,
 		break;
 	case IF_TYPE_NVME:
 		str = "PCIE ";
+		break;
+	case IF_TYPE_RVD:
+		str = "RVD  ";
 		break;
 	default:
 		str = "UNKN "; /* unknown */
@@ -935,6 +939,7 @@ static int rkusb_do_switch_storage(struct fsg_common *common)
 		break;
 #if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && (defined(CONFIG_AHCI) || defined(CONFIG_UFS))
 	case BOOT_TYPE_SATA:
+	case BOOT_TYPE_UFS:
 		type = IF_TYPE_SCSI;
 		devnum = 0;
 		scsi_scan(true);
@@ -944,6 +949,13 @@ static int rkusb_do_switch_storage(struct fsg_common *common)
 		type = IF_TYPE_NVME;
 		devnum = 0;
 		break;
+#ifdef CONFIG_VIRTUAL_DISK
+	case BOOT_TYPE_RVD:
+		type = IF_TYPE_RVD;
+		devnum = 0;
+		rvd_init();
+		break;
+#endif
 	default:
 		printf("Bootdev 0x%x is not support\n", media);
 		return -ENODEV;
@@ -1016,6 +1028,10 @@ static int rkusb_do_get_storage_info(struct fsg_common *common,
 
 	case IF_TYPE_NVME:
 		media = BOOT_TYPE_PCIE;
+		break;
+
+	case IF_TYPE_RVD:
+		media = BOOT_TYPE_RVD;
 		break;
 
 	default:

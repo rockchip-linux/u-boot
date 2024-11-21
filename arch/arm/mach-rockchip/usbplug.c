@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <scsi.h>
 #include <asm/arch/param.h>
+#include <vdisk.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -35,6 +36,9 @@ static const struct bootdev_list dev_list[] = {
 static const struct bootdev_list dev_list[] = {
 	{IF_TYPE_SCSI, 0, 0},
 	{IF_TYPE_MMC, 0, 0},
+#ifdef CONFIG_VIRTUAL_DISK
+	{IF_TYPE_RVD, 0, 0},
+#endif
 	{IF_TYPE_MTD, 1, 0}, /* BLK_MTD_SPI_NAND FSPI0 M0 */
 	{IF_TYPE_MTD, 1, 1}, /* BLK_MTD_SPI_NAND FSPI1 M0 */
 	{IF_TYPE_MTD, 1, 2}, /* BLK_MTD_SPI_NAND FSPI1 M1 */
@@ -91,6 +95,10 @@ struct blk_desc *usbplug_blk_get_devnum_by_type(enum if_type if_type, int devnum
 			scsi_scan(true);
 			break;
 #endif
+#ifdef CONFIG_VIRTUAL_DISK
+		case IF_TYPE_RVD:
+			break;
+#endif
 		default:
 			printf("Bootdev 0x%x is not support\n", if_type);
 			return NULL;
@@ -134,6 +142,11 @@ static char *bootdev_rockusb_cmd(void)
 #if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && (defined(CONFIG_AHCI) || defined(CONFIG_UFS))
 		case IF_TYPE_SCSI:
 			scsi_scan(true);
+			break;
+#endif
+
+#ifdef CONFIG_VIRTUAL_DISK
+		case IF_TYPE_RVD:
 			break;
 #endif
 		default:
