@@ -65,6 +65,7 @@ static LIST_HEAD(logo_cache_list);
 static unsigned long memory_start;
 static unsigned long cubic_lut_memory_start;
 static unsigned long memory_end;
+static char memory_compatible[32] = "rockchip,drm-logo";
 static struct base2_info base_parameter;
 static u32 align_size = PAGE_SIZE;
 
@@ -304,6 +305,7 @@ static int get_public_phy(struct rockchip_connector *conn,
 
 static void init_display_buffer(ulong base)
 {
+	printf("use 0x%lx as drm logo base memory\n", base);
 	memory_start = ALIGN(base + DRM_ROCKCHIP_FB_SIZE, align_size);
 	memory_end = memory_start;
 	cubic_lut_memory_start = ALIGN(memory_start + MEMORY_POOL_SIZE, align_size);
@@ -2103,6 +2105,43 @@ static int rockchip_display_fixup_dts(void *blob)
 }
 #endif
 
+
+static fdt_addr_t rockchip_get_logo_memory(struct udevice *dev, const void *fdt_blob)
+{
+	int offset, idx;
+	fdt_size_t size;
+	fdt_addr_t addr;
+	const struct device_node *np = ofnode_to_np(dev->node);
+	struct device_node *logo_mem_np;
+	const char *name;
+
+	if (fdt_check_header(fdt_blob) != 0)
+		return 0;
+
+	idx = of_property_match_string(np, "memory-region-names", "drm-logo");
+	if (idx >= 0)
+		logo_mem_np = of_parse_phandle(np, "memory-region", idx);
+	else
+		logo_mem_np = of_parse_phandle(np, "logo-memory-region", 0);
+
+	if (!logo_mem_np) {
+		printf("Failed to find memory region for drm logo\n");
+		return 0;
+	}
+
+	offset = fdt_node_offset_by_phandle(fdt_blob, logo_mem_np->phandle);
+	addr = fdtdec_get_addr_size_auto_noparent(fdt_blob, offset, "reg", 0,
+						  &size, false);
+	if (addr == FDT_ADDR_T_NONE || !size)
+		return 0;
+
+	name = fdt_getprop(fdt_blob, offset, "compatible", NULL);
+	memset(memory_compatible, 0, sizeof(memory_compatible));
+	strcpy(memory_compatible, name);
+
+	return addr;
+}
+
 static int rockchip_display_probe(struct udevice *dev)
 {
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
@@ -2119,6 +2158,7 @@ static int rockchip_display_probe(struct udevice *dev)
 	struct device_node *port_node, *vop_node, *ep_node, *port_parent_node;
 	struct public_phy_data *data;
 	bool is_ports_node = false;
+	ulong base = 0;
 
 #if defined(CONFIG_ROCKCHIP_RK3568)
 	rockchip_display_fixup_dts((void *)blob);
@@ -2134,7 +2174,11 @@ static int rockchip_display_probe(struct udevice *dev)
 	}
 	data->phy_init = false;
 
-	init_display_buffer(uc_plat->base);
+	base = rockchip_get_logo_memory(dev, blob);
+	if (base)/* Assigned drm_logo memory at dts */
+		init_display_buffer(base);
+	else
+		init_display_buffer(uc_plat->base);
 
 	route_node = dev_read_subnode(dev, "route");
 	if (!ofnode_valid(route_node))
@@ -2348,7 +2392,7 @@ void rockchip_display_fixup(void *blob)
 	ulong vidcon_fb_addr = 0;
 	bool is_logo_init = 0;
 
-	if (fdt_node_offset_by_compatible(blob, 0, "rockchip,drm-logo") >= 0) {
+	if (fdt_node_offset_by_compatible(blob, 0, memory_compatible) >= 0) {
 		list_for_each_entry(s, &rockchip_display_list, head) {
 			if (s->is_init) {
 				ret = load_bmp_logo(&s->logo, s->klogo_name);
@@ -2374,15 +2418,16 @@ void rockchip_display_fixup(void *blob)
 
 		if (vidcon_fb_addr) {
 			aligned_memory_size = (u64)ALIGN(memory_end - vidcon_fb_addr, align_size);
-			offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
+			offset = fdt_update_reserved_memory(blob, memory_compatible,
 							    (u64)vidcon_fb_addr,
 							    aligned_memory_size);
 		} else {
 			aligned_memory_size = (u64)ALIGN(get_display_size(), align_size);
-			offset = fdt_update_reserved_memory(blob, "rockchip,drm-logo",
+			offset = fdt_update_reserved_memory(blob, memory_compatible,
 							    (u64)memory_start,
 							    aligned_memory_size);
 		}
+
 		if (offset < 0)
 			printf("failed to reserve drm-loader-logo memory\n");
 
@@ -2395,7 +2440,7 @@ void rockchip_display_fixup(void *blob)
 				printf("failed to reserve drm-cubic-lut memory\n");
 		}
 	} else {
-		printf("can't found rockchip,drm-logo, use rockchip,fb-logo\n");
+		printf("can't found %s, use rockchip,fb-logo\n", memory_compatible);
 		/* Compatible with rkfb display, only need reserve memory */
 		offset = fdt_update_reserved_memory(blob, "rockchip,fb-logo",
 						    (u64)memory_start,
