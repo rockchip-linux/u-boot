@@ -69,6 +69,7 @@ obj-$(CONFIG_SPL_UFS_SUPPORT) += block/
 obj-$(CONFIG_SPL_RKNAND_SUPPORT) += block/
 obj-$(CONFIG_SPL_RKNAND_SUPPORT) += rknand/
 obj-$(CONFIG_SPL_FPGA_SUPPORT) += fpga/
+obj-$(CONFIG_SPL_SPINLOCK_SUPPORT) += hwspinlock/
 endif
 endif
 
@@ -91,6 +92,7 @@ obj-y += crypto/
 obj-y += keylad/
 obj-y += firmware/
 obj-$(CONFIG_FPGA) += fpga/
+obj-y += hwspinlock/
 obj-y += misc/
 obj-$(CONFIG_MMC) += mmc/
 obj-$(CONFIG_NVME) += nvme/

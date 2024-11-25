@@ -116,6 +116,7 @@ enum uclass_id {
 	UCLASS_PD,		/* power delivery */
 	UCLASS_KEYLAD,		/* keylad used to transfer otp key */
 	UCLASS_RVD,		/* Rockchip virtual disk */
+	UCLASS_HWSPINLOCK,	/* Hardware Spinlock device */
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
 };
