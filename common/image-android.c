@@ -167,7 +167,7 @@ static ulong android_image_get_kernel_addr(const struct andr_img_hdr *hdr)
 	 */
 	if (android_kernel_comp_type != IH_COMP_NONE &&
 	    android_kernel_comp_type != IH_COMP_ZIMAGE)
-		return hdr->kernel_addr;
+		return env_get_ulong("kernel_addr_r", 16, 0);
 
 	/*
 	 * Compatble with rockchip legacy packing with kernel/ramdisk/second
@@ -215,7 +215,7 @@ int android_image_parse_kernel_comp(const struct andr_img_hdr *hdr)
 int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 			     ulong *os_data, ulong *os_len)
 {
-	u32 kernel_addr = android_image_get_kernel_addr(hdr);
+	ulong kernel_addr = android_image_get_kernel_addr(hdr);
 	/*
 	 * For header_version < 3, cmdline is split into:
 	 *   - cmdline[512] + extra_cmdline[1024]
@@ -248,7 +248,7 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 	if (strlen(andr_tmp_str))
 		printf("Android's image name: %s\n", andr_tmp_str);
 
-	printf("Kernel: 0x%08x - 0x%08x (%u KiB)\n",
+	printf("Kernel: 0x%08lx - 0x%08lx (%u KiB)\n",
 	       kernel_addr, kernel_addr + hdr->kernel_size,
 	       DIV_ROUND_UP(hdr->kernel_size, 1024));
 
@@ -328,11 +328,6 @@ ulong android_image_get_end(const struct andr_img_hdr *hdr)
 u32 android_image_get_ksize(const struct andr_img_hdr *hdr)
 {
 	return hdr->kernel_size;
-}
-
-void android_image_set_kload(struct andr_img_hdr *hdr, u32 load_address)
-{
-	hdr->kernel_addr = load_address;
 }
 
 ulong android_image_get_kload(const struct andr_img_hdr *hdr)
@@ -897,18 +892,13 @@ static ulong android_image_get_comp_addr(struct andr_img_hdr *hdr, int comp)
 
 void android_image_set_decomp(struct andr_img_hdr *hdr, int comp)
 {
-	ulong kernel_addr_r;
-
 	env_set_ulong("os_comp", comp);
 
 	/* zImage handles decompress itself */
-	if (comp != IH_COMP_NONE && comp != IH_COMP_ZIMAGE) {
-		kernel_addr_r = env_get_ulong("kernel_addr_r", 16, 0x02080000);
-		android_image_set_kload(hdr, kernel_addr_r);
+	if (comp != IH_COMP_NONE && comp != IH_COMP_ZIMAGE)
 		android_image_set_comp(hdr, comp);
-	} else {
+	else
 		android_image_set_comp(hdr, IH_COMP_NONE);
-	}
 }
 
 static int android_image_load_separate(struct andr_img_hdr *hdr,
