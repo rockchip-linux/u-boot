@@ -3,3 +3,4 @@
 # SPDX-License-Identifier: GPL-2.0
 
 obj-$(CONFIG_$(SPL_TPL_)DM_HWSPINLOCK) += hwspinlock-uclass.o
+obj-$(CONFIG_$(SPL_TPL_)HWSPINLOCK_ROCKCHIP) += rockchip-hwspinlock.o
