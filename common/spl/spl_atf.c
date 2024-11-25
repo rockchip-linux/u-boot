@@ -13,6 +13,7 @@
 #include <common.h>
 #include <atf_common.h>
 #include <errno.h>
+#include <fdtdec.h>
 #include <spl.h>
 
 static struct bl2_to_bl31_params_mem bl31_params_mem;
@@ -160,9 +161,9 @@ uintptr_t spl_fit_images_get_entry(void *blob, int node)
 {
 	ulong  val;
 
-	val = fdt_getprop_u32(blob, node, "entry-point");
+	val = fdtdec_get_uint64(blob, node, "entry-point", FDT_ERROR);
 	if (val == FDT_ERROR)
-		val = fdt_getprop_u32(blob, node, "load-addr");
+		val = fdtdec_get_uint64(blob, node, "load-addr", FDT_ERROR);
 
 	debug("%s: entry point 0x%lx\n", __func__, val);
 	return val;
