@@ -80,6 +80,9 @@ int scmi_write_msg_to_smt(struct udevice *dev, struct scmi_smt *smt,
 	}
 
 	/* Load message in shared memory */
+#ifdef CONFIG_ARCH_ROCKCHIP
+	hdr->flags &= ~SCMI_SHMEM_FLAG_INTR_ENABLED;
+#endif
 	hdr->channel_status &= ~SCMI_SHMEM_CHAN_STAT_CHANNEL_FREE;
 	hdr->length = msg->in_msg_sz + sizeof(hdr->msg_header);
 	hdr->msg_header = SMT_HEADER_TOKEN(0) |
