@@ -612,6 +612,7 @@
 #define CLUSTER_YUV2RGB_EN_SHIFT		8
 #define CLUSTER_RGB2YUV_EN_SHIFT		9
 #define CLUSTER_CSC_MODE_SHIFT			10
+#define CLUSTER_RB_SWAP_SHIFT			14
 #define CLUSTER_DITHER_UP_EN_SHIFT		18
 #define RK3568_CLUSTER0_WIN0_CTRL1		0x1004
 #define RK3568_CLUSTER_YRGB_XSCL_MODE_SHIFT	12
@@ -5497,6 +5498,8 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset,
 			WIN_FORMAT_MASK, WIN_FORMAT_SHIFT, cstate->format,
 			false);
+	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset,
+			0x1, CLUSTER_RB_SWAP_SHIFT, cstate->rb_swap, false);
 	vop2_writel(vop2, RK3568_CLUSTER0_WIN0_VIR + win_offset, xvir);
 	vop2_writel(vop2, RK3568_CLUSTER0_WIN0_YRGB_MST + win_offset,
 		    cstate->dma_addr + splice_yrgb_offset);
@@ -5634,6 +5637,9 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset,
 			WIN_FORMAT_MASK, WIN_FORMAT_SHIFT, cstate->format,
 			false);
+
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset,
+			0x1, REGION0_RB_SWAP_SHIFT, cstate->rb_swap, false);
 
 	if (vop2->version == VOP_VERSION_RK3576)
 		vop2_writel(vop2, RK3576_ESMART0_ALPHA_MAP + win_offset, 0x8000ff00);
