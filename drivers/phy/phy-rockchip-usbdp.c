@@ -170,6 +170,7 @@ struct rockchip_udphy {
 
 	/* clocks and rests */
 	struct reset_ctl *rsts;
+	struct clk_bulk clks;
 
 	/* PHY status management */
 	bool flip;
@@ -1301,6 +1302,16 @@ static int rockchip_udphy_probe(struct udevice *dev)
 	ret = udphy_parse_dt(udphy, dev);
 	if (ret)
 		return ret;
+	ret = clk_get_bulk(dev, &udphy->clks);
+	if (ret) {
+		dev_err(dev, "failed to get clk: %d\n", ret);
+		return ret;
+	}
+	ret = clk_enable_bulk(&udphy->clks);
+	if (ret) {
+		dev_err(dev, "failed to enable clk: %d\n", ret);
+		return ret;
+	}
 
 	return 0;
 }
