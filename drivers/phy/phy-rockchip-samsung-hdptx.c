@@ -6,6 +6,7 @@
  */
 
 #include <common.h>
+#include <clk.h>
 #include <dm.h>
 #include <generic-phy.h>
 #include <reset.h>
@@ -326,6 +327,7 @@ struct rockchip_hdptx_phy {
 	struct udevice *dev;
 	struct regmap *regmap;
 	struct regmap *grf;
+	struct clk_bulk clks;
 
 	struct reset_ctl apb_reset;
 	struct reset_ctl cmn_reset;
@@ -1426,6 +1428,17 @@ static int rockchip_hdptx_phy_probe(struct udevice *dev)
 	ret = reset_get_by_name(dev, "lane", &hdptx->lane_reset);
 	if (ret < 0) {
 		dev_err(dev, "failed to get lane reset: %d\n", ret);
+		return ret;
+	}
+
+	ret = clk_get_bulk(dev, &hdptx->clks);
+	if (ret) {
+		dev_err(dev, "failed to get clk: %d\n", ret);
+		return ret;
+	}
+	ret = clk_enable_bulk(&hdptx->clks);
+	if (ret) {
+		dev_err(dev, "failed to enable clk: %d\n", ret);
 		return ret;
 	}
 
