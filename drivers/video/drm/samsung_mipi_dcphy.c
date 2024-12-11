@@ -231,7 +231,7 @@ struct samsung_mipi_dcphy {
 		unsigned long long rate;
 		u8 prediv;
 		u16 fbdiv;
-		long dsm;
+		u16 dsm;
 		u8 scaler;
 
 		bool ssc_en;
@@ -1322,19 +1322,7 @@ static void samsung_mipi_dcphy_pll_configure(struct samsung_mipi_dcphy *samsung)
 {
 	phy_update_bits(samsung, PLL_CON0, S_MASK | P_MASK,
 			S(samsung->pll.scaler) | P(samsung->pll.prediv));
-
-	if (samsung->pll.dsm < 0) {
-		u16 dsm_tmp;
-
-		/* Using opposite number subtraction to find complement */
-		dsm_tmp = abs(samsung->pll.dsm);
-		dsm_tmp = dsm_tmp - 1;
-		dsm_tmp ^= 0xffff;
-		phy_write(samsung, PLL_CON1, dsm_tmp);
-	} else {
-		phy_write(samsung, PLL_CON1, samsung->pll.dsm);
-	}
-
+	phy_write(samsung, PLL_CON1, samsung->pll.dsm);
 	phy_update_bits(samsung, PLL_CON2, M_MASK, M(samsung->pll.fbdiv));
 
 	if (samsung->pll.ssc_en) {
@@ -1661,70 +1649,87 @@ static int samsung_mipi_dcphy_power_off(struct rockchip_phy *phy)
 
 static int
 samsung_mipi_dcphy_pll_ssc_modulation_calc(struct samsung_mipi_dcphy *samsung,
-					   u8 *mfr, u8 *mrr)
+					   u16 prediv, u16 fbdiv, u8 *mfr, u8 *mrr)
 {
 	unsigned long fin = 24000;
-	u16 prediv = samsung->pll.prediv;
-	u16 fbdiv = samsung->pll.fbdiv;
-	u16 min_mfr, max_mfr;
+	u16 min_mfr, max_mfr, mid_mfr, mfr_end;
 	u16 _mfr, best_mfr = 0;
-	u16 mr, _mrr, best_mrr = 0;
+	u16 _mrr, best_mrr = 0;
 
-	/* 20KHz ≤ MF ≤ 150KHz */
-	max_mfr = DIV_ROUND_UP(fin, (20 * prediv) << 5);
-	min_mfr = div64_ul(fin, ((150 * prediv) << 5));
-	/*0 ≤ mfr ≤ 255 */
+	/* MF(MHz) = Fref / p / mfr / 32 */
+	/* 30MHz ≤ MF ≤ 33MHz, default 31 */
+	max_mfr = DIV_ROUND_UP(fin, (30 * prediv) << 5);
+	min_mfr = div64_ul(fin, ((33 * prediv) << 5));
+	mid_mfr = div64_ul(fin, (31 * prediv) << 5);
+	/* 0 ≤ mfr ≤ 255 */
 	if (max_mfr > 256)
 		max_mfr = 256;
 
-	for (_mfr = min_mfr; _mfr < max_mfr; _mfr++) {
-		/* 1 ≤ mrr ≤ 31 */
-		for (_mrr = 1; _mrr < 32; _mrr++) {
-			mr = DIV_ROUND_UP(_mfr * _mrr * 100, fbdiv << 6);
-			/* 0 ≤ MR ≤ 5% */
-			if (mr > 5)
-				continue;
-
-			if (_mfr * _mrr < 513) {
+	mfr_end = max_mfr;
+	for (_mfr = mid_mfr; _mfr < mfr_end; _mfr++) {
+		/* MR(%) = mfr * mrr * 100 / m / 64 */
+		/* 0 ≤ MR ≤ 5000ppm(0.5%), default is reduced from 0.25%. */
+		_mrr = (25 * fbdiv << 6) / (_mfr * 100 * 100);
+		for (; _mrr > 0; _mrr--) {
+			/* 0 ≤ mrr * mfr ≤ 512 */
+			if (_mfr * _mrr <= 512) {
 				best_mfr = _mfr;
 				best_mrr = _mrr;
 				break;
 			}
+		}
+
+		if (best_mrr)
+			break;
+
+		if (_mfr == mfr_end - 1 && _mfr > mid_mfr) {
+			_mfr = min_mfr - 1;
+			mfr_end = mid_mfr;
 		}
 	}
 
 	if (best_mrr) {
 		*mfr = best_mfr & 0xff;
 		*mrr = best_mrr & 0x3f;
-	} else {
-		dev_err(samsung->dev, "failed to calc ssc parameter mfr and mrr\n");
-		return -EINVAL;
+		dev_info(samsung->dev, "mfr=%d, mrr=%d, MF=%llukHz, MR=%lluppm\n",
+			 *mfr, *mrr, div64_ul(fin, (prediv * *mfr) << 5),
+			 div64_ul(*mfr * *mrr * 1000000, fbdiv << 6));
+
+		return 0;
 	}
 
-	return 0;
+	dev_info(samsung->dev, "%s: failed to calc ssc parameter mfr and mrr\n", __func__);
+
+	return -EINVAL;
 }
 
 static unsigned long
 samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 				  unsigned long prate, unsigned long rate,
-				  u8 *prediv, u16 *fbdiv, int *dsm, u8 *scaler)
+				  u8 *prediv, u16 *fbdiv, u16 *dsm, u8 *scaler, u8 *mfr, u8 *mrr)
 {
 	u32 max_fout = samsung->c_option ?
 		       samsung->pdata->cphy_tx_max_ksps_per_lane :
 		       samsung->pdata->dphy_tx_max_kbps_per_lane;
-	u64 best_freq = 0;
+	u64 _freq, best_freq = 0;
 	u64 fin, fvco, fout;
 	u8 min_prediv, max_prediv;
+	u8 _mfr = 0, best_mfr = 0;
+	u8 _mrr = 0, best_mrr = 0;
 	u8 _prediv, best_prediv = 1;
 	u16 _fbdiv, best_fbdiv = 1;
 	u8 _scaler, best_scaler = 0;
-	long _dsm, best_dsm = 0;
+	long long _dsm, best_dsm = 0;
 	u32 min_delta = 0xffffffff;
+	int ret = 0;
 
 	if (!prate) {
 		dev_err(samsung->dev, "prate of pll can not be set zero\n");
 		return 0;
 	}
+
+	printf("%s: fin=%lu, req_rate=%lu\n",
+	       __func__, prate, rate);
 
 	/*
 	 * The PLL output frequency can be calculated using a simple formula:
@@ -1761,23 +1766,39 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 				if ((_fbdiv < 64) || (_fbdiv > 1023))
 					continue;
 
-				/* -32767 ≤ K[15:0] ≤ 32767 */
-				_dsm = ((_prediv * fvco) - (2 * _fbdiv * fin));
-				_dsm = DIV_ROUND_UP(_dsm << 15, fin);
-				if (abs(_dsm) > 32767)
+				/* -32768 ≤ K[15:0] ≤ 32767 */
+				_dsm = _prediv * fvco - 2 * _fbdiv * fin;
+				_dsm = _dsm / abs(_dsm) * DIV_ROUND_UP_ULL(abs(_dsm) << 15, fin);
+				if (_dsm < -32768 || _dsm > 32767)
 					continue;
 
-				tmp = DIV_ROUND_CLOSEST((_fbdiv * fin * 2 * 1000), _prediv);
-				tmp += DIV_ROUND_CLOSEST((_dsm * fin * 1000), _prediv << 15);
+				tmp = DIV_ROUND_CLOSEST(_fbdiv * fin * 2 * 1000, _prediv);
+				tmp += (_dsm / abs(_dsm) *
+					DIV_ROUND_CLOSEST(abs(_dsm) * fin * 1000,
+							      _prediv << 15));
+				_freq = (DIV_ROUND_CLOSEST(tmp, 1000) * MSEC_PER_SEC);
+
+				/*
+				 * All DPHY 2.0 compliant Transmitters shall support SSC
+				 * operating above 2.5 Gbps
+				 */
+				if ((_freq >> _scaler) > 2500000000LL)
+					ret = samsung_mipi_dcphy_pll_ssc_modulation_calc(samsung,
+											 _prediv,
+											 _fbdiv,
+											 &_mfr,
+											 &_mrr);
 
 				delta = abs(fvco * MSEC_PER_SEC - tmp);
-				if (delta < min_delta) {
+				if (!ret && delta <= min_delta) {
 					best_prediv = _prediv;
 					best_fbdiv = _fbdiv;
 					best_dsm = _dsm;
+					best_mfr = _mfr;
+					best_mrr = _mrr;
 					best_scaler = _scaler;
 					min_delta = delta;
-					best_freq = DIV_ROUND_CLOSEST(tmp, 1000) * MSEC_PER_SEC;
+					best_freq = _freq;
 				}
 			}
 		}
@@ -1789,8 +1810,10 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 	*fbdiv = best_fbdiv;
 	*dsm = (int)best_dsm & 0xffff;
 	*scaler = best_scaler;
-	dev_info(samsung->dev, "p: %d, m: %d, dsm:%ld, scaler: %d\n",
-		 best_prediv, best_fbdiv, best_dsm, best_scaler);
+	*mfr = best_mfr;
+	*mrr = best_mrr;
+	printf("%s: fout=%llu, prediv=%u, fbdiv=%u, dsm=%lld, scaler=%u\n",
+	       __func__, best_freq >> best_scaler, best_prediv, best_fbdiv, best_dsm, best_scaler);
 
 	return best_freq >> best_scaler;
 }
@@ -1803,30 +1826,20 @@ static unsigned long samsung_mipi_dcphy_set_pll(struct rockchip_phy *phy,
 	u8 scaler = 0, mfr = 0, mrr = 0;
 	u16 fbdiv = 0;
 	u8 prediv = 1;
-	int dsm = 0;
-	int ret;
+	u16 dsm = 0;
 
 	samsung->c_option = (samsung->mode == PHY_MODE_MIPI_DPHY) ? false : true;
 	fout = samsung_mipi_dcphy_pll_round_rate(samsung, fin, rate, &prediv,
-						 &fbdiv, &dsm, &scaler);
+						 &fbdiv, &dsm, &scaler, &mfr, &mrr);
 
-	dev_info(samsung->dev, "fin=%lu, req_rate=%lu\n", fin, rate);
-	dev_info(samsung->dev, "fout=%lu, prediv=%u, fbdiv=%u\n", fout, prediv, fbdiv);
+	if (fout != 0) {
+		samsung->pll.prediv = prediv;
+		samsung->pll.fbdiv = fbdiv;
+		samsung->pll.dsm = dsm;
+		samsung->pll.scaler = scaler;
+		samsung->pll.rate = fout;
 
-	samsung->pll.prediv = prediv;
-	samsung->pll.fbdiv = fbdiv;
-	samsung->pll.dsm = dsm;
-	samsung->pll.scaler = scaler;
-	samsung->pll.rate = fout;
-
-	/*
-	 * All DPHY 2.0 compliant Transmitters shall support SSC operating above
-	 * 2.5 Gbps
-	 */
-	if (fout > 2500000000LL) {
-		ret = samsung_mipi_dcphy_pll_ssc_modulation_calc(samsung,
-								 &mfr, &mrr);
-		if (!ret) {
+		if (fout > 2500000000LL) {
 			samsung->pll.ssc_en = true;
 			samsung->pll.mfr = mfr;
 			samsung->pll.mrr = mrr;
