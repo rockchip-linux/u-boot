@@ -1917,8 +1917,8 @@ static const struct rockchip_phy_funcs samsung_mipi_dcphy_funcs = {
 static const struct hs_drv_res_cfg rk3576_dphy_hs_drv_res_cfg = {
 	.clk_hs_drv_up_ohm = _52_OHM,
 	.clk_hs_drv_down_ohm = _52_OHM,
-	.data_hs_drv_up_ohm = _39_OHM,
-	.data_hs_drv_down_ohm = _39_OHM,
+	.data_hs_drv_up_ohm = _43_OHM,
+	.data_hs_drv_down_ohm = _43_OHM,
 };
 
 static const struct hs_drv_res_cfg rk3588_dphy_hs_drv_res_cfg = {
