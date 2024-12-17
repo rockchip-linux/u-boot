@@ -39,6 +39,7 @@ struct rockchip_crtc_funcs {
 	int (*set_plane)(struct display_state *state);
 	int (*prepare)(struct display_state *state);
 	int (*enable)(struct display_state *state);
+	int (*post_enable)(struct display_state *state);
 	int (*disable)(struct display_state *state);
 	void (*unprepare)(struct display_state *state);
 	int (*fixup_dts)(struct display_state *state, void *blob);

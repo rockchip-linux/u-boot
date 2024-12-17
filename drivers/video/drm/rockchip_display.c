@@ -916,6 +916,9 @@ static int display_enable(struct display_state *state)
 	if (state->enabled_at_spl == false)
 		rockchip_connector_enable(state);
 
+	if (crtc_funcs->post_enable)
+		crtc_funcs->post_enable(state);
+
 #ifdef CONFIG_DRM_ROCKCHIP_RK628
 	/*
 	 * trigger .probe helper of U_BOOT_DRIVER(rk628) in ./rk628/rk628.c

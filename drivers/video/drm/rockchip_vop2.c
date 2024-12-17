@@ -3516,8 +3516,6 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	}
 
 	if (output_if & VOP_OUTPUT_IF_DP0) {
-		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_DP0_EN_SHIFT,
-				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK, RK3588_DP0_MUX_SHIFT,
 				cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, RK3588_IF_PIN_POL_MASK,
@@ -3525,8 +3523,6 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	}
 
 	if (output_if & VOP_OUTPUT_IF_DP1) {
-		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_DP1_EN_SHIFT,
-				1, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_EN, IF_MUX_MASK, RK3588_DP1_MUX_SHIFT,
 				cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3568_DSP_IF_POL, RK3588_IF_PIN_POL_MASK,
@@ -3787,8 +3783,6 @@ static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
 				RK3576_IF_REGDONE_IMD_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3576_DP0_IF_CTRL, EN_MASK,
 				RK3576_IF_CLK_OUT_EN_SHIFT, 1, false);
-		vop2_mask_write(vop2, RK3576_DP0_IF_CTRL, EN_MASK,
-				RK3576_IF_OUT_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3576_DP0_IF_CTRL, RK3576_IF_PORT_SEL_MASK,
 				RK3576_IF_PORT_SEL_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3576_DP0_IF_CTRL, RK3576_IF_PIN_POL_MASK,
@@ -3806,8 +3800,6 @@ static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
 				RK3576_IF_REGDONE_IMD_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3576_DP1_IF_CTRL, EN_MASK,
 				RK3576_IF_CLK_OUT_EN_SHIFT, 1, false);
-		vop2_mask_write(vop2, RK3576_DP1_IF_CTRL, EN_MASK,
-				RK3576_IF_OUT_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3576_DP1_IF_CTRL, RK3576_IF_PORT_SEL_MASK,
 				RK3576_IF_PORT_SEL_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3576_DP1_IF_CTRL, RK3576_IF_PIN_POL_MASK,
@@ -3825,8 +3817,6 @@ static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
 				RK3576_IF_REGDONE_IMD_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3576_DP2_IF_CTRL, EN_MASK,
 				RK3576_IF_CLK_OUT_EN_SHIFT, 1, false);
-		vop2_mask_write(vop2, RK3576_DP2_IF_CTRL, EN_MASK,
-				RK3576_IF_OUT_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3576_DP2_IF_CTRL, RK3576_IF_PORT_SEL_MASK,
 				RK3576_IF_PORT_SEL_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3576_DP2_IF_CTRL, RK3576_IF_PIN_POL_MASK,
@@ -5518,6 +5508,79 @@ static int rockchip_vop2_enable(struct display_state *state)
 	if (cstate->mcu_timing.mcu_pix_total)
 		vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
 				MCU_HOLD_MODE_SHIFT, 0, false);
+
+	return 0;
+}
+
+static int rk3588_vop2_post_enable(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	int output_if = conn_state->output_if;
+	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
+	int ret, val;
+
+	if (output_if & VOP_OUTPUT_IF_DP0)
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_DP0_EN_SHIFT,
+				1, false);
+
+	if (output_if & VOP_OUTPUT_IF_DP1)
+		vop2_mask_write(vop2, RK3568_DSP_IF_EN, EN_MASK, RK3588_DP1_EN_SHIFT,
+				1, false);
+
+	if (output_if & (VOP_OUTPUT_IF_DP0 | VOP_OUTPUT_IF_DP1)) {
+		vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+		ret = readl_poll_timeout(vop2->regs + RK3568_REG_CFG_DONE, val,
+					 val & BIT(cstate->crtc_id), 50 * 1000);
+		if (ret)
+			printf("%s wait cfg done timeout\n", __func__);
+	}
+
+	return 0;
+}
+
+static int rk3576_vop2_post_enable(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	int output_if = conn_state->output_if;
+	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
+	int ret, val;
+
+	if (output_if & VOP_OUTPUT_IF_DP0)
+		vop2_mask_write(vop2, RK3576_DP0_IF_CTRL, EN_MASK,
+				RK3576_IF_OUT_EN_SHIFT, 1, false);
+
+	if (output_if & VOP_OUTPUT_IF_DP1)
+		vop2_mask_write(vop2, RK3576_DP1_IF_CTRL, EN_MASK,
+				RK3576_IF_OUT_EN_SHIFT, 1, false);
+
+	if (output_if & VOP_OUTPUT_IF_DP2)
+		vop2_mask_write(vop2, RK3576_DP2_IF_CTRL, EN_MASK,
+				RK3576_IF_OUT_EN_SHIFT, 1, false);
+
+	if (output_if & (VOP_OUTPUT_IF_DP0 | VOP_OUTPUT_IF_DP1 | VOP_OUTPUT_IF_DP2)) {
+		vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+		ret = readl_poll_timeout(vop2->regs + RK3568_REG_CFG_DONE, val,
+					 val & BIT(cstate->crtc_id), 50 * 1000);
+		if (ret)
+			printf("%s wait cfg done timeout\n", __func__);
+	}
+
+	return 0;
+}
+
+static int rockchip_vop2_post_enable(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+
+	if (vop2->version == VOP_VERSION_RK3588)
+		rk3588_vop2_post_enable(state);
+	else if (vop2->version == VOP_VERSION_RK3576)
+		rk3576_vop2_post_enable(state);
 
 	return 0;
 }
@@ -7223,6 +7286,7 @@ const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
 	.init = rockchip_vop2_init,
 	.set_plane = rockchip_vop2_set_plane,
 	.enable = rockchip_vop2_enable,
+	.post_enable = rockchip_vop2_post_enable,
 	.disable = rockchip_vop2_disable,
 	.fixup_dts = rockchip_vop2_fixup_dts,
 	.send_mcu_cmd = rockchip_vop2_send_mcu_cmd,
