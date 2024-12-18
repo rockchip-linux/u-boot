@@ -1,7 +1,12 @@
 #
 # Boot count configuration
 #
-
+menuconfig BOOTCOUNT_LIMIT
+	bool "Enable support for checking boot count limit"
+	help
+	  Enable checking for exceeding the boot count limit.
+	  More information: https://docs.u-boot.org/en/latest/api/bootcount.html
+	  
 menu "Boot count support"
 
 config BOOTCOUNT
@@ -18,6 +23,18 @@ config BOOTCOUNT_EXT
 	help
 	  Add support for maintaining boot count in a file on an EXT
 	  filesystem.
+
+config BOOTCOUNT_ENV
+    bool "Boot counter in environment"
+    help
+      If no softreset save registers are found on the hardware
+      "bootcount" is stored in the environment. To prevent a
+      saveenv on all reboots, the environment variable
+      "upgrade_available" is used. If "upgrade_available" is
+      0, "bootcount" is always 0, if "upgrade_available" is
+      1 "bootcount" is incremented in the environment.
+      So the Userspace Application must set the "upgrade_available"
+      and "bootcount" variable to 0, if a boot was successfully.
 
 if BOOTCOUNT_EXT
 

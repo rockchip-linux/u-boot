@@ -399,6 +399,7 @@ config SPL_FIT_IMAGE_MULTIPLE
 
 endif # FIT
 
+
 config OF_BOARD_SETUP
 	bool "Set up board-specific details in device tree before boot"
 	depends on OF_LIBFDT

@@ -75,6 +75,10 @@ obj-$(CONFIG_TPL_MPC8XXX_INIT_DDR_SUPPORT) += ddr/fsl/
 
 endif
 
+obj-$(CONFIG_BOOTCOUNT_LIMIT) += bootcount/
+
+obj-$(CONFIG_BOOTCOUNT_LIMIT) += bootcount/
+
 ifeq ($(CONFIG_SPL_BUILD)$(CONFIG_TPL_BUILD),)
 
 obj-y += adc/
@@ -82,7 +86,6 @@ obj-y += ata/
 obj-$(CONFIG_DM_DEMO) += demo/
 obj-$(CONFIG_BIOSEMU) += bios_emulator/
 obj-y += block/
-obj-$(CONFIG_BOOTCOUNT_LIMIT) += bootcount/
 obj-$(CONFIG_CPU) += cpu/
 obj-y += crypto/
 obj-y += firmware/

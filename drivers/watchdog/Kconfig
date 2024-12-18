@@ -3,6 +3,22 @@ menu "Watchdog Timer Support"
 config HW_WATCHDOG
 	bool
 
+config WATCHDOG_TIMEOUT_MSECS
+	int "Default Watchdog Timeout (in milliseconds)"
+	default 60000
+	range 100 60000
+	help
+	  Set the default watchdog timeout value in milliseconds.
+	  The timeout determines how long the watchdog waits before resetting
+	  the system. Valid range is 100ms to 60000ms (60 seconds).
+
+config DESIGNWARE_WATCHDOG
+	bool "Enable DesignWare Watchdog"
+	select HW_WATCHDOG
+	help
+	  Enable support for DesignWare watchdog timer hardware.
+	
+
 config BCM2835_WDT
 	bool "Enable BCM2835/2836 watchdog driver"
 	select HW_WATCHDOG

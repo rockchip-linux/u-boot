@@ -37,13 +37,15 @@ int init_func_watchdog_reset(void);
  * Hardware watchdog
  */
 #ifdef CONFIG_HW_WATCHDOG
-	#if defined(__ASSEMBLY__)
-		#define WATCHDOG_RESET bl hw_watchdog_reset
-	#else
-		extern void hw_watchdog_reset(void);
+	// #if defined(__ASSEMBLY__)
+	// 	#define WATCHDOG_RESET bl hw_watchdog_reset
+	// #else
+	// extern void hw_watchdog_reset(void);
 
-		#define WATCHDOG_RESET hw_watchdog_reset
-	#endif /* __ASSEMBLY__ */
+	// #define WATCHDOG_RESET hw_watchdog_reset
+	#define WATCHDOG_RESET() do { } while (0)
+
+	// #endif /* __ASSEMBLY__ */
 #else
 	/*
 	 * Maybe a software watchdog?

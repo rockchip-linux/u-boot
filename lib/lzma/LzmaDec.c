@@ -320,7 +320,7 @@ static int MY_FAST_CALL LzmaDec_DecodeReal(CLzmaDec *p, SizeT limit, const Byte 
             {
               UInt32 mask = 1;
               unsigned i = 1;
-
+              
               WATCHDOG_RESET();
 
               do

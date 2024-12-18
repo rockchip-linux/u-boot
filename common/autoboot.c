@@ -327,6 +327,7 @@ const char *bootdelay_process(void)
 	} else
 #endif /* CONFIG_POST */
 #ifdef CONFIG_BOOTCOUNT_LIMIT
+	bootlimit = 1;
 	if (bootlimit && (bootcount > bootlimit)) {
 		printf("Warning: Bootlimit (%u) exceeded. Using altbootcmd.\n",
 		       (unsigned)bootlimit);
