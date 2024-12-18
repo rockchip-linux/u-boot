@@ -4,6 +4,7 @@
  */
 
 #include <common.h>
+#include <clk.h>
 #include <asm/arch/cpu.h>
 #include <asm/io.h>
 #include <command.h>
@@ -414,9 +415,38 @@ static int rockchip_otp_ofdata_to_platdata(struct udevice *dev)
 	return 0;
 }
 
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+static int rockchip_otp_clk_init(struct udevice *dev)
+{
+	struct clk_bulk clks = { 0 };
+	int ret = 0;
+
+	ret = clk_get_bulk(dev, &clks);
+	if (ret == -ENOSYS || ret == -ENOENT)
+		return 0;
+	if (ret) {
+		dev_err(dev, "failed to get clk: %d\n", ret);
+		return ret;
+	}
+
+	ret = clk_enable_bulk(&clks);
+	if (ret) {
+		dev_err(dev, "failed to enable clk: %d\n", ret);
+		clk_release_bulk(&clks);
+		return ret;
+	}
+
+	return 0;
+}
+#endif
+
 static int rockchip_otp_probe(struct udevice *dev)
 {
 	struct otp_data *data;
+
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
+	rockchip_otp_clk_init(dev);
+#endif
 
 	data = (struct otp_data *)dev_get_driver_data(dev);
 	if (!data)
