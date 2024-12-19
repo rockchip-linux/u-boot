@@ -1019,9 +1019,9 @@ static void dw_mipi_dsi_command_mode_config(struct dw_mipi_dsi *dsi)
 
 /* Get lane byte clock cycles. */
 static int dw_mipi_dsi_get_hcomponent_lbcc(struct dw_mipi_dsi *dsi,
-					   u32 hcomponent)
+					   u64 hcomponent)
 {
-	u32 lbcc;
+	u64 lbcc;
 
 	lbcc = hcomponent * dsi->lane_mbps * 1000 / 8;
 
