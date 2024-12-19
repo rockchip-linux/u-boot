@@ -396,6 +396,9 @@ char *mtd_part_parse(struct blk_desc *dev_desc)
 	if (!dev_desc)
 		return NULL;
 
+	if (dev_desc->if_type != IF_TYPE_MTD)
+		return NULL;
+
 	mtd = (struct mtd_info *)dev_desc->bdev->priv;
 	if (!mtd)
 		return NULL;
