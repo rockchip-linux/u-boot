@@ -18,6 +18,7 @@
 #include <drm_modes.h>
 #include <dm/ofnode.h>
 #include <drm/drm_dsc.h>
+#include <reset.h>
 #include <spl_display.h>
 #include <clk.h>
 #include <drm/drm_color_mgmt.h>
@@ -169,6 +170,7 @@ struct crtc_state {
 	ofnode node;
 	struct device_node *ports_node; /* if (ports_node) it's vop2; */
 	struct device_node *port_node;
+	struct reset_ctl dclk_rst;
 	struct clk dclk;
 	int crtc_id;
 

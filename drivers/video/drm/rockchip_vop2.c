@@ -3053,6 +3053,8 @@ static int rockchip_vop2_preinit(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	const struct vop2_data *vop2_data = cstate->crtc->data;
 	struct regmap *map;
+	char dclk_name[16];
+	int ret;
 
 	if (!rockchip_vop2) {
 		rockchip_vop2 = calloc(1, sizeof(struct vop2));
@@ -3100,6 +3102,13 @@ static int rockchip_vop2_preinit(struct display_state *state)
 				printf("%s: Get syscon sys_pmu failed (ret=%p)\n",
 				       __func__, rockchip_vop2->sys_pmu);
 		}
+	}
+
+	snprintf(dclk_name, sizeof(dclk_name), "dclk_vp%d", cstate->crtc_id);
+	ret = reset_get_by_name(cstate->dev, dclk_name, &cstate->dclk_rst);
+	if (ret < 0) {
+		printf("%s: failed to get dclk reset: %d\n", __func__, ret);
+		cstate->dclk_rst.dev = NULL;
 	}
 
 	cstate->private = rockchip_vop2;
@@ -5524,6 +5533,12 @@ static int rk3588_vop2_post_enable(struct display_state *state)
 					 val & BIT(cstate->crtc_id), 50 * 1000);
 		if (ret)
 			printf("%s wait cfg done timeout\n", __func__);
+
+		if (cstate->dclk_rst.dev) {
+			reset_assert(&cstate->dclk_rst);
+			udelay(20);
+			reset_deassert(&cstate->dclk_rst);
+		}
 	}
 
 	return 0;
@@ -5556,6 +5571,12 @@ static int rk3576_vop2_post_enable(struct display_state *state)
 					 val & BIT(cstate->crtc_id), 50 * 1000);
 		if (ret)
 			printf("%s wait cfg done timeout\n", __func__);
+
+		if (cstate->dclk_rst.dev) {
+			reset_assert(&cstate->dclk_rst);
+			udelay(20);
+			reset_deassert(&cstate->dclk_rst);
+		}
 	}
 
 	return 0;
