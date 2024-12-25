@@ -745,7 +745,6 @@ static const struct vop_ctrl rk3506_ctrl_data = {
 	.dsp_interlace = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1, 0),
 	.dsp_interlace_pol = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1, 1),
 	.dither_up = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1, 2),
-	.overlay_mode = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1, 4),
 	.dsp_lut_en = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1, 5),
 	.dither_down = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1, 8),
 	.dsp_data_swap = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1f, 9),
