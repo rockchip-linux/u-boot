@@ -99,6 +99,7 @@
 
 #define RK3576_SYS_PORT_CTRL			0x028
 #define VP_INTR_MERGE_EN_SHIFT			14
+#define RK3576_DSP_VS_T_SEL_SHIFT		4
 #define INTERLACE_FRM_REG_DONE_MASK		0x7
 #define INTERLACE_FRM_REG_DONE_SHIFT		0
 
@@ -2841,8 +2842,12 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 
 		vop3_init_esmart_scale_engine(vop2);
 
-		vop2_mask_write(vop2, RK3568_SYS_AXI_LUT_CTRL, EN_MASK,
-				DSP_VS_T_SEL_SHIFT, 0, false);
+		if (vop2->version == VOP_VERSION_RK3576)
+			vop2_mask_write(vop2, RK3576_SYS_PORT_CTRL, EN_MASK,
+					RK3576_DSP_VS_T_SEL_SHIFT, 0, true);
+		else
+			vop2_mask_write(vop2, RK3568_SYS_AXI_LUT_CTRL, EN_MASK,
+					DSP_VS_T_SEL_SHIFT, 0, false);
 
 		/*
 		 * This is a workaround for RK3528/RK3562/RK3576:
