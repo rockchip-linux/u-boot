@@ -2838,7 +2838,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 			vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL,
 					ESMART_LB_MODE_SEL_MASK,
 					ESMART_LB_MODE_SEL_SHIFT,
-					vop3_get_esmart_lb_mode(vop2), true);
+					vop3_get_esmart_lb_mode(vop2), false);
 
 		vop3_init_esmart_scale_engine(vop2);
 
