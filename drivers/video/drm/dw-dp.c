@@ -1835,7 +1835,6 @@ static int dw_dp_bind(struct udevice *parent)
 		debug("%s: subnode %s\n", __func__, node_name);
 
 		if (!strcasecmp(node_name, "dp0")) {
-			printf("%s zyb enter\n", __func__);
 			ret = device_bind_driver_to_node(parent,
 							 "dw_dp_port0",
 							 node_name, subnode, &child);
