@@ -1901,7 +1901,7 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 		rk3568_vop2_load_lut(vop2, cstate->crtc_id, lut_regs,
 				     cstate->lut_val, lut_len);
 		gamma_lut_en_num++;
-	} else if (vop2->version == VOP_VERSION_RK3588) {
+	} else {
 		rk3588_vop2_load_lut(vop2, cstate->crtc_id, lut_regs,
 				     cstate->lut_val, lut_len);
 		if (cstate->splice_mode) {
