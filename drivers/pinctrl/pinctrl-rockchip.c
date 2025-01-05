@@ -829,7 +829,7 @@ static void rockchip_get_recalced_mux(struct rockchip_pin_bank *bank, int pin,
 {
 	struct rockchip_pinctrl_priv *priv = bank->priv;
 	struct rockchip_pin_ctrl *ctrl = priv->ctrl;
-	struct rockchip_mux_recalced_data *data;
+	struct rockchip_mux_recalced_data *data = NULL;
 	int i;
 
 	for (i = 0; i < ctrl->niomux_recalced; i++) {
@@ -840,6 +840,9 @@ static void rockchip_get_recalced_mux(struct rockchip_pin_bank *bank, int pin,
 	}
 
 	if (i >= ctrl->niomux_recalced)
+		return;
+
+	if (data == NULL)
 		return;
 
 	*reg = data->reg;
@@ -1561,7 +1564,7 @@ rockchip_get_mux_route(struct rockchip_pin_bank *bank, int pin,
 {
 	struct rockchip_pinctrl_priv *priv = bank->priv;
 	struct rockchip_pin_ctrl *ctrl = priv->ctrl;
-	struct rockchip_mux_route_data *data;
+	struct rockchip_mux_route_data *data = NULL;
 	int i;
 
 	for (i = 0; i < ctrl->niomux_routes; i++) {
@@ -1573,6 +1576,10 @@ rockchip_get_mux_route(struct rockchip_pin_bank *bank, int pin,
 
 	if (i >= ctrl->niomux_routes)
 		return ROUTE_TYPE_INVALID;
+
+	if (data == NULL)
+		return ROUTE_TYPE_INVALID;
+	
 
 	*reg = data->route_offset;
 	*value = data->route_val;
