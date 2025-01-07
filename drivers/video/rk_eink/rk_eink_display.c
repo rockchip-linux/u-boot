@@ -160,7 +160,7 @@ static int read_waveform(struct udevice *dev)
 	flush_dcache_range((ulong)plat->lut_pbuf,
 			   ALIGN((ulong)plat->lut_pbuf + cnt,
 				 CONFIG_SYS_CACHELINE_SIZE));
-	ret = epd_lut_from_mem_init(plat->lut_pbuf, &plat->lut_ops);
+	ret = epd_lut_from_mem_init(plat->lut_pbuf);
 	if (ret < 0) {
 		printf("lut init failed\n");
 		return -EINVAL;
@@ -521,7 +521,6 @@ static int eink_display(struct udevice *dev, u32 pre_img_buf,
 	u32 frame_num;
 	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
 	struct ebc_panel *plat = dev_get_platdata(dev);
-	struct epd_lut_ops *lut_ops = &plat->lut_ops;
 	struct udevice *ebc_pwr_dev = priv->ebc_pwr_dev;
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
@@ -540,13 +539,14 @@ static int eink_display(struct udevice *dev, u32 pre_img_buf,
 		temperature = 25;
 	}
 
-	if (!lut_ops->lut_get) {
-		printf("get lut ops failed\n");
-		return -EIO;
-	}
-	lut_ops->lut_get(&plat->lut_data, lut_type, temperature);
-	frame_num = plat->lut_data.frame_num;
-	debug("lut_type=%d, frame num=%d, temp=%d\n", lut_type,
+	if(!plat->lut_data.wf_table[0])
+		plat->lut_data.wf_table[0] = kzalloc(MAXFRAME * 32 * 32, GFP_KERNEL);
+	epd_lut_get(&plat->lut_data, lut_type, temperature, WF_4BIT, 0);
+	kfree(plat->lut_data.wf_table[0]);
+	plat->lut_data.wf_table[0] = NULL;
+
+	frame_num = plat->lut_data.frame_num & 0xff;
+	printk("lut_type=%d, frame num=%d, temp=%d\n", lut_type,
 	      frame_num, temperature);
 
 	ebc_tcon_ops->wait_for_last_frame_complete(ebc_tcon_dev);
@@ -876,6 +876,12 @@ static int rockchip_eink_display_ofdata_to_platdata(struct udevice *dev)
 	struct device_node *disp_mem;
 	struct device_node *waveform_mem;
 	struct ebc_panel *plat = dev_get_platdata(dev);
+	void * data;
+	int len;
+
+	data = (void *)dev_read_prop(dev, "wf,mode_table", &len);
+	if (len > 0 && pvi_wf_add_custom_mode_table(data, len))
+		return -ENODEV;
 
 	plat->width = dev_read_u32_default(dev, "panel,width", 0);
 	plat->height = dev_read_u32_default(dev, "panel,height", 0);

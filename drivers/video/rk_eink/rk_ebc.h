@@ -40,7 +40,6 @@ struct ebc_panel {
 	u32 *lut_pbuf;
 	u32 lut_pbuf_size;
 	struct epd_lut_data lut_data;
-	struct epd_lut_ops lut_ops;
 };
 
 struct rk_ebc_tcon_ops {
