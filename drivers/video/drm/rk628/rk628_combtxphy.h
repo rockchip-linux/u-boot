@@ -58,6 +58,10 @@
 #define TX_COM_VOLT_ADJ(x)      UPDATE(x, 2, 0)
 
 #define COMBTXPHY_CON8		REG(0x0020)
+#define SW_SSC_DEPTH_MASK	GENMASK(7, 4)
+#define SW_SSC_DEPTH(x)		UPDATE(x, 7, 4)
+#define SW_SSC_EN_MASK		BIT(0)
+#define SW_SSC_EN(x)		UPDATE(x, 0, 0)
 #define COMBTXPHY_CON9		REG(0x0024)
 #define SW_DSI_FSET_EN_MASK	BIT(29)
 #define SW_DSI_FSET_EN		BIT(29)

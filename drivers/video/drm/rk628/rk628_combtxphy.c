@@ -37,6 +37,12 @@ static void rk628_combtxphy_dsi_power_on(struct rk628 *rk628)
 		rk628_i2c_update_bits(rk628, COMBTXPHY_CON0,
 				      SW_MODULEB_EN_MASK, SW_MODULEB_EN);
 
+	rk628_i2c_update_bits(rk628, COMBTXPHY_CON0, SW_PD_PLL, SW_PD_PLL);
+
+	if (combtxphy->frac_div)
+		rk628_i2c_update_bits(rk628, COMBTXPHY_CON8, SW_SSC_DEPTH_MASK | SW_SSC_EN_MASK,
+				      SW_SSC_DEPTH(0) | SW_SSC_EN(1));
+
 	rk628_i2c_write(rk628, COMBTXPHY_CON5,
 			SW_REF_DIV(combtxphy->ref_div - 1) |
 			SW_PLL_FB_DIV(combtxphy->fb_div) |
@@ -209,7 +215,7 @@ void rk628_combtxphy_set_gvi_division_mode(struct rk628 *rk628, bool division)
 void rk628_combtxphy_set_mode(struct rk628 *rk628, enum rk628_phy_mode mode)
 {
 	struct rk628_combtxphy *combtxphy = &rk628->combtxphy;
-	unsigned int fvco, fpfd, frac_rate, fin = 24;
+	unsigned int fvco, fpfd, fin = 24;
 
 	switch (mode) {
 	case RK628_PHY_MODE_VIDEO_MIPI:
@@ -218,7 +224,14 @@ void rk628_combtxphy_set_mode(struct rk628 *rk628, enum rk628_phy_mode mode)
 		unsigned int fhsc = bus_width >> 8;
 		unsigned int flags = bus_width & 0xff;
 
-		fhsc = fin * (fhsc / fin);
+		combtxphy->flags = flags;
+
+		/*
+		 * the VCO can work from 1.5GHz to 3GHz.
+		 * fhsc: 80 ~ 374, fvco: 640 ~ 2992
+		 * fhsc: 375 ~ 749, fvco: 1500 ~ 2996
+		 * fhsc: 750 ~ 1500, fvco: 1500 ~ 3000
+		 */
 		if (fhsc < 80 || fhsc > 1500)
 			return;
 		else if (fhsc < 375)
@@ -228,22 +241,26 @@ void rk628_combtxphy_set_mode(struct rk628 *rk628, enum rk628_phy_mode mode)
 		else
 			combtxphy->rate_div = 1;
 
-		combtxphy->flags = flags;
-
 		fvco = fhsc * 2 * combtxphy->rate_div;
-		combtxphy->ref_div = 1;
-		combtxphy->fb_div = fvco / 8 / fin;
-		frac_rate = fvco - (fin * 8 * combtxphy->fb_div);
-		if (frac_rate) {
-			frac_rate <<= 10;
-			frac_rate /= fin * 8;
-			combtxphy->frac_div = frac_rate;
-		} else {
-			combtxphy->frac_div = 0;
-		}
 
-		fvco = fin * (1024 * combtxphy->fb_div + combtxphy->frac_div);
-		fvco *= 8;
+		/*
+		 * the reference clock at PFD(FPFD = ref_clk / ref_div) about
+		 * 25MHz is recommende, FPFD must range from 16MHz to 35MHz,
+		 * here to find the best ref_div.
+		 */
+		combtxphy->ref_div = 1;
+
+		/*
+		 * fvco = fin * (fb_div + frac_div / 1024) * 8 / ref_div
+		 */
+		combtxphy->fb_div = fvco * combtxphy->ref_div / 8 / fin;
+		combtxphy->frac_div = 1024 * fvco * combtxphy->ref_div / 8 / fin;
+		combtxphy->frac_div -= 1024 * combtxphy->fb_div;
+
+		/*
+		 * get the actually frequency
+		 */
+		fvco = fin * (1024 * combtxphy->fb_div + combtxphy->frac_div) * 8;
 		fvco = DIV_ROUND_UP(fvco, 1024 * combtxphy->ref_div);
 		fhsc = fvco / 2 / combtxphy->rate_div;
 		combtxphy->bus_width = fhsc;
