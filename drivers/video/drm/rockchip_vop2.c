@@ -1216,6 +1216,7 @@ enum vop2_layer_phy_id {
 	ROCKCHIP_VOP2_ESMART2,
 	ROCKCHIP_VOP2_ESMART3,
 	ROCKCHIP_VOP2_LAYER_MAX,
+	ROCKCHIP_VOP2_PHY_ID_INVALID = -1,
 };
 
 enum vop2_scale_up_mode {
@@ -1415,6 +1416,31 @@ struct vop2 {
 
 static struct vop2 *rockchip_vop2;
 
+/* vop2_layer_phy_id */
+static const char *const vop2_layer_name_list[] = {
+	"Cluster0",
+	"Cluster1",
+	"Esmart0",
+	"Esmart1",
+	"Smart0",
+	"Smart1",
+	"Cluster2",
+	"Cluster3",
+	"Esmart2",
+	"Esmart3",
+};
+
+static inline const char *vop2_plane_id_to_string(unsigned long phy)
+{
+	if (phy == ROCKCHIP_VOP2_PHY_ID_INVALID)
+		return "INVALID";
+
+	if (WARN_ON(phy >= ARRAY_SIZE(vop2_layer_name_list)))
+		return NULL;
+
+	return vop2_layer_name_list[phy];
+}
+
 static inline bool is_vop3(struct vop2 *vop2)
 {
 	if (vop2->version == VOP_VERSION_RK3568 || vop2->version == VOP_VERSION_RK3588)
@@ -1608,44 +1634,6 @@ static inline u32 vop2_grf_readl(struct vop2 *vop, void *grf_base, u32 offset,
 				  u32 mask, u32 shift)
 {
 	return (readl(grf_base + offset) >> shift) & mask;
-}
-
-static char *get_plane_name(int plane_id, char *name)
-{
-	switch (plane_id) {
-	case ROCKCHIP_VOP2_CLUSTER0:
-		strcat(name, "Cluster0");
-		break;
-	case ROCKCHIP_VOP2_CLUSTER1:
-		strcat(name, "Cluster1");
-		break;
-	case ROCKCHIP_VOP2_ESMART0:
-		strcat(name, "Esmart0");
-		break;
-	case ROCKCHIP_VOP2_ESMART1:
-		strcat(name, "Esmart1");
-		break;
-	case ROCKCHIP_VOP2_SMART0:
-		strcat(name, "Smart0");
-		break;
-	case ROCKCHIP_VOP2_SMART1:
-		strcat(name, "Smart1");
-		break;
-	case ROCKCHIP_VOP2_CLUSTER2:
-		strcat(name, "Cluster2");
-		break;
-	case ROCKCHIP_VOP2_CLUSTER3:
-		strcat(name, "Cluster3");
-		break;
-	case ROCKCHIP_VOP2_ESMART2:
-		strcat(name, "Esmart2");
-		break;
-	case ROCKCHIP_VOP2_ESMART3:
-		strcat(name, "Esmart3");
-		break;
-	}
-
-	return name;
 }
 
 static bool is_yuv_output(u32 bus_format)
@@ -2804,8 +2792,10 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	for (i = 0; i < vop2->data->nr_vps; i++) {
 		printf("vp%d have layer nr:%d[", i, vop2->vp_plane_mask[i].attached_layers_nr);
 		for (j = 0; j < vop2->vp_plane_mask[i].attached_layers_nr; j++)
-			printf("%d ", vop2->vp_plane_mask[i].attached_layers[j]);
-		printf("], primary plane: %d\n", vop2->vp_plane_mask[i].primary_plane_id);
+			printf("%s ",
+			       vop2_plane_id_to_string(vop2->vp_plane_mask[i].attached_layers[j]));
+		printf("], primary plane: %s\n",
+		       vop2_plane_id_to_string(vop2->vp_plane_mask[i].primary_plane_id));
 	}
 
 	if (is_vop3(vop2))
@@ -5403,7 +5393,6 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 	struct vop2_win_data *win_data;
 	struct vop2_win_data *splice_win_data;
 	u8 primary_plane_id = vop2->vp_plane_mask[cstate->crtc_id].primary_plane_id;
-	char plane_name[10] = {0};
 	int ret;
 
 	if (cstate->crtc_rect.w > cstate->max_output.width) {
@@ -5442,7 +5431,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 				vop2_set_smart_win(state, splice_win_data);
 		} else {
 			printf("ERROR: splice mode is unsupported by plane %s\n",
-			       get_plane_name(primary_plane_id, plane_name));
+			       vop2_plane_id_to_string(primary_plane_id));
 			return -EINVAL;
 		}
 	}
@@ -5455,7 +5444,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 		return ret;
 
 	printf("VOP VP%d enable %s[%dx%d->%dx%d@%dx%d] fmt[%d] addr[0x%x]\n",
-		cstate->crtc_id, get_plane_name(primary_plane_id, plane_name),
+		cstate->crtc_id, vop2_plane_id_to_string(primary_plane_id),
 		cstate->src_rect.w, cstate->src_rect.h, cstate->crtc_rect.w, cstate->crtc_rect.h,
 		cstate->crtc_rect.x, cstate->crtc_rect.y, cstate->format,
 		cstate->dma_addr);
