@@ -59,7 +59,7 @@ static void rk628_rgb_decoder_enable(struct rk628 *rk628)
 				      RGB_RX_MODET_EN | RGB_RX_DCLK_EN);
 		rk628_i2c_update_bits(rk628, GRF_RGB_RX_DBG_MEAS3,
 				      RGB_RX_CNT_EN_MASK, RGB_RX_CNT_EN(1));
-		rk628_i2c_write(rk628, GRF_BT1120_DCLK_DELAY_CON0, 0x10000);
+		rk628_i2c_write(rk628, GRF_BT1120_DCLK_DELAY_CON0, 0x10000000);
 		rk628_i2c_write(rk628, GRF_BT1120_DCLK_DELAY_CON1, 0);
 	}
 
@@ -257,7 +257,7 @@ static void rk628_bt1120_decoder_enable(struct rk628 *rk628)
 	} else {
 		if (rk628->version == RK628F_VERSION) {
 			rk628_i2c_write(rk628, GRF_BT1120_DCLK_DELAY_CON0,
-					0x10000);
+					0x1);
 			rk628_i2c_write(rk628, GRF_BT1120_DCLK_DELAY_CON1, 0);
 		}
 	}
