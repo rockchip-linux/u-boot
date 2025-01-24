@@ -199,6 +199,135 @@ static void sdhci_set_block_info(struct sdhci_host *host, struct mmc_data *data)
 #define SDHCI_CMD_DEFAULT_TIMEOUT		100
 #define SDHCI_READ_STATUS_TIMEOUT		1000
 
+#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#ifdef CONFIG_DM_MMC
+static int sdhci_send_command_prepare(struct udevice *dev, struct mmc_cmd *cmd,
+			      struct mmc_data *data)
+{
+	struct mmc *mmc = mmc_get_mmc_dev(dev);
+
+#else
+static int sdhci_send_command_prepare(struct mmc *mmc, struct mmc_cmd *cmd,
+			      struct mmc_data *data)
+{
+#endif
+	struct sdhci_host *host = mmc->priv;
+	unsigned int stat = 0;
+	int ret = 0;
+	int trans_bytes = 0;
+	u32 mask, flags, mode = 0;
+	unsigned int time = 0;
+	int mmc_dev = mmc_get_blk_desc(mmc)->devnum;
+	dma_addr_t start_addr;
+	/* Timeout unit - ms */
+	static unsigned int cmd_timeout = SDHCI_CMD_DEFAULT_TIMEOUT;
+	unsigned char ctrl;
+
+#ifndef CONFIG_MMC_SDHCI_ADMA
+	printf("Please config CONFIG_MMC_SDHCI_ADMA for prepare read!!!");
+	return -ECOMM;
+#endif
+
+	if (!data) {
+		printf("sdhci prepare read data with invalid argument!!!");
+		return -EINVAL;
+	}
+
+	if (CONFIG_SYS_MMC_MAX_BLK_COUNT < data->blocks) {
+		printf("CONFIG_SYS_MMC_MAX_BLK_COUNT is to small\n");
+		return -EINVAL;
+	}
+
+	start_addr = (dma_addr_t)data->dest;
+	if (data->flags != MMC_DATA_READ || (start_addr & 0x7) != 0x0){
+		printf("sdhci prepare read data with invalid argument!!!");
+		return -EINVAL;
+	}
+
+	mask = SDHCI_CMD_INHIBIT | SDHCI_DATA_INHIBIT;
+
+	while (sdhci_readl(host, SDHCI_PRESENT_STATE) & mask) {
+		if (time >= cmd_timeout) {
+			printf("%s: MMC: %d busy ", __func__, mmc_dev);
+			if (2 * cmd_timeout <= SDHCI_CMD_MAX_TIMEOUT) {
+				cmd_timeout += cmd_timeout;
+				printf("timeout increasing to: %u ms.\n",
+				       cmd_timeout);
+				sdhci_writel(host, SDHCI_INT_ALL_MASK, SDHCI_INT_STATUS);
+			} else {
+				puts("timeout.\n");
+				/* remove timeout return error and try to send command */
+				break;
+			}
+		}
+		time++;
+		udelay(1000);
+	}
+
+	sdhci_writel(host, SDHCI_INT_ALL_MASK, SDHCI_INT_STATUS);
+
+	mask = SDHCI_INT_RESPONSE;
+	if (!(cmd->resp_type & MMC_RSP_PRESENT))
+		flags = SDHCI_CMD_RESP_NONE;
+	else if (cmd->resp_type & MMC_RSP_136)
+		flags = SDHCI_CMD_RESP_LONG;
+	else if (cmd->resp_type & MMC_RSP_BUSY) {
+		flags = SDHCI_CMD_RESP_SHORT_BUSY;
+		if (data)
+			mask |= SDHCI_INT_DATA_END;
+	} else
+		flags = SDHCI_CMD_RESP_SHORT;
+
+	if (cmd->resp_type & MMC_RSP_CRC)
+		flags |= SDHCI_CMD_CRC;
+	if (cmd->resp_type & MMC_RSP_OPCODE)
+		flags |= SDHCI_CMD_INDEX;
+	if (data)
+		flags |= SDHCI_CMD_DATA;
+
+	/* Set Transfer mode regarding to data flag */
+	sdhci_writeb(host, 0xe, SDHCI_TIMEOUT_CONTROL);
+	mode = SDHCI_TRNS_BLK_CNT_EN;
+	trans_bytes = data->blocks * data->blocksize;
+	if (data->blocks > 1)
+		mode |= SDHCI_TRNS_MULTI;
+
+	mode |= SDHCI_TRNS_READ;
+	mode |= SDHCI_TRNS_DMA;
+
+	ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
+	ctrl &= ~SDHCI_CTRL_DMA_MASK;
+	if (host->flags & USE_ADMA64)
+		ctrl |= SDHCI_CTRL_ADMA64;
+	else if (host->flags & USE_ADMA)
+		ctrl |= SDHCI_CTRL_ADMA32;
+	sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
+
+	flush_dcache_range(start_addr, start_addr + trans_bytes + ARCH_DMA_MINALIGN);
+	sdhci_prepare_adma_table(host->adma_desc_table, data, start_addr);
+	sdhci_writel(host, lower_32_bits(host->adma_addr), SDHCI_ADMA_ADDRESS);
+	if (host->flags & USE_ADMA64)
+		sdhci_writel(host, upper_32_bits(host->adma_addr), SDHCI_ADMA_ADDRESS_HI);
+
+	sdhci_set_block_info(host, data);
+	sdhci_writew(host, mode, SDHCI_TRANSFER_MODE);
+
+	sdhci_writel(host, cmd->cmdarg, SDHCI_ARGUMENT);
+	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->cmdidx, flags), SDHCI_COMMAND);
+
+	udelay(5); /* wait for response */
+	stat = sdhci_readl(host, SDHCI_INT_STATUS);
+	if ((stat & SDHCI_INT_ERROR) || !(stat & SDHCI_INT_RESPONSE)) {
+		/* response timeout or other error */
+		sdhci_reset(host, SDHCI_RESET_CMD);
+		sdhci_reset(host, SDHCI_RESET_DATA);
+		ret = -ETIMEDOUT;
+	}
+
+	return ret;
+}
+#endif
+
 #ifdef CONFIG_DM_MMC
 static int sdhci_send_command(struct udevice *dev, struct mmc_cmd *cmd,
 			      struct mmc_data *data)
@@ -748,6 +877,9 @@ static int sdhci_set_enhanced_strobe(struct udevice *dev)
 const struct dm_mmc_ops sdhci_ops = {
 	.card_busy	= sdhci_card_busy,
 	.send_cmd	= sdhci_send_command,
+#ifdef CONFIG_SPL_BLK_READ_PREPARE
+	.send_cmd_prepare = sdhci_send_command_prepare,
+#endif
 	.set_ios	= sdhci_set_ios,
 	.execute_tuning = sdhci_execute_tuning,
 	.set_enhanced_strobe = sdhci_set_enhanced_strobe,
@@ -756,6 +888,9 @@ const struct dm_mmc_ops sdhci_ops = {
 static const struct mmc_ops sdhci_ops = {
 	.card_busy	= sdhci_card_busy,
 	.send_cmd	= sdhci_send_command,
+#ifdef CONFIG_SPL_BLK_READ_PREPARE
+	.send_cmd_prepare = sdhci_send_command_prepare,
+#endif
 	.set_ios	= sdhci_set_ios,
 	.init		= sdhci_init,
 	.execute_tuning = sdhci_execute_tuning,
