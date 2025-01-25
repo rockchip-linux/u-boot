@@ -21,6 +21,9 @@ struct i2c_regs {
 	u32 txdata[8];
 	u32 reserved1[0x38];
 	u32 rxdata[8];
+	u32 st;
+	u32 dbgctrl;
+	u32 con1;
 };
 
 /* Control register */
