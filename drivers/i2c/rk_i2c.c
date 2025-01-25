@@ -582,6 +582,9 @@ static int rockchip_i2c_probe(struct udevice *bus)
 	rockchip_i2c_clk_init(bus);
 #endif
 
+	/* disable autostop */
+	writel(0, &priv->regs->con1);
+
 	return 0;
 }
 
