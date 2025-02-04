@@ -1265,7 +1265,15 @@ void board_quiesce_devices(void *images)
 
 	hotkey_run(HK_CMDLINE);
 	hotkey_run(HK_CLI_OS_GO);
+
 #ifdef CONFIG_ROCKCHIP_REBOOT_TEST
+	ulong us, tt_us;
+
+	us = (get_ticks() - gd->sys_start_tick) / (gd->arch.timer_rate_hz / 1000000);
+	tt_us = get_ticks() / (gd->arch.timer_rate_hz / 1000000);
+	printf("Total(reboot): %ld.%ld/%ld.%ld ms\n", us / 1000, us % 1000, tt_us / 1000, tt_us % 1000);
+
+	mdelay(1000);
 	do_reset(NULL, 0, 0, NULL);
 #endif
 }
