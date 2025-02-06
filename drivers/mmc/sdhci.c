@@ -199,7 +199,7 @@ static void sdhci_set_block_info(struct sdhci_host *host, struct mmc_data *data)
 #define SDHCI_CMD_DEFAULT_TIMEOUT		100
 #define SDHCI_READ_STATUS_TIMEOUT		1000
 
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 #ifdef CONFIG_DM_MMC
 static int sdhci_send_command_prepare(struct udevice *dev, struct mmc_cmd *cmd,
 			      struct mmc_data *data)
@@ -877,7 +877,7 @@ static int sdhci_set_enhanced_strobe(struct udevice *dev)
 const struct dm_mmc_ops sdhci_ops = {
 	.card_busy	= sdhci_card_busy,
 	.send_cmd	= sdhci_send_command,
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 	.send_cmd_prepare = sdhci_send_command_prepare,
 #endif
 	.set_ios	= sdhci_set_ios,
@@ -888,7 +888,7 @@ const struct dm_mmc_ops sdhci_ops = {
 static const struct mmc_ops sdhci_ops = {
 	.card_busy	= sdhci_card_busy,
 	.send_cmd	= sdhci_send_command,
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 	.send_cmd_prepare = sdhci_send_command_prepare,
 #endif
 	.set_ios	= sdhci_set_ios,

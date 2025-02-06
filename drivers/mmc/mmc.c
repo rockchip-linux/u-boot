@@ -263,7 +263,7 @@ static int mmc_read_blocks(struct mmc *mmc, void *dst, lbaint_t start,
 	return blkcnt;
 }
 
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 static int mmc_read_blocks_prepare(struct mmc *mmc, void *dst, lbaint_t start,
 				   lbaint_t blkcnt)
 {
@@ -294,7 +294,7 @@ static int mmc_read_blocks_prepare(struct mmc *mmc, void *dst, lbaint_t start,
 }
 #endif
 
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 #if CONFIG_IS_ENABLED(BLK)
 ulong mmc_bread_prepare(struct udevice *dev, lbaint_t start, lbaint_t blkcnt, void *dst)
 #else
@@ -379,7 +379,7 @@ ulong mmc_bread(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt,
 	int err;
 	lbaint_t cur, blocks_todo = blkcnt;
 
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 	if (block_dev->op_flag == BLK_PRE_RW)
 #if CONFIG_IS_ENABLED(BLK)
 		return mmc_bread_prepare(dev, start, blkcnt, dst);

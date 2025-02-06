@@ -22,6 +22,15 @@ config SPL_BLK
 	  be partitioned into several areas, called 'partitions' in U-Boot.
 	  A filesystem can be placed in each partition.
 
+config BLK_READ_PREPARE
+	bool "Support block devices prepare to read data"
+	depends on BLK
+	help
+	  Enable support for block devices to prefetch data. MMC and mtd_blk
+	  devices can be attached to block devices. It is applied to prefetch
+	  data in the background and the device run some other process in the
+	  same time.
+
 config SPL_BLK_READ_PREPARE
 	bool "Support block devices prepare to read data in SPL"
 	depends on SPL_BLK

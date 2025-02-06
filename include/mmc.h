@@ -427,7 +427,7 @@ struct dm_mmc_ops {
 	 * @data:	Additional data to send/receive
 	 * @return 0 if OK, -ve on error
 	 */
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 	int (*send_cmd_prepare)(struct udevice *dev, struct mmc_cmd *cmd,
 				struct mmc_data *data);
 #endif

@@ -52,7 +52,7 @@ retry:
 	return ret;
 }
 
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 int dm_mmc_send_cmd_prepare(struct udevice *dev, struct mmc_cmd *cmd,
 			    struct mmc_data *data)
 {
@@ -79,7 +79,7 @@ int mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	return dm_mmc_send_cmd(mmc->dev, cmd, data);
 }
 
-#ifdef CONFIG_SPL_BLK_READ_PREPARE
+#if CONFIG_IS_ENABLED(BLK_READ_PREPARE)
 int mmc_send_cmd_prepare(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 {
 	return dm_mmc_send_cmd_prepare(mmc->dev, cmd, data);
