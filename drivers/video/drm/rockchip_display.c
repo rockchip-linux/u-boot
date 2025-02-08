@@ -2172,16 +2172,26 @@ void rockchip_display_fixup(void *blob)
 	const char *path;
 	const char *cacm_header;
 	u64 aligned_memory_size;
+	bool is_logo_init = 0;
 
 	if (fdt_node_offset_by_compatible(blob, 0, "rockchip,drm-logo") >= 0) {
 		list_for_each_entry(s, &rockchip_display_list, head) {
-			ret = load_bmp_logo(&s->logo, s->klogo_name);
-			if (ret < 0) {
-				s->is_klogo_valid = false;
-				printf("VP%d fail to load kernel logo\n", s->crtc_state.crtc_id);
-			} else {
-				s->is_klogo_valid = true;
+			if (s->is_init) {
+				ret = load_bmp_logo(&s->logo, s->klogo_name);
+				if (ret < 0) {
+					s->is_klogo_valid = false;
+					printf("VP%d fail to load kernel logo\n",
+					       s->crtc_state.crtc_id);
+				} else {
+					s->is_klogo_valid = true;
+				}
 			}
+			is_logo_init |= s->is_init;
+		}
+
+		if (!is_logo_init) {
+			printf("The display is not initialized, skip display fixup\n");
+			return;
 		}
 
 		if (!get_display_size())
