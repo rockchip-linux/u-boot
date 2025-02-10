@@ -149,6 +149,41 @@ static int analogix_dp_training_pattern_dis(struct analogix_dp_device *dp)
 	return ret < 0 ? ret : 0;
 }
 
+static int analogix_dp_enable_sink_to_assr_mode(struct analogix_dp_device *dp, bool enable)
+{
+	u8 data;
+	int ret;
+
+	ret = drm_dp_dpcd_readb(&dp->aux, DP_EDP_CONFIGURATION_SET, &data);
+	if (ret != 1)
+		return ret;
+
+	if (enable)
+		ret = drm_dp_dpcd_writeb(&dp->aux, DP_EDP_CONFIGURATION_SET,
+					 data | DP_ALTERNATE_SCRAMBLER_RESET_ENABLE);
+	else
+		ret = drm_dp_dpcd_writeb(&dp->aux, DP_LANE_COUNT_SET,
+					 data & ~DP_ALTERNATE_SCRAMBLER_RESET_ENABLE);
+
+	return ret < 0 ? ret : 0;
+}
+
+static int analogix_dp_set_assr_mode(struct analogix_dp_device *dp)
+{
+	bool assr_en;
+	int ret;
+
+	assr_en = drm_dp_alternate_scrambler_reset_cap(dp->dpcd);
+
+	ret = analogix_dp_enable_sink_to_assr_mode(dp, assr_en);
+	if (ret < 0)
+		return ret;
+
+	analogix_dp_enable_assr_mode(dp, assr_en);
+
+	return 0;
+}
+
 static int analogix_dp_link_start(struct analogix_dp_device *dp)
 {
 	u8 buf[4];
@@ -185,6 +220,13 @@ static int analogix_dp_link_start(struct analogix_dp_device *dp)
 	retval = drm_dp_dpcd_write(&dp->aux, DP_DOWNSPREAD_CTRL, buf, 2);
 	if (retval < 0)
 		return retval;
+
+	/* set ASSR if available */
+	retval = analogix_dp_set_assr_mode(dp);
+	if (retval < 0) {
+		dev_err(dp->dev, "failed to set assr mode\n");
+		return retval;
+	}
 
 	/* set enhanced mode if available */
 	retval = analogix_dp_set_enhanced_mode(dp);
