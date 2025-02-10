@@ -98,37 +98,19 @@ analogix_dp_enable_rx_to_enhanced_mode(struct analogix_dp_device *dp,
 	return ret < 0 ? ret : 0;
 }
 
-static int analogix_dp_is_enhanced_mode_available(struct analogix_dp_device *dp,
-						  u8 *enhanced_mode_support)
-{
-	u8 data;
-	int ret;
-
-	ret = drm_dp_dpcd_readb(&dp->aux, DP_MAX_LANE_COUNT, &data);
-	if (ret != 1) {
-		*enhanced_mode_support = 0;
-		return ret;
-	}
-
-	*enhanced_mode_support = DPCD_ENHANCED_FRAME_CAP(data);
-
-	return 0;
-}
-
 static int analogix_dp_set_enhanced_mode(struct analogix_dp_device *dp)
 {
+	bool enhanced_frame_en;
 	u8 data;
 	int ret;
 
-	ret = analogix_dp_is_enhanced_mode_available(dp, &data);
+	enhanced_frame_en = drm_dp_enhanced_frame_cap(dp->dpcd);
+
+	ret = analogix_dp_enable_rx_to_enhanced_mode(dp, enhanced_frame_en);
 	if (ret < 0)
 		return ret;
 
-	ret = analogix_dp_enable_rx_to_enhanced_mode(dp, data);
-	if (ret < 0)
-		return ret;
-
-	if (!data) {
+	if (!enhanced_frame_en) {
 		/*
 		 * As the Table 3-4 in eDP v1.2 spec:
 		 * DPCD 0000Dh:
@@ -147,10 +129,10 @@ static int analogix_dp_set_enhanced_mode(struct analogix_dp_device *dp)
 		if (ret < 0)
 			return ret;
 
-		data = !!(data & DP_FRAMING_CHANGE_CAP);
+		enhanced_frame_en = !!(data & DP_FRAMING_CHANGE_CAP);
 	}
 
-	analogix_dp_enable_enhanced_mode(dp, data);
+	analogix_dp_enable_enhanced_mode(dp, enhanced_frame_en);
 
 	return 0;
 }
