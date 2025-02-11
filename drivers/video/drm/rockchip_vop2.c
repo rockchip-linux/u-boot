@@ -1226,7 +1226,7 @@ enum vop2_layer_phy_id {
 	ROCKCHIP_VOP2_ESMART2,
 	ROCKCHIP_VOP2_ESMART3,
 	ROCKCHIP_VOP2_LAYER_MAX,
-	ROCKCHIP_VOP2_PHY_ID_INVALID = -1,
+	ROCKCHIP_VOP2_PHY_ID_INVALID = (u8)-1,
 };
 
 enum vop2_scale_up_mode {
@@ -1467,15 +1467,15 @@ static const char *const vop2_layer_name_list[] = {
 	"Esmart3",
 };
 
-static inline const char *vop2_plane_id_to_string(unsigned long phy)
+static inline const char *vop2_plane_phys_id_to_string(u8 phys_id)
 {
-	if (phy == ROCKCHIP_VOP2_PHY_ID_INVALID)
+	if (phys_id == ROCKCHIP_VOP2_PHY_ID_INVALID)
 		return "INVALID";
 
-	if (WARN_ON(phy >= ARRAY_SIZE(vop2_layer_name_list)))
+	if (phys_id >= ARRAY_SIZE(vop2_layer_name_list))
 		return NULL;
 
-	return vop2_layer_name_list[phy];
+	return vop2_layer_name_list[phys_id];
 }
 
 static inline bool is_vop3(struct vop2 *vop2)
@@ -2647,6 +2647,12 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 					vop2->vp_plane_mask[i].plane_mask |=
 						BIT(vop2->data->vp_default_primary_plane[i]);
 					active_vp_num++;
+				} else {
+					/*
+					 * mark the primary plane id of the VP that is
+					 * not enabled to invalid.
+					 */
+					vop2->vp_plane_mask[i].primary_plane_id = ROCKCHIP_VOP2_PHY_ID_INVALID;
 				}
 			}
 			printf("VOP have %d active VP\n", active_vp_num);
@@ -2741,9 +2747,9 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		printf("vp%d have layer nr:%d[", i, vop2->vp_plane_mask[i].attached_layers_nr);
 		for (j = 0; j < vop2->vp_plane_mask[i].attached_layers_nr; j++)
 			printf("%s ",
-			       vop2_plane_id_to_string(vop2->vp_plane_mask[i].attached_layers[j]));
+			       vop2_plane_phys_id_to_string(vop2->vp_plane_mask[i].attached_layers[j]));
 		printf("], primary plane: %s\n",
-		       vop2_plane_id_to_string(vop2->vp_plane_mask[i].primary_plane_id));
+		       vop2_plane_phys_id_to_string(vop2->vp_plane_mask[i].primary_plane_id));
 	}
 
 	vop2_ops->setup_overlay(state);
@@ -5413,7 +5419,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 				vop2_set_smart_win(state, splice_win_data);
 		} else {
 			printf("ERROR: splice mode is unsupported by plane %s\n",
-			       vop2_plane_id_to_string(primary_plane_id));
+			       vop2_plane_phys_id_to_string(primary_plane_id));
 			return -EINVAL;
 		}
 	}
@@ -5426,7 +5432,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 		return ret;
 
 	printf("VOP VP%d enable %s[%dx%d->%dx%d@%dx%d] fmt[%d] addr[0x%x]\n",
-		cstate->crtc_id, vop2_plane_id_to_string(primary_plane_id),
+		cstate->crtc_id, vop2_plane_phys_id_to_string(primary_plane_id),
 		cstate->src_rect.w, cstate->src_rect.h, cstate->crtc_rect.w, cstate->crtc_rect.h,
 		cstate->crtc_rect.x, cstate->crtc_rect.y, cstate->format,
 		cstate->dma_addr);
