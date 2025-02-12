@@ -2099,6 +2099,7 @@ static int rockchip_display_probe(struct udevice *dev)
 					s->crtc_state.crtc->vps[vp_id].xmirror_en =
 						ofnode_read_bool(vp_node, "xmirror-enable");
 
+					s->crtc_state.crtc->vps[vp_id].primary_plane_id = -1;
 					ret = ofnode_read_u32_default(vp_node, "rockchip,plane-mask", 0);
 
 					cursor_plane = ofnode_read_u32_default(vp_node, "cursor-win-id", -1);
