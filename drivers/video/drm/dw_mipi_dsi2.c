@@ -688,12 +688,16 @@ static void dw_mipi_dsi2_enable(struct dw_mipi_dsi2 *dsi2)
 	dw_mipi_dsi2_ipi_set(dsi2);
 
 	if (dsi2->auto_calc_mode) {
+		dsi_update_bits(dsi2, DSI2_DSI_GENERAL_CFG, BTA_EN, 0);
+
 		dsi_write(dsi2, DSI2_MODE_CTRL, AUTOCALC_MODE);
 		ret = readl_poll_timeout(dsi2->base + DSI2_MODE_STATUS,
 					 mode, mode == IDLE_MODE,
 					 MODE_STATUS_TIMEOUT_US);
 		if (ret < 0)
 			printf("auto calculation training failed\n");
+
+		dsi_update_bits(dsi2, DSI2_DSI_GENERAL_CFG, BTA_EN, BTA_EN);
 	}
 
 	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO)
