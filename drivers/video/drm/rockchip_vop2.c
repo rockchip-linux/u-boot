@@ -6624,16 +6624,35 @@ static struct vop2_dump_regs rk3576_dump_regs[] = {
  * * Support prescale down:
  * * H/V: gt2/avg2 or gt4/avg4
  * * After prescale down:
- *      * nearest-neighbor/bilinear/multi-phase filter for scale up
- *      * nearest-neighbor/bilinear/multi-phase filter for scale down
+ *	* nearest-neighbor/bilinear/multi-phase filter for scale up
+ *	* nearest-neighbor/bilinear/multi-phase filter for scale down
  *
  * * Esmart:
  * * Support prescale down:
  * * H: gt2/avg2 or gt4/avg4
  * * V: gt2 or gt4
  * * After prescale down:
- *      * nearest-neighbor/bilinear/bicubic for scale up
- *      * nearest-neighbor/bilinear for scale down
+ *	* nearest-neighbor/bilinear/bicubic for scale up
+ *	* nearest-neighbor/bilinear for scale down
+ *
+ * AXI config::
+ *
+ * * Cluster0 win0: 0xa,  0xb       [AXI0]
+ * * Cluster0 win1: 0xc,  0xd       [AXI0]
+ * * Cluster1 win0: 0x6,  0x7       [AXI0]
+ * * Cluster1 win1: 0x8,  0x9       [AXI0]
+ * * Esmart0:       0x10, 0x11      [AXI0]
+ * * Esmart1:       0x12, 0x13      [AXI0]
+ * * Esmart2:       0xa,  0xb       [AXI1]
+ * * Esmart3:       0xc,  0xd       [AXI1]
+ * * Lut dma rid:   0x1,  0x2,  0x3 [AXI0]
+ * * DCI dma rid:   0x4             [AXI0]
+ * * Metadata rid:  0x5             [AXI0]
+ *
+ * * Limit:
+ * * (1) 0x0 and 0xf can't be used;
+ * * (2) cluster and lut/dci/metadata rid must smaller than 0xf, If Cluster rid is bigger than 0xf,
+ * * VOP will dead at the system bandwidth very terrible scene.
  */
 static struct vop2_win_data rk3576_win_data[6] = {
 	{
@@ -6651,8 +6670,8 @@ static struct vop2_win_data rk3576_win_data[6] = {
 		.vsd_pre_filter_mode = VOP3_PRE_SCALE_DOWN_GT,/* gt only */
 		.pd_id = VOP2_PD_ESMART,
 		.axi_id = 0,
-		.axi_yrgb_id = 0x0a,
-		.axi_uv_id = 0x0b,
+		.axi_yrgb_id = 0x10,
+		.axi_uv_id = 0x11,
 		.possible_crtcs = 0x5,/* vp0 or vp2 */
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
@@ -6673,8 +6692,8 @@ static struct vop2_win_data rk3576_win_data[6] = {
 		.vsd_pre_filter_mode = VOP3_PRE_SCALE_DOWN_GT,/* gt only */
 		.pd_id = VOP2_PD_ESMART,
 		.axi_id = 0,
-		.axi_yrgb_id = 0x0c,
-		.axi_uv_id = 0x0d,
+		.axi_yrgb_id = 0x12,
+		.axi_uv_id = 0x13,
 		.possible_crtcs = 0x6,/* vp1 or vp2 */
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
@@ -6741,8 +6760,8 @@ static struct vop2_win_data rk3576_win_data[6] = {
 		.hsd_pre_filter_mode = VOP3_PRE_SCALE_DOWN_AVG,/* gt or avg */
 		.vsd_pre_filter_mode = VOP3_PRE_SCALE_DOWN_AVG,/* gt or avg */
 		.pd_id = VOP2_PD_CLUSTER,
-		.axi_yrgb_id = 0x02,
-		.axi_uv_id = 0x03,
+		.axi_yrgb_id = 0x0a,
+		.axi_uv_id = 0x0b,
 		.possible_crtcs = 0x3,/* vp0 or vp1 */
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
