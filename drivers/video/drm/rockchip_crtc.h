@@ -12,6 +12,7 @@
 struct rockchip_vp {
 	bool enable;
 	bool xmirror_en;
+	bool sharp_en;
 	u8 bg_ovl_dly;
 	u8 primary_plane_id;
 	u8 cursor_plane_id;

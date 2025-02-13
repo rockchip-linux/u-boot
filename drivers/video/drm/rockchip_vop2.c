@@ -1026,6 +1026,10 @@
 #define RK3528_ACM_YHS_DEL_HGAIN_SEG0		0x6ad8
 #define RK3528_ACM_YHS_DEL_HGAIN_SEG64		0x6bd8
 
+/* RK3576 SHARP register definition */
+#define RK3576_SHARP_CTRL			0x0000
+#define SW_SHARP_ENABLE_SHIFT			0
+
 #define RK3568_MAX_REG				0x1ED0
 
 #define RK3562_GRF_IOC_VO_IO_CON		0x10500
@@ -1444,6 +1448,7 @@ struct vop2 {
 	void *vo1_grf;
 	void *sys_pmu;
 	void *ioc_grf;
+	void *sharp_res;
 	u32 reg_len;
 	u32 version;
 	u32 esmart_lb_mode;
@@ -3098,11 +3103,11 @@ static void rockchip_vop2_sharp_init(struct vop2 *vop2, struct display_state *st
 	struct crtc_state *cstate = &state->crtc_state;
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_vp_data *vp_data = &vop2_data->vp_data[cstate->crtc_id];
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	struct resource sharp_regs;
-	u32 *sharp_reg_base;
 	int ret;
 
-	if (!(vp_data->feature & VOP_FEATURE_POST_SHARP))
+	if (!(vp_data->feature & VOP_FEATURE_POST_SHARP) || !vp->sharp_en)
 		return;
 
 	ret = ofnode_read_resource_byname(cstate->node, "sharp_regs", &sharp_regs);
@@ -3110,13 +3115,13 @@ static void rockchip_vop2_sharp_init(struct vop2 *vop2, struct display_state *st
 		printf("failed to get sharp regs\n");
 		return;
 	}
-	sharp_reg_base = (u32 *)sharp_regs.start;
+	vop2->sharp_res = (void *)sharp_regs.start;
 
 	/*
 	 * After vop initialization, keep sw_sharp_enable always on.
 	 * Only enable/disable sharp submodule to avoid black screen.
 	 */
-	writel(0x1, sharp_reg_base);
+	writel(true << SW_SHARP_ENABLE_SHIFT, vop2->sharp_res + RK3576_SHARP_CTRL);
 }
 
 static void rockchip_vop2_acm_init(struct vop2 *vop2, struct display_state *state)
@@ -3784,6 +3789,22 @@ static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
 			    conn_state->output_if & VOP_OUTPUT_IF_BT656;
 	unsigned long dclk_in_rate, dclk_core_rate;
 	u32 val;
+
+	if (split_mode) {
+		printf("WARN: split is enabled, post-scaler shouldn't be set\n");
+		conn_state->overscan.left_margin = 100;
+		conn_state->overscan.right_margin = 100;
+		conn_state->overscan.top_margin = 100;
+		conn_state->overscan.bottom_margin = 100;
+
+		/*
+		 * VOP split and sharp use the same line buffer. If enable
+		 * split, sharp must be disabled completely.
+		 */
+		if (vop2->data->vp_data[cstate->crtc_id].feature & VOP_FEATURE_POST_SHARP)
+			writel(false << SW_SHARP_ENABLE_SHIFT,
+			       vop2->sharp_res + RK3576_SHARP_CTRL);
+	}
 
 	dclk_inv = (conn_state->bus_flags & DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE) ? 1 : 0;
 	if (output_if & VOP_OUTPUT_IF_MIPI0) {
