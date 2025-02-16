@@ -5189,8 +5189,10 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 				CLUSTER_PORT_SEL_SHIFT, CLUSTER_PORT_SEL_SHIFT,
 				cstate->crtc_id, false);
 
-	/* rk3588 should set half_blocK_en to 1 in line and tile mode */
-	if (vop2->version == VOP_VERSION_RK3588)
+	/*
+	 * rk3588 and later platforms should set half_blocK_en to 1 in line and tile mode.
+	 */
+	if (vop2->version >= VOP_VERSION_RK3588)
 		vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_AFBCD_CTRL + win_offset,
 				EN_MASK, CLUSTER_AFBCD_HALF_BLOCK_SHIFT, 1, false);
 
