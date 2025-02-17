@@ -2371,7 +2371,7 @@ static int rk3576_vop2_wait_power_domain_on(struct vop2 *vop2,
 						  50 * 1000);
 		else
 			return readl_poll_timeout(vop2->sys_pmu + RK3576_PMU_PWR_GATE_STS,
-						  val, ((val >> PD_VOP_CLUSTER_DWN_STAT) & 0x1),
+						  val, !((val >> PD_VOP_CLUSTER_DWN_STAT) & 0x1),
 						  50 * 1000);
 	} else {
 		is_bisr_en = vop2_grf_readl(vop2, vop2->sys_pmu, RK3576_PMU_BISR_PDGEN_CON0,
