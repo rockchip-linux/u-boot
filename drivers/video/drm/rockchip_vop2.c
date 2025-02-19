@@ -2767,6 +2767,17 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 				if (i == main_vp_index || !cstate->crtc->vps[i].enable)
 					continue;
 				vop2->vp_plane_mask[i] = plane_mask[j++];
+				/*
+				 * For rk3588, the main window should attach to the VP0 while
+				 * the splice window should attach to the VP1 when the display
+				 * mode is over 4k.
+				 * If only one VP is enabled and the plane mask is not assigned
+				 * in DTS, all main windows will be assigned to the enabled VPx,
+				 * and all splice windows will be assigned to the VPx+1, in order
+				 * to ensure that the splice mode work well.
+				 */
+				if (vop2->version == VOP_VERSION_RK3588 && active_vp_num == 1)
+					vop2->vp_plane_mask[(i + 1) % vop2->data->nr_vps] = plane_mask[j++];
 			}
 		}
 		/* store plane mask for vop2_fixup_dts */
@@ -6922,14 +6933,21 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 	{ /* one display policy */
 		{/* main display */
 			.primary_plane_id = ROCKCHIP_VOP2_ESMART0,
-			.attached_layers_nr = 8,
+			.attached_layers_nr = 4,
 			.attached_layers = {
-				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_ESMART0, ROCKCHIP_VOP2_ESMART2,
-				  ROCKCHIP_VOP2_CLUSTER1, ROCKCHIP_VOP2_ESMART1, ROCKCHIP_VOP2_ESMART3,
-				  ROCKCHIP_VOP2_CLUSTER2, ROCKCHIP_VOP2_CLUSTER3
+				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_ESMART0,
+				  ROCKCHIP_VOP2_CLUSTER2, ROCKCHIP_VOP2_ESMART2
 			},
 		},
-		{/* second display */},
+
+		{/* planes for the splice mode */
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART1,
+			.attached_layers_nr = 4,
+			.attached_layers = {
+				  ROCKCHIP_VOP2_CLUSTER1, ROCKCHIP_VOP2_ESMART1,
+				  ROCKCHIP_VOP2_CLUSTER3, ROCKCHIP_VOP2_ESMART3
+			},
+		},
 		{/* third  display */},
 		{/* fourth display */},
 	},
@@ -6940,15 +6958,15 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 			.attached_layers_nr = 4,
 			.attached_layers = {
 				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_ESMART0,
-				  ROCKCHIP_VOP2_CLUSTER1, ROCKCHIP_VOP2_ESMART1
+				  ROCKCHIP_VOP2_CLUSTER2, ROCKCHIP_VOP2_ESMART2
 			},
 		},
 
 		{/* second display */
-			.primary_plane_id = ROCKCHIP_VOP2_ESMART2,
+			.primary_plane_id = ROCKCHIP_VOP2_ESMART1,
 			.attached_layers_nr = 4,
 			.attached_layers = {
-				  ROCKCHIP_VOP2_CLUSTER2, ROCKCHIP_VOP2_ESMART2,
+				  ROCKCHIP_VOP2_CLUSTER1, ROCKCHIP_VOP2_ESMART1,
 				  ROCKCHIP_VOP2_CLUSTER3, ROCKCHIP_VOP2_ESMART3
 			},
 		},
@@ -6961,7 +6979,8 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 			.primary_plane_id = ROCKCHIP_VOP2_ESMART0,
 			.attached_layers_nr = 3,
 			.attached_layers = {
-				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_CLUSTER1, ROCKCHIP_VOP2_ESMART0
+				  ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_CLUSTER2,
+				  ROCKCHIP_VOP2_ESMART0
 			},
 		},
 
@@ -6969,7 +6988,8 @@ static struct vop2_vp_plane_mask rk3588_vp_plane_mask[VOP2_VP_MAX][VOP2_VP_MAX] 
 			.primary_plane_id = ROCKCHIP_VOP2_ESMART1,
 			.attached_layers_nr = 3,
 			.attached_layers = {
-				  ROCKCHIP_VOP2_CLUSTER2, ROCKCHIP_VOP2_CLUSTER3, ROCKCHIP_VOP2_ESMART1
+				  ROCKCHIP_VOP2_CLUSTER1, ROCKCHIP_VOP2_CLUSTER3,
+				  ROCKCHIP_VOP2_ESMART1
 			},
 		},
 
