@@ -5184,9 +5184,9 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 	if (y_mirror)
 		printf("WARN: y mirror is unsupported by cluster window\n");
 
-	if (is_vop3(vop2))
+	if (vop2->version >= VOP_VERSION_RK3576)
 		vop2_mask_write(vop2, RK3576_CLUSTER0_PORT_SEL + win_offset,
-				CLUSTER_PORT_SEL_SHIFT, CLUSTER_PORT_SEL_SHIFT,
+				CLUSTER_PORT_SEL_MASK, CLUSTER_PORT_SEL_SHIFT,
 				cstate->crtc_id, false);
 
 	/*
