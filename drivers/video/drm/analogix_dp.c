@@ -881,124 +881,6 @@ static void analogix_dp_init_dp(struct analogix_dp_device *dp)
 	analogix_dp_init_aux(dp);
 }
 
-static unsigned char analogix_dp_calc_edid_check_sum(unsigned char *edid_data)
-{
-	int i;
-	unsigned char sum = 0;
-
-	for (i = 0; i < EDID_BLOCK_LENGTH; i++)
-		sum = sum + edid_data[i];
-
-	return sum;
-}
-
-static int analogix_dp_read_edid(struct analogix_dp_device *dp)
-{
-	unsigned char *edid = dp->edid;
-	unsigned int extend_block = 0;
-	unsigned char test_vector;
-	int retval;
-
-	/*
-	 * EDID device address is 0x50.
-	 * However, if necessary, you must have set upper address
-	 * into E-EDID in I2C device, 0x30.
-	 */
-
-	/* Read Extension Flag, Number of 128-byte EDID extension blocks */
-	retval = analogix_dp_read_byte_from_i2c(dp, I2C_EDID_DEVICE_ADDR,
-						EDID_EXTENSION_FLAG,
-						&extend_block);
-	if (retval)
-		return retval;
-
-	if (extend_block > 0) {
-		debug("EDID data includes a single extension!\n");
-
-		/* Read EDID data */
-		retval = analogix_dp_read_bytes_from_i2c(dp,
-						I2C_EDID_DEVICE_ADDR,
-						EDID_HEADER_PATTERN,
-						EDID_BLOCK_LENGTH,
-						&edid[EDID_HEADER_PATTERN]);
-		if (retval < 0)
-			return retval;
-
-		if (analogix_dp_calc_edid_check_sum(edid))
-			return -EINVAL;
-
-		/* Read additional EDID data */
-		retval = analogix_dp_read_bytes_from_i2c(dp,
-				I2C_EDID_DEVICE_ADDR,
-				EDID_BLOCK_LENGTH,
-				EDID_BLOCK_LENGTH,
-				&edid[EDID_BLOCK_LENGTH]);
-		if (retval < 0)
-			return retval;
-
-		if (analogix_dp_calc_edid_check_sum(&edid[EDID_BLOCK_LENGTH]))
-			return -EINVAL;
-
-		drm_dp_dpcd_readb(&dp->aux, DP_TEST_REQUEST, &test_vector);
-		if (test_vector & DP_TEST_LINK_EDID_READ) {
-			drm_dp_dpcd_writeb(&dp->aux, DP_TEST_EDID_CHECKSUM,
-					   edid[EDID_BLOCK_LENGTH + EDID_CHECKSUM]);
-			drm_dp_dpcd_writeb(&dp->aux, DP_TEST_RESPONSE,
-					   DP_TEST_EDID_CHECKSUM_WRITE);
-		}
-	} else {
-		dev_info(dp->dev,
-			 "EDID data does not include any extensions.\n");
-
-		/* Read EDID data */
-		retval = analogix_dp_read_bytes_from_i2c(dp,
-				I2C_EDID_DEVICE_ADDR, EDID_HEADER_PATTERN,
-				EDID_BLOCK_LENGTH, &edid[EDID_HEADER_PATTERN]);
-		if (retval < 0)
-			return retval;
-
-		if (analogix_dp_calc_edid_check_sum(edid))
-			return -EINVAL;
-
-		drm_dp_dpcd_readb(&dp->aux, DP_TEST_REQUEST, &test_vector);
-		if (test_vector & DP_TEST_LINK_EDID_READ) {
-			drm_dp_dpcd_writeb(&dp->aux, DP_TEST_EDID_CHECKSUM,
-					   edid[EDID_CHECKSUM]);
-			drm_dp_dpcd_writeb(&dp->aux, DP_TEST_RESPONSE,
-					   DP_TEST_EDID_CHECKSUM_WRITE);
-		}
-	}
-
-	return 0;
-}
-
-static int analogix_dp_handle_edid(struct analogix_dp_device *dp)
-{
-	u8 buf[12];
-	int i, try = 5;
-	int retval;
-
-retry:
-	/* Read DPCD DP_DPCD_REV~RECEIVE_PORT1_CAP_1 */
-	retval = drm_dp_dpcd_read(&dp->aux, DP_DPCD_REV, buf, 12);
-	if (retval < 0 && try--) {
-		mdelay(10);
-		goto retry;
-	}
-
-	if (retval)
-		return retval;
-
-	/* Read EDID */
-	for (i = 0; i < 3; i++) {
-		retval = analogix_dp_read_edid(dp);
-		if (!retval)
-			break;
-	}
-
-	return retval;
-}
-
 static int analogix_dp_connector_init(struct rockchip_connector *conn, struct display_state *state)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -1028,15 +910,9 @@ static int analogix_dp_connector_get_edid(struct rockchip_connector *conn,
 	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
 	int ret;
 
-	ret = analogix_dp_handle_edid(dp);
-	if (ret) {
-		dev_err(dp->dev, "failed to get edid\n");
-		return ret;
-	}
+	ret = drm_do_get_edid(&dp->aux.ddc, conn_state->edid);
 
-	memcpy(&conn_state->edid, &dp->edid, sizeof(dp->edid));
-
-	return 0;
+	return ret;
 }
 
 static int analogix_dp_link_power_up(struct analogix_dp_device *dp)
