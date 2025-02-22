@@ -12,8 +12,12 @@ CMD_ARGS=$1
 
 ########################################### User can modify #############################################
 RKBIN_TOOLS=../rkbin/tools
-CROSS_COMPILE_ARM32=../prebuilts/gcc/linux-x86/arm/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
-CROSS_COMPILE_ARM64=../prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
+CROSS_COMPILE_ARM32=$(pwd)/../prebuilts/gcc/linux-x86/arm/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+if [ -f "$(pwd)/../prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-gcc" ]; then
+    CROSS_COMPILE_ARM64=$(pwd)/../prebuilts/gcc/linux-x86/aarch64/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
+else
+    CROSS_COMPILE_ARM64=$(pwd)/../prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
+fi
 ########################################### User not touch #############################################
 # Declare global INI file searching index name for every chip, update in select_chip_info()
 RKCHIP=
@@ -279,7 +283,9 @@ function select_toolchain()
 			CROSS_COMPILE_ARM64=`cat ${CC_FILE}`
 		else
 			if grep -q '^CONFIG_ARM64=y' .config ; then
-				CROSS_COMPILE_ARM64=$(cd `dirname ${CROSS_COMPILE_ARM64}`; pwd)"/aarch64-linux-gnu-"
+				if [ ! -f "${CROSS_COMPILE_ARM64}gcc" ]; then
+					CROSS_COMPILE_ARM64=$(cd `dirname ${CROSS_COMPILE_ARM64}`; pwd)"/aarch64-linux-gnu-"
+				fi
 			else
 				CROSS_COMPILE_ARM32=$(cd `dirname ${CROSS_COMPILE_ARM32}`; pwd)"/arm-linux-gnueabihf-"
 			fi
