@@ -39,6 +39,7 @@
  * @max_link_rate: max supported link rate
  * @max_lane_count: max supported lane count
  * @format_yuv: check if yuv color format is supported
+ * @support_dp_mode: check if dp mode is supported
  * @max_bpc: max supported bpc which set to 8 by default
  */
 struct rockchip_dp_chip_data {
@@ -51,6 +52,7 @@ struct rockchip_dp_chip_data {
 	u32 max_link_rate;
 	u32 max_lane_count;
 	bool format_yuv;
+	bool support_dp_mode;
 	u8 max_bpc;
 };
 
@@ -1483,6 +1485,7 @@ static const struct rockchip_dp_chip_data rk3576_edp_platform_data = {
 	.max_link_rate = DP_LINK_BW_5_4,
 	.max_lane_count = 4,
 	.format_yuv = true,
+	.support_dp_mode = true,
 	.max_bpc = 10,
 };
 
@@ -1493,6 +1496,7 @@ static const struct rockchip_dp_chip_data rk3588_edp_platform_data = {
 	.max_link_rate = DP_LINK_BW_5_4,
 	.max_lane_count = 4,
 	.format_yuv = true,
+	.support_dp_mode = true,
 	.max_bpc = 10,
 };
 
