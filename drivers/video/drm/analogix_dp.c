@@ -921,9 +921,11 @@ static int analogix_dp_connector_get_edid(struct rockchip_connector *conn,
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
-	int ret;
+	int ret = 0;
 
-	ret = drm_do_get_edid(&dp->aux.ddc, conn_state->edid);
+	conn_state->edid = drm_do_get_edid(&dp->aux.ddc);
+	if (!conn_state->edid)
+		ret = -EINVAL;
 
 	return ret;
 }
@@ -1223,7 +1225,7 @@ static int analogix_dp_connector_get_timing(struct rockchip_connector *conn,
 	struct vop_rect rect;
 	u32 yuv_fmts_mask = DRM_COLOR_FORMAT_YCRCB444 | DRM_COLOR_FORMAT_YCRCB422;
 	u32 fmt_id;
-	int ret, i;
+	int ret = 0, i;
 
 	mode_buf = malloc(MODE_LEN * sizeof(struct drm_display_mode));
 	if (!mode_buf)
@@ -1233,11 +1235,11 @@ static int analogix_dp_connector_get_timing(struct rockchip_connector *conn,
 	memset(&edid_data, 0, sizeof(struct hdmi_edid_data));
 	edid_data.mode_buf = mode_buf;
 
-	ret = drm_do_get_edid(&dp->aux.ddc, conn_state->edid);
-	if (!ret)
+	conn_state->edid = drm_do_get_edid(&dp->aux.ddc);
+	if (conn_state->edid)
 		ret = drm_add_edid_modes(&edid_data, conn_state->edid);
 
-	if (ret < 0) {
+	if (ret <= 0) {
 		printf("failed to get edid\n");
 		goto err;
 	}

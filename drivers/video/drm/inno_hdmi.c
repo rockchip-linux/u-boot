@@ -739,7 +739,7 @@ static int rockchip_inno_hdmi_detect(struct rockchip_connector *conn, struct dis
 static int rockchip_inno_hdmi_get_timing(struct rockchip_connector *conn,
 					 struct display_state *state)
 {
-	int  i, ret;
+	int  i, ret = 0;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct inno_hdmi *hdmi = conn->data;
@@ -749,8 +749,8 @@ static int rockchip_inno_hdmi_get_timing(struct rockchip_connector *conn,
 	if (!hdmi)
 		return -EFAULT;
 
-	ret = drm_do_get_edid(&hdmi->adap, conn_state->edid);
-	if (!ret) {
+	conn_state->edid = drm_do_get_edid(&hdmi->adap);
+	if (conn_state->edid) {
 		hdmi->hdmi_data.sink_is_hdmi =
 			drm_detect_hdmi_monitor(edid);
 		hdmi->hdmi_data.sink_has_audio = drm_detect_monitor_audio(edid);

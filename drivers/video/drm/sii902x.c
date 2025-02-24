@@ -727,13 +727,13 @@ static int sii902x_get_timing(struct udevice *dev)
 	struct display_state *state = bridge->state;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
-	int ret;
+	int ret = 0;
 
-	ret = drm_do_get_edid(&sii902x->adap, conn_state->edid);
-	if (!ret) {
+	conn_state->edid = drm_do_get_edid(&sii902x->adap);
+	if (conn_state->edid)
 		ret = drm_add_edid_modes(&sii902x->edid_data, conn_state->edid);
-	}
-	if (ret < 0) {
+
+	if (ret <= 0) {
 		dev_err(dev, "Failed to get edid %d\n", ret);
 		return ret;
 	}

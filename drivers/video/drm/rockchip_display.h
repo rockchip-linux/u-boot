@@ -236,7 +236,7 @@ struct connector_state {
 
 	struct drm_display_mode mode;
 	struct overscan overscan;
-	u8 edid[EDID_SIZE * 4];
+	u8 *edid;
 	int bus_format;
 	u32 bus_flags;
 	int output_mode;

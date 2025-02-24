@@ -3373,25 +3373,101 @@ static void drm_parse_hdmi_deep_color_info(struct hdmi_edid_data *data,
 }
 
 /*
+ * References:
+ * - CTA-861-H section 7.3.3 CTA Extension Version 3
+ */
+static int cea_db_collection_size(const u8 *cta)
+{
+	u8 d = cta[2];
+
+	if (d < 4 || d > 127)
+		return 0;
+
+	return d - 4;
+}
+
+#define CTA_EXT_DB_HF_EEODB		0x78
+#define CTA_DB_EXTENDED_TAG		7
+
+static int cea_db_tag(const u8 *db);
+static int cea_db_payload_len(const u8 *db);
+static int cea_db_extended_tag(const u8 *db);
+
+static bool cea_db_is_extended_tag(const void *db, int tag)
+{
+	return cea_db_tag(db) == CTA_DB_EXTENDED_TAG &&
+		cea_db_payload_len(db) >= 1 &&
+		cea_db_extended_tag(db) == tag;
+}
+
+static bool cea_db_is_hdmi_forum_eeodb(const void *db)
+{
+	return cea_db_is_extended_tag(db, CTA_EXT_DB_HF_EEODB) &&
+		cea_db_payload_len(db) >= 2;
+}
+
+static int edid_hfeeodb_extension_block_count(const struct edid *edid)
+{
+	const u8 *cta;
+
+	/* No extensions according to base block, no HF-EEODB. */
+	if (!edid->extensions)
+		return 0;
+
+	/* HF-EEODB is always in the first EDID extension block only */
+	cta = (u8 *)edid + HDMI_EDID_BLOCK_SIZE * 1;
+	if (cta[0] != CEA_EXT || cta[1] < 3)
+		return 0;
+
+	/* Need to have the data block collection, and at least 3 bytes. */
+	if (cea_db_collection_size(cta) < 3)
+		return 0;
+
+	/*
+	 * Sinks that include the HF-EEODB in their E-EDID shall include one and
+	 * only one instance of the HF-EEODB in the E-EDID, occupying bytes 4
+	 * through 6 of Block 1 of the E-EDID.
+	 */
+	if (!cea_db_is_hdmi_forum_eeodb(&cta[4]))
+		return 0;
+
+	return cta[4 + 2];
+}
+
+static int edid_hfeeodb_block_count(const struct edid *edid)
+{
+	int eeodb = edid_hfeeodb_extension_block_count(edid);
+
+	return eeodb ? eeodb + 1 : 0;
+}
+
+/*
  * Search EDID for CEA extension block.
  */
-static u8 *drm_find_edid_extension(struct edid *edid, int ext_id)
+static u8 *drm_find_edid_extension(const struct edid *edid,
+				   int ext_id)
 {
 	u8 *edid_ext = NULL;
 	int i;
+	int len;
 
 	/* No EDID or EDID extensions */
-	if (!edid || !edid->extensions)
+	if (edid == NULL || edid->extensions == 0)
 		return NULL;
 
+	if (edid_hfeeodb_extension_block_count(edid))
+		len = edid_hfeeodb_extension_block_count(edid);
+	else
+		len = edid->extensions;
+
 	/* Find CEA extension */
-	for (i = 0; i < edid->extensions; i++) {
-		edid_ext = (u8 *)edid + EDID_SIZE * (i + 1);
+	for (i = 0; i < len; i++) {
+		edid_ext = (u8 *)edid + HDMI_EDID_BLOCK_SIZE * (i + 1);
 		if (edid_ext[0] == ext_id)
 			break;
 	}
 
-	if (i == edid->extensions)
+	if (i >= len)
 		return NULL;
 
 	return edid_ext;
@@ -3502,6 +3578,24 @@ drm_parse_hdmi_vsdb_video(struct hdmi_edid_data *data, const u8 *db)
 	drm_parse_hdmi_deep_color_info(data, db);
 }
 
+#define USE_EXTENDED_TAG 0x07
+#define CTA_EXT_DB_HF_SCDB 0x000079
+
+static bool cea_db_is_scdb(const u8 *db)
+{
+	unsigned int oui;
+
+	if (cea_db_tag(db) != USE_EXTENDED_TAG)
+		return false;
+
+	if (cea_db_payload_len(db) < 7)
+		return false;
+
+	oui = db[3] << 16 | db[2] << 8 | db[1];
+
+	return oui == CTA_EXT_DB_HF_SCDB;
+}
+
 static void drm_parse_cea_ext(struct hdmi_edid_data *data,
 			      struct edid *edid)
 {
@@ -3530,7 +3624,7 @@ static void drm_parse_cea_ext(struct hdmi_edid_data *data,
 
 		if (cea_db_is_hdmi_vsdb(db))
 			drm_parse_hdmi_vsdb_video(data, db);
-		if (cea_db_is_hdmi_forum_vsdb(db))
+		if (cea_db_is_hdmi_forum_vsdb(db) || cea_db_is_scdb(db))
 			drm_parse_hdmi_forum_vsdb(data, db);
 		if (cea_db_is_y420cmdb(db))
 			drm_parse_y420cmdb_bitmap(data, db);
@@ -3614,49 +3708,92 @@ static void drm_add_display_info(struct hdmi_edid_data *data, struct edid *edid)
 		info->color_formats |= DRM_COLOR_FORMAT_YCRCB422;
 }
 
+/*
+ * Search EDID for CEA extension block.
+ */
+static u8 *drm_find_edid_extension_from_index(const struct edid *edid,
+					      int ext_id, int *ext_index)
+{
+	u8 *edid_ext = NULL;
+	int i;
+	int len;
+
+	/* No EDID or EDID extensions */
+	if (edid == NULL || edid->extensions == 0)
+		return NULL;
+
+	if (edid_hfeeodb_extension_block_count(edid))
+		len = edid_hfeeodb_extension_block_count(edid);
+	else
+		len = edid->extensions;
+
+	/* Find CEA extension */
+	for (i = *ext_index; i < len; i++) {
+		edid_ext = (u8 *)edid + HDMI_EDID_BLOCK_SIZE * (i + 1);
+		if (edid_ext[0] == ext_id)
+			break;
+	}
+
+	if (i >= len)
+		return NULL;
+
+	*ext_index = i + 1;
+
+	return edid_ext;
+}
+
 static
 int add_cea_modes(struct hdmi_edid_data *data, struct edid *edid)
 {
-	const u8 *cea = drm_find_cea_extension(edid);
+	const u8 *cea;
 	const u8 *db, *hdmi = NULL, *video = NULL;
 	u8 dbl, hdmi_len, video_len = 0;
-	int modes = 0;
+	int i, count = 0, modes = 0;
+	int ext_index = 0;
 
-	if (cea && cea_revision(cea) >= 3) {
-		int i, start, end;
+	if (edid_hfeeodb_extension_block_count(edid))
+		count = edid_hfeeodb_extension_block_count(edid);
+	else
+		count = edid->extensions;
 
-		if (cea_db_offsets(cea, &start, &end))
-			return 0;
+	for (i = 0; i < count; i++) {
+		ext_index = i;
+		cea = drm_find_edid_extension_from_index(edid, CEA_EXT, &ext_index);
+		if (cea && cea_revision(cea) >= 3) {
+			int i, start, end;
 
-		for_each_cea_db(cea, i, start, end) {
-			db = &cea[i];
-			dbl = cea_db_payload_len(db);
+			if (cea_db_offsets(cea, &start, &end))
+				return 0;
 
-			if (cea_db_tag(db) == EDID_CEA861_DB_VIDEO) {
-				video = db + 1;
-				video_len = dbl;
-				modes += do_cea_modes(data, video, dbl);
-			} else if (cea_db_is_hdmi_vsdb(db)) {
-				hdmi = db;
-				hdmi_len = dbl;
-			} else if (cea_db_is_y420vdb(db)) {
-				const u8 *vdb420 = &db[2];
+			for_each_cea_db(cea, i, start, end) {
+				db = &cea[i];
+				dbl = cea_db_payload_len(db);
 
-				/* Add 4:2:0(only) modes present in EDID */
-				modes += do_y420vdb_modes(data, vdb420,
-							  dbl - 1);
+				if (cea_db_tag(db) == EDID_CEA861_DB_VIDEO) {
+					video = db + 1;
+					video_len = dbl;
+					modes += do_cea_modes(data, video, dbl);
+				} else if (cea_db_is_hdmi_vsdb(db)) {
+					hdmi = db;
+					hdmi_len = dbl;
+				} else if (cea_db_is_y420vdb(db)) {
+					const u8 *vdb420 = &db[2];
+
+					/* Add 4:2:0(only) modes present in EDID */
+					modes += do_y420vdb_modes(data, vdb420,
+								dbl - 1);
+				}
 			}
 		}
+
+		/*
+		* We parse the HDMI VSDB after having added the cea modes as we will
+		* be patching their flags when the sink supports stereo 3D.
+		*/
+		if (hdmi)
+			modes += do_hdmi_vsdb_modes(hdmi, hdmi_len, video,
+						video_len, data);
 	}
-
-	/*
-	 * We parse the HDMI VSDB after having added the cea modes as we will
-	 * be patching their flags when the sink supports stereo 3D.
-	 */
-	if (hdmi)
-		modes += do_hdmi_vsdb_modes(hdmi, hdmi_len, video,
-					    video_len, data);
-
 	return modes;
 }
 
@@ -6904,13 +7041,18 @@ drm_do_probe_ddc_edid(struct ddc_adapter *adap, u8 *buf, unsigned int block,
 	return ret == xfers ? 0 : -1;
 }
 
-int drm_do_get_edid(struct ddc_adapter *adap, u8 *edid)
+u8 *drm_do_get_edid(struct ddc_adapter *adap)
 {
-	int i, j, block_num, block = 0;
+	int i, j, block_num, valid_extensions = 0, invalid_blocks = 0, block = 0;
 	bool edid_corrupt;
+	u8 *new, *edid;
 #ifdef DEBUG
 	u8 *buff;
 #endif
+
+	edid = malloc(HDMI_EDID_BLOCK_SIZE);
+	if (!edid)
+		goto err;
 
 	/* base block fetch */
 	for (i = 0; i < 4; i++) {
@@ -6928,28 +7070,84 @@ int drm_do_get_edid(struct ddc_adapter *adap, u8 *edid)
 	if (i == 4)
 		goto err;
 
-	block++;
-	/* get the number of extensions */
-	block_num = edid[0x7e];
+	/* if there's no extensions, we're done */
+	valid_extensions = edid[0x7e];
+	if (valid_extensions == 0)
+		return 0;
 
-	for (j = 1; j <= block_num; j++) {
+	new = realloc(edid, (valid_extensions + 1) * HDMI_EDID_BLOCK_SIZE);
+	if (!new)
+		goto err;
+	edid = new;
+
+	/* get the number of extensions */
+	block_num = edid[0x7e] + 1;
+
+	for (j = 1; j < block_num; j++) {
+		u8 *block = edid + j * HDMI_EDID_BLOCK_SIZE;
+
 		for (i = 0; i < 4; i++) {
-			if (drm_do_probe_ddc_edid(adap, &edid[0x80 * j], j,
+			if (drm_do_probe_ddc_edid(adap, block, j,
 						  HDMI_EDID_BLOCK_SIZE))
 				goto err;
-			if (drm_edid_block_valid(&edid[0x80 * j], j,
+			if (drm_edid_block_valid(block, j,
 						 true, NULL))
 				break;
 		}
 
 		if (i == 4)
+			invalid_blocks++;
+
+		if (j == 1) {
+			/*
+			 * If the first EDID extension is a CTA extension, and
+			 * the first Data Block is HF-EEODB, override the
+			 * extension block count.
+			 *
+			 * Note: HF-EEODB could specify a smaller extension
+			 * count too, but we can't risk allocating a smaller
+			 * amount.
+			 */
+			int eeodb = edid_hfeeodb_block_count((const struct edid *)edid);
+
+			if (eeodb > block_num) {
+				block_num = eeodb;
+				new = realloc(edid, block_num * HDMI_EDID_BLOCK_SIZE);
+				if (!new)
+					goto err;
+				edid = new;
+			}
+		}
+	}
+
+	if (invalid_blocks) {
+		u8 *base;
+
+		new = kcalloc(valid_extensions + 1, HDMI_EDID_BLOCK_SIZE, GFP_KERNEL);
+		if (!new)
 			goto err;
-		block++;
+
+		base = new;
+		for (i = 0; i <= edid[0x7e]; i++) {
+			u8 *block = edid + i * HDMI_EDID_BLOCK_SIZE;
+
+			if (!drm_edid_block_valid(block, i, false, NULL))
+				continue;
+
+			memcpy(base, block, HDMI_EDID_BLOCK_SIZE);
+			base += HDMI_EDID_BLOCK_SIZE;
+		}
+
+		new[HDMI_EDID_BLOCK_SIZE - 1] += new[0x7e] - valid_extensions;
+		new[0x7e] = valid_extensions;
+
+		kfree(edid);
+		edid = new;
 	}
 
 #ifdef DEBUG
 	printf("RAW EDID:\n");
-	for (i = 0; i < block_num + 1; i++) {
+	for (i = 0; i < block_num; i++) {
 		buff = &edid[0x80 * i];
 		for (j = 0; j < HDMI_EDID_BLOCK_SIZE; j++) {
 			if (j % 16 == 0)
@@ -6960,13 +7158,12 @@ int drm_do_get_edid(struct ddc_adapter *adap, u8 *edid)
 	}
 #endif
 
-	return 0;
+	return edid;
 
 err:
 	printf("can't get edid block:%d\n", block);
-	/* clear all read edid block, include invalid block */
-	memset(edid, 0, HDMI_EDID_BLOCK_SIZE * (block + 1));
-	return -EFAULT;
+
+	return NULL;
 }
 
 static ssize_t hdmi_ddc_read(struct ddc_adapter *adap, u16 addr, u8 offset,
