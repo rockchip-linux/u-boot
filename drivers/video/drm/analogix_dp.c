@@ -894,6 +894,8 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 
 	if (dev_read_bool(conn->dev, "dp-mode"))
 		dp->dp_mode = true;
+	else if (dev_read_bool(conn->dev, "edp-mode"))
+		dp->dp_mode = false;
 
 	conn_state->output_if |= dp->id ? VOP_OUTPUT_IF_eDP1 : VOP_OUTPUT_IF_eDP0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
