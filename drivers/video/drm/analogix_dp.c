@@ -892,6 +892,9 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 	if (!conn->panel)
 		dp->dp_mode = true;
 
+	if (dev_read_bool(conn->dev, "dp-mode"))
+		dp->dp_mode = true;
+
 	conn_state->output_if |= dp->id ? VOP_OUTPUT_IF_eDP1 : VOP_OUTPUT_IF_eDP0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
