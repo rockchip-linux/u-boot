@@ -887,6 +887,10 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
+	int submode = PHY_SUBMODE_EDP;
+
+	if (!conn->panel)
+		dp->dp_mode = true;
 
 	conn_state->output_if |= dp->id ? VOP_OUTPUT_IF_eDP1 : VOP_OUTPUT_IF_eDP0;
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
@@ -898,7 +902,9 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 	reset_deassert_bulk(&dp->resets);
 
 	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dp->id);
-	generic_phy_set_mode(&dp->phy, PHY_MODE_DP, 0);
+	if (dp->plat_data.support_dp_mode && dp->dp_mode)
+		submode = PHY_SUBMODE_DP;
+	generic_phy_set_mode(&dp->phy, PHY_MODE_DP, submode);
 	generic_phy_power_on(&dp->phy);
 	analogix_dp_init_dp(dp);
 
@@ -1421,6 +1427,7 @@ static int analogix_dp_probe(struct udevice *dev)
 	dp->plat_data.dev_type = ROCKCHIP_DP;
 	dp->plat_data.subdev_type = pdata->chip_type;
 	dp->plat_data.ssc = pdata->ssc;
+	dp->plat_data.support_dp_mode = pdata->support_dp_mode;
 	dp->plat_data.max_bpc = pdata->max_bpc ? pdata->max_bpc : 8;
 
 	dp->video_info.max_link_rate = pdata->max_link_rate;

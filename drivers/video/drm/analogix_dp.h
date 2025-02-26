@@ -636,6 +636,7 @@ struct analogix_dp_plat_data {
 	enum analogix_dp_devtype dev_type;
 	enum analogix_dp_sub_devtype subdev_type;
 	bool ssc;
+	bool support_dp_mode;
 	u8 max_bpc;
 };
 
@@ -662,6 +663,7 @@ struct analogix_dp_device {
 	u32 lane_map[4];
 	struct drm_dp_aux aux;
 	const struct analogix_dp_output_format *output_fmt;
+	bool dp_mode;
 };
 
 struct analogix_dp_output_format {
