@@ -2798,23 +2798,37 @@ static void vop2_plane_mask_assign(struct display_state *state)
 		plane_mask = vop2->data->plane_mask;
 		plane_mask += (active_vp_num - 1) * VOP2_VP_MAX;
 
-		for (i = 0; i < vop2->data->nr_vps; i++) {
-			if (!is_hot_plug_devices(cstate->crtc->vps[i].output_type)) {
-				/* the first store main display plane mask */
-				vop2->vp_plane_mask[i] = plane_mask[0];
-				main_vp_index = i;
-				break;
+		/*
+		 * For RK3566, the main planes should be enabled before the mirror planes.
+		 * The devices that support hot plug may be disconnected initially, so we
+		 * assign the main planes to the first device that does not support hot
+		 * plug, in order to ensure that the mirror planes are not enabled first.
+		 */
+		if (soc_is_rk3566()) {
+			for (i = 0; i < vop2->data->nr_vps; i++) {
+				if (!is_hot_plug_devices(cstate->crtc->vps[i].output_type)) {
+					/* the first store main display plane mask */
+					vop2->vp_plane_mask[i] = plane_mask[0];
+					main_vp_index = i;
+					break;
+				}
 			}
-		}
 
-		/* if no find unplug devices, use vp0 as main display */
-		if (main_vp_index < 0) {
-			main_vp_index = 0;
-			vop2->vp_plane_mask[0] = plane_mask[0];
-		}
+			/* if no find unplug devices, use vp0 as main display */
+			if (main_vp_index < 0) {
+				main_vp_index = 0;
+				vop2->vp_plane_mask[0] = plane_mask[0];
+			}
 
-		/* plane_mask[0] store main display, so we from plane_mask[1] */
-		j = 1;
+			/* plane_mask[0] store main display, so we from plane_mask[1] */
+			j = 1;
+		} else {
+			/*
+			 * For the platforms except RK3566, we assign the plane mask of
+			 * VPx according to the &vop2_data.plane_mask[active_vp_num][x].
+			 */
+			j = 0;
+		}
 
 		/* init other display except main display */
 		for (i = 0; i < vop2->data->nr_vps; i++) {
