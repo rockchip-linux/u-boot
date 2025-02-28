@@ -1402,6 +1402,7 @@ struct vop2_esmart_lb_map {
 */
 struct vop2_ops {
 	void (*setup_win_dly)(struct display_state *state, int crtc_id);
+	void (*setup_overlay)(struct display_state *state);
 };
 
 struct vop2_data {
@@ -2535,104 +2536,6 @@ static void rk3588_vop2_regsbak(struct vop2 *vop2)
 		vop2->regsbak[i] = base[i];
 }
 
-static void vop3_overlay_init(struct vop2 *vop2, struct display_state *state)
-{
-	struct vop2_win_data *win_data;
-	int layer_phy_id = 0;
-	int i, j;
-	u32 ovl_port_offset = 0;
-	u32 layer_nr = 0;
-	u8 shift = 0;
-
-	/* layer sel win id */
-	for (i = 0; i < vop2->data->nr_vps; i++) {
-		shift = 0;
-		ovl_port_offset = 0x100 * i;
-		layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
-		for (j = 0; j < layer_nr; j++) {
-			layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
-			win_data = vop2_find_win_by_phys_id(vop2, layer_phy_id);
-			vop2_mask_write(vop2, RK3528_OVL_PORT0_LAYER_SEL + ovl_port_offset, LAYER_SEL_MASK,
-					shift, win_data->layer_sel_win_id[i], false);
-			shift += 4;
-		}
-	}
-
-	if (vop2->version != VOP_VERSION_RK3576) {
-		/* win sel port */
-		for (i = 0; i < vop2->data->nr_vps; i++) {
-			layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
-			for (j = 0; j < layer_nr; j++) {
-				if (!vop2->vp_plane_mask[i].attached_layers[j])
-					continue;
-				layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
-				win_data = vop2_find_win_by_phys_id(vop2, layer_phy_id);
-				shift = win_data->win_sel_port_offset * 2;
-				vop2_mask_write(vop2, RK3528_OVL_SYS_PORT_SEL,
-						LAYER_SEL_PORT_MASK, shift, i, false);
-			}
-		}
-	}
-}
-
-static void vop2_overlay_init(struct vop2 *vop2, struct display_state *state)
-{
-	struct crtc_state *cstate = &state->crtc_state;
-	struct vop2_win_data *win_data;
-	int layer_phy_id = 0;
-	int total_used_layer = 0;
-	int port_mux = 0;
-	int i, j;
-	u32 layer_nr = 0;
-	u8 shift = 0;
-
-	/* layer sel win id */
-	for (i = 0; i < vop2->data->nr_vps; i++) {
-		layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
-		for (j = 0; j < layer_nr; j++) {
-			layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
-			win_data = vop2_find_win_by_phys_id(vop2, layer_phy_id);
-			vop2_mask_write(vop2, RK3568_OVL_LAYER_SEL, LAYER_SEL_MASK,
-					shift, win_data->layer_sel_win_id[i], false);
-			shift += 4;
-		}
-	}
-
-	/* win sel port */
-	for (i = 0; i < vop2->data->nr_vps; i++) {
-		layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
-		for (j = 0; j < layer_nr; j++) {
-			if (!vop2->vp_plane_mask[i].attached_layers[j])
-				continue;
-			layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
-			win_data = vop2_find_win_by_phys_id(vop2, layer_phy_id);
-			shift = win_data->win_sel_port_offset * 2;
-			vop2_mask_write(vop2, RK3568_OVL_PORT_SEL, LAYER_SEL_PORT_MASK,
-					LAYER_SEL_PORT_SHIFT + shift, i, false);
-		}
-	}
-
-	/**
-	 * port mux config
-	 */
-	for (i = 0; i < vop2->data->nr_vps; i++) {
-		shift = i * 4;
-		if (vop2->vp_plane_mask[i].attached_layers_nr) {
-			total_used_layer += vop2->vp_plane_mask[i].attached_layers_nr;
-			port_mux = total_used_layer - 1;
-		} else {
-			port_mux = 8;
-		}
-
-		if (i == vop2->data->nr_vps - 1)
-			port_mux = vop2->data->nr_mixers;
-
-		cstate->crtc->vps[i].bg_ovl_dly = (vop2->data->nr_mixers - port_mux) << 1;
-		vop2_mask_write(vop2, RK3568_OVL_PORT_SEL, PORT_MUX_MASK,
-				PORT_MUX_SHIFT + shift, port_mux, false);
-	}
-}
-
 static bool vop3_ignore_plane(struct vop2 *vop2, struct vop2_win_data *win)
 {
 	if (!is_vop3(vop2))
@@ -2693,6 +2596,8 @@ static int vop3_get_esmart_lb_mode(struct vop2 *vop2)
 static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_ops *vop2_ops = vop2_data->ops;
 	struct vop2_vp_plane_mask *plane_mask;
 	int active_vp_num = 0;
 	int layer_phy_id = 0;
@@ -2841,10 +2746,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		       vop2_plane_id_to_string(vop2->vp_plane_mask[i].primary_plane_id));
 	}
 
-	if (is_vop3(vop2))
-		vop3_overlay_init(vop2, state);
-	else
-		vop2_overlay_init(vop2, state);
+	vop2_ops->setup_overlay(state);
 
 	if (is_vop3(vop2)) {
 		/*
@@ -6048,6 +5950,42 @@ static void rk3528_setup_win_dly(struct display_state *state, int crtc_id)
 	}
 }
 
+static void rk3528_setup_overlay(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	struct vop2_win_data *win_data;
+	int i;
+	u32 offset = 0;
+	u8 shift = 0;
+
+	/* init the layer sel value to 0xff(Disable layer) */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		offset = 0x100 * i;
+		vop2_writel(vop2, RK3528_OVL_PORT0_LAYER_SEL + offset, 0xffffffff);
+	}
+
+	/* layer sel win id */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		if (vop2->vp_plane_mask[i].primary_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
+			offset = 0x100 * i;
+			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].primary_plane_id);
+			vop2_mask_write(vop2, RK3528_OVL_PORT0_LAYER_SEL + offset,
+					LAYER_SEL_MASK, 0, win_data->layer_sel_win_id[i], false);
+		}
+	}
+
+	/* win sel port */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		if (vop2->vp_plane_mask[i].primary_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
+			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].primary_plane_id);
+			shift = win_data->win_sel_port_offset * 2;
+			vop2_mask_write(vop2, RK3528_OVL_SYS_PORT_SEL,
+					LAYER_SEL_PORT_MASK, shift, i, false);
+		}
+	}
+}
+
 static void rk3568_setup_win_dly(struct display_state *state, int crtc_id)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -6099,6 +6037,65 @@ static void rk3568_setup_win_dly(struct display_state *state, int crtc_id)
 	}
 }
 
+static void rk3568_setup_overlay(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	struct vop2_win_data *win_data;
+	int layer_phy_id = 0;
+	int total_used_layer = 0;
+	int port_mux = 0;
+	int i, j;
+	u32 layer_nr = 0;
+	u8 shift = 0;
+
+	/* layer sel win id */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
+		for (j = 0; j < layer_nr; j++) {
+			layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
+			win_data = vop2_find_win_by_phys_id(vop2, layer_phy_id);
+			vop2_mask_write(vop2, RK3568_OVL_LAYER_SEL, LAYER_SEL_MASK,
+					shift, win_data->layer_sel_win_id[i], false);
+			shift += 4;
+		}
+	}
+
+	/* win sel port */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
+		for (j = 0; j < layer_nr; j++) {
+			if (!vop2->vp_plane_mask[i].attached_layers[j])
+				continue;
+			layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
+			win_data = vop2_find_win_by_phys_id(vop2, layer_phy_id);
+			shift = win_data->win_sel_port_offset * 2;
+			vop2_mask_write(vop2, RK3568_OVL_PORT_SEL, LAYER_SEL_PORT_MASK,
+					LAYER_SEL_PORT_SHIFT + shift, i, false);
+		}
+	}
+
+	/**
+	 * port mux config
+	 */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		shift = i * 4;
+		if (vop2->vp_plane_mask[i].attached_layers_nr) {
+			total_used_layer += vop2->vp_plane_mask[i].attached_layers_nr;
+			port_mux = total_used_layer - 1;
+		} else {
+			port_mux = 8;
+		}
+
+		if (i == vop2->data->nr_vps - 1)
+			port_mux = vop2->data->nr_mixers;
+
+		cstate->crtc->vps[i].bg_ovl_dly = (vop2->data->nr_mixers - port_mux) << 1;
+		vop2_mask_write(vop2, RK3568_OVL_PORT_SEL, PORT_MUX_MASK,
+				PORT_MUX_SHIFT + shift, port_mux, false);
+	}
+}
+
 static void rk3576_setup_win_dly(struct display_state *state, int crtc_id)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -6131,6 +6128,25 @@ static void rk3576_setup_win_dly(struct display_state *state, int crtc_id)
 		vop2_mask_write(vop2, RK3576_ESMART3_DLY_NUM, ESMART_DLY_NUM_MASK,
 				ESMART_DLY_NUM_SHIFT, dly, false);
 		break;
+	}
+}
+
+static void rk3576_setup_overlay(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	struct vop2_win_data *win_data;
+	int i;
+	u32 offset = 0;
+
+	/* layer sel win id */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		if (vop2->vp_plane_mask[i].primary_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
+			offset = 0x100 * i;
+			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].primary_plane_id);
+			vop2_mask_write(vop2, RK3528_OVL_PORT0_LAYER_SEL + offset, LAYER_SEL_MASK,
+					0, win_data->layer_sel_win_id[i], false);
+		}
 	}
 }
 
@@ -6338,6 +6354,7 @@ static struct vop2_vp_data rk3528_vp_data[2] = {
 
 static const struct vop2_ops rk3528_vop_ops = {
 	.setup_win_dly = rk3528_setup_win_dly,
+	.setup_overlay = rk3528_setup_overlay,
 };
 
 const struct vop2_data rk3528_vop = {
@@ -6514,6 +6531,7 @@ static struct vop2_vp_data rk3562_vp_data[2] = {
 
 static const struct vop2_ops rk3562_vop_ops = {
 	.setup_win_dly = rk3528_setup_win_dly,
+	.setup_overlay = rk3528_setup_overlay,
 };
 
 const struct vop2_data rk3562_vop = {
@@ -6752,6 +6770,7 @@ static struct vop2_vp_data rk3568_vp_data[3] = {
 
 static const struct vop2_ops rk3568_vop_ops = {
 	.setup_win_dly = rk3568_setup_win_dly,
+	.setup_overlay = rk3568_setup_overlay,
 };
 
 const struct vop2_data rk3568_vop = {
@@ -7051,6 +7070,7 @@ static const struct vop2_esmart_lb_map rk3576_esmart_lb_mode_map[] = {
 
 static const struct vop2_ops rk3576_vop_ops = {
 	.setup_win_dly = rk3576_setup_win_dly,
+	.setup_overlay = rk3576_setup_overlay,
 };
 
 const struct vop2_data rk3576_vop = {
@@ -7520,6 +7540,7 @@ static struct vop2_power_domain_data rk3588_vop_pd_data[] = {
 
 static const struct vop2_ops rk3588_vop_ops = {
 	.setup_win_dly = rk3568_setup_win_dly,
+	.setup_overlay = rk3568_setup_overlay,
 };
 
 const struct vop2_data rk3588_vop = {
