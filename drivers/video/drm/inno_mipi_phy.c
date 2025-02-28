@@ -102,6 +102,8 @@
 #define DIGITAL_RESET_MASK		BIT(0)
 #define DIGITAL_NORMAL			BIT(0)
 #define DIGITAL_RESET			0
+#define INNO_PHY_MODE_CTRL		0x038c
+#define MIPI_MODE_ENABLE		BIT(0)
 #define INNO_PHY_LVDS_CTRL		0x03ac
 #define LVDS_BGPD			BIT(0)
 
@@ -745,6 +747,11 @@ static int inno_mipi_dphy_init(struct rockchip_phy *phy)
 	}
 
 	inno->regs = dev_read_addr_ptr(inno->dev);
+
+#if defined(CONFIG_ROCKCHIP_RK3506)
+	/* The following command switches gpio to MIPI */
+	inno_write(inno, INNO_PHY_MODE_CTRL, MIPI_MODE_ENABLE);
+#endif
 
 	return 0;
 }
