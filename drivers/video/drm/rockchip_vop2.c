@@ -2665,8 +2665,8 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	int active_vp_num = 0;
 	int layer_phy_id = 0;
 	int i, j;
-	int ret;
 	u32 layer_nr = 0;
+	const u8 *tmp;
 
 	if (vop2->global_init)
 		return;
@@ -2827,8 +2827,10 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		 * 	esmart_lb_mode = /bits/ 8 <2>;
 		 * };
 		 */
-		ret = ofnode_read_u32(cstate->node, "esmart_lb_mode", &vop2->esmart_lb_mode);
-		if (ret < 0)
+		tmp = dev_read_u8_array_ptr(cstate->dev, "esmart_lb_mode", 1);
+		if (tmp)
+			vop2->esmart_lb_mode = *tmp;
+		else
 			vop2->esmart_lb_mode = vop2->data->esmart_lb_mode;
 		if (vop2->version == VOP_VERSION_RK3576)
 			vop2_mask_write(vop2, RK3576_SYS_ESMART_PD_CTRL,
