@@ -3116,10 +3116,12 @@ static int rockchip_vop2_preinit(struct display_state *state)
 	}
 
 	snprintf(dclk_name, sizeof(dclk_name), "dclk_vp%d", cstate->crtc_id);
-	ret = reset_get_by_name(cstate->dev, dclk_name, &cstate->dclk_rst);
-	if (ret < 0) {
-		printf("%s: failed to get dclk reset: %d\n", __func__, ret);
-		cstate->dclk_rst.dev = NULL;
+	if (dev_read_stringlist_search(cstate->dev, "reset-names", dclk_name) > 0) {
+		ret = reset_get_by_name(cstate->dev, dclk_name, &cstate->dclk_rst);
+		if (ret < 0) {
+			printf("%s: failed to get dclk reset: %d\n", __func__, ret);
+			cstate->dclk_rst.dev = NULL;
+		}
 	}
 
 	cstate->private = rockchip_vop2;
