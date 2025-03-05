@@ -14,10 +14,10 @@ struct rockchip_vp {
 	bool xmirror_en;
 	u8 bg_ovl_dly;
 	u8 primary_plane_id;
+	u8 cursor_plane_id;
 	u8 dclk_div;
 	int output_type;
 	u32 plane_mask;
-	int cursor_plane;
 };
 
 struct rockchip_crtc {

@@ -2092,28 +2092,31 @@ static int rockchip_display_probe(struct udevice *dev)
 				bool vp_enable = false;
 
 				ofnode_for_each_subnode(vp_node, np_to_ofnode(port_parent_node)) {
-					int cursor_plane = -1;
-
 					vp_id = ofnode_read_u32_default(vp_node, "reg", 0);
 
 					s->crtc_state.crtc->vps[vp_id].xmirror_en =
 						ofnode_read_bool(vp_node, "xmirror-enable");
 
 					s->crtc_state.crtc->vps[vp_id].primary_plane_id = -1;
-					ret = ofnode_read_u32_default(vp_node, "rockchip,plane-mask", 0);
 
-					cursor_plane = ofnode_read_u32_default(vp_node, "cursor-win-id", -1);
-					s->crtc_state.crtc->vps[vp_id].cursor_plane = cursor_plane;
-					if (ret) {
-						s->crtc_state.crtc->vps[vp_id].plane_mask = ret;
+					/*
+					 * Cursor plane can be assigned and then fixed up to DTS
+					 * without the specific plane mask.
+					 */
+					s->crtc_state.crtc->vps[vp_id].cursor_plane_id =
+						ofnode_read_u32_default(vp_node, "cursor-win-id", -1);
+
+					s->crtc_state.crtc->vps[vp_id].plane_mask =
+						ofnode_read_u32_default(vp_node, "rockchip,plane-mask", 0);
+					if (s->crtc_state.crtc->vps[vp_id].plane_mask) {
 						s->crtc_state.crtc->assign_plane |= true;
 						s->crtc_state.crtc->vps[vp_id].primary_plane_id =
 							ofnode_read_u32_default(vp_node, "rockchip,primary-plane", -1);
-						printf("get vp%d plane mask:0x%x, primary id:%d, cursor_plane:%d, from dts\n",
+						printf("get vp%d plane mask:0x%x, primary id:%d, cursor id:%d, from dts\n",
 						       vp_id,
 						       s->crtc_state.crtc->vps[vp_id].plane_mask,
 						       (int8_t)s->crtc_state.crtc->vps[vp_id].primary_plane_id,
-						       cursor_plane);
+						       (int8_t)s->crtc_state.crtc->vps[vp_id].cursor_plane_id);
 					}
 
 					/* To check current vp status */
