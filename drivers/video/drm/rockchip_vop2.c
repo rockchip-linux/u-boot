@@ -6342,7 +6342,7 @@ static struct vop2_vp_data rk3562_vp_data[2] = {
 	{
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN,
 		.max_output = {2048, 4096},
-		.win_dly = 8,
+		.win_dly = 6,
 		.layer_mix_dly = 8,
 	},
 	{
