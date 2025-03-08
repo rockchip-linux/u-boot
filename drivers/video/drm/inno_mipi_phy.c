@@ -771,7 +771,7 @@ static const struct udevice_id inno_mipi_dphy_ids[] = {
 		.compatible = "rockchip,rk1808-mipi-dphy",
 	},
 	{
-		.compatible = "rockchip,rv1126-mipi-dphy",
+		.compatible = "rockchip,rv1126-dsi-dphy",
 	},
 	{
 		.compatible = "rockchip,rk3506-dsi-dphy",
