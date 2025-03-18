@@ -164,7 +164,7 @@ static int analogix_dp_enable_sink_to_assr_mode(struct analogix_dp_device *dp, b
 		ret = drm_dp_dpcd_writeb(&dp->aux, DP_EDP_CONFIGURATION_SET,
 					 data | DP_ALTERNATE_SCRAMBLER_RESET_ENABLE);
 	else
-		ret = drm_dp_dpcd_writeb(&dp->aux, DP_LANE_COUNT_SET,
+		ret = drm_dp_dpcd_writeb(&dp->aux, DP_EDP_CONFIGURATION_SET,
 					 data & ~DP_ALTERNATE_SCRAMBLER_RESET_ENABLE);
 
 	return ret < 0 ? ret : 0;
