@@ -2181,25 +2181,37 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	u16 vact_st = mode->crtc_vtotal - mode->crtc_vsync_start;
 	u16 hdisplay = mode->crtc_hdisplay;
 	u16 vdisplay = mode->crtc_vdisplay;
-	u16 hsize =
-	    hdisplay * (conn_state->overscan.left_margin +
-			conn_state->overscan.right_margin) / 200;
-	u16 vsize =
-	    vdisplay * (conn_state->overscan.top_margin +
-			conn_state->overscan.bottom_margin) / 200;
+	u16 hsize;
+	u16 vsize;
 	u16 hact_end, vact_end;
 	u32 val;
 
-	hsize = round_down(hsize, 2);
-	vsize = round_down(vsize, 2);
+	/*
+	 * For RK3576, use the win scale instead of the post scale to configure
+	 * overscan parameters, because the sharp/post scale/split functions are
+	 * mutually exclusice.
+	 */
+	if (vop2->version == VOP_VERSION_RK3576) {
+		hsize = hdisplay;
+		vsize = vdisplay;
 
-	hact_st += hdisplay * (100 - conn_state->overscan.left_margin) / 200;
+		cstate->overscan_by_win_scale = true;
+	} else {
+		hsize = hdisplay * (conn_state->overscan.left_margin +
+				    conn_state->overscan.right_margin) / 200;
+		vsize = vdisplay * (conn_state->overscan.top_margin +
+				    conn_state->overscan.bottom_margin) / 200;
+		hsize = round_down(hsize, 2);
+		vsize = round_down(vsize, 2);
+
+		hact_st += hdisplay * (100 - conn_state->overscan.left_margin) / 200;
+		vact_st += vdisplay * (100 - conn_state->overscan.top_margin) / 200;
+	}
+
 	hact_end = hact_st + hsize;
 	val = hact_st << 16;
 	val |= hact_end;
-
 	vop2_writel(vop2, RK3568_VP0_POST_DSP_HACT_INFO + vp_offset, val);
-	vact_st += vdisplay * (100 - conn_state->overscan.top_margin) / 200;
 	vact_end = vact_st + vsize;
 	val = vact_st << 16;
 	val |= vact_end;

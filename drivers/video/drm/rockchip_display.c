@@ -1011,7 +1011,10 @@ static int display_logo(struct display_state *state)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
+	struct overscan *overscan = &conn_state->overscan;
 	struct logo_info *logo = &state->logo;
+	u32 crtc_x, crtc_y, crtc_w, crtc_h;
+	u32 overscan_w, overscan_h;
 	int hdisplay, vdisplay, ret;
 
 	ret = display_init(state);
@@ -1065,6 +1068,26 @@ static int display_logo(struct display_state *state)
 			crtc_state->crtc_rect.y = (vdisplay - crtc_state->src_rect.h) / 2;
 			crtc_state->crtc_rect.h = crtc_state->src_rect.h;
 		}
+	}
+
+	/*
+	 * For some platforms, such as RK3576, use the win scale instead
+	 * of the post scale to configure overscan parameters, because the
+	 * sharp/post scale/split functions are mutually exclusice.
+	 */
+	if (crtc_state->overscan_by_win_scale) {
+		overscan_w = crtc_state->crtc_rect.w * (200 - overscan->left_margin * 2) / 200;
+		overscan_h = crtc_state->crtc_rect.h * (200 - overscan->top_margin * 2) / 200;
+
+		crtc_x = crtc_state->crtc_rect.x + overscan_w / 2;
+		crtc_y = crtc_state->crtc_rect.y + overscan_h / 2;
+		crtc_w = crtc_state->crtc_rect.w - overscan_w;
+		crtc_h = crtc_state->crtc_rect.h - overscan_h;
+
+		crtc_state->crtc_rect.x = crtc_x;
+		crtc_state->crtc_rect.y = crtc_y;
+		crtc_state->crtc_rect.w = crtc_w;
+		crtc_state->crtc_rect.h = crtc_h;
 	}
 
 	display_check(state);
@@ -2285,6 +2308,7 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("overscan,right_margin", s->conn_state.overscan.right_margin);
 		FDT_SET_U32("overscan,top_margin", s->conn_state.overscan.top_margin);
 		FDT_SET_U32("overscan,bottom_margin", s->conn_state.overscan.bottom_margin);
+		FDT_SET_U32("overscan,win_scale", s->crtc_state.overscan_by_win_scale);
 
 		if (s->conn_state.disp_info) {
 			cacm_header = (const char*)&s->conn_state.disp_info->cacm_header;
