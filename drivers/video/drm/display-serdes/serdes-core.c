@@ -189,8 +189,9 @@ int serdes_i2c_set_sequence(struct serdes *serdes)
 	int i, ret = 0;
 	unsigned int def = 0;
 
-	if(serdes->mcu_enable) {
-		printf("serdes %s i2c set sequence in MCU\n", serdes->dev->name);
+	if (serdes->mcu_enable) {
+		printf("serdes %s i2c set sequence in MCU\n",
+		       serdes->dev->name);
 		return 0;
 	}
 
@@ -312,13 +313,13 @@ free_init_seq:
 }
 EXPORT_SYMBOL_GPL(serdes_get_init_seq);
 
-int serdes_gpio_register(struct udevice *dev,
-			 struct serdes *serdes)
+int serdes_gpio_register(struct udevice *dev)
 {
 	bool pre_reloc_only = !(gd->flags & GD_FLG_RELOC);
 	struct uclass_driver *drv;
 	int ret = -ENODEV;
 	const char *name;
+	const char *status;
 	ofnode subnode;
 	struct udevice *subdev;
 	struct udevice *gpio_dev;
@@ -343,11 +344,20 @@ int serdes_gpio_register(struct udevice *dev,
 			continue;
 
 		if (strstr(name, "gpio")) {
+			status = ofnode_read_string(subnode, "status");
+			if (status && strcmp(status, "okay") != 0) {
+				SERDES_DBG_MFD("%s node=%s status=%s, exit\n",
+					       __func__, name, status);
+				return 0;
+			}
+
 			ret = device_bind_driver_to_node(dev,
 							 "serdes-gpio", name,
 							 subnode, &subdev);
-			if (ret)
+			if (ret) {
+				printf("Cannot find serdes gpio driver\n");
 				return ret;
+			}
 
 			ret = uclass_get_device_by_ofnode(UCLASS_GPIO,
 							  subnode,
@@ -367,16 +377,17 @@ int serdes_gpio_register(struct udevice *dev,
 }
 EXPORT_SYMBOL_GPL(serdes_gpio_register);
 
-int serdes_pinctrl_register(struct udevice *dev,
-			    struct serdes *serdes)
+int serdes_pinctrl_register(struct udevice *dev)
 {
 	bool pre_reloc_only = !(gd->flags & GD_FLG_RELOC);
 	struct uclass_driver *drv;
 	int ret = -ENODEV;
 	const char *name;
+	const char *status;
 	ofnode subnode;
 	struct udevice *subdev;
 	struct udevice *pinctrl_dev;
+	struct serdes *serdes = dev_get_priv(dev);
 
 	SERDES_DBG_MFD("%s node=%s\n",
 		       __func__, ofnode_get_name(dev->node));
@@ -398,11 +409,26 @@ int serdes_pinctrl_register(struct udevice *dev,
 			continue;
 
 		if (strstr(name, "pinctrl")) {
+			status = ofnode_read_string(subnode, "status");
+			if (status && strcmp(status, "okay") != 0) {
+				SERDES_DBG_MFD("%s node=%s status=%s, exit\n",
+					       __func__, name, status);
+				return 0;
+			}
+
+			if (serdes->mcu_enable) {
+				printf("serdes %s iomux init in MCU\n",
+				       serdes->dev->name);
+				return 0;
+			}
+
 			ret = device_bind_driver_to_node(dev,
 							 "serdes-pinctrl", name,
 							 subnode, &subdev);
-			if (ret)
+			if (ret) {
+				printf("Cannot find serdes pinctrl driver\n");
 				return ret;
+			}
 
 			ret = uclass_get_device_by_ofnode(UCLASS_PINCTRL,
 							  subnode,

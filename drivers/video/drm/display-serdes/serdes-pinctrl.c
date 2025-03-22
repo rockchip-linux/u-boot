@@ -173,15 +173,21 @@ static struct pinctrl_ops serdes_pinctrl_ops = {
 int serdes_pinctrl_probe(struct udevice *dev)
 {
 	struct serdes *serdes = dev_get_priv(dev->parent);
-	struct serdes_pinctrl *serdes_pinctrl = serdes->serdes_pinctrl;
+	struct serdes_pinctrl *serdes_pinctrl;
 	int ret = 0;
 
 	SERDES_DBG_MFD("%s: %s %s start\n", __func__, dev->name,
 		       serdes->chip_data->name);
 
+	serdes_pinctrl = calloc(1, sizeof(*serdes_pinctrl));
+	if (!serdes_pinctrl)
+		return -ENOMEM;
+
+	serdes->serdes_pinctrl = serdes_pinctrl;
+
 	serdes_pinctrl->parent = serdes;
 
-	ret = serdes_gpio_register(dev, serdes);
+	ret = serdes_gpio_register(dev);
 	if (ret)
 		return ret;
 

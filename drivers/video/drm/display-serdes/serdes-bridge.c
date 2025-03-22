@@ -106,8 +106,9 @@ static bool serdes_bridge_detect(struct rockchip_bridge *bridge)
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
 
-	if(serdes->mcu_enable) {
-		printf("serdes %s detect link status in MCU\n", serdes->dev->name);
+	if (serdes->mcu_enable) {
+		printf("serdes %s detect link status in MCU\n",
+		       serdes->dev->name);
 		return ret;
 	}
 
