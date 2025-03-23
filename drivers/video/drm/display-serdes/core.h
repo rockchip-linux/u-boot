@@ -316,6 +316,7 @@ struct serdes {
 	int err_irq_trig;
 
 	bool sel_mipi;
+	bool mcu_enable;
 	struct mipi_dsi_device *dsi;
 
 	bool split_mode_enable;

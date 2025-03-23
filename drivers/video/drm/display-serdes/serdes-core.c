@@ -189,6 +189,11 @@ int serdes_i2c_set_sequence(struct serdes *serdes)
 	int i, ret = 0;
 	unsigned int def = 0;
 
+	if(serdes->mcu_enable) {
+		printf("serdes %s i2c set sequence in MCU\n", serdes->dev->name);
+		return 0;
+	}
+
 	for (i = 0; i < serdes->serdes_init_seq->reg_seq_cnt; i++) {
 		if (serdes->serdes_init_seq->reg_sequence[i].reg == 0xffff) {
 			SERDES_DBG_MFD("%s: delay 0x%04x us\n", __func__,

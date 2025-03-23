@@ -118,6 +118,8 @@ static int serdes_i2c_probe(struct udevice *dev)
 		SERDES_DBG_MFD("%s: failed to err gpio: %d\n",
 			       __func__, ret);
 
+	serdes->mcu_enable = dev_read_bool(dev, "mcu-enable");
+
 	if (serdes->chip_data->serdes_type == TYPE_OTHER) {
 		SERDES_DBG_MFD("TYPE_OTHER just need only init i2c\n");
 		serdes_i2c_init(serdes);
@@ -143,14 +145,17 @@ static int serdes_i2c_probe(struct udevice *dev)
 		serdes->serdes_bridge_split = serdes_bridge_split;
 	}
 
-	serdes_pinctrl = calloc(1, sizeof(*serdes_pinctrl));
-	if (!serdes_pinctrl)
-		return -ENOMEM;
+	if(!serdes->mcu_enable) {
+		serdes_pinctrl = calloc(1, sizeof(*serdes_pinctrl));
+		if (!serdes_pinctrl)
+			return -ENOMEM;
 
-	serdes->serdes_pinctrl = serdes_pinctrl;
-	ret = serdes_pinctrl_register(dev, serdes);
-	if (ret)
-		return ret;
+		serdes->serdes_pinctrl = serdes_pinctrl;
+		ret = serdes_pinctrl_register(dev, serdes);
+		if (ret)
+			return ret;
+	} else
+		printf("serdes %s iomux init in MCU\n", serdes->dev->name);
 
 	serdes->id_serdes_bridge_split = dev_read_u32_default(dev, "id-serdes-bridge-split", 0);
 	if ((serdes->id_serdes_bridge_split < MAX_NUM_SERDES_SPLIT) && (serdes->type == TYPE_SER)) {
