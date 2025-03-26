@@ -3390,8 +3390,8 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 			K = 2;
 		}
 		if (cstate->dsc_enable) {
-			if_pixclk_rate = cstate->dsc_cds_clk_rate << 1;
-			if_dclk_rate = cstate->dsc_cds_clk_rate;
+			if_pixclk_rate = cstate->dsc_cds_clk_rate / 1000 << 1;
+			if_dclk_rate = cstate->dsc_cds_clk_rate / 1000;
 		} else {
 			if_pixclk_rate = (dclk_core_rate << 1) / K;
 			if_dclk_rate = dclk_core_rate / K;
