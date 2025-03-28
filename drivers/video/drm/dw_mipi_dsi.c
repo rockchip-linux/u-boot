@@ -1649,7 +1649,7 @@ static const struct udevice_id dw_mipi_dsi_ids[] = {
 	},
 	{
 		.compatible = "rockchip,rv1126b-mipi-dsi",
-		.data = (ulong)&rv1126b_mipi_dsi_driver_data,
+		.data = (ulong)&rv1126b_mipi_dsi_plat_data,
 	},
 	{}
 };
