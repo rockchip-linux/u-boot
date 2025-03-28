@@ -3409,6 +3409,9 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		*if_pixclk_div = dclk_rate / if_pixclk_rate;
 		*if_dclk_div = dclk_rate / if_dclk_rate;
 		*dclk_core_div = dclk_rate / dclk_core_rate;
+		/* For HDMI DSC mode, the dclk_out_div should be the same as dclk_core_div */
+		if (cstate->dsc_enable)
+			*dclk_out_div = *dclk_core_div;
 		printf("dclk:%lu,if_pixclk_div;%d,if_dclk_div:%d\n",
 		       dclk_rate, *if_pixclk_div, *if_dclk_div);
 	} else if (output_type == DRM_MODE_CONNECTOR_eDP) {
@@ -3468,7 +3471,16 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 	*if_pixclk_div = ilog2(*if_pixclk_div);
 	*if_dclk_div = ilog2(*if_dclk_div);
 	*dclk_core_div = ilog2(*dclk_core_div);
-	*dclk_out_div = ilog2(*dclk_out_div);
+	/*
+	 * For RK3588, dclk_out is designed for DP, MIPI(both DSC and non-DSC mode)
+	 * and HDMI in DSC mode.
+	 */
+	if (output_type == DRM_MODE_CONNECTOR_DisplayPort ||
+	    output_type == DRM_MODE_CONNECTOR_DSI ||
+	    (output_type == DRM_MODE_CONNECTOR_HDMIA && cstate->dsc_enable))
+		*dclk_out_div = ilog2(*dclk_out_div);
+	else
+		*dclk_out_div = 0;
 
 	return dclk_rate;
 }
