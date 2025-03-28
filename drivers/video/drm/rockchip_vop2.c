@@ -1059,8 +1059,10 @@
 #define RK3588_GRF_VOP_CON2			0x0008
 #define RK3588_GRF_EDP0_ENABLE_SHIFT		0
 #define RK3588_GRF_HDMITX0_ENABLE_SHIFT		1
+#define RK3588_GRF_HDMITX0_COMPRESS_MODE_SHIFT	2
 #define RK3588_GRF_EDP1_ENABLE_SHIFT		3
 #define RK3588_GRF_HDMITX1_ENABLE_SHIFT		4
+#define RK3588_GRF_HDMITX1_COMPRESS_MODE_SHIFT	5
 
 #define RK3588_GRF_VO1_CON0			0x0000
 #define HDMI_SYNC_POL_MASK			0x3
@@ -3709,6 +3711,10 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, 3, HDMI_EDP0_PIXCLK_DIV_SHIFT,
 				if_pixclk_div, false);
 
+		if (cstate->dsc_enable)
+			vop2_grf_writel(vop2, vop2->vop_grf, RK3588_GRF_VOP_CON2, EN_MASK,
+					RK3588_GRF_HDMITX0_COMPRESS_MODE_SHIFT, 1);
+
 		vop2_grf_writel(vop2, vop2->vop_grf, RK3588_GRF_VOP_CON2, EN_MASK,
 				RK3588_GRF_HDMITX0_ENABLE_SHIFT, 1);
 		vop2_grf_writel(vop2, vop2->vo1_grf, RK3588_GRF_VO1_CON0,
@@ -3726,6 +3732,10 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 
 		vop2_mask_write(vop2, RK3568_DSP_IF_CTRL, 3, HDMI_EDP1_PIXCLK_DIV_SHIFT,
 				if_pixclk_div, false);
+
+		if (cstate->dsc_enable)
+			vop2_grf_writel(vop2, vop2->vop_grf, RK3588_GRF_VOP_CON2, EN_MASK,
+					RK3588_GRF_HDMITX1_COMPRESS_MODE_SHIFT, 1);
 
 		vop2_grf_writel(vop2, vop2->vop_grf, RK3588_GRF_VOP_CON2, EN_MASK,
 				RK3588_GRF_HDMITX1_ENABLE_SHIFT, 1);
