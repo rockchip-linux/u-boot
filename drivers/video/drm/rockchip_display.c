@@ -980,7 +980,7 @@ static int display_check(struct display_state *state)
 	int ret;
 
 	if (!state->is_init)
-		return 0;
+		return -EINVAL;
 
 	if (conn_funcs->check) {
 		ret = conn_funcs->check(conn, state);
@@ -1090,7 +1090,10 @@ static int display_logo(struct display_state *state)
 		crtc_state->crtc_rect.h = crtc_h;
 	}
 
-	display_check(state);
+	ret = display_check(state);
+	if (ret)
+		return ret;
+
 	ret = display_set_plane(state);
 	if (ret)
 		return ret;
