@@ -3361,7 +3361,7 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
-	unsigned long v_pixclk = mode->crtc_clock;
+	unsigned long v_pixclk = mode->crtc_clock * 1000L;
 	unsigned long dclk_core_rate = v_pixclk >> 2;
 	unsigned long dclk_rate = v_pixclk;
 	unsigned long dclk_out_rate;
@@ -3392,20 +3392,20 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 			K = 2;
 		}
 		if (cstate->dsc_enable) {
-			if_pixclk_rate = cstate->dsc_cds_clk_rate / 1000 << 1;
-			if_dclk_rate = cstate->dsc_cds_clk_rate / 1000;
+			if_pixclk_rate = cstate->dsc_cds_clk_rate << 1;
+			if_dclk_rate = cstate->dsc_cds_clk_rate;
 		} else {
 			if_pixclk_rate = (dclk_core_rate << 1) / K;
 			if_dclk_rate = dclk_core_rate / K;
 		}
 
-		if (v_pixclk > VOP2_MAX_DCLK_RATE)
+		if (v_pixclk > VOP2_MAX_DCLK_RATE * 1000L)
 			dclk_rate = vop2_calc_dclk(dclk_core_rate,
-						   vop2->data->vp_data[cstate->crtc_id].max_dclk);
+						   vop2->data->vp_data[cstate->crtc_id].max_dclk * 1000L);
 
 		if (!dclk_rate) {
-			printf("DP if_pixclk_rate out of range(max_dclk: %d KHZ, dclk_core: %lld KHZ)\n",
-			       vop2->data->vp_data[cstate->crtc_id].max_dclk, if_pixclk_rate);
+			printf("HDMI if_pixclk_rate out of range(max_dclk: %ld HZ, dclk_core: %lld HZ)\n",
+			       vop2->data->vp_data[cstate->crtc_id].max_dclk * 1000L, if_pixclk_rate);
 			return -EINVAL;
 		}
 		*if_pixclk_div = dclk_rate / if_pixclk_rate;
@@ -3429,10 +3429,10 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		dclk_out_rate = dclk_out_rate / K;
 
 		dclk_rate = vop2_calc_dclk(dclk_out_rate,
-					   vop2->data->vp_data[cstate->crtc_id].max_dclk);
+					   vop2->data->vp_data[cstate->crtc_id].max_dclk * 1000L);
 		if (!dclk_rate) {
-			printf("DP dclk_core out of range(max_dclk: %d KHZ, dclk_core: %ld KHZ)\n",
-			       vop2->data->vp_data[cstate->crtc_id].max_dclk, dclk_core_rate);
+			printf("DP dclk_core out of range(max_dclk: %ld HZ, dclk_core: %ld HZ)\n",
+			       vop2->data->vp_data[cstate->crtc_id].max_dclk * 1000L, dclk_core_rate);
 			return -EINVAL;
 		}
 		*dclk_out_div = dclk_rate / dclk_out_rate;
@@ -3449,10 +3449,10 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		dclk_out_rate = dclk_core_rate / K;
 		/* dclk_rate = N * dclk_core_rate N = (1,2,4 ), we get a little factor here */
 		dclk_rate = vop2_calc_dclk(dclk_out_rate,
-					   vop2->data->vp_data[cstate->crtc_id].max_dclk);
+					   vop2->data->vp_data[cstate->crtc_id].max_dclk * 1000L);
 		if (!dclk_rate) {
-			printf("MIPI dclk out of range(max_dclk: %d KHZ, dclk_rate: %ld KHZ)\n",
-			       vop2->data->vp_data[cstate->crtc_id].max_dclk, dclk_rate);
+			printf("MIPI dclk out of range(max_dclk: %ld HZ, dclk_rate: %ld HZ)\n",
+			       vop2->data->vp_data[cstate->crtc_id].max_dclk * 1000L, dclk_rate);
 			return -EINVAL;
 		}
 
@@ -3463,7 +3463,7 @@ static unsigned long vop2_calc_cru_cfg(struct display_state *state,
 		*dclk_core_div = dclk_rate / dclk_core_rate;
 		*if_pixclk_div = 1;       /*mipi pixclk == dclk_out*/
 		if (cstate->dsc_enable)
-			*if_pixclk_div = dclk_out_rate * 1000LL / if_pixclk_rate;
+			*if_pixclk_div = dclk_out_rate / if_pixclk_rate;
 
 	} else if (output_type == DRM_MODE_CONNECTOR_DPI) {
 		dclk_rate = v_pixclk;
@@ -3763,7 +3763,7 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	vop2_mask_write(vop2, RK3588_VP0_CLK_CTRL + vp_offset, 0x3,
 			DCLK_OUT_DIV_SHIFT, cstate->dclk_out_div, false);
 
-	return dclk_rate;
+	return dclk_rate / 1000;
 }
 
 static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
