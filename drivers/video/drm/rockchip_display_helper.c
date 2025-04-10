@@ -216,7 +216,7 @@ void drm_mode_convert_to_split_mode(struct drm_display_mode *mode)
  * true if the mode can be supported in YCBCR420 format
  * false if not.
  */
-static bool drm_mode_is_420_only(const struct drm_display_info *display,
+bool drm_mode_is_420_only(const struct drm_display_info *display,
 			  struct drm_display_mode *mode)
 {
 	u8 vic = drm_match_cea_mode(mode);
@@ -235,7 +235,7 @@ static bool drm_mode_is_420_only(const struct drm_display_info *display,
  * true if the mode can be support YCBCR420 format
  * false if not.
  */
-static bool drm_mode_is_420_also(const struct drm_display_info *display,
+bool drm_mode_is_420_also(const struct drm_display_info *display,
 			  struct drm_display_mode *mode)
 {
 	u8 vic = drm_match_cea_mode(mode);

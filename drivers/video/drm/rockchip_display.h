@@ -326,6 +326,10 @@ struct display_state {
 
 int drm_mode_vrefresh(const struct drm_display_mode *mode);
 int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val);
+bool drm_mode_is_420_only(const struct drm_display_info *display,
+			  struct drm_display_mode *mode);
+bool drm_mode_is_420_also(const struct drm_display_info *display,
+			  struct drm_display_mode *mode);
 bool drm_mode_is_420(const struct drm_display_info *display,
 		     struct drm_display_mode *mode);
 struct base2_disp_info *rockchip_get_disp_info(int type, int id);
