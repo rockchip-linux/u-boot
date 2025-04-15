@@ -374,6 +374,7 @@ struct vop_ctrl {
 	struct vop_reg mcu_bypass;
 	struct vop_reg mcu_type;
 	struct vop_reg mcu_rw_bypass_port;
+	struct vop_reg mcu_force_rdn;
 
 	/* bt1120 */
 	struct vop_reg bt1120_uv_swap;

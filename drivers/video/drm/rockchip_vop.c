@@ -1026,16 +1026,20 @@ static int rockchip_vop_send_mcu_cmd(struct display_state *state, u32 type, u32 
 	if (vop) {
 		switch (type) {
 		case MCU_WRCMD:
+			VOP_CTRL_SET(vop, mcu_force_rdn, 1);
 			set_vop_mcu_rs(vop, 0);
 			VOP_CTRL_SET(vop, mcu_rw_bypass_port, value);
 			set_vop_mcu_rs(vop, 1);
 			break;
 		case MCU_WRDATA:
+			VOP_CTRL_SET(vop, mcu_force_rdn, 1);
 			set_vop_mcu_rs(vop, 1);
 			VOP_CTRL_SET(vop, mcu_rw_bypass_port, value);
 			break;
 		case MCU_SETBYPASS:
 			VOP_CTRL_SET(vop, mcu_bypass, value ? 1 : 0);
+			if (!value)
+				VOP_CTRL_SET(vop, mcu_force_rdn, 1);
 			break;
 		default:
 			break;

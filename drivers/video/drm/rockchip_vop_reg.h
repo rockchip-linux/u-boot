@@ -1019,4 +1019,8 @@
 #define RK3576_IOC_GRF_MISC_CON8		0x6420
 /* RK3576 EBC VOP register definition end */
 
+/* RV1126B VOP register definition start */
+#define RV1126B_DSP_CTRL1			0x0024
+/* RV1126B VOP register definition end */
+
 #endif /* _ROCKCHIP_VOP_REG_H */
