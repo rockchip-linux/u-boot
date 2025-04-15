@@ -675,29 +675,6 @@ static const struct sdhci_data rk3399_data = {
 	.set_enhanced_strobe = rk3399_sdhci_set_enhanced_strobe,
 };
 
-static const struct sdhci_data rk3568_data = {
-	.set_ios_post = rk3568_sdhci_set_ios_post,
-	.set_clock = rk3568_sdhci_set_clock,
-	.config_dll = rk3568_sdhci_config_dll,
-	.flags = FLAG_INVERTER_FLAG_IN_RXCLK | FLAG_TAP_VALUE_SEL,
-	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
-	.hs400_txclk_tapnum = 0x8,
-	.hs400_cmd_tapnum = 0x8,
-	.hs400_strbin_tapnum = 0x3,
-};
-
-static const struct sdhci_data rk3588_data = {
-	.set_ios_post = rk3568_sdhci_set_ios_post,
-	.set_clock = rk3568_sdhci_set_clock,
-	.config_dll = rk3568_sdhci_config_dll,
-	.flags = FLAG_TAP_VALUE_SEL,
-	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
-	.hs400_txclk_tapnum = 0x9,
-	.hs400_cmd_tapnum = 0x8,
-	.hs400_strbin_tapnum = 0x3,
-};
-
-
 static const struct sdhci_data rk3528_data = {
 	.set_ios_post = rk3568_sdhci_set_ios_post,
 	.set_clock = rk3568_sdhci_set_clock,
@@ -721,16 +698,36 @@ static const struct sdhci_data rk3562_data = {
 
 };
 
+static const struct sdhci_data rk3568_data = {
+	.set_ios_post = rk3568_sdhci_set_ios_post,
+	.set_clock = rk3568_sdhci_set_clock,
+	.config_dll = rk3568_sdhci_config_dll,
+	.flags = FLAG_INVERTER_FLAG_IN_RXCLK | FLAG_TAP_VALUE_SEL,
+	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
+	.hs400_txclk_tapnum = 0x8,
+	.hs400_cmd_tapnum = 0x8,
+	.hs400_strbin_tapnum = 0x3,
+};
+
 static const struct sdhci_data rk3576_data = {
 	.set_ios_post = rk3568_sdhci_set_ios_post,
 	.set_clock = rk3568_sdhci_set_clock,
 	.config_dll = rk3568_sdhci_config_dll,
-	.flags = FLAG_TAP_VALUE_SEL,
-	.hs200_txclk_tapnum = 0xC,
+	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
 	.hs400_txclk_tapnum = 0x7,
 	.hs400_cmd_tapnum = 0x7,
-	.hs400_strbin_tapnum = 0x7,
+	.hs400_strbin_tapnum = 0x5,
+};
 
+static const struct sdhci_data rk3588_data = {
+	.set_ios_post = rk3568_sdhci_set_ios_post,
+	.set_clock = rk3568_sdhci_set_clock,
+	.config_dll = rk3568_sdhci_config_dll,
+	.flags = FLAG_TAP_VALUE_SEL,
+	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
+	.hs400_txclk_tapnum = 0x9,
+	.hs400_cmd_tapnum = 0x8,
+	.hs400_strbin_tapnum = 0x3,
 };
 
 static const struct udevice_id sdhci_ids[] = {
@@ -749,6 +746,10 @@ static const struct udevice_id sdhci_ids[] = {
 	{
 		.compatible = "rockchip,rk3562-dwcmshc",
 		.data = (ulong)&rk3562_data,
+	},
+	{
+		.compatible = "rockchip,rk3576-dwcmshc",
+		.data = (ulong)&rk3576_data,
 	},
 	{
 		.compatible = "rockchip,rk3576-dwcmshc",
