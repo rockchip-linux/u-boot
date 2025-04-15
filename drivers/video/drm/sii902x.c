@@ -410,7 +410,7 @@ static void sii902x_bridge_mode_set(struct rockchip_bridge *bridge,
 		return;
 	}
 
-	if (sii902x->mode.flags & DRM_MODE_FLAG_INTERLACE)
+	if (sii902x->mode.flags & DRM_MODE_FLAG_DBLCLK)
 		ratio = SII902X_TPI_CLK_RATIO_2X;
 	else
 		ratio = SII902X_TPI_CLK_RATIO_1X;
