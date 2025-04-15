@@ -407,14 +407,14 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, win_channel[2], 0x56);
 	VOP_CTRL_SET(vop, dsp_blank, 0);
 
-	if (vop->version == VOP_VERSION(2, 0xd)) {
+	if (vop->version == VOP_VERSION_RK3576_LITE) {
 		VOP_GRF_SET(vop, grf_ctrl, grf_vopl_sel, 1);
 		VOP_CTRL_SET(vop, enable, 1);
 	}
 
 	dclk_inv = (conn_state->bus_flags & DRM_BUS_FLAG_PIXDATA_DRIVE_NEGEDGE) ? 1 : 0;
 	/* For improving signal quality, dclk need to be inverted by default on rv1106. */
-	if ((VOP_MAJOR(vop->version) == 2 && VOP_MINOR(vop->version) == 12))
+	if (vop->version == VOP_VERSION_RV1106)
 		dclk_inv = !dclk_inv;
 	VOP_CTRL_SET(vop, dclk_pol, dclk_inv);
 
@@ -467,7 +467,7 @@ static int rockchip_vop_init(struct display_state *state)
 		 * RK3576 DSI CTRL hsync/vsync polarity is positive and can't update,
 		 * so set VOP hsync/vsync polarity as positive by default.
 		 */
-		if (vop->version == VOP_VERSION(2, 0xd))
+		if (vop->version == VOP_VERSION_RK3576_LITE)
 			val = BIT(HSYNC_POSITIVE) | BIT(VSYNC_POSITIVE);
 		VOP_CTRL_SET(vop, mipi_en, 1);
 		VOP_CTRL_SET(vop, mipi_pin_pol, val);
@@ -508,7 +508,7 @@ static int rockchip_vop_init(struct display_state *state)
 
 	if ((conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
 	     !(vop_data->feature & VOP_FEATURE_OUTPUT_10BIT)) ||
-	    (VOP_MAJOR(vop->version) == 2 && VOP_MINOR(vop->version) >= 12 &&
+	    (vop->version >= VOP_VERSION_RV1106 && vop->version < VOP_VERSION_RK3288 &&
 	     conn_state->output_if & VOP_OUTPUT_IF_BT656))
 		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 
@@ -559,7 +559,7 @@ static int rockchip_vop_init(struct display_state *state)
 	 * For RK3576 vopl, rg_swap and rb_swap need to be enabled in
 	 * YUV444 bus_format.
 	 */
-	if (VOP_MAJOR(vop->version) == 2 && VOP_MINOR(vop->version) == 0xd) {
+	if (vop->version == VOP_VERSION_RK3576_LITE) {
 		if (conn_state->bus_format == MEDIA_BUS_FMT_YUV8_1X24)
 			VOP_CTRL_SET(vop, dsp_data_swap, DSP_RG_SWAP | DSP_RB_SWAP);
 	}
@@ -595,10 +595,9 @@ static int rockchip_vop_init(struct display_state *state)
 	 */
 	if (!is_yuv_output(conn_state->bus_format))
 		val = 0;
-	else if (vop->version == VOP_VERSION(2, 0xd))
+	else if (vop->version == VOP_VERSION_RK3576_LITE)
 		val = 0;
-	else if (VOP_MAJOR(vop->version) == 3 &&
-		 VOP_MINOR(vop->version) >= 5)
+	else if (vop->version >= VOP_VERSION_RK3399_BIG)
 		val = 0x20010200;
 	else
 		val = 0x801080;
@@ -640,7 +639,7 @@ static int rockchip_vop_init(struct display_state *state)
 			  act_end - us_to_vertical_line(mode, 1000));
 
 	if (state->crtc_state.mcu_timing.mcu_pix_total > 0) {
-		if (vop->version >= VOP_VERSION(2, 0xd)) {
+		if (vop->version >= VOP_VERSION_RK3576_LITE) {
 			VOP_CTRL_SET(vop, standby, 0);
 			vop_set_out_mode(vop, conn_state->output_mode);
 		}
@@ -857,7 +856,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 		return -EINVAL;
 	}
 
-	if ((vop->version == VOP_VERSION(2, 2) || vop->version >= VOP_VERSION(2, 0xd)) &&
+	if ((vop->version == VOP_VERSION_RK3036 || vop->version >= VOP_VERSION_RK3576_LITE) &&
 	    (mode->flags & DRM_MODE_FLAG_INTERLACE))
 		crtc_h = crtc_h / 2;
 
@@ -869,7 +868,7 @@ static int rockchip_vop_set_plane(struct display_state *state)
 
 	dsp_stx = crtc_x + mode->crtc_htotal - mode->crtc_hsync_start;
 	dsp_sty = crtc_y + mode->crtc_vtotal - mode->crtc_vsync_start;
-	if ((vop->version == VOP_VERSION(2, 2) || vop->version >= VOP_VERSION(2, 0xd)) &&
+	if ((vop->version == VOP_VERSION_RK3036 || vop->version >= VOP_VERSION_RK3576_LITE) &&
 	    (mode->flags & DRM_MODE_FLAG_INTERLACE))
 		dsp_sty = crtc_y / 2 + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);
@@ -1009,7 +1008,7 @@ static int rockchip_vop_send_mcu_cmd(struct display_state *state, u32 type, u32 
 	struct vop *vop = crtc_state->private;
 	int ret;
 
-	if (vop->version >= VOP_VERSION(2, 0xd)) {
+	if (vop->version >= VOP_VERSION_RK3576_LITE) {
 		/*
 		 * 1.set mcu bypass mode timing.
 		 * 2.set dclk rate to 150M.
@@ -1043,7 +1042,7 @@ static int rockchip_vop_send_mcu_cmd(struct display_state *state, u32 type, u32 
 		}
 	}
 
-	if (vop->version >= VOP_VERSION(2, 0xd)) {
+	if (vop->version >= VOP_VERSION_RK3576_LITE) {
 		/*
 		 * 1.restore mcu data mode timing.
 		 * 2.restore dclk rate to crtc_clock.
@@ -1117,7 +1116,7 @@ static int rockchip_vop_mode_fixup(struct display_state *state)
 	 * Dclk need to be double if BT656 interface and vop version >= 2.12.
 	 */
 	if (mode->flags & DRM_MODE_FLAG_DBLCLK ||
-	    (VOP_MAJOR(vop_data->version) == 2 && VOP_MINOR(vop_data->version) >= 12 &&
+	    (vop_data->version >= VOP_VERSION_RV1106 && vop_data->version < VOP_VERSION_RK3288 &&
 	     conn_state->output_if & VOP_OUTPUT_IF_BT656))
 		mode->crtc_clock *= 2;
 
