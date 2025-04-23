@@ -243,6 +243,7 @@ int setup_boot_mode(void)
 				"setenv preboot; fastboot usb 0; ");
 #endif
 		env_set("preboot", env_preboot);
+		run_command("fastboot usb 0", 0);
 		break;
 	case BOOT_MODE_UMS:
 		printf("enter UMS!\n");
