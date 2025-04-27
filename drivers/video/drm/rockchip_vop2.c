@@ -1877,9 +1877,14 @@ static void rk3588_vop2_load_lut(struct vop2 *vop2, int crtc_id,
 	u32 vp_offset = crtc_id * 0x100;
 	int i;
 
-	vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL,
-			GAMMA_AHB_WRITE_SEL_MASK, GAMMA_AHB_WRITE_SEL_SHIFT,
-			crtc_id, false);
+	if (vop2->version == VOP_VERSION_RK3576)
+		vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL,
+				GAMMA_AHB_WRITE_SEL_MASK, GAMMA_AHB_WRITE_SEL_SHIFT,
+				crtc_id, true);
+	else
+		vop2_mask_write(vop2, RK3568_SYS_LUT_PORT_SEL,
+				GAMMA_AHB_WRITE_SEL_MASK, GAMMA_AHB_WRITE_SEL_SHIFT,
+				crtc_id, false);
 
 	for (i = 0; i < lut_len; i++)
 		writel(lut_val[i], lut_regs + i);
