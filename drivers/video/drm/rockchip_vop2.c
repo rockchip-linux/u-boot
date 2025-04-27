@@ -2319,6 +2319,41 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 	writel(1, vop2->regs + RK3528_ACM_FETCH_DONE);
 }
 
+static void vop3_get_csc_info_from_bcsh(struct display_state *state,
+					struct csc_info *csc_info)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct base_bcsh_info *bcsh_info;
+
+	if (!conn_state->disp_info)
+		return;
+
+	bcsh_info = &conn_state->disp_info->bcsh_info;
+	if (!bcsh_info)
+		return;
+
+	csc_info->r_gain = 256;
+	csc_info->g_gain = 256;
+	csc_info->b_gain = 256;
+	csc_info->r_offset = 256;
+	csc_info->g_offset = 256;
+	csc_info->b_offset = 256;
+	if (bcsh_info->brightness == 50 && bcsh_info->contrast == 50 &&
+	    bcsh_info->saturation == 50 && bcsh_info->hue == 50) {
+		csc_info->csc_enable = false;
+		csc_info->brightness = 256;
+		csc_info->contrast = 256;
+		csc_info->saturation = 256;
+		csc_info->hue = 256;
+	} else {
+		csc_info->csc_enable = true;
+		csc_info->brightness = bcsh_info->brightness * 511 / 100;
+		csc_info->contrast = bcsh_info->contrast * 511 / 100;
+		csc_info->saturation = bcsh_info->saturation * 511 / 100;
+		csc_info->hue = bcsh_info->hue * 511 / 100;
+	}
+}
+
 static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
@@ -2335,6 +2370,9 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	int range_type;
 
 	printf("post csc enable\n");
+
+	if (!csc->csc_enable)
+		vop3_get_csc_info_from_bcsh(state, csc);
 
 	if (acm->acm_enable) {
 		if (!cstate->yuv_overlay)
