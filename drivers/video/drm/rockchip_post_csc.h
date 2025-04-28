@@ -9,7 +9,16 @@
 #define _ROCKCHIP_POST_CSC_H
 
 #include <linux/kernel.h>
+#include <drm/drm_color_mgmt.h>
 #include <edid.h>
+
+struct post_csc_convert_mode {
+	enum drm_color_encoding color_encoding;
+	bool is_input_yuv;
+	bool is_output_yuv;
+	bool is_input_full_range;
+	bool is_output_full_range;
+};
 
 struct post_csc_coef {
 	s32 csc_coef00;
@@ -29,7 +38,7 @@ struct post_csc_coef {
 	u32 range_type;
 };
 
-int rockchip_calc_post_csc(struct csc_info *csc, struct post_csc_coef *csc_coef,
-			   int csc_mode, bool is_input_yuv, bool is_output_yuv);
+int rockchip_calc_post_csc(struct csc_info *csc_cfg, struct post_csc_coef *csc_simple_coef,
+			   struct post_csc_convert_mode *convert_mode);
 
 #endif

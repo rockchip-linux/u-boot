@@ -2495,9 +2495,8 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	struct crtc_state *cstate = &state->crtc_state;
 	struct acm_data *acm = &conn_state->disp_info->acm_data;
 	struct csc_info *csc = &conn_state->disp_info->csc_info;
-	struct post_csc_coef csc_coef;
-	bool is_input_yuv = false;
-	bool is_output_yuv = false;
+	struct post_csc_coef csc_coef = {};
+	struct post_csc_convert_mode convert_mode = {};
 	bool post_r2y_en = false;
 	bool post_csc_en = false;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
@@ -2529,18 +2528,27 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 		post_csc_en = true;
 
 	if (cstate->yuv_overlay || post_r2y_en)
-		is_input_yuv = true;
+		convert_mode.is_input_yuv = true;
 
 	if (is_yuv_output(conn_state->bus_format))
-		is_output_yuv = true;
+		convert_mode.is_output_yuv = true;
+
+	if (!cstate->yuv_overlay)
+		convert_mode.is_input_full_range = true;
+	else
+		convert_mode.is_input_full_range =
+			conn_state->color_range == DRM_COLOR_YCBCR_FULL_RANGE ? 1 : 0;
+
+	convert_mode.is_output_full_range =
+		conn_state->color_range == DRM_COLOR_YCBCR_FULL_RANGE ? 1 : 0;
 
 	cstate->post_csc_mode = vop2_convert_csc_mode(conn_state->color_encoding,
 						      conn_state->color_range,
 						      CSC_13BIT_DEPTH);
 
 	if (post_csc_en) {
-		rockchip_calc_post_csc(csc, &csc_coef, cstate->post_csc_mode, is_input_yuv,
-				       is_output_yuv);
+		convert_mode.color_encoding = conn_state->color_encoding;
+		rockchip_calc_post_csc(csc, &csc_coef, &convert_mode);
 
 		vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 				POST_CSC_COE00_MASK, POST_CSC_COE00_SHIFT,
@@ -2562,7 +2570,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 		writel(csc_coef.csc_dc2, vop2->regs + RK3528_VP0_CSC_OFFSET2);
 
 		range_type = csc_coef.range_type ? 0 : 1;
-		range_type <<= is_input_yuv ? 0 : 1;
+		range_type <<= convert_mode.is_input_yuv ? 0 : 1;
 		vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 				POST_CSC_MODE_MASK, POST_CSC_MODE_SHIFT, range_type, false);
 	}
