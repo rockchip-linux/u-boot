@@ -1087,15 +1087,15 @@ static const struct rk_pq_csc_coef y2r_for_y2y = {
 };
 
 static const struct rk_pq_csc_coef r2y_for_r2r = {
-	1024, 0, 1612,
-	1024, -192, -480,
-	1024, 1900, -2,
-};
-
-static const struct rk_pq_csc_coef y2r_for_r2r = {
 	218, 732, 74,
 	-117, -395, 512,
 	512, -465, -47,
+};
+
+static const struct rk_pq_csc_coef y2r_for_r2r = {
+	1024, 0, 1612,
+	1024, -192, -480,
+	1024, 1900, -2,
 };
 
 static const struct rk_pq_csc_coef rgb_input_swap_matrix = {
