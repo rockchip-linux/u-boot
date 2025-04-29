@@ -5445,7 +5445,6 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 	u32 splice_pixel_offset = 0;
 	u32 splice_yrgb_offset = 0;
 	u32 win_offset = win->reg_offset;
-	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
 	bool dither_up;
 
 	if (win->splice_mode_right) {
@@ -5457,7 +5456,6 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 		crtc_h = cstate->right_crtc_rect.h;
 		splice_pixel_offset = cstate->right_src_rect.x - cstate->src_rect.x;
 		splice_yrgb_offset = splice_pixel_offset * (state->logo.bpp >> 3);
-		cfg_done = CFG_DONE_EN | BIT(cstate->splice_crtc_id) | (BIT(cstate->splice_crtc_id) << 16);
 	}
 
 	act_info = (src_h - 1) << 16;
@@ -5510,8 +5508,6 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 	vop2_writel(vop2, RK3568_CLUSTER0_WIN0_DSP_INFO + win_offset, dsp_info);
 	vop2_writel(vop2, RK3568_CLUSTER0_WIN0_DSP_ST + win_offset, dsp_st);
 
-	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK, WIN_EN_SHIFT, 1, false);
-
 	csc_mode = vop2_convert_csc_mode(conn_state->color_encoding, conn_state->color_range,
 					 CSC_10BIT_DEPTH);
 	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK,
@@ -5524,9 +5520,8 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK,
 			CLUSTER_DITHER_UP_EN_SHIFT, dither_up, false);
 
+	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK, WIN_EN_SHIFT, 1, false);
 	vop2_mask_write(vop2, RK3568_CLUSTER0_CTRL + win_offset, EN_MASK, CLUSTER_EN_SHIFT, 1, false);
-
-	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
 
 	return 0;
 }
@@ -5553,7 +5548,6 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 	u32 splice_pixel_offset = 0;
 	u32 splice_yrgb_offset = 0;
 	u32 win_offset = win->reg_offset;
-	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
 	u32 val;
 	bool dither_up;
 
@@ -5581,7 +5575,6 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 		crtc_h = cstate->right_crtc_rect.h;
 		splice_pixel_offset = cstate->right_src_rect.x - cstate->src_rect.x;
 		splice_yrgb_offset = splice_pixel_offset * (state->logo.bpp >> 3);
-		cfg_done = CFG_DONE_EN | BIT(cstate->splice_crtc_id) | (BIT(cstate->splice_crtc_id) << 16);
 	}
 
 	/*
@@ -5656,9 +5649,6 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 		    dsp_info);
 	vop2_writel(vop2, RK3568_ESMART0_REGION0_DSP_ST + win_offset, dsp_st);
 
-	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
-			WIN_EN_SHIFT, 1, false);
-
 	csc_mode = vop2_convert_csc_mode(conn_state->color_encoding, conn_state->color_range,
 					 CSC_10BIT_DEPTH);
 	vop2_mask_write(vop2, RK3568_ESMART0_CTRL0 + win_offset, EN_MASK,
@@ -5671,7 +5661,8 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
 			REGION0_DITHER_UP_EN_SHIFT, dither_up, false);
 
-	vop2_writel(vop2, RK3568_REG_CFG_DONE, cfg_done);
+	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
+			WIN_EN_SHIFT, 1, false);
 
 	return 0;
 }
