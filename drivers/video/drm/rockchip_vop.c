@@ -832,7 +832,7 @@ static int rockchip_vop_setup_csc_table(struct display_state *state)
 	return 0;
 }
 
-static int rockchip_vop_set_plane(struct display_state *state)
+static int rockchip_vop_set_plane(struct display_state *state, bool reserved_plane)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
 	const struct rockchip_crtc *crtc = crtc_state->crtc;

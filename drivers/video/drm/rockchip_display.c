@@ -876,7 +876,7 @@ int display_send_mcu_cmd(struct display_state *state, u32 type, u32 val)
 	return 0;
 }
 
-static int display_set_plane(struct display_state *state)
+static int display_set_plane(struct display_state *state, bool reserved_plane)
 {
 	struct crtc_state *crtc_state = &state->crtc_state;
 	const struct rockchip_crtc *crtc = crtc_state->crtc;
@@ -887,7 +887,7 @@ static int display_set_plane(struct display_state *state)
 		return -EINVAL;
 
 	if (crtc_funcs->set_plane) {
-		ret = crtc_funcs->set_plane(state);
+		ret = crtc_funcs->set_plane(state, reserved_plane);
 		if (ret)
 			return ret;
 	}
@@ -1019,11 +1019,22 @@ static int display_logo(struct display_state *state)
 	u32 crtc_x, crtc_y, crtc_w, crtc_h;
 	u32 overscan_w, overscan_h;
 	int hdisplay, vdisplay, ret;
+	u8 fbd_mode = crtc_state->crtc->vps[crtc_state->crtc_id].fbd_mode;
 
 	if (state->is_init)
 		return 0;
 
 	ret = display_init(state);
+	/*
+	 * At ROCKCHIP_DRM_FBD_FROM_RTOS mode:
+	 *
+	 * crtc/connector/panel will be init at rtos, uboot no need to do any
+	 * hardware config, but need to pass the logic state to kernel to ensure
+	 * pd/clk/drm state is continuous.
+	 */
+	if (fbd_mode == ROCKCHIP_DRM_FBD_FROM_RTOS)
+		return 0;
+
 	if (!state->is_init || ret)
 		return -ENODEV;
 
@@ -1100,9 +1111,21 @@ static int display_logo(struct display_state *state)
 	if (ret)
 		return ret;
 
-	ret = display_set_plane(state);
+	ret = display_set_plane(state, 0);
 	if (ret)
 		return ret;
+
+	/* At ROCKCHIP_DRM_FBD_FROM_UBOOT_TO_RTOS mode:
+	 *
+	 * The crtc/connector/panel will be init at uboot, and the reserved plane
+	 * will be init but in disabled state and enable/update by RTOS.
+	 */
+	if (fbd_mode == ROCKCHIP_DRM_FBD_FROM_UBOOT_TO_RTOS) {
+		ret = display_set_plane(state, 1);
+		if (ret)
+			return ret;
+	}
+
 	display_enable(state);
 
 	return 0;
@@ -2413,12 +2436,24 @@ static int rockchip_display_probe(struct udevice *dev)
 						       (int8_t)s->crtc_state.crtc->vps[vp_id].primary_plane_id,
 						       (int8_t)s->crtc_state.crtc->vps[vp_id].cursor_plane_id);
 					}
+					s->crtc_state.crtc->vps[vp_id].reserved_plane_id =
+							ofnode_read_u32_default(vp_node, "rockchip,reserved-plane", -1);
 
+					s->crtc_state.crtc->vps[vp_id].fbd_mode =
+							ofnode_read_u32_default(vp_node, "rockchip,drm-fbd-mode", 0);
 					/* To check current vp status */
 					vp_enable = false;
 					ofnode_for_each_subnode(vp_sub_node, vp_node)
 						vp_enable |= rockchip_get_display_path_status(vp_sub_node);
+
 					s->crtc_state.crtc->vps[vp_id].enable = vp_enable;
+					if (s->crtc_state.crtc->vps[vp_id].enable)
+						s->crtc_state.crtc->vps[vp_id].active_layers++;
+
+					if (s->crtc_state.crtc->vps[vp_id].reserved_plane_id != (u8)(-1)) {
+						s->crtc_state.reserved_plane_en |= true;
+						s->crtc_state.crtc->vps[vp_id].active_layers++;
+					}
 				}
 				get_plane_mask_from_dts = true;
 			}

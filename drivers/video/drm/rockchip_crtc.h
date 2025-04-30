@@ -8,6 +8,28 @@
 #define _ROCKCHIP_CRTC_H_
 
 #define VOP2_MAX_VP				4
+#define VOP2_MAX_LAYER				8
+
+/*
+ * FBD: Fast Boot Display
+ *
+ * ROCKCHIP_DRM_FBD_FROM_UBOOT:
+ *     show logo.bmp from uboot and show logo_kernel.bmp after enter kernel;
+ * ROCKCHIP_DRM_FBD_FROM_UBOOT_TO_RTOS:
+ *     crtc/connector/panel will be init at uboot, and update plane at rtos;
+ * ROCKCHIP_DRM_FBD_FROM_RTOS:
+ *     crtc/connector/panel will be init at rtos, uboot no need to do any hardware
+ *     config, but need to pass the logic state to kernel to ensure pd/clk/drm
+ *     state is continuous.
+ */
+#define ROCKCHIP_DRM_FBD_FROM_UBOOT		0
+#define ROCKCHIP_DRM_FBD_FROM_UBOOT_TO_RTOS	1
+#define ROCKCHIP_DRM_FBD_FROM_RTOS		2
+
+struct vop2_zpos {
+	u8 plane_id;
+	u8 zpos;
+};
 
 struct rockchip_vp {
 	bool enable;
@@ -16,9 +38,13 @@ struct rockchip_vp {
 	u8 bg_ovl_dly;
 	u8 primary_plane_id;
 	u8 cursor_plane_id;
+	u8 fbd_mode;	/* fast boot display mode */
+	u8 reserved_plane_id;
 	u8 dclk_div;
+	u8 active_layers;
 	int output_type;
 	u32 plane_mask;
+	struct vop2_zpos vop2_zpos[VOP2_MAX_LAYER];
 };
 
 struct rockchip_crtc {
@@ -38,7 +64,7 @@ struct rockchip_crtc_funcs {
 	int (*preinit)(struct display_state *state);
 	int (*init)(struct display_state *state);
 	void (*deinit)(struct display_state *state);
-	int (*set_plane)(struct display_state *state);
+	int (*set_plane)(struct display_state *state, bool reserved_plane);
 	int (*prepare)(struct display_state *state);
 	int (*enable)(struct display_state *state);
 	int (*post_enable)(struct display_state *state);

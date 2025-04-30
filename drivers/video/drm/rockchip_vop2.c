@@ -3013,6 +3013,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_ops *vop2_ops = vop2_data->ops;
 	struct vop2_vp_plane_mask *vp_plane_mask;
+	struct vop2_zpos *vop2_zpos;
 	u32 nr_planes = 0;
 	u32 plane_mask;
 	u8 primary_plane_id;
@@ -3075,6 +3076,22 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 		 * assigned automatically.
 		 */
 		vop2_ops->assign_plane_mask(state);
+	}
+
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		if (!cstate->crtc->vps[i].enable)
+			continue;
+
+		vop2_zpos = &cstate->crtc->vps[i].vop2_zpos[0];
+		vop2_zpos->plane_id = vop2->vp_plane_mask[i].primary_plane_id;
+		/* The logo displays on the bottom layer */
+		vop2_zpos->zpos = 0;
+		if (cstate->crtc->vps[i].reserved_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
+			vop2_zpos++;
+			vop2_zpos->plane_id = cstate->crtc->vps[i].reserved_plane_id;
+			/* The reserved image displays on the top layer */
+			vop2_zpos->zpos = vop2->data->nr_layers - 1;
+		}
 	}
 
 	if (vop2->version == VOP_VERSION_RK3588)
@@ -3159,8 +3176,14 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	if (vop2->version == VOP_VERSION_RK3576) {
 		vop2->merge_irq = ofnode_read_bool(cstate->node, "rockchip,vop-merge-irq");
 
-		/* Default use rkiommu 2.0 for axi0 */
-		vop2_mask_write(vop2, RK3576_SYS_MMU_CTRL, EN_MASK, RKMMU_V2_EN_SHIFT, 1, true);
+		/* reserved_plane mode will enable iommu bypass for rtos reserved plane display,
+		 * but rkiommu 2.0 can't support iommu bypass function, so use rkiommu 1.0
+		 * at shared mode by default, others will use rkiommu 2.0 by default.
+		 */
+		if (cstate->reserved_plane_en)
+			vop2_mask_write(vop2, RK3576_SYS_MMU_CTRL, EN_MASK, RKMMU_V2_EN_SHIFT, 0, true);
+		else
+			vop2_mask_write(vop2, RK3576_SYS_MMU_CTRL, EN_MASK, RKMMU_V2_EN_SHIFT, 1, true);
 
 		/* Init frc2.0 config */
 		vop2_writel(vop2, 0xca0, 0xc8);
@@ -5498,6 +5521,7 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_ops *vop2_ops = vop2_data->ops;
 	int src_w = cstate->src_rect.w;
@@ -5589,8 +5613,18 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK,
 			CLUSTER_DITHER_UP_EN_SHIFT, dither_up, false);
 
-	vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset, EN_MASK, WIN_EN_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3568_CLUSTER0_CTRL + win_offset, EN_MASK, CLUSTER_EN_SHIFT, 1, false);
+	/* reserved plane no need to be enabled here, it will be enabled at other os */
+	if (vp->fbd_mode == ROCKCHIP_DRM_FBD_FROM_UBOOT_TO_RTOS) {
+		vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset,
+				EN_MASK, WIN_EN_SHIFT, 0, false);
+		vop2_mask_write(vop2, RK3568_CLUSTER0_CTRL + win_offset,
+				EN_MASK, CLUSTER_EN_SHIFT, 0, false);
+	} else {
+		vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL0 + win_offset,
+				EN_MASK, WIN_EN_SHIFT, 1, false);
+		vop2_mask_write(vop2, RK3568_CLUSTER0_CTRL + win_offset,
+				EN_MASK, CLUSTER_EN_SHIFT, 1, false);
+	}
 
 	return 0;
 }
@@ -5603,6 +5637,7 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 	struct vop2 *vop2 = cstate->private;
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_ops *vop2_ops = vop2_data->ops;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	int src_w = cstate->src_rect.w;
 	int src_h = cstate->src_rect.h;
 	int crtc_x = cstate->crtc_rect.x;
@@ -5730,8 +5765,13 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
 			REGION0_DITHER_UP_EN_SHIFT, dither_up, false);
 
-	vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
-			WIN_EN_SHIFT, 1, false);
+	/* reserved plane no need to be enabled here, it will be enabled at other os */
+	if (vp->fbd_mode == ROCKCHIP_DRM_FBD_FROM_UBOOT_TO_RTOS)
+		vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
+				WIN_EN_SHIFT, 0, false);
+	else
+		vop2_mask_write(vop2, RK3568_ESMART0_REGION0_CTRL + win_offset, EN_MASK,
+				WIN_EN_SHIFT, 1, false);
 
 	return 0;
 }
@@ -5781,14 +5821,23 @@ static void vop2_calc_display_rect_for_splice(struct display_state *state)
 	memcpy(&cstate->right_crtc_rect, &right_dst, sizeof(struct display_rect));
 }
 
-static int rockchip_vop2_set_plane(struct display_state *state)
+static int rockchip_vop2_set_plane(struct display_state *state, bool reserved_plane)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	struct vop2_win_data *win_data;
 	struct vop2_win_data *splice_win_data;
-	u8 primary_plane_id = vop2->vp_plane_mask[cstate->crtc_id].primary_plane_id;
+	u8 plane_id;
 	int ret;
+
+	if (reserved_plane) {
+		plane_id = vp->reserved_plane_id;
+		if (plane_id == ROCKCHIP_VOP2_PHY_ID_INVALID)
+			return 0;
+	} else {
+		plane_id = vop2->vp_plane_mask[cstate->crtc_id].primary_plane_id;
+	}
 
 	if (cstate->crtc_rect.w > cstate->max_output.width) {
 		printf("ERROR: output w[%d] exceeded max width[%d]\n",
@@ -5796,9 +5845,9 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 		return -EINVAL;
 	}
 
-	win_data = vop2_find_win_by_phys_id(vop2, primary_plane_id);
+	win_data = vop2_find_win_by_phys_id(vop2, plane_id);
 	if (!win_data) {
-		printf("invalid win id %d\n", primary_plane_id);
+		printf("invalid win id %d\n", plane_id);
 		return -ENODEV;
 	}
 
@@ -5826,7 +5875,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 				vop2_set_smart_win(state, splice_win_data);
 		} else {
 			printf("ERROR: splice mode is unsupported by plane %s\n",
-			       vop2_plane_phys_id_to_string(primary_plane_id));
+			       vop2_plane_phys_id_to_string(plane_id));
 			return -EINVAL;
 		}
 	}
@@ -5839,7 +5888,7 @@ static int rockchip_vop2_set_plane(struct display_state *state)
 		return ret;
 
 	printf("VOP VP%d enable %s[%dx%d->%dx%d@%dx%d] fmt[%d] addr[0x%x]\n",
-		cstate->crtc_id, vop2_plane_phys_id_to_string(primary_plane_id),
+		cstate->crtc_id, vop2_plane_phys_id_to_string(plane_id),
 		cstate->src_rect.w, cstate->src_rect.h, cstate->crtc_rect.w, cstate->crtc_rect.h,
 		cstate->crtc_rect.x, cstate->crtc_rect.y, cstate->format,
 		cstate->dma_addr);
@@ -6554,16 +6603,22 @@ static void rk3576_setup_overlay(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
 	struct vop2_win_data *win_data;
-	int i;
+	struct rockchip_vp *vp;
+	struct vop2_zpos *vop2_zpos;
+	int i, j;
 	u32 offset = 0;
+	u32 shift = 0;
 
 	/* layer sel win id */
 	for (i = 0; i < vop2->data->nr_vps; i++) {
-		if (vop2->vp_plane_mask[i].primary_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
-			offset = 0x100 * i;
-			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].primary_plane_id);
+		vp = &cstate->crtc->vps[i];
+		offset = 0x100 * i;
+		for (j = 0; j < vp->active_layers; j++) {
+			vop2_zpos = &vp->vop2_zpos[j];
+			win_data = vop2_find_win_by_phys_id(vop2, vop2_zpos->plane_id);
+			shift = 4 * vop2_zpos->zpos;
 			vop2_mask_write(vop2, RK3528_OVL_PORT0_LAYER_SEL + offset, LAYER_SEL_MASK,
-					0, win_data->layer_sel_win_id[i], false);
+					shift, win_data->layer_sel_win_id[i], false);
 		}
 	}
 }
