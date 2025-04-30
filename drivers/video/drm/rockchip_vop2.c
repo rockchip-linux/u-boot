@@ -1410,7 +1410,7 @@ struct vop2_esmart_lb_map {
 * implement the proper behaviour of different variants.
 */
 struct vop2_ops {
-	void (*setup_win_dly)(struct display_state *state, int crtc_id);
+	void (*setup_win_dly)(struct display_state *state, int crtc_id, u8 plane_phy_id);
 	void (*setup_overlay)(struct display_state *state);
 };
 
@@ -2188,6 +2188,7 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	struct crtc_state *cstate = &state->crtc_state;
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_ops *vop2_ops = vop2_data->ops;
+	struct vop2_vp_plane_mask *plane_mask = &vop2->vp_plane_mask[cstate->crtc_id];
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u16 vtotal = mode->crtc_vtotal;
 	u16 hact_st = mode->crtc_htotal - mode->crtc_hsync_start;
@@ -2250,10 +2251,11 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 		vop3_setup_pipe_dly(state, vop2, cstate->crtc_id);
 	} else {
 		vop2_setup_dly_for_vp(state, vop2, cstate->crtc_id);
-		vop2_ops->setup_win_dly(state, cstate->crtc_id);
+		vop2_ops->setup_win_dly(state, cstate->crtc_id, plane_mask->primary_plane_id);
 		if (cstate->splice_mode) {
+			plane_mask = &vop2->vp_plane_mask[cstate->splice_crtc_id];
 			vop2_setup_dly_for_vp(state, vop2, cstate->splice_crtc_id);
-			vop2_ops->setup_win_dly(state, cstate->splice_crtc_id);
+			vop2_ops->setup_win_dly(state, cstate->splice_crtc_id, plane_mask->primary_plane_id);
 		}
 	}
 }
@@ -5485,7 +5487,7 @@ static int vop2_set_cluster_win(struct display_state *state, struct vop2_win_dat
 		vop2_mask_write(vop2, RK3576_CLUSTER0_PORT_SEL + win_offset,
 				CLUSTER_PORT_SEL_MASK, CLUSTER_PORT_SEL_SHIFT,
 				cstate->crtc_id, false);
-		vop2_ops->setup_win_dly(state, cstate->crtc_id);
+		vop2_ops->setup_win_dly(state, cstate->crtc_id, win->phys_id);
 	}
 
 	/*
@@ -5613,7 +5615,7 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 		vop2_mask_write(vop2, RK3576_ESMART0_PORT_SEL + win_offset,
 				ESMART_PORT_SEL_MASK, ESMART_PORT_SEL_SHIFT,
 				cstate->crtc_id, false);
-		vop2_ops->setup_win_dly(state, cstate->crtc_id);
+		vop2_ops->setup_win_dly(state, cstate->crtc_id, win->phys_id);
 
 		/* Merge esmart1/3 from vp1 post to vp0 */
 		if (vop2->version == VOP_VERSION_RK3576 && cstate->crtc_id == 0 &&
@@ -6278,14 +6280,13 @@ static int rockchip_vop2_active_regs_dump(struct display_state *state)
 	return 0;
 }
 
-static void rk3528_setup_win_dly(struct display_state *state, int crtc_id)
+static void rk3528_setup_win_dly(struct display_state *state, int crtc_id, u8 plane_phy_id)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
-	struct vop2_vp_plane_mask *plane_mask = &vop2->vp_plane_mask[crtc_id];
 	uint32_t dly = 0; /* For vop3, the default window delay is 0 */
 
-	switch (plane_mask->primary_plane_id) {
+	switch (plane_phy_id) {
 	case ROCKCHIP_VOP2_CLUSTER0:
 		vop2_mask_write(vop2, RK3528_OVL_SYS_CLUSTER0_CTRL, CLUSTER_DLY_NUM_MASK,
 				CLUSTER_DLY_NUM_SHIFT, dly, false);
@@ -6345,20 +6346,19 @@ static void rk3528_setup_overlay(struct display_state *state)
 	}
 }
 
-static void rk3568_setup_win_dly(struct display_state *state, int crtc_id)
+static void rk3568_setup_win_dly(struct display_state *state, int crtc_id, u8 plane_phy_id)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
-	struct vop2_vp_plane_mask *plane_mask = &vop2->vp_plane_mask[crtc_id];
 	struct vop2_win_data *win_data;
 	uint32_t dly;
 
-	win_data = vop2_find_win_by_phys_id(vop2, plane_mask->primary_plane_id);
+	win_data = vop2_find_win_by_phys_id(vop2, plane_phy_id);
 	dly = win_data->dly[VOP2_DLY_MODE_DEFAULT];
 	if (win_data->type == CLUSTER_LAYER)
 		dly |= dly << 8;
 
-	switch (plane_mask->primary_plane_id) {
+	switch (plane_phy_id) {
 	case ROCKCHIP_VOP2_CLUSTER0:
 		vop2_mask_write(vop2, RK3568_CLUSTER_DLY_NUM, CLUSTER_DLY_NUM_MASK,
 				CLUSTER0_DLY_NUM_SHIFT, dly, false);
@@ -6455,14 +6455,13 @@ static void rk3568_setup_overlay(struct display_state *state)
 	}
 }
 
-static void rk3576_setup_win_dly(struct display_state *state, int crtc_id)
+static void rk3576_setup_win_dly(struct display_state *state, int crtc_id, u8 plane_phy_id)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
-	struct vop2_vp_plane_mask *plane_mask = &vop2->vp_plane_mask[crtc_id];
 	uint32_t dly = 0; /* For vop3, the default window delay is 0 */
 
-	switch (plane_mask->primary_plane_id) {
+	switch (plane_phy_id) {
 	case ROCKCHIP_VOP2_CLUSTER0:
 		vop2_mask_write(vop2, RK3576_CLUSTER0_DLY_NUM, CLUSTER_DLY_NUM_MASK,
 				CLUSTER_DLY_NUM_SHIFT, dly, false);
