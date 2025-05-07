@@ -9,6 +9,38 @@
 
 #include "core.h"
 
+static void serdes_split_pre_enable(struct serdes_bridge *serdes_bridge)
+{
+	struct rockchip_panel *panel_split = serdes_bridge->panel_split;
+
+	if (panel_split && panel_split->funcs && panel_split->funcs->prepare)
+		panel_split->funcs->prepare(panel_split);
+}
+
+static void serdes_split_post_disable(struct serdes_bridge *serdes_bridge)
+{
+	struct rockchip_panel *panel_split = serdes_bridge->panel_split;
+
+	if (panel_split && panel_split->funcs && panel_split->funcs->unprepare)
+		panel_split->funcs->unprepare(panel_split);
+}
+
+static void serdes_split_enable(struct serdes_bridge *serdes_bridge)
+{
+	struct rockchip_panel *panel_split = serdes_bridge->panel_split;
+
+	if (panel_split && panel_split->funcs && panel_split->funcs->enable)
+		panel_split->funcs->enable(panel_split);
+}
+
+static void serdes_split_disable(struct serdes_bridge *serdes_bridge)
+{
+	struct rockchip_panel *panel_split = serdes_bridge->panel_split;
+
+	if (panel_split && panel_split->funcs && panel_split->funcs->disable)
+		panel_split->funcs->disable(panel_split);
+}
+
 static void serdes_bridge_init(struct serdes *serdes)
 {
 	if (serdes->vpower_supply)
@@ -35,11 +67,15 @@ static void serdes_bridge_pre_enable(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
+	struct serdes_bridge *serdes_bridge = serdes->serdes_bridge;
 
 	//serdes_bridge_init(serdes);
 
 	if (serdes->chip_data->bridge_ops->pre_enable)
 		serdes->chip_data->bridge_ops->pre_enable(serdes);
+
+	if (serdes_bridge->split_mode)
+		serdes_split_pre_enable(serdes_bridge);
 
 	SERDES_DBG_MFD("%s: %s %s\n", __func__,
 		       serdes->dev->name,
@@ -50,6 +86,10 @@ static void serdes_bridge_post_disable(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
+	struct serdes_bridge *serdes_bridge = serdes->serdes_bridge;
+
+	if (serdes_bridge->split_mode)
+		serdes_split_post_disable(serdes_bridge);
 
 	if (serdes->chip_data->bridge_ops->post_disable)
 		serdes->chip_data->bridge_ops->post_disable(serdes);
@@ -63,12 +103,16 @@ static void serdes_bridge_enable(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
+	struct serdes_bridge *serdes_bridge = serdes->serdes_bridge;
 
 	if (serdes->chip_data->serdes_type == TYPE_DES)
 		serdes_bridge_init(serdes);
 
 	if (serdes->chip_data->bridge_ops->enable)
 		serdes->chip_data->bridge_ops->enable(serdes);
+
+	if (serdes_bridge->split_mode)
+		serdes_split_enable(serdes_bridge);
 
 	SERDES_DBG_MFD("%s: %s %s\n", __func__,
 		       serdes->dev->name,
@@ -79,6 +123,10 @@ static void serdes_bridge_disable(struct rockchip_bridge *bridge)
 {
 	struct udevice *dev = bridge->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
+	struct serdes_bridge *serdes_bridge = serdes->serdes_bridge;
+
+	if (serdes_bridge->split_mode)
+		serdes_split_disable(serdes_bridge);
 
 	if (serdes->chip_data->bridge_ops->disable)
 		serdes->chip_data->bridge_ops->disable(serdes);
@@ -161,6 +209,8 @@ static int serdes_bridge_probe(struct udevice *dev)
 	bridge->funcs = &serdes_bridge_ops;
 
 	serdes->serdes_bridge->bridge = bridge;
+
+	serdes_get_split_bridge_or_panel(serdes->serdes_bridge);
 
 	SERDES_DBG_MFD("%s: %s %s bridge=%p name=%s device=%p\n",
 		       __func__, serdes->dev->name,
