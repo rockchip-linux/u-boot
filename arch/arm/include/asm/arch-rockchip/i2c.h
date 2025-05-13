@@ -36,8 +36,15 @@ struct i2c_regs {
 #define I2C_CON_STOP		(1 << 4)
 #define I2C_CON_LASTACK		(1 << 5)
 #define I2C_CON_ACTACK		(1 << 6)
+#define I2C_CON_TUNING_MASK	(0xff << 8)
+#define I2C_CON_SDA_CFG(cfg)	((cfg) << 8)
+#define I2C_CON_STA_CFG(cfg)	((cfg) << 12)
+#define I2C_CON_STO_CFG(cfg)	((cfg) << 14)
+#define I2C_CON_VERSION		GENMASK_ULL(24, 16)
+#define I2C_CON_VERSION_SHIFT	16
 
 /* Clock dividor register */
+#define I2C_CLK_DIV_HIGH_SHIFT	16
 #define I2C_CLKDIV_VAL(divl, divh) \
 	(((divl) & 0xffff) | (((divh) << 16) & 0xffff0000))
 
