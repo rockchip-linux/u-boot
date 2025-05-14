@@ -138,7 +138,9 @@ obj-y += hexdump.o
 obj-$(CONFIG_GETOPT) += getopt.o
 obj-$(CONFIG_TRACE) += trace.o
 obj-$(CONFIG_LIB_UUID) += uuid.o
+ifneq ($(CONFIG_LIB_HW_RAND)$(CONFIG_RNG_ROCKCHIP),yy)
 obj-$(CONFIG_LIB_RAND) += rand.o
+endif
 obj-y += panic.o
 
 ifeq ($(CONFIG_XPL_BUILD),y)
