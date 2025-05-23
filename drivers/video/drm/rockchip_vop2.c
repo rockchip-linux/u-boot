@@ -2867,7 +2867,6 @@ static void vop2_plane_mask_assign(struct display_state *state)
 			if (!cstate->crtc->vps[i].enable)
 				continue;
 
-			rockchip_cursor_plane_assign(state, i);
 			for (j = 0; j < vop2->data->nr_layers; j++) {
 				win_data = &vop2->data->win_data[j];
 
@@ -2896,15 +2895,16 @@ static void vop2_plane_mask_assign(struct display_state *state)
 
 			if (vop2->vp_plane_mask[i].primary_plane_id == ROCKCHIP_VOP2_PHY_ID_INVALID)
 				printf("ERROR: No primary plane find for video_port%d\n", i);
+
+			rockchip_cursor_plane_assign(state, i);
 		}
 		printf("VOP have %d active VP\n", active_vp_num);
 	} else {
 		for (i = 0; i < vop2->data->nr_vps; i++) {
-			if (cstate->crtc->vps[i].enable) {
-				rockchip_cursor_plane_assign(state, i);
+			if (cstate->crtc->vps[i].enable)
 				active_vp_num++;
-			}
 		}
+
 		printf("VOP have %d active VP\n", active_vp_num);
 
 		if (soc_is_rk3566() && active_vp_num > 2)
@@ -2970,6 +2970,18 @@ static void vop2_plane_mask_assign(struct display_state *state)
 				layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
 				vop2->vp_plane_mask[i].plane_mask |= BIT(layer_phy_id);
 			}
+		}
+
+		/*
+		 * For RK3568 and RK3588, to aovid &vop2.vp_plane_mask[].cursor_plane_id
+		 * being overwritten by &vop2.data->plane_mask[].cursor_plane_id, which
+		 * is always 0, the assignment of cursor plane should be placed at the
+		 * end.
+		 */
+		for (i = 0; i < vop2->data->nr_vps; i++) {
+			vop2->vp_plane_mask[i].cursor_plane_id = ROCKCHIP_VOP2_PHY_ID_INVALID;
+			if (cstate->crtc->vps[i].enable)
+				rockchip_cursor_plane_assign(state, i);
 		}
 	}
 }
