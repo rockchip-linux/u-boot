@@ -624,6 +624,10 @@ static const struct rk_i2c_soc_data rk3399_soc_data = {
 	.controller_type = RK_I2C_NEW,
 };
 
+static const struct rk_i2c_soc_data rv1126b_soc_data = {
+	.controller_type = RK_I2C_NEW,
+};
+
 static const struct udevice_id rockchip_i2c_ids[] = {
 	{
 		.compatible = "rockchip,rk3066-i2c",
@@ -648,6 +652,10 @@ static const struct udevice_id rockchip_i2c_ids[] = {
 	{
 		.compatible = "rockchip,rk3399-i2c",
 		.data = (ulong)&rk3399_soc_data,
+	},
+	{
+		.compatible = "rockchip,rv1126b-i2c",
+		.data = (ulong)&rv1126b_soc_data,
 	},
 	{ }
 };
