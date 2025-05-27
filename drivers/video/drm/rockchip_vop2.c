@@ -1412,6 +1412,7 @@ struct vop2_esmart_lb_map {
 struct vop2_ops {
 	void (*setup_win_dly)(struct display_state *state, int crtc_id, u8 plane_phy_id);
 	void (*setup_overlay)(struct display_state *state);
+	void (*assign_plane_mask)(struct display_state *state);
 };
 
 struct vop2_data {
@@ -2841,148 +2842,156 @@ static void rockchip_cursor_plane_assign(struct display_state *state, u8 vp_id)
 	vop2->vp_plane_mask[vp_id].cursor_plane_id = ROCKCHIP_VOP2_PHY_ID_INVALID;
 }
 
-static void vop2_plane_mask_assign(struct display_state *state)
+/*
+ * For vop3, &vop2_vp_plane_mask.plane_mask will not be fixup in
+ * &rockchip_crtc_funcs.fixup_dts(), because planes can be switched
+ * between different CRTCs flexibly and the userspace do not need
+ * the plane_mask to restrict the switch between the crtc and plane.
+ * We just find a expected plane for logo display.
+ */
+static void rk3528_assign_plane_mask(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
-	struct vop2_vp_plane_mask *plane_mask;
 	struct vop2_win_data *win_data;
-	u32 nr_planes = 0;
 	int active_vp_num = 0;
-	int main_vp_index = -1;
-	int layer_phy_id = 0;
 	int i, j, k;
 
 	printf("Assign default plane mask\n");
 
-	/*
-	 * For vop3, &vop2_vp_plane_mask.plane_mask will not be fixup in
-	 * &rockchip_crtc_funcs.fixup_dts(), because planes can be switched
-	 * between different CRTCs flexibly and the userspace do not need
-	 * the plane_mask to restrict the binding between the crtc and plane.
-	 * We just find a expected plane for logo display.
-	 */
-	if (is_vop3(vop2)) {
-		for (i = 0; i < vop2->data->nr_vps; i++) {
-			if (!cstate->crtc->vps[i].enable)
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		if (!cstate->crtc->vps[i].enable)
+			continue;
+
+		for (j = 0; j < vop2->data->nr_layers; j++) {
+			win_data = &vop2->data->win_data[j];
+
+			if (win_data->plane_type != VOP2_PLANE_TYPE_PRIMARY)
 				continue;
 
-			for (j = 0; j < vop2->data->nr_layers; j++) {
-				win_data = &vop2->data->win_data[j];
+			if (!vop2_win_can_attach_to_vp(win_data, i))
+				continue;
 
-				if (win_data->plane_type != VOP2_PLANE_TYPE_PRIMARY)
-					continue;
+			for (k = 0; k < vop2->data->nr_vps; k++) {
+				if (win_data->phys_id == vop2->vp_plane_mask[k].primary_plane_id)
+					break;
+			}
 
-				if (!vop2_win_can_attach_to_vp(win_data, i))
-					continue;
+			/* The win has been used as the primary plane for other VPs */
+			if (k < vop2->data->nr_vps)
+				continue;
 
-				for (k = 0; k < vop2->data->nr_vps; k++) {
-					if (win_data->phys_id == vop2->vp_plane_mask[k].primary_plane_id)
-						break;
-				}
+			vop2->vp_plane_mask[i].attached_layers_nr = 1;
+			vop2->vp_plane_mask[i].primary_plane_id = win_data->phys_id;
+			vop2->vp_plane_mask[i].attached_layers[0] = win_data->phys_id;
+			vop2->vp_plane_mask[i].plane_mask |= BIT(win_data->phys_id);
+			active_vp_num++;
+			break;
+		}
 
-				/* The win has been used as the primary plane for other VPs */
-				if (k < vop2->data->nr_vps)
-					continue;
+		if (vop2->vp_plane_mask[i].primary_plane_id == ROCKCHIP_VOP2_PHY_ID_INVALID)
+			printf("ERROR: No primary plane find for video_port%d\n", i);
 
-				vop2->vp_plane_mask[i].attached_layers_nr = 1;
-				vop2->vp_plane_mask[i].primary_plane_id = win_data->phys_id;
-				vop2->vp_plane_mask[i].attached_layers[0] = win_data->phys_id;
-				vop2->vp_plane_mask[i].plane_mask |= BIT(win_data->phys_id);
-				active_vp_num++;
+		rockchip_cursor_plane_assign(state, i);
+	}
+	printf("VOP have %d active VP\n", active_vp_num);
+}
+
+static void rk3568_assign_plane_mask(struct display_state *state)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	struct vop2_vp_plane_mask *plane_mask;
+	u32 nr_planes = 0;
+	int active_vp_num = 0;
+	int main_vp_index = -1;
+	int layer_phy_id = 0;
+	int i, j;
+
+	printf("Assign default plane mask\n");
+
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		if (cstate->crtc->vps[i].enable)
+			active_vp_num++;
+	}
+
+	printf("VOP have %d active VP\n", active_vp_num);
+
+	if (soc_is_rk3566() && active_vp_num > 2)
+		printf("ERROR: rk3566 only support 2 display output!!\n");
+	plane_mask = vop2->data->plane_mask;
+	plane_mask += (active_vp_num - 1) * VOP2_VP_MAX;
+
+	/*
+	 * For RK3566, the main planes should be enabled before the mirror planes.
+	 * The devices that support hot plug may be disconnected initially, so we
+	 * assign the main planes to the first device that does not support hot
+	 * plug, in order to ensure that the mirror planes are not enabled first.
+	 */
+	if (soc_is_rk3566()) {
+		for (i = 0; i < vop2->data->nr_vps; i++) {
+			if (!is_hot_plug_devices(cstate->crtc->vps[i].output_type)) {
+				/* the first store main display plane mask */
+				vop2->vp_plane_mask[i] = plane_mask[0];
+				main_vp_index = i;
 				break;
 			}
-
-			if (vop2->vp_plane_mask[i].primary_plane_id == ROCKCHIP_VOP2_PHY_ID_INVALID)
-				printf("ERROR: No primary plane find for video_port%d\n", i);
-
-			rockchip_cursor_plane_assign(state, i);
 		}
-		printf("VOP have %d active VP\n", active_vp_num);
+
+		/* if no find unplug devices, use vp0 as main display */
+		if (main_vp_index < 0) {
+			main_vp_index = 0;
+			vop2->vp_plane_mask[0] = plane_mask[0];
+		}
+
+		/* plane_mask[0] store main display, so we from plane_mask[1] */
+		j = 1;
 	} else {
-		for (i = 0; i < vop2->data->nr_vps; i++) {
-			if (cstate->crtc->vps[i].enable)
-				active_vp_num++;
-		}
-
-		printf("VOP have %d active VP\n", active_vp_num);
-
-		if (soc_is_rk3566() && active_vp_num > 2)
-			printf("ERROR: rk3566 only support 2 display output!!\n");
-		plane_mask = vop2->data->plane_mask;
-		plane_mask += (active_vp_num - 1) * VOP2_VP_MAX;
-
 		/*
-		 * For RK3566, the main planes should be enabled before the mirror planes.
-		 * The devices that support hot plug may be disconnected initially, so we
-		 * assign the main planes to the first device that does not support hot
-		 * plug, in order to ensure that the mirror planes are not enabled first.
+		 * For the platforms except RK3566, we assign the plane mask of
+		 * VPx according to the &vop2_data.plane_mask[active_vp_num][x].
 		 */
-		if (soc_is_rk3566()) {
-			for (i = 0; i < vop2->data->nr_vps; i++) {
-				if (!is_hot_plug_devices(cstate->crtc->vps[i].output_type)) {
-					/* the first store main display plane mask */
-					vop2->vp_plane_mask[i] = plane_mask[0];
-					main_vp_index = i;
-					break;
-				}
-			}
+		j = 0;
+	}
 
-			/* if no find unplug devices, use vp0 as main display */
-			if (main_vp_index < 0) {
-				main_vp_index = 0;
-				vop2->vp_plane_mask[0] = plane_mask[0];
-			}
-
-			/* plane_mask[0] store main display, so we from plane_mask[1] */
-			j = 1;
-		} else {
-			/*
-			 * For the platforms except RK3566, we assign the plane mask of
-			 * VPx according to the &vop2_data.plane_mask[active_vp_num][x].
-			 */
-			j = 0;
-		}
-
-		/* init other display except main display */
-		for (i = 0; i < vop2->data->nr_vps; i++) {
-			/* main display or no connect devices */
-			if (i == main_vp_index || !cstate->crtc->vps[i].enable)
-				continue;
-			vop2->vp_plane_mask[i] = plane_mask[j++];
-			/*
-			 * For rk3588, the main window should attach to the VP0 while
-			 * the splice window should attach to the VP1 when the display
-			 * mode is over 4k.
-			 * If only one VP is enabled and the plane mask is not assigned
-			 * in DTS, all main windows will be assigned to the enabled VPx,
-			 * and all splice windows will be assigned to the VPx+1, in order
-			 * to ensure that the splice mode work well.
-			 */
-			if (vop2->version == VOP_VERSION_RK3588 && active_vp_num == 1)
-				vop2->vp_plane_mask[(i + 1) % vop2->data->nr_vps] = plane_mask[j++];
-		}
-
-		/* store plane mask for vop2_fixup_dts */
-		for (i = 0; i < vop2->data->nr_vps; i++) {
-			nr_planes = vop2->vp_plane_mask[i].attached_layers_nr;
-			for (j = 0; j < nr_planes; j++) {
-				layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
-				vop2->vp_plane_mask[i].plane_mask |= BIT(layer_phy_id);
-			}
-		}
-
+	/* init other display except main display */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		/* main display or no connect devices */
+		if (i == main_vp_index || !cstate->crtc->vps[i].enable)
+			continue;
+		vop2->vp_plane_mask[i] = plane_mask[j++];
 		/*
-		 * For RK3568 and RK3588, to aovid &vop2.vp_plane_mask[].cursor_plane_id
-		 * being overwritten by &vop2.data->plane_mask[].cursor_plane_id, which
-		 * is always 0, the assignment of cursor plane should be placed at the
-		 * end.
+		 * For rk3588, the main window should attach to the VP0 while
+		 * the splice window should attach to the VP1 when the display
+		 * mode is over 4k.
+		 * If only one VP is enabled and the plane mask is not assigned
+		 * in DTS, all main windows will be assigned to the enabled VPx,
+		 * and all splice windows will be assigned to the VPx+1, in order
+		 * to ensure that the splice mode work well.
 		 */
-		for (i = 0; i < vop2->data->nr_vps; i++) {
-			vop2->vp_plane_mask[i].cursor_plane_id = ROCKCHIP_VOP2_PHY_ID_INVALID;
-			if (cstate->crtc->vps[i].enable)
-				rockchip_cursor_plane_assign(state, i);
+		if (vop2->version == VOP_VERSION_RK3588 && active_vp_num == 1)
+			vop2->vp_plane_mask[(i + 1) % vop2->data->nr_vps] = plane_mask[j++];
+	}
+
+	/* store plane mask for vop2_fixup_dts */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		nr_planes = vop2->vp_plane_mask[i].attached_layers_nr;
+		for (j = 0; j < nr_planes; j++) {
+			layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
+			vop2->vp_plane_mask[i].plane_mask |= BIT(layer_phy_id);
 		}
+	}
+
+	/*
+	 * For RK3568 and RK3588, to aovid &vop2.vp_plane_mask[].cursor_plane_id
+	 * being overwritten by &vop2.data->plane_mask[].cursor_plane_id, which
+	 * is always 0, the assignment of cursor plane should be placed at the
+	 * end.
+	 */
+	for (i = 0; i < vop2->data->nr_vps; i++) {
+		vop2->vp_plane_mask[i].cursor_plane_id = ROCKCHIP_VOP2_PHY_ID_INVALID;
+		if (cstate->crtc->vps[i].enable)
+			rockchip_cursor_plane_assign(state, i);
 	}
 }
 
@@ -3046,14 +3055,14 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 				}
 			}
 		} else {
-			vop2_plane_mask_assign(state);
+			vop2_ops->assign_plane_mask(state);
 		}
 	} else {
 		/*
 		 * If no plane mask assignment, plane mask and primary plane will be
 		 * assigned automatically.
 		 */
-		vop2_plane_mask_assign(state);
+		vop2_ops->assign_plane_mask(state);
 	}
 
 	if (vop2->version == VOP_VERSION_RK3588)
@@ -6670,6 +6679,7 @@ static struct vop2_vp_data rk3528_vp_data[2] = {
 static const struct vop2_ops rk3528_vop_ops = {
 	.setup_win_dly = rk3528_setup_win_dly,
 	.setup_overlay = rk3528_setup_overlay,
+	.assign_plane_mask = rk3528_assign_plane_mask,
 };
 
 const struct vop2_data rk3528_vop = {
@@ -6805,6 +6815,7 @@ static struct vop2_vp_data rk3562_vp_data[2] = {
 static const struct vop2_ops rk3562_vop_ops = {
 	.setup_win_dly = rk3528_setup_win_dly,
 	.setup_overlay = rk3528_setup_overlay,
+	.assign_plane_mask = rk3528_assign_plane_mask,
 };
 
 const struct vop2_data rk3562_vop = {
@@ -7049,6 +7060,7 @@ static struct vop2_vp_data rk3568_vp_data[3] = {
 static const struct vop2_ops rk3568_vop_ops = {
 	.setup_win_dly = rk3568_setup_win_dly,
 	.setup_overlay = rk3568_setup_overlay,
+	.assign_plane_mask = rk3568_assign_plane_mask,
 };
 
 const struct vop2_data rk3568_vop = {
@@ -7344,6 +7356,7 @@ static const struct vop2_esmart_lb_map rk3576_esmart_lb_mode_map[] = {
 static const struct vop2_ops rk3576_vop_ops = {
 	.setup_win_dly = rk3576_setup_win_dly,
 	.setup_overlay = rk3576_setup_overlay,
+	.assign_plane_mask = rk3528_assign_plane_mask,
 };
 
 const struct vop2_data rk3576_vop = {
@@ -7824,6 +7837,7 @@ static struct vop2_power_domain_data rk3588_vop_pd_data[] = {
 static const struct vop2_ops rk3588_vop_ops = {
 	.setup_win_dly = rk3568_setup_win_dly,
 	.setup_overlay = rk3568_setup_overlay,
+	.assign_plane_mask = rk3568_assign_plane_mask,
 };
 
 const struct vop2_data rk3588_vop = {
