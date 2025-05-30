@@ -1537,7 +1537,7 @@ struct vop2_data {
 	const struct vop2_esmart_lb_map *esmart_lb_mode_map;
 	const struct vop2_ops *ops;
 	u8 nr_vps;
-	u8 nr_layers;
+	u8 nr_layers; /* the maximum layers of each VP */
 	u8 nr_mixers;
 	u8 nr_gammas;
 	u8 nr_pd;
@@ -1545,6 +1545,7 @@ struct vop2_data {
 	u8 nr_dsc_ecw;
 	u8 nr_dsc_buffer_flow;
 	u8 esmart_lb_mode_num;
+	u8 win_size; /* the length of array win_data */
 	u32 reg_len;
 	u32 dump_regs_size;
 	u32 plane_mask_base;
@@ -1738,7 +1739,7 @@ static int vop2_vp_find_attachable_win(struct display_state *state, u8 vp_id)
 	if (!plane_mask)
 		return ROCKCHIP_VOP2_PHY_ID_INVALID;
 
-	for (i = 0; i < vop2->data->nr_layers; i++) {
+	for (i = 0; i < vop2->data->win_size; i++) {
 		if (vop2_win_can_attach_to_vp(&vop2->data->win_data[i], vp_id))
 			break;
 	}
@@ -1949,7 +1950,7 @@ static struct vop2_win_data *vop2_find_win_by_phys_id(struct vop2 *vop2, int phy
 {
 	int i = 0;
 
-	for (i = 0; i < vop2->data->nr_layers; i++) {
+	for (i = 0; i < vop2->data->win_size; i++) {
 		if (vop2->data->win_data[i].phys_id == phys_id)
 			return &vop2->data->win_data[i];
 	}
@@ -2778,7 +2779,7 @@ static void vop3_init_esmart_scale_engine(struct vop2 *vop2)
 	u8 scale_engine_num = 0;
 
 	/* store plane mask for vop2_fixup_dts */
-	for (i = 0; i < vop2->data->nr_layers; i++) {
+	for (i = 0; i < vop2->data->win_size; i++) {
 		win_data = &vop2->data->win_data[i];
 		if (vop2_cluster_window(win_data) || vop3_ignore_plane(vop2, win_data))
 			continue;
@@ -2818,7 +2819,7 @@ static inline void vop2_plane_mask_to_possible_vp_mask(struct display_state *sta
 	u32 phys_id;
 	int i, j;
 
-	for (i = 0; i < vop2_data->nr_layers; i++) {
+	for (i = 0; i < vop2_data->win_size; i++) {
 		win_data = &vop2_data->win_data[i];
 		win_data->possible_vp_mask = 0;
 	}
@@ -2954,7 +2955,7 @@ static void rockchip_cursor_plane_assign(struct display_state *state, u8 vp_id)
 		}
 	}
 
-	for (i = 0; i < vop2->data->nr_layers; i++) {
+	for (i = 0; i < vop2->data->win_size; i++) {
 		win_data = &vop2->data->win_data[i];
 
 		if (win_data->plane_type != VOP2_PLANE_TYPE_CURSOR)
@@ -3000,7 +3001,7 @@ static void rk3528_assign_plane_mask(struct display_state *state)
 		if (!cstate->crtc->vps[i].enable)
 			continue;
 
-		for (j = 0; j < vop2->data->nr_layers; j++) {
+		for (j = 0; j < vop2->data->win_size; j++) {
 			win_data = &vop2->data->win_data[j];
 
 			if (win_data->plane_type != VOP2_PLANE_TYPE_PRIMARY)
@@ -7086,7 +7087,7 @@ static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 pl
 	if (enabled_vp_mask == 0)
 		return 0;
 
-	for (i = 0; i < vop2_data->nr_layers; i++) {
+	for (i = 0; i < vop2_data->win_size; i++) {
 		if (BIT(vop2_data->win_data[i].phys_id) & plane_mask) {
 			if (vop2_cluster_window(&vop2_data->win_data[i]))
 				vop2_cluster_disable(regs, vop2_data->win_data[i].reg_offset);
@@ -7283,8 +7284,9 @@ const struct vop2_data rk3528_vop = {
 	.nr_vps = 2,
 	.vp_data = rk3528_vp_data,
 	.win_data = rk3528_win_data,
+	.win_size = ARRAY_SIZE(rk3528_win_data),
 	.plane_mask_base = RK3528_PLANE_MASK_BASE,
-	.nr_layers = 5,
+	.nr_layers = 4,
 	.nr_mixers = 3,
 	.nr_gammas = 2,
 	.esmart_lb_mode = VOP3_ESMART_4K_2K_2K_MODE,
@@ -7419,6 +7421,7 @@ const struct vop2_data rk3562_vop = {
 	.nr_vps = 2,
 	.vp_data = rk3562_vp_data,
 	.win_data = rk3562_win_data,
+	.win_size = ARRAY_SIZE(rk3562_win_data),
 	.plane_mask_base = RK3562_PLANE_MASK_BASE,
 	.nr_layers = 4,
 	.nr_mixers = 3,
@@ -7664,6 +7667,7 @@ const struct vop2_data rk3568_vop = {
 	.nr_vps = 3,
 	.vp_data = rk3568_vp_data,
 	.win_data = rk3568_win_data,
+	.win_size = ARRAY_SIZE(rk3568_win_data),
 	.plane_mask = rk356x_vp_plane_mask[0],
 	.plane_mask_base = RK3568_PLANE_MASK_BASE,
 	.nr_layers = 6,
@@ -7954,13 +7958,14 @@ const struct vop2_data rk3576_vop = {
 	.version = VOP_VERSION_RK3576,
 	.nr_vps = 3,
 	.nr_mixers = 4,
-	.nr_layers = 6,
+	.nr_layers = 4,
 	.nr_gammas = 3,
 	.esmart_lb_mode = VOP3_ESMART_4K_4K_2K_2K_MODE,
 	.esmart_lb_mode_num = ARRAY_SIZE(rk3576_esmart_lb_mode_map),
 	.esmart_lb_mode_map = rk3576_esmart_lb_mode_map,
 	.vp_data = rk3576_vp_data,
 	.win_data = rk3576_win_data,
+	.win_size = ARRAY_SIZE(rk3576_win_data),
 	.plane_mask_base = RK3576_PLANE_MASK_BASE,
 	.pd = rk3576_vop_pd_data,
 	.nr_pd = ARRAY_SIZE(rk3576_vop_pd_data),
@@ -8436,6 +8441,7 @@ const struct vop2_data rk3588_vop = {
 	.nr_vps = 4,
 	.vp_data = rk3588_vp_data,
 	.win_data = rk3588_win_data,
+	.win_size = ARRAY_SIZE(rk3588_win_data),
 	.plane_mask = rk3588_vp_plane_mask[0],
 	.plane_mask_base = RK3588_PLANE_MASK_BASE,
 	.pd = rk3588_vop_pd_data,
