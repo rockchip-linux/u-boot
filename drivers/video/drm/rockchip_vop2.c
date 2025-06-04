@@ -1028,6 +1028,16 @@
 #define RK3528_ACM_YHS_DEL_HGAIN_SEG0		0x6ad8
 #define RK3528_ACM_YHS_DEL_HGAIN_SEG64		0x6bd8
 
+#define RK3568_IOMMU0_DTE_ADDR			0x7e00
+#define RK3568_IOMMU0_STATUS			0x7e04
+#define MMU_PAGING_EN				BIT(0)
+#define MMU_PAGE_FAULT_ACTIVE			BIT(1)
+#define RK3568_IOMMU0_COMMAND			0x7e08
+#define MMU_ENABLE_PAGING			0
+#define MMU_DISABLE_PAGING			1
+#define MMU_FORCE_RESET				6
+#define RK3568_IOMMU0_PAGEFAULT_ADDR		0x7e0c
+
 /* RK3576 SHARP register definition */
 #define RK3576_SHARP_CTRL			0x0000
 #define SW_SHARP_ENABLE_SHIFT			0
@@ -6557,6 +6567,128 @@ static void rk3576_setup_overlay(struct display_state *state)
 	}
 }
 
+#ifdef CONFIG_MOS_SECONDARY
+static void vop2_cluster_disable(void *regs, u32 offset)
+{
+	writel(0x0, regs + RK3568_CLUSTER0_WIN0_CTRL0 + offset);
+	writel(0x0, regs + RK3568_CLUSTER0_WIN1_CTRL0 + offset);
+	writel(0x0, regs + RK3568_CLUSTER0_CTRL + offset);
+}
+
+static void vop2_esmart_disable(void *regs, u32 offset)
+{
+	writel(0x0, regs + RK3568_ESMART0_REGION0_CTRL + offset);
+	writel(0x0, regs + RK3568_ESMART0_REGION1_CTRL + offset);
+	writel(0x0, regs + RK3568_ESMART0_REGION2_CTRL + offset);
+	writel(0x0, regs + RK3568_ESMART0_REGION3_CTRL + offset);
+}
+
+static void vop2_vp_irqs_disable(void *regs, u32 vp_id)
+{
+	u32 offset = 0x10 * vp_id;
+
+	writel(0xffff0000, regs + RK3568_VP0_INT_EN + offset);
+	writel(0xffffffff, regs + RK3568_VP0_INT_CLR + offset);
+}
+
+static void vop2_axi_irqs_disable(void *regs, u32 axi_id)
+{
+	u32 offset = 0x10 * axi_id;
+
+	writel(0xffff0000, regs + RK3568_VP0_INT_EN + offset);
+	writel(0xffffffff, regs + RK3568_VP0_INT_CLR + offset);
+}
+
+static bool vop2_vp_in_standby(void *regs, u32 vp_id)
+{
+	u32 offset = vp_id * 0x100;
+
+	return !!(readl(regs + RK3568_VP0_DSP_CTRL + offset) & BIT(STANDBY_EN_SHIFT));
+}
+
+static void vop2_vp_standby(void *regs, u32 vp_id)
+{
+	u32 offset = vp_id * 0x100;
+
+	writel(BIT(STANDBY_EN_SHIFT), regs + RK3568_VP0_DSP_CTRL + offset);
+}
+
+static void vop2_vp_config_done(void *regs, u32 vp_id)
+{
+	u32 cfg_done = CFG_DONE_EN | BIT(vp_id) | (BIT(vp_id) << 16);
+	u32 offset = vp_id * 0x100;
+
+	writel(cfg_done, regs + RK3568_REG_CFG_DONE + offset);
+}
+
+static void vop2_iommu_disable(void *regs, u32 axi_id)
+{
+	u32 val = readl(regs + RK3568_IOMMU0_STATUS);
+	bool pagefault = val & MMU_PAGE_FAULT_ACTIVE;
+	u32 offset = axi_id * 0x100;
+
+	writel(MMU_DISABLE_PAGING, regs + RK3568_IOMMU0_COMMAND + offset);
+
+	if (pagefault) {
+		printf("iommu%d status:0x%x, pagefault addr: 0x%x\n",
+			axi_id, val, readl(regs + RK3568_IOMMU0_PAGEFAULT_ADDR + offset));
+		writel(MMU_FORCE_RESET, regs + RK3568_IOMMU0_COMMAND + offset);
+	}
+}
+
+static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 plane_mask)
+{
+	void *regs = dev_read_addr_ptr(dev);
+	struct rockchip_crtc *crtc = (struct rockchip_crtc *)dev_get_driver_data(dev);
+	const struct vop2_data *vop2_data = crtc->data;
+	u32 enabled_vp_mask = 0;
+	int i = 0;
+
+	for (i = 0; i < vop2_data->nr_vps; i++) {
+		if (BIT(i) & vp_mask) {
+			if (!vop2_vp_in_standby(regs,i)) {
+				enabled_vp_mask |= BIT(i);
+			}
+		}
+	}
+
+	if (enabled_vp_mask == 0)
+		return 0;
+
+	for (i = 0; i < vop2_data->nr_layers; i++) {
+		if (BIT(vop2_data->win_data[i].phys_id) & plane_mask) {
+			if (vop2_data->win_data[i].type == CLUSTER_LAYER)
+				vop2_cluster_disable(regs, vop2_data->win_data[i].reg_offset);
+			else
+				vop2_esmart_disable(regs, vop2_data->win_data[i].reg_offset);
+		}
+	}
+
+	for (i = 0; i < vop2_data->nr_vps; i++) {
+		if (BIT(i) & vp_mask)
+			vop2_vp_config_done(regs, i);
+	}
+	mdelay(50);
+	vop2_iommu_disable(regs, axi);
+	vop2_axi_irqs_disable(regs, axi);
+
+	for (i = 0; i < vop2_data->nr_vps; i++) {
+		if (BIT(i) & vp_mask) {
+			vop2_vp_irqs_disable(regs, i);
+			vop2_vp_standby(regs, i);
+		}
+	}
+	printf("Reset vop success\n");
+
+	return 0;
+}
+#else
+static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 plane_mask)
+{
+	return 0;
+}
+#endif
+
 static struct vop2_dump_regs rk3528_dump_regs[] = {
 	{ RK3568_REG_CFG_DONE, "SYS", 0, 0, 0, 0 },
 	{ RK3528_OVL_SYS, "OVL_SYS", 0, 0, 0, 0 },
@@ -7896,6 +8028,7 @@ const struct vop2_data rk3588_vop = {
 };
 
 const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
+	.reset = rockchip_vop2_reset,
 	.preinit = rockchip_vop2_preinit,
 	.prepare = rockchip_vop2_prepare,
 	.init = rockchip_vop2_init,

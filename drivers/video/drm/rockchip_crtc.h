@@ -34,6 +34,7 @@ struct rockchip_crtc {
 };
 
 struct rockchip_crtc_funcs {
+	int (*reset) (struct udevice *dev, u32 axi, u32 vp_mask, u32 plane_mask);
 	int (*preinit)(struct display_state *state);
 	int (*init)(struct display_state *state);
 	void (*deinit)(struct display_state *state);

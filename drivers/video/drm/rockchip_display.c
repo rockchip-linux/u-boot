@@ -2111,7 +2111,7 @@ static fdt_addr_t rockchip_get_logo_memory(struct udevice *dev, const void *fdt_
 	int offset, idx;
 	fdt_size_t size;
 	fdt_addr_t addr;
-	const struct device_node *np = ofnode_to_np(dev->node);
+	const struct device_node *np = ofnode_to_np(dev->node_);
 	struct device_node *logo_mem_np;
 	const char *name;
 
@@ -2141,6 +2141,82 @@ static fdt_addr_t rockchip_get_logo_memory(struct udevice *dev, const void *fdt_
 
 	return addr;
 }
+
+#ifdef CONFIG_MOS_SECONDARY
+/**
+ * For one VOP dual os environment, the secondary OS maybe reboot without display
+ * disable or SOC global reset, the hardware may be active state, so add this
+ * reset to avoid unexpected issues.
+ */
+static void rockchip_display_secondary_reset(ofnode route_node)
+{
+	struct udevice *crtc_dev;
+	struct device_node *port_node, *vop_node, *ep_node, *port_parent_node;
+	struct rockchip_crtc *crtc;
+	ofnode node;
+	int phandle, ret;
+	bool is_ports_node = false;
+	u32 share_mode, axi_id, plane_mask, vp_mask;
+
+	ofnode_for_each_subnode(node, route_node) {
+		phandle = ofnode_read_u32_default(node, "connect", -1);
+		if (phandle < 0) {
+			printf("Warn: can't find connect node's handle\n");
+			continue;
+		}
+		ep_node = of_find_node_by_phandle(phandle);
+		if (!ofnode_valid(np_to_ofnode(ep_node))) {
+			printf("Warn: can't find endpoint node from phandle\n");
+			continue;
+		}
+		port_node = of_get_parent(ep_node);
+		if (!ofnode_valid(np_to_ofnode(port_node))) {
+			printf("Warn: can't find port node from phandle\n");
+			continue;
+		}
+
+		port_parent_node = of_get_parent(port_node);
+		if (!ofnode_valid(np_to_ofnode(port_parent_node))) {
+			printf("Warn: can't find port parent node from phandle\n");
+			continue;
+		}
+
+		is_ports_node = strstr(port_parent_node->full_name, "ports") ? 1 : 0;
+		if (is_ports_node) {
+			vop_node = of_get_parent(port_parent_node);
+			if (!ofnode_valid(np_to_ofnode(vop_node))) {
+				printf("Warn: can't find crtc node from phandle\n");
+				continue;
+			}
+		} else {
+			vop_node = port_parent_node;
+		}
+
+		ret = uclass_get_device_by_ofnode(UCLASS_VIDEO_CRTC,
+						  np_to_ofnode(vop_node),
+						  &crtc_dev);
+		if (ret) {
+			printf("Warn: can't find crtc driver %d\n", ret);
+			continue;
+		}
+		crtc = (struct rockchip_crtc *)dev_get_driver_data(crtc_dev);
+
+		share_mode = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,share-mode-val", 0);
+		if (share_mode != ROCKCHIP_VOP2_SHARE_MODE_SECONDARY) {
+			printf("error: VOP share mode config error: %d\n", share_mode);
+			return;
+		}
+		axi_id = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,share-mode-axi-id", 0);
+		vp_mask = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,share-mode-vp-mask", 0);
+		plane_mask = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,share-mode-plane-mask", 0);
+
+		if (crtc->funcs->reset)
+			crtc->funcs->reset(crtc_dev, axi_id, vp_mask, plane_mask);
+		/* for VOP2, only need to do reset once */
+		return;
+	}
+}
+#endif
 
 static int rockchip_display_probe(struct udevice *dev)
 {
@@ -2183,6 +2259,10 @@ static int rockchip_display_probe(struct udevice *dev)
 	route_node = dev_read_subnode(dev, "route");
 	if (!ofnode_valid(route_node))
 		return -ENODEV;
+
+#ifdef CONFIG_MOS_SECONDARY
+	rockchip_display_secondary_reset(route_node);
+#endif
 
 	ofnode_for_each_subnode(node, route_node) {
 		if (!ofnode_is_enabled(node))
