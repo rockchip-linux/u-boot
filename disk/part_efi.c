@@ -144,7 +144,7 @@ static int validate_gpt_header(gpt_header *gpt_h, lbaint_t lba,
 
 	if (le64_to_cpu(gpt_h->last_usable_lba) > lastlba) {
 		if (le64_to_cpu(gpt_h->last_usable_lba) == FACTORY_UNKNOWN_LBA) {
-#ifdef CONFIG_SPL_BUILD
+#if defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SPL_KERNEL_BOOT)
 			printf("GPT: SPL workaround factory last_usable_lba\n");
 			gpt_h->last_usable_lba = lastlba - 34;
 			return 0;
