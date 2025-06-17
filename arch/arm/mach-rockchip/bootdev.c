@@ -5,8 +5,10 @@
 #include <common.h>
 #include <command.h>
 #include <env.h>
+#include <init.h>
 #include <malloc.h>
 #include <mmc.h>
+#include <nvme.h>
 #include <sysmem.h>
 #include <asm/cache.h>
 #include <dm/device.h>
