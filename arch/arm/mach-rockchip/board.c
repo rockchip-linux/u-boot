@@ -44,6 +44,7 @@
 #include <u-boot/crc.h>
 #include <u-boot/sha256.h>
 #include <u-boot/uuid.h>
+#include <video_rockchip.h>
 #include <asm/cache.h>
 #include <asm/io.h>
 #include <asm/global_data.h>
