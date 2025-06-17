@@ -10,6 +10,7 @@
 #include <malloc.h>
 #include <fdtdec.h>
 #include <fdt_support.h>
+#include <dm.h>
 #include <regmap.h>
 #include <asm/arch-rockchip/cpu.h>
 #include <asm/arch-rockchip/clock.h>
@@ -3319,7 +3320,7 @@ static void rockchip_vop2_of_get_dsp_lut(struct vop2 *vop2, struct display_state
 	if (phandle < 0)
 		return;
 
-	dsp_lut_node = of_find_node_by_phandle(phandle);
+	dsp_lut_node = of_find_node_by_phandle(NULL, phandle);
 	if (!dsp_lut_node)
 		return;
 

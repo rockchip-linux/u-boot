@@ -522,7 +522,7 @@ static int rockchip_panel_probe(struct udevice *dev)
 		ofnode parent = ofnode_get_parent(dev->node_);
 
 		if (ofnode_valid(parent)) {
-			struct dm_spi_slave_plat *plat = dev_get_parent_plat(dev);
+			struct dm_spi_slave_plat *slave = dev_get_parent_plat(dev);
 			struct udevice *spi = dev_get_parent(dev);
 
 			if (spi->seq_ < 0) {
@@ -530,8 +530,8 @@ static int rockchip_panel_probe(struct udevice *dev)
 				return -EINVAL;
 			}
 
-			priv->spi_slave = spi_setup_slave(spi->seq_, plat->cs, plat->max_hz,
-							  plat->mode);
+			priv->spi_slave = spi_setup_slave(spi->seq_, slave->cs[0], slave->max_hz,
+							  slave->mode);
 			if (!priv->spi_slave) {
 				printf("%s: Failed to setup spi slave: %d\n", __func__, ret);
 				return -EINVAL;

@@ -9,6 +9,7 @@
 #include <common.h>
 #include <drm/drm_dp_helper.h>
 #include <drm/drm_dsc.h>
+#include <linux/bug.h>
 
 /**
  * DOC: dsc helpers

@@ -21,6 +21,7 @@
 #include <syscon.h>
 #include <asm/io.h>
 #include <asm/gpio.h>
+#include <linux/bug.h>
 #include <linux/iopoll.h>
 
 #include "rockchip_display.h"
