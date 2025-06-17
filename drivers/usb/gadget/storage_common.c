@@ -309,8 +309,12 @@ static struct fsg_lun *fsg_lun_from_dev(struct device *dev)
 /* Number of buffers we will use.  2 is enough for double-buffering */
 #define FSG_NUM_BUFFERS	2
 
+#if defined(CONFIG_USB_DWC3_GADGET) && defined(ROCKUSB_FSG_BUFLEN)
+#define FSG_BUFLEN	((u32)ROCKUSB_FSG_BUFLEN)
+#else
 /* Default size of buffer length. */
 #define FSG_BUFLEN	((u32)131072)
+#endif
 
 /* Maximal number of LUNs supported in mass storage function */
 #define FSG_MAX_LUNS	8
@@ -531,14 +535,76 @@ static struct usb_descriptor_header *fsg_hs_function[] = {
 	NULL,
 };
 
+static struct usb_endpoint_descriptor
+fsg_ss_bulk_in_desc = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+
+	/* bEndpointAddress copied from fs_bulk_in_desc during fsg_bind() */
+	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize =	cpu_to_le16(1024),
+};
+
+static struct usb_ss_ep_comp_descriptor
+fsg_ss_bulk_in_comp_desc = {
+	.bLength		= sizeof(fsg_ss_bulk_in_comp_desc),
+	.bDescriptorType	= USB_DT_SS_ENDPOINT_COMP,
+	/* .bMaxBurst		= DYNAMIC, */
+};
+
+static struct usb_endpoint_descriptor
+fsg_ss_bulk_out_desc = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+
+	/* bEndpointAddress copied from fs_bulk_out_desc during fsg_bind() */
+	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize =	cpu_to_le16(1024),
+};
+
+static struct usb_ss_ep_comp_descriptor
+fsg_ss_bulk_out_comp_desc = {
+	.bLength		= sizeof(fsg_ss_bulk_out_comp_desc),
+	.bDescriptorType	= USB_DT_SS_ENDPOINT_COMP,
+	/* .bMaxBurst		= DYNAMIC, */
+};
+
 /* Maxpacket and other transfer characteristics vary by speed. */
 static struct usb_endpoint_descriptor *
 fsg_ep_desc(struct usb_gadget *g, struct usb_endpoint_descriptor *fs,
-		struct usb_endpoint_descriptor *hs)
+	    struct usb_endpoint_descriptor *hs,
+	    struct usb_endpoint_descriptor *ss,
+	    struct usb_ss_ep_comp_descriptor *comp_desc,
+	    struct usb_ep *ep)
 {
-	if (gadget_is_dualspeed(g) && g->speed == USB_SPEED_HIGH)
-		return hs;
-	return fs;
+	struct usb_endpoint_descriptor *speed_desc = NULL;
+
+	/* select desired speed */
+	switch (g->speed) {
+	case USB_SPEED_SUPER:
+		if (gadget_is_superspeed(g)) {
+			speed_desc = ss;
+			ep->comp_desc = comp_desc;
+			break;
+		}
+		/* else: Fall trough */
+	case USB_SPEED_HIGH:
+		if (gadget_is_dualspeed(g)) {
+			speed_desc = hs;
+			break;
+		}
+		/* else: fall through */
+	default:
+		speed_desc = fs;
+	}
+
+	/*
+	 * Config the ep maxpacket according to the right descriptors
+	 * for a given endpoint.
+	 */
+	ep->maxpacket = usb_endpoint_maxp(speed_desc) & USB_ENDPOINT_MAXP_MASK;
+
+	return speed_desc;
 }
 
 /* Static strings, in UTF-8 (for simplicity we use only ASCII characters) */

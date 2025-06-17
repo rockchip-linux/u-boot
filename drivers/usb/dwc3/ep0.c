@@ -419,7 +419,7 @@ static int dwc3_ep0_handle_feature(struct dwc3 *dwc,
 				return -EINVAL;
 
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			if (set)
+			if (set && !dwc->dis_u1u2_quirk)
 				reg |= DWC3_DCTL_INITU1ENA;
 			else
 				reg &= ~DWC3_DCTL_INITU1ENA;
@@ -433,7 +433,7 @@ static int dwc3_ep0_handle_feature(struct dwc3 *dwc,
 				return -EINVAL;
 
 			reg = dwc3_readl(dwc->regs, DWC3_DCTL);
-			if (set)
+			if (set && !dwc->dis_u1u2_quirk)
 				reg |= DWC3_DCTL_INITU2ENA;
 			else
 				reg &= ~DWC3_DCTL_INITU2ENA;
@@ -513,6 +513,7 @@ static int dwc3_ep0_set_address(struct dwc3 *dwc, struct usb_ctrlrequest *ctrl)
 		return -EINVAL;
 	}
 
+	dwc->connected = 1;
 	reg = dwc3_readl(dwc->regs, DWC3_DCFG);
 	reg &= ~(DWC3_DCFG_DEVADDR_MASK);
 	reg |= DWC3_DCFG_DEVADDR(addr);

@@ -1764,13 +1764,12 @@ config CMD_RKMTD
 	  like "ums" and "rockusb".
 
 config CMD_ROCKUSB
-	bool "rockusb"
-	depends on USB_FUNCTION_ROCKUSB
+	bool "rockusb - Command to upgrade Rockchip device"
+	depends on USB_GADGET
 	help
-	  Rockusb protocol is widely used by Rockchip SoC based devices. It can
-	  read/write info, image to/from devices. This enable rockusb command
-	  support to communication with rockusb device. for more detail about
-	  this command, please read doc/README.rockusb.
+	  Rockusb command provides a way to upgrade firmware for
+	  Rockchip SoC based devices, its design make use of USB
+	  Bulk-Only Transport based on UMS framework.
 
 config CMD_USB_MASS_STORAGE
 	bool "UMS usb mass storage"

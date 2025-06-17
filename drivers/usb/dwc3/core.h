@@ -884,6 +884,9 @@ struct dwc3 {
 	unsigned		tx_de_emphasis_quirk:1;
 	unsigned		tx_de_emphasis:2;
 	int			index;
+	u64			ts;
+	u8			connected;
+	bool			check_linksts;
 	struct list_head        list;
 };
 

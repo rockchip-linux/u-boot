@@ -795,6 +795,22 @@ static int bos_desc(struct usb_composite_dev *cdev)
 	bos->wTotalLength = cpu_to_le16(USB_DT_BOS_SIZE);
 	bos->bNumDeviceCaps = 0;
 
+	/* For rockusb with bcdUSB (0x0201) */
+	if (CONFIG_IS_ENABLED(USB_FUNCTION_ROCKUSB) &&
+	    cdev->gadget->speed < USB_SPEED_SUPER) {
+		struct usb_dev_cap_header *cap;
+
+		cap = cdev->req->buf + le16_to_cpu(bos->wTotalLength);
+		bos->bNumDeviceCaps++;
+		bos->wTotalLength = cpu_to_le16(bos->wTotalLength +
+						sizeof(*cap));
+		cap->bLength = sizeof(*cap);
+		cap->bDescriptorType = USB_DT_DEVICE_CAPABILITY;
+		cap->bDevCapabilityType = 0;
+
+		return le16_to_cpu(bos->wTotalLength);
+	}
+
 	/*
 	 * A SuperSpeed device shall include the USB2.0 extension descriptor
 	 * and shall support LPM when operating in USB2.0 HS mode.
@@ -1047,11 +1063,22 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 
 			cdev->desc.bMaxPacketSize0 =
 				cdev->gadget->ep0->maxpacket;
-			if (gadget->speed >= USB_SPEED_SUPER) {
-				cdev->desc.bcdUSB = cpu_to_le16(0x0310);
+			if (gadget_is_superspeed(gadget) &&
+			    gadget->speed >= USB_SPEED_SUPER) {
+				/*
+				 * bcdUSB should be 0x0310 for superspeed,
+				 * but we change it to 0x0301 for rockusb.
+				 */
+#ifndef CONFIG_SUPPORT_USBPLUG
+				cdev->desc.bcdUSB = !strncmp(cdev->driver->name, "rkusb_ums_dnl", 13) ?
+						    cpu_to_le16(0x0301) : cpu_to_le16(0x0310);
+#else
+				cdev->desc.bcdUSB = cpu_to_le16(0x0300);
+#endif
 				cdev->desc.bMaxPacketSize0 = 9;
 			} else {
-				cdev->desc.bcdUSB = cpu_to_le16(0x0200);
+				cdev->desc.bcdUSB = !strncmp(cdev->driver->name, "rkusb_ums_dnl", 13) ?
+						    cpu_to_le16(0x0201) : cpu_to_le16(0x0200);
 			}
 			value = min(w_length, (u16) sizeof cdev->desc);
 			memcpy(req->buf, &cdev->desc, value);
@@ -1087,7 +1114,16 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 			 * also issues this request, return for now for
 			 * USB 2.0 connection.
 			 */
-			if (gadget->speed >= USB_SPEED_SUPER) {
+			/* HACK: only for rockusb command.
+			 * Rockchip upgrade tool use bcdUSB (0x0201) field
+			 * distinguishing maskrom or loader device at present.
+			 * Unfortunately, it conflict with Windows 8 and beyond
+			 * which request BOS descriptor in this case that bcdUSB
+			 * is set to 0x0201.
+			 */
+			if ((gadget_is_superspeed(gadget) &&
+			     gadget->speed >= USB_SPEED_SUPER) ||
+			    !strncmp(cdev->driver->name, "rkusb_ums_dnl", 13)) {
 				value = bos_desc(cdev);
 				value = min(w_length, (u16)value);
 			}
@@ -1254,10 +1290,14 @@ unknown:
 		 */
 		switch (ctrl->bRequestType & USB_RECIP_MASK) {
 		case USB_RECIP_INTERFACE:
+			if (!cdev->config)
+				break;
 			f = cdev->config->interface[intf];
 			break;
 
 		case USB_RECIP_ENDPOINT:
+			if (!cdev->config)
+				break;
 			endp = ((w_index & 0x80) >> 3) | (w_index & 0x0f);
 			list_for_each_entry(f, &cdev->config->functions, list) {
 				if (test_bit(endp, f->endpoints))
@@ -1280,10 +1320,12 @@ unknown:
 		 * special non-standard request.
 		 */
 		case USB_RECIP_DEVICE:
-			debug("cdev->config->next_interface_id: %d intf: %d\n",
-			       cdev->config->next_interface_id, intf);
-			if (cdev->config->next_interface_id == 1)
-				f = cdev->config->interface[intf];
+			if (cdev->config) {
+				debug("cdev->config->next_interface_id: %d intf: %d\n",
+				      cdev->config->next_interface_id, intf);
+				if (cdev->config->next_interface_id == 1)
+					f = cdev->config->interface[intf];
+			}
 			break;
 		}
 
