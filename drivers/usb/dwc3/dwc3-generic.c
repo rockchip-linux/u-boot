@@ -516,14 +516,26 @@ static int dwc3_glue_bind_common(struct udevice *parent, ofnode node)
 	if (!dr_mode)
 		dr_mode = usb_get_dr_mode(node);
 
-	if (CONFIG_IS_ENABLED(DM_USB_GADGET) &&
-	    (dr_mode == USB_DR_MODE_PERIPHERAL || dr_mode == USB_DR_MODE_OTG)) {
+	switch (dr_mode) {
+	case USB_DR_MODE_OTG:
+#if defined(CONFIG_ARCH_ROCKCHIP) && defined(CONFIG_USB_XHCI_HCD)
+		debug("%s: dr_mode: force to HOST\n", __func__);
+		driver = "dwc3-generic-host";
+		break;
+#endif
+	case USB_DR_MODE_PERIPHERAL:
+#if CONFIG_IS_ENABLED(DM_USB_GADGET)
 		debug("%s: dr_mode: OTG or Peripheral\n", __func__);
 		driver = "dwc3-generic-peripheral";
-	} else if (CONFIG_IS_ENABLED(USB_HOST) && dr_mode == USB_DR_MODE_HOST) {
+#endif
+		break;
+	case USB_DR_MODE_HOST:
+#if CONFIG_IS_ENABLED(USB_HOST) && (defined(CONFIG_SPL_USB_HOST) || !defined(CONFIG_SPL_BUILD))
 		debug("%s: dr_mode: HOST\n", __func__);
 		driver = "dwc3-generic-host";
-	} else {
+#endif
+		break;
+	default:
 		debug("%s: unsupported dr_mode %d\n", __func__, dr_mode);
 		return -ENODEV;
 	}
@@ -699,6 +711,7 @@ static const struct udevice_id dwc3_glue_ids[] = {
 	{ .compatible = "rockchip,rk3328-dwc3", .data = (ulong)&rk_ops },
 	{ .compatible = "rockchip,rk3399-dwc3" },
 	{ .compatible = "rockchip,rk3568-dwc3", .data = (ulong)&rk_ops },
+	{ .compatible = "rockchip,rk3576-dwc3", .data = (ulong)&rk_ops },
 	{ .compatible = "rockchip,rk3588-dwc3", .data = (ulong)&rk_ops },
 	{ .compatible = "qcom,dwc3", .data = (ulong)&qcom_ops },
 	{ .compatible = "fsl,imx8mp-dwc3", .data = (ulong)&imx8mp_ops },

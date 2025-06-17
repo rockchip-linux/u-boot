@@ -33,6 +33,7 @@ struct dwc3_device {
 	unsigned rx_detect_poll_quirk;
 	unsigned dis_u3_susphy_quirk;
 	unsigned dis_u2_susphy_quirk;
+	unsigned dis_u1u2_quirk;
 	unsigned dis_del_phy_power_chg_quirk;
 	unsigned dis_tx_ipgap_linecheck_quirk;
 	unsigned dis_enblslpm_quirk;

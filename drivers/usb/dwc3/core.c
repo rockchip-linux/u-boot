@@ -495,7 +495,12 @@ static void dwc3_phy_setup(struct dwc3 *dwc)
 	if (dwc->tx_de_emphasis_quirk)
 		reg |= DWC3_GUSB3PIPECTL_TX_DEEPH(dwc->tx_de_emphasis);
 
-	if (dwc->dis_u3_susphy_quirk)
+	/*
+	 * For some Rokchip SoCs like RK3588, if the USB3 PHY is suspended
+	 * in U-Boot would cause the PHY initialize abortively in Linux Kernel,
+	 * so disable the DWC3_GUSB3PIPECTL_SUSPHY feature here to fix it.
+	 */
+	if (dwc->dis_u3_susphy_quirk || CONFIG_IS_ENABLED(ARCH_ROCKCHIP))
 		reg &= ~DWC3_GUSB3PIPECTL_SUSPHY;
 
 	if (dwc->dis_del_phy_power_chg_quirk)
@@ -518,7 +523,7 @@ static void dwc3_phy_setup(struct dwc3 *dwc)
 	if (dwc->revision > DWC3_REVISION_194A)
 		reg |= DWC3_GUSB2PHYCFG_SUSPHY;
 
-	if (dwc->dis_u2_susphy_quirk)
+	if (dwc->dis_u2_susphy_quirk || CONFIG_IS_ENABLED(ARCH_ROCKCHIP))
 		reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
 
 	if (dwc->dis_enblslpm_quirk)
@@ -629,6 +634,16 @@ static int dwc3_core_init(struct dwc3 *dwc)
 	ret = dwc3_core_soft_reset(dwc);
 	if (ret)
 		goto err0;
+
+	if (dwc->revision >= DWC3_REVISION_250A) {
+		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
+
+		if (dwc->maximum_speed == USB_SPEED_HIGH ||
+		    dwc->maximum_speed == USB_SPEED_FULL)
+			reg |= DWC3_GUCTL1_DEV_FORCE_20_CLK_FOR_30_CLK;
+
+		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
+	}
 
 	reg = dwc3_readl(dwc->regs, DWC3_GCTL);
 	reg &= ~DWC3_GCTL_SCALEDOWN_MASK;
@@ -883,6 +898,7 @@ int dwc3_uboot_init(struct dwc3_device *dwc3_dev)
 	dwc->rx_detect_poll_quirk = dwc3_dev->rx_detect_poll_quirk;
 	dwc->dis_u3_susphy_quirk = dwc3_dev->dis_u3_susphy_quirk;
 	dwc->dis_u2_susphy_quirk = dwc3_dev->dis_u2_susphy_quirk;
+	dwc->dis_u1u2_quirk = dwc3_dev->dis_u2_susphy_quirk;
 	dwc->dis_del_phy_power_chg_quirk = dwc3_dev->dis_del_phy_power_chg_quirk;
 	dwc->dis_tx_ipgap_linecheck_quirk = dwc3_dev->dis_tx_ipgap_linecheck_quirk;
 	dwc->dis_enblslpm_quirk = dwc3_dev->dis_enblslpm_quirk;

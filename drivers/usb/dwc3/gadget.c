@@ -769,6 +769,16 @@ static void dwc3_prepare_one_trb(struct dwc3_ep *dep,
 			usb_endpoint_xfer_isoc(dep->endpoint.desc))
 		dep->free_slot++;
 
+	/*
+	 * According to the chapter 8.2.3.3 of DWC3 Databook,
+	 * for OUT endpoints, the total size of a Buffer Descriptor must be a
+	 * multiple of MaxPacketSize. So amend the TRB size to apply this rule.
+	 */
+	if (usb_endpoint_dir_out(dep->endpoint.desc) &&
+	    (length % dep->endpoint.maxpacket))
+		length = dep->endpoint.maxpacket *
+			 ((length - 1) / dep->endpoint.maxpacket + 1);
+
 	trb->size = DWC3_TRB_SIZE_LENGTH(length);
 	trb->bpl = lower_32_bits(dma);
 	trb->bph = upper_32_bits(dma);
@@ -783,6 +793,9 @@ static void dwc3_prepare_one_trb(struct dwc3_ep *dep,
 			trb->ctrl = DWC3_TRBCTL_ISOCHRONOUS_FIRST;
 		else
 			trb->ctrl = DWC3_TRBCTL_ISOCHRONOUS;
+
+		/* always enable Interrupt on Missed ISOC */
+		trb->ctrl |= DWC3_TRB_CTRL_ISP_IMI;
 		break;
 
 	case USB_ENDPOINT_XFER_BULK:
@@ -797,15 +810,14 @@ static void dwc3_prepare_one_trb(struct dwc3_ep *dep,
 		BUG();
 	}
 
-	if (!req->request.no_interrupt && !chain)
-		trb->ctrl |= DWC3_TRB_CTRL_IOC;
+	/* always enable Continue on Short Packet */
+	trb->ctrl |= DWC3_TRB_CTRL_CSP;
 
-	if (usb_endpoint_xfer_isoc(dep->endpoint.desc)) {
-		trb->ctrl |= DWC3_TRB_CTRL_ISP_IMI;
-		trb->ctrl |= DWC3_TRB_CTRL_CSP;
-	} else if (last) {
+	if (!req->request.no_interrupt && !chain)
+		trb->ctrl |= DWC3_TRB_CTRL_IOC | DWC3_TRB_CTRL_ISP_IMI;
+
+	if (last)
 		trb->ctrl |= DWC3_TRB_CTRL_LST;
-	}
 
 	if (chain)
 		trb->ctrl |= DWC3_TRB_CTRL_CHN;
@@ -1700,7 +1712,10 @@ static int dwc3_gadget_init_hw_endpoints(struct dwc3 *dwc,
 		} else {
 			int		ret;
 
-			usb_ep_set_maxpacket_limit(&dep->endpoint, 512);
+			if (dwc->maximum_speed < USB_SPEED_SUPER)
+				usb_ep_set_maxpacket_limit(&dep->endpoint, 512);
+			else
+				usb_ep_set_maxpacket_limit(&dep->endpoint, 1024);
 			dep->endpoint.max_streams = 15;
 			dep->endpoint.ops = &dwc3_gadget_ep_ops;
 			list_add_tail(&dep->endpoint.ep_list,
@@ -1775,6 +1790,7 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	unsigned int		count;
 	unsigned int		s_pkt = 0;
 	unsigned int		trb_status;
+	unsigned int		length;
 
 	if ((trb->ctrl & DWC3_TRB_CTRL_HWO) && status != -ESHUTDOWN)
 		/*
@@ -1831,7 +1847,14 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	 * should receive and we simply bounce the request back to the
 	 * gadget driver for further processing.
 	 */
-	req->request.actual += req->request.length - count;
+	if (usb_endpoint_dir_out(dep->endpoint.desc) &&
+	    (req->request.length % dep->endpoint.maxpacket)) {
+		length = dep->endpoint.maxpacket *
+			 ((req->request.length - 1) / dep->endpoint.maxpacket + 1);
+		req->request.actual += length - count;
+	} else {
+		req->request.actual += req->request.length - count;
+	}
 	if (s_pkt)
 		return 1;
 	if ((event->status & DEPEVT_STATUS_LST) &&
@@ -1893,12 +1916,17 @@ static void dwc3_endpoint_transfer_complete(struct dwc3 *dwc,
 {
 	unsigned		status = 0;
 	int			clean_busy;
+	u32			is_xfer_complete;
+	int			ret;
+
+	is_xfer_complete = (event->endpoint_event == DWC3_DEPEVT_XFERCOMPLETE);
 
 	if (event->status & DEPEVT_STATUS_BUSERR)
 		status = -ECONNRESET;
 
 	clean_busy = dwc3_cleanup_done_reqs(dwc, dep, event, status);
-	if (clean_busy)
+	if (clean_busy && (is_xfer_complete ||
+			   usb_endpoint_xfer_isoc(dep->endpoint.desc)))
 		dep->flags &= ~DWC3_EP_BUSY;
 
 	/*
@@ -1924,6 +1952,12 @@ static void dwc3_endpoint_transfer_complete(struct dwc3 *dwc,
 		dwc3_writel(dwc->regs, DWC3_DCTL, reg);
 
 		dwc->u1u2 = 0;
+	}
+
+	if (!usb_endpoint_xfer_isoc(dep->endpoint.desc)) {
+		ret = __dwc3_gadget_kick_transfer(dep, 0, is_xfer_complete);
+		if (!ret || ret == -EBUSY)
+			return;
 	}
 }
 
@@ -2551,8 +2585,6 @@ static irqreturn_t dwc3_process_event_buf(struct dwc3 *dwc, u32 buf)
 	while (left > 0) {
 		union dwc3_event event;
 
-		dwc3_invalidate_cache((uintptr_t)evt->buf, evt->length);
-
 		event.raw = *(u32 *) (evt->buf + evt->lpos);
 
 		dwc3_process_event_entry(dwc, &event);
@@ -2608,6 +2640,7 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3 *dwc, u32 buf)
 	u32 reg;
 
 	evt = dwc->ev_buffs[buf];
+	dwc3_invalidate_cache((uintptr_t)evt->buf, evt->length);
 
 	count = dwc3_readl(dwc->regs, DWC3_GEVNTCOUNT(buf));
 	count &= DWC3_GEVNTCOUNT_MASK;
