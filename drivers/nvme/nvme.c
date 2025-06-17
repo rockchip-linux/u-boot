@@ -4,6 +4,7 @@
  * Copyright (C) 2017 Bin Meng <bmeng.cn@gmail.com>
  */
 
+#include <common.h>
 #include <blk.h>
 #include <bootdev.h>
 #include <cpu_func.h>
@@ -15,6 +16,8 @@
 #include <time.h>
 #include <dm/device-internal.h>
 #include <linux/compat.h>
+#include <bouncebuf.h>
+
 #include "nvme.h"
 
 #define NVME_Q_DEPTH		2
@@ -694,9 +697,7 @@ int nvme_scan_namespace(void)
 		if (ret) {
 			log_err("Failed to probe '%s': err=%dE\n", dev->name,
 				ret);
-			/* Bail if we ran out of memory, else keep trying */
-			if (ret != -EBUSY)
-				return ret;
+			return ret;
 		}
 	}
 
@@ -752,14 +753,25 @@ static ulong nvme_blk_rw(struct udevice *udev, lbaint_t blknr,
 	u64 prp2;
 	u64 total_len = blkcnt << desc->log2blksz;
 	u64 temp_len = total_len;
-	uintptr_t temp_buffer = (uintptr_t)buffer;
+	uintptr_t temp_buffer;
 
 	u64 slba = blknr;
 	u16 lbas = 1 << (dev->max_transfer_shift - ns->lba_shift);
 	u64 total_lbas = blkcnt;
 
-	flush_dcache_range((unsigned long)buffer,
-			   (unsigned long)buffer + total_len);
+	struct bounce_buffer bb;
+	unsigned int bb_flags;
+	int ret;
+
+	if (read)
+		bb_flags = GEN_BB_WRITE;
+	else
+		bb_flags = GEN_BB_READ;
+
+	ret = bounce_buffer_start(&bb, buffer, total_len, bb_flags);
+	if (ret)
+		return -ENOMEM;
+	temp_buffer = (unsigned long)bb.bounce_buffer;
 
 	c.rw.opcode = read ? nvme_cmd_read : nvme_cmd_write;
 	c.rw.flags = 0;
@@ -770,6 +782,10 @@ static ulong nvme_blk_rw(struct udevice *udev, lbaint_t blknr,
 	c.rw.apptag = 0;
 	c.rw.appmask = 0;
 	c.rw.metadata = 0;
+
+	/* Enable FUA for data integrity if vwc is enabled */
+	if (dev->vwc)
+		c.rw.control |= NVME_RW_FUA;
 
 	while (total_lbas) {
 		if (total_lbas < lbas) {
@@ -795,9 +811,7 @@ static ulong nvme_blk_rw(struct udevice *udev, lbaint_t blknr,
 		temp_buffer += lbas << ns->lba_shift;
 	}
 
-	if (read)
-		invalidate_dcache_range((unsigned long)buffer,
-					(unsigned long)buffer + total_len);
+	bounce_buffer_stop(&bb);
 
 	return (total_len - temp_len) >> desc->log2blksz;
 }
@@ -836,8 +850,8 @@ int nvme_init(struct udevice *udev)
 	ndev->udev = udev;
 	INIT_LIST_HEAD(&ndev->namespaces);
 	if (readl(&ndev->bar->csts) == -1) {
-		ret = -EBUSY;
-		printf("Error: %s: Controller not ready!\n", udev->name);
+		ret = -ENODEV;
+		printf("Error: %s: Out of memory!\n", udev->name);
 		goto free_nvme;
 	}
 
@@ -907,7 +921,7 @@ int nvme_init(struct udevice *udev)
 
 		/* The real blksz and size will be set by nvme_blk_probe() */
 		ret = blk_create_devicef(udev, "nvme-blk", name, UCLASS_NVME,
-					 -1, DEFAULT_BLKSZ, 0, &ns_udev);
+					 -1, 512, 0, &ns_udev);
 		if (ret)
 			goto free_id;
 
