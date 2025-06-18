@@ -7073,7 +7073,7 @@ u8 *drm_do_get_edid(struct ddc_adapter *adap)
 	/* if there's no extensions, we're done */
 	valid_extensions = edid[0x7e];
 	if (valid_extensions == 0)
-		return 0;
+		return edid;
 
 	new = realloc(edid, (valid_extensions + 1) * HDMI_EDID_BLOCK_SIZE);
 	if (!new)
