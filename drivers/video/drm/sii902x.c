@@ -676,7 +676,7 @@ static int sii902x_probe(struct udevice *dev)
 		udelay(2000);
 	}
 
-	val = ofnode_read_u32_default(dev->node, "bus-format", -1);
+	val = dev_read_s32_default(dev, "bus-format", -1);
 	if (val < 0) {
 		sii902x->bus_format = MEDIA_BUS_FMT_RGB888_1X24;
 	} else {
@@ -759,6 +759,6 @@ U_BOOT_DRIVER(sii902x) = {
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = sii902x_of_match,
 	.probe = sii902x_probe,
-	.priv_auto_alloc_size = sizeof(struct sii902x),
+	.priv_auto = sizeof(struct sii902x),
 	.ops = &sii902x_ops,
 };
