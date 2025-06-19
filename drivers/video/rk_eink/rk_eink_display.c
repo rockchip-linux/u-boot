@@ -10,14 +10,20 @@
 #include <errno.h>
 #include <mapmem.h>
 #include <stdlib.h>
-#include <asm/arch/vendor.h>
+#include <asm/arch-rockchip/common.h>
+#include <asm/arch-rockchip/vendor.h>
+#include <asm/cache.h>
+#include <cpu_func.h>
+#include <dm/device_compat.h>
 #include <dm/device-internal.h>
 #include <dm/of_access.h>
 #include <dm/uclass.h>
 #include <dm/uclass-id.h>
-#include <boot_rkimg.h>
+#include <env.h>
+#include <linux/compat.h>
 #include <rk_eink.h>
 #include <backlight.h>
+#include <part.h>
 #include <power/regulator.h>
 #include <thermal.h>
 #include "rk_ebc.h"
@@ -137,11 +143,11 @@ static int read_vcom_from_vendor(void)
 static int read_waveform(struct udevice *dev)
 {
 	int cnt, start, ret;
-	disk_partition_t part;
+	struct disk_partition part;
 	struct blk_desc *dev_desc;
-	struct ebc_panel *plat = dev_get_platdata(dev);
+	struct ebc_panel *plat = dev_get_plat(dev);
 
-	dev_desc = rockchip_get_bootdev();
+	dev_desc = plat_bootdev();
 	if (!dev_desc) {
 		printf("%s: Could not find device\n", __func__);
 		return -EIO;
@@ -171,7 +177,7 @@ static int read_waveform(struct udevice *dev)
 
 static u32 aligned_image_size_4k(struct udevice *dev)
 {
-	struct ebc_panel *plat = dev_get_platdata(dev);
+	struct ebc_panel *plat = dev_get_plat(dev);
 	u32 w = plat->width;
 	u32 h = plat->height;
 
@@ -203,7 +209,7 @@ static u32 aligned_image_size_4k(struct udevice *dev)
 static int get_addr_by_type(struct udevice *dev, u32 logo_type)
 {
 	u32 offset, indx, img_size;
-	struct ebc_panel *plat = dev_get_platdata(dev);
+	struct ebc_panel *plat = dev_get_plat(dev);
 
 	if (plat->disp_pbuf_size == 0 || !plat->disp_pbuf) {
 		printf("invalid display buffer, please check dts\n");
@@ -243,7 +249,7 @@ static int get_addr_by_type(struct udevice *dev, u32 logo_type)
 }
 
 static int read_header(struct blk_desc *dev_desc,
-		       disk_partition_t *part,
+		       struct disk_partition *part,
 		       struct logo_info *header)
 {
 	int i;
@@ -274,7 +280,7 @@ static int read_header(struct blk_desc *dev_desc,
 }
 
 static int read_grayscale(struct blk_desc *dev_desc,
-			  disk_partition_t *part, u32 offset,
+			  struct disk_partition *part, u32 offset,
 			  u32 size, void *buf)
 {
 	u32 blk_start, blk_offset, blk_count;
@@ -358,11 +364,11 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 					   u32 *loaded_logo)
 {
 	int ret, i;
-	disk_partition_t part;
+	struct disk_partition part;
 	struct blk_desc *dev_desc;
 	struct logo_info *hdr = &eink_logo_info;
 	struct logo_part_header *part_hdr = &hdr->part_hdr;
-	struct ebc_panel *panel = dev_get_platdata(dev);
+	struct ebc_panel *panel = dev_get_plat(dev);
 	u32 logo = needed_logo & (~(*loaded_logo));
 
 	if (!logo) {
@@ -370,7 +376,7 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 		       needed_logo);
 		return 0;
 	}
-	dev_desc = rockchip_get_bootdev();
+	dev_desc = plat_bootdev();
 	if (!dev_desc) {
 		printf("%s: Could not find device\n", __func__);
 		return -EIO;
@@ -472,7 +478,7 @@ static int ebc_power_set(struct udevice *dev, int is_on)
 {
 	int ret;
 	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
-	struct ebc_panel *panel = dev_get_platdata(dev);
+	struct ebc_panel *panel = dev_get_plat(dev);
 	struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
 	struct rk_ebc_tcon_ops *ebc_tcon_ops = ebc_tcon_get_ops(ebc_tcon_dev);
 	struct udevice *ebc_pwr_dev = priv->ebc_pwr_dev;
@@ -520,7 +526,7 @@ static int eink_display(struct udevice *dev, u32 pre_img_buf,
 	int temperature;
 	u32 frame_num;
 	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
-	struct ebc_panel *plat = dev_get_platdata(dev);
+	struct ebc_panel *plat = dev_get_plat(dev);
 	struct udevice *ebc_pwr_dev = priv->ebc_pwr_dev;
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
@@ -625,7 +631,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 		return 0;
 	}
 
-	plat = dev_get_platdata(dev);
+	plat = dev_get_plat(dev);
 	priv = dev_get_priv(dev);
 
 	/*
@@ -763,7 +769,7 @@ int rockchip_eink_show_charge_logo(int logo_type)
 static int rockchip_eink_display_probe(struct udevice *dev)
 {
 	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
-	struct dm_regulator_uclass_platdata *uc_pdata;
+	struct dm_regulator_uclass_plat *uc_pdata;
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *child, *pmic_dev;
 	int ret, vcom, size, i, uclass_id;
@@ -813,7 +819,7 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 				}
 
 				if (uclass_id == UCLASS_REGULATOR) {
-					uc_pdata = dev_get_uclass_platdata(child);
+					uc_pdata = dev_get_uclass_plat(child);
 					if (!strcmp(uc_pdata->name, "vcom"))
 						priv->regulator_dev = child;
 				} else if (uclass_id == UCLASS_THERMAL) {
@@ -875,7 +881,7 @@ static int rockchip_eink_display_ofdata_to_platdata(struct udevice *dev)
 	fdt_addr_t tmp_addr;
 	struct device_node *disp_mem;
 	struct device_node *waveform_mem;
-	struct ebc_panel *plat = dev_get_platdata(dev);
+	struct ebc_panel *plat = dev_get_plat(dev);
 	void * data;
 	int len;
 
@@ -951,10 +957,10 @@ U_BOOT_DRIVER(rk_eink_display) = {
 	.name = "rockchip_eink_display",
 	.id = UCLASS_EINK_DISPLAY,
 	.of_match = rockchip_eink_display_ids,
-	.ofdata_to_platdata = rockchip_eink_display_ofdata_to_platdata,
+	.of_to_plat = rockchip_eink_display_ofdata_to_platdata,
 	.probe = rockchip_eink_display_probe,
-	.priv_auto_alloc_size = sizeof(struct rockchip_eink_display_priv),
-	.platdata_auto_alloc_size = sizeof(struct ebc_panel),
+	.priv_auto = sizeof(struct rockchip_eink_display_priv),
+	.plat_auto = sizeof(struct ebc_panel),
 };
 
 UCLASS_DRIVER(rk_eink) = {
