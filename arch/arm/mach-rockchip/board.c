@@ -64,6 +64,7 @@
 #include <linux/input.h>
 #include <power/charge_display.h>
 #include <power/regulator.h>
+#include <rk_eink.h>
 #include <tee/optee.h>
 
 DECLARE_GLOBAL_DATA_PTR;
