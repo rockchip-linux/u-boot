@@ -14,6 +14,7 @@
 #include <dm/of.h>
 #include <dm/of_access.h>
 #include <dm/uclass-internal.h>
+#include <dt-bindings/phy/phy.h>
 #include <generic-phy.h>
 #include <generic-phy-dp.h>
 #include <linux/bitfield.h>
@@ -837,6 +838,32 @@ static int udphy_parse_lane_mux_data(struct rockchip_udphy *udphy, struct udevic
 	return 0;
 }
 
+static int udphy_parse_max_dp_link_rate(struct rockchip_udphy *udphy,
+					struct udevice *dev)
+{
+	u32 max_link_rate;
+
+	if (udphy->max_link_rate)
+		return 0;
+
+	max_link_rate = dev_read_u32_default(dev, "max-link-rate", 8100);
+	switch (max_link_rate) {
+	case 1620:
+	case 2700:
+	case 5400:
+	case 8100:
+		break;
+	default:
+		dev_warn(dev, "invalid max-link-rate %d, using 8100\n", max_link_rate);
+		max_link_rate = 8100;
+		break;
+	}
+
+	udphy->max_link_rate = max_link_rate;
+
+	return 0;
+}
+
 static int udphy_parse_dt(struct rockchip_udphy *udphy, struct udevice *dev)
 {
 	enum usb_device_speed maximum_speed;
@@ -890,6 +917,8 @@ static int udphy_parse_dt(struct rockchip_udphy *udphy, struct udevice *dev)
 		maximum_speed = usb_get_maximum_speed(dev_ofnode(dev));
 		udphy->hs = maximum_speed <= USB_SPEED_HIGH ? true : false;
 	}
+
+	udphy_parse_max_dp_link_rate(udphy, dev);
 
 	ret = udphy_clk_init(udphy, dev);
 	if (ret)
@@ -962,15 +991,9 @@ static int udphy_power_off(struct rockchip_udphy *udphy, u8 mode)
 	return 0;
 }
 
-static int rockchip_dpphy_power_on(struct phy *phy)
+static int _rockchip_dpphy_power_on(struct rockchip_udphy *udphy, int dp_lanes)
 {
-	struct udevice *parent = phy->dev->parent;
-	struct rockchip_udphy *udphy = dev_get_priv(parent);
-	int ret, dp_lanes;
-
-	dp_lanes = udphy_dplane_get(udphy);
-	phy->attrs.bus_width = dp_lanes;
-	phy->attrs.max_link_rate = udphy->max_link_rate;
+	int ret;
 
 	ret = udphy_power_on(udphy, UDPHY_MODE_DP);
 	if (ret)
@@ -983,10 +1006,8 @@ static int rockchip_dpphy_power_on(struct phy *phy)
 	return udphy_dplane_select(udphy);
 }
 
-static int rockchip_dpphy_power_off(struct phy *phy)
+static int _rockchip_dpphy_power_off(struct rockchip_udphy *udphy)
 {
-	struct udevice *parent = phy->dev->parent;
-	struct rockchip_udphy *udphy = dev_get_priv(parent);
 	int ret;
 
 	ret = udphy_dplane_enable(udphy, 0);
@@ -1144,11 +1165,9 @@ static int dp_phy_set_voltages(struct rockchip_udphy *udphy,
 	return 0;
 }
 
-static int rockchip_dpphy_configure(struct phy *phy, void *param)
+static int _rockchip_dpphy_configure(struct rockchip_udphy *udphy,
+				     struct phy_configure_opts_dp *opts)
 {
-	struct udevice *parent = phy->dev->parent;
-	struct rockchip_udphy *udphy = dev_get_priv(parent);
-	struct phy_configure_opts_dp *opts = (struct phy_configure_opts_dp *)param;
 	int ret;
 
 	ret = rockchip_dpphy_verify_config(udphy, opts);
@@ -1176,17 +1195,44 @@ static int rockchip_dpphy_configure(struct phy *phy, void *param)
 	return 0;
 }
 
+static int rockchip_dpphy_power_on(struct phy *phy)
+{
+	struct udevice *parent = phy->dev->parent;
+	struct rockchip_udphy *udphy = dev_get_priv(parent);
+	int dp_lanes;
+
+	dp_lanes = udphy_dplane_get(udphy);
+	phy->attrs.bus_width = dp_lanes;
+	phy->attrs.max_link_rate = udphy->max_link_rate;
+
+	return _rockchip_dpphy_power_on(udphy, dp_lanes);
+}
+
+static int rockchip_dpphy_power_off(struct phy *phy)
+{
+	struct udevice *parent = phy->dev->parent;
+	struct rockchip_udphy *udphy = dev_get_priv(parent);
+
+	return _rockchip_dpphy_power_off(udphy);
+}
+
+static int rockchip_dpphy_configure(struct phy *phy, void *param)
+{
+	struct udevice *parent = phy->dev->parent;
+	struct rockchip_udphy *udphy = dev_get_priv(parent);
+	struct phy_configure_opts_dp *opts = (struct phy_configure_opts_dp *)param;
+
+	return _rockchip_dpphy_configure(udphy, opts);
+}
+
 static const struct phy_ops rockchip_dpphy_ops = {
 	.power_on	= rockchip_dpphy_power_on,
 	.power_off	= rockchip_dpphy_power_off,
 	.configure	= rockchip_dpphy_configure,
 };
 
-static int rockchip_u3phy_init(struct phy *phy)
+static int _rockchip_u3phy_init(struct rockchip_udphy *udphy)
 {
-	struct udevice *parent = phy->dev->parent;
-	struct rockchip_udphy *udphy = dev_get_priv(parent);
-
 	/* DP only or high-speed, disable U3 port */
 	if (!(udphy->mode & UDPHY_MODE_USB) || udphy->hs) {
 		udphy_u3_port_disable(udphy, true);
@@ -1196,11 +1242,8 @@ static int rockchip_u3phy_init(struct phy *phy)
 	return udphy_power_on(udphy, UDPHY_MODE_USB);
 }
 
-static int rockchip_u3phy_exit(struct phy *phy)
+static int _rockchip_u3phy_exit(struct rockchip_udphy *udphy)
 {
-	struct udevice *parent = phy->dev->parent;
-	struct rockchip_udphy *udphy = dev_get_priv(parent);
-
 	/* DP only or high-speed */
 	if (!(udphy->mode & UDPHY_MODE_USB) || udphy->hs)
 		return 0;
@@ -1208,9 +1251,104 @@ static int rockchip_u3phy_exit(struct phy *phy)
 	return udphy_power_off(udphy, UDPHY_MODE_USB);
 }
 
+static int rockchip_u3phy_init(struct phy *phy)
+{
+	struct udevice *parent = phy->dev->parent;
+	struct rockchip_udphy *udphy = dev_get_priv(parent);
+
+	return _rockchip_u3phy_init(udphy);
+}
+
+static int rockchip_u3phy_exit(struct phy *phy)
+{
+	struct udevice *parent = phy->dev->parent;
+	struct rockchip_udphy *udphy = dev_get_priv(parent);
+
+	return _rockchip_u3phy_exit(udphy);
+}
+
 static const struct phy_ops rockchip_u3phy_ops = {
 	.init		= rockchip_u3phy_init,
 	.exit		= rockchip_u3phy_exit,
+};
+
+static int rockchip_udphy_of_xlate(struct phy *phy,
+				   struct ofnode_phandle_args *args)
+{
+	if (args->args_count == 0)
+		return -EINVAL;
+
+	if (args->args[0] != PHY_TYPE_USB3 && args->args[0] != PHY_TYPE_DP)
+		return -EINVAL;
+
+	phy->attrs.mode = args->args[0];
+
+	return 0;
+}
+
+static int rockchip_udphy_init(struct phy *phy)
+{
+	struct rockchip_udphy *udphy = dev_get_priv(phy->dev);
+
+	if (phy->attrs.mode != PHY_TYPE_USB3)
+		return 0;
+
+	return _rockchip_u3phy_init(udphy);
+}
+
+static int rockchip_udphy_exit(struct phy *phy)
+{
+	struct rockchip_udphy *udphy = dev_get_priv(phy->dev);
+
+	if (phy->attrs.mode != PHY_TYPE_USB3)
+		return 0;
+
+	return _rockchip_u3phy_exit(udphy);
+}
+
+static int rockchip_udphy_power_on(struct phy *phy)
+{
+	struct rockchip_udphy *udphy = dev_get_priv(phy->dev);
+	int dp_lanes;
+
+	if (phy->attrs.mode != PHY_TYPE_DP)
+		return 0;
+
+	dp_lanes = udphy_dplane_get(udphy);
+	phy->attrs.bus_width = dp_lanes;
+	phy->attrs.max_link_rate = udphy->max_link_rate;
+
+	return _rockchip_dpphy_power_on(udphy, dp_lanes);
+}
+
+static int rockchip_udphy_power_off(struct phy *phy)
+{
+	struct rockchip_udphy *udphy = dev_get_priv(phy->dev);
+
+	if (phy->attrs.mode != PHY_TYPE_DP)
+		return 0;
+
+	return _rockchip_dpphy_power_off(udphy);
+}
+
+static int rockchip_udphy_configure(struct phy *phy, void *param)
+{
+	struct rockchip_udphy *udphy = dev_get_priv(phy->dev);
+	struct phy_configure_opts_dp *opts = (struct phy_configure_opts_dp *)param;
+
+	if (phy->attrs.mode != PHY_TYPE_DP)
+		return 0;
+
+	return _rockchip_dpphy_configure(udphy, opts);
+}
+
+static const struct phy_ops rockchip_udphy_ops = {
+	.of_xlate	= rockchip_udphy_of_xlate,
+	.init		= rockchip_udphy_init,
+	.exit		= rockchip_udphy_exit,
+	.power_on	= rockchip_udphy_power_on,
+	.power_off	= rockchip_udphy_power_off,
+	.configure	= rockchip_udphy_configure,
 };
 
 int rockchip_u3phy_uboot_init(fdt_addr_t phy_addr)
@@ -1293,6 +1431,11 @@ static int rockchip_udphy_probe(struct udevice *dev)
 		return -EINVAL;
 	}
 	udphy->cfgs = phy_cfgs;
+	/*
+	 * Set driver data as NULL to avoid conflict when rockchip
+	 * display try to get phy.
+	 */
+	dev->driver_data = (ulong)NULL;
 
 	ret = regmap_init_mem(dev_ofnode(dev), &udphy->pma_regmap);
 	if (ret)
@@ -1349,24 +1492,8 @@ static int rockchip_udphy_bind(struct udevice *parent)
 static int rockchip_dpphy_probe(struct udevice *dev)
 {
 	struct rockchip_udphy *udphy = dev_get_priv(dev->parent);
-	u32 max_link_rate;
 
-	max_link_rate = dev_read_u32_default(dev, "max-link-rate", 8100);
-	switch (max_link_rate) {
-	case 1620:
-	case 2700:
-	case 5400:
-	case 8100:
-		break;
-	default:
-		dev_warn(dev, "invalid max-link-rate %d, using 8100\n", max_link_rate);
-		max_link_rate = 8100;
-		break;
-	}
-
-	udphy->max_link_rate = max_link_rate;
-
-	return 0;
+	return udphy_parse_max_dp_link_rate(udphy, dev);
 }
 
 static const char * const udphy_rst_list[] = {
@@ -1473,6 +1600,7 @@ U_BOOT_DRIVER(rockchip_udphy) = {
 	.name		= "rockchip_udphy",
 	.id		= UCLASS_PHY,
 	.of_match	= rockchip_udphy_dt_match,
+	.ops		= &rockchip_udphy_ops,
 	.probe		= rockchip_udphy_probe,
 	.bind		= rockchip_udphy_bind,
 	.priv_auto	= sizeof(struct rockchip_udphy),
