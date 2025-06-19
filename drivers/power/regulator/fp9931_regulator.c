@@ -5,6 +5,7 @@
 
 #include <common.h>
 #include <dm.h>
+#include <linux/delay.h>
 #include <power/pmic.h>
 #include <power/regulator.h>
 #include <power/fp9931.h>
@@ -27,7 +28,7 @@ const static int fp9931_vpos_vneg_voltages[] = {
 static int fp9931_vcom_set_enable(struct udevice *dev, bool enable)
 {
 	struct udevice *pmic = dev_get_parent(dev);
-	struct fp9931_plat_data *data = dev_get_platdata(pmic);
+	struct fp9931_plat_data *data = dev_get_plat(pmic);
 	int ret;
 
 	if (enable) {
@@ -69,7 +70,7 @@ static int fp9931_vcom_set_value(struct udevice *dev, int uV)
 static int fp9931_regulator_get_enable(struct udevice *dev)
 {
 	struct udevice *pmic = dev_get_parent(dev);
-	struct fp9931_plat_data *data = dev_get_platdata(pmic);
+	struct fp9931_plat_data *data = dev_get_plat(pmic);
 	int ret;
 
 	ret = dm_gpio_get_value(&data->enable_gpio);

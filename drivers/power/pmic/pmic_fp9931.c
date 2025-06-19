@@ -7,10 +7,12 @@
 #include <asm/gpio.h>
 #include <dm.h>
 #include <dm/lists.h>
+#include <dm/device_compat.h>
 #include <dm/device-internal.h>
 #include <dm/of_access.h>
 #include <dm/pinctrl.h>
 #include <i2c.h>
+#include <linux/delay.h>
 #include <power/pmic.h>
 #include <power/regulator.h>
 #include <power/fp9931.h>
@@ -61,7 +63,7 @@ static int fp9931_read(struct udevice *dev, uint reg, uint8_t *buff, int len)
 
 static int pmic_fp9931_probe(struct udevice *dev)
 {
-	struct fp9931_plat_data *data = dev_get_platdata(dev);
+	struct fp9931_plat_data *data = dev_get_plat(dev);
 	uint8_t val;
 	int ret;
 
@@ -106,7 +108,7 @@ static int pmic_fp9931_bind(struct udevice *dev)
 	if (!children)
 		dev_err(dev, "Failed to bind fp9931 regulator\n");
 
-	children = pmic_bind_children(dev, dev->node, thermal_child_info);
+	children = pmic_bind_children(dev, dev_ofnode(dev), thermal_child_info);
 	if (!children)
 		dev_err(dev, "Failed to bind fp9931 thermal\n");
 
@@ -131,5 +133,5 @@ U_BOOT_DRIVER(pmic_fp9931) = {
 	.probe = pmic_fp9931_probe,
 	.ops = &fp9931_ops,
 	.bind = pmic_fp9931_bind,
-	.platdata_auto_alloc_size = sizeof(struct fp9931_plat_data),
+	.plat_auto = sizeof(struct fp9931_plat_data),
 };
