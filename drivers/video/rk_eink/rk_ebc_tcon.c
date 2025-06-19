@@ -7,11 +7,12 @@
 #include <common.h>
 #include <clk.h>
 #include <dm.h>
+#include <dm/device_compat.h>
 #include <dm/pinctrl.h>
 #include <pwm.h>
 #include <regmap.h>
 #include <syscon.h>
-#include <asm/arch/clock.h>
+#include <asm/arch-rockchip/clock.h>
 #include <asm/io.h>
 #include <syscon.h>
 #include <linux/io.h>
@@ -794,7 +795,7 @@ static int rk_ebc_tcon_probe(struct udevice *dev)
 	priv->dev = dev;
 
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
-	ret = clk_set_defaults(dev);
+	ret = clk_set_defaults(dev, CLK_DEFAULTS_PRE);
 	if (ret)
 		dev_warn(dev, "clk_set_defaults failed %d\n", ret);
 
@@ -863,7 +864,7 @@ static int rk_ebc_tcon_ofdata_to_platdata(struct udevice *dev)
 		      __func__, priv->grf);
 		return  -ENXIO;
 	}
-	addr = dev_read_addr_size(dev, "reg", &size);
+	addr = dev_read_addr_size_name(dev, "reg", &size);
 	if (addr == FDT_ADDR_T_NONE) {
 		debug("%s: Get ebc_tcon address failed\n", __func__);
 		return  -ENXIO;
@@ -896,9 +897,9 @@ U_BOOT_DRIVER(rk_ebc_tcon) = {
 	.name	= "rk_ebc_tcon",
 	.id	= UCLASS_EBC,
 	.of_match = ebc_tcon_ids,
-	.ofdata_to_platdata = rk_ebc_tcon_ofdata_to_platdata,
+	.of_to_plat = rk_ebc_tcon_ofdata_to_platdata,
 	.probe	= rk_ebc_tcon_probe,
-	.priv_auto_alloc_size   = sizeof(struct ebc_tcon_priv),
+	.priv_auto = sizeof(struct ebc_tcon_priv),
 };
 
 UCLASS_DRIVER(ebc_tcon) = {
