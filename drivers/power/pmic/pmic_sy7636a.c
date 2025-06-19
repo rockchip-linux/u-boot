@@ -7,10 +7,12 @@
 #include <asm/gpio.h>
 #include <dm.h>
 #include <dm/lists.h>
+#include <dm/device_compat.h>
 #include <dm/device-internal.h>
 #include <dm/of_access.h>
 #include <dm/pinctrl.h>
 #include <i2c.h>
+#include <linux/delay.h>
 #include <power/pmic.h>
 #include <power/regulator.h>
 #include <power/sy7636a.h>
@@ -104,7 +106,7 @@ static int pmic_sy7636a_bind(struct udevice *dev)
 	if (!children)
 		dev_err(dev, "Failed to bind sy7636a regulator\n");
 
-	children = pmic_bind_children(dev, dev->node, thermal_child_info);
+	children = pmic_bind_children(dev, dev_ofnode(dev), thermal_child_info);
 	if (!children)
 		dev_err(dev, "Failed to bind sy7636a thermal\n");
 

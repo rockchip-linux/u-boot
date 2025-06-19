@@ -5,6 +5,8 @@
 
 #include <common.h>
 #include <dm.h>
+#include <dm/device_compat.h>
+#include <linux/delay.h>
 #include <power/pmic.h>
 #include <power/regulator.h>
 #include <power/sy7636a.h>
