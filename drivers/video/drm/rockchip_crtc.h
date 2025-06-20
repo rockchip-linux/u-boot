@@ -29,6 +29,8 @@
 struct vop2_zpos {
 	u8 plane_id;
 	u8 zpos;
+	int global_alpha;
+	int blend_mode;
 };
 
 struct rockchip_vp {

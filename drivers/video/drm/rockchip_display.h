@@ -136,6 +136,10 @@ enum rockchip_mcu_cmd {
 #define VOP_OUTPUT_IF_HDMI1	BIT(12)
 #define VOP_OUTPUT_IF_DP2	BIT(13)
 
+#define DRM_MODE_BLEND_PREMULTI		0
+#define DRM_MODE_BLEND_COVERAGE		1
+#define DRM_MODE_BLEND_PIXEL_NONE	2
+
 struct rockchip_mcu_timing {
 	int mcu_pix_total;
 	int mcu_cs_pst;
