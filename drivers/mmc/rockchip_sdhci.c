@@ -47,9 +47,11 @@
 #define ARASAN_VENDOR_ENHANCED_STROBE	BIT(0)
 
 /* Rockchip specific Registers */
+#define DWCMSHC_HOST_CTRL3			0x508
 #define DWCMSHC_EMMC_EMMC_CTRL		0x52c
 #define DWCMSHC_CARD_IS_EMMC		BIT(0)
 #define DWCMSHC_ENHANCED_STROBE		BIT(8)
+#define DWCMSHC_EMMC_ATCTRL		0x540
 #define DWCMSHC_EMMC_DLL_CTRL		0x800
 #define DWCMSHC_EMMC_DLL_CTRL_RESET	BIT(1)
 #define DWCMSHC_EMMC_DLL_RXCLK		0x804
@@ -77,6 +79,8 @@
 #define DLL_STRBIN_DELAY_NUM_SEL	BIT(26)
 #define DLL_STRBIN_DELAY_NUM_OFFSET	16
 #define DLL_STRBIN_DELAY_NUM_DEFAULT	0x10
+#define DLL_TAP_VALUE_SEL		BIT(25)
+#define DLL_TAP_VALUE_OFFSET		8
 #define DLL_CMDOUT_TAPNUM_90_DEGREES	0x8
 #define DLL_CMDOUT_TAPNUM_FROM_SW	BIT(24)
 #define DLL_CMDOUT_SRC_CLK_NEG		BIT(28)
@@ -89,6 +93,7 @@
 #define ROCKCHIP_MAX_CLKS		3
 
 #define FLAG_INVERTER_FLAG_IN_RXCLK	BIT(0)
+#define FLAG_TAP_VALUE_SEL			BIT(1)
 
 struct rockchip_sdhc_plat {
 	struct mmc_config cfg;
@@ -156,6 +161,8 @@ struct sdhci_data {
 	u32 flags;
 	u8 hs200_txclk_tapnum;
 	u8 hs400_txclk_tapnum;
+	u8 hs400_cmd_tapnum;
+	u8 hs400_strbin_tapnum;
 };
 
 static void rk3399_emmc_phy_power_on(struct rockchip_emmc_phy *phy, u32 clock)
@@ -310,7 +317,7 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 	struct sdhci_data *data = (struct sdhci_data *)dev_get_driver_data(priv->dev);
 	struct mmc *mmc = host->mmc;
 	int val, ret;
-	u32 extra, txclk_tapnum;
+	u32 extra, txclk_tapnum, dll_lock_value;
 
 	if (!enable) {
 		sdhci_writel(host, 0, DWCMSHC_EMMC_DLL_CTRL);
@@ -322,6 +329,11 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 		sdhci_writel(host, DWCMSHC_EMMC_DLL_CTRL_RESET, DWCMSHC_EMMC_DLL_CTRL);
 		udelay(1);
 		sdhci_writel(host, 0, DWCMSHC_EMMC_DLL_CTRL);
+
+		extra = 0x1 << 16 | /* tune clock stop en */
+			0x2 << 17 | /* pre-change delay */
+			0x3 << 19;  /* post-change delay */
+		sdhci_writel(host, extra, DWCMSHC_EMMC_ATCTRL);
 
 		/* Init DLL settings */
 		extra = DWCMSHC_EMMC_DLL_START_DEFAULT << DWCMSHC_EMMC_DLL_START_POINT |
@@ -335,9 +347,12 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 		if (ret)
 			return ret;
 
+		dll_lock_value = ((sdhci_readl(host, DWCMSHC_EMMC_DLL_STATUS0) & 0xFF) * 2 ) & 0xFF;
 		extra = DWCMSHC_EMMC_DLL_DLYENA | DLL_RXCLK_ORI_GATE;
 		if (data->flags & FLAG_INVERTER_FLAG_IN_RXCLK)
 			extra |= DLL_RXCLK_NO_INVERTER;
+		if (data->flags & FLAG_TAP_VALUE_SEL)
+			extra |= DLL_TAP_VALUE_SEL | (dll_lock_value << DLL_TAP_VALUE_OFFSET);
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_RXCLK);
 
 		txclk_tapnum = data->hs200_txclk_tapnum;
@@ -348,8 +363,10 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 			extra = DLL_CMDOUT_SRC_CLK_NEG |
 				DLL_CMDOUT_BOTH_CLK_EDGE |
 				DWCMSHC_EMMC_DLL_DLYENA |
-				DLL_CMDOUT_TAPNUM_90_DEGREES |
+				data->hs400_cmd_tapnum |
 				DLL_CMDOUT_TAPNUM_FROM_SW;
+			if (data->flags & FLAG_TAP_VALUE_SEL)
+				extra |= DLL_TAP_VALUE_SEL | (dll_lock_value << DLL_TAP_VALUE_OFFSET);
 			sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_CMDOUT);
 		}
 
@@ -357,13 +374,24 @@ static int rk3568_sdhci_config_dll(struct sdhci_host *host, u32 clock, bool enab
 			DLL_TXCLK_TAPNUM_FROM_SW |
 			DLL_TXCLK_NO_INVERTER |
 			txclk_tapnum;
+		if (data->flags & FLAG_TAP_VALUE_SEL)
+			extra |= DLL_TAP_VALUE_SEL | (dll_lock_value << DLL_TAP_VALUE_OFFSET);
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_TXCLK);
 
 		extra = DWCMSHC_EMMC_DLL_DLYENA |
-			DLL_STRBIN_TAPNUM_DEFAULT |
+			data->hs400_strbin_tapnum |
 			DLL_STRBIN_TAPNUM_FROM_SW;
+		if (data->flags & FLAG_TAP_VALUE_SEL)
+			extra |= DLL_TAP_VALUE_SEL | (dll_lock_value << DLL_TAP_VALUE_OFFSET);
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
 	} else {
+		/* disable dll */
+		sdhci_writel(host, 0, DWCMSHC_EMMC_DLL_CTRL);
+
+		/* Disable cmd conflict check */
+		extra = sdhci_readl(host, DWCMSHC_HOST_CTRL3);
+		extra &= ~BIT(0);
+		sdhci_writel(host, extra, DWCMSHC_HOST_CTRL3);
 		/*
 		 * Disable DLL and reset both of sample and drive clock.
 		 * The bypass bit and start bit need to be set if DLL is not locked.
@@ -651,17 +679,58 @@ static const struct sdhci_data rk3568_data = {
 	.set_ios_post = rk3568_sdhci_set_ios_post,
 	.set_clock = rk3568_sdhci_set_clock,
 	.config_dll = rk3568_sdhci_config_dll,
-	.flags = FLAG_INVERTER_FLAG_IN_RXCLK,
+	.flags = FLAG_INVERTER_FLAG_IN_RXCLK | FLAG_TAP_VALUE_SEL,
 	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
 	.hs400_txclk_tapnum = 0x8,
+	.hs400_cmd_tapnum = 0x8,
+	.hs400_strbin_tapnum = 0x3,
 };
 
 static const struct sdhci_data rk3588_data = {
 	.set_ios_post = rk3568_sdhci_set_ios_post,
 	.set_clock = rk3568_sdhci_set_clock,
 	.config_dll = rk3568_sdhci_config_dll,
+	.flags = FLAG_TAP_VALUE_SEL,
 	.hs200_txclk_tapnum = DLL_TXCLK_TAPNUM_DEFAULT,
 	.hs400_txclk_tapnum = 0x9,
+	.hs400_cmd_tapnum = 0x8,
+	.hs400_strbin_tapnum = 0x3,
+};
+
+
+static const struct sdhci_data rk3528_data = {
+	.set_ios_post = rk3568_sdhci_set_ios_post,
+	.set_clock = rk3568_sdhci_set_clock,
+	.config_dll = rk3568_sdhci_config_dll,
+	.flags = FLAG_TAP_VALUE_SEL,
+	.hs200_txclk_tapnum = 0xC,
+	.hs400_txclk_tapnum = 0x6,
+	.hs400_cmd_tapnum = 0x6,
+	.hs400_strbin_tapnum = 0x3,
+};
+
+static const struct sdhci_data rk3562_data = {
+	.set_ios_post = rk3568_sdhci_set_ios_post,
+	.set_clock = rk3568_sdhci_set_clock,
+	.config_dll = rk3568_sdhci_config_dll,
+	.flags = FLAG_TAP_VALUE_SEL,
+	.hs200_txclk_tapnum = 0xC,
+	.hs400_txclk_tapnum = 0x6,
+	.hs400_cmd_tapnum = 0x6,
+	.hs400_strbin_tapnum = 0x3,
+
+};
+
+static const struct sdhci_data rk3576_data = {
+	.set_ios_post = rk3568_sdhci_set_ios_post,
+	.set_clock = rk3568_sdhci_set_clock,
+	.config_dll = rk3568_sdhci_config_dll,
+	.flags = FLAG_TAP_VALUE_SEL,
+	.hs200_txclk_tapnum = 0xC,
+	.hs400_txclk_tapnum = 0x7,
+	.hs400_cmd_tapnum = 0x7,
+	.hs400_strbin_tapnum = 0x7,
+
 };
 
 static const struct udevice_id sdhci_ids[] = {
@@ -672,6 +741,18 @@ static const struct udevice_id sdhci_ids[] = {
 	{
 		.compatible = "rockchip,rk3568-dwcmshc",
 		.data = (ulong)&rk3568_data,
+	},
+	{
+		.compatible = "rockchip,rk3528-dwcmshc",
+		.data = (ulong)&rk3528_data,
+	},
+	{
+		.compatible = "rockchip,rk3562-dwcmshc",
+		.data = (ulong)&rk3562_data,
+	},
+	{
+		.compatible = "rockchip,rk3576-dwcmshc",
+		.data = (ulong)&rk3576_data,
 	},
 	{
 		.compatible = "rockchip,rk3588-dwcmshc",
