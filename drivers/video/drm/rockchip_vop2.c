@@ -379,8 +379,8 @@
 #define RK3568_HDR0_SRC_ALPHA_CTRL		0x6C8
 #define RK3568_HDR0_DST_ALPHA_CTRL		0x6CC
 #define RK3568_VP0_BG_MIX_CTRL			0x6E0
-#define BG_MIX_CTRL_MASK			0xff
-#define BG_MIX_CTRL_SHIFT			24
+#define BG_DLY_MASK				0xff
+#define BG_DLY_SHIFT				24
 #define RK3568_VP1_BG_MIX_CTRL			0x6E4
 #define RK3568_VP2_BG_MIX_CTRL			0x6E8
 #define RK3568_CLUSTER_DLY_NUM			0x6F0
@@ -2285,7 +2285,7 @@ static void vop2_setup_dly_for_vp(struct display_state *state, struct vop2 *vop2
 		hsync_len = 8;
 	pre_scan_dly = (pre_scan_dly << 16) | hsync_len;
 	vop2_mask_write(vop2, RK3568_VP0_BG_MIX_CTRL + crtc_id * 4,
-			BG_MIX_CTRL_MASK, BG_MIX_CTRL_SHIFT, bg_dly, false);
+			BG_DLY_MASK, BG_DLY_SHIFT, bg_dly, false);
 	vop2_writel(vop2, RK3568_VP0_PRE_SCAN_HTIMING + (crtc_id * 0x100), pre_scan_dly);
 }
 
@@ -2308,7 +2308,7 @@ static void vop3_setup_pipe_dly(struct display_state *state, struct vop2 *vop2, 
 	 */
 	pre_scan_dly = (pre_scan_dly << 16) | (hsync_len < 8 ? 8 : hsync_len);
 	vop2_mask_write(vop2, RK3528_OVL_PORT0_BG_MIX_CTRL + crtc_id * 0x100,
-			BG_MIX_CTRL_MASK, BG_MIX_CTRL_SHIFT, bg_dly, false);
+			BG_DLY_MASK, BG_DLY_SHIFT, bg_dly, false);
 	vop2_writel(vop2, RK3568_VP0_PRE_SCAN_HTIMING + (crtc_id * 0x100), pre_scan_dly);
 }
 
