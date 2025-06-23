@@ -10,3 +10,5 @@ obj-$(CONFIG_TI_J721E_UFS) += ti-j721e-ufs.o
 obj-$(CONFIG_UFS_PCI) += ufs-pci.o
 obj-$(CONFIG_UFS_RENESAS) += ufs-renesas.o
 obj-$(CONFIG_UFS_AMD_VERSAL2) += ufs-amd-versal2.o ufshcd-dwc.o
+obj-$(CONFIG_ROCKCHIP_UFS) += ufs-rockchip.o ufs-rockchip-usbplug.o
+obj-$(CONFIG_ROCKCHIP_UFS_RPMB) += ufs-rockchip-rpmb.o

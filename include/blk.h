@@ -87,6 +87,7 @@ struct blk_desc {
 	lbaint_t	rawlba;		/* physical number of blocks */
 	unsigned long	blksz;		/* block size */
 	unsigned long	rawblksz;	/* block size */
+	void	*align_sector_buf; /* allocate alignment buffer for 4k size blocks */
 	int		log2blksz;	/* for convenience: log2(blksz) */
 	char		vendor[BLK_VEN_SIZE + 1]; /* device vendor string */
 	char		product[BLK_PRD_SIZE + 1]; /* device product number */

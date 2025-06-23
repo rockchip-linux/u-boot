@@ -12,7 +12,12 @@ struct udevice;
 #define UPIU_TRANSACTION_UIC_CMD 0x1F
 #define UIC_CMD_SIZE (sizeof(u32) * 4)
 #define RESPONSE_UPIU_SENSE_DATA_LENGTH	18
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+#define UFS_MAX_LUNS		0x4
+#else
 #define UFS_MAX_LUNS		0x7F
+#endif
 
 enum {
 	TASK_REQ_UPIU_SIZE_DWORDS	= 8,
@@ -66,6 +71,46 @@ struct ufs_desc_size {
 	int conf_desc;
 	int hlth_desc;
 };
+
+struct ufs_device_descriptor {
+	uint8_t b_length;
+	uint8_t b_descriptor_idn;
+	uint8_t b_device;
+	uint8_t b_device_class;
+	uint8_t b_device_sub_class;
+	uint8_t b_protocol;
+	uint8_t b_number_lu;
+	uint8_t b_number_wlu;
+	uint8_t b_boot_enable;
+	uint8_t b_descr_access_en;
+	uint8_t b_init_power_mode;
+	uint8_t b_high_priority_lun;
+	uint8_t b_secure_removal_type;
+	uint8_t b_security_lu;
+	uint8_t b_background_ops_term_lat;
+	uint8_t b_init_active_icc_level;
+	uint16_t w_spec_version;
+	uint16_t w_manufacture_date;
+	uint8_t i_manufacturer_name;
+	uint8_t i_product_name;
+	uint8_t i_serial_number;
+	uint8_t i_oem_id;
+	uint16_t w_manufacturer_id;
+	uint8_t b_ud_0base_offset;
+	uint8_t b_ud_config_plength;
+	uint8_t b_device_rtt_cap;
+	uint16_t w_periodic_rtc_update;
+	uint8_t b_ufs_feature_support;
+	uint8_t b_ffu_timeout;
+	uint8_t b_queue_depth;
+	uint16_t w_device_version;
+	uint8_t b_num_secure_wp_area;
+	uint32_t d_psa_max_data_size;
+	uint8_t b_psa_state_timeout;
+	uint8_t i_product_revision_level;
+	uint8_t reserved[5]; /* 5 reserved */
+	uint8_t reserved_ume[16]; /* 16 reserved */
+} __attribute__ ((packed));
 
 /*
  * Request Descriptor Definitions
@@ -704,6 +749,7 @@ struct ufs_hba_ops {
 				   enum ufs_notify_change_status);
 	int (*phy_initialization)(struct ufs_hba *hba);
 	int (*device_reset)(struct ufs_hba *hba);
+	int (*phy_parameter_initialization)(struct ufs_hba *hba);
 };
 
 enum ufshcd_quirks {
@@ -895,6 +941,12 @@ struct ufs_hba {
 	struct ufs_pwr_mode_info max_pwr_info;
 
 	struct ufs_dev_cmd dev_cmd;
+	struct ufs_device_descriptor *dev_desc;
+#if defined(CONFIG_SUPPORT_USBPLUG)
+	struct ufs_configuration_descriptor *rc_desc;
+	struct ufs_configuration_descriptor *wc_desc;
+	struct ufs_geometry_descriptor *geo_desc;
+#endif
 };
 
 static inline int ufshcd_ops_init(struct ufs_hba *hba)
@@ -1110,5 +1162,16 @@ static inline void ufshcd_rmwl(struct ufs_hba *hba, u32 mask, u32 val, u32 reg)
 #define UTP_TASK_REQ_LIST_RUN_STOP_BIT		0x1
 
 int ufshcd_probe(struct udevice *dev, struct ufs_hba_ops *hba_ops);
+int ufshcd_dme_reset(struct ufs_hba *hba);
+int ufshcd_dme_enable(struct ufs_hba *hba);
+int ufs_create_partition_inventory(struct ufs_hba *hba);
+int ufshcd_map_desc_id_to_length(struct ufs_hba *hba, enum desc_idn desc_id, int *desc_len);
+int ufshcd_read_desc_param(struct ufs_hba *hba, enum desc_idn desc_id,
+			   int desc_index, u8 param_offset, u8 *param_read_buf,
+			   u8 param_size);
+int ufshcd_query_descriptor_retry(struct ufs_hba *hba, enum query_opcode opcode,
+				  enum desc_idn idn, u8 index, u8 selector,
+				  u8 *desc_buf, int *buf_len);
+int ufshcd_exec_dev_cmd(struct ufs_hba *hba, enum dev_cmd_type cmd_type, int timeout);
 
 #endif

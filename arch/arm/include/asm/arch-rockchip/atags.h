@@ -47,6 +47,7 @@
 #define BOOT_TYPE_MTD_BLK_SPI_NOR	(1 << 9)
 #define BOOT_TYPE_SATA		(1 << 10)
 #define BOOT_TYPE_PCIE		(1 << 11)
+#define BOOT_TYPE_UFS		(1 << 12)
 
 /* define sd card function */
 #define SD_UNKNOWN_CARD		0

@@ -55,6 +55,20 @@ struct scsi_cmd {
 	enum dma_data_direction dma_dir;
 };
 
+struct um_block_descriptor {
+	uint64_t um_block_addr;
+	uint32_t um_block_sz;
+	uint32_t reserve;
+} __attribute__ ((packed));
+
+struct unmap_para_list {
+	uint16_t um_data_len;
+	uint16_t um_block_desc_len;
+	uint32_t reserve;
+	/*support only one block descriptor*/
+	struct um_block_descriptor ub_desc;
+} __attribute__ ((packed));
+
 /*-----------------------------------------------------------
 **
 **	SCSI  constants.
@@ -181,7 +195,7 @@ struct scsi_cmd {
 #define SCSI_WRT_VERIFY	0x2E		/* Write and Verify (O) */
 #define SCSI_WRITE_LONG	0x3F		/* Write Long (O) */
 #define SCSI_WRITE_SAME	0x41		/* Write Same (O) */
-
+#define SCSI_UNMAP	0x42
 /**
  * enum scsi_cmd_phase - current phase of the SCSI protocol
  *

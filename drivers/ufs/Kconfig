@@ -56,4 +56,31 @@ config UFS_AMD_VERSAL2
 	  UFS host on AMD needs some vendor specific configuration before accessing
 	  the hardware.
 
+config ROCKCHIP_UFS
+	bool "Rockchip specific hooks to UFS controller platform driver"
+	depends on UFS
+	help
+	  This selects the Rockchip specific additions to UFSHCD platform driver.
+	  UFS host on Rockchip needs some vendor specific configuration before
+	  accessing the hardware which includes PHY configuration and vendor
+	  specific registers.
+
+	  Select this if you have UFS controller on Rockchip chipset.
+	  If unsure, say N.
+
+config ROCKCHIP_UFS_RPMB
+	bool "Support UFS replay protected memory block (RPMB)"
+	depends on UFS && ROCKCHIP_UFS
+	default y
+	help
+	  Enable support for reading, writing and programming the
+	  key for the Replay Protection Memory Block partition in UFS.
+
+config ROCKCHIP_UFS_DISABLED_LINKUP_TEST
+	bool "Rockchip ufs disabled linkup test"
+	depends on ROCKCHIP_UFS
+	default N
+	help
+	  This selects to disabled linkup test for mphy power supply.
+
 endmenu
