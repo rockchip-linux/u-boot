@@ -479,6 +479,7 @@ static int spinand_read_id_op(struct spinand_device *spinand, u8 naddr,
 	return ret;
 }
 
+#if !CONFIG_IS_ENABLED(SUPPORT_USBPLUG)
 static int spinand_reset_op(struct spinand_device *spinand)
 {
 	struct spi_mem_op op = SPINAND_RESET_OP;
@@ -490,6 +491,7 @@ static int spinand_reset_op(struct spinand_device *spinand)
 
 	return spinand_wait(spinand, NULL);
 }
+#endif
 
 static int spinand_lock_block(struct spinand_device *spinand, u8 lock)
 {
@@ -529,7 +531,7 @@ static int spinand_read_page(struct spinand_device *spinand,
 			     const struct nand_page_io_req *req,
 			     bool ecc_enabled)
 {
-	u8 status;
+	u8 status = 0;
 	int ret;
 
 	ret = spinand_load_page_op(spinand, req);
@@ -537,12 +539,21 @@ static int spinand_read_page(struct spinand_device *spinand,
 		return ret;
 
 	ret = spinand_wait(spinand, &status);
+	/*
+	 * When there is data outside of OIP in the status, the status data is
+	 * inaccurate and needs to be reconfirmed
+	 */
+	if (spinand->id.data[0] == 0x01 && status && !ret)
+		ret = spinand_wait(spinand, &status);
 	if (ret < 0)
 		return ret;
 
 	ret = spinand_read_from_cache_op(spinand, req);
 	if (ret)
 		return ret;
+
+	if (!(spinand->slave->mode & SPI_DMA_PREPARE))
+		spinand_wait(spinand, &status);
 
 	if (!ecc_enabled)
 		return 0;
@@ -713,7 +724,7 @@ static int spinand_mtd_block_isbad(struct mtd_info *mtd, loff_t offs)
 static int spinand_markbad(struct nand_device *nand, const struct nand_pos *pos)
 {
 	struct spinand_device *spinand = nand_to_spinand(nand);
-	u8 marker[2] = { };
+	u8 marker[2] = { 0, 0 };
 	struct nand_page_io_req req = {
 		.pos = *pos,
 		.ooboffs = 0,
@@ -826,14 +837,73 @@ static const struct nand_ops spinand_ops = {
 };
 
 static const struct spinand_manufacturer *spinand_manufacturers[] = {
+#ifdef CONFIG_SPI_NAND_GIGADEVICE
 	&gigadevice_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_MACRONIX
 	&macronix_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_MICRON
 	&micron_spinand_manufacturer,
-	&paragon_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_TOSHIBA
 	&toshiba_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_WINBOND
 	&winbond_spinand_manufacturer,
-	&esmt_c8_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_DOSILICON
+	&dosilicon_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_ESMT
+	&esmt_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_XINCUN
+	&xincun_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_XTX
 	&xtx_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_HYF
+	&hyf_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_FMSH
+	&fmsh_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_FORESEE
+	&foresee_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_BIWIN
+	&biwin_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_ETRON
+	&etron_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_JSC
+	&jsc_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_SILICONGO
+	&silicongo_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_UNIM
+	&unim_spinand_manufacturer,
+	&unim_zl_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_SKYHIGH
+	&skyhigh_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_GSTO
+	&gsto_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_ZBIT
+	&zbit_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_HIKSEMI
+	&hiksemi_spinand_manufacturer,
+#endif
+#ifdef CONFIG_SPI_NAND_KINGSTON
+	&kingston_spinand_manufacturer,
+#endif
 };
 
 static int spinand_manufacturer_match(struct spinand_device *spinand,
@@ -1011,9 +1081,11 @@ static int spinand_detect(struct spinand_device *spinand)
 	struct nand_device *nand = spinand_to_nand(spinand);
 	int ret;
 
+#if !CONFIG_IS_ENABLED(SUPPORT_USBPLUG)
 	ret = spinand_reset_op(spinand);
 	if (ret)
 		return ret;
+#endif
 
 	ret = spinand_id_detect(spinand);
 	if (ret) {
@@ -1022,6 +1094,8 @@ static int spinand_detect(struct spinand_device *spinand)
 			spinand->id.data[2], spinand->id.data[3]);
 		return ret;
 	}
+	dev_err(spinand->slave->dev, "SPI Nand ID %x %x %x\n",
+		spinand->id.data[0], spinand->id.data[1], spinand->id.data[2]);
 
 	if (nand->memorg.ntargets > 1 && !spinand->select_target) {
 		dev_err(spinand->slave->dev,
@@ -1122,11 +1196,19 @@ static int spinand_init(struct spinand_device *spinand)
 		if (ret)
 			goto err_manuf_cleanup;
 
+		/* HWP_EN must be enabled first before block unlock region is set */
+		if (spinand->id.data[0] == 0x01) {
+			ret = spinand_lock_block(spinand, HWP_EN);
+			if (ret)
+				goto err_free_bufs;
+		}
+
 		ret = spinand_lock_block(spinand, BL_ALL_UNLOCKED);
 		if (ret)
 			goto err_manuf_cleanup;
 	}
 
+	nand->bbt.option = NANDDEV_BBT_USE_FLASH;
 	ret = nanddev_init(nand, &spinand_ops, THIS_MODULE);
 	if (ret)
 		goto err_manuf_cleanup;
@@ -1152,6 +1234,10 @@ static int spinand_init(struct spinand_device *spinand)
 		goto err_cleanup_nanddev;
 
 	mtd->oobavail = ret;
+
+	/* Propagate ECC information to mtd_info */
+	mtd->ecc_strength = nand->eccreq.strength;
+	mtd->ecc_step_size = nand->eccreq.step_size;
 
 	return 0;
 
@@ -1179,6 +1265,17 @@ static void spinand_cleanup(struct spinand_device *spinand)
 
 static int spinand_bind(struct udevice *dev)
 {
+#ifdef CONFIG_MTD_BLK
+	int ret = 0;
+	struct udevice *bdev;
+
+	ret = blk_create_devicef(dev, "mtd_blk", "blk", UCLASS_MTD,
+				 BLK_MTD_SPI_NAND, 512, 0, &bdev);
+	if (ret)
+		printf("Cannot create block device\n");
+
+	return ret;
+#else
 	if (blk_enabled()) {
 		struct spinand_plat *plat = dev_get_plat(dev);
 		int ret;
@@ -1192,6 +1289,7 @@ static int spinand_bind(struct udevice *dev)
 		if (CONFIG_IS_ENABLED(UBI_BLOCK))
 			return ubi_bind(dev);
 	}
+#endif
 
 	return 0;
 }
