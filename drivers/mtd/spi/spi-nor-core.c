@@ -578,7 +578,7 @@ static int read_fsr(struct spi_nor *nor)
  * location. Return the configuration register value.
  * Returns negative if error occurred.
  */
-#if defined(CONFIG_SPI_FLASH_SPANSION) || defined(CONFIG_SPI_FLASH_WINBOND)
+#if defined(CONFIG_SPI_FLASH_SPANSION) || defined(CONFIG_SPI_FLASH_WINBOND) || defined(CONFIG_SPI_FLASH_NORMEM)
 static int read_cr(struct spi_nor *nor)
 {
 	int ret;
@@ -632,6 +632,18 @@ static int write_sr3(struct spi_nor *nor, u8 val)
 	nor->cmd_buf[0] = val;
 	return nor->write_reg(nor, SPINOR_OP_WRSR3, nor->cmd_buf, 1);
 }
+
+#if CONFIG_IS_ENABLED(SPI_FLASH_SFDP_SUPPORT) || defined(CONFIG_SPI_FLASH_NORMEM)
+/*
+ * Write confiture register 1 byte
+ * Returns negative if error occurred.
+ */
+static int write_cr(struct spi_nor *nor, u8 val)
+{
+	nor->cmd_buf[0] = val;
+	return nor->write_reg(nor, SPINOR_OP_WRCR, nor->cmd_buf, 1);
+}
+#endif
 
 /*
  * Set write enable latch with Write Enable command.
@@ -2307,6 +2319,45 @@ static int spansion_no_read_cr_quad_enable(struct spi_nor *nor)
 #endif /* CONFIG_SPI_FLASH_SFDP_SUPPORT */
 #endif /* CONFIG_SPI_FLASH_SPANSION */
 
+#ifdef CONFIG_SPI_FLASH_NORMEM
+/**
+ * normem_quad_enable() - set QE bit in Status Register.
+ * @nor:	pointer to a 'struct spi_nor'
+ *
+ * Set the Quad Enable (QE) bit in the Status Register.
+ *
+ * bit 6 of the Status Register is the QE bit for Macronix like QSPI memories.
+ *
+ * Return: 0 on success, -errno otherwise.
+ */
+static int normem_quad_enable(struct spi_nor *nor)
+{
+	int ret, val;
+
+	val = read_cr(nor);
+	if (val < 0)
+		return val;
+	if (val & SR_QUAD_EN_NORMEM)
+		return 0;
+
+	write_enable(nor);
+
+	write_cr(nor, val | SR_QUAD_EN_NORMEM);
+
+	ret = spi_nor_wait_till_ready(nor);
+	if (ret)
+		return ret;
+
+	ret = read_cr(nor);
+	if (!(ret > 0 && (ret & SR_QUAD_EN_NORMEM))) {
+		dev_err(nor->dev, "NORMEM Quad bit not set\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+#endif
+
 static void
 spi_nor_set_read_settings(struct spi_nor_read_command *read,
 			  u8 num_mode_clocks,
@@ -3150,7 +3201,11 @@ static int spi_nor_init_params(struct spi_nor *nor,
 		case SNOR_MFR_ST:
 		case SNOR_MFR_MICRON:
 			break;
-
+#ifdef CONFIG_SPI_FLASH_NORMEM
+		case SNOR_MFR_NORMEM:
+			params->quad_enable = normem_quad_enable;
+			break;
+#endif
 		default:
 #if defined(CONFIG_SPI_FLASH_SPANSION) || defined(CONFIG_SPI_FLASH_WINBOND)
 			/* Kept only for backward compatibility purpose. */
@@ -4613,12 +4668,13 @@ int spi_nor_scan(struct spi_nor *nor)
 
 	nor->rdsr_dummy = params.rdsr_dummy;
 	nor->rdsr_addr_nbytes = params.rdsr_addr_nbytes;
-	nor->name = info->name;
+	nor->name = mtd->name;
 	nor->size = mtd->size;
 	nor->erase_size = mtd->erasesize;
 	nor->sector_size = mtd->erasesize;
 
 #ifndef CONFIG_XPL_BUILD
+	printf("JEDEC id bytes: %02x, %02x, %02x\n", info->id[0], info->id[1], info->id[2]);
 	printf("SF: Detected %s with page size ", nor->name);
 	print_size(nor->page_size, ", erase size ");
 	print_size(nor->erase_size, ", total ");

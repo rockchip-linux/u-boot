@@ -96,6 +96,10 @@ static int spi_flash_probe_slave(struct spi_flash *flash)
 		return ret;
 	}
 
+#if !CONFIG_IS_ENABLED(SPI_FLASH_TINY)
+	flash->mtd.name = (char *)ofnode_read_string(spi->dev->node_, "label");
+#endif
+
 	ret = spi_nor_scan(flash);
 	if (ret)
 		goto err_read_id;
@@ -208,6 +212,21 @@ static int spi_flash_std_get_sw_write_prot(struct udevice *dev)
 	return spi_flash_cmd_get_sw_write_prot(flash);
 }
 
+static int spi_flash_std_bind(struct udevice *udev)
+{
+	int ret = 0;
+
+#ifdef CONFIG_MTD_BLK
+	struct udevice *bdev;
+
+	ret = blk_create_devicef(udev, "mtd_blk", "blk", UCLASS_MTD,
+				 BLK_MTD_SPI_NOR, 512, 0, &bdev);
+	if (ret)
+		printf("Cannot create block device\n");
+#endif
+	return ret;
+}
+
 int spi_flash_std_probe(struct udevice *dev)
 {
 	struct spi_slave *slave = dev_get_parent_priv(dev);
@@ -255,6 +274,7 @@ U_BOOT_DRIVER(jedec_spi_nor) = {
 	.name		= "jedec_spi_nor",
 	.id		= UCLASS_SPI_FLASH,
 	.of_match	= spi_flash_std_ids,
+	.bind		= spi_flash_std_bind,
 	.probe		= spi_flash_std_probe,
 	.remove		= spi_flash_std_remove,
 	.priv_auto	= sizeof(struct spi_nor),
