@@ -188,6 +188,7 @@ enum fdt_compat_id {
 	COMPAT_ALTERA_SOCFPGA_NOC,		/* SOCFPGA Arria 10 NOC */
 	COMPAT_ALTERA_SOCFPGA_CLK_INIT,		/* SOCFPGA Arria 10 clk init */
 	ROCKCHIP_NANDC,
+	COMPAT_ROCKCHIP_NANDC,			/* Rockchip NAND controller */
 
 	COMPAT_COUNT,
 };

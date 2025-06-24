@@ -603,21 +603,28 @@ config CORTINA_NAND
 	  The controller supports a maximum 8k page size and supports
 	  a maximum 40-bit error correction per sector of 1024 bytes.
 
-config ROCKCHIP_NAND
-	bool "Support for NAND controller on Rockchip SoCs"
-	depends on ARCH_ROCKCHIP
+config NAND_ROCKCHIP
+	bool "Support for NAND on Rockchip SoCs"
 	select SYS_NAND_SELF_INIT
-	select DM_MTD
-	imply CMD_NAND
+	default n
 	help
-	  Enables support for NAND Flash chips on Rockchip SoCs platform.
-	  This controller is found on Rockchip SoCs.
-	  There are four different versions of NAND FLASH Controllers,
-	  including:
-	    NFC v600: RK2928, RK3066, RK3188
-	    NFC v622: RK3036, RK3128
-	    NFC v800: RK3308, RV1108
-	    NFC v900: PX30, RK3326
+	  Enable support for Rockchip nand.
+
+config NAND_ROCKCHIP_V9
+	bool "Support for NAND V9 on Rockchip SoCs"
+	select SYS_NAND_SELF_INIT
+	default n
+	help
+	  Enable support for Rockchip nand v9.
+
+if NAND_ROCKCHIP || NAND_ROCKCHIP_V9
+config NAND_ROCKCHIP_DT
+	bool "Support Rockchip NAND controller as a DT device"
+	default y
+	help
+	  Enable the driver for Rockchip NAND flash on platforms
+	  using device tree.
+endif
 
 config ROCKCHIP_NAND_SKIP_BBTSCAN
 	bool "Skip the automatic BBT scan with Rockchip NAND controllers"

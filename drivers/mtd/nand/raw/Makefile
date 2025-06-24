@@ -72,12 +72,13 @@ obj-$(CONFIG_TEGRA_NAND) += tegra_nand.o
 obj-$(CONFIG_NAND_OMAP_GPMC) += omap_gpmc.o
 obj-$(CONFIG_NAND_OMAP_ELM) += omap_elm.o
 obj-$(CONFIG_NAND_SANDBOX) += sand_nand.o
+obj-$(CONFIG_NAND_ROCKCHIP) += rockchip_nand.o
+obj-$(CONFIG_NAND_ROCKCHIP_V9) += rockchip_nand_v9.o
 obj-$(CONFIG_NAND_SUNXI) += sunxi_nand.o
 obj-$(CONFIG_NAND_MXIC) += mxic_nand.o
 obj-$(CONFIG_NAND_ZYNQ) += zynq_nand.o
 obj-$(CONFIG_NAND_STM32_FMC2) += stm32_fmc2_nand.o
 obj-$(CONFIG_CORTINA_NAND) += cortina_nand.o
-obj-$(CONFIG_ROCKCHIP_NAND) += rockchip_nfc.o
 obj-$(CONFIG_NAND_MT7621) += mt7621_nand.o
 
 else  # minimal SPL drivers
@@ -88,5 +89,7 @@ obj-$(CONFIG_NAND_MXC) += mxc_nand_spl.o
 obj-$(CONFIG_NAND_MXS) += mxs_nand_spl.o mxs_nand.o
 obj-$(CONFIG_NAND_SUNXI) += sunxi_nand_spl.o
 obj-$(CONFIG_NAND_MT7621) += mt7621_nand_spl.o mt7621_nand.o
+obj-$(CONFIG_NAND_ROCKCHIP) += rockchip_nand_spl.o
+obj-$(CONFIG_NAND_ROCKCHIP_V9) += rockchip_nand_spl_v9.o
 
 endif # drivers

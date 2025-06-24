@@ -243,7 +243,7 @@ int param_parse_atags_bootdev(char **devtype, char **devnum)
 			*devnum = "0";
 			break;
 #endif
-#ifdef CONFIG_NAND
+#ifdef CONFIG_MTD_RAW_NAND
 		case BOOT_TYPE_MTD_BLK_NAND:
 			*devtype = "mtd";
 			*devnum = "0";

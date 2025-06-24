@@ -18,7 +18,7 @@
 #include <dm/device-internal.h>
 #include <linux/mtd/spinand.h>
 #include <linux/mtd/spi-nor.h>
-#ifdef CONFIG_NAND
+#ifdef CONFIG_MTD_RAW_NAND
 #include <linux/mtd/nand.h>
 #endif
 
@@ -165,8 +165,8 @@ void mtd_blk_map_fit(struct blk_desc *desc, ulong sector, void *fit)
 		return;
 
 	if (desc->devnum == BLK_MTD_NAND) {
-#if defined(CONFIG_NAND)
-		mtd = dev_get_priv(desc->bdev->parent);
+#if defined(CONFIG_MTD_RAW_NAND)
+		mtd = desc->bdev->priv_;
 #endif
 	} else if (desc->devnum == BLK_MTD_SPI_NAND) {
 #if defined(CONFIG_MTD_SPI_NAND)
