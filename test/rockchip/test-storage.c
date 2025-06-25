@@ -45,7 +45,7 @@ static enum if_type blk_get_type_by_name_and_num(char *devtype, int devnum)
 #endif
 #ifdef CONFIG_MTD_BLK
 	else if (!strcmp(devtype, "mtd"))
-		type = IF_TYPE_MTD;
+		type = UCLASS_MTD;
 #endif
 #ifdef CONFIG_SCSI
 	else if (!strcmp(devtype, "scsi"))

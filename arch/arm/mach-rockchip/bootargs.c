@@ -25,6 +25,10 @@
 #include <linux/stringify.h>
 #include <linux/string.h>
 
+#ifdef CONFIG_MTD_BLK
+#include "mtd_blk.h"
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 extern int misc_get_recovery_msg(void);

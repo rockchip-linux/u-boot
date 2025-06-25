@@ -97,7 +97,7 @@ static int fit_decomp_image(void *fit, int node, ulong *load_addr,
 
 	if (info && info->dev) {
 		desc = info->dev;
-		if ((desc->if_type == IF_TYPE_MTD) &&
+		if ((desc->if_type == UCLASS_MTD) &&
 		    (desc->devnum == BLK_MTD_SPI_NAND) &&
 		    fit_image_check_type(fit, node, IH_TYPE_RAMDISK)) {
 			flags |= DCOMP_FLG_IRQ_ONESHOT;

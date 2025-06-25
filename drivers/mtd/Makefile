@@ -5,6 +5,7 @@
 
 mtd-$(CONFIG_MTD) += mtdcore.o mtd_uboot.o
 mtd-$(CONFIG_DM_MTD) += mtd-uclass.o
+obj-$(CONFIG_MTD_BLK) += mtd_blk.o
 mtd-$(CONFIG_MTD_PARTITIONS) += mtdpart.o
 mtd-$(CONFIG_MTD_CONCAT) += mtdconcat.o
 mtd-$(CONFIG_ALTERA_QSPI) += altera_qspi.o

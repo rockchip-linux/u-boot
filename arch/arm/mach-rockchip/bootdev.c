@@ -17,6 +17,10 @@
 #include <asm/arch-rockchip/param.h>
 #include <asm/arch-rockchip/resource.h>
 
+#ifdef CONFIG_MTD_BLK
+#include "mtd_blk.h"
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 static struct blk_desc *g_bootdev;
