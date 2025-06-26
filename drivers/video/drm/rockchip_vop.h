@@ -375,14 +375,17 @@ struct vop_ctrl {
 	struct vop_reg mcu_type;
 	struct vop_reg mcu_rw_bypass_port;
 	struct vop_reg mcu_force_rdn;
+	struct vop_reg mcu_data_map_mode;
 
 	/* bt1120 */
 	struct vop_reg bt1120_uv_swap;
 	struct vop_reg bt1120_yc_swap;
 	struct vop_reg bt1120_en;
+	struct vop_reg bt1120_data_map_mode;
 
 	/* bt656 */
 	struct vop_reg bt656_en;
+	struct vop_reg bt656_data_map_mode;
 
 	struct vop_reg cfg_done;
 

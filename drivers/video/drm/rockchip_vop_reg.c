@@ -1103,6 +1103,9 @@ static const struct vop_ctrl rv1126b_ctrl_data = {
 	.bt656_en = VOP_REG(RK3366_LIT_DSP_CTRL0, 0x1, 6),
 
 	.mcu_force_rdn = VOP_REG(RV1126B_DSP_CTRL1, 0x1, 21),
+	.mcu_data_map_mode = VOP_REG(RV1126B_DSP_CTRL1, 0x1, 20),
+	.bt1120_data_map_mode = VOP_REG(RV1126B_DSP_CTRL1, 0x3, 18),
+	.bt656_data_map_mode = VOP_REG(RV1126B_DSP_CTRL1, 0x3, 16),
 
 	.dsp_interlace = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1, 0),
 	.dither_up = VOP_REG(RK3366_LIT_DSP_CTRL2, 0x1, 2),

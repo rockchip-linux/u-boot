@@ -643,6 +643,15 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_LINE_FLAG_SET(vop, line_flag_num[1],
 			  act_end - us_to_vertical_line(mode, 1000));
 
+	if (conn_state->data_map_mode != -1) {
+		if (conn_state->output_if & VOP_OUTPUT_IF_BT1120)
+			VOP_CTRL_SET(vop, bt1120_data_map_mode, conn_state->data_map_mode);
+		else if (conn_state->output_if & VOP_OUTPUT_IF_BT656)
+			VOP_CTRL_SET(vop, bt656_data_map_mode, conn_state->data_map_mode);
+		else if (state->crtc_state.mcu_timing.mcu_pix_total > 0)
+			VOP_CTRL_SET(vop, mcu_data_map_mode, conn_state->data_map_mode);
+	}
+
 	if (state->crtc_state.mcu_timing.mcu_pix_total > 0) {
 		if (vop->version >= VOP_VERSION_RK3576_LITE) {
 			VOP_CTRL_SET(vop, standby, 0);
