@@ -463,6 +463,10 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 
 static int ebc_tcon_disable(struct udevice *dev)
 {
+	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
+
+	pinctrl_select_state(tcon->dev, "sleep");
+
 	return 0;
 }
 
@@ -726,6 +730,8 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		return ret;
 	}
 
+	pinctrl_select_state(dev, "default");
+
 	return 0;
 }
 
@@ -793,6 +799,8 @@ static int rk_ebc_tcon_probe(struct udevice *dev)
 	driver->ops = tcon_ops;
 
 	priv->dev = dev;
+
+	pinctrl_select_state(dev, "sleep");
 
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
 	ret = clk_set_defaults(dev, CLK_DEFAULTS_PRE);
