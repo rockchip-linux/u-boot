@@ -856,6 +856,8 @@ static int rk_ebc_tcon_probe(struct udevice *dev)
 
 	pinctrl_select_state(dev, "sleep");
 
+	pinctrl_select_state(dev, "sleep");
+
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
 	ret = clk_set_defaults(dev, CLK_DEFAULTS_PRE);
 	if (ret)
