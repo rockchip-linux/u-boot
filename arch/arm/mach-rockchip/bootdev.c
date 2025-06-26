@@ -8,6 +8,7 @@
 #include <init.h>
 #include <malloc.h>
 #include <mmc.h>
+#include <mtd.h>
 #include <nvme.h>
 #include <sysmem.h>
 #include <asm/cache.h>
@@ -64,6 +65,13 @@ static int bootdev_do_probe(const char *devtype, const char *devnum)
 			return -ENODEV;
 	}
 #endif
+#ifdef CONFIG_MTD
+	if (!strcmp("mtd", devtype)) {
+		if (mtd_probe_devices())
+			return -ENODEV;
+	}
+#endif
+
 	/* Ok, let's test whether we can get the expected boot device or not */
 	if (!blk_get_devnum_by_uclass_idname(devtype, devnum_ul))
 		return -ENODEV;
