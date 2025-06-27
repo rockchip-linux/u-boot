@@ -45,6 +45,7 @@
 #include "../drivers/video/drm/rockchip_bridge.h"
 #include "../drivers/video/drm/rockchip_display.h"
 #include "../drivers/video/drm/rockchip_panel.h"
+#include "../drivers/video/drm/rockchip_connector.h"
 
 #ifndef __SERDES_DISPLAY_CORE_H__
 #define __SERDES_DISPLAY_CORE_H__
@@ -121,7 +122,7 @@ struct group_desc {
  */
 struct function_desc {
 	const char *name;
-	const char **group_names;
+	const char *const *group_names;
 	int num_group_names;
 	void *data;
 };
@@ -316,6 +317,7 @@ struct serdes {
 	int err_irq_trig;
 
 	bool sel_mipi;
+	bool dual_link;
 	bool mcu_enable;
 	struct mipi_dsi_device *dsi;
 
@@ -359,6 +361,7 @@ int serdes_display_init(void);
 extern struct serdes_chip_data serdes_bu18tl82_data;
 extern struct serdes_chip_data serdes_bu18rl82_data;
 extern struct serdes_chip_data serdes_max96745_data;
+extern struct serdes_chip_data serdes_max96749_data;
 extern struct serdes_chip_data serdes_max96752_data;
 extern struct serdes_chip_data serdes_max96755_data;
 extern struct serdes_chip_data serdes_max96772_data;

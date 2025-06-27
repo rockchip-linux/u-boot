@@ -20,6 +20,15 @@ config SERDES_DISPLAY_CHIP_MAXIM_MAX96745
 	help
 	  To support maxim max96745 display serdes.
 
+config SERDES_DISPLAY_CHIP_MAXIM_MAX96749
+	tristate "maxim max96749 serdes"
+	default y
+	help
+	  To support maxim max96749 display serdes.This is a 4-lane DP/EDP
+	  type interface serializer that supports dual-link mode, with a
+	  maximum PCLK frequency(Uncompressed) of 215MHz per link. Supports
+	  SST or MST mode.
+
 config SERDES_DISPLAY_CHIP_MAXIM_MAX96752
 	tristate "maxim max96752 serdes"
 	default y

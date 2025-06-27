@@ -119,6 +119,7 @@ static int serdes_i2c_probe(struct udevice *dev)
 			       __func__, ret);
 
 	serdes->mcu_enable = dev_read_bool(dev, "mcu-enable");
+	serdes->dual_link = dev_read_bool(dev, "dual-link");
 
 	if (serdes->chip_data->serdes_type == TYPE_OTHER) {
 		SERDES_DBG_MFD("TYPE_OTHER just need only init i2c\n");
@@ -197,6 +198,10 @@ static const struct udevice_id serdes_of_match[] = {
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96745)
 	{ .compatible = "maxim,max96745",
 		.data = (ulong)&serdes_max96745_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96749)
+	{ .compatible = "maxim,max96749",
+		.data = (ulong)&serdes_max96749_data },
 #endif
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96755)
 	{ .compatible = "maxim,max96755",
