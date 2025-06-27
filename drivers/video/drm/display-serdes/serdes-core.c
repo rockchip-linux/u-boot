@@ -86,18 +86,22 @@ static int dm_i2c_reg_clrset_u8(struct udevice *dev,
 int serdes_reg_read(struct serdes *serdes,
 		    unsigned int reg, unsigned int *val)
 {
-	unsigned int value;
+	int ret;
 
 	if (serdes->chip_data->reg_val_type == REG_8BIT_VAL_8IT)
-		value = dm_i2c_reg_read_u8(serdes->dev, reg);
+		ret = dm_i2c_reg_read_u8(serdes->dev, reg);
 	else
-		value = dm_i2c_reg_read(serdes->dev, reg);
+		ret = dm_i2c_reg_read(serdes->dev, reg);
 
-	*val = value;
-	SERDES_DBG_I2C("%s %s %s Read Reg%04x %04x\n",
-		       __func__, serdes->dev->name,
-		       serdes->dev->name, reg, *val);
-	return 0;
+	if (ret > 0) {
+		*val = ret;
+		ret = 0;
+	}
+
+	SERDES_DBG_I2C("%s %s Read Reg%04x %04x, ret=%d\n",
+		       __func__, serdes->dev->name, reg, *val, ret);
+
+	return ret;
 }
 EXPORT_SYMBOL_GPL(serdes_reg_read);
 
@@ -113,18 +117,14 @@ int serdes_reg_write(struct serdes *serdes, unsigned int reg,
 {
 	int ret = 0;
 
-	SERDES_DBG_I2C("%s %s Write Reg%04x %04x) type=%d\n",
-		       __func__, serdes->dev->name,
-		       reg, val, serdes->chip_data->reg_val_type);
-	if (serdes->chip_data->reg_val_type == REG_8BIT_VAL_8IT) {
+	if (serdes->chip_data->reg_val_type == REG_8BIT_VAL_8IT)
 		ret = dm_i2c_reg_write_u8(serdes->dev, reg, val);
-		if (ret != 0)
-			return ret;
-	} else {
+	else
 		ret = dm_i2c_reg_write(serdes->dev, reg, val);
-		if (ret != 0)
-			return ret;
-	}
+
+	SERDES_DBG_I2C("%s %s Write Reg%04x %04x type=%d, ret=%d\n",
+		       __func__, serdes->dev->name,
+		       reg, val, serdes->chip_data->reg_val_type, ret);
 
 	return ret;
 }
@@ -170,15 +170,13 @@ int serdes_set_bits(struct serdes *serdes, unsigned int reg,
 {
 	int ret = 0;
 
-	SERDES_DBG_I2C("%s %s %s Write Reg%04x %04x) mask=%04x\n",
-		       __func__,
-		       serdes->dev->name,
-		       serdes->dev->name, reg, val, mask);
-
 	if (serdes->chip_data->reg_val_type == REG_8BIT_VAL_8IT)
 		ret = dm_i2c_reg_clrset_u8(serdes->dev, reg, mask, val);
 	else
 		ret = dm_i2c_reg_clrset(serdes->dev, reg, mask, val);
+
+	SERDES_DBG_I2C("%s %s Write Reg%04x %04x mask=%04x, ret=%d\n",
+		       __func__, serdes->dev->name, reg, val, mask, ret);
 
 	return ret;
 }
