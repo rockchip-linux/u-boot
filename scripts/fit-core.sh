@@ -20,6 +20,7 @@ SIG_RECOVERY="${FIT_DIR}/recovery.data2sign"
 SIG_CFG_DIR="${FIT_DIR}/fit_signcfg"
 SIG_CONFIG="${SIG_CFG_DIR}/sign.readonly_config"
 MINIALL_INI="${SIG_CFG_DIR}/MINIALL.ini"
+DTC_TOOL="${SIG_CFG_DIR}/dtc"
 # offs
 OFFS_DATA="0x1200"
 # placeholder address
@@ -770,6 +771,7 @@ function fit_signcfg_export()
 		fi
 		cp ${ARG_INI_LOADER} ${MINIALL_INI}
 		cp .config ${SIG_CONFIG}
+		cp ./scripts/dtc/dtc ${DTC_TOOL}
 
 		mkdir -p ${SIG_CFG_DIR}/test_images/
 		cp uboot.img ${SIG_CFG_DIR}/test_images/
