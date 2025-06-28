@@ -2179,7 +2179,7 @@ static void rockchip_display_secondary_reset(ofnode route_node)
 	ofnode node;
 	int phandle, ret;
 	bool is_ports_node = false;
-	u32 share_mode, axi_id, plane_mask, vp_mask;
+	u32 shared_mode, axi_id, plane_mask, vp_mask;
 
 	ofnode_for_each_subnode(node, route_node) {
 		phandle = ofnode_read_u32_default(node, "connect", -1);
@@ -2224,14 +2224,14 @@ static void rockchip_display_secondary_reset(ofnode route_node)
 		}
 		crtc = (struct rockchip_crtc *)dev_get_driver_data(crtc_dev);
 
-		share_mode = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,share-mode-val", 0);
-		if (share_mode != ROCKCHIP_VOP2_SHARE_MODE_SECONDARY) {
-			printf("error: VOP share mode config error: %d\n", share_mode);
+		shared_mode = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,shared-mode-val", 0);
+		if (shared_mode != ROCKCHIP_VOP2_SHARE_MODE_SECONDARY) {
+			printf("error: VOP shared mode config error: %d\n", shared_mode);
 			return;
 		}
-		axi_id = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,share-mode-axi-id", 0);
-		vp_mask = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,share-mode-vp-mask", 0);
-		plane_mask = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,share-mode-plane-mask", 0);
+		axi_id = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,shared-mode-axi-id", 0);
+		vp_mask = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,shared-mode-vp-mask", 0);
+		plane_mask = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,shared-mode-plane-mask", 0);
 
 		if (crtc->funcs->reset)
 			crtc->funcs->reset(crtc_dev, axi_id, vp_mask, plane_mask);
