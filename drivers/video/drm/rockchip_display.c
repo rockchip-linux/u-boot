@@ -2225,7 +2225,7 @@ static void rockchip_display_secondary_reset(ofnode route_node)
 		crtc = (struct rockchip_crtc *)dev_get_driver_data(crtc_dev);
 
 		shared_mode = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,shared-mode", 0);
-		if (shared_mode != ROCKCHIP_VOP2_SHARE_MODE_SECONDARY) {
+		if (shared_mode != ROCKCHIP_VOP2_SHARED_MODE_SECONDARY) {
 			printf("error: VOP shared mode config error: %d\n", shared_mode);
 			return;
 		}
