@@ -199,11 +199,14 @@ int regulator_set_enable(struct udevice *dev, bool enable)
 	ret = ops->set_enable(dev, enable);
 	if (!ret) {
 		if (uc_pdata->ramp_delay && !old_enable && enable) {
-			int uV = regulator_get_value(dev);
+			if (uc_pdata->enable_ramp_delay) {
+				udelay(uc_pdata->enable_ramp_delay);
+			} else {
+				int uV = regulator_get_value(dev);
 
-			if (uV > 0) {
-				regulator_set_value_ramp_delay(dev, 0, uV,
-							       uc_pdata->ramp_delay);
+				if (uV > 0)
+					regulator_set_value_ramp_delay(dev, 0,
+						uV, uc_pdata->ramp_delay);
 			}
 		}
 	}
@@ -589,6 +592,8 @@ static int regulator_pre_probe(struct udevice *dev)
 						-ENODATA);
 	uc_pdata->ramp_delay = dev_read_u32_default(dev, "regulator-ramp-delay",
 						    0);
+	uc_pdata->enable_ramp_delay =
+		dev_read_u32_default(dev, "regulator-enable-ramp-delay", 0);
 	uc_pdata->force_off = dev_read_bool(dev, "regulator-force-boot-off");
 
 	node = dev_read_subnode(dev, "regulator-state-mem");

@@ -178,6 +178,7 @@ struct dm_regulator_uclass_plat {
 	int min_uA;
 	int max_uA;
 	unsigned int ramp_delay;
+	unsigned int enable_ramp_delay;
 	bool always_on;
 	bool boot_on;
 	bool force_off;
