@@ -10,15 +10,28 @@
 		u-boot,spl-boot-order = "same-as-spl", &sdmmc, &sdhci;
 	};
 
+	adc-keys {
+		compatible = "adc-keys";
+		io-channels = <&saradc 1>;
+		io-channel-names = "buttons";
+		keyup-threshold-microvolt = <1800000>;
+		bootph-all;
+		status = "okay";
+
+		volumeup-key {
+			bootph-all;
+			linux,code = <KEY_VOLUMEUP>;
+			label = "volume up";
+			press-threshold-microvolt = <1750>;
+		};
+	};
+
 	dmc {
 		compatible = "rockchip,rk3576-dmc";
 		bootph-all;
 	};
 };
 
-&cru {
-	bootph-all;
-};
 
 &emmc_bus8 {
 	bootph-pre-ram;
@@ -45,30 +58,9 @@
 	bootph-some-ram;
 };
 
-&ioc_grf {
-	bootph-all;
-};
-
-&pcfg_pull_none {
-	bootph-all;
-};
-
-&pcfg_pull_up {
-	bootph-all;
-};
-
-&pcfg_pull_up_drv_level_2 {
-	bootph-pre-ram;
-	bootph-some-ram;
-};
-
 &pcfg_pull_up_drv_level_3 {
 	bootph-pre-ram;
 	bootph-some-ram;
-};
-
-&pinctrl {
-	bootph-all;
 };
 
 &pmu1_grf {
@@ -112,20 +104,215 @@
 	bootph-some-ram;
 };
 
+&xin24m {
+	bootph-all;
+};
+
+&optee {
+	bootph-all;
+	status = "okay";
+};
+//-=--------------------------------------
+
+&firmware {
+	bootph-all;
+};
+
+&gpio0 {
+	bootph-all;
+	status = "okay";
+};
+
+&gpio1 {
+	bootph-all;
+	status = "okay";
+};
+
+&gpio2 {
+	bootph-all;
+	status = "okay";
+};
+
+&gpio3 {
+	bootph-all;
+	status = "okay";
+};
+
+&gpio4 {
+	bootph-all;
+	status = "okay";
+};
+
+&scmi {
+	bootph-all;
+};
+
+&scmi_clk {
+	bootph-all;
+};
+
+&scmi_shmem {
+	bootph-all;
+};
+
 &sys_grf {
 	bootph-all;
+	status = "okay";
+};
+
+&ioc_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&cru {
+	bootph-all;
+	status = "okay";
+};
+
+&psci {
+	bootph-all;
+	status = "okay";
 };
 
 &uart0 {
 	bootph-all;
-	clock-frequency = <24000000>;
+	status = "okay";
 };
 
-&uart0m0_xfer {
-	bootph-pre-sram;
-	bootph-pre-ram;
+#if 0
+&crypto {
+	bootph-all;
+	status = "okay";
 };
 
-&xin24m {
+&hw_decompress {
+	bootph-all;
+	status = "okay";
+};
+
+&rng {
+	bootph-all;
+	status = "okay";
+};
+#endif
+
+&saradc {
+	bootph-all;
+	status = "okay";
+};
+
+&sdhci {
+	bus-width = <8>;
+	bootph-all;
+	mmc-hs400-1_8v;
+	mmc-hs400-enhanced-strobe;
+	non-removable;
+	status = "okay";
+};
+
+#if 0
+&sdmmc {
+	bus-width = <4>;
+	bootph-all;
+	status = "okay";
+};
+
+&sdmmc0 {
 	bootph-all;
 };
+
+&sdmmc0_bus4 {
+	bootph-all;
+};
+
+&sdmmc0_clk {
+	bootph-all;
+};
+
+&sdmmc0_cmd {
+	bootph-all;
+};
+
+&sdmmc0_det {
+	bootph-all;
+};
+
+&sdmmc0_pwren {
+	bootph-all;
+};
+#endif
+
+
+&pinctrl {
+	bootph-all;
+};
+
+&pcfg_pull_up_drv_level_2 {
+	bootph-all;
+};
+
+&pcfg_pull_up {
+	bootph-all;
+};
+
+&pcfg_pull_none {
+	bootph-all;
+};
+
+&php_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&pipe_phy0_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&pipe_phy1_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&usb_grf {
+	bootph-all;
+};
+
+&usbdpphy_grf {
+	bootph-all;
+};
+
+#if 0
+&usbdp_phy {
+	bootph-all;
+	status = "okay";
+};
+
+&usbdp_phy_u3 {
+	bootph-all;
+	status = "okay";
+};
+
+&usb2phy_grf {
+	bootph-all;
+};
+
+
+&u2phy0 {
+	bootph-all;
+	status = "okay";
+};
+
+&u2phy0_otg {
+	bootph-all;
+	status = "okay";
+};
+#endif
+
+&ufs {
+	bootph-all;
+	status = "okay";
+};
+
+

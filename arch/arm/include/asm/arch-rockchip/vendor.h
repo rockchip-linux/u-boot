@@ -6,6 +6,8 @@
 #ifndef __ROCKCHIP_VENDOR_
 #define __ROCKCHIP_VENDOR_
 
+#include <blk.h>
+
 #define RSV_ID				0
 #define SN_ID				1
 #define WIFI_MAC_ID			2
@@ -25,6 +27,7 @@
 #define LAN_RGMII_DL_ID			16
 #define EINK_VCOM_ID			17
 #define FIRMWARE_VER_ID			18
+#define MULTI_MODULE_KEY_ID		1068
 
 struct vendor_item {
 	u16  id;
