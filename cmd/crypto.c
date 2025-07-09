@@ -79,7 +79,9 @@ const struct hash_test_data hash_data_set[] = {
 };
 
 const struct rsa_test_data rsa_data_set[] = {
+#if CONFIG_IS_ENABLED(ROCKCHIP_RSA)
 	RSA_TEST(2048, rsa2048_key_der, rsa_hash_data, rsa2048_sig_data),
+#endif
 };
 
 static void dump_hex(const char *name, const u8 *array, u32 len)
@@ -239,7 +241,7 @@ static int rsa_test(void)
 	ulong start, time_cost;
 	u32 key_bytes;
 	u8 out[512];
-	int rc, i;
+	int rc = 0, i;
 
 	memset(out, 0xff, sizeof(out));
 
