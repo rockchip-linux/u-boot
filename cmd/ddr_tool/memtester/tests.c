@@ -15,6 +15,7 @@
  */
 
 #include <common.h>
+#include <stdio.h>
 #include "memtester.h"
 #include "sizes.h"
 #include "types.h"

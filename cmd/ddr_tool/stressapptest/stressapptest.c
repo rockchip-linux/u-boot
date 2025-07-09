@@ -21,9 +21,11 @@
 #include <cpu_func.h>
 #include <div64.h>
 #include <malloc.h>
+#include <time.h>
 #include <rand.h>
 #include <linux/delay.h>
 #include <asm/arch-rockchip/smccc.h>
+#include <asm/global_data.h>
 #include "stressapptest.h"
 #include "../ddr_tool_common.h"
 

@@ -5,11 +5,20 @@
 
 #include <common.h>
 #include <cpu_func.h>
+#include <asm/global_data.h>
 #include <linux/delay.h>
 #include <power/regulator.h>
 #include "ddr_tool_common.h"
+#include <bidram.h>
 
+extern struct bidram plat_bidram;
 DECLARE_GLOBAL_DATA_PTR;
+
+struct bi_dram {
+	u64 start;
+	u64 size;
+};
+static struct bi_dram post_dram[CONFIG_NR_DRAM_BANKS];
 
 void write_buf_to_ddr(u32 *buf, u32 buf_len, ulong start_adr, ulong length)
 {
@@ -73,18 +82,47 @@ void print_memory(void *addr, ulong size)
 /* print available address for ddr testing in uboot */
 void get_print_available_addr(ulong *start_adr, ulong *length, int print_en)
 {
-	u32 i, max_bank = 0;
+	u32 i, j, max_bank = 0;
+	u32 sp_bank = 0;
 
+	/* find sp at which bank */
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
 		if (gd->bd->bi_dram[i].start)
+			sp_bank = i;
+	}
+
+	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
+		post_dram[i].start = 0;
+		post_dram[i].size = 0;
+	}
+
+	/* 0 - 4GB */
+	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
+		if (!gd->bd->bi_dram[i].size)
+			break;
+		post_dram[i].start = gd->bd->bi_dram[i].start;
+		post_dram[i].size = gd->bd->bi_dram[i].size;
+	}
+
+	/* 4GB+ */
+	for (j = 0; j < CONFIG_NR_DRAM_BANKS; j++) {
+		if (!plat_bidram.size_u64[j])
+			break;
+		post_dram[i].start = plat_bidram.base_u64[j];
+		post_dram[i].size = plat_bidram.size_u64[j];
+		i++;
+	}
+
+	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
+		if (post_dram[i].size)
 			max_bank = i + 1;
 		start_adr[i] = 0;
 		length[i] = 0;
 	}
 
 	for (i = 0; i < max_bank; i++) {
-		start_adr[i] = gd->bd->bi_dram[i].start;
-		length[i] = gd->bd->bi_dram[i].size;
+		start_adr[i] = post_dram[i].start;
+		length[i] = post_dram[i].size;
 #if defined(CONFIG_ROCKCHIP_RV1126)
 		/* On RV1126, writing data to 0x00600000 will cause a crash. */
 		if (start_adr[i] == 0 && length[i] > 0x00700000) {
@@ -94,8 +132,8 @@ void get_print_available_addr(ulong *start_adr, ulong *length, int print_en)
 #endif
 	}
 
-	length[max_bank - 1] = (gd->start_addr_sp - RESERVED_SP_SIZE -
-			start_adr[max_bank - 1]) & ~0xfff;
+	length[sp_bank] = (gd->start_addr_sp - RESERVED_SP_SIZE -
+			start_adr[sp_bank]) & ~0xfff;
 	if (print_en) {
 		printf("available memory for test:\n");
 		printf("	start		 end	length\n");

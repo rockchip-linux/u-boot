@@ -18,6 +18,7 @@
 #include <common.h>
 #include <command.h>
 #include <console.h>
+#include <asm/global_data.h>
 #include "sizes.h"
 #include "types.h"
 #include "tests.h"
