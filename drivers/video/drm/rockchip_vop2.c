@@ -1850,7 +1850,7 @@ static enum vop_csc_format vop2_convert_csc_mode(enum drm_color_encoding color_e
 		if (full_range) {
 			csc_mode = bit_depth == CSC_13BIT_DEPTH ? CSC_BT709F_13BIT : CSC_BT601F;
 			if (bit_depth != CSC_13BIT_DEPTH)
-				printf("Unsupported bt709f at 10bit csc depth, use bt601f instead\n");
+				pr_info("Unsupported bt709f at 10bit csc depth, use bt601f instead\n");
 		} else {
 			csc_mode = CSC_BT709L;
 		}
@@ -1860,7 +1860,7 @@ static enum vop_csc_format vop2_convert_csc_mode(enum drm_color_encoding color_e
 		if (full_range) {
 			csc_mode = bit_depth == CSC_13BIT_DEPTH ? CSC_BT2020F_13BIT : CSC_BT601F;
 			if (bit_depth != CSC_13BIT_DEPTH)
-				printf("Unsupported bt2020f at 10bit csc depth, use bt601f instead\n");
+				pr_info("Unsupported bt2020f at 10bit csc depth, use bt601f instead\n");
 		} else {
 			csc_mode = bit_depth == CSC_13BIT_DEPTH ? CSC_BT2020L_13BIT : CSC_BT2020L;
 		}
