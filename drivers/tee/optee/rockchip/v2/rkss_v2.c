@@ -80,13 +80,18 @@
 #define RKSS_BACKUP_NUM			2
 #define RKSS_TAG			0x524B5353
 
+#define SYNC_NONE			0
+#define SYNC_DOING			1
+#define SYNC_DONE			2
+
 struct rkss_file_header {
 	uint32_t	tag;
 	uint32_t	version;
 	uint32_t	backup_count;
 	uint16_t	backup_index;
 	uint16_t	backup_dirty;
-	uint8_t		reserve[496];
+	uint16_t	sync_flag;
+	uint8_t		reserve[494];
 };
 struct rkss_file_table {
 	uint32_t	size;
@@ -723,6 +728,13 @@ static int rkss_write_back_ptable(int fd, struct rkss_file_table *pfile_table)
 static int rkss_storage_write(void)
 {
 	int ret, i;
+	int dirty_count = 0;
+	int dirty_num = 0;
+
+	for (i = 0; i < RKSS_MAX_AREA_NUM; i++) {
+		if (rkss_info[i].header != NULL && rkss_info[i].header->backup_dirty == 1)
+			dirty_count++;
+	}
 
 	for (i = 0; i < RKSS_MAX_AREA_NUM; i++) {
 		if (rkss_info[i].header != NULL && rkss_info[i].header->backup_dirty == 1) {
@@ -732,6 +744,14 @@ static int rkss_storage_write(void)
 			if (rkss_info[i].header->backup_index >= RKSS_BACKUP_NUM)
 				rkss_info[i].header->backup_index = 0;
 			rkss_info[i].header->backup_dirty = 0;
+			dirty_num++;
+			rkss_info[i].header->sync_flag = SYNC_NONE;
+			if (dirty_count > 1) {
+				if (dirty_num == dirty_count)
+					rkss_info[i].header->sync_flag = SYNC_DONE;
+				else
+					rkss_info[i].header->sync_flag = SYNC_DOING;
+			}
 
 			if (rkss_info[i].header->backup_count == 0xffffffff) {
 				rkss_info[i].header->backup_count = 1;
@@ -767,6 +787,31 @@ static int rkss_storage_write(void)
 					printf("%s: blk_dwrite failed!\n", __func__);
 					return -1;
 				}
+			}
+		}
+	}
+	return 0;
+}
+
+static int rkss_storage_clean_sync(void)
+{
+	for (int i = 0; i < RKSS_MAX_AREA_NUM; i++) {
+		if (rkss_info[i].header != NULL && rkss_info[i].header->sync_flag != SYNC_NONE) {
+			rkss_info[i].header->backup_count++;
+			rkss_info[i].footer->backup_count = rkss_info[i].header->backup_count;
+			rkss_info[i].header->backup_index++;
+			if (rkss_info[i].header->backup_index >= RKSS_BACKUP_NUM)
+				rkss_info[i].header->backup_index = 0;
+			rkss_info[i].header->backup_dirty = 0;
+			rkss_info[i].header->sync_flag = SYNC_NONE;
+
+			int ret = blk_dwrite(dev_desc,
+					     part_info.start + i * RKSS_SECTION_COUNT * RKSS_BACKUP_NUM +
+					     rkss_info[i].header->backup_index * RKSS_SECTION_COUNT,
+					     RKSS_SECTION_COUNT, rkss_buffer[i]);
+			if (ret != RKSS_SECTION_COUNT) {
+				printf("blk_dwrite fail \n");
+				return -1;
 			}
 		}
 	}
@@ -872,6 +917,50 @@ static int rkss_storage_init(uint32_t area_index)
 				return -1;
 			}
 		}
+	}
+	return 0;
+}
+
+static int rkss_check_sync_done(void)
+{
+	int ret;
+
+	if (rkss_info[0].header->sync_flag == SYNC_DOING &&
+	    rkss_info[1].header->sync_flag != SYNC_DONE) {
+		//rkss_info[0] need rolled back
+		rkss_info[0].header->backup_index++;
+		if (rkss_info[0].header->backup_index >= RKSS_BACKUP_NUM)
+			rkss_info[0].header->backup_index = 0;
+		ret = blk_dread(dev_desc,
+				part_info.start + 0 * RKSS_SECTION_COUNT * RKSS_BACKUP_NUM +
+				rkss_info[0].header->backup_index * RKSS_SECTION_COUNT,
+				RKSS_SECTION_COUNT, rkss_buffer[0]);
+		if (ret != RKSS_SECTION_COUNT) {
+			printf("blk_dread fail! \n");
+			return -1;
+		}
+		if ((rkss_info[0].header->tag != RKSS_TAG) ||
+		    (rkss_info[0].footer->backup_count != rkss_info[0].header->backup_count)) {
+			printf("check header fail! \n");
+			return -1;
+		}
+
+		rkss_info[0].header->backup_index++;
+		if (rkss_info[0].header->backup_index >= RKSS_BACKUP_NUM)
+			rkss_info[0].header->backup_index = 0;
+		ret = blk_dwrite(dev_desc,
+				 part_info.start + 0 * RKSS_SECTION_COUNT * RKSS_BACKUP_NUM +
+				 rkss_info[0].header->backup_index * RKSS_SECTION_COUNT,
+				 RKSS_SECTION_COUNT, rkss_buffer[0]);
+		if (ret != RKSS_SECTION_COUNT) {
+			printf("blk_dwrite fail! \n");
+			return -1;
+		}
+	}
+	ret = rkss_storage_clean_sync();
+	if (ret) {
+		printf("clean sync flag fail! \n");
+		return -1;
 	}
 	return 0;
 }
@@ -1339,6 +1428,9 @@ int tee_supp_rk_fs_init_v2(void)
 			return -1;
 	}
 
+	if (rkss_check_sync_done() < 0)
+		return -1;
+
 #ifdef DEBUG_RKSS
 	rkss_dump_ptable();
 	rkss_dump_usedflags();
@@ -1368,6 +1460,8 @@ int tee_supp_rk_fs_process_v2(size_t num_params,
 	case OPTEE_MRF_CLOSE:
 		debug(">>>>>>> [%d] OPTEE_MRF_CLOSE!\n", rkss_step++);
 		ret = ree_fs_new_close(num_params, params);
+		rkss_storage_write();
+		rkss_storage_clean_sync();
 		break;
 	case OPTEE_MRF_READ:
 		debug(">>>>>>> [%d] OPTEE_MRF_READ!\n", rkss_step++);
@@ -1384,10 +1478,14 @@ int tee_supp_rk_fs_process_v2(size_t num_params,
 	case OPTEE_MRF_REMOVE:
 		debug(">>>>>>> [%d] OPTEE_MRF_REMOVE!\n", rkss_step++);
 		ret = ree_fs_new_remove(num_params, params);
+		rkss_storage_write();
+		rkss_storage_clean_sync();
 		break;
 	case OPTEE_MRF_RENAME:
 		debug(">>>>>>> [%d] OPTEE_MRF_RENAME!\n", rkss_step++);
 		ret = ree_fs_new_rename(num_params, params);
+		rkss_storage_write();
+		rkss_storage_clean_sync();
 		break;
 	case OPTEE_MRF_OPENDIR:
 		debug(">>>>>>> [%d] OPTEE_MRF_OPENDIR!\n", rkss_step++);
@@ -1405,6 +1503,5 @@ int tee_supp_rk_fs_process_v2(size_t num_params,
 		ret = TEE_ERROR_BAD_PARAMETERS;
 		break;
 	}
-	rkss_storage_write();
 	return ret;
 }
