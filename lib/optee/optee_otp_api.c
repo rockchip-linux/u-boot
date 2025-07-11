@@ -34,6 +34,7 @@
 #define STORAGE_CMD_OEM_HDCP_KEY_IS_WRITTEN		22
 #define STORAGE_CMD_SET_OEM_HDCP_KEY_MASK		23
 #define STORAGE_CMD_WRITE_OEM_ENCRYPT_DATA		24
+#define STORAGE_CMD_OEM_ENCRYPT_DATA_IS_WRITTEN		25
 
 static struct udevice *tee;
 static uint32_t session;
@@ -222,6 +223,34 @@ uint32_t optee_write_oem_encrypt_data(uint32_t *buf, uint32_t length)
 {
 	return optee_base_otp_operation(STORAGE_CMD_WRITE_OEM_ENCRYPT_DATA,
 					true, buf, length);
+}
+
+uint32_t optee_oem_encrypt_data_is_written(uint8_t *value)
+{
+	uint32_t ret;
+	struct tee_param param[1];
+
+	if (!value)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	*value = 0;
+
+	if (!tee) {
+		if (otp_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_OUTPUT;
+	ret = invoke_func(STORAGE_CMD_OEM_ENCRYPT_DATA_IS_WRITTEN,
+			  ARRAY_SIZE(param), param);
+	if (ret == TEE_SUCCESS)
+		*value = param[0].u.value.a;
+
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
 }
 
 uint32_t optee_write_oem_ns_otp(uint32_t byte_off, uint8_t *byte_buf, uint32_t byte_len)
