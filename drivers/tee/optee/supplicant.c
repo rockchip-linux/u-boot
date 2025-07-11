@@ -150,6 +150,11 @@ void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,
 	case OPTEE_MSG_RPC_CMD_I2C_TRANSFER:
 		optee_suppl_cmd_i2c_transfer(arg);
 		break;
+#ifdef CONFIG_ARCH_ROCKCHIP
+	case OPTEE_MSG_RPC_CMD_LOAD_TA:
+		optee_suppl_cmd_load_ta(arg);
+		break;
+#endif
 	default:
 		arg->ret = TEE_ERROR_NOT_IMPLEMENTED;
 	}
