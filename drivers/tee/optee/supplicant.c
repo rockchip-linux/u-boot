@@ -109,11 +109,15 @@ void *tee_supp_param_to_va(struct optee_msg_param *param)
 	case OPTEE_MSG_ATTR_TYPE_RMEM_OUTPUT:
 	case OPTEE_MSG_ATTR_TYPE_RMEM_INOUT:
 		shm = (struct tee_shm *)(size_t)param->u.rmem.shm_ref;
+		if (!shm)
+			return NULL;
 		return (uint8_t *)shm->addr + param->u.rmem.offs;
 	case OPTEE_MSG_ATTR_TYPE_TMEM_INPUT:
 	case OPTEE_MSG_ATTR_TYPE_TMEM_OUTPUT:
 	case OPTEE_MSG_ATTR_TYPE_TMEM_INOUT:
 		shm = (struct tee_shm *)(size_t)param->u.tmem.shm_ref;
+		if (!shm)
+			return NULL;
 		return (uint8_t *)shm->addr;
 	default:
 		return NULL;
