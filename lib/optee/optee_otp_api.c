@@ -35,6 +35,9 @@
 #define STORAGE_CMD_SET_OEM_HDCP_KEY_MASK		23
 #define STORAGE_CMD_WRITE_OEM_ENCRYPT_DATA		24
 #define STORAGE_CMD_OEM_ENCRYPT_DATA_IS_WRITTEN		25
+#define STORAGE_CMD_WRITE_ESCK_KEY			27
+#define STORAGE_CMD_ESCK_KEY_IS_WRITTEN			28
+#define STORAGE_CMD_SET_ESCK_KEY_MASK			29
 
 static struct udevice *tee;
 static uint32_t session;
@@ -525,6 +528,102 @@ uint32_t optee_set_oem_hdcp_key_mask(enum RK_HDCP_KEYID key_id)
 	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
 	param[0].u.value.a = key_id;
 	ret = invoke_func(STORAGE_CMD_SET_OEM_HDCP_KEY_MASK,
+			  ARRAY_SIZE(param), param);
+
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
+}
+
+uint32_t optee_write_esck_key(enum RK_ESCK_KEYID key_id,
+			      uint8_t *byte_buf, uint32_t byte_len)
+{
+	int rc = 0;
+	uint32_t ret;
+	uint32_t length = byte_len;
+	struct tee_shm *shm_buf;
+	struct tee_param param[2];
+
+	if (!byte_buf || !length)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!tee) {
+		if (otp_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	rc = tee_shm_alloc(tee, length,
+			   TEE_SHM_ALLOC, &shm_buf);
+	if (rc)
+		return TEE_ERROR_OUT_OF_MEMORY;
+
+	memcpy(shm_buf->addr, byte_buf, length);
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
+	param[0].u.value.a = key_id;
+	param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	param[1].u.memref.shm = shm_buf;
+	param[1].u.memref.size = length;
+
+	ret = invoke_func(STORAGE_CMD_WRITE_ESCK_KEY,
+			  ARRAY_SIZE(param), param);
+	if (ret != TEE_SUCCESS)
+		goto exit;
+
+exit:
+	tee_shm_free(shm_buf);
+
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
+}
+
+uint32_t optee_esck_key_is_written(enum RK_ESCK_KEYID key_id, uint8_t *value)
+{
+	uint32_t ret;
+	struct tee_param param[1];
+
+	if (!value)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	*value = 0xFF;
+
+	if (!tee) {
+		if (otp_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INOUT;
+	param[0].u.value.a = key_id;
+	ret = invoke_func(STORAGE_CMD_ESCK_KEY_IS_WRITTEN,
+			  ARRAY_SIZE(param), param);
+	if (ret == TEE_SUCCESS)
+		*value = param[0].u.value.b;
+
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
+}
+
+uint32_t optee_set_esck_key_mask(enum RK_ESCK_KEYID key_id)
+{
+	uint32_t ret;
+	struct tee_param param[1];
+
+	if (!tee) {
+		if (otp_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
+	param[0].u.value.a = key_id;
+	ret = invoke_func(STORAGE_CMD_SET_ESCK_KEY_MASK,
 			  ARRAY_SIZE(param), param);
 
 	tee_close_session(tee, session);
