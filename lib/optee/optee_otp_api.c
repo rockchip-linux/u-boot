@@ -535,7 +535,7 @@ uint32_t optee_set_oem_hdcp_key_mask(enum RK_HDCP_KEYID key_id)
 
 void optee_select_security_level(void)
 {
-#if (CONFIG_OPTEE_SECURITY_LEVEL > 0)
+#if (CONFIG_OPTEE_SECURITY_LEVEL)
 	uint32_t res;
 
 	res = optee_check_security_level_flag(CONFIG_OPTEE_SECURITY_LEVEL);
@@ -546,6 +546,8 @@ void optee_select_security_level(void)
 
 	if (res == TEE_SUCCESS)
 		debug("optee select security level success!");
+	else if (TeecResult == TEEC_ERROR_NOT_SUPPORTED)
+		debug("optee not support security level!");
 	else
 		panic("optee select security level fail!");
 
