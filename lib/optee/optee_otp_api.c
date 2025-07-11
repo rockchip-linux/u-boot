@@ -33,6 +33,7 @@
 #define STORAGE_CMD_WRITE_OEM_HDCP_KEY			21
 #define STORAGE_CMD_OEM_HDCP_KEY_IS_WRITTEN		22
 #define STORAGE_CMD_SET_OEM_HDCP_KEY_MASK		23
+#define STORAGE_CMD_WRITE_OEM_ENCRYPT_DATA		24
 
 static struct udevice *tee;
 static uint32_t session;
@@ -215,6 +216,12 @@ uint32_t optee_ta_encryption_key_is_written(uint8_t *value)
 	tee = NULL;
 
 	return ret;
+}
+
+uint32_t optee_write_oem_encrypt_data(uint32_t *buf, uint32_t length)
+{
+	return optee_base_otp_operation(STORAGE_CMD_WRITE_OEM_ENCRYPT_DATA,
+					true, buf, length);
 }
 
 uint32_t optee_write_oem_ns_otp(uint32_t byte_off, uint8_t *byte_buf, uint32_t byte_len)

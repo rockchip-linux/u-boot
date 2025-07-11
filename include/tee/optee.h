@@ -145,6 +145,7 @@ uint32_t optee_check_security_level_flag(uint8_t flag);
 uint32_t optee_write_oem_huk(uint32_t *buf, uint32_t length);
 uint32_t optee_write_ta_encryption_key(uint32_t *buf, uint32_t length);
 uint32_t optee_ta_encryption_key_is_written(uint8_t *value);
+uint32_t optee_write_oem_encrypt_data(uint32_t *buf, uint32_t length);
 uint32_t optee_write_oem_ns_otp(uint32_t byte_off, uint8_t *byte_buf, uint32_t byte_len);
 uint32_t optee_read_oem_ns_otp(uint32_t byte_off, uint8_t *byte_buf, uint32_t byte_len);
 uint32_t optee_write_oem_otp_key(enum RK_OEM_OTP_KEYID key_id,
