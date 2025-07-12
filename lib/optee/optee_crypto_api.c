@@ -18,6 +18,7 @@
 
 #define CRYPTO_SERVICE_CMD_OEM_OTP_KEY_PHYS_CIPHER	2
 #define CRYPTO_SERVICE_CMD_FW_KEY_PHYS_CIPHER		7
+#define CRYPTO_SERVICE_CMD_VERIFY_CONFIG_IP		9
 
 static struct udevice *tee;
 static uint32_t session;
@@ -242,6 +243,46 @@ uint32_t optee_fw_key_cipher(enum RK_FW_KEYID key_id, rk_cipher_config *config,
 				ARRAY_SIZE(param), param);
 
 	crypto_invalidate_cacheline(dst_phys_addr, len);
+
+	tee_shm_free(shm_buf);
+
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
+}
+
+uint32_t optee_verify_config_ip(char *licence_str)
+{
+	int rc = 0;
+	uint32_t ret;
+	uint32_t length;
+	struct tee_shm *shm_buf;
+	struct tee_param param[1];
+
+	if (!licence_str)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!tee) {
+		if (crypto_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	length = strlen(licence_str);
+	rc = tee_shm_alloc(tee, length,
+			   TEE_SHM_ALLOC, &shm_buf);
+	if (rc)
+		return TEE_ERROR_OUT_OF_MEMORY;
+
+	memcpy(shm_buf->addr, licence_str, length);
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	param[0].u.memref.shm = shm_buf;
+	param[0].u.memref.size = length;
+
+	ret = invoke_func(CRYPTO_SERVICE_CMD_VERIFY_CONFIG_IP,
+			  ARRAY_SIZE(param), param);
 
 	tee_shm_free(shm_buf);
 
