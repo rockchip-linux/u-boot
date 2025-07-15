@@ -1131,6 +1131,106 @@ static int display_logo(struct display_state *state)
 	return 0;
 }
 
+static int display_bmp(struct display_state *state)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	const struct rockchip_crtc *crtc = crtc_state->crtc;
+	const struct rockchip_crtc_funcs *crtc_funcs = crtc->funcs;
+	struct connector_state *conn_state = &state->conn_state;
+	struct overscan *overscan = &conn_state->overscan;
+	struct logo_info *logo = &state->logo;
+	u32 crtc_x, crtc_y, crtc_w, crtc_h;
+	u32 overscan_w, overscan_h;
+	int hdisplay, vdisplay, ret;
+
+	if (!state->is_init)
+		return -ENODEV;
+
+	switch (logo->bpp) {
+	case 16:
+		crtc_state->format = ROCKCHIP_FMT_RGB565;
+		break;
+	case 24:
+		crtc_state->format = ROCKCHIP_FMT_RGB888;
+		break;
+	case 32:
+		crtc_state->format = ROCKCHIP_FMT_ARGB8888;
+		break;
+	default:
+		printf("can't support bmp bits[%d]\n", logo->bpp);
+		return -EINVAL;
+	}
+	hdisplay = conn_state->mode.crtc_hdisplay;
+	vdisplay = conn_state->mode.vdisplay;
+	crtc_state->src_rect.w = logo->width;
+	crtc_state->src_rect.h = logo->height;
+	crtc_state->src_rect.x = 0;
+	crtc_state->src_rect.y = 0;
+	crtc_state->ymirror = logo->ymirror;
+	crtc_state->rb_swap = 0;
+
+	crtc_state->dma_addr = (u32)(unsigned long)logo->mem + logo->offset;
+	crtc_state->xvir = ALIGN(crtc_state->src_rect.w * logo->bpp, 32) >> 5;
+
+	if (state->logo_mode == ROCKCHIP_DISPLAY_FULLSCREEN) {
+		crtc_state->crtc_rect.x = 0;
+		crtc_state->crtc_rect.y = 0;
+		crtc_state->crtc_rect.w = hdisplay;
+		crtc_state->crtc_rect.h = vdisplay;
+	} else {
+		if (crtc_state->src_rect.w >= hdisplay) {
+			crtc_state->crtc_rect.x = 0;
+			crtc_state->crtc_rect.w = hdisplay;
+		} else {
+			crtc_state->crtc_rect.x = (hdisplay - crtc_state->src_rect.w) / 2;
+			crtc_state->crtc_rect.w = crtc_state->src_rect.w;
+		}
+
+		if (crtc_state->src_rect.h >= vdisplay) {
+			crtc_state->crtc_rect.y = 0;
+			crtc_state->crtc_rect.h = vdisplay;
+		} else {
+			crtc_state->crtc_rect.y = (vdisplay - crtc_state->src_rect.h) / 2;
+			crtc_state->crtc_rect.h = crtc_state->src_rect.h;
+		}
+	}
+
+	/*
+	 * For some platforms, such as RK3576, use the win scale instead
+	 * of the post scale to configure overscan parameters, because the
+	 * sharp/post scale/split functions are mutually exclusice.
+	 */
+	if (crtc_state->overscan_by_win_scale) {
+		overscan_w = crtc_state->crtc_rect.w * (200 - overscan->left_margin * 2) / 200;
+		overscan_h = crtc_state->crtc_rect.h * (200 - overscan->top_margin * 2) / 200;
+
+		crtc_x = crtc_state->crtc_rect.x + overscan_w / 2;
+		crtc_y = crtc_state->crtc_rect.y + overscan_h / 2;
+		crtc_w = crtc_state->crtc_rect.w - overscan_w;
+		crtc_h = crtc_state->crtc_rect.h - overscan_h;
+
+		crtc_state->crtc_rect.x = crtc_x;
+		crtc_state->crtc_rect.y = crtc_y;
+		crtc_state->crtc_rect.w = crtc_w;
+		crtc_state->crtc_rect.h = crtc_h;
+	}
+
+	if (crtc_funcs->plane_check) {
+		ret = crtc_funcs->plane_check(state);
+		if (ret)
+			return ret;
+	}
+
+	ret = display_set_plane(state, 0);
+	if (ret)
+		return ret;
+
+	if (crtc_funcs->enable)
+		crtc_funcs->enable(state);
+
+	return 0;
+}
+
 static int get_crtc_id(ofnode connect, bool is_ports_node)
 {
 	struct device_node *port_node;
@@ -1661,7 +1761,7 @@ int rockchip_show_bmp(const char *bmp)
 		s->logo.mode = s->charge_logo_mode;
 		if (load_bmp_logo(&s->logo, bmp))
 			continue;
-		ret = display_logo(s);
+		ret = display_bmp(s);
 	}
 
 	return ret;
