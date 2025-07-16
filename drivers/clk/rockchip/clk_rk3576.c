@@ -37,6 +37,7 @@ static struct rockchip_pll_rate_table rk3576_24m_pll_rates[] = {
 	RK3588_PLL_RATE(786000000, 1, 131, 2, 0),
 	RK3588_PLL_RATE(742500000, 4, 495, 2, 0),
 	RK3588_PLL_RATE(722534400, 8, 963, 2, 24850),
+	RK3588_PLL_RATE(610400000, 3, 305, 2, 13107),
 	RK3588_PLL_RATE(600000000, 2, 200, 2, 0),
 	RK3588_PLL_RATE(594000000, 2, 198, 2, 0),
 	RK3588_PLL_RATE(200000000, 3, 400, 4, 0),
@@ -61,6 +62,32 @@ static struct rockchip_pll_clock rk3576_pll_clks[] = {
 	[PPLL] = PLL(pll_rk3588, PLL_PPLL, RK3576_PMU_PLL_CON(128),
 		     RK3576_MODE_CON0, 10, 15, 0, rk3576_24m_pll_rates),
 };
+
+#ifndef CONFIG_SPL_BUILD
+#define RK3576_CLK_DUMP(_id, _name, _iscru)	\
+{						\
+	.id = _id,				\
+	.name = _name,				\
+	.is_cru = _iscru,			\
+}
+
+static const struct rk3576_clk_info clks_dump[] = {
+	RK3576_CLK_DUMP(PLL_BPLL, "bpll", true),
+	RK3576_CLK_DUMP(PLL_LPLL, "lpll", true),
+	RK3576_CLK_DUMP(PLL_VPLL, "vpll", true),
+	RK3576_CLK_DUMP(PLL_AUPLL, "aupll", true),
+	RK3576_CLK_DUMP(PLL_CPLL, "cpll", true),
+	RK3576_CLK_DUMP(PLL_GPLL, "gpll", true),
+	RK3576_CLK_DUMP(PLL_PPLL, "ppll", true),
+	RK3576_CLK_DUMP(ACLK_BUS_ROOT, "aclk_bus_root", true),
+	RK3576_CLK_DUMP(PCLK_BUS_ROOT, "pclk_bus_root", true),
+	RK3576_CLK_DUMP(HCLK_BUS_ROOT, "hclk_bus_root", true),
+	RK3576_CLK_DUMP(ACLK_TOP, "aclk_top", true),
+	RK3576_CLK_DUMP(ACLK_TOP_MID, "aclk_top_mid", true),
+	RK3576_CLK_DUMP(PCLK_TOP_ROOT, "pclk_top", true),
+	RK3576_CLK_DUMP(HCLK_TOP, "hclk_top", true),
+};
+#endif
 
 #ifdef CONFIG_SPL_BUILD
 #ifndef BITS_WITH_WMASK
@@ -1123,7 +1150,7 @@ static ulong rk3576_dclk_vop_get_clk(struct rk3576_clk_priv *priv, ulong clk_id)
 	return DIV_TO_RATE(parent, div);
 }
 
-#define RK3576_VOP_PLL_LIMIT_FREQ 600000000
+#define RK3576_VOP_PLL_LIMIT_FREQ 594000000
 
 static ulong rk3576_dclk_vop_set_clk(struct rk3576_clk_priv *priv,
 				     ulong clk_id, ulong rate)
@@ -1875,6 +1902,116 @@ static ulong rk3576_uart_set_rate(struct rk3576_clk_priv *priv,
 
 	return rk3576_uart_get_rate(priv, clk_id);
 }
+
+static ulong rk3576_ref_clkout_get_clk(struct rk3576_clk_priv *priv,
+				       ulong clk_id)
+{
+	struct rk3576_cru *cru = priv->cru;
+	u32 reg, con, div, src, p_rate;
+
+	switch (clk_id) {
+	case REF_CLK0_OUT_PLL:
+		reg = 33;
+		break;
+	case REF_CLK1_OUT_PLL:
+		reg = 34;
+		break;
+	case REF_CLK2_OUT_PLL:
+		reg = 35;
+		break;
+	default:
+		return -ENOENT;
+	}
+	con = readl(&cru->clksel_con[reg]);
+	div = (con & REF_CLK0_OUT_PLL_DIV_MASK) >> REF_CLK0_OUT_PLL_DIV_SHIFT;
+	src = (con & REF_CLK0_OUT_PLL_SEL_MASK) >> REF_CLK0_OUT_PLL_SEL_SHIFT;
+	if (src == REF_CLK0_OUT_PLL_SEL_GPLL)
+		p_rate = priv->gpll_hz;
+	else if (src == REF_CLK0_OUT_PLL_SEL_CPLL)
+		p_rate = priv->cpll_hz;
+	else if (src == REF_CLK0_OUT_PLL_SEL_SPLL)
+		p_rate = priv->spll_hz;
+	else if (src == REF_CLK0_OUT_PLL_SEL_AUPLL)
+		p_rate = priv->aupll_hz;
+	else if (src == REF_CLK0_OUT_PLL_SEL_LPLL)
+		p_rate = priv->lpll_hz / 2;
+	else
+		p_rate = OSC_HZ;
+	return DIV_TO_RATE(p_rate, div);
+}
+
+static ulong rk3576_ref_clkout_set_clk(struct rk3576_clk_priv *priv,
+				       ulong clk_id, ulong rate)
+{
+	struct rk3576_cru *cru = priv->cru;
+	ulong p_rate, now, best_rate = 0;
+	u32 i, con, div, best_div = 0, best_sel = 0;
+
+	switch (clk_id) {
+	case REF_CLK0_OUT_PLL:
+		con = 33;
+		break;
+	case REF_CLK1_OUT_PLL:
+		con = 34;
+		break;
+	case REF_CLK2_OUT_PLL:
+		con = 35;
+		break;
+	default:
+		return -ENOENT;
+	}
+
+	for (i = 0; i <= REF_CLK0_OUT_PLL_SEL_OSC; i++) {
+		switch (i) {
+		case REF_CLK0_OUT_PLL_SEL_GPLL:
+			p_rate = priv->gpll_hz;
+			break;
+		case REF_CLK0_OUT_PLL_SEL_CPLL:
+			p_rate = priv->cpll_hz;
+			break;
+		case REF_CLK0_OUT_PLL_SEL_SPLL:
+			p_rate = priv->spll_hz;
+			break;
+		case REF_CLK0_OUT_PLL_SEL_AUPLL:
+			p_rate = priv->aupll_hz;
+			break;
+		case REF_CLK0_OUT_PLL_SEL_LPLL:
+			p_rate = 0;
+			break;
+		case REF_CLK0_OUT_PLL_SEL_OSC:
+			p_rate = OSC_HZ;
+			break;
+		default:
+			printf("do not support this vop pll sel\n");
+			return -EINVAL;
+		}
+
+		div = DIV_ROUND_UP(p_rate, rate);
+		if (div > 255)
+			continue;
+		now = p_rate / div;
+		if (abs(rate - now) < abs(rate - best_rate)) {
+			best_rate = now;
+			best_div = div;
+			best_sel = i;
+		}
+		debug("p_rate=%lu, best_rate=%lu, div=%u, sel=%u\n",
+		      p_rate, best_rate, best_div, best_sel);
+	}
+	if (best_rate) {
+		rk_clrsetreg(&cru->clksel_con[con],
+			     REF_CLK0_OUT_PLL_DIV_MASK |
+			     REF_CLK0_OUT_PLL_SEL_MASK,
+			     best_sel << REF_CLK0_OUT_PLL_SEL_SHIFT |
+			     (best_div - 1) << REF_CLK0_OUT_PLL_DIV_SHIFT);
+	} else {
+		printf("do not support this vop freq %lu\n", rate);
+		return -EINVAL;
+	}
+
+	return rk3576_ref_clkout_get_clk(priv, clk_id);
+}
+
 #endif
 
 static ulong rk3576_ufs_ref_get_rate(struct rk3576_clk_priv *priv, ulong clk_id)
@@ -2043,6 +2180,11 @@ static ulong rk3576_clk_get_rate(struct clk *clk)
 	case DCLK_EBC:
 	case DCLK_EBC_FRAC_SRC:
 		rate = rk3576_dclk_ebc_get_clk(priv, clk->id);
+		break;
+	case REF_CLK0_OUT_PLL:
+	case REF_CLK1_OUT_PLL:
+	case REF_CLK2_OUT_PLL:
+		rate = rk3576_ref_clkout_get_clk(priv, clk->id);
 		break;
 #endif
 	case CLK_REF_UFS_CLKOUT:
@@ -2221,6 +2363,11 @@ static ulong rk3576_clk_set_rate(struct clk *clk, ulong rate)
 	case DCLK_EBC_FRAC_SRC:
 		ret = rk3576_dclk_ebc_set_clk(priv, clk->id, rate);
 		break;
+	case REF_CLK0_OUT_PLL:
+	case REF_CLK1_OUT_PLL:
+	case REF_CLK2_OUT_PLL:
+		ret = rk3576_ref_clkout_set_clk(priv, clk->id, rate);
+		break;
 #endif
 	default:
 		return -ENOENT;
@@ -2390,6 +2537,9 @@ static int rk3576_clk_probe(struct udevice *dev)
 {
 	struct rk3576_clk_priv *priv = dev_get_priv(dev);
 	int ret;
+#if CONFIG_IS_ENABLED(CLK_SCMI)
+	struct clk clk;
+#endif
 
 	priv->sync_kernel = false;
 
@@ -2412,40 +2562,64 @@ static int rk3576_clk_probe(struct udevice *dev)
 	       RK3576_CRU_BASE + RK3576_MODE_CON0);
 	writel(BITS_WITH_WMASK(1, 0x3U, 8),
 	       RK3576_CRU_BASE + RK3576_MODE_CON0);
-	/* init cci */
-	writel(0xffff0000, RK3576_CRU_BASE + RK3576_CCI_CLKSEL_CON(4));
-	rockchip_pll_set_rate(&rk3576_pll_clks[BPLL], priv->cru,
-			      BPLL, LPLL_HZ);
-	if (!priv->armclk_enter_hz) {
-		ret = rockchip_pll_set_rate(&rk3576_pll_clks[LPLL], priv->cru,
-					    LPLL, LPLL_HZ);
-		priv->armclk_enter_hz =
-			rockchip_pll_get_rate(&rk3576_pll_clks[LPLL],
-					      priv->cru, LPLL);
-		priv->armclk_init_hz = priv->armclk_enter_hz;
-		rk_clrsetreg(&priv->cru->litclksel_con[0], CLK_LITCORE_DIV_MASK,
-			     0 << CLK_LITCORE_DIV_SHIFT);
-	}
-	/* init cci */
-	writel(0xffff20cb, RK3576_CRU_BASE + RK3576_CCI_CLKSEL_CON(4));
+	if (!(readl(RK3576_CRU_BASE + RK3576_LITCORE_CLKSEL_CON(0)) & CLK_LITCORE_SEL_MASK)) {
+		/* init cci */
+		writel(0xffff0000, RK3576_CRU_BASE + RK3576_CCI_CLKSEL_CON(4));
+		if (!priv->armclk_enter_hz) {
+			ret = rockchip_pll_set_rate(&rk3576_pll_clks[LPLL], priv->cru,
+						    LPLL, LPLL_HZ);
+			priv->armclk_enter_hz =
+				rockchip_pll_get_rate(&rk3576_pll_clks[LPLL],
+						      priv->cru, LPLL);
+			priv->armclk_init_hz = priv->armclk_enter_hz;
+			rk_clrsetreg(&priv->cru->litclksel_con[0], CLK_LITCORE_DIV_MASK,
+				     0 << CLK_LITCORE_DIV_SHIFT);
+		}
+		/* init cci */
+		writel(0xffff20cb, RK3576_CRU_BASE + RK3576_CCI_CLKSEL_CON(4));
 
-	/* Change bigcore rm from 4 to 3 */
-	writel(0x001c000c, RK3576_BIGCORE_GRF_BASE + 0x3c);
-	writel(0x001c000c, RK3576_BIGCORE_GRF_BASE + 0x44);
-	writel(0x00020002, RK3576_BIGCORE_GRF_BASE + 0x38);
-	udelay(1);
-	writel(0x00020000, RK3576_BIGCORE_GRF_BASE + 0x38);
-	/* Change litcore rm from 4 to 3 */
-	writel(0x001c000c, RK3576_LITCORE_GRF_BASE + 0x3c);
-	writel(0x001c000c, RK3576_LITCORE_GRF_BASE + 0x44);
-	writel(0x00020002, RK3576_LITCORE_GRF_BASE + 0x38);
-	udelay(1);
-	writel(0x00020000, RK3576_LITCORE_GRF_BASE + 0x38);
-	/* Change cci rm form 4 to 3 */
-	writel(0x001c000c, RK3576_CCI_GRF_BASE + 0x54);
+	}
+	if (!(readl(RK3576_CRU_BASE + RK3576_BIGCORE_CLKSEL_CON(0)) & CLK_BIGCORE_SEL_MASK)) {
+		rockchip_pll_set_rate(&rk3576_pll_clks[BPLL], priv->cru,
+		      BPLL, LPLL_HZ);
+		/* Change bigcore rm from 4 to 3 */
+		writel(0x001c000c, RK3576_BIGCORE_GRF_BASE + 0x3c);
+		writel(0x001c000c, RK3576_BIGCORE_GRF_BASE + 0x44);
+		writel(0x00020002, RK3576_BIGCORE_GRF_BASE + 0x38);
+		udelay(1);
+		writel(0x00020000, RK3576_BIGCORE_GRF_BASE + 0x38);
+	}
 #endif
 
+	priv->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+	if (IS_ERR(priv->grf))
+		return PTR_ERR(priv->grf);
+
 	rk3576_clk_init(priv);
+
+#if CONFIG_IS_ENABLED(CLK_SCMI)
+#ifndef CONFIG_SPL_BUILD
+	ret = rockchip_get_scmi_clk(&clk.dev);
+	if (ret) {
+		printf("Failed to get scmi clk dev, ret=%d\n", ret);
+		return ret;
+	}
+	if (!priv->armclk_enter_hz) {
+		clk.id = ARMCLK_L;
+		ret = clk_set_rate(&clk, CPU_PVTPLL_HZ);
+		if (ret < 0) {
+			printf("Failed to set cpubl, ret=%d\n", ret);
+		} else {
+			priv->armclk_enter_hz = CPU_PVTPLL_HZ;
+			priv->armclk_init_hz = CPU_PVTPLL_HZ;
+		}
+	}
+	clk.id = ARMCLK_B;
+	ret = clk_set_rate(&clk, CPU_PVTPLL_HZ);
+	if (ret < 0)
+		printf("Failed to set cpub, ret=%d\n", ret);
+#endif
+#endif
 
 	/* Process 'assigned-{clocks/clock-parents/clock-rates}' properties */
 	ret = clk_set_defaults(dev, 1);
@@ -2488,7 +2662,7 @@ static int rk3576_clk_bind(struct udevice *dev)
 
 #if CONFIG_IS_ENABLED(RESET_ROCKCHIP)
 	ret = offsetof(struct rk3576_cru, softrst_con[0]);
-	ret = rk3576_reset_bind_lut(dev, ret, 32776);
+	ret = rockchip_reset_bind(dev, ret, 32776);
 	if (ret)
 		debug("Warning: software reset driver bind failed\n");
 #endif
@@ -2511,3 +2685,59 @@ U_BOOT_DRIVER(rockchip_rk3576_cru) = {
 	.bind		= rk3576_clk_bind,
 	.probe		= rk3576_clk_probe,
 };
+
+#ifndef CONFIG_SPL_BUILD
+/**
+ * soc_clk_dump() - Print clock frequencies
+ * Returns zero on success
+ *
+ * Implementation for the clk dump command.
+ */
+int soc_clk_dump(void)
+{
+	struct udevice *cru_dev;
+	struct rk3576_clk_priv *priv;
+	const struct rk3576_clk_info *clk_dump;
+	struct clk clk;
+	unsigned long clk_count = ARRAY_SIZE(clks_dump);
+	unsigned long rate;
+	int i, ret;
+
+	ret = uclass_get_device_by_driver(UCLASS_CLK,
+					  DM_DRIVER_GET(rockchip_rk3576_cru),
+					  &cru_dev);
+	if (ret) {
+		printf("%s failed to get cru device\n", __func__);
+		return ret;
+	}
+
+	priv = dev_get_priv(cru_dev);
+	printf("CLK: (%s. arm: enter %lu KHz, init %lu KHz, kernel %lu%s)\n",
+	       priv->sync_kernel ? "sync kernel" : "uboot",
+	       priv->armclk_enter_hz / 1000,
+	       priv->armclk_init_hz / 1000,
+	       priv->set_armclk_rate ? priv->armclk_hz / 1000 : 0,
+	       priv->set_armclk_rate ? " KHz" : "N/A");
+	for (i = 0; i < clk_count; i++) {
+		clk_dump = &clks_dump[i];
+		if (clk_dump->name) {
+			memset(&clk, 0, sizeof(struct clk));
+			clk.id = clk_dump->id;
+			if (clk_dump->is_cru)
+				ret = clk_request(cru_dev, &clk);
+			if (ret < 0)
+				return ret;
+
+			rate = clk_get_rate(&clk);
+			if (rate < 0)
+				printf("  %s %s\n", clk_dump->name,
+				       "unknown");
+			else
+				printf("  %s %lu KHz\n", clk_dump->name,
+				       rate / 1000);
+		}
+	}
+
+	return 0;
+}
+#endif

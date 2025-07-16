@@ -12,6 +12,14 @@ int rockchip_get_clk(struct udevice **devp)
 				DM_DRIVER_GET(rockchip_rk3576_cru), devp);
 }
 
+#if CONFIG_IS_ENABLED(CLK_SCMI)
+int rockchip_get_scmi_clk(struct udevice **devp)
+{
+	return uclass_get_device_by_driver(UCLASS_CLK,
+			DM_DRIVER_GET(scmi_clock), devp);
+}
+#endif
+
 void *rockchip_get_cru(void)
 {
 	return (void *)RK3576_CRU_BASE;

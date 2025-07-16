@@ -474,11 +474,10 @@ static int rk3588_pll_set_rate(struct rockchip_pll_clock *pll,
 		     RK3588_PLLCON1_S_MASK),
 		     (rate->p << RK3588_PLLCON1_P_SHIFT |
 		     rate->s << RK3588_PLLCON1_S_SHIFT));
-	if (rate->k) {
-		rk_clrsetreg(base + pll->con_offset + RK3588_PLLCON(2),
-			     RK3588_PLLCON2_K_MASK,
-			     rate->k << RK3588_PLLCON2_K_SHIFT);
-	}
+
+	rk_clrsetreg(base + pll->con_offset + RK3588_PLLCON(2),
+		     RK3588_PLLCON2_K_MASK,
+		     rate->k << RK3588_PLLCON2_K_SHIFT);
 	/* Power up */
 	rk_clrreg(base + pll->con_offset + RK3588_PLLCON(1),
 		  RK3588_PLLCON1_PWRDOWN);
@@ -586,7 +585,7 @@ static ulong rk3588_pll_get_rate(struct rockchip_pll_clock *pll,
 			rate -= frac_rate64;
 		} else {
 			/* fractional mode */
-			u64 frac_rate64 = OSC_HZ * k;
+			u64 frac_rate64 = (u64)OSC_HZ * k;
 
 			postdiv = p;
 			postdiv *= 65536;
