@@ -290,18 +290,13 @@ static int __maybe_unused part_get_info_efi(struct blk_desc *desc, int part,
 		b_gpt_nsec = 6;
 
 	if (!gpt_head)
-		gpt_head = memalign(ARCH_DMA_MINALIGN, desc->blksz);
+		gpt_head = memalign(ARCH_DMA_MINALIGN, desc->rawblksz);
 
 	/*
 	 * We suppose different dev have different size, eg. emmc vs sd
 	 * free the pte first if exist and then will malloc and init a new one.
 	 */
 	if (gpt_head && (gpt_head->last_usable_lba + b_gpt_nsec) != desc->rawlba) {
-		if (desc->rawblksz == 4096) {
-			/* realloc gpt header buffer */
-			free(gpt_head);
-			gpt_head = memalign(ARCH_DMA_MINALIGN, desc->rawblksz);
-		}
 		if (gpt_pte)
 			free(gpt_pte);
 		gpt_pte = NULL;
