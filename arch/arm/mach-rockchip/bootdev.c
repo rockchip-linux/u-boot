@@ -10,6 +10,7 @@
 #include <mmc.h>
 #include <mtd.h>
 #include <nvme.h>
+#include <scsi.h>
 #include <sysmem.h>
 #include <asm/cache.h>
 #include <dm/device.h>
@@ -59,7 +60,7 @@ static int bootdev_do_probe(const char *devtype, const char *devnum)
 			return -ENODEV;
 	}
 #endif
-#if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && defined(CONFIG_AHCI)
+#if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && (defined(CONFIG_AHCI) || defined(CONFIG_UFS))
 	if (!strcmp("scsi", devtype)) {
 		if (scsi_scan(true))
 			return -ENODEV;

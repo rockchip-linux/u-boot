@@ -323,7 +323,7 @@ static int vendor_ops(u8 *buffer, u32 addr, u32 n_sec, int write)
 		return -ENODEV;
 	}
 
-	if (dev_desc->uclass_id == UCLASS_NVME || dev_desc->uclass_id == UCLASS_SCSI) {
+	if (dev_desc->uclass_id == UCLASS_NVME || (dev_desc->uclass_id == UCLASS_SCSI && dev_desc->rawblksz == 512)) {
 		dev_desc = blk_get_devnum_by_uclass_id(UCLASS_MTD, BLK_MTD_SPI_NOR);
 		if (!dev_desc) {
 			printf("%s: dev_desc is NULL!\n", __func__);
@@ -334,6 +334,7 @@ static int vendor_ops(u8 *buffer, u32 addr, u32 n_sec, int write)
 	/* Get the offset address according to the device type */
 	switch (dev_desc->uclass_id) {
 	case UCLASS_MMC:
+	case UCLASS_SCSI:
 		/*
 		 * The location of VendorStorage in Flash is shown in the
 		 * following figure. The starting address of the VendorStorage
@@ -441,7 +442,7 @@ int vendor_storage_init(void)
 		return -ENODEV;
 	}
 
-	if (dev_desc->uclass_id == UCLASS_NVME || dev_desc->uclass_id == UCLASS_SCSI) {
+	if (dev_desc->uclass_id == UCLASS_NVME || (dev_desc->uclass_id == UCLASS_SCSI && dev_desc->rawblksz == 512)) {
 		dev_desc = blk_get_devnum_by_uclass_id(UCLASS_MTD, BLK_MTD_SPI_NOR);
 		if (!dev_desc) {
 			printf("%s: dev_desc is NULL!\n", __func__);
@@ -451,6 +452,7 @@ int vendor_storage_init(void)
 
 	switch (dev_desc->uclass_id) {
 	case UCLASS_MMC:
+	case UCLASS_SCSI:
 		size = EMMC_VENDOR_INFO_SIZE;
 		part_size = EMMC_VENDOR_PART_BLKS;
 		data_offset = EMMC_VENDOR_DATA_OFFSET;
@@ -664,6 +666,7 @@ int vendor_storage_write(u16 id, void *pbuf, u16 size)
 
 	switch (bootdev_type) {
 	case UCLASS_MMC:
+	case UCLASS_SCSI:
 		part_size = EMMC_VENDOR_PART_BLKS;
 		max_item_num = EMMC_VENDOR_ITEM_NUM;
 		part_num = VENDOR_PART_NUM;
@@ -783,6 +786,7 @@ static void vendor_test_reset(void)
 
 	switch (bootdev_type) {
 	case UCLASS_MMC:
+	case UCLASS_SCSI:
 		size = EMMC_VENDOR_INFO_SIZE;
 		part_size = EMMC_VENDOR_PART_BLKS;
 		part_num = VENDOR_PART_NUM;
@@ -848,6 +852,7 @@ int vendor_storage_test(void)
 	 */
 	switch (bootdev_type) {
 	case UCLASS_MMC:
+	case UCLASS_SCSI:
 		item_num = EMMC_VENDOR_ITEM_NUM;
 		total_size = (unsigned long)vendor_info.hash -
 			     (unsigned long)vendor_info.data;
