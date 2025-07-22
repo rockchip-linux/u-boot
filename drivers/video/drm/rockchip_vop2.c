@@ -6123,9 +6123,6 @@ static int rockchip_vop2_enable(struct display_state *state)
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 cfg_done = CFG_DONE_EN | BIT(cstate->crtc_id) | (BIT(cstate->crtc_id) << 16);
 
-	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
-			STANDBY_EN_SHIFT, 0, false);
-
 	if (cstate->splice_mode)
 		cfg_done |= BIT(cstate->splice_crtc_id) | (BIT(cstate->splice_crtc_id) << 16);
 
@@ -6133,6 +6130,9 @@ static int rockchip_vop2_enable(struct display_state *state)
 
 	if (cstate->dsc_enable)
 		vop2_dsc_cfg_done(state);
+
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+			STANDBY_EN_SHIFT, 0, false);
 
 	if (cstate->mcu_timing.mcu_pix_total)
 		vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
