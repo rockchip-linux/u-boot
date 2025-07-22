@@ -289,8 +289,11 @@ static int __maybe_unused part_get_info_efi(struct blk_desc *desc, int part,
 	if (desc->rawblksz == 4096)
 		b_gpt_nsec = 6;
 
+	/* 
+	 * Force allocate 4KB gpt header buffer for emmc and ufs.
+	 */
 	if (!gpt_head)
-		gpt_head = memalign(ARCH_DMA_MINALIGN, desc->rawblksz);
+		gpt_head = memalign(ARCH_DMA_MINALIGN, 4096);
 
 	/*
 	 * We suppose different dev have different size, eg. emmc vs sd
