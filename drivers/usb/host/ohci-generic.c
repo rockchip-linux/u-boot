@@ -27,7 +27,7 @@ static int ohci_usb_probe(struct udevice *dev)
 	int err, ret;
 
 	ret = clk_get_bulk(dev, &priv->clocks);
-	if (ret && ret != -ENOENT) {
+	if (ret && ret != -ENOENT && ret != -ENODEV) {
 		dev_err(dev, "Failed to get clocks (ret=%d)\n", ret);
 		return ret;
 	}

@@ -935,7 +935,8 @@ static void td_submit_job(ohci_t *ohci, struct usb_device *dev,
 	__u32 info = 0;
 	unsigned int toggle = 0;
 
-	flush_dcache_buffer(buffer, data_len);
+	if (buffer && data_len > 0)
+		flush_dcache_buffer(buffer, data_len);
 
 	/* OHCI handles the DATA-toggles itself, we just use the USB-toggle
 	 * bits for resetting */

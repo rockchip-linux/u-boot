@@ -67,7 +67,7 @@ static int ehci_usb_probe(struct udevice *dev)
 
 	err = 0;
 	ret = clk_get_bulk(dev, &priv->clocks);
-	if (ret && ret != -ENOENT) {
+	if (ret && ret != -ENOENT && ret != -ENODEV) {
 		dev_err(dev, "Failed to get clocks (ret=%d)\n", ret);
 		return ret;
 	}

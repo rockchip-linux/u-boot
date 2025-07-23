@@ -490,6 +490,9 @@ static void reconfig_usbd(struct dwc2_udc *dev)
 	if (dev->pdata->usb_gusbcfg)
 		dflt_gusbcfg = dev->pdata->usb_gusbcfg;
 
+	if (dev->pdata->force_b_session_valid)
+		dflt_gusbcfg |= 1 << 30; /* FDMOD: Force device mode */
+
 	writel(dflt_gusbcfg, &reg->gusbcfg);
 
 	/* 3. Put the OTG device core in the disconnected state.*/

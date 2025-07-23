@@ -440,6 +440,14 @@ static void dwc_otg_core_init(struct udevice *dev)
 
 	writel(usbcfg, &regs->gusbcfg);
 
+	/*
+	 * Refer to DWC2 Databook 3.10a Table 5-10
+	 * After setting the force bit, the application must wait at least
+	 * 25 ms before the change to take effect.
+	 */
+	if (usbcfg & DWC2_GUSBCFG_FORCEHOSTMODE)
+		mdelay(30);
+
 	/* Program the GAHBCFG Register. */
 	switch (readl(&regs->ghwcfg2) & DWC2_HWCFG2_ARCHITECTURE_MASK) {
 	case DWC2_HWCFG2_ARCHITECTURE_SLAVE_ONLY:
@@ -812,7 +820,7 @@ int wait_for_chhltd(struct dwc2_hc_regs *hc_regs, uint32_t *sub, u8 *toggle)
 	uint32_t hcint, hctsiz;
 
 	ret = wait_for_bit_le32(&hc_regs->hcint, DWC2_HCINT_CHHLTD, true,
-				2000, false);
+				5000, false);
 	if (ret)
 		return ret;
 
