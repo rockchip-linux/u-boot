@@ -2063,6 +2063,7 @@ static void rockchip_display_secondary_reset(ofnode route_node)
 	int phandle, ret;
 	bool is_ports_node = false;
 	u32 shared_mode, axi_id, plane_mask, vp_mask;
+	u8 vp_id = 0;
 
 	ofnode_for_each_subnode(node, route_node) {
 		phandle = ofnode_read_u32_default(node, "connect", -1);
@@ -2115,8 +2116,9 @@ static void rockchip_display_secondary_reset(ofnode route_node)
 		axi_id = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,shared-mode-axi-id", 0);
 		vp_mask = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,shared-mode-vp-mask", 0);
 		plane_mask = ofnode_read_u32_default(np_to_ofnode(vop_node), "rockchip,shared-mode-plane-mask", 0);
+		vp_id = ofnode_read_u32_default(np_to_ofnode(port_node), "reg", 0);
 
-		if (crtc->funcs->reset)
+		if (crtc->funcs->reset && crtc->vps[vp_id].fbd_mode != ROCKCHIP_DRM_FBD_FROM_RTOS)
 			crtc->funcs->reset(crtc_dev, axi_id, vp_mask, plane_mask);
 		/* for VOP2, only need to do reset once */
 		return;
@@ -2157,10 +2159,6 @@ static int rockchip_display_probe(struct udevice *dev)
 	route_node = dev_read_subnode(dev, "route");
 	if (!ofnode_valid(route_node))
 		return -ENODEV;
-
-#ifdef CONFIG_MOS_SECONDARY
-	rockchip_display_secondary_reset(route_node);
-#endif
 
 	ofnode_for_each_subnode(node, route_node) {
 		if (!ofnode_is_enabled(node))
@@ -2345,6 +2343,10 @@ static int rockchip_display_probe(struct udevice *dev)
 
 		list_add_tail(&s->head, &rockchip_display_list);
 	}
+
+#ifdef CONFIG_MOS_SECONDARY
+	rockchip_display_secondary_reset(route_node);
+#endif
 
 	if (list_empty(&rockchip_display_list)) {
 		debug("Failed to found available display route\n");
