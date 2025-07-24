@@ -476,6 +476,7 @@ static int display_init(struct display_state *state)
 	const char *compatible;
 	int ret = 0;
 	static bool __print_once = false;
+	u8 fbd_mode = crtc_state->crtc->vps[crtc_state->crtc_id].fbd_mode;
 #ifdef CONFIG_SPL_BUILD
 	struct spl_display_info *spl_disp_info = (struct spl_display_info *)CONFIG_SPL_VIDEO_BUF;
 #endif
@@ -516,7 +517,7 @@ static int display_init(struct display_state *state)
 			return ret;
 	}
 
-	if (state->enabled_at_spl == false) {
+	if (state->enabled_at_spl == false && fbd_mode != ROCKCHIP_DRM_FBD_FROM_RTOS) {
 		ret = rockchip_connector_init(state);
 		if (ret)
 			goto deinit;
@@ -540,7 +541,10 @@ static int display_init(struct display_state *state)
 	/* Ensure the panel is powered on before checking the HPD status */
 	if (conn->panel && conn->funcs->detect)
 		rockchip_panel_prepare(conn->panel);
-	ret = rockchip_connector_detect(state);
+	if (fbd_mode != ROCKCHIP_DRM_FBD_FROM_RTOS)
+		ret = rockchip_connector_detect(state);
+	else
+		ret = true;
 #if defined(CONFIG_DRM_ROCKCHIP_TVE) || defined(CONFIG_DRM_ROCKCHIP_RK1000)
 	if (conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
 		crtc->hdmi_hpd = ret;
@@ -635,7 +639,7 @@ static int display_init(struct display_state *state)
 	       mode->vsync_end, mode->vtotal,
 	       conn_state->bus_format);
 
-	if (crtc_funcs->init && state->enabled_at_spl == false) {
+	if (crtc_funcs->init && state->enabled_at_spl == false && fbd_mode != ROCKCHIP_DRM_FBD_FROM_RTOS) {
 		ret = crtc_funcs->init(state);
 		if (ret)
 			goto deinit;
