@@ -9,6 +9,7 @@
 #include <adc.h>
 #include <clk.h>
 #include <dm.h>
+#include <linux/iopoll.h>
 #include <errno.h>
 #include <asm/io.h>
 #include <reset.h>
@@ -94,6 +95,7 @@ struct rockchip_saradc_data {
 	int				num_bits;
 	int				num_channels;
 	unsigned long			clk_rate;
+	int				das_soc_data;
 };
 
 struct rockchip_saradc_priv {
@@ -108,13 +110,21 @@ static int rockchip_saradc_channel_data(struct udevice *dev, int channel,
 {
 	struct rockchip_saradc_priv *priv = dev_get_priv(dev);
 	struct adc_uclass_plat *uc_pdata = dev_get_uclass_plat(dev);
+	u32 status;
 
 	if (channel != priv->active_channel) {
 		pr_err("Requested channel is not active!");
 		return -EINVAL;
 	}
 
-	/* Clear irq */
+	/* Wait for end conversion interrupt status. */
+	if (readl_poll_timeout(&priv->regs->end_int_st, status,
+			       status & SARADC2_EN_END_INT, SARADC_TIMEOUT)) {
+		pr_err("Wait for end conversion interrupt status timeout!\n");
+		return -ETIMEDOUT;
+	}
+
+	/* Clear irq. */
 	writel(0x1, &priv->regs->end_int_st);
 
 	*data = readl(&priv->regs->data0 + priv->active_channel);
@@ -138,9 +148,11 @@ static int rockchip_saradc_start_channel(struct udevice *dev, int channel)
 	udelay(10);
 	reset_deassert(&priv->rst);
 #endif
-
 	writel(0x20, &priv->regs->t_pd_soc);
-	writel(0xc, &priv->regs->t_das_soc);
+	if (priv->data->das_soc_data)
+		writel(priv->data->das_soc_data, &priv->regs->t_das_soc);
+	else
+		writel(0xc, &priv->regs->t_das_soc);
 	val = SARADC2_EN_END_INT << 16 | SARADC2_EN_END_INT;
 	writel(val, &priv->regs->end_int_en);
 	val = SARADC2_START | SARADC2_SINGLE_MODE | channel;
@@ -257,10 +269,23 @@ static const struct rockchip_saradc_data rk3562_saradc_data = {
 	.clk_rate = 1000000,
 };
 
-static const struct rockchip_saradc_data rk1106_saradc_data = {
+static const struct rockchip_saradc_data rv1106_saradc_data = {
 	.num_bits = 10,
 	.num_channels = 2,
 	.clk_rate = 1000000,
+};
+
+static const struct rockchip_saradc_data rv1103b_saradc_data = {
+	.num_bits = 10,
+	.num_channels = 1,
+	.clk_rate = 1000000,
+};
+
+static const struct rockchip_saradc_data rv1126b_saradc_data = {
+	.num_bits = 13,
+	.num_channels = 8,
+	.clk_rate = 24000000,
+	.das_soc_data = 0x14,
 };
 
 static const struct udevice_id rockchip_saradc_ids[] = {
@@ -278,7 +303,15 @@ static const struct udevice_id rockchip_saradc_ids[] = {
 	},
 	{
 		.compatible = "rockchip,rv1106-saradc",
-		.data = (ulong)&rk1106_saradc_data
+		.data = (ulong)&rv1106_saradc_data
+	},
+	{
+		.compatible = "rockchip,rv1103b-saradc",
+		.data = (ulong)&rv1103b_saradc_data
+	},
+	{
+		.compatible = "rockchip,rv1126b-saradc",
+		.data = (ulong)&rv1126b_saradc_data
 	},
 	{ }
 };
