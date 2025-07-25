@@ -16,6 +16,9 @@
 /* Used by board_get_usable_ram_top(), space below the 4G address boundary */
 #define SDRAM_MAX_SIZE			(SZ_4G - CFG_SYS_SDRAM_BASE)
 
+/* rockusb */
+#define CONFIG_ROCKUSB_G_DNL_PID        0x350e
+
 #ifndef ROCKCHIP_DEVICE_SETTINGS
 #define ROCKCHIP_DEVICE_SETTINGS
 #endif

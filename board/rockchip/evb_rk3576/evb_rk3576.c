@@ -1,14 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * SPDX-License-Identifier:     GPL-2.0+
- *
- * (C) Copyright 2023 Rockchip Electronics Co., Ltd
+ * (C) Copyright 2025 Rockchip Electronics Co., Ltd
  */
 
-#if 0
-#include <common.h>
-#include <dwc3-uboot.h>
-#include <linux/usb/phy-rockchip-usbdp.h>
-#include <asm/io.h>
+ #include <common.h>
+ #include <dwc3-uboot.h>
+ #include <usb.h>
+ #include <linux/delay.h>
+ #include <linux/usb/phy.h>
+ #include <linux/usb/phy-rockchip-usbdp.h>
+ #include <asm/io.h>
+ #include <rockusb.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -21,15 +23,19 @@ static struct dwc3_device dwc3_device_data = {
 	.maximum_speed = USB_SPEED_SUPER,
 	.base = 0x23000000,
 	.dr_mode = USB_DR_MODE_PERIPHERAL,
+	.hsphy_mode = USBPHY_INTERFACE_MODE_UTMIW,
 	.index = 0,
 	.dis_u2_susphy_quirk = 1,
 	.dis_u1u2_quirk = 1,
-	.usb2_phyif_utmi_width = 16,
 };
 
-int usb_gadget_handle_interrupts(int index)
+int rkusb_dev_bind_to_udc_data(struct udevice *dev)
 {
-	dwc3_uboot_handle_interrupt(0);
+	if (IS_ERR_OR_NULL(dev))
+		return -EINVAL;
+
+	dwc3_device_data.dev = dev;
+
 	return 0;
 }
 
@@ -74,13 +80,9 @@ int board_usb_init(int index, enum usb_init_type init)
 	return dwc3_uboot_init(&dwc3_device_data);
 }
 
-#if defined(CONFIG_SUPPORT_USBPLUG)
 int board_usb_cleanup(int index, enum usb_init_type init)
 {
 	dwc3_uboot_exit(index);
 	return 0;
 }
-#endif
-
-#endif
 #endif
