@@ -1656,7 +1656,7 @@ static int vidconsole_init(struct udevice *dev, struct display_state *state)
 	if (ret)
 		return ret;
 
-	ret = display_set_plane(state);
+	ret = display_set_plane(state, 0);
 	if (ret)
 		return ret;
 
