@@ -12,11 +12,13 @@
  */
 #include <config.h>
 #include <common.h>
+#include <command.h>
 #include <console.h>
 #include <android_bootloader.h>
 #include <errno.h>
 #include <fastboot.h>
 #include <malloc.h>
+#include <stdlib.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
 #include <linux/usb/composite.h>
@@ -2299,6 +2301,24 @@ static void cb_oem(struct usb_ep *ep, struct usb_request *req)
 #else
 		fastboot_tx_write_str("FAILnot implemented");
 #endif
+	} else if (strncmp("dev", cmd + 4, 14) == 0) {
+		struct blk_desc *desc = NULL;
+		char *argv[CONFIG_SYS_MAXARGS + 1];
+
+		make_argv(cmd + 8, sizeof(argv)/sizeof(argv[0]), argv);
+		if (bootdev_init(argv[0], argv[1])) {
+			fastboot_tx_write_str("FAILinit bootdev!");
+			return;
+		}
+
+		desc = blk_get_devnum_by_typename(argv[0], atoi(argv[1]));
+		if (!desc) {
+			fastboot_tx_write_str("FAILget expected bootdev!");
+			return;
+		}
+
+		rockchip_set_bootdev(desc);
+		fastboot_tx_write_str("OKAY");
 	} else {
 		fastboot_tx_write_str("FAILunknown oem command");
 	}
