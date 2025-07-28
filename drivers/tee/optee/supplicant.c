@@ -124,6 +124,16 @@ void *tee_supp_param_to_va(struct optee_msg_param *param)
 	}
 }
 
+static bool is_ufs_device(void)
+{
+	struct blk_desc *desc = plat_bootdev();
+
+	if (desc->uclass_id == UCLASS_SCSI && desc->rawblksz == 4096)//ufs
+		return true;
+	else
+		return false;
+}
+
 void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,
 		     void **page_list)
 {
@@ -145,7 +155,10 @@ void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,
 #endif
 		break;
 	case OPTEE_MSG_RPC_CMD_RPMB:
-		optee_suppl_cmd_rpmb(dev, arg);
+		if (is_ufs_device())
+			optee_suppl_cmd_ufs_rpmb(dev, arg);
+		else
+			optee_suppl_cmd_rpmb(dev, arg);
 		break;
 	case OPTEE_MSG_RPC_CMD_I2C_TRANSFER:
 		optee_suppl_cmd_i2c_transfer(arg);

@@ -64,6 +64,26 @@ static inline void optee_suppl_rpmb_release(struct udevice *dev)
 }
 #endif
 
+#ifdef CONFIG_ROCKCHIP_UFS_RPMB
+/**
+ * optee_suppl_cmd_ufs_rpmb() - route RPMB frames to ufs
+ * @dev:	device with the selected RPMB partition
+ * @arg:	OP-TEE message holding the frames to transmit to the ufs
+ *		and space for the response frames.
+ *
+ * Routes signed (MACed) RPMB frames from OP-TEE Secure OS to UFS and vice
+ * versa to manipulate the RPMB partition.
+ */
+void optee_suppl_cmd_ufs_rpmb(struct udevice *dev, struct optee_msg_arg *arg);
+#else
+static inline void optee_suppl_cmd_ufs_rpmb(struct udevice *dev,
+					struct optee_msg_arg *arg)
+{
+	debug("OPTEE_MSG_RPC_CMD_RPMB not implemented\n");
+	arg->ret = TEE_ERROR_NOT_IMPLEMENTED;
+}
+#endif
+
 void optee_suppl_cmd_fs(struct optee_msg_arg *arg);
 
 void optee_suppl_cmd_load_ta(struct optee_msg_arg *arg);

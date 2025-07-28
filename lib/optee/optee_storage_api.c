@@ -28,29 +28,14 @@ static uint32_t session;
 
 static bool is_use_rpmb(void)
 {
-	struct mmc *mmc;
-	int mmc_num;
-	static bool found = false;
-	static bool result = false;
+	struct blk_desc *desc = plat_bootdev();
 
-	if (found == true) {
-		return result;
-	}
-
-	mmc_num = get_mmc_num();
-
-	if (mmc_num > 0) {
-		for (int dev_id = 0; dev_id < mmc_num; dev_id++) {
-			mmc = find_mmc_device(dev_id);
-			if (mmc && !IS_SD(mmc)) {
-				debug("find emmc device, use rpmb default!\n");
-				result = true;
-				break;
-			}
-		}
-	}
-	found = true;
-	return result;
+	if (desc->uclass_id == UCLASS_MMC && desc->devnum == 0)//emmc
+		return true;
+	else if (desc->uclass_id == UCLASS_SCSI && desc->rawblksz == 4096)//ufs
+		return true;
+	else
+		return false;
 }
 
 static uint32_t storage_ta_open_session(void)
