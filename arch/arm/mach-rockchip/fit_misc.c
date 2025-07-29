@@ -79,7 +79,7 @@ static int fit_decomp_image(void *fit, int node, ulong *load_addr,
 	if (fit_image_get_comp(fit, node, &comp))
 		return 0;
 
-	if (comp != IH_COMP_GZIP && comp != IH_COMP_LZMA)
+	if (comp != IH_COMP_GZIP && comp != IH_COMP_LZMA && comp != IH_COMP_LZ4)
 		return 0;
 
 #ifndef CONFIG_SPL_BUILD
@@ -115,12 +115,12 @@ static int fit_decomp_image(void *fit, int node, ulong *load_addr,
 					       (uchar *)(*src_addr), *src_len);
 		len = lzma_len;
 #endif
-	} else if (comp == IH_COMP_GZIP) {
+#if CONFIG_IS_ENABLED(MISC_DECOMPRESS)
+	} else {
 		/*
 		 * For smaller spl size, we don't use misc_decompress_process()
 		 * inside the gunzip().
 		 */
-#if CONFIG_IS_ENABLED(MISC_DECOMPRESS)
 		const void *prop;
 		bool sync = true;
 
@@ -138,6 +138,7 @@ static int fit_decomp_image(void *fit, int node, ulong *load_addr,
 			misc_decompress_sync(comp);
 #else
 #if CONFIG_IS_ENABLED(GZIP)
+	} else if (comp == IH_COMP_GZIP) {
 		ret = gunzip((void *)(*load_addr), ALIGN(len, FIT_MAX_SPL_IMAGE_SZ),
 			     (void *)(*src_addr), (void *)(&len));
 #endif
