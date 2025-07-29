@@ -88,8 +88,12 @@ static int rkusb_write_sector(struct ums *ums_dev,
 #if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && (defined(CONFIG_UFS))
 	if (block_dev->uclass_id == UCLASS_SCSI && block_dev->rawblksz == 4096) {
 		/* write loader to UFS BootA */
-		if (blkstart < 8192 && blkstart >= 64)
-			blk_write_devnum(UCLASS_SCSI, 1, blkstart, blkcnt, (ulong *)buf);
+		if (blkstart < 8192 && blkstart >= 64) {
+			struct blk_desc *desc;
+
+			if (!blk_get_desc(UCLASS_SCSI, 1, &desc))
+				blk_dwrite(desc, blkstart, blkcnt, buf);
+		}
 	}
 #endif
 	if (block_dev->uclass_id == UCLASS_MTD) {
@@ -108,11 +112,14 @@ static int rkusb_erase_sector(struct ums *ums_dev,
 	if (block_dev->uclass_id == UCLASS_SCSI && block_dev->rawblksz == 4096) {
 		/* write loader to UFS BootA */
 		if (blkstart < 8192) {
+			struct blk_desc *desc;
 			lbaint_t cur_cnt = 8192 - blkstart;
 
 			if (cur_cnt > blkcnt)
 				cur_cnt = blkcnt;
-			blk_erase_devnum(UCLASS_SCSI, 1, blkstart, cur_cnt);
+
+			if (!blk_get_desc(UCLASS_SCSI, 1, &desc))
+				blk_derase(desc, blkstart, cur_cnt);
 		}
 	}
 #endif
@@ -157,7 +164,7 @@ static int rkusb_init(const char *devtype, const char *devnums_part_str)
 			break;
 #if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && (defined(CONFIG_UFS))
 		if (!strcmp(devtype, "scsi")) {
-			block_dev= blk_get_devnum_by_typename(devtype, 0);
+			block_dev = blk_get_devnum_by_uclass_idname(devtype, 0);
 			if (block_dev == NULL)
 				return -ENXIO;
 		} else

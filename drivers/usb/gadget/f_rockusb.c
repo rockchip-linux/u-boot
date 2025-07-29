@@ -15,6 +15,7 @@
 #include <mmc.h>
 #include <linux/mtd/mtd.h>
 #include <rockusb.h>
+#include <scsi.h>
 #ifdef CONFIG_AVB_VERIFY
 #include <avb_verify.h>
 #endif
