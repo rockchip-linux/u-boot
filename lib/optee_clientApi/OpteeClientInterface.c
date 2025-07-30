@@ -916,6 +916,23 @@ uint32_t trusty_write_oem_huk(uint32_t *buf, uint32_t length)
 						  true, buf, length);
 }
 
+#if defined(CONFIG_MOS_SUPPORT) && defined(CONFIG_MOS_SECONDARY)
+
+#define STORAGE_CMD_SET_ROLLBACK_INDEX		33
+#define STORAGE_CMD_GET_ROLLBACK_INDEX		34
+
+uint32_t trusty_write_otp_rollback(uint32_t value)
+{
+	return trusty_base_efuse_or_otp_operation(STORAGE_CMD_SET_ROLLBACK_INDEX,
+						  true, &value, 1);
+}
+uint32_t trusty_read_otp_rollback(uint32_t *value)
+{
+	return trusty_base_efuse_or_otp_operation(STORAGE_CMD_GET_ROLLBACK_INDEX,
+						  false, value, 1);
+}
+#endif
+
 static void trusty_select_security_level(void)
 {
 #ifdef CONFIG_OPTEE_SECURITY_LEVEL
