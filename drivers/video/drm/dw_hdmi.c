@@ -2709,19 +2709,6 @@ int rockchip_dw_hdmi_detect(struct rockchip_connector *conn, struct display_stat
 	return ret;
 }
 
-int rockchip_dw_hdmi_get_edid(struct rockchip_connector *conn, struct display_state *state)
-{
-	int ret = 0;
-	struct connector_state *conn_state = &state->conn_state;
-	struct dw_hdmi *hdmi = conn->data;
-
-	conn_state->edid = drm_do_get_edid(&hdmi->adap);
-	if (!conn_state->edid)
-		ret = -EINVAL;
-
-	return ret;
-}
-
 int inno_dw_hdmi_phy_init(struct rockchip_connector *conn, struct dw_hdmi *hdmi, void *data)
 {
 	struct display_state *state = (struct display_state *)data;

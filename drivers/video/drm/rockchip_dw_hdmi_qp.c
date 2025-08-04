@@ -1594,7 +1594,6 @@ static const struct rockchip_connector_funcs rockchip_dw_hdmi_qp_funcs = {
 	.disable = rockchip_dw_hdmi_qp_disable,
 	.get_timing = rockchip_dw_hdmi_qp_get_timing,
 	.detect = rockchip_dw_hdmi_qp_detect,
-	.get_edid = rockchip_dw_hdmi_qp_get_edid,
 };
 
 static const struct rockchip_hdmi_chip_ops rk3576_chip_ops = {

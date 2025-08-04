@@ -916,20 +916,6 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 	return 0;
 }
 
-static int analogix_dp_connector_get_edid(struct rockchip_connector *conn,
-					  struct display_state *state)
-{
-	struct connector_state *conn_state = &state->conn_state;
-	struct analogix_dp_device *dp = dev_get_priv(conn->dev);
-	int ret = 0;
-
-	conn_state->edid = drm_do_get_edid(&dp->aux.ddc);
-	if (!conn_state->edid)
-		ret = -EINVAL;
-
-	return ret;
-}
-
 static int analogix_dp_link_power_up(struct analogix_dp_device *dp)
 {
 	u8 value;
@@ -1305,7 +1291,6 @@ err:
 
 static const struct rockchip_connector_funcs analogix_dp_connector_funcs = {
 	.init = analogix_dp_connector_init,
-	.get_edid = analogix_dp_connector_get_edid,
 	.enable = analogix_dp_connector_enable,
 	.disable = analogix_dp_connector_disable,
 	.detect = analogix_dp_connector_detect,

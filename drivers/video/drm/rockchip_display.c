@@ -779,12 +779,6 @@ static int display_init(struct display_state *state)
 		}
 	} else if (conn->funcs->get_timing) {
 		ret = conn->funcs->get_timing(conn, state);
-	} else if (conn->funcs->get_edid) {
-		ret = conn->funcs->get_edid(conn, state);
-#if defined(CONFIG_I2C_EDID)
-		if (!ret)
-			display_get_edid_mode(state);
-#endif
 	}
 
 	if (!ret && conn_state->secondary) {

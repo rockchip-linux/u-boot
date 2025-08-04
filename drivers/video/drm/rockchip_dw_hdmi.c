@@ -590,7 +590,6 @@ static const struct rockchip_connector_funcs rockchip_dw_hdmi_funcs = {
 	.disable = rockchip_dw_hdmi_disable,
 	.get_timing = rockchip_dw_hdmi_get_timing,
 	.detect = rockchip_dw_hdmi_detect,
-	.get_edid = rockchip_dw_hdmi_get_edid,
 };
 
 const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
