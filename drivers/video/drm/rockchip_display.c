@@ -762,11 +762,9 @@ static int display_init(struct display_state *state)
 		if (!ret)
 			conn_state->bpc = conn->panel->bpc;
 #if defined(CONFIG_I2C_EDID)
-		if (ret < 0 && conn->funcs->get_edid) {
+		if (ret < 0 && conn->funcs->get_timing) {
 			rockchip_panel_prepare(conn->panel);
-			ret = conn->funcs->get_edid(conn, state);
-			if (!ret)
-				display_get_edid_mode(state);
+			ret = conn->funcs->get_timing(conn, state);
 		}
 #endif
 	} else if (conn->bridge) {
