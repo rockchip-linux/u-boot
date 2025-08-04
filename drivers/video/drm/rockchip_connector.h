@@ -209,7 +209,6 @@ int rockchip_connector_init(struct display_state *state);
 int rockchip_connector_deinit(struct display_state *state);
 bool rockchip_connector_detect(struct display_state *state);
 int rockchip_connector_get_timing(struct display_state *state);
-int rockchip_connector_get_edid(struct display_state *state);
 int rockchip_connector_pre_enable(struct display_state *state);
 int rockchip_connector_enable(struct display_state *state);
 int rockchip_connector_disable(struct display_state *state);

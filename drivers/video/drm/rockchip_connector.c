@@ -184,27 +184,6 @@ int rockchip_connector_get_timing(struct display_state *state)
 	return ret;
 }
 
-int rockchip_connector_get_edid(struct display_state *state)
-{
-	int ret = 0;
-	struct rockchip_connector *conn;
-
-	conn = state->conn_state.connector;
-	if (conn->funcs->get_edid) {
-		ret = conn->funcs->get_edid(conn, state);
-		if (ret)
-			return ret;
-		if (state->conn_state.secondary) {
-			conn = state->conn_state.secondary;
-			ret = conn->funcs->get_edid(conn, state);
-			if (ret)
-				return ret;
-		}
-	}
-
-	return ret;
-}
-
 static int rockchip_connector_path_pre_enable(struct rockchip_connector *conn,
 					      struct display_state *state)
 {
