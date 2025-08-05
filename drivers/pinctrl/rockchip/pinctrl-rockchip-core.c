@@ -557,7 +557,17 @@ static int rockchip_pinctrl_set_state(struct udevice *dev,
 	return 0;
 }
 
+
+static int rockchip_pinctrl_get_pins_count(struct udevice *dev)
+{
+	struct rockchip_pinctrl_priv *priv = dev_get_priv(dev);
+	struct rockchip_pin_ctrl *ctrl = priv->ctrl;
+
+	return ctrl->nr_pins;
+}
+
 const struct pinctrl_ops rockchip_pinctrl_ops = {
+	.get_pins_count			= rockchip_pinctrl_get_pins_count,
 	.set_state			= rockchip_pinctrl_set_state,
 	.get_gpio_mux			= rockchip_pinctrl_get_gpio_mux,
 };
