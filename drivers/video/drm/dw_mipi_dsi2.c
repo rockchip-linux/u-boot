@@ -24,6 +24,7 @@
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
 #include <linux/iopoll.h>
+#include <linux/media-bus-format.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -172,6 +173,8 @@
 
 #define GRF_REG_FIELD(reg, lsb, msb)	(((reg) << 16) | ((lsb) << 8) | (msb))
 
+#define MIPI_DSI_FMT_RGB101010		4
+
 enum vid_mode_type {
 	VID_MODE_TYPE_NON_BURST_SYNC_PULSES,
 	VID_MODE_TYPE_NON_BURST_SYNC_EVENTS,
@@ -302,6 +305,16 @@ static void grf_field_write(struct dw_mipi_dsi2 *dsi2, enum grf_reg_fields index
 	regmap_write(dsi2->grf, reg, GENMASK(msb, lsb) << 16 | val << lsb);
 }
 
+static int dw_mipi_dsi2_pixel_format_to_bpp(u32 fmt)
+{
+	switch (fmt) {
+	case MIPI_DSI_FMT_RGB101010:
+		return 30;
+	default:
+		return mipi_dsi_pixel_format_to_bpp(fmt);
+	}
+}
+
 static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 {
 	const struct drm_display_mode *mode = &dsi2->mode;
@@ -314,7 +327,7 @@ static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 			dsi2->pdata->cphy_max_symbol_rate_per_lane :
 			dsi2->pdata->dphy_max_bit_rate_per_lane;
 
-	bpp = mipi_dsi_pixel_format_to_bpp(dsi2->format);
+	bpp = dw_mipi_dsi2_pixel_format_to_bpp(dsi2->format);
 	if (bpp < 0)
 		bpp = 24;
 
@@ -497,26 +510,32 @@ static ssize_t dw_mipi_dsi2_transfer(struct dw_mipi_dsi2 *dsi2,
 
 static void dw_mipi_dsi2_ipi_color_coding_cfg(struct dw_mipi_dsi2 *dsi2)
 {
-	u32 val, color_depth;
+	u32 val, ipi_depth;
 
 	switch (dsi2->format) {
 	case MIPI_DSI_FMT_RGB666:
 	case MIPI_DSI_FMT_RGB666_PACKED:
-		color_depth = IPI_DEPTH_6_BITS;
+		ipi_depth = IPI_DEPTH_6_BITS;
 		break;
 	case MIPI_DSI_FMT_RGB565:
-		color_depth = IPI_DEPTH_5_6_5_BITS;
+		ipi_depth = IPI_DEPTH_5_6_5_BITS;
+		break;
+	case MIPI_DSI_FMT_RGB101010:
+		ipi_depth = IPI_DEPTH_10_BITS;
 		break;
 	case MIPI_DSI_FMT_RGB888:
 	default:
-		color_depth = IPI_DEPTH_8_BITS;
+		ipi_depth = IPI_DEPTH_8_BITS;
 		break;
 	}
 
-	val = IPI_DEPTH(color_depth) |
+	if (dsi2->dsc_enable)
+		ipi_depth = IPI_DEPTH_8_BITS;
+
+	val = IPI_DEPTH(ipi_depth) |
 	      IPI_FORMAT(dsi2->dsc_enable ? IPI_FORMAT_DSC : IPI_FORMAT_RGB);
 	dsi_write(dsi2, DSI2_IPI_COLOR_MAN_CFG, val);
-	grf_field_write(dsi2, IPI_COLOR_DEPTH, color_depth);
+	grf_field_write(dsi2, IPI_COLOR_DEPTH, ipi_depth);
 
 	if (dsi2->dsc_enable)
 		grf_field_write(dsi2, IPI_FORMAT, IPI_FORMAT_DSC);
@@ -800,10 +819,32 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 	struct crtc_state *cstate = &state->crtc_state;
 	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 	struct udevice *dev;
+	u16 dsc_bpp_x16;
 	int ret;
 
 	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, dsi2->id);
-	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+
+	switch (dsi2->format) {
+	case MIPI_DSI_FMT_RGB101010:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
+		conn_state->bus_format = MEDIA_BUS_FMT_RGB101010_1X30;
+		break;
+	case MIPI_DSI_FMT_RGB888:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
+		conn_state->bus_format = MEDIA_BUS_FMT_RGB888_1X24;
+		break;
+	case MIPI_DSI_FMT_RGB666:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P666;
+		conn_state->bus_format = MEDIA_BUS_FMT_RGB666_1X18;
+		break;
+	case MIPI_DSI_FMT_RGB565:
+		conn_state->output_mode = ROCKCHIP_OUT_MODE_P565;
+		conn_state->bus_format = MEDIA_BUS_FMT_RGB565_1X16;
+		break;
+	default:
+		return -EINVAL;
+	}
+
 	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
 	conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
 	conn_state->output_if |=
@@ -848,13 +889,19 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 	}
 
 	if (dsi2->dsc_enable) {
+		if (!dsi2->pps)
+			return -EINVAL;
+
+		dsc_bpp_x16 = ((dsi2->pps->pps_4 & 0x3) << 8) |
+				dsi2->pps->bits_per_pixel_low;
+
 		cstate->dsc_enable = 1;
 		cstate->dsc_sink_cap.version_major = dsi2->version_major;
 		cstate->dsc_sink_cap.version_minor = dsi2->version_minor;
 		cstate->dsc_sink_cap.slice_width = dsi2->slice_width;
 		cstate->dsc_sink_cap.slice_height = dsi2->slice_height;
 		/* only can support rgb888 panel now */
-		cstate->dsc_sink_cap.target_bits_per_pixel_x16 = 8 << 4;
+		cstate->dsc_sink_cap.target_bits_per_pixel_x16 = dsc_bpp_x16;
 		cstate->dsc_sink_cap.native_420 = 0;
 		memcpy(&cstate->pps, dsi2->pps, sizeof(struct drm_dsc_picture_parameter_set));
 	}
