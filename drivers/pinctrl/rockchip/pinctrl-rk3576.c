@@ -250,6 +250,7 @@ static struct rockchip_pin_bank rk3576_pin_banks[] = {
 static const struct rockchip_pin_ctrl rk3576_pin_ctrl = {
 	.pin_banks		= rk3576_pin_banks,
 	.nr_banks		= ARRAY_SIZE(rk3576_pin_banks),
+	.nr_pins		= 160,
 	.grf_mux_offset		= 0x0,
 	.set_mux		= rk3576_set_mux,
 	.set_pull		= rk3576_set_pull,
