@@ -1206,7 +1206,7 @@ static int fdt_fixup_modules(void *blob)
 	}
 
 	ret = misc_read(dev, CHIP_ID_OFF, &chip_id, sizeof(chip_id));
-	if (ret) {
+	if (ret < 0) {
 		printf("can't read chip id, ret=%d\n", ret);
 		return ret;
 	}
@@ -1218,7 +1218,7 @@ static int fdt_fixup_modules(void *blob)
 		return 0;
 
 	ret = misc_read(dev, IP_STATE_OFF, &ip_state, sizeof(ip_state));
-	if (ret) {
+	if (ret < 0) {
 		printf("can't read ip state, ret=%d\n", ret);
 		return ret;
 	}
