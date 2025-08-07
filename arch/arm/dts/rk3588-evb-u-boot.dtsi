@@ -31,6 +31,11 @@
 	};
 };
 
+&otp {
+	bootph-all;
+	status = "okay";
+};
+
 &optee {
 	bootph-all;
 };
