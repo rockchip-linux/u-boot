@@ -1048,7 +1048,7 @@ static int rkusb_do_read_otp(struct fsg_common *common,
 	buf[0] = 0;
 	if (type == 0) { /* soc uuid */
 		if (!uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(rockchip_otp), &dev)) {
-			if (!misc_read(dev, CFG_CPUID_OFFSET, (void *)&buf[1], len))
+			if (misc_read(dev, CFG_CPUID_OFFSET, (void *)&buf[1], len) > 0)
 				buf[0] = len;
 		}
 	}
