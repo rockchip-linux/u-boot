@@ -436,7 +436,7 @@ static u8 rk_get_cpu_version(void)
 	}
 
 	ret = misc_read(dev, regs[0], &fuses, regs[1]);
-	if (ret) {
+	if (ret < 0) {
 		printf("%s: misc_read failed\n", __func__);
 		return 0;
 	}

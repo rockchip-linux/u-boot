@@ -359,7 +359,7 @@ static u8 rk_get_vdac_value(void)
 	}
 
 	ret = misc_read(dev, regs[0], &fuses, regs[1]);
-	if (ret) {
+	if (ret < 0) {
 		printf("%s: misc_read failed\n", __func__);
 		return 0;
 	}
@@ -397,7 +397,7 @@ static int tve_read_otp_by_name(char *name, u8 *val, u8 default_val)
 		if (ofnode_valid(node)) {
 			if (!ofnode_read_u32_array(node, "reg", regs, 2)) {
 				ret = misc_read(dev, regs[0], val, 1);
-				if (!ret)
+				if (ret > 0)
 					return 0;
 			}
 		}
