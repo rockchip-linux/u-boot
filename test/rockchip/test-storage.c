@@ -366,7 +366,7 @@ static int do_test_efuse(struct cmd_tbl *cmdtp, int flag,
 	}
 
 	ret = misc_read(dev, 0, &fuses, sizeof(fuses));
-	if (ret) {
+	if (ret < 0) {
 		ut_err("efuse: failed to read, ret=%d\n", ret);
 		return 0;
 	}
@@ -394,7 +394,7 @@ static int do_test_otp(struct cmd_tbl *cmdtp, int flag,
 	}
 
 	ret = misc_read(dev, 0, &otps, sizeof(otps));
-	if (ret) {
+	if (ret < 0) {
 		ut_err("otp: failed to read, ret=%d\n", ret);
 		return 0;
 	}
