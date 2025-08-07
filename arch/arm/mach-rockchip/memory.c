@@ -21,15 +21,13 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#ifdef CONFIG_LMB
-#if 0 // TODO
 /*
  * Using last bi_dram[...] to initialize "bootm_low" and "bootm_mapsize".
  * This makes lmb_alloc_base() always alloc from tail of sdram.
  * If we don't assign it, bi_dram[0] is used by default and it may cause
  * lmb_alloc_base() fail when bi_dram[0] range is small.
  */
-void board_lmb_reserve(struct lmb *lmb)
+void bootm_mem_init(void)
 {
 	char bootm_mapsize[32];
 	char bootm_low[32];
@@ -69,8 +67,6 @@ void board_lmb_reserve(struct lmb *lmb)
 	env_set("bootm_low", bootm_low);
 	env_set("bootm_mapsize", bootm_mapsize);
 }
-#endif
-#endif
 
 #ifdef CONFIG_BIDRAM
 int board_bidram_reserve(struct bidram *bidram)

@@ -18,6 +18,7 @@ enum {
 
 #define RK_BLK_SIZE			512
 
+void bootm_mem_init(void);
 void bootargs_setup(void);
 void rockusb_download(void);
 void rbrom_download(void);

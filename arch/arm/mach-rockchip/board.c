@@ -154,6 +154,9 @@ static void env_setup(void)
 	/* disable bootm relcation to save boot time */
 	env_set_hex("fdt_high", -1UL);
 	env_set_hex("initrd_high", -1UL);
+
+	/* bootm memory limit */
+	bootm_mem_init();
 }
 
 int board_late_init(void)
