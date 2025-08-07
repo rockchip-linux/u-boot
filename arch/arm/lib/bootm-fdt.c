@@ -48,7 +48,7 @@ int arch_fixup_fdt(void *blob)
 
 	/* show info: "/reserved-memory" */
 #ifndef CONFIG_XPL_BUILD
-	boot_fdt_add_mem_rsv_regions(blob);
+	boot_mem_rsv_regions(blob);
 #endif
 
 #if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_OF_LIBFDT)
