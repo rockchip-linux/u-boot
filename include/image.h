@@ -1962,41 +1962,8 @@ bool android_image_get_data(const void *boot_hdr, const void *vendor_boot_hdr,
 			    struct andr_image_data *data);
 
 struct andr_boot_img_hdr_v0;
-#if 0
-/**
- * android_image_get_kernel() - Processes kernel part of Android boot images
- *
- * This function returns the os image's start address and length. Also,
- * it appends the kernel command line to the bootargs env variable.
- *
- * @hdr:	Pointer to image header, which is at the start
- *			of the image.
- * @vendor_boot_img : Pointer to vendor boot image header
- * @verify:	Checksum verification flag. Currently unimplemented.
- * @os_data:	Pointer to a ulong variable, will hold os data start
- *			address.
- * @os_len:	Pointer to a ulong variable, will hold os data length.
- * Return: Zero, os start address and length on success,
- *		otherwise on failure.
- */
-int android_image_get_kernel(const void *hdr,
-			     const void *vendor_boot_img, int verify,
-			     ulong *os_data, ulong *os_len);
 
-/**
- * android_image_get_ramdisk() - Extracts the ramdisk load address and its size
- *
- * This extracts the load address of the ramdisk and its size
- *
- * @hdr:	Pointer to image header
- * @vendor_boot_img : Pointer to vendor boot image header
- * @rd_data:	Pointer to a ulong variable, will hold ramdisk address
- * @rd_len:	Pointer to a ulong variable, will hold ramdisk length
- * Return: 0 if OK, -ENOPKG if no ramdisk, -EINVAL if invalid image
- */
-int android_image_get_ramdisk(const void *hdr, const void *vendor_boot_img,
-			      ulong *rd_data, ulong *rd_len);
-#endif
+
 /**
  * android_image_get_second() - Extracts the secondary bootloader address
  * and its size
@@ -2237,10 +2204,7 @@ void android_print_contents(const struct andr_img_hdr *hdr);
 
 ulong android_image_get_end(const struct andr_img_hdr *hdr);
 ulong android_image_get_kload(const struct andr_img_hdr *hdr);
-int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
-			     ulong *os_data, ulong *os_len);
-int android_image_get_ramdisk(const struct andr_img_hdr *hdr,
-			      ulong *rd_data, ulong *rd_len);
+
 
 u32 android_bcb_msg_sector_offset(void);
 int android_image_init_resource(struct blk_desc *desc,
@@ -2273,6 +2237,48 @@ bool is_android_boot_image_header(const void *hdr);
 bool android_image_get_dtb_by_index(ulong hdr_addr, ulong vendor_boot_img,
 				    u32 index, ulong *addr, u32 *size);
 int android_image_get_second(const void *hdr, ulong *second_data, ulong *second_len);
+
+#if defined(CONFIG_ARCH_ROCKCHIP) && defined(CONFIG_ANDROID_BOOT_IMAGE)
+int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
+			     ulong *os_data, ulong *os_len);
+int android_image_get_ramdisk(const struct andr_img_hdr *hdr,
+			      ulong *rd_data, ulong *rd_len);
+#else
+/**
+ * android_image_get_kernel() - Processes kernel part of Android boot images
+ *
+ * This function returns the os image's start address and length. Also,
+ * it appends the kernel command line to the bootargs env variable.
+ *
+ * @hdr:	Pointer to image header, which is at the start
+ *			of the image.
+ * @vendor_boot_img : Pointer to vendor boot image header
+ * @verify:	Checksum verification flag. Currently unimplemented.
+ * @os_data:	Pointer to a ulong variable, will hold os data start
+ *			address.
+ * @os_len:	Pointer to a ulong variable, will hold os data length.
+ * Return: Zero, os start address and length on success,
+ *		otherwise on failure.
+ */
+int android_image_get_kernel(const void *hdr,
+			     const void *vendor_boot_img, int verify,
+			     ulong *os_data, ulong *os_len);
+
+/**
+ * android_image_get_ramdisk() - Extracts the ramdisk load address and its size
+ *
+ * This extracts the load address of the ramdisk and its size
+ *
+ * @hdr:	Pointer to image header
+ * @vendor_boot_img : Pointer to vendor boot image header
+ * @rd_data:	Pointer to a ulong variable, will hold ramdisk address
+ * @rd_len:	Pointer to a ulong variable, will hold ramdisk length
+ * Return: 0 if OK, -ENOPKG if no ramdisk, -EINVAL if invalid image
+ */
+int android_image_get_ramdisk(const void *hdr, const void *vendor_boot_img,
+			      ulong *rd_data, ulong *rd_len);
+
+#endif
 
 #endif
 #endif	/* __IMAGE_H__ */

@@ -403,7 +403,7 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 		}
 		break;
 	case IMAGE_FORMAT_ANDROID:
-#ifdef CONFIG_ARCH_ROCKCHIP
+#if defined(CONFIG_ARCH_ROCKCHIP) && defined(CONFIG_ANDROID_BOOT_IMAGE)
 		android_image_get_ramdisk((void *)images->os.start, rd_datap, rd_lenp);
 		done = true;
 #else
