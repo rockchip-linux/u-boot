@@ -7,7 +7,7 @@
 
 / {
 	chosen {
-		u-boot,spl-boot-order = "same-as-spl", &sdmmc, &sdhci;
+		u-boot,spl-boot-order = &sdmmc, &sdhci, "same-as-spl";
 	};
 
 	adc-keys {
@@ -190,12 +190,12 @@
 	bootph-all;
 	status = "okay";
 };
+#endif
 
 &rng {
 	bootph-all;
 	status = "okay";
 };
-#endif
 
 &saradc {
 	bootph-all;
