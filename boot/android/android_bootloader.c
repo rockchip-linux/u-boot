@@ -46,8 +46,7 @@ int android_bootloader_message_load(
 	}
 
 	if (blk_dread(dev_desc, part_info->start + android_bcb_msg_sector_offset(),
-	     message_blocks, message) !=
-	    message_blocks) {
+		      message_blocks, message) != message_blocks) {
 		printf("Could not read from misc partition\n");
 		return -1;
 	}
@@ -61,15 +60,15 @@ static int android_bootloader_message_write(
 	struct android_bootloader_message *message)
 {
 	ulong message_blocks = sizeof(struct android_bootloader_message) /
-	    part_info->blksz + android_bcb_msg_sector_offset();
+			       part_info->blksz;
 
 	if (message_blocks > part_info->size) {
 		printf("misc partition too small.\n");
 		return -1;
 	}
 
-	if (blk_dwrite(dev_desc, part_info->start, message_blocks, message) !=
-	    message_blocks) {
+	if (blk_dwrite(dev_desc, part_info->start + android_bcb_msg_sector_offset(),
+		       message_blocks, message) != message_blocks) {
 		printf("Could not write to misc partition\n");
 		return -1;
 	}
@@ -295,6 +294,7 @@ static int sysmem_alloc_uncomp_kernel(ulong andr_hdr,
 
 int android_bootloader_boot_kernel(unsigned long kernel_address)
 {
+	struct bootm_info bmi;
 	char *kernel_addr_r = env_get("kernel_addr_r");
 	char *kernel_addr_c = env_get("kernel_addr_c");
 	char *fdt_addr = env_get("fdt_addr_r");
@@ -310,8 +310,6 @@ int android_bootloader_boot_kernel(unsigned long kernel_address)
 		[IH_COMP_LZ4]   = "LZ4",
 		[IH_COMP_ZIMAGE]= "ZIMAGE",
 	};
-	char *bootm_args[] = {
-		kernel_addr_str, kernel_addr_str, fdt_addr, NULL };
 
 	comp_type = env_get_ulong("os_comp", 10, 0);
 	sprintf(kernel_addr_str, "0x%08lx", kernel_address);
@@ -343,15 +341,13 @@ int android_bootloader_boot_kernel(unsigned long kernel_address)
 				       comp_type))
 		return -1;
 
-	return do_bootm_states(NULL, 0, ARRAY_SIZE(bootm_args), bootm_args,
-		BOOTM_STATE_START |
-		BOOTM_STATE_FINDOS | BOOTM_STATE_FINDOTHER |
-		BOOTM_STATE_LOADOS |
-#ifdef CONFIG_SYS_BOOT_RAMDISK_HIGH
-		BOOTM_STATE_RAMDISK |
-#endif
-		BOOTM_STATE_OS_PREP | BOOTM_STATE_OS_FAKE_GO |
-		BOOTM_STATE_OS_GO, &images, 1);
+	/* boot! */
+	bootm_init(&bmi);
+	bmi.addr_img = kernel_addr_str;
+	bmi.conf_ramdisk = kernel_addr_str;
+	bmi.conf_fdt = fdt_addr;
+
+	return bootm_run(&bmi);
 }
 
 static char *strjoin(const char **chunks, char separator)
@@ -758,9 +754,7 @@ static AvbSlotVerifyResult android_slot_verify(char *boot_partname,
 	AvbSlotVerifyFlags flags;
 	AvbSlotVerifyData *slot_data = {NULL};
 	AvbSlotVerifyResult verify_result;
-#ifdef CONFIG_LIBAVB_AB
 	AvbABData ab_data, ab_data_orig;
-#endif
 	size_t slot_index_to_boot = 0;
 	char verify_state[38] = {0};
 	char can_boot = 1;
@@ -805,7 +799,6 @@ static AvbSlotVerifyResult android_slot_verify(char *boot_partname,
 	if (unlocked & LOCK_MASK)
 		flags |= AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR;
 
-#ifdef CONFIG_LIBAVB_AB
 	if (load_metadata(ops->ab_ops, &ab_data, &ab_data_orig)) {
 		printf("Can not load metadata\n");
 		return AVB_SLOT_VERIFY_RESULT_ERROR_IO;
@@ -816,7 +809,6 @@ static AvbSlotVerifyResult android_slot_verify(char *boot_partname,
 	else if (!strncmp(slot_suffix, "_b", 2))
 		slot_index_to_boot = 1;
 	else
-#endif
 		slot_index_to_boot = 0;
 
 	if (strcmp(boot_partname, ANDROID_PARTITION_RECOVERY) == 0)
@@ -826,6 +818,8 @@ static AvbSlotVerifyResult android_slot_verify(char *boot_partname,
 	preload_user_data.boot.addr = (void *)mpb_post(1);
 	preload_user_data.boot.size = (size_t)mpb_post(2);
 #endif
+	if (preload_user_data.boot_partition && strcmp(preload_user_data.boot_partition, boot_partname))
+		preload_user_data.boot.addr = NULL;
 
 	/* use preload one if available */
 	if (preload_user_data.boot.addr) {
@@ -937,20 +931,17 @@ retry_verify:
 		}
 		*android_load_address = load_address;
 	} else {
-#ifdef CONFIG_LIBAVB_AB
 		slot_set_unbootable(&ab_data.slots[slot_index_to_boot]);
-#endif
 	}
 
 out:
 	env_update("bootargs", verify_state);
 
-#ifdef CONFIG_LIBAVB_AB
 	if (save_metadata_if_changed(ops->ab_ops, &ab_data, &ab_data_orig)) {
 		printf("Can not save metadata\n");
 		verify_result = AVB_SLOT_VERIFY_RESULT_ERROR_IO;
 	}
-#endif
+
 	if (slot_data != NULL)
 		avb_slot_verify_data_free(slot_data);
 
@@ -961,7 +952,7 @@ out:
 }
 #endif
 
-#ifdef CONFIG_ANDROID_DTBO_SUPPORT
+#if defined(CONFIG_OF_LIBFDT_OVERLAY)
 
 /*
  * Default return index 0.
@@ -1382,11 +1373,8 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	}
 #endif
 #ifdef CONFIG_OPTEE
-	int ret;
-
-	ret = optee_notify_uboot_end();
-	if (ret)
-		printf("Close optee client failed!, ret=%d\n", ret);
+	if (optee_notify_uboot_end())
+		printf("Close optee client failed!\n");
 #endif
 
 #ifdef CONFIG_AMP

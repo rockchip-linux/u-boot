@@ -12,7 +12,6 @@ obj-$(CONFIG_CMD_BOOTI) += bootm.o bootm_os.o
 
 obj-$(CONFIG_PXE_UTILS) += pxe_utils.o
 
-endif
 
 obj-y += image.o image-board.o
 
@@ -23,6 +22,7 @@ else
 obj-$(CONFIG_ANDROID_BOOT_IMAGE) += image-android.o image-android-dt.o
 endif
 
+endif
 obj-y += image.o
 
 obj-$(CONFIG_$(PHASE_)BOOTSTD) += bootdev-uclass.o

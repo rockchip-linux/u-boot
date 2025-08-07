@@ -78,17 +78,17 @@ static void android_dt_print_fdt_info(const struct fdt_header *fdt)
 {
 	u32 fdt_size;
 	int root_node_off;
-	const char *compatible;
+	const char *compatible = NULL;
 
+	fdt_size = fdt_totalsize(fdt);
 	root_node_off = fdt_path_offset(fdt, "/");
 	if (root_node_off < 0) {
 		printf("Error: Root node not found\n");
-		return;
-	}
+	} else {
 
-	fdt_size = fdt_totalsize(fdt);
 	compatible = fdt_getprop(fdt, root_node_off, "compatible",
 				 NULL);
+	}
 
 	printf("           (FDT)size = %d\n", fdt_size);
 	printf("     (FDT)compatible = %s\n",
@@ -120,7 +120,7 @@ void android_dt_print_contents(ulong hdr_addr)
 	printf("      dt_entry_count = %d\n", entry_count);
 	printf("   dt_entries_offset = %d\n", entries_offset);
 	printf("           page_size = %d\n", fdt32_to_cpu(hdr->page_size));
-	printf("             version = %d\n", fdt32_to_cpu(hdr->version));
+	printf("             version = %08x\n", fdt32_to_cpu(hdr->version));
 
 	unmap_sysmem(hdr);
 
@@ -155,3 +155,20 @@ void android_dt_print_contents(ulong hdr_addr)
 	}
 }
 #endif
+
+/**
+ * Get dt entry count of DT image structure.
+ *
+ * @param hdr_addr Start address of DT image
+ */
+int android_dt_get_count(ulong hdr_addr)
+{
+	const struct dt_table_header *hdr;
+	int count;
+
+	hdr = map_sysmem(hdr_addr, sizeof(*hdr));
+	count = fdt32_to_cpu(hdr->dt_entry_count);
+	unmap_sysmem(hdr);
+
+	return count;
+}

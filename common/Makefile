@@ -97,8 +97,9 @@ obj-y += s_record.o
 obj-$(CONFIG_CMD_LOADB) += xyzModem.o
 obj-y += xyzModem.o zmodem/rbsb.o zmodem/zm.o zmodem/zreadline.o zmodem/lrz.o
 obj-$(CONFIG_$(PHASE_)YMODEM_SUPPORT) += xyzModem.o
-
+ifndef CONFIG_ARCH_ROCKCHIP
 obj-$(CONFIG_$(PHASE_)AVB_VERIFY) += avb_verify.o
+endif
 obj-$(CONFIG_$(PHASE_)STACKPROTECTOR) += stackprot.o
 obj-$(CONFIG_SCP03) += scp03.o
 
