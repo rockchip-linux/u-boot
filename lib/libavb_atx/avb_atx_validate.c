@@ -139,6 +139,8 @@ static bool verify_permanent_attributes(
   }
   return true;
 #endif /* CONFIG_ROCKCHIP_PRELOADER_PUB_KEY */
+
+  return false;
 }
 
 /* Verifies the format, key version, usage, and signature of a certificate. */

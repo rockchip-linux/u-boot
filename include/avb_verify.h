@@ -43,6 +43,8 @@ struct AvbOpsData {
 	const char *iface;
 	const char *devnum;
 	const char *slot_suffix;
+	/* Record partition name(either boot or recovery) */
+	const char *boot_partition;
 	struct preloaded_partition boot;
 	struct preloaded_partition vendor_boot;
 	struct preloaded_partition init_boot;

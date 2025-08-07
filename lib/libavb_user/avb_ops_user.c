@@ -38,6 +38,7 @@
 #include <part.h>
 #include <stdio.h>
 #include <rand.h>
+#include <time.h>
 #include <tee.h>
 #include <tee/optee.h>
 #include <asm/cache.h>
