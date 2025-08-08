@@ -237,6 +237,10 @@
 	cpu-supply = <&vdd_cpu_big_s0>;
 };
 
+&combphy1_psu {
+	status = "okay";
+};
+
 &gpu {
 	mali-supply = <&vdd_gpu_s0>;
 	status = "okay";
@@ -717,6 +721,22 @@
 	};
 };
 
+&u2phy0 {
+	status = "okay";
+};
+
+&u2phy0_otg {
+	status = "okay";
+};
+
+&u2phy1 {
+	status = "okay";
+};
+
+&u2phy1_otg {
+	status = "okay";
+};
+
 &uart0 {
 	pinctrl-0 = <&uart0m0_xfer>;
 	status = "okay";
@@ -732,5 +752,9 @@
 &uart6 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart6m3_xfer>;
+	status = "okay";
+};
+
+&usbdp_phy {
 	status = "okay";
 };
