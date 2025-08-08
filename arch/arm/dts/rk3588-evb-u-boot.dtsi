@@ -74,21 +74,6 @@
 	status = "okay";
 };
 
-&usb2phy0_grf {
-	bootph-all;
-	status = "okay";
-};
-
-&u2phy0 {
-	bootph-all;
-	status = "okay";
-};
-
-&u2phy0_otg {
-        bootph-all;
-        status = "okay";
-};
-
 &crypto {
 	bootph-all;
 	status = "okay";
@@ -98,6 +83,5 @@
 	bootph-all;
 	status = "okay";
 };
-
 
 

@@ -123,7 +123,21 @@
 	status = "okay";
 };
 
+
+&u2phy0 {
+	status = "okay";
+};
+
+&u2phy0_otg {
+	status = "okay";
+};
+
 &uart2 {
 	pinctrl-0 = <&uart2m0_xfer>;
 	status = "okay";
 };
+
+&usbdp_phy0 {
+	status = "okay";
+};
+
