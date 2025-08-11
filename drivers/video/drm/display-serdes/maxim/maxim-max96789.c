@@ -730,10 +730,10 @@ static int max96789_select(struct serdes *serdes, int chan)
 		break;
 		}
 
-out:
 		mdelay(5);
 	}
 
+out:
 	if (i > 49)
 		printf("%s: %s link lock timeout, mode=%d val=0x%x\n", __func__,
 		       serdes->dev->name, link_mode, link_status);
