@@ -616,30 +616,3 @@ void board_quiesce_devices(void)
 #endif
 
 }
-
-int board_init_f_boot_flags(void)
-{
-	int boot_flags = 0;
-
-#ifdef CONFIG_ARM64
-	asm volatile("mrs %0, cntfrq_el0" : "=r" (gd->arch.timer_rate_hz));
-#else
-	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
-#endif
-
-#if CONFIG_IS_ENABLED(FPGA_ROCKCHIP)
-	arch_fpga_init();
-#endif
-#ifdef CONFIG_PSTORE
-	param_parse_pstore();
-#endif
-	param_parse_pre_serial(&boot_flags);
-
-	/* The highest priority to turn off (override) console */
-#if defined(CONFIG_DISABLE_CONSOLE)
-	boot_flags |= GD_FLG_DISABLE_CONSOLE;
-#endif
-
-	return boot_flags;
-}
-
