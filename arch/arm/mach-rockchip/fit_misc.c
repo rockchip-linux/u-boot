@@ -73,7 +73,10 @@ static int fit_decomp_image(void *fit, int node, ulong *load_addr,
 	int ret = -ENOSYS;
 	u8 comp;
 #if CONFIG_IS_ENABLED(MISC_DECOMPRESS)
+	const void *prop = NULL;
 	u32 flags = 0;
+
+	prop = fdt_getprop(fit, node, "decomp-async", NULL);
 #endif
 
 	if (fit_image_get_comp(fit, node, &comp))
@@ -89,24 +92,14 @@ static int fit_decomp_image(void *fit, int node, ulong *load_addr,
 	 */
 	if (fit_image_check_type(fit, node, IH_TYPE_KERNEL))
 		return 0;
-#elif defined(CONFIG_SPL_MTD_SUPPORT) && defined(CONFIG_SPL_MISC_DECOMPRESS) && \
-      defined(CONFIG_SPL_KERNEL_BOOT)
+#elif defined(CONFIG_SPL_MISC_DECOMPRESS) && defined(CONFIG_SPL_KERNEL_BOOT)
 	/*
-	 * SPL Thunder-boot policty on spi-nand:
+	 * SPL Thunder-boot policty:
 	 *	enable and use interrupt status as a sync signal for
 	 *	kernel to poll that whether ramdisk decompress is done.
 	 */
-	struct spl_load_info *info = spec;
-	struct blk_desc *desc;
-
-	if (info && info->dev) {
-		desc = info->dev;
-		if ((desc->if_type == UCLASS_MTD) &&
-		    (desc->devnum == BLK_MTD_SPI_NAND) &&
-		    fit_image_check_type(fit, node, IH_TYPE_RAMDISK)) {
-			flags |= DCOMP_FLG_IRQ_ONESHOT;
-		}
-	}
+	if (prop && fit_image_check_type(fit, node, IH_TYPE_RAMDISK))
+		flags |= DCOMP_FLG_IRQ_ONESHOT;
 #endif
 	if (comp == IH_COMP_LZMA) {
 #if CONFIG_IS_ENABLED(LZMA)
@@ -121,7 +114,6 @@ static int fit_decomp_image(void *fit, int node, ulong *load_addr,
 		 * For smaller spl size, we don't use misc_decompress_process()
 		 * inside the gunzip().
 		 */
-		const void *prop;
 		bool sync = true;
 
 		if (fit_image_get_uncomp_digest(fit, node) < 0)
@@ -131,7 +123,6 @@ static int fit_decomp_image(void *fit, int node, ulong *load_addr,
 					      (ulong)(*src_addr), (ulong)(*src_len),
 					      DECOM_GZIP, sync, &len, flags);
 		/* mark for misc_decompress_cleanup() */
-		prop = fdt_getprop(fit, node, "decomp-async", NULL);
 		if (prop)
 			misc_decompress_async(comp);
 		else
