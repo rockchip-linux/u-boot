@@ -1045,7 +1045,7 @@
 #define RK3576_SHARP_CTRL			0x0000
 #define SW_SHARP_ENABLE_SHIFT			0
 
-#define RK3568_MAX_REG				0x1ED0
+#define RK3588_REGS_BACKUP_SIZE			0x2000
 
 #define RK3562_GRF_IOC_VO_IO_CON		0x10500
 #define RK3568_GRF_VO_CON1			0x0364
@@ -1566,7 +1566,7 @@ struct vop2 {
 	void *sys_pmu;
 	void *ioc_grf;
 	void *sharp_res;
-	u32 reg_len;
+	fdt_size_t reg_len;
 	u32 version;
 	u32 esmart_lb_mode;
 	bool global_init;
@@ -2740,7 +2740,7 @@ static void rk3588_vop2_regsbak(struct vop2 *vop2)
 	/*
 	 * No need to backup HDR/DSC/GAMMA_LUT/BPP_LUT/MMU
 	 */
-	for (i = 0; i < (vop2->reg_len >> 2); i++)
+	for (i = 0; i < (RK3588_REGS_BACKUP_SIZE >> 2); i++)
 		vop2->regsbak[i] = base[i];
 }
 
@@ -3504,12 +3504,12 @@ static int rockchip_vop2_preinit(struct display_state *state)
 		if (!rockchip_vop2)
 			return -ENOMEM;
 		memset(rockchip_vop2, 0, sizeof(struct vop2));
-		rockchip_vop2->regsbak = malloc(RK3568_MAX_REG);
-		rockchip_vop2->reg_len = RK3568_MAX_REG;
 #ifdef CONFIG_SPL_BUILD
 		rockchip_vop2->regs = (void *)RK3528_VOP_BASE;
 #else
 		rockchip_vop2->regs = dev_read_addr_ptr(cstate->dev);
+		dev_read_addr_size_name(cstate->dev, "reg", &rockchip_vop2->reg_len);
+		rockchip_vop2->regsbak = malloc(rockchip_vop2->reg_len);
 		map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,grf");
 		rockchip_vop2->grf = regmap_get_range(map, 0);
 		if (rockchip_vop2->grf <= 0)
