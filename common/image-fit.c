@@ -1261,7 +1261,7 @@ int fit_calculate_hash(const void *data, int data_len,
 }
 
 #ifndef USE_HOSTCC
-#if CONFIG_IS_ENABLED(FIT_HW_CRYPTO)
+#if !CONFIG_IS_ENABLED(ARMV8_CRYPTO) && CONFIG_IS_ENABLED(FIT_HW_CRYPTO)
 static int crypto_csum(u32 cap, const char *data, int len, u8 *output)
 {
 	struct udevice *dev;
@@ -1336,7 +1336,7 @@ int calculate_hash(const void *data, int data_len, const char *algo,
 #if defined(USE_HOSTCC)
 	return fit_calculate_hash(data, data_len, algo, value, value_len);
 #else
-#if !CONFIG_IS_ENABLED(FIT_HW_CRYPTO)
+#if CONFIG_IS_ENABLED(ARMV8_CRYPTO) || !CONFIG_IS_ENABLED(FIT_HW_CRYPTO)
 	return fit_calculate_hash(data, data_len, algo, value, value_len);
 #else
 	return hw_fit_calculate_hash(data, data_len, algo, value, value_len);

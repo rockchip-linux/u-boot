@@ -156,12 +156,18 @@ config ARMV8_CE_SHA256
 	bool "SHA-256 digest algorithm (ARMv8 Crypto Extensions)"
 	default y if SHA256
 
+config SPL_ARMV8_CRYPTO
+	bool "ARM64 Accelerated Cryptographic Algorithms in SPL"
+	default y
+
 config SPL_ARMV8_CE_SHA1
 	bool "SHA-1 digest algorithm (ARMv8 Crypto Extensions) in SPL"
+	depends on SPL_ARMV8_CRYPTO
 	default y if SHA1
 
 config SPL_ARMV8_CE_SHA256
 	bool "SHA-256 digest algorithm (ARMv8 Crypto Extensions) in SPL"
+	depends on SPL_ARMV8_CRYPTO
 	default y if SHA256
 
 endif
