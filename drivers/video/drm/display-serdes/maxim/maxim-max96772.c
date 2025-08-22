@@ -249,7 +249,7 @@ static struct serdes_chip_pinctrl_info max96772_pinctrl_info = {
 	.num_functions = ARRAY_SIZE(max96772_functions_desc),
 };
 
-static const struct reg_sequence max96772_clk_ref[3][14] = {
+static const struct reg_sequence max96772_clk_ref[4][14] = {
 	{
 		{ 0xe7b2, 0x50 },
 		{ 0xe7b3, 0x00 },
@@ -291,8 +291,87 @@ static const struct reg_sequence max96772_clk_ref[3][14] = {
 		{ 0xe7b9, 0x00 },
 		{ 0xe7ba, 0x2e },
 		{ 0xe7bb, 0x00 },
-		{ 0xe7bc, 0x00 },
+		{ 0xe7bc, 0x02 },
 		{ 0xe7bd, 0x01 },
+		{ 0xe7be, 0x32 },
+		{ 0xe7bf, 0x00 },
+	}, {
+		{ 0xe7b2, 0x30 },
+		{ 0xe7b3, 0x00 },
+		{ 0xe7b4, 0x00 },
+		{ 0xe7b5, 0x40 },
+		{ 0xe7b6, 0x6c },
+		{ 0xe7b7, 0x20 },
+		{ 0xe7b8, 0x14 },
+		{ 0xe7b9, 0x00 },
+		{ 0xe7ba, 0x2e },
+		{ 0xe7bb, 0x00 },
+		{ 0xe7bc, 0x00 },
+		{ 0xe7bd, 0x00 },
+		{ 0xe7be, 0x32 },
+		{ 0xe7bf, 0x00 },
+	}
+};
+
+static const struct reg_sequence max96772_clk_ssc[4][14] = {
+	{
+		{ 0xe7b2, 0x50 },
+		{ 0xe7b3, 0x00 },
+		{ 0xe7b4, 0x35 },
+		{ 0xe7b5, 0x42 },
+		{ 0xe7b6, 0x81 },
+		{ 0xe7b7, 0x30 },
+		{ 0xe7b8, 0x07 },
+		{ 0xe7b9, 0x10 },
+		{ 0xe7ba, 0x01 },
+		{ 0xe7bb, 0x00 },
+		{ 0xe7bc, 0x00 },
+		{ 0xe7bd, 0x00 },
+		{ 0xe7be, 0x52 },
+		{ 0xe7bf, 0x00 },
+	}, {
+		{ 0xe7b2, 0x50 },
+		{ 0xe7b3, 0x00 },
+		{ 0xe7b4, 0xd7 },
+		{ 0xe7b5, 0x45 },
+		{ 0xe7b6, 0x6b },
+		{ 0xe7b7, 0x20 },
+		{ 0xe7b8, 0x07 },
+		{ 0xe7b9, 0x00 },
+		{ 0xe7ba, 0x01 },
+		{ 0xe7bb, 0x00 },
+		{ 0xe7bc, 0x00 },
+		{ 0xe7bd, 0x00 },
+		{ 0xe7be, 0x52 },
+		{ 0xe7bf, 0x00 },
+	}, {
+		{ 0xe7b2, 0x30 },
+		{ 0xe7b3, 0x00 },
+		{ 0xe7b4, 0xd7 },
+		{ 0xe7b5, 0x45 },
+		{ 0xe7b6, 0x6b },
+		{ 0xe7b7, 0x20 },
+		{ 0xe7b8, 0x14 },
+		{ 0xe7b9, 0x00 },
+		{ 0xe7ba, 0x2e },
+		{ 0xe7bb, 0x00 },
+		{ 0xe7bc, 0x02 },
+		{ 0xe7bd, 0x01 },
+		{ 0xe7be, 0x32 },
+		{ 0xe7bf, 0x00 },
+	}, {
+		{ 0xe7b2, 0x30 },
+		{ 0xe7b3, 0x00 },
+		{ 0xe7b4, 0xd7 },
+		{ 0xe7b5, 0x45 },
+		{ 0xe7b6, 0x6b },
+		{ 0xe7b7, 0x20 },
+		{ 0xe7b8, 0x14 },
+		{ 0xe7b9, 0x00 },
+		{ 0xe7ba, 0x2e },
+		{ 0xe7bb, 0x00 },
+		{ 0xe7bc, 0x00 },
+		{ 0xe7bd, 0x00 },
 		{ 0xe7be, 0x32 },
 		{ 0xe7bf, 0x00 },
 	}
@@ -321,36 +400,101 @@ static int max96772_panel_init(struct serdes *serdes)
 
 static int max96772_panel_prepare(struct serdes *serdes)
 {
-	const struct drm_display_mode *mode = &serdes->serdes_panel->mode;
 	u32 hfp, hsa, hbp, hact;
 	u32 vact, vsa, vfp, vbp;
 	u64 hwords, mvid;
 	bool hsync_pol, vsync_pol;
+	int ret;
+	u32 dpcd;
+	int link_rate;
+	struct serdes_panel *serdes_panel = serdes->serdes_panel;
+	struct rockchip_panel *panel = serdes_panel->panel;
+	struct drm_display_mode *mode = &panel->state->conn_state.mode;
 
-	serdes_reg_write(serdes, 0xe790, serdes->serdes_panel->link_rate);
-	serdes_reg_write(serdes, 0xe792, serdes->serdes_panel->lane_count);
+	if (!serdes_panel->link_rate || !serdes_panel->lane_count) {
+		ret = max96772_aux_dpcd_read(serdes, DP_MAX_LANE_COUNT, &dpcd);
+		if (ret) {
+			printf("%s failed to read max lane count\n",
+			       serdes->dev->name);
+			return ret;
+		}
 
-	if (serdes->serdes_panel->ssc) {
+		serdes_panel->lane_count = min_t(int, 4,
+						 dpcd & DP_MAX_LANE_COUNT_MASK);
+
+		ret = max96772_aux_dpcd_read(serdes, DP_MAX_LINK_RATE, &dpcd);
+		if (ret) {
+			printf("%s failed to read max link rate\n",
+			       serdes->dev->name);
+			return ret;
+		}
+
+		serdes_panel->link_rate = min_t(int, dpcd, DP_LINK_BW_5_4);
+
+		ret = max96772_aux_dpcd_read(serdes, DP_MAX_DOWNSPREAD, &dpcd);
+		if (ret) {
+			printf("%s failed to read max downspread\n",
+			       serdes->dev->name);
+			return ret;
+		}
+
+		serdes_panel->ssc = !!(dpcd & DP_MAX_DOWNSPREAD_0_5);
+	}
+
+	serdes_reg_write(serdes, 0xe790, serdes_panel->link_rate);
+	serdes_reg_write(serdes, 0xe792, serdes_panel->lane_count);
+
+	if (serdes_panel->ssc) {
 		serdes_reg_write(serdes, 0xe7b0, 0x01);
 		serdes_reg_write(serdes, 0xe7b1, 0x10);
 	} else {
 		serdes_reg_write(serdes, 0xe7b1, 0x00);
 	}
 
-	switch (serdes->serdes_panel->link_rate) {
-	case DP_LINK_BW_5_4:
-		serdes_multi_reg_write(serdes, max96772_clk_ref[2],
-				       ARRAY_SIZE(max96772_clk_ref[2]));
-		break;
-	case DP_LINK_BW_2_7:
-		serdes_multi_reg_write(serdes, max96772_clk_ref[1],
-				       ARRAY_SIZE(max96772_clk_ref[1]));
-		break;
-	case DP_LINK_BW_1_62:
-	default:
-		serdes_multi_reg_write(serdes, max96772_clk_ref[0],
-				       ARRAY_SIZE(max96772_clk_ref[0]));
-		break;
+	printf("%s link_rate=0x%02x, lane_count=0x%02x, ssc=%d\n",
+	       serdes->dev->name, serdes_panel->link_rate,
+		   serdes_panel->lane_count, serdes_panel->ssc);
+
+	if (serdes_panel->ssc) {
+		switch (serdes_panel->link_rate) {
+		case DP_LINK_BW_8_1:
+			serdes_multi_reg_write(serdes, max96772_clk_ssc[3],
+					       ARRAY_SIZE(max96772_clk_ssc[3]));
+			break;
+		case DP_LINK_BW_5_4:
+			serdes_multi_reg_write(serdes, max96772_clk_ssc[2],
+					       ARRAY_SIZE(max96772_clk_ssc[2]));
+			break;
+		case DP_LINK_BW_2_7:
+			serdes_multi_reg_write(serdes, max96772_clk_ssc[1],
+					       ARRAY_SIZE(max96772_clk_ssc[1]));
+				break;
+		case DP_LINK_BW_1_62:
+		default:
+			serdes_multi_reg_write(serdes, max96772_clk_ssc[0],
+					       ARRAY_SIZE(max96772_clk_ssc[0]));
+			break;
+		}
+	} else {
+		switch (serdes_panel->link_rate) {
+		case DP_LINK_BW_8_1:
+			serdes_multi_reg_write(serdes, max96772_clk_ref[3],
+					       ARRAY_SIZE(max96772_clk_ref[3]));
+			break;
+		case DP_LINK_BW_5_4:
+			serdes_multi_reg_write(serdes, max96772_clk_ref[2],
+					       ARRAY_SIZE(max96772_clk_ref[2]));
+			break;
+		case DP_LINK_BW_2_7:
+			serdes_multi_reg_write(serdes, max96772_clk_ref[1],
+					       ARRAY_SIZE(max96772_clk_ref[1]));
+			break;
+		case DP_LINK_BW_1_62:
+		default:
+			serdes_multi_reg_write(serdes, max96772_clk_ref[0],
+					       ARRAY_SIZE(max96772_clk_ref[0]));
+			break;
+		}
 	}
 
 	vact = mode->vdisplay;
@@ -388,13 +532,14 @@ static int max96772_panel_prepare(struct serdes *serdes)
 	serdes_reg_write(serdes, 0xe7a9, 0x80);
 
 	/* HWORDS = ((HRES x bits / pixel) / 16) - LANE_COUNT */
-	hwords = DIV_ROUND_UP(hact * 24, 16) - serdes->serdes_panel->lane_count;
-	serdes_reg_write(serdes, 0xe7a4, hwords);
-	serdes_reg_write(serdes, 0xe7a5, hwords >> 8);
+	hwords = DIV_ROUND_UP(hact * 24, 16) - serdes_panel->lane_count;
+	serdes_reg_write(serdes, 0xe7a4, hwords & 0xff);
+	serdes_reg_write(serdes, 0xe7a5, (hwords >> 8) & 0xff);
 
-	/* MVID = (PCLK x NVID) x 10 / Link Rate */
-	mvid = DIV_ROUND_UP((u64)mode->clock * 32768,
-			    drm_dp_bw_code_to_link_rate(serdes->serdes_panel->link_rate));
+	/* MVID = (PCLK_in_MHz x NVID)/(Link_Rate_in_GBs * 100) */
+	link_rate = drm_dp_bw_code_to_link_rate(serdes_panel->link_rate);
+	mvid = DIV_ROUND_UP((u64)mode->clock * 32768, link_rate);
+
 	serdes_reg_write(serdes, 0xe7a6, mvid & 0xff);
 	serdes_reg_write(serdes, 0xe7a7, (mvid >> 8) & 0xff);
 
@@ -411,7 +556,7 @@ static int max96772_panel_unprepare(struct serdes *serdes)
 
 static int max96772_panel_enable(struct serdes *serdes)
 {
-	u32 status[2];
+	u32 status[2] = {0};
 	u32 val;
 	int ret;
 	int i = 0;
@@ -421,9 +566,9 @@ static int max96772_panel_enable(struct serdes *serdes)
 	serdes_reg_write(serdes, 0xe777, 0x80);
 
 	for (i = 0; i < 100; i++) {
-		ret = serdes_reg_read(serdes, 0x07f0, &val);
+		serdes_reg_read(serdes, 0x07f0, &val);
 		if (val & 0x01)
-			break;
+			return 0;
 		mdelay(5);
 	}
 

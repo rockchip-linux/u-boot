@@ -15,6 +15,34 @@
 #define GPIO_B_REG(gpio)	(0x02b1 + ((gpio) * 3))
 #define GPIO_C_REG(gpio)	(0x02b2 + ((gpio) * 3))
 
+/* 0002h */
+#define VID_EN_U                BIT(7)
+#define VID_EN_Z                BIT(6)
+#define VID_EN_Y                BIT(5)
+#define VID_EN_X                BIT(4)
+#define AUD_TX_EN               BIT(2)
+
+/* 0004h */
+#define LINK_EN_B               BIT(5)
+#define LINK_EN_A               BIT(4)
+
+/* 0010h */
+#define RESET_ALL               BIT(7)
+#define RESET_LINK              BIT(6)
+#define RESET_ONESHOT           BIT(5)
+#define AUTO_LINK               BIT(4)
+#define SLEEP                   BIT(3)
+#define REG_ENABLE              BIT(2)
+#define LINK_CFG                GENMASK(1, 0)
+
+/* 0013h */
+#define DUAL_LINK_MODE          BIT(4)
+#define LOCKED                  BIT(3)
+
+/* 001fh */
+#define LINKA_LOCKED            BIT(4)
+#define LINKB_LOCKED            BIT(5)
+
 /* 02b0h */
 #define RES_CFG			BIT(7)
 #define RSVD			BIT(6)

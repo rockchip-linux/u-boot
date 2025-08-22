@@ -101,7 +101,8 @@ static struct rockchip_panel_funcs serdes_panel_split_ops = {
 static int serdes_panel_split_probe(struct udevice *dev)
 {
 	struct serdes *serdes = dev_get_priv(dev->parent);
-	struct serdes_panel_split *serdes_panel_split = NULL;
+	struct serdes_panel_split *serdes_panel_split;
+	u32 link_rate_count_ssc[3] = {0};
 	struct rockchip_panel *panel;
 	int ret;
 
@@ -136,6 +137,19 @@ static int serdes_panel_split_probe(struct udevice *dev)
 	ret = serdes_get_init_seq(serdes);
 	if (ret)
 		goto free_panel;
+
+	ret = dev_read_u32_array(dev, "rate-count-ssc", link_rate_count_ssc,
+				 ARRAY_SIZE(link_rate_count_ssc));
+	if (!ret) {
+		serdes_panel_split->link_rate = link_rate_count_ssc[0];
+		serdes_panel_split->lane_count = link_rate_count_ssc[1];
+		serdes_panel_split->ssc = link_rate_count_ssc[2];
+
+		SERDES_DBG_MFD("serdes panel rate=%d, cnt=%d, ssc=%d\n",
+			       serdes_panel_split->link_rate,
+			       serdes_panel_split->lane_count,
+			       serdes_panel_split->ssc);
+	}
 
 	dev->driver_data = (ulong)panel;
 	panel->dev = dev;
