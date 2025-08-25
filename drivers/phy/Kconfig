@@ -304,13 +304,6 @@ config PHY_XILINX_ZYNQMP
 	  Enable this to support ZynqMP High Speed Gigabit Transceiver
 	  that is part of ZynqMP SoC.
 
-config PHY_ROCKCHIP_SAMSUNG_HDPTX
-	bool "Rockchip Samsung HDMI/DP Combo PHY driver"
-	depends on ARCH_ROCKCHIP
-	select PHY
-	help
-	  Support for Rockchip HDMI/DP Combo PHY with Samsung IP block.
-
 source "drivers/phy/rockchip/Kconfig"
 source "drivers/phy/cadence/Kconfig"
 source "drivers/phy/ti/Kconfig"

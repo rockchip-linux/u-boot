@@ -40,6 +40,13 @@ config PHY_ROCKCHIP_PCIE
 	help
 	  Enable this to support the Rockchip PCIe PHY.
 
+config PHY_ROCKCHIP_SAMSUNG_HDPTX
+	bool "Rockchip Samsung HDMI/DP Combo PHY driver"
+	depends on ARCH_ROCKCHIP
+	select PHY
+	help
+	  Support for Rockchip HDMI/DP Combo PHY with Samsung IP block.
+
 config PHY_ROCKCHIP_SNPS_PCIE3
 	bool "Rockchip Snps PCIe3 PHY Driver"
 	depends on PHY && ARCH_ROCKCHIP
