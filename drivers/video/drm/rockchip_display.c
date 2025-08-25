@@ -1137,9 +1137,6 @@ static int display_bmp(struct display_state *state)
 	u32 overscan_w, overscan_h;
 	int hdisplay, vdisplay, ret;
 
-	if (!state->is_init)
-		return -ENODEV;
-
 	switch (logo->bpp) {
 	case 16:
 		crtc_state->format = ROCKCHIP_FMT_RGB565;
@@ -1755,7 +1752,10 @@ int rockchip_show_bmp(const char *bmp)
 		s->logo.mode = s->charge_logo_mode;
 		if (load_bmp_logo(&s->logo, bmp))
 			continue;
-		ret = display_bmp(s);
+		if (!s->is_init)
+			ret = display_logo(s);
+		else
+			ret = display_bmp(s);
 	}
 
 	return ret;
