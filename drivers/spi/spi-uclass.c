@@ -444,6 +444,8 @@ int _spi_get_bus_and_cs(int busnum, int cs, int speed, int mode,
 	}
 
 	slave = dev_get_parent_priv(dev);
+	slave->max_hz = speed;
+
 	bus_data = dev_get_uclass_priv(bus);
 
 #if CONFIG_IS_ENABLED(SPI_STACKED_PARALLEL)
