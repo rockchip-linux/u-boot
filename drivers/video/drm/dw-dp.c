@@ -1552,8 +1552,10 @@ static int dw_dp_connector_detect(struct rockchip_connector *conn, struct displa
 
 	if (status && !dp->force_output) {
 		ret = dw_dp_link_probe(dp);
-		if (ret)
+		if (ret) {
 			printf("failed to probe DP link: %d\n", ret);
+			return 0;
+		}
 	}
 
 	return status;
