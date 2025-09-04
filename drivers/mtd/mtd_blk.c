@@ -29,7 +29,7 @@
 // #define MTD_BLK_VERBOSE
 
 #define MTD_PART_NAND_HEAD		"mtdparts="
-#define MTD_PART_INFO_MAX_SIZE		512
+#define MTD_PART_INFO_MAX_SIZE		1024
 #define MTD_SINGLE_PART_INFO_MAX_SIZE	40
 
 #define MTD_BLK_TABLE_BLOCK_UNKNOWN	(-2)
@@ -386,12 +386,11 @@ static __maybe_unused int mtd_map_erase(struct mtd_info *mtd, loff_t offset,
 
 char *mtd_part_parse(struct blk_desc *dev_desc)
 {
-	char mtd_part_info_temp[MTD_SINGLE_PART_INFO_MAX_SIZE] = {0};
-	u32 length, data_len = MTD_PART_INFO_MAX_SIZE;
-	struct disk_partition info;
-	char *mtd_part_info_p;
+	u32 data_len = MTD_PART_INFO_MAX_SIZE;
+	disk_partition_t info, info_temp;
+	char *mtd_part_info_p, *mtd_part_info;
 	struct mtd_info *mtd;
-	char *mtd_part_info;
+	int size, offset, length;
 	int ret;
 	int p;
 
@@ -405,83 +404,51 @@ char *mtd_part_parse(struct blk_desc *dev_desc)
 	if (!mtd)
 		return NULL;
 
-	mtd_part_info = (char *)calloc(MTD_PART_INFO_MAX_SIZE, sizeof(char));
+	mtd_part_info = (char *)malloc(data_len);
 	if (!mtd_part_info) {
 		printf("%s: Fail to malloc!", __func__);
 		return NULL;
 	}
 
 	mtd_part_info_p = mtd_part_info;
-	snprintf(mtd_part_info_p, data_len - 1, "%s%s:",
-		 MTD_PART_NAND_HEAD,
-		 dev_desc->product);
-	data_len -= strlen(mtd_part_info_p);
-	mtd_part_info_p = mtd_part_info_p + strlen(mtd_part_info_p);
+	length = snprintf(mtd_part_info_p, data_len, "%s%s:",
+			  MTD_PART_NAND_HEAD,
+			  dev_desc->product);
+	data_len -= length;
+	mtd_part_info_p = mtd_part_info_p + length;
 
 	for (p = 1; p < MAX_SEARCH_PARTITIONS; p++) {
 		ret = part_get_info(dev_desc, p, &info);
 		if (ret)
 			break;
 
-		debug("name is %s, start addr is %x\n", info.name,
-		      (int)(size_t)info.start);
+		offset = (int)(size_t)info.start;
+		size = (int)(size_t)info.size;
 
-		snprintf(mtd_part_info_p, data_len - 1, "0x%x@0x%x(%s)",
-			 (int)(size_t)info.size << 9,
-			 (int)(size_t)info.start << 9,
-			 info.name);
-		snprintf(mtd_part_info_temp, MTD_SINGLE_PART_INFO_MAX_SIZE - 1,
-			 "0x%x@0x%x(%s)",
-			 (int)(size_t)info.size << 9,
-			 (int)(size_t)info.start << 9,
-			 info.name);
-		strcat(mtd_part_info, ",");
-		if (part_get_info(dev_desc, p + 1, &info)) {
-			/* Partition with grow tag in parameter will be resized */
-			if ((info.size + info.start + 64) >= dev_desc->lba ||
-			    (info.size + info.start - 1) == FACTORY_UNKNOWN_LBA) {
-				if (dev_desc->devnum == BLK_MTD_SPI_NOR) {
-					/* Nor is 64KB erase block(kernel) and gpt table just
-					 * resserve 33 sectors for the last partition. This
-					 * will erase the backup gpt table by user program,
-					 * so reserve one block.
-					 */
-					snprintf(mtd_part_info_p, data_len - 1, "0x%x@0x%x(%s)",
-						 (int)(size_t)(info.size -
-						 (info.size - 1) %
-						 (0x10000 >> 9) - 1) << 9,
-						 (int)(size_t)info.start << 9,
-						 info.name);
-					break;
-				} else {
-					/* Nand flash is erased by block and gpt table just
-					 * resserve 33 sectors for the last partition. This
-					 * will erase the backup gpt table by user program,
-					 * so reserve one block.
-					 */
-					snprintf(mtd_part_info_p, data_len - 1, "0x%x@0x%x(%s)",
-						 (int)(size_t)(info.size -
-						 (info.size - 1) %
-						 (mtd->erasesize >> 9) - 1) << 9,
-						 (int)(size_t)info.start << 9,
-						 info.name);
-					break;
-				}
-			} else {
-				snprintf(mtd_part_info_temp, MTD_SINGLE_PART_INFO_MAX_SIZE - 1,
-					 "0x%x@0x%x(%s)",
-					 (int)(size_t)info.size << 9,
-					 (int)(size_t)info.start << 9,
-					 info.name);
-				break;
-			}
+		/* Reserved 1 flash block for gpt table */
+		if (part_get_info(dev_desc, p + 1, &info_temp) &&
+		    (info.size + info.start + 0x40) >= dev_desc->lba) {
+			if (dev_desc->devnum == BLK_MTD_SPI_NOR)
+				size = round_up(size - 0x80, 0x80);
+			else /* Nand devices */
+				size = round_up(size - (mtd->erasesize >> 9), (mtd->erasesize >> 9));
 		}
-		length = strlen(mtd_part_info_temp);
+
+		debug("name[%s] start 0x%x size 0x%x\n", info.name, offset, size);
+
+		length = snprintf(mtd_part_info_p, data_len, "0x%x@0x%x(%s),",
+				  size << 9,
+				  offset << 9, info.name);
+		if (length >= data_len || length < 0) {
+			printf("%s failed, %s snprintf exceed the limitation\n", __func__, info.name);
+			memset(mtd_part_info_p, 0, data_len);
+			break;
+		}
 		data_len -= length;
-		mtd_part_info_p = mtd_part_info_p + length + 1;
-		memset(mtd_part_info_temp, 0, MTD_SINGLE_PART_INFO_MAX_SIZE);
+		mtd_part_info_p = mtd_part_info_p + length;
 	}
 
+	/* Remove the last ',' */
 	length = strlen(mtd_part_info);
 	if (length > 0 && mtd_part_info[length - 1] == ',')
 		mtd_part_info[length - 1] = '\0';
