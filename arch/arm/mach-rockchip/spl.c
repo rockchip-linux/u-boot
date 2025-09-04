@@ -596,8 +596,10 @@ int spl_fdt_chosen_bootargs(struct spl_load_info *info, void *fdt)
 	char *part_list;
 	int id = 0;
 
+#ifdef CONFIG_MTD_BLK
 	env = envf_get(desc, part_type[id]);
 	if (!env)
+#endif
 		env = envf_get(desc, part_type[++id]);
 	if (env) {
 		if (!strstr(env, part_type[id])) {
