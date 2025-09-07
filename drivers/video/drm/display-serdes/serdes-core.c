@@ -193,6 +193,9 @@ int serdes_i2c_set_sequence(struct serdes *serdes)
 		return 0;
 	}
 
+	if (!serdes->serdes_init_seq)
+		return 0;
+
 	for (i = 0; i < serdes->serdes_init_seq->reg_seq_cnt; i++) {
 		if (serdes->serdes_init_seq->reg_sequence[i].reg == 0xffff) {
 			SERDES_DBG_MFD("%s: delay 0x%04x us\n", __func__,
@@ -287,8 +290,9 @@ int serdes_get_init_seq(struct serdes *serdes)
 
 	data = dev_read_prop(serdes->dev, "serdes-init-sequence", &len);
 	if (!data) {
-		printf("failed to get serdes-init-sequence\n");
-		return -EINVAL;
+		printf("serdes %s failed to get serdes-init-sequence\n",
+		       serdes->dev->name);
+		return 0;
 	}
 
 	serdes->serdes_init_seq = calloc(1, sizeof(*serdes->serdes_init_seq));
