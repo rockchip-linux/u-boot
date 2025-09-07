@@ -134,10 +134,6 @@ static int serdes_panel_probe(struct udevice *dev)
 	if (!panel)
 		return -ENOMEM;
 
-	ret = serdes_get_init_seq(serdes);
-	if (ret)
-		goto free_panel;
-
 	ret = dev_read_u32_array(dev, "rate-count-ssc", link_rate_count_ssc,
 				 ARRAY_SIZE(link_rate_count_ssc));
 	if (!ret) {
@@ -163,11 +159,6 @@ static int serdes_panel_probe(struct udevice *dev)
 	       SERDES_UBOOT_DISPLAY_VERSION);
 
 	return 0;
-
-free_panel:
-	free(panel);
-
-	return ret;
 }
 
 static const struct udevice_id serdes_of_match[] = {
