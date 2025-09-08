@@ -29,6 +29,12 @@ config BUTTON_ADC
 	  Converter device. The ADC driver must use driver model. Buttons are
 	  configured using the device tree.
 
+config SPL_BUTTON_ADC
+	bool "SPL Button adc"
+	depends on SPL_BUTTON
+	help
+	  Enable support for ADC button in SPL.
+
 config BUTTON_GPIO
 	bool "Button gpio"
 	depends on BUTTON
@@ -47,5 +53,11 @@ config BUTTON_QCOM_PMIC
 	  Enable support for the power and "resin" (usually volume down) buttons
 	  on Qualcomm SoCs. These will be configured as the Enter and Down keys
 	  respectively, allowing navigation of bootmenu with buttons on device.
+
+config BUTTON_RK8XX
+	bool "Button rk8xx pwrkey on PMIC: RK805/rk806/816/817"
+	depends on BUTTON && (PMIC_RK8XX || PMIC_SPI_RK8XX) && IRQ
+	help
+	  Enable support for pwrkey on PMIC: RK805/rk806/816/817.
 
 endmenu

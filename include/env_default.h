@@ -121,6 +121,9 @@ const char default_environment[] = {
 #ifdef CONFIG_MTDPARTS_DEFAULT
 	"mtdparts="	CONFIG_MTDPARTS_DEFAULT		"\0"
 #endif
+#ifdef CONFIG_SILENT_CONSOLE
+	"silent=enable\0"
+#endif
 #ifdef CONFIG_EXTRA_ENV_TEXT
 	/* This is created in the Makefile */
 	CONFIG_EXTRA_ENV_TEXT

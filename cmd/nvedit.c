@@ -184,6 +184,395 @@ DONE:
 #endif
 #endif /* CONFIG_XPL_BUILD */
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+static int env_append(const char *varname, const char *varvalue)
+{
+	int len = 0;
+	char *oldvalue, *newvalue;
+
+	debug("%s: varvalue = %s\n", __func__, varvalue);
+
+	/* before import into hashtable */
+	if (!(gd->flags & GD_FLG_ENV_READY) || !varname)
+		return 1;
+
+	if (env_exist(varname, varvalue))
+		return 0;
+
+	debug("%s: reall append: %s\n", __func__, varvalue);
+
+	if (varvalue)
+		len += strlen(varvalue);
+
+	oldvalue = env_get(varname);
+	if (oldvalue)
+		len += strlen(oldvalue);
+
+	newvalue = calloc(1, len + 2);
+	if (!newvalue) {
+		printf("Error: calloc in %s failed!\n", __func__);
+		return 1;
+	}
+
+	*newvalue = '\0';
+
+	if (oldvalue) {
+		strcpy(newvalue, oldvalue);
+		strcat(newvalue, " ");
+	}
+
+	if (varvalue)
+		strcat(newvalue, varvalue);
+
+	debug("%s: newvalue: %s\n", __func__, newvalue);
+	env_set(varname, newvalue);
+	free(newvalue);
+
+	return 0;
+}
+
+static int env_replace(const char *varname, const char *substr,
+		       const char *replacement)
+{
+	char *oldvalue, *newvalue, *dst, *sub;
+	int substr_len, replace_len, oldvalue_len, len;
+
+	/* before import into hashtable */
+	if (!(gd->flags & GD_FLG_ENV_READY) || !varname)
+		return 1;
+
+	oldvalue = env_get(varname);
+	if (!oldvalue)
+		return 1;
+
+	sub = strstr(oldvalue, substr);
+	if (!sub)
+		return 1;
+
+	oldvalue_len = strlen(oldvalue) + 1;
+	substr_len = strlen(substr);
+	replace_len = strlen(replacement);
+
+	if (replace_len >= substr_len)
+		len = oldvalue_len + replace_len - substr_len;
+	else
+		len = oldvalue_len + substr_len - replace_len;
+
+	newvalue = calloc(1, len);
+	if (!newvalue) {
+		printf("Error: calloc in %s failed!\n", __func__);
+		return 1;
+	}
+
+	*newvalue = '\0';
+
+	/*
+	 * Orignal string is splited like format: [str1.. substr str2..]
+	 */
+
+	/* str1.. */
+	dst = newvalue;
+	dst = strncat(dst, oldvalue, sub - oldvalue);
+
+	/* substr */
+	dst += sub - oldvalue;
+	dst = strncat(dst, replacement, replace_len);
+
+	/* str2.. */
+	dst += replace_len;
+	len = oldvalue_len - substr_len - (sub - oldvalue);
+	dst = strncat(dst, sub + substr_len, len);
+
+	env_set(varname, newvalue);
+	free(newvalue);
+
+	return 0;
+}
+
+#define ARGS_ITEM_NUM	50
+
+int env_update_filter(const char *varname, const char *varvalue,
+		      const char *ignore)
+{
+	/* 'a_' means "varargs_'; 'v_' means 'varvalue_' */
+	char *varargs;
+	char *a_title, *v_title;
+	char *a_string_tok, *a_item_tok = NULL;
+	char *v_string_tok, *v_item_tok = NULL;
+	char *a_item, *a_items[ARGS_ITEM_NUM] = { NULL };
+	char *v_item, *v_items[ARGS_ITEM_NUM] = { NULL };
+	bool match = false;
+	int i = 0, j = 0;
+
+	/* Before import into hashtable */
+	if (!(gd->flags & GD_FLG_ENV_READY) || !varname)
+		return 1;
+
+	/* If varname doesn't exist, create it and set varvalue */
+	varargs = env_get(varname);
+	if (!varargs) {
+		env_set(varname, varvalue);
+		if (ignore && strstr(varvalue, ignore))
+			env_delete(varname, ignore, 0);
+		return 0;
+	}
+
+	/* Malloc a temporary varargs for strtok */
+	a_string_tok = strdup(varargs);
+	if (!a_string_tok) {
+		printf("Error: strdup in failed, line=%d\n", __LINE__);
+		return 1;
+	}
+
+	/* Malloc a temporary varvalue for strtok */
+	v_string_tok = strdup(varvalue);
+	if (!v_string_tok) {
+		free(a_string_tok);
+		printf("Error: strdup in failed, line=%d\n", __LINE__);
+		return 1;
+	}
+
+	/* Splite varargs into items containing "=" by the space */
+	a_item = strtok(a_string_tok, " ");
+	while (a_item && i < ARGS_ITEM_NUM) {
+		debug("%s: [a_item %d]: %s\n", __func__, i, a_item);
+		if (strstr(a_item, "="))
+			a_items[i++] = a_item;
+		a_item = strtok(NULL, " ");
+	}
+
+	/*
+	 * Splite varvalue into items containing "=" by the space.
+	 * parse varvalue title, eg: "bootmode=emmc", title is "bootmode"
+	 */
+	v_item = strtok(v_string_tok, " ");
+	while (v_item && j < ARGS_ITEM_NUM) {
+		debug("%s: <v_item %d>: %s ", __func__, j, v_item);
+
+		/* filter ignore string */
+		if (ignore && strstr(v_item, ignore)) {
+			v_item = strtok(NULL, " ");
+			debug("...ignore\n");
+			continue;
+		}
+
+		if (strstr(v_item, "=")) {
+			debug("\n");
+			v_items[j++] = v_item;
+		} else {
+			debug("... do append\n");
+			env_append(varname, v_item);
+		}
+
+		v_item = strtok(NULL, " ");
+	}
+
+	/* For every v_item, search its title */
+	for (j = 0; j < ARGS_ITEM_NUM && v_items[j]; j++) {
+		v_item = v_items[j];
+		/* Malloc a temporary a_item for strtok */
+		v_item_tok = strdup(v_item);
+		if (!v_item_tok) {
+			printf("Error: strdup in failed, line=%d\n", __LINE__);
+			free(a_string_tok);
+			free(v_string_tok);
+			return 1;
+		}
+		v_title = strtok(v_item_tok, "=");
+		debug("%s: <v_title>: %s\n", __func__, v_title);
+
+		/* For every a_item, search its title */
+		for (i = 0; i < ARGS_ITEM_NUM && a_items[i]; i++) {
+			a_item = a_items[i];
+			/* Malloc a temporary a_item for strtok */
+			a_item_tok = strdup(a_item);
+			if (!a_item_tok) {
+				printf("Error: strdup in failed, line=%d\n", __LINE__);
+				free(a_string_tok);
+				free(v_string_tok);
+				free(v_item_tok);
+				return 1;
+			}
+
+			a_title = strtok(a_item_tok, "=");
+			debug("%s: [a_title]: %s\n", __func__, a_title);
+			if (!strcmp(a_title, v_title)) {
+				/* Find! replace it */
+				env_replace(varname, a_item, v_item);
+				free(a_item_tok);
+				match = true;
+				break;
+			}
+			free(a_item_tok);
+		}
+
+		/* Not find, just append */
+		if (!match) {
+			debug("%s: append '%s' to the '%s' end\n",
+			      __func__, v_item, varname);
+			env_append(varname, v_item);
+		}
+		match = false;
+		free(v_item_tok);
+	}
+
+	free(v_string_tok);
+	free(a_string_tok);
+
+	return 0;
+}
+
+int env_update(const char *varname, const char *varvalue)
+{
+	return env_update_filter(varname, varvalue, NULL);
+}
+
+int env_update_extract_subset(const char *varname,
+			      const char *subset_varname,
+			      const char *subset_key)
+{
+	char *subset_varvalue;
+	char *tmp_varvalue;
+	char *new_varvalue;
+	char *varvalue;
+	char *p, *item;
+	int ret = 0;
+	u32 len;
+
+	varvalue = env_get(varname);
+	if (!varvalue)
+		return 0;
+
+	len = strlen(varvalue) + 1;
+	new_varvalue = calloc(1, len);
+	subset_varvalue = calloc(1, len);
+	tmp_varvalue = strdup(varvalue);
+	if (!new_varvalue || !tmp_varvalue || !subset_varvalue) {
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	item = strtok(tmp_varvalue, " ");
+	while (item) {
+		p = strstr(item, subset_key) ? subset_varvalue : new_varvalue;
+		strcat(p, item);
+		strcat(p, " ");
+		debug("%s: [item]: %s\n", __func__, item);
+		item = strtok(NULL, " ");
+	}
+
+	env_set(varname, new_varvalue);
+	env_set(subset_varname, subset_varvalue);
+out:
+	if (new_varvalue)
+		free(new_varvalue);
+	if (subset_varvalue)
+		free(subset_varvalue);
+	if (tmp_varvalue)
+		free(tmp_varvalue);
+
+	return ret;
+}
+
+char *env_exist(const char *varname, const char *varvalue)
+{
+	char *buf, *ptr = NULL;
+	char *oldvalue, *p;
+	int len;
+
+	/* before import into hashtable */
+	if (!(gd->flags & GD_FLG_ENV_READY) || !varname)
+		return NULL;
+
+	len = strlen(varvalue) + 8; /* extra 8 byte is enough*/
+	buf = calloc(1, len);
+	if (!buf)
+		return NULL;
+
+	oldvalue = env_get(varname);
+	if (oldvalue) {
+		/* Match middle one ? */
+		snprintf(buf, len, " %s ", varvalue);
+		p = strstr(oldvalue, buf);
+		if (p) {
+			debug("%s: '%s' is already exist in '%s'(middle)\n",
+			      __func__, varvalue, varname);
+			ptr = (p + 1);
+			goto out;
+		} else {
+			debug("%s: not find in middle one\n", __func__);
+		}
+
+		/* Match last one ? */
+		snprintf(buf, len, " %s", varvalue);
+		p = strstr(oldvalue, buf);
+		if (p) {
+			if (*(p + strlen(varvalue) + 1) == '\0') {
+				debug("%s: '%s' is already exist in '%s'(last)\n",
+				      __func__, varvalue, varname);
+				ptr = (p + 1);
+				goto out;
+			}
+		} else {
+			debug("%s: not find in last one\n", __func__);
+		}
+
+		/* Match first one ? */
+		snprintf(buf, len, "%s ", varvalue);
+		p = strstr(oldvalue, buf);
+		if (p) {
+			len = strstr(p, " ") - oldvalue;
+			if (len == strlen(varvalue)) {
+				debug("%s: '%s' is already exist in '%s'(first)\n",
+				      __func__, varvalue, varname);
+				ptr = p;
+				goto out;
+			}
+		} else  {
+			debug("%s: not find in first one\n", __func__);
+		}
+	}
+out:
+	free(buf);
+
+	return ptr;
+}
+
+int env_delete(const char *varname, const char *varvalue, int complete_match)
+{
+	const char *str;
+	char *value, *start;
+
+	/* before import into hashtable */
+	if (!(gd->flags & GD_FLG_ENV_READY) || !varname)
+		return 1;
+
+	value = env_get(varname);
+	if (!value)
+		return 0;
+
+	start = complete_match ?
+		env_exist(varname, varvalue) : strstr(value, varvalue);
+	if (!start)
+		return 0;
+
+	/* varvalue is not the last property */
+	str = strstr(start, " ");
+	if (str) {
+		/* Terminate, so cmdline can be dest for strcat() */
+		*start = '\0';
+		/* +1 to skip white space */
+		strcat((char *)value, (str + 1));
+	/* varvalue is the last property */
+	} else {
+		/* skip white space */
+		*(start - 1) = '\0';
+	}
+
+	return 0;
+}
+#endif
+
 #ifndef CONFIG_XPL_BUILD
 static int do_env_set(struct cmd_tbl *cmdtp, int flag, int argc,
 		      char *const argv[])
@@ -1055,6 +1444,15 @@ static int do_env_exists(struct cmd_tbl *cmdtp, int flag, int argc,
 }
 #endif
 
+static int do_env_update(struct cmd_tbl *cmdtp, int flag,
+			 int argc, char *const argv[])
+{
+	if (argc != 3)
+		return CMD_RET_USAGE;
+
+	return env_update(argv[1], argv[2]);
+}
+
 /*
  * New command line interface: "env" command with subcommands
  */
@@ -1064,6 +1462,7 @@ static struct cmd_tbl cmd_env_sub[] = {
 #endif
 	U_BOOT_CMD_MKENT(default, 1, 0, do_env_default, "", ""),
 	U_BOOT_CMD_MKENT(delete, CONFIG_SYS_MAXARGS, 0, do_env_delete, "", ""),
+	U_BOOT_CMD_MKENT(update, 3, 0, do_env_update, "", ""),
 #if defined(CONFIG_CMD_EDITENV)
 	U_BOOT_CMD_MKENT(edit, 2, 0, do_env_edit, "", ""),
 #endif
@@ -1140,6 +1539,7 @@ U_BOOT_LONGHELP(env,
 	"env default [-k] [-f] var [...] - [forcibly] reset variable(s) to their default values\n"
 	"      \"-k\": keep variables not defined in default environment\n"
 	"env delete [-f] var [...] - [forcibly] delete variable(s)\n"
+	"env update [name] [value] - add/append/replace variable(s)\n"
 #if defined(CONFIG_CMD_EDITENV)
 	"env edit name - edit environment variable\n"
 #endif

@@ -171,6 +171,7 @@ ENDPROC(__asm_flush_l3_dcache)
  */
 .pushsection .text.__asm_flush_dcache_range, "ax"
 ENTRY(__asm_flush_dcache_range)
+	isb
 	mrs	x3, ctr_el0
 	ubfx	x3, x3, #16, #4
 	mov	x2, #4
@@ -184,6 +185,7 @@ ENTRY(__asm_flush_dcache_range)
 	cmp	x0, x1
 	b.lo	1b
 	dsb	sy
+	isb
 	ret
 ENDPROC(__asm_flush_dcache_range)
 .popsection
@@ -210,6 +212,7 @@ ENTRY(__asm_invalidate_dcache_range)
 	cmp	x0, x1
 	b.lo	1b
 	dsb	sy
+	isb
 	ret
 ENDPROC(__asm_invalidate_dcache_range)
 .popsection

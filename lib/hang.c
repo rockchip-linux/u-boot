@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <os.h>
 
+__weak void board_hang(void) {}
+
 /**
  * hang - stop processing by staying in an endless loop
  *
@@ -30,6 +32,9 @@ void hang(void)
 	bootstage_error(BOOTSTAGE_ID_NEED_RESET);
 	if (IS_ENABLED(CONFIG_SANDBOX))
 		os_exit(1);
+
+	board_hang();
+
 	for (;;)
 		;
 }

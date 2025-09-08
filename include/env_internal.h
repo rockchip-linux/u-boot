@@ -59,7 +59,18 @@ extern unsigned long nand_env_oob_offset;
 # define ENV_HEADER_SIZE	(sizeof(uint32_t))
 #endif
 
-#define ENV_SIZE (CONFIG_ENV_SIZE - ENV_HEADER_SIZE)
+/* Select the MAX from CONFIG_ENV_{,NAND,NOR}_SIZE */
+#if defined(CONFIG_ENV_NAND_SIZE) && (CONFIG_ENV_SIZE < CONFIG_ENV_NAND_SIZE)
+#define ENV_SIZE_VAL	CONFIG_ENV_NAND_SIZE
+#else
+#define ENV_SIZE_VAL	CONFIG_ENV_SIZE
+#endif
+#if defined(CONFIG_ENV_NOR_SIZE) && (ENV_SIZE_VAL < CONFIG_ENV_NOR_SIZE)
+#undef ENV_SIZE_VAL
+#define ENV_SIZE_VAL	CONFIG_ENV_NOR_SIZE
+#endif
+
+#define ENV_SIZE (ENV_SIZE_VAL - ENV_HEADER_SIZE)
 
 /*
  * If the environment is in RAM, allocate extra space for it in the malloc
@@ -114,6 +125,8 @@ enum env_location {
 	ENVL_REMOTE,
 	ENVL_SPI_FLASH,
 	ENVL_UBI,
+	ENVL_BLK,
+	ENVL_FRAGMENT,
 	ENVL_NOWHERE,
 
 	ENVL_COUNT,

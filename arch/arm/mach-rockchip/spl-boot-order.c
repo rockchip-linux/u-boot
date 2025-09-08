@@ -7,10 +7,17 @@
 #include <fdt_support.h>
 #include <log.h>
 #include <mmc.h>
+#include <nand.h>
 #include <spl.h>
 #include <asm/global_data.h>
 #include <dm/uclass-internal.h>
 
+#ifdef CONFIG_SPL_RAM_DEVICE
+void board_boot_order(u32 *spl_boot_list)
+{
+	spl_boot_list[0] = BOOT_DEVICE_RAM;
+}
+#else
 #if CONFIG_IS_ENABLED(OF_LIBFDT)
 /**
  * spl_node_to_boot_device() - maps from a DT-node to a SPL boot device
@@ -73,7 +80,37 @@ static int spl_node_to_boot_device(int node)
 	 * soon.
 	 */
 	if (!uclass_get_device_by_of_offset(UCLASS_SPI_FLASH, node, &parent))
+#ifndef CONFIG_SPL_MTD_SUPPORT
 		return BOOT_DEVICE_SPI;
+#else
+		return BOOT_DEVICE_MTD_BLK_SPI_NOR;
+
+	if (!uclass_get_device_by_of_offset(UCLASS_MTD, node, &parent)) {
+		struct udevice *dev;
+		struct blk_desc *desc = NULL;
+
+		for (device_find_first_child(parent, &dev);
+		     dev;
+		     device_find_next_child(&dev)) {
+			if (device_get_uclass_id(dev) == UCLASS_BLK) {
+				desc = dev_get_uclass_platdata(dev);
+				break;
+			}
+		}
+
+		if (!desc)
+			return -ENOENT;
+
+		switch (desc->devnum) {
+		case 0:
+			return BOOT_DEVICE_MTD_BLK_NAND;
+		case 1:
+			return BOOT_DEVICE_MTD_BLK_SPI_NAND;
+		default:
+			return -ENOSYS;
+		}
+	}
+#endif
 
 	return -1;
 }
@@ -268,4 +305,5 @@ void spl_perform_fixups(struct spl_image_info *spl_image)
 	fdt_setprop_string(blob, chosen,
 			   "u-boot,spl-boot-device", boot_ofpath);
 }
+#endif
 #endif

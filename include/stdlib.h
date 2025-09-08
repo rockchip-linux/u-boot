@@ -9,4 +9,6 @@
 #include <malloc.h>
 #include <rand.h>
 
+int atoi(const char *nptr);
+
 #endif /* __STDLIB_H_ */

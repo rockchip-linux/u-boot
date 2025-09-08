@@ -23,6 +23,11 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+__weak int board_do_bootm(int argc, char * const argv[])
+{
+	return 0;
+}
+
 #if defined(CONFIG_CMD_IMI)
 static int image_info(unsigned long addr);
 #endif
@@ -136,6 +141,10 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	struct bootm_info bmi;
 	int ret;
+
+	/* board routines */
+	if (board_do_bootm(argc, argv))
+		return -EPERM;
 
 	/* determine if we have a sub command */
 	argc--; argv++;

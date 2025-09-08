@@ -13,6 +13,19 @@ menuconfig POWER
 
 if POWER
 
+config DM_CHARGE_DISPLAY
+	bool "Enable driver model for charge display support"
+	depends on DM
+	help
+	  This adds a simple uclass for charge display.
+
+config CHARGE_ANIMATION
+	bool "Enable charge animation"
+	depends on DM_CHARGE_DISPLAY && DM_FUEL_GAUGE
+	select ARM_CPU_SUSPEND
+	help
+	  This adds a simple function for charge animation display.
+
 config POWER_LEGACY
 	bool "Legacy power support"
 	help
@@ -46,6 +59,10 @@ config SPL_POWER_LEGACY
 source "drivers/power/acpi_pmc/Kconfig"
 
 source "drivers/power/domain/Kconfig"
+
+source "drivers/power/fuel_gauge/Kconfig"
+
+source "drivers/power/charge/Kconfig"
 
 source "drivers/power/pmic/Kconfig"
 

@@ -115,15 +115,12 @@ ENTRY(_main)
 	mov	r9, r0
 	bl	board_init_f_init_reserve
 
-#if defined(CONFIG_DEBUG_UART) && CONFIG_IS_ENABLED(SERIAL)
-	bl	debug_uart_init
-#endif
-
 #if defined(CONFIG_XPL_BUILD) && defined(CONFIG_SPL_EARLY_BSS)
 	CLEAR_BSS
 #endif
 
 	mov	r0, #0
+	bl	board_init_f_init_misc
 	bl	board_init_f
 
 #if ! defined(CONFIG_XPL_BUILD)
@@ -153,6 +150,8 @@ ENTRY(_main)
 	str	r0, [r9, #GD_ENV_ADDR]
 #endif
 #endif
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
+	adr	lr, here
 	ldr	r0, [r9, #GD_RELOC_OFF]		/* r0 = gd->reloc_off */
 	add	lr, lr, r0
 #if defined(CONFIG_CPU_V7M)
@@ -160,15 +159,21 @@ ENTRY(_main)
 #endif
 	ldr	r0, [r9, #GD_RELOCADDR]		/* r0 = gd->relocaddr */
 	b	relocate_code
+#endif
 here:
+
+#ifdef CONFIG_SKIP_RELOCATE_UBOOT
+	b	c_runtime
+#endif
+
 /*
  * now relocate vectors
  */
-
 	bl	relocate_vectors
 
-/* Set up final (full) environment */
+c_runtime:
 
+/* Set up final (full) environment */
 	bl	c_runtime_cpu_setup	/* we still call old routine here */
 #endif
 #if !defined(CONFIG_XPL_BUILD) || CONFIG_IS_ENABLED(FRAMEWORK)

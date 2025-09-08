@@ -71,8 +71,10 @@ endif
 obj-$(CONFIG_DRIVER_GICV2)	+= gic-v2.o
 obj-$(CONFIG_GIC_V3_ITS)	+= gic-v3-its.o
 obj-y	+= interrupts_64.o
+obj-y	+= stacktrace_64.o
 else
 obj-y	+= interrupts.o
+obj-y	+= stacktrace.o
 endif
 ifndef CONFIG_$(PHASE_)SYSRESET
 obj-y	+= reset.o

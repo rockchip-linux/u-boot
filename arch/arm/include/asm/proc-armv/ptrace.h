@@ -94,9 +94,21 @@
  * on the stack during an exception.
  */
 struct pt_regs {
+	/*
+	 * system register
+	 *
+	 * Note: never change order! see "_exception_entry" and "exception_exit"
+	 */
+	unsigned long ttbr0;
+	unsigned long hcr;	/* hcr_el2/scr_el3 */
+	unsigned long sctlr;
+	unsigned long sp;
 	unsigned long spsr;
-	unsigned long elr;
+	unsigned long vbar;
+	unsigned long daif;
 	unsigned long esr;
+
+	unsigned long elr;
 	unsigned long regs[31];
 };
 

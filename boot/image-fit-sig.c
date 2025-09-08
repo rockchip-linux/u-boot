@@ -174,7 +174,8 @@ static int fit_image_verify_sig(const void *fit, int image_noffset,
 		goto error;
 	}
 
-	return verified ? 0 : -EPERM;
+	if (verified)
+		return 0;
 
 error:
 	printf(" error!\n%s for '%s' hash node in '%s' image node\n",
@@ -195,9 +196,8 @@ int fit_image_verify_required_sigs(const void *fit, int image_noffset,
 	*no_sigsp = 1;
 	key_node = fdt_subnode_offset(key_blob, 0, FIT_SIG_NODENAME);
 	if (key_node < 0) {
-		debug("%s: No signature node found: %s\n", __func__,
-		      fdt_strerror(key_node));
-		return 0;
+		printf("No RSA key found\n");
+		return -EINVAL;
 	}
 
 	fdt_for_each_subnode(noffset, key_blob, key_node) {
@@ -381,6 +381,14 @@ static int fit_config_check_sig(const void *fit, int noffset, int conf_noffset,
 		return -1;
 	}
 
+	/* Get the secure flag here and write the secure data and the secure flag */
+#if !defined(USE_HOSTCC)
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_FIT_HW_CRYPTO) && \
+    defined(CONFIG_SPL_ROCKCHIP_SECURE_OTP)
+	rsa_burn_key_hash(&info);
+#endif
+#endif
+
 	return 0;
 }
 
@@ -489,9 +497,8 @@ static int fit_config_verify_required_keys(const void *fit, int conf_noffset,
 	/* Work out what we need to verify */
 	key_node = fdt_subnode_offset(key_blob, 0, FIT_SIG_NODENAME);
 	if (key_node < 0) {
-		debug("%s: No signature node found: %s\n", __func__,
-		      fdt_strerror(key_node));
-		return 0;
+		printf("No RSA key found\n");
+		return -EINVAL;
 	}
 
 	/* Get required-mode policy property from DTB */
@@ -548,3 +555,23 @@ int fit_config_verify(const void *fit, int conf_noffset)
 	return fit_config_verify_required_keys(fit, conf_noffset,
 					       gd_fdt_blob());
 }
+
+#ifndef USE_HOSTCC
+#if CONFIG_IS_ENABLED(FIT_ROLLBACK_PROTECT)
+__weak int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
+{
+	*otp_index = 0;
+
+	return 0;
+}
+__weak int fit_rollback_index_verify(const void *fit, uint32_t rollback_fd,
+				     uint32_t *this_index, uint32_t *min_index)
+{
+	*this_index = 0;
+	*min_index = 0;
+
+	return 0;
+}
+#endif
+#endif
+

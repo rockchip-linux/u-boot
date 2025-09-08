@@ -107,6 +107,25 @@ int blk_common_cmd(int argc, char *const argv[], enum uclass_id uclass_id,
 			printf("%ld blocks written: %s\n", n,
 			       n == cnt ? "OK" : "ERROR");
 			return n == cnt ? CMD_RET_SUCCESS : CMD_RET_FAILURE;
+		} else if (strcmp(argv[1], "erase") == 0) {
+			lbaint_t blk = hextoul(argv[3], NULL);
+			ulong cnt = hextoul(argv[4], NULL);
+			struct blk_desc *desc;
+			ulong n;
+			int ret;
+
+			printf("\n%s erase: device %d block # "LBAFU", count %lu ... ",
+			       if_name, *cur_devnump, blk, cnt);
+
+			ret = blk_get_desc(uclass_id, *cur_devnump, &desc);
+			if (ret)
+				return CMD_RET_FAILURE;
+
+			n = blk_derase(desc, blk, cnt);
+			printf("%ld blocks erase: %s\n", n,
+			       n == cnt ? "OK" : "ERROR");
+			return n == cnt ? CMD_RET_SUCCESS : CMD_RET_FAILURE;
+
 		} else {
 			return CMD_RET_USAGE;
 		}

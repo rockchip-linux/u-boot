@@ -6,6 +6,7 @@
 #include <efi.h>
 #include <initcall.h>
 #include <log.h>
+#include <time.h>
 #include <relocate.h>
 #include <asm/global_data.h>
 
@@ -42,6 +43,16 @@ static int initcall_is_event(init_fnc_t func)
 	return 0;
 }
 
+#define TICKS_TO_US(ticks)	((ticks) / (gd->arch.timer_rate_hz / 1000000))
+#define US_TO_MS(ticks)		((ticks) / 1000)
+#define US_TO_US(ticks)		((ticks) % 1000)
+
+#ifdef DEBUG
+static inline void call_get_ticks(ulong *ticks) { *ticks = get_ticks(); }
+#else
+static inline void call_get_ticks(ulong *ticks) { }
+#endif
+
 /*
  * To enable debugging. add #define DEBUG at the top of the including file.
  *
@@ -54,6 +65,10 @@ int initcall_run_list(const init_fnc_t init_sequence[])
 	enum event_t type;
 	init_fnc_t func;
 	int ret = 0;
+	ulong start = 0, end = 0, sum = 0;
+
+	if (!gd->sys_start_tick)
+		gd->sys_start_tick = get_ticks();
 
 	for (ptr = init_sequence; func = *ptr, func; ptr++) {
 		reloc_ofs = calc_reloc_ofs();
@@ -71,7 +86,14 @@ int initcall_run_list(const init_fnc_t init_sequence[])
 			debug("initcall: %p\n", (char *)func - reloc_ofs);
 		}
 
+		call_get_ticks(&start);
 		ret = type ? event_notify_null(type) : func();
+		call_get_ticks(&end);
+		if (start != end) {
+			sum = TICKS_TO_US(end - gd->sys_start_tick);
+			debug("\t\t\t\t\t\t\t\t#%8ld us #%4ld.%3ld ms\n",
+			      TICKS_TO_US(end - start), US_TO_MS(sum), US_TO_US(sum));
+		}
 		if (ret)
 			break;
 	}

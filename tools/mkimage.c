@@ -111,6 +111,7 @@ static void usage(const char *msg)
 		"          -D => set all options for device tree compiler\n"
 		"          -f => input filename for FIT source\n"
 		"          -i => input filename for ramdisk file\n"
+		"          -v => set image version\n"
 		"          -E => place data outside of the FIT structure\n"
 		"          -B => align size in hex for FIT structure and header\n"
 		"          -b => append the device tree binary to the FIT\n"
@@ -160,7 +161,7 @@ static int add_content(int type, const char *fname)
 }
 
 static const char optstring[] =
-	"a:A:b:B:c:C:d:D:e:Ef:Fg:G:i:k:K:ln:N:o:O:p:qrR:stT:vVx";
+	"a:A:b:B:c:C:d:D:e:Ef:Fg:G:i:k:K:ln:N:o:O:p:qrR:stT:v:Vx";
 
 static const struct option longopts[] = {
 	{ "load-address", required_argument, NULL, 'a' },
@@ -358,7 +359,12 @@ static void process_args(int argc, char **argv)
 			}
 			break;
 		case 'v':
-			params.vflag++;
+			params.vflag = strtoull(optarg, &ptr, 10);
+			if (*ptr) {
+				fprintf(stderr, "%s: invalid version length %s\n",
+					params.cmdname, optarg);
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 'V':
 			printf("mkimage version %s\n", PLAIN_VERSION);

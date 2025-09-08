@@ -122,6 +122,7 @@
 #include <jffs2/jffs2_1pass.h>
 #include <linux/compat.h>
 #include <linux/errno.h>
+#include <linux/mtd/mtd.h>
 
 #include "jffs2_private.h"
 
@@ -391,10 +392,10 @@ static inline void *get_fl_mem_nor(u32 off, u32 size, void *ext_buf)
 
 	addr += flash->start[0];
 	if (ext_buf) {
-		memcpy(ext_buf, (void *)addr, size);
+		memcpy(ext_buf, (void *)(long)addr, size);
 		return ext_buf;
 	}
-	return (void*)addr;
+	return (void*)(long)addr;
 }
 
 static inline void *get_node_mem_nor(u32 off, void *ext_buf)
@@ -422,6 +423,10 @@ static inline void *get_fl_mem(u32 off, u32 size, void *ext_buf)
 	case MTD_DEV_TYPE_NOR:
 		return get_fl_mem_nor(off, size, ext_buf);
 		break;
+#else
+	case MTD_DEV_TYPE_NOR:
+		return get_fl_mem_norflash(off, size, ext_buf);
+		break;
 #endif
 #if defined(CONFIG_JFFS2_NAND) && defined(CONFIG_CMD_NAND)
 	case MTD_DEV_TYPE_NAND:
@@ -437,7 +442,7 @@ static inline void *get_fl_mem(u32 off, u32 size, void *ext_buf)
 		printf("get_fl_mem: unknown device type, " \
 			"using raw offset!\n");
 	}
-	return (void*)off;
+	return (void*)(long)off;
 }
 
 static inline void *get_node_mem(u32 off, void *ext_buf)
@@ -448,6 +453,10 @@ static inline void *get_node_mem(u32 off, void *ext_buf)
 #if defined(CONFIG_CMD_FLASH)
 	case MTD_DEV_TYPE_NOR:
 		return get_node_mem_nor(off, ext_buf);
+		break;
+#else
+	case MTD_DEV_TYPE_NOR:
+		return get_node_mem_norflash(off, ext_buf);
 		break;
 #endif
 #if defined(CONFIG_JFFS2_NAND) && \
@@ -465,7 +474,7 @@ static inline void *get_node_mem(u32 off, void *ext_buf)
 		printf("get_fl_mem: unknown device type, " \
 			"using raw offset!\n");
 	}
-	return (void*)off;
+	return (void*)(long)off;
 }
 
 static inline void put_fl_mem(void *buf, void *ext_buf)

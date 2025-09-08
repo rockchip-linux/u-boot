@@ -264,6 +264,8 @@ int usb_control_msg(struct usb_device *dev, unsigned int pipe,
 	if (dev->status)
 		return -1;
 
+	if(dev->descriptor.idVendor == 0x058f && dev->descriptor.idProduct == 0x6387)
+		udelay(200);
 	return dev->act_len;
 }
 
@@ -523,6 +525,15 @@ static int usb_parse_config(struct usb_device *dev,
 		}
 		index += head->bLength;
 		head = (struct usb_descriptor_header *)&buffer[index];
+	}
+	for (ifno = 0; ifno < dev->config.no_of_if; ifno++) {
+		if_desc = &dev->config.if_desc[ifno];
+		if (if_desc->no_of_ep < if_desc->desc.bNumEndpoints) {
+			printf("WARN: interface %d has %d endpoint descriptor, "
+			       "less than the interface descriptor's value: %d\n",
+			       ifno, if_desc->no_of_ep, if_desc->desc.bNumEndpoints);
+			if_desc->desc.bNumEndpoints = if_desc->no_of_ep;
+		}
 	}
 	return 0;
 }

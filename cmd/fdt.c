@@ -46,7 +46,7 @@ static void set_working_fdt_addr_quiet(ulong addr)
 
 void set_working_fdt_addr(ulong addr)
 {
-	printf("Working FDT set to %lx\n", addr);
+	debug("Working FDT set to %lx\n", addr);
 	set_working_fdt_addr_quiet(addr);
 }
 
@@ -226,11 +226,18 @@ static int do_fdt(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 		}
 
 		return CMD_RET_SUCCESS;
+	}
+
+	if (!working_fdt) {
+		working_fdt = (void *)gd->fdt_blob;
+		printf("No FDT memory address configured. Default at 0x%08lx\n",
+		       (ulong)gd->fdt_blob);
+	}
 
 	/*
 	 * Move the working_fdt
 	 */
-	} else if (strncmp(argv[1], "mo", 2) == 0) {
+	if (strncmp(argv[1], "mo", 2) == 0) {
 		struct fdt_header *newaddr;
 		int  len;
 		int  err;
@@ -278,10 +285,9 @@ static int do_fdt(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	}
 
 	if (!working_fdt) {
-		puts("No FDT memory address configured. Please configure\n"
-		     "the FDT address via \"fdt addr <address>\" command.\n"
-		     "Aborting!\n");
-		return CMD_RET_FAILURE;
+		working_fdt = (void *)gd->fdt_blob;
+		printf("No FDT memory address configured. Default at 0x%08lx\n",
+		       (ulong)gd->fdt_blob);
 	}
 
 #ifdef CONFIG_OF_SYSTEM_SETUP

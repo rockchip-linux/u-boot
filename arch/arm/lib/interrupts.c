@@ -29,6 +29,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#if !CONFIG_IS_ENABLED(IRQ)
 int interrupt_init(void)
 {
 	/*
@@ -49,6 +50,7 @@ int disable_interrupts(void)
 {
 	return 0;
 }
+#endif
 
 void bad_mode (void)
 {
@@ -61,32 +63,9 @@ static void show_efi_loaded_images(struct pt_regs *regs)
 	efi_print_image_infos((void *)instruction_pointer(regs));
 }
 
-static void dump_instr(struct pt_regs *regs)
-{
-	unsigned long addr = instruction_pointer(regs);
-	const int thumb = thumb_mode(regs);
-	const int width = thumb ? 4 : 8;
-	int i;
-
-	if (thumb)
-		addr &= ~1L;
-	else
-		addr &= ~3L;
-	printf("Code: ");
-	for (i = -4; i < 1 + !!thumb; i++) {
-		unsigned int val;
-
-		if (thumb)
-			val = ((u16 *)addr)[i];
-		else
-			val = ((u32 *)addr)[i];
-		printf(i == 0 ? "(%0*x) " : "%0*x ", width, val);
-	}
-	printf("\n");
-}
-
 void show_regs (struct pt_regs *regs)
 {
+	ulong pc, lr;
 	unsigned long __maybe_unused flags;
 	const char __maybe_unused *processor_modes[] = {
 	"USER_26",	"FIQ_26",	"IRQ_26",	"SVC_26",
@@ -101,15 +80,17 @@ void show_regs (struct pt_regs *regs)
 
 	flags = condition_codes (regs);
 
-	printf("pc : [<%08lx>]	   lr : [<%08lx>]\n",
-	       instruction_pointer(regs), regs->ARM_lr);
 	if (gd->flags & GD_FLG_RELOC) {
-		printf("reloc pc : [<%08lx>]	   lr : [<%08lx>]\n",
-		       instruction_pointer(regs) - gd->reloc_off,
-		       regs->ARM_lr - gd->reloc_off);
+		pc = instruction_pointer(regs) - gd->reloc_off;
+		lr = regs->ARM_lr - gd->reloc_off;
+	} else {
+		pc = instruction_pointer(regs);
+		lr = regs->ARM_lr;
 	}
-	printf("sp : %08lx  ip : %08lx	 fp : %08lx\n",
-	       regs->ARM_sp, regs->ARM_ip, regs->ARM_fp);
+
+	printf ("pc : %08lx  lr : %08lx\n", pc, lr);
+	printf ("sp : %08lx  ip : %08lx	 fp : %08lx\n",
+	        regs->ARM_sp, regs->ARM_ip, regs->ARM_fp);
 	printf ("r10: %08lx  r9 : %08lx	 r8 : %08lx\n",
 		regs->ARM_r10, regs->ARM_r9, regs->ARM_r8);
 	printf ("r7 : %08lx  r6 : %08lx	 r5 : %08lx  r4 : %08lx\n",
@@ -120,12 +101,20 @@ void show_regs (struct pt_regs *regs)
 		flags & CC_N_BIT ? 'N' : 'n',
 		flags & CC_Z_BIT ? 'Z' : 'z',
 		flags & CC_C_BIT ? 'C' : 'c', flags & CC_V_BIT ? 'V' : 'v');
-	printf ("  IRQs %s  FIQs %s  Mode %s%s\n",
+	printf ("  IRQs %s  FIQs %s  Mode %s%s\n\n",
 		interrupts_enabled (regs) ? "on" : "off",
 		fast_interrupts_enabled (regs) ? "on" : "off",
 		processor_modes[processor_mode (regs)],
 		thumb_mode (regs) ? " (T)" : "");
-	dump_instr(regs);
+
+#ifdef CONFIG_ROCKCHIP_CRASH_DUMP
+	iomem_show_by_compatible("-cru", 0, 0x400);
+	iomem_show_by_compatible("-pmucru", 0, 0x400);
+	iomem_show_by_compatible("-grf", 0, 0x400);
+	iomem_show_by_compatible("-pmugrf", 0, 0x400);
+#endif
+
+	dump_core_stack(regs);
 }
 
 /* fixup PC to point to the instruction leading to the exception */
@@ -225,6 +214,7 @@ void do_fiq (struct pt_regs *pt_regs)
 	bad_mode ();
 }
 
+#if !CONFIG_IS_ENABLED(IRQ)
 void do_irq (struct pt_regs *pt_regs)
 {
 	efi_restore_gd();
@@ -234,3 +224,4 @@ void do_irq (struct pt_regs *pt_regs)
 	show_efi_loaded_images(pt_regs);
 	bad_mode ();
 }
+#endif

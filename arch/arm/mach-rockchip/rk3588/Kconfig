@@ -3,6 +3,7 @@ if ROCKCHIP_RK3588
 config TARGET_EVB_RK3588
 	bool "Rockchip EVB1 v10"
 	select BOARD_LATE_INIT
+	select GICV3
 	help
 	  RK3588 EVB is a evaluation board for Rockchp RK3588.
 

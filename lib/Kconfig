@@ -272,6 +272,14 @@ config REGEX
 	  regex support to some commands, for example "env grep" and
 	  "setexpr".
 
+config SYSMEM
+	bool "System memory management support"
+	default y
+
+config BIDRAM
+	bool "Board availiable memory management support"
+	default y
+
 choice
 	prompt "Pseudo-random library support type"
 	depends on NET_RANDOM_ETHADDR || RANDOM_UUID || CMD_UUID || \
@@ -528,6 +536,20 @@ config TPM_PCR_ALLOCATE
 
 endmenu
 
+menu "Boot Configuration"
+
+config XBC
+	bool "Boot Configuration support"
+	depends on ANDROID_BOOT_IMAGE
+	default n
+	help
+	  This enables support of Boot Configuration which can be used
+	  to pass boot configuration parameters to user space. These
+	  parameters will show up in /proc/bootconfig similar to the kernel
+	  parameters that show up in /proc/cmdline
+
+endmenu
+
 menu "Android Verified Boot"
 
 config LIBAVB
@@ -538,6 +560,61 @@ config LIBAVB
 	  to assure the end user of the integrity of the software running on a
 	  device. Introduces such features as boot chain of trust, rollback
 	  protection etc.
+
+config LIBAVB_AB
+	bool "Choose the a/b system and flow"
+	depends on LIBAVB
+	help
+	  In the android things system, there are _a and _b or more systems.
+	  So we have to choose the _a or _b system to startup. This libavb_ab
+	  can suport these functions.
+
+config LIBAVB_ATX
+	bool "Support vbmeta public key verify"
+	depends on LIBAVB
+	default y
+	help
+	  Android Things requires specific public key metadata and verification
+	  logic to correctly verify vbmeta public keys.
+
+config LIBAVB_USER
+	bool "Android AVB read/write hardware"
+	depends on LIBAVB
+	default y
+	help
+	  This config support the android things system to read/write hardware
+	  image, like vbmeta, misc, and so on. And it can provide some a/b and
+	  avb information to fastboot and kernel.
+
+config AVB_VBMETA_PUBLIC_KEY_VALIDATE
+	bool "Support vbmeta public key validate"
+	depends on LIBAVB_USER
+	select CONSOLE_DISABLE_CLI
+	help
+	  Support vbmeta public key validate, system bootflow would be
+	  uninterruptale when it is enabled:
+	    - only allow "boot_android" as bootcmd;
+	    - enter rockusb or fastboot when boot failed;
+	    - not allow ctrl+c to enter hush;
+
+config AVB_ROLLBACK_INDEX_VERIFY
+	bool"Android AVB verify Rollback Index"
+	depends on LIBAVB
+	help
+	  If enabled, support the android verified boot rollback index.
+
+config AVB_ATH_UNLOCK_SUPPORT
+	bool "Android AVB Authenticated unlock function"
+	depends on LIBAVB
+	help
+	  Enabling authenticated unlock function can prevent lock state
+	  from invalid unlock cmd.
+
+config ROCKCHIP_PRELOADER_PUB_KEY
+	bool "Rockchip AVB use pre-loader public key"
+	depends on LIBAVB && ROCKCHIP_PRELOADER_ATAGS
+	help
+	  Use pre-loader public key to decode in avb.
 
 endmenu
 

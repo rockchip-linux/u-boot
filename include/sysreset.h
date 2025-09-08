@@ -43,6 +43,18 @@ struct sysreset_ops {
 	 * (in which case this method will not actually return)
 	 */
 	int (*request)(struct udevice *dev, enum sysreset_t type);
+
+	/**
+	 * @request_prepare:	prepare of request a sysreset of the given mode
+	 *
+	 * Note that this function may return before the reset takes effect.
+	 *
+	 * @dev:	Device to be used for system reset
+	 * @mode:	mode to request
+	 * Return:	0 on success, otherwise failed
+	 */
+	int (*request_prepare)(struct udevice *dev, const char *mode);
+
 	/**
 	 * @get_status:	get printable reset status information
 	 *

@@ -60,8 +60,8 @@ struct bd_info {
 	ulong	        bi_arch_number;	/* unique id for this board */
 	ulong	        bi_boot_params;	/* where this board expects params */
 	struct {			/* RAM configuration */
-		phys_addr_t start;
-		phys_size_t size;
+		u64 start;
+		u64 size;
 	} bi_dram[CONFIG_NR_DRAM_BANKS];
 };
 

@@ -71,7 +71,7 @@ quiet_cmd_autoconf = GEN     $@
 quiet_cmd_u_boot_cfg = CFG     $@
       cmd_u_boot_cfg = \
 	$(CPP) $(c_flags) $2 -DDO_DEPS_ONLY -dM include/config.h > $@.tmp && { \
-		grep 'define CONFIG_' $@.tmp | \
+		grep -E 'define (CONFIG_|CFG_SYS_SDRAM_BASE)' $@.tmp | \
 			sed '/define CONFIG_IS_ENABLED(/d;/define CONFIG_IF_ENABLED_INT(/d;/define CONFIG_VAL(/d;' > $@; \
 		rm $@.tmp;						\
 	} || {								\

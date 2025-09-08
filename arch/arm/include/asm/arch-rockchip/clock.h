@@ -218,4 +218,5 @@ int rockchip_reset_bind_lut(struct udevice *pdev, const int *lookup_table,
  */
 int rk3588_reset_bind_lut(struct udevice *pdev, u32 reg_offset, u32 reg_number);
 
+int rockchip_get_scmi_clk(struct udevice **devp);
 #endif

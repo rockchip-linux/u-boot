@@ -120,6 +120,7 @@ config ARMV7_LPAE
 
 config ARMV7_SET_CORTEX_SMPEN
 	bool
+	default y if ARCH_ROCKCHIP
 	help
 	  Enable the ARM Cortex ACTLR.SMP enable bit in U-Boot.
 

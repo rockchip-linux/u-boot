@@ -53,3 +53,33 @@ obj-spl-$(CONFIG_TPL_BUILD) =
 # Now add SPL/TPL objects back into the main build
 obj-$(CONFIG_XPL_BUILD) += $(obj-spl-y)
 obj-$(CONFIG_TPL_BUILD) += $(obj-tpl-y)
+
+ifeq ($(CONFIG_SPL_BUILD),)
+obj-y += bootargs.o
+obj-y += bootdev.o
+obj-y += download.o
+obj-y += load_dtb.o
+obj-y += loader_tag.o
+obj-y += lowlevel_init.o
+obj-y += memory.o
+obj-y += param.o
+obj-y += bootm.o
+obj-y += misc.o
+obj-y += efi.o
+obj-$(CONFIG_ROCKCHIP_PRELOADER_ATAGS)	+= atags.o
+obj-$(CONFIG_SET_DFU_ALT_INFO)		+= dfu_alt_info.o
+obj-$(CONFIG_ROCKCHIP_FIT_IMAGE)	+= fit.o fit_misc.o
+obj-$(CONFIG_ROCKCHIP_FPGA)		+= fpga.o
+obj-$(CONFIG_PSTORE)			+= pstore.o
+obj-$(CONFIG_ROCKCHIP_RESOURCE_IMAGE)	+= resource.o
+obj-$(CONFIG_ROCKCHIP_HWID_DTB)		+= hwid_dtb.o
+obj-$(CONFIG_ROCKCHIP_SMCCC)		+= smccc.o
+obj-$(CONFIG_SPL_KERNEL_BOOT)		+= spl_resource.o
+obj-$(CONFIG_ROCKCHIP_UIMAGE)		+= uimage.o
+obj-$(CONFIG_ROCKCHIP_VENDOR_PARTITION) += vendor.o vendor_misc.o
+obj-$(CONFIG_ROCKCHIP_MINIDUMP)		+= mini_dump.o 
+else
+obj-y += spl_boot_mode.o
+endif
+
+obj-$(CONFIG_$(SPL_)FIT)		+= fit_misc.o

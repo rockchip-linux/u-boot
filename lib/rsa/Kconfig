@@ -89,5 +89,23 @@ config RSA_ASPEED_EXP
 	help
 	Enables driver for RSA modular exponentiation using ASPEED cryptographic
 	accelerator - ACRY
+	
+config RSA_N_SIZE
+	hex "Define the RSA N size"
+	help
+	  The value is depended on different platforms. The RV1126/RV1109 is set to 0x100.
+	  The RK3568/RK3566 is set to 0x200.
+
+config RSA_E_SIZE
+	hex "Define the RSA E size"
+	help
+	  The value is depended on different platforms. The RV1126/RV1109 is set to 0x100.
+	  The RK3568/RK3566 is set to 0x10.
+
+config RSA_C_SIZE
+	hex "Define the RSA C size"
+	help
+	  The value is depended on different platforms.The RV1126/RV1109 is set to 0x14.
+	  The RK3568/RK3566 is set to 0x20.
 
 endif

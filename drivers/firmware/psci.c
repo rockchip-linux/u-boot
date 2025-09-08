@@ -268,7 +268,8 @@ void __efi_runtime EFIAPI efi_reset_system(enum efi_reset_type reset_type,
 }
 #endif /* IS_ENABLED(CONFIG_EFI_LOADER) && IS_ENABLED(CONFIG_PSCI_RESET) */
 
-#ifdef CONFIG_PSCI_RESET
+
+#if defined(CONFIG_PSCI_RESET) && !defined(CONFIG_SYSRESET_PSCI)
 void reset_misc(void)
 {
 	do_psci_probe();

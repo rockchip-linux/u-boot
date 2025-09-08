@@ -15,6 +15,7 @@ obj-$(CONFIG_HUSH_MODERN_PARSER) += cli_hush_modern.o
 obj-$(CONFIG_AUTOBOOT) += autoboot.o
 obj-$(CONFIG_BUTTON_CMD) += button_cmd.o
 obj-y += version.o
+obj-$(CONFIG_HOTKEY) += hotkey.o
 
 # # boards
 obj-y += board_f.o
@@ -94,6 +95,7 @@ obj-$(CONFIG_$(PHASE_)LOG_CONSOLE) += log_console.o
 obj-$(CONFIG_$(PHASE_)LOG_SYSLOG) += log_syslog.o
 obj-y += s_record.o
 obj-$(CONFIG_CMD_LOADB) += xyzModem.o
+obj-y += xyzModem.o zmodem/rbsb.o zmodem/zm.o zmodem/zreadline.o zmodem/lrz.o
 obj-$(CONFIG_$(PHASE_)YMODEM_SUPPORT) += xyzModem.o
 
 obj-$(CONFIG_$(PHASE_)AVB_VERIFY) += avb_verify.o

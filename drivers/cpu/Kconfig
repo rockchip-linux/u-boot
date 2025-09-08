@@ -29,7 +29,7 @@ config CPU_RISCV
 config CPU_ARMV8
 	bool "Enable generic ARMv8 CPU driver"
 	depends on CPU && ARM64
-	select IRQ
+	imply IRQ
 	help
 	  Support CPU cores for armv8 architecture.
 
@@ -46,3 +46,16 @@ config CPU_XTENSA
 	depends on CPU && XTENSA
 	help
 	  Support CPU cores for Xtensa architecture.
+
+config AMP
+	bool "Enable AMP drivers using Driver Model"
+	depends on CPU
+	help
+	  This support Asymmetric Multi-Processing, cpus can run on different
+	  firmware.
+
+config ROCKCHIP_AMP
+	bool "Enable Rockchip AMP driver"
+	depends on AMP
+	help
+	  This enable Rockchip AMP driver support.

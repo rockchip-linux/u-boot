@@ -42,6 +42,7 @@ static int device_bind_common(struct udevice *parent, const struct driver *drv,
 			      ulong driver_data, ofnode node,
 			      uint of_plat_size, struct udevice **devp)
 {
+	int after_u_boot_dev = 1;
 	struct udevice *dev;
 	struct uclass *uc;
 	int size, ret = 0;
@@ -160,7 +161,10 @@ static int device_bind_common(struct udevice *parent, const struct driver *drv,
 		list_add_tail(&dev->sibling_node, &parent->child_head);
 	}
 
-	ret = uclass_bind_device(dev);
+#if CONFIG_IS_ENABLED(DM_KERNEL_DTB)
+	kernel_dtb_device_bind(uc, dev, drv, &after_u_boot_dev);
+#endif
+	ret = uclass_bind_device(dev, after_u_boot_dev);
 	if (ret)
 		goto fail_uclass_bind;
 
@@ -571,6 +575,7 @@ int device_probe(struct udevice *dev)
 
 	/* Only handle devices that have a valid ofnode */
 	if (dev_has_ofnode(dev)) {
+#ifndef CONFIG_DM_KERNEL_DTB
 		/*
 		 * Process 'assigned-{clocks/clock-parents/clock-rates}'
 		 * properties
@@ -578,6 +583,7 @@ int device_probe(struct udevice *dev)
 		ret = clk_set_defaults(dev, CLK_DEFAULTS_PRE);
 		if (ret)
 			goto fail;
+#endif
 	}
 
 	if (drv->probe) {

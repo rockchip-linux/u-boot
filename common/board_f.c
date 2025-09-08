@@ -10,6 +10,7 @@
  */
 
 #include <config.h>
+#include <bidram.h>
 #include <bloblist.h>
 #include <bootstage.h>
 #include <clock_legacy.h>
@@ -37,6 +38,7 @@
 #include <serial.h>
 #include <spl.h>
 #include <status_led.h>
+#include <sysmem.h>
 #include <sysreset.h>
 #include <timer.h>
 #include <trace.h>
@@ -116,7 +118,10 @@ __weak void board_add_ram_info(int use_default)
 
 static int init_baud_rate(void)
 {
-	gd->baudrate = env_get_ulong("baudrate", 10, CONFIG_BAUDRATE);
+	if (gd && gd->serial.baudrate)
+		gd->baudrate = gd->serial.baudrate;
+	else
+		gd->baudrate = env_get_ulong("baudrate", 10, CONFIG_BAUDRATE);
 	return 0;
 }
 
@@ -200,9 +205,28 @@ static int print_cpuinfo(void)
 }
 #endif
 
+static int announce_serial(void)
+{
+	if (gd && gd->serial.using_pre_serial)
+		printf("PreSerial: %d, ", gd->serial.id);
+	else
+		printf("Serial: ");
+
+#ifdef CONFIG_DEBUG_UART_ONLY
+	printf("raw");
+#else
+	printf("console");
+#endif
+	printf(", 0x%lx\n", gd->serial.addr);
+
+	return 0;
+}
+
 static int announce_dram_init(void)
 {
+#ifndef CONFIG_SUPPORT_USBPLUG
 	puts("DRAM:  ");
+#endif
 	return 0;
 }
 
@@ -238,9 +262,13 @@ static int sizes_near(unsigned long long size1, unsigned long long size2)
 
 static int show_dram_config(void)
 {
+	unsigned long long extra_size = 0;
 	unsigned long long size;
 	int i;
 
+#ifdef CONFIG_BIDRAM
+	extra_size = bidram_append_size();
+#endif
 	debug("\nRAM Configuration:\n");
 	for (i = size = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
 		size += gd->bd->bi_dram[i].size;
@@ -252,13 +280,16 @@ static int show_dram_config(void)
 	}
 	debug("\nDRAM:  ");
 
-	print_size(gd->ram_size, "");
+#ifndef CONFIG_SUPPORT_USBPLUG
+	print_size(gd->ram_size + extra_size, "");
+	size += extra_size;
 	if (!sizes_near(gd->ram_size, size)) {
 		printf(" (effective ");
 		print_size(size, ")");
 	}
 	board_add_ram_info(0);
 	putc('\n');
+#endif
 
 	return 0;
 }
@@ -575,13 +606,23 @@ static int reserve_fdt(void)
 		 * section, then it will be relocated with other data.
 		 */
 		if (gd->fdt_blob) {
+			u32 extra_size = 0;
+
+			if (gd->fdt_blob_kern)
+				extra_size = fdt_totalsize(gd->fdt_blob_kern);
+
 			gd->boardf->fdt_size =
-				ALIGN(fdt_totalsize(gd->fdt_blob), 32);
+				ALIGN(fdt_totalsize(gd->fdt_blob) + extra_size + 0x1000, 32);
 
 			gd->start_addr_sp = reserve_stack_aligned(
 				gd->boardf->fdt_size);
 			gd->boardf->new_fdt = map_sysmem(gd->start_addr_sp,
 							 gd->boardf->fdt_size);
+
+			if (gd->fdt_blob_kern)
+				gd->fdt_blob_kern = (ulong *)ALIGN((ulong)gd->boardf->new_fdt +
+						fdt_totalsize(gd->fdt_blob), 8);
+
 			debug("Reserving %lu Bytes for FDT at: %08lx\n",
 			      gd->boardf->fdt_size, gd->start_addr_sp);
 		}
@@ -666,8 +707,11 @@ static int reloc_fdt(void)
 	if (!IS_ENABLED(CONFIG_OF_EMBED)) {
 		if (gd->boardf->new_fdt) {
 			memcpy(gd->boardf->new_fdt, gd->fdt_blob,
-			       fdt_totalsize(gd->fdt_blob));
+			       gd->boardf->fdt_size);
 			gd->fdt_blob = gd->boardf->new_fdt;
+#ifdef CONFIG_DM_KERNEL_DTB
+			gd->ufdt_blob = gd->boardf->new_fdt;
+#endif
 		}
 	}
 
@@ -712,6 +756,9 @@ static int reloc_bloblist(void)
 void mcheck_on_ramrelocation(size_t offset);
 static int setup_reloc(void)
 {
+#ifdef CONFIG_SKIP_RELOCATE_UBOOT
+	gd->flags |= GD_FLG_SKIP_RELOC;
+#endif
 	if (!(gd->flags & GD_FLG_SKIP_RELOC)) {
 #ifdef CONFIG_TEXT_BASE
 #ifdef ARM
@@ -728,21 +775,30 @@ static int setup_reloc(void)
 		gd->reloc_off = gd->relocaddr - CONFIG_TEXT_BASE;
 #endif
 #endif
+	} else {
+		gd->reloc_off = 0;
 	}
 
 	memcpy(gd->new_gd, (char *)gd, sizeof(gd_t));
 
-	if (gd->flags & GD_FLG_SKIP_RELOC) {
-		debug("Skipping relocation due to flag\n");
-	} else {
+#ifndef CONFIG_SUPPORT_USBPLUG
+	printf("Relocation Offset: %08lx\n", gd->reloc_off);
+	printf("Relocation fdt: %08lx - %08lx",  (ulong)gd->boardf->new_fdt,
+	       (ulong)gd->boardf->new_fdt + fdt_totalsize(gd->fdt_blob));
+	if (gd->fdt_blob_kern) {
+		printf(", kfdt: %08lx - %08lx", (ulong)gd->fdt_blob_kern,
+		       (ulong)gd->fdt_blob_kern + fdt_totalsize(gd->fdt_blob_kern));
+	}
+	puts("\n");
+
 #ifdef MCHECK_HEAP_PROTECTION
+	if (!(gd->flags & GD_FLG_SKIP_RELOC))
 		mcheck_on_ramrelocation(gd->reloc_off);
 #endif
-		debug("Relocation Offset is: %08lx\n", gd->reloc_off);
-		debug("Relocating to %08lx, new gd at %08lx, sp at %08lx\n",
-		      gd->relocaddr, (ulong)map_to_sysmem(gd->new_gd),
-		      gd->start_addr_sp);
-	}
+#endif
+	debug("Relocating to %08lx, new gd at %08lx, sp at %08lx\n",
+	      gd->relocaddr, (ulong)map_to_sysmem(gd->new_gd),
+	      gd->start_addr_sp);
 
 	return 0;
 }
@@ -935,6 +991,7 @@ static const init_fnc_t init_sequence_f[] = {
 #if CONFIG_IS_ENABLED(SYS_I2C_LEGACY)
 	init_func_i2c,
 #endif
+	announce_serial,
 	announce_dram_init,
 	dram_init,		/* configure available RAM banks */
 #ifdef CONFIG_POST
@@ -989,6 +1046,9 @@ static const init_fnc_t init_sequence_f[] = {
 	reserve_stacks,
 	dram_init_banksize,
 	show_dram_config,
+#ifdef CONFIG_SYSMEM
+	sysmem_init,		/* Validate above reserve memory */
+#endif
 	INIT_FUNC_WATCHDOG_RESET
 	setup_bdinfo,
 	display_new_sp,
@@ -1027,6 +1087,8 @@ void board_init_f(ulong boot_flags)
 	gd->flags = boot_flags;
 	gd->flags &= ~GD_FLG_HAVE_CONSOLE;
 	gd->boardf = &boardf;
+	if (!gd->serial.enable)
+		gd->flags |= GD_FLG_DISABLE_CONSOLE;
 
 	if (initcall_run_list(init_sequence_f))
 		hang();

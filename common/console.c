@@ -18,12 +18,16 @@
 #include <os.h>
 #include <serial.h>
 #include <stdio_dev.h>
+#include <time.h>
 #include <exports.h>
 #include <env_internal.h>
 #include <video_console.h>
 #include <watchdog.h>
 #include <asm/global_data.h>
 #include <linux/delay.h>
+#if CONFIG_IS_ENABLED(PSTORE)
+#include <asm/arch-rockchip/pstore.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -586,6 +590,9 @@ int getchar(void)
 {
 	int ch;
 
+	if (!gd || gd->flags & GD_FLG_DISABLE_CONSOLE)
+		return 0;
+
 	if (IS_ENABLED(CONFIG_DISABLE_CONSOLE) && (gd->flags & GD_FLG_DISABLE_CONSOLE))
 		return 0;
 
@@ -607,6 +614,9 @@ int getchar(void)
 
 int tstc(void)
 {
+	if (!gd || gd->flags & GD_FLG_DISABLE_CONSOLE)
+		return 0;
+
 	if (IS_ENABLED(CONFIG_DISABLE_CONSOLE) && (gd->flags & GD_FLG_DISABLE_CONSOLE))
 		return 0;
 
@@ -692,7 +702,7 @@ static inline void print_pre_console_buffer(int flushpoint) {}
 
 void putc(const char c)
 {
-	if (!gd)
+	if (!gd || gd->flags & GD_FLG_DISABLE_CONSOLE)
 		return;
 
 	console_record_putc(c);
@@ -731,10 +741,60 @@ void putc(const char c)
 	}
 }
 
+#if CONFIG_IS_ENABLED(BOOTSTAGE_PRINTF_TIMESTAMP)
+static void vspfunc(char *buf, size_t size, char *format, ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	vsnprintf(buf, size, format, ap);
+	va_end(ap);
+}
+
 void puts(const char *s)
 {
-	if (!gd)
+	unsigned long ts_sec, ts_msec, ticks;
+	char pr_timestamp[32], *p;
+
+	if (!gd || gd->flags & GD_FLG_DISABLE_CONSOLE)
 		return;
+
+#if CONFIG_IS_ENABLED(PSTORE)
+	puts_to_ram(s);
+#endif
+
+	console_record_puts(s);
+
+	while (*s) {
+		if (*s == '\n') {
+			gd->new_line = 1;
+			putc(*s++);
+			continue;
+		}
+
+		if (gd->new_line) {
+			gd->new_line = 0;
+			ticks = (get_ticks() / 24ULL);
+			ts_sec = ticks / 1000000;
+			ts_msec = ticks % 1000000;
+			vspfunc(pr_timestamp, sizeof(pr_timestamp),
+				"[%5lu.%06lu] ", ts_sec, ts_msec);
+			p = pr_timestamp;
+			while (*p)
+				putc(*p++);
+		}
+		putc(*s++);
+	}
+}
+#else
+void puts(const char *s)
+{
+	if (!gd || gd->flags & GD_FLG_DISABLE_CONSOLE)
+		return;
+
+#if CONFIG_IS_ENABLED(PSTORE)
+	puts_to_ram(s);
+#endif
 
 	console_record_puts(s);
 
@@ -770,11 +830,12 @@ void puts(const char *s)
 		serial_puts(s);
 	}
 }
+#endif
 
 #ifdef CONFIG_CONSOLE_FLUSH_SUPPORT
 void flush(void)
 {
-	if (!gd)
+	if (!gd || gd->flags & GD_FLG_DISABLE_CONSOLE)
 		return;
 
 	/* sandbox can send characters to stdout before it has a console */

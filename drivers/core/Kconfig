@@ -476,4 +476,36 @@ config BOUNCE_BUFFER
 	  A second possible use of bounce buffers is their ability to
 	  provide aligned buffers for DMA operations.
 
+config DM_KERNEL_DTB
+	bool "Support scan kernel dtb and build DM devices"
+	depends on OF_LIVE
+	default y if ARCH_ROCKCHIP
+	help
+	  It scans kernel dtb can builds DM devices.
+
+if DM_KERNEL_DTB
+config EMBED_KERNEL_DTB
+	bool "Support to use embedded kernel dtb"
+	default n
+
+config EMBED_KERNEL_DTB_ALWAYS
+	bool "Suport to use embedded kernel dtb by force"
+	depends on EMBED_KERNEL_DTB
+	default n
+
+config EMBED_KERNEL_DTB_PATH
+	string "Embedded kernel dtb file path"
+	depends on EMBED_KERNEL_DTB
+	default ""
+
+config EARLY_DISTRO_DTB
+	bool "Enable support Distro dtb for early init"
+	default n
+
+config EARLY_DISTRO_DTB_PATH
+	string "Distro dtb file path"
+	depends on EARLY_DISTRO_DTB
+	default ""
+endif
+
 endmenu

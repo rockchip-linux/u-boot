@@ -18,3 +18,5 @@ obj-$(CONFIG_CPU_RISCV) += riscv_cpu.o
 obj-$(CONFIG_CPU_MICROBLAZE) += microblaze_cpu.o
 obj-$(CONFIG_CPU_XTENSA) += xtensa_cpu.o
 obj-$(CONFIG_SANDBOX) += cpu_sandbox.o
+obj-$(CONFIG_ROCKCHIP_AMP) += rockchip_amp.o
+

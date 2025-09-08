@@ -105,6 +105,13 @@ else
   Q = @
 endif
 
+ifeq ("$(origin FWVER)", "command line")
+  PLAT_FW_VERSION := $(FWVER)
+endif
+ifeq ("$(origin SPL_FWVER)", "command line")
+  PLAT_SPL_FW_VERSION := $(SPL_FWVER)
+endif
+
 # If the user is running make -s (silent mode), suppress echoing of
 # commands
 
@@ -1164,7 +1171,7 @@ endif
 PHONY += dtbs dtbs_check
 dtbs: dts/dt.dtb
 	@:
-dts/dt.dtb: dtbs_prepare u-boot
+dts/dt.dtb: dtbs_prepare u-boot FORCE
 	$(Q)$(MAKE) $(build)=dts dtbs
 
 dtbs_prepare: prepare3
@@ -1274,7 +1281,7 @@ endif
 quiet_cmd_copy = COPY    $@
       cmd_copy = cp $< $@
 
-u-boot.dtb: dts/dt.dtb
+u-boot.dtb: dts/dt.dtb FORCE
 	$(call cmd,copy)
 
 OBJCOPYFLAGS_u-boot.hex := -O ihex
@@ -1505,7 +1512,8 @@ MKIMAGEFLAGS_u-boot.itb =
 else
 MKIMAGEFLAGS_u-boot.itb = -E
 endif
-MKIMAGEFLAGS_u-boot.itb += -B 0x8
+MKIMAGEFLAGS_u-boot.itb += -B 0x200
+
 
 ifdef U_BOOT_ITS
 u-boot.itb: u-boot-nodtb.bin \
@@ -1989,6 +1997,12 @@ prepare: prepare0
 define filechk_version.h
 	(echo \#define PLAIN_VERSION \"$(UBOOTRELEASE)\"; \
 	echo \#define U_BOOT_VERSION \"U-Boot \" PLAIN_VERSION; \
+	if [ -n "$(PLAT_SPL_FW_VERSION)" ]; then \
+		echo \#define BUILD_SPL_TAG \"$(PLAT_SPL_FW_VERSION)\"; \
+	fi; \
+	if [ -n "$(PLAT_FW_VERSION)" ]; then \
+		echo \#define BUILD_TAG \"$(PLAT_FW_VERSION)\"; \
+	fi; \
 	echo \#define U_BOOT_VERSION_NUM $(VERSION); \
 	echo \#define U_BOOT_VERSION_NUM_PATCH $$(echo $(PATCHLEVEL) | \
 		sed -e "s/^0*//"); \
@@ -2012,6 +2026,7 @@ define filechk_timestamp.h
 			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_DATE "%b %d %C%y"'; \
 			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_TIME "%T"'; \
 			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_TZ "%z"'; \
+			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_DMI_DATE "%m/%d/%Y"'; \
 			LC_ALL=C $${DATE} -u -d "$${SOURCE_DATE}" +'#define U_BOOT_EPOCH %s'; \
 		else \
 			return 42; \
@@ -2020,6 +2035,7 @@ define filechk_timestamp.h
 		LC_ALL=C date +'#define U_BOOT_DATE "%b %d %C%y"'; \
 		LC_ALL=C date +'#define U_BOOT_TIME "%T"'; \
 		LC_ALL=C date +'#define U_BOOT_TZ "%z"'; \
+		LC_ALL=C date +'#define U_BOOT_DMI_DATE "%m/%d/%Y"'; \
 		LC_ALL=C date +'#define U_BOOT_EPOCH %s'; \
 	fi)
 endef

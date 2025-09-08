@@ -6,9 +6,9 @@
 obj-$(CONFIG_EXYNOS_ACE_SHA)	+= ace_sha.o
 obj-$(CONFIG_CRYPTO_MANAGER) += crypto_manager.o
 ifdef CONFIG_DM_HASH
-obj-$(CONFIG_CRYPTO_MANAGER) += crypto_hash.o
+obj-$(CONFIG_CRYPTO_MANAGER) += crypto_hash_glue.o
 endif
-obj-$(CONFIG_CRYPTO_MANAGER) += crypto_rsa.o
+obj-$(CONFIG_CRYPTO_MANAGER) += crypto_rsa_glue.o
 obj-y += rsa_mod_exp/
 obj-y += fsl/
 obj-y += hash/

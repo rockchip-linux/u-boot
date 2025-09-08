@@ -30,12 +30,25 @@ static inline bool blk_enabled(void)
 	return CONFIG_IS_ENABLED(BLK) || IS_ENABLED(CONFIG_SPL_LEGACY_BLOCK);
 }
 
+/* define mtd device devnum */
+#define BLK_MTD_NAND            0
+#define BLK_MTD_SPI_NAND        1
+#define BLK_MTD_SPI_NOR         2
+
+/* define block device operation flags */
+#define BLK_PRE_RW              BIT(0)  /* Block prepare read & write*/
+#define BLK_MTD_CONT_WRITE      BIT(1)  /* Special for Nand device P/E */
+
 #define BLK_VEN_SIZE		40
 #define BLK_PRD_SIZE		20
 #define BLK_REV_SIZE		8
 
 #define PART_FORMAT_PCAT	0x1
 #define PART_FORMAT_GPT		0x2
+
+/* define block device operation flags */
+#define BLK_PRE_RW		BIT(0)	/* Block prepare read & write*/
+#define BLK_MTD_CONT_WRITE	BIT(1)	/* Special for Nand device P/E */
 
 /*
  * Identifies the partition table type (ie. MBR vs GPT GUID) signature
@@ -65,12 +78,15 @@ struct blk_desc {
 	unsigned char	hwpart;		/* HW partition, e.g. for eMMC */
 	unsigned char	type;		/* device type */
 	unsigned char	removable;	/* removable device */
+	unsigned char	op_flag;	/* Some special operation flags */
 	/* device can use 48bit addr (ATA/ATAPI v7) */
 	bool	lba48;
 	unsigned char	atapi;		/* Use ATAPI protocol */
 	unsigned char	bb;		/* Use bounce buffer */
 	lbaint_t	lba;		/* number of blocks */
+	lbaint_t	rawlba;		/* physical number of blocks */
 	unsigned long	blksz;		/* block size */
+	unsigned long	rawblksz;	/* block size */
 	int		log2blksz;	/* for convenience: log2(blksz) */
 	char		vendor[BLK_VEN_SIZE + 1]; /* device vendor string */
 	char		product[BLK_PRD_SIZE + 1]; /* device product number */
@@ -514,8 +530,9 @@ struct blk_desc *blk_get_by_device(struct udevice *dev);
  */
 int blk_get_desc(enum uclass_id uclass_id, int devnum, struct blk_desc **descp);
 
-#if !CONFIG_IS_ENABLED(BLK)
+enum uclass_id uclass_name_to_iftype(const char *uclass_idname);
 
+#if !CONFIG_IS_ENABLED(BLK)
 #include <errno.h>
 
 /*

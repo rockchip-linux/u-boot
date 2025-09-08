@@ -85,6 +85,10 @@
 #define HCR_EL2_RW_AARCH32	(0 << 31) /* Lower levels are AArch32         */
 #define HCR_EL2_HCD_DIS		(1 << 29) /* Hypervisor Call disabled         */
 #define HCR_EL2_AMO_EL2		(1 <<  5) /* Route SErrors to EL2             */
+#define HCR_EL2_TGE			(1 << 27) /* Trap General Exceptions          */
+#define HCR_EL2_AMO			(1 << 5)  /* Asynchronous External Abort and SError Interrupt routing */
+#define HCR_EL2_IMO			(1 << 4)  /* Physical IRQ Routing */
+#define HCR_EL2_FMO			(1 << 3)  /* Physical FIQ Routing */
 
 #define ID_AA64ISAR0_EL1_RNDR	(0xFUL << 60) /* RNDR random registers */
 /*
@@ -211,6 +215,20 @@ static inline unsigned long read_mpidr(void)
 	return val;
 }
 
+static inline unsigned long get_daif(void)
+{
+	unsigned long daif;
+
+	asm volatile("mrs %0, daif" : "=r" (daif));
+
+	return daif;
+}
+
+static inline void disable_serror(void)
+{
+	asm volatile("msr daifset, #0x04");
+}
+
 #define BSP_COREID	0
 
 void __asm_flush_dcache_all(void);
@@ -291,6 +309,7 @@ void gic_send_sgi(unsigned long sgino);
 void wait_for_wakeup(void);
 void protect_secure_region(void);
 void smp_kick_all_cpus(void);
+void smp_entry(u32 cpu);
 
 void flush_l3_cache(void);
 
@@ -427,6 +446,20 @@ static inline unsigned long get_cpsr(void)
 	return cpsr;
 }
 
+static inline void set_cpsr(unsigned long cpsr)
+{
+	asm volatile("msr cpsr_fsxc, %[cpsr]" : : [cpsr] "r" (cpsr));
+}
+
+static inline void disable_async_abort(void)
+{
+	unsigned long cpsr;
+
+	cpsr = get_cpsr();
+	cpsr &= ~(1 << 8);
+	set_cpsr(cpsr);
+}
+
 static inline int is_hyp(void)
 {
 #ifdef CONFIG_ARMV7_LPAE
@@ -464,6 +497,14 @@ static inline void set_cr(unsigned int val)
 								  : "r" (val)
 								  : "cc");
 	isb();
+}
+
+static inline unsigned int read_mpidr(void)
+{
+	unsigned int mpidr;
+
+	asm volatile ("mrc p15, 0, %[mpidr], c0, c0, 5" : [mpidr] "=r" (mpidr));
+	return mpidr;
 }
 
 #ifdef CONFIG_ARMV7_LPAE

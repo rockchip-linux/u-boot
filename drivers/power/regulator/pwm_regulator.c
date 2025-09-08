@@ -93,6 +93,7 @@ static int pwm_regulator_of_to_plat(struct udevice *dev)
 {
 	struct pwm_regulator_info *priv = dev_get_priv(dev);
 	struct ofnode_phandle_args args;
+	char *prop;
 	int ret;
 
 	ret = dev_read_phandle_with_args(dev, "pwms", "#pwm-cells", 0, 0, &args);
@@ -104,7 +105,9 @@ static int pwm_regulator_of_to_plat(struct udevice *dev)
 	priv->period_ns = args.args[1];
 	priv->polarity = args.args[2];
 
-	priv->init_voltage = dev_read_u32_default(dev, "regulator-init-microvolt", -1);
+	prop = dev_read_bool(dev, "regulator-init-microvolt") ?
+			"regulator-init-microvolt" : "rockchip,pwm_voltage";
+	priv->init_voltage = dev_read_u32_default(dev, prop, -1);
 	if (priv->init_voltage < 0) {
 		printf("Cannot find regulator pwm init_voltage\n");
 		return -EINVAL;

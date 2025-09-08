@@ -9,3 +9,7 @@
 # of our decision.
 PF_NO_UNALIGNED := $(call cc-option, -mno-unaligned-access,)
 PLATFORM_CPPFLAGS += $(PF_NO_UNALIGNED)
+
+ifeq ($(CONFIG_SPL_BUILD)$(CONFIG_TPL_BUILD),)
+PLATFORM_CPPFLAGS += -mabi=aapcs-linux -funwind-tables
+endif

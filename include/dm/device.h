@@ -84,6 +84,10 @@ struct driver_info;
 /* Device must be probed after it was bound */
 #define DM_FLAG_PROBE_AFTER_BIND	(1 << 15)
 
+
+/* Device is from kernel device tree */
+#define DM_FLAG_KNRL_DTB		(1 << 31)
+
 /*
  * One or multiple of these flags are passed to device_remove() so that
  * a selective device removal as specified by the remove-stage and the
@@ -1079,5 +1083,16 @@ static inline bool device_is_on_pci_bus(const struct udevice *dev)
  * Return: 0 if OK, -ve on error
  */
 int dm_scan_fdt_dev(struct udevice *dev);
+
+#ifdef CONFIG_DM_KERNEL_DTB
+int board_kernel_dtb_read(void *fdt);
+
+int kernel_dtb_init(void);
+void kernel_dtb_device_bind(struct uclass *uc, struct udevice *dev,
+			    const struct driver *drv, int *after_u_boot_dev);
+void kernel_dtb_list_add(struct uclass *uc, struct udevice *dev,
+			 int after_u_boot_dev);
+struct device_node *kernel_dtb_lookup_phandle(phandle handle);
+#endif
 
 #endif

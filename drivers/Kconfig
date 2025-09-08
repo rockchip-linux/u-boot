@@ -60,6 +60,8 @@ source "drivers/input/Kconfig"
 
 source "drivers/iommu/Kconfig"
 
+source "drivers/irq/Kconfig"
+
 source "drivers/led/Kconfig"
 
 source "drivers/mailbox/Kconfig"

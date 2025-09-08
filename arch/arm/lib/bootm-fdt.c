@@ -21,6 +21,8 @@
 #include <asm/global_data.h>
 #include <asm/psci.h>
 #include <asm/spin_table.h>
+#include <bidram.h>
+#include <image.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -31,18 +33,42 @@ __weak int fdt_update_ethernet_dt(void *blob)
 }
 #endif
 
+__weak int board_fdt_fixup(void *blob)
+{
+	return 0;
+}
+
 int arch_fixup_fdt(void *blob)
 {
-	__maybe_unused int ret = 0;
+	int ret = 0;
+
+	ret = board_fdt_fixup(blob);
+	if (ret)
+		return ret;
+
+	/* show info: "/reserved-memory" */
+#ifndef CONFIG_XPL_BUILD
+	boot_fdt_add_mem_rsv_regions(blob);
+#endif
+
 #if defined(CONFIG_ARMV7_NONSEC) || defined(CONFIG_OF_LIBFDT)
 	struct bd_info *bd = gd->bd;
 	int bank;
 	u64 start[CONFIG_NR_DRAM_BANKS];
 	u64 size[CONFIG_NR_DRAM_BANKS];
 
+#if CONFIG_IS_ENABLED(BIDRAM)
+	bidram_fixup();
+#endif
 	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
 		start[bank] = bd->bi_dram[bank].start;
 		size[bank] = bd->bi_dram[bank].size;
+		if (size[bank] == 0)
+			continue;
+#ifdef CONFIG_ARCH_FIXUP_FDT_MEMORY
+		printf("Adding bank: 0x%08llx - 0x%08llx (size: 0x%08llx)\n",
+		       start[bank], start[bank] + size[bank], size[bank]);
+#endif
 #ifdef CONFIG_ARMV7_NONSEC
 		ret = armv7_apply_memory_carveout(&start[bank], &size[bank]);
 		if (ret)

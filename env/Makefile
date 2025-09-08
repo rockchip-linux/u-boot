@@ -18,6 +18,7 @@ obj-$(CONFIG_ENV_IS_IN_NVRAM) += nvram.o
 obj-$(CONFIG_ENV_IS_IN_ONENAND) += onenand.o
 obj-$(CONFIG_ENV_IS_IN_REMOTE) += remote.o
 obj-$(CONFIG_ENV_IS_IN_UBI) += ubi.o
+obj-$(CONFIG_ENV_IS_IN_BLK) += blk.o
 endif
 
 obj-$(CONFIG_$(PHASE_)ENV_IS_NOWHERE) += nowhere.o
@@ -27,5 +28,6 @@ obj-$(CONFIG_$(PHASE_)ENV_IS_IN_EXT4) += ext4.o
 obj-$(CONFIG_$(PHASE_)ENV_IS_IN_NAND) += nand.o
 obj-$(CONFIG_$(PHASE_)ENV_IS_IN_SPI_FLASH) += sf.o
 obj-$(CONFIG_$(PHASE_)ENV_IS_IN_FLASH) += flash.o
+obj-$(CONFIG_$(PHASE_)ENV_IS_IN_FRAGMENT) += fragment.o
 
 CFLAGS_embedded.o := -Wa,--no-warn -DENV_CRC=$(shell tools/envcrc 2>/dev/null)

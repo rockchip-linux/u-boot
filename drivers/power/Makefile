@@ -5,6 +5,7 @@
 
 obj-$(CONFIG_$(PHASE_)ACPI_PMC) += acpi_pmc/
 obj-$(CONFIG_$(PHASE_)POWER_DOMAIN) += domain/
+obj-$(CONFIG_$(PHASE_)DM_FUEL_GAUGE) += fuel_gauge/ charge/
 obj-y += pmic/
 obj-y += regulator/
 
@@ -29,3 +30,7 @@ obj-$(CONFIG_POWER_FSL) += power_fsl.o
 obj-$(CONFIG_$(PHASE_)POWER_I2C) += power_i2c.o
 obj-$(CONFIG_POWER_SPI) += power_spi.o
 obj-$(CONFIG_POWER_MT6323) += mt6323.o
+
+obj-$(CONFIG_DM_CHARGE_DISPLAY)	+= charge-display-uclass.o
+obj-$(CONFIG_CHARGE_ANIMATION)	+= charge_animation.o
+

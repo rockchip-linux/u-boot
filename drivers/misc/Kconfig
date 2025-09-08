@@ -314,11 +314,21 @@ endchoice
 
 config IRQ
 	bool "Interrupt controller"
+	depends on GICV2 || GICV3
+	default y
 	help
 	  This enables support for interrupt controllers, including ITSS.
 	  Some devices have extra features, such as Apollo Lake. The
 	  device has its own uclass since there are several operations
 	  involved.
+
+config IRQ_TIMER_DUMP
+	bool "Enable a timer timeout irq stack dump"
+	depends on IRQ
+	default n
+	help
+	  This enables 5s timeout stack dump event. This is a debug method
+	  to catch the place where cpu stop.
 
 config JZ4780_EFUSE
 	bool "Ingenic JZ4780 eFUSE support"

@@ -15,6 +15,35 @@
 
 #define LZ4F_BLOCKUNCOMPRESSED_FLAG 0x80000000U
 
+bool lz4_is_valid_header(const unsigned char *h)
+{
+	const void *in = h;
+	u32 magic;
+	u8 flags, version, independent_blocks, has_content_size;
+	u8 block_desc;
+
+	magic = get_unaligned_le32(in);
+	in += sizeof(u32);
+	flags = *(u8 *)in;
+	in += sizeof(u8);
+	block_desc = *(u8 *)in;
+	in += sizeof(u8);
+
+	version = (flags >> 6) & 0x3;
+	independent_blocks = (flags >> 5) & 0x1;
+	has_content_size = (flags >> 3) & 0x1;
+
+	/* We assume there's always only a single, standard frame. */
+	if (magic != LZ4F_MAGIC || version != 1)
+		return false;	/* unknown format */
+	if ((flags & 0x03) || (block_desc & 0x8f))
+		return false; /* reserved bits must be zero */
+	if (!independent_blocks)
+		return false; /* we can't support this yet */
+
+	return true;
+}
+
 __rcode int ulz4fn(const void *src, size_t srcn, void *dst, size_t *dstn)
 {
 	const void *end = dst + *dstn;
@@ -23,6 +52,20 @@ __rcode int ulz4fn(const void *src, size_t srcn, void *dst, size_t *dstn)
 	int has_block_checksum;
 	int ret;
 	*dstn = 0;
+
+#if defined(CONFIG_MISC_DECOMPRESS) && !defined(CONFIG_SPL_BUILD)
+	u64 len;
+
+	ret = misc_decompress_process((ulong)dst, (ulong)src, (ulong)srcn,
+				      DECOM_LZ4, false, &len, 0);
+	if (!ret) {
+		*dstn = len;
+		return 0;
+	} else if (ret != -ENODEV) {
+		printf("hw ulz4fn failed(%d), fallback to soft ulz4fn\n", ret);
+	}
+
+#endif
 
 	{ /* With in-place decompression the header may become invalid later. */
 		u32 magic;

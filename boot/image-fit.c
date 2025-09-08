@@ -20,12 +20,14 @@
 #include <linux/compiler.h>
 #include <linux/sizes.h>
 #include <errno.h>
+#include <hang.h>
 #include <log.h>
 #include <mapmem.h>
 #include <asm/io.h>
 #include <malloc.h>
 #include <memalign.h>
 #include <asm/global_data.h>
+#include <tee/optee.h>
 #ifdef CONFIG_DM_HASH
 #include <dm.h>
 #include <u-boot/hash.h>
@@ -919,17 +921,38 @@ int fit_image_get_entry(const void *fit, int noffset, ulong *entry)
 int fit_image_get_emb_data(const void *fit, int noffset, const void **data,
 			   size_t *size)
 {
+	ulong data_off = 0;
+	ulong data_pos = 0;
 	int len;
 
+	/* data */
 	*data = fdt_getprop(fit, noffset, FIT_DATA_PROP, &len);
-	if (*data == NULL) {
-		fit_get_debug(fit, noffset, FIT_DATA_PROP, len);
-		*size = 0;
-		return -1;
+	if (*data) {
+		*size = len;
+		return 0;
 	}
 
-	*size = len;
-	return 0;
+	/* data-size */
+	if (fit_image_get_data_size(fit, noffset, &len))
+		return -ENOENT;
+
+	/* data-offset */
+	if (!fit_image_get_data_offset(fit, noffset, (int *)&data_off)) {
+		data_off += (ulong)fit + FIT_ALIGN(fdt_totalsize(fit));
+		*data = (void *)data_off;
+		*size = len;
+		return 0;
+	}
+
+	/* data-position */
+	if (!fit_image_get_data_position(fit, noffset, (int *)&data_pos)) {
+		*data = (void *)(data_pos + (ulong)fit);
+		*size = len;
+		return 0;
+	}
+
+	*size = 0;
+	return -1;
 }
 
 /**
@@ -1290,8 +1313,8 @@ int calculate_hash(const void *data, int data_len, const char *name,
 	return 0;
 }
 
-static int fit_image_check_hash(const void *fit, int noffset, const void *data,
-				size_t size, char **err_msgp)
+int fit_image_check_hash(const void *fit, int noffset, const void *data,
+			 size_t size, char **err_msgp)
 {
 	ALLOC_CACHE_ALIGN_BUFFER(uint8_t, value, FIT_MAX_HASH_LEN);
 	int value_len;
@@ -1299,6 +1322,7 @@ static int fit_image_check_hash(const void *fit, int noffset, const void *data,
 	uint8_t *fit_value;
 	int fit_value_len;
 	int ignore;
+	int i;
 
 	*err_msgp = NULL;
 
@@ -1331,9 +1355,26 @@ static int fit_image_check_hash(const void *fit, int noffset, const void *data,
 		*err_msgp = "Bad hash value len";
 		return -1;
 	} else if (memcmp(value, fit_value, value_len) != 0) {
+		printf(" Bad hash: ");
+		for (i = 0; i < value_len; i++)
+			printf("%02x", value[i]);
+		printf("\n");
 		*err_msgp = "Bad hash value";
 		return -1;
 	}
+#ifdef CONFIG_SPL_BUILD
+	printf("(");
+	for (i = 0; i < 5; i++)
+		printf("%02x", value[i]);
+	printf("...) ");
+#endif
+
+#ifdef CONFIG_SPL_BUILD
+	printf("(");
+	for (i = 0; i < 5; i++)
+		printf("%02x", value[i]);
+	printf("...) ");
+#endif
 
 	return 0;
 }
@@ -1394,7 +1435,7 @@ int fit_image_verify_with_data(const void *fit, int image_noffset,
 		goto error;
 	}
 
-	return 1;
+	return 1; /* success */
 
 error:
 	printf(" error!\n%s for '%s' hash node in '%s' image node\n",
@@ -1496,6 +1537,109 @@ int fit_all_image_verify(const void *fit)
 	return 1;
 }
 
+#ifndef USE_HOSTCC
+#if defined(CONFIG_FIT_CIPHER)
+/*
+ * [aes-128-ctr] example:
+ *
+ * openssl rand -out aes128.key 16
+ *
+ * openssl dgst -sha256 -binary -out kernel.sha256 kernel
+ * openssl rand -out iv.bin 16
+ * openssl enc -aes-128-ctr -in kernel -out kernel.encrypt -K $(xxd -p aes128.key) -iv $(xxd -p iv.bin)
+ * openssl enc -aes-128-ctr -d -in kernel.encrypt -out kernel -K $(xxd -p aes128.key) -iv $(xxd -p iv.bin)
+ *
+ *
+ * Add a "cipher" node under kernel node, the "hash" node is optional.
+ *
+ * 	cipher {
+ *		algo = "aes128";
+ *		iv = /incbin/("./iv.bin");
+ *		hash {
+ *			algo = "sha256";
+ *			value = /incbin/("./kernel.sha256");
+ *		};
+ *	};
+ */
+static int fit_image_uncipher(const void *fit, int noffset,
+			      ulong cipher_addr, size_t cipher_sz,
+			      ulong uncipher_addr)
+{
+#if 0
+	rk_cipher_config config;
+	int cipher_noffset;
+	const char *node_name;
+	const void *iv;
+	char *algo_name;
+	char *err_msgp;
+	int key_len = 16;
+	int iv_len;
+	int ret;
+
+	node_name = fdt_get_name(fit, noffset, NULL);
+	cipher_noffset = fdt_subnode_offset(fit, noffset, FIT_CIPHER_NODENAME);
+
+	if (fit_image_cipher_get_algo(fit, cipher_noffset, &algo_name)) {
+		printf("Can't get cipher algo for image '%s'\n",
+		       node_name);
+		return -1;
+	}
+
+	if (strcmp(algo_name, "aes128")) {
+		printf("Invalid cipher algo '%s'\n", algo_name);
+		return -1;
+	}
+
+	iv = fdt_getprop(fit, cipher_noffset, "iv", &iv_len);
+	if (!iv) {
+		printf("Can't get IV for image '%s'\n", node_name);
+		return -1;
+	}
+
+	if (iv_len != key_len) {
+		printf("Len iv(%d) != key(%d) for image '%s'\n",
+		       iv_len, key_len, node_name);
+		return -1;
+	}
+
+	memset(&config, 0, sizeof(config));
+	config.algo      = RK_ALGO_AES;
+	config.mode      = RK_CIPHER_MODE_CTR;
+	config.operation = RK_MODE_DECRYPT;
+	config.key_len   = key_len;
+	memcpy(config.iv, iv, key_len);
+
+	/* uncipher */
+	ret = trusty_fw_key_cipher(RK_FW_KEY0, &config,
+				   (u32)cipher_addr, (u32)uncipher_addr,
+				   (u32)cipher_sz);
+	if (ret) {
+		printf("Uncipher data failed for image '%s', ret=%d\n",
+		       node_name, ret);
+		return ret;
+	}
+
+	/* verify uncipher data hash  */
+	noffset = fdt_subnode_offset(fit, cipher_noffset, FIT_HASH_NODENAME);
+	if (noffset > 0) {
+		ret = fit_image_check_hash(fit, noffset,
+					   (void *)uncipher_addr,
+					   cipher_sz, &err_msgp);
+		if (ret) {
+			printf("%s, uncipher data hash for image '%s', ret=%d\n",
+			       err_msgp, node_name, ret);
+			return ret;
+		} else {
+			puts("+");
+		}
+	}
+#endif
+	return 0;
+}
+#endif
+#endif
+
+#if 0
 static int fit_image_uncipher(const void *fit, int image_noffset,
 			      void **data, size_t *size)
 {
@@ -1519,6 +1663,7 @@ static int fit_image_uncipher(const void *fit, int image_noffset,
  out:
 	return ret;
 }
+#endif
 
 /**
  * fit_image_check_os - check whether image node is of a given os type
@@ -1975,8 +2120,13 @@ int fit_get_data_conf_prop(const void *fit, const char *prop_name,
 
 static int fit_image_select(const void *fit, int rd_noffset, int verify)
 {
+#ifdef USE_HOSTCC
 	fit_image_print(fit, rd_noffset, "   ");
-
+#else
+#if CONFIG_IS_ENABLED(FIT_PRINT)
+	fit_image_print(fit, rd_noffset, "   ");
+#endif
+#endif
 	if (verify) {
 		puts("   Verifying Hash Integrity ... ");
 		if (!fit_image_verify(fit, rd_noffset)) {
@@ -2054,9 +2204,16 @@ static const char *fit_get_image_type_property(int ph_type)
 	return "unknown";
 }
 
-int fit_image_load(struct bootm_headers *images, ulong addr,
+#ifndef USE_HOSTCC
+__weak int fit_board_verify_required_sigs(void)
+{
+	return 0;
+}
+#endif
+
+int fit_image_load_index(struct bootm_headers *images, ulong addr,
 		   const char **fit_unamep, const char **fit_uname_configp,
-		   int arch, int ph_type, int bootstage_id,
+		   int arch, int ph_type, int image_index, int bootstage_id,
 		   enum fit_load_op load_op, ulong *datap, ulong *lenp)
 {
 	int image_type = image_ph_type(ph_type);
@@ -2120,9 +2277,17 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 		printf("   Using '%s' configuration\n", fit_base_uname_config);
 		/* Remember this config */
 		if (image_type == IH_TYPE_KERNEL)
+#ifndef USE_HOSTCC
+			/* If board required sigs, check self */
+			if (fit_board_verify_required_sigs() &&
+			    !IS_ENABLED(CONFIG_FIT_SIGNATURE)) {
+				printf("Verified-boot requires CONFIG_FIT_SIGNATURE enabled\n");
+				hang();
+			}
+#endif
 			images->fit_uname_cfg = fit_base_uname_config;
 
-		if (FIT_IMAGE_ENABLE_VERIFY && images->verify) {
+		if (FIT_IMAGE_ENABLE_VERIFY) {
 			puts("   Verifying Hash Integrity ... ");
 			if (fit_config_verify(fit, cfg_noffset)) {
 				puts("Bad Data Hash\n");
@@ -2131,12 +2296,28 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 				return -EACCES;
 			}
 			puts("OK\n");
+#ifdef CONFIG_FIT_ROLLBACK_PROTECT
+			uint32_t this_index, min_index;
+
+			puts("   Verifying Rollback-index ... ");
+			if (fit_rollback_index_verify(fit,
+					FIT_ROLLBACK_INDEX,
+					&this_index, &min_index)) {
+				puts("Failed to get index\n");
+				return ret;
+			} else if (this_index < min_index) {
+				printf("Reject index %d < %d(min)\n",
+				       this_index, min_index);
+				return -EINVAL;
+			}
+
+			printf("%d >= %d(min), OK\n", this_index, min_index);
+#endif
 		}
 
 		bootstage_mark(BOOTSTAGE_ID_FIT_CONFIG);
 
-		noffset = fit_conf_get_prop_node(fit, cfg_noffset, prop_name,
-						 image_ph_phase(ph_type));
+		noffset = fit_conf_get_prop_node_index(fit, cfg_noffset, prop_name, image_index);
 		fit_uname = fit_get_name(fit, noffset, NULL);
 	}
 	if (noffset < 0) {
@@ -2182,9 +2363,11 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 	os_ok = image_type == IH_TYPE_FLATDT ||
 		image_type == IH_TYPE_FPGA ||
 		fit_image_check_os(fit, noffset, IH_OS_LINUX) ||
+		fit_image_check_os(fit, noffset, IH_OS_ARM_TRUSTED_FIRMWARE) ||
 		fit_image_check_os(fit, noffset, IH_OS_U_BOOT) ||
 		fit_image_check_os(fit, noffset, IH_OS_TEE) ||
 		fit_image_check_os(fit, noffset, IH_OS_OPENRTOS) ||
+		fit_image_check_os(fit, noffset, IH_OS_QNX) ||
 		fit_image_check_os(fit, noffset, IH_OS_EFI) ||
 		fit_image_check_os(fit, noffset, IH_OS_VXWORKS) ||
 		fit_image_check_os(fit, noffset, IH_OS_ELF);
@@ -2212,7 +2395,7 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 		bootstage_error(bootstage_id + BOOTSTAGE_SUB_GET_DATA);
 		return -ENOENT;
 	}
-
+#if 0
 	/* Decrypt data before uncompress/move */
 	if (IS_ENABLED(CONFIG_FIT_CIPHER) && IMAGE_ENABLE_DECRYPT) {
 		puts("   Decrypting Data ... ");
@@ -2222,10 +2405,34 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 		}
 		puts("OK\n");
 	}
+#endif
+	ret = fit_image_get_load(fit, noffset, &load);
+	if (ret < 0)
+		return ret;
 
 	/* perform any post-processing on the image data */
-	if (!tools_build() && IS_ENABLED(CONFIG_FIT_IMAGE_POST_PROCESS))
-		board_fit_image_post_process(fit, noffset, &buf, &size);
+	if (!tools_build() && IS_ENABLED(CONFIG_FIT_IMAGE_POST_PROCESS)) {
+#if !defined(USE_HOSTCC)
+#if defined(CONFIG_FIT_CIPHER)
+		int cipher_noffset =
+			fdt_subnode_offset(fit, noffset, FIT_CIPHER_NODENAME);
+
+		if (cipher_noffset > 0) {
+			printf("   Decrypting Data ... ");
+			ret = fit_image_uncipher(fit, noffset, (ulong)buf, size, load);
+			if (ret) {
+				printf(" Error: %d\n", ret);
+				return -EACCES;
+			}
+			buf = (void *)load;
+			printf(" OK\n");
+		}
+#endif
+#endif
+		/* perform any post-processing on the image data */
+		board_fit_image_post_process((void *)fit, noffset,
+					     &load, (ulong **)&buf, &size, NULL);
+	}
 
 	len = (ulong)size;
 
@@ -2321,6 +2528,16 @@ int fit_image_load(struct bootm_headers *images, ulong addr,
 					      fit_base_uname_config);
 
 	return noffset;
+}
+
+int fit_image_load(struct bootm_headers *images, ulong addr,
+		   const char **fit_unamep, const char **fit_uname_configp,
+		   int arch, int ph_type, int bootstage_id,
+		   enum fit_load_op load_op, ulong *datap, ulong *lenp)
+{
+	return fit_image_load_index(images, addr, fit_unamep, fit_uname_configp,
+				    arch, ph_type, 0, bootstage_id,
+				    load_op, datap, lenp);
 }
 
 int boot_get_setup_fit(struct bootm_headers *images, uint8_t arch,
@@ -2520,4 +2737,125 @@ out:
 	free(fit_uname_config_copy);
 	return fdt_noffset;
 }
+#endif
+
+int fit_set_totalsize(void *fit, int noffset, int totalsize)
+{
+	uint32_t t;
+	int ret;
+
+	t = cpu_to_uimage(totalsize);
+	ret = fdt_setprop(fit, noffset, FIT_TOTALSIZE_PROP, &t,
+				sizeof(uint32_t));
+	if (ret)
+		return ret == -FDT_ERR_NOSPACE ? -ENOSPC : -1;
+
+	return 0;
+}
+
+int fit_set_version(void *fit, int noffset, int version)
+{
+	uint32_t v;
+	int ret;
+
+	v = cpu_to_uimage(version);
+	ret = fdt_setprop(fit, noffset, FIT_VERSION_PROP, &v, sizeof(uint32_t));
+	if (ret)
+		return ret == -FDT_ERR_NOSPACE ? -ENOSPC : -1;
+
+	return 0;
+}
+
+#ifndef USE_HOSTCC
+
+int fit_get_totalsize(const void *fit, int *totalsize)
+{
+	const fdt32_t *val;
+
+	val = fdt_getprop(fit, 0, FIT_TOTALSIZE_PROP, NULL);
+	if (!val)
+		return -ENOENT;
+
+	*totalsize = fdt32_to_cpu(*val);
+
+	return 0;
+}
+
+static int fit_image_set_address(const void *fit, int noffset, char *name,
+				 ulong addr)
+{
+	int len, cell_len;
+	const fdt32_t *cell;
+
+	cell = fdt_getprop(fit, noffset, name, &len);
+	if (cell == NULL) {
+		fit_get_debug(fit, noffset, name, len);
+		return -1;
+	}
+
+	if (len > sizeof(ulong)) {
+		printf("Unsupported %s address size\n", name);
+		return -1;
+	}
+
+	cell_len = len >> 2;
+	/* Use load64 to avoid compiling warning for 32-bit target */
+	while (cell_len--) {
+		*(fdt32_t *)cell = cpu_to_uimage(addr >> (32 * cell_len));
+		cell++;
+	}
+
+	return 0;
+}
+
+int fit_image_get_comp_addr(const void *fit, int noffset, ulong *comp)
+{
+	return fit_image_get_address(fit, noffset, FIT_COMP_ADDR_PROP, comp);
+}
+
+int fit_image_set_load(const void *fit, int noffset, ulong load)
+{
+	return fit_image_set_address(fit, noffset, FIT_LOAD_PROP, load);
+}
+
+int fit_image_set_entry(const void *fit, int noffset, ulong entry)
+{
+	return fit_image_set_address(fit, noffset, FIT_ENTRY_PROP, entry);
+}
+
+int fit_image_get_rollback_index(const void *fit, int noffset, uint32_t *index)
+{
+	const fdt32_t *val;
+
+	val = fdt_getprop(fit, noffset, FIT_ROLLBACK_PROP, NULL);
+	if (!val)
+		return -ENOENT;
+
+	*index = fdt32_to_cpu(*val);
+
+	return 0;
+}
+
+bool fit_image_is_preload(const void *fit, int noffset)
+{
+	int len;
+	int *data;
+
+	data = (int *)fdt_getprop(fit, noffset, FIT_PRE_LOAD_PROP, &len);
+	if (data == NULL || len != sizeof(int)) {
+		fit_get_debug(fit, noffset, FIT_PRE_LOAD_PROP, len);
+		return false;
+	}
+
+	if (fdt32_to_cpu(*data) != 1)
+		return false;
+
+	return true;
+}
+
+int fit_image_get_cipher_addr(const void *fit, int noffset, ulong *cipher)
+{
+	return fit_image_get_address(fit, noffset, FIT_CIPHER_ADDR_PROP, cipher);
+}
+
 #endif

@@ -812,7 +812,6 @@ int himport_r(struct hsearch_data *htab,
 {
 	char *data, *sp, *dp, *name, *value;
 	char *localvars[nvars];
-	int i;
 
 	/* Test for correct arguments.  */
 	if (htab == NULL) {
@@ -976,6 +975,14 @@ int himport_r(struct hsearch_data *htab,
 	if (flag & H_NOCLEAR)
 		goto end;
 
+
+	/*
+	 * CONFIG_ENVF=y: don't delete the default variables when they are
+	 * not present in env.img
+	 */
+#ifndef CONFIG_ENV_IS_IN_FRAGMENT
+	int i;
+
 	/* process variables which were not considered */
 	for (i = 0; i < nvars; i++) {
 		if (localvars[i] == NULL)
@@ -993,7 +1000,7 @@ int himport_r(struct hsearch_data *htab,
 		else
 			printf("WARNING: '%s' not in imported env, deleting it!\n", localvars[i]);
 	}
-
+#endif
 end:
 	debug("INSERT: done\n");
 	return 1;		/* everything OK */

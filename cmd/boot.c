@@ -18,6 +18,10 @@ __attribute__((weak))
 unsigned long do_go_exec(ulong (*entry)(int, char * const []), int argc,
 				 char *const argv[])
 {
+#ifdef CONFIG_CPU_V7
+	ulong addr = (ulong)entry | 1;
+	entry = (void *)addr;
+#endif
 	return entry (argc, argv);
 }
 
@@ -59,6 +63,13 @@ U_BOOT_CMD(
 U_BOOT_CMD(
 	reset, 2, 0,	do_reset,
 	"Perform RESET of the CPU",
+	"- cold boot without level specifier\n"
+	"reset -w - warm reset if implemented"
+);
+
+U_BOOT_CMD(
+	reboot, 2, 0,	do_reset,
+	"Perform RESET of the CPU, the alias of reset",
 	"- cold boot without level specifier\n"
 	"reset -w - warm reset if implemented"
 );

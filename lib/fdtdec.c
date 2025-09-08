@@ -81,7 +81,8 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(ALTERA_SOCFPGA_F2SDR2, "altr,socfpga-fpga2sdram2-bridge"),
 	COMPAT(ALTERA_SOCFPGA_FPGA0, "altr,socfpga-a10-fpga-mgr"),
 	COMPAT(ALTERA_SOCFPGA_NOC, "altr,socfpga-a10-noc"),
-	COMPAT(ALTERA_SOCFPGA_CLK_INIT, "altr,socfpga-a10-clk-init")
+	COMPAT(ALTERA_SOCFPGA_CLK_INIT, "altr,socfpga-a10-clk-init"),
+	COMPAT(ROCKCHIP_NANDC, "rockchip,rk-nandc")
 };
 
 static const char *const fdt_src_name[] = {
@@ -217,11 +218,16 @@ fdt_addr_t fdtdec_get_addr_size_auto_noparent(const void *blob, int node,
 fdt_addr_t fdtdec_get_addr_size(const void *blob, int node,
 				const char *prop_name, fdt_size_t *sizep)
 {
+#ifdef CONFIG_OF_ADDR_SIZE_AUTO_NOPARENT
+	return fdtdec_get_addr_size_auto_noparent(blob, node, prop_name,
+						  0, sizep, false);
+#else
 	int ns = sizep ? (sizeof(fdt_size_t) / sizeof(fdt32_t)) : 0;
 
 	return fdtdec_get_addr_size_fixed(blob, node, prop_name, 0,
 					  sizeof(fdt_addr_t) / sizeof(fdt32_t),
 					  ns, sizep, false);
+#endif
 }
 
 fdt_addr_t fdtdec_get_addr(const void *blob, int node, const char *prop_name)
@@ -1721,6 +1727,12 @@ int fdtdec_setup(void)
 		if (IS_ENABLED(CONFIG_OF_SEPARATE)) {
 			gd->fdt_blob = fdt_find_separate();
 			gd->fdt_src = FDTSRC_SEPARATE;
+#ifdef CONFIG_DM_KERNEL_DTB
+			gd->fdt_blob_kern = (ulong *)ALIGN((ulong)gd->fdt_blob +
+						fdt_totalsize(gd->fdt_blob), 8);
+			if (fdt_check_header(gd->fdt_blob_kern))
+				gd->fdt_blob_kern = NULL;
+#endif
 		} else { /* embed dtb in ELF file for testing / development */
 			fdtdec_setup_embed();
 		}

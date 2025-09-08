@@ -45,14 +45,15 @@ void back_to_bootrom(enum rockchip_bootrom_cmd brom_cmd)
  */
 static bool check_back_to_brom_dnl_flag(void)
 {
-	u32 boot_mode;
+	u32 boot_mode, boot_id;
 
-	if (CONFIG_ROCKCHIP_BOOT_MODE_REG) {
+	if (CONFIG_ROCKCHIP_BOOT_MODE_REG && BROM_BOOTSOURCE_ID_ADDR) {
 		boot_mode = readl(CONFIG_ROCKCHIP_BOOT_MODE_REG);
-		if (boot_mode == BOOT_BROM_DOWNLOAD) {
+		boot_id = readl(BROM_BOOTSOURCE_ID_ADDR);
+		if (boot_id == BROM_BOOTSOURCE_USB)
 			writel(0, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+		else if (boot_mode == BOOT_BROM_DOWNLOAD)
 			return true;
-		}
 	}
 
 	return false;

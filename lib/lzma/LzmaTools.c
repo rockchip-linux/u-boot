@@ -21,7 +21,7 @@
 #include <log.h>
 #include <watchdog.h>
 
-#ifdef CONFIG_LZMA
+#if CONFIG_IS_ENABLED(LZMA)
 
 #define LZMA_PROPERTIES_OFFSET 0
 #define LZMA_SIZE_OFFSET       LZMA_PROPS_SIZE
@@ -35,6 +35,16 @@
 
 static void *SzAlloc(void *p, size_t size) { return malloc(size); }
 static void SzFree(void *p, void *address) { free(address); }
+
+int lzma_is_valid(const unsigned char *buf)
+{
+	if (buf[0] != 0x5d || buf[1] || buf[2])
+		return 0;
+	if (buf[12] && buf[12] != 0xff)
+		return 0;
+
+	return 1;
+}
 
 int lzmaBuffToBuffDecompress(unsigned char *outStream, SizeT *uncompressedSize,
 			     const unsigned char *inStream, SizeT length)

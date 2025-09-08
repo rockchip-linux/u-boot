@@ -25,6 +25,11 @@ ifndef CONFIG_ARMV8_PSCI
 obj-y	+= fwcall.o
 endif
 obj-y	+= cpu-dt.o
+
+ifeq ($(CONFIG_SPL_BUILD)$(CONFIG_TPL_BUILD),)
+obj-$(CONFIG_ARM_CPU_SUSPEND)	+= ../armv7/suspend.o sleep.o
+endif
+
 obj-$(CONFIG_ARM_SMCCC)		+= smccc-call.o
 
 ifndef CONFIG_XPL_BUILD

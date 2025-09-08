@@ -10,8 +10,11 @@ obj-$(CONFIG_BUTTON_KEYBOARD) += button_kbd.o
 
 ifndef CONFIG_XPL_BUILD
 
+obj-$(CONFIG_DM_RC) += rc-uclass.o
+obj-$(CONFIG_RK_IR) += rockchip_ir.o
 obj-$(CONFIG_APPLE_SPI_KEYB) += apple_spi_kbd.o
 obj-$(CONFIG_I8042_KEYB) += i8042.o
 obj-$(CONFIG_TEGRA_KEYBOARD) += input.o tegra-kbc.o
 obj-$(CONFIG_TWL4030_INPUT) += twl4030.o
+
 endif

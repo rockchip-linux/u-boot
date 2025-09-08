@@ -15,6 +15,7 @@ obj-$(CONFIG_SYS_ARM_MPU) += mpu_v7r.o
 ifneq ($(CONFIG_XPL_BUILD),y)
 obj-$(CONFIG_EFI_LOADER) += sctlr.o
 obj-$(CONFIG_ARMV7_NONSEC) += exception_level.o
+obj-$(CONFIG_ARM_CPU_SUSPEND)	+= suspend.o sleep.o
 endif
 
 ifneq ($(CONFIG_$(XPL_)SKIP_LOWLEVEL_INIT),y)

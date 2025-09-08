@@ -47,6 +47,8 @@ int main(void)
 #if CONFIG_IS_ENABLED(ENV_SUPPORT)
 	DEFINE(GD_ENV_ADDR, offsetof(struct global_data, env_addr));
 #endif
+	DEFINE(PM_CTX_SIZE, sizeof(struct pm_ctx));
+	DEFINE(PM_CTX_PHYS, offsetof(struct global_data, pm_ctx_phys));
 
 	return 0;
 }

@@ -645,6 +645,13 @@ static inline bool clk_valid(struct clk *clk)
 	return clk && !!clk->dev;
 }
 
+/*
+ * pmucru isn't referenced on some platforms, so pmucru driver can't
+ * probe that the "assigned-clocks" is unused.
+ */
+int clk_init(void);
+int soc_clk_dump(void);
+
 #endif
 
 #define clk_prepare_enable(clk) clk_enable(clk)

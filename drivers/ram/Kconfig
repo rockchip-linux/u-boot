@@ -126,6 +126,20 @@ config K3_INLINE_ECC
 	  need to be primed with a predefined value prior to enabling ECC
 	  check.
 
+config DM_RAMDISK
+	bool "Enable Driver Model for RAMDISK drivers"
+	depends on DM
+	help
+	  This enables the Ramdisk uclass support. These appear as block devices
+	  in U-Boot.
+
+config RAMDISK_RO
+	bool "Enable read only ramdisk support"
+	depends on DM_RAMDISK
+	select RKRAM_PARTITION
+	help
+	  This enables the read only ramdisk support.
+
 source "drivers/ram/aspeed/Kconfig"
 source "drivers/ram/cadence/Kconfig"
 source "drivers/ram/octeon/Kconfig"

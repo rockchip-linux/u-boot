@@ -13,13 +13,15 @@ obj-y += version.o
 
 # command
 obj-$(CONFIG_CMD_ARMFFA) += armffa.o
+obj-y += rk.o
 obj-$(CONFIG_CMD_2048) += 2048.o
 obj-$(CONFIG_CMD_ACPI) += acpi.o
 obj-$(CONFIG_CMD_ADDRMAP) += addrmap.o
 obj-$(CONFIG_CMD_AES) += aes.o
 obj-$(CONFIG_CMD_ADC) += adc.o
 obj-$(CONFIG_CMD_ARMFLASH) += armflash.o
-obj-$(CONFIG_BLK) += blk_common.o
+obj-$(CONFIG_CMD_ATAGS) += atags.o
+obj-$(CONFIG_BLK) += blk_common.o blk.o
 obj-$(CONFIG_CMD_BOOTDEV) += bootdev.o
 obj-$(CONFIG_CMD_BOOTFLOW) += bootflow.o
 obj-$(CONFIG_CMD_BOOTMETH) += bootmeth.o
@@ -33,6 +35,10 @@ obj-$(CONFIG_CMD_BLKMAP) += blkmap.o
 obj-$(CONFIG_CMD_BLOBLIST) += bloblist.o
 obj-$(CONFIG_CMD_BLOCK_CACHE) += blkcache.o
 obj-$(CONFIG_CMD_BMP) += bmp.o
+obj-$(CONFIG_CMD_BOOT_ANDROID) += boot_android.o android.o
+obj-$(CONFIG_CMD_BOOT_FIT) += bootfit.o
+obj-$(CONFIG_CMD_BOOT_UIMAGE) += bootuimage.o
+
 obj-$(CONFIG_CMD_BOOTCOUNT) += bootcount.o
 obj-$(CONFIG_CMD_BOOTEFI) += bootefi.o
 obj-$(CONFIG_CMD_BOOTMENU) += bootmenu.o
@@ -51,6 +57,8 @@ obj-$(CONFIG_CMD_CONFIG) += config.o
 obj-$(CONFIG_CMD_CONITRACE) += conitrace.o
 obj-$(CONFIG_CMD_CONSOLE) += console.o
 obj-$(CONFIG_CMD_CPU) += cpu.o
+obj-$(CONFIG_CMD_CRYPTO) += crypto.o
+obj-$(CONFIG_CMD_CHARGE_DISPLAY) += charge.o
 obj-$(CONFIG_CMD_DATE) += date.o
 obj-$(CONFIG_CMD_DEMO) += demo.o
 obj-$(CONFIG_CMD_DM) += dm.o
@@ -95,6 +103,7 @@ obj-$(CONFIG_CMD_GPIO) += gpio.o
 obj-$(CONFIG_CMD_HISTORY) += history.o
 obj-$(CONFIG_CMD_HVC) += smccc.o
 obj-$(CONFIG_CMD_I2C) += i2c.o
+obj-$(CONFIG_CMD_IOMEM) += iomem.o
 obj-$(CONFIG_CMD_IOTRACE) += iotrace.o
 obj-$(CONFIG_CMD_HASH) += hash.o
 obj-$(CONFIG_CMD_IDE) += ide.o disk.o
@@ -112,6 +121,7 @@ obj-$(CONFIG_CMD_LSBLK) += lsblk.o
 obj-$(CONFIG_CMD_MD5SUM) += md5sum.o
 obj-$(CONFIG_CMD_MEMORY) += mem.o
 obj-$(CONFIG_CMD_MEMINFO) += meminfo.o
+obj-$(CONFIG_CMD_DDR_TOOL) += ddr_tool/
 obj-$(CONFIG_CMD_IO) += io.o
 obj-$(CONFIG_CMD_MII) += mii.o
 obj-$(CONFIG_CMD_MISC) += misc.o
@@ -121,8 +131,10 @@ obj-$(CONFIG_CMD_SLEEP) += sleep.o
 obj-$(CONFIG_CMD_MMC) += mmc.o
 obj-$(CONFIG_CMD_OPTEE_RPMB) += optee_rpmb.o
 obj-$(CONFIG_CMD_OPTEE) += optee.o
+obj-$(CONFIG_OPTEE) += optee_storage.o
 obj-$(CONFIG_CMD_MP) += mp.o
 obj-$(CONFIG_CMD_MTD) += mtd.o
+obj-$(CONFIG_CMD_MTD_BLK) += mtd_blk.o
 obj-$(CONFIG_CMD_MTDPARTS) += mtdparts.o
 obj-$(CONFIG_CMD_CLONE) += clone.o
 ifneq ($(CONFIG_CMD_NAND)$(CONFIG_CMD_SF),)
@@ -201,6 +213,8 @@ obj-$(CONFIG_CMD_UPL) += upl.o
 obj-$(CONFIG_CMD_VIRTIO) += virtio.o
 obj-$(CONFIG_CMD_WDT) += wdt.o
 obj-$(CONFIG_CMD_LZMADEC) += lzmadec.o
+obj-$(CONFIG_CMD_SCRIPT_UPDATE) += script_update.o
+obj-$(CONFIG_CMD_TFTP_UPDATE) += tftp_update.o
 obj-$(CONFIG_CMD_UFS) += ufs.o
 obj-$(CONFIG_CMD_USB) += usb.o disk.o
 obj-$(CONFIG_CMD_VIDCONSOLE) += video.o
@@ -229,8 +243,10 @@ obj-$(CONFIG_CMD_PVBLOCK) += pvblock.o
 # Power
 obj-$(CONFIG_CMD_PMIC) += pmic.o
 obj-$(CONFIG_CMD_REGULATOR) += regulator.o
+obj-$(CONFIG_CMD_DVFS) += dvfs.o
 
 obj-$(CONFIG_CMD_BLOB) += blob.o
+obj-$(CONFIG_ARCH_ROCKCHIP) += rkimgtest.o
 
 # Android Verified Boot 2.0
 obj-$(CONFIG_CMD_AVB) += avb.o
@@ -259,6 +275,10 @@ endif # !CONFIG_XPL_BUILD
 obj-$(CONFIG_$(XPL_)CMD_TLV_EEPROM) += tlv_eeprom.o
 
 obj-$(CONFIG_CMD_BCM_EXT_UTILS) += broadcom/
+
+ifndef CONFIG_SPL_BUILD
+obj-y += download.o
+endif
 
 filechk_data_gz = (echo "static const char data_gz[] ="; cat $< | scripts/bin2c; echo ";")
 

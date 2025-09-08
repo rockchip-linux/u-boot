@@ -12,6 +12,22 @@
 #include <dm/uclass-internal.h>
 #include <dt-bindings/input/linux-event-codes.h>
 
+int button_get_by_code(u32 code, struct udevice **devp)
+{
+	struct udevice *dev;
+	struct uclass *uc;
+
+	uclass_id_foreach_dev(UCLASS_BUTTON, dev, uc) {
+		struct button_uc_plat *uc_plat = dev_get_uclass_plat(dev);
+
+		/* Ignore the top-level button node */
+		if (uc_plat->code == code)
+			return uclass_get_device_tail(dev, 0, devp);
+	}
+
+	return -ENODEV;
+}
+
 int button_get_by_label(const char *label, struct udevice **devp)
 {
 	struct udevice *dev;
@@ -65,6 +81,21 @@ int button_get_code(struct udevice *dev)
 		return button_remap_phone_keys(code);
 	else
 		return code;
+}
+
+bool button_is_on(u32 code)
+{
+	struct udevice *dev;
+	int ret;
+
+	ret = button_get_by_code(code, &dev);
+	if (ret) {
+		printf("%s: Failed to get button with code: %d, ret=%d\n",
+		       __func__, code, ret);
+		return BUTTON_OFF;
+	}
+
+	return (button_get_state(dev) != BUTTON_OFF);
 }
 
 UCLASS_DRIVER(button) = {

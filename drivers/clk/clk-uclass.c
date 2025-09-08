@@ -592,6 +592,26 @@ ulong clk_set_rate(struct clk *clk, ulong rate)
 	return ops->set_rate(clk, rate);
 }
 
+int clk_get_phase(struct clk *clk)
+{
+	const struct clk_ops *ops = clk_dev_ops(clk->dev);
+
+	if (!ops->get_phase)
+		return -ENOSYS;
+
+	return ops->get_phase(clk);
+}
+
+int clk_set_phase(struct clk *clk, int degrees)
+{
+	const struct clk_ops *ops = clk_dev_ops(clk->dev);
+
+	if (!ops->set_phase)
+		return -ENOSYS;
+
+	return ops->set_phase(clk, degrees);
+}
+
 int clk_set_parent(struct clk *clk, struct clk *parent)
 {
 	const struct clk_ops *ops;
@@ -805,6 +825,92 @@ int clk_uclass_post_probe(struct udevice *dev)
 	 * using assigned-clocks
 	 */
 	clk_set_defaults(dev, CLK_DEFAULTS_POST);
+
+	return 0;
+}
+
+static void show_clks(struct udevice *dev, int depth, int last_flag)
+{
+	int i, is_last;
+	struct udevice *child;
+	struct clk *clkp, *parent;
+	u32 rate;
+
+	clkp = dev_get_clk_ptr(dev);
+	if (clkp) {
+		parent = clk_get_parent(clkp);
+		if (!IS_ERR(parent) && depth == -1)
+			return;
+		depth++;
+		rate = clk_get_rate(clkp);
+
+		printf(" %-12u  %8d        ", rate, clkp->enable_count);
+
+		for (i = depth; i >= 0; i--) {
+			is_last = (last_flag >> i) & 1;
+			if (i) {
+				if (is_last)
+					printf("    ");
+				else
+					printf("|   ");
+			} else {
+				if (is_last)
+					printf("`-- ");
+				else
+					printf("|-- ");
+			}
+		}
+
+		printf("%s\n", dev->name);
+	}
+
+	device_foreach_child_probe(child, dev) {
+		if (device_get_uclass_id(child) != UCLASS_CLK)
+			continue;
+		if (child == dev)
+			continue;
+		is_last = list_is_last(&child->sibling_node, &dev->child_head);
+		show_clks(child, depth, (last_flag << 1) | is_last);
+	}
+}
+
+__weak int soc_clk_dump(void)
+{
+	struct udevice *dev;
+	const struct clk_ops *ops;
+
+	printf(" Rate               Usecnt      Name\n");
+	printf("------------------------------------------\n");
+
+	uclass_foreach_dev_probe(UCLASS_CLK, dev)
+		show_clks(dev, -1, 0);
+
+	uclass_foreach_dev_probe(UCLASS_CLK, dev) {
+		ops = dev_get_driver_ops(dev);
+		if (ops && ops->dump) {
+			printf("\n%s %s:\n", dev->driver->name, dev->name);
+			ops->dump(dev);
+		}
+	}
+
+	return 0;
+}
+
+int clk_init(void)
+{
+	struct udevice *dev;
+	struct uclass *uc;
+	int ret;
+
+	ret = uclass_get(UCLASS_CLK, &uc);
+	if (ret)
+		return ret;
+
+	uclass_foreach_dev(dev, uc) {
+		ret = device_probe(dev);
+		if (ret)
+			printf("%s: - probe failed: %d\n", dev->name, ret);
+	}
 
 	return 0;
 }

@@ -8,6 +8,7 @@
 
 #include <linux/bitops.h>
 #include <linux/list.h>
+#include <common.h>
 
 #define TEE_UUID_LEN		16
 

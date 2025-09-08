@@ -22,8 +22,8 @@
 #endif
 
 struct crypto_hash_ctx {
-	enum HASH_ALGO algo;
 	const struct crypto_impl *impl;
+	enum HASH_ALGO algo;
 	void *sha_ctx;
 };
 
@@ -38,7 +38,6 @@ static int crypto_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx
 		return -ENOMEM;
 
 	hctx->algo = algo;
-
 	hctx->impl = crypto_get_impl(CRYPTO_TYPE_HASH, algo, CRYPTO_MODE_NONE);
 	if (!hctx->impl) {
 		printf("crypto-hash: No available algo '%s'\n", hash_algo_name(algo));
@@ -46,13 +45,11 @@ static int crypto_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx
 	}
 
 	ops = &hctx->impl->hash;
-
 	if (!ops->hash_init)
 		goto exit;
 
 	ret = ops->hash_init(hctx->impl->dev, algo, &hctx->sha_ctx);
 	*ctxp = hctx;
-
 exit:
 	return ret;
 }
@@ -67,12 +64,10 @@ static int crypto_hash_update(struct udevice *dev, void *ctx, const void *ibuf, 
 		goto exit;
 
 	ops = &hctx->impl->hash;
-
 	if (!ops->hash_update)
 		goto exit;
 
 	ret = ops->hash_update(hctx->impl->dev, hctx->sha_ctx, ibuf, ilen);
-
 exit:
 	return ret;
 }
@@ -87,7 +82,6 @@ static int crypto_hash_finish(struct udevice *dev, void *ctx, void *obuf)
 		goto exit;
 
 	ops = &hctx->impl->hash;
-
 	if (!ops->hash_finish)
 		goto exit;
 

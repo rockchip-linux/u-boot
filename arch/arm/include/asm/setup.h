@@ -30,7 +30,7 @@
  *  - this structure is relatively short-lived - only
  *    guaranteed to contain useful data in setup_arch()
  */
-#define COMMAND_LINE_SIZE 1024
+#define COMMAND_LINE_SIZE 2048
 
 /* This is the old deprecated way to pass parameters to the kernel */
 struct param_struct {

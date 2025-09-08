@@ -51,6 +51,7 @@ struct stdio_dev {
 	/* To test if a char is ready... */
 	int (*tstc)(struct stdio_dev *dev);
 	int (*getc)(struct stdio_dev *dev);	/* To get that char */
+	void (*clear)(struct stdio_dev *dev);
 
 /* Other functions */
 

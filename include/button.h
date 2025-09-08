@@ -6,15 +6,19 @@
 #ifndef __BUTTON_H
 #define __BUTTON_H
 
+#include <common.h>
+
 struct udevice;
 
 /**
  * struct button_uc_plat - Platform data the uclass stores about each device
  *
  * @label:	Button label
+ * @code:	Button code
  */
 struct button_uc_plat {
 	const char *label;
+	u32 code;
 };
 
 /**
@@ -26,6 +30,7 @@ struct button_uc_plat {
 enum button_state_t {
 	BUTTON_OFF = 0,
 	BUTTON_ON = 1,
+	BUTTON_ON_HOLD = 2,
 	BUTTON_COUNT,
 };
 
@@ -48,6 +53,17 @@ struct button_ops {
 };
 
 #define button_get_ops(dev)	((struct button_ops *)(dev)->driver->ops)
+
+#define BUTTON_ON_HOLD_MS	2000
+
+/**
+ * button_get_by_code() - Find a button device by linux,code
+ *
+ * @code:	button linux,code to look up
+ * @devp:	Returns the associated device, if found
+ * Return: 0 if found, -ENODEV if not found, other -ve on error
+ */
+int button_get_by_code(u32 code, struct udevice **devp);
 
 /**
  * button_get_by_label() - Find a button device by label
@@ -82,5 +98,13 @@ void process_button_cmds(void);
 #else
 static inline void process_button_cmds(void) {}
 #endif /* CONFIG_BUTTON_CMD */
+
+/**
+ * button_is_on() - check if button is on
+ *
+ * @code:	linux,code
+ * @return true if button on, otherwise false.
+ */
+bool button_is_on(u32 code);
 
 #endif

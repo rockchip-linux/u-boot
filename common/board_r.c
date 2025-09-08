@@ -11,6 +11,7 @@
 
 #include <config.h>
 #include <api.h>
+#include <bidram.h>
 #include <bootstage.h>
 #include <cpu_func.h>
 #include <cyclic.h>
@@ -42,6 +43,7 @@
 #include <kgdb.h>
 #include <irq_func.h>
 #include <led.h>
+#include <hotkey.h>
 #include <malloc.h>
 #include <mapmem.h>
 #include <miiphy.h>
@@ -54,6 +56,7 @@
 #include <scsi.h>
 #include <serial.h>
 #include <status_led.h>
+#include <sysmem.h>
 #include <stdio_dev.h>
 #include <timer.h>
 #include <trace.h>
@@ -105,6 +108,25 @@ static int initr_reloc(void)
 }
 
 #if defined(CONFIG_ARM) || defined(CONFIG_RISCV)
+static void print_cr(void)
+{
+	u32 reg;
+
+#ifdef CONFIG_ARM64
+	reg = get_sctlr();	/* get control reg. */
+#else
+	reg = get_cr();
+#endif
+	puts("CR: ");
+	if (reg & CR_M)
+		puts("M/");
+	if (reg & CR_C)
+		puts("C/");
+	if (reg & CR_I)
+		puts("I");
+	putc('\n');
+}
+
 /*
  * Some of these functions are needed purely because the functions they
  * call return void. If we change them to return 0, these stubs can go away.
@@ -113,6 +135,8 @@ static int initr_caches(void)
 {
 	/* Enable caches */
 	enable_caches();
+	print_cr();
+
 	return 0;
 }
 #endif
@@ -292,7 +316,15 @@ __weak int power_init_board(void)
 
 static int initr_announce(void)
 {
-	debug("Now running in RAM - U-Boot at: %08lx\n", gd->relocaddr);
+	ulong addr;
+
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
+	addr = gd->relocaddr;
+#else
+	addr = CONFIG_TEXT_BASE;
+#endif
+	debug("Now running in RAM - U-Boot at: %08lx\n", addr);
+
 	return 0;
 }
 
@@ -371,9 +403,11 @@ static int initr_flash(void)
 /* go init the NAND */
 static int initr_nand(void)
 {
+#ifndef CONFIG_DM_KERNEL_DTB
 	puts("NAND:  ");
 	nand_init();
 	printf("%lu MiB\n", nand_size() / 1024);
+#endif
 	return 0;
 }
 #endif
@@ -391,8 +425,10 @@ static int initr_onenand(void)
 #ifdef CONFIG_MMC
 static int initr_mmc(void)
 {
+#ifndef CONFIG_DM_KERNEL_DTB
 	puts("MMC:   ");
 	mmc_initialize(gd->bd);
+#endif
 	return 0;
 }
 #endif
@@ -509,6 +545,22 @@ static int initr_post(void)
 }
 #endif
 
+#if defined(CONFIG_CONSOLE_RECORD)
+static int initr_console_record(void)
+{
+#if defined(CONFIG_CONSOLE_RECORD)
+	int ret;
+
+	ret = console_record_init();
+	if (!ret)
+		console_record_reset_enable();
+	return ret;
+#else
+	return 0;
+#endif
+}
+#endif
+
 #if defined(CFG_PRAM)
 /*
  * Export available size of memory for Linux, taking into account the
@@ -610,13 +662,22 @@ static init_fnc_t init_sequence_r[] = {
 #endif
 	initr_barrier,
 	initr_malloc,
+#ifdef CONFIG_BIDRAM
+	bidram_initr,
+#endif
+#ifdef CONFIG_SYSMEM
+	sysmem_initr,
+#endif
 	log_init,
 	initr_bootstage,	/* Needs malloc() but has its own timer */
 #if defined(CONFIG_CONSOLE_RECORD)
-	console_record_init,
+	initr_console_record,
 #endif
 #ifdef CONFIG_SYS_NONCACHED_MEMORY
 	noncached_init,
+#endif
+#ifdef CONFIG_IRQ
+	interrupt_init,
 #endif
 	initr_of_live,
 #ifdef CONFIG_DM
@@ -624,6 +685,12 @@ static init_fnc_t init_sequence_r[] = {
 #endif
 #ifdef CONFIG_ADDR_MAP
 	init_addr_map,
+#endif
+#ifdef CONFIG_HOTKEY
+	hotkey_init,
+#endif
+#ifdef CONFIG_DM_KERNEL_DTB
+	initr_env,
 #endif
 #if defined(CONFIG_ARM) || defined(CONFIG_RISCV) || defined(CONFIG_SANDBOX)
 	board_init,	/* Setup chipselects */
@@ -702,7 +769,9 @@ static init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_PVBLOCK
 	initr_pvblock,
 #endif
+#ifndef CONFIG_DM_KERNEL_DTB
 	initr_env,
+#endif
 #ifdef CONFIG_SYS_MALLOC_BOOTPARAMS
 	initr_malloc_bootparams,
 #endif
@@ -739,7 +808,7 @@ static init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_CMD_KGDB
 	kgdb_init,
 #endif
-	interrupt_init,
+
 #if defined(CONFIG_MICROBLAZE) || defined(CONFIG_M68K)
 	timer_init,		/* initialize timer */
 #endif
@@ -794,6 +863,7 @@ void board_init_r(gd_t *new_gd, ulong dest_addr)
 #if !defined(CONFIG_X86) && !defined(CONFIG_ARM) && !defined(CONFIG_ARM64)
 	gd = new_gd;
 #endif
+
 	gd->flags &= ~GD_FLG_LOG_READY;
 
 	if (initcall_run_list(init_sequence_r))

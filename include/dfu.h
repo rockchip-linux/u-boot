@@ -61,12 +61,13 @@ struct mmc_internal_data {
 };
 
 struct mtd_internal_data {
-	struct mtd_info *info;
-
 	/* RAW programming */
 	u64 start;
 	u64 size;
-	/* for ubi partition */
+
+	unsigned int dev;
+	unsigned int part;
+	/* for nand/ubi use */
 	unsigned int ubi;
 };
 

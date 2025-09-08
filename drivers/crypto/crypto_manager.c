@@ -30,7 +30,7 @@ enum crypto_impl_status {
 struct crypto_driver_node {
 	struct list_head	list;
 	const char		*driver_name;
-	const struct crypto_impl	*impl;
+	const struct crypto_impl *impl;
 	enum crypto_impl_status status;
 };
 
@@ -137,7 +137,6 @@ int crypto_impl_register(const struct crypto_impl *impl)
 	new_node->impl        = impl;
 	new_node->driver_name = driver_name;
 	new_node->status      = CRYPTO_IMPL_UNINITED;
-
 	list_add_tail(&new_node->list, head);
 
 	DMSG("%s: %s registered ok!\n", CRYPTO_MISC_MANAGER, driver_name);
@@ -157,7 +156,6 @@ void crypto_impl_unregister(const struct crypto_impl *impl)
 		return;
 
 	head = &crypto_algo_lists[impl->type];
-
 	node = crypto_list_find_driver(head, crypto_get_driver_name(impl), 0);
 	if (node)
 		list_del(&node->list);
@@ -181,10 +179,8 @@ const struct crypto_impl *crypto_get_impl(enum crypto_type type, u32 algo, u32 m
 
 	list_for_each_safe(pos, save, &crypto_algo_lists[type]) {
 		node = list_entry(pos, struct crypto_driver_node, list);
-
-		DMSG("node = %p, %s\n", node, node->driver_name);
-
 		impl = node->impl;
+		DMSG("node = %p, %s\n", node, node->driver_name);
 
 		if (!crypto_check_node_valid(node))
 			continue;
@@ -203,7 +199,6 @@ const struct crypto_impl *crypto_get_impl(enum crypto_type type, u32 algo, u32 m
 	}
 
 	DMSG("using impl %s\n", crypto_get_driver_name(best_fit_algt));
-
 	return best_fit_algt;
 }
 
@@ -218,7 +213,6 @@ const struct crypto_impl *crypto_get_impl_by_index(enum crypto_type type, u32 in
 		return NULL;
 
 	node = crypto_list_find_driver(&crypto_algo_lists[type], NULL, index);
-
 	if (!node)
 		return NULL;
 
@@ -240,4 +234,3 @@ U_BOOT_DRIVER(crypto_manager) = {
 	.name      = CRYPTO_MISC_MANAGER,
 	.id        = UCLASS_MISC,
 };
-

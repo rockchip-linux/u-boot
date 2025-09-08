@@ -362,6 +362,34 @@ config CMD_BOOTI
 	help
 	  Boot an AArch64 Linux Kernel image from memory.
 
+config CMD_BOOT_ANDROID
+	bool "boot_android"
+	default y
+	depends on ANDROID_BOOT_IMAGE
+	help
+	  Performs the Android Bootloader boot flow, loading the appropriate
+	  Android image (normal kernel, recovery kernel or "bootloader" mode)
+	  and booting it. The boot mode is determined by the contents of the
+	  Android Bootloader Message.
+
+config CMD_BOOT_FIT
+	bool "boot_fit"
+	default n
+	depends on ROCKCHIP_FIT_IMAGE
+	help
+	  Performs the FIT boot flow, loading the appropriate FIT image from
+	  boot/recovery partition containing kernel/fdt/ramdisk images.
+	  Additional that, the IH_TYPE_MULTI can be used for resource file.
+
+config CMD_BOOT_UIMAGE
+	bool "boot_uimage"
+	default n
+	depends on ROCKCHIP_UIMAGE
+	help
+	  Performs the Legacy uImage boot flow, loading the appropriate uImage
+	  file from resource/kernel/boot(recovery) partitions. Additional that,
+	  the resource partition can be fdt or resource(recommand) uImage file.
+
 config BOOTM_LINUX
 	bool "Support booting Linux OS images"
 	depends on CMD_BOOTM || CMD_BOOTZ || CMD_BOOTI
@@ -1026,6 +1054,16 @@ config CMD_STRINGS
 	  within the range are displayed. The minimum number of characters
 	  for a sequence to be considered a string can be provided.
 
+config CMD_CRYPTO
+	bool "crypto test"
+	depends on DM_HASH && RSA
+	select RSA_VERIFY_WITH_PKEY
+	select SHA384
+	select SPL_SHA384
+	select SPL_MD5
+	select HASH_SOFTWARE
+	help
+	  Crypto test.
 endmenu
 
 menu "Compression commands"
@@ -1488,6 +1526,12 @@ config CMD_MTD_OTP
 	help
 	  MTD commands for OTP access.
 
+config CMD_MTD_BLK
+	bool "MTD block support"
+	depends on MTD_BLK
+	help
+	  MTD block support
+
 config CMD_MUX
 	bool "mux"
 	depends on MULTIPLEXER
@@ -1820,12 +1864,17 @@ config CMD_SETEXPR_FMT
 	  Evaluate format string expression and store result in an environment
 	  variable.
 
+config CMD_SCRIPT_UPDATE
+	bool "sd_update/usb_update/tftp_update"
+	help
+	  Auto run sd_update/usb_update/tftp_update.txt from sd/udisk/tftp.
+
+endmenu
+
 config CMD_XXD
 	bool "xxd"
 	help
 	  Print file as hexdump to standard output
-
-endmenu
 
 if NET || NET_LWIP
 
@@ -1985,6 +2034,27 @@ config BOOTP_VCI_STRING
 	default "U-Boot.armv8" if ARM64
 	default "U-Boot.arm" if ARM
 	default "U-Boot"
+
+config CMD_TFTPBOOT
+	bool "tftpboot"
+	default y
+	help
+	  tftpboot - load file via network using TFTP protocol
+
+config CMD_TFTP_BOOTM
+	bool "tftp download and bootm"
+	help
+	  TFTP bootm command, download and bootm the aosp/uImage/FIT Image.
+
+config CMD_TFTP_FLASH
+	bool "tftp download and flash"
+	help
+	  TFTP flash command, download and flash the Image to partition.
+
+config CMD_TFTP_UPDATE
+	bool "tftp update"
+	help
+	  Update a set of images organized with FIT via network using TFTP protocol
 
 config CMD_TFTPPUT
 	bool "tftp put"
@@ -2178,6 +2248,8 @@ config CMD_PXE
 endif  # if CMD_NET
 
 endif # NET || NET_LWIP
+
+source "cmd/ddr_tool/Kconfig"
 
 menu "Misc commands"
 
@@ -2575,6 +2647,22 @@ config CMD_REGULATOR
 	  the limits, which are found in device-tree and are kept in regulator's
 	  uclass plat structure.
 
+config CMD_CHARGE_DISPLAY
+	bool "Enable Driver Model Charge Display command"
+	depends on DM_CHARGE_DISPLAY
+	default y
+	help
+	  Support U-Boot charge display.
+
+config CMD_DVFS
+	bool "Enable Driver Model DVFS command"
+	depends on DM_DVFS
+	default y
+	help
+	  Support dvfs policy apply API
+	  User interface features:
+	  - dvfs            - apply dvfs policy once
+	  - dvfs repeat     - repeat apply dvfs policy until achieve the target temperature
 endmenu
 
 menu "Security commands"
@@ -2781,6 +2869,12 @@ config CMD_EXT4_WRITE
 	select EXT4_WRITE
 	help
 	  Enables EXT4 FS write command
+
+config CMD_EXT4_SPARSE_WRITE
+	depends on CMD_EXT4
+	bool "ext4 sparse write command support"
+	help
+	  Enable EXT4 FS write sparse image command
 
 config CMD_FAT
 	bool "FAT command support"
@@ -3011,6 +3105,18 @@ config CMD_STACKPROTECTOR_TEST
 	  The stackprot_test command will force a stack overrun to test
 	  the stack smashing detection mechanisms.
 
+config CMD_ATAGS
+	bool "atags - Show all the atags information"
+	depends on ROCKCHIP_PRELOADER_ATAGS
+	default y
+	help
+	  This command dump the all rockchip atags information.
+
+config CMD_IOMEM
+	bool "iomem - Show the IO value by locating addr according to compatible"
+	default y
+	help
+	  This command is more smart than md command.
 endmenu
 
 config CMD_UBI

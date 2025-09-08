@@ -26,7 +26,7 @@ config CONSOLE_RECORD_INIT_F
 config CONSOLE_RECORD_OUT_SIZE
 	hex "Output buffer size"
 	depends on CONSOLE_RECORD
-	default 0x400 if CONSOLE_RECORD
+	default 0x2000 if CONSOLE_RECORD
 	help
 	  Set the size of the console recording output buffer. When this fills
 	  up, no more data will be recorded until some is removed. The buffer
@@ -79,6 +79,12 @@ config DISABLE_CONSOLE
 	bool "Add functionality to disable console completely"
 	help
 		Disable console (in & out).
+
+config CONSOLE_DISABLE_CLI
+	bool "disable ctrlc"
+	default n
+	help
+	  This disable CLI interactive in verified-boot.
 
 config IDENT_STRING
 	string "Board specific string to be added to uboot version string"
@@ -299,6 +305,7 @@ config SYS_CONSOLE_ENV_OVERWRITE
 
 config SYS_CONSOLE_INFO_QUIET
 	bool "Don't display the console devices on boot"
+	default y if ARCH_ROCKCHIP
 	help
 	  Normally U-Boot displays the current settings for stdout, stdin
 	  and stderr on boot when the post-relocation console is set up.
@@ -613,6 +620,12 @@ config DISPLAY_BOARDINFO_LATE
 	  Display information about the board that U-Boot is running on after
 	  the relocation phase. The board function checkboard() is called to do
 	  this.
+
+config SKIP_RELOCATE_UBOOT
+	bool "Skip U-Boot relocation"
+	default y if !ARM64 && !ARM64_BOOT_AARCH32
+	help
+	  This enable support for skipping U-Boot relocation.
 
 menu "Start-up hooks"
 
@@ -1218,3 +1231,7 @@ endif
 
 config IO_TRACE
 	bool
+
+config HOTKEY
+	bool "Enable serial hotkey support"
+	default y

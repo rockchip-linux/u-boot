@@ -369,6 +369,66 @@ int env_get_default_into(const char *name, char *buf, unsigned int len);
 /* [re]set to the default environment */
 void env_set_default(const char *s, int flags);
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+/**
+ * env_update() - update sub value of an environment variable
+ *
+ * This add/append/replace the sub value of an environment variable.
+ *
+ * @varname: Variable to adjust
+ * @valude: Value to append/replace
+ * @ignore: Value to be ignore if in varvalue
+ * @return 0 if OK, 1 on error
+ */
+int env_update_filter(const char *varname, const char *varvalue,
+		      const char *ignore);
+
+/**
+ * env_update_extract_subset() - extract subset value from an environment variable
+ *
+ * This extract subset value from an environment variable
+ *
+ * @varname: Parent Variable where to extract subset value, the subset value
+ *	     will be removed from it.
+ * @subset_varname: Variable to save subset value
+ * @subset_key: Key value to find out subset value
+ * @return 0 if OK, 1 on error
+ */
+int env_update_extract_subset(const char *varname,
+			      const char *subset_varname,
+			      const char *subset_key);
+/**
+ * env_update() - update sub value of an environment variable
+ *
+ * This add/append/replace the sub value of an environment variable.
+ *
+ * @varname: Variable to adjust
+ * @valude: Value to append/replace
+ * @return 0 if OK, 1 on error
+ */
+int env_update(const char *varname, const char *varvalue);
+
+/**
+ * env_exist() - check sub value of an environment variable is exist or not
+ *
+ * @varname: Variable to look up
+ * @value: Value to check
+ * @return posItion of varvalue if exist, otherwise NULL
+ */
+char *env_exist(const char *varname, const char *varvalue);
+
+/**
+ * env_delete() - delete sub value of an environment variable
+ *
+ * @varname: Variable to look up
+ * @value: Item head of value to delete
+ * @complete_match: complete match whole words
+ * @return 0 if ok, 1 on error
+ */
+int env_delete(const char *varname, const char *varvalue, int complete_match);
+
+#endif
+
 /**
  * env_import_fdt() - Import environment values from device tree blob
  *

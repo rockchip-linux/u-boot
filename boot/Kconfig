@@ -37,6 +37,20 @@ config BUTTON_CMD
 	    "button_cmd_0_name=vol_down"
 	    "button_cmd_0=fastboot usb 0"
 
+config ANDROID_DTBO_SUPPORT
+	bool "Enable support for Android overlay"
+	depends on ANDROID_BOOT_IMAGE
+	select OF_LIBFDT_OVERLAY
+	default y
+	help
+	  This enables Android DTB overlay support.
+
+config ANDROID_BOOT_IMAGE_HASH
+	bool "Enable support for Android image hash verify"
+	depends on ANDROID_BOOT_IMAGE && DM_HASH
+	help
+	  This enables SHA1 verify for Android image.
+
 menuconfig FIT
 	bool "Flattened Image Tree (FIT)"
 	select HASH
@@ -316,6 +330,31 @@ config SPL_FIT_IMAGE_POST_PROCESS
 	  need to be comprehended in how the images were prepared before being
 	  injected into the FIT creation (i.e. the blobs would have been pre-
 	  processed before being added to the FIT image).
+
+config SPL_FIT_GENERATOR
+	string ".its file generator script for U-Boot FIT image"
+	depends on SPL_FIT || FIT
+	default "arch/arm/mach-rockchip/make_fit_atf.sh" if ARM64
+	default "arch/arm/mach-rockchip/make_fit_optee.sh" if !ARM64
+	help
+	  Specifies a (platform specific) script file to generate the FIT
+	  source file used to build the U-Boot FIT image file. This gets
+	  passed a list of supported device tree file stub names to
+	  include in the generated image.
+
+config SPL_FIT_IMAGE_KB
+	int "SPL FIT image size in KiB"
+	depends on SPL_FIT || FIT
+	default 2048
+	help
+	  SPL FIT image size in KiB, default 2048KB = 1024KB(u-boot) + 1024KB(tee/atf + others).
+
+config SPL_FIT_IMAGE_MULTIPLE
+	int "SPL FIT image multiple number"
+	depends on SPL_FIT || FIT
+	default 2
+	help
+	  SPL FIT image multiple number.
 
 if VPL
 
@@ -1244,6 +1283,11 @@ config BOOTSTAGE_STASH_SIZE
 	  This should be large enough to hold the bootstage stash. A value of
 	  4096 (4KiB) is normally plenty.
 
+config BOOTSTAGE_PRINTF_TIMESTAMP
+	bool "Support printf timestamp"
+	help
+	  Enabling this will support printf timestamp.
+
 config SHOW_BOOT_PROGRESS
 	bool "Show boot progress in a board-specific manner"
 	help
@@ -1885,6 +1929,7 @@ config BOOTCOMMAND
 	default "bootflow scan -lb" if BOOTSTD_DEFAULTS && CMD_BOOTFLOW_FULL
 	default "bootflow scan" if BOOTSTD_DEFAULTS && !CMD_BOOTFLOW_FULL
 	default "run distro_bootcmd" if !BOOTSTD_BOOTCOMMAND && DISTRO_DEFAULTS
+	default "boot_android mmc 0" if ARCH_ROCKCHIP
 	help
 	  This is the string of commands that will be used as bootcmd and if
 	  AUTOBOOT is set, automatically run.

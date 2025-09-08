@@ -252,6 +252,7 @@ enum {
 	IH_COMP_LZO,			/* lzo   Compression Used	*/
 	IH_COMP_LZ4,			/* lz4   Compression Used	*/
 	IH_COMP_ZSTD,			/* zstd   Compression Used	*/
+	IH_COMP_ZIMAGE,			/* zImage Compression Used	*/
 
 	IH_COMP_COUNT,
 };
@@ -712,6 +713,47 @@ int boot_get_fdt_fit(struct bootm_headers *images, ulong addr,
 		     const char **fit_unamep, const char **fit_uname_configp,
 		     int arch, ulong *datap, ulong *lenp);
 
+int fit_image_load_index(struct bootm_headers *images, ulong addr,
+			 const char **fit_unamep, const char **fit_uname_configp,
+			 int arch, int ph_type, int image_index, int bootstage_id,
+			 enum fit_load_op load_op, ulong *datap, ulong *lenp);
+/**
+ * fit_image_load() - load an image from a FIT
+ *
+ * This deals with all aspects of loading an image from a FIT, including
+ * selecting the right image based on configuration, verifying it, printing
+ * out progress messages, checking the type/arch/os and optionally copying it
+ * to the right load address.
+ *
+ * The property to look up is defined by image_type.
+ *
+ * @param images	Boot images structure
+ * @param addr		Address of FIT in memory
+ * @param fit_unamep	On entry this is the requested image name
+ *			(e.g. "kernel") or NULL to use the default. On exit
+ *			points to the selected image name
+ * @param fit_uname_configp	On entry this is the requested configuration
+ *			name (e.g. "conf-1") or NULL to use the default. On
+ *			exit points to the selected configuration name.
+ * @param arch		Expected architecture (IH_ARCH_...)
+ * @param image_ph_type	Required image type (IH_TYPE_...). If this is
+ *			IH_TYPE_KERNEL then we allow IH_TYPE_KERNEL_NOLOAD
+ *			also. If a phase is required, this is included also,
+ *			see image_phase_and_type()
+ * @param image_index   Image index.
+ * @param bootstage_id	ID of starting bootstage to use for progress updates.
+ *			This will be added to the BOOTSTAGE_SUB values when
+ *			calling bootstage_mark()
+ * @param load_op	Decribes what to do with the load address
+ * @param datap		Returns address of loaded image
+ * @param lenp		Returns length of loaded image
+ * Return: node offset of image, or -ve error code on error
+ */
+int fit_image_load_index(struct bootm_headers *images, ulong addr,
+		   const char **fit_unamep, const char **fit_uname_configp,
+		   int arch, int ph_type, int image_index, int bootstage_id,
+		   enum fit_load_op load_op, ulong *datap, ulong *lenp);
+
 /**
  * fit_image_load() - load an image from a FIT
  *
@@ -836,6 +878,8 @@ int boot_get_kbd(struct bd_info **kbd);
 /*******************************************************************/
 /* Legacy format specific code (prefixed with image_) */
 /*******************************************************************/
+#define IMAGE_PARAM_INVAL	0xffffffff
+
 static inline uint32_t image_get_header_size(void)
 {
 	return sizeof(struct legacy_img_hdr);
@@ -850,8 +894,6 @@ image_get_hdr_l(magic)		/* image_get_magic */
 image_get_hdr_l(hcrc)		/* image_get_hcrc */
 image_get_hdr_l(time)		/* image_get_time */
 image_get_hdr_l(size)		/* image_get_size */
-image_get_hdr_l(load)		/* image_get_load */
-image_get_hdr_l(ep)		/* image_get_ep */
 image_get_hdr_l(dcrc)		/* image_get_dcrc */
 
 #define image_get_hdr_b(f) \
@@ -863,6 +905,14 @@ image_get_hdr_b(os)		/* image_get_os */
 image_get_hdr_b(arch)		/* image_get_arch */
 image_get_hdr_b(type)		/* image_get_type */
 image_get_hdr_b(comp)		/* image_get_comp */
+
+//#ifndef CONFIG_XPL_BUILD
+//uint32_t image_get_load(const struct legacy_img_hdr *hdr);
+//uint32_t image_get_ep(const struct legacy_img_hdr *hdr);
+//#else
+image_get_hdr_l(load)		/* image_get_load */
+image_get_hdr_l(ep)		/* image_get_ep */
+//#endif
 
 static inline char *image_get_name(const struct legacy_img_hdr *hdr)
 {
@@ -1083,18 +1133,25 @@ int booti_setup(ulong image, ulong *relocated_addr, ulong *size,
 #define FIT_DATA_OFFSET_PROP	"data-offset"
 #define FIT_DATA_SIZE_PROP	"data-size"
 #define FIT_TIMESTAMP_PROP	"timestamp"
+#define FIT_TOTALSIZE_PROP	"totalsize"
+#define FIT_VERSION_PROP	"version"
 #define FIT_DESC_PROP		"description"
 #define FIT_ARCH_PROP		"arch"
 #define FIT_TYPE_PROP		"type"
 #define FIT_OS_PROP		"os"
 #define FIT_COMP_PROP		"compression"
+#define FIT_COMP_ADDR_PROP	"comp"
 #define FIT_ENTRY_PROP		"entry"
 #define FIT_LOAD_PROP		"load"
+#define FIT_PRE_LOAD_PROP	"preload"
+#define FIT_ROLLBACK_PROP	"rollback-index"
+#define FIT_CIPHER_ADDR_PROP	"cipher"
 
 /* configuration node */
 #define FIT_KERNEL_PROP		"kernel"
 #define FIT_RAMDISK_PROP	"ramdisk"
 #define FIT_FDT_PROP		"fdt"
+#define FIT_MULTI_PROP		"multi"
 #define FIT_LOADABLE_PROP	"loadables"
 #define FIT_DEFAULT_PROP	"default"
 #define FIT_SETUP_PROP		"setup"
@@ -1105,6 +1162,17 @@ int booti_setup(ulong image, ulong *relocated_addr, ulong *size,
 #define FIT_PHASE_PROP		"phase"
 
 #define FIT_MAX_HASH_LEN	HASH_MAX_DIGEST_SIZE
+#define FIT_MAX_SPL_IMAGE_SZ	SZ_2M
+
+#ifndef IMAGE_ALIGN_SIZE
+#define IMAGE_ALIGN_SIZE	512
+#endif
+
+#define FIT_ALIGN(x)		(((x)+IMAGE_ALIGN_SIZE-1)&~(IMAGE_ALIGN_SIZE-1))
+
+/* fit rollback index file description magic */
+#define FIT_ROLLBACK_INDEX	0xf1de0001
+#define FIT_ROLLBACK_INDEX_SPL	0xf1de8002
 
 /* cmdline argument format parsing */
 int fit_parse_conf(const char *spec, ulong addr_curr,
@@ -1153,25 +1221,38 @@ static inline const char *fit_get_name(const void *fit_hdr,
 
 int fit_get_desc(const void *fit, int noffset, char **desc);
 int fit_get_timestamp(const void *fit, int noffset, time_t *timestamp);
+int fit_get_totalsize(const void *fit, int *totalsize);
 
 int fit_image_get_node(const void *fit, const char *image_uname);
 int fit_image_get_os(const void *fit, int noffset, uint8_t *os);
 int fit_image_get_arch(const void *fit, int noffset, uint8_t *arch);
 int fit_image_get_type(const void *fit, int noffset, uint8_t *type);
 int fit_image_get_comp(const void *fit, int noffset, uint8_t *comp);
+bool fit_image_is_preload(const void *fit, int noffset);
 int fit_image_get_load(const void *fit, int noffset, ulong *load);
 int fit_image_get_entry(const void *fit, int noffset, ulong *entry);
 int fit_image_get_emb_data(const void *fit, int noffset, const void **data,
 			   size_t *size);
+int fit_image_get_comp_addr(const void *fit, int noffset, ulong *comp);
+int fit_image_set_load(const void *fit, int noffset, ulong load);
+int fit_image_set_entry(const void *fit, int noffset, ulong entry);
+int fit_image_get_data(const void *fit, int noffset,
+				const void **data, size_t *size);
 int fit_image_get_data_offset(const void *fit, int noffset, int *data_offset);
 int fit_image_get_data_position(const void *fit, int noffset,
 				int *data_position);
 int fit_image_get_data_size(const void *fit, int noffset, int *data_size);
+int fit_image_get_rollback_index(const void *fit, int noffset, uint32_t *index);
 int fit_image_get_data_size_unciphered(const void *fit, int noffset,
 				       size_t *data_size);
 int fit_image_get_data(const void *fit, int noffset, const void **data,
 		       size_t *size);
+int fit_set_timestamp(void *fit, int noffset, time_t timestamp);
+int fit_set_totalsize(void *fit, int noffset, int totalsize);
+int fit_set_version(void *fit, int noffset, int version);
 
+int fit_image_check_hash(const void *fit, int noffset, const void *data,
+						 size_t size, char **err_msgp);
 /**
  * fit_image_get_phase() - Get the phase from a FIT image
  *
@@ -1183,6 +1264,9 @@ int fit_image_get_data(const void *fit, int noffset, const void **data,
  */
 int fit_image_get_phase(const void *fit, int offset,
 			enum image_phase_t *phasep);
+
+int fit_image_check_hash(const void *fit, int noffset, const void *data,
+			 size_t size, char **err_msgp);
 
 /**
  * fit_get_data_node() - Get verified image data for an image
@@ -1257,9 +1341,6 @@ int fit_get_data_conf_prop(const void *fit, const char *prop_name,
 int fit_image_hash_get_algo(const void *fit, int noffset, const char **algo);
 int fit_image_hash_get_value(const void *fit, int noffset, uint8_t **value,
 				int *value_len);
-
-int fit_set_timestamp(void *fit, int noffset, time_t timestamp);
-
 /**
  * fit_pre_load_data() - add public key to fdt blob
  *
@@ -1349,6 +1430,12 @@ static inline int fit_config_verify(const void *fit, int conf_noffset)
 	return 0;
 }
 #endif
+/* __weak function */
+int fit_board_verify_required_sigs(void);
+int fit_rollback_index_verify(const void *fit, uint32_t rollback_fd,
+			      uint32_t *fit_index, uint32_t *otp_index);
+int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index);
+
 int fit_all_image_verify(const void *fit);
 int fit_config_decrypt(const void *fit, int conf_noffset);
 int fit_image_check_os(const void *fit, int noffset, uint8_t os);
@@ -1487,7 +1574,11 @@ void *image_get_host_blob(void);
 void image_set_host_blob(void *host_blob);
 # define gd_fdt_blob()		image_get_host_blob()
 #else
+# if !defined(CONFIG_SPL_BUILD) && defined(CONFIG_DM_KERNEL_DTB)
+# define gd_fdt_blob()		(gd->ufdt_blob)
+# else
 # define gd_fdt_blob()		(gd->fdt_blob)
+# endif
 #endif
 
 /*
@@ -1870,7 +1961,7 @@ bool android_image_get_data(const void *boot_hdr, const void *vendor_boot_hdr,
 			    struct andr_image_data *data);
 
 struct andr_boot_img_hdr_v0;
-
+#if 0
 /**
  * android_image_get_kernel() - Processes kernel part of Android boot images
  *
@@ -1904,7 +1995,7 @@ int android_image_get_kernel(const void *hdr,
  */
 int android_image_get_ramdisk(const void *hdr, const void *vendor_boot_img,
 			      ulong *rd_data, ulong *rd_len);
-
+#endif
 /**
  * android_image_get_second() - Extracts the secondary bootloader address
  * and its size
@@ -1934,7 +2025,7 @@ bool android_image_get_dtbo(ulong hdr_addr, ulong *addr, u32 *size);
  */
 bool android_image_get_dtb_by_index(ulong hdr_addr, ulong vendor_boot_img,
 				    u32 index, ulong *addr, u32 *size);
-
+#if 0
 /**
  * android_image_get_end() - Get the end of Android boot image
  *
@@ -1959,7 +2050,7 @@ ulong android_image_get_end(const struct andr_boot_img_hdr_v0 *hdr,
  */
 ulong android_image_get_kload(const void *hdr,
 			      const void *vendor_boot_img);
-
+#endif
 /**
  * android_image_get_kcomp() - Get kernel compression type
  *
@@ -1981,7 +2072,9 @@ ulong android_image_get_kcomp(const void *hdr,
  * @hdr: Pointer to the Android format image header
  * Return: no returned results
  */
+#if 0
 void android_print_contents(const struct andr_boot_img_hdr_v0 *hdr);
+#endif
 bool android_image_print_dtb_contents(ulong hdr_addr);
 
 /**
@@ -2069,8 +2162,8 @@ int board_fit_config_name_match(const char *name);
  * @size: pointer to the image size
  * Return: no return value (failure should be handled internally)
  */
-void board_fit_image_post_process(const void *fit, int node, void **p_image,
-				  size_t *p_size);
+void board_fit_image_post_process(void *fit, int node, ulong *load_addr,
+				  ulong **src_addr, size_t *size, void *spec);
 
 #define FDT_ERROR	((ulong)(-1))
 
@@ -2132,4 +2225,53 @@ struct fit_loadable_tbl {
  */
 int fit_update(const void *fit);
 
+#ifndef USE_HOSTCC
+
+#include <android_image.h>
+#include <part.h>
+
+struct andr_img_hdr;
+
+void android_print_contents(const struct andr_img_hdr *hdr);
+
+ulong android_image_get_end(const struct andr_img_hdr *hdr);
+ulong android_image_get_kload(const struct andr_img_hdr *hdr);
+int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
+			     ulong *os_data, ulong *os_len);
+int android_image_get_ramdisk(const struct andr_img_hdr *hdr,
+			      ulong *rd_data, ulong *rd_len);
+
+u32 android_bcb_msg_sector_offset(void);
+int android_image_init_resource(struct blk_desc *desc,
+				struct disk_partition *out_part,
+				ulong *out_blk_offset);
+int android_image_check_header(const struct andr_img_hdr *hdr);
+u32 android_image_get_comp(const struct andr_img_hdr *hdr);
+void android_image_set_decomp(struct andr_img_hdr *hdr, int comp);
+int android_image_parse_comp(struct andr_img_hdr *hdr, ulong *load_addr);
+int android_image_memcpy_separate(struct andr_img_hdr *hdr, ulong *load_address);
+
+struct andr_img_hdr *populate_andr_img_hdr(struct blk_desc *dev_desc,
+					   struct disk_partition *part_boot);
+int populate_boot_info(const struct boot_img_hdr_v34 *boot_hdr,
+		       const struct vendor_boot_img_hdr_v34 *vendor_boot_hdr,
+		       const struct boot_img_hdr_v34 *init_boot_hdr,
+		       struct andr_img_hdr *hdr, bool save_hdr);
+long android_image_load(struct blk_desc *dev_desc,
+			const struct disk_partition *part_info,
+			unsigned long load_address,
+			unsigned long max_size);
+
+int android_image_load_by_partname(struct blk_desc *dev_desc,
+				   const char *boot_partname,
+				   unsigned long *load_address);
+
+int android_image_verify_resource(const char *boot_part, ulong *resc_buf);
+
+bool is_android_boot_image_header(const void *hdr);
+bool android_image_get_dtb_by_index(ulong hdr_addr, ulong vendor_boot_img,
+				    u32 index, ulong *addr, u32 *size);
+int android_image_get_second(const void *hdr, ulong *second_data, ulong *second_len);
+
+#endif
 #endif	/* __IMAGE_H__ */

@@ -17,7 +17,13 @@ endif
 obj-y += image.o image-board.o
 
 obj-$(CONFIG_ANDROID_AB) += android_ab.o
+ifdef CONFIG_ARCH_ROCKCHIP
+obj-$(CONFIG_ANDROID_BOOT_IMAGE) += android/image-android.o android/image-android-dt.o android/android_bootloader.o
+else
 obj-$(CONFIG_ANDROID_BOOT_IMAGE) += image-android.o image-android-dt.o
+endif
+
+obj-y += image.o
 
 obj-$(CONFIG_$(PHASE_)BOOTSTD) += bootdev-uclass.o
 obj-$(CONFIG_$(PHASE_)BOOTSTD) += bootflow.o

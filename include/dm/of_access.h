@@ -701,4 +701,6 @@ int of_remove_property(struct device_node *np, struct property *prop);
  */
 int of_remove_node(struct device_node *to_remove);
 
+struct device_node *of_alias_get_dev(const char *stem, int id);
+void of_alias_dump(void);
 #endif

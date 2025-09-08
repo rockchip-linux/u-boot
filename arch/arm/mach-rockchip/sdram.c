@@ -4,6 +4,7 @@
  */
 
 #include <config.h>
+#include <bidram.h>
 #include <dm.h>
 #include <init.h>
 #include <log.h>
@@ -371,14 +372,16 @@ size_t rockchip_sdram_size(phys_addr_t reg)
 		cs0_col = 9 + (sys_reg2 >> SYS_REG_COL_SHIFT(ch) &
 			  SYS_REG_COL_MASK);
 		cs1_col = cs0_col;
-		if (dram_type == LPDDR5)
-			/* LPDDR5: 0:8bank(bk=3), 1:16bank(bk=4) */
-			bk = 3 + ((sys_reg2 >> SYS_REG_BK_SHIFT(ch)) &
-			SYS_REG_BK_MASK);
-		else
-			/* Other: 0:8bank(bk=3), 1:4bank(bk=2) */
-			bk = 3 - ((sys_reg2 >> SYS_REG_BK_SHIFT(ch)) &
-			SYS_REG_BK_MASK);
+
+		bk = 3 - ((sys_reg2 >> SYS_REG_BK_SHIFT(ch)) & SYS_REG_BK_MASK);
+		/*
+		 * SYS_REG_BK(Version 3):
+		 * 1) Except LPDDR5 0:8bank(bk=3), 1:4bank(bk=2)
+		 * 2) LPDDR5 0:8bank(bk=3), 1:16bank(bk=4)
+		 */
+		if (version == 3 && dram_type == LPDDR5 && bk == 2)
+			bk = 4;
+
 		if (version >= 2) {
 			cs1_col = 9 + (sys_reg3 >> SYS_REG_CS1_COL_SHIFT(ch) &
 				  SYS_REG_CS1_COL_MASK);
@@ -464,6 +467,9 @@ size_t rockchip_sdram_size(phys_addr_t reg)
 
 int dram_init(void)
 {
+#if defined(CONFIG_BIDRAM) && !defined(CONFIG_SPL_BUILD)
+	gd->ram_size = bidram_get_ram_size();
+#else
 	struct ram_info ram;
 	struct udevice *dev;
 	int ret;
@@ -482,6 +488,7 @@ int dram_init(void)
 	gd->ram_size = ram.size;
 	debug("SDRAM base=%lx, size=%lx\n",
 	      (unsigned long)ram.base, (unsigned long)ram.size);
+#endif
 
 	return 0;
 }

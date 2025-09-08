@@ -4,6 +4,9 @@
  */
 #include <android_ab.h>
 #include <android_bootloader_message.h>
+#include <android_image.h>
+#include <avb_verify.h>
+#include <env.h>
 #include <blk.h>
 #include <log.h>
 #include <malloc.h>
@@ -22,7 +25,7 @@
  *
  * Return: crc32 sum
  */
-static uint32_t ab_control_compute_crc(struct bootloader_control *abc)
+static uint32_t ab_control_compute_crc(struct android_bootloader_control *abc)
 {
 	return crc32(0, (void *)abc, offsetof(typeof(*abc), crc32_le));
 }
@@ -38,10 +41,10 @@ static uint32_t ab_control_compute_crc(struct bootloader_control *abc)
  *
  * Return: 0 on success and a negative on error
  */
-static int ab_control_default(struct bootloader_control *abc)
+static int ab_control_default(struct android_bootloader_control *abc)
 {
 	int i;
-	const struct slot_metadata metadata = {
+	const struct android_slot_metadata metadata = {
 		.priority = 15,
 		.tries_remaining = 7,
 		.successful_boot = 0,
@@ -53,8 +56,9 @@ static int ab_control_default(struct bootloader_control *abc)
 		return -EFAULT;
 
 	memcpy(abc->slot_suffix, "_a\0\0", 4);
-	abc->magic = BOOT_CTRL_MAGIC;
-	abc->version = BOOT_CTRL_VERSION;
+	abc->magic = ANDROID_BOOT_CTRL_MAGIC;
+	abc->version = ANDROID_BOOT_CTRL_VERSION;
+
 	abc->nb_slot = NUM_SLOTS;
 	memset(abc->reserved0, 0, sizeof(abc->reserved0));
 	for (i = 0; i < abc->nb_slot; ++i)
@@ -85,20 +89,20 @@ static int ab_control_default(struct bootloader_control *abc)
  */
 static int ab_control_create_from_disk(struct blk_desc *dev_desc,
 				       const struct disk_partition *part_info,
-				       struct bootloader_control **abc,
+				       struct android_bootloader_control **abc,
 				       ulong offset)
 {
 	ulong abc_offset, abc_blocks, ret;
 
 	abc_offset = offset +
-		     offsetof(struct bootloader_message_ab, slot_suffix);
+		     offsetof(struct android_bootloader_message_ab, slot_suffix);
 	if (abc_offset % part_info->blksz) {
 		log_err("ANDROID: Boot control block not block aligned.\n");
 		return -EINVAL;
 	}
 	abc_offset /= part_info->blksz;
 
-	abc_blocks = DIV_ROUND_UP(sizeof(struct bootloader_control),
+	abc_blocks = DIV_ROUND_UP(sizeof(struct android_bootloader_control),
 				  part_info->blksz);
 	if (abc_offset + abc_blocks > part_info->size) {
 		log_err("ANDROID: boot control partition too small. Need at");
@@ -139,19 +143,15 @@ static int ab_control_create_from_disk(struct blk_desc *dev_desc,
  */
 static int ab_control_store(struct blk_desc *dev_desc,
 			    const struct disk_partition *part_info,
-			    struct bootloader_control *abc, ulong offset)
+			    struct android_bootloader_control *abc, ulong offset)
 {
 	ulong abc_offset, abc_blocks, ret;
 
-	if (offset % part_info->blksz) {
-		log_err("ANDROID: offset not block aligned\n");
-		return -EINVAL;
-	}
 
-	abc_offset = (offset +
-		      offsetof(struct bootloader_message_ab, slot_suffix)) /
+	abc_offset = offset +
+		     offsetof(struct android_bootloader_message_ab, slot_suffix) /
 		     part_info->blksz;
-	abc_blocks = DIV_ROUND_UP(sizeof(struct bootloader_control),
+	abc_blocks = DIV_ROUND_UP(sizeof(struct android_bootloader_control),
 				  part_info->blksz);
 	ret = blk_dwrite(dev_desc, part_info->start + abc_offset, abc_blocks,
 			 abc);
@@ -174,8 +174,8 @@ static int ab_control_store(struct blk_desc *dev_desc,
  * Return: Negative if the slot "a" is better, positive of the slot "b" is
  *         better or 0 if they are equally good.
  */
-static int ab_compare_slots(const struct slot_metadata *a,
-			    const struct slot_metadata *b)
+static int ab_compare_slots(const struct android_slot_metadata *a,
+			    const struct android_slot_metadata *b)
 {
 	/* Higher priority is better */
 	if (a->priority != b->priority)
@@ -252,7 +252,7 @@ int ab_select_slot(struct blk_desc *dev_desc, struct disk_partition *part_info,
 		store_needed = true;
 	}
 
-	if (abc->magic != BOOT_CTRL_MAGIC) {
+	if (abc->magic != ANDROID_BOOT_CTRL_MAGIC) {
 		log_err("ANDROID: Unknown A/B metadata: %.8x\n", abc->magic);
 		if (CONFIG_ANDROID_AB_BACKUP_OFFSET)
 			free(backup_abc);
@@ -260,7 +260,7 @@ int ab_select_slot(struct blk_desc *dev_desc, struct disk_partition *part_info,
 		return -ENODATA;
 	}
 
-	if (abc->version > BOOT_CTRL_VERSION) {
+	if (abc->version > ANDROID_BOOT_CTRL_VERSION) {
 		log_err("ANDROID: Unsupported A/B metadata version: %.8x\n",
 			abc->version);
 		if (CONFIG_ANDROID_AB_BACKUP_OFFSET)
@@ -440,4 +440,328 @@ error:
 	free(abc);
 
 	return ret;
+
+}
+
+int read_misc_virtual_ab_message(struct misc_virtual_ab_message *message)
+{
+	struct blk_desc *dev_desc;
+	struct disk_partition part_info;
+	u32 bcb_offset = (ANDROID_VIRTUAL_AB_METADATA_OFFSET_IN_MISC >> 9);
+	int cnt, ret;
+
+	if (!message) {
+		debug("%s: message is NULL!\n", __func__);
+		return -1;
+	}
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		debug("%s: dev_desc is NULL!\n", __func__);
+		return -1;
+	}
+
+	ret = part_get_info_by_name(dev_desc, PART_MISC, &part_info);
+	if (ret < 0) {
+		debug("%s: Could not found misc partition\n",
+		       __func__);
+		return -1;
+	}
+
+	cnt = DIV_ROUND_UP(sizeof(struct misc_virtual_ab_message), dev_desc->blksz);
+	if (blk_dread(dev_desc, part_info.start + bcb_offset, cnt, message) != cnt) {
+		debug("%s: could not read from misc partition\n", __func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+int write_misc_virtual_ab_message(struct misc_virtual_ab_message *message)
+{
+	struct blk_desc *dev_desc;
+	struct disk_partition part_info;
+	u32 bcb_offset = (ANDROID_VIRTUAL_AB_METADATA_OFFSET_IN_MISC >> 9);
+	int cnt, ret;
+
+	if (!message) {
+		debug("%s: message is NULL!\n", __func__);
+		return -1;
+	}
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		debug("%s: dev_desc is NULL!\n", __func__);
+		return -1;
+	}
+
+	ret = part_get_info_by_name(dev_desc, PART_MISC, &part_info);
+	if (ret < 0) {
+		debug("%s: Could not found misc partition\n",
+		       __func__);
+		return -1;
+	}
+
+	cnt = DIV_ROUND_UP(sizeof(struct misc_virtual_ab_message), dev_desc->blksz);
+	ret = blk_dwrite(dev_desc, part_info.start + bcb_offset, cnt, message);
+	if (ret != cnt)
+		debug("%s: blk_dwrite write failed, ret=%d\n", __func__, ret);
+
+	return 0;
+}
+
+int ab_is_support_dynamic_partition(struct blk_desc *dev_desc)
+{
+	struct disk_partition super_part_info;
+	struct disk_partition boot_part_info;
+	int part_num;
+	int is_dp = 0;
+	char *super_dp = NULL;
+	char *super_info = "androidboot.super_partition=";
+
+	memset(&super_part_info, 0x0, sizeof(super_part_info));
+	part_num = part_get_info_by_name(dev_desc, ANDROID_PARTITION_SUPER,
+					 &super_part_info);
+	if (part_num < 0) {
+		memset(&boot_part_info, 0x0, sizeof(boot_part_info));
+		part_num = part_get_info_by_name(dev_desc, ANDROID_PARTITION_BOOT,
+						 &boot_part_info);
+		if (part_num < 0) {
+			is_dp = 0;
+		} else {
+			andr_img_hdr hdr;
+			ulong hdr_blocks = sizeof(struct andr_img_hdr) /
+			boot_part_info.blksz;
+
+			memset(&hdr, 0x0, sizeof(hdr));
+			if (blk_dread(dev_desc, boot_part_info.start, hdr_blocks, &hdr) !=
+				hdr_blocks) {
+				is_dp = 0;
+			} else {
+				debug("hdr cmdline=%s\n", hdr.cmdline);
+				super_dp = strstr(hdr.cmdline, super_info);
+				if (super_dp)
+					is_dp = 1;
+				else
+					is_dp = 0;
+			}
+		}
+	} else {
+		debug("Find super partition, the firmware support dynamic partition\n");
+		is_dp = 1;
+	}
+
+	debug("%s is_dp=%d\n", __func__, is_dp);
+	return is_dp;
+}
+
+static int get_partition_unique_uuid(char *partition,
+				     char *guid_buf,
+				     size_t guid_buf_size)
+{
+	struct blk_desc *dev_desc;
+	struct disk_partition part_info;
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		printf("%s: Could not find device\n", __func__);
+		return -1;
+	}
+
+	if (part_get_info_by_name(dev_desc, partition, &part_info) < 0) {
+		printf("Could not find \"%s\" partition\n", partition);
+		return -1;
+	}
+
+	if (guid_buf && guid_buf_size > 0)
+		memcpy(guid_buf, part_info.uuid, guid_buf_size);
+
+	return 0;
+}
+
+static void ab_update_root_uuid(void)
+{
+	/*
+	 * In android a/b & avb process, the system.img is mandory and the
+	 * "root=" will be added in vbmeta.img.
+	 *
+	 * In linux a/b & avb process, the system is NOT mandory and the
+	 * "root=" will not be added in vbmeta.img but in kernel dts bootargs.
+	 * (Parsed and dropped late, i.e. "root=" is not available now/always).
+	 *
+	 * To compatible with the above two processes, test the existence of
+	 * "root=" and create it for linux ab & avb.
+	 */
+	char root_partuuid[70] = "root=PARTUUID=";
+	char *boot_args = env_get("bootargs");
+	char guid_buf[UUID_SIZE] = {0};
+	struct blk_desc *dev_desc;
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		printf("%s: Could not find device\n", __func__);
+		return;
+	}
+
+	if (ab_is_support_dynamic_partition(dev_desc))
+		return;
+
+	if (!strstr(boot_args, "root=")) {
+		get_partition_unique_uuid(ANDROID_PARTITION_SYSTEM,
+					  guid_buf, UUID_SIZE);
+		strcat(root_partuuid, guid_buf);
+		env_update("bootargs", root_partuuid);
+	}
+}
+
+void ab_update_root_partition(void)
+{
+	char *boot_args = env_get("bootargs");
+	char root_part_dev[64] = {0};
+	struct disk_partition part_info;
+	struct blk_desc *dev_desc;
+	const char *part_type;
+	int part_num;
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc)
+		return;
+
+	if (ab_is_support_dynamic_partition(dev_desc))
+		return;
+
+	/* Get 'system' partition device number. */
+	part_num = part_get_info_by_name(dev_desc, ANDROID_PARTITION_SYSTEM, &part_info);
+	if (part_num < 0) {
+		printf("%s: Failed to get partition '%s'.\n", __func__, ANDROID_PARTITION_SYSTEM);
+		return;
+	}
+
+	/* Get partition type. */
+	part_type = part_get_name(dev_desc);
+	if (!part_type)
+		return;
+
+	/* Judge the partition device type. */
+	switch (dev_desc->uclass_id) {
+	case UCLASS_MMC:
+		if (strstr(part_type, "ENV"))
+			snprintf(root_part_dev, 64, "root=/dev/mmcblk0p%d", part_num);
+		else if (strstr(part_type, "EFI"))
+			ab_update_root_uuid();
+		break;
+	case UCLASS_SPINAND:
+		if (strstr(part_type, "ENV"))
+			/* TODO */
+			printf("%s: TODO: ENV partition for 'UCLASS_SPINAND'.\n", __func__);
+		else if (strstr(part_type, "EFI"))
+			ab_update_root_uuid();
+		break;
+	case UCLASS_MTD:
+		if (dev_desc->devnum == BLK_MTD_NAND || dev_desc->devnum == BLK_MTD_SPI_NAND) {
+			if (strstr(boot_args, "rootfstype=squashfs") || strstr(boot_args, "rootfstype=erofs"))
+				snprintf(root_part_dev, 64, "ubi.mtd=%d root=/dev/ubiblock0_0", part_num - 1);
+			else if (strstr(boot_args, "rootfstype=ubifs"))
+				snprintf(root_part_dev, 64, "ubi.mtd=%d root=ubi0:system", part_num - 1);
+		} else if (dev_desc->devnum == BLK_MTD_SPI_NOR) {
+			snprintf(root_part_dev, 64, "root=/dev/mtdblock%d", part_num - 1);
+		}
+		break;
+	default:
+		printf("%s: Not found part type, failed to set root part device.\n", __func__);
+		return;
+	}
+
+	env_update("bootargs", root_part_dev);
+}
+
+int ab_get_slot_suffix(char *slot_suffix)
+{
+	/* TODO: get from pre-loader or misc partition */
+	if (ab_get_current_slot(slot_suffix)) {
+		printf("ab_get_current_slot() failed\n");
+		return -1;
+	}
+
+	if (slot_suffix[0] != '_') {
+#ifndef CONFIG_AVB_VERIFY
+		printf("###There is no bootable slot, bring up lastboot!###\n");
+		if (ab_get_lastboot() == 1)
+			memcpy(slot_suffix, "_b", 2);
+		else if (ab_get_lastboot() == 0)
+			memcpy(slot_suffix, "_a", 2);
+		else
+#endif
+			return -1;
+	}
+
+	return 0;
+}
+
+int ab_decrease_tries(void)
+{
+	AvbABData ab_data_orig;
+	AvbABData ab_data;
+	char slot_suffix[3] = {0};
+	AvbOps *ops;
+	size_t slot_index = 0;
+
+	if (ab_get_slot_suffix(slot_suffix))
+		return -1;
+
+	if (!strncmp(slot_suffix, "_a", 2))
+		slot_index = 0;
+	else if (!strncmp(slot_suffix, "_b", 2))
+		slot_index = 1;
+	else
+		slot_index = 0;
+
+	ops = avb_ops_user_new();
+	if (!ops) {
+		printf("avb_ops_user_new() failed!\n");
+		return -1;
+	}
+
+	if (load_metadata(ops->ab_ops, &ab_data, &ab_data_orig)) {
+		printf("Can not load metadata\n");
+		return -1;
+	}
+
+	/* ... and decrement tries remaining, if applicable. */
+	if (!ab_data.slots[slot_index].successful_boot &&
+	    ab_data.slots[slot_index].tries_remaining > 0)
+		ab_data.slots[slot_index].tries_remaining -= 1;
+
+	if (save_metadata_if_changed(ops->ab_ops, &ab_data, &ab_data_orig)) {
+		printf("Can not save metadata\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+ * In android A/B system, there is no recovery partition,
+ * but in the linux system, we need the recovery to update system.
+ * This function is used to find firmware in recovery partition
+ * when enable CONFIG_ANDROID_AB.
+ */
+bool ab_can_find_recovery_part(void)
+{
+	struct disk_partition part_info;
+	struct blk_desc *dev_desc;
+	int part_num;
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		printf("%s: Could not find device\n", __func__);
+		return false;
+	}
+
+	part_num = part_get_info_by_name(dev_desc, ANDROID_PARTITION_RECOVERY,
+					 &part_info);
+	if (part_num < 0)
+		return false;
+	else
+		return true;
 }

@@ -4,6 +4,7 @@
 #include <init.h>
 #include <sysinfo.h>
 #include <asm/global_data.h>
+#include <asm/system.h>
 #include <linux/libfdt.h>
 #include <linux/compiler.h>
 
@@ -74,6 +75,13 @@ int show_board_info(void)
 				printf("Model: %s\n", model);
 		}
 	}
+
+	if (!(gd->flags & GD_FLG_RELOC))
+		printf("MPIDR: 0x%lx\n", (ulong)read_mpidr() & 0xfff);
+#ifdef CONFIG_ARM64_BOOT_AARCH32
+	if (!(gd->flags & GD_FLG_RELOC))
+		printf("CPU: AArch32\n");
+#endif
 
 	return checkboard();
 }

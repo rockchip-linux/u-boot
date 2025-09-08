@@ -4,6 +4,7 @@
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  */
 
+
 #include <blk.h>
 #include <command.h>
 #include <env.h>
@@ -12,8 +13,12 @@
 #include <log.h>
 #include <malloc.h>
 #include <part.h>
+#ifdef CONFIG_SPL_AB
+#include <spl_ab.h>
+#endif
 #include <ubifs_uboot.h>
 #include <dm/uclass.h>
+//#include <avb_verify.h>
 
 #undef	PART_DEBUG
 
@@ -61,7 +66,7 @@ static struct part_driver *part_driver_get_type(int part_type)
  *
  * On success it updates @desc->part_type if set to PART_TYPE_UNKNOWN on entry
  *
- * @dev_desc: Device descriptor
+ * @desc: Device descriptor
  * Return: Driver found, or NULL if none
  */
 static struct part_driver *part_driver_lookup_type(struct blk_desc *desc)
@@ -103,6 +108,20 @@ int part_get_type_by_name(const char *name)
 
 	/* Not found */
 	return PART_TYPE_UNKNOWN;
+}
+
+const char *part_get_name(struct blk_desc *desc)
+{
+	struct part_driver *drv;
+
+	drv = part_driver_lookup_type(desc);
+	if (!drv) {
+		printf("## Unknown partition table type %x\n",
+		       desc->part_type);
+		return NULL;
+	}
+
+	return drv->name;
 }
 
 /**
@@ -198,6 +217,10 @@ void dev_print(struct blk_desc *desc)
 	case UCLASS_HOST:
 	case UCLASS_BLKMAP:
 	case UCLASS_RKMTD:
+	case UCLASS_MTD:
+	case UCLASS_RKNAND:
+	case UCLASS_SPINAND:
+	case UCLASS_SPINOR:
 		printf ("Vendor: %s Rev: %s Prod: %s\n",
 			desc->vendor,
 			desc->revision,
@@ -663,23 +686,50 @@ cleanup:
 	return ret;
 }
 
-int part_get_info_by_name(struct blk_desc *desc, const char *name,
-			  struct disk_partition *info)
+/*
+ * For android A/B system, we append the current slot suffix quietly,
+ * this takes over the responsibility of slot suffix appending from
+ * developer to framework.
+ */
+static int part_get_info_by_name_option(struct blk_desc *desc,
+					const char *name,
+					struct disk_partition *info,
+					bool strict)
 {
+	__maybe_unused char name_slot[32] = {0};
 	struct part_driver *part_drv;
-	int ret;
-	int i;
+	const char *full_name = name;
+	int none_slot_try = 1;
+	int ret, i;
 
 	part_drv = part_driver_lookup_type(desc);
 	if (!part_drv)
 		return -1;
 
-	if (!part_drv->get_info) {
-		log_debug("## Driver %s does not have the get_info() method\n",
-			  part_drv->name);
-		return -ENOSYS;
+	if (strict) {
+		none_slot_try = 0;
+		goto lookup;
 	}
 
+	/* 1. Query partition with A/B slot suffix */
+#if defined(CONFIG_ANDROID_AB) || defined(CONFIG_SPL_AB)
+	char *slot = (char *)name + strlen(name) - 2;
+
+	if (!strcmp(slot, "_a") || !strcmp(slot, "_b"))
+		goto lookup;
+#endif
+#if defined(CONFIG_ANDROID_AB) && !defined(CONFIG_SPL_BUILD)
+	if (ab_append_part_slot(name, name_slot))
+		return -1;
+	full_name = name_slot;
+#elif defined(CONFIG_SPL_AB) && defined(CONFIG_SPL_BUILD)
+	if (spl_ab_append_part_slot(desc, name, name_slot))
+		return -1;
+	full_name = name_slot;
+#endif
+
+lookup:
+	debug("## Query partition(%d): %s\n", none_slot_try, full_name);
 	for (i = 1; i < part_drv->max_entries; i++) {
 		ret = part_drv->get_info(desc, i, info);
 		if (ret != 0) {
@@ -687,15 +737,34 @@ int part_get_info_by_name(struct blk_desc *desc, const char *name,
 			 * Partition with this index can't be obtained, but
 			 * further partitions might be, so keep checking.
 			 */
-			continue;
+			break;
 		}
-		if (strcmp(name, (const char *)info->name) == 0) {
+		if (strcmp(full_name, (const char *)info->name) == 0) {
 			/* matched */
 			return i;
 		}
 	}
 
-	return -ENOENT;
+	/* 2. Query partition without A/B slot suffix if above failed */
+	if (none_slot_try) {
+		none_slot_try = 0;
+		full_name = name;
+		goto lookup;
+	}
+
+	return -1;
+}
+
+int part_get_info_by_name(struct blk_desc *desc, const char *name,
+			  struct disk_partition *info)
+{
+	return part_get_info_by_name_option(desc, name, info, false);
+}
+
+int part_get_info_by_name_strict(struct blk_desc *desc, const char *name,
+				 struct disk_partition *info)
+{
+	return part_get_info_by_name_option(desc, name, info, true);
 }
 
 /**

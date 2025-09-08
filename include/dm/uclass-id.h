@@ -158,7 +158,23 @@ enum uclass_id {
 	UCLASS_W1,		/* Dallas 1-Wire bus */
 	UCLASS_W1_EEPROM,	/* one-wire EEPROMs */
 	UCLASS_WDT,		/* Watchdog Timer driver */
-
+#ifdef CONFIG_ARCH_ROCKCHIP
+	UCLASS_AMP,		/* AMP */
+	UCLASS_CHARGE_DISPLAY,	/* Charge display */
+	UCLASS_CODEC,		/* Codec */
+	UCLASS_DMC,		/* Dynamic Memory Interface */
+	UCLASS_DVFS,		/* DVFS policy */
+	UCLASS_EBC,		/* EBC Controller for eink screen */
+	UCLASS_EINK_DISPLAY,	/* EINK screen display driver */
+	UCLASS_FG,		/* Fuel gauge */
+	UCLASS_IO_DOMAIN,	/* IO domain */
+	UCLASS_PD,		/* power delivery */
+	UCLASS_RC,		/* Remote Controller */
+	UCLASS_RAMDISK,		/* Ramdisk */
+	UCLASS_RKNAND,		/* RKNAND */
+	UCLASS_SPINAND,		/* SPI Nand flash */
+	UCLASS_SPINOR,		/* SPI Nor flash */
+#endif
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
 };

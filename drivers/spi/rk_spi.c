@@ -58,9 +58,12 @@ struct rockchip_spi_priv {
 	unsigned int speed_hz;
 	unsigned int last_speed_hz;
 	uint input_rate;
+	uint cr0;
+	u32 rsd;			/* Rx sample delay cycles */
 };
 
 #define SPI_FIFO_DEPTH		32
+#define SPI_CR0_RSD_MAX		0x3
 
 static void rkspi_dump_regs(struct rockchip_spi *regs)
 {
@@ -194,6 +197,7 @@ static int rockchip_spi_of_to_plat(struct udevice *bus)
 {
 	struct rockchip_spi_plat *plat = dev_get_plat(bus);
 	struct rockchip_spi_priv *priv = dev_get_priv(bus);
+	u32 rsd_nsecs;
 	int ret;
 
 	if (CONFIG_IS_ENABLED(OF_REAL)) {
@@ -213,9 +217,26 @@ static int rockchip_spi_of_to_plat(struct udevice *bus)
 		plat->activate_delay_us =
 			dev_read_u32_default(bus, "spi-activate-delay", 0);
 
-		debug("%s: base=%x, max-frequency=%d, deactivate_delay=%d\n",
+		rsd_nsecs = dev_read_u32_default(bus, "rx-sample-delay-ns", 0);
+		if (rsd_nsecs > 0) {
+			u32 spi_clk, rsd;
+
+			spi_clk = clk_get_rate(&priv->clk);
+			/* rx sample delay is expressed in parent clock cycles (max 3) */
+			rsd = DIV_ROUND_CLOSEST(rsd_nsecs * (spi_clk >> 8), 1000000000 >> 8);
+			if (!rsd) {
+				pr_err("SPI spi_clk %dHz are too slow to express %u ns delay\n", spi_clk, rsd_nsecs);
+			} else if (rsd > SPI_CR0_RSD_MAX) {
+				rsd = SPI_CR0_RSD_MAX;
+				pr_err("SPI spi_clk %dHz are too fast to express %u ns delay, clamping at %u ns\n",
+				       spi_clk, rsd_nsecs, SPI_CR0_RSD_MAX * 1000000000U / spi_clk);
+			}
+			priv->rsd = rsd;
+		}
+
+		debug("%s: base=%x, max-frequency=%d, deactivate_delay=%d\n rsd=%d",
 		      __func__, (uint)plat->base, plat->frequency,
-		      plat->deactivate_delay_us);
+		      plat->deactivate_delay_us, priv->rsd);
 	}
 
 	return 0;
@@ -324,14 +345,31 @@ static int rockchip_spi_claim_bus(struct udevice *dev)
 	ctrlr0 |= HALF_WORD_OFF << HALF_WORD_TX_SHIFT;
 
 	/* Rxd Sample Delay */
-	ctrlr0 |= 0 << RXDSD_SHIFT;
+	ctrlr0 |= priv->rsd << RXDSD_SHIFT;
 
 	/* Frame Format */
 	ctrlr0 |= FRF_SPI << FRF_SHIFT;
 
-	/* Tx and Rx mode */
-	ctrlr0 |= TMOD_TR << TMOD_SHIFT;
+	/* Save static configuration */
+	priv->cr0 = ctrlr0;
 
+	writel(ctrlr0, &regs->ctrlr0);
+
+	return 0;
+}
+
+static int rockchip_spi_config(struct rockchip_spi_priv *priv, const void *dout)
+{
+	struct rockchip_spi *regs = priv->regs;
+	uint ctrlr0 = priv->cr0;
+	u32 tmod;
+
+	if (dout)
+		tmod = TMOD_TR;
+	else
+		tmod = TMOD_RO;
+
+	ctrlr0 |= (tmod & TMOD_MASK) << TMOD_SHIFT;
 	writel(ctrlr0, &regs->ctrlr0);
 
 	return 0;
@@ -437,6 +475,8 @@ static int rockchip_spi_xfer(struct udevice *dev, unsigned int bitlen,
 	int toread, towrite;
 	int ret = 0;
 
+	rockchip_spi_config(priv, dout);
+
 	debug("%s: dout=%p, din=%p, len=%x, flags=%lx\n", __func__, dout, din,
 	      len, flags);
 	if (DEBUG_RK_SPI)
@@ -452,17 +492,8 @@ static int rockchip_spi_xfer(struct udevice *dev, unsigned int bitlen,
 	 * case of read-only transfers by using the full 16bits of each
 	 * FIFO element.
 	 */
-	if (!out) {
+	if (!out)
 		ret = rockchip_spi_16bit_reader(dev, &in, &len);
-		/*
-		 * If "in" isn't 16b-aligned, we need to send the last byte
-		 * ourselves. We however need to have the controller in RO mode
-		 * which differs from the default.
-		 */
-		clrsetbits_le32(&regs->ctrlr0,
-				TMOD_MASK << TMOD_SHIFT,
-				TMOD_RO << TMOD_SHIFT);
-	}
 
 	/* This is the original 8bit reader/writer code */
 	while (len > 0) {
@@ -473,13 +504,13 @@ static int rockchip_spi_xfer(struct udevice *dev, unsigned int bitlen,
 		rkspi_enable_chip(regs, true);
 
 		toread = todo;
-		/* Only write if we have something to write */
-		towrite = out ? todo : 0;
+		towrite = todo;
 		while (toread || towrite) {
 			u32 status = readl(&regs->sr);
 
 			if (towrite && !(status & SR_TF_FULL)) {
-				writel(*out++, regs->txdr);
+				if (out)
+					writel(out ? *out++ : 0, regs->txdr);
 				towrite--;
 			}
 			if (toread && !(status & SR_RF_EMPT)) {
@@ -510,10 +541,6 @@ static int rockchip_spi_xfer(struct udevice *dev, unsigned int bitlen,
 		spi_cs_deactivate(dev, slave_plat->cs[0]);
 
 	rkspi_enable_chip(regs, false);
-	if (!out)
-		clrsetbits_le32(&regs->ctrlr0,
-				TMOD_MASK << TMOD_SHIFT,
-				TMOD_TR << TMOD_SHIFT);
 
 	return ret;
 }

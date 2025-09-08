@@ -61,7 +61,7 @@ void *locate_dtb_in_fit(const void *fit)
 	int ret;
 
 	size = fdt_totalsize(fit);
-	size = (size + 3) & ~3;
+	size = FIT_ALIGN(size);
 
 	header = (struct legacy_img_hdr *)fit;
 

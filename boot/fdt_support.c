@@ -8,9 +8,11 @@
 
 #include <dm.h>
 #include <abuf.h>
+#include <android_image.h>
 #include <env.h>
 #include <log.h>
 #include <mapmem.h>
+#include <malloc.h>
 #include <net.h>
 #include <rng.h>
 #include <stdio_dev.h>
@@ -181,8 +183,8 @@ static int fdt_fixup_stdout(void *fdt, int chosenoff)
 }
 #endif
 
-static inline int fdt_setprop_uxx(void *fdt, int nodeoffset, const char *name,
-				  uint64_t val, int is_u64)
+int fdt_setprop_uxx(void *fdt, int nodeoffset, const char *name,
+		    uint64_t val, int is_u64)
 {
 	if (is_u64)
 		return fdt_setprop_u64(fdt, nodeoffset, name, val);
@@ -245,6 +247,8 @@ int fdt_initrd(void *fdt, ulong initrd_start, ulong initrd_end)
 			break;
 		}
 	}
+
+	fdt_increase_size(fdt, 512);
 
 	err = fdt_add_mem_rsv(fdt, initrd_start, initrd_end - initrd_start);
 	if (err < 0) {
@@ -317,11 +321,75 @@ int fdt_kaslrseed(void *fdt, bool overwrite)
 	return err;
 }
 
+int fdt_bootargs_append(void *fdt, char *data)
+{
+	const char *arr_bootargs[] = { "bootargs", "bootargs_ext" };
+	int nodeoffset, len;
+	const char *bootargs;
+	char *str;
+	int i, ret = 0;
+
+	if (!data)
+		return 0;
+
+	/* find or create "/chosen" node. */
+	nodeoffset = fdt_find_or_add_subnode(fdt, 0, "chosen");
+	if (nodeoffset < 0)
+		return nodeoffset;
+
+	for (i = 0; i < ARRAY_SIZE(arr_bootargs); i++) {
+		bootargs = fdt_getprop(fdt, nodeoffset,
+				       arr_bootargs[i], NULL);
+		if (bootargs) {
+			len = strlen(bootargs) + strlen(data) + 2;
+			str = malloc(len);
+			if (!str)
+				return -ENOMEM;
+
+			fdt_increase_size(fdt, 512);
+			snprintf(str, len, "%s %s", bootargs, data);
+			ret = fdt_setprop(fdt, nodeoffset, arr_bootargs[i],
+					  str, len);
+			if (ret < 0)
+				printf("WARNING: could not set bootargs %s.\n", fdt_strerror(ret));
+
+			free(str);
+			break;
+		}
+	}
+
+	return ret;
+}
+
+int fdt_bootargs_append_ab(void *fdt, char *slot)
+{
+	char *str;
+	int len, ret = 0;
+
+	if (!slot)
+		return 0;
+
+	len = strlen(ANDROID_ARG_SLOT_SUFFIX) + strlen(slot) + 1;
+	str = malloc(len);
+	if (!str)
+		return -ENOMEM;
+
+	snprintf(str, len, "%s%s", ANDROID_ARG_SLOT_SUFFIX, slot);
+	ret = fdt_bootargs_append(fdt, str);
+	if (ret)
+		printf("Apend slot info to bootargs fail");
+
+	free(str);
+
+	return ret;
+}
+
+
 /**
  * board_fdt_chosen_bootargs - boards may override this function to use
  *                             alternative kernel command line arguments
  */
-__weak const char *board_fdt_chosen_bootargs(const struct fdt_property *fdt_ba)
+__weak const char *board_fdt_chosen_bootargs(void *fdt)
 {
 	return env_get("bootargs");
 }
@@ -364,9 +432,7 @@ int fdt_chosen(void *fdt)
 		}
 	}
 
-	str = board_fdt_chosen_bootargs(fdt_get_property(fdt, nodeoffset,
-							 "bootargs", NULL));
-
+	str = board_fdt_chosen_bootargs(fdt);
 	if (str) {
 		err = fdt_setprop(fdt, nodeoffset, "bootargs", str,
 				  strlen(str) + 1);
@@ -516,6 +582,7 @@ static int fdt_pack_reg(const void *fdt, void *buf, u64 *address, u64 *size,
  * used, this function is only updating the first memory node without removing
  * others.
  */
+#ifdef CONFIG_ARCH_FIXUP_FDT_MEMORY
 int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 {
 	int err, nodeoffset;
@@ -568,6 +635,31 @@ int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
 	}
 	return 0;
 }
+#else
+int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[], int banks)
+{
+	struct fdt_resource res;
+	int i, nodeoffset;
+	nodeoffset = fdt_subnode_offset(blob, 0, "memory");
+
+	/* show memory */
+	if (nodeoffset > 0) {
+		for (i = 0; i < MEMORY_BANKS_MAX; i++) {
+			if (fdt_get_resource(blob, nodeoffset, "reg", i, &res))
+				break;
+
+			res.end += 1;
+			if (!res.start && !res.end)
+				break;
+
+			printf("fixed bank: 0x%08llx - 0x%08llx (size: 0x%08llx)\n",
+			       (u64)res.start, (u64)res.end, (u64)res.end - (u64)res.start);
+		}
+	}
+
+	return 0;
+}
+#endif
 
 int fdt_set_usable_memory(void *blob, u64 start[], u64 size[], int areas)
 {
@@ -2222,3 +2314,22 @@ int fdt_valid(struct fdt_header **blobp)
 	}
 	return 1;
 }
+#ifdef CONFIG_ARCH_ROCKCHIP
+int fdt_update_reserved_memory(void *blob, char *name, u64 start, u64 size)
+{
+	int nodeoffset, len, err;
+	u8 tmp[16]; /* Up to 64-bit address + 64-bit size */
+	nodeoffset = fdt_node_offset_by_compatible(blob, 0, name);
+	if (nodeoffset < 0)
+		debug("Can't find nodeoffset: %d\n", nodeoffset);
+	if (!size)
+		return nodeoffset;
+	len = fdt_pack_reg(blob, tmp, &start, &size, 1);
+	err = fdt_setprop(blob, nodeoffset, "reg", tmp, len);
+	if (err < 0) {
+		printf("WARNING: could not set %s %s.\n", "reg", fdt_strerror(err));
+		return err;
+	}
+	return nodeoffset;
+}
+#endif

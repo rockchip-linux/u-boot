@@ -76,14 +76,14 @@ int regulator_common_set_enable(const struct udevice *dev,
 	/* If previously enabled, increase count */
 	if (enable && plat->enable_count > 0) {
 		plat->enable_count++;
-		return -EALREADY;
+		return 0;
 	}
 
 	if (!enable) {
 		if (plat->enable_count > 1) {
 			/* If enabled multiple times, decrease count */
 			plat->enable_count--;
-			return -EBUSY;
+			return 0;
 		} else if (!plat->enable_count) {
 			/* If already disabled, do nothing */
 			return -EALREADY;

@@ -52,6 +52,25 @@ int sysreset_get_last(struct udevice *dev)
 	return ops->get_last(dev);
 }
 
+static void sysreset_walk_prepare(const char *mode)
+{
+	struct sysreset_ops *ops;
+	struct udevice *dev;
+
+	if (!mode)
+		return;
+
+	for (uclass_first_device(UCLASS_SYSRESET, &dev);
+	     dev;
+	     uclass_next_device(&dev)) {
+		ops = sysreset_get_ops(dev);
+		if (ops && ops->request_prepare) {
+			ops->request_prepare(dev, mode);
+			break;
+		}
+	}
+}
+
 int sysreset_walk(enum sysreset_t type)
 {
 	struct udevice *dev;
@@ -125,8 +144,11 @@ int do_reset(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 	if (argc > 2)
 		return CMD_RET_USAGE;
 
-	if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'w') {
-		reset_type = SYSRESET_WARM;
+	if (argc == 2) {
+		if (argv[1][0] == '-' && argv[1][1] == 'w')
+			reset_type = SYSRESET_WARM;
+		else
+			sysreset_walk_prepare(argv[1]);
 	}
 
 	printf("resetting ...\n");

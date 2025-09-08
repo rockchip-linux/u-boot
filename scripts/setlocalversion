@@ -95,11 +95,6 @@ scm_version()
 			echo "+"
 			return
 		fi
-		# If we are past the tagged commit, we pretty print it.
-		# (like 6.1.0-14595-g292a089d78d3)
-		if [ -n "${desc}" ]; then
-			echo "${desc}" | awk -F- '{printf("-%05d", $(NF-1))}'
-		fi
 
 		# Add -g and exactly 12 hex chars.
 		printf '%s%s' -g "$(echo $head | cut -c1-12)"
@@ -108,6 +103,10 @@ scm_version()
 	if ${no_dirty}; then
 		return
 	fi
+
+	# Check submit date of the last rockchip commit
+	date=`git log -1 --author='@rock-chips' --date=format:%y%m%d | sed -n '/Date:/p' | awk '{ print "-"$2 }'`
+	printf '%s' $date
 
 	# Check for uncommitted changes.
 	# This script must avoid any write attempt to the source tree, which
@@ -124,7 +123,11 @@ scm_version()
 		git diff-index --name-only HEAD
 	} | read dummy; then
 		printf '%s' -dirty
+
 	fi
+
+	# Print build user
+	printf ' \#%s' $USER
 }
 
 collect_files()

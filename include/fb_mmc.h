@@ -39,4 +39,6 @@ void fastboot_mmc_flash_write(const char *cmd, void *download_buffer,
  * @response: Pointer to fastboot response buffer
  */
 void fastboot_mmc_erase(const char *cmd, char *response);
+
+lbaint_t fb_mmc_get_erase_grp_size(void);
 #endif

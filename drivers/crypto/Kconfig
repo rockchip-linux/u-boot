@@ -1,6 +1,5 @@
 menu "Hardware crypto devices"
 
-source "drivers/crypto/hash/Kconfig"
 config CRYPTO_MANAGER
 	bool "Enable Crypto Manager driver as crypto framework for hardware crypto"
 	depends on DM

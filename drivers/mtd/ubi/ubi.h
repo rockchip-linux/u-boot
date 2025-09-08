@@ -34,6 +34,7 @@
 #include <linux/mtd/ubi.h>
 #include "ubi-media.h"
 #include <mtd/ubi-user.h>
+#include <stacktrace.h>
 
 /* Maximum number of supported UBI devices */
 #define UBI_MAX_DEVICES 32

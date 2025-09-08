@@ -6,6 +6,7 @@
 extra-y        := hello_world
 extra-$(CONFIG_SPI_FLASH_ATMEL)    += atmel_df_pow2
 extra-$(CONFIG_PPC)                += sched
+extra-$(CONFIG_ROCKCHIP_SPI)       += rkspi
 
 # Environment variable loadaddr is set from CONFIG_SYS_LOAD_ADDR.
 # Run the examples 4 MiB above this address.

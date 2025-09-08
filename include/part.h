@@ -13,6 +13,21 @@
 #include <linux/errno.h>
 #include <linux/list.h>
 
+#define PART_UBOOT		"uboot"
+#define PART_TRUST		"trust"
+#define PART_MISC		"misc"
+#define PART_RESOURCE		"resource"
+#define PART_KERNEL		"kernel"
+#define PART_BOOT		"boot"
+#define PART_VENDOR_BOOT	"vendor_boot"
+#define PART_RECOVERY		"recovery"
+#define PART_DTBO		"dtbo"
+#define PART_LOGO		"logo"
+#define PART_SYSTEM		"system"
+#define PART_METADATA		"metadata"
+#define PART_USERDATA		"userdata"
+#define PART_META		"meta"
+
 struct block_drvr {
 	char *name;
 	int (*select_hwpart)(int dev_num, int hwpart);
@@ -32,6 +47,9 @@ struct block_drvr {
 #define PART_TYPE_EFI		0x05
 #define PART_TYPE_MTD		0x06
 #define PART_TYPE_UBI		0x07
+#define PART_TYPE_RKPARM	0x08
+#define PART_TYPE_RKRAM		0x09
+#define PART_TYPE_ENV		0x0a
 
 /* maximum number of partition entries supported by search */
 #define DOS_ENTRY_NUMBERS	8
@@ -40,6 +58,9 @@ struct block_drvr {
 #define AMIGA_ENTRY_NUMBERS	8
 #define MTD_ENTRY_NUMBERS	64
 #define UBI_ENTRY_NUMBERS	UBI_MAX_VOLUMES
+#define RKPARM_ENTRY_NUMBERS	128
+#define RKRAM_ENTRY_NUMBERS	6
+#define ENV_ENTRY_NUMBERS	64
 
 /*
  * Type string for U-Boot bootable partitions
@@ -355,6 +376,9 @@ int part_get_info_by_dev_and_name_or_num(const char *dev_iface,
  */
 void part_set_generic_name(const struct blk_desc *desc, int part_num,
 			   char *name);
+
+int part_get_info_by_name_strict(struct blk_desc *dev_desc, const char *name,
+				 struct disk_partition *info);
 
 extern const struct block_drvr block_drvr[];
 #else
@@ -695,6 +719,24 @@ int part_get_type_by_name(const char *name);
  */
 int part_get_bootable(struct blk_desc *desc);
 
+/**
+ * part_get_name() - Get partition driver name
+ *
+ * @dev_desc:	block device descriptor
+ * Return:
+ * Partition driver name.
+ */
+const char *part_get_name(struct blk_desc *dev_desc);
+
+#if CONFIG_IS_ENABLED(ENV_PARTITION)
+/**
+ * env_part_list_init() - pass partitons list to env part
+ *
+ * @param list - partitons list
+ */
+void env_part_list_init(const char *list);
+#endif
+
 #else
 static inline int part_driver_get_count(void)
 { return 0; }
@@ -704,6 +746,15 @@ static inline struct part_driver *part_driver_get_first(void)
 
 static inline bool part_get_bootable(struct blk_desc *desc)
 { return false; }
+
+#if CONFIG_IS_ENABLED(ENV_PARTITION)
+/**
+ * env_part_list_init() - pass partitons list to env part
+ *
+ * @param list - partitons list
+ */
+void env_part_list_init(const char *list) {}
+#endif
 
 #endif /* CONFIG_PARTITIONS */
 

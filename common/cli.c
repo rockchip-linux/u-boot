@@ -115,9 +115,7 @@ int run_command_repeatable(const char *cmd, int flag)
 #else
 __weak int board_run_command(const char *cmdline)
 {
-	printf("## Commands are disabled. Please enable CONFIG_CMDLINE.\n");
-
-	return 1;
+	return cli_simple_run_command_list((char *)cmdline, 0);
 }
 #endif /* CONFIG_CMDLINE */
 
@@ -292,6 +290,7 @@ err:
 }
 #endif /* CONFIG_IS_ENABLED(OF_CONTROL) */
 
+#ifndef CONFIG_CONSOLE_DISABLE_CLI
 void cli_loop(void)
 {
 	bootstage_mark(BOOTSTAGE_ID_ENTER_CLI_LOOP);
@@ -310,6 +309,9 @@ void cli_loop(void)
 	printf("## U-Boot command line is disabled. Please enable CONFIG_CMDLINE\n");
 #endif /*CONFIG_HUSH_PARSER*/
 }
+#else
+void cli_loop(void) { }
+#endif
 
 void cli_init(void)
 {

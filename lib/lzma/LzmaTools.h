@@ -27,5 +27,6 @@
  */
 int lzmaBuffToBuffDecompress(unsigned char *outStream, SizeT *uncompressedSize,
 			     const unsigned char *inStream, SizeT length);
+int lzma_is_valid(const unsigned char *buf);
 
 #endif

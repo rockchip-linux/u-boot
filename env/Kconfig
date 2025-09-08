@@ -74,7 +74,7 @@ config ENV_IS_DEFAULT
 		     !ENV_IS_IN_MMC && !ENV_IS_IN_NAND && \
 		     !ENV_IS_IN_NVRAM && !ENV_IS_IN_ONENAND && \
 		     !ENV_IS_IN_REMOTE && !ENV_IS_IN_SPI_FLASH && \
-		     !ENV_IS_IN_UBI
+		     !ENV_IS_IN_UBI && !ENV_IS_IN_BLK && !ENV_IS_IN_FRAGMENT
 	select ENV_IS_NOWHERE
 
 config ENV_IS_NOWHERE
@@ -463,6 +463,35 @@ config ENV_IS_IN_UBI
 	  the environment in.  This will enable redundant environments in UBI.
 	  It is assumed that both volumes are in the same MTD partition.
 
+config ENV_IS_IN_BLK
+	bool "Environment in a block device"
+	depends on !CHAIN_OF_TRUST && BLK
+	help
+	  Define this if you have an Block device which you want to use for the
+	  environment.
+
+	  - CONFIG_ENV_OFFSET:
+	  - CONFIG_ENV_SIZE:
+
+	  These two #defines specify the offset and size of the environment
+	  area within the specified Block device. These two values are in units
+	  of bytes, but must be aligned to an Block sector boundary.
+
+	  - CONFIG_ENV_OFFSET_REDUND (optional):
+
+	  Specifies a second storage area, of CONFIG_ENV_SIZE size, used to
+	  hold a redundant copy of the environment data. This provides a
+	  valid backup copy in case the other copy is corrupted, e.g. due
+	  to a power failure during a "saveenv" operation. This is handled
+	  in the same way as CONFIG_ENV_OFFSET.
+
+config ENV_IS_IN_FRAGMENT
+	bool "Environment in a env fragment"
+	depends on !CHAIN_OF_TRUST && BLK
+	help
+	  Define this if you have an env fragement which you want to use for the
+	  environment.
+
 config SYS_REDUNDAND_ENVIRONMENT
 	bool "Enable redundant environment support"
 	help
@@ -577,9 +606,10 @@ config ENV_ADDR_REDUND
 config ENV_OFFSET
 	hex "Environment offset"
 	depends on ENV_IS_IN_EEPROM || ENV_IS_IN_MMC || ENV_IS_IN_NAND || \
-		    ENV_IS_IN_SPI_FLASH
+		    ENV_IS_IN_SPI_FLASH || ENV_IS_IN_BLK || ENV_IS_IN_FRAGMENT
 	default 0x3f8000 if ARCH_ROCKCHIP && ENV_IS_IN_MMC
 	default 0x140000 if ARCH_ROCKCHIP && ENV_IS_IN_SPI_FLASH
+	default 0x0 if ENV_IS_IN_FRAGMENT
 	default 0xF0000 if ARCH_SUNXI
 	default 0xE0000 if ARCH_ZYNQ
 	default 0x1E00000 if ARCH_ZYNQMP
@@ -599,7 +629,8 @@ config ENV_OFFSET
 config ENV_OFFSET_REDUND
 	hex "Redundant environment offset"
 	depends on (ENV_IS_IN_EEPROM || ENV_IS_IN_MMC || ENV_IS_IN_NAND || \
-		    ENV_IS_IN_SPI_FLASH) && SYS_REDUNDAND_ENVIRONMENT
+		    ENV_IS_IN_SPI_FLASH || ENV_IS_IN_BLK || ENV_IS_IN_FRAGMENT) && \
+		    SYS_REDUNDAND_ENVIRONMENT
 	default 0x10C0000 if MICROBLAZE
 	default 0x0
 	help
@@ -838,6 +869,14 @@ config SPL_ENV_IS_IN_FLASH
 	help
 	  Similar to ENV_IS_IN_FLASH, used for SPL environment.
 
+config SPL_ENV_IS_IN_FRAGMENT
+	bool "Environment fragment is store in envf partition in SPL"
+	depends on !SPL_ENV_IS_NOWHERE
+	depends on ENV_IS_IN_FRAGMENT
+	default y
+	help
+	  Use this if you want to add a env fragment partition to overlay/store
+	  some specific environments in SPL. But now only parse env partition table.
 endif
 
 if TPL_ENV_SUPPORT
@@ -951,5 +990,56 @@ config VERSION_VARIABLE
 	  version as printed by the "version" command.
 	  Any change to this variable will be reverted at the
 	  next reset.
+
+if ENV_IS_IN_FRAGMENT
+config ENVF_LIST
+	string "Specific environments white list of env fragment"
+	default "blkdevparts mtdparts sys_bootargs app reserved"
+	help
+	  The environment white list.
+
+if CMD_NAND || MTD_SPI_NAND
+config ENV_NAND_OFFSET
+	hex "Environment offset in Nand"
+	default 0x0
+
+config ENV_NAND_OFFSET_REDUND
+	hex "Environment redundant(backup) offset in Nand"
+	default ENV_NAND_OFFSET
+
+config ENV_NAND_SIZE
+	hex "Environment size in Nand"
+	default 0x40000
+endif
+
+if SPI_FLASH
+config ENV_NOR_OFFSET
+	hex "Environment offset in Nor"
+	default 0x0
+
+config ENV_NOR_OFFSET_REDUND
+	hex "Environment redundant(backup) offset in Nor"
+	default ENV_NOR_OFFSET
+
+config ENV_NOR_SIZE
+	hex "Environment size in Nor"
+	default 0x10000
+endif
+
+endif # ENV_IS_IN_FRAGMENT
+
+config ENV_MEM_LAYOUT
+	bool "Enable environment for the Image memory layout"
+	default n
+	help
+	  Use this if you want to define CONFIG_ENV_MEM_LAYOUT_SETTINGS
+	  to override the system default environments in plat header.
+
+config ENV_MEM_LAYOUT_SETTINGS
+	string "Environment of the Image memory layout settings"
+	depends on ENV_MEM_LAYOUT
+	default ""
+	help
+	  The environment settings of Image memory layout.
 
 endmenu

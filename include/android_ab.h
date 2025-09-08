@@ -16,6 +16,16 @@ struct disk_partition;
 
 /* Number of slots */
 #define NUM_SLOTS 2
+#define MISC_VIRTUAL_AB_MAGIC_HEADER		(0x56740AB0)
+
+struct misc_virtual_ab_message {
+	u8 version;
+	u32 magic;
+	u8 merge_status;
+	u8 source_slot;
+	u8 reserved[57];
+	u8 reserved2[448];
+} __packed;
 
 /**
  * ab_select_slot() - Select the slot where to boot from.
@@ -35,6 +45,15 @@ struct disk_partition;
  */
 int ab_select_slot(struct blk_desc *dev_desc, struct disk_partition *part_info,
                    bool dec_tries);
+/* Read or write the Virtual A/B message from 32KB offset in /misc.*/
+int read_misc_virtual_ab_message(struct misc_virtual_ab_message *message);
+int write_misc_virtual_ab_message(struct misc_virtual_ab_message *message);
+
+void ab_update_root_partition(void);
+int ab_get_slot_suffix(char *slot_suffix);
+int ab_is_support_dynamic_partition(struct blk_desc *dev_desc);
+int ab_decrease_tries(void);
+bool ab_can_find_recovery_part(void);
 
 /**
  * ab_dump_abc() - Dump ABC information for specific partition.

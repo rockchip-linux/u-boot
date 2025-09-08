@@ -426,7 +426,7 @@ static int select_fdt(struct bootm_headers *images, const char *select, u8 arch,
 			 * FDT blob
 			 */
 			debug("*  fdt: raw FDT blob\n");
-			printf("## Flattened Device Tree blob at %08lx\n",
+			printf("## Flattened Device Tree blob at 0x%08lx\n",
 			       (long)fdt_addr);
 		}
 		break;
@@ -587,16 +587,16 @@ int image_setup_libfdt(struct bootm_headers *images, void *blob, bool lmb)
 
 	ret = -EPERM;
 
+	if (arch_fixup_fdt(blob) < 0) {
+		printf("ERROR: arch-specific fdt fixup failed\n");
+		goto err;
+	}
 	if (fdt_root(blob) < 0) {
 		printf("ERROR: root node setup failed\n");
 		goto err;
 	}
 	if (fdt_chosen(blob) < 0) {
 		printf("ERROR: /chosen node create failed\n");
-		goto err;
-	}
-	if (arch_fixup_fdt(blob) < 0) {
-		printf("ERROR: arch-specific fdt fixup failed\n");
 		goto err;
 	}
 

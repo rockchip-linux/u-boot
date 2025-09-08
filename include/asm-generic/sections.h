@@ -36,6 +36,9 @@ extern char __ctors_start[], __ctors_end[];
 
 extern char __efi_runtime_rel_start[], __efi_runtime_rel_stop[];
 extern char __efi_runtime_start[], __efi_runtime_stop[];
+/* .ARM.exidx is sorted, so has to go in its own output section. */
+extern char __exidx_start[], __exidx_end[];
+extern char __extab_start[], __extab_end[];
 
 /* function descriptor handling (if any).  Override
  * in asm/sections.h */

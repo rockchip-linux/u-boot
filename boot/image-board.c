@@ -403,6 +403,10 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 		}
 		break;
 	case IMAGE_FORMAT_ANDROID:
+// TODO
+//		android_image_get_ramdisk((void *)images->os.start, rd_datap, rd_lenp);
+//		done = true;
+#if 1
 		if (IS_ENABLED(CONFIG_ANDROID_BOOT_IMAGE)) {
 			int ret;
 			if (IS_ENABLED(CONFIG_CMD_ABOOTIMG)) {
@@ -415,15 +419,17 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 					ramdisk_img = map_sysmem(boot_img, 0);
 				else
 					ramdisk_img = map_sysmem(init_boot_img, 0);
-
+				ret = 0;
+#if 0
 				ret = android_image_get_ramdisk(ramdisk_img, vendor_boot_img,
 								rd_datap, rd_lenp);
+#endif
 				unmap_sysmem(vendor_boot_img);
 				unmap_sysmem(ramdisk_img);
 			} else {
 				void *ptr = map_sysmem(images->os.start, 0);
-
-				ret = android_image_get_ramdisk(ptr, NULL, rd_datap, rd_lenp);
+				ret = 0;
+				//ret = android_image_get_ramdisk(ptr, NULL, rd_datap, rd_lenp);
 				unmap_sysmem(ptr);
 			}
 
@@ -433,6 +439,7 @@ static int select_ramdisk(struct bootm_headers *images, const char *select, u8 a
 				return ret;
 			done = true;
 		}
+#endif
 		break;
 	}
 
@@ -972,8 +979,13 @@ int image_locate_script(void *buf, int size, const char *fit_uname,
 	ulong len;
 	u32 *data;
 
+#if defined(CONFIG_IMAGE_FORMAT_LEGACY) || defined(CONFIG_FIT)
+#ifdef CONFIG_FIT_SIGNATURE
+	verify = 1;
+#else
 	verify = env_get_yesno("verify");
-
+#endif
+#endif
 	switch (genimg_get_format(buf)) {
 	case IMAGE_FORMAT_LEGACY:
 		if (!IS_ENABLED(CONFIG_LEGACY_IMAGE_FORMAT)) {
@@ -1017,7 +1029,7 @@ int image_locate_script(void *buf, int size, const char *fit_uname,
 			 * component, so seek past the zero-terminated sequence
 			 * of image lengths to get to the actual image data
 			 */
-			while (*data++);
+			while (*data++ != IMAGE_PARAM_INVAL);
 		}
 		break;
 	case IMAGE_FORMAT_FIT:

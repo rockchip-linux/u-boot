@@ -113,6 +113,10 @@ switch_to_hypervisor_ret:
 	mcr	p15, 0, r0, c12, c0, 0	@Set VBAR
 #endif
 #endif
+	/* Enable Asynchronous external abort after vectors setup */
+	mrs	r0, cpsr
+	bic	r0, r0, #0x100		@ CPSR.A bit
+	msr	cpsr_x,r0
 
 	/* the mask ROM code should have PLL and others stable */
 #if !CONFIG_IS_ENABLED(SKIP_LOWLEVEL_INIT)
@@ -226,7 +230,9 @@ ENTRY(cpu_init_cp15)
 	mrc	p15, 0, r0, c1, c0, 0
 	bic	r0, r0, #0x00002000	@ clear bits 13 (--V-)
 	bic	r0, r0, #0x00000007	@ clear bits 2:0 (-CAM)
+#if 0 /* There is unalign access when decompress firmware. */
 	orr	r0, r0, #0x00000002	@ set bit 1 (--A-) Align
+#endif
 	orr	r0, r0, #0x00000800	@ set bit 11 (Z---) BTB
 #if CONFIG_IS_ENABLED(SYS_ICACHE_OFF)
 	bic	r0, r0, #0x00001000	@ clear bit 12 (I) I-cache
@@ -388,6 +394,37 @@ skip_errata_801819:
 	mrc	p15, 0, r0, c15, c0, 1	@ read diagnostic register
 	orr	r0, r0, #1 << 12	@ set bit #12
 	mcr	p15, 0, r0, c15, c0, 1	@ write diagnostic register
+#endif
+
+#if defined(CONFIG_ARM_ZERO_CNTVOFF) && defined(CONFIG_SPL_BUILD)
+	/*
+	 * CNTVOFF usage constraints:
+	 * Only accessible from Hyp mode, or from Monitor mode when SCR.NS is
+	 * set to 1.
+	 */
+	/* switch to MON */
+	cps #22
+	isb
+
+	/* Update SCR.NS to non Secure mode */
+	mrc	p15, 0, r0, c1, c1, 0
+	orr r0, r0, #(1 << 0)
+	mcr	p15, 0, r0, c1, c1, 0
+	isb
+
+	/* set vtimer virtual offset 0 */
+	mov	r0, #0
+	mcrr	p15, 4, r0, r0, c14	@ CNTVOFF
+
+	/* Update SCR.NS to Secure mode */
+	mrc	p15, 0, r0, c1, c1, 0
+	bic r0, r0, #(1 << 0)
+	mcr	p15, 0, r0, c1, c1, 0
+	isb
+
+	/* switch back to SVC */
+	cps #19
+	isb
 #endif
 
 	mov	pc, r5			@ back to my caller

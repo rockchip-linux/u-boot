@@ -33,6 +33,8 @@ u32 fdt_getprop_u32_default_node(const void *fdt, int off, int cell,
 u32 fdt_getprop_u32_default(const void *fdt, const char *path,
 				const char *prop, const u32 dflt);
 
+int fdt_setprop_uxx(void *fdt, int nodeoffset, const char *name,
+		    uint64_t val, int is_u64);
 /**
  * fdt_root() - add data to the root of the FDT before booting the OS
  *
@@ -139,6 +141,9 @@ static inline int fdt_fixup_memory_banks(void *blob, u64 start[], u64 size[],
 }
 #endif
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+int fdt_update_reserved_memory(void *blob, char *name, u64 start, u64 size);
+#endif
 void fdt_fixup_ethernet(void *fdt);
 int fdt_find_and_setprop(void *fdt, const char *node, const char *prop,
 			 const void *val, int len, int create);
@@ -238,7 +243,7 @@ int board_rng_seed(struct abuf *buf);
  *
  * Return: pointer to kernel command line arguments in memory
  */
-const char *board_fdt_chosen_bootargs(const struct fdt_property *fdt_ba);
+const char *board_fdt_chosen_bootargs(void *fdt);
 
 /*
  * The keystone2 SOC requires all 32 bit aliased addresses to be converted

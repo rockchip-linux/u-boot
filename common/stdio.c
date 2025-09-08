@@ -57,6 +57,11 @@ static int nulldev_input(struct stdio_dev *dev)
 	return 0;
 }
 
+static void nulldev_clear(struct stdio_dev *dev)
+{
+	/* nulldev is empty! */
+}
+
 static void nulldev_register(void)
 {
 	struct stdio_dev dev;
@@ -103,6 +108,11 @@ static int stdio_serial_tstc(struct stdio_dev *dev)
 	return serial_tstc();
 }
 
+static void stdio_serial_clear(struct stdio_dev *dev)
+{
+	serial_clear();
+}
+
 /**************************************************************************
  * SYSTEM DRIVERS
  **************************************************************************
@@ -121,6 +131,7 @@ static void drv_system_init (void)
 	STDIO_DEV_ASSIGN_FLUSH(&dev, stdio_serial_flush);
 	dev.getc = stdio_serial_getc;
 	dev.tstc = stdio_serial_tstc;
+	dev.clear = stdio_serial_clear;
 	stdio_register (&dev);
 
 	nulldev_register();

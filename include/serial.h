@@ -371,6 +371,7 @@ int serial_printf(const char *fmt, ...)
 
 int serial_init(void);
 void serial_setbrg(void);
+void serial_clear(void);
 void serial_putc(const char ch);
 void serial_putc_raw(const char ch);
 void serial_puts(const char *str);

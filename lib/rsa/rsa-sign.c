@@ -381,6 +381,31 @@ static void rsa_engine_remove(ENGINE *e)
 	}
 }
 
+/*
+ * With this data2sign.bin, we can provide it to who real holds the RAS-private
+ * key to sign current fit image. Then we replace the signature in fit image
+ * with a valid one.
+ */
+static int gen_data2sign(const struct image_region region[], int region_count)
+{
+	char *file = "data2sign.bin";
+	FILE *fd;
+	int i;
+
+	fd = fopen(file, "wb");
+	if (!fd) {
+		fprintf(stderr, "Failed to create %s: %s\n",
+			file, strerror(errno));
+		return -ENOENT;
+	}
+
+	for (i = 0; i < region_count; i++)
+		fwrite(region[i].data, region[i].size, 1, fd);
+
+	fclose(fd);
+
+	return 0;
+}
 static int rsa_sign_with_key(EVP_PKEY *pkey, struct padding_algo *padding_algo,
 			     struct checksum_algo *checksum_algo,
 		const struct image_region region[], int region_count,
@@ -458,6 +483,7 @@ static int rsa_sign_with_key(EVP_PKEY *pkey, struct padding_algo *padding_algo,
 	*sigp = sig;
 	*sig_size = size;
 
+	gen_data2sign(region, region_count);
 	return 0;
 
 err_sign:
@@ -562,11 +588,12 @@ cleanup:
  * rsa_get_params(): - Get the important parameters of an RSA public key
  */
 int rsa_get_params(RSA *key, uint64_t *exponent, uint32_t *n0_invp,
-		   BIGNUM **modulusp, BIGNUM **r_squaredp)
+		   BIGNUM **modulusp, BIGNUM **exponent_BN, BIGNUM **r_squaredp,
+		   BIGNUM **c_factorp, BIGNUM **np_factorp)
 {
-	BIGNUM *big1, *big2, *big32, *big2_32;
-	BIGNUM *n, *r, *r_squared, *tmp;
-	const BIGNUM *key_n;
+	BIGNUM *big1, *big2, *big32, *big2_32, *big4100, *big2180, *big4228;
+	BIGNUM *n, *e, *r, *r_squared, *tmp, *c_factor, *np_factor;
+	const BIGNUM *key_n, *key_e;
 	BN_CTX *bn_ctx = BN_CTX_new();
 	int ret = 0;
 
@@ -574,13 +601,21 @@ int rsa_get_params(RSA *key, uint64_t *exponent, uint32_t *n0_invp,
 	big1 = BN_new();
 	big2 = BN_new();
 	big32 = BN_new();
+	big4100 = BN_new();
+	big2180 = BN_new();
+	big4228 = BN_new();
+
 	r = BN_new();
 	r_squared = BN_new();
+	c_factor = BN_new();
+	np_factor = BN_new();
 	tmp = BN_new();
 	big2_32 = BN_new();
 	n = BN_new();
-	if (!big1 || !big2 || !big32 || !r || !r_squared || !tmp || !big2_32 ||
-	    !n) {
+	e = BN_new();
+	if (!big1 || !big2 || !big32 || !big4100 || !big2180 || !big4228 || !r ||
+	    !r_squared || !tmp || !big2_32 || !n || !e ||
+	    !c_factor || !np_factor) {
 		fprintf(stderr, "Out of memory (bignum)\n");
 		return -ENOMEM;
 	}
@@ -588,9 +623,12 @@ int rsa_get_params(RSA *key, uint64_t *exponent, uint32_t *n0_invp,
 	if (0 != rsa_get_exponent(key, exponent))
 		ret = -1;
 
-	RSA_get0_key(key, &key_n, NULL, NULL);
-	if (!BN_copy(n, key_n) || !BN_set_word(big1, 1L) ||
-	    !BN_set_word(big2, 2L) || !BN_set_word(big32, 32L))
+	RSA_get0_key(key, &key_n, &key_e, NULL);
+	if (!BN_copy(n, key_n) || !BN_copy(e, key_e) ||
+	    !BN_set_word(big1, 1L) ||
+	    !BN_set_word(big2, 2L) || !BN_set_word(big32, 32L) ||
+	    !BN_set_word(big4100, 4100L) || !BN_set_word(big2180, 2180L) ||
+	    !BN_set_word(big4228, 4228L))
 		ret = -1;
 
 	/* big2_32 = 2^32 */
@@ -614,12 +652,34 @@ int rsa_get_params(RSA *key, uint64_t *exponent, uint32_t *n0_invp,
 	    !BN_mod(r_squared, tmp, n, bn_ctx))
 		ret = -1;
 
+	/* Calculate c_factor = 2^4100 mod n */
+	if (!BN_exp(tmp, big2, big4100, bn_ctx) ||
+	    !BN_mod(c_factor, tmp, n, bn_ctx))
+		ret = -1;
+
+	/* Calculate np_factor = 2^2180 div n */
+	if (BN_num_bits(n) == 2048) {
+		if (!BN_exp(tmp, big2, big2180, bn_ctx) ||
+		    !BN_div(np_factor, NULL, tmp, n, bn_ctx))
+			ret = -1;
+	} else {/* Calculate 4096 np_factor = 2^4228 div n */
+		if (!BN_exp(tmp, big2, big4228, bn_ctx) ||
+		    !BN_div(np_factor, NULL, tmp, n, bn_ctx))
+			ret = -1;
+	}
+
 	*modulusp = n;
+	*exponent_BN = e;
 	*r_squaredp = r_squared;
+	*c_factorp = c_factor;
+	*np_factorp = np_factor;
 
 	BN_free(big1);
 	BN_free(big2);
 	BN_free(big32);
+	BN_free(big4100);
+	BN_free(big2180);
+	BN_free(big4228);
 	BN_free(r);
 	BN_free(tmp);
 	BN_free(big2_32);
@@ -631,9 +691,91 @@ int rsa_get_params(RSA *key, uint64_t *exponent, uint32_t *n0_invp,
 	return ret;
 }
 
+static void rsa_convert_big_endian(uint32_t *dst, const uint32_t *src,
+				   int total_len, int convert_len)
+{
+	int total_wd, convert_wd, i;
+
+	if (total_len < convert_len)
+		convert_len = total_len;
+
+	total_wd = total_len / sizeof(uint32_t);
+	convert_wd = convert_len / sizeof(uint32_t);
+	for (i = 0; i < convert_wd; i++)
+		dst[i] = fdt32_to_cpu(src[total_wd - 1 - i]);
+}
+
+static int rsa_set_key_hash(void *keydest, int key_node,
+			    int key_len, const char *csum_algo)
+{
+	const void *rsa_n, *rsa_e, *rsa_c, *rsa_np;
+	void *n, *e, *c, *np;
+	uint8_t value[FIT_MAX_HASH_LEN];
+	char hash_c[] = "hash@c";
+	char hash_np[] = "hash@np";
+	char *rsa_key;
+	int hash_node;
+	int value_len;
+	int ret = -ENOSPC;
+
+	rsa_key = calloc(key_len * 3, sizeof(char));
+	if (!rsa_key)
+		return -ENOSPC;
+
+	rsa_n = fdt_getprop(keydest, key_node, "rsa,modulus", NULL);
+	rsa_e = fdt_getprop(keydest, key_node, "rsa,exponent-BN", NULL);
+	rsa_c = fdt_getprop(keydest, key_node, "rsa,c", NULL);
+	rsa_np = fdt_getprop(keydest, key_node, "rsa,np", NULL);
+	if (!rsa_c || !rsa_np || !rsa_n || !rsa_e)
+		goto err_nospc;
+
+	n = rsa_key;
+	e = rsa_key + CONFIG_RSA_N_SIZE;
+	rsa_convert_big_endian(n, rsa_n, key_len, CONFIG_RSA_N_SIZE);
+	rsa_convert_big_endian(e, rsa_e, key_len, CONFIG_RSA_E_SIZE);
+
+	/* hash@c node: n, e, c */
+	c = rsa_key + CONFIG_RSA_N_SIZE + CONFIG_RSA_E_SIZE;
+	rsa_convert_big_endian(c, rsa_c, key_len, CONFIG_RSA_C_SIZE);
+	hash_node = fdt_add_subnode(keydest, key_node, hash_c);
+	if (hash_node < 0)
+		goto err_nospc;
+	ret = calculate_hash(rsa_key, key_len * 3, csum_algo, value, &value_len);
+	if (ret)
+		goto err_nospc;
+	ret = fdt_setprop(keydest, hash_node, FIT_VALUE_PROP, value, value_len);
+	if (ret)
+		goto err_nospc;
+	ret = fdt_setprop_string(keydest, hash_node, FIT_ALGO_PROP, csum_algo);
+	if (ret < 0)
+		goto err_nospc;
+
+	/* hash@np node: n, e, np */
+	np = rsa_key + CONFIG_RSA_N_SIZE + CONFIG_RSA_E_SIZE;
+	rsa_convert_big_endian(np, rsa_np, key_len, CONFIG_RSA_C_SIZE);
+	hash_node = fdt_add_subnode(keydest, key_node, hash_np);
+	if (hash_node < 0)
+		goto err_nospc;
+
+	ret = calculate_hash(rsa_key, CONFIG_RSA_N_SIZE + CONFIG_RSA_E_SIZE + CONFIG_RSA_C_SIZE,
+			     csum_algo, value, &value_len);
+	if (ret)
+		goto err_nospc;
+	ret = fdt_setprop(keydest, hash_node, FIT_VALUE_PROP, value, value_len);
+	if (ret < 0)
+		goto err_nospc;
+	ret = fdt_setprop_string(keydest, hash_node, FIT_ALGO_PROP, csum_algo);
+
+err_nospc:
+	if (rsa_key)
+		free(rsa_key);
+
+	return ret ? -ENOSPC : 0;
+}
+
 int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 {
-	BIGNUM *modulus, *r_squared;
+	BIGNUM *modulus, *exponent_BN, *r_squared, *c_factor, *np_factor;
 	uint64_t exponent;
 	uint32_t n0_inv;
 	int parent, node = -FDT_ERR_NOTFOUND;
@@ -655,7 +797,8 @@ int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 		goto err_get_pub_key;
 
 	rsa = (RSA *)EVP_PKEY_get0_RSA(pkey);
-	ret = rsa_get_params(rsa, &exponent, &n0_inv, &modulus, &r_squared);
+	ret = rsa_get_params(rsa, &exponent, &n0_inv, &modulus,
+			     &exponent_BN, &r_squared, &c_factor, &np_factor);
 	if (ret)
 		goto err_get_params;
 	bits = BN_num_bits(modulus);
@@ -703,11 +846,23 @@ int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 		ret = fdt_setprop_u64(keydest, node, "rsa,exponent", exponent);
 	}
 	if (!ret) {
+		ret = fdt_add_bignum(keydest, node, "rsa,exponent-BN",
+				     exponent_BN, bits);
+	}
+	if (!ret) {
 		ret = fdt_add_bignum(keydest, node, "rsa,modulus", modulus,
 				     bits);
 	}
 	if (!ret) {
 		ret = fdt_add_bignum(keydest, node, "rsa,r-squared", r_squared,
+				     bits);
+	}
+	if (!ret) {
+		ret = fdt_add_bignum(keydest, node, "rsa,c", c_factor,
+				     bits);
+	}
+	if (!ret) {
+		ret = fdt_add_bignum(keydest, node, "rsa,np", np_factor,
 				     bits);
 	}
 	if (!ret) {
@@ -717,6 +872,10 @@ int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 	if (!ret && info->require_keys) {
 		ret = fdt_setprop_string(keydest, node, FIT_KEY_REQUIRED,
 					 info->require_keys);
+	}
+	if (!ret) {
+		ret = rsa_set_key_hash(keydest, node, info->crypto->key_len,
+				       info->checksum->name);
 	}
 done:
 	BN_free(modulus);

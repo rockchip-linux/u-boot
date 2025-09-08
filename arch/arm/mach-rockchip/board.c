@@ -12,14 +12,29 @@
 #include <clk.h>
 #include <cpu_func.h>
 #include <env.h>
+#include <android_ab.h>
+#ifdef CONFIG_AVB_VERIFY
+#include <avb_verify.h>
+#endif
+#include <button.h>
+#include <exports.h>
+#include <cli.h>
+#include <clk.h>
+#include <cpu_func.h>
+#include <debug_uart.h>
+#include <tee/optee.h>
 #include <dm.h>
 #include <dm/uclass-internal.h>
 #include <efi_loader.h>
+#include <exports.h>
 #include <fastboot.h>
 #include <hash.h>
+#include <fdt_support.h>
+#include <hotkey.h>
 #include <init.h>
 #include <log.h>
 #include <mmc.h>
+#include <mini_dump.h>
 #include <dm/uclass-internal.h>
 #include <misc.h>
 #include <part.h>
@@ -28,186 +43,205 @@
 #include <u-boot/uuid.h>
 #include <u-boot/crc.h>
 #include <u-boot/sha256.h>
+#include <u-boot/uuid.h>
 #include <asm/cache.h>
 #include <asm/io.h>
+#include <asm/global_data.h>
+#include <asm/arch-rockchip/atags.h>
 #include <asm/arch-rockchip/boot_mode.h>
+#include <asm/arch-rockchip/common.h>
 #include <asm/arch-rockchip/clock.h>
 #include <asm/arch-rockchip/periph.h>
+#include <asm/arch-rockchip/misc.h>
+#include <asm/arch-rockchip/periph.h>
+#include <asm/arch-rockchip/pstore.h>
+#include <asm/arch-rockchip/param.h>
+#include <asm/arch-rockchip/vendor.h>
+#include <asm/arch-rockchip/atags.h>
+#include <asm/arch-rockchip/boot_mode.h>
+#include <asm/arch-rockchip/param.h>
+#include <linux/input.h>
+#include <power/charge_display.h>
 #include <power/regulator.h>
+#include <tee/optee.h>
 
-#if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT) && IS_ENABLED(CONFIG_EFI_PARTITION)
+DECLARE_GLOBAL_DATA_PTR;
 
-#define DFU_ALT_BUF_LEN			SZ_1K
+__weak int soc_id_init(void) { return 0; }
+__weak int clk_cpu_raise(void) { return 0; }
+__weak int rk_board_fdt_fixup(void *blob) { return 0; }
+__weak int rk_board_dm_fdt_fixup(void *blob) { return 0; }
+__weak int rk_board_init(void) { return 0; }
+__weak int rk_board_late_init(void) { return 0; }
 
-static struct efi_fw_image *fw_images;
-
-static bool updatable_image(struct disk_partition *info)
+/* override weak */
+int board_kernel_dtb_read(void *fdt)
 {
-	int i;
-	bool ret = false;
-	efi_guid_t image_type_guid;
-
-	uuid_str_to_bin(info->type_guid, image_type_guid.b,
-			UUID_STR_FORMAT_GUID);
-
-	for (i = 0; i < update_info.num_images; i++) {
-		if (!guidcmp(&fw_images[i].image_type_id, &image_type_guid)) {
-			ret = true;
-			break;
-		}
-	}
-
-	return ret;
+	return rockchip_read_dtb_file(fdt);
 }
 
-static void set_image_index(struct disk_partition *info, int index)
+static void board_debug_init(void)
 {
-	int i;
-	efi_guid_t image_type_guid;
+	if (!gd->serial.using_pre_serial &&
+	    !(gd->flags & GD_FLG_DISABLE_CONSOLE))
+		debug_uart_init();
 
-	uuid_str_to_bin(info->type_guid, image_type_guid.b,
-			UUID_STR_FORMAT_GUID);
-
-	for (i = 0; i < update_info.num_images; i++) {
-		if (!guidcmp(&fw_images[i].image_type_id, &image_type_guid)) {
-			fw_images[i].image_index = index;
-			break;
-		}
+	if (tstc()) {
+		gd->console_evt = getchar();
+		if (gd->console_evt <= 0x1a) /* 'z' */
+			printf("Hotkey: ctrl+%c\n", gd->console_evt + 'a' - 1);
 	}
+
+	if (IS_ENABLED(CONFIG_CONSOLE_DISABLE_CLI))
+		printf("Cmd interface: disabled\n");
 }
 
-static int get_mmc_desc(struct blk_desc **desc)
+/*
+ * 32-bit U-Boot: MMU is setup according to gd->bd->bi_dram[..] where
+ * the OP-TEE region has been reserved, so it region is dcache off.
+ * Let's map it here.
+ */
+static int optee_region_map(void)
 {
+#if defined(CONFIG_OPTEE_CLIENT) && !defined(CONFIG_ARM64)
+	struct memblock mem;
 	int ret;
-	struct mmc *mmc;
-	struct udevice *dev;
 
-	/*
-	 * For now the firmware images are assumed to
-	 * be on the SD card
-	 */
-	ret = uclass_get_device(UCLASS_MMC, 1, &dev);
+	mem = param_parse_optee_mem();
+	ret = bidram_reserve(MEM_OPTEE, mem.base, mem.size);
 	if (ret)
-		return -1;
-
-	mmc = mmc_get_mmc_dev(dev);
-	if (!mmc)
-		return -ENODEV;
-
-	if ((ret = mmc_init(mmc)))
 		return ret;
 
-	*desc = mmc_get_blk_desc(mmc);
-	if (!*desc)
-		return -1;
-
+	if (mem.size)
+		mmu_set_region_dcache_behaviour(mem.base, mem.size,
+						DCACHE_WRITEBACK);
+#endif
 	return 0;
 }
 
-void set_dfu_alt_info(char *interface, char *devstr)
+static void scan_run_cmd(void)
 {
-	const char *name;
-	bool first = true;
-	int p, len, devnum, ret;
-	char buf[DFU_ALT_BUF_LEN];
-	struct disk_partition info;
-	struct blk_desc *desc = NULL;
+	char *config = CONFIG_ROCKCHIP_CMD;
+	char *cmd, *key;
 
-	ret = get_mmc_desc(&desc);
-	if (ret) {
-		log_err("Unable to get mmc desc\n");
+	key = strchr(config, ' ');
+	if (!key)
 		return;
-	}
 
-	memset(buf, 0, sizeof(buf));
-	name = blk_get_uclass_name(desc->uclass_id);
-	devnum = desc->devnum;
-	len = strlen(buf);
+	cmd = strdup(config);
+	cmd[key - config] = 0;
+	key++;
 
-	len += snprintf(buf + len, DFU_ALT_BUF_LEN - len,
-			 "%s %d=", name, devnum);
+	if (!strcmp(key, "-")) {
+		run_command(cmd, 0);
+	} else {
+#ifdef CONFIG_BUTTON
+		ulong map;
 
-	for (p = 1; p <= MAX_SEARCH_PARTITIONS; p++) {
-		if (part_get_info(desc, p, &info))
-			continue;
-
-		/* Add entry to dfu_alt_info only for updatable images */
-		if (updatable_image(&info)) {
-			if (!first)
-				len += snprintf(buf + len,
-						DFU_ALT_BUF_LEN - len, ";");
-
-			len += snprintf(buf + len, DFU_ALT_BUF_LEN - len,
-					"%s%d_%s part %d %d",
-					name, devnum, info.name, devnum, p);
-			first = false;
+		map = simple_strtoul(key, NULL, 10);
+		if (button_is_on(map)) {
+			printf("## Key<%ld> pressed... run cmd '%s'\n", map, cmd);
+			run_command(cmd, 0);
 		}
-	}
-
-	log_debug("dfu_alt_info => %s\n", buf);
-	env_set("dfu_alt_info", buf);
-}
-
-__weak void rockchip_capsule_update_board_setup(void)
-{
-}
-
-static void gpt_capsule_update_setup(void)
-{
-	int p, i, ret;
-	struct disk_partition info;
-	struct blk_desc *desc = NULL;
-
-	fw_images = update_info.images;
-	rockchip_capsule_update_board_setup();
-
-	ret = get_mmc_desc(&desc);
-	if (ret) {
-		log_err("Unable to get mmc desc\n");
-		return;
-	}
-
-	for (p = 1, i = 1; p <= MAX_SEARCH_PARTITIONS; p++) {
-		if (part_get_info(desc, p, &info))
-			continue;
-
-		/*
-		 * Since we have a GPT partitioned device, the updatable
-		 * images could be stored in any order. Populate the
-		 * image_index at runtime.
-		 */
-		if (updatable_image(&info)) {
-			set_image_index(&info, i);
-			i++;
-		}
+#endif
 	}
 }
-#endif /* CONFIG_EFI_HAVE_CAPSULE_SUPPORT && CONFIG_EFI_PARTITION */
 
-__weak int rk_board_late_init(void)
+static void env_setup(void)
 {
-	return 0;
+	/* disable bootm relcation to save boot time */
+	env_set_hex("fdt_high", -1UL);
+	env_set_hex("initrd_high", -1UL);
 }
 
 int board_late_init(void)
 {
-	setup_boot_mode();
+#ifdef CONFIG_ROCKCHIP_SET_ETHADDR
+	rockchip_setup_macaddr();
+#endif
+#ifdef CONFIG_ROCKCHIP_SET_SN
+	rockchip_setup_serial_number();
+#endif
+	rockusb_download();
 
+	scan_run_cmd();
+#ifdef CONFIG_ROCKCHIP_USB_BOOT
+	usb_boot_init();
+#endif
+#ifdef CONFIG_DM_CHARGE_DISPLAY
+	charge_display();
+#endif
+#ifdef CONFIG_ROCKCHIP_MINIDUMP
+	minidump_init();
+#endif
+#ifdef CONFIG_DRM_ROCKCHIP
+	if (plat_boot_mode() != BOOT_MODE_QUIESCENT)
+		rockchip_show_logo();
+#endif
+#ifdef CONFIG_ROCKCHIP_EINK_DISPLAY
+	rockchip_eink_show_uboot_logo();
+#endif
+#if (CONFIG_ROCKCHIP_BOOT_MODE_REG > 0)
+	setup_boot_mode();
+#endif
+	env_setup();
+	soc_clk_dump();
+	bootargs_setup();
 #if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT) && IS_ENABLED(CONFIG_EFI_PARTITION)
 	gpt_capsule_update_setup();
 #endif
+#ifdef CONFIG_AMP
+	amp_cpus_on();
+#endif
+//	run_command("download", 0);
 
 	return rk_board_late_init();
 }
 
 int board_init(void)
 {
-	return 0;
+	board_debug_init();
+#ifdef DEBUG
+	soc_clk_dump();
+#endif
+#ifdef CONFIG_OPTEE
+	optee_region_map();
+	optee_client_init();
+#endif
+#ifdef CONFIG_DM_KERNEL_DTB
+	kernel_dtb_init();
+#endif
+#ifdef CONFIG_HOTKEY
+	rbrom_download();
+#endif
+#ifdef CONFIG_CLK
+	clk_init();
+#endif
+#ifdef CONFIG_DM_REGULATOR
+	regulators_enable_boot_on(false);
+#endif
+#ifdef CONFIG_ROCKCHIP_IO_DOMAIN
+	io_domain_init();
+#endif
+#ifdef CONFIG_CLK
+	clk_cpu_raise();
+#endif
+#ifdef CONFIG_DM_DVFS
+	dvfs_init(true);
+#endif
+#ifdef CONFIG_ANDROID_AB
+	if (ab_decrease_tries())
+		printf("Decrease ab tries count fail!\n");
+#endif
+	soc_id_init();
+
+	return rk_board_init();
 }
 
 #if !defined(CONFIG_SYS_DCACHE_OFF) && !defined(CONFIG_ARM64)
 void enable_caches(void)
 {
+	icache_enable();
 	/* Enable D-cache. I-cache is already enabled in start.S */
 	dcache_enable();
 }
@@ -305,6 +339,29 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 	return 0;
 }
 #endif /* CONFIG_USB_GADGET_DWC2_OTG */
+#if defined(CONFIG_USB_DWC3_GADGET) && !defined(CONFIG_DM_USB_GADGET)
+#include <dwc3-uboot.h>
+
+static struct dwc3_device dwc3_device_data = {
+	.maximum_speed = USB_SPEED_HIGH,
+	.base = CFG_USB_DNL_BASE,
+	.dr_mode = USB_DR_MODE_PERIPHERAL,
+	.index = 0,
+	.dis_u2_susphy_quirk = 1,
+	.hsphy_mode = USBPHY_INTERFACE_MODE_UTMIW,
+};
+
+int usb_gadget_handle_interrupts(int index)
+{
+	dwc3_uboot_handle_interrupt(index);
+	return 0;
+}
+
+int board_usb_init(int index, enum usb_init_type init)
+{
+	return dwc3_uboot_init(&dwc3_device_data);
+}
+#endif /* CONFIG_USB_DWC3_GADGET */
 #endif /* CONFIG_USB_GADGET */
 
 #if IS_ENABLED(CONFIG_FASTBOOT)
@@ -321,154 +378,13 @@ int fastboot_set_reboot_flag(enum fastboot_reboot_reason reason)
 }
 #endif
 
-#ifdef CONFIG_MISC_INIT_R
-int rockchip_setup_macaddr(void)
-{
-#if CONFIG_IS_ENABLED(HASH) && CONFIG_IS_ENABLED(SHA256)
-	int ret;
-	const char *cpuid = env_get("cpuid#");
-	u8 hash[SHA256_SUM_LEN];
-	int size = sizeof(hash);
-	u8 mac_addr[6];
-
-	/* Only generate a MAC address, if none is set in the environment */
-	if (env_get("ethaddr"))
-		return 0;
-
-	if (!cpuid) {
-		debug("%s: could not retrieve 'cpuid#'\n", __func__);
-		return -1;
-	}
-
-	ret = hash_block("sha256", (void *)cpuid, strlen(cpuid), hash, &size);
-	if (ret) {
-		debug("%s: failed to calculate SHA256\n", __func__);
-		return -1;
-	}
-
-	/* Copy 6 bytes of the hash to base the MAC address on */
-	memcpy(mac_addr, hash, 6);
-
-	/* Make this a valid MAC address and set it */
-	mac_addr[0] &= 0xfe;  /* clear multicast bit */
-	mac_addr[0] |= 0x02;  /* set local assignment bit (IEEE802) */
-	eth_env_set_enetaddr("ethaddr", mac_addr);
-
-	/* Make a valid MAC address for ethernet1 */
-	mac_addr[5] ^= 0x01;
-	eth_env_set_enetaddr("eth1addr", mac_addr);
-#endif
-	return 0;
-}
-
-int rockchip_cpuid_from_efuse(const u32 cpuid_offset,
-			      const u32 cpuid_length,
-			      u8 *cpuid)
-{
-#if IS_ENABLED(CONFIG_ROCKCHIP_EFUSE) || IS_ENABLED(CONFIG_ROCKCHIP_OTP)
-	struct udevice *dev;
-	int ret;
-
-	/* retrieve the device */
-#if IS_ENABLED(CONFIG_ROCKCHIP_EFUSE)
-	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_DRIVER_GET(rockchip_efuse), &dev);
-#elif IS_ENABLED(CONFIG_ROCKCHIP_OTP)
-	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_DRIVER_GET(rockchip_otp), &dev);
-#endif
-	if (ret) {
-		debug("%s: could not find efuse device\n", __func__);
-		return -1;
-	}
-
-	/* read the cpu_id range from the efuses */
-	ret = misc_read(dev, cpuid_offset, cpuid, cpuid_length);
-	if (ret < 0) {
-		debug("%s: reading cpuid from the efuses failed\n",
-		      __func__);
-		return -1;
-	}
-#endif
-	return 0;
-}
-
-int rockchip_cpuid_set(const u8 *cpuid, const u32 cpuid_length)
-{
-	u8 low[cpuid_length / 2], high[cpuid_length / 2];
-	char cpuid_str[cpuid_length * 2 + 1];
-	u64 serialno;
-	char serialno_str[17];
-	const char *oldid;
-	int i;
-
-	memset(cpuid_str, 0, sizeof(cpuid_str));
-	for (i = 0; i < cpuid_length; i++)
-		sprintf(&cpuid_str[i * 2], "%02x", cpuid[i]);
-
-	debug("cpuid: %s\n", cpuid_str);
-
-	/*
-	 * Mix the cpuid bytes using the same rules as in
-	 *   ${linux}/drivers/soc/rockchip/rockchip-cpuinfo.c
-	 */
-	for (i = 0; i < cpuid_length / 2; i++) {
-		low[i] = cpuid[1 + (i << 1)];
-		high[i] = cpuid[i << 1];
-	}
-
-	serialno = crc32_no_comp(0, low, cpuid_length / 2);
-	serialno |= (u64)crc32_no_comp(serialno, high, cpuid_length / 2) << 32;
-	snprintf(serialno_str, sizeof(serialno_str), "%016llx", serialno);
-
-	oldid = env_get("cpuid#");
-	if (oldid && strcmp(oldid, cpuid_str) != 0)
-		printf("cpuid: value %s present in env does not match hardware %s\n",
-		       oldid, cpuid_str);
-
-	env_set("cpuid#", cpuid_str);
-
-	/* Only generate serial# when none is set yet */
-	if (!env_get("serial#"))
-		env_set("serial#", serialno_str);
-
-	return 0;
-}
-
-__weak int rockchip_early_misc_init_r(void)
-{
-	return 0;
-}
-
-__weak int misc_init_r(void)
-{
-	const u32 cpuid_offset = CFG_CPUID_OFFSET;
-	const u32 cpuid_length = 0x10;
-	u8 cpuid[cpuid_length];
-	int ret;
-
-	ret = rockchip_early_misc_init_r();
-	if (ret)
-		return ret;
-
-	ret = rockchip_cpuid_from_efuse(cpuid_offset, cpuid_length, cpuid);
-	if (ret)
-		return ret;
-
-	ret = rockchip_cpuid_set(cpuid, cpuid_length);
-	if (ret)
-		return ret;
-
-	ret = rockchip_setup_macaddr();
-
-	return ret;
-}
-#endif
-
 #if IS_ENABLED(CONFIG_BOARD_RNG_SEED) && IS_ENABLED(CONFIG_RNG_ROCKCHIP)
 #include <rng.h>
 
-/* Use hardware rng to seed Linux random. */
+/* Use hardware rng to seed Linux random.
+ *
+ * 'Android_14 + GKI' requires this information.
+ */
 __weak int board_rng_seed(struct abuf *buf)
 {
 	struct udevice *dev;
@@ -535,3 +451,227 @@ int mmc_get_env_dev(void)
 	debug("%s: get MMC env from mmc%d\n", __func__, devnum);
 	return devnum;
 }
+
+void autoboot_command_fail_handle(void)
+{
+#ifdef CONFIG_ANDROID_AB
+	if (ab_have_bootable_slot() == true)
+		run_command("reset;", 0);
+	else
+		run_command("fastboot usb 0;", 0);
+#endif
+
+#ifdef CONFIG_AVB_VBMETA_PUBLIC_KEY_VALIDATE
+	run_command("download", 0);
+	run_command("fastboot usb 0;", 0);
+#endif
+}
+
+#ifdef CONFIG_ROCKCHIP_SANITY_CPU_SWAP
+static void sanity_cpu_swap(void *blob)
+{
+	int cpus_offset;
+	int noffset;
+	ulong mpidr;
+	ulong reg;
+
+	cpus_offset = fdt_path_offset(blob, "/cpus");
+	if (cpus_offset < 0)
+		return;
+
+	for (noffset = fdt_first_subnode(blob, cpus_offset);
+	     noffset >= 0;
+	     noffset = fdt_next_subnode(blob, noffset)) {
+		const struct fdt_property *prop;
+		int len;
+
+		prop = fdt_get_property(blob, noffset, "device_type", &len);
+		if (!prop)
+			continue;
+		if (len < 4)
+			continue;
+		if (strcmp(prop->data, "cpu"))
+			continue;
+
+		/* only sanity first cpu */
+		reg = (ulong)fdtdec_get_addr_size_auto_parent(blob, cpus_offset, noffset,
+                                                              "reg", 0, NULL, false);
+		mpidr = read_mpidr() & 0xfff;
+		if ((mpidr & reg) != reg) {
+			printf("CPU swap error: Loader and Kernel firmware mismatch! "
+			       "Current cpu0 \"reg\" is 0x%lx but kernel dtb requires 0x%lx\n",
+			       mpidr, reg);
+			run_command("download", 0);
+		}
+		return;
+	}
+}
+#endif
+
+static int rockchip_dm_late_init(void *blob)
+{
+	struct udevice *dev;
+
+	/* Prepare for board_rng_seed(), dryrun and ignore result */
+	if (IS_ENABLED(CONFIG_BOARD_RNG_SEED) && IS_ENABLED(CONFIG_DM_RNG))
+		uclass_get_device(UCLASS_RNG, 0, &dev);
+
+	return 0;
+}
+
+int board_fdt_fixup(void *blob)
+{
+#ifdef CONFIG_ROCKCHIP_SANITY_CPU_SWAP
+	sanity_cpu_swap(blob);
+#endif
+	/*
+	 * Device's platdata points to orignal fdt blob property,
+	 * access DM device before any fdt fixup.
+	 *
+	 * Do board specific init and common init.
+	 */
+	rk_board_dm_fdt_fixup(blob);
+	rockchip_dm_late_init(blob);
+
+	/* Common fixup for DRM */
+#ifdef CONFIG_DRM_ROCKCHIP
+	rockchip_display_fixup(blob);
+#endif
+#ifdef CONFIG_ROCKCHIP_VENDOR_PARTITION
+	vendor_storage_fixup(blob);
+#endif
+
+	return rk_board_fdt_fixup(blob);
+}
+
+void arch_preboot_os(uint32_t bootm_state)
+{
+#if 0 // TODO
+	if (!(bootm_state & BOOTM_STATE_OS_PREP))
+		return;
+
+#ifdef CONFIG_ARM64
+	u8 *data = (void *)images.ep;
+
+	/*
+	 * Fix kernel 5.10 arm64 boot warning:
+	 * "[Firmware Bug]: Kernel image misaligned at boot, please fix your bootloader!"
+	 *
+	 * kernel: 5.10 commit 120dc60d0bdb ("arm64: get rid of TEXT_OFFSET")
+	 * arm64 kernel version:
+	 *	data[10] == 0x00 if kernel version >= 5.10: N*2MB align
+	 *	data[10] == 0x08 if kernel version <  5.10: N*2MB + 0x80000(TEXT_OFFSET)
+	 *
+	 * Why fix here?
+	 *   1. this is the common and final path for any boot command.
+	 *   2. don't influence original boot flow, just fix it exactly before
+	 *	jumping kernel.
+	 *
+	 * But relocation is in board_quiesce_devices() until all decompress
+	 * done, mainly for saving boot time.
+	 */
+
+	orig_images_ep = images.ep;
+
+	if (data[10] == 0x00) {
+		if (round_down(images.ep, SZ_2M) != images.ep)
+			images.ep = round_down(images.ep, SZ_2M);
+	} else {
+		if (IS_ALIGNED(images.ep, SZ_2M))
+			images.ep += 0x80000;
+	}
+#endif
+	hotkey_run(HK_CLI_OS_PRE);
+#endif
+}
+
+int board_init_f_init_misc(void)
+{
+	int boot_flags = 0;
+
+#ifdef CONFIG_ARM64
+	asm volatile("mrs %0, cntfrq_el0" : "=r" (gd->arch.timer_rate_hz));
+#else
+	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
+#endif
+
+#if CONFIG_IS_ENABLED(FPGA_ROCKCHIP)
+	arch_fpga_init();
+#endif
+#ifdef CONFIG_PSTORE
+	param_parse_pstore();
+#endif
+	param_parse_pre_serial(&boot_flags);
+
+	/* The highest priority to turn off (override) console */
+#if defined(CONFIG_DISABLE_CONSOLE)
+	boot_flags |= GD_FLG_DISABLE_CONSOLE;
+#endif
+
+	return boot_flags;
+}
+
+void board_quiesce_devices(void)
+{
+#ifdef CONFIG_ROCKCHIP_PRELOADER_ATAGS
+	/* Destroy atags makes next warm boot safer */
+	atags_destroy();
+#endif
+#ifdef CONFIG_FIT_ROLLBACK_PROTECT
+	int ret;
+
+	ret = fit_write_optee_rollback_index(gd->rollback_index);
+	if (ret) {
+		panic("Failed to write fit rollback index %d, ret=%d",
+		      gd->rollback_index, ret);
+	}
+#endif
+#ifdef CONFIG_ROCKCHIP_HW_DECOMPRESS
+	misc_decompress_cleanup();
+#endif
+
+#if 0 // TODO
+#ifdef CONFIG_ARM64
+	/* relocate kernel after decompress cleanup */
+	if (orig_images_ep && orig_images_ep != images.ep) {
+		memmove((char *)images.ep, (const char *)orig_images_ep,
+			images.os.image_len);
+		printf("== DO RELOCATE == Kernel from 0x%08lx to 0x%08lx\n",
+		       orig_images_ep, images.ep);
+	}
+#endif
+#endif
+	hotkey_run(HK_CMDLINE);
+	hotkey_run(HK_CLI_OS_GO);
+#ifdef CONFIG_ROCKCHIP_REBOOT_TEST
+	do_reset(NULL, 0, 0, NULL);
+#endif
+
+}
+
+int board_init_f_boot_flags(void)
+{
+	int boot_flags = 0;
+
+#ifdef CONFIG_ARM64
+	asm volatile("mrs %0, cntfrq_el0" : "=r" (gd->arch.timer_rate_hz));
+#else
+	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
+#endif
+
+#if CONFIG_IS_ENABLED(FPGA_ROCKCHIP)
+	arch_fpga_init();
+#endif
+#ifdef CONFIG_PSTORE
+	param_parse_pstore();
+#endif
+	param_parse_pre_serial(&boot_flags);
+
+	/* The highest priority to turn off (override) console */
+#if defined(CONFIG_DISABLE_CONSOLE)
+	boot_flags |= GD_FLG_DISABLE_CONSOLE;
+#endif
+
+	return boot_flags;
+}
+

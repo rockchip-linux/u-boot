@@ -146,6 +146,24 @@ SECTIONS
 		KEEP(*(SORT(__u_boot_list*)));
 	}
 
+	/*
+	 * Stack unwinding tables
+	 */
+	. = ALIGN(8);
+	/* .ARM.exidx is sorted, so has to go in its own output section. */
+	.ARM.exidx : {
+		__exidx_start = .;
+		*(.ARM.exidx*)
+		__exidx_end = .;
+	}
+
+	.ARM.extab : {
+		__extab_start = .;
+		*(.ARM.extab*)
+		__extab_end = .;
+	}
+
+	. = ALIGN(4);
 	.efi_runtime_rel : {
 		__efi_runtime_rel_start = .;
 		*(.rel*.efi_runtime)
@@ -153,7 +171,7 @@ SECTIONS
 		__efi_runtime_rel_stop = .;
 	}
 
-	. = ALIGN(4);
+	. = ALIGN(8);
 	__image_copy_end = .;
 
 	/*
@@ -166,6 +184,7 @@ SECTIONS
 		__rel_dyn_end = .;
 	}
 
+	. = ALIGN(8);
 	_end = .;
 	_image_binary_end = .;
 

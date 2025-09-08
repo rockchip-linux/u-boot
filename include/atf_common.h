@@ -33,6 +33,7 @@
 	(_p)->h.attr = (uint32_t)(_attr) ; \
 	} while (0)
 
+/* ARM64 */
 #define MODE_RW_SHIFT	0x4
 #define MODE_RW_MASK	0x1
 #define MODE_RW_64	0x0
@@ -71,6 +72,34 @@
 #define DAIF_DBG_BIT (1<<3)
 #define DISABLE_ALL_EXECPTIONS	\
 	(DAIF_FIQ_BIT | DAIF_IRQ_BIT | DAIF_ABT_BIT | DAIF_DBG_BIT)
+
+/* ARM */
+#define MODE32_SHIFT		0
+#define MODE32_MASK		0x1f
+#define MODE32_svc		0x13
+
+#define SPSR_FIQ_BIT		(1 << 0)
+#define SPSR_IRQ_BIT		(1 << 1)
+#define SPSR_ABT_BIT		(1 << 2)
+#define SPSR_AIF_SHIFT		6
+#define SPSR_AIF_MASK		0x7
+
+#define EP_EE_LITTLE		0x0
+#define SPSR_E_SHIFT		9
+#define SPSR_E_MASK		0x1
+#define SPSR_T_SHIFT		5
+#define SPSR_T_MASK		0x1
+#define SPSR_T_ARM		0
+
+#define DISABLE_ALL_EXECPTIONS_32 \
+	(SPSR_FIQ_BIT | SPSR_IRQ_BIT | SPSR_ABT_BIT)
+
+#define SPSR_32(mode, isa, endian, aif)			\
+	(MODE_RW_32 << MODE_RW_SHIFT |			\
+	((mode) & MODE32_MASK) << MODE32_SHIFT |	\
+	((isa) & SPSR_T_MASK) << SPSR_T_SHIFT | 	\
+	((endian) & SPSR_E_MASK) << SPSR_E_SHIFT |	\
+	((aif) & SPSR_AIF_MASK) << SPSR_AIF_SHIFT)
 
 #ifndef __ASSEMBLY__
 

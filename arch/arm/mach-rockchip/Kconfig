@@ -269,6 +269,7 @@ config ROCKCHIP_RK3399
 	select DM_PMIC
 	select DM_REGULATOR_FIXED
 	select BOARD_LATE_INIT
+
 	imply ARMV8_CRYPTO
 	imply ARMV8_SET_SMPEN
 	imply BOOTSTD_FULL
@@ -325,6 +326,7 @@ config ROCKCHIP_RK3568
 	select BOARD_LATE_INIT
 	select DM_REGULATOR_FIXED
 	select DM_RESET
+
 	imply BOOTSTD_FULL
 	imply DM_RNG
 	imply MISC_INIT_R
@@ -357,11 +359,15 @@ config ROCKCHIP_RK3588
 	select BOARD_LATE_INIT
 	select DM_REGULATOR_FIXED
 	select DM_RESET
+	select GICV3
 	imply BOOTSTD_FULL
 	imply CLK_SCMI
 	imply DM_RNG
 	imply MISC_INIT_R
 	imply MMC_HS200_SUPPORT if MMC_SDHCI_ROCKCHIP
+	select SYS_PCI_64BIT if PCI
+	imply SPL_ATF_NO_PLATFORM_PARAM if SPL_ATF
+	imply ROCKCHIP_COMMON_BOARD
 	imply OF_LIBFDT_OVERLAY
 	imply OF_UPSTREAM
 	imply PHY_GIGE if DWC_ETH_QOS_ROCKCHIP
@@ -617,6 +623,172 @@ config ROCKCHIP_COMMON_STACK_ADDR
 
 config NR_DRAM_BANKS
 	default 10 if ROCKCHIP_EXTERNAL_TPL
+
+config ROCKCHIP_NEW_IDB
+	bool "Rockchip new IDB header"
+	default n
+	help
+	  The new IDB header was introduced from RK356X.
+
+config ROCKCHIP_SMCCC
+	bool "Rockchip smc call support"
+	default y if ARM_SMCCC
+
+config ROCKCHIP_PRELOADER_ATAGS
+	bool "Rockchip pre-loader atags support"
+	default y
+
+config ROCKCHIP_PRELOADER_SERIAL
+	bool "Rockchip pre-loader serial"
+	default y if ROCKCHIP_PRELOADER_ATAGS
+
+config ROCKCHIP_RESOURCE_IMAGE
+	bool "Rockchip resource image support"
+	default y
+
+config ROCKCHIP_HWID_DTB
+	bool "Rockchip get dtb from resource image according to hw-id"
+	depends on ROCKCHIP_RESOURCE_IMAGE
+	default n
+
+config ROCKCHIP_USB_BOOT
+	bool "Rockchip USB(disk) boot support"
+	depends on USB
+	default n
+
+config ROCKCHIP_FIT_IMAGE
+	bool "Rockchip FIT image boot support"
+	depends on FIT
+	select CMD_BOOT_FIT
+	default n
+
+config ROCKCHIP_UIMAGE
+	bool "Rockchip UImage boot support"
+	depends on !FIT_SIGNATURE
+	select CMD_BOOT_UIMAGE
+	default n
+
+config ROCKCHIP_FPGA
+	bool "Enable Rockchip FPGA drivers"
+	depends on ARCH_ROCKCHIP
+	help
+	  Enale Rockchip FPGA specific functions.
+
+config FPGA_MMC
+	bool "FPGA board with MMC"
+	depends on ROCKCHIP_FPGA
+
+config FPGA_RAM
+	bool "FPGA board with RAM"
+	depends on ROCKCHIP_FPGA
+	select SPL_RAM_SUPPORT
+	select DM_RAMDISK
+	select RAMDISK_RO
+
+config ROCKCHIP_META
+	bool "Rockchip Meta"
+	depends on SPL_KERNEL_BOOT && SPL_LIBDISK_SUPPORT
+	default n
+
+config ROCKCHIP_VENDOR_PARTITION
+	bool "Rockchip vendor partition support"
+	default y
+
+config ROCKCHIP_LOWLEVEL_INIT
+	bool "Rockchip lowlevel init"
+
+if ROCKCHIP_LOWLEVEL_INIT
+config LL_EMMC_IOMUX
+	bool "Lowlevel EMMC IOMUX"
+
+config LL_NAND_IOMUX
+	bool "Lowlevel NAND IOMUX"
+
+config LL_SFC_IOMUX
+	bool "Lowlevel SFC IOMUX"
+endif
+
+config ROCKCHIP_UART_MUX_SEL_M
+	int "UART mux select"
+	depends on TPL
+	default 0
+
+config ROCKCHIP_BOOTDEV
+	string "Set the boot device for multiple storage board"
+	default ""
+
+config ROCKCHIP_CMD
+	string "Rockchip specific command"
+	default ""
+	help
+	  It defines a command to be run when the key is pressed if assigned.
+	  String format: "cmd key".
+	  @cmd: any U-Boot cmd.
+	  @key: any key map id, '-' standard for ignore.
+	  e.g. "sd_update 115", 115 is KEY_VOLUMEUP.
+
+config ROCKCHIP_SET_SN
+	bool "Rockchip set serial number"
+	default y
+
+config ROCKCHIP_SET_ETHADDR
+	bool "Rockchip set eth address"
+	default y
+
+config ROCKCHIP_SANITY_CPU_SWAP
+	bool "Sanity cpu swap"
+	help
+	  This enale checking current cpu mpidr and kernel
+	  dts cpu0 mpidr.
+
+config ROCKCHIP_FIT_IMAGE_PACK
+	bool "Rockchip fit image"
+	default y
+	
+config PSTORE
+	bool "Print log to linux pstore buffer"
+	default n
+
+if PSTORE
+config PERSISTENT_RAM_ADDR
+	hex "Linux pstore buffer address"
+	depends on PSTORE
+	default 0x0
+
+config PERSISTENT_RAM_SIZE
+	hex "Linux pstore buffer size"
+	depends on (PERSISTENT_RAM_ADDR != 0)
+	default 0x0
+endif
+
+config ROCKCHIP_MINIDUMP
+	bool "Minidump Save Linux Debug Data To Ram Elf"
+	default n
+	help
+	  This enable saving linux debug data to a reserved memory as a elf file.
+
+if ROCKCHIP_MINIDUMP
+config ROCKCHIP_MINIDUMP_SMEM_BASE
+	hex "The base of share memory between Uboot and Linux"
+	default 0x1f0000
+	depends on ROCKCHIP_MINIDUMP
+	help
+	  This select the base address of share memory, which is behind PSTORE.
+
+config ROCKCHIP_MINIDUMP_MAX_ELF_SIZE
+	hex "The max size of minidump elf"
+	default 0x2000000
+	depends on ROCKCHIP_MINIDUMP
+	help
+	  This is used to judge the elf program size and section size.
+
+config ROCKCHIP_MINIDUMP_MAX_ENTRIES
+	hex "The max entries of minidump region"
+	default 0x200
+	depends on ROCKCHIP_MINIDUMP
+	help
+	  This sets the max entries of minidump region.
+endif
 
 source "arch/arm/mach-rockchip/px30/Kconfig"
 source "arch/arm/mach-rockchip/rk3036/Kconfig"

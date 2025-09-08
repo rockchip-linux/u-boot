@@ -83,16 +83,20 @@ u32 iotrace_readl(const void *ptr)
 {
 	u32 v;
 
+	printf("[iotrace]: read  addr 0x%08lx... ", (ulong)ptr);
 	v = readl(ptr);
 	add_record(IOT_32 | IOT_READ, ptr, v);
+	printf("OK\n");
 
 	return v;
 }
 
-void iotrace_writel(ulong value, void *ptr)
+void iotrace_writel(ulong value, const void *ptr)
 {
+	printf("[iotrace]: write addr 0x%08lx value 0x%08lx... ", (ulong)ptr, value);
 	add_record(IOT_32 | IOT_WRITE, ptr, value);
 	writel(value, ptr);
+	printf("OK\n");
 }
 
 u16 iotrace_readw(const void *ptr)

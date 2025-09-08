@@ -52,7 +52,7 @@ __rcode int gzip_parse_header(const unsigned char *src, unsigned long len)
 	i = 10;
 	flags = src[3];
 	if (src[2] != DEFLATED || (flags & RESERVED) != 0) {
-		puts ("Error: Bad gzipped data\n");
+		debug("Error: Bad gzipped data\n");
 		return (-1);
 	}
 	if ((flags & EXTRA_FIELD) != 0)
@@ -79,6 +79,16 @@ __rcode int gunzip(void *dst, int dstlen, unsigned char *src, unsigned long *len
 	if (offset < 0)
 		return offset;
 
+#if defined(CONFIG_MISC_DECOMPRESS) && !defined(CONFIG_SPL_BUILD)
+	int ret;
+
+	ret = misc_decompress_process((ulong)dst, (ulong)src, *lenp,
+				      DECOM_GZIP, false, (u64 *)lenp, 0);
+	if (!ret)
+		return 0;
+
+	printf("hw gunzip failed(%d), fallback to soft gunzip\n", ret);
+#endif
 	return zunzip(dst, dstlen, src, lenp, 1, offset);
 }
 

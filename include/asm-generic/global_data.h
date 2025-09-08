@@ -34,6 +34,23 @@ struct upl;
 
 typedef struct global_data gd_t;
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+/* Never change the sequence of members !!! */
+struct pm_ctx {
+	unsigned long sp;
+	phys_addr_t cpu_resume_addr;
+	unsigned long suspend_regs[15];
+};
+
+struct pre_serial {
+	u32 using_pre_serial;
+	u32 enable;
+	u32 id;
+	u32 baudrate;
+	ulong addr;
+};
+#endif
+
 /**
  * struct global_data - global data structure
  */
@@ -448,6 +465,31 @@ struct global_data {
 	 */
 	struct upl *upl;
 #endif
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+	struct device_node *of_root_f;  /* U-Boot of-root instance */
+	struct pre_serial serial;
+	phys_addr_t pm_ctx_phys;
+
+	unsigned long ram_top_ext_size;
+
+	const void *ufdt_blob;          /* Our U-Boot device tree, NULL if none */
+	const void *fdt_blob_kern;      /* Kernel dtb at the tail of u-boot.bin */
+
+	ulong sys_start_tick;           /* For report system start-up time */
+	int console_evt;                /* Console event, maybe some hotkey  */
+	u32 pflags;
+  #ifdef CONFIG_BOOTSTAGE_PRINTF_TIMESTAMP
+	int new_line;
+  #endif
+  #if CONFIG_IS_ENABLED(FIT_ROLLBACK_PROTECT)
+	u32 rollback_index;
+  #endif
+  #ifdef CONFIG_PSTORE
+	u64 pstore_addr;
+	u32 pstore_size;
+  #endif
+#endif
 };
 #ifndef DO_DEPS_ONLY
 static_assert(sizeof(struct global_data) == GD_SIZE);
@@ -702,6 +744,16 @@ enum gd_flags {
 	 * drivers shall not be called.
 	 */
 	GD_FLG_HAVE_CONSOLE = 0x8000000,
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+	GD_FLG_KDTB_READY = 0x80000000,
+#endif
+};
+
+/* Platform specific flags */
+enum gd_pflags {
+	GD_P_FLG_SHOW_RSV_MEM = 0x00001,
+	GD_P_FLG_BL32_ENABLED = 0x00002,
 };
 
 #endif /* __ASSEMBLY__ */

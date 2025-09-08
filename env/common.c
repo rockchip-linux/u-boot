@@ -171,9 +171,9 @@ int env_set_ulong(const char *varname, ulong value)
  */
 int env_set_hex(const char *varname, ulong value)
 {
-	char str[17];
+	char str[19];
 
-	sprintf(str, "%lx", value);
+	sprintf(str, "0x%lx", value);
 	return env_set(varname, str);
 }
 
@@ -551,7 +551,7 @@ int env_export(env_t *env_out)
 void env_relocate(void)
 {
 	if (gd->env_valid == ENV_INVALID) {
-#if defined(CONFIG_ENV_IS_NOWHERE) || defined(CONFIG_XPL_BUILD)
+#if defined(CONFIG_ENV_IS_NOWHERE) || defined(CONFIG_XPL_BUILD) || defined(CONFIG_ENV_IS_FRAGMENT)
 		/* Environment not changable */
 		env_set_default(NULL, 0);
 #else

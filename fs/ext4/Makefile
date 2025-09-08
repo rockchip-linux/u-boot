@@ -9,3 +9,4 @@
 
 obj-y := ext4fs.o ext4_common.o dev.o
 obj-$(CONFIG_EXT4_WRITE) += ext4_write.o ext4_journal.o
+obj-$(CONFIG_CMD_EXT4_SPARSE_WRITE) += ext4_sparse.o

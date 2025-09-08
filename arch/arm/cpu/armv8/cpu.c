@@ -46,6 +46,7 @@ int cleanup_before_linux(void)
 	board_cleanup_before_linux();
 
 	disable_interrupts();
+	disable_serror();
 
 	if (IS_ENABLED(CONFIG_CMO_BY_VA_ONLY)) {
 		/*

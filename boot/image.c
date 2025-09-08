@@ -232,6 +232,26 @@ static const struct table_info table_info[IH_COUNT] = {
 /*****************************************************************************/
 /* Legacy format routines */
 /*****************************************************************************/
+//#ifndef USE_HOSTCC
+//#ifndef CONFIG_SPL_BUILD
+//uint32_t image_get_load(const struct legacy_img_hdr *hdr)
+//{
+//	uint32_t load = uimage_to_cpu(hdr->ih_load);
+
+//	return (load == IMAGE_PARAM_INVAL) ?
+//		env_get_ulong("kernel_addr_r", 16, 0) : load;
+//}
+
+//uint32_t image_get_ep(const struct legacy_img_hdr *hdr)
+//{
+//	uint32_t ep = uimage_to_cpu(hdr->ih_ep);
+
+//	return (ep == IMAGE_PARAM_INVAL) ?
+//		env_get_ulong("kernel_addr_r", 16, 0) : ep;
+//}
+//#endif
+//#endif
+
 int image_check_hcrc(const struct legacy_img_hdr *hdr)
 {
 	ulong hcrc;
@@ -279,7 +299,7 @@ ulong image_multi_count(const struct legacy_img_hdr *hdr)
 	size = (uint32_t *)image_get_data(hdr);
 
 	/* count non empty slots */
-	for (i = 0; size[i]; ++i)
+	for (i = 0; size[i] != IMAGE_PARAM_INVAL; ++i)
 		count++;
 
 	return count;
@@ -419,17 +439,26 @@ void image_print_contents(const void *ptr)
  * @load:	Load address for printing
  */
 static void print_decomp_msg(int comp_type, int type, bool is_xip,
-			     ulong load)
+			     ulong src, ulong dst)
 {
 	const char *name = genimg_get_type_name(type);
+	const char *comp_name[] = {
+		[IH_COMP_NONE]  = "",
+		[IH_COMP_GZIP]  = "GZIP",
+		[IH_COMP_BZIP2] = "BZIP2",
+		[IH_COMP_LZMA]  = "LZMA",
+		[IH_COMP_LZO]   = "LZO",
+		[IH_COMP_LZ4]   = "LZ4",
+		[IH_COMP_ZIMAGE]= "ZIMAGE",
+	};
 
 	/* Shows "Loading Kernel Image" for example */
 	if (comp_type == IH_COMP_NONE)
-		printf("   %s %s", is_xip ? "XIP" : "Loading", name);
+		printf("   %s %s from 0x%08lx to 0x%08lx ... ",
+		       is_xip ? "XIP" : "Loading", name, src, dst);
 	else
-		printf("   Uncompressing %s", name);
-
-	printf(" to %lx\n", load);
+		printf("   Uncompressing %s %s from 0x%08lx to 0x%08lx ... ",
+		       comp_name[comp_type], name, src, dst);
 }
 
 int image_decomp_type(const unsigned char *buf, ulong len)
@@ -454,7 +483,8 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 	int ret = -ENOSYS;
 
 	*load_end = load;
-	print_decomp_msg(comp, type, load == image_start, load);
+	print_decomp_msg(comp, type, load == image_start,
+			 (ulong)image_buf, (ulong)load_buf);
 
 	/*
 	 * Load the image to the right place, decompressing if needed. After
@@ -536,6 +566,11 @@ int image_decomp(int comp, ulong load, ulong image_start, int type,
 	*load_end = load + image_len;
 	if (ret)
 		return ret;
+
+	if (comp == IH_COMP_NONE || comp == IH_COMP_ZIMAGE)
+		puts("OK\n");
+	else
+		printf("with %08lx bytes OK\n", image_len);
 
 	return 0;
 }

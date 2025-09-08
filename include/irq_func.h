@@ -12,7 +12,11 @@
 struct pt_regs;
 struct cmd_tbl;
 
+#ifdef CONFIG_ARCH_ROCKCHIP
+typedef void (interrupt_handler_t)(int, void *);
+#else
 typedef void (interrupt_handler_t)(void *arg);
+#endif
 
 int interrupt_init(void);
 void timer_interrupt(struct pt_regs *regs);

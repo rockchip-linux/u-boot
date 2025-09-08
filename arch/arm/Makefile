@@ -19,7 +19,7 @@ arch-$(CONFIG_CPU_V7R)		=-march=armv7-r
 ifeq ($(CONFIG_ARM64_CRC32),y)
 arch-$(CONFIG_ARM64)		=-march=armv8-a+crc
 else
-arch-$(CONFIG_ARM64)		=-march=armv8-a
+arch-$(CONFIG_ARM64)		=-march=armv8-a+nosimd
 endif
 
 # On Tegra systems we must build SPL for the armv4 core on the device

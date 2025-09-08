@@ -32,6 +32,7 @@
 
 /* common/board_f.c */
 void board_init_f(ulong dummy);
+int board_init_f_init_misc(void);
 
 /**
  * arch_cpu_init() - basic cpu-dependent setup for an architecture
@@ -404,6 +405,19 @@ void arch_print_bdinfo(void);
 struct cmd_tbl;
 
 int do_bdinfo(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[]);
+
+#include <stacktrace.h>
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+struct blk_desc *plat_bootdev(void);
+void plat_set_bootdev(struct blk_desc *desc);
+
+#ifndef CONFIG_SPL_BUILD
+int plat_boot_mode(void);
+#else
+int plat_boot_mode(struct blk_desc *dev_desc, u32 bcb_sector_offset);
+#endif
+#endif
 
 #endif	/* __ASSEMBLY__ */
 /* Put only stuff here that the assembler can digest */

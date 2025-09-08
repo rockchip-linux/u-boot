@@ -4,7 +4,13 @@
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
 ifndef CONFIG_XPL_BUILD
-
+ifdef CONFIG_LMB
+obj-$(CONFIG_SYSMEM) += sysmem.o
+obj-$(CONFIG_BIDRAM) += bidram.o
+ifneq ($(CONFIG_SYSMEM)$(CONFIG_BIDRAM),)
+obj-y += lmb_legacy.o memblk.o
+endif
+endif
 obj-$(CONFIG_EFI) += efi/
 obj-$(CONFIG_EFI_LOADER) += efi_driver/
 obj-$(CONFIG_EFI_LOADER) += efi_loader/
@@ -35,6 +41,7 @@ obj-$(CONFIG_CIRCBUF) += circbuf.o
 endif
 
 obj-y += crc8.o
+obj-$(CONFIG_XBC) += libxbc/
 obj-$(CONFIG_ERRNO_STR) += errno_str.o
 obj-$(CONFIG_FIT) += fdtdec_common.o
 obj-$(CONFIG_TEST_FDTDEC) += fdtdec_test.o
@@ -97,7 +104,10 @@ obj-$(CONFIG_$(PHASE_)LZ4) += lz4_wrapper.o
 
 obj-$(CONFIG_$(XPL_)LIB_RATIONAL) += rational.o
 
-obj-$(CONFIG_LIBAVB) += libavb/
+obj-$(CONFIG_$(XPL_)LIBAVB) += libavb/
+obj-$(CONFIG_$(XPL_)LIBAVB_AB) += libavb_ab/
+obj-$(CONFIG_$(XPL_)LIBAVB_ATX) += libavb_atx/
+obj-$(CONFIG_$(XPL_)LIBAVB_USER) += libavb_user/
 
 obj-$(CONFIG_$(PHASE_)OF_LIBFDT) += libfdt/
 obj-$(CONFIG_$(PHASE_)OF_REAL) += fdtdec_common.o fdtdec.o
@@ -132,6 +142,7 @@ obj-$(CONFIG_$(PHASE_)LMB) += lmb.o
 obj-y += membuff.o
 obj-$(CONFIG_REGEX) += slre.o
 obj-y += string.o
+obj-y += stdlib.o
 obj-y += tables_csum.o
 obj-y += time.o
 obj-y += hexdump.o

@@ -20,6 +20,7 @@ ifeq ($(CONFIG_XPL_BUILD),)
 obj-y += boot/
 obj-$(CONFIG_UNIT_TEST) += common/
 obj-y += log/
+obj-$(CONFIG_TEST_ROCKCHIP) += rockchip/
 else
 obj-$(CONFIG_SPL_UT_LOAD) += image/
 endif

@@ -278,6 +278,9 @@ config ARM_ERRATA_798870
 config ARM_ERRATA_801819
 	bool
 
+config ARM_ERRATA_814220
+	bool
+
 config ARM_ERRATA_826974
 	bool
 
@@ -309,6 +312,9 @@ config ARM_CORTEX_A8_CVE_2017_5715
 	bool
 
 config ARM_CORTEX_A15_CVE_2017_5715
+	bool
+
+config ARM_ZERO_CNTVOFF
 	bool
 
 config CPU_ARM720T
@@ -450,6 +456,13 @@ config ARM_SMCCC
 	  This should be enabled if U-Boot needs to communicate with system
 	  firmware (for example, PSCI) according to SMCCC.
 
+config ARM_CPU_SUSPEND
+	bool "Support for ARM cpu suspend and resume"
+	depends on CPU_V7 || ARM64
+	help
+	  Say Y here if you want to enable ARM cpu suspend/resume which allows
+	  to poweroff cpu power supply.
+
 config SYS_THUMB_BUILD
 	bool "Build U-Boot using the Thumb instruction set"
 	depends on !ARM64
@@ -589,6 +602,13 @@ config ARM64_SUPPORT_AARCH32
 	default y if !TARGET_THUNDERX_88XX
 	help
 	  This ARM64 system supports AArch32 execution state.
+
+config ARM64_BOOT_AARCH32
+	bool "Support Boot an ARM64 on AArch32 execution state, ie. U-Boot is in AArch32"
+	select CPU_V7
+	default n
+	help
+	  If you want to boot an ARM64 processor on 32-bit mode, say y here.
 
 config IPROC
 	bool
@@ -2045,26 +2065,26 @@ config ARCH_STM32MP
 
 config ARCH_ROCKCHIP
 	bool "Support Rockchip SoCs"
-	select BINMAN if SPL_OPTEE || SPL
+	select BLK
 	select DM
-	select DM_GPIO
-	select DM_I2C
-	select DM_PWM
-	select DM_REGULATOR
 	select DM_SERIAL
-	select DM_SPI
-	select DM_SPI_FLASH
 	select DM_USB_GADGET if USB_DWC3_GADGET
 	select ENABLE_ARM_SOC_BOOT0_HOOK
 	select OF_CONTROL
-	select MMC
-	select MTD
-	select SPI
 	select SPL_DM if SPL
 	select SPL_DM_SPI if SPL
 	select SPL_DM_SPI_FLASH if SPL
 	select SYS_MALLOC_F
 	select SYS_THUMB_BUILD if !ARM64
+	imply DM_SPI
+	imply DM_SPI_FLASH
+	imply MMC
+	imply MTD
+	imply SPI
+	imply DM_GPIO
+	imply DM_I2C
+	imply DM_PWM
+	imply DM_REGULATOR
 	imply ADC
 	imply CMD_DM
 	imply DEBUG_UART_BOARD_INIT

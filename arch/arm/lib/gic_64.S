@@ -40,8 +40,6 @@ ENTRY(gic_init_secure)
 	sub	w10, w10, #0x1
 	cbnz	w10, 0b
 #elif defined(CONFIG_GICV2)
-	switch_el x1, 2f, 1f, 1f
-2:
 	mov	w9, #0x3		/* EnableGrp0 | EnableGrp1 */
 	str	w9, [x0, GICD_CTLR]	/* Secure GICD_CTLR */
 	ldr	w9, [x0, GICD_TYPER]
@@ -117,6 +115,7 @@ ENTRY(gic_init_secure_percpu)
 	mov	w11, #0x1		/* Enable SGI 0 */
 	str	w11, [x10, GICR_ISENABLERn]
 
+#if CONFIG_IS_ENABLED(IRQ)
 	switch_el x10, 3f, 2f, 1f
 3:
 	/* Initialize Cpu Interface */
@@ -139,20 +138,52 @@ ENTRY(gic_init_secure_percpu)
 	msr	ICC_SRE_EL2, x10
 	isb
 1:
+	mov	x10, #0x3		/* EnableGrp1NS | EnableGrp1S */
+	msr	ICC_IGRPEN1_EL1, x10
+	isb
+
+	msr	ICC_CTLR_EL1, xzr	/* NonSecure ICC_CTLR_EL1 */
+	isb
+
+	mov	x10, #0xf0		/* Non-Secure access to ICC_PMR_EL1 */
+	msr	ICC_PMR_EL1, x10
+	isb
+
+# else
+	/* Initialize Cpu Interface */
+	mrs	x10, ICC_SRE_EL3
+	orr	x10, x10, #0xf		/* SRE & Disable IRQ/FIQ Bypass & */
+					/* Allow EL2 access to ICC_SRE_EL2 */
+	msr	ICC_SRE_EL3, x10
+	isb
+
+	mrs	x10, ICC_SRE_EL2
+	orr	x10, x10, #0xf		/* SRE & Disable IRQ/FIQ Bypass & */
+					/* Allow EL1 access to ICC_SRE_EL1 */
+	msr	ICC_SRE_EL2, x10
+	isb
+
+	mov	x10, #0x3		/* EnableGrp1NS | EnableGrp1S */
+	msr	ICC_IGRPEN1_EL3, x10
+	isb
+
+	msr	ICC_CTLR_EL3, xzr
+	isb
+
 	msr	ICC_CTLR_EL1, xzr	/* NonSecure ICC_CTLR_EL1 */
 	isb
 
 	mov	x10, #0x1 << 7		/* Non-Secure access to ICC_PMR_EL1 */
 	msr	ICC_PMR_EL1, x10
 	isb
+# endif
+
 #elif defined(CONFIG_GICV2)
 	/*
 	 * Initialize SGIs and PPIs
 	 * x0: Distributor Base
 	 * x1: Cpu Interface Base
 	 */
-	switch_el x2, 4f, 5f, 5f
-4:
 	mov	w9, #~0			/* Config SGIs and PPIs as Grp1 */
 	str	w9, [x0, GICD_IGROUPRn]	/* GICD_IGROUPR0 */
 	mov	w9, #0x1		/* Enable SGI 0 */
@@ -167,7 +198,6 @@ ENTRY(gic_init_secure_percpu)
 	mov	w9, #0x1 << 7		/* Non-Secure access to GICC_PMR */
 	str	w9, [x1, GICC_PMR]
 #endif
-5:
 	ret
 ENDPROC(gic_init_secure_percpu)
 

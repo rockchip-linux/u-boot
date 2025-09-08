@@ -92,11 +92,8 @@ ENTRY(_main)
 	mov	x18, x0
 	bl	board_init_f_init_reserve
 
-#if defined(CONFIG_DEBUG_UART) && CONFIG_IS_ENABLED(SERIAL)
-	bl	debug_uart_init
-#endif
-
 	mov	x0, #0
+	bl	board_init_f_init_misc
 	bl	board_init_f
 
 #if !defined(CONFIG_XPL_BUILD)
@@ -113,6 +110,7 @@ ENTRY(_main)
 	ldr	x0, [x18, #GD_FLAGS]		/* x0 <- gd->flags */
 	tbnz	x0, 11, relocation_return	/* GD_FLG_SKIP_RELOC is bit 11 */
 
+#ifndef CONFIG_SKIP_RELOCATE_UBOOT
 	adr	lr, relocation_return
 #if CONFIG_POSITION_INDEPENDENT
 	/* Add in link-vs-runtime offset */
@@ -132,7 +130,7 @@ ENTRY(_main)
 	add	lr, lr, x9	/* new return address after relocation */
 	ldr	x0, [x18, #GD_RELOCADDR]	/* x0 <- gd->relocaddr */
 	b	relocate_code
-
+#endif
 relocation_return:
 
 /*

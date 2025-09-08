@@ -202,6 +202,12 @@ config VPL_DM_SERIAL
 	  implements serial_putc() etc. The uclass interface is
 	  defined in include/serial.h.
 
+config DEBUG_UART_ONLY
+	bool "Enable debug UART all thet time, no DM serial device"
+	default y if ARCH_ROCKCHIP
+	help
+	  Say y to use debug UART only, skip complicated console UART register.
+
 config DEBUG_UART
 	bool "Enable an early debug UART for debugging"
 	help

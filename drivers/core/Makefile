@@ -12,6 +12,7 @@ obj-$(CONFIG_DM)	+= dump.o
 obj-$(CONFIG_$(PHASE_)REGMAP)	+= regmap.o
 obj-$(CONFIG_$(PHASE_)SYSCON)	+= syscon-uclass.o
 obj-$(CONFIG_$(XPL_)OF_LIVE) += of_access.o of_addr.o
+obj-$(CONFIG_$(XPL_)DM_KERNEL_DTB) += kernel_dtb.o
 ifndef CONFIG_DM_DEV_READ_INLINE
 obj-$(CONFIG_OF_CONTROL) += read.o
 endif

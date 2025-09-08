@@ -195,7 +195,9 @@ int ext4_write_file(const char *filename, void *buf, loff_t offset, loff_t len,
 		    loff_t *actwrite);
 int ext4fs_create_link(const char *target, const char *fname);
 #endif
-
+#if defined(CONFIG_CMD_EXT4_SPARSE_WRITE)
+int ext4_unsparse(struct blk_desc *desc, const u8 *buf, ulong start);
+#endif
 struct ext_filesystem *get_fs(void);
 int ext4fs_open(const char *filename, loff_t *len);
 int ext4fs_read(char *buf, loff_t offset, loff_t len, loff_t *actread);

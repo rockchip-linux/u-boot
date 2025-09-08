@@ -37,10 +37,14 @@ $(obj)/dt-$(SPL_NAME).dtb: dts/dt.dtb $(objtree)/tools/fdtgrep FORCE
 	$(call if_changed,fdtgrep)
 
 ifeq ($(CONFIG_OF_DTB_PROPS_REMOVE),y)
-$(obj)/dt.dtb: $(DTB) $(objtree)/tools/fdtgrep FORCE
+$(obj)/dt-pre.dtb: $(DTB) FORCE
+	$(call if_changed,fdtgrep_u_boot)
+$(obj)/dt.dtb: $(obj)/dt-pre.dtb FORCE
 	$(call if_changed,fdt_rm_props)
 else
-$(obj)/dt.dtb: $(DTB) FORCE
+$(obj)/dt-pre.dtb: $(DTB) FORCE
+	$(call if_changed,fdtgrep_u_boot)
+$(obj)/dt.dtb: $(obj)/dt-pre.dtb FORCE
 	$(call if_changed,shipped)
 endif
 
@@ -75,7 +79,7 @@ obj-$(CONFIG_OF_EMBED) := dt.dtb.o
 endif
 
 # Target for U-Boot proper
-dtbs: $(obj)/dt.dtb
+dtbs: $(obj)/dt.dtb FORCE
 	@:
 
 # Target for SPL/TPL

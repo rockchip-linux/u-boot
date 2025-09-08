@@ -30,6 +30,20 @@
 	"name=boot,size=112M,bootable,uuid=${uuid_gpt_boot};" \
 	"name=rootfs,size=-,uuid="ROOT_UUID
 
+#undef CONFIG_BOOTCOMMAND
+#if defined(CONFIG_AVB_VBMETA_PUBLIC_KEY_VALIDATE)
+#define CONFIG_BOOTCOMMAND			\
+	"boot_android ${devtype} ${devnum};"
+#elif defined(CONFIG_FIT_SIGNATURE)
+#define CONFIG_BOOTCOMMAND			\
+	"boot_fit;"
+#else
+#define CONFIG_BOOTCOMMAND			\
+	"boot_android ${devtype} ${devnum};"	\
+	"boot_fit;"				\
+	"run distro_bootcmd;"
+#endif
+
 #endif
 
 #endif /* _ROCKCHIP_COMMON_H_ */

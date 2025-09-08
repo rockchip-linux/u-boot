@@ -21,6 +21,8 @@ struct ofnode_phandle_args;
  * @round_rate: Adjust a rate to the exact rate a clock can provide.
  * @get_rate: Get current clock rate.
  * @set_rate: Set current clock rate.
+ * @get_phase: Get the phase shift of a clock signal.
+ * @set_phase: Adjust the phase shift of a clock signal.
  * @set_parent: Set current clock parent
  * @enable: Enable a clock.
  * @disable: Disable a clock.
@@ -35,12 +37,12 @@ struct clk_ops {
 	ulong (*round_rate)(struct clk *clk, ulong rate);
 	ulong (*get_rate)(struct clk *clk);
 	ulong (*set_rate)(struct clk *clk, ulong rate);
+	int (*get_phase)(struct clk *clk);
+	int (*set_phase)(struct clk *clk, int degrees);
 	int (*set_parent)(struct clk *clk, struct clk *parent);
 	int (*enable)(struct clk *clk);
 	int (*disable)(struct clk *clk);
-#if IS_ENABLED(CONFIG_CMD_CLK)
 	void (*dump)(struct udevice *dev);
-#endif
 };
 
 #if 0 /* For documentation only */
@@ -168,6 +170,24 @@ ulong get_rate(struct clk *clk);
  *   not be set due to a bus error.
  */
 ulong set_rate(struct clk *clk, ulong rate);
+
+/**
+ * clk_get_phase() - Get the phase shift of a clock signal.
+ *
+ * @clk:	The clock to manipulate.
+ * @return the phase shift of a clock node in degrees,
+ *		otherwise returns -ve error code.
+ */
+int (*get_phase)(struct clk *clk);
+
+/**
+ * clk_set_phase() - Adjust the phase shift of a clock signal.
+ *
+ * @clk:	The clock to manipulate.
+ * @degrees:	Numberof degrees the signal is shifted.
+ * @return 0 on success, or -ve error code.
+ */
+int (*set_phase)(struct clk *clk, int degrees);
 
 /**
  * set_parent() - Set current clock parent

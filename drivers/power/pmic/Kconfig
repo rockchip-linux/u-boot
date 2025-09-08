@@ -258,6 +258,14 @@ config SPL_PMIC_RK8XX
 	accessed via an I2C interface. The device is used with Rockchip SoCs.
 	This driver implements register read/write operations.
 
+config PMIC_SPI_RK8XX
+	bool "Enable support for Rockchip PMIC SPI RK8XX"
+	depends on DM_PMIC
+	---help---
+	The Rockchip RK8xx PMIC provides four buck DC-DC convertors, LDOs. It is
+	accessed via an SPI interface. The device is used with Rockchip SoCs.
+	This driver implements register read/write operations.
+
 config PMIC_S2MPS11
 	bool "Enable Driver Model for PMIC Samsung S2MPS11"
 	---help---

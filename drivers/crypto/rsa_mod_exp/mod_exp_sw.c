@@ -41,7 +41,6 @@ static struct crypto_impl sw_mod_exp_impl = {
 	.uclass_id   = UCLASS_MOD_EXP,
 	.priority    = CRYPTO_PRIORITY_SW,
 	.check_valid = sw_mod_exp_check_valid,
-
 	.asym.rsa.mod_exp = mod_exp_sw,
 };
 

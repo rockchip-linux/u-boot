@@ -82,6 +82,9 @@ static int uclass_add(enum uclass_id id, struct uclass **ucp)
 		uclass_set_priv(uc, ptr);
 	}
 	uc->uc_drv = uc_drv;
+#ifdef CONFIG_DM_KERNEL_DTB
+	uc->u_boot_dev_head = NULL;
+#endif
 	INIT_LIST_HEAD(&uc->sibling_node);
 	INIT_LIST_HEAD(&uc->dev_head);
 	list_add(&uc->sibling_node, DM_UCLASS_ROOT_NON_CONST);
@@ -288,8 +291,7 @@ int uclass_find_device_by_namelen(enum uclass_id id, const char *name, int len,
 		return ret;
 
 	uclass_foreach_dev(dev, uc) {
-		if (!strncmp(dev->name, name, len) &&
-		    strlen(dev->name) == len) {
+		if (!strncmp(dev->name, name, len)) {
 			*devp = dev;
 			return 0;
 		}
@@ -697,13 +699,18 @@ int uclass_first_device_drvdata(enum uclass_id id, ulong driver_data,
 	return -ENODEV;
 }
 
-int uclass_bind_device(struct udevice *dev)
+int uclass_bind_device(struct udevice *dev, int after_u_boot_dev)
 {
 	struct uclass *uc;
 	int ret;
 
 	uc = dev->uclass;
+
+#if CONFIG_IS_ENABLED(DM_KERNEL_DTB)
+	kernel_dtb_list_add(uc, dev, after_u_boot_dev);
+#else
 	list_add_tail(&dev->uclass_node, &uc->dev_head);
+#endif
 
 	if (dev->parent) {
 		struct uclass_driver *uc_drv = dev->parent->uclass->uc_drv;

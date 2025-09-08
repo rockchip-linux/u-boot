@@ -77,18 +77,39 @@ _save_el_regs:
 	switch_el x11, 3f, 2f, 1f
 3:	mrs	x1, esr_el3
 	mrs	x2, elr_el3
-	mrs	x3, spsr_el3
+	mrs	x3, daif
+	mrs	x4, vbar_el3
+	mrs	x5, spsr_el3
+	sub	x6, sp, #(8*30)
+	mrs	x7, sctlr_el3
+	mrs	x8, scr_el3
+	mrs	x9, ttbr0_el3
 	b	0f
 2:	mrs	x1, esr_el2
 	mrs	x2, elr_el2
-	mrs	x3, spsr_el2
+	mrs	x3, daif
+	mrs	x4, vbar_el2
+	mrs	x5, spsr_el2
+	sub	x6, sp, #(8*30)
+	mrs	x7, sctlr_el2
+	mrs	x8, hcr_el2
+	mrs	x9, ttbr0_el2
 	b	0f
 1:	mrs	x1, esr_el1
 	mrs	x2, elr_el1
-	mrs	x3, spsr_el1
+	mrs	x3, daif
+	mrs	x4, vbar_el1
+	mrs	x5, spsr_el1
+	sub	x6, sp, #(8*30)
+	mrs	x7, sctlr_el1
+	mov	x8, #0	/* Not used, EL1 don't have register, like 'scr_el1' */
+	mrs	x9, ttbr0_el1
 0:
-	stp	x1, x0, [sp, #-16]!
-	stp	x3, x2, [sp, #-16]!
+	stp     x2, x0, [sp, #-16]!
+	stp	x3, x1, [sp, #-16]!
+	stp	x5, x4, [sp, #-16]!
+	stp	x7, x6, [sp, #-16]!
+	stp	x9, x8, [sp, #-16]!
 	mov	x0, sp
 	ret
 
@@ -102,6 +123,7 @@ _save_el_regs:
  * This is the first part of the shared routine called into from all entries.
  */
 exception_exit:
+	add	sp, sp, #(8*8)/* see: sys registers size of struct pt_regs */
 	ldp	xzr, x2, [sp],#16
 	switch_el x11, 3f, 2f, 1f
 3:	msr	elr_el3, x2

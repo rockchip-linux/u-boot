@@ -88,7 +88,7 @@ int do_bootelf(struct cmd_tbl *cmdtp, int fglag, int argc, char *const argv[]);
 boot_os_fn *bootm_os_get_boot_func(int os);
 
 #if defined(CONFIG_FIT_SIGNATURE)
-int bootm_host_load_images(const void *fit, int cfg_noffset);
+int bootm_host_load_images(const void *fit, int cfg_noffset, int is_spl);
 #endif
 
 int boot_selected_os(int state, struct bootm_info *bmi, boot_os_fn *boot_fn);
@@ -231,11 +231,6 @@ enum bootm_cmdline_t {
 };
 
 /**
- * arch_preboot_os() - arch specific configuration before booting
- */
-void arch_preboot_os(void);
-
-/**
  * board_preboot_os() - board specific configuration before booting
  */
 void board_preboot_os(void);
@@ -320,5 +315,7 @@ void zimage_dump(struct boot_params *base_ptr, bool show_cmdline);
  * @cmdline: Command line to set
  */
 int bootm_boot_start(ulong addr, const char *cmdline);
+
+int board_do_bootm(int argc, char * const argv[]);
 
 #endif

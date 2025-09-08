@@ -101,6 +101,12 @@ bool console_record_isempty(void);
  * Return:  the number of bytes added
  */
 int console_in_puts(const char *str);
+
+/**
+ * console_record_print_purge() - print record data and remove data from buffers
+ */
+void console_record_print_purge(void);
+
 #else
 static inline int console_record_init(void)
 {
@@ -142,6 +148,11 @@ static inline bool console_record_isempty(void)
 {
 	/* Always empty */
 	return true;
+}
+
+static inline void console_record_print_purge(void)
+{
+	/* There is never anything available */
 }
 
 #endif /* !CONFIG_CONSOLE_RECORD */

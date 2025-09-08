@@ -22,16 +22,26 @@
 
 #include <linux/ctype.h>
 
+#define DEV_NAME_MAX_LENGTH    0x40
+static char g_devname[DEV_NAME_MAX_LENGTH];
+static struct mtd_info *g_mtd;
+
 static struct mtd_info *get_mtd_by_name(const char *name)
 {
 	struct mtd_info *mtd;
 
 	mtd_probe_devices();
 
-	mtd = get_mtd_device_nm(name);
-	if (IS_ERR_OR_NULL(mtd))
-		printf("MTD device %s not found, ret %ld\n", name,
-		       PTR_ERR(mtd));
+	if (!strncmp(name, g_devname, strlen(name)) && g_mtd) {
+		mtd = g_mtd;
+	} else {
+		mtd = get_mtd_device_nm(name);
+		if (IS_ERR_OR_NULL(mtd))
+			printf("MTD device %s not found, ret %ld\n", name,
+			       PTR_ERR(mtd));
+		g_mtd = mtd;
+		strncpy(g_devname, name, strlen(name));
+	}
 
 	return mtd;
 }

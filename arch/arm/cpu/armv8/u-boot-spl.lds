@@ -53,6 +53,23 @@ SECTIONS
 		KEEP(*(SORT(__u_boot_list*)));
 	} >.sram
 
+#ifndef CONFIG_SPL_SKIP_RELOCATE
+	. = ALIGN(8);
+
+	.rel_dyn_start :
+	{
+		*(.__rel_dyn_start)
+	} >.sram
+
+	.rela.dyn : {
+		*(.rela*)
+	} >.sram
+
+	.rel_dyn_end :
+	{
+		*(.__rel_dyn_end)
+	} >.sram
+#endif
 	. = ALIGN(8);
 	__image_copy_end = .;
 	_end = .;

@@ -24,6 +24,8 @@
 #include <asm/global_data.h>
 #include <linux/bug.h>
 #include <linux/libfdt.h>
+#include <dm/device.h>
+#include <dm/ofnode.h>
 #include <dm/of_access.h>
 #include <dm/util.h>
 #include <linux/ctype.h>
@@ -456,6 +458,13 @@ struct device_node *of_find_node_by_phandle(struct device_node *root,
 	for_each_of_allnodes_from(root, np)
 		if (np->phandle == handle)
 			break;
+
+#if CONFIG_IS_ENABLED(DM_KERNEL_DTB)
+	/* If not found in kernel fdt, lookup u-boot fdt */
+	if (!np)
+		np = kernel_dtb_lookup_phandle(handle);
+#endif
+
 	(void)of_node_get(np);
 
 	return np;
@@ -852,6 +861,24 @@ static void of_alias_add(struct alias_prop *ap, struct device_node *np,
 	ap->id = id;
 	strncpy(ap->stem, stem, stem_len);
 	ap->stem[stem_len] = 0;
+
+#if CONFIG_IS_ENABLED(DM_KERNEL_DTB)
+	struct alias_prop *oldap;
+
+	/* delete the alias from u-boot fdt, which is the same as kernel fdt */
+	mutex_lock(&of_mutex);
+	list_for_each_entry(oldap, &aliases_lookup, link) {
+		if (stem && !strcmp(stem, oldap->alias) && (id == oldap->id)) {
+			/* Always use from U-Boot aliase */
+			if (strcmp(stem, "mmc"))
+				continue;
+
+			list_del(&oldap->link);
+			break;
+		}
+	}
+	mutex_unlock(&of_mutex);
+#endif
 	list_add_tail(&ap->link, &aliases_lookup);
 	log_debug("adding DT alias:%s: stem=%s id=%i node=%s\n",
 		  ap->alias, ap->stem, ap->id, of_node_full_name(np));
@@ -1131,4 +1158,38 @@ int of_remove_node(struct device_node *to_remove)
 	 */
 
 	return 0;
+}
+
+struct device_node *of_alias_get_dev(const char *stem, int id)
+{
+	struct alias_prop *app;
+	struct device_node *np = NULL;
+
+	mutex_lock(&of_mutex);
+	list_for_each_entry(app, &aliases_lookup, link) {
+		if (strcmp(app->stem, stem) != 0)
+			continue;
+
+		if (id == app->id) {
+			np = app->np;
+			break;
+		}
+	}
+	mutex_unlock(&of_mutex);
+
+	return np;
+}
+
+void of_alias_dump(void)
+{
+	struct alias_prop *app;
+
+	mutex_lock(&of_mutex);
+	list_for_each_entry(app, &aliases_lookup, link) {
+		printf("%10s%d: %20s, phandle=%d %4s\n",
+		       app->stem, app->id,
+		       app->np->full_name, app->np->phandle,
+		       ofnode_pre_reloc(np_to_ofnode(app->np)) ? "*" : "");
+	}
+	mutex_unlock(&of_mutex);
 }

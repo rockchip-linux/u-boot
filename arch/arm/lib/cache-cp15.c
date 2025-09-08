@@ -112,12 +112,29 @@ __weak void dram_bank_mmu_setup(int bank)
 /* to activate the MMU we need to set up virtual memory: use 1M areas */
 static inline void mmu_setup(void)
 {
-	int i;
+	int i, end;
 	u32 reg;
 
+#ifndef CONFIG_SPL_BUILD
+	/* bootrom and ddr didn't initial dcache,
+	 * skip this to save boot time.
+	 */
 	arm_init_before_mmu();
+#endif
+	/*
+	 * SPL thunder-boot:
+	 * only map periph device region to save boot time.
+	 */
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_KERNEL_BOOT) && \
+    defined(CONFIG_PERIPH_DEVICE_START_ADDR)
+	i = CONFIG_PERIPH_DEVICE_START_ADDR >> MMU_SECTION_SHIFT;
+	end = CONFIG_PERIPH_DEVICE_END_ADDR >> MMU_SECTION_SHIFT;
+#else
+	i = 0;
+	end = (4096ULL * 1024 * 1024) >> MMU_SECTION_SHIFT;
+#endif
 	/* Set up an identity-mapping for all 4GB, rw for everyone */
-	for (i = 0; i < ((4096ULL * 1024 * 1024) >> MMU_SECTION_SHIFT); i++)
+	for (; i < end; i++)
 		set_section_dcache(i, DCACHE_OFF);
 
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {

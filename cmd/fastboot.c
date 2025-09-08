@@ -11,6 +11,7 @@
 #include <g_dnl.h>
 #include <fastboot.h>
 #include <net.h>
+#include <sysmem.h>
 #include <usb.h>
 #include <watchdog.h>
 #include <linux/printk.h>
@@ -73,6 +74,7 @@ static int do_fastboot_usb(int argc, char *const argv[],
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
+	printf("Enter fastboot...");
 	usb_controller = argv[1];
 	controller_index = simple_strtoul(usb_controller, &endp, 0);
 	if (*endp != '\0') {
@@ -97,6 +99,16 @@ static int do_fastboot_usb(int argc, char *const argv[],
 		ret = CMD_RET_FAILURE;
 		goto exit;
 	}
+
+	if (!sysmem_alloc_base(MEM_FASTBOOT,
+			       CONFIG_FASTBOOT_BUF_ADDR,
+			       CONFIG_FASTBOOT_BUF_SIZE)) {
+		printf("The fastboot memory space is unusable!\n");
+		return CMD_RET_FAILURE;
+	}
+	sysmem_free(CONFIG_FASTBOOT_BUF_ADDR);
+
+	printf("OK\n");
 
 	while (1) {
 		if (g_dnl_detach())

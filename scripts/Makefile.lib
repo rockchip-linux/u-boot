@@ -722,6 +722,15 @@ quiet_cmd_fdtgrep = FDTGREP $@
 		$(migrate_all) \
 		$(addprefix -P ,$(subst $\",,$(CONFIG_OF_SPL_REMOVE_PROPS)))
 
+quiet_cmd_fdtgrep_u_boot = FDTGREP $@
+      cmd_fdtgrep_u_boot = $(objtree)/tools/fdtgrep $(fdtgrep_props) -u -RT $< \
+		-n /chosen -n /config -O dtb | \
+	$(objtree)/tools/fdtgrep -r -O dtb - -o $@ \
+		-P bootph-all -P bootph-pre-ram -P bootph-pre-sram \
+		-P bootph-verify -P bootph-some-ram \
+		$(migrate_all) \
+		$(addprefix -P ,$(subst $\",,$(CONFIG_OF_REMOVE_PROPS)))
+
 # fdt_rm_props
 # ---------------------------------------------------------------------------
 # Pass the original device tree file through fdtgrep. This removes various

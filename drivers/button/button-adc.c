@@ -46,6 +46,8 @@ static enum button_state_t button_adc_get_state(struct udevice *dev)
 	if (ret)
 		return ret;
 
+	debug("Button: %s, [%d, %d], uV=%d\n", dev->name, priv->min, priv->max, uV);
+
 	return (uV >= priv->min && uV < priv->max) ? BUTTON_ON : BUTTON_OFF;
 }
 
@@ -112,6 +114,7 @@ static int button_adc_bind(struct udevice *parent)
 {
 	struct udevice *dev;
 	ofnode node;
+	int code;
 	int ret;
 
 	dev_for_each_subnode(node, parent) {
@@ -124,6 +127,14 @@ static int button_adc_bind(struct udevice *parent)
 			      ofnode_get_name(node));
 			return -EINVAL;
 		}
+
+		ret = ofnode_read_u32(node, "linux,code", &code);
+		if (ret) {
+			debug("%s: node %s has no linux,code\n", __func__,
+			      ofnode_get_name(node));
+			return -EINVAL;
+		}
+
 		ret = device_bind_driver_to_node(parent, "button_adc",
 						 ofnode_get_name(node),
 						 node, &dev);
@@ -131,6 +142,7 @@ static int button_adc_bind(struct udevice *parent)
 			return ret;
 		uc_plat = dev_get_uclass_plat(dev);
 		uc_plat->label = label;
+		uc_plat->code = code;
 	}
 
 	return 0;

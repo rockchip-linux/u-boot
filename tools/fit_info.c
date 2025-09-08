@@ -101,6 +101,7 @@ int main(int argc, char **argv)
 	printf("NAME: %s\n", fit_get_name(fit_blob, nodeoffset, NULL));
 	printf("LEN: %d\n", len);
 	printf("OFF: %d\n", (int)(nodep - fit_blob));
+	printf("END: %d\n", (int)(nodep + len - fit_blob));
 	(void) munmap((void *)fit_blob, fsbuf.st_size);
 
 	close(ffd);

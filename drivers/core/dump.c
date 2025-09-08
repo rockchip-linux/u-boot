@@ -3,6 +3,7 @@
  * Copyright (c) 2015 Google, Inc
  */
 
+#include <blk.h>
 #include <dm.h>
 #include <malloc.h>
 #include <mapmem.h>
@@ -22,6 +23,13 @@ struct sort_info {
 	int size;
 };
 
+#ifdef CONFIG_DM_KERNEL_DTB
+static inline const char *udtb_label(struct udevice *dev)
+{
+	return dev_get_flags(dev) & DM_FLAG_KNRL_DTB ? "" : "*";
+}
+#endif
+
 static int h_cmp_uclass_id(const void *d1, const void *d2)
 {
 	const struct udevice *const *dev1 = d1;
@@ -39,7 +47,7 @@ static void show_devices(struct udevice *dev, int depth, int last_flag,
 
 	/* print the first 20 characters to not break the tree-format. */
 	printf(CONFIG_IS_ENABLED(USE_TINY_PRINTF) ? " %s  %d  [ %c ]   %s  " :
-	       " %-10.10s  %3d  [ %c ]   %-20.20s  ", dev->uclass->uc_drv->name,
+	       " %-10.10s  %3d  [ %c ]   %-25.25s  ", dev->uclass->uc_drv->name,
 	       dev->seq_,
 	       flags & DM_FLAG_ACTIVATED ? '+' : ' ', dev->driver->name);
 
@@ -58,8 +66,11 @@ static void show_devices(struct udevice *dev, int depth, int last_flag,
 		}
 	}
 
+#ifdef CONFIG_DM_KERNEL_DTB
+	printf("%s %s\n", dev->name, udtb_label(dev));
+#else
 	printf("%s\n", dev->name);
-
+#endif
 	if (devs) {
 		int count;
 		int i;
@@ -108,7 +119,6 @@ static void dm_dump_tree_recursive(struct udevice *dev, char *dev_name,
 	size_t len;
 
 	len = strlen(dev_name);
-
 	device_foreach_child(child, dev) {
 		if (extended) {
 			if (!strncmp(child->name, dev_name, len)) {
@@ -129,8 +139,8 @@ void dm_dump_tree(char *dev_name, bool extended, bool sort)
 {
 	struct udevice *root;
 
-	printf(" Class     Seq    Probed  Driver                Name\n");
-	printf("-----------------------------------------------------------\n");
+	printf(" Class     Seq    Probed  Driver                     Name (*: u-boot)\n");
+	printf("---------------------------------------------------------------------\n");
 
 	root = dm_root();
 	if (!root)
@@ -153,11 +163,18 @@ void dm_dump_tree(char *dev_name, bool extended, bool sort)
  */
 static void dm_display_line(struct udevice *dev, int index)
 {
-	printf("%-3i %c %s @ %08lx", index,
-	       dev_get_flags(dev) & DM_FLAG_ACTIVATED ? '*' : ' ',
+	printf("  [ %c ]  %-3i %s @ %08lx",
+	       dev_get_flags(dev) & DM_FLAG_ACTIVATED ? '+' : ' ', index,
 	       dev->name, (ulong)map_to_sysmem(dev));
 	if (dev->seq_ != -1)
 		printf(", seq %d", dev_seq(dev));
+	if (dev->driver->id == UCLASS_BLK) {
+		struct blk_desc *desc = dev_get_uclass_plat(dev);
+		printf(" | %s%d", blk_get_uclass_name(desc->uclass_id), desc->devnum);
+	}
+#ifdef CONFIG_DM_KERNEL_DTB
+	printf(" %s", udtb_label(dev));
+#endif
 	puts("\n");
 }
 

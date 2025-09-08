@@ -28,6 +28,13 @@
 #if defined(CONFIG_CMD_USB)
 #include <usb.h>
 #endif
+#ifdef CONFIG_HOTKEY
+#include <hotkey.h>
+#endif
+#ifdef CONFIG_SYSMEM
+#include <sysmem.h>
+#endif
+
 #else
 #include "mkimage.h"
 #endif
@@ -378,10 +385,10 @@ static int bootm_find_os(const char *cmd_name, const char *addr_fit)
 			vendor_boot_img = map_sysmem(get_avendor_bootimg_addr(), 0);
 		}
 		images.os.type = IH_TYPE_KERNEL;
-		images.os.comp = android_image_get_kcomp(boot_img, vendor_boot_img);
+		images.os.comp = android_image_get_comp(boot_img);
 		images.os.os = IH_OS_LINUX;
-		images.os.end = android_image_get_end(boot_img, vendor_boot_img);
-		images.os.load = android_image_get_kload(boot_img, vendor_boot_img);
+		images.os.end = android_image_get_end(boot_img);
+		images.os.load = android_image_get_kload(boot_img);
 		images.ep = images.os.load;
 		ep_found = true;
 		if (IS_ENABLED(CONFIG_CMD_ABOOTIMG)) {
@@ -554,6 +561,8 @@ static int bootm_find_other(ulong img_addr, const char *conf_ramdisk,
 }
 #endif /* USE_HOSTC */
 
+
+
 #if !defined(USE_HOSTCC) || defined(CONFIG_FIT_SIGNATURE)
 /**
  * handle_decomp_error() - display a decompression error
@@ -646,15 +655,15 @@ static int bootm_load_os(struct bootm_headers *images, int boot_progress)
 
 	flush_cache(flush_start, ALIGN(load_end, ARCH_DMA_MINALIGN) - flush_start);
 
-	debug("   kernel loaded at 0x%08lx, end = 0x%08lx\n", load, load_end);
+	printf("   kernel loaded at 0x%08lx, end = 0x%08lx\n", load, load_end);
 	bootstage_mark(BOOTSTAGE_ID_KERNEL_LOADED);
 
 	no_overlap = (os.comp == IH_COMP_NONE && load == image_start);
 
 	if (!no_overlap && load < blob_end && load_end > blob_start) {
-		debug("images.os.start = 0x%lX, images.os.end = 0x%lx\n",
+		printf("images.os.start = 0x%lX, images.os.end = 0x%lx\n",
 		      blob_start, blob_end);
-		debug("images.os.load = 0x%lx, load_end = 0x%lx\n", load,
+		printf("images.os.load = 0x%lx, load_end = 0x%lx\n", load,
 		      load_end);
 
 		/* Check what type of image this is. */
@@ -698,7 +707,6 @@ static int bootm_load_os(struct bootm_headers *images, int boot_progress)
 	if (CONFIG_IS_ENABLED(LMB))
 		lmb_reserve(images->os.load, (load_end - images->os.load),
 			    LMB_NONE);
-
 	return 0;
 }
 
@@ -711,6 +719,13 @@ static int bootm_load_os(struct bootm_headers *images, int boot_progress)
 ulong bootm_disable_interrupts(void)
 {
 	ulong iflag;
+
+	/*
+	 * Do not go further if usb is boot device,
+	 * We may access usb at late sequence.
+	 */
+	if (!strcmp(env_get("devtype"), "usb"))
+		return 0;
 
 	/*
 	 * We have reached the point of no return: we are going to
@@ -968,9 +983,20 @@ int bootm_run_states(struct bootm_info *bmi, int states)
 	boot_os_fn *boot_fn;
 	ulong iflag = 0;
 	int ret = 0, need_boot_fn;
+	u32 unmask;
+
+	unmask = env_get_ulong("bootm_states_unmask", 16, 0);
+	if (unmask)
+		states &= ~unmask;
 
 	images->state |= states;
 
+#ifdef CONFIG_HOTKEY
+	hotkey_run(HK_SYSMEM);
+#endif
+#ifdef CONFIG_SYSMEM
+	sysmem_overflow_check();
+#endif
 	/*
 	 * Work through the states and see how far we get. We stop on
 	 * any error.
@@ -1006,7 +1032,14 @@ int bootm_run_states(struct bootm_info *bmi, int states)
 		else if (ret == BOOTM_ERR_OVERLAP)
 			ret = 0;
 	}
-
+#if 0
+	/* Resever memory before any lmb_alloc, as early as possible */
+#if IMAGE_ENABLE_OF_LIBFDT && defined(CONFIG_LMB)
+	if (!ret && ((states & BOOTM_STATE_RAMDISK) ||
+	    (states & BOOTM_STATE_FDT)))
+		boot_fdt_add_mem_rsv_regions(&images->lmb, images->ft_addr);
+#endif
+#endif
 	/* Relocate the ramdisk */
 #ifdef CONFIG_SYS_BOOT_RAMDISK_HIGH
 	if (!ret && (states & BOOTM_STATE_RAMDISK)) {
@@ -1148,7 +1181,6 @@ int bootm_boot_start(ulong addr, const char *cmdline)
 	images.state |= states;
 
 	snprintf(addr_str, sizeof(addr_str), "%lx", addr);
-
 	ret = env_set("bootargs", cmdline);
 	if (ret) {
 		printf("Failed to set cmdline\n");
@@ -1183,7 +1215,7 @@ void __weak switch_to_non_secure_mode(void)
 
 #if defined(CONFIG_FIT_SIGNATURE)
 static int bootm_host_load_image(const void *fit, int req_image_type,
-				 int cfg_noffset)
+				 int cfg_noffset, int index)
 {
 	const char *fit_uname_config = NULL;
 	ulong data, len;
@@ -1198,9 +1230,9 @@ static int bootm_host_load_image(const void *fit, int req_image_type,
 	fit_uname_config = fdt_get_name(fit, cfg_noffset, NULL);
 	memset(&images, '\0', sizeof(images));
 	images.verify = 1;
-	noffset = fit_image_load(&images, (ulong)fit,
+	noffset = fit_image_load_index(&images, (ulong)fit,
 		NULL, &fit_uname_config,
-		IH_ARCH_DEFAULT, req_image_type, -1,
+		IH_ARCH_DEFAULT, req_image_type, index, -1,
 		FIT_LOAD_IGNORED, &data, &len);
 	if (noffset < 0)
 		return noffset;
@@ -1228,20 +1260,48 @@ static int bootm_host_load_image(const void *fit, int req_image_type,
 	return 0;
 }
 
-int bootm_host_load_images(const void *fit, int cfg_noffset)
+int bootm_host_load_images(const void *fit, int cfg_noffset, int is_spl)
 {
 	static uint8_t image_types[] = {
 		IH_TYPE_KERNEL,
 		IH_TYPE_FLATDT,
 		IH_TYPE_RAMDISK,
 	};
+	static uint8_t image_types_spl[] = {
+#ifdef CONFIG_SPL_ATF
+		IH_TYPE_FLATDT,
+		IH_TYPE_FIRMWARE,
+		IH_TYPE_LOADABLE,
+		IH_TYPE_LOADABLE,
+		IH_TYPE_LOADABLE,
+#else
+		IH_TYPE_FLATDT,
+		IH_TYPE_FIRMWARE,
+		IH_TYPE_LOADABLE,
+#endif
+	};
+	int loadable_index = 0;
 	int err = 0;
+	int index;
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(image_types); i++) {
+	for (i = 0; !is_spl && i < ARRAY_SIZE(image_types); i++) {
 		int ret;
 
-		ret = bootm_host_load_image(fit, image_types[i], cfg_noffset);
+		ret = bootm_host_load_image(fit, image_types[i], cfg_noffset, 0);
+		if (!err && ret && ret != -ENOENT)
+			err = ret;
+	}
+
+	for (i = 0; is_spl && i < ARRAY_SIZE(image_types_spl); i++) {
+		int ret;
+
+		if (image_types_spl[i] == IH_TYPE_LOADABLE)
+			index = loadable_index++;
+		else
+			index = 0;
+
+		ret = bootm_host_load_image(fit, image_types_spl[i], index, is_spl);
 		if (!err && ret && ret != -ENOENT)
 			err = ret;
 	}

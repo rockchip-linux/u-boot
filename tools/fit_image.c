@@ -59,6 +59,11 @@ static int fit_add_file_data(struct image_tool_params *params, size_t size_inc,
 		time_t time = imagetool_get_source_date(params->cmdname,
 							sbuf.st_mtime);
 		ret = fit_set_timestamp(ptr, 0, time);
+		ret |= fit_set_totalsize(ptr, 0, sbuf.st_size);
+		if (params->vflag > 0)
+			ret |= fit_set_version(ptr, 0, params->vflag);
+		else
+			ret |= fit_set_version(ptr, 0, 0);
 	}
 
 	if (CONFIG_IS_ENABLED(FIT_SIGNATURE) && !ret)

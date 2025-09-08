@@ -128,6 +128,7 @@ obj-$(CONFIG_MACH_PIC32) += ddr/microchip/
 obj-$(CONFIG_FUZZ) += fuzz/
 obj-$(CONFIG_DM_HWSPINLOCK) += hwspinlock/
 obj-$(CONFIG_$(PHASE_)DM_RNG) += rng/
+obj-$(CONFIG_IRQ) += irq/
 endif
 
 obj-y += soc/

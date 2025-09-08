@@ -16,6 +16,7 @@
 #include <spl.h>
 #include <linux/libfdt.h>
 
+#if CONFIG_IS_ENABLED(RAM_DEVICE) || CONFIG_IS_ENABLED(DFU)
 static ulong spl_ram_load_read(struct spl_load_info *load, ulong sector,
 			       ulong count, void *buf)
 {
@@ -96,6 +97,8 @@ static int spl_ram_load_image(struct spl_image_info *spl_image,
 
 	return ret;
 }
+#endif
+
 #if CONFIG_IS_ENABLED(RAM_DEVICE)
 SPL_LOAD_IMAGE_METHOD("RAM", 0, BOOT_DEVICE_RAM, spl_ram_load_image);
 #endif

@@ -9,6 +9,7 @@
 #include <command.h>
 #include <dm/root.h>
 #include <dm/util.h>
+#include <dm/of_access.h>
 
 static int do_dm_dump_driver_compat(struct cmd_tbl *cmdtp, int flag, int argc,
 				    char * const argv[])
@@ -103,6 +104,15 @@ static int do_dm_dump_uclass(struct cmd_tbl *cmdtp, int flag, int argc,
 	return 0;
 }
 
+static int do_dm_dump_aliases(struct cmd_tbl *cmdtp, int flag, int argc,
+			      char *const argv[])
+{
+#ifdef CONFIG_OF_LIVE
+	of_alias_dump();
+#endif
+	return 0;
+}
+
 #if CONFIG_IS_ENABLED(DM_STATS)
 #define DM_MEM_HELP	"dm mem           Provide a summary of memory usage\n"
 #define DM_MEM		U_BOOT_SUBCMD_MKENT(mem, 1, 1, do_dm_dump_mem),
@@ -118,7 +128,8 @@ U_BOOT_LONGHELP(dm,
 	DM_MEM_HELP
 	"dm static        Dump list of drivers with static platform data\n"
 	"dm tree [-s][-e][name]   Dump tree of driver model devices (-s=sort)\n"
-	"dm uclass [-e][name]     Dump list of instances for each uclass");
+	"dm uclass [-e][name]     Dump list of instances for each uclass\n"
+	"dm aliases       Dump list of aliases");
 
 U_BOOT_CMD_WITH_SUBCMDS(dm, "Driver model low level access", dm_help_text,
 	U_BOOT_SUBCMD_MKENT(compat, 1, 1, do_dm_dump_driver_compat),
@@ -127,4 +138,5 @@ U_BOOT_CMD_WITH_SUBCMDS(dm, "Driver model low level access", dm_help_text,
 	DM_MEM
 	U_BOOT_SUBCMD_MKENT(static, 1, 1, do_dm_dump_static_driver_info),
 	U_BOOT_SUBCMD_MKENT(tree, 4, 1, do_dm_dump_tree),
-	U_BOOT_SUBCMD_MKENT(uclass, 3, 1, do_dm_dump_uclass));
+	U_BOOT_SUBCMD_MKENT(uclass, 3, 1, do_dm_dump_uclass),
+	U_BOOT_SUBCMD_MKENT(aliases, 1, 1, do_dm_dump_aliases));

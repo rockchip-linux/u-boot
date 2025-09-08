@@ -5,6 +5,7 @@
 
 #include <env.h>
 #include <image.h>
+#include <android_ab.h>
 #include <image-android-dt.h>
 #include <android_image.h>
 #include <malloc.h>

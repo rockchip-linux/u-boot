@@ -106,6 +106,18 @@ config UT_UNICODE
 	  Enables the 'ut unicode' command which tests that the functions for
 	  manipulating Unicode strings work correctly.
 
+config TEST_ROCKCHIP
+	bool "test Rockchip board modules"
+	depends on ARCH_ROCKCHIP
+	help
+	  This enables the test function for rockchip board modules.
+
+config LAVA_INFO
+	bool "Display test info need by LAVA system"
+	depends on TEST_ROCKCHIP
+	help
+	  This enable the print info need by LAVA system
+
 source "test/dm/Kconfig"
 source "test/env/Kconfig"
 source "test/image/Kconfig"

@@ -44,8 +44,22 @@ static void v7_dcache_inval_range(u32 start, u32 stop, u32 line_len)
 {
 	u32 mva;
 
-	if (!check_cache_range(start, stop))
-		return;
+#ifdef DEBUG
+	check_cache_range(start, stop);
+#endif
+	/* aligned ? backward and flush a line_len */
+	if (start & (line_len - 1)) {
+		mva = start & ~(line_len - 1);
+		asm volatile ("mcr p15, 0, %0, c7, c14, 1" : : "r" (mva));
+		start = mva + line_len;
+	}
+
+	/* aligned ? forward and flush a line_len */
+	if (stop & (line_len - 1)) {
+		mva = stop & ~(line_len - 1);
+		asm volatile ("mcr p15, 0, %0, c7, c14, 1" : : "r" (mva));
+		stop = mva;
+	}
 
 	for (mva = start; mva < stop; mva = mva + line_len) {
 		/* DCIMVAC - Invalidate data cache by MVA to PoC */
@@ -117,8 +131,9 @@ void flush_dcache_all(void)
  */
 void invalidate_dcache_range(unsigned long start, unsigned long stop)
 {
+#ifdef DEBUG
 	check_cache_range(start, stop);
-
+#endif
 	v7_dcache_maint_range(start, stop, ARMV7_DCACHE_INVAL_RANGE);
 
 	v7_outer_cache_inval_range(start, stop);
@@ -131,8 +146,9 @@ void invalidate_dcache_range(unsigned long start, unsigned long stop)
  */
 void flush_dcache_range(unsigned long start, unsigned long stop)
 {
+#ifdef DEBUG
 	check_cache_range(start, stop);
-
+#endif
 	v7_dcache_maint_range(start, stop, ARMV7_DCACHE_CLEAN_INVAL_RANGE);
 
 	v7_outer_cache_flush_range(start, stop);

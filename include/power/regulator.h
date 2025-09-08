@@ -269,6 +269,17 @@ struct dm_regulator_ops {
 	 */
 	int (*get_mode)(struct udevice *dev);
 	int (*set_mode)(struct udevice *dev, int mode_id);
+
+	/**
+	 * The regulator voltage set ramp delay
+	 *
+	 * @dev            - regulator device
+	 * @ramp_delay     - ramp delay [uV/uS]
+	 * @return zero on success and other failed.
+	 */
+	int (*set_ramp_delay)(struct udevice *dev, u32 ramp_delay);
+
+	int (*get_ramp_delay)(struct udevice *dev, int old_uV, int new_uV);
 };
 
 #if CONFIG_IS_ENABLED(DM_REGULATOR)
@@ -415,6 +426,13 @@ int regulator_get_mode(struct udevice *dev);
 int regulator_set_mode(struct udevice *dev, int mode_id);
 
 /**
+ * regulators_enable_state_mem() - init regulators in suspend state
+ *
+ * This init all regulators which are marked enabled in suspend state.
+ */
+int regulators_enable_state_mem(bool verbose);
+
+/**
  * regulator_autoset: setup the voltage/current on a regulator
  *
  * The setup depends on constraints found in device's uclass's platform data
@@ -521,6 +539,9 @@ int regulator_get_by_platname(const char *platname, struct udevice **devp);
  */
 int device_get_supply_regulator(struct udevice *dev, const char *supply_name,
 				struct udevice **devp);
+
+int regulators_enable_boot_on(bool verbose);
+
 #else
 static inline int regulator_mode(struct udevice *dev, struct dm_regulator_mode **modep)
 {
@@ -625,6 +646,11 @@ static inline int regulator_get_by_platname(const char *platname, struct udevice
 
 static inline int device_get_supply_regulator(struct udevice *dev, const char *supply_name,
 					       struct udevice **devp)
+{
+	return -ENOSYS;
+}
+
+static inline int regulators_enable_boot_on(bool verbose)
 {
 	return -ENOSYS;
 }

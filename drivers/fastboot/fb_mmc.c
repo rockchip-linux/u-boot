@@ -487,6 +487,9 @@ int fastboot_mmc_get_part_info(const char *part_name,
 
 static struct blk_desc *fastboot_mmc_get_dev(char *response)
 {
+#ifdef CONFIG_ARCH_ROCKCHIP
+	return plat_bootdev();
+#else
 	struct blk_desc *ret = blk_get_dev("mmc",
 					   CONFIG_FASTBOOT_FLASH_MMC_DEV);
 
@@ -496,6 +499,7 @@ static struct blk_desc *fastboot_mmc_get_dev(char *response)
 		return NULL;
 	}
 	return ret;
+#endif
 }
 
 /**
@@ -582,6 +586,13 @@ void fastboot_mmc_flash_write(const char *cmd, void *download_buffer,
 	}
 #endif
 
+	if (strcmp(cmd, CONFIG_FASTBOOT_IDBLOCK_NAME) == 0) {
+		printf("%s: updating IDBLOCK\n", __func__);
+		info.blksz = CONFIG_FASTBOOT_MMC_BLOCK_SIZE;
+		info.start = CONFIG_FASTBOOT_IDBLOCK_SECTOR;
+		info.size = CONFIG_FASTBOOT_IDBLOCK_SECTOR_SIZE;
+		goto download;
+	}
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	if (strncasecmp(cmd, "zimage", 6) == 0) {
 		dev_desc = fastboot_mmc_get_dev(response);
@@ -607,7 +618,7 @@ void fastboot_mmc_flash_write(const char *cmd, void *download_buffer,
 	if (!info.name[0] &&
 	    fastboot_mmc_get_part_info(cmd, &dev_desc, &info, response) < 0)
 		return;
-
+download:
 	if (is_sparse_image(download_buffer)) {
 		struct fb_mmc_sparse sparse_priv;
 		struct sparse_storage sparse;
@@ -707,4 +718,19 @@ void fastboot_mmc_erase(const char *cmd, char *response)
 	printf("........ erased " LBAFU " bytes from '%s'\n",
 	       blks_size * info.blksz, cmd);
 	fastboot_okay(NULL, response);
+}
+lbaint_t fb_mmc_get_erase_grp_size(void)
+{
+	lbaint_t grp_size;
+
+	struct mmc *mmc = find_mmc_device(CONFIG_FASTBOOT_FLASH_MMC_DEV);
+
+	if (!mmc) {
+		pr_err("invalid mmc device");
+		return -1;
+	}
+
+	grp_size = mmc->erase_grp_size << 9;
+
+	return  grp_size;
 }

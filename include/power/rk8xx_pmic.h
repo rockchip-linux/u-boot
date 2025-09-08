@@ -183,16 +183,6 @@ enum {
 };
 
 enum {
-	RK806_POWER_SLP_EN0 = 0x06,
-	RK806_POWER_SLP_EN1,
-	RK806_POWER_SLP_EN2,
-	RK806_REG_SYS_CFG3 = 0x72,
-	RK806_WDT_REG,
-	RK806_ON_SOURCE,
-	RK806_OFF_SOURCE
-};
-
-enum {
 	RK805_ID = 0x8050,
 	RK806_ID = 0x8060,
 	RK808_ID = 0x0000,
@@ -209,21 +199,20 @@ enum {
 	RK817_POWER_EN3,
 };
 
+#define RK8xx_RST_MODE0		0x00
+#define RK8xx_RST_MODE1		0x01
+#define RK8xx_RST_MODE2		0x02
+#define RK8xx_RESET_FUN_CLR	0x3f
 #define RK817_POWER_EN_SAVE0	0x99
 #define RK817_POWER_EN_SAVE1	0xa4
 
-#define RK806_POWER_EN(x)			(0x00 + (x))
-/* POWER_ENx register lower 4 bits are write-protected unless the associated top bit is set */
-#define RK806_POWER_EN_CLRSETBITS(bit, val)	(((val) << (bit)) | (1 << ((bit) + 4)))
 
-#define RK806_POWER_SLP_EN(x)			(0x06 + (x))
-
-#define RK806_ID_MSB	0x5a
-#define RK806_ID_LSB	0x5b
 #define RK817_ID_MSB	0xed
 #define RK817_ID_LSB	0xee
 #define RK8XX_ID_MSK	0xfff0
 
+#define RK817_PMIC_CHRG_TERM	0xe6
+#define RK817_PMIC_SYS_CFG1	0xf1
 #define RK817_PMIC_SYS_CFG3	0xf4
 #define RK817_GPIO_INT_CFG	0xfe
 
@@ -232,15 +221,206 @@ enum {
 #define RK817_BUCK4_CMIN	0xc6
 #define RK817_ON_SOURCE		0xf5
 #define RK817_OFF_SOURCE	0xf6
+#define RK817_NUM_OF_REGS	0xff
 
-#define RK8XX_ON_PWRON		BIT(7)
-#define RK8XX_ON_PLUG_IN	BIT(6)
+#define RK8XX_DEVCTRL_REG	0x4b
+#define RK817_PWRON_KEY		0xf7
+#define RK8XX_LP_ACTION_MSK	BIT(6)
+#define RK8XX_LP_OFF		(0 << 6)
+#define RK8XX_LP_RESTART	(1 << 6)
+#define RK8XX_LP_OFF_MSK	BIT(4) | BIT(5)
+#define RK8XX_LP_TIME_6S	(0 << 4)
+#define RK8XX_LP_TIME_8S	(1 << 4)
+#define RK8XX_LP_TIME_10S	(2 << 4)
+#define RK8XX_LP_TIME_12S	(3 << 4)
+
+/* IRQ definitions */
+#define RK8XX_IRQ_PWRON_FALL		0
+#define RK8XX_IRQ_PWRON_RISE		1
+#define RK8XX_IRQ_PLUG_OUT		2
+#define RK8XX_IRQ_PLUG_IN		3
+#define RK8XX_IRQ_CHG_OK		4
+
+#define RK808_INT_STS_REG1		0x4c
+#define RK808_INT_MSK_REG1		0x4d
+#define RK808_IRQ_PLUG_OUT_MSK		BIT(1)
+
+#define RK805_INT_STS_REG		0x4c
+#define RK805_INT_MSK_REG		0x4d
+#define RK805_IRQ_PWRON_FALL_MSK	BIT(7)
+#define RK805_IRQ_PWRON_RISE_MSK	BIT(0)
+
+enum rk806_reg_id {
+	RK806_ID_DCDC1 = 0,
+	RK806_ID_DCDC2,
+	RK806_ID_DCDC3,
+	RK806_ID_DCDC4,
+	RK806_ID_DCDC5,
+	RK806_ID_DCDC6,
+	RK806_ID_DCDC7,
+	RK806_ID_DCDC8,
+	RK806_ID_DCDC9,
+	RK806_ID_DCDC10,
+
+	RK806_ID_NLDO1,
+	RK806_ID_NLDO2,
+	RK806_ID_NLDO3,
+	RK806_ID_NLDO4,
+	RK806_ID_NLDO5,
+
+	RK806_ID_PLDO1,
+	RK806_ID_PLDO2,
+	RK806_ID_PLDO3,
+	RK806_ID_PLDO4,
+	RK806_ID_PLDO5,
+	RK806_ID_PLDO6,
+	RK806_ID_END,
+};
+
+#define RK806_CHIP_NAME			0x5A
+#define RK806_CHIP_VER			0x5B
+#define RK806_HW_VER			0x21
+#define HW_DUAL_PMIC			0x28
+#define HW_SINGLE_PMIC			0xe8
+
+#define RK806_CMD_READ			0
+#define RK806_CMD_WRITE			BIT(7)
+#define RK806_CMD_CRC_EN		BIT(6)
+#define RK806_CMD_CRC_DIS		0
+#define RK806_CMD_LEN_MSK		0x0f
+#define RK806_REG_H			0x00
+
+#define RK806_SYS_CFG1			0x5f
+#define RK806_PWRCTRL_CONFIG0		0x62
+#define RK806_PWRCTRL_CONFIG1		0x63
+#define RK806_VSEL_CTR_SEL0		0x64
+#define RK806_DVS_CTR_SEL4		0x6e
+#define RK806_PWRCTRL_GPIO		0x71
+#define RK806_SYS_CFG3			0x72
+#define RK806_PWRON_KEY			0x76
+#define RK806_INT_STS0			0x77
+#define RK806_INT_MSK0			0x78
+#define RK806_INT_STS1			0x79
+#define RK806_INT_MSK1			0x7A
+#define RK806_GPIO_INT_CONFIG		0x7B
+#define RK806_ON_SOURCE			0x74
+#define RK806_OFF_SOURCE		0x75
+#define RK806_BUCK_RSERVE_REG3		0xfd
+
+#define RK806_SHUTDOWN_SEQ_REG0		0xB2
+#define RK806_SHUTDOWN_SEQ_REG1		0xB3
+#define RK806_SHUTDOWN_SEQ_REG2		0xB4
+#define RK806_SHUTDOWN_SEQ_REG3		0xB5
+#define RK806_SHUTDOWN_SEQ_REG4		0xB6
+#define RK806_SHUTDOWN_SEQ_REG5		0xB7
+#define RK806_SHUTDOWN_SEQ_REG6		0xB8
+#define RK806_SHUTDOWN_SEQ_REG7		0xB9
+#define RK806_SHUTDOWN_SEQ_REG8		0xBA
+#define RK806_SHUTDOWN_SEQ_REG9		0xBB
+#define RK806_SHUTDOWN_SEQ_REG10	0xBC
+#define RK806_SHUTDOWN_SEQ_REG11	0xBD
+#define RK806_SHUTDOWN_SEQ_REG12	0xBE
+#define RK806_SHUTDOWN_SEQ_REG13	0xBF
+#define RK806_SHUTDOWN_SEQ_REG14	0xC0
+#define RK806_SHUTDOWN_SEQ_REG15	0xC1
+#define RK806_SHUTDOWN_SEQ_REG16	0xC2
+
+#define RK806_PWRCTRL1			0x01
+#define RK806_PWRCTRL2			0x02
+#define RK806_PWRCTRL3			0x03
+
+#define RK806_PWRCTR_GPIO_FUN		0x05
+#define RK806_PWRCTR_MSK_FUN		0x07
+#define RK806_PWRCTR_OUTPUT_MSK		0x11
+#define RK806_PWRCTR_OUTPUT0		0x01
+#define RK806_PWRCTR_OUTPUT1		0x11
+
+#define RK806_INT_POL_HIGH		BIT(1)
+#define RK806_IRQ_PWRON_FALL_MSK	BIT(0)
+#define RK806_IRQ_PWRON_RISE_MSK	BIT(1)
+#define RK806_DEV_OFF			BIT(0)
+#define RK806_RST_MODE1			0x01
+#define RK806_RST_MODE2			0x02
+#define RK806_PWRCTRL_FUN_MSK		0x88
+#define RK806_VSEL_CTRL_MSK		0xcc
+#define RK806_VSEL_PWRCTRL1		0x11
+#define RK806_ENABLE_PWRCTRL		0x04
+#define RK806_VERSION_AB		0x01
+
+#define RK806_ABNORDET_EN		0x80
+#define RK806_VERSION_MSK		0x0f
+#define RK806_RESET_FUN_CLR		0x3f
+#define RK806_BUCK5_EX_RES_EN		0x10
+
+/* RK806 buck*/
+#define RK806_BUCK_ON_VSEL(n)		(0x1a + n - 1)
+#define RK806_BUCK_SLP_VSEL(n)		(0x24 + n - 1)
+#define RK806_BUCK_CONFIG(n)		(0x10 + n - 1)
+#define RK806_BUCK_VSEL_MASK		0xff
+
+/* RK806 LDO */
+#define RK806_NLDO_ON_VSEL(n)		(0x43 + n - 1)
+#define RK806_NLDO_SLP_VSEL(n)		(0x48 + n - 1)
+#define RK806_NLDO_VSEL_MASK		0xff
+#define RK806_PLDO_ON_VSEL(n)		(0x4e + n - 1)
+#define RK806_PLDO_SLP_VSEL(n)		(0x54 + n - 1)
+#define RK806_PLDO_VSEL_MASK		0xff
+
+/* RK806 ENABLE */
+#define RK806_POWER_EN(n)		(0x00 + n)
+#define RK806_NLDO_EN(n)		(0x03 + n)
+#define RK806_PLDO_EN(n)		(0x04 + n)
+
+#define RK806_BUCK_SUSPEND_EN		0x06
+#define RK806_NLDO_SUSPEND_EN		0x07
+#define RK806_PLDO_SUSPEND_EN		0x08
+
+#define RK806_RAMP_RATE_MASK1		0xc0
+#define RK806_RAMP_RATE_REG1(n)		(0x10 + n)
+#define RK806_RAMP_RATE_REG1_8		0xeb
+#define RK806_RAMP_RATE_REG9_10		0xea
+
+#define RK806_RAMP_RATE_4LSB_PER_1CLK	0x00/* LDO 100mV/uS buck 50mV/us */
+#define RK806_RAMP_RATE_2LSB_PER_1CLK	0x01/* LDO 50mV/uS buck 25mV/us */
+#define RK806_RAMP_RATE_1LSB_PER_1CLK	0x02/* LDO 25mV/uS buck 12.5mV/us */
+#define RK806_RAMP_RATE_1LSB_PER_2CLK	0x03/* LDO 12.5mV/uS buck 6.25mV/us */
+
+#define RK806_RAMP_RATE_1LSB_PER_4CLK	0x04/* LDO 6.28/2mV/uS buck 3.125mV/us */
+#define RK806_RAMP_RATE_1LSB_PER_8CLK	0x05/* LDO 3.12mV/uS buck 1.56mV/us */
+#define RK806_RAMP_RATE_1LSB_PER_13CLK	0x06/* LDO 1.9mV/uS buck 961mV/us */
+#define RK806_RAMP_RATE_1LSB_PER_32CLK	0x07/* LDO 0.78mV/uS buck 0.39mV/us */
+
+#define RK806_PLDO0_2_MSK(pldo)		(BIT(pldo + 5))
+#define RK806_PLDO0_2_SET(pldo)		(BIT(pldo + 1) | RK806_PLDO0_2_MSK(pldo))
+#define RK806_PLDO0_2_CLR(pldo)		RK806_PLDO0_2_MSK(pldo)
+
+#define RK816_INT_STS_REG1		0x49
+#define RK816_INT_MSK_REG1		0x4a
+#define RK816_INT_STS_REG3		0x4e
+#define RK816_INT_STS_MSK_REG3		0x4f
+#define RK816_IRQ_PWRON_RISE_MSK	BIT(6)
+#define RK816_IRQ_PWRON_FALL_MSK	BIT(5)
+#define RK816_IRQ_PLUG_OUT_MSK		BIT(1)
+#define RK816_IRQ_CHR_OK_MSK		BIT(2)
+
+#define RK818_INT_STS_REG1		0x4c
+#define RK818_INT_MSK_REG1		0x4d
+#define RK818_IRQ_PLUG_OUT_MSK		BIT(1)
+#define RK818_IRQ_CHR_OK_MSK		BIT(2)
+
+#define	RK817_INT_STS_REG0		0xf8
+#define	RK817_INT_MSK_REG0		0xf9
+#define RK817_IRQ_PWRON_FALL_MSK	BIT(0)
+#define RK817_IRQ_PWRON_RISE_MSK	BIT(1)
+#define RK817_IRQ_PLUG_OUT_MSK		BIT(1)
+#define RK817_IRQ_PLUG_IN_MSK		BIT(0)
 
 struct reg_data {
 	u8 reg;
 	u8 val;
 	u8 mask;
 };
+
 struct rk8xx_reg_table {
 	char *name;
 	u8 reg_ctl;
@@ -248,9 +428,26 @@ struct rk8xx_reg_table {
 };
 
 struct rk8xx_priv {
+	struct virq_chip *irq_chip;
+	struct spi_slave *slave;
 	int variant;
+	int irq;
+	int lp_off_time;
+	int lp_action;
+	uint8_t sleep_pin;
+	uint8_t rst_fun;
+	int not_save_power_en;
+	int sys_can_sd;
+	int buck5_feedback_dis;
+	int pwr_ctr[3];
+	u32 *shutdown_sequence;
+	u32 *vb_shutdown_sequence;
+	int support_shutdown_sequence;
+	int support_vb_sequence;
 };
 
 int rk8xx_spl_configure_buck(struct udevice *pmic, int buck, int uvolt);
+int rk818_spl_configure_usb_input_current(struct udevice *pmic, int current_ma);
+int rk818_spl_configure_usb_chrg_shutdown(struct udevice *pmic, int uvolt);
 
 #endif

@@ -32,6 +32,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #if defined(CONFIG_CMD_LOADB)
 static ulong load_serial_ymodem(ulong offset, int mode);
 #endif
+#if CONFIG_IS_ENABLED(YMODEM_SUPPORT)
+static ulong load_serial_zmodem(ulong offset);
+#endif
 
 #if defined(CONFIG_CMD_LOADS)
 static ulong load_serial(long offset);
@@ -502,6 +505,13 @@ static int do_load_serial_bin(struct cmd_tbl *cmdtp, int flag, int argc,
 			printf("## Start Addr      = 0x%08lX\n", addr);
 			image_load_addr = addr;
 		}
+#if CONFIG_IS_ENABLED(YMODEM_SUPPORT)
+	} else if (strcmp(argv[0],"loadz")==0) {
+		printf("## Ready for binary (zmodem) download"
+			"to 0x%08lX at %d bps...\n",
+			offset, load_baudrate);
+		addr = load_serial_zmodem(offset);
+#endif
 	} else if (strcmp(argv[0],"loadx")==0) {
 		printf("## Ready for binary (xmodem) download "
 			"to 0x%08lX at %d bps...\n",
@@ -997,6 +1007,7 @@ static int getcxmodem(void) {
 		return (getchar());
 	return -1;
 }
+
 static ulong load_serial_ymodem(ulong offset, int mode)
 {
 	int size;
@@ -1066,6 +1077,118 @@ static ulong load_serial_ymodem(ulong offset, int mode)
 	return offset;
 }
 
+#if CONFIG_IS_ENABLED(YMODEM_SUPPORT)
+extern int zmodem_rx(unsigned int addr, int *rxsize);
+static ulong load_serial_zmodem(ulong offset)
+{
+	int size = 0;
+	int res;
+
+	printf("Start to run ZModem\n");
+	res = zmodem_rx(offset, &size);
+	if (res) {
+	       printf("ZModem download error, ret=%d\n", res);
+	       return offset;
+	}
+
+	flush_cache(offset, ALIGN(size, ARCH_DMA_MINALIGN));
+	printf("## Total Size      = 0x%08x = %d Bytes\n", size, size);
+	env_set_hex("filesize", size);
+
+	return offset;
+}
+
+static int do_loadz_flash(struct cmd_tbl *cmdtp, int flag, int argc,
+			  char *const argv[]))
+{
+	struct blk_desc *dev_desc;
+	struct disk_partition part;
+	const char *part_name;
+	char cmd[64];
+	ulong addr, size;
+	int ret, blknum;
+	int baudrate;
+
+	if (argc != 4)
+		return CMD_RET_USAGE;
+
+	addr = simple_strtol(argv[1], NULL, 16);
+	baudrate = (int)simple_strtoul(argv[2], NULL, 10);
+	part_name = argv[3];
+
+	/* search partition */
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		printf("No boot device\n");
+		return -ENODEV;
+	}
+
+	ret = part_get_info_by_name(dev_desc, part_name, &part);
+	if (ret < 0) {
+		printf("No partition '%s'\n", part_name);
+		return -EINVAL;
+	}
+
+	snprintf(cmd, 64, "loadz 0x%08lx %d\n", addr, baudrate);
+	ret = run_command(cmd, 0);
+	if (ret) {
+		printf("loadz failed, ret=%d\n", ret);
+		return CMD_RET_FAILURE;
+	}
+
+	size = env_get_ulong("filesize", 16, 0);
+	if (!size) {
+		printf("loadz empty file\n");
+		return CMD_RET_FAILURE;
+	}
+
+	/* flash */
+	blknum = DIV_ROUND_UP(size, dev_desc->blksz);
+	if (blknum > part.size) {
+		printf("File size 0x%lx is too large to flash\n", size);
+		return CMD_RET_FAILURE;
+	}
+
+#ifdef CONFIG_CMD_CRYPTO_SUM
+	snprintf(cmd, 64, "crypto_sum sha256 0x%lx 0x%lx", addr, size);
+	run_command(cmd, 0);
+#elif defined(CONFIG_CMD_HASH)
+	snprintf(cmd, 64, "hash sha256 0x%lx 0x%lx", addr, size);
+	run_command(cmd, 0);
+#endif
+
+	printf("## Flash data to partition %s@0x%lx sector with size 0x%lx ... ",
+		part_name, (ulong)part.start, (ulong)size);
+	if (dev_desc->uclass_id == UCLASS_MTD)
+		dev_desc->op_flag |= BLK_MTD_CONT_WRITE;
+	ret = blk_dwrite(dev_desc, part.start, blknum, (void *)addr);
+	if (dev_desc->uclass_id == UCLASS_MTD)
+		dev_desc->op_flag &= ~(BLK_MTD_CONT_WRITE);
+	if (ret != blknum) {
+		printf("Failed(%d)\n\n", ret);
+		return CMD_RET_FAILURE;
+	}
+	printf("OK\n\n");
+
+	return CMD_RET_SUCCESS;
+}
+
+U_BOOT_CMD(
+	loadz, 3, 0,	do_load_serial_bin,
+	"load binary file over serial line (zmodem mode)",
+	"[ off ] [ baud ]\n"
+	"    - load binary file over serial line"
+	" with offset 'off' and baudrate 'baud'"
+);
+
+U_BOOT_CMD(
+	loadzflash, 4, 0, do_loadz_flash,
+	"load binary file over serial line (zmodem mode) and flash to partition",
+	"[ off ] [ baud ] [partition]\n"
+	"    - load binary file over serial line"
+	" with offset 'off' and baudrate 'baud' and flash to 'partition'"
+);
+#endif
 #endif
 
 #if defined(CONFIG_CMD_LOADM)

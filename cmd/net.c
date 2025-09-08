@@ -10,12 +10,15 @@
  * Boot support
  */
 #include <bootstage.h>
+#include <common.h>
 #include <command.h>
 #include <dm.h>
 #include <dm/devres.h>
 #include <env.h>
 #include <image.h>
 #include <log.h>
+#include <blk.h>
+#include <part.h>
 #include <net.h>
 #include <net6.h>
 #include <net/udp.h>
@@ -51,7 +54,7 @@ int do_tftpb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 
 #if IS_ENABLED(CONFIG_IPV6)
 U_BOOT_CMD(
-	tftpboot,	4,	1,	do_tftpb,
+	tftp,	4,	1,	do_tftpb,
 	"boot image via network using TFTP protocol\n"
 	"To use IPv6 add -ipv6 parameter or use IPv6 hostIPaddr framed "
 	"with [] brackets",
@@ -59,11 +62,117 @@ U_BOOT_CMD(
 );
 #else
 U_BOOT_CMD(
-	tftpboot,	3,	1,	do_tftpb,
+	tftp,	3,	1,	do_tftpb,
 	"load file via network using TFTP protocol",
 	"[loadAddress] [[hostIPaddr:]bootfilename]"
 );
 #endif
+#endif
+
+#ifdef CONFIG_CMD_TFTP_BOOTM
+int do_tftpbootm(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+{
+	char *tftp_argv[] = { "tftp", NULL, NULL };
+	char *bootm_argv[] = { "bootm", NULL };
+	char *fileaddr;
+	ulong filesize;
+
+	if (argc != 3)
+		return CMD_RET_USAGE;
+
+	/* tftp download */
+	tftp_argv[1] = argv[1];
+	tftp_argv[2] = argv[2];
+	if (do_tftpb(cmdtp, 0, 3, tftp_argv))
+		return -ENOENT;
+
+	fileaddr = env_get("fileaddr");
+	filesize = env_get_ulong("filesize", 16, 0);
+	if (!fileaddr || !filesize)
+		return -ENOENT;
+
+	/* bootm */
+	bootm_argv[1] = fileaddr;
+	printf("## TFTP bootm %s at %s size 0x%lx\n",
+	       argv[2], fileaddr, filesize);
+
+	return do_bootm(NULL, 0, ARRAY_SIZE(bootm_argv), bootm_argv);
+}
+
+U_BOOT_CMD(
+	tftpbootm,	3,	1,	do_tftpbootm,
+	"tftpbootm aosp/uImage/FIT image via network using TFTP protocol",
+	"[loadAddress] [[hostIPaddr:]bootfilename]"
+);
+#endif
+
+#ifdef CONFIG_CMD_TFTP_FLASH
+int do_tftpflash(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+{
+	char *tftp_argv[] = { "tftp", NULL, NULL };
+	struct blk_desc *dev_desc;
+	struct disk_partition part;
+	ulong fileaddr;
+	ulong filesize;
+	char *part_name;
+	int ret, blknum;
+
+	if (argc != 4)
+		return CMD_RET_USAGE;
+
+	/* search partition */
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		printf("No boot device\n");
+		return -ENODEV;
+	}
+
+	part_name = argv[3];
+	ret = part_get_info_by_name(dev_desc, part_name, &part);
+	if (ret < 0) {
+		printf("No partition '%s'\n", part_name);
+		return -EINVAL;
+	}
+
+	/* tftp download */
+	tftp_argv[1] = argv[1];
+	tftp_argv[2] = argv[2];
+	if (do_tftpb(cmdtp, 0, ARRAY_SIZE(tftp_argv), tftp_argv))
+		return -ENOENT;
+
+	fileaddr = env_get_ulong("fileaddr", 16, 0);
+	filesize = env_get_ulong("filesize", 16, 0);
+	if (!fileaddr || !filesize)
+		return -ENOENT;
+
+	/* flash */
+	blknum = DIV_ROUND_UP(filesize, dev_desc->blksz);
+	if (blknum > part.size) {
+		printf("File size 0x%lx is too large to flash\n", filesize);
+		return -EINVAL;
+	}
+
+	printf("## TFTP flash %s to partititon '%s' size 0x%lx ... ",
+	       argv[2], part_name, filesize);
+
+	if (dev_desc->uclass_id == UCLASS_MTD)
+		dev_desc->op_flag |= BLK_MTD_CONT_WRITE;
+	ret = blk_dwrite(dev_desc, part.start, blknum, (void *)fileaddr);
+	if (dev_desc->uclass_id == UCLASS_MTD)
+		dev_desc->op_flag &= ~(BLK_MTD_CONT_WRITE);
+	if (ret != blknum)
+		printf("Failed(%d)\n", ret);
+	else
+		printf("OK\n");
+
+	return 0;
+}
+
+U_BOOT_CMD(
+	tftpflash,	4,	0,	do_tftpflash,
+	"flash image via network using TFTP protocol",
+	"[loadAddress] [[hostIPaddr:]bootfilename] [partition]"
+);
 #endif
 
 #ifdef CONFIG_CMD_TFTPPUT

@@ -225,7 +225,6 @@ typedef unsigned long blkcnt_t;
 #define init_waitqueue_head(...)	do { } while (0)
 #define wait_event_interruptible(...)	0
 #define wake_up_interruptible(...)	do { } while (0)
-#define dump_stack(...)			do { } while (0)
 
 #define task_pid_nr(x)			0
 #define set_freezable(...)		do { } while (0)

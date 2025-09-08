@@ -872,7 +872,7 @@ int efi_map_update_notify(phys_addr_t addr, phys_size_t size,
 	u64 efi_addr;
 	u64 pages;
 	efi_status_t status;
-
+return 0;
 	efi_addr = (uintptr_t)map_sysmem(addr, 0);
 	pages = efi_size_in_pages(size + (efi_addr & EFI_PAGE_MASK));
 	efi_addr &= ~EFI_PAGE_MASK;

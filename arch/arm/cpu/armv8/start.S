@@ -136,7 +136,44 @@ pie_fixup_done:
 	mov	x0, #3 << 20
 	msr	cpacr_el1, x0			/* Enable FP/SIMD */
 0:
-	msr	daifclr, #0x4			/* Unmask SError interrupts */
+
+	/*
+	 * Enable instruction cache (if required), stack pointer,
+	 * data access alignment checks and SError.
+	 */
+#ifndef CONFIG_SYS_ICACHE_OFF
+	mov x1, #CR_I
+#else
+	mov x1, #0
+#endif
+	switch_el x2, 3f, 2f, 1f
+3:	mrs	x0, sctlr_el3
+	orr	x0, x0, x1
+	msr	sctlr_el3, x0
+#ifndef CONFIG_SUPPORT_USBPLUG
+	msr	daifclr, #4			/* Enable SError. SCR_EL3.EA=1 was already set in start.S */
+#endif
+	b	0f
+2:	mrs	x0, sctlr_el2
+	orr	x0, x0, x1
+	msr	sctlr_el2, x0
+
+	mrs	x0, hcr_el2
+	orr	x0, x0, #HCR_EL2_TGE
+	orr	x0, x0, #HCR_EL2_AMO
+#if CONFIG_IS_ENABLED(IRQ)
+	orr	x0, x0, #HCR_EL2_IMO
+#endif
+	msr	hcr_el2, x0
+	msr	daifclr, #4
+	b	0f
+1:	mrs	x0, sctlr_el1
+	orr	x0, x0, x1
+	msr	sctlr_el1, x0
+	msr	daifclr, #4
+0:
+	isb
+
 
 #if CONFIG_COUNTER_FREQUENCY
 	branch_if_not_highest_el x0, 4f
@@ -203,6 +240,43 @@ slave_cpu:
 	cbz	x0, slave_cpu
 	br	x0			/* branch to the given address */
 #endif /* CONFIG_ARMV8_MULTIENTRY */
+
+#if CONFIG_IS_ENABLED(SMP)
+	mrs	x0, mpidr_el1
+	and x0, x0, #0xfff
+	cmp x0, #0
+	beq master_cpu
+
+#ifdef SMP_CPU1
+	cmp x0, #(SMP_CPU1)
+	ldr x1, =(SMP_CPU1_STACK)
+	beq slave_cpu
+#endif
+
+#ifdef SMP_CPU2
+	cmp x0, #(SMP_CPU2)
+	ldr x1, =(SMP_CPU2_STACK)
+	beq slave_cpu
+#endif
+
+#ifdef SMP_CPU3
+	cmp x0, #(SMP_CPU3)
+	ldr x1, =(SMP_CPU3_STACK)
+	beq slave_cpu
+#endif
+	dsb sy
+	isb
+
+loop:
+	wfe
+	b loop
+
+slave_cpu:
+	bic	sp, x1, #0xf
+	bl	smp_entry
+	b	loop
+#endif
+
 master_cpu:
 	msr	SPSel, #1		/* make sure we use SP_ELx */
 	bl	_main
@@ -301,7 +375,7 @@ ENDPROC(apply_core_errata)
 WEAK(lowlevel_init)
 	mov	x29, lr			/* Save LR */
 
-#if defined(CONFIG_GICV2) || defined(CONFIG_GICV3)
+#if CONFIG_IS_ENABLED(IRQ)
 	branch_if_slave x0, 1f
 	ldr	x0, =GICD_BASE
 	bl	gic_init_secure
@@ -315,6 +389,7 @@ WEAK(lowlevel_init)
 	bl	gic_init_secure_percpu
 #endif
 #endif
+
 
 #ifdef CONFIG_ARMV8_MULTIENTRY
 	branch_if_master x0, 2f

@@ -756,6 +756,14 @@ static int do_nand(struct cmd_tbl *cmdtp, int flag, int argc,
 				return 1;
 			}
 
+			if (strncmp(cmd, "readbyte", 8) == 0 || strncmp(cmd, "writebyte", 9) == 0) {
+				if (pagecount % (mtd->writesize + mtd->oobsize)) {
+					printf("Count=%ld should be aligned with (writesize + oobsize)\n", pagecount);
+					return -1;
+				}
+				pagecount = pagecount / (mtd->writesize + mtd->oobsize);
+			}
+
 			if (pagecount * mtd->writesize > size) {
 				puts("Size exceeds partition or device limit\n");
 				return -1;
