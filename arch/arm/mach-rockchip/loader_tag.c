@@ -70,6 +70,8 @@ int rockchip_get_loader_tag(u32 chip_info[])
 	chip_info[0] = 0x33353638;
 #elif defined(CONFIG_ROCKCHIP_RK3588)
 	chip_info[0] = 0x33353838;
+#elif defined(CONFIG_ROCKCHIP_RK3572)
+	chip_info[0] = 0x33353141;
 #elif defined(CONFIG_ROCKCHIP_RK3576)
 	chip_info[0] = 0x33353736;
 #elif defined(CONFIG_ROCKCHIP_RK3506)

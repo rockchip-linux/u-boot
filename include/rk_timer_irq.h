@@ -88,6 +88,9 @@
 /* Only timer0 can wakeup system suspend */
 #define TIMER_BASE		(0xFE5F0000 + 0x00)	/* TIMER 0 */
 #define TIMER_IRQ		IRQ_TIMER0
+#elif defined(CONFIG_ROCKCHIP_RK3572)
+#define TIMER_BASE		(0x2ad00000 + 0x00)	/* TIMER 0 */
+#define TIMER_IRQ		IRQ_TIMER0
 #elif defined(CONFIG_ROCKCHIP_RK3576)
 #define TIMER_BASE		(0x2acc0000 + 0x00)	/* TIMER 0 */
 #define TIMER_IRQ		IRQ_TIMER0
