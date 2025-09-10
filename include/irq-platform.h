@@ -275,6 +275,65 @@
 #define IRQ_GPIO3			108
 #define IRQ_GPIO4			110
 
+#elif defined(CONFIG_ROCKCHIP_RK3538)
+#define GPIO0_PHYS			0xfc300000
+#define GPIO1_PHYS			0xfc400000
+#define GPIO2_PHYS			0xfc500000
+#define GPIO3_PHYS			0xfc600000
+#define GPIO4_PHYS			0xfc700000
+#define GPIO5_PHYS			0xfc800000
+#define GPIO6_PHYS			0xfc900000
+
+#define GIC_IRQS_NR			(7 * 32)
+#define GPIO_IRQS_NR			(7 * 32)
+
+#define GPIO_BANK_NUM			7
+#define GPIO_BANK_PINS			32
+
+#define IRQ_TIMER0			99
+
+#define IRQ_GPIO0			IRQ_GPIO0_0
+#define IRQ_GPIO0_0			32
+#define IRQ_GPIO0_1			33
+#define IRQ_GPIO0_2			34
+#define IRQ_GPIO0_3			35
+
+#define IRQ_GPIO1			IRQ_GPIO1_0
+#define IRQ_GPIO1_0			36
+#define IRQ_GPIO1_1			37
+#define IRQ_GPIO1_2			38
+#define IRQ_GPIO1_3			39
+
+#define IRQ_GPIO2			IRQ_GPIO2_0
+#define IRQ_GPIO2_0			40
+#define IRQ_GPIO2_1			41
+#define IRQ_GPIO2_2			42
+#define IRQ_GPIO2_3			43
+
+#define IRQ_GPIO3			IRQ_GPIO3_0
+#define IRQ_GPIO3_0			44
+#define IRQ_GPIO3_1			45
+#define IRQ_GPIO3_2			46
+#define IRQ_GPIO3_3			47
+
+#define IRQ_GPIO4			IRQ_GPIO4_0
+#define IRQ_GPIO4_0			48
+#define IRQ_GPIO4_1			49
+#define IRQ_GPIO4_2			50
+#define IRQ_GPIO4_3			51
+
+#define IRQ_GPIO5			IRQ_GPIO5_0
+#define IRQ_GPIO5_0			52
+#define IRQ_GPIO5_1			53
+#define IRQ_GPIO5_2			54
+#define IRQ_GPIO5_3			55
+
+#define IRQ_GPIO6			IRQ_GPIO6_0
+#define IRQ_GPIO6_0			56
+#define IRQ_GPIO6_1			57
+#define IRQ_GPIO6_2			58
+#define IRQ_GPIO6_3			59
+
 #elif defined(CONFIG_ROCKCHIP_RK3562)
 #define GPIO0_PHYS			0xff260000
 #define GPIO1_PHYS			0xff620000

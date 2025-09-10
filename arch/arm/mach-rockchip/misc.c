@@ -18,8 +18,10 @@
 #include <net.h>
 #include <rand.h>
 #include <misc.h>
+#ifdef CONFIG_IRQ
 #include <irq-generic.h>
 #include <rk_timer_irq.h>
+#endif
 #include <dm/uclass-internal.h>
 #include <u-boot/crc.h>
 #include <u-boot/sha256.h>
