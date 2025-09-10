@@ -102,17 +102,17 @@ int param_parse_pstore(void)
 	t = atags_get_tag(ATAG_PSTORE);
 	if (t) {
 		gd->pstore_addr = t->u.pstore.buf[LOG_UBOOT].addr;
-		gd->pstore_size = t->u.pstore.buf[LOG_UBOOT].size - sizeof(struct persistent_ram_buffer);
+		gd->pstore_size = t->u.pstore.buf[LOG_UBOOT].size;
 	}
 #elif (CONFIG_PERSISTENT_RAM_ADDR == 0 || CONFIG_PERSISTENT_RAM_SIZE == 0)
 	#error: CONFIG_PERSISTENT_RAM_SIZE and CONFIG_PERSISTENT_RAM_ADDR value should not be 0.
 #else
 	gd->pstore_addr = CONFIG_PERSISTENT_RAM_ADDR;
-	gd->pstore_size = CONFIG_PERSISTENT_RAM_SIZE - sizeof(struct persistent_ram_buffer);
+	gd->pstore_size = CONFIG_PERSISTENT_RAM_SIZE;
 #endif
 	if (gd->pstore_addr) {
 		rb = (struct persistent_ram_buffer *)gd->pstore_addr;
-		pstore_size = gd->pstore_size;
+		pstore_size = gd->pstore_size - sizeof(struct persistent_ram_buffer);
 
 		if (rb->sig != PERSISTENT_RAM_SIG) {
 			rb->sig = PERSISTENT_RAM_SIG;
@@ -133,7 +133,7 @@ int param_parse_pstore(void)
 void putc_to_ram(const char c)
 {
 	struct persistent_ram_buffer *rb = (struct persistent_ram_buffer *)gd->pstore_addr;
-	u32 pstore_size = gd->pstore_size;
+	u32 pstore_size = gd->pstore_size - sizeof(struct persistent_ram_buffer);
 	u8 *dst;
 
 	if (!rb || pstore_size == 0)
