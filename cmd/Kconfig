@@ -1777,6 +1777,15 @@ config CMD_ROCKUSB
 	  Rockchip SoC based devices, its design make use of USB
 	  Bulk-Only Transport based on UMS framework.
 
+if CMD_ROCKUSB
+config ROCKUSB_MAX_SPEED_HS
+	bool "Set rockusb maximum speed to hs"
+	default n
+	help
+	  Set rockusb maximum speed to high speed even if the usb
+	  controller can support super speed.
+endif # CMD_ROCKUSB
+
 config CMD_USB_MASS_STORAGE
 	bool "UMS usb mass storage"
 	depends on BLK && USB_GADGET_DOWNLOAD
