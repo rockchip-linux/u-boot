@@ -741,12 +741,18 @@ static struct serdes_chip_gpio_ops max96745_gpio_ops = {
 
 static int max96745_select(struct serdes *serdes, int chan)
 {
+	u32 link_status;
+	int ret = 0;
+	int i = 0;
+	int link_mode = LINKA;
+
 	/*0076 for linkA and 0086 for linkB*/
 	if (chan == DUAL_LINK) {
 		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
 				FIELD_PREP(DIS_REM_CC, 0));
 		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
 				FIELD_PREP(DIS_REM_CC, 0));
+		link_mode = DUAL_LINK;
 		SERDES_DBG_CHIP("%s: enable %s remote i2c of linkA/linkB\n",
 				__func__,
 				serdes->chip_data->name);
@@ -755,6 +761,7 @@ static int max96745_select(struct serdes *serdes, int chan)
 				FIELD_PREP(DIS_REM_CC, 0));
 		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
 				FIELD_PREP(DIS_REM_CC, 1));
+		link_mode = LINKA;
 		SERDES_DBG_CHIP("%s: only enable %s remote i2c of linkA\n",
 				__func__,
 				serdes->chip_data->name);
@@ -763,6 +770,7 @@ static int max96745_select(struct serdes *serdes, int chan)
 				FIELD_PREP(DIS_REM_CC, 1));
 		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
 				FIELD_PREP(DIS_REM_CC, 0));
+		link_mode = LINKB;
 		SERDES_DBG_CHIP("%s: only enable %s remote i2c of linkB\n",
 				__func__,
 				serdes->chip_data->name);
@@ -771,10 +779,43 @@ static int max96745_select(struct serdes *serdes, int chan)
 				FIELD_PREP(DIS_REM_CC, 0));
 		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
 				FIELD_PREP(DIS_REM_CC, 0));
+		link_mode = SPLITTER_MODE;
 		SERDES_DBG_CHIP("%s: enable %s remote i2c of linkA/B\n",
 				__func__,
 				serdes->chip_data->name);
 	}
+
+	for (i = 0; i < 50; i++) {
+		ret = serdes_reg_read(serdes, 0x0021, &link_status);
+		if (ret)
+			continue;
+
+		switch (link_mode) {
+		case SPLITTER_MODE:
+			if ((link_status & LOCK_A_FLAG) &&
+			    (link_status & LOCK_B_FLAG))
+				goto out;
+		break;
+		case LINKA:
+			if (link_status & LOCK_A_FLAG)
+				goto out;
+		break;
+		case LINKB:
+			if (link_status & LOCK_B_FLAG)
+				goto out;
+		break;
+		}
+
+		mdelay(5);
+	}
+
+	printf("%s: %s link lock timeout, mode=%d val=0x%x\n", __func__,
+	       serdes->dev->name, link_mode, link_status);
+	return -1;
+
+out:
+	printf("%s: %s link locked, mode=%d, val=0x%x\n", __func__,
+	       serdes->dev->name, link_mode, link_status);
 
 	return 0;
 }

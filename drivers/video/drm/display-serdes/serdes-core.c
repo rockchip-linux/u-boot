@@ -93,7 +93,7 @@ int serdes_reg_read(struct serdes *serdes,
 	else
 		ret = dm_i2c_reg_read(serdes->dev, reg);
 
-	if (ret > 0) {
+	if (ret >= 0) {
 		*val = ret;
 		ret = 0;
 	}

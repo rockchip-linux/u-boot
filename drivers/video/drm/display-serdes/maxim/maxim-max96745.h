@@ -36,6 +36,15 @@
 #define LOCKED			BIT(3)
 #define ERROR			BIT(2)
 
+/* 0021h */
+#define LOSS_OF_LOCK_FLAG	BIT(0)
+#define LOCK_FLAG		BIT(1)
+#define LOCK_A_FLAG		BIT(2)
+#define LOCK_B_FLAG		BIT(3)
+#define VDD1P8_OV_FLAG		BIT(5)
+#define VDDIO_OV_FLAG		BIT(6)
+#define SW_INT_FLAG		BIT(7)
+
 /* 0026h */
 #define LF_0			GENMASK(2, 0)
 #define LF_1			GENMASK(6, 4)
