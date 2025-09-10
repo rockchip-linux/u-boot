@@ -60,6 +60,7 @@ extern int cmd_usage(const cmd_tbl_t *cmdtp);
 
 #ifdef CONFIG_AUTO_COMPLETE
 extern int var_complete(int argc, char * const argv[], char last_char, int maxv, char *cmdv[]);
+int make_argv(char *s, int argvsz, char *argv[]);
 extern int cmd_auto_complete(const char *const prompt, char *buf, int *np, int *colp);
 #endif
 

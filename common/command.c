@@ -237,7 +237,7 @@ static int complete_cmdv(int argc, char * const argv[], char last_char, int maxv
 #endif
 }
 
-static int make_argv(char *s, int argvsz, char *argv[])
+int make_argv(char *s, int argvsz, char *argv[])
 {
 	int argc = 0;
 
