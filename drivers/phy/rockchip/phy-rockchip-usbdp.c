@@ -1351,6 +1351,7 @@ static const struct phy_ops rockchip_udphy_ops = {
 	.configure	= rockchip_udphy_configure,
 };
 
+#if !CONFIG_IS_ENABLED(ROCKUSB_MAX_SPEED_HS)
 int rockchip_u3phy_uboot_init(fdt_addr_t phy_addr)
 {
 	struct udevice *udev = NULL;
@@ -1411,6 +1412,7 @@ disable_u3:
 
 	return -EOPNOTSUPP;
 }
+#endif
 
 static int rockchip_udphy_probe(struct udevice *dev)
 {
