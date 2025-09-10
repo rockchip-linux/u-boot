@@ -92,6 +92,11 @@ static int do_boot_fit(struct cmd_tbl *cmdtp, int flag, int argc, char *const ar
 	printf("at 0x%08lx with size 0x%08lx\n", (ulong)fit, size);
 
 	char slot_suffix[3] = {0};
+	/*
+	 * The correct slot_suffix args should be 'androidboot.slot_suffix='.
+	 * But considering of compability with old kernel and applications,
+	 * don't fix it for now.
+	 */
 	char slot_info[21] = "android_slotsufix=";
 
 	if (ab_is_enabled()) {
