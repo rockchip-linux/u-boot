@@ -52,7 +52,7 @@ __weak int rk_board_scan_bootdev(void)
 	return run_command_list(devtype_num_set, -1, 0);
 }
 
-static int bootdev_init(const char *devtype, const char *devnum)
+int bootdev_init(const char *devtype, const char *devnum)
 {
 #ifdef CONFIG_MMC
 	if (!strcmp("mmc", devtype))

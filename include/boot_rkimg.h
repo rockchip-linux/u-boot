@@ -66,6 +66,7 @@ struct rockchip_image {
 #define PART_USERDATA			"userdata"
 #define PART_META			"meta"
 
+int bootdev_init(const char *devtype, const char *devnum);
 struct blk_desc *rockchip_get_bootdev(void);
 void rockchip_set_bootdev(struct blk_desc *desc);
 void board_run_recovery_wipe_data(void);
