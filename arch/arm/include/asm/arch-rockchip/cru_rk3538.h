@@ -1,0 +1,395 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright (c) 2025 Rockchip Electronics Co. Ltd.
+ * Author: Elaine Zhang <zhangqing@rock-chips.com>
+ */
+
+#ifndef _ASM_ARCH_CRU_RK3538_H
+#define _ASM_ARCH_CRU_RK3538_H
+
+#define MHz		1000000
+#define KHz		1000
+#define OSC_HZ		(24 * MHz)
+
+#define CPU_PVTPLL_HZ	(1200 * MHz)
+#define GPLL_HZ		(1188 * MHz)
+#define CPLL_HZ		(1000 * MHz)
+
+/* RK3538 pll id */
+enum rk3538_pll_id {
+	CPLL,
+	GPLL,
+	PLL_COUNT,
+};
+
+struct rk3538_clk_info {
+	unsigned long id;
+	char *name;
+};
+
+struct rk3538_clk_priv {
+	struct rk3538_cru *cru;
+	struct rk3538_sysgrf *grf;
+	ulong gpll_hz;
+	ulong cpll_hz;
+	ulong armclk_hz;
+	ulong armclk_enter_hz;
+	ulong armclk_init_hz;
+	bool sync_kernel;
+	bool set_armclk_rate;
+};
+
+struct rk3538_pll {
+	unsigned int con0;
+	unsigned int con1;
+	unsigned int con2;
+	unsigned int con3;
+	unsigned int con4;
+	unsigned int reserved0[3];
+};
+
+struct rk3538_cru {
+	uint32_t reserved0000[192];
+	uint32_t clksel_con[35];
+	uint32_t reserved0001[285];
+	uint32_t gate_con[8];
+	uint32_t reserved0002[120];
+	uint32_t softrst_con[2];
+	uint32_t reserved0003[126];
+	uint32_t glb_cnt_th;
+	uint32_t glb_rst_st;
+	uint32_t glb_srst_fst;
+	uint32_t glb_srst_snd;
+	uint32_t glb_rst_con0;
+	uint32_t glb_rst_con1;
+	uint32_t glb_rst_con2;
+	uint32_t reserved0004[64761];
+
+	/* buscru */
+	uint32_t reserved0005[192];
+	uint32_t busclksel_con[1];
+	uint32_t reserved0006[319];
+	uint32_t busgate_con[4];
+	uint32_t reserved0007[124];
+	uint32_t bussoftrst_con[4];
+	uint32_t reserved0008[15740];
+
+	/* rkvdeccru */
+	uint32_t reserved0009[192];
+	uint32_t rkvdecclksel_con[1];
+	uint32_t reserved0010[319];
+	uint32_t rkvdecgate_con[1];
+	uint32_t reserved0011[127];
+	uint32_t rkvdecsoftrst_con[1];
+	uint32_t reserved0012[15743];
+
+	/* vocru */
+	uint32_t reserved0013[192];
+	uint32_t voclksel_con[2];
+	uint32_t reserved0014[318];
+	uint32_t vogate_con[3];
+	uint32_t reserved0015[125];
+	uint32_t vosoftrst_con[3];
+	uint32_t reserved0016[15741];
+
+	/* pmucru */
+	struct rk3538_pll cpll[1];
+	uint32_t reserved0017[8];
+	struct rk3538_pll gpll[1];
+	uint32_t reserved0018[136];
+	uint32_t mode_con00;
+	uint32_t reserved0019[31];
+	uint32_t pmuclksel_con[5];
+	uint32_t reserved0020[315];
+	uint32_t pmugate_con[3];
+	uint32_t reserved0021[125];
+	uint32_t pmusoftrst_con[2];
+	uint32_t reserved0022[15742];
+
+	/* phplcru */
+	uint32_t reserved0023[192];
+	uint32_t phplclksel_con[2];
+	uint32_t reserved0024[318];
+	uint32_t phplgate_con[3];
+	uint32_t reserved0025[125];
+	uint32_t phplsoftrst_con[3];
+	uint32_t reserved0026[15741];
+
+	/* phprcru */
+	uint32_t reserved0027[192];
+	uint32_t phprclksel_con[1];
+	uint32_t reserved0028[319];
+	uint32_t phprgate_con[2];
+	uint32_t reserved0029[126];
+	uint32_t phprsoftrst_con[2];
+};
+check_member(rk3538_cru, clksel_con[0], 0x300);
+check_member(rk3538_cru, busclksel_con[0], 0x40300);
+check_member(rk3538_cru, rkvdecclksel_con[0], 0x50300);
+check_member(rk3538_cru, voclksel_con[0], 0x60300);
+check_member(rk3538_cru, cpll[0], 0x70000);
+check_member(rk3538_cru, gpll[0], 0x70040);
+check_member(rk3538_cru, mode_con00, 0x70280);
+check_member(rk3538_cru, pmuclksel_con[0], 0x70300);
+check_member(rk3538_cru, phplclksel_con[0], 0x80300);
+check_member(rk3538_cru, phprclksel_con[0], 0x90300);
+
+struct pll_rate_table {
+	unsigned long rate;
+	unsigned int fbdiv;
+	unsigned int postdiv1;
+	unsigned int refdiv;
+	unsigned int postdiv2;
+	unsigned int dsmpd;
+	unsigned int frac;
+};
+
+#define RK3538_GPU_CRU_BASE		0x10000
+#define RK3538_DDR_CRU_BASE		0x20000
+#define RK3538_SUBDDR_CRU_BASE		0x28000
+#define RK3538_VPU_CRU_BASE		0x30000
+#define RK3538_BUS_CRU_BASE		0x40000
+#define RK3538_RKVDEC_CRU_BASE		0x50000
+#define RK3538_VO_CRU_BASE		0x60000
+#define RK3538_PMU_CRU_BASE		0x70000
+#define RK3538_PHPL_CRU_BASE		0x80000
+#define RK3538_PHPR_CRU_BASE		0x90000
+
+#define RK3538_PLL_CON(x)		((x) * 0x4 + RK3538_PMU_CRU_BASE)
+#define RK3538_SUBDDR_PLL_CON(x)	((x) * 0x4 + RK3538_SUBDDR_CRU_BASE)
+#define RK3538_PMUCRU_MODE_CON00	(0x280 + RK3538_PMU_CRU_BASE)
+#define RK3538_CLKSEL_CON(x)		((x) * 0x4 + 0x300)
+#define RK3538_CLKGATE_CON(x)		((x) * 0x4 + 0x800)
+#define RK3538_SOFTRST_CON(x)		((x) * 0x4 + 0xa00)
+#define RK3538_GPUCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_GPU_CRU_BASE)
+#define RK3538_GPUCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_GPU_CRU_BASE)
+#define RK3538_GPUCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_GPU_CRU_BASE)
+#define RK3538_DDRCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_DDR_CRU_BASE)
+#define RK3538_DDRCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_DDR_CRU_BASE)
+#define RK3538_DDRCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_DDR_CRU_BASE)
+#define RK3538_SUBDDRCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_SUBDDR_CRU_BASE)
+#define RK3538_SUBDDRCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_SUBDDR_CRU_BASE)
+#define RK3538_SUBDDRCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_SUBDDR_CRU_BASE)
+#define RK3538_VPUCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_VPU_CRU_BASE)
+#define RK3538_VPUCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_VPU_CRU_BASE)
+#define RK3538_VPUCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_VPU_CRU_BASE)
+#define RK3538_BUSCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_BUS_CRU_BASE)
+#define RK3538_BUSCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_BUS_CRU_BASE)
+#define RK3538_BUSCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_BUS_CRU_BASE)
+#define RK3538_RKVDECCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_RKVDEC_CRU_BASE)
+#define RK3538_RKVDECCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_RKVDEC_CRU_BASE)
+#define RK3538_RKVDECCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_RKVDEC_CRU_BASE)
+#define RK3538_VOCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_VO_CRU_BASE)
+#define RK3538_VOCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_VO_CRU_BASE)
+#define RK3538_VOCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_VO_CRU_BASE)
+#define RK3538_PMUCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_PMU_CRU_BASE)
+#define RK3538_PMUCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_PMU_CRU_BASE)
+#define RK3538_PMUCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_PMU_CRU_BASE)
+#define RK3538_PHPLCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_PHPL_CRU_BASE)
+#define RK3538_PHPLCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_PHPL_CRU_BASE)
+#define RK3538_PHPLCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_PHPL_CRU_BASE)
+#define RK3538_PHPRCRU_CLKSEL_CON(x)	((x) * 0x4 + 0x300 + RK3538_PHPR_CRU_BASE)
+#define RK3538_PHPRCRU_CLKGATE_CON(x)	((x) * 0x4 + 0x800 + RK3538_PHPR_CRU_BASE)
+#define RK3538_PHPRCRU_SOFTRST_CON(x)	((x) * 0x4 + 0xa00 + RK3538_PHPR_CRU_BASE)
+#define RK3538_GLB_CNT_TH		0xc00
+#define RK3538_GLB_SRST_FST		0xc08
+#define RK3538_GLB_SRST_SND		0xc0c
+
+#define RK3538_DIV_ACLK_M_CORE_SHIFT	11
+#define RK3538_DIV_ACLK_M_CORE_MASK	(0x1f << RK3538_DIV_ACLK_M_CORE_SHIFT)
+#define RK3538_DIV_PCLK_DBG_SHIFT	1
+#define RK3538_DIV_PCLK_DBG_MASK	(0x1f << RK3538_DIV_PCLK_DBG_SHIFT)
+
+enum {
+	/* CRU_CLKSEL_CON0 */
+	CLK_CM_FRAC_1_SRC_SEL_SHIFT	= 14,
+	CLK_CM_FRAC_1_SRC_SEL_MASK	= 0x3 << CLK_CM_FRAC_1_SRC_SEL_SHIFT,
+	CLK_CM_FRAC_0_SRC_SEL_SHIFT	= 12,
+	CLK_CM_FRAC_0_SRC_SEL_MASK	= 0x3 << CLK_CM_FRAC_0_SRC_SEL_SHIFT,
+	CLK_CM_FRAC_0_SRC_SEL_24M	= 0U,
+	CLK_CM_FRAC_0_SRC_GPLL,
+	CLK_CM_FRAC_0_SRC_CPLL,
+
+	/* CRU_CLKSEL_CON2 */
+	CLK_UART_FRAC_1_SRC_SEL_SHIFT	= 12,
+	CLK_UART_FRAC_1_SRC_SEL_MASK	= 0x3 << CLK_UART_FRAC_1_SRC_SEL_SHIFT,
+	CLK_UART_FRAC_0_SRC_SEL_SHIFT	= 10,
+	CLK_UART_FRAC_0_SRC_SEL_MASK	= 0x3 << CLK_UART_FRAC_0_SRC_SEL_SHIFT,
+
+	/* CRU_CLKSEL_CON3 */
+	SCLK_UART1_SEL_SHIFT		= 12,
+	SCLK_UART1_SEL_MASK		= 0x7 << SCLK_UART1_SEL_SHIFT,
+	SCLK_UART0_SRC_SEL_SHIFT	= 9,
+	SCLK_UART0_SRC_SEL_MASK		= 0x7 << SCLK_UART0_SRC_SEL_SHIFT,
+	SCLK_UART0_SRC_SEL_24M		= 0U,
+	SCLK_UART0_SRC_SEL_CM_FRAC0,
+	SCLK_UART0_SRC_SEL_CM_FRAC1,
+	SCLK_UART0_SRC_SEL_UART_FRAC0,
+	SCLK_UART0_SRC_SEL_UART_FRAC1,
+	SCLK_UART0_SRC_DIV_SHIFT	= 4,
+	SCLK_UART0_SRC_DIV_MASK		= 0x1f << SCLK_UART0_SRC_DIV_SHIFT,
+	CLK_AUDIO_FRAC_1_SRC_SEL_SHIFT	= 2,
+	CLK_AUDIO_FRAC_1_SRC_SEL_MASK	= 0x3 << CLK_AUDIO_FRAC_1_SRC_SEL_SHIFT,
+	CLK_AUDIO_FRAC_0_SRC_SEL_SHIFT	= 0,
+	CLK_AUDIO_FRAC_0_SRC_SEL_MASK	= 0x3 << CLK_AUDIO_FRAC_0_SRC_SEL_SHIFT,
+
+	/* CRU_CLKSEL_CON4 */
+	SCLK_UART2_SEL_SHIFT		= 13,
+	SCLK_UART2_SEL_MASK		= 0x7 << SCLK_UART2_SEL_SHIFT,
+	SCLK_UART2_DIV_SHIFT		= 8,
+	SCLK_UART2_DIV_MASK		= 0x1f << SCLK_UART2_DIV_SHIFT,
+	SCLK_UART1_DIV_SHIFT		= 0,
+	SCLK_UART1_DIV_MASK		= 0x1f << SCLK_UART1_DIV_SHIFT,
+
+	/* CRU_CLKSEL_CON5 */
+	SCLK_UART4_SEL_SHIFT		= 13,
+	SCLK_UART4_SEL_MASK		= 0x7 << SCLK_UART4_SEL_SHIFT,
+	SCLK_UART4_DIV_SHIFT		= 8,
+	SCLK_UART4_DIV_MASK		= 0x1f << SCLK_UART4_DIV_SHIFT,
+	SCLK_UART3_SEL_SHIFT		= 5,
+	SCLK_UART3_SEL_MASK		= 0x7 << SCLK_UART3_SEL_SHIFT,
+	SCLK_UART3_DIV_SHIFT		= 0,
+	SCLK_UART3_DIV_MASK		= 0x1f << SCLK_UART3_DIV_SHIFT,
+
+	/* CRU_CLKSEL_CON6 */
+	SCLK_UART5_SEL_SHIFT		= 5,
+	SCLK_UART5_SEL_MASK		= 0x7 << SCLK_UART5_SEL_SHIFT,
+	SCLK_UART5_DIV_SHIFT		= 0,
+	SCLK_UART5_DIV_MASK		= 0x1f << SCLK_UART5_DIV_SHIFT,
+
+	/* CRU_CLK_SEL13_CON */
+	CLK_CM_FRAC_NUMERATOR_SHIFT	= 16,
+	CLK_CM_FRAC_NUMERATOR_MASK	= 0xffff << 16,
+	CLK_CM_FRAC_DENOMINATOR_SHIFT	= 0,
+	CLK_CM_FRAC_DENOMINATOR_MASK	= 0xffff,
+	
+	/* CRU_CLKSEL_CON19 */
+	CLK_CORE_PLL_SEL_SHIFT		= 3,
+	CLK_CORE_PLL_SEL_MASK		= 1 << CLK_CORE_PLL_SEL_SHIFT,
+	CLK_CORE_PLL_SEL_GPLL		= 0U,
+	CLK_CORE_PLL_SEL_CPLL,
+	CLK_CORE_PLL_DIV_SHIFT		= 0,
+	CLK_CORE_PLL_DIV_MASK		= 0x7 << CLK_CORE_PLL_DIV_SHIFT,
+	
+	/* CRU_CLKSEL_CON21 */
+	DCLK_VP0_SRC_SEL_SHIFT		= 8,
+	DCLK_VP0_SRC_SEL_MASK		= 0x1 << DCLK_VP0_SRC_SEL_SHIFT,
+	DCLK_VP0_SRC_SEL_GPLL		= 0U,
+	DCLK_VP0_SRC_SEL_CPLL,
+	DCLK_VP0_SRC_DIV_SHIFT		= 0,
+	DCLK_VP0_SRC_DIV_MASK		= 0xff << DCLK_VP0_SRC_DIV_SHIFT,
+
+	/* CRU_CLKSEL_CON23 */
+	CCLK_SDMMC1_SEL_SHIFT		= 14,
+	CCLK_SDMMC1_MASK		= 0x3 << CCLK_SDMMC1_SEL_SHIFT,
+	CCLK_SDMMC1_GPLL		= 0U,
+	CCLK_SDMMC1_CPLL,
+	CCLK_SDMMC1_24M,
+	CCLK_SDMMC1_DIV_SHIFT		= 6,
+	CCLK_SDMMC1_DIV_MASK		= 0xff << CCLK_SDMMC1_DIV_SHIFT,
+
+	/* CRU_CLKSEL_CON24 */
+	CLK_SARADC_SRC_SEL_SHIFT	= 14,
+	CLK_SARADC_SRC_SEL_MASK		= 0x1 << CLK_SARADC_SRC_SEL_SHIFT,
+	CLK_SARADC_SRC_SEL_200M		= 0U,
+	CLK_SARADC_SRC_SEL_24M,
+	CLK_SARADC_SRC_DIV_SHIFT	= 10,
+	CLK_SARADC_SRC_DIV_MASK		= 0xf << CLK_SARADC_SRC_DIV_SHIFT,
+	CCLK_SDIO_SEL_SHIFT		= 8,
+	CCLK_SDIO_MASK			= 0x3 << CCLK_SDIO_SEL_SHIFT,
+	CCLK_SDIO_GPLL			= 0U,
+	CCLK_SDIO_CPLL,
+	CCLK_SDIO_24M,
+	CCLK_SDIO_DIV_SHIFT		= 0,
+	CCLK_SDIO_DIV_MASK		= 0xff << CCLK_SDIO_DIV_SHIFT,
+
+	/* CRU_CLKSEL_CON26 */
+	CCLK_SDMMC0_SEL_SHIFT		= 8,
+	CCLK_SDMMC0_MASK		= 0x3 << CCLK_SDMMC0_SEL_SHIFT,
+	CCLK_SDMMC0_GPLL		= 0U,
+	CCLK_SDMMC0_CPLL,
+	CCLK_SDMMC0_24M,
+	CCLK_SDMMC0_DIV_SHIFT		= 0,
+	CCLK_SDMMC0_DIV_MASK		= 0xff << CCLK_SDMMC0_DIV_SHIFT,
+
+	/* CRU_CLKSEL_CON27 */
+	CCLK_EMMC_SEL_SHIFT		= 8,
+	CCLK_EMMC_MASK			= 0x3 << CCLK_EMMC_SEL_SHIFT,
+	CCLK_EMMC_GPLL			= 0U,
+	CCLK_EMMC_CPLL,
+	CCLK_EMMC_24M,
+	CCLK_EMMC_DIV_SHIFT		= 0,
+	CCLK_EMMC_DIV_MASK		= 0xff << CCLK_EMMC_DIV_SHIFT,
+
+	/* CRU_CLKSEL_CON28 */
+	SCLK_2X_FSPI_SEL_SHIFT		= 8,
+	SCLK_2X_FSPI_MASK		= 0x3 << SCLK_2X_FSPI_SEL_SHIFT,
+	SCLK_2X_FSPI_GPLL		= 0U,
+	SCLK_2X_FSPI_CPLL,
+	SCLK_2X_FSPI_24M,
+	SCLK_2X_FSPI_DIV_SHIFT		= 0,
+	SCLK_2X_FSPI_DIV_MASK		= 0xff << SCLK_2X_FSPI_DIV_SHIFT,
+
+	/* CRU_CLKSEL_CON32 */
+	CLK_SPI0_SEL_SHIFT		= 10,
+	CLK_SPI0_SEL_MASK		= 0x3 << CLK_SPI0_SEL_SHIFT,
+	CLK_SPI0_SEL_300M		= 0U,
+	CLK_SPI0_SEL_200M,
+	CLK_SPI0_SEL_100M,
+	CLK_SPI0_SEL_24M,
+	
+	/* CRU_CLKSEL_CON33 */
+	CLK_SPI1_SEL_SHIFT		= 13,
+	CLK_SPI1_SEL_MASK		= 0x3 << CLK_SPI1_SEL_SHIFT,
+	CLK_SPI1_SEL_300M		= 0U,
+	CLK_SPI1_SEL_200M,
+	CLK_SPI1_SEL_100M,
+	CLK_SPI1_SEL_24M,
+	CLK_PWM1_SEL_SHIFT		= 12,
+	CLK_PWM1_SEL_MASK		= 0x1 << CLK_PWM1_SEL_SHIFT,
+	CLK_PWM1_SEL_100M		= 0U,
+	CLK_PWM1_SEL_24M,
+	CLK_I2C_BUS_ROOT_SEL_SHIFT	= 10,
+	CLK_I2C_BUS_ROOT_SEL_MASK	= 0x1 << CLK_I2C_BUS_ROOT_SEL_SHIFT,
+	CLK_I2C_BUS_ROOT_SEL_200M	= 0U,
+	CLK_I2C_BUS_ROOT_SEL_24M,
+	ACLK_BUS_ROOT_SEL_SHIFT		= 8,
+	ACLK_BUS_ROOT_SEL_MASK		= 0x3 << ACLK_BUS_ROOT_SEL_SHIFT,
+	ACLK_BUS_ROOT_SEL_300M		= 0U,
+	ACLK_BUS_ROOT_SEL_250M,
+	ACLK_BUS_ROOT_SEL_200M,
+	NCLK_NANDC_SEL_SHIFT		= 6,
+	NCLK_NANDC_SEL_MASK		= 0x3 << NCLK_NANDC_SEL_SHIFT,
+	NCLK_NANDC_SEL_300M		= 0U,
+	NCLK_NANDC_SEL_200M,
+	NCLK_NANDC_SEL_150M,
+	NCLK_NANDC_SEL_100M,
+
+	/* VOCRU_CLKSEL_CON0 */
+	DCLK_VP0_SEL_SHIFT		= 14,
+	DCLK_VP0_SEL_MASK		= 0x3 << DCLK_VP0_SEL_SHIFT,
+	DCLK_VP0_SEL_SRC		= 0U,
+	DCLK_VP0_SEL_HDMIPHY,
+	DCLK_VP0_SEL_INNOPHY,
+	
+	/* PMUCRU_CLKSEL_CON1 */
+	CLK_I2C0_SEL_SHIFT		= 14,
+	CLK_I2C0_SEL_MASK		= 0x3 << CLK_I2C0_SEL_SHIFT,
+	CLK_I2C0_SEL_24M		= 0U,
+	CLK_I2C0_SEL_RCOSC,
+	CLK_I2C0_SEL_100M,
+	SCLK_UART0_SEL_SHIFT		= 10,
+	SCLK_UART0_SEL_MASK		= 0x3 << SCLK_UART0_SEL_SHIFT,
+	SCLK_UART0_SEL_SRC		= 0U,
+	SCLK_UART0_SEL_24M,
+	SCLK_UART0_SEL_RCOSC,
+	
+	/* PMUCRU_CLKSEL_CON2 */
+	CLK_PWM0_SEL_SHIFT		= 2,
+	CLK_PWM0_SEL_MASK		= 0x3 << CLK_PWM0_SEL_SHIFT,
+	CLK_PWM0_SEL_24M		= 0U,
+	CLK_PWM0_SEL_RCOSC,
+	CLK_PWM0_SEL_100M,
+};
+
+#endif
