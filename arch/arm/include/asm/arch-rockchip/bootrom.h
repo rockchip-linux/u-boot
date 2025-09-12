@@ -52,6 +52,7 @@ enum {
 	BROM_BOOTSOURCE_SPINAND = 4,
 	BROM_BOOTSOURCE_SD = 5,
 	BROM_BOOTSOURCE_SPINOR_RK3588 = 6,
+	BROM_BOOTSOURCE_UFS = 7,
 	BROM_BOOTSOURCE_I2C = 8,
 	BROM_BOOTSOURCE_SPI = 9,
 	BROM_BOOTSOURCE_USB = 10,
@@ -63,6 +64,8 @@ extern const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1];
 /**
  * Locations of the boot-device identifier in SRAM
  */
-#define BROM_BOOTSOURCE_ID_ADDR   (CFG_IRAM_BASE + 0x10)
+#define BROM_BOOTSOURCE_ID_ADDR	(CFG_IRAM_BASE + 0x10)
+#define BROM_BOOTSOURCE_MASK	0x0F
+#define BROM_DOWNLOAD_MASK	0x80
 
 #endif
