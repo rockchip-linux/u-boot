@@ -10,6 +10,9 @@
 #include <nand.h>
 #include <spl.h>
 #include <asm/global_data.h>
+#ifdef CONFIG_ROCKCHIP_PRELOADER_ATAGS
+#include <asm/arch-rockchip/atags.h>
+#endif
 #include <dm/uclass-internal.h>
 
 #ifdef CONFIG_SPL_RAM_DEVICE
@@ -41,6 +44,9 @@ void board_boot_order(u32 *spl_boot_list)
 static int spl_node_to_boot_device(int node)
 {
 	struct udevice *parent;
+
+	if (!uclass_get_device_by_of_offset(UCLASS_UFS, node, &parent))
+		return BOOT_DEVICE_UFS;
 
 	/*
 	 * This should eventually move into the SPL code, once SPL becomes
@@ -304,6 +310,17 @@ void spl_perform_fixups(struct spl_image_info *spl_image)
 	}
 	fdt_setprop_string(blob, chosen,
 			   "u-boot,spl-boot-device", boot_ofpath);
+
+#ifdef CONFIG_ROCKCHIP_PRELOADER_ATAGS
+	atags_set_bootdev_by_spl_bootdevice(spl_image->boot_device);
+  #ifdef BUILD_SPL_TAG
+	atags_set_shared_fwver(FW_SPL, "spl-"BUILD_SPL_TAG);
+  #endif
+#endif
+#if defined(CONFIG_SPL_KERNEL_BOOT)
+	if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL)
+		spl_fdt_fixup_memory(spl_image);
+#endif
 }
 #endif
 #endif

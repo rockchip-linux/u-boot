@@ -15,6 +15,15 @@ obj-tpl-$(CONFIG_ROCKCHIP_PX30) += px30-board-tpl.o
 
 obj-spl-$(CONFIG_ROCKCHIP_RK3036) += rk3036-board-spl.o
 
+ifndef CONFIG_TPL_BUILD
+obj-$(CONFIG_$(PHASE_)FIT) += fit_misc.o
+ifdef CONFIG_SPL_BUILD
+obj-y += spl_boot_mode.o
+obj-$(CONFIG_ROCKCHIP_META) += meta.o
+obj-$(CONFIG_SPL_ROCKCHIP_HWID_DTB) += hwid.o
+endif
+endif
+
 ifeq ($(CONFIG_XPL_BUILD)$(CONFIG_TPL_BUILD),)
 
 # Always include boot_mode.o, as we bypass it (i.e. turn it off)
@@ -55,6 +64,8 @@ obj-spl-$(CONFIG_TPL_BUILD) =
 obj-$(CONFIG_XPL_BUILD) += $(obj-spl-y)
 obj-$(CONFIG_TPL_BUILD) += $(obj-tpl-y)
 
+obj-$(CONFIG_ROCKCHIP_PRELOADER_ATAGS) += atags.o
+
 ifeq ($(CONFIG_SPL_BUILD),)
 obj-y += bootargs.o
 obj-y += bootdev.o
@@ -78,7 +89,7 @@ obj-$(CONFIG_ROCKCHIP_SMCCC)		+= smccc.o
 obj-$(CONFIG_SPL_KERNEL_BOOT)		+= spl_resource.o
 obj-$(CONFIG_ROCKCHIP_UIMAGE)		+= uimage.o
 obj-$(CONFIG_ROCKCHIP_VENDOR_PARTITION) += vendor.o vendor_misc.o
-obj-$(CONFIG_ROCKCHIP_MINIDUMP)		+= mini_dump.o 
+obj-$(CONFIG_ROCKCHIP_MINIDUMP)		+= mini_dump.o
 else
 obj-y += spl_boot_mode.o
 endif

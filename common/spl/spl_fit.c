@@ -4,14 +4,27 @@
  * Written by Simon Glass <sjg@chromium.org>
  */
 
+#include <common.h>
+#ifdef CONFIG_SPL_DM_KEYLAD
+#include <keylad.h>
+#endif
+#ifdef CONFIG_SPL_DM_CRYPTO
+#include <crypto.h>
+#endif
 #include <errno.h>
+#include <fdt_support.h>
 #include <fpga.h>
 #include <gzip.h>
+#include <hang.h>
 #include <image.h>
 #include <log.h>
+#include <malloc.h>
 #include <memalign.h>
 #include <mapmem.h>
+#include <mtd_blk.h>
+#include <part.h>
 #include <spl.h>
+#include <spl_ab.h>
 #include <upl.h>
 #include <sysinfo.h>
 #include <asm/global_data.h>
@@ -20,6 +33,10 @@
 #include <linux/printk.h>
 
 DECLARE_GLOBAL_DATA_PTR;
+
+#ifndef CONFIG_SYS_BOOTM_LEN
+#define CONFIG_SYS_BOOTM_LEN	(64 << 20)
+#endif
 
 struct spl_fit_info {
 	const void *fit;	/* Pointer to a valid FIT blob */
@@ -187,6 +204,86 @@ static int get_aligned_image_size(struct spl_load_info *info, int data_size,
 	return ALIGN(data_size, spl_get_bl_len(info));
 }
 
+#ifdef CONFIG_SPL_FIT_CIPHER
+static int spl_fit_image_uncipher(const void *fit, int noffset,
+				  ulong cipher_addr, size_t cipher_sz,
+				  ulong uncipher_addr)
+{
+	struct udevice *dev;
+	cipher_fw_context ctx;
+	int cipher_noffset;
+	const char *node_name;
+	const void *iv;
+	char *algo_name;
+	int key_len = 16;
+	int iv_len;
+	int ret;
+
+	node_name = fdt_get_name(fit, noffset, NULL);
+	if (!node_name) {
+		printf("Can't get node name.\n");
+		return -1;
+	}
+
+	cipher_noffset = fdt_subnode_offset(fit, noffset, FIT_CIPHER_NODENAME);
+	if (cipher_noffset < 0) {
+		printf("Can't get cipher node offset for image '%s'\n",
+		       node_name);
+		return -1;
+	}
+
+	if (fit_image_cipher_get_algo(fit, cipher_noffset, &algo_name)) {
+		printf("Can't get cipher algo for image '%s'\n",
+		       node_name);
+		return -1;
+	}
+
+	if (strcmp(algo_name, "aes128")) {
+		printf("Invalid cipher algo '%s'\n", algo_name);
+		return -1;
+	}
+
+	iv = fdt_getprop(fit, cipher_noffset, "iv", &iv_len);
+	if (!iv) {
+		printf("Can't get IV for image '%s'\n", node_name);
+		return -1;
+	}
+
+	if (iv_len != key_len) {
+		printf("Len iv(%d) != key(%d) for image '%s'\n",
+		       iv_len, key_len, node_name);
+		return -1;
+	}
+
+	memset(&ctx, 0x00, sizeof(ctx));
+
+	ctx.algo    = CRYPTO_AES;
+	ctx.mode    = RK_MODE_CTR;
+	ctx.key_len = key_len;
+	ctx.iv      = iv;
+	ctx.iv_len  = iv_len;
+	ctx.fw_keyid = RK_FW_KEY0;
+
+	dev = crypto_get_device(CRYPTO_AES);
+	if (!dev) {
+		printf("No crypto device for expected AES\n");
+		return -ENODEV;
+	}
+
+	/* uncipher */
+	ret = crypto_fw_cipher(dev, &ctx, (void *)cipher_addr,
+		(void *)uncipher_addr, cipher_sz, true);
+
+	if (ret) {
+		printf("Uncipher data failed for image '%s', ret=%d\n",
+		       node_name, ret);
+		return ret;
+	}
+
+	return 0;
+}
+#endif
+
 /**
  * load_simple_fit(): load the image described in a certain FIT node
  * @info:	points to information about the device to load data from
@@ -211,11 +308,11 @@ static int load_simple_fit(struct spl_load_info *info, ulong fit_offset,
 	size_t length;
 	int len;
 	ulong size;
-	ulong load_addr;
+	ulong comp_addr, load_addr;
 	void *load_ptr;
 	void *src;
 	ulong overhead;
-	uint8_t image_comp = -1, type = -1;
+	uint8_t image_comp = IH_COMP_NONE, type = -1;
 	const void *data;
 	const void *fit = ctx->fit;
 	bool external_data = false;
@@ -261,6 +358,31 @@ static int load_simple_fit(struct spl_load_info *info, ulong fit_offset,
 		load_addr = image_info->load_addr;
 	}
 
+	if (image_comp != IH_COMP_NONE && image_comp != IH_COMP_ZIMAGE) {
+		/* Empirically, 2MB is enough for U-Boot, tee and atf */
+		if (fit_image_get_comp_addr(fit, node, &comp_addr)) {
+			/*
+			 * Why is 2 * FIT_MAX_SPL_IMAGE_SZ?
+			 * one is for uncompressed firmware, another is for compressed firmware.
+			 */
+			if (!gd->ram_top ||
+			    load_addr + 2 * FIT_MAX_SPL_IMAGE_SZ <= gd->ram_top)
+				comp_addr = load_addr + FIT_MAX_SPL_IMAGE_SZ;
+			else
+				/* Mainly for tiny mem device, such as 64M DRAM. */
+				comp_addr = load_addr - FIT_MAX_SPL_IMAGE_SZ;
+		}
+	} else {
+		comp_addr = load_addr;
+	}
+
+#ifdef CONFIG_SPL_FIT_CIPHER
+	ulong cipher_addr;
+
+	if (fit_image_get_cipher_addr(fit, node, &cipher_addr))
+		cipher_addr = comp_addr + FIT_MAX_SPL_IMAGE_SZ;
+#endif
+
 	if (!fit_image_get_data_position(fit, node, &offset)) {
 		external_data = true;
 	} else if (!fit_image_get_data_offset(fit, node, &offset)) {
@@ -289,7 +411,7 @@ static int load_simple_fit(struct spl_load_info *info, ulong fit_offset,
 		    (image_comp == IH_COMP_GZIP || image_comp == IH_COMP_LZMA))
 			src_ptr = map_sysmem(ALIGN(CONFIG_SYS_LOAD_ADDR, ARCH_DMA_MINALIGN), len);
 		else
-			src_ptr = map_sysmem(ALIGN(load_addr, ARCH_DMA_MINALIGN), len);
+			src_ptr = map_sysmem(ALIGN(comp_addr, ARCH_DMA_MINALIGN), len);
 		length = len;
 
 		overhead = get_aligned_image_overhead(info, offset);
@@ -429,9 +551,7 @@ static int spl_fit_append_fdt(struct spl_image_info *spl_image,
 		spl_image->fdt_addr = phys_to_virt(image_info.load_addr);
 	}
 
-	if (CONFIG_IS_ENABLED(FIT_IMAGE_TINY))
-		return 0;
-
+#if !CONFIG_IS_ENABLED(FIT_IMAGE_TINY)
 #if CONFIG_IS_ENABLED(LOAD_FIT_APPLY_OVERLAY)
 		void *tmpbuffer = NULL;
 
@@ -505,6 +625,24 @@ static int spl_fit_append_fdt(struct spl_image_info *spl_image,
 	ret = fdt_shrink_to_minimum(spl_image->fdt_addr, 8192);
 	if (ret < 0)
 		return ret;
+#endif
+
+	/*
+	 * If need, load kernel FDT right after U-Boot FDT.
+	 *
+	 * kernel FDT is for U-Boot if there is not valid one
+	 * from images, ie: resource.img, boot.img or recovery.img.
+	 */
+	node = spl_fit_get_image_node(ctx, FIT_FDT_PROP, 1);
+	if (node < 0) {
+		debug("%s: cannot find kernel FDT node\n", __func__);
+		/* attention: here return ret but not node */
+		return ret;
+	}
+
+	image_info.load_addr =
+		(ulong)spl_image->fdt_addr + fdt_totalsize(spl_image->fdt_addr);
+	ret = load_simple_fit(info, offset, ctx, node, &image_info);
 
 	return ret;
 }
@@ -564,6 +702,11 @@ static int spl_fit_image_get_os(const void *fit, int noffset, uint8_t *os)
 	else
 		*os = IH_OS_INVALID;
 
+	return 0;
+}
+
+__weak int spl_fit_standalone_release(char *id, uintptr_t entry_point)
+{
 	return 0;
 }
 
@@ -690,9 +833,10 @@ static int spl_simple_fit_read(struct spl_fit_info *ctx,
 	 * start. This is the base for the data-offset properties in each
 	 * image.
 	 */
-	size = ALIGN(fdt_totalsize(fit_header), 4);
+	size = fdt_totalsize(fit_header);
+	size = FIT_ALIGN(size);
 	size = board_spl_fit_size_align(size);
-	ctx->ext_data_offset = ALIGN(size, 4);
+	ctx->ext_data_offset = FIT_ALIGN(size);
 
 	/*
 	 * So far we only have one block of data from the FIT. Read the entire
@@ -705,6 +849,9 @@ static int spl_simple_fit_read(struct spl_fit_info *ctx,
 	buf = board_spl_fit_buffer_addr(size, size, 1);
 
 	count = info->read(info, offset, size, buf);
+#if defined(CONFIG_SPL_MTD_SUPPORT) && !defined(CONFIG_FPGA_RAM)
+	mtd_blk_map_fit(info->dev, offset, fit);
+#endif
 	ctx->fit = buf;
 	debug("fit read offset %lx, size=%lu, dst=%p, count=%lu\n",
 	      offset, size, buf, count);
@@ -738,11 +885,174 @@ static int spl_simple_fit_parse(struct spl_fit_info *ctx)
 	return 0;
 }
 
-int spl_load_simple_fit(struct spl_image_info *spl_image,
+#ifdef CONFIG_SPL_KERNEL_BOOT
+#ifdef CONFIG_SPL_LIBDISK_SUPPORT
+__weak const char *spl_kernel_partition(struct spl_image_info *spl,
+					struct spl_load_info *info)
+{
+	return PART_BOOT;
+}
+#endif
+
+static int spl_fit_get_kernel_dtb(const void *fit, int images_noffset)
+{
+	const char *name = NULL;
+	int node, index = 0;
+
+	for (; ; index++) {
+		node = spl_fit_get_image_node(ctx, FIT_FDT_PROP, index);
+		if (node < 0)
+			break;
+		name = fdt_get_name(fit, node, NULL);
+		if(!strcmp(name, "fdt"))
+			return node;
+#if defined(CONFIG_SPL_ROCKCHIP_HWID_DTB)
+		if (spl_find_hwid_dtb(name)) {
+			printf("HWID DTB: %s\n", name);
+			break;
+		}
+#endif
+	}
+
+	return node;
+}
+
+static int spl_load_kernel_fit(struct spl_image_info *spl_image,
+			       struct spl_load_info *info)
+{
+	/*
+	 * Never change the image order.
+	 *
+	 * Considering thunder-boot feature, there maybe asynchronous
+	 * loading operation of these images and ramdisk is usually to
+	 * be the last one.
+	 *
+	 * The .its content rule of kernel fit image follows U-Boot proper.
+	 */
+	const char *images[] = { FIT_FDT_PROP, FIT_KERNEL_PROP, FIT_RAMDISK_PROP, };
+	struct spl_image_info image_info;
+	char fit_header[info->bl_len];
+	int images_noffset;
+	int base_offset;
+	int sector;
+	int node, ret, i;
+	void *fit;
+
+	if (spl_image->next_stage != SPL_NEXT_STAGE_KERNEL)
+		return 0;
+
+#ifdef CONFIG_SPL_LIBDISK_SUPPORT
+	const char *part_name = PART_BOOT;
+	struct disk_partition part_info;
+
+	part_name = spl_kernel_partition(spl_image, info);
+	if (part_get_info_by_name(info->dev, part_name, &part_info) <= 0) {
+		printf("%s: no partition\n", __func__);
+		return -EINVAL;
+	}
+	sector = part_info.start;
+#else
+	sector = CONFIG_SPL_KERNEL_BOOT_SECTOR;
+#endif
+	printf("Trying kernel at 0x%x sector from '%s' part\n", sector, part_name);
+
+	if (info->read(info, sector, 1, &fit_header) != 1) {
+		debug("%s: Failed to read header\n", __func__);
+		return -EIO;
+	}
+
+	if (image_get_magic((void *)&fit_header) != FDT_MAGIC) {
+		printf("%s: Not fit magic\n", __func__);
+		return -EINVAL;
+	}
+
+	fit = spl_fit_load_blob(info, sector, fit_header, &base_offset);
+	if (!fit) {
+		debug("%s: Cannot load blob\n", __func__);
+		return -ENODEV;
+	}
+
+	/* verify the configure node by keys, if required */
+#ifdef CONFIG_SPL_FIT_SIGNATURE
+	int conf_noffset;
+
+	conf_noffset = fit_conf_get_node(fit, NULL);
+	if (conf_noffset <= 0) {
+		printf("No default config node\n");
+		return -EINVAL;
+	}
+
+	ret = fit_config_verify(fit, conf_noffset);
+	if (ret) {
+		printf("fit verify configure failed, ret=%d\n", ret);
+		return ret;
+	}
+	printf("\n");
+#endif
+	images_noffset = fdt_path_offset(fit, FIT_IMAGES_PATH);
+	if (images_noffset < 0) {
+		debug("%s: Cannot find /images node: %d\n",
+		      __func__, images_noffset);
+		return images_noffset;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(images); i++) {
+		if (!strcmp(images[i], FIT_FDT_PROP))
+			node = spl_fit_get_kernel_dtb(fit, images_noffset);
+		else
+			node = spl_fit_get_image_node(ctx, images[i], 0);
+		if (node < 0) {
+			debug("No image: %s\n", images[i]);
+			continue;
+		}
+
+		ret = load_simple_fit(info, offset, ctx, node, &image_info);
+		if (ret)
+			return ret;
+
+		/* initial addr or entry point */
+		if (!strcmp(images[i], FIT_FDT_PROP)) {
+			spl_image->fdt_addr = (void *)image_info.load_addr;
+			if (spl_fdt_chosen_bootargs(info, (void *)image_info.load_addr)) {
+				printf("ERROR: Append bootargs failed\n");
+				return -EINVAL;
+			}
+		} else if (!strcmp(images[i], FIT_KERNEL_PROP)) {
+#if CONFIG_IS_ENABLED(OPTEE)
+			spl_image->entry_point_os = image_info.load_addr;
+#endif
+#if CONFIG_IS_ENABLED(ATF)
+			spl_image->entry_point_bl33 = image_info.load_addr;
+#endif
+		} else if (!strcmp(images[i], FIT_RAMDISK_PROP)) {
+			fdt_initrd(spl_image->fdt_addr, image_info.load_addr,
+				   image_info.load_addr + image_info.size);
+		}
+	}
+
+	debug("fdt_addr=0x%08lx, entry_point=0x%08lx, entry_point_os=0x%08lx\n",
+	      (ulong)spl_image->fdt_addr,
+	      spl_image->entry_point,
+#if CONFIG_IS_ENABLED(OPTEE)
+	      spl_image->entry_point_os);
+#endif
+#if CONFIG_IS_ENABLED(ATF)
+	      spl_image->entry_point_bl33);
+#endif
+
+	return 0;
+}
+#endif
+
+static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 			struct spl_load_info *info, ulong offset, void *fit)
 {
 	struct spl_image_info image_info;
 	struct spl_fit_info ctx;
+	char *desc;
+#if CONFIG_IS_ENABLED(ATF)
+	uint8_t ih_arch;
+#endif
 	int node = -1;
 	int ret;
 	int index = 0;
@@ -764,6 +1074,84 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 
 	if (IS_ENABLED(CONFIG_SPL_FPGA))
 		spl_fit_load_fpga(&ctx, info, offset);
+
+	/* if board sigs verify required, check self */
+	if (fit_board_verify_required_sigs() &&
+	    !IS_ENABLED(CONFIG_SPL_FIT_SIGNATURE)) {
+		printf("Verified-boot requires CONFIG_SPL_FIT_SIGNATURE enabled\n");
+		hang();
+	}
+
+	/* verify the configure node by keys, if required */
+#ifdef CONFIG_SPL_FIT_SIGNATURE
+	int conf_noffset;
+
+	conf_noffset = fit_conf_get_node(fit, NULL);
+	if (conf_noffset <= 0) {
+		printf("No default config node\n");
+		return -EINVAL;
+	}
+
+	ret = fit_config_verify(fit, conf_noffset);
+	if (ret) {
+		printf("fit verify configure failed, ret=%d\n", ret);
+		return ret;
+	}
+	printf("\n");
+
+#ifdef CONFIG_SPL_FIT_ROLLBACK_PROTECT
+	uint32_t this_index, min_index;
+
+	ret = fit_rollback_index_verify(fit, FIT_ROLLBACK_INDEX_SPL,
+					&this_index, &min_index);
+	if (ret) {
+		printf("fit failed to get rollback index, ret=%d\n", ret);
+		return ret;
+	} else if (this_index < min_index) {
+		printf("fit reject rollback: %d < %d(min)\n",
+		       this_index, min_index);
+		return -EINVAL;
+	}
+
+	printf("rollback index: %d >= %d(min), OK\n", this_index, min_index);
+#endif
+#endif
+
+	/*
+	 * If required to start the other core before load "loadables"
+	 * firmwares, use the config "standalone" to load the other core's
+	 * firmware, then start it.
+	 * Normally, different cores' firmware is attach to the config
+	 * "loadables" and load them together.
+	 */
+	for (; ; index++) {
+		node = spl_fit_get_image_node(&ctx,
+					      FIT_STANDALONE_PROP, index);
+		if (node < 0)
+			break;
+
+		ret = load_simple_fit(info, offset, &ctx, node, &image_info);
+		if (ret)
+			return ret;
+
+		ret = fit_get_desc(fit, node, &desc);
+		if (ret)
+			return ret;
+
+		if (image_info.entry_point == FDT_ERROR)
+			image_info.entry_point = image_info.load_addr;
+
+		flush_dcache_range(image_info.load_addr,
+				   image_info.load_addr + image_info.size);
+		ret = spl_fit_standalone_release(desc, image_info.entry_point);
+		if (ret)
+			printf("%s: start standalone fail, ret=%d\n", desc, ret);
+	}
+
+	/* standalone is special one, continue to find others */
+	node = -1;
+	index = 0;
+
 
 	/*
 	 * Find the U-Boot image using the following search order:
@@ -825,6 +1213,14 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 		if (node < 0)
 			break;
 
+		if (!spl_fit_image_get_os(fit, node, &os_type))
+			debug("Loadable is %s\n", genimg_get_os_name(os_type));
+
+		/* skip U-Boot ? */
+		if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL &&
+		    os_type == IH_OS_U_BOOT)
+		    continue;
+
 		/*
 		 * if the firmware is also a loadable, skip it because
 		 * it already has been loaded. This is typically the case with
@@ -848,6 +1244,15 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 			debug("Loadable is %s\n", genimg_get_os_name(os_type));
 
 		if (os_takes_devicetree(os_type)) {
+#if CONFIG_IS_ENABLED(ATF)
+			fit_image_get_arch(fit, node, &ih_arch);
+			debug("Image ARCH is %s\n", genimg_get_arch_name(ih_arch));
+			if (ih_arch == IH_ARCH_ARM)
+				spl_image->flags |= SPL_ATF_AARCH32_BL33;
+			spl_image->entry_point_bl33 = image_info.load_addr;
+#elif CONFIG_IS_ENABLED(OPTEE)
+			spl_image->entry_point_os = image_info.load_addr;
+#endif
 			spl_fit_append_fdt(&image_info, info, offset, &ctx);
 			spl_image->fdt_addr = image_info.fdt_addr;
 		}
@@ -881,6 +1286,59 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 			 spl_image->entry_point);
 
 	return 0;
+}
+
+int spl_load_simple_fit(struct spl_image_info *spl_image,
+			struct spl_load_info *info, ulong sector, void *fit)
+{
+	ulong sector_offs = sector;
+	int ret = -EINVAL;
+	int i;
+
+#ifdef CONFIG_MP_BOOT
+	mpb_init_1(*info);
+#endif
+
+	printf("Trying fit image at 0x%lx sector\n", sector_offs / info->bl_len);
+	for (i = 0; i < CONFIG_SPL_FIT_IMAGE_MULTIPLE; i++) {
+		if (i > 0) {
+			sector_offs +=
+			   i * ((CONFIG_SPL_FIT_IMAGE_KB << 10) / info->bl_len);
+			printf("Trying fit image at 0x%lx sector\n", sector_offs / info->bl_len);
+			if (info->read(info, sector_offs, 1, fit) != 1) {
+				printf("IO error\n");
+				continue;
+			}
+		}
+
+		if (image_get_magic(fit) != FDT_MAGIC) {
+			printf("Not fit magic\n");
+			continue;
+		}
+
+		ret = spl_internal_load_simple_fit(spl_image, info,
+						   sector_offs, fit);
+		if (!ret) {
+#ifdef CONFIG_SPL_KERNEL_BOOT
+			ret = spl_load_kernel_fit(spl_image, info);
+#endif
+			break;
+		}
+	}
+#ifdef CONFIG_SPL_AB
+	/* If boot fail in spl, spl must decrease 1 and do_reset. */
+	if (ret)
+		return spl_ab_decrease_reset(info->dev);
+	/*
+	 * If boot successfully, it is no need to do decrease
+	 * and U-boot will always decrease 1.
+	 * If in thunderboot process, always need to decrease 1.
+	 */
+	if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL)
+		spl_ab_decrease_tries(info->dev);
+#endif
+
+	return ret;
 }
 
 /* Parse and load full fitImage in SPL */

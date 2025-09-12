@@ -26,7 +26,12 @@ static inline int _spl_load(struct spl_image_info *spl_image,
 	if (read < (int)sizeof(*header))
 		return -EIO;
 
+#ifdef CONFIG_SPL_FIT_IMAGE_MULTIPLE
+	if (image_get_magic(header) == FDT_MAGIC ||
+	     CONFIG_SPL_FIT_IMAGE_MULTIPLE > 1) {
+#else
 	if (image_get_magic(header) == FDT_MAGIC) {
+#endif
 		log_debug("Found FIT\n");
 		if (CONFIG_IS_ENABLED(LOAD_FIT_FULL)) {
 			void *buf;

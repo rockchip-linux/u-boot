@@ -5,14 +5,17 @@
  *
  * Aneesh V <aneesh@ti.com>
  */
+#include <common.h>
 #include <dm.h>
 #include <log.h>
 #include <part.h>
 #include <spl.h>
 #include <spl_load.h>
+#include <spl_rkfw.h>
 #include <linux/compiler.h>
 #include <errno.h>
 #include <errno.h>
+#include <asm/u-boot.h>
 #include <mmc.h>
 #include <image.h>
 #include <imx_container.h>
@@ -49,7 +52,7 @@ int mmc_load_image_raw_sector(struct spl_image_info *spl_image,
 	spl_load_init(&load, h_spl_load_read, bd, bd->blksz);
 	ret = spl_load(spl_image, bootdev, &load, 0, sector << bd->log2blksz);
 	if (ret) {
-		puts("mmc_load_image_raw_sector: mmc block read error\n");
+		debug("mmc_load_image_raw_sector error: ret is %d\n", ret);
 		log_debug("(error=%d)\n", ret);
 		return ret;
 	}
@@ -110,8 +113,8 @@ static int spl_mmc_find_device(struct mmc **mmcp, int mmc_dev)
 #ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
 static int mmc_load_image_raw_partition(struct spl_image_info *spl_image,
 					struct spl_boot_device *bootdev,
-					struct mmc *mmc, int partition,
-					unsigned long sector)
+					struct mmc *mmc, const char *partition_name,
+					int partition, unsigned long sector)
 {
 	struct disk_partition info;
 	int ret;
@@ -131,10 +134,16 @@ static int mmc_load_image_raw_partition(struct spl_image_info *spl_image,
 	}
 #endif
 
-	ret = part_get_info(mmc_get_blk_desc(mmc), partition, &info);
-	if (ret) {
+	if (strcmp(partition_name, ""))
+		ret = part_get_info_by_name(mmc_get_blk_desc(mmc),
+					    partition_name, &info);
+	else
+		ret = part_get_info(mmc_get_blk_desc(mmc), partition, &info);
+	if (ret < 0) {
+#ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
 		puts("spl: partition error\n");
-		return ret;
+#endif
+		return -1;
 	}
 
 #ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
@@ -369,6 +378,17 @@ int spl_mmc_load(struct spl_image_info *spl_image,
 		}
 	}
 
+#ifdef CONFIG_SPL_LOAD_RKFW
+	struct spl_load_info load;
+
+	load.priv = mmc_get_blk_desc(mmc);
+	load.bl_len = mmc->read_bl_len;
+	load.read = h_spl_load_read;
+
+	err = spl_load_rkfw_image(spl_image, &load);
+	if (!err || err != -EAGAIN)
+		return err;
+#endif
 	boot_mode = spl_mmc_boot_mode(mmc, bootdev->boot_device);
 	ret = -EINVAL;
 	switch (boot_mode) {
@@ -398,8 +418,8 @@ int spl_mmc_load(struct spl_image_info *spl_image,
 
 #ifdef CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
 		ret = mmc_load_image_raw_partition(spl_image, bootdev,
-						   mmc, raw_part,
-						   raw_sect);
+						   mmc, CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_PARTITION_NAME,
+						   raw_part, raw_sect);
 		if (!ret)
 			return 0;
 #endif

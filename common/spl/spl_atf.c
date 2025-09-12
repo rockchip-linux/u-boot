@@ -41,7 +41,8 @@ struct bl2_to_bl31_params_mem_v2 {
 	struct entry_point_info bl31_ep_info;
 };
 
-struct bl31_params *bl2_plat_get_bl31_params_default(ulong bl32_entry,
+struct bl31_params *bl2_plat_get_bl31_params_default(struct spl_image_info *spl_image,
+						     ulong bl32_entry,
 						     ulong bl33_entry,
 						     ulong fdt_addr)
 {
@@ -73,7 +74,7 @@ struct bl31_params *bl2_plat_get_bl31_params_default(ulong bl32_entry,
 
 	/* secure payload is optional, so set pc to 0 if absent */
 	bl32_ep_info->args.arg3 = fdt_addr;
-	bl32_ep_info->pc = bl32_entry ? bl32_entry : 0;
+	bl32_ep_info->pc = bl32_entry == -1 ? 0 : bl32_entry;
 	bl32_ep_info->spsr = SPSR_64(MODE_EL1, MODE_SP_ELX,
 				     DISABLE_ALL_EXECPTIONS);
 
@@ -90,8 +91,35 @@ struct bl31_params *bl2_plat_get_bl31_params_default(ulong bl32_entry,
 	/* BL33 expects to receive the primary CPU MPID (through x0) */
 	bl33_ep_info->args.arg0 = 0xffff & read_mpidr();
 	bl33_ep_info->pc = bl33_entry;
-	bl33_ep_info->spsr = SPSR_64(MODE_EL2, MODE_SP_ELX,
-				     DISABLE_ALL_EXECPTIONS);
+	if (spl_image->flags & SPL_ATF_AARCH32_BL33) {
+		bl33_ep_info->spsr = SPSR_32(MODE32_svc, SPSR_T_ARM, EP_EE_LITTLE,
+					     DISABLE_ALL_EXECPTIONS_32);
+
+		/*
+		 *  r1 - machine type
+		 *  r2 - boot data (atags/dt) pointer
+		 */
+		if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL) {
+			bl33_ep_info->args.arg0 = 0;
+			bl33_ep_info->args.arg1 = 0xffffffff;
+			bl33_ep_info->args.arg2 = (unsigned long)spl_image->fdt_addr;
+		}
+	} else {
+		bl33_ep_info->spsr = SPSR_64(MODE_EL2, MODE_SP_ELX,
+					     DISABLE_ALL_EXECPTIONS);
+
+		/*
+		 * Reference: arch/arm/lib/bootm.c
+		 * boot_jump_linux(bootm_headers_t *images, int flag)
+		 * {
+		 * 	......
+		 * 	armv8_switch_to_el2((u64)images->ft_addr, 0, 0, 0,
+		 * 			   images->ep, ES_TO_AARCH64);
+		 * }
+		 */
+		if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL)
+			bl33_ep_info->args.arg0 = (unsigned long)spl_image->fdt_addr;
+	}
 
 	bl2_to_bl31_params->bl33_image_info = &bl31_params_mem.bl33_image_info;
 	SET_PARAM_HEAD(bl2_to_bl31_params->bl33_image_info,
@@ -100,21 +128,25 @@ struct bl31_params *bl2_plat_get_bl31_params_default(ulong bl32_entry,
 	return bl2_to_bl31_params;
 }
 
-__weak struct bl31_params *bl2_plat_get_bl31_params(ulong bl32_entry,
+__weak struct bl31_params *bl2_plat_get_bl31_params(struct spl_image_info *spl_image,
+						    ulong bl32_entry,
 						    ulong bl33_entry,
 						    ulong fdt_addr)
 {
-	return bl2_plat_get_bl31_params_default(bl32_entry, bl33_entry,
-						fdt_addr);
+	return bl2_plat_get_bl31_params_default(spl_image, bl32_entry,
+						bl33_entry, fdt_addr);
 }
 
-struct bl_params *bl2_plat_get_bl31_params_v2_default(ulong bl32_entry,
+struct bl_params *bl2_plat_get_bl31_params_v2_default(struct spl_image_info *spl_image,
+						      ulong bl32_entry,
 						      ulong bl33_entry,
 						      ulong fdt_addr)
 {
 	static struct bl2_to_bl31_params_mem_v2 bl31_params_mem;
 	struct bl_params *bl_params;
 	struct bl_params_node *bl_params_node;
+	struct entry_point_info *bl32_ep_info;
+	struct entry_point_info *bl33_ep_info;
 
 	/*
 	 * Initialise the memory for all the arguments that needs to
@@ -141,6 +173,7 @@ struct bl_params *bl2_plat_get_bl31_params_v2_default(ulong bl32_entry,
 	bl_params_node->image_id = ATF_BL32_IMAGE_ID;
 	bl_params_node->image_info = &bl31_params_mem.bl32_image_info;
 	bl_params_node->ep_info = &bl31_params_mem.bl32_ep_info;
+	bl32_ep_info = &bl31_params_mem.bl32_ep_info;
 	bl_params_node->next_params_info = &bl31_params_mem.bl33_params_node;
 	SET_PARAM_HEAD(bl_params_node->ep_info, ATF_PARAM_EP,
 		       ATF_VERSION_2, ATF_EP_SECURE);
@@ -158,6 +191,7 @@ struct bl_params *bl2_plat_get_bl31_params_v2_default(ulong bl32_entry,
 	bl_params_node->image_id = ATF_BL33_IMAGE_ID;
 	bl_params_node->image_info = &bl31_params_mem.bl33_image_info;
 	bl_params_node->ep_info = &bl31_params_mem.bl33_ep_info;
+	bl33_ep_info = &bl31_params_mem.bl33_ep_info;
 	bl_params_node->next_params_info = NULL;
 	SET_PARAM_HEAD(bl_params_node->ep_info, ATF_PARAM_EP,
 		       ATF_VERSION_2, ATF_EP_NON_SECURE);
@@ -165,20 +199,48 @@ struct bl_params *bl2_plat_get_bl31_params_v2_default(ulong bl32_entry,
 	/* BL33 expects to receive the primary CPU MPID (through x0) */
 	bl_params_node->ep_info->args.arg0 = 0xffff & read_mpidr();
 	bl_params_node->ep_info->pc = bl33_entry;
-	bl_params_node->ep_info->spsr = SPSR_64(MODE_EL2, MODE_SP_ELX,
-						DISABLE_ALL_EXECPTIONS);
+	if (spl_image->flags & SPL_ATF_AARCH32_BL33) {
+		bl33_ep_info->spsr = SPSR_32(MODE32_svc, SPSR_T_ARM, EP_EE_LITTLE,
+					     DISABLE_ALL_EXECPTIONS_32);
+
+		/*
+		 *  r1 - machine type
+		 *  r2 - boot data (atags/dt) pointer
+		 */
+		if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL) {
+			bl33_ep_info->args.arg0 = 0;
+			bl33_ep_info->args.arg1 = 0xffffffff;
+			bl33_ep_info->args.arg2 = (unsigned long)spl_image->fdt_addr;
+		}
+	} else {
+		bl33_ep_info->spsr = SPSR_64(MODE_EL2, MODE_SP_ELX,
+					     DISABLE_ALL_EXECPTIONS);
+
+		/*
+		 * Reference: arch/arm/lib/bootm.c
+		 * boot_jump_linux(bootm_headers_t *images, int flag)
+		 * {
+		 * 	......
+		 * 	armv8_switch_to_el2((u64)images->ft_addr, 0, 0, 0,
+		 * 			   images->ep, ES_TO_AARCH64);
+		 * }
+		 */
+		if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL)
+			bl33_ep_info->args.arg0 = (unsigned long)spl_image->fdt_addr;
+	}
 	SET_PARAM_HEAD(bl_params_node->image_info, ATF_PARAM_IMAGE_BINARY,
 		       ATF_VERSION_2, 0);
 
 	return bl_params;
 }
 
-__weak struct bl_params *bl2_plat_get_bl31_params_v2(ulong bl32_entry,
+__weak struct bl_params *bl2_plat_get_bl31_params_v2(struct spl_image_info *spl_image,
+						     ulong bl32_entry,
 						     ulong bl33_entry,
 						     ulong fdt_addr)
 {
-	return bl2_plat_get_bl31_params_v2_default(bl32_entry, bl33_entry,
-						   fdt_addr);
+	return bl2_plat_get_bl31_params_v2_default(spl_image, bl32_entry,
+						   bl33_entry, fdt_addr);
 }
 
 static inline void raw_write_daif(unsigned int daif)
@@ -188,23 +250,22 @@ static inline void raw_write_daif(unsigned int daif)
 
 typedef void __noreturn (*atf_entry_t)(struct bl31_params *params, void *plat_params);
 
-static void __noreturn bl31_entry(ulong bl31_entry, ulong bl32_entry,
-				  ulong bl33_entry, ulong fdt_addr)
+static void __noreturn bl31_entry(struct spl_image_info *spl_image, ulong bl31_entry,
+				  ulong bl32_entry, ulong bl33_entry, ulong fdt_addr)
 {
 	atf_entry_t  atf_entry = (atf_entry_t)bl31_entry;
 	void *bl31_params;
 
 	if (CONFIG_IS_ENABLED(ATF_LOAD_IMAGE_V2))
-		bl31_params = bl2_plat_get_bl31_params_v2(bl32_entry,
+		bl31_params = bl2_plat_get_bl31_params_v2(spl_image, bl32_entry,
 							  bl33_entry,
 							  fdt_addr);
 	else
-		bl31_params = bl2_plat_get_bl31_params(bl32_entry, bl33_entry,
-						       fdt_addr);
+		bl31_params = bl2_plat_get_bl31_params(spl_image, bl32_entry,
+							  bl33_entry,
+							  fdt_addr);
 
 	raw_write_daif(SPSR_EXCEPTION_MASK);
-	if (!CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
-		dcache_disable();
 
 	atf_entry(bl31_params, (void *)fdt_addr);
 }
@@ -267,6 +328,8 @@ void __noreturn spl_invoke_atf(struct spl_image_info *spl_image)
 	node = spl_fit_images_find(blob, IH_OS_TEE);
 	if (node >= 0)
 		bl32_entry = spl_fit_images_get_entry(blob, node);
+	else
+		bl32_entry = spl_image->entry_point_bl32; /* optional */
 
 	/*
 	 * Find the U-Boot binary (in /fit-images) load addreess or
@@ -278,6 +341,8 @@ void __noreturn spl_invoke_atf(struct spl_image_info *spl_image)
 	node = spl_fit_images_find(blob, IH_OS_U_BOOT);
 	if (node >= 0)
 		bl33_entry = spl_fit_images_get_entry(blob, node);
+	else
+		bl33_entry = spl_image->entry_point_bl33;
 
 	/*
 	 * If ATF_NO_PLATFORM_PARAM is set, we override the platform
@@ -288,10 +353,13 @@ void __noreturn spl_invoke_atf(struct spl_image_info *spl_image)
 	if (CONFIG_IS_ENABLED(ATF_NO_PLATFORM_PARAM))
 		platform_param = 0;
 
+	/* do cleanup */
+	spl_cleanup_before_jump(spl_image);
+
 	/*
 	 * We don't provide a BL3-2 entry yet, but this will be possible
 	 * using similar logic.
 	 */
-	bl31_entry(spl_image->entry_point, bl32_entry,
+	bl31_entry(spl_image, spl_image->entry_point, bl32_entry,
 		   bl33_entry, platform_param);
 }

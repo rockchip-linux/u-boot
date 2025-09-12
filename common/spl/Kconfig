@@ -369,6 +369,110 @@ config IMX_CONTAINER_CFG
 	  Specify the cfg file for generating the container image which will be
 	  loaded by SPL.
 
+config SPL_LOAD_RKFW
+	bool "SPL support load rockchip firmware images"
+	depends on SPL
+	help
+	  This enables SPL support load rockchip firmware images.
+	  Please define both RKFW_TRUST_SECTOR and RKFW_U_BOOT_SECTOR
+	  for trust and U-Boot images.
+
+config RKFW_TRUST_SECTOR
+	hex "rockchip trust image load sector"
+	depends on SPL_LOAD_RKFW
+	default 0x6000
+
+config RKFW_U_BOOT_SECTOR
+	hex "rockchip uboot image load sector"
+	depends on SPL_LOAD_RKFW
+	default 0x4000
+
+config RKFW_BOOT_SECTOR
+	hex "rockchip boot image load sector"
+	depends on SPL_LOAD_RKFW
+	default 0xa000
+
+config SPL_KERNEL_BOOT
+	bool "Enable boot kernel in SPL"
+	depends on SPL
+	help
+	  Enable boot kernel in SPL.
+
+config SPL_KERNEL_BOOT_PREBUILT
+	bool "Enable boot kernel in SPL with prebuilt program"
+	depends on SPL_KERNEL_BOOT
+	default y
+	help
+	  Enable boot kernel in SPL with prebuilt program.
+
+config SPL_KERNEL_BOOT_SECTOR
+	hex "Sector address to load kernel in SPL"
+	depends on SPL_KERNEL_BOOT
+	depends on !SPL_LIBDISK_SUPPORT
+	default 0xa000
+
+config SPL_KERNEL_RAMDISK_SECTOR
+	hex "Sector address to load ramdisk in SPL"
+	depends on SPL_KERNEL_BOOT
+	depends on !SPL_LIBDISK_SUPPORT
+	default 0xf000
+
+if SPL_LOAD_RKFW
+config SPL_KERNEL_ADDR
+	hex "Kernel load address in spl"
+	depends on SPL
+	default 0x280000
+	help
+	  Define the kernel address where load kernel image to.
+	  This is used to boot kernel in spl.
+
+config SPL_KERNEL_COMPRESS_ADDR
+	hex "The compressed kernel in spl"
+	depends on SPL && SPL_ROCKCHIP_HW_DECOMPRESS
+	help
+	  Load compressed kernel in this address, then call the
+	  decompress process to decompress the firmware.
+
+config SPL_KERNEL_DECOM_LIMIT_SIZE
+        hex "The decompress limit size"
+        depends on SPL && SPL_ROCKCHIP_HW_DECOMPRESS
+	default 0x1ff8000
+        help
+          Define kernel maximum decompressible size that prevent
+          memory overrun.
+
+config SPL_FDT_ADDR
+	hex "Device tree blob load address in spl"
+	depends on SPL
+	default 0x01f00000
+	help
+	  Define the fdt address where load dtb image to.
+	  This is used to boot kernel in spl.
+
+config SPL_RAMDISK_ADDR
+	hex "Ramdisk load address in spl"
+	depends on SPL
+	default 0x0a200000
+	help
+	  Define the ramdisk address where load ramdisk image to.
+	  This is used to boot kernel in spl.
+
+config SPL_RAMDISK_COMPRESS_ADDR
+	hex "The compressed ramdisk in spl"
+	depends on SPL && SPL_ROCKCHIP_HW_DECOMPRESS
+	help
+	  Load compressed ramdisk in this address, then call the
+	  decompress process to decompress the firmware.
+
+config SPL_RAMDISK_DECOM_LIMIT_SIZE
+	hex "The decompress limit size"
+	depends on SPL && SPL_ROCKCHIP_HW_DECOMPRESS
+	default 0x3000000
+	help
+	  Define ramdisk maximum decompressible size that prevent
+	  memory overrun.
+endif
+
 config SPL_SYS_MALLOC_SIMPLE
 	bool "Only use malloc_simple functions in the SPL"
 	help
@@ -531,6 +635,7 @@ config SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
 config SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
 	bool "MMC raw mode: by partition"
 	select SPL_LOAD_BLOCK
+	depends on SPL_LIBDISK_SUPPORT
 	help
 	  Use a partition for loading U-Boot when using MMC/SD in raw mode.
 
@@ -589,6 +694,14 @@ config SYS_MMCSD_RAW_MODE_U_BOOT_PARTITION_TYPE
 	  Partition Type on the MMC to load U-Boot from, when the MMC is being
 	  used in raw mode.
 
+config SYS_MMCSD_RAW_MODE_U_BOOT_PARTITION_NAME
+	string "Partition Name on the MMC to load U-Boot from"
+	depends on SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION
+	default "uboot"
+	help
+	  Partition Name on the MMC to load U-Boot from, when the MMC is being
+	  used in raw mode.
+
 endif # SPL_SYS_MMCSD_RAW_MODE
 
 config SUPPORT_EMMC_BOOT_OVERRIDE_PART_CONFIG
@@ -626,6 +739,17 @@ config SPL_FIT_IMAGE_TINY
 	  ensure this information is available to the next image
 	  invoked).
 
+config SPL_BOOT_IMAGE
+	bool "SPL boot image load support"
+	default n
+	help
+	  This enable SPL boot image load support
+
+config SPL_BOOT_IMAGE_BUF
+	hex "SPL boot image memory buffer"
+	depends on SPL_BOOT_IMAGE
+	default 0x10000000
+
 config SPL_CACHE
 	bool "Support CACHE drivers"
 	help
@@ -649,6 +773,12 @@ config SPL_CRYPTO
 	  accelerate secure boot processing in secure applications. Enable
 	  this option to build the drivers in drivers/crypto as part of an
 	  SPL build.
+
+config SPL_DECOMP_HEADER
+	bool "Support SPL DECOMP header"
+	default n
+	help
+	  Support to build SPL as decomp header.
 
 config SPL_DMA
 	bool "Support DMA drivers"
@@ -814,6 +944,14 @@ config SPL_I2C
 	  Enable this option to build the drivers in drivers/i2c as part of
 	  an SPL build.
 
+config SPL_KEYLAD_SUPPORT
+	bool "Support keylad drivers"
+	help
+	  Enable keylad drivers in SPL. These drivers can be used to pass
+	  otp keys to other IP addresses. (e.g. CRYPTO module). Enable
+	  this option to build the drivers in drivers/keylad as part of an
+	  SPL build.
+
 config SPL_LIBCOMMON_SUPPORT
 	bool "Support common libraries"
 	help
@@ -861,6 +999,11 @@ config SPL_MEMORY
 	  Enable support for Memory Controller drivers within SPL.
 	  These devices provide Memory bus interface to various devices like
 	  SRAM, Ethernet adapters, FPGAs, etc.
+
+config SPL_MISC_SECTOR
+	hex "Sector address to load misc in SPL"
+	depends on !SPL_LIBDISK_SUPPORT && SPL_KERNEL_BOOT
+	default 0x8000
 
 config SPL_MMC
 	bool "Support MMC"
@@ -930,6 +1073,21 @@ config SPL_MTD
 	  devices. See SPL_NAND_SUPPORT and SPL_ONENAND_SUPPORT for how
 	  to enable specific MTD drivers.
 
+config MTD_BLK_U_BOOT_OFFS
+	hex "Location in MTD block to read U-Boot from"
+	default 0x4000
+	depends on SPL_MTD_SUPPORT
+	help
+	  Set the offset from the start of the nand,spi nand and nor flash where
+	  u-boot should be loaded from.
+
+config SPL_MTD_WRITE
+	bool "nand & spi nand & spi nor support for write operations in SPL"
+	depends on SPL_MTD_SUPPORT
+	default n
+	help
+	  Enable write access to nand & spi nand & spi nor in SPL
+
 config SPL_MUSB_NEW
 	bool "Support new Mentor Graphics USB"
 	help
@@ -991,11 +1149,40 @@ config SPL_RELOC_LOADER
 	  to temporary memory, then copying it into place afterwards, then
 	  jumping to it.
 
+config SPL_SKIP_RELOCATE
+	bool "Skip code relocation in SPL"
+	default y
+	help
+	  The SPL code will be relocated to a high memory if you say no here.
+	  Only ARM64 and PowerPC SPL support relocate now.
+
+config SPL_RELOC_TEXT_BASE
+	hex "Address the SPL relocate to"
+	depends on !SPL_SKIP_RELOCATE
+	default 0x03d00000
+	help
+	  The address on the ram where the SPL relocate to.
+
 config SPL_UBI
 	bool "Support UBI"
 	help
 	  Enable support for loading payloads from UBI. See
 	  README.ubispl for more info.
+
+config SPL_UFS
+	bool "Support loading from UFS"
+	help
+	  Enable support for UFS in SPL. This allows
+	  use of UFS devices such as hard drives and flash drivers for
+	  loading U-Boot.
+
+config SYS_UFS_RAW_MODE_U_BOOT_SECTOR
+	hex "Address on the UFS to load U-Boot from"
+	depends on SPL_UFS
+	default 0x4000
+	help
+	  Address on the block device to load U-Boot from，
+	  Units: UFS sectors (1 sector = 512 bytes).
 
 menu "UBI configuration for SPL"
 	depends on SPL_UBI
@@ -1225,6 +1412,12 @@ config SPL_PCI
 	  necessary driver support. This enables the drivers in drivers/pci
 	  as part of an SPL build.
 
+config SPL_PCIE_EP_SUPPORT
+	bool "Support loading from PCIE EP"
+	help
+	  Enable support for PCIE EP driver in SPL. The RC will download the
+	  image as a RAM partition for firmware.
+
 config SPL_PCH
 	bool "Support PCH drivers"
 	help
@@ -1242,6 +1435,13 @@ config SPL_POST_MEM_SUPPORT
 	  performed before booting. This enables the drivers in post/drivers
 	  as part of an SPL build.
 
+config SPL_PWM_SUPPORT
+	bool "Support PWM driver"
+	depends on SPL
+	help
+	  Enable support for pwm in SPL. This allows use pwm to control
+	  somethings, for example control voltage.
+
 config SPL_DM_RESET
 	bool "Support reset drivers"
 	depends on SPL_DM
@@ -1250,6 +1450,13 @@ config SPL_DM_RESET
 	  That can be useful in SPL to handle IP reset in driver, as in U-Boot,
 	  by using the generic reset API provided by driver model.
 	  This enables the drivers in drivers/reset as part of an SPL build.
+
+config SPL_RESET_ROCKCHIP
+    bool "Reset controller driver for Rockchip SoCs in SPL"
+    depends on SPL_DM_RESET && SPL_CLK
+    help
+      Support for reset controller on rockchip SoC. The main limitation though
+      is that some reset signals, like I2C or MISC reset multiple devices.
 
 config SPL_POWER
 	bool "Support power drivers"
@@ -1290,6 +1497,23 @@ config SPL_REMOTEPROC
 	help
 	  Enable support for REMOTEPROCs in SPL. This permits to load
 	  a remote processor firmware in SPL.
+
+config SPL_RKNAND_SUPPORT
+	bool "Rockchip NAND FLASH device support"
+	depends on BLK
+	select RKNAND
+	select ZFTL if (ROCKCHIP_PX30 || ROCKCHIP_RK3568)
+	help
+	  This option enables support for Rockchip NAND FLASH devices.
+	  It supports block interface(with rk ftl) to read and write NAND FLASH.
+
+config RKNAND_BLK_U_BOOT_OFFS
+	hex "Location in RKNAND block to read U-Boot from"
+	default 0x4000
+	depends on SPL_RKNAND_SUPPORT
+	help
+	  Set the offset from the start of the rknand device where
+	  u-boot should be loaded from.
 
 config SPL_RTC
 	bool "Support RTC drivers"
@@ -1456,6 +1680,14 @@ config SPL_YMODEM_SUPPORT
 	  there is no other option. The Ymodem protocol provides a reliable
 	  means of transmitting U-Boot over a serial line for using in SPL,
 	  with a checksum to ensure correctness.
+
+config SPL_AB
+	bool "Support AB system boot"
+	depends on SPL && SPL_LIBDISK_SUPPORT
+	select SPL_MTD_WRITE if SPL_MTD_SUPPORT
+	select SPL_MMC_WRITE if SPL_MMC_SUPPORT
+	help
+	  Enable this config to support AB system boot.
 
 config SPL_ATF
 	bool "Support ARM Trusted Firmware"

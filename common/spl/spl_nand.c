@@ -66,11 +66,36 @@ static ulong spl_nand_read(struct spl_load_info *load, ulong offs, ulong size,
 	return size;
 }
 
+#ifdef CONFIG_SPL_LOAD_RKFW
+static ulong spl_nand_rkfw_read(struct spl_load_info *load, ulong offs,
+				ulong size, void *dst)
+{
+	int ret;
+
+	ret = nand_spl_load_image(offs * 512, size * 512, dst);
+	if (!ret)
+		return size;
+	else
+		return 0;
+}
+#endif
+
 static int spl_nand_load_element(struct spl_image_info *spl_image,
 				 struct spl_boot_device *bootdev, int offset)
 {
 	struct spl_load_info load;
 
+#ifdef CONFIG_SPL_LOAD_RKFW
+	int ret;
+
+	load.priv = NULL;
+	load.bl_len = 1;
+	load.read = spl_nand_rkfw_read;
+
+	ret = spl_load_rkfw_image(spl_image, &load);
+	if (!ret || ret != -EAGAIN)
+		return ret;
+#endif
 	spl_load_init(&load, spl_nand_read, &offset, 1);
 	return spl_load(spl_image, bootdev, &load, 0, offset);
 }

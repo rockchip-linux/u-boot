@@ -9,12 +9,17 @@
  * Michal Simek <michal.simek@amd.com>
  * Stefan Agner <stefan.agner@toradex.com>
  */
+#include <common.h>
 #include <binman_sym.h>
 #include <image.h>
 #include <log.h>
 #include <mapmem.h>
 #include <spl.h>
 #include <linux/libfdt.h>
+
+#ifndef CONFIG_SPL_LOAD_FIT_ADDRESS
+# define CONFIG_SPL_LOAD_FIT_ADDRESS	0
+#endif
 
 #if CONFIG_IS_ENABLED(RAM_DEVICE) || CONFIG_IS_ENABLED(DFU)
 static ulong spl_ram_load_read(struct spl_load_info *load, ulong sector,
@@ -44,6 +49,8 @@ static int spl_ram_load_image(struct spl_image_info *spl_image,
 	struct legacy_img_hdr *header;
 	ulong addr = 0;
 	int ret;
+
+	header = (struct legacy_img_hdr *)CONFIG_SPL_LOAD_FIT_ADDRESS;
 
 	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT)) {
 		addr = IF_ENABLED_INT(CONFIG_SPL_LOAD_FIT,

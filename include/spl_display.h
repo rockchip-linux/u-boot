@@ -9,9 +9,6 @@
 
 #include <common.h>
 #include <drm_modes.h>
-#ifdef CONFIG_MP_BOOT
-#include <mp_boot.h>
-#endif
 
 /* SPL display */
 #define RK3528_VOP_BASE				0xff840000

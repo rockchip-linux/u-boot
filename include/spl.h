@@ -29,6 +29,10 @@ struct legacy_img_hdr;
 #define MMCSD_MODE_FS		2
 #define MMCSD_MODE_EMMCBOOT	3
 
+#define SPL_NEXT_STAGE_UNDEFINED	0
+#define SPL_NEXT_STAGE_UBOOT		1
+#define SPL_NEXT_STAGE_KERNEL		2
+
 struct blk_desc;
 struct legacy_img_hdr;
 struct spl_boot_device;
@@ -286,10 +290,16 @@ struct spl_image_info {
 	u8 os;
 	ulong load_addr;
 	ulong entry_point;
+#if CONFIG_IS_ENABLED(ATF)
+	uintptr_t entry_point_bl32;
+	uintptr_t entry_point_bl33;
+#endif
+	uintptr_t entry_point_os;	/* point to uboot or kernel */
 #if CONFIG_IS_ENABLED(LOAD_FIT) || CONFIG_IS_ENABLED(LOAD_FIT_FULL)
 	void *fdt_addr;
 #endif
 	u32 boot_device;
+	u32 next_stage;
 	u32 offset;
 	u32 size;
 	ulong fdt_size;
@@ -500,6 +510,7 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 
 #define SPL_COPY_PAYLOAD_ONLY	1
 #define SPL_FIT_FOUND		2
+#define SPL_ATF_AARCH32_BL33	BIT(31)
 
 /**
  * spl_load_legacy_lzma() - Load an LZMA-compressed legacy image
@@ -546,6 +557,8 @@ int spl_load_imx_container(struct spl_image_info *spl_image,
 /* SPL common functions */
 void preloader_console_init(void);
 u32 spl_boot_device(void);
+u32 spl_boot_mode(const u32 boot_device);
+void spl_next_stage(struct spl_image_info *spl);
 
 struct spi_flash;
 
@@ -1021,7 +1034,8 @@ void __noreturn spl_invoke_atf(struct spl_image_info *spl_image);
  *
  * Return: bl31 params structure pointer
  */
-struct bl31_params *bl2_plat_get_bl31_params(ulong bl32_entry,
+struct bl31_params *bl2_plat_get_bl31_params(struct spl_image_info *spl_image,
+					     ulong bl32_entry,
 					     ulong bl33_entry,
 					     ulong fdt_addr);
 
@@ -1042,7 +1056,8 @@ struct bl31_params *bl2_plat_get_bl31_params(ulong bl32_entry,
  *
  * Return: bl31 params structure pointer
  */
-struct bl31_params *bl2_plat_get_bl31_params_default(ulong bl32_entry,
+struct bl31_params *bl2_plat_get_bl31_params_default(struct spl_image_info *spl_image,
+						     ulong bl32_entry,
 						     ulong bl33_entry,
 						     ulong fdt_addr);
 
@@ -1058,7 +1073,8 @@ struct bl31_params *bl2_plat_get_bl31_params_default(ulong bl32_entry,
  *
  * Return: bl31 params structure pointer
  */
-struct bl_params *bl2_plat_get_bl31_params_v2(ulong bl32_entry,
+struct bl_params *bl2_plat_get_bl31_params_v2(struct spl_image_info *spl_image,
+					      ulong bl32_entry,
 					      ulong bl33_entry,
 					      ulong fdt_addr);
 
@@ -1077,7 +1093,8 @@ struct bl_params *bl2_plat_get_bl31_params_v2(ulong bl32_entry,
  *
  * Return: bl31 params structure pointer
  */
-struct bl_params *bl2_plat_get_bl31_params_v2_default(ulong bl32_entry,
+struct bl_params *bl2_plat_get_bl31_params_v2_default(struct spl_image_info *spl_image,
+						      ulong bl32_entry,
 						      ulong bl33_entry,
 						      ulong fdt_addr);
 /**
@@ -1116,10 +1133,22 @@ int board_return_to_bootrom(struct spl_image_info *spl_image,
 ulong board_spl_fit_size_align(ulong size);
 
 /**
+ * spl_cleanup_before_jump() - cleanup cache/mmu/interrupt, etc before jump
+ *			       to next stage.
+ */
+void spl_cleanup_before_jump(struct spl_image_info *spl_image);
+
+/**
  * spl_perform_fixups() - arch/board-specific callback before processing
  *                        the boot-payload
  */
 void spl_perform_fixups(struct spl_image_info *spl_image);
+
+/**
+ * spl_board_prepare_for_jump() - arch/board-specific callback exactly before
+ *				  jumping to next stage
+ */
+int spl_board_prepare_for_jump(struct spl_image_info *spl_image);
 
 /*
  * spl_get_load_buffer() - get buffer for loading partial image data
@@ -1209,5 +1238,25 @@ int spl_reloc_prepare(struct spl_image_info *image, ulong *addrp);
  * @func: Function to call in the final image
  */
 int spl_reloc_jump(struct spl_image_info *image, spl_jump_to_image_t func);
+
+#ifdef CONFIG_SPL_KERNEL_BOOT
+/**
+ * spl_kernel_partition() - arch/board-specific callback to get kernel partition
+ */
+const char *spl_kernel_partition(struct spl_image_info *spl,
+				 struct spl_load_info *info);
+/**
+ * spl_fdt_fixup_memory() - arch/board-specific fixup kernel dtb memory node.
+ */
+void spl_fdt_fixup_memory(struct spl_image_info *spl_image);
+/**
+ * spl_find_hwid_dtb() - Support select kernel dtb based on HW-ID
+ */
+int spl_find_hwid_dtb(const char *fdt_name);
+/**
+ * spl_fdt_chosen_bootargs() - Support append bootargs into kernel fdt chosen node
+ */
+int spl_fdt_chosen_bootargs(struct spl_load_info *info, void *fdt);
+#endif
 
 #endif
