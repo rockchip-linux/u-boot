@@ -241,6 +241,7 @@ struct global_data {
 	 * @dm_root: root instance for Driver Model
 	 */
 	struct udevice *dm_root;
+	struct udevice *dm_root_f;	/* Pre-relocation root instance */
 	/**
 	 * @uclass_root_s:
 	 * head of core tree when uclasses are not in read-only memory.
@@ -280,6 +281,8 @@ struct global_data {
 	 */
 	struct udevice *timer;
 #endif
+	void *new_fdt;			/* Relocated FDT */
+	unsigned long fdt_size;		/* Space reserved for relocated FDT */
 #if CONFIG_IS_ENABLED(OF_LIVE)
 	/**
 	 * @of_root: root node of the live tree
