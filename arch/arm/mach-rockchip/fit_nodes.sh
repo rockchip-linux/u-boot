@@ -184,7 +184,7 @@ function gen_bl32_node()
 			ENTRY="entry = <"${TEE_LOAD_ADDR}">;"
 
 			# if disable packing tee.bin
-			if ! grep -q '^CONFIG_SPL_OPTEE=y' .config ; then
+			if ! grep -q '^CONFIG_SPL_OPTEE_IMAGE=y' .config ; then
 				return
 			fi
 
@@ -192,12 +192,12 @@ function gen_bl32_node()
 	fi
 
 	TEE="tee.bin"
-	echo "		optee {
-			description = \"OP-TEE\";
+	echo "		tee {
+			description = \"TEE\";
 			data = /incbin/(\"${TEE}${SUFFIX}\");
 			type = \"firmware\";
 			arch = \"${ARCH}\";
-			os = \"op-tee\";
+			os = \"tee\";
 			compression = \"${COMPRESSION}\";
 			${ENTRY}
 			load = <"${TEE_LOAD_ADDR}">;"
@@ -213,8 +213,8 @@ function gen_bl32_node()
 				algo = \"sha256\";
 			};
 		};"
-	LOADABLE_OPTEE=", \"optee\""
-	FIRMWARE_OPTEE="firmware = \"optee\";"
+	LOADABLE_TEE=", \"tee\""
+	FIRMWARE_TEE="firmware = \"tee\";"
 	FIRMWARE_SIGN="\"firmware\""
 }
 
@@ -396,7 +396,7 @@ echo "	};
 			description = \"${PLATFORM}\";
 			rollback-index = <0x0>;
 			firmware = \"atf-1\";
-			loadables = ${LOADABLE_UBOOT}${LOADABLE_ATF}${LOADABLE_OPTEE}${LOADABLE_OTHER};
+			loadables = ${LOADABLE_UBOOT}${LOADABLE_ATF}${LOADABLE_TEE}${LOADABLE_OTHER};
 			${STANDALONE_MCU}
 			${FDT}
 			signature {
@@ -439,7 +439,7 @@ echo "	};
 		conf {
 			description = \"${PLATFORM}\";
 			rollback-index = <0x0>;
-			${FIRMWARE_OPTEE}
+			${FIRMWARE_TEE}
 			${LOADABLES}
 			${STANDALONE_MCU}
 			${FDT}
