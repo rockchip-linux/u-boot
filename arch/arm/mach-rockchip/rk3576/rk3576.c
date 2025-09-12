@@ -97,7 +97,10 @@ DECLARE_GLOBAL_DATA_PTR;
 
 const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1] = {
 	[BROM_BOOTSOURCE_EMMC] = "/soc/mmc@2a330000",
+	[BROM_BOOTSOURCE_SPINOR] = "/soc/spi@2a340000",
+	[BROM_BOOTSOURCE_SPINAND] = "/soc/spi@2a340000",
 	[BROM_BOOTSOURCE_SD] = "/soc/mmc@2a310000",
+	[BROM_BOOTSOURCE_UFS] = "/soc/ufs@2a2d0000",
 };
 
 #ifdef CONFIG_ARM64
