@@ -292,7 +292,7 @@ static int rkfw_load_uboot(struct spl_load_info *info, u32 image_sector,
 #ifdef CONFIG_SPL_ATF
 	spl_image->entry_point_bl33 = (uintptr_t)hdr.loader_load_addr;
 #endif
-#ifdef CONFIG_SPL_OPTEE
+#ifdef CONFIG_SPL_OPTEE_IMAGE
 	spl_image->entry_point_os = (uintptr_t)hdr.loader_load_addr;
 #endif
 	return 0;
@@ -456,7 +456,7 @@ static int rkfw_load_kernel(struct spl_load_info *info, u32 image_sector,
 	}
 
 	spl_image->fdt_addr = (void *)CONFIG_SPL_FDT_ADDR;
-#ifdef CONFIG_SPL_OPTEE
+#ifdef CONFIG_SPL_OPTEE_IMAGE
 	spl_image->entry_point_os = (uintptr_t)CONFIG_SPL_KERNEL_ADDR;
 #endif
 #ifdef CONFIG_SPL_ATF

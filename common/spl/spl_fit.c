@@ -1018,7 +1018,7 @@ static int spl_load_kernel_fit(struct spl_image_info *spl_image,
 				return -EINVAL;
 			}
 		} else if (!strcmp(images[i], FIT_KERNEL_PROP)) {
-#if CONFIG_IS_ENABLED(OPTEE)
+#if CONFIG_IS_ENABLED(OPTEE_IMAGE)
 			spl_image->entry_point_os = image_info.load_addr;
 #endif
 #if CONFIG_IS_ENABLED(ATF)
@@ -1033,7 +1033,7 @@ static int spl_load_kernel_fit(struct spl_image_info *spl_image,
 	debug("fdt_addr=0x%08lx, entry_point=0x%08lx, entry_point_os=0x%08lx\n",
 	      (ulong)spl_image->fdt_addr,
 	      spl_image->entry_point,
-#if CONFIG_IS_ENABLED(OPTEE)
+#if CONFIG_IS_ENABLED(OPTEE_IMAGE)
 	      spl_image->entry_point_os);
 #endif
 #if CONFIG_IS_ENABLED(ATF)
@@ -1250,7 +1250,7 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 			if (ih_arch == IH_ARCH_ARM)
 				spl_image->flags |= SPL_ATF_AARCH32_BL33;
 			spl_image->entry_point_bl33 = image_info.load_addr;
-#elif CONFIG_IS_ENABLED(OPTEE)
+#elif CONFIG_IS_ENABLED(OPTEE_IMAGE)
 			spl_image->entry_point_os = image_info.load_addr;
 #endif
 			spl_fit_append_fdt(&image_info, info, offset, &ctx);
@@ -1267,10 +1267,15 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 
 		/* Record our loadables into the FDT */
 		if (!CONFIG_IS_ENABLED(FIT_IMAGE_TINY) &&
-		    xpl_get_fdt_update(info) && spl_image->fdt_addr)
+		    xpl_get_fdt_update(info) && spl_image->fdt_addr &&
+		    spl_image->next_stage == SPL_NEXT_STAGE_UBOOT)
 			spl_fit_record_loadable(&ctx, index,
 						spl_image->fdt_addr,
 						&image_info);
+#if CONFIG_IS_ENABLED(ATF)
+		else if (os_type == IH_OS_TEE)
+			spl_image->entry_point_bl32 = image_info.load_addr;
+#endif
 	}
 
 	/*
