@@ -32,7 +32,7 @@ else
 DTB := $(dt_dir)/$(DEVICE_TREE).dtb
 endif
 
-$(obj)/dt-$(SPL_NAME).dtb: dts/dt.dtb $(objtree)/tools/fdtgrep FORCE
+$(obj)/dt-$(SPL_NAME).dtb: $(DTB) $(objtree)/tools/fdtgrep FORCE
 	mkdir -p $(dir $@)
 	$(call if_changed,fdtgrep)
 
