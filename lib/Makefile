@@ -121,6 +121,7 @@ obj-$(CONFIG_SPL_YMODEM_SUPPORT) += crc16-ccitt.o
 obj-$(CONFIG_$(PHASE_)HASH) += crc16-ccitt.o
 obj-$(CONFIG_MMC_SPI_CRC_ON) += crc16-ccitt.o
 obj-y += net_utils.o
+obj-$(CONFIG_SPL_UFS) += charset.o
 endif
 obj-$(CONFIG_ADDR_MAP) += addr_map.o
 obj-y += qsort.o

@@ -13,7 +13,7 @@ endif
 endif
 
 ifdef CONFIG_XPL_BUILD
-ifdef CONFIG_SPL_SATA
+ifeq ($(CONFIG_SPL_SATA)$(CONFIG_SPL_UFS), y)
 obj-$(CONFIG_SCSI) += scsi.o scsi-uclass.o
 endif
 endif
