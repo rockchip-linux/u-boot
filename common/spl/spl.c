@@ -971,7 +971,8 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 		       (ulong)spl_image.entry_point);
 		spl_fixup_fdt(spl_image_fdt_addr(&spl_image));
 		jump_to_image = &spl_invoke_atf;
-	} else if (CONFIG_IS_ENABLED(OPTEE_IMAGE) && os == IH_OS_TEE) {
+	} else if (CONFIG_IS_ENABLED(OPTEE_IMAGE) &&
+		   (os == IH_OS_OP_TEE || os == IH_OS_TEE)) {
 		printf("Jumping to %s(0x%08lx) via OP-TEE(0x%08lx)\n",
 		       spl_image.next_stage == SPL_NEXT_STAGE_UBOOT ? "U-Boot" :
 		       (spl_image.next_stage == SPL_NEXT_STAGE_KERNEL ? "Kernel" : "Unknown"),

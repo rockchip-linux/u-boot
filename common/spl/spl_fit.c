@@ -1273,7 +1273,7 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 						spl_image->fdt_addr,
 						&image_info);
 #if CONFIG_IS_ENABLED(ATF)
-		else if (os_type == IH_OS_TEE)
+		else if (os_type == IH_OS_OP_TEE || os_type == IH_OS_TEE)
 			spl_image->entry_point_bl32 = image_info.load_addr;
 #endif
 	}

@@ -325,7 +325,9 @@ void __noreturn spl_invoke_atf(struct spl_image_info *spl_image)
 	 * entry point (if different) and pass it as the BL3-2 entry
 	 * point, this is optional.
 	 */
-	node = spl_fit_images_find(blob, IH_OS_TEE);
+	node = spl_fit_images_find(blob, IH_OS_OP_TEE);
+	if (node < 0)
+		node = spl_fit_images_find(blob, IH_OS_TEE);
 	if (node >= 0)
 		bl32_entry = spl_fit_images_get_entry(blob, node);
 	else

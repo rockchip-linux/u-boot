@@ -140,7 +140,7 @@ static void image_set_header(void *ptr, struct stat *sbuf, int ifd,
 	else
 		type = params->type;
 
-	if (params->os == IH_OS_TEE) {
+	if (params->os == IH_OS_OP_TEE || params->os == IH_OS_TEE) {
 		addr = optee_image_get_load_addr(hdr);
 		ep = optee_image_get_entry_point(hdr);
 	}
