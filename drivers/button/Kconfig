@@ -9,6 +9,15 @@ config BUTTON
 	  can provide access to board-specific buttons. Use of the device tree
 	  for configuration is encouraged.
 
+config SPL_BUTTON
+	bool "SPL enable button support"
+	depends on SPL_DM
+	help
+	  Many boards have buttons which can be used to change behaviour (reset, ...).
+	  U-Boot SPL provides a uclass API to implement this feature. Button drivers
+	  can provide access to board-specific buttons. Use of the device tree
+	  for configuration is encouraged.
+
 config BUTTON_REMAP_PHONE_KEYS
 	bool "Remap phone keys for navigation"
 	depends on BUTTON

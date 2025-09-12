@@ -90,6 +90,14 @@ enum button_state_t button_get_state(struct udevice *dev);
  */
 int button_get_code(struct udevice *dev);
 
+/**
+ * spl_button_adc_get_state() - get the state of a button
+ *
+ * @dev:	button device to change
+ * Return: button state button_state_t, or -ve on error
+ */
+enum button_state_t spl_button_adc_get_state(int code);
+
 #if IS_ENABLED(CONFIG_BUTTON_CMD)
 /* Process button command mappings specified in the environment,
  * running the commands for buttons which are pressed
