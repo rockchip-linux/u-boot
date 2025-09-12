@@ -6,6 +6,11 @@
 #include "rockchip-u-boot.dtsi"
 
 / {
+	aliases {
+		mmc0 = &sdhci;
+		mmc1 = &sdmmc;
+	};
+
 	chosen {
 		u-boot,spl-boot-order = &sdmmc, &sdhci, "same-as-spl";
 	};

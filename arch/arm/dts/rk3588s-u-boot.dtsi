@@ -8,6 +8,8 @@
 
 / {
 	aliases {
+		mmc0 = &sdhci;
+		mmc1 = &sdmmc;
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
