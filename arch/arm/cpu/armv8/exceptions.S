@@ -41,6 +41,48 @@ vectors:
 	bl	do_bad_sync
 	b	exception_exit
 
+	.align	7		/* Current EL IRQ Thread */
+	stp	x29, x30, [sp, #-16]!
+	bl	_exception_entry
+	bl	do_bad_irq
+	b	exception_exit
+
+	.align	7		/* Current EL FIQ Thread */
+	stp	x29, x30, [sp, #-16]!
+	bl	_exception_entry
+	bl	do_bad_fiq
+	b	exception_exit
+
+	.align	7		/* Current EL Error Thread */
+	stp	x29, x30, [sp, #-16]!
+	bl	_exception_entry
+	bl	do_bad_error
+	b	exception_exit
+
+	.align	7		 /* Current EL (SP_ELx) Synchronous Handler */
+	stp	x29, x30, [sp, #-16]!
+	bl	_exception_entry
+	bl	do_sync
+	b	exception_exit
+
+	.align	7		 /* Current EL (SP_ELx) IRQ Handler */
+	stp	x29, x30, [sp, #-16]!
+	bl	_exception_entry
+	bl	do_irq
+	b	exception_exit
+
+	.align	7		 /* Current EL (SP_ELx) FIQ Handler */
+	stp	x29, x30, [sp, #-16]!
+	bl	_exception_entry
+	bl	do_fiq
+	b	exception_exit
+
+	.align	7		 /* Current EL (SP_ELx) Error Handler */
+	stp	x29, x30, [sp, #-16]!
+	bl	_exception_entry
+	bl	do_error
+	b	exception_exit
+
 /*
  * Save (most of) the GP registers to the stack frame.
  * This is the first part of the shared routine called into from all entries.
@@ -62,11 +104,6 @@ _exception_entry:
 	stp	x1, x2, [sp, #-16]!
 	b	_save_el_regs			/* jump to the second part */
 
-	.align	7		/* Current EL IRQ Thread */
-	stp	x29, x30, [sp, #-16]!
-	bl	_exception_entry
-	bl	do_bad_irq
-	b	exception_exit
 
 /*
  * Save exception specific context: ESR and ELR, for all exception levels.
@@ -113,18 +150,13 @@ _save_el_regs:
 	mov	x0, sp
 	ret
 
-	.align	7		/* Current EL FIQ Thread */
-	stp	x29, x30, [sp, #-16]!
-	bl	_exception_entry
-	bl	do_bad_fiq
-				/* falling through to _exception_exit */
 /*
  * Restore the exception return address, for all exception levels.
  * This is the first part of the shared routine called into from all entries.
  */
 exception_exit:
 	add	sp, sp, #(8*8)/* see: sys registers size of struct pt_regs */
-	ldp	xzr, x2, [sp],#16
+	ldp	x2, x0, [sp],#16
 	switch_el x11, 3f, 2f, 1f
 3:	msr	elr_el3, x2
 	b	_restore_regs
@@ -144,7 +176,6 @@ exception_exit:
  * This is the second part of the shared routine called into from all entries.
  */
 _restore_regs:
-	ldp	xzr, x0, [sp],#16
 	ldp	x1, x2, [sp],#16
 	ldp	x3, x4, [sp],#16
 	ldp	x5, x6, [sp],#16
@@ -161,27 +192,3 @@ _restore_regs:
 	ldp	x27, x28, [sp],#16
 	ldp	x29, x30, [sp],#16
 	eret
-
-	.align	7		 /* Current EL (SP_ELx) Synchronous Handler */
-	stp	x29, x30, [sp, #-16]!
-	bl	_exception_entry
-	bl	do_sync
-	b	exception_exit
-
-	.align	7		 /* Current EL (SP_ELx) IRQ Handler */
-	stp	x29, x30, [sp, #-16]!
-	bl	_exception_entry
-	bl	do_irq
-	b	exception_exit
-
-	.align	7		 /* Current EL (SP_ELx) FIQ Handler */
-	stp	x29, x30, [sp, #-16]!
-	bl	_exception_entry
-	bl	do_fiq
-	b	exception_exit
-
-	.align	7		 /* Current EL (SP_ELx) Error Handler */
-	stp	x29, x30, [sp, #-16]!
-	bl	_exception_entry
-	bl	do_error
-	b	exception_exit

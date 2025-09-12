@@ -377,6 +377,10 @@ static void process_args(int argc, char **argv)
 		}
 	}
 
+	/* default */
+	if (!params.bl_len)
+		params.bl_len = 512;
+
 	/* The last parameter is expected to be the imagefile */
 	if (optind < argc)
 		params.imagefile = argv[optind];

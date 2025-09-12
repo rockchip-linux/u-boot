@@ -1229,12 +1229,10 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 
 		mode = android_bootloader_load_and_clear_mode(dev_desc,
 							      &misc_part_info);
-#ifdef CONFIG_RKIMG_BOOTLOADER
 		if (mode == ANDROID_BOOT_MODE_NORMAL) {
 			if (plat_boot_mode() == BOOT_MODE_RECOVERY)
 				mode = ANDROID_BOOT_MODE_RECOVERY;
 		}
-#endif
 	}
 
 	printf("ANDROID: reboot reason: \"%s\"\n", android_boot_mode_str(mode));

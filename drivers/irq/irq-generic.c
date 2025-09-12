@@ -307,7 +307,7 @@ int irqs_resume(void)
 
 void do_irq(struct pt_regs *pt_regs)
 {
-#ifdef CONFIG_ROCKCHIP_DEBUGGER
+#ifdef CONFIG_IRQ_TIMER_DUMP
 	printf("\n>>> Rockchp Debugger:\n");
 	show_regs(pt_regs);
 #endif

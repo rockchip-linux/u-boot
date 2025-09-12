@@ -10,9 +10,9 @@ case $1 in
 	echo
 	echo "    0. set CONFIG_BOOTDELAY=0"
 	echo "    1. lib/initcall.c debug() -> printf()"
-	echo "    2. common/board_r.c and common/board_f.c debug() -> printf()"
+	echo "    2. boot/board_r.c and boot/board_f.c debug() -> printf()"
 	echo "    3. global #define DEBUG"
-	echo "    4. enable CONFIG_ROCKCHIP_DEBUGGER"
+	echo "    4. enable CONFIG_IRQ_TIMER_DUMP"
 	echo "    5. set CONFIG_BOOTDELAY=5"
 	echo "    6. enable CONFIG_BOOTSTAGE_PRINTF_TIMESTAMP"
 	echo "    7. armv7 start.S: print entry warning"
@@ -24,8 +24,8 @@ case $1 in
 	echo "   13. starting kernel halt dump"
 	echo
 	echo "Enabled in .config: "
-	grep '^CONFIG_ROCKCHIP_DEBUGGER=y' .config > /dev/null \
-	&& echo "    CONFIG_ROCKCHIP_DEBUGGER"
+	grep '^CONFIG_IRQ_TIMER_DUMP=y' .config > /dev/null \
+	&& echo "    CONFIG_IRQ_TIMER_DUMP"
 	grep '^CONFIG_ROCKCHIP_CRC=y' .config > /dev/null \
 	&& echo "    CONFIG_ROCKCHIP_CRC"
 	grep '^CONFIG_BOOTSTAGE_PRINTF_TIMESTAMP=y' .config > /dev/null \
@@ -43,17 +43,17 @@ case $1 in
 	echo "DEBUG [1]: lib/initcall.c debug() -> printf()"
 	;;
 2)
-	sed -i 's/\<debug\>/printf/g' ./common/board_f.c
-	sed -i 's/\<debug\>/printf/g' ./common/board_r.c
-	echo "DEBUG [2]: common/board_r.c and common/board_f.c debug() -> printf()"
+	sed -i 's/\<debug\>/printf/g' ./boot/board_f.c
+	sed -i 's/\<debug\>/printf/g' ./boot/board_r.c
+	echo "DEBUG [2]: boot/board_r.c and boot/board_f.c debug() -> printf()"
 	;;
 3)
-	sed -i '$i \#define DEBUG\' include/configs/rockchip-common.h
+	sed -i '$i \#define DEBUG\' include/configs/rockchip-boot.h
 	echo "DEBUG [3]: global #define DEBUG"
 	;;
 4)
-	sed -i 's/\# CONFIG_ROCKCHIP_DEBUGGER is not set/CONFIG_ROCKCHIP_DEBUGGER=y/g' .config
-	echo "DEBUG [4]: CONFIG_ROCKCHIP_DEBUGGER is enabled"
+	sed -i 's/\# CONFIG_IRQ_TIMER_DUMP is not set/CONFIG_IRQ_TIMER_DUMP=y/g' .config
+	echo "DEBUG [4]: CONFIG_IRQ_TIMER_DUMP is enabled"
 	;;
 5)
 	sed -i 's/^CONFIG_BOOTDELAY=0/CONFIG_BOOTDELAY=5/g' .config
@@ -82,14 +82,14 @@ case $1 in
 	echo "DEBUG [10]: CONFIG_ROCKCHIP_CRC is enabled"
 	;;
 11)
-	sed -i 's/\<debug\>/printf/g' common/fdt_support.c
-	sed -i 's/\<debug\>/printf/g' common/image-fdt.c
-	sed -i 's/\<debug\>/printf/g' common/image.c
+	sed -i 's/\<debug\>/printf/g' boot/fdt_support.c
+	sed -i 's/\<debug\>/printf/g' boot/image-fdt.c
+	sed -i 's/\<debug\>/printf/g' boot/image.c
 	sed -i 's/\<debug\>/printf/g' arch/arm/lib/bootm.c
-	sed -i 's/\<debug\>/printf/g' common/bootm.c
-	sed -i 's/\<debug\>/printf/g' common/image.c
-	sed -i 's/\<debug\>/printf/g' common/image-android.c
-	sed -i 's/\<debug\>/printf/g' common/android_bootloader.c
+	sed -i 's/\<debug\>/printf/g' boot/bootm.c
+	sed -i 's/\<debug\>/printf/g' boot/image.c
+	sed -i 's/\<debug\>/printf/g' boot/android/image-android.c
+	sed -i 's/\<debug\>/printf/g' boot/android/android_bootloader.c
 	echo "DEBUG [11]: firmware bootflow debug() -> printf()"
 	;;
 12)
@@ -99,7 +99,7 @@ case $1 in
 	echo "DEBUG [12]: bootstage timing report"
 	;;
 13)
-	sed -i 's/\# CONFIG_ROCKCHIP_DEBUGGER is not set/CONFIG_ROCKCHIP_DEBUGGER=y/g' .config
+	sed -i 's/\# CONFIG_IRQ_TIMER_DUMP is not set/CONFIG_IRQ_TIMER_DUMP=y/g' .config
 	sed -i '/br x4/i\b .' arch/arm/cpu/armv8/transition.S
 	sed -i 's/announce_and_cleanup(fake);/if (0)announce_and_cleanup(fake);/g' arch/arm/lib/bootm.c
 	sed -i '/announce_and_cleanup(fake)/a\enable_interrupts()\;' arch/arm/lib/bootm.c

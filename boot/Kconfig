@@ -4,6 +4,12 @@ source "lib/efi_loader/Kconfig"
 
 menu "Boot images"
 
+config IMAGE_GZIP
+	bool "U-Boot Image with gzip compression"
+	default n
+	help
+	  This enables gzip compression on U-Boot Image.
+
 config ANDROID_BOOT_IMAGE
 	bool "Android Boot Images"
 	default y if FASTBOOT
