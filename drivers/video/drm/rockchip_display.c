@@ -736,6 +736,9 @@ static int display_init(struct display_state *state)
 	}
 #endif
 
+	/* Ensure the panel is powered on before checking the HPD status */
+	if (conn->panel && conn->funcs->detect)
+		rockchip_panel_prepare(conn->panel);
 	ret = rockchip_connector_detect(state);
 #if defined(CONFIG_DRM_ROCKCHIP_TVE) || defined(CONFIG_DRM_ROCKCHIP_RK1000)
 	if (conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
