@@ -262,6 +262,16 @@ int drm_dp_dpcd_read_link_status(struct drm_dp_aux *aux,
 				DP_LINK_STATUS_SIZE);
 }
 
+static u8 drm_dp_downstream_port_count(const u8 dpcd[DP_RECEIVER_CAP_SIZE])
+{
+	u8 port_count = dpcd[DP_DOWN_STREAM_PORT_COUNT] & DP_PORT_COUNT_MASK;
+
+	if (dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DETAILED_CAP_INFO_AVAILABLE && port_count > 4)
+		port_count = 4;
+
+	return port_count;
+}
+
 static int drm_dp_read_extended_dpcd_caps(struct drm_dp_aux *aux,
 					  u8 dpcd[DP_RECEIVER_CAP_SIZE])
 {
@@ -322,6 +332,230 @@ int drm_dp_read_dpcd_caps(struct drm_dp_aux *aux,
 	       aux->name, DP_RECEIVER_CAP_SIZE, dpcd);
 
 	return ret;
+}
+
+int drm_dp_read_downstream_info(struct drm_dp_aux *aux,
+				const u8 dpcd[DP_RECEIVER_CAP_SIZE],
+				u8 downstream_ports[DP_MAX_DOWNSTREAM_PORTS])
+{
+	int ret;
+	u8 len;
+
+	memset(downstream_ports, 0, DP_MAX_DOWNSTREAM_PORTS);
+
+	/* No downstream info to read */
+	if (!drm_dp_is_branch(dpcd) ||
+	    dpcd[DP_DPCD_REV] < DP_DPCD_REV_10 ||
+	    !(dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_PRESENT))
+		return 0;
+
+	/* Some branches advertise having 0 downstream ports, despite also advertising they have a
+	 * downstream port present. The DP spec isn't clear on if this is allowed or not, but since
+	 * some branches do it we need to handle it regardless.
+	 */
+	len = drm_dp_downstream_port_count(dpcd);
+	if (!len)
+		return 0;
+
+	if (dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DETAILED_CAP_INFO_AVAILABLE)
+		len *= 4;
+
+	ret = drm_dp_dpcd_read(aux, DP_DOWNSTREAM_PORT_0, downstream_ports, len);
+	if (ret < 0)
+		return ret;
+	if (ret != len)
+		return -EIO;
+
+	printf("%s: DPCD DFP: %*ph\n",
+		      aux->name, len, downstream_ports);
+
+	return 0;
+}
+int drm_dp_downstream_max_dotclock(const u8 dpcd[DP_RECEIVER_CAP_SIZE],
+				   const u8 port_cap[4])
+{
+	if (!drm_dp_is_branch(dpcd))
+		return 0;
+
+	if (dpcd[DP_DPCD_REV] < 0x11)
+		return 0;
+
+	switch (port_cap[0] & DP_DS_PORT_TYPE_MASK) {
+	case DP_DS_PORT_TYPE_VGA:
+		if ((dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DETAILED_CAP_INFO_AVAILABLE) == 0)
+			return 0;
+		return port_cap[1] * 8000;
+	default:
+		return 0;
+	}
+}
+
+int drm_dp_downstream_max_tmds_clock(const u8 dpcd[DP_RECEIVER_CAP_SIZE],
+				     const u8 port_cap[4])
+{
+	if (!drm_dp_is_branch(dpcd))
+		return 0;
+
+	if (dpcd[DP_DPCD_REV] < 0x11) {
+		switch (dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_TYPE_MASK) {
+		case DP_DWN_STRM_PORT_TYPE_TMDS:
+			return 165000;
+		default:
+			return 0;
+		}
+	}
+
+	switch (port_cap[0] & DP_DS_PORT_TYPE_MASK) {
+	case DP_DS_PORT_TYPE_DP_DUALMODE:
+			return 0;
+		/*
+		 * It's left up to the driver to check the
+		 * DP dual mode adapter's max TMDS clock.
+		 *
+		 * Unfortunatley it looks like branch devices
+		 * may not fordward that the DP dual mode i2c
+		 * access so we just usually get i2c nak :(
+		 */
+	case DP_DS_PORT_TYPE_HDMI:
+		 /*
+		  * We should perhaps assume 165 MHz when detailed cap
+		  * info is not available. But looks like many typical
+		  * branch devices fall into that category and so we'd
+		  * probably end up with users complaining that they can't
+		  * get high resolution modes with their favorite dongle.
+		  *
+		  * So let's limit to 300 MHz instead since DPCD 1.4
+		  * HDMI 2.0 DFPs are required to have the detailed cap
+		  * info. So it's more likely we're dealing with a HDMI 1.4
+		  * compatible* device here.
+		  */
+		if ((dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DETAILED_CAP_INFO_AVAILABLE) == 0)
+			return 300000;
+		return port_cap[1] * 2500;
+	case DP_DS_PORT_TYPE_DVI:
+		if ((dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DETAILED_CAP_INFO_AVAILABLE) == 0)
+			return 165000;
+		/* FIXME what to do about DVI dual link? */
+		return port_cap[1] * 2500;
+	default:
+		return 0;
+	}
+}
+
+int drm_dp_downstream_min_tmds_clock(const u8 dpcd[DP_RECEIVER_CAP_SIZE],
+				     const u8 port_cap[4])
+{
+	if (!drm_dp_is_branch(dpcd))
+		return 0;
+
+	if (dpcd[DP_DPCD_REV] < 0x11) {
+		switch (dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_TYPE_MASK) {
+		case DP_DWN_STRM_PORT_TYPE_TMDS:
+			return 25000;
+		default:
+			return 0;
+		}
+	}
+
+	switch (port_cap[0] & DP_DS_PORT_TYPE_MASK) {
+	case DP_DS_PORT_TYPE_DP_DUALMODE:
+			return 0;
+	case DP_DS_PORT_TYPE_DVI:
+	case DP_DS_PORT_TYPE_HDMI:
+		/*
+		 * Unclear whether the protocol converter could
+		 * utilize pixel replication. Assume it won't.
+		 */
+		return 25000;
+	default:
+		return 0;
+	}
+}
+
+int drm_dp_downstream_max_bpc(const u8 dpcd[DP_RECEIVER_CAP_SIZE],
+			      const u8 port_cap[4])
+{
+	if (!drm_dp_is_branch(dpcd))
+		return 0;
+
+	if (dpcd[DP_DPCD_REV] < 0x11) {
+		switch (dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DWN_STRM_PORT_TYPE_MASK) {
+		case DP_DWN_STRM_PORT_TYPE_DP:
+			return 0;
+		default:
+			return 8;
+		}
+	}
+
+	switch (port_cap[0] & DP_DS_PORT_TYPE_MASK) {
+	case DP_DS_PORT_TYPE_DP:
+		return 0;
+	case DP_DS_PORT_TYPE_DP_DUALMODE:
+			return 0;
+	case DP_DS_PORT_TYPE_HDMI:
+	case DP_DS_PORT_TYPE_DVI:
+	case DP_DS_PORT_TYPE_VGA:
+		if ((dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DETAILED_CAP_INFO_AVAILABLE) == 0)
+			return 8;
+
+		switch (port_cap[2] & DP_DS_MAX_BPC_MASK) {
+		case DP_DS_8BPC:
+			return 8;
+		case DP_DS_10BPC:
+			return 10;
+		case DP_DS_12BPC:
+			return 12;
+		case DP_DS_16BPC:
+			return 16;
+		default:
+			return 8;
+		}
+		break;
+	default:
+		return 8;
+	}
+}
+
+bool drm_dp_downstream_420_passthrough(const u8 dpcd[DP_RECEIVER_CAP_SIZE],
+				       const u8 port_cap[4])
+{
+	if (!drm_dp_is_branch(dpcd))
+		return false;
+
+	if (dpcd[DP_DPCD_REV] < 0x13)
+		return false;
+
+	switch (port_cap[0] & DP_DS_PORT_TYPE_MASK) {
+	case DP_DS_PORT_TYPE_DP:
+		return true;
+	case DP_DS_PORT_TYPE_HDMI:
+		if ((dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DETAILED_CAP_INFO_AVAILABLE) == 0)
+			return false;
+
+		return port_cap[3] & DP_DS_HDMI_YCBCR420_PASS_THROUGH;
+	default:
+		return false;
+	}
+}
+
+bool drm_dp_downstream_444_to_420_conversion(const u8 dpcd[DP_RECEIVER_CAP_SIZE],
+					     const u8 port_cap[4])
+{
+	if (!drm_dp_is_branch(dpcd))
+		return false;
+
+	if (dpcd[DP_DPCD_REV] < 0x13)
+		return false;
+
+	switch (port_cap[0] & DP_DS_PORT_TYPE_MASK) {
+	case DP_DS_PORT_TYPE_HDMI:
+		if ((dpcd[DP_DOWNSTREAMPORT_PRESENT] & DP_DETAILED_CAP_INFO_AVAILABLE) == 0)
+			return false;
+
+		return port_cap[3] & DP_DS_HDMI_YCBCR444_TO_420_CONV;
+	default:
+		return false;
+	}
 }
 
 static void drm_dp_i2c_msg_write_status_update(struct drm_dp_aux_msg *msg)
@@ -552,3 +786,27 @@ int drm_dp_i2c_xfer(struct ddc_adapter *adapter, struct i2c_msg *msgs,
 	return err;
 }
 
+int drm_dp_read_desc(struct drm_dp_aux *aux, struct drm_dp_desc *desc,
+		     bool is_branch)
+{
+	struct drm_dp_dpcd_ident *ident = &desc->ident;
+	unsigned int offset = is_branch ? DP_BRANCH_OUI : DP_SINK_OUI;
+	int ret, dev_id_len;
+
+	ret = drm_dp_dpcd_read(aux, offset, ident, sizeof(*ident));
+	if (ret < 0)
+		return ret;
+
+
+	dev_id_len = strnlen((const char *)ident->device_id, sizeof(ident->device_id));
+
+	printk("%s: DP %s: OUI %*phD dev-ID %*pE HW-rev %d.%d SW-rev %d.%d quirks 0x%04x\n",
+		      aux->name, is_branch ? "branch" : "sink",
+		      (int)sizeof(ident->oui), ident->oui,
+		      dev_id_len, ident->device_id,
+		      ident->hw_rev >> 4, ident->hw_rev & 0xf,
+		      ident->sw_major_rev, ident->sw_minor_rev,
+		      desc->quirks);
+
+	return 0;
+}
