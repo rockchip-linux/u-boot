@@ -839,6 +839,7 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	int ret, os;
 
 	debug(">>" PHASE_PROMPT "board_init_r()\n");
+	gd->flags |= GD_FLG_RELOC;
 
 	spl_initr_dm();
 

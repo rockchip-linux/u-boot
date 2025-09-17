@@ -7,6 +7,7 @@
 #include <common.h>
 #include <malloc.h>
 #include <console.h>
+#include <gzip.h>
 #include <misc.h>
 #ifdef CONFIG_SPL_BUILD
 #include <spl.h>

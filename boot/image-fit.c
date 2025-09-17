@@ -1369,13 +1369,6 @@ int fit_image_check_hash(const void *fit, int noffset, const void *data,
 	printf("...) ");
 #endif
 
-#ifdef CONFIG_SPL_BUILD
-	printf("(");
-	for (i = 0; i < 5; i++)
-		printf("%02x", value[i]);
-	printf("...) ");
-#endif
-
 	return 0;
 }
 

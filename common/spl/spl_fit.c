@@ -412,6 +412,12 @@ static int load_simple_fit(struct spl_load_info *info, ulong fit_offset,
 			src_ptr = map_sysmem(ALIGN(CONFIG_SYS_LOAD_ADDR, ARCH_DMA_MINALIGN), len);
 		else
 			src_ptr = map_sysmem(ALIGN(comp_addr, ARCH_DMA_MINALIGN), len);
+
+#if  defined(CONFIG_ARCH_ROCKCHIP)
+		if (((ulong)src_ptr < CFG_SYS_SDRAM_BASE) ||
+		     ((ulong)src_ptr >= CFG_SYS_SDRAM_BASE + SDRAM_MAX_SIZE))
+			src_ptr = memalign(ARCH_DMA_MINALIGN, len);
+#endif
 		length = len;
 
 		overhead = get_aligned_image_overhead(info, offset);
@@ -438,28 +444,37 @@ static int load_simple_fit(struct spl_load_info *info, ulong fit_offset,
 		src = (void *)data;	/* cast away const */
 	}
 
-	if (CONFIG_IS_ENABLED(FIT_SIGNATURE)) {
-		printf("## Checking hash(es) for Image %s ... ",
-		       fit_get_name(fit, node, NULL));
-		if (!fit_image_verify_with_data(fit, node, gd_fdt_blob(), src,
-						length))
-			return -EPERM;
-		puts("OK\n");
-	}
+
+	/* Check hashes and signature */
+	if (image_comp != IH_COMP_NONE && image_comp != IH_COMP_ZIMAGE)
+		printf("## Checking %s 0x%08lx (%s @0x%08lx) ... ",
+		       fit_get_name(fit, node, NULL), load_addr,
+		       (char *)fdt_getprop(fit, node, FIT_COMP_PROP, NULL),
+		       (long)src);
+	else
+		printf("## Checking %s 0x%08lx ... ",
+		       fit_get_name(fit, node, NULL), load_addr);
+
+	if (!fit_image_verify_with_data(fit, node, gd_fdt_blob(), src,
+					length))
+		return -EPERM;
 
 	if (CONFIG_IS_ENABLED(FIT_IMAGE_POST_PROCESS))
 		board_fit_image_post_process((void *)fit, node, (ulong *)&load_addr,
 					     (ulong **)&src, &length, info);
+	puts("OK\n");
 
 	load_ptr = map_sysmem(load_addr, length);
-	if (IS_ENABLED(CONFIG_SPL_GZIP) && image_comp == IH_COMP_GZIP) {
+	if (!IS_ENABLED(CONFIG_ARCH_ROCKCHIP) &&
+	    IS_ENABLED(CONFIG_SPL_GZIP) && image_comp == IH_COMP_GZIP) {
 		size = length;
 		if (gunzip(load_ptr, CONFIG_SYS_BOOTM_LEN, src, &size)) {
 			puts("Uncompressing error\n");
 			return -EIO;
 		}
 		length = size;
-	} else if (IS_ENABLED(CONFIG_SPL_LZMA) && image_comp == IH_COMP_LZMA) {
+	} else if (!IS_ENABLED(CONFIG_ARCH_ROCKCHIP) &&
+		   IS_ENABLED(CONFIG_SPL_LZMA) && image_comp == IH_COMP_LZMA) {
 		size = CONFIG_SYS_BOOTM_LEN;
 		ulong loadEnd;
 
