@@ -1445,20 +1445,6 @@ void rk628_post_process_init(struct rk628 *rk628)
 {
 	struct drm_display_mode *src = &rk628->src_mode;
 	const struct drm_display_mode *dst = &rk628->dst_mode;
-	u64 dst_rate, src_rate;
-
-	src_rate = src->clock * 1000;
-	dst_rate = src_rate * dst->vtotal * dst->htotal;
-	do_div(dst_rate, (src->vtotal * src->htotal));
-	do_div(dst_rate, 1000);
-	printf("rk628 src %dx%d clock:%d\n",
-		 src->hdisplay, src->vdisplay, src->clock);
-
-	printf("rk628 dst %dx%d clock:%llu\n",
-		 dst->hdisplay, dst->vdisplay, dst_rate);
-
-	rk628_cru_clk_set_rate(rk628, CGU_CLK_RX_READ, src->clock * 1000);
-	rk628_cru_clk_set_rate(rk628, CGU_SCLK_VOP, dst_rate * 1000);
 
 	if (rk628_output_is_hdmi(rk628)) {
 		rk628_i2c_update_bits(rk628, GRF_SYSTEM_CON0, SW_VSYNC_POL_MASK,
@@ -1545,6 +1531,7 @@ static void rk628_post_process_csc(struct rk628 *rk628)
 
 void rk628_post_process_enable(struct rk628 *rk628)
 {
+	rk628_cru_clk_adjust(rk628);
 #if 0
 	/*
 	 * bt1120 needs to configure the timing register, but hdmitx will modify

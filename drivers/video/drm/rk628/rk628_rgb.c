@@ -216,7 +216,6 @@ static void rk628_bt1120_decoder_timing_cfg(struct rk628 *rk628)
 static void rk628_bt1120_decoder_enable(struct rk628 *rk628)
 {
 	struct drm_display_mode *mode = &rk628->src_mode;
-	unsigned long dec_clk_rate;
 
 	rk628_set_input_bus_format(rk628, BUS_FMT_YUV422);
 
@@ -235,19 +234,6 @@ static void rk628_bt1120_decoder_enable(struct rk628 *rk628)
 	/* operation resetn_bt1120dec */
 	rk628_i2c_write(rk628, CRU_SOFTRST_CON00, 0x10001000);
 	rk628_i2c_write(rk628, CRU_SOFTRST_CON00, 0x10000000);
-
-	/*
-	 * BT1120 dec clk is a 4-bit integer division, which is inaccurate in
-	 * most resolutions. So if the frequency division is not accurate, apply
-	 * for a fault tolerance of up 2% in frequency setting, so that the
-	 * obtained frequency is slightly higher than the actual required clk,
-	 * so that the deviation between the actual clk and the required clk
-	 * frequency is not significant.
-	 */
-	rk628_cru_clk_set_rate(rk628, CGU_BT1120DEC, mode->clock * 1000);
-	dec_clk_rate = rk628_cru_clk_get_rate(rk628, CGU_BT1120DEC);
-	if (dec_clk_rate < mode->clock * 1000)
-		rk628_cru_clk_set_rate(rk628, CGU_BT1120DEC, mode->clock * 1020);
 
 	if (rk628->rgb.bt1120_dual_edge) {
 		rk628_i2c_update_bits(rk628, GRF_RGB_DEC_CON0,

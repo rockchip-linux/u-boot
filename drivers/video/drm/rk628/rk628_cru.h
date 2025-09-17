@@ -80,6 +80,7 @@
 #define CLK_BT1120DEC_SEL_GPLL	1
 #define CLK_BT1120DEC_SEL_CPLL	0
 #define CLK_BT1120DEC_DIV(x)	HIWORD_UPDATE(x, 4, 0)
+#define CLK_BT1120DEC_DIV_MAX	GENMASK(4, 0)
 #define CRU_CLKSEL_CON03	CRU_REG(0x008c)
 #define CRU_CLKSEL_CON04	CRU_REG(0x0090)
 #define CLK_HDMIRX_AUD_DIV_MASK	GENMASK(13, 6)
@@ -177,5 +178,6 @@ unsigned long rk628_cru_clk_get_rate(struct rk628 *rk628, unsigned int id);
 int rk628_cru_clk_set_rate(struct rk628 *rk628, unsigned int id,
 			   unsigned long rate);
 void rk628_cru_init(struct rk628 *rk628);
+void rk628_cru_clk_adjust(struct rk628 *rk628);
 
 #endif

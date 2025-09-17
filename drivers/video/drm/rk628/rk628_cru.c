@@ -562,27 +562,123 @@ void rk628_cru_init(struct rk628 *rk628)
 	u32 val = 0;
 	u8 mcu_mode;
 
+	/*
+	 * In rk628d application, if you need to dynamically tune the cpll
+	 * frequency, you need to mount pclk under gpll, otherwise it will
+	 * affect the i2c use. The bt1120rx only supports 5bit integer crossover
+	 * frequency, in order to crossover frequency accurately, you need to
+	 * adjust the cpll frequency dynamically, so in the scenario of rk628d
+	 * bt1120rx, mount the pclk under gpll.
+	 */
 	rk628_i2c_read(rk628, GRF_SYSTEM_STATUS0, &val);
 	mcu_mode = (val & I2C_ONLY_FLAG) ? 0 : 1;
 	if (mcu_mode || rk628->version >= RK628F_VERSION) {
 		rk628_i2c_write(rk628, CRU_MODE_CON00, HIWORD_UPDATE(1, 4, 4));
+		/*
+		 * rk628d pclk use cpll by default, and frequency is 99MHz
+		 * rk628f pclk use gpll by default, and frequency is 98.304MHz
+		 */
+		if (rk628_input_is_bt1120(rk628)) {
+			/* set pclk use gpll, and set pclk 98.304Hz */
+			rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff0089);
+		}
 		return;
 	}
+	/* clock switch and first set gpll almost 99MHz */
 	rk628_i2c_write(rk628, CRU_GPLL_CON0, 0xffff701d);
 	mdelay(1);
+	/* set clk_gpll_mux from gpll */
 	rk628_i2c_write(rk628, CRU_MODE_CON00, 0xffff0004);
 	mdelay(1);
 	rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff0080);
+	/* set pclk use gpll, now div is 4 */
 	rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff0083);
+	/* set cpll almost 400MHz */
 	rk628_i2c_write(rk628, CRU_CPLL_CON0, 0xffff3063);
 	mdelay(1);
+	/* set clk_cpll_mux from clk_cpll */
 	rk628_i2c_write(rk628, CRU_MODE_CON00, 0xffff0005);
-	rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff0003);
-	rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff000b);
-	rk628_i2c_write(rk628, CRU_GPLL_CON0, 0xffff1028);
 	mdelay(1);
-	rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff008b);
-	rk628_i2c_write(rk628, CRU_CPLL_CON0, 0xffff1063);
-	mdelay(1);
-	rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff000b);
+	if (rk628_input_is_bt1120(rk628)) {
+		/* set pclk use cpll, now div is 4 */
+		rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff0003);
+		/* set pclk use cpll, now div is 10 */
+		rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff0009);
+		/* set gpll 983.04Hz */
+		rk628_i2c_write(rk628, CRU_GPLL_CON0, 0xffff1028);
+		mdelay(1);
+		/* set pclk use gpll, now div is 10 */
+		rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff0089);
+		/* set cpll 1188MHz */
+		rk628_i2c_write(rk628, CRU_CPLL_CON0, 0xffff1063);
+		/* final: cpll 1188MHz, gpll 983.04Hz, pclk (use gpll) 98.304Hz */
+	} else {
+		/* set pclk use cpll, now div is 4 */
+		rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff0003);
+		/* set pclk use cpll, now div is 12 */
+		rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff000b);
+		/* set gpll 983.04Hz */
+		rk628_i2c_write(rk628, CRU_GPLL_CON0, 0xffff1028);
+		mdelay(1);
+		/* set pclk use gpll, now div is 12 */
+		rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff008b);
+		/* set cpll 1188MHz */
+		rk628_i2c_write(rk628, CRU_CPLL_CON0, 0xffff1063);
+		mdelay(1);
+		/* set pclk use cpll, now div is 12 */
+		rk628_i2c_write(rk628, CRU_CLKSEL_CON00, 0x00ff000b);
+		/* final: cpll 1188MHz, gpll 983.04Hz, pclk (use cpll) 99Hz */
+	}
+}
+
+void rk628_cru_clk_adjust(struct rk628 *rk628)
+{
+	struct drm_display_mode *src = &rk628->src_mode;
+	const struct drm_display_mode *dst = &rk628->dst_mode;
+	u64 dst_rate, src_rate;
+	unsigned long dec_clk_rate;
+	u32 val;
+
+	/*
+	 * Try to keep cpll frequency close to 1188m (Tested bt1120rx and rk628f
+	 * hdmirx scenarios)
+	 */
+	if ((rk628_input_is_hdmi(rk628) && rk628->version != RK628D_VERSION) ||
+	    rk628_input_is_bt1120(rk628)) {
+		val = 1188000000UL / (src->clock * 1000);
+		if (rk628_input_is_bt1120(rk628) && val > (CLK_BT1120DEC_DIV_MAX + 1))
+			val = CLK_BT1120DEC_DIV_MAX + 1;
+		val *= src->clock * 1000;
+		rk628_cru_clk_set_rate(rk628, CGU_CLK_CPLL, val);
+		mdelay(50);
+		printf("adjust cpll to %uHz", val);
+	}
+
+	/*
+	 * BT1120 dec clk is a 5-bit integer division, which is inaccurate in
+	 * most resolutions. So if the frequency division is not accurate, apply
+	 * for a fault tolerance of up 2% in frequency setting, so that the
+	 * obtained frequency is slightly higher than the actual required clk,
+	 * so that the deviation between the actual clk and the required clk
+	 * frequency is not significant.
+	 */
+	if (rk628_input_is_bt1120(rk628)) {
+		rk628_cru_clk_set_rate(rk628, CGU_BT1120DEC, src->clock * 1000);
+		dec_clk_rate = rk628_cru_clk_get_rate(rk628, CGU_BT1120DEC);
+		if (dec_clk_rate < src->clock * 1000)
+			rk628_cru_clk_set_rate(rk628, CGU_BT1120DEC, src->clock * 1020);
+	}
+
+	src_rate = src->clock * 1000;
+	dst_rate = src_rate * dst->vtotal * dst->htotal;
+	do_div(dst_rate, (src->vtotal * src->htotal));
+	do_div(dst_rate, 1000);
+	printf("src %dx%d clock:%d\n",
+		 src->hdisplay, src->vdisplay, src->clock);
+
+	printf("dst %dx%d clock:%llu\n",
+		 dst->hdisplay, dst->vdisplay, dst_rate);
+
+	rk628_cru_clk_set_rate(rk628, CGU_CLK_RX_READ, src->clock * 1000);
+	rk628_cru_clk_set_rate(rk628, CGU_SCLK_VOP, dst_rate * 1000);
 }
