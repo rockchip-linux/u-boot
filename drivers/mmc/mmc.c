@@ -753,15 +753,12 @@ static int mmc_send_op_cond_iter(struct mmc *mmc, int use_arg)
 static int mmc_send_op_cond(struct mmc *mmc)
 {
 	int err, i;
-	int timeout = 1000;
-	ulong start;
 
 	/* Some cards seem to need this */
 	mmc_go_idle(mmc);
 
-	start = get_timer(0);
-	/* Asking to the card its capabilities */
-	for (i = 0; ; i++) {
+ 	/* Asking to the card its capabilities */
+	for (i = 0; i < 2; i++) {
 		err = mmc_send_op_cond_iter(mmc, i != 0);
 		if (err)
 			return err;
@@ -769,10 +766,6 @@ static int mmc_send_op_cond(struct mmc *mmc)
 		/* exit if not busy (flag seems to be inverted) */
 		if (mmc->ocr & OCR_BUSY)
 			break;
-
-		if (get_timer(start) > timeout)
-			return -ETIMEDOUT;
-		udelay(100);
 	}
 	mmc->op_cond_pending = 1;
 	return 0;
