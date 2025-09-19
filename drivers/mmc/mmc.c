@@ -774,7 +774,7 @@ static int mmc_send_op_cond(struct mmc *mmc)
 static int mmc_complete_op_cond(struct mmc *mmc)
 {
 	struct mmc_cmd cmd;
-	int timeout = 1000;
+	int timeout = 10000;
 	ulong start;
 	int err;
 
