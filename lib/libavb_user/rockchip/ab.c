@@ -108,9 +108,11 @@ AvbABFlowResult ab_get_current_slot(char *select_slot)
 			avb_memcpy(select_slot, "_b", 2);
 		else if(ab_get_lastboot() == 0)
 			avb_memcpy(select_slot, "_a", 2);
-		else
+		else {
+			printf("No valid last_boot. Boot from slot-A by default.\n");
+			avb_memcpy(select_slot, "_a", 2);
+		}
 #endif
-			return AVB_AB_FLOW_RESULT_ERROR_IO;
 		ret = AVB_AB_FLOW_RESULT_OK;
 	}
 

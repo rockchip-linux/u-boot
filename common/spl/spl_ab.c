@@ -258,7 +258,9 @@ int spl_ab_get_current_slot(struct blk_desc *dev_desc, char *partition, char *sl
 			memcpy(slot, "_b", 2);
 			goto out;
 		} else {
-			return -ENODEV;
+			printf("SPL: No valid last_boot. Boot from slot-A by default.\n");
+			memcpy(slot, "_a", 2);
+			goto out;
 		}
 	}
 

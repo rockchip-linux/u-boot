@@ -732,9 +732,11 @@ int ab_get_slot_suffix(char *slot_suffix)
 			memcpy(slot_suffix, "_b", 2);
 		else if (ab_get_lastboot() == 0)
 			memcpy(slot_suffix, "_a", 2);
-		else
+		else {
+			printf("No valid last_boot. Boot from slot-A by default.\n");
+			memcpy(slot_suffix, "_a", 2);
+		}
 #endif
-			return -1;
 	}
 
 	return 0;
