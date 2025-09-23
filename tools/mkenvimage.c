@@ -43,6 +43,14 @@ static void usage(const char *exec_name)
 	       "\t-p <byte> : fill the image with <byte> bytes instead of 0xff bytes\n"
 	       "\t-V : print version information and exit\n"
 	       "\n"
+	       "\tExamples:\n"
+	       "\teMMC:\n"
+	       "\t\t./tools/mkenvimage -s 0x8000 -p 0x0 -o env.img env.txt\n"
+	       "\tspi-nor:\n"
+	       "\t\t./tools/mkenvimage -s 0x10000 -p 0x0 -o env.img env.txt\n"
+	       "\tspi-nand:\n"
+	       "\t\t./tools/mkenvimage -s 0x40000 -p 0x0 -o env.img env.txt\n"
+	       "\n"
 	       "If the input file is \"-\", data is read from standard input\n",
 	       exec_name);
 }
