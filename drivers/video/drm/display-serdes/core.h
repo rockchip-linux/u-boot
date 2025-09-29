@@ -258,6 +258,7 @@ struct serdes_panel {
 	u32 height_mm;
 	u32 link_rate;
 	u32 lane_count;
+	u32 bus_format;
 	bool ssc;
 	struct serdes *parent;
 	struct drm_display_mode mode;
@@ -273,6 +274,7 @@ struct serdes_panel_split {
 	u32 height_mm;
 	u32 link_rate;
 	u32 lane_count;
+	u32 bus_format;
 	bool ssc;
 	struct serdes *parent;
 	struct drm_display_mode mode;
@@ -281,6 +283,10 @@ struct serdes_panel_split {
 };
 
 struct serdes_bridge {
+	u32 channel;
+	u32 lanes;
+	u32 format;
+	u32 flags;
 	bool sel_mipi;
 	bool split_mode;
 	struct mipi_dsi_device *dsi;
@@ -293,6 +299,10 @@ struct serdes_bridge {
 };
 
 struct serdes_bridge_split {
+	u32 channel;
+	u32 lanes;
+	u32 format;
+	u32 flags;
 	bool sel_mipi;
 	struct mipi_dsi_device *dsi;
 	struct serdes *parent;

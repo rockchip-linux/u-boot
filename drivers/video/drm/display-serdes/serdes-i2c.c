@@ -36,9 +36,6 @@ static void serdes_i2c_init(struct serdes *serdes)
 static int serdes_i2c_probe(struct udevice *dev)
 {
 	struct serdes *serdes = dev_get_priv(dev);
-	struct serdes_bridge *serdes_bridge = NULL;
-	struct serdes_bridge_split *serdes_bridge_split = NULL;
-
 	int ret;
 
 	ret = i2c_set_chip_offset_len(dev, 2);
@@ -92,18 +89,6 @@ static int serdes_i2c_probe(struct udevice *dev)
 
 	if (serdes->chip_data->serdes_type == TYPE_SER)
 		serdes_i2c_init(serdes);
-
-	if (serdes->chip_data->bridge_ops) {
-		serdes_bridge = calloc(1, sizeof(*serdes_bridge));
-		if (!serdes_bridge)
-			return -ENOMEM;
-		serdes->serdes_bridge = serdes_bridge;
-
-		serdes_bridge_split = calloc(1, sizeof(*serdes_bridge_split));
-		if (!serdes_bridge_split)
-			return -ENOMEM;
-		serdes->serdes_bridge_split = serdes_bridge_split;
-	}
 
 	serdes->id_serdes_bridge_split = dev_read_u32_default(dev, "id-serdes-bridge-split", 0);
 	if ((serdes->id_serdes_bridge_split < MAX_NUM_SERDES_SPLIT) && (serdes->type == TYPE_SER)) {

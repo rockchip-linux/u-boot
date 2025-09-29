@@ -69,8 +69,6 @@ static void serdes_bridge_pre_enable(struct rockchip_bridge *bridge)
 	struct serdes *serdes = dev_get_priv(dev->parent);
 	struct serdes_bridge *serdes_bridge = serdes->serdes_bridge;
 
-	//serdes_bridge_init(serdes);
-
 	if (serdes->chip_data->bridge_ops->pre_enable)
 		serdes->chip_data->bridge_ops->pre_enable(serdes);
 
@@ -180,11 +178,35 @@ struct rockchip_bridge_funcs serdes_bridge_ops = {
 	.detect = serdes_bridge_detect,
 };
 
+static int serdes_bridge_parse_dt(struct udevice *dev)
+{
+	struct serdes *serdes = dev_get_priv(dev->parent);
+	struct serdes_bridge *serdes_bridge = dev_get_priv(dev);
+
+	serdes->sel_mipi = dev_read_bool(dev->parent, "sel-mipi");
+	if (serdes->sel_mipi) {
+		serdes_bridge->lanes =
+			dev_read_u32_default(dev, "dsi,lanes", 4);
+		serdes_bridge->format =
+			dev_read_u32_default(dev, "dsi,format",
+					     MIPI_DSI_FMT_RGB888);
+		serdes_bridge->flags =
+			dev_read_u32_default(dev, "dsi,flags",
+					     MIPI_DSI_MODE_VIDEO |
+					     MIPI_DSI_MODE_VIDEO_SYNC_PULSE);
+		serdes_bridge->channel = dev_read_u32_default(dev, "reg", 0);
+	}
+
+	return 0;
+}
+
 static int serdes_bridge_probe(struct udevice *dev)
 {
+	int ret;
 	struct rockchip_bridge *bridge;
 	struct serdes *serdes = dev_get_priv(dev->parent);
 	struct mipi_dsi_device *device = dev_get_plat(dev);
+	struct serdes_bridge *serdes_bridge = dev_get_priv(dev);
 
 	if (!serdes->chip_data->bridge_ops) {
 		SERDES_DBG_MFD("%s %s no bridge ops\n",
@@ -192,14 +214,17 @@ static int serdes_bridge_probe(struct udevice *dev)
 		return 0;
 	}
 
-	serdes->sel_mipi = dev_read_bool(dev->parent, "sel-mipi");
+	ret = serdes_bridge_parse_dt(dev);
+	if (ret)
+		printf("%s %s parse dt failed, ret=%d\n",
+		       __func__, serdes->dev->name, ret);
+
 	if (serdes->sel_mipi) {
 		device->dev = dev;
-		device->lanes = dev_read_u32_default(dev->parent, "dsi,lanes", 4);
-		device->format = dev_read_u32_default(dev->parent, "dsi,format",
-						      MIPI_DSI_FMT_RGB888);
-		device->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_SYNC_PULSE;
-		device->channel = dev_read_u32_default(dev->parent, "reg", 0);
+		device->lanes = serdes_bridge->lanes;
+		device->format = serdes_bridge->format;
+		device->mode_flags = serdes_bridge->flags;
+		device->channel = serdes_bridge->channel;
 	}
 
 	bridge = calloc(1, sizeof(*bridge));
@@ -210,7 +235,8 @@ static int serdes_bridge_probe(struct udevice *dev)
 	bridge->dev = dev;
 	bridge->funcs = &serdes_bridge_ops;
 
-	serdes->serdes_bridge->bridge = bridge;
+	serdes_bridge->bridge = bridge;
+	serdes->serdes_bridge = serdes_bridge;
 
 	serdes_get_split_bridge_or_panel(serdes->serdes_bridge);
 

@@ -100,11 +100,36 @@ static struct rockchip_panel_funcs serdes_panel_split_ops = {
 	.disable = serdes_panel_split_disable,
 };
 
+static int serdes_panel_split_parse_dt(struct udevice *dev)
+{
+	int ret;
+	u32 link_rate_count_ssc[3] = {0};
+	struct serdes_panel_split *serdes_panel_split = dev_get_priv(dev);
+
+	serdes_panel_split->bus_format =
+		dev_read_u32_default(dev, "bus-format",
+				     MEDIA_BUS_FMT_RGB888_1X24);
+
+	ret = dev_read_u32_array(dev, "rate-count-ssc", link_rate_count_ssc,
+				 ARRAY_SIZE(link_rate_count_ssc));
+	if (!ret) {
+		serdes_panel_split->link_rate = link_rate_count_ssc[0];
+		serdes_panel_split->lane_count = link_rate_count_ssc[1];
+		serdes_panel_split->ssc = link_rate_count_ssc[2];
+
+		SERDES_DBG_MFD("serdes panel rate=%d, cnt=%d, ssc=%d\n",
+			       serdes_panel_split->link_rate,
+			       serdes_panel_split->lane_count,
+			       serdes_panel_split->ssc);
+	}
+
+	return 0;
+}
+
 static int serdes_panel_split_probe(struct udevice *dev)
 {
 	struct serdes *serdes = dev_get_priv(dev->parent);
-	struct serdes_panel_split *serdes_panel_split;
-	u32 link_rate_count_ssc[3] = {0};
+	struct serdes_panel_split *serdes_panel_split = dev_get_priv(dev);
 	struct rockchip_panel *panel;
 	int ret;
 
@@ -120,10 +145,6 @@ static int serdes_panel_split_probe(struct udevice *dev)
 	if (serdes->chip_data->serdes_type != TYPE_DES)
 		printf("%s warning: this chip is not des type\n", __func__);
 
-	serdes_panel_split = calloc(1, sizeof(*serdes_panel_split));
-	if (!serdes_panel_split)
-		return -ENOMEM;
-
 	serdes->serdes_panel_split = serdes_panel_split;
 
 	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
@@ -136,22 +157,13 @@ static int serdes_panel_split_probe(struct udevice *dev)
 	if (!panel)
 		return -ENOMEM;
 
-	ret = dev_read_u32_array(dev, "rate-count-ssc", link_rate_count_ssc,
-				 ARRAY_SIZE(link_rate_count_ssc));
-	if (!ret) {
-		serdes_panel_split->link_rate = link_rate_count_ssc[0];
-		serdes_panel_split->lane_count = link_rate_count_ssc[1];
-		serdes_panel_split->ssc = link_rate_count_ssc[2];
-
-		SERDES_DBG_MFD("serdes panel rate=%d, cnt=%d, ssc=%d\n",
-			       serdes_panel_split->link_rate,
-			       serdes_panel_split->lane_count,
-			       serdes_panel_split->ssc);
-	}
+	ret = serdes_panel_split_parse_dt(dev);
+	if (ret)
+		return ret;
 
 	dev->driver_data = (ulong)panel;
 	panel->dev = dev;
-	panel->bus_format = MEDIA_BUS_FMT_RGB888_1X24;
+	panel->bus_format = serdes_panel_split->bus_format;
 	panel->funcs = &serdes_panel_split_ops;
 
 	serdes->serdes_panel_split->panel = panel;
