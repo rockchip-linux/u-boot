@@ -507,6 +507,13 @@ struct rk628_hdmirx {
 	u32 input_format;
 };
 
+struct rk628_ssc {
+	bool enable;
+	bool down_spread;
+	u32 mod_depth;
+	u32 mod_freq;
+};
+
 struct rk628 {
 	struct udevice *dev;
 	struct udevice *power_supply;
@@ -529,6 +536,7 @@ struct rk628 {
 	int sync_pol;
 	u32 version;
 	struct rk628_rgb rgb;
+	struct rk628_ssc ssc;
 };
 
 static inline bool rk628_input_is_hdmi(struct rk628 *rk628)

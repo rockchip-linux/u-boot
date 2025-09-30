@@ -324,6 +324,33 @@ of_parse_rk628_display_timing( ofnode np, struct rk628_videomode *vm)
 	vm->flags |= val ? DRM_MODE_FLAG_PVSYNC : DRM_MODE_FLAG_NVSYNC;
 }
 
+static void rk628_ssc_info_parse(struct rk628 *rk628)
+{
+	rk628->ssc.enable = false;
+
+	if (!dev_read_bool(rk628->dev, "ssc-mod-enable"))
+		return;
+
+	if (dev_read_bool(rk628->dev, "ssc-mod-down-spread"))
+		rk628->ssc.down_spread = true;
+	else
+		rk628->ssc.down_spread = false;
+
+	rk628->ssc.mod_depth = dev_read_u32_default(rk628->dev, "ssc-mod-depth", 0);
+	if (!rk628->ssc.mod_depth) {
+		printf("failed to read ssc-mod-depth\n");
+		return;
+	}
+
+	rk628->ssc.mod_freq = dev_read_u32_default(rk628->dev, "ssc-mod-freq", 0);
+	if (!rk628->ssc.mod_freq) {
+		printf("failed to read ssc-mod-freq\n");
+		return;
+	}
+
+	rk628->ssc.enable = true;
+}
+
 static void
 rk628_display_mode_from_videomode(const struct rk628_videomode *vm,
 				  struct drm_display_mode *dmode)
@@ -408,6 +435,8 @@ static int rk628_probe(struct udevice *dev)
 		printf("display route parse err\n");
 		return ret;
 	}
+
+	rk628_ssc_info_parse(rk628);
 
 	if (!rk628_output_is_csi(rk628) && !rk628_output_is_hdmi(rk628)) {
 		ret = rk628_display_timings_get(rk628);
