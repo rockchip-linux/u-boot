@@ -39,6 +39,7 @@ obj-$(CONFIG_DISPLAY_CPUINFO) += cpu-info.o
 endif
 
 obj-$(CONFIG_$(PHASE_)RAM) += sdram.o
+obj-$(CONFIG_$(PHASE_)ROCKCHIP_FPGA) += fpga.o
 
 obj-$(CONFIG_ROCKCHIP_PX30) += px30/
 obj-$(CONFIG_ROCKCHIP_RK3036) += rk3036/
@@ -81,7 +82,6 @@ obj-y += efi.o
 obj-$(CONFIG_ROCKCHIP_PRELOADER_ATAGS)	+= atags.o
 obj-$(CONFIG_SET_DFU_ALT_INFO)		+= dfu_alt_info.o
 obj-$(CONFIG_ROCKCHIP_FIT_IMAGE)	+= fit.o fit_misc.o
-obj-$(CONFIG_ROCKCHIP_FPGA)		+= fpga.o
 obj-$(CONFIG_PSTORE)			+= pstore.o
 obj-$(CONFIG_ROCKCHIP_RESOURCE_IMAGE)	+= resource.o
 obj-$(CONFIG_ROCKCHIP_HWID_DTB)		+= hwid_dtb.o

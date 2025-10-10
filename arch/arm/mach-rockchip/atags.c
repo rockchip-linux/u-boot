@@ -185,7 +185,7 @@ int atags_set_tag(u32 magic, void *tagdata)
 	u32 length, size = 0, hash;
 	int append = 1; /* 0: override */
 
-#if !defined(CONFIG_TPL_BUILD) && !defined(CONFIG_FPGA_ROCKCHIP)
+#if !defined(CONFIG_TPL_BUILD) && !CONFIG_IS_ENABLED(ROCKCHIP_FPGA)
 	if (!atags_is_available())
 		return -EPERM;
 #endif

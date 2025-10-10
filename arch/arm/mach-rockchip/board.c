@@ -563,7 +563,7 @@ int board_init_f_init_misc(void)
 	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
 #endif
 
-#if CONFIG_IS_ENABLED(FPGA_ROCKCHIP)
+#if CONFIG_IS_ENABLED(ROCKCHIP_FPGA)
 	arch_fpga_init();
 #endif
 #ifdef CONFIG_PSTORE

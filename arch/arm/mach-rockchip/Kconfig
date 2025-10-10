@@ -724,6 +724,12 @@ config ROCKCHIP_FPGA
 	help
 	  Enale Rockchip FPGA specific functions.
 
+config SPL_ROCKCHIP_FPGA
+	bool "Enable Rockchip FPGA drivers in SPL"
+	depends on ARCH_ROCKCHIP && SPL
+	help
+	  Enale Rockchip FPGA specific functions in SPL.
+
 config FPGA_MMC
 	bool "FPGA board with MMC"
 	depends on ROCKCHIP_FPGA
