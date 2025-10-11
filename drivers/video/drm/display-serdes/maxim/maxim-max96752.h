@@ -17,6 +17,25 @@
 #define GPIO_B_REG(gpio)	(0x0201 + ((gpio) * 3))
 #define GPIO_C_REG(gpio)	(0x0202 + ((gpio) * 3))
 
+#define DEV_REG0		0x00
+
+#define AUDIO_TR3		0x5b
+#define INFOFR_TR3		0x63
+#define SPI_TR3			0x6b
+#define CC_TR3			0x73
+#define GPIO_TR3		0x7b
+#define AHDCP_TR3		0x8b
+#define IIC_X_TR3		0xa3
+#define IIC_Y_TR3		0xab
+
+/* 0010h */
+#define RESET_ALL		BIT(7)
+#define RESET_LINK		BIT(6)
+#define RESET_ONESHOT		BIT(5)
+#define AUTO_LINK		BIT(4)
+#define SLEEP			BIT(3)
+#define LINK_CFG		GENMASK(1, 0)
+
 /* 0200h */
 #define RES_CFG			BIT(7)
 #define RSVD			BIT(6)

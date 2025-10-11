@@ -227,13 +227,6 @@ int serdes_i2c_set_sequence(struct serdes *serdes)
 		}
 	}
 
-	/* workaround */
-	if (serdes->chip_data->serdes_id == MAXIM_ID_MAX96752) {
-		ret = serdes_reg_write(serdes, 0x10, 0x21);
-		mdelay(10);
-		printf("%s reset oneshot max96752\n", serdes->dev->name);
-	}
-
 	SERDES_DBG_MFD("serdes %s sequence_init\n", serdes->dev->name);
 
 	return ret;
@@ -625,6 +618,38 @@ void serdes_get_split_bridge_or_panel(struct serdes_bridge *serdes_bridge)
 		      dev->name);
 }
 EXPORT_SYMBOL_GPL(serdes_get_split_bridge_or_panel);
+
+int serdes_set_i2c_address(struct serdes *serdes,
+			   u32 reg_use, int link)
+{
+	int ret = 0;
+	struct serdes_chip_data *chip_data;
+	struct serdes *serdes_split = serdes->g_serdes_bridge_split;
+
+	if (!serdes_split) {
+		pr_info("%s: serdes_split is null\n", __func__);
+		return -1;
+	}
+
+	chip_data = serdes_split->chip_data;
+	if (!chip_data)
+		return -1;
+
+	if (chip_data->split_ops && chip_data->split_ops->select)
+		ret = chip_data->split_ops->select(serdes_split, link);
+
+	if (serdes->chip_data && serdes->chip_data->split_ops &&
+	    serdes->chip_data->split_ops->set_i2c_addr)
+		ret = serdes->chip_data->split_ops->set_i2c_addr(serdes,
+							   reg_use, link);
+
+	if (chip_data->split_ops && chip_data->split_ops->select)
+		ret = chip_data->split_ops->select(serdes_split,
+						   SER_SPLITTER_MODE);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(serdes_set_i2c_address);
 
 static int serdes_i2c_init(struct serdes *serdes)
 {

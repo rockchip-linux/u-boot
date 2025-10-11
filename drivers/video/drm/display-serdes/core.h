@@ -360,6 +360,7 @@ int serdes_video_bridge_init(void);
 int serdes_video_bridge_split_init(void);
 int serdes_display_init(void);
 void serdes_get_split_bridge_or_panel(struct serdes_bridge *serdes_bridge);
+int serdes_set_i2c_address(struct serdes *serdes, u32 reg_use, int link);
 
 extern struct serdes_chip_data serdes_bu18tl82_data;
 extern struct serdes_chip_data serdes_bu18rl82_data;

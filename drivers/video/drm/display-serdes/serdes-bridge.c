@@ -108,6 +108,8 @@ static void serdes_bridge_enable(struct rockchip_bridge *bridge)
 	if (serdes->chip_data->serdes_type == TYPE_DES)
 		serdes_bridge_init(serdes);
 
+	serdes_pinctrl_register(serdes->dev);
+
 	if (serdes->chip_data->bridge_ops->enable)
 		serdes->chip_data->bridge_ops->enable(serdes);
 

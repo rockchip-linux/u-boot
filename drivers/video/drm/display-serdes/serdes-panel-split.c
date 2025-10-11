@@ -25,6 +25,8 @@ static void serdes_panel_split_init(struct serdes *serdes)
 	if (serdes->chip_data->serdes_type == TYPE_DES)
 		serdes_i2c_set_sequence(serdes);
 
+	serdes_pinctrl_register(serdes->dev);
+
 	SERDES_DBG_MFD("%s: %s %s\n", __func__, serdes->dev->name,
 		       serdes->chip_data->name);
 }
@@ -58,10 +60,10 @@ static void serdes_panel_split_enable(struct rockchip_panel *panel)
 	struct udevice *dev = panel->dev;
 	struct serdes *serdes = dev_get_priv(dev->parent);
 
+	serdes_panel_split_init(serdes);
+
 	if (serdes->chip_data->panel_ops->enable)
 		serdes->chip_data->panel_ops->enable(serdes);
-
-	serdes_panel_split_init(serdes);
 
 	if (serdes->serdes_panel_split->backlight)
 		backlight_enable(serdes->serdes_panel_split->backlight);
