@@ -759,6 +759,22 @@ enum gd_pflags {
 	GD_P_FLG_BL32_ENABLED = 0x00002,
 };
 
+/*
+ * 1. In SPL, if relocation is disasbled, the bind operation occurs
+ *    in the front stage, and the probe occurs in the rear stage.
+ *    It's no need to check GD_FLG_RELOC in this case.
+ * 2. In U-Boot, even if relocation is disasbled, the bind operation
+ *    also occurs in the rear stage, so it won't affect drivers functionality.
+ * 3. For drivers will used in SPL, it's recommended to use the macro
+ *    gd_reloc_available instead of the direct flag check
+ *    `gd->flags & GD_FLG_RELOC`.
+ */
+#if !defined(CONFIG_SPL_BUILD) || !defined(CONFIG_SPL_SKIP_RELOCATE)
+#define gd_reloc_available() (gd->flags & GD_FLG_RELOC)
+#else
+#define gd_reloc_available() 1
+#endif
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ASM_GENERIC_GBL_DATA_H */
