@@ -573,7 +573,7 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 #endif
 			} else if (type == 3) {
 				/* efuse or otp*/
-#ifdef CONFIG_OPTEE_CLIENT
+#ifdef CONFIG_OPTEE
 				if (memcmp(data, "TAEK", 4) == 0) {
 					if (vhead->size - 8 != 32) {
 						printf("check ta encryption key size fail!\n");
@@ -655,7 +655,7 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 					return -EIO;
 				}
 #else
-				printf("Please enable CONFIG_OPTEE_CLIENT\n");
+				printf("Please enable CONFIG_OPTEE\n");
 #endif
 			} else {
 				return -EINVAL;
@@ -751,7 +751,7 @@ static int rkusb_do_vs_read(struct fsg_common *common)
 #endif
 		} else if (type == 3) {
 			/* efuse or otp*/
-#ifdef CONFIG_OPTEE_CLIENT
+#ifdef CONFIG_OPTEE
 			if (vhead->id == 120) {
 				u8 value;
 				char *written_str = "key is written!";
@@ -772,7 +772,7 @@ static int rkusb_do_vs_read(struct fsg_common *common)
 				return -EIO;
 			}
 #else
-			printf("Please enable CONFIG_OPTEE_CLIENT\n");
+			printf("Please enable CONFIG_OPTEE\n");
 #endif
 		} else {
 			return -EINVAL;
@@ -839,7 +839,7 @@ static int rkusb_do_uart_debug_read(struct fsg_common *common)
 static int rkusb_do_switch_storage(struct fsg_common *common)
 {
 	enum uclass_id	type;
-	enum uclass_id	cur_type = ums[common->lun].block_dev.uclass_id; 
+	enum uclass_id	cur_type = ums[common->lun].block_dev.uclass_id;
 	int devnum, cur_devnum = ums[common->lun].block_dev.devnum;
 	struct blk_desc *block_dev;
 	u32 media = BOOT_TYPE_UNKNOWN;

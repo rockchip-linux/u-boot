@@ -433,9 +433,9 @@ function sign_fit()
 	# ARG_ROLLBACK_IDX default value is 0.
 	if grep -q '^CONFIG_FIT_ROLLBACK_PROTECT=y' ${SIGN_CONFIG} ; then
 		ARG_ROLLBACK_PROTECT="y"
-		if ! grep -q '^CONFIG_OPTEE_CLIENT=y' ${SIGN_CONFIG} ; then
+		if ! grep -q '^CONFIG_OPTEE=y' ${SIGN_CONFIG} ; then
 			if [ ${ARG_ROLLBACK_IDX} -gt 0 ]; then
-				echo "ERROR: Don't support \"--rollback-index ${SRC_FILE} <n>\" due to CONFIG_FIT_ROLLBACK_PROTECT=y but CONFIG_OPTEE_CLIENT=n"
+				echo "ERROR: Don't support \"--rollback-index ${SRC_FILE} <n>\" due to CONFIG_FIT_ROLLBACK_PROTECT=y but CONFIG_OPTEE=n"
 				exit 1
 			fi
 		else

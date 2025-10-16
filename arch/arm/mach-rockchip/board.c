@@ -103,9 +103,10 @@ static void board_debug_init(void)
  * the OP-TEE region has been reserved, so it region is dcache off.
  * Let's map it here.
  */
+#if defined(CONFIG_OPTEE)
 static int optee_region_map(void)
 {
-#if defined(CONFIG_OPTEE_CLIENT) && !defined(CONFIG_ARM64)
+#if !defined(CONFIG_ARM64)
 	struct memblock mem;
 	int ret;
 
@@ -120,6 +121,7 @@ static int optee_region_map(void)
 #endif
 	return 0;
 }
+#endif
 
 static void scan_run_cmd(void)
 {
