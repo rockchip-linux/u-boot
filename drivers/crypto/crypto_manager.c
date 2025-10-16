@@ -108,7 +108,7 @@ int crypto_impl_register(const struct crypto_impl *impl)
 	struct list_head *head;
 	const char *driver_name;
 
-	if (!(gd->flags & GD_FLG_RELOC))
+	if (!gd_reloc_available())
 		return 0;
 
 	if (!impl || impl->type >= CRYPTO_TYPE_MAX)
@@ -149,7 +149,7 @@ void crypto_impl_unregister(const struct crypto_impl *impl)
 	struct crypto_driver_node *node;
 	const struct list_head *head;
 
-	if (!(gd->flags & GD_FLG_RELOC))
+	if (!gd_reloc_available())
 		return;
 
 	if (!impl || impl->type >= CRYPTO_TYPE_MAX)
@@ -171,7 +171,7 @@ const struct crypto_impl *crypto_get_impl(enum crypto_type type, u32 algo, u32 m
 	u32 best_priority = 0;
 	u32 this_priority = 0;
 
-	if (!(gd->flags & GD_FLG_RELOC))
+	if (!gd_reloc_available())
 		return NULL;
 
 	if (type >= CRYPTO_TYPE_MAX)
@@ -206,7 +206,7 @@ const struct crypto_impl *crypto_get_impl_by_index(enum crypto_type type, u32 in
 {
 	struct crypto_driver_node *node = NULL;
 
-	if (!(gd->flags & GD_FLG_RELOC))
+	if (!gd_reloc_available())
 		return NULL;
 
 	if (type >= CRYPTO_TYPE_MAX)
@@ -221,7 +221,7 @@ const struct crypto_impl *crypto_get_impl_by_index(enum crypto_type type, u32 in
 
 const char *crypto_get_driver_name(const struct crypto_impl *impl)
 {
-	if (!(gd->flags & GD_FLG_RELOC))
+	if (!gd_reloc_available())
 		return NULL;
 
 	if (!impl || !impl->dev || !impl->dev->driver || !impl->dev->driver->name)

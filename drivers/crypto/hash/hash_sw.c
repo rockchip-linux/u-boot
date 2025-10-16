@@ -281,7 +281,7 @@ static const struct hash_ops hash_ops_sw = {
 	.hash_digest = sw_hash_digest,
 };
 
-#if CONFIG_IS_ENABLED(CRYPTO_MANAGER)
+#if defined(CONFIG_CRYPTO_MANAGER)
 static bool sw_hash_check_valid(struct udevice *dev, u32 algo, u32 mode)
 {
 	if (mode != CRYPTO_MODE_NONE)
