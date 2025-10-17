@@ -614,7 +614,7 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		   RK3576_DSP_HTOTAL(panel->lsl + panel->lbl + panel->ldl + panel->lel) |
 		   RK3576_DSP_HS_END(panel->lsl));
 	tcon_write(tcon, RK3576_EBC_DSP_HTIMING1,
-		   RK3576_DSP_HACT_END(panel->lsl + panel->lbl + panel->ldl) |
+		   RK3576_DSP_HACT_END(panel->lsl + panel->lbl + panel->ldl + panel->lel) |
 		   RK3576_DSP_HACT_ST(panel->lsl + panel->lbl - 1));
 	tcon_write(tcon, RK3576_EBC_DSP_VTIMING0,
 		   RK3576_DSP_VTOTAL(panel->fsl + panel->fbl + panel->fdl + panel->fel) |
