@@ -1,6 +1,6 @@
 config ROCKCHIP_RSA
 	bool "Enable rockchip RSA support"
-	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2
+	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2 || ROCKCHIP_CRYPTO_CE
 	default y
 	help
 	  This enable RSA512/RSA1024/RSA2048 algorithm support for
@@ -8,7 +8,7 @@ config ROCKCHIP_RSA
 
 config SPL_ROCKCHIP_RSA
 	bool "Enable rockchip RSA support in spl"
-	depends on SPL_ROCKCHIP_CRYPTO_V1 || SPL_ROCKCHIP_CRYPTO_V2
+	depends on SPL_ROCKCHIP_CRYPTO_V1 || SPL_ROCKCHIP_CRYPTO_V2 || SPL_ROCKCHIP_CRYPTO_CE
 	default y
 	help
 	  This enable RSA512/RSA1024/RSA2048 algorithm support for
@@ -16,7 +16,7 @@ config SPL_ROCKCHIP_RSA
 
 config ROCKCHIP_CIPHER
 	bool "Enable rockchip cipher support"
-	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2
+	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2 || ROCKCHIP_CRYPTO_CE
 	default n
 	help
 	  This enable DES/AES/SM4 algorithm support for
@@ -24,7 +24,7 @@ config ROCKCHIP_CIPHER
 
 config SPL_ROCKCHIP_CIPHER
 	bool "Enable rockchip cipher support in spl"
-	depends on SPL_ROCKCHIP_CRYPTO_V1 || SPL_ROCKCHIP_CRYPTO_V2
+	depends on SPL_ROCKCHIP_CRYPTO_V1 || SPL_ROCKCHIP_CRYPTO_V2 || SPL_ROCKCHIP_CRYPTO_CE
 	default n
 	help
 	  This enable DES/AES/SM4 algorithm support for
@@ -32,7 +32,7 @@ config SPL_ROCKCHIP_CIPHER
 
 config ROCKCHIP_HMAC
 	bool "Enable rockchip hmac support"
-	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2
+	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2 || ROCKCHIP_CRYPTO_CE
 	default n
 	help
 	  This enable HMAC algorithm support for
@@ -40,7 +40,7 @@ config ROCKCHIP_HMAC
 
 config SPL_ROCKCHIP_HMAC
 	bool "Enable rockchip hmac support in spl"
-	depends on SPL_ROCKCHIP_CRYPTO_V1 || SPL_ROCKCHIP_CRYPTO_V2
+	depends on SPL_ROCKCHIP_CRYPTO_V1 || SPL_ROCKCHIP_CRYPTO_V2 || SPL_ROCKCHIP_CRYPTO_CE
 	default n
 	help
 	  This enable HMAC algorithm support for
@@ -69,3 +69,16 @@ config SPL_ROCKCHIP_CRYPTO_V2
 	help
 	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048 algorithm support for
 	  rockchip crypto v2 on platforms: px30/rk3326/rk1808/rk3308.
+
+
+config ROCKCHIP_CRYPTO_CE
+	bool "Enable rockchip crypto ce support"
+	help
+	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048/RSA3072/RSA4096 algorithm support for
+	  rockchip crypto ce on platforms: rv1126b.
+
+config SPL_ROCKCHIP_CRYPTO_CE
+	bool "Enable rockchip crypto ce support in spl"
+	help
+	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048/RSA3072/RSA4096 algorithm support for
+	  rockchip crypto ce on platforms: rv1126b.
