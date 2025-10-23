@@ -68,6 +68,7 @@
 
 #define RKSS_VERSION_V1			1
 #define RKSS_VERSION_V2			2
+#define RKSS_VERSION_V3			3
 #define RKSS_VERSION_ERR		100
 
 int tee_supp_rk_fs_init_v1(void);
@@ -78,6 +79,11 @@ int tee_supp_rk_fs_process_v1(size_t num_params,
 int tee_supp_rk_fs_init_v2(void);
 
 int tee_supp_rk_fs_process_v2(size_t num_params,
+			      struct optee_msg_param *params);
+
+int tee_supp_rk_fs_init_v3(void);
+
+int tee_supp_rk_fs_process_v3(size_t num_params,
 			      struct optee_msg_param *params);
 
 #endif
