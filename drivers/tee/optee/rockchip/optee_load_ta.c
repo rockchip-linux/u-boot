@@ -83,7 +83,7 @@ int search_ta(void *uuid_octets, void *ta, size_t *ta_size)
 	format = "%08x-%04x-%04x-%02x%02x%02x%02x%02x%02x%02x%02x.ta";
 #endif
 
-#ifdef CONFIG_ROCKCHIP_OPTEE_V2
+#if defined(CONFIG_ROCKCHIP_OPTEE_V2) || defined(CONFIG_ROCKCHIP_OPTEE_V3)
 	tee_uuid_from_octets(&uuid, uuid_octets);
 	ta_ver = 2;
 	format = "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x.ta";

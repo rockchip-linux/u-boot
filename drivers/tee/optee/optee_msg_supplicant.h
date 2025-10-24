@@ -168,6 +168,11 @@
 #define OPTEE_MSG_RPC_CMD_SOCKET	10
 
 /*
+ * RKSS File system access
+ */
+#define OPTEE_MSG_RPC_CMD_RKSS		50
+
+/*
  * Define protocol for messages with .cmd == OPTEE_MSG_RPC_CMD_SOCKET
  */
 

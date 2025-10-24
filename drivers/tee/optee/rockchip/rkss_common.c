@@ -13,6 +13,10 @@
 #include "v2/rkss.h"
 #endif
 
+#ifdef CONFIG_ROCKCHIP_OPTEE_V3
+#include "v3/rkss.h"
+#endif
+
 static bool check_is_rkss_version1(struct blk_desc *dev_desc,
 				   struct disk_partition part_info)
 {
@@ -130,7 +134,6 @@ static int rkss_init(void)
 		return -1;
 }
 
-#ifdef CONFIG_ROCKCHIP_OPTEE_V2
 static int rkss_process_request(u32 num_params,
 				struct optee_msg_param *params)
 {
@@ -148,7 +151,6 @@ static int rkss_process_request(u32 num_params,
 	else
 		return -1;
 }
-#endif
 
 void optee_suppl_cmd_fs(struct optee_msg_arg *arg)
 {
@@ -163,7 +165,5 @@ void optee_suppl_cmd_fs(struct optee_msg_arg *arg)
 		rkss_is_init = true;
 	}
 
-#ifdef CONFIG_ROCKCHIP_OPTEE_V2
 	arg->ret = rkss_process_request(arg->num_params, arg->params);
-#endif
 }

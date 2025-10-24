@@ -147,7 +147,7 @@ void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,
 		cmd_shm_free(arg);
 		break;
 	case OPTEE_MSG_RPC_CMD_FS:
-#ifdef CONFIG_ARCH_ROCKCHIP
+#if defined(CONFIG_ARCH_ROCKCHIP) && defined(CONFIG_ROCKCHIP_OPTEE_V2)
 		optee_suppl_cmd_fs(arg);
 #else
 		debug("REE FS storage isn't available\n");
@@ -166,6 +166,11 @@ void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,
 #ifdef CONFIG_ARCH_ROCKCHIP
 	case OPTEE_MSG_RPC_CMD_LOAD_TA:
 		optee_suppl_cmd_load_ta(arg);
+		break;
+#endif
+#if defined(CONFIG_ARCH_ROCKCHIP) && defined(CONFIG_ROCKCHIP_OPTEE_V3)
+	case OPTEE_MSG_RPC_CMD_RKSS:
+		optee_suppl_cmd_fs(arg);
 		break;
 #endif
 	default:
