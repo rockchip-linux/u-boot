@@ -18,7 +18,16 @@ config ROCKCHIP_OPTEE_V2
 	  This function can be use in android bootloader a/b and avb step.
 	  Support platform:
 	  rk3326 px30 rk3358 rk3308 rk1808 rv1109 rv1126 rk3566 rk3568
-	  rk3588 rk3528 rk3562 rv1106 and new platforms in the future.
+	  rk3588 rk3528 rk3562 rv1106 rk3576 rv1103b rv1106 rv1126b rk3506.
+
+config ROCKCHIP_OPTEE_V3
+	bool "Support rockchip OPTEE version 3.0"
+	depends on OPTEE
+	help
+	  U-boot can communicate with OPTEE if the config is enable.
+	  This function can be use in android bootloader a/b and avb step.
+	  Support platform:
+	  rk3572 rk3538 and new platforms in the future.
 
 if OPTEE || SANDBOX
 
