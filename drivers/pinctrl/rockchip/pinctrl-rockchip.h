@@ -449,6 +449,13 @@ struct rockchip_pin_bank {
 		.route_type	= FLAG,					\
 	}
 
+#define PIN_BANK_IOMUX_4_OFFSET(id, pins, label, offset0,		\
+				offset1, offset2, offset3)		\
+	PIN_BANK_IOMUX_FLAGS_OFFSET(id, pins, label,			\
+				    IOMUX_WIDTH_4BIT, IOMUX_WIDTH_4BIT,	\
+				    IOMUX_WIDTH_4BIT, IOMUX_WIDTH_4BIT,	\
+				    offset0, offset1, offset2, offset3)
+
 #define MR_DEFAULT(ID, PIN, FUNC, REG, VAL)	\
 	PIN_BANK_MUX_ROUTE_FLAGS(ID, PIN, FUNC, REG, VAL, ROUTE_TYPE_DEFAULT)
 
