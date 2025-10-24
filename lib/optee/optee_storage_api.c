@@ -280,7 +280,7 @@ uint32_t optee_write_flash_lock_state(uint8_t flash_lock_state)
 
 static void optee_notify_always_use_security(void)
 {
-#if defined(CONFIG_ROCKCHIP_OPTEE_V2) && defined(CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION)
+#ifdef CONFIG_OPTEE_ALWAYS_USE_SECURITY_PARTITION
 	uint32_t ret;
 
 	if (!tee) {
