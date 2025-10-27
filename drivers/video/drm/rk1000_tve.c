@@ -165,16 +165,12 @@ static void rk1000_tve_bridge_disable(struct rockchip_bridge *bridge)
 	rk1000_tv_write_block(rk1000_tve, 0x03, (u8 *)data, 1);
 }
 
-static void drm_rk1000_select_output(struct overscan *overscan,
+static void drm_rk1000_select_output(struct connector_state *conn_state,
+				     struct overscan *overscan,
 				     struct drm_display_mode *mode)
 {
-	char baseparameter_buf[8 * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
-	struct base_screen_info *screen_info = NULL;
-	struct base_disp_info base_parameter;
-	struct blk_desc *dev_desc;
-	const struct base_overscan *scan;
-	disk_partition_t part_info;
-	int ret, i, screen_size;
+	struct bp_screen_info *screen_info = NULL;
+	const struct bp_overscan_info *scan;
 	int max_scan = 100;
 	int min_scan = 51;
 
@@ -194,57 +190,32 @@ static void drm_rk1000_select_output(struct overscan *overscan,
 	mode->clock = 27000;
 	mode->flags = DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC;
 
-	dev_desc = rockchip_get_bootdev();
-	if (!dev_desc) {
-		printf("%s: Could not find device\n", __func__);
-		return;
+	screen_info = malloc(sizeof(*screen_info));
+	rockchip_baseparameter_screen_info_get((uintptr_t)conn_state, DRM_MODE_CONNECTOR_TV, 0,
+					       screen_info);
+
+	scan = rockchip_baseparameter_overscan_info_get((uintptr_t)conn_state);
+	if (scan) {
+		if (scan->leftscale < min_scan && scan->leftscale > 0)
+			overscan->left_margin = min_scan;
+		else if (scan->leftscale < max_scan && scan->leftscale > 0)
+			overscan->left_margin = scan->leftscale;
+
+		if (scan->rightscale < min_scan && scan->rightscale > 0)
+			overscan->right_margin = min_scan;
+		else if (scan->rightscale < max_scan && scan->rightscale > 0)
+			overscan->right_margin = scan->rightscale;
+
+		if (scan->topscale < min_scan && scan->topscale > 0)
+			overscan->top_margin = min_scan;
+		else if (scan->topscale < max_scan && scan->topscale > 0)
+			overscan->top_margin = scan->topscale;
+
+		if (scan->bottomscale < min_scan && scan->bottomscale > 0)
+			overscan->bottom_margin = min_scan;
+		else if (scan->bottomscale < max_scan && scan->bottomscale > 0)
+			overscan->bottom_margin = scan->bottomscale;
 	}
-
-	if (part_get_info_by_name(dev_desc, "baseparameter", &part_info) < 0) {
-		printf("Could not find baseparameter partition\n");
-		return;
-	}
-
-	ret = blk_dread(dev_desc, part_info.start, 1,
-			(void *)baseparameter_buf);
-	if (ret < 0) {
-		printf("read baseparameter failed\n");
-		return;
-	}
-
-	memcpy(&base_parameter, baseparameter_buf, sizeof(base_parameter));
-	scan = &base_parameter.scan;
-
-	screen_size = sizeof(base_parameter.screen_list) /
-		sizeof(base_parameter.screen_list[0]);
-
-	for (i = 0; i < screen_size; i++) {
-		if (base_parameter.screen_list[i].type ==
-		    DRM_MODE_CONNECTOR_TV) {
-			screen_info = &base_parameter.screen_list[i];
-			break;
-		}
-	}
-
-	if (scan->leftscale < min_scan && scan->leftscale > 0)
-		overscan->left_margin = min_scan;
-	else if (scan->leftscale < max_scan)
-		overscan->left_margin = scan->leftscale;
-
-	if (scan->rightscale < min_scan && scan->rightscale > 0)
-		overscan->right_margin = min_scan;
-	else if (scan->rightscale < max_scan)
-		overscan->right_margin = scan->rightscale;
-
-	if (scan->topscale < min_scan && scan->topscale > 0)
-		overscan->top_margin = min_scan;
-	else if (scan->topscale < max_scan)
-		overscan->top_margin = scan->topscale;
-
-	if (scan->bottomscale < min_scan && scan->bottomscale > 0)
-		overscan->bottom_margin = min_scan;
-	else if (scan->bottomscale < max_scan)
-		overscan->bottom_margin = scan->bottomscale;
 
 	if (screen_info &&
 	    (screen_info->mode.hdisplay == 720 &&
@@ -280,7 +251,7 @@ static int rk1000_tve_get_timing(struct udevice *dev)
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct overscan *overscan = &conn_state->overscan;
 
-	drm_rk1000_select_output(overscan, mode);
+	drm_rk1000_select_output(conn_state, overscan, mode);
 
 	return 0;
 }

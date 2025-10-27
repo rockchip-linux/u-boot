@@ -67,7 +67,6 @@ static unsigned long memory_start;
 static unsigned long cubic_lut_memory_start;
 static unsigned long memory_end;
 static char memory_compatible[32] = "rockchip,drm-logo";
-static struct base2_info base_parameter;
 static u32 align_size = PAGE_SIZE;
 
 /*
@@ -140,103 +139,6 @@ u32 rockchip_drm_get_cycles_per_pixel(u32 bus_format)
 	default:
 		return 1;
 	}
-}
-
-int rockchip_get_baseparameter(void)
-{
-	struct blk_desc *dev_desc;
-	struct disk_partition part_info;
-	int block_num;
-	char *baseparameter_buf;
-	int ret = 0;
-
-	dev_desc = plat_bootdev();
-	if (!dev_desc) {
-		printf("%s: Could not find device\n", __func__);
-		return -ENOENT;
-	}
-
-	if (part_get_info_by_name(dev_desc, "baseparameter", &part_info) < 0) {
-		printf("Could not find baseparameter partition\n");
-		return -ENOENT;
-	}
-
-	block_num = BLOCK_CNT(sizeof(base_parameter), dev_desc);
-	baseparameter_buf = memalign(ARCH_DMA_MINALIGN, block_num * dev_desc->blksz);
-	if (!baseparameter_buf) {
-		printf("failed to alloc memory for baseparameter buffer\n");
-		return -ENOMEM;
-	}
-
-	ret = blk_dread(dev_desc, part_info.start, block_num, (void *)baseparameter_buf);
-	if (ret < 0) {
-		printf("read baseparameter failed\n");
-		goto out;
-	}
-
-	memcpy(&base_parameter, baseparameter_buf, sizeof(base_parameter));
-	if (strncasecmp(base_parameter.head_flag, "BASP", 4)) {
-		printf("warning: bad baseparameter\n");
-		memset(&base_parameter, 0, sizeof(base_parameter));
-	}
-
-out:
-	free(baseparameter_buf);
-	return ret;
-}
-
-struct base2_disp_info *rockchip_get_disp_info(int type, int id)
-{
-	struct base2_disp_info *disp_info;
-	struct base2_disp_header *disp_header;
-	int i = 0, offset = -1;
-	u32 crc_val;
-	u32 base2_length;
-	void *base_parameter_addr = (void *)&base_parameter;
-
-	for (i = 0; i < 8; i++) {
-		disp_header = &base_parameter.disp_header[i];
-		if (disp_header->connector_type == type &&
-		    disp_header->connector_id == id) {
-			printf("disp info %d, type:%d, id:%d\n", i, type, id);
-			offset = disp_header->offset;
-			break;
-		}
-	}
-
-	if (offset < 0)
-		return NULL;
-	disp_info = base_parameter_addr + offset;
-	if (disp_info->screen_info[0].type != type ||
-	    disp_info->screen_info[0].id != id) {
-		printf("base2_disp_info couldn't be found, screen_info type[%d] or id[%d] mismatched\n",
-		       disp_info->screen_info[0].type,
-		       disp_info->screen_info[0].id);
-		return NULL;
-	}
-
-	if (strncasecmp(disp_info->disp_head_flag, "DISP", 4))
-		return NULL;
-
-	if (base_parameter.major_version == 3 && base_parameter.minor_version == 0) {
-		crc_val = crc32(0, (unsigned char *)disp_info, sizeof(struct base2_disp_info) - 4);
-		if (crc_val != disp_info->crc2) {
-			printf("error: connector type[%d], id[%d] disp info crc2 check error\n",
-			       type, id);
-			return NULL;
-		}
-	} else {
-		base2_length = sizeof(struct base2_disp_info) - sizeof(struct csc_info) -
-			       sizeof(struct acm_data) - 10 * 1024 - 4;
-		crc_val = crc32(0, (unsigned char *)disp_info, base2_length - 4);
-		if (crc_val != disp_info->crc) {
-			printf("error: connector type[%d], id[%d] disp info crc check error\n",
-			       type, id);
-			return NULL;
-		}
-	}
-
-	return disp_info;
 }
 
 /* check which kind of public phy does connector use */
@@ -2571,7 +2473,10 @@ static int rockchip_display_probe(struct udevice *dev)
 		debug("Failed to found available display route\n");
 		return -ENODEV;
 	}
-	rockchip_get_baseparameter();
+
+	ret = rockchip_baseparameter_init();
+	if (ret)
+		printf("WARN: Failed to init baseparameter\n");
 	display_pre_init();
 
 	uc_priv->xsize = DRM_ROCKCHIP_FB_WIDTH;
@@ -2592,11 +2497,13 @@ void rockchip_display_fixup(void *blob)
 	struct rockchip_connector *conn;
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
+	struct bp_bcsh_info *bcsh_info;
+	struct bp_csc_info *csc_info;
+	struct bp_cubic_lut_data *cubic_lut;
 	int offset;
 	int ret;
 	const struct device_node *np;
 	const char *path;
-	const char *cacm_header;
 	u64 aligned_memory_size;
 	ulong vidcon_fb_addr = 0;
 	bool is_logo_init = 0;
@@ -2722,42 +2629,31 @@ void rockchip_display_fixup(void *blob)
 		FDT_SET_U32("overscan,bottom_margin", s->conn_state.overscan.bottom_margin);
 		FDT_SET_U32("overscan,win_scale", s->crtc_state.overscan_by_win_scale);
 
-		if (s->conn_state.disp_info) {
-			cacm_header = (const char*)&s->conn_state.disp_info->cacm_header;
-
-			FDT_SET_U32("bcsh,brightness", s->conn_state.disp_info->bcsh_info.brightness);
-			FDT_SET_U32("bcsh,contrast", s->conn_state.disp_info->bcsh_info.contrast);
-			FDT_SET_U32("bcsh,saturation", s->conn_state.disp_info->bcsh_info.saturation);
-			FDT_SET_U32("bcsh,hue", s->conn_state.disp_info->bcsh_info.hue);
-
-			if (!strncasecmp(cacm_header, "CACM", 4)) {
-				FDT_SET_U32("post-csc,hue",
-					    s->conn_state.disp_info->csc_info.hue);
-				FDT_SET_U32("post-csc,saturation",
-					    s->conn_state.disp_info->csc_info.saturation);
-				FDT_SET_U32("post-csc,contrast",
-					    s->conn_state.disp_info->csc_info.contrast);
-				FDT_SET_U32("post-csc,brightness",
-					    s->conn_state.disp_info->csc_info.brightness);
-				FDT_SET_U32("post-csc,r-gain",
-					    s->conn_state.disp_info->csc_info.r_gain);
-				FDT_SET_U32("post-csc,g-gain",
-					    s->conn_state.disp_info->csc_info.g_gain);
-				FDT_SET_U32("post-csc,b-gain",
-					    s->conn_state.disp_info->csc_info.b_gain);
-				FDT_SET_U32("post-csc,r-offset",
-					    s->conn_state.disp_info->csc_info.r_offset);
-				FDT_SET_U32("post-csc,g-offset",
-					    s->conn_state.disp_info->csc_info.g_offset);
-				FDT_SET_U32("post-csc,b-offset",
-					    s->conn_state.disp_info->csc_info.b_offset);
-				FDT_SET_U32("post-csc,enable",
-					    s->conn_state.disp_info->csc_info.csc_enable);
-			}
+		bcsh_info = rockchip_baseparameter_bcsh_info_get((uintptr_t)&s->conn_state);
+		if (bcsh_info) {
+			FDT_SET_U32("bcsh,brightness", bcsh_info->brightness);
+			FDT_SET_U32("bcsh,contrast", bcsh_info->contrast);
+			FDT_SET_U32("bcsh,saturation", bcsh_info->saturation);
+			FDT_SET_U32("bcsh,hue", bcsh_info->hue);
 		}
 
-		if (s->conn_state.disp_info->cubic_lut_data.size &&
-		    CONFIG_ROCKCHIP_CUBIC_LUT_SIZE)
+		csc_info = rockchip_baseparameter_csc_info_get((uintptr_t)&s->conn_state);
+		if (csc_info) {
+			FDT_SET_U32("post-csc,hue", csc_info->hue);
+			FDT_SET_U32("post-csc,saturation", csc_info->saturation);
+			FDT_SET_U32("post-csc,contrast", csc_info->contrast);
+			FDT_SET_U32("post-csc,brightness", csc_info->brightness);
+			FDT_SET_U32("post-csc,r-gain", csc_info->r_gain);
+			FDT_SET_U32("post-csc,g-gain", csc_info->g_gain);
+			FDT_SET_U32("post-csc,b-gain", csc_info->b_gain);
+			FDT_SET_U32("post-csc,r-offset", csc_info->r_offset);
+			FDT_SET_U32("post-csc,g-offset", csc_info->g_offset);
+			FDT_SET_U32("post-csc,b-offset", csc_info->b_offset);
+			FDT_SET_U32("post-csc,enable", csc_info->csc_enable);
+		}
+
+		cubic_lut = rockchip_baseparameter_cubic_lut_data_get((uintptr_t)&s->conn_state);
+		if (cubic_lut && CONFIG_ROCKCHIP_CUBIC_LUT_SIZE)
 			FDT_SET_U32("cubic_lut,offset", get_cubic_lut_offset(s->crtc_state.crtc_id));
 
 #undef FDT_SET_U32

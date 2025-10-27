@@ -120,7 +120,7 @@ static int rockchip_lvds_connector_init(struct rockchip_connector *conn,
 
 	lvds->mode = &conn_state->mode;
 	lvds->phy = conn->phy;
-	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, lvds->id);
+	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, lvds->id);
 
 	if (conn_state->secondary)
 		primary_lvds = dev_get_priv(conn_state->connector->dev);

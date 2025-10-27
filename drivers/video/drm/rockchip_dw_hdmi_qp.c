@@ -937,7 +937,7 @@ static void dw_hdmi_qp_dsc_configure(struct rockchip_hdmi *hdmi,
 
 static unsigned int drm_rk_select_color(struct rockchip_hdmi *hdmi,
 					struct hdmi_edid_data *edid_data,
-					struct base_screen_info *screen_info,
+					struct bp_screen_info *screen_info,
 					enum dw_hdmi_devtype dev_type,
 					bool output_bus_format_rgb)
 {
@@ -1084,23 +1084,16 @@ void dw_hdmi_qp_select_output(struct hdmi_edid_data *edid_data,
 {
 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
 	struct drm_hdmi_info *hdmi_info = &edid_data->display_info.hdmi;
-	int ret, i, screen_size;
-	struct base_disp_info base_parameter;
-	struct base2_disp_info *base2_parameter = state->conn_state.disp_info;
-	const struct base_overscan *scan;
-	struct base_screen_info *screen_info = NULL;
-	struct base2_screen_info *screen_info2 = NULL;
+	const struct bp_overscan_info *scan;
+	struct bp_screen_info *screen_info = NULL;
 	struct crtc_state *s = &state->crtc_state;
 	int max_scan = 100;
 	int min_scan = 51;
-	int offset = 0;
 	int color_depth;
+	int ret;
 	unsigned int tmdsclk;
 	unsigned int pixel_clk;
-	bool found = false;
-	struct blk_desc *dev_desc;
-	struct disk_partition part_info;
-	char baseparameter_buf[8 * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
+	bool allm_en = false;
 
 	overscan->left_margin = max_scan;
 	overscan->right_margin = max_scan;
@@ -1116,107 +1109,48 @@ void dw_hdmi_qp_select_output(struct hdmi_edid_data *edid_data,
 	else
 		*bus_format = MEDIA_BUS_FMT_YUV8_1X24;
 
-	if (!base2_parameter) {
-		dev_desc = plat_bootdev();
-		if (!dev_desc) {
-			printf("%s: Could not find device\n", __func__);
-			goto null_basep;
-		}
-
-		ret = part_get_info_by_name(dev_desc, "baseparameter",
-					    &part_info);
-		if (ret < 0) {
-			printf("Could not find baseparameter partition\n");
-			goto null_basep;
-		}
-
-read_aux:
-		ret = blk_dread(dev_desc, part_info.start + offset, 1,
-				(void *)baseparameter_buf);
-		if (ret < 0) {
-			printf("read baseparameter failed\n");
-			goto null_basep;
-		}
-
-		memcpy(&base_parameter, baseparameter_buf,
-		       sizeof(base_parameter));
-		scan = &base_parameter.scan;
-
-		screen_size = sizeof(base_parameter.screen_list) /
-			sizeof(base_parameter.screen_list[0]);
-
-		for (i = 0; i < screen_size; i++) {
-			if (base_parameter.screen_list[i].type ==
-			    DRM_MODE_CONNECTOR_HDMIA) {
-				found = true;
-				screen_info = &base_parameter.screen_list[i];
-				break;
-			}
-		}
-
-		if (!found && !offset) {
-			printf("hdmi info isn't saved in main block\n");
-			offset += 16;
-			goto read_aux;
-		}
-	} else {
-		bool allm_en = false;
-
-		scan = &base2_parameter->overscan_info;
-		screen_size = sizeof(base2_parameter->screen_info) /
-			sizeof(base2_parameter->screen_info[0]);
-
-		for (i = 0; i < screen_size; i++) {
-			if (base2_parameter->screen_info[i].type ==
-			    DRM_MODE_CONNECTOR_HDMIA) {
-				screen_info2 =
-					&base2_parameter->screen_info[i];
-				break;
-			}
-		}
-		screen_info = malloc(sizeof(*screen_info));
-
-		screen_info->type = screen_info2->type;
-		screen_info->mode = screen_info2->resolution;
-		screen_info->format = screen_info2->format;
-		screen_info->depth = screen_info2->depthc;
-		screen_info->feature = screen_info2->feature;
-
-		/* check if allm is enabled */
-		allm_en = base2_parameter->reserved[0] & BIT(0);
+	screen_info = malloc(sizeof(*screen_info));
+	ret = rockchip_baseparameter_screen_info_get((uintptr_t)&state->conn_state,
+						     DRM_MODE_CONNECTOR_HDMIA, hdmi->id,
+						     screen_info);
+	if (!ret) {
+		allm_en = screen_info->feature & ALLM_EN;
 		if (allm_en && (hdmi_info->add_func & SUPPORT_HDMI_ALLM))
 			hdmi->allm_en = true;
 		else
 			hdmi->allm_en = false;
 	}
 
-	if (scan->leftscale < min_scan && scan->leftscale > 0)
-		overscan->left_margin = min_scan;
-	else if (scan->leftscale < max_scan && scan->leftscale > 0)
-		overscan->left_margin = scan->leftscale;
+	scan = rockchip_baseparameter_overscan_info_get((uintptr_t)&state->conn_state);
+	if (scan) {
+		if (scan->leftscale < min_scan && scan->leftscale > 0)
+			overscan->left_margin = min_scan;
+		else if (scan->leftscale < max_scan && scan->leftscale > 0)
+			overscan->left_margin = scan->leftscale;
 
-	if (scan->rightscale < min_scan && scan->rightscale > 0)
-		overscan->right_margin = min_scan;
-	else if (scan->rightscale < max_scan && scan->rightscale > 0)
-		overscan->right_margin = scan->rightscale;
+		if (scan->rightscale < min_scan && scan->rightscale > 0)
+			overscan->right_margin = min_scan;
+		else if (scan->rightscale < max_scan && scan->rightscale > 0)
+			overscan->right_margin = scan->rightscale;
 
-	if (scan->topscale < min_scan && scan->topscale > 0)
-		overscan->top_margin = min_scan;
-	else if (scan->topscale < max_scan && scan->topscale > 0)
-		overscan->top_margin = scan->topscale;
+		if (scan->topscale < min_scan && scan->topscale > 0)
+			overscan->top_margin = min_scan;
+		else if (scan->topscale < max_scan && scan->topscale > 0)
+			overscan->top_margin = scan->topscale;
 
-	if (scan->bottomscale < min_scan && scan->bottomscale > 0)
-		overscan->bottom_margin = min_scan;
-	else if (scan->bottomscale < max_scan && scan->bottomscale > 0)
-		overscan->bottom_margin = scan->bottomscale;
-
-null_basep:
+		if (scan->bottomscale < min_scan && scan->bottomscale > 0)
+			overscan->bottom_margin = min_scan;
+		else if (scan->bottomscale < max_scan && scan->bottomscale > 0)
+			overscan->bottom_margin = scan->bottomscale;
+	}
 
 	if (screen_info)
-		printf("base_parameter.mode:%dx%d\n",
+		printf("baseparameter mode:%dx%d\n",
 		       screen_info->mode.hdisplay,
 		       screen_info->mode.vdisplay);
-	drm_rk_select_mode(edid_data, screen_info);
+	rockchip_baseparameter_select_mode(edid_data, screen_info);
+
+	free(screen_info);
 
 	*bus_format = drm_rk_select_color(hdmi, edid_data, screen_info,
 					  dev_type, output_bus_format_rgb);

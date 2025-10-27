@@ -1451,8 +1451,7 @@ static int dw_dp_connector_init(struct rockchip_connector *conn, struct display_
 	udelay(20);
 	reset_deassert(&dp->reset);
 
-	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type,
-							dp->id);
+	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, dp->id);
 	dw_dp_init(dp);
 	ret = generic_phy_power_on(&dp->phy);
 

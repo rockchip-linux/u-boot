@@ -1094,7 +1094,7 @@ static int dw_mipi_dsi_connector_init(struct rockchip_connector *conn, struct di
 	struct connector_state *conn_state = &state->conn_state;
 	struct dw_mipi_dsi *dsi = dev_get_priv(conn->dev);
 
-	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dsi->id);
+	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, dsi->id);
 	dsi->dphy.phy = conn->phy;
 
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;

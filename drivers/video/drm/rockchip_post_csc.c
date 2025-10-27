@@ -766,7 +766,7 @@ static struct rk_pq_csc_coef create_saturation_matrix(s32 saturation)
 }
 
 static int csc_calc_adjust_output_coef(struct post_csc_convert_mode *convert_mode,
-				       struct csc_info *csc_input_cfg,
+				       struct bp_csc_info *csc_input_cfg,
 				       const struct rk_pq_csc_coef *csc_coef,
 				       struct rk_pq_csc_coef *out_matrix,
 				       struct rk_pq_csc_ventor *out_dc)
@@ -1064,7 +1064,7 @@ static void rockchip_swap_color_channel(const struct post_csc_convert_mode *mode
 	}
 }
 
-int rockchip_calc_post_csc(struct csc_info *csc_cfg, struct post_csc_coef *csc_simple_coef,
+int rockchip_calc_post_csc(struct bp_csc_info *csc_cfg, struct post_csc_coef *csc_simple_coef,
 			   struct post_csc_convert_mode *convert_mode)
 {
 	int ret = 0;

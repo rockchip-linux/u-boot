@@ -906,7 +906,7 @@ static int analogix_dp_connector_init(struct rockchip_connector *conn, struct di
 	udelay(1);
 	reset_deassert_bulk(&dp->resets);
 
-	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, dp->id);
+	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, dp->id);
 	if (dp->plat_data.support_dp_mode && dp->dp_mode)
 		submode = PHY_SUBMODE_DP;
 	generic_phy_set_mode(&dp->phy, PHY_MODE_DP, submode);

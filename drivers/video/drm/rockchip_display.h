@@ -23,6 +23,8 @@
 #include <clk.h>
 #include <drm/drm_color_mgmt.h>
 
+#include "rockchip_baseparameter.h"
+
 /*
  * major: IP major version, used for IP structure
  * minor: big feature change under same structure
@@ -342,8 +344,6 @@ struct connector_state {
 	 */
 	bool hold_mode;
 
-	struct base2_disp_info *disp_info; /* disp_info from baseparameter 2.0 */
-
 	u8 dsc_id;
 	u8 dsc_slice_num;
 	u8 dsc_pixel_num;
@@ -419,7 +419,6 @@ bool drm_mode_is_420_also(const struct drm_display_info *display,
 			  struct drm_display_mode *mode);
 bool drm_mode_is_420(const struct drm_display_info *display,
 		     struct drm_display_mode *mode);
-struct base2_disp_info *rockchip_get_disp_info(int type, int id);
 
 void drm_mode_max_resolution_filter(struct hdmi_edid_data *edid_data,
 				    struct vop_rect *max_output);
@@ -440,7 +439,7 @@ struct device_node *
 rockchip_of_graph_get_port_by_id(ofnode node, int id);
 uint32_t rockchip_drm_get_cycles_per_pixel(uint32_t bus_format);
 char* rockchip_get_output_if_name(u32 output_if, char *name);
-int rockchip_calc_post_csc(struct csc_info *csc_cfg, struct post_csc_coef *csc_simple_coef,
+int rockchip_calc_post_csc(struct bp_csc_info *csc_cfg, struct post_csc_coef *csc_simple_coef,
 			   struct post_csc_convert_mode *convert_mode);
 
 #ifdef CONFIG_SPL_BUILD

@@ -201,7 +201,7 @@ static int rockchip_rgb_connector_init(struct rockchip_connector *conn, struct d
 
 	conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
 	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
-	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, rgb->id);
+	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, rgb->id);
 
 	switch (conn_state->bus_format) {
 	case MEDIA_BUS_FMT_RGB666_1X18:

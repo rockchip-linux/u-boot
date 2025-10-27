@@ -6941,52 +6941,6 @@ void drm_rk_filter_whitelist(struct hdmi_edid_data *edid_data)
 	}
 }
 
-static void drm_display_mode_convert(struct drm_display_mode *mode,
-				     struct base_drm_display_mode *base_mode)
-{
-	mode->clock = base_mode->clock;
-	mode->hdisplay = base_mode->hdisplay;
-	mode->hsync_start = base_mode->hsync_start;
-	mode->hsync_end = base_mode->hsync_end;
-	mode->htotal = base_mode->htotal;
-	mode->vdisplay = base_mode->vdisplay;
-	mode->vsync_start = base_mode->vsync_start;
-	mode->vsync_end = base_mode->vsync_end;
-	mode->vtotal = base_mode->vtotal;
-	mode->vrefresh = base_mode->vrefresh;
-	mode->vscan = base_mode->vscan;
-	mode->flags = base_mode->flags;
-	mode->picture_aspect_ratio = base_mode->picture_aspect_ratio;
-}
-
-void drm_rk_select_mode(struct hdmi_edid_data *edid_data,
-			struct base_screen_info *screen_info)
-{
-	int i;
-	struct drm_display_mode mode;
-
-	if (!screen_info) {
-		/* define init resolution here */
-	} else {
-		memset(&mode, 0, sizeof(struct drm_display_mode));
-
-		drm_display_mode_convert(&mode, &screen_info->mode);
-		for (i = 0; i < edid_data->modes; i++) {
-			if (drm_mode_match(&mode,
-					   &edid_data->mode_buf[i],
-					   DRM_MODE_MATCH_TIMINGS |
-					   DRM_MODE_MATCH_CLOCK |
-					   DRM_MODE_MATCH_FLAGS)) {
-				edid_data->preferred_mode =
-					&edid_data->mode_buf[i];
-
-				if (edid_data->mode_buf[i].picture_aspect_ratio)
-					break;
-			}
-		}
-	}
-}
-
 /**
  * drm_do_probe_ddc_edid() - get EDID information via I2C
  * @adap: ddc adapter

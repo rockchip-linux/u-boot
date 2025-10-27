@@ -2420,11 +2420,11 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
 	struct resource gamma_res;
+	struct bp_gamma_lut_data *gamma_lut_data;
 	fdt_size_t lut_size;
 	int i, lut_len, ret = 0;
 	u32 *lut_regs;
 	u32 r, g, b;
-	struct base2_disp_info *disp_info = conn_state->disp_info;
 	static int gamma_lut_en_num = 1;
 
 	if (gamma_lut_en_num > vop2->data->nr_gammas) {
@@ -2448,17 +2448,15 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 	}
 
 	if (!cstate->lut_val) {
-		if (!disp_info)
-			return 0;
-
-		if (!disp_info->gamma_lut_data.size)
+		gamma_lut_data = rockchip_baseparameter_gamma_lut_data_get((uintptr_t)conn_state);
+		if (!gamma_lut_data)
 			return 0;
 
 		cstate->lut_val = (u32 *)calloc(1, lut_size);
 		for (i = 0; i < lut_len; i++) {
-			r = disp_info->gamma_lut_data.lred[i] * (lut_len - 1) / 0xffff;
-			g = disp_info->gamma_lut_data.lgreen[i] * (lut_len - 1) / 0xffff;
-			b = disp_info->gamma_lut_data.lblue[i] * (lut_len - 1) / 0xffff;
+			r = gamma_lut_data->lred[i] * (lut_len - 1) / 0xffff;
+			g = gamma_lut_data->lgreen[i] * (lut_len - 1) / 0xffff;
+			b = gamma_lut_data->lblue[i] * (lut_len - 1) / 0xffff;
 
 			cstate->lut_val[i] = b * lut_len * lut_len + g * lut_len + r;
 		}
@@ -2491,18 +2489,18 @@ static int rockchip_vop2_cubic_lut_init(struct vop2 *vop2,
 	struct crtc_state *cstate = &state->crtc_state;
 	int i, cubic_lut_len;
 	u32 vp_offset = cstate->crtc_id * 0x100;
-	struct base2_disp_info *disp_info = conn_state->disp_info;
-	struct base2_cubic_lut_data *lut = &conn_state->disp_info->cubic_lut_data;
+	struct bp_cubic_lut_data *lut;
 	u32 *cubic_lut_addr;
 
-	if (!disp_info || CONFIG_ROCKCHIP_CUBIC_LUT_SIZE == 0)
+	if (CONFIG_ROCKCHIP_CUBIC_LUT_SIZE == 0)
 		return 0;
 
-	if (!disp_info->cubic_lut_data.size)
+	lut = rockchip_baseparameter_cubic_lut_data_get((uintptr_t)conn_state);
+	if (!lut)
 		return 0;
 
 	cubic_lut_addr = (u32 *)get_cubic_lut_buffer(cstate->crtc_id);
-	cubic_lut_len = disp_info->cubic_lut_data.size;
+	cubic_lut_len = lut->size;
 
 	for (i = 0; i < cubic_lut_len / 2; i++) {
 		*cubic_lut_addr++ = ((lut->lred[2 * i]) & 0xfff) +
@@ -2581,14 +2579,12 @@ static void vop2_bcsh_reg_update(struct display_state *state, struct vop2 *vop2,
 static void vop2_tv_config_update(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
-	struct base_bcsh_info *bcsh_info;
+	struct bp_bcsh_info *bcsh_info;
 	struct crtc_state *cstate = &state->crtc_state;
 	struct bcsh_state bcsh_state;
 	int brightness, contrast, saturation, hue, sin_hue, cos_hue;
 
-	if (!conn_state->disp_info)
-		return;
-	bcsh_info = &conn_state->disp_info->bcsh_info;
+	bcsh_info = rockchip_baseparameter_bcsh_info_get((uintptr_t)conn_state);
 	if (!bcsh_info)
 		return;
 
@@ -2782,7 +2778,7 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
-	struct acm_data *acm = &conn_state->disp_info->acm_data;
+	struct bp_acm_data *acm;
 	struct drm_display_mode *mode = &conn_state->mode;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	s16 *lut_y;
@@ -2790,6 +2786,10 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 	s16 *lut_s;
 	u32 value;
 	int i;
+
+	acm = rockchip_baseparameter_acm_data_get((uintptr_t)conn_state);
+	if (!acm)
+		return;
 
 	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 			POST_ACM_BYPASS_EN_MASK, POST_ACM_BYPASS_EN_SHIFT, 0, false);
@@ -2840,17 +2840,10 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 	writel(1, vop2->regs + RK3528_ACM_FETCH_DONE);
 }
 
-static void vop3_get_csc_info_from_bcsh(struct display_state *state,
-					struct csc_info *csc_info)
+static void vop3_get_csc_info_from_bcsh(struct bp_bcsh_info *bcsh_info,
+					struct bp_csc_info *csc_info)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct base_bcsh_info *bcsh_info;
-
-	if (!conn_state->disp_info)
-		return;
-
-	bcsh_info = &conn_state->disp_info->bcsh_info;
-	if (!bcsh_info)
+	if (!bcsh_info || !csc_info)
 		return;
 
 	csc_info->r_gain = 256;
@@ -2876,7 +2869,7 @@ static void vop3_get_csc_info_from_bcsh(struct display_state *state,
 }
 
 static bool vop3_csc_is_r2r_y2y_mode(struct post_csc_convert_mode convert_mode,
-				     struct csc_info *csc_cfg)
+				     struct bp_csc_info *csc_cfg)
 {
 	if (convert_mode.is_input_yuv != convert_mode.is_output_yuv)
 		return false;
@@ -2897,8 +2890,9 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
-	struct acm_data *acm = &conn_state->disp_info->acm_data;
-	struct csc_info *csc = &conn_state->disp_info->csc_info;
+	struct bp_acm_data *acm;
+	struct bp_csc_info *csc;
+	struct bp_bcsh_info *bcsh;
 	struct post_csc_coef csc_coef = {};
 	struct post_csc_convert_mode convert_mode = {};
 	struct post_csc_convert_mode r2y_convert_mode = {};
@@ -2914,19 +2908,25 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	u32 value;
 	int range_type;
 
+	csc = rockchip_baseparameter_csc_info_get((uintptr_t)conn_state);
+	if (!csc)
+		return;
+
 	printf("post csc enable\n");
 
 	if (conn_state->overscan.left_margin != 100 || conn_state->overscan.right_margin != 100 ||
 	    conn_state->overscan.top_margin != 100 || conn_state->overscan.bottom_margin != 100)
 		post_scl_enabled = true;
 
-	if (!csc->csc_enable)
-		vop3_get_csc_info_from_bcsh(state, csc);
+	bcsh = rockchip_baseparameter_bcsh_info_get((uintptr_t)conn_state);
+	if (!csc->csc_enable && bcsh)
+		vop3_get_csc_info_from_bcsh(bcsh, csc);
 
 	if (vop2->version != VOP_VERSION_RK3528 && vop2->version != VOP_VERSION_RK3576)
 		r2y_csc_supported = true;
 
-	if (acm->acm_enable) {
+	acm = rockchip_baseparameter_acm_data_get((uintptr_t)conn_state);
+	if (acm && acm->acm_enable) {
 		if (!cstate->yuv_overlay)
 			post_r2y_en = true;
 
@@ -3148,20 +3148,6 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 
 static void vop3_post_config(struct display_state *state, struct vop2 *vop2)
 {
-	struct connector_state *conn_state = &state->conn_state;
-	struct base2_disp_info *disp_info = conn_state->disp_info;
-	const char *enable_flag;
-	if (!disp_info) {
-		printf("disp_info is empty\n");
-		return;
-	}
-
-	enable_flag = (const char *)&disp_info->cacm_header;
-	if (strncasecmp(enable_flag, "CACM", 4)) {
-		printf("acm and csc is not support\n");
-		return;
-	}
-
 	vop3_post_acm_config(state, vop2);
 	vop3_post_csc_config(state, vop2);
 }

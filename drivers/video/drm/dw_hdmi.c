@@ -2366,7 +2366,7 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	hdmi->id = of_alias_get_id(ofnode_to_np(hdmi_node), "hdmi");
 	if (hdmi->id < 0)
 		hdmi->id = 0;
-	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, hdmi->id);
+	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, hdmi->id);
 #endif
 
 	memset(mode_buf, 0, MODE_LEN * sizeof(struct drm_display_mode));
@@ -2662,7 +2662,7 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 		printf("failed to get edid\n");
 	}
 #ifdef CONFIG_SPL_BUILD
-	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, hdmi->id);
+	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, hdmi->id);
 #endif
 	drm_rk_filter_whitelist(&hdmi->edid_data);
 	rockchip_dw_hdmi_mode_valid(hdmi);
