@@ -32,7 +32,7 @@ static bool check_is_rkss_version1(struct blk_desc *dev_desc,
 	}
 
 	ret = blk_dread(dev_desc, part_info.start, 2, read_buff);
-	if (ret != 1) {
+	if (ret != 2) {
 		printf("%s: blk_dread failed!\n", __func__);
 		free(read_buff);
 		return false;
