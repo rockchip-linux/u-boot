@@ -22,3 +22,4 @@ obj-$(CONFIG_ROCKCHIP_RK3576) += clk_rk3576.o
 obj-$(CONFIG_ROCKCHIP_RK3588) += clk_rk3588.o
 obj-$(CONFIG_ROCKCHIP_RV1108) += clk_rv1108.o
 obj-$(CONFIG_ROCKCHIP_RV1126) += clk_rv1126.o
+obj-$(CONFIG_ROCKCHIP_RK182X) += clk_rk182x.o
