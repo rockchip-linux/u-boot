@@ -81,9 +81,4 @@ int tee_supp_rk_fs_init_v2(void);
 int tee_supp_rk_fs_process_v2(size_t num_params,
 			      struct optee_msg_param *params);
 
-int tee_supp_rk_fs_init_v3(void);
-
-int tee_supp_rk_fs_process_v3(size_t num_params,
-			      struct optee_msg_param *params);
-
 #endif

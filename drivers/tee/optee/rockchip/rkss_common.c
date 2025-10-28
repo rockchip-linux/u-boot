@@ -52,7 +52,7 @@ static bool check_is_rkss_version1(struct blk_desc *dev_desc,
 		return false;
 }
 
-static bool check_is_rkss_version2(struct blk_desc *dev_desc,
+static bool __maybe_unused check_is_rkss_version2(struct blk_desc *dev_desc,
 				   struct disk_partition part_info)
 {
 	u8 *read_buff;
@@ -86,6 +86,69 @@ static bool check_is_rkss_version2(struct blk_desc *dev_desc,
 		return false;
 }
 
+#ifdef CONFIG_ROCKCHIP_OPTEE_V2
+static int get_rkss_version(void)
+{
+	static int rkss_version = 0;
+	struct blk_desc *dev_desc = NULL;
+	struct disk_partition part_info;
+
+	if (rkss_version != 0)
+		return rkss_version;
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		printf("%s: Could not find device.\n", __func__);
+		return -1;
+	}
+
+	if (part_get_info_by_name(dev_desc,
+				  "security", &part_info) < 0) {
+		printf("%s: Could not find security partition.\n", __func__);
+		return -1;
+	}
+
+	if (check_is_rkss_version1(dev_desc, part_info))
+		rkss_version = RKSS_VERSION_V1;
+	else
+		rkss_version = RKSS_VERSION_V2;
+
+	return rkss_version;
+}
+
+static int rkss_init(void)
+{
+	int version;
+
+	version = get_rkss_version();
+	printf("optee: rkss v%d\n", version);
+
+	if (version == RKSS_VERSION_V1)
+		return tee_supp_rk_fs_init_v1();
+	else if (version == RKSS_VERSION_V2)
+		return tee_supp_rk_fs_init_v2();
+	else
+		return -1;
+}
+
+static int rkss_process_request(u32 num_params,
+				struct optee_msg_param *params)
+{
+	int version;
+
+	version = get_rkss_version();
+	debug("%s: get rkss version: %d\n", __func__, version);
+
+	if (version == RKSS_VERSION_V1)
+		return tee_supp_rk_fs_process_v1(num_params, params);
+	else if (version == RKSS_VERSION_V2)
+		return tee_supp_rk_fs_process_v2(num_params, params);
+	else
+		return -1;
+}
+#endif
+
+#ifdef CONFIG_ROCKCHIP_OPTEE_V3
 static int get_rkss_version(void)
 {
 	static int rkss_version = 0;
@@ -151,6 +214,7 @@ static int rkss_process_request(u32 num_params,
 	else
 		return -1;
 }
+#endif
 
 void optee_suppl_cmd_fs(struct optee_msg_arg *arg)
 {
