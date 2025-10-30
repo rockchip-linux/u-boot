@@ -4,13 +4,14 @@
  *
  * Copyright (c) 2019, Heinrich Schuchardt <xypron.glpk@gmx.de>
  */
+#include <stdlib.h>
 #include <common.h>
 #include <command.h>
 #include <dm.h>
 #include <hexdump.h>
 #include <rng.h>
 
-static int do_rng(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_rng(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	size_t n = 0x40;
 	struct udevice *dev;
