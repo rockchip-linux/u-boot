@@ -161,6 +161,7 @@ enum uclass_id {
 #ifdef CONFIG_ARCH_ROCKCHIP
 	UCLASS_AMP,		/* AMP */
 	UCLASS_CHARGE_DISPLAY,	/* Charge display */
+	UCLASS_CIPHER,		/* Cipher */
 	UCLASS_CODEC,		/* Codec */
 	UCLASS_DMC,		/* Dynamic Memory Interface */
 	UCLASS_DVFS,		/* DVFS policy */

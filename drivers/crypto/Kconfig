@@ -6,6 +6,8 @@ config CRYPTO_MANAGER
 	help
 	  If you want to use driver model for RSA Modular Exponentiation, say Y.
 
+source "drivers/crypto/cipher/Kconfig"
+
 source "drivers/crypto/hash/Kconfig"
 
 source "drivers/crypto/fsl/Kconfig"

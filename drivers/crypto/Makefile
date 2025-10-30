@@ -8,9 +8,13 @@ obj-$(CONFIG_CRYPTO_MANAGER) += crypto_manager.o
 ifdef CONFIG_DM_HASH
 obj-$(CONFIG_CRYPTO_MANAGER) += crypto_hash_glue.o
 endif
+ifdef CONFIG_DM_CIPHER
+obj-$(CONFIG_CRYPTO_MANAGER) += crypto_cipher_glue.o
+endif
 obj-$(CONFIG_CRYPTO_MANAGER) += crypto_rsa_glue.o
 obj-y += rsa_mod_exp/
 obj-y += fsl/
+obj-y += cipher/
 obj-y += hash/
 obj-y += aspeed/
 obj-y += nuvoton/
