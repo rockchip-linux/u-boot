@@ -1056,7 +1056,7 @@ config CMD_STRINGS
 
 config CMD_CRYPTO
 	bool "crypto test"
-	depends on DM_HASH && RSA
+	depends on DM_HASH && DM_CIPHER && RSA
 	select RSA_VERIFY_WITH_PKEY
 	select SHA384
 	select SPL_SHA384
