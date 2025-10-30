@@ -43,8 +43,10 @@
 #ifdef DEBUG
 #define DMSG(format, ...) printf("[%s, %05d]-trace: " format "\n", \
 				 __func__, __LINE__, ##__VA_ARGS__)
+#define IMSG(format, ...) printf(format "\n", ##__VA_ARGS__)
 #else
 #define DMSG(format, ...)
+#define IMSG(format, ...)
 #endif
 
 #define	RK_HASH_CTX_MAGIC	0x1A1A1A1A
@@ -91,20 +93,20 @@
 #define cache_op_inner(type, addr, size) \
 					crypto_flush_cacheline((ulong)addr, size)
 
-#define IS_NEED_IV(rk_mode) ((rk_mode) != RK_MODE_ECB && \
-			     (rk_mode) != RK_MODE_CMAC && \
-			     (rk_mode) != RK_MODE_CBC_MAC)
+#define IS_NEED_IV(rk_mode) ((rk_mode) != CIPHER_MODE_ECB && \
+			     (rk_mode) != CIPHER_MODE_CMAC && \
+			     (rk_mode) != CIPHER_MODE_CBC_MAC)
 
-#define IS_NEED_TAG(rk_mode) ((rk_mode) == RK_MODE_CMAC || \
-			      (rk_mode) == RK_MODE_CBC_MAC || \
-			      (rk_mode) == RK_MODE_CCM || \
-			      (rk_mode) == RK_MODE_GCM)
+#define IS_NEED_TAG(rk_mode) ((rk_mode) == CIPHER_MODE_CMAC || \
+			      (rk_mode) == CIPHER_MODE_CBC_MAC || \
+			      (rk_mode) == CIPHER_MODE_CCM || \
+			      (rk_mode) == CIPHER_MODE_GCM)
 
-#define IS_MAC_MODE(rk_mode) ((rk_mode) == RK_MODE_CMAC || \
-			      (rk_mode) == RK_MODE_CBC_MAC)
+#define IS_MAC_MODE(rk_mode) ((rk_mode) == CIPHER_MODE_CMAC || \
+			      (rk_mode) == CIPHER_MODE_CBC_MAC)
 
-#define IS_AE_MODE(rk_mode) ((rk_mode) == RK_MODE_CCM || \
-			     (rk_mode) == RK_MODE_GCM)
+#define IS_AE_MODE(rk_mode) ((rk_mode) == CIPHER_MODE_CCM || \
+			     (rk_mode) == CIPHER_MODE_GCM)
 
 struct crypto_lli_desc {
 	u32 src_addr;
@@ -888,6 +890,714 @@ static struct crypto_impl rk_crypto_v2_hash_impl = {
 	.hash.hash_finish  = rk_hash_finish,
 };
 
+#if CONFIG_IS_ENABLED(ROCKCHIP_CIPHER)
+static u8 g_key_chn;
+
+static const u32 rk_mode2bc_mode[CIPHER_MODE_NUM] = {
+	[CIPHER_MODE_ECB] = CRYPTO_BC_ECB,
+	[CIPHER_MODE_CBC] = CRYPTO_BC_CBC,
+	[CIPHER_MODE_CTS] = CRYPTO_BC_CTS,
+	[CIPHER_MODE_CTR] = CRYPTO_BC_CTR,
+	[CIPHER_MODE_CFB] = CRYPTO_BC_CFB,
+	[CIPHER_MODE_OFB] = CRYPTO_BC_OFB,
+	[CIPHER_MODE_XTS] = CRYPTO_BC_XTS,
+	[CIPHER_MODE_CCM] = CRYPTO_BC_CCM,
+	[CIPHER_MODE_GCM] = CRYPTO_BC_GCM,
+	[CIPHER_MODE_CMAC] = CRYPTO_BC_CMAC,
+	[CIPHER_MODE_CBC_MAC] = CRYPTO_BC_CBC_MAC,
+};
+
+static inline void set_pc_len_reg(u32 chn, u64 pc_len)
+{
+	u32 chn_base = CRYPTO_CH0_PC_LEN_0 + chn * 0x08;
+
+	crypto_write(pc_len & 0xffffffff, chn_base);
+	crypto_write(pc_len >> 32, chn_base + 4);
+}
+
+static inline void set_aad_len_reg(u32 chn, u64 pc_len)
+{
+	u32 chn_base = CRYPTO_CH0_AAD_LEN_0 + chn * 0x08;
+
+	crypto_write(pc_len & 0xffffffff, chn_base);
+	crypto_write(pc_len >> 32, chn_base + 4);
+}
+
+static inline bool is_des_mode(u32 rk_mode)
+{
+	return (rk_mode == CIPHER_MODE_ECB ||
+		rk_mode == CIPHER_MODE_CBC ||
+		rk_mode == CIPHER_MODE_CFB ||
+		rk_mode == CIPHER_MODE_OFB);
+}
+
+static void dump_crypto_state(struct crypto_lli_desc *desc,
+			      u32 tmp, u32 expt_int,
+			      const u8 *in, const u8 *out,
+			      u32 len, int ret)
+{
+	IMSG("%s\n", ret == -ETIME ? "timeout" : "dismatch");
+
+	IMSG("CRYPTO_DMA_INT_ST = %08x, expect_int = %08x\n",
+	     tmp, expt_int);
+	IMSG("data desc		= %p\n", desc);
+	IMSG("\taddr_in		= [%08x <=> %08x]\n",
+	     desc->src_addr, (u32)virt_to_phys(in));
+	IMSG("\taddr_out	= [%08x <=> %08x]\n",
+	     desc->dst_addr, (u32)virt_to_phys(out));
+	IMSG("\tsrc_len		= [%08x <=> %08x]\n",
+	     desc->src_len, (u32)len);
+	IMSG("\tdst_len		= %08x\n", desc->dst_len);
+	IMSG("\tdma_ctl		= %08x\n", desc->dma_ctrl);
+	IMSG("\tuser_define	= %08x\n", desc->user_define);
+
+	IMSG("\n\nDMA CRYPTO_DMA_LLI_ADDR status = %08x\n",
+	     crypto_read(CRYPTO_DMA_LLI_ADDR));
+	IMSG("DMA CRYPTO_DMA_ST status = %08x\n",
+	     crypto_read(CRYPTO_DMA_ST));
+	IMSG("DMA CRYPTO_DMA_STATE status = %08x\n",
+	     crypto_read(CRYPTO_DMA_STATE));
+	IMSG("DMA CRYPTO_DMA_LLI_RADDR status = %08x\n",
+	     crypto_read(CRYPTO_DMA_LLI_RADDR));
+	IMSG("DMA CRYPTO_DMA_SRC_RADDR status = %08x\n",
+	     crypto_read(CRYPTO_DMA_SRC_RADDR));
+	IMSG("DMA CRYPTO_DMA_DST_RADDR status = %08x\n",
+	     crypto_read(CRYPTO_DMA_DST_RADDR));
+	IMSG("DMA CRYPTO_CIPHER_ST status = %08x\n",
+	     crypto_read(CRYPTO_CIPHER_ST));
+	IMSG("DMA CRYPTO_CIPHER_STATE status = %08x\n",
+	     crypto_read(CRYPTO_CIPHER_STATE));
+	IMSG("DMA CRYPTO_TAG_VALID status = %08x\n",
+	     crypto_read(CRYPTO_TAG_VALID));
+	IMSG("LOCKSTEP status = %08x\n\n",
+	     crypto_read(0x618));
+
+	IMSG("dst %dbyte not transferred\n",
+	     desc->dst_addr + desc->dst_len -
+	     crypto_read(CRYPTO_DMA_DST_RADDR));
+}
+
+static int ccm128_set_iv_reg(u32 chn, const u8 *nonce, u32 nlen)
+{
+	u8 iv_buf[AES_BLOCK_SIZE];
+	u32 L;
+
+	memset(iv_buf, 0x00, sizeof(iv_buf));
+
+	L = 15 - nlen;
+	iv_buf[0] = ((u8)(L - 1) & 7);
+
+	/* the L parameter */
+	L = iv_buf[0] & 7;
+
+	/* nonce is too short */
+	if (nlen < (14 - L))
+		return -EINVAL;
+
+	/* clear aad flag */
+	iv_buf[0] &= ~0x40;
+	memcpy(&iv_buf[1], nonce, 14 - L);
+
+	set_iv_reg(chn, iv_buf, AES_BLOCK_SIZE);
+
+	return 0;
+}
+
+static void ccm_aad_padding(u32 aad_len, u8 *padding, u32 *padding_size)
+{
+	u32 i;
+
+	if (aad_len == 0) {
+		*padding_size = 0;
+		return;
+	}
+
+	i = aad_len < (0x10000 - 0x100) ? 2 : 6;
+
+	if (i == 2) {
+		padding[0] = (u8)(aad_len >> 8);
+		padding[1] = (u8)aad_len;
+	} else {
+		padding[0] = 0xFF;
+		padding[1] = 0xFE;
+		padding[2] = (u8)(aad_len >> 24);
+		padding[3] = (u8)(aad_len >> 16);
+		padding[4] = (u8)(aad_len >> 8);
+	}
+
+	*padding_size = i;
+}
+
+static int ccm_compose_aad_iv(u8 *aad_iv, u32 data_len, u32 aad_len, u32 tag_size)
+{
+	aad_iv[0] |= ((u8)(((tag_size - 2) / 2) & 7) << 3);
+
+	aad_iv[12] = (u8)(data_len >> 24);
+	aad_iv[13] = (u8)(data_len >> 16);
+	aad_iv[14] = (u8)(data_len >> 8);
+	aad_iv[15] = (u8)data_len;
+
+	if (aad_len)
+		aad_iv[0] |= 0x40;	//set aad flag
+
+	return 0;
+}
+
+static int hw_cipher_init(u32 chn, const u8 *key, const u8 *twk_key,
+			  u32 key_len, const u8 *iv, u32 iv_len,
+			  u32 algo, u32 mode, bool enc)
+{
+	u32 rk_mode = RK_GET_RK_MODE(mode);
+	u32 key_chn_sel = chn;
+	u32 reg_ctrl = 0;
+	bool use_otpkey = false;
+
+	if (!key && key_len)
+		use_otpkey = true;
+
+	IMSG("%s: key addr is %p, key_len is %d, iv addr is %p",
+	     __func__, key, key_len, iv);
+	if (rk_mode >= CIPHER_MODE_NUM)
+		return -EINVAL;
+
+	switch (algo) {
+	case CIPHER_ALGO_DES:
+		if (key_len > DES_BLOCK_SIZE)
+			reg_ctrl |= CRYPTO_BC_TDES;
+		else
+			reg_ctrl |= CRYPTO_BC_DES;
+		break;
+	case CIPHER_ALGO_AES:
+		reg_ctrl |= CRYPTO_BC_AES;
+		break;
+	case CIPHER_ALGO_SM4:
+		reg_ctrl |= CRYPTO_BC_SM4;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if (algo == CIPHER_ALGO_AES || algo == CIPHER_ALGO_SM4) {
+		switch (key_len) {
+		case AES_KEYSIZE_128:
+			reg_ctrl |= CRYPTO_BC_128_bit_key;
+			break;
+		case AES_KEYSIZE_192:
+			reg_ctrl |= CRYPTO_BC_192_bit_key;
+			break;
+		case AES_KEYSIZE_256:
+			reg_ctrl |= CRYPTO_BC_256_bit_key;
+			break;
+		default:
+			return -EINVAL;
+		}
+	}
+
+	reg_ctrl |= rk_mode2bc_mode[rk_mode];
+	if (!enc)
+		reg_ctrl |= CRYPTO_BC_DECRYPT;
+
+	/* write key data to reg */
+	if (!use_otpkey) {
+		write_key_reg(key_chn_sel, key, key_len);
+		crypto_write(CRYPTO_SEL_USER, CRYPTO_KEY_SEL);
+	} else {
+		crypto_write(CRYPTO_SEL_KEYTABLE, CRYPTO_KEY_SEL);
+	}
+
+	/* write twk key for xts mode */
+	if (rk_mode == CIPHER_MODE_XTS)
+		write_key_reg(key_chn_sel + 4, twk_key, key_len);
+
+	/* set iv reg */
+	if (rk_mode == CIPHER_MODE_CCM)
+		ccm128_set_iv_reg(chn, iv, iv_len);
+	else
+		set_iv_reg(chn, iv, iv_len);
+
+	/* din_swap set 1, dout_swap set 1, default 1. */
+	crypto_write(0x00030003, CRYPTO_FIFO_CTL);
+	crypto_write(0, CRYPTO_DMA_INT_EN);
+
+	crypto_write(reg_ctrl | CRYPTO_WRITE_MASK_ALL, CRYPTO_BC_CTL);
+
+	return 0;
+}
+
+static int hw_cipher_crypt(const u8 *in, u8 *out, u64 len,
+			   const u8 *aad, u32 aad_len,
+			   u8 *tag, u32 tag_len, u32 mode)
+{
+	struct crypto_lli_desc *data_desc = NULL, *aad_desc = NULL;
+	u8 *dma_in = NULL, *dma_out = NULL, *aad_tmp = NULL;
+	u32 rk_mode = RK_GET_RK_MODE(mode);
+	u32 reg_ctrl = 0, tmp_len = 0;
+	u32 expt_int = 0, mask = 0;
+	u32 key_chn = g_key_chn;
+	u32 tmp, dst_len = 0;
+	int ret = -1;
+
+	if (rk_mode == CIPHER_MODE_CTS && len <= AES_BLOCK_SIZE) {
+		printf("CTS mode length %u < 16Byte\n", (u32)len);
+		return -EINVAL;
+	}
+
+	tmp_len = (rk_mode == CIPHER_MODE_CTR) ? ROUNDUP(len, AES_BLOCK_SIZE) : len;
+
+	data_desc = align_malloc(sizeof(*data_desc), LLI_ADDR_ALIGN_SIZE);
+	if (!data_desc)
+		goto exit;
+
+	if (IS_ALIGNED((ulong)in, DATA_ADDR_ALIGN_SIZE) && tmp_len == len)
+		dma_in = (void *)in;
+	else
+		dma_in = align_malloc(tmp_len, DATA_ADDR_ALIGN_SIZE);
+	if (!dma_in)
+		goto exit;
+
+	if (out) {
+		if (IS_ALIGNED((ulong)out, DATA_ADDR_ALIGN_SIZE) &&
+		    tmp_len == len)
+			dma_out = out;
+		else
+			dma_out = align_malloc(tmp_len, DATA_ADDR_ALIGN_SIZE);
+		if (!dma_out)
+			goto exit;
+		dst_len = tmp_len;
+	}
+
+	memset(data_desc, 0x00, sizeof(*data_desc));
+	if (dma_in != in)
+		memcpy(dma_in, in, len);
+
+	data_desc->src_addr    = (u32)virt_to_phys(dma_in);
+	data_desc->src_len     = tmp_len;
+	data_desc->dst_addr    = (u32)virt_to_phys(dma_out);
+	data_desc->dst_len     = dst_len;
+	data_desc->dma_ctrl    = LLI_DMA_CTRL_LAST;
+
+	if (IS_MAC_MODE(rk_mode)) {
+		expt_int = CRYPTO_LIST_DONE_INT_ST;
+		data_desc->dma_ctrl |= LLI_DMA_CTRL_LIST_DONE;
+	} else {
+		expt_int = CRYPTO_DST_ITEM_DONE_INT_ST;
+		data_desc->dma_ctrl |= LLI_DMA_CTRL_DST_DONE;
+	}
+
+	data_desc->user_define = LLI_USER_CIPHER_START |
+				 LLI_USER_STRING_START |
+				 LLI_USER_STRING_LAST |
+				 (key_chn << 4);
+	crypto_write((u32)virt_to_phys(data_desc), CRYPTO_DMA_LLI_ADDR);
+
+	if (rk_mode == CIPHER_MODE_CCM || rk_mode == CIPHER_MODE_GCM) {
+		u32 aad_tmp_len = 0;
+
+		aad_desc = align_malloc(sizeof(*aad_desc), LLI_ADDR_ALIGN_SIZE);
+		if (!aad_desc)
+			goto exit;
+
+		memset(aad_desc, 0x00, sizeof(*aad_desc));
+		aad_desc->next_addr = (u32)virt_to_phys(data_desc);
+		aad_desc->user_define = LLI_USER_CIPHER_START |
+					 LLI_USER_STRING_START |
+					 LLI_USER_STRING_LAST |
+					 LLI_USER_STRING_AAD |
+					 (key_chn << 4);
+
+		if (rk_mode == CIPHER_MODE_CCM) {
+			u8 padding[AES_BLOCK_SIZE];
+			u32 padding_size = 0;
+
+			memset(padding, 0x00, sizeof(padding));
+			ccm_aad_padding(aad_len, padding, &padding_size);
+
+			aad_tmp_len = aad_len + AES_BLOCK_SIZE + padding_size;
+			aad_tmp_len = ROUNDUP(aad_tmp_len, AES_BLOCK_SIZE);
+			aad_tmp = align_malloc(aad_tmp_len,
+					       DATA_ADDR_ALIGN_SIZE);
+			if (!aad_tmp)
+				goto exit;
+
+			/* clear last block */
+			memset(aad_tmp + aad_tmp_len - AES_BLOCK_SIZE,
+			       0x00, AES_BLOCK_SIZE);
+
+			/* read iv data from reg */
+			get_iv_reg(key_chn, aad_tmp, AES_BLOCK_SIZE);
+			ccm_compose_aad_iv(aad_tmp, tmp_len, aad_len, tag_len);
+			memcpy(aad_tmp + AES_BLOCK_SIZE, padding, padding_size);
+
+			memcpy(aad_tmp + AES_BLOCK_SIZE + padding_size,
+			       aad, aad_len);
+		} else {
+			aad_tmp_len = aad_len;
+			if (IS_ALIGNED((ulong)aad, DATA_ADDR_ALIGN_SIZE)) {
+				aad_tmp = (void *)aad;
+			} else {
+				aad_tmp = align_malloc(aad_tmp_len,
+						       DATA_ADDR_ALIGN_SIZE);
+				if (!aad_tmp)
+					goto exit;
+
+				memcpy(aad_tmp, aad, aad_tmp_len);
+			}
+
+			set_aad_len_reg(key_chn, aad_tmp_len);
+			set_pc_len_reg(key_chn, tmp_len);
+		}
+
+		aad_desc->src_addr = (u32)virt_to_phys(aad_tmp);
+		aad_desc->src_len  = aad_tmp_len;
+
+		if (aad_tmp_len) {
+			data_desc->user_define = LLI_USER_STRING_START |
+						 LLI_USER_STRING_LAST |
+						 (key_chn << 4);
+			crypto_write((u32)virt_to_phys(aad_desc), CRYPTO_DMA_LLI_ADDR);
+			cache_op_inner(DCACHE_AREA_CLEAN, aad_tmp, aad_tmp_len);
+			cache_op_inner(DCACHE_AREA_CLEAN, aad_desc, sizeof(*aad_desc));
+		}
+	}
+
+	cache_op_inner(DCACHE_AREA_CLEAN, data_desc, sizeof(*data_desc));
+	cache_op_inner(DCACHE_AREA_CLEAN, dma_in, tmp_len);
+	cache_op_inner(DCACHE_AREA_INVALIDATE, dma_out, tmp_len);
+
+	/* din_swap set 1, dout_swap set 1, default 1. */
+	crypto_write(0x00030003, CRYPTO_FIFO_CTL);
+	crypto_write(0, CRYPTO_DMA_INT_EN);
+
+	reg_ctrl = crypto_read(CRYPTO_BC_CTL) | CRYPTO_BC_ENABLE;
+	crypto_write(reg_ctrl | CRYPTO_WRITE_MASK_ALL, CRYPTO_BC_CTL);
+	crypto_write(0x00010001, CRYPTO_DMA_CTL);//start
+
+	mask = ~(mask | CRYPTO_SYNC_LOCKSTEP_INT_ST);
+
+	/* wait calc ok */
+	ret = RK_POLL_TIMEOUT(!(crypto_read(CRYPTO_DMA_INT_ST) & mask),
+			      RK_CRYPTO_TIMEOUT);
+	tmp = crypto_read(CRYPTO_DMA_INT_ST);
+	crypto_write(tmp, CRYPTO_DMA_INT_ST);
+
+	if ((tmp & mask) == expt_int) {
+		if (out && out != dma_out)
+			memcpy(out, dma_out, len);
+
+		if (IS_NEED_TAG(rk_mode)) {
+			ret = WAIT_TAG_VALID(key_chn, RK_CRYPTO_TIMEOUT);
+			get_tag_from_reg(key_chn, tag, AES_BLOCK_SIZE);
+		}
+	} else {
+		dump_crypto_state(data_desc, tmp, expt_int, in, out, len, ret);
+		ret = -1;
+	}
+
+exit:
+	crypto_write(0xffff0000, CRYPTO_BC_CTL);//bc_ctl disable
+	align_free(data_desc);
+	align_free(aad_desc);
+	if (dma_in != in)
+		align_free(dma_in);
+	if (out && dma_out != out)
+		align_free(dma_out);
+	if (aad && aad != aad_tmp)
+		align_free(aad_tmp);
+
+	return ret;
+}
+
+static int hw_aes_init(u32 chn, const u8 *key, const u8 *twk_key, u32 key_len,
+		       const u8 *iv, u32 iv_len, u32 mode, bool enc)
+{
+	u32 rk_mode = RK_GET_RK_MODE(mode);
+
+	if (rk_mode > CIPHER_MODE_XTS)
+		return -EINVAL;
+
+	if (iv_len > AES_BLOCK_SIZE)
+		return -EINVAL;
+
+	if (IS_NEED_IV(rk_mode)) {
+		if (!iv || iv_len != AES_BLOCK_SIZE)
+			return -EINVAL;
+	} else {
+		iv_len = 0;
+	}
+
+	if (rk_mode == CIPHER_MODE_XTS) {
+		if (key_len != AES_KEYSIZE_128 && key_len != AES_KEYSIZE_256)
+			return -EINVAL;
+
+		if (!key || !twk_key)
+			return -EINVAL;
+	} else {
+		if (key_len != AES_KEYSIZE_128 &&
+		    key_len != AES_KEYSIZE_192 &&
+		    key_len != AES_KEYSIZE_256)
+			return -EINVAL;
+	}
+
+	return hw_cipher_init(chn, key, twk_key, key_len, iv, iv_len,
+			      CIPHER_ALGO_AES, mode, enc);
+}
+
+static int hw_sm4_init(u32  chn, const u8 *key, const u8 *twk_key, u32 key_len,
+		       const u8 *iv, u32 iv_len, u32 mode, bool enc)
+{
+	u32 rk_mode = RK_GET_RK_MODE(mode);
+
+	if (rk_mode > CIPHER_MODE_XTS)
+		return -EINVAL;
+
+	if (iv_len > SM4_BLOCK_SIZE || key_len != SM4_KEYSIZE)
+		return -EINVAL;
+
+	if (IS_NEED_IV(rk_mode)) {
+		if (!iv || iv_len != SM4_BLOCK_SIZE)
+			return -EINVAL;
+	} else {
+		iv_len = 0;
+	}
+
+	if (rk_mode == CIPHER_MODE_XTS) {
+		if (!key || !twk_key)
+			return -EINVAL;
+	}
+
+	return hw_cipher_init(chn, key, twk_key, key_len, iv, iv_len,
+			      CIPHER_ALGO_SM4, mode, enc);
+}
+
+int rk_crypto_des(struct udevice *dev, u32 mode, const u8 *key, u32 key_len,
+		  const u8 *iv, const u8 *in, u8 *out, u32 len, bool enc)
+{
+	u32 rk_mode = RK_GET_RK_MODE(mode);
+	u8 tmp_key[24];
+	int ret;
+
+	if (!is_des_mode(rk_mode))
+		return -EINVAL;
+
+	if (key_len == DES_BLOCK_SIZE || key_len == 3 * DES_BLOCK_SIZE) {
+		memcpy(tmp_key, key, key_len);
+	} else if (key_len == 2 * DES_BLOCK_SIZE) {
+		memcpy(tmp_key, key, 16);
+		memcpy(tmp_key + 16, key, 8);
+		key_len = 3 * DES_BLOCK_SIZE;
+	} else {
+		return -EINVAL;
+	}
+
+	ret = hw_cipher_init(0, tmp_key, NULL, key_len, iv, DES_BLOCK_SIZE,
+			     CIPHER_ALGO_DES, mode, enc);
+	if (ret)
+		goto exit;
+
+	ret = hw_cipher_crypt(in, out, len, NULL, 0,
+			      NULL, 0, mode);
+
+exit:
+	return ret;
+}
+
+int rk_crypto_aes(struct udevice *dev, u32 mode,
+		  const u8 *key, const u8 *twk_key, u32 key_len,
+		  const u8 *iv, u32 iv_len,
+		  const u8 *in, u8 *out, u32 len, bool enc)
+{
+	int ret;
+
+	/* RV1126/RV1109 do not support aes-192 */
+#if defined(CONFIG_ROCKCHIP_RV1126)
+	if (key_len == AES_KEYSIZE_192)
+		return -EINVAL;
+#endif
+
+	ret = hw_aes_init(0, key, twk_key, key_len, iv, iv_len, mode, enc);
+	if (ret)
+		return ret;
+
+	return hw_cipher_crypt(in, out, len, NULL, 0,
+			       NULL, 0, mode);
+}
+
+int rk_crypto_sm4(struct udevice *dev, u32 mode,
+		  const u8 *key, const u8 *twk_key, u32 key_len,
+		  const u8 *iv, u32 iv_len,
+		  const u8 *in, u8 *out, u32 len, bool enc)
+{
+	int ret;
+
+	ret = hw_sm4_init(0, key, twk_key, key_len, iv, iv_len, mode, enc);
+	if (ret)
+		return ret;
+
+	return hw_cipher_crypt(in, out, len, NULL, 0, NULL, 0, mode);
+}
+
+static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
+{
+	struct rockchip_crypto_priv *priv = NULL;
+
+	const u32 cipher_bitmap[CIPHER_ALGO_NUM] = {
+		[CIPHER_ALGO_DES] = CRYPTO_DES,
+		[CIPHER_ALGO_AES] = CRYPTO_AES,
+		[CIPHER_ALGO_SM4] = CRYPTO_SM4,
+	};
+
+	if (!dev)
+		return false;
+
+	priv = dev_get_priv(dev);
+	if (!priv)
+		return false;
+
+	if (mode >= CIPHER_MODE_NUM && mode != CRYPTO_MODE_NONE)
+		return false;
+
+	if (algo >= CIPHER_ALGO_NUM)
+		return false;
+
+	return !!(cipher_bitmap[algo] & priv->soc_data->capability);
+}
+
+int rockchip_crypto_cipher(struct udevice *dev, cipher_context *ctx,
+			   const u8 *in, u8 *out, u32 len, bool enc)
+{
+	int ret;
+
+	rk_crypto_enable_clk(dev);
+
+	switch (ctx->algo) {
+	case CIPHER_ALGO_DES:
+		ret = rk_crypto_des(dev, ctx->mode, ctx->key, ctx->key_len,
+				    ctx->iv, in, out, len, enc);
+		break;
+	case CIPHER_ALGO_AES:
+		ret = rk_crypto_aes(dev, ctx->mode,
+				    ctx->key, ctx->twk_key, ctx->key_len,
+				    ctx->iv, ctx->iv_len, in, out, len, enc);
+		break;
+	case CIPHER_ALGO_SM4:
+		ret = rk_crypto_sm4(dev, ctx->mode,
+				    ctx->key, ctx->twk_key, ctx->key_len,
+				    ctx->iv, ctx->iv_len, in, out, len, enc);
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	rk_crypto_disable_clk(dev);
+
+	return ret;
+}
+
+int rk_crypto_mac(struct udevice *dev, u32 algo, u32 mode,
+		  const u8 *key, u32 key_len,
+		  const u8 *in, u32 len, u8 *tag)
+{
+	u32 rk_mode = RK_GET_RK_MODE(mode);
+	int ret;
+
+	if (!IS_MAC_MODE(rk_mode))
+		return -EINVAL;
+
+	if (algo != CIPHER_ALGO_AES && algo != CIPHER_ALGO_SM4)
+		return -EINVAL;
+
+	/* RV1126/RV1109 do not support aes-192 */
+#if defined(CONFIG_ROCKCHIP_RV1126)
+	if (algo == CIPHER_ALGO_AES && key_len == AES_KEYSIZE_192)
+		return -EINVAL;
+#endif
+
+	ret = hw_cipher_init(g_key_chn, key, NULL, key_len, NULL, 0,
+			     algo, mode, true);
+	if (ret)
+		return ret;
+
+	return hw_cipher_crypt(in, NULL, len, NULL, 0,
+			       tag, AES_BLOCK_SIZE, mode);
+}
+
+int rockchip_crypto_mac(struct udevice *dev, cipher_context *ctx,
+			const u8 *in, u32 len, u8 *tag)
+{
+	int ret = 0;
+
+	rk_crypto_enable_clk(dev);
+
+	ret = rk_crypto_mac(dev, ctx->algo, ctx->mode,
+			    ctx->key, ctx->key_len, in, len, tag);
+
+	rk_crypto_disable_clk(dev);
+
+	return ret;
+}
+
+int rk_crypto_ae(struct udevice *dev, u32 algo, u32 mode,
+		 const u8 *key, u32 key_len, const u8 *nonce, u32 nonce_len,
+		 const u8 *in, u32 len, const u8 *aad, u32 aad_len,
+		 u8 *out, u8 *tag)
+{
+	u32 rk_mode = RK_GET_RK_MODE(mode);
+	int ret;
+
+	if (!IS_AE_MODE(rk_mode))
+		return -EINVAL;
+
+	if (len == 0)
+		return -EINVAL;
+
+	if (algo != CIPHER_ALGO_AES && algo != CIPHER_ALGO_SM4)
+		return -EINVAL;
+
+	/* RV1126/RV1109 do not support aes-192 */
+#if defined(CONFIG_ROCKCHIP_RV1126)
+	if (algo == CIPHER_ALGO_AES && key_len == AES_KEYSIZE_192)
+		return -EINVAL;
+#endif
+
+	ret = hw_cipher_init(g_key_chn, key, NULL, key_len, nonce, nonce_len,
+			     algo, mode, true);
+	if (ret)
+		return ret;
+
+	return hw_cipher_crypt(in, out, len, aad, aad_len,
+			       tag, AES_BLOCK_SIZE, mode);
+}
+
+int rockchip_crypto_ae(struct udevice *dev, cipher_context *ctx,
+		       const u8 *in, u32 len, const u8 *aad, u32 aad_len,
+		       u8 *out, u8 *tag)
+{
+	int ret = 0;
+
+	rk_crypto_enable_clk(dev);
+
+	ret = rk_crypto_ae(dev, ctx->algo, ctx->mode, ctx->key, ctx->key_len,
+			   ctx->iv, ctx->iv_len, in, len,
+			   aad, aad_len, out, tag);
+
+	rk_crypto_disable_clk(dev);
+
+	return ret;
+}
+
+static struct crypto_impl rk_crypto_v2_cipher_impl = {
+	.type        = CRYPTO_TYPE_CIPHER,
+	.uclass_id   = UCLASS_MISC,
+	.priority    = CRYPTO_PRIORITY_HW,
+	.check_valid = cipher_check_valid,
+
+	.cipher.cipher_crypt = rockchip_crypto_cipher,
+	.cipher.cipher_mac   = rockchip_crypto_mac,
+	.cipher.cipher_ae    = rockchip_crypto_ae,
+};
+#endif
+
 #if CONFIG_IS_ENABLED(ROCKCHIP_RSA)
 
 static int rk_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_len,
@@ -977,6 +1687,17 @@ static int rockchip_crypto_bind(struct udevice *dev)
 		printf("crypto_impl_register rk_crypto_v2_hash_impl failed.\n");
 		goto exit;
 	}
+
+#if CONFIG_IS_ENABLED(ROCKCHIP_CIPHER)
+
+	rk_crypto_v2_cipher_impl.dev = dev;
+
+	ret = crypto_impl_register(&rk_crypto_v2_cipher_impl);
+	if (ret) {
+		printf("crypto_impl_register rk_crypto_v2_cipher_impl failed.\n");
+		goto exit;
+	}
+#endif
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_RSA)
 
