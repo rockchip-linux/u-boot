@@ -13,43 +13,6 @@
 #define RK_BLK_SIZE 512
 #define BMP_PROCESSED_FLAG 8399
 
-static uint32_t crc32_table[256];
-
-void rockchip_display_make_crc32_table(void)
-{
-	uint32_t c;
-	int n, k;
-	unsigned long poly;		/* polynomial exclusive-or pattern */
-	/* terms of polynomial defining this crc (except x^32): */
-	static const char p[] = {0, 1, 2, 4, 5, 7, 8, 10, 11, 12, 16, 22, 23, 26};
-
-	/* make exclusive-or pattern from polynomial (0xedb88320L) */
-	poly = 0L;
-	for (n = 0; n < sizeof(p) / sizeof(char); n++)
-		poly |= 1L << (31 - p[n]);
-
-	for (n = 0; n < 256; n++) {
-		c = (unsigned long)n;
-		for (k = 0; k < 8; k++)
-		c = c & 1 ? poly ^ (c >> 1) : c >> 1;
-		crc32_table[n] = cpu_to_le32(c);
-	}
-}
-
-uint32_t rockchip_display_crc32c_cal(unsigned char *data, int length)
-{
-	int i;
-	uint32_t crc;
-	crc = 0xFFFFFFFF;
-
-	for (i = 0; i < length; i++) {
-		crc = crc32_table[(crc ^ *data) & 0xff] ^ (crc >> 8);
-		data++;
-	}
-
-	return crc ^ 0xffffffff;
-}
-
 /**
  * drm_mode_max_resolution_filter - mark modes out of vop max resolution
  * @edid_data: structure store mode list

@@ -363,8 +363,6 @@ void drm_mode_max_resolution_filter(struct hdmi_edid_data *edid_data,
 unsigned long get_cubic_lut_buffer(int crtc_id);
 int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode,
 				     u32 *bus_flags);
-void rockchip_display_make_crc32_table(void);
-uint32_t rockchip_display_crc32c_cal(unsigned char *data, int length);
 void drm_mode_set_crtcinfo(struct drm_display_mode *p, int adjust_flags);
 void drm_mode_convert_to_origin_mode(struct drm_display_mode *mode);
 void drm_mode_convert_to_split_mode(struct drm_display_mode *mode);
