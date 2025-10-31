@@ -13,6 +13,11 @@ static int mtd_curr_dev = -1;
 
 static int do_mtd_blk(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
+	if (!strcmp(argv[0], "mtd")) {
+		printf("mtd is unsupported, please enable CONFIG_CMD_MTD\n");
+		return CMD_RET_FAILURE;
+	}
+
 	if (argc == 2) {
 		return CMD_RET_FAILURE;
 	}
