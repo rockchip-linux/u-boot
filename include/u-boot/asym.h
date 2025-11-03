@@ -6,6 +6,7 @@
 #ifndef _UBOOT_ASYM_H
 #define _UBOOT_ASYM_H
 
+#include <crypto/ecdsa-uclass.h>
 #include <u-boot/rsa-mod-exp.h>
 
 enum ASYM_ALGO {
@@ -27,8 +28,10 @@ enum ASYM_ALGO {
  * which use driver model.
  */
 struct asym_ops {
+	enum ASYM_ALGO algo;
 	union {
 		struct mod_exp_ops rsa;
+		struct ecdsa_ops ecc;
 	};
 };
 

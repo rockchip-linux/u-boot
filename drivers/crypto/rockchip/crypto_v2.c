@@ -11,6 +11,7 @@
 #include <crypto_manager.h>
 #include <dm.h>
 #include <linux/delay.h>
+#include <rockchip/crypto_ecc.h>
 #include <rockchip/crypto_hash_cache.h>
 #include <rockchip/crypto_v2.h>
 #include <rockchip/crypto_v2_pka.h>
@@ -1672,7 +1673,78 @@ static struct crypto_impl rk_mod_exp_impl = {
 	.priority    = CRYPTO_PRIORITY_HW,
 	.check_valid = rk_mod_exp_check_valid,
 
+	.asym.algo   = ASYM_ALGO_RSA,
 	.asym.rsa.mod_exp = rk_mod_exp,
+};
+
+#endif
+
+#if CONFIG_IS_ENABLED(ROCKCHIP_EC)
+
+static int rk_ecdsa_verify(struct udevice *dev, const struct ecdsa_public_key *pubkey,
+			   const void *hash, size_t hash_len,
+			   const void *signature, size_t sig_len)
+{
+	struct rk_ecp_point point_P, point_sign;
+	u32  n_words;
+	int ret;
+
+	if (!pubkey || !hash || !signature)
+		return -EINVAL;
+
+	if (!pubkey->curve_name || !pubkey->x || !pubkey->y)
+		return -EINVAL;
+
+	n_words = BITS2WORD(pubkey->size_bits);
+
+	memset(&point_P, 0, sizeof(point_P));
+	memset(&point_sign, 0, sizeof(point_sign));
+
+	ret = rk_mpa_alloc(&point_P.x, (void *)pubkey->x, n_words);
+	ret |= rk_mpa_alloc(&point_P.y, (void *)pubkey->y, n_words);
+	if (ret)
+		goto exit;
+
+	ret = rk_mpa_alloc(&point_sign.x, (void *)signature, n_words);
+	ret |= rk_mpa_alloc(&point_sign.y,
+			    (void *)signature + WORD2BYTE(n_words), n_words);
+	if (ret)
+		goto exit;
+
+	rk_crypto_enable_clk(dev);
+	ret = rockchip_ecc_verify(pubkey->curve_name, (void *)hash, hash_len, &point_P, &point_sign);
+	rk_crypto_disable_clk(dev);
+exit:
+	rk_mpa_free(&point_P.x);
+	rk_mpa_free(&point_P.y);
+	rk_mpa_free(&point_sign.x);
+	rk_mpa_free(&point_sign.y);
+
+	return ret;
+}
+
+static bool rk_ecdsa_check_valid(struct udevice *dev, u32 algo, u32 mode)
+{
+	if (!dev)
+		return false;
+
+	if (mode != CRYPTO_MODE_NONE)
+		return false;
+
+	if (algo != ASYM_ALGO_ECC)
+		return false;
+
+	return rk_is_ec_supported();
+}
+
+static struct crypto_impl rk_ecdsa_impl = {
+	.type        = CRYPTO_TYPE_ASYM,
+	.uclass_id   = UCLASS_MISC,
+	.priority    = CRYPTO_PRIORITY_HW,
+	.check_valid = rk_ecdsa_check_valid,
+
+	.asym.algo   = ASYM_ALGO_ECC,
+	.asym.ecc.verify = rk_ecdsa_verify,
 };
 
 #endif
@@ -1707,6 +1779,17 @@ static int rockchip_crypto_bind(struct udevice *dev)
 	ret = crypto_impl_register(&rk_mod_exp_impl);
 	if (ret) {
 		printf("crypto_impl_register rk_mod_exp_impl failed.\n");
+		goto exit;
+	}
+#endif
+
+#if CONFIG_IS_ENABLED(ROCKCHIP_EC)
+
+	rk_ecdsa_impl.dev = dev;
+
+	ret = crypto_impl_register(&rk_ecdsa_impl);
+	if (ret) {
+		printf("crypto_impl_register rk_ecdsa_impl failed.\n");
 		goto exit;
 	}
 #endif

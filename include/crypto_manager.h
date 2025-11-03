@@ -15,6 +15,7 @@
 #include <u-boot/mac.h>
 #include <u-boot/asym.h>
 #include <u-boot/rsa-mod-exp.h>
+#include <u-boot/ecdsa.h>
 
 #define CRYPTO_MISC_MANAGER		"crypto_manager"
 #define CRYPTO_DRIVER_MAX		64

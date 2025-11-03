@@ -6,18 +6,11 @@
 #ifndef _ROCKCHIP_CRYPTO_V2_PKA_H_
 #define _ROCKCHIP_CRYPTO_V2_PKA_H_
 #include <common.h>
+#include <rockchip/crypto_mpa.h>
 #include <rockchip/crypto_v2.h>
 #include <rockchip/crypto_v2_util.h>
 
 #define CRYPTO_BASE crypto_base
-
-#define MPA_USE_ALLOC	1
-
-struct mpa_num {
-	u32 alloc;
-	s32 size;
-	u32 *d;
-};
 
 #define RK_MAX_RSA_NBITS	4096
 #define RK_MAX_RSA_NCHARS	((RK_MAX_RSA_NBITS) / 8)
@@ -545,8 +538,6 @@ void rk_pka_copy_data_into_reg(s8 dst_reg, u8 len_id, u32 *src_ptr,
 void rk_pka_copy_data_from_reg(u32 *dst_ptr, u32  size_words,
 			       s8 src_reg);
 int test_rk3326_rsa(void);
-int rk_mpa_alloc(struct mpa_num **mpa, void *data, u32 word_size);
-void rk_mpa_free(struct mpa_num **mpa);
 int rk_abs_add(void *a, void *b, void *c);
 int rk_mod(void *a, void *b, void *c);
 int rk_exptmod(void *a, void *b, void *c, void *d);

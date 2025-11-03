@@ -124,6 +124,11 @@ int crypto_impl_register(const struct crypto_impl *impl)
 	list_for_each_safe(pos, save, head) {
 		node = list_entry(pos, struct crypto_driver_node, list);
 		if (driver_name && !strcmp(node->driver_name, driver_name)) {
+			if (impl->type == CRYPTO_TYPE_ASYM &&
+			    node->impl->asym.algo != impl->asym.algo) {
+				continue;
+			}
+
 			DMSG("driver_name %s is already exist, cannot be registered multiple times\n",
 			     driver_name);
 			return -EINVAL;

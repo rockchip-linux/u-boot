@@ -16,6 +16,22 @@ config SPL_ROCKCHIP_RSA
 	  This enable RSA512/RSA1024/RSA2048 algorithm support for
 	  rockchip crypto module.
 
+config ROCKCHIP_EC
+	bool "Enable rockchip ECC/SM2 support"
+	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2 || ROCKCHIP_CRYPTO_CE
+	default n
+	help
+	  This enable SM2/ECC192R1/ECC224R1/ECC256R1 algorithm support for
+	  rockchip crypto module.
+
+config SPL_ROCKCHIP_EC
+	bool "Enable rockchip ECC/SM2 support in spl"
+	depends on SPL_ROCKCHIP_CRYPTO_V1 || SPL_ROCKCHIP_CRYPTO_V2 || SPL_ROCKCHIP_CRYPTO_CE
+	default n
+	help
+	  This enable SM2/ECC192R1/ECC224R1/ECC256R1 algorithm support for
+	  rockchip crypto module.
+
 config ROCKCHIP_CIPHER
 	bool "Enable rockchip cipher support"
 	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2 || ROCKCHIP_CRYPTO_CE

@@ -13,7 +13,11 @@ endif
 ifdef CONFIG_RSA
 obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_rsa_glue.o
 endif
+ifdef CONFIG_ECDSA_VERIFY
+obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_ecc_glue.o
+endif
 obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += rockchip/
+
 obj-y += hash/
 obj-y += cipher/
 obj-y += rsa_mod_exp/
