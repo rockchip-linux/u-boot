@@ -580,8 +580,8 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 						curlun->sense_data = SS_WRITE_ERROR;
 						return -EIO;
 					}
-					if (trusty_write_ta_encryption_key((uint32_t *)(data + 8), 8) != 0) {
-						printf("trusty_write_ta_encryption_key error!");
+					if (optee_write_ta_encryption_key((uint32_t *)(data + 8), 8) != 0) {
+						printf("optee_write_ta_encryption_key error!");
 						curlun->sense_data = SS_WRITE_ERROR;
 						return -EIO;
 					}
@@ -591,8 +591,8 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 						curlun->sense_data = SS_WRITE_ERROR;
 						return -EIO;
 					}
-					if (trusty_write_oem_huk((uint32_t *)(data + 8), 8) != 0) {
-						printf("trusty_write_oem_huk error!");
+					if (optee_write_oem_huk((uint32_t *)(data + 8), 8) != 0) {
+						printf("optee_write_oem_huk error!");
 						curlun->sense_data = SS_WRITE_ERROR;
 						return -EIO;
 					}
@@ -602,8 +602,8 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 						curlun->sense_data = SS_WRITE_ERROR;
 						return -EIO;
 					}
-					if (trusty_write_oem_encrypt_data((uint32_t *)(data + 8), 4) != 0) {
-						printf("trusty_write_oem_encrypt_data error!");
+					if (optee_write_oem_encrypt_data((uint32_t *)(data + 8), 4) != 0) {
+						printf("optee_write_oem_encrypt_data error!");
 						curlun->sense_data = SS_WRITE_ERROR;
 						return -EIO;
 					}
@@ -611,8 +611,8 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 					uint32_t key_len = vhead->size - 9;
 					uint8_t key_id = *((uint8_t *)data + 8);
 					if (key_len == 4 && memcmp(data + 9, "lock", 4) == 0) {
-						if (trusty_set_oem_hr_otp_read_lock(key_id) != 0) {
-							printf("trusty_set_oem_hr_otp_read_lock error!");
+						if (optee_set_oem_hr_otp_read_lock(key_id) != 0) {
+							printf("optee_set_oem_hr_otp_read_lock error!");
 							curlun->sense_data = SS_WRITE_ERROR;
 							return -EIO;
 						}
@@ -622,8 +622,8 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 							curlun->sense_data = SS_WRITE_ERROR;
 							return -EIO;
 						}
-						if (trusty_write_oem_otp_key(key_id, (uint8_t *)(data + 9), key_len) != 0) {
-							printf("trusty_write_oem_otp_key error!");
+						if (optee_write_oem_otp_key(key_id, (uint8_t *)(data + 9), key_len) != 0) {
+							printf("optee_write_oem_otp_key error!");
 							curlun->sense_data = SS_WRITE_ERROR;
 							return -EIO;
 						}
@@ -632,8 +632,8 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 					uint32_t key_len = vhead->size - 9;
 					uint8_t key_id = *((uint8_t *)data + 8);
 					if (key_len == 4 && memcmp(data + 9, "lock", 4) == 0) {
-						if (trusty_set_fw_encrypt_key_mask(key_id) != 0) {
-							printf("trusty_set_fw_encrypt_key_mask error!");
+						if (optee_set_fw_encrypt_key_mask(key_id) != 0) {
+							printf("optee_set_fw_encrypt_key_mask error!");
 							curlun->sense_data = SS_WRITE_ERROR;
 							return -EIO;
 						}
@@ -643,8 +643,8 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 							curlun->sense_data = SS_WRITE_ERROR;
 							return -EIO;
 						}
-						if (trusty_write_fw_encrypt_key(key_id, (uint8_t *)(data + 9), key_len) != 0) {
-							printf("trusty_write_fw_encrypt_key error!");
+						if (optee_write_fw_encrypt_key(key_id, (uint8_t *)(data + 9), key_len) != 0) {
+							printf("optee_write_fw_encrypt_key error!");
 							curlun->sense_data = SS_WRITE_ERROR;
 							return -EIO;
 						}
@@ -756,8 +756,8 @@ static int rkusb_do_vs_read(struct fsg_common *common)
 				u8 value;
 				char *written_str = "key is written!";
 				char *not_written_str = "key is not written!";
-				if (trusty_ta_encryption_key_is_written(&value) != 0) {
-					printf("trusty_ta_encryption_key_is_written error!");
+				if (optee_ta_encryption_key_is_written(&value) != 0) {
+					printf("optee_ta_encryption_key_is_written error!");
 					return -EIO;
 				}
 				if (value) {
