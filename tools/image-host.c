@@ -880,6 +880,7 @@ static int fit_config_get_hash_list(const void *fit, int conf_noffset,
 	strlist_init(node_inc);
 	snprintf(name, sizeof(name), "%s/%s", FIT_CONFS_PATH, conf_name);
 	if (strlist_add(node_inc, "/") ||
+	    strlist_add(node_inc, FIT_CONFS_PATH) ||
 	    strlist_add(node_inc, name))
 		goto err_mem;
 
