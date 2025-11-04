@@ -1309,23 +1309,21 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 }
 
 int spl_load_simple_fit(struct spl_image_info *spl_image,
-			struct spl_load_info *info, ulong sector, void *fit)
+			struct spl_load_info *info,
+			ulong offset, void *fit) /* @offset: in bytes */
 {
-	ulong sector_offs = sector;
 	int ret = -EINVAL;
 	int i;
 
 #ifdef CONFIG_MP_BOOT
 	mpb_init_1(*info);
 #endif
-
-	printf("Trying fit image at 0x%lx sector\n", sector_offs / info->bl_len);
+	printf("Trying fit image at 0x%lx sector\n", offset / info->bl_len);
 	for (i = 0; i < CONFIG_SPL_FIT_IMAGE_MULTIPLE; i++) {
 		if (i > 0) {
-			sector_offs +=
-			   i * ((CONFIG_SPL_FIT_IMAGE_KB << 10) / info->bl_len);
-			printf("Trying fit image at 0x%lx sector\n", sector_offs / info->bl_len);
-			if (info->read(info, sector_offs, 1, fit) != 1) {
+			offset += i * (CONFIG_SPL_FIT_IMAGE_KB << 10);
+			printf("Trying fit image at 0x%lx sector\n", offset / info->bl_len);
+			if (info->read(info, offset, 1, fit) != 1) {
 				printf("IO error\n");
 				continue;
 			}
@@ -1337,7 +1335,7 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 		}
 
 		ret = spl_internal_load_simple_fit(spl_image, info,
-						   sector_offs, fit);
+						   offset, fit);
 		if (!ret) {
 #ifdef CONFIG_SPL_KERNEL_BOOT
 			ret = spl_load_kernel_fit(spl_image, info);
