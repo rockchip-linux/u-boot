@@ -3,19 +3,23 @@
 # Copyright (c) 2013 Samsung Electronics Co., Ltd.
 #	http://www.samsung.com
 
-obj-$(CONFIG_EXYNOS_ACE_SHA)	+= ace_sha.o
-obj-$(CONFIG_CRYPTO_MANAGER) += crypto_manager.o
+obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_manager.o
 ifdef CONFIG_DM_HASH
-obj-$(CONFIG_CRYPTO_MANAGER) += crypto_hash_glue.o
+obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_hash_glue.o
 endif
 ifdef CONFIG_DM_CIPHER
-obj-$(CONFIG_CRYPTO_MANAGER) += crypto_cipher_glue.o
+obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_cipher_glue.o
 endif
-obj-$(CONFIG_CRYPTO_MANAGER) += crypto_rsa_glue.o
-obj-y += rsa_mod_exp/
-obj-y += fsl/
-obj-y += cipher/
+ifdef CONFIG_RSA
+obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_rsa_glue.o
+endif
+obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += rockchip/
 obj-y += hash/
+obj-y += cipher/
+obj-y += rsa_mod_exp/
+
+obj-$(CONFIG_EXYNOS_ACE_SHA)          += ace_sha.o
+obj-y += fsl/
 obj-y += aspeed/
 obj-y += nuvoton/
-obj-y += rockchip/
+

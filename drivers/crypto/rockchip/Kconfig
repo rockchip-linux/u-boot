@@ -1,5 +1,6 @@
 config ROCKCHIP_RSA
 	bool "Enable rockchip RSA support"
+	depends on RSA
 	depends on ROCKCHIP_CRYPTO_V1 || ROCKCHIP_CRYPTO_V2 || ROCKCHIP_CRYPTO_CE
 	default y
 	help
@@ -8,6 +9,7 @@ config ROCKCHIP_RSA
 
 config SPL_ROCKCHIP_RSA
 	bool "Enable rockchip RSA support in spl"
+	depends on SPL_RSA
 	depends on SPL_ROCKCHIP_CRYPTO_V1 || SPL_ROCKCHIP_CRYPTO_V2 || SPL_ROCKCHIP_CRYPTO_CE
 	default y
 	help
@@ -48,37 +50,42 @@ config SPL_ROCKCHIP_HMAC
 
 config ROCKCHIP_CRYPTO_V1
 	bool "Enable rockchip crypto v1 support"
+	depends on CRYPTO_MANAGER
 	help
 	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048 algorithm support for
 	  rockchip crypto v1 on platforms: rk3399/rk3368/rk3328/rk3229/rk3288/rk3128.
 
 config SPL_ROCKCHIP_CRYPTO_V1
 	bool "Enable rockchip crypto v1 support in spl"
+	depends on SPL_CRYPTO_MANAGER
 	help
 	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048 algorithm support for
 	  rockchip crypto v1 on platforms: rk3399/rk3368/rk3328/rk3229/rk3288/rk3128.
 
 config ROCKCHIP_CRYPTO_V2
 	bool "Enable rockchip crypto v2 support"
+	depends on CRYPTO_MANAGER
 	help
 	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048 algorithm support for
 	  rockchip crypto v2 on platforms: px30/rk3326/rk1808/rk3308.
 
 config SPL_ROCKCHIP_CRYPTO_V2
 	bool "Enable rockchip crypto v2 support in spl"
+	depends on SPL_CRYPTO_MANAGER
 	help
 	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048 algorithm support for
 	  rockchip crypto v2 on platforms: px30/rk3326/rk1808/rk3308.
 
-
 config ROCKCHIP_CRYPTO_CE
 	bool "Enable rockchip crypto ce support"
+	depends on CRYPTO_MANAGER
 	help
 	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048/RSA3072/RSA4096 algorithm support for
 	  rockchip crypto ce on platforms: rv1126b.
 
 config SPL_ROCKCHIP_CRYPTO_CE
 	bool "Enable rockchip crypto ce support in spl"
+	depends on SPL_CRYPTO_MANAGER
 	help
 	  This enable MD5/SHA1/SHA256/RSA512/RSA1024/RSA2048/RSA3072/RSA4096 algorithm support for
 	  rockchip crypto ce on platforms: rv1126b.
