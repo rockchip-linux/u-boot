@@ -613,9 +613,8 @@ static void spl_setup_relocate(void)
 	gd->fdt_blob = gd->new_fdt;
 
 	gd->reloc_off = gd->relocaddr - (unsigned long)__image_copy_start;
-
-	printf("\nRelocate from %08lx to %08lx.\n", (unsigned long)__image_copy_start,
-		gd->relocaddr);
+	printf("Relocate from 0x%08lx to 0x%08lx.\n",
+	       (unsigned long)__image_copy_start, gd->relocaddr);
 }
 #else
 static void spl_setup_relocate(void)
@@ -881,8 +880,9 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 
 	if (IS_ENABLED(CONFIG_SPL_RAM)) {
 		dram_init();
-		printf("Ram size: %lx\n", (ulong)gd->ram_size);
 		gd->ram_top = CFG_SYS_SDRAM_BASE + gd->ram_size;
+		printf("Ram: 0x%08lx - 0x%08lx\n",
+		       (ulong)CFG_SYS_SDRAM_BASE, (ulong)gd->ram_top);
 	}
 
 	if (IS_ENABLED(CONFIG_SPL_OS_BOOT) || CONFIG_IS_ENABLED(HANDOFF) ||

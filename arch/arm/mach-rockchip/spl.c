@@ -246,18 +246,20 @@ void board_init_f(ulong dummy)
 	if (!gd->serial.using_pre_serial &&
 	    !(gd->flags & GD_FLG_DISABLE_CONSOLE))
 		debug_uart_init();
-	printascii("U-Boot SPL board init");
+	printascii("U-Boot SPL board init\n");
 #endif
 	gd->sys_start_tick = get_ticks();
+
 #ifdef CONFIG_SPL_PCIE_EP_SUPPORT
 	rockchip_pcie_ep_init();
 #endif
-
 	ret = spl_early_init();
 	if (ret) {
 		printf("spl_early_init() failed: %d\n", ret);
 		hang();
 	}
+
+	printf("Model: %s\n", (char *)fdt_getprop(gd->fdt_blob, 0, "model", NULL));
 	arch_cpu_init();
 
 #ifdef CONFIG_SYS_ARCH_TIMER
