@@ -128,9 +128,16 @@ config FIT_SIGNATURE_MAX_SIZE
 config FIT_RSASSA_PSS
 	bool "Support rsassa-pss signature scheme of FIT image contents"
 	depends on FIT_SIGNATURE
+	select FIT_ENABLE_RSASSA_PSS_SUPPORT
 	help
 	  Enable this to support the pss padding algorithm as described
 	  in the rfc8017 (https://tools.ietf.org/html/rfc8017).
+
+config FIT_ENABLE_RSASSA_PSS_SUPPORT
+	bool "Alias of FIT_RSASSA_PSS that sync from rockchip v2017 u-boot"
+	depends on FIT_RSASSA_PSS
+	help
+	  It makes the fit scripts can be keep the same as v2017 branch.
 
 config FIT_CIPHER
 	bool "Enable ciphering data in a FIT uImages"
@@ -236,6 +243,7 @@ config SPL_FIT_SIGNATURE_MAX_SIZE
 config SPL_FIT_RSASSA_PSS
 	bool "Support rsassa-pss signature scheme of FIT image contents in SPL"
 	depends on SPL_FIT_SIGNATURE
+	select FIT_ENABLE_RSASSA_PSS_SUPPORT
 	help
 	  Enable this to support the pss padding algorithm as described
 	  in the rfc8017 (https://tools.ietf.org/html/rfc8017) in SPL.
