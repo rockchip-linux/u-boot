@@ -66,8 +66,18 @@ int hash_digest(struct udevice *dev, enum HASH_ALGO algo,
 {
 	struct hash_ops *ops = (struct hash_ops *)device_get_ops(dev);
 
-	if (!ops->hash_digest)
+	if (algo >= HASH_ALGO_NUM)
+		return -EINVAL;
+
+	if (ilen != 0 && !ibuf)
+		return -EINVAL;
+
+	if (!obuf)
+		return -EINVAL;
+
+	if (!ops || !ops->hash_digest)
 		return -ENOSYS;
+
 
 	return ops->hash_digest(dev, algo, ibuf, ilen, obuf);
 }
@@ -78,7 +88,16 @@ int hash_digest_wd(struct udevice *dev, enum HASH_ALGO algo,
 {
 	struct hash_ops *ops = (struct hash_ops *)device_get_ops(dev);
 
-	if (!ops->hash_digest_wd)
+	if (algo >= HASH_ALGO_NUM)
+		return -EINVAL;
+
+	if (ilen != 0 && !ibuf)
+		return -EINVAL;
+
+	if (!obuf || chunk_sz == 0)
+		return -EINVAL;
+
+	if (!ops || !ops->hash_digest_wd)
 		return -ENOSYS;
 
 	return ops->hash_digest_wd(dev, algo, ibuf, ilen, obuf, chunk_sz);
@@ -88,7 +107,13 @@ int hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctxp)
 {
 	struct hash_ops *ops = (struct hash_ops *)device_get_ops(dev);
 
-	if (!ops->hash_init)
+	if (algo >= HASH_ALGO_NUM)
+		return -EINVAL;
+
+	if (!ctxp)
+		return -EINVAL;
+
+	if (!ops || !ops->hash_init)
 		return -ENOSYS;
 
 	return ops->hash_init(dev, algo, ctxp);
@@ -98,7 +123,13 @@ int hash_update(struct udevice *dev, void *ctx, const void *ibuf, const uint32_t
 {
 	struct hash_ops *ops = (struct hash_ops *)device_get_ops(dev);
 
-	if (!ops->hash_update)
+	if (!ctx)
+		return -EINVAL;
+
+	if (ilen != 0 && !ibuf)
+		return -EINVAL;
+
+	if (!ops || !ops->hash_update)
 		return -ENOSYS;
 
 	return ops->hash_update(dev, ctx, ibuf, ilen);
@@ -108,7 +139,13 @@ int hash_finish(struct udevice *dev, void *ctx, void *obuf)
 {
 	struct hash_ops *ops = (struct hash_ops *)device_get_ops(dev);
 
-	if (!ops->hash_finish)
+	if (!ctx)
+		return -EINVAL;
+
+	if (!obuf)
+		return -EINVAL;
+
+	if (!ops || !ops->hash_finish)
 		return -ENOSYS;
 
 	return ops->hash_finish(dev, ctx, obuf);

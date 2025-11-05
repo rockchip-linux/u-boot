@@ -188,6 +188,9 @@ static int sw_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctxp)
 	struct sw_hash_ctx *hash_ctx;
 	struct sw_hash_impl *hash_impl = &sw_hash_impl[algo];
 
+	if (!hash_impl->init || !hash_impl->update || !hash_impl->finish)
+		return -ENOSYS;
+
 	hash_ctx = malloc(sizeof(hash_ctx->algo) + hash_impl->ctx_alloc_sz);
 	if (!hash_ctx)
 		return -ENOMEM;
@@ -206,6 +209,9 @@ static int sw_hash_update(struct udevice *dev, void *ctx, const void *ibuf, uint
 	struct sw_hash_ctx *hash_ctx = ctx;
 	struct sw_hash_impl *hash_impl = &sw_hash_impl[hash_ctx->algo];
 
+	if (!hash_impl->update)
+		return -ENOSYS;
+
 	hash_impl->update(hash_ctx->algo_ctx, ibuf, ilen);
 
 	return 0;
@@ -215,6 +221,9 @@ static int sw_hash_finish(struct udevice *dev, void *ctx, void *obuf)
 {
 	struct sw_hash_ctx *hash_ctx = ctx;
 	struct sw_hash_impl *hash_impl = &sw_hash_impl[hash_ctx->algo];
+
+	if (!hash_impl->finish)
+		return -ENOSYS;
 
 	hash_impl->finish(hash_ctx->algo_ctx, obuf);
 
