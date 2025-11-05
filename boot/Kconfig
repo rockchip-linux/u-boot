@@ -139,6 +139,12 @@ config FIT_ENABLE_RSASSA_PSS_SUPPORT
 	help
 	  It makes the fit scripts can be keep the same as v2017 branch.
 
+config FIT_ROLLBACK_PROTECT
+	bool "Enable rollback-index protection for FIT image"
+	depends on FIT_SIGNATURE
+	help
+	  Enable rollback-index protection for FIT image
+
 config FIT_CIPHER
 	bool "Enable ciphering data in a FIT uImages"
 	depends on DM
@@ -247,6 +253,12 @@ config SPL_FIT_RSASSA_PSS
 	help
 	  Enable this to support the pss padding algorithm as described
 	  in the rfc8017 (https://tools.ietf.org/html/rfc8017) in SPL.
+
+config SPL_FIT_ROLLBACK_PROTECT
+	bool "Enable SPL rollback-index protection for FIT image"
+	depends on SPL_FIT_SIGNATURE
+	help
+	  Enable SPL rollback-index protection for FIT image
 
 config SPL_LOAD_FIT
 	bool "Enable SPL loading U-Boot as a FIT (basic fitImage features)"

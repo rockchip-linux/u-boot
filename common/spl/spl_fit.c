@@ -882,12 +882,30 @@ static int spl_simple_fit_parse(struct spl_fit_info *ctx)
 		return -EINVAL;
 
 	if (IS_ENABLED(CONFIG_SPL_FIT_SIGNATURE)) {
-		printf("## Checking hash(es) for config %s ... ",
+		printf("## Verify signature of '%s' ... ",
 		       fit_get_name(ctx->fit, ctx->conf_node, NULL));
 		if (fit_config_verify(ctx->fit, ctx->conf_node))
 			return -EPERM;
 		puts("OK\n");
 	}
+
+#ifdef CONFIG_SPL_FIT_ROLLBACK_PROTECT
+	uint32_t this_index, min_index;
+	int ret;
+
+	ret = fit_rollback_index_verify(ctx->fit, FIT_ROLLBACK_INDEX_SPL,
+					&this_index, &min_index);
+	if (ret) {
+		printf("fit failed to get rollback index, ret=%d\n", ret);
+		return ret;
+	} else if (this_index < min_index) {
+		printf("fit reject rollback: %d < %d(min)\n",
+		       this_index, min_index);
+		return -EINVAL;
+	}
+
+	printf("rollback index: %d >= %d(min), OK\n", this_index, min_index);
+#endif
 
 	/* find the node holding the images information */
 	ctx->images_node = fdt_path_offset(ctx->fit, FIT_IMAGES_PATH);
@@ -1060,7 +1078,8 @@ static int spl_load_kernel_fit(struct spl_image_info *spl_image,
 #endif
 
 static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
-			struct spl_load_info *info, ulong offset, void *fit)
+					struct spl_load_info *info,
+					ulong offset, void *fit)
 {
 	struct spl_image_info image_info;
 	struct spl_fit_info ctx;
@@ -1073,6 +1092,13 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 	int index = 0;
 	int firmware_node;
 
+	/* if board sigs verify required, check self */
+	if (fit_board_verify_required_sigs() &&
+	    !IS_ENABLED(CONFIG_SPL_FIT_SIGNATURE)) {
+		printf("Verified-boot requires CONFIG_SPL_FIT_SIGNATURE enabled\n");
+		hang();
+	}
+
 	ret = spl_simple_fit_read(&ctx, info, offset, fit);
 	if (ret < 0)
 		return ret;
@@ -1083,54 +1109,13 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 
 	ctx.fit = spl_load_simple_fit_fix_load(ctx.fit);
 
+	/* verify sig and rollback-index ! */
 	ret = spl_simple_fit_parse(&ctx);
 	if (ret < 0)
 		return ret;
 
 	if (IS_ENABLED(CONFIG_SPL_FPGA))
 		spl_fit_load_fpga(&ctx, info, offset);
-
-	/* if board sigs verify required, check self */
-	if (fit_board_verify_required_sigs() &&
-	    !IS_ENABLED(CONFIG_SPL_FIT_SIGNATURE)) {
-		printf("Verified-boot requires CONFIG_SPL_FIT_SIGNATURE enabled\n");
-		hang();
-	}
-
-	/* verify the configure node by keys, if required */
-#ifdef CONFIG_SPL_FIT_SIGNATURE
-	int conf_noffset;
-
-	conf_noffset = fit_conf_get_node(fit, NULL);
-	if (conf_noffset <= 0) {
-		printf("No default config node\n");
-		return -EINVAL;
-	}
-
-	ret = fit_config_verify(fit, conf_noffset);
-	if (ret) {
-		printf("fit verify configure failed, ret=%d\n", ret);
-		return ret;
-	}
-	printf("\n");
-
-#ifdef CONFIG_SPL_FIT_ROLLBACK_PROTECT
-	uint32_t this_index, min_index;
-
-	ret = fit_rollback_index_verify(fit, FIT_ROLLBACK_INDEX_SPL,
-					&this_index, &min_index);
-	if (ret) {
-		printf("fit failed to get rollback index, ret=%d\n", ret);
-		return ret;
-	} else if (this_index < min_index) {
-		printf("fit reject rollback: %d < %d(min)\n",
-		       this_index, min_index);
-		return -EINVAL;
-	}
-
-	printf("rollback index: %d >= %d(min), OK\n", this_index, min_index);
-#endif
-#endif
 
 	/*
 	 * If required to start the other core before load "loadables"
@@ -1140,8 +1125,7 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 	 * "loadables" and load them together.
 	 */
 	for (; ; index++) {
-		node = spl_fit_get_image_node(&ctx,
-					      FIT_STANDALONE_PROP, index);
+		node = spl_fit_get_image_node(&ctx, FIT_STANDALONE_PROP, index);
 		if (node < 0)
 			break;
 

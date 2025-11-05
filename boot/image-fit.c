@@ -2289,6 +2289,7 @@ int fit_image_load_index(struct bootm_headers *images, ulong addr,
 				return -EACCES;
 			}
 			puts("OK\n");
+#ifndef USE_HOSTCC
 #ifdef CONFIG_FIT_ROLLBACK_PROTECT
 			uint32_t this_index, min_index;
 
@@ -2305,6 +2306,7 @@ int fit_image_load_index(struct bootm_headers *images, ulong addr,
 			}
 
 			printf("%d >= %d(min), OK\n", this_index, min_index);
+#endif
 #endif
 		}
 
