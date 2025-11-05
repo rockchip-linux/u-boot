@@ -336,8 +336,9 @@ int test_cipher_perf(struct udevice *dev, cipher_context *ctx, ulong *MBps, bool
 			ret = crypto_cipher(dev, ctx, plain, cipher,
 					    data_size, enc);
 		if (ret) {
-			printf("%s, %d:crypto calc error! ret = %d\n",
-			       __func__, __LINE__, ret);
+			if (ret != -ENOSYS)
+				printf("%s, %d:crypto calc error! ret = %d\n",
+				       __func__, __LINE__, ret);
 			goto exit;
 		}
 	}
@@ -379,6 +380,13 @@ int test_hash_result(void)
 		memset(out, 0x00, sizeof(out));
 
 		ret = hash_init(dev, test_data->algo, &ctx);
+		if (ret == -ENOSYS) {
+			printf("[%s] %-16s unsupported!!!\n",
+			       test_data->algo_name,
+			       test_data->mode_name);
+			continue;
+		}
+
 		ret |= hash_update(dev, ctx, (void *)test_data->data, test_data->data_len);
 		ret |= hash_finish(dev, ctx, out);
 		if (ret) {
@@ -453,6 +461,13 @@ int test_cipher_result(void)
 		else
 			ret = crypto_cipher(dev, &ctx, test_data->plain,
 					    out, test_data->plain_len, true);
+		if (ret == -ENOSYS) {
+			printf("[%s] %-16s unsupported!!!\n",
+			       test_data->algo_name,
+			       test_data->mode_name);
+			continue;
+		}
+
 		if (ret)
 			goto error;
 
