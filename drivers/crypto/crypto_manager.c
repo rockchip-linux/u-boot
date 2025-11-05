@@ -88,7 +88,7 @@ static struct crypto_driver_node *crypto_list_find_driver(const struct list_head
 		if (!crypto_check_node_valid(node))
 			continue;
 
-		if (!driver_name || strcmp(node-> driver_name, driver_name) == 0) {
+		if (!driver_name || strcmp(node->driver_name, driver_name) == 0) {
 			if (idx == index)
 				return node;
 
@@ -124,11 +124,6 @@ int crypto_impl_register(const struct crypto_impl *impl)
 	list_for_each_safe(pos, save, head) {
 		node = list_entry(pos, struct crypto_driver_node, list);
 		if (driver_name && !strcmp(node->driver_name, driver_name)) {
-			if (impl->type == CRYPTO_TYPE_ASYM &&
-			    node->impl->asym.algo != impl->asym.algo) {
-				continue;
-			}
-
 			DMSG("driver_name %s is already exist, cannot be registered multiple times\n",
 			     driver_name);
 			return -EINVAL;
@@ -232,7 +227,7 @@ const char *crypto_get_driver_name(const struct crypto_impl *impl)
 	if (!impl || !impl->dev || !impl->dev->driver || !impl->dev->driver->name)
 		return NULL;
 
-	return impl->dev->driver->name;
+	return impl->name ? impl->name : impl->dev->driver->name;
 }
 
 U_BOOT_DRIVER(crypto_manager) = {

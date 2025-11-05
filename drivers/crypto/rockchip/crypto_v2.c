@@ -51,7 +51,7 @@
 #endif
 
 #define	RK_HASH_CTX_MAGIC	0x1A1A1A1A
-#define CRYPTO_V2_DRIVER_NAME	"rk_crypto_v2"
+#define CRYPTO_DRIVER_NAME	"rk_crypto_v2"
 
 #define LLI_ADDR_ALIGN_SIZE	8
 #define DATA_ADDR_ALIGN_SIZE	8
@@ -882,6 +882,7 @@ static const struct udevice_id rockchip_crypto_ids[] = {
 };
 
 static struct crypto_impl rk_crypto_v2_hash_impl = {
+	.name        = "hash_"CRYPTO_DRIVER_NAME,
 	.type        = CRYPTO_TYPE_HASH,
 	.uclass_id   = UCLASS_MISC,
 	.priority    = CRYPTO_PRIORITY_HW,
@@ -1589,6 +1590,7 @@ int rockchip_crypto_ae(struct udevice *dev, cipher_context *ctx,
 }
 
 static struct crypto_impl rk_crypto_v2_cipher_impl = {
+	.name        = "cipher_"CRYPTO_DRIVER_NAME,
 	.type        = CRYPTO_TYPE_CIPHER,
 	.uclass_id   = UCLASS_MISC,
 	.priority    = CRYPTO_PRIORITY_HW,
@@ -1668,6 +1670,7 @@ static bool rk_mod_exp_check_valid(struct udevice *dev, u32 algo, u32 mode)
 }
 
 static struct crypto_impl rk_mod_exp_impl = {
+	.name        = "mod_exp_"CRYPTO_DRIVER_NAME,
 	.type        = CRYPTO_TYPE_ASYM,
 	.uclass_id   = UCLASS_MISC,
 	.priority    = CRYPTO_PRIORITY_HW,
@@ -1738,6 +1741,7 @@ static bool rk_ecdsa_check_valid(struct udevice *dev, u32 algo, u32 mode)
 }
 
 static struct crypto_impl rk_ecdsa_impl = {
+	.name	     = "ecdsa_verify_"CRYPTO_DRIVER_NAME,
 	.type        = CRYPTO_TYPE_ASYM,
 	.uclass_id   = UCLASS_MISC,
 	.priority    = CRYPTO_PRIORITY_HW,
@@ -1799,7 +1803,7 @@ exit:
 }
 
 U_BOOT_DRIVER(rk_crypto_v2) = {
-	.name       = CRYPTO_V2_DRIVER_NAME,
+	.name       = CRYPTO_DRIVER_NAME,
 	.id         = UCLASS_MISC,
 	.of_match   = rockchip_crypto_ids,
 	.bind       = rockchip_crypto_bind,

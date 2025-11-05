@@ -14,7 +14,7 @@
 #include <rockchip/rkce_core.h>
 #include <rockchip/crypto_v2_pka.h>
 
-#define CRYPTO_CE_DRIVER_NAME	"rk_crypto_ce"
+#define CRYPTO_DRIVER_NAME	"rk_crypto_ce"
 
 #define ROUNDUP(size, alignment)	round_up(size, alignment)
 
@@ -460,6 +460,7 @@ static const struct udevice_id rockchip_crypto_ids[] = {
 };
 
 static struct crypto_impl rk_crypto_hash_impl = {
+	.name        = "hash_"CRYPTO_DRIVER_NAME
 	.type        = CRYPTO_TYPE_HASH,
 	.uclass_id   = UCLASS_MISC,
 	.priority    = CRYPTO_PRIORITY_HW,
@@ -542,6 +543,7 @@ static bool rk_asym_check_valid(struct udevice *dev, u32 algo, u32 mode)
 }
 
 static struct crypto_impl rk_mod_exp_impl = {
+	.name        = "mod_exp_"CRYPTO_DRIVER_NAME
 	.type        = CRYPTO_TYPE_ASYM,
 	.uclass_id   = UCLASS_MISC,
 	.priority    = CRYPTO_PRIORITY_HW,
@@ -580,7 +582,7 @@ exit:
 }
 
 U_BOOT_DRIVER(rk_crypto_ce) = {
-	.name       = CRYPTO_CE_DRIVER_NAME,
+	.name       = CRYPTO_DRIVER_NAME,
 	.id         = UCLASS_MISC,
 	.of_match   = rockchip_crypto_ids,
 	.bind       = rockchip_crypto_bind,

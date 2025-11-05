@@ -38,6 +38,7 @@ enum crypto_type {
 struct crypto_impl {
 	struct udevice       *dev;
 	enum crypto_type     type;
+	const char           *name;
 	u32                  uclass_id;
 	u32                  priority;
 	u32  (*dynamic_priority)(struct udevice *dev, u32 algo, u32 mode);
