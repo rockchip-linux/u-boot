@@ -691,7 +691,6 @@ int rsa_get_params(RSA *key, uint64_t *exponent, uint32_t *n0_invp,
 	return ret;
 }
 
-#ifdef CONFIG_ROCKCHIP_RSA
 static void rsa_convert_big_endian(uint32_t *dst, const uint32_t *src,
 				   int total_len, int convert_len)
 {
@@ -773,44 +772,6 @@ err_nospc:
 
 	return ret ? -ENOSPC : 0;
 }
-#else
-static int rsa_set_key_hash(void *keydest, int key_node,
-			    int key_len, const char *csum_algo)
-{
-	uint8_t value[FIT_MAX_HASH_LEN] = {0};
-	char hash_c[] = "hash@c";
-	char hash_np[] = "hash@np";
-	int hash_node;
-	int ret = -ENOSPC;
-
-	hash_node = fdt_add_subnode(keydest, key_node, hash_c);
-	if (hash_node < 0)
-		goto err_nospc;
-
-	ret = fdt_setprop(keydest, hash_node, FIT_VALUE_PROP,
-			  value, FIT_MAX_HASH_LEN);
-	if (ret)
-		goto err_nospc;
-
-	ret = fdt_setprop_string(keydest, hash_node, FIT_ALGO_PROP, csum_algo);
-	if (ret < 0)
-		goto err_nospc;
-
-	hash_node = fdt_add_subnode(keydest, key_node, hash_np);
-	if (hash_node < 0)
-		goto err_nospc;
-
-	ret = fdt_setprop(keydest, hash_node, FIT_VALUE_PROP,
-			  value, FIT_MAX_HASH_LEN);
-	if (ret < 0)
-		goto err_nospc;
-
-	ret = fdt_setprop_string(keydest, hash_node, FIT_ALGO_PROP, csum_algo);
-
-err_nospc:
-	return ret ? -ENOSPC : 0;
-}
-#endif
 
 int rsa_add_verify_data(struct image_sign_info *info, void *keydest)
 {
