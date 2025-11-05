@@ -435,9 +435,9 @@ function fit_gen_boot_itb()
 		fi
 
 		# fixup
-		FDT_ADDR_R=`strings env/built-in.o | grep 'fdt_addr_r=' | awk -F "=" '{ print $2 }'`
-		KERNEL_ADDR_R=`strings env/built-in.o | grep 'kernel_addr_r=' | awk -F "=" '{ print $2 }'`
-		RMADISK_ADDR_R=`strings env/built-in.o | grep 'ramdisk_addr_r=' | awk -F "=" '{ print $2 }'`
+		FDT_ADDR_R=`strings env/common.o | grep 'fdt_addr_r=' | awk -F "=" '{ print $2 }'`
+		KERNEL_ADDR_R=`strings env/common.o | grep 'kernel_addr_r=' | awk -F "=" '{ print $2 }'`
+		RMADISK_ADDR_R=`strings env/common.o | grep 'ramdisk_addr_r=' | awk -F "=" '{ print $2 }'`
 		sed -i "s/${FDT_ADDR_PLACEHOLDER}/${FDT_ADDR_R}/g"         ${ITS_BOOT}
 		sed -i "s/${KERNEL_ADDR_PLACEHOLDER}/${KERNEL_ADDR_R}/g"   ${ITS_BOOT}
 		sed -i "s/${RAMDISK_ADDR_PLACEHOLDER}/${RMADISK_ADDR_R}/g" ${ITS_BOOT}
@@ -519,9 +519,9 @@ function fit_gen_recovery_itb()
 		fi
 
 		# fixup
-		FDT_ADDR_R=`strings env/built-in.o | grep 'fdt_addr_r=' | awk -F "=" '{ print $2 }'`
-		KERNEL_ADDR_R=`strings env/built-in.o | grep 'kernel_addr_r=' | awk -F "=" '{ print $2 }'`
-		RMADISK_ADDR_R=`strings env/built-in.o | grep 'ramdisk_addr_r=' | awk -F "=" '{ print $2 }'`
+		FDT_ADDR_R=`strings env/common.o | grep 'fdt_addr_r=' | awk -F "=" '{ print $2 }'`
+		KERNEL_ADDR_R=`strings env/common.o | grep 'kernel_addr_r=' | awk -F "=" '{ print $2 }'`
+		RMADISK_ADDR_R=`strings env/common.o | grep 'ramdisk_addr_r=' | awk -F "=" '{ print $2 }'`
 		sed -i "s/${FDT_ADDR_PLACEHOLDER}/${FDT_ADDR_R}/g"         ${ITS_RECOVERY}
 		sed -i "s/${KERNEL_ADDR_PLACEHOLDER}/${KERNEL_ADDR_R}/g"   ${ITS_RECOVERY}
 		sed -i "s/${RAMDISK_ADDR_PLACEHOLDER}/${RMADISK_ADDR_R}/g" ${ITS_RECOVERY}
@@ -765,9 +765,9 @@ function fit_signcfg_export()
 		tar zcvf ${SIG_CFG_DIR}/test_images.tar.gz ${SIG_CFG_DIR}/test_images >/dev/null 2>&1
 		rm -rf ${SIG_CFG_DIR}/test_images/
 
-		FDT_ADDR_R=`strings env/built-in.o | grep 'fdt_addr_r=' | awk -F "=" '{ print $2 }'`
-		KERNEL_ADDR_R=`strings env/built-in.o | grep 'kernel_addr_r=' | awk -F "=" '{ print $2 }'`
-		RMADISK_ADDR_R=`strings env/built-in.o | grep 'ramdisk_addr_r=' | awk -F "=" '{ print $2 }'`
+		FDT_ADDR_R=`strings env/common.o | grep 'fdt_addr_r=' | awk -F "=" '{ print $2 }'`
+		KERNEL_ADDR_R=`strings env/common.o | grep 'kernel_addr_r=' | awk -F "=" '{ print $2 }'`
+		RMADISK_ADDR_R=`strings env/common.o | grep 'ramdisk_addr_r=' | awk -F "=" '{ print $2 }'`
 		echo "fdt_addr_r=${FDT_ADDR_R}" >> ${SIG_CONFIG}
 		echo "kernel_addr_r=${KERNEL_ADDR_R}" >> ${SIG_CONFIG}
 		echo "ramdisk_addr_r=${RMADISK_ADDR_R}" >> ${SIG_CONFIG}
