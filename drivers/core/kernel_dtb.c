@@ -134,7 +134,7 @@ void kernel_dtb_device_bind(struct uclass *uc, struct udevice *dev,
 		UCLASS_ADC,		/* ADC for Button */
 		UCLASS_BUTTON,		/* Button */
 		UCLASS_FIRMWARE,	/* psci sysreset */
-		UCLASS_MISC,		/* RSA security */
+		UCLASS_MISC,		/* RSA/Crypto... security */
 		UCLASS_RNG,		/* ramdom number */
 		UCLASS_SYSCON,		/* grf, pmugrf */
 		UCLASS_SYSRESET,	/* psci sysreset */
