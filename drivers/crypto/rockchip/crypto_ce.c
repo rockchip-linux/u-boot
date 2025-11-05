@@ -145,40 +145,6 @@ exit:
 	return ret;
 }
 
-static int rk_crypto_clk_init(struct udevice *dev)
-{
-	struct rockchip_crypto_plat *plat = dev_get_plat(dev);
-	struct clk clk;
-	int i, ret;
-
-	/* use standard "assigned-clock-rates" props */
-	if (dev_read_size(dev, "assigned-clock-rates") > 0)
-		return clk_set_defaults(dev, 0);
-
-	/* use "clock-frequency" props */
-	if (plat->freq_nclocks == 0 || plat->nclocks == 0)
-		return 0;
-
-	memset(&clk, 0x00, sizeof(clk));
-
-	for (i = 0; i < plat->nclocks; i++) {
-		ret = clk_get_by_index(dev, i, &clk);
-		if (ret < 0) {
-			printf("Failed to get clk id %d, ret=%d\n", plat->clocks[2 * i + 1], ret);
-			return ret;
-		}
-
-		ret = clk_set_rate(&clk, plat->frequencies[i]);
-		if (ret < 0) {
-			printf("%s: Failed to set clk(%ld): ret=%d\n",
-			       __func__, clk.id, ret);
-			return ret;
-		}
-	}
-
-	return 0;
-}
-
 static void crypto_flush_cacheline(ulong addr, ulong size)
 {
 	ulong alignment = CONFIG_SYS_CACHELINE_SIZE;
@@ -433,10 +399,6 @@ static int rockchip_crypto_probe(struct udevice *dev)
 	struct rockchip_crypto_plat *plat = dev_get_plat(dev);
 	int ret = 0;
 
-	ret = rk_crypto_clk_init(dev);
-	if (ret)
-		return ret;
-
 	rk_crypto_enable_clk(dev);
 
 	priv->hardware = rkce_hardware_alloc((void *)plat->base);
@@ -449,7 +411,7 @@ static int rockchip_crypto_probe(struct udevice *dev)
 exit:
 	rk_crypto_disable_clk(dev);
 
-	return 0;
+	return ret;
 }
 
 static const struct udevice_id rockchip_crypto_ids[] = {

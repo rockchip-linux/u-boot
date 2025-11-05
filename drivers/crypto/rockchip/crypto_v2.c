@@ -462,40 +462,6 @@ exit:
 	return ret;
 }
 
-static int rk_crypto_clk_init(struct udevice *dev)
-{
-	struct rockchip_crypto_plat *plat = dev_get_plat(dev);
-	struct clk clk;
-	int i, ret;
-
-	/* use standard "assigned-clock-rates" props */
-	if (dev_read_size(dev, "assigned-clock-rates") > 0)
-		return clk_set_defaults(dev, 0);
-
-	/* use "clock-frequency" props */
-	if (plat->freq_nclocks == 0 || plat->nclocks == 0)
-		return 0;
-
-	memset(&clk, 0x00, sizeof(clk));
-
-	for (i = 0; i < plat->nclocks; i++) {
-		ret = clk_get_by_index(dev, i, &clk);
-		if (ret < 0) {
-			printf("Failed to get clk id %d, ret=%d\n", plat->clocks[2 * i + 1], ret);
-			return ret;
-		}
-
-		ret = clk_set_rate(&clk, plat->frequencies[i]);
-		if (ret < 0) {
-			printf("%s: Failed to set clk(%ld): ret=%d\n",
-			       __func__, clk.id, ret);
-			return ret;
-		}
-	}
-
-	return 0;
-}
-
 static bool hash_check_valid(struct udevice *dev, u32 algo, u32 mode)
 {
 	struct rockchip_crypto_priv *priv = NULL;
@@ -754,7 +720,6 @@ static int rockchip_crypto_probe(struct udevice *dev)
 {
 	struct rockchip_crypto_priv *priv = dev_get_priv(dev);
 	struct rk_crypto_soc_data *sdata;
-	int ret = 0;
 
 	sdata = (struct rk_crypto_soc_data *)dev_get_driver_data(dev);
 
@@ -769,10 +734,6 @@ static int rockchip_crypto_probe(struct udevice *dev)
 				sizeof(struct rk_hash_ctx));
 	if (!priv->hw_ctx)
 		return -ENOMEM;
-
-	ret = rk_crypto_clk_init(dev);
-	if (ret)
-		return ret;
 
 	rk_crypto_enable_clk(dev);
 
