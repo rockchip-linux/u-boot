@@ -1064,6 +1064,12 @@ config CMD_CRYPTO
 	select HASH_SOFTWARE
 	help
 	  Crypto test.
+
+config CMD_CRYPTO_INFO
+	bool "crypto info"
+	depends on CRYPTO_MANAGER
+	help
+	  Dump all crypto implementation register to crypto manager.
 endmenu
 
 menu "Compression commands"

@@ -58,6 +58,7 @@ obj-$(CONFIG_CMD_CONITRACE) += conitrace.o
 obj-$(CONFIG_CMD_CONSOLE) += console.o
 obj-$(CONFIG_CMD_CPU) += cpu.o
 obj-$(CONFIG_CMD_CRYPTO) += crypto.o
+obj-$(CONFIG_CMD_CRYPTO_INFO) += crypto_info.o
 obj-$(CONFIG_CMD_CHARGE_DISPLAY) += charge.o
 obj-$(CONFIG_CMD_DATE) += date.o
 obj-$(CONFIG_CMD_DEMO) += demo.o

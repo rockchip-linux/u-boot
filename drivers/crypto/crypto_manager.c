@@ -228,6 +228,23 @@ const char *crypto_get_driver_name(const struct crypto_impl *impl)
 	return impl->name ? impl->name : impl->dev->driver->name;
 }
 
+const char *asym_algo_name(enum ASYM_ALGO algo)
+{
+	if (algo >= ASYM_ALGO_NUM)
+		return NULL;
+
+	switch (algo) {
+	case ASYM_ALGO_RSA:
+		return "RSA";
+	case ASYM_ALGO_ECC:
+		return "ECC";
+	case ASYM_ALGO_SM2:
+		return "SM2";
+	default:
+		return NULL;
+	}
+}
+
 U_BOOT_DRIVER(crypto_manager) = {
 	.name      = CRYPTO_MISC_MANAGER,
 	.id        = UCLASS_MISC,

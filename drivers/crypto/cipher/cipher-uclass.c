@@ -25,12 +25,34 @@ static const struct cipher_info cipher_info[CIPHER_ALGO_NUM] = {
 	[CIPHER_ALGO_SM4] = { "SM4"},
 };
 
+static const struct cipher_info cipher_mode[CIPHER_MODE_NUM] = {
+	[CIPHER_MODE_ECB]     = { "ECB"},
+	[CIPHER_MODE_CBC]     = { "CBC"},
+	[CIPHER_MODE_CFB]     = { "CFB"},
+	[CIPHER_MODE_OFB]     = { "OFB"},
+	[CIPHER_MODE_CTS]     = { "CTS"},
+	[CIPHER_MODE_CTR]     = { "CTR"},
+	[CIPHER_MODE_XTS]     = { "XTS"},
+	[CIPHER_MODE_CCM]     = { "CCM"},
+	[CIPHER_MODE_GCM]     = { "GCM"},
+	[CIPHER_MODE_CMAC]    = { "CMAC"},
+	[CIPHER_MODE_CBC_MAC] = { "CBC_MAC"},
+};
+
 const char *cipher_algo_name(enum CIPHER_ALGO algo)
 {
 	if (algo >= CIPHER_ALGO_NUM)
 		return NULL;
 
 	return cipher_info[algo].name;
+}
+
+const char *cipher_mode_name(enum CIPHER_MODE mode)
+{
+	if (mode >= CIPHER_MODE_NUM)
+		return NULL;
+
+	return cipher_mode[mode].name;
 }
 
 int crypto_cipher(struct udevice *dev, cipher_context *ctx,

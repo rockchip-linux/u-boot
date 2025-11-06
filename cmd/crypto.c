@@ -11,12 +11,6 @@
 #include <hexdump.h>
 #include <rockchip/crypto_fix_test_data.h>
 
-const char* g_asym_algos_tbl[ASYM_ALGO_NUM] = {
-	[ASYM_ALGO_RSA] = "RSA",
-	[ASYM_ALGO_ECC] = "ECC",
-	[ASYM_ALGO_SM2] = "SM2",
-};
-
 #define PERF_TOTAL_SIZE			(128 * 1024 * 1024)
 #define PERF_BUFF_SIZE			(4 * 1024 * 1024)
 
@@ -601,47 +595,6 @@ exit:
 	return rc;
 }
 
-static void dump_crypto_info(const struct crypto_impl *impl)
-{
-	const char *driver_name;
-	u32 i;
-
-	driver_name = crypto_get_driver_name(impl);
-	if (!driver_name)
-		driver_name = "Unknown";
-
-	printf("================================================\n");
-	printf("driver_name: %s\n", driver_name);
-	printf("priority   : %u\n", impl->priority);
-
-	if (impl->type == CRYPTO_TYPE_HASH) {
-		printf("hash       : ");
-		for (i = 0; i < HASH_ALGO_NUM; i++) {
-			if (impl->check_valid(impl->dev, i, CRYPTO_MODE_NONE))
-				printf("%s, ", hash_algo_name(i));
-		}
-
-		printf("\n");
-	} else if (impl->type == CRYPTO_TYPE_ASYM) {
-		printf("asym       : ");
-		for (i = 0; i < ASYM_ALGO_NUM; i++) {
-			if (impl->check_valid(impl->dev, i, CRYPTO_MODE_NONE))
-				printf("%s, ", g_asym_algos_tbl[i]);
-		}
-
-		printf("\n");
-	} else if (impl->type == CRYPTO_TYPE_CIPHER) {
-		printf("cipher       : ");
-		for (i = 0; i < CIPHER_ALGO_NUM; i++) {
-			if (impl->check_valid(impl->dev, i, CRYPTO_MODE_NONE))
-				printf("%s, ", cipher_algo_name(i));
-		}
-
-		printf("\n");
-	}
-	printf("================================================\n\n");
-}
-
 int test_ec_result(void)
 {
 	const struct ec_test_data *test_data = NULL;
@@ -700,19 +653,6 @@ error:
 
 static int do_crypto(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
-	const struct crypto_impl *impl = NULL;
-	u32 type, index;
-
-	for (type = 0; type < CRYPTO_TYPE_MAX; type++) {
-		for (index = 0; index < CRYPTO_DRIVER_MAX; index++) {
-			impl = crypto_get_impl_by_index(type, index);
-			if (!impl)
-				break;
-
-			dump_crypto_info(impl);
-		}
-	}
-
 	test_cipher_result();
 
 	test_hash_result();

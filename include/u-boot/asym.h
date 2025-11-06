@@ -35,4 +35,6 @@ struct asym_ops {
 	};
 };
 
+const char *asym_algo_name(enum ASYM_ALGO algo);
+
 #endif

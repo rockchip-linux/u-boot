@@ -114,4 +114,6 @@ int crypto_ae(struct udevice *dev, cipher_context *ctx,
 
 const char *cipher_algo_name(enum CIPHER_ALGO algo);
 
+const char *cipher_mode_name(enum CIPHER_MODE mode);
+
 #endif
