@@ -18,29 +18,6 @@
 
 //#define DEBUG
 
-#define CRYPTO_MD5		BIT(0)
-#define CRYPTO_SHA1		BIT(1)
-#define CRYPTO_SHA256		BIT(2)
-#define CRYPTO_SHA512		BIT(3)
-#define CRYPTO_SM3		BIT(4)
-#define CRYPTO_SHA384		BIT(5)
-
-#define CRYPTO_RSA512		BIT(10)
-#define CRYPTO_RSA1024		BIT(11)
-#define CRYPTO_RSA2048		BIT(12)
-#define CRYPTO_RSA3072		BIT(13)
-#define CRYPTO_RSA4096		BIT(14)
-
-#define CRYPTO_DES		BIT(20)
-#define CRYPTO_AES		BIT(21)
-#define CRYPTO_SM4		BIT(22)
-
-#define CRYPTO_HMAC_MD5		BIT(25)
-#define CRYPTO_HMAC_SHA1 	BIT(26)
-#define CRYPTO_HMAC_SHA256	BIT(27)
-#define CRYPTO_HMAC_SHA512	BIT(28)
-#define CRYPTO_HMAC_SM3		BIT(29)
-
 #ifdef DEBUG
 #define DMSG(format, ...) printf("[%s, %05d]-trace: " format "\n", \
 				 __func__, __LINE__, ##__VA_ARGS__)
@@ -131,13 +108,23 @@ struct rk_hash_ctx {
 	u8				last_chunk[64];
 };
 
+struct rk_crypto_ver {
+	u32 aes_ver;
+	u32 des_ver;
+	u32 sm4_ver;
+	u32 hash_ver;
+	u32 hmac_ver;
+	u32 pka_ver;
+	u32 extra_feature;
+};
+
 struct rk_crypto_soc_data {
-	u32 capability;
-	u32 (*dynamic_cap)(void);
+	struct rk_crypto_ver crypto_ver;
+	void (*dynamic_ver_init)(struct rk_crypto_ver *ver);
 };
 
 struct rockchip_crypto_plat {
-	void __iomem	*base;
+	void __iomem			*base;
 	u32				*clocks;
 	u32				*frequencies;
 	u32				nclocks;
@@ -467,12 +454,12 @@ static bool hash_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	struct rockchip_crypto_priv *priv = NULL;
 
 	const u32 hash_bitmap[HASH_ALGO_NUM] = {
-		[HASH_ALGO_MD5]    = CRYPTO_MD5,
-		[HASH_ALGO_SHA1]   = CRYPTO_SHA1,
-		[HASH_ALGO_SHA256] = CRYPTO_SHA256,
-		[HASH_ALGO_SHA384] = CRYPTO_SHA384,
-		[HASH_ALGO_SHA512] = CRYPTO_SHA512,
-
+		[HASH_ALGO_MD5]    = CRYPTO_HASH_MD5_FLAG,
+		[HASH_ALGO_SHA1]   = CRYPTO_HASH_SHA1_FLAG,
+		[HASH_ALGO_SHA256] = CRYPTO_HASH_SHA256_FLAG,
+		[HASH_ALGO_SHA384] = CRYPTO_HASH_SHA384_FLAG,
+		[HASH_ALGO_SHA512] = CRYPTO_HASH_SHA512_FLAG,
+		[HASH_ALGO_SM3]    = CRYPTO_HASH_SM3_FLAG,
 	};
 
 	if (!dev)
@@ -485,7 +472,7 @@ static bool hash_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (mode != CRYPTO_MODE_NONE || algo >= HASH_ALGO_NUM)
 		return false;
 
-	return !!(hash_bitmap[algo] & priv->soc_data->capability);
+	return !!(hash_bitmap[algo] & priv->soc_data->crypto_ver.hash_ver);
 }
 
 static int rk_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx)
@@ -650,70 +637,17 @@ exit:
 	return ret;
 }
 
-static u32 crypto_v3_dynamic_cap(void)
+static void crypto_v3_dynamic_ver_init(struct rk_crypto_ver *ver)
 {
-	u32 capability = 0;
-	u32 ver_reg, i;
-	struct cap_map {
-		u32 ver_offset;
-		u32 mask;
-		u32 cap_bit;
-	};
-	const struct cap_map cap_tbl[] = {
-	{CRYPTO_HASH_VERSION, CRYPTO_HASH_MD5_FLAG,    CRYPTO_MD5},
-	{CRYPTO_HASH_VERSION, CRYPTO_HASH_SHA1_FLAG,   CRYPTO_SHA1},
-	{CRYPTO_HASH_VERSION, CRYPTO_HASH_SHA256_FLAG, CRYPTO_SHA256},
-	{CRYPTO_HASH_VERSION, CRYPTO_HASH_SHA384_FLAG, CRYPTO_SHA384},
-	{CRYPTO_HASH_VERSION, CRYPTO_HASH_SHA512_FLAG, CRYPTO_SHA512},
-	{CRYPTO_HASH_VERSION, CRYPTO_HASH_SM3_FLAG,    CRYPTO_SM3},
+	memset(ver, 0x00, sizeof(*ver));
 
-	{CRYPTO_HMAC_VERSION, CRYPTO_HMAC_MD5_FLAG,    CRYPTO_HMAC_MD5},
-	{CRYPTO_HMAC_VERSION, CRYPTO_HMAC_SHA1_FLAG,   CRYPTO_HMAC_SHA1},
-	{CRYPTO_HMAC_VERSION, CRYPTO_HMAC_SHA256_FLAG, CRYPTO_HMAC_SHA256},
-	{CRYPTO_HMAC_VERSION, CRYPTO_HMAC_SHA512_FLAG, CRYPTO_HMAC_SHA512},
-	{CRYPTO_HMAC_VERSION, CRYPTO_HMAC_SM3_FLAG,    CRYPTO_HMAC_SM3},
-
-	{CRYPTO_AES_VERSION,  CRYPTO_AES256_FLAG,      CRYPTO_AES},
-	{CRYPTO_DES_VERSION,  CRYPTO_TDES_FLAG,        CRYPTO_DES},
-	{CRYPTO_SM4_VERSION,  CRYPTO_ECB_FLAG,         CRYPTO_SM4},
-	};
-
-	/* rsa */
-	capability = CRYPTO_RSA512 |
-		     CRYPTO_RSA1024 |
-		     CRYPTO_RSA2048 |
-		     CRYPTO_RSA3072 |
-		     CRYPTO_RSA4096;
-
-	for (i = 0; i < ARRAY_SIZE(cap_tbl); i++) {
-		ver_reg = crypto_read(cap_tbl[i].ver_offset);
-
-		if ((ver_reg & cap_tbl[i].mask) == cap_tbl[i].mask)
-			capability |= cap_tbl[i].cap_bit;
-	}
-
-	return capability;
-}
-
-static u32 crypto_adjust_capability(u32 capability)
-{
-	u32 mask = 0;
-
-#if !(CONFIG_IS_ENABLED(ROCKCHIP_CIPHER))
-	mask |= (CRYPTO_DES | CRYPTO_AES | CRYPTO_SM4);
-#endif
-
-#if !(CONFIG_IS_ENABLED(ROCKCHIP_HMAC))
-	mask |= (CRYPTO_HMAC_MD5 | CRYPTO_HMAC_SHA1 | CRYPTO_HMAC_SHA256 |
-			 CRYPTO_HMAC_SHA512 | CRYPTO_HMAC_SM3);
-#endif
-
-#if !(CONFIG_IS_ENABLED(ROCKCHIP_RSA))
-	mask |= (CRYPTO_RSA512 | CRYPTO_RSA1024 | CRYPTO_RSA2048 |
-			 CRYPTO_RSA3072 | CRYPTO_RSA4096);
-#endif
-
-	return capability & (~mask);
+	ver->aes_ver       = crypto_read(CRYPTO_AES_VERSION);
+	ver->des_ver       = crypto_read(CRYPTO_DES_VERSION);
+	ver->sm4_ver       = crypto_read(CRYPTO_SM4_VERSION);
+	ver->hash_ver      = crypto_read(CRYPTO_HASH_VERSION);
+	ver->hmac_ver      = crypto_read(CRYPTO_HMAC_VERSION);
+	ver->pka_ver       = crypto_read(CRYPTO_PKA_VERSION);
+	ver->extra_feature = crypto_read(CRYPTO_EXTRA_FEATURE);
 }
 
 static int rockchip_crypto_probe(struct udevice *dev)
@@ -722,11 +656,8 @@ static int rockchip_crypto_probe(struct udevice *dev)
 	struct rk_crypto_soc_data *sdata;
 
 	sdata = (struct rk_crypto_soc_data *)dev_get_driver_data(dev);
-
-	if (sdata->dynamic_cap)
-		sdata->capability = sdata->dynamic_cap();
-	else
-		sdata->capability = crypto_adjust_capability(sdata->capability);
+	if (!sdata)
+		return -EINVAL;
 
 	priv->soc_data = sdata;
 
@@ -739,72 +670,130 @@ static int rockchip_crypto_probe(struct udevice *dev)
 
 	hw_crypto_reset();
 
+	if (priv->soc_data->dynamic_ver_init)
+		priv->soc_data->dynamic_ver_init(&priv->soc_data->crypto_ver);
+
 	rk_crypto_disable_clk(dev);
 
 	return 0;
 }
 
 static const struct rk_crypto_soc_data soc_data_base = {
-	.capability =
-		      CRYPTO_MD5 |
-		      CRYPTO_SHA1 |
-		      CRYPTO_SHA256 |
-		      CRYPTO_SHA384 |
-		      CRYPTO_SHA512 |
-		      CRYPTO_HMAC_MD5 |
-		      CRYPTO_HMAC_SHA1 |
-		      CRYPTO_HMAC_SHA256 |
-		      CRYPTO_HMAC_SHA512 |
-		      CRYPTO_RSA512 |
-		      CRYPTO_RSA1024 |
-		      CRYPTO_RSA2048 |
-		      CRYPTO_RSA3072 |
-		      CRYPTO_RSA4096 |
-		      CRYPTO_DES |
-		      CRYPTO_AES,
+	.crypto_ver = {
+		.aes_ver  = CRYPTO_ECB_FLAG |
+			    CRYPTO_CBC_FLAG |
+			    CRYPTO_CTS_FLAG |
+			    CRYPTO_CTR_FLAG |
+			    CRYPTO_CFB_FLAG |
+			    CRYPTO_OFB_FLAG |
+			    CRYPTO_XTS_FLAG |
+			    CRYPTO_CCM_FLAG |
+			    CRYPTO_GCM_FLAG |
+			    CRYPTO_CMAC_FLAG |
+			    CRYPTO_CBCMAC_FLAG,
+		.des_ver  = CRYPTO_ECB_FLAG |
+			    CRYPTO_CBC_FLAG |
+			    CRYPTO_CFB_FLAG |
+			    CRYPTO_OFB_FLAG |
+			    CRYPTO_TDES_FLAG,
+		.sm4_ver  = 0x00000000,
+		.hash_ver = CRYPTO_HASH_SHA1_FLAG |
+			    CRYPTO_HASH_SHA224_FLAG |
+			    CRYPTO_HASH_SHA256_FLAG |
+			    CRYPTO_HASH_SHA384_FLAG |
+			    CRYPTO_HASH_SHA512_224_FLAG |
+			    CRYPTO_HASH_SHA512_256_FLAG |
+			    CRYPTO_HASH_SHA512_FLAG |
+			    CRYPTO_HASH_MD5_FLAG,
+		.hmac_ver = CRYPTO_HMAC_SHA1_FLAG |
+			    CRYPTO_HMAC_SHA256_FLAG |
+			    CRYPTO_HMAC_SHA512_FLAG |
+			    CRYPTO_HMAC_MD5_FLAG,
+		.pka_ver  = 0x01000000,
+	},
 };
 
 static const struct rk_crypto_soc_data soc_data_base_sm = {
-	.capability = CRYPTO_MD5 |
-		      CRYPTO_SHA1 |
-		      CRYPTO_SHA256 |
-		      CRYPTO_SHA384 |
-		      CRYPTO_SHA512 |
-		      CRYPTO_SM3 |
-		      CRYPTO_HMAC_MD5 |
-		      CRYPTO_HMAC_SHA1 |
-		      CRYPTO_HMAC_SHA256 |
-		      CRYPTO_HMAC_SHA512 |
-		      CRYPTO_HMAC_SM3 |
-		      CRYPTO_RSA512 |
-		      CRYPTO_RSA1024 |
-		      CRYPTO_RSA2048 |
-		      CRYPTO_RSA3072 |
-		      CRYPTO_RSA4096 |
-		      CRYPTO_DES |
-		      CRYPTO_AES |
-		      CRYPTO_SM4,
+	.crypto_ver = {
+		.aes_ver  = CRYPTO_ECB_FLAG |
+			    CRYPTO_CBC_FLAG |
+			    CRYPTO_CTS_FLAG |
+			    CRYPTO_CTR_FLAG |
+			    CRYPTO_CFB_FLAG |
+			    CRYPTO_OFB_FLAG |
+			    CRYPTO_XTS_FLAG |
+			    CRYPTO_CCM_FLAG |
+			    CRYPTO_GCM_FLAG |
+			    CRYPTO_CMAC_FLAG |
+			    CRYPTO_CBCMAC_FLAG,
+		.des_ver  = CRYPTO_ECB_FLAG |
+			    CRYPTO_CBC_FLAG |
+			    CRYPTO_CFB_FLAG |
+			    CRYPTO_OFB_FLAG |
+			    CRYPTO_TDES_FLAG,
+		.sm4_ver  = CRYPTO_ECB_FLAG |
+			    CRYPTO_CBC_FLAG |
+			    CRYPTO_CTS_FLAG |
+			    CRYPTO_CTR_FLAG |
+			    CRYPTO_CFB_FLAG |
+			    CRYPTO_OFB_FLAG |
+			    CRYPTO_XTS_FLAG |
+			    CRYPTO_CCM_FLAG |
+			    CRYPTO_GCM_FLAG |
+			    CRYPTO_CMAC_FLAG |
+			    CRYPTO_CBCMAC_FLAG,
+		.hash_ver = CRYPTO_HASH_SHA1_FLAG |
+			    CRYPTO_HASH_SHA224_FLAG |
+			    CRYPTO_HASH_SHA256_FLAG |
+			    CRYPTO_HASH_SHA384_FLAG |
+			    CRYPTO_HASH_SHA512_224_FLAG |
+			    CRYPTO_HASH_SHA512_256_FLAG |
+			    CRYPTO_HASH_SHA512_FLAG |
+			    CRYPTO_HASH_MD5_FLAG |
+			    CRYPTO_HASH_SM3_FLAG,
+		.hmac_ver = CRYPTO_HMAC_SHA1_FLAG |
+			    CRYPTO_HMAC_SHA256_FLAG |
+			    CRYPTO_HMAC_SHA512_FLAG |
+			    CRYPTO_HMAC_MD5_FLAG |
+			    CRYPTO_HMAC_SM3_FLAG,
+		.pka_ver  = 0x01000000,
+	},
 };
 
 static const struct rk_crypto_soc_data soc_data_rk1808 = {
-	.capability = CRYPTO_MD5 |
-		      CRYPTO_SHA1 |
-		      CRYPTO_SHA256 |
-		      CRYPTO_HMAC_MD5 |
-		      CRYPTO_HMAC_SHA1 |
-		      CRYPTO_HMAC_SHA256 |
-		      CRYPTO_RSA512 |
-		      CRYPTO_RSA1024 |
-		      CRYPTO_RSA2048 |
-		      CRYPTO_RSA3072 |
-		      CRYPTO_RSA4096,
+		.crypto_ver = {
+		.aes_ver  = CRYPTO_ECB_FLAG |
+			    CRYPTO_CBC_FLAG |
+			    CRYPTO_CTS_FLAG |
+			    CRYPTO_CTR_FLAG |
+			    CRYPTO_CFB_FLAG |
+			    CRYPTO_OFB_FLAG |
+			    CRYPTO_XTS_FLAG |
+			    CRYPTO_CCM_FLAG |
+			    CRYPTO_GCM_FLAG |
+			    CRYPTO_CMAC_FLAG |
+			    CRYPTO_CBCMAC_FLAG,
+		.des_ver  = CRYPTO_ECB_FLAG |
+			    CRYPTO_CBC_FLAG |
+			    CRYPTO_CFB_FLAG |
+			    CRYPTO_OFB_FLAG |
+			    CRYPTO_TDES_FLAG,
+		.sm4_ver  = 0x00000000,
+		.hash_ver = CRYPTO_HASH_SHA1_FLAG |
+			    CRYPTO_HASH_SHA224_FLAG |
+			    CRYPTO_HASH_SHA256_FLAG |
+			    CRYPTO_HASH_MD5_FLAG,
+		.hmac_ver = CRYPTO_HMAC_SHA1_FLAG |
+			    CRYPTO_HMAC_SHA256_FLAG |
+			    CRYPTO_HMAC_MD5_FLAG |
+			    CRYPTO_HMAC_SM3_FLAG,
+		.pka_ver  = 0x01000000,
+	},
 };
 
 static const struct rk_crypto_soc_data soc_data_cryptov3 = {
-	.capability  = 0,
-	.dynamic_cap = crypto_v3_dynamic_cap,
+	.dynamic_ver_init = crypto_v3_dynamic_ver_init,
 };
-
 
 static const struct udevice_id rockchip_crypto_ids[] = {
 	{
@@ -1403,11 +1392,20 @@ int rk_crypto_sm4(struct udevice *dev, u32 mode,
 static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
 {
 	struct rockchip_crypto_priv *priv = NULL;
+	u32 version;
 
-	const u32 cipher_bitmap[CIPHER_ALGO_NUM] = {
-		[CIPHER_ALGO_DES] = CRYPTO_DES,
-		[CIPHER_ALGO_AES] = CRYPTO_AES,
-		[CIPHER_ALGO_SM4] = CRYPTO_SM4,
+	const u32 cipher_bitmap[CIPHER_MODE_NUM] = {
+		[CIPHER_MODE_ECB]     = CRYPTO_ECB_FLAG,
+		[CIPHER_MODE_CBC]     = CRYPTO_CBC_FLAG,
+		[CIPHER_MODE_CTS]     = CRYPTO_CTS_FLAG,
+		[CIPHER_MODE_CTR]     = CRYPTO_CTR_FLAG,
+		[CIPHER_MODE_CFB]     = CRYPTO_CFB_FLAG,
+		[CIPHER_MODE_OFB]     = CRYPTO_OFB_FLAG,
+		[CIPHER_MODE_XTS]     = CRYPTO_XTS_FLAG,
+		[CIPHER_MODE_CCM]     = CRYPTO_CCM_FLAG,
+		[CIPHER_MODE_GCM]     = CRYPTO_GCM_FLAG,
+		[CIPHER_MODE_CMAC]    = CRYPTO_CMAC_FLAG,
+		[CIPHER_MODE_CBC_MAC] = CRYPTO_CBCMAC_FLAG,
 	};
 
 	if (!dev)
@@ -1423,7 +1421,21 @@ static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (algo >= CIPHER_ALGO_NUM)
 		return false;
 
-	return !!(cipher_bitmap[algo] & priv->soc_data->capability);
+	switch (algo) {
+	case CIPHER_ALGO_DES:
+		version = priv->soc_data->crypto_ver.des_ver;
+		break;
+	case CIPHER_ALGO_AES:
+		version = priv->soc_data->crypto_ver.aes_ver;
+		break;
+	case CIPHER_ALGO_SM4:
+		version = priv->soc_data->crypto_ver.sm4_ver;
+		break;
+	default:
+		return false;
+	}
+
+	return !!(cipher_bitmap[mode] & version);
 }
 
 int rockchip_crypto_cipher(struct udevice *dev, cipher_context *ctx,
