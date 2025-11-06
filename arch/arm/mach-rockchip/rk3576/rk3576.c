@@ -173,8 +173,9 @@ void rockchip_stimer_init(void)
 	reg = readl(HP_TIMER_BASE + HP_CTRL_REG);
 	if (reg & TIMER_EN)
 		return;
-
+#if (CONFIG_COUNTER_FREQUENCY > 0)
 	asm volatile("msr cntfrq_el0, %0" : : "r" (CONFIG_COUNTER_FREQUENCY));
+#endif
 	writel(0xffffffff, HP_TIMER_BASE + HP_LOAD_COUNT0_REG);
 	writel(0xffffffff, HP_TIMER_BASE + HP_LOAD_COUNT1_REG);
 	writel((TIMER_EN << 16) | TIMER_EN, HP_TIMER_BASE + HP_CTRL_REG);

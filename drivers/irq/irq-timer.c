@@ -22,7 +22,7 @@ static void timer_irq_isr(int irq, void *data)
 int irq_timeout_stackdump(void)
 {
 	uint32_t load_count0, load_count1;
-	uint64_t delay_c = TIMER_IRQ_TIMEOUT * CONFIG_COUNTER_FREQUENCY;
+	uint64_t delay_c = TIMER_IRQ_TIMEOUT * gd->arch.timer_rate_hz;
 
 	if (!delay_c)
 		return 0;

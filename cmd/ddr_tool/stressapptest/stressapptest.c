@@ -441,7 +441,7 @@ u32 print_mutex;	/* 0: unlock, 1: lock */
 
 static u64 get_time_us(void)
 {
-	return lldiv(get_ticks(), CONFIG_COUNTER_FREQUENCY / (CONFIG_SYS_HZ * 1000));
+	return lldiv(get_ticks(), gd->arch.timer_rate_hz / (CONFIG_SYS_HZ * 1000));
 }
 
 static u64 run_time_us(void)

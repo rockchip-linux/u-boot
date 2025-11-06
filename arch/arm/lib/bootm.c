@@ -83,8 +83,8 @@ static void announce_and_cleanup(int fake)
 
 	cleanup_before_linux();
 
-	us = (get_ticks() - gd->sys_start_tick) / (CONFIG_COUNTER_FREQUENCY / 1000000);
-	tt_us = get_ticks() / (CONFIG_COUNTER_FREQUENCY / 1000000);
+	us = (get_ticks() - gd->sys_start_tick) / (gd->arch.timer_rate_hz / 1000000);
+	tt_us = get_ticks() / (gd->arch.timer_rate_hz / 1000000);
 	printf("Total: %ld.%ld/%ld.%ld ms\n", us / 1000, us % 1000, tt_us / 1000, tt_us % 1000);
 
 	printf("\nStarting kernel ...%s\n\n", fake ?

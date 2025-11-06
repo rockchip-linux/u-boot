@@ -175,7 +175,7 @@ pie_fixup_done:
 	isb
 
 
-#if CONFIG_COUNTER_FREQUENCY
+#if (CONFIG_COUNTER_FREQUENCY > 0)
 	branch_if_not_highest_el x0, 4f
 	ldr	x0, =CONFIG_COUNTER_FREQUENCY
 	msr	cntfrq_el0, x0			/* Initialize CNTFRQ */
