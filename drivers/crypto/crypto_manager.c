@@ -30,7 +30,7 @@ enum crypto_impl_status {
 struct crypto_driver_node {
 	struct list_head	list;
 	const char		*driver_name;
-	const struct crypto_impl *impl;
+	struct crypto_impl	impl;
 	enum crypto_impl_status status;
 };
 
@@ -38,14 +38,12 @@ static struct list_head crypto_algo_lists[CRYPTO_TYPE_MAX] = {
 	[CRYPTO_TYPE_HASH]   = LIST_HEAD_INIT(crypto_algo_lists[CRYPTO_TYPE_HASH]),
 	[CRYPTO_TYPE_HMAC]   = LIST_HEAD_INIT(crypto_algo_lists[CRYPTO_TYPE_HMAC]),
 	[CRYPTO_TYPE_CIPHER] = LIST_HEAD_INIT(crypto_algo_lists[CRYPTO_TYPE_CIPHER]),
-	[CRYPTO_TYPE_AEAD]   = LIST_HEAD_INIT(crypto_algo_lists[CRYPTO_TYPE_AEAD]),
-	[CRYPTO_TYPE_MAC]    = LIST_HEAD_INIT(crypto_algo_lists[CRYPTO_TYPE_MAC]),
 	[CRYPTO_TYPE_ASYM]   = LIST_HEAD_INIT(crypto_algo_lists[CRYPTO_TYPE_ASYM]),
 };
 
 static bool crypto_check_node_valid(struct crypto_driver_node *node)
 {
-	const struct crypto_impl *impl = node->impl;
+	const struct crypto_impl *impl = &node->impl;
 
 	if (!impl)
 		return false;
@@ -134,7 +132,7 @@ int crypto_impl_register(const struct crypto_impl *impl)
 	if (!new_node)
 		return -ENOMEM;
 
-	new_node->impl        = impl;
+	memcpy(&new_node->impl, impl, sizeof(*impl));
 	new_node->driver_name = driver_name;
 	new_node->status      = CRYPTO_IMPL_UNINITED;
 	list_add_tail(&new_node->list, head);
@@ -179,7 +177,7 @@ const struct crypto_impl *crypto_get_impl(enum crypto_type type, u32 algo, u32 m
 
 	list_for_each_safe(pos, save, &crypto_algo_lists[type]) {
 		node = list_entry(pos, struct crypto_driver_node, list);
-		impl = node->impl;
+		impl = &node->impl;
 		DMSG("node = %p, %s\n", node, node->driver_name);
 
 		if (!crypto_check_node_valid(node))
@@ -216,7 +214,7 @@ const struct crypto_impl *crypto_get_impl_by_index(enum crypto_type type, u32 in
 	if (!node)
 		return NULL;
 
-	return node->impl;
+	return &node->impl;
 }
 
 const char *crypto_get_driver_name(const struct crypto_impl *impl)
