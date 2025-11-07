@@ -38,6 +38,8 @@ struct legacy_img_hdr;
 struct spl_boot_device;
 enum boot_device;
 
+#define BLK_SIZE(info, n)	((info)->bl_len * (n))
+
 /*
  * xpl_is_first_phase() - check if this is the first U-Boot phase
  *

@@ -989,7 +989,8 @@ static int spl_load_kernel_fit(struct spl_image_info *spl_image,
 #endif
 	printf("Trying kernel at 0x%x sector from '%s' part\n", sector, part_name);
 
-	if (info->read(info, sector, 1, &fit_header) != 1) {
+	if (info->read(info, BLK_SIZE(info, sector),
+		       info->bl_len, &fit_header) < info->bl_len) {
 		debug("%s: Failed to read header\n", __func__);
 		return -EIO;
 	}
@@ -1307,7 +1308,7 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 		if (i > 0) {
 			offset += i * (CONFIG_SPL_FIT_IMAGE_KB << 10);
 			printf("Trying fit image at 0x%lx sector\n", offset / info->bl_len);
-			if (info->read(info, offset, 1, fit) != 1) {
+			if (info->read(info, offset, info->bl_len, fit) < info->bl_len) {
 				printf("IO error\n");
 				continue;
 			}

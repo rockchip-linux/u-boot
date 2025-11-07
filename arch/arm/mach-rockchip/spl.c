@@ -510,9 +510,9 @@ const char *spl_kernel_partition(struct spl_image_info *spl,
 	if (sector) {
 		cnt = DIV_ROUND_UP(sizeof(*bmsg), info->bl_len);
 		bmsg = memalign(ARCH_DMA_MINALIGN, cnt * info->bl_len);
-		ret = info->read(info, sector + BCB_MESSAGE_BLK_OFFSET,
-				 cnt, bmsg);
-		if (ret == cnt && !strcmp(bmsg->command, "boot-recovery")) {
+		ret = info->read(info, BLK_SIZE(info, sector + BCB_MESSAGE_BLK_OFFSET),
+				 BLK_SIZE(cnt), bmsg);
+		if (ret < BLK_SIZE(cnt) && !strcmp(bmsg->command, "boot-recovery")) {
 			free(bmsg);
 			return PART_RECOVERY;
 		} else {
