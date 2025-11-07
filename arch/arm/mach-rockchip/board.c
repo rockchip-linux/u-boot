@@ -281,8 +281,6 @@ int board_late_init(void)
 	rockchip_setup_serial_number();
 #endif
 	rockusb_download();
-
-	scan_run_cmd();
 #ifdef CONFIG_ROCKCHIP_USB_BOOT
 	usb_boot_init();
 #endif
@@ -308,6 +306,7 @@ int board_late_init(void)
 #if IS_ENABLED(CONFIG_EFI_HAVE_CAPSULE_SUPPORT) && IS_ENABLED(CONFIG_EFI_PARTITION)
 	gpt_capsule_update_setup();
 #endif
+	scan_run_cmd();
 #ifdef CONFIG_AMP
 	amp_cpus_on();
 #endif
