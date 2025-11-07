@@ -62,6 +62,8 @@ source "drivers/iommu/Kconfig"
 
 source "drivers/irq/Kconfig"
 
+source "drivers/keylad/Kconfig"
+
 source "drivers/led/Kconfig"
 
 source "drivers/mailbox/Kconfig"

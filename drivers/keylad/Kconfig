@@ -1,0 +1,9 @@
+menu "Keylad devices"
+
+config SPL_DM_KEYLAD
+	bool "Enable Driver Model for KEYLAD drivers in spl"
+	depends on SPL_DM
+	---help---
+	This config enables the dm keylad support.
+
+endmenu

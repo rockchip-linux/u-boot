@@ -175,6 +175,7 @@ enum uclass_id {
 	UCLASS_RKNAND,		/* RKNAND */
 	UCLASS_SPINAND,		/* SPI Nand flash */
 	UCLASS_SPINOR,		/* SPI Nor flash */
+	UCLASS_KEYLAD,		/* keylad used to transfer otp key */
 #endif
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
