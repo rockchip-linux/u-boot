@@ -197,7 +197,7 @@ function gen_bl32_node()
 			data = /incbin/(\"${TEE}${SUFFIX}\");
 			type = \"firmware\";
 			arch = \"${ARCH}\";
-			os = \"tee\";
+			os = \"op-tee\";
 			compression = \"${COMPRESSION}\";
 			${ENTRY}
 			load = <"${TEE_LOAD_ADDR}">;"
