@@ -14,7 +14,11 @@ struct udevice;
 #define RESPONSE_UPIU_SENSE_DATA_LENGTH	18
 
 #ifdef CONFIG_ARCH_ROCKCHIP
+#ifdef CONFIG_SPL_BUILD
+#define UFS_MAX_LUNS		0x1
+#else
 #define UFS_MAX_LUNS		0x4
+#endif
 #else
 #define UFS_MAX_LUNS		0x7F
 #endif
