@@ -41,6 +41,7 @@ struct crypto_impl {
 	u32                  priority;
 	u32  (*dynamic_priority)(struct udevice *dev, u32 algo, u32 mode);
 	bool (*check_valid)(struct udevice *dev, u32 algo, u32 mode);
+	bool (*is_secure)(struct udevice *dev);
 
 	union {
 		struct cipher_ops cipher;

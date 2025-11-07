@@ -49,6 +49,8 @@ struct rockchip_crypto_priv {
 	u32		length;
 
 	void		*hardware;
+	u16		secure;
+	u16		enabled;
 };
 
 void __iomem *crypto_base;
@@ -84,16 +86,25 @@ static int rk_crypto_set_clk(struct udevice *dev, int enable)
 
 static int rk_crypto_enable_clk(struct udevice *dev)
 {
+	struct rockchip_crypto_plat *plat = dev_get_plat(dev);
+
+	crypto_base = plat->base;
+
 	return rk_crypto_set_clk(dev, 1);
 }
 
 static int rk_crypto_disable_clk(struct udevice *dev)
 {
+	struct rockchip_crypto_plat *plat = dev_get_plat(dev);
+
+	crypto_base = plat->base;
+
 	return rk_crypto_set_clk(dev, 0);
 }
 
 static int rockchip_crypto_of_to_plat(struct udevice *dev)
 {
+	struct rockchip_crypto_priv *priv = dev_get_priv(dev);
 	struct rockchip_crypto_plat *plat = dev_get_plat(dev);
 	int len, ret = -EINVAL;
 
@@ -102,6 +113,16 @@ static int rockchip_crypto_of_to_plat(struct udevice *dev)
 	plat->base = dev_read_addr_ptr(dev);
 	if (!plat->base)
 		return -EINVAL;
+
+	priv->secure = dev_read_bool(dev, "secure");
+	priv->enabled = true;
+
+#if !defined(CONFIG_SPL_BUILD)
+	/* uboot disabled secure crypto */
+	priv->enabled = !priv->secure;
+#endif
+	if (!priv->enabled)
+		return 0;
 
 	crypto_base = plat->base;
 
@@ -897,6 +918,45 @@ static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
 				  ce_algo, ce_mode);
 }
 
+static bool rockchip_crypto_is_secure(struct udevice *dev)
+{
+	struct rockchip_crypto_priv *priv = dev_get_priv(dev);
+
+	return priv->secure;
+}
+
+#if CONFIG_IS_ENABLED(DM_KEYLAD)
+int rockchip_crypto_fw_cipher(struct udevice *dev, cipher_fw_context *ctx,
+			      const u8 *in, u8 *out, u32 len, bool enc)
+{
+	cipher_context cipher_ctx;
+
+	memset(&cipher_ctx, 0x00, sizeof(cipher_ctx));
+
+	cipher_ctx.algo    = ctx->algo;
+	cipher_ctx.mode    = ctx->mode;
+	cipher_ctx.key_len = ctx->key_len;
+	cipher_ctx.iv      = ctx->iv;
+	cipher_ctx.iv_len  = ctx->iv_len;
+
+	return rk_crypto_cipher(dev, &cipher_ctx, in, out, len, enc, NULL, 0, NULL);
+}
+
+static ulong rockchip_get_keytable_addr(struct udevice *dev)
+{
+	struct rockchip_crypto_priv *priv = dev_get_priv(dev);
+	ulong addr;
+
+	rk_crypto_enable_clk(dev);
+
+	addr = rkce_get_keytable_addr(priv->hardware);
+
+	rk_crypto_disable_clk(dev);
+
+	return addr;
+}
+#endif
+
 static struct crypto_impl rk_crypto_cipher_impl = {
 	.name        = "cipher_"CRYPTO_DRIVER_NAME,
 	.type        = CRYPTO_TYPE_CIPHER,
@@ -907,6 +967,12 @@ static struct crypto_impl rk_crypto_cipher_impl = {
 	.cipher.cipher_crypt = rockchip_crypto_cipher,
 	.cipher.cipher_mac   = rockchip_crypto_mac,
 	.cipher.cipher_ae    = rockchip_crypto_ae,
+
+#if CONFIG_IS_ENABLED(DM_KEYLAD)
+	.cipher.cipher_fw_crypt = rockchip_crypto_fw_cipher,
+	.cipher.get_keytable_addr = rockchip_get_keytable_addr,
+#endif
+	.cipher.is_secure = rockchip_crypto_is_secure,
 };
 
 #endif

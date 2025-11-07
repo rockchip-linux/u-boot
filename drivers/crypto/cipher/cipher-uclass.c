@@ -9,6 +9,7 @@
 #include <dm.h>
 #include <asm/global_data.h>
 #include <u-boot/cipher.h>
+#include <keylad.h>
 #include <errno.h>
 #include <fdtdec.h>
 #include <malloc.h>
@@ -96,6 +97,62 @@ int crypto_ae(struct udevice *dev, cipher_context *ctx,
 		return -EINVAL;
 
 	return ops->cipher_ae(dev, ctx, in, len, aad, aad_len, out, tag);
+}
+
+int crypto_fw_cipher(struct udevice *dev, cipher_fw_context *ctx,
+		    const u8 *in, u8 *out, u32 len, bool enc)
+{
+#if CONFIG_IS_ENABLED(DM_KEYLAD)
+	struct cipher_ops *ops = (struct cipher_ops *)device_get_ops(dev);
+	struct udevice *keylad_dev;
+
+	if (!ops || !ops->cipher_fw_crypt)
+		return -ENOSYS;
+
+	if (!ctx)
+		return -EINVAL;
+
+	if (!ops->is_secure || !ops->is_secure(dev)) {
+		printf("Only secure crypto support fwkey cipher.\n");
+		return -ENOSYS;
+	}
+
+	keylad_dev = keylad_get_device();
+	if (!keylad_dev) {
+		printf("No keylad device found.\n");
+		return -ENOSYS;
+	}
+
+	if (keylad_transfer_fwkey(keylad_dev, crypto_keytable_addr(dev),
+				  ctx->fw_keyid, ctx->key_len)) {
+		printf("Failed to transfer key from keylad.\n");
+		return -ENOSYS;
+	}
+
+	return ops->cipher_fw_crypt(dev, ctx, in, out, len, enc);
+#else
+	return -ENOSYS;
+#endif
+}
+
+ulong crypto_keytable_addr(struct udevice *dev)
+{
+	struct cipher_ops *ops = (struct cipher_ops *)device_get_ops(dev);
+
+	if (!ops || !ops->keytable_addr)
+		return 0;
+
+	return ops->keytable_addr(dev);
+}
+
+bool crypto_is_secure(struct udevice *dev)
+{
+	struct cipher_ops *ops = (struct cipher_ops *)device_get_ops(dev);
+
+	if (!ops || !ops->is_secure)
+		return false;
+
+	return ops->is_secure(dev);
 }
 
 UCLASS_DRIVER(cipher) = {
