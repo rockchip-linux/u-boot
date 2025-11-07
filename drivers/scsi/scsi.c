@@ -642,6 +642,7 @@ static int do_scsi_scan_one(struct udevice *dev, int id, int lun, bool verbose)
 
 	if (bdesc->rawblksz == 4096) {
 		bdesc->blksz = 512;
+		bdesc->log2blksz = LOG2(bdesc->blksz);
 		bdesc->rawlba++; /* add 1 sector for ufs */
 		bdesc->lba = bdesc->rawlba * 8;
 		bdesc->align_sector_buf = memalign(CONFIG_SYS_CACHELINE_SIZE, bdesc->rawblksz);
