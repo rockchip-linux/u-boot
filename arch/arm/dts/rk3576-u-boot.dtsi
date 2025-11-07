@@ -12,7 +12,7 @@
 	};
 
 	chosen {
-		u-boot,spl-boot-order = &sdmmc, &sdhci, "same-as-spl";
+		u-boot,spl-boot-order = &sdmmc, "same-as-spl";
 	};
 
 	adc-keys {
