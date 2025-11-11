@@ -87,7 +87,6 @@
 &sdhci {
 	bootph-pre-ram;
 	bootph-some-ram;
-	u-boot,spl-fifo-mode;
 };
 
 &sdmmc {

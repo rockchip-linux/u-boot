@@ -202,7 +202,6 @@
 
 &sdhci {
 	bootph-pre-ram;
-	u-boot,spl-fifo-mode;
 };
 
 &sdmmc_bus4 {
