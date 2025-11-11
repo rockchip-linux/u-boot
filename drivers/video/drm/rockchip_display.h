@@ -60,6 +60,7 @@
 #define VOP_VERSION_RK3528			VOP2_VERSION(0x50, 0x17, 0x1263)
 #define VOP_VERSION_RK3562			VOP2_VERSION(0x50, 0x17, 0x4350)
 #define VOP_VERSION_RK3568			VOP2_VERSION(0x40, 0x15, 0x8023)
+#define VOP_VERSION_RK3572			VOP2_VERSION(0x50, 0x20, 0x9372)
 #define VOP_VERSION_RK3576			VOP2_VERSION(0x50, 0x19, 0x9765)
 #define VOP_VERSION_RK3588			VOP2_VERSION(0x40, 0x17, 0x6786)
 
@@ -97,6 +98,15 @@ enum rockchip_mcu_cmd {
 	MCU_WRCMD = 0,
 	MCU_WRDATA,
 	MCU_SETBYPASS,
+};
+
+enum rk_pq_csc_swap_type {
+	RK_PQ_CSC_SWAP_NONE = 0,
+	RK_PQ_CSC_V1_SWAP,		/* for rk3576 csc */
+	RK_PQ_CSC_V2_VP_Y2R_R2R,
+	RK_PQ_CSC_V2_R2Y_R2R,
+	RK_PQ_CSC_V2_Y2R_Y2Y,
+	RK_PQ_CSC_V2_VP_R2Y_Y2Y,
 };
 
 /*
@@ -139,6 +149,18 @@ enum rockchip_mcu_cmd {
 #define DRM_MODE_BLEND_PREMULTI		0
 #define DRM_MODE_BLEND_COVERAGE		1
 #define DRM_MODE_BLEND_PIXEL_NONE	2
+
+/*
+ * This is extend by rockchip, the other color encoding is defined at drm_color_mgmt.h
+ *
+ * enum drm_color_encoding {
+ *      DRM_COLOR_YCBCR_BT601,
+ *      DRM_COLOR_YCBCR_BT709,
+ *      DRM_COLOR_YCBCR_BT2020,
+ *      DRM_COLOR_ENCODING_MAX,
+ *};
+ */
+#define DRM_COLOR_DCI_P3	0x10
 
 struct rockchip_mcu_timing {
 	int mcu_pix_total;
@@ -274,6 +296,11 @@ struct crtc_state {
 	struct rockchip_dsc_sink_cap dsc_sink_cap;
 
 	u32 *lut_val;
+
+	struct post_csc_coef csc_coef;
+	bool win_r2y_en;
+	bool win_y2r_en;
+	u32 win_csc_mode;
 };
 
 struct panel_state {
