@@ -1228,12 +1228,6 @@ enum vop2_video_ports_id {
 	VOP2_VP_MAX,
 };
 
-enum vop2_layer_type {
-	CLUSTER_LAYER = 0,
-	ESMART_LAYER = 1,
-	SMART_LAYER = 2,
-};
-
 enum vop2_plane_type {
 	VOP2_PLANE_TYPE_OVERLAY = 0,
 	VOP2_PLANE_TYPE_PRIMARY = 1,
@@ -1383,7 +1377,6 @@ struct vop2_power_domain_data {
 struct vop2_win_data {
 	char *name;
 	u8 phys_id;
-	enum vop2_layer_type type;
 	enum vop2_plane_type plane_type;
 	u8 win_sel_port_offset;
 	u8 layer_sel_win_id[VOP2_VP_MAX];
@@ -1828,6 +1821,11 @@ static bool is_yuv_output(u32 bus_format)
 	default:
 		return false;
 	}
+}
+
+static inline bool vop2_cluster_window(struct vop2_win_data *win)
+{
+	return  (win->feature & WIN_FEATURE_CLUSTER_MAIN);
 }
 
 static enum vop_csc_format vop2_convert_csc_mode(enum drm_color_encoding color_encoding,
@@ -2782,7 +2780,7 @@ static void vop3_init_esmart_scale_engine(struct vop2 *vop2)
 	/* store plane mask for vop2_fixup_dts */
 	for (i = 0; i < vop2->data->nr_layers; i++) {
 		win_data = &vop2->data->win_data[i];
-		if (win_data->type == CLUSTER_LAYER || vop3_ignore_plane(vop2, win_data))
+		if (vop2_cluster_window(win_data) || vop3_ignore_plane(vop2, win_data))
 			continue;
 
 		win_data->scale_engine_num = scale_engine_num++;
@@ -5422,7 +5420,7 @@ static void vop2_setup_scale(struct vop2 *vop2, struct vop2_win_data *win,
 	bool xavg_en = false;
 
 	if (is_vop3(vop2)) {
-		if (vop2->version == VOP_VERSION_RK3576 && win->type == CLUSTER_LAYER) {
+		if (vop2->version == VOP_VERSION_RK3576 && vop2_cluster_window(win)) {
 			if (src_w >= (8 * dst_w)) {
 				xgt4 = 1;
 				src_w >>= 2;
@@ -5528,7 +5526,7 @@ static void vop2_setup_scale(struct vop2 *vop2, struct vop2_win_data *win,
 		yfac = vop2_scale_factor(yrgb_ver_scl_mode, vscl_filter_mode, src_h, dst_h);
 	}
 
-	if (win->type == CLUSTER_LAYER) {
+	if (vop2_cluster_window(win)) {
 		vop2_writel(vop2, RK3568_CLUSTER0_WIN0_SCL_FACTOR_YRGB + win_offset,
 			    yfac << 16 | xfac);
 
@@ -5610,7 +5608,7 @@ static void vop2_axi_config(struct vop2 *vop2, struct vop2_win_data *win)
 {
 	u32 win_offset = win->reg_offset;
 
-	if (win->type == CLUSTER_LAYER) {
+	if (vop2_cluster_window(win)) {
 		vop2_mask_write(vop2, RK3568_CLUSTER0_CTRL + win_offset, CLUSTER_AXI_ID_MASK,
 				CLUSTER_AXI_ID_SHIFT, win->axi_id, false);
 		vop2_mask_write(vop2, RK3568_CLUSTER0_WIN0_CTRL2 + win_offset, CLUSTER_AXI_YRGB_ID_MASK,
@@ -5996,7 +5994,7 @@ static int rockchip_vop2_set_plane(struct display_state *state, bool reserved_pl
 				printf("splice mode: open vp%d plane pd fail\n", cstate->splice_crtc_id);
 
 			vop2_calc_display_rect_for_splice(state);
-			if (win_data->type == CLUSTER_LAYER)
+			if (vop2_cluster_window(win_data))
 				vop2_set_cluster_win(state, splice_win_data);
 			else
 				vop2_set_smart_win(state, splice_win_data);
@@ -6007,7 +6005,7 @@ static int rockchip_vop2_set_plane(struct display_state *state, bool reserved_pl
 		}
 	}
 
-	if (win_data->type == CLUSTER_LAYER)
+	if (vop2_cluster_window(win_data))
 		ret = vop2_set_cluster_win(state, win_data);
 	else
 		ret = vop2_set_smart_win(state, win_data);
@@ -6668,7 +6666,7 @@ static void rk3568_setup_win_dly(struct display_state *state, int crtc_id, u8 pl
 
 	win_data = vop2_find_win_by_phys_id(vop2, plane_phy_id);
 	dly = win_data->dly[VOP2_DLY_MODE_DEFAULT];
-	if (win_data->type == CLUSTER_LAYER)
+	if (vop2_cluster_window(win_data))
 		dly |= dly << 8;
 
 	switch (plane_phy_id) {
@@ -6849,7 +6847,7 @@ static void rk3576_setup_alpha(struct display_state *state)
 		vop2_zpos = &vp->vop2_zpos[i];
 		win_data = vop2_find_win_by_phys_id(vop2, vop2_zpos->plane_id);
 		if (vop2_zpos->zpos == 0 && vop2_zpos->global_alpha != 0xff &&
-		    win_data->type != CLUSTER_LAYER) {
+		    !vop2_cluster_window(win_data)) {
 			/*
 			 * If bottom layer have global alpha effect [except cluster layer,
 			 * because cluster have deal with bottom layer global alpha value
@@ -6887,13 +6885,13 @@ static void rk3576_setup_alpha(struct display_state *state)
 			 * esmart layer[premulti_en = 0]
 			 *	Cd = As * Cs + (1 - As) * Cd * Agd
 			 **/
-			if (win_data->type == CLUSTER_LAYER)
+			if (vop2_cluster_window(win_data))
 				alpha_config.src_premulti_en = true;
 			alpha_config.dst_premulti_en = false;
 			alpha_config.src_pixel_alpha_en = pixel_alpha_en;
 			alpha_config.src_glb_alpha_value =  vop2_zpos->global_alpha;
 			alpha_config.dst_glb_alpha_value = dst_global_alpha;
-		} else if (win_data->type == CLUSTER_LAYER) {
+		} else if (vop2_cluster_window(win_data)) {
 			/*
 			 * Mix output data only have pixel alpha and the data from
 			 * cluster mix is always premultiplied alpha.
@@ -6974,7 +6972,7 @@ static void rk3576_setup_alpha(struct display_state *state)
 	for (i = 0; i < vp->active_layers; i++) {
 		vop2_zpos = &vp->vop2_zpos[i];
 		win_data = vop2_find_win_by_phys_id(vop2, vop2_zpos->plane_id);
-		if (win_data->type == CLUSTER_LAYER) {
+		if (vop2_cluster_window(win_data)) {
 			alpha_config.src_premulti_en = false;
 			alpha_config.dst_premulti_en = false;
 			alpha_config.src_pixel_alpha_en = false;
@@ -7090,7 +7088,7 @@ static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 pl
 
 	for (i = 0; i < vop2_data->nr_layers; i++) {
 		if (BIT(vop2_data->win_data[i].phys_id) & plane_mask) {
-			if (vop2_data->win_data[i].type == CLUSTER_LAYER)
+			if (vop2_cluster_window(&vop2_data->win_data[i]))
 				vop2_cluster_disable(regs, vop2_data->win_data[i].reg_offset);
 			else
 				vop2_esmart_disable(regs, vop2_data->win_data[i].reg_offset);
@@ -7147,7 +7145,6 @@ static struct vop2_win_data rk3528_win_data[5] = {
 	{
 		.name = "Esmart0",
 		.phys_id = ROCKCHIP_VOP2_ESMART0,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 8,
 		.layer_sel_win_id = { 1, 0xff, 0xff, 0xff },
@@ -7164,12 +7161,12 @@ static struct vop2_win_data rk3528_win_data[5] = {
 		.possible_vp_mask = BIT(VOP2_VP0),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_MULTI_AREA | WIN_FEATURE_Y2R_13BIT_DEPTH,
 	},
 
 	{
 		.name = "Esmart1",
 		.phys_id = ROCKCHIP_VOP2_ESMART1,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 10,
 		.layer_sel_win_id = { 2, 0xff, 0xff, 0xff },
@@ -7186,12 +7183,12 @@ static struct vop2_win_data rk3528_win_data[5] = {
 		.possible_vp_mask = BIT(VOP2_VP0),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart2",
 		.phys_id = ROCKCHIP_VOP2_ESMART2,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_CURSOR,
 		.win_sel_port_offset = 12,
 		.layer_sel_win_id = { 3, 0, 0xff, 0xff },
@@ -7208,12 +7205,12 @@ static struct vop2_win_data rk3528_win_data[5] = {
 		.possible_vp_mask = BIT(VOP2_VP0) | BIT(VOP2_VP1),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart3",
 		.phys_id = ROCKCHIP_VOP2_ESMART3,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 14,
 		.layer_sel_win_id = { 0xff, 1, 0xff, 0xff },
@@ -7230,12 +7227,12 @@ static struct vop2_win_data rk3528_win_data[5] = {
 		.possible_vp_mask = BIT(VOP2_VP1),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Cluster0",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER0,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 0,
 		.layer_sel_win_id = { 0, 0xff, 0xff, 0xff },
@@ -7252,6 +7249,8 @@ static struct vop2_win_data rk3528_win_data[5] = {
 		.possible_vp_mask = BIT(VOP2_VP0),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN |
+			   WIN_FEATURE_Y2R_13BIT_DEPTH,
 	},
 };
 
@@ -7316,7 +7315,6 @@ static struct vop2_win_data rk3562_win_data[4] = {
 	{
 		.name = "Esmart0",
 		.phys_id = ROCKCHIP_VOP2_ESMART0,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 8,
 		.layer_sel_win_id = { 0, 0, 0xff, 0xff },
@@ -7331,12 +7329,12 @@ static struct vop2_win_data rk3562_win_data[4] = {
 		.possible_vp_mask = BIT(VOP2_VP0),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart1",
 		.phys_id = ROCKCHIP_VOP2_ESMART1,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 10,
 		.layer_sel_win_id = { 1, 1, 0xff, 0xff },
@@ -7351,12 +7349,12 @@ static struct vop2_win_data rk3562_win_data[4] = {
 		.possible_vp_mask = BIT(VOP2_VP0),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart2",
 		.phys_id = ROCKCHIP_VOP2_ESMART2,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 12,
 		.layer_sel_win_id = { 2, 2, 0xff, 0xff },
@@ -7371,12 +7369,12 @@ static struct vop2_win_data rk3562_win_data[4] = {
 		.possible_vp_mask = BIT(VOP2_VP0),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart3",
 		.phys_id = ROCKCHIP_VOP2_ESMART3,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 14,
 		.layer_sel_win_id = { 3, 3, 0xff, 0xff },
@@ -7391,6 +7389,7 @@ static struct vop2_win_data rk3562_win_data[4] = {
 		.possible_vp_mask = BIT(VOP2_VP0),
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 };
 
@@ -7524,7 +7523,6 @@ static struct vop2_win_data rk3568_win_data[6] = {
 	{
 		.name = "Cluster0",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER0,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 0,
 		.layer_sel_win_id = { 0, 0, 0, 0xff },
@@ -7537,12 +7535,12 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.max_upscale_factor = 4,
 		.max_downscale_factor = 4,
 		.dly = { 0, 27, 21 },
+		.feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN,
 	},
 
 	{
 		.name = "Cluster1",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER1,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 1,
 		.layer_sel_win_id = { 1, 1, 1, 0xff },
@@ -7557,12 +7555,12 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.source_win_id = ROCKCHIP_VOP2_CLUSTER0,
 		.feature = WIN_FEATURE_MIRROR,
 		.dly = { 0, 27, 21 },
+		.feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN | WIN_FEATURE_MIRROR,
 	},
 
 	{
 		.name = "Esmart0",
 		.phys_id = ROCKCHIP_VOP2_ESMART0,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 4,
 		.layer_sel_win_id = { 2, 2, 2, 0xff },
@@ -7575,12 +7573,12 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
 		.dly = { 20, 47, 41 },
+		.feature = WIN_FEATURE_MIRROR | WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart1",
 		.phys_id = ROCKCHIP_VOP2_ESMART1,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 5,
 		.layer_sel_win_id = { 6, 6, 6, 0xff },
@@ -7595,12 +7593,12 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.dly = { 20, 47, 41 },
 		.source_win_id = ROCKCHIP_VOP2_ESMART0,
 		.feature = WIN_FEATURE_MIRROR,
+		.feature = WIN_FEATURE_MIRROR | WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Smart0",
 		.phys_id = ROCKCHIP_VOP2_SMART0,
-		.type = SMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 6,
 		.layer_sel_win_id = { 3, 3, 3, 0xff },
@@ -7613,12 +7611,12 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
 		.dly = { 20, 47, 41 },
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Smart1",
 		.phys_id = ROCKCHIP_VOP2_SMART1,
-		.type = SMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 7,
 		.layer_sel_win_id = { 7, 7, 7, 0xff },
@@ -7633,6 +7631,7 @@ static struct vop2_win_data rk3568_win_data[6] = {
 		.dly = { 20, 47, 41 },
 		.source_win_id = ROCKCHIP_VOP2_SMART0,
 		.feature = WIN_FEATURE_MIRROR,
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 };
 
@@ -7745,7 +7744,6 @@ static struct vop2_win_data rk3576_win_data[6] = {
 	{
 		.name = "Esmart0",
 		.phys_id = ROCKCHIP_VOP2_ESMART0,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.layer_sel_win_id = { 2, 0xff, 0, 0xff },
 		.reg_offset = 0x0,
@@ -7768,7 +7766,6 @@ static struct vop2_win_data rk3576_win_data[6] = {
 	{
 		.name = "Esmart1",
 		.phys_id = ROCKCHIP_VOP2_ESMART1,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.layer_sel_win_id = { 0xff, 2, 1, 0xff },
 		.reg_offset = 0x200,
@@ -7792,7 +7789,6 @@ static struct vop2_win_data rk3576_win_data[6] = {
 	{
 		.name = "Esmart2",
 		.phys_id = ROCKCHIP_VOP2_ESMART2,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.layer_sel_win_id = { 3, 0xff, 2, 0xff },
 		.reg_offset = 0x400,
@@ -7816,7 +7812,6 @@ static struct vop2_win_data rk3576_win_data[6] = {
 	{
 		.name = "Esmart3",
 		.phys_id = ROCKCHIP_VOP2_ESMART3,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.layer_sel_win_id = { 0xff, 3, 3, 0xff },
 		.reg_offset = 0x600,
@@ -7840,7 +7835,6 @@ static struct vop2_win_data rk3576_win_data[6] = {
 	{
 		.name = "Cluster0",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER0,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.layer_sel_win_id = { 0, 0, 0xff, 0xff },
 		.reg_offset = 0x0,
@@ -7864,7 +7858,6 @@ static struct vop2_win_data rk3576_win_data[6] = {
 	{
 		.name = "Cluster1",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER1,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.layer_sel_win_id = { 1, 1, 0xff, 0xff },
 		.reg_offset = 0x200,
@@ -8117,7 +8110,6 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.name = "Cluster0",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER0,
 		.splice_win_id = ROCKCHIP_VOP2_CLUSTER1,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 0,
 		.layer_sel_win_id = { 0, 0, 0, 0 },
@@ -8134,12 +8126,12 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.max_upscale_factor = 4,
 		.max_downscale_factor = 4,
 		.dly = { 4, 26, 29, 4, 35, 3, 5 },
+		.feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN,
 	},
 
 	{
 		.name = "Cluster1",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER1,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 1,
 		.layer_sel_win_id = { 1, 1, 1, 1 },
@@ -8156,13 +8148,13 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.max_upscale_factor = 4,
 		.max_downscale_factor = 4,
 		.dly = { 4, 26, 29, 4, 35, 3, 5 },
+		.feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN,
 	},
 
 	{
 		.name = "Cluster2",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER2,
 		.splice_win_id = ROCKCHIP_VOP2_CLUSTER3,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 2,
 		.layer_sel_win_id = { 4, 4, 4, 4 },
@@ -8179,12 +8171,12 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.max_upscale_factor = 4,
 		.max_downscale_factor = 4,
 		.dly = { 4, 26, 29, 4, 35, 3, 5 },
+		.feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN,
 	},
 
 	{
 		.name = "Cluster3",
 		.phys_id = ROCKCHIP_VOP2_CLUSTER3,
-		.type = CLUSTER_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_OVERLAY,
 		.win_sel_port_offset = 3,
 		.layer_sel_win_id = { 5, 5, 5, 5 },
@@ -8201,13 +8193,13 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.max_upscale_factor = 4,
 		.max_downscale_factor = 4,
 		.dly = { 4, 26, 29, 4, 35, 3, 5 },
+		.feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER_MAIN,
 	},
 
 	{
 		.name = "Esmart0",
 		.phys_id = ROCKCHIP_VOP2_ESMART0,
 		.splice_win_id = ROCKCHIP_VOP2_ESMART1,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 4,
 		.layer_sel_win_id = { 2, 2, 2, 2 },
@@ -8223,12 +8215,12 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
 		.dly = { 23, 45, 48, 23, 54, 22, 24 },
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart1",
 		.phys_id = ROCKCHIP_VOP2_ESMART1,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 5,
 		.layer_sel_win_id = { 3, 3, 3, 3 },
@@ -8245,13 +8237,13 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
 		.dly = { 23, 45, 48, 23, 54, 22, 24 },
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart2",
 		.phys_id = ROCKCHIP_VOP2_ESMART2,
 		.splice_win_id = ROCKCHIP_VOP2_ESMART3,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 6,
 		.layer_sel_win_id = { 6, 6, 6, 6 },
@@ -8268,12 +8260,12 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
 		.dly = { 23, 45, 48, 23, 54, 22, 24 },
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 
 	{
 		.name = "Esmart3",
 		.phys_id = ROCKCHIP_VOP2_ESMART3,
-		.type = ESMART_LAYER,
 		.plane_type = VOP2_PLANE_TYPE_PRIMARY,
 		.win_sel_port_offset = 7,
 		.layer_sel_win_id = { 7, 7, 7, 7 },
@@ -8290,6 +8282,7 @@ static struct vop2_win_data rk3588_win_data[8] = {
 		.max_upscale_factor = 8,
 		.max_downscale_factor = 8,
 		.dly = { 23, 45, 48, 23, 54, 22, 24 },
+		.feature = WIN_FEATURE_MULTI_AREA,
 	},
 };
 
