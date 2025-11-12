@@ -864,7 +864,7 @@ static int rk_ebc_tcon_ofdata_to_platdata(struct udevice *dev)
 		      __func__, priv->grf);
 		return  -ENXIO;
 	}
-	addr = dev_read_addr_size_name(dev, "reg", &size);
+	addr = dev_read_addr_size(dev, &size);
 	if (addr == FDT_ADDR_T_NONE) {
 		debug("%s: Get ebc_tcon address failed\n", __func__);
 		return  -ENXIO;
