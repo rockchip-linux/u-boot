@@ -5808,13 +5808,20 @@ static int vop2_set_smart_win(struct display_state *state, struct vop2_win_data 
 	}
 
 	/*
-	 * This is workaround solution for IC design:
-	 * esmart can't support scale down when actual_w % 16 == 1.
+	 * Workaround only for rk3568 vop
 	 */
-	if (src_w > crtc_w && (src_w & 0xf) == 1) {
-		printf("WARN: vp%d unsupported act_w[%d] mode 16 = 1 when scale down\n", cstate->crtc_id, src_w);
-		src_w -= 1;
+	if (vop2->version == VOP_VERSION_RK3568) {
+		/*
+		 * This is workaround solution for IC design:
+		 * esmart can't support scale down when actual_w % 16 == 1.
+		 */
+		if (src_w > crtc_w && (src_w & 0xf) == 1) {
+			printf("WARN: vp%d unsupported act_w[%d] mode 16 = 1 when scale down\n",
+			       cstate->crtc_id, src_w);
+			src_w -= 1;
+		}
 	}
+
 
 	act_info = (src_h - 1) << 16;
 	act_info |= (src_w - 1) & 0xffff;
