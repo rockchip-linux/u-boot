@@ -2532,11 +2532,12 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	if (is_yuv_output(conn_state->bus_format))
 		convert_mode.is_output_yuv = true;
 
-	if (!cstate->yuv_overlay)
+	if (!cstate->yuv_overlay) {
 		convert_mode.is_input_full_range = true;
-	else
-		convert_mode.is_input_full_range =
-			conn_state->color_range == DRM_COLOR_YCBCR_FULL_RANGE ? 1 : 0;
+	} else {
+		/* yuv overlay range is limited */
+		convert_mode.is_input_full_range = false;
+	}
 
 	convert_mode.is_output_full_range =
 		conn_state->color_range == DRM_COLOR_YCBCR_FULL_RANGE ? 1 : 0;
@@ -2545,8 +2546,23 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 						      conn_state->color_range,
 						      CSC_13BIT_DEPTH);
 
+	convert_mode.output_color_encoding = conn_state->color_encoding;
+	/*
+	 * When all layers are rgb, the value of input_color_encoding
+	 * has no actual utility, however, the plane csc only supports
+	 * limited range under bt709. Therefore, in this scene, the colorspace
+	 * of plane csc is selected as bt601. The intput_color_encoding
+	 * is consistent with colorspace of plane csc, which is DRM_COLOR_YCBCR_BT601.
+	 * If there are any yuv planes, value of post-csc input_color_encoding
+	 * selects the value of the yuv plane with the largest area.
+	 */
+	convert_mode.intput_color_encoding = DRM_COLOR_YCBCR_BT601;
+
+	if (convert_mode.intput_color_encoding != convert_mode.output_color_encoding ||
+	    convert_mode.is_input_full_range != convert_mode.is_output_full_range)
+		post_csc_en = true;
+
 	if (post_csc_en) {
-		convert_mode.color_encoding = conn_state->color_encoding;
 		rockchip_calc_post_csc(csc, &csc_coef, &convert_mode);
 
 		vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
