@@ -387,7 +387,7 @@ static __maybe_unused int mtd_map_erase(struct mtd_info *mtd, loff_t offset,
 char *mtd_part_parse(struct blk_desc *dev_desc)
 {
 	u32 data_len = MTD_PART_INFO_MAX_SIZE;
-	disk_partition_t info, info_temp;
+	struct disk_partition info, info_temp;
 	char *mtd_part_info_p, *mtd_part_info;
 	struct mtd_info *mtd;
 	int size, offset, length;
@@ -395,7 +395,7 @@ char *mtd_part_parse(struct blk_desc *dev_desc)
 	int p;
 
 #ifndef CONFIG_SPL_BUILD
-	//dev_desc = rockchip_get_bootdev();
+	dev_desc = plat_bootdev();
 #endif
 	if (!dev_desc)
 		return NULL;
