@@ -471,6 +471,13 @@ struct rockchip_pin_bank {
 #define RK3588_PIN_BANK_FLAGS(ID, PIN, LABEL, M, P)			\
 	PIN_BANK_IOMUX_FLAGS_PULL_FLAGS(ID, PIN, LABEL, M, M, M, M, P, P, P, P)
 
+#define PIN_BANK_IOMUX_4_OFFSET(id, pins, label, offset0,		\
+				offset1, offset2, offset3)		\
+	PIN_BANK_IOMUX_FLAGS_OFFSET(id, pins, label,			\
+				    IOMUX_WIDTH_4BIT, IOMUX_WIDTH_4BIT,	\
+				    IOMUX_WIDTH_4BIT, IOMUX_WIDTH_4BIT,	\
+				    offset0, offset1, offset2, offset3)
+
 /**
  * struct rockchip_mux_recalced_data: recalculate a pin iomux data.
  * @num: bank number.
