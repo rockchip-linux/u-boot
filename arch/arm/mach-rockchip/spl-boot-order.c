@@ -86,7 +86,7 @@ static int spl_node_to_boot_device(int node)
 	 * soon.
 	 */
 	if (!uclass_get_device_by_of_offset(UCLASS_SPI_FLASH, node, &parent))
-#ifndef CONFIG_SPL_MTD_SUPPORT
+#ifndef CONFIG_MTD_BLK
 		return BOOT_DEVICE_SPI;
 #else
 		return BOOT_DEVICE_MTD_BLK_SPI_NOR;
@@ -99,7 +99,7 @@ static int spl_node_to_boot_device(int node)
 		     dev;
 		     device_find_next_child(&dev)) {
 			if (device_get_uclass_id(dev) == UCLASS_BLK) {
-				desc = dev_get_uclass_platdata(dev);
+				desc = dev_get_uclass_plat(dev);
 				break;
 			}
 		}
