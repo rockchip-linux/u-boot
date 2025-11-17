@@ -195,6 +195,37 @@ struct bcsh_state {
 	int cos_hue;
 };
 
+struct post_csc_convert_mode {
+	enum drm_color_encoding intput_color_encoding;
+	enum drm_color_encoding output_color_encoding;
+	bool is_input_yuv;
+	bool is_output_yuv;
+	bool is_input_full_range;
+	bool is_output_full_range;
+	u8 swap_channels;	/* For now, only rg swap in DCI mode is required */
+	u32 plat;		/* To distinguish platform */
+	u8 pixel_depth;		/* {8, 10} */
+	u8 coef_precision;	/* {8, 10, 13}, NOTE: coef_precision should be >= pixel_depth */
+};
+
+struct post_csc_coef {
+	s32 csc_coef00;
+	s32 csc_coef01;
+	s32 csc_coef02;
+	s32 csc_coef10;
+	s32 csc_coef11;
+	s32 csc_coef12;
+	s32 csc_coef20;
+	s32 csc_coef21;
+	s32 csc_coef22;
+
+	s32 csc_dc0;
+	s32 csc_dc1;
+	s32 csc_dc2;
+
+	u32 range_type;
+};
+
 struct crtc_state {
 	struct udevice *dev;
 	struct rockchip_crtc *crtc;
@@ -381,6 +412,8 @@ struct device_node *
 rockchip_of_graph_get_port_by_id(ofnode node, int id);
 uint32_t rockchip_drm_get_cycles_per_pixel(uint32_t bus_format);
 char* rockchip_get_output_if_name(u32 output_if, char *name);
+int rockchip_calc_post_csc(struct csc_info *csc_cfg, struct post_csc_coef *csc_simple_coef,
+			   struct post_csc_convert_mode *convert_mode);
 
 #ifdef CONFIG_SPL_BUILD
 int rockchip_spl_vop_probe(struct crtc_state *crtc_state);
