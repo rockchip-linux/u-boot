@@ -24,29 +24,30 @@ static fdt_addr_t gpio_base_addr[MAX_GPIO_NR];
 static uint32_t gpio_record[MAX_GPIO_NR];
 static int adc_record[MAX_ADC_CH_NR];
 
-#ifdef CONFIG_ROCKCHIP_GPIO_V2
-#define GPIO_SWPORT_DDR		0x08
-#define GPIO_EXT_PORT		0x70
+/* gpio_v2 */
+#define GPIO_SWPORT_DDR_V2	0x08
+#define GPIO_EXT_PORT_V2	0x70
+#define GPIO_VER_ID_V2		0x78
 #define WMSK_SETBIT(n)		(n << 16 | n)
 #define WMSK_CLRBIT(n)		(n << 16)
 #define REG_PLUS4(off, n)	(off + (n >= BIT(16) ? 4 : 0))
 #define BIT_SUB16(n)		(n >= BIT(16) ? (n >> 16) : n)
-static int gpio_read(fdt_addr_t gpio_addr, int gpio_bank, int gpio_pin)
+static int gpio_read_v2(fdt_addr_t gpio_addr, int gpio_bank, int gpio_pin)
 {
 	uint32_t off, bit;
 
 	bit = gpio_bank * 8 + gpio_pin;
-	off = REG_PLUS4(GPIO_SWPORT_DDR, bit);
+	off = REG_PLUS4(GPIO_SWPORT_DDR_V2, bit);
 	bit = BIT_SUB16(bit);
 	writel(WMSK_CLRBIT(bit), gpio_addr + off);
 
-	return readl(gpio_addr + GPIO_EXT_PORT);
+	return readl(gpio_addr + GPIO_EXT_PORT_V2);
 }
 
-#else
+/* gpio_v1 */
 #define GPIO_SWPORT_DDR		0x04
 #define GPIO_EXT_PORT		0x50
-static int gpio_read(fdt_addr_t gpio_addr, int gpio_bank, int gpio_pin)
+static int gpio_read_v1(fdt_addr_t gpio_addr, int gpio_bank, int gpio_pin)
 {
 	uint32_t val;
 
@@ -56,7 +57,19 @@ static int gpio_read(fdt_addr_t gpio_addr, int gpio_bank, int gpio_pin)
 
 	return readl(gpio_addr + GPIO_EXT_PORT);
 }
-#endif
+
+static int gpio_read(fdt_addr_t gpio_addr, int gpio_bank, int gpio_pin)
+{
+	static int version = -1;
+
+	if (version < 0)
+		version = readl(gpio_addr + GPIO_VER_ID_V2);
+
+	if (version)
+		return gpio_read_v2(gpio_addr, gpio_bank, gpio_pin);
+	else
+		return gpio_read_v1(gpio_addr, gpio_bank, gpio_pin);
+}
 
 static int gpio_parse_base_address(fdt_addr_t *gpio_base_addr)
 {
