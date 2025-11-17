@@ -67,6 +67,15 @@ hostprogs-y += dumpimage mkimage
 hostprogs-$(CONFIG_TOOLS_LIBCRYPTO) += fit_info fit_check_sign
 hostprogs-$(CONFIG_TOOLS_LIBCRYPTO) += fdt_add_pubkey
 
+# Rockchip pack tools
+ifdef CONFIG_ARCH_ROCKCHIP
+hostprogs-y += resource_tool
+hostprogs-y += bmp2gray16
+
+resource_tool-objs := rockchip/resource_tool.o
+bmp2gray16-objs := rockchip/bmp2gray16.o
+endif
+
 ifneq ($(CONFIG_CMD_BOOTEFI_SELFTEST)$(CONFIG_FWU_MDATA_GPT_BLK),)
 hostprogs-y += file2include
 endif
