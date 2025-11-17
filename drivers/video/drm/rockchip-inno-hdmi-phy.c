@@ -12,11 +12,12 @@
 #include <fdtdec.h>
 #include <fdt_support.h>
 #include <asm/unaligned.h>
-#include <asm/arch/clock.h>
+#include <asm/arch-rockchip/clock.h>
 #include <dm/device.h>
 #include <dm/lists.h>
 #include <dm/read.h>
 #include <asm/io.h>
+#include <linux/delay.h>
 #include <linux/list.h>
 #include <div64.h>
 #include <linux/media-bus-format.h>
@@ -1237,7 +1238,7 @@ static int inno_hdmi_phy_init(struct rockchip_phy *phy)
 	inno->regs = (void *)RK3528_HDMIPHY_BASE;
 #else
 	inno->regs = dev_read_addr_ptr(dev);
-	inno->node = dev->node;
+	inno->node = dev->node_;
 #endif
 	if (!inno->regs) {
 		printf("%s: failed to get phy address\n", __func__);
@@ -1448,7 +1449,7 @@ static int rockchip_inno_phy_hdmi_bind(struct udevice *parent)
 	ofnode subnode;
 	int ret;
 
-	subnode = ofnode_find_subnode(parent->node, "clk-port");
+	subnode = ofnode_find_subnode(parent->node_, "clk-port");
 	if (!ofnode_valid(subnode)) {
 		printf("%s: no subnode for %s\n", __func__, parent->name);
 		return -ENXIO;
