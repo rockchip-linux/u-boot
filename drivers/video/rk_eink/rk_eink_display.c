@@ -781,6 +781,21 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 	if (!(gd->flags & GD_FLG_RELOC))
 		return 0;
 
+	vcom = read_vcom_from_vendor();
+	if (vcom <= 0) {
+		printf("read vcom from vendor failed, use default vcom\n");
+		priv->vcom = VCOM_DEFAULT_VALUE;
+	} else {
+		priv->vcom = vcom;
+	}
+
+        // read lut to ram, and get lut ops
+	ret = read_waveform(dev);
+	if (ret < 0) {
+		printf("read wavform failed\n");
+		return -EIO;
+	}
+
 	ret = uclass_get_device_by_phandle(UCLASS_EBC, dev,
 					   "ebc_tcon",
 					   &priv->ebc_tcon_dev);
@@ -843,14 +858,6 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 		printf("%s: Cannot get backlight: %d\n", __func__, ret);
 	}
 
-	vcom = read_vcom_from_vendor();
-	if (vcom <= 0) {
-		printf("read vcom from vendor failed, use default vcom\n");
-		priv->vcom = VCOM_DEFAULT_VALUE;
-	} else {
-		priv->vcom = vcom;
-	}
-
 	if (priv->ebc_pwr_dev)
 		pwr_ops = ebc_pwr_get_ops(priv->ebc_pwr_dev);
 
@@ -860,13 +867,6 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 		ret = regulator_set_value(priv->regulator_dev, priv->vcom * 1000);
 	if (ret) {
 		printf("%s, vcom_set failed\n", __func__);
-		return -EIO;
-	}
-
-	// read lut to ram, and get lut ops
-	ret = read_waveform(dev);
-	if (ret < 0) {
-		printf("read wavform failed\n");
 		return -EIO;
 	}
 
