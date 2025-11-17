@@ -13,7 +13,7 @@
 #include <part.h>
 #include <spl.h>
 #include <spl_ab.h>
-#include <spl_rkfw.h>
+#include <spl_load.h>
 #include <asm/u-boot.h>
 #include <dm/device-internal.h>
 #include <linux/compiler.h>
@@ -43,7 +43,7 @@ struct blk_desc *find_mtd_device(int dev_num)
 	struct blk_desc *desc;
 	int ret;
 
-	ret = blk_find_device(IF_TYPE_MTD, dev_num, &dev);
+	ret = blk_find_device(UCLASS_MTD, dev_num, &dev);
 
 	if (ret) {
 #if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
@@ -60,54 +60,38 @@ struct blk_desc *find_mtd_device(int dev_num)
 		return NULL;
 	}
 
-	desc = dev_get_uclass_platdata(dev);
+	desc = dev_get_uclass_plat(dev);
 	if (!desc)
 		return NULL;
 
 	return desc;
 }
 
-static ulong mtd_spl_load_read(struct spl_load_info *load, ulong sector,
-			       ulong count, void *buf)
+static ulong h_spl_load_read(struct spl_load_info *load, ulong off,
+			     ulong size, void *buf)
 {
-	struct blk_desc *desc = load->priv;
+	struct blk_desc *bd = load->priv;
+	lbaint_t sector = off >> bd->log2blksz;
+	lbaint_t count = size >> bd->log2blksz;
 
-	return blk_dread(desc, sector, count, buf);
+	return blk_dread(bd, sector, count, buf) << bd->log2blksz;
 }
-
-#ifdef CONFIG_SPL_LOAD_RKFW
-int spl_mtd_load_rkfw(struct spl_image_info *spl_image, struct blk_desc *desc)
-{
-	struct spl_load_info load;
-	int ret;
-
-	load.priv = desc;
-	load.bl_len = desc->blksz;
-	load.read = mtd_spl_load_read;
-
-	ret = spl_load_rkfw_image(spl_image, &load);
-	if (ret) {
-#ifdef CONFIG_SPL_LIBCOMMON_SUPPORT
-		puts("spl_mtd_load_rkfw: mtd block read error\n");
-#endif
-		return -1;
-	}
-
-	return 0;
-}
-#endif
 
 int spl_mtd_load_image(struct spl_image_info *spl_image,
 		       struct spl_boot_device *bootdev)
 {
-	struct image_header *header;
+	lbaint_t image_sector = CONFIG_MTD_BLK_U_BOOT_OFFS;
 	struct blk_desc *desc;
 	int ret = -1;
-	lbaint_t image_sector = CONFIG_MTD_BLK_U_BOOT_OFFS;
+	struct spl_load_info load;
 
 	desc = find_mtd_device(spl_mtd_get_device_index(bootdev->boot_device));
 	if (!desc)
 		return -ENODEV;
+
+	load.priv = desc;
+	load.bl_len = desc->blksz;
+	load.read = h_spl_load_read;
 
 #ifdef CONFIG_SPL_LIBDISK_SUPPORT
 	struct disk_partition info;
@@ -118,41 +102,8 @@ int spl_mtd_load_image(struct spl_image_info *spl_image,
 		image_sector = info.start;
 
 #endif
-	if (IS_ENABLED(CONFIG_SPL_LOAD_FIT)) {
-		header = (struct image_header *)(CONFIG_SYS_TEXT_BASE -
-					 sizeof(struct image_header));
-		ret = blk_dread(desc, image_sector, 1, header);
-		if (ret != 1)
-			return -ENODEV;
-
-#ifdef CONFIG_SPL_FIT_IMAGE_MULTIPLE
-		if (image_get_magic(header) == FDT_MAGIC ||
-		    CONFIG_SPL_FIT_IMAGE_MULTIPLE > 1) {
-#else
-		if (image_get_magic(header) == FDT_MAGIC) {
-#endif
-			struct spl_load_info load;
-
-			load.priv = desc;
-			load.bl_len = desc->blksz;
-			load.read = mtd_spl_load_read;
-
-			ret = spl_load_simple_fit(spl_image, &load,
-						  image_sector,
-						  header);
-		}
-	}
-
-	if (!ret)
-		return 0;
-
-	if (IS_ENABLED(CONFIG_SPL_LOAD_RKFW)) {
-#ifdef CONFIG_SPL_LOAD_RKFW
-		ret = spl_mtd_load_rkfw(spl_image, desc);
-#endif
-	}
-
-	return ret;
+	spl_load_init(&load, h_spl_load_read, desc, desc->blksz);
+	return spl_load(spl_image, bootdev, &load, 0, image_sector << desc->log2blksz);
 }
 
 SPL_LOAD_IMAGE_METHOD("MTD0", 0, BOOT_DEVICE_MTD_BLK_NAND, spl_mtd_load_image);

@@ -1076,14 +1076,14 @@ config SPL_MTD
 config MTD_BLK_U_BOOT_OFFS
 	hex "Location in MTD block to read U-Boot from"
 	default 0x4000
-	depends on SPL_MTD_SUPPORT
+	depends on SPL_MTD
 	help
 	  Set the offset from the start of the nand,spi nand and nor flash where
 	  u-boot should be loaded from.
 
 config SPL_MTD_WRITE
 	bool "nand & spi nand & spi nor support for write operations in SPL"
-	depends on SPL_MTD_SUPPORT
+	depends on SPL_MTD
 	default n
 	help
 	  Enable write access to nand & spi nand & spi nor in SPL
@@ -1684,7 +1684,7 @@ config SPL_YMODEM_SUPPORT
 config SPL_AB
 	bool "Support AB system boot"
 	depends on SPL && SPL_LIBDISK_SUPPORT
-	select SPL_MTD_WRITE if SPL_MTD_SUPPORT
+	select SPL_MTD_WRITE if SPL_MTD
 	select SPL_MMC_WRITE if SPL_MMC_SUPPORT
 	help
 	  Enable this config to support AB system boot.

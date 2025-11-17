@@ -40,7 +40,7 @@ endif
 obj-$(CONFIG_$(PHASE_)UBI) += spl_ubi.o
 obj-$(CONFIG_$(PHASE_)NET) += spl_net.o
 obj-$(CONFIG_$(PHASE_)MMC) += spl_mmc.o
-obj-$(CONFIG_$(PHASE_)MTD_SUPPORT) += spl_mtd_blk.o
+obj-$(CONFIG_$(PHASE_)MTD) += spl_mtd_blk.o
 obj-$(CONFIG_$(PHASE_)RKNAND_SUPPORT) += spl_rknand.o
 obj-$(CONFIG_$(PHASE_)ATF) += spl_atf.o
 obj-$(CONFIG_$(PHASE_)OPTEE_IMAGE) += spl_optee.o
