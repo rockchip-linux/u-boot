@@ -9,7 +9,6 @@
 #include <linux/kernel.h>
 
 #include "rockchip_display.h"
-#include "rockchip_post_csc.h"
 
 #define PQ_CSC_HUE_TABLE_NUM			256
 #define PQ_CSC_MODE_COEF_COMMENT_LEN		32

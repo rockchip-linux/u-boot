@@ -36,7 +36,6 @@
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
-#include "rockchip_post_csc.h"
 
 /* System registers definition */
 #define RK3568_REG_CFG_DONE			0x000
