@@ -7,23 +7,27 @@
 #include <fdtdec.h>
 #include <fdt_support.h>
 #include <asm/io.h>
+#include <linux/delay.h>
 #include <linux/media-bus-format.h>
 #include <asm/arch-rockchip/clock.h>
+#include <asm/cache.h>
 #include <dm/device.h>
 #include <dm/read.h>
 #include <dm/uclass-internal.h>
 #include <linux/fb.h>
 #include <edid.h>
 #include <syscon.h>
-#include <boot_rkimg.h>
 #include <mapmem.h>
 #include <misc.h>
+#include <part.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_phy.h"
 #include "rockchip_tve.h"
+
+#define RK_BLK_SIZE	512
 
 #define RK322X_VDAC_STANDARD		0x15
 
@@ -723,7 +727,7 @@ static void tve_select_output(struct rockchip_tve *tve, struct connector_state *
 	struct overscan *overscan = &conn_state->overscan;
 	char baseparameter_buf[8 * RK_BLK_SIZE] __aligned(ARCH_DMA_MINALIGN);
 	struct blk_desc *dev_desc;
-	disk_partition_t part_info;
+	struct disk_partition part_info;
 	int max_scan = 100;
 	int min_scan = 50;
 	int offset = 0;
@@ -737,7 +741,7 @@ static void tve_select_output(struct rockchip_tve *tve, struct connector_state *
 	*mode = modes[tve->preferred_mode];
 
 	if (!base2_parameter) {
-		dev_desc = rockchip_get_bootdev();
+		dev_desc = plat_bootdev();
 		if (!dev_desc) {
 			printf("%s: Could not find device\n", __func__);
 			goto null_basep;
