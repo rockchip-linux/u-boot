@@ -318,9 +318,9 @@ static u32 sw_hash_dynamic_priority(struct udevice *dev, u32 algo, u32 mode)
 {
 	u32 prio;
 
-	if ((algo == HASH_ALGO_SHA1) && IS_ENABLED(CONFIG_ARMV8_CE_SHA1))
+	if ((algo == HASH_ALGO_SHA1) && CONFIG_IS_ENABLED(ARMV8_CE_SHA1))
 		prio = CRYPTO_PRIORITY_BEST;
-	else if ((algo == HASH_ALGO_SHA256) && IS_ENABLED(CONFIG_ARMV8_CE_SHA256))
+	else if ((algo == HASH_ALGO_SHA256) && CONFIG_IS_ENABLED(ARMV8_CE_SHA256))
 		prio = CRYPTO_PRIORITY_BEST;
 	else
 		prio = CRYPTO_PRIORITY_SW;
