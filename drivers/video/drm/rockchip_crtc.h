@@ -107,6 +107,7 @@ extern const struct vop_data rv1108_vop;
 extern const struct vop_data rv1126_vop;
 extern const struct vop_data rv1126b_vop;
 extern const struct vop2_data rk3528_vop;
+extern const struct vop2_data rk3538_vop;
 extern const struct vop2_data rk3562_vop;
 extern const struct vop2_data rk3568_vop;
 extern const struct vop2_data rk3572_vop;
