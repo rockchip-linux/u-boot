@@ -1536,6 +1536,9 @@ static const struct udevice_id analogix_dp_ids[] = {
 		.compatible = "rockchip,rk3568-edp",
 		.data = (ulong)&rk3568_edp_platform_data,
 	}, {
+		.compatible = "rockchip,rk3572-edp",
+		.data = (ulong)&rk3576_edp_platform_data,
+	}, {
 		.compatible = "rockchip,rk3576-edp",
 		.data = (ulong)&rk3576_edp_platform_data,
 	}, {
