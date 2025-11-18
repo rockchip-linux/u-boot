@@ -7,6 +7,7 @@
 #define __ANDROID_AB_H
 
 #include <stdbool.h>
+#include <linux/types.h>
 
 struct blk_desc;
 struct disk_partition;

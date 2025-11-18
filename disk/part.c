@@ -17,6 +17,10 @@
 #include <spl_ab.h>
 #endif
 #include <ubifs_uboot.h>
+#ifdef CONFIG_ANDROID_AB
+#include <android_avb/ab.h>
+#include <android_avb/avb_ops_user.h>
+#endif
 #include <dm/uclass.h>
 //#include <avb_verify.h>
 

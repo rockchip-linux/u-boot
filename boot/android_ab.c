@@ -195,8 +195,8 @@ static int ab_compare_slots(const struct android_slot_metadata *a,
 int ab_select_slot(struct blk_desc *dev_desc, struct disk_partition *part_info,
 		   bool dec_tries)
 {
-	struct bootloader_control *abc = NULL;
-	struct bootloader_control *backup_abc = NULL;
+	struct android_bootloader_control *abc = NULL;
+	struct android_bootloader_control *backup_abc = NULL;
 	u32 crc32_le;
 	int slot, i, ret;
 	bool store_needed = false;
@@ -376,10 +376,10 @@ int ab_select_slot(struct blk_desc *dev_desc, struct disk_partition *part_info,
 
 int ab_dump_abc(struct blk_desc *dev_desc, struct disk_partition *part_info)
 {
-	struct bootloader_control *abc;
+	struct android_bootloader_control *abc;
 	u32 crc32_le;
 	int i, ret;
-	struct slot_metadata *slot;
+	struct android_slot_metadata *slot;
 
 	if (!dev_desc || !part_info) {
 		log_err("ANDROID: Empty device descriptor or partition info\n");
@@ -392,13 +392,13 @@ int ab_dump_abc(struct blk_desc *dev_desc, struct disk_partition *part_info)
 		return ret;
 	}
 
-	if (abc->magic != BOOT_CTRL_MAGIC) {
+	if (abc->magic != ANDROID_BOOT_CTRL_MAGIC) {
 		log_err("ANDROID: Unknown A/B metadata: %.8x\n", abc->magic);
 		ret = -ENODATA;
 		goto error;
 	}
 
-	if (abc->version > BOOT_CTRL_VERSION) {
+	if (abc->version > ANDROID_BOOT_CTRL_VERSION) {
 		log_err("ANDROID: Unsupported A/B metadata version: %.8x\n",
 			abc->version);
 		ret = -ENODATA;
