@@ -231,6 +231,7 @@ void board_init_f(ulong dummy)
 {
 	int ret;
 
+	gd->flags = dummy;
 	board_early_init_f();
 
 #define EARLY_UART
@@ -336,7 +337,7 @@ int board_init_f_init_misc(void)
 		gd->serial.addr = t->u.serial.addr;
 		gd->serial.id = t->u.serial.id;
 		gd->baudrate = t->u.serial.baudrate;
-		if (!t->u.serial.enable)
+		if (!gd->serial.enable)
 			boot_flags |= GD_FLG_DISABLE_CONSOLE;
 		debug("preloader: enable=%d, addr=0x%x, baudrate=%d, id=%d\n",
 		      t->u.serial.enable, (u32)t->u.serial.addr,
