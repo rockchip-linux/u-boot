@@ -351,6 +351,19 @@ static int gic_irq_resume(void)
 	return 0;
 }
 
+static void gic_reg_dump(void)
+{
+	char cmd[64];
+
+	printf("## GICD:\n");
+	snprintf(cmd, 64, "md.l 0x%08x 0x%08x", GICD_BASE, GICC_DIR/4);
+	run_command(cmd, 0);
+
+	printf("## GICC:\n");
+	snprintf(cmd, 64, "md.l 0x%08x 0x%08x", GICC_BASE, GICC_DIR/4);
+	run_command(cmd, 0);
+}
+
 /**************************************regs save and resume**************************/
 static int gic_irq_init(void)
 {
@@ -404,6 +417,7 @@ static struct irq_chip gic_irq_chip = {
 	.irq_disable	= gic_irq_disable,
 	.irq_eoi	= gic_irq_eoi,
 	.irq_set_type	= gic_irq_set_type,
+	.irq_reg_dump	= gic_reg_dump,
 };
 
 struct irq_chip *arch_gic_get_irqchip(void)

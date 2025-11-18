@@ -403,6 +403,9 @@ static int do_dump_irqs(struct cmd_tbl *cmdtp, int flag,
 		virqs_show(pirq);
 	}
 
+	if (irqchip.gic->irq_reg_dump)
+		irqchip.gic->irq_reg_dump();
+
 	return 0;
 }
 

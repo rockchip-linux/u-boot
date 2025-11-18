@@ -66,6 +66,7 @@ struct irq_chip {
 	int		(*irq_set_type)(int irq, unsigned int flow_type);
 	int		(*irq_revert_type)(int irq);
 	int		(*irq_get_gpio_level)(int irq);
+	void		(*irq_reg_dump)(void);
 };
 
 /*
