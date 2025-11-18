@@ -14,6 +14,7 @@
 #include <led.h>
 #include <rtc.h>
 #include <pwm.h>
+#include <time.h>
 #include <video_rockchip.h>
 #include <asm/arch-rockchip/smccc.h>
 #include <asm/arch-rockchip/boot_mode.h>
@@ -135,6 +136,7 @@ static int regulators_parse_assigned_mem_state(struct udevice *dev)
 	return 0;
 }
 
+#ifdef CONFIG_IRQ
 static int regulators_enable_assigned_state_mem(struct udevice *dev)
 {
 	struct charge_animation_pdata *pdata = dev_get_plat(dev);
@@ -184,6 +186,7 @@ static void pmics_resume(void)
 {
 	pmics_ops(false);
 }
+#endif
 
 static int charge_animation_of_to_plat(struct udevice *dev)
 {
@@ -243,7 +246,7 @@ static int check_key_press(struct udevice *dev)
 {
 	struct charge_animation_pdata *pdata = dev_get_plat(dev);
 	struct charge_animation_priv *priv = dev_get_priv(dev);
-	u32 state;
+	u32 event;
 
 #ifdef CONFIG_DM_RTC
 	if (priv->rtc && rtc_alarm_trigger(priv->rtc)) {
@@ -251,21 +254,21 @@ static int check_key_press(struct udevice *dev)
 		return BUTTON_ON_HOLD;
 	}
 #endif
-	state = button_get_state(priv->pwrkey);
-	if (state == BUTTON_OFF)
-		printf("read power key failed: %d\n", state);
-	else if (state == BUTTON_OFF)
+	event = button_get_state(priv->pwrkey);
+	if (event == BUTTON_OFF)
+		debug("read power key failed: %d\n", event);
+	else if (event == BUTTON_ON)
 		printf("power key pressed...\n");
-	else if (state == BUTTON_ON_HOLD)
+	else if (event == BUTTON_ON_HOLD)
 		printf("power key long pressed...\n");
 
 	/* auto screen invert ? */
 	if (pdata->auto_wakeup_interval &&
 	    pdata->auto_wakeup_screen_invert) {
-		if (priv->auto_wakeup_key_state == BUTTON_OFF) {
+		if (priv->auto_wakeup_key_state == BUTTON_ON) {
 			/* Value is updated in timer interrupt */
 			priv->auto_wakeup_key_state = BUTTON_OFF;
-			state = BUTTON_OFF;
+			event = BUTTON_ON;
 		}
 	}
 
@@ -275,12 +278,12 @@ static int check_key_press(struct udevice *dev)
 		if (priv->auto_screen_off_timeout &&
 		    get_timer(priv->auto_screen_off_timeout) >
 		    pdata->auto_off_screen_interval * 1000) {	/* 1000ms */
-			state = BUTTON_OFF;
+			event = BUTTON_ON;
 			printf("Auto screen off\n");
 		}
 	}
 
-	return state;
+	return event;
 }
 
 /*
@@ -368,7 +371,7 @@ static void autowake_timer_handler(int irq, void *data)
 
 	writel(TIMER_CLR_INT, TIMER_BASE + TIMER_INTSTATUS);
 
-	priv->auto_wakeup_key_state = BUTTON_OFF;
+	priv->auto_wakeup_key_state = BUTTON_ON;
 	printf("auto wakeup count: %lld\n", ++count);
 }
 
@@ -679,9 +682,9 @@ static int charge_animation_show(struct udevice *dev)
 
 /* Give a message warning when CONFIG_IRQ is not enabled */
 #ifdef CONFIG_IRQ
-	printf("Enter U-Boot charging mode\n");
-#else
 	printf("Enter U-Boot charging mode(IRQ)\n");
+#else
+	printf("Enter U-Boot charging mode\n");
 #endif
 
 	charge_start = get_timer(0);
@@ -848,7 +851,7 @@ show_images:
 		 * battery power if battery is charging to next level.
 		 */
 		if (pdata->auto_wakeup_interval &&
-		    priv->auto_wakeup_key_state == BUTTON_OFF &&
+		    priv->auto_wakeup_key_state == BUTTON_ON &&
 		    !screen_on) {
 			if (soc >= image[old_show_idx + 1].soc &&
 			    soc < 100) {
@@ -927,7 +930,7 @@ show_images:
 		 * Long key event: show logo and boot system or still charging.
 		 */
 		key_state = check_key_press(dev);
-		if (key_state == BUTTON_OFF) {
+		if (key_state == BUTTON_ON) {
 			/* Clear current image index, recalc image index */
 			old_show_idx = IMAGE_RECALC_IDX;
 			show_idx = IMAGE_RECALC_IDX;
@@ -1060,7 +1063,20 @@ static const struct dm_charge_display_ops charge_animation_ops = {
 static int charge_animation_probe(struct udevice *dev)
 {
 	struct charge_animation_priv *priv = dev_get_priv(dev);
+	__maybe_unused struct udevice *rk_pm_cfg;
 	int ret, soc;
+
+#ifdef CONFIG_ROCKCHIP_PM_CONFIG
+	ret = uclass_get_device_by_driver(UCLASS_MISC,
+					  DM_GET_DRIVER(rockchip_pm_config),
+					  &rk_pm_cfg);
+	if (ret) {
+		if (ret == -ENODEV)
+			printf("Can't find rockchip_pm_config\n");
+		else
+			printf("Get rockchip_pm_config failed: %d\n", ret);
+	}
+#endif
 
 	/* Get PMIC: used for power off system  */
 	ret = uclass_get_device(UCLASS_PMIC, 0, &priv->pmic);
