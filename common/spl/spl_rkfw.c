@@ -479,7 +479,7 @@ int spl_load_rkfw_image(struct spl_image_info *spl_image,
 	int found_rkfw = 0;
 	char *part_name;
 #ifdef CONFIG_SPL_LIBDISK_SUPPORT
-	struct blk_desc *dev_desc = info->dev;
+	struct blk_desc *dev_desc = info->priv;
 	struct disk_partition part_info;
 
 	if (dev_desc) {

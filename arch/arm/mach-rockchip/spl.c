@@ -502,7 +502,7 @@ const char *spl_kernel_partition(struct spl_image_info *spl,
 #ifdef CONFIG_SPL_LIBDISK_SUPPORT
 	disk_partition_t part_info;
 
-	ret = part_get_info_by_name(info->dev, PART_MISC, &part_info);
+	ret = part_get_info_by_name(info->priv, PART_MISC, &part_info);
 	if (ret >= 0)
 		sector = part_info.start;
 #else
@@ -581,7 +581,7 @@ int spl_find_hwid_dtb(const char *fdt_name)
 
 int spl_fdt_chosen_bootargs(struct spl_load_info *info, void *fdt)
 {
-	__maybe_unused struct blk_desc *desc = info->dev;
+	__maybe_unused struct blk_desc *desc = info->priv;
 	__maybe_unused char *env = NULL;
 	__maybe_unused int ret = 0;
 

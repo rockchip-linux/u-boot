@@ -865,7 +865,7 @@ static int spl_simple_fit_read(struct spl_fit_info *ctx,
 
 	count = info->read(info, offset, size, buf);
 #if defined(CONFIG_SPL_MTD_SUPPORT) && !defined(CONFIG_FPGA_RAM)
-	mtd_blk_map_fit(info->dev, offset, fit);
+	mtd_blk_map_fit(info->priv, offset, fit);
 #endif
 	ctx->fit = buf;
 	debug("fit read offset %lx, size=%lu, dst=%p, count=%lu\n",
@@ -979,7 +979,7 @@ static int spl_load_kernel_fit(struct spl_image_info *spl_image,
 	struct disk_partition part_info;
 
 	part_name = spl_kernel_partition(spl_image, info);
-	if (part_get_info_by_name(info->dev, part_name, &part_info) <= 0) {
+	if (part_get_info_by_name(info->priv, part_name, &part_info) <= 0) {
 		printf("%s: no partition\n", __func__);
 		return -EINVAL;
 	}
@@ -1331,14 +1331,14 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 #ifdef CONFIG_SPL_AB
 	/* If boot fail in spl, spl must decrease 1 and do_reset. */
 	if (ret)
-		return spl_ab_decrease_reset(info->dev);
+		return spl_ab_decrease_reset(info->priv);
 	/*
 	 * If boot successfully, it is no need to do decrease
 	 * and U-boot will always decrease 1.
 	 * If in thunderboot process, always need to decrease 1.
 	 */
 	if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL)
-		spl_ab_decrease_tries(info->dev);
+		spl_ab_decrease_tries(info->priv);
 #endif
 
 	return ret;
