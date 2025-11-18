@@ -12,6 +12,7 @@
 #include <dm/uclass.h>
 #include <dm/root.h>
 #include <of_live.h>
+#include <memalign.h>
 
 #ifdef CONFIG_SYSMEM
 /**
