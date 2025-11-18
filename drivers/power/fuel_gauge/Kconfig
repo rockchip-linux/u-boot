@@ -10,6 +10,12 @@ config SPL_DM_FUEL_GAUGE
 	help
 	  This adds a simple uclass for fuel gauge.
 
+config POWER_FG_TEST
+	bool "A test Fuel gauge support"
+	depends on DM_FUEL_GAUGE
+	help
+	  This adds support for a test fuel gauge support.
+
 config POWER_FG_CW201X
 	bool "CW201X Fuel gauge support"
 	depends on DM_FUEL_GAUGE

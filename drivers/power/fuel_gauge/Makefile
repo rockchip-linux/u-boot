@@ -7,6 +7,7 @@
 
 obj-$(CONFIG_$(SPL_)DM_FUEL_GAUGE) += fuel_gauge_uclass.o
 
+obj-$(CONFIG_POWER_FG_TEST) += fg_test.o
 obj-$(CONFIG_POWER_FG_CW201X) += fg_cw201x.o
 obj-$(CONFIG_POWER_FG_CW221X) += fg_cw221x.o
 obj-$(CONFIG_POWER_FG_MAX17042) += fg_max17042.o
