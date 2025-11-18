@@ -25,7 +25,7 @@
 #ifndef LIBAVB_AB_H_
 #define LIBAVB_AB_H_
 
-#include "../libavb/libavb.h"
+#include <android_avb/libavb.h>
 
 /* The libavb_ab/ and boot_control/ code has been marked for some time
  * as experimental in anticipation of being removed in the future. It
@@ -45,8 +45,8 @@
  */
 
 #define AVB_INSIDE_LIBAVB_AB_H
-#include "avb_ab_flow.h"
-#include "avb_ab_ops.h"
+#include <android_avb/avb_ab_flow.h>
+#include <android_avb/avb_ab_ops.h>
 #undef AVB_INSIDE_LIBAVB_AB_H
 
 #endif /* LIBAVB_AB_H_ */

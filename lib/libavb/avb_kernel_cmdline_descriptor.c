@@ -3,8 +3,8 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#include "avb_kernel_cmdline_descriptor.h"
-#include "avb_util.h"
+#include <android_avb/avb_kernel_cmdline_descriptor.h>
+#include <android_avb/avb_util.h>
 
 bool avb_kernel_cmdline_descriptor_validate_and_byteswap(
     const AvbKernelCmdlineDescriptor* src, AvbKernelCmdlineDescriptor* dest) {

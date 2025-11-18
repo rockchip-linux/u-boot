@@ -3,10 +3,10 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#include "avb_cmdline.h"
-#include "avb_sha.h"
-#include "avb_util.h"
-#include "avb_version.h"
+#include <android_avb/avb_cmdline.h>
+#include <android_avb/avb_sha.h>
+#include <android_avb/avb_util.h>
+#include <android_avb/avb_version.h>
 #include <log.h>
 #include <malloc.h>
 

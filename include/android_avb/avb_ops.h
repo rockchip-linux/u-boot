@@ -10,7 +10,7 @@
 #ifndef AVB_OPS_H_
 #define AVB_OPS_H_
 
-#include "avb_sysdeps.h"
+#include <android_avb/avb_sysdeps.h>
 
 #ifdef __cplusplus
 extern "C" {

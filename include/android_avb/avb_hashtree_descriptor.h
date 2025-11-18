@@ -10,7 +10,7 @@
 #ifndef AVB_HASHTREE_DESCRIPTOR_H_
 #define AVB_HASHTREE_DESCRIPTOR_H_
 
-#include "avb_descriptor.h"
+#include <android_avb/avb_descriptor.h>
 
 #ifdef __cplusplus
 extern "C" {

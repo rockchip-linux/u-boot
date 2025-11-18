@@ -25,9 +25,9 @@
 #ifndef AVB_OPS_USER_H_
 #define AVB_OPS_USER_H_
 
-#include "../libavb/libavb.h"
-#include "../libavb_ab/libavb_ab.h"
-#include "../libavb_atx/libavb_atx.h"
+#include <android_avb/libavb.h>
+#include <android_avb/libavb_ab.h>
+#include <android_avb/libavb_atx.h>
 
 #ifdef __cplusplus
 extern "C" {

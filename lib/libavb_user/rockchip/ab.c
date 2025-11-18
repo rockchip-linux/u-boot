@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <command.h>
 #include <part.h>
-#include "ab.h"
+#include <android_avb/ab.h>
 
 AvbABFlowResult ab_slot_select(AvbABOps* ab_ops,char* select_slot)
 {

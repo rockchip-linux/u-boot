@@ -14,7 +14,7 @@
 #include <mmc.h>
 #include <part.h>
 #include <tee.h>
-#include "avb.h"
+#include <android_avb/avb.h>
 #include <tee/optee.h>
 #include <u-boot/sha256.h>
 #include <asm/arch-rockchip/atags.h>

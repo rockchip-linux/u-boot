@@ -7,10 +7,10 @@
 #ifndef AVB_H_
 #define AVB_H_
 
-#include "../../libavb/libavb.h"
-#include "../../libavb_ab/libavb_ab.h"
-#include "../../libavb_atx/libavb_atx.h"
-#include "../../libavb_user/libavb_user.h"
+#include <android_avb/libavb.h>
+#include <android_avb/libavb_ab.h>
+#include <android_avb/libavb_atx.h>
+#include <android_avb/libavb_user.h>
 
 #ifdef __cplusplus
 extern "C" {

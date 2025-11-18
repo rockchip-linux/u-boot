@@ -3,8 +3,8 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#include "avb_chain_partition_descriptor.h"
-#include "avb_util.h"
+#include <android_avb/avb_chain_partition_descriptor.h>
+#include <android_avb/avb_util.h>
 
 bool avb_chain_partition_descriptor_validate_and_byteswap(
     const AvbChainPartitionDescriptor* src, AvbChainPartitionDescriptor* dest) {

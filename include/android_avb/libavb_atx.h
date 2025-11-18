@@ -22,20 +22,20 @@
  * SOFTWARE.
  */
 
-#ifndef LIBAVB_USER_H_
-#define LIBAVB_USER_H_
+#ifndef LIBAVB_ATX_H_
+#define LIBAVB_ATX_H_
 
-#include "../libavb/libavb.h"
+#include <android_avb/libavb.h>
 
-/* The AVB_INSIDE_LIBAVB_USER_H preprocessor symbol is used to enforce
+/* The AVB_INSIDE_LIBAVB_ATX_H preprocessor symbol is used to enforce
  * library users to include only this file. All public interfaces, and
  * only public interfaces, must be included here.
  */
 
-#define AVB_INSIDE_LIBAVB_USER_H
-#include "avb_ops_user.h"
-#include "avb_user_verification.h"
-#include "avb_user_verity.h"
-#undef AVB_INSIDE_LIBAVB_USER_H
+#define AVB_INSIDE_LIBAVB_ATX_H
+#include <android_avb/avb_atx_ops.h>
+#include <android_avb/avb_atx_types.h>
+#include <android_avb/avb_atx_validate.h>
+#undef AVB_INSIDE_LIBAVB_ATX_H
 
-#endif /* LIBAVB_USER_H_ */
+#endif /* LIBAVB_ATX_H_ */

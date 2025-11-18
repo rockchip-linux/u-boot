@@ -22,12 +22,12 @@
  * SOFTWARE.
  */
 
-#include "avb_atx_validate.h"
+#include <android_avb/avb_atx_validate.h>
 
-#include "../libavb/avb_rsa.h"
-#include "../libavb/avb_sha.h"
-#include "../libavb/avb_sysdeps.h"
-#include "../libavb/avb_util.h"
+#include <android_avb/avb_rsa.h>
+#include <android_avb/avb_sha.h>
+#include <android_avb/avb_sysdeps.h>
+#include <android_avb/avb_util.h>
 #ifdef CONFIG_DM_CRYPTO
 #include <crypto.h>
 #endif

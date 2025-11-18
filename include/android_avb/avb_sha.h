@@ -21,8 +21,8 @@ extern "C" {
 #ifdef CONFIG_DM_CRYPTO
 #include <crypto.h>
 #endif
-#include "avb_crypto.h"
-#include "avb_sysdeps.h"
+#include <android_avb/avb_crypto.h>
+#include <android_avb/avb_sysdeps.h>
 #include <dm/device.h>
 
 /* Block size in bytes of a SHA-256 digest. */

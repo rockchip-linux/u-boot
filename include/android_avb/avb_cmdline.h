@@ -14,8 +14,8 @@
 #ifndef AVB_CMDLINE_H_
 #define AVB_CMDLINE_H_
 
-#include "avb_ops.h"
-#include "avb_slot_verify.h"
+#include <android_avb/avb_ops.h>
+#include <android_avb/avb_slot_verify.h>
 
 /* Maximum allow length (in bytes) of a partition name, including
  * ab_suffix.

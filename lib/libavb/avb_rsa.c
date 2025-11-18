@@ -8,10 +8,10 @@
  * support multiple RSA key lengths and hash digest algorithms.
  */
 
-#include "avb_rsa.h"
-#include "avb_sha.h"
-#include "avb_util.h"
-#include "avb_vbmeta_image.h"
+#include <android_avb/avb_rsa.h>
+#include <android_avb/avb_sha.h>
+#include <android_avb/avb_util.h>
+#include <android_avb/avb_vbmeta_image.h>
 #include <malloc.h>
 
 typedef struct IAvbKey {

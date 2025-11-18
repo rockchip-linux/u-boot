@@ -10,14 +10,14 @@
 #ifndef AVB_VBMETA_IMAGE_H_
 #define AVB_VBMETA_IMAGE_H_
 
-#include "avb_sysdeps.h"
+#include <android_avb/avb_sysdeps.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "avb_crypto.h"
-#include "avb_descriptor.h"
+#include <android_avb/avb_crypto.h>
+#include <android_avb/avb_descriptor.h>
 
 /* Size of the vbmeta image header. */
 #define AVB_VBMETA_IMAGE_HEADER_SIZE 256

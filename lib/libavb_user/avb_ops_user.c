@@ -42,10 +42,10 @@
 #include <tee.h>
 #include <tee/optee.h>
 #include <asm/cache.h>
-#include "../libavb/libavb.h"
-#include "../libavb_ab/libavb_ab.h"
-#include "../libavb_atx/libavb_atx.h"
-#include "libavb_user.h"
+#include <android_avb/libavb.h>
+#include <android_avb/libavb_ab.h>
+#include <android_avb/libavb_atx.h>
+#include <android_avb/libavb_user.h>
 #include <avb_verify.h>
 
 /* Refer from avb_ops_user.cpp */

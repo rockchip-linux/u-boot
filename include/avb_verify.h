@@ -6,12 +6,12 @@
 #ifndef	_AVB_VERIFY_H
 #define _AVB_VERIFY_H
 
-#include <../lib/libavb/libavb.h>
-#include <../lib/libavb_ab/libavb_ab.h>
-#include <../lib/libavb_atx/libavb_atx.h>
-#include <../lib/libavb_user/libavb_user.h>
-#include <../lib/libavb_user/rockchip/avb.h>
-#include <../lib/libavb_user/rockchip/ab.h>
+#include <android_avb/libavb.h>
+#include <android_avb/libavb_ab.h>
+#include <android_avb/libavb_atx.h>
+#include <android_avb/libavb_user.h>
+#include <android_avb/avb.h>
+#include <android_avb/ab.h>
 #include <mapmem.h>
 #include <mmc.h>
 

@@ -11,7 +11,7 @@
 #include <common.h>
 #include <dm.h>
 #include <u-boot/hash.h>
-#include "avb_sha.h"
+#include <android_avb/avb_sha.h>
 
 #ifdef CONFIG_DM_HASH
 void avb_sha256_init(AvbSHA256Ctx* ctx) {

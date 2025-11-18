@@ -30,7 +30,7 @@
 #ifndef AVB_AB_FLOW_H_
 #define AVB_AB_FLOW_H_
 
-#include "avb_ab_ops.h"
+#include <android_avb/avb_ab_ops.h>
 
 #ifdef __cplusplus
 extern "C" {

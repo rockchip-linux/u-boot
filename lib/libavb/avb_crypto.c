@@ -3,10 +3,10 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#include "avb_crypto.h"
-#include "avb_rsa.h"
-#include "avb_sha.h"
-#include "avb_util.h"
+#include <android_avb/avb_crypto.h>
+#include <android_avb/avb_rsa.h>
+#include <android_avb/avb_sha.h>
+#include <android_avb/avb_util.h>
 
 /* NOTE: The PKC1-v1.5 padding is a blob of binary DER of ASN.1 and is
  * obtained from section 5.2.2 of RFC 4880.

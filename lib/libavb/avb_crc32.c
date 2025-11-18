@@ -42,7 +42,7 @@
  * CRC32 code derived from work by Gary S. Brown.
  */
 
-#include "avb_sysdeps.h"
+#include <android_avb/avb_sysdeps.h>
 
 /* Code taken from FreeBSD 8 */
 

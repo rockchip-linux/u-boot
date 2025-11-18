@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include "avb_user_verity.h"
+#include <android_avb/avb_user_verity.h>
 
 /* Maximum allow length (in bytes) of a partition name, including
  * ab_suffix.

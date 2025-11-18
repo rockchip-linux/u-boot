@@ -3,8 +3,8 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#include "avb_property_descriptor.h"
-#include "avb_util.h"
+#include <android_avb/avb_property_descriptor.h>
+#include <android_avb/avb_util.h>
 
 bool avb_property_descriptor_validate_and_byteswap(
     const AvbPropertyDescriptor* src, AvbPropertyDescriptor* dest) {

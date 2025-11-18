@@ -30,8 +30,8 @@
 #ifndef AVB_ATX_VALIDATE_H_
 #define AVB_ATX_VALIDATE_H_
 
-#include "avb_atx_ops.h"
-#include "avb_atx_types.h"
+#include <android_avb/avb_atx_ops.h>
+#include <android_avb/avb_atx_types.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -3,8 +3,8 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#include "avb_footer.h"
-#include "avb_util.h"
+#include <android_avb/avb_footer.h>
+#include <android_avb/avb_util.h>
 
 bool avb_footer_validate_and_byteswap(const AvbFooter* src, AvbFooter* dest) {
   avb_memcpy(dest, src, sizeof(AvbFooter));

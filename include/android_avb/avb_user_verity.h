@@ -25,7 +25,7 @@
 #ifndef AVB_USER_VERITY_H_
 #define AVB_USER_VERITY_H_
 
-#include "../libavb/libavb.h"
+#include <android_avb/libavb.h>
 #ifdef __cplusplus
 extern "C" {
 #endif

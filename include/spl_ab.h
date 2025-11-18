@@ -7,10 +7,7 @@
 #define _SPL_AB_H_
 
 #include <spl.h>
-#ifdef CONFIG_AVB_LIBAVB_AB
 #include <android_avb/libavb_ab.h>
-#include <android_avb/avb_ab_flow.h>
-#endif
 
 #define AB_METADATA_OFFSET 4
 

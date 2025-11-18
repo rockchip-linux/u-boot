@@ -3,8 +3,8 @@
  * Copyright (C) 2016 The Android Open Source Project
  */
 
-#include "avb_hashtree_descriptor.h"
-#include "avb_util.h"
+#include <android_avb/avb_hashtree_descriptor.h>
+#include <android_avb/avb_util.h>
 
 bool avb_hashtree_descriptor_validate_and_byteswap(
     const AvbHashtreeDescriptor* src, AvbHashtreeDescriptor* dest) {

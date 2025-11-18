@@ -30,9 +30,9 @@
 #ifndef AVB_ATX_OPS_H_
 #define AVB_ATX_OPS_H_
 
-#include "../libavb/libavb.h"
+#include <android_avb/libavb.h>
 
-#include "avb_atx_types.h"
+#include <android_avb/avb_atx_types.h>
 
 #ifdef __cplusplus
 extern "C" {

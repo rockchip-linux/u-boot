@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include "avb_ab_flow.h"
+#include <android_avb/avb_ab_flow.h>
 
 bool avb_ab_data_verify_and_byteswap(const AvbABData* src, AvbABData* dest) {
   /* Ensure magic is correct. */

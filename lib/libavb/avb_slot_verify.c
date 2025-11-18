@@ -5,17 +5,17 @@
 
 #include <common.h>
 #include <android_image.h>
-#include "avb_slot_verify.h"
-#include "avb_chain_partition_descriptor.h"
-#include "avb_cmdline.h"
-#include "avb_footer.h"
-#include "avb_hash_descriptor.h"
-#include "avb_hashtree_descriptor.h"
-#include "avb_kernel_cmdline_descriptor.h"
-#include "avb_sha.h"
-#include "avb_util.h"
-#include "avb_vbmeta_image.h"
-#include "avb_version.h"
+#include <android_avb/avb_slot_verify.h>
+#include <android_avb/avb_chain_partition_descriptor.h>
+#include <android_avb/avb_cmdline.h>
+#include <android_avb/avb_footer.h>
+#include <android_avb/avb_hash_descriptor.h>
+#include <android_avb/avb_hashtree_descriptor.h>
+#include <android_avb/avb_kernel_cmdline_descriptor.h>
+#include <android_avb/avb_sha.h>
+#include <android_avb/avb_util.h>
+#include <android_avb/avb_vbmeta_image.h>
+#include <android_avb/avb_version.h>
 #include <log.h>
 #include <malloc.h>
 
