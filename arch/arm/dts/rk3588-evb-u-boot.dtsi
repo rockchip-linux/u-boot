@@ -29,6 +29,18 @@
 			press-threshold-microvolt = <1750>;
 		};
 	};
+
+	bootstd {
+		compatible = "u-boot,boot-std";
+		bootph-all;
+		filename-prefixes = "/", "/boot/";
+		bootdev-order = "mmc0";
+
+		extlinux {
+			bootph-all;
+			compatible = "u-boot,extlinux";
+		};
+	};
 };
 
 &otp {
