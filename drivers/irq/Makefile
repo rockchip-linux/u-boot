@@ -5,7 +5,7 @@
 #
 
 obj-y += irq-gic.o irq-generic.o irq-gpio-switch.o virq.o
-ifdef CONFIG_ROCKCHIP_GPIO_V2
+ifdef CONFIG_IRQ_GPIO_V2
 obj-y += irq-gpio-v2.o
 else
 obj-y += irq-gpio.o

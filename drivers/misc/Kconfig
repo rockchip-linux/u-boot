@@ -322,6 +322,12 @@ config IRQ
 	  device has its own uclass since there are several operations
 	  involved.
 
+config IRQ_GPIO_V2
+	bool "RK GPIO VERSION for IRQ"
+	depends on IRQ
+	help
+	  This select the rk gpio version for IRQ.
+
 config IRQ_TIMER_DUMP
 	bool "Enable a timer timeout irq stack dump"
 	depends on IRQ
