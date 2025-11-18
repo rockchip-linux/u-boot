@@ -9,6 +9,7 @@
 #include <blk.h>
 #include <malloc.h>
 #include <spl_ab.h>
+#include <u-boot/crc.h>
 
 int safe_memcmp(const void *s1, const void *s2, size_t n)
 {

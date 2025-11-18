@@ -47,6 +47,15 @@ int fdt_setprop_uxx(void *fdt, int nodeoffset, const char *name,
 int fdt_root(void *fdt);
 
 /**
+ * Append info to bootargs
+ *
+ * @param fdt           FDT address in memory
+ * @param data          string info
+ * @return 0 if ok, else error
+ */
+int fdt_bootargs_append(void *fdt, char *data);
+
+/**
  * fdt_chosen() - add chosen data the FDT before booting the OS
  *
  * @fdt: FDT address in memory
