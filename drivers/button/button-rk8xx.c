@@ -136,8 +136,8 @@ static const struct button_ops button_rk8xx_ops = {
 	.get_state	= button_rk8xx_get_state,
 };
 
-U_BOOT_DRIVER(button_rk8xx) = {
-	.name		= "button_rk8xx",
+U_BOOT_DRIVER(rk8xx_pwrkey) = {
+	.name		= "rk8xx_pwrkey",
 	.id		= UCLASS_BUTTON,
 	.ops		= &button_rk8xx_ops,
 	.priv_auto	= sizeof(struct button_rk8xx_priv),
