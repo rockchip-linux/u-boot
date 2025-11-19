@@ -389,8 +389,10 @@ static void panel_simple_enable(struct rockchip_panel *panel)
 	if (plat->delay.enable)
 		mdelay(plat->delay.enable);
 
-	if (priv->backlight)
+	if (priv->backlight) {
+		backlight_set_brightness(priv->backlight, BACKLIGHT_DEFAULT);
 		backlight_enable(priv->backlight);
+	}
 
 	priv->enabled = true;
 }
