@@ -93,31 +93,38 @@
 	bootph-pre-ram;
 	bootph-some-ram;
 	u-boot,spl-fifo-mode;
+	bus-width = <4>;
+	status = "okay";
 };
 
 &sdmmc0_bus4 {
 	bootph-pre-ram;
 	bootph-some-ram;
+	status = "okay";
 };
 
 &sdmmc0_clk {
 	bootph-pre-ram;
 	bootph-some-ram;
+	status = "okay";
 };
 
 &sdmmc0_cmd {
 	bootph-pre-ram;
 	bootph-some-ram;
+	status = "okay";
 };
 
 &sdmmc0_det {
 	bootph-pre-ram;
 	bootph-some-ram;
+	status = "okay";
 };
 
 &sdmmc0_pwren {
 	bootph-pre-ram;
 	bootph-some-ram;
+	status = "okay";
 };
 
 &xin24m {
