@@ -198,6 +198,9 @@
 &sdmmc {
 	bootph-pre-ram;
 	u-boot,spl-fifo-mode;
+	bus-width = <4>;
+	cd-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
+	status = "okay";
 };
 
 &sdhci {
@@ -206,18 +209,22 @@
 
 &sdmmc_bus4 {
 	bootph-all;
+	status = "okay";
 };
 
 &sdmmc_clk {
 	bootph-all;
+	status = "okay";
 };
 
 &sdmmc_cmd {
 	bootph-all;
+	status = "okay";
 };
 
 &sdmmc_det {
 	bootph-all;
+	status = "okay";
 };
 
 &sfc {

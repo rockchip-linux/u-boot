@@ -11,7 +11,7 @@
 	compatible = "rockchip,rk3588-evb", "rockchip,rk3588";
 
 	chosen {
-		u-boot,spl-boot-order = "same-as-spl", &sdhci;
+		u-boot,spl-boot-order = &sdmmc, "same-as-spl", &sdhci;
 	};
 
 	adc-keys {
