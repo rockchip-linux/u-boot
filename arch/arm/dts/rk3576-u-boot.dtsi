@@ -349,4 +349,7 @@
 	status = "okay";
 };
 
-
+&vo1_grf {
+	bootph-all;
+	status = "okay";
+};
