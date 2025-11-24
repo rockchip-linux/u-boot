@@ -287,6 +287,11 @@
 	bootph-pre-ram;
 };
 
+&vo0_grf {
+	bootph-all;
+	status = "okay";
+};
+
 #ifdef CONFIG_ROCKCHIP_SPI_IMAGE
 &binman {
 	simple-bin-spi {
