@@ -36,6 +36,22 @@
 		bootph-all;
 	};
 
+	sata0: sata@2a240000 {
+		compatible = "rockchip,rk-ahci", "snps,dwc-ahci";
+		reg = <0 0x2a240000 0 0x1000>;
+		clocks = <&cru ACLK_SATA0>, <&cru CLK_PMALIVE0>,
+			 <&cru CLK_RXOOB0>;
+		clock-names = "sata", "pmalive", "rxoob";
+		interrupts = <GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "hostc";
+		power-domains = <&power RK3576_PD_SUBPHP>;
+		phys = <&combphy0_ps PHY_TYPE_SATA>;
+		phy-names = "sata-phy";
+		ports-implemented = <0x1>;
+		dma-coherent;
+		status = "disabled";
+	};
+
 	crypto: crypto@2a400000 {
 		compatible = "rockchip,crypto-v4";
 		reg = <0x0 0x2a400000 0x0 0x2000>;
@@ -357,6 +373,26 @@
 };
 
 &vo1_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&pipe_phy0_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&php_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&combphy0_ps {
+	bootph-all;
+	status = "okay";
+};
+
+&sata0 {
 	bootph-all;
 	status = "okay";
 };
