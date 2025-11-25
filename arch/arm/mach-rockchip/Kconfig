@@ -400,21 +400,21 @@ config ROCKCHIP_RK3576
 config ROCKCHIP_RK3588
 	bool "Support Rockchip RK3588"
 	select ARM64
-	select SUPPORT_SPL
-	select SPL
+	select SUPPORT_SPL if !SUPPORT_USBPLUG
+	select SPL if !SUPPORT_USBPLUG
 	select CLK
-	select PINCTRL
+	select PINCTRL if !SUPPORT_USBPLUG
 	select RAM
 	select REGMAP
 	select SYSCON
 	select BOARD_LATE_INIT
-	select DM_REGULATOR_FIXED
+	select DM_REGULATOR_FIXED if !SUPPORT_USBPLUG
 	select DM_RESET
-	select GICV3
+	select GICV3 if !SUPPORT_USBPLUG
 	imply BOOTSTD_FULL
 	imply CLK_SCMI
 	imply DM_RNG
-	imply MISC_INIT_R
+	imply MISC_INIT_R if !SUPPORT_USBPLUG
 	imply MMC_HS200_SUPPORT if MMC_SDHCI_ROCKCHIP
 	select SYS_PCI_64BIT if PCI
 	imply SPL_ATF_NO_PLATFORM_PARAM if SPL_ATF
@@ -428,6 +428,8 @@ config ROCKCHIP_RK3588
 	imply SCMI_FIRMWARE
 	imply SPL_ATF_NO_PLATFORM_PARAM if SPL_ATF
 	imply SPL_MMC_HS200_SUPPORT if SPL_MMC && MMC_HS200_SUPPORT
+	imply SYSRESET
+	imply PARTITIONS if SUPPORT_USBPLUG
 	help
 	  The Rockchip RK3588 is a ARM-based SoC with quad-core Cortex-A76 and
 	  quad-core Cortex-A55 including NEON and GPU, 6TOPS NPU, Mali-G610 MP4,
