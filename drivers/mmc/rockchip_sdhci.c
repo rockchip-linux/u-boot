@@ -165,6 +165,7 @@ struct sdhci_data {
 	u8 hs400_strbin_tapnum;
 };
 
+#ifdef CONFIG_ROCKCHIP_RK3399
 static void rk3399_emmc_phy_power_on(struct rockchip_emmc_phy *phy, u32 clock)
 {
 	u32 caldone, dllrdy, freqsel;
@@ -299,6 +300,7 @@ static int rk3399_sdhci_set_ios_post(struct sdhci_host *host)
 
 	return 0;
 }
+#endif
 
 static void rk3568_sdhci_set_clock(struct sdhci_host *host, u32 div)
 {
@@ -668,12 +670,14 @@ static int rockchip_sdhci_bind(struct udevice *dev)
 	return sdhci_bind(dev, &plat->mmc, &plat->cfg);
 }
 
+#ifdef CONFIG_ROCKCHIP_RK3399
 static const struct sdhci_data rk3399_data = {
 	.get_phy = rk3399_emmc_get_phy,
 	.set_control_reg = rk3399_sdhci_set_control_reg,
 	.set_ios_post = rk3399_sdhci_set_ios_post,
 	.set_enhanced_strobe = rk3399_sdhci_set_enhanced_strobe,
 };
+#endif
 
 static const struct sdhci_data rk3528_data = {
 	.set_ios_post = rk3568_sdhci_set_ios_post,
@@ -731,10 +735,12 @@ static const struct sdhci_data rk3588_data = {
 };
 
 static const struct udevice_id sdhci_ids[] = {
+#ifdef CONFIG_ROCKCHIP_RK3399
 	{
 		.compatible = "arasan,sdhci-5.1",
 		.data = (ulong)&rk3399_data,
 	},
+#endif
 	{
 		.compatible = "rockchip,rk3568-dwcmshc",
 		.data = (ulong)&rk3568_data,
