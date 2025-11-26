@@ -9,7 +9,13 @@
 #include <image.h>
 #include <log.h>
 #include <part.h>
-
+#ifdef CONFIG_SUPPORT_USBPLUG
+int common_diskboot(struct cmd_tbl *cmdtp, const char *intf, int argc,
+		    char *const argv[])
+{
+	return 1;
+}
+#else
 int common_diskboot(struct cmd_tbl *cmdtp, const char *intf, int argc,
 		    char *const argv[])
 {
@@ -129,3 +135,4 @@ int common_diskboot(struct cmd_tbl *cmdtp, const char *intf, int argc,
 
 	return bootm_maybe_autostart(cmdtp, argv[0]);
 }
+#endif

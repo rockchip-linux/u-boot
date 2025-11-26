@@ -3,7 +3,7 @@
 # (C) Copyright 2004-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
-ifndef CONFIG_XPL_BUILD
+ifeq ($(CONFIG_XPL_BUILD)$(CONFIG_SUPPORT_USBPLUG),)
 # core command
 obj-y += boot.o
 obj-$(CONFIG_CMD_BOOTM) += bootm.o
@@ -240,6 +240,7 @@ obj-$(CONFIG_CMD_MBR) += mbr.o
 obj-$(CONFIG_CMD_ETHSW) += ethsw.o
 obj-$(CONFIG_CMD_AXI) += axi.o
 obj-$(CONFIG_CMD_PVBLOCK) += pvblock.o
+obj-y += download.o
 
 # Power
 obj-$(CONFIG_CMD_PMIC) += pmic.o
@@ -248,7 +249,6 @@ obj-$(CONFIG_CMD_DVFS) += dvfs.o
 
 obj-$(CONFIG_CMD_BLOB) += blob.o
 obj-$(CONFIG_ARCH_ROCKCHIP) += rkimgtest.o
-
 # Android Verified Boot 2.0
 obj-$(CONFIG_CMD_AVB) += avb.o
 
@@ -271,14 +271,15 @@ obj-$(CONFIG_ARCH_MVEBU) += mvebu/
 obj-$(CONFIG_ARCH_KEYSTONE) += ti/
 obj-$(CONFIG_ARCH_K3) += ti/
 obj-$(CONFIG_ARCH_OMAP2PLUS) += ti/
-endif # !CONFIG_XPL_BUILD
+
+endif # !CONFIG_XPL_BUILD & !CONFIG_SUPPORT_USBPLUG
 
 obj-$(CONFIG_$(XPL_)CMD_TLV_EEPROM) += tlv_eeprom.o
 
 obj-$(CONFIG_CMD_BCM_EXT_UTILS) += broadcom/
 
-ifndef CONFIG_SPL_BUILD
-obj-y += download.o
+ifdef CONFIG_SUPPORT_USBPLUG
+obj-$(CONFIG_CMD_ROCKUSB) += rockusb.o
 endif
 
 filechk_data_gz = (echo "static const char data_gz[] ="; cat $< | scripts/bin2c; echo ";")

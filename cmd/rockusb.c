@@ -251,23 +251,13 @@ bool rkusb_switch_usb3_enabled(void)
 	return g_rkusb->switch_usb3;
 }
 
-static int do_rkusb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+int run_rockusb(const char *usb_controller, const char *devtype, const char *devnum)
 {
-	const char *usb_controller;
-	const char *devtype;
-	const char *devnum;
 	unsigned int controller_index;
 	struct udevice *udc = NULL;
 	int rc;
 	int cable_ready_timeout __maybe_unused;
 	const char *s;
-
-	if (argc != 4)
-		return CMD_RET_USAGE;
-
-	usb_controller = argv[1];
-	devtype = argv[2];
-	devnum	= argv[3];
 
 	if (!strcmp(devtype, "mmc") && !strcmp(devnum, "1")) {
 		pr_err("Forbid to flash mmc 1(sdcard)\n");
@@ -279,6 +269,7 @@ static int do_rkusb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[
 	if (rc < 0)
 		return CMD_RET_FAILURE;
 
+#ifndef CONFIG_SUPPORT_USBPLUG
 	if (g_rkusb->ums[0].block_dev.uclass_id == UCLASS_MTD &&
 	    g_rkusb->ums[0].block_dev.devnum == BLK_MTD_NAND) {
 #ifdef CONFIG_CMD_GO
@@ -289,6 +280,7 @@ static int do_rkusb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[
 		pr_err("rockusb: count not support loader upgrade!\n");
 #endif
 	}
+#endif
 
 re_enumerate:
 	controller_index = (unsigned int)(simple_strtoul(
@@ -348,8 +340,8 @@ re_enumerate:
 	}
 
 	/* Timeout unit: seconds */
+#ifndef CONFIG_SUPPORT_USBPLUG
 	cable_ready_timeout = UMS_CABLE_READY_TIMEOUT;
-
 	if (!g_dnl_board_usb_cable_connected()) {
 		puts("Please connect USB cable.\n");
 
@@ -371,7 +363,7 @@ re_enumerate:
 		}
 		puts("\r\n");
 	}
-
+#endif
 	while (1) {
 		dm_usb_gadget_handle_interrupts(udc);
 
@@ -414,6 +406,22 @@ cleanup_rkusb:
 	rkusb_fini();
 
 	return rc;
+}
+
+static int do_rkusb(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+{
+	const char *usb_controller;
+	const char *devtype;
+	const char *devnum;
+
+	if (argc != 4)
+		return CMD_RET_USAGE;
+
+	usb_controller = argv[1];
+	devtype = argv[2];
+	devnum	= argv[3];
+
+	return run_rockusb(usb_controller, devtype, devnum);
 }
 
 U_BOOT_CMD(rockusb, 4, 1, do_rkusb,

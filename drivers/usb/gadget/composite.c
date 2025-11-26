@@ -1077,9 +1077,14 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 #endif
 				cdev->desc.bMaxPacketSize0 = 9;
 			} else {
+#ifndef CONFIG_SUPPORT_USBPLUG
 				cdev->desc.bcdUSB = !strncmp(cdev->driver->name, "rkusb_ums_dnl", 13) ?
 						    cpu_to_le16(0x0201) : cpu_to_le16(0x0200);
+#else
+				cdev->desc.bcdUSB = cpu_to_le16(0x0200);
+#endif
 			}
+
 			value = min(w_length, (u16) sizeof cdev->desc);
 			memcpy(req->buf, &cdev->desc, value);
 			break;

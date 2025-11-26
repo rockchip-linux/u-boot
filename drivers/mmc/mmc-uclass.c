@@ -393,7 +393,7 @@ void mmc_do_preinit(void)
 	}
 }
 
-#if !defined(CONFIG_XPL_BUILD) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
+#if (!defined(CONFIG_XPL_BUILD) && !defined(CONFIG_SUPPORT_USBPLUG)) || defined(CONFIG_SPL_LIBCOMMON_SUPPORT)
 void print_mmc_devices(char separator)
 {
 	struct udevice *dev;

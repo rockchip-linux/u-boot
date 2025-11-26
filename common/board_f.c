@@ -125,6 +125,7 @@ static int init_baud_rate(void)
 	return 0;
 }
 
+#ifndef CONFIG_SUPPORT_USBPLUG
 static int display_text_info(void)
 {
 #if !defined(CONFIG_SANDBOX) && !defined(CONFIG_EFI_APP)
@@ -145,6 +146,7 @@ static int display_text_info(void)
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_SYSRESET
 static int print_resetinfo(void)
@@ -246,6 +248,7 @@ static int announce_dram_init(void)
 	if (val == 10240) { val = 10; scale += 10; } \
 } while (0)
 
+#ifndef CONFIG_SUPPORT_USBPLUG
 /*
  * Check if the sizes in their natural units written in decimal format with
  * one fraction number are same.
@@ -259,6 +262,7 @@ static int sizes_near(unsigned long long size1, unsigned long long size2)
 
 	return size1_scale == size2_scale && size1_val == size2_val;
 }
+#endif
 
 static int show_dram_config(void)
 {
@@ -969,9 +973,13 @@ static const init_fnc_t init_sequence_f[] = {
 	env_init,		/* initialize environment */
 	init_baud_rate,		/* initialze baudrate settings */
 	serial_init,		/* serial communications setup */
+
+#ifndef CONFIG_SUPPORT_USBPLUG
 	console_init_f,		/* stage 1 init of console */
 	display_options,	/* say that we are here */
 	display_text_info,	/* show debugging info if required */
+#endif
+
 	checkcpu,
 #if defined(CONFIG_SYSRESET)
 	print_resetinfo,

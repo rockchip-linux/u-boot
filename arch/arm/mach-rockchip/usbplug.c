@@ -3,17 +3,15 @@
  *
  * SPDX-License-Identifier:     GPL-2.0+
  */
-
 #include <common.h>
 #include <command.h>
 #include <debug_uart.h>
+#include <init.h>
 #include <malloc.h>
 #include <mmc.h>
-#include <scsi.h>
 #include <stdlib.h>
-#include <asm/global_data.h>
-#include <dm/device.h>
-#include <dm/uclass-id.h>
+#include <scsi.h>
+#include <asm/arch-rockchip/param.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -113,12 +111,13 @@ struct blk_desc *usbplug_blk_get_devnum_by_uclass_id(enum uclass_id uclass, int 
 	return blk_desc;
 }
 
-static char *bootdev_rockusb_cmd(void)
+int run_rockusb(const char *usb_controller, const char *devtype, const char *devnum);
+static int bootdev_rockusb_cmd(void)
 {
 	struct blk_desc *blk_desc = NULL;
 	enum uclass_id uclass = UCLASS_INVALID;
 	u8 devnum, iomux_routing;
-	char *cmd;
+	char c_dev_num[2];
 	int i = 0;
 
 	for (i = 0; i < ARRAY_SIZE(dev_list); i++) {
@@ -142,7 +141,7 @@ static char *bootdev_rockusb_cmd(void)
 #endif
 		default:
 			printf("Bootdev 0x%x is not support\n", uclass);
-			return NULL;
+			return -1;
 		}
 
 		printf("Scandev: %s %d m%d\n",
@@ -157,22 +156,32 @@ static char *bootdev_rockusb_cmd(void)
 	boot_blk_desc = blk_desc;
 	if (!uclass) {
 		printf("No boot device\n");
-		return NULL;
+		return -1;
 	}
 
 	printf("Bootdev: %s %d\n", blk_get_uclass_name(uclass), devnum);
 
-	cmd = malloc(32);
-	if (!cmd)
-		return NULL;
-
-	snprintf(cmd, 32, "rockusb 0 %s %d", blk_get_uclass_name(uclass), devnum);
-
-	return cmd;
+	c_dev_num[1] = 0;
+	c_dev_num[0] = devnum + 0x30;
+	return run_rockusb("0", (const char *)blk_get_uclass_name(uclass), (const char *)c_dev_num);
 }
 
 int board_init(void)
 {
-	return run_command(bootdev_rockusb_cmd(), 0);
+	return bootdev_rockusb_cmd();
 }
 
+int board_init_f_init_misc(void)
+{
+	int boot_flags = 0;
+
+#ifdef CONFIG_ARM64
+	asm volatile("mrs %0, cntfrq_el0" : "=r" (gd->arch.timer_rate_hz));
+#else
+	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
+#endif
+
+	param_parse_pre_serial(&boot_flags);
+
+	return boot_flags;
+}

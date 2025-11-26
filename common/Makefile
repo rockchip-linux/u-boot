@@ -5,6 +5,7 @@
 
 # core
 ifndef CONFIG_XPL_BUILD
+obj-$(CONFIG_SUPPORT_USBPLUG) += usbplug/
 obj-y += init/
 obj-y += main.o
 obj-y += memtop.o
@@ -19,7 +20,10 @@ obj-$(CONFIG_HOTKEY) += hotkey.o
 
 # # boards
 obj-y += board_f.o
+ifndef CONFIG_SUPPORT_USBPLUG
 obj-y += board_r.o
+endif
+
 obj-$(CONFIG_DISPLAY_BOARDINFO) += board_info.o
 obj-$(CONFIG_DISPLAY_BOARDINFO_LATE) += board_info.o
 

@@ -418,6 +418,7 @@ int arch_cpu_init(void)
 	/* Enabled SDMMC iomux in default except FSPI1_M0 boot */
 	if (readl(TOP_IOC_BASE + GPIO2A_IOMUX_SEL_L) != 0x2222)
 		board_set_iomux(UCLASS_MMC, 1, 0);
+
 #if defined(CONFIG_ROCKCHIP_EMMC_IOMUX)
 	board_set_iomux(UCLASS_MMC, 0, 0);
 #elif defined(CONFIG_ROCKCHIP_SFC_IOMUX)
@@ -489,6 +490,7 @@ int rk_board_dm_fdt_fixup(const void *blob)
 #if defined(CONFIG_ROCKCHIP_VENDOR_PARTITION)
 int rk_board_fdt_fixup(const void *blob)
 {
+#ifndef CONFIG_SUPPORT_USBPLUG
 	char licence_str[1024] = {0};
 	int ret, size, node;
 
@@ -509,7 +511,7 @@ int rk_board_fdt_fixup(const void *blob)
 				printf("Error: /ethernet@2a220000 cannot set status property\n");
 		}
 	}
-
+#endif
 	return 0;
 }
 #endif

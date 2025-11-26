@@ -31,15 +31,19 @@ ifeq ($(CONFIG_XPL_BUILD)$(CONFIG_TPL_BUILD),)
 # we can have the preprocessor correctly recognise both 0x0 and 0
 # meaning "turn it off".
 obj-y += boot_mode.o
+ifndef CONFIG_SUPPORT_USBPLUG
 obj-$(CONFIG_ROCKCHIP_COMMON_BOARD) += board.o
+endif
 endif
 
 ifeq ($(CONFIG_TPL_BUILD),)
 obj-$(CONFIG_DISPLAY_CPUINFO) += cpu-info.o
 endif
 
+ifndef CONFIG_SUPPORT_USBPLUG
 obj-$(CONFIG_$(PHASE_)RAM) += sdram.o
 obj-$(CONFIG_$(PHASE_)ROCKCHIP_FPGA) += fpga.o
+endif
 
 obj-$(CONFIG_ROCKCHIP_PX30) += px30/
 obj-$(CONFIG_ROCKCHIP_RK3036) += rk3036/
@@ -68,18 +72,19 @@ obj-$(CONFIG_TPL_BUILD) += $(obj-tpl-y)
 obj-$(CONFIG_ROCKCHIP_PRELOADER_ATAGS) += atags.o
 
 ifeq ($(CONFIG_SPL_BUILD),)
+
+ifdef CONFIG_SUPPORT_USBPLUG
+obj-y += usbplug.o
+else
 obj-y += bootargs.o
+obj-y += bootm.o
 obj-y += bootdev.o
+obj-y += efi.o
 obj-y += download.o
+obj-y += misc.o
 obj-y += load_dtb.o
-obj-y += loader_tag.o
 obj-y += lowlevel_init.o
 obj-y += memory.o
-obj-y += param.o
-obj-y += bootm.o
-obj-y += misc.o
-obj-y += efi.o
-obj-$(CONFIG_ROCKCHIP_PRELOADER_ATAGS)	+= atags.o
 obj-$(CONFIG_SET_DFU_ALT_INFO)		+= dfu_alt_info.o
 obj-$(CONFIG_ROCKCHIP_FIT_IMAGE)	+= fit.o fit_misc.o
 obj-$(CONFIG_PSTORE)			+= pstore.o
@@ -88,8 +93,14 @@ obj-$(CONFIG_ROCKCHIP_HWID_DTB)		+= hwid_dtb.o
 obj-$(CONFIG_ROCKCHIP_SMCCC)		+= smccc.o
 obj-$(CONFIG_SPL_KERNEL_BOOT)		+= spl_resource.o
 obj-$(CONFIG_ROCKCHIP_UIMAGE)		+= uimage.o
-obj-$(CONFIG_ROCKCHIP_VENDOR_PARTITION) += vendor.o vendor_misc.o
 obj-$(CONFIG_ROCKCHIP_MINIDUMP)		+= mini_dump.o
+endif
+
+obj-y += loader_tag.o
+obj-y += param.o
+obj-$(CONFIG_ROCKCHIP_PRELOADER_ATAGS)	+= atags.o
+obj-$(CONFIG_ROCKCHIP_VENDOR_PARTITION) += vendor.o vendor_misc.o
+
 else
 obj-y += spl_boot_mode.o
 endif

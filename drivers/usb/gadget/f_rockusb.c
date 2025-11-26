@@ -26,6 +26,10 @@
 #include <tee/optee.h>
 #endif
 
+#if defined(CONFIG_SUPPORT_USBPLUG)
+#include <usbplug.h>
+#endif
+
 #define ROCKUSB_INTERFACE_CLASS	0xff
 #define ROCKUSB_INTERFACE_SUB_CLASS	0x06
 #define ROCKUSB_INTERFACE_PROTOCOL	0x05
@@ -886,7 +890,7 @@ static int rkusb_do_switch_storage(struct fsg_common *common)
 		return 0;
 
 #if CONFIG_IS_ENABLED(SUPPORT_USBPLUG)
-	block_dev = usbplug_blk_get_devnum_by_type(type, devnum);
+	block_dev = usbplug_blk_get_devnum_by_uclass_id(type, devnum);
 #else
 	block_dev = blk_get_devnum_by_uclass_id(type, devnum);
 #endif

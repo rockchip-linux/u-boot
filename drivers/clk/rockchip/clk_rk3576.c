@@ -63,7 +63,7 @@ static struct rockchip_pll_clock rk3576_pll_clks[] = {
 		     RK3576_MODE_CON0, 10, 15, 0, rk3576_24m_pll_rates),
 };
 
-#ifndef CONFIG_SPL_BUILD
+#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SUPPORT_USBPLUG)
 #define RK3576_CLK_DUMP(_id, _name, _iscru)	\
 {						\
 	.id = _id,				\
@@ -89,14 +89,14 @@ static const struct rk3576_clk_info clks_dump[] = {
 };
 #endif
 
-#ifdef CONFIG_SPL_BUILD
+#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_SUPPORT_USBPLUG)
 #ifndef BITS_WITH_WMASK
 #define BITS_WITH_WMASK(bits, msk, shift) \
 	((bits) << (shift)) | ((msk) << ((shift) + 16))
 #endif
 #endif
 
-#ifndef CONFIG_SPL_BUILD
+#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SUPPORT_USBPLUG)
 /*
  *
  * rational_best_approximation(31415, 10000,
@@ -384,6 +384,7 @@ static ulong rk3576_top_set_clk(struct rk3576_clk_priv *priv,
 	return rk3576_top_get_clk(priv, clk_id);
 }
 
+#ifndef CONFIG_SUPPORT_USBPLUG
 static ulong rk3576_i2c_get_clk(struct rk3576_clk_priv *priv, ulong clk_id)
 {
 	struct rk3576_cru *cru = priv->cru;
@@ -742,6 +743,8 @@ static ulong rk3576_adc_set_clk(struct rk3576_clk_priv *priv,
 	return rk3576_adc_get_clk(priv, clk_id);
 }
 
+#endif
+
 static ulong rk3576_mmc_get_clk(struct rk3576_clk_priv *priv, ulong clk_id)
 {
 	struct rk3576_cru *cru = priv->cru;
@@ -947,7 +950,7 @@ static ulong rk3576_mmc_set_clk(struct rk3576_clk_priv *priv,
 	return rk3576_mmc_get_clk(priv, clk_id);
 }
 
-#ifndef CONFIG_SPL_BUILD
+#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SUPPORT_USBPLUG)
 
 static ulong rk3576_aclk_vop_get_clk(struct rk3576_clk_priv *priv, ulong clk_id)
 {
@@ -2086,6 +2089,7 @@ static ulong rk3576_clk_get_rate(struct clk *clk)
 	case ACLK_TOP_MID:
 		rate = rk3576_top_get_clk(priv, clk->id);
 		break;
+#ifndef CONFIG_SUPPORT_USBPLUG
 	case CLK_I2C0:
 	case CLK_I2C1:
 	case CLK_I2C2:
@@ -2114,6 +2118,7 @@ static ulong rk3576_clk_get_rate(struct clk *clk)
 	case CLK_TSADC:
 		rate = rk3576_adc_get_clk(priv, clk->id);
 		break;
+#endif
 	case CCLK_SRC_SDIO:
 	case CCLK_SRC_SDMMC0:
 	case CCLK_SRC_EMMC:
@@ -2130,7 +2135,7 @@ static ulong rk3576_clk_get_rate(struct clk *clk)
 	case TCLK_WDT0:
 		rate = OSC_HZ;
 		break;
-#ifndef CONFIG_SPL_BUILD
+#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SUPPORT_USBPLUG)
 	case ACLK_VOP_ROOT:
 	case ACLK_VOP:
 	case ACLK_VO0_ROOT:
@@ -2255,6 +2260,7 @@ static ulong rk3576_clk_set_rate(struct clk *clk, ulong rate)
 	case ACLK_TOP_MID:
 		ret = rk3576_top_set_clk(priv, clk->id, rate);
 		break;
+#ifndef CONFIG_SUPPORT_USBPLUG
 	case CLK_I2C0:
 	case CLK_I2C1:
 	case CLK_I2C2:
@@ -2283,6 +2289,7 @@ static ulong rk3576_clk_set_rate(struct clk *clk, ulong rate)
 	case CLK_TSADC:
 		ret = rk3576_adc_set_clk(priv, clk->id, rate);
 		break;
+#endif
 	case CCLK_SRC_SDIO:
 	case CCLK_SRC_SDMMC0:
 	case CCLK_SRC_EMMC:
@@ -2312,7 +2319,7 @@ static ulong rk3576_clk_set_rate(struct clk *clk, ulong rate)
 	case ACLK_PHP_ROOT:
 		ret = 0;
 		break;
-#ifndef CONFIG_SPL_BUILD
+#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SUPPORT_USBPLUG)
 	case ACLK_VOP_ROOT:
 	case ACLK_VOP:
 	case ACLK_VO0_ROOT:
@@ -2543,7 +2550,7 @@ static int rk3576_clk_probe(struct udevice *dev)
 
 	priv->sync_kernel = false;
 
-#ifdef CONFIG_SPL_BUILD
+#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_SUPPORT_USBPLUG)
 	/* relase presetn_bigcore_biu/cru/grf */
 	writel(0x1c001c00, 0x26010010);
 	/* set spll to normal mode */
@@ -2686,7 +2693,7 @@ U_BOOT_DRIVER(rockchip_rk3576_cru) = {
 	.probe		= rk3576_clk_probe,
 };
 
-#ifndef CONFIG_SPL_BUILD
+#if !defined(CONFIG_SPL_BUILD) && !defined(CONFIG_SUPPORT_USBPLUG)
 /**
  * soc_clk_dump() - Print clock frequencies
  * Returns zero on success

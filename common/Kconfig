@@ -1202,6 +1202,7 @@ endif # VPL_BLOBLIST
 endmenu
 
 source "common/spl/Kconfig"
+source "common/usbplug/Kconfig"
 
 config IMAGE_SIGN_INFO
 	bool

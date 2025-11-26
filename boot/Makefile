@@ -3,7 +3,7 @@
 # (C) Copyright 2004-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
-ifndef CONFIG_XPL_BUILD
+ifeq ($(CONFIG_XPL_BUILD)$(CONFIG_SUPPORT_USBPLUG),)
 
 obj-$(CONFIG_BOOT_RETRY) += bootretry.o
 obj-$(CONFIG_CMD_BOOTM) += bootm.o bootm_os.o
@@ -11,7 +11,6 @@ obj-$(CONFIG_CMD_BOOTZ) += bootm.o bootm_os.o
 obj-$(CONFIG_CMD_BOOTI) += bootm.o bootm_os.o
 
 obj-$(CONFIG_PXE_UTILS) += pxe_utils.o
-
 
 obj-y += image.o image-board.o
 
@@ -23,7 +22,10 @@ obj-$(CONFIG_ANDROID_BOOT_IMAGE) += image-android.o image-android-dt.o
 endif
 
 endif
+
+ifndef CONFIG_SUPPORT_USBPLUG
 obj-y += image.o
+endif
 
 obj-$(CONFIG_$(PHASE_)BOOTSTD) += bootdev-uclass.o
 obj-$(CONFIG_$(PHASE_)BOOTSTD) += bootflow.o

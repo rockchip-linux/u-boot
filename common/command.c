@@ -657,6 +657,7 @@ int cmd_process_error(struct cmd_tbl *cmdtp, int err)
 	return CMD_RET_SUCCESS;
 }
 
+#ifndef CONFIG_SUPPORT_USBPLUG
 int cmd_source_script(ulong addr, const char *fit_uname, const char *confname)
 {
 	char *data;
@@ -673,3 +674,4 @@ int cmd_source_script(ulong addr, const char *fit_uname, const char *confname)
 	debug("** Script length: %d\n", len);
 	return run_command_list(data, len, 0);
 }
+#endif
