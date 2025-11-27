@@ -223,6 +223,7 @@ static u32 rk_hash_get_cemode(u32 algo)
 		[HASH_ALGO_SHA256] = RKCE_HASH_ALGO_SHA256,
 		[HASH_ALGO_SHA384] = RKCE_HASH_ALGO_SHA384,
 		[HASH_ALGO_SHA512] = RKCE_HASH_ALGO_SHA512,
+		[HASH_ALGO_SM3]    = RKCE_HASH_ALGO_SM3,
 	};
 
 	if (algo >= HASH_ALGO_NUM)
@@ -244,6 +245,8 @@ static u32 rk_hash_get_disgest_size(enum HASH_ALGO algo)
 		return 48;
 	case HASH_ALGO_SHA512:
 		return 64;
+	case HASH_ALGO_SM3:
+		return 32;
 	default:
 		return 0; /* Invalid algorithm */
 	}

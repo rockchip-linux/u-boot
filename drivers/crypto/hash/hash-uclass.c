@@ -28,6 +28,7 @@ static const struct hash_info hash_info[HASH_ALGO_NUM] = {
 	[HASH_ALGO_SHA256] = { "sha256", 32 },
 	[HASH_ALGO_SHA384] = { "sha384", 48 },
 	[HASH_ALGO_SHA512] = { "sha512", 64},
+	[HASH_ALGO_SM3] = { "sm3", 32},
 };
 
 enum HASH_ALGO hash_algo_lookup_by_name(const char *name)

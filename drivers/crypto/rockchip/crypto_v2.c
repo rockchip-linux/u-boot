@@ -550,6 +550,10 @@ static int rk_hash_init(struct udevice *dev, enum HASH_ALGO algo, void **ctx)
 		reg_ctrl |= CRYPTO_MODE_SHA512;
 		tmp_ctx->digest_size = 64;
 		break;
+	case HASH_ALGO_SM3:
+		reg_ctrl |= CRYPTO_MODE_SM3;
+		tmp_ctx->digest_size = 32;
+		break;
 	default:
 		ret = -EINVAL;
 		goto exit;
