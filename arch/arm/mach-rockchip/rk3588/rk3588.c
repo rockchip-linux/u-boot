@@ -58,10 +58,14 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define BUS_IOC_BASE			0xfd5f8000
 #define BUS_IOC_GPIO2A_IOMUX_SEL_L	0x40
+#define BUS_IOC_GPIO2A_IOMUX_SEL_H	0x44
 #define BUS_IOC_GPIO2B_IOMUX_SEL_L	0x48
+#define BUS_IOC_GPIO2B_IOMUX_SEL_H	0x4c
 #define BUS_IOC_GPIO2D_IOMUX_SEL_L	0x58
 #define BUS_IOC_GPIO2D_IOMUX_SEL_H	0x5c
 #define BUS_IOC_GPIO3A_IOMUX_SEL_L	0x60
+#define BUS_IOC_GPIO3A_IOMUX_SEL_H	0x64
+#define BUS_IOC_GPIO3C_IOMUX_SEL_H	0x74
 
 #define SYS_GRF_FORCE_JTAG		BIT(14)
 
@@ -841,6 +845,57 @@ static void spl_board_sd_iomux_save(void)
 }
 #endif
 
+void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
+{
+	switch (uclass) {
+	case UCLASS_MMC:
+		/*
+		* set the emmc io drive strength:
+		* data and cmd: 50ohm
+		* clock: 25ohm
+		*/
+		writel(0x00770052, EMMC_IOC_BASE + EMMC_IOC_GPIO2A_DS_L);
+		writel(0x77772222, EMMC_IOC_BASE + EMMC_IOC_GPIO2D_DS_L);
+		writel(0x77772222, EMMC_IOC_BASE + EMMC_IOC_GPIO2D_DS_H);
+
+		/* set emmc iomux */
+		writel(0xffff1111, BUS_IOC_BASE + BUS_IOC_GPIO2A_IOMUX_SEL_L);
+		writel(0xffff1111, BUS_IOC_BASE + BUS_IOC_GPIO2D_IOMUX_SEL_L);
+		writel(0xffff1111, BUS_IOC_BASE + BUS_IOC_GPIO2D_IOMUX_SEL_H);
+		break;
+
+	case UCLASS_MTD:
+		if (routing == 0) {
+			writel(0x000f0002, BUS_IOC_BASE + BUS_IOC_GPIO2A_IOMUX_SEL_L);
+			writel(0xffff2222, BUS_IOC_BASE + BUS_IOC_GPIO2D_IOMUX_SEL_L);
+			writel(0x00f00020, BUS_IOC_BASE + BUS_IOC_GPIO2D_IOMUX_SEL_H);
+			/* Set the fspi m0 io ds level to 55ohm */
+			writel(0x00070002, EMMC_IOC_BASE + EMMC_IOC_GPIO2A_DS_L);
+			writel(0x77772222, EMMC_IOC_BASE + EMMC_IOC_GPIO2D_DS_L);
+			writel(0x07000200, EMMC_IOC_BASE + EMMC_IOC_GPIO2D_DS_H);
+		} else if (routing == 1) {
+			writel(0xff003300, BUS_IOC_BASE + BUS_IOC_GPIO2A_IOMUX_SEL_H);
+			writel(0xf0ff3033, BUS_IOC_BASE + BUS_IOC_GPIO2B_IOMUX_SEL_L);
+			writel(0x000f0003, BUS_IOC_BASE + BUS_IOC_GPIO2B_IOMUX_SEL_H);
+			/* Set the fspi m1 io ds level to 55ohm */
+			writel(0x33002200, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO2A_DS_H);
+			writel(0x30332022, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO2B_DS_L);
+			writel(0x00030002, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO2B_DS_H);
+		} else if (routing == 2) {
+			writel(0xffff5555, BUS_IOC_BASE + BUS_IOC_GPIO3A_IOMUX_SEL_L);
+			writel(0x00f00050, BUS_IOC_BASE + BUS_IOC_GPIO3A_IOMUX_SEL_H);
+			writel(0x00ff0022, BUS_IOC_BASE + BUS_IOC_GPIO3C_IOMUX_SEL_H);
+			/* Set the fspi m2 io ds level to 55ohm */
+			writel(0x77772222, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO3A_DS_L);
+			writel(0x00700020, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO3A_DS_H);
+			writel(0x00070002, VCCIO3_5_IOC_BASE + IOC_VCCIO3_5_GPIO3C_DS_H);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
 #ifndef CONFIG_TPL_BUILD
 int arch_cpu_init(void)
 {
@@ -943,6 +998,41 @@ int arch_cpu_init(void)
 	writel(0x00030003, PMU1CRU_BASE + PMU1CRU_SOFTRST_CON04);
 
 	spl_board_sd_iomux_save();
+#elif defined(CONFIG_SUPPORT_USBPLUG)
+	int secure_reg;
+
+	/* Set the SDMMC eMMC crypto_ns FSPI access secure area */
+	secure_reg = readl(FIREWALL_DDR_BASE + FW_DDR_MST5_REG);
+	secure_reg &= 0xffff;
+	writel(secure_reg, FIREWALL_DDR_BASE + FW_DDR_MST5_REG);
+	secure_reg = readl(FIREWALL_DDR_BASE + FW_DDR_MST13_REG);
+	secure_reg &= 0xffff;
+	writel(secure_reg, FIREWALL_DDR_BASE + FW_DDR_MST13_REG);
+	secure_reg = readl(FIREWALL_DDR_BASE + FW_DDR_MST21_REG);
+	secure_reg &= 0xffff;
+	writel(secure_reg, FIREWALL_DDR_BASE + FW_DDR_MST21_REG);
+	secure_reg = readl(FIREWALL_DDR_BASE + FW_DDR_MST26_REG);
+	secure_reg &= 0xffff;
+	writel(secure_reg, FIREWALL_DDR_BASE + FW_DDR_MST26_REG);
+	secure_reg = readl(FIREWALL_DDR_BASE + FW_DDR_MST27_REG);
+	secure_reg &= 0xffff0000;
+	writel(secure_reg, FIREWALL_DDR_BASE + FW_DDR_MST27_REG);
+
+	secure_reg = readl(FIREWALL_SYSMEM_BASE + FW_SYSM_MST5_REG);
+	secure_reg &= 0xffff;
+	writel(secure_reg, FIREWALL_SYSMEM_BASE + FW_SYSM_MST5_REG);
+	secure_reg = readl(FIREWALL_SYSMEM_BASE + FW_SYSM_MST13_REG);
+	secure_reg &= 0xffff;
+	writel(secure_reg, FIREWALL_SYSMEM_BASE + FW_SYSM_MST13_REG);
+	secure_reg = readl(FIREWALL_SYSMEM_BASE + FW_SYSM_MST21_REG);
+	secure_reg &= 0xffff;
+	writel(secure_reg, FIREWALL_SYSMEM_BASE + FW_SYSM_MST21_REG);
+	secure_reg = readl(FIREWALL_SYSMEM_BASE + FW_SYSM_MST26_REG);
+	secure_reg &= 0xffff;
+	writel(secure_reg, FIREWALL_SYSMEM_BASE + FW_SYSM_MST26_REG);
+	secure_reg = readl(FIREWALL_SYSMEM_BASE + FW_SYSM_MST27_REG);
+	secure_reg &= 0xffff0000;
+	writel(secure_reg, FIREWALL_SYSMEM_BASE + FW_SYSM_MST27_REG);
 #else /* U-Boot */
 	/* uboot: config iomux */
 #ifdef CONFIG_ROCKCHIP_EMMC_IOMUX
