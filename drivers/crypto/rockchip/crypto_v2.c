@@ -1594,15 +1594,15 @@ int rockchip_crypto_fw_cipher(struct udevice *dev, cipher_fw_context *ctx,
 	rk_crypto_enable_clk(dev);
 
 	switch (ctx->algo) {
-	case CRYPTO_DES:
+	case CIPHER_ALGO_DES:
 		ret = rk_crypto_des(dev, ctx->mode, NULL, ctx->key_len,
 				    ctx->iv, in, out, len, enc);
 		break;
-	case CRYPTO_AES:
+	case CIPHER_ALGO_AES:
 		ret = rk_crypto_aes(dev, ctx->mode, NULL, NULL, ctx->key_len,
 				    ctx->iv, ctx->iv_len, in, out, len, enc);
 		break;
-	case CRYPTO_SM4:
+	case CIPHER_ALGO_SM4:
 		ret = rk_crypto_sm4(dev, ctx->mode, NULL, NULL, ctx->key_len,
 				    ctx->iv, ctx->iv_len, in, out, len, enc);
 		break;
