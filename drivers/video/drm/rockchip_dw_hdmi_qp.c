@@ -30,6 +30,20 @@
 
 #define HIWORD_UPDATE(val, mask)	((val) | (mask) << 16)
 
+#define RK3538_VO_GRF_HDMI_MISC		0x68
+#define RK3538_COLOR_FORMAT_MASK	(0xf << 4)
+#define RK3538_COLOR_DEPTH_MASK		(0xf)
+#define RK3538_8BPC			0x0
+#define RK3538_10BPC			0x6
+#define RK3538_VO_GRF_HDMI_SWITCH	0x6c
+#define RK3538_PMU_GRF_SOC_CON2		0x6
+#define RK3538_HDMI_CEC_DET_SEL		BIT(15)
+#define RK3538_HDMI_HPD_INT_CON		0x400
+#define RK3538_HDMITX_HPD_INT_MSK	BIT(2)
+#define RK3538_HDMITX_HPD_INT_CLR	BIT(1)
+#define RK3538_HDMI_HPD_CON		0x404
+#define RK3538_HDMI_HPD_ST		0x408
+
 #define RK3576_IOC_MISC_CON0		0xa400
 #define RK3576_HDMITX_HPD_INT_MSK	BIT(2)
 #define RK3576_HDMITX_HPD_INT_CLR	BIT(1)
@@ -567,7 +581,8 @@ static void hdmi_select_link_config(struct rockchip_hdmi *hdmi,
 	hdmi->link_cfg.allm_en = hdmi->allm_en;
 
 	if (!max_frl_rate ||
-	    (tmdsclk < HDMI20_MAX_RATE && mode->clock < HDMI20_MAX_RATE)) {
+	    (tmdsclk < HDMI20_MAX_RATE && mode->clock < HDMI20_MAX_RATE) ||
+	    hdmi->plat_data->dev_type == RK3538_HDMI) {
 		printf("%s use tmds mode\n", __func__);
 		hdmi->link_cfg.frl_mode = false;
 		return;
@@ -1325,6 +1340,41 @@ static void rk3588_set_link_mode(struct rockchip_hdmi *hdmi)
 	}
 }
 
+static void rk3538_set_color_format(struct rockchip_hdmi *hdmi, u64 bus_format,
+				    u32 depth)
+{
+	u32 val = 0;
+
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_RGB101010_1X30:
+		val = HIWORD_UPDATE(0, RK3538_COLOR_FORMAT_MASK);
+		break;
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
+		val = HIWORD_UPDATE(RK3576_YUV420, RK3538_COLOR_FORMAT_MASK);
+		break;
+	case MEDIA_BUS_FMT_YUV8_1X24:
+	case MEDIA_BUS_FMT_YUV10_1X30:
+		val = HIWORD_UPDATE(RK3576_YUV444, RK3538_COLOR_FORMAT_MASK);
+		break;
+	case MEDIA_BUS_FMT_YUYV10_1X20:
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+		val = HIWORD_UPDATE(RK3576_YUV422, RK3538_COLOR_FORMAT_MASK);
+		break;
+	default:
+		printf("can't set correct color format\n");
+		return;
+	}
+
+	if (depth == 8 || bus_format == MEDIA_BUS_FMT_YUYV10_1X20)
+		val |= HIWORD_UPDATE(RK3538_8BPC, RK3538_COLOR_DEPTH_MASK);
+	else
+		val |= HIWORD_UPDATE(RK3538_10BPC, RK3538_COLOR_DEPTH_MASK);
+
+	writel(val, hdmi->vo0_grf + RK3538_VO_GRF_HDMI_MISC);
+}
+
 static void rk3576_set_color_format(struct rockchip_hdmi *hdmi, u64 bus_format,
 				    u32 depth)
 {
@@ -1406,14 +1456,15 @@ void dw_hdmi_qp_set_grf_cfg(void *data)
 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
 	int color_depth;
 
-	hdmi->ops->set_link_mode(hdmi);
+	if (hdmi->ops->set_link_mode)
+		hdmi->ops->set_link_mode(hdmi);
 	color_depth = hdmi_bus_fmt_color_depth(hdmi->bus_format);
 	hdmi->ops->set_color_format(hdmi, hdmi->bus_format, color_depth);
 }
 
-static
-void dw_hdmi_qp_rockchip_sda_delay_cal(struct rockchip_hdmi *hdmi, u8 *sda_dlyn, u8 *sda_div)
+void dw_hdmi_qp_rockchip_sda_delay_cal(void *data, u8 *sda_dlyn, u8 *sda_div)
 {
+	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
 	u8 i;
 	u32 val;
 
@@ -1434,6 +1485,24 @@ void dw_hdmi_qp_rockchip_sda_delay_cal(struct rockchip_hdmi *hdmi, u8 *sda_dlyn,
 	*sda_dlyn = val;
 }
 
+static void rk3538_io_path_init(struct rockchip_hdmi *hdmi)
+{
+	u32 val;
+
+	if (!hdmi->vo0_grf || !hdmi->grf)
+		return;
+
+	val = HIWORD_UPDATE(RK3576_SCLIN_MASK, RK3576_SCLIN_MASK) |
+	      HIWORD_UPDATE(RK3576_SDAIN_MASK, RK3576_SDAIN_MASK) |
+	      HIWORD_UPDATE(RK3576_HDMITX_GRANT_SEL, RK3576_HDMITX_GRANT_SEL) |
+	      HIWORD_UPDATE(RK3576_I2S_SEL_MASK, RK3576_I2S_SEL_MASK);
+
+	writel(val, hdmi->vo0_grf + RK3538_VO_GRF_HDMI_SWITCH);
+
+	val = HIWORD_UPDATE(0, RK3576_HDMITX_HPD_INT_MSK);
+	writel(val, hdmi->grf + RK3538_HDMI_HPD_INT_CON);
+}
+
 static void rk3576_io_path_init(struct rockchip_hdmi *hdmi)
 {
 	u32 val;
@@ -1449,7 +1518,7 @@ static void rk3576_io_path_init(struct rockchip_hdmi *hdmi)
 	writel(val, hdmi->grf + RK3576_IOC_MISC_CON0);
 
 	if (hdmi->sda_falling_delay_ns) {
-		dw_hdmi_qp_rockchip_sda_delay_cal(hdmi, &sda_dlyn, &sda_div);
+		dw_hdmi_qp_rockchip_sda_delay_cal((void *)hdmi, &sda_dlyn, &sda_div);
 		if (sda_dlyn) {
 			val = HIWORD_UPDATE(sda_dlyn << 12, RK3576_GRF_OSDA_DLYN) |
 			      HIWORD_UPDATE(sda_div << 1, RK3576_GRF_OSDA_DIV) |
@@ -1526,6 +1595,21 @@ static int dw_hdmi_qp_rockchip_genphy_init(struct rockchip_connector *conn, void
 	return rockchip_phy_power_on(conn->phy);
 }
 
+static enum drm_connector_status rk3538_read_hpd(struct rockchip_hdmi *hdmi)
+{
+	u32 val;
+	int ret;
+
+	val = readl(hdmi->grf + RK3538_HDMI_HPD_ST);
+
+	if (val & RK3576_HDMITX_LEVEL_INT)
+		ret = connector_status_connected;
+	else
+		ret = connector_status_disconnected;
+
+	return ret;
+}
+
 static enum drm_connector_status rk3576_read_hpd(struct rockchip_hdmi *hdmi)
 {
 	u32 val;
@@ -1596,6 +1680,19 @@ static const struct rockchip_connector_funcs rockchip_dw_hdmi_qp_funcs = {
 	.detect = rockchip_dw_hdmi_qp_detect,
 };
 
+static const struct rockchip_hdmi_chip_ops rk3538_chip_ops = {
+	.set_color_format = rk3538_set_color_format,
+	.io_path_init = rk3538_io_path_init,
+	.read_hpd = rk3538_read_hpd,
+};
+
+const struct dw_hdmi_plat_data rk3538_hdmi_drv_data = {
+	.qp_phy_ops    = &rockchip_hdmi_qp_phy_ops,
+	.phy_name   = "inno_dw_hdmi_phy2",
+	.chip_ops   = (void *)&rk3538_chip_ops,
+	.dev_type   = RK3538_HDMI,
+};
+
 static const struct rockchip_hdmi_chip_ops rk3576_chip_ops = {
 	.set_link_mode = rk3576_set_link_mode,
 	.set_color_format = rk3576_set_color_format,
@@ -1656,7 +1753,8 @@ static int rockchip_dw_hdmi_qp_probe(struct udevice *dev)
 				__func__, hdmi->vo1_grf);
 			return -ENXIO;
 		}
-	} else if (hdmi->plat_data->dev_type == RK3576_HDMI) {
+	} else if (hdmi->plat_data->dev_type == RK3576_HDMI ||
+		   hdmi->plat_data->dev_type == RK3538_HDMI) {
 		map = syscon_regmap_lookup_by_phandle(dev, "rockchip,vo0_grf");
 		hdmi->vo0_grf = regmap_get_range(map, 0);
 
@@ -1702,6 +1800,10 @@ static const struct udevice_id rockchip_dw_hdmi_qp_ids[] = {
 	{
 	 .compatible = "rockchip,rk3576-dw-hdmi",
 	 .data = (ulong)&rk3576_hdmi_drv_data,
+	},
+	{
+	 .compatible = "rockchip,rk3538-dw-hdmi",
+	 .data = (ulong)&rk3538_hdmi_drv_data,
 	}, {}
 };
 

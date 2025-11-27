@@ -829,6 +829,17 @@
 #define EARCRX_1_INT_CLEAR				0x4828
 #define EARCRX_1_INT_FORCE				0x482c
 
+#define RK_PLUS_GRF_CON0				0x18000
+#define HDMTX_REVAPB_SEL				BIT(15)
+#define RK_PLUS_GRF_CON8				0x18020
+#define RK_PLUS_GRF_OSDA_DLYN				(0xf << 12)
+#define RK_PLUS_GRF_OSDA_DIV				(0x7f << 1)
+#define RK_PLUS_GRF_OSDA_DLY_EN				BIT(0)
+#define RK_REVOC_MEM_ADDR4F08				0x14f08
+#define RK_REVOC_MEM_ADDR5908				0x15908
+#define RK_REVOC_MEM_ADDR5958				0x15958
+#define RK_REVOC_MEM_ADDR5960				0x15960
+
 /* SCDC Registers */
 #define SCDC_SINK_VERSION 0x01
 #define SCDC_SOURCE_VERSION 0x02
@@ -943,5 +954,6 @@ void dw_hdmi_qp_select_output(struct hdmi_edid_data *edid_data,
 			      bool output_bus_format_rgb,
 			      void *data, struct display_state *state);
 bool dw_hdmi_qp_check_enable_gpio(void *data);
+void dw_hdmi_qp_rockchip_sda_delay_cal(void *data, u8 *sda_dlyn, u8 *sda_div);
 
 #endif /* __DW_HDMI_QP_H__ */

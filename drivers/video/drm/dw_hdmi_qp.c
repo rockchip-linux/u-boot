@@ -46,6 +46,8 @@ enum frl_mask {
 
 #define HDMI14_MAX_TMDSCLK	340000000
 
+#define HIWORD_UPDATE(val, mask)	(val | (mask) << 16)
+
 struct hdmi_vmode {
 	bool mdataenablepolarity;
 
@@ -96,6 +98,7 @@ struct dw_hdmi_qp {
 	int id;
 
 	unsigned long bus_format;
+	u32 refclk_rate;
 	bool cable_plugin;
 	bool sink_is_hdmi;
 	bool sink_has_audio;
@@ -292,11 +295,36 @@ drm_scdc_set_high_tmds_clock_ratio(struct ddc_adapter *adapter, bool set)
 
 static void dw_hdmi_i2c_init(struct dw_hdmi_qp *hdmi)
 {
+	u64 scl_high_cnt, scl_low_cnt, val;
+	u8 sda_dlyn = 0, sda_div = 0;
+
+	/* dw-hdmi-qp v2 controller integrates function of adjusting ddc timing */
+	if (hdmi->dev_type == RK3538_HDMI)
+		dw_hdmi_qp_rockchip_sda_delay_cal(hdmi->rk_hdmi, &sda_dlyn, &sda_div);
+
+	if (sda_dlyn) {
+		val = HIWORD_UPDATE(sda_dlyn << 12, RK_PLUS_GRF_OSDA_DLYN) |
+		      HIWORD_UPDATE(sda_div << 1, RK_PLUS_GRF_OSDA_DIV) |
+		      HIWORD_UPDATE(1, RK_PLUS_GRF_OSDA_DLY_EN);
+
+		hdmi_writel(hdmi, val, RK_PLUS_GRF_CON8);
+	}
+
+	scl_high_cnt = hdmi->i2c->scl_high_ns;
+	scl_low_cnt = hdmi->i2c->scl_low_ns;
+
+	scl_high_cnt = scl_high_cnt * hdmi->refclk_rate;
+	scl_high_cnt = DIV_ROUND_CLOSEST_ULL(scl_high_cnt, 1000000000);
+
+	scl_low_cnt = scl_low_cnt * hdmi->refclk_rate;
+	scl_low_cnt = DIV_ROUND_CLOSEST_ULL(scl_low_cnt, 1000000000);
+
+	val = (scl_high_cnt & 0xffff) << 16 | (scl_low_cnt & 0xffff);
+
 	/* Software reset */
 	hdmi_writel(hdmi, 0x01, I2CM_CONTROL0);
 
-	hdmi_writel(hdmi, 0x085c085c, I2CM_FM_SCL_CONFIG0);
-
+	hdmi_writel(hdmi, val, I2CM_SM_SCL_CONFIG0);
 	hdmi_modb(hdmi, 0, I2CM_FM_EN, I2CM_INTERFACE_CONTROL0);
 
 	/* Clear DONE and ERROR interrupts */
@@ -1225,6 +1253,8 @@ int rockchip_dw_hdmi_qp_init(struct rockchip_connector *conn, struct display_sta
 	struct drm_display_mode *mode_buf;
 	ofnode hdmi_node = conn->dev->node_;
 	struct device_node *ddc_node;
+	struct clk ref_clk;
+	int ret;
 
 	hdmi = malloc(sizeof(struct dw_hdmi_qp));
 	if (!hdmi)
@@ -1269,7 +1299,6 @@ int rockchip_dw_hdmi_qp_init(struct rockchip_connector *conn, struct display_sta
 		ofnode_read_s32_default(hdmi_node,
 					"ddc-i2c-scl-low-time-ns", 4916);
 
-	dw_hdmi_i2c_init(hdmi);
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_AAAA;
 
 	hdmi->dev_type = pdata->dev_type;
@@ -1279,10 +1308,19 @@ int rockchip_dw_hdmi_qp_init(struct rockchip_connector *conn, struct display_sta
 	conn->data = hdmi;
 
 	dw_hdmi_detect_phy(hdmi);
+
+	ret = clk_get_by_name(conn->dev, "hdmitx_ref", &ref_clk);
+	if (ret) {
+		printf("%s: hdmitx_ref may not define\n", __func__);
+		return -EINVAL;
+	}
+
+	hdmi->refclk_rate = clk_get_rate(&ref_clk);
 	hdmi_writel(hdmi, 0, MAINUNIT_0_INT_MASK_N);
 	hdmi_writel(hdmi, 0, MAINUNIT_1_INT_MASK_N);
-	hdmi_writel(hdmi, 428571429, TIMER_BASE_CONFIG0);
+	hdmi_writel(hdmi, hdmi->refclk_rate, TIMER_BASE_CONFIG0);
 
+	dw_hdmi_i2c_init(hdmi);
 	dw_hdmi_qp_io_path_init(hdmi->rk_hdmi);
 
 	return 0;
@@ -1449,7 +1487,8 @@ static void rockchip_dw_hdmi_qp_mode_valid(struct dw_hdmi_qp *hdmi)
 		if (edid_data->mode_buf[i].clock <= 25000)
 			edid_data->mode_buf[i].invalid = true;
 
-		if (edid_data->mode_buf[i].clock > 600000 && !enable_gpio)
+		if (edid_data->mode_buf[i].clock > 600000 &&
+		    (!enable_gpio || hdmi->dev_type == RK3538_HDMI))
 			edid_data->mode_buf[i].invalid = true;
 	}
 }

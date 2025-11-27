@@ -96,6 +96,7 @@ enum dw_hdmi_devtype {
 	RK3568_HDMI,
 	RK3576_HDMI,
 	RK3588_HDMI,
+	RK3538_HDMI,
 };
 
 struct dw_hdmi_audio_tmds_n {
