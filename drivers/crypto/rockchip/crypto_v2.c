@@ -415,6 +415,9 @@ static int rockchip_crypto_of_to_plat(struct udevice *dev)
 #if !defined(CONFIG_SPL_BUILD)
 	/* uboot disabled secure crypto */
 	priv->enabled = !priv->secure;
+#else
+	/* spl disabled no-secure crypto */
+	priv->enabled = priv->secure;
 #endif
 	if (!priv->enabled)
 		return 0;
@@ -427,7 +430,6 @@ static int rockchip_crypto_of_to_plat(struct udevice *dev)
 		return 0;
 	}
 
-	memset(plat, 0x00, sizeof(*plat));
 	plat->clocks = malloc(len);
 	if (!plat->clocks)
 		return -ENOMEM;
@@ -486,6 +488,9 @@ static bool hash_check_valid(struct udevice *dev, u32 algo, u32 mode)
 
 	priv = dev_get_priv(dev);
 	if (!priv)
+		return false;
+
+	if (!priv->enabled)
 		return false;
 
 	if (mode != CRYPTO_MODE_NONE || algo >= HASH_ALGO_NUM)
@@ -681,6 +686,9 @@ static int rockchip_crypto_probe(struct udevice *dev)
 	sdata = (struct rk_crypto_soc_data *)dev_get_driver_data(dev);
 	if (!sdata)
 		return -EINVAL;
+
+	if (!priv->enabled)
+		return 0;
 
 	priv->soc_data = sdata;
 
@@ -1438,6 +1446,9 @@ static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (!priv)
 		return false;
 
+	if (!priv->enabled)
+		return false;
+
 	if (mode >= CIPHER_MODE_NUM && mode != CRYPTO_MODE_NONE)
 		return false;
 
@@ -1457,6 +1468,9 @@ static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	default:
 		return false;
 	}
+
+	if (mode == CRYPTO_MODE_NONE && version)
+		return true;
 
 	return !!(cipher_bitmap[mode] & version);
 }
@@ -1639,7 +1653,8 @@ static struct crypto_impl rk_crypto_v2_cipher_impl = {
 	.cipher.cipher_crypt = rockchip_crypto_cipher,
 	.cipher.cipher_mac   = rockchip_crypto_mac,
 	.cipher.cipher_ae    = rockchip_crypto_ae,
-	.is_secure           = rockchip_crypto_is_secure,
+	.cipher.is_secure     = rockchip_crypto_is_secure,
+
 #if CONFIG_IS_ENABLED(DM_KEYLAD)
 	.cipher.cipher_fw_crypt = rockchip_crypto_fw_cipher,
 	.cipher.keytable_addr  = rockchip_crypto_keytable_addr,
@@ -1703,7 +1718,16 @@ exit:
 
 static bool rk_mod_exp_check_valid(struct udevice *dev, u32 algo, u32 mode)
 {
+	struct rockchip_crypto_priv *priv = NULL;
+
 	if (!dev)
+		return false;
+
+	priv = dev_get_priv(dev);
+	if (!priv)
+		return false;
+
+	if (!priv->enabled)
 		return false;
 
 	if (mode != CRYPTO_MODE_NONE)
@@ -1774,7 +1798,16 @@ exit:
 
 static bool rk_ecdsa_check_valid(struct udevice *dev, u32 algo, u32 mode)
 {
+	struct rockchip_crypto_priv *priv = NULL;
+
 	if (!dev)
+		return false;
+
+	priv = dev_get_priv(dev);
+	if (!priv)
+		return false;
+
+	if (!priv->enabled)
 		return false;
 
 	if (mode != CRYPTO_MODE_NONE)
@@ -1802,6 +1835,17 @@ static struct crypto_impl rk_ecdsa_impl = {
 static int rockchip_crypto_bind(struct udevice *dev)
 {
 	int ret;
+	bool secure;
+#if !defined(CONFIG_SPL_BUILD)
+	bool secure_sel = false;
+#else
+	bool secure_sel = true;
+#endif
+
+	secure = dev_read_bool(dev, "secure");
+
+	if (secure != secure_sel)
+		return 0;
 
 	rk_crypto_v2_hash_impl.dev = dev;
 

@@ -53,9 +53,15 @@ static bool crypto_check_node_valid(struct crypto_driver_node *node)
 
 	if (node->status == CRYPTO_IMPL_UNINITED) {
 		struct udevice *crypto_dev;
+		ofnode of_node;
 		int ret;
 
-		ret = uclass_get_device_by_driver(impl->uclass_id, impl->dev->driver, &crypto_dev);
+		of_node = dev_ofnode(impl->dev);
+		if (!ofnode_valid(of_node))
+			ret = uclass_get_device_by_driver(impl->uclass_id, impl->dev->driver, &crypto_dev);
+		else
+			ret = uclass_get_device_by_ofnode(impl->uclass_id, dev_ofnode(impl->dev), &crypto_dev);
+
 		if (ret) {
 			debug("driver_name %s , dev = %p, driver = %p is not exist.\n",
 				  crypto_get_driver_name(impl), impl->dev, impl->dev->driver);
