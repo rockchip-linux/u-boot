@@ -171,7 +171,7 @@ static void tve_set_mode(struct rockchip_tve *tve)
 	struct env_config *bt656_cfg, *tve_cfg;
 	int mode = tve->tv_format;
 
-	if (tve->soc_type == SOC_RK3528) {
+	if (tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538) {
 		tve_writel(TVE_LUMA_FILTER1, tve->lumafilter0);
 		tve_writel(TVE_LUMA_FILTER2, tve->lumafilter1);
 		tve_writel(TVE_LUMA_FILTER3, tve->lumafilter2);
@@ -198,7 +198,7 @@ static void tve_set_mode(struct rockchip_tve *tve)
 	if (mode == TVOUT_CVBS_NTSC) {
 		TVEDBG("tve set ntsc mode\n");
 
-		if (tve->soc_type == SOC_RK3528) {
+		if (tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538) {
 			bt656_cfg = ntsc_bt656_config;
 			tve_cfg = ntsc_tve_config;
 
@@ -225,7 +225,7 @@ static void tve_set_mode(struct rockchip_tve *tve)
 	} else if (mode == TVOUT_CVBS_PAL) {
 		TVEDBG("tve set pal mode\n");
 
-		if (tve->soc_type == SOC_RK3528) {
+		if (tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538) {
 			bt656_cfg = pal_bt656_config;
 			tve_cfg = pal_tve_config;
 
@@ -252,11 +252,17 @@ static void tve_set_mode(struct rockchip_tve *tve)
 		}
 	}
 
-	if (tve->soc_type == SOC_RK3528) {
+	if (tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538) {
 		u32 upsample_mode = 0;
 		u32 mask = 0;
 		u32 val = 0;
+		u32 grf_offset = 0;
 		bool upsample_en;
+
+		if (tve->soc_type == SOC_RK3528)
+			grf_offset = RK3528_VO_GRF_CVBS_CON;
+		else if (tve->soc_type == SOC_RK3538)
+			grf_offset = RK3538_VO_GRF_CVBS_CTRL;
 
 		upsample_en = tve->upsample_mode ? 1 : 0;
 		if (upsample_en)
@@ -266,7 +272,7 @@ static void tve_set_mode(struct rockchip_tve *tve)
 		val = v_TVE_DCLK_POL(0) | v_TVE_DCLK_EN(1) | v_DCLK_UPSAMPLE_2X4X(upsample_mode) |
 		      v_DCLK_UPSAMPLE_EN(upsample_en) | v_TVE_MODE(tve->tv_format) | v_TVE_EN(1);
 
-		tve_grf_writel(RK3528_VO_GRF_CVBS_CON, (mask << 16) | val);
+		tve_grf_writel(grf_offset, (mask << 16) | val);
 	}
 }
 
@@ -298,7 +304,7 @@ static void dac_enable(struct rockchip_tve *tve, bool enable)
 			grfreg = RK312X_GRF_TVE_CON;
 		} else if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
 			val = v_CUR_REG(tve->dac1level) | v_DR_PWR_DOWN(0) | v_BG_PWR_DOWN(0);
-		} else if (tve->soc_type == SOC_RK3528) {
+		} else if (tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538) {
 			/*
 			 * Reset the vdac
 			 */
@@ -323,7 +329,7 @@ static void dac_enable(struct rockchip_tve *tve, bool enable)
 		} else if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
 			val = v_CUR_REG(tve->dac1level) | m_DR_PWR_DOWN | m_BG_PWR_DOWN;
 			offset = VDAC_VDAC1;
-		} else if (tve->soc_type == SOC_RK3528) {
+		} else if (tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538) {
 			val = v_DAC_PWN(0) | v_BIAS_PWN(0);
 			offset = VDAC_PWM_REF_CTRL;
 		}
@@ -624,14 +630,14 @@ static int rockchip_drm_tve_init(struct rockchip_connector *conn, struct display
 
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 	conn_state->bus_format = MEDIA_BUS_FMT_YUV8_1X24;
-	if (tve->soc_type == SOC_RK3528)
+	if (tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538)
 		conn_state->output_if |= VOP_OUTPUT_IF_BT656;
 	conn_state->color_encoding = DRM_COLOR_YCBCR_BT601;
 	conn_state->color_range = DRM_COLOR_YCBCR_LIMITED_RANGE;
 
 	conn_state->disp_info = rockchip_get_disp_info(conn_state->type, 0);
 
-	if (tve->soc_type == SOC_RK3528)
+	if (tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538)
 		ret = tve_parse_dt(tve);
 	else
 		ret = tve_parse_dt_legacy(tve);
@@ -648,7 +654,7 @@ static int rockchip_drm_tve_init(struct rockchip_connector *conn, struct display
 	tve->reg_base = (void *)addr;
 
 	if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328 ||
-	    tve->soc_type == SOC_RK3528) {
+	    tve->soc_type == SOC_RK3528 || tve->soc_type == SOC_RK3538) {
 		addr = dev_read_addr_index(conn->dev, 1);
 		if (addr == FDT_ADDR_T_NONE) {
 			printf("failed to get tve vdac_base\n");
@@ -657,7 +663,10 @@ static int rockchip_drm_tve_init(struct rockchip_connector *conn, struct display
 		tve->vdac_base = (void *)addr;
 	}
 
-	tve->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+	if (tve->soc_type == SOC_RK3538)
+		tve->grf = syscon_get_first_range(ROCKCHIP_SYSCON_VO_GRF);
+	else
+		tve->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
 
 	if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328)
 		dac_init(tve);
@@ -673,7 +682,7 @@ static int rockchip_drm_tve_enable(struct rockchip_connector *conn, struct displ
 
 #ifdef CONFIG_ROCKCHIP_INNO_HDMI_PHY
 	/* set inno hdmi phy clk. */
-	if (tve->soc_type != SOC_RK3528)
+	if (tve->soc_type != SOC_RK3528 && tve->soc_type != SOC_RK3538)
 		rockchip_phy_set_pll(conn->phy, 27000000);
 #endif
 	if (mode->vdisplay == 576)
@@ -903,12 +912,18 @@ static const struct rockchip_tve_data rk3528_tve = {
 	.input_format = INPUT_FORMAT_YUV,
 };
 
+static const struct rockchip_tve_data rk3538_tve = {
+	.soc_type = SOC_RK3538,
+	.input_format = INPUT_FORMAT_YUV,
+};
+
 static const struct udevice_id rockchip_drm_tve_ids[] = {
 	{ .compatible = "rockchip,rk3036-tve", .data = (ulong)&rk3036_tve },
 	{ .compatible = "rockchip,rk312x-tve", .data = (ulong)&rk312x_tve },
 	{ .compatible = "rockchip,rk322x-tve", .data = (ulong)&rk322x_tve },
 	{ .compatible = "rockchip,rk3328-tve", .data = (ulong)&rk3328_tve },
 	{ .compatible = "rockchip,rk3528-tve", .data = (ulong)&rk3528_tve },
+	{ .compatible = "rockchip,rk3538-tve", .data = (ulong)&rk3538_tve },
 };
 
 U_BOOT_DRIVER(rockchip_drm_tve) = {

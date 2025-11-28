@@ -122,6 +122,7 @@
 	#define v_STAT_VDAC_DISDET(x)	(((x) & 1) << 0)
 
 #define RK3528_VO_GRF_CVBS_CON	0x60010
+#define RK3538_VO_GRF_CVBS_CTRL	0xa4
 	#define m_VDAC_DIS_INT_EN	BIT(8)
 	#define m_VDAC_DIS_NEGE_MASK	BIT(7)
 	#define m_VDAC_DIS_POSE_MASK	BIT(6)
@@ -230,7 +231,8 @@ enum {
 	SOC_RK312X,
 	SOC_RK322X,
 	SOC_RK3328,
-	SOC_RK3528
+	SOC_RK3528,
+	SOC_RK3538,
 };
 
 
