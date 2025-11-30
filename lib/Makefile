@@ -86,6 +86,7 @@ obj-$(CONFIG_$(XPL_)RSA) += rsa/
 obj-$(CONFIG_HASH) += hash-checksum.o
 obj-$(CONFIG_BLAKE2) += blake2/blake2b.o
 
+obj-$(CONFIG_$(PHASE_)DICE) += dice/
 obj-$(CONFIG_$(PHASE_)MD5_LEGACY) += md5.o
 obj-$(CONFIG_$(PHASE_)SHA1_LEGACY) += sha1.o
 obj-$(CONFIG_$(PHASE_)SHA256) += sha256_common.o
