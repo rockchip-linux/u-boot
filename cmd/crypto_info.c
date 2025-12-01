@@ -40,6 +40,23 @@ static void dump_crypto_info(const struct crypto_impl *impl)
 
 		printf("\n");
 #endif
+	} else if (impl->type == CRYPTO_TYPE_HMAC) {
+#if defined(CONFIG_DM_HMAC)
+		printf("\t[HMAC]\n");
+
+		for (i = 0; i < HMAC_ALGO_NUM; i++) {
+			if (impl->check_valid && impl->check_valid(impl->dev, i, CRYPTO_MODE_NONE)) {
+				priority = impl->dynamic_priority ?
+					   impl->dynamic_priority(impl->dev, i, CRYPTO_MODE_NONE) :
+					   impl->priority;
+				printf("\t\t%-16s        (prio = %3d)\n",
+				       hmac_algo_name(i),
+				       priority);
+			}
+		}
+
+		printf("\n");
+#endif
 	} else if (impl->type == CRYPTO_TYPE_ASYM) {
 		printf("\t[ASYM]\n");
 
@@ -119,6 +136,8 @@ static int do_crypto_info_single(struct cmd_tbl *cmdtp, int flag, int argc, char
 
 	if (strcmp(argv[1], "hash") == 0)
 		dump_crypto_info_by_type(CRYPTO_TYPE_HASH);
+	else if (strcmp(argv[1], "hmac") == 0)
+		dump_crypto_info_by_type(CRYPTO_TYPE_HMAC);
 	else if (strcmp(argv[1], "cipher") == 0)
 		dump_crypto_info_by_type(CRYPTO_TYPE_CIPHER);
 	else if (strcmp(argv[1], "asym") == 0)
@@ -141,6 +160,7 @@ static int do_crypto_info(struct cmd_tbl *cmdtp, int flag, int argc, char * cons
 U_BOOT_LONGHELP(crypto_info,
 	"  crypto_info              - Show all algorithm categories\n"
 	"  crypto_info hash         - Show hash algorithms\n"
+	"  crypto_info hmac         - Show hmac algorithms\n"
 	"  crypto_info cipher       - Show cipher algorithms\n"
 	"  crypto_info asym         - Show asymmetric algorithms\n"
 );
