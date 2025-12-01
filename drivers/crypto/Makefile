@@ -7,6 +7,9 @@ obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_manager.o
 ifdef CONFIG_DM_HASH
 obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_hash_glue.o
 endif
+ifdef CONFIG_DM_HMAC
+obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_hmac_glue.o
+endif
 ifdef CONFIG_DM_CIPHER
 obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += crypto_cipher_glue.o
 endif
@@ -19,6 +22,7 @@ endif
 obj-$(CONFIG_$(PHASE_)CRYPTO_MANAGER) += rockchip/
 
 obj-y += hash/
+obj-y += hmac/
 obj-y += cipher/
 obj-y += rsa_mod_exp/
 

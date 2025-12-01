@@ -18,7 +18,24 @@ enum HMAC_ALGO {
 	HMAC_ALGO_INVALID = 0xffffffff,
 };
 
-/* general APIs for hmac algo information */
+/* general APIs for hash algo information */
+enum HMAC_ALGO hmac_algo_lookup_by_name(const char *name);
+ssize_t hmac_algo_digest_size(enum HMAC_ALGO algo);
+const char *hmac_algo_name(enum HMAC_ALGO algo);
+
+/* device-dependent APIs */
+int hmac_digest(struct udevice *dev, enum HMAC_ALGO algo,
+		const char *key, uint32_t keylen,
+		const void *ibuf, const uint32_t ilen,
+		void *obuf);
+int hmac_digest_wd(struct udevice *dev, enum HMAC_ALGO algo,
+		   const char *key, uint32_t keylen,
+		   const void *ibuf, const uint32_t ilen,
+		   void *obuf, uint32_t chunk_sz);
+int hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
+	      const char *key, uint32_t keylen, void **ctxp);
+int hmac_update(struct udevice *dev, void *ctx, const void *ibuf, const uint32_t ilen);
+int hmac_finish(struct udevice *dev, void *ctx, void *obuf);
 
 /*
  * struct hmac_ops - Driver model for Hmac operations
@@ -36,13 +53,13 @@ struct hmac_ops {
 
 	/* all-in-one operation */
 	int (*hmac_digest)(struct udevice *dev, enum HMAC_ALGO algo,
-			   const char *key, uint32_t keylen, 
+			   const char *key, uint32_t keylen,
 			   const void *ibuf, const uint32_t ilen,
 			   void *obuf);
 
 	/* all-in-one operation with watchdog triggering every chunk_sz */
 	int (*hmac_digest_wd)(struct udevice *dev, enum HMAC_ALGO algo,
-			      const char *key, uint32_t keylen, 
+			      const char *key, uint32_t keylen,
 			      const void *ibuf, const uint32_t ilen,
 			      void *obuf, uint32_t chunk_sz);
 

@@ -16,6 +16,8 @@ source "drivers/crypto/cipher/Kconfig"
 
 source "drivers/crypto/hash/Kconfig"
 
+source "drivers/crypto/hmac/Kconfig"
+
 source "drivers/crypto/fsl/Kconfig"
 
 source "drivers/crypto/aspeed/Kconfig"
