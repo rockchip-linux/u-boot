@@ -582,11 +582,13 @@ extern void __iomem *crypto_base;
 
 static inline u32 crypto_read(u32 offset)
 {
+	assert(crypto_base != NULL);
 	return readl(crypto_base + offset);
 }
 
 static inline void crypto_write(u32 val, u32 offset)
 {
+	assert(crypto_base != NULL);
 	writel(val, crypto_base + offset);
 }
 
