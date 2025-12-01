@@ -88,6 +88,18 @@ struct ec_test_data {
 	.hash_len  = sizeof(hash_val) \
 }
 
+#define HMAC_TEST(algo_type, data_in, hash_val, hmac_key) {\
+	.algo_name = "HMAC", \
+	.mode_name = #algo_type, \
+	.algo      = HMAC_ALGO_##algo_type, \
+	.data      = (data_in),\
+	.data_len  = sizeof(data_in), \
+	.hash      = (hash_val), \
+	.hash_len  = sizeof(hash_val), \
+	.key       = (hmac_key), \
+	.key_len   = sizeof(hmac_key)\
+}
+
 #define CIPHER_XTS_TEST(algo_type, mode_type, key1, key2, iv_val, in, out) { \
 	.algo_name  = #algo_type, \
 	.mode_name  = #mode_type, \
@@ -139,7 +151,6 @@ struct ec_test_data {
 	.sig_data_len  = sizeof(sig), \
 }
 
-
 #define EC_TEST(name, x, y, hash, sign) { \
 	.algo_name   = #name, \
 	.algo        = ASYM_ALGO_ECC, \
@@ -161,6 +172,19 @@ const struct hash_test_data hash_data_set[] = {
 	HASH_TEST(SHA256, foo_data, hash_sha256),
 	HASH_TEST(SHA384, foo_data, hash_sha384),
 	HASH_TEST(SHA512, foo_data, hash_sha512),
+	HASH_TEST(SM3,    foo_data, hash_sm3),
+};
+
+const struct hash_test_data hmac_data_set[] = {
+#if CONFIG_IS_ENABLED(ROCKCHIP_HMAC)
+	HMAC_TEST(MD5,    foo_data, hmac_md5,    hmac_key),
+	HMAC_TEST(SHA1,   foo_data, hmac_sha1,   hmac_key),
+	HMAC_TEST(SHA256, foo_data, hmac_sha256, hmac_key),
+	HMAC_TEST(SHA512, foo_data, hmac_sha512, hmac_key),
+	HMAC_TEST(SM3,    foo_data, hmac_sm3,    hmac_key),
+#else
+	EMPTY_TEST(),
+#endif
 };
 
 const struct cipher_test_data cipher_data_set[] = {
@@ -392,7 +416,7 @@ int test_hash_result(void)
 	u8 out[64];
 	int ret;
 
-	printf("\n=================== hash & hmac test ===================\n");
+	printf("\n=================== hash test ===================\n");
 
 	for (i = 0; i < ARRAY_SIZE(hash_data_set); i++) {
 		test_data = &hash_data_set[i];
@@ -427,6 +451,118 @@ int test_hash_result(void)
 		ulong MBps = 0;
 
 		test_hash_perf(dev, test_data->algo,
+			       test_data->key, test_data->key_len, &MBps);
+		print_result_MBps(test_data->algo_name, test_data->mode_name,
+				  "", MBps, test_data->hash, out,
+				  test_data->hash_len);
+		printf("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	}
+
+	return 0;
+error:
+	printf("%s %s test error!\n",
+	       test_data->algo_name, test_data->mode_name);
+	return ret;
+}
+
+int test_hmac_perf(struct udevice *dev, u32 algo,
+		   const u8 *key, u32 key_len, ulong *MBps)
+{
+	u32 total_size = PERF_TOTAL_SIZE;
+	u32 data_size = PERF_BUFF_SIZE;
+	void *ctx = NULL;
+	u8 *data = NULL;
+	u8 hash_out[64];
+	int ret, i;
+
+	*MBps = 0;
+
+	data = (u8 *)memalign(CONFIG_SYS_CACHELINE_SIZE, data_size);
+	if (!data) {
+		printf("%s, %d: memalign %u error!\n",
+		       __func__, __LINE__, data_size);
+		return -EINVAL;
+	}
+
+	memset(data, 0xab, data_size);
+
+	ulong start = get_timer(0);
+
+	ret = hmac_init(dev, algo, key, key_len, &ctx);
+	if (ret) {
+		printf("hmac_init error ret = %d!\n", ret);
+		goto exit;
+	}
+
+	for (i = 0; i < total_size / data_size; i++) {
+		ret = hmac_update(dev, ctx, data, data_size);
+		if (ret) {
+			printf("hmac_update error!\n");
+			goto exit;
+		}
+	}
+
+	ret = hmac_finish(dev, ctx, hash_out);
+	if (ret) {
+		printf("hmac_finish error ret = %d!\n", ret);
+		goto exit;
+	}
+
+	ulong time_cost = get_timer(start);
+
+	*MBps = CALC_RATE_MPBS(total_size, time_cost);
+
+exit:
+	free(data);
+
+	return ret;
+}
+
+int test_hmac_result(void)
+{
+	const struct hash_test_data *test_data = NULL;
+	void *ctx = NULL;
+	struct udevice *dev;
+	unsigned int i;
+	u8 out[64];
+	int ret;
+
+	printf("\n=================== hmac test ===================\n");
+
+	for (i = 0; i < ARRAY_SIZE(hmac_data_set); i++) {
+		test_data = &hmac_data_set[i];
+		if (test_data->algo == 0 && test_data->algo_name == NULL) {
+			printf("\n");
+			continue;
+		}
+
+		ret = uclass_get_device(UCLASS_HMAC, 0, &dev);
+		if (ret) {
+			printf("failed to get hmac device, rc=%d\n", ret);
+			return -1;
+		}
+
+		memset(out, 0x00, sizeof(out));
+
+		ret = hmac_init(dev, test_data->algo,
+				test_data->key, test_data->key_len, &ctx);
+		if (ret == -ENOSYS) {
+			printf("[%s] %-16s unsupported!!!\n",
+			       test_data->algo_name,
+			       test_data->mode_name);
+			continue;
+		}
+
+		ret |= hmac_update(dev, ctx, (void *)test_data->data, test_data->data_len);
+		ret |= hmac_finish(dev, ctx, out);
+		if (ret) {
+			printf("hmac calc error ret = %d\n", ret);
+			goto error;
+		}
+
+		ulong MBps = 0;
+
+		test_hmac_perf(dev, test_data->algo,
 			       test_data->key, test_data->key_len, &MBps);
 		print_result_MBps(test_data->algo_name, test_data->mode_name,
 				  "", MBps, test_data->hash, out,
@@ -656,6 +792,8 @@ static int do_crypto(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 	test_cipher_result();
 
 	test_hash_result();
+
+	test_hmac_result();
 
 	rsa_test();
 
