@@ -12,9 +12,8 @@
 static void dump_crypto_info(const struct crypto_impl *impl)
 {
 	const char *driver_name;
-	u32 algo_exist = false;
 	u32 priority;
-	u32 i, j;
+	u32 i;
 
 	driver_name = crypto_get_driver_name(impl);
 	if (!driver_name)
@@ -74,6 +73,9 @@ static void dump_crypto_info(const struct crypto_impl *impl)
 		printf("\n");
 	} else if (impl->type == CRYPTO_TYPE_CIPHER) {
 #if defined(CONFIG_DM_CIPHER)
+		u32 algo_exist = false;
+		u32 j;
+
 		printf("\t[CIPHER]\n");
 
 		for (i = 0; i < CIPHER_ALGO_NUM; i++) {
