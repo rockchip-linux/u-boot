@@ -426,6 +426,104 @@ static int rk_hash_finish(struct udevice *dev, void *ctx, void *digest)
 	return ret;
 }
 
+#if CONFIG_IS_ENABLED(ROCKCHIP_HMAC)
+
+static u32 rk_hmac_get_cemode(u32 algo)
+{
+	const u32 hmac_bitmap[HMAC_ALGO_NUM] = {
+		[HMAC_ALGO_MD5]    = RKCE_HASH_ALGO_MD5,
+		[HMAC_ALGO_SHA1]   = RKCE_HASH_ALGO_SHA1,
+		[HMAC_ALGO_SHA256] = RKCE_HASH_ALGO_SHA256,
+		[HMAC_ALGO_SHA512] = RKCE_HASH_ALGO_SHA512,
+		[HMAC_ALGO_SM3]    = RKCE_HASH_ALGO_SM3,
+	};
+
+	if (algo >= HMAC_ALGO_NUM)
+		return ~((u32)0);
+
+	return hmac_bitmap[algo];
+}
+
+static bool hmac_check_valid(struct udevice *dev, u32 algo, u32 mode)
+{
+	struct rockchip_crypto_priv *priv = dev_get_priv(dev);
+
+	if (mode != CRYPTO_MODE_NONE || algo >= HMAC_ALGO_NUM)
+		return false;
+
+	if (!dev || !priv || !priv->hardware)
+		return false;
+
+	if (!priv->enabled)
+		return false;
+
+	return rkce_hw_algo_valid(priv->hardware, RKCE_ALGO_TYPE_HMAC,
+				  rk_hmac_get_cemode(algo), 0);
+}
+
+static int rk_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
+			const char *key, uint32_t keylen, void **ctx)
+{
+	struct rkce_sha_contex *hash_ctx = NULL;
+	u32 ce_algo = 0;
+	int ret = 0;
+
+	if (!dev || algo >= HMAC_ALGO_NUM || !ctx)
+		return -EINVAL;
+
+	if (!key || keylen == 0 || keylen > RKCE_TD_KEY_SIZE)
+		return -EINVAL;
+
+	rk_crypto_soft_reset(dev, RKCE_RESET_HASH);
+
+	hash_ctx = rkce_sha_ctx_alloc();
+	if (!hash_ctx)
+		return -ENOMEM;
+
+	hash_ctx->algo = algo;
+
+	ret = rkce_init_hash_td(hash_ctx->td, hash_ctx->td_buf);
+	if (ret)
+		goto exit;
+
+	memcpy(hash_ctx->td_buf->key, key, keylen);
+
+	ce_algo = rk_hmac_get_cemode(algo);
+
+	hash_ctx->ctrl.td_type        = RKCE_TD_TYPE_HASH;
+	hash_ctx->ctrl.hw_pad_en      = 1;
+	hash_ctx->ctrl.first_pkg      = 1;
+	hash_ctx->ctrl.last_pkg       = 0;
+	hash_ctx->ctrl.hash_algo      = ce_algo;
+	hash_ctx->ctrl.hmac_en        = 1;
+	hash_ctx->ctrl.is_preemptible = 0;
+	hash_ctx->ctrl.int_en         = 1;
+
+	*ctx = hash_ctx;
+
+exit:
+	if (ret && hash_ctx) {
+		rkce_sha_ctx_free(hash_ctx);
+		*ctx = NULL;
+	}
+
+	return ret;
+}
+
+static struct crypto_impl rk_crypto_v2_hmac_impl = {
+	.name        = "hmac_"CRYPTO_DRIVER_NAME,
+	.type        = CRYPTO_TYPE_HMAC,
+	.uclass_id   = UCLASS_MISC,
+	.priority    = CRYPTO_PRIORITY_HW,
+	.check_valid = hmac_check_valid,
+
+	.hmac.hmac_init    = rk_hmac_init,
+	.hmac.hmac_update  = rk_hash_update,
+	.hmac.hmac_finish  = rk_hash_finish,
+};
+
+#endif
+
 #if CONFIG_IS_ENABLED(ROCKCHIP_CIPHER)
 
 static int hw_crypto_ccm128_setiv(u8 *iv_buf, u8 *nonce, u32 nlen, u32 mlen)
@@ -1215,6 +1313,16 @@ static int rockchip_crypto_bind(struct udevice *dev)
 		printf("crypto_impl_register rk_crypto_hash_impl failed.\n");
 		goto exit;
 	}
+
+#if CONFIG_IS_ENABLED(ROCKCHIP_HMAC)
+	rk_crypto_v2_hmac_impl.dev = dev;
+
+	ret = crypto_impl_register(&rk_crypto_v2_hmac_impl);
+	if (ret) {
+		printf("crypto_impl_register rk_crypto_v2_hmac_impl failed.\n");
+		goto exit;
+	}
+#endif
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_CIPHER)
 
