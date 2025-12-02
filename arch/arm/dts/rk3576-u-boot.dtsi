@@ -63,6 +63,12 @@
 		reset-names = "crypto-rst";
 		status = "disabled";
 	};
+
+	secure-otp@2a480000 {
+		bootph-all;
+		compatible = "rockchip,rk3576-secure-otp";
+		reg = <0x0 0x2a480000 0x0 0x10000>;
+	};
 };
 
 

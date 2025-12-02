@@ -35,7 +35,11 @@
 		reg = <0x0 0xfd5bc000 0x0 0x100>;
 	};
 
-
+	secure-otp@fe3a0000 {
+		bootph-all;
+		compatible = "rockchip,rk3588-secure-otp";
+		reg = <0x0 0xfe3a0000 0x0 0x4000>;
+	};
 
 	pcie2x1l2: pcie@fe190000 {
 		compatible = "rockchip,rk3588-pcie", "snps,dw-pcie";

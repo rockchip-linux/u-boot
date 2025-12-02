@@ -16,6 +16,17 @@
 /* Used by board_get_usable_ram_top(), space below the 4G address boundary */
 #define SDRAM_MAX_SIZE			(SZ_4G - CFG_SYS_SDRAM_BASE)
 
+/* secure otp */
+#define OTP_UBOOT_ROLLBACK_OFFSET	0x610
+#define OTP_UBOOT_ROLLBACK_WORDS	2	/* 64 bits, 2 words */
+#define OTP_ALL_ONES_NUM_BITS		32
+#define OTP_SECURE_BOOT_ENABLE_ADDR	0x20
+#define OTP_SECURE_BOOT_ENABLE_SIZE	1
+#define OTP_RSA4096_ENABLE_ADDR		0x21
+#define OTP_RSA4096_ENABLE_SIZE		1
+#define OTP_RSA_HASH_ADDR		0x200
+#define OTP_RSA_HASH_SIZE		32
+
 /* rockusb */
 #define CONFIG_ROCKUSB_G_DNL_PID        0x350e
 
