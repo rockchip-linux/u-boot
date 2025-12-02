@@ -3,7 +3,8 @@
 # (C) Copyright 2000-2007
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
-obj-$(CONFIG_$(PHASE_)MISC) += misc-uclass.o
+obj-$(CONFIG_$(PHASE_)MISC) += misc-uclass.o misc_otp.o
+obj-$(CONFIG_$(PHASE_)MISC_DECOMPRESS) += misc_decompress.o
 obj-$(CONFIG_$(PHASE_)NVMEM) += nvmem.o
 
 obj-$(CONFIG_$(PHASE_)CROS_EC) += cros_ec.o
@@ -14,6 +15,7 @@ ifndef CONFIG_XPL_BUILD
 obj-$(CONFIG_SANDBOX) += sandbox_adder.o
 obj-$(CONFIG_CROS_EC_I2C) += cros_ec_i2c.o
 obj-$(CONFIG_CROS_EC_SPI) += cros_ec_spi.o
+obj-$(CONFIG_ROCKCHIP_PM_CONFIG) += rockchip_pm_config.o
 obj-$(CONFIG_SANDBOX) += p2sb_sandbox.o p2sb_emul.o
 obj-$(CONFIG_SANDBOX) += swap_case.o
 endif
@@ -70,6 +72,11 @@ obj-$(CONFIG_SANDBOX) += qfw_sandbox.o
 endif
 obj-$(CONFIG_$(PHASE_)ROCKCHIP_EFUSE) += rockchip-efuse.o
 obj-$(CONFIG_$(PHASE_)ROCKCHIP_OTP) += rockchip-otp.o
+ifeq ($(CONFIG_$(PHASE_)ROCKCHIP_SECURE_OTP),y)
+obj-$(CONFIG_ROCKCHIP_RK3588) += rk3588-secure-otp.o
+obj-$(CONFIG_ROCKCHIP_RK3576) += rk3576-secure-otp.o
+endif
+obj-$(CONFIG_$(PHASE_)ROCKCHIP_HW_DECOMPRESS) += rockchip_decompress.o
 obj-$(CONFIG_$(PHASE_)ROCKCHIP_IODOMAIN) += rockchip-io-domain.o
 obj-$(CONFIG_SANDBOX) += syscon_sandbox.o misc_sandbox.o
 obj-$(CONFIG_SIFIVE_OTP) += sifive-otp.o

@@ -3,6 +3,8 @@
  * Copyright (c) 2019 Fuzhou Rockchip Electronics Co., Ltd
  */
 
+#include <common.h>
+#include <asm/arch-rockchip/cpu.h>
 #include <asm/io.h>
 #include <command.h>
 #include <display_options.h>
@@ -18,6 +20,7 @@
 #define OTPC_SBPI_CMD_VALID_PRE		0x0024
 #define OTPC_SBPI_CS_VALID_PRE		0x0028
 #define OTPC_SBPI_STATUS		0x002C
+#define OTPC_LOCK_CTRL			0x0050
 #define OTPC_USER_CTRL			0x0100
 #define OTPC_USER_ADDR			0x0104
 #define OTPC_USER_ENABLE		0x0108
@@ -49,7 +52,26 @@
 
 #define OTPC_TIMEOUT			10000
 
+#define OTPC_MODE_CTRL			0x2000
+#define OTPC_IRQ_ST			0x2008
+#define OTPC_ACCESS_ADDR		0x200c
+#define OTPC_RD_DATA			0x2010
+#define OTPC_REPR_RD_TRANS_NUM		0x2020
+#define OTPC_DEEP_STANDBY		0x0
+#define OTPC_STANDBY			0x1
+#define OTPC_ACTIVE			0x2
+#define OTPC_READ_ACCESS		0x3
+#define OTPC_TRANS_NUM			0x1
+#define OTPC_RDM_IRQ_ST			BIT(0)
+#define OTPC_STB2ACT_IRQ_ST		BIT(7)
+#define OTPC_DP2STB_IRQ_ST		BIT(8)
+#define OTPC_ACT2STB_IRQ_ST		BIT(9)
+#define OTPC_STB2DP_IRQ_ST		BIT(10)
+
+#define KEY_READER_CFG   		0x0
+
 #define RK3588_OTPC_AUTO_CTRL		0x0004
+
 #define RK3588_ADDR_SHIFT		16
 #define RK3588_ADDR(n)			((n) << RK3588_ADDR_SHIFT)
 #define RK3588_BURST_SHIFT		8
@@ -70,6 +92,10 @@
 
 struct rockchip_otp_plat {
 	void __iomem *base;
+	unsigned long secure_conf_base;
+	unsigned long otp_mask_base;
+	unsigned long otp_cru_rst_base;
+	unsigned long key_reader_base;
 };
 
 struct rockchip_otp_data {

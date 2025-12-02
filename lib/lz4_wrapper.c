@@ -5,6 +5,7 @@
 
 #include <compiler.h>
 #include <image.h>
+#include <misc.h>
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <asm/unaligned.h>

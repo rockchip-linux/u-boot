@@ -43,6 +43,18 @@ config VPL_MISC
 	  set of generic read, write and ioctl methods may be used to
 	  access the device.
 
+config MISC_DECOMPRESS
+	bool "Enable misc decompress driver support"
+	depends on MISC
+	help
+	  Enable misc decompress driver support.
+
+config SPL_MISC_DECOMPRESS
+	bool "Enable misc decompress driver support in SPL"
+	depends on SPL_MISC
+	help
+	  Enable misc decompress driver support in spl.
+
 config NVMEM
 	bool "NVMEM support"
 	help
@@ -100,6 +112,67 @@ config ROCKCHIP_OTP
 	  found in Rockchip SoCs: accesses can either be made using byte
 	  addressing and a length or through child-nodes that are generated
 	  based on the e-fuse map retrieved from the DTS.
+
+config ROCKCHIP_HW_DECOMPRESS
+	bool "Rockchip HardWare Decompress Support"
+	depends on MISC_DECOMPRESS
+	help
+	  This driver support Decompress IP built-in Rockchip SoC, support
+	  LZ4, GZIP, PNG, ZLIB.
+
+config SPL_ROCKCHIP_HW_DECOMPRESS
+	bool "Rockchip HardWare Decompress Support"
+	depends on SPL_MISC_DECOMPRESS
+	help
+	  This driver support Decompress IP built-in Rockchip SoC, support
+	  LZ4, GZIP, PNG, ZLIB.
+
+config ROCKCHIP_SECURE_OTP
+	bool "Rockchip Secure OTP Support"
+	depends on MISC && !OPTEE_CLIENT
+	help
+	  Support read & write secure otp.
+
+config SPL_ROCKCHIP_SECURE_OTP
+	bool "Rockchip Secure OTP Support in spl"
+	depends on SPL_MISC
+	help
+	  Support read & write secure otp in spl.
+
+config SPL_OTP_DISABLE_SD
+	bool "Rockchip disable sd upgrade Support"
+	depends on SPL_ROCKCHIP_SECURE_OTP
+	default n
+	help
+	  Support write otp to disable sd upgrade.
+
+config SPL_OTP_DISABLE_USB
+	bool "Rockchip disable usb upgrade Support"
+	depends on SPL_ROCKCHIP_SECURE_OTP
+	default n
+	help
+	  Support write otp to disable usb upgrade.
+
+config SPL_OTP_DISABLE_UART
+	bool "Rockchip disable uart upgrade Support"
+	depends on SPL_ROCKCHIP_SECURE_OTP
+	default n
+	help
+	  Support write otp to disable uart upgrade.
+
+config SPL_OTP_DISABLE_SPI2APB
+	bool "Rockchip disable spi2apb upgrade Support"
+	depends on SPL_ROCKCHIP_SECURE_OTP
+	default n
+	help
+	  Support write otp to disable spi2apb upgrade.
+
+config SPL_REVOKE_PUB_KEY
+	bool "Rockchip revoke current public key Support"
+	depends on SPL_ROCKCHIP_SECURE_OTP
+	default n
+	help
+	  Support write otp to revoke current public key.
 
 config ROCKCHIP_IODOMAIN
 	bool "Rockchip IO-domain driver support"

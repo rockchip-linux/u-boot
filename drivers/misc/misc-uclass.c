@@ -5,6 +5,7 @@
 
 #define LOG_CATEGORY UCLASS_MISC
 
+#include <common.h>
 #include <dm.h>
 #include <errno.h>
 #include <misc.h>
@@ -54,6 +55,33 @@ int misc_call(struct udevice *dev, int msgid, void *tx_msg, int tx_size,
 		return -ENOSYS;
 
 	return ops->call(dev, msgid, tx_msg, tx_size, rx_msg, rx_size);
+}
+
+struct udevice *misc_get_device_by_capability(u32 capability)
+{
+	const struct misc_ops *ops;
+	struct udevice *dev;
+	struct uclass *uc;
+	int ret;
+	u32 cap;
+
+	ret = uclass_get(UCLASS_MISC, &uc);
+	if (ret)
+		return NULL;
+
+	for (uclass_first_device(UCLASS_MISC, &dev);
+	     dev;
+	     uclass_next_device(&dev)) {
+		ops = device_get_ops(dev);
+		if (!ops || !ops->ioctl)
+			continue;
+
+		ret = ops->ioctl(dev, IOCTL_REQ_CAPABILITY, &cap);
+		if (!ret && ((cap & capability) == capability))
+			return dev;
+	}
+
+	return NULL;
 }
 
 int misc_set_enabled(struct udevice *dev, bool val)

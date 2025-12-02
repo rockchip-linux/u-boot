@@ -5,10 +5,16 @@
  * Ported from linux drivers/soc/rockchip/io-domain.c
  */
 
+#include <common.h>
 #include <dm.h>
+#include <dm/of_access.h>
 #include <dm/device_compat.h>
 #include <regmap.h>
 #include <syscon.h>
+#include <asm/arch/clock.h>
+#include <fdtdec.h>
+#include <linux/compat.h>
+#include <linux/err.h>
 #include <power/regulator.h>
 
 #define MAX_SUPPLIES		16
@@ -52,6 +58,35 @@ struct rockchip_iodomain_soc_data {
 	const char *supply_names[MAX_SUPPLIES];
 	int (*write)(struct regmap *grf, uint offset, int idx, int uV);
 };
+
+struct rockchip_iodomain_supply {
+	struct rockchip_iodomain_priv *iod;
+	struct udevice *reg;
+	int idx;
+};
+
+struct rockchip_iodomain_priv {
+	struct regmap *regmap_base;
+	struct rockchip_iodomain_soc_data *sdata;
+	struct rockchip_iodomain_supply supplies[MAX_SUPPLIES];
+	int (*write)(struct rockchip_iodomain_supply *supply, int uV);
+};
+
+static int rockchip_ofdata_to_platdata(struct udevice *dev)
+{
+	struct rockchip_iodomain_priv *priv = dev_get_priv(dev);
+	struct syscon_uc_info *syscon_priv;
+	struct regmap *regmap;
+
+	syscon_priv = dev_get_uclass_priv(dev_get_parent(dev));
+	regmap = syscon_priv->regmap;
+	if (IS_ERR(regmap))
+		return PTR_ERR(regmap);
+
+	priv->regmap_base = regmap;
+
+	return 0;
+}
 
 static int rk3568_iodomain_write(struct regmap *grf, uint offset, int idx, int uV)
 {
@@ -375,5 +410,7 @@ U_BOOT_DRIVER(rockchip_iodomain) = {
 	.id = UCLASS_NOP,
 	.of_match = rockchip_iodomain_ids,
 	.bind = rockchip_iodomain_bind,
+	.priv_auto = sizeof(struct rockchip_iodomain_priv),
+	.of_to_plat	= rockchip_ofdata_to_platdata,
 	.probe = rockchip_iodomain_probe,
 };

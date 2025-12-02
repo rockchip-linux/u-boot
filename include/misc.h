@@ -6,6 +6,28 @@
 #ifndef _MISC_H_
 #define _MISC_H_
 
+#include <asm-generic/ioctl.h>
+#include <linux/bitops.h>
+
+/*
+ * Request command to be sent for misc_ioctl().
+ */
+#define IOCTL_REQ_START		_IO('m', 0x01)
+#define IOCTL_REQ_STOP		_IO('m', 0x02)
+#define IOCTL_REQ_POLL		_IO('m', 0x03)
+#define IOCTL_REQ_CAPABILITY	_IO('m', 0x04)
+#define IOCTL_REQ_DATA_SIZE	_IO('m', 0x05)
+#define IOCTL_REQ_KEYLAD_INIT	_IO('m', 0x06)
+#define IOCTL_REQ_KEYLAD_DEINIT	_IO('m', 0x07)
+
+enum misc_mode {
+	DECOM_LZ4	= BIT(0),
+	DECOM_GZIP	= BIT(1),
+	DECOM_ZLIB	= BIT(2),
+	OTP_S		= BIT(3),
+	OTP_NS		= BIT(4),
+};
+
 struct udevice;
 
 /**
@@ -60,6 +82,17 @@ int misc_ioctl(struct udevice *dev, unsigned long request, void *buf);
  */
 int misc_call(struct udevice *dev, int msgid, void *tx_msg, int tx_size,
 	      void *rx_msg, int rx_size);
+
+/*
+ * Get a misc device by capability
+ *
+ * The caller can get a misc device according to capability request, the driver
+ * must implement the IOCTL_REQ_CAPABILITY callback.
+ *
+ * @capability: the value of enum misc_mode.
+ * @return the require device if OK, NULL on error
+ */
+struct udevice *misc_get_device_by_capability(u32 capability);
 
 /**
  * misc_set_enabled() - Enable or disable a device.
@@ -142,5 +175,31 @@ struct misc_ops {
 	 */
 	int (*set_enabled)(struct udevice *dev, bool val);
 };
+/* generic layer for otp */
+struct udevice *misc_otp_get_device(u32 capability);
+int misc_otp_read(struct udevice *dev, int offset, void *buf, int size);
+int misc_otp_write(struct udevice *dev, int offset, const void *buf, int size);
+int misc_otp_ioctl(struct udevice *dev, unsigned long request, void *buf);
+int misc_otp_write_verify(struct udevice *dev, int offset, const uint8_t *write_buf, int size);
 
+/* generic layer for decompress */
+struct decom_param {
+	unsigned long addr_src;
+	unsigned long addr_dst;
+	u64 size_src;	/* compressed */
+	u64 size_dst;	/* decompressed, to be filled for output */
+	enum misc_mode mode;
+	u32 flags;
+};
+
+/* function flags for decompress */
+#define DCOMP_FLG_IRQ_ONESHOT	BIT(0)
+#define DCOMP_FLG_UNLIMIT	BIT(1)
+
+void misc_decompress_async(u8 comp);
+void misc_decompress_sync(u8 comp);
+int misc_decompress_cleanup(void);
+int misc_decompress_process(unsigned long dst, unsigned long src,
+			    unsigned long src_len, u32 cap, bool sync,
+			    u64 *size, u32 flags);
 #endif	/* _MISC_H_ */
