@@ -14,6 +14,12 @@ CMD_ARGS=$1
 RKBIN_TOOLS=../rkbin/tools
 CROSS_COMPILE_ARM32=../prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-
 CROSS_COMPILE_ARM64=../prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
+if [ ! -f ${CROSS_COMPILE_ARM32}gcc ]; then
+	CROSS_COMPILE_ARM32=/opt/prebuilts/gcc/linux-x86/arm/gcc-arm-10.3-2021.07-x86_64-arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-
+fi
+if [ ! -f ${CROSS_COMPILE_ARM64}gcc ]; then
+	CROSS_COMPILE_ARM64=/opt/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
+fi
 ########################################### User not touch #############################################
 # Declare global INI file searching index name for every chip, update in select_chip_info()
 RKCHIP=
