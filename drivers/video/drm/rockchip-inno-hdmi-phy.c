@@ -151,7 +151,8 @@
 enum inno_hdmi_phy_type {
 	INNO_HDMI_PHY_RK3228,
 	INNO_HDMI_PHY_RK3328,
-	INNO_HDMI_PHY_RK3528
+	INNO_HDMI_PHY_RK3528,
+	INNO_HDMI_PHY_RK3538,
 };
 
 struct inno_hdmi_phy_drv_data;
@@ -476,7 +477,8 @@ static int inno_hdmi_phy_power_on(struct rockchip_phy *phy)
 	else if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3228 &&
 		 tmdsclock <= 33750000)
 		chipversion = 4;
-	else if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3528)
+	else if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3528 ||
+		 inno->plat_data->dev_type == INNO_HDMI_PHY_RK3538)
 		chipversion = 8;
 
 	printf("tmdsclock = %d; chipversion = %d\n", tmdsclock, chipversion);
@@ -1000,6 +1002,12 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 	inno_write(inno, 0xd8, (temp >> 8) & 0xff);
 	inno_write(inno, 0xd9, temp & 0xff);
 
+	/* Power up post PLL */
+	inno_update_bits(inno, 0xaa, 1, 0);
+	/* Power up tmds driver */
+	inno_update_bits(inno, 0xb0, 4, 4);
+	inno_write(inno, 0xb2, 0x0f);
+
 	if (phy_cfg->tmdsclock > 340000000)
 		mdelay(100);
 	/* set pdata_en to 0/1 */
@@ -1018,11 +1026,14 @@ static void inno_hdmi_phy_rk3528_power_off(struct inno_hdmi_phy *inno)
 {
 	/* Power off driver */
 	inno_write(inno, 0xb2, 0);
-	/* Power off band gap */
-	inno_update_bits(inno, 0xb0, 4, 0);
+	/* Power off serializer */
+	inno_write(inno, 0xbe, 0);
 	/* Power off post pll */
 	inno_update_bits(inno, 0xaa, 1, 1);
-
+	/* Power off rxsense detection circuit */
+	inno_write(inno, 0xcc, 0);
+	/* Power off band gap */
+	inno_update_bits(inno, 0xb0, 4, 0);
 	/* Disable PHY IRQ */
 	inno_write(inno, 0x05, 0);
 	inno_write(inno, 0x07, 0);
@@ -1208,6 +1219,12 @@ static const struct inno_hdmi_phy_drv_data rk3528_hdmi_phy_drv_data = {
 	.phy_cfg_table = rk3528_phy_cfg,
 };
 
+static const struct inno_hdmi_phy_drv_data rk3538_hdmi_phy_drv_data = {
+	.dev_type = INNO_HDMI_PHY_RK3538,
+	.ops = &rk3528_hdmi_phy_ops,
+	.phy_cfg_table = rk3528_phy_cfg,
+};
+
 static const struct rockchip_inno_data inno_hdmi_phy_of_match[] = {
 	{ .compatible = "rockchip,rk3228-hdmi-phy",
 	  .data = &rk3228_hdmi_phy_drv_data
@@ -1217,6 +1234,9 @@ static const struct rockchip_inno_data inno_hdmi_phy_of_match[] = {
 	},
 	{ .compatible = "rockchip,rk3528-hdmi-phy",
 	  .data = &rk3528_hdmi_phy_drv_data
+	},
+	{ .compatible = "rockchip,rk3538-hdmi-phy",
+	  .data = &rk3538_hdmi_phy_drv_data
 	},
 	{}
 };
@@ -1408,6 +1428,10 @@ static const struct udevice_id inno_hdmi_phy_ids[] = {
 	},
 	{
 	 .compatible = "rockchip,rk3528-hdmi-phy",
+	 .data = (ulong)&inno_hdmi_phy_driver_data,
+	},
+	{
+	 .compatible = "rockchip,rk3538-hdmi-phy",
 	 .data = (ulong)&inno_hdmi_phy_driver_data,
 	},
 	{}
