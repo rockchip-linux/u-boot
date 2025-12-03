@@ -71,6 +71,10 @@
 	};
 };
 
+&hw_decompress {
+	bootph-all;
+	status = "okay";
+};
 
 &emmc_bus8 {
 	bootph-pre-ram;
