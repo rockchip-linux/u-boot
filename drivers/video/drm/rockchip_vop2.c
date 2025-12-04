@@ -2562,6 +2562,10 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	    convert_mode.is_input_full_range != convert_mode.is_output_full_range)
 		post_csc_en = true;
 
+	convert_mode.pixel_depth = 10;
+	convert_mode.coef_precision = 10;
+	convert_mode.swap_channels = 1;
+
 	if (post_csc_en) {
 		rockchip_calc_post_csc(csc, &csc_coef, &convert_mode);
 
