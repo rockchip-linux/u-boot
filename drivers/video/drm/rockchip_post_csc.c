@@ -534,9 +534,14 @@ static const struct rk_pq_csc_coef *csc_get_csc_coef(struct post_csc_convert_mod
 	if (!csc_mode_coef)
 		return NULL;
 
+	input_color_space = get_color_space_type(convert_mode->intput_color_encoding,
+						 is_input_yuv);
+	output_color_space = get_color_space_type(convert_mode->output_color_encoding,
+						  is_output_yuv);
+
 	/* csc input and output format is equal */
 	if ((is_input_full_range == is_output_full_range) && (is_input_yuv == is_output_yuv) &&
-	    (convert_mode->intput_color_encoding == convert_mode->output_color_encoding))
+	    (input_color_space == output_color_space))
 		return &csc_mode_coef->csc_coef[RK_PQ_CSC_IDENTITY_MODE];
 
 	for (i = 0; i < 2; i++) {
@@ -560,6 +565,10 @@ static const struct rk_pq_csc_coef *csc_get_csc_coef(struct post_csc_convert_mod
 		 * on colorspace of post-csc output.
 		 */
 		convert_mode->intput_color_encoding = convert_mode->output_color_encoding;
+		input_color_space = get_color_space_type(convert_mode->intput_color_encoding,
+							 is_input_yuv);
+		output_color_space = get_color_space_type(convert_mode->output_color_encoding,
+							  is_output_yuv);
 	}
 
 	return NULL;
