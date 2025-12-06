@@ -43,9 +43,9 @@ case $1 in
 	echo "DEBUG [1]: lib/initcall.c debug() -> printf()"
 	;;
 2)
-	sed -i 's/\<debug\>/printf/g' ./boot/board_f.c
-	sed -i 's/\<debug\>/printf/g' ./boot/board_r.c
-	echo "DEBUG [2]: boot/board_r.c and boot/board_f.c debug() -> printf()"
+	sed -i 's/\<debug\>/printf/g' ./common/board_f.c
+	sed -i 's/\<debug\>/printf/g' ./common/board_r.c
+	echo "DEBUG [2]: common/board_r.c and common/board_f.c debug() -> printf()"
 	;;
 3)
 	sed -i '$i \#define DEBUG\' include/configs/rockchip-boot.h
