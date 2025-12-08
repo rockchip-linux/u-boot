@@ -3515,7 +3515,7 @@ static int rockchip_vop2_preinit(struct display_state *state)
 		rockchip_vop2->regs = (void *)RK3528_VOP_BASE;
 #else
 		rockchip_vop2->regs = dev_read_addr_ptr(cstate->dev);
-		dev_read_addr_size_name(cstate->dev, "reg", &rockchip_vop2->reg_len);
+		dev_read_addr_size_name(cstate->dev, "regs", &rockchip_vop2->reg_len);
 		rockchip_vop2->regsbak = malloc(rockchip_vop2->reg_len);
 		map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,grf");
 		rockchip_vop2->grf = regmap_get_range(map, 0);
