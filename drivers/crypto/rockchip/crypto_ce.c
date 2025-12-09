@@ -264,6 +264,10 @@ static bool hash_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (!priv->enabled)
 		return false;
 
+	if (algo == HASH_ALGO_CRC16_CCITT ||
+	    algo == HASH_ALGO_CRC32)
+		return false;
+
 	return rkce_hw_algo_valid(priv->hardware, RKCE_ALGO_TYPE_HASH,
 				  rk_hash_get_cemode(algo), 0);
 }
@@ -428,20 +432,22 @@ static int rk_hash_finish(struct udevice *dev, void *ctx, void *digest)
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_HMAC)
 
-static u32 rk_hmac_get_cemode(u32 algo)
+static enum HASH_ALGO hmac_algo2_hash_algo(enum HMAC_ALGO algo)
 {
-	const u32 hmac_bitmap[HMAC_ALGO_NUM] = {
-		[HMAC_ALGO_MD5]    = RKCE_HASH_ALGO_MD5,
-		[HMAC_ALGO_SHA1]   = RKCE_HASH_ALGO_SHA1,
-		[HMAC_ALGO_SHA256] = RKCE_HASH_ALGO_SHA256,
-		[HMAC_ALGO_SHA512] = RKCE_HASH_ALGO_SHA512,
-		[HMAC_ALGO_SM3]    = RKCE_HASH_ALGO_SM3,
-	};
-
-	if (algo >= HMAC_ALGO_NUM)
-		return ~((u32)0);
-
-	return hmac_bitmap[algo];
+	switch (algo) {
+	case HMAC_ALGO_MD5:
+		return HASH_ALGO_MD5;
+	case HMAC_ALGO_SHA1:
+		return HASH_ALGO_SHA1;
+	case HMAC_ALGO_SHA256:
+		return HASH_ALGO_SHA256;
+	case HMAC_ALGO_SHA512:
+		return HASH_ALGO_SHA512;
+	case HMAC_ALGO_SM3:
+		return HASH_ALGO_SM3;
+	default:
+		return HASH_ALGO_INVALID;
+	}
 }
 
 static bool hmac_check_valid(struct udevice *dev, u32 algo, u32 mode)
@@ -457,8 +463,10 @@ static bool hmac_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (!priv->enabled)
 		return false;
 
+	algo = hmac_algo2_hash_algo(algo);
+
 	return rkce_hw_algo_valid(priv->hardware, RKCE_ALGO_TYPE_HMAC,
-				  rk_hmac_get_cemode(algo), 0);
+				  rk_hash_get_cemode(algo), 0);
 }
 
 static int rk_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
@@ -480,6 +488,8 @@ static int rk_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
 	if (!hash_ctx)
 		return -ENOMEM;
 
+	algo = hmac_algo2_hash_algo(algo);
+
 	hash_ctx->algo = algo;
 
 	ret = rkce_init_hash_td(hash_ctx->td, hash_ctx->td_buf);
@@ -488,7 +498,7 @@ static int rk_hmac_init(struct udevice *dev, enum HMAC_ALGO algo,
 
 	memcpy(hash_ctx->td_buf->key, key, keylen);
 
-	ce_algo = rk_hmac_get_cemode(algo);
+	ce_algo = rk_hash_get_cemode(algo);
 
 	hash_ctx->ctrl.td_type        = RKCE_TD_TYPE_HASH;
 	hash_ctx->ctrl.hw_pad_en      = 1;
@@ -510,7 +520,7 @@ exit:
 	return ret;
 }
 
-static struct crypto_impl rk_crypto_v2_hmac_impl = {
+static struct crypto_impl rk_crypto_hmac_impl = {
 	.name        = "hmac_"CRYPTO_DRIVER_NAME,
 	.type        = CRYPTO_TYPE_HMAC,
 	.uclass_id   = UCLASS_MISC,
@@ -1004,6 +1014,9 @@ static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if ( algo >= CIPHER_ALGO_NUM)
 		return false;
 
+	if (mode == CRYPTO_MODE_NONE)
+		mode = CIPHER_MODE_ECB;
+
 	if (mode != CRYPTO_MODE_NONE && mode >= CIPHER_MODE_NUM)
 		return false;
 
@@ -1179,16 +1192,11 @@ exit:
 	return ret;
 }
 
-static bool rk_asym_check_valid(struct udevice *dev, u32 algo, u32 mode)
+static bool rk_rsa_check_valid(struct udevice *dev, u32 algo, u32 mode)
 {
 	struct rockchip_crypto_priv *priv = dev_get_priv(dev);
-	const u32 asym_bitmap[ASYM_ALGO_NUM] = {
-		[ASYM_ALGO_RSA] = RKCE_ASYM_ALGO_RSA,
-		[ASYM_ALGO_ECC] = RKCE_ASYM_ALGO_ECC_P256,
-		[ASYM_ALGO_SM2] = RKCE_ASYM_ALGO_SM2,
-	};
 
-	if (mode != CRYPTO_MODE_NONE || algo >= ASYM_ALGO_NUM)
+	if (mode != CRYPTO_MODE_NONE || algo != ASYM_ALGO_RSA)
 		return false;
 
 	if (!dev || !priv || !priv->hardware)
@@ -1197,7 +1205,7 @@ static bool rk_asym_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (!priv->enabled)
 		return false;
 
-	return rkce_hw_algo_valid(priv->hardware, RKCE_ALGO_TYPE_ASYM, asym_bitmap[algo], 0);
+	return rkce_hw_algo_valid(priv->hardware, RKCE_ALGO_TYPE_ASYM, RKCE_ASYM_ALGO_RSA, 0);
 }
 
 static struct crypto_impl rk_mod_exp_impl = {
@@ -1205,7 +1213,7 @@ static struct crypto_impl rk_mod_exp_impl = {
 	.type        = CRYPTO_TYPE_ASYM,
 	.uclass_id   = UCLASS_MISC,
 	.priority    = CRYPTO_PRIORITY_HW,
-	.check_valid = rk_asym_check_valid,
+	.check_valid = rk_rsa_check_valid,
 
 	.asym.rsa.mod_exp = rk_mod_exp,
 };
@@ -1315,11 +1323,11 @@ static int rockchip_crypto_bind(struct udevice *dev)
 	}
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_HMAC)
-	rk_crypto_v2_hmac_impl.dev = dev;
+	rk_crypto_hmac_impl.dev = dev;
 
-	ret = crypto_impl_register(&rk_crypto_v2_hmac_impl);
+	ret = crypto_impl_register(&rk_crypto_hmac_impl);
 	if (ret) {
-		printf("crypto_impl_register rk_crypto_v2_hmac_impl failed.\n");
+		printf("crypto_impl_register rk_crypto_hmac_impl failed.\n");
 		goto exit;
 	}
 #endif
