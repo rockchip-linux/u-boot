@@ -90,6 +90,14 @@
 #define RV1126_OTP_NVM_RDATA		0x24
 #define RV1126_OTP_READ_ST		0x30
 
+#define RK3538_OTPC_SBPI_CTRL		0x01f8
+#define RK3538_OTPC_SBPI_CMD_VALID_PRE	0x02c0
+#define RK3538_OTPC_USER_CTRL		0x00e4
+#define RK3538_OTPC_USER_ADDR		0x01d8
+#define RK3538_OTPC_USER_ENABLE		0x00ac
+#define RK3538_OTPC_USER_Q		0x02d8
+#define RK3538_OTPC_INT_STATUS		0x016c
+
 struct rockchip_otp_plat {
 	void __iomem *base;
 	unsigned long secure_conf_base;
@@ -201,6 +209,57 @@ static int rockchip_px30_otp_read(struct udevice *dev, int offset,
 			goto read_end;
 
 		*buffer++ = (u8)(readl(otp->base + OTPC_USER_Q) & 0xFF);
+	}
+
+read_end:
+	writel(0x0 | OTPC_USE_USER_MASK, otp->base + OTPC_USER_CTRL);
+
+	return ret;
+}
+
+static int rockchip_rk3538_otp_read(struct udevice *dev, int offset,
+				    void *buf, int size)
+{
+	struct rockchip_otp_plat *otp = dev_get_plat(dev);
+	u16 *buffer = buf;
+	int NeedEcc = false;
+	int ret;
+
+	/* disable ecc */
+	writel(0x02 << 8 | 0xff << (16 + 8), otp->base + RK3538_OTPC_SBPI_CTRL);
+	writel(0xffff0001, otp->base + RK3538_OTPC_SBPI_CMD_VALID_PRE);
+	writel(0xfa, otp->base + OTPC_SBPI_CMD0_OFFSET);
+	if (NeedEcc)
+		writel(SBPI_ECC_ENABLE, otp->base + OTPC_SBPI_CMD1_OFFSET);
+	else
+		writel(SBPI_ECC_DISABLE, otp->base + OTPC_SBPI_CMD1_OFFSET);
+
+	writel(0x1 | 0x1 << 16, otp->base + RK3538_OTPC_SBPI_CTRL);
+
+	ret = rockchip_otp_poll_timeout(otp, OTPC_SBPI_DONE,
+					RK3538_OTPC_INT_STATUS);
+	if (ret) {
+		printf("%s timeout during ecc disable\n", __func__);
+		goto read_end;
+	}
+
+	writel(OTPC_USE_USER | OTPC_USE_USER_MASK, otp->base + RK3538_OTPC_USER_CTRL);
+	udelay(5);
+
+	while (size--) {
+		writel(offset++ | OTPC_USER_ADDR_MASK,
+		       otp->base + RK3538_OTPC_USER_ADDR);
+		writel(OTPC_USER_FSM_ENABLE | OTPC_USER_FSM_ENABLE_MASK,
+		       otp->base + RK3538_OTPC_USER_ENABLE);
+
+		ret = rockchip_otp_poll_timeout(otp, OTPC_USER_DONE,
+						RK3538_OTPC_INT_STATUS);
+		if (ret) {
+			printf("%s timeout during ns_otp read\n", __func__);
+			goto read_end;
+		}
+
+		*buffer++ = (u16)(readl(otp->base + RK3538_OTPC_USER_Q) & 0xFFFF);
 	}
 
 read_end:
@@ -381,6 +440,11 @@ static const struct rockchip_otp_data px30_data = {
 	.size = 0x40,
 };
 
+static const struct rockchip_otp_data rk3538_data = {
+	.read = rockchip_rk3538_otp_read,
+	.size = 0x80,
+};
+
 static const struct rockchip_otp_data rk3568_data = {
 	.read = rockchip_rk3568_otp_read,
 	.size = 0x80,
@@ -415,6 +479,10 @@ static const struct udevice_id rockchip_otp_ids[] = {
 	{
 		.compatible = "rockchip,rk3308-otp",
 		.data = (ulong)&px30_data,
+	},
+	{
+		.compatible = "rockchip,rk3538-otp",
+		.data = (ulong)&rk3538_data,
 	},
 	{
 		.compatible = "rockchip,rk3568-otp",
