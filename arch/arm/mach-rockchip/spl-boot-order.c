@@ -211,76 +211,91 @@ int spl_decode_boot_device(u32 boot_device, char *buf, size_t buflen)
 #endif
 	int ret;
 
-	if (boot_device == BOOT_DEVICE_SPI) {
-		/* Revert spl_node_to_boot_device() logic to find appropriate SPI flash device */
+	/* Revert spl_node_to_boot_device() logic to find appropriate SPI flash device */
 
-		/*
-		 * Devices with multiple SPI flash devices will take the first SPI flash found in
-		 * /chosen/u-boot,spl-boot-order.
-		 */
-		const void *blob = gd->fdt_blob;
-		int chosen_node = fdt_path_offset(blob, "/chosen");
-		int elem;
-		int node;
-		const char *conf;
+	/*
+	 * Devices with multiple SPI flash devices will take the first SPI flash found in
+	 * /chosen/u-boot,spl-boot-order.
+	 */
+	const void *blob = gd->fdt_blob;
+	int chosen_node = fdt_path_offset(blob, "/chosen");
+	int elem;
+	int node;
+	const char *conf;
 
-		if (chosen_node < 0) {
-			debug("%s: /chosen not found\n", __func__);
-			return -ENODEV;
+	if (chosen_node < 0) {
+		debug("%s: /chosen not found\n", __func__);
+		return -ENODEV;
+	}
+
+	for (elem = 0;
+	     (conf = fdt_stringlist_get(blob, chosen_node,
+					"u-boot,spl-boot-order", elem, NULL));
+	     elem++) {
+		const char *alias;
+
+		/* Handle the case of 'same device the SPL was loaded from' */
+		if (strncmp(conf, "same-as-spl", 11) == 0) {
+			conf = board_spl_was_booted_from();
+			if (!conf)
+				continue;
 		}
 
-		for (elem = 0;
-		     (conf = fdt_stringlist_get(blob, chosen_node,
-						"u-boot,spl-boot-order", elem, NULL));
-		     elem++) {
-			const char *alias;
+		/* First check if the list element is an alias */
+		alias = fdt_get_alias(blob, conf);
+		if (alias)
+			conf = alias;
 
-			/* Handle the case of 'same device the SPL was loaded from' */
-			if (strncmp(conf, "same-as-spl", 11) == 0) {
-				conf = board_spl_was_booted_from();
-				if (!conf)
-					continue;
-			}
+		/* Try to resolve the config item (or alias) as a path */
+		node = fdt_path_offset(blob, conf);
+		if (node < 0) {
+			debug("%s: could not find %s in FDT\n", __func__, conf);
+			continue;
+		}
 
-			/* First check if the list element is an alias */
-			alias = fdt_get_alias(blob, conf);
-			if (alias)
-				conf = alias;
-
-			/* Try to resolve the config item (or alias) as a path */
-			node = fdt_path_offset(blob, conf);
-			if (node < 0) {
-				debug("%s: could not find %s in FDT\n", __func__, conf);
-				continue;
-			}
-
+		if (boot_device == BOOT_DEVICE_MTD_BLK_SPI_NAND ||
+		    boot_device == BOOT_DEVICE_MTD_BLK_SPI_NOR) {
 			ret = uclass_find_device_by_of_offset(UCLASS_SPI_FLASH, node, &dev);
 			if (ret) {
 				debug("%s: could not find udevice for %s\n", __func__, conf);
 				continue;
 			}
+		} else if (boot_device == BOOT_DEVICE_MTD_BLK_NAND) {
+			ret = uclass_find_device_by_of_offset(UCLASS_MTD, node, &dev);
+			if (ret) {
+				debug("%s: could not find udevice for %s\n", __func__, conf);
+				continue;
+			}
+		} else if (boot_device == BOOT_DEVICE_UFS) {
+			ret = uclass_find_device_by_of_offset(UCLASS_UFS, node, &dev);
+			if (ret) {
+				debug("%s: could not find udevice for %s\n", __func__, conf);
+				continue;
+			}
+		} else if (boot_device == BOOT_DEVICE_MMC1 ||
+			   boot_device == BOOT_DEVICE_MMC2 ||
+			   boot_device == BOOT_DEVICE_MMC2_2) {
+#if CONFIG_IS_ENABLED(BLK)
+			dev_num = (boot_device == BOOT_DEVICE_MMC1) ? 0 : 1;
 
+			ret = blk_find_device(UCLASS_MMC, dev_num, &dev);
+			if (ret) {
+				debug("%s: could not find blk device for MMC device %d: %d\n",
+					__func__, dev_num, ret);
+				return ret;
+			}
+
+			dev = dev_get_parent(dev);
 			return ofnode_get_path(dev_ofnode(dev), buf, buflen);
+#else
+			return -ENODEV;
+#endif
 		}
 
-		return -ENODEV;
+		return ofnode_get_path(dev_ofnode(dev), buf, buflen);
 	}
 
-#if CONFIG_IS_ENABLED(BLK)
-	dev_num = (boot_device == BOOT_DEVICE_MMC1) ? 0 : 1;
-
-	ret = blk_find_device(UCLASS_MMC, dev_num, &dev);
-	if (ret) {
-		debug("%s: could not find blk device for MMC device %d: %d\n",
-		      __func__, dev_num, ret);
-		return ret;
-	}
-
-	dev = dev_get_parent(dev);
-	return ofnode_get_path(dev_ofnode(dev), buf, buflen);
-#else
 	return -ENODEV;
-#endif
 }
 
 void spl_perform_fixups(struct spl_image_info *spl_image)
