@@ -33,6 +33,17 @@
 		reset-names = "crypto-rst";
 		status = "disabled";
 	};
+
+	secure-otp@fd9c0000 {
+		bootph-all;
+		compatible = "rockchip,rk3538-secure-otp";
+		reg =  <0xfd9c0000 0x10000>;
+		secure_conf = <0xfd320040>;
+		cru_rst_addr = <0xfd300a04>;
+		mask_addr = <0xfd9a0000>;
+		key_reader_addr = <0xfd980000>;
+		status = "okay";
+	};
 };
 
 &crypto {
