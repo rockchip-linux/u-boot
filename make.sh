@@ -249,16 +249,30 @@ function process_args()
 						echo -e "\n${SUPPORT_LIST}\n"
 						echo "ERROR: No configs/${ARG_BOARD}_defconfig"
 						exit 1
-					elif [ -f configs/${ARG_BOARD}.config ]; then
+					fi
+
+					#
+					# Due to USE_ARCH_MEMCPY depends on !ARM64 || (ARM64 && (GCC_VERSION >= 90400)),
+					# the CROSS_COMPILE argument is neccessary when make defconfig.
+					#
+					if [ -f configs/${ARG_BOARD}.config ]; then
 						BASE1_DEFCONFIG=`filt_val "CONFIG_BASE_DEFCONFIG" configs/${ARG_BOARD}.config`
 						BASE0_DEFCONFIG=`filt_val "CONFIG_BASE_DEFCONFIG" configs/${BASE1_DEFCONFIG}`
 						MAKE_CMD="make ${BASE0_DEFCONFIG} ${BASE1_DEFCONFIG} ${ARG_BOARD}.config -j${JOB}"
 						echo "## ${MAKE_CMD}"
+						# Just for arch info from .config to select toolchain
+						make ${BASE0_DEFCONFIG} ${BASE1_DEFCONFIG} ${ARG_BOARD}.config ${OPTION}
+						select_toolchain
+						# for real .config
 						make CROSS_COMPILE=${TOOLCHAIN} ${BASE0_DEFCONFIG} ${BASE1_DEFCONFIG} ${ARG_BOARD}.config ${OPTION}
 						rm -f ${CC_FILE}
 					else
 						MAKE_CMD="make ${ARG_BOARD}_defconfig -j${JOB}"
 						echo "## ${MAKE_CMD}"
+						# Just for arch info from .config to select toolchain
+						make ${ARG_BOARD}_defconfig ${OPTION}
+						select_toolchain
+						# for real .config
 						make CROSS_COMPILE=${TOOLCHAIN} ${ARG_BOARD}_defconfig ${OPTION}
 						rm -f ${CC_FILE}
 					fi
@@ -809,9 +823,9 @@ function finish()
 	fi
 }
 
-select_toolchain # make defconfig requires CROSS_COMPILE
 process_args $*
 prepare
+select_toolchain
 select_chip_info
 fixup_platform_configure
 select_ini_file
