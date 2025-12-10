@@ -45,6 +45,7 @@ obj-$(CONFIG_$(XPL_)NVME) += nvme/
 obj-$(CONFIG_XEN) += xen/
 obj-$(CONFIG_$(XPL_)FPGA) += fpga/
 obj-$(CONFIG_$(XPL_)VIDEO) += video/
+obj-$(CONFIG_$(PHASE_)DM_RNG) += rng/
 
 obj-y += bus/
 
@@ -131,7 +132,6 @@ obj-$(CONFIG_W1_EEPROM) += w1-eeprom/
 obj-$(CONFIG_MACH_PIC32) += ddr/microchip/
 obj-$(CONFIG_FUZZ) += fuzz/
 obj-$(CONFIG_DM_HWSPINLOCK) += hwspinlock/
-obj-$(CONFIG_$(PHASE_)DM_RNG) += rng/
 obj-$(CONFIG_IRQ) += irq/
 endif
 

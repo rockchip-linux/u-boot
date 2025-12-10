@@ -77,6 +77,14 @@ config RNG_ROCKCHIP
 	  supports the rng module of crypto v1, crypto v2, and the
 	  trng module of the rk3588 series.
 
+config SPL_RNG_ROCKCHIP
+	bool "Enable random number generator for rockchip crypto rng in SPL"
+	depends on ARCH_ROCKCHIP && SPL_DM_RNG
+	help
+	  Enable random number generator for rockchip. This driver
+	  supports the rng module of crypto v1, crypto v2, and the
+	  trng module of the rk3588 series in spl.
+
 config RNG_IPROC200
 	bool "Broadcom iProc RNG200 random number generator"
 	depends on DM_RNG
