@@ -223,6 +223,10 @@ static u32 rk_hash_get_cemode(u32 algo)
 		[HASH_ALGO_SHA384] = RKCE_HASH_ALGO_SHA384,
 		[HASH_ALGO_SHA512] = RKCE_HASH_ALGO_SHA512,
 		[HASH_ALGO_SM3]    = RKCE_HASH_ALGO_SM3,
+		[HASH_ALGO_SHA224] = RKCE_HASH_ALGO_SHA224,
+		[HASH_ALGO_SHA384]     = RKCE_HASH_ALGO_SHA384,
+		[HASH_ALGO_SHA512_224] = RKCE_HASH_ALGO_SHA512_224,
+		[HASH_ALGO_SHA512_256] = RKCE_HASH_ALGO_SHA512_256,
 	};
 
 	if (algo >= HASH_ALGO_NUM)
@@ -238,7 +242,11 @@ static u32 rk_hash_get_disgest_size(enum HASH_ALGO algo)
 		return 16;
 	case HASH_ALGO_SHA1:
 		return 20;
+	case HASH_ALGO_SHA224:
+	case HASH_ALGO_SHA512_224:
+		return 28;
 	case HASH_ALGO_SHA256:
+	case HASH_ALGO_SHA512_256:
 		return 32;
 	case HASH_ALGO_SHA384:
 		return 48;
