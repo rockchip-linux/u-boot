@@ -70,6 +70,7 @@ static const uint32_t cipher_mode2bit_mask[] = {
 	[RKCE_SYMM_MODE_GCM]       = RKCE_AES_VER_GCM_FLAG_MASK,
 	[RKCE_SYMM_MODE_CMAC]      = RKCE_AES_VER_CMAC_FLAG_MASK,
 	[RKCE_SYMM_MODE_CBC_MAC]   = RKCE_AES_VER_CBC_MAC_FLAG_MASK,
+	[RKCE_SYMM_MODE_BYPASS]    = RKCE_AES_VER_BYPASS_MASK,
 };
 
 static const uint32_t hash_algo2bit_mask[] = {

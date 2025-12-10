@@ -38,6 +38,7 @@ static const struct cipher_info cipher_mode[CIPHER_MODE_NUM] = {
 	[CIPHER_MODE_GCM]     = { "GCM"},
 	[CIPHER_MODE_CMAC]    = { "CMAC"},
 	[CIPHER_MODE_CBC_MAC] = { "CBC_MAC"},
+	[CIPHER_MODE_BYPASS]  = { "BYPASS"},
 };
 
 const char *cipher_algo_name(enum CIPHER_ALGO algo)
