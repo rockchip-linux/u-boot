@@ -346,7 +346,7 @@ static u8 rk_get_vdac_value(void)
 	ofnode node;
 	int ret;
 
-	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_GET_DRIVER(rockchip_efuse), &dev);
+	ret = uclass_get_device_by_driver(UCLASS_MISC, DM_DRIVER_GET(rockchip_efuse), &dev);
 	if (ret) {
 		printf("%s: no misc-device found\n", __func__);
 		return -EINVAL;
@@ -390,11 +390,11 @@ static int tve_read_otp_by_name(char *name, u8 *val, u8 default_val)
 	*val = default_val;
 	if (IS_ENABLED(CONFIG_ROCKCHIP_EFUSE))
 		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_GET_DRIVER(rockchip_efuse),
+						  DM_DRIVER_GET(rockchip_efuse),
 						  &dev);
 	else
 		ret = uclass_get_device_by_driver(UCLASS_MISC,
-						  DM_GET_DRIVER(rockchip_otp),
+						  DM_DRIVER_GET(rockchip_otp),
 						  &dev);
 	if (!ret) {
 		node = dev_read_subnode(dev, name);
