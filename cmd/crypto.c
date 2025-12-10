@@ -173,6 +173,9 @@ const struct hash_test_data hash_data_set[] = {
 	HASH_TEST(SHA384, foo_data, hash_sha384),
 	HASH_TEST(SHA512, foo_data, hash_sha512),
 	HASH_TEST(SM3,    foo_data, hash_sm3),
+	HASH_TEST(SHA224, foo_data, hash_sha224),
+	HASH_TEST(SHA512_224,    foo_data, hash_sha512_224),
+	HASH_TEST(SHA512_256,    foo_data, hash_sha512_256),
 };
 
 const struct hash_test_data hmac_data_set[] = {
@@ -201,6 +204,7 @@ const struct cipher_test_data cipher_data_set[] = {
 	CIPHER_TEST(DES, OFB, tdes_key, tdes_iv, foo_data, tdes_ofb_cipher),
 
 	EMPTY_TEST(),
+	CIPHER_TEST(AES, BYPASS, aes_key, aes_iv, foo_data, foo_data),
 	CIPHER_TEST(AES, ECB, aes_key, aes_iv, foo_data, aes_ecb_cipher),
 	CIPHER_TEST(AES, CBC, aes_key, aes_iv, foo_data, aes_cbc_cipher),
 	CIPHER_TEST(AES, CFB, aes_key, aes_iv, foo_data, aes_cfb_cipher),
@@ -271,10 +275,10 @@ static inline void print_result_MBps(const char *algo_name,
 				     u32 len)
 {
 	if (memcmp(expect, actual, len) == 0) {
-		printf("[%s] %-8s%-8s PASS    (%luMBps)\n",
+		printf("[%-4s] %-12s%-8s PASS    (%luMBps)\n",
 		       algo_name, mode_name, crypt, MBps);
 	} else {
-		printf("[%s] %-8s%-8s FAIL\n",
+		printf("[%-4s] %-12s%-8s FAIL\n",
 		       algo_name, mode_name, crypt);
 		dump_hex("expect", expect, len);
 		dump_hex("actual", actual, len);
@@ -286,10 +290,10 @@ static inline void print_result_ms(const char *algo_name, const char *mode_name,
 				   const u8 *expect, const u8 *actual, u32 len)
 {
 	if (memcmp(expect, actual, len) == 0) {
-		printf("[%s] %-8s%-8s PASS    (%lums)\n",
+		printf("[%s]  %-12s%-8s PASS    (%lums)\n",
 		       algo_name, mode_name, crypt, time_cost);
 	} else {
-		printf("[%s] %-8s%-8s FAIL\n",
+		printf("[%s]  %-12s%-8s FAIL\n",
 		       algo_name, mode_name, crypt);
 		dump_hex("expect", expect, len);
 		dump_hex("actual", actual, len);
@@ -775,7 +779,7 @@ int test_ec_result(void)
 		}
 		time_cost = get_timer(start);
 
-		printf("[%-9s]   %-8s PASS    (%lums)\n",
+		printf("[%-9s]        %-8s PASS    (%lums)\n",
 		       test_data->algo_name, "verify", time_cost);
 
 		printf("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
