@@ -6,13 +6,15 @@
 #include <common.h>
 #include <command.h>
 #include <crypto_manager.h>
+#ifndef CONFIG_SPL_BUILD
 #include <dm.h>
+#endif
 #include <time.h>
 #include <hexdump.h>
 #include <rockchip/crypto_fix_test_data.h>
 
 #define PERF_TOTAL_SIZE			(128 * 1024 * 1024)
-#define PERF_BUFF_SIZE			(4 * 1024 * 1024)
+#define PERF_BUFF_SIZE			(1 * 1024 * 1024)
 
 #define CALC_RATE_MPBS(bytes, ms)	(((bytes) / 1024) / (ms))
 
@@ -255,6 +257,9 @@ const struct ec_test_data ec_data_set[] = {
 #endif
 };
 
+static u8 *g_perf_buf;
+static u32 g_perf_buf_size = PERF_BUFF_SIZE;
+
 static void dump_hex(const char *name, const u8 *array, u32 len)
 {
 	int i;
@@ -312,12 +317,13 @@ int test_hash_perf(struct udevice *dev, u32 algo,
 
 	*MBps = 0;
 
-	data = (u8 *)memalign(CONFIG_SYS_CACHELINE_SIZE, data_size);
-	if (!data) {
-		printf("%s, %d: memalign %u error!\n",
-		       __func__, __LINE__, data_size);
-		return -EINVAL;
+	if (!g_perf_buf) {
+		printf("Please alloc perf buffer first!\n");
+		return -1;
 	}
+
+	data      = g_perf_buf;
+	data_size = g_perf_buf_size;
 
 	memset(data, 0xab, data_size);
 
@@ -348,8 +354,6 @@ int test_hash_perf(struct udevice *dev, u32 algo,
 	*MBps = CALC_RATE_MPBS(total_size, time_cost);
 
 exit:
-	free(data);
-
 	return ret;
 }
 
@@ -363,20 +367,14 @@ int test_cipher_perf(struct udevice *dev, cipher_context *ctx, ulong *MBps, bool
 
 	*MBps = 0;
 
-	plain = (u8 *)memalign(CONFIG_SYS_CACHELINE_SIZE, data_size);
-	if (!plain) {
-		printf("%s, %d: memalign %u error!\n",
-		       __func__, __LINE__, data_size);
-		return -EINVAL;
+	if (!g_perf_buf) {
+		printf("Please alloc perf buffer first!\n");
+		return -1;
 	}
 
-	cipher = (u8 *)memalign(CONFIG_SYS_CACHELINE_SIZE, data_size);
-	if (!cipher) {
-		printf("%s, %d: memalign %u error!\n",
-		       __func__, __LINE__, data_size);
-		free(plain);
-		return -EINVAL;
-	}
+	plain     = g_perf_buf;
+	cipher    = g_perf_buf;
+	data_size = g_perf_buf_size;
 
 	memset(plain, 0xab, data_size);
 	memset(aad, 0xcb, sizeof(aad));
@@ -405,8 +403,6 @@ int test_cipher_perf(struct udevice *dev, cipher_context *ctx, ulong *MBps, bool
 
 	*MBps = CALC_RATE_MPBS(total_size, time_cost);
 exit:
-	free(plain);
-	free(cipher);
 
 	return ret;
 }
@@ -481,12 +477,13 @@ int test_hmac_perf(struct udevice *dev, u32 algo,
 
 	*MBps = 0;
 
-	data = (u8 *)memalign(CONFIG_SYS_CACHELINE_SIZE, data_size);
-	if (!data) {
-		printf("%s, %d: memalign %u error!\n",
-		       __func__, __LINE__, data_size);
-		return -EINVAL;
+	if (!g_perf_buf) {
+		printf("Please alloc perf buffer first!\n");
+		return -1;
 	}
+
+	data      = g_perf_buf;
+	data_size = g_perf_buf_size;
 
 	memset(data, 0xab, data_size);
 
@@ -517,8 +514,6 @@ int test_hmac_perf(struct udevice *dev, u32 algo,
 	*MBps = CALC_RATE_MPBS(total_size, time_cost);
 
 exit:
-	free(data);
-
 	return ret;
 }
 
@@ -793,6 +788,13 @@ error:
 
 static int do_crypto(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
+	g_perf_buf = (u8 *)memalign(CONFIG_SYS_CACHELINE_SIZE, g_perf_buf_size);
+	if (!g_perf_buf) {
+		printf("%s, %d: memalign %u error!\n", __func__, __LINE__, g_perf_buf_size);
+		printf("!!!!!!!!!!!!!!! CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN = %08x is too small set to 0x800000 !!!!!!!!!!!!!!!\n",
+		       CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN);
+	}
+
 	test_cipher_result();
 
 	test_hash_result();
@@ -802,6 +804,8 @@ static int do_crypto(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 	rsa_test();
 
 	test_ec_result();
+
+	free(g_perf_buf);
 
 	return 0;
 }
