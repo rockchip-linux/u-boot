@@ -6173,7 +6173,7 @@ static int rockchip_vop2_init(struct display_state *state)
 		debug("%s: Faile to find display-subsystem node\n", __func__);
 	}
 
-	if (vop2->version == VOP_VERSION_RK3528) {
+	if (vop2->version == VOP_VERSION_RK3528 || vop2->version == VOP_VERSION_RK3538) {
 		struct ofnode_phandle_args args;
 
 		ret = dev_read_phandle_with_args(cstate->dev, "assigned-clock-parents",
@@ -6193,18 +6193,22 @@ static int rockchip_vop2_init(struct display_state *state)
 		vp_dclk_div = cstate->crtc->vps[cstate->crtc_id].dclk_div;
 
 	if (mode->crtc_clock < VOP2_MAX_DCLK_RATE) {
-		if (conn_state->output_if & VOP_OUTPUT_IF_HDMI0)
+		if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0 ||
+		     vop2->version == VOP_VERSION_RK3538) && hdmi0_phy_pll.dev)
 			vop2_clk_set_parent(&cstate->dclk, &hdmi0_phy_pll);
 		else if (conn_state->output_if & VOP_OUTPUT_IF_HDMI1)
 			vop2_clk_set_parent(&cstate->dclk, &hdmi1_phy_pll);
 
 		/*
-		 * uboot clk driver won't set dclk parent's rate when use
-		 * hdmi phypll as dclk source.
-		 * So set dclk rate is meaningless. Set hdmi phypll rate
-		 * directly.
+		 * U-Boot clk driver won't set dclk parent's rate when use HDMI
+		 * phy pll as dclk source. Since it is meaningless to set dclk
+		 * rate, set HDMI phy pll rate directly.
+		 *
+		 * For RK3538, HDMI and CVBS share the same VP, so we should
+		 * set dclk source to HDMI phy pll if either is enabled.
 		 */
-		if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0) && hdmi0_phy_pll.dev) {
+		if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0 ||
+		     vop2->version == VOP_VERSION_RK3538) && hdmi0_phy_pll.dev) {
 			ret = vop2_clk_set_rate(&hdmi0_phy_pll, dclk_rate / vp_dclk_div * 1000);
 		} else if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI1) && hdmi1_phy_pll.dev) {
 			ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate / vp_dclk_div * 1000);
