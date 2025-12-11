@@ -143,3 +143,8 @@
 		rockchip,boot-ecc-strength = <16>;
 	};
 };
+
+&rng {
+	bootph-all;
+	status = "okay";
+};
