@@ -136,7 +136,6 @@ struct rockchip_crypto_priv {
 	struct rk_hash_ctx		*hw_ctx;
 	struct rk_crypto_soc_data	*soc_data;
 	u16 secure;
-	u16 enabled;
 };
 
 void __iomem *crypto_base;
@@ -410,17 +409,6 @@ static int rockchip_crypto_of_to_plat(struct udevice *dev)
 		return -EINVAL;
 
 	priv->secure = dev_read_bool(dev, "secure");
-	priv->enabled = true;
-
-#if !defined(CONFIG_SPL_BUILD)
-	/* uboot disabled secure crypto */
-	priv->enabled = !priv->secure;
-#else
-	/* spl disabled no-secure crypto */
-	priv->enabled = priv->secure;
-#endif
-	if (!priv->enabled)
-		return 0;
 
 	crypto_base = plat->base;
 
@@ -488,9 +476,6 @@ static bool hash_check_valid(struct udevice *dev, u32 algo, u32 mode)
 
 	priv = dev_get_priv(dev);
 	if (!priv)
-		return false;
-
-	if (!priv->enabled)
 		return false;
 
 	if (mode != CRYPTO_MODE_NONE || algo >= HASH_ALGO_NUM)
@@ -686,9 +671,6 @@ static bool hmac_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (!priv)
 		return false;
 
-	if (!priv->enabled)
-		return false;
-
 	if (mode != CRYPTO_MODE_NONE || algo >= HMAC_ALGO_NUM)
 		return false;
 
@@ -778,9 +760,6 @@ static int rockchip_crypto_probe(struct udevice *dev)
 	sdata = (struct rk_crypto_soc_data *)dev_get_driver_data(dev);
 	if (!sdata)
 		return -EINVAL;
-
-	if (!priv->enabled)
-		return 0;
 
 	priv->soc_data = sdata;
 
@@ -1538,9 +1517,6 @@ static bool cipher_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (!priv)
 		return false;
 
-	if (!priv->enabled)
-		return false;
-
 	if (mode >= CIPHER_MODE_NUM && mode != CRYPTO_MODE_NONE)
 		return false;
 
@@ -1822,9 +1798,6 @@ static bool rk_mod_exp_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (!priv)
 		return false;
 
-	if (!priv->enabled)
-		return false;
-
 	if (mode != CRYPTO_MODE_NONE)
 		return false;
 
@@ -1902,9 +1875,6 @@ static bool rk_ecdsa_check_valid(struct udevice *dev, u32 algo, u32 mode)
 	if (!priv)
 		return false;
 
-	if (!priv->enabled)
-		return false;
-
 	if (mode != CRYPTO_MODE_NONE)
 		return false;
 
@@ -1940,7 +1910,7 @@ static int rockchip_crypto_bind(struct udevice *dev)
 	secure = dev_read_bool(dev, "secure");
 
 	if (secure != secure_sel)
-		return 0;
+		return -ENODEV;
 
 	rk_crypto_v2_hash_impl.dev = dev;
 
