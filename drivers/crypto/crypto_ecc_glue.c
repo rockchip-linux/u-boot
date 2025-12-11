@@ -19,6 +19,8 @@
 #define DMSG(format, ...)
 #endif
 
+#if CONFIG_IS_ENABLED(ECDSA_VERIFY)
+
 int crypto_ecdsa_verify(struct udevice *dev, const struct ecdsa_public_key *pubkey,
 			const void *hash, size_t hash_len,
 			const void *signature, size_t sig_len)
@@ -54,3 +56,5 @@ U_BOOT_DRIVER(aaa_crypto_ecc_glue) = {
 U_BOOT_DRVINFO(aaa_crypto_ecc_glue) = {
 	.name = "crypto_ecc_glue",
 };
+
+#endif
