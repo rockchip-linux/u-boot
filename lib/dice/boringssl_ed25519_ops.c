@@ -19,7 +19,7 @@
 #include "dice/config/cose_key_config.h"
 #include "dice/dice.h"
 #include "dice/ops.h"
-#include "openssl/curve25519.h"
+#include "monocypher-ed25519.h"
 
 #if DICE_PRIVATE_KEY_SEED_SIZE != 32
 #error "Private key seed is expected to be 32 bytes."
@@ -55,7 +55,7 @@ DiceResult DiceKeypairFromSeed(
     uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE]) {
   (void)context_not_used;
   (void)principal_not_used;
-  ED25519_keypair_from_seed(public_key, private_key, seed);
+  crypto_ed25519_key_pair(private_key, public_key, (uint8_t *)seed);
   return kDiceResultOk;
 }
 
@@ -64,9 +64,9 @@ DiceResult DiceSign(void* context_not_used, const uint8_t* message,
                     const uint8_t private_key[DICE_PRIVATE_KEY_BUFFER_SIZE],
                     uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE]) {
   (void)context_not_used;
-  if (1 != ED25519_sign(signature, message, message_size, private_key)) {
-    return kDiceResultPlatformError;
-  }
+
+  crypto_ed25519_sign(signature, private_key, message, message_size);
+
   return kDiceResultOk;
 }
 
@@ -75,7 +75,7 @@ DiceResult DiceVerify(void* context_not_used, const uint8_t* message,
                       const uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE],
                       const uint8_t public_key[DICE_PUBLIC_KEY_BUFFER_SIZE]) {
   (void)context_not_used;
-  if (1 != ED25519_verify(message, message_size, signature, public_key)) {
+  if (0 != crypto_ed25519_check(signature, public_key, message, message_size)) {
     return kDiceResultPlatformError;
   }
   return kDiceResultOk;

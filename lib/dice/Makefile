@@ -15,3 +15,5 @@ obj-y += dice.o
 obj-y += dice_main.o
 obj-y += mbedtls_ops.o
 obj-y += utils.o
+obj-y += monocypher.o
+obj-y += monocypher-ed25519.o
