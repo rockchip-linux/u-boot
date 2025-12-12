@@ -477,7 +477,7 @@ void otg_phy_init(struct dwc2_udc *dev)
 }
 #endif
 
-static int rockchip_usb2phy_reset(struct rockchip_usb2phy *rphy)
+__maybe_unused static int rockchip_usb2phy_reset(struct rockchip_usb2phy *rphy)
 {
 	int ret;
 
@@ -1050,6 +1050,29 @@ static int rk3528_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 
 	/* Turn on output clk of phy*/
 	phy_update_bits(rphy->phy_base + 0x41c, GENMASK(7, 2), (0x27 << 2));
+
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_ROCKCHIP_RK3538
+static int rk3538_usb2phy_tuning(struct rockchip_usb2phy *rphy)
+{
+	if (IS_ERR(rphy->phy_base)) {
+		return PTR_ERR(rphy->phy_base);
+	}
+
+	/* Turn off otg port differential receiver in suspend mode */
+	phy_clear_bits(rphy->phy_base + 0x30, BIT(2));
+
+	/* Turn off host port differential receiver in suspend mode */
+	phy_clear_bits(rphy->phy_base + 0x430, BIT(2));
+
+	/* Choose the Tx fs/ls data as linestate from TX driver for otg port */
+	phy_update_bits(rphy->phy_base + 0x94, GENMASK(6, 3), (0x03 << 3));
+
+	/* Choose the Tx fs/ls data as linestate from TX driver for host port */
+	phy_update_bits(rphy->phy_base + 0x494, GENMASK(6, 3), (0x03 << 3));
 
 	return 0;
 }
@@ -1929,6 +1952,60 @@ static const struct rockchip_usb2phy_cfg rk3528_phy_cfgs[] = {
 };
 #endif
 
+#ifdef CONFIG_ROCKCHIP_RK3538
+static const struct rockchip_usb2phy_cfg rk3538_phy_cfgs[] = {
+	{
+		.reg = 0xfdba0000,
+		.num_ports	= 2,
+		.phy_tuning	= rk3538_usb2phy_tuning,
+		.port_cfgs	= {
+			[USB2PHY_PORT_OTG] = {
+				.phy_sus	= { 0x0020, 8, 0, 0, 0x1d1 },
+				.bvalid_det_en	= { 0x00c0, 2, 2, 0, 1 },
+				.bvalid_det_st	= { 0x00c4, 2, 2, 0, 1 },
+				.bvalid_det_clr = { 0x00c8, 2, 2, 0, 1 },
+				.iddig_output	= { 0x0020, 10, 10, 0, 1 },
+				.iddig_en	= { 0x0020, 9, 9, 0, 1 },
+				.idfall_det_en	= { 0x00c0, 5, 5, 0, 1 },
+				.idfall_det_st	= { 0x00c4, 5, 5, 0, 1 },
+				.idfall_det_clr = { 0x00c8, 5, 5, 0, 1 },
+				.idrise_det_en	= { 0x00c0, 4, 4, 0, 1 },
+				.idrise_det_st	= { 0x00c4, 4, 4, 0, 1 },
+				.idrise_det_clr = { 0x00c8, 4, 4, 0, 1 },
+				.ls_det_en	= { 0x00c0, 0, 0, 0, 1 },
+				.ls_det_st	= { 0x00c4, 0, 0, 0, 1 },
+				.ls_det_clr	= { 0x00c8, 0, 0, 0, 1 },
+				.utmi_avalid	= { 0x0110, 1, 1, 0, 1 },
+				.utmi_bvalid	= { 0x0110, 0, 0, 0, 1 },
+				.utmi_iddig	= { 0x0110, 6, 6, 0, 1 },
+				.utmi_ls	= { 0x0110, 5, 4, 0, 1 },
+				.vbus_det_en	= { 0x003c, 7, 7, 0, 1 },
+			},
+			[USB2PHY_PORT_HOST] = {
+				.phy_sus	= { 0x001c, 8, 0, 0x1d2, 0x1d1 },
+				.ls_det_en	= { 0x00e0, 0, 0, 0, 1 },
+				.ls_det_st	= { 0x00e4, 0, 0, 0, 1 },
+				.ls_det_clr	= { 0x00e8, 0, 0, 0, 1 },
+				.utmi_ls	= { 0x0110, 13, 12, 0, 1 },
+				.utmi_hstdet	= { 0x0110, 15, 15, 0, 1 },
+			}
+		},
+		.chg_det = {
+			.opmode	= { 0x0020, 8, 0, 0, 0x1d7 },
+			.cp_det		= { 0x0110, 19, 19, 0, 1 },
+			.dcp_det	= { 0x0110, 18, 18, 0, 1 },
+			.dp_det		= { 0x0110, 20, 20, 0, 1 },
+			.idm_sink_en	= { 0x002c, 1, 1, 0, 1 },
+			.idp_sink_en	= { 0x002c, 0, 0, 0, 1 },
+			.idp_src_en	= { 0x002c, 2, 2, 0, 1 },
+			.rdm_pdwn_en	= { 0x002c, 3, 3, 0, 1 },
+			.vdm_src_en	= { 0x002c, 5, 5, 0, 1 },
+			.vdp_src_en	= { 0x002c, 4, 4, 0, 1 },
+		},
+	}
+};
+#endif
+
 #ifdef CONFIG_ROCKCHIP_RK3562
 static const struct rockchip_usb2phy_cfg rk3562_phy_cfgs[] = {
 	{
@@ -2230,6 +2307,9 @@ static const struct udevice_id rockchip_usb2phy_ids[] = {
 #endif
 #ifdef CONFIG_ROCKCHIP_RK3528
 	{ .compatible = "rockchip,rk3528-usb2phy", .data = (ulong)&rk3528_phy_cfgs },
+#endif
+#ifdef CONFIG_ROCKCHIP_RK3538
+	{ .compatible = "rockchip,rk3538-usb2phy", .data = (ulong)&rk3538_phy_cfgs },
 #endif
 #ifdef CONFIG_ROCKCHIP_RK3562
 	{ .compatible = "rockchip,rk3562-usb2phy", .data = (ulong)&rk3562_phy_cfgs },
