@@ -174,6 +174,7 @@ struct sfdp_header {
 #define BFPT_DWORD18_CMD_EXT_INV		(0x1UL << 29) /* Invert */
 #define BFPT_DWORD18_CMD_EXT_RES		(0x2UL << 29) /* Reserved */
 #define BFPT_DWORD18_CMD_EXT_16B		(0x3UL << 29) /* 16-bit opcode */
+#define BFPT_DWORD18_BYTE_ORDER_SWAPPED		BIT(31) /* Byte order swapped in 8D-8D-8D mode */
 
 /* xSPI Profile 1.0 table (from JESD216D.01). */
 #define PROFILE1_DWORD1_RD_FAST_CMD		GENMASK(15, 8)
@@ -286,6 +287,9 @@ void spi_nor_setup_op(const struct spi_nor *nor,
 		op->cmd.opcode = (op->cmd.opcode << 8) | ext;
 		op->cmd.nbytes = 2;
 	}
+
+	if (proto == SNOR_PROTO_8_8_8_DTR && nor->flags & SNOR_F_SWAP16)
+		op->data.swap16 = true;
 }
 
 static int spi_nor_read_write_reg(struct spi_nor *nor, struct spi_mem_op
@@ -632,18 +636,6 @@ static int write_sr3(struct spi_nor *nor, u8 val)
 	nor->cmd_buf[0] = val;
 	return nor->write_reg(nor, SPINOR_OP_WRSR3, nor->cmd_buf, 1);
 }
-
-#if CONFIG_IS_ENABLED(SPI_FLASH_SFDP_SUPPORT) || defined(CONFIG_SPI_FLASH_NORMEM)
-/*
- * Write confiture register 1 byte
- * Returns negative if error occurred.
- */
-static int write_cr(struct spi_nor *nor, u8 val)
-{
-	nor->cmd_buf[0] = val;
-	return nor->write_reg(nor, SPINOR_OP_WRCR, nor->cmd_buf, 1);
-}
-#endif
 
 /*
  * Set write enable latch with Write Enable command.
@@ -2795,6 +2787,10 @@ static int spi_nor_parse_bfpt(struct spi_nor *nor,
 		return -ENOTSUPP;
 	}
 
+	/* Byte order in 8D-8D-8D mode */
+	if (bfpt.dwords[BFPT_DWORD(18)] & BFPT_DWORD18_BYTE_ORDER_SWAPPED)
+		nor->flags |= SNOR_F_SWAP16;
+
 	return spi_nor_post_bfpt_fixups(nor, bfpt_header, &bfpt, params);
 }
 
@@ -4191,7 +4187,7 @@ static struct spi_nor_fixups mt35xu512aba_fixups = {
 };
 #endif /* CONFIG_SPI_FLASH_MT35XU */
 
-#if CONFIG_IS_ENABLED(SPI_FLASH_MACRONIX)
+#if defined(CONFIG_SPI_FLASH_MACRONIX)
 /**
  * spi_nor_macronix_octal_dtr_enable() - Enable octal DTR on Macronix flashes.
  * @nor:	pointer to a 'struct spi_nor'
@@ -4476,7 +4472,7 @@ void spi_nor_set_fixups(struct spi_nor *nor)
 		nor->fixups = &mt35xu512aba_fixups;
 #endif
 
-#if CONFIG_IS_ENABLED(SPI_FLASH_MACRONIX)
+#if defined(CONFIG_SPI_FLASH_MACRONIX)
 	if (JEDEC_MFR(nor->info) == SNOR_MFR_MACRONIX &&
 	    nor->info->flags & SPI_NOR_OCTAL_DTR_READ)
 		nor->fixups = &macronix_octal_fixups;
