@@ -432,6 +432,15 @@ config ROCKCHIP_SFC
 	  Rockchip SoCs. This uses driver model and requires a device tree
 	  binding to operate.
 
+if ROCKCHIP_SFC
+config ROCKCHIP_SFC_OCTAL_SETTING
+	bool "ROCKCHIP SFC OCTAL SPI Configuration"
+	default n
+	help
+	  Enable the Rockchip SFC octal spi configuration including dts and
+          IOMUX.
+endif
+
 config ROCKCHIP_SPI
 	bool "Rockchip SPI driver"
 	help
