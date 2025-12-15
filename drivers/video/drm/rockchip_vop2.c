@@ -2908,6 +2908,8 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	bool post_r2y_en = false;
 	bool post_csc_en = false;
 	bool post_r2r_en = false;
+	bool post_y2y_en = false;
+	bool post_scl_enabled = false;
 	bool r2y_csc_supported = false;
 	bool has_bt2020_plane = false;
 	bool cgc_enabled = false;
@@ -2916,6 +2918,10 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	int range_type;
 
 	printf("post csc enable\n");
+
+	if (conn_state->overscan.left_margin != 100 || conn_state->overscan.right_margin != 100 ||
+	    conn_state->overscan.top_margin != 100 || conn_state->overscan.bottom_margin != 100)
+		post_scl_enabled = true;
 
 	if (!csc->csc_enable)
 		vop3_get_csc_info_from_bcsh(state, csc);
@@ -2952,6 +2958,9 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 			}
 		} else {
 			r2y_convert_mode.is_input_yuv = true;
+			if (conn_state->color_range != DRM_COLOR_YCBCR_FULL_RANGE &&
+			    is_yuv_output(conn_state->bus_format) && post_scl_enabled)
+				post_y2y_en = true;
 		}
 
 		r2y_convert_mode.is_input_full_range = true;
@@ -2981,7 +2990,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 		 * euqual to the display interface. If input is
 		 * yuv, range convert is done in y2r csc.
 		 */
-		if (post_r2r_en || post_r2y_en)
+		if (post_r2r_en || post_r2y_en || post_y2y_en)
 			r2y_convert_mode.is_output_full_range = conn_state->color_range;
 		else
 			r2y_convert_mode.is_output_full_range =
