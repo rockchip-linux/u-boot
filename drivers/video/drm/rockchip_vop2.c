@@ -8168,6 +8168,18 @@ static int rockchip_vop2_active_regs_dump(struct display_state *state)
 	return 0;
 }
 
+static int rockchip_vop2_standby(struct display_state *state, bool enable)
+{
+	struct crtc_state *cstate = &state->crtc_state;
+	struct vop2 *vop2 = cstate->private;
+	u32 vp_offset = (cstate->crtc_id * 0x100);
+
+	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+			STANDBY_EN_SHIFT, enable, false);
+
+	return 0;
+}
+
 static void rk3528_setup_win_dly(struct display_state *state, int crtc_id, u8 plane_phy_id)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -11044,4 +11056,5 @@ const struct rockchip_crtc_funcs rockchip_vop2_funcs = {
 	.regs_dump = rockchip_vop2_regs_dump,
 	.active_regs_dump = rockchip_vop2_active_regs_dump,
 	.apply_soft_te = rockchip_vop2_apply_soft_te,
+	.standby = rockchip_vop2_standby,
 };

@@ -93,6 +93,7 @@ struct rockchip_crtc_funcs {
 	int (*regs_dump)(struct display_state *state);
 	int (*active_regs_dump)(struct display_state *state);
 	int (*apply_soft_te)(struct display_state *state);
+	int (*standby)(struct display_state *state, bool enable);
 };
 
 struct vop_data;

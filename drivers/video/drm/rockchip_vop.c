@@ -1155,6 +1155,16 @@ static int rockchip_vop_mode_fixup(struct display_state *state)
 	return 0;
 }
 
+static int rockchip_vop_standby(struct display_state *state, bool enable)
+{
+	struct crtc_state *crtc_state = &state->crtc_state;
+	struct vop *vop = crtc_state->private;
+
+	VOP_CTRL_SET(vop, standby, enable);
+
+	return 0;
+}
+
 const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.preinit = rockchip_vop_preinit,
 	.init = rockchip_vop_init,
@@ -1167,4 +1177,5 @@ const struct rockchip_crtc_funcs rockchip_vop_funcs = {
 	.mode_valid = rockchip_vop_mode_valid,
 	.plane_check = rockchip_vop_plane_check,
 	.mode_fixup = rockchip_vop_mode_fixup,
+	.standby = rockchip_vop_standby,
 };
