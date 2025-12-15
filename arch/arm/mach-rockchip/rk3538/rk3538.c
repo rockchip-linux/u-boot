@@ -18,6 +18,13 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define GPIO1_IOC_BASE		0xFD1D0000
+#define GPIO1A_IOMUX_SEL_1	0x24
+#define GPIO1B_IOMUX_SEL_0	0x28
+#define GPIO1B_IOMUX_SEL_1	0x2c
+#define GPIO1C_IOMUX_SEL_0	0x30
+
+
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
 static struct mm_region rk3538_mem_map[] = {
@@ -78,6 +85,14 @@ void rockchip_stimer_init(void)
 #ifndef CONFIG_TPL_BUILD
 int arch_cpu_init(void)
 {
+#ifdef CONFIG_SPL_BUILD
+
+#ifdef CONFIG_ROCKCHIP_SFC_IOMUX
+	writel(0xf0002000, GPIO1_IOC_BASE + GPIO1B_IOMUX_SEL_0); /* FSPI_D0 */
+	writel(0xffff1111, GPIO1_IOC_BASE + GPIO1B_IOMUX_SEL_1); /* FSPI_CSN0/D1/D2/CLK */
+	writel(0x000f0001, GPIO1_IOC_BASE + GPIO1C_IOMUX_SEL_0); /* FSPI_D3 */
+#endif
+#endif
 
 	return 0;
 }

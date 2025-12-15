@@ -897,6 +897,30 @@ config ROCKCHIP_MINIDUMP_MAX_ENTRIES
 	  This sets the max entries of minidump region.
 endif
 
+config ROCKCHIP_EMMC_IOMUX
+	bool "ROCKCHIP EMMC IOMUX"
+	default n
+	help
+	  This enable U-Boot to config EMMC iomux.
+
+config ROCKCHIP_NAND_IOMUX
+	bool "ROCKCHIP NAND IOMUX"
+	default n
+	help
+	  This enable U-Boot to config NAND iomux.
+
+config ROCKCHIP_SFC_IOMUX
+	bool "ROCKCHIP SFC QUAD SPI IOMUX"
+	default n
+	help
+	  This enable U-Boot to config SFC Quad SPI iomux.
+
+config ROCKCHIP_SDMMC_IOMUX
+	bool "ROCKCHIP SDMMC IOMUX"
+	default n
+	help
+	  This enable U-Boot to config SDMMC iomux.
+
 source "arch/arm/mach-rockchip/px30/Kconfig"
 source "arch/arm/mach-rockchip/rk3036/Kconfig"
 source "arch/arm/mach-rockchip/rk3066/Kconfig"
