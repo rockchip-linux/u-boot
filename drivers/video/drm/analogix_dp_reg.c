@@ -162,9 +162,6 @@ void analogix_dp_reset(struct analogix_dp_device *dp)
 	analogix_dp_write(dp, ANALOGIX_DP_PKT_SEND_CTL, 0x0);
 	analogix_dp_write(dp, ANALOGIX_DP_HDCP_CTL, 0x0);
 
-	analogix_dp_write(dp, ANALOGIX_DP_HPD_DEGLITCH_L, 0x5e);
-	analogix_dp_write(dp, ANALOGIX_DP_HPD_DEGLITCH_H, 0x1a);
-
 	analogix_dp_write(dp, ANALOGIX_DP_LINK_DEBUG_CTL, 0x10);
 
 	analogix_dp_write(dp, ANALOGIX_DP_PHY_TEST, 0x0);
@@ -386,6 +383,9 @@ void analogix_dp_init_hpd(struct analogix_dp_device *dp)
 		return;
 
 	analogix_dp_clear_hotplug_interrupts(dp);
+
+	analogix_dp_write(dp, ANALOGIX_DP_HPD_DEGLITCH_H, 0xbb);
+	analogix_dp_write(dp, ANALOGIX_DP_HPD_DEGLITCH_L, 0x80);
 
 	reg = analogix_dp_read(dp, ANALOGIX_DP_SYS_CTL_3);
 	reg &= ~(F_HPD | HPD_CTRL);
