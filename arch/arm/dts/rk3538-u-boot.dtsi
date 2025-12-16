@@ -175,3 +175,18 @@
 	bootph-all;
 	status = "okay";
 };
+
+&u2phy_otg {
+	bootph-all;
+	status = "okay";
+};
+
+&usb2phy {
+	bootph-all;
+	status = "okay";
+};
+
+&vo_grf {
+	bootph-all;
+	status = "okay";
+};
