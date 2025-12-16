@@ -159,6 +159,9 @@
 #define  SFC_DMA_BURST_INCR8		0x1
 #define  SFC_DMA_BURST_INCR16		0x2
 
+/* Device reset */
+#define SFC_DEV_RSTN			0xA4
+
 /* Command */
 #define SFC_CMD				0x100
 #define  SFC_CMD_IDX_SHIFT		0
@@ -350,7 +353,12 @@ static int rockchip_sfc_init(struct rockchip_sfc *sfc)
 	}
 	if (readl(sfc->regbase + SFC_VER) & SFC_CAP_X8) {
 		sfc->support_octa = true;
+#ifdef CONFIG_ROCKCHIP_SFC_OCTAL_SETTING
 		writel(SFC_DMA_BURST_INCR8, sfc->regbase + SFC_DMA_CTRL);
+		writel(0x0, sfc->regbase + SFC_DEV_RSTN);
+		mdelay(1);
+		writel(0xf, sfc->regbase + SFC_DEV_RSTN);
+#endif
 	}
 
 	return 0;
