@@ -446,6 +446,10 @@ void analogix_dp_init_aux(struct analogix_dp_device *dp)
 	reg = RPLY_RECEIV | AUX_ERR;
 	analogix_dp_write(dp, ANALOGIX_DP_INT_STA, reg);
 
+	analogix_dp_set_analog_power_down(dp, AUX_BLOCK, true);
+	udelay(11);
+	analogix_dp_set_analog_power_down(dp, AUX_BLOCK, false);
+
 	analogix_dp_reset_aux(dp);
 
 	/* Disable AUX transaction H/W retry */
