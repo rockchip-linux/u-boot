@@ -382,8 +382,6 @@ void analogix_dp_init_hpd(struct analogix_dp_device *dp)
 	if (dm_gpio_is_valid(&dp->hpd_gpio))
 		return;
 
-	analogix_dp_clear_hotplug_interrupts(dp);
-
 	analogix_dp_write(dp, ANALOGIX_DP_HPD_DEGLITCH_H, 0xbb);
 	analogix_dp_write(dp, ANALOGIX_DP_HPD_DEGLITCH_L, 0x80);
 
