@@ -74,6 +74,25 @@ DiceResult DiceAndroidMainFlow(void* context,
                                uint8_t next_cdi_attest[DICE_CDI_SIZE],
                                uint8_t next_cdi_seal[DICE_CDI_SIZE]);
 
+// Creates a new Android DICE chain with the first certificate.
+//
+// This is called when there is no existing DICE chain. It creates a new
+// chain starting with the public key derived from the current CDI attest,
+// followed by the first certificate.
+//
+// Given the current CDIs and a full set of input values, computes the
+// next CDIs and creates a new DICE chain. On success, |chain_size| is set
+// to the number of bytes used.
+DiceResult DiceAndroidMainFlowWithNewDiceChain(
+    void* context,
+    const uint8_t current_cdi_attest[DICE_CDI_SIZE],
+    const uint8_t current_cdi_seal[DICE_CDI_SIZE],
+    const DiceInputValues* input_values,
+    size_t buffer_size, uint8_t* buffer,
+    size_t* chain_size,
+    uint8_t next_cdi_attest[DICE_CDI_SIZE],
+    uint8_t next_cdi_seal[DICE_CDI_SIZE]);
+
 // Executes the main Android DICE handover flow.
 //
 // Call this instead of DiceAndroidMainFlow when using the Android DICE handover

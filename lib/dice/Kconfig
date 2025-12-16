@@ -1,0 +1,43 @@
+menuconfig DICE
+	bool "DICE Support"
+	depends on ANDROID_BOOT_IMAGE
+	help
+	  This option provides DICE support.
+
+if DICE
+
+config SPL_DICE
+        bool "Enable dice for SPL"
+	help
+	  This option provides DICE support in SPL.
+
+config DICE_BUF_ADDR
+	hex "DICE memory buffer addr"
+	help
+	  This option define the start address of DICE memory buffer.
+
+config DICE_BUF_SIZE
+	hex "DICE memory buffer size"
+	default 0x4000
+	help
+	  This option define the size of DICE memory buffer.
+
+config DICE_ANDROID_VERSION
+	int "DICE Android version"
+	help
+	  This assign the DICE Android version.
+
+config DICE_WIDEVINE
+	bool "DICE support Widevine"
+	depends on ANDROID_BOOT_IMAGE
+	default y
+	help
+	  This option provides support for Widevine.
+
+config DICE_WIDEVINE_VERSION
+	int "DICE Widevine version"
+	depends on DICE_WIDEVINE
+	help
+	  This assign the DICE Widevine version.
+
+endif # DICE

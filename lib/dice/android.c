@@ -142,7 +142,7 @@ DiceResult DiceAndroidMainFlow(void* context,
   return result;
 }
 
-static DiceResult DiceAndroidMainFlowWithNewDiceChain(
+DiceResult DiceAndroidMainFlowWithNewDiceChain(
     void* context, const uint8_t current_cdi_attest[DICE_CDI_SIZE],
     const uint8_t current_cdi_seal[DICE_CDI_SIZE],
     const DiceInputValues* input_values, size_t buffer_size, uint8_t* buffer,

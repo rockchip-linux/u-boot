@@ -23,6 +23,7 @@
 #include "dice/cbor_writer.h"
 #include "dice/config/cose_key_config.h"
 #include "dice/dice.h"
+#include "dice/android.h"
 #include "dice/ops.h"
 #include "dice/ops/trait/cose.h"
 #include "dice/profile_name.h"
@@ -206,6 +207,7 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   const int64_t kProfileNameLabel = -4670554;
   // Key usage constant per RFC 5280.
   const uint8_t kKeyUsageCertSign = 32;
+  struct DiceContext *DiceCtx = context;
 
   // Count the number of entries.
   uint32_t map_pairs = 7;
@@ -227,7 +229,7 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   if (result != kDiceResultOk) {
     return result;
   }
-  if (DICE_PROFILE_NAME) {
+  if (DiceCtx->profile_name) {
     map_pairs += 1;
   }
 
@@ -251,20 +253,35 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   }
   // Add the config inputs.
   if (input_values->config_type == kDiceConfigTypeDescriptor) {
-    uint8_t config_descriptor_hash[DICE_HASH_SIZE];
+    uint8_t config_descriptor_hash[DICE_HASH_SIZE] = {};
+
+    // Add the configuration descriptor.
+    uint8_t configuration_descriptor[DICE_MAX_CONFIGURATION_DESCRIPTOR_SIZE];
+    size_t configuration_descriptor_size = 0;
+    DiceResult dice_result;
+
+    dice_result = DiceAndroidFormatConfigDescriptor(
+		    	(void *)input_values->config_descriptor,
+			sizeof(configuration_descriptor),
+			configuration_descriptor,
+			&configuration_descriptor_size);
+    if (dice_result != kDiceResultOk) {
+      return dice_result;
+    }
+
+    CborWriteInt(kConfigDescriptorLabel, &out);
+    CborWriteBstr(configuration_descriptor_size, configuration_descriptor, &out);
+
     // Skip hashing if we're not going to use the answer.
     if (!CborOutOverflowed(&out)) {
-      result = DiceHash(context, input_values->config_descriptor,
-                        input_values->config_descriptor_size,
+      result = DiceHash(context, configuration_descriptor,
+                        configuration_descriptor_size,
                         config_descriptor_hash);
       if (result != kDiceResultOk) {
         return result;
       }
     }
-    // Add the config descriptor.
-    CborWriteInt(kConfigDescriptorLabel, &out);
-    CborWriteBstr(input_values->config_descriptor_size,
-                  input_values->config_descriptor, &out);
+
     // Add the Config hash.
     CborWriteInt(kConfigHashLabel, &out);
     CborWriteBstr(DICE_HASH_SIZE, config_descriptor_hash, &out);
@@ -273,6 +290,7 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
     CborWriteInt(kConfigDescriptorLabel, &out);
     CborWriteBstr(DICE_INLINE_CONFIG_SIZE, input_values->config_value, &out);
   }
+
   // Add the authority inputs.
   CborWriteInt(kAuthorityHashLabel, &out);
   CborWriteBstr(DICE_HASH_SIZE, input_values->authority_hash, &out);
@@ -293,9 +311,9 @@ static DiceResult EncodeCwt(void* context, const DiceInputValues* input_values,
   CborWriteInt(kKeyUsageLabel, &out);
   CborWriteBstr(/*data_size=*/1, &key_usage, &out);
   // Add the profile name
-  if (DICE_PROFILE_NAME) {
+  if (DiceCtx->profile_name) {
     CborWriteInt(kProfileNameLabel, &out);
-    CborWriteTstr(DICE_PROFILE_NAME, &out);
+    CborWriteTstr(DiceCtx->profile_name, &out);
   }
   *encoded_size = CborOutSize(&out);
   if (CborOutOverflowed(&out)) {
@@ -311,6 +329,7 @@ DiceResult DiceGenerateCertificate(
     const DiceInputValues* input_values, size_t certificate_buffer_size,
     uint8_t* certificate, size_t* certificate_actual_size) {
   DiceResult result = kDiceResultOk;
+  struct DiceContext *DiceCtx = context;
 
   *certificate_actual_size = 0;
   if (input_values->config_type != kDiceConfigTypeDescriptor &&
@@ -330,6 +349,16 @@ DiceResult DiceGenerateCertificate(
   if (result != kDiceResultOk) {
     goto out;
   }
+
+  /*
+   * NOTE !
+   *
+   * Record the current subject key-pair as the last one.
+   */
+  memcpy(DiceCtx->last_subject_privkey, subject_private_key, DICE_PRIVATE_KEY_BUFFER_SIZE);
+  memcpy(DiceCtx->last_subject_pubkey, subject_public_key, DICE_PUBLIC_KEY_BUFFER_SIZE);
+  DiceCtx->last_subject_privkey_size = DICE_PRIVATE_KEY_BUFFER_SIZE;
+  DiceCtx->last_subject_pubkey_size = DICE_PUBLIC_KEY_BUFFER_SIZE;
 
   DiceKeyParam subject_key_param;
   DiceKeyParam authority_key_param;
@@ -374,6 +403,19 @@ DiceResult DiceGenerateCertificate(
   DiceHexEncode(authority_id, sizeof(authority_id), authority_id_hex,
                 sizeof(authority_id_hex));
   authority_id_hex[sizeof(authority_id_hex) - 1] = '\0';
+
+  /*
+   * NOTE !
+   *
+   * BCC initialization and management is now handled by DiceAndroidMainFlow
+   * in image.c. Do not manipulate cert_chain directly here.
+   * Only save the UDS public key for reference.
+   */
+  if (DiceCtx->uds_pubkey_size == 0) {
+	/* Save uds_pubkey for reference */
+	memcpy(DiceCtx->uds_pubkey, authority_public_key, DICE_PUBLIC_KEY_BUFFER_SIZE);
+	DiceCtx->uds_pubkey_size = DICE_PUBLIC_KEY_BUFFER_SIZE;
+  }
 
   // The public key encoded as a COSE_Key structure is embedded in the CWT.
   uint8_t encoded_public_key[DICE_MAX_PUBLIC_KEY_SIZE];
@@ -448,6 +490,11 @@ DiceResult DiceGenerateCertificate(
   uint8_t signature[DICE_SIGNATURE_BUFFER_SIZE];
   result = DiceSign(context, certificate, tbs_size, authority_private_key,
                     signature);
+  if (result != kDiceResultOk) {
+    goto out;
+  }
+  result =
+      DiceVerify(context, certificate, tbs_size, signature, authority_public_key);
   if (result != kDiceResultOk) {
     goto out;
   }

@@ -30,6 +30,7 @@
 #include <sysinfo.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
+#include <dice/dice.h>
 #include <linux/libfdt.h>
 #include <linux/printk.h>
 
@@ -1096,6 +1097,9 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 
 #ifdef CONFIG_SPL_CRYPTO_MANAGER
 	crypto_dump_best(false);
+#endif
+#if CONFIG_IS_ENABLED(DICE)
+	dice_start();
 #endif
 	/* if board sigs verify required, check self */
 	if (fit_board_verify_required_sigs() &&

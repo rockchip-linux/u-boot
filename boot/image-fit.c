@@ -28,6 +28,7 @@
 #include <memalign.h>
 #include <asm/global_data.h>
 #include <tee/optee.h>
+#include <dice/dice.h>
 #ifdef CONFIG_DM_HASH
 #include <dm.h>
 #include <u-boot/hash.h>
@@ -1367,6 +1368,15 @@ int fit_image_check_hash(const void *fit, int noffset, const void *data,
 	for (i = 0; i < 5; i++)
 		printf("%02x", value[i]);
 	printf("...) ");
+#endif
+
+#if CONFIG_IS_ENABLED(DICE)
+	if (dice_measure(fit_get_name(fit,
+			 fdt_parent_offset(fit, noffset), NULL),
+			 value, value_len)) {
+		*err_msgp = "dice measure failed";
+		return -1;
+	}
 #endif
 
 	return 0;

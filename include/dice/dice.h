@@ -25,13 +25,61 @@
 extern "C" {
 #endif
 
+#define DICE_DEBUG 		0
+#define DICE_STATIC_BROM_UDS	0
+
 #define DICE_CDI_SIZE 32
-#define DICE_HASH_SIZE 64
+#define DICE_HASH_SIZE 32	/* sha256! */
 #define DICE_HIDDEN_SIZE 64
 #define DICE_INLINE_CONFIG_SIZE 64
 #define DICE_PRIVATE_KEY_SEED_SIZE 32
 #define DICE_ID_SIZE 20
 #define DICE_CERT_SIZE 2048
+#define DICE_MAX_CONFIGURATION_DESCRIPTOR_SIZE 64
+
+#define DICE_CTX_MAGIC		0x44494345 /* "DICE" */
+#define DICE_CTX_HDR_SIZE	1024
+#define DICE_CERT_MAX		-1
+#ifdef CONFIG_DICE_WIDEVINE
+#define DICE_CNT		2
+#else
+#define DICE_CNT		1
+#endif
+
+struct DiceFlow {
+	const char *component_name;
+	int component_version;
+	uint8_t *code_hash;
+	int code_hash_len;
+};
+
+/*
+ * NOTE:
+ *
+ * 1. Never define any pointer variable except for 'void *cert_chain'.
+ * 2. max structure size: DICE_CTX_HDR_SIZE.
+ */
+struct DiceContext {
+	u32 magic;
+	char profile_name[32];
+
+	uint8_t next_cdi_attest[DICE_CDI_SIZE];
+	uint8_t next_cdi_seal[DICE_CDI_SIZE];
+
+	void *cert_chain;
+	uint32_t cert_chain_size;
+	uint8_t cert_count;
+	uint8_t cert_max_count;
+
+	uint8_t uds_pubkey[DICE_PUBLIC_KEY_BUFFER_SIZE];
+	uint32_t uds_pubkey_size;
+
+	uint8_t last_subject_privkey[DICE_PRIVATE_KEY_BUFFER_SIZE];
+	uint32_t last_subject_privkey_size;
+
+	uint8_t last_subject_pubkey[DICE_PUBLIC_KEY_BUFFER_SIZE];
+	uint32_t last_subject_pubkey_size;
+};
 
 // Contains a full set of input values describing the target program or system.
 // See the Open Profile for DICE specification for a detailed explanation of
@@ -148,5 +196,9 @@ int test_cert(void);
 #ifdef __cplusplus
 }  // extern "C"
 #endif
+
+int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len);
+int dice_start(void);
+int dice_finish(void);
 
 #endif  // DICE_DICE_H_

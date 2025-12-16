@@ -30,7 +30,13 @@
 DiceResult DiceHash(void* context_not_used, const uint8_t* input,
                     size_t input_size, uint8_t output[DICE_HASH_SIZE]) {
   (void)context_not_used;
-  if (0 != mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA512), input,
+  mbedtls_md_type_t algo;
+
+  if (DICE_HASH_SIZE == 32)
+  	algo = MBEDTLS_MD_SHA256;
+  else
+  	algo = MBEDTLS_MD_SHA512;
+  if (0 != mbedtls_md(mbedtls_md_info_from_type(algo), input,
                       input_size, output)) {
     return kDiceResultPlatformError;
   }

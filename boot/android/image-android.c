@@ -19,6 +19,7 @@
 #include <asm/arch-rockchip/common.h>
 #include <asm/arch-rockchip/resource.h>
 #include <asm/arch-rockchip/boot_mode.h>
+#include <dice/dice.h>
 #include <u-boot/lz4.h>
 #include <u-boot/sha1.h>
 #include <tee/optee.h>
@@ -803,6 +804,11 @@ static int android_image_separate(struct andr_img_hdr *hdr,
 				printf("%02x", hash[i]);
 			printf("...) + OK\n");
 		}
+#if CONFIG_IS_ENABLED(DICE)
+		ret = dice_measure("kernel", hash, 20);
+		if (ret)
+			return ret;
+#endif
 	} else
 #endif
 	{

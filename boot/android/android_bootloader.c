@@ -27,6 +27,7 @@
 #include <asm/arch-rockchip/boot_mode.h>
 #include <asm/arch-rockchip/common.h>
 #include <asm/global_data.h>
+#include <dice/dice.h>
 #include <linux/stringify.h>
 #include <linux/libfdt_env.h>
 //#include <attestation_key.h>
@@ -332,6 +333,10 @@ int android_bootloader_boot_kernel(unsigned long kernel_address)
 
 	hotkey_run(HK_SYSMEM);
 
+#if CONFIG_IS_ENABLED(DICE)
+	if (dice_finish())
+		return -1;
+#endif
 	/*
 	 * Check whether there is enough space for uncompress kernel,
 	 * Actually, here only gives a sysmem warning message when failed

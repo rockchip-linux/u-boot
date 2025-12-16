@@ -1332,14 +1332,7 @@ config PHANDLE_CHECK_SEQ
 	  enable this config option to distinguish them using
 	  phandles in fdtdec_get_alias_seq() function.
 
-config DICE
-	bool "Enable dice"
-	select ASN1_DECODER
-
-config SPL_DICE
-	bool "Enable dice for SPL"
-	select SPL_ASN1_DECODER
-
 endmenu
 
+source "lib/dice/Kconfig"
 source "lib/fwu_updates/Kconfig"

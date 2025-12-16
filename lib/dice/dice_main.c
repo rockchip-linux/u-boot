@@ -1,30 +1,506 @@
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not
-// use this file except in compliance with the License. You may obtain a copy of
-// the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations under
-// the License.
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (c) 2026 Rockchip Electronics Co., Ltd
+ */
 
-#include <stdint.h>
+#include <dm.h>
+#include <hexdump.h>
+#include <misc.h>
+#include <dice/android.h>
+#include <dice/dice.h>
+#include <dice/ops.h>
+#include <linux/stringify.h>
+#include <tee/optee.h>
 
-#include "dice/dice.h"
-#include "dice/utils.h"
+#if DICE_DEBUG
+static void dice_dump_context(struct DiceContext *DiceCtx)
+{
+	printf("\n==== BCC Context(%s)===\n", DiceCtx->profile_name);
+	printf("## UDS pubkey:\n");
+	print_hex_dump("    ", DUMP_PREFIX_ADDRESS, 16, 1,
+		       DiceCtx->uds_pubkey, DiceCtx->uds_pubkey_size, true);
 
-int main(int argc, char** argv) {
-  (void)argc;
-  (void)argv;
-  uint8_t cdi_buffer[DICE_CDI_SIZE];
-  uint8_t cert_buffer[2048];
-  size_t cert_size;
-  DiceInputValues input_values = {0};
-  return (int)DiceMainFlow(/*context=*/NULL, cdi_buffer, cdi_buffer,
-                           &input_values, sizeof(cert_buffer), cert_buffer,
-                           &cert_size, cdi_buffer, cdi_buffer);
+	printf("## Last subject private key:\n");
+	print_hex_dump("    ", DUMP_PREFIX_ADDRESS, 16, 1,
+		       DiceCtx->last_subject_privkey,
+		       DiceCtx->last_subject_privkey_size, true);
+
+	printf("## Last subject public key:\n");
+	print_hex_dump("    ", DUMP_PREFIX_ADDRESS, 16, 1,
+		       DiceCtx->last_subject_pubkey,
+		       DiceCtx->last_subject_pubkey_size, true);
+
+	printf("\n## BCC: 0x%08lx - 0x%08lx, cert_count=%d\n",
+		(ulong)DiceCtx->cert_chain,
+		(ulong)DiceCtx->cert_chain + DiceCtx->cert_chain_size,
+		DiceCtx->cert_count);
+	print_hex_dump("    ", DUMP_PREFIX_ADDRESS, 16, 1,
+		       DiceCtx->cert_chain, DiceCtx->cert_chain_size, true);
 }
+
+static void dice_dump_bcc_chain(struct DiceContext *DiceCtx)
+{
+	printf("\n## === BCC Chain(%s): Certificate count=%d, size=0x%x ===\n",
+	       DiceCtx->profile_name, DiceCtx->cert_count, DiceCtx->cert_chain_size);
+	print_hex_dump("    ", DUMP_PREFIX_ADDRESS, 32, 1,
+		       DiceCtx->cert_chain, DiceCtx->cert_chain_size, true);
+
+	printf("## current_cdi_attest[%d]:\n", DiceCtx->cert_count);
+	print_hex_dump("    ", DUMP_PREFIX_ADDRESS, 32, 1,
+		       DiceCtx->next_cdi_attest, 32, true);
+	printf("## current_cdi_seal[%d]:\n", DiceCtx->cert_count);
+	print_hex_dump("    ", DUMP_PREFIX_ADDRESS, 32, 1,
+		       DiceCtx->next_cdi_seal, 32, true);
+}
+
+static void dice_dump_inputs(struct DiceContext *DiceCtx, const DiceInputValues *values)
+{
+    int i;
+
+    if (!values) {
+	printf("DiceInputValues: NULL\n");
+	return;
+    }
+
+    printf("\n## === DiceInputValues(%s: %s) ===\n",
+    	   DiceCtx->profile_name, values->code_descriptor);
+
+    /* code_hash */
+    printf("    code_hash: ");
+    for (i = 0; i < DICE_HASH_SIZE; i++) {
+	printf("%02x", values->code_hash[i]);
+    }
+    printf("\n");
+
+    /* code_descriptor */
+    printf("    code_descriptor: %p\n", values->code_descriptor);
+    if (values->code_descriptor && values->code_descriptor_size > 0) {
+	printf("    code_descriptor_data: ");
+	for (i = 0; i < values->code_descriptor_size && i < 32; i++) {
+	    printf("%02x", values->code_descriptor[i]);
+	}
+	if (values->code_descriptor_size > 32) {
+	    printf("...");
+	}
+	printf("\n");
+    }
+    printf("    code_descriptor_size: %zu\n", values->code_descriptor_size);
+
+    /* config_type */
+    printf("    config_type: %d\n", values->config_type);
+
+    /* config_value */
+    printf("    config_value: ");
+    for (i = 0; i < DICE_INLINE_CONFIG_SIZE; i++) {
+	printf("%02x", values->config_value[i]);
+    }
+    printf("\n");
+
+    /* config_descriptor */
+    printf("    config_descriptor: %p\n", values->config_descriptor);
+    if (values->config_descriptor && values->config_descriptor_size > 0) {
+	printf("    config_descriptor_data: ");
+	for (i = 0; i < values->config_descriptor_size && i < 32; i++) {
+	    printf("%02x", values->config_descriptor[i]);
+	}
+	if (values->config_descriptor_size > 32) {
+	    printf("...");
+	}
+	printf("\n");
+    }
+    printf("    config_descriptor_size: %zu\n", values->config_descriptor_size);
+
+    /* authority_hash */
+    printf("    authority_hash: ");
+    for (i = 0; i < DICE_HASH_SIZE; i++) {
+	printf("%02x", values->authority_hash[i]);
+    }
+    printf("\n");
+
+    /* authority_descriptor */
+    printf("    authority_descriptor: %p\n", values->authority_descriptor);
+    if (values->authority_descriptor && values->authority_descriptor_size > 0) {
+	printf("    authority_descriptor_data: ");
+	for (i = 0; i < values->authority_descriptor_size && i < 32; i++) {
+	    printf("%02x", values->authority_descriptor[i]);
+	}
+	if (values->authority_descriptor_size > 32) {
+	    printf("...");
+	}
+	printf("\n");
+    }
+    printf("    authority_descriptor_size: %zu\n", values->authority_descriptor_size);
+
+    /* mode */
+    printf("    mode: %d\n", values->mode);
+
+    /* hidden */
+    printf("    hidden: ");
+    for (i = 0; i < DICE_HIDDEN_SIZE; i++) {
+	printf("%02x", values->hidden[i]);
+    }
+    printf("\n");
+}
+#endif
+
+static int dice_measure_component(struct DiceContext *DiceCtx,
+				  struct DiceFlow *flow)
+{
+	DiceInputValues inputs;
+	char authority_descriptor[] = "authority:rockchip-dice";
+	DiceResult result;
+	size_t actual_size;
+	uint8_t bcc_buffer[4096*4];
+	DiceAndroidConfigValues config_descriptor;
+	uint8_t current_cdi_attest[DICE_CDI_SIZE];
+	uint8_t current_cdi_seal[DICE_CDI_SIZE];
+	uint8_t next_cdi_attest[DICE_CDI_SIZE];
+	uint8_t next_cdi_seal[DICE_CDI_SIZE];
+
+	/* Validate magic number */
+	if (DiceCtx->magic != DICE_CTX_MAGIC) {
+		printf("Dice: Invalid Magic: 0x%08x\n", DiceCtx->magic);
+		return -EINVAL;
+	}
+
+	/* Check if we've reached the maximum number of certificates */
+	if (DiceCtx->cert_max_count > 0 &&
+	    DiceCtx->cert_count >= DiceCtx->cert_max_count) {
+		printf("Dice: Maximum number of certificates reached: %d\n",
+		       DiceCtx->cert_count);
+		return 0;
+	}
+
+	/*
+	 * 1. Prepare DICE input values
+	 */
+	memset(&inputs, 0, sizeof(inputs));
+
+	/* Code hash/descriptor */
+	inputs.code_descriptor = flow->component_name;
+	inputs.code_descriptor_size = strlen(flow->component_name) + 1;
+	memcpy(inputs.code_hash, flow->code_hash, flow->code_hash_len);
+
+	/* Config descriptor */
+	config_descriptor.configs = 0;
+	config_descriptor.configs |= DICE_ANDROID_CONFIG_COMPONENT_NAME;
+	config_descriptor.configs |= DICE_ANDROID_CONFIG_COMPONENT_VERSION;
+	config_descriptor.configs |= DICE_ANDROID_CONFIG_SECURITY_VERSION;
+	config_descriptor.component_name = flow->component_name;
+	config_descriptor.component_version = flow->component_version;
+	config_descriptor.security_version = 1;
+
+	inputs.config_descriptor = (void *)&config_descriptor;
+	inputs.config_descriptor_size = sizeof(config_descriptor);
+	inputs.config_type = kDiceConfigTypeDescriptor;
+
+	/* Authority descriptor and hash */
+	inputs.authority_descriptor = authority_descriptor;
+	inputs.authority_descriptor_size = sizeof(authority_descriptor);
+	result = DiceHash(DiceCtx, authority_descriptor,
+			  sizeof(authority_descriptor), inputs.authority_hash);
+	if (result != kDiceResultOk) {
+		printf("Dice: authority hash failed: %d\n", result);
+		return result;
+	}
+
+	/* Mode and hidden values */
+	inputs.mode = kDiceModeNormal;
+
+#if DICE_DEBUG
+	dice_dump_inputs(DiceCtx, &inputs);
+#endif
+	/*
+	 * 2. Generate/Extend BCC using Android DICE flow
+	 */
+	memcpy(current_cdi_attest, DiceCtx->next_cdi_attest, DICE_CDI_SIZE);
+	memcpy(current_cdi_seal, DiceCtx->next_cdi_seal, DICE_CDI_SIZE);
+
+	if (DiceCtx->cert_count == 0) {
+		/*
+		 * First certificate: Create new BCC with DiceAndroidMainFlowWithNewDiceChain
+		 * This creates: [COSE_Key, COSE_Sign1]
+		 */
+		debug("Dice: Creating first certificate in BCC...\n");
+
+		result = DiceAndroidMainFlowWithNewDiceChain(
+			DiceCtx,
+			current_cdi_attest,
+			current_cdi_seal,
+			&inputs,
+			sizeof(bcc_buffer),
+			bcc_buffer,
+			&actual_size,
+			next_cdi_attest,
+			next_cdi_seal);
+
+		if (result != kDiceResultOk) {
+			printf("Dice: First BCC generation failed: %d\n", result);
+			return result;
+		}
+
+		/* Copy BCC to cert_chain */
+		memcpy(DiceCtx->cert_chain, bcc_buffer, actual_size);
+		DiceCtx->cert_chain_size = actual_size;
+		DiceCtx->cert_count = 1;
+
+	} else {
+		/*
+		 * Subsequent certificates: Extend BCC with DiceAndroidMainFlow
+		 * This extends: [COSE_Key, COSE_Sign1, ..., COSE_Sign1]
+		 */
+		debug("Dice: Extending BCC with certificate %d...\n",
+		      DiceCtx->cert_count + 1);
+
+		result = DiceAndroidMainFlow(
+			DiceCtx,
+			current_cdi_attest,
+			current_cdi_seal,
+			DiceCtx->cert_chain,         // Current BCC
+			DiceCtx->cert_chain_size,    // Current BCC size
+			&inputs,
+			sizeof(bcc_buffer),
+			bcc_buffer,
+			&actual_size,
+			next_cdi_attest,
+			next_cdi_seal);
+
+		if (result != kDiceResultOk) {
+			printf("Dice: BCC extension failed: %d\n", result);
+			return result;
+		}
+
+		/* Copy updated BCC back to cert_chain */
+		memcpy(DiceCtx->cert_chain, bcc_buffer, actual_size);
+		DiceCtx->cert_chain_size = actual_size;
+		DiceCtx->cert_count++;
+	}
+
+	/* Update CDI values for next stage */
+	memcpy(DiceCtx->next_cdi_attest, next_cdi_attest, DICE_CDI_SIZE);
+	memcpy(DiceCtx->next_cdi_seal, next_cdi_seal, DICE_CDI_SIZE);
+
+	/* Clear sensitive data */
+	memset(current_cdi_attest, 0, DICE_CDI_SIZE);
+	memset(current_cdi_seal, 0, DICE_CDI_SIZE);
+	memset(next_cdi_attest, 0, DICE_CDI_SIZE);
+	memset(next_cdi_seal, 0, DICE_CDI_SIZE);
+
+	/* Validate BCC size */
+	if (DiceCtx->cert_chain_size > CONFIG_DICE_BUF_SIZE) {
+		printf("Dice: BCC size overflow: %u > %d\n",
+		       DiceCtx->cert_chain_size, CONFIG_DICE_BUF_SIZE);
+		return -EINVAL;
+	}
+#if DICE_DEBUG
+	dice_dump_bcc_chain(DiceCtx);
+#endif
+	return 0;
+}
+
+static int dice_read_uds(u8 *buffer, int buffer_size)
+{
+#if DICE_STATIC_BROM_UDS
+	const uint8_t static_brom_uds[DICE_CDI_SIZE] = {
+	    0x00, 0x01, 0x02, 0x03,
+	    0x04, 0x05, 0x06, 0x07,
+	    0x08, 0x09, 0x0A, 0x0B,
+	    0x0C, 0x0D, 0x0E, 0x0F,
+	    0x10, 0x11, 0x12, 0x13,
+	    0x14, 0x15, 0x16, 0x17,
+	    0x18, 0x19, 0x1A, 0x1B,
+	    0x1C, 0x1D, 0x1E, 0x1F
+	};
+
+	if (buffer_size != DICE_CDI_SIZE) {
+		printf("DICE: uds buffer size != %d\n", buffer_size);
+		return -EINVAL;
+	}
+	memcpy(buffer, static_brom_uds, DICE_CDI_SIZE);
+#else
+	struct udevice *dev;
+
+	dev = misc_otp_get_device(OTP_S);
+	if (!dev) {
+		printf("DICE: No secure otp\n");
+		return -ENODEV;
+	}
+
+	if (misc_otp_read(dev, OTP_DICE_UDS_ADDR, buffer, DICE_CDI_SIZE)) {
+		printf("DICE: Can't read otp UDS\n");
+		return -EIO;
+	}
+#if DICE_DEBUG
+	print_hex_dump("\nOTP UDS: ", DUMP_PREFIX_ADDRESS, 32, 1,
+		       buffer, DICE_CDI_SIZE, true);
+#endif
+#endif
+	return 0;
+}
+
+int dice_start(void)
+{
+	printf("DICE: 0x%08lx - 0x%08lx\n",
+	       (ulong)CONFIG_DICE_BUF_ADDR,
+	       (ulong)CONFIG_DICE_BUF_ADDR + CONFIG_DICE_BUF_SIZE);
+	memset((void *)CONFIG_DICE_BUF_ADDR, 0, CONFIG_DICE_BUF_SIZE);
+
+	return 0;
+}
+
+int dice_finish(void)
+{
+	struct DiceContext *DiceCtx_wv = (void *)CONFIG_DICE_BUF_ADDR +
+					CONFIG_DICE_BUF_SIZE / DICE_CNT;
+	struct DiceContext *DiceCtx_km = (void *)CONFIG_DICE_BUF_ADDR;
+	int ret;
+
+	printf("DICE(%s): 0x%08lx - 0x%08lx, cert_count=%d\n",
+		DiceCtx_km->profile_name,
+		(ulong)DiceCtx_km->cert_chain,
+		(ulong)DiceCtx_km->cert_chain + DiceCtx_km->cert_chain_size,
+		DiceCtx_km->cert_count);
+#if DICE_DEBUG
+	dice_dump_context(DiceCtx_km);
+#endif
+	ret = optee_set_dice_data(RK_DICE_UDS_PUB,
+				  DiceCtx_km->uds_pubkey,
+				  DiceCtx_km->uds_pubkey_size);
+	if (ret) {
+		printf("DICE: Send uds pubkey failed: %d\n", ret);
+		return ret;
+	}
+
+	ret = optee_set_dice_data(RK_DICE_KM_ED25519_PRI,
+				  DiceCtx_km->last_subject_privkey,
+				  DiceCtx_km->last_subject_privkey_size);
+	if (ret) {
+		printf("DICE: Send KM last subject private key failed: %d\n", ret);
+		return ret;
+	}
+
+	ret = optee_set_dice_data(RK_DICE_KM_ED25519_PUB,
+				  DiceCtx_km->last_subject_pubkey,
+				  DiceCtx_km->last_subject_pubkey_size);
+	if (ret) {
+		printf("DICE: Send KM last subject public key failed: %d\n", ret);
+		return ret;
+	}
+
+	ret = optee_set_dice_data(RK_DICE_KM_CERTCHAIN,
+				  DiceCtx_km->cert_chain,
+				  DiceCtx_km->cert_chain_size);
+	if (ret) {
+		printf("DICE: Send KM BCC failed: %d\n", ret);
+		return ret;
+	}
+
+#ifdef CONFIG_DICE_WIDEVINE
+	printf("DICE(%s): 0x%08lx - 0x%08lx, cert_count=%d\n",
+		DiceCtx_wv->profile_name,
+		(ulong)DiceCtx_wv->cert_chain,
+		(ulong)DiceCtx_wv->cert_chain + DiceCtx_wv->cert_chain_size,
+		DiceCtx_wv->cert_count);
+#if DICE_DEBUG
+	dice_dump_context(DiceCtx_wv);
+#endif
+	ret = optee_set_dice_data(RK_DICE_WV_ED25519_PRI,
+				  DiceCtx_wv->last_subject_privkey,
+				  DiceCtx_wv->last_subject_privkey_size);
+	if (ret) {
+		printf("DICE: Send WV last subject private key failed: %d\n", ret);
+		return ret;
+	}
+
+	ret = optee_set_dice_data(RK_DICE_WV_ED25519_PUB,
+				  DiceCtx_wv->last_subject_pubkey,
+				  DiceCtx_wv->last_subject_pubkey_size);
+	if (ret) {
+		printf("DICE: Send WV last subject public key failed: %d\n", ret);
+		return ret;
+	}
+
+	ret = optee_set_dice_data(RK_DICE_WV_CERTCHAIN,
+				  DiceCtx_wv->cert_chain,
+				  DiceCtx_wv->cert_chain_size);
+	if (ret) {
+		printf("DICE: Send WV BCC failed: %d\n", ret);
+		return ret;
+	}
+
+#endif
+	return 0;
+}
+
+int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
+{
+	struct DiceContext *DiceCtx[DICE_CNT];
+	struct DiceFlow DiceFlow[DICE_CNT];
+	uint8_t brom_uds[DICE_CDI_SIZE];
+	int clear_uds = 0;
+	int i, err;
+	char *DiceProfileName[] = {
+		"android." __stringify(CONFIG_DICE_ANDROID_VERSION),
+		"widevine." __stringify(CONFIG_DICE_WIDEVINE_VERSION),
+	};
+
+	/* Android */
+	DiceCtx[0] = (void *)CONFIG_DICE_BUF_ADDR;
+	DiceFlow[0].component_name = name;
+	DiceFlow[0].component_version = 1;
+	DiceFlow[0].code_hash = code_hash;
+	DiceFlow[0].code_hash_len = code_hash_len;
+	/* Widevine */
+#ifdef CONFIG_DICE_WIDEVINE
+	DiceCtx[1] = (void *)CONFIG_DICE_BUF_ADDR + CONFIG_DICE_BUF_SIZE / DICE_CNT;
+	/*
+	 * last stage component must use a fixed info.
+	 *
+	 * it leads a different 'DiceCtx->last_subject_{private,public}_key'
+	 * from android flow.
+	 */
+	if (!strcmp(name, "kernel")) {
+		DiceFlow[1].component_name = "Widevine";
+		DiceFlow[1].component_version = CONFIG_DICE_WIDEVINE_VERSION;
+	} else {
+		DiceFlow[1].component_name = name;
+		DiceFlow[1].component_version = 1;
+	}
+	DiceFlow[1].code_hash = code_hash;
+	DiceFlow[1].code_hash_len = code_hash_len;
+#endif
+
+	/* Read UDS only once ! */
+	if (DiceCtx[0]->cert_chain_size == 0) {
+		err = dice_read_uds(brom_uds, DICE_CDI_SIZE);
+		if (err)
+			return err;
+
+		clear_uds = 1;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(DiceCtx); i++) {
+		/* 1. DICE initialization (first time only) */
+		if (DiceCtx[i]->cert_chain_size == 0) {
+			debug("DICE: Initializing BCC...\n");
+
+			DiceCtx[i]->magic = DICE_CTX_MAGIC;
+			DiceCtx[i]->cert_chain = (void *)DiceCtx[i] + DICE_CTX_HDR_SIZE;
+			DiceCtx[i]->cert_max_count = DICE_CERT_MAX;
+			strcpy(DiceCtx[i]->profile_name, DiceProfileName[i]);
+			memcpy(DiceCtx[i]->next_cdi_attest, brom_uds, DICE_CDI_SIZE);
+			memcpy(DiceCtx[i]->next_cdi_seal, brom_uds, DICE_CDI_SIZE);
+		}
+
+		/* 2. DICE main flow */
+		err = dice_measure_component(DiceCtx[i], &DiceFlow[i]);
+		if (err)
+			goto out;
+	}
+out:
+	if (clear_uds)
+		memset(brom_uds, 0, DICE_CDI_SIZE);
+
+	return err;
+}
+
