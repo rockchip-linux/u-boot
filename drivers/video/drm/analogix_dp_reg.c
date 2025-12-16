@@ -29,12 +29,6 @@
 #include "rockchip_connector.h"
 #include "analogix_dp.h"
 
-#define COMMON_INT_MASK_1	0
-#define COMMON_INT_MASK_2	0
-#define COMMON_INT_MASK_3	0
-#define COMMON_INT_MASK_4	(HOTPLUG_CHG | HPD_LOST | PLUG)
-#define INT_STA_MASK		INT_HPD
-
 static void analogix_dp_write(struct analogix_dp_device *dp, u32 reg, u32 val)
 {
 	readl(dp->reg_base);
@@ -191,23 +185,15 @@ void analogix_dp_swreset(struct analogix_dp_device *dp)
 
 void analogix_dp_config_interrupt(struct analogix_dp_device *dp)
 {
-	u32 reg;
-
 	/* 0: mask, 1: unmask */
-	reg = COMMON_INT_MASK_1;
-	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_1, reg);
+	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_1, 0);
+	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_2, 0);
+	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_3, 0);
 
-	reg = COMMON_INT_MASK_2;
-	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_2, reg);
-
-	reg = COMMON_INT_MASK_3;
-	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_3, reg);
-
-	reg = COMMON_INT_MASK_4;
-	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_4, reg);
-
-	reg = INT_STA_MASK;
-	analogix_dp_write(dp, ANALOGIX_DP_INT_STA_MASK, reg);
+	if (dp->force_hpd || dm_gpio_is_valid(&dp->hpd_gpio))
+		analogix_dp_mute_hpd_interrupt(dp);
+	else
+		analogix_dp_unmute_hpd_interrupt(dp);
 }
 
 void analogix_dp_mute_hpd_interrupt(struct analogix_dp_device *dp)
@@ -216,11 +202,11 @@ void analogix_dp_mute_hpd_interrupt(struct analogix_dp_device *dp)
 
 	/* 0: mask, 1: unmask */
 	reg = analogix_dp_read(dp, ANALOGIX_DP_COMMON_INT_MASK_4);
-	reg &= ~COMMON_INT_MASK_4;
+	reg &= ~HOTPLUG_CHG;
 	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_4, reg);
 
 	reg = analogix_dp_read(dp, ANALOGIX_DP_INT_STA_MASK);
-	reg &= ~INT_STA_MASK;
+	reg &= ~INT_HPD;
 	analogix_dp_write(dp, ANALOGIX_DP_INT_STA_MASK, reg);
 }
 
@@ -229,10 +215,12 @@ void analogix_dp_unmute_hpd_interrupt(struct analogix_dp_device *dp)
 	u32 reg;
 
 	/* 0: mask, 1: unmask */
-	reg = COMMON_INT_MASK_4;
+	reg = analogix_dp_read(dp, ANALOGIX_DP_COMMON_INT_MASK_4);
+	reg |= HOTPLUG_CHG;
 	analogix_dp_write(dp, ANALOGIX_DP_COMMON_INT_MASK_4, reg);
 
-	reg = INT_STA_MASK;
+	reg = analogix_dp_read(dp, ANALOGIX_DP_INT_STA_MASK);
+	reg |= INT_HPD;
 	analogix_dp_write(dp, ANALOGIX_DP_INT_STA_MASK, reg);
 }
 
