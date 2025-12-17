@@ -6,6 +6,7 @@
  */
 
 #include <command.h>
+#include <nand.h>
 #include <part.h>
 #include <stdlib.h>
 #include "rkss.h"
