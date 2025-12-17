@@ -32,19 +32,6 @@
 #define TX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
 
 #define EP_BUFFER_SIZE			4096
-/*
- * EP_BUFFER_SIZE must always be an integral multiple of maxpacket size
- * (64 or 512 or 1024), else we break on certain controllers like DWC3
- * that expect bulk OUT requests to be divisible by maxpacket size.
- */
-
-struct f_fastboot {
-	struct usb_function usb_function;
-
-	/* IN/OUT EP's and corresponding requests */
-	struct usb_ep *in_ep, *out_ep;
-	struct usb_request *in_req, *out_req;
-};
 
 static char fb_ext_prop_name[] = "DeviceInterfaceGUID";
 static char fb_ext_prop_data[] = "{4866319A-F4D6-4374-93B9-DC2DEB361BA9}";
@@ -195,7 +182,7 @@ static struct usb_gadget_strings *fastboot_strings[] = {
 
 static void rx_handler_command(struct usb_ep *ep, struct usb_request *req);
 
-static void fastboot_complete(struct usb_ep *ep, struct usb_request *req)
+void fastboot_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	int status = req->status;
 	if (!status)
@@ -398,7 +385,7 @@ static int fastboot_add(struct usb_configuration *c)
 }
 DECLARE_GADGET_BIND_CALLBACK(usb_dnl_fastboot, fastboot_add);
 
-static int fastboot_tx_write(const char *buffer, unsigned int buffer_size)
+int fastboot_tx_write(const char *buffer, unsigned int buffer_size)
 {
 	struct usb_request *in_req = fastboot_func->in_req;
 	int ret;
@@ -414,12 +401,12 @@ static int fastboot_tx_write(const char *buffer, unsigned int buffer_size)
 	return 0;
 }
 
-static int fastboot_tx_write_str(const char *buffer)
+int fastboot_tx_write_str(const char *buffer)
 {
 	return fastboot_tx_write(buffer, strlen(buffer));
 }
 
-static void compl_do_reset(struct usb_ep *ep, struct usb_request *req)
+void compl_do_reset(struct usb_ep *ep, struct usb_request *req)
 {
 	g_dnl_unregister();
 	do_reset(NULL, 0, 0, NULL);
@@ -490,7 +477,7 @@ static void do_exit_on_complete(struct usb_ep *ep, struct usb_request *req)
 	g_dnl_trigger_detach();
 }
 
-static void do_bootm_on_complete(struct usb_ep *ep, struct usb_request *req)
+void do_bootm_on_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	fastboot_boot();
 	do_exit_on_complete(ep, req);
@@ -586,3 +573,113 @@ static void rx_handler_command(struct usb_ep *ep, struct usb_request *req)
 	req->actual = 0;
 	usb_ep_queue(ep, req, 0);
 }
+
+void tx_handler_ul(struct usb_ep *ep, struct usb_request *req)
+{
+	unsigned int xfer_size = 0;
+	unsigned int pre_dot_num, now_dot_num;
+	unsigned int remain_size = 0;
+	unsigned int transferred_size = req->actual;
+
+	if (req->status != 0) {
+		printf("Bad status: %d\n", req->status);
+		return;
+	}
+
+	if (start_upload) {
+		pre_dot_num = upload_bytes / BYTES_PER_DOT;
+		upload_bytes += transferred_size;
+		now_dot_num = upload_bytes / BYTES_PER_DOT;
+
+		if (pre_dot_num != now_dot_num) {
+			putc('.');
+			if (!(now_dot_num % 74))
+				putc('\n');
+		}
+	}
+
+	remain_size = upload_size - upload_bytes;
+	xfer_size = (remain_size > EP_BUFFER_SIZE) ?
+		    EP_BUFFER_SIZE : remain_size;
+
+	debug("%s: remain_size=%d, transferred_size=%d",
+	      __func__, remain_size, transferred_size);
+	debug("xfer_size=%d, upload_bytes=%d, upload_size=%d!\n",
+	      xfer_size, upload_bytes, upload_size);
+
+	if (remain_size <= 0) {
+		fastboot_func->in_req->complete = fastboot_complete;
+		fastboot_tx_write_str("OKAY");
+		printf("\nuploading of %d bytes finished\n", upload_bytes);
+		upload_bytes = 0;
+		upload_size = 0;
+		start_upload = false;
+		return;
+	}
+
+	/* Remove the transfer callback which response the upload */
+	/* request from host */
+	if (!upload_bytes)
+		start_upload = true;
+
+	fastboot_tx_write((char *)((phys_addr_t)CONFIG_FASTBOOT_BUF_ADDR + \
+			  upload_bytes),
+			  xfer_size);
+}
+
+#ifdef CONFIG_ANDROID_AB
+int get_virtual_ab_merge_status(void)
+{
+	struct misc_virtual_ab_message state;
+
+	memset(&state, 0x0, sizeof(state));
+	if (read_misc_virtual_ab_message(&state) != 0) {
+		pr_err("%s: read_misc_virtual_ab_message failed!\n", __func__);
+		return -1;
+	}
+
+	if (state.magic != MISC_VIRTUAL_AB_MAGIC_HEADER) {
+		pr_err("%s: NOT virtual A/B metadata!\n", __func__);
+		return -1;
+	}
+
+	return state.merge_status;
+}
+
+int should_prevent_userdata_wipe(void)
+{
+	struct misc_virtual_ab_message state;
+	char cmd[8] = {0};
+	unsigned int slot_number = -1;
+
+	memset(&state, 0x0, sizeof(state));
+	if (read_misc_virtual_ab_message(&state) != 0) {
+		pr_err("%s: read_misc_virtual_ab_message failed!\n", __func__);
+		return 0;
+	}
+
+	if (state.magic != MISC_VIRTUAL_AB_MAGIC_HEADER) {
+		pr_err("%s: NOT virtual A/B metadata!\n", __func__);
+		return 0;
+	}
+
+	memset(cmd, 0x0, sizeof(cmd));
+	ab_get_current_slot(cmd);
+	if (strncmp("_a", cmd, 2) == 0) {
+		slot_number = 0;
+	} else if (strncmp("_b", cmd, 2) == 0) {
+		slot_number = 1;
+	} else {
+		pr_err("%s: FAILunknown slot name\n", __func__);
+		return -1;
+	}
+
+	if (state.merge_status == (uint8_t)ENUM_MERGE_STATUS_MERGING ||
+	   (state.merge_status == (uint8_t)ENUM_MERGE_STATUS_SNAPSHOTTED &&
+	   state.source_slot != slot_number)) {
+		return 1;
+	}
+
+	return 0;
+}
+#endif

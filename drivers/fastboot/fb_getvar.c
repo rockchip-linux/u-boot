@@ -10,6 +10,8 @@
 #include <fb_nand.h>
 #include <fs.h>
 #include <part.h>
+#include <tee.h>
+#include <tee/optee.h>
 #include <version.h>
 #include <vsprintf.h>
 #include <linux/printk.h>
@@ -26,6 +28,17 @@ static void getvar_has_slot(char *var_parameter, char *response);
 static void getvar_partition_type(char *part_name, char *response);
 static void getvar_partition_size(char *part_name, char *response);
 static void getvar_is_userspace(char *var_parameter, char *response);
+static void getvar_logical_blocksize(char *var_parameter, char *response);
+static void getvar_erase_blocksize(char *var_parameter, char *response);
+static void getvar_vboot_state(char *var_parameter, char *response);
+static void getvar_unlocked(char *var_parameter, char *response);
+static void getvar_flash_unlocked(char *var_parameter, char *response);
+static void getvar_slot_suffixes(char *var_parameter, char *response);
+static void getvar_slot_successful(char *var_parameter, char *response);
+static void getvar_slot_unbootable(char *var_parameter, char *response);
+static void getvar_slot_retry_count(char *var_parameter, char *response);
+static void getvar_avb_state(char *var_parameter, char *response);
+static void getvar_snapshot_update_status(char *var_parameter, char *response);
 
 static const struct {
 	const char *variable;
@@ -89,6 +102,50 @@ static const struct {
 	}, {
 		.variable = "is-userspace",
 		.dispatch = getvar_is_userspace,
+		.list = true
+	}, {
+		.variable = "logical-block-size",
+		.dispatch = getvar_logical_blocksize,
+		.list = true
+	}, {
+		.variable = "erase-block-size",
+		.dispatch = getvar_erase_blocksize,
+		.list = true
+	}, {
+		.variable = "vboot-state",
+		.dispatch = getvar_vboot_state,
+		.list = true
+	}, {
+		.variable = "unlocked",
+		.dispatch = getvar_unlocked,
+		.list = true
+	}, {
+		.variable = "flash-unlocked",
+		.dispatch = getvar_flash_unlocked,
+		.list = true
+	}, {
+		.variable = "slot-suffixes",
+		.dispatch = getvar_slot_suffixes,
+		.list = true
+	}, {
+		.variable = "slot-successful",
+		.dispatch = getvar_slot_successful,
+		.list = true
+	}, {
+		.variable = "slot-unbootable",
+		.dispatch = getvar_slot_unbootable,
+		.list = true
+	}, {
+		.variable = "slot-retry-count",
+		.dispatch = getvar_slot_retry_count,
+		.list = true
+	}, {
+		.variable = "avb-state",
+		.dispatch = getvar_avb_state,
+		.list = true
+	}, {
+		.variable = "snapshot-update-status",
+		.dispatch = getvar_snapshot_update_status,
 		.list = true
 	}
 };
@@ -250,6 +307,239 @@ static void __maybe_unused getvar_partition_size(char *part_name, char *response
 static void getvar_is_userspace(char *var_parameter, char *response)
 {
 	fastboot_okay("no", response);
+}
+
+static void __maybe_unused getvar_logical_blocksize(char *var_parameter, char *response)
+{
+	struct blk_desc *dev_desc;
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc)
+		fastboot_fail("Block device not found", response);
+	else
+		fastboot_response("OKAY", response, "0x%lx", dev_desc->blksz);
+}
+
+static void __maybe_unused getvar_erase_blocksize(char *var_parameter, char *response)
+{
+	lbaint_t erase_grp_size;
+
+#ifdef CONFIG_FASTBOOT_FLASH_MMC_DEV
+	erase_grp_size = fb_mmc_get_erase_grp_size();
+
+	if (erase_grp_size < 0)
+		fastboot_fail("Block device not found", response);
+	else
+		fastboot_response("OKAY", response, "0x"LBAF"", erase_grp_size);
+#else
+	fastboot_fail("Not implemented, please enable CONFIG_FASTBOOT_FLASH_MMC_DEV",
+		      response);
+#endif
+}
+
+static void __maybe_unused getvar_vboot_state(char *var_parameter, char *response)
+{
+	uint8_t vboot_flag = 0;
+
+#ifdef CONFIG_OPTEE
+	if (optee_read_vbootkey_enable_flag(&vboot_flag)) {
+		fastboot_fail("Can't read vboot flag", response);
+		return;
+	}
+
+	if (vboot_flag)
+		fastboot_okay("Yes", response);
+	else
+		fastboot_okay("No", response);
+#else
+	fastboot_fail("Not implemented, please enable CONFIG_OPTEE", response);
+#endif
+}
+
+static void __maybe_unused getvar_unlocked(char *var_parameter, char *response)
+{
+#ifdef CONFIG_LIBAVB_USER
+	uint8_t lock_state = 0;
+
+	if (!avb_read_lock_state(&lock_state)) {
+		fastboot_fail("Read lock_state failed", response);
+		return;
+	}
+	if (lock_state)
+		fastboot_okay("AVB unlock", response);
+	else
+		fastboot_okay("AVB lock", response);
+#else
+	fastboot_fail("Not implemented, please enable CONFIG_LIBAVB_USER", response);
+#endif
+}
+
+static void __maybe_unused getvar_flash_unlocked(char *var_parameter, char *response)
+{
+#ifdef CONFIG_LIBAVB_USER
+	uint8_t flash_lock_state = 0;
+
+	if (!avb_read_flash_lock_state(&flash_lock_state)) {
+		fastboot_fail("Read flash_lock_state failed", response);
+		return;
+	}
+	if (flash_lock_state)
+		fastboot_okay("flash unlock", response);
+	else
+		fastboot_okay("flash unlock", response);
+#else
+	fastboot_fail("Not implemented, please enable CONFIG_LIBAVB_USER", response);
+#endif
+}
+
+static void __maybe_unused getvar_slot_suffixes(char *var_parameter, char *response)
+{
+	char slot_suffixes_temp[4] = {0};
+	char slot_suffixes[9] = {0};
+	int slot_cnt = 0;
+
+	if (ab_get_current_slot(slot_suffixes_temp)) {
+		fastboot_fail("Get current_slot failed", response);
+		return;
+	}
+
+	while (slot_suffixes_temp[slot_cnt] != '\0') {
+		slot_suffixes[slot_cnt * 2]
+			= slot_suffixes_temp[slot_cnt];
+		slot_suffixes[slot_cnt * 2 + 1] = ',';
+		slot_cnt++;
+	}
+
+	slot_suffixes[(slot_cnt - 1) * 2 + 1] = '\0';
+	fastboot_response("OKAY", response, "%s", slot_suffixes);
+}
+
+static void __maybe_unused getvar_slot_successful(char *var_parameter, char *response)
+{
+	char *slot_name = var_parameter;
+	AvbABData ab_info;
+
+	if (!var_parameter || !slot_name) {
+		fastboot_fail("Argument Invalid", response);
+		return;
+	}
+
+	if (ab_get_slot_data(&ab_info) < 0) {
+		fastboot_fail("Get A/B system info failed", response);
+		return;
+	}
+
+	if (!strcmp(slot_name, "_a")) {
+		if (ab_info.slots[0].successful_boot)
+			fastboot_okay("Yes", response);
+		else
+			fastboot_okay("No", response);
+	} else if (!strcmp(slot_name, "_b")) {
+		if (ab_info.slots[1].successful_boot)
+			fastboot_okay("Yes", response);
+		else
+			fastboot_okay("No", response);
+	} else {
+		fastboot_fail("Argument Invalid", response);
+	}
+}
+
+static void __maybe_unused getvar_slot_unbootable(char *var_parameter, char *response)
+{
+	char *slot_name = var_parameter;
+	AvbABData ab_info;
+
+	if (!var_parameter || !slot_name) {
+		fastboot_fail("Argument Invalid", response);
+		return;
+	}
+
+	if (ab_get_slot_data(&ab_info) < 0) {
+		fastboot_fail("Get A/B system info failed", response);
+		return;
+	}
+
+	if (!strcmp(slot_name, "_a")) {
+		if (!ab_info.slots[0].successful_boot &&
+			!ab_info.slots[0].tries_remaining &&
+			!ab_info.slots[0].priority)
+			fastboot_okay("Yes", response);
+		else
+			fastboot_okay("No", response);
+	} else if (!strcmp(slot_name, "_b")) {
+		if (!ab_info.slots[1].successful_boot &&
+			!ab_info.slots[1].tries_remaining &&
+			!ab_info.slots[1].priority)
+			fastboot_okay("Yes", response);
+		else
+			fastboot_okay("No", response);
+	} else {
+		fastboot_fail("Argument Invalid", response);
+	}
+}
+
+static void __maybe_unused getvar_slot_retry_count(char *var_parameter, char *response)
+{
+	char *slot_name = var_parameter;
+	AvbABData ab_info;
+
+	if (!var_parameter || !slot_name) {
+		fastboot_fail("Argument Invalid", response);
+		return;
+	}
+
+	if (ab_get_slot_data(&ab_info) < 0) {
+		fastboot_fail("Get A/B system info failed", response);
+		return;
+	}
+
+	if (!strcmp(slot_name, "_a"))
+		fastboot_response("OKAY", response, "%d", ab_info.slots[0].tries_remaining);
+	else if (!strcmp(slot_name, "_b"))
+		fastboot_response("OKAY", response, "%d", ab_info.slots[1].tries_remaining);
+	else
+		fastboot_fail("Argument Invalid", response);
+}
+
+static void __maybe_unused getvar_avb_state(char *var_parameter, char *response)
+{
+	char vbst[AVB_STATE_SIZE] = {0};
+	char *p_vbst;
+
+	avb_get_state(vbst);
+	p_vbst = vbst;
+	do {
+		var_parameter = strsep(&p_vbst, "\n");
+		if (strlen(var_parameter) > 0)
+			fastboot_response("OKAY", response, "%s", var_parameter);
+	} while (strlen(var_parameter));
+}
+
+static void __maybe_unused getvar_snapshot_update_status(char *var_parameter, char *response)
+{
+#ifdef CONFIG_ANDROID_AB
+	struct misc_virtual_ab_message state;
+
+	memset(&state, 0x0, sizeof(state));
+	if (read_misc_virtual_ab_message(&state) != 0) {
+		fastboot_fail("Get virtual A/B system info failed", response);
+		return;
+	}
+
+	if (state.magic != MISC_VIRTUAL_AB_MAGIC_HEADER) {
+		fastboot_fail("Virtual A/B system info has incorrect magic", response);
+		return;
+	}
+
+	if (state.merge_status == ENUM_MERGE_STATUS_MERGING)
+		fastboot_okay("Merging", response);
+	else if (state.merge_status == ENUM_MERGE_STATUS_SNAPSHOTTED)
+		fastboot_okay("Snapshotted", response);
+	else
+		fastboot_okay("None", response);
+#else
+	fastboot_fail("Not implemented, please enable CONFIG_ANDROID_AB", response);
+#endif
 }
 
 static int current_all_dispatch;

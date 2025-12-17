@@ -45,6 +45,11 @@ static void oem_console(char *, char *);
 static void oem_board(char *, char *);
 static void run_ucmd(char *, char *);
 static void run_acmd(char *, char *);
+static void boot(char *, char *);
+static void flashing(char *, char *);
+static void reboot(char *, char *);
+static void set_active(char *, char *);
+static void upload(char *, char *);
 
 static const struct {
 	const char *command;
@@ -68,7 +73,7 @@ static const struct {
 	},
 	[FASTBOOT_COMMAND_BOOT] =  {
 		.command = "boot",
-		.dispatch = okay
+		.dispatch = boot
 	},
 	[FASTBOOT_COMMAND_CONTINUE] =  {
 		.command = "continue",
@@ -76,7 +81,7 @@ static const struct {
 	},
 	[FASTBOOT_COMMAND_REBOOT] =  {
 		.command = "reboot",
-		.dispatch = okay
+		.dispatch = reboot
 	},
 	[FASTBOOT_COMMAND_REBOOT_BOOTLOADER] =  {
 		.command = "reboot-bootloader",
@@ -92,7 +97,7 @@ static const struct {
 	},
 	[FASTBOOT_COMMAND_SET_ACTIVE] =  {
 		.command = "set_active",
-		.dispatch = okay
+		.dispatch = set_active
 	},
 	[FASTBOOT_COMMAND_OEM_FORMAT] = {
 		.command = "oem format",
@@ -125,6 +130,14 @@ static const struct {
 	[FASTBOOT_COMMAND_ACMD] = {
 		.command = "ACmd",
 		.dispatch = CONFIG_IS_ENABLED(FASTBOOT_UUU_SUPPORT, (run_acmd), (NULL))
+	},
+	[FASTBOOT_COMMAND_FLASHING] =  {
+		.command = "flashing",
+		.dispatch = CONFIG_IS_ENABLED(FASTBOOT_FLASHING, (flashing), (NULL))
+	},
+	[FASTBOOT_COMMAND_UPLOAD] =  {
+		.command = "upload",
+		.dispatch = upload
 	},
 };
 
@@ -281,7 +294,6 @@ void fastboot_data_download(const void *fastboot_data,
 			    unsigned int fastboot_data_len,
 			    char *response)
 {
-#define BYTES_PER_DOT	0x20000
 	u32 pre_dot_num, now_dot_num;
 
 	if (fastboot_data_len == 0 ||
@@ -336,6 +348,42 @@ void fastboot_data_complete(char *response)
  */
 static void __maybe_unused flash(char *cmd_parameter, char *response)
 {
+#ifdef CONFIG_LIBAVB_USER
+	uint8_t flash_lock_state;
+
+	if (avb_read_flash_lock_state(&flash_lock_state)) {
+		/* write the device flashing unlock when first read */
+		if (avb_write_flash_lock_state(1)) {
+			fastboot_fail("Write flash lock state fail", response);
+			return;
+		}
+		if (avb_read_flash_lock_state(&flash_lock_state)) {
+			fastboot_fail("Read flash lock state fail", response);
+			return;
+		}
+	}
+
+	if (flash_lock_state == 0) {
+		fastboot_fail("The device is locked, can not flash", response);
+		printf("The device is locked, can not flash!\n");
+		return;
+	}
+#endif
+	if (!cmd_parameter) {
+		fastboot_fail("Missing partition name", response);
+		pr_err("Missing partition name");
+		return;
+	}
+#ifdef CONFIG_ANDROID_AB
+	if ((strcmp(cmd_parameter, PART_USERDATA) == 0) || (strcmp(cmd_parameter, PART_METADATA) == 0)) {
+		if (should_prevent_userdata_wipe()) {
+			fastboot_fail("Virtual A/B merging,abort flash", response);
+			pr_err("FAILThe virtual A/B merging, can not flash userdata or metadata!\n");
+			return;
+		}
+	}
+#endif
+	fastboot_fail("no flash device defined", response);
 	if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_MMC))
 		fastboot_mmc_flash_write(cmd_parameter, fastboot_buf_addr,
 					 image_size, response);
@@ -343,6 +391,7 @@ static void __maybe_unused flash(char *cmd_parameter, char *response)
 	if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_NAND))
 		fastboot_nand_flash_write(cmd_parameter, fastboot_buf_addr,
 					  image_size, response);
+	fastboot_okay(NULL, response);
 }
 
 /**
@@ -356,11 +405,28 @@ static void __maybe_unused flash(char *cmd_parameter, char *response)
  */
 static void __maybe_unused erase(char *cmd_parameter, char *response)
 {
+	strsep(&cmd_parameter, ":");
+	if (!cmd_parameter) {
+		fastboot_fail("Missing partition name", response);
+		pr_err("Missing partition name");
+		return;
+	}
+#ifdef CONFIG_ANDROID_AB
+	if ((strcmp(cmd_parameter, PART_USERDATA) == 0) || (strcmp(cmd_parameter, PART_METADATA) == 0)) {
+		if (should_prevent_userdata_wipe()) {
+			fastboot_fail("Virtual A/B merging, abort erase!", response);
+			pr_err("Virtual A/B merging, can not erase userdata or metadata!");
+			return;
+		}
+	}
+#endif
+	fastboot_fail("no flash device defined", response);
 	if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_MMC))
 		fastboot_mmc_erase(cmd_parameter, response);
 
 	if (IS_ENABLED(CONFIG_FASTBOOT_FLASH_NAND))
 		fastboot_nand_erase(cmd_parameter, response);
+	fastboot_okay(NULL, response);
 }
 
 /**
@@ -571,4 +637,97 @@ void __weak fastboot_oem_board(char *cmd_parameter, void *data, u32 size, char *
 static void __maybe_unused oem_board(char *cmd_parameter, char *response)
 {
 	fastboot_oem_board(cmd_parameter, (void *)fastboot_buf_addr, image_size, response);
+}
+
+static void __maybe_unused upload(char *cmd_parameter, char *response)
+{
+	printf("Starting upload of %d bytes\n", upload_size);
+
+	if (0 == upload_size) {
+		strcpy(response, "FAILdata invalid size");
+	} else {
+		start_upload = false;
+		sprintf(response, "DATA%08x", upload_size);
+		fastboot_func->in_req->complete = tx_handler_ul;
+	}
+	fastboot_okay(NULL, response);
+}
+
+static void __maybe_unused reboot(char *cmd_parameter, char *response)
+{
+	fastboot_func->in_req->complete = compl_do_reset;
+	fastboot_okay(NULL, response);
+}
+
+static void __maybe_unused boot(char *cmd_parameter, char *response)
+{
+	fastboot_func->in_req->complete = do_bootm_on_complete;
+	fastboot_okay(NULL, response);
+}
+
+static void __maybe_unused set_active(char *cmd_parameter, char *response)
+{
+	debug("%s: %s\n", __func__, cmd_parameter);
+
+	strsep(&cmd_parameter, ":");
+	if (!cmd_parameter) {
+		fastboot_fail("Missing slot name", response);
+		pr_err("Missing slot name");
+		return;
+	}
+#ifdef CONFIG_ANDROID_AB
+	if (get_virtual_ab_merge_status() == ENUM_MERGE_STATUS_MERGING) {
+		fastboot_fail("Virtual A/B is merging, abort", response);
+		pr_err("Virtual A/B is merging, abort the operation");
+		return;
+	}
+#endif
+#ifdef CONFIG_LIBAVB_USER
+	unsigned int slot_number;
+	if (strncmp("a", cmd_parameter, 1) == 0) {
+		slot_number = 0;
+		ab_set_slot_active(&slot_number);
+	} else if (strncmp("b", cmd_parameter, 1) == 0) {
+		slot_number = 1;
+		ab_set_slot_active(&slot_number);
+	} else {
+		fastboot_fail("Unkown slot name", response);
+		return;
+	}
+
+	fastboot_okay(NULL, response);
+	return;
+#else
+	fastboot_fail("Not implemented", response);
+	return;
+#endif
+}
+
+static void __maybe_unused flashing(char *cmd_parameter, char *response)
+{
+	if (strncmp("lock", cmd_parameter + 9, 4) == 0) {
+#ifdef CONFIG_LIBAVB_USER
+		uint8_t flash_lock_state;
+		flash_lock_state = 0;
+		if (avb_write_flash_lock_state(flash_lock_state))
+			fastboot_fail("Write flash lock state fail", response);
+		else
+			fastboot_okay(NULL, response);
+#else
+		fastboot_fail("Not implemented", response);
+#endif
+	} else if (strncmp("unlock", cmd_parameter + 9, 6) == 0) {
+#ifdef CONFIG_LIBAVB_USER
+		uint8_t flash_lock_state;
+		flash_lock_state = 1;
+		if (avb_write_flash_lock_state(flash_lock_state))
+			fastboot_fail("Write flash lock state fail", response);
+		else
+			fastboot_okay(NULL, response);
+#else
+		fastboot_fail("Not implemented", response);
+#endif
+	} else {
+		fastboot_fail("Not implemented", response);
+	}
 }

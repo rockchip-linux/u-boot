@@ -284,7 +284,7 @@ static void fb_mmc_boot_ops(struct blk_desc *dev_desc, void *buffer,
  */
 static lbaint_t fb_mmc_get_boot_header(struct blk_desc *dev_desc,
 				       struct disk_partition *info,
-				       struct andr_boot_img_hdr_v0 *hdr,
+				       struct andr_img_hdr *hdr,
 				       char *response)
 {
 	ulong sector_size;		/* boot partition sector size */
@@ -293,7 +293,7 @@ static lbaint_t fb_mmc_get_boot_header(struct blk_desc *dev_desc,
 
 	/* Calculate boot image sectors count */
 	sector_size = info->blksz;
-	hdr_sectors = DIV_ROUND_UP(sizeof(struct andr_boot_img_hdr_v0), sector_size);
+	hdr_sectors = DIV_ROUND_UP(sizeof(struct andr_img_hdr), sector_size);
 	if (hdr_sectors == 0) {
 		pr_err("invalid number of boot sectors: 0\n");
 		fastboot_fail("invalid number of boot sectors: 0", response);
@@ -334,7 +334,7 @@ static int fb_mmc_update_zimage(struct blk_desc *dev_desc,
 				char *response)
 {
 	uintptr_t hdr_addr;			/* boot image header address */
-	struct andr_boot_img_hdr_v0 *hdr;		/* boot image header */
+	struct andr_img_hdr *hdr;		/* boot image header */
 	lbaint_t hdr_sectors;			/* boot image header sectors */
 	u8 *ramdisk_buffer;
 	u32 ramdisk_sector_start;
@@ -357,7 +357,7 @@ static int fb_mmc_update_zimage(struct blk_desc *dev_desc,
 
 	/* Put boot image header in fastboot buffer after downloaded zImage */
 	hdr_addr = (uintptr_t)download_buffer + ALIGN(download_bytes, PAGE_SIZE);
-	hdr = (struct andr_boot_img_hdr_v0 *)hdr_addr;
+	hdr = (struct andr_img_hdr *)hdr_addr;
 
 	/* Read boot image header */
 	hdr_sectors = fb_mmc_get_boot_header(dev_desc, &info, hdr, response);
@@ -588,9 +588,12 @@ void fastboot_mmc_flash_write(const char *cmd, void *download_buffer,
 
 	if (strcmp(cmd, CONFIG_FASTBOOT_IDBLOCK_NAME) == 0) {
 		printf("%s: updating IDBLOCK\n", __func__);
-		info.blksz = CONFIG_FASTBOOT_MMC_BLOCK_SIZE;
+		dev_desc = fastboot_mmc_get_dev(response);
+		if (!dev_desc)
+			return;
+		info.blksz = dev_desc->blksz;
 		info.start = CONFIG_FASTBOOT_IDBLOCK_SECTOR;
-		info.size = CONFIG_FASTBOOT_IDBLOCK_SECTOR_SIZE;
+		info.size = CONFIG_FASTBOOT_IDBLOCK_SIZE;
 		goto download;
 	}
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
@@ -719,6 +722,7 @@ void fastboot_mmc_erase(const char *cmd, char *response)
 	       blks_size * info.blksz, cmd);
 	fastboot_okay(NULL, response);
 }
+
 lbaint_t fb_mmc_get_erase_grp_size(void)
 {
 	lbaint_t grp_size;

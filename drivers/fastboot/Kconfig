@@ -99,6 +99,15 @@ config FASTBOOT_FLASH
 	  the downloaded image to a non-volatile storage device. Define
 	  this to enable the "fastboot flash" command.
 
+config FASTBOOT_FLASHING
+	bool "Enable FASTBOOT FLASHING command"
+	default y if  ARCH_ROCKCHIP
+	depends on MMC || (MTD_RAW_NAND && CMD_MTDPARTS)
+	help
+	  The fastboot protocol includes a "flashing" command for writing
+	  the downloaded image to a non-volatile storage device. Define
+	  this to enable the "fastboot flashing" command.
+
 config FASTBOOT_UUU_SUPPORT
 	bool "Enable UUU support"
 	help
@@ -216,6 +225,28 @@ config FASTBOOT_MBR_NAME
 	  to the Master Boot Record. This occurs when the "partition name"
 	  specified on the "fastboot flash" command line matches the value
 	  defined here. The default target name for updating MBR is "mbr".
+
+config FASTBOOT_IDBLOCK_NAME
+	string "Target name for updating IDBLOCK"
+	depends on FASTBOOT_FLASH_MMC
+	default "idblock"
+	help
+	  The fastboot "flash" command allows to write the downloaded image
+	  to the Master Boot Record. This occurs when the "partition name"
+	  specified on the "fastboot flash" command line matches the value
+	  defined here. The default target name for updating IDBLOCK is "idblock".
+
+config FASTBOOT_IDBLOCK_SECTOR
+	int "Define FASTBOOT IDBLOCK sector"
+	default 64 if FASTBOOT_FLASH_MMC
+	help
+	  Define this for the IDBLOCK location used by "fastboot flash".
+
+config FASTBOOT_IDBLOCK_SIZE
+	int "Define FASTBOOT IDBLOCK size"
+	default 5184 if FASTBOOT_FLASH_MMC
+	help
+	  Define this for the IDBLOCK size used by "fastboot flash".
 
 config FASTBOOT_CMD_OEM_FORMAT
 	bool "Enable the 'oem format' command"

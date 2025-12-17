@@ -359,14 +359,27 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 #if IS_ENABLED(CONFIG_FASTBOOT)
 int fastboot_set_reboot_flag(enum fastboot_reboot_reason reason)
 {
-	if (reason != FASTBOOT_REBOOT_REASON_BOOTLOADER)
-		return -ENOTSUPP;
+	int ret = 0;
 
-	printf("Setting reboot to fastboot flag ...\n");
-	/* Set boot mode to fastboot */
-	writel(BOOT_FASTBOOT, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+	switch (reason) {
+		case FASTBOOT_REBOOT_REASON_BOOTLOADER:
+			printf("Setting reboot to bootloader flag ...\n");
+			writel(BOOT_LOADER, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+			break;
+		case FASTBOOT_REBOOT_REASON_FASTBOOTD:
+			printf("Setting reboot to fastboot flag ...\n");
+			writel(BOOT_FASTBOOT, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+			break;
+		case FASTBOOT_REBOOT_REASON_RECOVERY:
+			printf("Setting reboot to recovery flag ...\n");
+			writel(BOOT_RECOVERY, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+			break;
+		default:
+			ret = -ENOTSUPP;
+			break;
+	}
 
-	return 0;
+	return ret;
 }
 #endif
 

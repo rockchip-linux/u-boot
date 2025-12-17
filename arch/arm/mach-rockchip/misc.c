@@ -14,6 +14,7 @@
 #include <dm.h>
 #include <part.h>
 #include <hash.h>
+#include <image.h>
 #include <log.h>
 #include <net.h>
 #include <rand.h>
@@ -305,18 +306,3 @@ out:
 	run_command("run bootcmd", 0);
 }
 #endif
-
-#if IS_ENABLED(CONFIG_FASTBOOT)
-int fastboot_set_reboot_flag(enum fastboot_reboot_reason reason)
-{
-	if (reason != FASTBOOT_REBOOT_REASON_BOOTLOADER)
-		return -ENOTSUPP;
-
-	printf("Setting reboot to fastboot flag ...\n");
-	/* Set boot mode to fastboot */
-	writel(BOOT_FASTBOOT, CONFIG_ROCKCHIP_BOOT_MODE_REG);
-
-	return 0;
-}
-#endif
-
