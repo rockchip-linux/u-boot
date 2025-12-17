@@ -37,6 +37,7 @@ static bool sw_mod_exp_check_valid(struct udevice *dev, u32 algo, u32 mode)
 }
 
 static struct crypto_impl sw_mod_exp_impl = {
+	.name        = "mod_exp_sw",
 	.type        = CRYPTO_TYPE_ASYM,
 	.uclass_id   = UCLASS_MOD_EXP,
 	.priority    = CRYPTO_PRIORITY_SW,

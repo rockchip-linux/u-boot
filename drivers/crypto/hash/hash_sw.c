@@ -329,6 +329,7 @@ static u32 sw_hash_dynamic_priority(struct udevice *dev, u32 algo, u32 mode)
 }
 
 static struct crypto_impl sw_crypto_hash_impl = {
+	.name              = "hash_sw",
 	.type              = CRYPTO_TYPE_HASH,
 	.uclass_id         = UCLASS_HASH,
 	.dynamic_priority  = sw_hash_dynamic_priority,
