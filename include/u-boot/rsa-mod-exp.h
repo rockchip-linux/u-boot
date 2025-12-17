@@ -11,6 +11,12 @@
 
 struct udevice;
 
+typedef struct {
+	u32 *n;		/* Public key factor N */
+	u32 *e;		/* Public key factor E */
+	u32 *c;		/* Optional, a accelerate factor for some crypto */
+} rsa_key_t;
+
 /**
  * struct key_prop - holder for a public key properties
  *
@@ -34,6 +40,9 @@ struct key_prop {
 	uint32_t n0inv;		/* -1 / modulus[0] mod 2^32 */
 	int num_bits;		/* Key length in bits */
 	uint32_t exp_len;	/* Exponent length in number of uint8_t */
+#ifdef CONFIG_ARCH_ROCKCHIP
+	rsa_key_t *rsa_key;	/* rockchip rsa key */
+#endif
 };
 
 /**

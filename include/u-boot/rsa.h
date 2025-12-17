@@ -121,4 +121,11 @@ int padding_pss_verify(struct image_sign_info *info,
 /* This is the maximum signature length that we support, in bits */
 #define RSA_MAX_SIG_BITS	4096
 
+#if !defined(USE_HOSTCC)
+#ifdef CONFIG_SPL_FIT_HW_CRYPTO
+int rsa_burn_key_hash(struct image_sign_info *info);
+int rsa_burn_disable_upgrade(void);
+#endif
+#endif
+
 #endif

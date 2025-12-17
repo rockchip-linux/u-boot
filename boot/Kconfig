@@ -102,6 +102,7 @@ config FIT_SIGNATURE
 	imply RSA_VERIFY
 	select IMAGE_SIGN_INFO
 	select FIT_FULL_CHECK
+	select FIT_RSASSA_PSS
 	help
 	  This option enables signature verification of FIT uImages,
 	  using a hash signed and verified using RSA. If
@@ -138,6 +139,18 @@ config FIT_ENABLE_RSASSA_PSS_SUPPORT
 	depends on FIT_RSASSA_PSS
 	help
 	  It makes the fit scripts can be keep the same as v2017 branch.
+
+config FIT_ENABLE_RSA4096_SUPPORT
+	bool "Support RSA4096 verification of FIT image contents"
+	select RSA_SOFTWARE_EXP if !DM_CRYPTO
+	default n
+	help
+	  Enable this to support RSA4096 checksum of FIT image contents. A
+	  RSA4096 is a 4096-bit (512-byte) key used to check that
+	  check if the content comes from an encryption party. RSA4096 is one
+	  of algorithms recommended for use in secure applications since (as at 2016)
+	  there is no known feasible attack that could produce a 'collision' with differing
+	  input data. Use this for the higher security than RSA2048 in default.
 
 config FIT_ROLLBACK_PROTECT
 	bool "Enable rollback-index protection for FIT image"
@@ -183,6 +196,13 @@ config FIT_IMAGE_POST_PROCESS
 	  need to be comprehended in how the images were prepared before being
 	  injected into the FIT creation (i.e. the blobs would have been pre-
 	  processed before being added to the FIT image).
+
+config FIT_HW_CRYPTO
+	bool "Enable hardware crypto for FIT image checksum and rsa verify"
+	depends on CRYPTO_MANAGER
+	select ROCKCHIP_RSA
+	help
+	  Enable hardware crypto for FIT image checksum and rsa verify.
 
 config FIT_PRINT
 	bool "Support FIT printing"
@@ -235,6 +255,7 @@ config SPL_FIT_SIGNATURE
 	imply SPL_RSA_VERIFY
 	select SPL_IMAGE_SIGN_INFO
 	select SPL_FIT_FULL_CHECK
+	select SPL_FIT_RSASSA_PSS
 
 config SPL_FIT_SIGNATURE_MAX_SIZE
 	hex "Max size of signed FIT structures in SPL"
@@ -356,6 +377,13 @@ config SPL_FIT_IMAGE_POST_PROCESS
 	  need to be comprehended in how the images were prepared before being
 	  injected into the FIT creation (i.e. the blobs would have been pre-
 	  processed before being added to the FIT image).
+
+config SPL_FIT_HW_CRYPTO
+	bool "Enable SPL hardware crypto for FIT image checksum and rsa verify"
+	depends on SPL_CRYPTO_MANAGER
+	select SPL_ROCKCHIP_RSA
+	help
+	  Enable SPL hardware crypto for FIT image checksum and rsa verify.
 
 config SPL_FIT_SOURCE
 	string ".its source file for U-Boot FIT image"

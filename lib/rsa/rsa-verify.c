@@ -4,15 +4,20 @@
  */
 
 #ifndef USE_HOSTCC
+#include <dm.h>
+#include <crypto_manager.h>
 #include <fdtdec.h>
 #include <log.h>
 #include <malloc.h>
+#include <misc.h>
 #include <asm/types.h>
 #include <asm/byteorder.h>
 #include <linux/errno.h>
+#include <linux/delay.h>
+#include <asm/io.h>
 #include <asm/types.h>
 #include <asm/unaligned.h>
-#include <dm.h>
+#include <asm/arch-rockchip/atags.h>
 #else
 #include "fdt_host.h"
 #include "mkimage.h"
@@ -81,25 +86,22 @@ static void rsa_convert_big_endian(uint32_t *dst, const uint32_t *src,
 		dst[i] = fdt32_to_cpu(src[total_wd - 1 - i]);
 }
 
-static int rsa_mod_exp_hw(struct key_prop *prop, const uint8_t *sig,
-			  const uint32_t sig_len, const uint32_t key_len,
+static int rsa_mod_exp_hw(const uint8_t *sig, const uint32_t sig_len,
+			  struct key_prop *prop, const uint32_t key_len,
 			  uint8_t *output)
 {
 	struct udevice *dev;
 	uint8_t sig_reverse[sig_len];
 	uint8_t buf[sig_len];
-	rsa_key rsa_key;
+	rsa_key_t rsa_key;
 	int i, ret;
+
 #ifdef CONFIG_FIT_ENABLE_RSA4096_SUPPORT
 	if (key_len != RSA4096_BYTES)
 		return -EINVAL;
-
-	rsa_key.algo = CRYPTO_RSA4096;
 #else
 	if (key_len != RSA2048_BYTES)
 		return -EINVAL;
-
-	rsa_key.algo = CRYPTO_RSA2048;
 #endif
 	rsa_key.n = malloc(key_len);
 	rsa_key.e = malloc(key_len);
@@ -136,15 +138,18 @@ static int rsa_mod_exp_hw(struct key_prop *prop, const uint8_t *sig,
 	for (i = 0; i < sig_len; i++)
 		sig_reverse[sig_len-1-i] = sig[i];
 
-	dev = crypto_get_device(rsa_key.algo);
-	if (!dev) {
-		printf("No crypto device for expected RSA\n");
-		return -ENODEV;
+	ret = uclass_get_device(UCLASS_MOD_EXP, 0, &dev);
+	if (ret) {
+		printf("%s: No MOD_EXP device, ret=%d\n", __func__, ret);
+		goto out;
 	}
 
-	ret = crypto_rsa_verify(dev, &rsa_key, (u8 *)sig_reverse, buf);
-	if (ret)
+	prop->rsa_key = &rsa_key;
+	ret = rsa_mod_exp(dev, (u8 *)sig_reverse, sig_len, prop, buf);
+	if (ret) {
+		printf("%s: mod_exp failed, ret=%d\n", __func__, ret);
 		goto out;
+	}
 
 	for (i = 0; i < sig_len; i++)
 		sig_reverse[sig_len-1-i] = buf[i];
@@ -169,13 +174,13 @@ int padding_pkcs_15_verify(struct image_sign_info *info,
 	/* Check pkcs1.5 padding bytes */
 	ret = rsa_verify_padding(msg, pad_len, checksum);
 	if (ret) {
-		debug("In RSAVerify(): Padding check failed!\n");
+		printf("In RSAVerify(): Padding check failed: %d\n", ret);
 		return -EINVAL;
 	}
 
 	/* Check hash */
 	if (memcmp((uint8_t *)msg + pad_len, hash, msg_len - pad_len)) {
-		debug("In RSAVerify(): Hash check failed!\n");
+		printf("In RSAVerify(): Hash check failed!\n");
 		return -EACCES;
 	}
 
@@ -453,16 +458,9 @@ static int rsa_verify_key(struct image_sign_info *info,
 
 #if !defined(USE_HOSTCC)
 #if CONFIG_IS_ENABLED(FIT_HW_CRYPTO)
-	ret = rsa_mod_exp_hw(prop, sig, sig_len, key_len, buf);
+	ret = rsa_mod_exp_hw(sig, sig_len, prop, key_len, buf);
 #else
-	struct udevice *mod_exp_dev;
-	ret = uclass_get_device(UCLASS_MOD_EXP, 0, &mod_exp_dev);
-	if (ret) {
-		printf("RSA: Can't find Modular Exp implementation\n");
-		return -EINVAL;
-	}
-
-	ret = rsa_mod_exp(mod_exp_dev, sig, sig_len, prop, buf);
+	ret = rsa_mod_exp_sw(sig, sig_len, prop, buf);
 #endif
 #else
 	ret = rsa_mod_exp_sw(sig, sig_len, prop, buf);
