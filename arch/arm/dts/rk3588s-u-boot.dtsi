@@ -102,7 +102,7 @@
 		clocks = <&cru ACLK_SATA0>, <&cru CLK_PMALIVE0>,
 			 <&cru CLK_RXOOB0>, <&cru CLK_PIPEPHY0_REF>;
 		clock-names = "sata", "pmalive", "rxoob", "ref";
-		interrupts = <GIC_SPI 273 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 273 IRQ_TYPE_LEVEL_HIGH 0>;
 		interrupt-names = "hostc";
 		phys = <&combphy0_ps PHY_TYPE_SATA>;
 		phy-names = "sata-phy";

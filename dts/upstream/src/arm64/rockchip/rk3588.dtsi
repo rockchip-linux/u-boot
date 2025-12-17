@@ -20,7 +20,7 @@
 		usbdrd_dwc3_1: usb@fc400000 {
 			compatible = "snps,dwc3";
 			reg = <0x0 0xfc400000 0x0 0x400000>;
-			interrupts = <GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH 0>;
 			power-domains = <&power RK3588_PD_USB>;
 			resets = <&cru SRST_A_USB3OTG1>;
 			reset-names = "usb3-otg";
@@ -60,7 +60,7 @@
 		u2phy1: usb2-phy@4000 {
 			compatible = "rockchip,rk3588-usb2phy";
 			reg = <0x4000 0x10>;
-			interrupts = <GIC_SPI 394 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 394 IRQ_TYPE_LEVEL_HIGH 0>;
 			resets = <&cru SRST_OTGPHY_U3_1>, <&cru SRST_P_USB2PHY_U3_1_GRF0>;
 			reset-names = "phy", "apb";
 			clocks = <&cru CLK_USB2PHY_HDPTXRXPHY_REF>;
@@ -157,11 +157,11 @@
 			      "aclk_dbi", "pclk",
 			      "aux", "pipe";
 		device_type = "pci";
-		interrupts = <GIC_SPI 263 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 261 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 260 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 259 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 263 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 261 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 260 IRQ_TYPE_LEVEL_HIGH 0>,
+			     <GIC_SPI 259 IRQ_TYPE_LEVEL_HIGH 0>;
 		interrupt-names = "sys", "pmc", "msg", "legacy", "err";
 		#interrupt-cells = <1>;
 		interrupt-map-mask = <0 0 0 7>;
@@ -196,7 +196,7 @@
 			#address-cells = <0>;
 			#interrupt-cells = <1>;
 			interrupt-parent = <&gic>;
-			interrupts = <GIC_SPI 260 IRQ_TYPE_EDGE_RISING>;
+			interrupts = <GIC_SPI 260 IRQ_TYPE_EDGE_RISING 0>;
 		};
 	};
 

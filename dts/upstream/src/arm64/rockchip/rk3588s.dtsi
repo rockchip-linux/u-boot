@@ -420,7 +420,7 @@
 		usbdrd_dwc3_0: usb@fc000000 {
 			compatible = "snps,dwc3";
 			reg = <0x0 0xfc000000 0x0 0x400000>;
-			interrupts = <GIC_SPI 220 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 220 IRQ_TYPE_LEVEL_HIGH 0>;
 			power-domains = <&power RK3588_PD_USB>;
 			resets = <&cru SRST_A_USB3OTG0>;
 			reset-names = "usb3-otg";
@@ -444,7 +444,7 @@
 	usb_host0_ehci: usb@fc800000 {
 		compatible = "rockchip,rk3588-ehci", "generic-ehci";
 		reg = <0x0 0xfc800000 0x0 0x40000>;
-		interrupts = <GIC_SPI 215 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 215 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&cru HCLK_HOST0>, <&cru HCLK_HOST_ARB0>, <&u2phy2>, <&aclk_usb>;
 		clock-names = "usbhost", "arbiter", "utmi", "alk_usb";
 		companion = <&usb_host0_ohci>;
@@ -457,7 +457,7 @@
 	usb_host0_ohci: usb@fc840000 {
 		compatible = "rockchip,rk3588-ohci", "generic-ohci";
 		reg = <0x0 0xfc840000 0x0 0x40000>;
-		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&cru HCLK_HOST0>, <&cru HCLK_HOST_ARB0>, <&u2phy2>, <&aclk_usb>;
 		clock-names = "usbhost", "arbiter", "utmi", "alk_usb";
 		phys = <&u2phy2_host>;
@@ -469,7 +469,7 @@
 	usb_host1_ehci: usb@fc880000 {
 		compatible = "rockchip,rk3588-ehci", "generic-ehci";
 		reg = <0x0 0xfc880000 0x0 0x40000>;
-		interrupts = <GIC_SPI 218 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 218 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&cru HCLK_HOST1>, <&cru HCLK_HOST_ARB1>, <&u2phy3>, <&aclk_usb>;
 		clock-names = "usbhost", "arbiter", "utmi", "alk_usb";
 		companion = <&usb_host1_ohci>;
@@ -482,7 +482,7 @@
 	usb_host1_ohci: usb@fc8c0000 {
 		compatible = "rockchip,rk3588-ohci", "generic-ohci";
 		reg = <0x0 0xfc8c0000 0x0 0x40000>;
-		interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&cru HCLK_HOST1>, <&cru HCLK_HOST_ARB1>, <&u2phy3>, <&aclk_usb>;
 		clock-names = "usbhost", "arbiter", "utmi", "alk_usb";
 		phys = <&u2phy3_host>;
@@ -505,7 +505,7 @@
 		usbhost_dwc3_0: usb@fcd00000 {
 			compatible = "snps,dwc3";
 			reg = <0x0 0xfcd00000 0x0 0x400000>;
-			interrupts = <GIC_SPI 222 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 222 IRQ_TYPE_LEVEL_HIGH 0>;
 			resets = <&cru SRST_A_USB3OTG2>;
 			reset-names = "usb3-host";
 			dr_mode = "host";
@@ -568,7 +568,7 @@
 		u2phy0: usb2-phy@0 {
 			compatible = "rockchip,rk3588-usb2phy";
 			reg = <0x0 0x10>;
-			interrupts = <GIC_SPI 393 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 393 IRQ_TYPE_LEVEL_HIGH 0>;
 			resets = <&cru SRST_OTGPHY_U3_0>, <&cru SRST_P_USB2PHY_U3_0_GRF0>;
 			reset-names = "phy", "apb";
 			clocks = <&cru CLK_USB2PHY_HDPTXRXPHY_REF>;
@@ -595,7 +595,7 @@
 		u2phy2: usb2-phy@8000 {
 			compatible = "rockchip,rk3588-usb2phy";
 			reg = <0x8000 0x10>;
-			interrupts = <GIC_SPI 391 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 391 IRQ_TYPE_LEVEL_HIGH 0>;
 			resets = <&cru SRST_OTGPHY_U2_0>, <&cru SRST_P_USB2PHY_U2_0_GRF0>;
 			reset-names = "phy", "apb";
 			clocks = <&cru CLK_USB2PHY_HDPTXRXPHY_REF>;
@@ -621,7 +621,7 @@
 		u2phy3: usb2-phy@c000 {
 			compatible = "rockchip,rk3588-usb2phy";
 			reg = <0xc000 0x10>;
-			interrupts = <GIC_SPI 392 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts = <GIC_SPI 392 IRQ_TYPE_LEVEL_HIGH 0>;
 			resets = <&cru SRST_OTGPHY_U2_1>, <&cru SRST_P_USB2PHY_U2_1_GRF0>;
 			reset-names = "phy", "apb";
 			clocks = <&cru CLK_USB2PHY_HDPTXRXPHY_REF>;
@@ -1552,7 +1552,7 @@
 	hw_decompress: decompress@fea80000 {
 		compatible = "rockchip,hw-decompress";
 		reg = <0x0 0xfea80000 0x0 0x1000>;
-		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_HIGH 0>;
 		clocks = <&cru ACLK_DECOM>, <&cru DCLK_DECOM>, <&cru PCLK_DECOM>;
 		clock-names = "aclk", "dclk", "pclk";
 		resets = <&cru SRST_D_DECOM>;
