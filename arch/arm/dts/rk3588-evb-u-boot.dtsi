@@ -41,6 +41,19 @@
 			compatible = "u-boot,extlinux";
 		};
 	};
+
+	crypto_s: crypto_s@fe390000 {
+		compatible = "rockchip,rk3588-crypto";
+		reg = <0x0 0xfe390000 0x0 0x2000>;
+		secure;
+		interrupts = <GIC_SPI 208 IRQ_TYPE_LEVEL_HIGH 0>;
+		clocks = <&scmi_clk SCMI_ACLK_SECURE_NS>, <&scmi_clk SCMI_HCLK_SECURE_NS>,
+			 <&scmi_clk SCMI_CRYPTO_CORE>, <&scmi_clk SCMI_CRYPTO_PKA>;
+		clock-names = "aclk", "hclk", "sclk", "pka";
+		resets = <&scmi_reset SRST_CRYPTO_CORE>;
+		reset-names = "crypto-rst";
+		status = "disabled";
+	};
 };
 
 &otp {
@@ -87,6 +100,11 @@
 };
 
 &crypto {
+	bootph-all;
+	status = "okay";
+};
+
+&crypto_s {
 	bootph-all;
 	status = "okay";
 };
