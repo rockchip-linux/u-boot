@@ -124,6 +124,14 @@ enum RK_CRYPTO_ALGO {
 	RK_ALGO_ALGO_MAX
 };
 
+enum RK_DICE_TYPE {
+	RK_DICE_UDSCERTS = 0,
+	RK_DICE_CERTCHAIN,
+	RK_DICE_ED25519_PUB,
+	RK_DICE_ED25519_PRI,
+	RK_DICE_MAX
+};
+
 #define RK_MODE_ENCRYPT			1
 #define RK_MODE_DECRYPT			0
 
@@ -144,6 +152,10 @@ uint32_t optee_read_flash_lock_state(uint8_t *flash_lock_state);
 uint32_t optee_write_flash_lock_state(uint8_t flash_lock_state);
 void optee_client_init(void);
 uint32_t optee_notify_uboot_end(void);
+uint32_t optee_set_dice_data(enum RK_DICE_TYPE type,
+			     uint8_t *data, uint32_t data_size);
+uint32_t optee_get_dice_data(enum RK_DICE_TYPE type,
+			     uint8_t *data, uint32_t *data_size);
 
 /* rockchip optee api for otp */
 uint32_t optee_read_attribute_hash(uint32_t *buf, uint32_t length);

@@ -19,6 +19,8 @@
 #define STORAGE_CMD_WRITE_OBJ		1
 #define STORAGE_CMD_UBOOT_END		2
 #define STORAGE_CMD_SET_SECURITY	9
+#define STORAGE_CMD_SET_DICE_DATA	11
+#define STORAGE_CMD_GET_DICE_DATA	12
 
 #define USE_RPMB		1
 #define USE_SECURITY		0
@@ -327,4 +329,99 @@ uint32_t optee_notify_uboot_end(void)
 	res = optee_base_finish_storage();
 	res |= optee_base_finish_otp();
 	return res;
+}
+
+uint32_t optee_set_dice_data(enum RK_DICE_TYPE type,
+			     uint8_t *data, uint32_t data_size)
+{
+	int rc = 0;
+	uint32_t ret;
+	struct tee_shm *shm_buf;
+	struct tee_param param[2];
+
+	if (!data)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!data_size)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!tee) {
+		if (storage_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	rc = tee_shm_alloc(tee, data_size,
+			   TEE_SHM_ALLOC, &shm_buf);
+	if (rc) {
+		ret = TEE_ERROR_OUT_OF_MEMORY;
+		goto out;
+	}
+
+	memcpy(shm_buf->addr, data, data_size);
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
+	param[0].u.value.a = type;
+	param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	param[1].u.memref.shm = shm_buf;
+	param[1].u.memref.size = data_size;
+
+	ret = invoke_func(STORAGE_CMD_SET_DICE_DATA, ARRAY_SIZE(param), param);
+
+	tee_shm_free(shm_buf);
+out:
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
+}
+
+uint32_t optee_get_dice_data(enum RK_DICE_TYPE type,
+			     uint8_t *data, uint32_t *data_size)
+{
+	int rc = 0;
+	uint32_t ret;
+	uint32_t alloc_size;
+	struct tee_shm *shm_buf;
+	struct tee_param param[2];
+
+	if (!data || !data_size)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (*data_size == 0)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!tee) {
+		if (storage_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	alloc_size = *data_size;
+
+	rc = tee_shm_alloc(tee, alloc_size,
+			   TEE_SHM_ALLOC, &shm_buf);
+	if (rc) {
+		ret = TEE_ERROR_OUT_OF_MEMORY;
+		goto out;
+	}
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
+	param[0].u.value.a = type;
+	param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_OUTPUT;
+	param[1].u.memref.shm = shm_buf;
+	param[1].u.memref.size = alloc_size;
+
+	ret = invoke_func(STORAGE_CMD_GET_DICE_DATA, ARRAY_SIZE(param), param);
+	if (!ret) {
+		memcpy(data, shm_buf->addr, alloc_size);
+		*data_size = param[1].u.memref.size;
+	}
+
+	tee_shm_free(shm_buf);
+out:
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
 }
