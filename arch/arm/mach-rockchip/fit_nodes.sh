@@ -192,7 +192,7 @@ function gen_bl32_node()
 	fi
 
 	TEE="tee.bin"
-	echo "		tee {
+	echo "		optee {
 			description = \"TEE\";
 			data = /incbin/(\"${TEE}${SUFFIX}\");
 			type = \"firmware\";
@@ -213,8 +213,8 @@ function gen_bl32_node()
 				algo = \"sha256\";
 			};
 		};"
-	LOADABLE_TEE=", \"tee\""
-	FIRMWARE_TEE="firmware = \"tee\";"
+	LOADABLE_TEE=", \"optee\""
+	FIRMWARE_TEE="firmware = \"optee\";"
 	FIRMWARE_SIGN="\"firmware\""
 }
 
