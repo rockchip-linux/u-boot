@@ -653,7 +653,7 @@ int spl_fdt_chosen_bootargs(struct spl_load_info *info, void *fdt)
 void spl_hang_reset(void)
 {
 	printf("# Reset the board to bootrom #\n");
-#if defined(CONFIG_SPL_SYSRESET) && defined(CONFIG_SPL_DRIVERS_MISC_SUPPORT)
+#ifdef CONFIG_SPL_SYSRESET
 	/* reset is available after dm setup */
 	if (gd->flags & GD_FLG_SPL_EARLY_INIT) {
 		writel(BOOT_BROM_DOWNLOAD, CONFIG_ROCKCHIP_BOOT_MODE_REG);

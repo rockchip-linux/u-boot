@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <os.h>
 
-__weak void board_hang(void) {}
 #ifdef CONFIG_SPL_BUILD
 __weak void spl_hang_reset(void) {}
 #endif
@@ -32,13 +31,11 @@ void hang(void)
 	puts("### ERROR ### Please RESET the board ###\n");
 #endif
 	bootstage_error(BOOTSTAGE_ID_NEED_RESET);
+	if (IS_ENABLED(CONFIG_SANDBOX))
+		os_exit(1);
 #ifdef CONFIG_SPL_BUILD
 	spl_hang_reset();
 #endif
-	if (IS_ENABLED(CONFIG_SANDBOX))
-		os_exit(1);
-	board_hang();
-
 	for (;;)
 		;
 }
