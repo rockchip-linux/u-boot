@@ -175,6 +175,13 @@
 		};
 	};
 
+	firmware: firmware {
+		optee: optee {
+			compatible = "linaro,optee-tz";
+			method = "smc";
+		};
+	};
+
 	cpu01_opp_table: cpu01-opp-table {
 		compatible = "operating-points-v2";
 		opp-shared;
