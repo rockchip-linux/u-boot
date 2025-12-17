@@ -11,6 +11,7 @@
 #ifdef CONFIG_SPL_DM_CRYPTO
 #include <crypto.h>
 #endif
+#include <crypto_manager.h>
 #include <errno.h>
 #include <fdt_support.h>
 #include <fpga.h>
@@ -1093,6 +1094,9 @@ static int spl_internal_load_simple_fit(struct spl_image_info *spl_image,
 	int index = 0;
 	int firmware_node;
 
+#ifdef CONFIG_SPL_CRYPTO_MANAGER
+	crypto_dump_best(false);
+#endif
 	/* if board sigs verify required, check self */
 	if (fit_board_verify_required_sigs() &&
 	    !IS_ENABLED(CONFIG_SPL_FIT_SIGNATURE)) {

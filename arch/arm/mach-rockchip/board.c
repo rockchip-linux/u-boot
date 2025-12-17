@@ -17,6 +17,7 @@
 #include <avb_verify.h>
 #endif
 #include <button.h>
+#include <crypto_manager.h>
 #include <exports.h>
 #include <cli.h>
 #include <clk.h>
@@ -214,6 +215,9 @@ int board_init(void)
 #ifdef CONFIG_OPTEE
 	optee_region_map();
 	optee_client_init();
+#endif
+#ifdef CONFIG_CRYPTO_MANAGER
+	crypto_dump_best(false);
 #endif
 #ifdef CONFIG_DM_KERNEL_DTB
 	kernel_dtb_init();
