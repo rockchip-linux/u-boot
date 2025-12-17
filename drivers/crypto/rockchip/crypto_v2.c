@@ -1760,12 +1760,13 @@ static struct crypto_impl rk_crypto_v2_cipher_impl = {
 static int rk_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_len,
 		      struct key_prop *prop, uint8_t *out)
 {
-	struct mpa_num *mpa_m = NULL, *mpa_e = NULL;;
-	struct mpa_num *mpa_n = NULL, *mpa_result = NULL;
+	struct mpa_num *mpa_m = NULL, *mpa_e = NULL, *mpa_n = NULL;
+	struct mpa_num *mpa_c = NULL, *mpa_result = NULL;
 	u32 n_words, n_bytes;
 	int ret;
 
-	if (!dev || !sig || !prop || !out || sig_len != prop->num_bits / 8)
+	if (!dev || !sig || !prop || !out || (sig_len != prop->num_bits / 8) ||
+	    !prop->rsa_key)
 		return -EINVAL;
 
 	n_words = prop->num_bits / 32;
@@ -1775,27 +1776,28 @@ static int rk_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_len,
 	if (ret)
 		goto exit;
 
-	ret = rk_mpa_alloc(&mpa_e, NULL, n_words);
+	ret = rk_mpa_alloc(&mpa_e, prop->rsa_key->e, n_words);
 	if (ret)
 		goto exit;
 
-	ret = rk_mpa_alloc(&mpa_n, (void *)prop->modulus, n_words);
+	ret = rk_mpa_alloc(&mpa_n, prop->rsa_key->n, n_words);
 	if (ret)
 		goto exit;
+
+	if (prop->rsa_key->c) {
+		ret = rk_mpa_alloc(&mpa_c, prop->rsa_key->c, n_words);
+		if (ret)
+			goto exit;
+	}
 
 	ret = rk_mpa_alloc(&mpa_result, NULL, n_words);
 	if (ret)
 		goto exit;
 
-	/* mpa need little endian data */
-	util_reverse_buff((void *)mpa_m->d, n_bytes);
-	util_reverse_buff((void *)mpa_n->d, n_bytes);
-	util_reverse_memcpy((void *)mpa_e->d, prop->public_exponent, prop->exp_len);
-
 	rk_crypto_enable_clk(dev);
-	ret = rk_exptmod_np(mpa_m, mpa_e, mpa_n, NULL, mpa_result);
+	ret = rk_exptmod_np(mpa_m, mpa_e, mpa_n, mpa_c, mpa_result);
 	if (!ret)
-		util_reverse_memcpy(out, (void *)mpa_result->d, n_bytes);
+		memcpy(out, (void *)mpa_result->d, n_bytes);
 
 	rk_crypto_disable_clk(dev);
 
@@ -1803,6 +1805,7 @@ exit:
 	rk_mpa_free(&mpa_m);
 	rk_mpa_free(&mpa_e);
 	rk_mpa_free(&mpa_n);
+	rk_mpa_free(&mpa_c);
 	rk_mpa_free(&mpa_result);
 
 	return ret;
