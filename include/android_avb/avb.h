@@ -20,13 +20,11 @@ extern "C" {
 #define PERM_ATTR_DIGEST_SIZE		32
 #define PERM_ATTR_TOTAL_SIZE		1052
 #define VBOOT_KEY_HASH_SIZE		32
-#define ANDROID_VBOOT_LOCK		0
-#define ANDROID_VBOOT_UNLOCK		1
 #define VBMETA_MAX_SIZE			65536
 #define ROLLBACK_MAX_SIZE		20
 #define LOCK_MASK			(1 << 0)
 #define UNLOCK_DISABLE_MASK		(1 << 1)
-#define VBOOT_STATE_SIZE		1000
+#define AVB_STATE_SIZE		1000
 #define PERM_ATTR_SUCCESS_FLAG		1
 /* soc-v use the rsa2048 */
 #define VBOOT_KEY_SIZE			256
@@ -163,13 +161,13 @@ AvbIOResult avb_close_optee_client(void);
 AvbIOResult avb_write_attribute_hash(uint8_t *buf, uint8_t length);
 
 /**
- * Get the avb vboot state
+ * Get the avb state
  *
- * @param buf    store the vboot state.
+ * @param buf    store avb state.
  *
  * @return 0 if the command succeeded, -1 if it failed
  */
-AvbIOResult avb_get_at_vboot_state(char *buf);
+AvbIOResult avb_get_state(char *buf);
 
 /**
  * Get permanent attribute certificate

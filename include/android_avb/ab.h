@@ -72,6 +72,16 @@ bool ab_have_bootable_slot(void);
  */
 AvbABFlowResult ab_update_stored_rollback_indexes_for_slot(AvbOps* ops, AvbSlotVerifyData* slot_data);
 
+/**
+ * Get slot data
+ */
+AvbABFlowResult ab_get_slot_data(AvbABData* ab_data);
+
+/**
+ * Set a certain slot as active
+ */
+AvbABFlowResult ab_set_slot_active(unsigned int *slot_number);
+
 #ifdef __cplusplus
 }
 #endif

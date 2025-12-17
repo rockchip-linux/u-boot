@@ -203,3 +203,45 @@ AvbABFlowResult ab_update_stored_rollback_indexes_for_slot(AvbOps* ops, AvbSlotV
 
 	return 0;
 }
+
+AvbABFlowResult ab_get_slot_data(AvbABData* ab_data)
+{
+	AvbOps* ops;
+	AvbIOResult io_ret;
+
+	ops = avb_ops_user_new();
+	if (ops == NULL) {
+		printf("avb_ops_user_new() failed!\n");
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
+
+	io_ret = ops->ab_ops->read_ab_metadata(ops->ab_ops, ab_data);
+	if (io_ret != AVB_IO_RESULT_OK) {
+		printf("Could not read ab data!\n");
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
+
+	avb_ops_user_free(ops);
+	return 0;
+}
+
+AvbABFlowResult ab_set_slot_active(unsigned int *slot_number)
+{
+	AvbOps* ops;
+	AvbIOResult ret = 0;
+
+	ops = avb_ops_user_new();
+	if (ops == NULL) {
+		printf("avb_ops_user_new() failed!\n");
+		return AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
+
+	debug("set_slot_active\n");
+	if (avb_ab_mark_slot_active(ops->ab_ops, *slot_number) != 0) {
+		printf("Could not set slot active!\n");
+		ret = AVB_AB_FLOW_RESULT_ERROR_IO;
+	}
+
+	avb_ops_user_free(ops);
+	return ret;
+}

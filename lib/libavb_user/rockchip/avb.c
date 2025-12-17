@@ -412,7 +412,7 @@ int avb_get_bootloader_min_version(char *buffer)
 }
 #endif
 
-AvbIOResult avb_get_at_vboot_state(char *buf)
+AvbIOResult avb_get_state(char *buf)
 {
 	char temp_flag = 0;
 	char *lock_val = NULL;
@@ -448,13 +448,13 @@ AvbIOResult avb_get_at_vboot_state(char *buf)
 		bootloader_locked_flag = temp_flag ? "1" : "0";
 	}
 
-	rollback_indices = malloc(VBOOT_STATE_SIZE);
+	rollback_indices = malloc(AVB_STATE_SIZE);
 	if (!rollback_indices) {
 		printf("No buff to malloc!");
 		return AVB_IO_RESULT_ERROR_OOM;
 	}
 
-	memset(rollback_indices, 0, VBOOT_STATE_SIZE);
+	memset(rollback_indices, 0, AVB_STATE_SIZE);
 	if (avb_read_all_rollback_index(rollback_indices))
 		printf("Can not read avb_min_ver!");
 #ifdef CONFIG_SUPPORT_EMMC_RPMB
@@ -462,7 +462,7 @@ AvbIOResult avb_get_at_vboot_state(char *buf)
 	if (avb_get_bootloader_min_version(min_versions))
 		printf("Call avb_get_bootloader_min_version error!");
 #endif
-	n = snprintf(buf, VBOOT_STATE_SIZE - 1,
+	n = snprintf(buf, AVB_STATE_SIZE - 1,
 		     "avb-perm-attr-set=%s\n"
 		     "avb-locked=%s\n"
 		     "avb-unlock-disabled=%s\n"
@@ -475,11 +475,11 @@ AvbIOResult avb_get_at_vboot_state(char *buf)
 		     bootloader_locked_flag,
 		     rollback_indices,
 		     min_versions);
-	if (n >= VBOOT_STATE_SIZE) {
+	if (n >= AVB_STATE_SIZE) {
 		printf("The VBOOT_STATE buf is truncated\n");
-		buf[VBOOT_STATE_SIZE - 1] = 0;
+		buf[AVB_STATE_SIZE - 1] = 0;
 	}
-	debug("The vboot state buf is %s\n", buf);
+	debug("The avb state buf is %s\n", buf);
 	free(rollback_indices);
 
 	return AVB_IO_RESULT_OK;

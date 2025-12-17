@@ -17,6 +17,11 @@ struct disk_partition;
 
 /* Number of slots */
 #define NUM_SLOTS 2
+#define ENUM_MERGE_STATUS_NONE			(0)
+#define ENUM_MERGE_STATUS_UNKNOWN		(1)
+#define ENUM_MERGE_STATUS_SNAPSHOTTED		(2)
+#define ENUM_MERGE_STATUS_MERGING		(3)
+#define ENUM_MERGE_STATUS_CANCELLED		(4)
 #define MISC_VIRTUAL_AB_MAGIC_HEADER		(0x56740AB0)
 
 struct misc_virtual_ab_message {
