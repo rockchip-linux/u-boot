@@ -251,6 +251,147 @@ const char *asym_algo_name(enum ASYM_ALGO algo)
 	}
 }
 
+static void crypto_dump_info(const struct crypto_impl *impl)
+{
+	const char *driver_name;
+	u32 priority;
+	u32 i;
+
+	driver_name = crypto_get_driver_name(impl);
+	if (!driver_name)
+		driver_name = "Unknown";
+
+	printf("%s\n", driver_name);
+
+	if (impl->type == CRYPTO_TYPE_HASH) {
+#if defined(CONFIG_DM_HASH)
+		printf("  [HASH]\n");
+
+		for (i = 0; i < HASH_ALGO_NUM; i++) {
+			if (impl->check_valid && impl->check_valid(impl->dev, i, CRYPTO_MODE_NONE)) {
+				priority = impl->dynamic_priority ?
+					   impl->dynamic_priority(impl->dev, i, CRYPTO_MODE_NONE) :
+					   impl->priority;
+				printf("\t%-16s        %3d\n",
+				       hash_algo_name(i),
+				       priority);
+			}
+		}
+
+		printf("\n");
+#endif
+	} else if (impl->type == CRYPTO_TYPE_HMAC) {
+#if defined(CONFIG_DM_HMAC)
+		printf("  [HMAC]\n");
+
+		for (i = 0; i < HMAC_ALGO_NUM; i++) {
+			if (impl->check_valid && impl->check_valid(impl->dev, i, CRYPTO_MODE_NONE)) {
+				priority = impl->dynamic_priority ?
+					   impl->dynamic_priority(impl->dev, i, CRYPTO_MODE_NONE) :
+					   impl->priority;
+				printf("\t%-16s        %3d\n",
+				       hmac_algo_name(i),
+				       priority);
+			}
+		}
+
+		printf("\n");
+#endif
+	} else if (impl->type == CRYPTO_TYPE_ASYM) {
+		printf("  [ASYM]\n");
+
+		for (i = 0; i < ASYM_ALGO_NUM; i++) {
+			if (impl->check_valid && impl->check_valid(impl->dev, i, CRYPTO_MODE_NONE)) {
+				priority = impl->dynamic_priority ?
+					   impl->dynamic_priority(impl->dev, i, CRYPTO_MODE_NONE) :
+					   impl->priority;
+				printf("\t%-16s        %3d\n",
+				       asym_algo_name(i),
+				       priority);
+			}
+		}
+
+		printf("\n");
+	} else if (impl->type == CRYPTO_TYPE_CIPHER) {
+#if defined(CONFIG_DM_CIPHER)
+		u32 algo_exist = false;
+		u32 j;
+
+		printf("  [CIPHER]\n");
+
+		for (i = 0; i < CIPHER_ALGO_NUM; i++) {
+			for (j = 0; j < CIPHER_MODE_NUM; j++) {
+				if (impl->check_valid && impl->check_valid(impl->dev, i, j)) {
+					if (!algo_exist) {
+						algo_exist = true;
+						printf("\t%-16s\n", cipher_algo_name(i));
+					}
+
+					priority = impl->dynamic_priority ?
+						   impl->dynamic_priority(impl->dev, i, j) :
+						   impl->priority;
+					printf("\t %-16s %3d\n",
+					       cipher_mode_name(j),
+					       priority);
+				}
+			}
+
+			algo_exist = false;
+		}
+
+		printf("\n");
+#endif
+	}
+
+	printf("--------------------------------------------------------------\n");
+}
+
+void crypto_dump_info_by_type(enum crypto_type type)
+{
+	const struct crypto_impl *impl = NULL;
+	u32 index;
+
+	for (index = 0; index < CRYPTO_DRIVER_MAX; index++) {
+		impl = crypto_get_impl_by_index(type, index);
+		if (!impl)
+			break;
+
+		crypto_dump_info(impl);
+	}
+}
+
+void crypto_dump_tree(void)
+{
+	u32 type;
+
+	printf("==============================================================\n");
+	printf("Driver                          Priority\n");
+	printf("==============================================================\n");
+
+	for (type = 0; type < CRYPTO_TYPE_MAX; type++)
+		crypto_dump_info_by_type(type);
+}
+
+void crypto_dump_best(bool dump_tree)
+{
+	const struct crypto_impl *impl;
+
+	printf("Best Crypto: ");
+
+	impl = crypto_get_impl(CRYPTO_TYPE_HASH, HASH_ALGO_SHA256, CRYPTO_MODE_NONE);
+	if (impl)
+		printf("%s", impl->name);
+
+	impl = crypto_get_impl(CRYPTO_TYPE_ASYM, ASYM_ALGO_RSA, CRYPTO_MODE_NONE);
+	if (impl)
+		printf(", %s", impl->name);
+
+	printf("\n");
+
+	if (dump_tree)
+		crypto_dump_tree();
+}
+
 U_BOOT_DRIVER(crypto_manager) = {
 	.name      = CRYPTO_MISC_MANAGER,
 	.id        = UCLASS_MISC,

@@ -54,13 +54,13 @@ struct crypto_impl {
 };
 
 int crypto_impl_register(const struct crypto_impl *impl);
-
 void crypto_impl_unregister(const struct crypto_impl *impl);
-
 const struct crypto_impl *crypto_get_impl_by_index(enum crypto_type type, u32 index);
-
 const struct crypto_impl *crypto_get_impl(enum crypto_type type, u32 algo, u32 mode);
-
 const char *crypto_get_driver_name(const struct crypto_impl *impl);
+
+void crypto_dump_best(bool dump_tree);
+void crypto_dump_tree(void);
+void crypto_dump_info_by_type(enum crypto_type type);
 
 #endif
