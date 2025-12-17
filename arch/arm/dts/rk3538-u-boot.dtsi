@@ -21,6 +21,28 @@
 		bootph-all;
 		status = "okay";
 	};
+
+	crypto_s: crypto_s@fd940000 {
+		compatible = "rockchip,crypto-ce";
+		reg = <0xfd940000 0x2000>;
+		secure;
+		interrupts = <GIC_SPI 170 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cru ACLK_NSRKCE>, <&cru HCLK_NS_RKCE>, <&cru CLK_PKA_NSRKCE>;
+		clock-names = "aclk", "hclk", "pka";
+		resets = <&cru SRST_HRESETN_NS_RKCE>;
+		reset-names = "crypto-rst";
+		status = "disabled";
+	};
+};
+
+&crypto {
+	bootph-all;
+	status = "okay";
+};
+
+&crypto_s {
+	bootph-all;
+	status = "okay";
 };
 
 &gpio0 {
