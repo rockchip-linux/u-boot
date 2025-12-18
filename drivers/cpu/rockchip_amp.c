@@ -227,18 +227,35 @@ __weak int fit_standalone_release(char *id, uintptr_t entry_point)
 	return 0;
 }
 
-static int standalone_handler(const char *id, ulong load, ulong entry, int data_size)
+__weak int fit_standalone_ext_release(char *id, standalone_args_t *args)
+{
+	return 0;
+}
+
+static int standalone_handler(const char *id, standalone_args_t *args)
 {
 	int ret;
+	uintptr_t load = args->load;
+	uintptr_t entry = args->entry;
+	size_t size = args->size;
+	uintptr_t sram_start = args->sram_start;
+	uintptr_t exsram_start = args->exsram_start;
+	uintptr_t experi_start = args->experi_start;
+	uintptr_t uc_start = args->uc_start;
+	uintptr_t uc_end = args->uc_end;
 
 	if (!sysmem_alloc_base_by_name(id,
-			(phys_addr_t)load, data_size))
+			(phys_addr_t)load, (phys_size_t)size))
 		return -ENXIO;
 
 	printf("Handle standalone: '%s' load 0x%08lx, entry 0x%08lx ...",
 	       id, load, entry);
 
-	ret = fit_standalone_release((char *)id, entry);
+	if (sram_start || exsram_start || experi_start || uc_start || uc_end) {
+		ret = fit_standalone_ext_release((char *)id, args);
+	} else {
+		ret = fit_standalone_release((char *)id, entry);
+	}
 	if (ret) {
 		printf("failed, ret=%d\n", ret);
 		return ret;
@@ -253,9 +270,12 @@ static int brought_up_amp(void *fit, int noffset,
 {
 	const char *desc;
 	boot_args_t args;
+	standalone_args_t sa_args;
 	u32 cpu, aarch64, hyp;
 	u32 load, load_c, thumb, us;
 	u32 pe_state, entry, pass_fdt;
+	u32 sram_start, exsram_start, experi_start;
+	u32 uc_start, uc_end;
 	int boot_on;
 	int data_size;
 	int i, ret;
@@ -267,9 +287,14 @@ static int brought_up_amp(void *fit, int noffset,
 	hyp = fit_get_u32_default(fit, noffset, "hyp", 0);
 	thumb = fit_get_u32_default(fit, noffset, "thumb", 0);
 	load = fit_get_u32_default(fit, noffset, "load", -ENODATA);
+	entry = fit_get_u32_default(fit, noffset, "entry", -ENODATA);
+	sram_start = fit_get_u32_default(fit, noffset, "sram_start", 0);
+	exsram_start = fit_get_u32_default(fit, noffset, "exsram_start", 0);
+	experi_start = fit_get_u32_default(fit, noffset, "experi_start", 0);
+	uc_start = fit_get_u32_default(fit, noffset, "uc_start", 0);
+	uc_end = fit_get_u32_default(fit, noffset, "uc_end", 0);
 	load_c = fit_get_u32_default(fit, noffset, "load_c", -ENODATA);
 	pass_fdt = fit_get_u32_default(fit, noffset, "pass-fdt", 0);
-	entry = fit_get_u32_default(fit, noffset, "entry", -ENODATA);
 	us = fit_get_u32_default(fit, noffset, "udelay", 0);
 	boot_on = fit_get_u32_default(fit, noffset, "boot-on", 1);
 	fit_image_get_arch(fit, noffset, &arch);
@@ -286,7 +311,16 @@ static int brought_up_amp(void *fit, int noffset,
 			AMP_E("standalone: \"desc\" or \"load\" property missing!\n");
 			goto exit;
 		}
-		standalone_handler(desc, load, entry, data_size);
+
+		sa_args.load = load;
+		sa_args.entry = entry;
+		sa_args.size = data_size;
+		sa_args.sram_start = sram_start;
+		sa_args.exsram_start = exsram_start;
+		sa_args.experi_start = experi_start;
+		sa_args.uc_start = uc_start;
+		sa_args.uc_end = uc_end;
+		standalone_handler(desc, &sa_args);
 		goto exit;
 	}
 

@@ -27,6 +27,18 @@
 		((MAP_THUMB(thumb) & 0x1) << MODE_THUMB_SHIFT) |	\
 		((MAP_SECURE(secure) & 0x1) << MODE_SECURE_SHIFT))
 
+/* config arguments of standalone */
+typedef struct standalone_args {
+	uintptr_t load;         /* load addr */
+	uintptr_t entry;        /* entry addr */
+	size_t size;            /* image size */
+	uintptr_t sram_start;   /* sram start addr */
+	uintptr_t exsram_start; /* external sram start addr */
+	uintptr_t experi_start; /* external periphal start addr */
+	uintptr_t uc_start;     /* uncache start addr */
+	uintptr_t uc_end;       /* uncache end addr */
+} standalone_args_t;
+
 int amp_cpus_on(void);
 int arm64_switch_amp_pe(struct bootm_headers *images);
 

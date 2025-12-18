@@ -6,6 +6,7 @@
 
 #define LOG_CATEGORY LOGC_ARCH
 
+#include <amp.h>
 #include <dm.h>
 #include <misc.h>
 #include <mmc.h>
@@ -15,6 +16,8 @@
 #include <asm/arch-rockchip/grf_rk3588.h>
 #include <asm/arch-rockchip/hardware.h>
 #include <asm/arch-rockchip/ioc_rk3588.h>
+#include <asm/arch-rockchip/smccc.h>
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #define FIREWALL_DDR_BASE		0xfe030000
@@ -1433,6 +1436,54 @@ int spl_fit_standalone_release(char *id, uintptr_t entry_point)
 	return 0;
 }
 #endif
+
+int fit_standalone_ext_release(char *id, standalone_args_t *args)
+{
+	/* pmu m0 configuration: */
+	uintptr_t load = args->load;
+	uintptr_t sram_start = args->sram_start;
+	uintptr_t exsram_start = args->exsram_start;
+	uintptr_t experi_start = args->experi_start;
+	uintptr_t uc_start = args->uc_start;
+	uintptr_t uc_end = args->uc_end;
+
+	/* set gpll */
+	writel(0x00f00042, CRU_BASE + CRU_GPLL_CON1);
+
+	sip_smc_mcu_config(ROCKCHIP_SIP_CONFIG_PMUMCU_0_ID,
+			   ROCKCHIP_SIP_CONFIG_MCU_CODE_START_ADDR,
+			   0xffff0000 | (load >> 16));
+	if (sram_start) {
+		sip_smc_mcu_config(ROCKCHIP_SIP_CONFIG_PMUMCU_0_ID,
+				   ROCKCHIP_SIP_CONFIG_MCU_SRAM_START_ADDR,
+				   0xffff0000 | (sram_start >> 16));
+	}
+	if (exsram_start) {
+		sip_smc_mcu_config(ROCKCHIP_SIP_CONFIG_PMUMCU_0_ID,
+				   ROCKCHIP_SIP_CONFIG_MCU_EXSRAM_START_ADDR,
+				   0xffff0000 | (exsram_start >> 16));
+	}
+	if (experi_start) {
+		sip_smc_mcu_config(ROCKCHIP_SIP_CONFIG_PMUMCU_0_ID,
+				   ROCKCHIP_SIP_CONFIG_MCU_EXPERI_START_ADDR,
+				   0xffff0000 | (experi_start >> 16));
+	}
+	if (uc_start && uc_end) {
+		sip_smc_mcu_config(ROCKCHIP_SIP_CONFIG_PMUMCU_0_ID,
+				   ROCKCHIP_SIP_CONFIG_MCU_UNCACHE_START_ADDR,
+				   uc_start);
+		sip_smc_mcu_config(ROCKCHIP_SIP_CONFIG_PMUMCU_0_ID,
+				   ROCKCHIP_SIP_CONFIG_MCU_UNCACHE_END_ADDR,
+				   uc_end);
+	}
+
+	/* select WDT trigger global reset. */
+	writel(0x08400840, CRU_BASE + CRU_GLB_RST_CON);
+	/* release pmu mcu */
+	writel(0x20000000, PMU1CRU_BASE + PMU1CRU_SOFTRST_CON00);
+
+	return 0;
+}
 
 #define RK3588_OTP_CPU_CODE_OFFSET		0x02
 #define RK3588_OTP_SPECIFICATION_OFFSET		0x06
