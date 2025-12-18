@@ -22,6 +22,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CRU_PHPL_BASE			0xfd080000
 #define CRU_PHPL_GATE_CON01		0x804
 
+#define VO_GRF_BASE			0xfd170000
+#define SAI2ACODEC_CON2			0x8
+
 #define PHPL_GRF_BASE			0xfd190000
 #define TSADC_CON0			0x1c
 #define TSADC_CON1			0x20
@@ -162,6 +165,9 @@ int arch_cpu_init(void)
 	writel(0x007f007f, PHPL_GRF_BASE + TSADC_CON6);
 	writel(0x80088008, PHPL_GRF_BASE + TSADC_CON0);
 	tsadc_trigger();
+
+	/* Enable sai2 to iomux path default */
+	writel(0xffff00b0, VO_GRF_BASE + SAI2ACODEC_CON2);
 #endif
 
 	return 0;
