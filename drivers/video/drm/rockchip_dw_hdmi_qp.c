@@ -1268,6 +1268,15 @@ null_basep:
 			hdmi->bus_width |= COLOR_DEPTH_10BIT;
 	}
 
+	if (strcmp(hdmi->plat_data->phy_name, "samsung_hdptx_phy")) {
+		if (hdmi_bus_fmt_is_yuv420(hdmi->bus_format))
+			hdmi->bus_width = color_depth / 2;
+		else if (!hdmi_bus_fmt_is_yuv422(hdmi->bus_format))
+			hdmi->bus_width = color_depth;
+		else
+			hdmi->bus_width = 8;
+	}
+
 	rockchip_phy_set_bus_width(conn->phy, hdmi->bus_width);
 }
 
@@ -1654,12 +1663,16 @@ static enum drm_connector_status rockchip_hdmi_qp_read_hpd(void *data)
 	return hdmi->ops->read_hpd(hdmi);
 }
 
-static void rockchip_hdmi_qp_set_pll(struct rockchip_connector *conn, void *data, void *state)
+static
+void rockchip_hdmi_qp_set_pll(struct rockchip_connector *conn, void *data, void *state, u32 rate)
 {
 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
-	u32 rate = (hdmi->bus_width & DATA_RATE_MASK) * 100;
+	u32 pll_rate = (hdmi->bus_width & DATA_RATE_MASK) * 100;
 
-	clk_set_rate(&hdmi->link_clk, rate);
+	if (rate)
+		clk_set_rate(&hdmi->link_clk, rate);
+	else
+		clk_set_rate(&hdmi->link_clk, pll_rate);
 }
 
 static const struct dw_hdmi_qp_phy_ops rockchip_hdmi_qp_phy_ops = {
