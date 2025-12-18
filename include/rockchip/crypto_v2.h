@@ -410,7 +410,7 @@
 #define	CRYPTO_RAM_PKA_RDY		_BIT(0)
 
 #define	CRYPTO_RAM_ST			0x0484
-#define	CRYPTO_CLK_RAM_RDY		_BIT(0)
+#define	CRYPTO_RAM_ST_RDY		_BIT(0)
 
 #define	CRYPTO_DEBUG_CTL		0x04a0
 #define	CRYPTO_DEBUG_MODE		_BIT(0)

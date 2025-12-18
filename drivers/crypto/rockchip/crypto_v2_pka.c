@@ -15,12 +15,18 @@
 
 void rk_pka_ram_ctrl_enable(void)
 {
+	if ((crypto_read(CRYPTO_RAM_CTL) & 0x3) == CRYPTO_RAM_PKA_RDY)
+		return;
+
 	crypto_write((CRYPTO_RAM_PKA_RDY << CRYPTO_WRITE_MASK_SHIFT) |
 		     CRYPTO_RAM_PKA_RDY, CRYPTO_RAM_CTL);
 }
 
 void rk_pka_ram_ctrl_disable(void)
 {
+	if ((crypto_read(CRYPTO_RAM_CTL) & 0x3) == 0)
+		return;
+
 	crypto_write((CRYPTO_RAM_PKA_RDY << CRYPTO_WRITE_MASK_SHIFT),
 		     CRYPTO_RAM_CTL);
 }
@@ -31,7 +37,9 @@ void rk_pka_wait_on_ram_ready(void)
 
 	do {
 		output_reg_val = crypto_read(CRYPTO_RAM_ST);
-	} while ((output_reg_val & 0x01) != CRYPTO_CLK_RAM_RDY);
+	} while ((output_reg_val & 0x01) != CRYPTO_RAM_ST_RDY);
+
+	crypto_write(CRYPTO_RAM_ST_RDY, CRYPTO_RAM_ST);
 }
 
 void rk_pka_wait_on_pipe_ready(void)
@@ -41,6 +49,8 @@ void rk_pka_wait_on_pipe_ready(void)
 	do {
 		output_reg_val = crypto_read(CRYPTO_PKA_PIPE_RDY);
 	} while ((output_reg_val & 0x01) != RK_PKA_PIPE_READY);
+
+	crypto_write(RK_PKA_PIPE_READY, CRYPTO_PKA_PIPE_RDY);
 }
 
 void rk_pka_wait_on_done(void)

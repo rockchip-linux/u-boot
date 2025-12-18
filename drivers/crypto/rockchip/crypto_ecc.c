@@ -22,11 +22,37 @@
 #define RK_ECP_WRITE_REG(offset, val)		crypto_write((val), (offset))
 #define RK_ECP_READ_REG(offset)			crypto_read((offset))
 
-#define RK_ECP_RAM_FOR_ECC() \
-		RK_ECP_WRITE_REG(RK_ECC_RAM_CTL, RK_ECC_RAM_CTL_SEL_MASK | RK_ECC_RAM_CTL_ECC)
+static __inline void rk_ecp_ram_for_ecc(void)
+{
+	if ((RK_ECP_READ_REG(RK_ECC_RAM_CTL) & 0x3) == RK_ECC_RAM_CTL_ECC)
+		return;
 
-#define RK_ECP_RAM_FOR_CPU() \
-		RK_ECP_WRITE_REG(RK_ECC_RAM_CTL, RK_ECC_RAM_CTL_SEL_MASK | RK_ECC_RAM_CTL_CPU)
+	if (RK_ECP_READ_REG(RK_ECC_RAM_ST) & RK_ECC_RAM_ST_RDY)
+		RK_ECP_WRITE_REG(RK_ECC_RAM_ST, RK_ECC_RAM_ST_RDY);
+
+	RK_ECP_WRITE_REG(RK_ECC_RAM_CTL, RK_ECC_RAM_CTL_SEL_MASK | RK_ECC_RAM_CTL_ECC);
+
+	while ((RK_ECP_READ_REG(RK_ECC_RAM_ST) & RK_ECC_RAM_ST_RDY) != RK_ECC_RAM_ST_RDY)
+		;
+
+	RK_ECP_WRITE_REG(RK_ECC_RAM_ST, RK_ECC_RAM_ST_RDY);
+}
+
+static __inline void rk_ecp_ram_for_cpu(void)
+{
+	if ((RK_ECP_READ_REG(RK_ECC_RAM_CTL) & 0x3) == RK_ECC_RAM_CTL_CPU)
+		return;
+
+	if (RK_ECP_READ_REG(RK_ECC_RAM_ST) & RK_ECC_RAM_ST_RDY)
+		RK_ECP_WRITE_REG(RK_ECC_RAM_ST, RK_ECC_RAM_ST_RDY);
+
+	RK_ECP_WRITE_REG(RK_ECC_RAM_CTL, RK_ECC_RAM_CTL_SEL_MASK | RK_ECC_RAM_CTL_CPU);
+
+	while ((RK_ECP_READ_REG(RK_ECC_RAM_ST) & RK_ECC_RAM_ST_RDY) != RK_ECC_RAM_ST_RDY)
+		;
+
+	RK_ECP_WRITE_REG(RK_ECC_RAM_ST, RK_ECC_RAM_ST_RDY);
+}
 
 /* big endian to little endian */
 #define RK_ECP_LOAD_DATA(dst, big_src) rk_ecp_load_data(dst, big_src)
@@ -326,7 +352,7 @@ exit:
 	}
 
 	RK_ECP_WRITE_REG(RK_ECC_CTL, 0);
-	RK_ECP_RAM_FOR_CPU();
+	rk_ecp_ram_for_cpu();
 
 	return ret;
 }
@@ -335,7 +361,7 @@ static int rockchip_ecc_request_trigger(void)
 {
 	uint32_t ecc_ctl = RK_ECP_READ_REG(RK_ECC_CTL);
 
-	RK_ECP_RAM_FOR_ECC();
+	rk_ecp_ram_for_ecc();
 
 	RK_ECP_WRITE_REG(RK_ECC_CTL, ecc_ctl | RK_ECC_CTL_REQ_ECC);
 
@@ -388,7 +414,7 @@ int rockchip_ecc_verify(const char *curve_name, uint8_t *hash, uint32_t hash_len
 		goto exit;
 	}
 
-	RK_ECP_RAM_FOR_CPU();
+	rk_ecp_ram_for_cpu();
 
 	curve_sel = group_id == RK_ECP_DP_SM2P256V1 ?
 		    RK_ECC_CTL_FUNC_SM2_CURVER : RK_ECC_CTL_FUNC_ECC_CURVER;

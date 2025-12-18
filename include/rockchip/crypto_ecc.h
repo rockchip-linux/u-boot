@@ -73,6 +73,9 @@
 #define RK_ECC_RAM_CTL_PKA				_SBF(0, 1)
 #define RK_ECC_RAM_CTL_ECC				_SBF(0, 2)
 
+#define RK_ECC_RAM_ST					0x0484
+#define RK_ECC_RAM_ST_RDY				_BIT(0)
+
 #define BYTE2WORD(bytes)	((bytes) / 4)
 #define BITS2BYTE(nbits)	((nbits) / 8)
 #define BITS2WORD(nbits)	((nbits) / 32)
