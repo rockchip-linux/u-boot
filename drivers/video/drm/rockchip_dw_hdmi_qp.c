@@ -8,6 +8,8 @@
 #include <boot_rkimg.h>
 #include <clk.h>
 #include <fdtdec.h>
+#include <generic-phy.h>
+#include <generic-phy-hdmi.h>
 #include <regmap.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
@@ -21,7 +23,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_phy.h"
 #include "dw_hdmi_qp.h"
 #include "rockchip_dw_hdmi_qp.h"
 
@@ -177,6 +178,7 @@ struct rockchip_hdmi {
 	struct gpio_desc enable_gpio;
 	const struct dw_hdmi_plat_data *plat_data;
 	struct rockchip_hdmi_chip_ops *ops;
+	struct phy phy;
 };
 
 /*
@@ -1010,7 +1012,7 @@ static unsigned int drm_rk_select_color(struct rockchip_hdmi *hdmi,
 	if (!max_tmds_clock)
 		max_tmds_clock = 340000;
 
-	if (hdmi_info->max_frl_rate_per_lane && mode->clock > 600000)
+	if (hdmi_info->max_frl_rate_per_lane && tmdsclock > 600000)
 		max_tmds_clock =
 			hdmi_info->max_lanes * hdmi_info->max_frl_rate_per_lane *
 				1000000;
@@ -1073,6 +1075,9 @@ void dw_hdmi_qp_select_output(struct hdmi_edid_data *edid_data,
 	struct base_screen_info *screen_info = NULL;
 	struct base2_screen_info *screen_info2 = NULL;
 	struct crtc_state *s = &state->crtc_state;
+	enum phy_hdmi_mode phy_hdmi_mode;
+	union phy_configure_opts opts = {};
+	struct phy_configure_opts_hdmi *phy_cfg = &opts.hdmi;
 	int max_scan = 100;
 	int min_scan = 51;
 	int offset = 0;
@@ -1214,6 +1219,14 @@ null_basep:
 	hdmi->bus_format = *bus_format;
 	color_depth = hdmi_bus_fmt_color_depth(*bus_format);
 	pixel_clk = edid_data->preferred_mode->clock;
+
+	if (hdmi_bus_fmt_is_yuv420(hdmi->bus_format))
+		hdmi->bus_width = color_depth / 2;
+	else if (!hdmi_bus_fmt_is_yuv422(hdmi->bus_format))
+		hdmi->bus_width = color_depth;
+	else
+		hdmi->bus_width = 8;
+
 	tmdsclk = hdmi_get_tmdsclock(hdmi, pixel_clk);
 	if (hdmi_bus_fmt_is_yuv420(hdmi->output_bus_format))
 		tmdsclk /= 2;
@@ -1230,26 +1243,25 @@ null_basep:
 			hdmi->link_cfg.frl_lanes = 4;
 			hdmi->link_cfg.rate_per_lane = 10;
 		}
-		hdmi->bus_width = hdmi->link_cfg.frl_lanes *
-			hdmi->link_cfg.rate_per_lane * 1000000;
-		/* 10 bit color depth and frl mode */
-		if (color_depth == 10)
-			hdmi->bus_width |=
-				COLOR_DEPTH_10BIT | HDMI_FRL_MODE;
-		else
-			hdmi->bus_width |= HDMI_FRL_MODE;
+		phy_cfg->bpc = 8;
+		phy_cfg->frl.lanes = hdmi->link_cfg.frl_lanes;
+		phy_cfg->frl.rate_per_lane = hdmi->link_cfg.rate_per_lane;
+		phy_hdmi_mode = PHY_HDMI_MODE_FRL;
 	} else {
 		if (dm_gpio_is_valid(&hdmi->enable_gpio))
 			dm_gpio_set_value(&hdmi->enable_gpio, 1);
-		hdmi->bus_width = pixel_clk * 10;
-		if (hdmi_bus_fmt_is_yuv420(*bus_format))
-			hdmi->bus_width /= 2;
 
-		if (color_depth == 10 && !hdmi_bus_fmt_is_yuv422(*bus_format))
-			hdmi->bus_width |= COLOR_DEPTH_10BIT;
+		phy_cfg->tmds_char_rate = tmdsclk * 1000;
+		if (color_depth == 10 && !hdmi_bus_fmt_is_yuv422(hdmi->output_bus_format))
+			phy_cfg->bpc = 10;
+		else
+			phy_cfg->bpc = 8;
+		phy_hdmi_mode = PHY_HDMI_MODE_TMDS;
 	}
 
-	rockchip_phy_set_bus_width(conn->phy, hdmi->bus_width);
+	generic_phy_set_mode_ext(&hdmi->phy, PHY_MODE_HDMI, phy_hdmi_mode);
+	generic_phy_configure(&hdmi->phy, &opts);
+	generic_phy_set_bus_width(&hdmi->phy, hdmi->bus_width);
 }
 
 bool dw_hdmi_qp_check_enable_gpio(void *data)
@@ -1508,7 +1520,9 @@ struct dw_hdmi_link_config *dw_hdmi_rockchip_get_link_cfg(void *data)
 static void dw_hdmi_qp_rockchip_phy_disable(struct rockchip_connector *conn, void *data,
 					    void *state)
 {
-	rockchip_phy_power_off(conn->phy);
+	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
+
+	generic_phy_power_off(&hdmi->phy);
 }
 
 static int dw_hdmi_qp_rockchip_genphy_init(struct rockchip_connector *conn, void *data, void *state)
@@ -1517,9 +1531,9 @@ static int dw_hdmi_qp_rockchip_genphy_init(struct rockchip_connector *conn, void
 
 	dw_hdmi_qp_rockchip_phy_disable(conn, data, state);
 
-	rockchip_phy_set_bus_width(conn->phy, hdmi->bus_width);
+	generic_phy_set_bus_width(&hdmi->phy, hdmi->bus_width);
 
-	return rockchip_phy_power_on(conn->phy);
+	return generic_phy_power_on(&hdmi->phy);
 }
 
 static enum drm_connector_status rk3576_read_hpd(struct rockchip_hdmi *hdmi)
@@ -1566,12 +1580,18 @@ static enum drm_connector_status rockchip_hdmi_qp_read_hpd(void *data)
 	return hdmi->ops->read_hpd(hdmi);
 }
 
-static void rockchip_hdmi_qp_set_pll(struct rockchip_connector *conn, void *data, void *state)
+static
+void rockchip_hdmi_qp_set_pll(struct rockchip_connector *conn, void *data, void *state, u32 rate)
 {
 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
-	u32 rate = (hdmi->bus_width & DATA_RATE_MASK) * 100;
 
-	clk_set_rate(&hdmi->link_clk, rate);
+	if (hdmi->link_cfg.frl_mode) {
+		clk_set_rate(&hdmi->link_clk, (ulong)hdmi->link_cfg.frl_lanes *
+			     hdmi->link_cfg.rate_per_lane * 100000000);
+	} else {
+		rate = clk_round_rate(&hdmi->link_clk, rate);
+		clk_set_rate(&hdmi->link_clk, rate);
+	}
 }
 
 static const struct dw_hdmi_qp_phy_ops rockchip_hdmi_qp_phy_ops = {
@@ -1642,6 +1662,9 @@ static int rockchip_dw_hdmi_qp_probe(struct udevice *dev)
 			__func__, hdmi->grf);
 		return -ENXIO;
 	}
+
+	generic_phy_get_by_name(dev, "hdmi", &hdmi->phy);
+	generic_phy_init(&hdmi->phy);
 
 	if (hdmi->plat_data->dev_type == RK3588_HDMI) {
 		map = syscon_regmap_lookup_by_phandle(dev, "rockchip,vo1_grf");

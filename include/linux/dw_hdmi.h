@@ -149,7 +149,7 @@ struct dw_hdmi_qp_phy_ops {
 	void (*disable)(struct rockchip_connector *conn, void *hdmi, void *data);
 	enum drm_connector_status (*read_hpd)(void *data);
 	void (*mode_valid)(void *hdmi, void *data);
-	void (*set_pll)(struct rockchip_connector *conn, void *hdmi, void *data);
+	void (*set_pll)(struct rockchip_connector *conn, void *hdmi, void *data, u32 rate);
 };
 
 struct dw_hdmi_link_config {

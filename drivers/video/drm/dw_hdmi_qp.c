@@ -23,7 +23,6 @@
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "dw_hdmi_qp.h"
-#include "rockchip_phy.h"
 
 enum frl_mask {
 	FRL_3GBPS_3LANE = 1,
@@ -1148,7 +1147,7 @@ static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
 	hdmi->hdmi_data.video_mode.mdataenablepolarity = true;
 
 	/* HDMI Initialization Step B.2 */
-	hdmi->phy.ops->set_pll(conn, hdmi->rk_hdmi, state);
+	hdmi->phy.ops->set_pll(conn, hdmi->rk_hdmi, state, 0);
 
 	/* Mark yuv422 10bit */
 	if (hdmi->hdmi_data.enc_out_bus_format == MEDIA_BUS_FMT_YUYV10_1X20)
