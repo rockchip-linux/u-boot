@@ -1073,10 +1073,10 @@ void preloader_console_init(void)
 
 #if CONFIG_IS_ENABLED(BANNER_PRINT)
 #ifdef BUILD_SPL_TAG
-	puts("\nU-Boot " PHASE_NAME " " PLAIN_VERSION " (" U_BOOT_DATE " - "
+	puts("U-Boot " PHASE_NAME " " PLAIN_VERSION " (" U_BOOT_DATE " - "
 	     U_BOOT_TIME " " U_BOOT_TZ "), fwver: "BUILD_SPL_TAG"\n");
 #else
-	puts("\nU-Boot " PHASE_NAME " " PLAIN_VERSION " (" U_BOOT_DATE " - "
+	puts("U-Boot " PHASE_NAME " " PLAIN_VERSION " (" U_BOOT_DATE " - "
 	     U_BOOT_TIME " " U_BOOT_TZ ")\n");
 #endif
 #endif
