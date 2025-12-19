@@ -87,7 +87,6 @@ obj-y += lowlevel_init.o
 obj-y += memory.o
 obj-$(CONFIG_SET_DFU_ALT_INFO)		+= dfu_alt_info.o
 obj-$(CONFIG_ROCKCHIP_FIT_IMAGE)	+= fit.o fit_misc.o
-obj-$(CONFIG_PSTORE)			+= pstore.o
 obj-$(CONFIG_ROCKCHIP_RESOURCE_IMAGE)	+= resource.o
 obj-$(CONFIG_ROCKCHIP_HWID_DTB)		+= hwid_dtb.o
 obj-$(CONFIG_ROCKCHIP_SMCCC)		+= smccc.o
@@ -105,4 +104,5 @@ else
 obj-y += spl_boot_mode.o
 endif
 
+obj-$(CONFIG_PSTORE)			+= pstore.o
 obj-$(CONFIG_$(SPL_)FIT)		+= fit_misc.o

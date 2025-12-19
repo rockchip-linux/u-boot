@@ -34,6 +34,7 @@
 #include <asm/arch-rockchip/param.h>
 #include <asm/arch-rockchip/hwid_dtb.h>
 #include <asm/arch-rockchip/meta.h>
+#include <asm/arch-rockchip/pstore.h>
 #include <asm/arch-rockchip/timer.h>
 #include <asm/global_data.h>
 #include <asm/io.h>
