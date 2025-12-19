@@ -5991,10 +5991,21 @@ static int rockchip_vop2_init(struct display_state *state)
 		u8 urgen_thl = vop2->data->vp_data[cstate->crtc_id].urgency->urgen_thl;
 		u8 urgen_thh = vop2->data->vp_data[cstate->crtc_id].urgency->urgen_thh;
 
-		vop2_mask_write(vop2, RK3576_SYS_AXI_HURRY_CTRL0_IMD, EN_MASK,
-				AXI0_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
-		vop2_mask_write(vop2, RK3576_SYS_AXI_HURRY_CTRL1_IMD, EN_MASK,
-				AXI1_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
+		if (vop2->version == VOP_VERSION_RK3576) {
+			vop2_mask_write(vop2, RK3576_SYS_AXI_HURRY_CTRL0_IMD, EN_MASK,
+					AXI0_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
+			vop2_mask_write(vop2, RK3576_SYS_AXI_HURRY_CTRL1_IMD, EN_MASK,
+					AXI1_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
+		} else if (vop2->version == VOP_VERSION_RK3572) {
+			vop2_mask_write(vop2, RK3572_SYS0_AXI0_HURRY_CTRL_IMD, EN_MASK,
+					AXI0_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
+			vop2_mask_write(vop2, RK3572_SYS1_AXI1_HURRY_CTRL_IMD, EN_MASK,
+					AXI1_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
+		} else if (vop2->version == VOP_VERSION_RK3538) {
+			vop2_mask_write(vop2, RK3572_SYS0_AXI0_HURRY_CTRL_IMD, EN_MASK,
+					AXI0_PORT_URGENCY_EN_SHIFT + cstate->crtc_id, 1, false);
+		}
+
 		vop2_mask_write(vop2, RK3568_VP0_COLOR_BAR_CTRL + vp_offset, EN_MASK,
 				POST_URGENCY_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3568_VP0_COLOR_BAR_CTRL + vp_offset, POST_URGENCY_THL_MASK,
