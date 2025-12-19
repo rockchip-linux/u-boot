@@ -21,6 +21,13 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define DIV_TO_RATE(input_rate, div)    ((input_rate) / ((div) + 1))
 
+#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_SUPPORT_USBPLUG)
+#ifndef BITS_WITH_WMASK
+#define BITS_WITH_WMASK(bits, msk, shift) \
+	((bits) << (shift)) | ((msk) << ((shift) + 16))
+#endif
+#endif
+
 static struct rockchip_pll_rate_table rk3538_pll_rates[] = {
 	/* _mhz, _refdiv, _fbdiv, _postdiv1, _postdiv2, _dsmpd, _frac */
 	RK3036_PLL_RATE(1416000000, 1, 59, 1, 1, 1, 0),
@@ -1244,6 +1251,17 @@ static int rk3538_clk_probe(struct udevice *dev)
 	struct rk3538_clk_priv *priv = dev_get_priv(dev);
 	int ret;
 
+#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_SUPPORT_USBPLUG)
+	/* set spll to 900M */
+	writel(BITS_WITH_WMASK(0U, 0x3U, 0),
+	       RK3538_SPMU_CRU_BASE + RK3538_SPMUCRU_MODE_CON00);
+	writel(BITS_WITH_WMASK(0x204b, 0x7fffU, 0),
+	       RK3538_SPMU_CRU_BASE + RK3538_SPLL_CON(24));
+	writel(BITS_WITH_WMASK(0x41, 0x1ffU, 0),
+	       RK3538_SPMU_CRU_BASE + RK3538_SPLL_CON(25));
+	writel(BITS_WITH_WMASK(1U, 0x3U, 0),
+	       RK3538_SPMU_CRU_BASE + RK3538_SPMUCRU_MODE_CON00);
+#endif
 	ret = rk3538_clk_init(priv);
 	if (ret)
 		return ret;

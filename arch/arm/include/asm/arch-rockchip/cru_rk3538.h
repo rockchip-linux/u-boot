@@ -154,6 +154,7 @@ struct pll_rate_table {
 #define RK3538_PMU_CRU_BASE		0x70000
 #define RK3538_PHPL_CRU_BASE		0x80000
 #define RK3538_PHPR_CRU_BASE		0x90000
+#define RK3538_SPMU_CRU_BASE		0xfd310000
 
 #define RK3538_PLL_CON(x)		((x) * 0x4 + RK3538_PMU_CRU_BASE)
 #define RK3538_SUBDDR_PLL_CON(x)	((x) * 0x4 + RK3538_SUBDDR_CRU_BASE)
@@ -194,6 +195,9 @@ struct pll_rate_table {
 #define RK3538_GLB_CNT_TH		0xc00
 #define RK3538_GLB_SRST_FST		0xc08
 #define RK3538_GLB_SRST_SND		0xc0c
+
+#define RK3538_SPLL_CON(x)		((x) * 0x4)
+#define RK3538_SPMUCRU_MODE_CON00	(0x280)
 
 #define RK3538_DIV_ACLK_M_CORE_SHIFT	11
 #define RK3538_DIV_ACLK_M_CORE_MASK	(0x1f << RK3538_DIV_ACLK_M_CORE_SHIFT)
