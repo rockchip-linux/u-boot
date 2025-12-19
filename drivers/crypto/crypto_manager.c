@@ -130,7 +130,7 @@ int crypto_impl_register(const struct crypto_impl *impl)
 		if (driver_name && !strcmp(node->driver_name, driver_name)) {
 			DMSG("driver_name %s is already exist, cannot be registered multiple times\n",
 			     driver_name);
-			return -EINVAL;
+			return -EEXIST;
 		}
 	}
 

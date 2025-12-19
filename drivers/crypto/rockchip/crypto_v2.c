@@ -1915,19 +1915,16 @@ static int rockchip_crypto_bind(struct udevice *dev)
 	rk_crypto_v2_hash_impl.dev = dev;
 
 	ret = crypto_impl_register(&rk_crypto_v2_hash_impl);
-	if (ret) {
-		printf("crypto_impl_register rk_crypto_v2_hash_impl failed.\n");
+	if (ret)
 		goto exit;
-	}
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_HMAC)
 	rk_crypto_v2_hmac_impl.dev = dev;
 
 	ret = crypto_impl_register(&rk_crypto_v2_hmac_impl);
-	if (ret) {
-		printf("crypto_impl_register rk_crypto_v2_hmac_impl failed.\n");
+	if (ret)
 		goto exit;
-	}
+
 #endif
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_CIPHER)
@@ -1935,10 +1932,9 @@ static int rockchip_crypto_bind(struct udevice *dev)
 	rk_crypto_v2_cipher_impl.dev = dev;
 
 	ret = crypto_impl_register(&rk_crypto_v2_cipher_impl);
-	if (ret) {
-		printf("crypto_impl_register rk_crypto_v2_cipher_impl failed.\n");
+	if (ret)
 		goto exit;
-	}
+
 #endif
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_RSA)
@@ -1946,10 +1942,9 @@ static int rockchip_crypto_bind(struct udevice *dev)
 	rk_mod_exp_impl.dev = dev;
 
 	ret = crypto_impl_register(&rk_mod_exp_impl);
-	if (ret) {
-		printf("crypto_impl_register rk_mod_exp_impl failed.\n");
+	if (ret)
 		goto exit;
-	}
+
 #endif
 
 #if CONFIG_IS_ENABLED(ROCKCHIP_EC)
@@ -1957,13 +1952,15 @@ static int rockchip_crypto_bind(struct udevice *dev)
 	rk_ecdsa_impl.dev = dev;
 
 	ret = crypto_impl_register(&rk_ecdsa_impl);
-	if (ret) {
-		printf("crypto_impl_register rk_ecdsa_impl failed.\n");
+	if (ret)
 		goto exit;
-	}
+
 #endif
 
 exit:
+	if (ret == -EEXIST)
+		ret = -ENODEV;
+
 	return ret;
 }
 
