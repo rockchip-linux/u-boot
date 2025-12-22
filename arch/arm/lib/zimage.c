@@ -24,7 +24,7 @@ int bootz_setup(ulong image, ulong *start, ulong *end)
 
 	if (zi->zi_magic != LINUX_ARM_ZIMAGE_MAGIC &&
 	    zi->zi_magic != BAREBOX_IMAGE_MAGIC) {
-		if (!IS_ENABLED(CONFIG_XPL_BUILD))
+		if (!IS_ENABLED(CONFIG_XPL_BUILD) && !IS_ENABLED(CONFIG_ARM64))
 			puts("zimage: Bad magic!\n");
 		return 1;
 	}

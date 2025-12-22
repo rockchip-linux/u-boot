@@ -2215,6 +2215,7 @@ int android_image_check_header(const struct andr_img_hdr *hdr);
 u32 android_image_get_comp(const struct andr_img_hdr *hdr);
 void android_image_set_decomp(struct andr_img_hdr *hdr, int comp);
 int android_image_parse_comp(struct andr_img_hdr *hdr, ulong *load_addr);
+int android_image_get_arch(const struct andr_img_hdr *hdr, int comp);
 int android_image_memcpy_separate(struct andr_img_hdr *hdr, ulong *load_address);
 
 struct andr_img_hdr *populate_andr_img_hdr(struct blk_desc *dev_desc,

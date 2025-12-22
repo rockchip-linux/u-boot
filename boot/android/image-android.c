@@ -223,6 +223,31 @@ int android_image_parse_kernel_comp(const struct andr_img_hdr *hdr)
 	return bootm_parse_comp((const unsigned char *)kaddr);
 }
 
+int android_image_get_arch(const struct andr_img_hdr *hdr, int comp)
+{
+	/* See Documentation/arm64/booting.txt in the Linux kernel */
+#define LINUX_ARM64_IMAGE_MAGIC		0x644d5241
+	int magic_offset = 0x38;
+	int arch = IH_ARCH_ARM64;
+	u32 *ih_magic;
+
+	/*
+	 * Possible Image:
+	 *    - zImage: ARM32
+	 *    - compressed image: ARM64
+	 *    - Image: ARM64 or ARM32
+	 */
+	ih_magic = (u32 *)((ulong)hdr + hdr->page_size + magic_offset);
+	if (comp == IH_COMP_ZIMAGE) {
+		arch = IH_ARCH_ARM;
+	} else if (comp == IH_COMP_NONE) {
+		if (*ih_magic != le32_to_cpu(LINUX_ARM64_IMAGE_MAGIC))
+			arch = IH_ARCH_ARM;
+	}
+
+	return arch;
+}
+
 /**
  * android_image_get_kernel() - processes kernel part of Android boot images
  * @hdr:	Pointer to image header, which is at the start

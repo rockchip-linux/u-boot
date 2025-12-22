@@ -392,6 +392,7 @@ static int bootm_find_os(const char *cmd_name, const char *addr_fit)
 		images.os.type = IH_TYPE_KERNEL;
 		images.os.comp = android_image_get_comp(boot_img);
 		images.os.os = IH_OS_LINUX;
+		images.os.arch = android_image_get_arch(boot_img, images.os.comp);
 		images.os.end = android_image_get_end(boot_img);
 		images.os.load = android_image_get_kload(boot_img);
 		images.ep = images.os.load;
