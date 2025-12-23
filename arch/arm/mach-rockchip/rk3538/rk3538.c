@@ -25,6 +25,11 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define VO_GRF_BASE			0xfd170000
 #define SAI2ACODEC_CON2			0x8
+#define USBPHY_HOST_CON0		0x1C
+
+#define USBPHY_APB_BASE			0xfdba0000
+#define USBPHY_DIFF_RECEIVER_0		0x0030
+#define USBPHY_DIFF_RECEIVER_1		0x0430
 
 #define PHPL_GRF_BASE			0xfd190000
 #define TSADC_CON0			0x1c
@@ -173,6 +178,15 @@ int arch_cpu_init(void)
 
 	/* Enable sai2 to iomux path default */
 	writel(0xffff00b0, VO_GRF_BASE + SAI2ACODEC_CON2);
+
+	/*
+	 * Set the USB2 PHY Port1 in suspend mode and
+	 * turn off the differential receiver for both
+	 * Port0 and Port1 to save power.
+	 */
+	writel(0x01ff01d1, VO_GRF_BASE + USBPHY_HOST_CON0);
+	writel(0x00000059, USBPHY_APB_BASE + USBPHY_DIFF_RECEIVER_0);
+	writel(0x00000059, USBPHY_APB_BASE + USBPHY_DIFF_RECEIVER_1);
 #endif
 
 	return 0;
