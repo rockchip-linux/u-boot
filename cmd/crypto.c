@@ -14,7 +14,12 @@
 #include <rockchip/crypto_fix_test_data.h>
 
 #define PERF_TOTAL_SIZE			(128 * 1024 * 1024)
+
+#ifndef CONFIG_SPL_BUILD
+#define PERF_BUFF_SIZE			(4 * 1024 * 1024)
+#else
 #define PERF_BUFF_SIZE			(1 * 1024 * 1024)
+#endif
 
 #define CALC_RATE_MPBS(bytes, ms)	(((bytes) / 1024) / (ms))
 
