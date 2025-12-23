@@ -645,6 +645,8 @@ static int rockchip_vop_init(struct display_state *state)
 			VOP_CTRL_SET(vop, bt656_data_map_mode, conn_state->data_map_mode);
 		else if (state->crtc_state.mcu_timing.mcu_pix_total > 0)
 			VOP_CTRL_SET(vop, mcu_data_map_mode, conn_state->data_map_mode);
+		else if (conn_state->output_if & VOP_OUTPUT_IF_RGB)
+			VOP_CTRL_SET(vop, mcu_data_map_mode, conn_state->data_map_mode);
 	}
 
 	if (state->crtc_state.mcu_timing.mcu_pix_total > 0) {
