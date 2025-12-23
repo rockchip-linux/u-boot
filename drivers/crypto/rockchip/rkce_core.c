@@ -49,9 +49,9 @@ struct rkce_hardware {
 #define CHECK_RKCE_INITED(hardware)   WARN_ON_ONCE(!(hardware) || \
 					   !(((struct rkce_hardware *)(hardware))->rkce_reg))
 #define POLL_TIMEOUT(condition, timeout_ms) ({                        \
-			int timeout = timeout_ms;                     \
-			while ((condition) && timeout--) {           \
-				udelay(1000);             \
+			int timeout = timeout_ms * 1000;              \
+			while ((condition) && timeout--) {            \
+				udelay(1);                            \
 			}                                             \
 			if (timeout < 0)                              \
 				rk_err("%s timeout!\n", #condition);  \
