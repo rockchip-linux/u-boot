@@ -984,6 +984,70 @@ static ulong rk3538_uart_set_rate(struct rk3538_clk_priv *priv,
 	return rk3538_uart_get_rate(priv, clk_id);
 }
 
+static ulong rk3538_mac_get_rate(struct rk3538_clk_priv *priv,
+				 ulong clk_id)
+{
+	struct rk3538_cru *cru = priv->cru;
+	u32 sel, div, con;
+	ulong rate = 0;
+
+	switch (clk_id) {
+	case CLK_MAC_PTP_REF_SRC:
+	case CLK_MAC_PTP_REF:
+		con = readl(&cru->clksel_con[22]);
+		sel = (con & CLK_MAC_PTP_REF_SRC_MASK) >> CLK_MAC_PTP_REF_SRC_SEL_SHIFT;
+		div = (con & CLK_MAC_PTP_REF_SRC_DIV_MASK) >> CLK_MAC_PTP_REF_SRC_DIV_SHIFT;
+		if (sel == CLK_MAC_PTP_REF_SRC_CPLL)
+			rate = DIV_TO_RATE(priv->cpll_hz, div);
+		else
+			rate = DIV_TO_RATE(OSC_HZ, div);
+		break;
+	case ETH0_CLK_25M_OUT:
+		con = readl(&cru->pmuclksel_con[0]);
+		div = (con & ETH0_CLK_25M_OUT_DIV_MASK) >> ETH0_CLK_25M_OUT_DIV_SHIFT;
+		rate = DIV_TO_RATE(priv->cpll_hz, div);
+		break;
+	default:
+		return -ENOENT;
+	}
+	return rate;
+}
+
+static ulong rk3538_mac_set_rate(struct rk3538_clk_priv *priv,
+				 ulong clk_id, ulong rate)
+{
+	struct rk3538_cru *cru = priv->cru;
+	u32 sel, div, prate;
+
+	switch (clk_id) {
+	case CLK_MAC_PTP_REF_SRC:
+	case CLK_MAC_PTP_REF:
+		if ((OSC_HZ % rate) == 0) {
+			prate = OSC_HZ;
+			sel = CLK_MAC_PTP_REF_SRC_24M;
+		} else {
+			prate = priv->cpll_hz;
+			sel = CLK_MAC_PTP_REF_SRC_CPLL;
+		}
+		div = DIV_ROUND_UP(prate, rate);
+		rk_clrsetreg(&cru->clksel_con[22],
+			     CLK_MAC_PTP_REF_SRC_MASK | CLK_MAC_PTP_REF_SRC_DIV_MASK,
+			     (sel << CLK_MAC_PTP_REF_SRC_SEL_SHIFT) |
+			     ((div - 1) << CLK_MAC_PTP_REF_SRC_DIV_SHIFT));
+		break;
+	case ETH0_CLK_25M_OUT:
+		div = DIV_ROUND_UP(priv->cpll_hz, rate);
+		rk_clrsetreg(&cru->pmuclksel_con[0],
+			     ETH0_CLK_25M_OUT_DIV_MASK,
+			     ((div - 1) << ETH0_CLK_25M_OUT_DIV_SHIFT));
+		break;
+	default:
+		return -ENOENT;
+	}
+
+	return rk3538_mac_get_rate(priv, clk_id);
+}
+
 static ulong rk3538_clk_get_rate(struct clk *clk)
 {
 	struct rk3538_clk_priv *priv = dev_get_priv(clk->dev);
@@ -1070,6 +1134,11 @@ static ulong rk3538_clk_get_rate(struct clk *clk)
 	case CLK_AUDIO_FRAC_0:
 	case CLK_AUDIO_FRAC_1:
 		rate = rk3538_uart_frac_get_rate(priv, clk->id);
+		break;
+	case CLK_MAC_PTP_REF_SRC:
+	case CLK_MAC_PTP_REF:
+	case ETH0_CLK_25M_OUT:
+		rate = rk3538_mac_get_rate(priv, clk->id);
 		break;
 	default:
 		return -ENOENT;
@@ -1166,6 +1235,11 @@ static ulong rk3538_clk_set_rate(struct clk *clk, ulong rate)
 	case CLK_AUDIO_FRAC_1:
 		rate = rk3538_uart_frac_set_rate(priv, clk->id, rate);
 		break;
+	case CLK_MAC_PTP_REF_SRC:
+	case CLK_MAC_PTP_REF:
+	case ETH0_CLK_25M_OUT:
+		rate = rk3538_mac_set_rate(priv, clk->id, rate);
+		break;
 	default:
 		return -ENOENT;
 	}
@@ -1243,6 +1317,10 @@ static int rk3538_clk_init(struct rk3538_clk_priv *priv)
 						    CLK_CORE_PLL_DIV_SHIFT);
 		priv->armclk_init_hz = priv->armclk_enter_hz;
 	}
+
+	/* enable ETH0_CLK_25M_OUT by default */
+	rk_clrsetreg(&priv->cru->pmugate_con[0], 1 << 2, 0 << 2);
+
 	return 0;
 }
 
