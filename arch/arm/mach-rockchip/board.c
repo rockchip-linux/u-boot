@@ -344,7 +344,8 @@ static int boot_from_udisk(void)
 static void env_fixup(void)
 {
 	struct memblock mem;
-	ulong u_addr_r;
+	ulong ramdisk_addr;
+	ulong optee_addr;
 	phys_size_t end;
 	char *addr_r;
 
@@ -382,7 +383,7 @@ static void env_fixup(void)
 		/*
 		 * [2] Move ramdisk at BL32 position if need.
 		 *
-		 * 0x0a200000 and 0x08400000 are rockchip traditional address
+		 * 0x0a200000 and 0x08400000 offset are rockchip traditional address
 		 * of BL32 and ramdisk:
 		 *
 		 * |------------|------------|
@@ -393,9 +394,11 @@ static void env_fixup(void)
 		 * issue on the board with critical memory(ie. 256MB).
 		 */
 		if (gd->ram_size > SZ_128M && gd->ram_size <= SZ_256M) {
-			u_addr_r = env_get_ulong("ramdisk_addr_r", 16, 0);
-			if (u_addr_r == 0x0a200000)
-				env_set("ramdisk_addr_r", "0x08400000");
+			ramdisk_addr = env_get_ulong("ramdisk_addr_r", 16, 0);
+			if (ramdisk_addr == CONFIG_SYS_SDRAM_BASE + 0x0a200000) {
+				optee_addr = CONFIG_SYS_SDRAM_BASE + 0x08400000;
+				env_set_hex("ramdisk_addr_r", optee_addr);
+			}
 		}
 	} else {
 		mem = param_parse_optee_mem();
@@ -413,8 +416,8 @@ static void env_fixup(void)
 		 * [2] Move ramdisk backward if optee enlarge.
 		 */
 		end = mem.base + mem.size;
-		u_addr_r = env_get_ulong("ramdisk_addr_r", 16, 0);
-		if (u_addr_r >= mem.base && u_addr_r < end)
+		ramdisk_addr = env_get_ulong("ramdisk_addr_r", 16, 0);
+		if (ramdisk_addr >= mem.base && ramdisk_addr < end)
 			env_set_hex("ramdisk_addr_r", end);
 	}
 }
