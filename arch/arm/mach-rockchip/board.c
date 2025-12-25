@@ -64,6 +64,10 @@ __weak int rk_board_fdt_fixup(void *blob) { return 0; }
 __weak int rk_board_dm_fdt_fixup(void *blob) { return 0; }
 __weak int rk_board_init(void) { return 0; }
 __weak int rk_board_late_init(void) { return 0; }
+__weak bool rk_board_req_mem_layout1(void)
+{
+	return gd->ram_size <= SZ_128M;
+}
 
 #if !defined(CONFIG_DM_USB_GADGET)
 __weak int rkusb_dev_bind_to_udc_data(struct udevice *dev)
@@ -168,6 +172,29 @@ static void env_setup(void)
 	/* disable bootm relcation to save boot time */
 	env_set_hex("fdt_high", -1UL);
 	env_set_hex("initrd_high", -1UL);
+
+#ifdef ENV_MEM_LAYOUT_SETTINGS1
+	char *addr_r;
+	const char *env_addr0[] = {
+		"scriptaddr", "pxefile_addr_r", "fdt_addr_r",
+		"kernel_addr_r", "kernel_addr_aarch32_r", "kernel_addr_c",
+		"ramdisk_addr_r",
+	};
+	const char *env_addr1[] = {
+		"scriptaddr1", "pxefile_addr1_r", "fdt_addr1_r",
+		"kernel_addr1_r", "kernel_addr1_aarch32_r", "kernel_addr1_c",
+		"ramdisk_addr1_r",
+	};
+	int i;
+
+	if (rk_board_req_mem_layout1()) {
+		for (i = 0; i < ARRAY_SIZE(env_addr1); i++) {
+			addr_r = env_get(env_addr1[i]);
+			if (addr_r)
+				env_set(env_addr0[i], addr_r);
+		}
+	}
+#endif
 
 	/* bootm memory limit */
 	bootm_mem_init();
