@@ -29,6 +29,7 @@ obj-$(CONFIG_PHY_NATSEMI) += natsemi.o
 obj-$(CONFIG_PHY_NXP_C45_TJA11XX) += nxp-c45-tja11xx.o
 obj-$(CONFIG_PHY_NXP_TJA11XX) += nxp-tja11xx.o
 obj-$(CONFIG_PHY_REALTEK) += realtek.o
+obj-$(CONFIG_PHY_ROCKCHIP) += rockchip-fephy.o
 obj-$(CONFIG_PHY_SMSC) += smsc.o
 obj-$(CONFIG_PHY_TERANETICS) += teranetics.o
 obj-$(CONFIG_PHY_TI_GENERIC) += ti_phy_init.o

@@ -248,6 +248,9 @@ config PHY_NXP_TJA11XX
 config PHY_REALTEK
 	bool "Realtek Ethernet PHYs support"
 
+config PHY_ROCKCHIP
+	bool "Rockchip ROCKCHIP Ethernet PHYs support"
+
 config RTL8211X_PHY_FORCE_MASTER
 	bool "Ethernet PHY RTL8211x: force 1000BASE-T master mode"
 	depends on PHY_REALTEK
