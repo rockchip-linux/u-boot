@@ -4,12 +4,18 @@
  */
 
 #include <common.h>
-#include <amp.h>
-#include <bidram.h>
 #include <config.h>
+#include <amp.h>
+#include <bootm.h>
+#include <bidram.h>
+#include <dm.h>
+#include <image.h>
 #include <sysmem.h>
+#include <linux/delay.h>
+#include <asm/cache.h>
 #include <asm/gic.h>
 #include <asm/io.h>
+#include <asm/system.h>
 #include <asm/arch-rockchip/smccc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -429,7 +435,7 @@ static int brought_up_all_amp(void *fit, const char *fit_uname_cfg)
 int amp_cpus_on(void)
 {
 	struct blk_desc *dev_desc;
-	bootm_headers_t images;
+	struct bootm_headers images;
 	struct disk_partition part;
 	void *hdr, *fit;
 	int offset, cnt;
@@ -495,7 +501,7 @@ int amp_cpus_on(void)
 	images.fit_uname_cfg = "conf";
 	images.fit_hdr_os = fit;
 	images.verify = 1;
-	ret = boot_get_loadable(0, NULL, &images, IH_ARCH_DEFAULT, NULL, NULL);
+	ret = boot_get_loadable(&images);
 	if (ret) {
 		AMP_E("Load loadables, ret=%d\n", ret);
 		goto out1;
@@ -514,7 +520,7 @@ out2:
 	return ret;
 }
 
-int arm64_switch_amp_pe(bootm_headers_t *images)
+int arm64_switch_amp_pe(struct bootm_headers *images)
 {
 	images->os.arch = g_bootcpu.arch;
 	return g_bootcpu.state;

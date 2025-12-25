@@ -52,7 +52,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 struct bootm_headers images;		/* pointers to os/initrd/fdt images */
 
-__weak void board_quiesce_devices(void)
+__weak void board_quiesce_devices(void *images)
 {
 }
 

@@ -6,7 +6,6 @@
 #ifndef _AMP_H_
 #define _AMP_H_
 
-#include <dm.h>
 #include <image.h>
 
 #define AMP_I(fmt, args...)	printf("AMP: "fmt, ##args)
@@ -29,7 +28,7 @@
 		((MAP_SECURE(secure) & 0x1) << MODE_SECURE_SHIFT))
 
 int amp_cpus_on(void);
-int arm64_switch_amp_pe(bootm_headers_t *images);
+int arm64_switch_amp_pe(struct bootm_headers *images);
 
 #endif	/* _AMP_H_ */
 

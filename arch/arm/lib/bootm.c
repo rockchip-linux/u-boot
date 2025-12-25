@@ -11,6 +11,7 @@
  * Copyright (C) 2001  Erik Mouw (J.A.K.Mouw@its.tudelft.nl)
  */
 
+#include <amp.h>
 #include <bootm.h>
 #include <bootstage.h>
 #include <command.h>
@@ -33,6 +34,7 @@
 #include <bootm.h>
 #include <vxworks.h>
 #include <asm/cache.h>
+#include <asm/arch-rockchip/smccc.h>
 
 #ifdef CONFIG_ARMV7_NONSEC
 #include <asm/armv7.h>
@@ -43,7 +45,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 static struct tag *params;
 
-__weak void board_quiesce_devices(void)
+__weak void board_quiesce_devices(void *images)
 {
 }
 
@@ -52,7 +54,7 @@ __weak void board_quiesce_devices(void)
  *
  * @fake: non-zero to do everything except actually boot
  */
-static void announce_and_cleanup(int fake)
+static void announce_and_cleanup(struct bootm_headers *images, int fake)
 {
 	ulong us, tt_us;
 
@@ -68,7 +70,7 @@ static void announce_and_cleanup(int fake)
 	udc_disconnect();
 #endif
 
-	board_quiesce_devices();
+	board_quiesce_devices(images);
 
 	flush();
 
@@ -298,7 +300,7 @@ static void switch_to_el1(void)
 #endif
 
 #ifdef CONFIG_ARM64_SWITCH_TO_AARCH32
-static int arm64_switch_aarch32(bootm_headers_t *images)
+static int arm64_switch_aarch32(struct bootm_headers *images)
 {
 	void *fdt = images->ft_addr;
 	ulong mpidr;
@@ -370,7 +372,7 @@ static void boot_jump_linux(struct bootm_headers *images, int flag)
 		(ulong) kernel_entry);
 	bootstage_mark(BOOTSTAGE_ID_RUN_OS);
 
-	announce_and_cleanup(fake);
+	announce_and_cleanup(images, fake);
 
 	if (!fake) {
 #ifdef CONFIG_ARMV8_PSCI

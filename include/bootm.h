@@ -215,7 +215,7 @@ void arch_preboot_os(void);
  *
  * TODO(sjg@chromium.org>): Update this to use driver model's device_remove().
  */
-void board_quiesce_devices(void);
+void board_quiesce_devices(void *images);
 
 /**
  * switch_to_non_secure_mode() - switch to non-secure mode

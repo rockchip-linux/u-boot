@@ -67,6 +67,7 @@
 #include <power/regulator.h>
 #include <rk_eink.h>
 #include <tee/optee.h>
+#include <amp.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -201,8 +202,6 @@ int board_late_init(void)
 #ifdef CONFIG_AMP
 	amp_cpus_on();
 #endif
-//	run_command("download", 0);
-
 	return rk_board_late_init();
 }
 
@@ -585,7 +584,7 @@ int board_init_f_init_misc(void)
 	return boot_flags;
 }
 
-void board_quiesce_devices(void)
+void board_quiesce_devices(void *images)
 {
 #ifdef CONFIG_ROCKCHIP_PRELOADER_ATAGS
 	/* Destroy atags makes next warm boot safer */

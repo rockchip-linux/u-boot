@@ -11,9 +11,11 @@
 #include "rockchip-common.h"
 
 #define CFG_IRAM_BASE			0xfafd0000
-
 #define CFG_SYS_SDRAM_BASE		0
 #define SDRAM_MAX_SIZE			0xf0000000
+
+#define GICD_BASE			0xfdf11000
+#define GICC_BASE			0xfdf12000
 
 /* rockusb */
 #define CONFIG_ROCKUSB_G_DNL_PID        0x351b

@@ -725,6 +725,20 @@ config ROCKCHIP_COMMON_STACK_ADDR
 config NR_DRAM_BANKS
 	default 10 if ROCKCHIP_EXTERNAL_TPL
 
+config ARM64_BOOT_AARCH32
+	bool "Support Boot an ARM64 on AArch32 execution state, ie. U-Boot is in AArch32"
+	select CPU_V7A
+	default n
+	help
+	  If you want to boot an ARM64 processor on 32-bit mode, say y here.
+
+config ARM64_SWITCH_TO_AARCH32
+	bool "Support AArch64 U-Boot boot AArch32 kernel"
+	default n
+	help
+	  If you want AArch64 U-Boot to boot AArch32 kernel, say y here.
+	  This feature needs ATF to help switch the PE state.
+
 config ROCKCHIP_NEW_IDB
 	bool "Rockchip new IDB header"
 	default n
