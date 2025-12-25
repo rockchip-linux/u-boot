@@ -545,12 +545,6 @@ int rk_board_fit_image_post_process(void *fit, int node, ulong *load_addr,
 						0x10000000 - 0x10000,
 						DCACHE_WRITEBACK);
 #endif
-		/*
-		 * Change kernel load address for more ddr usable space.
-		 * For 32 bits kernel Image: 0x00018000
-		 * For 64 bits kernel Image: 0x00200000
-		 * For kernel zImage: still 0x45480000
-		 */
 #ifdef CONFIG_CMD_BOOTZ
 		ulong start, end;
 
@@ -563,9 +557,9 @@ int rk_board_fit_image_post_process(void *fit, int node, ulong *load_addr,
 				return -EINVAL;
 
 			if (image_arch == IH_ARCH_ARM) {
-				*load_addr = 0x00018000;
+				*load_addr = env_get_ulong("kernel_addr_aarch32_r", 16, 0);
 			} else if (image_arch == IH_ARCH_ARM64) {
-				*load_addr = 0x00200000;
+				*load_addr = env_get_ulong("kernel_addr_r", 16, 0);
 			} else {
 				printf("Unknown image arch: 0x%x\n", image_arch);
 				return -EINVAL;
@@ -750,6 +744,28 @@ u64 board_bidram_append_size(void)
 	return 0;
 }
 
+bool rk_board_req_mem_layout1(void)
+{
+	/*
+	 * 1. If atags first dram bank addr != 0 (0~1G is not available),
+	 *    use ENV_MEM_LAYOUT_SETTINGS, all Image run at 1G+ space.
+	 * 2. If atags first dram bank addr == 0 (max 4G size and 0~1G is available)
+	 *    use ENV_MEM_LAYOUT_SETTINGS1, uboot and atf run at 1G+,
+	 *    while kernel and ramdisk run at 0-1G.
+	 */
+	struct tag *t;
+	int count;
+
+	t = atags_get_tag(ATAG_DDR_MEM);
+	count = t->u.ddr_mem.count;
+	if (!t || !count)
+		return false;
+
+	if (t->u.ddr_mem.bank[0] == 0x0)
+		return true;
+	else
+		return false;
+}
 #endif
 #endif
 #endif

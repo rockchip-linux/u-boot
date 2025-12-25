@@ -83,6 +83,7 @@
 #define CONFIG_ROCKUSB_G_DNL_PID	0x110f
 
 #ifdef CONFIG_ARM64
+/* memory size <= 3GB (0~1G is not available) */
 #define ENV_MEM_LAYOUT_SETTINGS \
 	"scriptaddr=0x40600000\0"	\
 	"pxefile_addr_r=0x40700000\0"	\
@@ -91,12 +92,26 @@
 	"kernel_addr_aarch32_r=0x40208000\0"	\
 	"kernel_addr_c=0x45480000\0"	\
 	"ramdisk_addr_r=0x4a200000\0"
+
+/*
+ * 1. memory size > 3GB (max 4G size and 0~1G is available)
+ * 2. uboot and atf run at 1G+, while kernel and ramdisk run at 0-1G
+ */
+#define ENV_MEM_LAYOUT_SETTINGS1 \
+	"scriptaddr1=0x00600000\0"	\
+	"pxefile_addr1_r=0x00700000\0"	\
+	"fdt_addr1_r=0x08300000\0"	\
+	"kernel_addr1_r=0x00200000\0"	\
+	"kernel_addr1_aarch32_r=0x00208000\0"	\
+	"kernel_addr1_c=0x05480000\0"	\
+	"ramdisk_addr1_r=0x0a200000\0"
 #endif
 
 #include <config_distro_bootcmd.h>
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	ENV_MEM_LAYOUT_SETTINGS \
+	ENV_MEM_LAYOUT_SETTINGS1 \
 	"partitions=" PARTS_RKIMG \
 	ROCKCHIP_DEVICE_SETTINGS \
 	RKIMG_DET_BOOTDEV \
