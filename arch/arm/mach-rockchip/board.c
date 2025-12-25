@@ -200,6 +200,23 @@ static void env_setup(void)
 		}
 	}
 #endif
+	/*
+	 * ramdisk_addr_low_r to handle the case:
+	 *
+	 * The 256MB board uses large ramdisk(i.e. 40MB+) on linux platform, it
+	 * may cause sysmem overlay(no memory) issue when run boot_fit command:
+	 *
+	 *	0       162MB                             256MB
+	 * 	[ ....... | ramdisk | fit boot.img | U-Boot ]
+	 *
+	 * Do this whether there is BL32 or not.
+	 */
+	if (gd->ram_size > SZ_128M && gd->ram_size <= SZ_256M) {
+		ramdisk_addr = env_get_ulong("ramdisk_addr_low_r", 16, 0);
+		if (ramdisk_addr)
+			env_set_hex("ramdisk_addr_r", ramdisk_addr);
+	}
+
 	/* No BL32 ? */
 	if (!(gd->pflags & GD_P_FLG_BL32_ENABLED)) {
 		addr_r = env_get("kernel_addr_no_low_bl32_r");
