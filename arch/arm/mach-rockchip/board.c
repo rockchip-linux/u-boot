@@ -169,12 +169,17 @@ static void scan_run_cmd(void)
 
 static void env_setup(void)
 {
+	struct memblock mem;
+	ulong ramdisk_addr;
+	ulong optee_addr;
+	phys_size_t end;
+	char *addr_r;
+
 	/* disable bootm relcation to save boot time */
 	env_set_hex("fdt_high", -1UL);
 	env_set_hex("initrd_high", -1UL);
 
 #ifdef ENV_MEM_LAYOUT_SETTINGS1
-	char *addr_r;
 	const char *env_addr0[] = {
 		"scriptaddr", "pxefile_addr_r", "fdt_addr_r",
 		"kernel_addr_r", "kernel_addr_aarch32_r", "kernel_addr_c",
@@ -195,6 +200,33 @@ static void env_setup(void)
 		}
 	}
 #endif
+	/* No BL32 ? */
+	if (!(gd->pflags & GD_P_FLG_BL32_ENABLED)) {
+		addr_r = env_get("kernel_addr_no_low_bl32_r");
+		if (addr_r)
+			env_set("kernel_addr_r", addr_r);
+
+		if (gd->ram_size > SZ_128M && gd->ram_size <= SZ_256M) {
+			ramdisk_addr = env_get_ulong("ramdisk_addr_r", 16, 0);
+			if (ramdisk_addr == CFG_SYS_SDRAM_BASE + 0x0a200000) {
+				optee_addr = CFG_SYS_SDRAM_BASE + 0x08400000;
+				env_set_hex("ramdisk_addr_r", optee_addr);
+			}
+		}
+	} else {
+		mem = param_parse_optee_mem();
+
+		if (mem.base > SZ_128M) {
+			addr_r = env_get("kernel_addr_no_low_bl32_r");
+			if (addr_r)
+				env_set("kernel_addr_r", addr_r);
+		}
+
+		end = mem.base + mem.size;
+		ramdisk_addr = env_get_ulong("ramdisk_addr_r", 16, 0);
+		if (ramdisk_addr >= mem.base && ramdisk_addr < end)
+			env_set_hex("ramdisk_addr_r", end);
+	}
 
 	/* bootm memory limit */
 	bootm_mem_init();
