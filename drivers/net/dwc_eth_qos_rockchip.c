@@ -28,6 +28,7 @@ struct rk_gmac_ops {
 	int (*set_to_rmii)(struct udevice *dev);
 	int (*set_gmac_speed)(struct udevice *dev);
 	void (*set_clock_selection)(struct udevice *dev, bool enable);
+	void (*integrated_phy_powerup)(struct udevice *dev);
 	u32 regs[3];
 };
 
@@ -36,6 +37,8 @@ struct rockchip_platform_data {
 	const struct rk_gmac_ops *ops;
 	int id;
 	bool clock_input;
+	struct reset_ctl phy_reset;
+	bool integrated_phy;
 	struct regmap *grf;
 	struct regmap *php_grf;
 };
@@ -49,6 +52,207 @@ struct rockchip_platform_data {
 #define DELAY_ENABLE(soc, tx, rx) \
 	(((tx) ? soc##_GMAC_TXCLK_DLY_ENABLE : soc##_GMAC_TXCLK_DLY_DISABLE) | \
 	 ((rx) ? soc##_GMAC_RXCLK_DLY_ENABLE : soc##_GMAC_RXCLK_DLY_DISABLE))
+
+#define DELAY_VALUE(soc, tx, rx) ((((tx) >= 0) ? soc##_GMAC_CLK_TX_DL_CFG(tx) : 0) | (((rx) >= 0) ? soc##_GMAC_CLK_RX_DL_CFG(rx) : 0))
+
+#define RK3538_PHPL_GRF_GMAC_IO_BUF_CON	0x0004
+#define RK3538_PHPL_GRF_GMAC_CON	0x0008
+
+#define RK3538_GMAC_CLK_RX_DL_CFG(val)	HIWORD_UPDATE(val, 0x7F, 8)
+#define RK3538_GMAC_CLK_TX_DL_CFG(val)	HIWORD_UPDATE(val, 0x7F, 0)
+#define RK3538_GMAC_RXCLK_DLY_ENABLE	GRF_BIT(15)
+#define RK3538_GMAC_RXCLK_DLY_DISABLE	GRF_CLR_BIT(15)
+#define RK3538_GMAC_TXCLK_DLY_ENABLE	GRF_BIT(7)
+#define RK3538_GMAC_TXCLK_DLY_DISABLE	GRF_CLR_BIT(7)
+#define RK3538_GMAC_PHY_INTF_SEL_RGMII	GRF_CLR_BIT(3)
+#define RK3538_GMAC_PHY_INTF_SEL_RMII	GRF_BIT(3)
+#define RK3538_GMAC_CLK_SELET_CRU	GRF_CLR_BIT(7)
+#define RK3538_GMAC_CLK_SELET_IO	GRF_BIT(7)
+#define RK3538_GMAC_CLK_RMII_DIV2	GRF_BIT(5)
+#define RK3538_GMAC_CLK_RMII_DIV20	GRF_CLR_BIT(5)
+#define RK3538_GMAC_CLK_RGMII_DIV1	\
+		(GRF_CLR_BIT(6) | GRF_CLR_BIT(5))
+#define RK3538_GMAC_CLK_RGMII_DIV5	\
+		(GRF_BIT(6) | GRF_BIT(5))
+#define RK3538_GMAC_CLK_RGMII_DIV50	\
+		(GRF_BIT(6) | GRF_CLR_BIT(5))
+#define RK3538_GMAC_CLK_RMII_GATE	GRF_BIT(4)
+#define RK3538_GMAC_CLK_RMII_NOGATE	GRF_CLR_BIT(4)
+
+#define RK3538_VO_GRF_MAC_CON		0x0044
+
+#define RK3538_MAC_PHY_INTF_SEL_RMII	GRF_BIT(3)
+#define RK3538_MAC_CLK_RMII_GATE	GRF_BIT(4)
+#define RK3538_MAC_CLK_RMII_NOGATE	GRF_CLR_BIT(4)
+#define RK3538_MAC_CLK_RMII_DIV2	GRF_BIT(5)
+#define RK3538_MAC_CLK_RMII_DIV20	GRF_CLR_BIT(5)
+#define RV1126B_GMAC_RKMACPHY_ENABLE	GRF_BIT(15)
+#define RV1126B_GMAC_RKMACPHY_DISABLE	GRF_CLR_BIT(15)
+
+#define RK3538_VO_GRF_RKMACPHY_CON0	0x004c
+#define RK3538_VO_GRF_RKMACPHY_CON1	0x0050
+#define RK3538_VO_GRF_RKMACPHY_CON2	0x0054
+
+#define RK3538_RKMACPHY_PHY_ID		(0x200680 << 5)
+#define RK3538_RKMACPHY_PHY_ADDR	0x2
+
+#define RK3538_RKMACPHY_PHY_REVISION	(0x1 << 6)
+#define RK3538_RKMACPHY_PHY_MODEL	(0X10 << 0)
+
+#define RK3538_RKMACPHY_DISABLE		0
+#define RK3538_RKMACPHY_ENABLE		BIT(31)
+
+#define RK3538_RKMACPHY_CLK_SEL_INPUT	0
+#define RK3538_RKMACPHY_CLK_SEL_OUTPUT	BIT(8)
+
+#define RK3538_RKMACPHY_CLK_24M		0
+#define RK3538_RKMACPHY_CLK_50M		BIT(11)
+
+static int rk3538_set_to_rgmii(struct udevice *dev,
+				int tx_delay, int rx_delay)
+{
+	struct eth_pdata *pdata = dev_get_plat(dev);
+	struct rockchip_platform_data *data = pdata->priv_pdata;
+
+	regmap_write(data->grf, RK3538_PHPL_GRF_GMAC_CON,
+		     RK3538_GMAC_PHY_INTF_SEL_RGMII);
+
+	regmap_write(data->grf, RK3538_PHPL_GRF_GMAC_IO_BUF_CON,
+		     DELAY_ENABLE(RK3538, tx_delay, rx_delay));
+
+	regmap_write(data->grf, RK3538_PHPL_GRF_GMAC_IO_BUF_CON,
+		     DELAY_VALUE(RK3538, tx_delay, rx_delay));
+
+	return 0;
+}
+
+static int rk3538_set_to_rmii(struct udevice *dev)
+{
+	struct eth_pdata *pdata = dev_get_plat(dev);
+	struct rockchip_platform_data *data = pdata->priv_pdata;
+	unsigned int id = data->id;
+
+	if (data->integrated_phy && id == 1)
+		regmap_write(data->grf, RK3538_VO_GRF_MAC_CON,
+			     RV1126B_GMAC_RKMACPHY_ENABLE);
+
+	if (id == 1)
+		regmap_write(data->grf, RK3538_VO_GRF_MAC_CON,
+			     RK3538_MAC_PHY_INTF_SEL_RMII);
+	else
+		regmap_write(data->grf, RK3538_PHPL_GRF_GMAC_CON,
+			     RK3538_GMAC_PHY_INTF_SEL_RMII |
+			     RK3538_GMAC_CLK_RMII_DIV2);
+
+	return 0;
+}
+
+static int rk3538_set_rgmii_speed(struct udevice *dev)
+{
+	struct eqos_priv *eqos = dev_get_priv(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
+	struct rockchip_platform_data *data = pdata->priv_pdata;
+	unsigned int val = 0;
+
+	switch (eqos->phy->speed) {
+	case 10:
+		val = RK3538_GMAC_CLK_RGMII_DIV50;
+		break;
+	case 100:
+		val = RK3538_GMAC_CLK_RGMII_DIV5;
+		break;
+	case 1000:
+		val = RK3538_GMAC_CLK_RGMII_DIV1;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	regmap_write(data->grf, RK3538_PHPL_GRF_GMAC_CON, val);
+	return 0;
+}
+
+static int rk3538_set_rmii_speed(struct udevice *dev)
+{
+	struct eqos_priv *eqos = dev_get_priv(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
+	struct rockchip_platform_data *data = pdata->priv_pdata;
+	unsigned int val, offset, id = data->id;
+
+	switch (eqos->phy->speed) {
+	case 10:
+		val = (id == 1) ? RK3538_MAC_CLK_RMII_DIV20 :
+				  RK3538_GMAC_CLK_RMII_DIV20;
+		break;
+	case 100:
+		val = (id == 1) ? RK3538_MAC_CLK_RMII_DIV2 :
+				  RK3538_GMAC_CLK_RMII_DIV2;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	offset = (id == 1) ? RK3538_VO_GRF_MAC_CON : RK3538_PHPL_GRF_GMAC_CON;
+	regmap_write(data->grf, offset, val);
+
+	return 0;
+}
+
+static int rk3538_set_gmac_speed(struct udevice *dev)
+{
+	struct eth_pdata *pdata = dev_get_plat(dev);
+
+	if (pdata->phy_interface == PHY_INTERFACE_MODE_RMII)
+		return rk3538_set_rmii_speed(dev);
+	else
+		return rk3538_set_rgmii_speed(dev);
+}
+
+static void rk3538_set_clock_selection(struct udevice *dev,
+				       bool enable)
+{
+	struct eth_pdata *pdata = dev_get_plat(dev);
+	struct rockchip_platform_data *data = pdata->priv_pdata;
+	unsigned int value, id = data->id;
+
+	if (id == 1) {
+		value = enable ? RK3538_MAC_CLK_RMII_NOGATE :
+				 RK3538_MAC_CLK_RMII_GATE;
+		regmap_write(data->grf, RK3538_VO_GRF_MAC_CON, value);
+	} else {
+		value = data->clock_input ? RK3538_GMAC_CLK_SELET_IO :
+					    RK3538_GMAC_CLK_SELET_CRU;
+		value |= enable ? RK3538_GMAC_CLK_RMII_NOGATE :
+				  RK3538_GMAC_CLK_RMII_GATE;
+		regmap_write(data->grf, RK3538_PHPL_GRF_GMAC_CON, value);
+	}
+}
+
+static void rk3538_integrated_phy_powerup(struct udevice *dev)
+{
+	struct eth_pdata *pdata = dev_get_plat(dev);
+	struct rockchip_platform_data *data = pdata->priv_pdata;
+	unsigned int value;
+
+	regmap_write(data->grf, RK3538_VO_GRF_RKMACPHY_CON1,
+				RK3538_RKMACPHY_DISABLE);
+	reset_assert(&data->phy_reset);
+	udelay(20);
+
+	value = RK3538_RKMACPHY_CLK_24M;
+	value |= data->clock_input ? RK3538_RKMACPHY_CLK_SEL_INPUT :
+				     RK3538_RKMACPHY_CLK_SEL_OUTPUT;
+	regmap_write(data->grf, RK3538_VO_GRF_RKMACPHY_CON2, value);
+
+	regmap_write(data->grf, RK3538_VO_GRF_RKMACPHY_CON0,
+				RK3538_RKMACPHY_PHY_ID | RK3538_RKMACPHY_PHY_ADDR);
+
+	value = RK3538_RKMACPHY_PHY_REVISION | RK3538_RKMACPHY_PHY_MODEL |
+		RK3538_RKMACPHY_ENABLE;
+	regmap_write(data->grf, RK3538_VO_GRF_RKMACPHY_CON1, value);
+	udelay(100);
+	reset_deassert(&data->phy_reset);
+}
 
 #define RK3568_GRF_GMAC0_CON0		0x0380
 #define RK3568_GRF_GMAC0_CON1		0x0384
@@ -409,6 +613,19 @@ static void rk3588_set_clock_selection(struct udevice *dev, bool enable)
 
 static const struct rk_gmac_ops rk_gmac_ops[] = {
 	{
+		.compatible = "rockchip,rk3538-gmac",
+		.set_to_rgmii = rk3538_set_to_rgmii,
+		.set_to_rmii = rk3538_set_to_rmii,
+		.set_gmac_speed = rk3538_set_gmac_speed,
+		.set_clock_selection = rk3538_set_clock_selection,
+		.integrated_phy_powerup = rk3538_integrated_phy_powerup,
+		.regs = {
+			0xfdd80000, /* gmac */
+			0xfdb50000, /* mac */
+			0x0, /* sentinel */
+		},
+	},
+	{
 		.compatible = "rockchip,rk3568-gmac",
 		.set_to_rgmii = rk3568_set_to_rgmii,
 		.set_to_rmii = rk3568_set_to_rmii,
@@ -466,6 +683,8 @@ static int eqos_probe_resources_rk(struct udevice *dev)
 	struct rockchip_platform_data *data;
 	const char *clock_in_out;
 	int reset_flags = GPIOD_IS_OUT | GPIOD_IS_OUT_ACTIVE;
+	struct ofnode_phandle_args args;
+	struct udevice *phydev;
 	int ret;
 
 	ret = eqos_get_base_addr_dt(dev);
@@ -554,6 +773,31 @@ static int eqos_probe_resources_rk(struct udevice *dev)
 	gpio_request_by_name(dev, "snps,reset-gpio", 0,
 			     &eqos->phy_reset_gpio, reset_flags);
 
+	/* If phy-handle property is passed from DT, use it as the PHY */
+	ret = dev_read_phandle_with_args(dev, "phy-handle", NULL, 0, 0, &args);
+	if (ret) {
+		printf("Cannot get phy phandle: ret=%d\n", ret);
+		data->integrated_phy = dev_read_bool(dev, "phy-is-integrated");
+	} else {
+		data->integrated_phy = ofnode_read_bool(args.node, "phy-is-integrated");
+	}
+
+	if (data->integrated_phy) {
+		ret = reset_get_by_name(dev, "mac-phy", &data->phy_reset);
+		if (ret) {
+			ret = uclass_get_device_by_ofnode(UCLASS_ETH_PHY, args.node, &phydev);
+			if (ret) {
+				printf("Get phydev by ofnode failed: err=%d\n", ret);
+				return ret;
+			}
+
+			ret = reset_get_by_index(phydev, 0, &data->phy_reset);
+			if (ret) {
+				printf("No PHY reset control found: ret=%d\n", ret);
+				return ret;
+			}
+		}
+	}
 	return 0;
 
 err_release_resets:
@@ -622,6 +866,9 @@ static int eqos_start_clks_rk(struct udevice *dev)
 
 		udelay(eqos->reset_delays[2]);
 	}
+
+	if (data->integrated_phy && data->ops->integrated_phy_powerup)
+		data->ops->integrated_phy_powerup(dev);
 
 	if (data->ops->set_clock_selection)
 		data->ops->set_clock_selection(dev, true);
