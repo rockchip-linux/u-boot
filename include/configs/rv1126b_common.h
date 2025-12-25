@@ -83,6 +83,16 @@
 #define CONFIG_ROCKUSB_G_DNL_PID	0x110f
 
 #ifdef CONFIG_ARM64
+/*
+ * Memory layout:
+ *
+ *     kernel:          2-32M
+ *     compress kernel: 32-48M
+ *     ramdisk:         48-131M (40MB+ ramdisk-as-rootfs on 256MB AOV board)
+ *     fdt:             131M-132M
+ *     optee:           132M-162M
+ *     ramdisk:         162M~   (256MB+ board)
+ */
 /* memory size <= 3GB (0~1G is not available) */
 #define ENV_MEM_LAYOUT_SETTINGS \
 	"scriptaddr=0x40600000\0"	\
@@ -90,8 +100,9 @@
 	"fdt_addr_r=0x48300000\0"	\
 	"kernel_addr_r=0x40200000\0"	\
 	"kernel_addr_aarch32_r=0x40208000\0"	\
-	"kernel_addr_c=0x45480000\0"	\
-	"ramdisk_addr_r=0x4a200000\0"
+	"kernel_addr_c=0x42080000\0"	\
+	"ramdisk_addr_low_r=0x43000000\0" \
+	"ramdisk_addr_r=0x4a200000\0" \
 
 /*
  * 1. memory size > 3GB (max 4G size and 0~1G is available)
@@ -103,8 +114,8 @@
 	"fdt_addr1_r=0x08300000\0"	\
 	"kernel_addr1_r=0x00200000\0"	\
 	"kernel_addr1_aarch32_r=0x00208000\0"	\
-	"kernel_addr1_c=0x05480000\0"	\
-	"ramdisk_addr1_r=0x0a200000\0"
+	"kernel_addr1_c=0x02080000\0"	\
+	"ramdisk_addr1_r=0x03000000\0"
 #endif
 
 #include <config_distro_bootcmd.h>
