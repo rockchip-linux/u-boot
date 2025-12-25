@@ -94,6 +94,12 @@ __weak int set_armclk_rate(void)
 	return 0;
 }
 
+__weak bool rk_board_req_mem_layout1 (void)
+{
+	/* 128M is a typical ram size for most platform, so as default here */
+	return (gd->ram_size <= SZ_128M);
+}
+
 __weak int rk_board_init(void)
 {
 	return 0;
@@ -344,17 +350,18 @@ static void env_fixup(void)
 
 #ifdef ENV_MEM_LAYOUT_SETTINGS1
 	const char *env_addr0[] = {
-		"scriptaddr", "pxefile_addr_r",
-		"fdt_addr_r", "kernel_addr_r", "kernel_addr_c", "ramdisk_addr_r",
+		"scriptaddr", "pxefile_addr_r", "fdt_addr_r",
+		"kernel_addr_r", "kernel_addr_aarch32_r", "kernel_addr_c",
+		"ramdisk_addr_r",
 	};
 	const char *env_addr1[] = {
-		"scriptaddr1", "pxefile_addr1_r",
-		"fdt_addr1_r", "kernel_addr1_r", "kernel_addr1_c", "ramdisk_addr1_r",
+		"scriptaddr1", "pxefile_addr1_r", "fdt_addr1_r",
+		"kernel_addr1_r", "kernel_addr1_aarch32_r", "kernel_addr1_c",
+		"ramdisk_addr1_r",
 	};
 	int i;
 
-	/* 128M is a typical ram size for most platform, so as default here */
-	if (gd->ram_size <= SZ_128M) {
+	if (rk_board_req_mem_layout1()) {
 		/* Replace orignal xxx_addr_r */
 		for (i = 0; i < ARRAY_SIZE(env_addr1); i++) {
 			addr_r = env_get(env_addr1[i]);
