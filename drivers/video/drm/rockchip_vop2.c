@@ -4196,6 +4196,9 @@ static int rockchip_vop2_preinit(struct display_state *state)
 
 	cstate->private = rockchip_vop2;
 	cstate->max_output = vop2_data->vp_data[cstate->crtc_id].max_output;
+	 /* RK3538 max support 1920x1080P60 */
+	if (soc_is_rk3538())
+		cstate->max_output.width = 1920;
 	cstate->feature = vop2_data->vp_data[cstate->crtc_id].feature;
 
 	vop2_global_initial(rockchip_vop2, state);
