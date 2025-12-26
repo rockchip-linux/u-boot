@@ -230,7 +230,8 @@ __weak int fit_standalone_ext_release(char *id, standalone_args_t *args)
 static int standalone_handler(const char *id, standalone_args_t *args)
 {
 	int ret;
-	uintptr_t entry_point = args->load;
+	uintptr_t load = args->load;
+	uintptr_t entry = args->entry;
 	size_t size = args->size;
 	uintptr_t sram_start = args->sram_start;
 	uintptr_t exsram_start = args->exsram_start;
@@ -239,17 +240,17 @@ static int standalone_handler(const char *id, standalone_args_t *args)
 	uintptr_t uc_end = args->uc_end;
 
 	if (!sysmem_alloc_base_by_name(id,
-			(phys_addr_t)entry_point, (phys_size_t)size))
+			(phys_addr_t)load, (phys_size_t)size))
 		return -ENXIO;
 
-	printf("Handle standalone: '%s' at 0x%08lx ...", id, entry_point);
+	printf("Handle standalone: '%s' load 0x%08lx, entry 0x%08lx ...",
+	       id, load, entry);
 
 	if (sram_start || exsram_start || experi_start || uc_start || uc_end) {
 		ret = fit_standalone_ext_release((char *)id, args);
 	} else {
-		ret = fit_standalone_release((char *)id, entry_point);
+		ret = fit_standalone_release((char *)id, entry);
 	}
-
 	if (ret) {
 		printf("failed, ret=%d\n", ret);
 		return ret;
@@ -280,7 +281,8 @@ static int brought_up_amp(void *fit, int noffset,
 	cpu = fit_get_u32_default(fit, noffset, "cpu", -ENODATA);
 	hyp = fit_get_u32_default(fit, noffset, "hyp", 0);
 	thumb = fit_get_u32_default(fit, noffset, "thumb", 0);
-	entry = load = fit_get_u32_default(fit, noffset, "load", -ENODATA);
+	load = fit_get_u32_default(fit, noffset, "load", -ENODATA);
+	entry = fit_get_u32_default(fit, noffset, "entry", -ENODATA);
 	sram_start = fit_get_u32_default(fit, noffset, "sram_start", 0);
 	exsram_start = fit_get_u32_default(fit, noffset, "exsram_start", 0);
 	experi_start = fit_get_u32_default(fit, noffset, "experi_start", 0);
@@ -295,6 +297,9 @@ static int brought_up_amp(void *fit, int noffset,
 	fit_image_get_data_size(fit, noffset, &data_size);
 	memset(&args, 0, sizeof(args));
 
+	if (entry == -ENODATA)
+		entry = load;
+
 	/* standalone is simple, just handle it and then exit. Allow failure */
 	if (type == IH_TYPE_STANDALONE) {
 		if (!desc || load == -ENODATA) {
@@ -303,6 +308,7 @@ static int brought_up_amp(void *fit, int noffset,
 		}
 
 		sa_args.load = load;
+		sa_args.entry = entry;
 		sa_args.size = data_size;
 		sa_args.sram_start = sram_start;
 		sa_args.exsram_start = exsram_start;
@@ -337,6 +343,7 @@ static int brought_up_amp(void *fit, int noffset,
 	AMP_I("      thumb: %d\n", thumb);
 	AMP_I("       load: 0x%08x\n", load);
 	AMP_I("     load_c: 0x%08x\n", load_c);
+	AMP_I("      entry: 0x%08x\n", entry);
 	AMP_I("   pe_state: 0x%08x\n", pe_state);
 	AMP_I("   linux-os: %d\n\n", is_linux);
 #endif

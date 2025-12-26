@@ -31,6 +31,7 @@
 /* config arguments of standalone */
 typedef struct standalone_args {
 	uintptr_t load;         /* load addr */
+	uintptr_t entry;        /* entry addr */
 	size_t size;            /* image size */
 	uintptr_t sram_start;   /* sram start addr */
 	uintptr_t exsram_start; /* external sram start addr */
