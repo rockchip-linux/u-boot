@@ -791,15 +791,15 @@ struct edid {
 } __packed;
 
 enum base_output_format {
-	DRM_HDMI_OUTPUT_DEFAULT_RGB, /* default RGB */
-	DRM_HDMI_OUTPUT_YCBCR444, /* YCBCR 444 */
-	DRM_HDMI_OUTPUT_YCBCR422, /* YCBCR 422 */
-	DRM_HDMI_OUTPUT_YCBCR420, /* YCBCR 420 */
+	RK_IF_FORMAT_RGB,	/* default RGB */
+	RK_IF_FORMAT_YCBCR444,	/* YCBCR 444 */
+	RK_IF_FORMAT_YCBCR422,	/* YCBCR 422 */
+	RK_IF_FORMAT_YCBCR420,	/* YCBCR 420 */
 	/* (YCbCr444 > YCbCr422 > YCbCr420 > RGB) */
-	DRM_HDMI_OUTPUT_YCBCR_HQ,
+	RK_IF_FORMAT_YCBCR_HQ,	/* Highest subsampled YUV */
 	/* (YCbCr420 > YCbCr422 > YCbCr444 > RGB) */
-	DRM_HDMI_OUTPUT_YCBCR_LQ,
-	DRM_HDMI_OUTPUT_INVALID, /* Guess what ? */
+	RK_IF_FORMAT_YCBCR_LQ,	/* Lowest subsampled YUV */
+	RK_IF_FORMAT_MAX,
 };
 
 enum  base_output_depth {

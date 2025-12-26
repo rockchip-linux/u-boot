@@ -212,60 +212,60 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	bool support_dc = false;
 	bool mode_420 = drm_mode_is_420(info, mode);
 	unsigned int color_depth = 8;
-	unsigned int base_color = DRM_HDMI_OUTPUT_YCBCR444;
-	unsigned int color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
+	unsigned int base_color = RK_IF_FORMAT_YCBCR444;
+	unsigned int color_format = RK_IF_FORMAT_RGB;
 	unsigned long tmdsclock, pixclock = mode->clock;
 
 	if (screen_info)
 		base_color = screen_info->format;
 
 	switch (base_color) {
-	case DRM_HDMI_OUTPUT_YCBCR_HQ:
+	case RK_IF_FORMAT_YCBCR_HQ:
 		if (info->color_formats & DRM_COLOR_FORMAT_YCRCB444)
-			color_format = DRM_HDMI_OUTPUT_YCBCR444;
+			color_format = RK_IF_FORMAT_YCBCR444;
 		else if (info->color_formats & DRM_COLOR_FORMAT_YCRCB422)
-			color_format = DRM_HDMI_OUTPUT_YCBCR422;
+			color_format = RK_IF_FORMAT_YCBCR422;
 		else if (mode_420)
-			color_format = DRM_HDMI_OUTPUT_YCBCR420;
+			color_format = RK_IF_FORMAT_YCBCR420;
 		break;
-	case DRM_HDMI_OUTPUT_YCBCR_LQ:
+	case RK_IF_FORMAT_YCBCR_LQ:
 		if (mode_420)
-			color_format = DRM_HDMI_OUTPUT_YCBCR420;
+			color_format = RK_IF_FORMAT_YCBCR420;
 		else if (info->color_formats & DRM_COLOR_FORMAT_YCRCB422)
-			color_format = DRM_HDMI_OUTPUT_YCBCR422;
+			color_format = RK_IF_FORMAT_YCBCR422;
 		else if (info->color_formats & DRM_COLOR_FORMAT_YCRCB444)
-			color_format = DRM_HDMI_OUTPUT_YCBCR444;
+			color_format = RK_IF_FORMAT_YCBCR444;
 		break;
-	case DRM_HDMI_OUTPUT_YCBCR420:
+	case RK_IF_FORMAT_YCBCR420:
 		if (mode_420)
-			color_format = DRM_HDMI_OUTPUT_YCBCR420;
+			color_format = RK_IF_FORMAT_YCBCR420;
 		break;
-	case DRM_HDMI_OUTPUT_YCBCR422:
+	case RK_IF_FORMAT_YCBCR422:
 		if (info->color_formats & DRM_COLOR_FORMAT_YCRCB422)
-			color_format = DRM_HDMI_OUTPUT_YCBCR422;
+			color_format = RK_IF_FORMAT_YCBCR422;
 		break;
-	case DRM_HDMI_OUTPUT_YCBCR444:
+	case RK_IF_FORMAT_YCBCR444:
 		if (info->color_formats & DRM_COLOR_FORMAT_YCRCB444)
-			color_format = DRM_HDMI_OUTPUT_YCBCR444;
+			color_format = RK_IF_FORMAT_YCBCR444;
 		break;
-	case DRM_HDMI_OUTPUT_DEFAULT_RGB:
+	case RK_IF_FORMAT_RGB:
 	default:
 		break;
 	}
 
 	if (output_bus_format_rgb)
-		color_format = DRM_HDMI_OUTPUT_DEFAULT_RGB;
+		color_format = RK_IF_FORMAT_RGB;
 
-	if (color_format == DRM_HDMI_OUTPUT_DEFAULT_RGB &&
+	if (color_format == RK_IF_FORMAT_RGB &&
 	    info->edid_hdmi_dc_modes & DRM_EDID_HDMI_DC_30)
 		support_dc = true;
-	if (color_format == DRM_HDMI_OUTPUT_YCBCR444 &&
+	if (color_format == RK_IF_FORMAT_YCBCR444 &&
 	    (info->edid_hdmi_dc_modes &
 	     (DRM_EDID_HDMI_DC_Y444 | DRM_EDID_HDMI_DC_30)))
 		support_dc = true;
-	if (color_format == DRM_HDMI_OUTPUT_YCBCR422)
+	if (color_format == RK_IF_FORMAT_YCBCR422)
 		support_dc = true;
-	if (color_format == DRM_HDMI_OUTPUT_YCBCR420 &&
+	if (color_format == RK_IF_FORMAT_YCBCR420 &&
 	    info->hdmi.y420_dc_modes & DRM_EDID_YCBCR420_DC_30)
 		support_dc = true;
 
@@ -275,12 +275,12 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 	if (screen_info && screen_info->depth == 10)
 		color_depth = screen_info->depth;
 
-	if (color_format == DRM_HDMI_OUTPUT_YCBCR422 || color_depth == 8)
+	if (color_format == RK_IF_FORMAT_YCBCR422 || color_depth == 8)
 		tmdsclock = pixclock;
 	else
 		tmdsclock = pixclock * color_depth / 8;
 
-	if (color_format == DRM_HDMI_OUTPUT_YCBCR420)
+	if (color_format == RK_IF_FORMAT_YCBCR420)
 		tmdsclock /= 2;
 
 	if (!max_tmds_clock)
@@ -304,11 +304,11 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 			color_depth = 8;
 		} else if (max_tmds_clock > 340000) {
 			if (drm_mode_is_420(info, mode))
-				color_format = DRM_HDMI_OUTPUT_YCBCR420;
+				color_format = RK_IF_FORMAT_YCBCR420;
 		} else {
 			color_depth = 8;
 			if (drm_mode_is_420(info, mode))
-				color_format = DRM_HDMI_OUTPUT_YCBCR420;
+				color_format = RK_IF_FORMAT_YCBCR420;
 		}
 	}
 
@@ -316,11 +316,11 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 		if (dev_type == RK3288_HDMI)
 			return MEDIA_BUS_FMT_RGB101010_1X30;
 		switch (color_format) {
-		case DRM_HDMI_OUTPUT_YCBCR444:
+		case RK_IF_FORMAT_YCBCR444:
 			return MEDIA_BUS_FMT_YUV10_1X30;
-		case DRM_HDMI_OUTPUT_YCBCR422:
+		case RK_IF_FORMAT_YCBCR422:
 			return MEDIA_BUS_FMT_UYVY10_1X20;
-		case DRM_HDMI_OUTPUT_YCBCR420:
+		case RK_IF_FORMAT_YCBCR420:
 			return MEDIA_BUS_FMT_UYYVYY10_0_5X30;
 		default:
 			return MEDIA_BUS_FMT_RGB101010_1X30;
@@ -329,11 +329,11 @@ static unsigned int drm_rk_select_color(struct hdmi_edid_data *edid_data,
 		if (dev_type == RK3288_HDMI)
 			return MEDIA_BUS_FMT_RGB888_1X24;
 		switch (color_format) {
-		case DRM_HDMI_OUTPUT_YCBCR444:
+		case RK_IF_FORMAT_YCBCR444:
 			return MEDIA_BUS_FMT_YUV8_1X24;
-		case DRM_HDMI_OUTPUT_YCBCR422:
+		case RK_IF_FORMAT_YCBCR422:
 			return MEDIA_BUS_FMT_UYVY8_1X16;
-		case DRM_HDMI_OUTPUT_YCBCR420:
+		case RK_IF_FORMAT_YCBCR420:
 			return MEDIA_BUS_FMT_UYYVYY8_0_5X24;
 		default:
 			return MEDIA_BUS_FMT_RGB888_1X24;
