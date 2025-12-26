@@ -227,17 +227,18 @@ __weak int fit_standalone_release(char *id, uintptr_t entry_point)
 	return 0;
 }
 
-static int standalone_handler(const char *id, u32 entry_point, int data_size)
+static int standalone_handler(const char *id, ulong load, ulong entry, int data_size)
 {
 	int ret;
 
 	if (!sysmem_alloc_base_by_name(id,
-			(phys_addr_t)entry_point, data_size))
+			(phys_addr_t)load, data_size))
 		return -ENXIO;
 
-	printf("Handle standalone: '%s' at 0x%08x ...", id, entry_point);
+	printf("Handle standalone: '%s' load 0x%08lx, entry 0x%08lx ...",
+	       id, load, entry);
 
-	ret = fit_standalone_release((char *)id, entry_point);
+	ret = fit_standalone_release((char *)id, entry);
 	if (ret) {
 		printf("failed, ret=%d\n", ret);
 		return ret;
@@ -265,7 +266,8 @@ static int brought_up_amp(void *fit, int noffset,
 	cpu = fit_get_u32_default(fit, noffset, "cpu", -ENODATA);
 	hyp = fit_get_u32_default(fit, noffset, "hyp", 0);
 	thumb = fit_get_u32_default(fit, noffset, "thumb", 0);
-	entry = load = fit_get_u32_default(fit, noffset, "load", -ENODATA);
+	load = fit_get_u32_default(fit, noffset, "load", -ENODATA);
+	entry = fit_get_u32_default(fit, noffset, "entry", -ENODATA);
 	us = fit_get_u32_default(fit, noffset, "udelay", 0);
 	boot_on = fit_get_u32_default(fit, noffset, "boot-on", 1);
 	fit_image_get_arch(fit, noffset, &arch);
@@ -273,13 +275,16 @@ static int brought_up_amp(void *fit, int noffset,
 	fit_image_get_data_size(fit, noffset, &data_size);
 	memset(&args, 0, sizeof(args));
 
+	if (entry == -ENODATA)
+		entry = load;
+
 	/* standalone is simple, just handle it and then exit. Allow failure */
 	if (type == IH_TYPE_STANDALONE) {
 		if (!desc || load == -ENODATA) {
 			AMP_E("standalone: \"desc\" or \"load\" property missing!\n");
 			goto exit;
 		}
-		standalone_handler(desc, load, data_size);
+		standalone_handler(desc, load, entry, data_size);
 		goto exit;
 	}
 
@@ -298,6 +303,7 @@ static int brought_up_amp(void *fit, int noffset,
 	AMP_I("        hyp: %d\n", hyp);
 	AMP_I("      thumb: %d\n", thumb);
 	AMP_I("       load: 0x%08x\n", load);
+	AMP_I("      entry: 0x%08x\n", entry);
 	AMP_I("   pe_state: 0x%08x\n", pe_state);
 	AMP_I("   linux-os: %d\n\n", is_linux);
 #endif
