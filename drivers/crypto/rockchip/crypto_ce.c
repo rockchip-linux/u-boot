@@ -1077,15 +1077,14 @@ static struct crypto_impl rk_crypto_cipher_impl = {
 	.cipher.cipher_crypt = rockchip_crypto_cipher,
 	.cipher.cipher_mac   = rockchip_crypto_mac,
 	.cipher.cipher_ae    = rockchip_crypto_ae,
-	.cipher.is_secure = rockchip_crypto_is_secure,
+	.cipher.is_secure    = rockchip_crypto_is_secure,
 #if CONFIG_IS_ENABLED(DM_KEYLAD)
 	.cipher.cipher_fw_crypt = rockchip_crypto_fw_cipher,
-	.cipher.get_keytable_addr = rockchip_get_keytable_addr,
+	.cipher.keytable_addr   = rockchip_get_keytable_addr,
 #endif
 };
 
 #endif
-
 
 static int rockchip_crypto_probe(struct udevice *dev)
 {
