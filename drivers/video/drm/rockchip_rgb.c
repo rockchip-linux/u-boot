@@ -41,6 +41,8 @@
 
 #define RV1126B_GRF_VOP_LCDC_CON	0x30b9c
 #define RV1126B_VOP_MCU_SEL(v)		HIWORD_UPDATE(v, 15, 15)
+#define RV1126B_VOP_DCLK_DLL_NUM(v)	HIWORD_UPDATE(v, 8, 14)
+#define RV1126B_VOP_DCLK_DLL_SEL(v)	HIWORD_UPDATE(v, 1, 1)
 
 #define RK3288_GRF_SOC_CON6		0x025c
 #define RK3288_LVDS_LCDC_SEL(v)		HIWORD_UPDATE(v,  3,  3)
@@ -636,6 +638,14 @@ static const struct rockchip_rgb_data rv1126_rgb = {
 
 static void rv1126b_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
+	struct connector_state *conn_state = &state->conn_state;
+
+	if (conn_state->output_if == VOP_OUTPUT_IF_BT1120 ||
+	    conn_state->output_if == VOP_OUTPUT_IF_BT656) {
+		regmap_write(rgb->grf, RV1126B_GRF_VOP_LCDC_CON, RV1126B_VOP_DCLK_DLL_SEL(1));
+		regmap_write(rgb->grf, RV1126B_GRF_VOP_LCDC_CON, RV1126B_VOP_DCLK_DLL_NUM(0x15));
+	}
+
 	regmap_write(rgb->grf, RV1126B_GRF_VOP_LCDC_CON,
 		     RV1126B_VOP_MCU_SEL(rgb->data_sync_bypass));
 }
