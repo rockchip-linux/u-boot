@@ -4,6 +4,7 @@
  */
 
 #include <config.h>
+#include <asm/system.h>
 
 #ifdef CONFIG_ARM64
 /*
@@ -25,6 +26,11 @@
  */
 .global armv8_el2_to_aarch32
 armv8_el2_to_aarch32:
+	/* disable before jump */
+	mrs	x0, hcr_el2
+	bic	x0, x0, #HCR_EL2_TGE
+	msr	hcr_el2, x0
+
 	mov x0, x3
 	mov x3, x2
 	mov x2, x1
