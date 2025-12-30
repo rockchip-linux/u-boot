@@ -5,6 +5,7 @@
 
 #include <dm.h>
 #include <fdt_support.h>
+#include <misc.h>
 #include <string.h>
 #include <scsi.h>
 #include <spl.h>
@@ -49,6 +50,10 @@ DECLARE_GLOBAL_DATA_PTR;
 #define GPIO1B_IOMUX_SEL_0	0x28
 #define GPIO1B_IOMUX_SEL_1	0x2c
 #define GPIO1C_IOMUX_SEL_0	0x30
+
+#define OTP_SPEC_NUM_OFFSET		0x02
+#define OTP_SPEC_NUM_MASK		0xffff
+#define REMARK_OTP_SPEC_NUM_OFFSET	0x14
 
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
@@ -174,3 +179,37 @@ int arch_cpu_init(void)
 }
 #endif
 
+#ifdef CONFIG_ROCKCHIP_OTP
+int soc_id_init(void)
+{
+	struct udevice *dev;
+	u16 val, spec;
+	int ret;
+
+	ret = uclass_get_device_by_driver(UCLASS_MISC,
+					  DM_DRIVER_GET(rockchip_otp),
+					  &dev);
+	if (ret < 0) {
+		printf("No OTP device, ret=%d\n", ret);
+		return ret;
+	}
+	ret = misc_read(dev, REMARK_OTP_SPEC_NUM_OFFSET, &val, 1);
+	if (ret < 0) {
+		printf("Fail to read otp remark-spec, ret=%d\n", ret);
+		return ret;
+	}
+	if (!val) {
+		ret = misc_read(dev, OTP_SPEC_NUM_OFFSET, &val, 1);
+		if (ret < 0) {
+			printf("Fail to read otp spec, ret=%d\n", ret);
+			return ret;
+		}
+	}
+
+	spec = val & OTP_SPEC_NUM_MASK;
+	if (spec == 0x3935)
+		printf("SoC: rk3539\n");
+
+	return 0;
+}
+#endif

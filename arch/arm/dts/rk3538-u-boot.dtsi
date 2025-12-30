@@ -176,6 +176,11 @@
 	status = "okay";
 };
 
+&otp {
+	bootph-all;
+	status = "okay";
+};
+
 &u2phy_otg {
 	bootph-all;
 	status = "okay";
