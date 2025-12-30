@@ -8,6 +8,7 @@
 
 #include <dm.h>
 #include <dm/device-internal.h>
+#include <dm/uclass-internal.h>
 #include <linux/printk.h>
 #include <linux/usb/gadget.h>
 
@@ -65,8 +66,23 @@ int udc_device_put(struct udevice *udev)
 static int legacy_index;
 int udc_device_get_by_index(int index, struct udevice **udev)
 {
+	struct udevice *dev = NULL;
 	legacy_index = index;
-	return board_usb_init(index, USB_INIT_DEVICE);
+	int ret = 0;
+
+	ret = board_usb_init(index, USB_INIT_DEVICE);
+	if (ret) {
+		pr_err("Failed to initialize board for USB\n");
+		return ret;
+	}
+
+	ret = uclass_get_device_by_name(UCLASS_USB_GADGET_GENERIC, "rkusb", &dev);
+	if (!ret && dev) {
+		*udev = dev;
+		return 0;
+	}
+
+	return ret;
 }
 
 int udc_device_put(struct udevice *udev)

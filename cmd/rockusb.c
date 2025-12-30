@@ -19,38 +19,6 @@
 static struct rockusb rkusb;
 static struct rockusb *g_rkusb;
 
-#if !defined(CONFIG_DM_USB_GADGET)
-#include <dm.h>
-#include <dm/uclass-internal.h>
-
-DECLARE_GLOBAL_DATA_PTR;
-
-__weak
-int rkusb_dev_bind_to_udc_data(struct udevice *dev)
-{
-	return 0;
-}
-
-static int rkusb_dev_bind(struct udevice *dev)
-{
-	if (gd->flags & GD_FLG_RELOC)
-		rkusb.dev = dev;
-
-	return rkusb_dev_bind_to_udc_data(dev);
-}
-
-U_BOOT_DRIVER(rkusb) = {
-	.name = "rkusb",
-	.id = UCLASS_USB_GADGET_GENERIC,
-	.bind = rkusb_dev_bind,
-	.flags = DM_FLAG_PRE_RELOC,
-};
-
-U_BOOT_DRVINFO(rkusb) = {
-	.name = "rkusb",
-};
-#endif
-
 static int rkusb_read_sector(struct ums *ums_dev,
 			     ulong start, lbaint_t blkcnt, void *buf)
 {
@@ -291,9 +259,6 @@ re_enumerate:
 		rc = CMD_RET_FAILURE;
 		goto cleanup_rkusb;
 	}
-
-	if (!udc)
-		udc = g_rkusb->dev;
 
 	rc = fsg_init(g_rkusb->ums, g_rkusb->ums_cnt, udc);
 	if (rc) {

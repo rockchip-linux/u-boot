@@ -36,7 +36,6 @@
 #include <log.h>
 #include <mmc.h>
 #include <mini_dump.h>
-#include <dm/uclass-internal.h>
 #include <misc.h>
 #include <part.h>
 #include <ram.h>
@@ -53,19 +52,16 @@
 #include <asm/arch-rockchip/boot_mode.h>
 #include <asm/arch-rockchip/common.h>
 #include <asm/arch-rockchip/clock.h>
-#include <asm/arch-rockchip/periph.h>
 #include <asm/arch-rockchip/misc.h>
 #include <asm/arch-rockchip/periph.h>
 #include <asm/arch-rockchip/pstore.h>
 #include <asm/arch-rockchip/param.h>
 #include <asm/arch-rockchip/vendor.h>
-#include <asm/arch-rockchip/atags.h>
-#include <asm/arch-rockchip/boot_mode.h>
-#include <asm/arch-rockchip/param.h>
 #include <linux/input.h>
 #include <power/charge_display.h>
 #include <power/regulator.h>
 #include <rk_eink.h>
+#include <rockusb.h>
 #include <tee/optee.h>
 #include <amp.h>
 
@@ -77,6 +73,29 @@ __weak int rk_board_fdt_fixup(void *blob) { return 0; }
 __weak int rk_board_dm_fdt_fixup(void *blob) { return 0; }
 __weak int rk_board_init(void) { return 0; }
 __weak int rk_board_late_init(void) { return 0; }
+
+#if !defined(CONFIG_DM_USB_GADGET)
+__weak int rkusb_dev_bind_to_udc_data(struct udevice *dev)
+{
+	return 0;
+}
+
+static int rkusb_dev_bind(struct udevice *dev)
+{
+	return rkusb_dev_bind_to_udc_data(dev);
+}
+
+U_BOOT_DRIVER(rkusb) = {
+	.name = "rkusb",
+	.id = UCLASS_USB_GADGET_GENERIC,
+	.bind = rkusb_dev_bind,
+	.flags = DM_FLAG_PRE_RELOC,
+};
+
+U_BOOT_DRVINFO(rkusb) = {
+	.name = "rkusb",
+};
+#endif
 
 /* override weak */
 int board_kernel_dtb_read(void *fdt)
