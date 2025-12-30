@@ -55,6 +55,7 @@
 #define RK3368_FORCE_JETAG(v)		HIWORD_UPDATE(v,  13,  13)
 
 #define RK3506_GRF_SOC_CON2		0x0008
+#define RK3506_GRF_VOP_DLL_SEL(v)	HIWORD_UPDATE(v, 4, 10)
 #define RK3506_GRF_VOP_DATA_BYPASS(v)	HIWORD_UPDATE(v, 1, 2)
 
 #define RK3562_GRF_IOC_VO_IO_CON	0x10500
@@ -71,14 +72,13 @@
 struct rockchip_rgb;
 
 struct rockchip_rgb_funcs {
-	void (*prepare)(struct rockchip_rgb *rgb, int pipe);
-	void (*unprepare)(struct rockchip_rgb *rgb);
+	void (*prepare)(struct display_state *state, struct rockchip_rgb *rgb);
+	void (*unprepare)(struct display_state *state, struct rockchip_rgb *rgb);
 };
 
 struct rockchip_rgb_data {
 	u32 rgb_max_dclk_rate;
 	u32 mcu_max_dclk_rate;
-	u32 dclk_delayline;
 	const struct rockchip_rgb_funcs *funcs;
 };
 
@@ -91,7 +91,6 @@ struct rockchip_rgb {
 	struct rockchip_phy *phy;
 	const struct rockchip_rgb_funcs *funcs;
 	u32 max_dclk_rate;
-	u32 dclk_delayline;
 	int data_map_mode;
 };
 
@@ -157,14 +156,12 @@ static int rockchip_rgb_connector_prepare(struct rockchip_connector *conn,
 					  struct display_state *state)
 {
 	struct rockchip_rgb *rgb = dev_get_priv(conn->dev);
-	struct crtc_state *crtc_state = &state->crtc_state;
-	int pipe = crtc_state->crtc_id;
 	int ret;
 
 	pinctrl_select_state(rgb->dev, "default");
 
 	if (rgb->funcs && rgb->funcs->prepare)
-		rgb->funcs->prepare(rgb, pipe);
+		rgb->funcs->prepare(state, rgb);
 
 	if (rgb->phy) {
 		ret = rockchip_phy_set_mode(rgb->phy, PHY_MODE_VIDEO_TTL);
@@ -188,7 +185,7 @@ static void rockchip_rgb_connector_unprepare(struct rockchip_connector *conn,
 		rockchip_phy_power_off(rgb->phy);
 
 	if (rgb->funcs && rgb->funcs->unprepare)
-		rgb->funcs->unprepare(rgb);
+		rgb->funcs->unprepare(state, rgb);
 
 	pinctrl_select_state(rgb->dev, "sleep");
 }
@@ -553,7 +550,6 @@ static int rockchip_rgb_probe(struct udevice *dev)
 			rgb->max_dclk_rate = rgb_data->mcu_max_dclk_rate;
 		else
 			rgb->max_dclk_rate = rgb_data->rgb_max_dclk_rate;
-		rgb->dclk_delayline = rgb_data->dclk_delayline;
 	}
 	rgb->dev = dev;
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
@@ -606,7 +602,7 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	return 0;
 }
 
-static void rv1106_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rv1106_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RV1106_VENC_GRF_VOP_IO_WRAPPER,
 		     RV1106_IO_BYPASS_SEL(rgb->data_sync_bypass ? 0x3 : 0x0));
@@ -624,7 +620,7 @@ static const struct rockchip_rgb_data rv1106_rgb = {
 	.funcs = &rv1106_rgb_funcs,
 };
 
-static void rv1126_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rv1126_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RV1126_GRF_IOFUNC_CON3,
 		     RV1126_LCDC_IO_BYPASS(rgb->data_sync_bypass));
@@ -638,7 +634,7 @@ static const struct rockchip_rgb_data rv1126_rgb = {
 	.funcs = &rv1126_rgb_funcs,
 };
 
-static void rv1126b_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rv1126b_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RV1126B_GRF_VOP_LCDC_CON,
 		     RV1126B_VOP_MCU_SEL(rgb->data_sync_bypass));
@@ -654,9 +650,11 @@ static const struct rockchip_rgb_data rv1126b_rgb = {
 	.funcs = &rv1126b_rgb_funcs,
 };
 
-static void px30_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void px30_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
-	regmap_write(rgb->grf, PX30_GRF_PD_VO_CON1, PX30_RGB_VOP_SEL(pipe) |
+	struct crtc_state *crtc_state = &state->crtc_state;
+
+	regmap_write(rgb->grf, PX30_GRF_PD_VO_CON1, PX30_RGB_VOP_SEL(crtc_state->crtc_id) |
 		     PX30_RGB_DATA_SYNC_BYPASS(rgb->data_sync_bypass));
 }
 
@@ -668,7 +666,7 @@ static const struct rockchip_rgb_data px30_rgb = {
 	.funcs = &px30_rgb_funcs,
 };
 
-static void rk1808_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rk1808_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RK1808_GRF_PD_VO_CON1,
 		     RK1808_RGB_DATA_SYNC_BYPASS(rgb->data_sync_bypass));
@@ -682,16 +680,18 @@ static const struct rockchip_rgb_data rk1808_rgb = {
 	.funcs = &rk1808_rgb_funcs,
 };
 
-static void rk3288_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rk3288_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
-	regmap_write(rgb->grf, RK3288_GRF_SOC_CON6, RK3288_LVDS_LCDC_SEL(pipe));
+	struct crtc_state *crtc_state = &state->crtc_state;
+
+	regmap_write(rgb->grf, RK3288_GRF_SOC_CON6, RK3288_LVDS_LCDC_SEL(crtc_state->crtc_id));
 	regmap_write(rgb->grf, RK3288_GRF_SOC_CON7,
 		     RK3288_LVDS_PWRDWN(0) | RK3288_LVDS_CON_ENABLE_2(1) |
 		     RK3288_LVDS_CON_ENABLE_1(1) | RK3288_LVDS_CON_CLKINV(0) |
 		     RK3288_LVDS_CON_TTL_EN(1));
 }
 
-static void rk3288_rgb_unprepare(struct rockchip_rgb *rgb)
+static void rk3288_rgb_unprepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RK3288_GRF_SOC_CON7,
 		     RK3288_LVDS_PWRDWN(1) | RK3288_LVDS_CON_ENABLE_2(0) |
@@ -707,7 +707,7 @@ static const struct rockchip_rgb_data rk3288_rgb = {
 	.funcs = &rk3288_rgb_funcs,
 };
 
-static void rk3368_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rk3368_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RK3368_GRF_SOC_CON15, RK3368_FORCE_JETAG(0));
 }
@@ -720,10 +720,17 @@ static const struct rockchip_rgb_data rk3368_rgb = {
 	.funcs = &rk3368_rgb_funcs,
 };
 
-static void rk3506_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rk3506_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
+	struct connector_state *conn_state = &state->conn_state;
+
 	regmap_write(rgb->grf, RK3506_GRF_SOC_CON2,
 		     RK3506_GRF_VOP_DATA_BYPASS(rgb->data_sync_bypass ? 0x3 : 0x0));
+	if (conn_state->output_if == VOP_OUTPUT_IF_BT1120 ||
+	    conn_state->output_if == VOP_OUTPUT_IF_BT656)
+		regmap_write(rgb->grf, RK3506_GRF_SOC_CON2, RK3506_GRF_VOP_DLL_SEL(0x20));
+	else
+		regmap_write(rgb->grf, RK3506_GRF_SOC_CON2, RK3506_GRF_VOP_DLL_SEL(0x10));
 }
 
 static const struct rockchip_rgb_funcs rk3506_rgb_funcs = {
@@ -736,7 +743,7 @@ static const struct rockchip_rgb_data rk3506_rgb = {
 	.funcs = &rk3506_rgb_funcs,
 };
 
-static void rk3562_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rk3562_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RK3562_GRF_IOC_VO_IO_CON,
 		     RK3562_RGB_DATA_BYPASS(rgb->data_sync_bypass));
@@ -750,7 +757,7 @@ static const struct rockchip_rgb_data rk3562_rgb = {
 	.funcs = &rk3562_rgb_funcs,
 };
 
-static void rk3568_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rk3568_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RK3568_GRF_VO_CON1, RK3568_RGB_DATA_BYPASS(rgb->data_sync_bypass));
 }
@@ -763,14 +770,12 @@ static const struct rockchip_rgb_data rk3568_rgb = {
 	.funcs = &rk3568_rgb_funcs,
 };
 
-static void rk3576_rgb_prepare(struct rockchip_rgb *rgb, int pipe)
+static void rk3576_rgb_prepare(struct display_state *state, struct rockchip_rgb *rgb)
 {
 	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8,
 		     RK3576_VOP_MCU_SEL(rgb->data_sync_bypass));
-	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8,
-		     RK3576_VOP_DLL_SEL(true));
-	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8,
-		     RK3576_VOP_DCLK_DELAYLINE(rgb->dclk_delayline));
+	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8, RK3576_VOP_DLL_SEL(true));
+	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8, RK3576_VOP_DCLK_DELAYLINE(0x5));
 }
 
 static const struct rockchip_rgb_funcs rk3576_rgb_funcs = {
@@ -778,7 +783,6 @@ static const struct rockchip_rgb_funcs rk3576_rgb_funcs = {
 };
 
 static const struct rockchip_rgb_data rk3576_rgb = {
-	.dclk_delayline = 5,
 	.funcs = &rk3576_rgb_funcs,
 };
 
