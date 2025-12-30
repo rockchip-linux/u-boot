@@ -113,6 +113,15 @@ config ROCKCHIP_OTP
 	  addressing and a length or through child-nodes that are generated
 	  based on the e-fuse map retrieved from the DTS.
 
+config SPL_ROCKCHIP_OTP
+	bool "Rockchip OTP Support in SPL"
+	depends on MISC
+	help
+	  Enable (read-only) access for the one-time-programmable memory block
+	  found in Rockchip SoCs: accesses can either be made using byte
+	  addressing and a length or through child-nodes that are generated
+	  based on the e-fuse map retrieved from the DTS.
+
 config ROCKCHIP_HW_DECOMPRESS
 	bool "Rockchip HardWare Decompress Support"
 	depends on MISC_DECOMPRESS

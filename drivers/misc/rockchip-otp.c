@@ -222,6 +222,7 @@ static int rockchip_rk3538_otp_read(struct udevice *dev, int offset,
 {
 	struct rockchip_otp_plat *otp = dev_get_plat(dev);
 	u16 *buffer = buf;
+	int user_off = offset >> 1;
 	int NeedEcc = false;
 	int ret;
 
@@ -247,8 +248,9 @@ static int rockchip_rk3538_otp_read(struct udevice *dev, int offset,
 	udelay(5);
 
 	while (size--) {
-		writel(offset++ | OTPC_USER_ADDR_MASK,
+		writel(user_off++ | OTPC_USER_ADDR_MASK,
 		       otp->base + RK3538_OTPC_USER_ADDR);
+
 		writel(OTPC_USER_FSM_ENABLE | OTPC_USER_FSM_ENABLE_MASK,
 		       otp->base + RK3538_OTPC_USER_ENABLE);
 
