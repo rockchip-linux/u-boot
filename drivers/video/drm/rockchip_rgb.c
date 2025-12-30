@@ -99,6 +99,7 @@ struct rockchip_rgb {
 	const struct rockchip_rgb_funcs *funcs;
 	u32 max_dclk_rate;
 	int data_map_mode;
+	int delayline_num;
 };
 
 struct mcu_cmd_header {
@@ -539,6 +540,7 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	int ret;
 
 	rgb->data_map_mode = dev_read_s32_default(dev, "rockchip,data-map-mode", -1);
+	rgb->delayline_num = dev_read_s32_default(dev, "rockchip,delayline-num", -1);
 	rgb->data_sync_bypass = dev_read_bool(dev, "rockchip,data-sync-bypass");
 	rgb_data = (const struct rockchip_rgb_data *)dev_get_driver_data(dev);
 	if (rgb_data) {
@@ -646,6 +648,12 @@ static void rv1126b_rgb_prepare(struct display_state *state, struct rockchip_rgb
 
 	regmap_write(rgb->grf, RV1126B_GRF_VOP_LCDC_CON,
 		     RV1126B_VOP_MCU_SEL(rgb->data_sync_bypass));
+
+	if (rgb->delayline_num >= 0) {
+		regmap_write(rgb->grf, RV1126B_GRF_VOP_LCDC_CON, RV1126B_VOP_DCLK_DLL_SEL(1));
+		regmap_write(rgb->grf, RV1126B_GRF_VOP_LCDC_CON,
+			     RV1126B_VOP_DCLK_DLL_NUM(rgb->delayline_num));
+	}
 }
 
 static const struct rockchip_rgb_funcs rv1126b_rgb_funcs = {
@@ -739,6 +747,11 @@ static void rk3506_rgb_prepare(struct display_state *state, struct rockchip_rgb 
 		regmap_write(rgb->grf, RK3506_GRF_SOC_CON2, RK3506_GRF_VOP_DLL_SEL(0x20));
 	else
 		regmap_write(rgb->grf, RK3506_GRF_SOC_CON2, RK3506_GRF_VOP_DLL_SEL(0x10));
+
+	if (rgb->delayline_num >= 0) {
+		regmap_write(rgb->grf, RK3506_GRF_SOC_CON2,
+			     RK3506_GRF_VOP_DLL_SEL(rgb->delayline_num));
+	}
 }
 
 static const struct rockchip_rgb_funcs rk3506_rgb_funcs = {
@@ -797,7 +810,9 @@ static void rk3576_rgb_prepare(struct display_state *state, struct rockchip_rgb 
 	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8,
 		     RK3576_VOP_MCU_SEL(rgb->data_sync_bypass));
 	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8, RK3576_VOP_DLL_SEL(true));
-	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8, RK3576_VOP_DCLK_DELAYLINE(0x5));
+	regmap_write(rgb->grf, RK3576_VCCIO_IOC_MISC_CON8,
+		     RK3576_VOP_DCLK_DELAYLINE(rgb->delayline_num >= 0 ?
+					       rgb->delayline_num : 0x5));
 }
 
 static const struct rockchip_rgb_funcs rk3576_rgb_funcs = {
