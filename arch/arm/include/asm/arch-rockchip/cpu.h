@@ -99,10 +99,16 @@ static inline int rockchip_soc_id(void)
 #endif
 }
 
+int board_soc_id(void);
+void board_soc_id_init(int id);
+
 #define ROCKCHIP_SOC(id, ID) \
 static inline bool soc_is_##id(void) \
 { \
 	int soc_id = rockchip_soc_id(); \
+	int bsoc_id = board_soc_id(); \
+	if (bsoc_id) \
+		return ((bsoc_id & ROCKCHIP_SOC_MASK) == ROCKCHIP_SOC_ ##ID); \
 	if (soc_id) \
 		return ((soc_id & ROCKCHIP_SOC_MASK) == ROCKCHIP_SOC_ ##ID); \
 	return false; \

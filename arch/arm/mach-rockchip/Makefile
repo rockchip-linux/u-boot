@@ -40,6 +40,7 @@ ifeq ($(CONFIG_TPL_BUILD),)
 obj-$(CONFIG_DISPLAY_CPUINFO) += cpu-info.o
 endif
 
+obj-y += cpu.o
 ifndef CONFIG_SUPPORT_USBPLUG
 obj-$(CONFIG_$(PHASE_)RAM) += sdram.o
 obj-$(CONFIG_$(PHASE_)ROCKCHIP_FPGA) += fpga.o

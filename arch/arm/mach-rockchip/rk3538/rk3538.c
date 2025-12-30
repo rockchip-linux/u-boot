@@ -14,6 +14,7 @@
 #include <asm/armv8/mmu.h>
 #include <asm/arch-rockchip/bootrom.h>
 #include <asm/arch-rockchip/boot_mode.h>
+#include <asm/arch-rockchip/cpu.h>
 #include <asm/arch-rockchip/hardware.h>
 #include <asm/arch-rockchip/smccc.h>
 #include <asm/arch-rockchip/vendor.h>
@@ -221,8 +222,13 @@ int soc_id_init(void)
 	}
 
 	spec = val & OTP_SPEC_NUM_MASK;
-	if (spec == 0x3935)
+	if (spec == 0x3835) {
+		printf("SoC: rk3538\n");
+		board_soc_id_init(ROCKCHIP_SOC_RK3538);
+	} else if (spec == 0x3935) {
 		printf("SoC: rk3539\n");
+		board_soc_id_init(ROCKCHIP_SOC_RK3539);
+	}
 
 	return 0;
 }
