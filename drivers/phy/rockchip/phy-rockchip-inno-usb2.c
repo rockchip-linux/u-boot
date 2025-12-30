@@ -1068,6 +1068,12 @@ static int rk3538_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	/* Turn off host port differential receiver in suspend mode */
 	phy_clear_bits(rphy->phy_base + 0x430, BIT(2));
 
+	/* Set otg port HS eye height to 425mv(default is 450mv) */
+	phy_update_bits(rphy->phy_base + 0x30, GENMASK(6, 4), (0x05 << 4));
+
+	/* Set host port HS eye height to 425mv(default is 450mv) */
+	phy_update_bits(rphy->phy_base + 0x430, GENMASK(6, 4), (0x05 << 4));
+
 	/* Choose the Tx fs/ls data as linestate from TX driver for otg port */
 	phy_update_bits(rphy->phy_base + 0x94, GENMASK(6, 3), (0x03 << 3));
 
