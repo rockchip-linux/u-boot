@@ -5042,8 +5042,9 @@ static unsigned long rk3572_vop2_if_cfg(struct display_state *state)
 				RK3576_IF_PORT_SEL_SHIFT, cstate->crtc_id, false);
 		vop2_mask_write(vop2, RK3572_RGB_IF_CTRL, RK3576_IF_PIN_POL_MASK,
 				RK3576_IF_PIN_POL_SHIFT, val, false);
-		vop2_grf_writel(vop2, vop2->ioc_grf, RK3572_IOC_GRF_GPIO3_IOC_MISC2, EN_MASK,
-				RK3572_IOC_GRF_VOPLITE_INV_SHIFT, dclk_inv);
+		if (vop2->version == VOP_VERSION_RK3572)
+			vop2_grf_writel(vop2, vop2->ioc_grf, RK3572_IOC_GRF_GPIO3_IOC_MISC2,
+					EN_MASK, RK3572_IOC_GRF_VOPLITE_INV_SHIFT, dclk_inv);
 	}
 
 	if (output_if & VOP_OUTPUT_IF_BT1120) {
@@ -5061,8 +5062,9 @@ static unsigned long rk3572_vop2_if_cfg(struct display_state *state)
 				RK3576_BT1120_OUT_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3572_RGB_IF_CTRL, RK3576_IF_PORT_SEL_MASK,
 				RK3576_IF_PORT_SEL_SHIFT, cstate->crtc_id, false);
-		vop2_grf_writel(vop2, vop2->ioc_grf, RK3572_IOC_GRF_GPIO3_IOC_MISC2, EN_MASK,
-				RK3572_IOC_GRF_VOPLITE_INV_SHIFT, !dclk_inv);
+		if (vop2->version == VOP_VERSION_RK3572)
+			vop2_grf_writel(vop2, vop2->ioc_grf, RK3572_IOC_GRF_GPIO3_IOC_MISC2,
+					EN_MASK, RK3572_IOC_GRF_VOPLITE_INV_SHIFT, !dclk_inv);
 		yc_swap = is_yc_swap(conn_state->bus_format);
 		vop2_mask_write(vop2, RK3572_RGB_IF_CTRL, EN_MASK,
 				RK3576_BT1120_YC_SWAP_SHIFT, yc_swap, false);
@@ -5083,8 +5085,9 @@ static unsigned long rk3572_vop2_if_cfg(struct display_state *state)
 				RK3576_BT656_OUT_EN_SHIFT, 1, false);
 		vop2_mask_write(vop2, RK3572_RGB_IF_CTRL, RK3576_IF_PORT_SEL_MASK,
 				RK3576_IF_PORT_SEL_SHIFT, cstate->crtc_id, false);
-		vop2_grf_writel(vop2, vop2->ioc_grf, RK3572_IOC_GRF_GPIO3_IOC_MISC2, EN_MASK,
-				RK3572_IOC_GRF_VOPLITE_INV_SHIFT, !dclk_inv);
+		if (vop2->version == VOP_VERSION_RK3572)
+			vop2_grf_writel(vop2, vop2->ioc_grf, RK3572_IOC_GRF_GPIO3_IOC_MISC2,
+					EN_MASK, RK3572_IOC_GRF_VOPLITE_INV_SHIFT, !dclk_inv);
 		yc_swap = is_yc_swap(conn_state->bus_format);
 		vop2_mask_write(vop2, RK3572_RGB_IF_CTRL, EN_MASK,
 				RK3576_BT656_YC_SWAP_SHIFT, yc_swap, false);
