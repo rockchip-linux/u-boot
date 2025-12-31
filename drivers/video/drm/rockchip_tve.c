@@ -128,6 +128,7 @@ static struct env_config pal_tve_config[] = {
 struct rockchip_tve_data {
 	int	input_format;
 	int	soc_type;
+	u8	default_out_current;
 };
 
 struct rockchip_tve {
@@ -155,6 +156,7 @@ struct rockchip_tve {
 	int	preferred_mode;
 	int	upsample_mode;
 	u8	vdac_out_current;
+	u8	default_out_current;
 	void	*grf;
 };
 
@@ -231,6 +233,9 @@ static void tve_set_mode(struct rockchip_tve *tve)
 
 			tve_write_block(tve, bt656_cfg, BT656_ENV_CONFIG_SIZE);
 			tve_write_block(tve, tve_cfg, TVE_ENV_CONFIG_SIZE);
+
+			if (tve->soc_type == SOC_RK3538)
+				tve_writel(TVE_BRIGHTNESS_CONTRAST, 0x0000a800);
 		} else {
 			tve_writel(TV_ROUTING, v_DAC_SENSE_EN(0) | v_Y_IRE_7_5(0) |
 				   v_Y_AGC_PULSE_ON(0) | v_Y_VIDEO_ON(1) |
@@ -422,10 +427,9 @@ static int tve_read_otp_by_name(char *name, u8 *val, u8 default_val)
 static int tve_parse_dt(struct rockchip_tve *tve)
 {
 	/*
-	 * Read vdac output current from OTP if exists, and the default
-	 * current val is 0xd2.
+	 * Read vdac output current from OTP if exists.
 	 */
-	u8 out_current = 0xd2;
+	u8 out_current = tve->default_out_current;
 #if defined(CONFIG_ROCKCHIP_EFUSE) || defined(CONFIG_ROCKCHIP_OTP)
 	u8 version = 0;
 	int ret = 0;
@@ -433,22 +437,23 @@ static int tve_parse_dt(struct rockchip_tve *tve)
 	ret = tve_read_otp_by_name("vdac-out-current", &out_current, out_current);
 	if (!ret) {
 		if (out_current) {
-			/*
-			 * If test version is 0x0, the value of vdac out current
-			 * needs to be reduced by one.
-			 */
-			ret = tve_read_otp_by_name("test-version", &version, version);
-			if (!ret) {
-				if (version == 0x0)
-					out_current -= 1;
+			if (tve->soc_type == SOC_RK3528) {
+				/*
+				 * For RK3528, if test version is 0x0, the value of vdac out
+				 * current needs to be reduced by one.
+				 */
+				ret = tve_read_otp_by_name("test-version", &version, version);
+				if (!ret) {
+					if (version == 0x0)
+						out_current -= 1;
+				}
 			}
 		} else {
 			/*
 			 * If the current value read from OTP is 0, set it to default.
 			 */
-			out_current = 0xd2;
+			out_current = tve->default_out_current;
 		}
-
 	}
 #endif
 	tve->vdac_out_current = out_current;
@@ -881,6 +886,7 @@ static int rockchip_drm_tve_probe(struct udevice *dev)
 	data = (const struct rockchip_tve_data *)dev_get_driver_data(dev);
 	tve->soc_type = data->soc_type;
 	tve->input_format = data->input_format;
+	tve->default_out_current = data->default_out_current;
 
 	rockchip_connector_bind(&tve->connector, dev, 0, &rockchip_drm_tve_funcs, NULL, DRM_MODE_CONNECTOR_TV);
 
@@ -910,11 +916,13 @@ static const struct rockchip_tve_data rk3328_tve = {
 static const struct rockchip_tve_data rk3528_tve = {
 	.soc_type = SOC_RK3528,
 	.input_format = INPUT_FORMAT_YUV,
+	.default_out_current = 0xd2,
 };
 
 static const struct rockchip_tve_data rk3538_tve = {
 	.soc_type = SOC_RK3538,
 	.input_format = INPUT_FORMAT_YUV,
+	.default_out_current = 0xd5,
 };
 
 static const struct udevice_id rockchip_drm_tve_ids[] = {
