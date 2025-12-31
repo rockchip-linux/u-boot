@@ -1492,6 +1492,7 @@ static bool write_index_tbl(const int file_num, const char **files)
 		if (write_file(offset, files[i], hash, sizeof(hash)) < 0)
 			goto end;
 
+		memset(entry.hash, 0, sizeof(entry.hash));
 		memcpy(entry.hash, hash, sizeof(hash));
 		entry.hash_size = sizeof(hash);
 
