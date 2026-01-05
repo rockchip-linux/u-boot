@@ -567,6 +567,9 @@ out2:
 
 int arm64_switch_amp_pe(bootm_headers_t *images)
 {
+	if (g_bootcpu.arch == IH_ARCH_INVALID)
+		return 0;
+
 	images->os.arch = g_bootcpu.arch;
 	return g_bootcpu.state;
 }
