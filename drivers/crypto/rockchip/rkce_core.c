@@ -631,5 +631,5 @@ uint32_t rkce_get_keytable_addr(void *rkce_hw)
 
 	rkce_reg = GET_RKCE_REG(rkce_hw);
 
-	return rkce_reg->KL_TO_CE_PADDR + CRYPTO_CH0_KEY_0;
+	return rkce_reg->KL_TO_CE_PADDR;
 }

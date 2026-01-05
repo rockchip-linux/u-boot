@@ -168,7 +168,7 @@ struct RKCE_REG {
 #define RKCE_RST_CTL_SW_HASH_RESET_MASK            (0x1U << RKCE_RST_CTL_SW_HASH_RESET_SHIFT)
 #define RKCE_RST_CTL_SW_PKA_RESET_SHIFT            (2U)
 #define RKCE_RST_CTL_SW_PKA_RESET_MASK             (0x1U << RKCE_RST_CTL_SW_PKA_RESET_SHIFT)
-#define	CRYPTO_CH0_KEY_0                           0x0180
+
 /* TD_ADDR */
 #define RKCE_TD_ADDR_OFFSET                        (0x200U)
 #define RKCE_TD_ADDR_TD_ADDR_SHIFT                 (0U)
