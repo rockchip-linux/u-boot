@@ -519,11 +519,12 @@ int arch_cpu_init(void)
 }
 
 #if defined(CONFIG_ROCKCHIP_PRELOADER_ATAGS)
-#if !defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_KERNEL_BOOT)
+#if defined(CONFIG_SPL_KERNEL_BOOT)
 int rk_board_fit_image_post_process(void *fit, int node, ulong *load_addr,
 				     ulong **src_addr, size_t *src_len)
 {
 	struct tag *t;
+	uint8_t image_arch;
 	int count;
 
 	/* Only current node is kernel needs go further. */
@@ -536,7 +537,6 @@ int rk_board_fit_image_post_process(void *fit, int node, ulong *load_addr,
 		return -EINVAL;
 
 	if (t->u.ddr_mem.bank[0] == 0x0) {
-#ifdef CONFIG_SPL_BUILD
 		/*
 		 * Dynamically create memory mapping for 0x10000-0x10000000(256M)
 		 * only when needed. This avoids too much boot time without 4G DDR support.
@@ -544,28 +544,19 @@ int rk_board_fit_image_post_process(void *fit, int node, ulong *load_addr,
 		mmu_set_region_dcache_behaviour(0x10000,
 						0x10000000 - 0x10000,
 						DCACHE_WRITEBACK);
-#endif
-#ifdef CONFIG_CMD_BOOTZ
-		ulong start, end;
 
-		if (bootz_setup((ulong)*src_addr, &start, &end))
-#endif
-		{
-			uint8_t image_arch;
+		if (fit_image_get_arch(fit, node, &image_arch))
+			return -EINVAL;
 
-			if (fit_image_get_arch(fit, node, &image_arch))
-				return -EINVAL;
-
-			if (image_arch == IH_ARCH_ARM) {
-				*load_addr = env_get_ulong("kernel_addr_aarch32_r", 16, 0);
-			} else if (image_arch == IH_ARCH_ARM64) {
-				*load_addr = env_get_ulong("kernel_addr_r", 16, 0);
-			} else {
-				printf("Unknown image arch: 0x%x\n", image_arch);
-				return -EINVAL;
-			}
-			printf("Relocate kernel to 0x%lx.\n", *load_addr);
+		if (image_arch == IH_ARCH_ARM) {
+			*load_addr = KERNEL_ADDR1_AARCH32_R;
+		} else if (image_arch == IH_ARCH_ARM64) {
+			*load_addr = KERNEL_ADDR1_R;
+		} else {
+			printf("Unknown image arch: 0x%x\n", image_arch);
+			return -EINVAL;
 		}
+		printf("Relocate kernel to 0x%lx.\n", *load_addr);
 	}
 
 	return 0;

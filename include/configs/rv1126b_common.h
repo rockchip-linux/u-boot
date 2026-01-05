@@ -74,6 +74,8 @@
 #ifdef CONFIG_SPL_KERNEL_BOOT
 /* spl thunderboot */
 #define SPL_RESV_MEM_SIZE		(2 << 20)	/* 2M */
+#define KERNEL_ADDR1_R			0x00200000
+#define KERNEL_ADDR1_AARCH32_R		0x00208000
 #endif
 
 /* env used only in U-Boot */
@@ -112,8 +114,8 @@
 	"scriptaddr1=0x00600000\0"	\
 	"pxefile_addr1_r=0x00700000\0"	\
 	"fdt_addr1_r=0x08300000\0"	\
-	"kernel_addr1_r=0x00200000\0"	\
-	"kernel_addr1_aarch32_r=0x00208000\0"	\
+	"kernel_addr1_r=__stringify(KERNEL_ADDR1_R)\0"	\
+	"kernel_addr1_aarch32_r=__stringify(KERNEL_ADDR1_AARCH32_R)\0"	\
 	"kernel_addr1_c=0x02080000\0"	\
 	"ramdisk_addr1_r=0x03000000\0"
 #endif
