@@ -23,4 +23,5 @@ obj-$(CONFIG_SPI_NAND_GSTO) += gsto.o
 obj-$(CONFIG_SPI_NAND_ZBIT) += zbit.o
 obj-$(CONFIG_SPI_NAND_HIKSEMI) += hiksemi.o
 obj-$(CONFIG_SPI_NAND_KINGSTON) += kingston.o
+obj-$(CONFIG_SPI_NAND_ISSI) += issi.o
 obj-$(CONFIG_MTD_SPI_NAND) += spinand.o
