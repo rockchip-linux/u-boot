@@ -13,6 +13,7 @@
 #include <linux/mtd/spinand.h>
 
 #define SPINAND_MFR_ESMT		0xC8
+#define SPINAND_MFR_ESMT_ELITE		0x8C
 
 static SPINAND_OP_VARIANTS(read_cache_variants,
 		SPINAND_PAGE_READ_FROM_CACHE_QUADIO_OP(0, 2, NULL, 0),
@@ -134,6 +135,18 @@ static const struct spinand_info esmt_spinand_table[] = {
 		     SPINAND_ECCINFO(&f50l2g41ka_ooblayout, f50l2g41ka_ecc_ecc_get_status)),
 };
 
+static const struct spinand_info esmt_elite_spinand_table[] = {
+	SPINAND_INFO("F50L1G41LC",
+		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0x2C),
+		     NAND_MEMORG(1, 2048, 64, 64, 2048, 20, 1, 1, 1),
+		     NAND_ECCREQ(1, 512),
+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
+					      &write_cache_variants,
+					      &update_cache_variants),
+		     0,
+		     SPINAND_ECCINFO(&f50lxx41x_ooblayout, NULL)),
+};
+
 static const struct spinand_manufacturer_ops esmt_spinand_manuf_ops = {
 };
 
@@ -142,5 +155,13 @@ const struct spinand_manufacturer esmt_spinand_manufacturer = {
 	.name = "esmt",
 	.chips = esmt_spinand_table,
 	.nchips = ARRAY_SIZE(esmt_spinand_table),
+	.ops = &esmt_spinand_manuf_ops,
+};
+
+const struct spinand_manufacturer esmt_elite_spinand_manufacturer = {
+	.id = SPINAND_MFR_ESMT_ELITE,
+	.name = "esmt_elite",
+	.chips = esmt_elite_spinand_table,
+	.nchips = ARRAY_SIZE(esmt_elite_spinand_table),
 	.ops = &esmt_spinand_manuf_ops,
 };

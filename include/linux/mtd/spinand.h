@@ -252,6 +252,7 @@ extern const struct spinand_manufacturer toshiba_spinand_manufacturer;
 extern const struct spinand_manufacturer winbond_spinand_manufacturer;
 extern const struct spinand_manufacturer dosilicon_spinand_manufacturer;
 extern const struct spinand_manufacturer esmt_spinand_manufacturer;
+extern const struct spinand_manufacturer esmt_elite_spinand_manufacturer;
 extern const struct spinand_manufacturer xincun_spinand_manufacturer;
 extern const struct spinand_manufacturer xtx_spinand_manufacturer;
 extern const struct spinand_manufacturer hyf_spinand_manufacturer;
