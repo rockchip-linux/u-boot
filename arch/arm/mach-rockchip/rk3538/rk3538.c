@@ -51,11 +51,31 @@ DECLARE_GLOBAL_DATA_PTR;
 #define TSADC_UNLOCK_TRIGGER		BIT(8)
 #define TSADC_UNLOCK_TRIGGER_MASK	(BIT(8) << 16)
 
-#define GPIO1_IOC_BASE		0xFD1D0000
-#define GPIO1A_IOMUX_SEL_1	0x24
-#define GPIO1B_IOMUX_SEL_0	0x28
-#define GPIO1B_IOMUX_SEL_1	0x2c
-#define GPIO1C_IOMUX_SEL_0	0x30
+#define GPIO1_IOC_BASE			0xFD1D0000
+#define GPIO1A_IOMUX_SEL_0		0x20
+#define GPIO1A_IOMUX_SEL_1		0x24
+#define GPIO1B_IOMUX_SEL_0		0x28
+#define GPIO1B_IOMUX_SEL_1		0x2c
+#define GPIO1C_IOMUX_SEL_0		0x30
+
+#define GPIO2_IOC_BASE			0xFD1E0000
+#define GPIO2A_IOMUX_SEL_0		0x40
+#define GPIO2A_IOMUX_SEL_1		0x44
+#define GPIO2A_PULL			0x320
+#define GPIO6_IOC_BASE			0xFD220000
+#define GPIO6A_IOMUX_SEL_0		0xC0
+
+#define SGRF_FW_DDR			0xFD740000
+#define SGRF_FW_SYSMEM			0xFDFB0000
+#define SGRF_FW_SYSMEM_MST0_REG		0x030
+#define SGRF_FW_SYSMEM_MST1_REG		0x034
+#define SGRF_FW_SYSMEM_MST2_REG		0x038
+#define SGRF_FW_SYSMEM_MST3_REG		0x03C
+#define SGRF_FW_DDR_MST_EMMC_RD_DIS_L	0x2C8
+#define SGRF_FW_DDR_MST_EMMC_WR_DIS_L	0x2D0
+#define SGRF_FW_DDR_MST_SDMMC0_DIS_L	0x2D8
+#define SGRF_FW_DDR_MST_FSPI_DIS_L	0x2E0
+#define SGRF_FW_DDR_MST_NANDC_DIS_L	0x2E8
 
 #define OTP_SPEC_NUM_OFFSET		0x02
 #define OTP_SPEC_NUM_MASK		0xffff
@@ -160,15 +180,40 @@ void spl_rk_board_prepare_for_jump(struct spl_image_info *spl_image)
 }
 #endif
 
+void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
+{
+	switch (uclass) {
+	case UCLASS_MMC:
+		if (devnum == 0) {
+			/* set emmc iomux */
+			writel(0xffff1111, GPIO1_IOC_BASE + GPIO1A_IOMUX_SEL_0); /* EMMC_D0~D3 */
+			writel(0xffff1111, GPIO1_IOC_BASE + GPIO1A_IOMUX_SEL_1); /* EMMC_D4~D7 */
+			writel(0x0fff0111, GPIO1_IOC_BASE + GPIO1B_IOMUX_SEL_0); /* EMMC_CMD,EMMC_CLKOUT,EMMC_STRB */
+		} else if (devnum == 1) {
+			writel(0x03ff0155, GPIO2_IOC_BASE + GPIO2A_PULL); /* pull up sdmmc d0~d3, cmd */
+			writel(0xffff1111, GPIO2_IOC_BASE + GPIO2A_IOMUX_SEL_0); /* sdmmc d0~d3 */
+			writel(0x0fff0111, GPIO2_IOC_BASE + GPIO2A_IOMUX_SEL_1); /* sdmmc cmd, clk, detn */
+			writel(0x00f00010, GPIO6_IOC_BASE + GPIO6A_IOMUX_SEL_0); /* sdmmc pwren */
+		}
+		break;
+
+	case UCLASS_MTD:
+		writel(0xf0002000, GPIO1_IOC_BASE + GPIO1B_IOMUX_SEL_0); /* FSPI_D0 */
+		writel(0xffff1111, GPIO1_IOC_BASE + GPIO1B_IOMUX_SEL_1); /* FSPI_CSN0/D1/D2/CLK */
+		writel(0x000f0001, GPIO1_IOC_BASE + GPIO1C_IOMUX_SEL_0); /* FSPI_D3 */
+		break;
+	default:
+		break;
+	}
+}
+
 #ifndef CONFIG_TPL_BUILD
 int arch_cpu_init(void)
 {
 #ifdef CONFIG_SPL_BUILD
 
 #ifdef CONFIG_ROCKCHIP_SFC_IOMUX
-	writel(0xf0002000, GPIO1_IOC_BASE + GPIO1B_IOMUX_SEL_0); /* FSPI_D0 */
-	writel(0xffff1111, GPIO1_IOC_BASE + GPIO1B_IOMUX_SEL_1); /* FSPI_CSN0/D1/D2/CLK */
-	writel(0x000f0001, GPIO1_IOC_BASE + GPIO1C_IOMUX_SEL_0); /* FSPI_D3 */
+	board_set_iomux(UCLASS_MTD, 0, 0);
 #endif
 
 	/* Enable tsadc phy */
@@ -188,6 +233,22 @@ int arch_cpu_init(void)
 	writel(0x01ff01d1, VO_GRF_BASE + USBPHY_HOST_CON0);
 	writel(0x00000059, USBPHY_APB_BASE + USBPHY_DIFF_RECEIVER_0);
 	writel(0x00000059, USBPHY_APB_BASE + USBPHY_DIFF_RECEIVER_1);
+
+#elif defined(CONFIG_SUPPORT_USBPLUG)
+	board_set_iomux(UCLASS_MMC, 0, 0);
+	/* set emmc access sys_mem */
+	writel(0x0f000000, SGRF_FW_SYSMEM + SGRF_FW_SYSMEM_MST2_REG);
+	/* set emmc access DDR region0 */
+	writel(0x00010000, SGRF_FW_DDR + SGRF_FW_DDR_MST_EMMC_RD_DIS_L);
+	writel(0x00010000, SGRF_FW_DDR + SGRF_FW_DDR_MST_EMMC_WR_DIS_L);
+	/* set sdmmc0 access sys_mem */
+	writel(0x30000000, SGRF_FW_SYSMEM + SGRF_FW_SYSMEM_MST2_REG);
+	/* set sdmmc0 access DDR region0 */
+	writel(0x00010000, SGRF_FW_DDR + SGRF_FW_DDR_MST_SDMMC0_DIS_L);
+	/* set fspi access sys_mem */
+	writel(0xc0000000, SGRF_FW_SYSMEM + SGRF_FW_SYSMEM_MST2_REG);
+	/* set fspi access DDR region0 */
+	writel(0x00010000, SGRF_FW_DDR + SGRF_FW_DDR_MST_FSPI_DIS_L);
 #endif
 
 	return 0;

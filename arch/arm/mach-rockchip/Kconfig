@@ -317,25 +317,25 @@ config ROCKCHIP_RK3538
 	bool "Support Rockchip RK3538"
 	select ARM64
 	select CLK
-	select PINCTRL
+	select PINCTRL if !SUPPORT_USBPLUG
 	select RAM
 	select REGMAP
 	select SYSCON
 	select BOARD_LATE_INIT
-	select DM_REGULATOR_FIXED
+	select DM_REGULATOR_FIXED if !SUPPORT_USBPLUG
 	select DM_RESET
-	select SPL
-	select SUPPORT_SPL
+	select SPL if !SUPPORT_USBPLUG
+	select SUPPORT_SPL if !SUPPORT_USBPLUG
 	imply ARMV8_CRYPTO
 	imply ARMV8_SET_SMPEN
 	imply BOOTSTD_FULL
 	imply DM_RNG
-	imply FIT
+	imply FIT if !SUPPORT_USBPLUG
 	imply LEGACY_IMAGE_FORMAT
-	imply MISC
-	imply MISC_INIT_R
+	imply MISC if !SUPPORT_USBPLUG
+	imply MISC_INIT_R if !SUPPORT_USBPLUG
 	imply MMC_HS200_SUPPORT if MMC_SDHCI_ROCKCHIP
-	imply OF_LIBFDT_OVERLAY
+	imply OF_LIBFDT_OVERLAY if !SUPPORT_USBPLUG
 	imply OF_LIVE
 	imply OF_UPSTREAM
 	imply PHY_GIGE if DWC_ETH_QOS_ROCKCHIP
@@ -357,6 +357,7 @@ config ROCKCHIP_RK3538
 	imply SPL_REGMAP
 	imply SPL_SERIAL
 	imply SPL_SYSCON
+	imply PARTITIONS if SUPPORT_USBPLUG
 	help
 	  The Rockchip RK3538 is a ARM-based SoC with quad-core Cortex-A72 and
 	  and quad-core Cortex-A53.

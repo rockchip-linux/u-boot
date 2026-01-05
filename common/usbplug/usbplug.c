@@ -10,6 +10,7 @@
 #include <init.h>
 #include <mapmem.h>
 #include <malloc.h>
+#include <of_live.h>
 #include <dm/ofnode.h>
 #include <dm/root.h>
 #include <hang.h>
@@ -71,6 +72,20 @@ static void initr_dm(void)
 }
 #endif
 
+static int initr_of_live(void)
+{
+	if (CONFIG_IS_ENABLED(OF_LIVE)) {
+		int ret;
+
+		ret = of_live_build(gd->fdt_blob,
+				    (struct device_node **)gd_of_root_ptr());
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 /* Refers to common/board_r.c */
 void board_init_r(gd_t *new_gd, ulong dest_addr)
 {
@@ -79,6 +94,9 @@ void board_init_r(gd_t *new_gd, ulong dest_addr)
 	initr_caches();
 #endif
 	initr_malloc();
+
+	initr_of_live();
+
 #ifdef CONFIG_DM
 	initr_dm();
 #endif
