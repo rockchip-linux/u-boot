@@ -183,5 +183,9 @@ int board_init_f_init_misc(void)
 
 	param_parse_pre_serial(&boot_flags);
 
+#if defined(CONFIG_DISABLE_CONSOLE)
+	boot_flags |= GD_FLG_DISABLE_CONSOLE;
+#endif
+
 	return boot_flags;
 }
