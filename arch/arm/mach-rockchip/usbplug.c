@@ -10,6 +10,7 @@
 #include <mmc.h>
 #include <stdlib.h>
 #include <scsi.h>
+#include <asm/arch/param.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -171,3 +172,19 @@ int board_init(void)
 	return run_command(bootdev_rockusb_cmd(), 0);
 }
 
+int board_init_f_boot_flags(void)
+{
+	int boot_flags = 0;
+
+#if defined(CONFIG_ROCKCHIP_PRELOADER_SERIAL) && \
+    defined(CONFIG_ROCKCHIP_PRELOADER_ATAGS)
+	param_parse_pre_serial(&boot_flags);
+#endif
+
+	/* The highest priority to turn off (override) console */
+#if defined(CONFIG_DISABLE_CONSOLE)
+	boot_flags |= GD_FLG_DISABLE_CONSOLE;
+#endif
+
+	return boot_flags;
+}
