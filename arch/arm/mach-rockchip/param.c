@@ -439,10 +439,15 @@ int param_parse_pre_serial(int *flags)
 		gd->serial.id = t->u.serial.id;
 		gd->baudrate = CONFIG_BAUDRATE;
 		if (!gd->serial.enable && flags)
+			/*
+			 * The flags in gd have not been updated yet,
+			 * at this time nothing should be printed.
+			 */
 			*flags |= GD_FLG_DISABLE_CONSOLE;
-		debug("preloader: enable=%d, addr=0x%lx, baudrate=%d, id=%d\n",
-		      gd->serial.enable, gd->serial.addr,
-		      gd->serial.baudrate, gd->serial.id);
+		else
+			debug("preloader: enable=%d, addr=0x%lx, baudrate=%d, id=%d\n",
+				gd->serial.enable, gd->serial.addr,
+				gd->serial.baudrate, gd->serial.id);
 	} else
 #endif
 	{
