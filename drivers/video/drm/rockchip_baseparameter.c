@@ -43,7 +43,17 @@ static void drm_display_mode_from_bp_display_mode(struct drm_display_mode *mode,
 	mode->picture_aspect_ratio = bp_mode->picture_aspect_ratio;
 }
 
-int rockchip_baseparameter_disp_info_v1(int type)
+static bool rockchip_baseparameter_version_v1(void)
+{
+	return bp_version == RK_BASEPARAMETER_V1_0;
+}
+
+static bool rockchip_baseparameter_version_v2(void)
+{
+	return bp_version == RK_BASEPARAMETER_V2_0 || bp_version == RK_BASEPARAMETER_V2_1;
+}
+
+static int rockchip_baseparameter_disp_info_v1(int type)
 {
 	int i = 0;
 
@@ -68,7 +78,7 @@ int rockchip_baseparameter_disp_info_v1(int type)
 	return -EINVAL;
 }
 
-int rockchip_baseparameter_disp_info_v2(u32 type, u32 id)
+static int rockchip_baseparameter_disp_info_v2(u32 type, u32 id)
 {
 	struct bp_disp_header *disp_header;
 	int i = 0, offset = -1;
@@ -120,9 +130,9 @@ int rockchip_baseparameter_disp_info_init(uintptr_t conn_state_ptr, u32 type, u3
 			return 0;
 	}
 
-	if (bp_version == RK_BASEPARAMETER_V1)
+	if (rockchip_baseparameter_version_v1())
 		index = rockchip_baseparameter_disp_info_v1(type);
-	else if (bp_version == RK_BASEPARAMETER_V2)
+	else if (rockchip_baseparameter_version_v2())
 		index = rockchip_baseparameter_disp_info_v2(type, id);
 	if (index < 0)
 		return -EINVAL;
@@ -212,16 +222,65 @@ int rockchip_baseparameter_screen_info_get(uintptr_t conn_state_ptr, u32 type, u
 	if (!screen_info)
 		return -EINVAL;
 
-	if (bp_version == RK_BASEPARAMETER_V1) {
+	if (rockchip_baseparameter_version_v1()) {
 		ret = rockchip_baseparameter_screen_info_v1(conn_state_ptr, type, id, screen_info);
 		if (ret)
 			pr_warn("WARN: Failed to find screen info in v1 baseparameter\n");
-	} else if (bp_version == RK_BASEPARAMETER_V2) {
+	} else if (rockchip_baseparameter_version_v2()) {
 		ret = rockchip_baseparameter_screen_info_v2(conn_state_ptr, type, id, screen_info);
 		if (ret)
 			pr_warn("WARN: Failed to find screen info in v2 baseparameter\n");
 	} else {
 		pr_warn("WARN: Unsupported baseparameter version[%d] for screen info\n",
+			bp_version);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
+static int rockchip_baseparameter_csc_info_v2(uintptr_t conn_state_ptr,
+					      struct bp_csc_info *csc_info)
+{
+	int index;
+
+	index = rockchip_baseparameter_disp_info_get(conn_state_ptr);
+	if (index < 0)
+		return -EINVAL;
+
+	if (bp_version < RK_BASEPARAMETER_V2_1) {
+		printf("INFO: Cureent version[%d]. Only v2.1 and later versions can support csc info\n",
+		       bp_version);
+		return -EINVAL;
+	}
+
+	csc_info->hue = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_hue;
+	csc_info->saturation = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_saturation;
+	csc_info->contrast = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_contrast;
+	csc_info->r_gain = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_r_gain;
+	csc_info->g_gain = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_g_gain;
+	csc_info->b_gain = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_b_gain;
+	csc_info->r_offset = 0;
+	csc_info->g_offset = 0;
+	csc_info->b_offset = 0;
+	csc_info->csc_enable = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_enable;
+
+	return 0;
+}
+
+int rockchip_baseparameter_csc_info_get(uintptr_t conn_state_ptr, struct bp_csc_info *csc_info)
+{
+	int ret;
+
+	if (!csc_info)
+		return -EINVAL;
+
+	if (rockchip_baseparameter_version_v2()) {
+		ret = rockchip_baseparameter_csc_info_v2(conn_state_ptr, csc_info);
+		if (ret)
+			pr_warn("WARN: Failed to parse csc info in v2 baseparameter\n");
+	} else {
+		pr_warn("WARN: Unsupported baseparameter version[%d] for csc info\n",
 			bp_version);
 		ret = -EINVAL;
 	}
@@ -247,7 +306,7 @@ struct bp_gamma_lut_data *rockchip_baseparameter_gamma_lut_data_get(uintptr_t co
 {
 	struct bp_gamma_lut_data *lut_data = NULL;
 
-	if (bp_version == RK_BASEPARAMETER_V2) {
+	if (rockchip_baseparameter_version_v2()) {
 		lut_data = rockchip_baseparameter_gamma_lut_data_v2(conn_state_ptr);
 		if (!lut_data)
 			pr_warn("WARN: Failed to find gamma lut data in v2 baseparameter\n");
@@ -277,7 +336,7 @@ struct bp_cubic_lut_data *rockchip_baseparameter_cubic_lut_data_get(uintptr_t co
 {
 	struct bp_cubic_lut_data *lut_data = NULL;
 
-	if (bp_version == RK_BASEPARAMETER_V2) {
+	if (rockchip_baseparameter_version_v2()) {
 		lut_data = rockchip_baseparameter_cubic_lut_data_v2(conn_state_ptr);
 		if (!lut_data)
 			pr_warn("WARN: Failed to find cubic lut data in v2 baseparameter\n");
@@ -304,7 +363,7 @@ struct bp_bcsh_info *rockchip_baseparameter_bcsh_info_get(uintptr_t conn_state_p
 {
 	struct bp_bcsh_info *bcsh_info = NULL;
 
-	if (bp_version == RK_BASEPARAMETER_V2) {
+	if (rockchip_baseparameter_version_v2()) {
 		bcsh_info = rockchip_baseparameter_bcsh_info_v2(conn_state_ptr);
 		if (!bcsh_info)
 			pr_warn("WARN: Failed to find bcsh info in v2 baseparameter\n");
@@ -315,16 +374,137 @@ struct bp_bcsh_info *rockchip_baseparameter_bcsh_info_get(uintptr_t conn_state_p
 	return bcsh_info;
 }
 
-struct bp_acm_data *rockchip_baseparameter_acm_data_get(uintptr_t conn_state_ptr)
+static void rockchip_baseparameter_acm_info_to_acm_data(const struct bp_acm_info *swpq_acm,
+							struct bp_acm_data *hwpq_acm)
 {
-	return NULL;
+	// Gaussian kernel for downsampling
+	const int gaussian_kernel[5] = {1, 4, 6, 4, 1}; // sum to 16
+	const int sample_ratio = 4;                     // 64/16 = 4
+	int sum_y, sum_h, sum_s;
+	int dst_idx_y, dst_idx_h, dst_idx_s;
+	int src_idx_h;
+	int i, y, h, k, s;
+
+	// Check for null pointers
+	if (!swpq_acm || !hwpq_acm) {
+		return;
+	}
+
+	// Convert delta_lut_h array: concate each array
+	for (i = 0; i < ACM_DELTA_LUT_H_LENGTH; i++) {
+		hwpq_acm->delta_lut_h[0 * ACM_DELTA_LUT_H_LENGTH + i] = swpq_acm->acm_table_delta_yby_h[i];
+		hwpq_acm->delta_lut_h[1 * ACM_DELTA_LUT_H_LENGTH + i] = swpq_acm->acm_table_delta_hby_h[i];
+		hwpq_acm->delta_lut_h[2 * ACM_DELTA_LUT_H_LENGTH + i] = swpq_acm->acm_table_delta_sby_h[i];
+	}
+
+	// Convert gain_lut_hy array with Gaussian downsampling (window size 5) with wrap boundary
+	// Original size: 65x9, Downsampled size: 9x17 (transpose also)
+	for (y = 0; y < ACM_GAIN_LUT_Y_LENGTH; y++) {
+		for (h = 0; h < ACM_GAIN_LUT_H_DOWN_LENGTH - 1; h++) {
+			sum_y = 0;
+			sum_h = 0;
+			sum_s = 0;
+			for (k = 0; k < 5; k++) {
+				src_idx_h = (h * sample_ratio + k - 2 + 65 - 1) % (65 - 1);
+				sum_y += swpq_acm->acm_table_gain_yby_y[src_idx_h * ACM_GAIN_LUT_Y_LENGTH + y] * gaussian_kernel[k];
+				sum_h += swpq_acm->acm_table_gain_hby_y[src_idx_h * ACM_GAIN_LUT_Y_LENGTH + y] * gaussian_kernel[k];
+				sum_s += swpq_acm->acm_table_gain_sby_y[src_idx_h * ACM_GAIN_LUT_Y_LENGTH + y] * gaussian_kernel[k];
+			}
+
+			dst_idx_y = 0 * ACM_GAIN_LUT_HY_LENGTH + y * ACM_GAIN_LUT_H_DOWN_LENGTH + h;
+			dst_idx_h = 1 * ACM_GAIN_LUT_HY_LENGTH + y * ACM_GAIN_LUT_H_DOWN_LENGTH + h;
+			dst_idx_s = 2 * ACM_GAIN_LUT_HY_LENGTH + y * ACM_GAIN_LUT_H_DOWN_LENGTH + h;
+			hwpq_acm->gain_lut_hy[dst_idx_y] = (sum_y + 8 + (sum_y >> 31)) >> 4;
+			hwpq_acm->gain_lut_hy[dst_idx_h] = (sum_h + 8 + (sum_h >> 31)) >> 4;
+			hwpq_acm->gain_lut_hy[dst_idx_s] = (sum_s + 8 + (sum_s >> 31)) >> 4;
+		}
+
+		// set the last value same to the first value on H-axis
+		dst_idx_y = 0 * ACM_GAIN_LUT_HY_LENGTH + y * ACM_GAIN_LUT_H_DOWN_LENGTH;
+		dst_idx_h = 1 * ACM_GAIN_LUT_HY_LENGTH + y * ACM_GAIN_LUT_H_DOWN_LENGTH;
+		dst_idx_s = 2 * ACM_GAIN_LUT_HY_LENGTH + y * ACM_GAIN_LUT_H_DOWN_LENGTH;
+		hwpq_acm->gain_lut_hy[dst_idx_y + ACM_GAIN_LUT_H_DOWN_LENGTH - 1] = hwpq_acm->gain_lut_hy[dst_idx_y];
+		hwpq_acm->gain_lut_hy[dst_idx_h + ACM_GAIN_LUT_H_DOWN_LENGTH - 1] = hwpq_acm->gain_lut_hy[dst_idx_h];
+		hwpq_acm->gain_lut_hy[dst_idx_s + ACM_GAIN_LUT_H_DOWN_LENGTH - 1] = hwpq_acm->gain_lut_hy[dst_idx_s];
+	}
+
+	// Convert gain_lut_hs array with Gaussian downsampling (window size 5) with wrap boundary
+	// Original size: 65x13, Downsampled size: 13x17 (transpose also)
+	for (s = 0; s < ACM_GAIN_LUT_S_LENGTH; s++) {
+		for (h = 0; h < ACM_GAIN_LUT_H_DOWN_LENGTH - 1; h++) {
+			sum_y = 0;
+			sum_h = 0;
+			sum_s = 0;
+			for (k = 0; k < 5; k++) {
+				src_idx_h = (h * sample_ratio + k - 2 + 65 - 1) % (65 - 1);
+				sum_y += swpq_acm->acm_table_gain_yby_s[src_idx_h * ACM_GAIN_LUT_S_LENGTH + s] * gaussian_kernel[k];
+				sum_h += swpq_acm->acm_table_gain_hby_s[src_idx_h * ACM_GAIN_LUT_S_LENGTH + s] * gaussian_kernel[k];
+				sum_s += swpq_acm->acm_table_gain_sby_s[src_idx_h * ACM_GAIN_LUT_S_LENGTH + s] * gaussian_kernel[k];
+			}
+
+			dst_idx_y = 0 * ACM_GAIN_LUT_HS_LENGTH + s * ACM_GAIN_LUT_H_DOWN_LENGTH + h;
+			dst_idx_h = 1 * ACM_GAIN_LUT_HS_LENGTH + s * ACM_GAIN_LUT_H_DOWN_LENGTH + h;
+			dst_idx_s = 2 * ACM_GAIN_LUT_HS_LENGTH + s * ACM_GAIN_LUT_H_DOWN_LENGTH + h;
+			hwpq_acm->gain_lut_hs[dst_idx_y] = (sum_y + 8 + (sum_y >> 31)) >> 4;
+			hwpq_acm->gain_lut_hs[dst_idx_h] = (sum_h + 8 + (sum_h >> 31)) >> 4;
+			hwpq_acm->gain_lut_hs[dst_idx_s] = (sum_s + 8 + (sum_s >> 31)) >> 4;
+		}
+
+		// set the last value same to the first value on H-axis
+		dst_idx_y = 0 * ACM_GAIN_LUT_HS_LENGTH + s * ACM_GAIN_LUT_H_DOWN_LENGTH;
+		dst_idx_h = 1 * ACM_GAIN_LUT_HS_LENGTH + s * ACM_GAIN_LUT_H_DOWN_LENGTH;
+		dst_idx_s = 2 * ACM_GAIN_LUT_HS_LENGTH + s * ACM_GAIN_LUT_H_DOWN_LENGTH;
+		hwpq_acm->gain_lut_hs[dst_idx_y + ACM_GAIN_LUT_H_DOWN_LENGTH - 1] = hwpq_acm->gain_lut_hs[dst_idx_y];
+		hwpq_acm->gain_lut_hs[dst_idx_h + ACM_GAIN_LUT_H_DOWN_LENGTH - 1] = hwpq_acm->gain_lut_hs[dst_idx_h];
+		hwpq_acm->gain_lut_hs[dst_idx_s + ACM_GAIN_LUT_H_DOWN_LENGTH - 1] = hwpq_acm->gain_lut_hs[dst_idx_s];
+	}
+
+	// Copy remain values
+	hwpq_acm->acm_enable = swpq_acm->acm_enable ? 1 : 0;
+	hwpq_acm->y_gain = swpq_acm->lum_gain;
+	hwpq_acm->h_gain = swpq_acm->hue_gain;
+	hwpq_acm->s_gain = swpq_acm->sat_gain;
 }
 
-struct bp_csc_info *rockchip_baseparameter_csc_info_get(uintptr_t conn_state_ptr)
+static int rockchip_baseparameter_acm_data_v2(uintptr_t conn_state_ptr, struct bp_acm_data *acm_data)
 {
-	return NULL;
+	int index;
+
+	index = rockchip_baseparameter_disp_info_get(conn_state_ptr);
+	if (index < 0)
+		return -EINVAL;
+
+	if (bp_version < RK_BASEPARAMETER_V2_1) {
+		printf("INFO: Cureent version[%d]. Only v2.1 and later versions can support acm info\n",
+		       bp_version);
+		return -EINVAL;
+	}
+
+	rockchip_baseparameter_acm_info_to_acm_data(&bp_info.baseparameter_info_v2.pq_tuning_info.acm_info,
+						    acm_data);
+
+	return 0;
 }
 
+int rockchip_baseparameter_acm_data_get(uintptr_t conn_state_ptr, struct bp_acm_data *acm_data)
+{
+	int ret;
+
+	if (!acm_data)
+		return -EINVAL;
+
+	if (rockchip_baseparameter_version_v2()) {
+		ret = rockchip_baseparameter_acm_data_v2(conn_state_ptr, acm_data);
+		if (ret)
+			pr_warn("WARN: Failed to parse acm data in v2 baseparameter\n");
+	} else {
+		pr_warn("WARN: Unsupported baseparameter version[%d] for acm data\n",
+			bp_version);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
 
 static struct bp_overscan_info *rockchip_baseparameter_overscan_info_v2(uintptr_t conn_state_ptr)
 {
@@ -341,7 +521,7 @@ struct bp_overscan_info *rockchip_baseparameter_overscan_info_get(uintptr_t conn
 {
 	struct bp_overscan_info *overscan_info = NULL;
 
-	if (bp_version == RK_BASEPARAMETER_V2) {
+	if (rockchip_baseparameter_version_v2()) {
 		overscan_info = rockchip_baseparameter_overscan_info_v2(conn_state_ptr);
 		if (!overscan_info)
 			pr_warn("WARN: Failed to find overscan info in v2 baseparameter\n");
@@ -446,8 +626,10 @@ static int rockchip_baseparameter_get_v2(struct blk_desc *dev_desc,
 		goto out;
 	}
 
-	memcpy(&bp_info.baseparameter_info_v2, baseparameter_buf, sizeof(bp_info.baseparameter_info_v2));
-	if (strncasecmp(bp_info.baseparameter_info_v2.head_flag, "BASP", 4)) {
+	memcpy(&bp_info.baseparameter_info_v2, baseparameter_buf,
+	       sizeof(bp_info.baseparameter_info_v2));
+	if (bp_info.baseparameter_info_v2.major_version != 2 ||
+	    strncasecmp(bp_info.baseparameter_info_v2.head_flag, "BASP", 4)) {
 		memset(&bp_info.baseparameter_info_v2, 0, sizeof(bp_info.baseparameter_info_v2));
 		ret = -EOPNOTSUPP;
 	}
@@ -463,11 +645,14 @@ static int rockchip_baseparameter_get(struct blk_desc *dev_desc, struct disk_par
 
 	ret = rockchip_baseparameter_get_v2(dev_desc, part_info);
 	if (!ret) {
-		bp_version = RK_BASEPARAMETER_V2;
+		if (bp_info.baseparameter_info_v2.minor_version == 0)
+			bp_version = RK_BASEPARAMETER_V2_0;
+		else if (bp_info.baseparameter_info_v2.minor_version == 1)
+			bp_version = RK_BASEPARAMETER_V2_1;
 	} else if (ret == -EOPNOTSUPP) {
 		ret = rockchip_baseparameter_get_v1(dev_desc, part_info);
 		if (!ret)
-			bp_version = RK_BASEPARAMETER_V1;
+			bp_version = RK_BASEPARAMETER_V1_0;
 	}
 
 	return ret;

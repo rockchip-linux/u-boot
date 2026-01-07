@@ -2778,7 +2778,7 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
-	struct bp_acm_data *acm;
+	struct bp_acm_data acm_data;
 	struct drm_display_mode *mode = &conn_state->mode;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	s16 *lut_y;
@@ -2786,14 +2786,15 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 	s16 *lut_s;
 	u32 value;
 	int i;
+	int ret;
 
-	acm = rockchip_baseparameter_acm_data_get((uintptr_t)conn_state);
-	if (!acm)
+	ret = rockchip_baseparameter_acm_data_get((uintptr_t)conn_state, &acm_data);
+	if (ret)
 		return;
 
 	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 			POST_ACM_BYPASS_EN_MASK, POST_ACM_BYPASS_EN_SHIFT, 0, false);
-	if (!acm->acm_enable) {
+	if (!acm_data.acm_enable) {
 		writel(0, vop2->regs + RK3528_ACM_CTRL);
 		return;
 	}
@@ -2802,35 +2803,35 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 
 	writel(1, vop2->regs + RK3528_ACM_FETCH_START);
 
-	value = (acm->acm_enable & 0x1) + ((mode->hdisplay & 0xfff) << 8) +
+	value = (acm_data.acm_enable & 0x1) + ((mode->hdisplay & 0xfff) << 8) +
 		((mode->vdisplay & 0xfff) << 20);
 	writel(value, vop2->regs + RK3528_ACM_CTRL);
 
-	value = (acm->y_gain & 0x3ff) + ((acm->h_gain << 10) & 0xffc00) +
-		((acm->s_gain << 20) & 0x3ff00000);
+	value = (acm_data.y_gain & 0x3ff) + ((acm_data.h_gain << 10) & 0xffc00) +
+		((acm_data.s_gain << 20) & 0x3ff00000);
 	writel(value, vop2->regs + RK3528_ACM_DELTA_RANGE);
 
-	lut_y = &acm->gain_lut_hy[0];
-	lut_h = &acm->gain_lut_hy[ACM_GAIN_LUT_HY_LENGTH];
-	lut_s = &acm->gain_lut_hy[ACM_GAIN_LUT_HY_LENGTH * 2];
+	lut_y = &acm_data.gain_lut_hy[0];
+	lut_h = &acm_data.gain_lut_hy[ACM_GAIN_LUT_HY_LENGTH];
+	lut_s = &acm_data.gain_lut_hy[ACM_GAIN_LUT_HY_LENGTH * 2];
 	for (i = 0; i < ACM_GAIN_LUT_HY_LENGTH; i++) {
 		value = (lut_y[i] & 0xff) + ((lut_h[i] << 8) & 0xff00) +
 			((lut_s[i] << 16) & 0xff0000);
 		writel(value, vop2->regs + RK3528_ACM_YHS_DEL_HY_SEG0 + (i << 2));
 	}
 
-	lut_y = &acm->gain_lut_hs[0];
-	lut_h = &acm->gain_lut_hs[ACM_GAIN_LUT_HS_LENGTH];
-	lut_s = &acm->gain_lut_hs[ACM_GAIN_LUT_HS_LENGTH * 2];
+	lut_y = &acm_data.gain_lut_hs[0];
+	lut_h = &acm_data.gain_lut_hs[ACM_GAIN_LUT_HS_LENGTH];
+	lut_s = &acm_data.gain_lut_hs[ACM_GAIN_LUT_HS_LENGTH * 2];
 	for (i = 0; i < ACM_GAIN_LUT_HS_LENGTH; i++) {
 		value = (lut_y[i] & 0xff) + ((lut_h[i] << 8) & 0xff00) +
 			((lut_s[i] << 16) & 0xff0000);
 		writel(value, vop2->regs + RK3528_ACM_YHS_DEL_HS_SEG0 + (i << 2));
 	}
 
-	lut_y = &acm->delta_lut_h[0];
-	lut_h = &acm->delta_lut_h[ACM_DELTA_LUT_H_LENGTH];
-	lut_s = &acm->delta_lut_h[ACM_DELTA_LUT_H_LENGTH * 2];
+	lut_y = &acm_data.delta_lut_h[0];
+	lut_h = &acm_data.delta_lut_h[ACM_DELTA_LUT_H_LENGTH];
+	lut_s = &acm_data.delta_lut_h[ACM_DELTA_LUT_H_LENGTH * 2];
 	for (i = 0; i < ACM_DELTA_LUT_H_LENGTH; i++) {
 		value = (lut_y[i] & 0x3ff) + ((lut_h[i] << 12) & 0xff000) +
 			((lut_s[i] << 20) & 0x3ff00000);
@@ -2890,8 +2891,8 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
-	struct bp_acm_data *acm;
-	struct bp_csc_info *csc;
+	struct bp_acm_data acm_data = {};
+	struct bp_csc_info csc_info = {};
 	struct bp_bcsh_info *bcsh;
 	struct post_csc_coef csc_coef = {};
 	struct post_csc_convert_mode convert_mode = {};
@@ -2907,9 +2908,10 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 value;
 	int range_type;
+	int ret;
 
-	csc = rockchip_baseparameter_csc_info_get((uintptr_t)conn_state);
-	if (!csc)
+	ret = rockchip_baseparameter_csc_info_get((uintptr_t)conn_state, &csc_info);
+	if (ret)
 		return;
 
 	printf("post csc enable\n");
@@ -2919,14 +2921,14 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 		post_scl_enabled = true;
 
 	bcsh = rockchip_baseparameter_bcsh_info_get((uintptr_t)conn_state);
-	if (!csc->csc_enable && bcsh)
-		vop3_get_csc_info_from_bcsh(bcsh, csc);
+	if (!csc_info.csc_enable && bcsh)
+		vop3_get_csc_info_from_bcsh(bcsh, &csc_info);
 
 	if (vop2->version != VOP_VERSION_RK3528 && vop2->version != VOP_VERSION_RK3576)
 		r2y_csc_supported = true;
 
-	acm = rockchip_baseparameter_acm_data_get((uintptr_t)conn_state);
-	if (acm && acm->acm_enable) {
+	ret = rockchip_baseparameter_acm_data_get((uintptr_t)conn_state, &acm_data);
+	if (!ret && acm_data.acm_enable) {
 		if (!cstate->yuv_overlay)
 			post_r2y_en = true;
 
@@ -2942,7 +2944,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 			post_csc_en = true;
 	}
 
-	if (csc->csc_enable)
+	if (csc_info.csc_enable)
 		post_csc_en = true;
 
 	if (r2y_csc_supported) {
@@ -3093,7 +3095,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	convert_mode.coef_precision = 10;
 	convert_mode.plat = vop2->version;
 
-	if (vop3_csc_is_r2r_y2y_mode(convert_mode, csc)) {
+	if (vop3_csc_is_r2r_y2y_mode(convert_mode, &csc_info)) {
 		if (vop2->version >= VOP_VERSION_RK3572) {
 			/* If input/output are rgb and bcsh is enabled, y2r csc do r2r */
 			if (!convert_mode.is_input_yuv)
@@ -3115,7 +3117,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	convert_mode.swap_channels = 1;
 
 	if (post_csc_en) {
-		rockchip_calc_post_csc(csc, &csc_coef, &convert_mode);
+		rockchip_calc_post_csc(&csc_info, &csc_coef, &convert_mode);
 
 		vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 				POST_CSC_COE00_MASK, POST_CSC_COE00_SHIFT,

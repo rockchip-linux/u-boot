@@ -2498,7 +2498,7 @@ void rockchip_display_fixup(void *blob)
 	const struct rockchip_crtc *crtc;
 	struct display_state *s;
 	struct bp_bcsh_info *bcsh_info;
-	struct bp_csc_info *csc_info;
+	struct bp_csc_info csc_info;
 	struct bp_cubic_lut_data *cubic_lut;
 	int offset;
 	int ret;
@@ -2637,19 +2637,19 @@ void rockchip_display_fixup(void *blob)
 			FDT_SET_U32("bcsh,hue", bcsh_info->hue);
 		}
 
-		csc_info = rockchip_baseparameter_csc_info_get((uintptr_t)&s->conn_state);
-		if (csc_info) {
-			FDT_SET_U32("post-csc,hue", csc_info->hue);
-			FDT_SET_U32("post-csc,saturation", csc_info->saturation);
-			FDT_SET_U32("post-csc,contrast", csc_info->contrast);
-			FDT_SET_U32("post-csc,brightness", csc_info->brightness);
-			FDT_SET_U32("post-csc,r-gain", csc_info->r_gain);
-			FDT_SET_U32("post-csc,g-gain", csc_info->g_gain);
-			FDT_SET_U32("post-csc,b-gain", csc_info->b_gain);
-			FDT_SET_U32("post-csc,r-offset", csc_info->r_offset);
-			FDT_SET_U32("post-csc,g-offset", csc_info->g_offset);
-			FDT_SET_U32("post-csc,b-offset", csc_info->b_offset);
-			FDT_SET_U32("post-csc,enable", csc_info->csc_enable);
+		ret = rockchip_baseparameter_csc_info_get((uintptr_t)&s->conn_state, &csc_info);
+		if (!ret) {
+			FDT_SET_U32("post-csc,hue", csc_info.hue);
+			FDT_SET_U32("post-csc,saturation", csc_info.saturation);
+			FDT_SET_U32("post-csc,contrast", csc_info.contrast);
+			FDT_SET_U32("post-csc,brightness", csc_info.brightness);
+			FDT_SET_U32("post-csc,r-gain", csc_info.r_gain);
+			FDT_SET_U32("post-csc,g-gain", csc_info.g_gain);
+			FDT_SET_U32("post-csc,b-gain", csc_info.b_gain);
+			FDT_SET_U32("post-csc,r-offset", csc_info.r_offset);
+			FDT_SET_U32("post-csc,g-offset", csc_info.g_offset);
+			FDT_SET_U32("post-csc,b-offset", csc_info.b_offset);
+			FDT_SET_U32("post-csc,enable", csc_info.csc_enable);
 		}
 
 		cubic_lut = rockchip_baseparameter_cubic_lut_data_get((uintptr_t)&s->conn_state);
