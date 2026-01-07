@@ -21,7 +21,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define DIV_TO_RATE(input_rate, div)	((input_rate) / ((div) + 1))
 
-#ifdef CONFIG_SPL_BUILD
+#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_SUPPORT_USBPLUG)
 #ifndef BITS_WITH_WMASK
 #define BITS_WITH_WMASK(bits, msk, shift) \
 	((bits) << (shift)) | ((msk) << ((shift) + 16))
