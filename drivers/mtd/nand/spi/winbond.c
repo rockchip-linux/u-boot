@@ -16,6 +16,7 @@
 
 #define SPINAND_MFR_WINBOND		0xEF
 
+#define WINBOND_CFG_BRC_READ		BIT(1)
 #define WINBOND_CFG_BUF_READ		BIT(3)
 
 static SPINAND_OP_VARIANTS(read_cache_variants,
@@ -309,6 +310,13 @@ static int winbond_spinand_init(struct spinand_device *spinand)
 		spinand_select_target(spinand, i);
 		spinand_upd_cfg(spinand, WINBOND_CFG_BUF_READ,
 				WINBOND_CFG_BUF_READ);
+	}
+
+	/* W25N0xLV disable BRC in default */
+	if ((spinand->id.data[1] == 0x8b && spinand->id.data[2] == 0x23) ||
+	    (spinand->id.data[1] == 0x8a && spinand->id.data[2] == 0x22)) {
+		spinand_upd_cfg(spinand, WINBOND_CFG_BRC_READ, 0);
+		printf("Disable BRC in default\n");
 	}
 
 	return 0;
