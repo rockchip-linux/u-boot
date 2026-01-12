@@ -78,8 +78,8 @@ struct rockchip_pwm_funcs {
 };
 
 struct rockchip_pwm_data {
-	struct rockchip_pwm_regs regs;
-	struct rockchip_pwm_funcs funcs;
+	const struct rockchip_pwm_regs *regs;
+	const struct rockchip_pwm_funcs *funcs;
 	unsigned int prescaler;
 	bool supports_polarity;
 	bool supports_lock;
@@ -124,7 +124,7 @@ static int rk_pwm_set_invert(struct udevice *dev, uint channel, bool polarity)
 		return 0;
 	}
 
-	return priv->data->funcs.set_invert(dev, channel, polarity);
+	return priv->data->funcs->set_invert(dev, channel, polarity);
 }
 
 static int rk_pwm_set_config_v4(struct udevice *dev, uint channel,
@@ -158,7 +158,7 @@ static int rk_pwm_set_config_v1(struct udevice *dev, uint channel,
 				uint period_ns, uint duty_ns)
 {
 	struct rk_pwm_priv *priv = dev_get_priv(dev);
-	const struct rockchip_pwm_regs *regs = &priv->data->regs;
+	const struct rockchip_pwm_regs *regs = priv->data->regs;
 	unsigned long period, duty;
 	u32 ctrl;
 
@@ -213,7 +213,7 @@ static int rk_pwm_set_config(struct udevice *dev, uint channel,
 {
 	struct rk_pwm_priv *priv = dev_get_priv(dev);
 
-	return priv->data->funcs.set_config(dev, channel, period_ns, duty_ns);
+	return priv->data->funcs->set_config(dev, channel, period_ns, duty_ns);
 }
 
 static int rk_pwm_set_enable_v4(struct udevice *dev, uint channel, bool enable)
@@ -233,7 +233,7 @@ static int rk_pwm_set_enable_v4(struct udevice *dev, uint channel, bool enable)
 static int rk_pwm_set_enable_v1(struct udevice *dev, uint channel, bool enable)
 {
 	struct rk_pwm_priv *priv = dev_get_priv(dev);
-	const struct rockchip_pwm_regs *regs = &priv->data->regs;
+	const struct rockchip_pwm_regs *regs = priv->data->regs;
 	u32 ctrl;
 
 	debug("%s: Enable '%s'\n", __func__, dev->name);
@@ -260,7 +260,7 @@ static int rk_pwm_set_enable(struct udevice *dev, uint channel, bool enable)
 {
 	struct rk_pwm_priv *priv = dev_get_priv(dev);
 
-	return priv->data->funcs.set_enable(dev, channel, enable);
+	return priv->data->funcs->set_enable(dev, channel, enable);
 }
 
 static int rk_pwm_of_to_plat(struct udevice *dev)
@@ -340,35 +340,55 @@ static const struct pwm_ops rk_pwm_ops = {
 	.set_enable	= rk_pwm_set_enable,
 };
 
+static const struct rockchip_pwm_regs pwm_regs_v1 = {
+	.version = 0x5c,
+	.duty = 0x04,
+	.period = 0x08,
+	.ctrl = 0x0c,
+};
+
+static const struct rockchip_pwm_regs pwm_regs_v2 = {
+	.version = 0x5c,
+	.duty = 0x08,
+	.period = 0x04,
+	.ctrl = 0x0c,
+};
+
+static const struct rockchip_pwm_regs pwm_regs_v4 = {
+	.version = 0x0,
+	.enable = 0x4,
+	.ctrl = 0xc,
+	.period = 0x10,
+	.duty = 0x14,
+};
+
+static const struct rockchip_pwm_funcs pwm_funcs_v1 = {
+	.set_invert = rk_pwm_set_invert_v1,
+	.set_config = rk_pwm_set_config_v1,
+	.set_enable = rk_pwm_set_enable_v1,
+};
+
+static const struct rockchip_pwm_funcs pwm_funcs_v4 = {
+	.set_invert = rk_pwm_set_invert_v4,
+	.set_config = rk_pwm_set_config_v4,
+	.set_enable = rk_pwm_set_enable_v4,
+};
+
 static const struct rockchip_pwm_data pwm_data_v1 = {
 	.main_version = 0x01,
-	.regs = {
-		.version = 0x5c,
-		.duty = 0x04,
-		.period = 0x08,
-		.ctrl = 0x0c,
-	},
+	.regs = &pwm_regs_v1,
 	.prescaler = 2,
 	.supports_polarity = false,
 	.supports_lock = false,
 	.vop_pwm = false,
 	.enable_conf = PWM_CTRL_OUTPUT_EN | PWM_CTRL_TIMER_EN,
 	.enable_conf_mask = BIT(1) | BIT(3),
-	.funcs = {
-		.set_invert = rk_pwm_set_invert_v1,
-		.set_config = rk_pwm_set_config_v1,
-		.set_enable = rk_pwm_set_enable_v1,
-	},
+	.funcs = &pwm_funcs_v1,
 };
 
 static const struct rockchip_pwm_data pwm_data_v2 = {
 	.main_version = 0x02,
-	.regs = {
-		.version = 0x5c,
-		.duty = 0x08,
-		.period = 0x04,
-		.ctrl = 0x0c,
-	},
+	.regs = &pwm_regs_v2,
 	.prescaler = 1,
 	.supports_polarity = true,
 	.supports_lock = false,
@@ -376,21 +396,12 @@ static const struct rockchip_pwm_data pwm_data_v2 = {
 	.enable_conf = PWM_OUTPUT_LEFT | PWM_LP_DISABLE | RK_PWM_ENABLE |
 		       PWM_CONTINUOUS,
 	.enable_conf_mask = GENMASK(2, 0) | BIT(5) | BIT(8),
-	.funcs = {
-		.set_invert = rk_pwm_set_invert_v1,
-		.set_config = rk_pwm_set_config_v1,
-		.set_enable = rk_pwm_set_enable_v1,
-	},
+	.funcs = &pwm_funcs_v1,
 };
 
 static const struct rockchip_pwm_data pwm_data_vop = {
 	.main_version = 0x02,
-	.regs = {
-		.version = 0x5c,
-		.duty = 0x08,
-		.period = 0x04,
-		.ctrl = 0x00,
-	},
+	.regs = &pwm_regs_v2,
 	.prescaler = 1,
 	.supports_polarity = true,
 	.supports_lock = false,
@@ -398,21 +409,12 @@ static const struct rockchip_pwm_data pwm_data_vop = {
 	.enable_conf = PWM_OUTPUT_LEFT | PWM_LP_DISABLE | RK_PWM_ENABLE |
 		       PWM_CONTINUOUS,
 	.enable_conf_mask = GENMASK(2, 0) | BIT(5) | BIT(8),
-	.funcs = {
-		.set_invert = rk_pwm_set_invert_v1,
-		.set_config = rk_pwm_set_config_v1,
-		.set_enable = rk_pwm_set_enable_v1,
-	},
+	.funcs = &pwm_funcs_v1,
 };
 
 static const struct rockchip_pwm_data pwm_data_v3 = {
 	.main_version = 0x03,
-	.regs = {
-		.version = 0x5c,
-		.duty = 0x08,
-		.period = 0x04,
-		.ctrl = 0x0c,
-	},
+	.regs = &pwm_regs_v2,
 	.prescaler = 1,
 	.supports_polarity = true,
 	.supports_lock = true,
@@ -420,32 +422,18 @@ static const struct rockchip_pwm_data pwm_data_v3 = {
 	.enable_conf = PWM_OUTPUT_LEFT | PWM_LP_DISABLE | RK_PWM_ENABLE |
 		       PWM_CONTINUOUS,
 	.enable_conf_mask = GENMASK(2, 0) | BIT(5) | BIT(8),
-	.funcs = {
-		.set_invert = rk_pwm_set_invert_v1,
-		.set_config = rk_pwm_set_config_v1,
-		.set_enable = rk_pwm_set_enable_v1,
-	},
+	.funcs = &pwm_funcs_v1,
 };
 
 static const struct rockchip_pwm_data pwm_data_v4 = {
 	.main_version = 0x04,
-	.regs = {
-		.version = 0x0,
-		.enable = 0x4,
-		.ctrl = 0xc,
-		.period = 0x10,
-		.duty = 0x14,
-	},
+	.regs = &pwm_regs_v4,
 	.prescaler = 1,
 	.supports_polarity = true,
 	.supports_lock = true,
 	.vop_pwm = false,
 	.enable_conf = PWM_ENABLE_V4,
-	.funcs = {
-		.set_invert = rk_pwm_set_invert_v4,
-		.set_config = rk_pwm_set_config_v4,
-		.set_enable = rk_pwm_set_enable_v4,
-	},
+	.funcs = &pwm_funcs_v4,
 };
 
 static const struct udevice_id rk_pwm_ids[] = {
