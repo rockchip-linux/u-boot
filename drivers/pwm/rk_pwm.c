@@ -443,6 +443,8 @@ static const struct udevice_id rk_pwm_ids[] = {
 	{ .compatible = "rockchip,vop-pwm", .data = (ulong)&pwm_data_vop},
 	{ .compatible = "rockchip,rk3399-pwm", .data = (ulong)&pwm_data_v2},
 	{ .compatible = "rockchip,rk3576-pwm", .data = (ulong)&pwm_data_v4},
+	{ .compatible = "rockchip,rk3506-pwm", .data = (ulong)&pwm_data_v4},
+	{ .compatible = "rockchip,rk3538-pwm", .data = (ulong)&pwm_data_v4},
 	{ }
 };
 
