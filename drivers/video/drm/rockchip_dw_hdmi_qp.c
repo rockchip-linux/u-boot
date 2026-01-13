@@ -1542,8 +1542,14 @@ static enum drm_connector_status rk3538_read_hpd(struct rockchip_hdmi *hdmi)
 {
 	u32 val;
 	int ret;
+	int i = 400;
 
-	val = readl(hdmi->grf + RK3538_HDMI_HPD_ST);
+	while (i--) {
+		val = readl(hdmi->grf + RK3538_HDMI_HPD_ST);
+		if (val & RK3576_HDMITX_LEVEL_INT)
+			break;
+		mdelay(5);
+	}
 
 	if (val & RK3576_HDMITX_LEVEL_INT)
 		ret = connector_status_connected;
