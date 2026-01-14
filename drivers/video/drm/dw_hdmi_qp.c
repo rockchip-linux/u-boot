@@ -1169,11 +1169,12 @@ static int dw_hdmi_setup(struct dw_hdmi_qp *hdmi,
 	dw_hdmi_qp_set_grf_cfg(hdmi->rk_hdmi);
 	link_cfg = dw_hdmi_rockchip_get_link_cfg(hdmi->rk_hdmi);
 
+	hdmi_modb(hdmi, HDCP2_BYPASS, HDCP2_BYPASS, HDCP2LOGIC_CONFIG0);
+
 	/* not for DVI mode */
 	if (hdmi->sink_is_hdmi) {
 		printf("%s HDMI mode\n", __func__);
 		hdmi_modb(hdmi, 0, OPMODE_DVI, LINK_CONFIG0);
-		hdmi_modb(hdmi, HDCP2_BYPASS, HDCP2_BYPASS, HDCP2LOGIC_CONFIG0);
 		hdmi_modb(hdmi, KEEPOUT_REKEY_ALWAYS, KEEPOUT_REKEY_CFG, FRAME_COMPOSER_CONFIG9);
 		hdmi_writel(hdmi, 0, FLT_CONFIG0);
 		if (hdmi_info->scdc.supported)
