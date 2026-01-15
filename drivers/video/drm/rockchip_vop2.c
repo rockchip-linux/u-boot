@@ -2509,6 +2509,7 @@ static int rockchip_vop2_gamma_lut_init(struct vop2 *vop2,
 	}
 
 	free(cstate->lut_val);
+	cstate->lut_val = NULL;
 
 	return 0;
 }
