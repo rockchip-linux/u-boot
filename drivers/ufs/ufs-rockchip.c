@@ -206,7 +206,7 @@ static int ufs_rockchip_common_init(struct ufs_hba *hba)
 	return 0;
 }
 
-static int ufs_rockchip_rk3576_init(struct ufs_hba *hba)
+static int ufs_rockchip_init(struct ufs_hba *hba)
 {
 	struct udevice *dev = hba->dev;
 	struct ufs_rockchip_host *host = dev_get_priv(dev);
@@ -218,27 +218,17 @@ static int ufs_rockchip_rk3576_init(struct ufs_hba *hba)
 		return ret;
 	}
 
-	/* UFS PHY select 26M from ppll */
-	writel(0x00030002, 0x2722030C);
-	/* Set UFS_REFCLK, UFS_RSTN */
-	writel(0x00FF0011, 0x2604B398);
-
-	/* Reset ufs controller and device */
+	/* Reset ufs controller */
 	reset_assert_bulk(&host->rsts);
-	writel(0x00100000, 0x2604B400);
-
 	udelay(20);
-
-	writel(0x00100010, 0x2604B400);
 	reset_deassert_bulk(&host->rsts);
-
 	udelay(20);
 
 	return 0;
 }
 
 static struct ufs_hba_ops ufs_hba_rk3576_vops = {
-	.init = ufs_rockchip_rk3576_init,
+	.init = ufs_rockchip_init,
 	.phy_initialization = ufs_rockchip_rk3576_phy_init,
 	.hce_enable_notify = ufs_rockchip_hce_enable_notify,
 	.link_startup_notify = ufs_rockchip_startup_notify,

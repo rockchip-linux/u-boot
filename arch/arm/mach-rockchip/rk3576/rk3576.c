@@ -329,15 +329,6 @@ int arch_cpu_init(void)
 	val = readl(FW_SYS_SGRF_BASE + SGRF_DOMAIN_CON1);
 	writel(val | 0x700, FW_SYS_SGRF_BASE + SGRF_DOMAIN_CON1);
 
-	/* UFS PHY select 26M from ppll */
-	writel(0x00030002, PMU1_CRU_BASE + PMU1_CRU_CLKSEL_CON03);
-
-	/* set iomux UFS_REFCLK, UFS_RSTN */
-	writel(0x00FF0011, VCCIO7_IOC_BASE + VCCIO7_IOC_GPIO4D_IOMUX_SEL_L);
-	/* set UFS_RSTN to high */
-	udelay(20);
-	writel(0x00100010, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
-
 	/*
 	 * Set the GPIO0B0~B3 pull up and input enable.
 	 * Keep consistent with other IO.
@@ -429,6 +420,18 @@ int arch_cpu_init(void)
 	 */
 	board_set_iomux(UCLASS_MTD, 0, 0);
 #endif /* #if defined(CONFIG_ROCKCHIP_EMMC_IOMUX) */
+
+	/* UFS PHY select 26M from ppll */
+	writel(0x00030002, PMU1_CRU_BASE + PMU1_CRU_CLKSEL_CON03);
+
+	/* set iomux UFS_REFCLK, UFS_RSTN */
+	writel(0x00FF0011, VCCIO7_IOC_BASE + VCCIO7_IOC_GPIO4D_IOMUX_SEL_L);
+	/* set UFS_RSTN to low */
+	writel(0x00100000, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
+	/* set UFS_RSTN to high */
+	udelay(20);
+	writel(0x00100010, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
+
 	return 0;
 }
 #endif
