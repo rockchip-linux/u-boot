@@ -310,6 +310,53 @@ struct serial_dev_priv {
 #define serial_get_ops(dev)	((struct dm_serial_ops *)(dev)->driver->ops)
 
 /**
+ * serial_dev_putc() - Write a character to a serial device
+ *
+ * @dev: Device pointer
+ * @ch: character to write
+ */
+void serial_dev_putc(struct udevice *dev, char ch);
+
+/**
+ * serial_dev_puts() - Write a string to a serial device
+ *
+ * @dev: Device pointer
+ * @str: string to write
+ */
+void serial_dev_puts(struct udevice *dev, const char *str);
+
+/**
+ * serial_dev_getc() - Read a character from a serial device
+ *
+ * @dev: Device pointer
+ * @return character (0..255), -ve on error
+ */
+int serial_dev_getc(struct udevice *dev);
+
+/**
+ * serial_dev_tstc() - Test if a character is available from a serial device
+ *
+ * @dev: Device pointer
+ * @return true if a character is available, false if not
+ */
+int serial_dev_tstc(struct udevice *dev);
+
+/**
+ * serial_dev_setbrg() - Set up the baud rate generator for a serial device
+ *
+ * @dev: Device pointer
+ * @baudrate: Baud rate to use
+ */
+void serial_dev_setbrg(struct udevice *dev, int baudrate);
+
+/**
+ * serial_dev_clear() - Clear the serial FIFOs for a serial device
+ *
+ * @dev: Device pointer
+ */
+void serial_dev_clear(struct udevice *dev);
+
+/**
  * serial_getconfig() - Get the uart configuration
  * (parity, 5/6/7/8 bits word length, stop bits)
  *
