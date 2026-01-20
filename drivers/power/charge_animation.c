@@ -28,6 +28,7 @@
 #include <power/pmic.h>
 #include <power/rk8xx_pmic.h>
 #include <power/regulator.h>
+#include <rk_timer_irq.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -1068,7 +1069,7 @@ static int charge_animation_probe(struct udevice *dev)
 
 #ifdef CONFIG_ROCKCHIP_PM_CONFIG
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(rockchip_pm_config),
+					  DM_DRIVER_GET(rockchip_pm_config),
 					  &rk_pm_cfg);
 	if (ret) {
 		if (ret == -ENODEV)

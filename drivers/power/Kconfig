@@ -26,6 +26,13 @@ config CHARGE_ANIMATION
 	help
 	  This adds a simple function for charge animation display.
 
+config ROCKCHIP_PM
+	bool "Enable Rockchip PM support"
+	depends on POWER
+	help
+	  This adds Rockchip power management support including
+	  device_suspend() and device_resume() functions.
+
 config POWER_LEGACY
 	bool "Legacy power support"
 	help

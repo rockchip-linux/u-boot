@@ -33,4 +33,5 @@ obj-$(CONFIG_POWER_MT6323) += mt6323.o
 
 obj-$(CONFIG_DM_CHARGE_DISPLAY)	+= charge-display-uclass.o
 obj-$(CONFIG_CHARGE_ANIMATION)	+= charge_animation.o
+obj-$(CONFIG_ROCKCHIP_PM)	+= rockchip_pm.o
 
