@@ -49,7 +49,8 @@ ENTRY(cpu_suspend)
 	stp	x0, x1, [sp, #-16]!
 
 	/* x18 is gd, save it to _suspend_gd !! */
-	adr	x0, _suspend_gd
+	adrp	x0, _suspend_gd
+	add	x0, x0, :lo12:_suspend_gd
 	str	x18, [x0]
 
 	/* x0: pm_ctx;	x1: sp where restore x8~x30 from */
@@ -134,8 +135,9 @@ ENTRY(cpu_resume)
 	msr       daifset, #0x03
 
 	/* Load gd !! */
-	adr x1, _suspend_gd
-	ldr x2, [x1]
+	adrp	x1, _suspend_gd
+	add	x1, x1, :lo12:_suspend_gd
+	ldr	x2, [x1]
 
 	/* Get pm_ctx */
 	add x2, x2, #PM_CTX_PHYS
@@ -189,6 +191,7 @@ ENTRY(cpu_do_resume)
 	b	suspend_return
 ENDPROC(cpu_do_resume)
 
+.data
 .align 3
 _suspend_gd:
 	.long	0x0
