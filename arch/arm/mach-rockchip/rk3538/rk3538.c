@@ -77,6 +77,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SGRF_FW_DDR_MST_FSPI_DIS_L	0x2E0
 #define SGRF_FW_DDR_MST_NANDC_DIS_L	0x2E8
 
+#define PMU_SGRF_BASE			0xFD330000
+#define PMU_SGRF_SOC_CON0		0x0
+
+#define PMU_CRU_BASE			0xFD070000
+#define PMU_CRU_SOFTRST_CON01		0xA04
+
 #define OTP_SPEC_NUM_OFFSET		0x02
 #define OTP_SPEC_NUM_MASK		0xffff
 #define REMARK_OTP_SPEC_NUM_OFFSET	0x14
@@ -234,6 +240,9 @@ int arch_cpu_init(void)
 	writel(0x00000059, USBPHY_APB_BASE + USBPHY_DIFF_RECEIVER_0);
 	writel(0x00000059, USBPHY_APB_BASE + USBPHY_DIFF_RECEIVER_1);
 
+	/* dbg_core_en and dbg_m_en */
+	writel(0x000C000C, PMU_SGRF_BASE + PMU_SGRF_SOC_CON0);
+
 #elif defined(CONFIG_SUPPORT_USBPLUG)
 	board_set_iomux(UCLASS_MMC, 0, 0);
 	/* set emmc access sys_mem */
@@ -294,3 +303,19 @@ int soc_id_init(void)
 	return 0;
 }
 #endif
+
+int fit_standalone_release(char *id, uintptr_t entry_point)
+{
+	/* set mcu entry addr */
+	sip_smc_mcu_config(ROCKCHIP_SIP_CONFIG_PMUMCU_0_ID,
+			   ROCKCHIP_SIP_CONFIG_MCU_CODE_START_ADDR,
+			   entry_point);
+
+	/* gpio2a3, gpio2a2 select JTAG_MCU */
+	//writel(0xFF004400, GPIO2_IOC_BASE + GPIO2A_IOMUX_SEL_0);
+
+	/* release mcu */
+	writel(0x000C0000, PMU_CRU_BASE + PMU_CRU_SOFTRST_CON01);
+
+	return 0;
+}
