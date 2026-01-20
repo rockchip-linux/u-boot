@@ -418,7 +418,16 @@
 #define IRQ_GPIO4_1			202
 #define IRQ_GPIO4_2			203
 #define IRQ_GPIO4_3			204
-
+#define IRQ_PWM0                        132
+#define IRQ_PWM1                        132
+#define IRQ_UART0			108
+#define IRQ_UART1			109
+#define IRQ_UART2                       110
+#define IRQ_UART3                       111
+#define IRQ_UART4                       112
+#define IRQ_UART5                       113
+#define IRQ_MBOX0_AP0			157
+#define IRQ_SARADC			156
 #elif defined(CONFIG_ROCKCHIP_RK3588)
 #define GPIO0_PHYS			0xfd8a0000
 #define GPIO1_PHYS			0xfec20000
@@ -438,8 +447,8 @@
 #define IRQ_GPIO2			311
 #define IRQ_GPIO3			312
 #define IRQ_GPIO4			313
-#define IRQ_PWM0			376
-#define IRQ_PWM1			378
+#define IRQ_PWM0			378
+#define IRQ_PWM1			379
 #define IRQ_PWM2			380
 #define IRQ_PWM3			382
 #define IRQ_PWM				IRQ_PWM0

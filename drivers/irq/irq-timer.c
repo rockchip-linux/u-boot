@@ -8,6 +8,7 @@
 #include <common.h>
 #include <irq-generic.h>
 #include <irq-platform.h>
+#include <rk_timer_irq.h>
 
 /*
  * Currently, we support a timer timeout to generate a IRQ to dump cpu context.
