@@ -16,6 +16,9 @@
 /* Used by board_get_usable_ram_top(), space below the 4G address boundary */
 #define SDRAM_MAX_SIZE			(SZ_4G - CFG_SYS_SDRAM_BASE)
 
+#define GICD_BASE                       0x2a701000
+#define GICC_BASE                       0x2a702000
+
 /* secure otp */
 #define OTP_UBOOT_ROLLBACK_OFFSET	0x610
 #define OTP_UBOOT_ROLLBACK_WORDS	2	/* 64 bits, 2 words */
