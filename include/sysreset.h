@@ -146,6 +146,13 @@ void sysreset_walk_halt(enum sysreset_t type);
 void reset_cpu(void);
 
 /**
+ * reboot() - calls sysreset_walk(SYSRESET_WARM)
+ *
+ * Support the command like: reboot loader/bootloader/recovery, etc.
+ */
+void reboot(const char *mode);
+
+/**
  * sysreset_register_wdt() - register a watchdog for use with sysreset
  *
  * This registers the given watchdog timer to be used to reset the system.
