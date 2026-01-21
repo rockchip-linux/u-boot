@@ -35,9 +35,9 @@ struct ebc_panel {
 	u32 rearrange;
 	u32 sdoe_mode;
 	u32 sdce_width;
-	u32 disp_pbuf;
+	void *disp_pbuf;
 	u32 disp_pbuf_size;
-	u32 *lut_pbuf;
+	void *lut_pbuf;
 	u32 lut_pbuf_size;
 	struct epd_lut_data lut_data;
 };
