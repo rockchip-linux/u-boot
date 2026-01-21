@@ -960,8 +960,6 @@ int arch_cpu_init(void)
 	/*
 	 * Set SATA FBSCP and PORTS_IMPL for kernel drivers
 	 */
-	writel(SATA_FBS_ENABLE, SATA0_BASE_ADDR + SATA_PORT_CMD);
-	writel(1, SATA0_BASE_ADDR + SATA_PI);
 	writel(SATA_FBS_ENABLE, SATA1_BASE_ADDR + SATA_PORT_CMD);
 	writel(1, SATA1_BASE_ADDR + SATA_PI);
 	writel(SATA_FBS_ENABLE, SATA2_BASE_ADDR + SATA_PORT_CMD);
@@ -1160,6 +1158,12 @@ int rk_board_fdt_fixup(const void *blob)
 {
 	int node, len;
 	u32 *pp;
+
+	node = fdt_path_offset(blob, "/sata@fc000000");
+	if (node >= 0) {
+		writel(SATA_FBS_ENABLE, SATA0_BASE_ADDR + SATA_PORT_CMD);
+		writel(1, SATA0_BASE_ADDR + SATA_PI);
+	}
 
 	/* Don't go further if new variant */
 	if (rockchip_get_cpu_version() > 0)
