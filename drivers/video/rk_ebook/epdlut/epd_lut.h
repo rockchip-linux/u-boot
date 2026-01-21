@@ -31,6 +31,7 @@ enum epd_lut_type {
 	WF_TYPE_RK_GLD16, // for part regal mode
 	WF_TYPE_RK_GL16, // for part gl16 mode
 	WF_TYPE_RK_GC16, // for part gc16 mode
+	WF_TYPE_RK_FULL, // for full mode
 	WF_TYPE_MAX,
 	WF_TYPE_GRAY16,
 };
@@ -46,7 +47,8 @@ struct epd_lut_data {
  */
 int epd_lut_from_mem_init(void *waveform);
 const char *epd_lut_get_wf_version(void);
-int epd_lut_get(struct epd_lut_data *output, enum epd_lut_type lut_type, int temperture, int pic, int regal_pix);
+int epd_lut_get_wf_bit(void);
+int epd_lut_get(struct epd_lut_data *output, enum epd_lut_type lut_type, int temperture, int pic, int wf_fix, int regal_pix);
 
 //you can change overlay lut mode here
 int epd_overlay_lut(void);
@@ -57,12 +59,14 @@ int epd_overlay_lut(void);
 int pvi_wf_input(void *waveform_file);
 int pvi_wf_add_custom_mode_table(u8 *table, int size);
 const char *pvi_wf_get_version(void);
-int pvi_wf_get_lut(struct epd_lut_data *output, enum epd_lut_type lut_type, int temperture, int pic, int regal_pix);
+int pvi_wf_get_wf_bit(void);
+int pvi_wf_get_lut(struct epd_lut_data *output, enum epd_lut_type lut_type, int temperture, int pic, int wf_fix, int regal_pix);
 
 /*
  * RKF Waveform Interfaces
  */
 int rkf_wf_input(void *waveform_file);
 const char *rkf_wf_get_version(void);
-int rkf_wf_get_lut(struct epd_lut_data *output, enum epd_lut_type lut_type, int temperture, int pic, int regal_pix);
+int rkf_wf_get_wf_bit(void);
+int rkf_wf_get_lut(struct epd_lut_data *output, enum epd_lut_type lut_type, int temperture, int pic, int wf_fix, int regal_pix);
 #endif

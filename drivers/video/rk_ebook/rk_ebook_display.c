@@ -35,7 +35,7 @@ inline int thermal_get_temp(struct udevice *dev, int *temp)
 #define EBOOK_LOGO_IMAGE_MAGIC	"GR04"
 /*
  * grayscale logo partition format:
- * block0:
+ * block 0:
  * struct logo_part_header part_header;
  * struct grayscale_header logo1_header;
  * struct grayscale_header logo2_header;
@@ -43,7 +43,7 @@ inline int thermal_get_temp(struct udevice *dev, int *temp)
  * struct grayscale_header logo4_header;
  * ....
  *
- * block 1:
+ * block (align(hdr_size, blk_size) / blk_size):
  * logo1_image
  *
  * .....
@@ -62,7 +62,7 @@ inline int thermal_get_temp(struct udevice *dev, int *temp)
 //logo partition Header, 64byte
 struct logo_part_header {
 	char magic[4]; /* must be "RKEL" */
-	u32  totoal_size;
+	u32  total_size;
 	u32  screen_width;
 	u32  screen_height;
 	u32  logo_count;
@@ -84,14 +84,12 @@ struct grayscale_header {
 } __packed;
 
 /*
- * The start address of logo image in logo.img must be aligned in 512 bytes,
- * so the header size must be times of 512 bytes. Here we fix the size to 512
- * bytes, so the count of logo image can only support up to 14.
+ * The start address of logo image in logo.img must be aligned in 512 bytes.
  */
 struct logo_info {
-	struct logo_part_header part_hdr;
-	struct grayscale_header img_hdr[14];
-} __packed;
+	struct logo_part_header *part_hdr;
+	struct grayscale_header *img_hdr;
+};
 
 struct rockchip_ebook_display_priv {
 	struct udevice *dev;
@@ -111,8 +109,14 @@ enum {
 #define EBOOK_VCOM_ID		17
 #define EBOOK_VCOM_MAX		64
 #define VCOM_DEFAULT_VALUE	1650
+#define LOGO_BUF_MAX		3 // last buf for tmp logo, other for other logo
 
 static struct logo_info ebook_logo_info;
+static void *logo_buf_addrs[LOGO_BUF_MAX];
+static int pre_logo_buf_indx = 0;
+static int cur_logo_buf_indx = 0;
+static int tmp_logo_buf_indx = LOGO_BUF_MAX - 1;
+static void *logo_part_hdr;
 static struct udevice *ebook_dev;
 static volatile int last_logo_type = -1;
 static int read_vcom_from_vendor(void)
@@ -185,92 +189,104 @@ static u32 aligned_image_size_4k(struct udevice *dev)
  *	reg = <0x0 0x10000000 0x0 0x2000000>;
  *	no-map;
  * };
- * Every image logo size must be aligned in 4K, make sure
- * kernel can use it rightly, the buffer of LOGO image is
- * put in order of below map:
- *  |---reset logo        ---|
- *  |---uboot logo        ---|
- *  |---kernel logo       ---|
- *  |---charge_0 logo   ---|
- *  |---charge_1 logo   ---|
- *  |---charge_2 logo   ---|
- *  |---charge_3 logo   ---|
- *  |---charge_4 logo   ---|
- *  |---charge_5 logo   ---|
- *  |---battery low logo---|
- *  |---temp un-mirror buffer--|
+ * Every image logo size must be aligned in 4K.
  */
-static int get_addr_by_type(struct udevice *dev, u32 logo_type)
+static void *get_addr_by_index(struct udevice *dev, int index)
 {
-	u32 offset, indx, img_size;
+	u32 img_size;
 	struct ebc_panel *plat = dev_get_platdata(dev);
 
 	if (plat->disp_pbuf_size == 0 || !plat->disp_pbuf) {
 		printf("invalid display buffer, please check dts\n");
-		return -EINVAL;
+		return NULL;
 	}
-	indx = ffs(logo_type);
+
+	if (logo_buf_addrs[index] != 0)
+		return logo_buf_addrs[index];
+
 	img_size = aligned_image_size_4k(dev);
-	offset = img_size * indx;
-	if (offset + img_size > plat->disp_pbuf_size) {
+	if ((index + 1) * img_size > plat->disp_pbuf_size) {
 		printf("reserve display memory size is not enough\n");
-		return -EINVAL;
+		return NULL;
 	}
 
-	switch (logo_type) {
-	case EBOOK_LOGO_RESET:
-	case EBOOK_LOGO_UBOOT:
-	case EBOOK_LOGO_KERNEL:
-	case EBOOK_LOGO_CHARGING_0:
-	case EBOOK_LOGO_CHARGING_1:
-	case EBOOK_LOGO_CHARGING_2:
-	case EBOOK_LOGO_CHARGING_3:
-	case EBOOK_LOGO_CHARGING_4:
-	case EBOOK_LOGO_CHARGING_5:
-	case EBOOK_LOGO_CHARGING_LOWPOWER:
-	case EBOOK_LOGO_POWEROFF:
-	/*
-	 * The MIRROR_TEMP_BUF is used to save the
-	 * non-mirror image data.
-	 */
-	case EBOOK_LOGO_UNMIRROR_TEMP_BUF:
-		return (plat->disp_pbuf + offset);
-	default:
-		printf("invalid logo type[%d]\n", logo_type);
-	}
+	logo_buf_addrs[index] = (plat->disp_pbuf + index * img_size);
 
-	return -EINVAL;
+	return logo_buf_addrs[index];
+}
+
+static int update_logo_buf_indx(void)
+{
+	pre_logo_buf_indx = cur_logo_buf_indx;
+	cur_logo_buf_indx = (cur_logo_buf_indx + 1) % (LOGO_BUF_MAX - 1);
+	return cur_logo_buf_indx;
 }
 
 static int read_header(struct blk_desc *dev_desc,
-		       disk_partition_t *part,
-		       struct logo_info *header)
+		       disk_partition_t *part)
 {
-	int i;
-	struct logo_part_header *part_hdr = &header->part_hdr;
+	int i, ret;
+	size_t part_hdr_size = sizeof(struct logo_part_header);
+	u32 blk_count = 1;
+	struct logo_part_header *part_hdr;
+	struct grayscale_header *img_hdr;
 
-	if (blk_dread(dev_desc, part->start, 1, header) != 1)
+	if (ebook_logo_info.part_hdr && ebook_logo_info.img_hdr)
+		return 0;
+
+	logo_part_hdr = kzalloc(dev_desc->blksz, GFP_KERNEL);
+	if (!logo_part_hdr)
+		return -ENOMEM;
+	part_hdr = (struct logo_part_header *)logo_part_hdr;
+
+	if (blk_dread(dev_desc, part->start, blk_count, logo_part_hdr) != 1)
 		return -EIO;
 
 	if (memcmp(part_hdr->magic, EBOOK_LOGO_PART_MAGIC, 4)) {
 		printf("partition header is invalid\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err;
 	}
 	if (part_hdr->logo_count == 0) {
 		printf("the count of logo image is 0\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto err;
 	}
-	for (i = 0; i < part_hdr->logo_count; i++) {
-		struct grayscale_header *img_hdr = &header->img_hdr[i];
+	debug("found %d logo, w=%d, h=%d\n", part_hdr->logo_count,
+	      part_hdr->screen_width, part_hdr->screen_height);
 
-		if (memcmp(img_hdr->magic, EBOOK_LOGO_IMAGE_MAGIC, 4)) {
-			printf("image[%d] header '%s' is invalid\n", i,
-			       img_hdr->magic);
-			return -EINVAL;
-		}
+	part_hdr_size += part_hdr->logo_count * sizeof(struct grayscale_header);
+	blk_count = DIV_ROUND_UP(part_hdr_size, dev_desc->blksz);
+	kfree(logo_part_hdr);
+	logo_part_hdr = kzalloc(dev_desc->blksz * blk_count, GFP_KERNEL);
+	if (!logo_part_hdr)
+		return -ENOMEM;
+	part_hdr = (struct logo_part_header *)logo_part_hdr;
+
+	if (blk_dread(dev_desc, part->start, blk_count, logo_part_hdr) != blk_count) {
+		ret = -EIO;
+		goto err;
 	}
+
+	img_hdr = (struct grayscale_header *)(logo_part_hdr + sizeof(struct logo_part_header));
+	for (i = 0; i < part_hdr->logo_count; i++) {
+		if (memcmp(img_hdr[i].magic, EBOOK_LOGO_IMAGE_MAGIC, 4)) {
+			printf("image[%d] header '%s' is invalid\n", i,
+			       img_hdr[i].magic);
+			ret = -EINVAL;
+			goto err;
+		}
+		debug("found logo[%d]\n", img_hdr[i].logo_type);
+	}
+
+	ebook_logo_info.part_hdr = part_hdr;
+	ebook_logo_info.img_hdr = img_hdr;
 
 	return 0;
+
+err:
+	kfree(logo_part_hdr);
+	return ret;
 }
 
 static int read_grayscale(struct blk_desc *dev_desc,
@@ -360,16 +376,11 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 	int ret, i;
 	disk_partition_t part;
 	struct blk_desc *dev_desc;
-	struct logo_info *hdr = &ebook_logo_info;
-	struct logo_part_header *part_hdr = &hdr->part_hdr;
+	struct logo_part_header *part_hdr;
+	struct grayscale_header *img_hdr;
 	struct ebc_panel *panel = dev_get_platdata(dev);
-	u32 logo = needed_logo & (~(*loaded_logo));
+	u32 logo = needed_logo;
 
-	if (!logo) {
-		printf("logo[0x%x] is already loaded, just return!\n",
-		       needed_logo);
-		return 0;
-	}
 	dev_desc = rockchip_get_bootdev();
 	if (!dev_desc) {
 		printf("%s: Could not find device\n", __func__);
@@ -379,11 +390,12 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 	if (part_get_info_by_name(dev_desc, PART_LOGO, &part) < 0)
 		return -ENODEV;
 
-	ret = read_header(dev_desc, &part, hdr);
+	ret = read_header(dev_desc, &part);
 	if (ret < 0) {
 		printf("ebook logo read header failed,ret = %d\n", ret);
 		return -EINVAL;
 	}
+	part_hdr = ebook_logo_info.part_hdr;
 	if (part_hdr->screen_width != panel->width ||
 	    part_hdr->screen_height != panel->height){
 		printf("logo size(%dx%d) is not same as screen size(%dx%d)\n",
@@ -392,26 +404,26 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 		return -EINVAL;
 	}
 
+	memset(logo_buf_addrs, 0, sizeof(logo_buf_addrs));
+	img_hdr = ebook_logo_info.img_hdr;
 	for (i = 0; i < part_hdr->logo_count; i++) {
-		struct grayscale_header *img_hdr = &hdr->img_hdr[i];
-		int pic_buf;
-		u32 offset = img_hdr->data_offset;
-		u32 size = img_hdr->data_size;
-		u32 logo_type = img_hdr->logo_type;
+		void *pic_buf;
+		u32 offset = img_hdr[i].data_offset;
+		u32 size = img_hdr[i].data_size;
+		u32 logo_type = img_hdr[i].logo_type;
 
 		debug("offset=0x%x, size=%d,logo_type=%d,w=%d,h=%d\n",
-		      offset, size, logo_type, img_hdr->w, img_hdr->h);
+		      offset, size, logo_type, img_hdr[i].w, img_hdr[i].h);
 
 		if (logo & logo_type) {
-			pic_buf = get_addr_by_type(dev, logo_type);
+			pic_buf = get_addr_by_index(dev, cur_logo_buf_indx);
 
-			if (pic_buf <= 0) {
+			if (pic_buf == NULL) {
 				printf("Get buffer failed for image %d\n",
-				       img_hdr->logo_type);
+				       img_hdr[i].logo_type);
 				return -EIO;
 			}
-			if (!IS_ALIGNED((ulong)pic_buf,
-					ARCH_DMA_MINALIGN)) {
+			if (!IS_ALIGNED((ulong)pic_buf, ARCH_DMA_MINALIGN)) {
 				printf("disp buffer is not dma aligned\n");
 				return -EINVAL;
 			}
@@ -423,41 +435,34 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 			if (panel->mirror && logo_type != EBOOK_LOGO_KERNEL) {
 				u32 w = panel->width;
 				u32 h = panel->height;
-				u32 mirror_buf = 0;
+				void *mirror_buf = NULL;
 
-				mirror_buf = get_addr_by_type(dev,
-							      EBOOK_LOGO_UNMIRROR_TEMP_BUF);
-				if (mirror_buf <= 0) {
+				mirror_buf = get_addr_by_index(dev, tmp_logo_buf_indx);
+				if (mirror_buf == NULL) {
 					printf("get mirror buffer failed\n");
 					return -EIO;
 				}
-				read_grayscale(dev_desc, &part, offset, size,
-					       (void *)((ulong)mirror_buf));
-				image_mirror((u8 *)((ulong)mirror_buf),
-					     (u8 *)((ulong)pic_buf), w, h);
+				read_grayscale(dev_desc, &part, offset, size, mirror_buf);
+				image_mirror((u8 *)mirror_buf, (u8 *)pic_buf, w, h);
 			} else if (panel->rearrange && logo_type != EBOOK_LOGO_KERNEL) {
 				u32 w = panel->width;
 				u32 h = panel->height;
-				u32 rearrange_buf = 0;
+				void *rearrange_buf = NULL;
 
-				rearrange_buf = get_addr_by_type(dev,
-							      EBOOK_LOGO_UNMIRROR_TEMP_BUF);
-				if (rearrange_buf <= 0) {
+				rearrange_buf = get_addr_by_index(dev, tmp_logo_buf_indx);
+				if (rearrange_buf == NULL) {
 					printf("get mirror buffer failed\n");
 					return -EIO;
 				}
-				read_grayscale(dev_desc, &part, offset, size,
-					       (void *)((ulong)rearrange_buf));
-				image_rearrange((u8 *)((ulong)rearrange_buf),
-					     (u8 *)((ulong)pic_buf), w, h);
+				read_grayscale(dev_desc, &part, offset, size, rearrange_buf);
+				image_rearrange((u8 *)rearrange_buf, (u8 *)pic_buf, w, h);
 			} else {
-				read_grayscale(dev_desc, &part, offset, size,
-					       (void *)((ulong)pic_buf));
+				read_grayscale(dev_desc, &part, offset, size, pic_buf);
 			}
 			flush_dcache_range((ulong)pic_buf,
 					   ALIGN((ulong)pic_buf + size,
 						 CONFIG_SYS_CACHELINE_SIZE));
-			*loaded_logo |= logo_type;
+			*loaded_logo = logo_type;
 
 			logo &= ~logo_type;
 			if (!logo)
@@ -514,8 +519,8 @@ static int ebc_power_set(struct udevice *dev, int is_on)
 	return 0;
 }
 
-static int ebook_display(struct udevice *dev, u32 pre_img_buf,
-			u32 cur_img_buf, u32 lut_type, int update_mode)
+static int ebook_display(struct udevice *dev, void *pre_img_buf,
+			 void *cur_img_buf, u32 lut_type, int update_mode)
 {
 	int temperature;
 	u32 frame_num;
@@ -541,21 +546,26 @@ static int ebook_display(struct udevice *dev, u32 pre_img_buf,
 
 	if(!plat->lut_data.wf_table[0])
 		plat->lut_data.wf_table[0] = kzalloc(MAXFRAME * 32 * 32, GFP_KERNEL);
-	epd_lut_get(&plat->lut_data, lut_type, temperature, WF_4BIT, 0);
+	epd_lut_get(&plat->lut_data, lut_type, temperature, WF_4BIT, 0, 0);
 	kfree(plat->lut_data.wf_table[0]);
 	plat->lut_data.wf_table[0] = NULL;
 
 	frame_num = plat->lut_data.frame_num & 0xff;
-	printk("lut_type=%d, frame num=%d, temp=%d\n", lut_type,
-	      frame_num, temperature);
+	printf("lut_type=%d, frame num=%d, temp=%d\n", lut_type,
+	       frame_num, temperature);
 
-	ebc_tcon_ops->wait_for_last_frame_complete(ebc_tcon_dev);
 	ebc_tcon_ops->lut_data_set(ebc_tcon_dev, plat->lut_data.data,
 				   frame_num, 0);
 	ebc_tcon_ops->dsp_mode_set(ebc_tcon_dev, update_mode,
 				   LUT_MODE, !THREE_WIN_MODE, !EINK_MODE);
-	ebc_tcon_ops->image_addr_set(ebc_tcon_dev, pre_img_buf, cur_img_buf);
+	ebc_tcon_ops->image_addr_set(ebc_tcon_dev, (u32)((ulong)pre_img_buf),
+				     (u32)((ulong)cur_img_buf));
 	ebc_tcon_ops->frame_start(ebc_tcon_dev, frame_num);
+
+	ebc_tcon_ops->wait_for_last_frame_complete(ebc_tcon_dev);
+
+	update_logo_buf_indx();
+
 	return 0;
 }
 
@@ -587,6 +597,34 @@ static int rk_ebook_display_init(void)
 	return -ENODEV;
 }
 
+static int rockchip_ebook_transmit_kernel_logo(struct udevice *dev)
+{
+	char logo_args[64] = {0};
+	static u32 loaded_logo = 0;
+	int ret;
+
+	update_logo_buf_indx();
+	ret = read_needed_logo_from_partition(dev, EBOOK_LOGO_KERNEL,
+						&loaded_logo);
+	if (ret || !(loaded_logo & EBOOK_LOGO_KERNEL)) {
+		printf("No invalid kernel logo in logo.img\n");
+		return -EIO;
+	} else {
+		void *klogo_addr = get_addr_by_index(dev, cur_logo_buf_indx);
+
+		if (klogo_addr == NULL) {
+			printf("get kernel logo buffer failed\n");
+			return -EIO;
+		}
+		printf("Transmit kernel logo addr(0x%x) to kernel\n",
+			(u32)(ulong)klogo_addr);
+		sprintf(logo_args, "klogo_addr=0x%x", (u32)(ulong)klogo_addr);
+		env_update("bootargs", logo_args);
+	}
+
+	return 0;
+}
+
 /*
  * Eink display need current and previous image buffer, We assume
  * every type of logo has only one image, so just tell this function
@@ -596,8 +634,7 @@ static int rk_ebook_display_init(void)
 static int rockchip_ebook_show_logo(int cur_logo_type, int update_mode)
 {
 	int ret = 0;
-	u32 logo_addr;
-	u32 last_logo_addr;
+	void *logo_addr, *last_logo_addr;
 	struct ebc_panel *plat;
 	struct udevice *dev;
 	static u32 loaded_logo = 0;
@@ -635,24 +672,26 @@ static int rockchip_ebook_show_logo(int cur_logo_type, int update_mode)
 		ret = ebc_power_set(dev, EBC_PWR_ON);
 		if (ret) {
 			printf("Eink power on failed\n");
-			return -1;
+			ret = -EIO;
+			goto out;
 		}
 
 		int size = (plat->width * plat->height) >> 1;
 
-		logo_addr = get_addr_by_type(dev, EBOOK_LOGO_RESET);
-		memset((u32 *)(u64)logo_addr, 0xff, size);
+		logo_addr = get_addr_by_index(dev, cur_logo_buf_indx);
+		memset(logo_addr, 0xff, size);
 		flush_dcache_range((ulong)logo_addr,
 				   ALIGN((ulong)logo_addr + size,
 					 CONFIG_SYS_CACHELINE_SIZE));
-		ebook_display(dev, logo_addr, logo_addr,
-			     WF_TYPE_RESET, EBOOK_LOGO_RESET);
+		debug("show reset logo, addr=0x%x\n", (u32)(ulong)logo_addr);
+		ebook_display(dev, logo_addr, logo_addr, WF_TYPE_RESET, EBOOK_LOGO_RESET);
 		last_logo_type = 0;
 		last_logo_addr = logo_addr;
 	} else {
-		last_logo_addr = get_addr_by_type(dev, last_logo_type);
-		if (last_logo_addr < 0) {
+		last_logo_addr = get_addr_by_index(dev, pre_logo_buf_indx);
+		if (last_logo_addr == NULL) {
 			printf("Invalid last logo addr, exit!\n");
+			ret = -EIO;
 			goto out;
 		}
 	}
@@ -664,14 +703,16 @@ static int rockchip_ebook_show_logo(int cur_logo_type, int update_mode)
 		ret = -EIO;
 		goto out;
 	}
-	logo_addr = get_addr_by_type(dev, cur_logo_type);
-	debug("logo_addr=%x, logo_type=%d\n", logo_addr, cur_logo_type);
-	if (logo_addr <= 0) {
+	logo_addr = get_addr_by_index(dev, cur_logo_buf_indx);
+	debug("logo_addr=%p, logo_type=%d\n", logo_addr, cur_logo_type);
+	if (logo_addr == NULL) {
 		printf("get logo buffer failed\n");
 		ret = -EIO;
 		goto out;
 	}
 
+	debug("show logo, pre addr: 0x%x, cur addr: 0x%x, type: %d\n",
+	      (u32)((ulong)last_logo_addr), (u32)((ulong)logo_addr), ffs(cur_logo_type));
 	ebook_display(dev, last_logo_addr, logo_addr, WF_TYPE_GC16, update_mode);
 
 	if (priv->backlight)
@@ -715,38 +756,21 @@ static int rockchip_ebook_show_logo(int cur_logo_type, int update_mode)
 	 */
 	if (cur_logo_type == EBOOK_LOGO_UBOOT) {
 		char logo_args[64] = {0};
-		u32 uboot_logo_buf;
+		void *uboot_logo_buf;
 
 		if (plat->mirror || plat->rearrange)
-			uboot_logo_buf = get_addr_by_type(dev,
-							  EBOOK_LOGO_UNMIRROR_TEMP_BUF);
+			uboot_logo_buf = get_addr_by_index(dev, tmp_logo_buf_indx);
 		else
 			uboot_logo_buf = logo_addr;
-		printf("Transmit uboot logo addr(0x%x) to kernel\n",
-		       uboot_logo_buf);
-		sprintf(logo_args, "ulogo_addr=0x%x", uboot_logo_buf);
+		printf("Transmit uboot logo addr(0x%x) to kernel\n", (u32)(ulong)uboot_logo_buf);
+		sprintf(logo_args, "ulogo_addr=0x%x", (u32)(ulong)uboot_logo_buf);
 		env_update("bootargs", logo_args);
-		ret = read_needed_logo_from_partition(dev, EBOOK_LOGO_KERNEL,
-						      &loaded_logo);
-		if (ret || !(loaded_logo & EBOOK_LOGO_KERNEL)) {
-			printf("No invalid kernel logo in logo.img\n");
-		} else {
-			int klogo_addr = get_addr_by_type(dev,
-							  EBOOK_LOGO_KERNEL);
-
-			if (klogo_addr <= 0) {
-				printf("get kernel logo buffer failed\n");
-				ret = -EIO;
-				goto out;
-			}
-			printf("Transmit kernel logo addr(0x%x) to kernel\n",
-			       klogo_addr);
-			sprintf(logo_args, "klogo_addr=0x%x", klogo_addr);
-			env_update("bootargs", logo_args);
-		}
 	}
 
 out:
+	if (cur_logo_type == EBOOK_LOGO_UBOOT) {
+		rockchip_ebook_transmit_kernel_logo(dev);
+	}
 	return ret;
 }
 
@@ -766,7 +790,7 @@ static int rockchip_ebook_display_probe(struct udevice *dev)
 	struct dm_regulator_uclass_platdata *uc_pdata;
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *child, *pmic_dev;
-	int ret, vcom, size, i, uclass_id;
+	int ret = 0, vcom, size, i, uclass_id;
 	bool find_pmic = false;
 	const fdt32_t *list;
 	uint32_t phandle;
@@ -783,25 +807,19 @@ static int rockchip_ebook_display_probe(struct udevice *dev)
 		priv->vcom = vcom;
 	}
 
-        // read lut to ram, and get lut ops
-	ret = read_waveform(dev);
-	if (ret < 0) {
-		printf("read wavform failed\n");
-		return -EIO;
-	}
-
 	ret = uclass_get_device_by_phandle(UCLASS_EBC, dev,
 					   "ebc_tcon",
 					   &priv->ebc_tcon_dev);
 	if (ret) {
 		dev_err(dev, "Cannot get ebc_tcon: %d\n", ret);
-		return ret;
+		goto out;
 	}
 
 	list = dev_read_prop(dev, "pmic", &size);
 	if (!list) {
 		dev_err(dev, "Cannot get pmic prop\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out;
 	}
 
 	size /= sizeof(*list);
@@ -843,7 +861,7 @@ static int rockchip_ebook_display_probe(struct udevice *dev)
 
 	if (!find_pmic) {
 		dev_err(dev, "Cannot get pmic: %d\n", ret);
-		return ret;
+		goto out;
 	}
 
 	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
@@ -861,12 +879,28 @@ static int rockchip_ebook_display_probe(struct udevice *dev)
 		ret = regulator_set_value(priv->regulator_dev, priv->vcom * 1000);
 	if (ret) {
 		printf("%s, vcom_set failed\n", __func__);
-		return -EIO;
+		ret = -EIO;
+		goto out;
 	}
 
 	ebook_dev = dev;
 
-	return 0;
+out:
+	// read lut to ram, and get lut ops
+	if (read_waveform(dev) < 0) {
+		printf("read wavform failed\n");
+		ret = -EIO;
+	}
+
+	// Even if the probe fails, ensure the kernel logo is transmited to the kernel
+	if (ret) {
+		if (rockchip_ebook_transmit_kernel_logo(dev) < 0) {
+			printf("transmit kernel logo failed\n");
+			ret = -EIO;
+		}
+	}
+
+	return ret;
 }
 
 static int rockchip_ebook_display_ofdata_to_platdata(struct udevice *dev)
@@ -919,9 +953,9 @@ static int rockchip_ebook_display_ofdata_to_platdata(struct udevice *dev)
 		return -ENODEV;
 	}
 
-	plat->disp_pbuf = (u64)map_sysmem(tmp_addr, 0);
+	plat->disp_pbuf = map_sysmem(tmp_addr, 0);
 	plat->disp_pbuf_size = size;
-	debug("display mem=0x%x, size=%x\n", plat->disp_pbuf,
+	debug("display mem=0x%p, size=%x\n", plat->disp_pbuf,
 	      plat->disp_pbuf_size);
 	waveform_mem = of_parse_phandle(ofnode_to_np(dev_ofnode(dev)),
 					"waveform-region", 0);
@@ -961,4 +995,3 @@ UCLASS_DRIVER(rk_ebook) = {
 	.id	= UCLASS_EBOOK_DISPLAY,
 	.name	= "rk_ebook",
 };
-
