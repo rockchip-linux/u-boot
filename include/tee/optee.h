@@ -156,6 +156,18 @@ uint32_t optee_set_dice_data(enum RK_DICE_TYPE type,
 			     uint8_t *data, uint32_t data_size);
 uint32_t optee_get_dice_data(enum RK_DICE_TYPE type,
 			     uint8_t *data, uint32_t *data_size);
+uint32_t optee_write_widevine_keybox(uint8_t *filename, uint32_t filename_size,
+				     uint8_t *key, uint32_t key_size,
+				     uint8_t *data, uint32_t data_size);
+uint32_t optee_read_keybox(uint8_t *filename, uint32_t filename_size,
+			   uint8_t *data,
+			   uint32_t size);
+uint32_t optee_write_keybox(uint8_t *filename,
+			    uint32_t filename_size,
+			    uint8_t *data,
+			    uint32_t data_size);
+uint32_t optee_read_oem_unlock(uint8_t *unlock);
+uint32_t optee_write_oem_unlock(uint8_t unlock);
 
 /* rockchip optee api for otp */
 uint32_t optee_read_attribute_hash(uint32_t *buf, uint32_t length);

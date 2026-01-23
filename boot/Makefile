@@ -17,6 +17,8 @@ obj-y += image.o image-board.o
 obj-$(CONFIG_ANDROID_AB) += android_ab.o
 ifdef CONFIG_ARCH_ROCKCHIP
 obj-$(CONFIG_ANDROID_BOOT_IMAGE) += android/image-android.o android/image-android-dt.o android/android_bootloader.o
+obj-$(CONFIG_ANDROID_WRITE_KEYBOX) += android/write_keybox.o
+obj-$(CONFIG_ANDROID_KEYMASTER_CA) += android/attestation_key.o android/id_attestation.o
 else
 obj-$(CONFIG_ANDROID_BOOT_IMAGE) += image-android.o image-android-dt.o
 endif

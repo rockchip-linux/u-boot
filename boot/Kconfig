@@ -57,6 +57,20 @@ config ANDROID_BOOT_IMAGE_HASH
 	help
 	  This enables SHA1 verify for Android image.
 
+config ANDROID_WRITE_KEYBOX
+	bool "Support Write Keybox"
+	default y
+	depends on ANDROID_BOOT_IMAGE && OPTEE
+	help
+	  This enable support write keybox to secure storage.
+
+config ANDROID_KEYMASTER_CA
+	bool "Support Keymaster CA"
+	default y
+	depends on ANDROID_BOOT_IMAGE && OPTEE
+	help
+	 This enable support read/write data in keymaster.
+
 menuconfig FIT
 	bool "Flattened Image Tree (FIT)"
 	select HASH

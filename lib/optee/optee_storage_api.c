@@ -18,6 +18,7 @@
 #define STORAGE_CMD_READ_OBJ		0
 #define STORAGE_CMD_WRITE_OBJ		1
 #define STORAGE_CMD_UBOOT_END		2
+#define STORAGE_CMD_WRITE_WV_KEYBOX	6
 #define STORAGE_CMD_SET_SECURITY	9
 #define STORAGE_CMD_SET_DICE_DATA	11
 #define STORAGE_CMD_GET_DICE_DATA	12
@@ -86,11 +87,11 @@ static uint32_t invoke_func(uint32_t func, ulong num_param, struct tee_param *pa
 	return arg.ret;
 }
 
-static uint32_t optee_base_storage(uint32_t cmd,
-				   char *filename,
-				   uint32_t name_size,
-				   uint8_t *data,
-				   uint32_t data_size)
+uint32_t optee_base_storage(uint32_t cmd,
+			    char *filename,
+			    uint32_t name_size,
+			    uint8_t *data,
+			    uint32_t data_size)
 {
 	int rc = 0;
 	uint32_t ret;
@@ -422,6 +423,122 @@ uint32_t optee_get_dice_data(enum RK_DICE_TYPE type,
 out:
 	tee_close_session(tee, session);
 	tee = NULL;
+
+	return ret;
+}
+
+uint32_t optee_write_widevine_keybox(uint8_t *filename, uint32_t filename_size,
+				  uint8_t *key, uint32_t key_size,
+				  uint8_t *data, uint32_t data_size)
+{
+	int rc = 0;
+	uint32_t ret;
+	struct tee_shm *shm_name;
+	struct tee_shm *shm_key;
+	struct tee_shm *shm_data;
+	struct tee_param param[3];
+
+	if (!filename || !key || !data)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!filename_size || !key_size || !data_size)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!tee) {
+		if (storage_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	rc = tee_shm_alloc(tee, filename_size,
+			   TEE_SHM_ALLOC, &shm_name);
+	if (rc)
+		return TEE_ERROR_OUT_OF_MEMORY;
+
+	rc = tee_shm_alloc(tee, key_size,
+			   TEE_SHM_ALLOC, &shm_key);
+	if (rc) {
+		ret = TEE_ERROR_OUT_OF_MEMORY;
+		goto free_name;
+	}
+
+	rc = tee_shm_alloc(tee, data_size,
+			   TEE_SHM_ALLOC, &shm_data);
+	if (rc) {
+		ret = TEE_ERROR_OUT_OF_MEMORY;
+		goto free_key;
+	}
+
+	memcpy(shm_name->addr, filename, filename_size);
+	memcpy(shm_key->addr, key, key_size);
+	memcpy(shm_data->addr, data, data_size);
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	param[0].u.memref.shm = shm_name;
+	param[0].u.memref.size = filename_size;
+	param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	param[1].u.memref.shm = shm_key;
+	param[1].u.memref.size = key_size;
+	param[2].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INOUT;
+	param[2].u.memref.shm = shm_data;
+	param[2].u.memref.size = data_size;
+
+	ret = invoke_func(STORAGE_CMD_WRITE_WV_KEYBOX, ARRAY_SIZE(param), param);
+
+	tee_shm_free(shm_data);
+free_key:
+	tee_shm_free(shm_key);
+free_name:
+	tee_shm_free(shm_name);
+
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
+}
+
+uint32_t optee_read_keybox(uint8_t *filename, uint32_t filename_size,
+			   uint8_t *data, uint32_t size)
+{
+	return optee_base_read_security_data((char *)filename,
+					     filename_size,
+					     data, size);
+}
+
+uint32_t optee_write_keybox(uint8_t *filename, uint32_t filename_size,
+			    uint8_t *data, uint32_t data_size)
+{
+	return optee_base_write_security_data((char *)filename,
+					      filename_size,
+					      data, data_size);
+}
+
+uint32_t optee_write_oem_unlock(uint8_t unlock)
+{
+	char *file = "oem.unlock";
+	uint32_t ret;
+
+	ret = optee_base_write_security_data((uint8_t *)file,
+				 strlen(file),
+				 (uint8_t *)&unlock,
+				 1);
+	return ret;
+}
+
+uint32_t optee_read_oem_unlock(uint8_t *unlock)
+{
+	char *file = "oem.unlock";
+	uint32_t ret;
+
+	ret = optee_base_read_security_data((uint8_t *)file,
+					    strlen(file),
+					    unlock,
+					    1);
+
+	if (ret == TEE_ERROR_ITEM_NOT_FOUND) {
+		debug("init oem unlock status 0");
+		ret = optee_write_oem_unlock(0);
+	}
 
 	return ret;
 }

@@ -9,6 +9,7 @@
 #include <android_bootloader_message.h>
 #include <android_image.h>
 #include <android_ab.h>
+#include <attestation_key.h>
 #include <avb_verify.h>
 #include <bootm.h>
 #include <bidram.h>

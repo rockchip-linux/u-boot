@@ -9,8 +9,7 @@
 
 #include <common.h>
 #include <malloc.h>
-
-#include <keymaster.h>
+#include <tee/optee.h>
 
 /* attestation data offset */
 #define ATTESTATION_DATA_OFFSET  65536
@@ -66,7 +65,7 @@ typedef struct {
 	uint32_t entry_count;
 } atap_certchain;
 
-uint32_t write_to_keymaster(uint8_t *filename, uint32_t filename_size,
+uint32_t optee_write_keybox(uint8_t *filename, uint32_t filename_size,
 			    uint8_t *data, uint32_t data_size);
 
 static const char *get_keyslot_str(keymaster_algorithm_t key_type)
@@ -206,8 +205,8 @@ static uint32_t write_key(keymaster_algorithm_t key_type,
 
 	snprintf(key_file, STORAGE_ID_LENGTH_MAX, "%s.%s", key_name,
 		 get_keyslot_str(key_type));
-	TEEC_Result ret=write_to_keymaster((uint8_t *)key_file, strlen(key_file),
-				(uint8_t *)key, key_size);
+	uint32_t ret=optee_write_keybox((uint8_t *)key_file, strlen(key_file),
+					(uint8_t *)key, key_size);
 	printf("write_key key_file=%s ret=%d\n",key_file,ret);
 	return ret;
 }
@@ -220,8 +219,8 @@ static uint32_t write_cert(keymaster_algorithm_t key_type, const uint8_t *cert,
 
 	snprintf(cert_file, STORAGE_ID_LENGTH_MAX, "%s.%s.%d", ATTESTATION_CERT_PREFIX,
 		get_keyslot_str(key_type), index);
-	write_to_keymaster((uint8_t *)cert_file, strlen(cert_file),
-				(uint8_t *)cert, cert_size);
+	optee_write_keybox((uint8_t *)cert_file, strlen(cert_file),
+			   (uint8_t *)cert, cert_size);
 	return 0;
 }
 
@@ -235,14 +234,14 @@ static uint32_t write_cert_chain_length(keymaster_algorithm_t key_type,
 
 	snprintf(cert_chain_length_file, STORAGE_ID_LENGTH_MAX, "%s.%s.length",
 		ATTESTATION_CERT_PREFIX, get_keyslot_str(key_type));
-	write_to_keymaster((uint8_t *)cert_chain_length_file,
-				strlen(cert_chain_length_file), &data, len);
+	optee_write_keybox((uint8_t *)cert_chain_length_file,
+			   strlen(cert_chain_length_file), &data, len);
 
 	return 0;
 }
 
 atap_result load_attestation_key(struct blk_desc *dev_desc,
-				disk_partition_t *misc_partition)
+				struct disk_partition *misc_partition)
 {
 	int ret;
 	unsigned char key_name[STORAGE_ID_LENGTH_MAX] = {0};
@@ -463,7 +462,7 @@ atap_result write_attestation_key_to_secure_storage(uint8_t *received_data,
 	printf("\n algorithm: %d\n", algorithm);
 	/* read rsa key and certchain */
 	read_key_data(&key_buf, key_data, &key_data_length);
-	TEEC_Result ret_rsa=write_key(KM_ALGORITHM_RSA, key_name, key_data, key_data_length);
+	uint32_t ret_rsa=write_key(KM_ALGORITHM_RSA, key_name, key_data, key_data_length);
 	printf("write attestation key: RSA ret_rsa=%d\n",ret_rsa);
 
 	/* read algorithm(EC) from keybuf */
@@ -471,7 +470,7 @@ atap_result write_attestation_key_to_secure_storage(uint8_t *received_data,
 	printf("\n algorithm: %d\n", algorithm);
 	/* read ec key and certchain */
 	read_key_data(&key_buf, key_data, &key_data_length);
-	TEEC_Result ret_ec=write_key(KM_ALGORITHM_EC, key_name, key_data, key_data_length);
+	uint32_t ret_ec=write_key(KM_ALGORITHM_EC, key_name, key_data, key_data_length);
 	printf("write attestation key: EC ret_ec=%d\n",ret_ec);
 
 	memset(keybuf, 0, sizeof(keybuf));
