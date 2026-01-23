@@ -21,7 +21,7 @@
 #include <dm/uclass-id.h>
 #include <env.h>
 #include <linux/compat.h>
-#include <rk_eink.h>
+#include <rk_ebook.h>
 #include <backlight.h>
 #include <part.h>
 #include <power/regulator.h>
@@ -37,8 +37,8 @@ inline int thermal_get_temp(struct udevice *dev, int *temp)
 #endif
 
 #define PART_WAVEFORM		"waveform"
-#define EINK_LOGO_PART_MAGIC	"RKEL"
-#define EINK_LOGO_IMAGE_MAGIC	"GR04"
+#define EBOOK_LOGO_PART_MAGIC	"RKEL"
+#define EBOOK_LOGO_IMAGE_MAGIC	"GR04"
 /*
  * grayscale logo partition format:
  * block0:
@@ -99,7 +99,7 @@ struct logo_info {
 	struct grayscale_header img_hdr[14];
 } __packed;
 
-struct rockchip_eink_display_priv {
+struct rockchip_ebook_display_priv {
 	struct udevice *dev;
 	struct udevice *ebc_tcon_dev;
 	struct udevice *ebc_pwr_dev;
@@ -114,24 +114,24 @@ enum {
 	EBC_PWR_ON = 1,
 };
 
-#define EINK_VCOM_ID		17
-#define EINK_VCOM_MAX		64
+#define EBOOK_VCOM_ID		17
+#define EBOOK_VCOM_MAX		64
 #define VCOM_DEFAULT_VALUE	1650
 
-static struct logo_info eink_logo_info;
-static struct udevice *eink_dev;
+static struct logo_info ebook_logo_info;
+static struct udevice *ebook_dev;
 static volatile int last_logo_type = -1;
 static int read_vcom_from_vendor(void)
 {
 	int ret = 0;
-	char vcom_str[EINK_VCOM_MAX] = {0};
-	char vcom_args[EINK_VCOM_MAX] = {0};
+	char vcom_str[EBOOK_VCOM_MAX] = {0};
+	char vcom_args[EBOOK_VCOM_MAX] = {0};
 
 	/* Read vcom value from vendor storage part */
-	ret = vendor_storage_read(EINK_VCOM_ID, vcom_str, (EINK_VCOM_MAX - 1));
+	ret = vendor_storage_read(EBOOK_VCOM_ID, vcom_str, (EBOOK_VCOM_MAX - 1));
 	if (ret > 0) {
 		snprintf(vcom_args, strlen(vcom_str) + 15, "ebc_pmic.vcom=%s", vcom_str);
-		printf("eink update bootargs: %s\n", vcom_args);
+		printf("ebook update bootargs: %s\n", vcom_args);
 		env_update("bootargs", vcom_args);
 	} else {
 		return ret;
@@ -224,22 +224,22 @@ static int get_addr_by_type(struct udevice *dev, u32 logo_type)
 	}
 
 	switch (logo_type) {
-	case EINK_LOGO_RESET:
-	case EINK_LOGO_UBOOT:
-	case EINK_LOGO_KERNEL:
-	case EINK_LOGO_CHARGING_0:
-	case EINK_LOGO_CHARGING_1:
-	case EINK_LOGO_CHARGING_2:
-	case EINK_LOGO_CHARGING_3:
-	case EINK_LOGO_CHARGING_4:
-	case EINK_LOGO_CHARGING_5:
-	case EINK_LOGO_CHARGING_LOWPOWER:
-	case EINK_LOGO_POWEROFF:
+	case EBOOK_LOGO_RESET:
+	case EBOOK_LOGO_UBOOT:
+	case EBOOK_LOGO_KERNEL:
+	case EBOOK_LOGO_CHARGING_0:
+	case EBOOK_LOGO_CHARGING_1:
+	case EBOOK_LOGO_CHARGING_2:
+	case EBOOK_LOGO_CHARGING_3:
+	case EBOOK_LOGO_CHARGING_4:
+	case EBOOK_LOGO_CHARGING_5:
+	case EBOOK_LOGO_CHARGING_LOWPOWER:
+	case EBOOK_LOGO_POWEROFF:
 	/*
 	 * The MIRROR_TEMP_BUF is used to save the
 	 * non-mirror image data.
 	 */
-	case EINK_LOGO_UNMIRROR_TEMP_BUF:
+	case EBOOK_LOGO_UNMIRROR_TEMP_BUF:
 		return (plat->disp_pbuf + offset);
 	default:
 		printf("invalid logo type[%d]\n", logo_type);
@@ -258,7 +258,7 @@ static int read_header(struct blk_desc *dev_desc,
 	if (blk_dread(dev_desc, part->start, 1, header) != 1)
 		return -EIO;
 
-	if (memcmp(part_hdr->magic, EINK_LOGO_PART_MAGIC, 4)) {
+	if (memcmp(part_hdr->magic, EBOOK_LOGO_PART_MAGIC, 4)) {
 		printf("partition header is invalid\n");
 		return -EINVAL;
 	}
@@ -269,7 +269,7 @@ static int read_header(struct blk_desc *dev_desc,
 	for (i = 0; i < part_hdr->logo_count; i++) {
 		struct grayscale_header *img_hdr = &header->img_hdr[i];
 
-		if (memcmp(img_hdr->magic, EINK_LOGO_IMAGE_MAGIC, 4)) {
+		if (memcmp(img_hdr->magic, EBOOK_LOGO_IMAGE_MAGIC, 4)) {
 			printf("image[%d] header '%s' is invalid\n", i,
 			       img_hdr->magic);
 			return -EINVAL;
@@ -348,7 +348,7 @@ static int image_mirror(u8 *in_buf, u8 *out_buf, u16 w, u16 h)
 }
 
 /*
- * The eink kernel driver need last frame to do part refresh,
+ * The ebook kernel driver need last frame to do part refresh,
  * so we need to transfer two images to kernel, which is kernel
  * logo and the logo displayed in uboot.
  *
@@ -366,7 +366,7 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 	int ret, i;
 	struct disk_partition part;
 	struct blk_desc *dev_desc;
-	struct logo_info *hdr = &eink_logo_info;
+	struct logo_info *hdr = &ebook_logo_info;
 	struct logo_part_header *part_hdr = &hdr->part_hdr;
 	struct ebc_panel *panel = dev_get_plat(dev);
 	u32 logo = needed_logo & (~(*loaded_logo));
@@ -387,7 +387,7 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 
 	ret = read_header(dev_desc, &part, hdr);
 	if (ret < 0) {
-		printf("eink logo read header failed,ret = %d\n", ret);
+		printf("ebook logo read header failed,ret = %d\n", ret);
 		return -EINVAL;
 	}
 	if (part_hdr->screen_width != panel->width ||
@@ -426,13 +426,13 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 			 * kernel will do the mirror operation, so skip kernel
 			 * logo here.
 			 */
-			if (panel->mirror && logo_type != EINK_LOGO_KERNEL) {
+			if (panel->mirror && logo_type != EBOOK_LOGO_KERNEL) {
 				u32 w = panel->width;
 				u32 h = panel->height;
 				u32 mirror_buf = 0;
 
 				mirror_buf = get_addr_by_type(dev,
-							      EINK_LOGO_UNMIRROR_TEMP_BUF);
+							      EBOOK_LOGO_UNMIRROR_TEMP_BUF);
 				if (mirror_buf <= 0) {
 					printf("get mirror buffer failed\n");
 					return -EIO;
@@ -441,13 +441,13 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 					       (void *)((ulong)mirror_buf));
 				image_mirror((u8 *)((ulong)mirror_buf),
 					     (u8 *)((ulong)pic_buf), w, h);
-			} else if (panel->rearrange && logo_type != EINK_LOGO_KERNEL) {
+			} else if (panel->rearrange && logo_type != EBOOK_LOGO_KERNEL) {
 				u32 w = panel->width;
 				u32 h = panel->height;
 				u32 rearrange_buf = 0;
 
 				rearrange_buf = get_addr_by_type(dev,
-							      EINK_LOGO_UNMIRROR_TEMP_BUF);
+							      EBOOK_LOGO_UNMIRROR_TEMP_BUF);
 				if (rearrange_buf <= 0) {
 					printf("get mirror buffer failed\n");
 					return -EIO;
@@ -477,7 +477,7 @@ static int read_needed_logo_from_partition(struct udevice *dev,
 static int ebc_power_set(struct udevice *dev, int is_on)
 {
 	int ret;
-	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
+	struct rockchip_ebook_display_priv *priv = dev_get_priv(dev);
 	struct ebc_panel *panel = dev_get_plat(dev);
 	struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
 	struct rk_ebc_tcon_ops *ebc_tcon_ops = ebc_tcon_get_ops(ebc_tcon_dev);
@@ -520,12 +520,12 @@ static int ebc_power_set(struct udevice *dev, int is_on)
 	return 0;
 }
 
-static int eink_display(struct udevice *dev, u32 pre_img_buf,
+static int ebook_display(struct udevice *dev, u32 pre_img_buf,
 			u32 cur_img_buf, u32 lut_type, int update_mode)
 {
 	int temperature;
 	u32 frame_num;
-	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
+	struct rockchip_ebook_display_priv *priv = dev_get_priv(dev);
 	struct ebc_panel *plat = dev_get_plat(dev);
 	struct udevice *ebc_pwr_dev = priv->ebc_pwr_dev;
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
@@ -565,27 +565,27 @@ static int eink_display(struct udevice *dev, u32 pre_img_buf,
 	return 0;
 }
 
-static int rk_eink_display_init(void)
+static int rk_ebook_display_init(void)
 {
 	int ret;
 	struct uclass *uc;
 	struct udevice *dev;
 
-	if (eink_dev) {
+	if (ebook_dev) {
 		printf("ebc-dev is already initialized!\n");
 		return 0;
 	}
 
-	ret = uclass_get(UCLASS_EINK_DISPLAY, &uc);
+	ret = uclass_get(UCLASS_EBOOK_DISPLAY, &uc);
 	if (ret) {
-		printf("can't find uclass eink\n");
+		printf("can't find uclass ebook\n");
 		return -ENODEV;
 	}
-	for (uclass_first_device(UCLASS_EINK_DISPLAY, &dev);
+	for (uclass_first_device(UCLASS_EBOOK_DISPLAY, &dev);
 	     dev; uclass_next_device(&dev))
 		;
 
-	if (eink_dev) {
+	if (ebook_dev) {
 		printf("ebc-dev is probed success!\n");
 		return 0;
 	}
@@ -594,12 +594,12 @@ static int rk_eink_display_init(void)
 }
 
 /*
- * Eink display need current and previous image buffer, We assume
+ * Ebook display need current and previous image buffer, We assume
  * every type of logo has only one image, so just tell this function
  * last logo type and current logo type, it will find the right images.
  * last_logo_type: -1 means it's first displaying.
  */
-static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
+static int rockchip_ebook_show_logo(int cur_logo_type, int update_mode)
 {
 	int ret = 0;
 	u32 logo_addr;
@@ -607,14 +607,14 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	struct ebc_panel *plat;
 	struct udevice *dev;
 	static u32 loaded_logo = 0;
-	struct rockchip_eink_display_priv *priv;
+	struct rockchip_ebook_display_priv *priv;
 
-	if (!eink_dev) {
+	if (!ebook_dev) {
 		static bool first_init = true;
 
 		if (first_init) {
 			first_init = false;
-			ret = rk_eink_display_init();
+			ret = rk_ebook_display_init();
 			if (ret) {
 				printf("Get ebc dev failed, check dts\n");
 				return -ENODEV;
@@ -623,7 +623,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 			return -ENODEV;
 		}
 	}
-	dev = eink_dev;
+	dev = ebook_dev;
 
 	/*Don't need to update display*/
 	if (last_logo_type == cur_logo_type) {
@@ -640,19 +640,19 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	if (last_logo_type == -1) {
 		ret = ebc_power_set(dev, EBC_PWR_ON);
 		if (ret) {
-			printf("Eink power on failed\n");
+			printf("Ebook power on failed\n");
 			return -1;
 		}
 
 		int size = (plat->width * plat->height) >> 1;
 
-		logo_addr = get_addr_by_type(dev, EINK_LOGO_RESET);
+		logo_addr = get_addr_by_type(dev, EBOOK_LOGO_RESET);
 		memset((u32 *)(u64)logo_addr, 0xff, size);
 		flush_dcache_range((ulong)logo_addr,
 				   ALIGN((ulong)logo_addr + size,
 					 CONFIG_SYS_CACHELINE_SIZE));
-		eink_display(dev, logo_addr, logo_addr,
-			     WF_TYPE_RESET, EINK_LOGO_RESET);
+		ebook_display(dev, logo_addr, logo_addr,
+			     WF_TYPE_RESET, EBOOK_LOGO_RESET);
 		last_logo_type = 0;
 		last_logo_addr = logo_addr;
 	} else {
@@ -678,14 +678,14 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 		goto out;
 	}
 
-	eink_display(dev, last_logo_addr, logo_addr, WF_TYPE_GC16, update_mode);
+	ebook_display(dev, last_logo_addr, logo_addr, WF_TYPE_GC16, update_mode);
 
 	if (priv->backlight)
 		backlight_enable(priv->backlight);
 
 	last_logo_type = cur_logo_type;
 
-	if (cur_logo_type == EINK_LOGO_POWEROFF) {
+	if (cur_logo_type == EBOOK_LOGO_POWEROFF) {
 		struct udevice *ebc_tcon_dev = priv->ebc_tcon_dev;
 		struct rk_ebc_tcon_ops *ebc_tcon_ops;
 
@@ -711,7 +711,7 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 		 */
 		ret = ebc_power_set(dev, EBC_PWR_DOWN);
 		if (ret)
-			printf("Eink power down failed\n");
+			printf("Ebook power down failed\n");
 		goto out;
 	}
 
@@ -719,26 +719,26 @@ static int rockchip_eink_show_logo(int cur_logo_type, int update_mode)
 	 * System will boot up to kernel only when the
 	 * logo is uboot logo
 	 */
-	if (cur_logo_type == EINK_LOGO_UBOOT) {
+	if (cur_logo_type == EBOOK_LOGO_UBOOT) {
 		char logo_args[64] = {0};
 		u32 uboot_logo_buf;
 
 		if (plat->mirror || plat->rearrange)
 			uboot_logo_buf = get_addr_by_type(dev,
-							  EINK_LOGO_UNMIRROR_TEMP_BUF);
+							  EBOOK_LOGO_UNMIRROR_TEMP_BUF);
 		else
 			uboot_logo_buf = logo_addr;
 		printf("Transmit uboot logo addr(0x%x) to kernel\n",
 		       uboot_logo_buf);
 		sprintf(logo_args, "ulogo_addr=0x%x", uboot_logo_buf);
 		env_update("bootargs", logo_args);
-		ret = read_needed_logo_from_partition(dev, EINK_LOGO_KERNEL,
+		ret = read_needed_logo_from_partition(dev, EBOOK_LOGO_KERNEL,
 						      &loaded_logo);
-		if (ret || !(loaded_logo & EINK_LOGO_KERNEL)) {
+		if (ret || !(loaded_logo & EBOOK_LOGO_KERNEL)) {
 			printf("No invalid kernel logo in logo.img\n");
 		} else {
 			int klogo_addr = get_addr_by_type(dev,
-							  EINK_LOGO_KERNEL);
+							  EBOOK_LOGO_KERNEL);
 
 			if (klogo_addr <= 0) {
 				printf("get kernel logo buffer failed\n");
@@ -756,19 +756,19 @@ out:
 	return ret;
 }
 
-int rockchip_eink_show_uboot_logo(void)
+int rockchip_ebook_show_uboot_logo(void)
 {
-	return rockchip_eink_show_logo(EINK_LOGO_UBOOT, EINK_UPDATE_DIFF);
+	return rockchip_ebook_show_logo(EBOOK_LOGO_UBOOT, EBOOK_UPDATE_DIFF);
 }
 
-int rockchip_eink_show_charge_logo(int logo_type)
+int rockchip_ebook_show_charge_logo(int logo_type)
 {
-	return rockchip_eink_show_logo(logo_type, EINK_UPDATE_DIFF);
+	return rockchip_ebook_show_logo(logo_type, EBOOK_UPDATE_DIFF);
 }
 
-static int rockchip_eink_display_probe(struct udevice *dev)
+static int rockchip_ebook_display_probe(struct udevice *dev)
 {
-	struct rockchip_eink_display_priv *priv = dev_get_priv(dev);
+	struct rockchip_ebook_display_priv *priv = dev_get_priv(dev);
 	struct dm_regulator_uclass_plat *uc_pdata;
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *child, *pmic_dev;
@@ -870,12 +870,12 @@ static int rockchip_eink_display_probe(struct udevice *dev)
 		return -EIO;
 	}
 
-	eink_dev = dev;
+	ebook_dev = dev;
 
 	return 0;
 }
 
-static int rockchip_eink_display_ofdata_to_platdata(struct udevice *dev)
+static int rockchip_ebook_display_ofdata_to_platdata(struct udevice *dev)
 {
 	fdt_size_t size;
 	fdt_addr_t tmp_addr;
@@ -948,23 +948,23 @@ static int rockchip_eink_display_ofdata_to_platdata(struct udevice *dev)
 	return 0;
 }
 
-static const struct udevice_id rockchip_eink_display_ids[] = {
+static const struct udevice_id rockchip_ebook_display_ids[] = {
 	{ .compatible = "rockchip,ebc-dev", },
 	{}
 };
 
-U_BOOT_DRIVER(rk_eink_display) = {
-	.name = "rockchip_eink_display",
-	.id = UCLASS_EINK_DISPLAY,
-	.of_match = rockchip_eink_display_ids,
-	.of_to_plat = rockchip_eink_display_ofdata_to_platdata,
-	.probe = rockchip_eink_display_probe,
-	.priv_auto = sizeof(struct rockchip_eink_display_priv),
+U_BOOT_DRIVER(rk_ebook_display) = {
+	.name = "rockchip_ebook_display",
+	.id = UCLASS_EBOOK_DISPLAY,
+	.of_match = rockchip_ebook_display_ids,
+	.of_to_plat = rockchip_ebook_display_ofdata_to_platdata,
+	.probe = rockchip_ebook_display_probe,
+	.priv_auto = sizeof(struct rockchip_ebook_display_priv),
 	.plat_auto = sizeof(struct ebc_panel),
 };
 
-UCLASS_DRIVER(rk_eink) = {
-	.id	= UCLASS_EINK_DISPLAY,
-	.name	= "rk_eink",
+UCLASS_DRIVER(rk_ebook) = {
+	.id	= UCLASS_EBOOK_DISPLAY,
+	.name	= "rk_ebook",
 };
 

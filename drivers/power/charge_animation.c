@@ -717,7 +717,7 @@ static int charge_animation_show(struct udevice *dev)
 		if (charging <= 0) {
 			printf("Not charging, online=%d. Shutdown...\n",
 			       charging);
-#ifdef CONFIG_ROCKCHIP_EINK_DISPLAY
+#ifdef CONFIG_ROCKCHIP_EBOOK_DISPLAY
 			/*
 			 * If charger is plug out during charging, display poweroff
 			 * image before device power off.
@@ -726,9 +726,9 @@ static int charge_animation_show(struct udevice *dev)
 			 */
 			local_irq_enable();
 
-			ret = rockchip_eink_show_charge_logo(EINK_LOGO_POWEROFF);
+			ret = rockchip_ebook_show_charge_logo(EBOOK_LOGO_POWEROFF);
 			if (ret != 0)
-				printf("Eink display reset logo failed\n");
+				printf("Ebook display reset logo failed\n");
 
 			local_irq_disable();
 #endif
@@ -844,9 +844,9 @@ show_images:
 
 		debug("step3 (%d)... show_idx=%d\n", screen_on, show_idx);
 
-#ifdef CONFIG_ROCKCHIP_EINK_DISPLAY
+#ifdef CONFIG_ROCKCHIP_EBOOK_DISPLAY
 		/*
-		 * Device is auto wakeup from suspend, if it's eink display,
+		 * Device is auto wakeup from suspend, if it's ebook display,
 		 * screen will display the last image after suspend, so
 		 * we should update the image to show the approximate
 		 * battery power if battery is charging to next level.
@@ -857,16 +857,16 @@ show_images:
 			if (soc >= image[old_show_idx + 1].soc &&
 			    soc < 100) {
 				int ret;
-				int logo_type = EINK_LOGO_CHARGING_0;
+				int logo_type = EBOOK_LOGO_CHARGING_0;
 
 				logo_type = logo_type << (old_show_idx + 1);
-				ret = rockchip_eink_show_charge_logo(logo_type);
+				ret = rockchip_ebook_show_charge_logo(logo_type);
 				/*
-				 * only change the logic if eink is
+				 * only change the logic if ebook is
 				 * actually exist
 				 */
 				if (ret == 0) {
-					printf("Update image id[%d] for eink\n",
+					printf("Update image id[%d] for ebook\n",
 					       old_show_idx + 1);
 					old_show_idx++;
 				}
@@ -878,10 +878,10 @@ show_images:
 		 */
 		if (soc >= 100) {
 			int ret;
-			int logo_type = EINK_LOGO_CHARGING_5;
+			int logo_type = EBOOK_LOGO_CHARGING_5;
 
-			ret = rockchip_eink_show_charge_logo(logo_type);
-			/* Only change the logic if eink is acutally exist */
+			ret = rockchip_ebook_show_charge_logo(logo_type);
+			/* Only change the logic if ebook is acutally exist */
 			if (ret == 0) {
 				printf("battery FULL,exit charge animation\n");
 				mdelay(20);
@@ -893,10 +893,10 @@ show_images:
 		if (screen_on) {
 			/* Don't call 'charge_show_bmp' unless image changed */
 			if (old_show_idx != show_idx) {
-#ifdef CONFIG_ROCKCHIP_EINK_DISPLAY
-				int logo_type = EINK_LOGO_CHARGING_0;
+#ifdef CONFIG_ROCKCHIP_EBOOK_DISPLAY
+				int logo_type = EBOOK_LOGO_CHARGING_0;
 
-				rockchip_eink_show_charge_logo(logo_type <<
+				rockchip_ebook_show_charge_logo(logo_type <<
 							       show_idx);
 #endif
 				old_show_idx = show_idx;
@@ -946,17 +946,17 @@ show_images:
 			 * event turn off the screen and we never show images.
 			 */
 			if (screen_on) {
-#ifdef CONFIG_ROCKCHIP_EINK_DISPLAY
-				int type = EINK_LOGO_CHARGING_0 << start_idx;
+#ifdef CONFIG_ROCKCHIP_EBOOK_DISPLAY
+				int type = EBOOK_LOGO_CHARGING_0 << start_idx;
 				/*
 				 * Show current battery capacity before suspend
-				 * if it's eink display, because eink screen
+				 * if it's ebook display, because ebook screen
 				 * will continue to display the last image
 				 * after suspend, so user can get the
 				 * approximate capacity by image displayed.
 				 */
-				ret = rockchip_eink_show_charge_logo(type);
-				/* only change the logic if eink display ok */
+				ret = rockchip_ebook_show_charge_logo(type);
+				/* only change the logic if ebook display ok */
 				if (ret == 0)
 					old_show_idx = start_idx;
 #endif

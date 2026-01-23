@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <rk_eink.h>
+#include <rk_ebook.h>
 
 struct  bmp_header {
 	/* Header */
@@ -416,12 +416,12 @@ int main(int argc, char *argv[])
 			int len, i;
 			/*
 			 * Charge logo are located in directory
-			 * u-boot/tools/images/eink/, there are 7
+			 * u-boot/tools/images/ebook/, there are 7
 			 * pictures to tell user the battery capacity
 			 * during charging
 			 */
 			for (i = 0; i < 7; i++) {
-				int logo_type = EINK_LOGO_CHARGING_0 << i;
+				int logo_type = EBOOK_LOGO_CHARGING_0 << i;
 
 				len = strlen(argv[0]);
 				if (len > 256) {
@@ -446,7 +446,7 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 			memcpy(in_img_info[logo_count].path, argv[0], len);
-			in_img_info[logo_count].logo_type = EINK_LOGO_UBOOT;
+			in_img_info[logo_count].logo_type = EBOOK_LOGO_UBOOT;
 			logo_count++;
 			argc--, argv++;
 		} else if (!strcmp("--kernel-logo", arg)) {
@@ -458,7 +458,7 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 			memcpy(in_img_info[logo_count].path, argv[0], len);
-			in_img_info[logo_count].logo_type = EINK_LOGO_KERNEL;
+			in_img_info[logo_count].logo_type = EBOOK_LOGO_KERNEL;
 			logo_count++;
 			argc--, argv++;
 		} else if (!strcmp("--poweroff-logo", arg)) {
@@ -470,7 +470,7 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 			memcpy(in_img_info[logo_count].path, argv[0], len);
-			in_img_info[logo_count].logo_type = EINK_LOGO_POWEROFF;
+			in_img_info[logo_count].logo_type = EBOOK_LOGO_POWEROFF;
 			logo_count++;
 			argc--, argv++;
 		}  else if (!strcmp("--screen-width", arg)) {

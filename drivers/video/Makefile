@@ -81,7 +81,7 @@ obj-$(CONFIG_VIDEO_SIMPLE) += simplefb.o
 obj-$(CONFIG_VIDEO_VESA) += vesa.o
 obj-$(CONFIG_VIDEO_SEPS525) += seps525.o
 obj-$(CONFIG_VIDEO_ZYNQMP_DPSUB) += zynqmp/
-obj-${CONFIG_ROCKCHIP_EINK} += rk_eink/
+obj-${CONFIG_ROCKCHIP_EBOOK} += rk_ebook/
 
 obj-y += bridge/
 obj-y += sunxi/

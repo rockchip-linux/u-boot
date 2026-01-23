@@ -1,27 +1,27 @@
 config ROCKCHIP_EBC_TCON
         bool "Rockchip ebc tcon Support"
-        depends on ROCKCHIP_EINK
+        depends on ROCKCHIP_EBOOK
         help
            Choose this option to enable support for EBC TCON controller
 
 config ROCKCHIP_TPS65185
         bool "TPS65185 Support"
-        depends on ROCKCHIP_EINK
+        depends on ROCKCHIP_EBOOK
         help
            Choose this option to enable support for TPS65185, which is
-           used to supply power for eink panel.
+           used to supply power for ebook panel.
 
-config ROCKCHIP_EINK_DISPLAY
-        bool "Rockchip EINK DISPLAY Support"
-        depends on ROCKCHIP_EINK
+config ROCKCHIP_EBOOK_DISPLAY
+        bool "Rockchip EBOOK DISPLAY Support"
+        depends on ROCKCHIP_EBOOK
         help
-           Choose this option to enable support for eink display, which is
+           Choose this option to enable support for ebook display, which is
            used to display uboot/charging/lowerpower logo, and also used to
            load kernel logo to ram, which can pass to kernel to display.
 
 config ROCKCHIP_EBC_PMIC_FP9931
         bool "FP9931 PMIC Suppot"
-        depends on ROCKCHIP_EINK
+        depends on ROCKCHIP_EBOOK
         depends on REGULATOR_FP9931
         depends on FP9931_THERMAL
         help
@@ -29,7 +29,7 @@ config ROCKCHIP_EBC_PMIC_FP9931
 
 config ROCKCHIP_EBC_PMIC_SY7636A
         bool "SY7636A PMIC Suppot"
-        depends on ROCKCHIP_EINK
+        depends on ROCKCHIP_EBOOK
         depends on REGULATOR_SY7636A
         depends on SY7636A_THERMAL
         help

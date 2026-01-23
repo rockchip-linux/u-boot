@@ -60,7 +60,7 @@
 #include <linux/input.h>
 #include <power/charge_display.h>
 #include <power/regulator.h>
-#include <rk_eink.h>
+#include <rk_ebook.h>
 #include <rockusb.h>
 #include <tee/optee.h>
 #include <amp.h>
@@ -206,8 +206,8 @@ int board_late_init(void)
 	if (plat_boot_mode() != BOOT_MODE_QUIESCENT)
 		rockchip_show_logo();
 #endif
-#ifdef CONFIG_ROCKCHIP_EINK_DISPLAY
-	rockchip_eink_show_uboot_logo();
+#ifdef CONFIG_ROCKCHIP_EBOOK_DISPLAY
+	rockchip_ebook_show_uboot_logo();
 #endif
 #if (CONFIG_ROCKCHIP_BOOT_MODE_REG > 0)
 	setup_boot_mode();

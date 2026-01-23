@@ -15,7 +15,7 @@
 	.type	get_wf_buf, %function
 get_wf_buf:
 .LFB222:
-	.file 1 "/home/hzb/sdk/ebc-dev/rk_eink/../epdlut/rkf_waveform.c"
+	.file 1 "/home/hzb/sdk/ebc-dev/rk_ebook/../epdlut/rkf_waveform.c"
 	.loc 1 219 0
 	.cfi_startproc
 .LVL0:
@@ -1567,7 +1567,7 @@ stype.6419:
 .LC5:
 	.string	"rkf: failed to check RKF file format\n"
 .LC6:
-	.string	"[EINK]: waveform crc err readcrc = %x crccheck = %x\n"
+	.string	"[EBOOK]: waveform crc err readcrc = %x crccheck = %x\n"
 .LC7:
 	.string	"rkf: failed to check RKF file version\n"
 .LC8:
@@ -1593,7 +1593,7 @@ stype.6419:
 	.file 19 "include/image.h"
 	.file 20 "include/net.h"
 	.file 21 "include/malloc.h"
-	.file 22 "/home/hzb/sdk/ebc-dev/rk_eink/../epdlut/epd_lut.h"
+	.file 22 "/home/hzb/sdk/ebc-dev/rk_ebook/../epdlut/epd_lut.h"
 	.file 23 "include/stdio.h"
 	.section	.debug_info,"",@progbits
 .Ldebug_info0:
@@ -8763,7 +8763,7 @@ stype.6419:
 .LASF281:
 	.string	"get_wf_level"
 .LASF315:
-	.string	"/home/hzb/sdk/ebc-dev/rk_eink/../epdlut/rkf_waveform.c"
+	.string	"/home/hzb/sdk/ebc-dev/rk_ebook/../epdlut/rkf_waveform.c"
 .LASF270:
 	.string	"temp_data"
 .LASF108:

@@ -165,8 +165,8 @@ enum uclass_id {
 	UCLASS_CODEC,		/* Codec */
 	UCLASS_DMC,		/* Dynamic Memory Interface */
 	UCLASS_DVFS,		/* DVFS policy */
-	UCLASS_EBC,		/* EBC Controller for eink screen */
-	UCLASS_EINK_DISPLAY,	/* EINK screen display driver */
+	UCLASS_EBC,		/* EBC Controller for ebook screen */
+	UCLASS_EBOOK_DISPLAY,	/* EBOOK screen display driver */
 	UCLASS_FG,		/* Fuel gauge */
 	UCLASS_IO_DOMAIN,	/* IO domain */
 	UCLASS_PD,		/* power delivery */

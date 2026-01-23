@@ -6674,7 +6674,7 @@ _u_boot_list_2_driver_2_rockchip_secure_otp:
 .LASF184:
 	.string	"name"
 .LASF165:
-	.string	"UCLASS_EINK_DISPLAY"
+	.string	"UCLASS_EBOOK_DISPLAY"
 .LASF101:
 	.string	"UCLASS_PANEL_BACKLIGHT"
 .LASF142:

@@ -25,7 +25,7 @@
 #define SENSOR_CALIBRATION_ID		14
 #define IMEI_ID				15
 #define LAN_RGMII_DL_ID			16
-#define EINK_VCOM_ID			17
+#define EBOOK_VCOM_ID			17
 #define FIRMWARE_VER_ID			18
 #define MULTI_MODULE_KEY_ID		1068
 

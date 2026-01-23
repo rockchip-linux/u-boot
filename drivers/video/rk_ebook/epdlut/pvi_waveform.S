@@ -15,7 +15,7 @@
 	.type	get_wf_temp_index, %function
 get_wf_temp_index:
 .LFB218:
-	.file 1 "/home/hzb/sdk/ebc-dev/rk_eink/../epdlut/pvi_waveform.c"
+	.file 1 "/home/hzb/sdk/ebc-dev/rk_ebook/../epdlut/pvi_waveform.c"
 	.loc 1 243 0
 	.cfi_startproc
 .LVL0:
@@ -1515,7 +1515,7 @@ pvi_mode_table:
 	.file 19 "include/image.h"
 	.file 20 "include/net.h"
 	.file 21 "include/malloc.h"
-	.file 22 "/home/hzb/sdk/ebc-dev/rk_eink/../epdlut/epd_lut.h"
+	.file 22 "/home/hzb/sdk/ebc-dev/rk_ebook/../epdlut/epd_lut.h"
 	.file 23 "include/stdio.h"
 	.section	.debug_info,"",@progbits
 .Ldebug_info0:
@@ -7531,7 +7531,7 @@ pvi_mode_table:
 .LASF130:
 	.string	"ft_len"
 .LASF285:
-	.string	"/home/hzb/sdk/ebc-dev/rk_eink/../epdlut/pvi_waveform.c"
+	.string	"/home/hzb/sdk/ebc-dev/rk_ebook/../epdlut/pvi_waveform.c"
 .LASF201:
 	.string	"data"
 .LASF192:
