@@ -250,6 +250,11 @@ enum {
 #define RK805_IRQ_PWRON_FALL_MSK	BIT(7)
 #define RK805_IRQ_PWRON_RISE_MSK	BIT(0)
 
+#define RK805B_VSELTABLE_REG		0x71
+#define RK805B_VSELTABLE_4OR8		0x80
+#define RK805B_CHIP_VER_MSK		0x0F
+#define RK805B_CHIP_VER_NUM		0x04
+
 enum rk806_reg_id {
 	RK806_ID_DCDC1 = 0,
 	RK806_ID_DCDC2,
@@ -431,6 +436,7 @@ struct rk8xx_priv {
 	struct virq_chip *irq_chip;
 	struct spi_slave *slave;
 	int variant;
+	int vsel_table;
 	int irq;
 	int lp_off_time;
 	int lp_action;
