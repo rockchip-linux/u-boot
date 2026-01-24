@@ -870,6 +870,14 @@ static int rk8xx_probe(struct udevice *dev)
 		lp_off_msk = RK8XX_LP_OFF_MSK;
 		break;
 	case RK805_ID:
+		if ((lsb & RK805B_CHIP_VER_MSK) >= RK805B_CHIP_VER_NUM) {
+			ret = rk8xx_read(dev, RK805B_VSELTABLE_REG, &value, 1);
+			if (ret) {
+				dev_err(dev, "rk805B RK805B_VSELTABLE_REG read error: %d\n", ret);
+				return ret;
+			}
+			priv->vsel_table = value & RK805B_VSELTABLE_4OR8;
+		}
 	case RK816_ID:
 		on_source = RK8XX_ON_SOURCE;
 		off_source = RK8XX_OFF_SOURCE;

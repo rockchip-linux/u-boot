@@ -28,6 +28,7 @@
 /* Field Definitions */
 #define RK808_BUCK_VSEL_MASK	0x3f
 #define RK808_BUCK4_VSEL_MASK	0xf
+#define RK805B_LDO_VSEL_MASK	0x3f
 #define RK808_LDO_VSEL_MASK	0x1f
 
 #define RK818_BUCK_VSEL_MASK		0x3f
@@ -99,6 +100,21 @@ struct rk8xx_reg_info {
 	u8 range_num;
 };
 
+static const struct rk8xx_reg_info rk805b_cm_mode_buck[] = {
+	/* buck 1 */
+	{  500000,  12500, REG_BUCK1_ON_VSEL, REG_BUCK1_SLP_VSEL, REG_BUCK1_CONFIG, RK818_BUCK_VSEL_MASK, 0x00, 0x4c, 3},
+	{ 1800000, 200000, REG_BUCK1_ON_VSEL, REG_BUCK1_SLP_VSEL, REG_BUCK1_CONFIG, RK818_BUCK_VSEL_MASK, 0x4d, 0x4f, 3},
+	{ 2300000,      0, REG_BUCK1_ON_VSEL, REG_BUCK1_SLP_VSEL, REG_BUCK1_CONFIG, RK818_BUCK_VSEL_MASK, 0x50, 0x3f, 3},
+	/* buck 2 */
+	{  500000,  12500, REG_BUCK2_ON_VSEL, REG_BUCK2_SLP_VSEL, REG_BUCK2_CONFIG, RK818_BUCK_VSEL_MASK, 0x00, 0x4c, 3},
+	{ 1800000, 200000, REG_BUCK2_ON_VSEL, REG_BUCK2_SLP_VSEL, REG_BUCK2_CONFIG, RK818_BUCK_VSEL_MASK, 0x4d, 0x4f, 3},
+	{ 2300000,      0, REG_BUCK2_ON_VSEL, REG_BUCK2_SLP_VSEL, REG_BUCK2_CONFIG, RK818_BUCK_VSEL_MASK, 0x50, 0x3f, 3},
+	/* buck 3 */
+	{  NA,     NA,     NA,                NA,                 REG_BUCK3_CONFIG, NA,                   NA,   NA,   1},
+	/* buck 4 */
+	{  500000, 50000, REG_BUCK4_ON_VSEL, REG_BUCK4_SLP_VSEL, REG_BUCK4_CONFIG, RK818_BUCK_VSEL_MASK,0x00, 0x3a, 2},
+	{ 3400000, 0, REG_BUCK4_ON_VSEL, REG_BUCK4_SLP_VSEL, REG_BUCK4_CONFIG, RK818_BUCK_VSEL_MASK,0x3b, 0x3f, 2},
+};
 static const struct rk8xx_reg_info rk806_buck[] = {
 	/* buck 1 */
 	{  500000,   6250, RK806_BUCK_ON_VSEL(1), RK806_BUCK_SLP_VSEL(1), RK806_BUCK_CONFIG(1), RK806_BUCK_VSEL_MASK, 0x00, 0x9f, 3},
@@ -238,6 +254,12 @@ static const struct rk8xx_reg_info rk818_buck[] = {
 };
 
 #ifdef ENABLE_DRIVER
+static const struct rk8xx_reg_info rk805b_cm_mode_ldo[] = {
+	{ 500000, 50000, REG_LDO1_ON_VSEL, REG_LDO1_SLP_VSEL, NA, RK805B_LDO_VSEL_MASK, },
+	{ 500000, 50000, REG_LDO2_ON_VSEL, REG_LDO2_SLP_VSEL, NA, RK805B_LDO_VSEL_MASK, },
+	{ 500000, 50000, REG_LDO3_ON_VSEL, REG_LDO3_SLP_VSEL, NA, RK805B_LDO_VSEL_MASK, },
+};
+
 static const struct rk8xx_reg_info rk808_ldo[] = {
 	{ 1800000, 100000, REG_LDO1_ON_VSEL, REG_LDO1_SLP_VSEL, NA, RK808_LDO_VSEL_MASK, },
 	{ 1800000, 100000, REG_LDO2_ON_VSEL, REG_LDO2_SLP_VSEL, NA, RK808_LDO_VSEL_MASK, },
@@ -330,6 +352,20 @@ static const struct rk8xx_reg_info *get_buck_reg(struct udevice *pmic,
 				return &rk806_buck[num * 3 + 2];
 		}
 	case RK805_ID:
+		if (priv->vsel_table == RK805B_VSELTABLE_4OR8) {
+			switch (num) {
+			case 0:
+			case 1:
+				if (uvolt <= 1450000)
+					return &rk805b_cm_mode_buck[num * 3 + 0];
+				else if (uvolt <= 2200000)
+					return &rk805b_cm_mode_buck[num * 3 + 1];
+				else
+					return &rk805b_cm_mode_buck[num * 3 + 2];
+			default:
+				return &rk805b_cm_mode_buck[num + 4];
+			}
+		}
 	case RK816_ID:
 		switch (num) {
 		case 0:
@@ -793,6 +829,8 @@ static const struct rk8xx_reg_info *get_ldo_reg(struct udevice *pmic,
 
 	switch (priv->variant) {
 	case RK805_ID:
+		if (priv->vsel_table == RK805B_VSELTABLE_4OR8)
+			return &rk805b_cm_mode_ldo[num];
 	case RK816_ID:
 		return &rk816_ldo[num];
 	case RK806_ID:
