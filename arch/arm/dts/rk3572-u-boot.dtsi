@@ -23,6 +23,11 @@
 	};
 };
 
+&combphy0_psu {
+	bootph-all;
+	status = "okay";
+};
+
 &gpio0 {
 	bootph-all;
 	status = "okay";
@@ -63,7 +68,17 @@
 	status = "okay";
 };
 
+&php_grf {
+	bootph-all;
+	status = "okay";
+};
+
 &pinctrl {
+	bootph-all;
+	status = "okay";
+};
+
+&pipe_phy0_grf {
 	bootph-all;
 	status = "okay";
 };
@@ -96,6 +111,21 @@
 };
 
 &rng {
+	bootph-all;
+	status = "okay";
+};
+
+&usb2phy_grf {
+	bootph-all;
+	status = "okay";
+};
+
+&u2phy0 {
+	bootph-all;
+	status = "okay";
+};
+
+&u2phy0_otg {
 	bootph-all;
 	status = "okay";
 };
