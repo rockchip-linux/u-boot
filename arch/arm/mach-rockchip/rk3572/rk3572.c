@@ -18,6 +18,55 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define PHPPHY_CRU_BASE			0x26098000
+#define PHPPHY_CRU_PPLL_CON1		0x204
+
+#define PMU1_CRU_BASE			0x260B0000
+#define PMU1_CLKSEL_CON03		0x030C	
+
+#define VCCIO7_IOC_BASE			0x26076000
+#define VCCIO7_IOC_XIN_UFS_CON		0x640
+#define VCCIO7_IOC_GPIO4C_IOMUX_SEL_0	0x090
+
+#define SGRF_FW_BASE			0x2600A000
+#define SGRF_MST_DOMAIN_CON0		0x000
+#define SGRF_MST_DOMAIN_CON1		0x004
+#define SGRF_MST_DOMAIN_CON2		0x008
+#define SGRF_MST_DOMAIN_CON3		0x00c
+#define SGRF_MST_DOMAIN_CON4		0x010
+#define SGRF_MST_DOMAIN_CON5		0x014
+#define SGRF_MST_DOMAIN_CON6		0x018
+#define SGRF_MST_DOMAIN_CON7		0x01c
+#define SGRF_MST_DOMAIN_CON8		0x020
+#define SGRF_MST_DOMAIN_CON9		0x024
+#define SGRF_MST_DOMAIN_CON10		0x028
+
+#define VCCIO0_3_IOC_BASE		0x26082000
+#define VCCIO0_IOC_GPIO1A_IOMUX_SEL_0	0x00020
+#define VCCIO0_IOC_GPIO1A_IOMUX_SEL_1	0x00024
+#define VCCIO0_IOC_GPIO1B_IOMUX_SEL_0	0x00028
+
+#define VCCIO1_2_4_IOC_BASE		0x26084000
+#define VCCIO1_IOC_GPIO2A_IOMUX_SEL_0	0x00040
+#define VCCIO1_IOC_GPIO2A_IOMUX_SEL_1	0x00044
+#define VCCIO1_IOC_GPIO2A_PULL		0x00220
+#define VCCIO4_IOC_GPIO2C_PULL		0x00228
+#define VCCIO4_IOC_GPIO2D_PULL		0x0022C
+#define VCCIO4_IOC_GPIO2C_IOMUX_SEL_1	0x00054
+#define VCCIO4_IOC_GPIO2D_IOMUX_SEL_0	0x00058
+#define VCCIO4_IOC_GPIO2D_IOMUX_SEL_1	0x0005C
+
+#define VCCIO5_6_IOC_BASE		0x26086000
+
+#define PMU0_IOC_BASE			0x26072000
+#define PMUIO0_IOC_GPIO0A_IOMUX_SEL_0	0x000
+#define PMUIO0_IOC_GPIO0A_IOMUX_SEL_1	0x004
+#define PMUIO0_IOC_GPIO0B_IOMUX_SEL_0	0x008
+
+#define PMU1_IOC_BASE			0x26074000
+#define PMUIO1_IOC_GPIO0B_IOMUX_SEL_1	0x00C
+#define PMUIO1_IOC_GPIO0D_IOMUX_SEL_1	0x010
+
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
 static struct mm_region rk3572_mem_map[] = {
@@ -86,9 +135,95 @@ void rockchip_stimer_init(void)
 }
 #endif
 
+void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
+{
+	switch (uclass) {
+	case UCLASS_MMC:
+		if (devnum == 0) {
+			writel(0xffff1111, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1A_IOMUX_SEL_0);
+			writel(0xffff1111, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1A_IOMUX_SEL_1);
+			writel(0x0fff0111, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1B_IOMUX_SEL_0);
+		} else if (devnum == 1) {
+			writel(0xffff2222, VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_IOMUX_SEL_0);
+			writel(0x00ff0022, VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_IOMUX_SEL_1);
+			writel(0x10001000, PMU0_IOC_BASE + PMUIO0_IOC_GPIO0A_IOMUX_SEL_1);
+			writel(0x01000100, PMU1_IOC_BASE + PMUIO1_IOC_GPIO0B_IOMUX_SEL_1);
+			/* Pull up */
+			writel(0x03FF03FF, VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_PULL);
+		}
+		break;
+	case UCLASS_MTD:
+		if (routing == 0) {
+			/* FSPI0 M0 */
+			writel(0xffff2222, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1A_IOMUX_SEL_0);
+			writel(0xffff2020, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1B_IOMUX_SEL_0);
+		} else if (routing == 1) {
+			/* FSPI1 M0 */
+			writel(0xffff1111, VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_IOMUX_SEL_0);
+			writel(0x00ff0011, VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_IOMUX_SEL_1);
+			/* Pull up */
+			writel(0x03ff03ff, VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_PULL);
+		} else if (routing == 2) {
+			/* FSPI1 M1 */
+			writel(0xffff2222, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2D_IOMUX_SEL_0);
+			writel(0xfff03220, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2D_IOMUX_SEL_1);
+			/* Pull up */
+			writel(0xff00ff00, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2C_PULL);
+			writel(0x30ff30ff, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2D_PULL);
+		}
+		break;
+	default:
+		printf("Bootdev 0x%x is not support\n", uclass);
+	}
+}
+
 #ifndef CONFIG_TPL_BUILD
 int arch_cpu_init(void)
 {
+#if defined(CONFIG_SUPPORT_USBPLUG)
+	u32 val;
+
+	/* Set emmc master domain */
+	val = readl(SGRF_FW_BASE + SGRF_MST_DOMAIN_CON3);
+	writel(val | (0x7 << 4) | 0x7, SGRF_FW_BASE + SGRF_MST_DOMAIN_CON3);
+	/* Set sdmmc master domain */
+	val = readl(SGRF_FW_BASE + SGRF_MST_DOMAIN_CON2);
+	writel(val | (0x7 << 16), SGRF_FW_BASE + SGRF_MST_DOMAIN_CON2);
+	/* Set usb3otg0 master domain */
+	val = readl(SGRF_FW_BASE + SGRF_MST_DOMAIN_CON1);
+	writel(val | (0x7 << 20) | (0x7 << 16), SGRF_FW_BASE + SGRF_MST_DOMAIN_CON1);
+	/* Set usb3otg0 master domain */
+	val = readl(SGRF_FW_BASE + SGRF_MST_DOMAIN_CON1);
+	writel(val | (0x7 << 4) | 0x7, SGRF_FW_BASE + SGRF_MST_DOMAIN_CON1);
+	/* Set fspi0 and fspi1 master domain */
+	val = readl(SGRF_FW_BASE + SGRF_MST_DOMAIN_CON2);
+	writel(val | (0x7 << 24) | (0x7 << 28), SGRF_FW_BASE + SGRF_MST_DOMAIN_CON2);
+#endif
+
+#if defined(CONFIG_ROCKCHIP_EMMC_IOMUX)
+	board_set_iomux(UCLASS_MMC, 0, 0);
+#elif defined(CONFIG_ROCKCHIP_SFC_IOMUX)
+	/*
+	 * (UCLASS_MTD, 0, 0) FSPI0
+	 * (UCLASS_MTD, 1, 0) FSPI1 M0
+	 */
+	board_set_iomux(UCLASS_MTD, 0, 0);
+#endif
+
+#if defined(CONFIG_UFS)
+	/* Set ref pll 26MHZ */
+	writel(0x01c00080, PHPPHY_CRU_BASE + PHPPHY_CRU_PPLL_CON1);
+	/* UFS PHY select 26M from ppll */
+	writel(0x00010001, PMU1_CRU_BASE + PMU1_CLKSEL_CON03);
+
+	/* set UFS_RSTN to low */
+	writel(0x00100000, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
+	/* set iomux UFS_REFCLK, UFS_RSTN */
+	writel(0x00FF0011, VCCIO7_IOC_BASE + VCCIO7_IOC_GPIO4C_IOMUX_SEL_0);
+	udelay(10);
+	/* set UFS_RSTN to high */
+	writel(0x00100010, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
+#endif
 
 	return 0;
 }
