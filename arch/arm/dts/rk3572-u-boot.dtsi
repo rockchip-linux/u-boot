@@ -129,3 +129,8 @@
 	bootph-all;
 	status = "okay";
 };
+
+&ufs {
+	bootph-all;
+	status = "okay";
+};
