@@ -28,6 +28,11 @@
 	status = "okay";
 };
 
+&crypto {
+	bootph-all;
+	status = "okay";
+};
+
 &gpio0 {
 	bootph-all;
 	status = "okay";
