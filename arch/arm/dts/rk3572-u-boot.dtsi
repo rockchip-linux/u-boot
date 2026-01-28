@@ -13,7 +13,7 @@
 	};
 
 	chosen {
-		u-boot,spl-boot-order = "same-as-spl", &sdhci;
+		u-boot,spl-boot-order = "same-as-spl", &sdhci, &spi_nand, &spi_nor;
 	};
 
 	dmc {
@@ -108,6 +108,32 @@
 	non-removable;
 	u-boot,spl-fifo-mode;
 	status = "okay";
+};
+
+&fspi1 {
+	bootph-all;
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+	spi_nand: flash@0 {
+		bootph-all;
+		compatible = "spi-nand";
+		reg = <0>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <4>;
+		spi-max-frequency = <80000000>;
+	};
+
+	spi_nor: flash@1 {
+		bootph-all;
+		compatible = "jedec,spi-nor";
+		label = "sfc_nor";
+		reg = <0>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <4>;
+		spi-max-frequency = <80000000>;
+	};
 };
 
 &rng {
