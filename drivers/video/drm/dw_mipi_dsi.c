@@ -547,11 +547,14 @@ static void dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 static unsigned long dw_mipi_dsi_get_lane_rate(struct dw_mipi_dsi *dsi)
 {
 	const struct drm_display_mode *mode = &dsi->mode;
-	unsigned long max_lane_rate = dsi->pdata->max_bit_rate_per_lane;
+	unsigned int max_lane_rate = dsi->pdata->max_bit_rate_per_lane / 1000;
 	unsigned long lane_rate;
+	unsigned long mpclk;
+	unsigned long target_pclk;
+	unsigned long target_mbps;
+	unsigned long tmp;
 	unsigned int value;
 	int bpp, lanes;
-	u64 tmp;
 
 	/* optional override of the desired bandwidth */
 	value = dev_read_u32_default(dsi->dev, "rockchip,lane-rate", 0);
@@ -563,17 +566,18 @@ static unsigned long dw_mipi_dsi_get_lane_rate(struct dw_mipi_dsi *dsi)
 		bpp = 24;
 
 	lanes = dsi->slave ? dsi->lanes * 2 : dsi->lanes;
-	tmp = (u64)mode->clock * 1000 * bpp;
-	do_div(tmp, lanes);
-
+	mpclk = DIV_ROUND_UP(mode->clock, 1000);
 	/* take 1 / 0.9, since mbps must big than bandwidth of RGB */
-	tmp *= 10;
-	do_div(tmp, 9);
+	tmp = mpclk * (bpp / lanes) * 10 / 9;
 
 	if (tmp > max_lane_rate)
-		lane_rate = max_lane_rate;
+		target_mbps = max_lane_rate;
 	else
-		lane_rate = tmp;
+		target_mbps = tmp;
+
+	target_pclk = DIV_ROUND_CLOSEST_ULL(target_mbps * lanes, bpp);
+	lane_rate = target_pclk * 1000 * 1000 * bpp;
+	do_div(lane_rate, lanes);
 
 	return lane_rate;
 }
@@ -1556,6 +1560,18 @@ static const struct dw_mipi_dsi_plat_data rk3568_mipi_dsi_plat_data = {
 	.max_bit_rate_per_lane = 1200000000UL,
 };
 
+static const u32 rk3572_dsi0_grf_reg_fields[MAX_FIELDS] = {
+	[SKEWCALHS]		= GRF_REG_FIELD(0x1060c, 5, 9),
+	[TURNDISABLE]		= GRF_REG_FIELD(0x1060c, 4, 4),
+	[FORCETXSTOPMODE]	= GRF_REG_FIELD(0x1060c, 3, 3),
+	[FORCERXMODE]		= GRF_REG_FIELD(0x1060c, 2, 2),
+};
+
+static const struct dw_mipi_dsi_plat_data rk3572_mipi_dsi_plat_data = {
+	.dsi0_grf_reg_fields = rk3572_dsi0_grf_reg_fields,
+	.max_bit_rate_per_lane = 1800000000UL,
+};
+
 static const u32 rv1108_dsi_grf_reg_fields[MAX_FIELDS] = {
 	[DPICOLORM]		= GRF_REG_FIELD(0x0410,  7,  7),
 	[DPISHUTDN]		= GRF_REG_FIELD(0x0410,  6,  6),
@@ -1638,6 +1654,10 @@ static const struct udevice_id dw_mipi_dsi_ids[] = {
 	{
 		.compatible = "rockchip,rk3568-mipi-dsi",
 		.data = (ulong)&rk3568_mipi_dsi_plat_data,
+	},
+	{
+		.compatible = "rockchip,rk3572-mipi-dsi",
+		.data = (ulong)&rk3572_mipi_dsi_plat_data,
 	},
 	{
 		.compatible = "rockchip,rv1108-mipi-dsi",
