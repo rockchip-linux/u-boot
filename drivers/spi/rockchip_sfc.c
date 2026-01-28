@@ -353,12 +353,10 @@ static int rockchip_sfc_init(struct rockchip_sfc *sfc)
 	}
 	if (readl(sfc->regbase + SFC_VER) & SFC_CAP_X8) {
 		sfc->support_octa = true;
-#ifdef CONFIG_ROCKCHIP_SFC_OCTAL_SETTING
 		writel(SFC_DMA_BURST_INCR8, sfc->regbase + SFC_DMA_CTRL);
 		writel(0x0, sfc->regbase + SFC_DEV_RSTN);
 		mdelay(1);
 		writel(0xf, sfc->regbase + SFC_DEV_RSTN);
-#endif
 	}
 
 	return 0;
