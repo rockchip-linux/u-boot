@@ -15,6 +15,9 @@
 #define CFG_SYS_SDRAM_BASE		0x40000000
 #define SDRAM_MAX_SIZE			(SZ_4G - CFG_SYS_SDRAM_BASE)
 
+#define GICD_BASE			0x2a601000
+#define GICC_BASE			0x2a602000
+
 /* rockusb */
 #define CONFIG_ROCKUSB_G_DNL_PID        0x351a
 
