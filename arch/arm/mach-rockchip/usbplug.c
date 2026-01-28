@@ -32,7 +32,7 @@ static const struct bootdev_list dev_list[] = {
 	{UCLASS_MTD, 2, 1}, /* BLK_MTD_SPI_NOR FSPI M1 */
 	{UCLASS_MTD, 2, 2}, /* BLK_MTD_SPI_NOR FSPI M2 */
 };
-#elif CONFIG_IS_ENABLED(ROCKCHIP_RK3576)
+#elif CONFIG_IS_ENABLED(ROCKCHIP_RK3576) || CONFIG_IS_ENABLED(ROCKCHIP_RK3572)
 static const struct bootdev_list dev_list[] = {
 	{UCLASS_SCSI, 0, 0},
 	{UCLASS_MMC, 0, 0},

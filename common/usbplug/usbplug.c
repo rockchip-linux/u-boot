@@ -11,8 +11,10 @@
 #include <mapmem.h>
 #include <malloc.h>
 #include <of_live.h>
+#include <dm.h>
 #include <dm/ofnode.h>
 #include <dm/root.h>
+#include <dm/uclass-internal.h>
 #include <hang.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -85,6 +87,29 @@ static int initr_of_live(void)
 
 	return 0;
 }
+
+#if !defined(CONFIG_DM_USB_GADGET)
+__weak int rkusb_dev_bind_to_udc_data(struct udevice *dev)
+{
+	return 0;
+}
+
+static int rkusb_dev_bind(struct udevice *dev)
+{
+	return rkusb_dev_bind_to_udc_data(dev);
+}
+
+U_BOOT_DRIVER(rkusb) = {
+	.name = "rkusb",
+	.id = UCLASS_USB_GADGET_GENERIC,
+	.bind = rkusb_dev_bind,
+	.flags = DM_FLAG_PRE_RELOC,
+};
+
+U_BOOT_DRVINFO(rkusb) = {
+	.name = "rkusb",
+};
+#endif
 
 /* Refers to common/board_r.c */
 void board_init_r(gd_t *new_gd, ulong dest_addr)
