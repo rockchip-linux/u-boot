@@ -873,6 +873,7 @@ static int rkusb_do_switch_storage(struct fsg_common *common)
 		break;
 #if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && (defined(CONFIG_AHCI) || defined(CONFIG_UFS))
 	case BOOT_TYPE_SATA:
+	case BOOT_TYPE_UFS:
 		type = UCLASS_SCSI;
 		devnum = 0;
 		scsi_scan(true);
@@ -946,6 +947,8 @@ static int rkusb_do_get_storage_info(struct fsg_common *common,
 
 	case UCLASS_SCSI:
 		media = BOOT_TYPE_SATA;
+		if (ums[common->lun].block_dev.rawblksz == 4096)
+			media = BOOT_TYPE_UFS;
 		break;
 
 //	case IF_TYPE_RKNAND:
