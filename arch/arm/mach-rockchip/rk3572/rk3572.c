@@ -164,6 +164,10 @@ void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
 			/* FSPI0 M0 */
 			writel(0xffff2222, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1A_IOMUX_SEL_0);
 			writel(0xffff2020, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1B_IOMUX_SEL_0);
+#if defined(CONFIG_ROCKCHIP_SFC_OCTAL_SETTING) || defined(CONFIG_SUPPORT_USBPLUG)
+			writel(0xffff2222, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1A_IOMUX_SEL_1);
+			writel(0x0f0f0202, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1B_IOMUX_SEL_0);
+#endif
 		} else if (routing == 1) {
 			/* FSPI1 M0 */
 			writel(0xffff1111, VCCIO1_2_4_IOC_BASE + VCCIO1_IOC_GPIO2A_IOMUX_SEL_0);
@@ -173,10 +177,14 @@ void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
 		} else if (routing == 2) {
 			/* FSPI1 M1 */
 			writel(0xffff2222, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2D_IOMUX_SEL_0);
-			writel(0xfff03220, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2D_IOMUX_SEL_1);
+			writel(0x0ff00220, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2D_IOMUX_SEL_1);
 			/* Pull up */
 			writel(0xff00ff00, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2C_PULL);
 			writel(0x30ff30ff, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2D_PULL);
+#if defined(CONFIG_ROCKCHIP_SFC_OCTAL_SETTING) || defined(CONFIG_SUPPORT_USBPLUG)
+			writel(0xffff2222, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2C_IOMUX_SEL_1);
+			writel(0xf00f3002, VCCIO1_2_4_IOC_BASE + VCCIO4_IOC_GPIO2D_IOMUX_SEL_1);
+#endif
 		}
 		break;
 	default:
