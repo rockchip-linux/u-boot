@@ -18,6 +18,12 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define SYS_SGRF_BASE			0x26008000
+#define SYS_SGRF_SOC_CON8		0x0040
+
+#define SYS_GRF_BASE			0x26010000
+#define SYS_GRF_SOC_CON10		0x0028
+
 #define PHPPHY_CRU_BASE			0x26098000
 #define PHPPHY_CRU_PPLL_CON1		0x204
 
@@ -180,7 +186,7 @@ void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
 #ifndef CONFIG_TPL_BUILD
 int arch_cpu_init(void)
 {
-#if defined(CONFIG_SUPPORT_USBPLUG)
+#if defined(CONFIG_SPL_BUILD) || defined(CONFIG_SUPPORT_USBPLUG)
 	u32 val;
 
 	/* Set emmc master domain */
@@ -198,6 +204,15 @@ int arch_cpu_init(void)
 	/* Set fspi0 and fspi1 master domain */
 	val = readl(SGRF_FW_BASE + SGRF_MST_DOMAIN_CON2);
 	writel(val | (0x7 << 24) | (0x7 << 28), SGRF_FW_BASE + SGRF_MST_DOMAIN_CON2);
+
+	/*
+	 * Enable cci channels for below module AXI R/W
+	 * Module: GMAC, PCIe, SATA, USB3
+	 */
+	writel(0xffffffff, SYS_SGRF_BASE + SYS_SGRF_SOC_CON8);
+
+	/* Enable NOC timeout */
+	writel(0xffffffff, SYS_GRF_BASE + SYS_GRF_SOC_CON10);
 #endif
 
 #if defined(CONFIG_ROCKCHIP_EMMC_IOMUX)
