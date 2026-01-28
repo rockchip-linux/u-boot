@@ -73,6 +73,14 @@ DECLARE_GLOBAL_DATA_PTR;
 #define PMUIO1_IOC_GPIO0B_IOMUX_SEL_1	0x00C
 #define PMUIO1_IOC_GPIO0D_IOMUX_SEL_1	0x010
 
+const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1] = {
+	[BROM_BOOTSOURCE_EMMC] = "/soc/mmc@2a010000",
+	[BROM_BOOTSOURCE_SPINOR] = "/soc/spi@2a020000",
+	[BROM_BOOTSOURCE_SPINAND] = "/soc/spi@2a020000",
+	[BROM_BOOTSOURCE_SD] = "/soc/mmc@2a090000",
+	[BROM_BOOTSOURCE_UFS] = "/soc/ufs@29e00000",
+};
+
 #ifdef CONFIG_ARM64
 #include <asm/armv8/mmu.h>
 static struct mm_region rk3572_mem_map[] = {
@@ -107,13 +115,6 @@ static struct mm_region rk3572_mem_map[] = {
 
 
 struct mm_region *mem_map = rk3572_mem_map;
-#endif
-
-#if 0
-const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1] = {
-	[BROM_BOOTSOURCE_EMMC] = "/soc/mmc@2a330000",
-	[BROM_BOOTSOURCE_SD] = "/soc/mmc@2a310000",
-};
 #endif
 
 void board_debug_uart_init(void)
