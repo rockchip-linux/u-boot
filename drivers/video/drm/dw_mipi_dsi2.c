@@ -826,7 +826,6 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 			return -ENODEV;
 
 		dsi2->slave->master = dsi2;
-		dsi2->lanes /= 2;
 
 		dsi2->slave->auto_calc_mode = dsi2->auto_calc_mode;
 		dsi2->slave->lanes = dsi2->lanes;
@@ -1333,7 +1332,7 @@ static int dw_mipi_dsi2_host_attach(struct mipi_dsi_host *host,
 	if (device->lanes < 1 || device->lanes > 8)
 		return -EINVAL;
 
-	dsi2->lanes = device->lanes;
+	dsi2->lanes = dsi2->dual_channel ? device->lanes / 2 : device->lanes;
 	dsi2->channel = device->channel;
 	dsi2->format = device->format;
 	dsi2->mode_flags = device->mode_flags;
