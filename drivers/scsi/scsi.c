@@ -103,7 +103,7 @@ static void scsi_setup_write_ext(struct scsi_cmd *pccb, lbaint_t start,
 				 unsigned short blocks)
 {
 	pccb->cmd[0] = SCSI_WRITE10;
-	pccb->cmd[1] = 0;
+	pccb->cmd[1] = 0x8;
 	pccb->cmd[2] = (unsigned char)(start >> 24) & 0xff;
 	pccb->cmd[3] = (unsigned char)(start >> 16) & 0xff;
 	pccb->cmd[4] = (unsigned char)(start >> 8) & 0xff;
