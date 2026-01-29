@@ -29,6 +29,8 @@
 #define OTP_RSA4096_ENABLE_SIZE		1
 #define OTP_RSA_HASH_ADDR		0x200
 #define OTP_RSA_HASH_SIZE		32
+#define OTP_DICE_UDS_ADDR		0x240
+#define OTP_DICE_UDS_SIZE		32
 
 /* rockusb */
 #define CONFIG_ROCKUSB_G_DNL_PID        0x350e
