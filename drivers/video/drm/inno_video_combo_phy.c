@@ -5,9 +5,10 @@
  * Author: Wyon Bi <bivvy.bi@rock-chips.com>
  */
 
-#include <asm/arch/cpu.h>
+#include <asm/arch-rockchip/cpu.h>
 #include <config.h>
 #include <common.h>
+#include <dm/device_compat.h>
 #include <errno.h>
 #include <dm.h>
 #include <div64.h>
@@ -662,6 +663,7 @@ static void inno_dsiphy_lvds_voltage_set(struct inno_video_phy *inno)
 
 static void inno_video_phy_lvds_mode_enable(struct inno_video_phy *inno)
 {
+	struct rockchip_phy *phy = (struct rockchip_phy *)dev_get_driver_data(inno->dev);
 	u8 prediv = 2;
 	u16 fbdiv = 28;
 	u32 val;
@@ -925,9 +927,9 @@ static int inno_video_phy_probe(struct udevice *dev)
 	if (soc_is_px30s())
 		inno->mipi_dphy_info = &inno_video_mipi_dphy_max_2_5GHz;
 
-	inno->lanes = ofnode_read_u32_default(dev->node, "inno,lanes", 4);
-	inno->lvds_vcom = ofnode_read_u32_default(dev->node, "inno,lvds-vcom", 950);
-	inno->lvds_vod = ofnode_read_u32_default(dev->node, "inno,lvds-vod", 350);
+	inno->lanes = ofnode_read_u32_default(dev_ofnode(dev), "inno,lanes", 4);
+	inno->lvds_vcom = ofnode_read_u32_default(dev_ofnode(dev), "inno,lvds-vcom", 950);
+	inno->lvds_vod = ofnode_read_u32_default(dev_ofnode(dev), "inno,lvds-vod", 350);
 
 	ret = dev_read_resource(dev, 0, &inno->phy);
 	if (ret < 0) {
