@@ -117,7 +117,11 @@ static int ufs_rockchip_rk3576_phy_parameter_init(struct ufs_hba *hba)
 	udelay(1);
 	ufs_sys_writel(host->mphy_base, 0x00, 0x08C);
 
-	udelay(200);
+	/*
+	 * If the phy parameters are modified after linkup, the delay time
+	 * needs to be increased
+	 */
+	udelay(500);
 
 	return 0;
 }
