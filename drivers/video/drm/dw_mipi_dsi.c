@@ -9,9 +9,9 @@
 #include <config.h>
 #include <common.h>
 #include <errno.h>
+#include <asm/arch-rockchip/hardware.h>
 #include <asm/unaligned.h>
 #include <asm/io.h>
-#include <asm/hardware.h>
 #include <dm/device.h>
 #include <dm/read.h>
 #include <dm/of_access.h>
@@ -1347,7 +1347,7 @@ static int dw_mipi_dsi_probe(struct udevice *dev)
 	if (IS_ERR(dsi->grf))
 		return PTR_ERR(dsi->grf);
 
-	id = of_alias_get_id(ofnode_to_np(dev->node), "dsi");
+	id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "dsi");
 	if (id < 0)
 		id = 0;
 
