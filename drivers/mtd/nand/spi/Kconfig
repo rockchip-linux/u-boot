@@ -158,4 +158,15 @@ config SPI_NAND_ISSI
 	help
 	  Add support for various ISSI SPI Nand flash chips
 
+config SPI_NAND_TITAN
+	default y
+	bool "TITAN SPI flash support"
+	help
+	  Add support for various TITAN SPI Nand flash chips
+
+config SPI_NAND_CONT_READ
+	bool "Enable SPI flash continuous read support"
+	default n
+	help
+	 Add support for SPI Nand flash chips cont read.
 endif
