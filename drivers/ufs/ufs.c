@@ -783,6 +783,7 @@ static void ufshcd_cache_flush(void *addr, unsigned long size)
 	uintptr_t end_addr = ALIGN((uintptr_t)addr + size, ARCH_DMA_MINALIGN);
 
 	flush_dcache_range(start_addr, end_addr);
+	invalidate_dcache_range(start_addr, end_addr);
 }
 
 /**
@@ -873,9 +874,9 @@ static void ufshcd_prepare_utp_query_req_upiu(struct ufs_hba *hba,
 	/* Copy the Descriptor */
 	if (query->request.upiu_req.opcode == UPIU_QUERY_OPCODE_WRITE_DESC) {
 		memcpy(ucd_req_ptr + 1, query->descriptor, len);
-		ufshcd_cache_flush(ucd_req_ptr, 2 * sizeof(*ucd_req_ptr));
+		ufshcd_cache_flush(ucd_req_ptr, ALIGN(2 * sizeof(*ucd_req_ptr) + len, ARCH_DMA_MINALIGN));
 	} else {
-		ufshcd_cache_flush(ucd_req_ptr, sizeof(*ucd_req_ptr));
+		ufshcd_cache_flush(ucd_req_ptr, ALIGN(sizeof(*ucd_req_ptr) + len, ARCH_DMA_MINALIGN));
 	}
 
 	memset(hba->ucd_rsp_ptr, 0, sizeof(struct utp_upiu_rsp));
@@ -1025,6 +1026,9 @@ static int ufshcd_copy_query_response(struct ufs_hba *hba)
 		buf_len =
 			be16_to_cpu(hba->dev_cmd.query.request.upiu_req.length);
 		if (likely(buf_len >= resp_len)) {
+			int size = ALIGN(GENERAL_UPIU_REQUEST_SIZE + resp_len, ARCH_DMA_MINALIGN);
+
+			invalidate_dcache_range((uintptr_t)hba->ucd_rsp_ptr, (uintptr_t)hba->ucd_rsp_ptr + size);
 			memcpy(hba->dev_cmd.query.descriptor, descp, resp_len);
 		} else {
 			dev_warn(hba->dev,
