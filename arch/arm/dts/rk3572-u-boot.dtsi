@@ -130,8 +130,8 @@
 		compatible = "jedec,spi-nor";
 		label = "sfc_nor";
 		reg = <0>;
-		spi-tx-bus-width = <1>;
-		spi-rx-bus-width = <4>;
+		spi-tx-bus-width = <8>;
+		spi-rx-bus-width = <8>;
 		spi-max-frequency = <80000000>;
 	};
 };
