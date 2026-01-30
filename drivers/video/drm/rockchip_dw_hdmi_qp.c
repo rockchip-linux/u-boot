@@ -1679,12 +1679,12 @@ static int rockchip_dw_hdmi_qp_probe(struct udevice *dev)
 	int ret;
 	struct regmap *map;
 	struct rockchip_hdmi *hdmi = dev_get_priv(dev);
-	ofnode hdmi_node = dev->node_;
+	ofnode hdmi_node = dev_ofnode(dev);
 
 	hdmi->dev = dev;
 	hdmi->plat_data = (const struct dw_hdmi_plat_data *)dev_get_driver_data(dev);
 
-	hdmi->id = of_alias_get_id(ofnode_to_np(dev->node_), "hdmi");
+	hdmi->id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "hdmi");
 	if (hdmi->id < 0)
 		hdmi->id = 0;
 

@@ -1274,7 +1274,7 @@ static int inno_hdmi_phy_init(struct rockchip_phy *phy)
 	inno->regs = (void *)RK3528_HDMIPHY_BASE;
 #else
 	inno->regs = dev_read_addr_ptr(dev);
-	inno->node = dev->node_;
+	inno->node = dev_ofnode(dev);
 #endif
 	if (!inno->regs) {
 		printf("%s: failed to get phy address\n", __func__);

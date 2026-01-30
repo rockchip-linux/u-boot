@@ -1254,7 +1254,7 @@ int rockchip_dw_hdmi_qp_init(struct rockchip_connector *conn, struct display_sta
 	void *rk_hdmi = dev_get_priv(conn->dev);
 	struct dw_hdmi_qp *hdmi;
 	struct drm_display_mode *mode_buf;
-	ofnode hdmi_node = conn->dev->node_;
+	ofnode hdmi_node = dev_ofnode(conn->dev);
 	struct device_node *ddc_node;
 	struct clk ref_clk;
 	int ret;

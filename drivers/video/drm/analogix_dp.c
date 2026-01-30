@@ -1304,7 +1304,7 @@ static u32 analogix_dp_parse_link_frequencies(struct analogix_dp_device *dp)
 	const struct device_node *endpoint;
 	u64 frequency = 0;
 
-	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev->node_, 1, 0);
+	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev_ofnode(dev), 1, 0);
 	if (!endpoint)
 		return 0;
 
@@ -1389,7 +1389,7 @@ static int analogix_dp_probe(struct udevice *dev)
 
 	dp->reg_base = dev_read_addr_ptr(dev);
 
-	dp->id = of_alias_get_id(ofnode_to_np(dev->node_), "edp");
+	dp->id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "edp");
 	if (dp->id < 0)
 		dp->id = 0;
 

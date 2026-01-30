@@ -1725,7 +1725,7 @@ static u32 dw_dp_parse_link_frequencies(struct dw_dp *dp)
 	const struct device_node *endpoint;
 	u64 frequency = 0;
 
-	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev->node_, 1, 0);
+	endpoint = rockchip_of_graph_get_endpoint_by_regs(dev_ofnode(dev), 1, 0);
 	if (!endpoint)
 		return 0;
 
@@ -1769,11 +1769,11 @@ static int dw_dp_probe(struct udevice *dev)
 		(const struct dw_dp_chip_data *)dev_get_driver_data(dev);
 	int ret;
 
-	ret = regmap_init_mem(dev->node_, &dp->regmap);
+	ret = regmap_init_mem(dev_ofnode(dev), &dp->regmap);
 	if (ret)
 		return ret;
 
-	dp->id = of_alias_get_id(ofnode_to_np(dev->node_), "dp");
+	dp->id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "dp");
 	if (dp->id < 0)
 		dp->id = 0;
 

@@ -1877,7 +1877,7 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 	memcpy(phy, tmp_phy, sizeof(*phy));
 
 	samsung->pdata = (struct samsung_mipi_dcphy_plat_data *)phy->data;
-	samsung->lanes = ofnode_read_u32_default(dev->node_, "samsung,lanes", 4);
+	samsung->lanes = ofnode_read_u32_default(dev_ofnode(dev), "samsung,lanes", 4);
 
 	samsung->base = dev_read_addr_ptr(dev);
 	if (IS_ERR(samsung->base)) {

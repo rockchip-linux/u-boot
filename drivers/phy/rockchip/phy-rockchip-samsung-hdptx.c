@@ -1391,7 +1391,7 @@ static int rockchip_hdptx_phy_probe(struct udevice *dev)
 	u32 prop[4];
 	int ret;
 
-	ret = regmap_init_mem(dev->node_, &hdptx->regmap);
+	ret = regmap_init_mem(dev_ofnode(dev), &hdptx->regmap);
 	if (ret)
 		return ret;
 

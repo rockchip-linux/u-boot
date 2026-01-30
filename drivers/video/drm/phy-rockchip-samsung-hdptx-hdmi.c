@@ -1905,7 +1905,7 @@ static int rockchip_hdptx_phy_hdmi_probe(struct udevice *dev)
 	struct udevice *syscon;
 	int ret;
 
-	hdptx->id = of_alias_get_id(ofnode_to_np(dev->node_), "hdptxhdmi");
+	hdptx->id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "hdptxhdmi");
 	if (hdptx->id < 0)
 		hdptx->id = 0;
 

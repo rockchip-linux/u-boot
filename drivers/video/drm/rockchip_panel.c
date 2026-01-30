@@ -521,7 +521,7 @@ static int rockchip_panel_probe(struct udevice *dev)
 		priv->cmd_type = get_panel_cmd_type(cmd_type);
 
 	if (priv->cmd_type == CMD_TYPE_SPI) {
-		ofnode parent = ofnode_get_parent(dev->node_);
+		ofnode parent = ofnode_get_parent(dev_ofnode(dev));
 
 		if (ofnode_valid(parent)) {
 			struct dm_spi_slave_plat *slave = dev_get_parent_plat(dev);

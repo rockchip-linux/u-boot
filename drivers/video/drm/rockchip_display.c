@@ -1833,7 +1833,7 @@ static int rockchip_of_find_panel(struct udevice *dev, struct rockchip_panel **p
 			goto found;
 	}
 
-	ep_node = rockchip_of_graph_get_remote_node(dev->node_, PORT_DIR_OUT, 0);
+	ep_node = rockchip_of_graph_get_remote_node(dev_ofnode(dev), PORT_DIR_OUT, 0);
 	if (!ep_node)
 		return -ENODEV;
 
@@ -1863,7 +1863,7 @@ static int rockchip_of_find_bridge(struct udevice *dev, struct rockchip_bridge *
 	struct udevice *bridge_dev;
 	int ret = 0;
 
-	ep_node = rockchip_of_graph_get_remote_node(dev->node_, PORT_DIR_OUT, 0);
+	ep_node = rockchip_of_graph_get_remote_node(dev_ofnode(dev), PORT_DIR_OUT, 0);
 	if (!ep_node)
 		return -ENODEV;
 
@@ -1991,8 +1991,8 @@ static struct rockchip_connector *rockchip_get_split_connector(struct rockchip_c
 	struct rockchip_connector *split_conn;
 	int ret;
 
-	conn->split_mode = ofnode_read_bool(conn->dev->node_, "split-mode");
-	conn->dual_channel_mode = ofnode_read_bool(conn->dev->node_, "dual-channel");
+	conn->split_mode = ofnode_read_bool(dev_ofnode(conn->dev), "split-mode");
+	conn->dual_channel_mode = ofnode_read_bool(dev_ofnode(conn->dev), "dual-channel");
 	if (!conn->split_mode && !conn->dual_channel_mode)
 		return NULL;
 
@@ -2130,7 +2130,7 @@ static fdt_addr_t rockchip_get_logo_memory(struct udevice *dev, const void *fdt_
 	int offset, idx;
 	fdt_size_t size;
 	fdt_addr_t addr;
-	const struct device_node *np = ofnode_to_np(dev->node_);
+	const struct device_node *np = ofnode_to_np(dev_ofnode(dev));
 	struct device_node *logo_mem_np;
 	const char *name;
 

@@ -555,7 +555,7 @@ static int rockchip_rgb_probe(struct udevice *dev)
 	rgb->dev = dev;
 	rgb->grf = syscon_get_regmap(dev_get_parent(dev));
 	rgb->data_sync_bypass = dev_read_bool(dev, "rockchip,data-sync-bypass");
-	rgb->id = of_alias_get_id(ofnode_to_np(dev->node_), "rgb");
+	rgb->id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "rgb");
 	if (rgb->id < 0)
 		rgb->id = 0;
 

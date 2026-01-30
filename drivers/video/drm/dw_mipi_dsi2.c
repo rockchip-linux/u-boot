@@ -1308,7 +1308,7 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 			return -ENODEV;
 	}
 
-	id = of_alias_get_id(ofnode_to_np(dev->node_), "dsi");
+	id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "dsi");
 	if (id < 0)
 		id = 0;
 
