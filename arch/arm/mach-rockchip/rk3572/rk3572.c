@@ -24,6 +24,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SYS_GRF_BASE			0x26010000
 #define SYS_GRF_SOC_CON10		0x0028
 
+#define CCI_GRF_BASE			0x26018000
+#define CCI_GGRF_CCI_CON1		0x0004
+
 #define PHPPHY_CRU_BASE			0x26098000
 #define PHPPHY_CRU_PPLL_CON1		0x204
 
@@ -222,6 +225,15 @@ int arch_cpu_init(void)
 
 	/* Enable NOC timeout */
 	writel(0xffffffff, SYS_GRF_BASE + SYS_GRF_SOC_CON10);
+
+	/*
+	 * bit0: Force rdata all 1's when pcie slv err occur
+	 * bit1: Force rresp 2'b0 when pcie slv err occur
+	 * We forces rdata to all 1's but doesn't force rresp
+	 * to 0(normal response) to CPU, so NOC timeout can capture
+	 * it and print a log in the irq for debugging purpose.
+	 */
+	writel(0x10001, CCI_GRF_BASE + CCI_GGRF_CCI_CON1);
 #endif
 
 #if defined(CONFIG_ROCKCHIP_EMMC_IOMUX)
