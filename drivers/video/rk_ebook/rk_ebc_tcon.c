@@ -29,6 +29,14 @@ struct ebc_tcon_priv {
 	void *grf;
 	void *pmugrf;
 	struct clk dclk;
+	u32 version;
+	u32 lut_offset;
+};
+
+struct ebc_tcon_data {
+	const struct rk_ebc_tcon_ops *ops;
+	u32 version;
+	u32 lut_offset;
 };
 
 #define msleep(a)		udelay((a) * 1000)
@@ -219,6 +227,7 @@ struct ebc_tcon_priv {
 #define RK3576_WIN_FMT(x)			UPDATE(x, 2, 0)
 #define RK3576_WIN_FMT_MASK			GENMASK(2, 0)
 
+#define RK3572_WIN2_FIFO_LEVEL(x)		UPDATE(x, 25, 16)
 #define RK3576_WIN_RID(x)			UPDATE(x, 7, 4)
 #define RK3576_WIN_AXI_GATHER_NUM(x)		UPDATE(x, 11, 8)
 #define RK3576_WIN_AXI_GATHER_EN		BIT(1)
@@ -231,6 +240,7 @@ struct ebc_tcon_priv {
 #define RK3576_DSP_FRM_INT_MASK			BIT(6)
 #define RK3576_LINE_FLAG_INT_MASK		BIT(7)
 
+#define RK3572_WIN2_MUX(x)			UPDATE(x, 27, 27)
 #define RK3576_DSP_SDCE_WIDTH(x)		UPDATE(x, 23, 12)
 #define RK3576_DSP_SDCE_WIDTH_MASK(x)		GENMASK(x, 23, 12)
 #define RK3576_DSP_FRM_TOTAL(x)			UPDATE(x, 11, 4)
@@ -248,6 +258,8 @@ struct ebc_tcon_priv {
 #define RK3576_SW_NOC_HURRY_EN			BIT(4)
 #define RK3576_SW_NOC_QOS_VALUE(x)		UPDATE(x, 2, 1)
 #define RK3576_SW_NOC_QOS_EN			BIT(0)
+
+#define RK3572_LUT_DATA_ADDR	0x2000
 
 #define PMU_BASE_ADDR		0xfdd90000
 #define PMU_PWR_GATE_SFTCON	0xA0
@@ -519,8 +531,9 @@ static int ebc_tcon_frame_addr_set(struct udevice *dev, u32 frame_addr)
 static int ebc_tcon_lut_data_set(struct udevice *dev, unsigned int *lut_data,
 				 int frame_count, int lut_32)
 {
-	int i, lut_size;
 	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
+	const u32 lut_base = tcon->lut_offset;
+	int i, lut_size;
 
 	if ((!lut_32 && frame_count > 256) || (lut_32 && frame_count > 64)) {
 		dev_err(tcon->dev, "frame count over flow\n");
@@ -533,7 +546,7 @@ static int ebc_tcon_lut_data_set(struct udevice *dev, unsigned int *lut_data,
 		lut_size = frame_count * 16;
 
 	for (i = 0; i < lut_size; i++)
-		tcon_write(tcon, EBC_LUT_DATA_ADDR + (i * 4), lut_data[i]);
+		tcon_write(tcon, lut_base + (i * 4), lut_data[i]);
 
 	tcon_cfg_done(tcon);
 
@@ -589,11 +602,12 @@ static int ebc_tcon_frame_start(struct udevice *dev, int frame_total)
 }
 #endif
 
-#ifdef CONFIG_ROCKCHIP_RK3576
+#if defined (CONFIG_ROCKCHIP_RK3576) || defined (CONFIG_ROCKCHIP_RK3572)
 static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 {
 	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
 	u32 width, height, vir_width, vir_height;
+	u32 sdclk_div = 0;
 	u32 val;
 	int ret;
 
@@ -679,7 +693,11 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		   RK3576_WIN_AXI_GATHER_EN | RK3576_WIN_RID(1) |
 		   RK3576_WIN_EN);
 	tcon_write(tcon, RK3576_EBC_WIN1_CTRL, RK3576_WIN_RID(2));
-	tcon_write(tcon, RK3576_EBC_WIN2_CTRL, RK3576_WIN_RID(3));
+	if (tcon->version == EBC_VERSION_RK3576)
+		tcon_write(tcon, RK3576_EBC_WIN2_CTRL, RK3576_WIN_RID(3));
+	else
+		tcon_write(tcon, RK3576_EBC_WIN2_CTRL, RK3576_WIN_RID(3) |
+			   RK3572_WIN2_FIFO_LEVEL(0xa));
 
 	/*
 	 * RK3576_EBC_EPD_CTRL info:
@@ -706,6 +724,11 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		val = RK3576_DSP_SDCE_WIDTH(panel->ldl);
 	else
 		val = RK3576_DSP_SDCE_WIDTH(panel->sdce_width);
+
+	/* WIN2 should be enable for ebc mode */
+	if (tcon->version == EBC_VERSION_RK3572)
+		val |= RK3572_WIN2_MUX(1);
+
 	tcon_write(tcon, RK3576_EBC_DSP_CTRL2, RK3576_SW_BURST_CTRL | val);
 
 	/**
@@ -717,14 +740,18 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 	else
 		val = RK3576_DSP_SDOE_MODE(0);
 
+	if (tcon->version == EBC_VERSION_RK3576)
+		sdclk_div = panel->panel_16bit ? 7 : 3;
+	else if (tcon->version == EBC_VERSION_RK3572)
+		sdclk_div = panel->panel_16bit ? 1 : 0;
+
 	tcon_write(tcon, RK3576_EBC_DSP_CTRL,
 		   RK3576_DSP_SWAP_MODE(panel->panel_16bit ? 2 : 3) | RK3576_DSP_VCOM_MODE(1) |
-		   RK3576_DSP_SDCLK_DIV(panel->panel_16bit ? 7 : 3) | val);
+		   RK3576_DSP_SDCLK_DIV(sdclk_div) | val);
 
 	tcon_cfg_done(tcon);
 
-	ret = clk_set_rate(&tcon->dclk,
-			   panel->sdck * ((panel->panel_16bit ? 7 : 3) + 1));
+	ret = clk_set_rate(&tcon->dclk, panel->sdck * (sdclk_div + 1));
 	if (ret < 0) {
 		printf("%s: set clock rate failed, %d\n", __func__, ret);
 		return ret;
@@ -734,7 +761,9 @@ static int rk3576_ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 
 	return 0;
 }
+#endif
 
+#ifdef CONFIG_ROCKCHIP_RK3576
 static int rk3576_ebc_tcon_dsp_mode_set(struct udevice *dev, int update_mode,
 					int display_mode, int three_win_mode,
 					int eink_mode)
@@ -763,7 +792,9 @@ static int rk3576_ebc_tcon_dsp_mode_set(struct udevice *dev, int update_mode,
 
 	return 0;
 }
+#endif
 
+#if defined (CONFIG_ROCKCHIP_RK3576) || defined (CONFIG_ROCKCHIP_RK3572)
 static int rk3576_ebc_tcon_frame_start(struct udevice *dev, int frame_total)
 {
 	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
@@ -784,21 +815,42 @@ static int rk3576_ebc_tcon_frame_start(struct udevice *dev, int frame_total)
 }
 #endif
 
+#ifdef CONFIG_ROCKCHIP_RK3572
+static int rk3572_ebc_tcon_dsp_mode_set(struct udevice *dev, int update_mode,
+					int display_mode, int three_win_mode,
+					int eink_mode)
+{
+	struct ebc_tcon_priv *tcon = dev_get_priv(dev);
+
+	tcon_write(tcon, RK3576_EBC_WIN1_CTRL, RK3576_WIN_AXI_GATHER_NUM(8) |
+		   RK3576_WIN_AXI_GATHER_EN | RK3576_WIN_RID(2) | ((!!display_mode)));
+
+	tcon_update_bits(tcon, RK3576_EBC_DSP_CTRL, RK3576_UPDATE_MODE_MASK |
+			 RK3576_DISPLAY_MODE_MASK,
+			 RK3576_DSP_UPDATE_MODE(!!update_mode) |
+			 RK3576_DSP_DISPLAY_MODE(!!display_mode));
+	tcon_cfg_done(tcon);
+
+	return 0;
+}
+#endif
+
 static int rk_ebc_tcon_probe(struct udevice *dev)
 {
 	int ret;
 	struct ebc_tcon_priv *priv = dev_get_priv(dev);
 	struct driver *driver = (struct driver *)dev->driver;
-	const struct rk_ebc_tcon_ops *tcon_ops;
+	const struct ebc_tcon_data *data;
 #ifdef CONFIG_IRQ
 	u32 interrupt[2];
 	int irq;
 #endif
 
-	tcon_ops = (const struct rk_ebc_tcon_ops *)dev_get_driver_data(dev);
-	driver->ops = tcon_ops;
-
+	data = (const struct ebc_tcon_data *)dev_get_driver_data(dev);
+	driver->ops = data->ops;
 	priv->dev = dev;
+	priv->lut_offset = data->lut_offset;
+	priv->version = data->version;
 
 	pinctrl_select_state(dev, "sleep");
 
@@ -829,7 +881,7 @@ static int rk_ebc_tcon_probe(struct udevice *dev)
 }
 
 #ifdef CONFIG_ROCKCHIP_RK3568
-const struct rk_ebc_tcon_ops rk3568_ebc_tcon_funcs = {
+static const struct rk_ebc_tcon_ops rk3568_ebc_tcon_funcs = {
 	.enable = ebc_tcon_enable,
 	.disable = ebc_tcon_disable,
 	.dsp_mode_set = ebc_tcon_dsp_mode_set,
@@ -839,10 +891,35 @@ const struct rk_ebc_tcon_ops rk3568_ebc_tcon_funcs = {
 	.frame_start = ebc_tcon_frame_start,
 	.wait_for_last_frame_complete = wait_for_last_frame_complete,
 };
+
+static const struct ebc_tcon_data rk3568_ebc_tcon_data ={
+	.ops = &rk3568_ebc_tcon_funcs,
+	.version = EBC_VERSION_RK3568,
+	.lut_offset = EBC_LUT_DATA_ADDR,
+};
+#endif
+
+#ifdef CONFIG_ROCKCHIP_RK3572
+static const struct rk_ebc_tcon_ops rk3572_ebc_tcon_funcs = {
+	.enable = rk3576_ebc_tcon_enable,
+	.disable = ebc_tcon_disable,
+	.dsp_mode_set = rk3572_ebc_tcon_dsp_mode_set,
+	.image_addr_set = ebc_tcon_image_addr_set,
+	.frame_addr_set = ebc_tcon_frame_addr_set,
+	.lut_data_set = ebc_tcon_lut_data_set,
+	.frame_start = rk3576_ebc_tcon_frame_start,
+	.wait_for_last_frame_complete = wait_for_last_frame_complete,
+};
+
+static const struct ebc_tcon_data rk3572_ebc_tcon_data = {
+	.ops = &rk3572_ebc_tcon_funcs,
+	.version = EBC_VERSION_RK3572,
+	.lut_offset = RK3572_LUT_DATA_ADDR,
+};
 #endif
 
 #ifdef CONFIG_ROCKCHIP_RK3576
-const struct rk_ebc_tcon_ops rk3576_ebc_tcon_funcs = {
+static const struct rk_ebc_tcon_ops rk3576_ebc_tcon_funcs = {
 	.enable = rk3576_ebc_tcon_enable,
 	.disable = ebc_tcon_disable,
 	.dsp_mode_set = rk3576_ebc_tcon_dsp_mode_set,
@@ -851,6 +928,12 @@ const struct rk_ebc_tcon_ops rk3576_ebc_tcon_funcs = {
 	.lut_data_set = ebc_tcon_lut_data_set,
 	.frame_start = rk3576_ebc_tcon_frame_start,
 	.wait_for_last_frame_complete = wait_for_last_frame_complete,
+};
+
+static const struct ebc_tcon_data rk3576_ebc_tcon_data = {
+	.ops = &rk3576_ebc_tcon_funcs,
+	.version = EBC_VERSION_RK3576,
+	.lut_offset = EBC_LUT_DATA_ADDR,
 };
 #endif
 
@@ -889,13 +972,19 @@ static const struct udevice_id ebc_tcon_ids[] = {
 #ifdef CONFIG_ROCKCHIP_RK3568
 	{
 		.compatible = "rockchip,rk3568-ebc-tcon",
-		.data = (ulong)&rk3568_ebc_tcon_funcs,
+		.data = (ulong)&rk3568_ebc_tcon_data,
+	},
+#endif
+#ifdef CONFIG_ROCKCHIP_RK3572
+	{
+		.compatible = "rockchip,rk3572-ebc-tcon",
+		.data = (ulong)&rk3572_ebc_tcon_data,
 	},
 #endif
 #ifdef CONFIG_ROCKCHIP_RK3576
 	{
 		.compatible = "rockchip,rk3576-ebc-tcon",
-		.data = (ulong)&rk3576_ebc_tcon_funcs,
+		.data = (ulong)&rk3576_ebc_tcon_data,
 	},
 #endif
 	{}

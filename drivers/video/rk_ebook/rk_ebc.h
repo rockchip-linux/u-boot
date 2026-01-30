@@ -10,6 +10,12 @@
 
 #include "epdlut/epd_lut.h"
 
+enum ebc_tcon_version {
+	EBC_VERSION_RK3568 = 0,
+	EBC_VERSION_RK3576 = 1,
+	EBC_VERSION_RK3572 = 2,
+};
+
 struct ebc_panel {
 	u32 width;
 	u32 height;
