@@ -102,7 +102,10 @@
 #define LVDS1_MUX_SHIFT				25
 
 #define RK3576_SYS_PORT_CTRL			0x028
+#define AUTO_CS_MODE_MASK			0x1
+#define AUTO_CS_MODE_SHIFT			15
 #define VP_INTR_MERGE_EN_SHIFT			14
+#define AUTO_CS_EN_SHIFT			5
 #define RK3576_DSP_VS_T_SEL_SHIFT		4
 #define INTERLACE_FRM_REG_DONE_MASK		0x7
 #define INTERLACE_FRM_REG_DONE_SHIFT		0
@@ -3837,6 +3840,14 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 					vop3_get_esmart_lb_mode(vop2), false);
 
 		vop3_init_esmart_scale_engine(vop2);
+
+		if (vop2->version >= VOP_VERSION_RK3572) {
+			vop2_mask_write(vop2, RK3576_SYS_PORT_CTRL, EN_MASK,
+					AUTO_CS_EN_SHIFT, 1, true);
+			vop2_mask_write(vop2, RK3576_SYS_PORT_CTRL, AUTO_CS_MODE_MASK,
+					AUTO_CS_MODE_SHIFT, 1, true);
+		}
+
 
 		if (vop2->version >= VOP_VERSION_RK3576)
 			vop2_mask_write(vop2, RK3576_SYS_PORT_CTRL, EN_MASK,
