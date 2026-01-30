@@ -4,6 +4,7 @@
  */
 
 #include <dm.h>
+#include <asm/arch-rockchip/cru_rk3572.h>
 
 int rockchip_get_clk(struct udevice **devp)
 {
@@ -21,5 +22,5 @@ int rockchip_get_scmi_clk(struct udevice **devp)
 
 void *rockchip_get_cru(void)
 {
-	return NULL; // FIXME: (void *)RK3572_CRU_BASE;
+	return (void *)RK3572_CRU_BASE;
 }
