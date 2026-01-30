@@ -4092,6 +4092,32 @@ static int vop2_initial(struct vop2 *vop2, struct display_state *state)
 	return 0;
 }
 
+#define VOP2_INIT_GRF(dev, phandle, grf_ptr)	\
+	do {					\
+		int __ret = __rockchip_vop2_init_grf(dev, phandle, &(grf_ptr));	\
+		if (__ret) return __ret;	\
+	} while (0)
+
+static int __rockchip_vop2_init_grf(struct udevice *dev, const char *phandle_name, void **grf_ptr)
+{
+	struct regmap *map;
+	void *addr;
+
+	map = syscon_regmap_lookup_by_phandle(dev, phandle_name);
+	if (IS_ERR(map))
+		return 0;
+
+	addr = regmap_get_range(map, 0);
+	if (addr <= 0) {
+		printf("ERROR: Get syscon %s failed (ret = %p)\n", phandle_name, addr);
+		return -ENXIO;
+	}
+
+	*grf_ptr = addr;
+
+	return 0;
+}
+
 /*
  * VOP2 have multi video ports.
  * video port ------- crtc
@@ -4100,7 +4126,6 @@ static int rockchip_vop2_preinit(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	const struct vop2_data *vop2_data = cstate->crtc->data;
-	struct regmap *map;
 #if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
 	struct power_domain pwrdom;
 	struct clk_bulk clks;
@@ -4121,42 +4146,12 @@ static int rockchip_vop2_preinit(struct display_state *state)
 		rockchip_vop2->regs = dev_read_addr_ptr(cstate->dev);
 		dev_read_addr_size_name(cstate->dev, "regs", &rockchip_vop2->reg_len);
 		rockchip_vop2->regsbak = malloc(rockchip_vop2->reg_len);
-		if (rockchip_vop2->version != VOP_VERSION_RK3538) {
-			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,grf");
-			rockchip_vop2->grf = regmap_get_range(map, 0);
-			if (rockchip_vop2->grf <= 0)
-				printf("%s: Get syscon grf failed (ret=%p)\n",
-				       __func__, rockchip_vop2->grf);
-		}
+		VOP2_INIT_GRF(cstate->dev, "rockchip,grf", rockchip_vop2->grf);
 #endif
-		if (rockchip_vop2->version == VOP_VERSION_RK3588) {
-			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,vop-grf");
-			rockchip_vop2->vop_grf = regmap_get_range(map, 0);
-			if (rockchip_vop2->vop_grf <= 0)
-				printf("%s: Get syscon vop_grf failed (ret=%p)\n",
-				       __func__, rockchip_vop2->vop_grf);
-			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,vo1-grf");
-			rockchip_vop2->vo1_grf = regmap_get_range(map, 0);
-			if (rockchip_vop2->vo1_grf <= 0)
-				printf("%s: Get syscon vo1_grf failed (ret=%p)\n",
-				       __func__, rockchip_vop2->vo1_grf);
-			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,pmu");
-			rockchip_vop2->sys_pmu = regmap_get_range(map, 0);
-			if (rockchip_vop2->sys_pmu <= 0)
-				printf("%s: Get syscon sys_pmu failed (ret=%p)\n",
-				       __func__, rockchip_vop2->sys_pmu);
-		} else if (rockchip_vop2->version == VOP_VERSION_RK3576) {
-			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,ioc-grf");
-			rockchip_vop2->ioc_grf = regmap_get_range(map, 0);
-			if (rockchip_vop2->ioc_grf <= 0)
-				printf("%s: Get syscon ioc_grf failed (ret=%p)\n",
-				       __func__, rockchip_vop2->ioc_grf);
-			map = syscon_regmap_lookup_by_phandle(cstate->dev, "rockchip,pmu");
-			rockchip_vop2->sys_pmu = regmap_get_range(map, 0);
-			if (rockchip_vop2->sys_pmu <= 0)
-				printf("%s: Get syscon sys_pmu failed (ret=%p)\n",
-				       __func__, rockchip_vop2->sys_pmu);
-		}
+		VOP2_INIT_GRF(cstate->dev, "rockchip,vop-grf", rockchip_vop2->vop_grf);
+		VOP2_INIT_GRF(cstate->dev, "rockchip,vo1-grf", rockchip_vop2->vo1_grf);
+		VOP2_INIT_GRF(cstate->dev, "rockchip,pmu", rockchip_vop2->sys_pmu);
+		VOP2_INIT_GRF(cstate->dev, "rockchip,ioc-grf", rockchip_vop2->ioc_grf);
 #if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_SPL_BUILD)
 		ret = power_domain_get(cstate->dev, &pwrdom);
 		if (ret) {
