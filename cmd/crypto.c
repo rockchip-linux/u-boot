@@ -796,8 +796,6 @@ static int do_crypto(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 	g_perf_buf = (u8 *)memalign(CONFIG_SYS_CACHELINE_SIZE, g_perf_buf_size);
 	if (!g_perf_buf) {
 		printf("%s, %d: memalign %u error!\n", __func__, __LINE__, g_perf_buf_size);
-		printf("!!!!!!!!!!!!!!! CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN = %08x is too small set to 0x800000 !!!!!!!!!!!!!!!\n",
-		       CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN);
 	}
 
 	test_cipher_result();
