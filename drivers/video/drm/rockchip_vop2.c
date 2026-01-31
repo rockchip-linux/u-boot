@@ -4137,7 +4137,6 @@ static int rockchip_vop2_preinit(struct display_state *state)
 		rockchip_vop2 = calloc(1, sizeof(struct vop2));
 		if (!rockchip_vop2)
 			return -ENOMEM;
-		memset(rockchip_vop2, 0, sizeof(struct vop2));
 		rockchip_vop2->version = vop2_data->version;
 		rockchip_vop2->data = vop2_data;
 #ifdef CONFIG_SPL_BUILD
