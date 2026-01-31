@@ -877,6 +877,16 @@ static int rk8xx_probe(struct udevice *dev)
 				return ret;
 			}
 			priv->vsel_table = value & RK805B_VSELTABLE_4OR8;
+
+			if (priv->vsel_table) {
+				if ((priv->rst_fun > RK8xx_RST_MODE0) &&
+				    (priv->rst_fun <= RK8xx_RST_MODE2)) {
+					rk8xx_read(dev, RK805B_PMIC_SYS_CFG2, &value, 1);
+					value &= RK8xx_RESET_FUN_CLR;
+					value |= (priv->rst_fun << 6);
+					rk8xx_write(dev, RK805B_PMIC_SYS_CFG2, &value, 1);
+				}
+			}
 		}
 	case RK816_ID:
 		on_source = RK8XX_ON_SOURCE;
