@@ -5755,20 +5755,26 @@ static void vop3_mcu_mode_setup(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
+	u32 mcu_ctrl;
 
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+	if (vop2->version >= VOP_VERSION_RK3572)
+		mcu_ctrl = RK3572_VP0_MCU_CTRL;
+	else
+		mcu_ctrl = RK3562_VP0_MCU_CTRL;
+
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 			MCU_TYPE_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 			MCU_HOLD_MODE_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_PIX_TOTAL_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_PIX_TOTAL_MASK,
 			MCU_PIX_TOTAL_SHIFT, cstate->mcu_timing.mcu_pix_total, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_CS_PST_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_CS_PST_MASK,
 			MCU_CS_PST_SHIFT, cstate->mcu_timing.mcu_cs_pst, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_CS_PEND_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_CS_PEND_MASK,
 			MCU_CS_PEND_SHIFT, cstate->mcu_timing.mcu_cs_pend, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_RW_PST_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_RW_PST_MASK,
 			MCU_RW_PST_SHIFT, cstate->mcu_timing.mcu_rw_pst, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_RW_PEND_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_RW_PEND_MASK,
 			MCU_RW_PEND_SHIFT, cstate->mcu_timing.mcu_rw_pend, false);
 }
 
@@ -5777,20 +5783,26 @@ static void vop3_mcu_bypass_mode_setup(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
+	u32 mcu_ctrl;
 
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+	if (vop2->version >= VOP_VERSION_RK3572)
+		mcu_ctrl = RK3572_VP0_MCU_CTRL;
+	else
+		mcu_ctrl = RK3562_VP0_MCU_CTRL;
+
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 			MCU_TYPE_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 			MCU_HOLD_MODE_SHIFT, 1, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_PIX_TOTAL_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_PIX_TOTAL_MASK,
 			MCU_PIX_TOTAL_SHIFT, 53, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_CS_PST_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_CS_PST_MASK,
 			MCU_CS_PST_SHIFT, 6, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_CS_PEND_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_CS_PEND_MASK,
 			MCU_CS_PEND_SHIFT, 48, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_RW_PST_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_RW_PST_MASK,
 			MCU_RW_PST_SHIFT, 12, false);
-	vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, MCU_RW_PEND_MASK,
+	vop2_mask_write(vop2, mcu_ctrl + vp_offset, MCU_RW_PEND_MASK,
 			MCU_RW_PEND_SHIFT, 30, false);
 }
 
@@ -5801,6 +5813,15 @@ static int rockchip_vop2_send_mcu_cmd(struct display_state *state, u32 type, u32
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
+	u32 mcu_ctrl, mcu_bypass_port;
+
+	if (vop2->version >= VOP_VERSION_RK3572) {
+		mcu_ctrl = RK3572_VP0_MCU_CTRL;
+		mcu_bypass_port = RK3572_VP0_MCU_RW_BYPASS_PORT;
+	} else {
+		mcu_ctrl = RK3562_VP0_MCU_CTRL;
+		mcu_bypass_port = RK3562_VP0_MCU_RW_BYPASS_PORT;
+	}
 
 	/*
 	 * 1.set mcu bypass mode timing.
@@ -5813,23 +5834,23 @@ static int rockchip_vop2_send_mcu_cmd(struct display_state *state, u32 type, u32
 
 	switch (type) {
 	case MCU_WRCMD:
-		vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+		vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 				MCU_RS_SHIFT, 0, false);
-		vop2_mask_write(vop2, RK3562_VP0_MCU_RW_BYPASS_PORT + vp_offset,
+		vop2_mask_write(vop2, mcu_bypass_port + vp_offset,
 				MCU_WRITE_DATA_BYPASS_MASK, MCU_WRITE_DATA_BYPASS_SHIFT,
 				value, false);
-		vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+		vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 				MCU_RS_SHIFT, 1, false);
 		break;
 	case MCU_WRDATA:
-		vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+		vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 				MCU_RS_SHIFT, 1, false);
-		vop2_mask_write(vop2, RK3562_VP0_MCU_RW_BYPASS_PORT + vp_offset,
+		vop2_mask_write(vop2, mcu_bypass_port + vp_offset,
 				MCU_WRITE_DATA_BYPASS_MASK, MCU_WRITE_DATA_BYPASS_SHIFT,
 				value, false);
 		break;
 	case MCU_SETBYPASS:
-		vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+		vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 				MCU_BYPASS_SHIFT, value ? 1 : 0, false);
 		break;
 	default:
@@ -7393,6 +7414,12 @@ static int rockchip_vop2_enable(struct display_state *state)
 	struct vop2 *vop2 = cstate->private;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u32 cfg_done;
+	u32 mcu_ctrl;
+
+	if (vop2->version >= VOP_VERSION_RK3572)
+		mcu_ctrl = RK3572_VP0_MCU_CTRL;
+	else
+		mcu_ctrl = RK3562_VP0_MCU_CTRL;
 
 	if (vop2->version >= VOP_VERSION_RK3572) {
 		vop2_mask_write(vop2, RK3572_VP0_POST_CFG_DONE + vp_offset, CFG_DONE_MASK,
@@ -7411,7 +7438,7 @@ static int rockchip_vop2_enable(struct display_state *state)
 			STANDBY_EN_SHIFT, 0, false);
 
 	if (cstate->mcu_timing.mcu_pix_total)
-		vop2_mask_write(vop2, RK3562_VP0_MCU_CTRL + vp_offset, EN_MASK,
+		vop2_mask_write(vop2, mcu_ctrl + vp_offset, EN_MASK,
 				MCU_HOLD_MODE_SHIFT, 0, false);
 
 	return 0;
