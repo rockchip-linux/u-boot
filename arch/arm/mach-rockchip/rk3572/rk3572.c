@@ -29,6 +29,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define PHPPHY_CRU_BASE			0x26098000
 #define PHPPHY_CRU_PPLL_CON1		0x204
+#define PHPPHY_CRU_SOFTRST_CON02	0xA08
 
 #define PMU1_CRU_BASE			0x260B0000
 #define PMU1_CLKSEL_CON03		0x030C	
@@ -49,6 +50,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SGRF_MST_DOMAIN_CON8		0x020
 #define SGRF_MST_DOMAIN_CON9		0x024
 #define SGRF_MST_DOMAIN_CON10		0x028
+
+#define USB2PHY1_GRF			0x26056000
+#define USB2PHY_GRF_CON4		0x010
 
 #define VCCIO0_3_IOC_BASE		0x26082000
 #define VCCIO0_IOC_GPIO1A_IOMUX_SEL_0	0x00020
@@ -234,6 +238,19 @@ int arch_cpu_init(void)
 	 * it and print a log in the irq for debugging purpose.
 	 */
 	writel(0x10001, CCI_GRF_BASE + CCI_GGRF_CCI_CON1);
+
+	/*
+	 * Assert reset the combphy0_psu, combphy1_psu, and combphy2_ps,
+	 * and need to de-assert reset in combophy driver.
+	 */
+	writel(0x01300130, PHPPHY_CRU_BASE + PHPPHY_CRU_SOFTRST_CON02);
+
+	/*
+	 * Assert SIDDQ for USB 2.0 PHY1 to power down
+	 * PHY1 analog block to save power. And let the
+	 * PHY0 for DRD0 interface still in normal mode.
+	 */
+	writel(0x20002000, USB2PHY1_GRF + USB2PHY_GRF_CON4);
 #endif
 
 #if defined(CONFIG_ROCKCHIP_EMMC_IOMUX)
