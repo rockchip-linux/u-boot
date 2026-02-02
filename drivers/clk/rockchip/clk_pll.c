@@ -443,12 +443,14 @@ static int rk3588_pll_set_rate(struct rockchip_pll_clock *pll,
 	 * When power on or changing PLL setting,
 	 * we must force PLL into slow mode to ensure output stable clock.
 	 */
+#ifdef CONFIG_ROCKCHIP_RK3588
 	if (pll_id == 3)
 		rk_clrsetreg(base + 0x84c, 0x1 << 1, 0x1 << 1);
-
+#endif
 	rk_clrsetreg(base + pll->mode_offset,
 		     pll->mode_mask << pll->mode_shift,
 		     RKCLK_PLL_MODE_SLOW << pll->mode_shift);
+#ifdef CONFIG_ROCKCHIP_RK3588
 	if (pll_id == 0)
 		rk_clrsetreg(base + RK3588_B0PLL_CLKSEL_CON(0),
 			     pll->mode_mask << 6,
@@ -461,7 +463,7 @@ static int rk3588_pll_set_rate(struct rockchip_pll_clock *pll,
 		rk_clrsetreg(base + RK3588_LPLL_CLKSEL_CON(5),
 			     pll->mode_mask << 14,
 			     RKCLK_PLL_MODE_SLOW << 14);
-
+#endif
 	/* Power down */
 	rk_setreg(base + pll->con_offset + RK3588_PLLCON(1),
 		  RK3588_PLLCON1_PWRDOWN);
@@ -491,6 +493,7 @@ static int rk3588_pll_set_rate(struct rockchip_pll_clock *pll,
 
 	rk_clrsetreg(base + pll->mode_offset, pll->mode_mask << pll->mode_shift,
 		     RKCLK_PLL_MODE_NORMAL << pll->mode_shift);
+#ifdef CONFIG_ROCKCHIP_RK3588
 	if (pll_id == 0) {
 		rk_clrsetreg(base + RK3588_B0PLL_CLKSEL_CON(0),
 			     pll->mode_mask << 6,
@@ -531,7 +534,7 @@ static int rk3588_pll_set_rate(struct rockchip_pll_clock *pll,
 
 	if (pll_id == 3)
 		rk_clrsetreg(base + 0x84c, 0x1 << 1, 0);
-
+#endif
 	debug("PLL at %p: con0=%x con1= %x con2= %x mode= %x\n",
 	      pll, readl(base + pll->con_offset),
 	      readl(base + pll->con_offset + 0x4),
