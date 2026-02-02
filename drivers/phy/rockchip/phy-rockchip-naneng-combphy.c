@@ -233,6 +233,11 @@ int rockchip_combphy_usb3_uboot_init(fdt_addr_t phy_addr)
 	priv->mode = PHY_TYPE_USB3;
 	cfg = priv->cfg->grfcfg;
 
+#if defined(CONFIG_SUPPORT_USBPLUG)
+	/* Select phystatus and source clk from combophy */
+	param_write(priv->pipe_grf, &cfg->u3otg0_port_en, true);
+#endif
+
 	rockchip_combphy_usb3_init(priv);
 	reset_deassert(&priv->phy_rst);
 
