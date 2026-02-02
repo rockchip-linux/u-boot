@@ -67,6 +67,9 @@ int board_usb_init(int index, enum usb_init_type init)
 		if (ret) {
 			rkusb_force_to_usb2(true);
 			dwc3_device_data.maximum_speed = USB_SPEED_HIGH;
+		} else {
+			/* Reset usb controller after usb3 phy init */
+			usb_reset_otg_controller();
 		}
 	}
 #else
