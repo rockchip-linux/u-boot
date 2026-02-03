@@ -58,7 +58,7 @@ static int button_adc_of_to_plat(struct udevice *dev)
 	struct ofnode_phandle_args args;
 	u32 down_threshold = 0, up_threshold, voltage, t;
 	ofnode node;
-	int ret;
+	int ret, num = 0, volt_margin = 150000;	/* will be div 2 */
 
 	/* Ignore the top-level button node */
 	if (!uc_plat->label)
@@ -92,6 +92,13 @@ static int button_adc_of_to_plat(struct udevice *dev)
 			up_threshold = t;
 		else if (t < voltage && t > down_threshold)
 			down_threshold = t;
+		num++;
+	}
+
+	/* although one node only, it doesn't mean only one key on hardware */
+	if (num == 1) {
+		down_threshold = voltage - volt_margin;
+		up_threshold = voltage + volt_margin;
 	}
 
 	priv->channel = args.args[0];
