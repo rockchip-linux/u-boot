@@ -294,6 +294,10 @@
 				#clock-cells = <1>;
 			};
 		};
+		optee: optee {
+			compatible = "linaro,optee-tz";
+			method = "smc";
+		};
 	};
 
 	mipi0_csi2: mipi0-csi2 {
