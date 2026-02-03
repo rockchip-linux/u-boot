@@ -13,7 +13,7 @@
 	};
 
 	chosen {
-		u-boot,spl-boot-order = "same-as-spl", &sdhci, &spi_nand, &spi_nor;
+		u-boot,spl-boot-order = &sdmmc0, "same-as-spl", &sdhci, &spi_nand, &spi_nor;
 	};
 
 	dmc {
@@ -151,6 +151,12 @@
 	no-sd;
 	no-sdio;
 	non-removable;
+	u-boot,spl-fifo-mode;
+	status = "okay";
+};
+
+&sdmmc0 {
+	bootph-all;
 	u-boot,spl-fifo-mode;
 	status = "okay";
 };
