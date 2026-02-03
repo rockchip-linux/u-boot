@@ -10,6 +10,7 @@
 #include <write_keybox.h>
 #include <tee.h>
 #include <tee/optee.h>
+#include <youtube_keybox.h>
 
 #define	SIZE_OF_TAG		4
 #define	BOOT_FROM_EMMC	(1 << 1)
@@ -17,6 +18,7 @@
 #define	ATTESTATION_TAG	"ATTE"
 #define	ID_ATTESTATION_TAG "IDAT"
 #define PLAYREADY30_TAG	"SL30"
+#define YOUTUBE_SECRET_KEY "YTSK"
 
 uint32_t write_keybox_to_secure_storage(uint8_t *received_data, uint32_t len)
 {
@@ -24,6 +26,7 @@ uint32_t write_keybox_to_secure_storage(uint8_t *received_data, uint32_t len)
 	uint8_t *attestation_data;
 	uint8_t *id_attestation_data;
 	uint8_t *playready_sl30_data;
+	uint8_t *youtube_key_data;
 	uint32_t key_size;
 	uint32_t data_size;
 	int rc = 0;
@@ -37,6 +40,8 @@ uint32_t write_keybox_to_secure_storage(uint8_t *received_data, uint32_t len)
 						    ID_ATTESTATION_TAG, len);
 	playready_sl30_data = (uint8_t *)new_strstr((char *)received_data,
 						    PLAYREADY30_TAG, len);
+	youtube_key_data = (uint8_t *)new_strstr((char *)received_data,
+						 YOUTUBE_SECRET_KEY, len);
 	if (widevine_data) {
 		/* widevine keybox */
 		key_size = *(widevine_data + SIZE_OF_TAG);
@@ -95,6 +100,12 @@ uint32_t write_keybox_to_secure_storage(uint8_t *received_data, uint32_t len)
 		} else {
 			rc = -EIO;
 			printf("write PlayReady SL3000 root key to secure storage fail\n");
+		}
+	} else if (youtube_key_data) {
+		/* YouTube Secret Key */
+		rc = write_youtube_keybox_to_secure_storage(youtube_key_data, len);
+		if (rc != 0) {
+			printf("write youtube keybox to secure storage fail (%d)\n", rc);
 		}
 	}
 
