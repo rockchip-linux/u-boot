@@ -165,3 +165,8 @@
 	bootph-all;
 	status = "okay";
 };
+
+&optee {
+	bootph-all;
+	status = "okay";
+};
