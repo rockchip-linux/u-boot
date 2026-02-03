@@ -51,8 +51,14 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SGRF_MST_DOMAIN_CON9		0x024
 #define SGRF_MST_DOMAIN_CON10		0x028
 
-#define USB2PHY1_GRF			0x26056000
+#define USB2PHY0_GRF_BASE		0x26054000
+#define USB2PHY1_GRF_BASE		0x26056000
 #define USB2PHY_GRF_CON4		0x010
+#define USB2PHY_GRF_DBG_CON		0x0040
+#define USB2PHY_GRF_LS_TIMEOUT		0x0044
+#define USB2PHY_GRF_LS_DEB		0x0048
+#define USB2PHY_GRF_RX_TIMEOUT		0x004c
+#define USB2PHY_GRF_SEQ_LIMT		0x0050
 
 #define VCCIO0_3_IOC_BASE		0x26082000
 #define VCCIO0_IOC_GPIO1A_IOMUX_SEL_0	0x00020
@@ -250,7 +256,20 @@ int arch_cpu_init(void)
 	 * PHY1 analog block to save power. And let the
 	 * PHY0 for DRD0 interface still in normal mode.
 	 */
-	writel(0x20002000, USB2PHY1_GRF + USB2PHY_GRF_CON4);
+	writel(0x20002000, USB2PHY1_GRF_BASE + USB2PHY_GRF_CON4);
+
+	/*
+	 * Enable USB to DEBUG
+	 * 1. Set linestate timeout 8ms.
+	 * 2. Set linestate fiter time 500us.
+	 * 3. Set Rx timeout counter for RX pulldown 2s.
+	 * 4. Set handshake counter number for SE0 and SE1 sequence at least 5.
+	 */
+	writel(0xff, USB2PHY0_GRF_BASE + USB2PHY_GRF_LS_TIMEOUT);
+	writel(0x10, USB2PHY0_GRF_BASE + USB2PHY_GRF_LS_DEB);
+	writel(0xffff, USB2PHY0_GRF_BASE + USB2PHY_GRF_RX_TIMEOUT);
+	writel(0x05, USB2PHY0_GRF_BASE + USB2PHY_GRF_SEQ_LIMT);
+	writel(0x00010001, USB2PHY0_GRF_BASE + USB2PHY_GRF_DBG_CON);
 #endif
 
 #if defined(CONFIG_ROCKCHIP_EMMC_IOMUX)
