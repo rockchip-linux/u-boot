@@ -19,6 +19,7 @@
 #define IOCTL_REQ_DATA_SIZE	_IO('m', 0x05)
 #define IOCTL_REQ_KEYLAD_INIT	_IO('m', 0x06)
 #define IOCTL_REQ_KEYLAD_DEINIT	_IO('m', 0x07)
+#define IOCTL_REQ_MASK		_IO('m', 0x08)
 
 enum misc_mode {
 	DECOM_LZ4	= BIT(0),
@@ -181,6 +182,17 @@ int misc_otp_read(struct udevice *dev, int offset, void *buf, int size);
 int misc_otp_write(struct udevice *dev, int offset, const void *buf, int size);
 int misc_otp_ioctl(struct udevice *dev, unsigned long request, void *buf);
 int misc_otp_write_verify(struct udevice *dev, int offset, const uint8_t *write_buf, int size);
+
+/* generic layer for OTP */
+struct otp_param {
+	u32 offset;
+	u32 size;
+	u32 flags;
+};
+
+/* function flags for OTP */
+#define OTP_FLG_READ_MASK	BIT(0)
+#define OTP_FLG_PROG_MASK	BIT(1)
 
 /* generic layer for decompress */
 struct decom_param {
