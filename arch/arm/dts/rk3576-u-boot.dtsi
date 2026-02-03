@@ -80,6 +80,7 @@
 	secure-otp@2a480000 {
 		bootph-all;
 		compatible = "rockchip,rk3576-secure-otp";
+		mask_addr = <0x2a4d0000>;
 		reg = <0x0 0x2a480000 0x0 0x10000>;
 	};
 };
