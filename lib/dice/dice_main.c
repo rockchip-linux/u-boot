@@ -298,7 +298,31 @@ static int dice_measure_component(struct DiceContext *DiceCtx,
 	return 0;
 }
 
-static int dice_read_uds(u8 *buffer, int buffer_size)
+static int dice_mask_uds(void)
+{
+	struct otp_param param;
+	struct udevice *dev;
+	int ret;
+
+	dev = misc_otp_get_device(OTP_S);
+	if (!dev) {
+		printf("DICE: No secure otp\n");
+		return -ENODEV;
+	}
+
+	param.offset = OTP_DICE_UDS_ADDR;
+	param.size = OTP_DICE_UDS_SIZE;
+	param.flags = OTP_FLG_READ_MASK | OTP_FLG_PROG_MASK;
+	ret = misc_otp_ioctl(dev, IOCTL_REQ_MASK, &param);
+	if (ret) {
+		printf("DICE: Can't mask otp UDS, ret=%d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int dice_read_uds(u8 *buffer)
 {
 #if DICE_STATIC_BROM_UDS
 	const uint8_t static_brom_uds[DICE_CDI_SIZE] = {
@@ -312,13 +336,10 @@ static int dice_read_uds(u8 *buffer, int buffer_size)
 	    0x1C, 0x1D, 0x1E, 0x1F
 	};
 
-	if (buffer_size != DICE_CDI_SIZE) {
-		printf("DICE: uds buffer size != %d\n", buffer_size);
-		return -EINVAL;
-	}
 	memcpy(buffer, static_brom_uds, DICE_CDI_SIZE);
 #else
 	struct udevice *dev;
+	int ret;
 
 	dev = misc_otp_get_device(OTP_S);
 	if (!dev) {
@@ -326,8 +347,9 @@ static int dice_read_uds(u8 *buffer, int buffer_size)
 		return -ENODEV;
 	}
 
-	if (misc_otp_read(dev, OTP_DICE_UDS_ADDR, buffer, DICE_CDI_SIZE)) {
-		printf("DICE: Can't read otp UDS\n");
+	ret = misc_otp_read(dev, OTP_DICE_UDS_ADDR, buffer, DICE_CDI_SIZE);
+	if (ret) {
+		printf("DICE: Can't read otp UDS, ret=%d\n", ret);
 		return -EIO;
 	}
 #if DICE_DEBUG
@@ -472,9 +494,15 @@ int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 
 	/* Read UDS only once ! */
 	if (DiceCtx[0]->cert_chain_size == 0) {
-		err = dice_read_uds(brom_uds, DICE_CDI_SIZE);
+		err = dice_read_uds(brom_uds);
 		if (err)
 			return err;
+
+		err = dice_mask_uds();
+		if (err) {
+			memset(brom_uds, 0, DICE_CDI_SIZE);
+			return err;
+		}
 
 		clear_uds = 1;
 	}
