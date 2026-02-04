@@ -233,8 +233,8 @@ int arch_cpu_init(void)
 	 */
 	writel(0xffffffff, SYS_SGRF_BASE + SYS_SGRF_SOC_CON8);
 
-	/* Enable NOC timeout */
-	writel(0xffffffff, SYS_GRF_BASE + SYS_GRF_SOC_CON10);
+	/* Enable NOC timeout, except DSMC */
+	writel(0xfffffff7, SYS_GRF_BASE + SYS_GRF_SOC_CON10);
 
 	/*
 	 * bit0: Force rdata all 1's when pcie slv err occur
