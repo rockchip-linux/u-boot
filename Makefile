@@ -988,6 +988,7 @@ endif
 
 # Always append INPUTS so that arch config.mk's can add custom ones
 INPUTS-y += u-boot.srec u-boot.bin u-boot.sym System.map binary_size_check
+INPUTS-$(CONFIG_SUPPORT_USBPLUG) += usbplug.bin
 
 ifeq ($(CONFIG_SPL_FSL_PBL),y)
 INPUTS-$(CONFIG_RAMBOOT_PBL) += u-boot-with-spl-pbl.bin
@@ -1260,6 +1261,11 @@ u-boot.bin: u-boot-dtb.bin FORCE
 
 else
 u-boot.bin: u-boot-nodtb.bin FORCE
+	$(call if_changed,copy)
+endif
+
+ifeq ($(CONFIG_SUPPORT_USBPLUG),y)
+usbplug.bin: u-boot.bin
 	$(call if_changed,copy)
 endif
 
