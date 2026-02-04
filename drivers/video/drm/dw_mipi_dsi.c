@@ -18,6 +18,7 @@
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
 #include <linux/iopoll.h>
+#include <regmap.h>
 
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
@@ -215,9 +216,16 @@ enum grf_reg_fields {
 	MAX_FIELDS,
 };
 
+enum vop_grf_reg_fields {
+	TE_SEL,
+	VOP_GRF_MAX_FIELDS,
+};
+
 struct dw_mipi_dsi_plat_data {
 	const u32 *dsi0_grf_reg_fields;
 	const u32 *dsi1_grf_reg_fields;
+	const u32 *dsi0_vop_grf_reg_fields;
+	const u32 *dsi1_vop_grf_reg_fields;
 	unsigned long max_bit_rate_per_lane;
 };
 
@@ -234,6 +242,7 @@ struct dw_mipi_dsi {
 	struct udevice *dev;
 	void *base;
 	void *grf;
+	void *vop_grf;
 	int id;
 	struct dw_mipi_dsi *master;
 	struct dw_mipi_dsi *slave;
@@ -252,6 +261,32 @@ struct dw_mipi_dsi {
 
 	const struct dw_mipi_dsi_plat_data *pdata;
 };
+
+#define DSI_INIT_GRF(dev, phandle, grf_ptr)	\
+	do {					\
+		int __ret = __rockchip_dsi_init_grf(dev, phandle, &(grf_ptr));	\
+		if (__ret) return __ret;	\
+	} while (0)
+
+static int __rockchip_dsi_init_grf(struct udevice *dev, const char *phandle_name, void **grf_ptr)
+{
+	struct regmap *map;
+	void *addr;
+
+	map = syscon_regmap_lookup_by_phandle(dev, phandle_name);
+	if (IS_ERR(map))
+		return 0;
+
+	addr = regmap_get_range(map, 0);
+	if (addr <= 0) {
+		printf("ERROR: Get syscon %s failed (ret = %p)\n", phandle_name, addr);
+		return -ENXIO;
+	}
+
+	*grf_ptr = addr;
+
+	return 0;
+}
 
 static inline void dsi_write(struct dw_mipi_dsi *dsi, u32 reg, u32 val)
 {
@@ -282,6 +317,9 @@ static void grf_field_write(struct dw_mipi_dsi *dsi, enum grf_reg_fields index,
 	u16 reg;
 	u8 msb, lsb;
 
+	if (IS_ERR_OR_NULL(dsi->grf))
+		return;
+
 	if (!field)
 		return;
 
@@ -290,6 +328,27 @@ static void grf_field_write(struct dw_mipi_dsi *dsi, enum grf_reg_fields index,
 	msb = (field >>  0) & 0x1f;
 
 	rk_clrsetreg(dsi->grf + reg, GENMASK(msb, lsb), val << lsb);
+}
+
+static void vop_grf_field_write(struct dw_mipi_dsi *dsi, enum grf_reg_fields index,
+				unsigned int val)
+{
+	const u32 *dsi_vop_grf_reg_field = dsi->id ? dsi->pdata->dsi1_vop_grf_reg_fields :
+					   dsi->pdata->dsi0_vop_grf_reg_fields;
+	u16 reg;
+	u8 msb, lsb;
+
+	if (IS_ERR_OR_NULL(dsi->vop_grf))
+		return;
+
+	if (!dsi_vop_grf_reg_field)
+		return;
+
+	reg = (dsi_vop_grf_reg_field[index] >> 10) & 0x3ffff;
+	lsb = (dsi_vop_grf_reg_field[index] >>  5) & 0x1f;
+	msb = (dsi_vop_grf_reg_field[index] >>  0) & 0x1f;
+
+	rk_clrsetreg(dsi->vop_grf + reg, GENMASK(msb, lsb), val << lsb);
 }
 
 static inline void dpishutdn_assert(struct dw_mipi_dsi *dsi)
@@ -1248,6 +1307,9 @@ static void mipi_dphy_init(struct dw_mipi_dsi *dsi)
 	/* Enable Clock Lane Module */
 	grf_field_write(dsi, ENABLECLK, 1);
 
+	vop_grf_field_write(dsi, TE_SEL, 1);
+
+
 	mipi_dphy_enableclk_assert(dsi);
 }
 
@@ -1347,9 +1409,9 @@ static int dw_mipi_dsi_probe(struct udevice *dev)
 	int id;
 
 	dsi->base = dev_read_addr_ptr(dev);
-	dsi->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
-	if (IS_ERR(dsi->grf))
-		return PTR_ERR(dsi->grf);
+
+	DSI_INIT_GRF(dev, "rockchip,grf", dsi->grf);
+	DSI_INIT_GRF(dev, "rockchip,vop-grf", dsi->vop_grf);
 
 	id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "dsi");
 	if (id < 0)
@@ -1567,8 +1629,13 @@ static const u32 rk3572_dsi0_grf_reg_fields[MAX_FIELDS] = {
 	[FORCERXMODE]		= GRF_REG_FIELD(0x1060c, 2, 2),
 };
 
+static const u32 rk3572_dsi0_vop_grf_reg_fields[VOP_GRF_MAX_FIELDS] = {
+	[TE_SEL]		= GRF_REG_FIELD(0x0, 0, 0),
+};
+
 static const struct dw_mipi_dsi_plat_data rk3572_mipi_dsi_plat_data = {
 	.dsi0_grf_reg_fields = rk3572_dsi0_grf_reg_fields,
+	.dsi0_vop_grf_reg_fields = rk3572_dsi0_vop_grf_reg_fields,
 	.max_bit_rate_per_lane = 1800000000UL,
 };
 
