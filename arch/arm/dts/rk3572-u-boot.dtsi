@@ -21,6 +21,13 @@
 		bootph-all;
 		status = "okay";
 	};
+
+	secure-otp@2a400000 {
+		bootph-all;
+		compatible = "rockchip,rk3572-secure-otp";
+		mask_addr = <0x2a420000>;
+		reg = <0x0 0x2a400000 0x0 0x4000>;
+	};
 };
 
 &combphy0_psu {

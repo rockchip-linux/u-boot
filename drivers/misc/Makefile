@@ -74,6 +74,7 @@ obj-$(CONFIG_$(PHASE_)ROCKCHIP_EFUSE) += rockchip-efuse.o
 obj-$(CONFIG_$(PHASE_)ROCKCHIP_OTP) += rockchip-otp.o
 ifeq ($(CONFIG_$(PHASE_)ROCKCHIP_SECURE_OTP),y)
 obj-$(CONFIG_ROCKCHIP_RK3588) += rk3588-secure-otp.o
+obj-$(CONFIG_ROCKCHIP_RK3572) += rk3572-secure-otp.o
 obj-$(CONFIG_ROCKCHIP_RK3576) += rk3576-secure-otp.o
 endif
 obj-$(CONFIG_$(PHASE_)ROCKCHIP_HW_DECOMPRESS) += rockchip_decompress.o
