@@ -421,7 +421,7 @@ config SPL_FIT_GENERATOR
 config SPL_FIT_IMAGE_KB
 	int "SPL FIT image size in KiB"
 	depends on SPL_FIT || FIT
-	default 2048
+	default 3072
 	help
 	  SPL FIT image size in KiB, default 2048KB = 1024KB(u-boot) + 1024KB(tee/atf + others).
 
