@@ -6059,7 +6059,7 @@ static int rockchip_vop2_init(struct display_state *state)
 		    conn_state->type == DRM_MODE_CONNECTOR_DisplayPort)
 			conn_state->output_mode = RK3588_DP_OUT_MODE_YUV420;
 	} else if (conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV422) {
-		if (vop2->version == VOP_VERSION_RK3576 &&
+		if (vop2->version >= VOP_VERSION_RK3576 &&
 		    conn_state->type == DRM_MODE_CONNECTOR_eDP)
 			conn_state->output_mode = RK3576_EDP_OUT_MODE_YUV422;
 		else if (vop2->version == VOP_VERSION_RK3588 &&
