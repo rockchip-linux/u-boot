@@ -329,7 +329,11 @@ static u32 sw_hash_dynamic_priority(struct udevice *dev, u32 algo, u32 mode)
 }
 
 static struct crypto_impl sw_crypto_hash_impl = {
+#ifdef CONFIG_ARMV8_CRYPTO
+	.name              = "hash_sw_ce",
+#else
 	.name              = "hash_sw",
+#endif
 	.type              = CRYPTO_TYPE_HASH,
 	.uclass_id         = UCLASS_HASH,
 	.dynamic_priority  = sw_hash_dynamic_priority,
