@@ -1187,7 +1187,8 @@ int android_image_load_by_partname(struct blk_desc *dev_desc,
 				   unsigned long *load_address)
 {
 	struct disk_partition boot_part;
-	int ret, part_num;
+	int part_num;
+	long ret;
 
 	part_num = part_get_info_by_name(dev_desc, boot_partname, &boot_part);
 	if (part_num < 0) {
@@ -1199,7 +1200,7 @@ int android_image_load_by_partname(struct blk_desc *dev_desc,
 
 	ret = android_image_load(dev_desc, &boot_part, *load_address, -1UL);
 	if (ret < 0) {
-		debug("%s: %s part load fail, ret=%d\n",
+		debug("%s: %s part load fail, ret=%ld\n",
 		      __func__, boot_part.name, ret);
 		return ret;
 	}
