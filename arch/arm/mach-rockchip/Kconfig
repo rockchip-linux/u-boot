@@ -986,6 +986,28 @@ config ROCKCHIP_SDMMC_IOMUX
 	help
 	  This enable U-Boot to config SDMMC iomux.
 
+config BASE_DEFCONFIG
+	string "Base defconfig of config fragment"
+	default ""
+	help
+	  Indicate the base defconfig of config fragment.
+
+config CHIP_NAME
+	string "Chip label name"
+	default ""
+
+config LOADER_INI
+	string "Name of Loader ini file in rkbin repository"
+	default ""
+	help
+	  The ini file is used to pack loader image.
+
+config TRUST_INI
+	string "Name of Trust ini file in rkbin repository"
+	default ""
+	help
+	  The ini file is used to pack trust image.
+
 source "arch/arm/mach-rockchip/px30/Kconfig"
 source "arch/arm/mach-rockchip/rk3036/Kconfig"
 source "arch/arm/mach-rockchip/rk3066/Kconfig"
