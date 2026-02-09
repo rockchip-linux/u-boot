@@ -9,6 +9,7 @@ set -e
 
 platform_list=(
 	rk3538
+	rk3572
 	rk3576
 	rk3588
 )
