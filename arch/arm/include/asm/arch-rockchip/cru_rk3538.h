@@ -155,6 +155,7 @@ struct pll_rate_table {
 #define RK3538_PHPL_CRU_BASE		0x80000
 #define RK3538_PHPR_CRU_BASE		0x90000
 #define RK3538_SPMU_CRU_BASE		0xfd310000
+#define RK3538_CRU_BASE			0xfd000000
 
 #define RK3538_PLL_CON(x)		((x) * 0x4 + RK3538_PMU_CRU_BASE)
 #define RK3538_SUBDDR_PLL_CON(x)	((x) * 0x4 + RK3538_SUBDDR_CRU_BASE)
