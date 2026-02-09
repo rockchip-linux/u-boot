@@ -360,8 +360,7 @@ config ROCKCHIP_RK3538
 	imply SPL_SYSCON
 	imply PARTITIONS if SUPPORT_USBPLUG
 	help
-	  The Rockchip RK3538 is a ARM-based SoC with quad-core Cortex-A72 and
-	  and quad-core Cortex-A53.
+	  The Rockchip RK3538 is a ARM-based SoC with quad-core Cortex-A55.
 
 config ROCKCHIP_RK3568
 	bool "Support Rockchip RK3568"
