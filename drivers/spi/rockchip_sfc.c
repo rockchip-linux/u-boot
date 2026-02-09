@@ -205,7 +205,6 @@
 #define SFC_MAX_SPEED			(150 * 1000 * 1000)
 #define SFC_DLL_THRESHOLD_RATE		(50 * 1000 * 1000)
 #define SFC_X2_MAX_SPEED		(300 * 1000 * 1000)
-#define SFC_X2_DLL_THRESHOLD_RATE	(100 * 1000 * 1000)
 
 #define SFC_DLL_TRANING_STEP		10	/* Training step */
 #define SFC_DLL_TRANING_VALID_WINDOW	80	/* Valid DLL winbow */
@@ -213,25 +212,45 @@
 #define SFC_NOR_QUICK_CMD_EXT_QPI_FF	0xff
 #define SFC_NOR_QUICK_CMD_EXT_QPI_F5	0xf5
 
+#define SNOR_IDB_POS			0x10000
+#define SNOR_IDB_TAG_NS			"RKNS"
+#define SNOR_IDB_TAG_SS			"RKSS"
+#define SFC_TUNING_ITEM_SIZE		4
+
+enum sfc_tuning_stage {
+	SFC_TUNING_STAGE_NONE = 0,
+	SFC_TUNING_STAGE_SDR_HS,
+	SFC_TUNING_STAGE_DTR_HS,
+};
+
+enum sfc_tuning_item {
+	SFC_TUNING_CHECK_ID = 0,
+	SFC_TUNING_CHECK_OCTAL_DATA,
+};
+
 struct rockchip_sfc {
 	struct udevice *dev;
 	void __iomem *regbase;
 	struct clk hclk;
 	struct clk clk;
-	u32 max_freq;
-	u32 cur_speed;
-	u32 cur_real_speed;
-	u32 speed[SFC_MAX_CHIPSELECT_NUM];
+
+	u16 version;
 	bool use_dma;
 	bool sclk_x2_bypass;
 	bool support_octa;
+	bool shift_phase;
 	u32 max_iosize;
-	u16 version;
+	u32 max_dll_cells;
 
+	u32 max_freq;
+	u32 cur_speed;
+	u32 speed[SFC_MAX_CHIPSELECT_NUM];
+	enum sfc_tuning_stage tuning_stage[SFC_MAX_CHIPSELECT_NUM];
+	enum sfc_tuning_item tuning_item;
+	u8 tune_pattern[SFC_TUNING_ITEM_SIZE];
+	u32 dll_cells[SFC_MAX_CHIPSELECT_NUM];
 	u32 last_async_size;
 	u32 async;
-	u32 dll_cells[SFC_MAX_CHIPSELECT_NUM];
-	u32 max_dll_cells;
 
 #if defined(CONFIG_DM_GPIO) && (defined(CONFIG_SPL_GPIO_SUPPORT) || !defined(CONFIG_SPL_BUILD))
 	struct gpio_desc cs_gpios[SFC_MAX_CHIPSELECT_NUM];
@@ -279,14 +298,6 @@ static u32 rockchip_sfc_get_max_rate(struct rockchip_sfc *sfc)
 		return SFC_MAX_SPEED;
 	else
 		return SFC_X2_MAX_SPEED;
-}
-
-static u32 rockchip_sfc_get_max_dll_threshold(struct rockchip_sfc *sfc)
-{
-	if (sfc->version >= SFC_VER_8)
-		return SFC_X2_DLL_THRESHOLD_RATE;
-
-	return SFC_DLL_THRESHOLD_RATE;
 }
 
 static u32 rockchip_sfc_get_max_dll_cells(struct rockchip_sfc *sfc)
@@ -367,6 +378,7 @@ static int rockchip_sfc_init(struct rockchip_sfc *sfc)
 		mdelay(1);
 		writel(0xf, sfc->regbase + SFC_DEV_RSTN);
 	}
+	sfc->shift_phase = true;
 
 	/* force to exit quad spi mode, no side effects for others except delay */
 	if (rockchip_sfc_get_version(sfc) > SFC_VER_8) {
@@ -624,7 +636,8 @@ static int rockchip_sfc_xfer_setup(struct rockchip_sfc *sfc,
 		ctrl |= SFC_CTRL_DATA_ORDER_FROM_HIGH;
 
 	/* set the Controller */
-	ctrl |= SFC_CTRL_PHASE_SEL_NEGETIVE;
+	if (sfc->shift_phase)
+		ctrl |= SFC_CTRL_PHASE_SEL_NEGETIVE;
 	cmd |= plat->cs[0] << SFC_CMD_CS_SHIFT;
 	if (op->cmd.buswidth > 1)
 		ctrl |= SFC_CTRL_WPEN;
@@ -833,7 +846,7 @@ static int rockchip_spi_set_cs(struct rockchip_sfc *sfc, struct spi_slave *mem, 
 }
 
 #if CONFIG_IS_ENABLED(CLK)
-static int rockchip_sfc_exec_op_bypass(struct rockchip_sfc *sfc,
+static int rockchip_sfc_tuning_exec_op_bypass(struct rockchip_sfc *sfc,
 				       struct spi_slave *mem,
 				       const struct spi_mem_op *op)
 {
@@ -856,89 +869,197 @@ static int rockchip_sfc_exec_op_bypass(struct rockchip_sfc *sfc,
 	return ret;
 }
 
-static void rockchip_sfc_delay_lines_tuning(struct rockchip_sfc *sfc, struct spi_slave *mem)
+static int rockchip_sfc_tuning_read_id(struct rockchip_sfc *sfc, struct spi_slave *mem,
+				       u8 *buf, size_t len)
+{
+	struct spi_mem_op op = SPI_MEM_OP(SPI_MEM_OP_CMD(0x9F, 1),
+					  SPI_MEM_OP_NO_ADDR,
+					  SPI_MEM_OP_NO_DUMMY,
+					  SPI_MEM_OP_DATA_IN(len, buf, 1));
+	int ret;
+
+	ret = rockchip_sfc_tuning_exec_op_bypass(sfc, mem, &op);
+	if (ret)
+		return ret;
+
+	if ((0xFF == buf[0] && 0xFF == buf[1]) ||
+	    (0x00 == buf[0] && 0x00 == buf[1]))
+		return -ENODEV;
+
+	return 0;
+}
+
+static int rockchip_sfc_tuning_read_octal_data(struct rockchip_sfc *sfc, struct spi_slave *mem,
+					       u8 *buf, size_t len,
+					       const struct spi_mem_op *ref_op)
+{
+	struct spi_mem_op op;
+
+	memcpy(&op, ref_op, sizeof(struct spi_mem_op));
+	op.addr.val = SNOR_IDB_POS;
+	op.data.buf.in = buf;
+	op.data.nbytes = len;
+
+	return rockchip_sfc_tuning_exec_op_bypass(sfc, mem, &op);
+}
+
+static int rockchip_sfc_tuning_item(struct rockchip_sfc *sfc, struct spi_slave *mem,
+				    const struct spi_mem_op *op)
+{
+	u8 buf[SFC_TUNING_ITEM_SIZE] = { 0 };
+	int ret;
+
+	if (sfc->tuning_item == SFC_TUNING_CHECK_ID) {
+		ret = rockchip_sfc_tuning_read_id(sfc, mem, buf, SFC_TUNING_ITEM_SIZE);
+		if (ret)
+			return -EIO;
+
+		dev_dbg(sfc->dev, "tuning read id %02x %02x %02x\n", buf[0], buf[1], buf[2]);
+		if (memcmp(sfc->tune_pattern, buf, SFC_TUNING_ITEM_SIZE))
+			return -EINVAL;
+	} else if (sfc->tuning_item == SFC_TUNING_CHECK_OCTAL_DATA) {
+		ret = rockchip_sfc_tuning_read_octal_data(sfc, mem, buf, SFC_TUNING_ITEM_SIZE, op);
+		if (ret)
+			return -EIO;
+
+		dev_dbg(sfc->dev, "tuning read data %02x %02x %02x\n", buf[0], buf[1], buf[2]);
+		if (memcmp(buf, SNOR_IDB_TAG_NS, SFC_TUNING_ITEM_SIZE) &&
+		    memcmp(buf, SNOR_IDB_TAG_SS, SFC_TUNING_ITEM_SIZE))
+			return -EINVAL;
+	} else {
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int rockchip_sfc_tuning_prepared(struct rockchip_sfc *sfc, struct spi_slave *mem,
+					const struct spi_mem_op *ref_op)
 {
 	struct dm_spi_slave_plat *plat = dev_get_parent_plat(mem->dev);
-	struct spi_mem_op op = SPI_MEM_OP(SPI_MEM_OP_CMD(0x9F, 1),
-						SPI_MEM_OP_NO_ADDR,
-						SPI_MEM_OP_NO_DUMMY,
-						SPI_MEM_OP_DATA_IN(3, NULL, 1));
-	u8 id[3], id_temp[3];
+	u8 cs = plat->cs[0];
+
+	if (ref_op->cmd.dtr) {
+		/* skip some invalid ref_op */
+		if (ref_op->dummy.nbytes < 0xa) {
+			rockchip_sfc_clk_set_rate(sfc, SFC_DLL_THRESHOLD_RATE);
+			return -EINVAL;
+		}
+		sfc->tuning_stage[cs] = SFC_TUNING_STAGE_DTR_HS;
+		sfc->tuning_item = SFC_TUNING_CHECK_OCTAL_DATA;
+	} else {
+		if (sfc->tuning_stage[cs] == SFC_TUNING_STAGE_SDR_HS)
+			return -EINVAL;
+
+		rockchip_sfc_clk_set_rate(sfc, SFC_DLL_THRESHOLD_RATE);
+		if (rockchip_sfc_tuning_read_id(sfc, mem, sfc->tune_pattern,
+						SFC_TUNING_ITEM_SIZE)) {
+			sfc->cur_speed = SFC_DLL_THRESHOLD_RATE;
+			sfc->speed[cs] = sfc->cur_speed;
+			return -EINVAL;
+		}
+		sfc->tuning_stage[cs] = SFC_TUNING_STAGE_SDR_HS;
+		sfc->tuning_item = SFC_TUNING_CHECK_ID;
+	}
+
+	return 0;
+}
+
+static void rockchip_sfc_tuning(struct rockchip_sfc *sfc, struct spi_slave *mem,
+				const struct spi_mem_op *ref_op)
+{
+	struct dm_spi_slave_plat *plat = dev_get_parent_plat(mem->dev);
 	u16 cell_max = (u16)rockchip_sfc_get_max_dll_cells(sfc);
-	u16 right, left = 0;
+	u16 right, left;
 	u16 step = SFC_DLL_TRANING_STEP;
 	bool dll_valid = false;
 	u8 cs = plat->cs[0];
+	u8 attempt;
 
-	rockchip_sfc_clk_set_rate(sfc, SFC_DLL_THRESHOLD_RATE);
-	op.data.buf.in = &id;
-	rockchip_sfc_exec_op_bypass(sfc, mem, &op);
-	if ((0xFF == id[0] && 0xFF == id[1]) ||
-	    (0x00 == id[0] && 0x00 == id[1])) {
-		dev_dbg(sfc->dev, "no dev, dll by pass\n");
-		rockchip_sfc_clk_set_rate(sfc, sfc->speed[cs]);
-		sfc->speed[cs] = SFC_DLL_THRESHOLD_RATE;
-
+	if (rockchip_sfc_tuning_prepared(sfc, mem, ref_op))
 		return;
-	}
 
-	rockchip_sfc_clk_set_rate(sfc, sfc->speed[cs]);
-	op.data.buf.in = &id_temp;
-	for (right = 0; right <= cell_max; right += step) {
-		int ret;
+	sfc->dll_cells[cs] = 0;
+	rockchip_sfc_clk_set_rate(sfc, sfc->cur_speed);
 
-		rockchip_sfc_set_delay_lines(sfc, right, cs);
-		rockchip_sfc_exec_op_bypass(sfc, mem, &op);
-		dev_dbg(sfc->dev, "dll read flash id:%x %x %x\n",
-			id_temp[0], id_temp[1], id_temp[2]);
+	for (attempt = 0; attempt < 2; attempt++) {
+		if (attempt == 0)
+			sfc->shift_phase = true;
+		else
+			sfc->shift_phase = false;
 
-		ret = memcmp(&id, &id_temp, 3);
-		if (dll_valid && ret) {
-			right -= step;
+		left = 0;
+		dll_valid = false;
+		for (right = 0; right <= cell_max; right += step) {
+			int ret;
 
+			rockchip_sfc_set_delay_lines(sfc, right, cs);
+			ret = rockchip_sfc_tuning_item(sfc, mem, ref_op);
+			if (dll_valid && ret) {
+				right -= step;
+
+				break;
+			}
+			if (!dll_valid && !ret)
+				left = right;
+
+			if (!ret)
+				dll_valid = true;
+
+			/* Add cell_max to loop */
+			if (right == cell_max)
+				break;
+			if (right + step > cell_max)
+				right = cell_max - step;
+		}
+
+		if (dll_valid && (right - left) >= SFC_DLL_TRANING_VALID_WINDOW) {
+			if (left == 0 && right < cell_max)
+				sfc->dll_cells[cs] = left + (right - left) * 2 / 5;
+			else
+				sfc->dll_cells[cs] = left + (right - left) / 2;
 			break;
 		}
-		if (!dll_valid && !ret)
-			left = right;
-
-		if (!ret)
-			dll_valid = true;
-
-		/* Add cell_max to loop */
-		if (right == cell_max)
-			break;
-		if (right + step > cell_max)
-			right = cell_max - step;
-	}
-
-	if (dll_valid && (right - left) >= SFC_DLL_TRANING_VALID_WINDOW) {
-		if (left == 0 && right < cell_max)
-			sfc->dll_cells[cs] = left + (right - left) * 2 / 5;
-		else
-			sfc->dll_cells[cs] = left + (right - left) / 2;
-	} else {
-		sfc->dll_cells[cs] = 0;
 	}
 
 	if (sfc->dll_cells[cs]) {
-		dev_dbg(sfc->dev, "%d %d %d dll training success in %dMHz max_cells=%u sfc_ver=%d\n",
-			left, right, sfc->dll_cells[cs], sfc->speed[cs],
-			rockchip_sfc_get_max_dll_cells(sfc), rockchip_sfc_get_version(sfc));
-		rockchip_sfc_set_delay_lines(sfc, (u16)sfc->dll_cells[cs], cs);
 #if defined(CONFIG_SPI_FLASH_AUTO_MERGE)
 		sfc->speed[1] = sfc->cur_speed;
 		sfc->dll_cells[1] = sfc->dll_cells[0];
 		rockchip_sfc_set_delay_lines(sfc, (u16)sfc->dll_cells[1], 1);
 #endif
 	} else {
-		dev_err(sfc->dev, "%d %d dll training failed in %dMHz, reduce the frequency\n",
-			left, right, sfc->speed[cs]);
-		rockchip_sfc_set_delay_lines(sfc, 0, cs);
 		rockchip_sfc_clk_set_rate(sfc, SFC_DLL_THRESHOLD_RATE);
 		sfc->cur_speed = SFC_DLL_THRESHOLD_RATE;
-		sfc->cur_real_speed = rockchip_sfc_clk_get_rate(sfc);
-		sfc->speed[cs] = SFC_DLL_THRESHOLD_RATE;
 	}
+
+	rockchip_sfc_set_delay_lines(sfc, (u16)sfc->dll_cells[cs], cs);
+	sfc->speed[cs] = sfc->cur_speed;
+
+	dev_err(sfc->dev, "tuning %s in %luMHz, {%d,%d,%d} s=%d cmd=%02x\n",
+		sfc->dll_cells[cs] ? "succeed" : "fail",
+		rockchip_sfc_clk_get_rate(sfc) / 1000000,
+		left, sfc->dll_cells[cs], right,
+		sfc->shift_phase, ref_op->cmd.opcode);
+}
+
+static bool rockchip_sfc_tuning_required(struct rockchip_sfc *sfc, struct spi_slave *mem, u8 cs)
+{
+	bool ret = false;
+
+	if (sfc->version < SFC_VER_4)
+		return false;
+
+	if (sfc->cur_speed <= SFC_DLL_THRESHOLD_RATE)
+		return false;
+
+	if (sfc->cur_speed != sfc->speed[cs])
+		return true;
+
+	if ((mem->mode & SPI_RX_OCTAL) && sfc->tuning_stage[cs] < SFC_TUNING_STAGE_DTR_HS)
+		return true;
+
+	return ret;
 }
 
 #endif
@@ -947,26 +1068,17 @@ static int rockchip_sfc_exec_op(struct spi_slave *mem,
 				const struct spi_mem_op *op)
 {
 	struct rockchip_sfc *sfc = dev_get_plat(mem->dev->parent);
-	struct dm_spi_slave_plat *plat = dev_get_parent_plat(mem->dev);
 	u32 len = min_t(u32, op->data.nbytes, sfc->max_iosize);
+	struct dm_spi_slave_plat *plat = dev_get_parent_plat(mem->dev);
+	u8 cs = plat->cs[0];
 	int ret;
 
 #if defined(CONFIG_SPI_FLASH_AUTO_MERGE)
 	plat->cs[0] = mem->auto_merge_cs_cur;
 #endif
 
-	if (rockchip_sfc_get_version(sfc) >= SFC_VER_4 &&
-	    sfc->cur_speed != sfc->speed[plat->cs[0]]) {
-		sfc->speed[plat->cs[0]] = sfc->cur_speed;
-#if CONFIG_IS_ENABLED(CLK)
-		if (sfc->cur_real_speed > rockchip_sfc_get_max_dll_threshold(sfc))
-			rockchip_sfc_delay_lines_tuning(sfc, mem);
-		else
-#endif
-			rockchip_sfc_set_delay_lines(sfc, 0, plat->cs[0]);
-		dev_dbg(sfc->dev, "set_freq=%dHz real_freq=%ldHz\n",
-			sfc->speed[plat->cs[0]], clk_get_rate(&sfc->clk));
-	}
+	if (rockchip_sfc_tuning_required(sfc, mem, cs))
+		rockchip_sfc_tuning(sfc, mem, op);
 
 	/* Wait for last async transfer finished */
 	if (sfc->last_async_size) {
@@ -1028,10 +1140,9 @@ static int rockchip_sfc_set_speed(struct udevice *bus, uint speed)
 		return ret;
 	}
 	sfc->cur_speed = speed;
-	sfc->cur_real_speed = rockchip_sfc_clk_get_rate(sfc);
 
-	dev_dbg(sfc->dev, "set_freq=%dHz real_freq=%dHz\n",
-		sfc->cur_speed, sfc->cur_real_speed);
+	dev_dbg(sfc->dev, "set_freq=%dHz speed=%dHz\n",
+		sfc->cur_speed, speed);
 #else
 	dev_dbg(sfc->dev, "sfc failed, CLK not support\n");
 #endif
