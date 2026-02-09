@@ -797,6 +797,10 @@ function clean_files()
 
 function pack_images()
 {
+	if grep -q '^CONFIG_SUPPORT_USBPLUG=y' .config ; then
+		exit 0
+	fi
+
 	if [ "${ARG_RAW_COMPILE}" != "y" ]; then
 		if [ "${PLAT_TYPE}" == "FIT" ]; then
 			pack_fit_image ${ARG_LIST_FIT}
