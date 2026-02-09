@@ -24,6 +24,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define CRU_PHPL_BASE			0xfd080000
 #define CRU_PHPL_GATE_CON01		0x804
 
+#define TOPCRU_BASE			0xfd000000
+#define TOPCRU_CLKSEL_CON33		0x384
+
 #define VO_GRF_BASE			0xfd170000
 #define SAI2ACODEC_CON2			0x8
 #define USBPHY_HOST_CON0		0x1C
@@ -258,6 +261,12 @@ int arch_cpu_init(void)
 	writel(0xc0000000, SGRF_FW_SYSMEM + SGRF_FW_SYSMEM_MST2_REG);
 	/* set fspi access DDR region0 */
 	writel(0x00010000, SGRF_FW_DDR + SGRF_FW_DDR_MST_FSPI_DIS_L);
+
+#else /* u-boot */
+#ifdef CONFIG_IRQ_TIMER_DUMP
+	/* change rk_timer0 from default 100m to 24m */
+	writel(0x08000800, TOPCRU_BASE + TOPCRU_CLKSEL_CON33);
+#endif
 #endif
 
 	return 0;
