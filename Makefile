@@ -2000,9 +2000,15 @@ prepare: prepare0
 # ---------------------------------------------------------------------------
 
 # Use sed to remove leading zeros from PATCHLEVEL to avoid using octal numbers
+ifeq ($(CONFIG_SUPPORT_USBPLUG),)
+LOADER_NAME = U-Boot
+else
+LOADER_NAME = USB-PLUG
+endif
+
 define filechk_version.h
 	(echo \#define PLAIN_VERSION \"$(UBOOTRELEASE)\"; \
-	echo \#define U_BOOT_VERSION \"U-Boot \" PLAIN_VERSION; \
+	echo \#define U_BOOT_VERSION \"$(LOADER_NAME) \" PLAIN_VERSION; \
 	if [ -n "$(PLAT_SPL_FW_VERSION)" ]; then \
 		echo \#define BUILD_SPL_TAG \"$(PLAT_SPL_FW_VERSION)\"; \
 	fi; \
