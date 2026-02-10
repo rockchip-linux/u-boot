@@ -14,7 +14,7 @@
 
 static LIST_HEAD(bp_disp_info_list);
 
-static union baseparameter_info bp_info;
+static union baseparameter_info *bp_info;
 
 enum baseparameter_version bp_version = RK_BASEPARAMETER_INVALID;
 
@@ -58,7 +58,7 @@ static int rockchip_baseparameter_disp_info_v1(int type)
 	int i = 0;
 
 	for (i = 0; i < BP_V1_SCREEN_INFO_ARRAY_SIZE; i++) {
-		if (bp_info.baseparameter_info_v1.main.screen_list[i].type == type) {
+		if (bp_info->baseparameter_info_v1.main.screen_list[i].type == type) {
 			printf("INFO: Screen info(MAIN) index[%d]: type[%d]\n", i, type);
 			return i;
 		}
@@ -67,7 +67,7 @@ static int rockchip_baseparameter_disp_info_v1(int type)
 	printf("INFO: try to match disp info in AUX partition\n");
 
 	for (i = 0; i < BP_V1_SCREEN_INFO_ARRAY_SIZE; i++) {
-		if (bp_info.baseparameter_info_v1.aux.screen_list[i].type == type) {
+		if (bp_info->baseparameter_info_v1.aux.screen_list[i].type == type) {
 			printf("INFO: Screen info(AUX) index[%d]: type[%d]\n", i, type);
 			return i + BP_V1_SCREEN_INFO_ARRAY_SIZE;
 		}
@@ -83,10 +83,10 @@ static int rockchip_baseparameter_disp_info_v2(u32 type, u32 id)
 	struct bp_disp_header *disp_header;
 	int i = 0, offset = -1;
 	u32 crc_val;
-	void *baseparameter_addr = (void *)&bp_info.baseparameter_info_v2;
+	void *baseparameter_addr = (void *)&bp_info->baseparameter_info_v2;
 
 	for (i = 0; i < BP_V2_DISP_INFO_ARRAY_SIZE; i++) {
-		disp_header = &bp_info.baseparameter_info_v2.disp_header[i];
+		disp_header = &bp_info->baseparameter_info_v2.disp_header[i];
 		if (disp_header->connector_type == type && disp_header->connector_id == id) {
 			printf("INFO: Disp info index[%d]: type[%d] id[%d]\n", i, type, id);
 			offset = disp_header->offset;
@@ -97,19 +97,19 @@ static int rockchip_baseparameter_disp_info_v2(u32 type, u32 id)
 		return -EINVAL;
 
 	for (i = 0; i < BP_V2_DISP_INFO_ARRAY_SIZE; i++) {
-		if (baseparameter_addr + offset == (void *)&bp_info.baseparameter_info_v2.disp_info[i])
+		if (baseparameter_addr + offset == (void *)&bp_info->baseparameter_info_v2.disp_info[i])
 			break;
 	}
 	if (i == BP_V2_DISP_INFO_ARRAY_SIZE)
 		return -EINVAL;
 
-	if (strncasecmp(bp_info.baseparameter_info_v2.disp_info[i].disp_head_flag, "DISP", 4))
+	if (strncasecmp(bp_info->baseparameter_info_v2.disp_info[i].disp_head_flag, "DISP", 4))
 		return -EINVAL;
 
-	crc_val = crc32(0, (unsigned char *)&bp_info.baseparameter_info_v2.disp_info[i],
-			sizeof(bp_info.baseparameter_info_v2.disp_info[i]) -
-			sizeof(bp_info.baseparameter_info_v2.disp_info[i].crc));
-	if (crc_val != bp_info.baseparameter_info_v2.disp_info[i].crc) {
+	crc_val = crc32(0, (unsigned char *)&bp_info->baseparameter_info_v2.disp_info[i],
+			sizeof(bp_info->baseparameter_info_v2.disp_info[i]) -
+			sizeof(bp_info->baseparameter_info_v2.disp_info[i].crc));
+	if (crc_val != bp_info->baseparameter_info_v2.disp_info[i].crc) {
 		pr_err("ERROR: Connector type[%d] id[%d] CRC mismatched\n", type, id);
 		return -EINVAL;
 	}
@@ -168,18 +168,18 @@ static int rockchip_baseparameter_screen_info_v1(uintptr_t conn_state_ptr, u32 t
 		return -EINVAL;
 
 	if (index < BP_V1_SCREEN_INFO_ARRAY_SIZE) {
-		screen_info->type = bp_info.baseparameter_info_v1.main.screen_list[index].type;
-		screen_info->mode = bp_info.baseparameter_info_v1.main.screen_list[index].mode;
-		screen_info->format = bp_info.baseparameter_info_v1.main.screen_list[index].format;
-		screen_info->depth = bp_info.baseparameter_info_v1.main.screen_list[index].depth;
-		screen_info->feature = bp_info.baseparameter_info_v1.main.screen_list[index].feature;
+		screen_info->type = bp_info->baseparameter_info_v1.main.screen_list[index].type;
+		screen_info->mode = bp_info->baseparameter_info_v1.main.screen_list[index].mode;
+		screen_info->format = bp_info->baseparameter_info_v1.main.screen_list[index].format;
+		screen_info->depth = bp_info->baseparameter_info_v1.main.screen_list[index].depth;
+		screen_info->feature = bp_info->baseparameter_info_v1.main.screen_list[index].feature;
 	} else {
 		index -= BP_V1_SCREEN_INFO_ARRAY_SIZE;
-		screen_info->type = bp_info.baseparameter_info_v1.aux.screen_list[index].type;
-		screen_info->mode = bp_info.baseparameter_info_v1.aux.screen_list[index].mode;
-		screen_info->format = bp_info.baseparameter_info_v1.aux.screen_list[index].format;
-		screen_info->depth = bp_info.baseparameter_info_v1.aux.screen_list[index].depth;
-		screen_info->feature = bp_info.baseparameter_info_v1.aux.screen_list[index].feature;
+		screen_info->type = bp_info->baseparameter_info_v1.aux.screen_list[index].type;
+		screen_info->mode = bp_info->baseparameter_info_v1.aux.screen_list[index].mode;
+		screen_info->format = bp_info->baseparameter_info_v1.aux.screen_list[index].format;
+		screen_info->depth = bp_info->baseparameter_info_v1.aux.screen_list[index].depth;
+		screen_info->feature = bp_info->baseparameter_info_v1.aux.screen_list[index].feature;
 	}
 
 	return 0;
@@ -196,8 +196,8 @@ static int rockchip_baseparameter_screen_info_v2(uintptr_t conn_state_ptr, u32 t
 		return -EINVAL;
 
 	for (i = 0; i < BP_V2_SCREEN_INFO_ARRAY_SIZE; i++) {
-		if (bp_info.baseparameter_info_v2.disp_info[index].screen_info[i].type == type ||
-		    bp_info.baseparameter_info_v2.disp_info[index].screen_info[i].id == id)
+		if (bp_info->baseparameter_info_v2.disp_info[index].screen_info[i].type == type ||
+		    bp_info->baseparameter_info_v2.disp_info[index].screen_info[i].id == id)
 			break;
 	}
 	if (i == BP_V2_SCREEN_INFO_ARRAY_SIZE) {
@@ -205,11 +205,11 @@ static int rockchip_baseparameter_screen_info_v2(uintptr_t conn_state_ptr, u32 t
 		return -EINVAL;
 	}
 
-	screen_info->type = bp_info.baseparameter_info_v2.disp_info[index].screen_info[i].type;
-	screen_info->mode = bp_info.baseparameter_info_v2.disp_info[index].screen_info[i].mode;
-	screen_info->format = bp_info.baseparameter_info_v2.disp_info[index].screen_info[i].format;
-	screen_info->depth = bp_info.baseparameter_info_v2.disp_info[index].screen_info[i].depth;
-	screen_info->feature = bp_info.baseparameter_info_v2.disp_info[index].screen_info[i].feature;
+	screen_info->type = bp_info->baseparameter_info_v2.disp_info[index].screen_info[i].type;
+	screen_info->mode = bp_info->baseparameter_info_v2.disp_info[index].screen_info[i].mode;
+	screen_info->format = bp_info->baseparameter_info_v2.disp_info[index].screen_info[i].format;
+	screen_info->depth = bp_info->baseparameter_info_v2.disp_info[index].screen_info[i].depth;
+	screen_info->feature = bp_info->baseparameter_info_v2.disp_info[index].screen_info[i].feature;
 
 	return 0;
 }
@@ -254,16 +254,16 @@ static int rockchip_baseparameter_csc_info_v2(uintptr_t conn_state_ptr,
 		return -EINVAL;
 	}
 
-	csc_info->hue = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_hue;
-	csc_info->saturation = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_saturation;
-	csc_info->contrast = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_contrast;
-	csc_info->r_gain = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_r_gain;
-	csc_info->g_gain = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_g_gain;
-	csc_info->b_gain = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_b_gain;
+	csc_info->hue = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_hue;
+	csc_info->saturation = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_saturation;
+	csc_info->contrast = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_contrast;
+	csc_info->r_gain = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_r_gain;
+	csc_info->g_gain = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_g_gain;
+	csc_info->b_gain = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_b_gain;
 	csc_info->r_offset = 0;
 	csc_info->g_offset = 0;
 	csc_info->b_offset = 0;
-	csc_info->csc_enable = bp_info.baseparameter_info_v2.pq_tuning_info.csc.csc_enable;
+	csc_info->csc_enable = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_enable;
 
 	return 0;
 }
@@ -296,10 +296,10 @@ static struct bp_gamma_lut_data *rockchip_baseparameter_gamma_lut_data_v2(uintpt
 	if (index < 0)
 		return NULL;
 
-	if (!bp_info.baseparameter_info_v2.disp_info[index].gamma_lut_data.size)
+	if (!bp_info->baseparameter_info_v2.disp_info[index].gamma_lut_data.size)
 		return NULL;
 
-	return &bp_info.baseparameter_info_v2.disp_info[index].gamma_lut_data;
+	return &bp_info->baseparameter_info_v2.disp_info[index].gamma_lut_data;
 }
 
 struct bp_gamma_lut_data *rockchip_baseparameter_gamma_lut_data_get(uintptr_t conn_state_ptr)
@@ -326,10 +326,10 @@ static struct bp_cubic_lut_data *rockchip_baseparameter_cubic_lut_data_v2(uintpt
 	if (index < 0)
 		return NULL;
 
-	if (!bp_info.baseparameter_info_v2.disp_info[index].cubic_lut_data.size)
+	if (!bp_info->baseparameter_info_v2.disp_info[index].cubic_lut_data.size)
 		return NULL;
 
-	return &bp_info.baseparameter_info_v2.disp_info[index].cubic_lut_data;
+	return &bp_info->baseparameter_info_v2.disp_info[index].cubic_lut_data;
 }
 
 struct bp_cubic_lut_data *rockchip_baseparameter_cubic_lut_data_get(uintptr_t conn_state_ptr)
@@ -356,7 +356,7 @@ static struct bp_bcsh_info *rockchip_baseparameter_bcsh_info_v2(uintptr_t conn_s
 	if (index < 0)
 		return NULL;
 
-	return &bp_info.baseparameter_info_v2.disp_info[index].bcsh_info;
+	return &bp_info->baseparameter_info_v2.disp_info[index].bcsh_info;
 }
 
 struct bp_bcsh_info *rockchip_baseparameter_bcsh_info_get(uintptr_t conn_state_ptr)
@@ -480,7 +480,7 @@ static int rockchip_baseparameter_acm_data_v2(uintptr_t conn_state_ptr, struct b
 		return -EINVAL;
 	}
 
-	rockchip_baseparameter_acm_info_to_acm_data(&bp_info.baseparameter_info_v2.pq_tuning_info.acm_info,
+	rockchip_baseparameter_acm_info_to_acm_data(&bp_info->baseparameter_info_v2.pq_tuning_info.acm_info,
 						    acm_data);
 
 	return 0;
@@ -514,7 +514,7 @@ static struct bp_overscan_info *rockchip_baseparameter_overscan_info_v2(uintptr_
 	if (index < 0)
 		return NULL;
 
-	return &bp_info.baseparameter_info_v2.disp_info[index].overscan_info;
+	return &bp_info->baseparameter_info_v2.disp_info[index].overscan_info;
 }
 
 struct bp_overscan_info *rockchip_baseparameter_overscan_info_get(uintptr_t conn_state_ptr)
@@ -567,7 +567,7 @@ static int rockchip_baseparameter_get_v1(struct blk_desc *dev_desc,
 	u8 *baseparameter_buf;
 	int ret;
 
-	block_num = BLOCK_CNT(sizeof(bp_info.baseparameter_info_v1.main), dev_desc);
+	block_num = BLOCK_CNT(sizeof(bp_info->baseparameter_info_v1.main), dev_desc);
 	baseparameter_buf = memalign(ARCH_DMA_MINALIGN, block_num * dev_desc->blksz);
 	if (!baseparameter_buf) {
 		pr_err("ERROR: Failed to alloc memory for baseparameter buffer\n");
@@ -581,13 +581,13 @@ static int rockchip_baseparameter_get_v1(struct blk_desc *dev_desc,
 		pr_err("ERROR: Failed to read baseparameter MAIN partition\n");
 		goto out;
 	}
-	memcpy(&bp_info.baseparameter_info_v1.main, baseparameter_buf,
-	       sizeof(bp_info.baseparameter_info_v1.main));
+	memcpy(&bp_info->baseparameter_info_v1.main, baseparameter_buf,
+	       sizeof(bp_info->baseparameter_info_v1.main));
 
 	memset(baseparameter_buf, 0, block_num * RK_BLK_SIZE);
 
 	/* Parse AUX partition */
-	block_num = BLOCK_CNT(sizeof(bp_info.baseparameter_info_v1.aux), dev_desc);
+	block_num = BLOCK_CNT(sizeof(bp_info->baseparameter_info_v1.aux), dev_desc);
 	blks_read = blk_dread(dev_desc,
 			      part_info->start + BLOCK_CNT(BP_V1_DISP_INFO_BLK_SIZE, dev_desc),
 			      block_num, (void *)baseparameter_buf);
@@ -596,8 +596,8 @@ static int rockchip_baseparameter_get_v1(struct blk_desc *dev_desc,
 		pr_err("ERROR: Failed to read baseparameter AUX partition\n");
 		goto out;
 	}
-	memcpy(&bp_info.baseparameter_info_v1.aux, baseparameter_buf,
-	       sizeof(bp_info.baseparameter_info_v1.aux));
+	memcpy(&bp_info->baseparameter_info_v1.aux, baseparameter_buf,
+	       sizeof(bp_info->baseparameter_info_v1.aux));
 
 out:
 	free(baseparameter_buf);
@@ -612,7 +612,7 @@ static int rockchip_baseparameter_get_v2(struct blk_desc *dev_desc,
 	u8 *baseparameter_buf;
 	int ret;
 
-	block_num = BLOCK_CNT(sizeof(bp_info.baseparameter_info_v2), dev_desc);
+	block_num = BLOCK_CNT(sizeof(bp_info->baseparameter_info_v2), dev_desc);
 	baseparameter_buf = memalign(ARCH_DMA_MINALIGN, block_num * dev_desc->blksz);
 	if (!baseparameter_buf) {
 		pr_err("ERROR: Failed to alloc memory for baseparameter buffer\n");
@@ -626,11 +626,11 @@ static int rockchip_baseparameter_get_v2(struct blk_desc *dev_desc,
 		goto out;
 	}
 
-	memcpy(&bp_info.baseparameter_info_v2, baseparameter_buf,
-	       sizeof(bp_info.baseparameter_info_v2));
-	if (bp_info.baseparameter_info_v2.major_version != 2 ||
-	    strncasecmp(bp_info.baseparameter_info_v2.head_flag, "BASP", 4)) {
-		memset(&bp_info.baseparameter_info_v2, 0, sizeof(bp_info.baseparameter_info_v2));
+	memcpy(&bp_info->baseparameter_info_v2, baseparameter_buf,
+	       sizeof(bp_info->baseparameter_info_v2));
+	if (bp_info->baseparameter_info_v2.major_version != 2 ||
+	    strncasecmp(bp_info->baseparameter_info_v2.head_flag, "BASP", 4)) {
+		memset(&bp_info->baseparameter_info_v2, 0, sizeof(bp_info->baseparameter_info_v2));
 		ret = -EOPNOTSUPP;
 	}
 
@@ -645,9 +645,9 @@ static int rockchip_baseparameter_get(struct blk_desc *dev_desc, struct disk_par
 
 	ret = rockchip_baseparameter_get_v2(dev_desc, part_info);
 	if (!ret) {
-		if (bp_info.baseparameter_info_v2.minor_version == 0)
+		if (bp_info->baseparameter_info_v2.minor_version == 0)
 			bp_version = RK_BASEPARAMETER_V2_0;
-		else if (bp_info.baseparameter_info_v2.minor_version == 1)
+		else if (bp_info->baseparameter_info_v2.minor_version == 1)
 			bp_version = RK_BASEPARAMETER_V2_1;
 	} else if (ret == -EOPNOTSUPP) {
 		ret = rockchip_baseparameter_get_v1(dev_desc, part_info);
@@ -673,6 +673,12 @@ int rockchip_baseparameter_init(void)
 	if (part_get_info_by_name(dev_desc, "baseparameter", &part_info) < 0) {
 		pr_err("ERROR: Failed to find baseparameter partition\n");
 		return -ENOENT;
+	}
+
+	bp_info = calloc(1, sizeof(union baseparameter_info));
+	if (!bp_info) {
+		pr_err("ERROR: Failed to alloc memory for baseparameter\n");
+		return -ENOMEM;
 	}
 
 	ret = rockchip_baseparameter_get(dev_desc, &part_info);

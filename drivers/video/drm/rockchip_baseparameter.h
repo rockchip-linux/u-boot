@@ -278,7 +278,7 @@ union baseparameter_info {
 				enum bp_output_depth depth;	/* 4 bytes */
 				u32 feature;
 			} screen_list[BP_V1_SCREEN_INFO_ARRAY_SIZE];
-			struct bp_overscan_info overscan_info;		/* 12 bytes */
+			struct bp_overscan_info overscan_info;	/* 12 bytes */
 			struct bp_hwc_initial_info hwc_info;	/* 140 bytes */
 			struct bp_bcsh_info bcsh_info;
 			char reserve[512];
@@ -292,7 +292,7 @@ union baseparameter_info {
 				enum bp_output_depth depth;	/* 4 bytes */
 				u32 feature;
 			} screen_list[BP_V1_SCREEN_INFO_ARRAY_SIZE];
-			struct bp_overscan_info overscan_info;		/* 12 bytes */
+			struct bp_overscan_info overscan_info;	/* 12 bytes */
 			struct bp_hwc_initial_info hwc_info;	/* 140 bytes */
 			struct bp_bcsh_info bcsh_info;
 			char reserve[512];
@@ -336,7 +336,7 @@ union baseparameter_info {
 				u32 csc_r_gain;
 				u32 csc_g_gain;
 				u32 csc_b_gain;
-			} csc;
+			} csc_info;
 			struct bp_dci_info dci_info;
 			struct bp_acm_info acm_info;
 			struct bp_gamma_lut_data gamma_lut_data;
