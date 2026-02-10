@@ -201,7 +201,7 @@ void board_set_iomux(enum uclass_id uclass, int devnum, int routing)
 			writel(0xffff2020, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1B_IOMUX_SEL_0);
 #if defined(CONFIG_ROCKCHIP_SFC_OCTAL_SETTING) || defined(CONFIG_SUPPORT_USBPLUG)
 			writel(0xffff2222, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1A_IOMUX_SEL_1);
-			writel(0x0f0f0202, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1B_IOMUX_SEL_0);
+			writel(0x0f0f0203, VCCIO0_3_IOC_BASE + VCCIO0_IOC_GPIO1B_IOMUX_SEL_0);
 #endif
 		} else if (routing == 1) {
 			/* FSPI1 M0 */
