@@ -104,7 +104,8 @@ struct rockchip_ebook_display_priv {
 	struct udevice *regulator_dev;
 	struct udevice *thermal_dev;
 	int vcom;
-	struct udevice *backlight;
+	struct udevice *backlight0;
+	struct udevice *backlight1;
 };
 
 enum {
@@ -721,8 +722,10 @@ static int rockchip_ebook_show_logo(int cur_logo_type, int update_mode)
 	      (u32)((ulong)last_logo_addr), (u32)((ulong)logo_addr), ffs(cur_logo_type));
 	ebook_display(dev, last_logo_addr, logo_addr, WF_TYPE_GC16, update_mode);
 
-	if (priv->backlight)
-		backlight_enable(priv->backlight);
+	if (priv->backlight0)
+		backlight_enable(priv->backlight0);
+	if (priv->backlight1)
+		backlight_enable(priv->backlight1);
 
 	last_logo_type = cur_logo_type;
 
@@ -870,10 +873,17 @@ static int rockchip_ebook_display_probe(struct udevice *dev)
 		goto out;
 	}
 
-	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
-					   "backlight", &priv->backlight);
-	if (ret && ret != -ENOENT) {
-		printf("%s: Cannot get backlight: %d\n", __func__, ret);
+	list = dev_read_prop(dev, "backlight", &size);
+	if (!list) {
+		dev_warn(dev, "No backlight\n");
+	} else {
+		size /= sizeof(*list);
+		phandle = fdt32_to_cpu(*list++);
+		ret = uclass_get_device_by_phandle_id(UCLASS_PANEL_BACKLIGHT, phandle, &priv->backlight0);
+		if (size > 1) {
+			phandle = fdt32_to_cpu(*list);
+			ret = uclass_get_device_by_phandle_id(UCLASS_PANEL_BACKLIGHT, phandle, &priv->backlight1);
+		}
 	}
 
 	if (priv->ebc_pwr_dev)
