@@ -24,8 +24,25 @@ DECLARE_GLOBAL_DATA_PTR;
 #define SYS_GRF_BASE			0x26010000
 #define SYS_GRF_SOC_CON10		0x0028
 
+#define BIGCORE_GRF_BASE			0x26012000
+#define BIGCORE_GRF_CPU_CON1			0x0038
+#define BIGCORE_GRF_CPU_MEM_CFG_HDSPRF		0x0040
+#define BIGCORE_GRF_CPU_MEM_CFG_HSSPRF_LOW	0x0044
+
+#define LITCORE0_GRF_BASE			0x26014000
+#define LITCORE0_GRF_CPU_CON1			0x0038
+#define LITCORE0_GRF_CPU_MEM_CFG_HDSPRF		0x0040
+#define LITCORE0_GRF_CPU_MEM_CFG_HSSPRF_LOW	0x0044
+
+#define LITCORE1_GRF_BASE			0x26016000
+#define LITCORE1_GRF_CPU_CON1			0x0038
+#define LITCORE1_GRF_CPU_MEM_CFG_HDSPRF		0x0040
+#define LITCORE1_GRF_CPU_MEM_CFG_HSSPRF_LOW	0x0044
+
 #define CCI_GRF_BASE			0x26018000
-#define CCI_GGRF_CCI_CON1		0x0004
+#define CCI_GRF_CCI_CON0		0x0000
+#define CCI_GRF_CCI_CON1		0x0004
+#define CCI_GRF_CCI_MEM_CFG_HDSPRF	0x0054
 
 #define PHPPHY_CRU_BASE			0x26098000
 #define PHPPHY_CRU_PPLL_CON1		0x204
@@ -244,7 +261,28 @@ int arch_cpu_init(void)
 	 * to 0(normal response) to CPU, so NOC timeout can capture
 	 * it and print a log in the irq for debugging purpose.
 	 */
-	writel(0x10001, CCI_GRF_BASE + CCI_GGRF_CCI_CON1);
+	writel(0x10001, CCI_GRF_BASE + CCI_GRF_CCI_CON1);
+
+	/*
+	 * The default read margin (RM) value is 4, and the CPU startup
+	 * voltage is 850mV. Set RM value to 2 provides the optimal read
+	 * margin for this voltage level.
+	 */
+	/* Set litcore0 RM to 2 */
+	writel(0x00010001, LITCORE0_GRF_BASE + LITCORE0_GRF_CPU_CON1);
+	writel(0x001c0008, LITCORE0_GRF_BASE + LITCORE0_GRF_CPU_MEM_CFG_HDSPRF);
+	writel(0x001c0008, LITCORE0_GRF_BASE + LITCORE0_GRF_CPU_MEM_CFG_HSSPRF_LOW);
+	/* Set litcore1 RM to 2 */
+	writel(0x00010001, LITCORE1_GRF_BASE + LITCORE1_GRF_CPU_CON1);
+	writel(0x001c0008, LITCORE1_GRF_BASE + LITCORE1_GRF_CPU_MEM_CFG_HDSPRF);
+	writel(0x001c0008, LITCORE1_GRF_BASE + LITCORE1_GRF_CPU_MEM_CFG_HSSPRF_LOW);
+	/* Set cci RM to 2 */
+	writel(0x40004000, CCI_GRF_BASE + CCI_GRF_CCI_CON0);
+	writel(0x001c0008, CCI_GRF_BASE + CCI_GRF_CCI_MEM_CFG_HDSPRF);
+	/* Set bigcore RM to 2 */
+	writel(0x00010001, BIGCORE_GRF_BASE + BIGCORE_GRF_CPU_CON1);
+	writel(0x001c0008, BIGCORE_GRF_BASE + BIGCORE_GRF_CPU_MEM_CFG_HDSPRF);
+	writel(0x001c0008, BIGCORE_GRF_BASE + BIGCORE_GRF_CPU_MEM_CFG_HSSPRF_LOW);
 
 	/*
 	 * Assert reset the combphy0_psu, combphy1_psu, and combphy2_ps,
