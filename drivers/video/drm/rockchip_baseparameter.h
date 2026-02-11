@@ -42,10 +42,39 @@
 #define RESOLUTION_WHITE_EN	BIT(3)
 #define ALLM_EN			BIT(4)
 
+/*
+ * Revision History
+ * ---------------------------------------------------------------------
+ * v1.0:
+ *   The basic version compatible with VOP v1.0.
+ * ---------------------------------------------------------------------
+ * v2.0:
+ *   The basic version compatible with VOP v2.0.
+ * ---------------------------------------------------------------------
+ * v2.1:
+ *   Add the PQ-related structures: struct pq_tuning_info, struct
+ *   pq_factory_info, struct pq_sharp_info and struct aipq_info.
+ * ---------------------------------------------------------------------
+ * v3.0:
+ *   1.Move PQ-related structs added in V2.1 into struct disp_info to
+ *     extend multi-channel PQ feature:
+ *      - Merge struct pq_tuning_info/struct pq_factory_info into struct
+ *        disp_info.
+ *      - Merge struct pq_sharp_info and struct aipq_info into struct
+ *        pq_tuning_info.
+ *   2.Remove redundant reserved array from struct disp_info.
+ *   3.Add u32 reserved_offset in struct disp_info to indicate address
+ *     offset of reserved space.
+ *   4.Add csc_r_offset/csc_g_offset/csc_b_offset parameters in struct
+ *     csc_info.
+ *   5.Add ALLM_EN option to feature parameter in struct screen_info.
+ * ---------------------------------------------------------------------
+ */
 enum baseparameter_version {
 	RK_BASEPARAMETER_V1_0 = 1,
 	RK_BASEPARAMETER_V2_0,
 	RK_BASEPARAMETER_V2_1,
+	RK_BASEPARAMETER_V3_0,
 	RK_BASEPARAMETER_INVALID,
 };
 
@@ -305,6 +334,16 @@ struct bp_pq_tuning_info_v2 {
 	u32 crc;
 };
 
+struct bp_pq_tuning_info_v3 {
+	struct bp_csc_info_v2 csc_info;
+	struct bp_dci_info dci_info;
+	struct bp_acm_info acm_info;
+	struct bp_gamma_lut_data gamma_lut_data;
+	struct bp_pq_sharp_info pq_sharp_info;
+	struct bp_aipq_info aipq_info;
+	u32 crc;
+};
+
 struct bp_disp_info_v1 {
 	struct bp_screen_info_v1 screen_info[BP_V1_SCREEN_INFO_ARRAY_SIZE];
 	struct bp_overscan_info overscan_info;	/* 12 bytes */
@@ -323,6 +362,19 @@ struct bp_disp_info_v2 {
 	struct bp_cubic_lut_data cubic_lut_data;
 	struct bp_framebuffer_info framebuffer_info;
 	u32 reserved[244];
+	u32 crc;
+};
+
+struct bp_disp_info_v3 {
+	char disp_head_flag[6];
+	struct bp_screen_info_v2 screen_info[BP_V2_SCREEN_INFO_ARRAY_SIZE];
+	struct bp_bcsh_info bcsh_info;
+	struct bp_overscan_info overscan_info;
+	struct bp_gamma_lut_data gamma_lut_data;
+	struct bp_cubic_lut_data cubic_lut_data;
+	struct bp_framebuffer_info framebuffer_info;
+	struct bp_pq_tuning_info_v3 pq_tuning_info;
+	struct bp_pq_factory_info pq_factory_info;
 	u32 crc;
 };
 
@@ -345,9 +397,20 @@ struct baseparameter_info_v2 {
 	struct bp_aipq_info aipq_info;
 };
 
+struct baseparameter_info_v3 {
+	char head_flag[4];
+	u16 major_version;
+	u16 minor_version;
+	u8 disp_num;
+	u32 reserved_offset;
+	struct bp_disp_header *disp_header;
+	struct bp_disp_info_v3 *disp_info;
+};
+
 union baseparameter_info {
 	struct baseparameter_info_v1 baseparameter_info_v1;
 	struct baseparameter_info_v2 baseparameter_info_v2;
+	struct baseparameter_info_v3 baseparameter_info_v3;
 };
 
 void rockchip_baseparameter_select_mode(struct hdmi_edid_data *edid_data,
