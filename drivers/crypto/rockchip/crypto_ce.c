@@ -1133,16 +1133,24 @@ static int rk_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_len,
 {
 	struct mpa_num *mpa_m = NULL, *mpa_e = NULL;;
 	struct mpa_num *mpa_n = NULL, *mpa_result = NULL;
+	struct mpa_num *mpa_c = NULL;
 	u32 n_words, n_bytes;
+	int use_rk_key = 0;
 	int ret;
 
 	if (!dev || !sig || !prop || !out || sig_len != prop->num_bits / 8)
 		return -EINVAL;
 
+	/*
+	 * use_rk_key = 1 means data from rockchip signing tool, which is already
+	 * in little-endian format, can be directly used by rk mpa.
+	 */
+	use_rk_key = !!(prop->rsa_key);
+
 	n_words = prop->num_bits / 32;
 	n_bytes = prop->num_bits / 8;
 
-	ret = rk_mpa_alloc(&mpa_m, (void *)sig, n_words);
+	ret = rk_mpa_alloc(&mpa_m, NULL, n_words);
 	if (ret)
 		goto exit;
 
@@ -1150,7 +1158,7 @@ static int rk_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_len,
 	if (ret)
 		goto exit;
 
-	ret = rk_mpa_alloc(&mpa_n, (void *)prop->modulus, n_words);
+	ret = rk_mpa_alloc(&mpa_n, NULL, n_words);
 	if (ret)
 		goto exit;
 
@@ -1158,22 +1166,41 @@ static int rk_mod_exp(struct udevice *dev, const uint8_t *sig, uint32_t sig_len,
 	if (ret)
 		goto exit;
 
+	if (prop->rsa_key && prop->rsa_key->c) {
+		ret = rk_mpa_alloc(&mpa_c, prop->rsa_key->c, n_words);
+		if (ret)
+			goto exit;
+	}
+
 	/* mpa need little endian data */
-	util_reverse_buff((void *)mpa_m->d, n_bytes);
-	util_reverse_buff((void *)mpa_n->d, n_bytes);
-	util_reverse_memcpy((void *)mpa_e->d, prop->public_exponent, prop->exp_len);
+	if (use_rk_key) {
+		memcpy((void *)mpa_m->d, sig, n_bytes);
+		memcpy((void *)mpa_n->d, prop->rsa_key->n, n_bytes);
+		memcpy((void *)mpa_e->d, prop->rsa_key->e, n_bytes);
+
+	} else {
+		util_reverse_memcpy((void *)mpa_m->d, sig, n_bytes);
+		util_reverse_memcpy((void *)mpa_n->d, prop->modulus, n_bytes);
+		util_reverse_memcpy((void *)mpa_e->d, prop->public_exponent, prop->exp_len);
+	}
 
 	rk_crypto_enable_clk(dev);
-	ret = rk_exptmod_np(mpa_m, mpa_e, mpa_n, NULL, mpa_result);
-	if (!ret)
-		util_reverse_memcpy(out, (void *)mpa_result->d, n_bytes);
-
+	ret = rk_exptmod_np(mpa_m, mpa_e, mpa_n, mpa_c, mpa_result);
 	rk_crypto_disable_clk(dev);
+
+	if (ret)
+		goto exit;
+
+	if (use_rk_key)
+		memcpy(out, mpa_result->d, n_bytes);
+	else
+		util_reverse_memcpy(out, (void *)mpa_result->d, n_bytes);
 
 exit:
 	rk_mpa_free(&mpa_m);
 	rk_mpa_free(&mpa_e);
 	rk_mpa_free(&mpa_n);
+	rk_mpa_free(&mpa_c);
 	rk_mpa_free(&mpa_result);
 
 	return ret;
