@@ -820,7 +820,7 @@ static int fit_handle_file(struct image_tool_params *params)
 	 * would be considerably more complex to implement. Generally a few
 	 * steps of this loop is enough to sign with several keys.
 	 */
-	for (size_inc = 0; size_inc < 64 * 1024; size_inc += 1024) {
+	for (size_inc = 0; size_inc < 64 * 1024; size_inc += 4096) {
 		if (copyfile(bakfile, tmpfile) < 0) {
 			printf("Can't copy %s to %s\n", bakfile, tmpfile);
 			ret = -EIO;
