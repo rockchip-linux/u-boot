@@ -268,84 +268,86 @@ struct bp_aipq_info {
 	u32 crc;
 };
 
+struct bp_screen_info_v1 {
+	u32 type;
+	struct bp_display_mode mode;	/* 52 bytes */
+	enum bp_output_format format;	/* 4 bytes */
+	enum bp_output_depth depth;	/* 4 bytes */
+	u32 feature;
+};
+
+struct bp_screen_info_v2 {
+	u32 type;
+	u32 id;
+	struct bp_display_mode mode;
+	enum bp_output_format format;
+	enum bp_output_depth depth;
+	u32 feature;
+};
+
+struct bp_csc_info_v2 {
+	bool csc_enable;
+	enum bp_csc_mode mode;
+	u32 csc_brightness;
+	u32 csc_contrast;
+	u32 csc_saturation;
+	u32 csc_hue;
+	u32 csc_r_gain;
+	u32 csc_g_gain;
+	u32 csc_b_gain;
+};
+
+struct bp_pq_tuning_info_v2 {
+	struct bp_csc_info_v2 csc_info;
+	struct bp_dci_info dci_info;
+	struct bp_acm_info acm_info;
+	struct bp_gamma_lut_data gamma_lut_data;
+	u32 crc;
+};
+
+struct bp_disp_info_v1 {
+	struct bp_screen_info_v1 screen_info[BP_V1_SCREEN_INFO_ARRAY_SIZE];
+	struct bp_overscan_info overscan_info;	/* 12 bytes */
+	struct bp_hwc_initial_info hwc_info;	/* 140 bytes */
+	struct bp_bcsh_info bcsh_info;
+	char reserve[512];
+	struct bp_lut_data mlutdata;		/* (6k + 2) bytes */
+};
+
+struct bp_disp_info_v2 {
+	char disp_head_flag[6];
+	struct bp_screen_info_v2 screen_info[BP_V2_SCREEN_INFO_ARRAY_SIZE];
+	struct bp_bcsh_info bcsh_info;
+	struct bp_overscan_info overscan_info;
+	struct bp_gamma_lut_data gamma_lut_data;
+	struct bp_cubic_lut_data cubic_lut_data;
+	struct bp_framebuffer_info framebuffer_info;
+	u32 reserved[244];
+	u32 crc;
+};
+
+struct baseparameter_info_v1 {
+	struct bp_disp_info_v1 main;
+	struct bp_disp_info_v1 aux;
+};
+
+struct baseparameter_info_v2 {
+	char head_flag[4];
+	u16 major_version;
+	u16 minor_version;
+	struct bp_disp_header disp_header[BP_V2_DISP_INFO_ARRAY_SIZE];
+	struct bp_disp_info_v2 disp_info[BP_V2_DISP_INFO_ARRAY_SIZE];
+
+	/* Added in v2.1 */
+	struct bp_pq_tuning_info_v2 pq_tuning_info;
+	struct bp_pq_factory_info pq_factory_info;
+	struct bp_pq_sharp_info pq_sharp_info;
+	struct bp_aipq_info aipq_info;
+};
+
 union baseparameter_info {
-	struct {
-		struct {
-			struct{
-				u32 type;
-				struct bp_display_mode mode;	/* 52 bytes */
-				enum bp_output_format format;	/* 4 bytes */
-				enum bp_output_depth depth;	/* 4 bytes */
-				u32 feature;
-			} screen_list[BP_V1_SCREEN_INFO_ARRAY_SIZE];
-			struct bp_overscan_info overscan_info;	/* 12 bytes */
-			struct bp_hwc_initial_info hwc_info;	/* 140 bytes */
-			struct bp_bcsh_info bcsh_info;
-			char reserve[512];
-			struct bp_lut_data mlutdata;		/* (6k + 2) bytes */
-		} main;
-		struct {
-			struct{
-				u32 type;
-				struct bp_display_mode mode;	/* 52 bytes */
-				enum bp_output_format format;	/* 4 bytes */
-				enum bp_output_depth depth;	/* 4 bytes */
-				u32 feature;
-			} screen_list[BP_V1_SCREEN_INFO_ARRAY_SIZE];
-			struct bp_overscan_info overscan_info;	/* 12 bytes */
-			struct bp_hwc_initial_info hwc_info;	/* 140 bytes */
-			struct bp_bcsh_info bcsh_info;
-			char reserve[512];
-			struct bp_lut_data mlutdata;		/* (6k + 2) bytes */
-		} aux;
-	} baseparameter_info_v1;
-
-	struct {
-		char head_flag[4];
-		u16 major_version;
-		u16 minor_version;
-		struct bp_disp_header disp_header[BP_V2_DISP_INFO_ARRAY_SIZE];
-		struct {
-			char disp_head_flag[6];
-			struct {
-				u32 type;
-				u32 id;
-				struct bp_display_mode mode;
-				enum bp_output_format format;
-				enum bp_output_depth depth;
-				u32 feature;
-			} screen_info[BP_V2_SCREEN_INFO_ARRAY_SIZE];
-			struct bp_bcsh_info bcsh_info;
-			struct bp_overscan_info overscan_info;
-			struct bp_gamma_lut_data gamma_lut_data;
-			struct bp_cubic_lut_data cubic_lut_data;
-			struct bp_framebuffer_info framebuffer_info;
-			u32 reserved[244];
-			u32 crc;
-		} disp_info[BP_V2_DISP_INFO_ARRAY_SIZE];
-
-		/* Added in v2.1 */
-		struct {
-			struct {
-				bool csc_enable;
-				enum bp_csc_mode mode;
-				u32 csc_brightness;
-				u32 csc_contrast;
-				u32 csc_saturation;
-				u32 csc_hue;
-				u32 csc_r_gain;
-				u32 csc_g_gain;
-				u32 csc_b_gain;
-			} csc_info;
-			struct bp_dci_info dci_info;
-			struct bp_acm_info acm_info;
-			struct bp_gamma_lut_data gamma_lut_data;
-			u32 crc;
-		} pq_tuning_info;
-		struct bp_pq_factory_info pq_factory_info;
-		struct bp_pq_sharp_info pq_sharp_info;
-		struct bp_aipq_info aipq_info;
-	} baseparameter_info_v2;
+	struct baseparameter_info_v1 baseparameter_info_v1;
+	struct baseparameter_info_v2 baseparameter_info_v2;
 };
 
 void rockchip_baseparameter_select_mode(struct hdmi_edid_data *edid_data,

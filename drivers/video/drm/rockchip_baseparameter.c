@@ -58,7 +58,7 @@ static int rockchip_baseparameter_disp_info_v1(int type)
 	int i = 0;
 
 	for (i = 0; i < BP_V1_SCREEN_INFO_ARRAY_SIZE; i++) {
-		if (bp_info->baseparameter_info_v1.main.screen_list[i].type == type) {
+		if (bp_info->baseparameter_info_v1.main.screen_info[i].type == type) {
 			printf("INFO: Screen info(MAIN) index[%d]: type[%d]\n", i, type);
 			return i;
 		}
@@ -67,7 +67,7 @@ static int rockchip_baseparameter_disp_info_v1(int type)
 	printf("INFO: try to match disp info in AUX partition\n");
 
 	for (i = 0; i < BP_V1_SCREEN_INFO_ARRAY_SIZE; i++) {
-		if (bp_info->baseparameter_info_v1.aux.screen_list[i].type == type) {
+		if (bp_info->baseparameter_info_v1.aux.screen_info[i].type == type) {
 			printf("INFO: Screen info(AUX) index[%d]: type[%d]\n", i, type);
 			return i + BP_V1_SCREEN_INFO_ARRAY_SIZE;
 		}
@@ -168,18 +168,18 @@ static int rockchip_baseparameter_screen_info_v1(uintptr_t conn_state_ptr, u32 t
 		return -EINVAL;
 
 	if (index < BP_V1_SCREEN_INFO_ARRAY_SIZE) {
-		screen_info->type = bp_info->baseparameter_info_v1.main.screen_list[index].type;
-		screen_info->mode = bp_info->baseparameter_info_v1.main.screen_list[index].mode;
-		screen_info->format = bp_info->baseparameter_info_v1.main.screen_list[index].format;
-		screen_info->depth = bp_info->baseparameter_info_v1.main.screen_list[index].depth;
-		screen_info->feature = bp_info->baseparameter_info_v1.main.screen_list[index].feature;
+		screen_info->type = bp_info->baseparameter_info_v1.main.screen_info[index].type;
+		screen_info->mode = bp_info->baseparameter_info_v1.main.screen_info[index].mode;
+		screen_info->format = bp_info->baseparameter_info_v1.main.screen_info[index].format;
+		screen_info->depth = bp_info->baseparameter_info_v1.main.screen_info[index].depth;
+		screen_info->feature = bp_info->baseparameter_info_v1.main.screen_info[index].feature;
 	} else {
 		index -= BP_V1_SCREEN_INFO_ARRAY_SIZE;
-		screen_info->type = bp_info->baseparameter_info_v1.aux.screen_list[index].type;
-		screen_info->mode = bp_info->baseparameter_info_v1.aux.screen_list[index].mode;
-		screen_info->format = bp_info->baseparameter_info_v1.aux.screen_list[index].format;
-		screen_info->depth = bp_info->baseparameter_info_v1.aux.screen_list[index].depth;
-		screen_info->feature = bp_info->baseparameter_info_v1.aux.screen_list[index].feature;
+		screen_info->type = bp_info->baseparameter_info_v1.aux.screen_info[index].type;
+		screen_info->mode = bp_info->baseparameter_info_v1.aux.screen_info[index].mode;
+		screen_info->format = bp_info->baseparameter_info_v1.aux.screen_info[index].format;
+		screen_info->depth = bp_info->baseparameter_info_v1.aux.screen_info[index].depth;
+		screen_info->feature = bp_info->baseparameter_info_v1.aux.screen_info[index].feature;
 	}
 
 	return 0;
