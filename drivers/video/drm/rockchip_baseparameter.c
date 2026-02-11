@@ -16,7 +16,21 @@ static LIST_HEAD(bp_disp_info_list);
 
 static union baseparameter_info *bp_info;
 
-enum baseparameter_version bp_version = RK_BASEPARAMETER_INVALID;
+static enum baseparameter_version bp_version = RK_BASEPARAMETER_INVALID;
+
+struct baseparameter_handler {
+	const char *version_name;
+	bool (*version_check)(void);
+	int (*disp_info_init)(u32 type, u32 id);
+	int (*get_screen_info)(uintptr_t conn_state_ptr, u32 type, u32 id,
+			       struct bp_screen_info *screen_info);
+	int (*get_csc_info)(uintptr_t conn_state_ptr, struct bp_csc_info *csc_info);
+	int (*get_acm_data)(uintptr_t conn_state_ptr, struct bp_acm_data *acm_data);
+	struct bp_gamma_lut_data *(*get_gamma_lut_data)(uintptr_t conn_state_ptr);
+	struct bp_cubic_lut_data *(*get_cubic_lut_data)(uintptr_t conn_state_ptr);
+	struct bp_bcsh_info *(*get_bcsh_info)(uintptr_t conn_state_ptr);
+	struct bp_overscan_info *(*get_overscan_info)(uintptr_t conn_state_ptr);
+};
 
 struct bp_disp_info_iter {
 	struct list_head head;
@@ -43,6 +57,18 @@ static void drm_display_mode_from_bp_display_mode(struct drm_display_mode *mode,
 	mode->picture_aspect_ratio = bp_mode->picture_aspect_ratio;
 }
 
+static int rockchip_baseparameter_disp_info_get(uintptr_t conn_state_ptr)
+{
+	struct bp_disp_info_iter *disp_info_iter;
+
+	list_for_each_entry(disp_info_iter, &bp_disp_info_list, head) {
+		if (disp_info_iter->conn_state_ptr == conn_state_ptr)
+			return disp_info_iter->index;
+	}
+
+	return -EINVAL;
+}
+
 static bool rockchip_baseparameter_version_v1(void)
 {
 	return bp_version == RK_BASEPARAMETER_V1_0;
@@ -53,7 +79,7 @@ static bool rockchip_baseparameter_version_v2(void)
 	return bp_version == RK_BASEPARAMETER_V2_0 || bp_version == RK_BASEPARAMETER_V2_1;
 }
 
-static int rockchip_baseparameter_disp_info_v1(int type)
+static int rockchip_baseparameter_disp_info_v1(u32 type, u32 id)
 {
 	int i = 0;
 
@@ -117,47 +143,6 @@ static int rockchip_baseparameter_disp_info_v2(u32 type, u32 id)
 	return i;
 }
 
-int rockchip_baseparameter_disp_info_init(uintptr_t conn_state_ptr, u32 type, u32 id)
-{
-	struct bp_disp_info_iter *disp_info_iter;
-	int index;
-
-	if (bp_version == RK_BASEPARAMETER_INVALID)
-		return -EINVAL;
-
-	list_for_each_entry(disp_info_iter, &bp_disp_info_list, head) {
-		if (disp_info_iter->conn_state_ptr == conn_state_ptr)
-			return 0;
-	}
-
-	if (rockchip_baseparameter_version_v1())
-		index = rockchip_baseparameter_disp_info_v1(type);
-	else if (rockchip_baseparameter_version_v2())
-		index = rockchip_baseparameter_disp_info_v2(type, id);
-	if (index < 0)
-		return -EINVAL;
-
-	disp_info_iter = malloc(sizeof(struct bp_disp_info_iter));
-	disp_info_iter->bp_version = bp_version;
-	disp_info_iter->conn_state_ptr = conn_state_ptr;
-	disp_info_iter->index = index;
-	list_add_tail(&disp_info_iter->head, &bp_disp_info_list);
-
-	return 0;
-}
-
-static int rockchip_baseparameter_disp_info_get(uintptr_t conn_state_ptr)
-{
-	struct bp_disp_info_iter *disp_info_iter;
-
-	list_for_each_entry(disp_info_iter, &bp_disp_info_list, head) {
-		if (disp_info_iter->conn_state_ptr == conn_state_ptr)
-			return disp_info_iter->index;
-	}
-
-	return -EINVAL;
-}
-
 static int rockchip_baseparameter_screen_info_v1(uintptr_t conn_state_ptr, u32 type, u32 id,
 						 struct bp_screen_info *screen_info)
 {
@@ -214,31 +199,6 @@ static int rockchip_baseparameter_screen_info_v2(uintptr_t conn_state_ptr, u32 t
 	return 0;
 }
 
-int rockchip_baseparameter_screen_info_get(uintptr_t conn_state_ptr, u32 type, u32 id,
-					   struct bp_screen_info *screen_info)
-{
-	int ret;
-
-	if (!screen_info)
-		return -EINVAL;
-
-	if (rockchip_baseparameter_version_v1()) {
-		ret = rockchip_baseparameter_screen_info_v1(conn_state_ptr, type, id, screen_info);
-		if (ret)
-			pr_warn("WARN: Failed to find screen info in v1 baseparameter\n");
-	} else if (rockchip_baseparameter_version_v2()) {
-		ret = rockchip_baseparameter_screen_info_v2(conn_state_ptr, type, id, screen_info);
-		if (ret)
-			pr_warn("WARN: Failed to find screen info in v2 baseparameter\n");
-	} else {
-		pr_warn("WARN: Unsupported baseparameter version[%d] for screen info\n",
-			bp_version);
-		ret = -EINVAL;
-	}
-
-	return ret;
-}
-
 static int rockchip_baseparameter_csc_info_v2(uintptr_t conn_state_ptr,
 					      struct bp_csc_info *csc_info)
 {
@@ -266,112 +226,6 @@ static int rockchip_baseparameter_csc_info_v2(uintptr_t conn_state_ptr,
 	csc_info->csc_enable = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_enable;
 
 	return 0;
-}
-
-int rockchip_baseparameter_csc_info_get(uintptr_t conn_state_ptr, struct bp_csc_info *csc_info)
-{
-	int ret;
-
-	if (!csc_info)
-		return -EINVAL;
-
-	if (rockchip_baseparameter_version_v2()) {
-		ret = rockchip_baseparameter_csc_info_v2(conn_state_ptr, csc_info);
-		if (ret)
-			pr_warn("WARN: Failed to parse csc info in v2 baseparameter\n");
-	} else {
-		pr_warn("WARN: Unsupported baseparameter version[%d] for csc info\n",
-			bp_version);
-		ret = -EINVAL;
-	}
-
-	return ret;
-}
-
-static struct bp_gamma_lut_data *rockchip_baseparameter_gamma_lut_data_v2(uintptr_t conn_state_ptr)
-{
-	int index;
-
-	index = rockchip_baseparameter_disp_info_get(conn_state_ptr);
-	if (index < 0)
-		return NULL;
-
-	if (!bp_info->baseparameter_info_v2.disp_info[index].gamma_lut_data.size)
-		return NULL;
-
-	return &bp_info->baseparameter_info_v2.disp_info[index].gamma_lut_data;
-}
-
-struct bp_gamma_lut_data *rockchip_baseparameter_gamma_lut_data_get(uintptr_t conn_state_ptr)
-{
-	struct bp_gamma_lut_data *lut_data = NULL;
-
-	if (rockchip_baseparameter_version_v2()) {
-		lut_data = rockchip_baseparameter_gamma_lut_data_v2(conn_state_ptr);
-		if (!lut_data)
-			pr_warn("WARN: Failed to find gamma lut data in v2 baseparameter\n");
-	} else {
-		pr_warn("WARN: Unsupported baseparameter version[%d] for gamma lut data\n",
-			bp_version);
-	}
-
-	return lut_data;
-}
-
-static struct bp_cubic_lut_data *rockchip_baseparameter_cubic_lut_data_v2(uintptr_t conn_state_ptr)
-{
-	int index;
-
-	index = rockchip_baseparameter_disp_info_get(conn_state_ptr);
-	if (index < 0)
-		return NULL;
-
-	if (!bp_info->baseparameter_info_v2.disp_info[index].cubic_lut_data.size)
-		return NULL;
-
-	return &bp_info->baseparameter_info_v2.disp_info[index].cubic_lut_data;
-}
-
-struct bp_cubic_lut_data *rockchip_baseparameter_cubic_lut_data_get(uintptr_t conn_state_ptr)
-{
-	struct bp_cubic_lut_data *lut_data = NULL;
-
-	if (rockchip_baseparameter_version_v2()) {
-		lut_data = rockchip_baseparameter_cubic_lut_data_v2(conn_state_ptr);
-		if (!lut_data)
-			pr_warn("WARN: Failed to find cubic lut data in v2 baseparameter\n");
-	} else {
-		pr_warn("WARN: Unsupported baseparameter version[%d] for cubic lut data\n",
-			bp_version);
-	}
-
-	return lut_data;
-}
-
-static struct bp_bcsh_info *rockchip_baseparameter_bcsh_info_v2(uintptr_t conn_state_ptr)
-{
-	int index;
-
-	index = rockchip_baseparameter_disp_info_get(conn_state_ptr);
-	if (index < 0)
-		return NULL;
-
-	return &bp_info->baseparameter_info_v2.disp_info[index].bcsh_info;
-}
-
-struct bp_bcsh_info *rockchip_baseparameter_bcsh_info_get(uintptr_t conn_state_ptr)
-{
-	struct bp_bcsh_info *bcsh_info = NULL;
-
-	if (rockchip_baseparameter_version_v2()) {
-		bcsh_info = rockchip_baseparameter_bcsh_info_v2(conn_state_ptr);
-		if (!bcsh_info)
-			pr_warn("WARN: Failed to find bcsh info in v2 baseparameter\n");
-	} else {
-		pr_warn("WARN: Unsupported baseparameter version[%d] for bcsh info\n", bp_version);
-	}
-
-	return bcsh_info;
 }
 
 static void rockchip_baseparameter_acm_info_to_acm_data(const struct bp_acm_info *swpq_acm,
@@ -486,24 +340,43 @@ static int rockchip_baseparameter_acm_data_v2(uintptr_t conn_state_ptr, struct b
 	return 0;
 }
 
-int rockchip_baseparameter_acm_data_get(uintptr_t conn_state_ptr, struct bp_acm_data *acm_data)
+static struct bp_gamma_lut_data *rockchip_baseparameter_gamma_lut_data_v2(uintptr_t conn_state_ptr)
 {
-	int ret;
+	int index;
 
-	if (!acm_data)
-		return -EINVAL;
+	index = rockchip_baseparameter_disp_info_get(conn_state_ptr);
+	if (index < 0)
+		return NULL;
 
-	if (rockchip_baseparameter_version_v2()) {
-		ret = rockchip_baseparameter_acm_data_v2(conn_state_ptr, acm_data);
-		if (ret)
-			pr_warn("WARN: Failed to parse acm data in v2 baseparameter\n");
-	} else {
-		pr_warn("WARN: Unsupported baseparameter version[%d] for acm data\n",
-			bp_version);
-		ret = -EINVAL;
-	}
+	if (!bp_info->baseparameter_info_v2.disp_info[index].gamma_lut_data.size)
+		return NULL;
 
-	return ret;
+	return &bp_info->baseparameter_info_v2.disp_info[index].gamma_lut_data;
+}
+
+static struct bp_cubic_lut_data *rockchip_baseparameter_cubic_lut_data_v2(uintptr_t conn_state_ptr)
+{
+	int index;
+
+	index = rockchip_baseparameter_disp_info_get(conn_state_ptr);
+	if (index < 0)
+		return NULL;
+
+	if (!bp_info->baseparameter_info_v2.disp_info[index].cubic_lut_data.size)
+		return NULL;
+
+	return &bp_info->baseparameter_info_v2.disp_info[index].cubic_lut_data;
+}
+
+static struct bp_bcsh_info *rockchip_baseparameter_bcsh_info_v2(uintptr_t conn_state_ptr)
+{
+	int index;
+
+	index = rockchip_baseparameter_disp_info_get(conn_state_ptr);
+	if (index < 0)
+		return NULL;
+
+	return &bp_info->baseparameter_info_v2.disp_info[index].bcsh_info;
 }
 
 static struct bp_overscan_info *rockchip_baseparameter_overscan_info_v2(uintptr_t conn_state_ptr)
@@ -515,48 +388,6 @@ static struct bp_overscan_info *rockchip_baseparameter_overscan_info_v2(uintptr_
 		return NULL;
 
 	return &bp_info->baseparameter_info_v2.disp_info[index].overscan_info;
-}
-
-struct bp_overscan_info *rockchip_baseparameter_overscan_info_get(uintptr_t conn_state_ptr)
-{
-	struct bp_overscan_info *overscan_info = NULL;
-
-	if (rockchip_baseparameter_version_v2()) {
-		overscan_info = rockchip_baseparameter_overscan_info_v2(conn_state_ptr);
-		if (!overscan_info)
-			pr_warn("WARN: Failed to find overscan info in v2 baseparameter\n");
-	} else {
-		pr_warn("WARN: Unsupported baseparameter version[%d] for overscan info\n",
-			bp_version);
-	}
-
-	return overscan_info;
-}
-
-void rockchip_baseparameter_select_mode(struct hdmi_edid_data *edid_data,
-					struct bp_screen_info *screen_info)
-{
-	int i;
-	struct drm_display_mode mode;
-
-	if (!screen_info) {
-		/* define init resolution here */
-	} else {
-		memset(&mode, 0, sizeof(struct drm_display_mode));
-
-		drm_display_mode_from_bp_display_mode(&mode, &screen_info->mode);
-		for (i = 0; i < edid_data->modes; i++) {
-			if (drm_mode_match(&mode, &edid_data->mode_buf[i],
-					   DRM_MODE_MATCH_TIMINGS |
-					   DRM_MODE_MATCH_CLOCK |
-					   DRM_MODE_MATCH_FLAGS)) {
-				edid_data->preferred_mode = &edid_data->mode_buf[i];
-
-				if (edid_data->mode_buf[i].picture_aspect_ratio)
-					break;
-			}
-		}
-	}
 }
 
 static int rockchip_baseparameter_get_v1(struct blk_desc *dev_desc,
@@ -649,13 +480,244 @@ static int rockchip_baseparameter_get(struct blk_desc *dev_desc, struct disk_par
 			bp_version = RK_BASEPARAMETER_V2_0;
 		else if (bp_info->baseparameter_info_v2.minor_version == 1)
 			bp_version = RK_BASEPARAMETER_V2_1;
-	} else if (ret == -EOPNOTSUPP) {
-		ret = rockchip_baseparameter_get_v1(dev_desc, part_info);
-		if (!ret)
-			bp_version = RK_BASEPARAMETER_V1_0;
+		return 0;
+	} else if (ret != -EOPNOTSUPP) {
+		return ret;
 	}
 
+	ret = rockchip_baseparameter_get_v1(dev_desc, part_info);
+	if (!ret)
+		bp_version = RK_BASEPARAMETER_V1_0;
+
 	return ret;
+}
+
+void rockchip_baseparameter_select_mode(struct hdmi_edid_data *edid_data,
+					struct bp_screen_info *screen_info)
+{
+	int i;
+	struct drm_display_mode mode;
+
+	if (!screen_info) {
+		/* define init resolution here */
+	} else {
+		memset(&mode, 0, sizeof(struct drm_display_mode));
+
+		drm_display_mode_from_bp_display_mode(&mode, &screen_info->mode);
+		for (i = 0; i < edid_data->modes; i++) {
+			if (drm_mode_match(&mode, &edid_data->mode_buf[i],
+					   DRM_MODE_MATCH_TIMINGS |
+					   DRM_MODE_MATCH_CLOCK |
+					   DRM_MODE_MATCH_FLAGS)) {
+				edid_data->preferred_mode = &edid_data->mode_buf[i];
+
+				if (edid_data->mode_buf[i].picture_aspect_ratio)
+					break;
+			}
+		}
+	}
+}
+
+static const struct baseparameter_handler handlers[] = {
+	{
+		"v1",
+		rockchip_baseparameter_version_v1,
+		rockchip_baseparameter_disp_info_v1,
+		rockchip_baseparameter_screen_info_v1,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	},
+	{
+		"v2",
+		rockchip_baseparameter_version_v2,
+		rockchip_baseparameter_disp_info_v2,
+		rockchip_baseparameter_screen_info_v2,
+		rockchip_baseparameter_csc_info_v2,
+		rockchip_baseparameter_acm_data_v2,
+		rockchip_baseparameter_gamma_lut_data_v2,
+		rockchip_baseparameter_cubic_lut_data_v2,
+		rockchip_baseparameter_bcsh_info_v2,
+		rockchip_baseparameter_overscan_info_v2
+	},
+	{}
+};
+
+int rockchip_baseparameter_disp_info_init(uintptr_t conn_state_ptr, u32 type, u32 id)
+{
+	struct bp_disp_info_iter *disp_info_iter;
+	int index;
+	int i;
+
+	if (bp_version == RK_BASEPARAMETER_INVALID)
+		return -EINVAL;
+
+	list_for_each_entry(disp_info_iter, &bp_disp_info_list, head) {
+		if (disp_info_iter->conn_state_ptr == conn_state_ptr)
+			return 0;
+	}
+
+	for (i = 0; handlers[i].version_check; i++) {
+		if (handlers[i].version_check() && handlers[i].disp_info_init) {
+			index = handlers[i].disp_info_init(type, id);
+			if (index < 0)
+				return -EINVAL;
+		}
+	}
+
+	disp_info_iter = malloc(sizeof(struct bp_disp_info_iter));
+	disp_info_iter->bp_version = bp_version;
+	disp_info_iter->conn_state_ptr = conn_state_ptr;
+	disp_info_iter->index = index;
+	list_add_tail(&disp_info_iter->head, &bp_disp_info_list);
+
+	return 0;
+}
+
+int rockchip_baseparameter_screen_info_get(uintptr_t conn_state_ptr, u32 type, u32 id,
+					   struct bp_screen_info *screen_info)
+{
+	int i;
+	int ret;
+
+	if (!screen_info)
+		return -EINVAL;
+
+	for (i = 0; handlers[i].version_check; i++) {
+		if (handlers[i].version_check() && handlers[i].get_screen_info) {
+			ret = handlers[i].get_screen_info(conn_state_ptr, type, id, screen_info);
+			if (ret)
+				pr_warn("WARN: Failed to find screen info in %s baseparameter\n",
+					handlers[i].version_name);
+			return ret;
+		}
+	}
+	pr_warn("WARN: Unsupported baseparameter version[%d] for screen info\n", bp_version);
+
+	return -EINVAL;
+}
+
+int rockchip_baseparameter_csc_info_get(uintptr_t conn_state_ptr, struct bp_csc_info *csc_info)
+{
+	int i;
+	int ret;
+
+	if (!csc_info)
+		return -EINVAL;
+
+	for (i = 0; handlers[i].version_check; i++) {
+		if (handlers[i].version_check() && handlers[i].get_csc_info) {
+			ret = handlers[i].get_csc_info(conn_state_ptr, csc_info);
+			if (ret)
+				pr_warn("WARN: Failed to find csc info in %s baseparameter\n",
+					handlers[i].version_name);
+			return ret;
+		}
+	}
+	pr_warn("WARN: Unsupported baseparameter version[%d] for csc info\n", bp_version);
+
+	return -EINVAL;
+}
+
+int rockchip_baseparameter_acm_data_get(uintptr_t conn_state_ptr, struct bp_acm_data *acm_data)
+{
+	int i;
+	int ret;
+
+	if (!acm_data)
+		return -EINVAL;
+
+	for (i = 0; handlers[i].version_check; i++) {
+		if (handlers[i].version_check() && handlers[i].get_acm_data) {
+			ret = handlers[i].get_acm_data(conn_state_ptr, acm_data);
+			if (ret)
+				pr_warn("WARN: Failed to find acm data in %s baseparameter\n",
+					handlers[i].version_name);
+			return ret;
+		}
+	}
+	pr_warn("WARN: Unsupported baseparameter version[%d] for acm data\n", bp_version);
+
+	return -EINVAL;
+}
+
+struct bp_gamma_lut_data *rockchip_baseparameter_gamma_lut_data_get(uintptr_t conn_state_ptr)
+{
+	struct bp_gamma_lut_data *lut_data = NULL;
+	int i;
+
+	for (i = 0; handlers[i].version_check; i++) {
+		if (handlers[i].version_check() && handlers[i].get_gamma_lut_data) {
+			lut_data = handlers[i].get_gamma_lut_data(conn_state_ptr);
+			if (!lut_data)
+				pr_warn("WARN: Failed to find gamma lut data in %s baseparameter\n",
+					handlers[i].version_name);
+			return lut_data;
+		}
+	}
+	pr_warn("WARN: Unsupported baseparameter version[%d] for gamma lut data\n", bp_version);
+
+	return NULL;
+}
+
+struct bp_cubic_lut_data *rockchip_baseparameter_cubic_lut_data_get(uintptr_t conn_state_ptr)
+{
+	struct bp_cubic_lut_data *lut_data = NULL;
+	int i;
+
+	for (i = 0; handlers[i].version_check; i++) {
+		if (handlers[i].version_check() && handlers[i].get_cubic_lut_data) {
+			lut_data = handlers[i].get_cubic_lut_data(conn_state_ptr);
+			if (!lut_data)
+				pr_warn("WARN: Failed to find cubic lut data in %s baseparameter\n",
+					handlers[i].version_name);
+			return lut_data;
+		}
+	}
+	pr_warn("WARN: Unsupported baseparameter version[%d] for cubic lut data\n", bp_version);
+
+	return NULL;
+}
+
+struct bp_bcsh_info *rockchip_baseparameter_bcsh_info_get(uintptr_t conn_state_ptr)
+{
+	struct bp_bcsh_info *bcsh_info = NULL;
+	int i;
+
+	for (i = 0; handlers[i].version_check; i++) {
+		if (handlers[i].version_check() && handlers[i].get_bcsh_info) {
+			bcsh_info = handlers[i].get_bcsh_info(conn_state_ptr);
+			if (!bcsh_info)
+				pr_warn("WARN: Failed to find bcsh info in %s baseparameter\n",
+					handlers[i].version_name);
+			return bcsh_info;
+		}
+	}
+	pr_warn("WARN: Unsupported baseparameter version[%d] for bcsh info\n", bp_version);
+
+	return NULL;
+}
+
+struct bp_overscan_info *rockchip_baseparameter_overscan_info_get(uintptr_t conn_state_ptr)
+{
+	struct bp_overscan_info *overscan_info = NULL;
+	int i;
+
+	for (i = 0; handlers[i].version_check; i++) {
+		if (handlers[i].version_check() && handlers[i].get_overscan_info) {
+			overscan_info = handlers[i].get_overscan_info(conn_state_ptr);
+			if (!overscan_info)
+				pr_warn("WARN: Failed to find overscan info in %s baseparameter\n",
+					handlers[i].version_name);
+			return overscan_info;
+		}
+	}
+	pr_warn("WARN: Unsupported baseparameter version[%d] for overscan info\n", bp_version);
+
+	return NULL;
 }
 
 int rockchip_baseparameter_init(void)
