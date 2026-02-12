@@ -341,6 +341,12 @@ int env_update_filter(const char *varname, const char *varvalue,
 		a_item = strtok(NULL, " ");
 	}
 
+	/* Warn if we hit the limit for a_items */
+	if (a_item && i >= ARGS_ITEM_NUM) {
+		printf("WARNING: %s has more than %d parameters, some may be lost!\n",
+		       varname, ARGS_ITEM_NUM);
+	}
+
 	/*
 	 * Splite varvalue into items containing "=" by the space.
 	 * parse varvalue title, eg: "bootmode=emmc", title is "bootmode"
@@ -365,6 +371,12 @@ int env_update_filter(const char *varname, const char *varvalue,
 		}
 
 		v_item = strtok(NULL, " ");
+	}
+
+	/* Warn if we hit the limit for v_items */
+	if (v_item && j >= ARGS_ITEM_NUM) {
+		printf("WARNING: varvalue has more than %d parameters, some may be lost!\n",
+		       ARGS_ITEM_NUM);
 	}
 
 	/* For every v_item, search its title */
