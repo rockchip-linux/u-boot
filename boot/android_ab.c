@@ -657,6 +657,12 @@ void ab_update_root_partition(void)
 		else if (strstr(part_type, "EFI"))
 			ab_update_root_uuid();
 		break;
+	case UCLASS_SCSI:
+		if (strstr(part_type, "ENV"))
+			snprintf(root_part_dev, 64, "root=/dev/sda%d", part_num);
+		else if (strstr(part_type, "EFI"))
+			ab_update_root_uuid();
+		break;
 	case UCLASS_MTD:
 		if (dev_desc->devnum == BLK_MTD_NAND || dev_desc->devnum == BLK_MTD_SPI_NAND) {
 			if (strstr(boot_args, "rootfstype=squashfs") || strstr(boot_args, "rootfstype=erofs"))
