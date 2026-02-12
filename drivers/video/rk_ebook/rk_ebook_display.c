@@ -208,6 +208,11 @@ static void *get_addr_by_index(struct udevice *dev, int index)
 		return NULL;
 	}
 
+	if (index >= LOGO_BUF_MAX || index < 0) {
+		printf("invalid index %d\n", index);
+		return NULL;
+	}
+
 	if (logo_buf_addrs[index] != 0)
 		return logo_buf_addrs[index];
 
@@ -246,8 +251,10 @@ static int read_header(struct blk_desc *dev_desc,
 		return -ENOMEM;
 	part_hdr = (struct logo_part_header *)logo_part_hdr;
 
-	if (blk_dread(dev_desc, part->start, blk_count, logo_part_hdr) != 1)
-		return -EIO;
+	if (blk_dread(dev_desc, part->start, blk_count, logo_part_hdr) != 1) {
+		ret = -EIO;
+		goto err;
+	}
 
 	if (memcmp(part_hdr->magic, EBOOK_LOGO_PART_MAGIC, 4)) {
 		printf("partition header is invalid\n");
@@ -278,8 +285,10 @@ static int read_header(struct blk_desc *dev_desc,
 	img_hdr = (struct grayscale_header *)(logo_part_hdr + sizeof(struct logo_part_header));
 	for (i = 0; i < part_hdr->logo_count; i++) {
 		if (memcmp(img_hdr[i].magic, EBOOK_LOGO_IMAGE_MAGIC, 4)) {
+			char img_magic[5] = {0};
+			memcpy(img_magic, img_hdr[i].magic, 4);
 			printf("image[%d] header '%s' is invalid\n", i,
-			       img_hdr[i].magic);
+			       img_magic);
 			ret = -EINVAL;
 			goto err;
 		}
@@ -610,7 +619,6 @@ static int rockchip_ebook_transmit_kernel_logo(struct udevice *dev)
 	static u32 loaded_logo = 0;
 	int ret;
 
-	update_logo_buf_indx();
 	ret = read_needed_logo_from_partition(dev, EBOOK_LOGO_KERNEL,
 						&loaded_logo);
 	if (ret || !(loaded_logo & EBOOK_LOGO_KERNEL)) {
@@ -799,7 +807,7 @@ static int rockchip_ebook_display_probe(struct udevice *dev)
 	struct dm_regulator_uclass_plat *uc_pdata;
 	struct rk_ebc_pwr_ops *pwr_ops = NULL;
 	struct udevice *child, *pmic_dev;
-	int ret = 0, vcom, size, i, uclass_id;
+	int ret, vcom, size, i, uclass_id;
 	bool find_pmic = false;
 	const fdt32_t *list;
 	uint32_t phandle;
