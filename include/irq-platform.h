@@ -387,7 +387,7 @@
 #define GPIO_BANK_NUM			5
 #define GPIO_BANK_PINS			32
 
-#define IRQ_TIMER0			77
+#define IRQ_TIMER0			59
 
 #define IRQ_GPIO0			IRQ_GPIO0_0
 #define IRQ_GPIO0_0			136
