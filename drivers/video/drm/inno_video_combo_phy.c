@@ -985,6 +985,7 @@ inno_video_phy_max_2_5ghz_or_4_5ghz_pll_round_rate(struct inno_video_phy *inno,
 	u16 _fbdiv, best_fbdiv = 1;
 	u16 _postdiv, best_postdiv = 1;
 	u32 min_delta = 0xffffffff;
+	bool found = false;
 
 	/*
 	 * The PLL output frequency can be calculated using a simple formula:
@@ -1010,7 +1011,7 @@ inno_video_phy_max_2_5ghz_or_4_5ghz_pll_round_rate(struct inno_video_phy *inno,
 	min_prediv = DIV_ROUND_UP(fref, 100 * HZ_PER_MHZ);
 	max_prediv = div64_ul(fref, 10 * HZ_PER_MHZ);
 
-	for (_postdiv = 0; _postdiv <= 31; _postdiv++) {
+	for (_postdiv = 0; _postdiv <= 31 && !found; _postdiv++) {
 		fvco = fout * (_postdiv ? _postdiv * 2 : 1);
 		if (fvco < min_vco || fvco > max_vco)
 			continue;
@@ -1037,6 +1038,7 @@ inno_video_phy_max_2_5ghz_or_4_5ghz_pll_round_rate(struct inno_video_phy *inno,
 				best_fbdiv = _fbdiv;
 				best_postdiv = _postdiv;
 				best_freq = tmp;
+				found = true;
 				break;
 			} else if (delta < min_delta) {
 				best_prediv = _prediv;
@@ -1145,8 +1147,8 @@ static unsigned long inno_video_phy_set_pll(struct rockchip_phy *phy,
 	else
 		fout = inno_video_phy_max_1ghz_or_1_5ghz_pll_round_rate(inno, fin, rate);
 
-	dev_dbg(phy->dev, "fin=%lu, fout=%llu, prediv=%u, fbdiv=%u\n",
-		fin, fout, inno->pll.prediv, inno->pll.fbdiv);
+	dev_dbg(phy->dev, "fin=%lu, fout=%llu, prediv=%u, fbdiv=%u, postdiv=%u\n",
+		fin, fout, inno->pll.prediv, inno->pll.fbdiv, inno->pll.postdiv);
 
 	return fout;
 }
