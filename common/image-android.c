@@ -216,8 +216,28 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 			     ulong *os_data, ulong *os_len)
 {
 	u32 kernel_addr = android_image_get_kernel_addr(hdr);
-	const char *cmdline = hdr->header_version < 3 ?
-			      hdr->cmdline : hdr->total_cmdline;
+	/*
+	 * For header_version < 3, cmdline is split into:
+	 *   - cmdline[512] + extra_cmdline[1024]
+	 * For header_version >= 3, use total_cmdline directly.
+	 */
+	char *cmdline = NULL;
+	bool cmdline_alloced = false;
+	char *newbootargs = NULL;
+
+	if (hdr->header_version < 3) {
+		size_t cmdline_len = strlen(hdr->cmdline);
+		size_t extra_len = strlen(hdr->extra_cmdline);
+		cmdline = malloc(cmdline_len + extra_len + 1);
+		if (!cmdline)
+			return -ENOMEM;
+		strcpy(cmdline, hdr->cmdline);
+		strcpy(cmdline + cmdline_len, hdr->extra_cmdline);
+		cmdline_alloced = true;
+	} else {
+		cmdline = (char *)hdr->total_cmdline;
+	}
+
 	/*
 	 * Not all Android tools use the id field for signing the image with
 	 * sha1 (or anything) so we don't check it. It is not obvious that the
@@ -242,7 +262,7 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 	if (bootargs)
 		len += strlen(bootargs);
 
-	char *newbootargs = malloc(len + 2);
+	newbootargs = malloc(len + 2);
 	if (!newbootargs) {
 		puts("Error: malloc in android_image_get_kernel failed!\n");
 		return -ENOMEM;
@@ -264,6 +284,10 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 	}
 	if (os_len)
 		*os_len = hdr->kernel_size;
+
+	free(newbootargs);
+	if (cmdline_alloced)
+		free((char *)cmdline);
 	return 0;
 }
 
