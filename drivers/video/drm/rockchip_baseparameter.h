@@ -326,6 +326,21 @@ struct bp_csc_info_v2 {
 	u32 csc_b_gain;
 };
 
+struct bp_csc_info_v3 {
+	bool csc_enable;
+	enum bp_csc_mode mode;
+	u32 csc_brightness;
+	u32 csc_contrast;
+	u32 csc_saturation;
+	u32 csc_hue;
+	u32 csc_r_gain;
+	u32 csc_g_gain;
+	u32 csc_b_gain;
+	u32 csc_r_offset;
+	u32 csc_g_offset;
+	u32 csc_b_offset;
+};
+
 struct bp_pq_tuning_info_v2 {
 	struct bp_csc_info_v2 csc_info;
 	struct bp_dci_info dci_info;
@@ -335,7 +350,7 @@ struct bp_pq_tuning_info_v2 {
 };
 
 struct bp_pq_tuning_info_v3 {
-	struct bp_csc_info_v2 csc_info;
+	struct bp_csc_info_v3 csc_info;
 	struct bp_dci_info dci_info;
 	struct bp_acm_info acm_info;
 	struct bp_gamma_lut_data gamma_lut_data;

@@ -315,9 +315,9 @@ static int rockchip_baseparameter_csc_info_v3(uintptr_t conn_state_ptr, struct b
 	csc_info->r_gain = bp_info->baseparameter_info_v3.disp_info[index].pq_tuning_info.csc_info.csc_r_gain;
 	csc_info->g_gain = bp_info->baseparameter_info_v3.disp_info[index].pq_tuning_info.csc_info.csc_g_gain;
 	csc_info->b_gain = bp_info->baseparameter_info_v3.disp_info[index].pq_tuning_info.csc_info.csc_b_gain;
-	csc_info->r_offset = 0;
-	csc_info->g_offset = 0;
-	csc_info->b_offset = 0;
+	csc_info->r_offset = bp_info->baseparameter_info_v3.disp_info[index].pq_tuning_info.csc_info.csc_r_offset;;
+	csc_info->g_offset = bp_info->baseparameter_info_v3.disp_info[index].pq_tuning_info.csc_info.csc_g_offset;;
+	csc_info->b_offset = bp_info->baseparameter_info_v3.disp_info[index].pq_tuning_info.csc_info.csc_b_offset;;
 	csc_info->csc_enable = bp_info->baseparameter_info_v3.disp_info[index].pq_tuning_info.csc_info.csc_enable;
 
 	return 0;
