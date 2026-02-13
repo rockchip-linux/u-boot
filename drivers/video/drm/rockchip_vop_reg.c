@@ -916,6 +916,46 @@ const struct vop_data rk3576_vop_lit = {
 	.reg_len = EBC_VOP_INT_STATUS * 4,
 };
 
+static const struct vop_grf_ctrl rk3572_lit_vo0_grf_ctrl = {
+        .grf_edp_ch_sel = VOP_REG(RK3572_VO_GRF_SOC_CON9, 0x1, 10),
+        .grf_hdmi_ch_sel = VOP_REG(RK3572_VO_GRF_SOC_CON9, 0x1, 9),
+        .grf_mipi_ch_sel = VOP_REG(RK3572_VO_GRF_SOC_CON14, 0x1, 13),
+        .grf_hdmi_pin_pol = VOP_REG(RK3572_VO_GRF_SOC_CON11, 0x3, 9),
+        .grf_hdmi_1to4_en = VOP_REG(RK3572_VO_GRF_SOC_CON11, 0x1, 8),
+        .grf_mipi_mode = VOP_REG(RK3572_VO_GRF_SOC_CON11, 0x1, 11),
+};
+
+static const struct vop_grf_ctrl rk3572_lit_grf_ctrl = {
+	.grf_dclk_inv = VOP_REG(RK3572_IOC_GRF_GPIO3_IOC_MISC2, 0x1, 1),
+	.grf_vopl_sel = VOP_REG(RK3572_IOC_GRF_GPIO3_IOC_MISC2, 0x1, 0),
+};
+
+static const struct vop_win rk3572_lit_win2_data = {
+	.act_info = VOP_REG(EBC_WIN_ACT, 0xffffffff, 0),
+	.dsp_info = VOP_REG(EBC_VOP_WIN_DSP_INFO, 0xffffffff, 0),
+	.dsp_st = VOP_REG(EBC_VOP_WIN_DSP_ST, 0xffffffff, 0),
+
+	.yrgb_mst = VOP_REG(EBC_WIN_MST2, 0xffffffff, 0),
+
+	.enable = VOP_REG(EBC_WIN2_CTRL, 0x1, 0),
+
+	.interlace_read = VOP_REG(EBC_VOP_SYS_CTRL, 0x1, 3),
+	.format = VOP_REG(EBC_VOP_SYS_CTRL, 0x3, 4),
+
+	.yrgb_vir = VOP_REG(EBC_VOP_WIN_VIR, 0x1fff, 0),
+};
+
+const struct vop_data rk3572_vop_lit = {
+	.version = VOP_VERSION(2, 0x10),
+	.max_output = {1920, 1920},
+	.ctrl = &rk3576_lit_ctrl_data,
+	.vo0_grf_ctrl = &rk3572_lit_vo0_grf_ctrl,
+	.grf_ctrl = &rk3572_lit_grf_ctrl,
+	.win = &rk3572_lit_win2_data,
+	.line_flag = &rk3576_vop_lit_line_flag,
+	.reg_len = EBC_VOP_INT_STATUS * 4,
+};
+
 const struct vop_data rv1108_vop = {
 	.version = VOP_VERSION(2, 4),
 	.max_output = {1920, 1080},

@@ -147,6 +147,11 @@ static const struct rockchip_crtc rk3572_vop_data = {
 	.data = &rk3572_vop,
 };
 
+static const struct rockchip_crtc rk3572_vop_lit_data = {
+	.funcs = &rockchip_vop_funcs,
+	.data = &rk3572_vop_lit,
+};
+
 static const struct rockchip_crtc rk3576_vop_data = {
 	.funcs = &rockchip_vop2_funcs,
 	.data = &rk3576_vop,
@@ -235,6 +240,9 @@ static const struct udevice_id rockchip_vop_ids[] = {
 	}, {
 		.compatible = "rockchip,rk3572-vop",
 		.data = (ulong)&rk3572_vop_data,
+	}, {
+		.compatible = "rockchip,rk3572-vop-lit",
+		.data = (ulong)&rk3572_vop_lit_data,
 	}, {
 		.compatible = "rockchip,rk3576-vop",
 		.data = (ulong)&rk3576_vop_data,

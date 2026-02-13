@@ -407,7 +407,8 @@ static int rockchip_vop_init(struct display_state *state)
 	VOP_CTRL_SET(vop, win_channel[2], 0x56);
 	VOP_CTRL_SET(vop, dsp_blank, 0);
 
-	if (vop->version == VOP_VERSION_RK3576_LITE) {
+	if (vop->version == VOP_VERSION_RK3572_LITE ||
+	    vop->version == VOP_VERSION_RK3576_LITE) {
 		VOP_GRF_SET(vop, grf_ctrl, grf_vopl_sel, 1);
 		VOP_CTRL_SET(vop, enable, 1);
 	}
@@ -443,6 +444,8 @@ static int rockchip_vop_init(struct display_state *state)
 			yc_swap = is_yc_swap(conn_state->bus_format);
 			VOP_CTRL_SET(vop, bt1120_yc_swap, yc_swap);
 		}
+		if (vop->version == VOP_VERSION_RK3572_LITE)
+			VOP_CTRL_SET(vop, inf_out_en, 1);
 		break;
 	case DRM_MODE_CONNECTOR_eDP:
 		VOP_CTRL_SET(vop, edp_en, 1);
@@ -559,7 +562,8 @@ static int rockchip_vop_init(struct display_state *state)
 	 * For RK3576 vopl, rg_swap and rb_swap need to be enabled in
 	 * YUV444 bus_format.
 	 */
-	if (vop->version == VOP_VERSION_RK3576_LITE) {
+	if (vop->version == VOP_VERSION_RK3572_LITE ||
+	    vop->version == VOP_VERSION_RK3576_LITE) {
 		if (conn_state->bus_format == MEDIA_BUS_FMT_YUV8_1X24)
 			VOP_CTRL_SET(vop, dsp_data_swap, DSP_RG_SWAP | DSP_RB_SWAP);
 	}
@@ -595,7 +599,8 @@ static int rockchip_vop_init(struct display_state *state)
 	 */
 	if (!is_yuv_output(conn_state->bus_format))
 		val = 0;
-	else if (vop->version == VOP_VERSION_RK3576_LITE)
+	else if (vop->version == VOP_VERSION_RK3572_LITE ||
+		 vop->version == VOP_VERSION_RK3576_LITE)
 		val = 0;
 	else if (vop->version >= VOP_VERSION_RK3399_BIG)
 		val = 0x20010200;
@@ -856,19 +861,29 @@ static int rockchip_vop_set_plane(struct display_state *state, bool reserved_pla
 		return -EINVAL;
 	}
 
-	if ((vop->version == VOP_VERSION_RK3036 || vop->version >= VOP_VERSION_RK3576_LITE) &&
+	if ((vop->version == VOP_VERSION_RK3036 ||
+	     vop->version >= VOP_VERSION_RK3572_LITE ||
+	     vop->version >= VOP_VERSION_RK3576_LITE) &&
 	    (mode->flags & DRM_MODE_FLAG_INTERLACE))
 		crtc_h = crtc_h / 2;
 
-	act_info = (src_h - 1) << 16;
-	act_info |= (src_w - 1) & 0xffff;
+	if (vop->version == VOP_VERSION_RK3572_LITE) {
+		src_h = (mode->flags & DRM_MODE_FLAG_INTERLACE) ? src_h / 2 : src_h;
+                act_info = src_h << 16;
+		act_info |= src_w & 0xffff;
+        } else {
+		act_info = (src_h - 1) << 16;
+		act_info |= (src_w - 1) & 0xffff;
+        }
 
 	dsp_info = (crtc_h - 1) << 16;
 	dsp_info |= (crtc_w - 1) & 0xffff;
 
 	dsp_stx = crtc_x + mode->crtc_htotal - mode->crtc_hsync_start;
 	dsp_sty = crtc_y + mode->crtc_vtotal - mode->crtc_vsync_start;
-	if ((vop->version == VOP_VERSION_RK3036 || vop->version >= VOP_VERSION_RK3576_LITE) &&
+	if ((vop->version == VOP_VERSION_RK3036 ||
+	     vop->version >= VOP_VERSION_RK3572_LITE ||
+	     vop->version >= VOP_VERSION_RK3576_LITE) &&
 	    (mode->flags & DRM_MODE_FLAG_INTERLACE))
 		dsp_sty = crtc_y / 2 + mode->crtc_vtotal - mode->crtc_vsync_start;
 	dsp_st = dsp_sty << 16 | (dsp_stx & 0xffff);

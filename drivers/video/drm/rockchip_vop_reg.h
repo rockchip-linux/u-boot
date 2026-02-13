@@ -982,6 +982,7 @@
 /* RV1126 register definition end   */
 
 /* RK3576 EBC VOP register definition start */
+#define EBC_WIN_ACT				0x0030
 #define EBC_CONFIG_DONE				0x0050
 #define EBC_WIN_MST2				0x0058
 #define EBC_WIN2_CTRL				0x006c
@@ -1013,6 +1014,11 @@
 #define EBC_MCU_RW_BYPASS_PORT			0x0160
 #define EBC_VOP_INT_CLR				0x0164
 #define EBC_VOP_INT_STATUS			0x0168
+
+#define RK3572_VO_GRF_SOC_CON9			0x0024
+#define RK3572_VO_GRF_SOC_CON11			0x002c
+#define RK3572_VO_GRF_SOC_CON14			0x0038
+#define RK3572_IOC_GRF_GPIO3_IOC_MISC2		0x14638
 
 #define RK3576_VO0_GRF_SOC_CON9			0x0024
 #define RK3576_VO0_GRF_SOC_CON13		0x0034
