@@ -29,16 +29,21 @@ static struct mtd_info *g_mtd;
 static struct mtd_info *get_mtd_by_name(const char *name)
 {
 	struct mtd_info *mtd;
-
-	mtd_probe_devices();
+	int err = -ENODEV;
 
 	if (!strncmp(name, g_devname, strlen(name)) && g_mtd) {
 		mtd = g_mtd;
+		err = __get_mtd_device(mtd);
+		if (err)
+			return NULL;
 	} else {
 		mtd = get_mtd_device_nm(name);
-		if (IS_ERR_OR_NULL(mtd))
+		if (IS_ERR_OR_NULL(mtd)) {
 			printf("MTD device %s not found, ret %ld\n", name,
 			       PTR_ERR(mtd));
+			mtd_probe_devices();
+			mtd = get_mtd_device_nm(name);
+		}
 		g_mtd = mtd;
 		strncpy(g_devname, name, strlen(name));
 	}
