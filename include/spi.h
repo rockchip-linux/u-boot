@@ -32,6 +32,7 @@
 #define SPI_RX_QUAD	BIT(13)			/* receive with 4 wires */
 #define SPI_TX_OCTAL	BIT(14)			/* transmit with 8 wires */
 #define SPI_RX_OCTAL	BIT(15)			/* receive with 8 wires */
+#define SPI_RX_QUAD_DTR	BIT(23)			/* receive with 4 wries dtr mode */
 #define SPI_DMA_PREPARE	BIT(24)			/* dma transfer skip waiting idle, read without cache invalid */
 
 /* Header byte that marks the start of the message */

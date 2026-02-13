@@ -542,6 +542,8 @@ int spi_slave_of_to_plat(struct udevice *dev, struct dm_spi_slave_plat *plat)
 		mode |= SPI_3WIRE;
 	if (dev_read_bool(dev, "spi-half-duplex"))
 		mode |= SPI_PREAMBLE;
+	if (dev_read_bool(dev, "spi-quad-dtr"))
+		mode |= SPI_RX_QUAD_DTR;
 
 	/* Device DUAL/QUAD mode */
 	value = dev_read_u32_default(dev, "spi-tx-bus-width", 1);
