@@ -35,6 +35,7 @@
 #define  SFC_CTRL_ADDR_STR_SHIFT	20
 #define  SFC_CTRL_CMD_CTRL_CMD_EXT	(2 << 27)
 #define  SFC_CTRL_WPEN			BIT(29)
+#define  SFC_CTRL_QUAD_SPI_SETTING	0x2a02
 
 /* Interrupt mask */
 #define SFC_IMR				0x4
@@ -162,6 +163,11 @@
 /* Device reset */
 #define SFC_DEV_RSTN			0xA4
 
+/* DQS ctrl */
+#define SFC_SLF_DQS_CTRL		0xA8
+#define  SFC_SLF_BLD_DQS_EN0		BIT(0)
+#define  SFC_SLF_BLD_DQS_EN1		BIT(16)
+
 /* Command */
 #define SFC_CMD				0x100
 #define  SFC_CMD_IDX_SHIFT		0
@@ -203,6 +209,9 @@
 
 #define SFC_DLL_TRANING_STEP		10	/* Training step */
 #define SFC_DLL_TRANING_VALID_WINDOW	80	/* Valid DLL winbow */
+
+#define SFC_NOR_QUICK_CMD_EXT_QPI_FF	0xff
+#define SFC_NOR_QUICK_CMD_EXT_QPI_F5	0xf5
 
 struct rockchip_sfc {
 	struct udevice *dev;
@@ -357,6 +366,16 @@ static int rockchip_sfc_init(struct rockchip_sfc *sfc)
 		writel(0x0, sfc->regbase + SFC_DEV_RSTN);
 		mdelay(1);
 		writel(0xf, sfc->regbase + SFC_DEV_RSTN);
+	}
+
+	/* force to exit quad spi mode, no side effects for others except delay */
+	if (rockchip_sfc_get_version(sfc) > SFC_VER_8) {
+		writel(SFC_CTRL_QUAD_SPI_SETTING, sfc->regbase + SFC_CTRL);
+		writel(0, sfc->regbase + SFC_LEN_EXT);
+		writel(SFC_CMD_DIR_WR << SFC_CMD_DIR_SHIFT | SFC_NOR_QUICK_CMD_EXT_QPI_FF, sfc->regbase + SFC_CMD);
+		udelay(10);
+		writel(SFC_CMD_DIR_WR << SFC_CMD_DIR_SHIFT | SFC_NOR_QUICK_CMD_EXT_QPI_F5, sfc->regbase + SFC_CMD);
+		udelay(10);
 	}
 
 	return 0;
@@ -609,11 +628,18 @@ static int rockchip_sfc_xfer_setup(struct rockchip_sfc *sfc,
 	cmd |= plat->cs[0] << SFC_CMD_CS_SHIFT;
 	if (op->cmd.buswidth > 1)
 		ctrl |= SFC_CTRL_WPEN;
+	if (op->cmd.dtr)
+		ctrl |= SFC_CTRL_DTR_MODE;
 
 	/* Workaround, binding dqs with buswidth 8 */
 	if (op->cmd.buswidth == 8)
 		ctrl |= SFC_CTRL_DTR_MODE | SFC_CTRL_DTR_MODE_BY_DEVICE |\
 			(3 << SFC_CTRL_DATA_BITS_SHIFT) | (3 << SFC_CTRL_ADDR_BITS_SHIFT);
+	if (op->cmd.buswidth == 4) {
+		if (op->cmd.dtr)
+			writel(SFC_SLF_BLD_DQS_EN0 | SFC_SLF_BLD_DQS_EN1 ,sfc->regbase + SFC_SLF_DQS_CTRL);
+		ctrl |= (2 << SFC_CTRL_ADDR_BITS_SHIFT) | (2 << SFC_CTRL_DATA_BITS_SHIFT);
+	}
 
 	dev_dbg(sfc->dev, "sfc cmd.nbytes=%x(x%d) addr.nbytes=%x(x%d) dummy.nbytes=%x(x%d)\n",
 		op->cmd.nbytes, op->cmd.buswidth,
