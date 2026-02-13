@@ -240,6 +240,10 @@ static u8 spi_nor_get_cmd_ext(const struct spi_nor *nor,
 	case SPI_NOR_EXT_REPEAT:
 		return op->cmd.opcode;
 
+	/* Workaround for quad dtr first opcode */
+	case SPI_NOR_EXT_HEX:
+		return 0xdd;
+
 	default:
 		dev_dbg(nor->dev, "Unknown command extension type\n");
 		return 0;
@@ -270,7 +274,8 @@ void spi_nor_setup_op(const struct spi_nor *nor,
 	if (op->data.nbytes)
 		op->data.buswidth = spi_nor_get_protocol_data_nbits(proto);
 
-	if (spi_nor_protocol_is_dtr(proto)) {
+	if (spi_nor_protocol_is_dtr(proto) ||
+	    (op->cmd.buswidth == 4 && op->cmd.opcode == SPINOR_OP_READ_1_4_4_DTR_4B)) {
 		/*
 		 * spi-mem supports mixed DTR modes, but right now we can only
 		 * have all phases either DTR or STR. IOW, spi-mem can have
@@ -4366,6 +4371,55 @@ static int spi_nor_init(struct spi_nor *nor)
 	return 0;
 }
 
+static int issi_set_reg(struct spi_nor *nor, u8 val)
+{
+	nor->cmd_buf[0] = val;
+	return nor->write_reg(nor, 0x63, nor->cmd_buf, 1);
+}
+
+static int enter_qpi(struct spi_nor *nor)
+{
+    if (JEDEC_MFR(nor->info) == SNOR_MFR_MACRONIX ||
+	JEDEC_MFR(nor->info) == SNOR_MFR_ISSI)
+        return nor->write_reg(nor, 0x35, NULL, 0);
+    else
+        return nor->write_reg(nor, 0x38, NULL, 0);
+}
+
+static void spi_nor_quad_dtr_init(struct spi_nor *nor)
+{
+	struct spi_slave *spi = nor->spi;
+
+	if (!(nor->info->flags & SPI_NOR_QUAD_DTR_READ))
+		return;
+
+	if (spi_nor_get_protocol_data_nbits(nor->read_proto) != 4)
+		return;
+
+	if (!(spi->mode & SPI_RX_QUAD_DTR))
+		return;
+
+	if (JEDEC_MFR(nor->info) == SNOR_MFR_ISSI) {
+		/* Set 8 dummy */
+		issi_set_reg(nor, 0x40);
+		nor->cmd_ext_type = SPI_NOR_EXT_REPEAT;
+	} else {
+		nor->cmd_ext_type = SPI_NOR_EXT_HEX;
+	}
+
+	enter_qpi(nor);
+	nor->read_opcode = SPINOR_OP_READ_1_4_4_DTR_4B;
+	nor->read_dummy = 8;
+	nor->read_proto = SNOR_PROTO_4_4_4;
+	nor->write_proto = SNOR_PROTO_4_4_4;
+	nor->reg_proto = SNOR_PROTO_4_4_4;
+	nor->program_opcode = SPINOR_OP_PP;
+
+	dev_info(nor->dev, "4_4_4_dtr with read_opcode=%x\n", nor->read_opcode);
+
+	return;
+}
+
 #ifdef CONFIG_SPI_FLASH_SOFT_RESET
 /**
  * spi_nor_soft_reset() - perform the JEDEC Software Reset sequence
@@ -4653,6 +4707,8 @@ int spi_nor_scan(struct spi_nor *nor)
 	ret = spi_nor_init(nor);
 	if (ret)
 		return ret;
+
+	spi_nor_quad_dtr_init(nor);
 
 	if (nor->flags & SNOR_F_HAS_STACKED) {
 		nor->spi->flags |= SPI_XFER_U_PAGE;
