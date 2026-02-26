@@ -4,3 +4,9 @@ config ROCKCHIP_CLK_PLL
 	default y if !ROCKCHIP_IMAGE_TINY
 	help
 	  Enable support for pll clocks on Rockchip SoCs.
+
+config ROCKCHIP_CLK_DCLK_MOS
+	bool "Rockchip clock dclk mos drivers"
+	depends on CLK
+	help
+	  Enable support for dclk mos on Rockchip SoCs
