@@ -172,6 +172,9 @@ void optee_suppl_cmd(struct udevice *dev, struct tee_shm *shm_arg,
 	case OPTEE_MSG_RPC_CMD_RKSS:
 		optee_suppl_cmd_fs(arg);
 		break;
+	case OPTEE_MSG_RPC_CMD_SELECT_OPS:
+		optee_suppl_cmd_select_ops(arg);
+		break;
 #endif
 	default:
 		arg->ret = TEE_ERROR_NOT_IMPLEMENTED;

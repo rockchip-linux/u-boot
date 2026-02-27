@@ -88,6 +88,8 @@ void optee_suppl_cmd_fs(struct optee_msg_arg *arg);
 
 void optee_suppl_cmd_load_ta(struct optee_msg_arg *arg);
 
+void optee_suppl_cmd_select_ops(struct optee_msg_arg *arg);
+
 int reserved_shm_init(struct optee_smc_get_shm_config_result config);
 
 void *reserved_shm_malloc(u32 size);

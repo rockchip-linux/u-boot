@@ -231,3 +231,41 @@ void optee_suppl_cmd_fs(struct optee_msg_arg *arg)
 
 	arg->ret = rkss_process_request(arg->num_params, arg->params);
 }
+
+#ifdef CONFIG_ROCKCHIP_OPTEE_V3
+void optee_suppl_cmd_select_ops(struct optee_msg_arg *arg)
+{
+	struct blk_desc *dev_desc = NULL;
+	struct disk_partition part_info;
+
+	arg->ret = TEE_SUCCESS;
+
+	if (arg->num_params != 1) {
+		printf("%s: num_params error!\n", __func__);
+		arg->ret = TEE_ERROR_BAD_PARAMETERS;
+		return;
+	}
+
+	if (arg->params[0].attr != TEE_PARAM_ATTR_TYPE_VALUE_OUTPUT) {
+		printf("%s: param type error!\n", __func__);
+		arg->ret = TEE_ERROR_BAD_PARAMETERS;
+		return;
+	}
+
+	dev_desc = plat_bootdev();
+	if (!dev_desc) {
+		printf("%s: Could not find device.\n", __func__);
+		arg->ret = TEE_ERROR_GENERIC;
+		return;
+	}
+
+	if (part_get_info_by_name(dev_desc,
+				  "security", &part_info) < 0) {
+		arg->params[0].u.value.a = 0;
+		return;
+	}
+
+	arg->params[0].u.value.a = 1;
+	return;
+}
+#endif

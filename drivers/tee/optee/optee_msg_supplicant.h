@@ -173,6 +173,11 @@
 #define OPTEE_MSG_RPC_CMD_RKSS		50
 
 /*
+ * Select storage file operations for ta.db and ta_ver.db
+ */
+#define OPTEE_MSG_RPC_CMD_SELECT_OPS    51
+
+/*
  * Define protocol for messages with .cmd == OPTEE_MSG_RPC_CMD_SOCKET
  */
 
