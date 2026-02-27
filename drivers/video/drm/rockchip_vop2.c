@@ -7060,12 +7060,11 @@ static void vop2_vp_standby(void *regs, u32 vp_id)
 	writel(BIT(STANDBY_EN_SHIFT), regs + RK3568_VP0_DSP_CTRL + offset);
 }
 
-static void vop2_vp_config_done(void *regs, u32 vp_id)
+static void vop2_vp_cfg_done(void *regs, u32 vp_id)
 {
 	u32 cfg_done = CFG_DONE_EN | BIT(vp_id) | (BIT(vp_id) << 16);
-	u32 offset = vp_id * 0x100;
 
-	writel(cfg_done, regs + RK3568_REG_CFG_DONE + offset);
+	writel(cfg_done, regs + RK3568_REG_CFG_DONE);
 }
 
 static void vop2_iommu_disable(void *regs, u32 axi_id)
@@ -7113,7 +7112,7 @@ static int rockchip_vop2_reset(struct udevice *dev, u32 axi, u32 vp_mask, u32 pl
 
 	for (i = 0; i < vop2_data->nr_vps; i++) {
 		if (BIT(i) & vp_mask)
-			vop2_vp_config_done(regs, i);
+			vop2_vp_cfg_done(regs, i);
 	}
 	mdelay(50);
 	vop2_iommu_disable(regs, axi);
