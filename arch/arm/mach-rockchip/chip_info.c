@@ -109,6 +109,8 @@ int rockchip_rockusb_get_chip_info(unsigned int chip_info[])
 		chip_info[0] = 0x31313046;
 #elif defined(CONFIG_ROCKCHIP_RV1106)
 		chip_info[0] = 0x31313036;
+#elif defined(CONFIG_ROCKCHIP_RV1103B)
+		chip_info[0] = 0x31313045;
 #endif
 	}
 
