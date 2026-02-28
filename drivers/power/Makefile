@@ -8,6 +8,7 @@ obj-$(CONFIG_$(PHASE_)POWER_DOMAIN) += domain/
 obj-$(CONFIG_$(PHASE_)DM_FUEL_GAUGE) += fuel_gauge/ charge/
 obj-y += pmic/
 obj-y += regulator/
+obj-y += power_delivery/
 
 obj-$(CONFIG_AXP221_POWER)	+= axp221.o
 ifdef CONFIG_XPL_BUILD
