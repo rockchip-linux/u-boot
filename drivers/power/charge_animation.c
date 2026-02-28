@@ -29,6 +29,9 @@
 #include <power/rk8xx_pmic.h>
 #include <power/regulator.h>
 #include <rk_timer_irq.h>
+#ifdef CONFIG_ROCKCHIP_EBOOK_DISPLAY
+#include <rk_ebook.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
