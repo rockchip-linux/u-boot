@@ -290,12 +290,13 @@ static int rockchip_baseparameter_csc_info_v2(uintptr_t conn_state_ptr,
 	csc_info->hue = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_hue;
 	csc_info->saturation = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_saturation;
 	csc_info->contrast = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_contrast;
+	csc_info->brightness = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_brightness;
 	csc_info->r_gain = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_r_gain;
 	csc_info->g_gain = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_g_gain;
 	csc_info->b_gain = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_b_gain;
-	csc_info->r_offset = 0;
-	csc_info->g_offset = 0;
-	csc_info->b_offset = 0;
+	csc_info->r_offset = 256;
+	csc_info->g_offset = 256;
+	csc_info->b_offset = 256;
 	csc_info->csc_enable = bp_info->baseparameter_info_v2.pq_tuning_info.csc_info.csc_enable;
 
 	return 0;
