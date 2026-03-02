@@ -528,6 +528,8 @@ struct rockchip_pin_ctrl {
 			     int pin_num, int strength);
 	int	(*set_schmitt)(struct rockchip_pin_bank *bank,
 			       int pin_num, int enable);
+	int	(*set_input_enable)(struct rockchip_pin_bank *bank,
+				    int pin_num, int enable);
 };
 
 /**

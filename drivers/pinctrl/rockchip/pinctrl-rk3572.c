@@ -251,6 +251,72 @@ static int rk3572_set_schmitt(struct rockchip_pin_bank *bank,
 	return regmap_update_bits(regmap, reg, rmask, data);
 }
 
+#define RK3572_IE_BITS_PER_PIN		1
+#define RK3572_IE_PINS_PER_REG		8
+#define RK3572_IE_GPIO0_OFFSET		0x300
+#define RK3572_IE_GPIO1_OFFSET		0x10310
+#define RK3572_IE_GPIO2_OFFSET		0x12320
+#define RK3572_IE_GPIO3_OFFSET		0x14330
+#define RK3572_IE_GPIO4_OFFSET		0x14340
+
+static void rk3572_calc_ie_reg_and_bit(struct rockchip_pin_bank *bank,
+					    int pin_num,
+					    struct regmap **regmap,
+					    int *reg, u8 *bit)
+{
+	struct rockchip_pinctrl_priv *priv = bank->priv;
+
+	*regmap = priv->regmap_base;
+
+	switch (bank->bank_num) {
+	case 0:
+		*reg = RK3572_IE_GPIO0_OFFSET;
+		if (pin_num >= 12)
+			*reg += 0x2000;
+		break;
+	case 1:
+		*reg = RK3572_IE_GPIO1_OFFSET;
+		break;
+	case 2:
+		*reg = RK3572_IE_GPIO2_OFFSET;
+		break;
+	case 3:
+		*reg = RK3572_IE_GPIO3_OFFSET;
+		break;
+	case 4:
+		*reg = RK3572_IE_GPIO4_OFFSET;
+		if (pin_num >= 16)
+			*reg -= 0x10000;
+		break;
+	default:
+		*reg = 0;
+		debug("unsupported bank_num %d\n", bank->bank_num);
+		break;
+	}
+
+	*reg += ((pin_num / RK3572_IE_PINS_PER_REG) * 4);
+	*bit = pin_num % RK3572_IE_PINS_PER_REG;
+	*bit *= RK3572_IE_BITS_PER_PIN;
+}
+
+static int rk3572_set_input_enable(struct rockchip_pin_bank *bank,
+				   int pin_num, int enable)
+{
+	struct regmap *regmap;
+	int reg;
+	u32 data, rmask;
+	u8 bit;
+
+	rk3572_calc_ie_reg_and_bit(bank, pin_num, &regmap, &reg, &bit);
+
+	/* enable the write to the equivalent lower bits */
+	data = ((1 << RK3572_IE_BITS_PER_PIN) - 1) << (bit + 16);
+	rmask = data | (data >> 16);
+	data |= (enable << bit);
+
+	return regmap_update_bits(regmap, reg, rmask, data);
+}
+
 static struct rockchip_pin_bank rk3572_pin_banks[] = {
 	RK3576_PIN_BANK_FLAGS(0, 32, "gpio0", IOMUX_WIDTH_4BIT,
 			      0, 0x8, 0x2010, 0x2018),
@@ -273,6 +339,7 @@ static const struct rockchip_pin_ctrl rk3572_pin_ctrl = {
 	.set_pull		= rk3572_set_pull,
 	.set_drive		= rk3572_set_drive,
 	.set_schmitt		= rk3572_set_schmitt,
+	.set_input_enable	= rk3572_set_input_enable,
 };
 
 static const struct udevice_id rk3572_pinctrl_ids[] = {

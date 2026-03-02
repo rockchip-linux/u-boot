@@ -277,6 +277,9 @@ static int rockchip_set_mux(struct rockchip_pin_bank *bank, int pin, int mux)
 		}
 	}
 
+	if (ctrl->set_input_enable)
+		ctrl->set_input_enable(bank, pin, 1);
+
 	return 0;
 }
 
@@ -382,6 +385,21 @@ static int rockchip_set_schmitt(struct rockchip_pin_bank *bank,
 	return ctrl->set_schmitt(bank, pin_num, enable);
 }
 
+static int rockchip_set_input_enable(struct rockchip_pin_bank *bank,
+				     int pin_num, int enable)
+{
+	struct rockchip_pinctrl_priv *priv = bank->priv;
+	struct rockchip_pin_ctrl *ctrl = priv->ctrl;
+
+	debug("setting input enable of GPIO%d-%d to %d\n", bank->bank_num,
+	      pin_num, enable);
+
+	if (!ctrl->set_input_enable)
+		return -ENOTSUPP;
+
+	return ctrl->set_input_enable(bank, pin_num, enable);
+}
+
 /* set the pin config settings for a specified pin */
 static int rockchip_pinconf_set(struct rockchip_pin_bank *bank,
 				u32 pin, u32 param, u32 arg)
@@ -410,6 +428,13 @@ static int rockchip_pinconf_set(struct rockchip_pin_bank *bank,
 			return rc;
 		break;
 
+	case PIN_CONFIG_INPUT_ENABLE:
+		if (!arg) {
+			rc = rockchip_set_input_enable(bank, pin, arg);
+			if (rc < 0)
+				return rc;
+		}
+		break;
 	case PIN_CONFIG_INPUT_SCHMITT_ENABLE:
 		rc = rockchip_set_schmitt(bank, pin, arg);
 		if (rc < 0)
@@ -456,6 +481,8 @@ static const struct pinconf_param rockchip_conf_params[] = {
 	{ "bias-pull-down", PIN_CONFIG_BIAS_PULL_DOWN, 1 },
 	{ "bias-pull-pin-default", PIN_CONFIG_BIAS_PULL_PIN_DEFAULT, 1 },
 	{ "drive-strength", PIN_CONFIG_DRIVE_STRENGTH, 0 },
+	{ "input-disable", PIN_CONFIG_INPUT_ENABLE, 0 },
+	{ "input-enable", PIN_CONFIG_INPUT_ENABLE, 1 },
 	{ "input-schmitt-disable", PIN_CONFIG_INPUT_SCHMITT_ENABLE, 0 },
 	{ "input-schmitt-enable", PIN_CONFIG_INPUT_SCHMITT_ENABLE, 1 },
 	{ "output-high", PIN_CONFIG_OUTPUT, 1, },
