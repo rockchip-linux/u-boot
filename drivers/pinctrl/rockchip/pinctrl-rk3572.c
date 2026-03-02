@@ -89,14 +89,26 @@ static int rk3572_set_drive(struct rockchip_pin_bank *bank,
 	struct regmap *regmap;
 	int reg;
 	u32 data, rmask;
-	u8 bit;
+	u8 bit, ret;
+
+	if ((bank->bank_num == 0 && pin_num < 12) ||
+	    (bank->bank_num == 4 && (pin_num == 24 || pin_num == 25))) {
+		/* only support 4 drive strength levels */
+		if (strength > 3)
+			return -EINVAL;
+		ret = ((strength & BIT(1)) >> 1) | ((strength & BIT(0)) << 1);
+	} else {
+		ret = ((strength & BIT(2)) >> 2) |
+		      ((strength & BIT(0)) << 2) |
+		      (strength & BIT(1));
+	}
 
 	rk3572_calc_drv_reg_and_bit(bank, pin_num, &regmap, &reg, &bit);
 
 	/* enable the write to the equivalent lower bits */
 	data = ((1 << RK3572_DRV_BITS_PER_PIN) - 1) << (bit + 16);
 	rmask = data | (data >> 16);
-	data |= (strength << bit);
+	data |= (ret << bit);
 
 	return regmap_update_bits(regmap, reg, rmask, data);
 }
