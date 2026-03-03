@@ -344,8 +344,6 @@ int arch_cpu_init(void)
 	/* set UFS_RSTN to high */
 	writel(0x00100010, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
 #endif
-	/* enable IE for gpio0_b0~b3 */
-	writel(0x000f000f, PMU0_IOC_BASE + PMUIO0_IOC_GPIO0B_IE);
 
 	return 0;
 }
