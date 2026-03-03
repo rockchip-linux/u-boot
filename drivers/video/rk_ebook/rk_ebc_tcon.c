@@ -456,6 +456,8 @@ static int ebc_tcon_enable(struct udevice *dev, struct ebc_panel *panel)
 		return ret;
 	}
 
+	pinctrl_select_state(tcon->dev, "default");
+
 	return 0;
 }
 #endif
