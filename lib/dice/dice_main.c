@@ -300,6 +300,7 @@ static int dice_measure_component(struct DiceContext *DiceCtx,
 
 static int dice_mask_uds(void)
 {
+#if !DICE_STATIC_BROM_UDS
 	struct otp_param param;
 	struct udevice *dev;
 	int ret;
@@ -318,7 +319,7 @@ static int dice_mask_uds(void)
 		printf("DICE: Can't mask otp UDS, ret=%d\n", ret);
 		return ret;
 	}
-
+#endif
 	return 0;
 }
 
