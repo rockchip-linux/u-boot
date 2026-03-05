@@ -57,6 +57,10 @@
 	status = "okay";
 };
 
+&firmware {
+	bootph-all;
+};
+
 &gpio0 {
 	bootph-all;
 	status = "okay";
@@ -125,6 +129,18 @@
 &saradc {
 	bootph-all;
 	status = "okay";
+};
+
+&scmi {
+	bootph-all;
+};
+
+&scmi_clk {
+	bootph-all;
+};
+
+&scmi_shmem {
+	bootph-all;
 };
 
 &sdhci {

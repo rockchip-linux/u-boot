@@ -281,7 +281,7 @@
 		};
 	};
 
-	firmware {
+	firmware: firmware {
 		scmi: scmi {
 			compatible = "arm,scmi-smc";
 			arm,smc-id = <0x82000010>;
