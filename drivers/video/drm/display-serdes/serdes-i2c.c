@@ -45,7 +45,7 @@ static int serdes_set_i2c_address(struct serdes *serdes,
 		return -1;
 	}
 
-	chip_split = dev_get_parent_platdata(serdes->dev);
+	chip_split = dev_get_parent_plat(serdes->dev);
 	SERDES_DBG_MFD("%s: %s addr=0x%x reg_hw=0x%x, reg_use=0x%x split=0x%p\n",
 		       __func__, serdes_split->dev->name,
 		       chip_split->chip_addr, serdes->reg_hw,
@@ -231,5 +231,5 @@ U_BOOT_DRIVER(serdes_i2c) = {
 	.of_match = serdes_of_match,
 	.probe = serdes_i2c_probe,
 	.bind = dm_scan_fdt_dev,
-	.priv_auto_alloc_size = sizeof(struct serdes),
+	.priv_auto = sizeof(struct serdes),
 };

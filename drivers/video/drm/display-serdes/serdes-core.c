@@ -14,7 +14,7 @@ static int dm_i2c_reg_write_u8(struct udevice *dev, u8 reg, u8 val)
 	int ret;
 	u8 buf[2];
 	struct i2c_msg msg;
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(dev);
 
 	buf[0] = reg;
 	buf[1] = val;
@@ -36,7 +36,7 @@ static uint8_t dm_i2c_reg_read_u8(struct udevice *dev, u8 reg)
 {
 	int ret;
 	u8 data;
-	struct dm_i2c_chip *chip = dev_get_parent_platdata(dev);
+	struct dm_i2c_chip *chip = dev_get_parent_plat(dev);
 	struct i2c_msg msg[] = {
 		{
 			.addr = chip->chip_addr,
@@ -325,7 +325,7 @@ int serdes_gpio_register(struct udevice *dev)
 	struct udevice *gpio_dev;
 
 	SERDES_DBG_MFD("%s node=%s\n",
-		       __func__, ofnode_get_name(dev->node));
+		       __func__, ofnode_get_name(dev->node_));
 
 	/* Lookup GPIO driver */
 	drv = lists_uclass_lookup(UCLASS_GPIO);
@@ -390,7 +390,7 @@ int serdes_pinctrl_register(struct udevice *dev)
 	struct serdes *serdes = dev_get_priv(dev);
 
 	SERDES_DBG_MFD("%s node=%s\n",
-		       __func__, ofnode_get_name(dev->node));
+		       __func__, ofnode_get_name(dev->node_));
 
 	/* Lookup PINCTRL driver */
 	drv = lists_uclass_lookup(UCLASS_PINCTRL);
@@ -543,7 +543,7 @@ U_BOOT_DRIVER(serdes_misc) = {
 	.id = UCLASS_MISC,
 	.of_match = serdes_of_match,
 	.probe = serdes_i2c_probe,
-	.priv_auto_alloc_size = sizeof(struct serdes),
+	.priv_auto = sizeof(struct serdes),
 };
 
 int serdes_power_init(void)
@@ -552,7 +552,7 @@ int serdes_power_init(void)
 	int ret = 0;
 
 	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(serdes_misc),
+					  DM_DRIVER_GET(serdes_misc),
 					  &dev);
 	if (ret)
 		printf("%s failed to get misc device ret=%d\n", __func__, ret);

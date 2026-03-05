@@ -219,5 +219,5 @@ U_BOOT_DRIVER(serdes_pinctrl) = {
 	.of_match = serdes_of_match,
 	.probe = serdes_pinctrl_probe,
 	.ops	= &serdes_pinctrl_ops,
-	.priv_auto_alloc_size = sizeof(struct serdes_pinctrl),
+	.priv_auto = sizeof(struct serdes_pinctrl),
 };

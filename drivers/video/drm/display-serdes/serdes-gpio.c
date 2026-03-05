@@ -104,6 +104,6 @@ U_BOOT_DRIVER(serdes_gpio) = {
 	.id = UCLASS_GPIO,
 	.probe = serdes_gpio_probe,
 	.ops = &serdes_gpio_ops,
-	.priv_auto_alloc_size = sizeof(struct serdes_gpio),
+	.priv_auto = sizeof(struct serdes_gpio),
 };
 

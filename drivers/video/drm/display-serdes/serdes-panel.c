@@ -82,7 +82,7 @@ static void serdes_panel_disable(struct rockchip_panel *panel)
 		serdes->chip_data->panel_ops->backlight_disable(serdes);
 
 	if (serdes->serdes_panel->backlight)
-		backlight_disable(serdes->serdes_panel->backlight);
+		backlight_set_brightness(serdes->serdes_panel->backlight, BACKLIGHT_OFF);
 
 	if (serdes->chip_data->panel_ops->disable)
 		serdes->chip_data->panel_ops->disable(serdes);
@@ -175,5 +175,5 @@ U_BOOT_DRIVER(serdes_panel) = {
 	.id = UCLASS_PANEL,
 	.of_match = serdes_of_match,
 	.probe = serdes_panel_probe,
-	.priv_auto_alloc_size = sizeof(struct serdes_panel),
+	.priv_auto = sizeof(struct serdes_panel),
 };

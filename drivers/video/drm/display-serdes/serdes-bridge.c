@@ -134,7 +134,7 @@ static int serdes_bridge_probe(struct udevice *dev)
 {
 	struct rockchip_bridge *bridge;
 	struct serdes *serdes = dev_get_priv(dev->parent);
-	struct mipi_dsi_device *device = dev_get_platdata(dev);
+	struct mipi_dsi_device *device = dev_get_plat(dev);
 
 	if (!serdes->chip_data->bridge_ops) {
 		SERDES_DBG_MFD("%s %s no bridge ops\n",
@@ -197,6 +197,6 @@ U_BOOT_DRIVER(serdes_bridge) = {
 	.id = UCLASS_VIDEO_BRIDGE,
 	.of_match = serdes_of_match,
 	.probe = serdes_bridge_probe,
-	.priv_auto_alloc_size = sizeof(struct serdes_bridge),
-	.platdata_auto_alloc_size = sizeof(struct mipi_dsi_device),
+	.priv_auto = sizeof(struct serdes_bridge),
+	.plat_auto = sizeof(struct mipi_dsi_device),
 };
