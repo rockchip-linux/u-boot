@@ -308,6 +308,15 @@ config MXS_GPIO
 	help
 	  Support GPIO controllers on i.MX23 and i.MX28 platforms
 
+config NCA9539_GPIO
+	bool "NCA9539 GPIO port expander driver"
+	depends on DM_GPIO
+	default n
+	help
+	  Device model driver support for NCA9539 GPIO expander. It should be
+	  usable on many NCA9539 families like NCA9539 & NCA9535.
+	  Tested on NCA9539.
+
 config NPCM_GPIO
 	bool "Nuvoton NPCM GPIO driver"
 	depends on DM_GPIO

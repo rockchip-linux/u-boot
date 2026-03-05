@@ -28,6 +28,7 @@ obj-$(CONFIG_KIRKWOOD_GPIO)	+= kw_gpio.o
 obj-$(CONFIG_$(PHASE_)MCP230XX_GPIO)	+= mcp230xx_gpio.o
 obj-$(CONFIG_MXC_GPIO)	+= mxc_gpio.o
 obj-$(CONFIG_MXS_GPIO)	+= mxs_gpio.o
+obj-$(CONFIG_NCA9539_GPIO)	+= nca9539_gpio.o
 obj-$(CONFIG_NPCM_GPIO)      	+= npcm_gpio.o
 obj-$(CONFIG_NPCM_SGPIO)	+= npcm_sgpio.o
 obj-$(CONFIG_PCA953X)		+= pca953x.o
