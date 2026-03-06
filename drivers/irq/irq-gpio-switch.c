@@ -72,8 +72,6 @@ static int __hard_gpio_to_irq(u32 gpio)
 	for (idx = 0; idx < ARRAY_SIZE(gpio_banks); idx++) {
 		if (gpio_banks[idx].id == bank) {
 			irq = (gpio_banks[idx].irq_base + pin);
-			if (irq_is_busy(irq))
-				return -EBUSY;
 			return irq;
 		}
 	}
@@ -214,7 +212,7 @@ int gpio_to_irq(struct gpio_desc *gpio)
 {
 	int irq_gpio, bank, ret = EINVAL_GPIO;
 	char *name, *name_tok;
-	bool found;
+	bool found = false;
 
 	if (!gpio->dev->name) {
 		IRQ_E("Can't find dev name for gpio bank\n");

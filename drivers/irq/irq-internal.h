@@ -10,7 +10,6 @@
 #include <asm/io.h>
 #include <irq-generic.h>
 #include <irq-platform.h>
-#include "irq-internal.h"
 
 /*
  * IRQ FLAG

@@ -28,8 +28,9 @@ struct virq_data {
 	u32 flag;
 	u32 count;
 
-	void *data;
+	/* VIRQ doesn't need shared support - one handler per virq */
 	interrupt_handler_t *handle_irq;
+	void *data;
 };
 
 /* The structure to maintail the irqchip and child virqs */
@@ -63,20 +64,6 @@ static struct virq_desc *find_virq_desc(int irq)
 	return NULL;
 }
 
-static struct virq_desc *find_virq_desc_by_pirq(int parent_irq)
-{
-	struct virq_desc *desc;
-	struct list_head *node;
-
-	list_for_each(node, &virq_desc_head) {
-		desc = list_entry(node, struct virq_desc, node);
-		if (parent_irq == desc->pirq)
-			return desc;
-	}
-
-	return NULL;
-}
-
 int virq_to_irq(struct virq_chip *chip, int virq)
 {
 	struct virq_desc *desc;
@@ -95,7 +82,7 @@ int virq_to_irq(struct virq_chip *chip, int virq)
 		}
 	}
 
-	return -ENONET;
+	return -ENOENT;
 }
 
 int bad_virq(int irq)
@@ -108,26 +95,35 @@ void virqs_show(int pirq)
 	struct virq_data *vdata;
 	struct virq_desc *desc;
 	struct udevice *dev;
+	struct list_head *desc_node;
 	int num;
 	int i;
 
-	desc = find_virq_desc_by_pirq(pirq);
-	if (!desc)
-	       return;
+	/* Iterate through ALL virq_desc that share this parent IRQ */
+	list_for_each(desc_node, &virq_desc_head) {
+		desc = list_entry(desc_node, struct virq_desc, node);
 
-	vdata = desc->virqs;
-	num = desc->irq_end - desc->irq_base;
-
-	for (i = 0; i < num; i++) {
-		if (!vdata[i].handle_irq)
+		/* Skip if this desc doesn't match our parent IRQ */
+		if (desc->pirq != pirq)
 			continue;
 
-		dev = (struct udevice *)vdata[i].data;
-		printf(" %3d    %d     0x%08lx    %-12s    |-- %-12s   %d\n",
-		       vdata[i].irq,
-		       vdata[i].flag & IRQ_FLG_ENABLE ? 1 : 0,
-		       (ulong)vdata[i].handle_irq, dev->driver->name, dev->name,
-		       vdata[i].count);
+		vdata = desc->virqs;
+		num = desc->irq_end - desc->irq_base + 1;
+
+		for (i = 0; i < num; i++) {
+			/* Skip if no handler registered */
+			if (!vdata[i].handle_irq)
+				continue;
+
+			dev = (struct udevice *)vdata[i].data;
+			printf(" %3d  %-12s  %c   0x%016lx  %-13s  %-16s  %6u  (parent: %d)\n",
+			       vdata[i].irq, "VIRQ",
+			       vdata[i].flag & IRQ_FLG_ENABLE ? 'Y' : 'N',
+			       (ulong)vdata[i].handle_irq,
+			       (dev && dev->driver) ? dev->driver->name : "N/A",
+			       dev ? dev->name : "N/A",
+			       vdata[i].count, pirq);
+		}
 	}
 }
 
@@ -144,11 +140,14 @@ int virq_install_handler(int irq, interrupt_handler_t *handler, void *data)
 		return -ENOENT;
 
 	virq = irq - desc->irq_base;
+
+	/* VIRQ doesn't support shared handlers - direct assignment */
 	if (desc->virqs[virq].handle_irq)
 		return -EBUSY;
 
 	desc->virqs[virq].handle_irq = handler;
 	desc->virqs[virq].data = data;
+	desc->virqs[virq].count = 0;
 
 	return 0;
 }
@@ -163,6 +162,8 @@ void virq_free_handler(int irq)
 		return;
 
 	virq = irq - desc->irq_base;
+
+	/* VIRQ doesn't support shared handlers - direct clear */
 	desc->virqs[virq].handle_irq = NULL;
 	desc->virqs[virq].data = NULL;
 }
@@ -188,54 +189,64 @@ void virq_chip_generic_handler(int pirq, void *pdata)
 	struct virq_desc *desc;
 	struct virq_data *vdata;
 	struct udevice *parent;
+	struct list_head *desc_node;
 	uint status_reg;
-	void *data;
 	int irq;
 	int ret;
 	int i;
 
-	desc = find_virq_desc_by_pirq(pirq);
-	if (!desc)
-		return;
+	/*
+	 * Iterate through ALL virq_desc that share this parent IRQ.
+	 * This handles the case where multiple PMICs share the same GPIO.
+	 */
+	list_for_each(desc_node, &virq_desc_head) {
+		desc = list_entry(desc_node, struct virq_desc, node);
 
-	chip = desc->chip;
-	vdata = desc->virqs;
-	parent = (struct udevice *)pdata;
+		/* Skip if this desc doesn't match our parent IRQ */
+		if (desc->pirq != pirq)
+			continue;
 
-	if (!chip || !vdata || !parent)
-		return;
+		chip = desc->chip;
+		vdata = desc->virqs;
+		parent = desc->parent;
 
-	/* Read all status register */
-	for (i = 0; i < chip->num_regs; i++) {
-		status_reg = reg_base_get(desc, chip->status_base, i);
-		desc->status_buf[i] = chip->read(parent, status_reg);
-		if (desc->status_buf[i] < 0) {
-			printf("%s: Read status register 0x%x failed, ret=%d\n",
-			       __func__, status_reg, desc->status_buf[i]);
+		if (!chip || !vdata || !parent)
+			continue;
+
+		/* Read all status register for this device */
+		for (i = 0; i < chip->num_regs; i++) {
+			int val;
+
+			status_reg = reg_base_get(desc, chip->status_base, i);
+			val = chip->read(parent, status_reg);
+			if (val < 0) {
+				printf("%s: Read status register 0x%x failed, ret=%d\n",
+				       __func__, status_reg, val);
+			}
+			desc->status_buf[i] = (uint)val;
 		}
-	}
 
-	/* Handle all virq handler */
-	for (i = 0; i < chip->num_irqs; i++) {
-		if (desc->status_buf[chip->irqs[i].reg_offset] &
-		    chip->irqs[i].mask) {
-			irq = vdata[i].irq;
-			data = vdata[i].data;
+		/* Handle all virq - VIRQ doesn't support shared handlers */
+		for (i = 0; i < chip->num_irqs; i++) {
+			if (desc->status_buf[chip->irqs[i].reg_offset] &
+			    chip->irqs[i].mask) {
+				irq = vdata[i].irq;
 
-			if (vdata[i].handle_irq) {
-				vdata[i].count++;
-				vdata[i].handle_irq(irq, data);
+				if (vdata[i].handle_irq) {
+					vdata[i].count++;
+					vdata[i].handle_irq(irq, vdata[i].data);
+				}
 			}
 		}
-	}
 
-	/* Clear all status register */
-	for (i = 0; i < chip->num_regs; i++) {
-		status_reg = reg_base_get(desc, chip->status_base, i);
-		ret = chip->write(parent, status_reg, ~0U);
-		if (ret)
-			printf("%s: Clear status register 0x%x failed, ret=%d\n",
-			       __func__, status_reg, ret);
+		/* Clear all status register for this device */
+		for (i = 0; i < chip->num_regs; i++) {
+			status_reg = reg_base_get(desc, chip->status_base, i);
+			ret = chip->write(parent, status_reg, ~0U);
+			if (ret)
+				printf("%s: Clear status register 0x%x failed, ret=%d\n",
+				       __func__, status_reg, ret);
+		}
 	}
 }
 
@@ -259,17 +270,25 @@ int virq_add_chip(struct udevice *dev, struct virq_chip *chip, int irq)
 	vdata = (struct virq_data *)calloc(sizeof(*vdata), chip->num_irqs);
 	if (!vdata) {
 		ret = -ENOMEM;
-		goto free1;
+		free(desc);
+		return ret;
 	}
 
-	status_buf = (uint *)calloc(sizeof(*status_buf), chip->num_irqs);
+	status_buf = (uint *)calloc(sizeof(*status_buf), chip->num_regs);
 	if (!status_buf) {
 		ret = -ENOMEM;
-		goto free2;
+		free(vdata);
+		free(desc);
+		return ret;
 	}
 
-	for (i = 0; i < chip->num_irqs; i++)
+	for (i = 0; i < chip->num_irqs; i++) {
 		vdata[i].irq = virq_id_alloc();
+		vdata[i].flag = 0;
+		vdata[i].count = 0;
+		vdata[i].handle_irq = NULL;
+		vdata[i].data = NULL;
+	}
 
 	desc->parent = dev;
 	desc->pirq = irq;
@@ -304,16 +323,9 @@ int virq_add_chip(struct udevice *dev, struct virq_chip *chip, int irq)
 	}
 
 	/* Add parent irq into interrupt framework with generic virq handler */
-	irq_install_handler(irq, virq_chip_generic_handler, dev);
+	irq_install_handler_flags(irq, virq_chip_generic_handler, dev, IRQF_SHARED);
 
 	return irq_handler_disable(irq);
-
-free1:
-	free(desc);
-free2:
-	free(status_buf);
-
-	return ret;
 }
 
 static int virq_init(void)

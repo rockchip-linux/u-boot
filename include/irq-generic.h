@@ -21,6 +21,12 @@
 #define IRQ_D(fmt, args...)	 debug("IRQ Debug "fmt, ##args)
 
 /*
+ * IRQ Flags
+ */
+#define IRQF_NONE	0
+#define IRQF_SHARED	(1 << 0)
+
+/*
  * IRQ line status.
  *
  * IRQ_TYPE_NONE		- default, unspecified type
@@ -95,6 +101,8 @@ struct virq_chip {
 
 /* APIs for irqs */
 void irq_install_handler(int irq, interrupt_handler_t *handler, void *data);
+void irq_install_handler_flags(int irq, interrupt_handler_t *handler,
+			       void *data, u32 irq_flags);
 void irq_free_handler(int irq);
 int irq_set_irq_type(int irq, unsigned int type);
 int irq_revert_irq_type(int irq);
