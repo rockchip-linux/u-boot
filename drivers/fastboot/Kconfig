@@ -287,10 +287,20 @@ config FASTBOOT_CMD_OEM_CONSOLE
 
 config FASTBOOT_OEM_BOARD
 	bool "Enable the 'oem board' command"
+	default y
 	help
 	  This extends the fastboot protocol with an "oem board" command. This
 	  command allows running vendor custom code defined in board/ files.
 	  Otherwise, it will do nothing and send fastboot fail.
+
+config FASTBOOT_OEM_BOARD_UNLOCK
+	bool "Enable FASTBOOT OEM BOARD UNLOCK command"
+	default y
+	depends on FASTBOOT_OEM_BOARD
+	help
+	  This enables the command "fastboot oem board unlock" the fastboot
+	  oem board unlock command requires tee security storage to store
+	  unlock status. oem unlock status attach to bootargs on boot.
 
 endif # FASTBOOT
 

@@ -18,6 +18,7 @@
 
 static void getvar_version(char *var_parameter, char *response);
 static void getvar_version_bootloader(char *var_parameter, char *response);
+static void getvar_filesize(char *var_parameter, char *response);
 static void getvar_downloadsize(char *var_parameter, char *response);
 static void getvar_serialno(char *var_parameter, char *response);
 static void getvar_version_baseband(char *var_parameter, char *response);
@@ -27,18 +28,20 @@ static void getvar_current_slot(char *var_parameter, char *response);
 static void getvar_has_slot(char *var_parameter, char *response);
 static void getvar_partition_type(char *part_name, char *response);
 static void getvar_partition_size(char *part_name, char *response);
-static void getvar_is_userspace(char *var_parameter, char *response);
 static void getvar_logical_blocksize(char *var_parameter, char *response);
 static void getvar_erase_blocksize(char *var_parameter, char *response);
 static void getvar_vboot_state(char *var_parameter, char *response);
 static void getvar_unlocked(char *var_parameter, char *response);
 static void getvar_flash_unlocked(char *var_parameter, char *response);
+#ifdef CONFIG_ANDROID_AB
+static void getvar_slot_count(char *var_parameter, char *response);
 static void getvar_slot_suffixes(char *var_parameter, char *response);
 static void getvar_slot_successful(char *var_parameter, char *response);
 static void getvar_slot_unbootable(char *var_parameter, char *response);
 static void getvar_slot_retry_count(char *var_parameter, char *response);
-static void getvar_avb_state(char *var_parameter, char *response);
 static void getvar_snapshot_update_status(char *var_parameter, char *response);
+#endif
+static void getvar_avb_state(char *var_parameter, char *response);
 
 static const struct {
 	const char *variable;
@@ -52,6 +55,10 @@ static const struct {
 	}, {
 		.variable = "version-bootloader",
 		.dispatch = getvar_version_bootloader,
+		.list = true
+	}, {
+		.variable = "filesize",
+		.dispatch = getvar_filesize,
 		.list = true
 	}, {
 		.variable = "downloadsize",
@@ -100,10 +107,6 @@ static const struct {
 		.list = false
 #endif
 	}, {
-		.variable = "is-userspace",
-		.dispatch = getvar_is_userspace,
-		.list = true
-	}, {
 		.variable = "logical-block-size",
 		.dispatch = getvar_logical_blocksize,
 		.list = true
@@ -124,6 +127,11 @@ static const struct {
 		.dispatch = getvar_flash_unlocked,
 		.list = true
 	}, {
+#ifdef CONFIG_ANDROID_AB
+		.variable = "slot-count",
+		.dispatch = getvar_slot_count,
+		.list = true
+	}, {
 		.variable = "slot-suffixes",
 		.dispatch = getvar_slot_suffixes,
 		.list = true
@@ -140,12 +148,13 @@ static const struct {
 		.dispatch = getvar_slot_retry_count,
 		.list = true
 	}, {
-		.variable = "avb-state",
-		.dispatch = getvar_avb_state,
-		.list = true
-	}, {
 		.variable = "snapshot-update-status",
 		.dispatch = getvar_snapshot_update_status,
+		.list = true
+	}, {
+#endif
+		.variable = "avb-state",
+		.dispatch = getvar_avb_state,
 		.list = true
 	}
 };
@@ -198,6 +207,11 @@ static void getvar_version_bootloader(char *var_parameter, char *response)
 	fastboot_okay(U_BOOT_VERSION, response);
 }
 
+static void getvar_filesize(char *var_parameter, char *response)
+{
+	fastboot_response("OKAY", response, "0x%08lx", env_get_hex("filesize", 0));
+}
+
 static void getvar_downloadsize(char *var_parameter, char *response)
 {
 	fastboot_response("OKAY", response, "0x%08x", fastboot_buf_size);
@@ -230,7 +244,11 @@ static void getvar_product(char *var_parameter, char *response)
 
 static void getvar_platform(char *var_parameter, char *response)
 {
+#ifdef CONFIG_ARCH_ROCKCHIP
+	const char *p = env_get("cpuid#");
+#else
 	const char *p = env_get("platform");
+#endif
 
 	if (p)
 		fastboot_okay(p, response);
@@ -304,11 +322,6 @@ static void __maybe_unused getvar_partition_size(char *part_name, char *response
 		fastboot_response("OKAY", response, "0x%016zx", size);
 }
 
-static void getvar_is_userspace(char *var_parameter, char *response)
-{
-	fastboot_okay("no", response);
-}
-
 static void __maybe_unused getvar_logical_blocksize(char *var_parameter, char *response)
 {
 	struct blk_desc *dev_desc;
@@ -361,14 +374,18 @@ static void __maybe_unused getvar_unlocked(char *var_parameter, char *response)
 #ifdef CONFIG_LIBAVB_USER
 	uint8_t lock_state = 0;
 
-	if (!avb_read_lock_state(&lock_state)) {
+	if (avb_read_lock_state(&lock_state)) {
 		fastboot_fail("Read lock_state failed", response);
 		return;
 	}
-	if (lock_state)
+	if (lock_state) {
 		fastboot_okay("AVB unlock", response);
-	else
+		env_set("lock_state", "unlock");
+	} else {
 		fastboot_okay("AVB lock", response);
+		env_set("lock_state", "lock");
+	}
+
 #else
 	fastboot_fail("Not implemented, please enable CONFIG_LIBAVB_USER", response);
 #endif
@@ -379,7 +396,7 @@ static void __maybe_unused getvar_flash_unlocked(char *var_parameter, char *resp
 #ifdef CONFIG_LIBAVB_USER
 	uint8_t flash_lock_state = 0;
 
-	if (!avb_read_flash_lock_state(&flash_lock_state)) {
+	if (avb_read_flash_lock_state(&flash_lock_state)) {
 		fastboot_fail("Read flash_lock_state failed", response);
 		return;
 	}
@@ -392,7 +409,13 @@ static void __maybe_unused getvar_flash_unlocked(char *var_parameter, char *resp
 #endif
 }
 
-static void __maybe_unused getvar_slot_suffixes(char *var_parameter, char *response)
+#ifdef CONFIG_ANDROID_AB
+static void getvar_slot_count(char *var_parameter, char *response)
+{
+	fastboot_response("OKAY", response, "%s", "2\0");
+}
+
+static void getvar_slot_suffixes(char *var_parameter, char *response)
 {
 	char slot_suffixes_temp[4] = {0};
 	char slot_suffixes[9] = {0};
@@ -411,7 +434,7 @@ static void __maybe_unused getvar_slot_suffixes(char *var_parameter, char *respo
 	fastboot_response("OKAY", response, "%s", slot_suffixes);
 }
 
-static void __maybe_unused getvar_slot_successful(char *var_parameter, char *response)
+static void getvar_slot_successful(char *var_parameter, char *response)
 {
 	char *slot_name = var_parameter;
 	AvbABData ab_info;
@@ -441,7 +464,7 @@ static void __maybe_unused getvar_slot_successful(char *var_parameter, char *res
 	}
 }
 
-static void __maybe_unused getvar_slot_unbootable(char *var_parameter, char *response)
+static void getvar_slot_unbootable(char *var_parameter, char *response)
 {
 	char *slot_name = var_parameter;
 	AvbABData ab_info;
@@ -475,7 +498,7 @@ static void __maybe_unused getvar_slot_unbootable(char *var_parameter, char *res
 	}
 }
 
-static void __maybe_unused getvar_slot_retry_count(char *var_parameter, char *response)
+static void getvar_slot_retry_count(char *var_parameter, char *response)
 {
 	char *slot_name = var_parameter;
 	AvbABData ab_info;
@@ -498,23 +521,8 @@ static void __maybe_unused getvar_slot_retry_count(char *var_parameter, char *re
 		fastboot_fail("Argument Invalid", response);
 }
 
-static void __maybe_unused getvar_avb_state(char *var_parameter, char *response)
+static void getvar_snapshot_update_status(char *var_parameter, char *response)
 {
-	char vbst[AVB_STATE_SIZE] = {0};
-	char *p_vbst;
-
-	avb_get_state(vbst);
-	p_vbst = vbst;
-	do {
-		var_parameter = strsep(&p_vbst, "\n");
-		if (strlen(var_parameter) > 0)
-			fastboot_response("OKAY", response, "%s", var_parameter);
-	} while (strlen(var_parameter));
-}
-
-static void __maybe_unused getvar_snapshot_update_status(char *var_parameter, char *response)
-{
-#ifdef CONFIG_ANDROID_AB
 	struct misc_virtual_ab_message state;
 
 	memset(&state, 0x0, sizeof(state));
@@ -534,9 +542,21 @@ static void __maybe_unused getvar_snapshot_update_status(char *var_parameter, ch
 		fastboot_okay("Snapshotted", response);
 	else
 		fastboot_okay("None", response);
-#else
-	fastboot_fail("Not implemented, please enable CONFIG_ANDROID_AB", response);
+}
 #endif
+
+static void __maybe_unused getvar_avb_state(char *var_parameter, char *response)
+{
+	char vbst[AVB_STATE_SIZE] = {0};
+	char *p_vbst;
+
+	avb_get_state(vbst);
+	p_vbst = vbst;
+	do {
+		var_parameter = strsep(&p_vbst, "\n");
+		if (strlen(var_parameter) > 0)
+			fastboot_response("OKAY", response, "%s", var_parameter);
+	} while (strlen(var_parameter));
 }
 
 static int current_all_dispatch;

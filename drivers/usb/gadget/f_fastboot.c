@@ -33,6 +33,8 @@
 
 #define EP_BUFFER_SIZE			4096
 
+static unsigned int upload_bytes;
+
 static char fb_ext_prop_name[] = "DeviceInterfaceGUID";
 static char fb_ext_prop_data[] = "{4866319A-F4D6-4374-93B9-DC2DEB361BA9}";
 
@@ -56,8 +58,6 @@ static inline struct f_fastboot *func_to_fastboot(struct usb_function *f)
 {
 	return container_of(f, struct f_fastboot, usb_function);
 }
-
-static struct f_fastboot *fastboot_func;
 
 static struct usb_endpoint_descriptor fs_ep_in = {
 	.bLength            = USB_DT_ENDPOINT_SIZE,
@@ -580,6 +580,7 @@ void tx_handler_ul(struct usb_ep *ep, struct usb_request *req)
 	unsigned int pre_dot_num, now_dot_num;
 	unsigned int remain_size = 0;
 	unsigned int transferred_size = req->actual;
+	u32 total_size;
 
 	if (req->status != 0) {
 		printf("Bad status: %d\n", req->status);
@@ -598,21 +599,23 @@ void tx_handler_ul(struct usb_ep *ep, struct usb_request *req)
 		}
 	}
 
-	remain_size = upload_size - upload_bytes;
+	total_size = env_get_hex("filesize", 0);
+	remain_size = total_size - upload_bytes;
 	xfer_size = (remain_size > EP_BUFFER_SIZE) ?
 		    EP_BUFFER_SIZE : remain_size;
 
-	debug("%s: remain_size=%d, transferred_size=%d",
+	debug("%s: remain_size=%d, transferred_size=%d!\n",
 	      __func__, remain_size, transferred_size);
-	debug("xfer_size=%d, upload_bytes=%d, upload_size=%d!\n",
-	      xfer_size, upload_bytes, upload_size);
+	debug("xfer_size=%d, upload_bytes=%d, total_size=%d!\n",
+	      xfer_size, upload_bytes, total_size);
 
 	if (remain_size <= 0) {
 		fastboot_func->in_req->complete = fastboot_complete;
 		fastboot_tx_write_str("OKAY");
 		printf("\nuploading of %d bytes finished\n", upload_bytes);
 		upload_bytes = 0;
-		upload_size = 0;
+		total_size = 0;
+		env_set_hex("filesize", total_size);
 		start_upload = false;
 		return;
 	}

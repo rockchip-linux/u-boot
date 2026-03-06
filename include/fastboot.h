@@ -89,10 +89,8 @@ struct f_fastboot {
 	struct usb_request *in_req, *out_req;
 };
 
-static __maybe_unused unsigned int upload_size;
-static __maybe_unused unsigned int upload_bytes;
-static __maybe_unused bool start_upload;
-static __maybe_unused struct f_fastboot *fastboot_func;
+static struct f_fastboot * __maybe_unused fastboot_func;
+static bool __maybe_unused start_upload;
 
 /**
  * fastboot_response() - Writes a response of the form "$tag$reason".

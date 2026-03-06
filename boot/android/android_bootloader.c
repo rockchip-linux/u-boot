@@ -1351,10 +1351,10 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	env_set_ulong("android_root_devnum", dev_desc->devnum);
 	env_set("android_slotsufix", slot_suffix);
 
-#ifdef CONFIG_FASTBOOT_OEM_UNLOCK
+#ifdef CONFIG_FASTBOOT_OEM_BOARD_UNLOCK
 	/* read oem unlock status and attach to bootargs */
 	uint8_t unlock = 0;
-	TEEC_Result result;
+	uint32_t result;
 	char oem_unlock[OEM_UNLOCK_ARG_SIZE] = {0};
 	bool is_unlocked;
 

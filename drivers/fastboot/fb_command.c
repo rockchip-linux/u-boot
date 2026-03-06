@@ -405,7 +405,6 @@ static void __maybe_unused flash(char *cmd_parameter, char *response)
  */
 static void __maybe_unused erase(char *cmd_parameter, char *response)
 {
-	strsep(&cmd_parameter, ":");
 	if (!cmd_parameter) {
 		fastboot_fail("Missing partition name", response);
 		pr_err("Missing partition name");
@@ -534,6 +533,12 @@ static void __maybe_unused oem_format(char *cmd_parameter, char *response)
 	const int mmc_dev = config_opt_enabled(CONFIG_FASTBOOT_FLASH_MMC,
 					       CONFIG_FASTBOOT_FLASH_MMC_DEV, -1);
 
+	if (should_prevent_userdata_wipe()) {
+		printf("FAILThe virtual A/B merging, can not format!\n");
+		fastboot_fail("Virtual A/B merging, abort format!", response);
+		return;
+	}
+
 	if (!env_get("partitions")) {
 		fastboot_fail("partitions not set", response);
 	} else {
@@ -641,16 +646,18 @@ static void __maybe_unused oem_board(char *cmd_parameter, char *response)
 
 static void __maybe_unused upload(char *cmd_parameter, char *response)
 {
-	printf("Starting upload of %d bytes\n", upload_size);
+	u32 total_size = env_get_hex("filesize", 0);
 
-	if (0 == upload_size) {
-		strcpy(response, "FAILdata invalid size");
+	printf("Starting upload of %d bytes\n", total_size);
+
+	if (!total_size) {
+		fastboot_fail("Data invalid size", response);
 	} else {
 		start_upload = false;
-		sprintf(response, "DATA%08x", upload_size);
+		sprintf(response, "%08x", total_size);
 		fastboot_func->in_req->complete = tx_handler_ul;
+		fastboot_response("Data size:", response, NULL);
 	}
-	fastboot_okay(NULL, response);
 }
 
 static void __maybe_unused reboot(char *cmd_parameter, char *response)
@@ -669,7 +676,6 @@ static void __maybe_unused set_active(char *cmd_parameter, char *response)
 {
 	debug("%s: %s\n", __func__, cmd_parameter);
 
-	strsep(&cmd_parameter, ":");
 	if (!cmd_parameter) {
 		fastboot_fail("Missing slot name", response);
 		pr_err("Missing slot name");
