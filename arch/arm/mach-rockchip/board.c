@@ -1336,8 +1336,8 @@ static void bootargs_add_fwver(bool verbose)
 	strcat(list2, "-");
 #endif
 	/* optional */
-	if (strcmp(PLAIN_VERSION, "2017.09")) {
-		strncat(list2, p + strlen("2017.09-g"), 10);
+	if (strcmp(PLAIN_VERSION, "next-dev")) {
+		strncat(list2, p + strlen("next-dev-g"), 10);
 		strcat(list2, "-");
 	}
 	strcat(list2, U_BOOT_DMI_DATE);
