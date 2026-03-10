@@ -451,7 +451,7 @@ internal_phase:
 	if (!(ret < 0)) {
 		if (priv->usrid == USRID_INTER_PHASE)
 			ret = rockchip_mmc_set_phase(host, true, plat->mmc.default_phase);
-		else if ((!priv->sample_clk.dev))
+		else if ((priv->sample_clk.dev))
 			ret = clk_set_phase(&priv->sample_clk, plat->mmc.default_phase);
 		if (ret < 0)
 			debug("MMC: can not set default phase!\n");
