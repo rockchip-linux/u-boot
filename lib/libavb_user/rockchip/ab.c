@@ -49,10 +49,15 @@ AvbABFlowResult ab_slot_select(AvbABOps* ab_ops,char* select_slot)
 
 	if (last_slot_index != slot_index_to_boot) {
 		last_slot_index = slot_index_to_boot;
-		printf("A/B-slot: %s, successful: %d, tries-remain: %d\n",
+		printf("A/B-slot: %s, successful: %d, tries-remain: %d (select)\n",
 		       select_slot,
 		       ab_data.slots[slot_index_to_boot].successful_boot,
 		       ab_data.slots[slot_index_to_boot].tries_remaining);
+
+		printf("A/B-slot: %s, successful: %d, tries-remain: %d\n",
+		       (!slot_index_to_boot) == 0 ? "_a" : "_b",
+		       ab_data.slots[!slot_index_to_boot].successful_boot,
+		       ab_data.slots[!slot_index_to_boot].tries_remaining);
 	}
 out:
 	return ret;
