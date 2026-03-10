@@ -63,7 +63,7 @@ static bool spl_ab_data_verify_and_byteswap(const AvbABData *src,
 {
 	/* Ensure magic is correct. */
 	if (safe_memcmp(src->magic, AVB_AB_MAGIC, AVB_AB_MAGIC_LEN) != 0) {
-		printf("Magic is incorrect.\n");
+		printf("A/B Magic is incorrect.\n");
 		return false;
 	}
 

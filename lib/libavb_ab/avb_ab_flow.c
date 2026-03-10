@@ -27,7 +27,7 @@
 bool avb_ab_data_verify_and_byteswap(const AvbABData* src, AvbABData* dest) {
   /* Ensure magic is correct. */
   if (avb_safe_memcmp(src->magic, AVB_AB_MAGIC, AVB_AB_MAGIC_LEN) != 0) {
-    avb_error("Magic is incorrect.\n");
+    avb_error("A/B Magic is incorrect.\n");
     return false;
   }
 
