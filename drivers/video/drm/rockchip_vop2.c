@@ -8038,7 +8038,7 @@ static void rk3568_setup_overlay(struct display_state *state)
 	for (i = 0; i < vop2->data->nr_vps; i++) {
 		layer_nr = vop2->vp_plane_mask[i].attached_layers_nr;
 		for (j = 0; j < layer_nr; j++) {
-			if (!vop2->vp_plane_mask[i].attached_layers[j])
+			if (vop2->vp_plane_mask[i].attached_layers[j] == ROCKCHIP_VOP2_PHY_ID_INVALID)
 				continue;
 			layer_phy_id = vop2->vp_plane_mask[i].attached_layers[j];
 			win_data = vop2_find_win_by_phys_id(vop2, layer_phy_id);
