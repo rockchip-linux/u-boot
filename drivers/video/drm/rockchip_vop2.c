@@ -1820,6 +1820,7 @@ struct vop2_ops {
 	void (*setup_overlay)(struct display_state *state);
 	void (*assign_plane_mask)(struct display_state *state);
 	void (*setup_alpha)(struct display_state *state);
+	unsigned long (*setup_interface)(struct display_state *state);
 };
 
 union vop2_alpha_ctrl {
@@ -4385,7 +4386,7 @@ static int vop2_calc_dsc_clk(struct display_state *state)
 	return 0;
 }
 
-static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
+static unsigned long rk3588_setup_interface(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
@@ -4635,7 +4636,7 @@ static unsigned long rk3588_vop2_if_cfg(struct display_state *state)
 	return dclk_rate / 1000;
 }
 
-static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
+static unsigned long rk3576_setup_interface(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
@@ -4940,7 +4941,7 @@ static unsigned long rk3576_vop2_if_cfg(struct display_state *state)
 	return mode->crtc_clock;
 }
 
-static unsigned long rk3572_vop2_if_cfg(struct display_state *state)
+static unsigned long rk3572_setup_interface(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
@@ -5223,7 +5224,7 @@ static void rk3568_vop2_setup_dual_channel_if(struct display_state *state)
 	}
 }
 
-static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
+static unsigned long rk3568_setup_interface(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
@@ -5344,7 +5345,7 @@ static unsigned long rk3568_vop2_if_cfg(struct display_state *state)
 	return mode->crtc_clock;
 }
 
-static unsigned long rk3562_vop2_if_cfg(struct display_state *state)
+static unsigned long rk3562_setup_interface(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
@@ -5401,7 +5402,7 @@ static unsigned long rk3562_vop2_if_cfg(struct display_state *state)
 	return mode->crtc_clock;
 }
 
-static unsigned long rk3528_vop2_if_cfg(struct display_state *state)
+static unsigned long rk3528_setup_interface(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
@@ -5954,6 +5955,8 @@ static int rockchip_vop2_init(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_ops *vop2_ops = vop2_data->ops;
 	u16 hsync_len = mode->crtc_hsync_end - mode->crtc_hsync_start;
 	u16 hdisplay = mode->crtc_hdisplay;
 	u16 htotal = mode->crtc_htotal;
@@ -6035,19 +6038,8 @@ static int rockchip_vop2_init(struct display_state *state)
 	}
 
 	vop2_initial(vop2, state);
-	if (vop2->version == VOP_VERSION_RK3588)
-		dclk_rate = rk3588_vop2_if_cfg(state);
-	else if (vop2->version == VOP_VERSION_RK3576)
-		dclk_rate = rk3576_vop2_if_cfg(state);
-	else if (vop2->version == VOP_VERSION_RK3572 ||
-		 vop2->version == VOP_VERSION_RK3538)
-		dclk_rate = rk3572_vop2_if_cfg(state);
-	else if (vop2->version == VOP_VERSION_RK3568)
-		dclk_rate = rk3568_vop2_if_cfg(state);
-	else if (vop2->version == VOP_VERSION_RK3562)
-		dclk_rate = rk3562_vop2_if_cfg(state);
-	else if (vop2->version == VOP_VERSION_RK3528)
-		dclk_rate = rk3528_vop2_if_cfg(state);
+
+	dclk_rate = vop2_ops->setup_interface(state);
 
 	if ((conn_state->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
 	     !(cstate->feature & VOP_FEATURE_OUTPUT_10BIT)) ||
@@ -8941,6 +8933,7 @@ static const struct vop2_ops rk3528_vop_ops = {
 	.setup_win_dly = rk3528_setup_win_dly,
 	.setup_overlay = rk3528_setup_overlay,
 	.assign_plane_mask = rk3528_assign_plane_mask,
+	.setup_interface = rk3528_setup_interface,
 };
 
 const struct vop2_data rk3528_vop = {
@@ -9171,6 +9164,7 @@ static const struct vop2_ops rk3538_vop_ops = {
 	.setup_overlay = rk3576_setup_overlay,
 	.assign_plane_mask = rk3528_assign_plane_mask,
 	.setup_alpha = rk3576_setup_alpha,
+	.setup_interface = rk3572_setup_interface,
 };
 
 const struct vop2_data rk3538_vop = {
@@ -9309,6 +9303,7 @@ static const struct vop2_ops rk3562_vop_ops = {
 	.setup_win_dly = rk3528_setup_win_dly,
 	.setup_overlay = rk3528_setup_overlay,
 	.assign_plane_mask = rk3528_assign_plane_mask,
+	.setup_interface = rk3562_setup_interface,
 };
 
 const struct vop2_data rk3562_vop = {
@@ -9555,6 +9550,7 @@ static const struct vop2_ops rk3568_vop_ops = {
 	.setup_win_dly = rk3568_setup_win_dly,
 	.setup_overlay = rk3568_setup_overlay,
 	.assign_plane_mask = rk3568_assign_plane_mask,
+	.setup_interface = rk3568_setup_interface,
 };
 
 const struct vop2_data rk3568_vop = {
@@ -9888,6 +9884,7 @@ static const struct vop2_ops rk3572_vop_ops = {
 	.setup_overlay = rk3576_setup_overlay,
 	.assign_plane_mask = rk3528_assign_plane_mask,
 	.setup_alpha = rk3576_setup_alpha,
+	.setup_interface = rk3572_setup_interface,
 };
 
 const struct vop2_data rk3572_vop = {
@@ -10182,6 +10179,7 @@ static const struct vop2_ops rk3576_vop_ops = {
 	.setup_overlay = rk3576_setup_overlay,
 	.assign_plane_mask = rk3528_assign_plane_mask,
 	.setup_alpha = rk3576_setup_alpha,
+	.setup_interface = rk3576_setup_interface,
 };
 
 const struct vop2_data rk3576_vop = {
@@ -10664,6 +10662,7 @@ static const struct vop2_ops rk3588_vop_ops = {
 	.setup_win_dly = rk3568_setup_win_dly,
 	.setup_overlay = rk3568_setup_overlay,
 	.assign_plane_mask = rk3568_assign_plane_mask,
+	.setup_interface = rk3588_setup_interface,
 };
 
 const struct vop2_data rk3588_vop = {
