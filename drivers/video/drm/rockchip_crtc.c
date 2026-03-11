@@ -32,227 +32,299 @@ U_BOOT_DRIVER(rockchip_vp) = {
 	.of_match	= rockchip_vp_ids,
 };
 
-static const struct rockchip_crtc rk3036_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3036_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3036_vop,
 };
 
-static const struct rockchip_crtc rv1106_vop_data = {
+static const struct rockchip_crtc __maybe_unused rv1106_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rv1106_vop,
 };
 
-static const struct rockchip_crtc rv1108_vop_data = {
+static const struct rockchip_crtc __maybe_unused rv1108_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rv1108_vop,
 };
 
-static const struct rockchip_crtc rv1126_vop_data = {
+static const struct rockchip_crtc __maybe_unused rv1126_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rv1126_vop,
 };
 
-static const struct rockchip_crtc rv1126b_vop_data = {
+static const struct rockchip_crtc __maybe_unused rv1126b_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rv1126b_vop,
 };
 
-static const struct rockchip_crtc px30_vop_lit_data = {
+static const struct rockchip_crtc __maybe_unused px30_vop_lit_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &px30_vop_lit,
 };
 
-static const struct rockchip_crtc px30_vop_big_data = {
+static const struct rockchip_crtc __maybe_unused px30_vop_big_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &px30_vop_big,
 };
 
-static const struct rockchip_crtc rk3308_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3308_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3308_vop,
 };
 
-static const struct rockchip_crtc rk1808_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk1808_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk1808_vop,
 };
 
-static const struct rockchip_crtc rk3288_vop_big_data = {
+static const struct rockchip_crtc __maybe_unused rk3288_vop_big_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3288_vop_big,
 };
 
-static const struct rockchip_crtc rk3288_vop_lit_data = {
+static const struct rockchip_crtc __maybe_unused rk3288_vop_lit_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3288_vop_lit,
 };
 
-static const struct rockchip_crtc rk3368_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3368_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3368_vop,
 };
 
-static const struct rockchip_crtc rk3366_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3366_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3366_vop,
 };
 
-static const struct rockchip_crtc rk3399_vop_big_data = {
+static const struct rockchip_crtc __maybe_unused rk3399_vop_big_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3399_vop_big,
 };
 
-static const struct rockchip_crtc rk3399_vop_lit_data = {
+static const struct rockchip_crtc __maybe_unused rk3399_vop_lit_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3399_vop_lit,
 };
 
-static const struct rockchip_crtc rk322x_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk322x_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk322x_vop,
 };
 
-static const struct rockchip_crtc rk3328_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3328_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3328_vop,
 };
 
-static const struct rockchip_crtc rk3506_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3506_vop_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3506_vop,
 };
 
-static const struct rockchip_crtc rk3528_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3528_vop_data = {
 	.funcs = &rockchip_vop2_funcs,
 	.data = &rk3528_vop,
 };
 
-static const struct rockchip_crtc rk3538_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3538_vop_data = {
 	.funcs = &rockchip_vop2_funcs,
 	.data = &rk3538_vop,
 };
 
-static const struct rockchip_crtc rk3562_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3562_vop_data = {
 	.funcs = &rockchip_vop2_funcs,
 	.data = &rk3562_vop,
 };
 
-static const struct rockchip_crtc rk3568_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3568_vop_data = {
 	.funcs = &rockchip_vop2_funcs,
 	.data = &rk3568_vop,
 };
 
-static const struct rockchip_crtc rk3572_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3572_vop_data = {
 	.funcs = &rockchip_vop2_funcs,
 	.data = &rk3572_vop,
 };
 
-static const struct rockchip_crtc rk3572_vop_lit_data = {
+static const struct rockchip_crtc __maybe_unused rk3572_vop_lit_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3572_vop_lit,
 };
 
-static const struct rockchip_crtc rk3576_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3576_vop_data = {
 	.funcs = &rockchip_vop2_funcs,
 	.data = &rk3576_vop,
 };
 
-static const struct rockchip_crtc rk3576_vop_lit_data = {
+static const struct rockchip_crtc __maybe_unused rk3576_vop_lit_data = {
 	.funcs = &rockchip_vop_funcs,
 	.data = &rk3576_vop_lit,
 };
 
-static const struct rockchip_crtc rk3588_vop_data = {
+static const struct rockchip_crtc __maybe_unused rk3588_vop_data = {
 	.funcs = &rockchip_vop2_funcs,
 	.data = &rk3588_vop,
 };
 
 static const struct udevice_id rockchip_vop_ids[] = {
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3036)
 	{
 		.compatible = "rockchip,rk3036-vop",
 		.data = (ulong)&rk3036_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RV1108)
+	{
 		.compatible = "rockchip,rv1108-vop",
 		.data = (ulong)&rv1108_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RV1106)
+	{
 		.compatible = "rockchip,rv1106-vop",
 		.data = (ulong)&rv1106_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RV1126)
+	{
 		.compatible = "rockchip,rv1126-vop",
 		.data = (ulong)&rv1126_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RV1126B)
+	{
 		.compatible = "rockchip,rv1126b-vop",
 		.data = (ulong)&rv1126b_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3126)
+	{
 		.compatible = "rockchip,rk3126-vop",
 		.data = (ulong)&rk3036_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_PX30)
+	{
 		.compatible = "rockchip,px30-vop-lit",
 		.data = (ulong)&px30_vop_lit_data,
-	}, {
+	},
+	{
 		.compatible = "rockchip,px30-vop-big",
 		.data = (ulong)&px30_vop_big_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3308)
+	{
 		.compatible = "rockchip,rk3308-vop",
 		.data = (ulong)&rk3308_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK1808)
+	{
 		.compatible = "rockchip,rk1808-vop-lit",
 		.data = (ulong)&rk1808_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3288)
+	{
 		.compatible = "rockchip,rk3288-vop-big",
 		.data = (ulong)&rk3288_vop_big_data,
-	}, {
+	},
+	{
 		.compatible = "rockchip,rk3288-vop-lit",
 		.data = (ulong)&rk3288_vop_lit_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3368)
+	{
 		.compatible = "rockchip,rk3368-vop",
 		.data = (ulong)&rk3368_vop_data,
-	}, {
+	},
+	{
 		.compatible = "rockchip,rk3366-vop",
 		.data = (ulong)&rk3366_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3399)
+	{
 		.compatible = "rockchip,rk3399-vop-big",
 		.data = (ulong)&rk3399_vop_big_data,
-	}, {
+	},
+	{
 		.compatible = "rockchip,rk3399-vop-lit",
 		.data = (ulong)&rk3399_vop_lit_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK322X)
+	{
 		.compatible = "rockchip,rk322x-vop",
 		.data = (ulong)&rk322x_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3328)
+	{
 		.compatible = "rockchip,rk3328-vop",
 		.data = (ulong)&rk3328_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3506)
+	{
 		.compatible = "rockchip,rk3506-vop",
 		.data = (ulong)&rk3506_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3528)
+	{
 		.compatible = "rockchip,rk3528-vop",
 		.data = (ulong)&rk3528_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3538)
+	{
 		.compatible = "rockchip,rk3538-vop",
 		.data = (ulong)&rk3538_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3562)
+	{
 		.compatible = "rockchip,rk3562-vop",
 		.data = (ulong)&rk3562_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3568)
+	{
 		.compatible = "rockchip,rk3568-vop",
 		.data = (ulong)&rk3568_vop_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3572)
+	{
 		.compatible = "rockchip,rk3572-vop",
 		.data = (ulong)&rk3572_vop_data,
-	}, {
+	},
+	{
 		.compatible = "rockchip,rk3572-vop-lit",
 		.data = (ulong)&rk3572_vop_lit_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3576)
+	{
 		.compatible = "rockchip,rk3576-vop",
 		.data = (ulong)&rk3576_vop_data,
-	}, {
+	},
+	{
 		.compatible = "rockchip,rk3576-vop-lit",
 		.data = (ulong)&rk3576_vop_lit_data,
-	}, {
+	},
+#endif
+#if IS_ENABLED(CONFIG_ROCKCHIP_RK3588)
+	{
 		.compatible = "rockchip,rk3588-vop",
 		.data = (ulong)&rk3588_vop_data,
-	}, { }
+	},
+#endif
+	{ }
 };
 
 static int rockchip_vop_probe(struct udevice *dev)
