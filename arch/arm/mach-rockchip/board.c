@@ -13,6 +13,7 @@
 #include <cpu_func.h>
 #include <env.h>
 #include <android_ab.h>
+#include <android_bootloader.h>
 #ifdef CONFIG_AVB_VERIFY
 #include <avb_verify.h>
 #endif
@@ -364,15 +365,21 @@ int fastboot_set_reboot_flag(enum fastboot_reboot_reason reason)
 	switch (reason) {
 		case FASTBOOT_REBOOT_REASON_BOOTLOADER:
 			printf("Setting reboot to bootloader flag ...\n");
-			writel(BOOT_LOADER, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+			writel(BOOT_FASTBOOT, CONFIG_ROCKCHIP_BOOT_MODE_REG);
 			break;
 		case FASTBOOT_REBOOT_REASON_FASTBOOTD:
 			printf("Setting reboot to fastboot flag ...\n");
-			writel(BOOT_FASTBOOT, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+			if (android_bcb_write("boot-fastboot")) {
+				fastboot_tx_write_str("FAIL: Cannot set boot-fastboot");
+				return -EIO;
+			}
 			break;
 		case FASTBOOT_REBOOT_REASON_RECOVERY:
 			printf("Setting reboot to recovery flag ...\n");
-			writel(BOOT_RECOVERY, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+			if (android_bcb_write("boot-recovery")) {
+				fastboot_tx_write_str("FAIL: Cannot set boot-recovery");
+				return -EIO;
+			}
 			break;
 		default:
 			ret = -ENOTSUPP;
