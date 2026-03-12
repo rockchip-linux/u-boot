@@ -41,6 +41,8 @@
 #define STORAGE_CMD_WRITE_FW_ENCRYPT_KEY		30
 #define STORAGE_CMD_FW_ENCRYPT_KEY_IS_WRITTEN		31
 #define STORAGE_CMD_SET_FW_ENCRYPT_KEY_MASK		32
+#define STORAGE_CMD_WRITE_OEM_DICE_UDS			33
+#define STORAGE_CMD_OEM_DICE_UDS_IS_WRITTEN		34
 
 static struct udevice *tee;
 static uint32_t session;
@@ -724,6 +726,84 @@ uint32_t optee_set_fw_encrypt_key_mask(enum RK_FW_KEYID key_id)
 	param[0].u.value.a = key_id;
 	ret = invoke_func(STORAGE_CMD_SET_FW_ENCRYPT_KEY_MASK,
 			  ARRAY_SIZE(param), param);
+
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
+}
+
+/* func: Write OEM DICE UDS
+ * uds_type: 0 data from input, 1 data from rk trng
+ * byte_buf: buffer to be written
+ * byte_len: length of the buffer
+ * return: TEE_SUCCESS on success, or error code on failure
+*/
+uint32_t optee_write_oem_dice_uds(uint8_t uds_type,
+				  uint8_t *byte_buf, uint32_t byte_len)
+{
+	int rc = 0;
+	uint32_t ret;
+	struct tee_shm *shm_buf;
+	struct tee_param param[2];
+
+	if (!byte_buf || !byte_len)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	if (!tee) {
+		if (otp_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	rc = tee_shm_alloc(tee, byte_len,
+			   TEE_SHM_ALLOC, &shm_buf);
+	if (rc)
+		return TEE_ERROR_OUT_OF_MEMORY;
+
+	memcpy(shm_buf->addr, byte_buf, byte_len);
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_INPUT;
+	param[0].u.value.a = uds_type;
+	param[1].attr = TEE_PARAM_ATTR_TYPE_MEMREF_INPUT;
+	param[1].u.memref.shm = shm_buf;
+	param[1].u.memref.size = byte_len;
+
+	ret = invoke_func(STORAGE_CMD_WRITE_OEM_DICE_UDS,
+			  ARRAY_SIZE(param), param);
+	if (ret != TEE_SUCCESS)
+		goto exit;
+
+exit:
+	tee_shm_free(shm_buf);
+
+	tee_close_session(tee, session);
+	tee = NULL;
+
+	return ret;
+}
+
+uint32_t optee_oem_dice_uds_is_written(uint8_t *value)
+{
+	uint32_t ret;
+	struct tee_param param[1];
+
+	if (!value)
+		return TEE_ERROR_BAD_PARAMETERS;
+
+	*value = 0;
+
+	if (!tee) {
+		if (otp_ta_open_session())
+			return TEE_ERROR_CANCEL;
+	}
+
+	memset(param, 0, sizeof(param));
+	param[0].attr = TEE_PARAM_ATTR_TYPE_VALUE_OUTPUT;
+	ret = invoke_func(STORAGE_CMD_OEM_DICE_UDS_IS_WRITTEN,
+			  ARRAY_SIZE(param), param);
+	if (ret == TEE_SUCCESS)
+		*value = param[0].u.value.a;
 
 	tee_close_session(tee, session);
 	tee = NULL;

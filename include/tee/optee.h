@@ -202,6 +202,9 @@ uint32_t optee_write_fw_encrypt_key(enum RK_FW_KEYID key_id,
 				    uint8_t *byte_buf, uint32_t byte_len);
 uint32_t optee_fw_encrypt_key_is_written(enum RK_FW_KEYID key_id, uint8_t *value);
 uint32_t optee_set_fw_encrypt_key_mask(enum RK_FW_KEYID key_id);
+uint32_t optee_write_oem_dice_uds(uint8_t uds_type,
+				  uint8_t *byte_buf, uint32_t byte_len);
+uint32_t optee_oem_dice_uds_is_written(uint8_t *value);
 void optee_select_security_level(void);
 uint32_t optee_base_finish_otp(void);
 
