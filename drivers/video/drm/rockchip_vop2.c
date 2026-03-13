@@ -3382,14 +3382,7 @@ static void vop2_global_initial(struct vop2 *vop2, struct display_state *state)
 	if (vop2->version == VOP_VERSION_RK3576) {
 		vop2->merge_irq = ofnode_read_bool(cstate->node, "rockchip,vop-merge-irq");
 
-		/* reserved_plane mode will enable iommu bypass for rtos reserved plane display,
-		 * but rkiommu 2.0 can't support iommu bypass function, so use rkiommu 1.0
-		 * at shared mode by default, others will use rkiommu 2.0 by default.
-		 */
-		if (cstate->reserved_plane_en)
-			vop2_mask_write(vop2, RK3576_SYS_MMU_CTRL, EN_MASK, RKMMU_V2_EN_SHIFT, 0, true);
-		else
-			vop2_mask_write(vop2, RK3576_SYS_MMU_CTRL, EN_MASK, RKMMU_V2_EN_SHIFT, 1, true);
+		vop2_mask_write(vop2, RK3576_SYS_MMU_CTRL, EN_MASK, RKMMU_V2_EN_SHIFT, 0, true);
 
 		/* Init frc2.0 config */
 		vop2_writel(vop2, 0xca0, 0xc8);
