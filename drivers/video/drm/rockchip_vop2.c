@@ -5720,7 +5720,9 @@ static bool is_extend_pll(struct display_state *state, struct udevice **clk_dev)
 	char vp_name[10];
 	int ret;
 
-	if (vop2->version != VOP_VERSION_RK3588 && vop2->version != VOP_VERSION_RK3576)
+	if (vop2->version != VOP_VERSION_RK3588 &&
+	    vop2->version != VOP_VERSION_RK3576 &&
+	    vop2->version != VOP_VERSION_RK3572)
 		return false;
 
 	sprintf(vp_name, "port@%d", cstate->crtc_id);
