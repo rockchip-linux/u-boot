@@ -5948,6 +5948,49 @@ static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
 	}
 }
 
+static u32 vop2_get_hdmi_tmds_rate(struct display_state *state, u32 rate)
+{
+	struct connector_state *conn_state = &state->conn_state;
+
+	switch (conn_state->bus_format) {
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_YUV8_1X24:
+	case MEDIA_BUS_FMT_YUYV8_1X16:
+	case MEDIA_BUS_FMT_YUYV10_1X20:
+		return rate;
+	case MEDIA_BUS_FMT_YUV10_1X30:
+	case MEDIA_BUS_FMT_RGB101010_1X30:
+		return rate * 10 / 8;
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
+		return rate / 2;
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
+		return rate * 5 / 8;
+	default:
+		printf("hdmi can't support bus_format:0x%x\n", conn_state->bus_format);
+		return rate;
+	}
+}
+
+/*
+ * When hdmi output 4K60 RGB/YUV444 10-bit, although the pixel clock
+ * does not exceed 600 MHz, the tmds rate is 742.5 MHz. In this case,
+ * hdmi must use frl mode, and the parent clock of dclk cannot use
+ * hdmi phy pll, but must use the cru pll.
+ */
+static bool vop2_is_dclk_switch_to_cru_pll(struct display_state *state)
+{
+	struct connector_state *conn_state = &state->conn_state;
+	struct drm_display_mode *mode = &conn_state->mode;
+
+	if (mode->crtc_clock > VOP2_MAX_DCLK_RATE)
+		return true;
+
+	if (vop2_get_hdmi_tmds_rate(state, mode->crtc_clock) <= VOP2_MAX_DCLK_RATE)
+		return false;
+
+	return true;
+}
+
 static int rockchip_vop2_init(struct display_state *state)
 {
 	struct crtc_state *cstate = &state->crtc_state;
@@ -6229,47 +6272,39 @@ static int rockchip_vop2_init(struct display_state *state)
 	if (vop2->version == VOP_VERSION_RK3576)
 		vp_dclk_div = cstate->crtc->vps[cstate->crtc_id].dclk_div;
 
-	if (mode->crtc_clock < VOP2_MAX_DCLK_RATE) {
-		/*
-		 * U-Boot clk driver won't set dclk parent's rate when use HDMI
-		 * phy pll as dclk source. Since it is meaningless to set dclk
-		 * rate, set HDMI phy pll rate directly.
-		 *
-		 * For RK3538, HDMI and CVBS share the same VP, so we should
-		 * set dclk source to HDMI phy pll if either is enabled.
-		 */
-		if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0 ||
-		     vop2->version == VOP_VERSION_RK3538) && hdmi0_phy_pll.dev) {
-			vop2_clk_set_parent(&cstate->dclk, &hdmi0_phy_pll);
-			ret = vop2_clk_set_rate(&hdmi0_phy_pll, dclk_rate / vp_dclk_div * 1000);
-		} else if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI1) && hdmi1_phy_pll.dev) {
-			vop2_clk_set_parent(&cstate->dclk, &hdmi1_phy_pll);
-			ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate / vp_dclk_div * 1000);
-		} else {
-			if (is_extend_pll(state, &hdmi_phy_pll.dev)) {
-				ret = vop2_clk_set_rate(&hdmi_phy_pll,
-							dclk_rate / vp_dclk_div * 1000);
+	/*
+	 * U-Boot clk driver won't set dclk parent's rate when use HDMI
+	 * phy pll as dclk source. Since it is meaningless to set dclk
+	 * rate, set HDMI phy pll rate directly.
+	 *
+	 * For RK3538, HDMI and CVBS share the same VP, so we should
+	 * set dclk source to HDMI phy pll if either is enabled.
+	 */
+	if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0 || vop2->version == VOP_VERSION_RK3538) &&
+	    hdmi0_phy_pll.dev && !vop2_is_dclk_switch_to_cru_pll(state)) {
+		vop2_clk_set_parent(&cstate->dclk, &hdmi0_phy_pll);
+		ret = vop2_clk_set_rate(&hdmi0_phy_pll, dclk_rate / vp_dclk_div * 1000);
+	} else if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI1) &&
+		   hdmi1_phy_pll.dev && !vop2_is_dclk_switch_to_cru_pll(state)) {
+		vop2_clk_set_parent(&cstate->dclk, &hdmi1_phy_pll);
+		ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate / vp_dclk_div * 1000);
+	} else {
+		if (is_extend_pll(state, &hdmi_phy_pll.dev)) {
+			ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate / vp_dclk_div * 1000);
 			} else {
 #ifndef CONFIG_SPL_BUILD
-				ret = vop2_clk_set_rate(&cstate->dclk,
-							dclk_rate / vp_dclk_div * 1000);
-#else
-				if (vop2->version == VOP_VERSION_RK3528) {
-					void *cru_base = (void *)RK3528_CRU_BASE;
-
-					/* dclk src switch to hdmiphy pll */
-					writel((BIT(0) << 16) | BIT(0), cru_base + 0x450);
-					rockchip_phy_set_pll(conn_state->connector->phy, dclk_rate * 1000);
-					ret = dclk_rate * 1000;
-				}
-#endif
-			}
-		}
-	} else {
-		if (is_extend_pll(state, &hdmi_phy_pll.dev))
-			ret = vop2_clk_set_rate(&hdmi_phy_pll, dclk_rate / vp_dclk_div * 1000);
-		else
 			ret = vop2_clk_set_rate(&cstate->dclk, dclk_rate / vp_dclk_div * 1000);
+#else
+			if (vop2->version == VOP_VERSION_RK3528) {
+				void *cru_base = (void *)RK3528_CRU_BASE;
+
+				/* dclk src switch to hdmiphy pll */
+				writel((BIT(0) << 16) | BIT(0), cru_base + 0x450);
+				rockchip_phy_set_pll(conn_state->connector->phy, dclk_rate * 1000);
+				ret = dclk_rate * 1000;
+			}
+#endif
+		}
 	}
 
 	if (IS_ERR_VALUE(ret)) {
