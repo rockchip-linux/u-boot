@@ -6230,12 +6230,6 @@ static int rockchip_vop2_init(struct display_state *state)
 		vp_dclk_div = cstate->crtc->vps[cstate->crtc_id].dclk_div;
 
 	if (mode->crtc_clock < VOP2_MAX_DCLK_RATE) {
-		if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0 ||
-		     vop2->version == VOP_VERSION_RK3538) && hdmi0_phy_pll.dev)
-			vop2_clk_set_parent(&cstate->dclk, &hdmi0_phy_pll);
-		else if (conn_state->output_if & VOP_OUTPUT_IF_HDMI1)
-			vop2_clk_set_parent(&cstate->dclk, &hdmi1_phy_pll);
-
 		/*
 		 * U-Boot clk driver won't set dclk parent's rate when use HDMI
 		 * phy pll as dclk source. Since it is meaningless to set dclk
@@ -6246,8 +6240,10 @@ static int rockchip_vop2_init(struct display_state *state)
 		 */
 		if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI0 ||
 		     vop2->version == VOP_VERSION_RK3538) && hdmi0_phy_pll.dev) {
+			vop2_clk_set_parent(&cstate->dclk, &hdmi0_phy_pll);
 			ret = vop2_clk_set_rate(&hdmi0_phy_pll, dclk_rate / vp_dclk_div * 1000);
 		} else if ((conn_state->output_if & VOP_OUTPUT_IF_HDMI1) && hdmi1_phy_pll.dev) {
+			vop2_clk_set_parent(&cstate->dclk, &hdmi1_phy_pll);
 			ret = vop2_clk_set_rate(&hdmi1_phy_pll, dclk_rate / vp_dclk_div * 1000);
 		} else {
 			if (is_extend_pll(state, &hdmi_phy_pll.dev)) {
