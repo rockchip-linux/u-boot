@@ -5979,10 +5979,23 @@ static u32 vop2_get_hdmi_tmds_rate(struct display_state *state, u32 rate)
  */
 static bool vop2_is_dclk_switch_to_cru_pll(struct display_state *state)
 {
+	struct crtc_state *cstate = &state->crtc_state;
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
+	struct vop2 *vop2 = cstate->private;
 
 	if (mode->crtc_clock > VOP2_MAX_DCLK_RATE)
+		return true;
+
+	/*
+	 * On the RK3572, when the HDMI outputs 4K60 YUV420, clock
+	 * frequency provided by HDMI PHY PLL to VOP is only 297 MHz.
+	 * However, the required DCLK frequency for VOP in this scenario
+	 * is 594 MHz, which HDMI PHY PLL cannot meet. Therefore,
+	 * the DCLK clock source must be switched to CRU PLL.
+	 */
+	if (vop2->version == VOP_VERSION_RK3572 &&
+	    conn_state->output_mode == ROCKCHIP_OUT_MODE_YUV420)
 		return true;
 
 	if (vop2_get_hdmi_tmds_rate(state, mode->crtc_clock) <= VOP2_MAX_DCLK_RATE)
