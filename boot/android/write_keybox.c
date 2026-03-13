@@ -19,14 +19,16 @@
 #define	ID_ATTESTATION_TAG "IDAT"
 #define PLAYREADY30_TAG	"SL30"
 #define YOUTUBE_SECRET_KEY "YTSK"
+#define COMMON_DATA_TAG "COMM" //common data with filename
 
-uint32_t write_keybox_to_secure_storage(uint8_t *received_data, uint32_t len)
+uint32_t write_keybox_to_secure_storage(uint8_t* received_data, uint32_t len)
 {
 	uint8_t *widevine_data;
 	uint8_t *attestation_data;
 	uint8_t *id_attestation_data;
 	uint8_t *playready_sl30_data;
-	uint8_t *youtube_key_data;
+	uint8_t* youtube_key_data;
+	uint8_t *common_data;
 	uint32_t key_size;
 	uint32_t data_size;
 	int rc = 0;
@@ -41,7 +43,9 @@ uint32_t write_keybox_to_secure_storage(uint8_t *received_data, uint32_t len)
 	playready_sl30_data = (uint8_t *)new_strstr((char *)received_data,
 						    PLAYREADY30_TAG, len);
 	youtube_key_data = (uint8_t *)new_strstr((char *)received_data,
-						 YOUTUBE_SECRET_KEY, len);
+                                                YOUTUBE_SECRET_KEY, len);
+	common_data = (uint8_t *)new_strstr((char *)received_data,
+						    COMMON_DATA_TAG, len);
 	if (widevine_data) {
 		/* widevine keybox */
 		key_size = *(widevine_data + SIZE_OF_TAG);
@@ -106,6 +110,62 @@ uint32_t write_keybox_to_secure_storage(uint8_t *received_data, uint32_t len)
 		rc = write_youtube_keybox_to_secure_storage(youtube_key_data, len);
 		if (rc != 0) {
 			printf("write youtube keybox to secure storage fail (%d)\n", rc);
+		}
+	}else if (common_data) {
+		/* common data with filename */
+		uint32_t ret;
+		uint32_t filename_len;
+		char filename[32];
+
+		// common data format according to description:
+		// - first 8 bytes: tag(4 byte) + size of key(4 byte)
+		// - then 32 bytes related to filename: first 4 bytes is filename length, remaining 28 bytes is filename
+		// - finally: data to be written
+		uint8_t *after_header = common_data + SIZE_OF_TAG + sizeof(uint32_t); // skip tag(4) + key size(4)
+		uint32_t key_and_data_size = *(uint32_t*)(common_data + SIZE_OF_TAG); // get size after tag
+
+		// The 32 bytes after header contain filename info
+		uint8_t *filename_info_ptr = after_header; // point to filename info (32 bytes)
+
+		// Extract filename length and filename from the 32-byte filename info
+		filename_len = *(uint32_t*)filename_info_ptr; // first 4 bytes is filename length
+		filename_len = filename_len + 1;
+		strncpy(filename, (char*)(filename_info_ptr + sizeof(uint32_t)), filename_len); // next 28 bytes is filename
+		filename[filename_len] = '\0'; // ensure null termination
+
+		// Data to write is after the 32-byte filename info
+		uint8_t *data_to_write = filename_info_ptr + 32; // skip 32-byte filename info
+		// Calculate the actual data size - this could be the remainder of the key_and_data_size
+		uint32_t data_to_write_size = key_and_data_size - 32; // subtract the 32-byte filename info
+#if 0
+		/* Debug: print parsed common_data info */
+		printf("DEBUG: common_data(len:%d) parse info:\n", len);
+		printf("  key_and_data_size:  %u\n", key_and_data_size);
+		printf("  filename_len:       %u\n", filename_len);
+		printf("  filename:           %s\n", filename);
+		for (uint32_t i = 0; i < filename_len; i++) {
+			printf("%02x ", filename[i]);
+		}
+		printf("  data_to_write_size: %u\n", data_to_write_size);
+		printf("  data_to_write (hex):\n");
+		for (uint32_t i = 0; i < data_to_write_size; i++) {
+			printf("%02x ", data_to_write[i]);
+			if ((i + 1) % 32 == 0)
+				printf("\n");
+		}
+		if (data_to_write_size % 32 != 0)
+			printf("\n");
+#endif
+		ret = optee_write_keybox((uint8_t*)filename,
+			filename_len,
+			data_to_write,
+			data_to_write_size);
+		if (ret == TEE_SUCCESS) {
+			rc = 0;
+			printf("write common data to secure storage success, filename: %s, size: %u\n", filename, data_to_write_size);
+		} else {
+			rc = -EIO;
+			printf("write common data to secure storage fail\n");
 		}
 	}
 
