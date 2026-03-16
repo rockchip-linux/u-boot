@@ -109,6 +109,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define PMUIO1_IOC_GPIO0B_IOMUX_SEL_1	0x00C
 #define PMUIO1_IOC_GPIO0D_IOMUX_SEL_1	0x010
 
+#define SATA0_BASE_ADDR		0x24800000
+#define SATA1_BASE_ADDR		0x24810000
+#define SATA_PI			0xC
+#define SATA_PORT_CMD		0x118
+#define SATA_FBS_ENABLE		BIT(22)
+
 const char * const boot_devices[BROM_LAST_BOOTSOURCE + 1] = {
 	[BROM_BOOTSOURCE_EMMC] = "/soc/mmc@2a010000",
 	[BROM_BOOTSOURCE_SPINOR] = "/soc/spi@2a020000",
@@ -418,3 +424,49 @@ int arch_cpu_init(void)
 }
 #endif
 
+#if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && defined(CONFIG_UFS)
+int rk_board_dm_fdt_fixup(const void *blob)
+{
+	struct blk_desc *desc = plat_bootdev();
+	const char *status = NULL;
+	int node = -1;
+
+	/*
+	 * 1. Kernel DTS will enable UFS by default.
+	 *
+	 * 2. It hangs if Kernel UFS driver tries to access UFS registers when there
+	 * is no power supply for UFS.
+	 *
+	 * So generally, disable UFS when detect fail.
+	 *
+	 * To save time spent on detecting UFS, you can disable UFS in kernel dts or
+	 * U-Boot defconfig.
+	 *
+	 */
+	if (desc->uclass_id != UCLASS_SCSI) {
+		node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk3572-ufs");
+		if (node >= 0) {
+			status = fdt_getprop(blob, node, "status", NULL);
+			if (status && strcmp(status, "disabled")) {
+				if (scsi_scan(true)) {
+					fdt_setprop((void *)blob, node, "status", "disabled", 9);
+					printf("FDT: UFS was not detected, disabling UFS.\n");
+				}
+			}
+		}
+	}
+
+	node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk-ahci");
+	if (node >= 0) {
+		/*
+		* Set SATA FBSCP and PORTS_IMPL for kernel drivers
+		*/
+		writel(SATA_FBS_ENABLE, SATA0_BASE_ADDR + SATA_PORT_CMD);
+		writel(1, SATA0_BASE_ADDR + SATA_PI);
+		writel(SATA_FBS_ENABLE, SATA1_BASE_ADDR + SATA_PORT_CMD);
+		writel(1, SATA1_BASE_ADDR + SATA_PI);
+	}
+
+	return 0;
+}
+#endif
