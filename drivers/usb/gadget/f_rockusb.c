@@ -15,6 +15,7 @@
 #include <linux/mtd/mtd.h>
 #include <optee_include/OpteeClientInterface.h>
 #include <dm.h>
+#include <mapmem.h>
 #include <misc.h>
 #include <mmc.h>
 #include <scsi.h>
@@ -834,6 +835,75 @@ static int rkusb_do_uart_debug_read(struct fsg_common *common)
 }
 #endif
 
+/* SDRAM_READ_CHUNK_SIZE is determined by upgrade_tool. */
+#define SDRAM_READ_CHUNK_SIZE	0x4000
+
+static int rkusb_do_sdram_read(struct fsg_common *common)
+{
+	struct fsg_buffhd *bh;
+	u32 amount_left;
+	u32 amount;
+	u32 transfer_size;
+	u32 addr_lo;
+	u32 addr_hi = 0;
+	u64 addr;
+	int rc;
+
+	if (unlikely(common->data_size == 0 || common->usb_trb_size == 0))
+		return -EIO;
+
+	addr_lo = get_unaligned_be32(&common->cmnd[2]);
+	if (common->cmnd_size >= 13)
+		addr_hi = get_unaligned_be32(&common->cmnd[9]);
+	addr = ((u64)addr_hi << 32) | addr_lo;
+	transfer_size = min_t(u32, common->data_size, SDRAM_READ_CHUNK_SIZE);
+
+	debug("%s: addr_hi=0x%x addr_lo=0x%x addr=0x%llx size=0x%x transfer=0x%x\n",
+	      __func__, addr_hi, addr_lo, (unsigned long long)addr,
+	      common->data_size, transfer_size);
+
+	common->data_dir = DATA_DIR_TO_HOST;
+	common->data_size_from_cmnd = transfer_size;
+	common->residue = transfer_size;
+	common->usb_amount_left = transfer_size;
+
+	amount_left = transfer_size;
+	while (amount_left) {
+		void *src;
+
+		amount = min(amount_left, common->usb_trb_size);
+
+		/* Wait for the next buffer to become available */
+		bh = common->next_buffhd_to_fill;
+		while (bh->state != BUF_STATE_EMPTY) {
+			rc = sleep_thread(common);
+			if (rc)
+				return rc;
+		}
+
+		src = map_sysmem((phys_addr_t)addr, amount);
+		memcpy(bh->buf, src, amount);
+		unmap_sysmem(src);
+
+		addr += amount;
+		amount_left -= amount;
+		common->residue -= amount;
+		bh->inreq->length = amount;
+		bh->state = BUF_STATE_FULL;
+
+		if (!amount_left)
+			break;
+
+		bh->inreq->zero = 0;
+		START_TRANSFER_OR(common, bulk_in, bh->inreq,
+				  &bh->inreq_busy, &bh->state)
+			return -EIO;
+		common->next_buffhd_to_fill = bh->next;
+	}
+
+	return -EIO;
+}
+
 static int rkusb_do_switch_storage(struct fsg_common *common)
 {
 	enum if_type type, cur_type = ums[common->lun].block_dev.if_type;
@@ -1164,6 +1234,11 @@ static int rkusb_cmd_process(struct fsg_common *common,
 		break;
 #endif
 
+	case RKUSB_SDRAM_READ_10:
+		*reply = rkusb_do_sdram_read(common);
+		rc = RKUSB_RC_FINISHED;
+		break;
+
 	case RKUSB_SWITCH_STORAGE:
 		*reply = rkusb_do_switch_storage(common);
 		rc = RKUSB_RC_FINISHED;
@@ -1205,7 +1280,6 @@ static int rkusb_cmd_process(struct fsg_common *common,
 	case RKUSB_READ_SPARE:
 	case RKUSB_GET_VERSION:
 	case RKUSB_ERASE_SYS_DISK:
-	case RKUSB_SDRAM_READ_10:
 	case RKUSB_SDRAM_WRITE_10:
 	case RKUSB_SDRAM_EXECUTE:
 	case RKUSB_LOW_FORMAT:
