@@ -273,6 +273,7 @@ extern const struct spinand_manufacturer kingston_spinand_manufacturer;
 extern const struct spinand_manufacturer issi_spinand_manufacturer;
 extern const struct spinand_manufacturer titan_spinand_manufacturer;
 extern const struct spinand_manufacturer mk_spinand_manufacturer;
+extern const struct spinand_manufacturer chucun_spinand_manufacturer;
 
 /**
  * struct spinand_op_variants - SPI NAND operation variants
