@@ -456,7 +456,7 @@ int rk_board_dm_fdt_fixup(const void *blob)
 	 *
 	 */
 	if (desc->uclass_id != UCLASS_SCSI) {
-		node = fdt_path_offset(blob, "/ufs@2a2d0000");
+		node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk3576-ufs");
 		if (node >= 0) {
 			status = fdt_getprop(blob, node, "status", NULL);
 			if (status && strcmp(status, "disabled")) {
@@ -468,7 +468,7 @@ int rk_board_dm_fdt_fixup(const void *blob)
 		}
 	}
 
-	node = fdt_path_offset(blob, "/sata@2a240000");
+	node = fdt_node_offset_by_compatible(blob, 0, "rockchip,rk-ahci");
 	if (node >= 0) {
 		/*
 		* Set SATA FBSCP and PORTS_IMPL for kernel drivers
