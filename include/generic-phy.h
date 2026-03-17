@@ -458,4 +458,14 @@ static inline bool generic_phy_valid(struct phy *phy)
 	return phy && phy->dev;
 }
 
+static inline int generic_phy_get_bus_width(struct phy *phy)
+{
+	return phy->attrs.bus_width;
+}
+
+static inline void generic_phy_set_bus_width(struct phy *phy, int bus_width)
+{
+	phy->attrs.bus_width = bus_width;
+}
+
 #endif /*__GENERIC_PHY_H */
