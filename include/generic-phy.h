@@ -9,6 +9,7 @@
 #define __GENERIC_PHY_H
 
 #include <generic-phy-dp.h>
+#include <generic-phy-hdmi.h>
 #include <generic-phy-mipi-dphy.h>
 #include <generic-phy-pcie.h>
 
@@ -34,7 +35,8 @@ enum phy_mode {
 	PHY_MODE_MIPI_DPHY,
 	PHY_MODE_SATA,
 	PHY_MODE_LVDS,
-	PHY_MODE_DP
+	PHY_MODE_DP,
+	PHY_MODE_HDMI
 };
 
 /**
@@ -49,6 +51,7 @@ union phy_configure_opts {
 	struct phy_configure_opts_mipi_dphy     mipi_dphy;
 	struct phy_configure_opts_dp		dp;
 	struct phy_configure_opts_pcie		pcie;
+	struct phy_configure_opts_hdmi		hdmi;
 };
 
 /**
