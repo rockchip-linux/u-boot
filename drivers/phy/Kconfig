@@ -98,6 +98,7 @@ config PHY_ROCKCHIP_SAMSUNG_HDPTX
 	bool "Rockchip Samsung HDMI/DP Combo PHY driver"
 	depends on ARCH_ROCKCHIP
 	select PHY
+	select LIB_RATIONAL
 	help
 	  Support for Rockchip HDMI/DP Combo PHY with Samsung IP block.
 
