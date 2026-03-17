@@ -66,7 +66,7 @@ int bad_irq(int irq)
 void __generic_gpio_handle_irq(int irq)
 {
 	struct irq_handler *handler;
-	struct list_head *node;
+	struct list_head *node, *n;
 
 	if (bad_irq(irq))
 		return;
@@ -78,7 +78,7 @@ void __generic_gpio_handle_irq(int irq)
 
 	irq_desc[irq].count++;
 	/* Iterate through all registered handlers (shared IRQ support) */
-	list_for_each(node, &irq_desc[irq].handlers) {
+	list_for_each_safe(node, n, &irq_desc[irq].handlers) {
 		handler = list_entry(node, struct irq_handler, node);
 		if (handler->handle_irq) {
 			handler->count++;
@@ -90,7 +90,7 @@ void __generic_gpio_handle_irq(int irq)
 void __do_generic_irq_handler(void)
 {
 	struct irq_handler *handler;
-	struct list_head *node;
+	struct list_head *node, *n;
 	u32 irq;
 
 	assert(irqchip.gic->irq_get);
@@ -101,7 +101,7 @@ void __do_generic_irq_handler(void)
 	if (irq < PLATFORM_GIC_MAX_IRQ) {
 		irq_desc[irq].count++;
 		/* Iterate through all registered handlers (shared IRQ support) */
-		list_for_each(node, &irq_desc[irq].handlers) {
+		list_for_each_safe(node, n, &irq_desc[irq].handlers) {
 			handler = list_entry(node, struct irq_handler, node);
 			if (handler->handle_irq) {
 				handler->count++;
