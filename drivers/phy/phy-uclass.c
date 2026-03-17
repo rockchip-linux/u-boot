@@ -385,12 +385,17 @@ int generic_phy_configure(struct phy *phy, void *params)
 int generic_phy_set_mode(struct phy *phy, enum phy_mode mode, int submode)
 {
 	struct phy_ops const *ops;
+	int ret = 0;
 
 	if (!generic_phy_valid(phy))
 		return 0;
 	ops = phy_dev_ops(phy->dev);
+	if (ops->set_mode)
+		ret = ops->set_mode(phy, mode, submode);
+	if (!ret)
+		phy->attrs.mode = mode;
 
-	return ops->set_mode ? ops->set_mode(phy, mode, submode) : 0;
+	return ret;
 }
 
 int generic_phy_set_speed(struct phy *phy, int speed)
