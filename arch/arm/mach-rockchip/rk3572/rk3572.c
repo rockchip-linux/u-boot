@@ -20,10 +20,12 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 #define SYS_SGRF_BASE			0x26008000
+#define SYS_SGRF_SOC_CON5		0x0034
 #define SYS_SGRF_SOC_CON8		0x0040
 
 #define SYS_GRF_BASE			0x26010000
 #define SYS_GRF_SOC_CON03		0x000c
+#define SYS_GRF_SOC_CON09		0x0024
 #define SYS_GRF_SOC_CON10		0x0028
 
 #define BIGCORE_GRF_BASE			0x26012000
@@ -48,6 +50,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define PMU1_GRF_BASE			0x26042000
 #define PMU1_GRF_SOC_CON0		0x0
+
+#define CRU_BASE			0x26090000
+#define CRU_SOFTRST_CON21		0x0A54
 
 #define PHPPHY_CRU_BASE			0x26098000
 #define PHPPHY_CRU_PPLL_CON1		0x204
@@ -389,6 +394,9 @@ int arch_cpu_init(void)
 	/* Set UART0-UART11 uartx_dma_rx_single_bypass 1 */
 	writel(0x0fff0ffd, SYS_GRF_BASE + SYS_GRF_SOC_CON03);
 
+	/* bus_mcu debug function enable */
+	//writel(0x00030003, SYS_SGRF_BASE + SYS_SGRF_SOC_CON5);
+
 #if defined(CONFIG_ROCKCHIP_EMMC_IOMUX)
 	board_set_iomux(UCLASS_MMC, 0, 0);
 #elif defined(CONFIG_ROCKCHIP_SFC_IOMUX)
@@ -470,3 +478,19 @@ int rk_board_dm_fdt_fixup(const void *blob)
 	return 0;
 }
 #endif
+
+int fit_standalone_release(char *id, uintptr_t entry_point)
+{
+	/* set mcu entry addr */
+	sip_smc_mcu_config(ROCKCHIP_SIP_CONFIG_BUSMCU_0_ID,
+			   ROCKCHIP_SIP_CONFIG_MCU_CODE_START_ADDR,
+			   entry_point);
+
+	/* select bus_mcu jtag to debug */
+	//writel(0x00070003, SYS_GRF_BASE + SYS_GRF_SOC_CON09);
+
+	/* release bus_mcu */
+	writel(0x004C0000, CRU_BASE + CRU_SOFTRST_CON21);
+
+	return 0;
+}
