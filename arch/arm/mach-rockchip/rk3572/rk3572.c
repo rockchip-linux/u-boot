@@ -418,7 +418,14 @@ int arch_cpu_init(void)
 	writel(0x01c00080, PHPPHY_CRU_BASE + PHPPHY_CRU_PPLL_CON1);
 	/* UFS PHY select 26M from ppll */
 	writel(0x00010001, PMU1_CRU_BASE + PMU1_CLKSEL_CON03);
+#endif
 
+	return 0;
+}
+#endif
+
+void rk_board_ufs_reset_device(void)
+{
 	/* set UFS_RSTN to low */
 	writel(0x00100000, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
 	/* set iomux UFS_REFCLK, UFS_RSTN */
@@ -426,11 +433,7 @@ int arch_cpu_init(void)
 	udelay(10);
 	/* set UFS_RSTN to high */
 	writel(0x00100010, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
-#endif
-
-	return 0;
 }
-#endif
 
 #if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && defined(CONFIG_UFS)
 int rk_board_dm_fdt_fixup(const void *blob)

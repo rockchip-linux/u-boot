@@ -210,6 +210,8 @@ static int ufs_rockchip_common_init(struct ufs_hba *hba)
 	return 0;
 }
 
+__weak void rk_board_ufs_reset_device(void) { ; }
+
 static int ufs_rockchip_init(struct ufs_hba *hba)
 {
 	struct udevice *dev = hba->dev;
@@ -221,6 +223,8 @@ static int ufs_rockchip_init(struct ufs_hba *hba)
 		dev_err(hba->dev, "%s: ufs common init fail\n", __func__);
 		return ret;
 	}
+
+	rk_board_ufs_reset_device();
 
 	/* Reset ufs controller */
 	reset_assert_bulk(&host->rsts);

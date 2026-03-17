@@ -424,17 +424,20 @@ int arch_cpu_init(void)
 	/* UFS PHY select 26M from ppll */
 	writel(0x00030002, PMU1_CRU_BASE + PMU1_CRU_CLKSEL_CON03);
 
-	/* set iomux UFS_REFCLK, UFS_RSTN */
-	writel(0x00FF0011, VCCIO7_IOC_BASE + VCCIO7_IOC_GPIO4D_IOMUX_SEL_L);
-	/* set UFS_RSTN to low */
-	writel(0x00100000, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
-	/* set UFS_RSTN to high */
-	udelay(20);
-	writel(0x00100010, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
-
 	return 0;
 }
 #endif
+
+void rk_board_ufs_reset_device(void)
+{
+	/* set UFS_RSTN to low */
+	writel(0x00100000, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
+	/* set iomux UFS_REFCLK, UFS_RSTN */
+	writel(0x00FF0011, VCCIO7_IOC_BASE + VCCIO7_IOC_GPIO4D_IOMUX_SEL_L);
+	udelay(10);
+	/* set UFS_RSTN to high */
+	writel(0x00100010, VCCIO7_IOC_BASE + VCCIO7_IOC_XIN_UFS_CON);
+}
 
 #if defined(CONFIG_SCSI) && defined(CONFIG_CMD_SCSI) && defined(CONFIG_UFS)
 int rk_board_dm_fdt_fixup(const void *blob)
