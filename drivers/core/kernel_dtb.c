@@ -106,6 +106,43 @@ struct device_node *kernel_dtb_lookup_phandle(phandle handle)
 	return NULL;
 }
 
+static struct list_head *kernel_dtb_find_insert_head(struct uclass *uc)
+{
+	struct udevice *dev;
+
+	uclass_foreach_dev(dev, uc) {
+		if (!(dev_get_flags(dev) & DM_FLAG_KNRL_DTB))
+			return &dev->uclass_node;
+	}
+
+	return &uc->dev_head;
+}
+
+static bool kernel_dtb_head_is_valid(struct uclass *uc, struct list_head *head)
+{
+	struct udevice *dev;
+
+	if (!head)
+		return false;
+	if (head == &uc->dev_head)
+		return true;
+
+	uclass_foreach_dev(dev, uc) {
+		if (&dev->uclass_node == head)
+			return true;
+	}
+
+	return false;
+}
+
+static struct list_head *kernel_dtb_get_insert_head(struct uclass *uc)
+{
+	if (!kernel_dtb_head_is_valid(uc, uc->u_boot_dev_head))
+		uc->u_boot_dev_head = kernel_dtb_find_insert_head(uc);
+
+	return uc->u_boot_dev_head;
+}
+
 void kernel_dtb_device_bind(struct uclass *uc, struct udevice *dev,
 			    const struct driver *drv, int *after_u_boot_dev)
 {
@@ -155,13 +192,10 @@ void kernel_dtb_device_bind(struct uclass *uc, struct udevice *dev,
 				break;
 			}
 		}
-
-		/* no u-boot dev ? */
-		if (!dev->uclass->u_boot_dev_head)
-			dev->uclass->u_boot_dev_head = &uc->dev_head;
-	} else {
-		if (!dev->uclass->u_boot_dev_head)
-			dev->uclass->u_boot_dev_head = &dev->uclass_node;
+		if (!kernel_dtb_head_is_valid(uc, uc->u_boot_dev_head))
+			uc->u_boot_dev_head = kernel_dtb_find_insert_head(uc);
+	} else if (!uc->u_boot_dev_head) {
+		uc->u_boot_dev_head = &dev->uclass_node;
 	}
 }
 
@@ -172,7 +206,9 @@ void kernel_dtb_list_add(struct uclass *uc, struct udevice *dev,
 		list_add_tail(&dev->uclass_node, &uc->dev_head);
 		debug("### after_u : %s\n", dev->name);
 	} else {
-		list_add_tail(&dev->uclass_node, uc->u_boot_dev_head);
+		struct list_head *head = kernel_dtb_get_insert_head(uc);
+
+		list_add_tail(&dev->uclass_node, head);
 		debug("### before_u: %s\n", dev->name);
 	}
 }
