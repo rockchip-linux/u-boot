@@ -282,7 +282,16 @@ static const struct spinand_info micron_spinand_table[] = {
 					      &x1_write_cache_variants,
 					      &x1_update_cache_variants),
 		     0,
-		     SPINAND_ECCINFO(&micron_4_ooblayout, NULL)),
+	     SPINAND_ECCINFO(&micron_4_ooblayout, NULL)),
+	SPINAND_INFO("MT29F2G01ABBGDWB",
+		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0x25),
+		     NAND_MEMORG(1, 2048, 128, 64, 2048, 40, 2, 1, 1),
+		     NAND_ECCREQ(8, 512),
+		     SPINAND_INFO_OP_VARIANTS(&quadio_read_cache_variants,
+					      &x4_write_cache_variants,
+					      &x4_update_cache_variants),
+		     0,
+		     SPINAND_ECCINFO(&micron_8_ooblayout, micron_8_ecc_get_status)),
 };
 
 static int micron_spinand_init(struct spinand_device *spinand)
