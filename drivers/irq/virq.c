@@ -27,10 +27,17 @@ struct virq_data {
 	int irq;
 	u32 flag;
 	u32 count;
+	ulong last_handler_addr;
 
 	/* VIRQ doesn't need shared support - one handler per virq */
 	interrupt_handler_t *handle_irq;
 	void *data;
+
+	/* Statistics */
+	u32 enable_count;
+	u32 disable_count;
+	u32 install_count;
+	u32 free_count;
 };
 
 /* The structure to maintail the irqchip and child virqs */
@@ -98,6 +105,11 @@ void virqs_show(int pirq)
 	struct list_head *desc_node;
 	int num;
 	int i;
+	ulong handler_addr;
+	char handler_buf[20];
+	char share_buf[20];
+	char type_buf[20];
+	char ops_buf[20];
 
 	/* Iterate through ALL virq_desc that share this parent IRQ */
 	list_for_each(desc_node, &virq_desc_head) {
@@ -111,18 +123,56 @@ void virqs_show(int pirq)
 		num = desc->irq_end - desc->irq_base + 1;
 
 		for (i = 0; i < num; i++) {
-			/* Skip if no handler registered */
-			if (!vdata[i].handle_irq)
+			/* Show if has handler OR was ever installed */
+			if (!vdata[i].handle_irq && vdata[i].install_count == 0)
 				continue;
 
 			dev = (struct udevice *)vdata[i].data;
-			printf(" %3d  %-12s  %c   0x%016lx  %-13s  %-16s  %6u  (parent: %d)\n",
-			       vdata[i].irq, "VIRQ",
-			       vdata[i].flag & IRQ_FLG_ENABLE ? 'Y' : 'N',
-			       (ulong)vdata[i].handle_irq,
-			       (dev && dev->driver) ? dev->driver->name : "N/A",
-			       dev ? dev->name : "N/A",
-			       vdata[i].count, pirq);
+
+			/* Get handler address, adjust for relocation if needed */
+			if (vdata[i].handle_irq) {
+				handler_addr = (ulong)vdata[i].handle_irq;
+				if (gd->flags & GD_FLG_RELOC)
+					handler_addr -= gd->reloc_off;
+				snprintf(handler_buf, sizeof(handler_buf), "0x%08lx",
+					 handler_addr);
+			} else {
+				handler_addr = vdata[i].last_handler_addr;
+				if (gd->flags & GD_FLG_RELOC && handler_addr)
+					handler_addr -= gd->reloc_off;
+				snprintf(handler_buf, sizeof(handler_buf), "0x%08lx",
+					 handler_addr);
+			}
+
+			snprintf(share_buf, sizeof(share_buf), "parent:%d", pirq);
+			snprintf(type_buf, sizeof(type_buf), "VIRQ%s",
+				 vdata[i].free_count > 0 ? "*" : "");
+			snprintf(ops_buf, sizeof(ops_buf), "%u/%u/%u/%u",
+				 vdata[i].enable_count,
+				 vdata[i].disable_count,
+				 vdata[i].install_count,
+				 vdata[i].free_count);
+
+			if (vdata[i].handle_irq) {
+				printf(" %-3d  %-16s  %-6c  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
+				       vdata[i].irq, type_buf,
+				       vdata[i].flag & IRQ_FLG_ENABLE ? '*' : ' ',
+				       handler_buf,
+				       (dev && dev->driver) ? dev->driver->name : "N/A",
+				       dev ? dev->name : "N/A",
+				       vdata[i].count,
+				       ops_buf,
+				       share_buf);
+			} else {
+				printf(" %-3d  %-16s  %-6c  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
+				       vdata[i].irq, "VIRQ*", ' ',
+				       handler_buf,
+				       (dev && dev->driver) ? dev->driver->name : "N/A",
+				       dev ? dev->name : "N/A",
+				       vdata[i].count,
+				       ops_buf,
+				       share_buf);
+			}
 		}
 	}
 }
@@ -148,6 +198,8 @@ int virq_install_handler(int irq, interrupt_handler_t *handler, void *data)
 	desc->virqs[virq].handle_irq = handler;
 	desc->virqs[virq].data = data;
 	desc->virqs[virq].count = 0;
+	desc->virqs[virq].last_handler_addr = (ulong)handler;
+	desc->virqs[virq].install_count++;
 
 	return 0;
 }
@@ -166,6 +218,7 @@ void virq_free_handler(int irq)
 	/* VIRQ doesn't support shared handlers - direct clear */
 	desc->virqs[virq].handle_irq = NULL;
 	desc->virqs[virq].data = NULL;
+	desc->virqs[virq].free_count++;
 }
 
 static uint reg_base_get(struct virq_desc *desc, uint reg_base, int idx)
@@ -288,6 +341,10 @@ int virq_add_chip(struct udevice *dev, struct virq_chip *chip, int irq)
 		vdata[i].count = 0;
 		vdata[i].handle_irq = NULL;
 		vdata[i].data = NULL;
+		vdata[i].enable_count = 0;
+		vdata[i].disable_count = 0;
+		vdata[i].install_count = 0;
+		vdata[i].free_count = 0;
 	}
 
 	desc->parent = dev;
@@ -371,10 +428,13 @@ static int __virq_enable(int irq, int enable)
 		return ret;
 	}
 
-	if (enable)
+	if (enable) {
 		desc->virqs[virq].flag |= IRQ_FLG_ENABLE;
-	else
+		desc->virqs[virq].enable_count++;
+	} else {
 		desc->virqs[virq].flag &= ~IRQ_FLG_ENABLE;
+		desc->virqs[virq].disable_count++;
+	}
 
 	return 0;
 }

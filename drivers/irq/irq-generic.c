@@ -25,8 +25,13 @@ struct irq_desc {
 	struct list_head handlers;	/* List of irq_handler for shared IRQ */
 	u32 flag;
 	u32 count;
+	ulong last_handler_addr;	/* Last installed handler address */
 	int handler_count;		/* Number of handlers in the list */
 	bool is_shared;			/* True if this IRQ has multiple handlers */
+	u32 enable_count;		/* Count of irq_enable calls */
+	u32 disable_count;		/* Count of irq_disable calls */
+	u32 install_count;		/* Count of irq_install calls */
+	u32 free_count;			/* Count of irq_free calls */
 };
 
 struct irqchip_desc {
@@ -203,8 +208,10 @@ int irq_handler_enable(int irq)
 	else
 		ret = irqchip.virq->irq_enable(irq);
 
-	if (!ret && irq < PLATFORM_MAX_IRQ)
+	if (!ret && irq < PLATFORM_MAX_IRQ) {
 		irq_desc[irq].flag |= IRQ_FLG_ENABLE;
+		irq_desc[irq].enable_count++;
+	}
 
 	return ret;
 }
@@ -223,8 +230,10 @@ int irq_handler_disable(int irq)
 	else
 		ret = irqchip.virq->irq_disable(irq);
 
-	if (!ret && irq < PLATFORM_MAX_IRQ)
+	if (!ret && irq < PLATFORM_MAX_IRQ) {
 		irq_desc[irq].flag &= ~IRQ_FLG_ENABLE;
+		irq_desc[irq].disable_count++;
+	}
 
 	return ret;
 }
@@ -300,10 +309,12 @@ static void irq_install_handler_with_flags(int irq, interrupt_handler_t *handler
 		irq_handler->handle_irq = handler;
 		irq_handler->data = data;
 		irq_handler->count = 0;
+		irq_desc[irq].last_handler_addr = (ulong)handler;
 
 		/* Add to the handler list */
 		list_add_tail(&irq_handler->node, &irq_desc[irq].handlers);
 		irq_desc[irq].handler_count++;
+		irq_desc[irq].install_count++;
 		if (irq_desc[irq].handler_count > 1)
 			irq_desc[irq].is_shared = true;
 	} else {
@@ -344,6 +355,7 @@ void irq_free_handler(int irq)
 		}
 		irq_desc[irq].handler_count = 0;
 		irq_desc[irq].is_shared = false;
+		irq_desc[irq].free_count++;
 	} else {
 		virq_free_handler(irq);
 	}
@@ -453,93 +465,136 @@ int disable_interrupts(void)
 	return flags;
 }
 
-static int do_dump_irqs(struct cmd_tbl *cmdtp, int flag,
-			int argc, char * const argv[])
+static int do_dump_irqs(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	struct udevice *dev;
 	struct irq_handler *handler;
 	struct list_head *node;
 	char *drv_name;
 	int pirq;
-	int total_irqs = 0, enabled_irqs = 0, shared_irqs = 0;
-	u64 total_count = 0;
-
-	/* Print summary header */
-	printf("\n");
-	printf("================================================================================\n");
-	printf("                           IRQ Summary Statistics\n");
-	printf("\n");
-
-	for (pirq = 0; pirq < PLATFORM_MAX_IRQ; pirq++) {
-		if (!list_empty(&irq_desc[pirq].handlers)) {
-			total_irqs++;
-			if (irq_desc[pirq].flag & IRQ_FLG_ENABLE)
-				enabled_irqs++;
-			if (irq_desc[pirq].is_shared)
-				shared_irqs++;
-			total_count += irq_desc[pirq].count;
-		}
-	}
-
-	printf(" Total IRQs: %d     Enabled: %d     Shared: %d     Total Events: %llu\n",
-	       total_irqs, enabled_irqs, shared_irqs, total_count);
-	printf("================================================================================\n");
-	printf("\n");
+	ulong handler_addr;
+	char handler_buf[20];
+	char type_buf[20];
+	char ops_buf[20];
+	char share_buf[20];
 
 	/* Print IRQ table header */
-	printf(" IRQ  Type          En  Handler             Driver         DevName              Count   Share\n");
-	printf("--------------------------------------------------------------------------------------------\n");
+	printf("\n");
+	printf(" ---------------------------------------------------------------------------------------------------------------------------\n");
+	printf(" IRQ  Type              Enable  Handler         Driver                DevName               Calls    En/Dis/Ins/Free   Share\n");
+	printf(" ----------------------------------------------------------------------------------------------------------------------------\n");
 
 	for (pirq = 0; pirq < PLATFORM_MAX_IRQ; pirq++) {
-		if (list_empty(&irq_desc[pirq].handlers))
+		/* Skip if no handler was ever installed */
+		if (list_empty(&irq_desc[pirq].handlers) &&
+		    irq_desc[pirq].install_count == 0)
 			continue;
 
-		list_for_each(node, &irq_desc[pirq].handlers) {
-			handler = list_entry(node, struct irq_handler, node);
-			if (!handler->handle_irq)
-				continue;
+		/* If handlers list is not empty, print them */
+		if (!list_empty(&irq_desc[pirq].handlers)) {
+			list_for_each(node, &irq_desc[pirq].handlers) {
+				handler = list_entry(node, struct irq_handler, node);
+				if (!handler->handle_irq)
+					continue;
 
-			dev = (struct udevice *)handler->data;
-			if (dev && strstr(dev->name, "gpio"))
-				drv_name = "IRQ";
-			else if (dev && dev->driver)
-				drv_name = dev->driver->name;
-			else
-				drv_name = "N/A";
+				dev = (struct udevice *)handler->data;
+				if (dev && strstr(dev->name, "gpio"))
+					drv_name = "IRQ";
+				else if (dev && dev->driver)
+					drv_name = dev->driver->name;
+				else
+					drv_name = "N/A";
 
-			/* Determine IRQ type string */
-			const char *type_str;
+				/* Determine IRQ type string */
+				if (pirq < PLATFORM_GIC_MAX_IRQ)
+					snprintf(type_buf, sizeof(type_buf), "GIC%s",
+						 irq_desc[pirq].free_count > 0 ? "*" : "");
+				else if (pirq < PLATFORM_GPIO_MAX_IRQ)
+					snprintf(type_buf, sizeof(type_buf), "GPIO%s",
+						 irq_desc[pirq].free_count > 0 ? "*" : "");
+				else
+					snprintf(type_buf, sizeof(type_buf), "VIRQ%s",
+						 irq_desc[pirq].free_count > 0 ? "*" : "");
 
-			if (pirq < PLATFORM_GIC_MAX_IRQ)
-				type_str = "GIC ";
-			else if (pirq < PLATFORM_GPIO_MAX_IRQ)
-				type_str = "GPIO";
-			else
-				type_str = "VIRQ";
+				/* Get handler address, adjust for relocation if needed */
+				handler_addr = (ulong)handler->handle_irq;
+				if (gd->flags & GD_FLG_RELOC)
+					handler_addr -= gd->reloc_off;
+				snprintf(handler_buf, sizeof(handler_buf), "0x%08lx",
+					 handler_addr);
+				snprintf(ops_buf, sizeof(ops_buf), "%u/%u/%u/%u",
+					 irq_desc[pirq].enable_count,
+					 irq_desc[pirq].disable_count,
+					 irq_desc[pirq].install_count,
+					 irq_desc[pirq].free_count);
+				snprintf(share_buf, sizeof(share_buf), "%s",
+					 irq_desc[pirq].is_shared ? "*" : " ");
+
+				/* Print GPIO bank info for GPIO IRQs */
+				if (pirq >= PLATFORM_GIC_MAX_IRQ && pirq < PLATFORM_GPIO_MAX_IRQ) {
+					/* Reverse conversion: IRQ -> GPIO bank:offset */
+					int bank = (pirq - PIN_BASE) / GPIO_BANK_PINS;
+					int offset = (pirq - PIN_BASE) % GPIO_BANK_PINS;
+
+					/* offset 0-7 -> A0-A7, 8-15 -> B0-B7, 16-23 -> C0-C7, 24-31 -> D0-D7 */
+					snprintf(type_buf, sizeof(type_buf), "GPIO%d_%c%d%s",
+						 bank, 'A' + (offset / 8), offset % 8,
+						 irq_desc[pirq].free_count > 0 ? "*" : "");
+					printf(" %-3d  %-16s  %-6c  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
+					       pirq, type_buf,
+					       irq_desc[pirq].flag & IRQ_FLG_ENABLE ? '*' : ' ',
+					       handler_buf, drv_name,
+					       dev ? dev->name : "N/A",
+					       handler->count,
+					       ops_buf, share_buf);
+				} else {
+					printf(" %-3d  %-16s  %-6c  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
+					       pirq, type_buf,
+					       irq_desc[pirq].flag & IRQ_FLG_ENABLE ? '*' : ' ',
+					       handler_buf, drv_name,
+					       dev ? dev->name : "N/A",
+					       handler->count,
+					       ops_buf, share_buf);
+				}
+			}
+		} else {
+			/* Handler was installed but now freed - show summary */
+			snprintf(ops_buf, sizeof(ops_buf), "%u/%u/%u/%u",
+				 irq_desc[pirq].enable_count,
+				 irq_desc[pirq].disable_count,
+				 irq_desc[pirq].install_count,
+				 irq_desc[pirq].free_count);
+			snprintf(share_buf, sizeof(share_buf), " ");
+			handler_addr = irq_desc[pirq].last_handler_addr;
+			if (gd->flags & GD_FLG_RELOC && handler_addr)
+				handler_addr -= gd->reloc_off;
+			snprintf(handler_buf, sizeof(handler_buf), "0x%08lx",
+				 handler_addr);
 
 			/* Print GPIO bank info for GPIO IRQs */
 			if (pirq >= PLATFORM_GIC_MAX_IRQ && pirq < PLATFORM_GPIO_MAX_IRQ) {
-				/* Reverse conversion: IRQ -> GPIO bank:offset */
 				int bank = (pirq - PIN_BASE) / GPIO_BANK_PINS;
 				int offset = (pirq - PIN_BASE) % GPIO_BANK_PINS;
-				char type_buf[20];
 
-				/* offset 0-7 -> A0-A7, 8-15 -> B0-B7, 16-23 -> C0-C7, 24-31 -> D0-D7 */
-				snprintf(type_buf, sizeof(type_buf), "GPIO%d_%c%d",
+				snprintf(type_buf, sizeof(type_buf), "GPIO%d_%c%d*",
 					 bank, 'A' + (offset / 8), offset % 8);
-				printf(" %3d  %-12s  %c   0x%016lx  %-13s  %-16s  %6u  %5d\n",
-				       pirq, type_buf,
-				       irq_desc[pirq].flag & IRQ_FLG_ENABLE ? 'Y' : 'N',
-				       (ulong)handler->handle_irq, drv_name,
-				       dev ? dev->name : "N/A",
-				       handler->count, irq_desc[pirq].is_shared);
+				printf(" %-3d  %-16s  %-6c  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
+				       pirq, type_buf, ' ',
+				       handler_buf, "N/A", "N/A",
+				       irq_desc[pirq].count,
+				       ops_buf, share_buf);
 			} else {
-				printf(" %3d  %-12s  %c   0x%016lx  %-13s  %-16s  %6u  %5d\n",
-				       pirq, type_str,
-				       irq_desc[pirq].flag & IRQ_FLG_ENABLE ? 'Y' : 'N',
-				       (ulong)handler->handle_irq, drv_name,
-				       dev ? dev->name : "N/A",
-				       handler->count, irq_desc[pirq].is_shared);
+				if (pirq < PLATFORM_GIC_MAX_IRQ)
+					snprintf(type_buf, sizeof(type_buf), "GIC*");
+				else if (pirq < PLATFORM_GPIO_MAX_IRQ)
+					snprintf(type_buf, sizeof(type_buf), "GPIO*");
+				else
+					snprintf(type_buf, sizeof(type_buf), "VIRQ*");
+				printf(" %-3d  %-16s  %-6c  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
+				       pirq, type_buf, ' ',
+				       handler_buf, "N/A", "N/A",
+				       irq_desc[pirq].count,
+				       ops_buf, share_buf);
 			}
 		}
 
