@@ -18,6 +18,9 @@ DECLARE_GLOBAL_DATA_PTR;
 static LIST_HEAD(virq_desc_head);
 static u32 virq_id = PLATFORM_MAX_IRQ;
 
+struct virq_desc;
+static uint reg_base_get(struct virq_desc *desc, uint reg_base, int idx);
+
 static u32 virq_id_alloc(void)
 {
 	return ++virq_id;
@@ -95,6 +98,31 @@ int virq_to_irq(struct virq_chip *chip, int virq)
 int bad_virq(int irq)
 {
 	return !find_virq_desc(irq);
+}
+
+static int virq_hw_is_enabled(int irq)
+{
+	struct virq_chip *chip;
+	struct virq_desc *desc;
+	uint mask_reg, mask_val;
+	uint reg_val;
+	int virq;
+
+	desc = find_virq_desc(irq);
+	if (!desc)
+		return -ENOENT;
+
+	chip = desc->chip;
+	if (!chip)
+		return -ENOENT;
+
+	virq = irq - desc->irq_base;
+	mask_val = chip->irqs[virq].mask;
+	mask_reg = reg_base_get(desc, chip->mask_base,
+				chip->irqs[virq].reg_offset);
+	reg_val = chip->read(desc->parent, mask_reg);
+
+	return !(reg_val & mask_val);
 }
 
 void virqs_show(int pirq)
@@ -483,6 +511,7 @@ struct irq_chip virq_generic_chip = {
 	.irq_init	= virq_init,
 	.irq_enable	= virq_enable,
 	.irq_disable	= virq_disable,
+	.irq_hw_is_enabled = virq_hw_is_enabled,
 };
 
 struct irq_chip *arch_virq_get_irqchip(void)

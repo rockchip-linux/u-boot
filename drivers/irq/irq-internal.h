@@ -43,6 +43,9 @@ int virq_install_handler(int irq, interrupt_handler_t *handler, void *data);
  * Other
  */
 int bad_irq(int irq);
+void irq_handler_hw_dispatch_enter(int irq);
+bool irq_handler_hw_dispatch_should_keep_masked(int irq);
+void irq_handler_hw_dispatch_exit(int irq);
 
 /*
  * IRQ-GPIO-SWITCH

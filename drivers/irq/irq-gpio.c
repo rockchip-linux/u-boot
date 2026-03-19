@@ -86,6 +86,7 @@ static void generic_gpio_handle_irq(int irq, void *data __always_unused)
 	struct gpio_bank *bank = gpio_id_to_bank(irq - IRQ_GPIO0);
 	unsigned gpio_irq, pin, unmasked = 0;
 	u32 isr, ilr;
+	int child_irq;
 
 	isr = readl(bank->regbase + GPIO_INT_STATUS);
 	ilr = readl(bank->regbase + GPIO_INTTYPE_LEVEL);
@@ -93,7 +94,12 @@ static void generic_gpio_handle_irq(int irq, void *data __always_unused)
 	gpio_irq = bank->irq_base;
 
 	while (isr) {
+		unmasked = 0;
 		pin = fls(isr) - 1;
+		child_irq = gpio_irq + pin;
+
+		/* Reset per-dispatch hw_disable latch before invoking child handlers. */
+		irq_handler_hw_dispatch_enter(child_irq);
 
 		/* first mask and ack irq */
 		gpio_irq_mask(bank->regbase, offset_to_bit(pin));
@@ -108,12 +114,19 @@ static void generic_gpio_handle_irq(int irq, void *data __always_unused)
 			gpio_irq_unmask(bank->regbase, offset_to_bit(pin));
 		}
 
-		__generic_gpio_handle_irq(gpio_irq + pin);
+		__generic_gpio_handle_irq(child_irq);
 
 		isr &= ~(1 << pin);
 
-		if (!unmasked)
+		/*
+		 * Level IRQs are normally unmasked here after dispatch, unless a
+		 * shared handler explicitly disabled the line and switched to polling.
+		 */
+		if (!irq_handler_hw_dispatch_should_keep_masked(child_irq) &&
+		    !unmasked)
 			gpio_irq_unmask(bank->regbase, offset_to_bit(pin));
+
+		irq_handler_hw_dispatch_exit(child_irq);
 	}
 }
 
@@ -261,6 +274,55 @@ static int gpio_irq_get_gpio_level(int gpio_irq)
 	return gpio_bit_rd(bank->regbase, GPIO_EXT_PORT, offset_to_bit(gpio));
 }
 
+static int gpio_irq_hw_is_enabled(int gpio_irq)
+{
+	int gpio = irq_to_gpio(gpio_irq);
+	struct gpio_bank *bank = gpio_to_bank(gpio);
+
+	if (!bank)
+		return -EINVAL;
+
+	gpio &= GPIO_PIN_MASK;
+	if (gpio >= bank->ngpio)
+		return -EINVAL;
+
+	return gpio_bit_rd(bank->regbase, GPIO_INTEN, offset_to_bit(gpio));
+}
+
+static int gpio_irq_hw_enable(int gpio_irq)
+{
+	int gpio = irq_to_gpio(gpio_irq);
+	struct gpio_bank *bank = gpio_to_bank(gpio);
+
+	if (!bank)
+		return -EINVAL;
+
+	gpio &= GPIO_PIN_MASK;
+	if (gpio >= bank->ngpio)
+		return -EINVAL;
+
+	gpio_irq_unmask(bank->regbase, offset_to_bit(gpio));
+
+	return 0;
+}
+
+static int gpio_irq_hw_disable(int irq)
+{
+	int gpio = irq_to_gpio(irq);
+	struct gpio_bank *bank = gpio_to_bank(gpio);
+
+	if (!bank)
+		return -EINVAL;
+
+	gpio &= GPIO_PIN_MASK;
+	if (gpio >= bank->ngpio)
+		return -EINVAL;
+
+	gpio_irq_mask(bank->regbase, offset_to_bit(gpio));
+
+	return 0;
+}
+
 static int gpio_irq_enable(int gpio_irq)
 {
 	int gpio = irq_to_gpio(gpio_irq);
@@ -342,6 +404,9 @@ static struct irq_chip gpio_irq_chip = {
 	.irq_init	= gpio_irq_init,
 	.irq_enable	= gpio_irq_enable,
 	.irq_disable	= gpio_irq_disable,
+	.irq_hw_is_enabled = gpio_irq_hw_is_enabled,
+	.irq_hw_enable	= gpio_irq_hw_enable,
+	.irq_hw_disable	= gpio_irq_hw_disable,
 	.irq_set_type	= gpio_irq_set_type,
 	.irq_revert_type = gpio_irq_revert_type,
 	.irq_get_gpio_level = gpio_irq_get_gpio_level,

@@ -24,10 +24,13 @@ struct irq_handler {
 struct irq_desc {
 	struct list_head handlers;	/* List of irq_handler for shared IRQ */
 	u32 flag;
+	u32 irq_flags;
 	u32 count;
 	ulong last_handler_addr;	/* Last installed handler address */
 	int handler_count;		/* Number of handlers in the list */
 	bool is_shared;			/* True if this IRQ has multiple handlers */
+	/* Set when a shared handler disables the line during this dispatch. */
+	bool hw_forced_disabled;
 	u32 enable_count;		/* Count of irq_enable calls */
 	u32 disable_count;		/* Count of irq_disable calls */
 	u32 install_count;		/* Count of irq_install calls */
@@ -127,6 +130,56 @@ static int bad_irq_chip(struct irq_chip *chip)
 {
 	return (!chip->name || !chip->irq_init || !chip->irq_enable ||
 		!chip->irq_disable) ? -EINVAL : 0;
+}
+
+static bool irq_supports_hw_ctrl(int irq)
+{
+	if (irq < 0 || irq >= PLATFORM_MAX_IRQ)
+		return false;
+
+	return (irq_desc[irq].irq_flags & (IRQF_SHARED | IRQF_HW_CTRL)) ==
+	       (IRQF_SHARED | IRQF_HW_CTRL);
+}
+
+static struct irq_chip *irq_to_chip(int irq)
+{
+	if (irq < PLATFORM_GIC_MAX_IRQ)
+		return irqchip.gic;
+	else if (irq < PLATFORM_GPIO_MAX_IRQ)
+		return irqchip.gpio;
+	else
+		return irqchip.virq;
+}
+
+void irq_handler_hw_dispatch_enter(int irq)
+{
+	if (!irq_supports_hw_ctrl(irq))
+		return;
+
+	/*
+	 * generic_gpio_handle_irq() masks the line before invoking handlers.
+	 * Clear the per-dispatch latch so a handler can decide whether the
+	 * parent should leave the line masked on return.
+	 */
+	irq_desc[irq].hw_forced_disabled = false;
+}
+
+bool irq_handler_hw_dispatch_should_keep_masked(int irq)
+{
+	if (bad_irq(irq))
+		return false;
+
+	if (!irq_supports_hw_ctrl(irq))
+		return false;
+
+	return irq_desc[irq].hw_forced_disabled;
+}
+
+void irq_handler_hw_dispatch_exit(int irq)
+{
+	/* No state to unwind. The hook is kept for parent dispatch symmetry. */
+	if (!irq_supports_hw_ctrl(irq))
+		return;
 }
 
 static int __do_arch_irq_init(void)
@@ -238,6 +291,59 @@ int irq_handler_disable(int irq)
 	return ret;
 }
 
+int irq_handler_hw_enable(int irq)
+{
+	struct irq_chip *chip;
+	int ret;
+
+	if (bad_irq(irq))
+		return -EINVAL;
+
+	if (!irq_supports_hw_ctrl(irq))
+		return -EPERM;
+
+	chip = irq_to_chip(irq);
+	if (!chip->irq_hw_enable)
+		return -ENOSYS;
+
+	ret = chip->irq_hw_enable(irq);
+	if (ret)
+		return ret;
+
+	/* The line is back under normal parent auto-unmask behavior. */
+	irq_desc[irq].hw_forced_disabled = false;
+
+	return 0;
+}
+
+int irq_handler_hw_disable(int irq)
+{
+	struct irq_chip *chip;
+	int ret;
+
+	if (bad_irq(irq))
+		return -EINVAL;
+
+	if (!irq_supports_hw_ctrl(irq))
+		return -EPERM;
+
+	chip = irq_to_chip(irq);
+	if (!chip->irq_hw_disable)
+		return -ENOSYS;
+
+	ret = chip->irq_hw_disable(irq);
+	if (ret)
+		return ret;
+
+	/*
+	 * Keep the line masked after the current dispatch returns. The
+	 * polling path must later call irq_handler_hw_enable().
+	 */
+	irq_desc[irq].hw_forced_disabled = true;
+
+	return 0;
+}
+
 int irq_set_irq_type(int irq, unsigned int type)
 {
 	if (bad_irq(irq))
@@ -315,6 +421,7 @@ static void irq_install_handler_with_flags(int irq, interrupt_handler_t *handler
 		list_add_tail(&irq_handler->node, &irq_desc[irq].handlers);
 		irq_desc[irq].handler_count++;
 		irq_desc[irq].install_count++;
+		irq_desc[irq].irq_flags |= irq_flags;
 		if (irq_desc[irq].handler_count > 1)
 			irq_desc[irq].is_shared = true;
 	} else {
@@ -355,6 +462,8 @@ void irq_free_handler(int irq)
 		}
 		irq_desc[irq].handler_count = 0;
 		irq_desc[irq].is_shared = false;
+		irq_desc[irq].irq_flags = 0;
+		irq_desc[irq].hw_forced_disabled = false;
 		irq_desc[irq].free_count++;
 	} else {
 		virq_free_handler(irq);

@@ -176,6 +176,28 @@ static int gic_irq_disable(int irq)
 	return 0;
 }
 
+static int gic_irq_hw_is_enabled(int irq)
+{
+	u32 val;
+
+	if (irq >= PLATFORM_GIC_MAX_IRQ)
+		return -EINVAL;
+
+	val = gicd_readl(GICD_ISENABLERn + IRQ_REG_X32(irq));
+
+	return !!(val & (1 << IRQ_REG_X32_OFFSET(irq)));
+}
+
+static int gic_irq_hw_enable(int irq)
+{
+	return gic_irq_enable(irq);
+}
+
+static int gic_irq_hw_disable(int irq)
+{
+	return gic_irq_disable(irq);
+}
+
 /*
  * irq_set_type - set the irq trigger type for an irq
  *
@@ -415,6 +437,9 @@ static struct irq_chip gic_irq_chip = {
 	.irq_get	= gic_irq_get,
 	.irq_enable	= gic_irq_enable,
 	.irq_disable	= gic_irq_disable,
+	.irq_hw_is_enabled = gic_irq_hw_is_enabled,
+	.irq_hw_enable	= gic_irq_hw_enable,
+	.irq_hw_disable	= gic_irq_hw_disable,
 	.irq_eoi	= gic_irq_eoi,
 	.irq_set_type	= gic_irq_set_type,
 	.irq_reg_dump	= gic_reg_dump,

@@ -25,6 +25,7 @@
  */
 #define IRQF_NONE	0
 #define IRQF_SHARED	(1 << 0)
+#define IRQF_HW_CTRL	(1 << 1)
 
 /*
  * IRQ line status.
@@ -67,6 +68,9 @@ struct irq_chip {
 	int		(*irq_get)(void);
 	int		(*irq_enable)(int irq);
 	int		(*irq_disable)(int irq);
+	int		(*irq_hw_is_enabled)(int irq);
+	int		(*irq_hw_enable)(int irq);
+	int		(*irq_hw_disable)(int irq);
 	void		(*irq_ack)(int irq);
 	void		(*irq_eoi)(int irq);
 	int		(*irq_set_type)(int irq, unsigned int flow_type);
@@ -109,6 +113,8 @@ int irq_revert_irq_type(int irq);
 int irq_handler_enable(int irq);
 int irq_handler_enable_suspend_only(int irq);
 int irq_handler_disable(int irq);
+int irq_handler_hw_enable(int irq);
+int irq_handler_hw_disable(int irq);
 int irq_get_gpio_level(int irq);
 int irqs_suspend(void);
 int irqs_resume(void);
