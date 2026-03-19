@@ -21,6 +21,14 @@ static u32 virq_id = PLATFORM_MAX_IRQ;
 struct virq_desc;
 static uint reg_base_get(struct virq_desc *desc, uint reg_base, int idx);
 
+static char irq_state_char_from_ret(int ret)
+{
+	if (ret < 0)
+		return '?';
+
+	return ret ? '1' : '0';
+}
+
 static u32 virq_id_alloc(void)
 {
 	return ++virq_id;
@@ -138,6 +146,7 @@ void virqs_show(int pirq)
 	char share_buf[20];
 	char type_buf[20];
 	char ops_buf[20];
+	char enable_buf[8];
 
 	/* Iterate through ALL virq_desc that share this parent IRQ */
 	list_for_each(desc_node, &virq_desc_head) {
@@ -180,11 +189,14 @@ void virqs_show(int pirq)
 				 vdata[i].disable_count,
 				 vdata[i].install_count,
 				 vdata[i].free_count);
+			snprintf(enable_buf, sizeof(enable_buf), "%c/%c",
+				 vdata[i].flag & IRQ_FLG_ENABLE ? '1' : '0',
+				 irq_state_char_from_ret(virq_hw_is_enabled(vdata[i].irq)));
 
 			if (vdata[i].handle_irq) {
-				printf(" %-3d  %-16s  %-6c  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
+				printf(" %-3d  %-10s  %-16s  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
 				       vdata[i].irq, type_buf,
-				       vdata[i].flag & IRQ_FLG_ENABLE ? '*' : ' ',
+				       enable_buf,
 				       handler_buf,
 				       (dev && dev->driver) ? dev->driver->name : "N/A",
 				       dev ? dev->name : "N/A",
@@ -192,8 +204,9 @@ void virqs_show(int pirq)
 				       ops_buf,
 				       share_buf);
 			} else {
-				printf(" %-3d  %-16s  %-6c  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
-				       vdata[i].irq, "VIRQ*", ' ',
+				printf(" %-3d  %-10s  %-16s  %-14s  %-20s  %-20s  %-7u  %-16s  %-10s\n",
+				       vdata[i].irq, "VIRQ*",
+				       enable_buf,
 				       handler_buf,
 				       (dev && dev->driver) ? dev->driver->name : "N/A",
 				       dev ? dev->name : "N/A",
