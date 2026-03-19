@@ -79,10 +79,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define USB2PHY_GRF_RX_TIMEOUT	0x004c
 #define USB2PHY_GRF_SEQ_LIMT	0x0050
 
-#define TOP_CRU_BASE		0x27200000
-#define TOP_CRU_GATE_CON19	0x084C
+#define TOP_CRU_BASE		    0x27200000
+#define TOP_CRU_GATE_CON19	    0x084C
 #define TOP_CRU_SOFTRST_CON19	0x0a4C
-#define PHPPHYSOFTRST_CON01	0x8a04
+#define PHPPHYSOFTRST_CON01	    0x8a04
+#define TOPCRU_CRU_GLBRST_ST	0x0c04
+#define GLB_WDTn_RST_ST			GENMASK(15, 10)
 
 #define PMU1_CRU_BASE		0x27220000
 #define PMU1_CRU_CLKSEL_CON03	0x030c
@@ -307,6 +309,20 @@ int fit_standalone_release(char *id, uintptr_t entry_point)
 int arch_cpu_init(void)
 {
 #if defined(CONFIG_SPL_BUILD) || defined(CONFIG_SUPPORT_USBPLUG)
+	u32 cru_glbrst_st = readl(TOP_CRU_BASE + TOPCRU_CRU_GLBRST_ST);
+	/* write BOOT_WATCHDOG to boot mode register, if reset by WDT */
+	if (cru_glbrst_st & GLB_WDTn_RST_ST) {
+		/*
+		 * Keep boot mode as BOOT_PANIC instead of switching to BOOT_WATCHDOG
+		 * if the WDT reset was triggered by a kernel panic.
+		 * This ensures the real cause (panic) is not obscured by watchdog reset.
+		 */
+		if (readl(CONFIG_ROCKCHIP_BOOT_MODE_REG) != BOOT_PANIC)
+			writel(BOOT_WATCHDOG, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+		/* clear flag if reset by WDT trigger */
+		writel((cru_glbrst_st & ~GLB_WDTn_RST_ST), TOP_CRU_BASE + TOPCRU_CRU_GLBRST_ST);
+	}
+
 	u32 val;
 
 	/* Set the emmc to access ddr memory */
