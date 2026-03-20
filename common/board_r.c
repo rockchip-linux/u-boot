@@ -464,6 +464,8 @@ static int should_load_env(void)
 	return 1;
 }
 
+__weak void env_import_board(void) {}
+
 static int initr_env(void)
 {
 	/* initialize environment */
@@ -473,6 +475,7 @@ static int initr_env(void)
 		env_set_default(NULL, 0);
 
 	env_import_fdt();
+	env_import_board();
 
 	if (IS_ENABLED(CONFIG_OF_CONTROL))
 		env_set_hex("fdtcontroladdr",
