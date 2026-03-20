@@ -40,4 +40,11 @@ config TYPEC_PD_FUSB302
 	  Type-C Port Controller Manager to provide USB PD and USB
 	  Type-C functionalities.
 
+config TYPEC_PD_ROCKCHIP_PMIC
+	tristate "Rockchip PMIC Type-C Port Controller driver"
+	depends on DM_I2C && TYPEC_PD_TCPM
+	help
+	  The Rockchip PMIC Type-C Port Controller driver that works with
+	  Type-C Port Manager to provide USB PD and USB Type-C functionalities.
+
 endif # DM_POWER_DELIVERY
