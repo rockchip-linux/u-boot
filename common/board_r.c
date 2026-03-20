@@ -692,11 +692,11 @@ static init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_HOTKEY
 	hotkey_init,
 #endif
-#ifdef CONFIG_DM_KERNEL_DTB
-	initr_env,
-#endif
 #if defined(CONFIG_ARM) || defined(CONFIG_RISCV) || defined(CONFIG_SANDBOX)
 	board_init,	/* Setup chipselects */
+#endif
+#ifdef CONFIG_DM_KERNEL_DTB
+	initr_env,
 #endif
 	/*
 	 * TODO: printing of the clock inforamtion of the board is now
