@@ -25,8 +25,16 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+/* Don't use env_xxx() for boot device init */
 static struct blk_desc *g_bootdev;
 static char *g_devnum, *g_devtype;
+static int g_idevnum;
+
+void env_import_board(void)
+{
+	env_set("devtype", g_devtype);
+	env_set("devnum", g_devnum);
+}
 
 __weak int rk_board_scan_bootdev(char **devtype, char **devnum)
 {
@@ -117,8 +125,7 @@ static int bootdev_probe(void)
 finish:
 	g_devtype = (char *)devtype;
 	g_devnum = (char *)devnum;
-	env_set("devtype", devtype);
-	env_set("devnum", devnum);
+	g_idevnum = simple_strtoul(devnum, NULL, 10);
 
 	printf("Bootdev(%s): %s %s\n", src, g_devtype, g_devnum);
 
@@ -152,8 +159,8 @@ struct blk_desc *plat_bootdev(void)
 		return NULL;
 
 	/* devtype and devnum are available after bootdev_probe() */
-	devtype = env_get("devtype");
-	devnum = env_get_ulong("devnum", 10, -1);
+	devtype = g_devtype;
+	devnum = g_idevnum;
 	if (!devtype || devnum < 0)
 		return NULL;
 
