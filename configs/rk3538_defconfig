@@ -86,7 +86,6 @@ CONFIG_CMD_HASH=y
 CONFIG_OF_SPL_REMOVE_PROPS="clock-names interrupt-parent assigned-clocks assigned-clock-rates assigned-clock-parents"
 CONFIG_OF_DTB_PROPS_REMOVE=y
 CONFIG_OF_REMOVE_PROPS="interrupt-parent assigned-clocks assigned-clock-rates assigned-clock-parents"
-CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
 # CONFIG_SYS_RELOC_GD_ENV_ADDR is not set
 CONFIG_SARADC_ROCKCHIP_V2=y
 CONFIG_BUTTON=y
