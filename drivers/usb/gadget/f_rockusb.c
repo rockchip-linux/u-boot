@@ -654,6 +654,19 @@ static int rkusb_do_vs_write(struct fsg_common *common)
 							return -EIO;
 						}
 					}
+				} else if (memcmp(data, "EUDS", 4) == 0) {
+					uint32_t key_len = vhead->size - 9;
+					uint8_t key_type = *((uint8_t *)data + 8);
+					if (key_len != 32) {
+						printf("check dice uds size fail!\n");
+						curlun->sense_data = SS_WRITE_ERROR;
+						return -EIO;
+					}
+					if (optee_write_oem_dice_uds(key_type, (uint8_t *)(data + 9), key_len) != 0) {
+						printf("optee_write_oem_dice_uds error!");
+						curlun->sense_data = SS_WRITE_ERROR;
+						return -EIO;
+					}
 				} else {
 					printf("Unknown tag\n");
 					curlun->sense_data = SS_WRITE_ERROR;
