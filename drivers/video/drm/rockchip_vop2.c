@@ -6116,6 +6116,7 @@ static int rockchip_vop2_init(struct display_state *state)
 			 conn_state->type == DRM_MODE_CONNECTOR_eDP)
 			conn_state->output_mode = RK3588_EDP_OUTPUT_MODE_YUV422;
 		else if ((vop2->version == VOP_VERSION_RK3576 ||
+			  vop2->version == VOP_VERSION_RK3572 ||
 			  vop2->version == VOP_VERSION_RK3538) &&
 			 conn_state->type == DRM_MODE_CONNECTOR_HDMIA)
 			conn_state->output_mode = RK3576_HDMI_OUT_MODE_YUV422;
