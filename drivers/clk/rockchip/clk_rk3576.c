@@ -2540,6 +2540,16 @@ static int rk3576_clk_probe(struct udevice *dev)
 	struct rk3576_clk_priv *priv = dev_get_priv(dev);
 	int ret;
 
+#ifdef CONFIG_MOS_SECONDARY
+	priv->spll_hz = 702000000;
+	priv->cpll_hz = rockchip_pll_get_rate(&rk3576_pll_clks[CPLL], priv->cru, CPLL);
+	priv->gpll_hz = rockchip_pll_get_rate(&rk3576_pll_clks[GPLL], priv->cru, GPLL);
+	priv->grf = syscon_get_first_range(ROCKCHIP_SYSCON_GRF);
+	if (IS_ERR(priv->grf))
+		return PTR_ERR(priv->grf);
+	return 0;
+#endif
+
 	priv->sync_kernel = false;
 
 #ifdef CONFIG_SPL_BUILD
