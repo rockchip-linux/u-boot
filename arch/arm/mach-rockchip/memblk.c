@@ -55,6 +55,9 @@ const static struct memblk_attr plat_mem_attr[MEM_MAX] = {
 	MEM_DEFINE(RESOURCE, 	F_OFC),
 	MEM_DEFINE(SEARCH,	F_OFC | F_CACHELINE_ALIGN | F_NO_FAIL_DUMP |
 				F_KMEM_CAN_OVERLAP | F_HIGHEST_MEM),
+#ifdef CONFIG_MOS_SUPPORT
+	MEM_DEFINE_2(MOS,	F_NONE, "ramoops", "minidump"),
+#endif
 	/*
 	 * Workarund:
 	 *

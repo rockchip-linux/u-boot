@@ -58,6 +58,7 @@ endif
 obj-y += cpu.o
 obj-$(CONFIG_$(SPL_)FPGA_ROCKCHIP) += fpga.o
 obj-$(CONFIG_$(SPL_TPL_)RAM) += param.o
+obj-$(CONFIG_MOS_SUPPORT) += mos.o
 ifndef CONFIG_SUPPORT_USBPLUG
 obj-$(CONFIG_$(SPL_TPL_)RAM) += sdram.o
 endif
@@ -101,4 +102,3 @@ obj-$(CONFIG_ROCKCHIP_PRELOADER_ATAGS) += rk_atags.o
 obj-$(CONFIG_SET_DFU_ALT_INFO) += dfu_alt_info.o
 obj-$(CONFIG_PSTORE) += pstore.o
 obj-$(CONFIG_ROCKCHIP_MINIDUMP) += rk_mini_dump.o
-

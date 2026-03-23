@@ -49,10 +49,12 @@
 #include <asm/arch/clock.h>
 #include <asm/arch/cpu.h>
 #include <asm/arch/hotkey.h>
+#include <asm/arch/mos.h>
 #include <asm/arch/param.h>
 #include <asm/arch/periph.h>
 #include <asm/arch/resource_img.h>
 #include <asm/arch/rk_atags.h>
+#include <asm/arch/rockchip_smccc.h>
 #include <asm/arch/vendor.h>
 #ifdef CONFIG_ROCKCHIP_EBOOK_DISPLAY
 #include <rk_ebook.h>
@@ -245,6 +247,14 @@ static int rockchip_set_serialno(void)
 
 		serialno = crc32_no_comp(0, low, 8);
 		serialno |= (u64)crc32_no_comp(serialno, high, 8) << 32;
+
+#ifdef CONFIG_MOS_SECONDARY
+		/*
+		 * Problem: In the MOS system, adb devices shows the same serialno.
+		 * Solution: The SECONDARY OS serialno is distinguished by adding 1.
+		 */
+		serialno += 1;
+#endif
 		snprintf(serialno_str, sizeof(serialno_str), "%llx", serialno);
 
 		env_set("serial#", serialno_str);
@@ -548,6 +558,9 @@ int board_late_init(void)
 #ifdef CONFIG_AMP
 	amp_cpus_on();
 #endif
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_MOS_SECONDARY)
+	mos_secondary_boot();
+#endif
 	return rk_board_late_init();
 }
 
@@ -599,6 +612,9 @@ int board_init(void)
 #endif
 #ifdef CONFIG_OPTEE_CLIENT
 	optee_client_init();
+#endif
+#ifdef CONFIG_MOS_SECONDARY
+	mos_secondary_wfe();
 #endif
 #ifdef CONFIG_USING_KERNEL_DTB
 	init_kernel_dtb();
@@ -856,6 +872,7 @@ void board_lmb_reserve(struct lmb *lmb)
 #endif
 
 #ifdef CONFIG_BIDRAM
+#if !defined(CONFIG_MOS_SUPPORT)
 int board_bidram_reserve(struct bidram *bidram)
 {
 	struct memblock mem;
@@ -881,6 +898,7 @@ int board_bidram_reserve(struct bidram *bidram)
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_SYSMEM
 int board_sysmem_reserve(struct sysmem *sysmem)
@@ -911,7 +929,9 @@ int board_init_f_boot_flags(void)
 #else
 	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
 #endif
-
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_MOS_SECONDARY)
+	mos_set_boot_stage(MOS_BS_UBOOT_RUN);
+#endif
 #if CONFIG_IS_ENABLED(FPGA_ROCKCHIP)
 	arch_fpga_init();
 #endif
@@ -1202,7 +1222,14 @@ int fit_read_otp_rollback_index(uint32_t fit_index, uint32_t *otp_index)
 	u64 index;
 	int ret;
 
+  #if defined(CONFIG_MOS_SUPPORT) && defined(CONFIG_MOS_SECONDARY)
+	u32 index32;
+
+	ret = trusty_read_otp_rollback(&index32);
+	index = index32;
+  #else
 	ret = trusty_read_rollback_index(FIT_ROLLBACK_INDEX_LOCATION, &index);
+  #endif
 	if (ret) {
 		if (ret != TEE_ERROR_ITEM_NOT_FOUND)
 			return ret;
@@ -1224,8 +1251,12 @@ int fit_write_trusty_rollback_index(u32 trusty_index)
 	if (!trusty_index)
 		return 0;
 #ifdef CONFIG_OPTEE_CLIENT
+  #if defined(CONFIG_MOS_SUPPORT) && defined(CONFIG_MOS_SECONDARY)
+	return trusty_write_otp_rollback(trusty_index);
+  #else
 	return trusty_write_rollback_index(FIT_ROLLBACK_INDEX_LOCATION,
 					   (u64)trusty_index);
+  #endif
 #else
 	return 0;
 #endif
@@ -1275,6 +1306,9 @@ void board_quiesce_devices(void *images)
 
 	mdelay(1000);
 	do_reset(NULL, 0, 0, NULL);
+#endif
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_MOS_SECONDARY)
+	mos_set_boot_stage(MOS_BS_UBOOT_EXIT);
 #endif
 }
 
@@ -1615,4 +1649,3 @@ int ft_verify_fdt(void *fdt)
 #endif
 	return 1;
 }
-

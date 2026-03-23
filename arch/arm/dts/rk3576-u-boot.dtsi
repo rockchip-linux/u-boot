@@ -5,7 +5,9 @@
  */
 
 #include <dt-bindings/gpio/gpio.h>
-
+#if CONFIG_IS_ENABLED(DM_HWSPINLOCK)
+#include <dt-bindings/soc/rockchip,rk3576-mos-hwspinlock.h>
+#endif
 / {
 	aliases {
 		mmc0 = &sdhci;
@@ -21,7 +23,18 @@
 		u-boot,dm-spl;
 		compatible = "rockchip,rk3576-secure-otp";
 		reg = <0x0 0x2a480000 0x0 0x10000>;
+#if CONFIG_IS_ENABLED(DM_HWSPINLOCK)
+		hwlocks = <&hwlock HWSPINLOCK_LOCK_OTP>;
+#endif
 	};
+
+#ifdef CONFIG_SPL_RAMDISK
+	ramdisk {
+		u-boot,dm-spl;
+		compatible = "ramdisk";
+		status = "okay";
+	};
+#endif
 };
 
 &firmware {
@@ -243,3 +256,23 @@
 	u-boot,dm-spl;
 	status = "okay";
 };
+
+#if CONFIG_IS_ENABLED(DM_HWSPINLOCK)
+&hwlock {
+	u-boot,dm-spl;
+#ifndef CONFIG_MOS_SECONDARY
+#ifdef CONFIG_SPL_BUILD
+	rockchip,hwlock-user-id = <1>;
+#else
+	rockchip,hwlock-user-id = <4>;
+#endif
+#else
+#ifdef CONFIG_SPL_BUILD
+	rockchip,hwlock-user-id = <6>;
+#else
+	rockchip,hwlock-user-id = <9>;
+#endif /* CONFIG_SPL_BUILD */
+#endif /* CONFIG_MOS_SECONDARY */
+	status = "okay";
+};
+#endif

@@ -12,7 +12,9 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-#define SZ_4GB				0x100000000ULL
+#ifndef RAM_TOP
+#define RAM_TOP				0x100000000ULL	/* default 4GB */
+#endif
 
 #ifndef CONFIG_SPL_BUILD
 #define SDRAM_OFFSET(offset)		(CONFIG_SYS_SDRAM_BASE + (offset))
@@ -72,6 +74,7 @@ struct memblock param_parse_atf_mem(void)
 	if (t && t->u.atf_mem.size) {
 		mem.base = t->u.atf_mem.phy_addr;
 		mem.size = t->u.atf_mem.size;
+#ifndef CONFIG_MOS_SUPPORT
 		/* Sanity */
 		if (mem.base + mem.size > SDRAM_OFFSET(SZ_1M)) {
 			printf("%s: ATF reserved region is not within 0-1MB "
@@ -79,6 +82,7 @@ struct memblock param_parse_atf_mem(void)
 			       __func__, (u64)mem.base, (u64)mem.base + mem.size);
 			return mem;
 		}
+#endif
 	}
 #endif
 
@@ -235,7 +239,7 @@ int param_parse_atags_bootdev(char **devtype, char **devnum)
 			*devnum = "1";
 			break;
 #endif
-#ifdef CONFIG_DM_RAMDISK
+#if defined(CONFIG_DM_RAMDISK) || defined(CONFIG_RAMDISK)
 		case BOOT_TYPE_RAM:
 			*devtype = "ramdisk";
 			*devnum = "0";
@@ -321,14 +325,18 @@ struct memblock *param_parse_ddr_mem(int *out_count)
 			base = t->u.ddr_mem.bank[i];
 			size = t->u.ddr_mem.bank[i + count];
 
+#ifdef CONFIG_MOS_SECONDARY
+			mem[n].base = base;
+			mem[n].size = size;
+#else
 			/* 0~4GB */
-			if (base < SZ_4GB) {
+			if (base < RAM_TOP) {
 				mem[n].base = base;
 				mem[n].size = ddr_mem_get_usable_size(base, size);
-				if (base + size > SZ_4GB) {
+				if (base + size > RAM_TOP) {
 					n++;
-					mem[n].base_u64 = SZ_4GB;
-					mem[n].size_u64 = base + size - SZ_4GB;
+					mem[n].base_u64 = RAM_TOP;
+					mem[n].size_u64 = base + size - RAM_TOP;
 				}
 			} else {
 				/* 4GB+ */
@@ -336,6 +344,7 @@ struct memblock *param_parse_ddr_mem(int *out_count)
 				mem[n].size_u64 = size;
 			}
 
+#endif
 			assert(n < count + MEM_RESV_COUNT);
 		}
 

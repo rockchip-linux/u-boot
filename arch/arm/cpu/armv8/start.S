@@ -19,6 +19,16 @@
 
 .globl	_start
 _start:
+
+#ifdef CONFIG_MOS_SECONDARY
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_STACK)
+	ldr x0, =CONFIG_SPL_STACK
+#else
+	ldr x0, =CONFIG_SYS_INIT_SP_ADDR
+#endif
+	mov sp, x0
+#endif
+
 #ifdef CONFIG_ENABLE_ARM_SOC_BOOT0_HOOK
 /*
  * Various SoCs need something special and SoC-specific up front in
@@ -58,7 +68,9 @@ _bss_end_ofs:
 
 reset:
 	/* Allow the board to save important registers */
+#ifndef CONFIG_MOS_SECONDARY
 	b	save_boot_params
+#endif
 .globl	save_boot_params_ret
 save_boot_params_ret:
 
@@ -201,7 +213,7 @@ slave_cpu:
 #if CONFIG_IS_ENABLED(SMP)
 	mrs	x0, mpidr_el1
 	and x0, x0, #0xfff
-	cmp x0, #0
+	cmp x0, #(SMP_CPU0)
 	beq master_cpu
 
 #ifdef SMP_CPU1

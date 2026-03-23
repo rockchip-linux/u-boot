@@ -237,7 +237,6 @@ int android_image_get_kernel(const struct andr_img_hdr *hdr, int verify,
 	} else {
 		cmdline = (char *)hdr->total_cmdline;
 	}
-
 	/*
 	 * Not all Android tools use the id field for signing the image with
 	 * sha1 (or anything) so we don't check it. It is not obvious that the

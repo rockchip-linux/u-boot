@@ -296,7 +296,7 @@ function gen_mcu_node()
 				algo = \"sha256\";
 			};
 		};"
-	STANDALONE_MCU="standalone = \"init0\"${STANDALONE_LIST};"
+	STANDALONE_MCU="standalone = \"init0\",${STANDALONE_LIST};"
 }
 
 function gen_loadable_node()
@@ -454,4 +454,3 @@ echo "	};
 };
 "
 }
-

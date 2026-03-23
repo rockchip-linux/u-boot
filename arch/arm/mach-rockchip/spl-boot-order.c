@@ -10,7 +10,7 @@
 #include <nand.h>
 #include <spl.h>
 
-#ifdef CONFIG_SPL_RAM_DEVICE
+#if defined(CONFIG_SPL_RAM_DEVICE) || defined(CONFIG_SPL_RAMDISK)
 void board_boot_order(u32 *spl_boot_list)
 {
 	spl_boot_list[0] = BOOT_DEVICE_RAM;
@@ -142,6 +142,23 @@ __weak const char *board_spl_was_booted_from(void)
 	return NULL;
 }
 
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_MOS_BOOTDEV_SHARED)
+void board_boot_order(u32 *spl_boot_list)
+{
+	const void *blob = gd->fdt_blob;
+	int node, boot_device;
+
+	node = fdt_path_offset(blob, CONFIG_MOS_BOOTDEV_NAME);
+	if (node < 0)
+		panic("Can't find CONFIG_MOS_BOOTDEV_NAME fdt node!");
+
+	boot_device = spl_node_to_boot_device(node);
+	if (boot_device < 0)
+		panic("Can't find CONFIG_MOS_BOOTDEV_NAME dm device!");
+
+	spl_boot_list[0] = boot_device;
+}
+#else
 void board_boot_order(u32 *spl_boot_list)
 {
 	const void *blob = gd->fdt_blob;
@@ -199,5 +216,6 @@ void board_boot_order(u32 *spl_boot_list)
 	if (idx == 0)
 		spl_boot_list[0] = spl_boot_device();
 }
+#endif
 #endif
 #endif

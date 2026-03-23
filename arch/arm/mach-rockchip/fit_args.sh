@@ -101,9 +101,12 @@ else
 				;;
 			-t)
 				TEE_LOAD_ADDR=$2
-				# Compatible leagcy: Offset
-				if ((TEE_LOAD_ADDR < DRAM_BASE));  then
-					TEE_LOAD_ADDR="0x"$(echo "obase=16;$((DRAM_BASE+$2))"|bc)
+
+				if ! grep -q '^CONFIG_MOS_SUPPORT=y' .config ; then
+					# Compatible leagcy: Offset
+					if ((TEE_LOAD_ADDR < DRAM_BASE));  then
+						TEE_LOAD_ADDR="0x"$(echo "obase=16;$((DRAM_BASE+$2))"|bc)
+					fi
 				fi
 				shift 2
 				;;

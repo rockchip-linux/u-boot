@@ -31,6 +31,7 @@
 #define SIP_AMP_CFG			0x82000022
 #define SIP_HDCP_CONFIG			0x82000025
 #define SIP_MCU_CFG			0x82000028
+#define SIP_MOS_CFG			0x8200002A
 
 #define ROCKCHIP_SIP_CONFIG_DRAM_INIT		0x00
 #define ROCKCHIP_SIP_CONFIG_DRAM_SET_RATE	0x01
@@ -115,6 +116,25 @@ typedef enum {
 	HDCP_FUNC_KEY_LOAD,
 	HDCP_FUNC_ENCRYPT_MODE
 } sip_hdcp_func_t;
+
+/* SIP_MOS_CFG child configs for mos status */
+enum {
+        MOS_CFG_BOOT = 0,
+        MOS_CFG_GET_CPU_ST,
+        MOS_CFG_GET_OS_ST,
+        MOS_CFG_SET_MOS_ON_ST,
+        MOS_CFG_REBOOT_MOND_OS,
+        MOS_CFG_OS_NOTIFY_DIS,
+        MOS_CFG_OS_NOTIFY_SYNC,
+        MOS_CFG_BOOT_STAGE,
+};
+
+/* MOS_CFG_BOOT_STAGE, 0x4d4f53 stand for "MOS" */
+#define MOS_BS_UBOOT_UNINIT		0
+#define MOS_BS_UBOOT_RUN		1
+#define MOS_BS_UBOOT_DOWNLOAD		2
+#define MOS_BS_UBOOT_EXIT		3
+#define MOS_BS_UBOOT_END		4
 
 /*
  * sip_smc_set_suspend_mode() - Set U-Boot system suspend state before trap to trust.
@@ -209,6 +229,17 @@ int sip_smc_hdcp_config(unsigned long func,
  * @return  0 on success, otherwise failed.
  */
 int sip_smc_mcu_config(unsigned long mcu_id, unsigned long func, unsigned long arg2);
+
+/*
+ * sip_smc_mos_cfg() - Multiple OS config
+ *
+ * @func:	function id
+ * @arg0:	argument0
+ * @arg1:	argument1
+ *
+ * @return 0 on success, otherwise failed.
+ */
+int sip_smc_mos_cfg(unsigned long func, unsigned long arg0, unsigned long arg1);
 
 /*
  * psci_cpu_on() - Standard ARM PSCI cpu on call.

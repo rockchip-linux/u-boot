@@ -216,20 +216,67 @@ done:
 	}
 }
 
+#ifdef CONFIG_MOS_SECONDARY
+int bidram_fixup(void)
+{
+	struct bidram *bidram = &plat_bidram;
+	int i, idx = 0;
+	u64 start[CONFIG_NR_DRAM_BANKS];
+	u64 size[CONFIG_NR_DRAM_BANKS];
+
+	bidram->fixup = true;
+	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
+		start[i] = gd->bd->bi_dram[i].start;
+		size[i] = gd->bd->bi_dram[i].size;
+
+		gd->bd->bi_dram[i].start = 0;
+		gd->bd->bi_dram[i].size  = 0;
+	}
+
+	for (i = 0; i < MEM_RESV_COUNT; i++) {
+		if (!bidram->size_u64[i])
+			continue;
+
+#ifdef CONFIG_MOS_BOOTDEV_SHARED
+		if (bidram->base_u64[i] ==
+			(MOS_LOWLEVEL_FW_BASE + MOS_LOWLEVEL_FW_SIZE))
+			continue;
+#endif
+		gd->bd->bi_dram[idx].start = bidram->base_u64[i];
+		gd->bd->bi_dram[idx].size  = bidram->size_u64[i];
+		idx++;
+	}
+
+	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
+		if (!size[i])
+			continue;
+		gd->bd->bi_dram[idx].start = start[i];
+		gd->bd->bi_dram[idx].size  = size[i];
+		idx++;
+	}
+
+#ifdef DEBUG
+	bidram_dump();
+#endif
+
+	return 0;
+}
+
+#else
 int bidram_fixup(void)
 {
 	struct bidram *bidram = &plat_bidram;
 
 	bidram->fixup = true;
 	bidram_gen_gd_bi_dram();
-
 	board_bidram_fixup();
-
 	return 0;
 }
+#endif
 
 u64 bidram_append_size(void)
 {
+#ifndef CONFIG_MOS_SECONDARY
 	struct bidram *bidram = &plat_bidram;
 	u64 size = 0;
 	int i;
@@ -244,6 +291,9 @@ u64 bidram_append_size(void)
 	size += board_bidram_append_size();
 
 	return size;
+#else
+	return 0;
+#endif
 }
 
 static int bidram_is_overlap(phys_addr_t base1, phys_size_t size1,
@@ -402,6 +452,91 @@ int bidram_initr(void)
 	return !bidram_get_ram_size();
 }
 
+#ifdef CONFIG_MOS_SECONDARY
+phys_size_t bidram_get_ram_size(void)
+{
+	struct bidram *bidram = &plat_bidram;
+	struct memblock *list;
+	phys_size_t ram_addr_end = CONFIG_SYS_SDRAM_BASE;
+	phys_size_t ram_addr_base = CONFIG_SYS_SDRAM_BASE;
+	parse_fn_t parse_fn;
+	int i, n = 0, count, ret;
+	phys_addr_t base;
+	phys_size_t size;
+
+	parse_fn = board_bidram_parse_fn();
+	if (!parse_fn) {
+		BIDRAM_E("Can't find dram parse fn\n");
+		return 0;
+	}
+
+	list = parse_fn(&count);
+	if (!list) {
+		BIDRAM_E("Can't get dram banks\n");
+		return 0;
+	}
+
+	if (count > CONFIG_NR_DRAM_BANKS) {
+		BIDRAM_E("Too many dram banks, %d is over max: %d\n",
+			 count, CONFIG_NR_DRAM_BANKS);
+		return 0;
+	}
+
+	/* Initial plat_bidram */
+	lmb_init(&bidram->lmb);
+	INIT_LIST_HEAD(&bidram->reserved_head);
+	bidram->has_init = true;
+
+	for (i = 0; i < count; i++) {
+		base = list[i].base;
+		size = list[i].size;
+
+		BIDRAM_D("Add bank[%d] start=0x%08lx, end=0x%08lx\n",
+			 i, (ulong)base, (ulong)base + (ulong)size);
+
+		/* We assume the last block gives the ram addr base and end */
+		ram_addr_base = base;
+		ram_addr_end = base + size;
+
+		if (count == 1) {
+			if (base < CONFIG_SYS_SDRAM_BASE) {
+				bidram->base_u64[n] = base;
+				bidram->size_u64[n] = CONFIG_SYS_SDRAM_BASE - base;
+				n++;
+
+				size = (base + size) - CONFIG_SYS_SDRAM_BASE;
+				base = CONFIG_SYS_SDRAM_BASE;
+			}
+		/* Low addr */
+		} else if (base + size < CONFIG_SYS_SDRAM_BASE) {
+			bidram->base_u64[n] = base;
+			bidram->size_u64[n] = size;
+			n++;
+			continue;
+		}
+
+		ret = bidram_add(base, size);
+		if (ret) {
+			BIDRAM_E("Failed to add bidram from bi_dram[%d]\n", i);
+			return 0;
+		}
+	}
+
+	/* Reserved for board */
+	ret = board_bidram_reserve(bidram);
+	if (ret) {
+		BIDRAM_E("Failed to reserve bidram for board\n");
+		return 0;
+	}
+
+#ifdef DEBUG
+	bidram_dump();
+#endif
+
+	return (ram_addr_end - ram_addr_base);
+}
+
+#else
 phys_size_t bidram_get_ram_size(void)
 {
 	struct bidram *bidram = &plat_bidram;
@@ -503,8 +638,8 @@ phys_size_t bidram_get_ram_size(void)
 		return 0;
 	}
 
-	BIDRAM_D("DRAM size: 0x%08lx\n",
-		 (ulong)ram_addr_end - CONFIG_SYS_SDRAM_BASE);
+	BIDRAM_D("DRAM size: 0x%08lx, end: 0x%08lx\n",
+		 (ulong)ram_addr_end - CONFIG_SYS_SDRAM_BASE, (ulong)ram_addr_end);
 
 #ifdef DEBUG
 	bidram_dump();
@@ -512,6 +647,7 @@ phys_size_t bidram_get_ram_size(void)
 
 	return (ram_addr_end - CONFIG_SYS_SDRAM_BASE);
 }
+#endif
 
 __weak parse_fn_t board_bidram_parse_fn(void)
 {

@@ -14,8 +14,9 @@
 #include <dm/lists.h>
 #include <dm/root.h>
 #include <linux/err.h>
-
 #ifdef CONFIG_ARCH_ROCKCHIP
+#include <asm/arch/mos.h>
+
 __weak void reset_misc(void)
 {
 }
@@ -103,8 +104,10 @@ int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 #ifdef CONFIG_ARCH_ROCKCHIP
 	reset_misc();
+#ifdef CONFIG_MOS_SUPPORT
+	mos_system_reset();
 #endif
-
+#endif
 	if (argc > 1)
 		reboot(argv[1]);
 	else

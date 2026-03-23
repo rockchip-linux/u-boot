@@ -31,6 +31,7 @@
 #include <asm/arch/param.h>
 #include <asm/arch/rk_hwid.h>
 #include <asm/arch/rk_meta.h>
+#include <asm/arch/mos.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -283,6 +284,9 @@ int board_init_f_boot_flags(void)
 	asm volatile("mrs %0, cntfrq_el0" : "=r" (gd->arch.timer_rate_hz));
 #else
 	asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (gd->arch.timer_rate_hz));
+#endif
+#ifdef CONFIG_MOS_SUPPORT
+	mos_spl_init();
 #endif
 
 #if CONFIG_IS_ENABLED(FPGA_ROCKCHIP)
@@ -620,6 +624,9 @@ void spl_perform_fixups(struct spl_image_info *spl_image)
   #ifdef BUILD_SPL_TAG
 	atags_set_shared_fwver(FW_SPL, "spl-"BUILD_SPL_TAG);
   #endif
+#endif
+#ifdef CONFIG_MOS_SUPPORT
+	mos_spl_late_init();
 #endif
 #if defined(CONFIG_SPL_KERNEL_BOOT)
 	if (spl_image->next_stage == SPL_NEXT_STAGE_KERNEL)

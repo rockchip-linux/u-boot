@@ -50,6 +50,7 @@ struct rockchip_image {
 #define TAG_KERNEL			0x4C4E524B
 #define BCB_MESSAGE_BLK_OFFSET		(16 * 1024 >> 9)
 
+#define PART_SECURITY			"security"
 #define PART_UBOOT			"uboot"
 #define PART_TRUST			"trust"
 #define PART_MISC			"misc"

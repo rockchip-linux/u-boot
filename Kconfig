@@ -510,6 +510,51 @@ config ARCH_FIXUP_FDT_MEMORY
 	  used for booting OS with different memory setup where the part of
 	  the memory location should be used for different purpose.
 
+config MOS_SUPPORT
+	bool "Enable Multiple OS support"
+	default n
+
+if MOS_SUPPORT
+config MOS_SECONDARY
+	bool "This is the secondary os of Multiple-OS"
+	# Secondary use ramdisk only
+	select SPL_RAMDISK if MOS_BOOTDEV_SHARED
+	select RAMDISK if MOS_BOOTDEV_SHARED
+
+config MOS_SECONDARY_LOW_ADDR
+	bool "Secondary OS support low memory addr"
+	default n
+
+config MOS_SECONDARY_SPL_BACKUP_ADDR
+	hex "The backup image address of secondary spl"
+	depends on MOS_SECONDARY
+	default 0x41840000
+
+config MOS_BOOTDEV_SHARED
+	bool "The boot device are shared between Multiple-OS"
+	# Primary use virtual bootdev + disk
+	select VIRTUAL_DISK if !MOS_SECONDARY
+
+config MOS_BOOTDEV_SHARED_ADDR
+	hex "The shared block load address of Multiple-OS"
+	depends on MOS_BOOTDEV_SHARED
+	default 0x42b00000
+
+config MOS_BOOTDEV_SHARED_ARGS_SIZE
+	hex "The bytes of shared args of Multiple-OS"
+	depends on MOS_BOOTDEV_SHARED
+	default 0x00018000
+
+config MOS_BOOTDEV_NAME
+	string "The boot device name of this OS"
+	depends on !MOS_BOOTDEV_SHARED
+	default ""
+
+config MOS_SYSCFG_ADDR
+	hex "The system cfg load address of Multiple-OS"
+	default 0x41400000
+endif
+
 endmenu		# Boot images
 
 source "api/Kconfig"

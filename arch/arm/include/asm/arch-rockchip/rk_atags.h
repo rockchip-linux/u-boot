@@ -22,6 +22,7 @@
 #define ATAG_BOOT1_PARAM	0x54410058
 #define ATAG_PSTORE		0x54410059
 #define ATAG_FWVER		0x5441005a
+#define ATAG_CONSOLE		0x5441005b
 #define ATAG_MAX		0x544100ff
 
 /* Tag size and offset */
@@ -33,7 +34,11 @@
 #endif
 
 /* Tag sdram position!! */
+#ifdef PLAT_ATAGS_PHYS_BASE
+#define ATAGS_PHYS_BASE		PLAT_ATAGS_PHYS_BASE
+#else
 #define ATAGS_PHYS_BASE		(CONFIG_SYS_SDRAM_BASE + ATAGS_OFFSET)
+#endif
 
 #ifndef ATAGS_PHYS_BASE
 "ERROR: ATAGS_PHYS_BASE is not defined!!"
@@ -84,6 +89,13 @@
 
 /* tag_fwver.ver[fwid][] */
 #define FWVER_LEN		36
+
+/* tag_console */
+#define OWNER_INVALID		0
+#define OWNER_LOADER1		1
+#define OWNER_SCP		2
+#define OWNER_SAFETY		3
+#define MAX_CONSOLE		6
 
 enum fwid {
 	FW_DDR,
@@ -207,6 +219,20 @@ struct tag_fwver {
 	u32 hash;
 } __packed;
 
+struct console {
+	u8 owner;
+	u8 uart_id;
+	u8 uart_m_mode;
+	u32 uart_base;
+	u32 uart_baudrate;
+};
+
+struct tag_console {
+	u32 version;
+	struct console hw[MAX_CONSOLE];
+	u32 hash;
+} __packed;
+
 struct tag_core {
 	u32 flags;
 	u32 pagesize;
@@ -234,6 +260,7 @@ struct tag {
 		struct tag_boot1p	boot1p;
 		struct tag_pstore	pstore;
 		struct tag_fwver	fwver;
+		struct tag_console	console;
 	} u;
 } __aligned(4);
 

@@ -15,6 +15,8 @@
 #include <usb.h>
 #include <usb_mass_storage.h>
 #include <rockusb.h>
+#include <asm/arch/mos.h>
+#include <asm/arch/rockchip_smccc.h>
 
 static struct rockusb rkusb;
 static struct rockusb *g_rkusb;
@@ -237,6 +239,10 @@ static int do_rkusb(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	rc = rkusb_init(devtype, devnum);
 	if (rc < 0)
 		return CMD_RET_FAILURE;
+
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_MOS_SECONDARY)
+	mos_set_boot_stage(MOS_BS_UBOOT_DOWNLOAD);
+#endif
 
 	if (g_rkusb->ums[0].block_dev.if_type == IF_TYPE_MTD &&
 	    g_rkusb->ums[0].block_dev.devnum == BLK_MTD_NAND) {

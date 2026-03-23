@@ -35,6 +35,7 @@ enum memblk_id {
 	MEM_FIT,
 	MEM_UIMAGE_USER,
 	MEM_UIMAGE,
+	MEM_MOS,
 
 	/* Other */
 	MEM_SEARCH,

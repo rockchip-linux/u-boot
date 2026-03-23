@@ -1020,6 +1020,10 @@ static int rkusb_do_get_storage_info(struct fsg_common *common,
 
 	case IF_TYPE_SCSI:
 		media = BOOT_TYPE_SATA;
+#if defined(CONFIG_UFS)
+		if (ums[common->lun].block_dev.rawblksz == 4096)
+			media = BOOT_TYPE_UFS;
+#endif
 		break;
 
 	case IF_TYPE_RKNAND:

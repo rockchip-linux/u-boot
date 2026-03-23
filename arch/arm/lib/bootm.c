@@ -34,6 +34,7 @@
 #include <asm/armv7.h>
 #endif
 #include <asm/setup.h>
+#include <asm/arch/mos.h>
 #include <asm/arch/rockchip_smccc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -107,6 +108,9 @@ static void announce_and_cleanup(bootm_headers_t *images, int fake)
 	 */
 	dm_remove_devices_flags(DM_REMOVE_ACTIVE_ALL);
 
+#if !defined(CONFIG_MOS_SECONDARY) && defined(CONFIG_MOS_BOOTDEV_SHARED)
+	mos_secondary_late_boot();
+#endif
 	cleanup_before_linux();
 
 #ifdef CONFIG_MP_BOOT

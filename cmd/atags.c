@@ -12,7 +12,7 @@
 
 static void atags_stat(void)
 {
-	u32 start = ATAGS_PHYS_BASE, end = ATAGS_PHYS_BASE + ATAGS_SIZE;
+	ulong start = ATAGS_PHYS_BASE, end = ATAGS_PHYS_BASE + ATAGS_SIZE;
 	u32 in_use = 0, in_available = 0;
 	struct tag *t;
 
@@ -32,7 +32,7 @@ static void atags_stat(void)
 	in_available = ATAGS_SIZE - in_use;
 
 	printf("ATAGS state:\n");
-	printf("              addr = 0x%08x ~ 0x%08x\n", start, end);
+	printf("              addr = 0x%08lx ~ 0x%08lx\n", start, end);
 	printf("        Total size = 0x%08x\n", ATAGS_SIZE);
 	printf("       in use size = 0x%08x\n", in_use);
 	printf("    available size = 0x%08x\n", in_available);
@@ -186,6 +186,20 @@ static void atags_print_tag(struct tag *t)
 		printf("   version = 0x%x\n", t->u.fwver.version);
 		for (i = 0; i < FW_MAX; i++)
 			printf("    ver[%d] = %s\n", i, t->u.fwver.ver[i]);
+		break;
+	case ATAG_CONSOLE:
+		printf("[console]:\n");
+		printf("         magic = 0x%x\n", t->hdr.magic);
+		printf("          size = 0x%x\n\n", t->hdr.size << 2);
+		for (i = 0; i < MAX_CONSOLE; i++) {
+			if (t->u.console.hw[i].owner == OWNER_INVALID)
+				break;
+			printf("         owner = 0x%x\n", t->u.console.hw[i].owner);
+			printf("       uart_id = 0x%x\n", t->u.console.hw[i].uart_id);
+			printf("   uart_m_mode = 0x%x\n", t->u.console.hw[i].uart_m_mode);
+			printf("     uart_base = 0x%x\n", t->u.console.hw[i].uart_base);
+			printf(" uart_baudrate = %d\n\n", t->u.console.hw[i].uart_baudrate);
+		}
 		break;
 	default:
 		printf("%s: magic(%x) is not support\n", __func__, t->hdr.magic);

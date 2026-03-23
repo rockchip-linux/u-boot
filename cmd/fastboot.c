@@ -14,6 +14,8 @@
 #include <net.h>
 #include <usb.h>
 #include <sysmem.h>
+#include <asm/arch/mos.h>
+#include <asm/arch/rockchip_smccc.h>
 
 static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
@@ -73,6 +75,9 @@ static int do_fastboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	}
 	sysmem_free(CONFIG_FASTBOOT_BUF_ADDR);
 
+#if defined(CONFIG_MOS_SUPPORT) && !defined(CONFIG_MOS_SECONDARY)
+	mos_set_boot_stage(MOS_BS_UBOOT_DOWNLOAD);
+#endif
 	printf("OK\n");
 
 	while (1) {

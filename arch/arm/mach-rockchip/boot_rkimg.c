@@ -32,6 +32,7 @@
 #include <asm/arch/param.h>
 #include <asm/arch/resource_img.h>
 #include <asm/arch/uimage.h>
+#include <asm/arch/mos.h>
 #include <dm/ofnode.h>
 #include <linux/list.h>
 #include <u-boot/sha1.h>
@@ -548,7 +549,9 @@ int rockchip_read_dtb_file(void *fdt)
 #if defined(CONFIG_ANDROID_BOOT_IMAGE) && defined(CONFIG_OF_LIBFDT_OVERLAY)
 	android_fdt_overlay_apply((void *)fdt);
 #endif
-
+#ifdef CONFIG_MOS_SUPPORT
+	mos_fdt_overlay((void *)fdt);
+#endif
 	return 0;
 }
 #endif

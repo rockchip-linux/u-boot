@@ -1,0 +1,198 @@
+/* SPDX-License-Identifier:     GPL-2.0+ */
+/*
+ * (C) Copyright 2023 Rockchip Electronics Co., Ltd
+ *
+ */
+
+#ifndef __CONFIG_RK3576_COMMON_MOS_H
+#define __CONFIG_RK3576_COMMON_MOS_H
+
+#define CFG_CPUID_OFFSET                0xa
+
+#include "rockchip-common.h"
+
+#define CONFIG_SPL_FRAMEWORK
+#define SECONDARY_ATAGS_BASE		0x42afe000
+
+#ifdef CONFIG_MOS_SUPPORT
+#define CONFIG_SYS_MMC_MAX_BLK_COUNT    0x7FFFF /* MAX 256MB-512B */
+
+#define MOS_LOWLEVEL_FW_BASE		0x40000000
+#define MOS_LOWLEVEL_FW_SIZE		0x02b00000
+
+#if CONFIG_IS_ENABLED(SMP)
+#define SMP_CPU0			0x0
+#define SMP_CPU1			0x1
+#define SMP_CPU2			0x2
+#define SMP_CPU3			0x3
+#define SMP_CORE_ADDR			0x52b80000
+#define SMP_CPU1_STACK			0x52b80000
+#define SMP_CPU2_STACK			0x52b70000
+#define SMP_CPU3_STACK			0x52b60000
+#endif
+
+#ifdef CONFIG_MOS_SECONDARY
+/* OS1 */
+#define PLAT_ATAGS_PHYS_BASE		SECONDARY_ATAGS_BASE
+#ifdef CONFIG_MOS_SECONDARY_LOW_ADDR
+#define CONFIG_SYS_SDRAM_BASE		0x0c0000000
+#define CONFIG_SYS_TEXT_BASE		0x0c0500000
+#define CONFIG_SYS_INIT_SP_ADDR		0x0c0700000
+#define CONFIG_SYS_LOAD_ADDR		0x0c0a00800
+#else
+#define CONFIG_SYS_SDRAM_BASE		0x140000000
+#define CONFIG_SYS_TEXT_BASE		0x140500000
+#define CONFIG_SYS_INIT_SP_ADDR		0x140700000
+#define CONFIG_SYS_LOAD_ADDR		0x140a00800
+#endif
+#define CONFIG_SPL_TEXT_BASE		0x41800000
+#define SDRAM_MAX_SIZE			0x40000000UL	/* 1GB */
+#define RAM_TOP				(CONFIG_SYS_SDRAM_BASE + SDRAM_MAX_SIZE)
+
+#define CONFIG_SPL_MAX_SIZE		0x00040000
+#ifdef CONFIG_MOS_SECONDARY_LOW_ADDR
+#define CONFIG_SPL_BSS_START_ADDR	0x0c0000000
+#define CONFIG_SPL_BSS_MAX_SIZE		0x00010000
+#define CONFIG_SPL_STACK		0x0c3fe0000
+#else
+#define CONFIG_SPL_BSS_START_ADDR	0x140000000
+#define CONFIG_SPL_BSS_MAX_SIZE		0x00010000
+#define CONFIG_SPL_STACK		0x143fe0000
+#endif
+#else
+/* OS0 */
+#define PLAT_ATAGS_PHYS_BASE		0x413fe000
+#define CONFIG_SYS_SDRAM_BASE		0x40000000
+#define CONFIG_SYS_TEXT_BASE		0x52c00000
+#define CONFIG_SYS_INIT_SP_ADDR		0x53000000
+#define CONFIG_SYS_LOAD_ADDR		0x53400800
+#define CONFIG_SPL_TEXT_BASE		0x40000000
+#define SDRAM_MAX_SIZE			0x40000000UL	/* 1GB */
+#define RAM_TOP				(CONFIG_SYS_SDRAM_BASE + SDRAM_MAX_SIZE)
+
+#define CONFIG_SPL_MAX_SIZE		0x00040000
+#define CONFIG_SPL_BSS_START_ADDR	0x43fe0000
+#define CONFIG_SPL_BSS_MAX_SIZE		0x00010000
+#define CONFIG_SPL_STACK		0x43fe0000
+#endif
+#else
+#define CONFIG_SYS_SDRAM_BASE		0x40000000
+#define CONFIG_SYS_TEXT_BASE		0x40200000
+#define CONFIG_SYS_INIT_SP_ADDR		0x40400000
+#define CONFIG_SYS_LOAD_ADDR		0x40700800
+#define CONFIG_SPL_TEXT_BASE		0x40000000
+#define SDRAM_MAX_SIZE			(0x100000000 - CONFIG_SYS_SDRAM_BASE)	/* max 4G */
+
+#define CONFIG_SPL_MAX_SIZE		0x00040000
+#define CONFIG_SPL_BSS_START_ADDR	0x43fe0000
+#define CONFIG_SPL_BSS_MAX_SIZE		0x00010000
+#define CONFIG_SPL_STACK		0x43fe0000
+#endif
+
+#define CONFIG_SPL_CHECK_SIZE
+
+#ifdef CONFIG_SPL_LOAD_FIT_ADDRESS
+#undef CONFIG_SPL_LOAD_FIT_ADDRESS
+#endif
+#define CONFIG_SPL_LOAD_FIT_ADDRESS	0x42000000
+
+#define CONFIG_SYS_MALLOC_LEN		(32 << 20)
+#define CONFIG_SYS_CBSIZE		1024
+
+#ifdef CONFIG_SUPPORT_USBPLUG
+#undef CONFIG_SYS_TEXT_BASE
+#define CONFIG_SYS_TEXT_BASE		0x40000000
+#endif
+
+#define CONFIG_SYS_BOOTM_LEN		(64 << 20)	/* 64M */
+#undef COUNTER_FREQUENCY
+
+#define GICD_BASE			0x2a701000
+#define GICC_BASE			0x2a702000
+
+/* secure otp */
+#define OTP_UBOOT_ROLLBACK_OFFSET	0x610
+#define OTP_UBOOT_ROLLBACK_WORDS	2	/* 64 bits, 2 words */
+#define OTP_ALL_ONES_NUM_BITS		32
+#define OTP_SECURE_BOOT_ENABLE_ADDR	0x20
+#define OTP_SECURE_BOOT_ENABLE_SIZE	1
+#define OTP_RSA4096_ENABLE_ADDR		0x21
+#define OTP_RSA4096_ENABLE_SIZE		1
+#define OTP_RSA_HASH_ADDR		0x200
+#define OTP_RSA_HASH_SIZE		32
+
+#define CONFIG_BOUNCE_BUFFER
+#define CONFIG_SYS_NONCACHED_MEMORY	(1 << 20)	/* 1M */
+
+/* env used only in U-Boot */
+#ifndef CONFIG_SPL_BUILD
+/* usb mass storage */
+#define CONFIG_USB_FUNCTION_MASS_STORAGE
+#define CONFIG_ROCKUSB_G_DNL_PID	0x350e
+
+/*
+ * DDR layout mainly follow rk3588 Soc
+ */
+#ifdef CONFIG_MOS_SUPPORT
+#ifdef CONFIG_MOS_SECONDARY
+/* OS1 */
+#ifdef CONFIG_MOS_SECONDARY_LOW_ADDR
+#define ENV_MEM_LAYOUT_SETTINGS \
+	"scriptaddr=0x0c0500000\0" \
+	"pxefile_addr_r=0x0c0600000\0" \
+	"fdt_addr_r=0x0c8300000\0" \
+	"kernel_addr_r=0x0c0600000\0" \
+	"kernel_addr_c=0x0c5480000\0" \
+	"ramdisk_addr_r=0x0ca200000\0"
+#else
+#define ENV_MEM_LAYOUT_SETTINGS \
+	"scriptaddr=0x140500000\0" \
+	"pxefile_addr_r=0x140600000\0" \
+	"fdt_addr_r=0x148300000\0" \
+	"kernel_addr_r=0x140600000\0" \
+	"kernel_addr_c=0x145480000\0" \
+	"ramdisk_addr_r=0x14a200000\0"
+#endif
+#else
+/*
+ * OS0
+ *
+ * [0x42b00000 - 0x52b00000]: OS1(NS) SBD Image Ram-As-Disk, Max 256M.
+ * [0x52b00000 - 0x........]: OS0.
+ */
+#define ENV_MEM_LAYOUT_SETTINGS \
+	"scriptaddr=0x40600000\0" \
+	"pxefile_addr_r=0x40700000\0" \
+	"fdt_addr_r=0x57c00000\0" \
+	"kernel_addr_r=0x52c00000\0" \
+	"kernel_addr_c=0x55c00000\0" \
+	"ramdisk_addr_r=0x57d00000\0"
+#endif
+#else
+#define ENV_MEM_LAYOUT_SETTINGS \
+	"scriptaddr=0x40600000\0" \
+	"pxefile_addr_r=0x40700000\0" \
+	"fdt_addr_r=0x48300000\0" \
+	"kernel_addr_r=0x40600000\0" \
+	"kernel_addr_c=0x45480000\0" \
+	"ramdisk_addr_r=0x4a200000\0"
+#endif
+
+#include <config_distro_bootcmd.h>
+
+#define CONFIG_EXTRA_ENV_SETTINGS \
+	ENV_MEM_LAYOUT_SETTINGS \
+	"partitions=" PARTS_RKIMG \
+	ROCKCHIP_DEVICE_SETTINGS \
+	RKIMG_DET_BOOTDEV \
+	BOOTENV
+#endif /* !CONFIG_SPL_BUILD */
+
+/* rockchip ohci host driver */
+#define CONFIG_USB_OHCI_NEW
+#define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	1
+
+#define CONFIG_PREBOOT
+#define CONFIG_LIB_HW_RAND
+
+#endif /* __CONFIG_RK3576_COMMON_MOS_H */
