@@ -8,6 +8,8 @@
 #include <config.h>
 #include <common.h>
 #include <errno.h>
+#include <generic-phy.h>
+#include <phy-mipi-dphy.h>
 #include <dm.h>
 #include <dm/device_compat.h>
 #include <div64.h>
@@ -19,8 +21,6 @@
 #include <reset.h>
 #include <regmap.h>
 #include <syscon.h>
-
-#include "rockchip_phy.h"
 
 #define MSEC_PER_SEC	1000L
 #define USEC_PER_SEC	1000000LL
@@ -1620,7 +1620,7 @@ static void samsung_mipi_cphy_lane_disable(struct samsung_mipi_dcphy *samsung)
 	phy_update_bits(samsung, COMBO_MD2_GNR_CON0, PHY_ENABLE, 0);
 }
 
-static int samsung_mipi_dcphy_power_on(struct rockchip_phy *phy)
+static int samsung_mipi_dcphy_power_on(struct phy *phy)
 {
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
 
@@ -1632,7 +1632,7 @@ static int samsung_mipi_dcphy_power_on(struct rockchip_phy *phy)
 	return 0;
 }
 
-static int samsung_mipi_dcphy_power_off(struct rockchip_phy *phy)
+static int samsung_mipi_dcphy_power_off(struct phy *phy)
 {
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
 
@@ -1818,10 +1818,10 @@ samsung_mipi_dcphy_pll_round_rate(struct samsung_mipi_dcphy *samsung,
 	return best_freq >> best_scaler;
 }
 
-static unsigned long samsung_mipi_dcphy_set_pll(struct rockchip_phy *phy,
-						unsigned long rate)
+static int samsung_mipi_dcphy_configure(struct phy *phy, void *params)
 {
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
+	struct phy_configure_opts_mipi_dphy *cfg = (struct phy_configure_opts_mipi_dphy *)params;
 	unsigned long fin = 24000000, fout;
 	u8 scaler = 0, mfr = 0, mrr = 0;
 	u16 fbdiv = 0;
@@ -1829,7 +1829,7 @@ static unsigned long samsung_mipi_dcphy_set_pll(struct rockchip_phy *phy,
 	u16 dsm = 0;
 
 	samsung->c_option = (samsung->mode == PHY_MODE_MIPI_DPHY) ? false : true;
-	fout = samsung_mipi_dcphy_pll_round_rate(samsung, fin, rate, &prediv,
+	fout = samsung_mipi_dcphy_pll_round_rate(samsung, fin, cfg->hs_clk_rate, &prediv,
 						 &fbdiv, &dsm, &scaler, &mfr, &mrr);
 
 	if (fout != 0) {
@@ -1846,11 +1846,12 @@ static unsigned long samsung_mipi_dcphy_set_pll(struct rockchip_phy *phy,
 		}
 	}
 
-	return fout;
+	cfg->hs_clk_rate = fout;
+
+	return 0;
 }
 
-static int samsung_mipi_dcphy_set_mode(struct rockchip_phy *phy,
-				       enum phy_mode mode)
+static int samsung_mipi_dcphy_set_mode(struct phy *phy, enum phy_mode mode, int submode)
 {
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(phy->dev);
 
@@ -1862,21 +1863,11 @@ static int samsung_mipi_dcphy_set_mode(struct rockchip_phy *phy,
 static int samsung_mipi_dcphy_probe(struct udevice *dev)
 {
 	struct samsung_mipi_dcphy *samsung = dev_get_priv(dev);
-	struct rockchip_phy *tmp_phy;
-	struct rockchip_phy *phy;
 	struct udevice *syscon;
 	int ret;
 
 	samsung->dev = dev;
-	phy = calloc(1, sizeof(*phy));
-	if (!phy)
-		return -ENOMEM;
-
-	tmp_phy = (struct rockchip_phy *)dev_get_driver_data(dev);
-	dev->driver_data = (ulong)phy;
-	memcpy(phy, tmp_phy, sizeof(*phy));
-
-	samsung->pdata = (struct samsung_mipi_dcphy_plat_data *)phy->data;
+	samsung->pdata = (struct samsung_mipi_dcphy_plat_data *)dev_get_driver_data(dev);;
 	samsung->lanes = ofnode_read_u32_default(dev_ofnode(dev), "samsung,lanes", 4);
 
 	samsung->base = dev_read_addr_ptr(dev);
@@ -1902,16 +1893,14 @@ static int samsung_mipi_dcphy_probe(struct udevice *dev)
 		}
 	}
 
-	phy->dev = dev;
-
 	return 0;
 }
 
-static const struct rockchip_phy_funcs samsung_mipi_dcphy_funcs = {
-	.power_on = samsung_mipi_dcphy_power_on,
-	.power_off = samsung_mipi_dcphy_power_off,
-	.set_pll = samsung_mipi_dcphy_set_pll,
-	.set_mode = samsung_mipi_dcphy_set_mode,
+static const struct phy_ops samsung_mipi_dcphy_ops = {
+	.power_on	= samsung_mipi_dcphy_power_on,
+	.power_off	= samsung_mipi_dcphy_power_off,
+	.set_mode	= samsung_mipi_dcphy_set_mode,
+	.configure	= samsung_mipi_dcphy_configure,
 };
 
 static const struct hs_drv_res_cfg rk3576_dphy_hs_drv_res_cfg = {
@@ -1928,26 +1917,16 @@ static const struct hs_drv_res_cfg rk3588_dphy_hs_drv_res_cfg = {
 	.data_hs_drv_down_ohm = _43_OHM,
 };
 
-static const struct samsung_mipi_dcphy_plat_data rk3576_samsung_mipi_dcphy_plat_data = {
+static const struct samsung_mipi_dcphy_plat_data rk3576_samsung_mipi_dcphy_driver_data = {
 	.dphy_hs_drv_res_cfg = &rk3576_dphy_hs_drv_res_cfg,
 	.dphy_tx_max_kbps_per_lane = 2500000L,
 	.cphy_tx_max_ksps_per_lane = 1700000L,
 };
 
-static const struct samsung_mipi_dcphy_plat_data rk3588_samsung_mipi_dcphy_plat_data = {
+static const struct samsung_mipi_dcphy_plat_data rk3588_samsung_mipi_dcphy_driver_data = {
 	.dphy_hs_drv_res_cfg = &rk3588_dphy_hs_drv_res_cfg,
 	.dphy_tx_max_kbps_per_lane = 4500000L,
 	.cphy_tx_max_ksps_per_lane = 2000000L,
-};
-
-static struct rockchip_phy rk3576_samsung_mipi_dcphy_driver_data = {
-	 .data = &rk3576_samsung_mipi_dcphy_plat_data,
-	 .funcs = &samsung_mipi_dcphy_funcs,
-};
-
-static struct rockchip_phy rk3588_samsung_mipi_dcphy_driver_data = {
-	 .data = &rk3588_samsung_mipi_dcphy_plat_data,
-	 .funcs = &samsung_mipi_dcphy_funcs,
 };
 
 static const struct udevice_id samsung_mipi_dcphy_ids[] = {
@@ -1964,6 +1943,7 @@ static const struct udevice_id samsung_mipi_dcphy_ids[] = {
 U_BOOT_DRIVER(samsung_mipi_dcphy) = {
 	.name = "samsung-mipi-dcphy",
 	.id = UCLASS_PHY,
+	.ops = &samsung_mipi_dcphy_ops,
 	.of_match = samsung_mipi_dcphy_ids,
 	.probe = samsung_mipi_dcphy_probe,
 	.priv_auto = sizeof(struct samsung_mipi_dcphy),
