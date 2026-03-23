@@ -556,7 +556,26 @@ ulong mmc_bread(struct blk_desc *block_dev, lbaint_t start, lbaint_t blkcnt,
 		cur = (blocks_todo > b_max) ? b_max : blocks_todo;
 		if (mmc_read_blocks(mmc, dst, start, cur) != cur) {
 			pr_debug("%s: Failed to read blocks\n", __func__);
-			return 0;
+			int timeout = 0;
+re_init_retry:
+			timeout++;
+			/*
+			 * Try re-init seven times.
+			 */
+			if (timeout > 7) {
+				printf("Re-init retry timeout\n");
+				return 0;
+			}
+
+			mmc->has_init = 0;
+			if (mmc_init(mmc))
+				return 0;
+
+			if (mmc_read_blocks(mmc, dst, start, cur) != cur) {
+				printf("%s: Re-init mmc_read_blocks error\n",
+				       __func__);
+				goto re_init_retry;
+			}
 		}
 		blocks_todo -= cur;
 		start += cur;
