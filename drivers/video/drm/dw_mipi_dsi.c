@@ -1363,6 +1363,7 @@ static int dw_mipi_dsi_probe(struct udevice *dev)
 	dsi->disable_hold_mode = dev_read_bool(dsi->dev, "disable-hold-mode");
 
 	generic_phy_get_by_name(dev, "dphy", &dsi->dphy.phy);
+	generic_phy_init(&dsi->dphy.phy);
 
 	rockchip_connector_bind(&dsi->connector, dev, dsi->id, &dw_mipi_dsi_connector_funcs, NULL,
 				DRM_MODE_CONNECTOR_DSI);
