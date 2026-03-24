@@ -18,6 +18,8 @@
 #include <dm/read.h>
 #include <dm/of_access.h>
 #include <regmap.h>
+#include <generic-phy.h>
+#include <phy-mipi-dphy.h>
 #include <syscon.h>
 #include <asm/arch-rockchip/clock.h>
 #include <linux/iopoll.h>
@@ -26,7 +28,6 @@
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_panel.h"
-#include "rockchip_phy.h"
 
 #define UPDATE(v, h, l)		(((v) << (l)) & GENMASK((h), (l)))
 
@@ -221,48 +222,6 @@ struct dw_mipi_dsi2_plat_data {
 	unsigned long long cphy_max_symbol_rate_per_lane;
 };
 
-struct mipi_dcphy {
-	/* Non-SNPS PHY */
-	struct rockchip_phy *phy;
-
-	u16 input_div;
-	u16 feedback_div;
-};
-
-/**
- * struct mipi_dphy_configure - MIPI D-PHY configuration set
- *
- * This structure is used to represent the configuration state of a
- * MIPI D-PHY phy.
- */
-struct mipi_dphy_configure {
-	unsigned int		clk_miss;
-	unsigned int		clk_post;
-	unsigned int		clk_pre;
-	unsigned int		clk_prepare;
-	unsigned int		clk_settle;
-	unsigned int		clk_term_en;
-	unsigned int		clk_trail;
-	unsigned int		clk_zero;
-	unsigned int		d_term_en;
-	unsigned int		eot;
-	unsigned int		hs_exit;
-	unsigned int		hs_prepare;
-	unsigned int		hs_settle;
-	unsigned int		hs_skip;
-	unsigned int		hs_trail;
-	unsigned int		hs_zero;
-	unsigned int		init;
-	unsigned int		lpx;
-	unsigned int		ta_get;
-	unsigned int		ta_go;
-	unsigned int		ta_sure;
-	unsigned int		wakeup;
-	unsigned long		hs_clk_rate;
-	unsigned long		lp_clk_rate;
-	unsigned char		lanes;
-};
-
 struct dw_mipi_dsi2 {
 	struct rockchip_connector connector;
 	struct udevice *dev;
@@ -290,14 +249,14 @@ struct dw_mipi_dsi2 {
 	u32 format;
 	u32 mode_flags;
 	u64 mipi_pixel_rate;
-	struct mipi_dcphy dcphy;
+	struct phy phy;
 	struct drm_display_mode mode;
 	bool data_swap;
 	bool dual_channel;
 
 	struct gpio_desc te_gpio;
 	struct mipi_dsi_device *device;
-	struct mipi_dphy_configure mipi_dphy_cfg;
+	struct phy_configure_opts_mipi_dphy phy_cfg;
 	const struct dw_mipi_dsi2_plat_data *pdata;
 	struct drm_dsc_picture_parameter_set *pps;
 };
@@ -344,7 +303,7 @@ static void grf_field_write(struct dw_mipi_dsi2 *dsi2, enum grf_reg_fields index
 static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 {
 	const struct drm_display_mode *mode = &dsi2->mode;
-	u64 max_lane_rate, lane_rate;
+	u64 max_lane_rate, lane_rate, target_pclk;
 	unsigned int value;
 	int bpp, lanes;
 	u64 tmp;
@@ -388,6 +347,9 @@ static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 		lane_rate = max_lane_rate;
 	else
 		lane_rate = tmp;
+
+	target_pclk = DIV_ROUND_CLOSEST_ULL(lane_rate * lanes, bpp);
+	phy_mipi_dphy_get_default_config(target_pclk, bpp, lanes, &dsi2->phy_cfg);
 
 	return lane_rate;
 }
@@ -725,8 +687,7 @@ static void dw_mipi_dsi2_post_disable(struct dw_mipi_dsi2 *dsi2)
 
 	dsi_write(dsi2, DSI2_PWR_UP, RESET);
 
-	if (dsi2->dcphy.phy)
-		rockchip_phy_power_off(dsi2->dcphy.phy);
+	generic_phy_power_off(&dsi2->phy);
 
 	dsi2->prepared = false;
 
@@ -835,14 +796,11 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
 	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
-	struct rockchip_phy *phy = NULL;
 	struct udevice *phy_dev;
 	struct udevice *dev;
 	int ret;
 
 	rockchip_baseparameter_disp_info_init((uintptr_t)conn_state, conn_state->type, dsi2->id);
-	dsi2->dcphy.phy = conn->phy;
-
 	conn_state->output_mode = ROCKCHIP_OUT_MODE_P888;
 	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
 	conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
@@ -885,13 +843,11 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 		if (ret)
 			return -ENODEV;
 
-		phy = (struct rockchip_phy *)dev_get_driver_data(phy_dev);
-		if (!phy)
+		generic_phy_get_by_name(phy_dev, "dcphy", &dsi2->slave->phy);
+		if (!generic_phy_valid(&dsi2->slave->phy))
 			return -ENODEV;
 
-		dsi2->slave->dcphy.phy = phy;
-		if (phy->funcs && phy->funcs->init)
-			return phy->funcs->init(phy);
+		return generic_phy_init(&dsi2->slave->phy);
 	}
 
 	dw_mipi_dsi2_get_dsc_params_from_sink(dsi2);
@@ -916,70 +872,13 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 	return 0;
 }
 
-/*
- * Minimum D-PHY timings based on MIPI D-PHY specification. Derived
- * from the valid ranges specified in Section 6.9, Table 14, Page 41
- * of the D-PHY specification (v2.1).
- */
-int mipi_dphy_get_default_config(unsigned long long hs_clk_rate,
-				 struct mipi_dphy_configure *cfg)
+static void dw_mipi_dsi2_set_hs_clk(struct dw_mipi_dsi2 *dsi2)
 {
-	unsigned long long ui;
-
-	if (!cfg)
-		return -EINVAL;
-
-	ui = ALIGN(PSEC_PER_SEC, hs_clk_rate);
-	do_div(ui, hs_clk_rate);
-
-	cfg->clk_miss = 0;
-	cfg->clk_post = 60000 + 52 * ui;
-	cfg->clk_pre = 8000;
-	cfg->clk_prepare = 38000;
-	cfg->clk_settle = 95000;
-	cfg->clk_term_en = 0;
-	cfg->clk_trail = 60000;
-	cfg->clk_zero = 262000;
-	cfg->d_term_en = 0;
-	cfg->eot = 0;
-	cfg->hs_exit = 100000;
-	cfg->hs_prepare = 40000 + 4 * ui;
-	cfg->hs_zero = 105000 + 6 * ui;
-	cfg->hs_settle = 85000 + 6 * ui;
-	cfg->hs_skip = 40000;
-
-	/*
-	 * The MIPI D-PHY specification (Section 6.9, v1.2, Table 14, Page 40)
-	 * contains this formula as:
-	 *
-	 *     T_HS-TRAIL = max(n * 8 * ui, 60 + n * 4 * ui)
-	 *
-	 * where n = 1 for forward-direction HS mode and n = 4 for reverse-
-	 * direction HS mode. There's only one setting and this function does
-	 * not parameterize on anything other that ui, so this code will
-	 * assumes that reverse-direction HS mode is supported and uses n = 4.
-	 */
-	cfg->hs_trail = max(4 * 8 * ui, 60000 + 4 * 4 * ui);
-
-	cfg->init = 100;
-	cfg->lpx = 50000;
-	cfg->ta_get = 5 * cfg->lpx;
-	cfg->ta_go = 4 * cfg->lpx;
-	cfg->ta_sure = cfg->lpx;
-	cfg->wakeup = 1000;
-
-	return 0;
-}
-
-static void dw_mipi_dsi2_set_hs_clk(struct dw_mipi_dsi2 *dsi2, unsigned long rate)
-{
-	mipi_dphy_get_default_config(rate, &dsi2->mipi_dphy_cfg);
-
 	if (!dsi2->c_option)
-		rockchip_phy_set_mode(dsi2->dcphy.phy, PHY_MODE_MIPI_DPHY);
+		generic_phy_set_mode(&dsi2->phy, PHY_MODE_MIPI_DPHY, 0);
 
-	rate = rockchip_phy_set_pll(dsi2->dcphy.phy, rate);
-	dsi2->lane_hs_rate = DIV_ROUND_CLOSEST(rate, MSEC_PER_SEC);
+	generic_phy_configure(&dsi2->phy, &dsi2->phy_cfg);
+	dsi2->lane_hs_rate = DIV_ROUND_CLOSEST(dsi2->phy_cfg.hs_clk_rate, MSEC_PER_SEC);
 }
 
 static void dw_mipi_dsi2_host_softrst(struct dw_mipi_dsi2 *dsi2)
@@ -1058,7 +957,7 @@ static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 
 static void dw_mipi_dsi2_lp2hs_or_hs2lp_cfg(struct dw_mipi_dsi2 *dsi2)
 {
-	struct mipi_dphy_configure *cfg = &dsi2->mipi_dphy_cfg;
+	struct phy_configure_opts_mipi_dphy *cfg = &dsi2->phy_cfg;
 	unsigned long long tmp, ui;
 	unsigned long long hstx_clk;
 
@@ -1131,10 +1030,7 @@ static void dw_mipi_dsi2_irq_enable(struct dw_mipi_dsi2 *dsi2, bool enable)
 
 static void mipi_dcphy_power_on(struct dw_mipi_dsi2 *dsi2)
 {
-	if (!dsi2->dcphy.phy)
-		return;
-
-	rockchip_phy_power_on(dsi2->dcphy.phy);
+	generic_phy_power_on(&dsi2->phy);
 }
 
 static void dw_mipi_dsi2_pre_enable(struct dw_mipi_dsi2 *dsi2)
@@ -1190,7 +1086,6 @@ static int dw_mipi_dsi2_connector_prepare(struct rockchip_connector *conn,
 	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
-	unsigned long lane_rate;
 
 	memcpy(&dsi2->mode, &conn_state->mode, sizeof(struct drm_display_mode));
 	if (dsi2->slave)
@@ -1199,12 +1094,12 @@ static int dw_mipi_dsi2_connector_prepare(struct rockchip_connector *conn,
 
 	dw_mipi_dsi2_get_mipi_pixel_clk(dsi2, cstate);
 
-	lane_rate = dw_mipi_dsi2_get_lane_rate(dsi2);
-	if (dsi2->dcphy.phy)
-		dw_mipi_dsi2_set_hs_clk(dsi2, lane_rate);
+	dw_mipi_dsi2_get_lane_rate(dsi2);
+	if (generic_phy_valid(&dsi2->phy))
+		dw_mipi_dsi2_set_hs_clk(dsi2);
 
-	if (dsi2->slave && dsi2->slave->dcphy.phy)
-		dw_mipi_dsi2_set_hs_clk(dsi2->slave, lane_rate);
+	if (dsi2->slave && generic_phy_valid(&dsi2->slave->phy))
+		dw_mipi_dsi2_set_hs_clk(dsi2->slave);
 
 	printf("final DSI-Link bandwidth: %u %s x %d\n",
 	       dsi2->lane_hs_rate, dsi2->c_option ? "Ksps" : "Kbps",
@@ -1323,6 +1218,12 @@ static int dw_mipi_dsi2_probe(struct udevice *dev)
 	if (ret < 0) {
 		printf("failed to get sys_clk: %d\n", ret);
 		return ret;
+	}
+
+	generic_phy_get_by_name(dev, "dcphy", &dsi2->phy);
+	if (!generic_phy_valid(&dsi2->phy)) {
+		printf("failed to get dcphy\n");
+		return -ENODEV;
 	}
 
 	dsi2->dev = dev;
