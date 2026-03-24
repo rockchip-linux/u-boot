@@ -5,6 +5,8 @@
  */
 
 #include <common.h>
+#include <generic-phy.h>
+#include <generic-phy-hdmi.h>
 #include <malloc.h>
 #include <syscon.h>
 #include <asm/gpio.h>
@@ -24,7 +26,6 @@
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "dw_hdmi.h"
-#include "rockchip_phy.h"
 
 #define HDCP_PRIVATE_KEY_SIZE   280
 #define HDCP_KEY_SHA_SIZE       20
@@ -193,7 +194,7 @@ struct dw_hdmi {
 		const char *name;
 		void *data;
 		bool enabled;
-	} phy;
+	} phy_data;
 
 	struct drm_display_mode previous_mode;
 
@@ -210,6 +211,7 @@ struct dw_hdmi {
 	bool output_bus_format_rgb;
 
 	struct gpio_desc hpd_gpiod;
+	struct phy phy;
 };
 
 static void dw_hdmi_writel(struct dw_hdmi *hdmi, u8 val, int offset)
@@ -699,7 +701,7 @@ static void dw_hdmi_phy_sel_interface_control(struct dw_hdmi *hdmi, u8 enable)
 
 static void dw_hdmi_phy_power_off(struct dw_hdmi *hdmi)
 {
-	const struct dw_hdmi_phy_data *phy = hdmi->phy.data;
+	const struct dw_hdmi_phy_data *phy = hdmi->phy_data.data;
 	unsigned int i;
 	u16 val;
 
@@ -733,7 +735,7 @@ static void dw_hdmi_phy_power_off(struct dw_hdmi *hdmi)
 
 static int dw_hdmi_phy_power_on(struct dw_hdmi *hdmi)
 {
-	const struct dw_hdmi_phy_data *phy = hdmi->phy.data;
+	const struct dw_hdmi_phy_data *phy = hdmi->phy_data.data;
 	unsigned int i;
 	u8 val;
 
@@ -922,7 +924,7 @@ static void rockchip_dw_hdmi_scdc_set_tmds_rate(struct dw_hdmi *hdmi)
 
 static int hdmi_phy_configure(struct dw_hdmi *hdmi)
 {
-	const struct dw_hdmi_phy_data *phy = hdmi->phy.data;
+	const struct dw_hdmi_phy_data *phy = hdmi->phy_data.data;
 	const struct dw_hdmi_plat_data *pdata = hdmi->plat_data;
 	unsigned long mpixelclock = hdmi->hdmi_data.video_mode.mpixelclock;
 	unsigned long mtmdsclock = hdmi->hdmi_data.video_mode.mtmdsclock;
@@ -1025,23 +1027,23 @@ static int dw_hdmi_detect_phy(struct dw_hdmi *hdmi)
 			return -ENODEV;
 		}
 
-		hdmi->phy.ops = hdmi->plat_data->phy_ops;
-		hdmi->phy.data = hdmi->plat_data->phy_data;
-		hdmi->phy.name = hdmi->plat_data->phy_name;
+		hdmi->phy_data.ops = hdmi->plat_data->phy_ops;
+		hdmi->phy_data.data = hdmi->plat_data->phy_data;
+		hdmi->phy_data.name = hdmi->plat_data->phy_name;
 		return 0;
 	}
 
 	/* Synopsys PHYs are handled internally. */
 	for (i = 0; i < ARRAY_SIZE(dw_hdmi_phys); ++i) {
 		if (dw_hdmi_phys[i].type == phy_type) {
-			hdmi->phy.ops = &dw_hdmi_synopsys_phy_ops;
-			hdmi->phy.name = dw_hdmi_phys[i].name;
-			hdmi->phy.data = (void *)&dw_hdmi_phys[i];
+			hdmi->phy_data.ops = &dw_hdmi_synopsys_phy_ops;
+			hdmi->phy_data.name = dw_hdmi_phys[i].name;
+			hdmi->phy_data.data = (void *)&dw_hdmi_phys[i];
 
 			if (!dw_hdmi_phys[i].configure &&
 			    !hdmi->plat_data->configure_phy) {
 				printf("%s requires platform support\n",
-				       hdmi->phy.name);
+				       hdmi->phy_data.name);
 				return -ENODEV;
 			}
 
@@ -1577,9 +1579,9 @@ static void hdmi_video_sample(struct dw_hdmi *hdmi)
 static void dw_hdmi_disable(struct rockchip_connector *conn, struct dw_hdmi *hdmi,
 			    struct display_state *state)
 {
-	if (hdmi->phy.enabled) {
-		hdmi->phy.ops->disable(conn, hdmi, state);
-		hdmi->phy.enabled = false;
+	if (hdmi->phy_data.enabled) {
+		hdmi->phy_data.ops->disable(conn, hdmi, state);
+		hdmi->phy_data.enabled = false;
 	}
 }
 
@@ -2143,10 +2145,10 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 	hdmi_av_composer(hdmi, mode);
 
 	/* HDMI Initialization Step B.2 */
-	ret = hdmi->phy.ops->init(conn, hdmi, state);
+	ret = hdmi->phy_data.ops->init(conn, hdmi, state);
 	if (ret)
 		return ret;
-	hdmi->phy.enabled = true;
+	hdmi->phy_data.enabled = true;
 
 	/* HDMI Initializateion Step B.3 */
 	dw_hdmi_enable_video_path(hdmi);
@@ -2189,7 +2191,7 @@ int dw_hdmi_detect_hotplug(struct dw_hdmi *hdmi,
 	struct rockchip_connector *conn = conn_state->connector;
 	int ret;
 
-	ret = hdmi->phy.ops->read_hpd(hdmi, state);
+	ret = hdmi->phy_data.ops->read_hpd(hdmi, state);
 	if (!ret) {
 		if (conn->bridge)
 			ret = rockchip_bridge_detect(conn->bridge);
@@ -2378,6 +2380,8 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	hdmi->regs = dev_read_addr_ptr(conn->dev);
 	hdmi->io_width = ofnode_read_s32_default(hdmi_node, "reg-io-width", -1);
 
+	generic_phy_get_by_name(conn->dev, "hdmi", &hdmi->phy);
+	generic_phy_init(&hdmi->phy);
 	if (ofnode_read_bool(hdmi_node, "scramble-low-rates"))
 		hdmi->scramble_low_rates = true;
 
@@ -2667,8 +2671,8 @@ int rockchip_dw_hdmi_get_timing(struct rockchip_connector *conn, struct display_
 #endif
 	drm_rk_filter_whitelist(&hdmi->edid_data);
 	rockchip_dw_hdmi_mode_valid(hdmi);
-	if (hdmi->phy.ops->mode_valid)
-		hdmi->phy.ops->mode_valid(conn, hdmi, state);
+	if (hdmi->phy_data.ops->mode_valid)
+		hdmi->phy_data.ops->mode_valid(conn, hdmi, state);
 	drm_mode_max_resolution_filter(&hdmi->edid_data,
 				       &state->crtc_state.max_output);
 	if (!drm_mode_prune_invalid(&hdmi->edid_data)) {
@@ -2725,12 +2729,12 @@ int inno_dw_hdmi_phy_init(struct rockchip_connector *conn, struct dw_hdmi *hdmi,
 		bus_width = color_depth;
 	else
 		bus_width = 8;
-	rockchip_phy_set_bus_width(conn->phy, bus_width);
-	rockchip_phy_set_pll(conn->phy,
-			     conn_state->mode.crtc_clock * 1000);
+	generic_phy_set_bus_width(&hdmi->phy, bus_width);
+	generic_phy_set_speed(&hdmi->phy,
+			      conn_state->mode.crtc_clock * 1000);
 	if (hdmi->edid_data.display_info.hdmi.scdc.supported)
 		rockchip_dw_hdmi_scdc_set_tmds_rate(hdmi);
-	rockchip_phy_power_on(conn->phy);
+	generic_phy_power_on(&hdmi->phy);
 
 	return 0;
 }
@@ -2761,7 +2765,7 @@ void inno_dw_hdmi_mode_valid(struct rockchip_connector *conn, struct dw_hdmi *hd
 {
 	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
 	unsigned long rate;
-	int i, ret;
+	int i;
 	struct drm_display_mode *mode_buf = edid_data->mode_buf;
 
 	for (i = 0; i < edid_data->modes; i++) {
@@ -2771,11 +2775,7 @@ void inno_dw_hdmi_mode_valid(struct rockchip_connector *conn, struct dw_hdmi *hd
 			rate = mode_buf[i].clock * 1000 * 2;
 		else
 			rate = mode_buf[i].clock * 1000;
-
-		/* Check whether mode is out of phy cfg range. */
-		ret = rockchip_phy_round_rate(conn->phy, rate);
-
-		if (ret < 0)
+		if (rate > 600000000)
 			edid_data->mode_buf[i].invalid = true;
 	}
 }
