@@ -5,6 +5,8 @@
  */
 
 #include <common.h>
+#include <generic-phy.h>
+#include <generic-phy-hdmi.h>
 #include <malloc.h>
 #include <syscon.h>
 #include <asm/gpio.h>
@@ -24,7 +26,6 @@
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "dw_hdmi.h"
-#include "rockchip_phy.h"
 
 #define HDCP_PRIVATE_KEY_SIZE   280
 #define HDCP_KEY_SHA_SIZE       20
@@ -210,6 +211,7 @@ struct dw_hdmi {
 	bool output_bus_format_rgb;
 
 	struct gpio_desc hpd_gpiod;
+	struct phy phy;
 };
 
 static void dw_hdmi_writel(struct dw_hdmi *hdmi, u8 val, int offset)
@@ -2378,6 +2380,7 @@ int rockchip_dw_hdmi_init(struct rockchip_connector *conn, struct display_state 
 	hdmi->regs = dev_read_addr_ptr(conn->dev);
 	hdmi->io_width = ofnode_read_s32_default(hdmi_node, "reg-io-width", -1);
 
+	generic_phy_get_by_name(conn->dev, "hdmi", &hdmi->phy);
 	if (ofnode_read_bool(hdmi_node, "scramble-low-rates"))
 		hdmi->scramble_low_rates = true;
 
@@ -2724,12 +2727,12 @@ int inno_dw_hdmi_phy_init(struct rockchip_connector *conn, struct dw_hdmi *hdmi,
 		bus_width = color_depth;
 	else
 		bus_width = 8;
-	rockchip_phy_set_bus_width(conn->phy, bus_width);
-	rockchip_phy_set_pll(conn->phy,
-			     conn_state->mode.crtc_clock * 1000);
+	generic_phy_set_bus_width(&hdmi->phy, bus_width);
+	generic_phy_set_speed(&hdmi->phy,
+			      conn_state->mode.crtc_clock * 1000);
 	if (hdmi->edid_data.display_info.hdmi.scdc.supported)
 		rockchip_dw_hdmi_scdc_set_tmds_rate(hdmi);
-	rockchip_phy_power_on(conn->phy);
+	generic_phy_power_on(&hdmi->phy);
 
 	return 0;
 }
@@ -2770,11 +2773,5 @@ void inno_dw_hdmi_mode_valid(struct rockchip_connector *conn, struct dw_hdmi *hd
 			rate = mode_buf[i].clock * 1000 * 2;
 		else
 			rate = mode_buf[i].clock * 1000;
-
-		/* Check whether mode is out of phy cfg range. */
-		ret = rockchip_phy_round_rate(conn->phy, rate);
-
-		if (ret < 0)
-			edid_data->mode_buf[i].invalid = true;
 	}
 }
