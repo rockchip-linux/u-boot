@@ -249,7 +249,7 @@ static int rockchip_lvds_probe(struct udevice *dev)
 	lvds->grf = syscon_get_regmap(dev_get_parent(dev));
 	lvds->dual_channel = dev_read_bool(dev, "dual-channel");
 	lvds->data_swap = dev_read_bool(dev, "rockchip,data-swap");
-	lvds->id = of_alias_get_id(ofnode_to_np(dev->node), "lvds");
+	lvds->id = of_alias_get_id(ofnode_to_np(dev_ofnode(dev)), "lvds");
 	if (lvds->id < 0)
 		lvds->id = 0;
 
@@ -384,7 +384,7 @@ static const struct rockchip_lvds_funcs rk3562_lvds_funcs = {
 static int rk3568_lvds_probe(struct rockchip_lvds *lvds)
 {
 	if (lvds->dual_channel) {
-		const struct device_node *port0, *port1;
+		struct device_node *port0, *port1;
 		int pixel_order;
 
 		port1 = of_alias_get_dev("lvds", 1);
@@ -393,7 +393,7 @@ static int rk3568_lvds_probe(struct rockchip_lvds *lvds)
 			return 0;
 		}
 
-		port0 = rockchip_of_graph_get_port_by_id(lvds->dev->node, 1);
+		port0 = rockchip_of_graph_get_port_by_id(dev_ofnode(lvds->dev), 1);
 		port1 = rockchip_of_graph_get_port_by_id(np_to_ofnode(port1),
 							 1);
 		pixel_order =
