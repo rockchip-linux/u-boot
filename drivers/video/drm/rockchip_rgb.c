@@ -7,6 +7,7 @@
 #include <common.h>
 #include <dm/of_access.h>
 #include <errno.h>
+#include <generic-phy.h>
 #include <syscon.h>
 #include <regmap.h>
 #include <dm/device.h>
@@ -19,7 +20,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_phy.h"
 #include "rockchip_panel.h"
 
 #define HIWORD_UPDATE(v, l, h)		(((v) << (l)) | (GENMASK(h, l) << 16))
@@ -90,7 +90,7 @@ struct rockchip_rgb {
 	struct udevice *dev;
 	struct regmap *grf;
 	bool data_sync_bypass;
-	struct rockchip_phy *phy;
+	struct phy phy;
 	const struct rockchip_rgb_funcs *funcs;
 	u32 max_dclk_rate;
 	int data_map_mode;
@@ -159,22 +159,14 @@ static int rockchip_rgb_connector_prepare(struct rockchip_connector *conn,
 					  struct display_state *state)
 {
 	struct rockchip_rgb *rgb = dev_get_priv(conn->dev);
-	int ret;
 
 	pinctrl_select_state(rgb->dev, "default");
 
 	if (rgb->funcs && rgb->funcs->prepare)
 		rgb->funcs->prepare(state, rgb);
 
-	if (rgb->phy) {
-		ret = rockchip_phy_set_mode(rgb->phy, PHY_MODE_VIDEO_TTL);
-		if (ret) {
-			dev_err(rgb->dev, "failed to set phy mode: %d\n", ret);
-			return ret;
-		}
-
-		rockchip_phy_power_on(rgb->phy);
-	}
+	if (generic_phy_valid(&rgb->phy))
+		generic_phy_power_on(&rgb->phy);
 
 	return 0;
 }
@@ -184,8 +176,8 @@ static void rockchip_rgb_connector_unprepare(struct rockchip_connector *conn,
 {
 	struct rockchip_rgb *rgb = dev_get_priv(conn->dev);
 
-	if (rgb->phy)
-		rockchip_phy_power_off(rgb->phy);
+	if (generic_phy_valid(&rgb->phy))
+		generic_phy_power_off(&rgb->phy);
 
 	if (rgb->funcs && rgb->funcs->unprepare)
 		rgb->funcs->unprepare(state, rgb);
@@ -197,8 +189,6 @@ static int rockchip_rgb_connector_init(struct rockchip_connector *conn, struct d
 {
 	struct rockchip_rgb *rgb = dev_get_priv(conn->dev);
 	struct connector_state *conn_state = &state->conn_state;
-
-	rgb->phy = conn->phy;
 
 	conn_state->color_range = DRM_COLOR_YCBCR_FULL_RANGE;
 	conn_state->color_encoding = DRM_COLOR_YCBCR_BT709;
@@ -599,6 +589,8 @@ static int rockchip_rgb_probe(struct udevice *dev)
 
 		rgb->connector.panel = &mcu_panel->base;
 	}
+
+	generic_phy_get_by_name(dev, "phy", &rgb->phy);
 
 	rockchip_connector_bind(&rgb->connector, dev, rgb->id, &rockchip_rgb_connector_funcs,
 				NULL, DRM_MODE_CONNECTOR_LVDS);
