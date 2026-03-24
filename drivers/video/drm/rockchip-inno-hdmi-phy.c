@@ -7,6 +7,8 @@
 #include <config.h>
 #include <common.h>
 #include <errno.h>
+#include <generic-phy.h>
+#include <generic-phy-hdmi.h>
 #include <malloc.h>
 #include <misc.h>
 #include <fdtdec.h>
@@ -25,7 +27,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_phy.h"
 
 #define INNO_HDMI_PHY_TIMEOUT_LOOP_COUNT	1000
 #define UPDATE(x, h, l)	(((x) << (l)) & GENMASK((h), (l)))
@@ -172,6 +173,7 @@ struct inno_hdmi_phy {
 	unsigned long pixclock;
 	u32 bus_width;
 	struct phy_config *phy_cfg;
+	struct phy *phy;
 };
 
 struct pre_pll_config {
@@ -400,7 +402,7 @@ static u32 inno_hdmi_phy_get_tmdsclk(struct inno_hdmi_phy *inno,
 {
 	u32 tmdsclk;
 
-	switch (inno->bus_width) {
+	switch (generic_phy_get_bus_width(inno->phy)) {
 	case 4:
 		tmdsclk = (u32)rate / 2;
 		break;
@@ -465,7 +467,7 @@ static u8 rk_get_cpu_version(void)
 	return val;
 }
 
-static int inno_hdmi_phy_power_on(struct rockchip_phy *phy)
+static int inno_hdmi_phy_power_on(struct phy *phy)
 {
 #ifdef CONFIG_SPL_BUILD
 	struct inno_hdmi_phy *inno = (struct inno_hdmi_phy *)phy->data;
@@ -518,7 +520,7 @@ static int inno_hdmi_phy_power_on(struct rockchip_phy *phy)
 		return -EINVAL;
 }
 
-static int inno_hdmi_phy_power_off(struct rockchip_phy *phy)
+static int inno_hdmi_phy_power_off(struct phy *phy)
 {
 #ifdef CONFIG_SPL_BUILD
 	struct inno_hdmi_phy *inno = (struct inno_hdmi_phy *)phy->data;
@@ -1257,7 +1259,7 @@ static const struct rockchip_inno_data inno_hdmi_phy_of_match[] = {
 	{}
 };
 
-static int inno_hdmi_phy_init(struct rockchip_phy *phy)
+static int inno_hdmi_phy_init(struct phy *phy)
 {
 #ifdef CONFIG_SPL_BUILD
 	struct inno_hdmi_phy *inno = (struct inno_hdmi_phy *)phy->data;
@@ -1280,7 +1282,7 @@ static int inno_hdmi_phy_init(struct rockchip_phy *phy)
 		printf("%s: failed to get phy address\n", __func__);
 		return -ENOMEM;
 	}
-
+	inno->phy = phy;
 #ifdef CONFIG_SPL_BUILD
 	name = "rockchip,rk3528-hdmi-phy";
 #else
@@ -1343,8 +1345,7 @@ static int inno_hdmi_phy_init(struct rockchip_phy *phy)
 	return 0;
 }
 
-static unsigned long inno_hdmi_phy_set_pll(struct rockchip_phy *phy,
-					   unsigned long rate)
+static int inno_hdmi_phy_set_pll(struct phy *phy, int rate)
 {
 #ifdef CONFIG_SPL_BUILD
 	struct inno_hdmi_phy *inno = (struct inno_hdmi_phy *)phy->data;
@@ -1362,27 +1363,120 @@ static unsigned long inno_hdmi_phy_set_pll(struct rockchip_phy *phy,
 	return 0;
 }
 
-static int
-inno_hdmi_phy_set_bus_width(struct rockchip_phy *phy, u32 bus_width)
-{
+static const struct phy_ops inno_hdmi_phy_funcs = {
+	.init = inno_hdmi_phy_init,
+	.power_on = inno_hdmi_phy_power_on,
+	.power_off = inno_hdmi_phy_power_off,
+	.set_speed = inno_hdmi_phy_set_pll
+};
+
+static const struct udevice_id inno_hdmi_phy_ids[] = {
+	{
+	 .compatible = "rockchip,rk3328-hdmi-phy",
+	},
+	{
+	 .compatible = "rockchip,rk3228-hdmi-phy",
+	},
+	{
+	 .compatible = "rockchip,rk3528-hdmi-phy",
+	},
+	{
+	 .compatible = "rockchip,rk3538-hdmi-phy",
+	},
+	{}
+};
+
 #ifdef CONFIG_SPL_BUILD
-	struct inno_hdmi_phy *inno = (struct inno_hdmi_phy *)phy->data;
+int inno_spl_hdmi_phy_probe(struct display_state *state)
+{
+	struct inno_hdmi_phy *inno = malloc(sizeof(struct inno_hdmi_phy));
+
+	memset(inno, 0, sizeof(*inno));
+	g_inno = inno;
+
+	state->conn_state.connector->phy = &inno_hdmi_phy_driver_data;
+	state->conn_state.connector->phy->data = (void *)inno;
+	return 0;
+}
 #else
-	struct inno_hdmi_phy *inno = dev_get_priv(phy->dev);
+static int inno_hdmi_phy_probe(struct udevice *dev)
+{
+	struct inno_hdmi_phy *inno = dev_get_priv(dev);
+
+	inno->dev = dev;
+
+	g_inno = inno;
+
+	return 0;
+}
 #endif
 
-	inno->bus_width = bus_width;
+static int rockchip_inno_phy_hdmi_bind(struct udevice *parent)
+{
+	struct udevice *child;
+	ofnode subnode;
+	int ret;
+
+	subnode = ofnode_find_subnode(parent->node_, "clk-port");
+	if (!ofnode_valid(subnode)) {
+		printf("%s: no subnode for %s\n", __func__, parent->name);
+		return -ENXIO;
+	}
+
+	ret = device_bind_driver_to_node(parent, "clk_inno_hdmi", "inno_hdmi_pll_clk", subnode, &child);
+	if (ret) {
+		printf("%s: clk-port cannot bind its driver\n", __func__);
+		return ret;
+	}
 
 	return 0;
 }
 
-static long
-inno_hdmi_phy_clk_round_rate(struct rockchip_phy *phy, unsigned long rate)
+U_BOOT_DRIVER(inno_hdmi_phy) = {
+	.name = "inno_hdmi_phy",
+	.id = UCLASS_PHY,
+	.of_match = inno_hdmi_phy_ids,
+	.ops = &inno_hdmi_phy_funcs,
+#ifndef CONFIG_SPL_BUILD
+	.probe = inno_hdmi_phy_probe,
+#endif
+	.bind = rockchip_inno_phy_hdmi_bind,
+	.priv_auto = sizeof(struct inno_hdmi_phy),
+};
+
+
+static ulong inno_hdmi_clk_get_rate(struct clk *clk)
+{
+	struct clk_inno_hdmi *priv = dev_get_priv(clk->dev);
+
+	return priv->rate;
+}
+
+static ulong inno_hdmi_clk_set_rate(struct clk *clk, ulong rate)
+{
+	struct clk_inno_hdmi *priv = dev_get_priv(clk->dev);
+	int ret;
+
+	inno_hdmi_phy_clk_prepare(g_inno);
+	inno_hdmi_phy_clk_is_prepared(g_inno);
+	ret = inno_hdmi_phy_clk_set_rate(g_inno, rate);
+	if (ret < 0) {
+		printf("inno hdmi set rate failed ret:%d\n", ret);
+		return ret;
+	}
+
+	priv->rate = g_inno->pixclock;
+
+	return priv->rate;
+}
+
+static ulong
+inno_hdmi_phy_clk_round_rate(struct clk *clk, ulong rate)
 {
 #ifdef CONFIG_SPL_BUILD
 	struct inno_hdmi_phy *inno = (struct inno_hdmi_phy *)phy->data;
 #else
-	struct inno_hdmi_phy *inno = dev_get_priv(phy->dev);
+	struct inno_hdmi_phy *inno = g_inno;
 #endif
 	int i;
 	const struct pre_pll_config *cfg = pre_pll_cfg_table;
@@ -1420,130 +1514,10 @@ inno_hdmi_phy_clk_round_rate(struct rockchip_phy *phy, unsigned long rate)
 	return cfg->pixclock;
 }
 
-const struct rockchip_phy_funcs inno_hdmi_phy_funcs = {
-	.init = inno_hdmi_phy_init,
-	.power_on = inno_hdmi_phy_power_on,
-	.power_off = inno_hdmi_phy_power_off,
-	.set_pll = inno_hdmi_phy_set_pll,
-	.set_bus_width = inno_hdmi_phy_set_bus_width,
-	.round_rate = inno_hdmi_phy_clk_round_rate,
-};
-
-static struct rockchip_phy inno_hdmi_phy_driver_data = {
-	 .funcs = &inno_hdmi_phy_funcs,
-};
-
-static const struct udevice_id inno_hdmi_phy_ids[] = {
-	{
-	 .compatible = "rockchip,rk3328-hdmi-phy",
-	 .data = (ulong)&inno_hdmi_phy_driver_data,
-	},
-	{
-	 .compatible = "rockchip,rk3228-hdmi-phy",
-	 .data = (ulong)&inno_hdmi_phy_driver_data,
-	},
-	{
-	 .compatible = "rockchip,rk3528-hdmi-phy",
-	 .data = (ulong)&inno_hdmi_phy_driver_data,
-	},
-	{
-	 .compatible = "rockchip,rk3538-hdmi-phy",
-	 .data = (ulong)&inno_hdmi_phy_driver_data,
-	},
-	{}
-};
-
-#ifdef CONFIG_SPL_BUILD
-int inno_spl_hdmi_phy_probe(struct display_state *state)
-{
-	struct inno_hdmi_phy *inno = malloc(sizeof(struct inno_hdmi_phy));
-
-	memset(inno, 0, sizeof(*inno));
-	g_inno = inno;
-
-	state->conn_state.connector->phy = &inno_hdmi_phy_driver_data;
-	state->conn_state.connector->phy->data = (void *)inno;
-	return 0;
-}
-#else
-static int inno_hdmi_phy_probe(struct udevice *dev)
-{
-	struct inno_hdmi_phy *inno = dev_get_priv(dev);
-	struct rockchip_phy *phy =
-		(struct rockchip_phy *)dev_get_driver_data(dev);
-
-	inno->dev = dev;
-	phy->dev = dev;
-
-	g_inno = inno;
-	dev->driver_data = (ulong)&inno_hdmi_phy_driver_data;
-	phy = &inno_hdmi_phy_driver_data;
-
-	return 0;
-}
-#endif
-
-static int rockchip_inno_phy_hdmi_bind(struct udevice *parent)
-{
-	struct udevice *child;
-	ofnode subnode;
-	int ret;
-
-	subnode = ofnode_find_subnode(parent->node_, "clk-port");
-	if (!ofnode_valid(subnode)) {
-		printf("%s: no subnode for %s\n", __func__, parent->name);
-		return -ENXIO;
-	}
-
-	ret = device_bind_driver_to_node(parent, "clk_inno_hdmi", "inno_hdmi_pll_clk", subnode, &child);
-	if (ret) {
-		printf("%s: clk-port cannot bind its driver\n", __func__);
-		return ret;
-	}
-
-	return 0;
-}
-
-U_BOOT_DRIVER(inno_hdmi_phy) = {
-	.name = "inno_hdmi_phy",
-	.id = UCLASS_PHY,
-	.of_match = inno_hdmi_phy_ids,
-#ifndef CONFIG_SPL_BUILD
-	.probe = inno_hdmi_phy_probe,
-#endif
-	.bind = rockchip_inno_phy_hdmi_bind,
-	.priv_auto = sizeof(struct inno_hdmi_phy),
-};
-
-
-static ulong inno_hdmi_clk_get_rate(struct clk *clk)
-{
-	struct clk_inno_hdmi *priv = dev_get_priv(clk->dev);
-
-	return priv->rate;
-}
-
-static ulong inno_hdmi_clk_set_rate(struct clk *clk, ulong rate)
-{
-	struct clk_inno_hdmi *priv = dev_get_priv(clk->dev);
-	int ret;
-
-	inno_hdmi_phy_clk_prepare(g_inno);
-	inno_hdmi_phy_clk_is_prepared(g_inno);
-	ret = inno_hdmi_phy_clk_set_rate(g_inno, rate);
-	if (ret < 0) {
-		printf("inno hdmi set rate failed ret:%d\n", ret);
-		return ret;
-	}
-
-	priv->rate = g_inno->pixclock;
-
-	return priv->rate;
-}
-
 static const struct clk_ops inno_hdmi_clk_ops = {
 	.get_rate	= inno_hdmi_clk_get_rate,
 	.set_rate	= inno_hdmi_clk_set_rate,
+	.round_rate	= inno_hdmi_phy_clk_round_rate,
 };
 
 static int inno_hdmi_clk_probe(struct udevice *dev)
