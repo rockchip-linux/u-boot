@@ -11,6 +11,7 @@
 #include <dm/read.h>
 #include <dm/ofnode.h>
 #include <dm/of_access.h>
+#include <generic-phy.h>
 #include <syscon.h>
 #include <regmap.h>
 #include <dm/device.h>
@@ -19,7 +20,6 @@
 
 #include "rockchip_display.h"
 #include "rockchip_connector.h"
-#include "rockchip_phy.h"
 #include "rockchip_panel.h"
 #include "drm_of.h"
 
@@ -101,7 +101,7 @@ struct rockchip_lvds {
 	int id;
 	struct udevice *dev;
 	struct regmap *grf;
-	struct rockchip_phy *phy;
+	struct phy phy;
 	const struct drm_display_mode *mode;
 	const struct rockchip_lvds_funcs *funcs;
 	enum lvds_format format;
@@ -119,7 +119,6 @@ static int rockchip_lvds_connector_init(struct rockchip_connector *conn,
 	struct rockchip_panel *panel = conn->panel;
 
 	lvds->mode = &conn_state->mode;
-	lvds->phy = conn->phy;
 	conn_state->disp_info  = rockchip_get_disp_info(conn_state->type, lvds->id);
 
 	if (conn_state->secondary)
@@ -210,13 +209,13 @@ static int rockchip_lvds_connector_enable(struct rockchip_connector *conn,
 	if (lvds->funcs->enable)
 		lvds->funcs->enable(lvds, pipe);
 
-	ret = rockchip_phy_set_mode(lvds->phy, PHY_MODE_VIDEO_LVDS);
+	ret = generic_phy_set_mode(&lvds->phy, PHY_MODE_LVDS);
 	if (ret) {
 		dev_err(lvds->dev, "failed to set phy mode: %d\n", ret);
 		return ret;
 	}
 
-	rockchip_phy_power_on(lvds->phy);
+	generic_phy_power_on(&lvds->phy);
 
 	return 0;
 }
@@ -226,7 +225,7 @@ static int rockchip_lvds_connector_disable(struct rockchip_connector *conn,
 {
 	struct rockchip_lvds *lvds = dev_get_priv(conn->dev);
 
-	rockchip_phy_power_off(lvds->phy);
+	generic_phy_power_off(&lvds->phy);
 
 	if (lvds->funcs->disable)
 		lvds->funcs->disable(lvds);
@@ -256,6 +255,12 @@ static int rockchip_lvds_probe(struct udevice *dev)
 	lvds->pixel_order = -1;
 	if (lvds->funcs->probe)
 		lvds->funcs->probe(lvds);
+
+	generic_phy_get_by_name(dev, "phy", &lvds->phy);
+	if (!generic_phy_valid(&lvds->phy)) {
+		dev_err(lvds->dev, "failed to get phy\n");
+		return -ENODEV;
+	}
 
 	rockchip_connector_bind(&lvds->connector, dev, lvds->id, &rockchip_lvds_connector_funcs,
 				NULL, DRM_MODE_CONNECTOR_LVDS);
@@ -330,7 +335,7 @@ static void rk3288_lvds_enable(struct rockchip_lvds *lvds, int pipe)
 
 	regmap_write(lvds->grf, RK3288_GRF_SOC_CON7, val);
 
-	rockchip_phy_set_bus_width(lvds->phy, lvds->dual_channel ? 2 : 1);
+	generic_phy_set_bus_width(&lvds->phy, lvds->dual_channel ? 2 : 1);
 }
 
 static void rk3288_lvds_disable(struct rockchip_lvds *lvds)
