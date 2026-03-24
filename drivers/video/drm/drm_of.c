@@ -16,7 +16,7 @@ enum drm_of_lvds_pixels {
 };
 
 static int
-drm_of_lvds_get_port_pixels_type(const struct device_node *port_node)
+drm_of_lvds_get_port_pixels_type(struct device_node *port_node)
 {
 	ofnode node = np_to_ofnode(port_node);
 
@@ -36,7 +36,7 @@ drm_of_lvds_get_port_pixels_type(const struct device_node *port_node)
 }
 
 static int
-drm_of_lvds_get_remote_pixels_type(const struct device_node *port_node)
+drm_of_lvds_get_remote_pixels_type(struct device_node *port_node)
 {
 	ofnode node = np_to_ofnode(port_node);
 	ofnode endpoint;
@@ -47,7 +47,7 @@ drm_of_lvds_get_remote_pixels_type(const struct device_node *port_node)
 		int current_pt;
 		const char *name;
 
-		if (!ofnode_is_available(endpoint))
+		if (!of_device_is_available(ofnode_to_np(endpoint)))
 			continue;
 
 		name = ofnode_get_name(endpoint);
@@ -58,7 +58,7 @@ drm_of_lvds_get_remote_pixels_type(const struct device_node *port_node)
 			continue;
 
 		endpoint = ofnode_get_by_phandle(phandle);
-		if (!ofnode_valid(endpoint) || !ofnode_is_available(endpoint))
+		if (!ofnode_valid(endpoint) || of_device_is_available(ofnode_to_np(endpoint)))
 			continue;
 
 		endpoint = ofnode_get_parent(endpoint);
@@ -122,8 +122,8 @@ drm_of_lvds_get_remote_pixels_type(const struct device_node *port_node)
  *   the sink configuration is invalid
  * * -EPIPE - when @port1 or @port2 are not connected
  */
-int drm_of_lvds_get_dual_link_pixel_order(const struct device_node *port1,
-					  const struct device_node *port2)
+int drm_of_lvds_get_dual_link_pixel_order(struct device_node *port1,
+					  struct device_node *port2)
 {
 	int remote_p1_pt, remote_p2_pt;
 

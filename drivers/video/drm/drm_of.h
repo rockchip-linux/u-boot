@@ -27,7 +27,7 @@ enum drm_lvds_dual_link_pixels {
 	DRM_LVDS_DUAL_LINK_RIGHT_LEFT_PIXELS = 3,
 };
 
-int drm_of_lvds_get_dual_link_pixel_order(const struct device_node *port1,
-					  const struct device_node *port2);
+int drm_of_lvds_get_dual_link_pixel_order(struct device_node *port1,
+					  struct device_node *port2);
 
 #endif
