@@ -211,6 +211,7 @@ config DRM_ROCKCHIP_RK1000
 config DRM_ROCKCHIP_SAMSUNG_MIPI_DCPHY
 	tristate "Rockchip SAMSUNG MIPI DCPHY driver"
 	depends on DRM_ROCKCHIP
+	select MIPI_DPHY_HELPERS
 	help
 	  Enable this to support the Rockchip MIPI DCPHY
 	  with SAMSUNG IP block.
