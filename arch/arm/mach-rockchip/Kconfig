@@ -1012,6 +1012,13 @@ config ROCKCHIP_VENDOR_PARTITION
 	  This enable support to read/write vendor configuration data from/to
 	  this partition.
 
+config SPL_ROCKCHIP_VENDOR_PARTITION
+	bool "Rockchip vendor storage partition support in SPL"
+	depends on SPL
+	help
+	  This enable support to read/write vendor configuration data from/to
+	  this partition in SPL.
+
 config USING_KERNEL_DTB
 	bool "Using dtb from Kernel/resource for U-Boot"
 	depends on RKIMG_BOOTLOADER && OF_LIVE

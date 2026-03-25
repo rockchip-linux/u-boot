@@ -37,6 +37,18 @@ struct vendor_item {
 int vendor_storage_test(void);
 int vendor_storage_read(u16 id, void *pbuf, u16 size);
 int vendor_storage_write(u16 id, void *pbuf, u16 size);
+
+#ifdef CONFIG_SPL_BUILD
+#include <spl.h>
+
+/**
+ * flash_vendor_dev_ops_register - Register spl_load_info interface (SPL build only)
+ * @info: pointer to spl_load_info structure containing read interface
+ *
+ * Return: 0 on success, -EPERM if interface is already registered
+ */
+int flash_vendor_dev_ops_register(struct spl_load_info *info);
+#else
 int flash_vendor_dev_ops_register(int (*read)(struct blk_desc *dev_desc,
 					      u32 sec,
 					      u32 n_sec,
@@ -45,6 +57,7 @@ int flash_vendor_dev_ops_register(int (*read)(struct blk_desc *dev_desc,
 					       u32 sec,
 					       u32 n_sec,
 					       void *p_data));
+#endif
 
 int vendor_handle_hdcp(struct vendor_item *vhead);
 

@@ -49,12 +49,13 @@ obj-$(CONFIG_USING_KERNEL_DTB) += kernel_dtb.o
 obj-$(CONFIG_ROCKCHIP_FIT_IMAGE) += fit.o
 obj-$(CONFIG_ROCKCHIP_UIMAGE) += uimage.o
 obj-$(CONFIG_ROCKCHIP_SMCCC) += rockchip_smccc.o
-obj-$(CONFIG_ROCKCHIP_VENDOR_PARTITION) += vendor.o vendor_misc.o
+obj-$(CONFIG_ROCKCHIP_VENDOR_PARTITION) += vendor_misc.o
 obj-$(CONFIG_ROCKCHIP_RESOURCE_IMAGE) += resource_img.o
 obj-$(CONFIG_ROCKCHIP_HWID_DTB) += rk_hwid.o
 obj-$(CONFIG_ROCKCHIP_DEBUGGER) += rockchip_debugger.o
 endif
 
+obj-$(CONFIG_$(SPL_)ROCKCHIP_VENDOR_PARTITION) += vendor.o
 obj-y += cpu.o
 obj-$(CONFIG_$(SPL_)FPGA_ROCKCHIP) += fpga.o
 obj-$(CONFIG_$(SPL_TPL_)RAM) += param.o
