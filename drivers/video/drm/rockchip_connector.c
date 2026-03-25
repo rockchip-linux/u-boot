@@ -13,7 +13,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_phy.h"
 
 #ifdef CONFIG_SPL_BUILD
 int rockchip_connector_bind(struct rockchip_connector *conn, struct udevice *dev, int id,
@@ -92,9 +91,6 @@ static int rockchip_connector_path_init(struct rockchip_connector *conn,
 		if (ret)
 			return ret;
 	}
-
-	if (conn->phy)
-		rockchip_phy_init(conn->phy);
 
 	return ret;
 }

@@ -22,7 +22,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_phy.h"
 #include "rockchip_tve.h"
 
 #define RK322X_VDAC_STANDARD		0x15
@@ -667,11 +666,6 @@ static int rockchip_drm_tve_enable(struct rockchip_connector *conn, struct displ
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 
-#ifdef CONFIG_ROCKCHIP_INNO_HDMI_PHY
-	/* set inno hdmi phy clk. */
-	if (tve->soc_type != SOC_RK3528)
-		rockchip_phy_set_pll(conn->phy, 27000000);
-#endif
 	if (mode->vdisplay == 576)
 		tve->tv_format = TVOUT_CVBS_PAL;
 	else

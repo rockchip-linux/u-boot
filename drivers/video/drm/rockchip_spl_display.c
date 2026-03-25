@@ -17,7 +17,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_phy.h"
 
 static struct base2_info base_parameter;
 
@@ -70,9 +69,6 @@ static int rockchip_spl_display_init(struct display_state *state)
 		if (ret)
 			goto deinit;
 	}
-
-	if (conn->phy)
-		rockchip_phy_init(conn->phy);
 
 	if (conn_funcs->detect) {
 		conn->hpd = conn_funcs->detect(conn, state);

@@ -32,7 +32,6 @@
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
 #include "rockchip_bridge.h"
-#include "rockchip_phy.h"
 #include "rockchip_panel.h"
 #include <dm.h>
 #include <dm/of_access.h>
@@ -72,14 +71,6 @@ static u32 align_size = PAGE_SIZE;
 enum public_use_phy {
 	NONE,
 	INNO_HDMI_PHY
-};
-
-/* save public phy data */
-struct public_phy_data {
-	const struct rockchip_phy *phy_drv;
-	int phy_node;
-	int public_phy_type;
-	bool phy_init;
 };
 
 char* rockchip_get_output_if_name(u32 output_if, char *name)
@@ -234,69 +225,6 @@ struct base2_disp_info *rockchip_get_disp_info(int type, int id)
 	return disp_info;
 }
 
-/* check which kind of public phy does connector use */
-static int check_public_use_phy(struct rockchip_connector *conn)
-{
-	int ret = NONE;
-#ifdef CONFIG_ROCKCHIP_INNO_HDMI_PHY
-
-	if (!strncmp(dev_read_name(conn->dev), "tve", 3) ||
-	    !strncmp(dev_read_name(conn->dev), "hdmi", 4))
-		ret = INNO_HDMI_PHY;
-#endif
-
-	return ret;
-}
-
-/*
- * get public phy driver and initialize it.
- * The current version only has inno hdmi phy for hdmi and tve.
- */
-static int get_public_phy(struct rockchip_connector *conn,
-			  struct public_phy_data *data)
-{
-	struct rockchip_phy *phy;
-	struct udevice *dev;
-	int ret = 0;
-
-	switch (data->public_phy_type) {
-	case INNO_HDMI_PHY:
-#if defined(CONFIG_ROCKCHIP_RK3328)
-		ret = uclass_get_device_by_name(UCLASS_PHY,
-						"hdmiphy@ff430000", &dev);
-#elif defined(CONFIG_ROCKCHIP_RK322X)
-		ret = uclass_get_device_by_name(UCLASS_PHY,
-						"hdmi-phy@12030000", &dev);
-#else
-		ret = -EINVAL;
-#endif
-		if (ret) {
-			printf("Warn: can't find phy driver\n");
-			return 0;
-		}
-
-		phy = (struct rockchip_phy *)dev_get_driver_data(dev);
-		if (!phy) {
-			printf("failed to get phy driver\n");
-			return 0;
-		}
-
-		ret = rockchip_phy_init(phy);
-		if (ret) {
-			printf("failed to init phy driver\n");
-			return ret;
-		}
-		conn->phy = phy;
-
-		debug("inno hdmi phy init success, save it\n");
-		data->phy_drv = conn->phy;
-		data->phy_init = true;
-		return 0;
-	default:
-		return -EINVAL;
-	}
-}
-
 static void init_display_buffer(ulong base)
 {
 	printf("use 0x%lx as drm logo base memory\n", base);
@@ -352,34 +280,6 @@ static unsigned long get_cubic_memory_size(void)
 {
 	/* Max support 4 cubic lut */
 	return get_single_cubic_lut_size() * 4;
-}
-
-static int connector_phy_init(struct rockchip_connector *conn,
-			      struct public_phy_data *data)
-{
-	int type;
-
-	/* does this connector use public phy with others */
-	type = check_public_use_phy(conn);
-	if (type == INNO_HDMI_PHY) {
-		/* there is no public phy was initialized */
-		if (!data->phy_init) {
-			debug("start get public phy\n");
-			data->public_phy_type = type;
-			if (get_public_phy(conn, data)) {
-				printf("can't find correct public phy type\n");
-				free(data);
-				return -EINVAL;
-			}
-			return 0;
-		}
-
-		/* if this phy has been initialized, get it directly */
-		conn->phy = (struct rockchip_phy *)data->phy_drv;
-		return 0;
-	}
-
-	return 0;
 }
 
 int rockchip_ofnode_get_display_mode(ofnode node, struct drm_display_mode *mode, u32 *bus_flags)
@@ -2037,18 +1937,6 @@ static int rockchip_of_find_panel_or_bridge(struct udevice *dev, struct rockchip
 	return ret;
 }
 
-static struct rockchip_phy *rockchip_of_find_phy(struct udevice *dev)
-{
-	struct udevice *phy_dev;
-	int ret;
-
-	ret = uclass_get_device_by_phandle(UCLASS_PHY, dev, "phys", &phy_dev);
-	if (ret)
-		return NULL;
-
-	return (struct rockchip_phy *)dev_get_driver_data(phy_dev);
-}
-
 static struct udevice *rockchip_of_find_connector_device(ofnode endpoint)
 {
 	ofnode ep, port, ports, conn;
@@ -2101,8 +1989,6 @@ static struct rockchip_connector *rockchip_of_get_connector(ofnode endpoint)
 	if (ret)
 		debug("Warn: no find panel or bridge\n");
 
-	conn->phy = rockchip_of_find_phy(dev);
-
 	return conn;
 }
 
@@ -2151,7 +2037,6 @@ static struct rockchip_connector *rockchip_get_split_connector(struct rockchip_c
 	if (ret)
 		debug("Warn: no find panel or bridge\n");
 
-	split_conn->phy = rockchip_of_find_phy(split_dev);
 	split_conn->split_mode = conn->split_mode;
 	split_conn->dual_channel_mode = conn->dual_channel_mode;
 
@@ -2374,7 +2259,6 @@ static int rockchip_display_probe(struct udevice *dev)
 	int ret;
 	ofnode node, route_node, timing_node;
 	struct device_node *port_node, *vop_node, *ep_node, *port_parent_node;
-	struct public_phy_data *data;
 	bool is_ports_node = false;
 	ulong base = 0;
 
@@ -2384,13 +2268,6 @@ static int rockchip_display_probe(struct udevice *dev)
 	/* Before relocation we don't need to do anything */
 	if (!(gd->flags & GD_FLG_RELOC))
 		return 0;
-
-	data = malloc(sizeof(struct public_phy_data));
-	if (!data) {
-		printf("failed to alloc phy data\n");
-		return -ENOMEM;
-	}
-	data->phy_init = false;
 
 	base = rockchip_get_logo_memory(dev, blob);
 	if (base)/* Assigned drm_logo memory at dts */
@@ -2578,11 +2455,6 @@ static int rockchip_display_probe(struct udevice *dev)
 					      "rockchip,dual-channel-swap", 0);
 		s->crtc_state.dual_channel_swap = ret;
 
-		if (connector_phy_init(conn, data)) {
-			printf("Warn: Failed to init phy drivers\n");
-			free(s);
-			continue;
-		}
 		list_add_tail(&s->head, &rockchip_display_list);
 	}
 
