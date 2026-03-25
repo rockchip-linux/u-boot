@@ -18,6 +18,7 @@
 #include <asm/arch/mos.h>
 #include <asm/arch/rk_atags.h>
 #include <asm/arch/rockchip_smccc.h>
+#include <asm/arch/vendor.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -574,10 +575,22 @@ int mos_spl_cfg_init(void)
 	if (mos_safety_atags_base == FDT_ADDR_T_NONE)
 		return 0;
 
+	/* prepare console/atags for safety */
 	mos_atags_setup_console(cfg_fdt);
 	memcpy((void *)mos_safety_atags_base, (void *)ATAGS_PHYS_BASE, ATAGS_SIZE);
 	flush_dcache_range(mos_safety_atags_base, mos_safety_atags_base + ATAGS_SIZE);
 
+	/* prepare vendor storage for safety */
+#ifdef CONFIG_SPL_ROCKCHIP_VENDOR_PARTITION
+	ulong vendor_addr;
+
+	vendor_addr = fdtdec_get_addr_size_fixed(cfg_fdt, noffset,
+				"vendor_storage_memory", 0, 2, 2, &sizep, false);
+	if (vendor_addr == FDT_ADDR_T_NONE)
+		return 0;
+
+	vendor_storage_fixup((void *)vendor_addr);
+#endif
 	return 0;
 }
 

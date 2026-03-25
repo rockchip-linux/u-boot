@@ -18,6 +18,7 @@
 #include <spl.h>
 #include <spl_ab.h>
 #include <linux/libfdt.h>
+#include <asm/arch/vendor.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -948,7 +949,9 @@ int spl_load_simple_fit(struct spl_image_info *spl_image,
 #ifdef CONFIG_MP_BOOT
 	mpb_init_1(*info);
 #endif
-
+#ifdef CONFIG_SPL_ROCKCHIP_VENDOR_PARTITION
+	flash_vendor_dev_ops_register(info);
+#endif
 	printf("Trying fit image at 0x%lx sector\n", sector_offs);
 	for (i = 0; i < CONFIG_SPL_FIT_IMAGE_MULTIPLE; i++) {
 		if (i > 0) {
