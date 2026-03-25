@@ -9,7 +9,6 @@
 
 #ifdef CONFIG_SPL_BUILD
 struct rockchip_connector {
-	struct rockchip_phy *phy;
 	int id;
 	int type;
 	bool hpd;
@@ -25,7 +24,6 @@ struct rockchip_connector {
 	struct udevice *dev;
 	struct rockchip_bridge *bridge;
 	struct rockchip_panel *panel;
-	struct rockchip_phy *phy;
 	struct list_head head;
 	int id;
 	int type;

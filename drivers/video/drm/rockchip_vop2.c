@@ -37,7 +37,6 @@
 #include "rockchip_display.h"
 #include "rockchip_crtc.h"
 #include "rockchip_connector.h"
-#include "rockchip_phy.h"
 
 /* System registers definition */
 #define RK3568_REG_CFG_DONE			0x000
@@ -6316,7 +6315,6 @@ static int rockchip_vop2_init(struct display_state *state)
 
 				/* dclk src switch to hdmiphy pll */
 				writel((BIT(0) << 16) | BIT(0), cru_base + 0x450);
-				rockchip_phy_set_pll(conn_state->connector->phy, dclk_rate * 1000);
 				ret = dclk_rate * 1000;
 			}
 #endif
