@@ -129,6 +129,32 @@ static int rk_get_fwkey_param(u32 keyid, u32 *offset, u32 *max_len)
 	return 0;
 }
 
+static int rk_get_otpkey_param(u32 keyid, u32 *offset, u32 *max_len)
+{
+	switch (keyid) {
+	case RK_OTP_KEY0:
+		*offset  = OTP_OEM_KEY0_ADDR;
+		*max_len = OTP_OEM_KEY0_SIZE;
+		break;
+	case RK_OTP_KEY1:
+		*offset  = OTP_OEM_KEY1_ADDR;
+		*max_len = OTP_OEM_KEY1_SIZE;
+		break;
+	case RK_OTP_KEY2:
+		*offset  = OTP_OEM_KEY2_ADDR;
+		*max_len = OTP_OEM_KEY2_SIZE;
+		break;
+	case RK_OTP_KEY3:
+		*offset  = OTP_OEM_KEY3_ADDR;
+		*max_len = OTP_OEM_KEY3_SIZE;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int rk_keylad_send_key(u32 key_reg, u32 n_words, ulong dst_addr)
 {
 	int ret = 0;
@@ -264,8 +290,48 @@ exit:
 	return res;
 }
 
+static int rockchip_keylad_transfer_otpkey(struct udevice *dev, ulong dst,
+					   enum RK_OTP_KEYID otp_keyid, u32 keylen)
+{
+	int res = 0;
+	u32 otp_offset;
+	u32 max_key_len = 0;
+
+	if (keylen % 4) {
+		printf("key_len(%u) must be multiple of 4 error.", keylen);
+		return -EINVAL;
+	}
+
+	res = rk_get_otpkey_param(otp_keyid, &otp_offset, &max_key_len);
+	if (res)
+		return res;
+
+	if (keylen > max_key_len) {
+		printf("key_len(%u) > %u error.", keylen, max_key_len);
+		return -EINVAL;
+	}
+
+	rk_keylad_enable_clk(dev);
+
+	res = rk_keylad_read_otp_key(otp_offset, 0, keylen);
+	if (res) {
+		printf("Keyladder read otp key err: 0x%x.", res);
+		rk_keylad_disable_clk(dev);
+		return res;
+	}
+
+	res = rk_keylad_send_key(0, keylen / 4, dst);
+
+	rk_keylad_disable_clk(dev);
+	if (res)
+		printf("Keyladder transfer key err: 0x%x.", res);
+
+	return res;
+}
+
 static const struct dm_keylad_ops rockchip_keylad_ops = {
 	.transfer_fwkey   = rockchip_keylad_transfer_fwkey,
+	.transfer_otpkey  = rockchip_keylad_transfer_otpkey,
 };
 
 static int rockchip_keylad_ofdata_to_platdata(struct udevice *dev)

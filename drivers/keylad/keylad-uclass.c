@@ -20,7 +20,7 @@ struct udevice *keylad_get_device(void)
 	     dev;
 	     uclass_next_device(&dev)) {
 		ops = device_get_ops(dev);
-		if (!ops || !ops->transfer_fwkey)
+		if (!ops || (!ops->transfer_fwkey && !ops->transfer_otpkey))
 			continue;
 
 		return dev;
@@ -41,6 +41,20 @@ int keylad_transfer_fwkey(struct udevice *dev, ulong dst,
 		return -EINVAL;
 
 	return ops->transfer_fwkey(dev, dst, fw_keyid, keylen);
+}
+
+int keylad_transfer_otpkey(struct udevice *dev, ulong dst,
+			   enum RK_OTP_KEYID otp_keyid, u32 keylen)
+{
+	const struct dm_keylad_ops *ops = device_get_ops(dev);
+
+	if (!ops || !ops->transfer_otpkey)
+		return -ENOSYS;
+
+	if (dst == 0)
+		return -EINVAL;
+
+	return ops->transfer_otpkey(dev, dst, otp_keyid, keylen);
 }
 
 UCLASS_DRIVER(keylad) = {

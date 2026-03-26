@@ -14,10 +14,21 @@ enum RK_FW_KEYID {
 	RK_FW_KEYMAX
 };
 
+enum RK_OTP_KEYID {
+	RK_OTP_KEY0 = 0,
+	RK_OTP_KEY1,
+	RK_OTP_KEY2,
+	RK_OTP_KEY3,
+	RK_OTP_KEYMAX
+};
+
 struct dm_keylad_ops {
 	/* transfer firmware key to dst module */
 	int (*transfer_fwkey)(struct udevice *dev, ulong dst,
 			      enum RK_FW_KEYID fw_keyid, u32 keylen);
+	/* transfer oem otp key to dst module */
+	int (*transfer_otpkey)(struct udevice *dev, ulong dst,
+			       enum RK_OTP_KEYID otp_keyid, u32 keylen);
 };
 
 /**
@@ -39,5 +50,18 @@ struct udevice *keylad_get_device(void);
  */
 int keylad_transfer_fwkey(struct udevice *dev, ulong dst,
 			  enum RK_FW_KEYID fw_keyid, u32 keylen);
+
+/**
+ * keylad_transfer_otpkey() - Transfer OEM OTP key to dst module
+ *
+ * @dev: keylad device
+ * @dst: dst module addr
+ * @otp_keyid: otp key id select from enum RK_OTP_KEYID
+ * @keylen: key length of otp key
+ *
+ * @return 0 on success, otherwise failed
+ */
+int keylad_transfer_otpkey(struct udevice *dev, ulong dst,
+			   enum RK_OTP_KEYID otp_keyid, u32 keylen);
 
 #endif
