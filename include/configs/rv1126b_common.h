@@ -65,6 +65,18 @@
 #define OTP_BACK_FW_ENC_KEY_ADDR	(0x28 * 4)
 #define OTP_BACK_FW_ENC_KEY_SIZE	(0x04 * 4)
 
+#define OTP_OEM_KEY0_ADDR		(0x30 * 4)
+#define OTP_OEM_KEY0_SIZE		(0x08 * 4)
+
+#define OTP_OEM_KEY1_ADDR		(0x38 * 4)
+#define OTP_OEM_KEY1_SIZE		(0x08 * 4)
+
+#define OTP_OEM_KEY2_ADDR		(0x40 * 4)
+#define OTP_OEM_KEY2_SIZE		(0x08 * 4)
+
+#define OTP_OEM_KEY3_ADDR		(0x48 * 4)
+#define OTP_OEM_KEY3_SIZE		(0x08 * 4)
+
 #define CONFIG_BOUNCE_BUFFER
 /* For most, U-Boot no need to use 0-1G space. */
 #define CONFIG_SYS_SDRAM_BASE		0x40000000
