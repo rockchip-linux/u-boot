@@ -1590,8 +1590,9 @@ static const struct dm_crypto_ops rockchip_crypto_ops = {
 	.cipher_mac      = rockchip_crypto_mac,
 	.cipher_ae       = rockchip_crypto_ae,
 #if CONFIG_IS_ENABLED(DM_KEYLAD)
-	.cipher_fw_crypt = rockchip_crypto_fw_cipher,
-	.keytable_addr   = rockchip_crypto_keytable_addr,
+	.cipher_fw_crypt  = rockchip_crypto_fw_cipher,
+	.cipher_otp_crypt = rockchip_crypto_fw_cipher,
+	.keytable_addr    = rockchip_crypto_keytable_addr,
 #endif
 #endif
 	.is_secure       = rockchip_crypto_is_secure,
