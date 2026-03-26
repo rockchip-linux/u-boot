@@ -116,6 +116,7 @@ struct dw_hdmi_qp {
 	unsigned int audio_n;
 	bool audio_enable;
 	bool scramble_low_rates;
+	bool skip_check_420_mode;
 
 	void (*write)(struct dw_hdmi_qp *hdmi, u32 val, int offset);
 	u8 (*read)(struct dw_hdmi_qp *hdmi, int offset);
@@ -1247,6 +1248,9 @@ int rockchip_dw_hdmi_qp_init(struct rockchip_connector *conn, struct display_sta
 
 	hdmi->regs = dev_read_addr_ptr(conn->dev);
 
+	hdmi->skip_check_420_mode =
+		ofnode_read_bool(hdmi_node, "skip-check-420-mode");
+
 	ddc_node = of_parse_phandle(ofnode_to_np(hdmi_node), "ddc-i2c-bus", 0);
 	if (ddc_node) {
 		uclass_get_device_by_ofnode(UCLASS_I2C, np_to_ofnode(ddc_node),
@@ -1438,21 +1442,58 @@ int rockchip_dw_hdmi_qp_disable(struct rockchip_connector *conn, struct display_
 	return 0;
 }
 
+static bool is_hdmi2_mode(const struct drm_display_mode *mode)
+{
+	if (mode->clock > 340000 && mode->clock <= 600000)
+		return true;
+
+	return false;
+}
+
 static void rockchip_dw_hdmi_qp_mode_valid(struct dw_hdmi_qp *hdmi)
 {
 	struct hdmi_edid_data *edid_data = &hdmi->edid_data;
 	int i;
 	bool enable_gpio = dw_hdmi_qp_check_enable_gpio(hdmi->rk_hdmi);
+	struct drm_display_info *info = &edid_data->display_info;
+	int max_tmds_clock = min(info->max_tmds_clock, 594000);
+	struct drm_display_mode *mode;
+
+	/* some sinks edid max_tmds_clocks are 0, we think it only support hdmi1.4 */
+	if (!info->max_tmds_clock)
+		max_tmds_clock = 340000;
 
 	for (i = 0; i < edid_data->modes; i++) {
-		if (edid_data->mode_buf[i].invalid)
+		mode = &edid_data->mode_buf[i];
+		if (mode->invalid)
 			continue;
 
-		if (edid_data->mode_buf[i].clock <= 25000)
-			edid_data->mode_buf[i].invalid = true;
+		if (mode->clock <= 25000)
+			mode->invalid = true;
 
-		if (edid_data->mode_buf[i].clock > 600000 && !enable_gpio)
-			edid_data->mode_buf[i].invalid = true;
+		if (mode->clock > 600000 && !enable_gpio)
+			mode->invalid = true;
+
+		if (!hdmi->skip_check_420_mode) {
+			/* edid isn't support yuv420 and max_tmds_clock is less than mode pixel clk */
+			if (mode->clock < 600000 && max_tmds_clock < mode->clock &&
+				(!drm_mode_is_420(info, mode)))
+				mode->invalid = true;
+
+			/* edid isn't support yuv420 and hdmitx only support hdmi1.4 clk */
+			if (max_tmds_clock <= 340000 && is_hdmi2_mode(mode) &&
+				!drm_mode_is_420(info, mode))
+				mode->invalid = true;
+
+			/*
+			* hdmi cts hf1-31 required filtering yuv420 mode that frequency
+			* exceeds the max_tmds_clock of edid.
+			*/
+			if (drm_mode_is_420(info, mode) &&
+				max_tmds_clock < (mode->clock / 2) &&
+				is_hdmi2_mode(mode))
+				mode->invalid = true;
+		};
 	}
 }
 
