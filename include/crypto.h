@@ -94,8 +94,13 @@ typedef struct {
 	u32		key_len;
 	const u8	*iv;
 	u32		iv_len;
-	u32		fw_keyid;
+	union {
+		u32		fw_keyid;
+		u32		otp_keyid;
+	};
 } cipher_fw_context;
+
+typedef cipher_fw_context cipher_otp_context;
 
 struct dm_crypto_ops {
 	/* Hardware algorithm capability */
@@ -136,6 +141,10 @@ struct dm_crypto_ops {
 	/* cipher firmware encryption and decryption */
 	int (*cipher_fw_crypt)(struct udevice *dev, cipher_fw_context *ctx,
 			       const u8 *in, u8 *out, u32 len, bool enc);
+
+	/* otp key cipher encryption and decryption */
+	int (*cipher_otp_crypt)(struct udevice *dev, cipher_otp_context *ctx,
+			        const u8 *in, u8 *out, u32 len, bool enc);
 
 	ulong (*keytable_addr)(struct udevice *dev);
 
@@ -334,6 +343,20 @@ int crypto_ae(struct udevice *dev, cipher_context *ctx,
  */
 int crypto_fw_cipher(struct udevice *dev, cipher_fw_context *ctx,
 		     const u8 *in, u8 *out, u32 len, bool enc);
+
+/**
+ * crypto_otp_cipher() - Crypto cipher OEM OTP key crypt
+ *
+ * @dev: crypto device
+ * @ctx: cipher otp context
+ * @in: input data buffer
+ * @out: output data buffer
+ * @len: input data length
+ * @enc: true for encrypt, false for decrypt
+ * @return 0 on success, otherwise failed
+ */
+int crypto_otp_cipher(struct udevice *dev, cipher_otp_context *ctx,
+		       const u8 *in, u8 *out, u32 len, bool enc);
 
 /**
  * crypto_keytable_addr() - Crypto keytable address

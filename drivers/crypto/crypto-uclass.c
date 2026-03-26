@@ -380,6 +380,40 @@ int crypto_fw_cipher(struct udevice *dev, cipher_fw_context *ctx,
 #endif
 }
 
+int crypto_otp_cipher(struct udevice *dev, cipher_otp_context *ctx,
+		      const u8 *in, u8 *out, u32 len, bool enc)
+{
+#if CONFIG_IS_ENABLED(DM_KEYLAD)
+	const struct dm_crypto_ops *ops = device_get_ops(dev);
+	struct udevice *keylad_dev;
+
+	if (!ops || !ops->cipher_otp_crypt)
+		return -ENOSYS;
+
+	if (!ops->is_secure || !ops->is_secure(dev)) {
+		printf("Only secure crypto support otp key cipher.\n");
+		return -ENOSYS;
+	}
+
+	keylad_dev = keylad_get_device();
+	if (!keylad_dev) {
+		printf("No keylad device found.\n");
+		return -ENOSYS;
+	}
+
+	if (keylad_transfer_otpkey(keylad_dev, crypto_keytable_addr(dev),
+				   (enum RK_OTP_KEYID)ctx->otp_keyid,
+				   ctx->key_len)) {
+		printf("Failed to transfer otp key from keylad.\n");
+		return -ENOSYS;
+	}
+
+	return ops->cipher_otp_crypt(dev, ctx, in, out, len, enc);
+#else
+	return -ENOSYS;
+#endif
+}
+
 ulong crypto_keytable_addr(struct udevice *dev)
 {
 	const struct dm_crypto_ops *ops = device_get_ops(dev);
