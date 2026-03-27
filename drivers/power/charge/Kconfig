@@ -21,3 +21,9 @@ config CHARGER_SGM41542
 	depends on DM_FUEL_GAUGE
 	help
 	  This adds support for sgm41542 charger support.
+
+config CHARGER_SY6974B
+	bool "sy6974b charger support"
+	depends on DM_FUEL_GAUGE
+	help
+	  This adds support for sy6974b charger support.

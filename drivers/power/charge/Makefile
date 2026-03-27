@@ -8,3 +8,4 @@ obj-$(CONFIG_CHARGER_BQ25700) += bq25700_charger.o
 obj-$(CONFIG_CHARGER_BQ25890) += bq25890_charger.o
 obj-$(CONFIG_CHARGER_SC8551) += sc8551_charger.o
 obj-$(CONFIG_CHARGER_SGM41542) += sgm41542_charger.o
+obj-$(CONFIG_CHARGER_SY6974B) += sy6974b_charger.o
