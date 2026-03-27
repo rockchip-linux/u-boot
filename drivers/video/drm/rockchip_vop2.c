@@ -2703,9 +2703,6 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct crtc_state *cstate = &state->crtc_state;
-	const struct vop2_data *vop2_data = vop2->data;
-	const struct vop2_ops *vop2_ops = vop2_data->ops;
-	struct vop2_vp_plane_mask *plane_mask = &vop2->vp_plane_mask[cstate->crtc_id];
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u16 vtotal = mode->crtc_vtotal;
 	u16 hact_st = mode->crtc_htotal - mode->crtc_hsync_start;
@@ -2764,16 +2761,34 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 		vop2_writel(vop2, RK3568_VP0_POST_DSP_VACT_INFO_F1 + vp_offset, val);
 	}
 
-	if (is_vop3(vop2)) {
-		vop3_setup_pipe_dly(state, vop2, cstate->crtc_id);
-	} else {
-		vop2_setup_dly_for_vp(state, vop2, cstate->crtc_id);
-		vop2_ops->setup_win_dly(state, cstate->crtc_id, plane_mask->primary_plane_id);
-		if (cstate->splice_mode) {
-			plane_mask = &vop2->vp_plane_mask[cstate->splice_crtc_id];
-			vop2_setup_dly_for_vp(state, vop2, cstate->splice_crtc_id);
-			vop2_ops->setup_win_dly(state, cstate->splice_crtc_id, plane_mask->primary_plane_id);
+	/*
+	 * The platform supported ACM:
+	 *   RK3528/RK3576:
+	 *     overlay-> post scale -> CSC_R2Y -> ACM -> CSC_Y2R
+	 *
+	 *   From RK3572/RK3538:
+	 *     overlay-> CSC_R2Y -> post scale -> ACM -> CSC_Y2R
+	 *
+	 * The platform support BCSH:
+	 *   overlay-> CSC_R2Y -> BCSH -> CSC_Y2R -> post sclae
+	 */
+	if (cstate->feature & VOP_FEATURE_POST_ACM) {
+		if (vop2->version <= VOP_VERSION_RK3576) {
+			vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+					POST_DSP_OUT_R2Y_SHIFT, cstate->yuv_overlay, false);
+		} else {
+			if (cstate->post_y2r_en || cstate->acm_en ||
+			    is_yuv_output(conn_state->bus_format))
+				vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+						POST_DSP_OUT_R2Y_SHIFT, 1, false);
+			else
+				vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+						POST_DSP_OUT_R2Y_SHIFT, 0, false);
 		}
+	} else {
+		vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, EN_MASK,
+				POST_DSP_OUT_R2Y_SHIFT, is_yuv_output(conn_state->bus_format),
+				false);
 	}
 }
 
@@ -3149,6 +3164,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 				POST_CSC_MODE_MASK, POST_CSC_MODE_SHIFT, range_type, false);
 	}
 
+	cstate->post_y2r_en = post_csc_en;
 	vop2_mask_write(vop2, RK3528_VP0_ACM_CTRL + vp_offset,
 			POST_CSC_EN_MASK, POST_CSC_EN_SHIFT, post_csc_en ? 1 : 0, false);
 }
@@ -6008,6 +6024,7 @@ static int rockchip_vop2_init(struct display_state *state)
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct vop2 *vop2 = cstate->private;
+	struct vop2_vp_plane_mask *plane_mask = &vop2->vp_plane_mask[cstate->crtc_id];
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_ops *vop2_ops = vop2_data->ops;
 	u16 hsync_len = mode->crtc_hsync_end - mode->crtc_hsync_start;
@@ -6226,11 +6243,57 @@ static int rockchip_vop2_init(struct display_state *state)
 				DSP_X_MIR_EN_SHIFT, 1, false);
 
 	vop2_tv_config_update(state, vop2);
-	vop2_post_config(state, vop2);
+
+	if (is_vop3(vop2)) {
+		vop3_setup_pipe_dly(state, vop2, cstate->crtc_id);
+	} else {
+		vop2_setup_dly_for_vp(state, vop2, cstate->crtc_id);
+		vop2_ops->setup_win_dly(state, cstate->crtc_id, plane_mask->primary_plane_id);
+		if (cstate->splice_mode) {
+			plane_mask = &vop2->vp_plane_mask[cstate->splice_crtc_id];
+			vop2_setup_dly_for_vp(state, vop2, cstate->splice_crtc_id);
+			vop2_ops->setup_win_dly(state, cstate->splice_crtc_id,
+						plane_mask->primary_plane_id);
+		}
+	}
+
 	if (cstate->feature & VOP_FEATURE_POST_ACM)
 		vop3_post_acm_config(state, vop2);
 	if (cstate->feature & VOP_FEATURE_POST_CSC)
 		vop3_post_csc_config(state, vop2);
+
+	if (cstate->feature & VOP_FEATURE_OVERSCAN)
+		vop2_post_config(state, vop2);
+
+	if (vop2->version <= VOP_VERSION_RK3576) {
+		if (cstate->yuv_overlay)
+			val = 0x20010200;/* limit range */
+		else
+			val = 0;
+	} else {
+		if (cstate->post_y2r_en || cstate->acm_en ||
+		    is_yuv_output(conn_state->bus_format))
+			val = 0x20000200;/* full range */
+		else
+			val = 0;
+	}
+
+	vop2_writel(vop2, RK3568_VP0_DSP_BG + vp_offset, val);
+	vop2_mask_write(vop2, RK3568_OVL_CTRL, OVL_MODE_SEL_MASK,
+			OVL_MODE_SEL_SHIFT + cstate->crtc_id,
+			cstate->yuv_overlay, false);
+	if (cstate->splice_mode) {
+		vop2_writel(vop2, RK3568_VP0_DSP_BG + (cstate->splice_crtc_id * 0x100), val);
+		vop2_mask_write(vop2, RK3568_OVL_CTRL, OVL_MODE_SEL_MASK,
+				OVL_MODE_SEL_SHIFT + cstate->splice_crtc_id,
+				cstate->yuv_overlay, false);
+	}
+	/* From rk3538/rk3572, the WIN CSC will convert the data to YUV full range
+	 * when at yuv overlay mode.
+	 */
+	if (vop2->version >= VOP_VERSION_RK3572)
+		vop2_mask_write(vop2, RK3568_OVL_CTRL, OVL_YUV_FULL_MODE_MASK,
+				OVL_YUV_FULL_MODE_SHIFT + cstate->crtc_id, 1, false);
 
 	if (cstate->dsc_enable) {
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
