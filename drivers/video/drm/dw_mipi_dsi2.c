@@ -327,46 +327,48 @@ static unsigned long dw_mipi_dsi2_get_lane_rate(struct dw_mipi_dsi2 *dsi2)
 			dsi2->pdata->cphy_max_symbol_rate_per_lane :
 			dsi2->pdata->dphy_max_bit_rate_per_lane;
 
-	/*
-	 * optional override of the desired bandwidth
-	 * High-Speed mode: Differential and terminated: 80Mbps ~ 4500 Mbps
-	 */
-	value = dev_read_u32_default(dsi2->dev, "rockchip,lane-rate", 0);
-	if (value >= 80000 && value <= 4500000)
-		return value * MSEC_PER_SEC;
-	else if (value >= 80 && value <= 4500)
-		return value * USEC_PER_SEC;
-
 	bpp = dw_mipi_dsi2_pixel_format_to_bpp(dsi2->format);
 	if (bpp < 0)
 		bpp = 24;
 
 	lanes = dsi2->slave ? dsi2->lanes * 2 : dsi2->lanes;
-	tmp = (u64)mode->crtc_clock * 1000 * bpp;
-	do_div(tmp, lanes);
 
-	if (dsi2->c_option)
-		tmp = DIV_ROUND_CLOSEST(tmp * 100, 228);
-
-	/* set BW a little larger only in video burst mode in
-	 * consideration of the protocol overhead and HS mode
-	 * switching to BLLP mode, take 1 / 0.9, since Mbps must
-	 * big than bandwidth of RGB
+	/*
+	 * optional override of the desired bandwidth
+	 * High-Speed mode: Differential and terminated: 80Mbps ~ 4500 Mbps
 	 */
-	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_BURST) {
-		tmp *= 10;
-		do_div(tmp, 9);
-	}
+	value = dev_read_u32_default(dsi2->dev, "rockchip,lane-rate", 0);
+	if (value >= 80000 && value <= 4500000) {
+		lane_rate = value * MSEC_PER_SEC;
+	} else if (value >= 80 && value <= 4500) {
+		lane_rate = value * USEC_PER_SEC;
+	} else {
+		tmp = (u64)mode->crtc_clock * 1000 * bpp;
+		do_div(tmp, lanes);
 
-	if (tmp > max_lane_rate)
-		lane_rate = max_lane_rate;
-	else
-		lane_rate = tmp;
+		if (dsi2->c_option)
+			tmp = DIV_ROUND_CLOSEST(tmp * 100, 228);
+
+		/* set BW a little larger only in video burst mode in
+		 * consideration of the protocol overhead and HS mode
+		 * switching to BLLP mode, take 1 / 0.9, since Mbps must
+		 * big than bandwidth of RGB
+		 */
+		if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_BURST) {
+			tmp *= 10;
+			do_div(tmp, 9);
+		}
+
+		if (tmp > max_lane_rate)
+			lane_rate = max_lane_rate;
+		else
+			lane_rate = tmp;
+	}
 
 	target_pclk = DIV_ROUND_CLOSEST_ULL(lane_rate * lanes, bpp);
 	phy_mipi_dphy_get_default_config(target_pclk, bpp, lanes, &dsi2->phy_cfg);
 
-	return lane_rate;
+	return dsi2->phy_cfg.hs_clk_rate;
 }
 
 static int cri_fifos_wait_avail(struct dw_mipi_dsi2 *dsi2)
