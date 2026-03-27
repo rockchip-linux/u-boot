@@ -607,43 +607,42 @@ static void dw_mipi_dsi_phy_init(struct dw_mipi_dsi *dsi)
 static unsigned long dw_mipi_dsi_get_lane_rate(struct dw_mipi_dsi *dsi)
 {
 	const struct drm_display_mode *mode = &dsi->mode;
-	unsigned int max_lane_rate = dsi->pdata->max_bit_rate_per_lane / 1000;
+	unsigned int max_lane_rate = dsi->pdata->max_bit_rate_per_lane / 1000000;
 	unsigned long lane_rate;
 	unsigned long mpclk;
 	unsigned long target_pclk;
-	unsigned long target_mbps;
 	unsigned long tmp;
 	unsigned int value;
 	int bpp, lanes;
-
-	/* optional override of the desired bandwidth */
-	value = dev_read_u32_default(dsi->dev, "rockchip,lane-rate", 0);
-	if (value > 0)
-		return value * 1000 * 1000;
 
 	bpp = mipi_dsi_pixel_format_to_bpp(dsi->format);
 	if (bpp < 0)
 		bpp = 24;
 
 	lanes = dsi->slave ? dsi->lanes * 2 : dsi->lanes;
-	mpclk = DIV_ROUND_UP(mode->clock, 1000);
-	/* take 1 / 0.9, since mbps must big than bandwidth of RGB */
-	tmp = mpclk * (bpp / lanes) * 10 / 9;
 
-	if (tmp > max_lane_rate)
-		target_mbps = max_lane_rate;
-	else
-		target_mbps = tmp;
+	/* optional override of the desired bandwidth */
+	value = dev_read_u32_default(dsi->dev, "rockchip,lane-rate", 0);
+	if (value >= 80 && value <= 4500) {
+		lane_rate = value;
+	} else {
+		mpclk = DIV_ROUND_UP(mode->clock, 1000);
+		/* take 1 / 0.9, since mbps must big than bandwidth of RGB */
+		tmp = mpclk * (bpp / lanes) * 10 / 9;
 
-	target_pclk = DIV_ROUND_CLOSEST_ULL(target_mbps * lanes, bpp);
-	lane_rate = target_pclk * 1000 * 1000 * bpp;
-	do_div(lane_rate, lanes);
+		if (tmp > max_lane_rate)
+			lane_rate = max_lane_rate;
+		else
+			lane_rate = tmp;
+	}
+
+	target_pclk = DIV_ROUND_CLOSEST_ULL(lane_rate * lanes, bpp);
 
 	phy_mipi_dphy_get_default_config(target_pclk * USEC_PER_SEC,
 					 bpp, lanes,
 					 &dsi->phy_opts);
 
-	return lane_rate;
+	return dsi->phy_opts.hs_clk_rate;
 }
 
 static void dw_mipi_dsi_set_pll(struct dw_mipi_dsi *dsi, unsigned long rate)
