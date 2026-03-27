@@ -7966,9 +7966,11 @@ static void rk3528_setup_overlay(struct display_state *state)
 	struct crtc_state *cstate = &state->crtc_state;
 	struct vop2 *vop2 = cstate->private;
 	struct vop2_win_data *win_data;
-	int i;
+	struct rockchip_vp *vp;
+	struct vop2_zpos *vop2_zpos;
+	int i, j;
 	u32 offset = 0;
-	u8 shift = 0;
+	u32 shift = 0;
 
 	/* init the layer sel value to 0xff(Disable layer) */
 	for (i = 0; i < vop2->data->nr_vps; i++) {
@@ -7978,18 +7980,23 @@ static void rk3528_setup_overlay(struct display_state *state)
 
 	/* layer sel win id */
 	for (i = 0; i < vop2->data->nr_vps; i++) {
-		if (vop2->vp_plane_mask[i].primary_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
-			offset = 0x100 * i;
-			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].primary_plane_id);
-			vop2_mask_write(vop2, RK3528_OVL_PORT0_LAYER_SEL + offset,
-					LAYER_SEL_MASK, 0, win_data->layer_sel_win_id[i], false);
+		vp = &cstate->crtc->vps[i];
+		offset = 0x100 * i;
+		for (j = 0; j < vp->active_layers; j++) {
+			vop2_zpos = &vp->vop2_zpos[j];
+			win_data = vop2_find_win_by_phys_id(vop2, vop2_zpos->plane_id);
+			shift = 4 * vop2_zpos->zpos;
+			vop2_mask_write(vop2, RK3528_OVL_PORT0_LAYER_SEL + offset, LAYER_SEL_MASK,
+					shift, win_data->layer_sel_win_id[i], false);
 		}
 	}
 
 	/* win sel port */
 	for (i = 0; i < vop2->data->nr_vps; i++) {
-		if (vop2->vp_plane_mask[i].primary_plane_id != ROCKCHIP_VOP2_PHY_ID_INVALID) {
-			win_data = vop2_find_win_by_phys_id(vop2, vop2->vp_plane_mask[i].primary_plane_id);
+		vp = &cstate->crtc->vps[i];
+		for (j = 0; j < vp->active_layers; j++) {
+			vop2_zpos = &vp->vop2_zpos[j];
+			win_data = vop2_find_win_by_phys_id(vop2, vop2_zpos->plane_id);
 			shift = win_data->win_sel_port_offset * 2;
 			vop2_mask_write(vop2, RK3528_OVL_SYS_PORT_SEL,
 					LAYER_SEL_PORT_MASK, shift, i, false);
