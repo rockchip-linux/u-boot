@@ -7629,17 +7629,11 @@ static struct vop2_win_data rk3562_win_data[4] = {
 	},
 };
 
-static struct vop2_vp_data rk3562_vp_data[2] = {
+static struct vop2_vp_data rk3562_vp_data[1] = {
 	{
 		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN,
 		.max_output = {2048, 4096},
 		.win_dly = 6,
-		.layer_mix_dly = 8,
-	},
-	{
-		.feature = VOP_FEATURE_ALPHA_SCALE | VOP_FEATURE_OVERSCAN,
-		.max_output = {2048, 1080},
-		.win_dly = 8,
 		.layer_mix_dly = 8,
 	},
 };
@@ -7652,7 +7646,7 @@ static const struct vop2_ops rk3562_vop_ops = {
 
 const struct vop2_data rk3562_vop = {
 	.version = VOP_VERSION_RK3562,
-	.nr_vps = 2,
+	.nr_vps = 1,
 	.vp_data = rk3562_vp_data,
 	.win_data = rk3562_win_data,
 	.win_size = ARRAY_SIZE(rk3562_win_data),
