@@ -1222,20 +1222,6 @@ static int dw_mipi_dsi_connector_init(struct rockchip_connector *conn, struct di
 			conn_state->output_flags |= ROCKCHIP_OUTPUT_DATA_SWAP;
 
 		conn_state->output_if |= VOP_OUTPUT_IF_MIPI1;
-
-#if defined(CONFIG_ROCKCHIP_RK3568)
-		struct udevice *phy_dev;
-
-		ret = uclass_get_device_by_phandle(UCLASS_PHY, dev,
-						   "phys", &phy_dev);
-		if (ret)
-			return -ENODEV;
-
-		generic_phy_get_by_name(dev, "dphy", &dsi->slave->dphy.phy);
-		if (!generic_phy_valid(&dsi->slave->dphy.phy))
-			return -ENODEV;
-#endif
-
 	}
 
 	return 0;
