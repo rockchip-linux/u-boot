@@ -53,6 +53,7 @@ static int dbg_enable;
 
 #define SGM4154x_BOOSTV				GENMASK(5, 4)
 #define SGM4154x_BOOST_LIM			BIT(7)
+#define SGM4154x_OTG_EN_MASK			BIT(5)
 #define SGM4154x_OTG_EN				BIT(5)
 
 /* Part ID */
@@ -682,6 +683,14 @@ static int sgm41542_probe(struct udevice *dev)
 	printf("sgm41542: driver initializing\n");
 	charger->dev = dev;
 
+	/* Disable OTG 5V output */
+	ret = sgm41542_update_bits(charger, SGM4154x_CHRG_CTRL_5,
+				   SGM4154x_OTG_EN_MASK,
+				   0);
+	if (ret) {
+		printf("sgm41542: disable otg failed\n");
+		return ret;
+	}
 	/* Disable watchdog */
 	ret = sgm41542_update_bits(charger, SGM4154x_CHRG_CTRL_5,
 				   SGM4154x_WDT_TIMER_MASK,
