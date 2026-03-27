@@ -3151,12 +3151,6 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 			POST_CSC_EN_MASK, POST_CSC_EN_SHIFT, post_csc_en ? 1 : 0, false);
 }
 
-static void vop3_post_config(struct display_state *state, struct vop2 *vop2)
-{
-	vop3_post_acm_config(state, vop2);
-	vop3_post_csc_config(state, vop2);
-}
-
 static int rk3576_vop2_wait_power_domain_on(struct vop2 *vop2,
 					    struct vop2_power_domain_data *pd_data)
 {
@@ -6233,8 +6227,10 @@ static int rockchip_vop2_init(struct display_state *state)
 
 	vop2_tv_config_update(state, vop2);
 	vop2_post_config(state, vop2);
-	if (cstate->feature & (VOP_FEATURE_POST_ACM | VOP_FEATURE_POST_CSC))
-		vop3_post_config(state, vop2);
+	if (cstate->feature & VOP_FEATURE_POST_ACM)
+		vop3_post_acm_config(state, vop2);
+	if (cstate->feature & VOP_FEATURE_POST_CSC)
+		vop3_post_csc_config(state, vop2);
 
 	if (cstate->dsc_enable) {
 		if (conn_state->output_flags & ROCKCHIP_OUTPUT_DUAL_CHANNEL_LEFT_RIGHT_MODE) {
