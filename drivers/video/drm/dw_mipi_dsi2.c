@@ -819,7 +819,6 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
 	struct dw_mipi_dsi2 *dsi2 = dev_get_priv(conn->dev);
-	struct udevice *phy_dev;
 	struct udevice *dev;
 	u16 dsc_bpp_x16;
 	int ret;
@@ -881,17 +880,6 @@ static int dw_mipi_dsi2_connector_init(struct rockchip_connector *conn, struct d
 			conn_state->output_flags |= ROCKCHIP_OUTPUT_DATA_SWAP;
 
 		conn_state->output_if |= VOP_OUTPUT_IF_MIPI1;
-
-		ret = uclass_get_device_by_phandle(UCLASS_PHY, dev,
-						   "phys", &phy_dev);
-		if (ret)
-			return -ENODEV;
-
-		generic_phy_get_by_name(phy_dev, "dcphy", &dsi2->slave->phy);
-		if (!generic_phy_valid(&dsi2->slave->phy))
-			return -ENODEV;
-
-		return generic_phy_init(&dsi2->slave->phy);
 	}
 
 	dw_mipi_dsi2_get_dsc_params_from_sink(dsi2);
