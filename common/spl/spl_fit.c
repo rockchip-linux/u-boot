@@ -870,8 +870,8 @@ static int spl_simple_fit_read(struct spl_fit_info *ctx,
 	buf = board_spl_fit_buffer_addr(size, size, 1);
 
 	count = info->read(info, offset, size, buf);
-#if defined(CONFIG_SPL_MTD_SUPPORT) && !defined(CONFIG_FPGA_RAM)
-	mtd_blk_map_fit(info->priv, offset, fit);
+#if defined(CONFIG_SPL_MTD_SUPPORT) && !defined(CONFIG_FPGA_RAM) && defined(CONFIG_MTD_BLK)
+	mtd_blk_map_fit(info->priv, offset, buf);
 #endif
 	ctx->fit = buf;
 	debug("fit read offset %lx, size=%lu, dst=%p, count=%lu\n",

@@ -93,7 +93,7 @@ int spl_mtd_load_image(struct spl_image_info *spl_image,
 	load.bl_len = desc->blksz;
 	load.read = h_spl_load_read;
 
-#ifdef CONFIG_SPL_LIBDISK_SUPPORT
+#if defined(CONFIG_SPL_LIBDISK_SUPPORT) && defined(CONFIG_MTD_BLK)
 	struct disk_partition info;
 
 	mtd_blk_map_partitions(desc);
