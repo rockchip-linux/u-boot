@@ -112,7 +112,7 @@ int spl_mtd_load_image(struct spl_image_info *spl_image,
 	if (!desc)
 		return -ENODEV;
 
-#ifdef CONFIG_SPL_LIBDISK_SUPPORT
+#if defined(CONFIG_SPL_LIBDISK_SUPPORT) && defined(CONFIG_MTD_BLK)
 	disk_partition_t info;
 
 	mtd_blk_map_partitions(desc);

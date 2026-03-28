@@ -538,7 +538,7 @@ static void *spl_fit_load_blob(struct spl_load_info *info,
 			align_len) & ~align_len);
 	sectors = get_aligned_image_size(info, size, 0);
 	count = info->read(info, sector, sectors, fit);
-#if defined(CONFIG_SPL_MTD_SUPPORT) && !defined(CONFIG_FPGA_RAM)
+#if defined(CONFIG_SPL_MTD_SUPPORT) && !defined(CONFIG_FPGA_RAM) && defined(CONFIG_MTD_BLK)
 	mtd_blk_map_fit(info->dev, sector, fit);
 #endif
 	debug("fit read sector %lx, sectors=%d, dst=%p, count=%lu\n",
