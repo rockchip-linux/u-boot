@@ -459,10 +459,8 @@ ulong mtd_dread(struct udevice *udev, lbaint_t start,
 		lbaint_t blkcnt, void *dst)
 {
 	struct blk_desc *desc = dev_get_uclass_platdata(udev);
-#if defined(CONFIG_NAND) || defined(CONFIG_MTD_SPI_NAND) || defined(CONFIG_SPI_FLASH_MTD)
 	loff_t off = (loff_t)(start * 512);
 	size_t rwsize = blkcnt * 512;
-#endif
 	struct mtd_info *mtd;
 	int ret = 0;
 #ifdef MTD_BLK_VERBOSE
@@ -571,10 +569,8 @@ ulong mtd_dwrite(struct udevice *udev, lbaint_t start,
 		 lbaint_t blkcnt, const void *src)
 {
 	struct blk_desc *desc = dev_get_uclass_platdata(udev);
-#if defined(CONFIG_NAND) || defined(CONFIG_MTD_SPI_NAND) || defined(CONFIG_SPI_FLASH_MTD)
 	loff_t off = (loff_t)(start * 512);
 	size_t rwsize = blkcnt * 512;
-#endif
 	struct mtd_info *mtd;
 	int ret = 0;
 
@@ -654,10 +650,8 @@ ulong mtd_derase(struct udevice *udev, lbaint_t start,
 		 lbaint_t blkcnt)
 {
 	struct blk_desc *desc = dev_get_uclass_platdata(udev);
-#if defined(CONFIG_NAND) || defined(CONFIG_MTD_SPI_NAND) || defined(CONFIG_SPI_FLASH_MTD)
 	loff_t off = (loff_t)(start * 512);
 	size_t len = blkcnt * 512;
-#endif
 	struct mtd_info *mtd;
 	int ret = 0;
 
