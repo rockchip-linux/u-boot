@@ -228,4 +228,5 @@ void sfc_disable_delay_lines(void);
 u16 sfc_get_max_dll_cells(void);
 int rksfc_get_reg_addr(unsigned long *p_sfc_addr);
 void rksfc_set_cs_gpio(u8 cs, bool enable);
+void sfc_set_async_dma(bool enable);
 #endif

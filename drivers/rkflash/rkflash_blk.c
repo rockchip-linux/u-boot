@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <blk.h>
 #include <dm.h>
 #include <dm/device-internal.h>
 #include <dm/lists.h>
@@ -12,12 +13,14 @@
 
 #include "rkflash_blk.h"
 #include "rkflash_debug.h"
+#include "sfc.h"
 
 ulong rkflash_bread(struct udevice *udev, lbaint_t start,
 		    lbaint_t blkcnt, void *dst)
 {
 	struct blk_desc *block_dev = dev_get_uclass_platdata(udev);
 	struct rkflash_info *priv = dev_get_priv(udev->parent);
+	int ret;
 
 	debug("%s lba %x cnt %x\n", __func__, (u32)start, (u32)blkcnt);
 	if (blkcnt == 0)
@@ -29,7 +32,15 @@ ulong rkflash_bread(struct udevice *udev, lbaint_t start,
 	if (!priv->read)
 		return -EINVAL;
 
-	return (ulong)priv->read(udev->parent, (u32)start, (u32)blkcnt, dst);
+	if (block_dev->op_flag == BLK_PRE_RW)
+		sfc_set_async_dma(true);
+
+	ret = priv->read(udev->parent, (u32)start, (u32)blkcnt, dst);
+
+	if (block_dev->op_flag == BLK_PRE_RW)
+		sfc_set_async_dma(false);
+
+	return (ulong)ret;
 }
 
 ulong rkflash_bwrite(struct udevice *udev, lbaint_t start,

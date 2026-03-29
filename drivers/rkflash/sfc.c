@@ -15,6 +15,12 @@
 #define SFC_MAX_IOSIZE_VER4		(0xFFFFFFFF)
 
 static void __iomem *g_sfc_reg;
+static bool sfc_async_dma;
+
+void sfc_set_async_dma(bool enable)
+{
+	sfc_async_dma = enable;
+}
 
 static void sfc_reset(void)
 {
@@ -166,6 +172,11 @@ int sfc_request(struct rk_sfc_op *op, u32 addr, void *data, u32 size)
 		writel(~((u32)DMA_INT), g_sfc_reg + SFC_IMR);
 		writel((unsigned long)bb.bounce_buffer, g_sfc_reg + SFC_DMA_ADDR);
 		writel(SFC_DMA_START, g_sfc_reg + SFC_DMA_TRIGGER);
+
+		if (sfc_async_dma) {
+			bounce_buffer_stop(&bb);
+			return ret;
+		}
 
 		timeout = size * 10;
 
