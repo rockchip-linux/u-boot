@@ -461,6 +461,7 @@ int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 	struct DiceFlow DiceFlow[DICE_CNT];
 	uint8_t brom_uds[DICE_CDI_SIZE];
 	int clear_uds = 0;
+	int valid_otp_uds = 0;
 	int i, err;
 	char *DiceProfileName[] = {
 		"android." __stringify(CONFIG_DICE_ANDROID_VERSION),
@@ -499,13 +500,22 @@ int dice_measure(const char *name, uint8_t *code_hash, int code_hash_len)
 		if (err)
 			return err;
 
-		err = dice_mask_uds();
-		if (err) {
-			memset(brom_uds, 0, DICE_CDI_SIZE);
-			return err;
+		/* non-zero ? */
+		for (i = 0; i < DICE_CDI_SIZE; i++) {
+			if (brom_uds[i] != 0) {
+				valid_otp_uds = 1;
+				break;
+			}
 		}
 
 		clear_uds = 1;
+		if (valid_otp_uds) {
+			err = dice_mask_uds();
+			if (err) {
+				printf("DICE: mask uds failed, ret=%d\n", err);
+				goto out;
+			}
+		}
 	}
 
 	for (i = 0; i < ARRAY_SIZE(DiceCtx); i++) {
