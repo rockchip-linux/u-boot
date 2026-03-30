@@ -2584,8 +2584,12 @@ static void vop2_tv_config_update(struct display_state *state, struct vop2 *vop2
 	struct connector_state *conn_state = &state->conn_state;
 	struct bp_bcsh_info *bcsh_info;
 	struct crtc_state *cstate = &state->crtc_state;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	struct bcsh_state bcsh_state;
 	int brightness, contrast, saturation, hue, sin_hue, cos_hue;
+
+	if (vp->bypass_mode)
+		return;
 
 	bcsh_info = rockchip_baseparameter_bcsh_info_get((uintptr_t)conn_state);
 	if (!bcsh_info)
@@ -2703,6 +2707,7 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	struct connector_state *conn_state = &state->conn_state;
 	struct drm_display_mode *mode = &conn_state->mode;
 	struct crtc_state *cstate = &state->crtc_state;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	u32 vp_offset = (cstate->crtc_id * 0x100);
 	u16 vtotal = mode->crtc_vtotal;
 	u16 hact_st = mode->crtc_htotal - mode->crtc_hsync_start;
@@ -2713,6 +2718,15 @@ static void vop2_post_config(struct display_state *state, struct vop2 *vop2)
 	u16 vsize;
 	u16 hact_end, vact_end;
 	u32 val;
+
+	if (vp->bypass_mode) {
+		conn_state->overscan.left_margin = 100;
+		conn_state->overscan.right_margin = 100;
+		conn_state->overscan.top_margin = 100;
+		conn_state->overscan.bottom_margin = 100;
+		hsize = hdisplay;
+		vsize = vdisplay;
+	}
 
 	/*
 	 * For RK3576, use the win scale instead of the post scale to configure
@@ -2796,6 +2810,7 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	struct bp_acm_data acm_data;
 	struct drm_display_mode *mode = &conn_state->mode;
 	u32 vp_offset = (cstate->crtc_id * 0x100);
@@ -2805,6 +2820,9 @@ static void vop3_post_acm_config(struct display_state *state, struct vop2 *vop2)
 	u32 value;
 	int i;
 	int ret;
+
+	if (vp->bypass_mode)
+		return;
 
 	ret = rockchip_baseparameter_acm_data_get((uintptr_t)conn_state, &acm_data);
 	if (ret)
@@ -2911,6 +2929,7 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 {
 	struct connector_state *conn_state = &state->conn_state;
 	struct crtc_state *cstate = &state->crtc_state;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	struct bp_acm_data acm_data = {};
 	struct bp_csc_info csc_info = {};
 	struct bp_bcsh_info *bcsh;
@@ -2929,6 +2948,9 @@ static void vop3_post_csc_config(struct display_state *state, struct vop2 *vop2)
 	u32 value;
 	int range_type;
 	int ret;
+
+	if (vp->bypass_mode)
+		return;
 
 	ret = rockchip_baseparameter_csc_info_get((uintptr_t)conn_state, &csc_info);
 	if (ret)
@@ -5883,12 +5905,17 @@ static int rockchip_vop2_send_mcu_cmd(struct display_state *state, u32 type, u32
 	return 0;
 }
 
-static void vop2_dither_setup(struct vop2 *vop2, int bus_format, int crtc_id)
+static void vop2_dither_setup(struct crtc_state *cstate, int bus_format, int crtc_id)
 {
+	struct vop2 *vop2 = cstate->private;
+	struct rockchip_vp *vp = &cstate->crtc->vps[cstate->crtc_id];
 	const struct vop2_data *vop2_data = vop2->data;
 	const struct vop2_vp_data *vp_data = &vop2_data->vp_data[crtc_id];
 	u32 vp_offset = crtc_id * 0x100;
 	bool pre_dither_down_en = false;
+
+	if (vp->bypass_mode)
+		return;
 
 	switch (bus_format) {
 	case MEDIA_BUS_FMT_RGB565_1X16:
@@ -6140,9 +6167,9 @@ static int rockchip_vop2_init(struct display_state *state)
 	vop2_mask_write(vop2, RK3568_VP0_DSP_CTRL + vp_offset, OUT_MODE_MASK,
 			OUT_MODE_SHIFT, conn_state->output_mode, false);
 
-	vop2_dither_setup(vop2, conn_state->bus_format, cstate->crtc_id);
+	vop2_dither_setup(cstate, conn_state->bus_format, cstate->crtc_id);
 	if (cstate->splice_mode)
-		vop2_dither_setup(vop2, conn_state->bus_format, cstate->splice_crtc_id);
+		vop2_dither_setup(cstate, conn_state->bus_format, cstate->splice_crtc_id);
 
 	cstate->yuv_overlay = is_yuv_output(conn_state->bus_format) ? 1 : 0;
 	vop2_mask_write(vop2, RK3568_OVL_CTRL, EN_MASK, cstate->crtc_id,

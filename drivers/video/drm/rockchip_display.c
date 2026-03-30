@@ -2327,6 +2327,9 @@ static int rockchip_display_probe(struct udevice *dev)
 						s->crtc_state.reserved_plane_en |= true;
 						s->crtc_state.crtc->vps[vp_id].active_layers++;
 					}
+
+					s->crtc_state.crtc->vps[vp_id].bypass_mode =
+						ofnode_read_bool(vp_node, "rockchip,bypass-mode");
 				}
 				get_plane_mask_from_dts = true;
 			}

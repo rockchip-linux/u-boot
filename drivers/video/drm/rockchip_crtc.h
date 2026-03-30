@@ -38,6 +38,17 @@ struct rockchip_vp {
 	bool xmirror_en;
 	bool sharp_en;
 	bool has_extra_layer;	/* the vp1 layer can merge into vp0 layer after overlay */
+	/**
+	 * @bypass_mode: help ensure the output data is consistent with the input data.
+	 * The features acm/cgc/dci/dither/dovi/hdr/overscan/post csc/sharp that may change
+	 * the raw data will be disabled.
+	 *
+	 * Only the plane csc is retained to ensure the basic display function works well.
+	 * Therefore, in order to achieve complete consistency of input and output data, the
+	 * userspace needs to make the color encoding and color range of plane consistent with
+	 * those of connector.
+	 */
+	bool bypass_mode;
 	u8 bg_ovl_dly;
 	u8 primary_plane_id;
 	u8 cursor_plane_id;
